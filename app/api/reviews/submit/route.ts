@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { insertPendingMemberReview } from '@/lib/reviews-db'
 import { validateMemberReviewSubmit } from '@/lib/reviews-validate'
 import { getPublicMutationOriginError } from '@/lib/public-mutation-origin'
@@ -70,9 +71,11 @@ export async function POST(request: Request) {
     )
   }
 
-  return NextResponse.json({
+  const payload = {
     ok: true,
     id: result.id,
     message: '후기가 접수되었습니다. 관리자 검토 후 공개 여부가 결정됩니다.',
-  })
+  }
+  assertNoInternalMetaLeak(payload, 'POST /api/reviews/submit')
+  return NextResponse.json(payload)
 }

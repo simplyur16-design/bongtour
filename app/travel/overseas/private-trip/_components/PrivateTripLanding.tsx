@@ -1,8 +1,6 @@
-import Image from 'next/image'
 import Link from 'next/link'
-import { ClipboardList, Heart, MapPin, MessageCircle, Package, UserRound, Users } from 'lucide-react'
+import { ClipboardList, Heart, Package, UserRound, Users } from 'lucide-react'
 import PrivateGroupCustomerReviewSection from '@/app/components/travel/reviews/PrivateGroupCustomerReviewSection'
-import type { PrivateTripHeroBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import type { ReviewCardModel } from '@/lib/reviews-types'
 
 const recommend = [
@@ -54,166 +52,46 @@ const steps = [
   { n: 4, title: '예약 진행', body: '상담 후 결정된 내용에 따라 순서대로 예약을 도와드립니다.' },
 ] as const
 
-function SeasonBriefingHeroAside({
-  briefing,
-  inquiryHref,
-}: {
-  briefing: PrivateTripHeroBriefingPayload | null
-  inquiryHref: string
-}) {
-  const thumbs = briefing?.supportingThumbs ?? []
-  const hasHero = Boolean(briefing?.imageUrl)
-  const ctaHref = briefing?.ctaHref || inquiryHref
-  const ctaLabel = briefing?.ctaLabel || '예약·상담 문의하기'
-
-  return (
-    <aside className="mx-auto flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border-2 border-teal-100 bg-white shadow-md ring-1 ring-slate-900/[0.04] lg:max-w-none">
-      <div className="relative aspect-[5/4] w-full shrink-0 bg-slate-100 sm:aspect-[16/11] lg:aspect-[5/4] lg:min-h-[220px]">
-        {hasHero ? (
-          <Image
-            src={briefing!.imageUrl!}
-            alt={briefing!.imageAlt || briefing!.title}
-            fill
-            unoptimized
-            className="object-cover"
-            sizes="(max-width:1024px) 100vw, 480px"
-            priority
-          />
-        ) : (
-          <div className="absolute inset-0 flex flex-col">
-            <div className="grid flex-1 grid-cols-3 gap-1 p-2">
-              <div className="col-span-2 row-span-2 rounded-xl bg-slate-200/90 ring-1 ring-slate-300/40" />
-              <div className="rounded-lg bg-slate-200/70 ring-1 ring-slate-300/30" />
-              <div className="rounded-lg bg-slate-200/70 ring-1 ring-slate-300/30" />
-            </div>
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="rounded-full bg-white/90 p-4 shadow-sm ring-1 ring-slate-200">
-                <MapPin className="h-10 w-10 text-teal-700" strokeWidth={1.5} aria-hidden />
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-slate-900/55 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-          운영 추천
-        </div>
-      </div>
-
-      {thumbs.length > 0 ? (
-        <div className="flex gap-2 border-t border-slate-100 bg-slate-50 px-3 py-2.5">
-          {thumbs.map((t) => (
-            <div
-              key={t.url}
-              className="relative h-14 w-[28%] max-w-[120px] shrink-0 overflow-hidden rounded-lg bg-slate-200 ring-1 ring-slate-200/80 sm:h-16"
-            >
-              <Image src={t.url} alt={t.alt} fill unoptimized className="object-cover" sizes="120px" />
-            </div>
-          ))}
-          {thumbs.length === 1 ? (
-            <div className="relative h-14 min-w-0 flex-1 overflow-hidden rounded-lg border border-dashed border-slate-200 bg-white/80 sm:h-16" />
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className="flex flex-col p-5 sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-teal-800">지금 예약하기 좋은 여행지</p>
-        <h2 className="mt-2 text-xl font-bold leading-snug tracking-tight text-slate-900 sm:text-2xl">
-          {briefing?.title ?? '맞춤 단독여행 · 상담으로 시작하기'}
-        </h2>
-        {briefing?.subtitle ? (
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{briefing.subtitle}</p>
-        ) : (
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
-            요즘 문의가 많은 일정과 준비하기 좋은 여행지를 안내합니다. 가까운 곳부터 장거리까지 일정만 알려 주셔도 방향을 함께 잡아 드립니다.
-          </p>
-        )}
-        {briefing?.excerpt ? (
-          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-700">{briefing.excerpt}</p>
-        ) : null}
-        {briefing && briefing.tags.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {briefing.tags.map((t) => (
-              <span
-                key={t}
-                className="rounded-full border border-teal-100 bg-teal-50/80 px-2.5 py-0.5 text-[11px] font-medium text-teal-900"
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        {briefing?.sourceLine ? (
-          <p className="mt-3 text-[11px] leading-relaxed text-slate-500">{briefing.sourceLine}</p>
-        ) : null}
-        {/^https?:\/\//i.test(ctaHref) ? (
-          <a
-            href={ctaHref}
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-teal-700 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-800 sm:w-auto sm:min-w-[220px]"
-          >
-            {ctaLabel}
-          </a>
-        ) : (
-          <Link
-            href={ctaHref}
-            className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-teal-700 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-800 sm:w-auto sm:min-w-[220px]"
-          >
-            {ctaLabel}
-          </Link>
-        )}
-      </div>
-    </aside>
-  )
-}
-
 type Props = {
   inquiryHref: string
   publishedReviews: ReviewCardModel[]
   publishedTotalCount: number
-  heroBriefing?: PrivateTripHeroBriefingPayload | null
 }
 
 export default function PrivateTripLanding({
   inquiryHref,
   publishedReviews,
   publishedTotalCount,
-  heroBriefing = null,
 }: Props) {
   return (
     <>
       <section className="border-b border-slate-200/80 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
-          <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-14 lg:items-center">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-800/80">맞춤 상담 · 소규모 그룹</p>
-              <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-[2.35rem] lg:leading-tight">
-                단독여행
-              </h1>
-              <p className="mt-5 text-base leading-relaxed text-slate-700 sm:text-lg">
-                등록된 여행상품 외에도, 인원과 일정에 맞춰{' '}
-                <span className="font-medium text-slate-800">우리 일행만의 여행</span>으로 상담해드립니다.
-              </p>
-              <p className="mt-3 text-base leading-relaxed text-slate-700 sm:text-lg">
-                가족여행, 동호회 여행, 소규모 모임까지 원하는 흐름에 맞춰 방향을 함께 잡아드립니다.
-              </p>
-              <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
-                모임 총무가 하나하나 신경 쓰지 않도록, 검증된 여행상품을 바탕으로 일정과 견적 정리를 함께 도와드립니다.
-              </p>
-              <div className="mt-10 flex flex-wrap gap-3">
-                <Link
-                  href={inquiryHref}
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-teal-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-75 hover:bg-teal-800"
-                >
-                  단독견적 문의하기
-                </Link>
-                <Link
-                  href={`${inquiryHref}${inquiryHref.includes('?') ? '&' : '?'}topic=custom`}
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors duration-75 hover:border-teal-300 hover:bg-teal-50/60 hover:text-teal-900"
-                >
-                  맞춤여행 상담 받기
-                </Link>
-              </div>
-            </div>
-            <SeasonBriefingHeroAside briefing={heroBriefing} inquiryHref={inquiryHref} />
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-800/80">맞춤 상담 · 소규모 그룹</p>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-[2.35rem] lg:leading-tight">
+            단독여행
+          </h1>
+          <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-700 sm:text-lg">
+            등록된 여행상품 외에도, 인원과 일정에 맞춰{' '}
+            <span className="font-medium text-slate-800">우리 일행만의 여행</span>으로 상담해드립니다. 가족여행, 동호회 여행,
+            소규모 모임까지 원하는 흐름에 맞춰 방향을 함께 잡아드립니다.
+          </p>
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
+            모임 총무가 하나하나 신경 쓰지 않도록, 검증된 여행상품을 바탕으로 일정과 견적 정리를 함께 도와드립니다.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href={inquiryHref}
+              className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-teal-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-75 hover:bg-teal-800"
+            >
+              단독견적 문의하기
+            </Link>
+            <Link
+              href={`${inquiryHref}${inquiryHref.includes('?') ? '&' : '?'}topic=custom`}
+              className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors duration-75 hover:border-teal-300 hover:bg-teal-50/60 hover:text-teal-900"
+            >
+              맞춤여행 상담 받기
+            </Link>
           </div>
         </div>
       </section>

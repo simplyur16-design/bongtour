@@ -1,13 +1,11 @@
 import type { Metadata } from 'next'
 import Header from '@/app/components/Header'
+import OverseasHero from '@/app/components/travel/overseas/OverseasHero'
 import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
 import PrivateTripLanding from '@/app/travel/overseas/private-trip/_components/PrivateTripLanding'
 import { OVERSEAS_LANDING_PUBLISHED_REVIEWS_LIMIT } from '@/lib/reviews/overseas-reviews-section-copy'
 import { countOverseasPublishedReviews, listOverseasPublishedReviewCards } from '@/lib/reviews-db'
-import { toSafeHttpUrl } from '@/lib/cms-source-attribution'
-import type { PrivateTripHeroBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import {
-  editorialRowToPrivateHeroBriefing,
   fetchPublishedOverseasEditorials,
   prioritizeEditorialsByRegionAndCountry,
   selectPrivateTripHeroEditorialRow,
@@ -68,47 +66,16 @@ export default async function PrivateTripPage() {
   ])
   const inquiryHref = `/inquiry?type=travel&source=${encodeURIComponent(INQUIRY_SOURCE)}`
 
-  let heroBriefing: PrivateTripHeroBriefingPayload | null = null
-  try {
-    const editorialAll = await fetchPublishedOverseasEditorials()
-    const prioritized = prioritizeEditorialsByRegionAndCountry(editorialAll, null, null)
-    const primary = selectPrivateTripHeroEditorialRow(prioritized)
-    const base = editorialRowToPrivateHeroBriefing(primary, 110, {
-      defaultCtaHref: inquiryHref,
-      defaultCtaLabel: '예약·상담 문의하기',
-    })
-    if (base && prioritized.length > 1 && primary) {
-      const supportingThumbs = prioritized
-        .filter((r) => r.id !== primary.id)
-        .slice(0, 2)
-        .map((r) => {
-          const u = toSafeHttpUrl(r.heroImageUrl)
-          if (!u) return null
-          return {
-            url: u,
-            alt: (r.heroImageAlt && r.heroImageAlt.trim()) || r.title,
-          }
-        })
-        .filter((x): x is { url: string; alt: string } => x != null)
-      heroBriefing =
-        supportingThumbs.length > 0 ? { ...base, supportingThumbs } : base
-    } else {
-      heroBriefing = base
-    }
-  } catch {
-    // 히어로는 브리핑 없이 표시
-  }
-
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
       <OverseasTravelSubMainNav variant="links" />
       <main>
+        <OverseasHero browseListingKind="private_trip" />
         <PrivateTripLanding
           inquiryHref={inquiryHref}
           publishedReviews={publishedReviewCards}
           publishedTotalCount={publishedTotalCount}
-          heroBriefing={heroBriefing}
         />
       </main>
     </div>

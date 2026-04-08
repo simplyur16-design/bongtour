@@ -6,17 +6,17 @@
  * - hanatour → `…-hanatour`
  */
 import { NextResponse } from 'next/server'
+import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
 
 export async function POST() {
-  return NextResponse.json(
-    {
-      success: false,
-      error:
-        '이 엔드포인트는 사용하지 않습니다. 전용 등록 API(parse-and-register-modetour|verygoodtour|ybtour|hanatour)를 호출하세요.',
-    },
-    { status: 410 }
-  )
+  const payload = {
+    success: false,
+    error:
+      '이 엔드포인트는 사용하지 않습니다. 전용 등록 API(parse-and-register-modetour|verygoodtour|ybtour|hanatour)를 호출하세요.',
+  }
+  assertNoInternalMetaLeak(payload, 'POST /api/travel/parse-and-register (410)')
+  return NextResponse.json(payload, { status: 410 })
 }

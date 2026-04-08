@@ -26,6 +26,7 @@ import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import { mapMatchToOverseasDisplayBucket } from '@/lib/overseas-display-buckets'
 import { filterPoolByStoredTravelScope } from '@/lib/travel-scope-pool-filter'
+import { parseListingKind } from '@/lib/product-listing-kind'
 
 export const dynamic = 'force-dynamic'
 
@@ -149,6 +150,13 @@ export async function GET(request: Request) {
         if (!Array.isArray(p.departures) || p.departures.length === 0) return true
         return p.departures.some((d) => d.minPax == null || paxFilter >= d.minPax)
       })
+    }
+
+    /** DB `Product.listingKind` 로 한정 (예: 단독여행 히어로 = private_trip 만) */
+    const listingKindRaw = searchParams.get('listingKind')
+    const listingKindParsed = listingKindRaw ? parseListingKind(listingKindRaw) : null
+    if (listingKindParsed) {
+      filteredRows = filteredRows.filter((p) => p.listingKind === listingKindParsed)
     }
 
     /** 사이드바 상품유형이 있으면 1차 유형은 카테고리 필터에 맡기고 목적지만 좁힌다 */

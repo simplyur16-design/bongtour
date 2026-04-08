@@ -207,7 +207,15 @@ function buildMonthlyHero(items: BrowseHeroItem[]): Array<BrowseHeroItem & { slo
   })
 }
 
-export default function OverseasHero() {
+export type OverseasHeroProps = {
+  /**
+   * 히어로 카드에 쓸 상품을 DB `listingKind` 로 한정.
+   * 단독여행 허브는 `private_trip` 만 (제목 추론 등으로 섞인 일반 해외상품 제외).
+   */
+  browseListingKind?: 'private_trip'
+}
+
+export default function OverseasHero({ browseListingKind }: OverseasHeroProps = {}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const departDateId = 'overseas-hero-depart-date'
@@ -294,12 +302,25 @@ export default function OverseasHero() {
     router.replace(`/travel/overseas?${p.toString()}`)
   }
 
+  const browseUrl = useMemo(() => {
+    const q = new URLSearchParams({
+      scope: 'overseas',
+      limit: '100',
+      sort: 'popular',
+    })
+    if (browseListingKind === 'private_trip') {
+      q.set('listingKind', 'private_trip')
+      q.set('type', 'private')
+    }
+    return `/api/products/browse?${q.toString()}`
+  }, [browseListingKind])
+
   useEffect(() => {
     let off = false
     ;(async () => {
       setLoading(true)
       try {
-        const res = await fetch('/api/products/browse?scope=overseas&limit=100&sort=popular', { cache: 'no-store' })
+        const res = await fetch(browseUrl, { cache: 'no-store' })
         const json = (await res.json()) as ApiOk | { ok: false }
         if (!off && res.ok && 'ok' in json && json.ok) {
           const onlyWithImage = (json.items ?? []).filter((x) => Boolean((x.coverImageUrl ?? x.bgImageUrl ?? '').trim()))
@@ -314,7 +335,7 @@ export default function OverseasHero() {
     return () => {
       off = true
     }
-  }, [])
+  }, [browseUrl])
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
