@@ -1,0 +1,45 @@
+/**
+ * Next.js instrumentation: 서버 기동 시 한 번 실행.
+ * 개발 시 관리자 임시 접속 URL을 콘솔에 출력 (BONGTOUR_DEV_ADMIN_BYPASS + ADMIN_BYPASS_SECRET 필요).
+ */
+import { isDevAdminBypassRuntimeAllowed } from '@/lib/admin-bypass'
+
+export async function register() {
+  if (process.env.NODE_ENV === 'development' && process.env.NEXT_RUNTIME === 'nodejs') {
+    console.warn(
+      '[Bong투어] ChunkLoadError·layout.js timeout: `next dev -p 3000` 고정. 브라우저·NEXTAUTH_URL·NEXT_PUBLIC_*는 모두 http://localhost:3000 로 맞추세요.'
+    )
+    if (!isDevAdminBypassRuntimeAllowed()) {
+      console.log(
+        '\n[Bong투어] 관리자 임시 접속(URL)은 비활성입니다. `.env.local` 에 BONGTOUR_DEV_ADMIN_BYPASS=true 와 ADMIN_BYPASS_SECRET 을 설정하세요.\n'
+      )
+      return
+    }
+    const port = process.env.PORT || '3000'
+    const base = (process.env.NEXTAUTH_URL || `http://localhost:${port}`).replace(/\/$/, '')
+    const nurl = process.env.NEXTAUTH_URL
+    if (nurl && nurl.includes('localhost')) {
+      const m = nurl.match(/:(\d+)(?:\/|$)/)
+      if (m && m[1] !== port) {
+        console.warn(
+          `[Bong투어] NEXTAUTH_URL 포트(${m[1]})와 PORT(${port}) 불일치. ChunkLoadError 시 브라우저 주소·NEXTAUTH_URL·PORT를 맞추세요.`
+        )
+      }
+    }
+    const secret = process.env.ADMIN_BYPASS_SECRET?.trim()
+    if (!secret) {
+      console.log(
+        '\n[Bong투어] ADMIN_BYPASS_SECRET 이 비어 있습니다. 임시 접속 URL을 표시하지 않습니다.\n'
+      )
+      return
+    }
+    const url = `${base}/admin?auth=${secret}`
+    console.log('\n[Bong투어] 관리자 임시 접속 URL:', url)
+    console.log(
+      `[Bong투어] dev 서버 PORT env=${port}. 로컬은 npm run dev가 -p 3000으로만 리슨합니다(3000 점유 시 Next가 다른 포트로 넘어가지 않고 기동 실패).`
+    )
+    console.log(
+      '[Bong투어] 브라우저는 터미널 Local URL과 동일한 호스트·포트로 접속하세요. stylesheet·static chunk 오류는 `.next` 꼬임일 수 있어 `npm run dev:clean` 을 권장합니다.\n'
+    )
+  }
+}

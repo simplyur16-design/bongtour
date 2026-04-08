@@ -1,0 +1,288 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * 봉투어 전역 토큰
+ * - 본문: 차콜/그레이 (--bt-text-primary / secondary / muted)
+ * - 본문·카드 강조: 틸 계열 (--bt-accent*, 가격·달력 가용과 정합)
+ * - 링크·폼 포커스·탭 UI: 브랜드 블루 (--bt-link, --bt-ui-accent*)
+ * - CTA 버튼: --bt-cta-* (변경 금지)
+ * @see docs/DESIGN-TOKENS-COLOR.md
+ */
+:root {
+  /* 브랜드 */
+  --bt-brand-gold: #f2c94c;
+  --bt-brand-gold-strong: #d9a81e;
+  --bt-brand-blue: #58b7e8;
+  --bt-brand-blue-strong: #2f8fc7;
+  --bt-brand-blue-soft: #eaf6fd;
+
+  /* Typography — canonical */
+  --bt-text-primary: #0f172a;
+  --bt-text-secondary: #334155;
+  --bt-text-muted: #64748b;
+  /* Legacy aliases */
+  --bt-text-strong: var(--bt-text-primary);
+  --bt-text-title: #132033;
+  --bt-text-body: var(--bt-text-secondary);
+  --bt-text-meta: #94a3b8;
+  --bt-text-subtle: #b0bccb;
+  --bt-text-inverse: #ffffff;
+
+  /** 본문·카드 강조 (틸 계열, DESIGN-TOKENS-COLOR.md 레거시 액센트) */
+  --bt-accent: #0d9488;
+  --bt-accent-strong: #0f766e;
+  --bt-accent-soft: rgba(13, 148, 136, 0.12);
+  /** Tailwind `accent-subtle` 유틸과 동일 용도 */
+  --bt-accent-subtle: rgba(13, 148, 136, 0.12);
+  --bt-accent-border: rgba(13, 148, 136, 0.32);
+  --bt-accent-hover: #0f766e;
+  --bt-card-title: var(--bt-text-title);
+  --bt-card-subtitle: var(--bt-text-secondary);
+  --bt-icon-accent: var(--bt-accent);
+
+  /** 산문 강조(괄호 태그 등) — 링크 아님 */
+  --bt-text-emphasis: var(--bt-accent-strong);
+  --bt-text-emphasis-strong: #115e59;
+
+  /** 상품 카드 본문 블록 — 위와 동일 */
+  --bt-card-body-accent: var(--bt-accent);
+  --bt-card-body-accent-strong: var(--bt-accent-strong);
+  --bt-card-body-accent-soft: var(--bt-accent-soft);
+  --bt-card-body-accent-border: var(--bt-accent-border);
+
+  /** 인터랙션 UI(포커스·일부 선택 테두리) — 블루 유지 */
+  --bt-ui-accent: var(--bt-brand-blue-strong);
+  --bt-ui-accent-soft: var(--bt-brand-blue-soft);
+  --bt-ui-accent-hover: var(--bt-link-hover);
+
+  /* 상태·기능 */
+  --bt-link: #2f8fc7;
+  --bt-link-hover: #1f78ad;
+  --bt-price: #0f766e;
+  --bt-success: #15803d;
+  --bt-warning: #b45309;
+  --bt-danger: #b91c1c;
+  --bt-disabled: #cbd5e1;
+
+  /* 표면·경계 */
+  --bt-border-soft: #e2e8f0;
+  --bt-border-strong: #cbd5e1;
+  --bt-surface-soft: #f8fafc;
+  --bt-surface-alt: #f1f5f9;
+
+  /* CTA — 브랜드 버튼 (이번 작업에서 색상 변경 없음) */
+  --bt-cta-primary-bg: #2f8fc7;
+  --bt-cta-primary-text: #ffffff;
+  --bt-cta-primary-hover: #1f78ad;
+  --bt-cta-secondary-bg: #ffffff;
+  --bt-cta-secondary-text: #132033;
+  --bt-cta-secondary-border: #cbd5e1;
+  --bt-cta-accent-bg: #f2c94c;
+  --bt-cta-accent-text: #132033;
+
+  /* 여행 UI */
+  --bt-supplier-label: #475569;
+  --bt-badge-package: #eaf6fd;
+  --bt-badge-package-text: #2f8fc7;
+  --bt-badge-freeform: #fef3c7;
+  --bt-badge-freeform-text: #b45309;
+  --bt-badge-domestic: #ecfdf5;
+  --bt-badge-domestic-text: #15803d;
+  --bt-calendar-available: #0f766e;
+  --bt-calendar-unavailable: #cbd5e1;
+  --bt-calendar-selected: #2f8fc7;
+  --bt-calendar-lowest: #f2c94c;
+
+  /* 레거시·레이아웃 별칭 */
+  --bt-page-bg: var(--bt-surface-soft);
+  --bt-surface: #ffffff;
+  --bt-card: #ffffff;
+  --bt-text: var(--bt-text-title);
+  --bt-border: var(--bt-border-soft);
+  --bt-text-price: var(--bt-price);
+  --bt-text-disabled: var(--bt-disabled);
+
+  --bt-accent-fg: var(--bt-text-inverse);
+
+  --bt-cta-primary: var(--bt-cta-primary-bg);
+
+  --bt-badge-bg: var(--bt-surface-alt);
+  --bt-badge-text: var(--bt-supplier-label);
+  --bt-domestic: var(--bt-badge-domestic-text);
+  --bt-overseas: var(--bt-supplier-label);
+  --bt-disclosure-bg: var(--bt-surface-alt);
+  --bt-hero-veil: rgba(15, 23, 42, 0.82);
+
+  --beige: var(--bt-surface-soft);
+  --bong-orange: var(--bt-brand-gold-strong);
+  --bong-orange-bg: var(--bt-brand-blue-soft);
+
+  --primary: var(--bt-text-title);
+  --accent: var(--bt-accent);
+  --base: var(--bt-surface);
+  --base-muted: var(--bt-page-bg);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bt-page-bg);
+  color: var(--bt-text-body);
+  word-break: keep-all;
+}
+
+:lang(ko) {
+  word-break: keep-all;
+  overflow-wrap: normal;
+  line-break: strict;
+}
+
+@layer base {
+  html {
+    text-rendering: optimizeLegibility;
+  }
+
+  .bt-wrap {
+    word-break: keep-all;
+    overflow-wrap: normal;
+    line-break: strict;
+  }
+  .bt-wrap-tight {
+    word-break: keep-all;
+    overflow-wrap: normal;
+    line-break: strict;
+  }
+  .bt-code-wrap {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-break: auto;
+  }
+
+  .bt-url-wrap,
+  code,
+  pre,
+  kbd,
+  samp {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-break: auto;
+  }
+
+  .bt-tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+}
+
+@layer components {
+  .bt-page {
+    @apply bg-bt-page text-bt-body;
+  }
+
+  .bt-card-strong {
+    @apply rounded-2xl border border-bt-border-strong bg-bt-surface shadow-sm;
+  }
+  .bt-card {
+    @apply rounded-2xl border border-bt-border bg-bt-surface;
+  }
+  .bt-card-soft {
+    @apply rounded-xl border border-bt-border-soft bg-bt-surface-soft;
+  }
+
+  .bt-section-title {
+    @apply text-lg font-black tracking-tight;
+    color: var(--bt-card-title);
+  }
+  .bt-section-kicker {
+    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-bt-muted;
+  }
+
+  /** 카드·블록 소제목 키커 */
+  .bt-card-kicker {
+    @apply text-[11px] font-bold uppercase tracking-[0.14em];
+    color: var(--bt-card-title);
+  }
+
+  /** 본문 카드 섹션 제목 (항공정보, 부가정보 등) */
+  .bt-card-heading {
+    @apply text-sm font-semibold tracking-tight sm:text-base;
+    color: var(--bt-card-title);
+  }
+
+  .bt-product-title {
+    @apply bt-wrap text-2xl font-black leading-[1.15] tracking-[0.02em] text-bt-title sm:text-3xl;
+  }
+
+  .bt-price-main {
+    @apply bt-tabular text-2xl font-black leading-none tracking-tight text-bt-price sm:text-3xl;
+  }
+  .bt-price-base {
+    @apply bt-tabular text-sm font-semibold text-bt-muted line-through decoration-bt-muted;
+  }
+
+  .bt-badge {
+    @apply inline-flex items-center rounded-full border border-bt-border-soft bg-bt-surface-alt px-3 py-1 text-xs font-semibold tracking-tight text-bt-title;
+  }
+  .bt-badge-muted {
+    @apply inline-flex items-center rounded-full bg-bt-surface-soft px-3 py-1 text-xs font-semibold tracking-tight text-bt-muted;
+  }
+
+  .bt-btn {
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-xl px-4 text-sm font-bold tracking-tight transition;
+  }
+  .bt-btn-primary {
+    @apply bt-btn border-2 border-bt-cta-primary bg-bt-cta-primary text-bt-cta-primary-fg hover:bg-bt-cta-primary-hover;
+  }
+  .bt-btn-secondary {
+    @apply bt-btn border border-bt-cta-secondary-border bg-bt-cta-secondary text-bt-cta-secondary-text hover:bg-bt-surface-alt;
+  }
+  .bt-btn-ghost {
+    @apply bt-btn border border-bt-border-soft bg-transparent text-bt-title hover:bg-bt-surface-alt;
+  }
+}
+
+main details summary {
+  color: var(--bt-text-primary);
+}
+main details > p,
+main details .faq-answer {
+  color: var(--bt-text-body);
+}
+
+#support-faq details summary,
+#support-faq details summary span {
+  color: #0f172a !important;
+}
+#support-faq .faq-answer {
+  color: #334155 !important;
+}
+
+#air-faq details summary,
+#air-faq details summary span {
+  color: #0f172a !important;
+}
+#air-faq .faq-answer {
+  color: #334155 !important;
+}
+
+a:not([class]) {
+  color: var(--bt-link);
+}
+a:not([class]):hover {
+  color: var(--bt-link-hover);
+}
+
+/* `/products/[id]` — ProductDetailCopyGuard: 공급사 본문 복사 완화(전역 미적용) */
+.product-detail-copy-guard {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -webkit-touch-callout: none;
+}

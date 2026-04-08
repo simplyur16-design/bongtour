@@ -1,0 +1,9 @@
+{
+  "cronHour": 12,
+  "cronMinute": 30,
+  "restMin": 30,
+  "restMax": 90,
+  "randomizeUserAgent": true,
+  "randomMouseMovement": false,
+  "headlessMode": true
+}

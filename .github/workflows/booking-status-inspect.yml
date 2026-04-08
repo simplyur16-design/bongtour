@@ -1,0 +1,38 @@
+# 운영 DB 기준 Booking.status 분포 점검 (unknown 시 exit 2)
+# Secrets: DATABASE_URL
+# 운영 편입: docs/OPERATIONS-GITHUB-PURGE-SETUP.md
+
+name: Booking status inspect
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Inspect booking statuses
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -e
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL secret is not set."
+            exit 1
+          fi
+          npm run booking:statuses:inspect

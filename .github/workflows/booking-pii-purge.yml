@@ -1,0 +1,63 @@
+# 예약 PII 익명화 배치 (보관기간 경과분)
+#
+# 운영 편입: docs/OPERATIONS-GITHUB-PURGE-SETUP.md
+#
+# Secrets: DATABASE_URL (필수), BOOKING_PII_PURGE_ALERT_WEBHOOK_URL (권장), BOOKING_PII_RETENTION_DAYS (선택)
+# Variables: BOOKING_PII_RETENTION_DAYS (선택, Secret과 둘 중 하나), BOOKING_PII_PURGE_ENABLED (schedule용)
+
+name: Booking PII purge
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry-run (건수만) 또는 apply (익명화 실행)'
+        type: choice
+        options:
+          - dry-run
+          - apply
+        default: dry-run
+  schedule:
+    - cron: '0 3 1 * *'
+
+jobs:
+  purge:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && vars.BOOKING_PII_PURGE_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Run purge script
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BOOKING_PII_RETENTION_DAYS: ${{ vars.BOOKING_PII_RETENTION_DAYS || secrets.BOOKING_PII_RETENTION_DAYS }}
+          BOOKING_PII_PURGE_ALERT_WEBHOOK_URL: ${{ secrets.BOOKING_PII_PURGE_ALERT_WEBHOOK_URL }}
+        run: |
+          set -e
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL secret is not set."
+            exit 1
+          fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MODE="${{ inputs.mode }}"
+          else
+            MODE=apply
+          fi
+          if [ "$MODE" = "apply" ]; then
+            npx tsx scripts/purge-old-bookings.ts --apply --log-json
+          else
+            npx tsx scripts/purge-old-bookings.ts --dry-run --log-json
+          fi

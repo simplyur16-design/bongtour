@@ -1,0 +1,5 @@
+# 모두투어 스크래퍼 전용 (Python 3.10+)
+playwright>=1.40.0
+
+# 설치 후 브라우저 한 번 설치:
+#   playwright install chromium
