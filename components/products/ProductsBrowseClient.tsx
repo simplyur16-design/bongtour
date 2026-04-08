@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { BrowseSort } from '@/lib/products-browse-filter'
 import {
@@ -61,6 +61,7 @@ export default function ProductsBrowseClient({
   monthlyCurationMid = null,
 }: Props) {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const qs = searchParams.toString()
 
@@ -88,6 +89,9 @@ export default function ProductsBrowseClient({
       try {
         const p = new URLSearchParams(qs)
         if (defaultScope && !p.get('scope')) p.set('scope', defaultScope)
+        if (defaultScope === 'overseas' && pathname === '/travel/overseas') {
+          p.delete('listingKind')
+        }
         if ((q.budgetPerPerson != null || q.budgetMin != null) && !p.get('sort')) {
           p.set('sort', 'budget_fit')
         }
@@ -113,7 +117,7 @@ export default function ProductsBrowseClient({
     return () => {
       cancelled = true
     }
-  }, [qs])
+  }, [qs, pathname, defaultScope])
 
   const navigate = useCallback(
     (next: BrowseQueryState) => {

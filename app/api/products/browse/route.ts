@@ -152,11 +152,17 @@ export async function GET(request: Request) {
       })
     }
 
-    /** DB `Product.listingKind` 로 한정 (예: 단독여행 히어로 = private_trip 만) */
+    /** DB `Product.listingKind` 로 한정. 레거시 null 은 일반 패키지(travel)로 간주 */
     const listingKindRaw = searchParams.get('listingKind')
     const listingKindParsed = listingKindRaw ? parseListingKind(listingKindRaw) : null
     if (listingKindParsed) {
-      filteredRows = filteredRows.filter((p) => p.listingKind === listingKindParsed)
+      filteredRows = filteredRows.filter((p) => {
+        const lk = p.listingKind
+        if (listingKindParsed === 'travel') {
+          return lk === 'travel' || lk == null || lk === ''
+        }
+        return lk === listingKindParsed
+      })
     }
 
     /** 사이드바 상품유형이 있으면 1차 유형은 카테고리 필터에 맡기고 목적지만 좁힌다 */
