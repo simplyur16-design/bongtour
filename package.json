@@ -18,6 +18,7 @@
     "get-bg-color": "node scripts/get-envelope-bg-color.js",
     "prisma:generate": "prisma generate",
     "prisma:generate:safe": "node scripts/prisma-generate-safe.js",
+    "admin:bootstrap": "npx tsx scripts/bootstrap-admin.ts",
     "db:push": "prisma db push",
     "db:seed": "npx tsx scripts/seed-brands.ts",
     "seed:travel-reviews": "npx tsx scripts/seed-travel-reviews.ts",
