@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Header from '@/app/components/Header'
-import OverseasHero from '@/app/components/travel/overseas/OverseasHero'
 import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
+import PrivateTripHero from '@/app/travel/overseas/private-trip/_components/PrivateTripHero'
 import PrivateTripLanding from '@/app/travel/overseas/private-trip/_components/PrivateTripLanding'
 import { OVERSEAS_LANDING_PUBLISHED_REVIEWS_LIMIT } from '@/lib/reviews/overseas-reviews-section-copy'
 import { countOverseasPublishedReviews, listOverseasPublishedReviewCards } from '@/lib/reviews-db'
@@ -71,7 +71,7 @@ export default async function PrivateTripPage() {
       <Header />
       <OverseasTravelSubMainNav variant="links" />
       <main>
-        <OverseasHero browseListingKind={'private_trip' as const} />
+        <PrivateTripHero />
         <PrivateTripLanding
           inquiryHref={inquiryHref}
           publishedReviews={publishedReviewCards}
