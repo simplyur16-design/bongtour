@@ -49,7 +49,8 @@ async function main() {
     data: common,
     select: { id: true, email: true, name: true, role: true, accountStatus: true, signupMethod: true },
   })
-  console.log('[bootstrap-admin] OK: updated existing user (previous role: %s)', existing.role ?? 'null')
+  console.log('[bootstrap-admin] OK: updated existing user')
+  console.log('[bootstrap-admin] previous role:', existing.role ?? 'null')
   console.log('[bootstrap-admin] user:', JSON.stringify(user, null, 2))
 }
 
