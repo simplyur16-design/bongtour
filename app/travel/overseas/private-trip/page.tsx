@@ -71,7 +71,7 @@ export default async function PrivateTripPage() {
       <Header />
       <OverseasTravelSubMainNav variant="links" />
       <main>
-        <OverseasHero browseListingKind="private_trip" />
+        <OverseasHero browseListingKind={'private_trip' as const} />
         <PrivateTripLanding
           inquiryHref={inquiryHref}
           publishedReviews={publishedReviewCards}

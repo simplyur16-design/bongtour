@@ -81,8 +81,10 @@ async function main() {
     where: { email: EMAIL },
     select: { passwordHash: true },
   })
-  const verifyOk =
-    Boolean(check?.passwordHash) && (await bcrypt.compare(PASSWORD, check.passwordHash as string))
+  if (!check?.passwordHash) {
+    throw new Error('[bootstrap-admin] user missing passwordHash after upsert')
+  }
+  const verifyOk = await bcrypt.compare(PASSWORD, check.passwordHash)
   console.log('[bootstrap-admin] bcrypt verify (same password):', verifyOk ? 'OK' : 'FAILED')
   if (!verifyOk) {
     throw new Error('[bootstrap-admin] password hash verify failed after upsert')

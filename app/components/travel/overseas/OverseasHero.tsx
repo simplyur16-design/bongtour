@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { type FC, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
 
@@ -215,7 +215,7 @@ export type OverseasHeroProps = {
   browseListingKind?: 'private_trip'
 }
 
-export default function OverseasHero({ browseListingKind }: OverseasHeroProps = {}) {
+const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const departDateId = 'overseas-hero-depart-date'
@@ -639,3 +639,5 @@ export default function OverseasHero({ browseListingKind }: OverseasHeroProps = 
     </section>
   )
 }
+
+export default OverseasHero
