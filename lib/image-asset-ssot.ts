@@ -7,8 +7,8 @@ import { entityLabelToSlug, supplierDisplayEn, supplierNameToSlug, toAssetSlug }
 
 export { toAssetSlug } from '@/lib/image-asset-slug'
 
-/** Supabase 공개 버킷 SSOT */
-export const IMAGE_ASSET_STORAGE_BUCKET = 'bongtour-images' as const
+/** Ncloud Object Storage 버킷 기본값 (환경변수와 동기: NCLOUD_OBJECT_STORAGE_BUCKET) */
+export const IMAGE_ASSET_STORAGE_BUCKET = 'bongtour' as const
 
 export type ImageAssetEntityType = 'product' | 'city' | 'country' | 'study' | 'bus' | 'page'
 
@@ -108,18 +108,6 @@ export function buildStoragePath(p: StoragePathParams): string {
     }
   }
   return parts.join('/')
-}
-
-/**
- * 공개 URL (signed URL 금지). project URL + /storage/v1/object/public/{bucket}/{path}
- */
-export function buildSupabasePublicObjectUrl(projectUrl: string, bucket: string, storagePath: string): string {
-  const base = projectUrl.replace(/\/+$/, '')
-  const enc = storagePath
-    .split('/')
-    .map((seg) => encodeURIComponent(seg))
-    .join('/')
-  return `${base}/storage/v1/object/public/${bucket}/${enc}`
 }
 
 export type AltParams = {

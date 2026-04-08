@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   const o = body as Record<string, unknown>
   const email = typeof o.email === 'string' ? o.email.trim().toLowerCase() : ''
   const password = typeof o.password === 'string' ? o.password : ''
-  const name = typeof o.name === 'string' ? o.name.trim() : ''
+  const passwordConfirm = typeof o.passwordConfirm === 'string' ? o.passwordConfirm : ''
   const privacyNoticeConfirmed = o.privacyNoticeConfirmed === true
   const privacyNoticeVersion = typeof o.privacyNoticeVersion === 'string' ? o.privacyNoticeVersion.trim() : ''
   const marketingConsent = o.marketingConsent === true
@@ -51,8 +51,11 @@ export async function POST(req: Request) {
   if (password.length < 8) {
     return NextResponse.json({ error: '비밀번호는 8자 이상이어야 합니다.' }, { status: 400 })
   }
-  if (!name || name.length > 80) {
-    return NextResponse.json({ error: '이름을 입력해 주세요. (80자 이내)' }, { status: 400 })
+  if (!passwordConfirm) {
+    return NextResponse.json({ error: '비밀번호 확인을 입력해 주세요.' }, { status: 400 })
+  }
+  if (password !== passwordConfirm) {
+    return NextResponse.json({ error: '비밀번호가 일치하지 않습니다.' }, { status: 400 })
   }
   if (!privacyNoticeConfirmed) {
     return NextResponse.json(
@@ -75,7 +78,6 @@ export async function POST(req: Request) {
   const user = await prisma.user.create({
     data: {
       email,
-      name,
       passwordHash,
       signupMethod: 'email',
       accountStatus: 'active',
@@ -86,7 +88,7 @@ export async function POST(req: Request) {
       marketingConsentAt: marketingConsent ? new Date() : null,
       marketingConsentVersion: marketingConsent ? marketingConsentVersion || 'member-marketing-v1' : null,
     },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true },
   })
 
   return NextResponse.json({ ok: true, user })

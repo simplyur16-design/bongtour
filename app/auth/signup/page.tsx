@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import KakaoLoginButton from '@/app/components/auth/KakaoLoginButton'
+import NaverLoginLink from '@/app/components/auth/NaverLoginLink'
 import Header from '@/app/components/Header'
 
 type Props = {
@@ -9,6 +10,7 @@ type Props = {
 export default async function SignUpPage({ searchParams }: Props) {
   const { callbackUrl } = await searchParams
   const kakaoOn = Boolean(process.env.KAKAO_CLIENT_ID?.trim() && process.env.KAKAO_CLIENT_SECRET?.trim())
+  const naverOn = Boolean(process.env.NAVER_CLIENT_ID?.trim() && process.env.NAVER_CLIENT_SECRET?.trim())
 
   return (
     <div className="min-h-screen bg-beige">
@@ -27,23 +29,32 @@ export default async function SignUpPage({ searchParams }: Props) {
             이메일로 시작하기
           </Link>
 
-          {kakaoOn ? (
+          {kakaoOn || naverOn ? (
             <>
               <div className="relative py-1 text-center text-xs text-bt-subtle">
                 <span className="relative z-10 bg-beige px-2">또는</span>
                 <span className="absolute inset-x-0 top-1/2 z-0 h-px -translate-y-1/2 bg-bt-border-soft" aria-hidden />
               </div>
 
-              <KakaoLoginButton callbackUrl={callbackUrl ?? '/'} className="w-full justify-center">
-                카카오로 시작하기
-              </KakaoLoginButton>
+              <div className="flex flex-col gap-2">
+                {naverOn ? (
+                  <NaverLoginLink callbackUrl={callbackUrl ?? '/'} className="w-full justify-center rounded-lg">
+                    네이버로 시작하기
+                  </NaverLoginLink>
+                ) : null}
+                {kakaoOn ? (
+                  <KakaoLoginButton callbackUrl={callbackUrl ?? '/'} className="w-full justify-center rounded-lg">
+                    카카오로 시작하기
+                  </KakaoLoginButton>
+                ) : null}
+              </div>
               <p className="text-center text-[11px] leading-relaxed text-bt-meta">
-                소셜은 카카오 외에도 단계적으로 추가될 예정입니다.
+                소셜 가입은 카카오·네이버를 지원합니다.
               </p>
             </>
           ) : (
             <p className="text-center text-[11px] leading-relaxed text-bt-meta">
-              카카오 연동 시 서버에 KAKAO_CLIENT_ID / KAKAO_CLIENT_SECRET 을 설정하면 여기에서 소셜 가입이 열립니다.
+              카카오·네이버 연동 시 서버에 각 CLIENT_ID / CLIENT_SECRET 을 설정하면 여기에서 소셜 가입이 열립니다.
             </p>
           )}
         </div>

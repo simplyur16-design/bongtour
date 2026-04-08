@@ -142,8 +142,8 @@ export default function ImageAssetsUploadPage() {
         <h1 className="text-xl font-semibold text-bt-title">이미지 업로드 (SSOT)</h1>
         <p className="mt-1 text-sm text-bt-muted">
           Storage 객체 경로·<code>file_name</code>·<code>public_url</code>·alt는 서버 SSOT로 생성됩니다(엔티티·역할·순번 기반 슬러그 규칙).
-          아래 <code>seo_title_kr</code>/<code>seo_title_en</code>은 표시·메타·일정 연동용이며 파일명을 바꾸지 않습니다. Supabase{' '}
-          <code>bongtour-images</code> + DB <code>image_assets</code>. <code>source_type</code>은 내부 원천 구분용입니다.
+          아래 <code>seo_title_kr</code>/<code>seo_title_en</code>은 표시·메타·일정 연동용이며 파일명을 바꾸지 않습니다. Ncloud Object Storage(
+          버킷 <code>bongtour</code> 등) + Prisma <code>image_assets</code>. <code>source_type</code>은 내부 원천 구분용입니다.
         </p>
       </div>
 

@@ -65,37 +65,6 @@ export default function PrivateTripLanding({
 }: Props) {
   return (
     <>
-      <section className="border-b border-slate-200/80 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-800/80">맞춤 상담 · 소규모 그룹</p>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-[2.35rem] lg:leading-tight">
-            단독여행
-          </h1>
-          <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-700 sm:text-lg">
-            등록된 여행상품 외에도, 인원과 일정에 맞춰{' '}
-            <span className="font-medium text-slate-800">우리 일행만의 여행</span>으로 상담해드립니다. 가족여행, 동호회 여행,
-            소규모 모임까지 원하는 흐름에 맞춰 방향을 함께 잡아드립니다.
-          </p>
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
-            모임 총무가 하나하나 신경 쓰지 않도록, 검증된 여행상품을 바탕으로 일정과 견적 정리를 함께 도와드립니다.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href={inquiryHref}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-teal-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-75 hover:bg-teal-800"
-            >
-              단독견적 문의하기
-            </Link>
-            <Link
-              href={`${inquiryHref}${inquiryHref.includes('?') ? '&' : '?'}topic=custom`}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors duration-75 hover:border-teal-300 hover:bg-teal-50/60 hover:text-teal-900"
-            >
-              맞춤여행 상담 받기
-            </Link>
-          </div>
-        </div>
-      </section>
-
       <section className="bg-white py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">이런 분들께 추천합니다</h2>

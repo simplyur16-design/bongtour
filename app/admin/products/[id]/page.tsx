@@ -980,6 +980,19 @@ export default function AdminProductDetailPage({
     fetchProduct()
   }, [id, fetchProduct])
 
+  /** 목록에서 보강 보내기 후 #admin-product-hero-image 로 들어올 때 스크롤 (클라이언트 전환 시 해시가 스크롤되지 않을 수 있음) */
+  useEffect(() => {
+    if (!product || loading) return
+    if (typeof window === 'undefined') return
+    if (window.location.hash !== '#admin-product-hero-image') return
+    const el = document.getElementById('admin-product-hero-image')
+    if (!el) return
+    const t = window.setTimeout(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+    return () => window.clearTimeout(t)
+  }, [product?.id, loading])
+
   useEffect(() => {
     if (product?.prices?.[0]) {
       const p = product.prices[0]
@@ -2380,7 +2393,7 @@ export default function AdminProductDetailPage({
         </section>
 
         {/* 대표 이미지 / 출처: 메타 카드 아래, 보강 대상 블록 위 */}
-        <section className="mb-6 rounded-xl border border-bt-border-strong bg-bt-title/50 p-4">
+        <section id="admin-product-hero-image" className="mb-6 scroll-mt-24 rounded-xl border border-bt-border-strong bg-bt-title/50 p-4">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-bt-meta">대표 이미지 · 출처</h2>
           {primaryImageMessage && (
             <p
@@ -2578,6 +2591,13 @@ export default function AdminProductDetailPage({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="font-medium text-bt-badge-freeform-text">이미지 보강 대상</p>
+                <p className="mt-2 max-w-xl text-xs leading-relaxed text-bt-body">
+                  목록의 「보강 보내기」는 <strong className="text-bt-title">표시용 플래그</strong>만 켭니다. 자동으로 사진을 고르지 않습니다.{' '}
+                  <a href="#admin-product-hero-image" className="font-medium text-bt-brand-blue underline">
+                    위쪽 「대표 이미지 · 출처」
+                  </a>
+                  에서 파일을 업로드해 교체한 뒤, 아래 「보강 완료」를 누르세요.
+                </p>
                 {product.imageReviewRequestedAt && (
                   <p className="mt-0.5 text-xs text-bt-warning">
                     요청일: {new Date(product.imageReviewRequestedAt).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' })}
@@ -2594,6 +2614,12 @@ export default function AdminProductDetailPage({
                   type="button"
                   onClick={async () => {
                     if (!id) return
+                    if (!product.bgImageUrl?.trim()) {
+                      setImageReviewMessage(
+                        '대표 이미지가 없으면 보강 완료할 수 없습니다. 먼저 업로드·선택 후 저장하세요.'
+                      )
+                      return
+                    }
                     setImageReviewMessage(null)
                     setImageReviewSaving(true)
                     try {

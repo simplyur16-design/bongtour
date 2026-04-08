@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
 import { requireAdmin } from '@/lib/require-admin'
 import {
   buildGeminiImagePromptForSlot,
@@ -8,9 +6,13 @@ import {
   type GeminiImageSlotType,
 } from '@/lib/gemini-image-prompt'
 import { generateImageWithGemini, IMAGEN_MODEL } from '@/lib/gemini-image-generate'
+import { convertToWebp } from '@/lib/image-to-webp'
+import {
+  buildGeminiGeneratedObjectKey,
+  isNcloudObjectStorageConfigured,
+  uploadNcloudObject,
+} from '@/lib/ncloud-object-storage'
 
-const UPLOAD_DIR = 'public/uploads/gemini'
-const WEB_PREFIX = '/uploads/gemini/'
 const PROMPT_OVERRIDE_MAX = 500
 
 export type GeminiImageCandidate = {
@@ -31,7 +33,9 @@ export type GeminiImageGenerateResponse =
 
 /**
  * POST /api/admin/gemini/image-generate
- * 관리자 전용. 4슬롯 고정(무인물 광각·무인물 줌·인물 상반신·인물 전신)으로 각각 Imagen 1장씩 생성.
+ * 관리자 전용. 4슬롯 고정으로 각각 Imagen 1장씩 생성.
+ *
+ * Ncloud Object Storage에 WebP로 업로드한 뒤 공개 HTTPS URL만 반환 (로컬 디스크 미사용).
  */
 export async function POST(request: Request) {
   const admin = await requireAdmin()
@@ -46,6 +50,18 @@ export async function POST(request: Request) {
   if (!apiKey) {
     return NextResponse.json(
       { ok: false, error: 'GEMINI_API_KEY가 설정되지 않았습니다.' } satisfies GeminiImageGenerateResponse,
+      { status: 503 }
+    )
+  }
+
+  const useNcloud = isNcloudObjectStorageConfigured()
+  if (process.env.NODE_ENV === 'production' && !useNcloud) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          '운영 환경에서는 Ncloud Object Storage 환경 변수(NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_ENDPOINT, NCLOUD_OBJECT_STORAGE_REGION, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL, 선택 NCLOUD_OBJECT_STORAGE_BUCKET)가 필요합니다.',
+      } satisfies GeminiImageGenerateResponse,
       { status: 503 }
     )
   }
@@ -78,8 +94,7 @@ export async function POST(request: Request) {
     const promptsBySlot: { slot: GeminiImageSlotType; text: string }[] = []
     const images: GeminiImageCandidate[] = []
 
-    const dir = path.join(process.cwd(), UPLOAD_DIR)
-    await mkdir(dir, { recursive: true })
+    const now = new Date()
     const baseId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
     for (let i = 0; i < GEMINI_IMAGE_SLOT_ORDER.length; i++) {
@@ -98,10 +113,15 @@ export async function POST(request: Request) {
           images.push({ slot, imageUrl: null, error: 'empty_buffer' })
           continue
         }
-        const filename = `${baseId}-${slot}-${i}.png`
-        const filePath = path.join(dir, filename)
-        await writeFile(filePath, buffer)
-        images.push({ slot, imageUrl: WEB_PREFIX + filename, error: null })
+
+        const webp = await convertToWebp(buffer, { maxWidth: 2400, quality: 82 })
+        const objectKey = buildGeminiGeneratedObjectKey(now, baseId, slot, i)
+        const { publicUrl } = await uploadNcloudObject({
+          objectKey,
+          body: webp.buffer,
+          contentType: 'image/webp',
+        })
+        images.push({ slot, imageUrl: publicUrl, error: null })
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
         images.push({ slot, imageUrl: null, error: msg.slice(0, 400) })

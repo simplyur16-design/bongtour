@@ -3,7 +3,7 @@
  */
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { getSupabaseAdmin } from '@/lib/supabase-image-storage'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import type {
   ReviewCardModel,
   ReviewCategory,

@@ -27,6 +27,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ...saved })
   } catch (e) {
     console.error('[editorial-content upload]', e)
+    const msg = e instanceof Error ? e.message : ''
+    if (msg.includes('Ncloud')) {
+      return NextResponse.json({ error: msg }, { status: 503 })
+    }
     return NextResponse.json({ error: '업로드 실패' }, { status: 500 })
   }
 }

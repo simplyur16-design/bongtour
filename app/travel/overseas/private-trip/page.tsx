@@ -10,7 +10,7 @@ import {
   prioritizeEditorialsByRegionAndCountry,
   selectPrivateTripHeroEditorialRow,
 } from '@/lib/overseas-editorial-prioritize'
-import { SITE_NAME, absoluteUrl, toAbsoluteImageUrl } from '@/lib/site-metadata'
+import { SITE_NAME, absoluteUrl } from '@/lib/site-metadata'
 
 const INQUIRY_SOURCE = '/travel/overseas/private-trip'
 
@@ -39,7 +39,6 @@ export async function generateMetadata(): Promise<Metadata> {
       row.seoDescription?.trim() ||
       defaultMetadata.description ||
       '맞춤여행·단독견적 상담을 안내합니다.'
-    const ogImage = toAbsoluteImageUrl(row.heroImageUrl)
     return {
       ...defaultMetadata,
       title: titleBase,
@@ -49,7 +48,6 @@ export async function generateMetadata(): Promise<Metadata> {
         description: desc,
         url: absoluteUrl('/travel/overseas/private-trip'),
         type: 'website',
-        ...(ogImage ? { images: [{ url: ogImage }] } : {}),
       },
     }
   } catch {
@@ -71,7 +69,7 @@ export default async function PrivateTripPage() {
       <Header />
       <OverseasTravelSubMainNav variant="links" />
       <main>
-        <PrivateTripHero />
+        <PrivateTripHero inquiryHref={inquiryHref} />
         <PrivateTripLanding
           inquiryHref={inquiryHref}
           publishedReviews={publishedReviewCards}

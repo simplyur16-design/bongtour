@@ -3,7 +3,7 @@
  * schedule 파생 캡션이 비어 있어도 SEO 메타(seo_title → title → alt)를 캡션/OG alt 보강에 사용.
  */
 
-import { findImageAssetByPublicUrl, findImageAssetsByPublicUrls, type ImageAssetRow } from '@/lib/supabase-image-assets-db'
+import { findImageAssetByPublicUrl, findImageAssetsByPublicUrls, type ImageAssetRow } from '@/lib/image-assets-db'
 
 export function captionTextFromImageAssetRow(
   row: Pick<ImageAssetRow, 'seo_title_kr' | 'title_kr' | 'alt_kr'>
@@ -12,7 +12,7 @@ export function captionTextFromImageAssetRow(
   return t || null
 }
 
-/** Supabase 미설정·조회 실패 시 null (예외 삼킴 — 공개 페이지는 계속 렌더) */
+/** 조회 실패 시 null (예외 삼킴 — 공개 페이지는 계속 렌더) */
 export async function tryCaptionFromPublicImageUrl(url: string | null | undefined): Promise<string | null> {
   const raw = String(url ?? '').trim()
   if (!raw) return null

@@ -1,6 +1,5 @@
 /**
- * 이미지 업로드: Storage → public_url → public.image_assets (서비스 롤 전용).
- * Google Sheet 연동 없음.
+ * 이미지 업로드: Ncloud Object Storage → public_url → Prisma image_assets.
  */
 
 import { randomUUID } from 'crypto'
@@ -11,8 +10,8 @@ import {
   assertServiceType,
 } from '@/lib/image-asset-ssot'
 import { prepareOperationalImageAsset } from '@/lib/image-asset-naming'
-import type { ImageAssetRow } from '@/lib/supabase-image-assets-db'
-import { clearPrimaryForEntity, findImageAssetById, insertImageAssetRow, updateImageAssetById } from '@/lib/supabase-image-assets-db'
+import type { ImageAssetRow } from '@/lib/image-assets-db'
+import { clearPrimaryForEntity, findImageAssetById, insertImageAssetRow, updateImageAssetById } from '@/lib/image-assets-db'
 import {
   detectImageSourceTypeFromFilename,
   isGeneratedImageSourceType,
@@ -21,8 +20,7 @@ import {
   sourceTypeToSourceName,
   type ImageSourceType,
 } from '@/lib/image-asset-source'
-import { IMAGE_ASSET_STORAGE_BUCKET } from '@/lib/image-asset-ssot'
-import { getSupabaseProjectPublicUrl, removePublicObject, uploadPublicImage } from '@/lib/supabase-image-storage'
+import { getNcloudObjectStorageEnv, isNcloudObjectStorageConfigured, removeNcloudObject, uploadNcloudObject } from '@/lib/ncloud-object-storage'
 
 const MAX_UPLOAD_BYTES = 30 * 1024 * 1024
 
@@ -56,6 +54,12 @@ export async function runImageAssetUpload(input: ImageAssetUploadInput): Promise
   ok: true
   asset: ImageAssetRow
 }> {
+  if (!isNcloudObjectStorageConfigured()) {
+    throw new Error(
+      'Ncloud Object Storage가 설정되지 않았습니다. NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_ENDPOINT, NCLOUD_OBJECT_STORAGE_REGION, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL (및 선택 NCLOUD_OBJECT_STORAGE_BUCKET) 를 설정하세요.'
+    )
+  }
+
   const entityType = assertEntityType(input.entityType)
   const serviceType = assertServiceType(input.serviceType)
   const imageRole = assertImageRole(input.imageRole)
@@ -82,8 +86,8 @@ export async function runImageAssetUpload(input: ImageAssetUploadInput): Promise
   const mimeType = 'image/webp'
   const fileExt = 'webp'
 
-  const projectUrl = getSupabaseProjectPublicUrl()
-  const bucket = IMAGE_ASSET_STORAGE_BUCKET
+  const ncloud = getNcloudObjectStorageEnv()
+  const bucket = ncloud.bucket
 
   const prepared = prepareOperationalImageAsset({
     entityType,
@@ -94,17 +98,15 @@ export async function runImageAssetUpload(input: ImageAssetUploadInput): Promise
     entityNameEn,
     groupKeyInput: input.groupKey,
     sortOrder: input.sortOrder,
-    projectUrl,
+    publicBaseUrl: ncloud.publicBaseUrl,
   })
 
   const { fileName, storagePath, publicUrl, altKr, altEn } = prepared
 
-  await uploadPublicImage({
-    bucket,
-    path: storagePath,
+  await uploadNcloudObject({
+    objectKey: storagePath,
     body: webp.buffer,
     contentType: mimeType,
-    upsert: false,
   })
 
   const id = randomUUID()
@@ -154,7 +156,11 @@ export async function runImageAssetUpload(input: ImageAssetUploadInput): Promise
     return { ok: true, asset: created }
   } catch (e) {
     console.error('[image-asset] DB(image_assets) 저장 실패 — Storage 롤백:', storagePath, e)
-    await removePublicObject(bucket, storagePath)
+    try {
+      await removeNcloudObject(storagePath)
+    } catch (re) {
+      console.error('[image-asset] Ncloud 롤백 실패:', storagePath, re)
+    }
     throw e
   }
 }

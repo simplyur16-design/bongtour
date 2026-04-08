@@ -3,9 +3,11 @@ import path from 'path'
 import { promises as fs } from 'fs'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
+import { removeNcloudObject, tryParseObjectKeyFromPublicUrl } from '@/lib/ncloud-object-storage'
 
 /**
  * DELETE /api/admin/photo-pool/[id]. 인증: 관리자.
+ * Ncloud 공개 URL이면 스토리지 객체 삭제, 레거시 `/uploads/photos/`면 로컬 파일 삭제.
  */
 export async function DELETE(
   _request: Request,
@@ -20,12 +22,21 @@ export async function DELETE(
       return NextResponse.json({ error: '해당 사진을 찾을 수 없습니다.' }, { status: 404 })
     }
     const filePath = row.filePath
-    const absolutePath = path.join(process.cwd(), 'public', filePath.replace(/^\//, ''))
-    try {
-      await fs.unlink(absolutePath)
-    } catch (e) {
-      if ((e as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-        console.warn('photo-pool delete: 파일 삭제 실패', absolutePath, e)
+    const objectKey = tryParseObjectKeyFromPublicUrl(filePath)
+    if (objectKey) {
+      try {
+        await removeNcloudObject(objectKey)
+      } catch (e) {
+        console.warn('photo-pool delete: Ncloud 삭제 실패', objectKey, e)
+      }
+    } else if (filePath.startsWith('/uploads/')) {
+      const absolutePath = path.join(process.cwd(), 'public', filePath.replace(/^\//, ''))
+      try {
+        await fs.unlink(absolutePath)
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+          console.warn('photo-pool delete: 파일 삭제 실패', absolutePath, e)
+        }
       }
     }
     await prisma.photoPool.delete({ where: { id } })

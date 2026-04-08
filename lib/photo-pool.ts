@@ -1,7 +1,9 @@
 /**
  * 사진 풀: 관리자 업로드 + Pexels/제미나이에서 가져온 사진 저장.
  * process-images 우선순위: PhotoPool → DestinationImageSet → Pexels → 제미나이
- * 파일명: [도시명]_[명소명]_[출처].webp
+ *
+ * 저장소: **Ncloud Object Storage만** 사용 (공개 HTTPS URL을 DB `filePath`에 저장).
+ * 로컬 `public/uploads/photos`에는 더 이상 쓰지 않음 — URL이 바뀌며 깜빡이는 문제 방지.
  */
 
 import { promises as fs } from 'fs'
@@ -9,19 +11,16 @@ import path from 'path'
 import type { PrismaClient } from '@prisma/client'
 import { convertToWebp } from '@/lib/image-to-webp'
 import { buildWebpFilename } from '@/lib/webp-filename'
+import {
+  buildPhotoPoolObjectKey,
+  isNcloudObjectStorageConfigured,
+  removeNcloudObject,
+  tryParseObjectKeyFromPublicUrl,
+  uploadNcloudObject,
+} from '@/lib/ncloud-object-storage'
 
-const UPLOAD_DIR = 'public/uploads/photos'
-const WEB_PATH_PREFIX = '/uploads/photos/'
-
-function getUploadDir(): string {
-  return path.join(process.cwd(), UPLOAD_DIR)
-}
-
-export async function ensureUploadDir(): Promise<string> {
-  const dir = getUploadDir()
-  await fs.mkdir(dir, { recursive: true })
-  return dir
-}
+/** 레거시: 로컬 상대 경로 (마이그레이션·삭제용) */
+const LEGACY_WEB_PATH_PREFIX = '/uploads/photos/'
 
 export type PoolPhotoRecord = {
   id: string
@@ -51,7 +50,8 @@ export async function getPoolPhotosForDestination(
 }
 
 /**
- * WebP 버퍼를 파일로 저장하고 PhotoPool 레코드 생성. 같은 파일명이 있으면 덮어쓰고 sortOrder 유지.
+ * WebP 버퍼를 Ncloud에 올리고 PhotoPool 레코드 생성/갱신.
+ * 같은 `buildWebpFilename`이면 동일 object key로 덮어쓰기 — 레거시 로컬 행이 있으면 URL로 교체.
  */
 export async function savePhotoToPool(
   prisma: PrismaClient,
@@ -61,45 +61,89 @@ export async function savePhotoToPool(
   source: string,
   options?: { convertToWebpFirst?: boolean; maxWidth?: number; quality?: number }
 ): Promise<PoolPhotoRecord> {
-  const dir = await ensureUploadDir()
-  const filename = buildWebpFilename(cityName, attractionName, source)
-  const absolutePath = path.join(dir, filename)
+  if (!isNcloudObjectStorageConfigured()) {
+    throw new Error(
+      'Ncloud Object Storage가 설정되지 않았습니다. NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_REGION, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL 등을 .env에 설정하세요.'
+    )
+  }
 
   let data = buffer
-  if (options?.convertToWebpFirst) {
+  if (options?.convertToWebpFirst !== false) {
     const converted = await convertToWebp(buffer, {
-      maxWidth: options.maxWidth ?? 1600,
-      quality: options.quality ?? 82,
+      maxWidth: options?.maxWidth ?? 1600,
+      quality: options?.quality ?? 82,
     })
     data = converted.buffer
   }
 
-  await fs.writeFile(absolutePath, data)
-
-  const webPath = WEB_PATH_PREFIX + filename
-  const city = cityName.trim()
-  const existing = await prisma.photoPool.findFirst({
-    where: { filePath: webPath },
-    select: { sortOrder: true },
+  const filename = buildWebpFilename(cityName, attractionName, source)
+  const objectKey = buildPhotoPoolObjectKey(filename)
+  const { publicUrl } = await uploadNcloudObject({
+    objectKey,
+    body: data,
+    contentType: 'image/webp',
   })
+
+  const legacyPath = LEGACY_WEB_PATH_PREFIX + filename
+  const city = cityName.trim()
+
+  const existing = await prisma.photoPool.findFirst({
+    where: {
+      cityName: city,
+      OR: [
+        { filePath: legacyPath },
+        { filePath: publicUrl },
+        { filePath: { endsWith: filename } },
+      ],
+    },
+  })
+
+  if (existing) {
+    const oldPath = existing.filePath
+    if (oldPath.startsWith('/uploads/')) {
+      try {
+        const abs = path.join(process.cwd(), 'public', oldPath.replace(/^\//, ''))
+        await fs.unlink(abs)
+      } catch {
+        /* ignore */
+      }
+    } else {
+      const oldKey = tryParseObjectKeyFromPublicUrl(oldPath)
+      if (oldKey && oldKey !== objectKey) {
+        try {
+          await removeNcloudObject(oldKey)
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    return prisma.photoPool.update({
+      where: { id: existing.id },
+      data: {
+        cityName: city,
+        attractionName: attractionName.trim(),
+        source: (source || 'Upload').trim(),
+        filePath: publicUrl,
+      },
+    }) as Promise<PoolPhotoRecord>
+  }
+
   const lastInCity = await prisma.photoPool.findFirst({
     where: { cityName: city },
     orderBy: { sortOrder: 'desc' },
   })
-  const nextOrder = existing != null ? existing.sortOrder : (lastInCity?.sortOrder ?? -1) + 1
+  const nextOrder = (lastInCity?.sortOrder ?? -1) + 1
 
-  const row = await prisma.photoPool.upsert({
-    where: { filePath: webPath },
-    create: {
+  return prisma.photoPool.create({
+    data: {
       cityName: city,
       attractionName: attractionName.trim(),
       source: (source || 'Upload').trim(),
-      filePath: webPath,
+      filePath: publicUrl,
       sortOrder: nextOrder,
     },
-    update: {},
-  })
-  return row
+  }) as Promise<PoolPhotoRecord>
 }
 
 /**

@@ -1,23 +1,46 @@
-import { NextResponse } from 'next/server'
-import { copyFile, mkdir, writeFile } from 'fs/promises'
+import { readFile } from 'fs/promises'
 import path from 'path'
+import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
 import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { appendHomeHubCandidates, isValidCardKey, isValidSeason } from '@/lib/home-hub-candidates'
 import type { HomeHubCandidateRecord } from '@/lib/home-hub-candidates-types'
+import { convertToWebp } from '@/lib/image-to-webp'
+import {
+  buildHomeHubCandidateObjectKey,
+  isNcloudObjectStorageConfigured,
+  uploadNcloudObject,
+} from '@/lib/ncloud-object-storage'
 
-const CANDIDATES_DIR = path.join(process.cwd(), 'public', 'images', 'home-hub', 'candidates')
 const PROMPT_MAX = 4000
 const VALID_COUNTS = new Set([2, 4, 6])
 
-function publicUrlForFilename(filename: string): string {
-  return `/images/home-hub/candidates/${filename}`
+async function uploadCandidateWebp(candidateId: string, imageBuffer: Buffer): Promise<string> {
+  const webp = await convertToWebp(imageBuffer, { maxWidth: 2400, quality: 82 })
+  const objectKey = buildHomeHubCandidateObjectKey(candidateId)
+  const { publicUrl } = await uploadNcloudObject({
+    objectKey,
+    body: webp.buffer,
+    contentType: 'image/webp',
+  })
+  return publicUrl
 }
 
 export async function POST(request: Request) {
   const admin = await requireAdmin()
   if (!admin) {
     return NextResponse.json({ ok: false, error: '인증이 필요합니다.' }, { status: 401 })
+  }
+
+  if (!isNcloudObjectStorageConfigured()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          'Ncloud Object Storage가 설정되지 않았습니다. 이미지는 스토리지에만 저장됩니다. NCLOUD_* 환경 변수를 확인하세요.',
+      },
+      { status: 503 }
+    )
   }
 
   const body = (await request.json().catch(() => ({}))) as {
@@ -49,8 +72,6 @@ export async function POST(request: Request) {
   const createdBy =
     (admin.user as { email?: string | null }).email?.trim() || admin.user.id || 'admin'
 
-  await mkdir(CANDIDATES_DIR, { recursive: true })
-
   const baseStub = path.join(process.cwd(), 'public', 'images', 'home-hub', 'base', `${cardKey}.jpg`)
   const newItems: HomeHubCandidateRecord[] = []
   const batch = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -58,7 +79,6 @@ export async function POST(request: Request) {
   for (let i = 0; i < count; i++) {
     const id = `${cardKey}-${season}-${batch}-${i}`
     let generationProvider: HomeHubCandidateRecord['generationProvider'] = 'gemini'
-    let filename = `${id}.png`
 
     const buffer = await generateImageWithGemini({
       prompt: promptText,
@@ -66,20 +86,21 @@ export async function POST(request: Request) {
       strictErrors: false,
     })
 
+    let publicUrl: string
     if (buffer && buffer.length > 0) {
-      await writeFile(path.join(CANDIDATES_DIR, filename), buffer)
+      publicUrl = await uploadCandidateWebp(id, buffer)
     } else {
       generationProvider = 'stub'
-      filename = `${id}.jpg`
       try {
-        await copyFile(baseStub, path.join(CANDIDATES_DIR, filename))
+        const stubBuf = await readFile(baseStub)
+        publicUrl = await uploadCandidateWebp(id, stubBuf)
       } catch (e) {
-        console.error('[home-hub-images/generate] stub copy failed', e)
+        console.error('[home-hub-images/generate] stub read/upload failed', e)
         return NextResponse.json(
           {
             ok: false,
             error:
-              '이미지 생성에 실패했고 기본 스텁 복사도 실패했습니다. GEMINI_API_KEY와 base 이미지를 확인하세요.',
+              '이미지 생성에 실패했고 기본 스텁 업로드도 실패했습니다. GEMINI_API_KEY와 base 이미지를 확인하세요.',
           },
           { status: 500 }
         )
@@ -93,7 +114,7 @@ export async function POST(request: Request) {
       season,
       promptText,
       promptVersion: 'v1',
-      imagePath: publicUrlForFilename(filename),
+      imagePath: publicUrl,
       generationProvider,
       isSelected: false,
       isActive: false,

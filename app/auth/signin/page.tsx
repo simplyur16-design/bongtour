@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import KakaoLoginButton from '@/app/components/auth/KakaoLoginButton'
+import NaverLoginLink from '@/app/components/auth/NaverLoginLink'
 import EmailSignInForm from '@/app/components/auth/EmailSignInForm'
 import Header from '@/app/components/Header'
 
@@ -11,6 +12,7 @@ export default async function SignInPage({ searchParams }: Props) {
   const { callbackUrl, registered } = await searchParams
   const cb = callbackUrl ?? '/'
   const kakaoOn = Boolean(process.env.KAKAO_CLIENT_ID?.trim() && process.env.KAKAO_CLIENT_SECRET?.trim())
+  const naverOn = Boolean(process.env.NAVER_CLIENT_ID?.trim() && process.env.NAVER_CLIENT_SECRET?.trim())
 
   return (
     <div className="min-h-screen bg-beige">
@@ -28,19 +30,24 @@ export default async function SignInPage({ searchParams }: Props) {
 
         <EmailSignInForm callbackUrl={cb} />
 
-        {kakaoOn ? (
+        {kakaoOn || naverOn ? (
           <>
             <div className="relative my-6 w-full max-w-xs text-center text-xs text-bt-subtle">
               <span className="relative z-10 bg-beige px-2">또는</span>
               <span className="absolute inset-x-0 top-1/2 z-0 h-px -translate-y-1/2 bg-bt-border-soft" aria-hidden />
             </div>
-            <KakaoLoginButton callbackUrl={callbackUrl ?? undefined} className="w-full max-w-xs justify-center">
-              카카오로 로그인
-            </KakaoLoginButton>
+            <div className="flex w-full max-w-xs flex-col gap-2">
+              {kakaoOn ? (
+                <KakaoLoginButton callbackUrl={callbackUrl ?? undefined} className="w-full justify-center">
+                  카카오로 로그인
+                </KakaoLoginButton>
+              ) : null}
+              {naverOn ? <NaverLoginLink callbackUrl={cb}>네이버로 로그인</NaverLoginLink> : null}
+            </div>
           </>
         ) : (
           <p className="mt-4 max-w-xs text-center text-[11px] text-bt-meta">
-            카카오 로그인은 서버에 KAKAO_CLIENT_ID / KAKAO_CLIENT_SECRET 설정 시 표시됩니다.
+            카카오·네이버 로그인은 서버에 각 CLIENT_ID / CLIENT_SECRET 설정 시 표시됩니다.
           </p>
         )}
 

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { recordAssetUsage, normalizeSelectionMode } from '@/lib/asset-usage-log'
-import { findImageAssetByPublicUrl } from '@/lib/supabase-image-assets-db'
+import { findImageAssetByPublicUrl } from '@/lib/image-assets-db'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -121,7 +121,7 @@ export async function POST(request: Request, { params }: RouteParams) {
           if (fromAsset) resolvedSeoKr = fromAsset.slice(0, 400)
         }
       } catch {
-        /* Supabase 미설정·조회 실패 시 이미지 URL만 저장 */
+        /* Prisma image_assets 조회 실패 시 이미지 URL만 저장 */
       }
     }
 

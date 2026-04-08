@@ -18,7 +18,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getSupabaseAdmin } from '../lib/supabase-image-storage'
+import { getSupabaseAdmin } from '../lib/supabase-admin'
 import {
   assertTravelReviewSeedInvariants,
   TRAVEL_REVIEW_SEED_ITEMS,

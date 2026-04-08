@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import PexelsSourceCaption from '@/app/components/detail/PexelsSourceCaption'
+import { warnLegacyGeminiUploadPath } from '@/lib/legacy-gemini-upload-path'
 import { productHeroAttributionBadgeText } from '@/lib/product-bg-image-attribution'
 
 type DaySlide = { day: number; imageUrl: string | null | undefined; imageDisplayName?: string | null }
@@ -58,6 +59,10 @@ export default function ProductHeroCarousel({
   useEffect(() => {
     setIndex(0)
   }, [slides.length])
+
+  useEffect(() => {
+    warnLegacyGeminiUploadPath(heroUrl, 'ProductHeroCarousel.heroUrl')
+  }, [heroUrl])
 
   const len = slides.length
   const go = useCallback(

@@ -2,7 +2,7 @@ const path = require('path')
 
 /**
  * 프로덕션 전용 CSP. `next dev`에서는 NODE_ENV=development 이므로 적용되지 않아 HMR(ws)을 깨지 않는다.
- * GTM·Google Maps embed·원격 이미지(https)·Supabase(클라이언트가 쓰는 경우)를 허용한다.
+ * GTM·Google Maps embed·원격 이미지(https) 등을 허용한다. (이미지 호스트는 Ncloud 등 — Supabase Storage 미사용)
  */
 function buildContentSecurityPolicy() {
   const directives = [
@@ -18,7 +18,7 @@ function buildContentSecurityPolicy() {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https://cdn.jsdelivr.net",
     "frame-src 'self' https://www.googletagmanager.com https://www.google.com",
-    "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com https://*.supabase.co https://*.supabase.in",
+    "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com",
     "worker-src 'self' blob:",
   ]
   return directives.join('; ')
@@ -61,6 +61,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
       { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
       { protocol: 'https', hostname: 'images.pexels.com', pathname: '/**' },
+      /** Ncloud Object Storage 공개 객체 (path-style 등) */
+      { protocol: 'https', hostname: 'kr.object.ncloudstorage.com', pathname: '/**' },
+      { protocol: 'https', hostname: '**.object.ncloudstorage.com', pathname: '/**' },
     ],
   },
   webpack: (config, { isServer }) => {

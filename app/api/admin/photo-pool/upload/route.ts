@@ -78,6 +78,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, saved: saved.length, items: saved })
   } catch (e) {
     console.error('photo-pool/upload:', e)
+    const msg = e instanceof Error ? e.message : ''
+    if (msg.includes('Ncloud')) {
+      return NextResponse.json({ error: msg }, { status: 503 })
+    }
     return NextResponse.json({ error: '저장 실패' }, { status: 500 })
   }
 }

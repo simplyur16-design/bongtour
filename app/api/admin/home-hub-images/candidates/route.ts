@@ -50,7 +50,7 @@ export async function DELETE(request: Request) {
     'admin'
 
   try {
-    const { removed } = deleteHomeHubCandidate(candidateId, { updatedBy })
+    const { removed } = await deleteHomeHubCandidate(candidateId, { updatedBy })
     return NextResponse.json({ ok: true, removedId: removed.id })
   } catch (e) {
     const msg = e instanceof Error ? e.message : ''

@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { removeNcloudObject, tryParseObjectKeyFromPublicUrl } from '@/lib/ncloud-object-storage'
 import { homeHubCardImageSrc, type HomeHubCardImageKey } from '@/lib/home-hub-images'
 import {
   getHomeHubActiveFile,
@@ -120,14 +121,29 @@ function safeUnlinkCandidateImageFile(imagePath: string): void {
   }
 }
 
+/** Ncloud 공개 URL이면 객체 삭제, 레거시 로컬 후보 경로면 파일 삭제 */
+async function removeStoredCandidateImage(imagePath: string): Promise<void> {
+  const trimmed = imagePath.trim()
+  const key = tryParseObjectKeyFromPublicUrl(trimmed)
+  if (key) {
+    try {
+      await removeNcloudObject(key)
+    } catch (e) {
+      console.warn('[home-hub] Ncloud 이미지 삭제 실패', key, e)
+    }
+    return
+  }
+  safeUnlinkCandidateImageFile(trimmed)
+}
+
 /**
- * 후보 1건 삭제: JSON에서 제거 + `public/images/home-hub/candidates/` 파일 삭제(해당 경로일 때만).
+ * 후보 1건 삭제: JSON에서 제거 + 스토리지(Ncloud) 또는 레거시 `public/images/home-hub/candidates/` 파일 삭제.
  * 메인 활성 URL이 이 후보와 같으면 카드별 기본 이미지로 되돌림.
  */
-export function deleteHomeHubCandidate(
+export async function deleteHomeHubCandidate(
   candidateId: string,
   options?: { updatedBy?: string }
-): { removed: HomeHubCandidateRecord } {
+): Promise<{ removed: HomeHubCandidateRecord }> {
   const data = readHomeHubCandidates()
   const idx = data.candidates.findIndex((c) => c.id === candidateId)
   if (idx < 0) throw new Error('후보를 찾을 수 없습니다.')
@@ -139,7 +155,7 @@ export function deleteHomeHubCandidate(
   const mainPointsHere =
     active?.images?.[target.cardKey]?.trim() === imageUrl
 
-  safeUnlinkCandidateImageFile(target.imagePath)
+  await removeStoredCandidateImage(target.imagePath)
 
   data.candidates.splice(idx, 1)
 

@@ -1,4 +1,4 @@
-import type { ImageAssetRow } from '@/lib/supabase-image-assets-db'
+import type { ImageAssetRow } from '@/lib/image-assets-db'
 
 /** 관리자 API JSON 응답용 (camelCase). 프론트는 파일명·URL 규칙을 갖지 않음. */
 export function imageAssetRowToApi(row: ImageAssetRow) {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import AdminEmptyState from '../components/AdminEmptyState'
 import AdminKpiCard from '../components/AdminKpiCard'
 import AdminPageHeader from '../components/AdminPageHeader'
@@ -103,7 +104,11 @@ function getClassificationSummary(p: ProductRow): { line: string; tooltip: strin
   return { line, tooltip: tooltip || '—' }
 }
 
+/** 상품 상세의 「대표 이미지 · 출처」섹션 앵커 — 보강 보내기 후 바로 수정 화면으로 이동 */
+const ADMIN_PRODUCT_HERO_ANCHOR = '#admin-product-hero-image'
+
 export default function AdminProductsPage() {
+  const router = useRouter()
   const [data, setData] = useState<ListResponse | null>(null)
   const [options, setOptions] = useState<OptionsResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -171,6 +176,15 @@ export default function AdminProductsPage() {
   useEffect(() => {
     fetchOptions()
   }, [fetchOptions])
+
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search)
+      if (q.get('imageRepair') === '1' || q.get('needsImageReview') === '1') setNeedsImageReviewFilter(true)
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   useEffect(() => {
     fetchList()
@@ -263,25 +277,87 @@ export default function AdminProductsPage() {
 
   const handleSendToImageReview = async () => {
     if (selected.size === 0) return
+    const productIds = Array.from(selected)
     setImageReviewLoading(true)
     setImageReviewMessage(null)
     try {
       const res = await fetch('/api/admin/products/image-review-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productIds: Array.from(selected) }),
+        body: JSON.stringify({ productIds, mode: 'manual' }),
       })
-      const json = await res.json()
+      const json = (await res.json()) as {
+        ok?: boolean
+        error?: string
+        added?: number
+        refreshed?: number
+        notFound?: number
+      }
       if (json.ok) {
         const added = json.added ?? 0
-        const skipped = json.skipped ?? 0
+        const refreshed = json.refreshed ?? 0
+        const notFound = json.notFound ?? 0
+        const worked = added > 0 || refreshed > 0
+        const parts = [
+          added > 0 ? `${added}건 이미지 보강 대상으로 등록` : null,
+          refreshed > 0 ? `요청 시각 갱신 ${refreshed}건` : null,
+          notFound > 0 ? `ID 없음 ${notFound}건` : null,
+        ].filter(Boolean)
         setImageReviewMessage(
-          added > 0
-            ? `${added}건 이미지 보강 대상으로 등록됨${skipped > 0 ? ` (${skipped}건은 legacy가 아니어서 제외)` : ''}`
-            : '선택한 상품 중 legacy가 없어 등록된 건이 없습니다.'
+          added > 0 || refreshed > 0 || notFound > 0
+            ? parts.join(' · ')
+            : '처리할 상품이 없습니다.'
         )
         setSelected(new Set())
-        fetchList()
+        if (worked && productIds.length > 0) {
+          router.push(`/admin/products/${productIds[0]}${ADMIN_PRODUCT_HERO_ANCHOR}`)
+        } else {
+          fetchList()
+        }
+      } else {
+        setImageReviewMessage(json.error ?? '실패')
+      }
+    } catch (e) {
+      setImageReviewMessage(e instanceof Error ? e.message : '요청 실패')
+    } finally {
+      setImageReviewLoading(false)
+    }
+  }
+
+  const handleSendOneToImageRepair = async (productId: string) => {
+    setImageReviewLoading(true)
+    setImageReviewMessage(null)
+    try {
+      const res = await fetch('/api/admin/products/image-review-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productIds: [productId], mode: 'manual' }),
+      })
+      const json = (await res.json()) as {
+        ok?: boolean
+        error?: string
+        added?: number
+        refreshed?: number
+        notFound?: number
+      }
+      if (!res.ok) {
+        setImageReviewMessage(json.error ?? `요청 실패 (${res.status})`)
+        return
+      }
+      if (json.ok) {
+        const added = json.added ?? 0
+        const refreshed = json.refreshed ?? 0
+        const notFound = json.notFound ?? 0
+        const worked = added > 0 || refreshed > 0
+        if (notFound > 0) {
+          setImageReviewMessage('상품을 찾을 수 없습니다.')
+          fetchList()
+        } else if (worked) {
+          router.push(`/admin/products/${productId}${ADMIN_PRODUCT_HERO_ANCHOR}`)
+        } else {
+          setImageReviewMessage('처리할 수 없습니다.')
+          fetchList()
+        }
       } else {
         setImageReviewMessage(json.error ?? '실패')
       }
@@ -356,6 +432,12 @@ export default function AdminProductsPage() {
           subtitle="운영 중인 상품을 검색·필터하고, 상세에서 노출·가격 동기화를 관리합니다."
           actions={
             <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href="/admin/products?imageRepair=1"
+                className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100"
+              >
+                이미지 보강 대상만 보기
+              </Link>
               <button
                 type="button"
                 onClick={handleAddToQueue}
@@ -666,13 +748,34 @@ export default function AdminProductsPage() {
                         <td className="p-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <Link
-                              href={`/admin/products/${p.id}/edit`}
+                              href={
+                                p.needsImageReview
+                                  ? `/admin/products/${p.id}/edit${ADMIN_PRODUCT_HERO_ANCHOR}`
+                                  : `/admin/products/${p.id}/edit`
+                              }
                               className="rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
                             >
                               상품 편집
                             </Link>
+                            <button
+                              type="button"
+                              onClick={() => void handleSendOneToImageRepair(p.id)}
+                              disabled={imageReviewLoading}
+                              title={
+                                p.needsImageReview
+                                  ? '이미 보강 대상 — 클릭 시 요청 시각 갱신 후 대표 이미지 편집 화면으로 이동'
+                                  : '보강 대상으로 표시한 뒤, 대표 이미지·출처 편집 화면으로 이동'
+                              }
+                              className="rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {p.needsImageReview ? '보강대상' : '보강 보내기'}
+                            </button>
                             <Link
-                              href={`/admin/products/${p.id}`}
+                              href={
+                                p.needsImageReview
+                                  ? `/admin/products/${p.id}${ADMIN_PRODUCT_HERO_ANCHOR}`
+                                  : `/admin/products/${p.id}`
+                              }
                               className="font-medium text-[#0f172a] hover:underline"
                             >
                               상세

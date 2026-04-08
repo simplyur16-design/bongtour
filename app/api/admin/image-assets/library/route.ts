@@ -15,7 +15,7 @@ function norm(u: string): string {
 
 /**
  * GET /api/admin/image-assets/library
- * Prisma PhotoPool + 사용 메타(일정/AssetUsageLog 스캔). Supabase image_assets와는 별 테이블.
+ * Prisma PhotoPool + 사용 메타(일정/AssetUsageLog 스캔). 운영형 image_assets(Prisma)와는 별 테이블.
  */
 export async function GET(request: Request) {
   const admin = await requireAdmin()

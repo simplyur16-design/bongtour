@@ -431,4 +431,6 @@ export const MAIN_MINIMAL_FOOTER_LINKS = [
   { label: '항공권 예매 및 발권', href: '/air-ticketing' },
   { label: '봉투어 소개', href: '/#site-about' },
   { label: '고객지원', href: '/support' },
+  { label: '개인정보처리방침', href: '/privacy' },
+  { label: '이용약관', href: '/terms' },
 ] as const
