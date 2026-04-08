@@ -39,7 +39,8 @@ async function main() {
       },
       select: { id: true, email: true, name: true, role: true, accountStatus: true, signupMethod: true },
     })
-    console.log('[bootstrap-admin] created user', user)
+    console.log('[bootstrap-admin] OK: created new user')
+    console.log('[bootstrap-admin] user:', JSON.stringify(user, null, 2))
     return
   }
 
@@ -48,13 +49,13 @@ async function main() {
     data: common,
     select: { id: true, email: true, name: true, role: true, accountStatus: true, signupMethod: true },
   })
-  console.log('[bootstrap-admin] promoted existing user to ADMIN (previous role was %s)', existing.role ?? 'null')
-  console.log('[bootstrap-admin] updated user', user)
+  console.log('[bootstrap-admin] OK: updated existing user (previous role: %s)', existing.role ?? 'null')
+  console.log('[bootstrap-admin] user:', JSON.stringify(user, null, 2))
 }
 
 main()
   .catch((e) => {
-    console.error('[bootstrap-admin] failed', e)
+    console.error('[bootstrap-admin] FAILED:', e)
     process.exit(1)
   })
   .finally(async () => {
