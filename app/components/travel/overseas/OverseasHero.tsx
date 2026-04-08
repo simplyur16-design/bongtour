@@ -248,6 +248,12 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
     return { y: d.getFullYear(), m: d.getMonth() + 1 }
   })
 
+  /** 단독 허브는 검색·날짜 이동도 `/travel/overseas/private-trip` 에 머물게 함 (해외 상품 허브로 튕기지 않음) */
+  const hubPath = useMemo(
+    () => (browseListingKind === 'private_trip' ? '/travel/overseas/private-trip' : '/travel/overseas'),
+    [browseListingKind],
+  )
+
   useEffect(() => {
     const nextDepartRaw = searchParams.get('departDate') ?? ''
     const nextDepart = sanitizeDepartDate(nextDepartRaw)
@@ -260,9 +266,9 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
       const p = new URLSearchParams(searchParams.toString())
       p.delete('departDate')
       p.delete('departMonth')
-      router.replace(`/travel/overseas?${p.toString()}`)
+      router.replace(`${hubPath}?${p.toString()}`)
     }
-  }, [publicMinYmd, router, searchParams])
+  }, [hubPath, publicMinYmd, router, searchParams])
 
   useEffect(() => {
     if (!calendarOpen) return
@@ -299,7 +305,14 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
     p.set('child', String(childNum))
     // 기존 browse API의 pax 필터 경로 재사용
     p.set('pax', String(adultNum + childNum))
-    router.replace(`/travel/overseas?${p.toString()}`)
+    if (browseListingKind === 'private_trip') {
+      p.set('listingKind', 'private_trip')
+      p.set('type', 'private')
+    } else {
+      p.delete('listingKind')
+      p.delete('type')
+    }
+    router.replace(`${hubPath}?${p.toString()}`)
   }
 
   const browseUrl = useMemo(() => {
