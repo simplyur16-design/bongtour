@@ -965,6 +965,19 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
         } else {
           departureFromParsed = []
         }
+        /**
+         * 미리보기(preview)는 스크래퍼가 비어도 `parsed.prices`·synthetic으로 출발 초안을 만든다.
+         * confirm만 그 폴백이 없어서「분석은 됐는데 저장만 422」가 난다 — 스크래퍼 실패 시 동일 후보로 복구.
+         */
+        if (!modetourDepartureInputsSubstantive(departureFromParsed)) {
+          let fb = modetourParsedPricesToDepartureInputs(parsed.prices ?? [], parsed.productPriceTable ?? null)
+          if (fb.length === 0) {
+            fb = modetourSyntheticDepartureInputsForPersistedParsed(parsed)
+          }
+          if (modetourDepartureInputsSubstantive(fb)) {
+            departureFromParsed = fb
+          }
+        }
         /** 붙여넣기 `parsed.schedule`이 한 줄이라도 있으면 스크래핑 일정(itRes.days)으로 덮지 않음 — 식사 등 본문 일정이 조용히 사라지는 것 방지 */
         const schedFromPaste = registerScheduleToDayInputs(parsed.schedule ?? [])
         itineraryDayDrafts =
