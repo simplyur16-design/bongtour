@@ -211,6 +211,14 @@ function detectModetourPriceSlotLine(line: string): PriceSlot | null {
   if (!s) return null
   if (isModetourNonBasePriceLine(s)) return null
   if (/^성인(?=[\s(/]|$)/.test(s)) return 'adult'
+  /**
+   * 「소아」만 있고 만 2세 미만이 아니면 아동(노베) — 세로표에서 null이 되어 열 순서로 유아 칸에 들어가는 사례 방지.
+   * 만 2세 미만·24개월 등은 유아.
+   */
+  if (/^소아(?=[\s(/]|$)/.test(s)) {
+    if (/만\s*2\s*세\s*미만|24\s*개월|유아\s*구간/i.test(s)) return 'infant'
+    return 'childNo'
+  }
   if (
     /아동\s*[（(]\s*extra\s*bed/i.test(s) ||
     /아동\s*\(?\s*extra\s*bed/i.test(s) ||
@@ -674,14 +682,14 @@ export function combineModetourCalendarAdultWithBodyTable(
 }
 
 /**
- * 본문 연령별 표(adult/child/infant)를 기준으로, 날짜별 성인 총액에 맞춰 아동 엑베·노베드를 연동하고 유아는 고정.
+ * 본문 연령별 표(adult/child/infant)를 기준으로, 날짜별 성인 총액에 맞춰 아동 엑베·노베드를 연동한다.
+ * 유아는 **본문 표 `table.infantPrice`만** 사용(날짜·달력 스크래프 값으로 덮지 않음).
  */
 export function computeModetourLinkedDeparturePrices(args: {
   adultTotal: number
   table: BodyProductPriceTable | null | undefined
   rowChildBedBase?: number | null
   rowChildNoBedBase?: number | null
-  rowInfantBase?: number | null
   childFuel?: number
   infantFuel?: number
 }): {
@@ -700,9 +708,7 @@ export function computeModetourLinkedDeparturePrices(args: {
   const cnbR = t?.childNoBedPrice != null && t.childNoBedPrice > 0 ? Number(t.childNoBedPrice) : null
   const infR = t?.infantPrice != null && t.infantPrice > 0 ? Number(t.infantPrice) : null
 
-  const infantPrice = roundKrwModetour(
-    (infR != null ? infR : args.rowInfantBase != null ? Number(args.rowInfantBase) : 0) + infantFuel
-  )
+  const infantPrice = roundKrwModetour((infR ?? 0) + infantFuel)
 
   const rowCb =
     args.rowChildBedBase != null && Number(args.rowChildBedBase) > 0 ? Number(args.rowChildBedBase) : null
@@ -1067,7 +1073,6 @@ export function modetourParsedPricesToDepartureInputs(
       table,
       rowChildBedBase: p.childBedBase ?? null,
       rowChildNoBedBase: p.childNoBedBase ?? null,
-      rowInfantBase: p.infantBase ?? null,
       childFuel: Number(p.childFuel) || 0,
       infantFuel: Number(p.infantFuel) || 0,
     })
@@ -1163,7 +1168,6 @@ export function modetourDepartureInputsToProductPriceCreateMany(
       table: bodyTable,
       rowChildBedBase: d.childBedPrice ?? null,
       rowChildNoBedBase: d.childNoBedPrice ?? null,
-      rowInfantBase: d.infantPrice ?? null,
       childFuel: 0,
       infantFuel: 0,
     })
@@ -1235,7 +1239,6 @@ export function modetourParsedCalendarRowsToProductPriceCreateMany(
       table,
       rowChildBedBase: p.childBedBase ?? null,
       rowChildNoBedBase: p.childNoBedBase ?? null,
-      rowInfantBase: p.infantBase ?? null,
       childFuel: p.childFuel ?? 0,
       infantFuel: p.infantFuel ?? 0,
     })

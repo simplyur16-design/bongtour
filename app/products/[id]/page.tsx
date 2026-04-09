@@ -102,6 +102,17 @@ function itineraryDayMetaByDay(days: ItineraryDay[]): Map<number, ItineraryDay> 
   return m
 }
 
+/** ItineraryDay에 ""가 있으면 `??`만으로는 schedule JSON 식사를 못 쓴다 — 일부 일차만 식사 나오는 현상 방지 */
+function coalesceItineraryOrScheduleText(
+  db: string | null | undefined,
+  fromScheduleJson: string | null | undefined
+): string | null {
+  const a = typeof db === 'string' ? db.trim() : ''
+  if (a) return a
+  const b = typeof fromScheduleJson === 'string' ? fromScheduleJson.trim() : ''
+  return b || null
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const p = await prisma.product.findFirst({
@@ -250,12 +261,12 @@ export default async function ProductDetailPage({ params }: Props) {
           /** ItineraryDay가 비어 있으면 Product.schedule JSON에 넣어 둔 식사·숙소(모두투어 confirm)로 보조 */
           return {
             ...s,
-            hotelText: iday?.hotelText ?? s.hotelText ?? null,
-            breakfastText: iday?.breakfastText ?? s.breakfastText ?? null,
-            lunchText: iday?.lunchText ?? s.lunchText ?? null,
-            dinnerText: iday?.dinnerText ?? s.dinnerText ?? null,
-            mealSummaryText: iday?.mealSummaryText ?? s.mealSummaryText ?? null,
-            meals: iday?.meals ?? s.meals ?? null,
+            hotelText: coalesceItineraryOrScheduleText(iday?.hotelText, s.hotelText),
+            breakfastText: coalesceItineraryOrScheduleText(iday?.breakfastText, s.breakfastText),
+            lunchText: coalesceItineraryOrScheduleText(iday?.lunchText, s.lunchText),
+            dinnerText: coalesceItineraryOrScheduleText(iday?.dinnerText, s.dinnerText),
+            mealSummaryText: coalesceItineraryOrScheduleText(iday?.mealSummaryText, s.mealSummaryText),
+            meals: coalesceItineraryOrScheduleText(iday?.meals, s.meals),
           }
         })
       : []

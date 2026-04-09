@@ -12,7 +12,10 @@ import { testGeminiConnection } from '@/lib/gemini-client'
 import { upsertProductDepartures, type DepartureInput } from '@/lib/upsert-product-departures-modetour'
 import { toDeparturePreviewRows } from '@/lib/departure-preview'
 import { stripCounselingTermsFromItineraryDayDraft } from '@/lib/itinerary-counseling-terms-strip'
-import { extractModetourMealSummaryFromScheduleDescription } from '@/lib/register-modetour-meal-from-description'
+import {
+  modetourItineraryDraftsApplyParsedScheduleOverlay,
+  modetourItineraryDraftsApplyScheduleHotelBodyFirst,
+} from '@/lib/modetour-itinerary-schedule-overlay'
 import { supplementModetourScheduleFromPastedBody } from '@/lib/register-modetour-pasted-schedule'
 import {
   upsertItineraryDays,
@@ -162,7 +165,6 @@ function enrichModetourPrefetchedDeparturesWithTable(
       table,
       rowChildBedBase: d.childBedPrice ?? null,
       rowChildNoBedBase: d.childNoBedPrice ?? null,
-      rowInfantBase: d.infantPrice ?? null,
       childFuel: 0,
       infantFuel: 0,
     })
@@ -310,89 +312,6 @@ function buildModetourProductScheduleJson(
       }
     })
   )
-}
-
-/** ItineraryDay: 일정표 schedule.hotelText(본문 추출) → 그다음 초안 hotelText → accommodation 보정 */
-function modetourItineraryDraftsApplyScheduleHotelBodyFirst(
-  drafts: ReturnType<typeof registerScheduleToDayInputs>,
-  schedule: Array<{ day?: number; hotelText?: string | null }>
-): ReturnType<typeof registerScheduleToDayInputs> {
-  const bodyByDay = new Map<number, string>()
-  for (const s of schedule) {
-    const day = Number(s.day)
-    if (!Number.isInteger(day) || day < 1) continue
-    const ht = typeof s.hotelText === 'string' ? s.hotelText.trim() : ''
-    if (!ht || ht === '-' || ht === '—' || ht === '–') continue
-    bodyByDay.set(day, ht.slice(0, 500))
-  }
-  return drafts.map((d) => {
-    const fromBody = bodyByDay.get(d.day)
-    const mergedHt = fromBody ?? (d.hotelText?.trim() || '')
-    const htNorm =
-      mergedHt && mergedHt !== '-' && mergedHt !== '—' && mergedHt !== '–' ? mergedHt.slice(0, 500) : null
-    return {
-      ...d,
-      hotelText: htNorm,
-      accommodation: htNorm ?? (d.accommodation?.trim() || null),
-    }
-  })
-}
-
-/**
- * 확정(confirm) 시 일정 day 초안이 패키지 HTML 스크래핑 기반이면 summary가 장문 raw가 된다.
- * 붙여넣기 파이프로 정제된 `parsed.schedule`과 동일한 요약·식사·rawBlock을 일차별로 덮어쓴다.
- * (숙소는 위 `modetourItineraryDraftsApplyScheduleHotelBodyFirst`가 schedule 기준으로 이미 맞춤.)
- * 요약이 매우 짧아도 식사 필드가 있으면 식사만 반영(요약/ rawBlock 은 짧을 때 초안 유지).
- */
-function modetourItineraryDraftsApplyParsedScheduleOverlay(
-  drafts: ReturnType<typeof registerScheduleToDayInputs>,
-  schedule: NonNullable<RegisterParsed['schedule']>
-): ReturnType<typeof registerScheduleToDayInputs> {
-  if (!schedule?.length || !drafts.length) return drafts
-  const rows = registerScheduleToDayInputs(schedule)
-  const byDay = new Map(rows.map((r) => [r.day, r]))
-  const schedByDay = new Map(
-    schedule
-      .map((s) => [Number(s.day), s] as const)
-      .filter(([day]) => Number.isInteger(day) && day >= 1)
-  )
-  return drafts.map((d) => {
-    const o = byDay.get(d.day)
-    if (!o) return d
-    const sRow = schedByDay.get(d.day)
-    const mealFromDesc = extractModetourMealSummaryFromScheduleDescription(
-      typeof sRow?.description === 'string' ? sRow.description : undefined
-    )
-    const brief = String(o.summaryTextRaw ?? '').trim()
-    const hasMeal =
-      Boolean(o.breakfastText?.trim()) ||
-      Boolean(o.lunchText?.trim()) ||
-      Boolean(o.dinnerText?.trim()) ||
-      Boolean(o.mealSummaryText?.trim()) ||
-      Boolean(o.meals?.trim()) ||
-      Boolean(mealFromDesc)
-    const hasMealFromDraft =
-      Boolean(d.breakfastText?.trim()) ||
-      Boolean(d.lunchText?.trim()) ||
-      Boolean(d.dinnerText?.trim()) ||
-      Boolean(d.mealSummaryText?.trim()) ||
-      Boolean(d.meals?.trim())
-    // 요약이 짧아도 붙여넣기 일정에 식사 줄이 있으면 반드시 반영 (그렇지 않으면 공개 상세가「식사 - 불포함」)
-    if (brief.length < 8 && !hasMeal && !hasMealFromDraft) return d
-    const pickMeal = (a: string | null | undefined, b: string | null | undefined) =>
-      (a?.trim() || b?.trim() || null) as string | null
-    const mergedMeals = o.meals?.trim() || mealFromDesc || d.meals?.trim() || null
-    return {
-      ...d,
-      summaryTextRaw: brief.length >= 8 ? o.summaryTextRaw : d.summaryTextRaw,
-      rawBlock: brief.length >= 8 ? (o.rawBlock ?? d.rawBlock) : d.rawBlock,
-      breakfastText: pickMeal(o.breakfastText, d.breakfastText),
-      lunchText: pickMeal(o.lunchText, d.lunchText),
-      dinnerText: pickMeal(o.dinnerText, d.dinnerText),
-      mealSummaryText: pickMeal(o.mealSummaryText, d.mealSummaryText) ?? mealFromDesc ?? null,
-      meals: mergedMeals,
-    }
-  })
 }
 
 function mergeRawMetaWithStructuredSignals(

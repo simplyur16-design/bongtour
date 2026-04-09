@@ -5,7 +5,7 @@
 
 export function extractModetourMealSummaryFromScheduleDescription(desc: string | undefined): string | null {
   if (!desc?.trim()) return null
-  const t = desc.replace(/\r/g, '\n')
+  const t = desc.replace(/\r/g, '\n').replace(/<[^>]+>/g, ' ')
   const sameLineAfterMeal = t.match(
     /식사\s+((?:조식|중식|석식)\s*[-–—]\s*[^\n]+(?:\s*,\s*(?:조식|중식|석식)\s*[-–—]\s*[^\n]+)*)/i
   )
