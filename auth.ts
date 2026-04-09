@@ -27,6 +27,8 @@ if (!isProduction && resolvedAuthSecret === '__bongtour_dev_auth_secret_change_f
 const kakaoConfigured = Boolean(process.env.KAKAO_CLIENT_ID?.trim() && process.env.KAKAO_CLIENT_SECRET?.trim())
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  /** nginx 등 리버스 프록시 뒤에서 호스트·HTTPS를 맞추지 않으면 세션이 미들웨어에서 비어 /admin → /auth/signin 루프가 날 수 있음 */
+  trustHost: true,
   secret: resolvedAuthSecret,
   adapter: PrismaAdapter(prisma),
   providers: [

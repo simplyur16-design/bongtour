@@ -18,7 +18,9 @@ function buildContentSecurityPolicy() {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https://cdn.jsdelivr.net",
     "frame-src 'self' https://www.googletagmanager.com https://www.google.com",
-    "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com",
+    // www / non-www 혼용 시 RSC·fetch가 'self'와 달라 connect-src 에서 막힘 — origin 통일 전까지 둘 다 허용
+    // jsDelivr: Pretendard 등 @import 리소스의 .map 소스맵 fetch(connect) — style-src/font-src 와 별도
+    "connect-src 'self' https://bongtour.com https://www.bongtour.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com",
     "worker-src 'self' blob:",
   ]
   return directives.join('; ')

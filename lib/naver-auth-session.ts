@@ -13,17 +13,24 @@ function resolvedAuthSecret(): string | undefined {
 }
 
 function baseUrlFromRequest(request: Request): string {
-  const env =
-    process.env.NEXTAUTH_URL?.trim() ||
-    process.env.AUTH_URL?.trim() ||
-    new URL(request.url).origin
-  return env.replace(/\/$/, '')
+  const env = process.env.NEXTAUTH_URL?.trim() || process.env.AUTH_URL?.trim()
+  if (env) return env.replace(/\/$/, '')
+  // nginx 뒤에서 NEXTAUTH_URL 누락 시에도 공개 URL로 리다이렉트·세션 쿠키 이름 맞추기
+  const proto = (request.headers.get('x-forwarded-proto') ?? '').split(',')[0]?.trim()
+  const host = (request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '').split(',')[0]?.trim()
+  if (host && (proto === 'http' || proto === 'https')) {
+    return `${proto}://${host}`.replace(/\/$/, '')
+  }
+  return new URL(request.url).origin
 }
 
 /** NEXTAUTH_URL 이 https 이면 __Secure- 쿠키 (Auth.js 와 동일) */
 function useSecureCookie(request: Request): boolean {
   const u = process.env.NEXTAUTH_URL?.trim() || process.env.AUTH_URL?.trim()
   if (u?.startsWith('https://')) return true
+  if (u?.startsWith('http://')) return false
+  const forwarded = (request.headers.get('x-forwarded-proto') ?? '').split(',')[0]?.trim()
+  if (forwarded === 'https') return true
   return new URL(request.url).protocol === 'https:'
 }
 

@@ -361,6 +361,48 @@ function extractModetourSupplementLabelTable(blob: string): ProductPriceTableByL
   return filled ? out : null
 }
 
+/**
+ * 모두투어 PC 본문: 구분 열(성인·아동·유아)이 위에, `상품가격` 헤더 아래에 금액이 세로로 나열하는 표.
+ * 기존 `expandModetourPriceLinesWithContinuation`은 중간에 다음 구간 라벨이 나오면 성인-금액 매칭이 끊긴다.
+ */
+function extractModetourStackedPriceTableFromBlob(blob: string): ProductPriceTableByLabels | null {
+  const rawLines = blob.replace(/\r/g, '\n').split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)
+  const idx = rawLines.findIndex((l) => /^상품\s*가격$/i.test(l))
+  if (idx < 0) return null
+  const before = rawLines.slice(0, idx)
+  const tiers: PriceSlot[] = []
+  for (const line of before) {
+    const slot = detectModetourPriceSlotLine(line)
+    if (!slot) continue
+    if (firstMainPriceKrwModetour(line) != null) continue
+    tiers.push(slot)
+  }
+  if (tiers.length < 2) return null
+  const after = rawLines.slice(idx + 1)
+  const prices: number[] = []
+  for (const line of after) {
+    if (prices.length >= 6) break
+    const t = stripLeadingPriceRowNoise(line)
+    if (!t) continue
+    if (/^[\s·•]+(유류|제세|할증|공과)/i.test(t)) continue
+    if (/^(유류|제세|할증|공과)/i.test(t)) continue
+    const n = firstMainPriceKrwModetour(t)
+    if (n != null && n > 0) prices.push(n)
+  }
+  if (prices.length === 0) return null
+  const n = Math.min(tiers.length, prices.length, 4)
+  const out: ProductPriceTableByLabels = {
+    adultPrice: null,
+    childExtraBedPrice: null,
+    childNoBedPrice: null,
+    infantPrice: null,
+  }
+  for (let i = 0; i < n; i++) {
+    assignModetourSlot(out, tiers[i]!, prices[i]!)
+  }
+  return out
+}
+
 /** 본문 섹션에만 있고 priceTableRaw* 에 안 올라온 연령별 표를 보강(중복은 merge 단계에서 흡수) */
 function modetourExtraPriceBlobFromDetailBody(parsed: RegisterParsed): string {
   const snap = parsed.detailBodyStructured
@@ -430,6 +472,7 @@ export function finalizeModetourProductPriceTable(
   const blobNorm = normalizeModetourPriceBlobForExtract(blob)
   let merged = mergeProductPriceTableWithLabelExtract(table, extractProductPriceTableByLabels(blobNorm))
   merged = mergeProductPriceTableWithLabelExtract(merged, extractModetourSupplementLabelTable(blobNorm))
+  merged = mergeProductPriceTableWithLabelExtract(merged, extractModetourStackedPriceTableFromBlob(blobNorm))
   if (!merged) return table ?? null
 
   const scrubbed = scrubModetourProductPriceTableSlotsAgainstBlob(merged, blobNorm)

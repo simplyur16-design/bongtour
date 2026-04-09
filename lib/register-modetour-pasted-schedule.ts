@@ -104,7 +104,12 @@ function isModetourScheduleSectionStartLine(line: string): boolean {
 }
 
 function isLikelyMealSubLine(line: string): boolean {
-  return /^(?:조식|아침|중식|점심|석식|저녁)\b/.test(line.trim())
+  const s = line.trim()
+  return (
+    /^(?:조식|아침|중식|점심|석식|저녁)\b/.test(s) ||
+    /^\[?\s*(?:조식|아침|중식|점심|석식|저녁)\s*\]?/.test(s) ||
+    /^[·▪•]\s*(?:조식|아침|중식|점심|석식|저녁)\b/.test(s)
+  )
 }
 
 /** 예정호텔/식사 라벨과 값이 줄바꿈으로 떨어진 붙여넣기를 한 줄로 접는다. */
@@ -241,24 +246,43 @@ function extractMealHotelFromBlock(text: string): Partial<RegisterScheduleDay> {
   const t = folded.join('\n')
 
   const out: Partial<RegisterScheduleDay> = {}
-  const triplet = t.match(
-    /(?:조식|아침)\s*[-:：/／]\s*([^/|\n]+?)\s*[/|／]\s*(?:중식|점심)\s*[-:：]?\s*([^/|\n]+?)\s*[/|／]\s*(?:석식|저녁)\s*[-:：]?\s*([^/|\n]+)/i
+  // 모두투어 흔한 형태: "조식 - 호텔식, 중식 - 현지식, 석식 - 현지식" (쉼표 구분 — 슬래시 없음)
+  const commaTrip = t.match(
+    /(?:조식|아침)\s*[-–—:：]\s*([^,，\n]+?)\s*[,，]\s*(?:중식|점심)\s*[-–—:：]\s*([^,，\n]+?)\s*[,，]\s*(?:석식|저녁)\s*[-–—:：]\s*([^\n]+)/i
   )
+  if (commaTrip) {
+    if (commaTrip[1]?.trim()) out.breakfastText = normalizeModetourMealCapture(commaTrip[1]).slice(0, 200)
+    if (commaTrip[2]?.trim()) out.lunchText = normalizeModetourMealCapture(commaTrip[2]).slice(0, 200)
+    if (commaTrip[3]?.trim()) out.dinnerText = normalizeModetourMealCapture(commaTrip[3]).slice(0, 200)
+  }
+  // `/` `·` `｜` 등 슬래시형
+  const triplet =
+    out.breakfastText && out.lunchText && out.dinnerText
+      ? null
+      : t.match(
+          /(?:조식|아침)\s*[-:：/／·｜ㅣ]\s*([^/|｜ㅣ·\n]+?)\s*[-/／·｜ㅣ]\s*(?:중식|점심)\s*[-:：/／·｜ㅣ]?\s*([^/|｜ㅣ·\n]+?)\s*[-/／·｜ㅣ]\s*(?:석식|저녁)\s*[-:：/／·｜ㅣ]?\s*([^/|｜ㅣ·\n]+)/i
+        )
   if (triplet) {
     if (triplet[1]?.trim()) out.breakfastText = normalizeModetourMealCapture(triplet[1]).slice(0, 200)
     if (triplet[2]?.trim()) out.lunchText = normalizeModetourMealCapture(triplet[2]).slice(0, 200)
     if (triplet[3]?.trim()) out.dinnerText = normalizeModetourMealCapture(triplet[3]).slice(0, 200)
   }
   if (!out.breakfastText) {
-    const bp = t.match(/(?:조식|아침)\s*[-:：–—]\s*([^\n/|]+?)(?=\s*(?:[/|／]|\n|$|중식|점심))/i)
+    const bp =
+      t.match(/(?:조식|아침)\s*[-:：–—/／·｜ㅣ]\s*([^\n/|｜ㅣ·]+?)(?=\s*(?:[,，]|[/|／·｜ㅣ]|\n|$|중식|점심))/i) ||
+      t.match(/\[?\s*(?:조식|아침)\s*\]?\s*[:：]?\s*([^\n[/]+?)(?=\s*(?:\n|$|\[?\s*(?:중식|점심)))/i)
     if (bp?.[1]?.trim()) out.breakfastText = normalizeModetourMealCapture(bp[1]).slice(0, 200)
   }
   if (!out.lunchText) {
-    const lp = t.match(/(?:중식|점심)\s*[-:：–—]\s*([^\n/|]+?)(?=\s*(?:[/|／]|\n|$|석식|저녁))/i)
+    const lp =
+      t.match(/(?:중식|점심)\s*[-:：–—/／·｜ㅣ]\s*([^\n/|｜ㅣ·]+?)(?=\s*(?:[,，]|[/|／·｜ㅣ]|\n|$|석식|저녁))/i) ||
+      t.match(/\[?\s*(?:중식|점심)\s*\]?\s*[:：]?\s*([^\n[/]+?)(?=\s*(?:\n|$|\[?\s*(?:석식|저녁)))/i)
     if (lp?.[1]?.trim()) out.lunchText = normalizeModetourMealCapture(lp[1]).slice(0, 200)
   }
   if (!out.dinnerText) {
-    const dp = t.match(/(?:석식|저녁)\s*[-:：–—]\s*([^\n]+)/i)
+    const dp =
+      t.match(/(?:석식|저녁)\s*[-:：–—/／·｜ㅣ]\s*([^\n]+)/i) ||
+      t.match(/\[?\s*(?:석식|저녁)\s*\]?\s*[:：]?\s*([^\n]+)/i)
     if (dp?.[1]?.trim()) out.dinnerText = normalizeModetourMealCapture(dp[1]).slice(0, 200)
   }
 
@@ -273,7 +297,7 @@ function extractMealHotelFromBlock(text: string): Partial<RegisterScheduleDay> {
   }
 
   if (!out.breakfastText && !out.lunchText && !out.dinnerText) {
-    const mealOnly = t.match(/식사\s*[:：]\s*([^\n]+)/i)
+    const mealOnly = t.match(/식사\s*[:：]\s*([^\n]+)/i) || t.match(/식사\s+(?![:：])([^\n]+)/i)
     if (mealOnly?.[1]?.trim()) out.mealSummaryText = normalizeModetourMealCapture(mealOnly[1]).slice(0, 500)
   } else {
     const parts = [

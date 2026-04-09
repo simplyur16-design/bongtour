@@ -5,12 +5,12 @@ import { NextResponse } from 'next/server'
  * NEXT_PUBLIC_SITE_URL / NEXT_PUBLIC_APP_URL / VERCEL_URL 기준 origin 허용 목록과
  * 요청의 Origin·Referer origin을 비교한다.
  *
- * 프로덕션: 운영 접속 도메인(https://www.bongtour.com)을 항상 허용 목록에 포함해
+ * 프로덕션: 운영 접속 도메인(www / non-www)을 허용 목록에 포함해
  * env 누락·오설정 시에도 동일 사이트 정상 요청이 503/403으로 막히지 않게 한다.
  */
 
-/** 운영 고객 접속 canonical origin — lib/link-builder·sitemap 등과 정합 */
-const PRODUCTION_PUBLIC_ORIGIN = 'https://www.bongtour.com'
+/** nginx·canonical 정리 전까지 동일 서비스의 두 호스트 모두 허용 */
+const PRODUCTION_PUBLIC_ORIGINS = ['https://bongtour.com', 'https://www.bongtour.com']
 
 function normalizeOriginList(): string[] {
   const raw: (string | null | undefined)[] = [
@@ -20,10 +20,12 @@ function normalizeOriginList(): string[] {
   ]
   const out = new Set<string>()
   if (process.env.NODE_ENV === 'production') {
-    try {
-      out.add(new URL(PRODUCTION_PUBLIC_ORIGIN).origin)
-    } catch {
-      /* skip */
+    for (const o of PRODUCTION_PUBLIC_ORIGINS) {
+      try {
+        out.add(new URL(o).origin)
+      } catch {
+        /* skip */
+      }
     }
   }
   for (const r of raw) {

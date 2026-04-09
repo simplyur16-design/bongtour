@@ -91,6 +91,27 @@ function num(v: unknown): number | null {
   return null
 }
 
+function normOptionalTourWs(s: string): string {
+  return s.replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * 비고(`description`/`descriptionText`)가 저장용 **원문 한 줄**(`raw`/`rawText`)과 동일할 때만 표시하지 않음.
+ * 등록·파서가 따로 넣은 짧은 메모·비고는 건드리지 않는다(과거 토큰 일괄 제거는 파서 산출물을 망가뜨릴 수 있음).
+ */
+function pruneOptionalTourUiDescription(rawDesc: string | null, row: Record<string, unknown>): string | null {
+  if (!rawDesc?.trim()) return null
+  const d = normOptionalTourWs(rawDesc)
+  const rawLine =
+    typeof row.raw === 'string' && row.raw.trim()
+      ? normOptionalTourWs(row.raw)
+      : typeof row.rawText === 'string' && row.rawText.trim()
+        ? normOptionalTourWs(row.rawText)
+        : ''
+  if (rawLine && (d === rawLine || d === rawLine.replace(/\t/g, ' '))) return null
+  return rawDesc.trim()
+}
+
 function isKrwCurrencyToken(c: string | null | undefined): boolean {
   const t = (c ?? '').trim()
   if (!t) return false
@@ -159,7 +180,7 @@ export function parseOptionalToursForUi(raw: string | null | undefined): UiOptio
             : null
         const noteFromRow =
           typeof row.noteText === 'string' && row.noteText.trim() ? String(row.noteText).trim() : null
-        const descriptionBody =
+        const rawDescription =
           (typeof row.description === 'string' && row.description.trim()) ||
           (typeof row.descriptionText === 'string' && row.descriptionText.trim()) ||
           null
@@ -171,13 +192,13 @@ export function parseOptionalToursForUi(raw: string | null | undefined): UiOptio
           typeof row.currency === 'string' && row.currency.trim() ? row.currency.trim() : null
         let durationText = (typeof row.durationText === 'string' && row.durationText.trim()) || null
         const descForDuration =
-          descriptionBody && descriptionBody.length < 100 && /(?:약\s*)?\d+\s*(?:시간|분)|소요/i.test(descriptionBody)
-            ? descriptionBody
+          rawDescription && rawDescription.length < 100 && /(?:약\s*)?\d+\s*(?:시간|분)|소요/i.test(rawDescription)
+            ? rawDescription
             : null
         const descLooksLikeAlternateOnly =
-          !!descriptionBody &&
-          /대체\s*일정|미참가|대기|기상|변경|불가|별도/i.test(descriptionBody) &&
-          !/(?:약\s*)?\d{1,2}\s*(?:시간|분)/.test(descriptionBody)
+          !!rawDescription &&
+          /대체\s*일정|미참가|대기|기상|변경|불가|별도/i.test(rawDescription) &&
+          !/(?:약\s*)?\d{1,2}\s*(?:시간|분)/.test(rawDescription)
         if (!durationText && descForDuration && !descLooksLikeAlternateOnly) durationText = descForDuration
         if (repaired.durationText) {
           const dt = durationText?.trim() ?? ''
@@ -218,10 +239,15 @@ export function parseOptionalToursForUi(raw: string | null | undefined): UiOptio
           row.bookingType === 'onsite' || row.bookingType === 'pre' || row.bookingType === 'inquire' || row.bookingType === 'unknown'
             ? row.bookingType
             : 'unknown'
+        const descriptionBody = pruneOptionalTourUiDescription(rawDescription, row)
         const showDesc =
           descriptionBody &&
           descriptionBody.replace(/\s+/g, ' ').trim() !==
-            [durationText, alternateScheduleText, guideText, waitingText].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
+            [durationText, alternateScheduleText, guideText, waitingText, minPaxText]
+              .filter(Boolean)
+              .join(' ')
+              .replace(/\s+/g, ' ')
+              .trim()
 
         return {
           id: typeof row.id === 'string' ? row.id : `opt-${i}`,
@@ -241,8 +267,7 @@ export function parseOptionalToursForUi(raw: string | null | undefined): UiOptio
           supplierTags: supplierTags.length ? supplierTags : undefined,
           includedNoExtraCharge: includedNoExtraCharge || undefined,
           alternateScheduleText,
-          descriptionBody:
-            showDesc && descriptionBody && descriptionBody.length > 1 ? descriptionBody : undefined,
+          descriptionBody: showDesc && descriptionBody && descriptionBody.length > 1 ? descriptionBody : undefined,
         } as UiOptionalTourRow
       })
       .filter((x): x is UiOptionalTourRow => {

@@ -1,20 +1,22 @@
-import Link from 'next/link'
-
 type Props = {
   callbackUrl?: string
   className?: string
   children?: React.ReactNode
 }
 
-/** GET `/api/auth/naver` → 수동 OAuth → `/api/auth/naver/callback` 에서 Account/세션 처리 */
+/**
+ * OAuth 시작은 브라우저 전체 이동만 사용 (Link/RSC fetch 금지).
+ * GET `/api/auth/naver` → `/api/auth/naver/callback` 에서 Account/세션 처리
+ */
 export default function NaverLoginLink({ callbackUrl, className = '', children }: Props) {
   const q = callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''
+  const href = `/api/auth/naver${q}`
   return (
-    <Link
-      href={`/api/auth/naver${q}`}
+    <a
+      href={href}
       className={`inline-flex w-full items-center justify-center rounded-lg bg-[#03C75A] px-5 py-3 text-[15px] font-medium text-white transition hover:opacity-90 ${className}`}
     >
       {children ?? '네이버로 로그인'}
-    </Link>
+    </a>
   )
 }

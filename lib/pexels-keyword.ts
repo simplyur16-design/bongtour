@@ -156,6 +156,28 @@ const MAX_ATTRACTION_WORDS = 4
 
 const POI_KO_KEYS_SORTED = Object.keys(POI_KO_TO_EN).sort((a, b) => b.length - a.length)
 
+/**
+ * 스크래퍼·공급사 페이지에 섞인 JSON/API 덤프가 title·destination 등에 들어오면
+ * Pexels/Gemini 검색어가 `"gnbMenuEventTypeWebCode":null` 같은 문자열로 오염된다 — 미디어용으로 제외.
+ */
+export function isLikelyJsonOrWebApiDump(s: string | null | undefined): boolean {
+  if (!s?.trim()) return false
+  const t = s.trim()
+  // 객체형 페이지/API 덤프 (상품명·목적지 필드에 붙는 경우)
+  if (t.startsWith('{') && /"[^"]+"\s*:/.test(t)) return true
+  if (t.includes('gnbMenuEventTypeWebCode') || t.includes('"gnbMenu')) return true
+  if (t.includes('openapi.naver.com') || t.includes('nid.naver.com')) return true
+  // `[` 로 시작하는 건 정상 schedule 배열일 수 있음 — 배열이 아닌 긴 덤프만
+  const keyLike = t.match(/"[\w]+"\s*:/g)
+  if (!t.startsWith('[') && keyLike && keyLike.length >= 4 && t.length > 80) return true
+  return false
+}
+
+function mediaSafe(s: string | null | undefined): string | null {
+  if (s == null || s === '') return s ?? null
+  return isLikelyJsonOrWebApiDump(s) ? null : s
+}
+
 /** 일정 이미지·중복 제거용: 동일 명소 판별 */
 export function normalizeSemanticPoiKey(s: string): string {
   return s
@@ -180,6 +202,7 @@ function normalize(s: string): string {
 
 export function mapDestination(destination: string | null): string {
   if (!destination) return ''
+  if (isLikelyJsonOrWebApiDump(destination)) return ''
   const t = normalize(destination)
   if (!t) return ''
   for (const [ko, en] of Object.entries(DESTINATION_MAP)) {
@@ -190,6 +213,7 @@ export function mapDestination(destination: string | null): string {
 
 function mapRegion(region: string | null): string {
   if (!region) return ''
+  if (isLikelyJsonOrWebApiDump(region)) return ''
   const t = normalize(region)
   if (!t) return ''
   for (const [ko, en] of Object.entries(REGION_MAP)) {
@@ -201,6 +225,7 @@ function mapRegion(region: string | null): string {
 /** themeTags 쉼표 구분에서 첫 번째 유효 태그를 영어로 매핑 */
 function mapFirstThemeTag(themeTags: string | null): string {
   if (!themeTags) return ''
+  if (isLikelyJsonOrWebApiDump(themeTags)) return ''
   const tags = themeTags
     .split(/[,，\s]+/)
     .map((s) => s.trim())
@@ -256,6 +281,7 @@ function isLatinAttractionName(s: string): boolean {
 
 /** poiNamesRaw: 매핑된 한글 명소 → 영어, 없으면 첫 라틴 구간 */
 function firstPoiFromRaw(poiNamesRaw: string | null | undefined): string {
+  if (isLikelyJsonOrWebApiDump(poiNamesRaw)) return ''
   const hit = firstPoiSearchTermExcluding(poiNamesRaw, new Set())
   return hit ?? ''
 }
@@ -293,6 +319,7 @@ export function firstPoiSearchTermExcluding(
  */
 export function extractLatinPhraseFromTitle(title: string | null): string {
   if (!title?.trim()) return ''
+  if (isLikelyJsonOrWebApiDump(title)) return ''
   const chunks = title
     .split(/[|·/\\[\]()\n\r]+/)
     .map((s) => s.trim())
@@ -318,6 +345,7 @@ export function extractLatinPhraseFromTitle(title: string | null): string {
  */
 export function extractAttractionFromScheduleJson(scheduleJson: string | null | undefined): string {
   if (!scheduleJson || typeof scheduleJson !== 'string') return ''
+  if (isLikelyJsonOrWebApiDump(scheduleJson)) return ''
   try {
     const arr = JSON.parse(scheduleJson) as unknown
     if (!Array.isArray(arr)) return ''
@@ -328,8 +356,8 @@ export function extractAttractionFromScheduleJson(scheduleJson: string | null | 
           ? o.imageKeyword.trim()
           : typeof (o as { image_keyword?: string }).image_keyword === 'string'
             ? String((o as { image_keyword?: string }).image_keyword).trim()
-          : ''
-      if (kw) {
+            : ''
+      if (kw && !isLikelyJsonOrWebApiDump(kw)) {
         const q = sanitizeAttractionPhrase(kw)
         if (q) return q
       }
@@ -337,7 +365,7 @@ export function extractAttractionFromScheduleJson(scheduleJson: string | null | 
     for (const item of arr) {
       const o = item as Record<string, unknown>
       const title = typeof o.title === 'string' ? o.title.trim() : ''
-      if (title && title.length <= 45) {
+      if (title && title.length <= 45 && !isLikelyJsonOrWebApiDump(title)) {
         const q = sanitizeAttractionPhrase(title)
         if (q && isLatinAttractionName(q)) return q
       }
@@ -374,11 +402,17 @@ export type TravelSubjectEnMediaOptions = {
  */
 export function resolveTravelSubjectEnForMedia(options: TravelSubjectEnMediaOptions): string {
   const { destination, primaryRegion, themeTags, title, attractionName, poiNamesRaw, scheduleJson } = options
-  const destEn = mapDestination(destination)
-  const themeEn = mapFirstThemeTag(themeTags)
-  const regionEn = mapRegion(primaryRegion)
+  const destIn = mediaSafe(destination) ?? null
+  const titleIn = mediaSafe(title) ?? null
+  const attrIn = mediaSafe(attractionName) ?? null
+  const themeIn = mediaSafe(themeTags) ?? null
+  const regionIn = mediaSafe(primaryRegion) ?? null
 
-  const explicit = sanitizeAttractionPhrase(attractionName)
+  const destEn = mapDestination(destIn)
+  const themeEn = mapFirstThemeTag(themeIn)
+  const regionEn = mapRegion(regionIn)
+
+  const explicit = sanitizeAttractionPhrase(attrIn)
   if (explicit) return explicit
 
   const fromPoi = firstPoiFromRaw(poiNamesRaw)
@@ -387,7 +421,7 @@ export function resolveTravelSubjectEnForMedia(options: TravelSubjectEnMediaOpti
   const fromSchedule = extractAttractionFromScheduleJson(scheduleJson ?? null)
   if (fromSchedule) return fromSchedule
 
-  const fromTitleLatin = extractLatinPhraseFromTitle(title)
+  const fromTitleLatin = extractLatinPhraseFromTitle(titleIn)
   if (fromTitleLatin) return fromTitleLatin
 
   if (destEn) {
@@ -413,7 +447,7 @@ export function resolveTravelSubjectEnForMedia(options: TravelSubjectEnMediaOpti
   if (query.length > MAX_LENGTH) query = query.slice(0, MAX_LENGTH).trim()
   if (query) return query
 
-  const titleWords = (title ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 2)
+  const titleWords = (titleIn ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 2)
   query = titleWords.join(' ')
   if (query.length > MAX_LENGTH) query = query.slice(0, MAX_LENGTH).trim()
   return query || 'travel'

@@ -1,0 +1,50 @@
+# BongTour — nginx 사이트 설정 예시 (복사 후 경로·인증서만 맞추고 sites-enabled 에 연결)
+# CSP·세션·네이버 OAuth: 브라우저 origin 과 NEXTAUTH_URL / NEXT_PUBLIC_* 가 같아야 함.
+# canonical 을 https://bongtour.com 으로 쓸 때: www → 301, env 도 동일 호스트로 통일.
+
+upstream bongtour_node {
+    server 127.0.0.1:3000;
+    keepalive 64;
+}
+
+# www → non-www (필요 없으면 이 server 블록만 삭제)
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name www.bongtour.com;
+
+    ssl_certificate     /etc/letsencrypt/live/bongtour.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/bongtour.com/privkey.pem;
+
+    return 301 https://bongtour.com$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name bongtour.com;
+
+    ssl_certificate     /etc/letsencrypt/live/bongtour.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/bongtour.com/privkey.pem;
+
+    client_max_body_size 25m;
+
+    location / {
+        proxy_pass         http://bongtour_node;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   Upgrade           $http_upgrade;
+        proxy_set_header   Connection        "upgrade";
+    }
+}
+
+# HTTP → HTTPS (certbot 이 넣은 블록과 중복이면 하나만 유지)
+# server {
+#     listen 80;
+#     listen [::]:80;
+#     server_name bongtour.com www.bongtour.com;
+#     return 301 https://bongtour.com$request_uri;
+# }

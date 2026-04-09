@@ -291,6 +291,7 @@ function modetourItineraryDraftsApplyScheduleHotelBodyFirst(
  * 확정(confirm) 시 일정 day 초안이 패키지 HTML 스크래핑 기반이면 summary가 장문 raw가 된다.
  * 붙여넣기 파이프로 정제된 `parsed.schedule`과 동일한 요약·식사·rawBlock을 일차별로 덮어쓴다.
  * (숙소는 위 `modetourItineraryDraftsApplyScheduleHotelBodyFirst`가 schedule 기준으로 이미 맞춤.)
+ * 요약이 매우 짧아도 식사 필드가 있으면 식사만 반영(요약/ rawBlock 은 짧을 때 초안 유지).
  */
 function modetourItineraryDraftsApplyParsedScheduleOverlay(
   drafts: ReturnType<typeof registerScheduleToDayInputs>,
@@ -303,11 +304,18 @@ function modetourItineraryDraftsApplyParsedScheduleOverlay(
     const o = byDay.get(d.day)
     if (!o) return d
     const brief = String(o.summaryTextRaw ?? '').trim()
-    if (brief.length < 8) return d
+    const hasMeal =
+      Boolean(o.breakfastText?.trim()) ||
+      Boolean(o.lunchText?.trim()) ||
+      Boolean(o.dinnerText?.trim()) ||
+      Boolean(o.mealSummaryText?.trim()) ||
+      Boolean(o.meals?.trim())
+    // 요약이 짧아도 붙여넣기 일정에 식사 줄이 있으면 반드시 반영 (그렇지 않으면 공개 상세가「식사 - 불포함」)
+    if (brief.length < 8 && !hasMeal) return d
     return {
       ...d,
-      summaryTextRaw: o.summaryTextRaw,
-      rawBlock: o.rawBlock ?? d.rawBlock,
+      summaryTextRaw: brief.length >= 8 ? o.summaryTextRaw : d.summaryTextRaw,
+      rawBlock: brief.length >= 8 ? (o.rawBlock ?? d.rawBlock) : d.rawBlock,
       breakfastText: o.breakfastText ?? d.breakfastText,
       lunchText: o.lunchText ?? d.lunchText,
       dinnerText: o.dinnerText ?? d.dinnerText,

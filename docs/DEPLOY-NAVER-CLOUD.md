@@ -33,11 +33,14 @@ NODE_ENV=production PORT=3000 npm run start
 ## 재배포 순서
 
 ```bash
+cd /var/www/bongtour
 git pull
 npm ci
 npm run build
-pm2 restart bongtour
+pm2 restart bongtour --update-env
 ```
+
+`next.config.js`의 CSP 등 **헤더 변경은 반드시 `npm run build` 후** 재시작해야 브라우저에 반영된다.
 
 ## PM2 (단일 인스턴스)
 
@@ -52,8 +55,15 @@ pm2 start node_modules/next/dist/bin/next --name bongtour -- start
 ## nginx
 
 - `next start` 기본 포트: **3000** (`PORT` 미설정 시)
-- `proxy_pass http://127.0.0.1:3000;` (또는 PM2가 바인딩한 포트)
-- TLS 종료는 nginx에서 처리하고, 앱에는 `X-Forwarded-Proto` / `Host` 전달
+- TLS 종료는 nginx, 앱에는 **`Host` · `X-Forwarded-Proto` · `X-Forwarded-For`** 전달 (Auth.js·CSP·RSC에 필요)
+
+**적용 가능한 예시 파일:** 저장소 `deploy/nginx-bongtour-site.conf.example`
+
+1. 서버에 복사 후 인증서 경로·`server_name` 확인
+2. `sudo nginx -t` → `sudo systemctl reload nginx`
+
+예시는 **`www.bongtour.com` → `https://bongtour.com` 301** 과 **canonical 호스트 `bongtour.com`용 reverse proxy** 를 포함한다.  
+운영 env는 **`NEXTAUTH_URL` / `NEXT_PUBLIC_SITE_URL` / `NAVER_CALLBACK_URL` 호스트를 실제 canonical 과 동일하게** 맞출 것 (예: 모두 `https://bongtour.com`).
 
 ## 환경 변수 (필수에 가까운 것)
 
@@ -64,6 +74,7 @@ pm2 start node_modules/next/dist/bin/next --name bongtour -- start
 | `NEXTAUTH_URL` | 공개 사이트 베이스 URL (https 권장). `getSiteOrigin()` 폴백에도 사용 |
 | `NEXT_PUBLIC_SITE_URL` | 선호. 공개 URL·SEO·메타 |
 | `NEXT_PUBLIC_APP_URL` | `NEXT_PUBLIC_SITE_URL` 보조 |
+| `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` / `NAVER_CALLBACK_URL` | 네이버 로그인 사용 시 필수. `NAVER_CALLBACK_URL`은 네이버 개발자센터에 등록한 Callback URL과 **완전히 동일**해야 함 — 보통 `https://도메인/api/auth/naver/callback` (`.env.example` 참고) |
 
 기능별 선택 변수는 루트 `.env.example` 전체를 참고하세요.
 
@@ -74,6 +85,7 @@ pm2 start node_modules/next/dist/bin/next --name bongtour -- start
 3. **PM2 cluster + SQLite** → 잠금/손상 위험
 4. **NEXT_PUBLIC_* 미설정** → 빌드 시점에 localhost가 박힐 수 있음 — 배포 전 `NEXT_PUBLIC_SITE_URL` 등 설정 후 빌드 권장
 5. **Puppeteer·외부 API** → 서버 패키지·키·타임아웃 별도 점검
+6. **네이버 로그인** → 개발자센터 Callback URL이 `/api/auth/callback/naver`가 아니라 **`/api/auth/naver/callback`** 이어야 하며, `NAVER_CALLBACK_URL`·`NEXTAUTH_URL`의 호스트(www 유무)·`https`가 실제 접속과 일치해야 함
 
 ## `.env.production` 예시 (값은 실제로 교체)
 
