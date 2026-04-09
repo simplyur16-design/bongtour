@@ -105,6 +105,11 @@ export function inferExpectedScheduleDayCountFromPaste(pastedBody: string, durat
     const d = Number(m[1])
     if (d > 0 && d <= 31) maxDay = Math.max(maxDay, d)
   }
+  /** `DAY 01`~`DAY 12` 만 있고 `N일차` 표기가 없는 붙여넣기(일부 모두투어·PDF)도 일수 추정 */
+  for (const m of blob.matchAll(/(?:^|\n)\s*DAY\s*0?(\d{1,2})\b(?!\d)/gi)) {
+    const d = Number(m[1])
+    if (d > 0 && d <= 31) maxDay = Math.max(maxDay, d)
+  }
   const combined = `${durationStr}\n${blob}`
   const dm = combined.match(/(\d+)\s*박\s*(\d+)\s*일/)
   let fromDuration: number | null = null
