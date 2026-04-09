@@ -930,7 +930,8 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
 
     if (itineraryDayDrafts.length > 0) {
       itineraryDayDrafts = modetourItineraryDraftsApplyScheduleHotelBodyFirst(itineraryDayDrafts, schedule)
-      if (mode === 'confirm' && (schedule?.length ?? 0) > 0) {
+      /** 미리보기에서도 confirm과 동일하게 schedule 기준 식사·숙소 필드를 병합한다(이전에는 confirm만 오버레이). */
+      if ((schedule?.length ?? 0) > 0) {
         itineraryDayDrafts = modetourItineraryDraftsApplyParsedScheduleOverlay(itineraryDayDrafts, schedule)
       }
       itineraryDayDrafts = itineraryDayDrafts.map(stripCounselingTermsFromItineraryDayDraft)

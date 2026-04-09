@@ -1497,7 +1497,11 @@ export default function AdminRegisterPage() {
 
               <div className="rounded border border-slate-200 p-3 text-xs">
                 <p className="font-semibold text-slate-900">일정 요약 (ItineraryDay)</p>
-                <p className="text-slate-600">
+                <p className="text-[10px] leading-snug text-slate-500">
+                  저장용 일차 초안입니다. 요약 문장은 <code className="rounded bg-slate-100 px-0.5">parsed.schedule[]</code>의
+                  description과 같은 줄로 올라옵니다. 짧게만 보이면 LLM·본문 단서(일차·박일)를 확인하세요.
+                </p>
+                <p className="mt-1 text-slate-600">
                   {preview.itineraryDayDrafts.length > 0
                     ? `총 ${preview.itineraryDayDrafts.length}일 일정`
                     : '일정 행 없음 (일차 파싱 결과가 비어 있거나 미수집)'}
@@ -1511,8 +1515,8 @@ export default function AdminRegisterPage() {
                       <p className="font-medium text-slate-800">
                         {d.day}일차 · {d.dateText ?? '-'} · {d.city ?? '-'}
                       </p>
-                      <p className="mt-0.5 text-[10px] text-slate-600">
-                        요약: {clipPreviewText(d.summaryTextRaw ?? d.poiNamesRaw, 120)}
+                      <p className="mt-0.5 max-h-40 overflow-y-auto whitespace-pre-wrap text-[10px] text-slate-600">
+                        요약: {d.summaryTextRaw ?? d.poiNamesRaw ?? '-'}
                       </p>
                       <p className="mt-1 text-[10px] text-slate-700 break-words">
                         meals: {clipPreviewText(d.meals, 160)}
