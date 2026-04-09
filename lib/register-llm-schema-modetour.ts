@@ -260,6 +260,11 @@ export type RegisterParsed = {
   hotelNoticeRaw?: string | null
   extractionFieldIssues?: RegisterExtractionFieldIssue[]
   /**
+   * 일정 선추출(`runScheduleExtractLlm`)이 1행 이상 반환했고 최종 `schedule`에 반영됨.
+   * `supplementModetourScheduleFromPastedBody`가 본문 정규식으로 title/description을 덮어쓰지 않게 한다.
+   */
+  modetourScheduleExtractFilled?: boolean
+  /**
    * 미리보기 전용. 필드 교정(extractionFieldIssues)이 아닌 정책 안내 — UI는 SSOT/가격 블록 안내문으로만 노출.
    */
   registerPreviewPolicyNotes?: string[]

@@ -1579,6 +1579,14 @@ ${text.slice(0, 16000)}`
     .filter((s) => s.day > 0)
   const schedule: RegisterScheduleDay[] = scheduleBase.map(supplementScheduleDayFromDescription)
 
+  /** 선추출이 최종 일정에 들어갔을 때만 true — 이후 본문 보강이 요약 문장을 정규식 결과로 되돌리지 않게 함 */
+  const modetourScheduleExtractFilled = Boolean(
+    (scheduleFirstPassRows?.length ?? 0) > 0 &&
+      schedule.length > 0 &&
+      expectedDaysForSchedule != null &&
+      expectedDaysForSchedule >= 1
+  )
+
   const titleTrimmed = (raw.title ?? '').trim() || '상품명 없음'
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
 
@@ -2273,12 +2281,32 @@ ${text.slice(0, 16000)}`
     detailBodyStructured: detailBody,
     registerParseAudit,
     registerAdminPersistedLlmParsedJson,
+    modetourScheduleExtractFilled,
     ...(forPreview
       ? {
-          registerPreviewPolicyNotes: [
-            '미리보기: 출발일별 달력(prices[])는 확정(전체) 파싱에서 채웁니다. 항공·호텔·옵션·쇼핑·가격표 표는 결정적 파서·병합이 우선입니다.',
-            '미리보기: 일정(schedule[])·달력 행이 비어 있어도 정상입니다. 확정(전체) 파싱에서 채우며, 아래는 메타·본문 구조 확인용입니다.',
-          ],
+          registerPreviewPolicyNotes: (() => {
+            const base = [
+              '미리보기: 출발일별 달력(prices[])는 확정(전체) 파싱에서 채웁니다. 항공·호텔·옵션·쇼핑·가격표 표는 결정적 파서·병합이 우선입니다.',
+            ]
+            if (schedule.length > 0) {
+              base.push(
+                `미리보기: 일정 선추출·병합 반영 — schedule ${schedule.length}일차. ItineraryDay 요약은 이 데이터와 동일 출처입니다.`
+              )
+            } else if (expectedDaysForSchedule == null || expectedDaysForSchedule < 1) {
+              base.push(
+                '미리보기: 일정(schedule)이 비었습니다. 본문에서 「N일차」「N박 M일」「DAY N」으로 일수를 추정하지 못하면 선추출 LLM이 스킵됩니다.'
+              )
+            } else if (!(scheduleFirstPassRows?.length ?? 0)) {
+              base.push(
+                `미리보기: 일수는 ${expectedDaysForSchedule}일로 추정됐으나 선추출 LLM이 유효한 행을 내지 못해 schedule이 비었습니다.`
+              )
+            } else {
+              base.push(
+                '미리보기: 선추출 결과가 있었으나 일정 행이 파싱에서 제거되었습니다. 본문·일차 표기를 확인하세요.'
+              )
+            }
+            return base
+          })(),
         }
       : {}),
   }

@@ -748,7 +748,14 @@ export function supplementModetourScheduleFromPastedBody(
   const blobByDay = getModetourPastedDayBlobMap(trimmed)
   let schedule = [...(parsed.schedule ?? [])]
 
-  if (!scheduleNeedsBodyBoost(schedule)) {
+  /**
+   * 선추출 LLM이 이미 schedule 요약을 채운 경우, `rowIsWeak`만 보고 `mergeWeakWithBody`(본문 정규식)로
+   * title/description을 덮어쓰면 미리보기 문구가 선추출 전과 한 글자도 달라지지 않은 것처럼 보인다.
+   */
+  const preserveExtractCopy = parsed.modetourScheduleExtractFilled === true
+  const needBodyBoost = !preserveExtractCopy && scheduleNeedsBodyBoost(schedule)
+
+  if (!needBodyBoost) {
     const needKeywordFix = schedule.some((r) => isDayNTravelKeyword(r.imageKeyword))
     const fromBodyFast = buildModetourScheduleFromPastedText(trimmed)
     const bodyByDayFast = new Map(fromBodyFast.map((r) => [r.day, r]))
@@ -757,7 +764,7 @@ export function supplementModetourScheduleFromPastedBody(
       const b = bodyByDayFast.get(r.day)
       const blob = blobByDay.get(r.day) ?? ''
       let next = { ...r }
-      if (needKeywordFix && isDayNTravelKeyword(r.imageKeyword) && b) {
+      if (needKeywordFix && isDayNTravelKeyword(r.imageKeyword) && b && !preserveExtractCopy) {
         next = mergeWeakWithBody(r, b, blob)
       } else {
         if (b) {

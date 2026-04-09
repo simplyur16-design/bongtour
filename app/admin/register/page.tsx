@@ -46,6 +46,14 @@ import {
 
 const LOADING_STATUS = '분석 중…' as const
 
+/** 브라우저·프록시 무한 대기 방지(LLM·다중 호출로 길어질 수 있음) */
+const REGISTER_PREVIEW_FETCH_TIMEOUT_MS = 15 * 60 * 1000
+const REGISTER_CONFIRM_FETCH_TIMEOUT_MS = 10 * 60 * 1000
+
+function isAbortError(e: unknown): boolean {
+  return e instanceof Error && e.name === 'AbortError'
+}
+
 type Brand = { id: string; brandKey: string; displayName: string; sortOrder: number }
 
 /** 관리자 상품등록 메뉴에서만 선택 — 이후 경로에서 공급사 재추론·generic URL 없음 */
@@ -537,30 +545,51 @@ export default function AdminRegisterPage() {
     // 저장 직전: URL이 유효하고, 아직 검사 안 했거나 URL이 바뀐 경우 1회 재검사. 실패해도 등록은 진행.
     const urlValid = urlToCheck && /^https?:\/\//i.test(urlToCheck)
     const needRecheck = urlValid && (duplicateResult === null || urlToCheck !== lastCheckedOriginUrl)
-    if (needRecheck) {
-      await checkOriginUrlDuplicate(urlToCheck)
-    }
-
     setLoading(true)
-    setStatusText(LOADING_STATUS)
     try {
+      if (needRecheck) {
+        setStatusText('URL 중복 확인 중…')
+        await checkOriginUrlDuplicate(urlToCheck)
+      }
+
+      setStatusText(LOADING_STATUS)
       const blocksPayload = buildPastedBlocksPayload(pastedBlocks)
-      const res = await fetch(parseRegisterApiPath(selectedBrandKey), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'preview',
-          text: rawText.trim(),
-          originSource,
-          ...(selectedBrandKey && { brandKey: selectedBrandKey }),
-          ...(urlToCheck && { originUrl: urlToCheck }),
-          ...(blocksPayload && { pastedBlocks: blocksPayload }),
-          travelScope,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? '등록 실패')
+      const controller = new AbortController()
+      const ttl = setTimeout(() => controller.abort(), REGISTER_PREVIEW_FETCH_TIMEOUT_MS)
+      let res: Response
+      try {
+        res = await fetch(parseRegisterApiPath(selectedBrandKey), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'preview',
+            text: rawText.trim(),
+            originSource,
+            ...(selectedBrandKey && { brandKey: selectedBrandKey }),
+            ...(urlToCheck && { originUrl: urlToCheck }),
+            ...(blocksPayload && { pastedBlocks: blocksPayload }),
+            travelScope,
+          }),
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(ttl)
+      }
+
+      const rawBody = await res.text()
+      let data: unknown
+      try {
+        data = rawBody.trim() ? JSON.parse(rawBody) : {}
+      } catch {
+        throw new Error(`서버 응답을 읽을 수 없습니다 (HTTP ${res.status}). 프록시·게이트웨이 타임아웃이면 서버 로그를 확인하세요.`)
+      }
+      const errMsg =
+        data && typeof data === 'object' && 'error' in data && typeof (data as { error?: unknown }).error === 'string'
+          ? (data as { error: string }).error
+          : null
+      if (!res.ok) throw new Error(errMsg ?? '등록 실패')
+
       setStatusText('분석 완료 · 등록 전 미리보기를 확인하세요')
       const pdata = data as AdminRegisterPreviewPayload
       const oc =
@@ -583,7 +612,13 @@ export default function AdminRegisterPage() {
       setRegisterPexelsLastQuery(null)
       setRegisterPexelsLoading(false)
     } catch (e) {
-      setError(e instanceof Error ? e.message : '등록 실패')
+      if (isAbortError(e)) {
+        setError(
+          `분석 요청이 ${Math.round(REGISTER_PREVIEW_FETCH_TIMEOUT_MS / 60000)}분 안에 끝나지 않아 중단했습니다. 본문을 줄이거나 잠시 후 다시 시도하세요.`
+        )
+      } else {
+        setError(e instanceof Error ? e.message : '등록 실패')
+      }
       setStatusText(null)
     } finally {
       setLoading(false)
@@ -623,32 +658,52 @@ export default function AdminRegisterPage() {
         registerSupplierDisplayName(selectedBrandKey)
       const urlToCheck = normalizeUrl(originUrl)
       const blocksPayload = buildPastedBlocksPayload(pastedBlocks)
-      const res = await fetch(parseRegisterApiPath(selectedBrandKey), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'confirm',
-          previewToken: preview.previewToken,
-          text: rawText.trim(),
-          parsed: parsedMerged,
-          originSource,
-          ...(selectedBrandKey && { brandKey: selectedBrandKey }),
-          ...(urlToCheck && { originUrl: urlToCheck }),
-          ...(blocksPayload && { pastedBlocks: blocksPayload }),
-          travelScope,
-          ...(correctionOverlay && { correctionOverlay }),
-          previewContentDigest: preview.previewContentDigest,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? '최종 등록 실패')
+      const controller = new AbortController()
+      const ttl = setTimeout(() => controller.abort(), REGISTER_CONFIRM_FETCH_TIMEOUT_MS)
+      let res: Response
+      try {
+        res = await fetch(parseRegisterApiPath(selectedBrandKey), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'confirm',
+            previewToken: preview.previewToken,
+            text: rawText.trim(),
+            parsed: parsedMerged,
+            originSource,
+            ...(selectedBrandKey && { brandKey: selectedBrandKey }),
+            ...(urlToCheck && { originUrl: urlToCheck }),
+            ...(blocksPayload && { pastedBlocks: blocksPayload }),
+            travelScope,
+            ...(correctionOverlay && { correctionOverlay }),
+            previewContentDigest: preview.previewContentDigest,
+          }),
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(ttl)
+      }
+      const rawBody = await res.text()
+      let data: { error?: string; productId?: string | null; registerVerification?: RegisterVerificationV1; adminTracePath?: string }
+      try {
+        data = rawBody.trim() ? (JSON.parse(rawBody) as typeof data) : {}
+      } catch {
+        throw new Error(`서버 응답을 읽을 수 없습니다 (HTTP ${res.status}).`)
+      }
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : '최종 등록 실패')
       setSavedProductId(data.productId ?? null)
       setConfirmVerification(data.registerVerification ?? null)
       setLastAdminTracePath(typeof data.adminTracePath === 'string' ? data.adminTracePath : null)
       setStatusText('3축(Product/ProductDeparture/ItineraryDay) 저장 완료. 등록대기에서 최종 승인해 주세요.')
     } catch (e) {
-      setError(e instanceof Error ? e.message : '최종 등록 실패')
+      if (isAbortError(e)) {
+        setError(
+          `저장 요청이 ${Math.round(REGISTER_CONFIRM_FETCH_TIMEOUT_MS / 60000)}분 안에 끝나지 않아 중단했습니다. 네트워크·서버 상태를 확인한 뒤 다시 시도하세요.`
+        )
+      } else {
+        setError(e instanceof Error ? e.message : '최종 등록 실패')
+      }
     } finally {
       setConfirming(false)
     }
