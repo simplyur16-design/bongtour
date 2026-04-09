@@ -12,6 +12,8 @@ import { testGeminiConnection } from '@/lib/gemini-client'
 import { upsertProductDepartures, type DepartureInput } from '@/lib/upsert-product-departures-modetour'
 import { toDeparturePreviewRows } from '@/lib/departure-preview'
 import { stripCounselingTermsFromItineraryDayDraft } from '@/lib/itinerary-counseling-terms-strip'
+import { extractModetourMealSummaryFromScheduleDescription } from '@/lib/register-modetour-meal-from-description'
+import { supplementModetourScheduleFromPastedBody } from '@/lib/register-modetour-pasted-schedule'
 import { upsertItineraryDays, registerScheduleToDayInputs } from '@/lib/upsert-itinerary-days-modetour'
 import { normalizeOriginSource } from '@/lib/supplier-origin'
 import {
@@ -291,30 +293,6 @@ function modetourItineraryDraftsApplyScheduleHotelBodyFirst(
   })
 }
 
-/** 일정 description 안의 「식사」·조식/중식/석식 줄만 뽑아 meal 필드 보강(구조 필드 없을 때) */
-function modetourMealLineFromScheduleDayDescription(desc: string | undefined): string | null {
-  if (!desc?.trim()) return null
-  const t = desc.replace(/\r/g, '\n')
-  /** 같은 줄: `식사 조식 - 호텔식, 중식 - 현지식, 석식 - 현지식` (줄바꿈 없이 붙는 모두투어 HTML) */
-  const sameLineAfterMeal = t.match(
-    /식사\s+((?:조식|중식|석식)\s*[-–—]\s*[^\n]+(?:\s*,\s*(?:조식|중식|석식)\s*[-–—]\s*[^\n]+)*)/i
-  )
-  if (sameLineAfterMeal?.[1] && /(?:조식|중식|석식)/.test(sameLineAfterMeal[1])) {
-    return `식사 ${sameLineAfterMeal[1].replace(/\s+/g, ' ').trim().slice(0, 480)}`
-  }
-  const mealHead = t.match(/(?:^|\n)\s*식사\s*\n([\s\S]{0,500})/i)
-  if (mealHead?.[1] && /(?:조식|중식|석식)/.test(mealHead[1])) {
-    return `식사 ${mealHead[1].replace(/\s+/g, ' ').trim().slice(0, 480)}`
-  }
-  const lineMatch = t.match(
-    /(?:^|\n)\s*(?:조식|중식|석식)\s*[-–—]\s*[^\n]+(?:\n\s*(?:조식|중식|석식)\s*[-–—]\s*[^\n]+)*/gi
-  )
-  if (lineMatch?.length) {
-    return lineMatch.join(' · ').replace(/\s+/g, ' ').trim().slice(0, 500)
-  }
-  return null
-}
-
 /**
  * 확정(confirm) 시 일정 day 초안이 패키지 HTML 스크래핑 기반이면 summary가 장문 raw가 된다.
  * 붙여넣기 파이프로 정제된 `parsed.schedule`과 동일한 요약·식사·rawBlock을 일차별로 덮어쓴다.
@@ -337,7 +315,7 @@ function modetourItineraryDraftsApplyParsedScheduleOverlay(
     const o = byDay.get(d.day)
     if (!o) return d
     const sRow = schedByDay.get(d.day)
-    const mealFromDesc = modetourMealLineFromScheduleDayDescription(
+    const mealFromDesc = extractModetourMealSummaryFromScheduleDescription(
       typeof sRow?.description === 'string' ? sRow.description : undefined
     )
     const brief = String(o.summaryTextRaw ?? '').trim()
@@ -792,6 +770,15 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       if (mergedPlans.length) {
         parsed = { ...parsed, dayHotelPlans: mergedPlans }
       }
+    }
+
+    /**
+     * `invokeRegisterParsePersistAnalysisAttempt`(parseForRegister) 안에서는 이미 붙여넣기 보강이 들어가지만,
+     * 확정 시 클라이언트 `parsed`만 재사용하는 경로(hasParsed·스냅샷 재로드)에서는 서버에서 한 번도 안 돈다.
+     * 그러면 일정 행에 식사·호텔이 본문에만 있고 필드는 비는 채로 저장될 수 있음.
+     */
+    if (text.trim() && !llmRanThisRequest) {
+      parsed = supplementModetourScheduleFromPastedBody(parsed, text)
     }
 
     if (!parsed.originCode || parsed.originCode === '미지정') {

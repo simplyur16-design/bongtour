@@ -50,6 +50,26 @@ export function extractInfantPriceKrwFromText(hay: string): number | null {
     }
   }
 
+  /** 표에서 `유아` 셀과 금액 셀이 떨어져 있거나, 위 패턴이 놓친 경우 — 유아 이후 첫 `N원`(유류·제세 직전 금액 제외) */
+  const relaxed = t.replace(/\u00a0/g, ' ')
+  const idx = relaxed.search(/(?:^|[\n\r])\s*유아\b/i)
+  if (idx >= 0) {
+    const slice = relaxed.slice(idx, idx + 280)
+    const won = slice.match(/([\d,]{2,12})\s*원/g)
+    if (won?.length) {
+      for (const w of won) {
+        const pos = slice.indexOf(w)
+        const pre = slice.slice(Math.max(0, pos - 14), pos)
+        if (/(유류|제세|할증|공과)\s*$/i.test(pre)) continue
+        const mm = w.match(/([\d,]{2,12})/)
+        if (mm?.[1]) {
+          const n = tryParse(mm[1])
+          if (n != null && n > 0 && n < 50_000_000) return n
+        }
+      }
+    }
+  }
+
   return null
 }
 

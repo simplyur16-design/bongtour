@@ -4,6 +4,7 @@
  * 정책: docs/itinerary-policy.md
  */
 import type { PrismaClient } from '@prisma/client'
+import { extractModetourMealSummaryFromScheduleDescription } from '@/lib/register-modetour-meal-from-description'
 
 /** 일차 1건 입력. 있는 값만 넣고 나머지는 null 허용. */
 export type ItineraryDayInput = {
@@ -116,10 +117,14 @@ export function registerScheduleToDayInputs(
         ? JSON.stringify({ title, description, imageKeyword })
         : null
     const hotelText = trimNull(s.hotelText)
-    const breakfastText = trimNull(s.breakfastText)
-    const lunchText = trimNull(s.lunchText)
-    const dinnerText = trimNull(s.dinnerText)
-    const mealSummaryText = trimNull(s.mealSummaryText)
+    let breakfastText = trimNull(s.breakfastText)
+    let lunchText = trimNull(s.lunchText)
+    let dinnerText = trimNull(s.dinnerText)
+    let mealSummaryText = trimNull(s.mealSummaryText)
+    if (!breakfastText && !lunchText && !dinnerText && !mealSummaryText) {
+      const fromDesc = extractModetourMealSummaryFromScheduleDescription(description)
+      if (fromDesc) mealSummaryText = trimNull(fromDesc)
+    }
     const mealLine = [breakfastText, lunchText, dinnerText].filter(Boolean).join(' / ')
     const mealsLegacy = trimNull(mealLine || mealSummaryText || undefined)
     return [

@@ -494,14 +494,28 @@ function modetourPriceBlobFromNormalizedRaw(parsed: RegisterParsed): string {
 }
 
 function modetourPriceBlobFromParsed(parsed: RegisterParsed): string {
-  return [
+  /**
+   * 본문 맨 위에 나오는 `상품가격` 표는 LLM이 priceTableRawText에 안 넣거나,
+   * 문단 필터(modetourPriceBlobFromNormalizedRaw)에서 빠지면 추출 blob에 없어진다.
+   * 정규화 본문 **앞부분**을 항상 앞에 붙여 성인·유아 열·즉시할인 오탐 구분에 쓴다.
+   */
+  const raw = parsed.detailBodyStructured?.normalizedRaw?.trim() ?? ''
+  const leadFromBody = raw.length > 0 ? raw.slice(0, 18000) : ''
+  const chunks = [
+    ...(leadFromBody ? [leadFromBody] : []),
     (parsed.priceTableRawText ?? '').trim(),
     stripHtmlLoose(parsed.priceTableRawHtml ?? null),
     modetourExtraPriceBlobFromDetailBody(parsed),
     modetourPriceBlobFromNormalizedRaw(parsed),
   ]
-    .filter((x) => x.length > 0)
-    .join('\n\n')
+  /** 유아만 뒤쪽에 있고 lead에 없을 때 — 본문 나머지를 후보에 추가 */
+  if (raw.length > 18000 && hintInfantPriceInPaste(raw)) {
+    const joined = chunks.filter((x) => x.length > 0).join('\n\n')
+    if (!extractInfantPriceKrwFromText(joined)) {
+      chunks.push(raw.slice(18000, 38000))
+    }
+  }
+  return chunks.filter((x) => x.length > 0).join('\n\n')
 }
 
 /**
