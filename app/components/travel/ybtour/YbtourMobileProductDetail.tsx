@@ -41,6 +41,7 @@ import {
   ProductDetailTitle,
   ProductMetaChips,
 } from '@/app/components/detail/product-detail-visual'
+import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import {
   buildHanatourDepartureEvidenceHaystack,
@@ -463,7 +464,7 @@ export default function YbtourMobileProductDetail({ product }: Props) {
             </p>
           ) : null}
         </div>
-        {product.productType?.toLowerCase() === 'airtel' && (
+        {isAirHotelFreeListingForUi(product.listingKind) && (
           <div className="mt-2">
             <span className="inline-flex rounded-full border border-bt-card-accent-border bg-bt-card-accent-soft px-2 py-0.5 text-[11px] font-semibold text-bt-card-title">
               {product.airportTransferType === 'BOTH'

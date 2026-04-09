@@ -58,6 +58,7 @@ import {
   buildPublicOptionalDisplayInputFromProductFields,
   buildPublicShoppingDisplayInputFromProductFields,
 } from '@/lib/public-product-extras'
+import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 
 type ScheduleDayWithMeta = TravelProduct['schedule'] extends (infer D)[] | null | undefined
   ? D & { title?: string; notice?: string }
@@ -487,7 +488,7 @@ export default function MobileProductDetail({ product }: Props) {
             </p>
           ) : null}
         </div>
-        {product.productType?.toLowerCase() === 'airtel' && (
+        {isAirHotelFreeListingForUi(product.listingKind) && (
           <div className="mt-2">
             <span className="inline-flex rounded-full border border-bt-card-accent-border bg-bt-card-accent-soft px-2 py-0.5 text-[11px] font-semibold text-bt-card-title">
               {product.airportTransferType === 'BOTH'

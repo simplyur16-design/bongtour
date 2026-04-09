@@ -4,6 +4,7 @@
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import {
   inferExpectedScheduleDayCountFromPaste,
+  mergeScheduleWithFirstPassPreferExtractRows,
   registerPromptWithScheduleEmptyForConfirm,
   runScheduleExtractLlm,
   type CommonScheduleDayRow,
@@ -14,6 +15,7 @@ import {
   REGISTER_LLM_ROLE_DATA_AUDITOR_HANATOUR_COMPACT_INTRO,
   REGISTER_LLM_ROLE_DATA_AUDITOR_INTRO,
   REGISTER_PREVIEW_MINIMAL_TONE_BLOCK,
+  REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK,
 } from '@/lib/bongtour-tone-manner-llm-ssot'
 
 /**
@@ -836,6 +838,8 @@ function applyProductLevelFlightMeeting(
 
 const REGISTER_PROMPT = `${REGISTER_LLM_ROLE_DATA_AUDITOR_INTRO}
 
+${REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK}
+
 ${BONGTOUR_TONE_MANNER_LLM_BLOCK}
 
 ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
@@ -1043,6 +1047,8 @@ date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel,
  */
 const REGISTER_PROMPT_HANATOUR_COMPACT = `${REGISTER_LLM_ROLE_DATA_AUDITOR_HANATOUR_COMPACT_INTRO}
 
+${REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK}
+
 ${BONGTOUR_TONE_MANNER_LLM_BLOCK}
 
 ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
@@ -1057,7 +1063,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - originSource, originCode, title, destination, duration
 - airlineName, departureSegmentText, returnSegmentText, outboundFlightNo, inboundFlightNo, departureDateTimeRaw, arrivalDateTimeRaw, routeRaw (없으면 null)
 - priceTableRawText, productPriceTable(성인·아동·유아 슬롯), **prices[]** 달력 행(날짜·금액·상태)
-- **schedule[]** : day, title, imageKeyword 필수. **description 은 일차당 400자 이내**. hotelText·meal*·mealSummaryText 는 있어도 **각 120자 이내** 또는 null
+- **schedule[]** : day, title, imageKeyword 필수. **description 은 일차당 450자 이내·3~6문장 권장**(공급사 일차 블록의 관광·이동·식사를 빠짐없이). hotelText·meal*·mealSummaryText 는 있어도 **각 120자 이내** 또는 null
 - 포함/불포함: includedItems[], excludedItems[] 짧은 줄만. **includedRaw, excludedRaw, includedExcludedRaw 는 null 우선** (장문 금지)
 - 선택관광·쇼핑 **메타만** 짧게: optionalTourNoticeRaw(200자 이내 또는 null), optionalTourNoticeItems(최대 5줄), hasOptionalTour, optionalTourCount, optionalTourSummaryText(120자 이내)
 - 쇼핑: hasShopping, shoppingVisitCount, shoppingNoticeRaw(200자 이내), shoppingSummaryText(120자 이내)
@@ -1724,13 +1730,11 @@ ${text.slice(0, 16000)}`
       })
     }
   }
-  if (
-    !forPreview &&
-    scheduleFirstPassRows &&
-    expectedDaysForSchedule != null &&
-    scheduleFirstPassRows.length === expectedDaysForSchedule
-  ) {
-    raw = { ...raw, schedule: scheduleFirstPassRows as RegisterGeminiLlmJson['schedule'] }
+  if (!forPreview && scheduleFirstPassRows?.length && expectedDaysForSchedule != null && expectedDaysForSchedule >= 1) {
+    const merged = mergeScheduleWithFirstPassPreferExtractRows(raw.schedule, scheduleFirstPassRows, expectedDaysForSchedule)
+    if (merged) {
+      raw = { ...raw, schedule: merged as RegisterGeminiLlmJson['schedule'] }
+    }
   }
   let registerAdminPersistedLlmParsedJson: string | null = null
   try {

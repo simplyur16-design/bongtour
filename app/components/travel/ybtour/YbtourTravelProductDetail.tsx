@@ -60,6 +60,7 @@ import {
 } from '@/lib/hanatour-departure-flight-display'
 import { applyHanatourFlightRoutingChipOverride } from '@/lib/hanatour-product-meta-chips-patch'
 import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/public-schedule-display'
+import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 
 /** Prisma ProductPrice + 견적용 price* (lib/price-utils PriceRowLike 호환) */
 export type ProductPriceRow = {
@@ -646,7 +647,7 @@ export default function YbtourTravelProductDetail({ product }: Props) {
                   <ProductMetaChips chips={productMetaChips} variant="light" className="w-full" />
                 </div>
               )}
-              {product.productType?.toLowerCase() === 'airtel' && (
+              {isAirHotelFreeListingForUi(product.listingKind) && (
                 <div className="mt-2">
                   <span className="inline-flex rounded-full border border-bt-card-accent-border bg-bt-card-accent-soft px-2.5 py-1 text-xs font-semibold text-bt-card-title">
                     {product.airportTransferType === 'BOTH'

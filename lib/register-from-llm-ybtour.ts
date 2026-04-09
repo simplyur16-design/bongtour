@@ -4,6 +4,7 @@
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import {
   inferExpectedScheduleDayCountFromPaste,
+  mergeScheduleWithFirstPassPreferExtractRows,
   registerPromptWithScheduleEmptyForConfirm,
   runScheduleExtractLlm,
   type CommonScheduleDayRow,
@@ -13,6 +14,7 @@ import {
   LLM_JSON_OUTPUT_DISCIPLINE_BLOCK,
   REGISTER_LLM_ROLE_DATA_AUDITOR_INTRO,
   REGISTER_PREVIEW_MINIMAL_TONE_BLOCK,
+  REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK,
 } from '@/lib/bongtour-tone-manner-llm-ssot'
 
 /**
@@ -807,6 +809,8 @@ function applyProductLevelFlightMeeting(
 
 const REGISTER_PROMPT = `${REGISTER_LLM_ROLE_DATA_AUDITOR_INTRO}
 
+${REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK}
+
 ${BONGTOUR_TONE_MANNER_LLM_BLOCK}
 
 ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
@@ -860,6 +864,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 
 # [schedule] 일차별 (필수)
 - day, title, description, imageKeyword
+- description: 해당 일차 블록 전체를 근거로 관광·이동·식사·숙박을 **빠짐없이** 반영한 문어체 존댓말 요약. **3~6문장·450자 이내**를 목표로 하며, 한 줄·한두 문장만 쓰지 말 것. 복수 관광지가 있으면 모두 짧게라도 언급.
 - imageKeyword: 해당 일차의 실존하는 장소 이름만 사용 (창조·추상 금지). 영문 명사 (예: Osaka Castle, Taipei 101)
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
@@ -1541,12 +1546,11 @@ ${text.slice(0, 16000)}`
       })
     }
   }
-  if (
-    scheduleFirstPassRows &&
-    expectedDaysForSchedule != null &&
-    scheduleFirstPassRows.length === expectedDaysForSchedule
-  ) {
-    raw = { ...raw, schedule: scheduleFirstPassRows as RegisterGeminiLlmJson['schedule'] }
+  if (!forPreview && scheduleFirstPassRows?.length && expectedDaysForSchedule != null && expectedDaysForSchedule >= 1) {
+    const merged = mergeScheduleWithFirstPassPreferExtractRows(raw.schedule, scheduleFirstPassRows, expectedDaysForSchedule)
+    if (merged) {
+      raw = { ...raw, schedule: merged as RegisterGeminiLlmJson['schedule'] }
+    }
   } else if (
     forPreview &&
     scheduleFirstPassRows &&

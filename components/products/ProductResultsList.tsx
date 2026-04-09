@@ -13,12 +13,15 @@ import {
   type OverseasDisplayBucketId,
 } from '@/lib/overseas-display-buckets'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
+import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 
 export type ResultItem = {
   id: string
   title: string
   originSource: string
   productType: string | null
+  /** 항공권+호텔(자유여행) 등 — 에어텔 UI 게이트용 */
+  listingKind?: string | null
   airportTransferType?: string | null
   primaryDestination: string | null
   primaryRegion?: string | null
@@ -84,14 +87,14 @@ export function ProductResultCard({
           {item.title}
         </h2>
         {item.primaryDestination && <p className="mt-1 text-xs text-slate-600">{item.primaryDestination}</p>}
-        {item.productType?.toLowerCase() === 'airtel' && (item.hotelName || item.hotelGrade || item.roomType) && (
+        {isAirHotelFreeListingForUi(item.listingKind) && (item.hotelName || item.hotelGrade || item.roomType) && (
           <p className="mt-1 text-xs text-slate-600">
             {item.hotelName ?? '호텔 정보 확인'}
             {item.hotelGrade ? ` · ${item.hotelGrade}` : ''}
             {item.roomType ? ` · ${item.roomType}` : ''}
           </p>
         )}
-        {item.productType?.toLowerCase() === 'airtel' && item.airportTransferType && (
+        {isAirHotelFreeListingForUi(item.listingKind) && item.airportTransferType && (
           <p className="mt-1">
             <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800">
               {item.airportTransferType === 'BOTH'

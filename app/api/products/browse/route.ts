@@ -266,6 +266,7 @@ export async function GET(request: Request) {
       title: p.title,
       originSource: p.originSource,
       productType: p.productType,
+      listingKind: p.listingKind ?? null,
       airportTransferType: p.airportTransferType,
       primaryDestination: p.primaryDestination,
       primaryRegion: p.primaryRegion,
