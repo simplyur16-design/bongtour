@@ -8,15 +8,19 @@ on:
 jobs:
   public-leak-guard:
     runs-on: ubuntu-latest
+    env:
+      # GitHub: actions/checkout·setup-node 내부 런타임 Node 20 폐기 대비 (경고 완화)
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+          package-manager-cache: false
 
       - name: Install dependencies
         run: npm ci
