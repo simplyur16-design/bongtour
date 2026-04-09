@@ -549,8 +549,9 @@ export function finalizeModetourProductPriceTable(
 
   const ad = base.adultPrice
   let inf: number | null = base.infantPrice ?? null
+  const blobForInfantExtract = blobWithoutPromoLinesForInfant.join('\n')
   if (ad != null && inf != null && ad > 0 && inf === ad && hintInfantPriceInPaste(blob)) {
-    const extracted = extractInfantPriceKrwFromText(blob)
+    const extracted = extractInfantPriceKrwFromText(blobForInfantExtract || blob)
     if (extracted != null && extracted > 0 && extracted !== ad) inf = extracted
     // 추출 실패 시 null로 지우면 공개 상세에서 유아 열이 통째로 사라짐 — 동일가로 남겨 둠
   }

@@ -920,11 +920,14 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
         } else {
           departureFromParsed = []
         }
-        itineraryDayDrafts = modetourScheduleRowsSubstantive(parsed.schedule ?? [])
-          ? registerScheduleToDayInputs(parsed.schedule ?? [])
-          : modetourItineraryDayDraftsSubstantive(itRes.days)
-            ? itRes.days
-            : []
+        /** 붙여넣기 `parsed.schedule`이 한 줄이라도 있으면 스크래핑 일정(itRes.days)으로 덮지 않음 — 식사 등 본문 일정이 조용히 사라지는 것 방지 */
+        const schedFromPaste = registerScheduleToDayInputs(parsed.schedule ?? [])
+        itineraryDayDrafts =
+          schedFromPaste.length > 0
+            ? schedFromPaste
+            : modetourItineraryDayDraftsSubstantive(itRes.days)
+              ? itRes.days
+              : []
         console.info('[parse-and-register-modetour][confirm-prefetch]', {
           baselinePicked: depRes.baselineTrace?.pickedSource ?? null,
           departureRows: depRes.inputs.length,
