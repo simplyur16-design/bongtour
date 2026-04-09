@@ -1363,6 +1363,13 @@ export async function parseForRegisterLlmModetour(
   let useScheduleEmptyMainPrompt = false
   /** preview에서도 일정 일수를 추정하면 schedule-first 전용 LLM으로 미리 채워, 미리보기에 일정 설명이 보이게 한다. */
   const expectedDaysForSchedule = inferExpectedScheduleDayCountFromPaste(blockB, '')
+  if (expectedDaysForSchedule == null || expectedDaysForSchedule < 1) {
+    console.info('[modetour][timing] schedule-extract-llm skipped', {
+      reason: 'infer_day_count_unavailable',
+      forPreview,
+      blockLen: blockB.length,
+    })
+  }
   if (expectedDaysForSchedule != null && expectedDaysForSchedule >= 1) {
     const tScheduleExtract = Date.now()
     const sr = await runScheduleExtractLlm(model, blockB, expectedDaysForSchedule, {
