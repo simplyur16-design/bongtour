@@ -326,17 +326,25 @@ function modetourItineraryDraftsApplyParsedScheduleOverlay(
       Boolean(o.mealSummaryText?.trim()) ||
       Boolean(o.meals?.trim()) ||
       Boolean(mealFromDesc)
+    const hasMealFromDraft =
+      Boolean(d.breakfastText?.trim()) ||
+      Boolean(d.lunchText?.trim()) ||
+      Boolean(d.dinnerText?.trim()) ||
+      Boolean(d.mealSummaryText?.trim()) ||
+      Boolean(d.meals?.trim())
     // 요약이 짧아도 붙여넣기 일정에 식사 줄이 있으면 반드시 반영 (그렇지 않으면 공개 상세가「식사 - 불포함」)
-    if (brief.length < 8 && !hasMeal) return d
+    if (brief.length < 8 && !hasMeal && !hasMealFromDraft) return d
+    const pickMeal = (a: string | null | undefined, b: string | null | undefined) =>
+      (a?.trim() || b?.trim() || null) as string | null
     const mergedMeals = o.meals?.trim() || mealFromDesc || d.meals?.trim() || null
     return {
       ...d,
       summaryTextRaw: brief.length >= 8 ? o.summaryTextRaw : d.summaryTextRaw,
       rawBlock: brief.length >= 8 ? (o.rawBlock ?? d.rawBlock) : d.rawBlock,
-      breakfastText: o.breakfastText ?? d.breakfastText,
-      lunchText: o.lunchText ?? d.lunchText,
-      dinnerText: o.dinnerText ?? d.dinnerText,
-      mealSummaryText: o.mealSummaryText ?? d.mealSummaryText ?? mealFromDesc ?? null,
+      breakfastText: pickMeal(o.breakfastText, d.breakfastText),
+      lunchText: pickMeal(o.lunchText, d.lunchText),
+      dinnerText: pickMeal(o.dinnerText, d.dinnerText),
+      mealSummaryText: pickMeal(o.mealSummaryText, d.mealSummaryText) ?? mealFromDesc ?? null,
       meals: mergedMeals,
     }
   })

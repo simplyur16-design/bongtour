@@ -103,6 +103,8 @@ export type ScheduleDay = {
   lunchText?: string | null
   dinnerText?: string | null
   mealSummaryText?: string | null
+  /** 상세 페이지 병합 시 ItineraryDay.meals — 조·중·석 필드가 비었을 때 식사 카드 폴백 */
+  meals?: string | null
 }
 
 export type TravelProduct = {
@@ -736,6 +738,7 @@ export default function TravelProductDetail({ product }: Props) {
                       lunchText: sd.lunchText,
                       dinnerText: sd.dinnerText,
                       mealSummaryText: sd.mealSummaryText,
+                      mealsLegacy: sd.meals ?? null,
                     })
                     return (
                       <div key={day.day} className="border-b border-bt-border-soft pb-6 last:border-0 last:pb-0">

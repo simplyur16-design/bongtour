@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
+import type { ItineraryDay } from '@prisma/client'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import {
@@ -90,6 +91,16 @@ import {
 } from '@/lib/modetour-product-public-display'
 
 type Props = { params: Promise<{ id: string }> }
+
+/** schedule 행 day와 ItineraryDay.day를 같은 정수 키로 맞춤 — Map 조회 실패 시 식사·호텔이 통째로 빠지는 버그 방지 */
+function itineraryDayMetaByDay(days: ItineraryDay[]): Map<number, ItineraryDay> {
+  const m = new Map<number, ItineraryDay>()
+  for (const d of days) {
+    const k = Math.floor(Number(d.day))
+    if (Number.isFinite(k) && k >= 1) m.set(k, d)
+  }
+  return m
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
@@ -228,12 +239,14 @@ export default async function ProductDetailPage({ params }: Props) {
   const rawParsed = parseProductRawMetaPublic(travelProduct.rawMeta ?? null)
   const structured = rawParsed?.structuredSignals
 
+  const itineraryDaysList = travelProduct.itineraryDays ?? []
   const scheduleArr = getScheduleFromProduct(travelProduct)
-  const dayMeta = new Map((travelProduct.itineraryDays ?? []).map((d) => [d.day, d]))
+  const dayMeta = itineraryDayMetaByDay(itineraryDaysList)
   const scheduleMergedBase =
     scheduleArr.length > 0
       ? scheduleArr.map((s) => {
-          const iday = dayMeta.get(s.day)
+          const sk = Math.floor(Number(s.day))
+          const iday = Number.isFinite(sk) && sk >= 1 ? dayMeta.get(sk) : undefined
           return {
             ...s,
             hotelText: iday?.hotelText ?? null,
@@ -241,6 +254,7 @@ export default async function ProductDetailPage({ params }: Props) {
             lunchText: iday?.lunchText ?? null,
             dinnerText: iday?.dinnerText ?? null,
             mealSummaryText: iday?.mealSummaryText ?? null,
+            meals: iday?.meals ?? null,
           }
         })
       : []

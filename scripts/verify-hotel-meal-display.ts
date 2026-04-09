@@ -50,6 +50,18 @@ assert.deepEqual(
   ['조식 포함·중식 자유']
 )
 
+// ItineraryDay.meals 레거시만 (조·중·석 필드 비어 있을 때)
+assert.deepEqual(
+  formatMealDisplay({
+    breakfastText: null,
+    lunchText: null,
+    dinnerText: null,
+    mealSummaryText: null,
+    mealsLegacy: '조식 - 호텔식, 중식 - 현지식',
+  }),
+  ['조식 - 호텔식, 중식 - 현지식']
+)
+
 // 모두 없음 (식사는 불포함 명시)
 assert.equal(formatHotelDisplay({ hotelNames: [], hotelSummaryText: null, dayHotelText: null }), null)
 assert.deepEqual(

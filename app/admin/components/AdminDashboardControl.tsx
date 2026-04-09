@@ -79,7 +79,7 @@ export default function AdminDashboardControl() {
         ) : (
           <div className="flex flex-wrap items-end gap-6">
             <div className="h-32 w-full min-w-0 max-w-xs">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={128} minWidth={0}>
                 <BarChart data={CHART_DATA(stats)} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} />

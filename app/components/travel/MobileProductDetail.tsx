@@ -567,6 +567,7 @@ export default function MobileProductDetail({ product }: Props) {
                 lunchText: sd.lunchText,
                 dinnerText: sd.dinnerText,
                 mealSummaryText: sd.mealSummaryText,
+                mealsLegacy: sd.meals ?? null,
               })
               return (
                 <div key={day.day} className="border-b border-bt-border-soft pb-5 last:border-0 last:pb-0">

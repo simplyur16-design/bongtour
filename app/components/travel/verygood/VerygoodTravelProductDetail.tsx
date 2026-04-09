@@ -105,6 +105,7 @@ export type ScheduleDay = {
   lunchText?: string | null
   dinnerText?: string | null
   mealSummaryText?: string | null
+  meals?: string | null
 }
 
 export type TravelProduct = {
@@ -742,6 +743,7 @@ export default function VerygoodTravelProductDetail({ product }: Props) {
                       lunchText: sd.lunchText,
                       dinnerText: sd.dinnerText,
                       mealSummaryText: sd.mealSummaryText,
+                      mealsLegacy: sd.meals ?? null,
                     })
                     return (
                       <div key={day.day} className="border-b border-bt-border-soft pb-6 last:border-0 last:pb-0">

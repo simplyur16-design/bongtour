@@ -68,11 +68,15 @@ export type FormatMealDisplayParams = {
   lunchText?: string | null
   dinnerText?: string | null
   mealSummaryText?: string | null
+  /** ItineraryDay.meals 레거시 한 줄(등록 파이프·스크래핑이 조·중·석 대신 넣는 경우). 위 필드가 비었을 때만 사용 */
+  mealsLegacy?: string | null
 }
 
 /**
  * 식사 표시: `아침 - 호텔식, 점심 - 현지식, 저녁 - 현지식` 한 줄(배열 1요소).
- * 일부만 있으면 있는 끼만; 전부 없으면 `식사 - 불포함`. mealSummaryText만 있으면 그대로 1요소.
+ * 일부만 있으면 있는 끼만; mealSummaryText만 있으면 그대로 1요소.
+ * 조·중·석·mealSummary가 모두 비었을 때 mealsLegacy만 있으면 그대로 1요소.
+ * 전부 없으면 `식사 - 불포함`.
  */
 export function formatMealDisplay(params: FormatMealDisplayParams): string[] {
   const parts: string[] = []
@@ -85,6 +89,8 @@ export function formatMealDisplay(params: FormatMealDisplayParams): string[] {
   if (parts.length > 0) return [parts.join(', ')]
   const m = trimOrNull(params.mealSummaryText)
   if (m) return [m]
+  const legacy = trimOrNull(params.mealsLegacy)
+  if (legacy) return [legacy]
   return ['식사 - 불포함']
 }
 
@@ -122,5 +128,6 @@ export function formatProductHotelSummaryLine(
 | 식사 3값            | —                                                | 한 줄 콤마 구분          |
 | mealSummary만       | —                                                | 단일 요소 배열           |
 | 전부 없음           | null / day 없으면 null                           | ['식사 - 불포함']        |
+| mealsLegacy만       | —                                                | [원문 한 줄]             |
 | dayHotelText 우선   | formatScheduleDayHotelLine 에서 day 먼저       | —                        |
 */
