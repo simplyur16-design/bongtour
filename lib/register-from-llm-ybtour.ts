@@ -130,6 +130,69 @@ function buildRegisterSignalsHaystack(
   return parts.join('\n\n\n').slice(0, REGISTER_PASTE_MAX_CHARS)
 }
 
+/** 전용 입력란 비어 있을 때 본문·regex·LLM 해당 축 미사용 — 노랑풍선(ybtour) 이 파일 전용 */
+function ybtourClearLlmWhenDedicatedPasteEmpty(
+  raw: RegisterGeminiLlmJson,
+  pb: Partial<RegisterPastedBlocksInput> | undefined
+): void {
+  const r = raw as unknown as Record<string, unknown>
+  if (!String(pb?.optionalTour ?? '').trim()) {
+    r.optionalTours = []
+    r.optionalTourNoticeRaw = null
+    r.optionalTourNoticeItems = []
+    r.optionalTourCount = null
+    r.hasOptionalTour = false
+    r.optionalTourSummaryText = null
+  }
+  if (!String(pb?.shopping ?? '').trim()) {
+    r.shoppingStops = []
+    r.shoppingNoticeRaw = null
+    r.hasShopping = false
+    r.shoppingVisitCount = null
+    r.shoppingSummaryText = null
+  }
+  if (!String(pb?.airlineTransport ?? '').trim()) {
+    r.airline = null
+    r.airlineName = null
+    r.departureSegmentText = null
+    r.returnSegmentText = null
+    r.outboundFlightNo = null
+    r.inboundFlightNo = null
+    r.departureDateTimeRaw = null
+    r.arrivalDateTimeRaw = null
+    r.routeRaw = null
+  }
+}
+
+function ybtourBlankSignalsWhenDedicatedPasteEmpty(
+  signals: ReturnType<typeof extractStructuredTourSignals>,
+  pb: Partial<RegisterPastedBlocksInput> | undefined
+): ReturnType<typeof extractStructuredTourSignals> {
+  const o = { ...(signals as unknown as Record<string, unknown>) }
+  if (!String(pb?.optionalTour ?? '').trim()) {
+    o.optionalToursStructuredJson = null
+    o.optionalTourNoticeRaw = null
+    o.optionalTourNoticeItems = []
+    o.optionalTours = []
+    o.hasOptionalTour = false
+    o.optionalTourCount = 0
+    o.optionalTourSourceCount = 0
+    o.optionalTourSummaryText = ''
+    if (o.headerBadges && typeof o.headerBadges === 'object') {
+      o.headerBadges = { ...(o.headerBadges as Record<string, unknown>), optionalTour: '현지옵션 없음' }
+    }
+  }
+  if (!String(pb?.shopping ?? '').trim()) {
+    o.shoppingStopsJson = null
+    o.shoppingNoticeRaw = null
+    o.shoppingStops = []
+    o.hasShopping = false
+    o.shoppingVisitCount = null
+    o.shoppingSourceCount = 0
+    o.shoppingSummaryText = ''
+  }
+  return o as unknown as ReturnType<typeof extractStructuredTourSignals>
+}
 
 function clipRegisterLlmAuditText(s: string): string {
   const raw = process.env.REGISTER_LLM_AUDIT_MAX_CHARS?.trim()
@@ -1492,6 +1555,7 @@ ${text.slice(0, 16000)}`
   ) {
     raw = { ...raw, schedule: scheduleFirstPassRows as RegisterGeminiLlmJson['schedule'] }
   }
+  ybtourClearLlmWhenDedicatedPasteEmpty(raw, pb)
   let registerAdminPersistedLlmParsedJson: string | null = null
   try {
     registerAdminPersistedLlmParsedJson = clipRegisterAdminLlmParsedJsonString(JSON.stringify(raw))
@@ -1684,8 +1748,10 @@ ${text.slice(0, 16000)}`
     options?.pastedBodyForInference,
     options?.pastedBlocks
   )
-  const optionalToursLineRegex = extractOptionalToursStructured(signalsHaystack)
-  const signals = extractStructuredTourSignals(signalsHaystack)
+  const optionalToursLineRegex = pb.optionalTour?.trim()
+    ? extractOptionalToursStructured(signalsHaystack)
+    : null
+  const signals = ybtourBlankSignalsWhenDedicatedPasteEmpty(extractStructuredTourSignals(signalsHaystack), pb)
   const optMerged = mergeOptionalToursStructured({
     llmRows: raw.optionalTours,
     signalsJson: signals.optionalToursStructuredJson,

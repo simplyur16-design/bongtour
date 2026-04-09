@@ -32,6 +32,7 @@
     "verify:rate-limit-store": "npx tsx scripts/verify-redis-rate-limit.ts",
     "verify:hotel-meal-display": "npx tsx scripts/verify-hotel-meal-display.ts",
     "verify:modetour-schedule-overlay": "npx tsx scripts/verify-modetour-schedule-overlay.ts",
+    "verify:auth-split": "npx tsx scripts/verify-auth-split.ts",
     "verify:manual-flight-hanatour": "npx tsx scripts/verify-manual-flight-hanatour.ts",
     "verify:register-detail-final-chain": "npx tsx scripts/verify-register-detail-final-chain.ts",
     "verify:register-admin-one-product": "npx tsx scripts/verify-register-admin-one-product.ts",

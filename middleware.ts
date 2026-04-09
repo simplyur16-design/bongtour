@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import NextAuth from 'next-auth'
+import authConfig from './auth.config'
 import {
   ADMIN_BYPASS_COOKIE_NAME,
   isAdminBypassAllowed,
@@ -32,6 +33,9 @@ function adminApiServiceBearerOk(req: { headers: Headers }): boolean {
 }
 
 const isDev = process.env.NODE_ENV === 'development'
+
+/** Edge 번들에 `@/auth`(Prisma·jose JWE 전체)를 넣지 않기 위해 `auth.config`만 사용 */
+const { auth } = NextAuth(authConfig)
 
 export default auth(async (req) => {
   const { pathname, searchParams } = req.nextUrl
