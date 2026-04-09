@@ -138,8 +138,60 @@ function parseLegBodyLoose(body: string): ModetourFlightLeg | null {
   }
 }
 
+/**
+ * 공항·도시명 없이 일시만 있는 구간 (국내 버스·기차 등).
+ * 예: 2026.04.21(화) 07:00 → 2026.04.21(화) 11:30
+ */
+const MODETOUR_DATETIME_ONLY_LEG_RE = new RegExp(
+  '^\\s*(\\d{4}[.\\-/]\\d{1,2}[.\\-/]\\d{1,2})(\\([^)]*\\))?\\s+((?:[01]?\\d|2[0-3]):[0-5]\\d)\\s*[→➝>＞]\\s*(\\d{4}[.\\-/]\\d{1,2}[.\\-/]\\d{1,2})(\\([^)]*\\))?\\s+((?:[01]?\\d|2[0-3]):[0-5]\\d)\\s*$',
+  'iu'
+)
+
+function parseLegBodyDateTimeOnly(body: string): ModetourFlightLeg | null {
+  const m = body.trim().match(MODETOUR_DATETIME_ONLY_LEG_RE)
+  if (!m) return null
+  return {
+    departureAirport: null,
+    departureAirportCode: null,
+    departureDate: normalizeDetailDate(m[1]!),
+    departureTime: m[3]!,
+    arrivalAirport: null,
+    arrivalAirportCode: null,
+    arrivalDate: normalizeDetailDate(m[4]!),
+    arrivalTime: m[6]!,
+    flightNo: null,
+    durationText: null,
+  }
+}
+
 function parseLegBodyFlexible(body: string): ModetourFlightLeg | null {
-  return parseLegBody(body) ?? parseLegBodyLoose(body)
+  return parseLegBody(body) ?? parseLegBodyDateTimeOnly(body) ?? parseLegBodyLoose(body)
+}
+
+/** 항공(공항명) 없이 일시만 채운 leg — 편명 없이도 정상 완료로 본다 */
+export function modetourLegIsDateTimeOnlyTransport(leg: ModetourFlightLeg): boolean {
+  const noPlaces = !(leg.departureAirport ?? '').trim() && !(leg.arrivalAirport ?? '').trim()
+  return (
+    noPlaces &&
+    Boolean((leg.departureDate ?? '').trim()) &&
+    Boolean((leg.departureTime ?? '').trim()) &&
+    Boolean((leg.arrivalDate ?? '').trim()) &&
+    Boolean((leg.arrivalTime ?? '').trim())
+  )
+}
+
+/** 첫 줄 `버스여행`·`기차여행` 등 — 항공사 슬롯에 그대로 넣어 상세 표시에 사용 */
+export function extractModetourTransportHeadline(lines: string[]): string | null {
+  for (const l of lines) {
+    const t = l.replace(/\s+/g, ' ').trim()
+    if (!t) continue
+    if (
+      /^(?:버스여행|기차여행|철도여행|고속버스|KTX|SRT|ITX|무궁화(?:여행)?)$/iu.test(t)
+    ) {
+      return t
+    }
+  }
+  return null
 }
 
 /** 긴/구체 패턴 우선 — 편명·코드 결합·영문 약칭 */
@@ -297,7 +349,8 @@ export function tryParseModetourFlightLines(
   }
 
   if (!airlineName?.trim()) {
-    airlineName = extractModetourAirlineNameLoose(sectionSnippet) ?? airlineName
+    airlineName =
+      extractModetourTransportHeadline(lines) ?? extractModetourAirlineNameLoose(sectionSnippet) ?? airlineName
   }
 
   return {

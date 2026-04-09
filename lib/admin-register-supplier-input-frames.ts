@@ -14,6 +14,9 @@ export type RegisterPastePlaceholders = {
   shopping: string
 }
 
+/** 관리자 등록 상단 `travelScope` — 국내 선택 시 모두투어 항공칸에 버스·기차 안내를 덧붙임 */
+export type AdminRegisterTravelScope = 'overseas' | 'domestic' | 'air_hotel_free'
+
 /** 표/도움말용: 축별 기본 형태·슬롯 요약 */
 export type SupplierInputFrameAxis = {
   axis: '본문(LLM)' | '항공' | '호텔' | '옵션' | '쇼핑'
@@ -30,6 +33,23 @@ export type SupplierInputFrameSpec = {
 function ph(lines: string[]): string {
   return lines.join('\n')
 }
+
+/** 모두투어 항공칸 placeholder — 해외·에어텔 등 기본 (국내 전용 줄은 `MODETOUR_AIRLINE_PLACEHOLDER_DOMESTIC_EXTRA`) */
+const MODETOUR_AIRLINE_PLACEHOLDER_LINES = [
+  '항공사: 중국남방항공',
+  '출발 : 인천(ICN) 2026.07.07(월) 19:20 → 연길 2026.07.07(월) 20:40 CZ6074',
+  '도착 : 연길 2026.07.10(목) 10:10 → 인천 2026.07.10(목) 13:25 CZ6073',
+  '— 또는 A→B 후 귀국 C→A 예 —',
+  '출발 : 인천 2026.08.01 10:00 → 하노이 2026.08.01 13:30 VN408',
+  '도착 : 다낭 2026.08.08 14:00 → 인천 2026.08.08 20:00 VN409',
+]
+
+const MODETOUR_AIRLINE_PLACEHOLDER_DOMESTIC_EXTRA = [
+  '— 국내 버스·기차(항공칸에 동일 형식) —',
+  '버스여행',
+  '출발 : 2026.04.21(화) 07:00 → 2026.04.21(화) 11:30',
+  '도착 : 2026.04.22(수) 15:00 → 2026.04.22(수) 20:00',
+]
 
 const MODETOUR: SupplierInputFrameSpec = {
   displayName: '모두투어',
@@ -72,14 +92,7 @@ const MODETOUR: SupplierInputFrameSpec = {
       '▶ 포함: …  ▶ 불포함: …  ▶ 유의사항: …',
       '(항공·호텔·선택관광·쇼핑 확정 데이터는 아래 정형칸. 본문만으로 SSOT 대체 안 함)',
     ]),
-    airlineTransport: ph([
-      '항공사: 중국남방항공',
-      '출발 : 인천(ICN) 2026.07.07(월) 19:20 → 연길 2026.07.07(월) 20:40 CZ6074',
-      '도착 : 연길 2026.07.10(목) 10:10 → 인천 2026.07.10(목) 13:25 CZ6073',
-      '— 또는 A→B 후 귀국 C→A 예 —',
-      '출발 : 인천 2026.08.01 10:00 → 하노이 2026.08.01 13:30 VN408',
-      '도착 : 다낭 2026.08.08 14:00 → 인천 2026.08.08 20:00 VN409',
-    ]),
+    airlineTransport: ph(MODETOUR_AIRLINE_PLACEHOLDER_LINES),
     hotel: ph([
       '일차 | 날짜 | 도시 | 호텔명',
       '1일차 | 2026-07-07 | 연길 | ○○호텔 (예정)',
@@ -293,12 +306,39 @@ export function registerSupplierFrameKey(brandKey: string | null | undefined): R
   return 'hanatour'
 }
 
-export function getSupplierInputFrameSpec(brandKey: string | null | undefined): SupplierInputFrameSpec {
-  return SPECS[registerSupplierFrameKey(brandKey)]
+export function getSupplierInputFrameSpec(
+  brandKey: string | null | undefined,
+  travelScope?: AdminRegisterTravelScope | null
+): SupplierInputFrameSpec {
+  const key = registerSupplierFrameKey(brandKey)
+  const base = SPECS[key]
+  if (key !== 'modetour' || travelScope !== 'domestic') {
+    return base
+  }
+  return {
+    ...base,
+    axes: base.axes.map((axis) =>
+      axis.axis === '항공'
+        ? {
+            axis: '항공',
+            shape: '항공사 1줄 + 출발(가는편) 1줄 + 도착(오는편) 1줄 (국내 버스·기차도 동일 슬롯)',
+            slots:
+              '슬롯(출발편/귀국편 분리): 항공사(또는 버스여행·기차여행 등 1줄) | 각 편: 출발도시·출발일시·도착도시·도착일시·편명. 국내 버스·기차는 일시만(→ 좌우)도 가능. 공항코드 보존. 소요시간 보조. A→B→A 및 A→B + C→A 허용.',
+          }
+        : axis
+    ),
+    placeholders: {
+      ...base.placeholders,
+      airlineTransport: ph([...MODETOUR_AIRLINE_PLACEHOLDER_LINES, ...MODETOUR_AIRLINE_PLACEHOLDER_DOMESTIC_EXTRA]),
+    },
+  }
 }
 
-export function getRegisterPastePlaceholders(brandKey: string | null | undefined): RegisterPastePlaceholders {
-  return getSupplierInputFrameSpec(brandKey).placeholders
+export function getRegisterPastePlaceholders(
+  brandKey: string | null | undefined,
+  travelScope?: AdminRegisterTravelScope | null
+): RegisterPastePlaceholders {
+  return getSupplierInputFrameSpec(brandKey, travelScope).placeholders
 }
 
 /** 관리자 `<details>` 패널 — 공급사 무관 공통 우선순위 */

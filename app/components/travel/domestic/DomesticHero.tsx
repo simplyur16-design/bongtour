@@ -1,6 +1,5 @@
-import Link from 'next/link'
 import { TRAVEL_DOMESTIC_HERO } from '@/lib/main-hub-copy'
-import DomesticHeroQuickLinks from '@/app/components/travel/domestic/DomesticHeroQuickLinks'
+import DomesticHeroImageRotator from '@/app/components/travel/domestic/DomesticHeroImageRotator'
 
 export default function DomesticHero() {
   return (
@@ -13,7 +12,7 @@ export default function DomesticHero() {
           {TRAVEL_DOMESTIC_HERO.title}
         </h1>
         <p className="bt-wrap mt-5 max-w-2xl text-sm leading-relaxed text-bt-muted sm:text-base">{TRAVEL_DOMESTIC_HERO.lead}</p>
-        <DomesticHeroQuickLinks />
+        <DomesticHeroImageRotator />
       </div>
     </section>
   )

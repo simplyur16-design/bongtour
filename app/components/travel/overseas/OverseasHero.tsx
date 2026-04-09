@@ -572,6 +572,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
         </div>
       </div>
 
+      {browseListingKind === 'private_trip' ? null : (
       <div className="mx-auto max-w-6xl px-4 pb-4 sm:px-6 sm:pb-5">
         <form
           onSubmit={(e) => {
@@ -649,6 +650,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
           </div>
         </form>
       </div>
+      )}
     </section>
   )
 }

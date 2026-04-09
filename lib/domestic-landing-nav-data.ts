@@ -154,13 +154,3 @@ export function parseDomesticUrlNav(
   }
   return null
 }
-
-/** 빠른 칩(히어로) — 예시 고정 */
-export const DOMESTIC_HERO_QUICK_CHIPS: { label: string; pillar: DomesticPillarId; secondKey: string }[] = [
-  { label: '당일여행', pillar: 'schedule', secondKey: 'day' },
-  { label: '1박2일', pillar: 'schedule', secondKey: 'n1' },
-  { label: '제주', pillar: 'region', secondKey: 'jeju' },
-  { label: '효도여행', pillar: 'audience', secondKey: 'filial' },
-  { label: '축제여행', pillar: 'theme', secondKey: 'festival' },
-  { label: '단체여행', pillar: 'audience', secondKey: 'corporate' },
-]

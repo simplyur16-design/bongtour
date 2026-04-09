@@ -357,8 +357,14 @@ export default function AdminRegisterPage() {
     airlineTransport: '',
   })
 
-  const supplierFrameSpec = useMemo(() => getSupplierInputFrameSpec(selectedBrandKey), [selectedBrandKey])
-  const pastePh = useMemo(() => getRegisterPastePlaceholders(selectedBrandKey), [selectedBrandKey])
+  const supplierFrameSpec = useMemo(
+    () => getSupplierInputFrameSpec(selectedBrandKey, travelScope),
+    [selectedBrandKey, travelScope]
+  )
+  const pastePh = useMemo(
+    () => getRegisterPastePlaceholders(selectedBrandKey, travelScope),
+    [selectedBrandKey, travelScope]
+  )
   /** 일차별 대표관광지 수동 입력 — confirm 시 `schedule[].imageKeyword` (비우면 자동 추출값 유지) */
   const [manualPexelsKeywordsByDay, setManualPexelsKeywordsByDay] = useState<Record<number, string>>({})
   const [registerPexelsPhotos, setRegisterPexelsPhotos] = useState<RegisterPexelsSearchPhoto[]>([])
@@ -989,14 +995,20 @@ export default function AdminRegisterPage() {
           />
         </div>
 
-        {/* B-4. 항공 구간 원문 (선택 — 있으면 LLM·구조화·검수 근거에 반영) */}
+        {/* B-4. 항공 구간 원문 (선택 — 국내·모두투어일 때만 버스·기차 안내·placeholder 확장) */}
         <div className="mt-6 border-l-4 border-emerald-600 pl-6">
           <label htmlFor="admin-register-airline-transport" className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <span>항공 구간 붙여넣기 (있으면 본문 항공 추출 보조)</span>
+            <span>
+              {travelScope === 'domestic' && selectedBrandKey === 'modetour'
+                ? '항공·이동(버스·기차) 구간 붙여넣기 (있으면 본문 추출 보조)'
+                : '항공 구간 붙여넣기 (있으면 본문 항공 추출 보조)'}
+            </span>
             <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">선택 입력</span>
           </label>
           <p className="mt-1 text-xs text-slate-500">
-            공급사 상세에서 항공 블록만 따로 붙여넣을 수 있습니다. 비우면 본문 전체에서만 추출합니다.
+            {selectedBrandKey === 'modetour' && travelScope === 'domestic'
+              ? '공급사 상세에서 항공 또는 국내 버스·기차 일정 블록을 따로 붙여넣을 수 있습니다. 모두투어는 항공과 동일한 출발/도착 행 형식입니다. 비우면 본문 전체에서만 추출합니다.'
+              : '공급사 상세에서 항공 블록만 따로 붙여넣을 수 있습니다. 비우면 본문 전체에서만 추출합니다.'}
           </p>
           <textarea
             id="admin-register-airline-transport"
@@ -1109,9 +1121,9 @@ export default function AdminRegisterPage() {
                     호텔: {pastedBlocks.hotel.trim() ? '별도 입력 우선 적용' : '본문 자동 추출 사용'}
                   </li>
                   <li>
-                    항공:{' '}
+                    {travelScope === 'domestic' && selectedBrandKey === 'modetour' ? '항공·이동' : '항공'}:{' '}
                     {pastedBlocks.airlineTransport.trim()
-                      ? '항공 블록 별도 입력 병합(본문과 함께 구조화)'
+                      ? '별도 입력 병합(본문과 함께 구조화)'
                       : '본문 자동 추출 사용'}
                   </li>
                 </ul>

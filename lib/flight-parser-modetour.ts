@@ -2,6 +2,7 @@ import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import { createEmptyFlightLeg, stripLogoNoise } from '@/lib/flight-parser-generic'
 import {
   extractModetourAirlineNameLoose,
+  modetourLegIsDateTimeOnlyTransport,
   tryParseModetourFlightLines,
   type ModetourParseTrace,
 } from '@/lib/flight-modetour-parser'
@@ -128,7 +129,14 @@ export function parseFlightSectionModetour(section: string, fullBodyForSecondary
   const status: 'success' | 'partial' | 'failure' = successStructured ? 'success' : partialStructured ? 'partial' : 'failure'
   const exposurePolicy: 'public_full' | 'public_limited' | 'admin_only' =
     status === 'success' ? 'public_full' : status === 'partial' ? 'public_limited' : 'admin_only'
-  if (expectFlightNumber && !outLeg.flightNo && !inLeg.flightNo) reviewReasons.push('편명 누락')
+  if (
+    expectFlightNumber &&
+    !outLeg.flightNo &&
+    !inLeg.flightNo &&
+    !(modetourLegIsDateTimeOnlyTransport(outLeg) && modetourLegIsDateTimeOnlyTransport(inLeg))
+  ) {
+    reviewReasons.push('편명 누락')
+  }
 
   return {
     airlineName: airlineNameResolved,
