@@ -83,6 +83,7 @@ function applyFlightManualCorrectionForPublicOrigin(
 }
 
 export default function VerygoodMobileProductDetail({ product }: Props) {
+  const prices = Array.isArray(product.prices) ? product.prices : []
   const schedule = product.schedule && product.schedule.length > 0 ? (product.schedule as ScheduleDayWithMeta[]) : []
   const heroUrl = product.bgImageUrl ?? schedule[0]?.imageUrl ?? null
   const daySlides = schedule.map((d) => ({ day: d.day, imageUrl: d.imageUrl, imageDisplayName: d.imageDisplayName }))
@@ -151,7 +152,7 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
     ]
   )
   const defaultDateKey = useMemo(() => {
-    const rows = product.prices.filter((p) => isScheduleAdultBookable(p))
+    const rows = prices.filter((p) => isScheduleAdultBookable(p))
     if (rows.length === 0) return null
     if (normalizeSupplierOrigin(product.originSource) === 'modetour') {
       let best = rows[0]!
@@ -166,7 +167,7 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
       return toDateKey(best.date)
     }
     return toDateKey(rows[0]!.date)
-  }, [product.prices, product.originSource])
+  }, [prices, product.originSource])
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [pax, setPax] = useState({ adult: 1, childBed: 0, childNoBed: 0, infant: 0 })
@@ -180,23 +181,23 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
     }
     setSelectedDate((prev) => {
       if (prev == null) return defaultDateKey
-      const row = product.prices.find((p) => toDateKey(p.date) === prev)
+      const row = prices.find((p) => toDateKey(p.date) === prev)
       if (!row || !isScheduleAdultBookable(row)) return defaultDateKey
       return prev
     })
-  }, [defaultDateKey, product.prices])
+  }, [defaultDateKey, prices])
 
   const priceRow = useMemo(() => {
     if (selectedDate) {
-      const row = product.prices.find((p) => toDateKey(p.date) === selectedDate)
+      const row = prices.find((p) => toDateKey(p.date) === selectedDate)
       if (row && isScheduleAdultBookable(row)) return row
     }
-    return product.prices.find((p) => isScheduleAdultBookable(p)) ?? null
-  }, [product.prices, selectedDate])
+    return prices.find((p) => isScheduleAdultBookable(p)) ?? null
+  }, [prices, selectedDate])
 
   const hasBookableSchedule = useMemo(
-    () => product.prices.some((p) => isScheduleAdultBookable(p)),
-    [product.prices]
+    () => prices.some((p) => isScheduleAdultBookable(p)),
+    [prices]
   )
 
   const updatePax = (key: keyof typeof pax, delta: number) => {
@@ -507,7 +508,7 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
       <div className="p-4">
         <ProductLiveQuoteCard
           product={product}
-          prices={product.prices}
+          prices={prices}
           selectedDate={selectedDate}
           pax={pax}
           updatePax={updatePax}
@@ -628,7 +629,7 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
       <DepartureDatePickerModal
         open={departurePickerOpen}
         onClose={() => setDeparturePickerOpen(false)}
-        prices={product.prices}
+        prices={prices}
         originSource={product.originSource}
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}

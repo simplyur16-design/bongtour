@@ -152,7 +152,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  *   (schedule JSON 우선, 없을 때만 Itinerary fallback. 상세 UI는 이 결과만 씀.)
  */
 export default async function ProductDetailPage({ params }: Props) {
-  const { id } = await params
+  const resolvedParams = await params
+  const id = resolvedParams?.id
+  if (typeof id !== 'string' || !id.trim()) {
+    notFound()
+  }
   const travelProduct = await prisma.product.findFirst({
     where: { id, registrationStatus: 'registered' },
     include: {
@@ -503,6 +507,37 @@ export default async function ProductDetailPage({ params }: Props) {
     })
   )
 
+  const mergedPriceRows = publicPriceRowsModule.mergeProductPriceRowsWithBodyPriceTable(
+    departures.length > 0
+      ? publicPriceRowsModule.productDeparturesToProductPriceRows(departures)
+      : publicPrices.map((p) => {
+          const dateStr =
+            p.date instanceof Date ? p.date.toISOString().slice(0, 10) : String(p.date).slice(0, 10)
+          const adultPx = p.adult ?? 0
+          const childBedPx = p.childBed != null ? p.childBed : null
+          const childNoBedPx = p.childNoBed != null ? p.childNoBed : null
+          const infantPx = p.infant != null ? p.infant : null
+          return {
+            id: p.id,
+            productId: p.productId,
+            date: dateStr,
+            adult: adultPx,
+            childBed: childBedPx,
+            childNoBed: childNoBedPx,
+            infant: infantPx,
+            localPrice: p.localPrice,
+            priceGap: p.priceGap,
+            priceAdult: adultPx,
+            priceChildWithBed: childBedPx,
+            priceChildNoBed: childNoBedPx,
+            priceInfant: infantPx,
+          }
+        }),
+    productPriceTableForMerge,
+    useModetourPriceMergeContext ? { modetourVaryingAdultChildLinkage: true } : undefined
+  )
+  const priceRowsForPublic = Array.isArray(mergedPriceRows) ? mergedPriceRows : []
+
   const serialized: TravelProduct = {
     ...productForDetail,
     airline: (() => {
@@ -578,35 +613,7 @@ export default async function ProductDetailPage({ params }: Props) {
     airtelHotelInfoJson: travelProduct.airtelHotelInfoJson ?? null,
     schedule,
     // 출발일/가격 행: ProductDeparture가 있으면 SSOT(하나투어 재수집은 여기만 갱신). 없을 때만 ProductPrice 레거시 fallback.
-    prices: publicPriceRowsModule.mergeProductPriceRowsWithBodyPriceTable(
-      departures.length > 0
-        ? publicPriceRowsModule.productDeparturesToProductPriceRows(departures)
-        : publicPrices.map((p) => {
-            const dateStr =
-              p.date instanceof Date ? p.date.toISOString().slice(0, 10) : String(p.date).slice(0, 10)
-            const adultPx = p.adult ?? 0
-            const childBedPx = p.childBed != null ? p.childBed : null
-            const childNoBedPx = p.childNoBed != null ? p.childNoBed : null
-            const infantPx = p.infant != null ? p.infant : null
-            return {
-              id: p.id,
-              productId: p.productId,
-              date: dateStr,
-              adult: adultPx,
-              childBed: childBedPx,
-              childNoBed: childNoBedPx,
-              infant: infantPx,
-              localPrice: p.localPrice,
-              priceGap: p.priceGap,
-              priceAdult: adultPx,
-              priceChildWithBed: childBedPx,
-              priceChildNoBed: childNoBedPx,
-              priceInfant: infantPx,
-            }
-          }),
-      productPriceTableForMerge,
-      useModetourPriceMergeContext ? { modetourVaryingAdultChildLinkage: true } : undefined
-    ),
+    prices: priceRowsForPublic,
     optionalTours: (travelProduct as { optionalTours?: { id: string; name: string; priceUsd: number; duration: string | null; waitPlaceIfNotJoined: string | null }[] }).optionalTours?.map((o) => ({
       id: o.id,
       name: o.name,

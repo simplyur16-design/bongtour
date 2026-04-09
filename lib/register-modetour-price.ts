@@ -11,7 +11,11 @@ import {
   mergeProductPriceTableWithLabelExtract,
   type ProductPriceTableByLabels,
 } from '@/lib/product-price-table-extract'
-import { extractInfantPriceKrwFromText, hintInfantPriceInPaste } from '@/lib/infant-price-extract'
+import {
+  extractInfantPriceKrwFromText,
+  hintInfantPriceInPaste,
+  mergeInfantPriceIntoProductPriceTable,
+} from '@/lib/infant-price-extract'
 import { normalizeCalendarDate } from '@/lib/date-normalize'
 import { extractIsoDate } from '@/lib/hero-date-utils'
 import { isScheduleAdultBookable } from '@/lib/price-utils'
@@ -22,6 +26,16 @@ export {
 } from '@/lib/product-price-table-extract'
 
 type PriceSlot = 'adult' | 'childExtra' | 'childNo' | 'infant'
+
+/** 즉시할인·쿠폰 등 — 상품가격 세로표 금액 수집에서 제외(예: 30,000원 할인이 유아 슬롯으로 오인) */
+function isModetourPromoDiscountLine(line: string): boolean {
+  const s = line.replace(/\s+/g, ' ').trim()
+  if (!s) return false
+  if (/즉시\s*할인|할인\s*쿠폰|쿠폰\s*받기|최대\s*\d+\s*만\s*원\s*절약/i.test(s)) return true
+  if (/\d{1,3}(?:,\d{3})+\s*원\s*할인/i.test(s)) return true
+  if (/할인\s*\[/.test(s) && /원/.test(s)) return true
+  return false
+}
 
 /** 기본가(성인·아동·유아) 후보에서 제외 — 1인 객실·현지합류·가이드경비·선택경비 등 */
 export function isModetourNonBasePriceLine(line: string): boolean {
@@ -361,15 +375,42 @@ function extractModetourSupplementLabelTable(blob: string): ProductPriceTableByL
   return filled ? out : null
 }
 
+/** 본문 상단·요약에도 `상품가격` 문구가 있어 첫 번째 매칭이 표가 아닐 수 있음 — 금액 열이 실제로 이어지는 마지막 `상품가격` 행을 쓴다. */
+function findModetourStackedProductPriceHeaderIndex(lines: string[]): number {
+  const candidates: number[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const ln = lines[i]!
+    if (!/^상품\s*가격$/i.test(ln)) continue
+    let cnt = 0
+    for (let j = i + 1; j < Math.min(i + 14, lines.length); j++) {
+      const t = stripLeadingPriceRowNoise(lines[j]!)
+      if (!t) continue
+      if (/^(유류|제세|할증|공과)/i.test(t)) continue
+      if (/^[\s·•]+(유류|제세|할증|공과)/i.test(t)) continue
+      const n = firstMainPriceKrwModetour(t)
+      if (n != null && n > 0) cnt++
+    }
+    if (cnt >= 2) candidates.push(i)
+  }
+  return candidates.length ? candidates[candidates.length - 1]! : -1
+}
+
 /**
  * 모두투어 PC 본문: 구분 열(성인·아동·유아)이 위에, `상품가격` 헤더 아래에 금액이 세로로 나열하는 표.
  * 기존 `expandModetourPriceLinesWithContinuation`은 중간에 다음 구간 라벨이 나오면 성인-금액 매칭이 끊긴다.
  */
 function extractModetourStackedPriceTableFromBlob(blob: string): ProductPriceTableByLabels | null {
   const rawLines = blob.replace(/\r/g, '\n').split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)
-  const idx = rawLines.findIndex((l) => /^상품\s*가격$/i.test(l))
+  let idx = findModetourStackedProductPriceHeaderIndex(rawLines)
+  if (idx < 0) {
+    idx = rawLines.findIndex((l) => /^상품\s*가격$/i.test(l))
+  }
   if (idx < 0) return null
-  const before = rawLines.slice(0, idx)
+  let 구분Idx = -1
+  for (let i = 0; i < idx; i++) {
+    if (/^구분$/i.test(rawLines[i]!)) 구분Idx = i
+  }
+  const before = 구분Idx >= 0 ? rawLines.slice(구분Idx + 1, idx) : rawLines.slice(0, idx)
   const tiers: PriceSlot[] = []
   for (const line of before) {
     const slot = detectModetourPriceSlotLine(line)
@@ -384,6 +425,7 @@ function extractModetourStackedPriceTableFromBlob(blob: string): ProductPriceTab
     if (prices.length >= 6) break
     const t = stripLeadingPriceRowNoise(line)
     if (!t) continue
+    if (isModetourPromoDiscountLine(t)) continue
     if (/^[\s·•]+(유류|제세|할증|공과)/i.test(t)) continue
     if (/^(유류|제세|할증|공과)/i.test(t)) continue
     const n = firstMainPriceKrwModetour(t)
@@ -477,8 +519,12 @@ export function finalizeModetourProductPriceTable(
 
   const scrubbed = scrubModetourProductPriceTableSlotsAgainstBlob(merged, blobNorm)
 
-  const ad = scrubbed.adultPrice
-  let inf: number | null = scrubbed.infantPrice ?? null
+  /** 세로 표 정렬이 즉시할인 3만원 등을 유아 슬롯으로 잡는 경우 → 본문 `유아 … 71,000원` 라벨 추출이 우선 */
+  const { productPriceTable: afterInfantMerge } = mergeInfantPriceIntoProductPriceTable(scrubbed, blob)
+  const base = afterInfantMerge ?? scrubbed
+
+  const ad = base.adultPrice
+  let inf: number | null = base.infantPrice ?? null
   if (ad != null && inf != null && ad > 0 && inf === ad && hintInfantPriceInPaste(blob)) {
     const extracted = extractInfantPriceKrwFromText(blob)
     if (extracted != null && extracted > 0 && extracted !== ad) inf = extracted
@@ -486,9 +532,9 @@ export function finalizeModetourProductPriceTable(
   }
 
   const out = {
-    adultPrice: scrubbed.adultPrice ?? null,
-    childExtraBedPrice: scrubbed.childExtraBedPrice ?? null,
-    childNoBedPrice: scrubbed.childNoBedPrice ?? null,
+    adultPrice: base.adultPrice ?? null,
+    childExtraBedPrice: base.childExtraBedPrice ?? null,
+    childNoBedPrice: base.childNoBedPrice ?? null,
     infantPrice: inf,
   }
   for (const k of ['adultPrice', 'childExtraBedPrice', 'childNoBedPrice', 'infantPrice'] as const) {
@@ -743,7 +789,7 @@ function modetourParsedPricesSubstantive(prices: RegisterParsed['prices']): bool
   })
 }
 
-function modetourScheduleRowsSubstantive(sched: RegisterParsed['schedule'] | null | undefined): boolean {
+export function modetourScheduleRowsSubstantive(sched: RegisterParsed['schedule'] | null | undefined): boolean {
   if (!sched?.length) return false
   return sched.some((s) => {
     const desc = String(s?.description ?? '').trim()

@@ -171,7 +171,12 @@ export function applyRegisterCorrectionOverlayToParsed(
   if (!shop) return parsed
   // 구형 payload 호환: finalVisitCount/finalShoppingPlacesJson
   if (shop.visitCount == null || shop.places == null) {
-    if (shop.reviewState !== 'manually_edited' && shop.reviewState !== 'approved') return parsed
+    if (
+      shop.reviewState !== 'manually_edited' &&
+      shop.reviewState !== 'approved' &&
+      shop.reviewState !== 'needs_review'
+    )
+      return parsed
     const json = shop.finalShoppingPlacesJson?.trim() ?? ''
     let nextStops: string | null = parsed.shoppingStops ?? null
     if (json !== '') {
@@ -187,8 +192,15 @@ export function applyRegisterCorrectionOverlayToParsed(
     }
   }
 
-  const visitEditable = shop.visitCount.reviewState === 'manually_edited' || shop.visitCount.reviewState === 'approved'
-  const placesEditable = shop.places.reviewState === 'manually_edited' || shop.places.reviewState === 'approved'
+  /** `needs_review`: 교정 서랍에서 저장만 한 경우에도 확정 시 반영 (auto만 제외) */
+  const visitEditable =
+    shop.visitCount.reviewState === 'manually_edited' ||
+    shop.visitCount.reviewState === 'approved' ||
+    shop.visitCount.reviewState === 'needs_review'
+  const placesEditable =
+    shop.places.reviewState === 'manually_edited' ||
+    shop.places.reviewState === 'approved' ||
+    shop.places.reviewState === 'needs_review'
   if (!visitEditable && !placesEditable) return parsed
 
   const nextStops = placesEditable ? normalizeShoppingRowsForParsed(shop.places.rows) : parsed.shoppingStops ?? null

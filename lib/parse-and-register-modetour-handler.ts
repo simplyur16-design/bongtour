@@ -37,6 +37,7 @@ import {
   modetourParsedPricesToDepartureInputs,
   modetourPersistedHasCalendarCoverage,
   modetourPersistedSaveCoverageBreakdown,
+  modetourScheduleRowsSubstantive,
   modetourSyntheticDepartureInputsForPersistedParsed,
 } from '@/lib/register-modetour-price'
 import { MODETOUR_REGISTER_CONFIRM_MONTHS_FORWARD } from '@/lib/scrape-date-bounds'
@@ -144,8 +145,11 @@ function enrichModetourPrefetchedDeparturesWithTable(
   inputs: DepartureInput[],
   table: RegisterParsed['productPriceTable']
 ): DepartureInput[] {
+  const bodyAdult =
+    table?.adultPrice != null && Number(table.adultPrice) > 0 ? Math.round(Number(table.adultPrice)) : null
   return inputs.map((d) => {
-    const adultNum = typeof d.adultPrice === 'number' && d.adultPrice > 0 ? d.adultPrice : 0
+    const prefetchAdult = typeof d.adultPrice === 'number' && d.adultPrice > 0 ? d.adultPrice : 0
+    const adultNum = bodyAdult != null && bodyAdult > 0 ? bodyAdult : prefetchAdult
     if (!adultNum) return d
     const linked = computeModetourLinkedDeparturePrices({
       adultTotal: adultNum,
@@ -287,6 +291,30 @@ function modetourItineraryDraftsApplyScheduleHotelBodyFirst(
   })
 }
 
+/** 일정 description 안의 「식사」·조식/중식/석식 줄만 뽑아 meal 필드 보강(구조 필드 없을 때) */
+function modetourMealLineFromScheduleDayDescription(desc: string | undefined): string | null {
+  if (!desc?.trim()) return null
+  const t = desc.replace(/\r/g, '\n')
+  /** 같은 줄: `식사 조식 - 호텔식, 중식 - 현지식, 석식 - 현지식` (줄바꿈 없이 붙는 모두투어 HTML) */
+  const sameLineAfterMeal = t.match(
+    /식사\s+((?:조식|중식|석식)\s*[-–—]\s*[^\n]+(?:\s*,\s*(?:조식|중식|석식)\s*[-–—]\s*[^\n]+)*)/i
+  )
+  if (sameLineAfterMeal?.[1] && /(?:조식|중식|석식)/.test(sameLineAfterMeal[1])) {
+    return `식사 ${sameLineAfterMeal[1].replace(/\s+/g, ' ').trim().slice(0, 480)}`
+  }
+  const mealHead = t.match(/(?:^|\n)\s*식사\s*\n([\s\S]{0,500})/i)
+  if (mealHead?.[1] && /(?:조식|중식|석식)/.test(mealHead[1])) {
+    return `식사 ${mealHead[1].replace(/\s+/g, ' ').trim().slice(0, 480)}`
+  }
+  const lineMatch = t.match(
+    /(?:^|\n)\s*(?:조식|중식|석식)\s*[-–—]\s*[^\n]+(?:\n\s*(?:조식|중식|석식)\s*[-–—]\s*[^\n]+)*/gi
+  )
+  if (lineMatch?.length) {
+    return lineMatch.join(' · ').replace(/\s+/g, ' ').trim().slice(0, 500)
+  }
+  return null
+}
+
 /**
  * 확정(confirm) 시 일정 day 초안이 패키지 HTML 스크래핑 기반이면 summary가 장문 raw가 된다.
  * 붙여넣기 파이프로 정제된 `parsed.schedule`과 동일한 요약·식사·rawBlock을 일차별로 덮어쓴다.
@@ -300,18 +328,29 @@ function modetourItineraryDraftsApplyParsedScheduleOverlay(
   if (!schedule?.length || !drafts.length) return drafts
   const rows = registerScheduleToDayInputs(schedule)
   const byDay = new Map(rows.map((r) => [r.day, r]))
+  const schedByDay = new Map(
+    schedule
+      .map((s) => [Number(s.day), s] as const)
+      .filter(([day]) => Number.isInteger(day) && day >= 1)
+  )
   return drafts.map((d) => {
     const o = byDay.get(d.day)
     if (!o) return d
+    const sRow = schedByDay.get(d.day)
+    const mealFromDesc = modetourMealLineFromScheduleDayDescription(
+      typeof sRow?.description === 'string' ? sRow.description : undefined
+    )
     const brief = String(o.summaryTextRaw ?? '').trim()
     const hasMeal =
       Boolean(o.breakfastText?.trim()) ||
       Boolean(o.lunchText?.trim()) ||
       Boolean(o.dinnerText?.trim()) ||
       Boolean(o.mealSummaryText?.trim()) ||
-      Boolean(o.meals?.trim())
+      Boolean(o.meals?.trim()) ||
+      Boolean(mealFromDesc)
     // 요약이 짧아도 붙여넣기 일정에 식사 줄이 있으면 반드시 반영 (그렇지 않으면 공개 상세가「식사 - 불포함」)
     if (brief.length < 8 && !hasMeal) return d
+    const mergedMeals = o.meals?.trim() || mealFromDesc || d.meals?.trim() || null
     return {
       ...d,
       summaryTextRaw: brief.length >= 8 ? o.summaryTextRaw : d.summaryTextRaw,
@@ -319,8 +358,8 @@ function modetourItineraryDraftsApplyParsedScheduleOverlay(
       breakfastText: o.breakfastText ?? d.breakfastText,
       lunchText: o.lunchText ?? d.lunchText,
       dinnerText: o.dinnerText ?? d.dinnerText,
-      mealSummaryText: o.mealSummaryText ?? d.mealSummaryText,
-      meals: o.meals ?? d.meals,
+      mealSummaryText: o.mealSummaryText ?? d.mealSummaryText ?? mealFromDesc ?? null,
+      meals: mergedMeals,
     }
   })
 }
@@ -886,7 +925,11 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
         } else {
           departureFromParsed = []
         }
-        itineraryDayDrafts = modetourItineraryDayDraftsSubstantive(itRes.days) ? itRes.days : []
+        itineraryDayDrafts = modetourScheduleRowsSubstantive(parsed.schedule ?? [])
+          ? registerScheduleToDayInputs(parsed.schedule ?? [])
+          : modetourItineraryDayDraftsSubstantive(itRes.days)
+            ? itRes.days
+            : []
         console.info('[parse-and-register-modetour][confirm-prefetch]', {
           baselinePicked: depRes.baselineTrace?.pickedSource ?? null,
           departureRows: depRes.inputs.length,
