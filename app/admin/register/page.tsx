@@ -1730,20 +1730,38 @@ export default function AdminRegisterPage() {
                           key={ph.id}
                           className="overflow-hidden rounded border border-slate-200 bg-white shadow-sm"
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element -- 외부 Pexels 썸네일 미리보기 */}
-                          <img
-                            src={ph.thumbnail || ph.medium}
-                            alt=""
-                            className="h-24 w-full object-cover"
-                            loading="lazy"
-                          />
+                          {/* 상품 상세 히어로와 동일: 좌하단 = 도시·관광지 키워드(검색어), 우측 = 출처(Pexels·작가) */}
+                          <div className="relative h-24 w-full overflow-hidden bg-slate-100">
+                            {/* eslint-disable-next-line @next/next/no-img-element -- 외부 Pexels 썸네일 미리보기 */}
+                            <img
+                              src={ph.thumbnail || ph.medium}
+                              alt=""
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent px-1 pb-1 pt-6">
+                              <div className="flex items-end justify-between gap-1">
+                                <span
+                                  className="min-w-0 flex-1 truncate text-[9px] font-semibold leading-tight text-white drop-shadow"
+                                  title={registerPexelsLastQuery ?? undefined}
+                                >
+                                  {registerPexelsLastQuery?.trim()
+                                    ? registerPexelsLastQuery.trim()
+                                    : '검색어 없음'}
+                                </span>
+                                <span
+                                  className="max-w-[55%] shrink-0 truncate text-right text-[9px] leading-tight text-white/90"
+                                  title={`Pexels · ${ph.photographer}`}
+                                >
+                                  Pexels · {ph.photographer}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                           <div className="p-1.5">
-                            <p className="truncate text-[10px] text-slate-600" title={ph.photographer}>
-                              {ph.photographer}
-                            </p>
                             <button
                               type="button"
-                              className="mt-1 w-full rounded bg-slate-100 px-1 py-0.5 text-[10px] text-slate-800 hover:bg-slate-200"
+                              className="w-full rounded bg-slate-100 px-1 py-0.5 text-[10px] text-slate-800 hover:bg-slate-200"
                               onClick={() => {
                                 const url = ph.large || ph.medium
                                 void navigator.clipboard?.writeText(url).catch(() => {})
