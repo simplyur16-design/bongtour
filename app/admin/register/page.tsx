@@ -1730,7 +1730,7 @@ export default function AdminRegisterPage() {
                           key={ph.id}
                           className="overflow-hidden rounded border border-slate-200 bg-white shadow-sm"
                         >
-                          {/* 상품 상세 히어로와 동일: 좌하단 = 도시·관광지 키워드(검색어), 우측 = 출처(Pexels·작가) */}
+                          {/* 썸네일 위: 출처만 우하단. 도시·관광지 키워드는 위쪽 「마지막 미리보기 검색어」·입력란을 본다. */}
                           <div className="relative h-24 w-full overflow-hidden bg-slate-100">
                             {/* eslint-disable-next-line @next/next/no-img-element -- 외부 Pexels 썸네일 미리보기 */}
                             <img
@@ -1739,24 +1739,12 @@ export default function AdminRegisterPage() {
                               className="h-full w-full object-cover"
                               loading="lazy"
                             />
-                            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent px-1 pb-1 pt-6">
-                              <div className="flex items-end justify-between gap-1">
-                                <span
-                                  className="min-w-0 flex-1 truncate text-[9px] font-semibold leading-tight text-white drop-shadow"
-                                  title={registerPexelsLastQuery ?? undefined}
-                                >
-                                  {registerPexelsLastQuery?.trim()
-                                    ? registerPexelsLastQuery.trim()
-                                    : '검색어 없음'}
-                                </span>
-                                <span
-                                  className="max-w-[55%] shrink-0 truncate text-right text-[9px] leading-tight text-white/90"
-                                  title={`Pexels · ${ph.photographer}`}
-                                >
-                                  Pexels · {ph.photographer}
-                                </span>
-                              </div>
-                            </div>
+                            <span
+                              className="pointer-events-none absolute bottom-1 right-1 z-[1] max-w-[min(100%,calc(100%-0.5rem))] truncate rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-medium leading-tight text-white backdrop-blur-[1px]"
+                              title={`Pexels · ${ph.photographer}`}
+                            >
+                              Pexels · {ph.photographer}
+                            </span>
                           </div>
                           <div className="p-1.5">
                             <button
