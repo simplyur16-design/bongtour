@@ -103,7 +103,7 @@ export type ScheduleDay = {
   lunchText?: string | null
   dinnerText?: string | null
   mealSummaryText?: string | null
-  /** 상세 페이지 병합 시 ItineraryDay.meals — 조·중·석 필드가 비었을 때 식사 카드 폴백 */
+  /** 상세 페이지 병합 시 ItineraryDay.meals — 조·중·석 필드가 비었을 때 식사 카드 한 줄 */
   meals?: string | null
 }
 

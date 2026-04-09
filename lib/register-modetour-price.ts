@@ -539,9 +539,16 @@ export function finalizeModetourProductPriceTable(
     .map((l) => l.replace(/\s+/g, ' ').trim())
     .filter((l) => l && !isModetourPromoDiscountLine(l))
 
-  /** 본문 상품가격 표에서 이미 유아 단가가 잡혔으면 regex 병합으로 덮어쓰지 않음(할인 금액 오염 방지) */
+  /** 유아 슬롯이 성인·아동과 동일 숫자면 표 열 정렬 오류로 본다 — mergeInfant·추출로 고칠 수 있게 막지 않음 */
+  const ic = scrubbed.infantPrice
+  const infantMirrorsAdultOrChild =
+    ic != null &&
+    Number(ic) > 0 &&
+    (Number(ic) === Number(scrubbed.adultPrice) ||
+      Number(ic) === Number(scrubbed.childExtraBedPrice) ||
+      Number(ic) === Number(scrubbed.childNoBedPrice))
   const hasTableInfant =
-    scrubbed.infantPrice != null && Number.isFinite(Number(scrubbed.infantPrice)) && Number(scrubbed.infantPrice) > 0
+    ic != null && Number.isFinite(Number(ic)) && Number(ic) > 0 && !infantMirrorsAdultOrChild
   const { productPriceTable: afterInfantMerge } = hasTableInfant
     ? { productPriceTable: scrubbed }
     : mergeInfantPriceIntoProductPriceTable(scrubbed, blobWithoutPromoLinesForInfant.join('\n'))
@@ -554,6 +561,20 @@ export function finalizeModetourProductPriceTable(
     const extracted = extractInfantPriceKrwFromText(blobForInfantExtract || blob)
     if (extracted != null && extracted > 0 && extracted !== ad) inf = extracted
     // 추출 실패 시 null로 지우면 공개 상세에서 유아 열이 통째로 사라짐 — 동일가로 남겨 둠
+  }
+
+  /** 세로 표에서 유아 열이 아동·성인과 같은 금액으로 잡힌 경우 — 본문 `유아 … N원`만으로 재확정 */
+  const pulledInf = extractInfantPriceKrwFromText(blobForInfantExtract || blob)
+  if (
+    pulledInf != null &&
+    pulledInf > 0 &&
+    inf != null &&
+    (inf === ad ||
+      inf === base.childExtraBedPrice ||
+      inf === base.childNoBedPrice) &&
+    pulledInf !== inf
+  ) {
+    inf = pulledInf
   }
 
   const out = {

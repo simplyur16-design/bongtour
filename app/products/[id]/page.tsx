@@ -247,14 +247,15 @@ export default async function ProductDetailPage({ params }: Props) {
       ? scheduleArr.map((s) => {
           const sk = Math.floor(Number(s.day))
           const iday = Number.isFinite(sk) && sk >= 1 ? dayMeta.get(sk) : undefined
+          /** ItineraryDay가 비어 있으면 Product.schedule JSON에 넣어 둔 식사·숙소(모두투어 confirm)로 보조 */
           return {
             ...s,
-            hotelText: iday?.hotelText ?? null,
-            breakfastText: iday?.breakfastText ?? null,
-            lunchText: iday?.lunchText ?? null,
-            dinnerText: iday?.dinnerText ?? null,
-            mealSummaryText: iday?.mealSummaryText ?? null,
-            meals: iday?.meals ?? null,
+            hotelText: iday?.hotelText ?? s.hotelText ?? null,
+            breakfastText: iday?.breakfastText ?? s.breakfastText ?? null,
+            lunchText: iday?.lunchText ?? s.lunchText ?? null,
+            dinnerText: iday?.dinnerText ?? s.dinnerText ?? null,
+            mealSummaryText: iday?.mealSummaryText ?? s.mealSummaryText ?? null,
+            meals: iday?.meals ?? s.meals ?? null,
           }
         })
       : []

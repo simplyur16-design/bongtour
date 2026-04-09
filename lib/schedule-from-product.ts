@@ -18,6 +18,13 @@ export type ScheduleDayDisplay = {
   imageKeyword?: string
   imageUrl?: string | null
   imageDisplayName?: string | null
+  /** confirm 시 itineraryDayDrafts와 함께 직렬화(모두투어 등) — 공개 상세는 ItineraryDay와 병합 */
+  hotelText?: string | null
+  breakfastText?: string | null
+  lunchText?: string | null
+  dinnerText?: string | null
+  mealSummaryText?: string | null
+  meals?: string | null
 }
 
 export type ScheduleDayInternalMeta = {
@@ -51,6 +58,13 @@ function deriveDisplayNameFromImageUrl(imageUrl: string | null | undefined): str
   if (!raw) return null
   const noQuery = raw.split('?')[0] ?? raw
   return deriveDisplayNameFromFileName(noQuery)
+}
+
+function optionalScheduleMealCol(row: Record<string, unknown>, key: string): string | null {
+  const v = row[key]
+  if (v == null) return null
+  const t = String(v).trim()
+  return t.length > 0 ? t : null
 }
 
 type GetScheduleOptions = {
@@ -110,6 +124,12 @@ export function getScheduleFromProduct(
             imageKeyword: typeof row?.imageKeyword === 'string' ? row.imageKeyword : undefined,
             imageUrl,
             imageDisplayName,
+            hotelText: optionalScheduleMealCol(row, 'hotelText'),
+            breakfastText: optionalScheduleMealCol(row, 'breakfastText'),
+            lunchText: optionalScheduleMealCol(row, 'lunchText'),
+            dinnerText: optionalScheduleMealCol(row, 'dinnerText'),
+            mealSummaryText: optionalScheduleMealCol(row, 'mealSummaryText'),
+            meals: optionalScheduleMealCol(row, 'meals'),
           }
           if (options?.includeInternalMeta === true) {
             return {

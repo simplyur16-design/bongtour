@@ -14,7 +14,11 @@ import { toDeparturePreviewRows } from '@/lib/departure-preview'
 import { stripCounselingTermsFromItineraryDayDraft } from '@/lib/itinerary-counseling-terms-strip'
 import { extractModetourMealSummaryFromScheduleDescription } from '@/lib/register-modetour-meal-from-description'
 import { supplementModetourScheduleFromPastedBody } from '@/lib/register-modetour-pasted-schedule'
-import { upsertItineraryDays, registerScheduleToDayInputs } from '@/lib/upsert-itinerary-days-modetour'
+import {
+  upsertItineraryDays,
+  registerScheduleToDayInputs,
+  type ItineraryDayInput,
+} from '@/lib/upsert-itinerary-days-modetour'
 import { normalizeOriginSource } from '@/lib/supplier-origin'
 import {
   buildPricePromotionFieldIssues,
@@ -255,7 +259,8 @@ function assertJsonSerializable(ctx: ParseRegisterLogCtx, label: string, payload
   }
 }
 
-function buildScheduleJson(parsedSchedule: Array<{ day: number; title: string; description: string; imageKeyword: string }>) {
+/** 일정 JSON(이미지·제목 등)만 — itineraryDayDrafts가 없을 때 */
+function buildScheduleJsonThin(parsedSchedule: Array<{ day: number; title: string; description: string; imageKeyword: string }>) {
   return JSON.stringify(
     parsedSchedule.map((day) => ({
       day: day.day,
@@ -264,6 +269,46 @@ function buildScheduleJson(parsedSchedule: Array<{ day: number; title: string; d
       imageKeyword: day.imageKeyword,
       imageUrl: null,
     }))
+  )
+}
+
+/**
+ * 확정 저장: ItineraryDay 초안과 동일한 식사·숙소 필드를 Product.schedule에 넣는다.
+ * 공개 상세는 schedule JSON(본문) + ItineraryDay 병합인데, 기존에는 JSON에 식사가 없어 DB만 비면「불포함」이 됐다.
+ */
+function buildModetourProductScheduleJson(
+  parsedSchedule: NonNullable<RegisterParsed['schedule']>,
+  drafts: ItineraryDayInput[]
+): string {
+  if (!drafts.length) return buildScheduleJsonThin(parsedSchedule)
+  const schedByDay = new Map(
+    parsedSchedule
+      .map((s) => [Number(s.day), s] as const)
+      .filter(([d]) => Number.isInteger(d) && d >= 1)
+  )
+  const sortedDrafts = [...drafts].sort((a, b) => a.day - b.day)
+  return JSON.stringify(
+    sortedDrafts.map((d) => {
+      const s = schedByDay.get(d.day)
+      const title = s && typeof s.title === 'string' ? s.title : ''
+      const description =
+        (s && typeof s.description === 'string' ? s.description : '') || (d.summaryTextRaw ?? '').trim()
+      const imageKeyword =
+        (s && typeof s.imageKeyword === 'string' ? s.imageKeyword : '') || `day ${d.day} travel`
+      return {
+        day: d.day,
+        title,
+        description,
+        imageKeyword,
+        imageUrl: null,
+        hotelText: d.hotelText ?? null,
+        breakfastText: d.breakfastText ?? null,
+        lunchText: d.lunchText ?? null,
+        dinnerText: d.dinnerText ?? null,
+        mealSummaryText: d.mealSummaryText ?? null,
+        meals: d.meals ?? null,
+      }
+    })
   )
 }
 
@@ -1508,7 +1553,10 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       return NextResponse.json(previewPayload)
     }
 
-    const scheduleJson = buildScheduleJson(schedule)
+    const scheduleJson =
+      itineraryDayDrafts.length > 0
+        ? buildModetourProductScheduleJson(schedule, itineraryDayDrafts)
+        : buildScheduleJsonThin(schedule)
 
     stage = 'prismaFindProduct'
     ctx.stage = stage

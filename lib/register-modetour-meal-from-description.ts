@@ -1,6 +1,6 @@
 /**
  * 일정 day description 안의 「식사」·조식/중식/석식 줄만 뽑아 mealSummaryText 보강용 문자열로 반환.
- * 공개 상세는 itineraryDays의 meal 필드를 쓰므로, LLM이 breakfastText 등을 비우고 description에만 넣은 경우에 필요.
+ * `registerScheduleToDayInputs` 등 저장 경로에서만 사용 — 공개 상세는 DB/schedule JSON에 적재된 식사 필드를 쓴다.
  */
 
 export function extractModetourMealSummaryFromScheduleDescription(desc: string | undefined): string | null {
