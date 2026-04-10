@@ -49,7 +49,7 @@ function run() {
   mustContain('app/api/featured/route.ts', 'assertNoInternalMetaLeak')
   mustContain('app/api/products/[id]/route.ts', 'assertNoInternalMetaLeak')
   mustContain('app/api/bookings/route.ts', 'assertNoInternalMetaLeak')
-  mustContain('app/products/[id]/page.tsx', 'assertNoInternalMetaLeak')
+  mustContain('app/products/[id]/product-detail-view.tsx', 'assertNoInternalMetaLeak')
   mustContain('app/api/agent/reports/route.ts', 'requireAdmin')
   mustContain('app/api/analyze/route.ts', 'requireAdmin')
   mustContain('app/api/extract/route.ts', 'requireAdmin')
