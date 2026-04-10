@@ -89,8 +89,29 @@ import {
   sanitizeModetourPublicDepartureKeyFacts,
   sanitizeModetourPublicProductAirlineLine,
 } from '@/lib/modetour-product-public-display'
+import { requireAdmin } from '@/lib/require-admin'
 
 type Props = { params: Promise<{ id: string }> }
+
+const PRODUCT_DETAIL_PAGE_INCLUDE = {
+  prices: { orderBy: { date: 'asc' as const } },
+  departures: { orderBy: { departureDate: 'asc' as const } },
+  itineraries: { orderBy: { day: 'asc' as const } },
+  itineraryDays: { orderBy: { day: 'asc' as const } },
+  optionalTours: true,
+  brand: { select: { brandKey: true } },
+} as const
+
+const PRODUCT_METADATA_SELECT = {
+  id: true,
+  title: true,
+  primaryDestination: true,
+  destination: true,
+  bgImageUrl: true,
+  schedule: true,
+  registrationStatus: true,
+  itineraries: { orderBy: { day: 'asc' as const }, select: { day: true, description: true } },
+} as const
 
 /** schedule 행 day와 ItineraryDay.day를 같은 정수 키로 맞춤 — Map 조회 실패 시 식사·호텔이 통째로 빠지는 버그 방지 */
 function itineraryDayMetaByDay(days: ItineraryDay[]): Map<number, ItineraryDay> {
@@ -115,18 +136,19 @@ function coalesceItineraryOrScheduleText(
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
-  const p = await prisma.product.findFirst({
+  let p = await prisma.product.findFirst({
     where: { id, registrationStatus: 'registered' },
-    select: {
-      id: true,
-      title: true,
-      primaryDestination: true,
-      destination: true,
-      bgImageUrl: true,
-      schedule: true,
-      itineraries: { orderBy: { day: 'asc' }, select: { day: true, description: true } },
-    },
+    select: PRODUCT_METADATA_SELECT,
   })
+  if (!p) {
+    const admin = await requireAdmin()
+    if (admin) {
+      p = await prisma.product.findFirst({
+        where: { id },
+        select: PRODUCT_METADATA_SELECT,
+      })
+    }
+  }
   if (!p) {
     return { title: '상품' }
   }
@@ -146,10 +168,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const captionFromImageAsset = await tryCaptionFromPublicImageUrl(coverUrl)
   const ogCaption = scheduleImageCaption || captionFromImageAsset
   const ogImageAlt = ogCaption ? `${p.title} — ${ogCaption}` : p.title
+  const isDraft = p.registrationStatus !== 'registered'
   return {
-    title: titleSeg,
+    title: isDraft ? `${titleSeg} (관리자 미리보기)` : titleSeg,
     description: desc,
     alternates: { canonical: path },
+    ...(isDraft ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       title: `${p.title} | ${SITE_NAME}`,
       description: desc,
@@ -179,21 +203,25 @@ export default async function ProductDetailPage({ params }: Props) {
   if (typeof id !== 'string' || !id.trim()) {
     notFound()
   }
-  const travelProduct = await prisma.product.findFirst({
+  let travelProduct = await prisma.product.findFirst({
     where: { id, registrationStatus: 'registered' },
-    include: {
-      prices: { orderBy: { date: 'asc' } },
-      departures: { orderBy: { departureDate: 'asc' } },
-      itineraries: { orderBy: { day: 'asc' } },
-      itineraryDays: { orderBy: { day: 'asc' } },
-      optionalTours: true,
-      brand: { select: { brandKey: true } },
-    },
+    include: PRODUCT_DETAIL_PAGE_INCLUDE,
   })
+  if (!travelProduct) {
+    const admin = await requireAdmin()
+    if (admin) {
+      travelProduct = await prisma.product.findFirst({
+        where: { id },
+        include: PRODUCT_DETAIL_PAGE_INCLUDE,
+      })
+    }
+  }
 
   if (!travelProduct) {
     notFound()
   }
+
+  const isAdminDraftPreview = travelProduct.registrationStatus !== 'registered'
 
   const {
     departures: rawDepartures,
@@ -720,13 +748,23 @@ export default async function ProductDetailPage({ params }: Props) {
 
   return (
     <>
-      <ProductJsonLd
-        productId={travelProduct.id}
-        name={travelProduct.title ?? ''}
-        description={seoProductDescription}
-        imageUrl={seoCoverUrl}
-      />
+      {travelProduct.registrationStatus === 'registered' ? (
+        <ProductJsonLd
+          productId={travelProduct.id}
+          name={travelProduct.title ?? ''}
+          description={seoProductDescription}
+          imageUrl={seoCoverUrl}
+        />
+      ) : null}
       <ProductDetailCopyGuard>
+        {isAdminDraftPreview ? (
+          <div className="border-b border-amber-300 bg-amber-50 px-4 py-2 text-center text-sm font-medium text-amber-950">
+            관리자 미리보기 · 등록 확정 전 상품입니다. 일반 사용자에게는 표시되지 않습니다.
+            <Link href="/admin/pending" className="ml-2 underline">
+              등록대기
+            </Link>
+          </div>
+        ) : null}
         <div className="md:hidden">
           <Header />
           {detailMobile}
