@@ -29,7 +29,7 @@ function buildContentSecurityPolicy() {
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
     "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
     "style-src-attr 'unsafe-inline'",
-    "img-src 'self' data: blob: https:",
+    "img-src 'self' data: blob: https: http:",
     "font-src 'self' data: https://cdn.jsdelivr.net",
     "frame-src 'self' https://www.googletagmanager.com https://www.google.com",
     // www / non-www 혼용 시 RSC·fetch가 'self'와 달라 connect-src 에서 막힘 — origin 통일 전까지 둘 다 허용

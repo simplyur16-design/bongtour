@@ -129,7 +129,10 @@ function getS3Client(): S3Client {
  * path 세그먼트는 encodeURIComponent 처리.
  */
 export function buildNcloudPublicUrl(publicBaseUrl: string, objectKey: string): string {
-  const base = publicBaseUrl.replace(/\/+$/, '')
+  let base = publicBaseUrl.replace(/\/+$/, '')
+  if (base.startsWith('http://')) {
+    base = `https://${base.slice('http://'.length)}`
+  }
   const key = objectKey
     .replace(/^\/+/, '')
     .split('/')

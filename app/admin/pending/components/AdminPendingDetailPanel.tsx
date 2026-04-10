@@ -278,9 +278,32 @@ async function fetchFirstPoiNamesRaw(productId: string): Promise<string | null> 
   }
 }
 
+async function fetchAdminProductDetail(productId: string): Promise<ProductDetail | null> {
+  try {
+    const r = await fetch(`/api/admin/products/${productId}`, { cache: 'no-store' })
+    if (!r.ok) return null
+    const data = (await r.json()) as { id?: string }
+    return data?.id ? (data as ProductDetail) : null
+  } catch {
+    return null
+  }
+}
+
+/** Prod CSP and legacy relative URLs — normalize so <img> loads in this panel */
+function adminPreviewImgSrc(url: string | null | undefined): string | undefined {
+  if (url == null) return undefined
+  const u = String(url).trim()
+  if (!u) return undefined
+  if (u.startsWith('http://')) return `https://${u.slice('http://'.length)}`
+  if (u.startsWith('/') && typeof window !== 'undefined') {
+    return `${window.location.origin}${u}`
+  }
+  return u
+}
+
 /**
- * 등록대기 검수 패널: 상품 요약 + 이미지 수급(placeholder) + 2차 분류(placeholder) + 승인/보류/반려.
- * productId가 null이면 빈 상태 표시.
+ * Pending review panel: product summary, image intake, secondary classification, approve/hold/reject.
+ * When productId is null, shows empty state.
  */
 export default function AdminPendingDetailPanel({
   productId,
@@ -370,10 +393,9 @@ export default function AdminPendingDetailPanel({
     }
     setDetailLoading(true)
     setDetailError(null)
-    fetch(`/api/admin/products/${productId}`)
-      .then((r) => r.json())
+    void fetchAdminProductDetail(productId)
       .then((data) => {
-        if (data?.id) setDetail(data as ProductDetail)
+        if (data) setDetail(data)
         else setDetail(null)
       })
       .catch(() => {
@@ -830,10 +852,8 @@ export default function AdminPendingDetailPanel({
         `${head} · stage=${data.stage ?? 'done'} · 수집 ${cnt}건 · 반영 ${up}건${mapping ? ` · ${mapping}` : ''}${srcHint}${suffix}${monthBlock}`
       )
       await loadPreviewData()
-      const dref = await fetch(`/api/admin/products/${detail.id}`, { cache: 'no-store' })
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null)
-      if (dref?.id) setDetail(dref as ProductDetail)
+      const dref = await fetchAdminProductDetail(detail.id)
+      if (dref) setDetail(dref)
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') {
         setDepartureResyncMessage('재수집 실패: 시간 초과(200초). Python 수집·네트워크를 확인하세요.')
@@ -917,10 +937,8 @@ export default function AdminPendingDetailPanel({
         return
       }
       setDayImageMessage(`DAY${day} 대표관광지 키워드가 저장되었습니다.`)
-      const refreshed = await fetch(`/api/admin/products/${detail.id}`, { cache: 'no-store' })
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null)
-      if (refreshed?.id) setDetail(refreshed as ProductDetail)
+      const refreshed = await fetchAdminProductDetail(detail.id)
+      if (refreshed) setDetail(refreshed)
     } finally {
       setDayImageSaving((prev) => ({ ...prev, [day]: false }))
     }
@@ -986,8 +1004,8 @@ export default function AdminPendingDetailPanel({
         return
       }
       setDayImageMessage(`DAY${day} 이미지 수동 선택 저장 완료`)
-      const refreshed = await fetch(`/api/admin/products/${detail.id}`).then((r) => r.json()).catch(() => null)
-      if (refreshed?.id) setDetail(refreshed as ProductDetail)
+      const refreshed = await fetchAdminProductDetail(detail.id)
+      if (refreshed) setDetail(refreshed)
     } finally {
       setDayImageSaving((prev) => ({ ...prev, [day]: false }))
     }
@@ -1128,8 +1146,8 @@ export default function AdminPendingDetailPanel({
         return
       }
       setDayImageMessage(`DAY${day} 자동 후보 사용으로 복귀`)
-      const refreshed = await fetch(`/api/admin/products/${detail.id}`).then((r) => r.json()).catch(() => null)
-      if (refreshed?.id) setDetail(refreshed as ProductDetail)
+      const refreshed = await fetchAdminProductDetail(detail.id)
+      if (refreshed) setDetail(refreshed)
     } finally {
       setDayImageSaving((prev) => ({ ...prev, [day]: false }))
     }
@@ -1473,7 +1491,13 @@ export default function AdminPendingDetailPanel({
                   </div>
                   <div className="mt-2 flex items-start gap-3">
                     <div className="h-16 w-24 overflow-hidden rounded border border-bt-border-soft bg-bt-surface-alt">
-                      {row.imageUrl ? <img src={row.imageUrl} alt="" className="h-full w-full object-cover" /> : null}
+                      {row.imageUrl ? (
+                        <img
+                          src={adminPreviewImgSrc(row.imageUrl) ?? row.imageUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : null}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -1548,7 +1572,11 @@ export default function AdminPendingDetailPanel({
                             title="이 사진을 일정 이미지로 적용"
                             className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left disabled:opacity-50"
                           >
-                            <img src={photo.thumbnail} alt="" className="aspect-video w-full object-cover" />
+                            <img
+                              src={adminPreviewImgSrc(photo.thumbnail) ?? photo.thumbnail}
+                              alt=""
+                              className="aspect-video w-full object-cover"
+                            />
                             <span className="block truncate px-1 py-0.5 text-[9px] text-bt-meta">일정 이미지로 적용</span>
                             <span className="block truncate px-1 py-0.5 text-[10px] text-bt-muted">{photo.photographer}</span>
                           </button>
@@ -1590,7 +1618,11 @@ export default function AdminPendingDetailPanel({
                               {geminiSlotLabelKr(item.slot)}
                             </span>
                             {item.imageUrl ? (
-                              <img src={item.imageUrl} alt="" className="aspect-video w-full object-cover" />
+                              <img
+                                src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
+                                alt=""
+                                className="aspect-video w-full object-cover"
+                              />
                             ) : (
                               <div className="flex aspect-video w-full flex-col items-center justify-center bg-bt-surface-alt px-1 py-2 text-center">
                                 <span className="text-[10px] font-medium text-bt-warning">생성 실패</span>
@@ -1624,7 +1656,11 @@ export default function AdminPendingDetailPanel({
                           disabled={dayImageSaving[row.day] === true}
                           className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left disabled:opacity-50"
                         >
-                          <img src={item.imageUrl} alt="" className="aspect-video w-full object-cover" />
+                          <img
+                            src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
+                            alt=""
+                            className="aspect-video w-full object-cover"
+                          />
                           <span className="block truncate px-1 py-1 text-[10px] text-bt-muted">{item.label}</span>
                           <span
                             className="block truncate px-1 pb-1 text-[9px] text-bt-meta"
@@ -1703,7 +1739,11 @@ export default function AdminPendingDetailPanel({
                           onClick={() => void selectLibraryAssetForDay(libraryModalDay, item)}
                           className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left"
                         >
-                          <img src={item.imageUrl} alt="" className="aspect-video w-full object-cover" />
+                          <img
+                            src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
+                            alt=""
+                            className="aspect-video w-full object-cover"
+                          />
                           <span className="block truncate px-1 py-1 text-[10px] text-bt-muted">{item.label}</span>
                           <span
                             className="block truncate px-1 pb-1 text-[9px] text-bt-meta"
@@ -1723,7 +1763,11 @@ export default function AdminPendingDetailPanel({
                     const historyOpen = libraryHistoryOpenMap[key] === true
                     return (
                       <div key={key} className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface">
-                        <img src={item.imageUrl} alt="" className="aspect-video w-full object-cover" />
+                        <img
+                            src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
+                            alt=""
+                            className="aspect-video w-full object-cover"
+                          />
                         <div className="space-y-1 px-2 py-2">
                           <p className="truncate text-[10px] text-bt-muted">{item.label}</p>
                           <p
@@ -1801,7 +1845,11 @@ export default function AdminPendingDetailPanel({
                 rel="noopener noreferrer"
                 className="block h-16 w-24 shrink-0 overflow-hidden rounded border border-bt-border-soft bg-bt-surface-alt"
               >
-                <img src={detail.bgImageUrl} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={adminPreviewImgSrc(detail.bgImageUrl) ?? detail.bgImageUrl ?? ''}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
               </a>
               <div className="min-w-0 text-xs text-bt-muted">
                 <p title={detail.bgImageSource ? `bgImageSource=${detail.bgImageSource}` : undefined}>
@@ -1871,7 +1919,12 @@ export default function AdminPendingDetailPanel({
                     className="block aspect-video w-full bg-bt-surface-alt"
                   >
                     <img
-                      src={photo.medium || photo.thumbnail}
+                      src={
+                        adminPreviewImgSrc(photo.medium || photo.thumbnail) ??
+                        photo.medium ??
+                        photo.thumbnail ??
+                        ''
+                      }
                       alt=""
                       className="h-full w-full object-cover"
                     />
@@ -1912,7 +1965,11 @@ export default function AdminPendingDetailPanel({
                         rel="noopener noreferrer"
                         className="block aspect-video w-full bg-bt-surface-alt"
                       >
-                        <img src={candidate.imageUrl} alt="" className="h-full w-full object-cover" />
+                        <img
+                          src={adminPreviewImgSrc(candidate.imageUrl) ?? candidate.imageUrl ?? ''}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
                       </a>
                       <p className="truncate px-2 py-1 text-xs font-medium text-bt-body" title={candidate.label}>
                         {candidate.label}
@@ -1947,7 +2004,11 @@ export default function AdminPendingDetailPanel({
                         rel="noopener noreferrer"
                         className="block aspect-video w-full bg-bt-surface-alt"
                       >
-                        <img src={candidate.imageUrl} alt="" className="h-full w-full object-cover" />
+                        <img
+                          src={adminPreviewImgSrc(candidate.imageUrl) ?? candidate.imageUrl ?? ''}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
                       </a>
                       <p className="truncate px-2 py-1 text-xs font-medium text-bt-body" title={candidate.label}>
                         {candidate.label}
@@ -2013,7 +2074,11 @@ export default function AdminPendingDetailPanel({
                     {geminiSlotLabelKr(item.slot)}
                   </span>
                   {item.imageUrl ? (
-                    <img src={item.imageUrl} alt="" className="aspect-video w-full object-cover" />
+                    <img
+                      src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
+                      alt=""
+                      className="aspect-video w-full object-cover"
+                    />
                   ) : (
                     <div className="flex aspect-video w-full flex-col items-center justify-center bg-bt-surface-alt px-2 py-2 text-center">
                       <span className="text-[11px] font-medium text-bt-warning">생성 실패</span>
