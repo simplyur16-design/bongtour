@@ -1414,6 +1414,15 @@ export default function AdminProductDetailPage({
           >
             사용자 화면 보기
           </Link>
+          <Link
+            href={`/admin/products/${product.id}/customer-view`}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="rounded-lg border border-cyan-700/60 bg-cyan-950/35 px-3 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-950/55"
+            title="Admin preview route (works for draft products)"
+          >
+            Customer preview (admin)
+          </Link>
           {product.registrationStatus !== 'registered' && (
             <button
               type="button"
