@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Header from './components/Header'
 import MainHero from './components/MainHero'
 import HomeHubFour from './components/home/HomeHubFour'
+import PartnerOrganizationsSection from './components/home/PartnerOrganizationsSection'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { SITE_NAME } from '@/lib/site-metadata'
 
@@ -46,6 +47,7 @@ export default function Home() {
             <HomeHubFour />
           </div>
         </section>
+        <PartnerOrganizationsSection />
       </main>
     </div>
   )

@@ -1,4 +1,4 @@
-﻿import { execFile } from 'child_process'
+import { execFile } from 'child_process'
 import { promisify } from 'util'
 import type { PrismaClient } from '@prisma/client'
 import { collectVerygoodDepartureInputs } from '@/lib/verygoodtour-departures'
@@ -120,8 +120,8 @@ function summarizeYbtourDetailUrlForLog(url: string): string {
   try {
     const u = new URL(url)
     const goods = u.searchParams.get('goodsCd') ?? u.searchParams.get('goodscd')
-    const pathPart = u.pathname.length > 96 ? `${u.pathname.slice(0, 96)}?? : u.pathname
-    return `host=${u.host} path=${pathPart} goodsCd=${goods ? goods.slice(0, 32) : '??}`
+    const pathPart = u.pathname.length > 96 ? `${u.pathname.slice(0, 96)}...` : u.pathname
+    return `host=${u.host} path=${pathPart} goodsCd=${goods ? goods.slice(0, 32) : '(none)'}`
   } catch {
     return 'url_parse_failed'
   }
@@ -140,8 +140,8 @@ function summarizeHanatourDetailUrlForLog(url: string): string {
   try {
     const u = new URL(url)
     const pkg = u.searchParams.get('pkgCd') ?? u.searchParams.get('pkgcd')
-    const pathPart = u.pathname.length > 96 ? `${u.pathname.slice(0, 96)}?? : u.pathname
-    return `host=${u.host} path=${pathPart} pkgCd=${pkg ? pkg.slice(0, 40) : '??}`
+    const pathPart = u.pathname.length > 96 ? `${u.pathname.slice(0, 96)}...` : u.pathname
+    return `host=${u.host} path=${pathPart} pkgCd=${pkg ? pkg.slice(0, 40) : '(none)'}`
   } catch {
     return 'url_parse_failed'
   }
