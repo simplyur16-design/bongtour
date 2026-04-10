@@ -33,6 +33,46 @@ export function buildWebpFilename(cityName: string, attractionName: string, sour
   return `${city}_${attraction}_${src}.webp`
 }
 
+/** 사진풀·동일 네이밍: `도시_명소_출처` 에서 공개 캡션용으로 마지막 출처 세그먼트만 제거 */
+const EXTRA_SOURCE_STEM_TOKENS = new Set(
+  [
+    'upload',
+    'manual',
+    'other',
+    'photopool',
+    'photo_owned',
+    'pexels',
+    'istock',
+    'gemini',
+    'gemini_manual',
+    'gemini_auto',
+    'destination-set',
+    'city-asset',
+    'attraction-asset',
+  ].map((s) => s.toLowerCase())
+)
+
+/**
+ * 확장자 없는 파일명 stem(예: Osaka_Castle_Pexels)에서,
+ * `도시_명소_출처` 형태일 때만 마지막 `_` 구간이 출처로 판단되면 제거한 stem 반환.
+ */
+export function stripTrailingSourceTokenFromFilenameStem(stem: string): string {
+  const t = String(stem ?? '').trim()
+  if (!t) return t
+  const parts = t.split('_').filter((p) => p.length > 0)
+  if (parts.length < 3) return t
+  const last = parts[parts.length - 1]!
+  const lastLower = last.toLowerCase()
+  if (EXTRA_SOURCE_STEM_TOKENS.has(lastLower)) {
+    return parts.slice(0, -1).join('_')
+  }
+  const inferred = inferSourceFromFilename(`${last}.png`)
+  if (inferred) {
+    return parts.slice(0, -1).join('_')
+  }
+  return t
+}
+
 /** 한글(자모+음절), 영숫자, _, -, . 허용. 파일명용 */
 function sanitize(s: string): string {
   const t = String(s ?? '').trim().replace(/\s+/g, '_')

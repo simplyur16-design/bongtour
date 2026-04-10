@@ -10,7 +10,7 @@ import {
   type ImageAssetRole,
   type ImageAssetServiceType,
 } from '@/lib/image-asset-ssot'
-import { buildNcloudPublicUrl } from '@/lib/ncloud-object-storage'
+import { buildPublicUrlForObjectKey } from '@/lib/object-storage'
 import {
   entityLabelToSlug,
   supplierDisplayEn,
@@ -100,9 +100,9 @@ export function buildOperationalStoragePath(params: {
   })
 }
 
-/** `NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL` + object key (버킷 prefix는 base URL에 포함) */
-export function buildOperationalPublicUrl(publicBaseUrl: string, storagePath: string): string {
-  return buildNcloudPublicUrl(publicBaseUrl, storagePath)
+/** Supabase Storage 공개 URL (object key 기준). */
+export function buildOperationalPublicUrl(storagePath: string): string {
+  return buildPublicUrlForObjectKey(storagePath)
 }
 
 export function buildAltKrOperational(p: {
@@ -182,9 +182,7 @@ export function buildAltEnOperational(p: {
   }
 }
 
-export function prepareOperationalImageAsset(
-  p: OperationalPathInput & { publicBaseUrl: string }
-): {
+export function prepareOperationalImageAsset(p: OperationalPathInput): {
   groupKey: string
   entitySlug: string
   seq: number
@@ -213,7 +211,7 @@ export function prepareOperationalImageAsset(
     imageRole: p.imageRole,
     fileName,
   })
-  const publicUrl = buildOperationalPublicUrl(p.publicBaseUrl, storagePath)
+  const publicUrl = buildOperationalPublicUrl(storagePath)
   const altKr = buildAltKrOperational({
     entityType: p.entityType,
     imageRole: p.imageRole,

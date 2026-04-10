@@ -7,6 +7,10 @@ import { NextResponse } from 'next/server'
  *
  * 프로덕션: 운영 접속 도메인(www / non-www)을 허용 목록에 포함해
  * env 누락·오설정 시에도 동일 사이트 정상 요청이 503/403으로 막히지 않게 한다.
+ *
+ * Extension: captcha / Turnstile (TODO).
+ *
+ * 공개 mutation 라우트는 보통 본 함수로 Origin·Referer를 먼저 검사한 뒤 IP rate limit을 적용한다.
  */
 
 /** nginx·canonical 정리 전까지 동일 서비스의 두 호스트 모두 허용 */

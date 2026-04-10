@@ -4,7 +4,17 @@ import { prisma } from '@/lib/prisma'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { insertPendingMemberReview } from '@/lib/reviews-db'
 import { validateMemberReviewSubmit } from '@/lib/reviews-validate'
+import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError } from '@/lib/public-mutation-origin'
+
+const REVIEW_SUBMIT_RATE_LIMIT_WINDOW_MS = 60_000
+const REVIEW_SUBMIT_RATE_LIMIT_MAX = 20
+
+function getClientIp(headers: Headers): string {
+  const xff = headers.get('x-forwarded-for')
+  if (xff) return xff.split(',')[0]?.trim() || 'unknown'
+  return headers.get('x-real-ip') || 'unknown'
+}
 
 /**
  * POST /api/reviews/submit — 로그인 회원만, pending 저장 (Supabase는 서버 service role만).
@@ -15,6 +25,20 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { ok: false, error: originErr.message, code: 'origin' },
       { status: originErr.status }
+    )
+  }
+
+  const ip = getClientIp(request.headers)
+  const store = getRateLimitStore()
+  const bucket = await store.incr(`public:reviews-submit:${ip}`, REVIEW_SUBMIT_RATE_LIMIT_WINDOW_MS)
+  if (bucket.count > REVIEW_SUBMIT_RATE_LIMIT_MAX) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
+        code: 'rate_limit',
+      },
+      { status: 429, headers: { 'Retry-After': String(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))) } }
     )
   }
 

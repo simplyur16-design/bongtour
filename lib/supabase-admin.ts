@@ -1,7 +1,7 @@
 /**
  * Supabase Admin 클라이언트 (서버 전용 service role).
  * travel_reviews 등 Postgres 테이블 접근용.
- * 이미지 바이너리·image_assets 메타는 Ncloud + Prisma만 사용 — Supabase Storage/이미지 테이블 연결 없음.
+ * 이미지 바이너리는 Supabase Storage(lib/object-storage.ts) + Prisma image_assets 메타.
  */
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'

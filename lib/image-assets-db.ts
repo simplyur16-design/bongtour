@@ -1,6 +1,6 @@
-/**
+﻿/**
  * 이미지 메타데이터 — Prisma SQLite `image_assets` (서버 전용).
- * 파일 바이너리는 Ncloud Object Storage.
+ * 파일 바이너리는 Supabase Storage.
  */
 
 import { prisma } from '@/lib/prisma'

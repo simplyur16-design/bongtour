@@ -1,4 +1,4 @@
-import { getRateLimitStore } from '@/lib/rate-limit-store'
+﻿import { getRateLimitStore } from "@/lib/rate-limit-store"
 import { notifySecurityAnomaly } from '@/lib/security-anomaly-notifier'
 
 type Bucket = { count: number; resetAt: number }
@@ -30,6 +30,10 @@ export function classifyAdminApi(pathname: string, method: string): AdminApiClas
   return 'write'
 }
 
+/**
+ * 미들웨어(Edge): `getRateLimitStore()` → kind `memory` 고정.
+ * Node API: REDIS_URL / BONGTOUR_REDIS_URL 있으면 Redis, 없으면 memory (`store.kind` 참고).
+ */
 export async function checkAdminApiRateLimit(ip: string, cls: AdminApiClass): Promise<{ limited: boolean; retryAfterSec: number }> {
   const now = Date.now()
   const policy = POLICIES[cls]
@@ -67,3 +71,4 @@ export function recordAdminApiSecurityEvent(ip: string, event: '401' | '403' | '
     void notifySecurityAnomaly(payload)
   }
 }
+

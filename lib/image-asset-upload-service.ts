@@ -1,5 +1,5 @@
 /**
- * 이미지 업로드: Ncloud Object Storage → public_url → Prisma image_assets.
+ * 이미지 업로드: Supabase Storage → public_url → Prisma image_assets.
  */
 
 import { randomUUID } from 'crypto'
@@ -20,7 +20,12 @@ import {
   sourceTypeToSourceName,
   type ImageSourceType,
 } from '@/lib/image-asset-source'
-import { getNcloudObjectStorageEnv, isNcloudObjectStorageConfigured, removeNcloudObject, uploadNcloudObject } from '@/lib/ncloud-object-storage'
+import {
+  getObjectStorageEnv,
+  isObjectStorageConfigured,
+  removeStorageObject,
+  uploadStorageObject,
+} from '@/lib/object-storage'
 
 const MAX_UPLOAD_BYTES = 30 * 1024 * 1024
 
@@ -54,9 +59,9 @@ export async function runImageAssetUpload(input: ImageAssetUploadInput): Promise
   ok: true
   asset: ImageAssetRow
 }> {
-  if (!isNcloudObjectStorageConfigured()) {
+  if (!isObjectStorageConfigured()) {
     throw new Error(
-      'Ncloud Object Storage가 설정되지 않았습니다. NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_ENDPOINT, NCLOUD_OBJECT_STORAGE_REGION, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL (및 선택 NCLOUD_OBJECT_STORAGE_BUCKET) 를 설정하세요.'
+      'Supabase Storage가 설정되지 않았습니다. SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, 선택 SUPABASE_IMAGE_BUCKET(기본 bongtour-images)를 설정하세요.'
     )
   }
 
@@ -86,8 +91,7 @@ export async function runImageAssetUpload(input: ImageAssetUploadInput): Promise
   const mimeType = 'image/webp'
   const fileExt = 'webp'
 
-  const ncloud = getNcloudObjectStorageEnv()
-  const bucket = ncloud.bucket
+  const { bucket } = getObjectStorageEnv()
 
   const prepared = prepareOperationalImageAsset({
     entityType,
@@ -98,12 +102,11 @@ export async function runImageAssetUpload(input: ImageAssetUploadInput): Promise
     entityNameEn,
     groupKeyInput: input.groupKey,
     sortOrder: input.sortOrder,
-    publicBaseUrl: ncloud.publicBaseUrl,
   })
 
   const { fileName, storagePath, publicUrl, altKr, altEn } = prepared
 
-  await uploadNcloudObject({
+  await uploadStorageObject({
     objectKey: storagePath,
     body: webp.buffer,
     contentType: mimeType,
@@ -157,9 +160,9 @@ export async function runImageAssetUpload(input: ImageAssetUploadInput): Promise
   } catch (e) {
     console.error('[image-asset] DB(image_assets) 저장 실패 — Storage 롤백:', storagePath, e)
     try {
-      await removeNcloudObject(storagePath)
+      await removeStorageObject(storagePath)
     } catch (re) {
-      console.error('[image-asset] Ncloud 롤백 실패:', storagePath, re)
+      console.error('[image-asset] Storage 롤백 실패:', storagePath, re)
     }
     throw e
   }

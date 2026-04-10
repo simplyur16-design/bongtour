@@ -225,6 +225,15 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ ok: true, productId: id, day, imageUrl: imageUrl || null, source, manualSelected })
   } catch (e) {
     console.error(e)
-    return NextResponse.json({ error: '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 })
+    const dev = process.env.NODE_ENV === 'development'
+    const detail = e instanceof Error ? e.message : String(e)
+    return NextResponse.json(
+      {
+        error: dev
+          ? `처리 중 오류: ${detail.slice(0, 500)}`
+          : '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+      },
+      { status: 500 }
+    )
   }
 }

@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { imageAssetRowToApi } from '@/lib/image-asset-api-mapper'
 import { listRecentImageAssets } from '@/lib/image-assets-db'
 import { requireAdmin } from '@/lib/require-admin'
 
 /**
  * GET /api/admin/image-assets/recent?take=1..50
- * Prisma ImageAsset — 관리자 최근 목록 (Ncloud public_url)
+ * Prisma ImageAsset — 관리자 최근 목록 (Supabase public_url)
  */
 export async function GET(request: Request) {
   const admin = await requireAdmin()

@@ -1,9 +1,9 @@
-/**
- * Prisma에 들어 있는 이미지 URL/경로를 Ncloud Object Storage로 복사하고,
+﻿/**
+ * Prisma에 들어 있는 이미지 URL/경로를 Supabase Storage로 복사하고,
  * DB 필드를 새 public URL로 갱신합니다.
  *
  * 기본: `/uploads/...` 로컬 파일만 (public/ 아래 실제 파일 읽기)
- * 선택: `--include-http` — http(s) URL은 fetch 후 Ncloud에 재업로드 (Pexels 등; 용량·정책 주의)
+ * 선택: `--include-http` — http(s) URL은 fetch 후 Supabase Storage에 재업로드 (Pexels 등; 용량·정책 주의)
  *
  *   npx tsx scripts/migrate-prisma-images-to-ncloud.ts
  *   npx tsx scripts/migrate-prisma-images-to-ncloud.ts --apply
@@ -16,11 +16,11 @@ import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { prisma } from '../lib/prisma'
 import {
-  buildNcloudPublicUrl,
-  getNcloudObjectStorageEnv,
-  isNcloudObjectStorageConfigured,
-  uploadNcloudObject,
-} from '../lib/ncloud-object-storage'
+  buildPublicUrlForObjectKey,
+  getObjectStorageEnv,
+  isObjectStorageConfigured,
+  uploadStorageObject,
+} from '../lib/object-storage'
 
 function hasFlag(name: string): boolean {
   return process.argv.includes(name)
@@ -30,7 +30,7 @@ function normalizeUrl(u: string): string {
   return u.trim().split('?')[0]
 }
 
-function isAlreadyNcloud(u: string, publicBase: string): boolean {
+function isAlreadyOurStorageUrl(u: string, publicBase: string): boolean {
   const b = publicBase.replace(/\/+$/, '')
   const n = normalizeUrl(u)
   return n.startsWith(b + '/') || n === b
@@ -132,16 +132,16 @@ async function main(): Promise<void> {
   const apply = hasFlag('--apply')
   const includeHttp = hasFlag('--include-http')
 
-  if (!isNcloudObjectStorageConfigured()) {
-    throw new Error('Ncloud 환경 변수(NCLOUD_*)가 필요합니다.')
+  if (!isObjectStorageConfigured()) {
+    throw new Error('Supabase Storage 환경 변수(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)가 필요합니다.')
   }
-  const ncloud = getNcloudObjectStorageEnv()
-  const publicBase = ncloud.publicBaseUrl
+  const store = getObjectStorageEnv()
+  const publicBase = store.publicBaseUrl
 
   console.log('[migrate-prisma-images] mode:', apply ? 'APPLY' : 'dry-run')
   console.log('[migrate-prisma-images] include-http:', includeHttp)
 
-  /** 원본 URL(normalized) -> 새 Ncloud URL */
+  /** 원본 URL(normalized) -> 새 Storage URL */
   const urlMap = new Map<string, string>()
   /** ImageAsset 등: 원본 URL -> { publicUrl, objectKey } */
   const metaBySource = new Map<string, { publicUrl: string; objectKey: string }>()
@@ -152,7 +152,7 @@ async function main(): Promise<void> {
     if (!u || typeof u !== 'string') return
     const n = normalizeUrl(u)
     if (!n) return
-    if (isAlreadyNcloud(n, publicBase)) return
+    if (isAlreadyOurStorageUrl(n, publicBase)) return
     if (isLocalUploadPath(n)) {
       pending.add(n)
       return
@@ -257,7 +257,7 @@ async function main(): Promise<void> {
     const safeName = `${hash}-${sk}.${ext}`
     const objectKey = `migrated/from-prisma/${y}/${mo}/${safeName}`
 
-    const predictedUrl = buildNcloudPublicUrl(publicBase, objectKey)
+    const predictedUrl = buildPublicUrlForObjectKey(objectKey)
     if (!apply) {
       urlMap.set(normalizeUrl(src), predictedUrl)
       metaBySource.set(normalizeUrl(src), { publicUrl: predictedUrl, objectKey })
@@ -265,7 +265,7 @@ async function main(): Promise<void> {
       continue
     }
 
-    const { publicUrl } = await uploadNcloudObject({
+    const { publicUrl } = await uploadStorageObject({
       objectKey,
       body: buffer,
       contentType,
@@ -391,7 +391,7 @@ async function main(): Promise<void> {
       data: {
         publicUrl: meta.publicUrl,
         storagePath: meta.objectKey,
-        storageBucket: ncloud.bucket,
+        storageBucket: store.bucket,
       },
     })
     updated++

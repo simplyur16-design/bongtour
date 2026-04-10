@@ -424,7 +424,7 @@ model DestinationImageSet {
 }
 
 // 사진넣기: 관리자가 올린 사진 풀. process-images에서 1순위로 사용, 없으면 Pexels→제미나이
-// filePath = Ncloud 공개 HTTPS URL (레거시 행: /uploads/photos/xxx.webp)
+// filePath = Supabase Storage 공개 URL (레거시: Ncloud 또는 /uploads/) (레거시 행: /uploads/photos/xxx.webp)
 model PhotoPool {
   id             String   @id @default(cuid())
   cityName       String   // 도시명 (매칭용)
@@ -626,7 +626,7 @@ model CustomerInquiry {
   @@index([monthlyCurationItemId])
 }
 
-/// 이미지 메타데이터 SSOT (SQLite). 파일은 Ncloud Object Storage (lib/ncloud-object-storage.ts, lib/image-assets-db.ts).
+/// 이미지 메타데이터 SSOT (SQLite). 파일은 Supabase Storage (lib/object-storage.ts, lib/image-assets-db.ts).
 model ImageAsset {
   id              String    @id
   entityType      String    @map("entity_type")

@@ -147,7 +147,7 @@ export default function AdminPhotoPoolPage() {
           totalSaved += n
           totalFailed += data.failed ?? 0
           setMessage(`묶음 ${c + 1}/${chunks.length} 완료 (방금 ${n}장 저장). ${c + 1 < chunks.length ? '다음 묶음 전송 중…' : '전체 완료.'}`)
-        } else if (c === 0) throw new Error(data?.error ?? '일괄 저장 실패')
+        } else if (c === 0) throw new Error(data?.message ?? data?.error ?? '일괄 저장 실패')
       }
       setMessage(
         totalFailed > 0
@@ -182,7 +182,7 @@ export default function AdminPhotoPoolPage() {
 
       const res = await fetch('/api/admin/photo-pool/upload', { method: 'POST', body: form })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error ?? '저장 실패')
+      if (!res.ok) throw new Error(data?.message ?? data?.error ?? '저장 실패')
       setMessage(`${data.saved ?? 0}장 자동 저장됨`)
       setFiles([])
       await loadList()

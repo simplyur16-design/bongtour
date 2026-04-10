@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict'
+﻿import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -21,7 +21,7 @@ function run() {
   mustContain('service', service, 'seo_title_kr')
   mustContain('service', service, 'seo_title_en')
   mustContain('service', service, "existing.source_type === 'istock'")
-  mustContain('service', service, 'await removeNcloudObject')
+  mustContain('service', service, 'await removeStorageObject')
 
   const mapper = readFileSync(join(root, 'lib/image-asset-api-mapper.ts'), 'utf8')
   mustContain('mapper', mapper, 'sourceName: row.source_name')

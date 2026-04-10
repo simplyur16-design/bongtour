@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import AirTicketingHub from '@/app/components/air-ticketing/AirTicketingHub'
+import PartnerOrganizationsSection from '@/app/components/home/PartnerOrganizationsSection'
 import { SITE_NAME } from '@/lib/site-metadata'
 
 export const metadata: Metadata = {
@@ -18,5 +19,10 @@ export const metadata: Metadata = {
 }
 
 export default function AirTicketingPage() {
-  return <AirTicketingHub />
+  return (
+    <>
+      <AirTicketingHub />
+      <PartnerOrganizationsSection />
+    </>
+  )
 }

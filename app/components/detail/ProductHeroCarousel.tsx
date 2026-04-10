@@ -111,19 +111,19 @@ export default function ProductHeroCarousel({
               }`}
             />
           ))}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent px-4 pb-4 pt-16">
-            <p className="text-sm font-bold text-white drop-shadow">{current.caption}</p>
-          </div>
-          {attributionText ? (
-            <div className="pointer-events-none absolute bottom-2 right-2 z-[15] max-w-[min(12rem,calc(100%-1rem))]">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[15] flex flex-row items-end justify-between gap-2 bg-gradient-to-t from-black/75 via-black/25 to-transparent px-3 pb-3 pt-16 sm:gap-3 sm:px-4 sm:pb-4">
+            <p className="line-clamp-2 min-w-0 flex-1 text-left text-sm font-bold text-white drop-shadow">
+              {current.caption}
+            </p>
+            {attributionText ? (
               <span
-                className="inline-block rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium leading-tight text-white backdrop-blur-[2px]"
+                className="shrink-0 self-end rounded-full bg-black/55 px-2 py-0.5 text-right text-[10px] font-medium leading-tight text-white backdrop-blur-[2px]"
                 role="note"
               >
                 {attributionText}
               </span>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </PexelsSourceCaption>
       {len > 1 && (

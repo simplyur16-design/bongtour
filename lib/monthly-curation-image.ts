@@ -1,10 +1,10 @@
-import { convertToWebp } from '@/lib/image-to-webp'
+﻿import { convertToWebp } from '@/lib/image-to-webp'
 import {
   buildEditorialObjectKey,
   buildMonthlyCurationObjectKey,
-  isNcloudObjectStorageConfigured,
-  uploadNcloudObject,
-} from '@/lib/ncloud-object-storage'
+  isObjectStorageConfigured,
+  uploadStorageObject,
+} from '@/lib/object-storage'
 
 function slug(s: string): string {
   return s
@@ -15,21 +15,21 @@ function slug(s: string): string {
     .slice(0, 80)
 }
 
-function requireNcloud(): void {
-  if (!isNcloudObjectStorageConfigured()) {
+function requireObjectStorage(): void {
+  if (!isObjectStorageConfigured()) {
     throw new Error(
-      'Ncloud Object Storage가 설정되지 않았습니다. NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_REGION, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL 등을 설정하세요.'
+      'Supabase Storage가 설정되지 않았습니다. SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, 선택 SUPABASE_IMAGE_BUCKET을 설정하세요.'
     )
   }
 }
 
 export async function saveMonthlyCurationImage(file: File, opts: { monthKey: string; title: string }) {
-  requireNcloud()
+  requireObjectStorage()
   const input = Buffer.from(await file.arrayBuffer())
   const converted = await convertToWebp(input, { maxWidth: 1600, quality: 82 })
   const filename = `${slug(opts.monthKey || 'month')}-${slug(opts.title || 'curation')}-${Date.now()}.webp`
   const objectKey = buildMonthlyCurationObjectKey(filename)
-  const { publicUrl } = await uploadNcloudObject({
+  const { publicUrl } = await uploadStorageObject({
     objectKey,
     body: converted.buffer,
     contentType: 'image/webp',
@@ -43,12 +43,12 @@ export async function saveMonthlyCurationImage(file: File, opts: { monthKey: str
 }
 
 export async function saveEditorialHeroImage(file: File, opts: { title: string }) {
-  requireNcloud()
+  requireObjectStorage()
   const input = Buffer.from(await file.arrayBuffer())
   const converted = await convertToWebp(input, { maxWidth: 1600, quality: 82 })
   const filename = `editorial-${slug(opts.title || 'hero')}-${Date.now()}.webp`
   const objectKey = buildEditorialObjectKey(filename)
-  const { publicUrl } = await uploadNcloudObject({
+  const { publicUrl } = await uploadStorageObject({
     objectKey,
     body: converted.buffer,
     contentType: 'image/webp',

@@ -16,6 +16,9 @@ function getClientIp(headers: Headers): string {
 }
 
 export async function POST(req: Request) {
+  const originErr = getPublicMutationOriginError(req)
+  if (originErr) return publicMutationOriginJsonResponse(originErr)
+
   const ip = getClientIp(req.headers)
   const store = getRateLimitStore()
   const bucket = await store.incr(`public:auth-register:${ip}`, REGISTER_RATE_LIMIT_WINDOW_MS)
@@ -26,9 +29,6 @@ export async function POST(req: Request) {
     )
   }
 
-  const originErr = getPublicMutationOriginError(req)
-  if (originErr) return publicMutationOriginJsonResponse(originErr)
-
   let body: unknown
   try {
     body = await req.json()
@@ -36,6 +36,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
   }
   const o = body as Record<string, unknown>
+  const honeypot = typeof o.website === 'string' ? o.website.trim() : ''
+  if (honeypot) {
+    return NextResponse.json({ error: '요청 형식이 올바르지 않습니다.' }, { status: 400 })
+  }
   const email = typeof o.email === 'string' ? o.email.trim().toLowerCase() : ''
   const password = typeof o.password === 'string' ? o.password : ''
   const passwordConfirm = typeof o.passwordConfirm === 'string' ? o.passwordConfirm : ''

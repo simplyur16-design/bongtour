@@ -9,9 +9,9 @@ import { generateImageWithGemini, IMAGEN_MODEL } from '@/lib/gemini-image-genera
 import { convertToWebp } from '@/lib/image-to-webp'
 import {
   buildGeminiGeneratedObjectKey,
-  isNcloudObjectStorageConfigured,
-  uploadNcloudObject,
-} from '@/lib/ncloud-object-storage'
+  isObjectStorageConfigured,
+  uploadStorageObject,
+} from '@/lib/object-storage'
 
 const PROMPT_OVERRIDE_MAX = 500
 
@@ -35,7 +35,7 @@ export type GeminiImageGenerateResponse =
  * POST /api/admin/gemini/image-generate
  * 관리자 전용. 4슬롯 고정으로 각각 Imagen 1장씩 생성.
  *
- * Ncloud Object Storage에 WebP로 업로드한 뒤 공개 HTTPS URL만 반환 (로컬 디스크 미사용).
+ * Supabase Storage에 WebP로 업로드한 뒤 공개 HTTPS URL만 반환 (로컬 디스크 미사용).
  */
 export async function POST(request: Request) {
   const admin = await requireAdmin()
@@ -54,13 +54,13 @@ export async function POST(request: Request) {
     )
   }
 
-  const useNcloud = isNcloudObjectStorageConfigured()
-  if (process.env.NODE_ENV === 'production' && !useNcloud) {
+  const storageOk = isObjectStorageConfigured()
+  if (process.env.NODE_ENV === 'production' && !storageOk) {
     return NextResponse.json(
       {
         ok: false,
         error:
-          '운영 환경에서는 Ncloud Object Storage 환경 변수(NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_ENDPOINT, NCLOUD_OBJECT_STORAGE_REGION, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL, 선택 NCLOUD_OBJECT_STORAGE_BUCKET)가 필요합니다.',
+          '운영 환경에서는 Supabase Storage 설정이 필요합니다. SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, 선택 SUPABASE_IMAGE_BUCKET(기본 bongtour-images).',
       } satisfies GeminiImageGenerateResponse,
       { status: 503 }
     )
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
 
         const webp = await convertToWebp(buffer, { maxWidth: 2400, quality: 82 })
         const objectKey = buildGeminiGeneratedObjectKey(now, baseId, slot, i)
-        const { publicUrl } = await uploadNcloudObject({
+        const { publicUrl } = await uploadStorageObject({
           objectKey,
           body: webp.buffer,
           contentType: 'image/webp',
@@ -148,8 +148,13 @@ export async function POST(request: Request) {
     } satisfies GeminiImageGenerateResponse)
   } catch (e) {
     console.error('[gemini/image-generate]', e)
+    const dev = process.env.NODE_ENV === 'development'
+    const detail = e instanceof Error ? e.message : String(e)
+    const msg = dev
+      ? `처리 중 오류: ${detail.slice(0, 500)}`
+      : '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
     return NextResponse.json(
-      { ok: false, error: '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' } satisfies GeminiImageGenerateResponse,
+      { ok: false, error: msg } satisfies GeminiImageGenerateResponse,
       { status: 500 }
     )
   }

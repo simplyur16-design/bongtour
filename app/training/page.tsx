@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import TrainingHub from '@/app/components/training/TrainingHub'
+import PartnerOrganizationsSection from '@/app/components/home/PartnerOrganizationsSection'
 import { SITE_NAME } from '@/lib/site-metadata'
 
 export const metadata: Metadata = {
@@ -17,5 +18,10 @@ export const metadata: Metadata = {
 }
 
 export default function TrainingPage() {
-  return <TrainingHub />
+  return (
+    <>
+      <TrainingHub />
+      <PartnerOrganizationsSection />
+    </>
+  )
 }

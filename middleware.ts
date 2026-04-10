@@ -6,6 +6,7 @@ import {
   isAdminBypassAllowed,
   isDevAdminBypassRuntimeAllowed,
 } from '@/lib/admin-bypass'
+import { getAdminServiceBearerSecret, getDevAdminBypassSecret } from '@/lib/admin-secrets'
 import {
   checkAdminApiRateLimit,
   classifyAdminApi,
@@ -23,16 +24,16 @@ function isBypassAllowed(req: { nextUrl: URL; cookies: { get: (n: string) => { v
   })
 }
 
-/** Python 스케줄러 등: `Authorization: Bearer <ADMIN_BYPASS_SECRET>` — 세션 없이 /api/admin/* 통과 */
+/** Python 스케줄러 등: Bearer <ADMIN_SERVICE_BEARER_SECRET> — 세션 없이 /api/admin/* 통과 */
 function adminApiServiceBearerOk(req: { headers: Headers }): boolean {
-  const secret = process.env.ADMIN_BYPASS_SECRET?.trim()
+  const secret = getAdminServiceBearerSecret()
   if (!secret) return false
   const auth = req.headers.get('authorization') ?? req.headers.get('Authorization')
   if (!auth?.startsWith('Bearer ')) return false
   return auth.slice(7).trim() === secret
 }
 
-const isDev = process.env.NODE_ENV === 'development'
+const isDev = process.env.NODE_ENV === 'development' // env: NODE_ENV
 
 /** Edge 번들에 `@/auth`(Prisma·jose JWE 전체)를 넣지 않기 위해 `auth.config`만 사용 */
 const { auth } = NextAuth(authConfig)
@@ -61,14 +62,14 @@ export default auth(async (req) => {
   if (isDev && isAdminRoute && isDevAdminBypassRuntimeAllowed()) {
     const cookie = req.cookies.get(ADMIN_BYPASS_COOKIE_NAME)?.value
     if (bypassParam || cookie) {
-      const hasSecret = Boolean(process.env.ADMIN_BYPASS_SECRET && process.env.ADMIN_BYPASS_SECRET.length > 0)
+      const hasSecret = Boolean(getDevAdminBypassSecret())
       const bypassAllowed = isBypassAllowed(req)
       console.log('[middleware admin]', {
         pathname,
         authQuery: bypassParam ?? null,
         cookiePresent: Boolean(cookie),
         BONGTOUR_DEV_ADMIN_BYPASS: process.env.BONGTOUR_DEV_ADMIN_BYPASS ?? null,
-        ADMIN_BYPASS_SECRET_set: hasSecret,
+        dev_admin_bypass_secret_set: hasSecret,
         isBypassAllowed: bypassAllowed,
         hasAuthSession: Boolean(req.auth?.user),
         willRedirectToSignin: isAdminRoute && !req.auth?.user && !bypassAllowed,
@@ -90,9 +91,9 @@ export default auth(async (req) => {
     }
   }
 
-  // 개발 전용 bypass: ADMIN_BYPASS_SECRET env가 있고 쿼리/쿠키 일치 시에만 인증 생략
+  // 개발 전용 bypass: DEV_ADMIN_BYPASS_SECRET(또는 구 키) + 쿼리/쿠키 일치 시에만 인증 생략
   if (isAdminRoute && isBypassAllowed(req)) {
-    const secret = process.env.ADMIN_BYPASS_SECRET
+    const secret = getDevAdminBypassSecret()
     if (isDev && secret && bypassParam === secret) {
       console.log('[admin bypass] 개발용 임시 접속:', req.url)
     }

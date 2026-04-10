@@ -2,7 +2,7 @@
  * 사진 풀: 관리자 업로드 + Pexels/제미나이에서 가져온 사진 저장.
  * process-images 우선순위: PhotoPool → DestinationImageSet → Pexels → 제미나이
  *
- * 저장소: **Ncloud Object Storage만** 사용 (공개 HTTPS URL을 DB `filePath`에 저장).
+ * 저장소: **Supabase Storage** (공개 HTTPS URL을 DB `filePath`에 저장).
  * 로컬 `public/uploads/photos`에는 더 이상 쓰지 않음 — URL이 바뀌며 깜빡이는 문제 방지.
  */
 
@@ -13,11 +13,11 @@ import { convertToWebp } from '@/lib/image-to-webp'
 import { buildWebpFilename } from '@/lib/webp-filename'
 import {
   buildPhotoPoolObjectKey,
-  isNcloudObjectStorageConfigured,
-  removeNcloudObject,
+  isObjectStorageConfigured,
+  removeStorageObject,
   tryParseObjectKeyFromPublicUrl,
-  uploadNcloudObject,
-} from '@/lib/ncloud-object-storage'
+  uploadStorageObject,
+} from '@/lib/object-storage'
 
 /** 레거시: 로컬 상대 경로 (마이그레이션·삭제용) */
 const LEGACY_WEB_PATH_PREFIX = '/uploads/photos/'
@@ -50,7 +50,7 @@ export async function getPoolPhotosForDestination(
 }
 
 /**
- * WebP 버퍼를 Ncloud에 올리고 PhotoPool 레코드 생성/갱신.
+ * WebP 버퍼를 Supabase Storage에 올리고 PhotoPool 레코드 생성/갱신.
  * 같은 `buildWebpFilename`이면 동일 object key로 덮어쓰기 — 레거시 로컬 행이 있으면 URL로 교체.
  */
 export async function savePhotoToPool(
@@ -61,9 +61,9 @@ export async function savePhotoToPool(
   source: string,
   options?: { convertToWebpFirst?: boolean; maxWidth?: number; quality?: number }
 ): Promise<PoolPhotoRecord> {
-  if (!isNcloudObjectStorageConfigured()) {
+  if (!isObjectStorageConfigured()) {
     throw new Error(
-      'Ncloud Object Storage가 설정되지 않았습니다. NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_REGION, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL 등을 .env에 설정하세요.'
+      'Supabase Storage가 설정되지 않았습니다. SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, 선택 SUPABASE_IMAGE_BUCKET을 .env에 설정하세요.'
     )
   }
 
@@ -78,7 +78,8 @@ export async function savePhotoToPool(
 
   const filename = buildWebpFilename(cityName, attractionName, source)
   const objectKey = buildPhotoPoolObjectKey(filename)
-  const { publicUrl } = await uploadNcloudObject({
+  const storageLeaf = objectKey.startsWith('photo-pool/') ? objectKey.slice('photo-pool/'.length) : objectKey
+  const { publicUrl } = await uploadStorageObject({
     objectKey,
     body: data,
     contentType: 'image/webp',
@@ -94,6 +95,7 @@ export async function savePhotoToPool(
         { filePath: legacyPath },
         { filePath: publicUrl },
         { filePath: { endsWith: filename } },
+        { filePath: { endsWith: storageLeaf } },
       ],
     },
   })
@@ -111,7 +113,7 @@ export async function savePhotoToPool(
       const oldKey = tryParseObjectKeyFromPublicUrl(oldPath)
       if (oldKey && oldKey !== objectKey) {
         try {
-          await removeNcloudObject(oldKey)
+          await removeStorageObject(oldKey)
         } catch {
           /* ignore */
         }

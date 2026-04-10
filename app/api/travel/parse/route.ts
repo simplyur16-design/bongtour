@@ -13,6 +13,7 @@ import { extractRelevantSections } from '@/lib/paste-relevant-sections'
 import { upsertProductDepartures } from '@/lib/upsert-product-departures-hanatour'
 import { upsertItineraryDays, registerScheduleToDayInputs } from '@/lib/upsert-itinerary-days-hanatour'
 import { normalizeOriginSource } from '@/lib/supplier-origin'
+import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 import { requireAdmin } from '@/lib/require-admin'
 // [일정 정책] Product.schedule = 렌더용; ItineraryDay = 원문 정본. 이 경로는 레거시 Itinerary 미사용(허용).
 
@@ -70,9 +71,9 @@ type ParsedPayload = {
 }
 
 const PARSE_STEP = '[Bong투어-DEBUG] [Bong투어/parse]'
-/** 코드에 기본 시크릿 금지 — `ADMIN_BYPASS_SECRET` 미설정 시 본문 2차 인증 비활성(503). */
+/** 본문 2차 키: ADMIN_SERVICE_BEARER_SECRET (구 ADMIN_BYPASS_SECRET 폴백). */
 function resolveParseRouteBodyAuthSecret(): string {
-  return (process.env.ADMIN_BYPASS_SECRET ?? '').trim()
+  return getAdminServiceBearerSecret()
 }
 
 function inferAirportTransferType(rawText: string): 'NONE' | 'PICKUP' | 'SENDING' | 'BOTH' {
@@ -91,7 +92,7 @@ export async function POST(req: Request) {
   const AUTH_SECRET = resolveParseRouteBodyAuthSecret()
   if (!AUTH_SECRET) {
     return NextResponse.json(
-      { error: '서버에 ADMIN_BYPASS_SECRET이 설정되지 않아 이 엔드포인트의 2차 인증을 사용할 수 없습니다.' },
+      { error: '서버에 ADMIN_SERVICE_BEARER_SECRET(또는 구 ADMIN_BYPASS_SECRET)이 설정되지 않아 이 엔드포인트의 2차 인증을 사용할 수 없습니다.' },
       { status: 503 }
     )
   }

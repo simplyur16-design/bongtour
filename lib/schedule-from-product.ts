@@ -1,4 +1,5 @@
 import { getFinalScheduleDayImageUrl } from '@/lib/final-image-selection'
+import { stripTrailingSourceTokenFromFilenameStem } from '@/lib/webp-filename'
 
 /**
  * [일정 표시 SSOT] Product.schedule 단기 표시 소스 통일.
@@ -43,7 +44,8 @@ function deriveDisplayNameFromFileName(fileName: string | null | undefined): str
   if (!raw) return null
   const base = raw.split(/[\\/]/).pop() ?? raw
   const noExt = base.replace(/\.[a-z0-9]{2,5}$/i, '')
-  const cleaned = noExt
+  const withoutSourceStem = stripTrailingSourceTokenFromFilenameStem(noExt)
+  const cleaned = withoutSourceStem
     .replace(/[_-]+/g, ' ')
     .replace(/\b(day|d)\s*\d{1,2}\b/gi, ' ')
     .replace(/\s+/g, ' ')

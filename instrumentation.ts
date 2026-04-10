@@ -1,17 +1,20 @@
 /**
  * Next.js instrumentation: 서버 기동 시 한 번 실행.
- * 개발 시 관리자 임시 접속 URL을 콘솔에 출력 (BONGTOUR_DEV_ADMIN_BYPASS + ADMIN_BYPASS_SECRET 필요).
+ * 개발: BONGTOUR_DEV_ADMIN_BYPASS + DEV_ADMIN_BYPASS_SECRET(또는 구 ADMIN_BYPASS_SECRET).
  */
 import { isDevAdminBypassRuntimeAllowed } from '@/lib/admin-bypass'
+import { getDevAdminBypassSecret } from '@/lib/admin-secrets'
+import { assertProductionServerEnv } from '@/lib/server-env'
 
 export async function register() {
+  assertProductionServerEnv()
   if (process.env.NODE_ENV === 'development' && process.env.NEXT_RUNTIME === 'nodejs') {
     console.warn(
       '[Bong투어] ChunkLoadError·layout.js timeout: `next dev -p 3000` 고정. 브라우저·NEXTAUTH_URL·NEXT_PUBLIC_*는 모두 http://localhost:3000 로 맞추세요.'
     )
     if (!isDevAdminBypassRuntimeAllowed()) {
       console.log(
-        '\n[Bong투어] 관리자 임시 접속(URL)은 비활성입니다. `.env.local` 에 BONGTOUR_DEV_ADMIN_BYPASS=true 와 ADMIN_BYPASS_SECRET 을 설정하세요.\n'
+        '\n[Bong투어] 관리자 임시 접속(URL)은 비활성입니다. `.env.local` 에 BONGTOUR_DEV_ADMIN_BYPASS=true 와 DEV_ADMIN_BYPASS_SECRET(또는 구 ADMIN_BYPASS_SECRET)을 설정하세요.\n'
       )
       return
     }
@@ -26,10 +29,10 @@ export async function register() {
         )
       }
     }
-    const secret = process.env.ADMIN_BYPASS_SECRET?.trim()
+    const secret = getDevAdminBypassSecret()
     if (!secret) {
       console.log(
-        '\n[Bong투어] ADMIN_BYPASS_SECRET 이 비어 있습니다. 임시 접속 URL을 표시하지 않습니다.\n'
+        '\n[Bong투어] DEV_ADMIN_BYPASS_SECRET(또는 구 ADMIN_BYPASS_SECRET)이 비어 있습니다. 임시 접속 URL을 표시하지 않습니다.\n'
       )
       return
     }

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
 import { saveMonthlyCurationImage } from '@/lib/monthly-curation-image'
 
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   } catch (e) {
     console.error('[monthly-curation upload]', e)
     const msg = e instanceof Error ? e.message : ''
-    if (msg.includes('Ncloud')) {
+    if ((msg.includes('Supabase') || msg.includes('Storage'))) {
       return NextResponse.json({ error: msg }, { status: 503 })
     }
     return NextResponse.json({ error: '업로드 실패' }, { status: 500 })

@@ -1,4 +1,4 @@
-import { readFile } from 'fs/promises'
+﻿import { readFile } from 'fs/promises'
 import path from 'path'
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
@@ -8,9 +8,9 @@ import type { HomeHubCandidateRecord } from '@/lib/home-hub-candidates-types'
 import { convertToWebp } from '@/lib/image-to-webp'
 import {
   buildHomeHubCandidateObjectKey,
-  isNcloudObjectStorageConfigured,
-  uploadNcloudObject,
-} from '@/lib/ncloud-object-storage'
+  isObjectStorageConfigured,
+  uploadStorageObject,
+} from '@/lib/object-storage'
 
 const PROMPT_MAX = 4000
 const VALID_COUNTS = new Set([2, 4, 6])
@@ -18,7 +18,7 @@ const VALID_COUNTS = new Set([2, 4, 6])
 async function uploadCandidateWebp(candidateId: string, imageBuffer: Buffer): Promise<string> {
   const webp = await convertToWebp(imageBuffer, { maxWidth: 2400, quality: 82 })
   const objectKey = buildHomeHubCandidateObjectKey(candidateId)
-  const { publicUrl } = await uploadNcloudObject({
+  const { publicUrl } = await uploadStorageObject({
     objectKey,
     body: webp.buffer,
     contentType: 'image/webp',
@@ -32,12 +32,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: '인증이 필요합니다.' }, { status: 401 })
   }
 
-  if (!isNcloudObjectStorageConfigured()) {
+  if (!isObjectStorageConfigured()) {
     return NextResponse.json(
       {
         ok: false,
         error:
-          'Ncloud Object Storage가 설정되지 않았습니다. 이미지는 스토리지에만 저장됩니다. NCLOUD_* 환경 변수를 확인하세요.',
+          'Supabase Storage가 설정되지 않았습니다. SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, 선택 SUPABASE_IMAGE_BUCKET을 확인하세요.',
       },
       { status: 503 }
     )

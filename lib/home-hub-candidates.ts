@@ -1,6 +1,6 @@
-import fs from 'fs'
+﻿import fs from 'fs'
 import path from 'path'
-import { removeNcloudObject, tryParseObjectKeyFromPublicUrl } from '@/lib/ncloud-object-storage'
+import { removeStorageObject, tryParseObjectKeyFromPublicUrl } from '@/lib/object-storage'
 import { homeHubCardImageSrc, type HomeHubCardImageKey } from '@/lib/home-hub-images'
 import {
   getHomeHubActiveFile,
@@ -121,15 +121,15 @@ function safeUnlinkCandidateImageFile(imagePath: string): void {
   }
 }
 
-/** Ncloud 공개 URL이면 객체 삭제, 레거시 로컬 후보 경로면 파일 삭제 */
+/** Supabase Storage 공개 URL이면 객체 삭제, 레거시 로컬 후보 경로면 파일 삭제 */
 async function removeStoredCandidateImage(imagePath: string): Promise<void> {
   const trimmed = imagePath.trim()
   const key = tryParseObjectKeyFromPublicUrl(trimmed)
   if (key) {
     try {
-      await removeNcloudObject(key)
+      await removeStorageObject(key)
     } catch (e) {
-      console.warn('[home-hub] Ncloud 이미지 삭제 실패', key, e)
+      console.warn('[home-hub] Storage 이미지 삭제 실패', key, e)
     }
     return
   }
@@ -137,7 +137,7 @@ async function removeStoredCandidateImage(imagePath: string): Promise<void> {
 }
 
 /**
- * 후보 1건 삭제: JSON에서 제거 + 스토리지(Ncloud) 또는 레거시 `public/images/home-hub/candidates/` 파일 삭제.
+ * 후보 1건 삭제: JSON에서 제거 + Supabase Storage 또는 레거시 `public/images/home-hub/candidates/` 파일 삭제.
  * 메인 활성 URL이 이 후보와 같으면 카드별 기본 이미지로 되돌림.
  */
 export async function deleteHomeHubCandidate(

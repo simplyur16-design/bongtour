@@ -1,4 +1,4 @@
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+﻿@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 
 @tailwind base;
 @tailwind components;
@@ -277,6 +277,35 @@ a:not([class]) {
 }
 a:not([class]):hover {
   color: var(--bt-link-hover);
+}
+
+/* Partner org logo rail: infinite left scroll (see PartnerOrganizationsSection) */
+@keyframes bt-partner-org-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.bt-partner-org-marquee-track {
+  --bt-partner-marquee-dur: 36s;
+  display: flex;
+  width: max-content;
+  flex-wrap: nowrap;
+  will-change: transform;
+  animation: bt-partner-org-marquee var(--bt-partner-marquee-dur) linear infinite;
+}
+
+.bt-partner-org-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bt-partner-org-marquee-track {
+    --bt-partner-marquee-dur: 80s;
+  }
 }
 
 /* `/products/[id]` — ProductDetailCopyGuard: 공급사 본문 복사 완화(전역 미적용) */

@@ -1114,10 +1114,13 @@ export default function AdminProductDetailPage({
       const upload = (await uploadRes.json().catch(() => ({}))) as {
         ok?: boolean
         error?: string
+        message?: string
         items?: { filePath: string; id: string }[]
       }
       if (!uploadRes.ok || !upload.ok || !Array.isArray(upload.items) || upload.items.length === 0) {
-        setPrimaryImageMessage(`업로드 실패: ${upload.error ?? `HTTP ${uploadRes.status}`}`)
+        setPrimaryImageMessage(
+          `업로드 실패: ${upload.message ?? upload.error ?? `HTTP ${uploadRes.status}`}`
+        )
         return
       }
       const item = upload.items[0]

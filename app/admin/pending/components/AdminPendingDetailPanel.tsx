@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
@@ -362,6 +362,7 @@ export default function AdminPendingDetailPanel({
   const [dayGeminiMap, setDayGeminiMap] = useState<
     Record<number, { imageUrl: string | null; slot: string; error?: string | null }[]>
   >({})
+  const [dayGeminiError, setDayGeminiError] = useState<Record<number, string | null>>({})
   const [dayGeminiLoading, setDayGeminiLoading] = useState<Record<number, boolean>>({})
   const [dayLibraryMap, setDayLibraryMap] = useState<Record<number, ImageAssetCandidate[]>>({})
   const [dayLibraryLoading, setDayLibraryLoading] = useState<Record<number, boolean>>({})
@@ -376,6 +377,7 @@ export default function AdminPendingDetailPanel({
   const [libraryHistoryOpenMap, setLibraryHistoryOpenMap] = useState<Record<string, boolean>>({})
   const [dayImageSaving, setDayImageSaving] = useState<Record<number, boolean>>({})
   const [dayImageMessage, setDayImageMessage] = useState<string | null>(null)
+  const [dayImageThumbError, setDayImageThumbError] = useState<Record<number, string | null>>({})
   /** 일차별 대표관광지 키워드 — 저장 전 편집 (저장 시 schedule.imageKeyword SSOT) */
   const [dayImageKeywordDraft, setDayImageKeywordDraft] = useState<Record<number, string>>({})
 
@@ -459,9 +461,11 @@ export default function AdminPendingDetailPanel({
     setDepartureMappingNotes([])
     setDayCandidateMap({})
     setDayGeminiMap({})
+    setDayGeminiError({})
     setDayLibraryMap({})
     setDayImageMessage(null)
     setDayImageKeywordDraft({})
+    setDayImageThumbError({})
   }, [detail?.id])
 
   const scheduleDayRows: ScheduleDayImage[] = (() => {
@@ -1003,6 +1007,7 @@ export default function AdminPendingDetailPanel({
         setDayImageMessage(`DAY${day} 저장 실패: ${data.error ?? `HTTP ${res.status}`}`)
         return
       }
+      setDayImageThumbError((prev) => ({ ...prev, [day]: null }))
       setDayImageMessage(`DAY${day} 이미지 수동 선택 저장 완료`)
       const refreshed = await fetchAdminProductDetail(detail.id)
       if (refreshed) setDetail(refreshed)
@@ -1076,6 +1081,7 @@ export default function AdminPendingDetailPanel({
     if (!detail || !file) return
     setDayImageSaving((prev) => ({ ...prev, [day]: true }))
     setDayImageMessage(null)
+    setDayImageThumbError((prev) => ({ ...prev, [day]: null }))
     try {
       const toSend = await resizeImageFileForUpload(file)
       const form = new FormData()
@@ -1087,10 +1093,13 @@ export default function AdminPendingDetailPanel({
       const upload = (await uploadRes.json().catch(() => ({}))) as {
         ok?: boolean
         error?: string
+        message?: string
         items?: { filePath: string; id: string }[]
       }
       if (!uploadRes.ok || !upload.ok || !Array.isArray(upload.items) || upload.items.length === 0) {
-        setDayImageMessage(`DAY${day} 업로드 실패: ${upload.error ?? `HTTP ${uploadRes.status}`}`)
+        setDayImageMessage(
+          `DAY${day} 업로드 실패: ${upload.message ?? upload.error ?? `HTTP ${uploadRes.status}`}`
+        )
         return
       }
       const item = upload.items[0]
@@ -1102,6 +1111,10 @@ export default function AdminPendingDetailPanel({
         externalId: item.id,
         selectionMode: 'manual-upload',
       })
+    } catch (e) {
+      setDayImageMessage(
+        `DAY${day} 업로드 중 오류: ${e instanceof Error ? e.message : String(e)}`
+      )
     } finally {
       setDayImageSaving((prev) => ({ ...prev, [day]: false }))
     }
@@ -1162,6 +1175,7 @@ export default function AdminPendingDetailPanel({
       savedKw ||
       `${detail.destination ?? ''} day ${day} ${it?.poiNamesRaw ?? it?.summaryTextRaw ?? row.title ?? ''}`.trim()
     setDayGeminiLoading((prev) => ({ ...prev, [day]: true }))
+    setDayGeminiError((prev) => ({ ...prev, [day]: null }))
     try {
       const body: Record<string, unknown> = {
         title: detail.title ?? null,
@@ -1179,17 +1193,32 @@ export default function AdminPendingDetailPanel({
       })
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean
+        error?: string
         images?: { imageUrl: string | null; slot?: string; error?: string | null }[]
       }
-      const images =
-        data.ok && Array.isArray(data.images)
-          ? data.images.map((im) => ({
-              imageUrl: im.imageUrl ?? null,
-              slot: im.slot ?? 'unknown',
-              error: im.error ?? null,
-            }))
-          : []
+      if (!data.ok || !Array.isArray(data.images) || data.images.length === 0) {
+        setDayGeminiMap((prev) => ({ ...prev, [day]: [] }))
+        setDayGeminiError((prev) => ({
+          ...prev,
+          [day]:
+            data.error?.trim() ||
+            (res.ok ? '이미지 생성 응답에 후보가 없습니다.' : `HTTP ${res.status}`),
+        }))
+        return
+      }
+      const images = data.images.map((im) => ({
+        imageUrl: im.imageUrl ?? null,
+        slot: im.slot ?? 'unknown',
+        error: im.error ?? null,
+      }))
       setDayGeminiMap((prev) => ({ ...prev, [day]: images.slice(0, 4) }))
+      setDayGeminiError((prev) => ({ ...prev, [day]: null }))
+    } catch (e) {
+      setDayGeminiMap((prev) => ({ ...prev, [day]: [] }))
+      setDayGeminiError((prev) => ({
+        ...prev,
+        [day]: e instanceof Error ? e.message : '네트워크 오류',
+      }))
     } finally {
       setDayGeminiLoading((prev) => ({ ...prev, [day]: false }))
     }
@@ -1451,6 +1480,9 @@ export default function AdminPendingDetailPanel({
                     source type: {sourceType}
                     {row.imageSelectionMode ? ` / ${row.imageSelectionMode}` : ''}
                   </p>
+                  {dayImageThumbError[row.day] ? (
+                    <p className="mt-1 break-words text-[11px] text-bt-warning">{dayImageThumbError[row.day]}</p>
+                  ) : null}
                   <p className="mt-0.5">
                     <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium ${originBadge.className}`}>
                       {originBadge.label}
@@ -1496,6 +1528,23 @@ export default function AdminPendingDetailPanel({
                           src={adminPreviewImgSrc(row.imageUrl) ?? row.imageUrl}
                           alt=""
                           className="h-full w-full object-cover"
+                          onLoad={() =>
+                            setDayImageThumbError((prev) => ({ ...prev, [row.day]: null }))
+                          }
+                          onError={() => {
+                            const raw = String(row.imageUrl ?? '').trim()
+                            let host = ''
+                            try {
+                              host = new URL(raw).hostname
+                            } catch {
+                              host = 'URL 파싱 실패'
+                            }
+                            setDayImageThumbError((prev) => ({
+                              ...prev,
+                              [row.day]:
+                                `${host}: 브라우저에서 이미지를 열 수 없습니다. DB에는 URL이 저장된 상태일 수 있습니다. 객체 읽기 권한·버킷 공개 정책·SUPABASE_URL·SUPABASE_IMAGE_BUCKET을 확인하세요.`,
+                            }))
+                          }}
                         />
                       ) : null}
                     </div>
@@ -1550,6 +1599,9 @@ export default function AdminPendingDetailPanel({
                       <span className="self-center text-[10px] text-bt-meta">업로드 최대 30MB / WEBP 정규화</span>
                     </div>
                   </div>
+                  {dayGeminiError[row.day] ? (
+                    <p className="mt-1 break-words text-xs text-bt-warning">{dayGeminiError[row.day]}</p>
+                  ) : null}
                   {candidates.length > 0 && (
                     <div className="mt-2">
                       <p className="mb-1 text-[10px] font-medium text-bt-muted">사진 후보 (Pexels · 저장값 기준 미리보기)</p>
@@ -1627,6 +1679,11 @@ export default function AdminPendingDetailPanel({
                               <div className="flex aspect-video w-full flex-col items-center justify-center bg-bt-surface-alt px-1 py-2 text-center">
                                 <span className="text-[10px] font-medium text-bt-warning">생성 실패</span>
                                 <span className="mt-0.5 text-[9px] text-bt-meta">{geminiSlotLabelKr(item.slot)}</span>
+                                {item.error ? (
+                                  <span className="mt-1 max-h-20 w-full overflow-y-auto break-all text-left text-[8px] leading-tight text-bt-warning">
+                                    {item.error}
+                                  </span>
+                                ) : null}
                               </div>
                             )}
                             <span className="truncate px-1 py-1 text-[9px] text-bt-muted">
@@ -2083,6 +2140,11 @@ export default function AdminPendingDetailPanel({
                     <div className="flex aspect-video w-full flex-col items-center justify-center bg-bt-surface-alt px-2 py-2 text-center">
                       <span className="text-[11px] font-medium text-bt-warning">생성 실패</span>
                       <span className="mt-0.5 text-[10px] text-bt-meta">{geminiSlotLabelKr(item.slot)}</span>
+                      {item.error ? (
+                        <span className="mt-1 max-h-24 w-full overflow-y-auto break-all text-left text-[9px] leading-tight text-bt-warning">
+                          {item.error}
+                        </span>
+                      ) : null}
                     </div>
                   )}
                   <button

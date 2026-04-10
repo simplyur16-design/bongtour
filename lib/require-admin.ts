@@ -1,5 +1,6 @@
 import { cookies, headers } from 'next/headers'
 import { auth } from '@/auth'
+import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 import {
   ADMIN_BYPASS_COOKIE_NAME,
   isAdminBypassAllowed,
@@ -20,11 +21,11 @@ function isDevMockAdminEnabled(): boolean {
 /**
  * API Route용 관리자 인증 guard.
  * - 운영: auth() 세션 + role === 'ADMIN' | 'SUPER_ADMIN' 허용.
- * - 서버간: `Authorization: Bearer <ADMIN_BYPASS_SECRET>` — Python 스케줄러 등 동일 시크릿만 (쿠키 없음).
+ * - 서버간: `Authorization: Bearer <ADMIN_SERVICE_BEARER_SECRET>` — Python 스케줄러 등 (구 ADMIN_BYPASS_SECRET 폴백).
  * - 개발: BONGTOUR_DEV_ADMIN_BYPASS=true 일 때만 — ALLOW_MOCK_ADMIN 또는 admin_bypass 쿠키(SECRET 일치).
  */
 export async function requireAdmin(): Promise<AdminSession | null> {
-  const secret = process.env.ADMIN_BYPASS_SECRET?.trim()
+  const secret = getAdminServiceBearerSecret()
   if (secret) {
     const authHeader = headers().get('authorization') ?? headers().get('Authorization')
     if (authHeader?.startsWith('Bearer ')) {

@@ -19,13 +19,20 @@ function getClientIp(headers: Headers): string {
  * POST /api/inquiries — 공개 문의 생성 (`CustomerInquiry` 단일 저장소)
  *
  * 보안·운영:
- * - IP rate limit 적용
- * - 동일 출처(Origin/Referer) 검증 — lib/public-mutation-origin
+ * - 동일 출처(Origin/Referer) 검증 후 IP rate limit — lib/public-mutation-origin
  * - Captcha: 미적용 — 봇 남용 시 bot 관리·캡차 등 검토
  * - 관리자 알림(카카오/이메일·웹훅): 미구현 — 접수 알림은 후속 단계에서 연동
  * - `sourcePagePath` / `snapshot*`: 운영·분석 추적용(클라이언트 입력이므로 신뢰 검증은 하지 않음)
  */
 export async function POST(request: Request) {
+  const originErr = getPublicMutationOriginError(request)
+  if (originErr) {
+    return NextResponse.json(
+      { ok: false, error: originErr.message, fieldErrors: {} as Record<string, string> },
+      { status: originErr.status }
+    )
+  }
+
   const ip = getClientIp(request.headers)
   const store = getRateLimitStore()
   const bucket = await store.incr(`public:inquiries:${ip}`, INQUIRY_RATE_LIMIT_WINDOW_MS)
@@ -37,14 +44,6 @@ export async function POST(request: Request) {
         fieldErrors: {} as Record<string, string>,
       },
       { status: 429, headers: { 'Retry-After': String(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))) } }
-    )
-  }
-
-  const originErr = getPublicMutationOriginError(request)
-  if (originErr) {
-    return NextResponse.json(
-      { ok: false, error: originErr.message, fieldErrors: {} as Record<string, string> },
-      { status: originErr.status }
     )
   }
 

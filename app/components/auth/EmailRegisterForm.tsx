@@ -16,6 +16,7 @@ export default function EmailRegisterForm() {
   const [marketingOpen, setMarketingOpen] = useState(false)
   const [privacyConfirmed, setPrivacyConfirmed] = useState(false)
   const [marketingConsent, setMarketingConsent] = useState(false)
+  const [hpWebsite, setHpWebsite] = useState('')
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -42,6 +43,7 @@ export default function EmailRegisterForm() {
           email: email.trim().toLowerCase(),
           password,
           passwordConfirm,
+          website: hpWebsite,
           privacyNoticeConfirmed: privacyConfirmed,
           privacyNoticeVersion: 'member-privacy-v1',
           marketingConsent,
@@ -68,6 +70,16 @@ export default function EmailRegisterForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        value={hpWebsite}
+        onChange={(e) => setHpWebsite(e.target.value)}
+        className="pointer-events-none absolute left-[-9999px] h-px w-px opacity-0"
+      />
       <div>
         <label htmlFor="reg-email" className="mb-1 block text-xs font-medium text-bt-body">
           이메일

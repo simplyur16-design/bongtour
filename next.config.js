@@ -1,10 +1,24 @@
-const path = require('path')
+﻿const path = require('path')
 
 /**
  * 프로덕션 전용 CSP. `next dev`에서는 NODE_ENV=development 이므로 적용되지 않아 HMR(ws)을 깨지 않는다.
- * GTM·Google Maps embed·원격 이미지(https) 등을 허용한다. (이미지 호스트는 Ncloud 등 — Supabase Storage 미사용)
+ * GTM·Google Maps embed·원격 이미지(https) 등을 허용한다. (Supabase Storage + 레거시 Ncloud URL 등)
  */
-/** NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL hostname → next/image remotePatterns (custom CDN / endpoint). */
+/** SUPABASE_URL hostname → next/image remotePatterns (Storage public). */
+function remotePatternsFromSupabaseUrl() {
+  const raw = process.env.SUPABASE_URL?.trim()
+  if (!raw) return []
+  try {
+    const u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`)
+    const protocol = u.protocol === 'http:' ? 'http' : 'https'
+    if (!u.hostname) return []
+    return [{ protocol, hostname: u.hostname, pathname: '/storage/v1/object/public/**' }]
+  } catch {
+    return []
+  }
+}
+
+/** NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL — DB에 남은 구 URL용 (선택). */
 function remotePatternsFromNcloudPublicBase() {
   const raw = process.env.NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL?.trim()
   if (!raw) return []
@@ -78,11 +92,18 @@ const nextConfig = {
         { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
         { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
         { protocol: 'https', hostname: 'images.pexels.com', pathname: '/**' },
-        /** Ncloud Object Storage 공개 객체 (path-style 등) */
+        /** 레거시 Ncloud 공개 객체 (기존 DB URL) */
         { protocol: 'https', hostname: 'kr.object.ncloudstorage.com', pathname: '/**' },
         { protocol: 'https', hostname: '**.object.ncloudstorage.com', pathname: '/**' },
       ]
       const seen = new Set(base.map((p) => `${p.protocol}://${p.hostname}`))
+      for (const p of remotePatternsFromSupabaseUrl()) {
+        const k = `${p.protocol}://${p.hostname}`
+        if (!seen.has(k)) {
+          base.push(p)
+          seen.add(k)
+        }
+      }
       for (const p of remotePatternsFromNcloudPublicBase()) {
         const k = `${p.protocol}://${p.hostname}`
         if (!seen.has(k)) {

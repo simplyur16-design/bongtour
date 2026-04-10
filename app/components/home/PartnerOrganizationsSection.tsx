@@ -1,26 +1,175 @@
-import Image from 'next/image'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import PartnerOrgLogoCell from './PartnerOrgLogoCell'
 
-const partnerOrganizations = [
-  { name: '경기관광공사', src: '/images/org-logos/경기관광공사.png' },
-  { name: '한국관광공사', src: '/images/org-logos/한국관광공사.jpg' },
-  { name: '수원도시재단', src: '/images/org-logos/수원도시재단.png' },
-  { name: '중부일보', src: '/images/org-logos/중부일보.png' },
-  { name: '경기도의회', src: '/images/org-logos/경기도의회.jpg' },
-  { name: '수원특례시의회', src: '/images/org-logos/수원특례시의회.png' },
-  { name: '경기문화재단', src: '/images/org-logos/경기문화재단.jpg' },
-  { name: '경기도경제과학진흥원', src: '/images/org-logos/경기도경제과학진흥원.png' },
-  { name: '경기도청', src: '/images/org-logos/경기도청.jpg' },
-  { name: '수원특례시', src: '/images/org-logos/수원특례시.png' },
-] as const
+type PartnerOrg = {
+  name: string
+  src: string
+  /** Optional rail cell size override */
+  wrapperClassName?: string
+  /** Optional per-logo scale / max-height tweak */
+  logoClassName?: string
+}
 
-/** 통일된 로고 셀 높이 (CLS 방지, 세로 기준 정렬) */
-const LOGO_BOX_H = 'h-[4.25rem] sm:h-[4.75rem] md:h-[5rem]'
+/** Taller cell for padded canvases (~1.4x default rail height); img stays max-h-full + object-contain. */
+const LOGO_RAIL_WRAPPER_BOOSTED =
+  'h-[3.4rem] w-full min-h-0 sm:h-[3.98rem] md:h-[4.55rem]'
+
+/** Heavier canvas padding than BOOSTED (gyeonggi-province-office logo only). */
+const LOGO_RAIL_WRAPPER_PROVINCE_OFFICE =
+  'h-[4.1rem] w-full min-h-0 sm:h-[4.75rem] md:h-[5.4rem]'
+
+/** Gunpo asset is small; tall cell + scale (tuned vs peers; last pass ~70% of prior scale). */
+const LOGO_RAIL_WRAPPER_GUNPO =
+  'h-[4rem] w-full min-h-0 sm:h-[4.65rem] md:h-[5.3rem]'
+
+/** Oversized city logos (Goyang, Paju): cap height inside the rail cell. */
+const LOGO_SHRINK_CITY =
+  'max-h-[58%] w-auto origin-center sm:max-h-[60%] md:max-h-[62%]'
+
+/** Hanam: slightly taller cap than SHRINK_CITY peers (~+10%). */
+const LOGO_SHRINK_CITY_HANAM =
+  'max-h-[64%] w-auto origin-center sm:max-h-[66%] md:max-h-[68%]'
+
+/** Undersized city logos (Anyang, Osan, Anseong): gentle scale-up (~+10% vs prior pass). */
+const LOGO_BOOST_CITY =
+  'max-h-full w-auto origin-center scale-[1.45] sm:scale-[1.39] md:scale-[1.32]'
+
+/** Siheung: BOOSTED rail; tuned ~80% of prior pass. */
+const LOGO_BOOST_SIHEUNG =
+  'max-h-full w-auto origin-center scale-[1.46] sm:scale-[1.41] md:scale-[1.38]'
+
+/** Gunpo: tall cell + scale ~70% of prior pass. */
+const LOGO_BOOST_GUNPO =
+  'max-h-full w-auto origin-center scale-[1.65] sm:scale-[1.6] md:scale-[1.54]'
+
+/** Gyeonggi GTI mark reads large on default rail; cap ~80%. */
+const LOGO_SHRINK_GTI =
+  'max-h-full w-auto origin-center scale-[0.8] sm:scale-[0.8] md:scale-[0.8]'
+
+/** Default-rail logos that read ~10% small (KTO, Jungbu Ilbo, Gyeonggi Culture Foundation). */
+const LOGO_BOOST_SUBTLE =
+  'max-h-full w-auto origin-center scale-[1.1] sm:scale-[1.1] md:scale-[1.1]'
+
+/** Paths under `public/images/org-logos/` (SSOT filenames). */
+const partnerOrganizations: PartnerOrg[] = [
+  {
+    name: '\uacbd\uae30\uad00\uad11\uacf5\uc0ac',
+    src: '/images/org-logos/gyeonggi-tourism-org.png',
+    wrapperClassName: LOGO_RAIL_WRAPPER_BOOSTED,
+  },
+  {
+    name: '\uc548\uc591\uc2dc',
+    src: '/images/org-logos/anyang.png',
+    logoClassName: LOGO_BOOST_CITY,
+  },
+  {
+    name: '\ud55c\uad6d\uad00\uad11\uacf5\uc0ac',
+    src: '/images/org-logos/korea-tourism-org.jpg',
+    logoClassName: LOGO_BOOST_SUBTLE,
+  },
+  { name: '\uae40\ud3ec\uc2dc', src: '/images/org-logos/gimpo.png' },
+  { name: '\uc218\uc6d0\ub3c4\uc2dc\uc7ac\ub2e8', src: '/images/org-logos/suwon-urban-foundation.png' },
+  {
+    name: '\uace0\uc591\uc2dc',
+    src: '/images/org-logos/goyang.png',
+    logoClassName: LOGO_SHRINK_CITY,
+  },
+  {
+    name: '\uc911\ubd80\uc77c\ubcf4',
+    src: '/images/org-logos/jungbu-ilbo.png',
+    logoClassName: LOGO_BOOST_SUBTLE,
+  },
+  {
+    name: '\ud30c\uc8fc\uc2dc',
+    src: '/images/org-logos/paju.jpg',
+    logoClassName: LOGO_SHRINK_CITY,
+  },
+  { name: '\uacbd\uae30\ub3c4\uc758\ud68c', src: '/images/org-logos/gyeonggi-assembly.jpg' },
+  {
+    name: '\ud558\ub0a8\uc2dc',
+    src: '/images/org-logos/hanam.png',
+    logoClassName: LOGO_SHRINK_CITY_HANAM,
+  },
+  { name: '\uc218\uc6d0\ud2b9\ub840\uc2dc\uc758\ud68c', src: '/images/org-logos/suwon-city-assembly.png' },
+  {
+    name: '\uc624\uc0b0\uc2dc',
+    src: '/images/org-logos/osan.jpg',
+    logoClassName: LOGO_BOOST_CITY,
+  },
+  {
+    name: '\uacbd\uae30\ubb38\ud654\uc7ac\ub2e8',
+    src: '/images/org-logos/gyeonggi-culture-foundation.jpg',
+    wrapperClassName: LOGO_RAIL_WRAPPER_BOOSTED,
+    logoClassName: LOGO_BOOST_SUBTLE,
+  },
+  {
+    name: '\uc2dc\ud765\uc2dc',
+    src: '/images/org-logos/siheung.png',
+    wrapperClassName: LOGO_RAIL_WRAPPER_BOOSTED,
+    logoClassName: LOGO_BOOST_SIHEUNG,
+  },
+  {
+    name: '\uacbd\uae30\ub3c4\uacbd\uc81c\uacfc\ud559\uc9c4\ud765\uc6d0',
+    src: '/images/org-logos/gyeonggi-gti.png',
+    logoClassName: LOGO_SHRINK_GTI,
+  },
+  {
+    name: '\uc548\uc131\uc2dc',
+    src: '/images/org-logos/ansung.gif',
+    logoClassName: LOGO_BOOST_CITY,
+  },
+  {
+    name: '\uacbd\uae30\ub3c4\uccad',
+    src: '/images/org-logos/gyeonggi-province-office.jpg',
+    wrapperClassName: LOGO_RAIL_WRAPPER_PROVINCE_OFFICE,
+  },
+  { name: '\uc6a9\uc778\ud2b9\ub840\uc2dc', src: '/images/org-logos/yongin.jpg' },
+  { name: '\uc218\uc6d0\ud2b9\ub840\uc2dc', src: '/images/org-logos/suwon-city.png' },
+  {
+    name: '\uad70\ud3ec\uc2dc',
+    src: '/images/org-logos/gunpo.png',
+    wrapperClassName: LOGO_RAIL_WRAPPER_GUNPO,
+    logoClassName: LOGO_BOOST_GUNPO,
+  },
+  { name: '\uad11\uba85\uc2dc', src: '/images/org-logos/gwangmyung.jpg' },
+]
+
+/** Rail logo viewport height (slightly shorter on small screens). */
+const LOGO_RAIL_WRAPPER =
+  'h-[2.35rem] w-full min-h-0 sm:h-[2.75rem] md:h-[3.15rem]'
+
+function PartnerOrgRailItems({
+  idSuffix,
+  organizations,
+}: {
+  idSuffix: string
+  organizations: PartnerOrg[]
+}) {
+  return (
+    <>
+      {organizations.map((org) => (
+        <li
+          key={`${org.src}-${idSuffix}`}
+          className="box-border flex w-[min(12.5rem,46vw)] shrink-0 list-none items-center justify-center px-3 sm:w-[13.75rem] md:w-[14.75rem]"
+        >
+          <PartnerOrgLogoCell
+            name={org.name}
+            src={org.src}
+            sizes="(max-width:640px) 42vw, 208px"
+            wrapperClassName={org.wrapperClassName ?? LOGO_RAIL_WRAPPER}
+            logoClassName={org.logoClassName}
+            imageClassName="opacity-[0.86] saturate-[0.86] transition-[opacity,filter] duration-300 group-hover:opacity-100 group-hover:saturate-100"
+          />
+        </li>
+      ))}
+    </>
+  )
+}
 
 export default function PartnerOrganizationsSection() {
   return (
     <section
-      className="border-t border-slate-200/70 bg-slate-50/90 py-10 md:py-12"
+      className="border-t border-slate-200/70 bg-white py-10 md:py-12"
       aria-labelledby="partner-orgs-heading"
     >
       <div className={SITE_CONTENT_CLASS}>
@@ -28,38 +177,47 @@ export default function PartnerOrganizationsSection() {
           id="partner-orgs-heading"
           className="text-center text-base font-semibold tracking-tight text-slate-800 md:text-lg"
         >
-          주요 거래·협력 이력 기관
+          {
+            '\uc8fc\uc694 \uac70\ub798\u00b7\ud611\ub825 \uae30\uad00 \ubc0f \uc9c0\uc790\uccb4'
+          }
         </h2>
         <p className="mx-auto mt-2 max-w-2xl text-center text-[13px] leading-relaxed text-slate-600 sm:text-sm">
-          봉투어가 실제 상담·진행·연수·행사 운영 등의 업무를 수행한 기관입니다.
+          {
+            '\ubd09\ud22c\uc5b4\uac00 \uc2e4\uc81c \uc0c1\ub2f4\u00b7\uc9c4\ud589\u00b7\uc5f0\uc218\u00b7\ud589\uc0ac \uc6b4\uc601 \ub4f1\uc758 \uc5c5\ubb34\ub97c \uc218\ud589\ud55c \uae30\uad00 \ubc0f \uc9c0\uc790\uccb4\uc785\ub2c8\ub2e4.'
+          }
         </p>
 
-        <ul
-          className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5"
-          aria-label="주요 거래·협력 이력 기관 로고"
+        <div
+          className="group relative mt-8 overflow-hidden"
+          aria-label={
+            '\uc8fc\uc694 \uac70\ub798\u00b7\ud611\ub825 \uae30\uad00 \ubc0f \uc9c0\uc790\uccb4 \ub85c\uace0'
+          }
         >
-          {partnerOrganizations.map((org) => (
-            <li key={org.src} className="list-none">
-              <div
-                className={
-                  'group relative w-full overflow-hidden rounded-lg border border-slate-200/80 bg-white/90 px-3 py-2.5 transition-colors duration-200 hover:border-slate-300/90 ' +
-                  LOGO_BOX_H
-                }
-              >
-                <Image
-                  src={org.src}
-                  alt={org.name}
-                  fill
-                  sizes="(max-width:640px) 45vw, (max-width:1024px) 28vw, 18vw"
-                  className="object-contain object-center p-0.5 opacity-80 saturate-[0.82] transition-[opacity,filter] duration-200 group-hover:opacity-100 group-hover:saturate-100"
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-8 bg-gradient-to-r from-white to-transparent sm:w-12 md:w-16"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-8 bg-gradient-to-l from-white to-transparent sm:w-12 md:w-16"
+            aria-hidden
+          />
+          <div className="bt-partner-org-marquee-track flex w-max flex-nowrap">
+            <ul className="flex shrink-0 list-none items-center gap-x-8 pr-8">
+              <PartnerOrgRailItems idSuffix="a" organizations={partnerOrganizations} />
+            </ul>
+            <ul
+              className="flex shrink-0 list-none items-center gap-x-8 pr-8"
+              aria-hidden="true"
+            >
+              <PartnerOrgRailItems idSuffix="b" organizations={partnerOrganizations} />
+            </ul>
+          </div>
+        </div>
 
         <p className="mt-8 text-center text-[11px] leading-snug text-slate-500 sm:text-xs">
-          각 기관의 로고 및 상표는 해당 권리자에게 있습니다.
+          {
+            '\uac01 \uae30\uad00 \ubc0f \uc9c0\uc790\uccb4\uc758 \ub85c\uace0\uc640 \uc0c1\ud45c\ub294 \ud574\ub2f9 \uad8c\ub9ac\uc790\uc5d0\uac8c \uc788\uc2b5\ub2c8\ub2e4.'
+          }
         </p>
       </div>
     </section>

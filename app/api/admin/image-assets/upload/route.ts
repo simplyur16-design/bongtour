@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { imageAssetRowToApi } from '@/lib/image-asset-api-mapper'
 import { requireAdmin } from '@/lib/require-admin'
@@ -100,6 +100,13 @@ export async function POST(request: Request) {
     if (msg.startsWith('Invalid source_type')) {
       return NextResponse.json({ ok: false, error: 'validation_error', message: msg }, { status: 400 })
     }
-    return NextResponse.json({ ok: false, error: '업로드 실패' }, { status: 400 })
+    // 관리자 전용: Supabase Storage·WebP·DB 등 실패 원인을 UI에 표시 (page는 message ?? error)
+    const status =
+      (msg.includes('Supabase') ||
+        msg.includes('Storage') ||
+        /AccessDenied|SignatureDoesNotMatch|ECONNREFUSED|ENOTFOUND|timeout/i.test(msg))
+        ? 503
+        : 400
+    return NextResponse.json({ ok: false, error: '업로드 실패', message: msg }, { status })
   }
 }

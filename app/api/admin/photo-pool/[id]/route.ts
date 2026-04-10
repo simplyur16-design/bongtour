@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import path from 'path'
 import { promises as fs } from 'fs'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import { removeNcloudObject, tryParseObjectKeyFromPublicUrl } from '@/lib/ncloud-object-storage'
+import { removeStorageObject, tryParseObjectKeyFromPublicUrl } from '@/lib/object-storage'
 
 /**
  * DELETE /api/admin/photo-pool/[id]. 인증: 관리자.
- * Ncloud 공개 URL이면 스토리지 객체 삭제, 레거시 `/uploads/photos/`면 로컬 파일 삭제.
+ * Supabase Storage 공개 URL이면 스토리지 객체 삭제, 레거시 `/uploads/photos/`면 로컬 파일 삭제.
  */
 export async function DELETE(
   _request: Request,
@@ -25,9 +25,9 @@ export async function DELETE(
     const objectKey = tryParseObjectKeyFromPublicUrl(filePath)
     if (objectKey) {
       try {
-        await removeNcloudObject(objectKey)
+        await removeStorageObject(objectKey)
       } catch (e) {
-        console.warn('photo-pool delete: Ncloud 삭제 실패', objectKey, e)
+        console.warn('photo-pool delete: Storage 삭제 실패', objectKey, e)
       }
     } else if (filePath.startsWith('/uploads/')) {
       const absolutePath = path.join(process.cwd(), 'public', filePath.replace(/^\//, ''))

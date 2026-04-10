@@ -7,8 +7,8 @@ import { entityLabelToSlug, supplierDisplayEn, supplierNameToSlug, toAssetSlug }
 
 export { toAssetSlug } from '@/lib/image-asset-slug'
 
-/** Ncloud Object Storage 버킷 기본값 (환경변수와 동기: NCLOUD_OBJECT_STORAGE_BUCKET) */
-export const IMAGE_ASSET_STORAGE_BUCKET = 'bongtour' as const
+/** 기본 버킷명 문서용. 실제 값은 SUPABASE_IMAGE_BUCKET(기본 bongtour-images). */
+export const IMAGE_ASSET_STORAGE_BUCKET = 'bongtour-images' as const
 
 export type ImageAssetEntityType = 'product' | 'city' | 'country' | 'study' | 'bus' | 'page'
 
