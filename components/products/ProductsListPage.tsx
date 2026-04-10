@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { BrowseSort } from '@/lib/products-browse-filter'
@@ -177,13 +176,12 @@ export default function ProductsListPage() {
               >
                 <div className="relative aspect-[16/10] w-full bg-slate-100">
                   {item.coverImageUrl || item.bgImageUrl ? (
-                    <Image
+                    /* eslint-disable-next-line @next/next/no-img-element -- arbitrary remote image hosts */
+                    <img
                       src={item.coverImageUrl ?? item.bgImageUrl ?? ''}
                       alt=""
-                      fill
-                      unoptimized
-                      className="object-cover"
-                      sizes="(max-width:1024px) 50vw, 33vw"
+                      className="absolute inset-0 h-full w-full object-cover"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-slate-400">이미지 없음</div>

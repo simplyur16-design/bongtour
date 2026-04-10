@@ -2,54 +2,13 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { resizeImageFileForUpload } from '@/lib/browser-resize-image-for-upload'
 
 const MAX_FILES = 50
 const RESIZE_MAX_WIDTH = 1200
 const RESIZE_QUALITY = 0.82
 
 /** 용량 줄이기: 브라우저에서 리사이즈 후 업로드 (서버/제미나이 부담 감소) */
-function resizeImageFile(file: File, maxWidth: number, quality: number): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      let w = img.width
-      let h = img.height
-      if (w > maxWidth) {
-        h = Math.round((h * maxWidth) / w)
-        w = maxWidth
-      }
-      const canvas = document.createElement('canvas')
-      canvas.width = w
-      canvas.height = h
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        resolve(file)
-        return
-      }
-      ctx.drawImage(img, 0, 0, w, h)
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            resolve(file)
-            return
-          }
-          const name = file.name.replace(/\.[^.]+$/i, '.jpg')
-          resolve(new File([blob], name, { type: 'image/jpeg' }))
-        },
-        'image/jpeg',
-        quality
-      )
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      resolve(file)
-    }
-    img.src = url
-  })
-}
-
 type PoolItem = {
   id: string
   cityName: string
@@ -167,7 +126,7 @@ export default function AdminPhotoPoolPage() {
     try {
       setMessage(`용량 줄이는 중… (최대 ${RESIZE_MAX_WIDTH}px)`)
       const resized = await Promise.all(
-        files.map((f) => resizeImageFile(f, RESIZE_MAX_WIDTH, RESIZE_QUALITY))
+        files.map((f) => resizeImageFileForUpload(f, RESIZE_MAX_WIDTH, RESIZE_QUALITY))
       )
       let totalSaved = 0
       const chunks = []

@@ -30,6 +30,7 @@ import {
   TRAVEL_SCOPE_VALUES,
 } from '@/lib/product-listing-kind'
 import { adminProductBgImageAttributionLine, adminProductBgImageSourceTypeLabel } from '@/lib/product-bg-image-attribution'
+import { resizeImageFileForUpload } from '@/lib/browser-resize-image-for-upload'
 
 type ProductPrice = {
   id: string
@@ -1103,8 +1104,9 @@ export default function AdminProductDetailPage({
     setPrimaryImageMessage(null)
     try {
       const heroMeta = mapManualHeroUploadToPatch(manualHeroUploadPreset, manualHeroUploadOtherNote)
+      const toSend = await resizeImageFileForUpload(file)
       const form = new FormData()
-      form.append('file', file)
+      form.append('file', toSend)
       form.append('cityName', product.destination ?? product.primaryDestination ?? 'City')
       form.append('attractionName', 'primary_hero')
       form.append('source', 'manual-upload')

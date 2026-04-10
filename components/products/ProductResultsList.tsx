@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { Fragment, useMemo } from 'react'
 import OverseasDestinationBriefingMid from '@/components/products/OverseasDestinationBriefingMid'
@@ -69,13 +68,12 @@ export function ProductResultCard({
     >
       <div className="relative aspect-[16/10] w-full bg-slate-100">
         {item.coverImageUrl || item.bgImageUrl ? (
-          <Image
+          /* eslint-disable-next-line @next/next/no-img-element -- arbitrary remote image hosts */
+          <img
             src={item.coverImageUrl ?? item.bgImageUrl ?? ''}
             alt=""
-            fill
-            unoptimized
-            className="object-cover"
-            sizes="(max-width:1280px) 33vw, 400px"
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-slate-400">이미지 없음</div>

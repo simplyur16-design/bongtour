@@ -6,6 +6,7 @@ import AdminEmptyState from '../../components/AdminEmptyState'
 import AdminStatusBadge from '../../components/AdminStatusBadge'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { adminProductBgImageAttributionLine, adminProductBgImageSourceTypeLabel } from '@/lib/product-bg-image-attribution'
+import { resizeImageFileForUpload } from '@/lib/browser-resize-image-for-upload'
 
 const GEMINI_SLOT_LABEL_KR: Record<string, string> = {
   no_person_wide: '무인물 · 넓은 구도',
@@ -1058,8 +1059,9 @@ export default function AdminPendingDetailPanel({
     setDayImageSaving((prev) => ({ ...prev, [day]: true }))
     setDayImageMessage(null)
     try {
+      const toSend = await resizeImageFileForUpload(file)
       const form = new FormData()
-      form.append('file', file)
+      form.append('file', toSend)
       form.append('cityName', detail.destination ?? 'City')
       form.append('attractionName', `DAY${day}`)
       form.append('source', 'manual-upload')
