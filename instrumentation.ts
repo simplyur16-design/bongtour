@@ -1,9 +1,11 @@
 /**
  * Next.js instrumentation: 서버 기동 시 한 번 실행.
  * 개발: BONGTOUR_DEV_ADMIN_BYPASS + DEV_ADMIN_BYPASS_SECRET(또는 구 ADMIN_BYPASS_SECRET).
+ *
+ * 주의: `@next/env` 는 instrumentation 번들(일부 타깃)에서 Node 내장 모듈 해석이 깨져
+ * `Can't resolve 'crypto'|'fs'` 로 프로덕션 빌드가 실패할 수 있다. Node 런타임에서만
+ * 동적 import 로 로드한다.
  */
-import { loadEnvConfig } from '@next/env'
-
 import { isDevAdminBypassRuntimeAllowed } from '@/lib/admin-bypass'
 import { getDevAdminBypassSecret } from '@/lib/admin-secrets'
 import { assertProductionServerEnv } from '@/lib/server-env'
@@ -11,7 +13,10 @@ import { assertProductionServerEnv } from '@/lib/server-env'
 export async function register() {
   // PM2·systemd 등에서 cwd가 앱 루트일 때도, instrumentation이 일반 서버 부팅보다 빨리 돌면
   // `.env` / `.env.production` 이 아직 process.env에 없는 경우가 있다. Next와 동일 규칙으로 한 번 더 로드한다.
-  loadEnvConfig(process.cwd())
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { loadEnvConfig } = await import('@next/env')
+    loadEnvConfig(process.cwd())
+  }
   assertProductionServerEnv()
   if (process.env.NODE_ENV === 'development' && process.env.NEXT_RUNTIME === 'nodejs') {
     console.warn(
