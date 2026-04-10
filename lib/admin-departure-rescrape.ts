@@ -1,4 +1,4 @@
-import { execFile } from 'child_process'
+﻿import { execFile } from 'child_process'
 import { promisify } from 'util'
 import type { PrismaClient } from '@prisma/client'
 import { collectVerygoodDepartureInputs } from '@/lib/verygoodtour-departures'
@@ -18,6 +18,7 @@ import {
   SCRAPE_DEFAULT_MONTHS_FORWARD,
 } from '@/lib/scrape-date-bounds'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 
 const execFileAsync = promisify(execFile)
 const HANATOUR_BASE = process.env.HANATOUR_BASE_URL ?? 'https://www.hanatour.com'
@@ -41,15 +42,15 @@ export type DepartureRescrapeResult = {
   missingFields: string[]
   mappingStatus: 'per-date-confirmed' | 'price-only-confirmed' | 'detail-candidate-found-but-unmapped'
   notes?: string[]
-  /** E2E 분기·로그용 */
+  /** E2E 遺꾧린쨌濡쒓렇??*/
   site: DepartureRescrapeSite
-  /** 수집에 사용한 상세 URL(관리자 검증용) */
+  /** ?섏쭛???ъ슜???곸꽭 URL(愿由ъ옄 寃利앹슜) */
   detailUrl: string
   detailUrlSummary: string
-  /** 하나투어 Python 수집기 상태(meta.collectorStatus) */
+  /** ?섎굹?ъ뼱 Python ?섏쭛湲??곹깭(meta.collectorStatus) */
   collectorStatus?: string | null
   hanatourPythonDiagnostics?: HanatourPythonDiagnostics
-  /** 하나투어 다월 분할 수집 시 월별 진단(관리자 응답·UI 노출용) */
+  /** ?섎굹?ъ뼱 ?ㅼ썡 遺꾪븷 ?섏쭛 ???붾퀎 吏꾨떒(愿由ъ옄 ?묐떟쨌UI ?몄텧?? */
   hanatourPythonMonthDiagnostics?: HanatourPythonMonthRun[]
 }
 
@@ -78,8 +79,8 @@ function deriveFillMeta(inputs: DepartureInput[]): { filledFields: string[]; mis
 }
 
 /**
- * Python calendar E2E / 라이브 어댑터 분기용. `normalizeSupplierOrigin`과 동일 SSOT로 맞춘다.
- * 알 수 없는 출처는 하나투어 경로(기존 toSite 기본값)로 폴백.
+ * Python calendar E2E / ?쇱씠釉??대뙌??遺꾧린?? `normalizeSupplierOrigin`怨??숈씪 SSOT濡?留욎텣??
+ * ?????녿뒗 異쒖쿂???섎굹?ъ뼱 寃쎈줈(湲곗〈 toSite 湲곕낯媛?濡??대갚.
  */
 function calendarE2eSiteFromOrigin(originSource: string): 'hanatour' | 'modetour' | 'verygoodtour' | 'ybtour' {
   const n = normalizeSupplierOrigin(originSource)
@@ -90,13 +91,13 @@ function calendarE2eSiteFromOrigin(originSource: string): 'hanatour' | 'modetour
 function buildDetailUrl(originSource: string, originCode: string): string {
   const code = encodeURIComponent((originCode ?? '').trim())
   const src = (originSource || '').toLowerCase()
-  if (src.includes('모두') || src === 'modetour') {
+  if (src.includes('紐⑤몢') || src === 'modetour') {
     return `${MODETOUR_BASE.replace(/\/$/, '')}/package/detail?pkgCd=${code}`
   }
-  if (src.includes('참좋은') || src.includes('verygoodtour')) {
+  if (src.includes('李몄쥕?') || src.includes('verygoodtour')) {
     return `${VERYGOODTOUR_BASE.replace(/\/$/, '')}/Product/PackageDetail?ProCode=${code}&PriceSeq=1&MenuCode=leaveLayer`
   }
-  if (src.includes('노랑풍선') || src.includes('ybtour') || src.includes('yellowballoon') || src === 'yellow') {
+  if (src.includes('?몃옉?띿꽑') || src.includes('ybtour') || src.includes('yellowballoon') || src === 'yellow') {
     const c = (originCode ?? '').trim()
     const detailBase =
       process.env.YBTOUR_PRDT_BASE_URL?.replace(/\/$/, '') ??
@@ -110,7 +111,7 @@ function buildDetailUrl(originSource: string, originCode: string): string {
   return `${HANATOUR_BASE.replace(/\/$/, '')}/package/detail?pkgCd=${code}`
 }
 
-/** ybtour 라이브 리스크랩 진단 — 다른 공급사 로그와 섞이지 않게 prefix 고정 */
+/** ybtour ?쇱씠釉?由ъ뒪?щ옪 吏꾨떒 ???ㅻⅨ 怨듦툒??濡쒓렇? ?욎씠吏 ?딄쾶 prefix 怨좎젙 */
 function ybtourRescrapeLog(phase: string, detail: string) {
   console.log(`[ybtour] phase=${phase} ctx=admin-departure-rescrape ${detail}`)
 }
@@ -119,8 +120,8 @@ function summarizeYbtourDetailUrlForLog(url: string): string {
   try {
     const u = new URL(url)
     const goods = u.searchParams.get('goodsCd') ?? u.searchParams.get('goodscd')
-    const pathPart = u.pathname.length > 96 ? `${u.pathname.slice(0, 96)}…` : u.pathname
-    return `host=${u.host} path=${pathPart} goodsCd=${goods ? goods.slice(0, 32) : '—'}`
+    const pathPart = u.pathname.length > 96 ? `${u.pathname.slice(0, 96)}?? : u.pathname
+    return `host=${u.host} path=${pathPart} goodsCd=${goods ? goods.slice(0, 32) : '??}`
   } catch {
     return 'url_parse_failed'
   }
@@ -139,8 +140,8 @@ function summarizeHanatourDetailUrlForLog(url: string): string {
   try {
     const u = new URL(url)
     const pkg = u.searchParams.get('pkgCd') ?? u.searchParams.get('pkgcd')
-    const pathPart = u.pathname.length > 96 ? `${u.pathname.slice(0, 96)}…` : u.pathname
-    return `host=${u.host} path=${pathPart} pkgCd=${pkg ? pkg.slice(0, 40) : '—'}`
+    const pathPart = u.pathname.length > 96 ? `${u.pathname.slice(0, 96)}?? : u.pathname
+    return `host=${u.host} path=${pathPart} pkgCd=${pkg ? pkg.slice(0, 40) : '??}`
   } catch {
     return 'url_parse_failed'
   }
@@ -181,13 +182,15 @@ async function scrapeLiveCalendar(
   detailUrl: string,
   site: 'modetour' | 'verygoodtour' | 'ybtour'
 ): Promise<{ rows: ScrapedCalendarItem[]; stderr: string }> {
+  const py = resolvePythonExecutable()
   const { stdout, stderr } = await execFileAsync(
-    'python',
+    py,
     ['-m', CALENDAR_PRICE_SCRAPER_MODULE[site], detailUrl],
     {
       cwd: process.cwd(),
       timeout: 120000,
       maxBuffer: 8 * 1024 * 1024,
+      env: { ...process.env, PYTHONPATH: process.cwd() },
     }
   )
   const parsed = JSON.parse(stdout) as unknown
@@ -289,7 +292,7 @@ export async function collectDepartureInputsForAdminRescrape(
   if (site === 'modetour') {
     attemptedLive = true
     try {
-      // 모두투어 캘린더 UX(초기 2개월 + 우측 이동) 기준으로 우선 4개월 범위를 수집한다.
+      // 紐⑤몢?ъ뼱 罹섎┛??UX(珥덇린 2媛쒖썡 + ?곗륫 ?대룞) 湲곗??쇰줈 ?곗꽑 4媛쒖썡 踰붿쐞瑜??섏쭛?쒕떎.
       const parsed = await collectModetourDepartureInputs(product.originUrl, {
         monthsForward: SCRAPE_DEFAULT_MONTHS_FORWARD,
       })
@@ -337,7 +340,7 @@ export async function collectDepartureInputsForAdminRescrape(
             source: 'hanatour-adapter',
             inputs: [],
             attemptedLive,
-            liveError: 'hanatour: hanatourMonth는 YYYY-MM 형식이어야 합니다.',
+            liveError: 'hanatour: hanatourMonth??YYYY-MM ?뺤떇?댁뼱???⑸땲??',
             filledFields: fillMeta.filledFields,
             missingFields: fillMeta.missingFields,
             mappingStatus: 'detail-candidate-found-but-unmapped',
@@ -356,7 +359,7 @@ export async function collectDepartureInputsForAdminRescrape(
             source: 'hanatour-adapter',
             inputs: [],
             attemptedLive,
-            liveError: `hanatour: 지정 월은 관리자 출발일 스캔 범위(당월부터 앞으로 ${horizon}개월) 안에 있어야 합니다.`,
+            liveError: `hanatour: 吏???붿? 愿由ъ옄 異쒕컻???ㅼ틪 踰붿쐞(?뱀썡遺???욎쑝濡?${horizon}媛쒖썡) ?덉뿉 ?덉뼱???⑸땲??`,
             filledFields: fillMeta.filledFields,
             missingFields: fillMeta.missingFields,
             mappingStatus: 'detail-candidate-found-but-unmapped',
@@ -380,7 +383,7 @@ export async function collectDepartureInputsForAdminRescrape(
             source: 'hanatour-adapter',
             inputs: [],
             attemptedLive,
-            liveError: 'hanatour: horizon 내에 수집할 월이 없습니다.',
+            liveError: 'hanatour: horizon ?댁뿉 ?섏쭛???붿씠 ?놁뒿?덈떎.',
             filledFields: fillMeta.filledFields,
             missingFields: fillMeta.missingFields,
             mappingStatus: 'detail-candidate-found-but-unmapped',
@@ -489,7 +492,7 @@ export async function collectDepartureInputsForAdminRescrape(
     }
     liveError =
       site === 'ybtour'
-        ? 'ybtour-calendar-scraper: 0 rows after map+kst-filter — check stderr [ybtour] phase=final-diagnosis (baseline-title-empty | modal-open-failed | title-match-zero | kst-or-date-parse-zero | detail-page-load-failed | …)'
+        ? 'ybtour-calendar-scraper: 0 rows after map+kst-filter ??check stderr [ybtour] phase=final-diagnosis (baseline-title-empty | modal-open-failed | title-match-zero | kst-or-date-parse-zero | detail-page-load-failed | ??'
         : `${site}-adapter returned 0 rows`
     if (site === 'ybtour') {
       ybtourRescrapeLog(
@@ -506,7 +509,7 @@ export async function collectDepartureInputsForAdminRescrape(
     }
     liveError =
       site === 'ybtour'
-        ? `ybtour-calendar-scraper: node/python/json error — ${e instanceof Error ? e.message.slice(0, 200) : 'unknown'} (see [ybtour] phase=node-exec-or-parse-failed)`
+        ? `ybtour-calendar-scraper: node/python/json error ??${e instanceof Error ? e.message.slice(0, 200) : 'unknown'} (see [ybtour] phase=node-exec-or-parse-failed)`
         : `${site}-adapter execution failed`
     // fallback below
   }

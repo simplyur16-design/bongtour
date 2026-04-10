@@ -49,32 +49,87 @@ function findFlightNoLineIndex(lines: string[]): number {
   return -1
 }
 
-function parseLegChunk(chunk: string[]): Partial<FlightLeg> | null {
-  const lines = chunk.map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)
-  const fnIdx = findFlightNoLineIndex(lines)
-  if (fnIdx < 0 || fnIdx + 4 >= lines.length) return null
-  const flightNo = extractFlightNoFromLine(lines[fnIdx] ?? '')
-  const depCity = lines[fnIdx + 1] ?? null
-  const depRaw = lines[fnIdx + 2] ?? ''
-  const arrCity = lines[fnIdx + 3] ?? null
-  const arrRaw = lines[fnIdx + 4] ?? ''
-  const dm1 = depRaw.trim().match(YB_DT)
-  const dm2 = arrRaw.trim().match(YB_DT)
-  if (!flightNo || !dm1 || !dm2) return null
-  return {
-    departureAirport: depCity,
-    departureAirportCode: null,
-    departureDate: ybDepartureOrArrivalDateField(dm1[1]!, dm1[2]),
-    departureTime: dm1[3]!,
-    arrivalAirport: arrCity,
-    arrivalAirportCode: null,
-    arrivalDate: ybDepartureOrArrivalDateField(dm2[1]!, dm2[2]),
-    arrivalTime: dm2[3]!,
-    flightNo,
-    durationText: null,
-  }
+function isYbtourBlockTotalDurationLine(line: string): boolean {
+
+  const t = line.replace(/\s+/g, ' ').trim()
+
+  if (!t) return false
+
+  if (/^총\s*\d/.test(t) && /(시간|분|hr|min)/i.test(t)) return true
+
+  if (/^약\s*\d/.test(t) && /(시간|분)/.test(t)) return true
+
+  return false
+
 }
 
+
+
+function parseLegChunk(chunk: string[]): Partial<FlightLeg> | null {
+
+  const lines = chunk.map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)
+
+  const fnIdx = findFlightNoLineIndex(lines)
+
+  if (fnIdx < 0) return null
+
+  let idx = fnIdx + 1
+
+  let durationText: string | null = null
+
+  while (idx < lines.length && isYbtourBlockTotalDurationLine(lines[idx] ?? '')) {
+
+    const piece = (lines[idx] ?? '').trim()
+
+    durationText = durationText ? `${durationText} ${piece}` : piece
+
+    idx++
+
+  }
+
+  if (idx + 3 >= lines.length) return null
+
+  const flightNo = extractFlightNoFromLine(lines[fnIdx] ?? '')
+
+  const depCity = lines[idx] ?? null
+
+  const depRaw = lines[idx + 1] ?? ''
+
+  const arrCity = lines[idx + 2] ?? null
+
+  const arrRaw = lines[idx + 3] ?? ''
+
+  const dm1 = depRaw.trim().match(YB_DT)
+
+  const dm2 = arrRaw.trim().match(YB_DT)
+
+  if (!flightNo || !dm1 || !dm2) return null
+
+  return {
+
+    departureAirport: depCity,
+
+    departureAirportCode: null,
+
+    departureDate: ybDepartureOrArrivalDateField(dm1[1]!, dm1[2]),
+
+    departureTime: dm1[3]!,
+
+    arrivalAirport: arrCity,
+
+    arrivalAirportCode: null,
+
+    arrivalDate: ybDepartureOrArrivalDateField(dm2[1]!, dm2[2]),
+
+    arrivalTime: dm2[3]!,
+
+    flightNo,
+
+    durationText,
+
+  }
+
+}
 /** 첫 줄부터 편명 전까지 — 동일 항공사명 중복 줄은 하나로만 채택 */
 function firstAirlineName(chunk: string[], fnIdx: number): string | null {
   const head = chunk.slice(0, fnIdx).map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)

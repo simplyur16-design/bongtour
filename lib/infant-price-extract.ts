@@ -52,7 +52,7 @@ export function extractInfantPriceKrwFromText(hay: string): number | null {
 
   /** 표에서 `유아` 셀과 금액 셀이 떨어져 있거나, 위 패턴이 놓친 경우 — 유아 이후 첫 `N원`(유류·제세 직전 금액 제외) */
   const relaxed = t.replace(/\u00a0/g, ' ')
-  const idx = relaxed.search(/(?:^|[\n\r])\s*유아\b/i)
+  const idx = relaxed.search(/(?:^|[\n\r])\s*유아(?:만)?(?=\s|[\d(;]|$)/i)
   if (idx >= 0) {
     const slice = relaxed.slice(idx, idx + 280)
     const won = slice.match(/([\d,]{2,12})\s*원/g)

@@ -245,6 +245,7 @@ function findShoppingMergedHeader(lines: string[]): {
   return null
 }
 
+
 function parseOptionalTourRows(lines: string[], startHint: number): StructuredOptionalTourRow[] {
   const mergedHdr = findOptionalTourMergedHeader(lines)
   const headerIdx = mergedHdr?.headerStart ?? -1

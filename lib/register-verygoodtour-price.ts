@@ -4,6 +4,7 @@
  * `childExtraBedPrice`에만 아동 단가를 두고 `childNoBedPrice`는 항상 null로 정리한다.
  * 가이드경비·인솔 등은 슬롯 추출 대상에서 제외한다.
  */
+import { extractInfantPriceKrwFromText } from '@/lib/infant-price-extract'
 import type { RegisterParsed } from '@/lib/register-llm-schema-verygoodtour'
 
 function stripHtmlLoose(html: string | null | undefined): string {
@@ -113,6 +114,31 @@ function isVerygoodPriceNoiseBetweenTierAndKrw(s: string): boolean {
   return false
 }
 
+/**
+ * stripHtml·브라우저 복사로 성인/아동/유아 블록이 한 줄로 붙은 경우 — 티어 헤더 앞에 줄바꿈을 넣어
+ * `expandVerygoodPriceLinesWithContinuation`가 유아까지 읽게 한다.
+ */
+function splitVerygoodPriceTiersOntoSeparateLines(blob: string): string {
+  const tierMarkerRe =
+    /(?:^|\s)(?:성인(?:만)?(?=[\s\d(;]|$)|아동아동|아동\s*\(|유아(?:만)?(?=[\s\d(;]|$))/gi
+  return blob
+    .split('\n')
+    .map((line) => {
+      const s = line.trimEnd()
+      if (s.length < 32) return line
+      tierMarkerRe.lastIndex = 0
+      let hits = 0
+      while (tierMarkerRe.exec(s) !== null) hits++
+      if (hits < 2) return line
+      return s
+        .replace(/\s+(?=아동아동(?=[\s\d(;]|$))/g, '\n')
+        .replace(/\s+(?=아동\s*\()/g, '\n')
+        .replace(/\s+(?=유아(?:만)?(?=[\s\d(;]|$))/g, '\n')
+        .replace(/\s+(?=성인(?:만)?(?=[\s\d(;]|$))/g, '\n')
+    })
+    .join('\n')
+}
+
 /** 성인/아동/유아 라벨과 본가 원화 사이에 끼는 줄(상품가격, 인원수, 유류 안내 등)을 건너뜀 */
 function expandVerygoodPriceLinesWithContinuation(rawLines: string[]): string[] {
   const expanded: string[] = []
@@ -176,7 +202,8 @@ function trimVerygoodPriceBlobBeforeTotals(blob: string): string {
 
 export function extractVerygoodThreeSlotPricesFromBlob(blob: string): VerygoodThreeSlotExtract | null {
   if (!blob?.trim()) return null
-  const trimmed = trimVerygoodPriceBlobBeforeTotals(blob)
+  const normalized = splitVerygoodPriceTiersOntoSeparateLines(blob.replace(/\r/g, '\n').replace(/\u00a0/g, ' '))
+  const trimmed = trimVerygoodPriceBlobBeforeTotals(normalized)
   const lines = expandVerygoodPriceLinesWithContinuation(trimmed.replace(/\r/g, '\n').split('\n'))
   const out: VerygoodThreeSlotExtract = {
     adultPrice: null,
@@ -307,6 +334,11 @@ export function finalizeVerygoodProductPriceTable(
     if (fromBlob.adultPrice != null) adult = fromBlob.adultPrice
     if (fromBlob.childPrice != null) child = fromBlob.childPrice
     if (fromBlob.infantPrice != null) infant = fromBlob.infantPrice
+  }
+
+  if ((infant == null || infant <= 0) && blob?.trim()) {
+    const inf = extractInfantPriceKrwFromText(blob)
+    if (inf != null && inf > 0) infant = inf
   }
 
   const hasAny = adult != null || child != null || infant != null

@@ -28,6 +28,7 @@ export function buildOptionalToursStructuredJsonFromCanonical(
       waitingPlaceText?: string
       descriptionText?: string
       noteText?: string
+      priceText?: string
       supplierTags?: string[]
       includedNoExtraCharge?: boolean
     }>
@@ -45,6 +46,7 @@ export function buildOptionalToursStructuredJsonFromCanonical(
     waitingPlaceText: string | undefined
     description: string | undefined
     alternateScheduleText: string | undefined
+    priceText: string | undefined
     supplierTags: string[] | undefined
     includedNoExtraCharge?: boolean
     raw: string
@@ -56,6 +58,7 @@ export function buildOptionalToursStructuredJsonFromCanonical(
       if (!name) return null
       const description = String(row?.descriptionText ?? '').trim() || undefined
       const alternateScheduleText = String(row?.noteText ?? '').trim() || undefined
+      const priceText = String(row?.priceText ?? '').trim() || undefined
       const tags = Array.isArray(row?.supplierTags)
         ? row.supplierTags.map((t) => String(t).trim()).filter(Boolean)
         : []
@@ -72,6 +75,7 @@ export function buildOptionalToursStructuredJsonFromCanonical(
         waitingPlaceText: String(row?.waitingPlaceText ?? '').trim() || undefined,
         description,
         alternateScheduleText,
+        priceText,
         supplierTags: tags.length ? tags : undefined,
         includedNoExtraCharge: row?.includedNoExtraCharge === true ? true : undefined,
         raw,
@@ -94,6 +98,7 @@ export function resolveOptionalToursConsumption(input: {
       waitingPlaceText?: string
       descriptionText?: string
       noteText?: string
+      priceText?: string
       supplierTags?: string[]
       includedNoExtraCharge?: boolean
     }>

@@ -61,8 +61,12 @@ function detectTierSlot(labelOrLine: string): Slot | null {
   )
     return 'childNo'
   // JS \b는 한글 경계를 보장하지 않음 → 뒤 경계를 명시
-  if (/^유아(?=[\s(]|$)/i.test(s) || /^소아\s*\(\s*만\s*2\s*세\s*미만/i.test(s)) return 'infant'
-  if (/^성인(?=[\s(]|$)/i.test(s)) return 'adult'
+  if (
+    /^유아(?:만)?(?=[\s\d(;]|$)/i.test(s) ||
+    /^소아\s*\(\s*만\s*2\s*세\s*미만/i.test(s)
+  )
+    return 'infant'
+  if (/^성인(?:만)?(?=[\s\d(;]|$)/i.test(s)) return 'adult'
   return null
 }
 

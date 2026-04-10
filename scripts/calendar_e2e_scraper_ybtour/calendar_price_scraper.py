@@ -210,18 +210,40 @@ def _ybtour_dedupe_by_departure_date_richer(rows: List[Dict[str, Any]]) -> List[
 
 
 def _parse_year_month(text: Optional[str]) -> tuple:
-    """연/월 텍스트(예: '2026. 04', '2026년 4월')에서 (year, month) 추출."""
+    """연/월 텍스트(예: '2026. 04', '2026년 4월', '4월 2026')에서 (year, month) 추출."""
     if not text or not str(text).strip():
         return None, None
     text = str(text).strip()
-    m = re.search(r"(\d{4})\s*[.\s년]*\s*(\d{1,2})\s*월?", text)
+    m = re.search(r"(\d{4})\s*[.\s/년]+\s*(\d{1,2})\s*월?", text)
     if m:
-        return m.group(1), m.group(2).zfill(2)
+        mo = int(m.group(2))
+        if 1 <= mo <= 12:
+            return m.group(1), str(mo).zfill(2)
+    m = re.search(r"(\d{1,2})\s*월[^\d]{0,12}(\d{4})", text)
+    if m:
+        mo = int(m.group(1))
+        y = m.group(2)
+        if 2000 <= int(y) <= 2099 and 1 <= mo <= 12:
+            return y, str(mo).zfill(2)
     nums = re.findall(r"\d+", text)
     if len(nums) >= 2:
-        return nums[0], nums[1].zfill(2)
+        for i, a in enumerate(nums):
+            if len(a) == 4 and a.startswith("20"):
+                for b in nums[i + 1 :]:
+                    if len(b) <= 2:
+                        bi = int(b)
+                        if 1 <= bi <= 12:
+                            return a, str(bi).zfill(2)
+        ys = [x for x in nums if len(x) == 4 and x.startswith("20")]
+        if len(ys) == 1:
+            y = ys[0]
+            for b in nums:
+                if b == y or len(b) > 2:
+                    continue
+                bi = int(b)
+                if 1 <= bi <= 12:
+                    return y, str(bi).zfill(2)
     return None, None
-
 
 def _day_num_from_text(s: str) -> Optional[int]:
     """날짜 텍스트에서 일(1-31) 추출."""
@@ -877,10 +899,10 @@ class CalendarPriceScraper:
   const heads = root.querySelectorAll('h2, h3, h4, .calendar_title, .year_month, [class*="month_tit"], [class*="cal_head"], [class*="CalendarHead"]');
   for (const el of heads) {{
     const s = (el.innerText || '').trim();
-    if (/20\\d{{2}}\\s*[./]\\s*\\d{{1,2}}/.test(s)) return s.slice(0, 64);
+    if (/20\\d{{2}}\\s*[.년\\s/]*\\s*\\d{{1,2}}\\s*월?/.test(s)) return s.slice(0, 64);
   }}
   const blob = (root.innerText || '').replace(/\\s+/g, ' ').trim();
-  const m = blob.match(/(20\\d{{2}}\\s*[./]\\s*\\d{{1,2}})/);
+  const m = blob.match(/(20\\d{{2}}\\s*[.년\\s/]*\\s*\\d{{1,2}}\\s*월?)/);
   return m ? m[1].replace(/\\s+/g, '') : '';
 }}"""
             )

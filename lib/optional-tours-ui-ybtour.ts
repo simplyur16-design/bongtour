@@ -12,6 +12,7 @@ function num(v: unknown): number | null {
 }
 
 function isKrwCurrencyToken(c: string | null | undefined): boolean {
+  // ybtour: keep supplier currency symbols (€, $, …); only KRW gets "원" suffix in fee part helper.
   const t = (c ?? '').trim()
   if (!t) return false
   return /^(KRW|원|￦|WON|₩|원화)$/i.test(t)
@@ -19,9 +20,11 @@ function isKrwCurrencyToken(c: string | null | undefined): boolean {
 
 function formatOptionalTourFeePart(label: string, amount: number, currency: string | null): string {
   const n = amount.toLocaleString('ko-KR')
-  if (isKrwCurrencyToken(currency)) return `${label} ${n}원`
   const code = (currency ?? '').trim()
-  if (code) return `${label} ${code.toUpperCase()} ${n}`
+  if (isKrwCurrencyToken(code)) return `${label} ${n}원`
+  if (/^EUR|€$/i.test(code)) return `${label} € ${n}`
+  if (/^USD|\$$/i.test(code)) return `${label} $${n}`
+  if (code) return `${label} ${code} ${n}`
   return `${label} ${n}`
 }
 

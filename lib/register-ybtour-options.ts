@@ -67,22 +67,66 @@ function dedupeYbtourFeeAnchorsSamePriceWithoutRefBetween(anchors: YbFeeAnchor[]
 }
 
 /** `비용60유로` / `비용`+`60유로` / `비용: 60유로` */
+
+function ybtourHasDetailEuroFeeBlock(lines: string[], fromIdx: number): boolean {
+  for (let k = fromIdx + 1; k < Math.min(lines.length, fromIdx + 45); k++) {
+    const a = lines[k] ?? ''
+    const b = (lines[k + 1] ?? '').trim()
+    if (/^비용$/i.test(a) && /^\s*€\s*\d+/.test(b)) return true
+  }
+  return false
+}
+
+function summarizeYbtourOptionalRefWaiting(noteBlob: string): string {
+  const head = noteBlob.split(/※/)[0].replace(/\s+/g, ' ').trim()
+  const m = head.match(/미참가\s*시\s*(.+?)(?:입니다|다\.|\.|\(|$)/u)
+  if (m?.[1]) return m[1].replace(/\s+/g, '').trim()
+  return ''
+}
+
+function ybtourEuroPriceDisplay(amount: string): string {
+  const d = amount.replace(/^0+/, '') || '0'
+  return `€ ${d}`
+}
+
+function euroPriceAmountFromText(priceText: string): number | null {
+  const m =
+    priceText.match(/€\s*(\d+)/) ||
+    priceText.match(/(\d+)\s*유로/i) ||
+    priceText.match(/(\d+)\s*EUR/i)
+  if (!m) return null
+  const n = Number(m[1])
+  return Number.isFinite(n) ? n : null
+}
+
 function collectYbtourEuroFeeAnchors(lines: string[]): YbFeeAnchor[] {
   const raw: YbFeeAnchor[] = []
   for (let i = 0; i < lines.length; i++) {
     const L = lines[i]!
+    const euroSignInline = L.match(/^비용\s*€\s*(\d+)/i)
+    if (euroSignInline) {
+      if (!ybtourHasDetailEuroFeeBlock(lines, i)) {
+        raw.push({ feeLineIdx: i, priceText: ybtourEuroPriceDisplay(euroSignInline[1]!), currency: 'EUR' })
+      }
+      continue
+    }
     const inline =
       L.match(/^비용\s*[:：]?\s*(\d+)\s*유로/i) ||
       L.match(/^비용\s*(\d+)\s*유로/i) ||
       L.match(/^비용\s*(\d+)\s*EUR/i)
     if (inline) {
-      raw.push({ feeLineIdx: i, priceText: `${inline[1]}유로`, currency: 'EUR' })
+      raw.push({ feeLineIdx: i, priceText: ybtourEuroPriceDisplay(inline[1]!), currency: 'EUR' })
       continue
     }
     if (/^비용$/i.test(L)) {
       const n = lines[i + 1] ?? ''
+      const mEuro = n.match(/^\s*€\s*(\d+)/) || n.match(/^\s*EUR\s*(\d+)/i)
+      if (mEuro) {
+        raw.push({ feeLineIdx: i, priceText: ybtourEuroPriceDisplay(mEuro[1]!), currency: 'EUR' })
+        continue
+      }
       const m = n.match(/^[:：]?\s*(\d+)\s*유로/i) || n.match(/^(\d+)\s*EUR/i)
-      if (m) raw.push({ feeLineIdx: i, priceText: `${m[1]}유로`, currency: 'EUR' })
+      if (m) raw.push({ feeLineIdx: i, priceText: ybtourEuroPriceDisplay(m[1]!), currency: 'EUR' })
     }
   }
   return dedupeYbtourFeeAnchorsSamePriceWithoutRefBetween(raw, lines)
@@ -109,6 +153,14 @@ function findTitleLineIndexForFee(lines: string[], feeLineIdx: number): number {
       j--
       continue
     }
+    if (/^비용\s*€\s*\d+/i.test(t)) {
+      j--
+      continue
+    }
+    if (/^\s*€\s*\d+/.test(t)) {
+      j--
+      continue
+    }
     if (/^비용$/i.test(t)) {
       j--
       continue
@@ -129,7 +181,11 @@ function ybtourTitleForEuroAnchor(lines: string[], feeLineIdx: number): string {
   return cand.slice(0, 200)
 }
 
-function parseYbtourEuroMetaSlice(slice: string[]): { durationText: string; descriptionText: string } {
+function parseYbtourEuroMetaSlice(slice: string[]): {
+  durationText: string
+  descriptionText: string
+  waitingPlaceText: string
+} {
   let durationText = ''
   let i = 0
   while (i < slice.length) {
@@ -147,11 +203,16 @@ function parseYbtourEuroMetaSlice(slice: string[]): { durationText: string; desc
     }
     if (/^참고사항$/i.test(L)) {
       const rest = slice.slice(i + 1).join('\n').trim()
-      return { durationText, descriptionText: rest.slice(0, 8000) }
+      const body = rest.slice(0, 8000)
+      return {
+        durationText,
+        descriptionText: body,
+        waitingPlaceText: summarizeYbtourOptionalRefWaiting(body),
+      }
     }
     i++
   }
-  return { durationText, descriptionText: '' }
+  return { durationText, descriptionText: '', waitingPlaceText: '' }
 }
 
 function parseYbtourEuroWebsiteRows(lines: string[], anchors: YbFeeAnchor[]): OptionalToursStructured['rows'] {
@@ -168,12 +229,12 @@ function parseYbtourEuroWebsiteRows(lines: string[], anchors: YbFeeAnchor[]): Op
     rows.push({
       tourName: title,
       currency,
-      adultPrice: null,
+      adultPrice: euroPriceAmountFromText(priceText),
       childPrice: null,
       durationText: meta.durationText,
       minPeopleText: '',
       guide同行Text: '',
-      waitingPlaceText: '',
+      waitingPlaceText: meta.waitingPlaceText,
       descriptionText: meta.descriptionText,
       priceText,
       alternateScheduleText: undefined,
@@ -310,5 +371,6 @@ export function ybtourOptionalPasteDominatesUnstructured(section: string, pasteR
   if (pasteRowCount <= 0) return false
   if (/비용\s*\$\s*\d+/i.test(flat) || /\$\s*\d+/.test(flat)) return true
   if (/비용\s*\d+\s*유로/i.test(flat) || /\d+\s*유로/i.test(flat)) return true
+  if (/비용\s*€\s*\d+/i.test(flat) || /€\s*\d+/.test(flat)) return true
   return false
 }
