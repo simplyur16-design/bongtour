@@ -10,6 +10,9 @@ import {
   type DomesticRegionGroupNode,
 } from '@/lib/domestic-location-tree'
 import { DOMESTIC_LANDING_SECTIONS } from '@/lib/domestic-landing-copy'
+import { domesticAreaRankKey } from '@/lib/hub-explore-click-rank'
+import { useHubExploreClickSort } from '@/lib/use-hub-explore-click-sort'
+import { HubExploreHorizontalScrollRow } from '@/app/components/travel/hub-explore/HubExploreHorizontalScrollRow'
 
 const PRODUCTS_ANCHOR = 'travel-dm-products'
 
@@ -52,6 +55,15 @@ export default function DomesticRegionExplorer({
     return group.areas.find((a) => a.areaKey === areaKey) ?? null
   }, [group, areaKey])
 
+  const areaRankKey = useCallback(
+    (a: DomesticAreaNode) => (group ? domesticAreaRankKey(group.groupKey, a.areaKey) : ''),
+    [group]
+  )
+  const { ordered: orderedAreas, noteClick: noteAreaClick, bumpId: bumpAreaRankId } = useHubExploreClickSort(
+    group?.areas,
+    areaRankKey
+  )
+
   useEffect(() => {
     if (activeLocationTree.length === 0) return
     const ok = activeLocationTree.some((g) => g.groupKey === groupKey)
@@ -84,6 +96,7 @@ export default function DomesticRegionExplorer({
 
   const applyAreaWhole = useCallback(
     (g: DomesticRegionGroupNode, a: DomesticAreaNode) => {
+      bumpAreaRankId(domesticAreaRankKey(g.groupKey, a.areaKey))
       setGroupKey(g.groupKey)
       setAreaKey(a.areaKey)
       setLeafKey(null)
@@ -91,11 +104,12 @@ export default function DomesticRegionExplorer({
       onFilterChange({ terms: matchTokensForDomesticArea(a), summaryLabel: `${g.groupLabel} · ${a.areaLabel} 전체` })
       scrollToProducts()
     },
-    [onFilterChange]
+    [bumpAreaRankId, onFilterChange]
   )
 
   const applyLeaf = useCallback(
     (g: DomesticRegionGroupNode, a: DomesticAreaNode, leaf: DomesticLeafNode) => {
+      bumpAreaRankId(domesticAreaRankKey(g.groupKey, a.areaKey))
       setGroupKey(g.groupKey)
       setAreaKey(a.areaKey)
       setLeafKey(leaf.nodeKey)
@@ -106,7 +120,7 @@ export default function DomesticRegionExplorer({
       })
       scrollToProducts()
     },
-    [onFilterChange]
+    [bumpAreaRankId, onFilterChange]
   )
 
   const clearFilter = useCallback(() => {
@@ -223,14 +237,15 @@ export default function DomesticRegionExplorer({
         {group && activeLocationTree.length > 0 ? (
           <div className="mt-8">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-bt-subtle">2. 지역 · 코스</h3>
-            <div className="mt-3 flex gap-3 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible">
-              {group.areas.map((a) => {
+            <HubExploreHorizontalScrollRow className="mt-3">
+              {orderedAreas.map((a) => {
                 const selected = areaKey === a.areaKey
                 return (
                   <button
                     key={a.areaKey}
                     type="button"
                     onClick={() => {
+                      noteAreaClick(a)
                       setAreaKey(a.areaKey)
                       setLeafKey(null)
                       setScope('none')
@@ -247,7 +262,7 @@ export default function DomesticRegionExplorer({
                   </button>
                 )
               })}
-            </div>
+            </HubExploreHorizontalScrollRow>
           </div>
         ) : null}
 

@@ -50,9 +50,9 @@ type Props = {
 /** 일반 목록용 그리드 */
 const cardGridClass = 'mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
 
-/** 해외 여행상품: 권역(버킷)당 상품 카드 한 줄 — 좁은 화면 가로 스크롤, lg 이상 그리드 */
+/** 해외 여행상품: 권역(버킷)당 한 줄 — 약 3장 노출, 나머지는 가로 스크롤(데스크톱에서도 줄바꿈 없음) */
 const countryProductRowClass =
-  'mt-3 flex flex-nowrap gap-3 overflow-x-auto pb-2 pt-0 [-ms-overflow-style:none] [scrollbar-width:thin] sm:gap-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:overflow-visible xl:grid-cols-3 lg:pb-0'
+  'mt-6 flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible overscroll-x-contain pb-2 pt-0.5 snap-x snap-proximity [-ms-overflow-style:none] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]'
 
 export function ProductResultCard({
   item,
@@ -171,11 +171,11 @@ function OverseasRegionGroupedList({
                 </div>
               ) : null}
               {flatList.length > 0 ? (
-                <ul className={`${countryProductRowClass} mt-6`} role="list">
+                <ul className={countryProductRowClass} role="list">
                   {flatList.map((item) => (
                     <li
                       key={item.id}
-                      className="w-[min(17.5rem,82vw)] shrink-0 snap-start lg:w-auto lg:min-w-0 lg:snap-none"
+                      className="shrink-0 snap-start w-[min(17.5rem,calc(100vw-2.75rem))] sm:w-[min(19rem,calc((100vw-3rem)/2))] lg:w-[calc((min(72rem,100vw)-300px-5.5rem)/3)]"
                     >
                       <ProductResultCard item={item} formatWon={formatWon} />
                     </li>

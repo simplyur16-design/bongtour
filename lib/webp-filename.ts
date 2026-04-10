@@ -73,6 +73,25 @@ export function stripTrailingSourceTokenFromFilenameStem(stem: string): string {
   return t
 }
 
+/**
+ * 이미지 URL(또는 경로) basename에서 `도시_명소_출처` 패턴의 마지막 출처 토큰만 반환.
+ * 전체 이름이 iStock-… 형태면 trailing 토큰이 없을 수 있음(호출부에서 inferSourceFromFilename으로 처리).
+ */
+export function trailingSourceTokenFromImageUrl(url: string | null | undefined): string | null {
+  const raw = String(url ?? '').trim()
+  if (!raw) return null
+  const pathOnly = raw.split('?')[0] ?? raw
+  const base = pathOnly.replace(/^.*[/\\]/, '').replace(/\.[a-z0-9]{2,5}$/i, '')
+  if (!base) return null
+  const parts = base.split('_').filter((p) => p.length > 0)
+  if (parts.length < 2) return null
+  const last = parts[parts.length - 1]!
+  const lastLower = last.toLowerCase()
+  if (EXTRA_SOURCE_STEM_TOKENS.has(lastLower)) return last
+  if (inferSourceFromFilename(`${last}.png`)) return last
+  return null
+}
+
 /** 한글(자모+음절), 영숫자, _, -, . 허용. 파일명용 */
 function sanitize(s: string): string {
   const t = String(s ?? '').trim().replace(/\s+/g, '_')

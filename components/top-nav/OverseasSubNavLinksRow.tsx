@@ -9,8 +9,21 @@ import {
   overseasSubNavTabActive,
   overseasSubNavTabIdle,
 } from '@/components/top-nav/overseas-sub-nav-styles'
+import type { OverseasSubNavItem } from '@/components/top-nav/overseas-sub-nav-items'
 
 export { hrefForOverseasSubNavItem } from '@/components/top-nav/overseas-sub-nav-styles'
+
+function OverseasSubNavLinkLabel({ item }: { item: OverseasSubNavItem }) {
+  if (item.kind === 'link' && item.labelLines) {
+    return (
+      <span className="flex flex-col items-center justify-center gap-0.5 leading-tight">
+        <span>{item.labelLines[0]}</span>
+        <span>{item.labelLines[1]}</span>
+      </span>
+    )
+  }
+  return item.label
+}
 
 /**
  * 해외여행 전용 하위 페이지 — 권역/국가 메가메뉴 없이 동일 4개 링크만 표시
@@ -35,8 +48,9 @@ export default function OverseasSubNavLinksRow() {
             href={href}
             className={showActiveStyle ? overseasSubNavTabActive : overseasSubNavTabIdle}
             aria-current={pathActive ? 'page' : undefined}
+            aria-label={item.kind === 'link' && item.labelLines ? item.label : undefined}
           >
-            {item.label}
+            <OverseasSubNavLinkLabel item={item} />
           </Link>
         )
       })}
@@ -69,8 +83,9 @@ export function OverseasSubNavMobileScrollRow() {
               showActiveStyle ? overseasSubNavTabActive : overseasSubNavTabIdle
             } min-h-[3rem] min-w-0 max-w-none touch-manipulation whitespace-normal px-1 py-2 text-[10px] leading-snug [-webkit-tap-highlight-color:transparent] active:opacity-[0.92] sm:min-h-[2.75rem] sm:px-1.5 sm:text-[11px] md:text-[12px]`}
             aria-current={pathActive ? 'page' : undefined}
+            aria-label={item.kind === 'link' && item.labelLines ? item.label : undefined}
           >
-            {item.label}
+            <OverseasSubNavLinkLabel item={item} />
           </Link>
         )
       })}

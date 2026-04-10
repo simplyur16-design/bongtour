@@ -45,13 +45,6 @@ const benefits = [
   },
 ] as const
 
-const steps = [
-  { n: 1, title: '상담 문의', body: '희망 지역, 시기, 인원 구성을 알려주세요.' },
-  { n: 2, title: '인원·일정·예산 확인', body: '꼭 맞춰야 할 조건을 함께 정리합니다.' },
-  { n: 3, title: '맞춤 방향 제안', body: '가능한 상품과 동선을 기준으로 맞춤여행 방향을 안내해드립니다.' },
-  { n: 4, title: '예약 진행', body: '상담 후 결정된 내용에 따라 순서대로 예약을 도와드립니다.' },
-] as const
-
 type Props = {
   inquiryHref: string
   publishedReviews: ReviewCardModel[]
@@ -107,29 +100,6 @@ export default function PrivateTripLanding({
         </div>
       </section>
 
-      <section className="bg-white py-16 sm:py-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">상담은 이렇게 진행됩니다</h2>
-          <div className="relative mt-14">
-            <div
-              className="pointer-events-none absolute left-[8%] right-[8%] top-7 hidden h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent lg:block"
-              aria-hidden
-            />
-            <ol className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-              {steps.map((s) => (
-                <li key={s.n} className="flex flex-col items-start">
-                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-teal-600 bg-white text-lg font-bold text-teal-800 shadow-sm">
-                    {s.n}
-                  </span>
-                  <h3 className="mt-5 text-base font-semibold text-slate-900">{s.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{s.body}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-      </section>
-
       <PrivateGroupCustomerReviewSection
         publishedReviews={publishedReviews}
         publishedTotalCount={publishedTotalCount}
@@ -138,6 +108,7 @@ export default function PrivateTripLanding({
         descriptionOverride="가족여행, 모임여행, 소규모 단체여행으로 먼저 다녀오신 분들의 이야기를 통해 분위기와 진행 방식을 확인해보세요."
         hideFooterCta
         hideEyebrow
+        centerIntro
       />
 
       <section className="border-t border-slate-200 bg-gradient-to-b from-slate-900 to-slate-950 py-16 text-white sm:py-20">

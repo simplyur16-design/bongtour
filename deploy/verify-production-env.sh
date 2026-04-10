@@ -63,6 +63,31 @@ else
   echo "  [빠짐] NEXTAUTH_URL"
   fail=1
 fi
+pub_base_ok=0
+for k in SITE_URL NEXT_PUBLIC_SITE_URL APP_URL NEXT_PUBLIC_APP_URL; do
+  if [[ -n "$(val_of "$(merged_line "$k")")" ]]; then
+    pub_base_ok=1
+    break
+  fi
+done
+if [[ "$pub_base_ok" -eq 1 ]]; then
+  echo "  [OK] 공개 URL (SITE_URL / NEXT_PUBLIC_SITE_URL / APP_URL / NEXT_PUBLIC_APP_URL 중 하나 이상, lib/server-env.ts)"
+else
+  echo "  [빠짐] 공개 URL — 위 네 키 중 하나 필요(기동 검증·Origin·관리 링크). NEXT_PUBLIC_* 는 빌드 시 박히므로 배포 후 .env 만 고칠 땐 SITE_URL 등 권장."
+  fail=1
+fi
+if [[ -n "$(val_of "$(merged_line SUPABASE_URL)")" ]]; then
+  echo "  [OK] SUPABASE_URL"
+else
+  echo "  [빠짐] SUPABASE_URL"
+  fail=1
+fi
+if [[ -n "$(val_of "$(merged_line SUPABASE_SERVICE_ROLE_KEY)")" ]]; then
+  echo "  [OK] SUPABASE_SERVICE_ROLE_KEY"
+else
+  echo "  [빠짐] SUPABASE_SERVICE_ROLE_KEY"
+  fail=1
+fi
 echo ""
 
 echo "[선택 — 카카오 로그인 버튼]"

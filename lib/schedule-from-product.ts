@@ -62,6 +62,11 @@ function deriveDisplayNameFromImageUrl(imageUrl: string | null | undefined): str
   return deriveDisplayNameFromFileName(noQuery)
 }
 
+/** 공개 UI(히어로 캐러셀 등): URL·파일명에서 도시·명소 추정 캡션 */
+export function publicLocationCaptionFromImageUrl(imageUrl: string | null | undefined): string | null {
+  return deriveDisplayNameFromImageUrl(imageUrl)
+}
+
 function optionalScheduleMealCol(row: Record<string, unknown>, key: string): string | null {
   const v = row[key]
   if (v == null) return null

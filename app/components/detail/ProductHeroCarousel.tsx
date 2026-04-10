@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import PexelsSourceCaption from '@/app/components/detail/PexelsSourceCaption'
 import { warnLegacyGeminiUploadPath } from '@/lib/legacy-gemini-upload-path'
-import { productHeroAttributionBadgeText } from '@/lib/product-bg-image-attribution'
+import {
+  productHeroAttributionBadgeFromImageUrl,
+  productHeroAttributionBadgeText,
+} from '@/lib/product-bg-image-attribution'
+import { publicLocationCaptionFromImageUrl } from '@/lib/schedule-from-product'
 
 type DaySlide = { day: number; imageUrl: string | null | undefined; imageDisplayName?: string | null }
 
@@ -34,25 +38,45 @@ export default function ProductHeroCarousel({
   heroCaptionFromAsset,
 }: Props) {
   const slides = useMemo(() => {
-    const urls: { src: string; caption: string }[] = []
+    const urls: { src: string; caption: string; attribution: string | null }[] = []
+    const heroTrim = heroUrl?.trim() ?? ''
     const firstNamedDay = daySlides.find((d) => d.imageDisplayName?.trim())
-    if (heroUrl?.trim()) {
+    const heroDayMatch = heroTrim ? daySlides.find((d) => d.imageUrl?.trim() === heroTrim) : undefined
+    if (heroTrim) {
       const topCaption =
-        firstNamedDay?.imageDisplayName?.trim() ||
         heroCaptionFromAsset?.trim() ||
+        heroDayMatch?.imageDisplayName?.trim() ||
+        publicLocationCaptionFromImageUrl(heroTrim) ||
+        firstNamedDay?.imageDisplayName?.trim() ||
         (destinationLabel?.trim() ? destinationLabel.trim() : '대표 이미지')
-      urls.push({ src: heroUrl.trim(), caption: topCaption })
+      const attribution =
+        productHeroAttributionBadgeText(heroImageSourceType, heroImageIsGenerated) ??
+        productHeroAttributionBadgeFromImageUrl(heroTrim)
+      urls.push({ src: heroTrim, caption: topCaption, attribution })
     }
-    const seen = new Set<string>(heroUrl?.trim() ? [heroUrl.trim()] : [])
+    const seen = new Set<string>(heroTrim ? [heroTrim] : [])
     for (const d of daySlides) {
       const s = d.imageUrl?.trim()
       if (!s || seen.has(s)) continue
       seen.add(s)
       const display = d.imageDisplayName?.trim()
-      urls.push({ src: s, caption: display || `일정 ${String(d.day).padStart(2, '0')}` })
+      const caption =
+        display || publicLocationCaptionFromImageUrl(s) || `일정 ${String(d.day).padStart(2, '0')}`
+      urls.push({
+        src: s,
+        caption,
+        attribution: productHeroAttributionBadgeFromImageUrl(s),
+      })
     }
     return urls
-  }, [heroUrl, daySlides, destinationLabel, heroCaptionFromAsset])
+  }, [
+    heroUrl,
+    daySlides,
+    destinationLabel,
+    heroCaptionFromAsset,
+    heroImageSourceType,
+    heroImageIsGenerated,
+  ])
 
   const [index, setIndex] = useState(0)
 
@@ -78,8 +102,6 @@ export default function ProductHeroCarousel({
     const t = window.setInterval(() => go(1), 6500)
     return () => window.clearInterval(t)
   }, [len, go])
-
-  const attributionText = productHeroAttributionBadgeText(heroImageSourceType, heroImageIsGenerated)
 
   if (len === 0) {
     return (
@@ -115,12 +137,12 @@ export default function ProductHeroCarousel({
             <p className="line-clamp-2 min-w-0 flex-1 text-left text-sm font-bold text-white drop-shadow">
               {current.caption}
             </p>
-            {attributionText ? (
+            {current.attribution ? (
               <span
                 className="shrink-0 self-end rounded-full bg-black/55 px-2 py-0.5 text-right text-[10px] font-medium leading-tight text-white backdrop-blur-[2px]"
                 role="note"
               >
-                {attributionText}
+                {current.attribution}
               </span>
             ) : null}
           </div>

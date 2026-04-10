@@ -2,6 +2,15 @@
 
 const DEV_AUTH_PLACEHOLDER = "__bongtour_dev_auth_secret_change_for_production__"
 
+/** Next.js는 `process.env.NEXT_PUBLIC_*` 정적 접근을 빌드 시 인라인한다. 운영 호스트 `.env`만 바꿔도 기동 검증이 통과하도록 동적 키로 읽는다. */
+const procEnv = process.env
+function envTrim(key: string): string {
+  return String((procEnv as Record<string, string | undefined>)[key] ?? "").trim()
+}
+function nextPublicTrim(suffix: string): string {
+  return String((procEnv as Record<string, string | undefined>)["NEXT_PUBLIC_" + suffix] ?? "").trim()
+}
+
 function miss(name: string, hint: string): string {
   return `${name}: ${hint}`
 }
@@ -22,13 +31,31 @@ export function assertProductionServerEnv(): void {
     errors.push(miss("NEXTAUTH_URL", "절대 URL(예: https://bongtour.com)이 필요합니다."))
   }
 
-  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim()
-  const app = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim()
+  const site =
+    envTrim("SITE_URL") ||
+    nextPublicTrim("SITE_URL") ||
+    envTrim("APP_URL") ||
+    nextPublicTrim("APP_URL")
+  const app =
+    envTrim("APP_URL") ||
+    nextPublicTrim("APP_URL") ||
+    envTrim("SITE_URL") ||
+    nextPublicTrim("SITE_URL")
   if (!site) {
-    errors.push(miss("NEXT_PUBLIC_SITE_URL", "공개 사이트 기준 URL이 필요합니다(Origin 검증 등)."))
+    errors.push(
+      miss(
+        "NEXT_PUBLIC_SITE_URL",
+        "공개 사이트 기준 URL이 필요합니다(Origin 검증 등). 서버만 설정할 때는 SITE_URL 또는 NEXT_PUBLIC_SITE_URL(또는 APP 계열)을 .env에 두세요. 클라이언트 번들에는 빌드 시점 NEXT_PUBLIC_*가 박히므로 URL 변경 시 재빌드가 필요합니다."
+      )
+    )
   }
   if (!app) {
-    errors.push(miss("NEXT_PUBLIC_APP_URL", "앱/관리 링크용 공개 URL이 필요합니다."))
+    errors.push(
+      miss(
+        "NEXT_PUBLIC_APP_URL",
+        "앱/관리 링크용 공개 URL이 필요합니다. 서버만 설정할 때는 APP_URL 또는 위 SITE_URL 계열과 동일 값을 쓰면 됩니다."
+      )
+    )
   }
 
   if (!(process.env.SUPABASE_URL ?? "").trim()) {
@@ -38,8 +65,11 @@ export function assertProductionServerEnv(): void {
     errors.push(miss("SUPABASE_SERVICE_ROLE_KEY", "서버 전용 Supabase 작업에 필요합니다."))
   }
 
-  if (!(process.env.GEMINI_API_KEY ?? "").trim()) {
-    errors.push(miss("GEMINI_API_KEY", "Gemini 호출 경로에 필요합니다."))
+  const gemini = (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "").trim()
+  if (!gemini) {
+    console.warn(
+      "[server-env] GEMINI_API_KEY(또는 GOOGLE_API_KEY)가 비어 있습니다. 관리자 Gemini·일부 파서 보강·이미지 생성은 동작하지 않을 수 있습니다. 기동은 계속합니다."
+    )
   }
 
   const bearer = (process.env.ADMIN_SERVICE_BEARER_SECRET ?? "").trim()
@@ -61,6 +91,7 @@ export function assertProductionServerEnv(): void {
   }
 
   if (errors.length > 0) {
+    console.error("[server-env] process.cwd()=", process.cwd(), "(이 경로에 .env·.env.production 이 있어야 합니다)")
     throw new Error(
       `[Bong투어] 운영 환경 변수 검증 실패 — 서버를 중단합니다.\n\n${errors.join("\n")}\n\n.env.production 등을 확인하세요.`
     )

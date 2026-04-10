@@ -207,6 +207,50 @@ function buildMonthlyHero(items: BrowseHeroItem[]): Array<BrowseHeroItem & { slo
   })
 }
 
+type HeroRow = BrowseHeroItem & { slotMonth: number; headline: string }
+
+const PRIVATE_TRIP_HERO_PER_LEG = 5
+
+function takeDistinctHeroCandidates(items: BrowseHeroItem[], max: number): BrowseHeroItem[] {
+  const seen = new Set<string>()
+  const out: BrowseHeroItem[] = []
+  for (const x of items) {
+    if (out.length >= max) break
+    if (seen.has(x.id)) continue
+    seen.add(x.id)
+    out.push(x)
+  }
+  return out
+}
+
+/** 단독여행 히어만: 해외 단독·국내 패키지 출처를 교차(최대 각 5, 짝이 맞는 만큼만). */
+function buildPrivateTripInterleavedHero(
+  overseasItems: BrowseHeroItem[],
+  domesticItems: BrowseHeroItem[],
+): HeroRow[] {
+  const overseas = takeDistinctHeroCandidates(overseasItems, PRIVATE_TRIP_HERO_PER_LEG)
+  const domestic = takeDistinctHeroCandidates(domesticItems, PRIVATE_TRIP_HERO_PER_LEG)
+  const pairs = Math.min(overseas.length, domestic.length, PRIVATE_TRIP_HERO_PER_LEG)
+  const now = new Date()
+  const slotMonth = now.getMonth() + 1
+  const out: HeroRow[] = []
+  for (let i = 0; i < pairs; i++) {
+    const oItem = overseas[i]!
+    const dItem = domestic[i]!
+    out.push({
+      ...oItem,
+      slotMonth,
+      headline: buildHeadline(slotMonth, oItem, i * 2),
+    })
+    out.push({
+      ...dItem,
+      slotMonth,
+      headline: buildHeadline(slotMonth, dItem, i * 2 + 1),
+    })
+  }
+  return out
+}
+
 export type OverseasHeroProps = {
   /**
    * 히어로 카드에 쓸 상품을 DB `listingKind` 로 한정.
@@ -235,6 +279,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
   const [adultCount, setAdultCount] = useState(searchParams.get('adult') ?? '1')
   const [childCount, setChildCount] = useState(searchParams.get('child') ?? '0')
   const [items, setItems] = useState<BrowseHeroItem[]>([])
+  const [domesticHeroPool, setDomesticHeroPool] = useState<BrowseHeroItem[]>([])
   const [idx, setIdx] = useState(0)
   const [loading, setLoading] = useState(true)
   const [broken, setBroken] = useState<Record<string, boolean>>({})
@@ -328,19 +373,50 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
     return `/api/products/browse?${q.toString()}`
   }, [browseListingKind])
 
+  const domesticBrowseUrl = useMemo(
+    () =>
+      `/api/products/browse?${new URLSearchParams({
+        scope: 'domestic',
+        limit: '100',
+        sort: 'popular',
+        listingKind: 'travel',
+      }).toString()}`,
+    [],
+  )
+
   useEffect(() => {
     let off = false
+    const withImage = (rows: BrowseHeroItem[]) =>
+      rows.filter((x) => Boolean((x.coverImageUrl ?? x.bgImageUrl ?? '').trim()))
     ;(async () => {
       setLoading(true)
       try {
-        const res = await fetch(browseUrl, { cache: 'no-store' })
-        const json = (await res.json()) as ApiOk | { ok: false }
-        if (!off && res.ok && 'ok' in json && json.ok) {
-          const onlyWithImage = (json.items ?? []).filter((x) => Boolean((x.coverImageUrl ?? x.bgImageUrl ?? '').trim()))
-          setItems(onlyWithImage)
+        if (browseListingKind === 'private_trip') {
+          const [resOs, resDom] = await Promise.all([
+            fetch(browseUrl, { cache: 'no-store' }),
+            fetch(domesticBrowseUrl, { cache: 'no-store' }),
+          ])
+          const jsonOs = (await resOs.json()) as ApiOk | { ok: false }
+          const jsonDom = (await resDom.json()) as ApiOk | { ok: false }
+          if (!off) {
+            setItems(resOs.ok && 'ok' in jsonOs && jsonOs.ok ? withImage(jsonOs.items ?? []) : [])
+            setDomesticHeroPool(resDom.ok && 'ok' in jsonDom && jsonDom.ok ? withImage(jsonDom.items ?? []) : [])
+          }
+        } else {
+          setDomesticHeroPool([])
+          const res = await fetch(browseUrl, { cache: 'no-store' })
+          const json = (await res.json()) as ApiOk | { ok: false }
+          if (!off && res.ok && 'ok' in json && json.ok) {
+            setItems(withImage(json.items ?? []))
+          } else if (!off) {
+            setItems([])
+          }
         }
       } catch {
-        if (!off) setItems([])
+        if (!off) {
+          setItems([])
+          setDomesticHeroPool([])
+        }
       } finally {
         if (!off) setLoading(false)
       }
@@ -348,7 +424,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
     return () => {
       off = true
     }
-  }, [browseUrl])
+  }, [browseListingKind, browseUrl, domesticBrowseUrl])
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
@@ -359,7 +435,21 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
     return () => mq.removeEventListener('change', apply)
   }, [])
 
-  const heroRows = useMemo(() => buildMonthlyHero(items), [items])
+  const heroRows = useMemo(() => {
+    if (browseListingKind === 'private_trip') {
+      return buildPrivateTripInterleavedHero(items, domesticHeroPool)
+    }
+    return buildMonthlyHero(items)
+  }, [browseListingKind, items, domesticHeroPool])
+
+  useEffect(() => {
+    setIdx((prev) => {
+      const n = heroRows.length
+      if (n <= 0) return 0
+      return prev % n
+    })
+  }, [heroRows.length])
+
   const current = heroRows[idx % Math.max(heroRows.length, 1)] ?? null
 
   useEffect(() => {

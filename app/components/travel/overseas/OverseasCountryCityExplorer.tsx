@@ -10,6 +10,9 @@ import {
   type OverseasRegionGroupNode,
 } from '@/lib/overseas-location-tree'
 import { OVERSEAS_LANDING_SECTIONS } from '@/lib/overseas-landing-copy'
+import { overseasCountryRankKey } from '@/lib/hub-explore-click-rank'
+import { useHubExploreClickSort } from '@/lib/use-hub-explore-click-sort'
+import { HubExploreHorizontalScrollRow } from '@/app/components/travel/hub-explore/HubExploreHorizontalScrollRow'
 
 const PRODUCTS_ANCHOR = 'travel-os-products'
 
@@ -68,6 +71,13 @@ export default function OverseasCountryCityExplorer({
     return group.countries.find((c) => c.countryKey === countryKey) ?? null
   }, [group, countryKey])
 
+  const countryRankKey = useCallback(
+    (c: OverseasCountryNode) => (group ? overseasCountryRankKey(group.groupKey, c.countryKey) : ''),
+    [group]
+  )
+  const { ordered: orderedCountries, noteClick: noteCountryClick, bumpId: bumpCountryRankId } =
+    useHubExploreClickSort(group?.countries, countryRankKey)
+
   const applyGroupWhole = useCallback(
     (g: OverseasRegionGroupNode) => {
       setGroupKey(g.groupKey)
@@ -82,6 +92,7 @@ export default function OverseasCountryCityExplorer({
 
   const applyCountryWhole = useCallback(
     (g: OverseasRegionGroupNode, c: OverseasCountryNode) => {
+      bumpCountryRankId(overseasCountryRankKey(g.groupKey, c.countryKey))
       setGroupKey(g.groupKey)
       setCountryKey(c.countryKey)
       setLeafKey(null)
@@ -89,11 +100,12 @@ export default function OverseasCountryCityExplorer({
       onFilterChange({ terms: matchTokensForCountry(c), summaryLabel: `${g.groupLabel} · ${c.countryLabel} 전체` })
       scrollToProducts()
     },
-    [onFilterChange]
+    [bumpCountryRankId, onFilterChange]
   )
 
   const applyLeaf = useCallback(
     (g: OverseasRegionGroupNode, c: OverseasCountryNode, leaf: OverseasLeafNode) => {
+      bumpCountryRankId(overseasCountryRankKey(g.groupKey, c.countryKey))
       setGroupKey(g.groupKey)
       setCountryKey(c.countryKey)
       setLeafKey(leaf.nodeKey)
@@ -104,7 +116,7 @@ export default function OverseasCountryCityExplorer({
       })
       scrollToProducts()
     },
-    [onFilterChange]
+    [bumpCountryRankId, onFilterChange]
   )
 
   const clearFilter = useCallback(() => {
@@ -246,14 +258,15 @@ export default function OverseasCountryCityExplorer({
         {group && activeLocationTree.length > 0 ? (
           <div className="mt-8">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-bt-subtle">2. 국가 · 세부 권역</h3>
-            <div className="mt-3 flex gap-3 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible">
-              {group.countries.map((c) => {
+            <HubExploreHorizontalScrollRow className="mt-3">
+              {orderedCountries.map((c) => {
                 const selected = countryKey === c.countryKey
                 return (
                   <button
                     key={c.countryKey}
                     type="button"
                     onClick={() => {
+                      noteCountryClick(c)
                       setCountryKey(c.countryKey)
                       setLeafKey(null)
                       setScope('none')
@@ -270,7 +283,7 @@ export default function OverseasCountryCityExplorer({
                   </button>
                 )
               })}
-            </div>
+            </HubExploreHorizontalScrollRow>
           </div>
         ) : null}
 

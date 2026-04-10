@@ -194,7 +194,7 @@ function trimVerygoodPriceBlobBeforeTotals(blob: string): string {
   const out: string[] = []
   for (const line of lines) {
     const t = line.trim()
-    if (/^(?:총\s*금액|가이드\s*경비)\b/i.test(t)) break
+    if (/^가이드\s*경비\b/i.test(t)) break
     out.push(line)
   }
   return out.join('\n')
@@ -238,6 +238,10 @@ export function extractVerygoodThreeSlotPricesFromBlob(blob: string): VerygoodTh
     else if (slot === 'child') out.childPrice = price
     else out.infantPrice = price
   }
+  if (out.infantPrice == null) {
+    const inf = extractInfantPriceKrwFromText(normalized)
+    if (inf != null && inf > 0) out.infantPrice = inf
+  }
   const filled = [out.adultPrice, out.childPrice, out.infantPrice].filter((x) => x != null).length
   return filled > 0 ? out : null
 }
@@ -253,7 +257,7 @@ function sliceVerygoodPriceBlockFromNormalizedRaw(normalizedRaw: string | null |
   const sm = /상품\s*가격|상품가격|연령\s*별\s*요금|구분\s*[^\n]{0,40}가격/i.exec(raw)
   if (sm?.index != null) start = sm.index
   const tail = raw.slice(start)
-  const endM = /\n\s*(?:총\s*금액|가이드\s*경비)\b/i.exec(tail)
+  const endM = /\n\s*가이드\s*경비\b/i.exec(tail)
   const sliced = (endM ? tail.slice(0, endM.index) : tail).trim()
   return sliced.length >= 12 ? sliced.slice(0, 20000) : ''
 }

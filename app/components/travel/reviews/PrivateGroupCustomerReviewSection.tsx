@@ -26,6 +26,8 @@ type Props = {
   hideFooterCta?: boolean
   /** 상단 eyebrow(BongTour overseas) 숨김 */
   hideEyebrow?: boolean
+  /** 제목·메타·설명만 가운데 정렬(단독여행 랜딩 등) */
+  centerIntro?: boolean
 }
 
 /**
@@ -39,9 +41,12 @@ export default function PrivateGroupCustomerReviewSection({
   descriptionOverride,
   hideFooterCta = false,
   hideEyebrow = false,
+  centerIntro = false,
 }: Props) {
   const hasCards = publishedReviews.length > 0
   const useRotation = publishedReviews.length > OVERSEAS_LANDING_FEATURED_REVIEWS_LIMIT
+  const introAlign = centerIntro ? 'text-center' : ''
+  const descMax = centerIntro ? 'mx-auto max-w-2xl' : 'max-w-2xl'
 
   return (
     <section
@@ -55,14 +60,14 @@ export default function PrivateGroupCustomerReviewSection({
         )}
         <h2
           id="travel-os-private-reviews-heading"
-          className={`text-2xl font-semibold tracking-tight text-bt-ink sm:text-3xl ${hideEyebrow ? '' : 'mt-2'}`}
+          className={`text-2xl font-semibold tracking-tight text-bt-ink sm:text-3xl ${introAlign} ${hideEyebrow ? '' : 'mt-2'}`}
         >
           {headingOverride ?? OVERSEAS_REVIEWS_SECTION_COPY.heading}
         </h2>
-        <p className="mt-2 text-xs font-medium text-bt-muted sm:text-sm">
+        <p className={`mt-2 text-xs font-medium text-bt-muted sm:text-sm ${introAlign}`}>
           {overseasReviewsPublishedMetaLabel(publishedTotalCount)}
         </p>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-bt-muted">
+        <p className={`mt-3 ${descMax} text-sm leading-relaxed text-bt-muted ${introAlign}`}>
           {descriptionOverride ?? OVERSEAS_REVIEWS_SECTION_COPY.description}
         </p>
 
