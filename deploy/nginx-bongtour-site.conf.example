@@ -1,13 +1,13 @@
-# BongTour — nginx 사이트 설정 예시 (복사 후 경로·인증서만 맞추고 sites-enabled 에 연결)
-# CSP·세션·네이버 OAuth: 브라우저 origin 과 NEXTAUTH_URL / NEXT_PUBLIC_* 가 같아야 함.
-# canonical 을 https://bongtour.com 으로 쓸 때: www → 301, env 도 동일 호스트로 통일.
+# BongTour — nginx site example (copy, fix paths/certs, link from sites-enabled)
+# CSP / session / Naver OAuth: browser origin must match NEXTAUTH_URL and NEXT_PUBLIC_*.
+# If canonical is https://bongtour.com: redirect www → 301; keep env on same host.
 
 upstream bongtour_node {
     server 127.0.0.1:3000;
     keepalive 64;
 }
 
-# www → non-www (필요 없으면 이 server 블록만 삭제)
+# www → non-www (delete this server block if not needed)
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
@@ -38,10 +38,15 @@ server {
         proxy_set_header   X-Forwarded-Proto $scheme;
         proxy_set_header   Upgrade           $http_upgrade;
         proxy_set_header   Connection        "upgrade";
+        # Long requests: admin product register (LLM), departures rescrape, etc.
+        # Default proxy_read_timeout (~60s) often returns 502 before the app responds.
+        proxy_connect_timeout 60s;
+        proxy_send_timeout     960s;
+        proxy_read_timeout     960s;
     }
 }
 
-# HTTP → HTTPS (certbot 이 넣은 블록과 중복이면 하나만 유지)
+# HTTP → HTTPS (keep one block if certbot already added one)
 # server {
 #     listen 80;
 #     listen [::]:80;
