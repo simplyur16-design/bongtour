@@ -12,6 +12,7 @@
 
 # Dependencies
 node_modules
+.venv/
 .pnp
 .pnp.js
 
