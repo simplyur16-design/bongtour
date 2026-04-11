@@ -34,6 +34,7 @@
     "verify:modetour-schedule-overlay": "npx tsx scripts/verify-modetour-schedule-overlay.ts",
     "verify:auth-split": "npx tsx scripts/verify-auth-split.ts",
     "verify:manual-flight-hanatour": "npx tsx scripts/verify-manual-flight-hanatour.ts",
+    "verify:deploy-readiness": "node scripts/verify-deploy-readiness.mjs",
     "verify:register-detail-final-chain": "npx tsx scripts/verify-register-detail-final-chain.ts",
     "verify:register-admin-one-product": "npx tsx scripts/verify-register-admin-one-product.ts",
     "cleanup:register-admin": "npx tsx scripts/cleanup-register-admin-records.ts",
