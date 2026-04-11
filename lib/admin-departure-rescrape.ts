@@ -1,4 +1,6 @@
 import { execFile } from 'child_process'
+import fs from 'fs'
+import path from 'path'
 import { promisify } from 'util'
 import type { PrismaClient } from '@prisma/client'
 import { collectVerygoodDepartureInputs } from '@/lib/verygoodtour-departures'
@@ -185,13 +187,39 @@ function execFileIoToUtf8(value: unknown): string {
   return ''
 }
 
+type YbtourPythonOkFalseMeta = {
+  phase: string
+  message: string
+  errorType?: string
+}
+
+/** ybtour 전용: PM2/systemd 등에서 `process.cwd()`가 레포 루트가 아닐 때 `-m scripts...` 실패 방지 */
+function resolveYbtourPythonRepoRoot(): string {
+  const fromEnv = (process.env.BONGTOUR_REPO_ROOT ?? '').trim()
+  if (fromEnv) return path.resolve(fromEnv)
+
+  const markerRel = path.join('scripts', 'calendar_e2e_scraper_ybtour', 'calendar_price_scraper.py')
+  let dir = path.resolve(process.cwd())
+  for (let i = 0; i < 12; i++) {
+    try {
+      if (fs.existsSync(path.join(dir, markerRel))) return dir
+    } catch {
+      /* access error — try parent */
+    }
+    const parent = path.dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  return path.resolve(process.cwd())
+}
+
 async function scrapeLiveCalendar(
   detailUrl: string,
   site: 'modetour' | 'verygoodtour' | 'ybtour'
-): Promise<{ rows: ScrapedCalendarItem[]; stderr: string }> {
+): Promise<{ rows: ScrapedCalendarItem[]; stderr: string; ybtourPythonOkFalse?: YbtourPythonOkFalseMeta }> {
   const py = resolvePythonExecutable()
   const argv = ['-m', CALENDAR_PRICE_SCRAPER_MODULE[site], detailUrl]
-  const cwd = process.cwd()
+  const cwd = site === 'ybtour' ? resolveYbtourPythonRepoRoot() : process.cwd()
   /** `ProcessEnv`는 알려진 키만 점접근 허용 → 커스텀 env 로그·전달용으로 Record 사용 */
   const envForChild: Record<string, string | undefined> = {
     ...process.env,
@@ -200,11 +228,12 @@ async function scrapeLiveCalendar(
 
   if (site === 'ybtour') {
     const urlHead = detailUrl.slice(0, 120)
+    const cwdBase = process.cwd()
     console.log(
       `[ybtour-diag] python_exec_start command=${JSON.stringify(py)} argv=-m ${CALENDAR_PRICE_SCRAPER_MODULE[site]} url_len=${detailUrl.length} url_head=${urlHead}`
     )
     console.log(
-      `[ybtour-diag] cwd=${cwd} PYTHONPATH=${envForChild.PYTHONPATH ? 'set' : 'unset'} YBTOUR_JSON_UTF8_FILE=${envForChild['YBTOUR_JSON_UTF8_FILE'] ? 'set' : 'unset'} PATH=${envForChild['PATH'] ? 'set' : 'unset'}`
+      `[ybtour-diag] cwd=${cwd} cwd_vs_process_cwd=${cwd === cwdBase ? 'same' : `resolved(repo_root) process.cwd=${cwdBase}`} PYTHONPATH=${envForChild.PYTHONPATH ? 'set' : 'unset'} BONGTOUR_REPO_ROOT=${(process.env.BONGTOUR_REPO_ROOT ?? '').trim() ? 'set' : 'unset'} YBTOUR_JSON_UTF8_FILE=${envForChild['YBTOUR_JSON_UTF8_FILE'] ? 'set' : 'unset'} PATH=${envForChild['PATH'] ? 'set' : 'unset'}`
     )
   }
 
@@ -264,8 +293,59 @@ async function scrapeLiveCalendar(
     }
     throw parseErr
   }
+  const stderrOut = typeof stderr === 'string' ? stderr : ''
+  if (site === 'ybtour') {
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && 'ok' in parsed) {
+      const o = parsed as {
+        ok: unknown
+        rows?: unknown
+        phase?: unknown
+        message?: unknown
+        errorType?: unknown
+      }
+      const rows = Array.isArray(o.rows) ? (o.rows as ScrapedCalendarItem[]) : []
+      if (o.ok === false) {
+        return {
+          rows: [],
+          stderr: stderrOut,
+          ybtourPythonOkFalse: {
+            phase: typeof o.phase === 'string' ? o.phase : 'unknown',
+            message: typeof o.message === 'string' ? o.message : '',
+            errorType: typeof o.errorType === 'string' ? o.errorType : undefined,
+          },
+        }
+      }
+      return { rows, stderr: stderrOut }
+    }
+    if (Array.isArray(parsed)) {
+      return { rows: parsed as ScrapedCalendarItem[], stderr: stderrOut }
+    }
+    throw new SyntaxError('ybtour stdout: expected admin envelope {ok,rows} or legacy JSON array')
+  }
   const rows = Array.isArray(parsed) ? (parsed as ScrapedCalendarItem[]) : []
-  return { rows, stderr: typeof stderr === 'string' ? stderr : '' }
+  return { rows, stderr: stderrOut }
+}
+
+function formatYbtourLiveScrapeFailure(e: unknown): string {
+  const err = e as NodeJS.ErrnoException & {
+    killed?: boolean
+    signal?: string | null
+    status?: number
+    code?: string | number | null
+  }
+  if (err.killed === true && err.signal) {
+    return `ybtour-calendar-scraper: subprocess signal=${err.signal} (timeout or kill; no stdout envelope)`
+  }
+  if (typeof err.status === 'number' && err.status !== 0) {
+    return `ybtour-calendar-scraper: python exit=${err.status} ${(err.message ?? '').slice(0, 180)}`.slice(0, 240)
+  }
+  if (typeof err.code === 'string' && err.code.startsWith('ERR_')) {
+    return `ybtour-calendar-scraper: spawn/exec ${err.code} ${(err.message ?? '').slice(0, 160)}`.slice(0, 240)
+  }
+  if (e instanceof SyntaxError) {
+    return `ybtour-calendar-scraper: JSON.parse stdout failed ${e.message}`.slice(0, 240)
+  }
+  return `ybtour-calendar-scraper: ${(e instanceof Error ? e.message : 'unknown').slice(0, 200)}`.slice(0, 240)
 }
 
 function mapScrapedRowsToInputs(
@@ -521,54 +601,69 @@ export async function collectDepartureInputsForAdminRescrape(
       }
     }
 
-    const { rows: scrapedRows, stderr: pyStderr } = await scrapeLiveCalendar(detailUrl, site)
+    const cal = await scrapeLiveCalendar(detailUrl, site)
+    const scrapedRows = cal.rows
+    const pyStderr = cal.stderr
+
     if (site === 'ybtour') {
-      ybtourRescrapeLog(
-        'node-before-map',
-        `site=ybtour originSource=${JSON.stringify((product.originSource ?? '').slice(0, 80))} originCode=${JSON.stringify((product.originCode ?? '').slice(0, 40))} ${summarizeYbtourDetailUrlForLog(detailUrl)}`
-      )
       forwardYbtourPythonStderr(pyStderr)
     }
-    const inputs = filterDepartureInputsOnOrAfterCalendarToday(
-      mapScrapedRowsToInputs(scrapedRows, statusByDate)
-    )
-    if (inputs.length > 0) {
-      const fillMeta = deriveFillMeta(inputs)
+
+    if (site === 'ybtour' && cal.ybtourPythonOkFalse) {
+      const m = cal.ybtourPythonOkFalse
+      liveError = `ybtour-calendar-scraper: python stdout ok=false phase=${m.phase}${m.errorType ? ` errorType=${m.errorType}` : ''} msg=${m.message.slice(0, 160)}`
+      ybtourRescrapeLog(
+        'node-envelope-ok-false',
+        `phase=${m.phase} errorType=${m.errorType ?? 'n/a'} msg_head=${m.message.slice(0, 120)}`
+      )
+    } else {
       if (site === 'ybtour') {
         ybtourRescrapeLog(
-          'node-after-kst-filter',
-          `inputs=${inputs.length} raw_scraped_rows=${scrapedRows.length} (see Python stderr for phase=final-diagnosis)`
+          'node-before-map',
+          `site=ybtour originSource=${JSON.stringify((product.originSource ?? '').slice(0, 80))} originCode=${JSON.stringify((product.originCode ?? '').slice(0, 40))} ${summarizeYbtourDetailUrlForLog(detailUrl)}`
         )
       }
-      return {
-        mode: 'live-rescrape',
-        source:
-          site === 'modetour'
-            ? 'modetour-adapter'
-            : site === 'ybtour'
-              ? 'ybtour-calendar-scraper'
-              : 'hanatour-adapter',
-        inputs,
-        attemptedLive,
-        liveError: null,
-        filledFields: fillMeta.filledFields,
-        missingFields: fillMeta.missingFields,
-        mappingStatus: 'per-date-confirmed',
-        site,
-        detailUrl: detailUrlForTrace,
-        detailUrlSummary,
-        collectorStatus: null,
-      }
-    }
-    liveError =
-      site === 'ybtour'
-        ? 'ybtour-calendar-scraper: 0 rows after map+kst-filter ??check stderr [ybtour] phase=final-diagnosis (baseline-title-empty | modal-open-failed | title-match-zero | kst-or-date-parse-zero | detail-page-load-failed | ??'
-        : `${site}-adapter returned 0 rows`
-    if (site === 'ybtour') {
-      ybtourRescrapeLog(
-        'node-zero-inputs',
-        `raw_scraped_rows=${scrapedRows.length} mapped_then_kst_filter=0 liveError_hint=see_message`
+      const inputs = filterDepartureInputsOnOrAfterCalendarToday(
+        mapScrapedRowsToInputs(scrapedRows, statusByDate)
       )
+      if (inputs.length > 0) {
+        const fillMeta = deriveFillMeta(inputs)
+        if (site === 'ybtour') {
+          ybtourRescrapeLog(
+            'node-after-kst-filter',
+            `inputs=${inputs.length} raw_scraped_rows=${scrapedRows.length} (see Python stderr for phase=final-diagnosis)`
+          )
+        }
+        return {
+          mode: 'live-rescrape',
+          source:
+            site === 'modetour'
+              ? 'modetour-adapter'
+              : site === 'ybtour'
+                ? 'ybtour-calendar-scraper'
+                : 'hanatour-adapter',
+          inputs,
+          attemptedLive,
+          liveError: null,
+          filledFields: fillMeta.filledFields,
+          missingFields: fillMeta.missingFields,
+          mappingStatus: 'per-date-confirmed',
+          site,
+          detailUrl: detailUrlForTrace,
+          detailUrlSummary,
+          collectorStatus: null,
+        }
+      }
+      liveError =
+        site === 'ybtour'
+          ? 'ybtour-calendar-scraper: 0 rows after map+kst-filter ??check stderr [ybtour] phase=final-diagnosis (baseline-title-empty | modal-open-failed | title-match-zero | kst-or-date-parse-zero | detail-page-load-failed | ??'
+          : `${site}-adapter returned 0 rows`
+      if (site === 'ybtour') {
+        ybtourRescrapeLog(
+          'node-zero-inputs',
+          `raw_scraped_rows=${scrapedRows.length} mapped_then_kst_filter=0 liveError_hint=see_message`
+        )
+      }
     }
   } catch (e) {
     if (site === 'ybtour') {
@@ -579,7 +674,7 @@ export async function collectDepartureInputsForAdminRescrape(
     }
     liveError =
       site === 'ybtour'
-        ? `ybtour-calendar-scraper: node/python/json error ??${e instanceof Error ? e.message.slice(0, 200) : 'unknown'} (see [ybtour] phase=node-exec-or-parse-failed)`
+        ? formatYbtourLiveScrapeFailure(e)
         : `${site}-adapter execution failed`
     // fallback below
   }

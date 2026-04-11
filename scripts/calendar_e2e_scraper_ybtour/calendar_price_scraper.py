@@ -1328,6 +1328,16 @@ async def run_calendar_price_from_url(
         return await scraper.run_on_detail_url(detail_url)
 
 
+def _emit_ybtour_admin_stdout_envelope(payload: Dict[str, Any]) -> None:
+    """
+    관리자 Node(execFile)용: stdout 한 줄은 항상 {"ok", "rows", ...} 객체.
+    실패도 exit 0 + ok=false 로 남겨 subprocess 예외와 구분한다.
+    """
+    if "rows" not in payload:
+        payload["rows"] = []
+    _emit_stdout_json_utf8(payload)
+
+
 def _emit_stdout_json_utf8(obj: object) -> None:
     """
     관리자 Node(execFile)가 stdout 전체를 JSON.parse 할 수 있게:
@@ -1361,22 +1371,43 @@ if __name__ == "__main__":
             sys.stderr.reconfigure(encoding="utf-8")
         except Exception:
             pass
+
+    def _admin_fail(phase: str, msg: str, exc_type: Optional[str] = None) -> None:
+        payload: Dict[str, Any] = {
+            "ok": False,
+            "rows": [],
+            "phase": phase,
+            "message": (msg or "")[:800],
+        }
+        if exc_type:
+            payload["errorType"] = exc_type
+        try:
+            _emit_ybtour_admin_stdout_envelope(payload)
+        except Exception:
+            traceback.print_exc(file=sys.stderr)
+            sys.stderr.flush()
+            sys.exit(1)
+        sys.exit(0)
+
     url = (sys.argv[1] or "").strip() if len(sys.argv) > 1 else ""
     if not url or not url.startswith("http"):
         sys.stderr.write(
             "Usage: python -m scripts.calendar_e2e_scraper_ybtour.calendar_price_scraper <detail_url>\n"
         )
         sys.stderr.flush()
-        sys.exit(1)
+        _admin_fail("bad-args", "detail_url must start with http(s)")
+
     try:
         result = asyncio.run(run_calendar_price_from_url(url, headless=True))
-    except Exception:
+    except Exception as ex:
         traceback.print_exc(file=sys.stderr)
         sys.stderr.flush()
-        sys.exit(2)
+        _admin_fail("asyncio-run-exception", str(ex), type(ex).__name__)
+
     try:
-        _emit_stdout_json_utf8(result)
-    except Exception:
+        _emit_ybtour_admin_stdout_envelope({"ok": True, "rows": result})
+    except Exception as ex:
         traceback.print_exc(file=sys.stderr)
         sys.stderr.flush()
-        sys.exit(3)
+        _admin_fail("emit-json-exception", str(ex), type(ex).__name__)
+    sys.exit(0)
