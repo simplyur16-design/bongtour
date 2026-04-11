@@ -129,6 +129,24 @@ function summarizeYbtourDetailUrlForLog(url: string): string {
   }
 }
 
+/** prdt `detailPackage` 가 evCd 위주일 때 `goodsCd`(Product.originCode)를 붙여 스크래퍼·상세 일치(ybtour 전용). */
+function withYbtourPrdtGoodsCdParam(detailUrl: string, originCode: string | null): string {
+  const code = (originCode ?? '').trim()
+  if (!code) return detailUrl
+  try {
+    const u = new URL(detailUrl)
+    if (!/prdt\.ybtour\.co\.kr$/i.test(u.hostname)) return detailUrl
+    if (!u.pathname.includes('detailPackage')) return detailUrl
+    const hasGoods = Boolean(u.searchParams.get('goodsCd')?.trim() || u.searchParams.get('goodscd')?.trim())
+    if (hasGoods) return detailUrl
+    u.searchParams.set('goodsCd', code)
+    if (!u.searchParams.get('menu')?.trim()) u.searchParams.set('menu', 'PKG')
+    return u.toString()
+  } catch {
+    return detailUrl
+  }
+}
+
 function forwardYbtourPythonStderr(stderr: string) {
   const lines = stderr.split('\n').filter((l) => l.includes('[ybtour]'))
   const tail = lines.length > 40 ? lines.slice(-40) : lines
@@ -601,7 +619,9 @@ export async function collectDepartureInputsForAdminRescrape(
       }
     }
 
-    const cal = await scrapeLiveCalendar(detailUrl, site)
+    const detailUrlForLiveCalendar =
+      site === 'ybtour' ? withYbtourPrdtGoodsCdParam(detailUrl, product.originCode) : detailUrl
+    const cal = await scrapeLiveCalendar(detailUrlForLiveCalendar, site)
     const scrapedRows = cal.rows
     const pyStderr = cal.stderr
 
@@ -620,7 +640,7 @@ export async function collectDepartureInputsForAdminRescrape(
       if (site === 'ybtour') {
         ybtourRescrapeLog(
           'node-before-map',
-          `site=ybtour originSource=${JSON.stringify((product.originSource ?? '').slice(0, 80))} originCode=${JSON.stringify((product.originCode ?? '').slice(0, 40))} ${summarizeYbtourDetailUrlForLog(detailUrl)}`
+          `site=ybtour originSource=${JSON.stringify((product.originSource ?? '').slice(0, 80))} originCode=${JSON.stringify((product.originCode ?? '').slice(0, 40))} ${summarizeYbtourDetailUrlForLog(detailUrlForLiveCalendar)}`
         )
       }
       const inputs = filterDepartureInputsOnOrAfterCalendarToday(

@@ -13,8 +13,6 @@ import traceback
 import urllib.parse
 from typing import Any, Dict, List, Optional
 
-from playwright.async_api import Page, async_playwright
-
 from scripts.shared.airline_encoding_fix import fix_airline_name_str
 
 from . import config
@@ -340,7 +338,7 @@ class CalendarPriceScraper:
         self.randomize_ua = randomize_ua
         self.random_mouse = random_mouse
         self.base_url = config.BASE_URL
-        self._page: Optional[Page] = None
+        self._page: Optional[Any] = None
         self._browser = None
         self._playwright = None
         self._context = None
@@ -354,6 +352,12 @@ class CalendarPriceScraper:
 
     async def _launch_browser(self) -> None:
         """Playwright 기동 + stealth + 랜덤 UA."""
+        try:
+            from playwright.async_api import async_playwright
+        except ImportError as ex:
+            raise RuntimeError(
+                "playwright 패키지가 없습니다. 서버: pip install playwright && playwright install chromium"
+            ) from ex
         try:
             self._playwright = await async_playwright().start()
             self._browser = await self._playwright.chromium.launch(
@@ -1364,50 +1368,92 @@ def _emit_stdout_json_utf8(obj: object) -> None:
             sys.stderr.flush()
 
 
-if __name__ == "__main__":
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            sys.stdout.reconfigure(encoding="utf-8")
-            sys.stderr.reconfigure(encoding="utf-8")
-        except Exception:
-            pass
-
-    def _admin_fail(phase: str, msg: str, exc_type: Optional[str] = None) -> None:
-        payload: Dict[str, Any] = {
+def _emit_minimal_ascii_envelope(phase: str, message: str, error_type: str) -> None:
+    """UTF-8 emit 실패 시에도 Node가 JSON 한 줄을 파싱할 수 있게 ASCII만 기록."""
+    mini = json.dumps(
+        {
             "ok": False,
             "rows": [],
             "phase": phase,
-            "message": (msg or "")[:800],
-        }
-        if exc_type:
-            payload["errorType"] = exc_type
+            "message": (message or "")[:800],
+            "errorType": error_type,
+        },
+        ensure_ascii=True,
+        separators=(",", ":"),
+    ).encode("ascii", errors="replace")
+    sys.stdout.buffer.write(mini + b"\n")
+    sys.stdout.buffer.flush()
+
+
+if __name__ == "__main__":
+    def _admin_cli() -> None:
+        if hasattr(sys.stdout, "reconfigure"):
+            try:
+                sys.stdout.reconfigure(encoding="utf-8")
+                sys.stderr.reconfigure(encoding="utf-8")
+            except Exception:
+                pass
+
+        def _admin_fail(phase: str, msg: str, exc_type: Optional[str] = None) -> None:
+            payload: Dict[str, Any] = {
+                "ok": False,
+                "rows": [],
+                "phase": phase,
+                "message": (msg or "")[:800],
+            }
+            if exc_type:
+                payload["errorType"] = exc_type
+            try:
+                _emit_ybtour_admin_stdout_envelope(payload)
+            except Exception:
+                traceback.print_exc(file=sys.stderr)
+                sys.stderr.flush()
+                try:
+                    _emit_minimal_ascii_envelope(
+                        "emit-envelope-failed",
+                        "could not write stdout utf-8 envelope",
+                        "EmitError",
+                    )
+                except Exception:
+                    pass
+            sys.exit(0)
+
+        url = (sys.argv[1] or "").strip() if len(sys.argv) > 1 else ""
+        if not url or not url.startswith("http"):
+            sys.stderr.write(
+                "Usage: python -m scripts.calendar_e2e_scraper_ybtour.calendar_price_scraper <detail_url>\n"
+            )
+            sys.stderr.flush()
+            _admin_fail("bad-args", "detail_url must start with http(s)")
+
         try:
-            _emit_ybtour_admin_stdout_envelope(payload)
-        except Exception:
+            result = asyncio.run(run_calendar_price_from_url(url, headless=True))
+        except Exception as ex:
             traceback.print_exc(file=sys.stderr)
             sys.stderr.flush()
-            sys.exit(1)
+            _admin_fail("asyncio-run-exception", str(ex), type(ex).__name__)
+
+        try:
+            _emit_ybtour_admin_stdout_envelope({"ok": True, "rows": result})
+        except Exception as ex:
+            traceback.print_exc(file=sys.stderr)
+            sys.stderr.flush()
+            _admin_fail("emit-json-exception", str(ex), type(ex).__name__)
         sys.exit(0)
 
-    url = (sys.argv[1] or "").strip() if len(sys.argv) > 1 else ""
-    if not url or not url.startswith("http"):
-        sys.stderr.write(
-            "Usage: python -m scripts.calendar_e2e_scraper_ybtour.calendar_price_scraper <detail_url>\n"
-        )
-        sys.stderr.flush()
-        _admin_fail("bad-args", "detail_url must start with http(s)")
-
     try:
-        result = asyncio.run(run_calendar_price_from_url(url, headless=True))
-    except Exception as ex:
+        _admin_cli()
+    except SystemExit:
+        raise
+    except BaseException as ex:
         traceback.print_exc(file=sys.stderr)
         sys.stderr.flush()
-        _admin_fail("asyncio-run-exception", str(ex), type(ex).__name__)
-
-    try:
-        _emit_ybtour_admin_stdout_envelope({"ok": True, "rows": result})
-    except Exception as ex:
-        traceback.print_exc(file=sys.stderr)
-        sys.stderr.flush()
-        _admin_fail("emit-json-exception", str(ex), type(ex).__name__)
-    sys.exit(0)
+        try:
+            _emit_minimal_ascii_envelope(
+                "fatal-unhandled",
+                str(ex)[:800],
+                type(ex).__name__,
+            )
+        except Exception:
+            pass
+        sys.exit(0)
