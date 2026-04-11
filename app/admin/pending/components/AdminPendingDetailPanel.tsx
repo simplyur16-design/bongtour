@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
@@ -784,7 +784,8 @@ export default function AdminPendingDetailPanel({
     try {
       const res = await fetch(`/api/admin/products/${detail.id}/departures`, {
         method: 'POST',
-        signal: AbortSignal.timeout(200_000),
+        // 서버 ybtour Playwright subprocess 최대 ~300s + DB 여유
+        signal: AbortSignal.timeout(330_000),
       })
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean

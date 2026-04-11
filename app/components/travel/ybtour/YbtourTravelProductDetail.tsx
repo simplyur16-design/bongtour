@@ -16,9 +16,10 @@ import { isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-hanatour'
 import { parseLegacyStructuredOptionalTours, toLegacyBookingTypeLabel } from '@/lib/optional-tours-ui-model'
 import { getYbtourOptionalTourUiRows } from '@/lib/optional-tours-ui-ybtour'
 import { computeKRWQuotation, isScheduleAdultBookable } from '@/lib/price-utils'
+import { pickGloballyCheapestDepartureRowByAdultPrice } from '@/lib/public-default-departure-selection'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
-import { resolveYbtourHeroTripDates } from '@/lib/product-hero-ybtour'
+import { buildYbtourTripDateDisplaysForSelectedRow } from '@/lib/ybtour/ybtour-selected-row-trip-display'
 import ProductHeroCarousel from '@/app/components/detail/ProductHeroCarousel'
 import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
 import ProductLiveQuoteCard from '@/app/components/detail/ProductLiveQuoteCard'
@@ -51,7 +52,6 @@ import {
   PRICE_MAIN_AMOUNT_HINT,
 } from '@/lib/promotion-copy-normalize'
 import type { DayHotelPlan } from '@/lib/day-hotel-plans-hanatour'
-import { formatHeroDateKorean } from '@/lib/hero-date-utils'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import {
   buildHanatourDepartureEvidenceHaystack,
@@ -219,41 +219,48 @@ function applyFlightManualCorrectionForPublicOrigin(
 }
 
 export default function YbtourTravelProductDetail({ product }: Props) {
-  const defaultDateKey = useMemo(() => {
-    const rows = product.prices.filter((p) => isScheduleAdultBookable(p))
-    if (rows.length === 0) return null
-    if (normalizeSupplierOrigin(product.originSource) === 'modetour') {
-      let best = rows[0]!
-      let bestTotal = computeKRWQuotation(best, { adult: 1, childBed: 0, childNoBed: 0, infant: 0 }).total
-      for (let i = 1; i < rows.length; i++) {
-        const t = computeKRWQuotation(rows[i]!, { adult: 1, childBed: 0, childNoBed: 0, infant: 0 }).total
-        if (t < bestTotal) {
-          best = rows[i]!
-          bestTotal = t
-        }
-      }
-      return toDateKey(best.date)
-    }
-    return toDateKey(rows[0]!.date)
-  }, [product.prices, product.originSource])
-
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [departureUserPinned, setDepartureUserPinned] = useState(false)
+  const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(null)
   const [pax, setPax] = useState({ adult: 1, childBed: 0, childNoBed: 0, infant: 0 })
   const [bookingOpen, setBookingOpen] = useState(false)
   const [departurePickerOpen, setDeparturePickerOpen] = useState(false)
 
   useEffect(() => {
-    if (!defaultDateKey) {
-      setSelectedDate(null)
+    setDepartureUserPinned(false)
+  }, [String(product.id)])
+
+  const defaultDepartureRow = useMemo(
+    () => pickGloballyCheapestDepartureRowByAdultPrice(product.prices),
+    [product.prices]
+  )
+
+  useEffect(() => {
+    if (departureUserPinned) return
+    if (!defaultDepartureRow) {
+      setSelectedDepartureRowId(null)
       return
     }
-    setSelectedDate((prev) => {
-      if (prev == null) return defaultDateKey
-      const row = product.prices.find((p) => toDateKey(p.date) === prev)
-      if (!row || !isScheduleAdultBookable(row)) return defaultDateKey
-      return prev
-    })
-  }, [defaultDateKey, product.prices])
+    setSelectedDepartureRowId(defaultDepartureRow.id)
+  }, [departureUserPinned, defaultDepartureRow?.id])
+
+  useEffect(() => {
+    if (!selectedDepartureRowId) return
+    const row = product.prices.find((p) => p.id === selectedDepartureRowId)
+    if (!row || !isScheduleAdultBookable(row)) {
+      setDepartureUserPinned(false)
+      setSelectedDepartureRowId(null)
+    }
+  }, [product.prices, selectedDepartureRowId])
+
+  const selectedPriceRow = useMemo(() => {
+    if (selectedDepartureRowId) {
+      const r = product.prices.find((p) => p.id === selectedDepartureRowId)
+      if (r && isScheduleAdultBookable(r)) return r
+    }
+    return defaultDepartureRow
+  }, [product.prices, selectedDepartureRowId, defaultDepartureRow])
+
+  const selectedDate = selectedPriceRow ? toDateKey(selectedPriceRow.date) : null
 
   const structuredOptionalTours = useMemo(
     () => parseLegacyStructuredOptionalTours(product.optionalToursStructured),
@@ -386,14 +393,6 @@ export default function YbtourTravelProductDetail({ product }: Props) {
     product.originSource,
   ])
 
-  const selectedPriceRow = useMemo(() => {
-    if (selectedDate) {
-      const row = product.prices.find((p) => toDateKey(p.date) === selectedDate)
-      if (row && isScheduleAdultBookable(row)) return row
-    }
-    return product.prices.find((p) => isScheduleAdultBookable(p)) ?? null
-  }, [product.prices, selectedDate])
-
   /** 꼭 알아야 할 사항: `mustKnowItems`만(공급사 공통). 비면 기본 안내 문구. */
   const mustKnowFiltered = useMemo(
     () =>
@@ -457,23 +456,15 @@ export default function YbtourTravelProductDetail({ product }: Props) {
     product.flightStructured,
   ])
 
-  const heroResolved = useMemo(
+  const { departureDisplay: heroDepartureDisplay, returnDisplay: heroReturnDisplay } = useMemo(
     () =>
-      resolveYbtourHeroTripDates({
-        selectedDate,
-        fallbackPriceRowDate: selectedPriceRow ? toDateKey(selectedPriceRow.date) : null,
+      buildYbtourTripDateDisplaysForSelectedRow({
+        calendarDep: selectedPriceRow ? toDateKey(selectedPriceRow.date) : null,
+        facts: selectedDepartureFacts,
         duration: product.duration,
-        departureFacts: selectedDepartureFacts,
-        ybtourFlightStructured: product.ybtourFlightStructuredForHero ?? null,
       }),
-    [selectedDate, selectedPriceRow, product.duration, selectedDepartureFacts, product.ybtourFlightStructuredForHero]
+    [selectedPriceRow, selectedDepartureFacts, product.duration]
   )
-  const heroDepartureDisplay =
-    heroResolved.departureDisplayOverride ??
-    (formatHeroDateKorean(heroResolved.departureIso) ?? heroResolved.departureIso ?? null)
-  const heroReturnDisplay =
-    heroResolved.returnDisplayOverride ??
-    (formatHeroDateKorean(heroResolved.returnIso) ?? heroResolved.returnIso ?? null)
 
   const travelCitiesLine = useMemo(() => {
     const raw = [product.primaryDestination, product.destination]
@@ -493,6 +484,8 @@ export default function YbtourTravelProductDetail({ product }: Props) {
     const bits: string[] = []
     if (base) bits.push(base)
     if (seats != null && seats >= 0) bits.push(`여유좌석 약 ${seats}석`)
+    const rowStatus = selectedPriceRow?.status?.trim()
+    if (rowStatus && !bits.some((b) => b.includes(rowStatus))) bits.push(rowStatus)
     if (normalizeSupplierOrigin(product.originSource) === 'hanatour') {
       const seatBlob = selectedPriceRow?.seatsStatusRaw?.trim() || selectedPriceRow?.status?.trim()
       const hay = buildHanatourDepartureEvidenceHaystack(product)
@@ -581,10 +574,10 @@ export default function YbtourTravelProductDetail({ product }: Props) {
                 <span className="font-medium text-bt-title">{product.destination}</span>
                 <span className="text-bt-disabled">·</span>
                 <span>{product.duration}</span>
-                {product.airline ? (
+                {selectedDepartureFacts?.airline?.trim() ? (
                   <>
                     <span className="text-bt-disabled">·</span>
-                    <span className="text-bt-muted">{product.airline}</span>
+                    <span className="text-bt-muted">{selectedDepartureFacts.airline.trim()}</span>
                   </>
                 ) : null}
               </p>
@@ -669,6 +662,7 @@ export default function YbtourTravelProductDetail({ product }: Props) {
             product={product}
             prices={product.prices}
             selectedDate={selectedDate}
+            explicitPriceRow={selectedPriceRow}
             pax={pax}
             updatePax={updatePax}
             updateChildCombined={updateChildCombined}
@@ -688,7 +682,7 @@ export default function YbtourTravelProductDetail({ product }: Props) {
           <div className="space-y-8">
             <TravelCoreInfoSection
               facts={selectedDepartureFacts}
-              productAirline={product.airline ?? null}
+              productAirline={selectedDepartureFacts?.airline?.trim() ?? null}
               periodContent={periodContent}
               travelCitiesLine={travelCitiesLine}
               reservationLine={reservationDisplayLine}
@@ -793,6 +787,7 @@ export default function YbtourTravelProductDetail({ product }: Props) {
                 product={product}
                 prices={product.prices}
                 selectedDate={selectedDate}
+                explicitPriceRow={selectedPriceRow}
                 pax={pax}
                 updatePax={updatePax}
                 updateChildCombined={updateChildCombined}
@@ -816,7 +811,13 @@ export default function YbtourTravelProductDetail({ product }: Props) {
           prices={product.prices}
           originSource={product.originSource}
           selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
+          selectedSourceRowId={selectedPriceRow?.id ?? null}
+          onSelectDate={() => {}}
+          onSelectDeparture={({ sourceRowId }) => {
+            setSelectedDepartureRowId(sourceRowId)
+            setDepartureUserPinned(true)
+          }}
+          filterDepartureListByCalendarMonth
           listFirst={false}
         />
 

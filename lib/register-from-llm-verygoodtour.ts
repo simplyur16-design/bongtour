@@ -59,6 +59,7 @@ import {
   type DayHotelPlan,
 } from '@/lib/day-hotel-plans-verygoodtour'
 import { mergeInfantPriceIntoProductPriceTable } from '@/lib/infant-price-extract'
+import { extractVerygoodGuideFeeLinesFromPriceBlob } from '@/lib/register-verygoodtour-price'
 import {
   extractProductPriceTableByLabels,
   mergeProductPriceTableWithLabelExtract,
@@ -370,7 +371,9 @@ function normalizeDedupText(v: string): string {
 }
 
 function hasSingleRoomSurchargeHint(text: string): boolean {
-  return /(1\s*인\s*(?:객실|실)|독실|싱글\s*차지|single\s*(?:room|charge))/i.test(text)
+  return /(객실\s*1인\s*1실|1인\s*1실\s*사용|1\s*인\s*(?:객실|실)|독실|싱글\s*차지|single\s*(?:room|charge))/i.test(
+    text
+  )
 }
 
 function extractSingleRoomSurcharge(rawText: string): {
@@ -2115,6 +2118,16 @@ ${text.slice(0, 16000)}`
 
   const pricePromotion = forPreview ? null : parsePricePromotionFromGeminiJson(raw.pricePromotion)
 
+  const verygoodPriceAddonHaystack = [
+    (pb.priceTable ?? '').trim(),
+    strOrNull(raw.priceTableRawText) ?? '',
+    stripHtmlForPriceBlob(strOrNull(raw.priceTableRawHtml)),
+    blockB,
+    pastedForSupplier,
+  ]
+    .filter((x) => String(x).trim().length > 0)
+    .join('\n\n')
+
   const includedItems = Array.isArray(raw.includedItems) ? raw.includedItems.map((x) => String(x)) : []
   const excludedItemsBase = Array.isArray(raw.excludedItems) ? raw.excludedItems.map((x) => String(x)) : []
   const llmSingleRoomAmount = numOrNull(raw.singleRoomSurchargeAmount)
@@ -2127,6 +2140,7 @@ ${text.slice(0, 16000)}`
       strOrNull(raw.excludedText),
       strOrNull(raw.includedExcludedRaw),
       options?.pastedBlocks?.includedExcluded ?? null,
+      verygoodPriceAddonHaystack,
       options?.pastedBodyForInference ?? rawText,
     ]
       .filter((x): x is string => Boolean(x?.trim()))
@@ -2151,10 +2165,20 @@ ${text.slice(0, 16000)}`
     ? hasSingleRoomSurchargeHint(excludedTextSource)
     : false
   const excludedItems = [...excludedItemsBase]
+  const excludedItemDedupKeys = new Set(excludedItems.map((x) => normalizeDedupText(x)))
   if (singleRoomSurchargeDisplayText && !excludedTextHasSingleRoom) {
-    const existingKeys = new Set(excludedItems.map((x) => normalizeDedupText(x)))
     const nextKey = normalizeDedupText(singleRoomSurchargeDisplayText)
-    if (!existingKeys.has(nextKey)) excludedItems.push(singleRoomSurchargeDisplayText)
+    if (!excludedItemDedupKeys.has(nextKey)) {
+      excludedItemDedupKeys.add(nextKey)
+      excludedItems.push(singleRoomSurchargeDisplayText)
+    }
+  }
+  for (const gl of extractVerygoodGuideFeeLinesFromPriceBlob(verygoodPriceAddonHaystack)) {
+    const k = normalizeDedupText(gl)
+    if (!excludedItemDedupKeys.has(k)) {
+      excludedItemDedupKeys.add(k)
+      excludedItems.push(gl)
+    }
   }
   const includedTextMerged =
     (raw.includedRaw as string)?.trim() ||
@@ -2192,14 +2216,7 @@ ${text.slice(0, 16000)}`
         }
       : null
 
-  const priceBlobForInfant = [
-    (pb.priceTable ?? '').trim(),
-    strOrNull(raw.priceTableRawText) ?? '',
-    stripHtmlForPriceBlob(strOrNull(raw.priceTableRawHtml)),
-    blockB,
-  ]
-    .filter((x) => String(x).length > 0)
-    .join('\n\n')
+  const priceBlobForInfant = verygoodPriceAddonHaystack
 
   const infantMerged = mergeInfantPriceIntoProductPriceTable(productPriceTable, priceBlobForInfant)
   const mergedTable = infantMerged.productPriceTable
@@ -2222,11 +2239,11 @@ ${text.slice(0, 16000)}`
       }
     : null
   const priceFromResolved =
-    firstPriceTotal != null && firstPriceTotal > 0
-      ? firstPriceTotal
-      : productPriceTable?.adultPrice != null && productPriceTable.adultPrice > 0
-        ? productPriceTable.adultPrice
-        : firstPriceTotal
+    productPriceTable?.adultPrice != null && productPriceTable.adultPrice > 0
+      ? productPriceTable.adultPrice
+      : firstPriceTotal != null && firstPriceTotal > 0
+        ? firstPriceTotal
+        : null
   for (const issue of infantMerged.issues) {
     extractionFieldIssues.push({
       field: issue.field,

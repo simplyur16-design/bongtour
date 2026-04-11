@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { ClipboardList, Heart, Package, UserRound, Users } from 'lucide-react'
-import PrivateGroupCustomerReviewSection from '@/app/components/travel/reviews/PrivateGroupCustomerReviewSection'
-import type { ReviewCardModel } from '@/lib/reviews-types'
+import GroupMeetingReviewsSection from '@/app/components/travel/reviews/GroupMeetingReviewsSection'
+import type { GroupMeetingReviewCardModel } from '@/lib/group-meeting-reviews-csv'
 
 const recommend = [
   {
@@ -47,15 +47,10 @@ const benefits = [
 
 type Props = {
   inquiryHref: string
-  publishedReviews: ReviewCardModel[]
-  publishedTotalCount: number
+  groupMeetingReviews: GroupMeetingReviewCardModel[]
 }
 
-export default function PrivateTripLanding({
-  inquiryHref,
-  publishedReviews,
-  publishedTotalCount,
-}: Props) {
+export default function PrivateTripLanding({ inquiryHref, groupMeetingReviews }: Props) {
   return (
     <>
       <section className="bg-white py-16 sm:py-20">
@@ -100,22 +95,13 @@ export default function PrivateTripLanding({
         </div>
       </section>
 
-      <PrivateGroupCustomerReviewSection
-        publishedReviews={publishedReviews}
-        publishedTotalCount={publishedTotalCount}
-        inquiryHref={inquiryHref}
-        headingOverride="단독여행 후기"
-        descriptionOverride="가족여행, 모임여행, 소규모 단체여행으로 먼저 다녀오신 분들의 이야기를 통해 분위기와 진행 방식을 확인해보세요."
-        hideFooterCta
-        hideEyebrow
-        centerIntro
-      />
+      <GroupMeetingReviewsSection reviews={groupMeetingReviews} />
 
       <section className="border-t border-slate-200 bg-gradient-to-b from-slate-900 to-slate-950 py-16 text-white sm:py-20">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <UserRound className="mx-auto h-10 w-10 text-teal-300/90" strokeWidth={1.25} aria-hidden />
           <h2 className="mt-6 text-xl font-semibold leading-snug sm:text-2xl">
-            우리끼리 편하게 떠날 수 있는지, 단독견적과 일정 방향부터 상담으로 확인해보세요.
+            우리끼리 편하게 떠날 수 있는지, 우리견적과 일정 방향부터 상담으로 확인해보세요.
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-slate-300">어떤 방식이 잘 맞는지 함께 안내해드립니다.</p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
@@ -123,7 +109,7 @@ export default function PrivateTripLanding({
               href={inquiryHref}
               className="inline-flex min-h-[48px] min-w-[200px] items-center justify-center rounded-xl bg-teal-500 px-8 py-3 text-sm font-semibold text-white transition-colors duration-75 hover:bg-teal-400"
             >
-              단독견적 문의하기
+              우리견적 문의하기
             </Link>
             <Link
               href={`${inquiryHref}${inquiryHref.includes('?') ? '&' : '?'}topic=custom`}

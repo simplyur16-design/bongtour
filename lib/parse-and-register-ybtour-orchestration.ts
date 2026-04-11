@@ -47,6 +47,8 @@ function registerPersistedHasCalendarDraftSignals(
 }
 import { testGeminiConnection } from '@/lib/gemini-client'
 import {
+  enrichYbtourDepartureInputsForConfirmSave,
+  loadYbtourProductInfantFallback,
   parsedPricesToDepartureInputs,
   upsertProductDepartures,
   type DepartureInput,
@@ -1475,6 +1477,17 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     }
     timing.mark('after-pending-save')
 
+    const infantFromParsedTable =
+      parsed.productPriceTable?.infantPrice != null && Number(parsed.productPriceTable.infantPrice) > 0
+        ? Math.floor(Number(parsed.productPriceTable.infantPrice))
+        : null
+    const infantFromExistingPrices = existing?.prices?.find((p) => p.infant > 0)?.infant ?? null
+    const infantFallback =
+      infantFromParsedTable ??
+      infantFromExistingPrices ??
+      (await loadYbtourProductInfantFallback(prisma, productId))
+    const departureInputsForSave = enrichYbtourDepartureInputsForConfirmSave(departureInputs, infantFallback)
+
     const sortedPrices = [...(parsed.prices ?? [])].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     )
@@ -1507,13 +1520,13 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         priceGap: priceGap ?? 0,
       }
     })
-    if (priceRows.length === 0 && departureInputs.length > 0) {
-      priceRows = departureInputsToProductPriceCreateMany(productId, departureInputs)
+    if (priceRows.length === 0 && departureInputsForSave.length > 0) {
+      priceRows = departureInputsToProductPriceCreateMany(productId, departureInputsForSave)
     }
     if (priceRows.length === 0 && parsed.productPriceTable) {
       const fallbackDate =
-        departureInputs[0]?.departureDate instanceof Date
-          ? departureInputs[0].departureDate
+        departureInputsForSave[0]?.departureDate instanceof Date
+          ? departureInputsForSave[0].departureDate
           : new Date()
       const adult = parsed.productPriceTable.adultPrice ?? parsed.priceFrom ?? 0
       priceRows = [
@@ -1533,8 +1546,8 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     }
     timing.mark('after-prices-save')
 
-    if (departureInputs.length > 0) {
-      await upsertProductDepartures(prisma, productId, departureInputs)
+    if (departureInputsForSave.length > 0) {
+      await upsertProductDepartures(prisma, productId, departureInputsForSave)
     }
     timing.mark('after-departures-save')
 

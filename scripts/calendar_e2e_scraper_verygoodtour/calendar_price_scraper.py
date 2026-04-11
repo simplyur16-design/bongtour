@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-하나투어/모두투어/참좋은/노랑풍선 상품 상세 페이지 달력 위젯 전용 스크래퍼.
-타겟: 오직 [날짜] + [가격]만 1년 치 수집. 가격 없는 셀(빈칸, '-') 즉시 Skip.
-이중 화살표: 보름 슬라이드(Inner) + 월 변경(Outer). playwright-stealth, 1.5~3.0초 딜레이, try-except 전 단계.
+참좋은여행(verygoodtour) 달력 + 출발일 변경 **일정행** 기준.
+- 네트워크 JSON 경로: 월별 `ProductCalendarSearch` + 상세 1회(패키지 제목·N박M일 베이스만).
+- 같은 일정행: **MasterCode 접두 + N박M일 일치** + **상품명 전체 일치**(상세 preHash vs 행 ProductName, 공백 정규화).
+- 행에서 채움: 출발·귀국 일시, 가격, 예약가능 문구, 항공사 등.
+- 모달 일정 리스트는 스크롤 가능 → Playwright 경로에서 `_scroll_verygood_popup_list` 로 끝까지 스크롤.
+- 출발일·금액 수집 하한: KST **오늘 +3일**(`_kst_verygood_departure_floor_ymd`) 미만 제외.
 """
 import asyncio
 import datetime as dt
@@ -15,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 from playwright.async_api import Page, async_playwright
 
-from scripts.shared.airline_encoding_fix import fix_airline_name_str
+from scripts.shared.airline_encoding_fix import fix_airline_name_str, fix_mojibake_korean_str
 
 from . import config
 from .utils import (
@@ -31,9 +34,101 @@ _KST = dt.timezone(dt.timedelta(hours=9))
 # lib/scrape-date-bounds.ts SCRAPE_DEFAULT_MONTHS_FORWARD 와 맞춤
 DEFAULT_CALENDAR_MONTH_LIMIT = 6
 
+_LEADING_BADGE_RE_VG = re.compile(r"^(?:\[[^\]]*\]\s*)+")
+
+
+def _verygood_strip_tags(html: str) -> str:
+    t = re.sub(r"<[^>]+>", " ", html or "")
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _verygood_detail_title_raw(detail_html: str) -> str:
+    m = re.search(r'<h3[^>]*class="[^"]*package-title[^"]*"[^>]*>([\s\S]*?)</h3>', detail_html, re.I)
+    if m:
+        return m.group(1)
+    og = re.search(r'<meta\s+property="og:title"\s+content="([^"]+)"', detail_html, re.I)
+    if og:
+        return og.group(1)
+    m2 = re.search(r"<title[^>]*>([\s\S]*?)</title>", detail_html, re.I)
+    return (m2.group(1) if m2 else "") or ""
+
+
+def _verygood_title_pre_hash(raw: str) -> str:
+    t = _verygood_strip_tags(raw)
+    t = _LEADING_BADGE_RE_VG.sub("", t)
+    return (t.split("#")[0] or "").strip()
+
+
+def _verygood_nm_from_text(blob: str) -> Optional[tuple[int, int]]:
+    m = re.search(r"(\d+)\s*박\s*(\d+)\s*일", blob or "")
+    if not m:
+        return None
+    n, d = int(m[1]), int(m[2])
+    if n < 0 or d < 1 or d < n:
+        return None
+    return (n, d)
+
+
+def _verygood_trip_label_from_json(v: Dict[str, Any]) -> Optional[str]:
+    def pos_int(x: Any) -> Optional[int]:
+        try:
+            n = int(x)
+            return n if n > 0 else None
+        except (TypeError, ValueError):
+            return None
+
+    n = pos_int(v.get("TripNight")) or pos_int(v.get("TourNight")) or pos_int(v.get("NightCount"))
+    d = pos_int(v.get("TripDay")) or pos_int(v.get("TourDay")) or pos_int(v.get("DayCount"))
+    if n is not None and d is not None and d >= n:
+        return f"{n}박{d}일"
+    return None
+
+
+def _verygood_calendar_json_haystack(v: Dict[str, Any]) -> str:
+    parts: List[str] = []
+    for val in v.values():
+        if isinstance(val, str) and val.strip():
+            parts.append(val.strip())
+    return "\n".join(parts)
+
+
+def _verygood_row_primary_nm(v: Dict[str, Any], row_title: str) -> Optional[tuple[int, int]]:
+    """JSON → 행 제목 → 행 전체 문자열 순으로 N박M일(첫 유효값). 불일치 탈락 없음."""
+    j = _verygood_trip_label_from_json(v)
+    if j:
+        p = _verygood_nm_from_text(j)
+        if p:
+            return p
+    p = _verygood_nm_from_text(row_title)
+    if p:
+        return p
+    return _verygood_nm_from_text(_verygood_calendar_json_haystack(v))
+
+
+def _verygood_detail_nm_and_title_front(detail_html: str) -> tuple[Optional[tuple[int, int]], str]:
+    raw_title = _verygood_detail_title_raw(detail_html)
+    pre = _verygood_title_pre_hash(raw_title)
+    trip = _verygood_nm_from_text(pre)
+    if trip is None:
+        trip = _verygood_nm_from_text(_verygood_strip_tags(detail_html))
+    return trip, pre
+
+
+def _verygood_product_name_exact(detail_pre: str, row_title: str) -> bool:
+    d = re.sub(r"\s+", " ", (detail_pre or "").strip())
+    r = re.sub(r"\s+", " ", _verygood_title_pre_hash(row_title).strip())
+    d = fix_mojibake_korean_str(d) or d
+    r = fix_mojibake_korean_str(r) or r
+    return bool(d) and bool(r) and d == r
+
 
 def _kst_today_ymd() -> str:
     return dt.datetime.now(_KST).strftime("%Y-%m-%d")
+
+
+def _kst_verygood_departure_floor_ymd() -> str:
+    """KST 오늘 +3일부터 출발·금액 수집 (4/11 → 4/14)."""
+    return (dt.datetime.now(_KST).date() + dt.timedelta(days=3)).strftime("%Y-%m-%d")
 
 
 def _kst_month_start() -> dt.date:
@@ -42,7 +137,7 @@ def _kst_month_start() -> dt.date:
 
 
 def _filter_calendar_rows_kst_floor(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    floor = _kst_today_ymd()
+    floor = _kst_verygood_departure_floor_ymd()
     out: List[Dict[str, Any]] = []
     for r in rows:
         d = str(r.get("date") or "").strip()[:10]
@@ -52,10 +147,10 @@ def _filter_calendar_rows_kst_floor(rows: List[Dict[str, Any]]) -> List[Dict[str
 
 
 # 명세: 화살표/로딩 대기 딜레이
-DELAY_MIN = 1.5
-DELAY_MAX = 3.0
+DELAY_MIN = 0.5
+DELAY_MAX = 0.5
 SLIDE_WAIT_MS = 1000
-MONTH_WAIT_MS = 1500
+MONTH_WAIT_MS = 1000
 
 VERYGOOD_POPUP_OPEN_SELECTORS = [
     "button:has-text('출발일 변경')",
@@ -81,99 +176,10 @@ VERYGOOD_MONTH_NEXT_SELECTORS = [
     "button[title*='다음']",
 ]
 
-# 노랑풍선(ybtour): 출발일 변경 모달 — 좌측 달력은 가격·날짜 인덱스, 우측 리스트가 출발옵션 SSOT(제목 필터 없음)
-YBTOUR_POPUP_OPEN_SELECTORS = [
-    "button:has-text('출발일 보기')",
-    "a:has-text('출발일 보기')",
-    "button:has-text('출발일보기')",
-    "a:has-text('출발일보기')",
-    "button:has-text('출발일 변경')",
-    "a:has-text('출발일 변경')",
-    "button:has-text('출발일변경')",
-    "a:has-text('출발일변경')",
-    "button:has-text('출발일 선택')",
-    "a:has-text('출발일 선택')",
-    "[role='button']:has-text('출발일 보기')",
-]
-YBTOUR_MONTH_NEXT_SELECTORS = list(VERYGOOD_MONTH_NEXT_SELECTORS) + [
-    "button.calendar_next",
-    "a.calendar_next",
-]
-
 
 def _verygood_log(msg: str) -> None:
     """관리자 subprocess는 stdout=JSON 이므로 진단은 stderr."""
     print(msg, file=__import__("sys").stderr, flush=True)
-
-
-def _ybtour_log(msg: str) -> None:
-    print(msg, file=__import__("sys").stderr, flush=True)
-
-
-def _ybtour_modal_log(msg: str) -> None:
-    """관리자 stderr 필터([ybtour]) 유지 + 모달 단계 구분용 [ybtour-modal]."""
-    print(f"[ybtour] [ybtour-modal] {msg}", file=__import__("sys").stderr, flush=True)
-
-
-def _ybtour_detail_url_summary(detail_url: str) -> str:
-    """로그용 URL 요약(host/path/goodsCd). 쿼리 전체·비밀값 출력 금지."""
-    try:
-        p = urllib.parse.urlparse(detail_url)
-        host = p.netloc or "—"
-        path = (p.path or "—")[:96]
-        q = urllib.parse.parse_qs(p.query)
-        goods = (q.get("goodsCd") or q.get("goodscd") or [None])[0]
-        g = str(goods)[:40] if goods else "—"
-        return f"host={host} path={path} goodsCd={g}"
-    except Exception:
-        return "host=? url_parse_error"
-
-
-def _yb_row_richness_score(r: Dict[str, Any]) -> int:
-    s = 0
-    if int(r.get("adultPrice") or r.get("price") or 0) > 0:
-        s += 4
-    if str(r.get("statusRaw") or r.get("status") or "").strip():
-        s += 2
-    if str(r.get("seatsStatusRaw") or "").strip():
-        s += 2
-    if str(r.get("carrierName") or "").strip():
-        s += 1
-    if str(r.get("outboundDepartureAt") or "").strip():
-        s += 1
-    if str(r.get("inboundArrivalAt") or "").strip():
-        s += 1
-    return s
-
-
-def _ybtour_iso_from_year_month_day(year: Optional[str], month: Optional[str], day: int) -> Optional[str]:
-    if not year or not month:
-        return None
-    try:
-        mo = int(str(month), 10)
-        d = int(day)
-        y = int(str(year), 10)
-        if d < 1 or d > 31 or mo < 1 or mo > 12:
-            return None
-        return f"{y:04d}-{mo:02d}-{d:02d}"
-    except Exception:
-        return None
-
-
-def _ybtour_dedupe_by_departure_date_richer(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """DB (productId, departureDate) 유니크에 맞춰 동일 출발일은 더 풍부한 row 1건만 유지."""
-    by_date: Dict[str, Dict[str, Any]] = {}
-    order: List[str] = []
-    for r in rows:
-        d = str(r.get("date") or "").strip()[:10]
-        if len(d) != 10:
-            continue
-        if d not in by_date:
-            by_date[d] = r
-            order.append(d)
-        elif _yb_row_richness_score(r) > _yb_row_richness_score(by_date[d]):
-            by_date[d] = r
-    return [by_date[k] for k in sorted(order)]
 
 
 def _parse_year_month(text: Optional[str]) -> tuple:
@@ -227,6 +233,182 @@ def _to_iso_datetime(s: str) -> Optional[str]:
     return f"{yyyy}-{int(mm):02d}-{int(dd):02d} {int(hh):02d}:{int(mi):02d}"
 
 
+def _verygood_pad_hhmm(hhmm: str) -> str:
+    t = (hhmm or "").strip()
+    m = re.match(r"^(\d{1,2}):(\d{2})$", t)
+    if not m:
+        return t
+    return f"{int(m.group(1)):02d}:{m.group(2)}"
+
+
+def _verygood_norm_ymd(s: str) -> Optional[str]:
+    t = (s or "").strip()
+    if not t:
+        return None
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", t)
+    if m:
+        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+    m = re.match(r"^(\d{4})\.(\d{2})\.(\d{2})$", t)
+    if m:
+        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+    m = re.match(r"^(\d{4})/(\d{1,2})/(\d{1,2})$", t)
+    if m:
+        return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+    return None
+
+
+def _verygood_row_string_haystack(v: Dict[str, Any]) -> str:
+    parts: List[str] = []
+    for x in v.values():
+        if isinstance(x, str) and x.strip():
+            parts.append(x.strip())
+    return "\n".join(parts)
+
+
+def _verygood_try_combined_schedule_range(v: Dict[str, Any]) -> Optional[Dict[str, str]]:
+    """
+    리스트 한 줄: `2026.07.14(화) 23:40 ~ 2026.07.23(목) 17:00 | 7박10일`
+    분리 JSON 필드가 비었을 때 보조.
+    """
+    hay = _verygood_row_string_haystack(v)
+    if not hay:
+        return None
+    m = re.search(
+        r"(\d{4})[.\-/](\d{2})[.\-/](\d{2})(?:\s*\([^)]*\))?\s+(\d{1,2}):(\d{2})\s*~\s*"
+        r"(\d{4})[.\-/](\d{2})[.\-/](\d{2})(?:\s*\([^)]*\))?\s+(\d{1,2}):(\d{2})",
+        hay,
+    )
+    if not m:
+        return None
+    y1, mo1, d1, h1, mi1, y2, mo2, d2, h2, mi2 = m.groups()
+    return {
+        "departure_date": f"{y1}-{mo1}-{d1}",
+        "dep_time": _verygood_pad_hhmm(f"{int(h1)}:{mi1}"),
+        "arrival_date": f"{y2}-{mo2}-{d2}",
+        "arr_time": _verygood_pad_hhmm(f"{int(h2)}:{mi2}"),
+    }
+
+
+# 본문/모달 텍스트에서 항공사명 후보 (긴 이름을 앞에 두어 우선 매칭)
+_VERYGOOD_CARRIER_PATTERN = (
+    r"(에미레이트항공|에미레이트|튀르키예항공|터키항공|카타르항공|카타르|"
+    r"에티하드항공|에티하드|영국항공|싱가포르항공|태국항공|베트남항공|"
+    r"티웨이항공|대한항공|아시아나항공|제주항공|진에어|에어부산|에어서울|이스타항공|"
+    r"에어프레미아|플라이강원|루프트한자|에어캐나다|델타항공|유나이티드항공|"
+    r"에뉴질랜드|핀에어|ANA|전일본공수)"
+)
+
+
+def _verygood_calendar_rest_seat_int(v: Dict[str, Any]) -> Optional[int]:
+    rest = v.get("restSeatCount")
+    if isinstance(rest, bool):
+        return None
+    if isinstance(rest, int) and rest >= 0:
+        return rest
+    if isinstance(rest, str) and rest.strip().isdigit():
+        return int(rest.strip())
+    return None
+
+
+def _verygood_modal_remain_seats_int(item: Dict[str, Any], status_raw: str) -> Optional[int]:
+    """모달 DOM row에서 잔여석 정수 — 숫자 없으면 None (8필드 완전성 위해 행 제외)."""
+    ss = item.get("seatsStatusRaw")
+    if isinstance(ss, str) and ss.strip():
+        m = re.search(r"잔여\s*(\d+)", ss)
+        if m:
+            return int(m.group(1))
+        m2 = re.search(r"(\d+)\s*석", ss)
+        if m2:
+            return int(m2.group(1))
+    if re.search(r"마감|예약\s*마감|예약마감|불가", status_raw or ""):
+        return 0
+    return None
+
+
+def _verygood_attach_canonical_row_fields(
+    row: Dict[str, Any],
+    *,
+    departure_date: str,
+    departure_time: str,
+    return_date: str,
+    return_time: str,
+    price: int,
+    remain_seats: Optional[int],
+    booking_status: str,
+    airline_name: Optional[str],
+) -> None:
+    """저장·검증용 표준 8필드 키(항상 동일 row dict에 병기)."""
+    row["airlineName"] = airline_name
+    row["departureDate"] = departure_date
+    row["departureTime"] = departure_time
+    row["returnDate"] = return_date
+    row["returnTime"] = return_time
+    row["price"] = price
+    row["remainSeats"] = remain_seats
+    row["bookingStatus"] = booking_status
+    row["seatCount"] = remain_seats
+
+
+def _verygood_calendar_optional_int_price(v: Dict[str, Any], *keys: str) -> Optional[int]:
+    for k in keys:
+        raw = v.get(k)
+        if raw is None:
+            continue
+        try:
+            s = str(raw).replace(",", "").strip()
+            if not s:
+                continue
+            n = int(float(s))
+            if n > 0:
+                return n
+        except Exception:
+            continue
+    return None
+
+
+def _verygood_modal_schedule_from_range(
+    range_text: Optional[str], row_date_iso: str
+) -> Dict[str, Optional[str]]:
+    """
+    모달 행의 departureRangeText(출발~귀국 한 줄)만으로 일정을 만든다.
+    본문/상세 HTML·shared 보강 없음 — 파싱 실패 시 null.
+    """
+    out_dep: Optional[str] = None
+    in_arr: Optional[str] = None
+    rt = (range_text or "").strip().replace("～", "~").replace("∼", "~")
+    if rt:
+        m = re.search(
+            r"(20\d{2})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})\s*(?:\([^)]*\))?\s*"
+            r"(\d{1,2})\s*:\s*(\d{2})\s*[~～∼\-]\s*"
+            r"(20\d{2})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})\s*(?:\([^)]*\))?\s*"
+            r"(\d{1,2})\s*:\s*(\d{2})",
+            rt,
+        )
+        if m:
+            y1, mo1, d1, h1, mi1, y2, mo2, d2, h2, mi2 = m.groups()
+            parsed_start = f"{y1}-{int(mo1):02d}-{int(d1):02d}"
+            out_dep = f"{parsed_start} {int(h1):02d}:{mi1}"
+            in_arr = f"{y2}-{int(mo2):02d}-{int(d2):02d} {int(h2):02d}:{mi2}"
+            # 행 출발일과 범위 문자열 앞날짜가 어긋나면(인접 행 텍스트 누수) 본문 shared 대신
+            # **행 출발일 + 범위에서 읽은 시각**으로 맞춤 — 본문 기본 일정으로 덮어쓰지 않음.
+            if re.match(r"^\d{4}-\d{2}-\d{2}$", row_date_iso) and parsed_start != row_date_iso:
+                out_dep = f"{row_date_iso} {int(h1):02d}:{mi1}"
+                # 귀국일이 출발일보다 앞이면(잘못 붙은 문자열) 본문 shared로 되돌리지 않고 비움
+                if in_arr and in_arr[:10] < row_date_iso:
+                    in_arr = None
+    return {"outboundDepartureAt": out_dep, "inboundArrivalAt": in_arr}
+
+
+def _verygood_flight_pair_from_texts(*chunks: Optional[str]) -> tuple[Optional[str], Optional[str]]:
+    blob = " ".join((c or "").strip() for c in chunks if c)
+    flights = re.findall(r"\b([A-Z]{2}\d{3,4})\b", blob)
+    if not flights:
+        return None, None
+    if len(flights) == 1:
+        return flights[0], None
+    return flights[0], flights[-1]
+
+
 def _extract_shared_departure_meta_from_text(page_text: str) -> Dict[str, Any]:
     txt = page_text or ""
     meta: Dict[str, Any] = {
@@ -247,7 +429,7 @@ def _extract_shared_departure_meta_from_text(page_text: str) -> Dict[str, Any]:
         "meetingGuideNoticeRaw": None,
         "minPax": None,
     }
-    carrier = re.search(r"(티웨이항공|대한항공|아시아나항공|제주항공|진에어|에어부산|에어서울|이스타항공)", txt)
+    carrier = re.search(_VERYGOOD_CARRIER_PATTERN, txt)
     if carrier:
         meta["carrierName"] = fix_airline_name_str(carrier.group(1))
     min_pax = re.search(r"최소\s*출발\s*인원\s*[:：]?\s*(\d+)\s*명", txt)
@@ -448,15 +630,18 @@ def scrape_verygood_departures_from_network(detail_url: str) -> List[Dict[str, A
     u = urllib.parse.urlparse(detail_url)
     q = urllib.parse.parse_qs(u.query)
     procode = (q.get("ProCode") or [""])[0].strip()
-    menu_code = (q.get("MenuCode") or ["leaveLayer"])[0].strip() or "leaveLayer"
+    menu_code = (q.get("MenuCode") or q.get("menuCode") or ["leaveLayer"])[0].strip() or "leaveLayer"
     if not procode:
         return []
     master_code = procode.split("-")[0].strip()
-    detail_html = _http_get_text(detail_url)
-    shared_text = re.sub(r"<[^>]+>", " ", detail_html)
-    shared = _extract_shared_departure_meta_from_text(re.sub(r"\s+", " ", shared_text))
-    airports = _extract_airports_from_detail_html(detail_html)
-    meeting = _extract_meeting_from_detail_html(detail_html)
+    # 달력 JSON + 상세 1회(패키지 제목·N박M일)로 일정행 필터. 본문 shared 보강 없음.
+
+    detail_html = ""
+    try:
+        detail_html = _http_get_text(detail_url, referer=detail_url)
+    except Exception:
+        pass
+    base_trip, base_title_front = _verygood_detail_nm_and_title_front(detail_html)
 
     merged: Dict[str, Dict[str, Any]] = {}
     base = f"{u.scheme}://{u.netloc}"
@@ -472,26 +657,66 @@ def scrape_verygood_departures_from_network(detail_url: str) -> List[Dict[str, A
             date = str(v.get("DepartureDateToShortString") or "").strip()
             if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
                 continue
-            if date < _kst_today_ymd():
+            if date < _kst_verygood_departure_floor_ymd():
                 continue
             adult_price = _verygood_calendar_adult_price(v)
             if adult_price <= 0:
                 continue
-            status_raw = str(v.get("BtnReserveAltTag") or "").strip() or "예약가능"
-            seats = None
-            rest = v.get("restSeatCount")
-            if isinstance(rest, str) and rest.strip().isdigit():
-                rest = int(rest.strip())
-            if isinstance(rest, int) and rest > 0:
-                seats = f"잔여{rest}"
+            row_pc = str(v.get("ProductCode") or "").strip()
+            if row_pc and master_code and not row_pc.upper().startswith(master_code.upper()):
+                continue
+            row_title_raw = str(v.get("ProductName") or v.get("ProductTitle") or v.get("Title") or "").strip()
+            row_title = fix_mojibake_korean_str(row_title_raw) or row_title_raw
+            has_trip = base_trip is not None
+            has_title = bool((base_title_front or "").strip())
+            if has_trip or has_title:
+                if has_trip:
+                    row_nm = _verygood_row_primary_nm(v, row_title)
+                    if not row_nm or tuple(row_nm) != tuple(base_trip):
+                        continue
+                if has_title:
+                    if not _verygood_product_name_exact(base_title_front, row_title):
+                        continue
+            _btn = str(v.get("BtnReserveAltTag") or "").strip() or "예약가능"
+            status_raw = fix_mojibake_korean_str(_btn) or _btn
             trans_code = str(v.get("TransCode") or "").strip()
             trans_num = str(v.get("TransNumber") or "").strip().replace(" ", "")
-            dep_time = str(v.get("DepartureDepartureTime") or "").strip()
-            arr_time = str(v.get("ArrivalArrivalTime") or "").strip()
-            out_dep_at = f"{date} {dep_time}" if dep_time else None
-            # 도착일은 ArrivalDateToShortString 사용
+            dep_time = _verygood_pad_hhmm(str(v.get("DepartureDepartureTime") or "").strip())
+            arr_time = _verygood_pad_hhmm(str(v.get("ArrivalArrivalTime") or "").strip())
             arr_date = str(v.get("ArrivalDateToShortString") or "").strip()
-            in_arr_at = f"{arr_date} {arr_time}" if arr_date and arr_time else None
+            tn = str(v.get("TrasnName") or "").strip()
+            comb = _verygood_try_combined_schedule_range(v)
+            dep_norm = _verygood_norm_ymd(date)
+            if comb and dep_norm:
+                c0 = _verygood_norm_ymd(comb["departure_date"])
+                if c0 == dep_norm:
+                    if not dep_time:
+                        dep_time = comb["dep_time"]
+                    if not arr_date:
+                        arr_date = comb["arrival_date"]
+                    if not arr_time:
+                        arr_time = comb["arr_time"]
+            # 출발·귀국 일시는 분리 필드 또는 일정 한 줄( combined )에서 채움. 항공사명 없으면 미표기.
+            if not dep_time or not arr_date or not arr_time:
+                continue
+            if not tn:
+                tn = "미표기"
+            out_dep_at = f"{date} {dep_time}"
+            in_arr_at = f"{arr_date} {arr_time}"
+            rest_int = _verygood_calendar_rest_seat_int(v)
+            if rest_int is None:
+                if re.search(r"마감|예약\s*마감|예약마감|불가", status_raw):
+                    rest_int = 0
+            seats = f"잔여{rest_int}" if rest_int is not None else "좌석수미표기"
+            child_bed = _verygood_calendar_optional_int_price(
+                v, "ChildPrice", "SaleChildPrice", "ChildBedPrice", "ChildBedAmt"
+            )
+            child_no_bed = _verygood_calendar_optional_int_price(
+                v, "ChildNoBedPrice", "ChildNoBedAmt", "SaleChildNoBedPrice"
+            )
+            infant = _verygood_calendar_optional_int_price(
+                v, "InfantPrice", "BabyPrice", "InfantAmt", "SaleInfantPrice"
+            )
             row = {
                 "date": date,
                 "price": adult_price,
@@ -499,30 +724,38 @@ def scrape_verygood_departures_from_network(detail_url: str) -> List[Dict[str, A
                 "statusRaw": status_raw,
                 "seatsStatusRaw": seats,
                 "adultPrice": adult_price,
-                "childBedPrice": None,
-                "childNoBedPrice": None,
-                "infantPrice": None,
+                "childBedPrice": child_bed,
+                "childNoBedPrice": child_no_bed,
+                "infantPrice": infant,
                 "localPriceText": None,
-                "minPax": int(v.get("MinCount")) if str(v.get("MinCount") or "").isdigit() else shared.get("minPax"),
-                "carrierName": fix_airline_name_str(
-                    str(v.get("TrasnName") or "").strip()
-                    or str(shared.get("carrierName") or "").strip()
-                ),
-                "outboundFlightNo": f"{trans_code}{trans_num}" if trans_code and trans_num else shared.get("outboundFlightNo"),
-                "outboundDepartureAirport": airports.get("outboundDepartureAirport") or shared.get("outboundDepartureAirport"),
-                "outboundDepartureAt": out_dep_at or shared.get("outboundDepartureAt"),
-                "outboundArrivalAirport": airports.get("outboundArrivalAirport") or shared.get("outboundArrivalAirport"),
+                "minPax": int(v.get("MinCount")) if str(v.get("MinCount") or "").isdigit() else None,
+                "carrierName": fix_airline_name_str(tn),
+                "outboundFlightNo": (f"{trans_code}{trans_num}" if trans_code and trans_num else None),
+                "outboundDepartureAirport": None,
+                "outboundDepartureAt": out_dep_at,
+                "outboundArrivalAirport": None,
                 "outboundArrivalAt": None,
-                "inboundFlightNo": shared.get("inboundFlightNo"),
-                "inboundDepartureAirport": airports.get("inboundDepartureAirport") or shared.get("inboundDepartureAirport"),
+                "inboundFlightNo": None,
+                "inboundDepartureAirport": None,
                 "inboundDepartureAt": None,
-                "inboundArrivalAirport": airports.get("inboundArrivalAirport") or shared.get("inboundArrivalAirport"),
-                "inboundArrivalAt": in_arr_at or shared.get("inboundArrivalAt"),
-                "meetingInfoRaw": meeting.get("meetingInfoRaw") or shared.get("meetingInfoRaw"),
-                "meetingPointRaw": meeting.get("meetingPointRaw") or shared.get("meetingPointRaw"),
-                "meetingTerminalRaw": meeting.get("meetingTerminalRaw") or shared.get("meetingTerminalRaw"),
-                "meetingGuideNoticeRaw": meeting.get("meetingGuideNoticeRaw") or shared.get("meetingGuideNoticeRaw"),
+                "inboundArrivalAirport": None,
+                "inboundArrivalAt": in_arr_at,
+                "meetingInfoRaw": None,
+                "meetingPointRaw": None,
+                "meetingTerminalRaw": None,
+                "meetingGuideNoticeRaw": None,
             }
+            _verygood_attach_canonical_row_fields(
+                row,
+                departure_date=date,
+                departure_time=dep_time,
+                return_date=arr_date,
+                return_time=arr_time,
+                price=adult_price,
+                remain_seats=rest_int,
+                booking_status=status_raw,
+                airline_name=row["carrierName"],
+            )
             key = f"{date}|{v.get('ProductCode')}|{v.get('PriceSeq')}"
             merged[key] = row
     return _filter_calendar_rows_kst_floor(
@@ -532,12 +765,9 @@ def scrape_verygood_departures_from_network(detail_url: str) -> List[Dict[str, A
 
 class CalendarPriceScraper:
     """
-    하나투어/모두투어 상품 상세 페이지 달력에서
-    '출발 일정이 있는 날짜'의 [날짜]와 [가격]만 1년 치 추출.
-    - 가격 없는 셀(빈칸, '-') 즉시 Skip.
-    - 출력: [ {"date": "2026-04-03", "price": 890000}, ... ]
-    - 이중 루프: Outer=월 변경(최대 12), Inner=보름 슬라이드.
-    - IP 차단 방지: stealth, random 1.5~3.0초, try-except 전 단계.
+    참좋은여행(verygoodtour) 달력 + 출발일 변경 **일정행**(모달 우측 스크롤 리스트).
+    - 모달 열린 뒤 `_scroll_verygood_popup_list` 로 리스트 끝까지 스크롤 후 DOM에서 행 수집.
+    - 네트워크 JSON 경로(`scrape_verygood_departures_from_network`)는 월별 캘린더 JSON + 상세 1회로 N박M일·제목 앞부분 필터.
     """
 
     def __init__(
@@ -644,469 +874,6 @@ class CalendarPriceScraper:
             _verygood_log(f"[verygoodtour] network fallback failed: {ex2}")
             return []
 
-    async def _ybtour_baseline_title_layers(self) -> Dict[str, str]:
-        try:
-            data = await self._page.evaluate(
-                """() => {
-  function layersFromText(raw) {
-    const s = String(raw || '').replace(/\\s+/g, ' ').trim();
-    const noBadge = s.replace(/^(?:\\[[^\\]]*\\]\\s*)+/, '');
-    const preHash = noBadge.split('#')[0].trim();
-    const comparisonTitle = preHash.replace(/\\s+/g, ' ').trim();
-    const comparisonTitleNoSpace = comparisonTitle.replace(/\\s+/g, '');
-    return { rawTitle: s, comparisonTitle, comparisonTitleNoSpace };
-  }
-  const sels = ['h1', '.product_tit', '.goods_tit', '.tit_type', '[class*="goodsName"]', '[class*="goods_name"]', '.view_top .tit', 'main h1'];
-  for (const sel of sels) {
-    const el = document.querySelector(sel);
-    if (el) {
-      const t = (el.innerText || '').trim();
-      if (t.length > 5) return layersFromText(t);
-    }
-  }
-  return layersFromText(document.title || '');
-}"""
-            )
-            if isinstance(data, dict):
-                return {
-                    "rawTitle": str(data.get("rawTitle") or ""),
-                    "comparisonTitle": str(data.get("comparisonTitle") or ""),
-                    "comparisonTitleNoSpace": str(data.get("comparisonTitleNoSpace") or ""),
-                }
-        except Exception:
-            pass
-        return {"rawTitle": "", "comparisonTitle": "", "comparisonTitleNoSpace": ""}
-
-    async def _ybtour_modal_list_node_count(self) -> int:
-        """모달(또는 body) 안 li/tr 개수 — '모달에 후보 줄이 얼마나 보이는지' 대략치."""
-        try:
-            n = await self._page.evaluate(
-                """() => {
-  const modal = document.querySelector('[role="dialog"], .modal, .pop_layer, .layer_pop, .ly_pop, [class*="layer_pop"], [class*="popCal"], [class*="calendar_pop"], .ui-dialog, #divLayerCalendar');
-  const root = modal || document.body;
-  return root.querySelectorAll('li, tr').length;
-}"""
-            )
-            return int(n) if isinstance(n, int) else 0
-        except Exception:
-            return -1
-
-    async def _scroll_ybtour_popup_list(self) -> None:
-        try:
-            await self._page.evaluate(
-                """() => {
-  const modal = document.querySelector('[role="dialog"], .modal, .pop_layer, .layer_pop, .ly_pop, [class*="layer_pop"], [class*="popCal"], [class*="calendar_pop"], .ui-dialog, #divLayerCalendar');
-  const root = modal || document.body;
-  const scrollables = root.querySelectorAll('.scroll_wrap, .list_wrap, [class*="scroll"], ul, .mCustomScrollBox, [style*="overflow-y"]');
-  for (const el of scrollables) {
-    try { el.scrollTop = el.scrollHeight; } catch (e) {}
-  }
-}"""
-            )
-            await self._page.wait_for_timeout(550)
-        except Exception:
-            pass
-
-    async def _ybtour_read_month_label(self) -> str:
-        try:
-            ym_el = await self._page.query_selector(
-                ".calendar_title, .year_month, [class*='month_tit'], [class*='cal_head'], .cal_head, [class*='CalendarHead']"
-            )
-            if ym_el:
-                return (await ym_el.text_content() or "").strip()[:64]
-        except Exception:
-            pass
-        return ""
-
-    async def _collect_ybtour_calendar_price_index(self) -> List[Dict[str, Any]]:
-        """좌측 달력 셀: 일자 + 가격 문구(인덱스·보조 검증)."""
-        script = """
-() => {
-  const modal = document.querySelector('[role="dialog"], .modal, .pop_layer, .layer_pop, .ly_pop, [class*="layer_pop"], [class*="popCal"], [class*="calendar_pop"], [class*="calendarLayer"], .ui-dialog, #divLayerCalendar');
-  const root = modal || document.body;
-  const tds = root.querySelectorAll(
-    '.calendar_wrap td, .cal_wrap td, table.calendar td, .ui-datepicker-calendar td, tbody.cal_body td, [class*="calendar"] table td, .cal td'
-  );
-  const out = [];
-  const seen = new Set();
-  for (const td of tds) {
-    const raw = (td.innerText || '').replace(/\\s+/g, ' ').trim();
-    if (!raw || raw.length > 100) continue;
-    const dm = raw.match(/^(\\d{1,2})\\b/);
-    if (!dm) continue;
-    const day = parseInt(dm[1], 10);
-    if (day < 1 || day > 31) continue;
-    const key = day + '|' + raw.slice(0, 48);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const looksPrice = /[\\d,]+\\s*원\\~?|[\\d,]+\\s*만\\s*~?|\\d+\\s*만|만\\s*~/.test(raw);
-    if (!looksPrice) continue;
-    out.push({ calendarDate: day, calendarPriceText: raw.slice(0, 72) });
-  }
-  return out;
-}"""
-        try:
-            rows = await self._page.evaluate(script)
-            return rows if isinstance(rows, list) else []
-        except Exception:
-            return []
-
-    async def _collect_ybtour_popup_rows(self) -> List[Dict[str, Any]]:
-        """모달 우측 리스트 row 전체 후보 — 상품명 비교·제목 정규화 매칭 없음(리스트는 동일 상품 전제)."""
-        script = """
-() => {
-  function layersFromText(raw) {
-    const s = String(raw || '').replace(/\\s+/g, ' ').trim();
-    const noBadge = s.replace(/^(?:\\[[^\\]]*\\]\\s*)+/, '');
-    const preHash = noBadge.split('#')[0].trim();
-    const comparisonTitle = preHash.replace(/\\s+/g, ' ').trim();
-    const comparisonTitleNoSpace = comparisonTitle.replace(/\\s+/g, '');
-    return { rawTitle: s, comparisonTitle, comparisonTitleNoSpace };
-  }
-  const carriers =
-    '티웨이항공|대한항공|아시아나항공|제주항공|진에어|에어부산|에어서울|이스타항공|에어프레미아|플라이강원|스칸디나비아항공|핀에어|루프트한자|싱가포르항공|에티하드|카타르항공|에어뉴질랜드|에어캐나다|유나이티드항공|델타항공|일본항공|중화항공';
-  const carrierRe = new RegExp('(' + carriers + ')');
-  const modal = document.querySelector('[role="dialog"], .modal, .pop_layer, .layer_pop, .ly_pop, [class*="layer_pop"], [class*="popCal"], [class*="calendarLayer"], .ui-dialog');
-  const root = modal || document.body;
-  const cands = Array.from(
-    root.querySelectorAll('li, tr, div[class*="item"], div[class*="row"], div[class*="card"], div[class*="list"] > div, a[href*="goods"]')
-  );
-  const out = [];
-  for (const el of cands) {
-    const full = (el.innerText || '').replace(/\\s+/g, ' ').trim();
-    if (full.length < 15 || full.length > 3500) continue;
-    let titleRaw = '';
-    const te = el.querySelector('strong, .tit, .title, [class*="subject"], [class*="goods_name"], em');
-    if (te) titleRaw = (te.innerText || '').replace(/\\s+/g, ' ').trim();
-    if (!titleRaw || titleRaw.length < 4) {
-      const lines = full.split(/[\\n\\r|]/).map((x) => x.trim()).filter(Boolean);
-      titleRaw = lines.length ? lines[0] : full.slice(0, 120);
-    }
-    const tl = layersFromText(titleRaw);
-    const priceM = full.match(/([0-9]{1,3}(?:,[0-9]{3})+)\\s*원\\~?/);
-    if (!priceM) continue;
-    const price = parseInt(priceM[1].replace(/,/g, ''), 10);
-    if (!price || price <= 0) continue;
-    const rangeM = full.match(
-      /20\\d{2}\\s*[.\\-\\/]\\s*\\d{1,2}\\s*[.\\-\\/]\\s*\\d{1,2}\\s*\\([^)]+\\)\\s*\\d{1,2}:\\d{2}\\s*[-–—~∼～]\\s*20\\d{2}\\s*[.\\-\\/]\\s*\\d{1,2}\\s*[.\\-\\/]\\s*\\d{1,2}\\s*\\([^)]+\\)\\s*\\d{1,2}:\\d{2}/
-    );
-    const departureRangeText = rangeM ? rangeM[0].replace(/\\s+/g, ' ').trim() : '';
-    let date = '';
-    const dm = departureRangeText.match(/(20\\d{2})\\s*[.\\-\\/]\\s*(\\d{1,2})\\s*[.\\-\\/]\\s*(\\d{1,2})/);
-    if (dm) {
-      date =
-        dm[1] +
-        '-' +
-        String(parseInt(dm[2], 10)).padStart(2, '0') +
-        '-' +
-        String(parseInt(dm[3], 10)).padStart(2, '0');
-    }
-    if (!date) continue;
-    const tripM = full.match(/(\\d+)\\s*박\\s*(\\d+)\\s*일/);
-    const tripNightsDaysText = tripM ? tripM[0] : '';
-    let airlineName = '';
-    const cm = full.match(carrierRe);
-    if (cm) airlineName = cm[1];
-    let availabilityText = '';
-    if (/대기예약/.test(full)) availabilityText = '대기예약';
-    else if (/예약마감|마감/.test(full)) availabilityText = '예약마감';
-    else if (/예약가능|예약\\s*가능/.test(full)) availabilityText = '예약가능';
-    const seatM = full.match(/(?:잔여\\s*\\d+\\s*석|\\(\\s*잔여\\s*\\d+\\s*석\\s*\\)|\\d+\\s*석)/);
-    const seatsText = seatM ? seatM[0].replace(/\\s+/g, ' ').trim() : '';
-    const badgeParts = [];
-    if (/담당자추천/.test(full)) badgeParts.push('담당자추천');
-    if (/100%\\s*출발|출발확정/.test(full)) badgeParts.push('100%출발');
-    const badgesText = badgeParts.join(' ');
-    out.push({
-      date,
-      price,
-      titleText: tl.rawTitle,
-      departureRangeText,
-      tripNightsDaysText,
-      airlineName,
-      availabilityText,
-      seatsText,
-      priceText: priceM[0],
-      badgesText,
-      rowSummaryText: full.slice(0, 400),
-    });
-  }
-  return out;
-}
-"""
-        try:
-            rows = await self._page.evaluate(script)
-            return rows if isinstance(rows, list) else []
-        except Exception:
-            return []
-
-    async def _run_ybtour_departures(self) -> List[Dict[str, Any]]:
-        du = ""
-        try:
-            du = str(getattr(self, "_detail_url", "") or "")
-        except Exception:
-            du = ""
-        summ = _ybtour_detail_url_summary(du) if du else "url=unknown"
-        _ybtour_modal_log(f"phase=entry begin modal_scrape {summ}")
-        _ybtour_log(f"[ybtour] phase=scraper-modal-path site=ybtour {summ}")
-
-        baseline = await self._ybtour_baseline_title_layers()
-        raw_title = str(baseline.get("rawTitle") or "").strip()
-        base_ns = str(baseline.get("comparisonTitleNoSpace") or "").strip()
-        _ybtour_modal_log(
-            f"phase=detail-title-hint audit_only raw_len={len(raw_title)} (not used for row filter)"
-        )
-        _ybtour_log(
-            f"[ybtour] phase=baseline-title-hint raw_len={len(raw_title)} comparison_no_space_len={len(base_ns)}"
-        )
-
-        opened = False
-        opening_sel_hit: Optional[str] = None
-        selectors_tried = 0
-        last_modal_open_err: Optional[str] = None
-        _ybtour_modal_log(
-            f"phase=modal-open trying_selectors count={len(YBTOUR_POPUP_OPEN_SELECTORS)}"
-        )
-        for sel in YBTOUR_POPUP_OPEN_SELECTORS:
-            selectors_tried += 1
-            try:
-                btn = await self._page.query_selector(sel)
-                if btn:
-                    await human_delay(DELAY_MIN, DELAY_MAX)
-                    await btn.click()
-                    await self._page.wait_for_timeout(950)
-                    opened = True
-                    opening_sel_hit = sel[:100]
-                    break
-            except Exception as ex:
-                last_modal_open_err = f"{type(ex).__name__}:{str(ex)[:100]}"
-                continue
-
-        if opened:
-            _ybtour_modal_log(
-                f"phase=modal-open ok=true hit_sel={opening_sel_hit!r} selectors_tried={selectors_tried}"
-            )
-            await human_delay(DELAY_MIN, DELAY_MAX)
-            await self._page.wait_for_timeout(700)
-        else:
-            reason = last_modal_open_err or "no_button_found"
-            _ybtour_modal_log(f"phase=modal-open ok=false reason={reason!r}")
-        _ybtour_log(
-            f"[ybtour] phase=modal-open success={opened} selectors_tried={selectors_tried} hit_sel={opening_sel_hit!r}"
-        )
-        if not opened and last_modal_open_err:
-            _ybtour_log(f"[ybtour] phase=modal-open last_click_error={last_modal_open_err!r}")
-
-        inv = await self._ybtour_modal_list_node_count()
-        _ybtour_modal_log(f"phase=modal-dom approx_li_tr_count={inv}")
-        _ybtour_log(f"[ybtour] modal rows seen (approx li/tr in modal/body): {inv}")
-
-        rows_merged: Dict[str, Dict[str, Any]] = {}
-        total_list_row_batches = 0
-        months_collected = 0
-        stop_reason = "modal-open-failed"
-        if not opened:
-            _ybtour_modal_log("phase=abort skip_month_loop reason=modal-not-opened")
-        else:
-            stop_reason = "not-started"
-        for mi in range(DEFAULT_CALENDAR_MONTH_LIMIT if opened else 0):
-            ym = await self._ybtour_read_month_label()
-            cal_cells = await self._collect_ybtour_calendar_price_index()
-            priced_days = len(cal_cells)
-            samp = [c.get("calendarPriceText") for c in cal_cells[:4]]
-            _ybtour_modal_log(
-                f"phase=calendar monthKey={ym!r} pricedDays={priced_days} samplePrices={samp!r}"
-            )
-
-            await self._scroll_ybtour_popup_list()
-            await human_delay(0.35, 0.75)
-            batch = await self._collect_ybtour_popup_rows()
-            total_list_row_batches += len(batch)
-            months_collected = mi + 1
-
-            priced_rows = sum(1 for x in batch if isinstance(x, dict) and int(x.get("price") or 0) > 0)
-            ranges = [
-                str(x.get("departureRangeText") or "").strip()
-                for x in batch
-                if isinstance(x, dict) and x.get("departureRangeText")
-            ]
-            fr = (ranges[0][:96] + "…") if ranges else ""
-            lr = (ranges[-1][:96] + "…") if ranges else ""
-            _ybtour_modal_log(
-                f"phase=list monthRound={mi + 1} rowsSeen={len(batch)} pricedRows={priced_rows} "
-                f"firstRange={fr!r} lastRange={lr!r}"
-            )
-
-            yp, mp = _parse_year_month(ym)
-            batch_dates = {
-                str(x.get("date") or "")[:10]
-                for x in batch
-                if isinstance(x, dict) and len(str(x.get("date") or "")) >= 10
-            }
-            if yp and mp and priced_days > 0:
-                kst_floor = _kst_today_ymd()
-                for cell in cal_cells:
-                    if not isinstance(cell, dict):
-                        continue
-                    cd = cell.get("calendarDate")
-                    if cd is None:
-                        continue
-                    try:
-                        d_int = int(cd)
-                    except Exception:
-                        continue
-                    iso = _ybtour_iso_from_year_month_day(yp, mp, d_int)
-                    if (
-                        iso
-                        and iso >= kst_floor
-                        and iso not in batch_dates
-                        and str(cell.get("calendarPriceText") or "").strip()
-                    ):
-                        cpt = str(cell.get("calendarPriceText") or "")[:56]
-                        _ybtour_modal_log(
-                            f"phase=calendar-only-price monthKey={ym!r} date={iso} "
-                            f"calendarPriceText={cpt!r} (no matching list row with parsed date)"
-                        )
-
-            before_keys = len(rows_merged)
-            for item in batch:
-                if not isinstance(item, dict):
-                    continue
-                dedupe_key = "|".join(
-                    [
-                        str(item.get("date") or "")[:10],
-                        str(item.get("departureRangeText") or "")[:160],
-                        str(item.get("airlineName") or ""),
-                        str(item.get("price") or 0),
-                    ]
-                )
-                if dedupe_key.replace("|", "").strip() in ("", "0"):
-                    continue
-                prev = rows_merged.get(dedupe_key)
-                pr = int(item.get("price") or 0)
-                if not prev or pr >= int(prev.get("price") or 0):
-                    rows_merged[dedupe_key] = item
-            new_keys = len(rows_merged) - before_keys
-            _ybtour_modal_log(
-                f"phase=merge monthRound={mi + 1} batchRows={len(batch)} new_unique_keys={new_keys} "
-                f"cumulative_unique={len(rows_merged)}"
-            )
-
-            moved = False
-            move_src = ""
-            for nsel in YBTOUR_MONTH_NEXT_SELECTORS:
-                try:
-                    nxt = await self._page.query_selector(nsel)
-                    if not nxt:
-                        continue
-                    disabled = await nxt.get_attribute("disabled")
-                    if disabled is not None:
-                        continue
-                    txt = (await nxt.text_content() or "").strip()
-                    if txt and re.search(r"이전|prev|전달", txt, re.I) and not re.search(
-                        r"다음|next", txt, re.I
-                    ):
-                        continue
-                    await human_delay(DELAY_MIN, DELAY_MAX)
-                    await nxt.click()
-                    await self._page.wait_for_timeout(MONTH_WAIT_MS)
-                    moved = True
-                    move_src = nsel[:88]
-                    break
-                except Exception:
-                    continue
-            _ybtour_modal_log(
-                f"phase=move-month monthRound={mi + 1} success={moved} source={move_src!r}"
-            )
-            if not moved:
-                stop_reason = "next-month-control-unavailable-or-disabled"
-                break
-            stop_reason = "month-limit" if mi + 1 >= DEFAULT_CALENDAR_MONTH_LIMIT else "continuing"
-
-        if opened and stop_reason == "continuing":
-            stop_reason = "completed-month-loop"
-        if not opened:
-            stop_reason = "modal-open-failed"
-        _ybtour_modal_log(
-            f"phase=summary totalMonths={months_collected} totalDepartureRowKeys={len(rows_merged)} "
-            f"totalListRowsBatches={total_list_row_batches} stopReason={stop_reason!r}"
-        )
-        out: List[Dict[str, Any]] = []
-        dropped_past_kst = 0
-        invalid_date = 0
-        skipped_zero_price = 0
-        for item in rows_merged.values():
-            d = str(item.get("date") or "").strip()[:10]
-            if len(d) != 10:
-                invalid_date += 1
-                continue
-            if d < _kst_today_ymd():
-                dropped_past_kst += 1
-                continue
-            price = int(item.get("price") or 0)
-            if price <= 0:
-                skipped_zero_price += 1
-                continue
-            availability = str(item.get("availabilityText") or "").strip()
-            seats = str(item.get("seatsText") or "").strip()
-            carrier = fix_airline_name_str(str(item.get("airlineName") or "").strip()) or ""
-            range_text = str(item.get("departureRangeText") or "").strip()
-            dep_at = None
-            arr_at = None
-            if range_text:
-                m = re.search(
-                    r"(20\d{2})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})\s*\([^)]+\)\s*(\d{1,2}):(\d{2})\s*[-–—~∼～]\s*(20\d{2})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})\s*\([^)]+\)\s*(\d{1,2}):(\d{2})",
-                    range_text,
-                )
-                if m:
-                    y1, mo1, day1, h1, mi1, y2, mo2, day2, h2, mi2 = m.groups()
-                    dep_at = f"{y1}-{int(mo1):02d}-{int(day1):02d} {int(h1):02d}:{mi1}"
-                    arr_at = f"{y2}-{int(mo2):02d}-{int(day2):02d} {int(h2):02d}:{mi2}"
-            status_raw = availability or (seats if seats else "예약가능")
-            out.append(
-                {
-                    "date": d,
-                    "price": price,
-                    "adultPrice": price,
-                    "status": status_raw,
-                    "statusRaw": status_raw,
-                    "seatsStatusRaw": seats or None,
-                    "carrierName": carrier or None,
-                    "outboundDepartureAt": dep_at,
-                    "inboundArrivalAt": arr_at,
-                    "titleText": item.get("titleText"),
-                    "departureRangeText": range_text or None,
-                    "tripNightsDaysText": item.get("tripNightsDaysText") or None,
-                }
-            )
-        out = _ybtour_dedupe_by_departure_date_richer(out)
-        _ybtour_log(f"[ybtour] priced rows after modal scrape (pre-stdout-json): {len(out)}")
-        _ybtour_log(
-            f"[ybtour] phase=kst-and-date-hints dropped_past_kst={dropped_past_kst} invalid_date={invalid_date} "
-            f"skipped_zero_price={skipped_zero_price} kst_floor={_kst_today_ymd()!r}"
-        )
-        if len(out) == 0:
-            if not opened:
-                diag = "modal-open-failed"
-            elif total_list_row_batches == 0:
-                diag = "modal-list-zero"
-            elif len(rows_merged) > 0 and dropped_past_kst + invalid_date >= len(rows_merged):
-                diag = "kst-or-date-parse-zero"
-            elif len(rows_merged) > 0 and skipped_zero_price > 0:
-                diag = "priced-rows-zero"
-            elif len(rows_merged) > 0:
-                diag = "priced-rows-zero-or-filtered"
-            else:
-                diag = "unknown-empty"
-            _ybtour_modal_log(f"phase=final-diagnosis code={diag} merged_keys={len(rows_merged)}")
-            _ybtour_log(
-                f"[ybtour] phase=final-diagnosis code={diag} merged_keys={len(rows_merged)} "
-                f"list_row_batches_sum={total_list_row_batches}"
-            )
-        else:
-            _ybtour_log(f"[ybtour] phase=final-diagnosis code=ok priced_rows={len(out)}")
-        return out
-
     async def _run_verygoodtour_departures(self) -> List[Dict[str, Any]]:
         """
         참좋은여행 전용:
@@ -1114,14 +881,7 @@ class CalendarPriceScraper:
         2) 월 이동(최대 12)하며 팝업 리스트의 출발일/가격/상태 수집
         3) 상세 본문에서 항공/미팅/최소출발인원 추출하여 각 row에 병합
         """
-        page_text = ""
-        try:
-            page_text = await self._page.evaluate("document.body.innerText || ''")
-        except Exception:
-            page_text = ""
-        shared = _extract_shared_departure_meta_from_text(page_text)
-
-        # 팝업 열기
+        # 팝업 열기 (본문 innerText로 shared 추출 금지 — 행은 모달 DOM만)
         opened = False
         for sel in VERYGOOD_POPUP_OPEN_SELECTORS:
             try:
@@ -1137,7 +897,8 @@ class CalendarPriceScraper:
         # 버튼 못 찾은 경우에도 현재 DOM에서 리스트 추출 시도
         rows: Dict[str, Dict[str, Any]] = {}
         for mi in range(DEFAULT_CALENDAR_MONTH_LIMIT):
-            await self._scroll_verygood_popup_list()
+            for _ in range(6):
+                await self._scroll_verygood_popup_list()
             for item in await self._collect_verygood_popup_rows():
                 date = item.get("date")
                 if not date:
@@ -1180,42 +941,88 @@ class CalendarPriceScraper:
         for dedupe_key in sorted(rows.keys(), key=lambda k: str(rows[k].get("date") or "")):
             item = rows[dedupe_key]
             d = str(item.get("date") or "").strip()[:10]
-            if len(d) != 10 or d < _kst_today_ymd():
+            if len(d) != 10 or d < _kst_verygood_departure_floor_ymd():
                 continue
-            status_raw = (item.get("status") or "").strip()
-            _rc = ((item.get("carrierName") or "").strip() or shared.get("carrierName") or "")
+            _st = (item.get("status") or "").strip()
+            status_raw = fix_mojibake_korean_str(_st) or _st
+            _rc = (item.get("carrierName") or "").strip()
             row_carrier = fix_airline_name_str(str(_rc)) if _rc else None
-            out.append(
-                {
-                    "date": d,
-                    "price": int(item.get("price") or 0),
-                    "status": status_raw or "예약가능",
-                    "statusRaw": status_raw or "예약가능",
-                    "seatsStatusRaw": item.get("seatsStatusRaw"),
-                    "adultPrice": int(item.get("price") or 0),
-                    "childBedPrice": None,
-                    "childNoBedPrice": None,
-                    "infantPrice": None,
-                    "localPriceText": None,
-                    "minPax": shared.get("minPax"),
-                    "carrierName": row_carrier,
-                    "outboundFlightNo": (str(item.get("flightNo") or "").strip() or shared.get("outboundFlightNo")),
-                    "outboundDepartureAirport": shared.get("outboundDepartureAirport"),
-                    "outboundDepartureAt": shared.get("outboundDepartureAt"),
-                    "outboundArrivalAirport": shared.get("outboundArrivalAirport"),
-                    "outboundArrivalAt": shared.get("outboundArrivalAt"),
-                    "inboundFlightNo": shared.get("inboundFlightNo"),
-                    "inboundDepartureAirport": shared.get("inboundDepartureAirport"),
-                    "inboundDepartureAt": shared.get("inboundDepartureAt"),
-                    "inboundArrivalAirport": shared.get("inboundArrivalAirport"),
-                    "inboundArrivalAt": shared.get("inboundArrivalAt"),
-                    "meetingInfoRaw": shared.get("meetingInfoRaw"),
-                    "meetingPointRaw": shared.get("meetingPointRaw"),
-                    "meetingTerminalRaw": shared.get("meetingTerminalRaw"),
-                    "meetingGuideNoticeRaw": shared.get("meetingGuideNoticeRaw"),
-                    "_popupOpened": opened,
-                }
+            range_txt = (item.get("departureRangeText") or "").strip() or None
+            sched = _verygood_modal_schedule_from_range(range_txt, d)
+            ob_fn, in_fn = _verygood_flight_pair_from_texts(
+                str(item.get("flightNo") or "").strip() or None,
+                range_txt,
             )
+            out_fno = ob_fn
+            in_fno = in_fn if in_fn and in_fn != ob_fn else None
+            ob_at = sched.get("outboundDepartureAt")
+            ib_at = sched.get("inboundArrivalAt")
+            if not row_carrier or not ob_at or not ib_at:
+                continue
+            rest_int = _verygood_modal_remain_seats_int(item, status_raw)
+            if rest_int is None:
+                continue
+            ss_raw = item.get("seatsStatusRaw")
+            seats_line = (
+                ss_raw
+                if isinstance(ss_raw, str) and ss_raw.strip()
+                else f"잔여{rest_int}"
+            )
+            price_v = int(item.get("price") or 0)
+            if price_v <= 0:
+                continue
+            dep_dt_m = re.match(
+                r"^(20\d{2}-\d{2}-\d{2})\s+(\d{2}:\d{2})$",
+                str(ob_at).strip(),
+            )
+            ret_dt_m = re.match(
+                r"^(20\d{2}-\d{2}-\d{2})\s+(\d{2}:\d{2})$",
+                str(ib_at).strip(),
+            )
+            if not dep_dt_m or not ret_dt_m:
+                continue
+            row = {
+                "date": d,
+                "price": price_v,
+                "status": status_raw or "예약가능",
+                "statusRaw": status_raw or "예약가능",
+                "seatsStatusRaw": seats_line,
+                "adultPrice": price_v,
+                "childBedPrice": None,
+                "childNoBedPrice": None,
+                "infantPrice": None,
+                "localPriceText": None,
+                "minPax": None,
+                "carrierName": row_carrier,
+                "outboundFlightNo": out_fno,
+                "outboundDepartureAirport": None,
+                "outboundDepartureAt": ob_at,
+                "outboundArrivalAirport": None,
+                "outboundArrivalAt": None,
+                "inboundFlightNo": in_fno,
+                "inboundDepartureAirport": None,
+                "inboundDepartureAt": None,
+                "inboundArrivalAirport": None,
+                "inboundArrivalAt": ib_at,
+                "meetingInfoRaw": None,
+                "meetingPointRaw": None,
+                "meetingTerminalRaw": None,
+                "meetingGuideNoticeRaw": None,
+                "seatCount": rest_int,
+                "_popupOpened": opened,
+            }
+            _verygood_attach_canonical_row_fields(
+                row,
+                departure_date=dep_dt_m.group(1),
+                departure_time=dep_dt_m.group(2),
+                return_date=ret_dt_m.group(1),
+                return_time=ret_dt_m.group(2),
+                price=price_v,
+                remain_seats=rest_int,
+                booking_status=str(row["statusRaw"]),
+                airline_name=row_carrier,
+            )
+            out.append(row)
         _verygood_log(f"[verygoodtour] total unique departure rows built: {len(out)}")
         return out
 
@@ -1257,7 +1064,7 @@ class CalendarPriceScraper:
     yPart = ymh[1];
     mPart = String(parseInt(ymh[2], 10)).padStart(2, '0');
   }
-  const carriers = '티웨이항공|대한항공|아시아나항공|제주항공|진에어|에어부산|에어서울|이스타항공|에어프레미아|플라이강원|루프트한자|싱가포르항공|에어부산항공|에어캐나다|델타항공|유나이티드항공|에뉴질랜드|핀에어';
+  const carriers = '에미레이트항공|에미레이트|튀르키예항공|터키항공|카타르항공|카타르|에티하드항공|에티하드|영국항공|싱가포르항공|태국항공|베트남항공|티웨이항공|대한항공|아시아나항공|제주항공|진에어|에어부산|에어서울|이스타항공|에어프레미아|플라이강원|루프트한자|에어부산항공|에어캐나다|델타항공|유나이티드항공|에뉴질랜드|핀에어|ANA|전일본공수';
   const carrierRe = new RegExp('(' + carriers + ')');
   const cands = Array.from(root.querySelectorAll(
     'li, tr, tbody tr, div[class*="item"], div[class*="row"], a[href*="ProCode"], div[class*="list"] > div, div[class*="departure"], div[class*="card"], [class*="schedule"] > div, [class*="leave"] div[class*="list"] > *'
@@ -1295,6 +1102,10 @@ class CalendarPriceScraper:
     let seatsRaw = '';
     const seatM = t.match(/(\\d+)\\s*석/);
     if (seatM) seatsRaw = seatM[0];
+    if (!seatsRaw) {
+      const jm = t.match(/잔여\\s*(\\d+)/);
+      if (jm) seatsRaw = '잔여' + jm[1];
+    }
     if (/대기예약/.test(t)) status = '대기예약';
     else if (/예약마감|마감/.test(t)) status = '예약마감';
     else if (/예약가능/.test(t)) status = '예약가능';
@@ -1385,7 +1196,7 @@ class CalendarPriceScraper:
                 if not day_num:
                     continue
                 date_str = f"{year}-{month}-{day_num:02d}"
-                if date_str < _kst_today_ymd():
+                if date_str < _kst_verygood_departure_floor_ymd():
                     continue
 
                 # 가격 추출 — 없으면 Skip (규칙: 선택 불가 = 추출 안 함)

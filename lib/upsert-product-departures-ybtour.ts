@@ -22,6 +22,72 @@ function pickPreservedChildInfantPriceYbtour(
   return null
 }
 
+/** 유아는 0을 “미전달”으로 보고 기존값을 유지한다(달력 재수집 등). */
+function pickPreservedInfantPriceYbtour(
+  incoming: number | null | undefined,
+  existing: number | null | undefined
+): number | null {
+  if (incoming !== undefined && incoming !== null && Number.isFinite(incoming) && incoming > 0) {
+    return incoming
+  }
+  if (existing !== undefined && existing !== null && Number.isFinite(existing) && existing > 0) {
+    return existing
+  }
+  return null
+}
+
+/**
+ * 달력 등에서 아동 단가가 비어 있으면 해당 행 성인가에 맞춘다.
+ * 명시적 0은 “미전달”에 가깝게 취급해 성인가가 있으면 성인가로 맞춘다.
+ */
+function resolveYbtourChildSlotPrice(
+  incoming: number | null | undefined,
+  adultPrice: number | null,
+  previous: number | null | undefined
+): number | null {
+  if (incoming === 0 && adultPrice != null && adultPrice > 0) return adultPrice
+  if (incoming != null && Number.isFinite(incoming) && incoming > 0) return incoming
+  if (incoming === undefined && adultPrice != null && adultPrice > 0) return adultPrice
+  return pickPreservedChildInfantPriceYbtour(incoming, previous)
+}
+
+/** 동일 상품의 다른 출발행·ProductPrice에서 유아 단가 후보를 찾는다(신규 출발일 행 보강). */
+export async function loadYbtourProductInfantFallback(
+  prisma: PrismaClient,
+  productId: string
+): Promise<number | null> {
+  const dep = await prisma.productDeparture.findFirst({
+    where: { productId, infantPrice: { not: null, gt: 0 } },
+    orderBy: { departureDate: 'asc' },
+    select: { infantPrice: true },
+  })
+  if (dep?.infantPrice != null && dep.infantPrice > 0) return dep.infantPrice
+  const px = await prisma.productPrice.findFirst({
+    where: { productId, infant: { gt: 0 } },
+    orderBy: { date: 'asc' },
+    select: { infant: true },
+  })
+  if (px?.infant != null && px.infant > 0) return px.infant
+  return null
+}
+
+/** 확정 저장 직전: 달력-only 입력에 아동=성인·유아 폴백을 한 번에 심는다. */
+export function enrichYbtourDepartureInputsForConfirmSave(
+  inputs: DepartureInput[],
+  infantFallback: number | null | undefined
+): DepartureInput[] {
+  const fb = infantFallback != null && infantFallback > 0 ? Math.floor(infantFallback) : null
+  return inputs.map((d) => {
+    const adult =
+      d.adultPrice != null && Number.isFinite(d.adultPrice) && d.adultPrice > 0 ? d.adultPrice : null
+    const next: DepartureInput = { ...d }
+    if (next.childBedPrice === undefined && adult != null) next.childBedPrice = adult
+    if (next.childNoBedPrice === undefined && adult != null) next.childNoBedPrice = adult
+    if (next.infantPrice === undefined && fb != null) next.infantPrice = fb
+    return next
+  })
+}
+
 /**
  * 스키마에 교통 컬럼이 있어도 `prisma generate`가 실패(Windows에서 query_engine DLL 잠금 등)하면
  * 런타임 클라이언트가 옛 DMMF를 쓰며 `Unknown argument transportType` 이 난다. 한 번 코어만으로 재시도.
@@ -231,6 +297,8 @@ export async function upsertProductDepartures(
   }
   if (pairs.length === 0) return 0
 
+  const productInfantFallback = await loadYbtourProductInfantFallback(prisma, productId)
+
   const existingRows = await prisma.productDeparture.findMany({
     where: { productId, departureDate: { in: pairs.map((p) => p.departureDate) } },
     select: {
@@ -257,9 +325,12 @@ export async function upsertProductDepartures(
 
     const previous = existingChildByUtc.get(departureDate.getTime())
     const adultPrice = d.adultPrice != null && !Number.isNaN(d.adultPrice) ? d.adultPrice : null
-    const childBedPrice = pickPreservedChildInfantPriceYbtour(d.childBedPrice, previous?.childBedPrice)
-    const childNoBedPrice = pickPreservedChildInfantPriceYbtour(d.childNoBedPrice, previous?.childNoBedPrice)
-    const infantPrice = pickPreservedChildInfantPriceYbtour(d.infantPrice, previous?.infantPrice)
+    const childBedPrice = resolveYbtourChildSlotPrice(d.childBedPrice, adultPrice, previous?.childBedPrice)
+    const childNoBedPrice = resolveYbtourChildSlotPrice(d.childNoBedPrice, adultPrice, previous?.childNoBedPrice)
+    let infantPrice = pickPreservedInfantPriceYbtour(d.infantPrice, previous?.infantPrice)
+    if (infantPrice == null && productInfantFallback != null && productInfantFallback > 0) {
+      infantPrice = productInfantFallback
+    }
     const minPax = d.minPax != null && !Number.isNaN(d.minPax) ? d.minPax : null
     const localPriceText = d.localPriceText != null && String(d.localPriceText).trim() ? String(d.localPriceText).trim().slice(0, 200) : null
     const statusRaw = d.statusRaw != null && String(d.statusRaw).trim() ? String(d.statusRaw).trim().slice(0, 200) : null

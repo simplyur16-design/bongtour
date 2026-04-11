@@ -42,15 +42,11 @@ import {
   buildModetourDirectedDisplayFromStructuredBody,
 } from '@/lib/flight-modetour-parser'
 import {
+  buildDepartureKeyFactsByDepartureId,
   buildDepartureKeyFactsMap,
-  departureLegHasContent,
   enrichDepartureKeyFactsMapForDisplay,
   mergeAdminDepartureFactsWithParsedLegs,
 } from '@/lib/departure-key-facts'
-import {
-  resolveVerygoodPublicAirlineForPublicDetail,
-  tryVerygoodLegsFromFlightBody,
-} from '@/lib/flight-verygood-public-display'
 import {
   buildKeyFactsFromAdminProfile,
   parseFlightAdminJson,
@@ -67,6 +63,9 @@ import * as dayHotelVerygoodtour from '@/lib/day-hotel-plans-verygoodtour'
 import * as dayHotelYbtour from '@/lib/day-hotel-plans-ybtour'
 import { normalizePromotionMarketingCopy, normalizePricePromotionViewCopy } from '@/lib/promotion-copy-normalize'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
+import { getPriceAdult } from '@/lib/price-utils'
+import { pickVerygoodPublicDefaultDepartureRow } from '@/lib/verygood/verygood-public-default-departure'
+import { verygoodDurationLabelFromDepartureAtPair } from '@/lib/verygood/verygood-selected-row-trip-display'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { resolvePublicConsumptionModuleKey } from '@/lib/resolve-public-consumption-module-key'
 import { tryApplyVerygoodPublicProductSerializedPatch } from '@/lib/verygood-public-product-detail-patch'
@@ -228,6 +227,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
     : null
   /** 가격 병합 보정도 동일 조건에서만 활성(다른 공급사에는 미적용) */
   const useModetourPriceMergeContext = useModetourDirectedParse
+  const useYbtourPriceMergeContext = publicConsumptionModuleKey === 'ybtour'
   const modetourDirectedDisplay = useModetourDirectedParse
     ? buildModetourDirectedDisplayFromStructuredBody(
         structured?.flightRaw ?? null,
@@ -321,14 +321,22 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
     ((travelProduct as { flightAdminJson?: string | null }).flightAdminJson ?? null)
   const adminFlightProfile = parseFlightAdminJson(adminFlightRaw)
   const flightDisplayPolicy = resolveFlightDisplayPolicy(adminFlightProfile)
+  const verygoodtourPublicRowFactsOnly =
+    travelProduct.brand?.brandKey === 'verygoodtour' ||
+    flightStructuredDebug?.supplierBrandKey === 'verygoodtour'
+
   const baseFactsByDate = departures.length > 0 ? buildDepartureKeyFactsMap(departures) : {}
+  const departureKeyFactsByDepartureId =
+    departures.length > 0 ? buildDepartureKeyFactsByDepartureId(departures) : undefined
   const parsedFactsByDate =
     departures.length > 0
-      ? enrichDepartureKeyFactsMapForDisplay(
-          baseFactsByDate,
-          flightStructured,
-          travelProduct.airline ?? null
-        )
+      ? verygoodtourPublicRowFactsOnly
+        ? baseFactsByDate
+        : enrichDepartureKeyFactsMapForDisplay(
+            baseFactsByDate,
+            flightStructured,
+            travelProduct.airline ?? null
+          )
       : undefined
   const adminFactsTemplate =
     adminFlightProfile != null
@@ -374,42 +382,6 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
             )
           : parsedFactsByDate
 
-  const useVerygoodPublicFlightLegs =
-    travelProduct.brand?.brandKey === 'verygoodtour' ||
-    flightStructuredDebug?.supplierBrandKey === 'verygoodtour'
-  if (
-    useVerygoodPublicFlightLegs &&
-    departureKeyFactsByDate &&
-    flightStructured &&
-    flightDisplayPolicy !== 'admin_only' &&
-    flightDisplayPolicy !== 'suppress_no_parsed'
-  ) {
-    const vg = tryVerygoodLegsFromFlightBody(flightStructured)
-    if (vg && (vg.outbound || vg.inbound)) {
-      departureKeyFactsByDate = Object.fromEntries(
-        Object.entries(departureKeyFactsByDate).map(([dateKey, facts]) => {
-          const outbound =
-            vg.outbound && departureLegHasContent(vg.outbound) ? vg.outbound : facts.outbound
-          const inbound = vg.inbound && departureLegHasContent(vg.inbound) ? vg.inbound : facts.inbound
-          return [dateKey, { ...facts, outbound, inbound }]
-        })
-      )
-    }
-    departureKeyFactsByDate = Object.fromEntries(
-      Object.entries(departureKeyFactsByDate).map(([dateKey, facts]) => [
-        dateKey,
-        {
-          ...facts,
-          airline: resolveVerygoodPublicAirlineForPublicDetail(
-            flightStructured,
-            facts.airline,
-            travelProduct.airline
-          ),
-        },
-      ])
-    )
-  }
-
   if (useModetourDirectedParse && departureKeyFactsByDate) {
     departureKeyFactsByDate = Object.fromEntries(
       Object.entries(departureKeyFactsByDate).map(([dateKey, facts]) => [
@@ -440,14 +412,6 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       ? structuredAny.shoppingPasteRaw.trim()
       : null
 
-  const meetingPublic = resolveOperationalMeetingDisplay(
-    pickPrimaryAirlineNameForOperationalMeeting({
-      departureCarrierFirst: departures[0]?.carrierName ?? null,
-      structuredAirlineName: (structured?.airlineName as string | undefined) ?? null,
-      productAirline: travelProduct.airline ?? null,
-    })
-  )
-
   const mergedPriceRows = publicPriceRowsModule.mergeProductPriceRowsWithBodyPriceTable(
     departures.length > 0
       ? publicPriceRowsModule.productDeparturesToProductPriceRows(departures)
@@ -474,34 +438,70 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
             priceInfant: infantPx,
           }
         }),
-    productPriceTableForMerge,
-    useModetourPriceMergeContext ? { modetourVaryingAdultChildLinkage: true } : undefined
+    verygoodtourPublicRowFactsOnly ? null : productPriceTableForMerge,
+    useModetourPriceMergeContext
+      ? { modetourVaryingAdultChildLinkage: true }
+      : useYbtourPriceMergeContext
+        ? { ybtourVaryingAdultChildLinkage: true }
+        : undefined
   )
   const priceRowsForPublic = Array.isArray(mergedPriceRows) ? mergedPriceRows : []
+
+  const verygoodPublicRepRow =
+    verygoodtourPublicRowFactsOnly && priceRowsForPublic.length > 0
+      ? pickVerygoodPublicDefaultDepartureRow(
+          priceRowsForPublic as Array<{ date: string; id: string; status?: string }>
+        )
+      : null
+  const verygoodPublicRepCarrier =
+    verygoodPublicRepRow && departures.length > 0
+      ? departures.find((d) => String(d.id) === String(verygoodPublicRepRow.id))?.carrierName?.trim() ?? null
+      : null
+  const verygoodPublicRepDeparture =
+    verygoodtourPublicRowFactsOnly && verygoodPublicRepRow && departures.length > 0
+      ? departures.find((d) => String(d.id) === String(verygoodPublicRepRow.id)) ?? null
+      : null
+  const verygoodPublicDurationFromRepRow =
+    verygoodPublicRepDeparture != null
+      ? verygoodDurationLabelFromDepartureAtPair(
+          verygoodPublicRepDeparture.outboundDepartureAt,
+          verygoodPublicRepDeparture.inboundArrivalAt
+        )
+      : null
+  const verygoodPublicPriceFromRepRow =
+    verygoodPublicRepRow != null ? getPriceAdult(verygoodPublicRepRow as never) : null
+
+  const meetingPublic = resolveOperationalMeetingDisplay(
+    pickPrimaryAirlineNameForOperationalMeeting({
+      departureCarrierFirst:
+        verygoodtourPublicRowFactsOnly && verygoodPublicRepDeparture?.carrierName?.trim()
+          ? verygoodPublicRepDeparture.carrierName.trim()
+          : departures[0]?.carrierName ?? null,
+      structuredAirlineName: (structured?.airlineName as string | undefined) ?? null,
+      productAirline: travelProduct.airline ?? null,
+    })
+  )
 
   const serialized: TravelProduct = {
     ...productForDetail,
     airline: (() => {
       const vgPublic =
-        useVerygoodPublicFlightLegs &&
+        verygoodtourPublicRowFactsOnly &&
         flightDisplayPolicy !== 'admin_only' &&
         flightDisplayPolicy !== 'suppress_no_parsed'
       const raw = (() => {
         if (!vgPublic) return travelProduct.airline ?? null
-        if (departureKeyFactsByDate) {
-          const keys = Object.keys(departureKeyFactsByDate).sort()
-          if (keys.length) {
-            const fromFacts = departureKeyFactsByDate[keys[0]!]?.airline ?? null
-            if (fromFacts) return fromFacts
-          }
-        }
-        return resolveVerygoodPublicAirlineForPublicDetail(flightStructured, null, travelProduct.airline)
+        if (verygoodPublicRepCarrier) return verygoodPublicRepCarrier
+        return travelProduct.airline ?? null
       })()
       return useModetourDirectedParse ? sanitizeModetourPublicProductAirlineLine(raw) ?? raw : raw
     })(),
     destination: travelProduct.destination ?? '',
     title: travelProduct.title ?? '',
-    duration: travelProduct.duration ?? '',
+    duration:
+      verygoodtourPublicRowFactsOnly && verygoodPublicDurationFromRepRow
+        ? verygoodPublicDurationFromRepRow
+        : travelProduct.duration ?? '',
     counselingNotes: parseCounselingNotes(travelProduct.counselingNotes),
     criticalExclusions: travelProduct.criticalExclusions ?? null,
     productType: travelProduct.productType ?? null,
@@ -527,9 +527,13 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       normalizePromotionMarketingCopy(travelProduct.promotionLabelsRaw) ??
       travelProduct.promotionLabelsRaw ??
       null,
-    priceFrom: travelProduct.priceFrom ?? null,
+    priceFrom:
+      verygoodtourPublicRowFactsOnly && verygoodPublicPriceFromRepRow != null && verygoodPublicPriceFromRepRow > 0
+        ? verygoodPublicPriceFromRepRow
+        : travelProduct.priceFrom ?? null,
     priceCurrency: travelProduct.priceCurrency ?? null,
     departureKeyFactsByDate,
+    departureKeyFactsByDepartureId,
     // 관리자 확정 항공이 있으면 자동 파싱 본문값으로 덮어쓰지 않도록 병합 소스를 차단.
     // persisted 모두투어 leg 스냅샷은 debug·modetourParseTrace 등 내부 필드 포함 → 공개용만 통과.
     flightStructured:

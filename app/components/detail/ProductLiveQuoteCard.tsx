@@ -68,6 +68,8 @@ type Props = {
   /** 히어로·여행핵심정보와 동일 출발·귀국 표시 (`formatHeroDateKorean` 등) */
   heroTripDepartureDisplay?: string | null
   heroTripReturnDisplay?: string | null
+  /** 동일 일자에 여러 출발 행이 있을 때 `selectedDate`만으로는 부족할 때 — 이 행을 견적 SSOT로 사용 */
+  explicitPriceRow?: ProductPriceRow | null
   /** 모두투어 전용: 출발일 변경 버튼 바로 아래 현지 지불경비(인당) */
   modetourStickyLocalPayLine?: string | null
 }
@@ -88,14 +90,16 @@ export default function ProductLiveQuoteCard({
   heroTripReturnDisplay,
   modetourStickyLocalPayLine,
   updateChildCombined,
+  explicitPriceRow,
 }: Props) {
   const priceRow = useMemo(() => {
+    if (explicitPriceRow && isScheduleAdultBookable(explicitPriceRow)) return explicitPriceRow
     if (selectedDate) {
       const row = prices.find((p) => toDateKey(p.date) === selectedDate)
       if (row && isScheduleAdultBookable(row)) return row
     }
     return prices.find((p) => isScheduleAdultBookable(p)) ?? null
-  }, [prices, selectedDate])
+  }, [prices, selectedDate, explicitPriceRow])
 
   const quotationTotal = useMemo(() => {
     if (!priceRow) return null

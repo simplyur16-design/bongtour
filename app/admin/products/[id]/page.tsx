@@ -23,6 +23,7 @@ import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLET
 import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_YBTOUR } from '@/lib/admin-register-verification-meta-ybtour'
 import type { AdminDeparturesRescrapeResponseBody } from '@/app/api/admin/products/[id]/departures/route'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import { repairUtf8MisreadAsLatin1 } from '@/lib/encoding-repair'
 import {
   LISTING_KIND_LABELS,
   LISTING_KIND_VALUES,
@@ -229,6 +230,12 @@ function formatDepartureDt(iso: string | null | undefined): string {
   if (!iso) return '—'
   const d = new Date(iso)
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+/** UTF-8→latin1 오인 한글 깨짐(상태·항공 등) 복구 후 표시 */
+function adminDepartureText(s: string | null | undefined): string {
+  if (s == null || s === '') return ''
+  return repairUtf8MisreadAsLatin1(s)
 }
 
 function hasFlightOrMeeting(r: DepartureRow): boolean {
@@ -2897,11 +2904,17 @@ export default function AdminProductDetailPage({
                         <td className="py-2 pr-2">
                           {row.infantPrice != null ? row.infantPrice.toLocaleString() : '—'}
                         </td>
-                        <td className="max-w-[120px] truncate py-2 pr-2 text-bt-meta" title={row.statusRaw ?? undefined}>
-                          {row.statusRaw ?? '—'}
+                        <td
+                          className="max-w-[120px] truncate py-2 pr-2 text-bt-meta"
+                          title={adminDepartureText(row.statusRaw ?? undefined) || undefined}
+                        >
+                          {adminDepartureText(row.statusRaw) || '—'}
                         </td>
-                        <td className="max-w-[120px] truncate py-2 pr-2 text-bt-meta" title={row.seatsStatusRaw ?? undefined}>
-                          {row.seatsStatusRaw ?? '—'}
+                        <td
+                          className="max-w-[120px] truncate py-2 pr-2 text-bt-meta"
+                          title={adminDepartureText(row.seatsStatusRaw ?? undefined) || undefined}
+                        >
+                          {adminDepartureText(row.seatsStatusRaw) || '—'}
                         </td>
                         <td className="py-2 pr-2">
                           {row.isConfirmed === true ? '확정' : row.isConfirmed === false ? '아님' : '—'}
@@ -2925,7 +2938,9 @@ export default function AdminProductDetailPage({
                             <div className="space-y-2">
                               <div>
                                 <span className="font-medium text-bt-subtle">항공 </span>
-                                {row.carrierName && <span className="text-bt-inverse/90">{row.carrierName}</span>}
+                                {row.carrierName && (
+                                  <span className="text-bt-inverse/90">{adminDepartureText(row.carrierName)}</span>
+                                )}
                                 <div className="mt-1 whitespace-pre-wrap break-words">
                                   가는편:{' '}
                                   {[row.outboundDepartureAirport, row.outboundArrivalAirport].filter(Boolean).join(' → ') ||
@@ -2944,26 +2959,32 @@ export default function AdminProductDetailPage({
                               <div>
                                 <span className="font-medium text-bt-subtle">미팅 </span>
                                 {row.meetingInfoRaw && (
-                                  <p className="text-bt-inverse/90" title={row.meetingInfoRaw}>
-                                    {row.meetingInfoRaw.length > 160 ? `${row.meetingInfoRaw.slice(0, 160)}…` : row.meetingInfoRaw}
+                                  <p
+                                    className="text-bt-inverse/90"
+                                    title={adminDepartureText(row.meetingInfoRaw)}
+                                  >
+                                    {(() => {
+                                      const t = adminDepartureText(row.meetingInfoRaw)
+                                      return t.length > 160 ? `${t.slice(0, 160)}…` : t
+                                    })()}
                                   </p>
                                 )}
                                 {row.meetingPointRaw && (
                                   <p className="mt-0.5">
                                     <span className="text-bt-subtle">장소: </span>
-                                    {row.meetingPointRaw}
+                                    {adminDepartureText(row.meetingPointRaw)}
                                   </p>
                                 )}
                                 {row.meetingTerminalRaw && (
                                   <p className="mt-0.5">
                                     <span className="text-bt-subtle">터미널: </span>
-                                    {row.meetingTerminalRaw}
+                                    {adminDepartureText(row.meetingTerminalRaw)}
                                   </p>
                                 )}
                                 {row.meetingGuideNoticeRaw && (
                                   <p className="mt-0.5 whitespace-pre-wrap break-words">
                                     <span className="text-bt-subtle">가이드 안내: </span>
-                                    {row.meetingGuideNoticeRaw}
+                                    {adminDepartureText(row.meetingGuideNoticeRaw)}
                                   </p>
                                 )}
                               </div>

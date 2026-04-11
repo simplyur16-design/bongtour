@@ -9,7 +9,7 @@ import { SITE_NAME } from '@/lib/site-metadata'
 export const metadata: Metadata = {
   title: '여행·단체 문의',
   description:
-    '해외·국내 여행, 단독 견적, 연수, 버스 등 문의를 접수합니다. 내용 확인 후 순차적으로 연락드립니다.',
+    '해외·국내 여행, 우리견적, 연수, 버스 등 문의를 접수합니다. 내용 확인 후 순차적으로 연락드립니다.',
   alternates: { canonical: '/inquiry' },
   openGraph: {
     title: `문의 접수 | ${SITE_NAME}`,

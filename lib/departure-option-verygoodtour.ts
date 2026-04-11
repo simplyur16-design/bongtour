@@ -1,6 +1,9 @@
 /**
  * 참좋은여행 출발옵션 — 제목 레이어·matchingTraceRaw (전용).
  * 이전 공용 출발옵션 모듈에서 분리.
+ *
+ * `matchingTraceRaw`의 `notes[]` 접두사(`VG_LIST_*`)는 DB에 남는 **진단용 문자열**뿐이며,
+ * 참좋은은 달력·**일정행(JSON)** 만 보고, 같은 행은 **N박M일 + 상품명 전체 일치**로 통과시킨다.
  */
 
 type DepartureTitleLayers = {

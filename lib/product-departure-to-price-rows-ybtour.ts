@@ -75,7 +75,7 @@ function slotSignatureVaries(rows: ProductPriceRow[], pick: (r: ProductPriceRow)
   return new Set(rows.map(pick)).size > 1
 }
 
-/** `mergeProductPriceRowsWithBodyPriceTable` 옵션 — 모두투어 전용 플래그만 사용(다른 공급사는 미전달) */
+/** `mergeProductPriceRowsWithBodyPriceTable` 옵션 — 공급사별 플래그는 해당 경로에서만 전달 */
 export type MergeProductPriceBodyTableOptions = {
   /**
    * 모두투어 전용: 출발별 성인가가 다를 때
@@ -84,6 +84,11 @@ export type MergeProductPriceBodyTableOptions = {
    * 유아는 행이 비어 있을 때 modetourPost에서 보강.
    */
   modetourVaryingAdultChildLinkage?: boolean
+  /**
+   * 노랑풍선(ybtour) 전용: 출발별 성인가가 다를 때 아동=행별 성인가 연동(post).
+   * 본문 표의 유아 단가는 **절대** 행에 덮어쓰지 않는다(최초 유아 단가·행 값 유지).
+   */
+  ybtourVaryingAdultChildLinkage?: boolean
 }
 
 /** rawMeta 본문 가격표(연령별)가 있으면 출발일별 행에 덮어씀 — 달력은 Departure, 구간 단가는 본문 표 SSOT */
@@ -123,7 +128,10 @@ export function mergeProductPriceRowsWithBodyPriceTable(
     table.childNoBedPrice > 0 &&
     (!childNoBedVaries || childNoBedOnlyMirrorsAdultAcrossRows(rows)) &&
     (!adultVaries || !anyRowHasChildNoBed || !anyRowHasRealChildNoBedTier)
+  const varyingAdultChildLinkage =
+    options?.modetourVaryingAdultChildLinkage === true || options?.ybtourVaryingAdultChildLinkage === true
   const mergeInfant =
+    !options?.ybtourVaryingAdultChildLinkage &&
     table.infantPrice != null &&
     table.infantPrice > 0 &&
     !infantVaries &&
@@ -134,7 +142,7 @@ export function mergeProductPriceRowsWithBodyPriceTable(
    * 예전에는 adultVaries일 때 아동 병합을 전부 끄면, 본문에 실제 아동 단가가 있어도 화면에 안 나왔다.
    * 본문 표가 「아동=성인 동일가」일 때만 기존처럼 merge를 끄고 modetourPost에서 행별 성인가를 복제한다.
    */
-  if (options?.modetourVaryingAdultChildLinkage && adultVaries) {
+  if (varyingAdultChildLinkage && adultVaries) {
     const ta = table.adultPrice ?? null
     const tcb = table.childExtraBedPrice ?? null
     const tcnb = table.childNoBedPrice ?? null
@@ -158,10 +166,9 @@ export function mergeProductPriceRowsWithBodyPriceTable(
     }
   }
 
-  const modetourPost =
-    options?.modetourVaryingAdultChildLinkage === true && adultVaries && table != null
+  const varyingAdultPost = varyingAdultChildLinkage && adultVaries && table != null
 
-  if (!mergeAdult && !mergeChildBed && !mergeChildNoBed && !mergeInfant && !modetourPost) return rows
+  if (!mergeAdult && !mergeChildBed && !mergeChildNoBed && !mergeInfant && !varyingAdultPost) return rows
 
   let merged = rows.map((r) => {
     const next: ProductPriceRow = { ...r }
@@ -184,7 +191,7 @@ export function mergeProductPriceRowsWithBodyPriceTable(
     return next
   })
 
-  if (modetourPost) {
+  if (varyingAdultPost) {
     const ta = table.adultPrice ?? null
     const tcb = table.childExtraBedPrice ?? null
     const tcnb = table.childNoBedPrice ?? null
@@ -194,16 +201,22 @@ export function mergeProductPriceRowsWithBodyPriceTable(
 
     merged = merged.map((r) => {
       const next: ProductPriceRow = { ...r }
-      if (bodyChildMirrorsTableAdult) {
-        const ad = num(r.adult ?? r.priceAdult)
-        if (ad > 0) {
-          next.childBed = ad
-          next.priceChildWithBed = ad
-          next.childNoBed = ad
-          next.priceChildNoBed = ad
-        }
+      const ad = num(r.adult ?? r.priceAdult)
+      const mirrorChildToAdult =
+        (options?.ybtourVaryingAdultChildLinkage === true && ad > 0) ||
+        (bodyChildMirrorsTableAdult && ad > 0)
+      if (mirrorChildToAdult) {
+        next.childBed = ad
+        next.priceChildWithBed = ad
+        next.childNoBed = ad
+        next.priceChildNoBed = ad
       }
-      if (tin != null && tin > 0 && positiveSlot(next.priceInfant ?? next.infant) == null) {
+      if (
+        options?.ybtourVaryingAdultChildLinkage !== true &&
+        tin != null &&
+        tin > 0 &&
+        positiveSlot(next.priceInfant ?? next.infant) == null
+      ) {
         next.infant = tin
         next.priceInfant = tin
       }
@@ -222,9 +235,20 @@ export function productDeparturesToProductPriceRows(departures: ProductDeparture
   let prevTotal = 0
   return sorted.map((d) => {
     const adult = d.adultPrice ?? 0
-    const childBed = d.childBedPrice ?? null
-    const childNoBed = d.childNoBedPrice ?? null
-    const infant = d.infantPrice ?? null
+    const childBed =
+      d.childBedPrice != null && Number.isFinite(d.childBedPrice) && d.childBedPrice > 0
+        ? d.childBedPrice
+        : adult > 0
+          ? adult
+          : null
+    const childNoBed =
+      d.childNoBedPrice != null && Number.isFinite(d.childNoBedPrice) && d.childNoBedPrice > 0
+        ? d.childNoBedPrice
+        : adult > 0
+          ? adult
+          : null
+    const infant =
+      d.infantPrice != null && Number.isFinite(d.infantPrice) && d.infantPrice > 0 ? d.infantPrice : null
     const total = adult + (childBed ?? 0) + (childNoBed ?? 0) + (infant ?? 0)
     const priceGap = prevTotal > 0 ? total - prevTotal : 0
     prevTotal = total
@@ -297,9 +321,22 @@ export function departureInputsToProductPriceCreateMany(
   let prevTotal = 0
   return sorted.map((d) => {
     const adult = d.adultPrice ?? 0
-    const childBed = d.childBedPrice ?? 0
-    const childNoBed = d.childNoBedPrice ?? 0
-    const infant = d.infantPrice ?? 0
+    const childBed =
+      d.childBedPrice != null && Number.isFinite(d.childBedPrice) && d.childBedPrice > 0
+        ? d.childBedPrice
+        : adult > 0
+          ? adult
+          : 0
+    const childNoBed =
+      d.childNoBedPrice != null && Number.isFinite(d.childNoBedPrice) && d.childNoBedPrice > 0
+        ? d.childNoBedPrice
+        : adult > 0
+          ? adult
+          : 0
+    const infant =
+      d.infantPrice != null && Number.isFinite(d.infantPrice) && d.infantPrice > 0
+        ? Math.floor(d.infantPrice)
+        : 0
     const total = adult + childBed + childNoBed + infant
     const priceGap = prevTotal > 0 ? total - prevTotal : 0
     prevTotal = total

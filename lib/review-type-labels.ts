@@ -12,7 +12,7 @@ export const REVIEW_TYPES_ORDERED: ReviewType[] = [
 
 /** review_type → 화면 표시명 (시스템 분류 고정) */
 export const REVIEW_TYPE_LABELS: Record<ReviewType, string> = {
-  solo: '단독여행',
+  solo: '우리여행',
   group_small: '소규모단체',
   group_corporate: '기업단체',
   group_friends: '친구모임',

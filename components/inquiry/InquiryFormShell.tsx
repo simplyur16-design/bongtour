@@ -32,7 +32,7 @@ export type InquiryFormShellProps = {
   children: React.ReactNode
   /** `payloadJson`에 합쳐질 객체 (빈 값은 제출 전 compact로 제거) */
   buildPayloadJson: () => Record<string, unknown>
-  /** 단독견적 등 동일 API 유형으로 제목만 바꿀 때 */
+  /** 우리견적 등 동일 API 유형으로 제목만 바꿀 때 */
   overlayMeta?: { title: string; description: string } | null
   /** 추가 필드 블록 사전 검증 */
   beforeSubmit?: () => { fieldErrors?: FieldErrors; formError?: string } | null

@@ -17,7 +17,7 @@ export default function PrivateTripHero({ inquiryHref }: Props) {
               href={inquiryHref}
               className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-teal-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-75 hover:bg-teal-800"
             >
-              단독견적 문의하기
+              우리견적 문의하기
             </Link>
             <Link
               href={`${inquiryHref}${inquiryHref.includes('?') ? '&' : '?'}topic=custom`}

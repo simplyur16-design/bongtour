@@ -152,7 +152,7 @@ export default function ProductsListPage() {
         <div className="mt-10 rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-6 text-sm text-slate-900">
           <p className="font-semibold">조건에 맞는 상품이 없습니다.</p>
           <p className="mt-2 text-slate-700">
-            필터를 완화하거나, 단독 맞춤 견적으로 문의해 보세요.
+            필터를 완화하거나, 맞춤 우리견적으로 문의해 보세요.
           </p>
           {data.suggestedBudgetMax != null && budget && (
             <p className="mt-3">
@@ -161,7 +161,7 @@ export default function ProductsListPage() {
             </p>
           )}
           <Link href="/quote/private" className="mt-4 inline-block font-medium text-teal-800 underline">
-            단독 견적 문의하기
+            우리견적 문의하기
           </Link>
         </div>
       )}

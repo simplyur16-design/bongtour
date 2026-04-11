@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react'
 import type { TravelProduct } from '@/app/components/travel/verygood/VerygoodTravelProductDetail'
 import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
 import TravelCoreInfoSection from '@/app/components/detail/TravelCoreInfoSection'
-import ProductExtraInfoTabs from '@/app/components/detail/ProductExtraInfoTabs'
+import VerygoodProductExtraInfoTabs from '@/app/components/travel/verygood/VerygoodProductExtraInfoTabs'
 import { isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-hanatour'
 import {
   getPublicOptionalTourRowsFromProduct,
@@ -13,9 +13,10 @@ import {
 } from '@/lib/optional-tours-ui-model'
 import { buildProductMetaChips } from '@/lib/product-meta-chips'
 import { formatKRW, computeKRWQuotation, isScheduleAdultBookable } from '@/lib/price-utils'
+import { pickBookableRowForDateKey } from '@/lib/public-default-departure-selection'
+import { pickVerygoodPublicDefaultDepartureRow } from '@/lib/verygood/verygood-public-default-departure'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
-import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
-import { resolveHeroTripDates } from '@/lib/product-hero-dates'
+import { buildVerygoodTripDateDisplaysForSelectedRow } from '@/lib/verygood/verygood-selected-row-trip-display'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import ProductHeroCarousel from '@/app/components/detail/ProductHeroCarousel'
 import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
@@ -55,7 +56,6 @@ import {
 import { applyHanatourFlightRoutingChipOverride } from '@/lib/hanatour-product-meta-chips-patch'
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
-import { formatHeroDateKorean } from '@/lib/hero-date-utils'
 import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/public-schedule-display'
 import {
   buildPublicOptionalDisplayInputFromProductFields,
@@ -152,49 +152,55 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
       product.shoppingPasteRaw,
     ]
   )
-  const defaultDateKey = useMemo(() => {
-    const rows = prices.filter((p) => isScheduleAdultBookable(p))
-    if (rows.length === 0) return null
-    if (normalizeSupplierOrigin(product.originSource) === 'modetour') {
-      let best = rows[0]!
-      let bestTotal = computeKRWQuotation(best, { adult: 1, childBed: 0, childNoBed: 0, infant: 0 }).total
-      for (let i = 1; i < rows.length; i++) {
-        const t = computeKRWQuotation(rows[i]!, { adult: 1, childBed: 0, childNoBed: 0, infant: 0 }).total
-        if (t < bestTotal) {
-          best = rows[i]!
-          bestTotal = t
-        }
-      }
-      return toDateKey(best.date)
-    }
-    return toDateKey(rows[0]!.date)
-  }, [prices, product.originSource])
-
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [departureUserPinned, setDepartureUserPinned] = useState(false)
+  const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(null)
   const [pax, setPax] = useState({ adult: 1, childBed: 0, childNoBed: 0, infant: 0 })
   const [bookingOpen, setBookingOpen] = useState(false)
   const [departurePickerOpen, setDeparturePickerOpen] = useState(false)
 
   useEffect(() => {
-    if (!defaultDateKey) {
-      setSelectedDate(null)
+    setDepartureUserPinned(false)
+  }, [String(product.id)])
+
+  const defaultDepartureRow = useMemo(() => pickVerygoodPublicDefaultDepartureRow(prices), [prices])
+
+  useEffect(() => {
+    if (departureUserPinned) return
+    if (!defaultDepartureRow) {
+      setSelectedDepartureRowId(null)
       return
     }
-    setSelectedDate((prev) => {
-      if (prev == null) return defaultDateKey
-      const row = prices.find((p) => toDateKey(p.date) === prev)
-      if (!row || !isScheduleAdultBookable(row)) return defaultDateKey
-      return prev
-    })
-  }, [defaultDateKey, prices])
+    setSelectedDepartureRowId(defaultDepartureRow.id)
+  }, [departureUserPinned, defaultDepartureRow?.id])
+
+  useEffect(() => {
+    if (!selectedDepartureRowId) return
+    const row = prices.find((p) => p.id === selectedDepartureRowId)
+    if (!row) {
+      setDepartureUserPinned(false)
+      setSelectedDepartureRowId(null)
+    }
+  }, [prices, selectedDepartureRowId])
+
+  const handleDepartureDateChosen = useCallback(
+    (isoDate: string) => {
+      const picked = pickBookableRowForDateKey(prices, isoDate)
+      if (!picked) return
+      setSelectedDepartureRowId(picked.id)
+      setDepartureUserPinned(true)
+    },
+    [prices]
+  )
 
   const priceRow = useMemo(() => {
-    if (selectedDate) {
-      const row = prices.find((p) => toDateKey(p.date) === selectedDate)
-      if (row && isScheduleAdultBookable(row)) return row
+    if (selectedDepartureRowId) {
+      const r = prices.find((p) => p.id === selectedDepartureRowId)
+      if (r) return r
     }
-    return prices.find((p) => isScheduleAdultBookable(p)) ?? null
-  }, [prices, selectedDate])
+    return defaultDepartureRow
+  }, [prices, selectedDepartureRowId, defaultDepartureRow])
+
+  const selectedDate = priceRow ? toDateKey(priceRow.date) : null
 
   const hasBookableSchedule = useMemo(
     () => prices.some((p) => isScheduleAdultBookable(p)),
@@ -241,22 +247,35 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
   }, [product.mandatoryLocalFee, product.mandatoryCurrency, product.counselingNotes])
 
   const selectedDepartureFacts = useMemo(() => {
-    if (!selectedDate) return null
-    const row = product.departureKeyFactsByDate?.[selectedDate] ?? null
+    const raw =
+      priceRow && product.departureKeyFactsByDepartureId?.[priceRow.id]
+        ? product.departureKeyFactsByDepartureId[priceRow.id]
+        : null
+    if (normalizeSupplierOrigin(product.originSource) === 'verygoodtour') return raw
     if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection) {
-      return applyFlightManualCorrectionForPublicOrigin(row, product.flightManualCorrection, product.originSource)
+      return applyFlightManualCorrectionForPublicOrigin(raw, product.flightManualCorrection, product.originSource)
     }
-    return row
+    return raw
   }, [
-    selectedDate,
-    product.departureKeyFactsByDate,
+    priceRow,
+    product.departureKeyFactsByDepartureId,
     product.applyFlightManualCorrectionOverlay,
     product.flightManualCorrection,
     product.originSource,
   ])
 
+  const productForMetaChips = useMemo(() => {
+    const air = selectedDepartureFacts?.airline?.trim()
+    if (normalizeSupplierOrigin(product.originSource) !== 'verygoodtour' || !air) return product
+    if (product.airline?.trim() === air) return product
+    return { ...product, airline: air }
+  }, [product, selectedDepartureFacts])
+
   const productMetaChips = useMemo(() => {
-    const base = buildProductMetaChips(product, { departureFactsOverride: selectedDepartureFacts })
+    const base = buildProductMetaChips(productForMetaChips, {
+      departureFactsOverride: selectedDepartureFacts,
+      prioritizeDepartureFactsForRouting: true,
+    })
     if (normalizeSupplierOrigin(product.originSource) !== 'hanatour') return base
     return applyHanatourFlightRoutingChipOverride(base, {
       title: product.title,
@@ -267,7 +286,7 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
       departureKeyFactsByDate: product.departureKeyFactsByDate ?? null,
       departureFactsOverride: selectedDepartureFacts,
     })
-  }, [product, selectedDepartureFacts])
+  }, [product, productForMetaChips, selectedDepartureFacts])
 
   const departureConditionLine = useMemo(() => {
     if (normalizeSupplierOrigin(product.originSource) !== 'hanatour') {
@@ -311,50 +330,15 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
     product.pricePromotionView?.benefitTitle?.trim() ||
     null
 
-  const modetourBodyHaystack = useMemo(() => {
-    if (normalizeSupplierOrigin(product.originSource) !== 'modetour') return null
-    return buildModetourHeroHaystackFromProduct(product)
-  }, [
-    product.originSource,
-    product.title,
-    product.includedText,
-    product.excludedText,
-    product.reservationNoticeRaw,
-    product.hotelSummaryRaw,
-    product.hotelSummaryText,
-    product.benefitSummary,
-    product.promotionLabelsRaw,
-    product.criticalExclusions,
-    product.priceTableRawText,
-    product.schedule,
-    product.flightStructured,
-  ])
-
-  const heroResolved = useMemo(
-    () =>
-      resolveHeroTripDates({
-        originSource: product.originSource,
-        selectedDate,
-        fallbackPriceRowDate: priceRow ? toDateKey(priceRow.date) : null,
-        duration: product.duration,
-        departureFacts: selectedDepartureFacts,
-        modetourBodyHaystack,
-      }),
-    [
-      product.originSource,
-      selectedDate,
-      priceRow,
-      product.duration,
-      selectedDepartureFacts,
-      modetourBodyHaystack,
-    ]
-  )
-  const heroDepartureDisplay =
-    heroResolved.departureDisplayOverride ??
-    (formatHeroDateKorean(heroResolved.departureIso) ?? heroResolved.departureIso ?? null)
-  const heroReturnDisplay =
-    heroResolved.returnDisplayOverride ??
-    (formatHeroDateKorean(heroResolved.returnIso) ?? heroResolved.returnIso ?? null)
+  const { departureDisplay: heroDepartureDisplay, returnDisplay: heroReturnDisplay, durationLabel: rowDurationLabel } =
+    useMemo(
+      () =>
+        buildVerygoodTripDateDisplaysForSelectedRow({
+          calendarDep: priceRow ? toDateKey(priceRow.date) : null,
+          facts: selectedDepartureFacts,
+        }),
+      [priceRow, selectedDepartureFacts]
+    )
 
   const travelCitiesLine = useMemo(() => {
     const raw = [product.primaryDestination, product.destination]
@@ -374,6 +358,8 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
     const bits: string[] = []
     if (base) bits.push(base)
     if (seats != null && seats >= 0) bits.push(`여유좌석 약 ${seats}석`)
+    const rowStatus = priceRow?.status?.trim()
+    if (rowStatus && !bits.some((b) => b.includes(rowStatus))) bits.push(rowStatus)
     if (normalizeSupplierOrigin(product.originSource) === 'hanatour') {
       const seatBlob = priceRow?.seatsStatusRaw?.trim() || priceRow?.status?.trim()
       const hay = buildHanatourDepartureEvidenceHaystack(product)
@@ -399,16 +385,16 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
       <>
         <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroDepartureDisplay ?? '—'}</span>
         <span className="text-bt-disabled"> ~ </span>
-        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroReturnDisplay ?? '상담 시 안내'}</span>
-        {product.duration?.trim() ? (
+        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroReturnDisplay ?? '—'}</span>
+        {rowDurationLabel ? (
           <>
             {' '}
-            <span className="font-extrabold text-bt-card-accent-strong">{product.duration.trim()}</span>
+            <span className="font-extrabold text-bt-card-accent-strong">{rowDurationLabel}</span>
           </>
         ) : null}
       </>
     ),
-    [heroDepartureDisplay, heroReturnDisplay, product.duration]
+    [heroDepartureDisplay, heroReturnDisplay, rowDurationLabel]
   )
 
   return (
@@ -431,11 +417,11 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
           <span className="mx-1.5 opacity-60">·</span>
           <span>{product.destination}</span>
           <span className="mx-1.5 opacity-60">·</span>
-          <span>{product.duration}</span>
-          {product.airline ? (
+          <span>{rowDurationLabel?.trim() || '—'}</span>
+          {selectedDepartureFacts?.airline?.trim() ? (
             <>
               <span className="mx-1.5 opacity-60">·</span>
-              <span>{product.airline}</span>
+              <span>{selectedDepartureFacts.airline.trim()}</span>
             </>
           ) : null}
         </p>
@@ -457,7 +443,7 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
           <p className="flex justify-between gap-2">
             <span className={HERO_DATE_LABEL_CLASS}>귀국일</span>
             <span className={HERO_DATE_VALUE_CLASS}>
-              {heroReturnDisplay ?? '상담 시 안내'}
+              {heroReturnDisplay ?? '—'}
             </span>
           </p>
         </div>
@@ -511,6 +497,7 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
           product={product}
           prices={prices}
           selectedDate={selectedDate}
+          explicitPriceRow={priceRow}
           pax={pax}
           updatePax={updatePax}
           updateChildCombined={updateChildCombined}
@@ -529,7 +516,7 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
       <div className="border-b border-bt-border-soft p-4">
         <TravelCoreInfoSection
           facts={selectedDepartureFacts}
-          productAirline={product.airline ?? null}
+          productAirline={selectedDepartureFacts?.airline?.trim() ?? null}
           periodContent={periodContent}
           travelCitiesLine={travelCitiesLine}
           reservationLine={reservationDisplayLine}
@@ -604,7 +591,7 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
       </section>
 
       <div className="border-b border-bt-border-soft p-4">
-        <ProductExtraInfoTabs
+        <VerygoodProductExtraInfoTabs
           key={String(product.id)}
           product={product}
           uiOptionalRows={uiOptionalRows}
@@ -634,7 +621,8 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
         prices={prices}
         originSource={product.originSource}
         selectedDate={selectedDate}
-        onSelectDate={setSelectedDate}
+        selectedSourceRowId={priceRow?.id ?? null}
+        onSelectDate={handleDepartureDateChosen}
         listFirst
       />
 

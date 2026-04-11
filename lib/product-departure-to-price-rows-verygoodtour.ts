@@ -15,6 +15,17 @@ function num(v: unknown): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : 0
 }
 
+function availableSeatsFromVerygoodDeparture(d: ProductDeparture): number | undefined {
+  if (d.seatCount != null && Number.isFinite(d.seatCount)) return d.seatCount
+  const raw = d.seatsStatusRaw?.trim()
+  if (!raw) return undefined
+  const m1 = raw.match(/잔여\s*(\d+)/)
+  if (m1) return Math.floor(Number(m1[1]))
+  const m2 = raw.match(/(\d+)\s*석/)
+  if (m2) return Math.floor(Number(m2[1]))
+  return undefined
+}
+
 /** 0은 직렬화/DB placeholder로 두는 경우가 있어 미기입으로 본다 */
 function positiveSlot(v: number | null | undefined): number | null {
   if (v == null || !Number.isFinite(v) || v <= 0) return null
@@ -289,7 +300,7 @@ export function productDeparturesToProductPriceRows(departures: ProductDeparture
       priceChildNoBed: childNoBed,
       priceInfant: infant,
       status,
-      availableSeats: d.seatCount ?? undefined,
+      availableSeats: availableSeatsFromVerygoodDeparture(d),
       /** 출발행 좌석·예약 표기 원문(하나투어 등) — 공개 예약인원 행 보조 */
       seatsStatusRaw,
     }

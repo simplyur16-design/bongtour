@@ -128,6 +128,21 @@ function trimRaw(s: string | null | undefined, max = MAX_RAW): string | null {
   return t ? t.slice(0, max) : null
 }
 
+/** 캘린더/스크래퍼 `잔여N` 또는 `N석` — seatCount 미전달 시 seatsStatusRaw에서만 복원 */
+function deriveSeatCountFromSeatsStatusVerygood(
+  explicit: number | null | undefined,
+  seatsStatusRaw: string | null | undefined
+): number | null {
+  if (explicit != null && Number.isFinite(explicit)) return Math.floor(explicit)
+  const raw = (seatsStatusRaw ?? '').trim()
+  if (!raw) return null
+  const m1 = raw.match(/잔여\s*(\d+)/)
+  if (m1) return Math.floor(Number(m1[1]))
+  const m2 = raw.match(/(\d+)\s*석/)
+  if (m2) return Math.floor(Number(m2[1]))
+  return null
+}
+
 /**
  * 날짜를 UTC 자정(YYYY-MM-DD 00:00:00Z)으로 정규화.
  * 같은 캘린더 날짜는 항상 동일한 DateTime이 되도록 함.
@@ -282,7 +297,7 @@ export async function upsertProductDepartures(
       : null
     const reservationCount =
       d.reservationCount != null && !Number.isNaN(d.reservationCount) ? d.reservationCount : null
-    const seatCount = d.seatCount != null && !Number.isNaN(d.seatCount) ? d.seatCount : null
+    const seatCount = deriveSeatCountFromSeatsStatusVerygood(d.seatCount, seatsStatusRaw)
     const fuelSurchargeIncluded =
       typeof d.fuelSurchargeIncluded === 'boolean' ? d.fuelSurchargeIncluded : null
     const taxIncluded = typeof d.taxIncluded === 'boolean' ? d.taxIncluded : null
@@ -394,6 +409,7 @@ export function parsedPricesToDepartureInputs(prices: Array<{
   infantFuel?: number
   status?: string
   availableSeats?: number
+  seatsStatusRaw?: string | null
   localPrice?: string | null
   carrierName?: string | null
   outboundFlightNo?: string | null
@@ -423,7 +439,16 @@ export function parsedPricesToDepartureInputs(prices: Array<{
         ? (Number(p.infantBase) || 0) + (Number(p.infantFuel) || 0)
         : undefined
     const statusRaw = p.status && String(p.status).trim() ? String(p.status).trim() : null
-    const seatsStatusRaw = p.availableSeats != null ? `잔여${p.availableSeats}` : null
+    const seatCountFromAvail =
+      p.availableSeats != null && Number.isFinite(Number(p.availableSeats))
+        ? Math.floor(Number(p.availableSeats))
+        : undefined
+    const seatsRawIn =
+      p.seatsStatusRaw != null && String(p.seatsStatusRaw).trim() ? String(p.seatsStatusRaw).trim() : ''
+    const seatsStatusRawStr =
+      seatCountFromAvail != null ? `잔여${seatCountFromAvail}` : seatsRawIn || null
+    const seatCountResolved =
+      seatCountFromAvail ?? deriveSeatCountFromSeatsStatusVerygood(undefined, seatsStatusRawStr) ?? undefined
     return {
       departureDate: p.date,
       adultPrice: adultPrice || undefined,
@@ -432,7 +457,8 @@ export function parsedPricesToDepartureInputs(prices: Array<{
       ...(inf !== undefined ? { infantPrice: inf } : {}),
       localPriceText: (p as { localPrice?: string | null }).localPrice ?? undefined,
       statusRaw: statusRaw ?? undefined,
-      seatsStatusRaw: seatsStatusRaw ?? undefined,
+      seatsStatusRaw: seatsStatusRawStr ?? undefined,
+      ...(seatCountResolved !== undefined ? { seatCount: seatCountResolved } : {}),
       carrierName: p.carrierName ?? undefined,
       outboundFlightNo: p.outboundFlightNo ?? undefined,
       outboundDepartureAirport: p.outboundDepartureAirport ?? undefined,

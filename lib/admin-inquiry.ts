@@ -110,7 +110,7 @@ export function inquiryTypeLabel(type: string): string {
 }
 
 export function inquiryTypeDisplayLabel(type: string, quoteKind: string | null): string {
-  if (type === 'travel_consult' && quoteKind === 'private_custom') return '단독견적 문의'
+  if (type === 'travel_consult' && quoteKind === 'private_custom') return '우리견적 문의'
   return inquiryTypeLabel(type)
 }
 

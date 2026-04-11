@@ -25,15 +25,23 @@ function parseYmFromIso(iso: string): { y: number; m0: number } {
   return { y: Number(ys), m0: Number(ms) - 1 }
 }
 
+export type DeparturePickerSelection = { dateIso: string; sourceRowId: string }
+
 type Props = {
   open: boolean
   onClose: () => void
   prices: ProductPriceRow[]
   originSource: string
   selectedDate: string | null
+  /** 목록에서 동일 일자 행 구분용(없으면 일자만으로 선택 표시) */
+  selectedSourceRowId?: string | null
   onSelectDate: (isoDate: string) => void
   /** 모바일: 목록 우선 */
   listFirst?: boolean
+  /** true: 날짜별 요금 표는 달력이 보고 있는 월과 같은 월만 */
+  filterDepartureListByCalendarMonth?: boolean
+  /** 설정 시 달력·목록에서 행 id까지 전달(동일 일자 다행 대비). `onSelectDate`는 호출하지 않음 */
+  onSelectDeparture?: (sel: DeparturePickerSelection) => void
 }
 
 export default function DepartureDatePickerModal({
@@ -42,8 +50,11 @@ export default function DepartureDatePickerModal({
   prices,
   originSource,
   selectedDate,
+  selectedSourceRowId = null,
   onSelectDate,
   listFirst = false,
+  filterDepartureListByCalendarMonth = false,
+  onSelectDeparture,
 }: Props) {
   const viewModels = useMemo(
     () => buildDepartureViewModels(prices, originSource),
@@ -72,6 +83,12 @@ export default function DepartureDatePickerModal({
     if (!open) return
     setCursor(initialCursor)
   }, [open, initialCursor])
+
+  const listViewModels = useMemo(() => {
+    if (!filterDepartureListByCalendarMonth) return viewModels
+    const prefix = `${cursor.y}-${pad2(cursor.m0 + 1)}`
+    return viewModels.filter((v) => v.departureDate.startsWith(prefix))
+  }, [viewModels, filterDepartureListByCalendarMonth, cursor.y, cursor.m0])
 
   const dim = useMemo(
     () => new Date(cursor.y, cursor.m0 + 1, 0).getDate(),
@@ -105,6 +122,32 @@ export default function DepartureDatePickerModal({
     onClose()
   }
 
+  const pickCalendarDay = (iso: string) => {
+    if (onSelectDeparture) {
+      const dayRows = viewModels
+        .filter((v) => v.departureDate === iso)
+        .slice()
+        .sort((a, b) => a.sourceRowId.localeCompare(b.sourceRowId))
+      const chosen = dayRows.find((v) => v.isAvailable) ?? dayRows[0]
+      if (chosen) {
+        onSelectDeparture({ dateIso: chosen.departureDate, sourceRowId: chosen.sourceRowId })
+        onClose()
+      }
+      return
+    }
+    pick(iso)
+  }
+
+  const pickListRow = (vm: DeparturePriceViewModel) => {
+    if (!vm.isAvailable) return
+    if (onSelectDeparture) {
+      onSelectDeparture({ dateIso: vm.departureDate, sourceRowId: vm.sourceRowId })
+      onClose()
+      return
+    }
+    pick(vm.departureDate)
+  }
+
   const calendar = (
     <DepartureCalendarBlock
       cursor={cursor}
@@ -116,15 +159,16 @@ export default function DepartureDatePickerModal({
       minByMonth={minByMonth}
       globalLow={globalLow}
       selectedDate={selectedDate}
-      onSelectDate={pick}
+      onSelectDate={pickCalendarDay}
     />
   )
 
   const list = (
     <DepartureListBlock
-      viewModels={viewModels}
+      viewModels={listViewModels}
       selectedDate={selectedDate}
-      onSelectDate={pick}
+      selectedSourceRowId={selectedSourceRowId}
+      onPickRow={pickListRow}
       minByMonth={minByMonth}
     />
   )
@@ -314,12 +358,14 @@ function DepartureCalendarBlock({
 function DepartureListBlock({
   viewModels,
   selectedDate,
-  onSelectDate,
+  selectedSourceRowId,
+  onPickRow,
   minByMonth,
 }: {
   viewModels: DeparturePriceViewModel[]
   selectedDate: string | null
-  onSelectDate: (iso: string) => void
+  selectedSourceRowId: string | null
+  onPickRow: (vm: DeparturePriceViewModel) => void
   minByMonth: Record<string, number>
 }) {
   return (
@@ -335,8 +381,18 @@ function DepartureListBlock({
             </tr>
           </thead>
           <tbody>
+            {viewModels.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="px-3 py-6 text-center text-bt-muted">
+                  이 달에 해당하는 출발·요금 행이 없습니다. 달력 월을 바꿔 보세요.
+                </td>
+              </tr>
+            ) : null}
             {viewModels.map((vm) => {
-              const isSel = selectedDate === vm.departureDate
+              const isSel =
+                selectedSourceRowId != null
+                  ? selectedSourceRowId === vm.sourceRowId
+                  : selectedDate === vm.departureDate
               const monthKey = vm.departureDate.slice(0, 7)
               const lowMonth =
                 vm.isAvailable &&
@@ -352,11 +408,13 @@ function DepartureListBlock({
                     <button
                       type="button"
                       disabled={!vm.isAvailable}
-                      onClick={() => vm.isAvailable && onSelectDate(vm.departureDate)}
+                      onClick={() => onPickRow(vm)}
                       className={`text-left ${vm.isAvailable ? 'font-semibold text-bt-body hover:text-bt-link' : 'cursor-default text-bt-disabled'}`}
                     >
                       {vm.departureDate}{' '}
-                      <span className="text-bt-muted">({WEEKDAY[new Date(vm.departureDate).getDay()]})</span>
+                      <span className="text-bt-muted">
+                        ({WEEKDAY[new Date(`${vm.departureDate}T12:00:00`).getDay()]})
+                      </span>
                       {lowMonth && vm.isAvailable ? (
                         <span className="ml-1 text-[10px] font-bold text-emerald-800">이달 최저가</span>
                       ) : null}

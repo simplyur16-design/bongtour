@@ -15,6 +15,22 @@ export function scrapeCalendarTodayYmd(timeZone = 'Asia/Seoul'): string {
   }).format(new Date())
 }
 
+/** `YYYY-MM-DD` 문자열에 그레고리력 일수만 가산(타임존 무관·순수 달력). */
+export function addCalendarDaysToYmd(ymd: string, deltaDays: number): string {
+  const [y0, m0, d0] = ymd.split('-').map(Number)
+  const t = Date.UTC(y0, m0 - 1, d0 + deltaDays)
+  const dt = new Date(t)
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`
+}
+
+/**
+ * 참좋은(verygoodtour) 출발·금액 수집 하한: KST **오늘 +3일** YYYY-MM-DD부터만 포함.
+ * (예: 오늘이 4/11이면 4/12·4/13 제외, **4/14**부터 수집·대표 후보.)
+ */
+export function scrapeCalendarVerygoodDepartureFloorYmd(timeZone = 'Asia/Seoul'): string {
+  return addCalendarDaysToYmd(scrapeCalendarTodayYmd(timeZone), 3)
+}
+
 /** 출발일 행 → YYYY-MM-DD (비교용) */
 export function departureInputToYmd(v: DepartureInput['departureDate']): string | null {
   if (v == null) return null

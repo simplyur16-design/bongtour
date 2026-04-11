@@ -425,6 +425,46 @@ export function mergeFlightKeyFactsWithStructuredBody(
   return addFlightDurationsToFacts(next, flight ?? null)
 }
 
+function productDepartureToKeyFacts(d: ProductDeparture): DepartureKeyFacts {
+  const outbound = formatLegLine(
+    'outbound',
+    d.outboundFlightNo,
+    d.outboundDepartureAirport,
+    d.outboundDepartureAt,
+    d.outboundArrivalAirport,
+    d.outboundArrivalAt
+  )
+  const inbound = formatLegLine(
+    'inbound',
+    d.inboundFlightNo,
+    d.inboundDepartureAirport,
+    d.inboundDepartureAt,
+    d.inboundArrivalAirport,
+    d.inboundArrivalAt
+  )
+  return {
+    airline: d.carrierName?.trim() || null,
+    outbound: buildLegDetail(
+      d.outboundFlightNo,
+      d.outboundDepartureAirport,
+      d.outboundDepartureAt,
+      d.outboundArrivalAirport,
+      d.outboundArrivalAt
+    ),
+    inbound: buildLegDetail(
+      d.inboundFlightNo,
+      d.inboundDepartureAirport,
+      d.inboundDepartureAt,
+      d.inboundArrivalAirport,
+      d.inboundArrivalAt
+    ),
+    outboundSummary: outbound,
+    inboundSummary: inbound,
+    /** 미팅은 `meeting-airline-operational-ssot` 상품 단위만 사용 — 출발행 DB/본문 미팅 비노출 */
+    meetingSummary: null,
+  }
+}
+
 export function buildDepartureKeyFactsMap(departures: ProductDeparture[]): Record<string, DepartureKeyFacts> {
   const out: Record<string, DepartureKeyFacts> = {}
   for (const d of departures) {
@@ -432,45 +472,18 @@ export function buildDepartureKeyFactsMap(departures: ProductDeparture[]): Recor
       d.departureDate instanceof Date
         ? d.departureDate.toISOString().slice(0, 10)
         : String(d.departureDate).slice(0, 10)
+    out[dateStr] = productDepartureToKeyFacts(d)
+  }
+  return out
+}
 
-    const outbound = formatLegLine(
-      'outbound',
-      d.outboundFlightNo,
-      d.outboundDepartureAirport,
-      d.outboundDepartureAt,
-      d.outboundArrivalAirport,
-      d.outboundArrivalAt
-    )
-    const inbound = formatLegLine(
-      'inbound',
-      d.inboundFlightNo,
-      d.inboundDepartureAirport,
-      d.inboundDepartureAt,
-      d.inboundArrivalAirport,
-      d.inboundArrivalAt
-    )
-
-    out[dateStr] = {
-      airline: d.carrierName?.trim() || null,
-      outbound: buildLegDetail(
-        d.outboundFlightNo,
-        d.outboundDepartureAirport,
-        d.outboundDepartureAt,
-        d.outboundArrivalAirport,
-        d.outboundArrivalAt
-      ),
-      inbound: buildLegDetail(
-        d.inboundFlightNo,
-        d.inboundDepartureAirport,
-        d.inboundDepartureAt,
-        d.inboundArrivalAirport,
-        d.inboundArrivalAt
-      ),
-      outboundSummary: outbound,
-      inboundSummary: inbound,
-      /** 미팅은 `meeting-airline-operational-ssot` 상품 단위만 사용 — 출발행 DB/본문 미팅 비노출 */
-      meetingSummary: null,
-    }
+/** 동일 캘린더일에 출발 행이 여러 건일 때 — 공개 상세에서 `ProductPriceRow.id`와 1:1 매칭 */
+export function buildDepartureKeyFactsByDepartureId(
+  departures: ProductDeparture[]
+): Record<string, DepartureKeyFacts> {
+  const out: Record<string, DepartureKeyFacts> = {}
+  for (const d of departures) {
+    out[String(d.id)] = productDepartureToKeyFacts(d)
   }
   return out
 }

@@ -106,6 +106,7 @@ export function parseDetailBodyStructuredVerygoodtour(input: {
       hotelPasteRaw: input.hotelRaw?.trim() || null,
       optionalToursPasteRaw: input.optionalRaw?.trim() || null,
       shoppingPasteRaw: input.shoppingRaw?.trim() || null,
+      /** 본문 슬라이스(경계·검수 참고). `flightStructured` SSOT는 `register-parse-verygoodtour`의 항공 정형칸만. */
       flightRaw: flightSection.trim() || null,
     },
   }

@@ -1,5 +1,5 @@
 /**
- * 해외여행 `/travel/overseas` 하단 「단독모임 고객리뷰」 블록 — 카피·목록 한도 SSOT.
+ * 해외여행 `/travel/overseas` 하단 「모임여행 고객리뷰」 블록 — 카피·목록 한도 SSOT.
  *
  * 수정 위치 안내
  * - 타이틀·설명: 아래 `OVERSEAS_REVIEWS_SECTION_COPY` 만 편집 (메타는 실제 published 건수로 동적 생성)
@@ -23,7 +23,7 @@ export function overseasReviewsPublishedMetaLabel(publishedCount: number): strin
 
 export const OVERSEAS_REVIEWS_SECTION_COPY = {
   /** 섹션 h2 (타이틀) */
-  heading: '단독모임 고객리뷰',
+  heading: '모임여행 고객리뷰',
   /**
    * 본문 설명 (기존 2문단을 요청 카피 한 줄로 통합)
    */

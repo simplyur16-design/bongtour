@@ -183,17 +183,76 @@ async function scrapeLiveCalendar(
   site: 'modetour' | 'verygoodtour' | 'ybtour'
 ): Promise<{ rows: ScrapedCalendarItem[]; stderr: string }> {
   const py = resolvePythonExecutable()
-  const { stdout, stderr } = await execFileAsync(
-    py,
-    ['-m', CALENDAR_PRICE_SCRAPER_MODULE[site], detailUrl],
-    {
-      cwd: process.cwd(),
-      timeout: 120000,
+  const argv = ['-m', CALENDAR_PRICE_SCRAPER_MODULE[site], detailUrl]
+  const cwd = process.cwd()
+  const envForChild = { ...process.env, PYTHONPATH: cwd }
+
+  if (site === 'ybtour') {
+    const urlHead = detailUrl.slice(0, 120)
+    console.log(
+      `[ybtour-diag] python_exec_start command=${JSON.stringify(py)} argv=-m ${CALENDAR_PRICE_SCRAPER_MODULE[site]} url_len=${detailUrl.length} url_head=${urlHead}`
+    )
+    console.log(
+      `[ybtour-diag] cwd=${cwd} PYTHONPATH=${envForChild.PYTHONPATH ? 'set' : 'unset'} YBTOUR_JSON_UTF8_FILE=${envForChild.YBTOUR_JSON_UTF8_FILE ? 'set' : 'unset'} PATH=${envForChild.PATH ? 'set' : 'unset'}`
+    )
+  }
+
+  let stdout = ''
+  let stderr = ''
+  try {
+    const r = await execFileAsync(py, argv, {
+      cwd,
+      // ybtour Playwright 달력 E2E는 상품·월 루프에 따라 2~3분 이상 걸릴 수 있음(120s 초과 시 Command failed + fallback).
+      timeout: site === 'ybtour' ? 300_000 : 120_000,
       maxBuffer: 8 * 1024 * 1024,
-      env: { ...process.env, PYTHONPATH: process.cwd() },
+      env: envForChild,
+    })
+    stdout = typeof r.stdout === 'string' ? r.stdout : (r.stdout?.toString('utf8') ?? '')
+    stderr = typeof r.stderr === 'string' ? r.stderr : (r.stderr?.toString('utf8') ?? '')
+    if (site === 'ybtour') {
+      const head = (s: string) => s.slice(0, 300).replace(/\r?\n/g, '⏎')
+      console.log(
+        `[ybtour-diag] python_exec_done exit=0 signal=none stdout_len=${stdout.length} stderr_len=${stderr.length}`
+      )
+      console.log(`[ybtour-diag] stdout_head=${head(stdout)}`)
+      console.log(`[ybtour-diag] stderr_head=${head(stderr)}`)
     }
-  )
-  const parsed = JSON.parse(stdout) as unknown
+  } catch (e: unknown) {
+    if (site === 'ybtour') {
+      const err = e as NodeJS.ErrnoException & {
+        stdout?: string | Buffer
+        stderr?: string | Buffer
+        status?: number
+        code?: string | number | null
+        signal?: string | null
+      }
+      stdout =
+        typeof err.stdout === 'string' ? err.stdout : (err.stdout?.toString('utf8') ?? '')
+      stderr =
+        typeof err.stderr === 'string' ? err.stderr : (err.stderr?.toString('utf8') ?? '')
+      const exitish = err.status ?? err.code
+      const head = (s: string) => s.slice(0, 300).replace(/\r?\n/g, '⏎')
+      console.log(
+        `[ybtour-diag] python_exec_done exit=${String(exitish)} signal=${err.signal ?? 'none'} stdout_len=${stdout.length} stderr_len=${stderr.length}`
+      )
+      console.log(`[ybtour-diag] stdout_head=${head(stdout)}`)
+      console.log(`[ybtour-diag] stderr_head=${head(stderr)}`)
+    }
+    throw e
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(stdout) as unknown
+  } catch (parseErr) {
+    if (site === 'ybtour') {
+      const b0 = Buffer.from(stdout, 'utf8')[0]
+      console.log(
+        `[ybtour-diag] JSON.parse_failed msg=${parseErr instanceof Error ? parseErr.message : String(parseErr)} stdout_len=${stdout.length} utf8_first_byte=0x${b0 !== undefined ? b0.toString(16) : 'na'}`
+      )
+    }
+    throw parseErr
+  }
   const rows = Array.isArray(parsed) ? (parsed as ScrapedCalendarItem[]) : []
   return { rows, stderr: typeof stderr === 'string' ? stderr : '' }
 }

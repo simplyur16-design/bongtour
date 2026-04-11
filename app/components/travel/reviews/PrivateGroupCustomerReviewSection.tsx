@@ -19,14 +19,14 @@ type Props = {
   publishedTotalCount: number
   /** 하단 문의 CTA 링크 — 페이지별 source만 바꿀 때 사용 */
   inquiryHref?: string
-  /** h2·본문 설명 오버라이드(단독여행 랜딩 등) */
+  /** h2·본문 설명 오버라이드(우리여행 랜딩 등) */
   headingOverride?: string
   descriptionOverride?: string
   /** 섹션 내부 하단 문의 블록 숨김 — 페이지에 별도 마지막 CTA가 있을 때 */
   hideFooterCta?: boolean
   /** 상단 eyebrow(BongTour overseas) 숨김 */
   hideEyebrow?: boolean
-  /** 제목·메타·설명만 가운데 정렬(단독여행 랜딩 등) */
+  /** 제목·메타·설명만 가운데 정렬(우리여행 랜딩 등) */
   centerIntro?: boolean
 }
 

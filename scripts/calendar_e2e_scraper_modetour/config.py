@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""모두투어 전용 calendar E2E 설정 (공용 분기 없음)."""
+"""modetour calendar E2E 설정 (이 패키지 SSOT)."""
 import os
 from pathlib import Path
 

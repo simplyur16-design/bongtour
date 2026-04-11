@@ -482,7 +482,7 @@ export default function OverseasContentAdminClient() {
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h1 className="text-2xl font-semibold text-gray-900">Editorial 관리</h1>
         <p className="mt-2 text-sm text-gray-600">
-          해외 허브·단독여행 등에 쓰이는 브리핑입니다. 권역/국가 미지정 항목은 기본 허브에 노출되며, 아래「단독여행 히어로 슬롯」을 켜면 /travel/overseas/private-trip 우측 운영 카드에 우선
+          해외 허브·우리여행 등에 쓰이는 브리핑입니다. 권역/국가 미지정 항목은 기본 허브에 노출되며, 아래「우리여행 히어로 슬롯」을 켜면 /travel/overseas/private-trip 우측 운영 카드에 우선
           노출됩니다. 이미지·CTA·칩 문구는 여기서 바꾸면 공개 화면에 반영됩니다.
         </p>
       </section>
@@ -505,9 +505,9 @@ export default function OverseasContentAdminClient() {
           </fieldset>
 
           <fieldset className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
-            <legend className="px-1 text-sm font-semibold text-slate-800">단독여행 히어로 · CTA (운영 슬롯)</legend>
+            <legend className="px-1 text-sm font-semibold text-slate-800">우리여행 히어로 · CTA (운영 슬롯)</legend>
             <p className="text-xs text-slate-600">
-              예약·상담 유도용 우측 카드. CTA를 비우면 단독여행 문의 링크와 기본 버튼 문구가 쓰입니다. 칩은 쉼표로 구분해 입력합니다.
+              예약·상담 유도용 우측 카드. CTA를 비우면 우리여행 문의 링크와 기본 버튼 문구가 쓰입니다. 칩은 쉼표로 구분해 입력합니다.
             </p>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -515,7 +515,7 @@ export default function OverseasContentAdminClient() {
                 checked={editorialForm.privateTripHeroSlot}
                 onChange={(e) => setEditorialForm((p) => ({ ...p, privateTripHeroSlot: e.target.checked }))}
               />
-              단독여행 히어로 슬롯으로 우선 노출
+              우리여행 히어로 슬롯으로 우선 노출
             </label>
             <label className="block text-sm font-medium">CTA 버튼 문구</label>
             <input
@@ -524,7 +524,7 @@ export default function OverseasContentAdminClient() {
               value={editorialForm.ctaLabel}
               onChange={(e) => setEditorialForm((p) => ({ ...p, ctaLabel: e.target.value }))}
             />
-            <label className="block text-sm font-medium">CTA 링크 (비우면 단독여행 문의 URL)</label>
+            <label className="block text-sm font-medium">CTA 링크 (비우면 우리여행 문의 URL)</label>
             <input
               className="w-full rounded border px-3 py-2 text-sm"
               placeholder="/inquiry?type=travel&source=... 또는 https://"
@@ -541,7 +541,7 @@ export default function OverseasContentAdminClient() {
           </fieldset>
 
           <fieldset className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
-            <legend className="px-1 text-sm font-semibold text-slate-800">대표 이미지 (단독여행 히어로 등)</legend>
+            <legend className="px-1 text-sm font-semibold text-slate-800">대표 이미지 (우리여행 히어로 등)</legend>
             <div className="flex flex-wrap items-center gap-2">
               <label className="inline-flex cursor-pointer rounded border bg-white px-3 py-2 text-sm">
                 이미지 업로드
@@ -607,7 +607,7 @@ export default function OverseasContentAdminClient() {
 
           <fieldset className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
             <legend className="px-1 text-sm font-semibold text-slate-800">SEO</legend>
-            <label className="block text-sm font-medium">검색·메타용 제목 (비우면 본 제목 — 단독여행 카드 표시 제목은 위 본 제목 우선)</label>
+            <label className="block text-sm font-medium">검색·메타용 제목 (비우면 본 제목 — 우리여행 카드 표시 제목은 위 본 제목 우선)</label>
             <input className="w-full rounded border px-3 py-2 text-sm" value={editorialForm.seoTitle} onChange={(e) => setEditorialForm((p) => ({ ...p, seoTitle: e.target.value }))} />
             <label className="block text-sm font-medium">메타 설명</label>
             <textarea rows={3} className="w-full rounded border px-3 py-2 text-sm" value={editorialForm.seoDescription} onChange={(e) => setEditorialForm((p) => ({ ...p, seoDescription: e.target.value }))} />
@@ -660,7 +660,7 @@ export default function OverseasContentAdminClient() {
                   <p className="text-xs text-slate-500">
                     scope:{row.pageScope} · country:{row.countryCode ?? '-'} · region:{row.regionKey ?? '-'} · #{row.sortOrder} ·{' '}
                     {row.isPublished ? '발행' : '비발행'}
-                    {row.privateTripHeroSlot ? ' · 단독히어로슬롯' : ''}
+                    {row.privateTripHeroSlot ? ' · 우리여행히어로슬롯' : ''}
                   </p>
                 </div>
                 <p className="mt-1 line-clamp-2 whitespace-pre-line text-sm text-slate-600">{row.bodyKr}</p>

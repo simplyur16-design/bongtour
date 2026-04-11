@@ -18,7 +18,7 @@ export type OverseasSubNavItem =
 
 export const OVERSEAS_SUB_NAV_ITEMS: OverseasSubNavItem[] = [
   { kind: 'mega', browseType: 'travel', label: '여행상품' },
-  { kind: 'link', href: '/travel/overseas/private-trip', label: '단독여행' },
+  { kind: 'link', href: '/travel/overseas/private-trip', label: '우리여행' },
   {
     kind: 'link',
     href: '/travel/air-hotel?scope=overseas&type=airtel',

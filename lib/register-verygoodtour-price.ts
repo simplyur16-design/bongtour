@@ -168,6 +168,10 @@ function expandVerygoodPriceLinesWithContinuation(rawLines: string[]): string[] 
           j++
           continue
         }
+        if (lineIsVerygoodRoomSurchargeLine(s) || lineIsGuideOrNonProductPrice(s)) {
+          j++
+          continue
+        }
         if (detectVerygoodTierSlot(s)) break
         const px = firstMainKrwInLine(s)
         if (px != null) {
@@ -194,10 +198,37 @@ function trimVerygoodPriceBlobBeforeTotals(blob: string): string {
   const out: string[] = []
   for (const line of lines) {
     const t = line.trim()
-    if (/^가이드\s*경비\b/i.test(t)) break
+    if (/^가이드\s*경비\b|^기사\s*경비\b|^가이드\s*\/\s*기사|^인솔\s*경비\b/i.test(t)) break
     out.push(line)
   }
   return out.join('\n')
+}
+
+/**
+ * 가격 블록·본문에서 현지 가이드/기사 경비 줄을 그대로 뽑아 불포함 항목에 넣는다(통화·문구 유지).
+ */
+export function extractVerygoodGuideFeeLinesFromPriceBlob(blob: string | null | undefined): string[] {
+  if (!blob?.trim()) return []
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const raw of blob.replace(/\r/g, '\n').split('\n')) {
+    const line = raw.trim()
+    if (!line) continue
+    if (
+      !/^가이드\s*경비\b|^기사\s*경비\b|^인솔\s*경비\b|^가이드\s*\/\s*기사\s*경비\b|^가이드\/\s*기사\s*경비\b/i.test(
+        line
+      )
+    ) {
+      continue
+    }
+    const norm = line.replace(/\s+/g, ' ').trim()
+    if (norm.length < 4 || norm.length > 240) continue
+    const key = norm.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(norm)
+  }
+  return out
 }
 
 export function extractVerygoodThreeSlotPricesFromBlob(blob: string): VerygoodThreeSlotExtract | null {

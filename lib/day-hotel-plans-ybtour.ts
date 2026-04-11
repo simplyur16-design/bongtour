@@ -3,6 +3,12 @@
  * DB 필드명은 Prisma와 무관하게 rawMeta.structuredSignals + 서버 병합으로 전달.
  */
 
+export const YBTOUR_HOTEL_UNDECIDED_PLACEHOLDER =
+  '현재 숙박시설은 미정입니다. 출발 전 안내됩니다.'
+
+const YBTOUR_REVIEW_OR_PROSE_LIKE =
+  /가이드|리뷰|솔직히|덕분에|만족|감동|추억|여행객|너무\s*감사|행복한\s*시간|친절|응대|이용하고\s*싶/i
+
 export type DayHotelPlan = {
   dayIndex: number
   label: string
@@ -48,6 +54,67 @@ export function normalizeDayHotelPlansFromUnknown(raw: unknown): DayHotelPlan[] 
 }
 
 /** 쉼표·슬래시·「또는」 등으로 호텔 후보 분리 */
+/** 일정/슬롯 한 줄이 “호텔 미정” 안내 수준인지(실제 숙소명 없음). */
+export function ybtourHotelLineLooksUndecidedOnly(line: string): boolean {
+  const t = line.replace(/\r/g, '').trim()
+  if (!t) return true
+  if (YBTOUR_REVIEW_OR_PROSE_LIKE.test(t) && t.length > 40) return false
+  if (/^※/.test(t) && t.length < 200) return true
+  if (/미정|미\s*정|숙박.*미정|호텔.*미정|출발\s*\d+\s*일\s*전|홈페이지.*알려|문자로\s*안내/i.test(t)) {
+    if (t.length > 220) return false
+    return true
+  }
+  return /^[\-–—]\s*미정\s*$/i.test(t) || /^미정\s*$/i.test(t)
+}
+
+/** 일차별 일정 텍스트 전체가 위 안내만 담은 경우(실제 호텔명 없음). */
+export function ybtourHotelTextBlockIsUndecidedOnly(text: string | null | undefined): boolean {
+  if (!text?.trim()) return false
+  const lines = text
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  if (!lines.length) return false
+  return lines.every((l) => ybtourHotelLineLooksUndecidedOnly(l))
+}
+
+/** 일정표의 매일 hotelText가 모두 “미정” 수준이면 본문에서 호텔 블록을 억지로 파싱하지 않는다. */
+export function ybtourScheduleHotelsAreAllUndecided(
+  schedule: Array<{ day: number; hotelText?: string | null }> | null | undefined
+): boolean {
+  if (!schedule?.length) return false
+  for (const s of schedule) {
+    const ht = (s.hotelText ?? '').trim()
+    if (!ht) return false
+    if (!ybtourHotelTextBlockIsUndecidedOnly(ht)) return false
+  }
+  return true
+}
+
+/** 리뷰·장문 본문이 호텔 플랜으로 잘못 들어온 경우 걸러낸다. */
+export function ybtourDayHotelPlansLookLikeRealHotels(plans: DayHotelPlan[]): boolean {
+  if (!plans.length) return false
+  let sawReal = false
+  for (const p of plans) {
+    for (const h of p.hotels ?? []) {
+      const t = h.trim()
+      if (!t) continue
+      if (t.length > 200) return false
+      if (YBTOUR_REVIEW_OR_PROSE_LIKE.test(t)) return false
+      if (ybtourHotelLineLooksUndecidedOnly(t)) continue
+      if (t.length >= 2 && t.length <= 120) sawReal = true
+    }
+    const raw = (p.raw ?? '').trim()
+    if (raw.length > 200 && YBTOUR_REVIEW_OR_PROSE_LIKE.test(raw)) return false
+  }
+  return sawReal
+}
+
+export function ybtourPlaceholderDayHotelPlans(): DayHotelPlan[] {
+  return [{ dayIndex: 1, label: '숙박 안내', hotels: [YBTOUR_HOTEL_UNDECIDED_PLACEHOLDER] }]
+}
+
 export function splitHotelNamesLine(text: string): string[] {
   const t = text.replace(/\r/g, '').trim()
   if (!t) return []
@@ -143,6 +210,7 @@ export function dayHotelPlansFromSchedule(
   for (const s of schedule) {
     const ht = s.hotelText?.trim()
     if (!ht) continue
+    if (ybtourHotelTextBlockIsUndecidedOnly(ht)) continue
     const hotels = splitHotelNamesLine(ht)
     out.push({
       dayIndex: s.day,
@@ -161,12 +229,23 @@ export function resolveDayHotelPlansForPublic(
   hotelSummaryRaw: string | null | undefined,
   schedule: Array<{ day: number; hotelText?: string | null }> | null | undefined
 ): DayHotelPlan[] {
+  const schedAllUndecided = ybtourScheduleHotelsAreAllUndecided(schedule)
+
   const fromStruct = normalizeDayHotelPlansFromUnknown(structuredPlans ?? [])
-  if (fromStruct.length) return fromStruct
+  if (fromStruct.length) {
+    if (ybtourDayHotelPlansLookLikeRealHotels(fromStruct)) return fromStruct
+    if (!schedAllUndecided) return fromStruct
+  }
+
   const fromSched = dayHotelPlansFromSchedule(schedule)
   if (fromSched.length) return fromSched
+
+  if (schedAllUndecided) return ybtourPlaceholderDayHotelPlans()
+
   const blob = [hotelInfoRaw, hotelSummaryRaw].filter((x) => x?.trim()).join('\n\n')
-  return parseDayHotelPlansFromSupplierText(blob)
+  const parsed = parseDayHotelPlansFromSupplierText(blob)
+  if (parsed.length && ybtourDayHotelPlansLookLikeRealHotels(parsed)) return parsed
+  return []
 }
 
 /** 등록 파싱: LLM 배열 우선, 없으면 일정, 없으면 본문 파서 */
@@ -176,10 +255,21 @@ export function mergeDayHotelPlansForRegister(
   hotelInfoRaw: string | null | undefined,
   pastedHotel: string | null | undefined
 ): DayHotelPlan[] {
+  const schedAllUndecided = ybtourScheduleHotelsAreAllUndecided(schedule)
+
   const fromLlm = normalizeDayHotelPlansFromUnknown(llm)
-  if (fromLlm.length) return fromLlm
+  if (fromLlm.length) {
+    if (ybtourDayHotelPlansLookLikeRealHotels(fromLlm)) return fromLlm
+    if (!schedAllUndecided) return fromLlm
+  }
+
   const fromSched = dayHotelPlansFromSchedule(schedule)
   if (fromSched.length) return fromSched
+
+  if (schedAllUndecided) return ybtourPlaceholderDayHotelPlans()
+
   const blob = [pastedHotel, hotelInfoRaw].filter((x) => x?.trim()).join('\n\n')
-  return parseDayHotelPlansFromSupplierText(blob)
+  const parsed = parseDayHotelPlansFromSupplierText(blob)
+  if (parsed.length && ybtourDayHotelPlansLookLikeRealHotels(parsed)) return parsed
+  return []
 }

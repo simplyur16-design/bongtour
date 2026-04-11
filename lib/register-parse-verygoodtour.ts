@@ -88,20 +88,11 @@ function withVerygoodFlightStructured(
   return refreshVerygoodDetailBodyPolicy(next)
 }
 
-/** 항공 정형칸 병합 후 `flightRaw` 정규화·`flightStructured`·검수(sectionReview) 정합 */
-function applyVerygoodMergedFlightRawToStructured(detailBody: DetailBodyParseSnapshot): DetailBodyParseSnapshot {
-  const rawInput = detailBody.raw.flightRaw?.trim()
-  if (!rawInput) return detailBody
-  const fr = normalizeVerygoodFlightSectionDecorators(rawInput).trim() || rawInput
-  const flightStructured = parseVerygoodtourFlightInput(fr, detailBody.normalizedRaw)
-  return withVerygoodFlightStructured(detailBody, flightStructured, fr)
-}
-
 /** 미리보기·productDraft에서 동일 문구로 3슬롯 의미 고정 */
 export const VERYGOOD_PRICE_SLOT_SSOT_NOTE =
   '참좋은 가격표(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가(엑베·노베 미분리), childNoBedPrice=미사용(null), infantPrice=유아. 가이드경비·잔여석·쿠폰 줄은 본가 슬롯에 넣지 않습니다.'
 const VG_FLIGHT_PREVIEW_NOTE =
-  '참좋은 항공: departureSegmentText·returnSegmentText에 가는편/오는편 한 줄이 structured 기준으로 채워지며, rawMeta·공개 상세·교정 근거 flightRaw는 출국/입국 괄호형 헤더가 정규화됩니다.'
+  '참좋은 항공 구조화 SSOT: 관리자 항공·교통 정형 입력란(airlineTransport)만. 본문에서 잘라낸 항공 구간(raw.flightRaw)은 경계·검수 참고용이며 flightStructured를 채우지 않습니다. 옵션·쇼핑도 각 정형칸만.'
 
 export async function parseForRegisterVerygoodtour(
   rawText: string,
@@ -127,9 +118,8 @@ export async function parseForRegisterVerygoodtour(
       parseVerygoodtourFlightInput(fr, null),
       detailBody.raw.flightRaw
     )
-  } else {
-    detailBody = applyVerygoodMergedFlightRawToStructured(detailBody)
   }
+  /** 항공 정형칸이 비면 `flightStructured`는 빈 스냅샷 유지 — 본문 슬라이스로 구조화하지 않음 */
 
   const optPaste = options?.pastedBlocks?.optionalTour?.trim() ?? ''
   const shopPaste = options?.pastedBlocks?.shopping?.trim() || null

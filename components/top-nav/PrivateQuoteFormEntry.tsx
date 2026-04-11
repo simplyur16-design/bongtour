@@ -91,7 +91,7 @@ export default function PrivateQuoteFormEntry() {
       kind="travel"
       initialQuery={EMPTY_QUERY}
       overlayMeta={{
-        title: '단독견적 문의하기',
+        title: '우리견적 문의하기',
         description:
           '원하시는 일정과 조건에 맞춰 별도로 견적을 안내해드립니다. 등록 상품 외 맞춤 일정이나 우리끼리 여행도 문의하실 수 있습니다.',
       }}
@@ -99,7 +99,7 @@ export default function PrivateQuoteFormEntry() {
       beforeSubmit={validateBeforeSubmit}
       messageRequired
       messageLabel="문의 내용"
-      submitButtonLabel="단독견적 문의 접수하기"
+      submitButtonLabel="우리견적 문의 접수하기"
     >
       <div className="space-y-4">
         <div>

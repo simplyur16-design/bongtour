@@ -871,7 +871,8 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     if (!flightHasUsableCore && !verygoodFlightStructuredOk) {
       heroDateFieldIssues.push({
         field: 'flight_info',
-        reason: '항공정보 검토 필요: 본문 자동 추출 값이 부분 누락되어 등록 후 편집에서 보정이 필요할 수 있습니다.',
+        reason:
+          '항공정보 검토 필요: 참좋은은 항공 구조화 SSOT가 항공·교통 정형 입력란입니다. 해당 칸·달력 출발행을 채운 뒤 다시 검수하세요. 본문만으로 항공 슬롯을 채우지 않습니다.',
         source: 'auto',
         severity: 'warn',
       })

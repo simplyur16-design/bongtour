@@ -196,12 +196,27 @@ export type FlightRoutingProductInput = {
   departureKeyFactsByDate?: Record<string, DepartureKeyFacts> | null
   /** 선택 출발일 기준 facts — 있으면 leg 보조에 우선 사용 */
   departureFactsOverride?: DepartureKeyFacts | null
+  /**
+   * 참좋은 등: 본문·제목보다 **선택 출발행 leg**만으로 경유 판정 (stale structured 와 섞지 않음).
+   * true일 때 override에서 유효한 stop 추정이 되면 본문 haystack 을 쓰지 않는다.
+   */
+  prioritizeDepartureFactsForRouting?: boolean
 }
 
 /**
  * 상품 단위 직항/경유 메타 — 메타칩·항공 카드 보조용
  */
 export function inferFlightRoutingMeta(input: FlightRoutingProductInput): FlightRoutingMeta {
+  if (input.prioritizeDepartureFactsForRouting && input.departureFactsOverride) {
+    const f = input.departureFactsOverride
+    const fromFactsLine = stopsFromDepartureFacts(f)
+    const fromLegs = stopsFromLegCards(f)
+    const legOnly = [fromFactsLine, fromLegs].filter((x): x is number => x != null)
+    if (legOnly.length) {
+      return metaFromStopCount(Math.max(...legOnly), 'leg_structure')
+    }
+  }
+
   const haystack = buildFlightRoutingHaystack({
     title: input.title,
     includedText: input.includedText,

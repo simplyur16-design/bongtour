@@ -6,7 +6,7 @@ import { SITE_NAME } from '@/lib/site-metadata'
 export const metadata: Metadata = {
   title: '이용약관',
   description:
-    '봉투어 웹사이트 및 여행·연수·단독여행 관련 서비스 이용에 관한 약관, 서비스 유형별 지위, 예약·환불, 책임 범위 안내입니다.',
+    '봉투어 웹사이트 및 여행·연수·우리여행 관련 서비스 이용에 관한 약관, 서비스 유형별 지위, 예약·환불, 책임 범위 안내입니다.',
   alternates: { canonical: '/terms' },
   openGraph: {
     title: `이용약관 | ${SITE_NAME}`,
@@ -34,7 +34,7 @@ export default function TermsOfServicePage() {
               <h2 className="text-lg font-bold text-slate-900">제1조 (목적)</h2>
               <p>
                 이 약관은 봉투어(이하 &quot;회사&quot;)가 운영하는 웹사이트 및 관련 서비스에서 제공하는 여행상품 정보
-                제공, 상담 신청, 예약 연계, 국외연수 운영, 단독여행 관련 서비스의 이용과 관련하여 회사와 이용자 간의 권리,
+                제공, 상담 신청, 예약 연계, 국외연수 운영, 우리여행 관련 서비스의 이용과 관련하여 회사와 이용자 간의 권리,
                 의무 및 책임사항을 정함을 목적으로 합니다.
               </p>
             </section>
@@ -51,7 +51,7 @@ export default function TermsOfServicePage() {
                   회사가 제공하는 서비스를 이용하는 자를 말합니다.
                 </li>
                 <li>
-                  <span className="font-medium text-slate-900">③</span> &quot;여행상품&quot;이란 국내외 여행, 단독여행, 항공,
+                  <span className="font-medium text-slate-900">③</span> &quot;여행상품&quot;이란 국내외 여행, 우리여행, 항공,
                   숙박, 투어, 행사, 연수 기타 이에 부수하는 상품 또는 서비스를 말합니다.
                 </li>
                 <li>
@@ -128,7 +128,7 @@ export default function TermsOfServicePage() {
                 <li>여행상품 정보 제공</li>
                 <li>상담 신청 접수 및 문의 응대</li>
                 <li>여행상품 예약 상담 및 공급사 연계</li>
-                <li>단독여행 관련 맞춤 상담 및 예약 진행 보조</li>
+                <li>우리여행 관련 맞춤 상담 및 예약 진행 보조</li>
                 <li>국외연수, 행사, 기관 연계 프로그램 운영</li>
                 <li>기타 회사가 정하는 부가 서비스</li>
               </ul>
@@ -146,7 +146,7 @@ export default function TermsOfServicePage() {
                 </li>
                 <li>② 국외연수 서비스의 경우, 회사가 직접 운영 주체 또는 계약 당사자가 될 수 있습니다.</li>
                 <li>
-                  ③ 단독여행 서비스의 경우, 상품 특성에 따라 회사가 직접 운영 주체가 되거나, 외부 공급사와 연계하는
+                  ③ 우리여행 서비스의 경우, 상품 특성에 따라 회사가 직접 운영 주체가 되거나, 외부 공급사와 연계하는
                   중개·연결 역할을 병행할 수 있습니다.
                 </li>
                 <li>

@@ -8,7 +8,7 @@ export type ListingKind = (typeof LISTING_KIND_VALUES)[number]
 
 export const LISTING_KIND_LABELS: Record<ListingKind, string> = {
   travel: '여행상품',
-  private_trip: '단독여행',
+  private_trip: '우리여행',
   air_hotel_free: '항공권+호텔(자유여행)',
 }
 

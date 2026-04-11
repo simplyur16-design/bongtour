@@ -97,7 +97,11 @@ function freeTimeValue(product: ProductMetaChipInput, headerBadges: string[]): s
   return '확인'
 }
 
-function flightRoutingChipArgs(product: ProductMetaChipInput, departureFactsOverride?: DepartureKeyFacts | null) {
+function flightRoutingChipArgs(
+  product: ProductMetaChipInput,
+  departureFactsOverride?: DepartureKeyFacts | null,
+  prioritizeDepartureFactsForRouting?: boolean
+) {
   const routingInput = {
     title: product.title,
     includedText: product.includedText,
@@ -105,6 +109,7 @@ function flightRoutingChipArgs(product: ProductMetaChipInput, departureFactsOver
     flightStructured: product.flightStructured ?? null,
     departureKeyFactsByDate: product.departureKeyFactsByDate ?? null,
     departureFactsOverride: departureFactsOverride ?? null,
+    prioritizeDepartureFactsForRouting: prioritizeDepartureFactsForRouting === true,
   }
   const routing = inferFlightRoutingMeta(routingInput)
   const hasFlightCtx = productHasFlightMetaContext({ ...routingInput, airline: product.airline })
@@ -116,7 +121,10 @@ function flightRoutingChipArgs(product: ProductMetaChipInput, departureFactsOver
  */
 export function buildProductMetaChips(
   product: ProductMetaChipInput,
-  options?: { departureFactsOverride?: DepartureKeyFacts | null }
+  options?: {
+    departureFactsOverride?: DepartureKeyFacts | null
+    prioritizeDepartureFactsForRouting?: boolean
+  }
 ): ProductMetaChip[] {
   const headerBadges = buildPublicProductBadges(product)
   const chips: ProductMetaChip[] = [
@@ -125,7 +133,11 @@ export function buildProductMetaChips(
     { kind: 'freeTime', value: freeTimeValue(product, headerBadges) },
   ]
   const airline = product.airline?.trim()
-  const { routing, hasFlightCtx } = flightRoutingChipArgs(product, options?.departureFactsOverride)
+  const { routing, hasFlightCtx } = flightRoutingChipArgs(
+    product,
+    options?.departureFactsOverride,
+    options?.prioritizeDepartureFactsForRouting
+  )
 
   if (airline) {
     chips.push({ kind: 'airline', value: airline })
