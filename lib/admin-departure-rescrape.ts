@@ -185,7 +185,8 @@ async function scrapeLiveCalendar(
   const py = resolvePythonExecutable()
   const argv = ['-m', CALENDAR_PRICE_SCRAPER_MODULE[site], detailUrl]
   const cwd = process.cwd()
-  const envForChild: NodeJS.ProcessEnv = {
+  /** `ProcessEnv`는 알려진 키만 점접근 허용 → 커스텀 env 로그·전달용으로 Record 사용 */
+  const envForChild: Record<string, string | undefined> = {
     ...process.env,
     PYTHONPATH: cwd,
   }
@@ -196,7 +197,7 @@ async function scrapeLiveCalendar(
       `[ybtour-diag] python_exec_start command=${JSON.stringify(py)} argv=-m ${CALENDAR_PRICE_SCRAPER_MODULE[site]} url_len=${detailUrl.length} url_head=${urlHead}`
     )
     console.log(
-      `[ybtour-diag] cwd=${cwd} PYTHONPATH=${envForChild.PYTHONPATH ? 'set' : 'unset'} YBTOUR_JSON_UTF8_FILE=${envForChild.YBTOUR_JSON_UTF8_FILE ? 'set' : 'unset'} PATH=${envForChild.PATH ? 'set' : 'unset'}`
+      `[ybtour-diag] cwd=${cwd} PYTHONPATH=${envForChild.PYTHONPATH ? 'set' : 'unset'} YBTOUR_JSON_UTF8_FILE=${envForChild['YBTOUR_JSON_UTF8_FILE'] ? 'set' : 'unset'} PATH=${envForChild['PATH'] ? 'set' : 'unset'}`
     )
   }
 
@@ -208,7 +209,7 @@ async function scrapeLiveCalendar(
       // ybtour Playwright 달력 E2E는 상품·월 루프에 따라 2~3분 이상 걸릴 수 있음(120s 초과 시 Command failed + fallback).
       timeout: site === 'ybtour' ? 300_000 : 120_000,
       maxBuffer: 8 * 1024 * 1024,
-      env: envForChild,
+      env: envForChild as NodeJS.ProcessEnv,
     })
     stdout = typeof r.stdout === 'string' ? r.stdout : (r.stdout?.toString('utf8') ?? '')
     stderr = typeof r.stderr === 'string' ? r.stderr : (r.stderr?.toString('utf8') ?? '')
