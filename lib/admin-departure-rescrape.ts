@@ -185,7 +185,10 @@ async function scrapeLiveCalendar(
   const py = resolvePythonExecutable()
   const argv = ['-m', CALENDAR_PRICE_SCRAPER_MODULE[site], detailUrl]
   const cwd = process.cwd()
-  const envForChild = { ...process.env, PYTHONPATH: cwd }
+  const envForChild: NodeJS.ProcessEnv = {
+    ...process.env,
+    PYTHONPATH: cwd,
+  }
 
   if (site === 'ybtour') {
     const urlHead = detailUrl.slice(0, 120)
