@@ -360,9 +360,16 @@ class CalendarPriceScraper:
             ) from ex
         try:
             self._playwright = await async_playwright().start()
+            # Ubuntu 소형 VM·기본 /dev/shm 에서 Chromium이 바로 죽는 경우 방지(노랑풍선 전용).
             self._browser = await self._playwright.chromium.launch(
                 headless=self.headless,
-                args=["--disable-blink-features=AutomationControlled", "--no-sandbox"],
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                ],
             )
             ua = get_random_user_agent() if self.randomize_ua else get_user_agent(fixed=True)
             self._context = await self._browser.new_context(
