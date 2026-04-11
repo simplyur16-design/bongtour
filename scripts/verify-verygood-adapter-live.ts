@@ -6,7 +6,10 @@ import type { ProductDeparture } from '@prisma/client'
 
 import { getPriceAdult } from '../lib/price-utils'
 import { productDeparturesToProductPriceRows } from '../lib/product-departure-to-price-rows-verygoodtour'
-import { runVerygoodDepartureAdapterLiveProbe } from '../lib/verygoodtour-departures'
+import {
+  runVerygoodDepartureAdapterLiveProbe,
+  type VerygoodDepartureParsed,
+} from '../lib/verygoodtour-departures'
 import { pickVerygoodPublicDefaultDepartureRow } from '../lib/verygood/verygood-public-default-departure'
 import { verygoodDurationLabelFromDepartureAtPair } from '../lib/verygood/verygood-selected-row-trip-display'
 
@@ -20,7 +23,7 @@ function verygoodReservationOpenScore(row: { status?: string }): number {
   return 1
 }
 
-function toSyntheticDepartures(rows: Awaited<ReturnType<typeof runVerygoodDepartureAdapterLiveProbe>>['rows']) {
+function toSyntheticDepartures(rows: VerygoodDepartureParsed[]) {
   return rows.map(
     (x, i) =>
       ({
