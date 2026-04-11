@@ -47,6 +47,7 @@ import { filterOptionalTourRows, optionalTourRowPassesStrictGate, type OptionalT
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 import { isMustKnowInsufficient, supplementMustKnowWithWebSearch } from './must-know-web-supplement'
 import { parseLlmJsonObject } from './llm-json-extract'
+import { extractYbtourVerbatimListingTitle } from '@/lib/register-ybtour-basic'
 import {
   mergeDayHotelPlansForRegister,
   parseDayHotelPlansFromSupplierText,
@@ -844,6 +845,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 
 # [추출 필드 - 강제]
 - originCode, title, destination, duration, schedule[], prices[] (달력 행)
+- **title**: 상품 상단에 보이는 상품명·여행 제목을 **붙여넣기 원문과 동일한 문자열**로만 출력한다. 공백·#해시태그·항공편 코드(예: LJ)·기종 표기·'N일' 붙임 방식을 바꾸지 않는다. 고객용으로 다듬는 의역·요약·재작성(괄호로 나열하는 식 포함)을 하지 않는다.
 - 상품가격표 원문: priceTableRawText, priceTableRawHtml(있을 때), productPriceTable: adultPrice, childExtraBedPrice, childNoBedPrice, infantPrice (본문 표에서만; 없으면 null). **infantPrice**: "유아/소아(만 2세 미만)/INFANT/유아 요금" 등과 같은 줄·인접 줄의 원 단위 숫자를 반드시 구조화한다.
 - 항공(상품/구간 요약): airlineName, departureSegmentText, returnSegmentText, outboundFlightNo, inboundFlightNo, departureDateTimeRaw, arrivalDateTimeRaw, routeRaw — 항공사를 태그 한 줄에만 묻지 말고 필드로 분리.
 - 미팅(상품 단위): meetingInfoRaw, meetingPlaceRaw, meetingNoticeRaw, meetingFallbackText
@@ -1033,6 +1035,7 @@ const REGISTER_PREVIEW_MINIMAL_PROMPT = `${REGISTER_PREVIEW_MINIMAL_TONE_BLOCK}
 
 # 채울 필드만 (본문·꼭 확인 구간 근거)
 - originSource, originCode, title, destination, duration(예: 3박 4일, 없으면 null)
+- **title**: 상품 페이지 제목을 원문 그대로(해시태그·항공코드 유지). 의역·괄호 요약 금지.
 - airlineName: 한 줄 또는 null
 - hasOptionalTour (bool), optionalTourCount (숫자 또는 null)
 - hasShopping (bool), shoppingSummaryText: 짧은 쇼핑 요약만 또는 null
@@ -1584,7 +1587,10 @@ ${text.slice(0, 16000)}`
     .filter((s) => s.day > 0)
   const schedule: RegisterScheduleDay[] = scheduleBase.map(supplementScheduleDayFromDescription)
 
-  const titleTrimmed = (raw.title ?? '').trim() || '상품명 없음'
+  const pasteForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
+  const verbatimTitle = extractYbtourVerbatimListingTitle(pasteForTitle)
+  const llmTitle = (raw.title ?? '').trim() || '상품명 없음'
+  const titleTrimmed = verbatimTitle ?? llmTitle
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
 
   const mustKnowFromLlm = forPreview

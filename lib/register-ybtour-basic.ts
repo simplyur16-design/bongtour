@@ -36,6 +36,31 @@ export function extractYbtourProductCodeFromBlob(blob: string): string | null {
   return m?.[1]?.trim() ?? null
 }
 
+/**
+ * 상품 상단 노출 제목(해시태그·항공코드 등 포함) — LLM 의역 대신 붙여넣기 원문을 SSOT로 쓴다.
+ * `상품번호` 이후 짧은 구간에서만 탐색해 하단 "추천 상품" 줄과 혼동을 줄인다.
+ */
+export function extractYbtourVerbatimListingTitle(blob: string): string | null {
+  const text = blob.replace(/\r\n/g, '\n')
+  const productIdx = text.search(/상품번호\s*[A-Za-z]*\d[A-Za-z0-9-]+/i)
+  const windowStart = productIdx >= 0 ? productIdx : 0
+  const window = text.slice(windowStart, windowStart + 9000)
+  const lines = window.split('\n').map((l) => l.trim())
+  for (const line of lines) {
+    if (!line || line.length < 12 || line.length > 220) continue
+    if (/^https?:\/\//i.test(line)) continue
+    if (/^\d+\s*\.\s*\d+\s*\/\s*\d+/i.test(line)) continue
+    if (/(리뷰\s*\d+건)/i.test(line) && line.length < 48) continue
+    if (/^(출발|도착|예약하기|인쇄|문의|찜|공유|담당자|상품\s*이미지|더보기|추천\s*상품)\b/i.test(line)) continue
+    if (/^COUPON\b|^다운로드\b/i.test(line)) continue
+    const hashCount = (line.match(/#/g) || []).length
+    if (hashCount < 2) continue
+    if (!/(일|박|\/)/.test(line)) continue
+    return line
+  }
+  return null
+}
+
 function normLine(s: string): string {
   return s.replace(/\s+/g, ' ').trim()
 }
