@@ -178,6 +178,13 @@ const CALENDAR_PRICE_SCRAPER_MODULE: Record<'modetour' | 'verygoodtour' | 'ybtou
   ybtour: 'scripts.calendar_e2e_scraper_ybtour.calendar_price_scraper',
 }
 
+function execFileIoToUtf8(value: unknown): string {
+  if (value == null) return ''
+  if (typeof value === 'string') return value
+  if (Buffer.isBuffer(value)) return value.toString('utf8')
+  return ''
+}
+
 async function scrapeLiveCalendar(
   detailUrl: string,
   site: 'modetour' | 'verygoodtour' | 'ybtour'
@@ -211,8 +218,8 @@ async function scrapeLiveCalendar(
       maxBuffer: 8 * 1024 * 1024,
       env: envForChild as NodeJS.ProcessEnv,
     })
-    stdout = typeof r.stdout === 'string' ? r.stdout : (r.stdout?.toString('utf8') ?? '')
-    stderr = typeof r.stderr === 'string' ? r.stderr : (r.stderr?.toString('utf8') ?? '')
+    stdout = execFileIoToUtf8(r.stdout)
+    stderr = execFileIoToUtf8(r.stderr)
     if (site === 'ybtour') {
       const head = (s: string) => s.slice(0, 300).replace(/\r?\n/g, '⏎')
       console.log(
