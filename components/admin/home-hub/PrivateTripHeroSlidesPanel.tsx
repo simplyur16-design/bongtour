@@ -112,15 +112,6 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
         const file = list[i]!
         try {
           if (directUploadAvailable) {
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
-            const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
-            if (!supabaseUrl || !supabaseAnon) {
-              errors.push(
-                `${file.name}: 브라우저 번들에 NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY 가 없습니다. 배포 시 env를 넣고 다시 빌드하세요.`,
-              )
-              continue
-            }
-
             const signRes = await fetch('/api/admin/private-trip-hero-folder/upload-sign', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -135,16 +126,29 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
               error?: string
               incomingPath?: string
               token?: string
+              supabaseUrl?: string
+              supabaseAnonKey?: string
+              bucket?: string
             }
-            if (!signRes.ok || !signData.ok || !signData.incomingPath || !signData.token) {
-              errors.push(`${file.name}: ${signData.error || String(signRes.status)}`)
+            if (
+              !signRes.ok ||
+              !signData.ok ||
+              !signData.incomingPath ||
+              !signData.token ||
+              !signData.supabaseUrl ||
+              !signData.supabaseAnonKey
+            ) {
+              errors.push(
+                `${file.name}: ${signData.error || '서버에 SUPABASE_URL·SUPABASE_ANON_KEY(또는 NEXT_PUBLIC_* anon)가 없습니다.'}`,
+              )
               continue
             }
 
             const { createClient } = await import('@supabase/supabase-js')
-            const sb = createClient(supabaseUrl, supabaseAnon)
+            const sb = createClient(signData.supabaseUrl, signData.supabaseAnonKey)
+            const bucket = signData.bucket || heroStorageBucket
             const { error: upErr } = await sb.storage
-              .from(heroStorageBucket)
+              .from(bucket)
               .uploadToSignedUrl(signData.incomingPath, signData.token, file, { upsert: true })
             if (upErr) {
               errors.push(`${file.name}: Storage 직접 업로드 실패 — ${upErr.message}`)
@@ -178,7 +182,7 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
             let line = `${file.name}: ${data.error || String(res.status)}${detail}`
             if (res.status === 413) {
               line +=
-                ' — 우리여행 히어로(이 섹션) 업로드가 nginx 본문 한도에 걸렸습니다. 해당 도메인 `server { }`에 `client_max_body_size 35m;`를 넣거나, NEXT_PUBLIC Supabase로 직접 업로드 경로를 켜 주세요.'
+                ' — 우리여행 히어로(이 섹션) 업로드가 nginx 본문 한도에 걸렸습니다. `server { }`에 `client_max_body_size 35m;`를 넣거나, 서버에 `SUPABASE_ANON_KEY` 등 직접 업로드 설정을 켜 주세요.'
             }
             errors.push(line)
           }
@@ -316,7 +320,7 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
         ) : null}
         {directUploadAvailable ? (
           <p className="mt-2 text-xs text-emerald-300/90">
-            대용량은 브라우저가 Supabase Storage로 직접 올려 nginx 본문 한도(413)의 영향을 줄입니다. (NEXT_PUBLIC Supabase + Storage 설정 시)
+            대용량은 브라우저가 Supabase Storage로 직접 올려 nginx 본문 한도(413)의 영향을 줄입니다. (서버에 SUPABASE_URL·SUPABASE_ANON_KEY·service role 등 Storage 설정 시)
           </p>
         ) : null}
         <div className="mt-3 flex flex-wrap items-center gap-2">

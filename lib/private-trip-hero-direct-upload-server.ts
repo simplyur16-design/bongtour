@@ -9,12 +9,24 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 const INCOMING = `${PRIVATE_TRIP_HERO_STORAGE_PREFIX}/incoming`
 
-/** 브라우저 → Supabase 직접 업로드(nginx 본문 한도 회피)에 필요한 공개 env */
+/**
+ * 브라우저 `createClient`용 — **anon 공개 키만**(service role 금지).
+ * `NEXT_PUBLIC_*` 없이 서버 env만 써도 되게: `SUPABASE_URL` + `SUPABASE_ANON_KEY` 조합 허용.
+ */
+export function getPrivateTripHeroBrowserSupabaseClientConfig(): {
+  supabaseUrl: string
+  anonKey: string
+} | null {
+  if (!isObjectStorageConfigured()) return null
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '').trim()
+  const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? '').trim()
+  if (!supabaseUrl || !anonKey) return null
+  return { supabaseUrl, anonKey }
+}
+
+/** 직접 업로드 경로를 켤 수 있는지(폴더 API·관리자 UI 플래그) */
 export function isPrivateTripHeroDirectBrowserUploadConfigured(): boolean {
-  if (!isObjectStorageConfigured()) return false
-  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '').trim()
-  const anon = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '').trim()
-  return Boolean(url && anon)
+  return getPrivateTripHeroBrowserSupabaseClientConfig() !== null
 }
 
 const ALLOWED_SIGN_MIME = new Set([
