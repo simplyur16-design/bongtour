@@ -36,8 +36,10 @@ function asciiHeroFileName(originalName: string): string {
  * 원본 버퍼 → EXIF 보정 → 고정 프레임에 맞게 cover 리사이즈 → WebP (용량·형식 통일)
  */
 export async function processPrivateTripHeroImageToWebpCover(input: Buffer): Promise<Buffer> {
-  return sharp(input)
+  // 큰 PNG(예: AI 생성 원본)는 한 번에 디코드·cover 하면 메모리·시간이 튈 수 있어 먼저 긴 변을 제한한다.
+  return sharp(input, { sequentialRead: true })
     .rotate()
+    .resize(4096, 4096, { fit: 'inside', withoutEnlargement: true })
     .resize(PRIVATE_TRIP_HERO_COVER_WIDTH, PRIVATE_TRIP_HERO_COVER_HEIGHT, {
       fit: 'cover',
       position: 'centre',

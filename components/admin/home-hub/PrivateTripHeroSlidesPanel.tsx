@@ -89,12 +89,26 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
         fd.set('file', file)
         try {
           const res = await fetch('/api/admin/private-trip-hero-folder/upload', { method: 'POST', body: fd })
-          const data = (await res.json()) as { ok?: boolean; error?: string; detail?: string }
-          if (!res.ok || !data.ok) {
-            errors.push(`${file.name}: ${data.error || String(res.status)}`)
+          const raw = await res.text()
+          let data: { ok?: boolean; error?: string; detail?: string }
+          try {
+            data = JSON.parse(raw) as { ok?: boolean; error?: string; detail?: string }
+          } catch {
+            const snippet = raw.replace(/\s+/g, ' ').trim().slice(0, 180)
+            data = {
+              ok: false,
+              error: snippet
+                ? `HTTP ${res.status}: ${snippet}`
+                : `HTTP ${res.status} ${res.statusText || ''}`.trim(),
+            }
           }
-        } catch {
-          errors.push(`${file.name}: 네트워크 오류`)
+          if (!res.ok || !data.ok) {
+            const detail = data.detail ? ` (${data.detail})` : ''
+            errors.push(`${file.name}: ${data.error || String(res.status)}${detail}`)
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          errors.push(`${file.name}: 연결 실패 — ${msg}`)
         }
       }
       await loadFolder()

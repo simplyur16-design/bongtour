@@ -15,3 +15,7 @@
 - **파일명**: URL·nginx와 맞추기 위해 **영문·숫자·`-`·`_` 위주의 ASCII 이름**으로 저장합니다(원본 한글명은 파일명에 그대로 쓰이지 않을 수 있음).
 
 직접 이 폴더에 넣을 때도 **파일명은 ASCII만** 쓰는 것을 권장합니다. 예전에 한글 등으로 저장된 파일이 깨져 보이면, 이름을 `something.webp` 형태로 바꾸거나 관리자에서 다시 업로드하세요.
+
+## 운영(nginx)에서 업로드가 안 될 때
+
+업로드 요청이 **nginx `client_max_body_size`** 보다 크면 **413**으로 끊기고, 브라우저에는 JSON이 아닌 HTML이 돌아올 수 있습니다. 저장소의 `deploy/nginx-bongtour-site.conf.example` 처럼 **최소 35m** 정도로 두고 `nginx -s reload` 한 뒤 다시 시도하세요. (앱 한도는 `lib/private-trip-hero-constants.ts`의 `PRIVATE_TRIP_HERO_UPLOAD_MAX_BYTES` 참고.)

@@ -27,7 +27,8 @@ server {
     ssl_certificate     /etc/letsencrypt/live/bongtour.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/bongtour.com/privkey.pem;
 
-    client_max_body_size 25m;
+    # Next admin 업로드(히어로 등)는 앱에서 최대 30MB — multipart 여유 포함해 nginx 본문 한도를 앱보다 크게 둔다.
+    client_max_body_size 35m;
 
     location / {
         proxy_pass         http://bongtour_node;
