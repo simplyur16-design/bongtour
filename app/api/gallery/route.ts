@@ -13,6 +13,8 @@ export type GalleryProduct = {
   id: string
   title: string
   originSource: string
+  bgImageSource: string | null
+  bgImageIsGenerated: boolean
   /** 운영 정규화 목적지 — 해외 랜딩·트리 매칭 1순위 */
   primaryDestination: string | null
   /** 공급사 원문 목적지 */
@@ -23,6 +25,10 @@ export type GalleryProduct = {
   primaryRegion: string | null
   /** 쉼표 구분 테마 태그 — 국내 테마 칩 매칭 보조 */
   themeTags: string | null
+  /** 등록 시 저장한 대표 이미지 좌측 SEO 한 줄 */
+  publicImageHeroSeoLine: string | null
+  /** 등록 시 저장한 대표 이미지 SEO 키워드 JSON 배열 */
+  publicImageHeroSeoKeywordsJson: string | null
   departureDate: string | null
   duration: string
   priceKrw: number | null
@@ -84,11 +90,15 @@ export async function GET(request: Request) {
           id: p.id,
           title: p.title,
           originSource: p.originSource,
+          bgImageSource: p.bgImageSource ?? null,
+          bgImageIsGenerated: p.bgImageIsGenerated ?? false,
           primaryDestination: p.primaryDestination ?? null,
           destinationRaw: p.destinationRaw ?? null,
           destination: p.destination ?? null,
           primaryRegion: p.primaryRegion ?? null,
           themeTags: p.themeTags ?? null,
+          publicImageHeroSeoLine: p.publicImageHeroSeoLine ?? null,
+          publicImageHeroSeoKeywordsJson: p.publicImageHeroSeoKeywordsJson ?? null,
           departureDate: firstBookable
             ? new Date(firstBookable.date).toISOString().slice(0, 10)
             : firstPrice

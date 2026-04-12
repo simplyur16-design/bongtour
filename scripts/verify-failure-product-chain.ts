@@ -2,6 +2,8 @@
  * 실패 확인 상품(고정 ID) 기준: 공개 상세와 동일한 항공·가격 체인 출력.
  *
  *   npx tsx scripts/verify-failure-product-chain.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import { prisma } from '../lib/prisma'

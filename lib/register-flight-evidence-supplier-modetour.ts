@@ -3,6 +3,7 @@
  * 등록 미리보기 correctionPreview — 항공 계열 evidence만.
  * 공급사 분기는 관리자 선택 brandKey만 사용(본문 항공사명으로 추정 금지).
  */
+import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import type { RegisterParsed } from '@/lib/register-llm-schema-modetour'
 
 const NOISE =
@@ -285,9 +286,9 @@ function defaultSnippet(
 }
 
 function normalizeBrandKey(brandKey: string | null | undefined): string {
-  const k = (brandKey ?? '').trim().toLowerCase()
-  if (k === 'yellowballoon') return 'ybtour'
-  return k
+  const canon = normalizeBrandKeyToCanonicalSupplierKey(brandKey)
+  if (canon) return canon
+  return (brandKey ?? '').trim().toLowerCase()
 }
 
 export function mapIssueFieldToFlightKind(field: string): RegisterFlightEvidenceKind | null {

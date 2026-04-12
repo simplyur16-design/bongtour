@@ -1,6 +1,8 @@
 /**
  * 항공 evidence QA: 공급사별 `register-flight-evidence-supplier-*`만 사용 (교차참조 없음).
  * npx tsx scripts/qa-flight-evidence-brands.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import type { RegisterParsed as RegisterParsedHanatour } from '@/lib/register-llm-schema-hanatour'
 import type { RegisterParsed as RegisterParsedModetour } from '@/lib/register-llm-schema-modetour'

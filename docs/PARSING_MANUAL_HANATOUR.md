@@ -8,8 +8,10 @@
 
 | 필드 | 규칙 | 예시 |
 |------|------|------|
-| **originSource** | 무조건 `"하나투어"` 고정 | `"하나투어"` |
+| **originSource** | API·스크립트 body에는 canonical **`"hanatour"`** 고정(한글 표기는 UI만) | `"hanatour"` |
 | **originCode** | '상품코드' 옆의 **[ATP...]** 로 시작하는 코드를 정확히 추출 | `"ATP12345678"` |
+
+> HTTP `parse-and-register*` 요청 JSON 전체 예시: [register_schedule_expression_ssot.md](./register_schedule_expression_ssot.md) §15 · [register-supplier-extraction-spec.md](./register-supplier-extraction-spec.md) 부록-2.
 
 ---
 
@@ -48,6 +50,7 @@
     }
   ]
   ```
+- **참고:** 위 블록은 `Product.schedule`용 **일차 JSON** 예시이며 `originSource` / `brandKey` 같은 HTTP·등록 body 필드는 없다. 공급사 식별은 §1의 canonical **`hanatour`** 등만 쓴다.
 - **이미지 매핑**: 한 도시(예: 타이베이)당 이미지는 **1장만**, 가장 고화질로 선택
 
 ---

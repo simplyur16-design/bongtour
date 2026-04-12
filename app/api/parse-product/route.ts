@@ -2,19 +2,27 @@ import { NextResponse } from 'next/server'
 import { extractProductFromText, extractPricingScheduleFromText } from '@/lib/gemini'
 import { mapToParsedProductForDB } from '@/lib/map-to-parsed-product'
 import { requireAdmin } from '@/lib/require-admin'
+import { buildParseSupplierInputDebug, normalizeParseRequestOriginSource } from '@/lib/parse-api-origin-source'
 
 /**
  * POST /api/parse-product
  * Raw 텍스트 + 여행사(originSource) → 상품정보·가격·일정 파싱 후 새 DB용 DTO 반환.
  * [Parsing Rules] 적용: 성인/아동/노베드/유아 분리, 기본가+유류=최종가, 인원별 할증, 현지 가이드비·싱글룸
+ *
+ * 디버그: `?debugSupplier=1` → 성공 JSON에 `supplierInputDebug`(요청 `originSource` raw, coerce, `parsed.originSource` effective).
  */
 export async function POST(request: Request) {
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
   try {
+    const debugSupplier = new URL(request.url).searchParams.get('debugSupplier') === '1'
     const body = await request.json()
     const text = typeof body.text === 'string' ? body.text.trim() : ''
-    const originSource = typeof body.originSource === 'string' ? body.originSource.trim() : '직접입력'
+    const requestRaw =
+      typeof body.originSource === 'string' && body.originSource.trim()
+        ? body.originSource.trim()
+        : null
+    const originSource = normalizeParseRequestOriginSource(requestRaw ?? '직접입력', null)
     if (!text) {
       return NextResponse.json({ error: 'text is required' }, { status: 400 })
     }
@@ -38,6 +46,13 @@ export async function POST(request: Request) {
       product,
       pricing,
       parsed,
+      ...(debugSupplier && {
+        supplierInputDebug: buildParseSupplierInputDebug({
+          requestRaw: requestRaw,
+          coerced: originSource,
+          effective: parsed.originSource,
+        }),
+      }),
     })
   } catch (e) {
     console.error(e)

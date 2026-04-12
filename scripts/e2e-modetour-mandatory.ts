@@ -21,6 +21,7 @@ import {
 } from '../lib/product-departure-to-price-rows-modetour'
 import { getPublicPerPaxUnitKrw } from '../lib/price-utils'
 import { extractProductPriceTableByLabels } from '../lib/product-price-table-extract'
+import { SUPPLIER_ORIGIN_CANONICAL } from '../lib/overseas-supplier-canonical-keys'
 
 type Row = { ok: boolean; detail: string }
 
@@ -73,7 +74,7 @@ async function tryAdminPreviewHttp(args: {
   const body = {
     text: args.text,
     mode: 'preview',
-    brandKey: 'modetour',
+    brandKey: SUPPLIER_ORIGIN_CANONICAL.modetour,
     originSource: args.originSource,
     originUrl: args.originUrl ?? undefined,
     travelScope: 'overseas',
@@ -259,7 +260,7 @@ async function main() {
       baseUrl,
       cookie: adminCookie,
       text: detailNorm.slice(0, 120_000),
-      originSource: product.originSource,
+      originSource: SUPPLIER_ORIGIN_CANONICAL.modetour,
       originUrl: product.originUrl,
     })
   } else {

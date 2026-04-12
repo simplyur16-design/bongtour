@@ -24,7 +24,7 @@
 
 | 구분 | 내용 |
 |------|------|
-| 입력 | `page` 또는 HTML 컨텍스트, `productId`, `originSource = YELLOWBALLOON`, `originCode`, (선택) raw product context |
+| 입력 | `page` 또는 HTML 컨텍스트, `productId`, **`originSource = ybtour`**(canonical), `originCode`, (선택) raw product context |
 | 출력 | `ItineraryDayInput[]` — 실패 시 `[]` |
 
 ---

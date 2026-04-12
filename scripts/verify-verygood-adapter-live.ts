@@ -1,6 +1,8 @@
 /**
  * 참좋은 verygoodtour 어댑터 live 검증: 실제 상세 URL 1건으로 row 수·필드·대표 row·상세 SSOT 파생값 일치 출력.
  * 사용: npx tsx scripts/verify-verygood-adapter-live.ts [detailUrl]
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import type { ProductDeparture } from '@prisma/client'
 

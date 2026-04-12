@@ -1,6 +1,8 @@
 /**
  * 참좋은여행 docx 단락 본문 → parseForRegisterVerygoodtour (LLM) → schedule + itinerary draft 전체 덤프.
  * 실행: npx tsx scripts/verify-verygoodtour-paste-llm-once.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import fs from 'fs'
 import path from 'path'

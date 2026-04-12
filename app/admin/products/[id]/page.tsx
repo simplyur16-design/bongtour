@@ -23,6 +23,9 @@ import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLET
 import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_YBTOUR } from '@/lib/admin-register-verification-meta-ybtour'
 import type { AdminDeparturesRescrapeResponseBody } from '@/app/api/admin/products/[id]/departures/route'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import { readAdminProductSupplierDerivatives } from '@/lib/admin-product-supplier-derivatives'
+import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
+import type { OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
 import { repairUtf8MisreadAsLatin1 } from '@/lib/encoding-repair'
 import {
   LISTING_KIND_LABELS,
@@ -31,7 +34,11 @@ import {
   TRAVEL_SCOPE_VALUES,
 } from '@/lib/product-listing-kind'
 import { adminProductBgImageAttributionLine, adminProductBgImageSourceTypeLabel } from '@/lib/product-bg-image-attribution'
-import { resizeImageFileForUpload } from '@/lib/browser-resize-image-for-upload'
+import {
+  ADMIN_MANUAL_PRIMARY_HERO_UPLOAD_OPTIONS,
+  adminManualPrimaryHeroUploadAndPatch,
+  type AdminManualPrimaryHeroUploadPreset,
+} from '@/lib/admin-manual-primary-hero-upload'
 
 type ProductPrice = {
   id: string
@@ -104,6 +111,9 @@ type Product = {
   flightAdminJson?: string | null
   flightManualCorrection?: FlightManualCorrectionPayload | null
   brand?: { brandKey?: string | null } | null
+  /** GET/PATCH 응답 파생 — DB 비저장, canonical supplier 기준 */
+  canonicalBrandKey?: CanonicalOverseasSupplierKey | null
+  normalizedOriginSupplier?: OverseasSupplierKey
   benefitSummary?: string | null
   updatedAt?: string
   /** domestic | overseas — 미설정 시 공개 browse는 기존 목적지/제목 트리아지 */
@@ -762,39 +772,6 @@ const HERO_SOURCE_SELECT: { value: string; label: string }[] = [
   'attraction-asset',
 ].map((value) => ({ value, label: adminProductBgImageSourceTypeLabel(value) }))
 
-type ManualHeroUploadPreset = 'photo_owned' | 'istock' | 'gemini_manual' | 'pexels' | 'other'
-
-const MANUAL_HERO_UPLOAD_OPTIONS: { value: ManualHeroUploadPreset; label: string }[] = [
-  { value: 'photo_owned', label: '직접 업로드' },
-  { value: 'istock', label: 'iStock' },
-  { value: 'gemini_manual', label: 'AI 생성' },
-  { value: 'pexels', label: 'Pexels' },
-  { value: 'other', label: '기타' },
-]
-
-function mapManualHeroUploadToPatch(
-  preset: ManualHeroUploadPreset,
-  otherNote: string
-): { primaryImageSource: string; primaryImagePhotographer: string | null; primaryImageIsGenerated: boolean } {
-  switch (preset) {
-    case 'photo_owned':
-      return { primaryImageSource: 'photo_owned', primaryImagePhotographer: null, primaryImageIsGenerated: false }
-    case 'istock':
-      return { primaryImageSource: 'istock', primaryImagePhotographer: 'iStock', primaryImageIsGenerated: false }
-    case 'gemini_manual':
-      return { primaryImageSource: 'gemini_manual', primaryImagePhotographer: null, primaryImageIsGenerated: true }
-    case 'pexels':
-      return { primaryImageSource: 'pexels', primaryImagePhotographer: null, primaryImageIsGenerated: false }
-    case 'other':
-      return {
-        primaryImageSource: 'other',
-        primaryImagePhotographer: otherNote.trim() || null,
-        primaryImageIsGenerated: false,
-      }
-    default:
-      return { primaryImageSource: 'photo_owned', primaryImagePhotographer: null, primaryImageIsGenerated: false }
-  }
-}
 function PrimaryImagePreview({ url }: { url: string | null | undefined }) {
   const [broken, setBroken] = useState(false)
   const src = !url || broken ? FALLBACK_IMAGE : url
@@ -835,6 +812,7 @@ export default function AdminProductDetailPage({
   const [imageReviewSaving, setImageReviewSaving] = useState(false)
   const [imageReviewMessage, setImageReviewMessage] = useState<string | null>(null)
   const [primaryImageUploading, setPrimaryImageUploading] = useState(false)
+  const [heroReselectBusy, setHeroReselectBusy] = useState(false)
   const [primaryImageMessage, setPrimaryImageMessage] = useState<string | null>(null)
   const [heroMetaDraft, setHeroMetaDraft] = useState({
     source: 'photopool',
@@ -844,7 +822,7 @@ export default function AdminProductDetailPage({
   })
   const [savingHeroMeta, setSavingHeroMeta] = useState(false)
   const [heroMetaMessage, setHeroMetaMessage] = useState<string | null>(null)
-  const [manualHeroUploadPreset, setManualHeroUploadPreset] = useState<ManualHeroUploadPreset>('photo_owned')
+  const [manualHeroUploadPreset, setManualHeroUploadPreset] = useState<AdminManualPrimaryHeroUploadPreset>('photo_owned')
   const [manualHeroUploadOtherNote, setManualHeroUploadOtherNote] = useState('')
   const [itineraryDays, setItineraryDays] = useState<ItineraryDayRow[] | null>(null)
   const [departures, setDepartures] = useState<DepartureRow[] | null>(null)
@@ -878,9 +856,25 @@ export default function AdminProductDetailPage({
   const [flightManualDraft, setFlightManualDraft] = useState(emptyFlightManualFormDraft())
   const [savingFlightManual, setSavingFlightManual] = useState(false)
 
+  const supplierInternal = useMemo(() => {
+    if (!product) return null
+    const d = readAdminProductSupplierDerivatives(product)
+    const effectiveCanonicalBrandKey = d.canonicalBrandKey ?? null
+    const effectiveNormalizedOriginSupplier = d.normalizedOriginSupplier
+    const brandForInternal = effectiveCanonicalBrandKey ?? product.brand?.brandKey ?? null
+    const originForInternal =
+      effectiveNormalizedOriginSupplier !== 'etc' ? effectiveNormalizedOriginSupplier : (product.originSource ?? '')
+    return {
+      effectiveCanonicalBrandKey,
+      effectiveNormalizedOriginSupplier,
+      brandForInternal,
+      originForInternal,
+    }
+  }, [product])
+
   const flightManualContext = useMemo(() => {
-    if (!product?.rawMeta) return null
-    const f = fmcModuleForAdminProduct(product.brand?.brandKey, product.originSource)
+    if (!product?.rawMeta || !supplierInternal) return null
+    const f = fmcModuleForAdminProduct(supplierInternal.brandForInternal, supplierInternal.originForInternal)
     const fs = parseFlightStructuredFromRawMeta(product.rawMeta)
     let auto = f.extractFlightLegAutoFromFlightStructured(fs)
     auto = f.mergeFlatFlightNoIntoAuto(auto, parseFlatFlightNosFromRawMeta(product.rawMeta))
@@ -892,14 +886,18 @@ export default function AdminProductDetailPage({
       flightStatus: dbg?.status ?? null,
       exposurePolicy: dbg?.exposurePolicy ?? null,
     }
-  }, [product?.rawMeta, product?.flightManualCorrection, product?.originSource, product?.brand?.brandKey])
+  }, [product?.rawMeta, product?.flightManualCorrection, product, supplierInternal])
 
   const isHanatourAdminProduct = useMemo(() => {
-    if (!product) return false
-    const bk = String(product.brand?.brandKey ?? '').trim()
-    const norm = normalizeSupplierOrigin(product.originSource ?? '')
-    return bk === 'hanatour' || norm === 'hanatour'
-  }, [product?.brand?.brandKey, product?.originSource])
+    if (!product || !supplierInternal) return false
+    if (supplierInternal.effectiveCanonicalBrandKey === 'hanatour') return true
+    if (supplierInternal.effectiveNormalizedOriginSupplier === 'hanatour') return true
+    if (supplierInternal.effectiveNormalizedOriginSupplier !== 'etc') return false
+    return (
+      String(product.brand?.brandKey ?? '').trim() === 'hanatour' ||
+      normalizeSupplierOrigin(product.originSource ?? '') === 'hanatour'
+    )
+  }, [product, supplierInternal])
 
   useEffect(() => {
     Promise.resolve(params).then((p) => setId(p.id))
@@ -1110,63 +1108,113 @@ export default function AdminProductDetailPage({
     setPrimaryImageUploading(true)
     setPrimaryImageMessage(null)
     try {
-      const heroMeta = mapManualHeroUploadToPatch(manualHeroUploadPreset, manualHeroUploadOtherNote)
-      const toSend = await resizeImageFileForUpload(file)
-      const form = new FormData()
-      form.append('file', toSend)
-      form.append('cityName', product.destination ?? product.primaryDestination ?? 'City')
-      form.append('attractionName', 'primary_hero')
-      form.append('source', 'manual-upload')
-      const uploadRes = await fetch('/api/admin/photo-pool/upload', { method: 'POST', body: form })
-      const upload = (await uploadRes.json().catch(() => ({}))) as {
-        ok?: boolean
-        error?: string
-        message?: string
-        items?: { filePath: string; id: string }[]
+      const result = await adminManualPrimaryHeroUploadAndPatch(id, file, {
+        preset: manualHeroUploadPreset,
+        otherNote: manualHeroUploadOtherNote,
+        cityName: product.destination ?? product.primaryDestination ?? 'City',
+      })
+      if (result.ok) {
+        setProduct(result.product as Product)
+        setPrimaryImageMessage('대표 이미지가 저장되었습니다.')
+      } else {
+        const prefix = result.stage === 'upload' ? '업로드 실패' : '저장 실패'
+        setPrimaryImageMessage(`${prefix}: ${result.message}`)
       }
-      if (!uploadRes.ok || !upload.ok || !Array.isArray(upload.items) || upload.items.length === 0) {
-        setPrimaryImageMessage(
-          `업로드 실패: ${upload.message ?? upload.error ?? `HTTP ${uploadRes.status}`}`
-        )
-        return
-      }
-      const item = upload.items[0]
-      const patchRes = await fetch(`/api/admin/products/${id}`, {
+    } catch (e) {
+      setPrimaryImageMessage(e instanceof Error ? e.message : '요청 실패')
+    } finally {
+      setPrimaryImageUploading(false)
+    }
+  }
+
+  const pickScheduleEntryAsHero = async (entry: ScheduleEntry) => {
+    if (!id || !entry.imageUrl?.trim()) return
+    setHeroReselectBusy(true)
+    setPrimaryImageMessage(null)
+    try {
+      const rawSrc = (entry.imageSource?.source ?? '').trim().toLowerCase()
+      const mapped =
+        rawSrc.includes('pexel') ? 'pexels'
+        : rawSrc.includes('gemini') ? 'gemini_auto'
+        : rawSrc.includes('pool') ? 'photopool'
+        : 'manual'
+      const res = await fetch(`/api/admin/products/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          primaryImageUrl: item.filePath,
-          primaryImageSource: heroMeta.primaryImageSource,
-          primaryImagePhotographer: heroMeta.primaryImagePhotographer,
-          primaryImageSourceUrl: null,
-          primaryImageExternalId: item.id,
-          primaryImageIsGenerated: heroMeta.primaryImageIsGenerated,
+          primaryImageUrl: entry.imageUrl.trim(),
+          primaryImageSource: mapped,
+          primaryImagePhotographer: entry.imageSource?.photographer?.trim() || null,
+          primaryImageSourceUrl: entry.imageSource?.originalLink?.trim() || null,
         }),
       })
-      const text = await patchRes.text()
+      const text = await res.text()
       let updated: Product | null = null
       try {
         updated = text ? (JSON.parse(text) as Product) : null
       } catch {
-        // ignore
+        /* ignore */
       }
-      if (patchRes.ok && updated) {
+      if (res.ok && updated) {
         setProduct(updated)
-        setPrimaryImageMessage('대표 이미지가 저장되었습니다.')
+        setPrimaryImageMessage(`${entry.day}일차 이미지를 대표로 지정했습니다.`)
       } else {
-        let errMsg = '상품 저장 실패'
+        let errMsg = '저장 실패'
         try {
           const err = text ? (JSON.parse(text) as { error?: string }) : null
           if (err?.error) errMsg = err.error
         } catch {
-          // ignore
+          /* ignore */
         }
         setPrimaryImageMessage(errMsg)
       }
     } catch (e) {
       setPrimaryImageMessage(e instanceof Error ? e.message : '요청 실패')
     } finally {
-      setPrimaryImageUploading(false)
+      setHeroReselectBusy(false)
+    }
+  }
+
+  const runTravelProcessImagesReselect = async () => {
+    if (!id) return
+    setHeroReselectBusy(true)
+    setPrimaryImageMessage(null)
+    try {
+      const res = await fetch('/api/travel/process-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: id }),
+      })
+      const text = await res.text()
+      let j: { success?: boolean; error?: string } | null = null
+      try {
+        j = text ? (JSON.parse(text) as { success?: boolean; error?: string }) : null
+      } catch {
+        /* ignore */
+      }
+      if (!res.ok || !j?.success) {
+        setPrimaryImageMessage(j?.error ?? text.slice(0, 200) ?? '이미지 재선정 실패')
+        return
+      }
+      const dRes = await fetch(`/api/admin/products/${id}`)
+      const dText = await dRes.text()
+      let refreshed: Product | null = null
+      try {
+        refreshed = dText ? (JSON.parse(dText) as Product) : null
+      } catch {
+        /* ignore */
+      }
+      if (dRes.ok && refreshed) {
+        setProduct(refreshed)
+        setScheduleEntries(parseSchedule(refreshed.schedule ?? null))
+        setPrimaryImageMessage('일정·대표 이미지가 재선정되었습니다.')
+      } else {
+        setPrimaryImageMessage('재선정은 완료되었으나 상품 새로고침에 실패했습니다. 페이지를 새로고침하세요.')
+      }
+    } catch (e) {
+      setPrimaryImageMessage(e instanceof Error ? e.message : '요청 실패')
+    } finally {
+      setHeroReselectBusy(false)
     }
   }
 
@@ -1231,6 +1279,7 @@ export default function AdminProductDetailPage({
   const airtelHotelInfo = parseAirtelHotelInfo(product.airtelHotelInfoJson)
   const optionalToursDirty = JSON.stringify(optionalToursDraft) !== optionalToursSnapshot
   const detailBodyReview = parseDetailBodyReviewFromRawMeta(product.rawMeta ?? null)
+  const { brandForInternal, originForInternal } = supplierInternal!
   const structuredSignalsView = parseStructuredSignalsView(
     product.rawMeta ?? null,
     {
@@ -1238,8 +1287,8 @@ export default function AdminProductDetailPage({
       shoppingShopOptions: product.shoppingShopOptions ?? null,
       hotelSummaryRaw: product.hotelSummaryRaw ?? null,
     },
-    product.originSource,
-    product.brand?.brandKey
+    originForInternal,
+    brandForInternal
   )
 
   async function savePublicDetailTexts() {
@@ -1516,7 +1565,8 @@ export default function AdminProductDetailPage({
       <main className="mx-auto max-w-4xl px-4 py-6">
         <div className="mb-6 rounded-xl border border-bt-border-strong bg-bt-title/50 p-4">
           <p className="text-sm text-bt-meta">
-            {formatOriginSourceForDisplay(product.originSource)} · {product.originCode} · {product.primaryDestination ?? product.destination ?? '—'} · {product.duration ?? '—'}
+            {formatOriginSourceForDisplay(originForInternal)} · {product.originCode} ·{' '}
+            {product.primaryDestination ?? product.destination ?? '—'} · {product.duration ?? '—'}
             {product.airline && ` · ${product.airline}`}
           </p>
           {(product.destinationRaw != null && product.destinationRaw !== (product.primaryDestination ?? product.destination)) && (
@@ -1694,10 +1744,7 @@ export default function AdminProductDetailPage({
               </Link>
             ) : null}
             {(() => {
-              const traceBullets = registerPublicPageTraceBulletsForProduct(
-                product.brand?.brandKey,
-                product.originSource
-              )
+              const traceBullets = registerPublicPageTraceBulletsForProduct(brandForInternal, originForInternal)
               return traceBullets.length > 0 ? (
                 <ul className="mt-2 list-inside list-disc space-y-1 text-[11px] leading-relaxed text-cyan-50/95">
                   {traceBullets.map((line, i) => (
@@ -2150,8 +2197,8 @@ export default function AdminProductDetailPage({
                         const payload = buildFlightManualCorrectionForSave(
                           flightManualDraft,
                           product.rawMeta ?? null,
-                          product.brand?.brandKey,
-                          product.originSource
+                          brandForInternal,
+                          originForInternal
                         )
                         const res = await fetch(`/api/admin/products/${id}`, {
                           method: 'PATCH',
@@ -2481,9 +2528,9 @@ export default function AdminProductDetailPage({
                 className="mt-1 w-full max-w-md rounded border border-bt-border-strong bg-bt-title px-2 py-2 text-sm text-bt-inverse"
                 value={manualHeroUploadPreset}
                 disabled={primaryImageUploading}
-                onChange={(e) => setManualHeroUploadPreset(e.target.value as ManualHeroUploadPreset)}
+                onChange={(e) => setManualHeroUploadPreset(e.target.value as AdminManualPrimaryHeroUploadPreset)}
               >
-                {MANUAL_HERO_UPLOAD_OPTIONS.map((o) => (
+                {ADMIN_MANUAL_PRIMARY_HERO_UPLOAD_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
                   </option>
@@ -2492,7 +2539,7 @@ export default function AdminProductDetailPage({
             </label>
             {manualHeroUploadPreset === 'other' ? (
               <label className="block text-xs">
-                <span className="text-bt-subtle">기타 출처명 (source_name)</span>
+                <span className="text-bt-subtle">기타 출처 설명</span>
                 <input
                   className="mt-1 w-full max-w-md rounded border border-bt-border-strong bg-bt-title px-2 py-2 text-sm text-bt-inverse"
                   value={manualHeroUploadOtherNote}
@@ -2517,21 +2564,56 @@ export default function AdminProductDetailPage({
                   }}
                 />
               </label>
-              <span className="text-[11px] text-bt-muted">
-                사진풀 저장 후 대표 URL로 연결됩니다. 출처는 <code className="text-bt-body">bgImageSource</code>·
-                <code className="text-bt-body">bgImageIsGenerated</code>·작가 필드에 반영됩니다. 파일당 최대 30MB.
-              </span>
+              <span className="text-[11px] text-bt-muted">사진풀에 저장한 뒤 이 상품 대표 이미지로 연결됩니다. 파일당 최대 30MB.</span>
             </div>
           </div>
 
+          {scheduleEntries.some((e) => Boolean(e.imageUrl?.trim())) ? (
+            <div className="mt-4 rounded-lg border border-bt-border-strong bg-bt-surface-soft/80 p-4 text-xs text-bt-body">
+              <p className="font-medium text-bt-title">일정 이미지에서 대표로 선택</p>
+              <p className="mt-1 text-[11px] text-bt-muted">
+                공항·이동 중심 1일차 대신, 해당 일차 사진을 그대로 대표 커버로 지정합니다.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {scheduleEntries
+                  .filter((e) => e.imageUrl?.trim())
+                  .map((e) => (
+                    <button
+                      key={`hero-pick-day-${e.day}`}
+                      type="button"
+                      disabled={heroReselectBusy || primaryImageUploading}
+                      onClick={() => void pickScheduleEntryAsHero(e)}
+                      className="flex flex-col items-center gap-1 rounded border border-bt-border-strong bg-bt-title p-2 hover:bg-bt-surface-soft disabled:opacity-50"
+                    >
+                      <img src={e.imageUrl!.trim()} alt="" className="h-14 w-24 rounded object-cover" />
+                      <span className="text-[11px] text-bt-muted">{e.day}일차</span>
+                    </button>
+                  ))}
+              </div>
+              <button
+                type="button"
+                disabled={heroReselectBusy || primaryImageUploading || !id}
+                onClick={() => void runTravelProcessImagesReselect()}
+                className="mt-3 rounded border border-bt-border-strong bg-bt-surface px-3 py-2 text-xs font-medium text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
+              >
+                {heroReselectBusy ? '재선정 중…' : '키워드 기반 일정·대표 재선정'}
+              </button>
+              <p className="mt-1 text-[10px] text-bt-muted">
+                기존 이미지 보강 API(`/api/travel/process-images`)를 호출합니다. 수십 초~1분 걸릴 수 있습니다.
+              </p>
+            </div>
+          ) : null}
+
           <div className="mt-4 rounded-lg border border-bt-border-strong bg-bt-surface-soft/80 p-4 text-xs text-bt-body">
-            <p className="font-medium text-bt-title">고급: 에셋 시트 연동 업로드</p>
+            <p className="font-medium text-bt-title">갤러리 등 추가 이미지 (파일 + 출처)</p>
             <p className="mt-1 text-bt-muted">
-              iStock 등 별도 워크플로가 필요하면{' '}
-              <Link href="/admin/image-assets-upload" className="font-medium text-bt-brand-blue underline">
-                이미지 업로드 · 출처(iStock)
+              위와 동일한 출처 선택으로 이 상품에 추가 이미지를 올립니다. 상품명·공급사 등은 자동으로 채워집니다.{' '}
+              <Link
+                href={id ? `/admin/image-assets-upload?productId=${encodeURIComponent(id)}` : '/admin/image-assets-upload'}
+                className="font-medium text-bt-brand-blue underline"
+              >
+                상품 이미지 업로드 열기
               </Link>
-              화면을 사용할 수 있습니다.
             </p>
           </div>
 

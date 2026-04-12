@@ -1,6 +1,8 @@
 /**
  * 등록→저장 체인 회귀: 항공 병합 / 옵션 detail+final / 쇼핑 경고 / 공개 가격 4슬롯.
  * 실행: npx tsx scripts/verify-register-detail-final-chain.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import type { DepartureKeyFacts } from '../lib/departure-key-facts'

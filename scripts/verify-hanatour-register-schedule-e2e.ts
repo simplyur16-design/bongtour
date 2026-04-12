@@ -4,6 +4,8 @@
  * 요구: GEMINI_API_KEY(.env / .env.local), tmp_hanatour_body.txt (프로젝트 루트)
  *
  * 주의: gemini-client는 모듈 로드 시점에 API 키를 읽으므로, lib 동적 import 전에 env를 채운다.
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import fs from 'fs'
 import path from 'path'

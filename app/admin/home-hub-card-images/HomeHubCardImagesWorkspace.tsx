@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { HomeHubActiveImageSummary } from '@/components/admin/home-hub/HomeHubActiveImageSummary'
+import { HomeHubHybridCardOperationsPanel } from '@/components/admin/home-hub/HomeHubHybridCardOperationsPanel'
 import { HomeHubImageGeneratorPanel } from '@/components/admin/home-hub/HomeHubImageGeneratorPanel'
 import { HomeHubImageCandidateGrid } from '@/components/admin/home-hub/HomeHubImageCandidateGrid'
 import { HomeHubWorkspaceBanner } from '@/components/admin/home-hub/HomeHubWorkspaceBanner'
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
 import type { HomeHubActiveClientModel } from '@/lib/home-hub-active-client-model'
+import { homeHubActiveFileToClientModel } from '@/lib/home-hub-active-client-model'
+import type { HomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 
 const CARD_LABEL: Record<HomeHubCardImageKey, string> = {
   overseas: '해외여행',
@@ -18,9 +20,10 @@ const CARD_LABEL: Record<HomeHubCardImageKey, string> = {
 
 type Props = {
   initialActive: HomeHubActiveClientModel | null
+  initialTravelPoolPreview: { overseas: string | null; domestic: string | null }
 }
 
-export function HomeHubCardImagesWorkspace({ initialActive }: Props) {
+export function HomeHubCardImagesWorkspace({ initialActive, initialTravelPoolPreview }: Props) {
   const router = useRouter()
   const [active, setActive] = useState<HomeHubActiveClientModel | null>(() => initialActive)
   const [refreshToken, setRefreshToken] = useState(0)
@@ -56,6 +59,18 @@ export function HomeHubCardImagesWorkspace({ initialActive }: Props) {
     router.refresh()
   }, [bump, router])
 
+  const onHybridSaved = useCallback(
+    (file: HomeHubActiveFile) => {
+      setActive(homeHubActiveFileToClientModel(file))
+      setBanner({
+        variant: 'success',
+        message: '홈 허브 활성 JSON이 저장되었습니다. 아래 미리보기는 메인과 동일 규칙으로 갱신되었습니다.',
+      })
+      router.refresh()
+    },
+    [router],
+  )
+
   return (
     <div className="space-y-8">
       {banner ? (
@@ -74,7 +89,13 @@ export function HomeHubCardImagesWorkspace({ initialActive }: Props) {
         onActivateError={onActivateError}
         onCandidateDeleted={onCandidateDeleted}
       />
-      <HomeHubActiveImageSummary cardLabels={CARD_LABEL} active={active} />
+      <HomeHubHybridCardOperationsPanel
+        cardLabels={CARD_LABEL}
+        active={active}
+        initialTravelPool={initialTravelPoolPreview}
+        onSaved={onHybridSaved}
+        onSaveError={onActivateError}
+      />
     </div>
   )
 }

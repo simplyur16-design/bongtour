@@ -70,7 +70,7 @@ import {
   type RegisterParsed,
   type RegisterScheduleDay,
 } from '@/lib/register-llm-schema-modetour'
-
+import { polishModetourImageKeyword } from '@/lib/modetour-schedule-image-keyword'
 
 /** preset 없을 때 비표시 — 모두투어는 `resolveDirectedFlightLinesModetour` 주입 전제 */
 function resolveDirectedFlightLinesDefault(_detailBody: DetailBodyParseSnapshot): {
@@ -1568,7 +1568,11 @@ ${text.slice(0, 16000)}`
         day: Number(s?.day) || 0,
         title: String(s?.title ?? '').trim(),
         description: String(s?.description ?? '').trim(),
-        imageKeyword: String(s?.imageKeyword ?? '').trim() || `Day ${s?.day ?? 0} travel`,
+        imageKeyword: polishModetourImageKeyword(String(s?.imageKeyword ?? '').trim(), {
+          day: Number(s?.day) || 0,
+          title: String(s?.title ?? '').trim(),
+          description: String(s?.description ?? '').trim(),
+        }),
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),
         lunchText: strOrNull(rec.lunchText),

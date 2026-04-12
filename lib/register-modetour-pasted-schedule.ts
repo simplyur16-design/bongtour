@@ -2,15 +2,17 @@
  * 모두투어: 붙여넣은 본문 텍스트만으로 일차 블록 분리 → RegisterParsed.schedule 보강 (HTML/DOM 미사용).
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
-
-const CITY_TOKEN =
-  /(서울|부산|제주|인천|오사카|교토|나라|고베|나고야|후쿠오카|삿포로|도쿄|요코하마|타이페이|홍콩|마카오|방콕|파타야|치앙마이|다낭|하노이|호치민|세부|보라카이|괌|사이판|하와이|시드니|멜버른|파리|로마|바르셀로나|런던|뉴욕|연길|장춘|하얼빈|모스크바|상트페테르부르크|후라노|비에이|오타루|닛코|가나자와|유후인|벳부|유니버설|USJ|디즈니|공항|출발|도착|입국|출국)/u
+import {
+  deriveModetourImageKeyword,
+  isModetourPlaceholderImageKeyword,
+  polishModetourImageKeyword,
+} from '@/lib/modetour-schedule-image-keyword'
 
 const NOISE_LINE =
   /더보기|크게\s*보기|크게보기|접기|펼치기|후기\s*작성|리뷰\s*작성|좋아요|공유하기|공유|배너|이벤트\s*응모|예약하기\s*버튼|바로가기|^\s*click\s|placeholder|\[이미지\]|img\s*\d|이미지\s*첨부|이미지\s*확대|광고|개인정보\s*처리|이용약관|쿠키\s*설정|단독\s*예약|조기\s*마감|한정\s*특가|프로모션\s*안내/i
 
 function isDayNTravelKeyword(s: string): boolean {
-  return /^day\s*\d+\s*travel$/i.test(s.trim())
+  return isModetourPlaceholderImageKeyword(s)
 }
 
 /** 일정 블록 밖으로 밀어낼 상품 푸터·안내 헤더 (day 본문에 남기지 않음) */
@@ -325,71 +327,8 @@ function normalizeModetourMealCapture(s: string): string {
     .trim()
 }
 
-function firstCityOrAirport(blob: string): string | null {
-  const m = blob.match(CITY_TOKEN)
-  return m?.[1]?.trim() ?? null
-}
-
-/** CITY_TOKEN에 없는 행선지(모두투어 연길·백두산 등) — 이미지 키워드용. 제목 우선, 없으면 blob 앞부분. */
-function modetourKeywordPlaceHint(title: string, blob: string): string | null {
-  const t = title.slice(0, 120)
-  const b = blob.slice(0, 600)
-  const pick = (s: string, re: RegExp) => {
-    const m = s.match(re)
-    return m?.[0] ? m[0].replace(/\s+/g, ' ').trim().slice(0, 24) : null
-  }
-  return (
-    pick(t, /백두산/u) ??
-    pick(t, /이도백하/u) ??
-    pick(t, /금강\s*대?\s*협곡/u) ??
-    pick(t, /연길/u) ??
-    pick(b, /백두산/u) ??
-    pick(b, /이도백하/u) ??
-    pick(b, /금강\s*대?\s*협곡/u) ??
-    pick(b, /연길/u) ??
-    null
-  )
-}
-
-function firstDateYmd(blob: string): string | null {
-  const m = blob.match(/(\d{4})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})/)
-  if (!m) return null
-  return `${m[1]}-${m[2]!.padStart(2, '0')}-${m[3]!.padStart(2, '0')}`
-}
-
-function attractionHint(blob: string): string | null {
-  const m = blob.match(
-    /(?:관광|방문|입장|체험|자유\s*관광)(?:\s*[：:]\s*|\s+)([^\n※]{2,48})/u
-  )
-  if (!m?.[1]) return null
-  const cap = m[1]!.replace(/\s+/g, ' ').trim()
-  if (/^(?:은|는|이|가|을|를)\b/u.test(cap)) return null
-  if (/유의사항|안내사항|참고사항|필독/i.test(cap)) return null
-  return cap
-}
-
 function buildImageKeywordFromBlock(day: number, blob: string, title: string, description: string): string {
-  const hay = `${title}\n${description}\n${blob}`
-  const date = firstDateYmd(hay)
-  const city = modetourKeywordPlaceHint(title, blob) ?? firstCityOrAirport(hay)
-  const att = attractionHint(hay)
-  const move = /(공항|출발|도착|이동|항공|픽업|셔틀)/.test(hay) ? '이동' : ''
-  const parts: string[] = []
-  if (date) parts.push(date)
-  if (city) {
-    if (move) parts.push(`${city} ${move}`)
-    else if (att) parts.push(`${city} · ${att.slice(0, 40)}`)
-    else parts.push(`${city} 일정`)
-  } else if (att) {
-    parts.push(att.slice(0, 56))
-  } else if (title.trim().length >= 4) {
-    parts.push(title.trim().slice(0, 72))
-  } else if (description.trim().length >= 8) {
-    parts.push(description.trim().slice(0, 72))
-  }
-  const joined = parts.filter(Boolean).join(' · ')
-  if (joined.trim()) return joined.trim().slice(0, 120)
-  return `제${day}일차 일정`
+  return deriveModetourImageKeyword({ day, title, description, blob })
 }
 
 /** 유의/개요/더보기 구간: 장문만 건너뛰고 같은 일차의 이동·호텔·식사 줄은 다시 받는다. */
@@ -679,6 +618,15 @@ function applyModetourScheduleRowBlobFinale(
       ...next,
       imageKeyword: buildImageKeywordFromBlock(next.day, blob, next.title, next.description),
     }
+  }
+  next = {
+    ...next,
+    imageKeyword: polishModetourImageKeyword(next.imageKeyword ?? '', {
+      day: next.day,
+      title: next.title,
+      description: next.description,
+      blob,
+    }),
   }
   return next
 }

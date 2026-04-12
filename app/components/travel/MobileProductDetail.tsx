@@ -63,6 +63,7 @@ import {
   buildPublicShoppingDisplayInputFromProductFields,
 } from '@/lib/public-product-extras'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
+import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
 
 type ScheduleDayWithMeta = TravelProduct['schedule'] extends (infer D)[] | null | undefined
   ? D & { title?: string; notice?: string }
@@ -87,8 +88,15 @@ function applyFlightManualCorrectionForPublicOrigin(
 export default function MobileProductDetail({ product }: Props) {
   const prices = Array.isArray(product.prices) ? product.prices : []
   const schedule = product.schedule && product.schedule.length > 0 ? (product.schedule as ScheduleDayWithMeta[]) : []
-  const heroUrl = product.bgImageUrl ?? schedule[0]?.imageUrl ?? null
-  const daySlides = schedule.map((d) => ({ day: d.day, imageUrl: d.imageUrl, imageDisplayName: d.imageDisplayName }))
+  const heroUrl = useMemo(() => coverImageUrlForTravelProductClient({ ...product, schedule }), [product, schedule])
+  const daySlides = schedule.map((d) => ({
+    day: d.day,
+    imageUrl: d.imageUrl,
+    imageDisplayName: d.imageDisplayName,
+    title: d.title ?? null,
+    imageKeyword: d.imageKeyword ?? null,
+    city: d.city ?? null,
+  }))
   const detailScope = product.primaryRegion === '국내' ? 'domestic' : 'overseas'
   const labels = getHotelMealLabels(detailScope)
   const uiOptionalRows = useMemo(
@@ -426,12 +434,13 @@ export default function MobileProductDetail({ product }: Props) {
       <ProductHeroCarousel
         heroUrl={heroUrl}
         daySlides={daySlides}
-        destinationLabel={product.destination}
         productTitle={product.title}
         className="rounded-none border-x-0 border-t-0"
         heroImageSourceType={product.bgImageSource ?? null}
         heroImageIsGenerated={product.bgImageIsGenerated ?? null}
-        heroCaptionFromAsset={product.heroCoverCaptionFromAsset ?? null}
+        heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
+        primaryDestination={product.primaryDestination ?? null}
+        destination={product.destination ?? null}
       />
 
       <section className="border-b-8 border-bt-success bg-bt-title p-5 text-bt-inverse sm:p-6">

@@ -2,11 +2,17 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
+import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
+import { OVERSEAS_SUPPLIER_LABEL } from '@/lib/normalize-supplier-origin'
 
-const ORIGIN_SOURCES = [
-  { value: '하나투어', label: '하나투어' },
-  { value: '모두투어', label: '모두투어' },
-  { value: '직접입력', label: '직접입력' },
+type TravelDashboardSupplierKey = CanonicalOverseasSupplierKey | 'custom'
+
+const TRAVEL_DASHBOARD_SUPPLIER_OPTIONS: { key: TravelDashboardSupplierKey; bodyOriginSource: string }[] = [
+  { key: 'hanatour', bodyOriginSource: 'hanatour' },
+  { key: 'modetour', bodyOriginSource: 'modetour' },
+  { key: 'ybtour', bodyOriginSource: 'ybtour' },
+  { key: 'verygoodtour', bodyOriginSource: 'verygoodtour' },
+  { key: 'custom', bodyOriginSource: '직접입력' },
 ]
 
 type PriceRow = {
@@ -59,7 +65,11 @@ type ProductRow = {
 
 export default function TravelDashboardPage() {
   const [rawText, setRawText] = useState('')
-  const [originSource, setOriginSource] = useState('하나투어')
+  const [supplierKey, setSupplierKey] = useState<TravelDashboardSupplierKey>('hanatour')
+  const requestOriginSource =
+    supplierKey === 'custom'
+      ? TRAVEL_DASHBOARD_SUPPLIER_OPTIONS.find((o) => o.key === 'custom')!.bodyOriginSource
+      : supplierKey
   const [loading, setLoading] = useState(false)
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [error, setError] = useState('')
@@ -89,7 +99,7 @@ export default function TravelDashboardPage() {
       const res = await fetch('/api/travel/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: rawText, originSource, auth: 'bongtour2026' }),
+        body: JSON.stringify({ text: rawText, originSource: requestOriginSource, auth: 'bongtour2026' }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? '파싱 실패')
@@ -113,7 +123,7 @@ export default function TravelDashboardPage() {
       const res = await fetch('/api/travel/parse-and-upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: rawText, originSource }),
+        body: JSON.stringify({ text: rawText, originSource: requestOriginSource }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? '파싱 또는 저장 실패')
@@ -137,12 +147,12 @@ export default function TravelDashboardPage() {
     try {
       const payload: ParsedResult = {
         ...previewParsed,
-        originSource,
+        originSource: requestOriginSource,
       }
       const res = await fetch('/api/travel/parse-and-upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parsed: payload, originSource }),
+        body: JSON.stringify({ parsed: payload, originSource: requestOriginSource }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? '저장 실패')
@@ -208,13 +218,13 @@ export default function TravelDashboardPage() {
               <div className="mb-3">
                 <label className="mb-1 block text-xs font-medium text-gray-600">여행사</label>
                 <select
-                  value={originSource}
-                  onChange={(e) => setOriginSource(e.target.value)}
+                  value={supplierKey}
+                  onChange={(e) => setSupplierKey(e.target.value as TravelDashboardSupplierKey)}
                   className="w-full border border-gray-300 px-3 py-2 text-sm"
                 >
-                  {ORIGIN_SOURCES.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
+                  {TRAVEL_DASHBOARD_SUPPLIER_OPTIONS.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.key === 'custom' ? '직접입력' : OVERSEAS_SUPPLIER_LABEL[o.key]}
                     </option>
                   ))}
                 </select>

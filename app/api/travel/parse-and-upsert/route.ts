@@ -11,20 +11,24 @@ import * as updItinHanatour from '@/lib/upsert-itinerary-days-hanatour'
 import * as updItinModetour from '@/lib/upsert-itinerary-days-modetour'
 import * as updItinVerygoodtour from '@/lib/upsert-itinerary-days-verygoodtour'
 import * as updItinYbtour from '@/lib/upsert-itinerary-days-ybtour'
+import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { normalizeOriginSource } from '@/lib/supplier-origin'
+import { buildParseSupplierInputDebug, normalizeParseRequestOriginSource } from '@/lib/parse-api-origin-source'
+
+/** POST …/parse-and-upsert — `?debugSupplier=1` 시 성공 JSON에 `supplierInputDebug`(body raw, coerce, upsert effective). */
 
 /** calendar-prices / departures POST와 동일 기준: brandKey 우선 → normalizeSupplierOrigin 폴백 */
 function upsertDeparturesModuleForProduct(p: {
   originSource: string | null
   brand: { brandKey: string } | null
 }) {
-  const bk = String(p.brand?.brandKey ?? '').trim()
+  const fromBrand = normalizeBrandKeyToCanonicalSupplierKey(p.brand?.brandKey ?? null)
   const norm = normalizeSupplierOrigin(p.originSource)
-  if (bk === 'modetour') return updDeparturesModetour
-  if (bk === 'verygoodtour') return updDeparturesVerygoodtour
-  if (bk === 'ybtour' || bk === 'yellowballoon') return updDeparturesYbtour
-  if (bk === 'hanatour') return updDeparturesHanatour
+  if (fromBrand === 'modetour') return updDeparturesModetour
+  if (fromBrand === 'verygoodtour') return updDeparturesVerygoodtour
+  if (fromBrand === 'ybtour') return updDeparturesYbtour
+  if (fromBrand === 'hanatour') return updDeparturesHanatour
   if (norm === 'modetour') return updDeparturesModetour
   if (norm === 'verygoodtour') return updDeparturesVerygoodtour
   if (norm === 'ybtour') return updDeparturesYbtour
@@ -35,12 +39,12 @@ function upsertItineraryModuleForProduct(p: {
   originSource: string | null
   brand: { brandKey: string } | null
 }) {
-  const bk = String(p.brand?.brandKey ?? '').trim()
+  const fromBrand = normalizeBrandKeyToCanonicalSupplierKey(p.brand?.brandKey ?? null)
   const norm = normalizeSupplierOrigin(p.originSource)
-  if (bk === 'modetour') return updItinModetour
-  if (bk === 'verygoodtour') return updItinVerygoodtour
-  if (bk === 'ybtour' || bk === 'yellowballoon') return updItinYbtour
-  if (bk === 'hanatour') return updItinHanatour
+  if (fromBrand === 'modetour') return updItinModetour
+  if (fromBrand === 'verygoodtour') return updItinVerygoodtour
+  if (fromBrand === 'ybtour') return updItinYbtour
+  if (fromBrand === 'hanatour') return updItinHanatour
   if (norm === 'modetour') return updItinModetour
   if (norm === 'verygoodtour') return updItinVerygoodtour
   if (norm === 'ybtour') return updItinYbtour
@@ -60,26 +64,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
   }
   try {
+    const debugSupplier = new URL(request.url).searchParams.get('debugSupplier') === '1'
     const body = await request.json()
     const text = typeof body.text === 'string' ? body.text.trim() : ''
     const brandKey = typeof body.brandKey === 'string' ? body.brandKey.trim() || null : null
-    let originSource = typeof body.originSource === 'string' ? body.originSource.trim() : '직접입력'
+    const rawOriginFromBody =
+      typeof body.originSource === 'string' && body.originSource.trim()
+        ? body.originSource.trim()
+        : brandKey || '직접입력'
+    const originSourceCoerced = normalizeParseRequestOriginSource(rawOriginFromBody, brandKey)
+    let originSource = normalizeOriginSource(originSourceCoerced, brandKey)
     let brandId: string | null = null
     if (brandKey) {
       const brand = await prisma.brand.findUnique({ where: { brandKey } })
       if (brand) {
-        originSource = brand.displayName
         brandId = brand.id
       }
     }
-    originSource = normalizeOriginSource(originSource, brandKey)
     const parsedBody = body.parsed as ParsedProductForDB | undefined
 
     let parsed: ParsedProductForDB
     if (parsedBody?.originCode) {
       parsed = {
         ...parsedBody,
-        originSource: normalizeOriginSource(parsedBody.originSource || originSource, brandKey),
+        originSource: normalizeOriginSource(
+          normalizeParseRequestOriginSource(parsedBody.originSource || originSource, brandKey),
+          brandKey
+        ),
       }
     } else if (text) {
       parsed = await extractTravelProductForDB(text, originSource)
@@ -212,6 +223,13 @@ export async function POST(request: Request) {
       detailPath: `/admin/products/${productId}`,
       message: existing ? '기존 상품이 업데이트되었습니다.' : '새 상품이 저장되었습니다.',
       parsed,
+      ...(debugSupplier && {
+        supplierInputDebug: buildParseSupplierInputDebug({
+          requestRaw: rawOriginFromBody,
+          coerced: originSourceCoerced,
+          effective: effectiveOriginSource,
+        }),
+      }),
     })
   } catch (e) {
     console.error(e)

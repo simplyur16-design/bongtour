@@ -1,5 +1,5 @@
 /**
- * E2E 전제: Brand(modetour) 존재 + 모두투어 origin 상품 1건에 brand 연결 + 첫 출발일 아동가 보강.
+ * E2E 전제: Brand(modetour) 존재 + `originSource`가 레거시 한글 `모두투어` 또는 canonical `modetour`인 상품 1건에 brand 연결 + 첫 출발일 아동가 보강.
  *   npx tsx scripts/ensure-modetour-brand-link.ts
  */
 import { prisma } from '../lib/prisma'
@@ -18,12 +18,12 @@ async function main() {
   const brand = await prisma.brand.findUniqueOrThrow({ where: { brandKey: 'modetour' } })
 
   const product = await prisma.product.findFirst({
-    where: { originSource: '모두투어' },
+    where: { OR: [{ originSource: '모두투어' }, { originSource: 'modetour' }] },
     orderBy: { updatedAt: 'desc' },
     include: { departures: { orderBy: { departureDate: 'asc' }, take: 1 } },
   })
   if (!product) {
-    console.error('originSource=모두투어 인 상품이 없습니다.')
+    console.error('originSource가 모두투어 또는 modetour 인 상품이 없습니다.')
     process.exit(1)
     return
   }

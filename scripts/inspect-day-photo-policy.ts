@@ -1,3 +1,7 @@
+/**
+ * 일차 사진 후보 정책 점검. `pickBySource`의 한글·부분 문자열 정규식은 **기존 DB `Product.originSource` 표기**를 고르기 위한 것이며,
+ * 관리 API 요청 body의 canonical 키(`modetour` 등)와 동일한 개념이 아니다(동작 유지, 주석만).
+ */
 import { prisma } from '../lib/prisma'
 import { buildItineraryDayPhotoCandidates } from '../lib/itinerary-day-photo-candidates'
 

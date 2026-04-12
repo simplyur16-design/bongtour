@@ -1,6 +1,8 @@
 /**
  * 하나투어 출발확정 근거·항공 성격(경유/직항) 결정적 규칙.
  * 실행: npx tsx scripts/verify-hanatour-departure-flight-display.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import {

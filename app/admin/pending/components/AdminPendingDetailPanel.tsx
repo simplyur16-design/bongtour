@@ -1,12 +1,20 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import { useState, useEffect, useCallback, type ChangeEvent } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
 import AdminEmptyState from '../../components/AdminEmptyState'
 import AdminStatusBadge from '../../components/AdminStatusBadge'
-import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
+import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
+import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
+import type { OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
 import { adminProductBgImageAttributionLine, adminProductBgImageSourceTypeLabel } from '@/lib/product-bg-image-attribution'
 import { resizeImageFileForUpload } from '@/lib/browser-resize-image-for-upload'
+import {
+  ADMIN_MANUAL_PRIMARY_HERO_UPLOAD_OPTIONS,
+  adminManualPrimaryHeroUploadAndPatch,
+  type AdminManualPrimaryHeroUploadPreset,
+} from '@/lib/admin-manual-primary-hero-upload'
 
 const GEMINI_SLOT_LABEL_KR: Record<string, string> = {
   no_person_wide: '무인물 · 넓은 구도',
@@ -23,6 +31,8 @@ type PendingItem = {
   id: string
   originCode: string
   originSource: string
+  canonicalBrandKey?: CanonicalOverseasSupplierKey | null
+  normalizedOriginSupplier?: OverseasSupplierKey
   title: string
   destination: string | null
   duration: string | null
@@ -55,6 +65,9 @@ type ProductDetail = {
   id: string
   originCode: string
   originSource: string
+  canonicalBrandKey?: CanonicalOverseasSupplierKey | null
+  normalizedOriginSupplier?: OverseasSupplierKey
+  brand?: { brandKey?: string | null } | null
   originUrl?: string | null
   title: string
   destination: string | null
@@ -333,6 +346,10 @@ export default function AdminPendingDetailPanel({
   const [pexelsQuery, setPexelsQuery] = useState<string | null>(null)
   const [primaryImageSavingId, setPrimaryImageSavingId] = useState<number | string | null>(null)
   const [primaryImageMessage, setPrimaryImageMessage] = useState<string | null>(null)
+  const [manualHeroUploadPreset, setManualHeroUploadPreset] =
+    useState<AdminManualPrimaryHeroUploadPreset>('photo_owned')
+  const [manualHeroUploadOtherNote, setManualHeroUploadOtherNote] = useState('')
+  const [primaryImageManualUploading, setPrimaryImageManualUploading] = useState(false)
   const [geminiLoading, setGeminiLoading] = useState(false)
   const [geminiResult, setGeminiResult] = useState<{
     promptUsed: string
@@ -395,6 +412,9 @@ export default function AdminPendingDetailPanel({
     }
     setDetailLoading(true)
     setDetailError(null)
+    setManualHeroUploadPreset('photo_owned')
+    setManualHeroUploadOtherNote('')
+    setPrimaryImageManualUploading(false)
     void fetchAdminProductDetail(productId)
       .then((data) => {
         if (data) setDetail(data)
@@ -699,6 +719,33 @@ export default function AdminPendingDetailPanel({
     }
   }
 
+  const handlePendingManualPrimaryHeroUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.currentTarget.files?.[0] ?? null
+    e.currentTarget.value = ''
+    if (!file || !detail) return
+    setPrimaryImageMessage(null)
+    setPrimaryImageManualUploading(true)
+    try {
+      const cityName = detail.destination?.trim() || detail.primaryRegion?.trim() || 'City'
+      const result = await adminManualPrimaryHeroUploadAndPatch(detail.id, file, {
+        preset: manualHeroUploadPreset,
+        otherNote: manualHeroUploadOtherNote,
+        cityName,
+      })
+      if (result.ok) {
+        setDetail((prev) => (prev ? { ...prev, ...(result.product as ProductDetail) } : prev))
+        setPrimaryImageMessage('대표 이미지가 저장되었습니다.')
+      } else {
+        const prefix = result.stage === 'upload' ? '업로드 실패' : '저장 실패'
+        setPrimaryImageMessage(`${prefix}: ${result.message}`)
+      }
+    } catch (err) {
+      setPrimaryImageMessage(err instanceof Error ? err.message : '요청 실패')
+    } finally {
+      setPrimaryImageManualUploading(false)
+    }
+  }
+
   const handleSetPrimaryImageFromAsset = async (candidate: ImageAssetCandidate) => {
     if (!detail) return
     setPrimaryImageMessage(null)
@@ -767,6 +814,8 @@ export default function AdminPendingDetailPanel({
     id: detail.id,
     originCode: detail.originCode,
     originSource: detail.originSource,
+    canonicalBrandKey: detail.canonicalBrandKey,
+    normalizedOriginSupplier: detail.normalizedOriginSupplier,
     title: detail.title,
     destination: detail.destination,
     duration: detail.duration,
@@ -1232,7 +1281,7 @@ export default function AdminPendingDetailPanel({
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-bt-meta">상품 요약</h3>
         <p className="font-medium text-bt-title">{item.title}</p>
         <p className="mt-1 text-sm text-bt-meta">
-          {item.originCode} · {formatOriginSourceForDisplay(item.originSource)}
+          {item.originCode} · {adminSupplierPrimaryDisplayLabel({ ...item, brand: detail.brand ?? null })}
           {item.destination && ` · ${item.destination}`}
           {item.duration && ` · ${item.duration}`}
         </p>
@@ -1931,7 +1980,7 @@ export default function AdminPendingDetailPanel({
           <button
             type="button"
             onClick={handleLoadAssetCandidates}
-            disabled={pexelsLoading || geminiLoading || assetsLoading}
+            disabled={pexelsLoading || geminiLoading || assetsLoading || primaryImageManualUploading}
             className="rounded-lg border border-bt-brand-blue-strong bg-bt-surface px-3 py-2 text-sm font-medium text-bt-title hover:bg-bt-brand-blue-soft disabled:opacity-50"
           >
             {assetsLoading ? '불러오는 중…' : '도시/관광지 자산에서 가져오기'}
@@ -1939,7 +1988,7 @@ export default function AdminPendingDetailPanel({
           <button
             type="button"
             onClick={handlePexelsSearch}
-            disabled={pexelsLoading}
+            disabled={pexelsLoading || primaryImageManualUploading}
             className="rounded-lg border border-bt-brand-blue-strong bg-bt-surface px-3 py-2 text-sm font-medium text-bt-title hover:bg-bt-brand-blue-soft disabled:opacity-50"
             title="상품 메타·목적지 기준 Pexels 검색(미리보기 전용)"
           >
@@ -1948,15 +1997,93 @@ export default function AdminPendingDetailPanel({
           <button
             type="button"
             onClick={() => void handleGeminiGenerate()}
-            disabled={pexelsLoading || geminiLoading}
+            disabled={pexelsLoading || geminiLoading || primaryImageManualUploading}
             className="rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm font-medium text-bt-muted hover:bg-bt-surface-soft disabled:opacity-50"
             title="상품 단위 자동 프롬프트로 4슬롯 생성(보조). 일정 DAY는 위에서 저장값 기준."
           >
             {geminiLoading ? '생성 중… (Gemini)' : 'Gemini 생성 (보조 · 상품 단위)'}
           </button>
-          <button type="button" disabled className="rounded-lg border border-bt-border-soft bg-bt-surface-soft px-3 py-2 text-sm font-medium text-bt-subtle" title="후속 연동 예정">
-            수동 업로드
-          </button>
+        </div>
+        <div className="mt-3 space-y-2 rounded-lg border border-bt-border-soft bg-bt-surface-soft p-3">
+          <p className="text-[10px] font-medium text-bt-muted">대표 이미지 파일 업로드(상품 상세와 동일 경로)</p>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="text-xs">
+              <span className="block text-bt-muted">이미지 출처</span>
+              <select
+                className="mt-0.5 rounded border border-bt-border-strong bg-bt-surface px-2 py-1.5 text-xs text-bt-body"
+                value={manualHeroUploadPreset}
+                disabled={
+                  primaryImageManualUploading ||
+                  primaryImageSavingId !== null ||
+                  pexelsLoading ||
+                  geminiLoading ||
+                  assetsLoading
+                }
+                onChange={(ev) => setManualHeroUploadPreset(ev.target.value as AdminManualPrimaryHeroUploadPreset)}
+              >
+                {ADMIN_MANUAL_PRIMARY_HERO_UPLOAD_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {manualHeroUploadPreset === 'other' ? (
+              <label className="text-xs">
+                <span className="block text-bt-muted">기타 출처 설명</span>
+                <input
+                  className="mt-0.5 w-44 max-w-full rounded border border-bt-border-strong bg-bt-surface px-2 py-1.5 text-xs text-bt-body"
+                  value={manualHeroUploadOtherNote}
+                  disabled={
+                    primaryImageManualUploading ||
+                    primaryImageSavingId !== null ||
+                    pexelsLoading ||
+                    geminiLoading ||
+                    assetsLoading
+                  }
+                  onChange={(ev) => setManualHeroUploadOtherNote(ev.target.value)}
+                  placeholder="표기용 짧은 이름"
+                />
+              </label>
+            ) : null}
+            <label
+              className={`cursor-pointer rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-xs font-medium text-bt-body hover:bg-bt-surface-soft ${
+                primaryImageManualUploading ||
+                primaryImageSavingId !== null ||
+                pexelsLoading ||
+                geminiLoading ||
+                assetsLoading
+                  ? 'pointer-events-none opacity-50'
+                  : ''
+              }`}
+            >
+              {primaryImageManualUploading ? '업로드 중…' : '대표 이미지 파일 업로드'}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={
+                  primaryImageManualUploading ||
+                  primaryImageSavingId !== null ||
+                  pexelsLoading ||
+                  geminiLoading ||
+                  assetsLoading
+                }
+                onChange={(ev) => void handlePendingManualPrimaryHeroUpload(ev)}
+              />
+            </label>
+          </div>
+          <p className="text-[10px] text-bt-meta">사진풀 저장 후 이 상품 대표 이미지로 연결됩니다. 파일당 최대 30MB.</p>
+          <p className="text-[10px] text-bt-meta">
+            갤러리 등 추가 이미지는{' '}
+            <Link
+              href={`/admin/image-assets-upload?productId=${encodeURIComponent(detail.id)}`}
+              className="font-medium text-bt-link underline"
+            >
+              상품 이미지 업로드
+            </Link>
+            에서 파일·출처만 선택하세요.
+          </p>
         </div>
         {pexelsQuery != null && (
           <p className="mt-2 text-xs text-bt-meta">
@@ -1993,7 +2120,7 @@ export default function AdminPendingDetailPanel({
                   <button
                     type="button"
                     onClick={() => handleSetPrimaryImage(photo)}
-                    disabled={primaryImageSavingId !== null}
+                    disabled={primaryImageSavingId !== null || primaryImageManualUploading}
                     className="w-full border-t border-bt-border-soft py-1.5 text-xs font-medium text-bt-title hover:bg-bt-surface-alt disabled:opacity-50"
                   >
                     {primaryImageSavingId === photo.id ? '저장 중…' : '대표 이미지로 선택'}
@@ -2038,7 +2165,7 @@ export default function AdminPendingDetailPanel({
                       <button
                         type="button"
                         onClick={() => handleSetPrimaryImageFromAsset(candidate)}
-                        disabled={primaryImageSavingId !== null}
+                        disabled={primaryImageSavingId !== null || primaryImageManualUploading}
                         className="w-full border-t border-bt-border-soft py-1.5 text-xs font-medium text-bt-title hover:bg-bt-surface-alt disabled:opacity-50"
                       >
                         {primaryImageSavingId === candidate.imageUrl ? '저장 중…' : '대표 이미지로 선택'}
@@ -2077,7 +2204,7 @@ export default function AdminPendingDetailPanel({
                       <button
                         type="button"
                         onClick={() => handleSetPrimaryImageFromAsset(candidate)}
-                        disabled={primaryImageSavingId !== null}
+                        disabled={primaryImageSavingId !== null || primaryImageManualUploading}
                         className="w-full border-t border-bt-border-soft py-1.5 text-xs font-medium text-bt-title hover:bg-bt-surface-alt disabled:opacity-50"
                       >
                         {primaryImageSavingId === candidate.imageUrl ? '저장 중…' : '대표 이미지로 선택'}
@@ -2151,7 +2278,7 @@ export default function AdminPendingDetailPanel({
                   <button
                     type="button"
                     onClick={() => item.imageUrl && handleSetPrimaryImageFromGemini(item.imageUrl)}
-                    disabled={primaryImageSavingId !== null || !item.imageUrl}
+                    disabled={primaryImageSavingId !== null || !item.imageUrl || primaryImageManualUploading}
                     className="w-full border-t border-bt-border-soft py-1.5 text-xs font-medium text-bt-title hover:bg-bt-surface-alt disabled:opacity-50"
                   >
                     {primaryImageSavingId === item.imageUrl ? '저장 중…' : '대표 이미지로 선택'}

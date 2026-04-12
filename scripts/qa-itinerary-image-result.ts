@@ -1,3 +1,9 @@
+/**
+ * process-images 라우트 스모크.
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
+ * (`pickBySource` 정규식은 **DB에 이미 들어 있는 문자열**을 고르기 위한 것이며, 복붙 입력 예시가 아니다.)
+ */
 import { prisma } from '../lib/prisma'
 import { POST as processImagesPost } from '../app/api/travel/process-images/route'
 

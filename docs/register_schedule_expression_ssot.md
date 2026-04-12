@@ -451,7 +451,46 @@
 
 ---
 
-## 15. 변경 이력
+## 15. 부록: 관리자 `POST /api/travel/parse-and-register-*` — 복붙용 body (`originSource` / `brandKey`)
+
+본 문서 본문은 **일정 표현층**만 SSOT로 다룬다. 아래는 **HTTP 요청 예시**만 분리한다. 키·붙여넣기 본문·레거시 호환 요약은 [register-supplier-extraction-spec.md](./register-supplier-extraction-spec.md) 「표기·키 SSOT (요약)」.
+
+요청 문자열 정규화: `lib/parse-api-origin-source.ts` (`normalizeParseRequestOriginSource`).
+
+동일 **복붙 JSON**·다른 supplier 예시: [register-supplier-extraction-spec.md](./register-supplier-extraction-spec.md) 부록-2 · [ADMIN-REGISTER-SINGLE-UX.md](./ADMIN-REGISTER-SINGLE-UX.md) §6.1.1.
+
+**미리보기 (`mode: preview`) — 필드 축소 예시 (실제 운영은 `text`·`pastedBlocks` 등 본문 길이에 맞게 채움):**
+
+```json
+{
+  "mode": "preview",
+  "text": "…상세 본문…",
+  "originSource": "modetour",
+  "brandKey": "modetour",
+  "travelScope": "overseas"
+}
+```
+
+**확정 저장 (`mode: confirm`) — supplier 키 축만 표시 (실제는 `previewToken`·`parsed`·`previewContentDigest` 등 필수):**
+
+```json
+{
+  "mode": "confirm",
+  "previewToken": "…서버가 미리보기에서 내려준 토큰…",
+  "text": "…미리보기와 동일 본문…",
+  "parsed": {},
+  "originSource": "modetour",
+  "brandKey": "modetour",
+  "previewContentDigest": "…미리보기 응답과 동일…",
+  "travelScope": "overseas"
+}
+```
+
+`…-yellowballoon` / `yellowballoon` **brandKey** 등 레거시 표기: [register-supplier-extraction-spec.md](./register-supplier-extraction-spec.md) 「표기·키 SSOT (요약)」목록 3번. 신규 예시 키는 `ybtour`.
+
+---
+
+## 16. 변경 이력
 
 | 날짜 | 내용 |
 |------|------|

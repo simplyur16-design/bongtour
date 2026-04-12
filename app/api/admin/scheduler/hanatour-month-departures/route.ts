@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { executeAdminDeparturesRescrapeCore } from '@/lib/admin-execute-departures-rescrape'
+import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { validateHanatourAdminMonthYm } from '@/lib/hanatour-departures'
 
@@ -11,9 +12,9 @@ function isHanatourProduct(p: {
   originSource: string | null
   brand: { brandKey: string } | null
 }): boolean {
-  const bk = String(p.brand?.brandKey ?? '').trim()
+  const fromBrand = normalizeBrandKeyToCanonicalSupplierKey(p.brand?.brandKey ?? null)
   const norm = normalizeSupplierOrigin(p.originSource ?? '')
-  return bk === 'hanatour' || norm === 'hanatour'
+  return fromBrand === 'hanatour' || norm === 'hanatour'
 }
 
 /** 목록·실행 공통: 등록완료 + 하나투어 + 상품코드(pkgCd로 상세 URL 구성 가능). originUrl 있으면 표시·링크용. */

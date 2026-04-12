@@ -1,10 +1,13 @@
 /**
  * 로컬 QA: preview → confirm 1회 + Product / ItineraryDay 조회 (일회성 스모크).
  * 사용: npx tsx scripts/qa-hotel-meal-confirm-flow.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { PrismaClient } from '@prisma/client'
+import { SUPPLIER_ORIGIN_CANONICAL } from '@/lib/overseas-supplier-canonical-keys'
 
 function loadEnvLocal() {
   const p = join(process.cwd(), '.env.local')
@@ -51,8 +54,8 @@ async function main() {
   const previewBody = {
     mode: 'preview',
     text: PASTE,
-    brandKey: 'modetour',
-    originSource: '모두투어',
+    brandKey: SUPPLIER_ORIGIN_CANONICAL.modetour,
+    originSource: SUPPLIER_ORIGIN_CANONICAL.modetour,
   }
 
   const pr = await fetch(REGISTER_URL, {
@@ -71,8 +74,8 @@ async function main() {
   const confirmBody = {
     mode: 'confirm',
     text: PASTE,
-    brandKey: 'modetour',
-    originSource: '모두투어',
+    brandKey: SUPPLIER_ORIGIN_CANONICAL.modetour,
+    originSource: SUPPLIER_ORIGIN_CANONICAL.modetour,
     previewToken,
   }
 

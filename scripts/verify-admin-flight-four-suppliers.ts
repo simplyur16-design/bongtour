@@ -1,5 +1,7 @@
 /**
  * 관리자 상품등록 항공 입력란 — 공급사별 결정적 파서 스모크(LLM 없음).
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import { parseFlightSectionHanatour } from '@/lib/flight-parser-hanatour'
 import { parseFlightSectionModetour } from '@/lib/flight-parser-modetour'

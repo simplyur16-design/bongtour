@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check register supplier cross-imports
+        run: npm run check:register-supplier-imports
+
       - name: Verify public response leaks
         run: npm run verify:public-leaks
 

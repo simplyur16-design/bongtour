@@ -72,6 +72,14 @@ try {
   console.log('[verify:deploy-readiness] WARN: could not read tsconfig.json')
 }
 
+console.log('[verify:deploy-readiness] running check-register-supplier-cross-imports …')
+try {
+  execSync('node scripts/check-register-supplier-cross-imports.mjs', { cwd: root, stdio: 'inherit' })
+} catch {
+  console.error('[verify:deploy-readiness] FAIL: register supplier cross-import check')
+  process.exit(1)
+}
+
 console.log('[verify:deploy-readiness] running npx tsc -p . --noEmit …')
 try {
   execSync('npx tsc -p . --noEmit', { cwd: root, stdio: 'inherit', shell: true })

@@ -2,6 +2,11 @@
  * 공급사 3개(verygoodtour / modetour / ybtour) DB 실측: FMC·모듈키·structuredSignals·쇼핑/옵션 resolution·모두투어 가격 merge.
  * 공개 상세 `app/products/[id]/page.tsx`와 동일 입력으로 shopping/optional resolution을 재현한다.
  *
+ * 출력의 `brandKey` / `resolvePublicConsumptionModuleKey`는 **canonical supplier key** 기준.
+ * `yellowballoon` 구간은 **DB에 과거 brand 행이 남아 있는지 읽기 전용 점검**이며, 신규 API 입력 예시가 아니다.
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
+ *
  *   npx tsx scripts/verify-supplier-pipeline-alignment.ts
  */
 import assert from 'node:assert/strict'
@@ -211,7 +216,10 @@ async function main() {
           pickFlightManualModule(ybLegacy.brand?.brandKey, ybLegacy.originSource) === flightManualYbtour,
       }
     : { note: 'no yellowballoon brand row' }
-  console.log('\n=== legacy yellowballoon (read) ===\n', JSON.stringify(out._yellowballoonLegacy, null, 2))
+  console.log(
+    '\n=== DB legacy brandKey=yellowballoon (read-only compatibility probe) ===\n',
+    JSON.stringify(out._yellowballoonLegacy, null, 2)
+  )
 
   if (ybLegacy && ybLegacy.brand?.brandKey === 'yellowballoon') {
     assert.equal(
@@ -246,6 +254,7 @@ function sectionSyntheticFmcAndKeys() {
       mustKnowItems: [{ category: '현지준비', title: '테스트', body: '본문' }],
     },
   })
+  /** `origin`에 한글 문자열이 있는 행은 `resolvePublicConsumptionModuleKey` 정규화 경로 검증용(요청 body 복붙 예시 아님). */
   const rows: Array<{ brandKey: string | null; origin: string | null; expectModuleKey: string }> = [
     { brandKey: 'verygoodtour', origin: null, expectModuleKey: 'verygoodtour' },
     { brandKey: 'modetour', origin: null, expectModuleKey: 'modetour' },

@@ -1,5 +1,7 @@
 'use client'
 
+import { OVERSEAS_SUPPLIER_LABEL } from '@/lib/normalize-supplier-origin'
+import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import type { RegisterVerificationV1 as RegisterVerificationV1H } from '@/lib/admin-register-verification-meta-hanatour'
 import type { RegisterVerificationV1 as RegisterVerificationV1M } from '@/lib/admin-register-verification-meta-modetour'
 import type { RegisterVerificationV1 as RegisterVerificationV1V } from '@/lib/admin-register-verification-meta-verygoodtour'
@@ -26,6 +28,10 @@ function fmtWon(n: number | null | undefined): string {
 export default function RegisterVerificationPanel({ verification, compareFingerprint, onOpenCorrection }: Props) {
   const { debug, display, publicSourceHints, fieldIssueTraces, structuredFingerprint, fingerprintCompareNote } =
     verification
+  const verificationBrandCanon = normalizeBrandKeyToCanonicalSupplierKey(verification.brandKey)
+  const verificationBrandSummaryLabel = verificationBrandCanon
+    ? OVERSEAS_SUPPLIER_LABEL[verificationBrandCanon]
+    : verification.brandKey
   const fpMatch =
     compareFingerprint != null && compareFingerprint !== ''
       ? compareFingerprint === structuredFingerprint
@@ -34,7 +40,8 @@ export default function RegisterVerificationPanel({ verification, compareFingerp
   return (
     <details className="rounded-lg border border-violet-300 bg-violet-50/90 text-xs text-violet-950 shadow-sm open:shadow">
       <summary className="cursor-pointer select-none px-3 py-2 font-bold text-violet-900">
-        실검증 패널 · {verification.phase === 'preview' ? '미리보기' : '저장 직후'} ({verification.brandKey})
+        실검증 패널 · {verification.phase === 'preview' ? '미리보기' : '저장 직후'} ({verificationBrandSummaryLabel} ·{' '}
+        <span className="font-mono font-normal">{verification.brandKey}</span>)
       </summary>
       <div className="space-y-3 border-t border-violet-200 px-3 py-3">
         <div className="rounded border border-violet-200 bg-white/90 p-2">

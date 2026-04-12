@@ -18,7 +18,8 @@ CRM/관리자 로그 **서버 저장은 아직 없음** — 아래는 확장 검
 
 - `KakaoCounselCta` 클릭 시(또는 보조 버튼 “요약 복사 후 상담 열기”):
   - 고정 템플릿 예:
-    - `[상담문의] 상품: {title} / 공급: {originSource} / 코드: {originCode} / 출발희망: {date} / 인원: 성인{n1} 아동(베드/노베드)… 유아…`
+    - `[상담문의] 상품: {title} / 공급: {originSource} / 코드: {originCode} / 출발희망: {date} / 인원: 성인{n1} 아동(베드/노베드)… 유아…`  
+      (`{originSource}`는 상품·DB와 동일하게 **canonical 키**(`hanatour` 등)를 넣는 것이 권장. 한글 상호는 별도 UI 라벨이 있으면 그쪽을 사람 읽기용으로 쓴다.)
   - `navigator.clipboard.writeText` 성공 후 `window.open(KAKAO_OPEN_CHAT_URL, …)` (기존 `KakaoBookingButton` 패턴과 유사).
 - 예약 접수 직후 성공 화면에서는 **접수 번호(`bookingId`)**를 요약에 포함할지 정책 결정(PII 최소화).
 

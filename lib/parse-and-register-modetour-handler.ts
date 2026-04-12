@@ -1,5 +1,9 @@
 import { createHash } from 'crypto'
 import { NextResponse } from 'next/server'
+import {
+  assertRegisterRouteSupplierMatch,
+  SupplierRouteMismatchError,
+} from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import {
@@ -17,6 +21,7 @@ import {
   modetourItineraryDraftsApplyScheduleHotelBodyFirst,
 } from '@/lib/modetour-itinerary-schedule-overlay'
 import { supplementModetourScheduleFromPastedBody } from '@/lib/register-modetour-pasted-schedule'
+import { polishModetourImageKeyword } from '@/lib/modetour-schedule-image-keyword'
 import {
   upsertItineraryDays,
   registerScheduleToDayInputs,
@@ -114,6 +119,10 @@ import {
 } from '@/lib/register-admin-input-persist-modetour'
 import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confirm-reuse-modetour'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
+import {
+  buildRegisterPublicImageHeroSeoKeywords,
+  buildRegisterPublicImageHeroSeoLineCandidate,
+} from '@/lib/register-public-image-hero-seo-line-candidate'
 import { applyDepartureTerminalMeetingInfo } from '@/lib/meeting-terminal-rules'
 import {
   attachPreservedMeetingOperatorToStructuredSignals,
@@ -268,7 +277,11 @@ function buildScheduleJsonThin(parsedSchedule: Array<{ day: number; title: strin
       day: day.day,
       title: day.title,
       description: day.description,
-      imageKeyword: day.imageKeyword,
+      imageKeyword: polishModetourImageKeyword(day.imageKeyword, {
+        day: day.day,
+        title: day.title,
+        description: day.description,
+      }),
       imageUrl: null,
     }))
   )
@@ -295,8 +308,10 @@ function buildModetourProductScheduleJson(
       const title = s && typeof s.title === 'string' ? s.title : ''
       const description =
         (s && typeof s.description === 'string' ? s.description : '') || (d.summaryTextRaw ?? '').trim()
-      const imageKeyword =
-        (s && typeof s.imageKeyword === 'string' ? s.imageKeyword : '') || `day ${d.day} travel`
+      const imageKeyword = polishModetourImageKeyword(
+        (s && typeof s.imageKeyword === 'string' ? s.imageKeyword : '') || '',
+        { day: d.day, title, description }
+      )
       return {
         day: d.day,
         title,
@@ -531,6 +546,9 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
         { status: 400 }
       )
     }
+    assertRegisterRouteSupplierMatch('modetour', body.originSource, {
+      route: '/api/travel/parse-and-register-modetour',
+    })
     const text = typeof body.text === 'string' ? body.text.trim() : ''
     const travelScope = typeof body.travelScope === 'string' ? body.travelScope.trim() : ''
     const clientDeclaredBrand = typeof body.brandKey === 'string' ? body.brandKey.trim() : ''
@@ -544,8 +562,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       )
     }
     const brandKey = forcedBrandKey
-    const incomingOriginSource =
-      typeof body.originSource === 'string' ? body.originSource.trim() : '직접입력'
+    const incomingOriginSource = (body.originSource as string).trim()
     const originSource = normalizeOriginSource(incomingOriginSource, brandKey)
     let originUrl: string | null = typeof body.originUrl === 'string' ? body.originUrl.trim() : null
     if (originUrl === '') originUrl = null
@@ -1562,6 +1579,24 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       heroReturnDateSource: heroAuditForMeta.returnSource,
     })
     const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
+    const registerHeroSeoInput = {
+      rawBodyText: text,
+      title: parsed.title,
+      primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
+      destination: parsed.destination,
+      duration: parsed.duration,
+      includedText: parsedWithFinalNotice.includedText ?? null,
+      excludedText: parsedWithFinalNotice.excludedText ?? null,
+      benefitSummary,
+      optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,
+      scheduleDayTitles: schedule.map((d) => d.title),
+      productScheduleJson: scheduleJson,
+      originSourceForFallback: effectiveOriginSource,
+    }
+    const registerPublicImageHeroSeoKeywords = buildRegisterPublicImageHeroSeoKeywords(registerHeroSeoInput)
+    const registerPublicImageHeroSeoLineSingle = registerPublicImageHeroSeoKeywords?.length
+      ? null
+      : buildRegisterPublicImageHeroSeoLineCandidate(registerHeroSeoInput)
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1614,6 +1649,14 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       shoppingShopOptions: parsed.shoppingStops ?? null,
       // 최소출발·예약현황은 Product 컬럼이 없는 DB와의 호환을 위해 rawMeta.structuredSignals만 사용 (mergeRawMetaWithStructuredSignals)
       rawMeta: baseRawMeta,
+      publicImageHeroSeoKeywordsJson: registerPublicImageHeroSeoKeywords?.length
+        ? JSON.stringify(registerPublicImageHeroSeoKeywords)
+        : null,
+      publicImageHeroSeoLine: registerPublicImageHeroSeoKeywords?.length
+        ? registerPublicImageHeroSeoKeywords.join(' · ').slice(0, 240)
+        : registerPublicImageHeroSeoLineSingle
+          ? registerPublicImageHeroSeoLineSingle.slice(0, 128)
+          : null,
       ...registerListingMeta,
     }
 
@@ -1741,6 +1784,19 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
   } catch (e) {
     ctx.stage = stage
     logParseAndRegister('fail', ctx, e)
+    if (e instanceof SupplierRouteMismatchError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: e.message,
+          expectedSupplier: e.expectedSupplier,
+          receivedOriginSource: e.receivedRaw,
+          normalizedSupplier: e.normalized,
+          route: e.route,
+        },
+        { status: 400 }
+      )
+    }
     const message = e instanceof Error ? e.message : '파싱 또는 등록 실패'
     return NextResponse.json(
       {

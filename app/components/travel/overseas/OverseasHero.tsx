@@ -4,6 +4,17 @@ import Link from 'next/link'
 import { type FC, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
+import {
+  browseDestinationDisplayLabelFromBrowseHero,
+  buildPublicPageHeroEditorialLineMonthlyStub,
+  publicPageHeroMonthPlus,
+  type PublicPageHeroTravelScope,
+} from '@/lib/public-page-hero-editorial-line'
+import {
+  dedupePageHeroMonthlyGeminiJobsPreservingOrder,
+  pageHeroMonthlyGeminiJobKey,
+} from '@/lib/page-hero-monthly-shared'
+import type { PageHeroMonthlyGeminiJob } from '@/lib/page-hero-monthly-types'
 
 const WEEKDAYS_KR = ['일', '월', '화', '수', '목', '금', '토'] as const
 
@@ -61,6 +72,9 @@ type BrowseHeroItem = {
   earliestDeparture: string | null
   /** API/목업에서 누락될 수 있음 — 정렬 시 방어 */
   updatedAt?: string | null
+  duration?: string | null
+  bgImageSource?: string | null
+  bgImageIsGenerated?: boolean | null
 }
 
 type ApiOk = {
@@ -68,39 +82,8 @@ type ApiOk = {
   items: BrowseHeroItem[]
 }
 
-const VERBS = ['떠나다', '가다', '만나다', '걷다', '즐기다'] as const
-const FALLBACK_VERBS = ['떠나다', '가다', '즐기다'] as const
 const HERO_FALLBACK =
   'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221280%22 height=%22480%22 viewBox=%220 0 1280 480%22%3E%3Crect width=%221280%22 height=%22480%22 fill=%22%23e2e8f0%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%2294a3b8%22 font-size=%2230%22%3EOverseas%20Hero%3C/text%3E%3C/svg%3E'
-
-function monthPlus(baseMonth: number, offset: number): number {
-  return ((baseMonth - 1 + offset) % 12) + 1
-}
-
-function destinationLabel(item: BrowseHeroItem): string {
-  const src = (item.primaryDestination ?? item.title ?? '').trim()
-  if (!src) return '해외'
-  const token = src.split(/[,\-\/|·\s]+/).find((x) => x.trim().length > 1)
-  return (token ?? src).trim().slice(0, 18)
-}
-
-function hasBatchimKorean(word: string): boolean {
-  if (!word) return false
-  const chars = [...word]
-  for (let i = chars.length - 1; i >= 0; i--) {
-    const c = chars[i]!
-    const code = c.charCodeAt(0)
-    if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 !== 0
-    if (/[A-Za-z]/.test(c)) return /[bcdfghjklmnpqrstvwxyz]/i.test(c)
-    if (/[0-9]/.test(c)) return c !== '2' && c !== '4' && c !== '5' && c !== '9'
-  }
-  return false
-}
-
-function withRoParticle(dest: string): string {
-  if (!dest.trim()) return '해외로'
-  return hasBatchimKorean(dest) ? `${dest}으로` : `${dest}로`
-}
 
 function monthKeywordBoost(targetMonth: number, text: string): number {
   const t = text.toLowerCase()
@@ -120,20 +103,12 @@ function scoreForMonth(item: BrowseHeroItem, targetMonth: number): number {
     if (!Number.isNaN(d.getTime())) {
       const m = d.getMonth() + 1
       if (m === targetMonth) score += 70
-      else if (m === monthPlus(targetMonth, 1) || m === monthPlus(targetMonth, -1)) score += 35
+      else if (m === publicPageHeroMonthPlus(targetMonth, 1) || m === publicPageHeroMonthPlus(targetMonth, -1))
+        score += 35
     }
   }
   score += monthKeywordBoost(targetMonth, `${item.primaryDestination ?? ''} ${item.title ?? ''}`)
   return score
-}
-
-function buildHeadline(month: number, item: BrowseHeroItem, idx: number): string {
-  const dest = destinationLabel(item)
-  const verb =
-    dest === '해외'
-      ? FALLBACK_VERBS[idx % FALLBACK_VERBS.length]
-      : VERBS[idx % VERBS.length]
-  return `${month}월 ${withRoParticle(dest)} ${verb}`
 }
 
 function pickByBucket(
@@ -157,7 +132,7 @@ function pickByBucket(
   const picked: BrowseHeroItem[] = []
   for (const row of scored) {
     if (picked.length >= need) break
-    const regionKey = destinationLabel(row.x).toLowerCase()
+    const regionKey = browseDestinationDisplayLabelFromBrowseHero(row.x).toLowerCase()
     const used = usedRegionCounts.get(regionKey) ?? 0
     // 같은 도시/국가 최대 2개 hard cap
     if (used >= 2) continue
@@ -168,27 +143,52 @@ function pickByBucket(
   return picked
 }
 
-function buildMonthlyHero(items: BrowseHeroItem[]): Array<BrowseHeroItem & { slotMonth: number; headline: string }> {
+type HeroRow = BrowseHeroItem & {
+  slotMonth: number
+  headline: string
+  travelScope: PublicPageHeroTravelScope
+}
+
+function heroRowHasDestinationContext(item: BrowseHeroItem): boolean {
+  return Boolean((item.primaryDestination ?? '').trim() || (item.title ?? '').trim())
+}
+
+/** 목적지 메타가 없으면 Gemini 호출 대상에서 제외(스텁만). */
+function geminiJobFromHeroRow(row: HeroRow): PageHeroMonthlyGeminiJob | null {
+  if (!heroRowHasDestinationContext(row)) return null
+  const destinationDisplay = browseDestinationDisplayLabelFromBrowseHero(row).trim()
+  if (!destinationDisplay) return null
+  return {
+    targetMonth1To12: row.slotMonth,
+    destinationDisplay: destinationDisplay.slice(0, 80),
+    travelScope: row.travelScope,
+  }
+}
+
+function buildMonthlyHero(items: BrowseHeroItem[]): HeroRow[] {
   const now = new Date()
   const current = now.getMonth() + 1
   const m0 = current
-  const m1 = monthPlus(current, 1)
-  const m2 = monthPlus(current, 2)
+  const m1 = publicPageHeroMonthPlus(current, 1)
+  const m2 = publicPageHeroMonthPlus(current, 2)
+  const m3 = publicPageHeroMonthPlus(current, 3)
 
   const usedIds = new Set<string>()
   const usedRegionCounts = new Map<string, number>()
   const out: BrowseHeroItem[] = []
 
-  out.push(...pickByBucket(items, m0, 3, usedIds, usedRegionCounts))
-  out.push(...pickByBucket(items, m1, 4, usedIds, usedRegionCounts))
+  // 현재달·+1·+2·+3개월 버킷 (합계 10)
+  out.push(...pickByBucket(items, m0, 2, usedIds, usedRegionCounts))
+  out.push(...pickByBucket(items, m1, 3, usedIds, usedRegionCounts))
   out.push(...pickByBucket(items, m2, 3, usedIds, usedRegionCounts))
+  out.push(...pickByBucket(items, m3, 2, usedIds, usedRegionCounts))
 
   // fallback: 월 버킷이 비면 전체에서 채움
   if (out.length < 10) {
     for (const item of items) {
       if (out.length >= 10) break
       if (usedIds.has(item.id)) continue
-      const regionKey = destinationLabel(item).toLowerCase()
+      const regionKey = browseDestinationDisplayLabelFromBrowseHero(item).toLowerCase()
       const used = usedRegionCounts.get(regionKey) ?? 0
       if (used >= 2) continue
       out.push(item)
@@ -198,16 +198,21 @@ function buildMonthlyHero(items: BrowseHeroItem[]): Array<BrowseHeroItem & { slo
   }
 
   return out.slice(0, 10).map((item, idx) => {
-    const slotMonth = idx < 3 ? m0 : idx < 7 ? m1 : m2
+    const slotMonth = idx < 2 ? m0 : idx < 5 ? m1 : idx < 8 ? m2 : m3
+    const dest = browseDestinationDisplayLabelFromBrowseHero(item)
     return {
       ...item,
       slotMonth,
-      headline: buildHeadline(slotMonth, item, idx),
+      travelScope: 'overseas' satisfies PublicPageHeroTravelScope,
+      headline: buildPublicPageHeroEditorialLineMonthlyStub({
+        targetMonth1To12: slotMonth,
+        destinationDisplay: dest,
+        verbSlotIndex: idx,
+        travelScope: 'overseas',
+      }),
     }
   })
 }
-
-type HeroRow = BrowseHeroItem & { slotMonth: number; headline: string }
 
 const PRIVATE_TRIP_HERO_PER_LEG = 5
 
@@ -240,12 +245,24 @@ function buildPrivateTripInterleavedHero(
     out.push({
       ...oItem,
       slotMonth,
-      headline: buildHeadline(slotMonth, oItem, i * 2),
+      travelScope: 'overseas',
+      headline: buildPublicPageHeroEditorialLineMonthlyStub({
+        targetMonth1To12: slotMonth,
+        destinationDisplay: browseDestinationDisplayLabelFromBrowseHero(oItem),
+        verbSlotIndex: i * 2,
+        travelScope: 'overseas',
+      }),
     })
     out.push({
       ...dItem,
       slotMonth,
-      headline: buildHeadline(slotMonth, dItem, i * 2 + 1),
+      travelScope: 'domestic',
+      headline: buildPublicPageHeroEditorialLineMonthlyStub({
+        targetMonth1To12: slotMonth,
+        destinationDisplay: browseDestinationDisplayLabelFromBrowseHero(dItem),
+        verbSlotIndex: i * 2 + 1,
+        travelScope: 'domestic',
+      }),
     })
   }
   return out
@@ -286,6 +303,8 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
   const [isPaused, setIsPaused] = useState(false)
   const [lastManualAt, setLastManualAt] = useState(0)
   const [reduceMotion, setReduceMotion] = useState(false)
+  /** 월·목적지·scope 키별 Gemini 1줄(실패·로딩 중에는 스텁 headline 유지) */
+  const [headlineByKey, setHeadlineByKey] = useState<Record<string, string>>({})
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [viewMonth, setViewMonth] = useState(() => {
     const fromUrl = parseYmd(sanitizeDepartDate(searchParams.get('departDate')))
@@ -435,12 +454,77 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
     return () => mq.removeEventListener('change', apply)
   }, [])
 
-  const heroRows = useMemo(() => {
+  const heroRowsStub = useMemo(() => {
     if (browseListingKind === 'private_trip') {
       return buildPrivateTripInterleavedHero(items, domesticHeroPool)
     }
     return buildMonthlyHero(items)
   }, [browseListingKind, items, domesticHeroPool])
+
+  useEffect(() => {
+    if (loading) {
+      setHeadlineByKey({})
+      return
+    }
+    const rows = heroRowsStub
+    setHeadlineByKey({})
+    if (rows.length === 0) return
+    const jobsRaw: PageHeroMonthlyGeminiJob[] = []
+    for (const row of rows) {
+      const j = geminiJobFromHeroRow(row)
+      if (j) jobsRaw.push(j)
+    }
+    const jobs = dedupePageHeroMonthlyGeminiJobsPreservingOrder(jobsRaw)
+    if (jobs.length === 0) return
+
+    const ac = new AbortController()
+    void (async () => {
+      try {
+        const res = await fetch('/api/public/page-hero-editorial-lines', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobs }),
+          signal: ac.signal,
+        })
+        const data = (await res.json()) as {
+          ok?: boolean
+          jobs?: PageHeroMonthlyGeminiJob[]
+          lines?: unknown
+        }
+        if (ac.signal.aborted) return
+        const lineList = data.lines
+        const jobList = data.jobs
+        if (!data.ok || !Array.isArray(lineList) || !Array.isArray(jobList)) return
+        if (lineList.length !== jobList.length) return
+        const next: Record<string, string> = {}
+        jobList.forEach((j: PageHeroMonthlyGeminiJob, i: number) => {
+          const raw = lineList[i]
+          const line = typeof raw === 'string' ? raw.trim() : ''
+          if (line) next[pageHeroMonthlyGeminiJobKey(j)] = line
+        })
+        setHeadlineByKey(next)
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return
+        if (e instanceof Error && e.name === 'AbortError') return
+      }
+    })()
+
+    return () => ac.abort()
+  }, [loading, heroRowsStub])
+
+  const heroRows = useMemo(
+    () =>
+      heroRowsStub.map((row) => {
+        const key = pageHeroMonthlyGeminiJobKey({
+          targetMonth1To12: row.slotMonth,
+          destinationDisplay: browseDestinationDisplayLabelFromBrowseHero(row).trim(),
+          travelScope: row.travelScope,
+        })
+        const gem = headlineByKey[key]
+        return gem ? { ...row, headline: gem } : row
+      }),
+    [headlineByKey, heroRowsStub],
+  )
 
   useEffect(() => {
     setIdx((prev) => {
@@ -611,7 +695,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
           onMouseLeave={() => setIsPaused(false)}
           aria-live={reduceMotion ? 'polite' : 'off'}
         >
-          <div className="h-[150px] sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]">
+          <div className="relative h-[150px] sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]">
             {loading ? (
               <div className="h-full w-full animate-pulse bg-slate-200/60" />
             ) : !current ? (
@@ -623,40 +707,46 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
               <Link
                 href={`/products/${current.id}`}
                 className="group relative block h-full w-full"
-                aria-label={`${destinationLabel(current)} ${current.title} 상세 보기`}
+                aria-label={`${browseDestinationDisplayLabelFromBrowseHero(current)} ${current.title} 상세 보기`}
               >
                 <img
                   src={broken[current.id] ? HERO_FALLBACK : current.coverImageUrl ?? current.bgImageUrl ?? HERO_FALLBACK}
-                  alt={current.title}
+                  alt=""
                   className="h-full w-full object-cover"
                   loading={idx === 0 ? 'eager' : 'lazy'}
                   fetchPriority={idx === 0 ? 'high' : 'auto'}
                   decoding="async"
                   onError={() => setBroken((prev) => ({ ...prev, [current.id]: true }))}
                 />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-3">
-                  <p className="text-sm font-semibold text-white sm:text-base">{current.headline}</p>
-                  <p className="mt-0.5 line-clamp-1 text-xs text-white/90">{current.title}</p>
-                </div>
+                {heroRows.length > 1 ? (
+                  <div className="pointer-events-none absolute right-2 top-2 z-20 flex items-center gap-1.5">
+                    {heroRows.slice(0, 10).map((_, i) => (
+                      <button
+                        key={`hero-dot-${i}`}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setIdx(i)
+                          setLastManualAt(Date.now())
+                        }}
+                        className={`pointer-events-auto h-1.5 rounded-full transition-all ${
+                          i === idx % heroRows.length ? 'w-4 bg-white' : 'w-1.5 bg-white/60'
+                        }`}
+                        aria-label={`추천 슬라이드 ${i + 1}${i === idx % heroRows.length ? ' (현재)' : ''}`}
+                        aria-current={i === idx % heroRows.length ? 'true' : undefined}
+                        aria-pressed={i === idx % heroRows.length}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </Link>
             )}
           </div>
-          {heroRows.length > 1 ? (
-            <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-1.5">
-              {heroRows.slice(0, 10).map((_, i) => (
-                <button
-                  key={`hero-dot-${i}`}
-                  type="button"
-                  onClick={() => {
-                    setIdx(i)
-                    setLastManualAt(Date.now())
-                  }}
-                  className={`pointer-events-auto h-1.5 rounded-full transition-all ${i === idx % heroRows.length ? 'w-4 bg-white' : 'w-1.5 bg-white/60'}`}
-                  aria-label={`추천 슬라이드 ${i + 1}${i === idx % heroRows.length ? ' (현재)' : ''}`}
-                  aria-current={i === idx % heroRows.length ? 'true' : undefined}
-                  aria-pressed={i === idx % heroRows.length}
-                />
-              ))}
+          {!loading && current ? (
+            <div className="border-t border-bt-border-soft bg-white px-3 py-2">
+              <p className="text-xs font-semibold text-bt-title sm:text-sm">{current.headline}</p>
+              <p className="mt-0.5 line-clamp-1 text-[11px] text-bt-meta">{current.title}</p>
             </div>
           ) : null}
         </div>

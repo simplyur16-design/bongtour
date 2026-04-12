@@ -1,9 +1,12 @@
 /**
  * 참좋은(verygoodtour) 스타일 본문으로 parse-and-register 미리보기 스모크.
  * npx tsx scripts/qa-verygoodtour-preview-smoke.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { SUPPLIER_ORIGIN_CANONICAL } from '@/lib/overseas-supplier-canonical-keys'
 
 function loadEnvLocal() {
   const p = join(process.cwd(), '.env.local')
@@ -74,8 +77,8 @@ async function main() {
   const previewBody = {
     mode: 'preview',
     text: VERYGOODTOUR_PASTE,
-    brandKey: 'verygoodtour',
-    originSource: '참좋은여행',
+    brandKey: SUPPLIER_ORIGIN_CANONICAL.verygoodtour,
+    originSource: SUPPLIER_ORIGIN_CANONICAL.verygoodtour,
     travelScope: 'overseas',
     originUrl,
   }

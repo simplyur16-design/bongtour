@@ -72,6 +72,39 @@
 
 - **추가**: 여행사(브랜드) 드롭다운. `GET /api/admin/brands`로 목록 로드. 기본값 하나투어 등.
 - **변경**: `handleSubmit`에서 `fetch(parseRegisterApiPath(brandKey), { body: JSON.stringify({ … }) })` — 모두/참좋은/하나/노랑은 전용 경로, 그 외는 `/api/travel/parse-and-register`.
+
+#### 6.1.1 복붙용 요청 body (`originSource` / `brandKey` — canonical만)
+
+관련 SSOT: [register-supplier-extraction-spec.md](./register-supplier-extraction-spec.md) 「표기·키 SSOT (요약)」·부록-2 · [register_schedule_expression_ssot.md](./register_schedule_expression_ssot.md) §15 · `lib/parse-api-origin-source.ts` (`normalizeParseRequestOriginSource`).
+
+드롭다운의 한글 라벨(모두투어 등)과 무관하게, **`originSource`와 `brandKey`는 동일한 canonical 키**가 들어간다(`app/admin/register/page.tsx`의 `selectedBrandKey`).
+
+**미리보기:**
+
+```json
+{
+  "mode": "preview",
+  "text": "…",
+  "originSource": "modetour",
+  "brandKey": "modetour",
+  "travelScope": "overseas"
+}
+```
+
+**확정 저장 (supplier 키 축; `previewToken`·`parsed`·`previewContentDigest` 등은 실제 응답값으로 채움):**
+
+```json
+{
+  "mode": "confirm",
+  "previewToken": "…",
+  "text": "…",
+  "parsed": {},
+  "originSource": "modetour",
+  "brandKey": "modetour",
+  "previewContentDigest": "…",
+  "travelScope": "overseas"
+}
+```
 - **제거**: 성공 시 `window.location.href = path` (priceViewPath 리다이렉트) 제거.
 - **유지**: 성공 시 `setRedirectPath(productId 또는 detailPath)` 로 “등록대기로 이동” / “상품 상세 보기” 링크만 표시.
 

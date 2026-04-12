@@ -1,3 +1,8 @@
+/**
+ * 모두투어 섹션 분리·비정형 옵션/쇼핑 fixture. 인라인 `text`는 **붙여넣기 본문 샘플**이다.
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
+ */
 import { parseFlightSectionModetour } from '@/lib/flight-parser-modetour'
 import { parseHotelSection } from '@/lib/hotel-table-parser'
 import {

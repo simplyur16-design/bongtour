@@ -24,7 +24,8 @@
 
 - 하나투어·모두투어 메뉴를 **운영 권역**으로 통합(지리 대륙보다 상품 메뉴 우선).
 - 화면 문자열과 DB `originSource` 흔들림은 **`lib/normalize-supplier-origin.ts`** 로 내부 키에 수렴:  
-  `hanatour` | `modetour` | `verygoodtour` | `ybtour` | `etc`
+  `hanatour` | `modetour` | `verygoodtour` | `ybtour` | `etc`  
+  (관리·자동화에서 **새로 넣는 식별자**는 위 canonical만 쓰고, 한글 상호는 UI·문서 표시에만 둔다.)
 - 해외 랜딩 **공급사별** 탭은 이 정규화 키로 필터한다(부분 문자열 칩 나열 방식 대체).
 
 ## 상단 검색·필터

@@ -1,6 +1,8 @@
 /**
  * verygoodtour — tmp_verygoodtour_body.txt 붙여넣기 본문으로 일정 표현층 E2E (preview + 복구 + augment + finalize).
  * 실행: npx tsx scripts/verify-verygoodtour-register-schedule-e2e.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import fs from 'fs'
 import path from 'path'

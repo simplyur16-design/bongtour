@@ -1,5 +1,7 @@
 /**
  * 하나투어 항공 붙여넣기 결정적 파서 스모크 검증(LLM 없음).
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import { parseFlightSectionHanatour } from '@/lib/flight-parser-hanatour'
 import { resolveDirectedFlightLinesHanatour } from '@/lib/register-flight-hanatour'

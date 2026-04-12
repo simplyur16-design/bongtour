@@ -9,6 +9,10 @@
 
 **일정 표현 SSOT:** `docs/register_schedule_expression_ssot.md` — 본 문서는 **본문 섹션 분리**만 다룬다.
 
+### HTTP supplier 키 vs 붙여넣기 본문
+
+canonical 키와 붙여넣기 원문 구분: [register-supplier-extraction-spec.md](./register-supplier-extraction-spec.md) 「표기·키 SSOT (요약)」. 이 문서·픽스처의 한글·원문은 **참좋은 본문 파서 입력**만 규정한다.
+
 ### 본문 파서 비책임 축 (입력 파서 SSOT)
 
 - **항공·선택관광·쇼핑** 구조화는 **`register-input-parse-verygoodtour`** + 정형 입력란(`register-parse-verygoodtour`)만.

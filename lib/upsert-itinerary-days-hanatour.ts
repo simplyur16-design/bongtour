@@ -125,6 +125,7 @@ export function registerScheduleToDayInputs(
     return [
       {
         day,
+        city: title || null,
         summaryTextRaw: summaryTextRaw || null,
         rawBlock,
         hotelText,

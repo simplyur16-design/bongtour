@@ -43,6 +43,11 @@ import {
   getSupplierInputFrameSpec,
   REGISTER_INPUT_PRIORITY_RULES,
 } from '@/lib/admin-register-supplier-input-frames'
+import {
+  CANONICAL_OVERSEAS_SUPPLIER_KEYS,
+  type CanonicalOverseasSupplierKey,
+} from '@/lib/overseas-supplier-canonical-keys'
+import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
 
 const LOADING_STATUS = '분석 중…' as const
 
@@ -54,11 +59,10 @@ function isAbortError(e: unknown): boolean {
   return e instanceof Error && e.name === 'AbortError'
 }
 
-type Brand = { id: string; brandKey: string; displayName: string; sortOrder: number }
+type Brand = { id: string; brandKey: CanonicalOverseasSupplierKey; displayName: string; sortOrder: number }
 
-/** 관리자 상품등록 메뉴에서만 선택 — 이후 경로에서 공급사 재추론·generic URL 없음 */
-const ADMIN_REGISTER_SUPPLIER_KEYS = ['modetour', 'verygoodtour', 'ybtour', 'hanatour'] as const
-type AdminRegisterSupplierKey = (typeof ADMIN_REGISTER_SUPPLIER_KEYS)[number]
+/** 관리자 상품등록 메뉴에서만 선택 — canonical SSOT와 동일 키만 (`lib/overseas-supplier-canonical-keys.json`). */
+type AdminRegisterSupplierKey = CanonicalOverseasSupplierKey
 
 type RegisterParsed = RegisterParsedH | RegisterParsedM | RegisterParsedV | RegisterParsedY
 type RegisterScheduleDay = RegisterScheduleDayH | RegisterScheduleDayM | RegisterScheduleDayV | RegisterScheduleDayY
@@ -315,7 +319,7 @@ function parseRegisterApiPath(brandKey: AdminRegisterSupplierKey): string {
 
 /**
  * 관리자 상품 등록 전용 공급사 선택 — DB Brand 테이블과 무관한 고정 목록.
- * 선택값이 `parseRegisterApiPath`·요청 `brandKey`·originSource 표시로 그대로 이어진다 (canonical만, yellowballoon 없음).
+ * 선택값이 `parseRegisterApiPath`·요청 `brandKey`·`originSource`(canonical 키와 동일)로 그대로 이어진다 (yellowballoon 없음).
  */
 const REGISTER_SUPPLIER_OPTIONS: Brand[] = [
   { id: '', brandKey: 'modetour', displayName: '모두투어', sortOrder: 1 },
@@ -324,10 +328,24 @@ const REGISTER_SUPPLIER_OPTIONS: Brand[] = [
   { id: '', brandKey: 'hanatour', displayName: '하나투어', sortOrder: 4 },
 ]
 
+{
+  const uiKeys = new Set(REGISTER_SUPPLIER_OPTIONS.map((b) => b.brandKey))
+  for (const k of CANONICAL_OVERSEAS_SUPPLIER_KEYS) {
+    if (!uiKeys.has(k)) {
+      throw new Error(`REGISTER_SUPPLIER_OPTIONS must include every canonical supplier key (missing: ${k})`)
+    }
+  }
+  for (const b of REGISTER_SUPPLIER_OPTIONS) {
+    if (!(CANONICAL_OVERSEAS_SUPPLIER_KEYS as readonly string[]).includes(b.brandKey)) {
+      throw new Error(`REGISTER_SUPPLIER_OPTIONS has non-canonical brandKey: ${b.brandKey}`)
+    }
+  }
+}
+
 function coerceRegisterSupplierKey(key: string | null | undefined): AdminRegisterSupplierKey {
   const k = (key ?? '').trim()
-  if ((ADMIN_REGISTER_SUPPLIER_KEYS as readonly string[]).includes(k)) return k as AdminRegisterSupplierKey
-  return ADMIN_REGISTER_SUPPLIER_KEYS[0]!
+  if ((CANONICAL_OVERSEAS_SUPPLIER_KEYS as readonly string[]).includes(k)) return k as AdminRegisterSupplierKey
+  return REGISTER_SUPPLIER_OPTIONS[0]!.brandKey
 }
 
 function registerSupplierDisplayName(brandKey: string | null | undefined): string {
@@ -531,8 +549,8 @@ export default function AdminRegisterPage() {
 
   async function handleSubmit() {
     const urlToCheck = normalizeUrl(originUrl)
-    const originSource =
-      registerSupplierDisplayName(selectedBrandKey)
+    /** 전용 등록 API·route guard SSOT — `normalizeSupplierOrigin` 기대 키와 동일한 문자열 */
+    const originSource = selectedBrandKey
     if (!rawText.trim()) {
       setError('공급사 상세 본문을 붙여넣어 주세요.')
       return
@@ -660,8 +678,7 @@ export default function AdminRegisterPage() {
         ),
         correctionOverlay
       )
-      const originSource =
-        registerSupplierDisplayName(selectedBrandKey)
+      const originSource = selectedBrandKey
       const urlToCheck = normalizeUrl(originUrl)
       const blocksPayload = buildPastedBlocksPayload(pastedBlocks)
       const controller = new AbortController()
@@ -856,10 +873,13 @@ export default function AdminRegisterPage() {
                       href={`/admin/products/${m.id}`}
                       className="font-medium text-[#0f172a] hover:underline"
                     >
-                      {m.title || m.originSource || m.id}
+                      {m.title || adminSupplierPrimaryDisplayLabel({ originSource: m.originSource }) || m.id}
                     </Link>
-                    <span className="ml-1 text-xs text-slate-500">
-                      ({m.originSource}
+                    <span
+                      className="ml-1 text-xs text-slate-500"
+                      title={`DB originSource: ${m.originSource}`}
+                    >
+                      ({adminSupplierPrimaryDisplayLabel({ originSource: m.originSource })}
                       {m.registrationStatus ? ` · ${m.registrationStatus}` : ''})
                     </span>
                   </li>
@@ -1452,8 +1472,18 @@ export default function AdminRegisterPage() {
                     <dd>{preview.productDraft.originCode}</dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] text-slate-500">originSource</dt>
-                    <dd>{preview.productDraft.originSource}</dd>
+                    <dt className="text-[11px] text-slate-500">공급사</dt>
+                    <dd>
+                      <span className="font-medium">
+                        {adminSupplierPrimaryDisplayLabel({
+                          originSource: preview.productDraft.originSource,
+                          brand: { brandKey: selectedBrandKey },
+                        })}
+                      </span>
+                      <span className="ml-2 font-mono text-[10px] text-slate-500">
+                        (originSource: {preview.productDraft.originSource})
+                      </span>
+                    </dd>
                   </div>
                   <div className="sm:col-span-2">
                     <dt className="text-[11px] text-slate-500">

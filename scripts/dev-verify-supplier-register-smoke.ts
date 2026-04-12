@@ -1,5 +1,7 @@
 /**
  * LLM 없이 결정론 파서만 스모크 (verygood / ybtour).
+ * 콘솔 JSON 최상위 `ybtour` / `verygood` 는 이 스크립트의 출력 그룹 키. API·DB `originSource` canonical은 `ybtour` · `verygoodtour`.
+ *
  * 실행: npx tsx scripts/dev-verify-supplier-register-smoke.ts
  */
 import { parseFlightSectionYbtour } from '@/lib/flight-parser-ybtour'

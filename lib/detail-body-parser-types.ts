@@ -131,7 +131,7 @@ export type IncludedExcludedStructured = {
   reviewReasons: string[]
 }
 
-/** 하나투어 예약현황 복합 한 줄(`예약 : N명 좌석 : M석 (최소출발 : …)`) — `detail-body-parser-utils-hanatour` 추출. */
+/** 하나투어 예약현황 복합 한 줄(`예약 : N명 좌석 : M석 (최소출발 : …)`) — `detail-body-parser-hanatour` 추출. */
 export type HanatourReservationStatusParsed = {
   sourceLine: string
   bookedPart: string | null

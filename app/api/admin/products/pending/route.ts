@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
+import { computeAdminProductSupplierDerivatives } from '@/lib/admin-product-supplier-derivatives'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalScheduleDayImageUrl } from '@/lib/final-image-selection'
 
@@ -35,6 +36,7 @@ export async function GET() {
         id: true,
         originCode: true,
         originSource: true,
+        brand: { select: { brandKey: true } },
         title: true,
         destination: true,
         duration: true,
@@ -45,10 +47,17 @@ export async function GET() {
         displayCategory: true,
       },
     })
-    const rows = list.map((p) => ({
+    const rows = list.map((p) => {
+      const supplierDeriv = computeAdminProductSupplierDerivatives({
+        brandKey: p.brand?.brandKey ?? null,
+        originSource: p.originSource,
+      })
+      return {
       id: p.id,
       originCode: p.originCode,
       originSource: p.originSource,
+      canonicalBrandKey: supplierDeriv.canonicalBrandKey,
+      normalizedOriginSupplier: supplierDeriv.normalizedOriginSupplier,
       title: p.title,
       destination: p.destination,
       duration: p.duration,
@@ -56,7 +65,8 @@ export async function GET() {
       photosReady: !!p.bgImageUrl && !scheduleNeedsImages(p.schedule),
       primaryRegion: p.primaryRegion ?? null,
       displayCategory: p.displayCategory ?? null,
-    }))
+    }
+    })
     return NextResponse.json(rows)
   } catch (e) {
     console.error('products/pending:', e)

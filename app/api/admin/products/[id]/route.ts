@@ -18,9 +18,17 @@ import {
   pickPrimaryAirlineNameForOperationalMeeting,
   resolveOperationalMeetingDisplay,
 } from '@/lib/meeting-airline-operational-ssot'
+import { computeAdminProductSupplierDerivatives } from '@/lib/admin-product-supplier-derivatives'
 import { LISTING_KIND_VALUES, TRAVEL_SCOPE_VALUES } from '@/lib/product-listing-kind'
 
 type RouteParams = { params: Promise<{ id: string }> }
+
+function originForFlightManualModulePick(
+  deriv: ReturnType<typeof computeAdminProductSupplierDerivatives>,
+  rawOrigin: string | null | undefined
+) {
+  return deriv.normalizedOriginSupplier !== 'etc' ? deriv.normalizedOriginSupplier : (rawOrigin ?? '')
+}
 
 function pickFlightManualModule(brandKey: string | null | undefined, originSource: string | null | undefined) {
   switch (resolvePublicConsumptionModuleKey(brandKey, originSource)) {
@@ -152,17 +160,23 @@ export async function GET(_request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
     const firstDepCarrierGet = product.departures?.[0]?.carrierName ?? null
+    const supplierDeriv = computeAdminProductSupplierDerivatives({
+      brandKey: product.brand?.brandKey ?? null,
+      originSource: product.originSource,
+    })
     return NextResponse.json({
       ...adminProductJsonWithPromotionRef(product),
+      ...supplierDeriv,
       structuredSignalsPreview: buildStructuredSignalsPreviewForAdmin(
         product.rawMeta ?? null,
         firstDepCarrierGet,
         product.airline ?? null
       ),
       flightAdminJson: getFlightAdminJsonFromRawMeta(product.rawMeta ?? null),
-      flightManualCorrection: pickFlightManualModule(product.brand?.brandKey, product.originSource).getFlightManualCorrectionFromRawMeta(
-        product.rawMeta ?? null
-      ),
+      flightManualCorrection: pickFlightManualModule(
+        supplierDeriv.canonicalBrandKey ?? product.brand?.brandKey,
+        originForFlightManualModulePick(supplierDeriv, product.originSource)
+      ).getFlightManualCorrectionFromRawMeta(product.rawMeta ?? null),
     })
   } catch (e) {
     console.error(e)
@@ -254,7 +268,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }
       if (body.flightManualCorrection !== undefined) {
         const p = body.flightManualCorrection
-        const fmc = pickFlightManualModule(current.brand?.brandKey, current.originSource)
+        const derivCurrent = computeAdminProductSupplierDerivatives({
+          brandKey: current.brand?.brandKey ?? null,
+          originSource: current.originSource,
+        })
+        const fmc = pickFlightManualModule(
+          derivCurrent.canonicalBrandKey ?? current.brand?.brandKey,
+          originForFlightManualModulePick(derivCurrent, current.originSource)
+        )
         const normalized =
           p == null ? null : fmc.normalizeFlightManualCorrectionPayload(p as Record<string, unknown>)
         nextMeta = mergeFlightManualCorrectionIntoRawMeta(nextMeta, normalized)
@@ -533,17 +554,23 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
     const firstDepCarrierPatch = product.departures?.[0]?.carrierName ?? null
+    const supplierDerivPatch = computeAdminProductSupplierDerivatives({
+      brandKey: product.brand?.brandKey ?? null,
+      originSource: product.originSource,
+    })
     return NextResponse.json({
       ...adminProductJsonWithPromotionRef(product),
+      ...supplierDerivPatch,
       structuredSignalsPreview: buildStructuredSignalsPreviewForAdmin(
         product.rawMeta ?? null,
         firstDepCarrierPatch,
         product.airline ?? null
       ),
       flightAdminJson: getFlightAdminJsonFromRawMeta(product.rawMeta ?? null),
-      flightManualCorrection: pickFlightManualModule(product.brand?.brandKey, product.originSource).getFlightManualCorrectionFromRawMeta(
-        product.rawMeta ?? null
-      ),
+      flightManualCorrection: pickFlightManualModule(
+        supplierDerivPatch.canonicalBrandKey ?? product.brand?.brandKey,
+        originForFlightManualModulePick(supplierDerivPatch, product.originSource)
+      ).getFlightManualCorrectionFromRawMeta(product.rawMeta ?? null),
     })
   } catch (e) {
     console.error(e)

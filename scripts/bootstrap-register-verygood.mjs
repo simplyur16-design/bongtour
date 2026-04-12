@@ -33,15 +33,26 @@ function loadEnvLocal() {
 
 loadEnvLocal()
 
+const CANONICAL_KEYS = JSON.parse(
+  fs.readFileSync(path.join(root, 'lib', 'overseas-supplier-canonical-keys.json'), 'utf8')
+)
+function assertCanonicalKey(name) {
+  if (!CANONICAL_KEYS.includes(name)) {
+    throw new Error(`overseas-supplier-canonical-keys.json must include "${name}"`)
+  }
+  return name
+}
+
 const cookie = `admin_bypass=${process.env.ADMIN_BYPASS_SECRET ?? ''}`
 const text = fs.readFileSync(path.join(__dirname, '_paste-verygood-JPP455.txt'), 'utf8')
 const baseUrl = 'http://localhost:3000'
 
 const previewBody = {
   mode: 'preview',
+  brandKey: assertCanonicalKey('verygoodtour'),
   originUrl:
     'https://www.verygoodtour.com/Product/PackageDetail?ProCode=JPP455-260603TW&PriceSeq=0&menuCode=101160503',
-  originSource: '참좋은여행',
+  originSource: assertCanonicalKey('verygoodtour'),
   travelScope: 'overseas',
   text,
 }

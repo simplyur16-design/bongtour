@@ -1,3 +1,8 @@
+/**
+ * 참좋은 출발 입력 수집 스모크. `originSource`에 `VERYGOODTOUR` 등 문자열을 포함하는 조건은 **DB에 저장된 표기**를 고르기 위한 것이다.
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
+ */
 import { prisma } from '../lib/prisma'
 import { collectVerygoodDepartureInputs, getMasterCodeFromProCode } from '../lib/verygoodtour-departures'
 import { upsertProductDepartures } from '../lib/upsert-product-departures-verygoodtour'

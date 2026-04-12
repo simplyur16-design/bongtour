@@ -10,6 +10,10 @@
 
 **일정 표현 SSOT는 본 문서 범위 밖:** `parsed.schedule` 브리프·저장 매핑은 `docs/register_schedule_expression_ssot.md` (표현층).
 
+### HTTP supplier 키 vs 붙여넣기 본문
+
+canonical 키와 붙여넣기 원문 구분: [register-supplier-extraction-spec.md](./register-supplier-extraction-spec.md) 「표기·키 SSOT (요약)」. 이 문서·픽스처의 한글·원문은 **하나투어 본문 파서 입력**만 규정한다.
+
 ### 본문 파서 비책임 축 (입력 파서 SSOT)
 
 - **항공·선택관광/옵션·쇼핑** 구조화는 **`register-input-parse-hanatour`** + 정형 입력란(`register-parse-hanatour`) SSOT. `detail-body-parser-hanatour`는 채우지 않는다.
@@ -21,8 +25,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `lib/detail-body-parser-hanatour.ts` | 스냅샷 조립(항공/옵션/쇼핑 구조화 제외)·호텔·포함불포함 |
-| `lib/detail-body-parser-utils-hanatour.ts` | 정규화·앵커·섹션 분리·슬라이스 |
+| `lib/detail-body-parser-hanatour.ts` | 정규화·앵커·섹션 분리·슬라이스·일정 원료 thinning + 스냅샷 조립(항공/옵션/쇼핑 구조화 제외)·호텔·포함불포함 |
 | `lib/register-parse-hanatour.ts` | 본문 파서 호출·**입력란 기준** 항공/옵션/쇼핑 구조화·LLM `presetDetailBody` |
 | `lib/register-input-parse-hanatour.ts` | 항공·옵션·쇼핑 **입력 해석 SSOT** |
 | `lib/register-input-unstructured-body-hanatour.ts` | 비정형 옵션·쇼핑 휴리스틱(표 실패 시) |
@@ -44,7 +47,7 @@
 
 ## 섹션 앵커 규칙
 
-- 앵커 사전·줄 매칭은 **`lib/detail-body-parser-utils-hanatour.ts`의 `HANATOUR_SECTION_ANCHOR_ALIASES`** 가 SSOT(코드에 상수로 존재).
+- 앵커 사전·줄 매칭은 **`lib/detail-body-parser-hanatour.ts`의 `HANATOUR_SECTION_ANCHOR_ALIASES`** 가 SSOT.
 - 요약·항공·일정·호텔·옵션·쇼핑·포함불포함·유의 등 타입은 `DetailSectionType`(`lib/detail-body-parser-types.ts`)과 동일 이름.
 - **`포함/불포함/선택경비 정보`** 트리플 대제목 줄을 `included_excluded_section` 앵커에 포함한다(붙여넣기 샘플 기준).
 
@@ -52,7 +55,7 @@
 
 ## 예약현황 복합 한 줄
 
-- `예약 : N명 좌석 : M석 (최소출발 : …)` 는 utils에서 `raw.hanatourReservationStatus`로 **경량 파싱**할 수 있다(가격/좌석 필드화 SSOT는 등록 파이프). 항공 구조화와 무관하다.
+- `예약 : N명 좌석 : M석 (최소출발 : …)` 는 `detail-body-parser-hanatour`에서 `raw.hanatourReservationStatus`로 **경량 파싱**할 수 있다(가격/좌석 필드화 SSOT는 등록 파이프). 항공 구조화와 무관하다.
 
 ---
 
@@ -82,7 +85,7 @@
 | 축 | 본 문서/해당 코드 책임 |
 |----|-------------------------|
 | 본문 정규화 | `normalizeDetailRawText` (하나투어 UI·푸터 노이즈 줄 제거 패턴) |
-| 앵커·섹션 분리 | `splitHanatourSectionsByAnchors` |
+| 앵커·섹션 분리 | `splitDetailSections`(내부 앵커 분리) |
 | 섹션 슬라이스 | `sliceDetailBodySections` |
 | 항공·옵션·쇼핑 **구조화** | **`register-input-parse-hanatour`** + 정형 입력란(본문 파서 비책임) |
 | 호텔 구조화 | `parseHotelSectionHanatour` |

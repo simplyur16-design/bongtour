@@ -1,6 +1,9 @@
 /**
  * 일회성 QA: ItineraryDay + schedule 이미지가 채워진 상품 1건 덤프
  * 실행: npx tsx scripts/qa-itinerary-images.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
+ * (`includes('모두')` 등은 **로컬 DB 레거시 표기** 샘플 고르기용이며, 복붙 입력 예시가 아니다.)
  */
 import { PrismaClient } from '@prisma/client'
 

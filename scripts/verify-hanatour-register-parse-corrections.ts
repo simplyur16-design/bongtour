@@ -1,6 +1,8 @@
 /**
  * 하나투어 등록 파서 교정: 예약현황/최소출발, 쇼핑 입력란, 선택관광 row 수.
  * 실행: npx tsx scripts/verify-hanatour-register-parse-corrections.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import { extractMinimumDepartureMeta } from '../lib/minimum-departure-extract'

@@ -263,6 +263,13 @@ export default function AdminPhotoPoolPage() {
       <p className="text-sm text-gray-600">
         사진을 넣으면 제미나이가 장소를 보고 도시·명소를 추천해 파일명을 만들 수 있습니다. 원본 용량이 커도 WebP로 변환해 저장해 용량을 줄입니다. 한 번에 최대 50장.
       </p>
+      <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+        <strong>상품 대표·갤러리 이미지</strong>는 이 풀이 아니라 상품 상세 또는{' '}
+        <Link href="/admin/image-assets-upload" className="font-medium text-blue-800 underline">
+          상품 이미지 업로드
+        </Link>
+        (파일·출처) 흐름을 사용하세요. 이 페이지는 도시·명소 풀 일괄 적재용입니다.
+      </p>
 
       {/* 업로드 영역: 드래그 시 탐색기로 열리지 않도록 preventDefault/stopPropagation 적용 */}
       <div

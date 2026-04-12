@@ -37,7 +37,7 @@
 | 상품 URL | 공급사 상세 페이지 URL | `originUrl` | 중복·추적·재수집 기준 |
 | 상품코드 | 공급사 부여 상품 고유 코드 | `originCode` | 동기화 키, @unique |
 | 상품명 | 공급사 표기 상품명 | `title` | 원문 유지 |
-| 여행사 표시명 | 하나투어, 모두투어 등 | `originSource` / Brand | 목록·필터용 |
+| 공급사 식별 | canonical 키(`hanatour` 등); 한글 상호는 표시 전용 | `originSource` / Brand | 목록·필터·API body는 키만 |
 | 기간 | N박N일 등 | `duration` | 원문 유지 |
 | 목적지 | 국가/도시 | `destination` | 원문 유지 |
 | 항공사 | 있을 경우 | `airline` | 원문 유지 |
@@ -79,7 +79,7 @@
 
 | 항목 | 내용 |
 |------|------|
-| **여행사명** | (예: 하나투어, 모두투어) |
+| **여행사명** | 조사 메모·화면 표기용 한글(예: 하나투어, 모두투어). **API/DB `originSource` 복붙 예시는 canonical** (`hanatour` 등)만 사용. |
 | **상품 상세 URL 패턴** | (예: `https://www.hanatour.com/.../package/detail?pkgCd=ATP...`) |
 | **상품코드 위치** | URL 쿼리 / path / 메타 / 본문 특정 요소 |
 | **날짜/가격 구조** | 단일 상품형 / 날짜 선택형, 달력·탭 여부, 별도 API 호출 여부 |

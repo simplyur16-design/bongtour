@@ -11,6 +11,10 @@ export const VERYGOODTOUR_SOURCE = 'VERYGOODTOUR'
  * DB·복합키는 `modetour`·`VERYGOODTOUR` 등 내부 식별자를 유지하고,
  * 화면·고객 메시지에는 `OVERSEAS_SUPPLIER_LABEL` 기준 한글 상호로 표시한다.
  */
+/**
+ * 표시 전용 — `normalizeSupplierOrigin`이 `etc`이면 원문 그대로(예: 단독 `참좋은` 등 4차 이후 애매 문자열).
+ * 내부 분기·검증에는 canonical 키를 쓰고, 여기서만 사람이 읽는 문자열을 만든다.
+ */
 export function formatOriginSourceForDisplay(source: string | null | undefined): string {
   const s = (source ?? '').trim()
   if (!s) return ''

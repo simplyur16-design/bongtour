@@ -25,7 +25,7 @@ itinerary/schedule 분리, A/B/운영 메타 분리, 원문 vs 정규화·파생
 | 필드명 | 타입 제안 | NULL | 기본값 | Source | 비고 |
 |--------|-----------|------|--------|--------|------|
 | id | String | N | cuid | 운영 메타 | PK |
-| originSource | String | N | — | A 상세 | 공급사 표시명 |
+| originSource | String | N | — | A 상세 | **저장·API·스크립트 입력은 canonical** (`hanatour`·`modetour`·`ybtour`·`verygoodtour`). 레거시 DB에는 과거 한글 등 혼재 가능 — 신규 적재는 키만. |
 | originCode | String | N | — | A 상세 | 공급사 상품코드, (originSource, originCode) 복합 유니크 |
 | originUrl | String | Y | — | A 상세 | 추적·중복체크, 유니크 강제하지 않음 |
 | title | String | N | — | A 상세 | 원문 유지 |

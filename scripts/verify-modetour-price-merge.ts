@@ -2,6 +2,8 @@
  * 모두투어 본문 가격표(한 줄 나열) + 성인가만 날짜별로 다른 행 → merge 동작 단위 검증.
  *
  *   npx tsx scripts/verify-modetour-price-merge.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import type { ProductPriceRow } from '../app/components/travel/TravelProductDetail'

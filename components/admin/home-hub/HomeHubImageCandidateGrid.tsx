@@ -5,7 +5,8 @@ import { useCallback, useEffect, useState } from 'react'
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
 import type { HomeHubCandidateRecord } from '@/lib/home-hub-candidates-types'
 import type { HubImageSeasonKey } from '@/lib/home-hub-image-prompts'
-import type { HomeHubActiveClientModel } from '@/lib/home-hub-active-client-model'
+import { homeHubActiveFileToClientModel, type HomeHubActiveClientModel } from '@/lib/home-hub-active-client-model'
+import type { HomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 
 const CARDS: { key: HomeHubCardImageKey | ''; label: string }[] = [
   { key: '', label: '전체 카드' },
@@ -113,7 +114,7 @@ export function HomeHubImageCandidateGrid({
       })
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean
-        active?: HomeHubActiveClientModel
+        active?: HomeHubActiveFile
         error?: string
       }
       if (!res.ok || !data.ok || !data.active) {
@@ -124,7 +125,7 @@ export function HomeHubImageCandidateGrid({
         onActivateError?.(msg)
         return
       }
-      onActivated(data.active)
+      onActivated(homeHubActiveFileToClientModel(data.active))
       await load()
     } catch {
       const msg = '활성화 요청이 서버에 도달하지 못했습니다. 연결을 확인하세요.'

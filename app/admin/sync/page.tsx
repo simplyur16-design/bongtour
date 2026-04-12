@@ -2,17 +2,23 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import type { ParsedProductForDB, ParsedProductPrice, ParsedItinerary } from '@/lib/parsed-product-types'
+import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
+import { OVERSEAS_SUPPLIER_LABEL } from '@/lib/normalize-supplier-origin'
 
-const ORIGIN_SOURCES = [
-  { value: '하나투어', label: '하나투어' },
-  { value: '모두투어', label: '모두투어' },
-  { value: '직접입력', label: '직접입력' },
+type AdminSyncSupplierKey = CanonicalOverseasSupplierKey | 'custom'
+
+const ADMIN_SYNC_SUPPLIER_OPTIONS: { key: AdminSyncSupplierKey; bodyOriginSource: string }[] = [
+  { key: 'hanatour', bodyOriginSource: 'hanatour' },
+  { key: 'modetour', bodyOriginSource: 'modetour' },
+  { key: 'ybtour', bodyOriginSource: 'ybtour' },
+  { key: 'verygoodtour', bodyOriginSource: 'verygoodtour' },
+  { key: 'custom', bodyOriginSource: '직접입력' },
 ]
 
 const STATUS_OPTIONS = ['출발확정', '예약가능', '대기예약', '마감'] as const
 
 const emptyParsed: ParsedProductForDB = {
-  originSource: '하나투어',
+  originSource: 'hanatour',
   originCode: '',
   title: '',
   destination: '',
@@ -32,7 +38,11 @@ function formatDateKey(y: number, m: number, d: number): string {
 }
 
 export default function AdminSyncPage() {
-  const [originSource, setOriginSource] = useState('하나투어')
+  const [supplierKey, setSupplierKey] = useState<AdminSyncSupplierKey>('hanatour')
+  const requestOriginSource =
+    supplierKey === 'custom'
+      ? ADMIN_SYNC_SUPPLIER_OPTIONS.find((o) => o.key === 'custom')!.bodyOriginSource
+      : supplierKey
   const [originCode, setOriginCode] = useState('')
   const [rawText, setRawText] = useState('')
   const [loading, setLoading] = useState(false)
@@ -77,7 +87,7 @@ export default function AdminSyncPage() {
       const res = await fetch('/api/parse-product', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: rawText, originSource }),
+        body: JSON.stringify({ text: rawText, originSource: requestOriginSource }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? '파싱 실패')
@@ -93,12 +103,12 @@ export default function AdminSyncPage() {
     } finally {
       setLoading(false)
     }
-  }, [rawText, originSource])
+  }, [rawText, requestOriginSource])
 
   const saveToDb = useCallback(async () => {
     const payload: ParsedProductForDB = {
       ...form,
-      originSource,
+      originSource: requestOriginSource,
       originCode: originCode.trim() || form.originCode,
     }
     if (!payload.originCode || !payload.title?.trim() || !payload.destination?.trim()) {
@@ -122,7 +132,7 @@ export default function AdminSyncPage() {
     } finally {
       setSaving(false)
     }
-  }, [form, originSource, originCode])
+  }, [form, requestOriginSource, originCode])
 
   function getOrCreatePrice(dateStr: string): ParsedProductPrice {
     return (
@@ -195,13 +205,13 @@ export default function AdminSyncPage() {
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700">여행사</label>
           <select
-            value={originSource}
-            onChange={(e) => setOriginSource(e.target.value)}
+            value={supplierKey}
+            onChange={(e) => setSupplierKey(e.target.value as AdminSyncSupplierKey)}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
           >
-            {ORIGIN_SOURCES.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+            {ADMIN_SYNC_SUPPLIER_OPTIONS.map((o) => (
+              <option key={o.key} value={o.key}>
+                {o.key === 'custom' ? '직접입력' : OVERSEAS_SUPPLIER_LABEL[o.key]}
               </option>
             ))}
           </select>

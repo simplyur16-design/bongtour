@@ -1,3 +1,8 @@
+/**
+ * 공급사별 `detail-body-parser-*` 회귀. `samples[].text`는 **붙여넣기 본문 샘플**이다.
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
+ */
 import { parseDetailBodyStructuredHanatour } from '@/lib/detail-body-parser-hanatour'
 import { parseDetailBodyStructuredModetour } from '@/lib/detail-body-parser-modetour'
 import { parseDetailBodyStructuredVerygoodtour } from '@/lib/detail-body-parser-verygoodtour'
@@ -8,14 +13,11 @@ import {
   parseVerygoodtourShoppingInput,
 } from '@/lib/register-input-parse-verygoodtour'
 
-type Sample = { supplier: '모두투어' | '노랑풍선' | '하나투어' | '참좋은여행'; id: string; text: string }
+/** fixture 분류용 — API/DB `originSource` 예시는 canonical 키만 사용한다. */
+type Sample = { supplier: 'modetour' | 'ybtour' | 'hanatour' | 'verygoodtour'; id: string; text: string }
 
 function brandKeyForSample(s: Sample): string | null {
-  if (s.supplier === '모두투어') return 'modetour'
-  if (s.supplier === '노랑풍선') return 'ybtour'
-  if (s.supplier === '하나투어') return 'hanatour'
-  if (s.supplier === '참좋은여행') return 'verygoodtour'
-  return null
+  return s.supplier
 }
 
 function parseDetailBodyForRegressionSample(s: Sample) {
@@ -29,7 +31,7 @@ function parseDetailBodyForRegressionSample(s: Sample) {
 
 const samples: Sample[] = [
   {
-    supplier: '모두투어',
+    supplier: 'modetour',
     id: 'M1',
     text: `여행핵심정보
 여행기간 3박4일
@@ -47,7 +49,7 @@ const samples: Sample[] = [
 불포함사항 가이드비 별도`,
   },
   {
-    supplier: '모두투어',
+    supplier: 'modetour',
     id: 'M2',
     text: `상품 핵심정보
 항공여정
@@ -61,7 +63,7 @@ const samples: Sample[] = [
 선택관광 안내 문구입니다.`,
   },
   {
-    supplier: '모두투어',
+    supplier: 'modetour',
     id: 'M3',
     text: `여행 주요일정
 항공사 대한항공
@@ -72,7 +74,7 @@ const samples: Sample[] = [
 소비자의 권리 안내 장문`,
   },
   {
-    supplier: '노랑풍선',
+    supplier: 'ybtour',
     id: 'Y1',
     text: `여행상품 핵심정보
 교통 항공편
@@ -86,7 +88,7 @@ DAY 1 | 07-01 | 오사카 | 예정 | 신사이바시 호텔
 회차 1 | 쇼핑 품목 잡화 | 쇼핑 장소 면세점 | 소요시간 50분 | 환불여부 가능`,
   },
   {
-    supplier: '노랑풍선',
+    supplier: 'ybtour',
     id: 'Y2',
     text: `여행 주요일정
 항공사 제주항공
@@ -96,7 +98,7 @@ DAY 1 관광
 쇼핑 정보 없음`,
   },
   {
-    supplier: '노랑풍선',
+    supplier: 'ybtour',
     id: 'Y3',
     text: `상세일정
 1일차 도쿄
@@ -106,7 +108,7 @@ DAY 1 관광
 환불규정 장문`,
   },
   {
-    supplier: '하나투어',
+    supplier: 'hanatour',
     id: 'H1',
     text: `여행핵심정보
 출발: 인천 → 방콕 2026.09.10 12:10 / TG659
@@ -119,7 +121,7 @@ DAY 1 관광
 도시 방콕 / 쇼핑샵명(위치) ICON / 품목 잡화 / 소요시간 1시간 / 현지/귀국 후 환불여부 조건부`,
   },
   {
-    supplier: '하나투어',
+    supplier: 'hanatour',
     id: 'H2',
     text: `상품 안내
 항공정보
@@ -130,7 +132,7 @@ DAY 1 관광
 예정호텔은 현지 사정에 따라 변경될 수 있습니다.`,
   },
   {
-    supplier: '하나투어',
+    supplier: 'hanatour',
     id: 'H3',
     text: `여행 주요일정
 DAY 1
@@ -139,7 +141,7 @@ DAY 2
 불포함사항 기사/가이드 팁`,
   },
   {
-    supplier: '참좋은여행',
+    supplier: 'verygoodtour',
     id: 'C1',
     text: `여행핵심정보
 항공편
@@ -152,7 +154,7 @@ DAY 2
 세느강 유람선 통화 EUR 성인 55 소요시간 2시간 최소인원 2명`,
   },
   {
-    supplier: '참좋은여행',
+    supplier: 'verygoodtour',
     id: 'C2',
     text: `상품 핵심정보
 항공사 루프트한자
@@ -162,7 +164,7 @@ DAY 2
 품목 꿀 / 쇼핑장소 전통상점 / 소요시간 30분 / 환불여부 불가`,
   },
   {
-    supplier: '참좋은여행',
+    supplier: 'verygoodtour',
     id: 'C3',
     text: `간략일정
 1일차
@@ -171,7 +173,7 @@ DAY 2
 예약 시 유의사항`,
   },
   {
-    supplier: '참좋은여행',
+    supplier: 'verygoodtour',
     id: 'C4',
     text: `여행핵심정보
 항공편
@@ -196,7 +198,7 @@ DAY 2
 포함사항 조식`,
   },
   {
-    supplier: '참좋은여행',
+    supplier: 'verygoodtour',
     id: 'C5',
     text: `여행핵심정보
 항공편
@@ -208,7 +210,7 @@ DAY 2
 포함사항 조식`,
   },
   {
-    supplier: '참좋은여행',
+    supplier: 'verygoodtour',
     id: 'C6',
     text: `여행핵심정보
 항공편
@@ -222,7 +224,7 @@ DAY 2
 포함사항`,
   },
   {
-    supplier: '참좋은여행',
+    supplier: 'verygoodtour',
     id: 'C7',
     text: `여행핵심정보
 항공편

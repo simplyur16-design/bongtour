@@ -4,6 +4,10 @@
  * 정책: docs/itinerary-policy.md
  */
 import type { PrismaClient } from '@prisma/client'
+import {
+  deriveYbtourScheduleDayHeaderTitle,
+  shouldReplaceYbtourScheduleDayTitle,
+} from '@/lib/ybtour-schedule-day-header-title'
 
 /** 일차 1건 입력. 있는 값만 넣고 나머지는 null 허용. */
 export type ItineraryDayInput = {
@@ -124,10 +128,22 @@ export function registerScheduleToDayInputs(
     const mealLine = [breakfastText, lunchText, dinnerText].filter(Boolean).join(' / ')
     const mealsLegacy = trimNull(mealLine || mealSummaryText || undefined)
     const dateText = trimNull((s as { dateText?: string | null }).dateText)
+    const headerTitleRaw = String(s.title ?? '').trim()
+    const headerTitle =
+      headerTitleRaw && !shouldReplaceYbtourScheduleDayTitle(headerTitleRaw, description)
+        ? headerTitleRaw
+        : deriveYbtourScheduleDayHeaderTitle({
+            day,
+            title: headerTitleRaw,
+            description,
+            dateText: (s as { dateText?: string | null }).dateText ?? undefined,
+          }).trim() || headerTitleRaw
+    const city = trimNull(headerTitle ? headerTitle.slice(0, 200) : null)
     return [
       {
         day,
         dateText,
+        city,
         summaryTextRaw: summaryTextRaw || null,
         rawBlock,
         hotelText,

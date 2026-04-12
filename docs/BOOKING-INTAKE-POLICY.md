@@ -19,7 +19,7 @@ PII 익명화 배치 운영: [BOOKING-PII-PURGE-RUNBOOK.md](./BOOKING-PII-PURGE-
 | 필드 | 필수 | 설명 |
 |------|------|------|
 | `productId` | 예 | 상품 ID |
-| `originSource` | 예 | 공급/채널 식별(미전달 시 상품 값 사용) |
+| `originSource` | 예 | 공급 식별. **권장:** 상품과 동일한 canonical (`hanatour`·`modetour`·`ybtour`·`verygoodtour`). 미전달 시 상품 값 사용. |
 | `originCode` | 예 | 상품 코드(미전달 시 상품 값 사용) |
 | `selectedDepartureDate` | 조건 | `YYYY-MM-DD`. 상품 일정에서 **고른 날짜**. 있으면 해당 일자 **가격으로 견적**(`pricingMode: schedule_price`). |
 | `selectedDate` | 대체 키 | 하위 호환: `selectedDepartureDate`와 동일 의미로 처리됨. |

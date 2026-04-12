@@ -2,6 +2,8 @@
  * 실제 DB 상품 1건(최근 수정) 기준: 항공·가격 체인 단계별 스냅샷 + 실본문 fixture 검증.
  *
  *   npx tsx scripts/verify-register-admin-one-product.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import type { Prisma } from '@prisma/client'

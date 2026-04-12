@@ -29,15 +29,26 @@ function loadEnvLocal() {
 
 loadEnvLocal()
 
+const CANONICAL_KEYS = JSON.parse(
+  fs.readFileSync(path.join(root, 'lib', 'overseas-supplier-canonical-keys.json'), 'utf8')
+)
+function assertCanonicalKey(name) {
+  if (!CANONICAL_KEYS.includes(name)) {
+    throw new Error(`overseas-supplier-canonical-keys.json must include "${name}"`)
+  }
+  return name
+}
+
 const cookie = `admin_bypass=${process.env.ADMIN_BYPASS_SECRET ?? ''}`
 const text = fs.readFileSync(path.join(__dirname, '_paste-ybtour-AVP4484.txt'), 'utf8')
 const baseUrl = 'http://localhost:3000'
 
 const previewBody = {
   mode: 'preview',
+  brandKey: assertCanonicalKey('ybtour'),
   originUrl:
     'https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AABF000&goodsCd=AVP4484',
-  originSource: '노랑풍선',
+  originSource: assertCanonicalKey('ybtour'),
   travelScope: 'overseas',
   text,
 }

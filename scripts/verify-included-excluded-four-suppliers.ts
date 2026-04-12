@@ -1,5 +1,7 @@
 /**
  * 공급사별 포함/불포함 결정적 파서 스모크(LLM 없음).
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import { parseHanatourIncludedExcludedStructured } from '@/lib/hanatour-basic-info-body-extract'
 import { parseModetourIncludedExcludedSection } from '@/lib/modetour-basic-info-must-know-extract'

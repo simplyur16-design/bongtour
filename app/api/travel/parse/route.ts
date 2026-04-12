@@ -13,6 +13,7 @@ import { extractRelevantSections } from '@/lib/paste-relevant-sections'
 import { upsertProductDepartures } from '@/lib/upsert-product-departures-hanatour'
 import { upsertItineraryDays, registerScheduleToDayInputs } from '@/lib/upsert-itinerary-days-hanatour'
 import { normalizeOriginSource } from '@/lib/supplier-origin'
+import { buildParseSupplierInputDebug, normalizeParseRequestOriginSource } from '@/lib/parse-api-origin-source'
 import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 import { requireAdmin } from '@/lib/require-admin'
 // [일정 정책] Product.schedule = 렌더용; ItineraryDay = 원문 정본. 이 경로는 레거시 Itinerary 미사용(허용).
@@ -71,6 +72,8 @@ type ParsedPayload = {
 }
 
 const PARSE_STEP = '[Bong투어-DEBUG] [Bong투어/parse]'
+/** `POST /api/travel/parse?debugSupplier=1` → 성공 시 `supplierInputDebug`(body `originSource` raw, coerce, effective). */
+
 /** 본문 2차 키: ADMIN_SERVICE_BEARER_SECRET (구 ADMIN_BYPASS_SECRET 폴백). */
 function resolveParseRouteBodyAuthSecret(): string {
   return getAdminServiceBearerSecret()
@@ -98,6 +101,7 @@ export async function POST(req: Request) {
   }
   try {
     console.log(`${PARSE_STEP} 1. 텍스트 수신`)
+    const debugSupplier = new URL(req.url).searchParams.get('debugSupplier') === '1'
     const body = await req.json()
     const auth = body?.auth
     if (auth !== AUTH_SECRET) {
@@ -106,7 +110,12 @@ export async function POST(req: Request) {
     }
     console.log(`${PARSE_STEP} 1. 인증 체크 통과`)
     const rawText = typeof body.rawText === 'string' ? body.rawText.trim() : (body.text as string)?.trim?.()
-    const clientOriginSource = typeof body.originSource === 'string' ? body.originSource.trim() : null
+    const clientOriginSourceRaw = typeof body.originSource === 'string' ? body.originSource.trim() : null
+    const brandKeyForOrigin =
+      typeof body.brandKey === 'string' ? body.brandKey.trim() || null : null
+    const clientOriginSource = clientOriginSourceRaw
+      ? normalizeParseRequestOriginSource(clientOriginSourceRaw, brandKeyForOrigin)
+      : null
     if (!rawText) {
       return NextResponse.json({ error: 'rawText 또는 text는 필수입니다.' }, { status: 400 })
     }
@@ -171,10 +180,10 @@ ${textInput}
     console.log(`${PARSE_STEP} 3. AI 분석 완료. originCode: ${(data.originCode ?? '').trim() || '(없음)'}`)
 
     const originCode = (data.originCode ?? '').trim() || null
-    const originSource = normalizeOriginSource(
-      clientOriginSource ?? ((data.originSource ?? '').trim() || '직접입력'),
-      typeof body.brandKey === 'string' ? body.brandKey.trim() || null : null
-    )
+    const fromLlmOrigin = (data.originSource ?? '').trim() || '직접입력'
+    const mergedForCoerce = clientOriginSource ?? fromLlmOrigin
+    const originSourceCoerced = normalizeParseRequestOriginSource(mergedForCoerce, brandKeyForOrigin)
+    const originSource = normalizeOriginSource(originSourceCoerced, brandKeyForOrigin)
     const title = (data.title ?? '').trim() || '상품명 없음'
     const destinationRaw = (data.destination ?? '').trim()
     const finalDestination = destinationRaw || extractDestinationFromTitle(title)
@@ -399,7 +408,18 @@ ${textInput}
     }
 
     console.log(`${PARSE_STEP} 5. 결과 반환 (productId: ${product.id}, parsed.prices: ${parsedForClient.prices?.length ?? 0}건)`)
-    return NextResponse.json({ success: true, productId: product.id, parsed: parsedForClient })
+    return NextResponse.json({
+      success: true,
+      productId: product.id,
+      parsed: parsedForClient,
+      ...(debugSupplier && {
+        supplierInputDebug: buildParseSupplierInputDebug({
+          requestRaw: clientOriginSourceRaw,
+          coerced: originSourceCoerced,
+          effective: originSource,
+        }),
+      }),
+    })
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : '파싱 실패'
     console.error(`${PARSE_STEP} 예외 (전체 스택):`, error instanceof Error ? (error as Error).stack : error)

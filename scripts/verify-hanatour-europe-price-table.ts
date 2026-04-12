@@ -2,6 +2,8 @@
  * 하나투어 유럽형 상품가격 블록(기본상품 / 현지합류 / 1인 객실) 추출 검증.
  * 상품코드 EEP134260501KEC 등 본문에 대응하는 구조의 최소 샘플.
  * 실행: npx tsx scripts/verify-hanatour-europe-price-table.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import {
   extractBasicProductThreeSlotsFromBlob,

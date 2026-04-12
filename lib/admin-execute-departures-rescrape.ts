@@ -10,6 +10,10 @@ import {
   type HanatourPythonDiagnostics,
   type HanatourPythonMonthRun,
 } from '@/lib/hanatour-departures'
+import {
+  brandKeyResolvesToYbtour,
+  normalizeBrandKeyToCanonicalSupplierKey,
+} from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { syncYbtourProductPricesFromDepartureInputsDetailed } from '@/lib/ybtour-sync-product-prices-from-departure-inputs'
 import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour'
@@ -25,12 +29,12 @@ function upsertDeparturesModuleForProduct(p: {
   originSource: string | null
   brand: { brandKey: string } | null
 }) {
-  const bk = String(p.brand?.brandKey ?? '').trim()
+  const fromBrand = normalizeBrandKeyToCanonicalSupplierKey(p.brand?.brandKey ?? null)
   const norm = normalizeSupplierOrigin(p.originSource)
-  if (bk === 'modetour') return updDeparturesModetour
-  if (bk === 'verygoodtour') return updDeparturesVerygoodtour
-  if (bk === 'ybtour' || bk === 'yellowballoon') return updDeparturesYbtour
-  if (bk === 'hanatour') return updDeparturesHanatour
+  if (fromBrand === 'modetour') return updDeparturesModetour
+  if (fromBrand === 'verygoodtour') return updDeparturesVerygoodtour
+  if (fromBrand === 'ybtour') return updDeparturesYbtour
+  if (fromBrand === 'hanatour') return updDeparturesHanatour
   if (norm === 'modetour') return updDeparturesModetour
   if (norm === 'verygoodtour') return updDeparturesVerygoodtour
   if (norm === 'ybtour') return updDeparturesYbtour
@@ -38,9 +42,8 @@ function upsertDeparturesModuleForProduct(p: {
 }
 
 function isYbtourProduct(p: { originSource: string | null; brand: { brandKey: string } | null }): boolean {
-  const bk = String(p.brand?.brandKey ?? '').trim()
   const norm = normalizeSupplierOrigin(p.originSource ?? '')
-  return norm === 'ybtour' || bk === 'ybtour' || bk === 'yellowballoon'
+  return norm === 'ybtour' || brandKeyResolvesToYbtour(p.brand?.brandKey ?? null)
 }
 
 function inferEmptyStage(r: DepartureRescrapeResult): AdminDeparturesRescrapeStage {

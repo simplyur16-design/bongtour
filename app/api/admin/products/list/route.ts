@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
+import { computeAdminProductSupplierDerivatives } from '@/lib/admin-product-supplier-derivatives'
 import { countScheduleDays } from '@/lib/schedule-days'
 
 const LIMIT = 50
@@ -120,6 +121,7 @@ export async function GET(req: NextRequest) {
           bgImageIsGenerated: true,
           needsImageReview: true,
           imageReviewRequestedAt: true,
+          brand: { select: { brandKey: true } },
         },
       }),
       prisma.product.count({
@@ -159,9 +161,16 @@ export async function GET(req: NextRequest) {
 
     const totalPages = Math.max(1, Math.ceil(total / LIMIT))
 
-    const rows = items.map((p) => ({
+    const rows = items.map((p) => {
+      const supplierDeriv = computeAdminProductSupplierDerivatives({
+        brandKey: p.brand?.brandKey ?? null,
+        originSource: p.originSource,
+      })
+      return {
       id: p.id,
       originSource: p.originSource,
+      canonicalBrandKey: supplierDeriv.canonicalBrandKey,
+      normalizedOriginSupplier: supplierDeriv.normalizedOriginSupplier,
       originCode: p.originCode,
       title: p.title,
       destination: p.destination,
@@ -189,7 +198,8 @@ export async function GET(req: NextRequest) {
       bgImageIsGenerated: p.bgImageIsGenerated ?? false,
       needsImageReview: p.needsImageReview ?? false,
       imageReviewRequestedAt: p.imageReviewRequestedAt?.toISOString() ?? null,
-    }))
+    }
+    })
 
     return NextResponse.json({
       items: rows,

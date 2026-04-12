@@ -2,6 +2,8 @@
  * 모두투어 등록용 출발별 가격 연동(diff) 단위 검증.
  *
  *   npx tsx scripts/verify-modetour-departure-price-linkage.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import { computeModetourLinkedDeparturePrices } from '../lib/register-modetour-price'

@@ -1,6 +1,8 @@
 /**
  * @deprecated 대신 `e2e-modetour-mandatory.ts` 사용 (modetour 필수 + HTTP E2E).
  * 이 파일은 modetour 상품 없을 때 exit 1 만 하는 짧은 진단용으로 유지.
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import { prisma } from '../lib/prisma'
 

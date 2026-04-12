@@ -1,6 +1,7 @@
 # 관리자 상품 등록 실검증 체크리스트
 
 등록 화면(`/admin/register`)에서 **모두투어** 또는 **참좋은여행** 선택 후 아래 순서로 확인합니다.  
+(네트워크 탭·스크립트에서 보내는 `brandKey` / `originSource`는 **`modetour`·`verygoodtour` 등 canonical**이어야 한다 — 한글은 UI 선택지 표시용.)  
 미리보기/confirm 응답에 `registerVerification`이 포함됩니다.
 
 ## 공통 절차

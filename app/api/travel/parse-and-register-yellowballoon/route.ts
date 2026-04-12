@@ -3,9 +3,13 @@
  *
  * - HTTP·운영 SSOT: `POST /api/travel/parse-and-register-ybtour` (`app/api/travel/parse-and-register-ybtour/route.ts`).
  * - 본 라우트는 동일 `handleParseAndRegisterYbtourRequest`만 호출하며, 신규 연동·문서·관리자 UI는 ybtour 경로만 사용한다.
- * - `brandKey` 정규화는 핸들러/브랜드 유틸에서 `yellowballoon` → `ybtour`로 맞춘다.
+ * - `originSource`는 ybtour 전용 라우트와 동일하게 canonical **`ybtour`만** 허용한다(레거시 `yellowballoon` 문자열은 `normalizeSupplierOrigin`에서 `ybtour`로만 해석).
  */
 import { NextResponse } from 'next/server'
+import {
+  assertRegisterRouteSupplierMatch,
+  SupplierRouteMismatchError,
+} from '@/lib/assert-supplier-route-match'
 import { handleParseAndRegisterYbtourRequest } from '@/lib/parse-and-register-ybtour-handler'
 import { requireAdmin } from '@/lib/require-admin'
 
@@ -21,5 +25,40 @@ export async function POST(request: Request) {
   console.log(
     '[ybtour] phase=register-api entry route=parse-and-register-yellowballoon-deprecated dedicated=ybtour-handler'
   )
+  try {
+    let peek: unknown
+    try {
+      peek = await request.clone().json()
+    } catch {
+      return NextResponse.json(
+        { success: false, error: '요청 본문이 올바른 JSON이 아닙니다.' },
+        { status: 400 }
+      )
+    }
+    if (!peek || typeof peek !== 'object' || Array.isArray(peek)) {
+      return NextResponse.json(
+        { success: false, error: '요청 본문은 JSON 객체여야 합니다.' },
+        { status: 400 }
+      )
+    }
+    assertRegisterRouteSupplierMatch('ybtour', (peek as Record<string, unknown>).originSource, {
+      route: '/api/travel/parse-and-register-yellowballoon',
+    })
+  } catch (e) {
+    if (e instanceof SupplierRouteMismatchError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: e.message,
+          expectedSupplier: e.expectedSupplier,
+          receivedOriginSource: e.receivedRaw,
+          normalizedSupplier: e.normalized,
+          route: e.route,
+        },
+        { status: 400 }
+      )
+    }
+    throw e
+  }
   return handleParseAndRegisterYbtourRequest(request)
 }

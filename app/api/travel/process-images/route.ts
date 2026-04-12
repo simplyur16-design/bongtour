@@ -10,6 +10,7 @@ import { resolveDayHeroWithFallback, saveDayHeroResult } from '@/lib/itinerary-d
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import { recordAssetUsage } from '@/lib/asset-usage-log'
 import { requireAdmin } from '@/lib/require-admin'
+import { scheduleRowIsPoorRepresentativeCover, type ScheduleImageLike } from '@/lib/final-image-selection'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -509,10 +510,27 @@ export async function POST(req: Request) {
       }
     })
 
+    let bgPhoto = mainPhoto
+    for (let i = 0; i < workingSchedule.length && i < schedulePhotos.length; i++) {
+      const sched = workingSchedule[i]
+      if (!sched) continue
+      const meta: ScheduleImageLike = {
+        day: sched.day,
+        imageUrl: null,
+        title: sched.title,
+        description: sched.description,
+        imageKeyword: sched.imageKeyword,
+      }
+      if (!scheduleRowIsPoorRepresentativeCover(meta) && schedulePhotos[i]?.photo) {
+        bgPhoto = schedulePhotos[i]!.photo
+        break
+      }
+    }
+
     await prisma.product.update({
       where: { id: product.id as string },
       data: {
-        bgImageUrl: mainPhoto.url,
+        bgImageUrl: bgPhoto.url,
         schedule: JSON.stringify(updatedSchedule),
       },
     })

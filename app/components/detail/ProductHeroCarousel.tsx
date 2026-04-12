@@ -1,81 +1,110 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import PexelsSourceCaption from '@/app/components/detail/PexelsSourceCaption'
+import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import { warnLegacyGeminiUploadPath } from '@/lib/legacy-gemini-upload-path'
-import {
-  productHeroAttributionBadgeFromImageUrl,
-  productHeroAttributionBadgeText,
-} from '@/lib/product-bg-image-attribution'
-import { publicLocationCaptionFromImageUrl } from '@/lib/schedule-from-product'
+import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
+import { resolveCarouselDaySlideLeftLabel } from '@/lib/public-product-carousel-day-slide-left-label'
 
-type DaySlide = { day: number; imageUrl: string | null | undefined; imageDisplayName?: string | null }
+type DaySlide = {
+  day: number
+  imageUrl: string | null | undefined
+  imageDisplayName?: string | null
+  title?: string | null
+  imageKeyword?: string | null
+  city?: string | null
+}
+
+type Slide = {
+  src: string
+  alt: string
+  leftLabel: string | null
+  rightLabel: string | null
+}
 
 type Props = {
   heroUrl: string | null
   /** 일정 day 대표 이미지(순서대로, hero와 동일 URL은 스킵) */
   daySlides: DaySlide[]
-  destinationLabel?: string
-  /** SEO·접근성: 이미지 대체 텍스트 접두(상품명) */
+  /** 접근성·브라우저 alt 전용(오버레이 좌·우 문구와 분리) */
   productTitle?: string
   className?: string
-  /** Product.bgImageSource — 수동 업로드 출처 타입 */
+  /** Product.bgImageSource — 히어로 첫 슬라이드 출처 우선 */
   heroImageSourceType?: string | null
   /** Product.bgImageIsGenerated */
   heroImageIsGenerated?: boolean | null
-  /** schedule에 표시명이 없을 때 image_assets(seo_title/title/alt)로 첫 슬라이드 캡션 보강 */
-  heroCaptionFromAsset?: string | null
+  /** 대표 슬라이드 전용: 상품 SEO 한 줄(등록 저장값·휴리스틱 resolve 결과) */
+  heroImageSeoKeywordOverlay?: string | null
+  /** DAY 슬라이드 좌측 문구 fallback용 — 상품 SEO와 분리 */
+  primaryDestination?: string | null
+  destination?: string | null
 }
 
 export default function ProductHeroCarousel({
   heroUrl,
   daySlides,
-  destinationLabel,
   productTitle,
   className = '',
   heroImageSourceType,
   heroImageIsGenerated,
-  heroCaptionFromAsset,
+  heroImageSeoKeywordOverlay,
+  primaryDestination,
+  destination,
 }: Props) {
-  const slides = useMemo(() => {
-    const urls: { src: string; caption: string; attribution: string | null }[] = []
+  const heroSeoLeft = (heroImageSeoKeywordOverlay ?? '').trim() || null
+
+  const slides = useMemo((): Slide[] => {
+    const out: Slide[] = []
     const heroTrim = heroUrl?.trim() ?? ''
-    const firstNamedDay = daySlides.find((d) => d.imageDisplayName?.trim())
-    const heroDayMatch = heroTrim ? daySlides.find((d) => d.imageUrl?.trim() === heroTrim) : undefined
+    const titleBase = (productTitle ?? '').trim()
+    let slideIdx = 0
+
     if (heroTrim) {
-      const topCaption =
-        heroCaptionFromAsset?.trim() ||
-        heroDayMatch?.imageDisplayName?.trim() ||
-        publicLocationCaptionFromImageUrl(heroTrim) ||
-        firstNamedDay?.imageDisplayName?.trim() ||
-        (destinationLabel?.trim() ? destinationLabel.trim() : '대표 이미지')
-      const attribution =
-        productHeroAttributionBadgeText(heroImageSourceType, heroImageIsGenerated) ??
-        productHeroAttributionBadgeFromImageUrl(heroTrim)
-      urls.push({ src: heroTrim, caption: topCaption, attribution })
+      slideIdx += 1
+      const right = resolvePublicImageSourceUserLabel({
+        dbSource: heroImageSourceType,
+        dbIsGenerated: heroImageIsGenerated,
+        imageUrl: heroTrim,
+      })
+      out.push({
+        src: heroTrim,
+        alt: titleBase ? `${titleBase} 대표 이미지` : '여행 상품 대표 이미지',
+        leftLabel: heroSeoLeft,
+        rightLabel: right,
+      })
     }
     const seen = new Set<string>(heroTrim ? [heroTrim] : [])
     for (const d of daySlides) {
       const s = d.imageUrl?.trim()
       if (!s || seen.has(s)) continue
       seen.add(s)
-      const display = d.imageDisplayName?.trim()
-      const caption =
-        display || publicLocationCaptionFromImageUrl(s) || `일정 ${String(d.day).padStart(2, '0')}`
-      urls.push({
+      slideIdx += 1
+      const dayLeft = resolveCarouselDaySlideLeftLabel({
+        day: d.day,
+        imageDisplayName: d.imageDisplayName,
+        title: d.title,
+        imageKeyword: d.imageKeyword,
+        city: d.city,
+        primaryDestination: primaryDestination ?? null,
+        destination: destination ?? null,
+      })
+      out.push({
         src: s,
-        caption,
-        attribution: productHeroAttributionBadgeFromImageUrl(s),
+        alt: titleBase ? `${titleBase} 일정 이미지 ${slideIdx}` : `여행 상품 일정 이미지 ${slideIdx}`,
+        leftLabel: dayLeft,
+        rightLabel: resolvePublicImageSourceUserLabel({ imageUrl: s }),
       })
     }
-    return urls
+    return out
   }, [
     heroUrl,
     daySlides,
-    destinationLabel,
-    heroCaptionFromAsset,
+    productTitle,
+    heroSeoLeft,
     heroImageSourceType,
     heroImageIsGenerated,
+    primaryDestination,
+    destination,
   ])
 
   const [index, setIndex] = useState(0)
@@ -117,37 +146,19 @@ export default function ProductHeroCarousel({
 
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-bt-border-strong bg-bt-title shadow-lg ${className}`}>
-      <PexelsSourceCaption className="block">
-        <div className="relative aspect-[16/10] w-full">
-          {slides.map((s, i) => (
-            <img
-              key={s.src + i}
-              src={s.src}
-              alt={
-                productTitle?.trim()
-                  ? `${productTitle.trim()} · ${s.caption}`
-                  : s.caption
-              }
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
-                i === index ? 'opacity-100' : 'opacity-0'
-              }`}
-            />
-          ))}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[15] flex flex-row items-end justify-between gap-2 bg-gradient-to-t from-black/75 via-black/25 to-transparent px-3 pb-3 pt-16 sm:gap-3 sm:px-4 sm:pb-4">
-            <p className="line-clamp-2 min-w-0 flex-1 text-left text-sm font-bold text-white drop-shadow">
-              {current.caption}
-            </p>
-            {current.attribution ? (
-              <span
-                className="shrink-0 self-end rounded-full bg-black/55 px-2 py-0.5 text-right text-[10px] font-medium leading-tight text-white backdrop-blur-[2px]"
-                role="note"
-              >
-                {current.attribution}
-              </span>
-            ) : null}
-          </div>
-        </div>
-      </PexelsSourceCaption>
+      <div className="relative aspect-[16/10] w-full">
+        {slides.map((s, i) => (
+          <img
+            key={s.src + i}
+            src={s.src}
+            alt={s.alt}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+              i === index ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        ))}
+        <PublicImageBottomOverlay leftLabel={current.leftLabel} rightLabel={current.rightLabel} />
+      </div>
       {len > 1 && (
         <>
           <button
@@ -166,7 +177,8 @@ export default function ProductHeroCarousel({
           >
             ›
           </button>
-          <div className="absolute bottom-3 left-0 right-0 z-10 flex justify-center gap-1.5">
+          {/* 하단 SEO/출처 오버레이(z-15)와 겹치지 않도록 슬라이드 점을 위로 */}
+          <div className="absolute bottom-12 left-0 right-0 z-20 flex justify-center gap-1.5">
             {slides.map((_, i) => (
               <button
                 key={i}

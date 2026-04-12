@@ -7,7 +7,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "prebuild": "prisma generate",
+    "prebuild": "npm run check:register-supplier-imports && prisma generate",
     "dev": "next dev -p 3000",
     "clean:next": "node scripts/clean-next.js",
     "dev:clean": "npm run clean:next && next dev -p 3000",
@@ -15,6 +15,8 @@
     "build": "node scripts/build-next.js",
     "start": "next start",
     "lint": "next lint",
+    "check:register-supplier-imports": "node scripts/check-register-supplier-cross-imports.mjs",
+    "check": "npm run check:register-supplier-imports && npm run lint",
     "get-bg-color": "node scripts/get-envelope-bg-color.js",
     "prisma:generate": "prisma generate",
     "prisma:generate:safe": "node scripts/prisma-generate-safe.js",
@@ -39,6 +41,7 @@
     "verify:register-admin-one-product": "npx tsx scripts/verify-register-admin-one-product.ts",
     "cleanup:register-admin": "npx tsx scripts/cleanup-register-admin-records.ts",
     "cleanup:register-admin:apply": "npx tsx scripts/cleanup-register-admin-records.ts --apply",
+    "backfill:hero-seo-keywords": "npx tsx scripts/backfill-public-image-hero-seo-keywords.mts",
     "booking:purge-pii": "npx tsx scripts/purge-old-bookings.ts --dry-run --log-json",
     "booking:purge-pii:apply": "npx tsx scripts/purge-old-bookings.ts --apply --log-json",
     "booking:statuses:inspect": "npx tsx scripts/inspect-booking-statuses.ts",

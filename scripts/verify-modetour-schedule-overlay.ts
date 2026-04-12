@@ -1,6 +1,8 @@
 /**
  * `npx tsx scripts/verify-modetour-schedule-overlay.ts`
  * 짧은 요약·식사 미검출 경로에서도 schedule의 hotelText/식사 병합이 빠지지 않는지 회귀 방지.
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import { extractModetourMealSummaryFromScheduleDescription } from '../lib/register-modetour-meal-from-description'

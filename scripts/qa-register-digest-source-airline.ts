@@ -1,9 +1,12 @@
 /**
  * 우선순위 1~3 QA: digest 정합성 / sourceSummary / airlineTransport
  * npx tsx scripts/qa-register-digest-source-airline.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { SUPPLIER_ORIGIN_CANONICAL } from '@/lib/overseas-supplier-canonical-keys'
 
 function loadEnvLocal() {
   const p = join(process.cwd(), '.env.local')
@@ -49,8 +52,8 @@ async function main() {
   const previewBody = {
     mode: 'preview',
     text: BASE_PASTE,
-    brandKey: 'modetour',
-    originSource: '모두투어',
+    brandKey: SUPPLIER_ORIGIN_CANONICAL.modetour,
+    originSource: SUPPLIER_ORIGIN_CANONICAL.modetour,
     travelScope: 'overseas',
     originUrl: 'https://example.com/p/qa-digest',
     pastedBlocks: {
@@ -117,8 +120,8 @@ async function main() {
       previewToken: token,
       previewContentDigest: digest,
       text: `${BASE_PASTE}\n\nTAMPER_LINE_FOR_DIGEST`,
-      brandKey: 'modetour',
-      originSource: '모두투어',
+      brandKey: SUPPLIER_ORIGIN_CANONICAL.modetour,
+      originSource: SUPPLIER_ORIGIN_CANONICAL.modetour,
       travelScope: 'overseas',
       originUrl: 'https://example.com/p/qa-digest',
       pastedBlocks: previewBody.pastedBlocks,
@@ -136,8 +139,8 @@ async function main() {
       mode: 'confirm',
       previewToken: token,
       text: BASE_PASTE,
-      brandKey: 'modetour',
-      originSource: '모두투어',
+      brandKey: SUPPLIER_ORIGIN_CANONICAL.modetour,
+      originSource: SUPPLIER_ORIGIN_CANONICAL.modetour,
       travelScope: 'overseas',
       originUrl: 'https://example.com/p/qa-digest',
       pastedBlocks: previewBody.pastedBlocks,

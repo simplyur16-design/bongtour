@@ -4,18 +4,20 @@
  */
 import { AIRLINE_CATALOG, airlineStringMatchesCode, buildAirlineHaystack } from '@/lib/airline-catalog'
 import { getBrandLabel } from '@/lib/brands'
+import { OVERSEAS_SUPPLIER_LABEL } from '@/lib/normalize-supplier-origin'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { resolveProductBrandKey, type ProductBrowseFullRow } from '@/lib/products-browse-extended-filter'
 
 export type BrandFacet = { brandKey: string; displayName: string; count: number }
 export type AirlineFacet = { code: string; label: string; count: number }
 
+/** 표시 전용 — canonical 4공급사 라벨은 `OVERSEAS_SUPPLIER_LABEL` SSOT. `yellowballoon`은 URL 필터 등 레거시 키 호환. */
 const BRAND_LABEL: Record<string, string> = {
-  hanatour: '하나투어',
-  modetour: '모두투어',
-  verygoodtour: '참좋은여행사',
-  ybtour: '노랑풍선',
-  yellowballoon: '노랑풍선',
+  hanatour: OVERSEAS_SUPPLIER_LABEL.hanatour,
+  modetour: OVERSEAS_SUPPLIER_LABEL.modetour,
+  verygoodtour: OVERSEAS_SUPPLIER_LABEL.verygoodtour,
+  ybtour: OVERSEAS_SUPPLIER_LABEL.ybtour,
+  yellowballoon: OVERSEAS_SUPPLIER_LABEL.ybtour,
   gyowontour: '교원투어',
   other: '기타',
 }

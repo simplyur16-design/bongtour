@@ -2,7 +2,10 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import type { GalleryProduct } from '@/app/api/gallery/route'
+import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
+import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 
 function formatDate(iso: string | null): string {
@@ -25,7 +28,7 @@ type Props = {
 }
 
 /**
- * 해외 랜딩용 비교 카드 — 사진 위는 공급사만, 유형은 본문 보조.
+ * 해외 랜딩용 비교 카드 — 이미지 내부는 SEO/출처 오버레이만.
  */
 export default function OverseasCompareCard({ product, priority = false, productTypeLabel }: Props) {
   const priceStr = formatPrice(product.priceKrw)
@@ -46,13 +49,23 @@ export default function OverseasCompareCard({ product, priority = false, product
               sizes="(max-width:640px) 100vw, 240px"
               priority={priority}
             />
-            <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/50 via-black/10 to-transparent"
-              aria-hidden
+            <PublicImageBottomOverlay
+              leftLabel={resolvePublicProductHeroSeoKeywordOverlay({
+                storedRegisterSeoKeywordsJson: product.publicImageHeroSeoKeywordsJson,
+                storedRegisterSeoLine: product.publicImageHeroSeoLine,
+                seoCaptionFromAsset: null,
+                title: product.title,
+                primaryDestination: product.primaryDestination,
+                destination: product.destination,
+                duration: product.duration,
+                originSource: product.originSource,
+              })}
+              rightLabel={resolvePublicImageSourceUserLabel({
+                dbSource: product.bgImageSource,
+                dbIsGenerated: product.bgImageIsGenerated,
+                imageUrl: url,
+              })}
             />
-            <p className="absolute left-2.5 top-2.5 right-2 z-10 text-[10px] font-semibold leading-tight tracking-wide text-white drop-shadow-md">
-              {supplier}
-            </p>
           </div>
         </Link>
         <div className="flex min-w-0 flex-1 flex-col justify-between px-4 py-3 sm:py-4">
@@ -62,6 +75,7 @@ export default function OverseasCompareCard({ product, priority = false, product
                 {product.title}
               </h3>
             </Link>
+            <p className="mt-1 text-[11px] text-bt-meta">상품 안내 출처 · {supplier}</p>
             <p className="mt-2 text-sm text-bt-muted">
               <span className="font-semibold text-bt-body">출발</span>{' '}
               <span className="text-bt-body">{formatDate(product.departureDate)}</span>

@@ -64,7 +64,7 @@ import {
 } from '@/lib/product-price-table-extract'
 import { extractMinimumDepartureMeta, buildDepartureStatusDisplay } from '@/lib/minimum-departure-extract'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
-import { numericFieldsFromHanatourReservationStatusParsed } from '@/lib/detail-body-parser-utils-hanatour'
+import { numericFieldsFromHanatourReservationStatusParsed } from '@/lib/detail-body-parser-hanatour'
 import {
   RegisterLlmParseError,
   type CalendarItem,
@@ -98,6 +98,13 @@ import {
 } from '@/lib/register-destination-coherence'
 import { parsePricePromotionFromGeminiJson, type PricePromotionSnapshot } from './price-promotion-hanatour'
 import { buildSingleRoomExcludedLine } from '@/lib/product-excluded-display'
+import {
+  buildPreviewHanatourScheduleFromDetailBody,
+  hanatourEnglishPexelsImageKeywordFromBlob,
+  isHanatourEnglishPexelsImageKeywordReady,
+  polishHanatourScheduleRowsGeminiCardTextIfNeeded,
+  polishHanatourScheduleRowsPreferDetailBody,
+} from '@/lib/parse-and-register-hanatour-schedule'
 
 /** parse/route TEXT_LIMIT(26k)보다 넉넉히 — 등록 프롬프트가 더 길어 32k. 초과분은 잘라 입력 토큰·지연을 줄임 */
 const REGISTER_PASTE_MAX_CHARS = 32000
@@ -736,6 +743,16 @@ function parseLlmExtractionFieldIssues(raw: unknown): RegisterExtractionFieldIss
 function extractMealHotelFromDayText(text: string): Partial<RegisterScheduleDay> {
   const out: Partial<RegisterScheduleDay> = {}
   const t = text.replace(/\r/g, '')
+  const bracket3 = t.match(/\[조식\]\s*([^[\]]+?)\s*\[중식\]\s*([^[\]]+?)\s*\[석식\]\s*([^[\]\n]+)/i)
+  if (bracket3) {
+    const a = bracket3[1]?.replace(/상세보기.*/i, '').trim()
+    const b = bracket3[2]?.replace(/상세보기.*/i, '').trim()
+    const c = bracket3[3]?.replace(/상세보기.*/i, '').trim()
+    if (a) out.breakfastText = a.slice(0, 200)
+    if (b) out.lunchText = b.slice(0, 200)
+    if (c) out.dinnerText = c.slice(0, 200)
+    return out
+  }
   const triplet = t.match(
     /(?:조식|아침)\s*[-:：/／]\s*([^/|]+?)\s*[/|／]\s*(?:중식|점심)\s*[-:：]?\s*([^/|]+?)\s*[/|／]\s*(?:석식|저녁)\s*[-:：]?\s*([^/|]+)/i
   )
@@ -751,13 +768,27 @@ function extractMealHotelFromDayText(text: string): Partial<RegisterScheduleDay>
   const bp = t.match(/(?:조식|아침)\s*[-:：]\s*([^\n]+)/i)
   const lp = t.match(/(?:중식|점심)\s*[-:：]\s*([^\n]+)/i)
   const dp = t.match(/(?:석식|저녁)\s*[-:：]\s*([^\n]+)/i)
+  const bp2 = t.match(/(?:조식|아침)\s*[（(]\s*([^)）\n]+)[)）]/i)
+  const lp2 = t.match(/(?:중식|점심)\s*[（(]\s*([^)）\n]+)[)）]/i)
+  const dp2 = t.match(/(?:석식|저녁)\s*[（(]\s*([^)）\n]+)[)）]/i)
   if (bp?.[1]) out.breakfastText = bp[1].trim().slice(0, 200)
+  else if (bp2?.[1]) out.breakfastText = bp2[1].trim().slice(0, 200)
   if (lp?.[1]) out.lunchText = lp[1].trim().slice(0, 200)
+  else if (lp2?.[1]) out.lunchText = lp2[1].trim().slice(0, 200)
   if (dp?.[1]) out.dinnerText = dp[1].trim().slice(0, 200)
-  const hp = t.match(
-    /(?:예정\s*호텔|예정숙소|숙소|숙박|투숙|호텔|리조트|콘도)\s*[:：]\s*([^\n]+)/i
-  )
-  if (hp?.[1]) out.hotelText = hp[1].trim().slice(0, 500)
+  else if (dp2?.[1]) out.dinnerText = dp2[1].trim().slice(0, 200)
+  if (/숙박\s*없음/.test(t)) out.hotelText = '숙박 없음'
+  else if (/기내\s*숙박|기내숙박/.test(t)) out.hotelText = '기내숙박'
+  else {
+    const hp = t.match(
+      /(?:예정\s*호텔|예정숙소|숙소|숙박|투숙|호텔|리조트|콘도)\s*[:：]\s*([^\n]+)/i
+    )
+    if (hp?.[1]) out.hotelText = hp[1].trim().slice(0, 500)
+    else {
+      const hol = t.match(/(?:홀리데이\s*인[^\n]{5,120}|Holiday\s+Inn[^\n]{5,140})/i)
+      if (hol?.[0]) out.hotelText = hol[0].replace(/상세보기.*/i, '').trim().slice(0, 200)
+    }
+  }
   if (Object.keys(out).length) return out
   const mealOnly = t.match(/식사\s*[:：]\s*([^\n]+)/i)
   if (mealOnly?.[1]?.trim()) {
@@ -883,7 +914,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - 호텔(상품): hotelInfoRaw, hotelNames[], hotelSummaryText(전체 요약 한 줄, 예: 대표호텔명 외 1), hotelStatusText, hotelNoticeRaw — 원문·[PASTED HOTEL INFO] 근거만. 없으면 null.
 - 일차별 예정호텔: dayHotelPlans[] — 본문에 「1일차 예정호텔」「2일차 예정호텔」처럼 일정별 블록이 있으면 **반드시** dayIndex·label·hotels[]로 분리한다. 한 줄에 호텔명만 나열해 hotelNames에만 넣지 말 것(중복 허용 시 dayHotelPlans 우선). 각 항목: dayIndex(1부터), label(예: 1일차 예정호텔), hotels(해당 일 숙박 후보·복수면 배열), raw(해당 블록 원문 한 덩어리, 선택).
 - 일정 일차별 숙소·식사: schedule[] 각 항목에 hotelText(해당 일 예정 호텔/숙소 한 줄), breakfastText, lunchText, dinnerText, mealSummaryText(원문 식사 줄 전체 보존). 상품 전체 호텔과 일차 호텔은 구분. 식사를 조·중·석으로 나눌 수 없으면 mealSummaryText만 채우고 나머지 null. 창작·추론 금지.
-- 꼭 확인하세요: mustKnowItems[{category,title,body}], mustKnowRaw (3~6개, 1~2줄씩), mustKnowSource ("supplier"), mustKnowNoticeRaw (null)
+- 꼭 확인하세요: mustKnowItems[{category,title,body}], mustKnowRaw (3–6개, 1–2줄씩), mustKnowSource ("supplier"), mustKnowNoticeRaw (null)
 
 # [달력 데이터 정밀 추출]
 - 패턴 인식: 텍스트에서 [날짜/요일/가격/상태]가 반복되는 구간을 '달력 그리드'로 인식하라.
@@ -893,14 +924,16 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 
 # [schedule] 일차별 (필수)
 - day, title, description, imageKeyword
-- imageKeyword: 해당 일차의 실존하는 장소 이름만 사용 (창조·추상 금지). 영문 명사 (예: Osaka Castle, Taipei 101)
+- **title**: 핵심 장소·동선을 하이픈+공백("- ")으로 연결한 요약(2–6개, 호텔·식사·날짜·문장형 제목 금지).
+- **description**: 공개 일정 카드용 **짧은 1문장** 브리프만(약 120자 이내·이동·핵심 관광 위주). 일정표 장문·유의·홍보·선택관광 안내를 여기에 붙이지 말 것. **조식·중식·석식·호텔·숙소 문구는 description에 넣지 말고** breakfastText·lunchText·dinnerText·hotelText·mealSummaryText 로만.
+- **imageKeyword**: Pexels 검색에 바로 쓸 **영문** 짧은 명사구(실존 장소·도시+명소 수준). 창조·추상 금지.
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
 # [prices] 출발일별 요금 (달력과 동일한 날짜만)
 date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel, infantBase, infantFuel, status, availableSeats
 # [선택] 출발일별 항공·미팅 — prices[] 각 행에 넣을 때 (필드명은 DB와 동일: *Airport 키이나 값은 도시명·공항명 모두 허용. outboundDeparturePlace 등과 동일 의미)
 - 가는편·오는편 각각 **하나의 항공 블록**으로 취급한다. 항공사명이 있고 출발/도착 시각이 잡히면, **같은 블록·인접 줄**에서 출발지·도착지(도시 또는 공항)를 반드시 outboundDepartureAirport, outboundArrivalAirport, inboundDepartureAirport, inboundArrivalAirport에 구조화한다.
-- [PASTED AIRLINE OR TRANSPORT INFO]·본문의 "가는편/오는편"·"출국/입국" 구간을 우선한다. **시각(날짜+시각) 쌍이 있으면 그 줄의 앞뒤 2~3줄·동일 줄에서 도시/공항명을 재탐색**한다. 시간만 추출하고 장소가 비면 fieldIssues에 { field, reason, severity:"warn", source:"llm" }로 남긴다.
+- [PASTED AIRLINE OR TRANSPORT INFO]·본문의 "가는편/오는편"·"출국/입국" 구간을 우선한다. **시각(날짜+시각) 쌍이 있으면 그 줄의 앞뒤 2–3줄·동일 줄에서 도시/공항명을 재탐색**한다. 시간만 추출하고 장소가 비면 fieldIssues에 { field, reason, severity:"warn", source:"llm" }로 남긴다.
 - 원문에 장소가 없을 때만 해당 필드를 null로 둔다(빈 문자열 금지). "확인중" 같은 placeholder 출력 금지.
 - carrierName, outboundFlightNo, outboundDepartureAirport, outboundDepartureAt, outboundArrivalAirport, outboundArrivalAt, inboundFlightNo, inboundDepartureAirport, inboundDepartureAt, inboundArrivalAirport, inboundArrivalAt, meetingInfoRaw, meetingPointRaw, meetingTerminalRaw, meetingGuideNoticeRaw (시각은 ISO 또는 YYYY-MM-DD HH:mm)
 
@@ -1063,7 +1096,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - originSource, originCode, title, destination, duration
 - airlineName, departureSegmentText, returnSegmentText, outboundFlightNo, inboundFlightNo, departureDateTimeRaw, arrivalDateTimeRaw, routeRaw (없으면 null)
 - priceTableRawText, productPriceTable(성인·아동·유아 슬롯), **prices[]** 달력 행(날짜·금액·상태)
-- **schedule[]** : day, title, imageKeyword 필수. **description 은 일차당 450자 이내·3~6문장 권장**(공급사 일차 블록의 관광·이동·식사를 빠짐없이). hotelText·meal*·mealSummaryText 는 있어도 **각 120자 이내** 또는 null
+- **schedule[]** : day, title, imageKeyword 필수. **title** 은 문장형보다 **핵심 장소·동선을 "- " 로 잇는 요약**(2–6개, 호텔·식사·날짜 금지). **description** 은 카드용 **1문장·70–120자**(관광·이동·미팅 흐름만; 식사·호텔은 박스 필드로만). hotelText·meal*·mealSummaryText 는 있어도 **각 120자 이내** 또는 null
 - 포함/불포함: includedItems[], excludedItems[] 짧은 줄만. **includedRaw, excludedRaw, includedExcludedRaw 는 null 우선** (장문 금지)
 - 선택관광·쇼핑 **메타만** 짧게: optionalTourNoticeRaw(200자 이내 또는 null), optionalTourNoticeItems(최대 5줄), hasOptionalTour, optionalTourCount, optionalTourSummaryText(120자 이내)
 - 쇼핑: hasShopping, shoppingVisitCount, shoppingNoticeRaw(200자 이내), shoppingSummaryText(120자 이내)
@@ -1248,7 +1281,6 @@ function finalizePreviewRegisterRaw(raw: RegisterGeminiLlmJson): RegisterGeminiL
   delete rec.meetingFallbackText
   delete rec.meetingInfoRaw
   raw.prices = []
-  raw.schedule = []
   if (Array.isArray(raw.fieldIssues)) {
     const cap = 3
     const maxReason = 120
@@ -1289,7 +1321,7 @@ function buildPreviewDeterministicRegisterRaw(args: {
   const ie = detailBody.includedExcludedStructured
   const out: Partial<RegisterGeminiLlmJson> = {
     prices: [],
-    schedule: [],
+    schedule: buildPreviewHanatourScheduleFromDetailBody(detailBody),
     originSource: normalizeOriginSource(originSource, brandKey),
   }
 
@@ -1742,14 +1774,26 @@ ${text.slice(0, 16000)}`
   } catch {
     registerAdminPersistedLlmParsedJson = null
   }
-  const scheduleBase: RegisterScheduleDay[] = (raw.schedule ?? [])
+  const rawScheduleRows = raw.schedule ?? []
+  const maxDayFromRawSchedule = rawScheduleRows.length
+    ? Math.max(1, ...rawScheduleRows.map((x) => Number((x as { day?: unknown }).day) || 0))
+    : 1
+  const scheduleBase: RegisterScheduleDay[] = rawScheduleRows
     .map((s) => {
       const rec = s as Record<string, unknown>
+      const day = Number(s?.day) || 0
+      const title = String(s?.title ?? '').trim()
+      const description = String(s?.description ?? '').trim()
+      const ik = String(s?.imageKeyword ?? '').trim()
+      const blob = `${ik}\n${title}\n${description}`
+      const imageKeyword = isHanatourEnglishPexelsImageKeywordReady(ik)
+        ? ik.slice(0, 120)
+        : hanatourEnglishPexelsImageKeywordFromBlob(blob, Math.max(1, day), maxDayFromRawSchedule).slice(0, 120)
       return {
-        day: Number(s?.day) || 0,
-        title: String(s?.title ?? '').trim(),
-        description: String(s?.description ?? '').trim(),
-        imageKeyword: String(s?.imageKeyword ?? '').trim() || `Day ${s?.day ?? 0} travel`,
+        day,
+        title,
+        description,
+        imageKeyword,
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),
         lunchText: strOrNull(rec.lunchText),
@@ -1758,7 +1802,13 @@ ${text.slice(0, 16000)}`
       }
     })
     .filter((s) => s.day > 0)
-  const schedule: RegisterScheduleDay[] = scheduleBase.map(supplementScheduleDayFromDescription)
+  let schedule: RegisterScheduleDay[] = polishHanatourScheduleRowsPreferDetailBody(
+    scheduleBase.map(supplementScheduleDayFromDescription),
+    detailBody
+  )
+  schedule = await polishHanatourScheduleRowsGeminiCardTextIfNeeded(schedule, detailBody, {
+    onTiming: options?.onTiming,
+  })
 
   const titleTrimmed = (raw.title ?? '').trim() || '상품명 없음'
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
@@ -2473,7 +2523,7 @@ ${text.slice(0, 16000)}`
       ? {
           registerPreviewPolicyNotes: [
             '미리보기: 출발일별 달력(prices[])는 확정(전체) 파싱에서 채웁니다. 항공·호텔·옵션·쇼핑·가격표 표는 결정적 파서·병합이 우선입니다.',
-            '미리보기: 일정(schedule[])·달력 행이 비어 있어도 정상입니다. 확정(전체) 파싱에서 채우며, 아래는 메타·본문 구조 확인용입니다.',
+            '미리보기: 일정(schedule[])은 본문 `schedule_section`의 `N일차`/`DAY N` 경계가 있으면 결정적으로 채웁니다. 달력 행만 비어 있을 수 있습니다.',
           ],
         }
       : {}),

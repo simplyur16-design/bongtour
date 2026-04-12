@@ -1,8 +1,13 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { imageAssetRowToApi } from '@/lib/image-asset-api-mapper'
 import { requireAdmin } from '@/lib/require-admin'
 import { runImageAssetUpload } from '@/lib/image-asset-upload-service'
+import { prisma } from '@/lib/prisma'
+import {
+  productSupplierLabelForImageAsset,
+  productTravelScopeToImageAssetServiceType,
+} from '@/lib/admin-product-image-upload-resolve'
 
 const MAX_BYTES = 30 * 1024 * 1024
 const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp'])
@@ -65,18 +70,56 @@ export async function POST(request: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer())
 
+    const productContextId = String(formData.get('product_context_id') ?? '').trim()
+
+    let entityType = String(formData.get('entity_type') ?? '')
+    let entityId = String(formData.get('entity_id') ?? '').trim()
+    let entityNameKr = String(formData.get('entity_name_kr') ?? '').trim()
+    let entityNameEn = ((formData.get('entity_name_en') as string | null) ?? null)?.trim() || null
+    let supplierName = ((formData.get('supplier_name') as string | null) ?? null)?.trim() || null
+    let serviceType = String(formData.get('service_type') ?? '').trim()
+    let imageRole = String(formData.get('image_role') ?? '').trim()
+    let groupKey = ((formData.get('group_key') as string | null) ?? null)?.trim() || null
+    let seoTitleKr = ((formData.get('seo_title_kr') as string | null) ?? null)?.trim() || null
+    let seoTitleEn = ((formData.get('seo_title_en') as string | null) ?? null)?.trim() || null
+
+    if (productContextId) {
+      const p = await prisma.product.findUnique({
+        where: { id: productContextId },
+        select: {
+          id: true,
+          title: true,
+          travelScope: true,
+          originSource: true,
+          brand: { select: { brandKey: true } },
+        },
+      })
+      if (!p) {
+        return NextResponse.json({ ok: false, error: '상품을 찾을 수 없습니다.' }, { status: 404 })
+      }
+      entityType = 'product'
+      entityId = p.id
+      entityNameKr = (p.title ?? '').trim() || '상품'
+      supplierName = productSupplierLabelForImageAsset(p.originSource, p.brand?.brandKey ?? null)
+      serviceType = productTravelScopeToImageAssetServiceType(p.travelScope)
+      imageRole = imageRole || 'gallery'
+      if (!seoTitleKr) seoTitleKr = entityNameKr
+    } else if (!imageRole) {
+      imageRole = 'hero'
+    }
+
     const result = await runImageAssetUpload({
-      entityType: String(formData.get('entity_type') ?? ''),
-      entityId: String(formData.get('entity_id') ?? ''),
-      entityNameKr: String(formData.get('entity_name_kr') ?? ''),
-      entityNameEn: (formData.get('entity_name_en') as string | null) ?? null,
-      supplierName: (formData.get('supplier_name') as string | null) ?? null,
-      serviceType: String(formData.get('service_type') ?? ''),
-      imageRole: String(formData.get('image_role') ?? ''),
+      entityType,
+      entityId,
+      entityNameKr,
+      entityNameEn,
+      supplierName,
+      serviceType,
+      imageRole,
       isPrimary: parseBool(formData.get('is_primary')),
       sortOrder: parseIntSafe(formData.get('sort_order'), 0),
       uploadedBy,
-      groupKey: (formData.get('group_key') as string | null) ?? null,
+      groupKey,
       originalFileName: file.name || 'upload.bin',
       sourceType: (formData.get('source_type') as string | null) ?? null,
       sourceNote: (formData.get('source_note') as string | null) ?? null,
@@ -84,8 +127,8 @@ export async function POST(request: Request) {
       isPexelsAuto: parseAutoSourceHint(formData.get('is_pexels_auto')),
       titleKr: (formData.get('title_kr') as string | null) ?? null,
       titleEn: (formData.get('title_en') as string | null) ?? null,
-      seoTitleKr: (formData.get('seo_title_kr') as string | null) ?? null,
-      seoTitleEn: (formData.get('seo_title_en') as string | null) ?? null,
+      seoTitleKr,
+      seoTitleEn,
       fileBuffer: buffer,
       originalMime: mime,
     })

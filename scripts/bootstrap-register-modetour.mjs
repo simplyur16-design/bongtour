@@ -29,14 +29,25 @@ function loadEnvLocal() {
 
 loadEnvLocal()
 
+const CANONICAL_KEYS = JSON.parse(
+  fs.readFileSync(path.join(root, 'lib', 'overseas-supplier-canonical-keys.json'), 'utf8')
+)
+function assertCanonicalKey(name) {
+  if (!CANONICAL_KEYS.includes(name)) {
+    throw new Error(`overseas-supplier-canonical-keys.json must include "${name}"`)
+  }
+  return name
+}
+
 const cookie = `admin_bypass=${process.env.ADMIN_BYPASS_SECRET ?? ''}`
 const text = fs.readFileSync(path.join(__dirname, '_paste-modetour-105968.txt'), 'utf8')
 const baseUrl = 'http://localhost:3000'
 
 const previewBody = {
   mode: 'preview',
+  brandKey: assertCanonicalKey('modetour'),
   originUrl: 'https://www.modetour.com/package/105968246',
-  originSource: '모두투어',
+  originSource: assertCanonicalKey('modetour'),
   travelScope: 'overseas',
   text,
 }

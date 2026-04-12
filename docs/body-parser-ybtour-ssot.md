@@ -5,8 +5,9 @@
 관리자 등록 시 **붙여넣기 본문**을 결정적으로 나누어 `DetailBodyParseSnapshot`을 만든다.  
 이 문서는 **노랑풍선 전용** 앵커·정규화·슬라이스·하위 파서 책임의 **1급 유지보수 기준**이다.
 
-HTTP·브랜드 키 SSOT는 `docs/admin-register-supplier-precise-spec.md` §4(`ybtour`, 레거시 URL 별칭).  
-**우선순위:** 본 문서 > 공통 정책의 한 줄 설명.
+**우선순위:** 본 문서 > 공통 정책. 키·레거시 URL 별칭 요약은 [register-supplier-extraction-spec.md](./register-supplier-extraction-spec.md) 「표기·키 SSOT (요약)」·`docs/admin-register-supplier-precise-spec.md` §4.
+
+붙여넣기 **본문**의 한글·원문은 **파서 입력**이다. 요청 JSON의 `originSource` / `brandKey`는 canonical **`ybtour`**.
 
 **일정 표현 SSOT:** `docs/register_schedule_expression_ssot.md` — 본 문서는 **본문 섹션 분리**만.
 

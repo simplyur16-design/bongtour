@@ -1,6 +1,8 @@
 /**
  * register-admin 공용 저장 레이어 최소 E2E (HTTP·공급사 parse 미사용).
  * 성공/실패 DB 상태·retentionExpiresAt 확인용.
+ *
+ * 이 스크립트의 `brandKey` / `originSource` 값 **`e2e`**는 **테스트 전용 마커**이며, API canonical 공급사 키가 아니다.
  */
 import { prisma } from '../lib/prisma'
 import {

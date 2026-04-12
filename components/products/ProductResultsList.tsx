@@ -11,6 +11,7 @@ import {
   OVERSEAS_DISPLAY_BUCKET_ORDER,
   type OverseasDisplayBucketId,
 } from '@/lib/overseas-display-buckets'
+import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 
@@ -27,6 +28,8 @@ export type ResultItem = {
   duration: string | null
   bgImageUrl: string | null
   coverImageUrl?: string | null
+  coverImageSeoKeyword?: string | null
+  coverImageSourceUserLabel?: string | null
   effectivePricePerPersonKrw: number | null
   hotelName?: string | null
   hotelGrade?: string | null
@@ -68,13 +71,19 @@ export function ProductResultCard({
     >
       <div className="relative aspect-[16/10] w-full bg-slate-100">
         {item.coverImageUrl || item.bgImageUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element -- arbitrary remote image hosts */
-          <img
-            src={item.coverImageUrl ?? item.bgImageUrl ?? ''}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-            loading="lazy"
-          />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary remote image hosts */}
+            <img
+              src={item.coverImageUrl ?? item.bgImageUrl ?? ''}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              loading="lazy"
+            />
+            <PublicImageBottomOverlay
+              leftLabel={item.coverImageSeoKeyword ?? null}
+              rightLabel={item.coverImageSourceUserLabel ?? null}
+            />
+          </>
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-slate-400">이미지 없음</div>
         )}

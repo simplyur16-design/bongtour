@@ -2,6 +2,8 @@
  * ybtour — tmp_ybtour_body.txt 붙여넣기 본문으로 일정 표현층 E2E (preview + 복구 + augment + finalize).
  * 핸들러와 동일: augment → sanitize, 복구는 orchestration과 동일 parseFn 인자.
  * 실행: npx tsx scripts/verify-ybtour-register-schedule-e2e.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import fs from 'fs'
 import path from 'path'

@@ -38,7 +38,7 @@ Prisma 런타임/생성 규칙(직접 연결, alias, Windows 잠금 대응)은 `
 | 필드(영문) | 한글 설명 | 수집 구분 | 비고 |
 |------------|-----------|-----------|------|
 | id | 내부 PK | 운영 메타 | cuid 등 |
-| originSource | 공급사 표시명 | A 상세 | 모두투어, 하나투어 등 |
+| originSource | 공급사 식별(저장·필터; canonical 키) | A 상세 | `hanatour`·`modetour`·`ybtour`·`verygoodtour` — 한글 상호는 UI 라벨만 |
 | originCode | 상품코드(공급사 부여) | A 상세 | 동기화 키, unique |
 | originUrl | 공급사 상세 페이지 URL | A 상세 | 추적·중복체크·재수집 |
 | title | 상품명 | A 상세 | 원문 유지 |

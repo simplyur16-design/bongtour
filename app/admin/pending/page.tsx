@@ -7,12 +7,16 @@ import AdminKpiCard from '../components/AdminKpiCard'
 import AdminPageHeader from '../components/AdminPageHeader'
 import AdminStatusBadge from '../components/AdminStatusBadge'
 import AdminPendingDetailPanel from './components/AdminPendingDetailPanel'
-import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
+import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
+import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
+import type { OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
 
 type PendingItem = {
   id: string
   originCode: string
   originSource: string
+  canonicalBrandKey?: CanonicalOverseasSupplierKey | null
+  normalizedOriginSupplier?: OverseasSupplierKey
   title: string
   destination: string | null
   duration: string | null
@@ -327,7 +331,7 @@ export default function AdminPendingPage() {
                     >
                       <p className="truncate font-medium text-bt-title">{item.title}</p>
                       <p className="mt-0.5 text-xs text-bt-meta">
-                        {item.originCode} · {formatOriginSourceForDisplay(item.originSource)}
+                        {item.originCode} · {adminSupplierPrimaryDisplayLabel(item)}
                         {item.destination && ` · ${item.destination}`}
                       </p>
                       {(item.primaryRegion ?? item.displayCategory) && (

@@ -2,6 +2,8 @@
  * 모두투어 본문 느슨 항공사 추출 검증.
  *
  *   npx tsx scripts/verify-modetour-airline-loose.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import { extractModetourAirlineMatch } from '../lib/flight-modetour-parser'

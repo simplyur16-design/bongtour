@@ -5,6 +5,7 @@
  * 예산 필터는 등록된 상품의 실제 금액을 확인하여 예산 범위 내 상품만 노출한다.
  */
 import { AIRLINE_CATALOG, airlineStringMatchesCode, buildAirlineHaystack } from '@/lib/airline-catalog'
+import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { effectiveBrowseTypeForProduct } from '@/lib/products-browse-filter'
 import type { CompanionFilter, TravelGradeFilter } from '@/lib/products-browse-query'
@@ -99,7 +100,8 @@ export function resolveProductBrandKey(p: {
   brand: { brandKey: string } | null
   originSource: string
 }): string {
-  if (p.brand?.brandKey) return p.brand.brandKey
+  const fromBrand = normalizeBrandKeyToCanonicalSupplierKey(p.brand?.brandKey ?? null)
+  if (fromBrand) return fromBrand
   const k = normalizeSupplierOrigin(p.originSource)
   if (k === 'verygoodtour') return 'verygoodtour'
   if (k === 'ybtour') return 'ybtour'
@@ -110,10 +112,10 @@ export function resolveProductBrandKey(p: {
 function matchesBrandKeys(p: ProductBrowseFullRow, keys: string[]): boolean {
   if (keys.length === 0) return true
   const pk = resolveProductBrandKey(p)
+  const pkCanon = normalizeBrandKeyToCanonicalSupplierKey(pk) ?? pk
   return keys.some((req) => {
-    if (req === pk) return true
-    if (req === 'verygoodtour' && pk === 'verygoodtour') return true
-    if ((req === 'yellowballoon' || req === 'ybtour') && (pk === 'yellowballoon' || pk === 'ybtour')) return true
+    const reqCanon = normalizeBrandKeyToCanonicalSupplierKey(req) ?? req
+    if (reqCanon === pkCanon) return true
     return false
   })
 }

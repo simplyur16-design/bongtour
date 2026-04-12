@@ -5,18 +5,19 @@ import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour
 import * as updDeparturesModetour from '@/lib/upsert-product-departures-modetour'
 import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-verygoodtour'
 import * as updDeparturesYbtour from '@/lib/upsert-product-departures-ybtour'
+import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 
 function upsertDeparturesModuleForProduct(p: {
   originSource: string | null
   brand: { brandKey: string } | null
 }) {
-  const bk = String(p.brand?.brandKey ?? '').trim()
+  const fromBrand = normalizeBrandKeyToCanonicalSupplierKey(p.brand?.brandKey ?? null)
   const norm = normalizeSupplierOrigin(p.originSource)
-  if (bk === 'modetour') return updDeparturesModetour
-  if (bk === 'verygoodtour') return updDeparturesVerygoodtour
-  if (bk === 'ybtour' || bk === 'yellowballoon') return updDeparturesYbtour
-  if (bk === 'hanatour') return updDeparturesHanatour
+  if (fromBrand === 'modetour') return updDeparturesModetour
+  if (fromBrand === 'verygoodtour') return updDeparturesVerygoodtour
+  if (fromBrand === 'ybtour') return updDeparturesYbtour
+  if (fromBrand === 'hanatour') return updDeparturesHanatour
   if (norm === 'modetour') return updDeparturesModetour
   if (norm === 'verygoodtour') return updDeparturesVerygoodtour
   if (norm === 'ybtour') return updDeparturesYbtour

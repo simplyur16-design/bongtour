@@ -1,3 +1,8 @@
+/**
+ * 공개 소비 모듈 우선순위·빈 패널 플래그 스모크. fixture 문자열은 **붙여넣기 본문과 유사한 검증용 텍스트**다.
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
+ */
 import { buildPublicProductBadges } from '@/lib/product-detail-badges'
 import * as publicConsumptionHanatour from '@/lib/public-consumption-hanatour'
 import * as publicConsumptionModetour from '@/lib/public-consumption-modetour'

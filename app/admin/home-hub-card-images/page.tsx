@@ -5,18 +5,9 @@ import {
   getHomeHubActiveFile,
   getResolvedActiveSeason,
 } from '@/lib/home-hub-resolve-images'
-import type { HomeHubActiveClientModel } from '@/lib/home-hub-active-client-model'
+import { homeHubActiveFileToClientModel } from '@/lib/home-hub-active-client-model'
 import { HomeHubCardImagesWorkspace } from './HomeHubCardImagesWorkspace'
-
-function toClientActiveModel(cfg: NonNullable<ReturnType<typeof getHomeHubActiveFile>>): HomeHubActiveClientModel {
-  return {
-    activeSeason: cfg.activeSeason,
-    season: cfg.season,
-    lastUpdatedAt: cfg.lastUpdatedAt,
-    lastUpdatedBy: cfg.lastUpdatedBy,
-    images: cfg.images,
-  }
-}
+import { pickHomeHubTravelCardCover } from '@/lib/home-hub-travel-card-cover'
 
 export default async function AdminHomeHubCardImagesPage() {
   const session = await requireAdmin()
@@ -28,7 +19,13 @@ export default async function AdminHomeHubCardImagesPage() {
   const lastAt = cfg?.lastUpdatedAt
     ? new Date(cfg.lastUpdatedAt).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' })
     : '—'
-  const initialActive: HomeHubActiveClientModel | null = cfg ? toClientActiveModel(cfg) : null
+  const initialActive = cfg ? homeHubActiveFileToClientModel(cfg) : null
+  const overPool = await pickHomeHubTravelCardCover('overseas')
+  const domPool = await pickHomeHubTravelCardCover('domestic')
+  const initialTravelPoolPreview = {
+    overseas: overPool?.imageSrc ?? null,
+    domestic: domPool?.imageSrc ?? null,
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-16 text-slate-100">
@@ -71,7 +68,10 @@ export default async function AdminHomeHubCardImagesPage() {
         활성: public/data/home-hub-active.json · 후보: public/data/home-hub-candidates.json
       </p>
 
-      <HomeHubCardImagesWorkspace initialActive={initialActive} />
+      <HomeHubCardImagesWorkspace
+        initialActive={initialActive}
+        initialTravelPoolPreview={initialTravelPoolPreview}
+      />
 
       <section className="mt-10 space-y-3 text-sm leading-relaxed text-slate-400">
         <p>

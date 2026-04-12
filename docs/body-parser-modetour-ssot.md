@@ -11,6 +11,10 @@
 
 **항공·가격·공개 leg 병합(브랜드 게이트):** `docs/ops/modetour-parse-contract.md` — 본 문서 = 섹션 분리·스냅샷, 계약 문서 = 항공/가격 해석·공개 분기.
 
+### HTTP supplier 키 vs 붙여넣기 본문
+
+canonical 키와 붙여넣기 원문 구분: [register-supplier-extraction-spec.md](./register-supplier-extraction-spec.md) 「표기·키 SSOT (요약)」. 이 문서·픽스처의 한글·원문은 **모두투어 본문 파서 입력**만 규정한다.
+
 ### 본문 파서 비책임 축 (입력 파서 SSOT)
 
 - **항공·선택관광·쇼핑** 구조화는 **`register-input-parse-modetour`** + 정형 입력란(`register-parse-modetour`)만. `detail-body-parser-modetour`는 해당 필드를 채우지 않는다.

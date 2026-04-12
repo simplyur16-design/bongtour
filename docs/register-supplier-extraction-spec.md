@@ -7,6 +7,15 @@
   `modetour` → 모두투어 전용 · `verygoodtour` → 참좋은여행 전용 · `ybtour`(레거시 키 `yellowballoon`) → 노랑풍선 전용 · `hanatour` → 하나투어 전용.
 - 아래 **공용·레거시 파일**은 “새 기준”이 아니라, **레포에 남아 있는 잔재**이며 표에서 **보류 / 축소 대상 / 삭제 후보** 중 **하나**로만 분류한다.
 
+## 표기·키 SSOT (요약)
+
+verify·qa 스크립트 상단, 운영 메모, API 예시를 짧게 맞출 때 **이 절을 기준**으로 한다. (HTTP JSON 복붙 예: **아래 부록-2** · [register_schedule_expression_ssot.md](./register_schedule_expression_ssot.md) §15 · `lib/parse-api-origin-source.ts` 의 `normalizeParseRequestOriginSource`.)
+
+1. **Canonical 키:** 내부 분기·API `originSource` / `brandKey`·검증 요약에는 **`hanatour` · `modetour` · `ybtour` · `verygoodtour`** 네 값만 쓴다.
+2. **표시 vs 키:** 화면 한글 상호·상세 페이지에서 복사한 원문은 **표시 또는 파서 입력**이며, 위 토큰과 동일하지 않다.
+3. **레거시:** DB·과거 URL의 `yellowballoon` 등은 **호환 경로**일 뿐이며, 신규 요청 예시·스크립트 입력에는 **`ybtour`** 만 쓴다.
+4. **범위:** 공급사별 규칙·회귀는 해당 공급사 전용 모듈·SSOT를 먼저 본다. 공용 모듈 변경은 영향 범위가 클 때만 한다.
+
 ## 근거 텍스트 (샘플)
 
 - 붙여넣기 형태의 구체 문장·표 헤더는 레포 회귀 픽스처 `scripts/verify-detail-body-parser-regression.ts`의 `samples[]`(id `M1`–`M3`, `C1`–`C7`, `H1`–`H3`, `Y1`–`Y3`)와, 관리자 UI 프레임 `lib/admin-register-supplier-input-frames.ts`의 placeholder를 **근거 문자열**로 삼는다.
@@ -238,3 +247,36 @@ DAY/구간 행 또는 설명만; 미정·비고 허용.
 | 기타 | `/api/travel/parse-and-register` (**잔여 fallback**; 네 공급사 키의 오남용은 서버에서 차단·안내 가능) |
 
 본 부록은 **현재 클라이언트 분기**를 기록한 것이며, fallback URL 자체를 영구 표준으로 두겠다는 뜻이 아니다 (**삭제 후보** 경로, §7).
+
+### 부록-2: 복붙용 JSON (supplier 키 축만 — `register/page.tsx`와 동일 SSOT)
+
+일정 표현층·UX·정규화: [register_schedule_expression_ssot.md](./register_schedule_expression_ssot.md) §15 · [ADMIN-REGISTER-SINGLE-UX.md](./ADMIN-REGISTER-SINGLE-UX.md) §6.1.1 · `lib/parse-api-origin-source.ts` (`normalizeParseRequestOriginSource`). 키·본문·레거시 구분 요약은 문서 상단 「표기·키 SSOT (요약)」.
+
+아래는 **설명 문장이 아니라 입력 예시**다. `originSource`와 `brandKey`는 **항상 아래 네 값 중 하나의 ASCII**만 쓴다.
+
+**`mode: preview` (필드 축소 예시):**
+
+```json
+{
+  "mode": "preview",
+  "text": "…공급사 상세 본문…",
+  "originSource": "verygoodtour",
+  "brandKey": "verygoodtour",
+  "travelScope": "overseas"
+}
+```
+
+**`mode: confirm` (supplier 키 축; 실제 요청에는 `previewToken`·`parsed`·`previewContentDigest` 등 추가 필수):**
+
+```json
+{
+  "mode": "confirm",
+  "previewToken": "…",
+  "text": "…미리보기와 동일 본문…",
+  "parsed": {},
+  "originSource": "verygoodtour",
+  "brandKey": "verygoodtour",
+  "previewContentDigest": "…",
+  "travelScope": "overseas"
+}
+```

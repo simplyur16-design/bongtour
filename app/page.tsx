@@ -2,6 +2,10 @@ import type { Metadata } from 'next'
 import Header from './components/Header'
 import MainHero from './components/MainHero'
 import HomeHubFour from './components/home/HomeHubFour'
+import { HomeHubCardDebugServerPanel } from './components/home/HomeHubCardDebugServerPanel'
+import { pickHomeHubTravelCardCover } from '@/lib/home-hub-travel-card-cover'
+import { getHomeHubCardHybridResolutionDetail } from '@/lib/home-hub-card-hybrid-core'
+import { getHomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 import PartnerOrganizationsSection from './components/home/PartnerOrganizationsSection'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { SITE_NAME } from '@/lib/site-metadata'
@@ -20,7 +24,24 @@ export const metadata: Metadata = {
 }
 
 /** 메인: 밝은 헤더 + 통합 라이트 상단 + 비주얼 허브 (하단 회사정보는 전역 SiteFooter) */
-export default function Home() {
+export default async function Home() {
+  /** 해외·국내 스코프 혼선 추적을 쉽게 하기 위해 순차 호출(결과는 각각 overseas / domestic 전용). */
+  const overseasCover = await pickHomeHubTravelCardCover('overseas')
+  const domesticCover = await pickHomeHubTravelCardCover('domestic')
+
+  const hubActive = getHomeHubActiveFile()
+  const hubSnap = hubActive ? { images: hubActive.images, imageSourceModes: hubActive.imageSourceModes } : null
+  const overseasDetail = getHomeHubCardHybridResolutionDetail('overseas', {
+    activeSnapshot: hubSnap,
+    productPoolOverseasUrl: overseasCover?.imageSrc ?? null,
+    productPoolDomesticUrl: domesticCover?.imageSrc ?? null,
+  })
+  const domesticDetail = getHomeHubCardHybridResolutionDetail('domestic', {
+    activeSnapshot: hubSnap,
+    productPoolOverseasUrl: overseasCover?.imageSrc ?? null,
+    productPoolDomesticUrl: domesticCover?.imageSrc ?? null,
+  })
+
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">
       <SiteJsonLd />
@@ -44,7 +65,16 @@ export default function Home() {
           />
           <MainHero />
           <div className="relative border-t border-slate-200/70 bg-gradient-to-b from-slate-50/50 to-transparent pt-3 md:pt-4">
-            <HomeHubFour />
+            <HomeHubFour
+              overseasHubImageSrc={overseasCover?.imageSrc ?? null}
+              domesticHubImageSrc={domesticCover?.imageSrc ?? null}
+            />
+            <HomeHubCardDebugServerPanel
+              overseasPick={overseasCover}
+              domesticPick={domesticCover}
+              overseasDetail={overseasDetail}
+              domesticDetail={domesticDetail}
+            />
           </div>
         </section>
         <PartnerOrganizationsSection />

@@ -3,6 +3,7 @@
  * 초정밀 규약 전문: `docs/admin-register-supplier-precise-spec.md`
  * (어댑터/스크래퍼/DB 스키마와 무관)
  */
+import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 
 export type RegisterSupplierFrameKey = 'modetour' | 'verygoodtour' | 'hanatour' | 'ybtour'
 
@@ -298,11 +299,8 @@ const SPECS: Record<RegisterSupplierFrameKey, SupplierInputFrameSpec> = {
 
 /** 교원·기타 등: 전용 프레임 없을 때 하나투어 프레임을 기본으로 안내 */
 export function registerSupplierFrameKey(brandKey: string | null | undefined): RegisterSupplierFrameKey {
-  const k = String(brandKey ?? '').trim()
-  if (k === 'yellowballoon') return 'ybtour'
-  if (k === 'modetour' || k === 'verygoodtour' || k === 'hanatour' || k === 'ybtour') {
-    return k
-  }
+  const canon = normalizeBrandKeyToCanonicalSupplierKey(brandKey)
+  if (canon) return canon
   return 'hanatour'
 }
 

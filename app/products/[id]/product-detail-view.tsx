@@ -67,10 +67,12 @@ import { getPriceAdult } from '@/lib/price-utils'
 import { pickVerygoodPublicDefaultDepartureRow } from '@/lib/verygood/verygood-public-default-departure'
 import { verygoodDurationLabelFromDepartureAtPair } from '@/lib/verygood/verygood-selected-row-trip-display'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import { brandKeyResolvesToYbtour } from '@/lib/overseas-supplier-canonical-keys'
 import { resolvePublicConsumptionModuleKey } from '@/lib/resolve-public-consumption-module-key'
 import { tryApplyVerygoodPublicProductSerializedPatch } from '@/lib/verygood-public-product-detail-patch'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { tryCaptionFromPublicImageUrl } from '@/lib/image-asset-public-caption'
+import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
 import ProductJsonLd from '@/app/components/seo/ProductJsonLd'
 import ProductDetailCopyGuard from '@/app/components/travel/ProductDetailCopyGuard'
 import {
@@ -175,6 +177,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
           /** ItineraryDay가 비어 있으면 Product.schedule JSON에 넣어 둔 식사·숙소(모두투어 confirm)로 보조 */
           return {
             ...s,
+            city: iday?.city?.trim() || null,
             hotelText: coalesceItineraryOrScheduleText(iday?.hotelText, s.hotelText),
             breakfastText: coalesceItineraryOrScheduleText(iday?.breakfastText, s.breakfastText),
             lunchText: coalesceItineraryOrScheduleText(iday?.lunchText, s.lunchText),
@@ -192,6 +195,16 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
     scheduleDays: scheduleMerged.length > 0 ? scheduleMerged : null,
   })
   const heroCoverCaptionFromAsset = await tryCaptionFromPublicImageUrl(seoCoverUrl)
+  const heroImageSeoKeywordOverlay = resolvePublicProductHeroSeoKeywordOverlay({
+    storedRegisterSeoKeywordsJson: travelProduct.publicImageHeroSeoKeywordsJson,
+    storedRegisterSeoLine: travelProduct.publicImageHeroSeoLine,
+    seoCaptionFromAsset: heroCoverCaptionFromAsset,
+    title: travelProduct.title ?? '',
+    primaryDestination: travelProduct.primaryDestination,
+    destination: travelProduct.destination,
+    duration: travelProduct.duration ?? null,
+    originSource: travelProduct.originSource ?? '',
+  })
   const seoProductDescription = buildPublicProductDescription({
     title: travelProduct.title ?? '',
     primaryDestination: travelProduct.primaryDestination,
@@ -217,10 +230,12 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
     return fs as FlightStructured
   })()
   const useYbtourHeroFlight =
-    travelProduct.brand?.brandKey === 'ybtour' ||
-    travelProduct.brand?.brandKey === 'yellowballoon' ||
-    flightStructuredDebug?.supplierBrandKey === 'ybtour' ||
-    flightStructuredDebug?.supplierBrandKey === 'yellowballoon' ||
+    brandKeyResolvesToYbtour(travelProduct.brand?.brandKey) ||
+    brandKeyResolvesToYbtour(
+      typeof flightStructuredDebug?.supplierBrandKey === 'string'
+        ? flightStructuredDebug.supplierBrandKey
+        : null
+    ) ||
     normalizeSupplierOrigin(travelProduct.originSource) === 'ybtour'
   const ybtourFlightStructuredForHeroPublic = useYbtourHeroFlight
     ? toPublicPersistedFlightStructured(modetourPersistedFlightStructured)
@@ -601,6 +616,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
     bgImageIsGenerated: travelProduct.bgImageIsGenerated ?? false,
     /** schedule 캡션 없을 때 image_assets(public_url 일치) seo_title/title/alt 로 히어로 보강 */
     heroCoverCaptionFromAsset,
+    /** 히어로 이미지 내부 좌측 SEO 키워드 전용(캡션 파이프라인과 분리) */
+    heroImageSeoKeywordOverlay,
     ...(useModetourPriceMergeContext
       ? {
           modetourStickyLocalPayLine: formatModetourStickyLocalPayPerPersonLine(

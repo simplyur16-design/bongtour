@@ -66,6 +66,7 @@ import {
 import { applyHanatourFlightRoutingChipOverride } from '@/lib/hanatour-product-meta-chips-patch'
 import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/public-schedule-display'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
+import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
 
 /** Prisma ProductPrice + 견적용 price* (lib/price-utils PriceRowLike 호환) */
 export type ProductPriceRow = {
@@ -103,6 +104,9 @@ export type ScheduleDay = {
   imageUrl?: string | null
   imageDisplayName?: string | null
   title?: string
+  imageKeyword?: string | null
+  /** ItineraryDay.city — 캐러셀 DAY 라벨 보조 */
+  city?: string | null
   hotelText?: string | null
   breakfastText?: string | null
   lunchText?: string | null
@@ -139,6 +143,8 @@ export type TravelProduct = {
   bgImageIsGenerated?: boolean | null
   /** 일정 표시명 없을 때 image_assets 메타로 히어로 첫 슬라이드 캡션 보강 */
   heroCoverCaptionFromAsset?: string | null
+  /** 히어로 이미지 내부 좌측 SEO 키워드(캡션과 분리) */
+  heroImageSeoKeywordOverlay?: string | null
   optionalTours?: Array<{ id: string; name: string; priceUsd: number; duration: string; waitPlaceIfNotJoined: string }>
   shoppingCount?: number | null
   shoppingItems?: string | null
@@ -374,9 +380,17 @@ export default function TravelProductDetail({ product }: Props) {
     })
   }, [])
 
-  const heroUrl = product.bgImageUrl ?? product.schedule?.[0]?.imageUrl ?? null
+  const heroUrl = useMemo(() => coverImageUrlForTravelProductClient(product), [product.bgImageUrl, product.schedule])
   const daySlides = useMemo(
-    () => (product.schedule ?? []).map((d) => ({ day: d.day, imageUrl: d.imageUrl, imageDisplayName: d.imageDisplayName })),
+    () =>
+      (product.schedule ?? []).map((d) => ({
+        day: d.day,
+        imageUrl: d.imageUrl,
+        imageDisplayName: d.imageDisplayName,
+        title: d.title ?? null,
+        imageKeyword: d.imageKeyword ?? null,
+        city: d.city ?? null,
+      })),
     [product.schedule]
   )
 
@@ -581,12 +595,13 @@ export default function TravelProductDetail({ product }: Props) {
               <ProductHeroCarousel
                 heroUrl={heroUrl}
                 daySlides={daySlides}
-                destinationLabel={product.destination}
                 productTitle={product.title}
                 className="w-full rounded-none border-0"
                 heroImageSourceType={product.bgImageSource ?? null}
                 heroImageIsGenerated={product.bgImageIsGenerated ?? null}
-                heroCaptionFromAsset={product.heroCoverCaptionFromAsset ?? null}
+                heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
+                primaryDestination={product.primaryDestination ?? null}
+                destination={product.destination ?? null}
               />
             </div>
             <div className="p-5 sm:p-6">

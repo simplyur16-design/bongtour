@@ -1,5 +1,10 @@
 import { createHash } from 'crypto'
 import { NextResponse } from 'next/server'
+import {
+  assertRegisterRouteSupplierMatch,
+  SupplierRouteMismatchError,
+} from '@/lib/assert-supplier-route-match'
+import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import {
@@ -108,6 +113,10 @@ import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confi
 import { buildRegisterVerificationBundle } from '@/lib/admin-register-verification-meta-ybtour'
 import type { RegisterPreviewProductDraft } from '@/lib/register-preview-payload-ybtour'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
+import {
+  buildRegisterPublicImageHeroSeoKeywords,
+  buildRegisterPublicImageHeroSeoLineCandidate,
+} from '@/lib/register-public-image-hero-seo-line-candidate'
 import { mergeYbtourDeterministicFieldsFromPaste } from '@/lib/ybtour-paste-deterministic-patch-ybtour'
 import { extractYbtourTripAnchorsFromPaste } from '@/lib/ybtour-trip-anchors-from-paste-ybtour'
 import { ybtourBuildMinimalDepartureInputs } from '@/lib/ybtour-synthetic-departure-ybtour'
@@ -473,13 +482,19 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         { status: 400 }
       )
     }
+    assertRegisterRouteSupplierMatch('ybtour', body.originSource, {
+      route: '/api/travel/parse-and-register-ybtour',
+    })
     const text = typeof body.text === 'string' ? body.text.trim() : ''
     const travelScope = typeof body.travelScope === 'string' ? body.travelScope.trim() : ''
     const brandKeyFromBody = typeof body.brandKey === 'string' ? body.brandKey.trim() || null : null
     if (forcedBrandKey !== 'ybtour') {
       return NextResponse.json({ error: '내부 설정 오류: ybtour 전용 오케스트레이션입니다.' }, { status: 500 })
     }
-    if (brandKeyFromBody && brandKeyFromBody !== 'ybtour' && brandKeyFromBody !== 'yellowballoon') {
+    if (
+      brandKeyFromBody &&
+      normalizeBrandKeyToCanonicalSupplierKey(brandKeyFromBody) !== 'ybtour'
+    ) {
       return NextResponse.json(
         {
           error: '요청 brandKey와 엔드포인트가 맞지 않습니다. 이 API에는 brandKey "ybtour"만 허용됩니다.',
@@ -488,8 +503,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       )
     }
     const brandKey = 'ybtour'
-    const incomingOriginSource =
-      typeof body.originSource === 'string' ? body.originSource.trim() : '직접입력'
+    const incomingOriginSource = (body.originSource as string).trim()
     const originSource = normalizeOriginSource(incomingOriginSource, brandKey)
     let originUrl: string | null = typeof body.originUrl === 'string' ? body.originUrl.trim() : null
     if (originUrl === '') originUrl = null
@@ -1397,6 +1411,24 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       heroReturnDateSource: heroAuditForMeta.returnSource,
     })
     const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
+    const registerHeroSeoInput = {
+      rawBodyText: text,
+      title: parsed.title,
+      primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
+      destination: parsed.destination,
+      duration: parsed.duration,
+      includedText: parsed.includedText ?? null,
+      excludedText: parsed.excludedText ?? null,
+      benefitSummary,
+      optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,
+      scheduleDayTitles: schedule.map((d) => d.title),
+      productScheduleJson: scheduleJson,
+      originSourceForFallback: effectiveOriginSource,
+    }
+    const registerPublicImageHeroSeoKeywords = buildRegisterPublicImageHeroSeoKeywords(registerHeroSeoInput)
+    const registerPublicImageHeroSeoLineSingle = registerPublicImageHeroSeoKeywords?.length
+      ? null
+      : buildRegisterPublicImageHeroSeoLineCandidate(registerHeroSeoInput)
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1449,6 +1481,14 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       shoppingShopOptions: parsed.shoppingStops ?? null,
       // 최소출발·예약현황은 Product 컬럼이 없는 DB와의 호환을 위해 rawMeta.structuredSignals만 사용 (mergeRawMetaWithStructuredSignals)
       rawMeta: baseRawMeta,
+      publicImageHeroSeoKeywordsJson: registerPublicImageHeroSeoKeywords?.length
+        ? JSON.stringify(registerPublicImageHeroSeoKeywords)
+        : null,
+      publicImageHeroSeoLine: registerPublicImageHeroSeoKeywords?.length
+        ? registerPublicImageHeroSeoKeywords.join(' · ').slice(0, 240)
+        : registerPublicImageHeroSeoLineSingle
+          ? registerPublicImageHeroSeoLineSingle.slice(0, 128)
+          : null,
       ...registerListingMeta,
     }
 
@@ -1622,6 +1662,19 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
   } catch (e) {
     ctx.stage = stage
     logParseAndRegister('fail', ctx, e)
+    if (e instanceof SupplierRouteMismatchError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: e.message,
+          expectedSupplier: e.expectedSupplier,
+          receivedOriginSource: e.receivedRaw,
+          normalizedSupplier: e.normalized,
+          route: e.route,
+        },
+        { status: 400 }
+      )
+    }
     const message = e instanceof Error ? e.message : '파싱 또는 등록 실패'
     return NextResponse.json(
       {

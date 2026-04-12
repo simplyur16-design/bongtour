@@ -1,11 +1,15 @@
 {
   "activeSeason": "spring",
-  "lastUpdatedAt": "2026-03-22T07:14:58.790Z",
+  "lastUpdatedAt": "2026-04-12T05:12:41.939Z",
   "images": {
-    "overseas": "/images/home-hub/candidates/overseas-spring-1774163156882-tb8jzx-2.png",
+    "overseas": "",
     "training": "/images/home-hub/candidates/training-spring-1774163629867-mejktl-1.png",
     "domestic": "/images/home-hub/candidates/domestic-spring-1774163272667-lqevr0-1.png",
     "bus": "/images/home-hub/base/bus.jpg"
   },
-  "lastUpdatedBy": "__mock_admin__"
+  "lastUpdatedBy": "__mock_admin__",
+  "imageSourceModes": {
+    "overseas": "product_pool",
+    "domestic": "product_pool"
+  }
 }

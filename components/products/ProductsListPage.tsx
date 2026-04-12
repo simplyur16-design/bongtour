@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { BrowseSort } from '@/lib/products-browse-filter'
+import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 
 type BrowseItem = {
@@ -15,6 +16,8 @@ type BrowseItem = {
   bgImageUrl: string | null
   coverImageUrl?: string | null
   coverImageDisplayName?: string | null
+  coverImageSeoKeyword?: string | null
+  coverImageSourceUserLabel?: string | null
   effectivePricePerPersonKrw: number | null
   earliestDeparture: string | null
 }
@@ -176,13 +179,19 @@ export default function ProductsListPage() {
               >
                 <div className="relative aspect-[16/10] w-full bg-slate-100">
                   {item.coverImageUrl || item.bgImageUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element -- arbitrary remote image hosts */
-                    <img
-                      src={item.coverImageUrl ?? item.bgImageUrl ?? ''}
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover"
-                      loading="lazy"
-                    />
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary remote image hosts */}
+                      <img
+                        src={item.coverImageUrl ?? item.bgImageUrl ?? ''}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                      <PublicImageBottomOverlay
+                        leftLabel={item.coverImageSeoKeyword ?? null}
+                        rightLabel={item.coverImageSourceUserLabel ?? null}
+                      />
+                    </>
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-slate-400">이미지 없음</div>
                   )}
@@ -197,7 +206,8 @@ export default function ProductsListPage() {
                   {item.primaryDestination && (
                     <p className="mt-1 text-xs text-slate-600">{item.primaryDestination}</p>
                   )}
-                  {item.coverImageDisplayName ? (
+                  {item.coverImageDisplayName &&
+                  item.coverImageDisplayName.trim() !== (item.coverImageSeoKeyword ?? '').trim() ? (
                     <p className="mt-1 text-[11px] text-slate-500">{item.coverImageDisplayName}</p>
                   ) : null}
                   <div className="mt-auto pt-3 flex flex-wrap items-end justify-between gap-2">

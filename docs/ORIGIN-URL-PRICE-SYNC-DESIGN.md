@@ -30,7 +30,7 @@
 
 ### 3.2 공급사별 분기
 
-- **필요함.** 하나투어/모두투어/노랑풍선 등 **도메인·페이지 구조가 다르므로**, 공급사(브랜드)별로 다른 수집 로직이 필요하다.
+- **필요함.** 공급사별(하나투어·모두투어·노랑풍선 등 **사이트/도메인**) **도메인·페이지 구조가 다르므로**, 브랜드(`hanatour`·`modetour`·`ybtour` … canonical)마다 다른 수집 로직이 필요하다.
 - **구분 키**: `Product.brandId` → Brand.brandKey, 또는 `Product.originSource` 문자열. `originUrl` 호스트/경로 패턴으로도 보조 판별 가능.
 - **구현 형태**: `lib/price-sync/` 또는 `lib/scrapers/` 아래에 `hanatour.ts`, `modetour.ts` 등 **어댑터**를 두고, URL/브랜드에 따라 하나를 선택해 실행. 공통 인터페이스: `fetchPriceCalendar(originUrl: string, productId: string): Promise<PriceCalendarResult>`.
 

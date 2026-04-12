@@ -1,6 +1,8 @@
 /**
  * 하나투어 본문 헤더 추출 → 등록 필드 반영 여부 (Gemini 미사용).
  * 실행: npx tsx scripts/verify-hanatour-basic-info-register-fields.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import { applyHanatourBasicInfoBodyExtract } from '../lib/hanatour-basic-info-body-extract'

@@ -1,6 +1,8 @@
 /**
  * 하나투어 기본정보 본문 추출 → RegisterParsed 병합 → 가격 finalize E2E 스모크.
  * 실행: npx tsx scripts/verify-hanatour-basic-info-e2e.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import {
   applyHanatourBasicInfoBodyExtract,

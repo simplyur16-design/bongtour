@@ -21,6 +21,8 @@ import { destinationTermsFromQuery } from '@/lib/top-nav-resolve'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { buildCaptionLookupMapFromPublicUrls, lookupCaptionFromMap } from '@/lib/image-asset-public-caption'
+import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
+import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
@@ -241,11 +243,30 @@ export async function GET(request: Request) {
       .map((m) => m.coverUrl as string)
     const captionMap = await buildCaptionLookupMapFromPublicUrls(urlsForCaptionBatch)
 
-    const items = metaRows.map(({ p, effectivePricePerPerson, coverUrl, firstScheduleName }) => ({
+    const items = metaRows.map(({ p, effectivePricePerPerson, coverUrl, firstScheduleName }) => {
+      const seoAssetHint = lookupCaptionFromMap(captionMap, coverUrl)
+      const coverImageSeoKeyword = resolvePublicProductHeroSeoKeywordOverlay({
+        storedRegisterSeoKeywordsJson: p.publicImageHeroSeoKeywordsJson,
+        storedRegisterSeoLine: p.publicImageHeroSeoLine,
+        seoCaptionFromAsset: seoAssetHint,
+        title: p.title,
+        primaryDestination: p.primaryDestination,
+        destination: p.destination,
+        duration: p.duration,
+        originSource: p.originSource ?? '',
+      })
+      const coverImageSourceUserLabel = resolvePublicImageSourceUserLabel({
+        dbSource: p.bgImageSource,
+        dbIsGenerated: p.bgImageIsGenerated,
+        imageUrl: coverUrl,
+      })
+      return {
       coverImageDisplayName:
         firstScheduleName ??
-        lookupCaptionFromMap(captionMap, coverUrl) ??
+        seoAssetHint ??
         displayNameFromImageUrl(coverUrl),
+      coverImageSeoKeyword,
+      coverImageSourceUserLabel,
       ...(() => {
         let hotelName: string | null = null
         let hotelGrade: string | null = null
@@ -292,7 +313,8 @@ export async function GET(request: Request) {
             return { overseasBucket, countryRowLabel }
           })()
         : {}),
-    }))
+    }
+    })
 
     let suggestedBudgetMax: number | null = null
     if (budgetPerPersonMax != null && total === 0 && filteredRows.length > 0) {

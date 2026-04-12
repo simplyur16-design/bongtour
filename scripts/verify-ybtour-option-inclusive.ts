@@ -1,5 +1,7 @@
 /**
  * 노랑풍선 옵션·포함불포함 파서 스모크 (로컬: npx tsx scripts/verify-ybtour-option-inclusive.ts)
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import { parseYbtourOptionalTourPasteSection } from '@/lib/register-ybtour-options'

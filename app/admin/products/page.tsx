@@ -8,10 +8,16 @@ import AdminKpiCard from '../components/AdminKpiCard'
 import AdminPageHeader from '../components/AdminPageHeader'
 import AdminStatusBadge from '../components/AdminStatusBadge'
 import { adminProductBgImageAttributionLine, adminProductBgImageSourceTypeLabel } from '@/lib/product-bg-image-attribution'
+import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
+import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
+import type { OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
 
 type ProductRow = {
   id: string
   originSource: string
+  /** 목록 API 파생 — canonical 우선 표시에 사용 */
+  canonicalBrandKey?: CanonicalOverseasSupplierKey | null
+  normalizedOriginSupplier?: OverseasSupplierKey
   originCode: string
   title: string
   destination: string | null
@@ -654,6 +660,7 @@ export default function AdminProductsPage() {
                         />
                       </th>
                       <th className="p-3 font-semibold text-gray-700">상품코드</th>
+                      <th className="p-3 font-semibold text-gray-700">공급사</th>
                       <th className="p-3 font-semibold text-gray-700">상품명</th>
                       <th className="p-3 font-semibold text-gray-700">항공사</th>
                       <th className="p-3 font-semibold text-gray-700">지역</th>
@@ -678,6 +685,9 @@ export default function AdminProductsPage() {
                           />
                         </td>
                         <td className="p-3 font-mono text-[#0f172a]">{p.originCode}</td>
+                        <td className="max-w-[7rem] truncate p-3 text-xs text-gray-600" title={adminSupplierPrimaryDisplayLabel(p)}>
+                          {adminSupplierPrimaryDisplayLabel(p)}
+                        </td>
                         <td className="max-w-[240px] truncate p-3 text-gray-900" title={p.title}>
                           {p.title}
                         </td>

@@ -13,6 +13,10 @@ import {
   registerScheduleToDayInputs,
   type ItineraryDayInput,
 } from '@/lib/upsert-itinerary-days-ybtour'
+import {
+  deriveYbtourScheduleDayHeaderTitle,
+  shouldReplaceYbtourScheduleDayTitle,
+} from '@/lib/ybtour-schedule-day-header-title'
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
@@ -208,6 +212,15 @@ export function ybtourScheduleDayFromPastedBlock(day: number, block: string): Re
   if (title.length > 80) title = title.slice(0, 80)
 
   const descFinal = (description || title).trim().slice(0, 400)
+  if (shouldReplaceYbtourScheduleDayTitle(title, descFinal)) {
+    const derived = deriveYbtourScheduleDayHeaderTitle({
+      day,
+      title: '',
+      description: descFinal,
+      dateText,
+    }).trim()
+    if (derived) title = derived.slice(0, 200)
+  }
   const meals = extractMealsFromYbtourBlock(block)
   const hotelText = extractHotelFromYbtourBlock(block)
 
@@ -290,9 +303,22 @@ export function augmentYbtourScheduleExpressionParsed(
   }
   const sched = next.schedule
   if (!sched?.length) return next
+  const cleaned = sched.map((r) => sanitizeYbtourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r)))
   return {
     ...next,
-    schedule: sched.map((r) => sanitizeYbtourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r))),
+    schedule: cleaned.map((r) => {
+      const title = String(r.title ?? '').trim()
+      const description = String(r.description ?? '').trim()
+      if (!shouldReplaceYbtourScheduleDayTitle(title, description)) return r
+      const nextTitle = deriveYbtourScheduleDayHeaderTitle({
+        day: r.day,
+        title,
+        description,
+        dateText: r.dateText ?? undefined,
+      }).trim()
+      if (!nextTitle) return r
+      return { ...r, title: nextTitle.slice(0, 200) }
+    }),
   }
 }
 

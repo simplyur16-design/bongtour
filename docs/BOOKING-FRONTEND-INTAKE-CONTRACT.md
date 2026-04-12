@@ -12,7 +12,7 @@
 | 필드 | 필수 | 비고 |
 |------|------|------|
 | `productId` | 예 | 상품 ID |
-| `originSource` | 예* | 미입력 시 서버가 상품에서 채움(권장: 클라이언트 전달) |
+| `originSource` | 예* | 미입력 시 서버가 상품에서 채움. **클라이언트 전달 시** 상품과 동일하게 canonical만: `hanatour` \| `modetour` \| `ybtour` \| `verygoodtour` (한글 상호는 UI 라벨용). |
 | `originCode` | 예* | 동일 |
 | `selectedDepartureDate` 또는 `selectedDate` | 조건 | 상품 일정에서 고른 날 `YYYY-MM-DD`. **있으면** 해당 일자 **가격 필수** |
 | `preferredDepartureDate` | 조건 | `YYYY-MM-DD`. **선택 일이 없을 때 희망일만으로 접수**할 때 필수 |
@@ -33,6 +33,30 @@
 
 \* 출발일: **`selectedDepartureDate`(또는 `selectedDate`)와 `preferredDepartureDate` 중 최소 하나는 반드시** 있어야 한다.  
 둘 다 있으면 견적은 **선택 일자** 기준이며, 희망일은 부가 정보로 저장될 수 있다.
+
+**POST `/api/bookings` JSON 예시 (`originSource` / `originCode` — 복붙용):**
+
+```json
+{
+  "productId": "…",
+  "originSource": "modetour",
+  "originCode": "AVP603VJC5",
+  "selectedDepartureDate": "2026-05-01",
+  "customerName": "홍길동",
+  "customerPhone": "010-0000-0000",
+  "customerEmail": "a@b.c",
+  "adultCount": 2,
+  "childCount": 0,
+  "childWithBedCount": 0,
+  "childNoBedCount": 0,
+  "infantCount": 0,
+  "singleRoomRequested": false,
+  "preferredContactChannel": "phone",
+  "childInfantBirthDates": []
+}
+```
+
+다른 공급사는 `originSource`만 `hanatour` / `ybtour` / `verygoodtour` 등으로 바꾸면 된다.
 
 ---
 

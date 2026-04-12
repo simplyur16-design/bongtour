@@ -1,6 +1,8 @@
 /**
  * 하나투어 쇼핑 5열 TSV(무헤더) 파서 검증.
  * 실행: npx tsx scripts/verify-hanatour-tab-shopping-five-col.ts
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
 import {

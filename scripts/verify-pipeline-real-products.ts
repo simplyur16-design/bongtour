@@ -1,5 +1,9 @@
 /**
  * 실측 상품 ID 기준: 관리자 structuredSignalsPreview vs 공개 parseProductRawMetaPublic, 키·FMC.
+ * 로그·요약에서 공급사 식별은 **`modetour` / `verygoodtour` 등 canonical `brandKey`** 기준으로 읽는다.
+ *
+ * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
+ *
  *   npx tsx scripts/verify-pipeline-real-products.ts
  */
 import { prisma } from '../lib/prisma'
