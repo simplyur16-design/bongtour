@@ -2,6 +2,7 @@
  * 등록된 국내 상품과 매칭되는 노드만 남긴 파생 트리.
  */
 import { triageProductTitleForPickTab } from '@/lib/gallery-product-triage'
+import { parseTravelScope } from '@/lib/product-listing-kind'
 import {
   DOMESTIC_LOCATION_TREE_CLEAN,
   matchTokensForDomesticAreaShallow,
@@ -14,10 +15,20 @@ import { productMatchesDomesticDestinationTerms, type DomesticProductMatchInput 
 
 export type { DomesticRegionGroupNode, DomesticAreaNode, DomesticLeafNode }
 
-export function filterProductsForDomesticDestinationTree<T extends { title: string } & DomesticProductMatchInput>(
-  products: T[]
-): T[] {
-  return products.filter((p) => triageProductTitleForPickTab(p.title) === 'domestic')
+/**
+ * 국내 허브 상품 풀.
+ * 제목 휴리스틱만 쓰면 DB에 `travelScope=domestic`인데 상품명에 「제주」 등이 없으면 통째로 빠진다.
+ * `travelScope`가 있으면 그것을 우선한다(반대로 `overseas`면 국내 허브에서 제외).
+ */
+export function filterProductsForDomesticDestinationTree<
+  T extends { title: string; travelScope?: string | null } & DomesticProductMatchInput,
+>(products: T[]): T[] {
+  return products.filter((p) => {
+    const ts = parseTravelScope(p.travelScope ?? undefined)
+    if (ts === 'overseas') return false
+    if (ts === 'domestic') return true
+    return triageProductTitleForPickTab(p.title) === 'domestic'
+  })
 }
 
 function leafHasProduct(area: DomesticAreaNode, leaf: DomesticLeafNode, products: DomesticProductMatchInput[]): boolean {

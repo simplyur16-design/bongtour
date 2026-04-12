@@ -114,21 +114,18 @@ export async function GET(request: Request) {
       orderBy: { updatedAt: 'desc' },
       include: PRODUCT_BROWSE_FULL_INCLUDE,
     })
-    const rowsWithPublicDepartures = rows
-      .map((p) => {
-        const nextDepartures = (p.departures ?? []).filter((d) =>
-          isOnOrAfterPublicBookableMinDate(d.departureDate)
-        )
-        const hadAnyDepartureRows = (p.departures?.length ?? 0) > 0
-        if (hadAnyDepartureRows && nextDepartures.length === 0) {
-          return null
-        }
-        return {
-          ...p,
-          departures: nextDepartures,
-        }
-      })
-      .filter((p): p is (typeof rows)[number] => p != null)
+    /**
+     * 공개 목록용으로 "예약 가능 최소일(오늘+2일) 이후" 출발만 `departures`에 남긴다.
+     * 예전에는 DB에 출발 행이 하나라도 있으면서 전부 과거인 경우 상품 전체를 빼서,
+     * 관리자 KPI(등록 건수)와 고객 목록이 어긋날 수 있었다. 상품은 유지하고 가격·정렬은
+     * `computeEffectivePricePerPersonKrwFromRow`의 레거시 prices / priceFrom 폴백을 쓴다.
+     */
+    const rowsWithPublicDepartures = rows.map((p) => {
+      const nextDepartures = (p.departures ?? []).filter((d) =>
+        isOnOrAfterPublicBookableMinDate(d.departureDate)
+      )
+      return { ...p, departures: nextDepartures }
+    })
 
     const scope = searchParams.get('scope')
     const overseasLike = scope === 'overseas' || !!region
@@ -364,17 +361,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: false, error: '요청 파라미터를 처리하지 못했습니다.' }, { status: 400 })
     }
     const sp = new URL(request.url).searchParams
-    const fallback = {
-      ok: true,
-      total: 0,
+    /**
+     * 예전에는 여기서 ok:true, total:0 을 반환해 DB/Prisma 오류가 "상품 없음"처럼 보였다.
+     * 운영에서 원인 파악이 가능하도록 실패 응답으로 통일한다.
+     */
+    const body = {
+      ok: false as const,
+      error: '상품 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
       page: q.page,
       limit: q.limit,
-      items: [],
-      destinationTerms: [],
-      suggestedBudgetMax: null,
+      destinationTerms: [] as string[],
+      suggestedBudgetMax: null as number | null,
       facets: {
-        brands: [],
-        airlines: [],
+        brands: [] as { key: string; label: string; count: number }[],
+        airlines: [] as { code: string; label: string; count: number }[],
         hasDepartureTimeData: false,
         hasWeekdayData: false,
       },
@@ -388,7 +388,7 @@ export async function GET(request: Request) {
         city: sp.get('city'),
       },
     }
-    assertNoInternalMetaLeak(fallback, '/api/products/browse')
-    return NextResponse.json(fallback)
+    assertNoInternalMetaLeak(body, '/api/products/browse')
+    return NextResponse.json(body, { status: 500 })
   }
 }

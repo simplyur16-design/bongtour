@@ -3,6 +3,7 @@
  * 원본 OVERSEAS_LOCATION_TREE / OVERSEAS_LOCATION_TREE_CLEAN 은 SSOT로 유지.
  */
 import { triageProductTitleForPickTab } from '@/lib/gallery-product-triage'
+import { parseTravelScope } from '@/lib/product-listing-kind'
 import { productMatchesOverseasDestinationTerms, type OverseasProductMatchInput } from '@/lib/match-overseas-product'
 import {
   OVERSEAS_LOCATION_TREE_CLEAN,
@@ -15,11 +16,18 @@ import {
 
 export type { OverseasRegionGroupNode, OverseasCountryNode, OverseasLeafNode }
 
-/** 탐색 트리에 쓸 해외 상품: 국내 탭으로 분류되는 제목은 제외 */
-export function filterProductsForOverseasDestinationTree<T extends { title: string } & OverseasProductMatchInput>(
-  products: T[]
-): T[] {
+/**
+ * 해외 허브 상품 풀.
+ * 제목만 보면 `travelScope=overseas`인 패키지가 국내 키워드 없이 빠질 수 있어 DB 플래그를 우선한다.
+ * `travelScope=domestic`이면 해외 허브에서 제외.
+ */
+export function filterProductsForOverseasDestinationTree<
+  T extends { title: string; travelScope?: string | null } & OverseasProductMatchInput,
+>(products: T[]): T[] {
   return products.filter((p) => {
+    const ts = parseTravelScope(p.travelScope ?? undefined)
+    if (ts === 'domestic') return false
+    if (ts === 'overseas') return true
     const tab = triageProductTitleForPickTab(p.title)
     return tab === 'overseas_package' || tab === 'freeform'
   })
