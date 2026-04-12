@@ -34,6 +34,14 @@ nginx(www 리다이렉트·프록시 헤더)는 `nginx-bongtour-site.conf.exampl
 
 ---
 
+## 가동·관측 (권장)
+
+- **헬스체크**: `GET` 또는 `HEAD` **`https://<도메인>/api/health`** — 200이면 Node(Next)가 응답하는 것입니다. UptimeRobot·Better Stack 등에서 1~5분 간격으로 호출해 두면 “언제부터 죽었는지”를 잡기 쉽습니다.
+- **배포 직후**: `pm2 logs bongtour --lines 80` 과 `sudo tail -n 50 /var/log/nginx/error.log`(경로는 서버 설정에 따름)을 **1회**만 확인하는 습관.
+- **알림**: 모니터링 도구에서 다운·SSL 만료·5xx 연속 시 **슬랙·메일·카카오** 등 한 채널이라도 연결해 두면 복구가 빨라집니다.
+
+---
+
 ## ybtour 관리자 출발일·가격 재수집 (Python Playwright)
 
 관리자 상품 상세의 **출발일/가격 재수집**은 Node가 `python3 -m scripts.calendar_e2e_scraper_ybtour.calendar_price_scraper <상세URL>` 을 한 번 실행합니다.  
