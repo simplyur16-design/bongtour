@@ -91,6 +91,13 @@ export function citySlugFromLeaf(leaf: MegaMenuLeaf): string {
     .replace(/[^a-z0-9가-힣-]+/g, '')
 }
 
+/** 메가메뉴 기본 `travel` 은 URL에 넣지 않음 — 실제 상품이 에어텔/자유로만 분류돼도 목적지 필터만으로 0건이 되지 않게 */
+function appendBrowseTypeParamIfNarrowing(params: URLSearchParams, type: string): void {
+  const u = type.trim().toLowerCase()
+  if (u === '' || u === 'travel') return
+  params.set('type', type.trim())
+}
+
 export function buildProductsHref(opts: {
   type: string
   regionId: string
@@ -98,7 +105,7 @@ export function buildProductsHref(opts: {
   leaf: MegaMenuLeaf
 }): string {
   const params = new URLSearchParams()
-  params.set('type', opts.type)
+  appendBrowseTypeParamIfNarrowing(params, opts.type)
   params.set('region', opts.regionId)
   params.set('country', countrySlugFromLabel(opts.countryLabel))
   params.set('city', citySlugFromLeaf(opts.leaf))
@@ -111,7 +118,7 @@ export function buildProductsHrefCountryOnly(opts: {
   countryLabel: string
 }): string {
   const params = new URLSearchParams()
-  params.set('type', opts.type)
+  appendBrowseTypeParamIfNarrowing(params, opts.type)
   params.set('region', opts.regionId)
   params.set('country', countrySlugFromLabel(opts.countryLabel))
   return `/products?${params.toString()}`
