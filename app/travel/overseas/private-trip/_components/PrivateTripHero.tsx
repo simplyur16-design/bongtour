@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import OverseasHero from '@/app/components/travel/overseas/OverseasHero'
-import type { PrivateTripHeroSlide } from '@/lib/private-trip-hero-slides'
+import type { PrivateTripHeroSlide } from '@/lib/private-trip-hero-types'
 
 type Props = {
   inquiryHref: string

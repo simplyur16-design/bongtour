@@ -1,9 +1,10 @@
 import fs from 'fs'
 import path from 'path'
-import { getPrivateTripHeroSlides, type PrivateTripHeroSlide } from '@/lib/private-trip-hero-slides'
+import { PRIVATE_TRIP_HERO_FOLDER_PUBLIC } from '@/lib/private-trip-hero-constants'
+import { getPrivateTripHeroSlides } from '@/lib/private-trip-hero-slides'
+import type { PrivateTripHeroSlide } from '@/lib/private-trip-hero-types'
 
-/** 브라우저에서 접근하는 경로 (고정). 이 폴더만 스캔한다. */
-export const PRIVATE_TRIP_HERO_FOLDER_PUBLIC = '/images/private-trip-hero'
+export { PRIVATE_TRIP_HERO_FOLDER_PUBLIC } from '@/lib/private-trip-hero-constants'
 
 const DISK_SEGMENTS = ['public', 'images', 'private-trip-hero'] as const
 

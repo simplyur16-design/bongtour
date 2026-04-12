@@ -4,8 +4,8 @@ import {
   parsePrivateTripHeroSlidesFile,
   readPrivateTripHeroSlidesFile,
   writePrivateTripHeroSlidesFile,
-  type PrivateTripHeroSlide,
 } from '@/lib/private-trip-hero-slides'
+import type { PrivateTripHeroSlide } from '@/lib/private-trip-hero-types'
 
 export async function GET() {
   const admin = await requireAdmin()

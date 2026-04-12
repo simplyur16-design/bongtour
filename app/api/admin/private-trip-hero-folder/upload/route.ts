@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
-import {
-  PRIVATE_TRIP_HERO_UPLOAD_MAX_BYTES,
-  processPrivateTripHeroImageToWebpCover,
-  saveProcessedPrivateTripHeroWebp,
-} from '@/lib/private-trip-hero-upload'
+import { PRIVATE_TRIP_HERO_UPLOAD_MAX_BYTES } from '@/lib/private-trip-hero-constants'
+import { processPrivateTripHeroImageToWebpCover, saveProcessedPrivateTripHeroWebp } from '@/lib/private-trip-hero-upload'
 
 const ALLOWED_MIME = new Set([
   'image/jpeg',

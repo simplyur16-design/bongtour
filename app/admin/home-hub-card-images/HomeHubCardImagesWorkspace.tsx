@@ -10,7 +10,7 @@ import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
 import type { HomeHubActiveClientModel } from '@/lib/home-hub-active-client-model'
 import { homeHubActiveFileToClientModel } from '@/lib/home-hub-active-client-model'
 import type { HomeHubActiveFile } from '@/lib/home-hub-resolve-images'
-import type { PrivateTripHeroSlidesFile } from '@/lib/private-trip-hero-slides'
+import type { PrivateTripHeroSlidesFile } from '@/lib/private-trip-hero-types'
 import { PrivateTripHeroSlidesPanel } from '@/components/admin/home-hub/PrivateTripHeroSlidesPanel'
 
 const CARD_LABEL: Record<HomeHubCardImageKey, string> = {

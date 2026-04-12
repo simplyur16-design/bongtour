@@ -15,7 +15,7 @@ import {
   pageHeroMonthlyGeminiJobKey,
 } from '@/lib/page-hero-monthly-shared'
 import type { PageHeroMonthlyGeminiJob } from '@/lib/page-hero-monthly-types'
-import type { PrivateTripHeroSlide } from '@/lib/private-trip-hero-slides'
+import type { PrivateTripHeroSlide } from '@/lib/private-trip-hero-types'
 
 const WEEKDAYS_KR = ['일', '월', '화', '수', '목', '금', '토'] as const
 

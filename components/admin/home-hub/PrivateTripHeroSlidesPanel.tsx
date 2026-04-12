@@ -1,12 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { PrivateTripHeroSlide, PrivateTripHeroSlidesFile } from '@/lib/private-trip-hero-slides'
-import { PRIVATE_TRIP_HERO_FOLDER_PUBLIC } from '@/lib/private-trip-hero-folder'
 import {
   PRIVATE_TRIP_HERO_COVER_HEIGHT,
   PRIVATE_TRIP_HERO_COVER_WIDTH,
-} from '@/lib/private-trip-hero-upload'
+  PRIVATE_TRIP_HERO_FOLDER_PUBLIC,
+} from '@/lib/private-trip-hero-constants'
+import type { PrivateTripHeroSlide, PrivateTripHeroSlidesFile } from '@/lib/private-trip-hero-types'
 
 const EMPTY_ROW: PrivateTripHeroSlide = {
   imageUrl: '',

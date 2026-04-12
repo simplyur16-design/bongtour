@@ -1,23 +1,10 @@
 import fs from 'fs'
 import path from 'path'
+import type { PrivateTripHeroSlide, PrivateTripHeroSlidesFile, WritePrivateTripHeroSlidesInput } from '@/lib/private-trip-hero-types'
+
+export type { PrivateTripHeroSlide, PrivateTripHeroSlidesFile, WritePrivateTripHeroSlidesInput } from '@/lib/private-trip-hero-types'
 
 const CONFIG_REL = ['public', 'data', 'private-trip-hero-slides.json'] as const
-
-export type PrivateTripHeroSlide = {
-  imageUrl: string
-  /** 히어로 하단 굵은 한 줄 (비우면 기본 문구) */
-  headline?: string
-  /** 보조 한 줄 (상품명 자리) */
-  caption?: string
-  /** 비우면 이미지는 링크 없음. `/inquiry?...` 또는 `/products/…` 등 */
-  linkHref?: string
-}
-
-export type PrivateTripHeroSlidesFile = {
-  lastUpdatedAt?: string | null
-  lastUpdatedBy?: string | null
-  slides: PrivateTripHeroSlide[]
-}
 
 function configPath(): string {
   return path.join(process.cwd(), ...CONFIG_REL)
@@ -72,11 +59,6 @@ export function readPrivateTripHeroSlidesFile(): PrivateTripHeroSlidesFile {
 /** 공개 페이지용: 유효 슬라이드만 (JSON 폴백 시 최대 50, 폴더 모드는 별도) */
 export function getPrivateTripHeroSlides(): PrivateTripHeroSlide[] {
   return readPrivateTripHeroSlidesFile().slides
-}
-
-export type WritePrivateTripHeroSlidesInput = {
-  slides: PrivateTripHeroSlide[]
-  lastUpdatedBy: string
 }
 
 export function writePrivateTripHeroSlidesFile(input: WritePrivateTripHeroSlidesInput): PrivateTripHeroSlidesFile {
