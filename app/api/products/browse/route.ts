@@ -195,11 +195,20 @@ export async function GET(request: Request) {
     })
 
     if (departMonth && /^\d{4}-\d{2}$/.test(departMonth)) {
-      const [y, m] = departMonth.split('-').map((x) => parseInt(x, 10))
+      const monthKeyFromDate = (dt: Date) =>
+        `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
+      /** 예약 가능 출발만 남기기 전 원본 행(`rows`)의 출발일로 월 매칭 — 전부 과거라도 해당 월 상품이 0건으로 사라지지 않게 함 */
       scored = scored.filter((s) => {
-        const d = s.earliestDeparture
-        if (!d) return false
-        return d.getFullYear() === y && d.getMonth() + 1 === m
+        const bookable = s.earliestDeparture
+        if (bookable && monthKeyFromDate(bookable) === departMonth) return true
+        const orig = rows.find((r) => r.id === s.product.id)
+        for (const dep of orig?.departures ?? []) {
+          const dt =
+            dep.departureDate instanceof Date ? dep.departureDate : new Date(dep.departureDate)
+          if (Number.isNaN(dt.getTime())) continue
+          if (monthKeyFromDate(dt) === departMonth) return true
+        }
+        return false
       })
     }
 
