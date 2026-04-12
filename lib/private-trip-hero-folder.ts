@@ -36,9 +36,13 @@ export function listPrivateTripHeroFolderImagePublicUrls(): string[] {
     files.push(ent.name)
   }
   files.sort((a, b) => a.localeCompare(b, 'ko', { sensitivity: 'base' }))
-  return files
-    .slice(0, MAX_FILES)
-    .map((name) => `${PRIVATE_TRIP_HERO_FOLDER_PUBLIC}/${encodeURIComponent(name)}`)
+  return files.slice(0, MAX_FILES).map((name) => {
+    // ASCII-only 파일명은 그대로(nginx·Next 정적 일치). 그 외는 RFC3986 인코딩(레거시 호환).
+    if (/^[a-zA-Z0-9._-]+$/.test(name)) {
+      return `${PRIVATE_TRIP_HERO_FOLDER_PUBLIC}/${name}`
+    }
+    return `${PRIVATE_TRIP_HERO_FOLDER_PUBLIC}/${encodeURIComponent(name)}`
+  })
 }
 
 function folderUrlsToSlides(urls: string[]): PrivateTripHeroSlide[] {

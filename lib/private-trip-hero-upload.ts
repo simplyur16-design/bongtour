@@ -15,10 +15,21 @@ import {
 
 const MAX_FOLDER_FILES = 500
 
-function safeFileStem(originalName: string): string {
+/**
+ * 디스크·URL 경로 모두 안전한 ASCII 파일명만 사용 (nginx 정적 경로·퍼센트 인코딩 불일치 방지).
+ */
+function asciiHeroFileName(originalName: string): string {
   const base = path.basename(originalName || 'upload', path.extname(originalName || ''))
-  const cleaned = base.replace(/[^\p{L}\p{N}_-]+/gu, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
-  return cleaned.slice(0, 48) || 'hero'
+  const ascii = base
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase()
+    .slice(0, 32)
+  const stem = ascii || 'hero'
+  return `${stem}-${randomUUID().slice(0, 10)}.webp`
 }
 
 /**
@@ -58,14 +69,13 @@ export async function saveProcessedPrivateTripHeroWebp(
     fs.mkdirSync(dir, { recursive: true })
   }
 
-  const stem = safeFileStem(originalFileName)
-  const fileName = `${stem}-${randomUUID().slice(0, 10)}.webp`
+  const fileName = asciiHeroFileName(originalFileName)
   const abs = path.join(dir, fileName)
   fs.writeFileSync(abs, webpBuffer)
 
   return {
     fileName,
-    publicUrl: `${PRIVATE_TRIP_HERO_FOLDER_PUBLIC}/${encodeURIComponent(fileName)}`,
+    publicUrl: `${PRIVATE_TRIP_HERO_FOLDER_PUBLIC}/${fileName}`,
     bytesWritten: webpBuffer.length,
   }
 }
