@@ -1,10 +1,119 @@
 /**
  * 참좋은여행(verygoodtour) 전용: 일차 `description`을 하루 흐름 요약으로 정리한다.
- * 한 문장 고득점 조기 종료 없이, 이동·관광·마무리(공항/출국/도착/휴식) 의미 단위를 2~4개 조합한다.
+ * 일차 `title`은 미리보기 1줄 헤더용으로 **방문지 A-B-C** 형식(하이픈 연결)만 정규화한다.
  *
  * 톤 가드: 과장·연속 감탄만 최소 완화. 단어 단위 전역 삭제 금지(§9.3 금지어를 일정 문장에서 잘라내면 조건·구분·약관 의미가 깨짐).
  */
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
+
+const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
+
+const VERYGOOD_TITLE_JUNK = /1\/2이전다음|이전다음|상세보기|일정표_|데이투어|요금\s*:|소요시간\s*:|대체일정\s*:|\[TIP\]|※/gi
+
+const MEAL_HOTEL_IN_TITLE = /호텔|리조트|조식|중식|석식|예정\s*호텔|면세점|쇼핑\s*센터/i
+
+/** title 스캔용 지명(긴 이름 우선) */
+const VERYGOOD_TITLE_PLACES: string[] = `체스키크룸로프 잘츠부르크 브로츠와프 부다페스트 할슈타트 인터라켄 취리히 제네바 루체른 베네치아 피렌체 로마 밀라노 바티칸 파리 니스 마르세유 런던 에든버러 바르셀로나 마드리드 리스본 베를린 뮌헨 비엔나 프라하 크라쿠프 융프라우 인터라켄 그린델발트 인천 김포 서울 부산 제주 도쿄 요코하마 오사카 교토 삿포로 나고야 후쿠오카 가나자와 홍콩 마카오 타이페이 방콕 치앙마이 파타야 푸켓 다낭 하노이 호치민 발리 싱가포르 시드니 멜버른 뉴욕 밴쿠버 토론토 괌 사이판 호놀룰루 상해 북경 광저우 연길 장춘`
+  .split(/\s+/)
+  .filter(Boolean)
+  .sort((a, b) => b.length - a.length)
+
+function stripVerygoodTitleScanText(text: string): string {
+  return text.replace(VERYGOOD_TITLE_JUNK, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function squashHyphenChain(t: string): string {
+  return t
+    .replace(/\s*-\s*/g, '-')
+    .replace(/\s*·\s*/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function extractVerygoodTitlePlaces(hay: string): string[] {
+  const h = hay.replace(/\s+/g, ' ')
+  if (!h) return []
+  const hits: Array<{ idx: number; name: string }> = []
+  for (let i = 0; i < h.length; i++) {
+    for (const name of VERYGOOD_TITLE_PLACES) {
+      if (h.startsWith(name, i)) {
+        hits.push({ idx: i, name })
+        i += name.length - 1
+        break
+      }
+    }
+  }
+  hits.sort((a, b) => a.idx - b.idx)
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const { name } of hits) {
+    if (seen.has(name)) continue
+    if (MEAL_HOTEL_IN_TITLE.test(name)) continue
+    seen.add(name)
+    out.push(name)
+  }
+  return out
+}
+
+function isReturnDayHay(hay: string, isLastDay: boolean): boolean {
+  if (!isLastDay) return false
+  return /(?:귀국|출국|공항\s*이동|국제선).{0,80}(?:도착|입국|인천)|(?:인천|ICN).{0,40}(?:도착|입국)/u.test(hay)
+}
+
+function isMovementHay(hay: string): boolean {
+  const hasMove = /(?:출발|도착|이동|입국|공항|미팅|환승|편으로)/u.test(hay)
+  const hasSight = /(?:관광|방문|입장|체험|명소|둘러보)/u.test(hay)
+  return hasMove && !hasSight
+}
+
+function formatVerygoodOneLineVisitTitle(
+  title: string,
+  descriptionRaw: string,
+  ctx: { isLastDay: boolean }
+): string {
+  const hay = stripVerygoodTitleScanText(`${title}\n${descriptionRaw}`)
+  const places = extractVerygoodTitlePlaces(hay)
+  const maxLen = 56
+
+  if (isReturnDayHay(hay, ctx.isLastDay)) {
+    const body = places.filter((p) => p !== '인천' && p !== '김포')
+    if (body.length) return squashHyphenChain(`${body.slice(0, 3).join('-')}-인천`).slice(0, maxLen)
+    if (/인천/u.test(hay) && /(?:도착|귀국|입국)/u.test(hay)) return '인천'
+  }
+
+  if (isMovementHay(hay) && places.length >= 2) {
+    const a = places[0]!
+    const b = places[1]!
+    return squashHyphenChain(`${a}-${b}`).slice(0, maxLen)
+  }
+
+  if (places.length >= 2) {
+    return squashHyphenChain(places.slice(0, 4).join('-')).slice(0, maxLen)
+  }
+
+  if (places.length === 1) return places[0]!.slice(0, maxLen)
+
+  const t0 = stripVerygoodTitleScanText(title)
+  if (
+    t0 &&
+    t0.length >= 2 &&
+    t0.length <= maxLen &&
+    !DAY_N_TRAVEL_RE.test(t0) &&
+    !/^Day\s*\d+$/i.test(t0) &&
+    !/^\d{4}[./-]\d{1,2}[./-]\d{1,2}/.test(t0) &&
+    !MEAL_HOTEL_IN_TITLE.test(t0) &&
+    !/(?:습니다|합니다|입니다)\s*\.?\s*$/u.test(t0)
+  ) {
+    return squashHyphenChain(t0).slice(0, maxLen)
+  }
+
+  const descHay = stripVerygoodTitleScanText(descriptionRaw)
+  const dp = extractVerygoodTitlePlaces(descHay)
+  if (dp.length >= 2) return squashHyphenChain(dp.slice(0, 4).join('-')).slice(0, maxLen)
+  if (dp.length === 1) return dp[0]!.slice(0, maxLen)
+  return ''
+}
 
 /** 공백·연속 느낌표 정리만. 원문 명사·조건·절차 문구는 삭제하지 않음. */
 function applyVerygoodScheduleDescriptionToneGuard(text: string): string {
@@ -328,6 +437,7 @@ export function polishVerygoodRegisterScheduleDescriptions(schedule: RegisterSch
     const isLastDay = maxDay >= 1 && day === maxDay
     const raw = row.description ?? ''
     const desc = narrativeCompactVerygoodDayDescription(raw, { isLastDay })
-    return { ...row, description: desc }
+    const titleNext = formatVerygoodOneLineVisitTitle(String(row.title ?? ''), raw, { isLastDay })
+    return { ...row, title: titleNext || String(row.title ?? '').trim(), description: desc }
   })
 }
