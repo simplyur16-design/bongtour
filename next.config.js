@@ -40,15 +40,16 @@ function buildContentSecurityPolicy() {
     "frame-ancestors 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
     // globals.css @import Pretendard from jsDelivr — Chrome may enforce style-src-elem separately
-    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-    "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    // next/font/google(Noto 등)는 fonts.googleapis.com 링크·fonts.gstatic.com 글리프를 쓸 수 있음
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+    "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob: https: http:",
-    "font-src 'self' data: https://cdn.jsdelivr.net",
+    "font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com",
     "frame-src 'self' https://www.googletagmanager.com https://www.google.com",
     // www / non-www 혼용 시 RSC·fetch가 'self'와 달라 connect-src 에서 막힘 — origin 통일 전까지 둘 다 허용
     // jsDelivr: Pretendard 등 @import 리소스의 .map 소스맵 fetch(connect) — style-src/font-src 와 별도
-    "connect-src 'self' https://bongtour.com https://www.bongtour.com https://*.supabase.co https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com",
+    "connect-src 'self' https://bongtour.com https://www.bongtour.com https://*.supabase.co https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com",
     "worker-src 'self' blob:",
   ]
   return directives.join('; ')
