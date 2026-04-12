@@ -104,7 +104,12 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
           }
           if (!res.ok || !data.ok) {
             const detail = data.detail ? ` (${data.detail})` : ''
-            errors.push(`${file.name}: ${data.error || String(res.status)}${detail}`)
+            let line = `${file.name}: ${data.error || String(res.status)}${detail}`
+            if (res.status === 413) {
+              line +=
+                ' — 우리여행 히어로(이 섹션) 업로드가 nginx 본문 한도에 걸렸습니다. 해당 도메인 `server { }`에 `client_max_body_size 35m;`를 넣고 `sudo nginx -t && sudo systemctl reload nginx` 하세요.'
+            }
+            errors.push(line)
           }
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e)
