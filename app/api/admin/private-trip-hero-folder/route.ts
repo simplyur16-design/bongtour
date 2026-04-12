@@ -7,11 +7,12 @@ export async function GET() {
   if (!admin) {
     return NextResponse.json({ ok: false, error: '인증이 필요합니다.' }, { status: 401 })
   }
-  const { diskPath, publicUrls } = getPrivateTripHeroFolderListing()
+  const { diskPath, publicUrls, source } = await getPrivateTripHeroFolderListing()
   return NextResponse.json({
     ok: true,
     diskPath,
     publicUrls,
+    source,
     count: publicUrls.length,
   })
 }

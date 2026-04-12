@@ -5,6 +5,7 @@ import {
   PRIVATE_TRIP_HERO_COVER_HEIGHT,
   PRIVATE_TRIP_HERO_COVER_WIDTH,
   PRIVATE_TRIP_HERO_FOLDER_PUBLIC,
+  PRIVATE_TRIP_HERO_STORAGE_PREFIX,
 } from '@/lib/private-trip-hero-constants'
 import type { PrivateTripHeroSlide, PrivateTripHeroSlidesFile } from '@/lib/private-trip-hero-types'
 
@@ -37,6 +38,7 @@ function rowsFromFile(file: PrivateTripHeroSlidesFile | null): PrivateTripHeroSl
 export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
   const [folderUrls, setFolderUrls] = useState<string[]>([])
   const [folderDiskPath, setFolderDiskPath] = useState<string>('')
+  const [folderSource, setFolderSource] = useState<'supabase' | 'disk'>('disk')
   const [folderLoading, setFolderLoading] = useState(true)
 
   const [rows, setRows] = useState<PrivateTripHeroSlide[]>(() => rowsFromFile(initialFile))
@@ -58,16 +60,18 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
         ok?: boolean
         publicUrls?: string[]
         diskPath?: string
+        source?: 'supabase' | 'disk'
         error?: string
       }
       if (!res.ok || !data.ok) {
-        setMessage({ kind: 'err', text: data.error || '폴더 목록을 불러오지 못했습니다.' })
+        setMessage({ kind: 'err', text: data.error || '히어로 이미지 목록을 불러오지 못했습니다.' })
         return
       }
       setFolderUrls(Array.isArray(data.publicUrls) ? data.publicUrls : [])
       setFolderDiskPath(typeof data.diskPath === 'string' ? data.diskPath : '')
+      setFolderSource(data.source === 'supabase' ? 'supabase' : 'disk')
     } catch {
-      setMessage({ kind: 'err', text: '폴더 목록을 불러오지 못했습니다.' })
+      setMessage({ kind: 'err', text: '히어로 이미지 목록을 불러오지 못했습니다.' })
     } finally {
       setFolderLoading(false)
     }
@@ -205,7 +209,7 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
         kind: 'ok',
         text:
           folderUrls.length > 0
-            ? 'JSON을 저장했습니다. 지금은 전용 폴더에 이미지가 있어 히어로에는 폴더만 쓰입니다. 폴더를 비우면 이 JSON이 적용됩니다.'
+            ? 'JSON을 저장했습니다. 지금은 히어로 이미지 풀(저장소·디스크)에 파일이 있어 풀만 쓰입니다. 풀을 비우면 이 JSON이 적용됩니다.'
             : '저장했습니다. 우리여행 페이지를 새로고침해 확인하세요.',
       })
     } catch {
@@ -221,10 +225,13 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
   return (
     <section className="rounded-xl border border-slate-600 bg-slate-900/40 p-4 sm:p-5">
       <div className="border-b border-slate-700 pb-4">
-        <h2 className="text-base font-semibold text-white">우리여행 히어로 (전용 폴더)</h2>
+        <h2 className="text-base font-semibold text-white">우리여행 히어로 (이미지 풀)</h2>
         <p className="mt-2 text-sm text-slate-400">
-          아래 공개 경로의 <strong className="text-slate-200">폴더 안 파일만</strong> 읽어 슬라이드합니다. 장 수 제한 없이(
-          <span className="text-slate-300">서버 상한 500</span>까지) 돌아갑니다. 파일명 오름차순(로케일 기준)입니다.
+          <strong className="text-slate-200">Supabase Storage</strong>가 서버에 연결되어 있으면 버킷 접두사{' '}
+          <code className="text-teal-200/90">{PRIVATE_TRIP_HERO_STORAGE_PREFIX}/</code> 아래 파일을 우선 사용합니다.
+          비어 있거나 미연결이면 <strong className="text-slate-200">서버 디스크</strong>{' '}
+          <code className="text-slate-300">{PRIVATE_TRIP_HERO_FOLDER_PUBLIC}/</code> 를 봅니다. 장 수는{' '}
+          <span className="text-slate-300">상한 500</span>, 파일명 오름차순입니다.
         </p>
         <p className="mt-2 text-sm text-slate-400">
           <strong className="text-slate-200">업로드</strong> 시 서버가 바로{' '}
@@ -234,7 +241,8 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
           하고 <span className="text-teal-200/90">WebP</span>로 맞춥니다(히어로 영역·용량 통일).
         </p>
         <p className="mt-2 font-mono text-xs text-teal-200/90">
-          {PRIVATE_TRIP_HERO_FOLDER_PUBLIC}/<span className="text-slate-400">(이미지 파일만)</span>
+          {folderSource === 'supabase' ? '저장소 URL' : `${PRIVATE_TRIP_HERO_FOLDER_PUBLIC}/`}
+          <span className="text-slate-400">(이미지 파일만)</span>
         </p>
         {folderDiskPath ? (
           <p className="mt-1 font-mono text-[11px] text-slate-500">서버 경로: {folderDiskPath}</p>
@@ -286,11 +294,15 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
 
       <div className="mt-4">
         <p className="text-sm font-medium text-slate-200">
-          폴더 이미지 {folderLoading ? '…' : `${folderUrls.length}장`}
+          히어로 이미지 {folderLoading ? '…' : `${folderUrls.length}장`}
           {folderActive ? (
-            <span className="ml-2 text-xs font-normal text-emerald-300">→ 히어로에 이 폴더만 사용 중</span>
+            <span className="ml-2 text-xs font-normal text-emerald-300">
+              → 히어로에 이 {folderSource === 'supabase' ? '저장소' : '폴더'}만 사용 중
+            </span>
           ) : (
-            <span className="ml-2 text-xs font-normal text-slate-500">→ 폴더가 비어 있으면 아래 JSON 또는 상품 풀</span>
+            <span className="ml-2 text-xs font-normal text-slate-500">
+              → 이미지 풀이 비어 있으면 아래 JSON 또는 상품 풀
+            </span>
           )}
         </p>
         {!folderLoading && folderUrls.length > 0 ? (
@@ -308,15 +320,16 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
           </ul>
         ) : !folderLoading && folderUrls.length === 0 ? (
           <p className="mt-2 text-sm text-slate-500">
-            아직 파일이 없습니다. 서버에 <code className="text-slate-400">public/images/private-trip-hero/</code> 를
-            만든 뒤 이미지를 넣고 「폴더 다시 읽기」를 누르세요.
+            아직 파일이 없습니다. 「이미지 업로드」를 쓰거나, Supabase 미사용 환경이면 서버에{' '}
+            <code className="text-slate-400">public/images/private-trip-hero/</code> 에 넣은 뒤 「폴더 다시 읽기」를
+            누르세요.
           </p>
         ) : null}
       </div>
 
       <details className="mt-8 rounded-lg border border-slate-700/80 bg-slate-950/30 p-3">
         <summary className="cursor-pointer text-sm font-medium text-slate-300">
-          JSON 보조 설정 (폴더가 <span className="text-amber-200/90">완전히 비어 있을 때만</span> 히어로에 사용, 최대{' '}
+          JSON 보조 설정 (이미지 풀이 <span className="text-amber-200/90">완전히 비어 있을 때만</span> 히어로에 사용, 최대{' '}
           {JSON_SLIDE_MAX}줄)
         </summary>
         <p className="mt-2 text-xs text-slate-500">

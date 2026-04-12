@@ -6,12 +6,12 @@ import {
   PRIVATE_TRIP_HERO_COVER_HEIGHT,
   PRIVATE_TRIP_HERO_COVER_WIDTH,
   PRIVATE_TRIP_HERO_FOLDER_PUBLIC,
+  PRIVATE_TRIP_HERO_STORAGE_PREFIX,
   PRIVATE_TRIP_HERO_WEBP_QUALITY,
 } from '@/lib/private-trip-hero-constants'
-import {
-  getPrivateTripHeroFolderAbsPath,
-  listPrivateTripHeroFolderImagePublicUrls,
-} from '@/lib/private-trip-hero-folder'
+import { getPrivateTripHeroFolderAbsPath, listPrivateTripHeroFolderImagePublicUrls } from '@/lib/private-trip-hero-folder'
+import { isObjectStorageConfigured, uploadStorageObject } from '@/lib/object-storage'
+import { listPrivateTripHeroStoragePublicUrls } from '@/lib/private-trip-hero-supabase'
 
 const MAX_FOLDER_FILES = 500
 
@@ -55,14 +55,36 @@ export type SavePrivateTripHeroUploadResult = {
 }
 
 /**
- * 처리된 WebP를 전용 폴더에 저장하고 공개 URL을 반환한다.
+ * 처리된 WebP를 Supabase Storage(설정된 경우) 또는 `public/images/private-trip-hero/`에 저장하고 공개 URL을 반환한다.
  */
 export async function saveProcessedPrivateTripHeroWebp(
   webpBuffer: Buffer,
   originalFileName: string,
 ): Promise<SavePrivateTripHeroUploadResult> {
-  const current = listPrivateTripHeroFolderImagePublicUrls().length
-  if (current >= MAX_FOLDER_FILES) {
+  const fileName = asciiHeroFileName(originalFileName)
+
+  if (isObjectStorageConfigured()) {
+    const current = (await listPrivateTripHeroStoragePublicUrls()).length
+    if (current >= MAX_FOLDER_FILES) {
+      throw new Error(
+        `우리여행 히어로 이미지는 최대 ${MAX_FOLDER_FILES}장까지입니다. Storage에서 기존 파일을 지운 뒤 다시 시도하세요.`,
+      )
+    }
+    const objectKey = `${PRIVATE_TRIP_HERO_STORAGE_PREFIX}/${fileName}`
+    const { publicUrl } = await uploadStorageObject({
+      objectKey,
+      body: webpBuffer,
+      contentType: 'image/webp',
+    })
+    return {
+      fileName,
+      publicUrl,
+      bytesWritten: webpBuffer.length,
+    }
+  }
+
+  const currentDisk = listPrivateTripHeroFolderImagePublicUrls().length
+  if (currentDisk >= MAX_FOLDER_FILES) {
     throw new Error(`전용 폴더 이미지는 최대 ${MAX_FOLDER_FILES}장까지입니다. 기존 파일을 지운 뒤 다시 시도하세요.`)
   }
 
@@ -71,7 +93,6 @@ export async function saveProcessedPrivateTripHeroWebp(
     fs.mkdirSync(dir, { recursive: true })
   }
 
-  const fileName = asciiHeroFileName(originalFileName)
   const abs = path.join(dir, fileName)
   fs.writeFileSync(abs, webpBuffer)
 

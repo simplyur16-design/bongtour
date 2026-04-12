@@ -60,7 +60,7 @@ export const dynamic = 'force-dynamic'
 export default async function PrivateTripPage() {
   const groupMeetingReviews = await loadGroupMeetingReviewsFromCsv()
   const inquiryHref = `/inquiry?type=travel&source=${encodeURIComponent(INQUIRY_SOURCE)}`
-  const managedHeroSlides = resolvePrivateTripManagedHeroSlides()
+  const managedHeroSlides = await resolvePrivateTripManagedHeroSlides()
 
   return (
     <div className="min-h-screen bg-bt-page">

@@ -1,10 +1,16 @@
 # 우리여행 히어로 전용 이미지
 
-이 **폴더 루트에만** 이미지 파일을 두면 `/travel/overseas/private-trip` 상단 히어로가 **파일명 순**으로 자동 슬라이드합니다.
+## Supabase Storage (운영 권장)
+
+서버에 `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`가 있으면, 관리자 업로드는 **Supabase 버킷**(`SUPABASE_IMAGE_BUCKET`, 기본 `bongtour-images`) 안 접두사 **`private-trip-hero/`** 로 WebP가 올라가고, 우리여행 페이지는 그 **공개 URL**로 슬라이드합니다. 이 폴더는 비어 있어도 됩니다.
+
+## 이 디렉터리(`public/images/private-trip-hero/`) — 폴백
+
+Storage에 파일이 **없고**, Supabase도 미설정이면, 이 **폴더 루트에만** 이미지를 두면 `/travel/overseas/private-trip` 상단 히어로가 **파일명 순**으로 자동 슬라이드합니다.
 
 - 지원 확장자: `.jpg` `.jpeg` `.png` `.webp` `.gif` `.avif`
 - 하위 폴더는 스캔하지 않습니다.
-- 여기에 **한 장이라도** 있으면 `public/data/private-trip-hero-slides.json` 설정보다 **이 폴더가 우선**입니다.
+- Storage에 한 장이라도 있으면 Storage가 최우선이고, 그다음 이 폴더, 둘 다 비면 `public/data/private-trip-hero-slides.json` 이 적용됩니다.
 
 ## 관리자 업로드 (권장)
 

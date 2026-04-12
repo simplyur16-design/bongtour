@@ -4,6 +4,9 @@
 
 export const PRIVATE_TRIP_HERO_FOLDER_PUBLIC = '/images/private-trip-hero'
 
+/** Supabase Storage(`SUPABASE_IMAGE_BUCKET`) 안 객체 키 접두사 — ASCII만 사용 */
+export const PRIVATE_TRIP_HERO_STORAGE_PREFIX = 'private-trip-hero'
+
 /** 업로드·저장 시 cover 크롭 프레임 (와이드 히어로) */
 export const PRIVATE_TRIP_HERO_COVER_WIDTH = 1920
 export const PRIVATE_TRIP_HERO_COVER_HEIGHT = 640

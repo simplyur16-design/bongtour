@@ -1,7 +1,12 @@
 import fs from 'fs'
 import path from 'path'
-import { PRIVATE_TRIP_HERO_FOLDER_PUBLIC } from '@/lib/private-trip-hero-constants'
+import {
+  PRIVATE_TRIP_HERO_FOLDER_PUBLIC,
+  PRIVATE_TRIP_HERO_STORAGE_PREFIX,
+} from '@/lib/private-trip-hero-constants'
+import { getImageStorageBucket, isObjectStorageConfigured } from '@/lib/object-storage'
 import { getPrivateTripHeroSlides } from '@/lib/private-trip-hero-slides'
+import { listPrivateTripHeroStoragePublicUrls } from '@/lib/private-trip-hero-supabase'
 import type { PrivateTripHeroSlide } from '@/lib/private-trip-hero-types'
 
 export { PRIVATE_TRIP_HERO_FOLDER_PUBLIC } from '@/lib/private-trip-hero-constants'
@@ -57,10 +62,22 @@ function folderUrlsToSlides(urls: string[]): PrivateTripHeroSlide[] {
 }
 
 /**
- * 우리여행 히어로용 슬라이드: **전용 폴더에 파일이 있으면 그것만** 사용(개수 제한 없음, 상한만).
- * 폴더가 비어 있으면 JSON(`getPrivateTripHeroSlides`) 폴백.
+ * 우리여행 히어로용 슬라이드.
+ * Supabase Storage(`private-trip-hero/` 접두사)에 파일이 있으면 그 URL만 사용하고,
+ * 없으면 `public/images/private-trip-hero/` 디스크, 그다음 JSON(`getPrivateTripHeroSlides`) 순으로 폴백한다.
  */
-export function resolvePrivateTripManagedHeroSlides(): PrivateTripHeroSlide[] {
+export async function resolvePrivateTripManagedHeroSlides(): Promise<PrivateTripHeroSlide[]> {
+  if (isObjectStorageConfigured()) {
+    try {
+      const storageUrls = await listPrivateTripHeroStoragePublicUrls()
+      if (storageUrls.length > 0) {
+        return folderUrlsToSlides(storageUrls)
+      }
+    } catch (e) {
+      console.warn('[private-trip-hero] Storage 목록 실패, 디스크·JSON 폴백', e)
+    }
+  }
+
   const folderUrls = listPrivateTripHeroFolderImagePublicUrls()
   if (folderUrls.length > 0) {
     return folderUrlsToSlides(folderUrls)
@@ -68,10 +85,35 @@ export function resolvePrivateTripManagedHeroSlides(): PrivateTripHeroSlide[] {
   return getPrivateTripHeroSlides()
 }
 
-/** 관리자 API: 폴더 절대 경로 + 공개 URL 목록 */
-export function getPrivateTripHeroFolderListing(): { diskPath: string; publicUrls: string[] } {
+export type PrivateTripHeroFolderListingSource = 'supabase' | 'disk'
+
+/** 관리자 API: 저장 위치 설명 + 공개 URL 목록 */
+export async function getPrivateTripHeroFolderListing(): Promise<{
+  diskPath: string
+  publicUrls: string[]
+  source: PrivateTripHeroFolderListingSource
+}> {
+  const diskPathDefault = getPrivateTripHeroFolderAbsPath()
+  const diskUrls = listPrivateTripHeroFolderImagePublicUrls()
+
+  if (isObjectStorageConfigured()) {
+    try {
+      const storageUrls = await listPrivateTripHeroStoragePublicUrls()
+      if (storageUrls.length > 0) {
+        return {
+          diskPath: `Supabase Storage · ${getImageStorageBucket()}/${PRIVATE_TRIP_HERO_STORAGE_PREFIX}/`,
+          publicUrls: storageUrls,
+          source: 'supabase',
+        }
+      }
+    } catch (e) {
+      console.warn('[private-trip-hero] 관리자 목록: Storage 실패, 디스크 폴백', e)
+    }
+  }
+
   return {
-    diskPath: getPrivateTripHeroFolderAbsPath(),
-    publicUrls: listPrivateTripHeroFolderImagePublicUrls(),
+    diskPath: diskPathDefault,
+    publicUrls: diskUrls,
+    source: 'disk',
   }
 }
