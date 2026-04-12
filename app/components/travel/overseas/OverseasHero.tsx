@@ -15,6 +15,7 @@ import {
   pageHeroMonthlyGeminiJobKey,
 } from '@/lib/page-hero-monthly-shared'
 import type { PageHeroMonthlyGeminiJob } from '@/lib/page-hero-monthly-types'
+import type { PrivateTripHeroSlide } from '@/lib/private-trip-hero-slides'
 
 const WEEKDAYS_KR = ['일', '월', '화', '수', '목', '금', '토'] as const
 
@@ -147,6 +148,11 @@ type HeroRow = BrowseHeroItem & {
   slotMonth: number
   headline: string
   travelScope: PublicPageHeroTravelScope
+  /**
+   * 우리여행 관리자 슬라이드 전용. 정의되면 상품 상세 링크 대신 사용.
+   * `''` 이면 이미지에 링크 없음.
+   */
+  managedHeroHref?: string
 }
 
 function heroRowHasDestinationContext(item: BrowseHeroItem): boolean {
@@ -268,15 +274,52 @@ function buildPrivateTripInterleavedHero(
   return out
 }
 
+function managedPrivateTripSlidesToHeroRows(slides: PrivateTripHeroSlide[]): HeroRow[] {
+  const now = new Date()
+  const slotMonth = now.getMonth() + 1
+  return slides.map((s, i) => {
+    const url = s.imageUrl.trim()
+    const link = (s.linkHref ?? '').trim()
+    const headline =
+      (s.headline ?? '').trim() ||
+      buildPublicPageHeroEditorialLineMonthlyStub({
+        targetMonth1To12: slotMonth,
+        destinationDisplay: '맞춤 여행',
+        verbSlotIndex: i,
+        travelScope: 'overseas',
+      })
+    const title = (s.caption ?? '').trim() || '우리여행'
+    return {
+      id: `private-trip-managed-${i}`,
+      title,
+      originSource: null,
+      primaryDestination: null,
+      bgImageUrl: url,
+      coverImageUrl: url,
+      earliestDeparture: null,
+      updatedAt: null,
+      duration: null,
+      bgImageSource: null,
+      bgImageIsGenerated: null,
+      slotMonth,
+      travelScope: 'overseas',
+      headline,
+      managedHeroHref: link,
+    }
+  })
+}
+
 export type OverseasHeroProps = {
   /**
    * 히어로 카드에 쓸 상품을 DB `listingKind` 로 한정.
    * 단독여행 허브는 `private_trip` 만 (제목 추론 등으로 섞인 일반 해외상품 제외).
    */
   browseListingKind?: 'private_trip'
+  /** 비어 있지 않으면 우리여행 히어로는 상품 풀 대신 이 슬라이드만 사용 */
+  managedPrivateTripSlides?: PrivateTripHeroSlide[] | null
 }
 
-const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
+const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivateTripSlides }) => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const departDateId = 'overseas-hero-depart-date'
@@ -408,6 +451,14 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
     const withImage = (rows: BrowseHeroItem[]) =>
       rows.filter((x) => Boolean((x.coverImageUrl ?? x.bgImageUrl ?? '').trim()))
     ;(async () => {
+      if (browseListingKind === 'private_trip' && managedPrivateTripSlides && managedPrivateTripSlides.length > 0) {
+        if (!off) {
+          setItems([])
+          setDomesticHeroPool([])
+          setLoading(false)
+        }
+        return
+      }
       setLoading(true)
       try {
         if (browseListingKind === 'private_trip') {
@@ -443,7 +494,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
     return () => {
       off = true
     }
-  }, [browseListingKind, browseUrl, domesticBrowseUrl])
+  }, [browseListingKind, browseUrl, domesticBrowseUrl, managedPrivateTripSlides])
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
@@ -455,11 +506,14 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
   }, [])
 
   const heroRowsStub = useMemo(() => {
+    if (browseListingKind === 'private_trip' && managedPrivateTripSlides && managedPrivateTripSlides.length > 0) {
+      return managedPrivateTripSlidesToHeroRows(managedPrivateTripSlides)
+    }
     if (browseListingKind === 'private_trip') {
       return buildPrivateTripInterleavedHero(items, domesticHeroPool)
     }
     return buildMonthlyHero(items)
-  }, [browseListingKind, items, domesticHeroPool])
+  }, [browseListingKind, items, domesticHeroPool, managedPrivateTripSlides])
 
   useEffect(() => {
     if (loading) {
@@ -704,43 +758,86 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind }) => {
                 <p className="text-xs">잠시 후 다시 확인해 주세요.</p>
               </div>
             ) : (
-              <Link
-                href={`/products/${current.id}`}
-                className="group relative block h-full w-full"
-                aria-label={`${browseDestinationDisplayLabelFromBrowseHero(current)} ${current.title} 상세 보기`}
-              >
-                <img
-                  src={broken[current.id] ? HERO_FALLBACK : current.coverImageUrl ?? current.bgImageUrl ?? HERO_FALLBACK}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  loading={idx === 0 ? 'eager' : 'lazy'}
-                  fetchPriority={idx === 0 ? 'high' : 'auto'}
-                  decoding="async"
-                  onError={() => setBroken((prev) => ({ ...prev, [current.id]: true }))}
-                />
-                {heroRows.length > 1 ? (
-                  <div className="pointer-events-none absolute right-2 top-2 z-20 flex items-center gap-1.5">
-                    {heroRows.slice(0, 10).map((_, i) => (
-                      <button
-                        key={`hero-dot-${i}`}
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setIdx(i)
-                          setLastManualAt(Date.now())
-                        }}
-                        className={`pointer-events-auto h-1.5 rounded-full transition-all ${
-                          i === idx % heroRows.length ? 'w-4 bg-white' : 'w-1.5 bg-white/60'
-                        }`}
-                        aria-label={`추천 슬라이드 ${i + 1}${i === idx % heroRows.length ? ' (현재)' : ''}`}
-                        aria-current={i === idx % heroRows.length ? 'true' : undefined}
-                        aria-pressed={i === idx % heroRows.length}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-              </Link>
+              (() => {
+                const heroRow = current as HeroRow
+                const mh = heroRow.managedHeroHref
+                const src =
+                  broken[current.id] ? HERO_FALLBACK : current.coverImageUrl ?? current.bgImageUrl ?? HERO_FALLBACK
+                const dots =
+                  heroRows.length > 1 ? (
+                    heroRows.length <= 16 ? (
+                      <div className="pointer-events-none absolute right-2 top-2 z-20 flex max-w-[min(100%,20rem)] flex-wrap items-center justify-end gap-1.5">
+                        {heroRows.map((_, i) => (
+                          <button
+                            key={`hero-dot-${i}`}
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setIdx(i)
+                              setLastManualAt(Date.now())
+                            }}
+                            className={`pointer-events-auto h-1.5 rounded-full transition-all ${
+                              i === idx % heroRows.length ? 'w-4 bg-white' : 'w-1.5 bg-white/60'
+                            }`}
+                            aria-label={`추천 슬라이드 ${i + 1}${i === idx % heroRows.length ? ' (현재)' : ''}`}
+                            aria-current={i === idx % heroRows.length ? 'true' : undefined}
+                            aria-pressed={i === idx % heroRows.length}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="pointer-events-none absolute right-2 top-2 z-20 rounded-md bg-black/50 px-2 py-1 text-[11px] font-medium tabular-nums text-white/95">
+                        {(idx % heroRows.length) + 1} / {heroRows.length}
+                      </div>
+                    )
+                  ) : null
+                const inner = (
+                  <>
+                    <img
+                      src={src}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading={idx === 0 ? 'eager' : 'lazy'}
+                      fetchPriority={idx === 0 ? 'high' : 'auto'}
+                      decoding="async"
+                      onError={() => setBroken((prev) => ({ ...prev, [current.id]: true }))}
+                    />
+                    {dots}
+                  </>
+                )
+                if (mh !== undefined) {
+                  if (mh.length > 0) {
+                    return (
+                      <Link
+                        href={mh}
+                        className="group relative block h-full w-full"
+                        aria-label={current.headline || current.title || '우리여행'}
+                      >
+                        {inner}
+                      </Link>
+                    )
+                  }
+                  return (
+                    <div
+                      className="group relative block h-full w-full"
+                      role="group"
+                      aria-label={current.headline || current.title || '우리여행 히어로'}
+                    >
+                      {inner}
+                    </div>
+                  )
+                }
+                return (
+                  <Link
+                    href={`/products/${current.id}`}
+                    className="group relative block h-full w-full"
+                    aria-label={`${browseDestinationDisplayLabelFromBrowseHero(current)} ${current.title} 상세 보기`}
+                  >
+                    {inner}
+                  </Link>
+                )
+              })()
             )}
           </div>
           {!loading && current ? (

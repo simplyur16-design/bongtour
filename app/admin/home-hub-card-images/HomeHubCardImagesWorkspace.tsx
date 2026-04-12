@@ -10,6 +10,8 @@ import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
 import type { HomeHubActiveClientModel } from '@/lib/home-hub-active-client-model'
 import { homeHubActiveFileToClientModel } from '@/lib/home-hub-active-client-model'
 import type { HomeHubActiveFile } from '@/lib/home-hub-resolve-images'
+import type { PrivateTripHeroSlidesFile } from '@/lib/private-trip-hero-slides'
+import { PrivateTripHeroSlidesPanel } from '@/components/admin/home-hub/PrivateTripHeroSlidesPanel'
 
 const CARD_LABEL: Record<HomeHubCardImageKey, string> = {
   overseas: '해외여행',
@@ -21,9 +23,14 @@ const CARD_LABEL: Record<HomeHubCardImageKey, string> = {
 type Props = {
   initialActive: HomeHubActiveClientModel | null
   initialTravelPoolPreview: { overseas: string | null; domestic: string | null }
+  initialPrivateTripHeroFile: PrivateTripHeroSlidesFile | null
 }
 
-export function HomeHubCardImagesWorkspace({ initialActive, initialTravelPoolPreview }: Props) {
+export function HomeHubCardImagesWorkspace({
+  initialActive,
+  initialTravelPoolPreview,
+  initialPrivateTripHeroFile,
+}: Props) {
   const router = useRouter()
   const [active, setActive] = useState<HomeHubActiveClientModel | null>(() => initialActive)
   const [refreshToken, setRefreshToken] = useState(0)
@@ -96,6 +103,8 @@ export function HomeHubCardImagesWorkspace({ initialActive, initialTravelPoolPre
         onSaved={onHybridSaved}
         onSaveError={onActivateError}
       />
+
+      <PrivateTripHeroSlidesPanel initialFile={initialPrivateTripHeroFile} />
     </div>
   )
 }

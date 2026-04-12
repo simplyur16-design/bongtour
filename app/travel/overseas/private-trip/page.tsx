@@ -10,6 +10,7 @@ import {
   selectPrivateTripHeroEditorialRow,
 } from '@/lib/overseas-editorial-prioritize'
 import { SITE_NAME, absoluteUrl } from '@/lib/site-metadata'
+import { resolvePrivateTripManagedHeroSlides } from '@/lib/private-trip-hero-folder'
 
 const INQUIRY_SOURCE = '/travel/overseas/private-trip'
 
@@ -59,13 +60,14 @@ export const dynamic = 'force-dynamic'
 export default async function PrivateTripPage() {
   const groupMeetingReviews = await loadGroupMeetingReviewsFromCsv()
   const inquiryHref = `/inquiry?type=travel&source=${encodeURIComponent(INQUIRY_SOURCE)}`
+  const managedHeroSlides = resolvePrivateTripManagedHeroSlides()
 
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
       <OverseasTravelSubMainNav variant="links" />
       <main>
-        <PrivateTripHero inquiryHref={inquiryHref} />
+        <PrivateTripHero inquiryHref={inquiryHref} managedHeroSlides={managedHeroSlides} />
         <PrivateTripLanding inquiryHref={inquiryHref} groupMeetingReviews={groupMeetingReviews} />
       </main>
     </div>

@@ -20,7 +20,44 @@ const HERO_FALLBACK =
 
 const HERO_MIN_H = 'min-h-[min(38vh,360px)]'
 
-export default function DomesticHeroImageRotator() {
+function HeroCopyOverlay({
+  eyebrow,
+  title,
+  lead,
+}: {
+  eyebrow: string
+  title: string
+  lead: string
+}) {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10">
+      {/* 왼쪽(카피 영역) 어둡게 → 오른쪽으로 갈수록 투명·밝게 */}
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/35 via-[48%] to-transparent to-[88%]"
+        aria-hidden
+      />
+      <div className="relative flex h-full min-h-0 max-w-[min(100%,26rem)] flex-col justify-center px-5 py-8 sm:max-w-[28rem] sm:px-8 sm:py-10 md:max-w-md">
+        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-200/95 sm:text-xs">
+          {eyebrow}
+        </p>
+        <h1 className="bt-wrap mt-2 text-2xl font-black leading-[1.15] tracking-tight text-white drop-shadow-md sm:mt-2.5 sm:text-3xl md:text-4xl">
+          {title}
+        </h1>
+        <p className="bt-wrap mt-2.5 max-w-2xl text-sm leading-relaxed text-white/90 sm:mt-3 sm:text-base">
+          {lead}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export type DomesticHeroImageRotatorProps = {
+  eyebrow: string
+  title: string
+  lead: string
+}
+
+export default function DomesticHeroImageRotator({ eyebrow, title, lead }: DomesticHeroImageRotatorProps) {
   const [items, setItems] = useState<BrowseItem[]>([])
   const [loading, setLoading] = useState(true)
   const [idx, setIdx] = useState(0)
@@ -84,6 +121,7 @@ export default function DomesticHeroImageRotator() {
     return (
       <div className={`relative mt-8 overflow-hidden rounded-2xl border border-bt-border bg-slate-800 shadow-sm ${HERO_MIN_H}`}>
         <div className={`absolute inset-0 animate-pulse bg-gradient-to-br from-slate-700 to-slate-900`} aria-hidden />
+        <HeroCopyOverlay eyebrow={eyebrow} title={title} lead={lead} />
       </div>
     )
   }
@@ -92,6 +130,7 @@ export default function DomesticHeroImageRotator() {
     return (
       <div className={`relative mt-8 overflow-hidden rounded-2xl border border-bt-border bg-slate-800 shadow-sm ${HERO_MIN_H}`}>
         <div className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900" aria-hidden />
+        <HeroCopyOverlay eyebrow={eyebrow} title={title} lead={lead} />
       </div>
     )
   }
@@ -117,8 +156,9 @@ export default function DomesticHeroImageRotator() {
           />
         </Link>
       </div>
+      <HeroCopyOverlay eyebrow={eyebrow} title={title} lead={lead} />
       {n > 1 ? (
-        <div className="pointer-events-none absolute bottom-2 left-2 z-30 flex items-center gap-1.5">
+        <div className="pointer-events-none absolute bottom-3 left-4 z-30 flex items-center gap-1.5 sm:bottom-4">
           {heroItems.map((it, i) => (
             <button
               key={it.id}

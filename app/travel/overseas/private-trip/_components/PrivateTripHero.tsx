@@ -2,14 +2,19 @@
 
 import Link from 'next/link'
 import OverseasHero from '@/app/components/travel/overseas/OverseasHero'
+import type { PrivateTripHeroSlide } from '@/lib/private-trip-hero-slides'
 
-type Props = { inquiryHref: string }
+type Props = {
+  inquiryHref: string
+  /** 관리자 JSON에 슬라이드가 있으면 상품 풀 대신 이 이미지들만 히어로에 사용 */
+  managedHeroSlides?: PrivateTripHeroSlide[] | null
+}
 
-/** 단독 허브: 해외 메인과 동일한 `OverseasHero`(단독 상품 이미지) + 문의 CTA */
-export default function PrivateTripHero({ inquiryHref }: Props) {
+/** 단독 허브: `OverseasHero`(단독 상품 또는 관리자 슬라이드) + 문의 CTA */
+export default function PrivateTripHero({ inquiryHref, managedHeroSlides }: Props) {
   return (
     <div>
-      <OverseasHero browseListingKind="private_trip" />
+      <OverseasHero browseListingKind="private_trip" managedPrivateTripSlides={managedHeroSlides ?? null} />
       <div className="border-b border-bt-border bg-gradient-to-b from-bt-surface to-white">
         <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-5">
           <div className="flex flex-wrap justify-center gap-3">
