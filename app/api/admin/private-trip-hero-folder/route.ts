@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
 import { getPrivateTripHeroFolderListing } from '@/lib/private-trip-hero-folder'
+import { isPrivateTripHeroDirectBrowserUploadConfigured } from '@/lib/private-trip-hero-direct-upload-server'
+import { getImageStorageBucket } from '@/lib/object-storage'
 
 export async function GET() {
   const admin = await requireAdmin()
@@ -14,5 +16,8 @@ export async function GET() {
     publicUrls,
     source,
     count: publicUrls.length,
+    /** true면 브라우저가 Supabase로 직접 올려 nginx 본문 한도를 피함 */
+    directUploadAvailable: isPrivateTripHeroDirectBrowserUploadConfigured(),
+    storageBucket: getImageStorageBucket(),
   })
 }

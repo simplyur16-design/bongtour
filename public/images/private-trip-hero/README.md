@@ -4,6 +4,8 @@
 
 서버에 `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`가 있으면, 관리자 업로드는 **Supabase 버킷**(`SUPABASE_IMAGE_BUCKET`, 기본 `bongtour-images`) 안 접두사 **`private-trip-hero/`** 로 WebP가 올라가고, 우리여행 페이지는 그 **공개 URL**로 슬라이드합니다. 이 폴더는 비어 있어도 됩니다.
 
+**nginx 413 회피:** 배포에 `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`를 넣고 다시 빌드하면, 관리자는 원본을 **브라우저 → Supabase Storage**로 직접 올린 뒤 서버가 WebP로 마무리합니다(대용량이 우리 도메인 `client_max_body_size`에 덜 걸림).
+
 ## 이 디렉터리(`public/images/private-trip-hero/`) — 폴백
 
 Storage에 파일이 **없고**, Supabase도 미설정이면, 이 **폴더 루트에만** 이미지를 두면 `/travel/overseas/private-trip` 상단 히어로가 **파일명 순**으로 자동 슬라이드합니다.

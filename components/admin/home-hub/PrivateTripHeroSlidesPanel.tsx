@@ -39,6 +39,8 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
   const [folderUrls, setFolderUrls] = useState<string[]>([])
   const [folderDiskPath, setFolderDiskPath] = useState<string>('')
   const [folderSource, setFolderSource] = useState<'supabase' | 'disk'>('disk')
+  const [directUploadAvailable, setDirectUploadAvailable] = useState(false)
+  const [heroStorageBucket, setHeroStorageBucket] = useState('bongtour-images')
   const [folderLoading, setFolderLoading] = useState(true)
 
   const [rows, setRows] = useState<PrivateTripHeroSlide[]>(() => rowsFromFile(initialFile))
@@ -61,6 +63,8 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
         publicUrls?: string[]
         diskPath?: string
         source?: 'supabase' | 'disk'
+        directUploadAvailable?: boolean
+        storageBucket?: string
         error?: string
       }
       if (!res.ok || !data.ok) {
@@ -70,6 +74,8 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
       setFolderUrls(Array.isArray(data.publicUrls) ? data.publicUrls : [])
       setFolderDiskPath(typeof data.diskPath === 'string' ? data.diskPath : '')
       setFolderSource(data.source === 'supabase' ? 'supabase' : 'disk')
+      setDirectUploadAvailable(data.directUploadAvailable === true)
+      setHeroStorageBucket(typeof data.storageBucket === 'string' ? data.storageBucket : 'bongtour-images')
     } catch {
       setMessage({ kind: 'err', text: '히어로 이미지 목록을 불러오지 못했습니다.' })
     } finally {
@@ -87,31 +93,92 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
       setUploading(true)
       setMessage(null)
       const errors: string[] = []
+
+      const parseJsonBody = (res: Response, raw: string) => {
+        try {
+          return JSON.parse(raw) as { ok?: boolean; error?: string; detail?: string }
+        } catch {
+          const snippet = raw.replace(/\s+/g, ' ').trim().slice(0, 180)
+          return {
+            ok: false,
+            error: snippet
+              ? `HTTP ${res.status}: ${snippet}`
+              : `HTTP ${res.status} ${res.statusText || ''}`.trim(),
+          }
+        }
+      }
+
       for (let i = 0; i < list.length; i++) {
         const file = list[i]!
-        const fd = new FormData()
-        fd.set('file', file)
         try {
+          if (directUploadAvailable) {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+            const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+            if (!supabaseUrl || !supabaseAnon) {
+              errors.push(
+                `${file.name}: 브라우저 번들에 NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY 가 없습니다. 배포 시 env를 넣고 다시 빌드하세요.`,
+              )
+              continue
+            }
+
+            const signRes = await fetch('/api/admin/private-trip-hero-folder/upload-sign', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                byteLength: file.size,
+                mimeType: file.type || 'image/jpeg',
+              }),
+            })
+            const signRaw = await signRes.text()
+            const signData = parseJsonBody(signRes, signRaw) as {
+              ok?: boolean
+              error?: string
+              incomingPath?: string
+              token?: string
+            }
+            if (!signRes.ok || !signData.ok || !signData.incomingPath || !signData.token) {
+              errors.push(`${file.name}: ${signData.error || String(signRes.status)}`)
+              continue
+            }
+
+            const { createClient } = await import('@supabase/supabase-js')
+            const sb = createClient(supabaseUrl, supabaseAnon)
+            const { error: upErr } = await sb.storage
+              .from(heroStorageBucket)
+              .uploadToSignedUrl(signData.incomingPath, signData.token, file, { upsert: true })
+            if (upErr) {
+              errors.push(`${file.name}: Storage 직접 업로드 실패 — ${upErr.message}`)
+              continue
+            }
+
+            const finRes = await fetch('/api/admin/private-trip-hero-folder/upload-finalize', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                incomingPath: signData.incomingPath,
+                originalFileName: file.name,
+              }),
+            })
+            const finRaw = await finRes.text()
+            const finData = parseJsonBody(finRes, finRaw) as { ok?: boolean; error?: string; detail?: string }
+            if (!finRes.ok || !finData.ok) {
+              const detail = finData.detail ? ` (${finData.detail})` : ''
+              errors.push(`${file.name}: ${finData.error || String(finRes.status)}${detail}`)
+            }
+            continue
+          }
+
+          const fd = new FormData()
+          fd.set('file', file)
           const res = await fetch('/api/admin/private-trip-hero-folder/upload', { method: 'POST', body: fd })
           const raw = await res.text()
-          let data: { ok?: boolean; error?: string; detail?: string }
-          try {
-            data = JSON.parse(raw) as { ok?: boolean; error?: string; detail?: string }
-          } catch {
-            const snippet = raw.replace(/\s+/g, ' ').trim().slice(0, 180)
-            data = {
-              ok: false,
-              error: snippet
-                ? `HTTP ${res.status}: ${snippet}`
-                : `HTTP ${res.status} ${res.statusText || ''}`.trim(),
-            }
-          }
+          const data = parseJsonBody(res, raw) as { ok?: boolean; error?: string; detail?: string }
           if (!res.ok || !data.ok) {
             const detail = data.detail ? ` (${data.detail})` : ''
             let line = `${file.name}: ${data.error || String(res.status)}${detail}`
             if (res.status === 413) {
               line +=
-                ' — 우리여행 히어로(이 섹션) 업로드가 nginx 본문 한도에 걸렸습니다. 해당 도메인 `server { }`에 `client_max_body_size 35m;`를 넣고 `sudo nginx -t && sudo systemctl reload nginx` 하세요.'
+                ' — 우리여행 히어로(이 섹션) 업로드가 nginx 본문 한도에 걸렸습니다. 해당 도메인 `server { }`에 `client_max_body_size 35m;`를 넣거나, NEXT_PUBLIC Supabase로 직접 업로드 경로를 켜 주세요.'
             }
             errors.push(line)
           }
@@ -136,7 +203,7 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
         })
       }
     },
-    [loadFolder],
+    [loadFolder, directUploadAvailable, heroStorageBucket],
   )
 
   const refreshJson = useCallback(async () => {
@@ -246,6 +313,11 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
         </p>
         {folderDiskPath ? (
           <p className="mt-1 font-mono text-[11px] text-slate-500">서버 경로: {folderDiskPath}</p>
+        ) : null}
+        {directUploadAvailable ? (
+          <p className="mt-2 text-xs text-emerald-300/90">
+            대용량은 브라우저가 Supabase Storage로 직접 올려 nginx 본문 한도(413)의 영향을 줄입니다. (NEXT_PUBLIC Supabase + Storage 설정 시)
+          </p>
         ) : null}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <input
