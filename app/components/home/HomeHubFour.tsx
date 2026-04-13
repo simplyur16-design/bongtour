@@ -82,7 +82,7 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
               >
                 <Link
                   href={card.href}
-                  className={`group flex flex-col overflow-hidden border border-bt-border-soft bg-white shadow-md shadow-bt-border-soft/40 ring-1 ring-bt-border-soft transition duration-300 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-link/70 ${CARD_ROUND} md:hover:-translate-y-2 md:hover:border-bt-border-strong md:hover:shadow-xl md:hover:shadow-bt-border-strong/20 md:hover:ring-bt-border-strong/60`}
+                  className={`group flex flex-col overflow-hidden border border-bt-border-soft bg-white shadow-md shadow-bt-border-soft/40 ring-1 ring-bt-border-soft transition duration-300 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-link/70 ${CARD_ROUND} md:hover:-translate-y-1 md:hover:border-bt-border-strong md:hover:shadow-xl md:hover:shadow-bt-border-strong/20 md:hover:ring-bt-border-strong/60`}
                 >
                   <div className={`${IMAGE_AREA} border-b border-bt-border-soft`}>
                     <Image
@@ -90,7 +90,7 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
                       alt=""
                       fill
                       className={`object-cover transition duration-500 ease-out ${hubImagePosition(card.key as HomeHubCardImageKey)}`}
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, (max-width: 1280px) 48vw, 640px"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, min(600px, calc((min(100vw, 72rem) - 2.5rem) / 2))"
                       quality={92}
                       priority={index < 2}
                     />

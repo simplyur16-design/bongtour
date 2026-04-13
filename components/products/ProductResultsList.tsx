@@ -55,13 +55,30 @@ type Props = {
 
 const AIR_HOTEL_MISC_SECTION = '기타'
 
-/** browse 라벨만 정리(개행·과도한 길이) — 국가 판별에는 `nationSectionKeyForAirHotelItem` 사용 */
+/** browse 라벨만 정리(개행·과도한 길이) — 카드 부가 표시 등 짧은 라벨용 */
 function sanitizeAirHotelBrowseLabel(raw: string | null | undefined): string {
   const t = (raw ?? '').replace(/\s+/g, ' ').trim()
   if (!t) return ''
   if (/[\n\r\t]/.test(t)) return ''
   if (t.length > 80) return ''
   return t
+}
+
+const AIR_HOTEL_TITLE_NATION_MAX = 512
+const AIR_HOTEL_BROWSE_NATION_MAX = 160
+
+/**
+ * 자유여행 섹션 키 전용 — **title은 길이로 버리지 않음**(긴 제목 끝의 괌/시드니 유지).
+ * browse 필드는 과도하게 긴 값만 잘라 쓴다.
+ */
+function normalizeAirHotelFieldForNation(raw: string | null | undefined, kind: 'title' | 'browse'): string {
+  const t = (raw ?? '')
+    .replace(/[\n\r\t]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!t) return ''
+  const max = kind === 'title' ? AIR_HOTEL_TITLE_NATION_MAX : AIR_HOTEL_BROWSE_NATION_MAX
+  return t.length > max ? t.slice(0, max) : t
 }
 
 /** browse·트리에서 내려오는 권역/복합 라벨 — 섹션 헤더로 금지 */
@@ -154,7 +171,7 @@ const AIR_HOTEL_SECTION_RULES: ReadonlyArray<{ key: string; re: RegExp }> = [
   { key: '하와이', re: /하와이|honolulu|waikiki|\bhawaii\b|oahu|maui|kauai/i },
   {
     key: '호주',
-    re: /시드니|\bsydney\b|멜번|\bmelbourne\b|브리즈번|\bbrisbane\b|골드코스트|gold\s*coast|퍼스|\bperth\b|케인즈|케언즈|\bcairns\b|호주|\baustralia\b/i,
+    re: /시드니|\bsydney\b|멜번|멜버른|\bmelbourne\b|브리즈번|\bbrisbane\b|골드코스트|gold\s*coast|퍼스|\bperth\b|케인즈|케언즈|\bcairns\b|호주|\baustralia\b/i,
   },
   {
     key: '뉴질랜드',
@@ -207,10 +224,6 @@ const AIR_HOTEL_SECTION_RULES: ReadonlyArray<{ key: string; re: RegExp }> = [
   {
     key: '영국',
     re: /런던|london|맨체스터|manchester|영국|\buk\b|britain|스코틀랜드|scotland|에든버러|edinburgh/i,
-  },
-  {
-    key: '미국',
-    re: /뉴욕|new\s*york|manhattan|\bla\b|로스앤젤레스|los\s*angeles|라스베이거스|las\s*vegas|샌프란시스코|san\s*francisco|시애틀|seattle|마이애미|miami|시카고|chicago|보스턴|boston|워싱턴|washington|올랜도|orlando|필라델피아|philadelphia|미국|\busa\b|united\s*states|\bamerica\b/i,
   },
   {
     key: '캐나다',
@@ -294,6 +307,27 @@ const AIR_HOTEL_SECTION_RULES: ReadonlyArray<{ key: string; re: RegExp }> = [
   },
 ]
 
+/** 괌·사이판·하와이·투몬 등 — 미국 본토 규칙에서 제외 */
+const AIR_HOTEL_US_TERRITORY_EXCLUDE_RE =
+  /괌|구암|\bguam\b|tumon|투몬|사이판|\bsaipan\b|하와이|\bhawaii\b|honolulu|waikiki|oahu|maui|kauai/i
+
+/** 미국 본토만(요구 단서) — 위 영토 단서가 있으면 적용하지 않음 */
+const AIR_HOTEL_US_MAINLAND_RE =
+  /뉴욕|new\s*york|manhattan|\bla\b|로스앤젤레스|los\s*angeles|라스베이거스|las\s*vegas|샌프란시스코|san\s*francisco|시애틀|seattle|마이애미|miami|시카고|chicago|보스턴|boston|워싱턴|washington|올랜도|orlando|필라델피아|philadelphia|미국|\busa\b|united\s*states|\bamerica\b/i
+
+const AIR_HOTEL_AUSTRALIA_CONFIRM_RE =
+  /시드니|\bsydney\b|멜번|멜버른|\bmelbourne\b|브리즈번|\bbrisbane\b|골드코스트|gold\s*coast|퍼스|\bperth\b|케인즈|케언즈|\bcairns\b|호주|\baustralia\b/i
+
+function airHotelLayerIsOnlyBroadRegionLabel(hay: string): boolean {
+  const s = hay.trim()
+  if (!s) return true
+  if (AIR_HOTEL_FORBIDDEN_SECTION.has(s)) return true
+  if (AIR_HOTEL_FORBIDDEN_SECTION.has(s.toLowerCase())) return true
+  return /^(동남아|서남아|유럽|미주|북미|남미|중남미|오세아니아|남태평양|대양주|동북아|아시아|동남아시아|기타\s*아시아|아프리카|중동|asean)$/i.test(
+    s
+  )
+}
+
 function finalAirHotelNationSectionLabel(label: string): string {
   const s = label.trim()
   if (!s || s === AIR_HOTEL_MISC_SECTION) return AIR_HOTEL_MISC_SECTION
@@ -312,52 +346,80 @@ function finalAirHotelNationSectionLabel(label: string): string {
   return s
 }
 
-/** 자유여행 섹션 헤더 전용: title 우선 + 단일 우선순위 루프(뒤 exact가 앞을 덮지 않음) */
-function nationSectionKeyForAirHotelItem(item: ResultItem): string {
-  const titleHay = sanitizeAirHotelBrowseLabel(item.title)
-  const raw = sanitizeAirHotelBrowseLabel(item.countryRowLabel)
-  const dest = sanitizeAirHotelBrowseLabel(item.primaryDestination)
-  const regionMeta = sanitizeAirHotelBrowseLabel(item.primaryRegion)
-  const hayFull = [titleHay, raw, dest, regionMeta].filter(Boolean).join(' ').trim()
-  if (!hayFull) return finalAirHotelNationSectionLabel(AIR_HOTEL_MISC_SECTION)
+/**
+ * 자유여행 `/travel/air-hotel` 섹션 키 — **한 함수에서 최종값까지** 결정.
+ * 입력 순서: title → primaryDestination → countryRowLabel → primaryRegion (필드당 규칙 순회).
+ */
+function resolveAirHotelNationSection(item: ResultItem): {
+  key: string
+  rule: string
+  sectionKeyInput: string
+} {
+  const title = normalizeAirHotelFieldForNation(item.title, 'title')
+  const dest = normalizeAirHotelFieldForNation(item.primaryDestination, 'browse')
+  const countryRow = normalizeAirHotelFieldForNation(item.countryRowLabel, 'browse')
+  const region = normalizeAirHotelFieldForNation(item.primaryRegion, 'browse')
+  const sectionKeyInput = [title, dest, countryRow, region].filter(Boolean).join(' | ')
 
-  for (const { key, re } of AIR_HOTEL_SECTION_RULES) {
-    if (re.test(hayFull)) return finalAirHotelNationSectionLabel(key)
+  const layers = [
+    { hay: title, name: 'title' },
+    { hay: dest, name: 'primaryDestination' },
+    { hay: countryRow, name: 'countryRowLabel' },
+    { hay: region, name: 'primaryRegion' },
+  ] as const
+
+  for (const { hay, name } of layers) {
+    if (!hay) continue
+    if (airHotelLayerIsOnlyBroadRegionLabel(hay)) continue
+
+    for (const { key, re } of AIR_HOTEL_SECTION_RULES) {
+      if (re.test(hay)) {
+        return {
+          key: finalAirHotelNationSectionLabel(key),
+          rule: `regex:${key}@${name}`,
+          sectionKeyInput,
+        }
+      }
+    }
+
+    if (!AIR_HOTEL_US_TERRITORY_EXCLUDE_RE.test(hay) && AIR_HOTEL_US_MAINLAND_RE.test(hay)) {
+      return {
+        key: finalAirHotelNationSectionLabel('미국'),
+        rule: `regex:미국@${name}`,
+        sectionKeyInput,
+      }
+    }
   }
 
   const exactNation = new Set(
     [...AIR_HOTEL_KNOWN_SECTION_LABELS].filter((x) => x !== AIR_HOTEL_MISC_SECTION)
   )
-  const rawOnly = raw.trim()
-  const destOnly = dest.trim()
-  for (const cand of [rawOnly, destOnly]) {
-    if (!cand || /[·･/]/.test(cand)) continue
-    if (AIR_HOTEL_FORBIDDEN_SECTION.has(cand)) continue
-    if (!exactNation.has(cand)) continue
-    if (cand === '호주') {
-      if (
-        /(?:괌|구암|\bguam\b|tumon|투몬|사이판|\bsaipan\b|하와이|honolulu|waikiki|\bhawaii\b)/iu.test(
-          hayFull
-        )
-      ) {
-        continue
-      }
-      if (!/(?:시드니|\bsydney\b|멜번|\bmelbourne\b|브리즈번|\bbrisbane\b|골드코스트|gold\s*coast|퍼스|\bperth\b|케인즈|케언즈|\bcairns\b|호주|\baustralia\b)/iu.test(hayFull)) {
-        continue
-      }
+  const combinedForGuards = [title, dest, countryRow, region].filter(Boolean).join(' ')
+  for (const cand of [countryRow, dest]) {
+    const rawOnly = cand.trim()
+    if (!rawOnly || /[·･/]/.test(rawOnly)) continue
+    if (AIR_HOTEL_FORBIDDEN_SECTION.has(rawOnly)) continue
+    if (!exactNation.has(rawOnly)) continue
+    if (rawOnly === '호주') {
+      if (AIR_HOTEL_US_TERRITORY_EXCLUDE_RE.test(combinedForGuards)) continue
+      if (!AIR_HOTEL_AUSTRALIA_CONFIRM_RE.test(combinedForGuards)) continue
     }
-    if (
-      cand === '미국' &&
-      /(?:괌|구암|\bguam\b|사이판|\bsaipan\b|하와이|honolulu|waikiki|\bhawaii\b)/iu.test(
-        hayFull
-      )
-    ) {
-      continue
+    if (rawOnly === '미국') {
+      if (AIR_HOTEL_US_TERRITORY_EXCLUDE_RE.test(combinedForGuards)) continue
+      if (!AIR_HOTEL_US_MAINLAND_RE.test(combinedForGuards)) continue
     }
-    return finalAirHotelNationSectionLabel(cand)
+    return {
+      key: finalAirHotelNationSectionLabel(rawOnly),
+      rule: `exact:${rawOnly}`,
+      sectionKeyInput,
+    }
   }
 
-  return finalAirHotelNationSectionLabel(AIR_HOTEL_MISC_SECTION)
+  return {
+    key: finalAirHotelNationSectionLabel(AIR_HOTEL_MISC_SECTION),
+    rule: 'fallback:misc',
+    sectionKeyInput,
+  }
 }
 
 function AirHotelCountryGroupedList({
@@ -370,7 +432,24 @@ function AirHotelCountryGroupedList({
   const sections = useMemo(() => {
     const byCountry = new Map<string, ResultItem[]>()
     for (const item of items) {
-      const key = nationSectionKeyForAirHotelItem(item)
+      const resolved = resolveAirHotelNationSection(item)
+      if (process.env.NODE_ENV === 'development') {
+        const probe = `${item.title ?? ''}\n${item.primaryDestination ?? ''}\n${item.countryRowLabel ?? ''}\n${item.primaryRegion ?? ''}`
+        if (/괌|\bguam\b|시드니|\bsydney\b/i.test(probe)) {
+          console.info('[air-hotel-nation]', {
+            itemId: item.id,
+            title: item.title,
+            countryRowLabel: item.countryRowLabel,
+            primaryDestination: item.primaryDestination,
+            primaryRegion: item.primaryRegion,
+            sectionKeyInput: resolved.sectionKeyInput,
+            nationSectionKeyForAirHotelItem: resolved.key,
+            finalSectionHeader: resolved.key,
+            rule: resolved.rule,
+          })
+        }
+      }
+      const key = resolved.key
       let arr = byCountry.get(key)
       if (!arr) {
         arr = []

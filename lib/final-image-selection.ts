@@ -58,9 +58,25 @@ export function getFinalCoverImageUrl(options: {
   return pick ? getFinalScheduleDayImageUrl(pick) : null
 }
 
-/** URL 경로에 자주 나오는 저해상·썸네일 힌트(메인 허브 4카드 전용 후보만 비교) */
+/** URL에 자주 나오는 저해상·썸네일 힌트(메인 허브 4카드 전용 후보만 비교) */
 const HUB_COVER_THUMB_HINT_RE =
-  /thumb|thumbnail|_s\.|_xs\b|\/small\/|\/thumb\/|w=\d{2,3}\b|width=\d{2,3}\b|size=\d{2,3}\b|\bresize\b|\bcompress\b|\/\d{2,3}x\d{2,3}\//i
+  /thumb|thumbnail|_s\.|_xs\b|\/small\/|\/thumb\/|\bresize\b|\/\d{2,3}x\d{2,3}\//i
+
+/** `w=80` 등 짧은 변만 썸네일로 간주(`w=940`은 제외) */
+function hubCoverUrlHasTinyQueryDims(url: string): boolean {
+  const re = /[?&](?:w|width|h|height)=(\d+)/gi
+  let m: RegExpExecArray | null
+  const nums: number[] = []
+  while ((m = re.exec(url)) !== null) nums.push(Number.parseInt(m[1], 10))
+  if (nums.length === 0) return false
+  const maxSide = Math.max(...nums)
+  return maxSide > 0 && maxSide < 480
+}
+
+/** CDN 쿼리의 `auto=compress` 등(단어 경계 compress) */
+function hubCoverUrlLooksCompressedOrTinyRgb(url: string): boolean {
+  return /\bcompress\b/i.test(url) || /tinysrgb/i.test(url)
+}
 
 function scoreHubCoverUrlCandidate(
   url: string,
@@ -69,9 +85,36 @@ function scoreHubCoverUrlCandidate(
   const u = url.trim()
   let s = Math.min(u.length, 900)
   if (HUB_COVER_THUMB_HINT_RE.test(u)) s -= 220
+  if (hubCoverUrlHasTinyQueryDims(u)) s -= 200
+  if (hubCoverUrlLooksCompressedOrTinyRgb(u)) s -= 80
   if (meta?.poorCoverDay) s -= 90
   if (meta?.manualSelected) s += 120
   return s
+}
+
+/**
+ * 메인 허브 풀 커버 전용 — DB에 저장된 Pexels 프리뷰(`w`/`h` 작음)를 그대로 쓰지 않고
+ * 동일 호스트·쿼리 형식으로 더 큰 변을 요청(스키마·공급사 파이프라인 변경 없음).
+ */
+function upgradeHomeHubPoolStockImageUrl(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return trimmed
+  try {
+    const u = new URL(trimmed)
+    if (!/\.pexels\.com$/i.test(u.hostname) && !u.hostname.endsWith('pexels.com')) return trimmed
+    const wStr = u.searchParams.get('w')
+    const hStr = u.searchParams.get('h')
+    if (wStr == null && hStr == null) return trimmed
+    const wn = wStr ? Number.parseInt(wStr, 10) : 0
+    const hn = hStr ? Number.parseInt(hStr, 10) : 0
+    if (!Number.isFinite(wn) || !Number.isFinite(hn)) return trimmed
+    if (wn >= 1600 && hn >= 1000) return trimmed
+    u.searchParams.set('w', '1920')
+    u.searchParams.set('h', '1280')
+    return u.toString()
+  } catch {
+    return trimmed
+  }
 }
 
 /**
@@ -109,5 +152,5 @@ export function getHomeHubCoverImageUrl(options: {
     return true
   })
   uniq.sort((a, b) => b.score - a.score || b.url.length - a.url.length)
-  return uniq[0]!.url
+  return upgradeHomeHubPoolStockImageUrl(uniq[0]!.url)
 }
