@@ -45,7 +45,7 @@ type Props = {
   formatWon: (n: number | null) => string
   /** `/travel/overseas` 해외 허브만 권역 버킷별 한 줄 목록 */
   groupOverseasByRegion?: boolean
-  /** `/travel/air-hotel`만: browse `countryRowLabel` 기준 나라 섹션 + 섹션 내 공급사 interleave */
+  /** `/travel/air-hotel`만: 국가 단위 섹션(도시 라벨 정규화) + 섹션 내 공급사 interleave */
   groupAirHotelByCountry?: boolean
   /** 서유럽 섹션 상단 목적지 브리핑(선택) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
@@ -55,13 +55,312 @@ type Props = {
 
 const AIR_HOTEL_MISC_SECTION = '기타'
 
-/** browse `countryRowLabel` → 섹션 키(최소 보수 정리만) */
-function normalizeAirHotelCountrySectionKey(raw: string | null | undefined): string {
+/** browse 라벨만 정리(개행·과도한 길이) — 국가 판별에는 `nationSectionKeyForAirHotelItem` 사용 */
+function sanitizeAirHotelBrowseLabel(raw: string | null | undefined): string {
   const t = (raw ?? '').replace(/\s+/g, ' ').trim()
-  if (!t) return AIR_HOTEL_MISC_SECTION
-  if (/[\n\r\t]/.test(t)) return AIR_HOTEL_MISC_SECTION
-  if (t.length > 56) return AIR_HOTEL_MISC_SECTION
+  if (!t) return ''
+  if (/[\n\r\t]/.test(t)) return ''
+  if (t.length > 80) return ''
   return t
+}
+
+/** browse·트리에서 내려오는 권역/복합 라벨 — 섹션 헤더로 금지 */
+const AIR_HOTEL_FORBIDDEN_SECTION = new Set([
+  '동남아',
+  '서남아',
+  '유럽',
+  '미주',
+  '북미',
+  '남미',
+  '중남미',
+  '아프리카',
+  '중동',
+  '오세아니아',
+  '남태평양',
+  '북유럽',
+  '서유럽',
+  '동유럽',
+  '남유럽',
+  '스칸디나비아',
+  '발트',
+  '동북아',
+  '아시아',
+  '동남아시아',
+  '아세안',
+  'asean',
+])
+
+function finalAirHotelNationSectionLabel(label: string): string {
+  const s = label.trim()
+  if (!s || s === AIR_HOTEL_MISC_SECTION) return AIR_HOTEL_MISC_SECTION
+  if (AIR_HOTEL_FORBIDDEN_SECTION.has(s)) return AIR_HOTEL_MISC_SECTION
+  const low = s.toLowerCase()
+  if (AIR_HOTEL_FORBIDDEN_SECTION.has(low)) return AIR_HOTEL_MISC_SECTION
+  if (/^(동남아|서남아|유럽|미주)(\s|·|･|\/|$)/i.test(s)) return AIR_HOTEL_MISC_SECTION
+  if (/[·･]/.test(s)) return AIR_HOTEL_MISC_SECTION
+  return s
+}
+
+/** 자유여행 섹션 헤더 전용: 도시·지역·권역 라벨 → 한글 국가명만(매칭 실패·권역·복합 라벨은 기타) */
+function nationSectionKeyForAirHotelItem(item: ResultItem): string {
+  const raw = sanitizeAirHotelBrowseLabel(item.countryRowLabel)
+  const dest = sanitizeAirHotelBrowseLabel(item.primaryDestination)
+  const regionMeta = sanitizeAirHotelBrowseLabel(item.primaryRegion)
+  const hay = `${raw} ${dest} ${regionMeta}`.trim()
+  if (!hay) return AIR_HOTEL_MISC_SECTION
+
+  const buckets: { nation: string; re: RegExp }[] = [
+    {
+      nation: '일본',
+      re: /(?:^|[^\p{L}])(?:도쿄|동경|東京|tokyo|오사카|大阪|osaka|후쿠오카|福岡|fukuoka|삿포로|札幌|sapporo|나고야|名古屋|nagoya|교토|京都|kyoto|요코하마|横浜|yokohama|오키나와|沖縄|okinawa|니가타|新潟|가나자와|金沢|kanazawa|히로시마|広島|hiroshima|센다이|仙台|규슈|九州|간사이|関西|kansai|홋카이도|北海道|hokkaido|도호쿠|東北|간토|関東|kanto|시코쿠|四国|주고쿠|中国地方|일본|日本|japan|nihon|니혼)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '베트남',
+      re: /(?:^|[^\p{L}])(?:다낭|da\s*nang|나트랑|nha\s*trang|호치민|hcm|hcmc|saigon|사이공|하노이|hanoi|푸꾸옥|phu\s*quoc|호이안|hoi\s*an|달랏|dalat|무이네|hue|후에|퀴논|베트남|vietnam|비엣남)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '태국',
+      re: /(?:^|[^\p{L}])(?:방콕|bangkok|푸켓|phuket|치앙마이|chiang\s*mai|파타야|pattaya|코\s*사무이|koh\s*samui|사무이|끄라비|krabi|후아힌|hua\s*hin|카오락|khao\s*lak|태국|thailand|krung)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '싱가포르',
+      re: /(?:^|[^\p{L}])(?:싱가포르|싱가폴|singapore)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '대만',
+      re: /(?:^|[^\p{L}])(?:대만|臺灣|台湾|타이베이|taipei|타이페이|타이중|taichung|가오슝|kaohsiung|타이난|tainan|화련|hualien|타이완|taiwan)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '필리핀',
+      re: /(?:^|[^\p{L}])(?:세부|cebu|마닐라|manila|보홀|bohol|보라카이|boracay|팔라완|palawan|필리핀|philippines)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '말레이시아',
+      re: /(?:^|[^\p{L}])(?:쿠알라룸푸르|kuala\s*lumpur|\bkl\b|랑카위|langkawi|페낭|penang|코타키나발루|kota\s*kinabalu|말레이시아|malaysia)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '인도네시아',
+      re: /(?:^|[^\p{L}])(?:발리|bali|자카르타|jakarta|롬복|lombok|족자카르타|yogyakarta|jogja|인도네시아|indonesia)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '중국',
+      re: /(?:^|[^\p{L}])(?:중국|상해|上海|shanghai|북경|北京|beijing|광저우|广州|guangzhou|심천|shenzhen|청두|成都|chengdu|항저우|杭州|칭다오|青島|qingdao|대련|大连|장가계|zhangjiajie|중화|china)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '홍콩',
+      re: /(?:^|[^\p{L}])(?:홍콩|香港|hong\s*kong|hk\b)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '마카오',
+      re: /(?:^|[^\p{L}])(?:마카오|澳門|macau|macao)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '미국',
+      re: /(?:^|[^\p{L}])(?:뉴욕|new\s*york|manhattan|la\b|로스앤젤레스|los\s*angeles|라스베이거스|las\s*vegas|샌프란시스코|san\s*francisco|하와이|honolulu|waikiki|hawaii|시애틀|seattle|마이애미|miami|시카고|chicago|보스턴|boston|워싱턴|washington|올랜도|orlando|사이판|saipan|괌|guam|미국|usa|america)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '캐나다',
+      re: /(?:^|[^\p{L}])(?:캐나다|canada|토론토|toronto|밴쿠버|vancouver|캘거리|calgary)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '호주',
+      re: /(?:^|[^\p{L}])(?:호주|australia|시드니|sydney|멜번|melbourne|브리즈번|brisbane|골드코스트|gold\s*coast|퍼스|perth)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '뉴질랜드',
+      re: /(?:^|[^\p{L}])(?:뉴질랜드|new\s*zealand|오클랜드|auckland|퀸스타운|queenstown|크라이스트처치|christchurch)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '영국',
+      re: /(?:^|[^\p{L}])(?:런던|london|영국|uk\b|britain|스코틀랜드|scotland|에든버러|edinburgh)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '프랑스',
+      re: /(?:^|[^\p{L}])(?:파리|paris|니스|nice|리옹|lyon|프랑스|france)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '이탈리아',
+      re: /(?:^|[^\p{L}])(?:로마|roma|rome|밀라노|milan|베네치아|venice|피렌체|florence|이탈리아|italy)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '스페인',
+      re: /(?:^|[^\p{L}])(?:바르셀로나|barcelona|마드리드|madrid|스페인|spain|그라나다|granada|세비야|seville)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '독일',
+      re: /(?:^|[^\p{L}])(?:베를린|berlin|뮌헨|munich|프랑크푸르트|frankfurt|독일|germany)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '스위스',
+      re: /(?:^|[^\p{L}])(?:취리히|zurich|제네바|geneva|인터라켄|interlaken|루체른|lucerne|스위스|switzerland)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '튀르키예',
+      re: /(?:^|[^\p{L}])(?:이스탄불|istanbul|카파도키아|cappadocia|터키|튀르키예|turkey|türkiye)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '아랍에미리트',
+      re: /(?:^|[^\p{L}])(?:두바이|dubai|아부다비|abu\s*dhabi|uae|아랍에미리트|emirates)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '캄보디아',
+      re: /(?:^|[^\p{L}])(?:캄보디아|cambodia|앙코르|angkor|씨엠립|siem\s*reap|프놈펜|phnom\s*penh)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '몽골',
+      re: /(?:^|[^\p{L}])(?:몽골|mongolia|울란바토르|ulaanbaatar)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '멕시코',
+      re: /(?:^|[^\p{L}])(?:멕시코|mexico|칸쿤|cancun|플라야|playa\s*del\s*carmen)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '그리스',
+      re: /(?:^|[^\p{L}])(?:그리스|greece|아테네|athens|산토리니|santorini|미코노스|mykonos)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '포르투갈',
+      re: /(?:^|[^\p{L}])(?:포르투갈|portugal|리스본|lisbon|포르투|porto)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '네덜란드',
+      re: /(?:^|[^\p{L}])(?:암스테르담|amsterdam|네덜란드|netherlands|holland)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '오스트리아',
+      re: /(?:^|[^\p{L}])(?:비엔나|vienna|오스트리아|austria|잘츠부르크|salzburg)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '체코',
+      re: /(?:^|[^\p{L}])(?:프라하|prague|체코|czech)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '헝가리',
+      re: /(?:^|[^\p{L}])(?:부다페스트|budapest|헝가리|hungary)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '크로아티아',
+      re: /(?:^|[^\p{L}])(?:두브로브니크|dubrovnik|크로아티아|croatia|스플리트|split)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '이집트',
+      re: /(?:^|[^\p{L}])(?:이집트|egypt|카이로|cairo|룩소르|luxor|후르가다|hurghada)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '모로코',
+      re: /(?:^|[^\p{L}])(?:모로코|morocco|마라케시|marrakech|카사블랑카|casablanca)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '인도',
+      re: /(?:^|[^\p{L}])(?:인도\b|india|델리|delhi|뭄바이|mumbai|아그라|agra|자이푸르|jaipur)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '네팔',
+      re: /(?:^|[^\p{L}])(?:네팔|nepal|카트만두|kathmandu)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '스리랑카',
+      re: /(?:^|[^\p{L}])(?:스리랑카|sri\s*lanka|콜롬보|colombo)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '라오스',
+      re: /(?:^|[^\p{L}])(?:라오스|laos|루앙프라방|luang\s*prabang|비엔티안|vientiane)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '미얀마',
+      re: /(?:^|[^\p{L}])(?:미얀마|myanmar|양곤|yangon|바간|bagan)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '스웨덴',
+      re: /(?:^|[^\p{L}])(?:스웨덴|sweden|스톡홀름|stockholm)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '노르웨이',
+      re: /(?:^|[^\p{L}])(?:노르웨이|norway|오슬로|oslo|베르겐|bergen)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '덴마크',
+      re: /(?:^|[^\p{L}])(?:덴마크|denmark|코펜하겐|copenhagen)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '핀란드',
+      re: /(?:^|[^\p{L}])(?:핀란드|finland|헬싱키|helsinki|로바니에미|rovaniemi)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '벨기에',
+      re: /(?:^|[^\p{L}])(?:벨기에|belgium|브뤼셀|brussels|브뤼헤|bruges)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '폴란드',
+      re: /(?:^|[^\p{L}])(?:폴란드|poland|바르샤바|warsaw|크라쿠프|krakow)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '러시아',
+      re: /(?:^|[^\p{L}])(?:러시아|russia|모스크바|moscow|상트페테르부르크|st\.?\s*petersburg)(?:[^\p{L}]|$)/iu,
+    },
+  ]
+
+  for (const { nation, re } of buckets) {
+    if (re.test(hay)) return finalAirHotelNationSectionLabel(nation)
+  }
+
+  const exactNation = new Set([
+    '일본',
+    '베트남',
+    '태국',
+    '싱가포르',
+    '대만',
+    '필리핀',
+    '말레이시아',
+    '인도네시아',
+    '중국',
+    '홍콩',
+    '마카오',
+    '미국',
+    '캐나다',
+    '호주',
+    '뉴질랜드',
+    '영국',
+    '프랑스',
+    '이탈리아',
+    '스페인',
+    '독일',
+    '스위스',
+    '튀르키예',
+    '아랍에미리트',
+    '캄보디아',
+    '몽골',
+    '멕시코',
+    '그리스',
+    '포르투갈',
+    '네덜란드',
+    '오스트리아',
+    '체코',
+    '헝가리',
+    '크로아티아',
+    '이집트',
+    '모로코',
+    '인도',
+    '네팔',
+    '스리랑카',
+    '라오스',
+    '미얀마',
+    '스웨덴',
+    '노르웨이',
+    '덴마크',
+    '핀란드',
+    '벨기에',
+    '폴란드',
+    '러시아',
+  ])
+  const rawOnly = raw.trim()
+  const destOnly = dest.trim()
+  for (const cand of [rawOnly, destOnly]) {
+    if (!cand || /[·･/]/.test(cand)) continue
+    if (exactNation.has(cand)) return finalAirHotelNationSectionLabel(cand)
+  }
+
+  return AIR_HOTEL_MISC_SECTION
 }
 
 function AirHotelCountryGroupedList({
@@ -74,7 +373,7 @@ function AirHotelCountryGroupedList({
   const sections = useMemo(() => {
     const byCountry = new Map<string, ResultItem[]>()
     for (const item of items) {
-      const key = normalizeAirHotelCountrySectionKey(item.countryRowLabel)
+      const key = nationSectionKeyForAirHotelItem(item)
       let arr = byCountry.get(key)
       if (!arr) {
         arr = []
