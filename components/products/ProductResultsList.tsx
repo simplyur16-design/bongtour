@@ -90,14 +90,74 @@ const AIR_HOTEL_FORBIDDEN_SECTION = new Set([
   'asean',
 ])
 
+/** 최종 섹션 헤더: 국가명·독립 여행지·기타만(도시·권역 단독 헤더 차단용) */
+const AIR_HOTEL_KNOWN_SECTION_LABELS = new Set<string>([
+  AIR_HOTEL_MISC_SECTION,
+  '괌',
+  '사이판',
+  '하와이',
+  '일본',
+  '베트남',
+  '태국',
+  '싱가포르',
+  '대만',
+  '필리핀',
+  '말레이시아',
+  '인도네시아',
+  '중국',
+  '홍콩',
+  '마카오',
+  '호주',
+  '뉴질랜드',
+  '미국',
+  '캐나다',
+  '영국',
+  '프랑스',
+  '이탈리아',
+  '스페인',
+  '독일',
+  '스위스',
+  '튀르키예',
+  '아랍에미리트',
+  '캄보디아',
+  '몽골',
+  '멕시코',
+  '그리스',
+  '포르투갈',
+  '네덜란드',
+  '오스트리아',
+  '체코',
+  '헝가리',
+  '크로아티아',
+  '이집트',
+  '모로코',
+  '인도',
+  '네팔',
+  '스리랑카',
+  '라오스',
+  '미얀마',
+  '스웨덴',
+  '노르웨이',
+  '덴마크',
+  '핀란드',
+  '벨기에',
+  '폴란드',
+  '러시아',
+])
+
 function finalAirHotelNationSectionLabel(label: string): string {
   const s = label.trim()
   if (!s || s === AIR_HOTEL_MISC_SECTION) return AIR_HOTEL_MISC_SECTION
   if (AIR_HOTEL_FORBIDDEN_SECTION.has(s)) return AIR_HOTEL_MISC_SECTION
   const low = s.toLowerCase()
   if (AIR_HOTEL_FORBIDDEN_SECTION.has(low)) return AIR_HOTEL_MISC_SECTION
-  if (/^(동남아|서남아|유럽|미주)(\s|·|･|\/|$)/i.test(s)) return AIR_HOTEL_MISC_SECTION
+  if (
+    /^(동남아|서남아|유럽|미주|오세아니아|북미|남미|동북아|남태평양)(\s|·|･|\/|$)/i.test(s)
+  ) {
+    return AIR_HOTEL_MISC_SECTION
+  }
   if (/[·･]/.test(s)) return AIR_HOTEL_MISC_SECTION
+  if (!AIR_HOTEL_KNOWN_SECTION_LABELS.has(s)) return AIR_HOTEL_MISC_SECTION
   return s
 }
 
@@ -110,6 +170,18 @@ function nationSectionKeyForAirHotelItem(item: ResultItem): string {
   if (!hay) return AIR_HOTEL_MISC_SECTION
 
   const buckets: { nation: string; re: RegExp }[] = [
+    {
+      nation: '괌',
+      re: /(?:^|[^\p{L}])(?:괌|구암|guam)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '사이판',
+      re: /(?:^|[^\p{L}])(?:사이판|saipan)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '하와이',
+      re: /(?:^|[^\p{L}])(?:하와이|honolulu|waikiki|hawaii\b|oahu|maui|kauai)(?:[^\p{L}]|$)/iu,
+    },
     {
       nation: '일본',
       re: /(?:^|[^\p{L}])(?:도쿄|동경|東京|tokyo|오사카|大阪|osaka|후쿠오카|福岡|fukuoka|삿포로|札幌|sapporo|나고야|名古屋|nagoya|교토|京都|kyoto|요코하마|横浜|yokohama|오키나와|沖縄|okinawa|니가타|新潟|가나자와|金沢|kanazawa|히로시마|広島|hiroshima|센다이|仙台|규슈|九州|간사이|関西|kansai|홋카이도|北海道|hokkaido|도호쿠|東北|간토|関東|kanto|시코쿠|四国|주고쿠|中国地方|일본|日本|japan|nihon|니혼)(?:[^\p{L}]|$)/iu,
@@ -155,24 +227,24 @@ function nationSectionKeyForAirHotelItem(item: ResultItem): string {
       re: /(?:^|[^\p{L}])(?:마카오|澳門|macau|macao)(?:[^\p{L}]|$)/iu,
     },
     {
-      nation: '미국',
-      re: /(?:^|[^\p{L}])(?:뉴욕|new\s*york|manhattan|la\b|로스앤젤레스|los\s*angeles|라스베이거스|las\s*vegas|샌프란시스코|san\s*francisco|하와이|honolulu|waikiki|hawaii|시애틀|seattle|마이애미|miami|시카고|chicago|보스턴|boston|워싱턴|washington|올랜도|orlando|사이판|saipan|괌|guam|미국|usa|america)(?:[^\p{L}]|$)/iu,
-    },
-    {
-      nation: '캐나다',
-      re: /(?:^|[^\p{L}])(?:캐나다|canada|토론토|toronto|밴쿠버|vancouver|캘거리|calgary)(?:[^\p{L}]|$)/iu,
-    },
-    {
       nation: '호주',
-      re: /(?:^|[^\p{L}])(?:호주|australia|시드니|sydney|멜번|melbourne|브리즈번|brisbane|골드코스트|gold\s*coast|퍼스|perth)(?:[^\p{L}]|$)/iu,
+      re: /(?:^|[^\p{L}])(?:호주|australia|시드니|sydney|멜번|melbourne|브리즈번|brisbane|골드코스트|gold\s*coast|퍼스|perth|케인즈|케언즈|cairns)(?:[^\p{L}]|$)/iu,
     },
     {
       nation: '뉴질랜드',
       re: /(?:^|[^\p{L}])(?:뉴질랜드|new\s*zealand|오클랜드|auckland|퀸스타운|queenstown|크라이스트처치|christchurch)(?:[^\p{L}]|$)/iu,
     },
     {
+      nation: '미국',
+      re: /(?:^|[^\p{L}])(?:뉴욕|new\s*york|manhattan|\bla\b|로스앤젤레스|los\s*angeles|라스베이거스|las\s*vegas|샌프란시스코|san\s*francisco|시애틀|seattle|마이애미|miami|시카고|chicago|보스턴|boston|워싱턴|washington|올랜도|orlando|필라델피아|philadelphia|미국|usa|united\s*states|america)(?:[^\p{L}]|$)/iu,
+    },
+    {
+      nation: '캐나다',
+      re: /(?:^|[^\p{L}])(?:캐나다|canada|토론토|toronto|밴쿠버|vancouver|몬트리올|montreal|캘거리|calgary)(?:[^\p{L}]|$)/iu,
+    },
+    {
       nation: '영국',
-      re: /(?:^|[^\p{L}])(?:런던|london|영국|uk\b|britain|스코틀랜드|scotland|에든버러|edinburgh)(?:[^\p{L}]|$)/iu,
+      re: /(?:^|[^\p{L}])(?:런던|london|맨체스터|manchester|영국|uk\b|britain|스코틀랜드|scotland|에든버러|edinburgh)(?:[^\p{L}]|$)/iu,
     },
     {
       nation: '프랑스',
@@ -304,55 +376,9 @@ function nationSectionKeyForAirHotelItem(item: ResultItem): string {
     if (re.test(hay)) return finalAirHotelNationSectionLabel(nation)
   }
 
-  const exactNation = new Set([
-    '일본',
-    '베트남',
-    '태국',
-    '싱가포르',
-    '대만',
-    '필리핀',
-    '말레이시아',
-    '인도네시아',
-    '중국',
-    '홍콩',
-    '마카오',
-    '미국',
-    '캐나다',
-    '호주',
-    '뉴질랜드',
-    '영국',
-    '프랑스',
-    '이탈리아',
-    '스페인',
-    '독일',
-    '스위스',
-    '튀르키예',
-    '아랍에미리트',
-    '캄보디아',
-    '몽골',
-    '멕시코',
-    '그리스',
-    '포르투갈',
-    '네덜란드',
-    '오스트리아',
-    '체코',
-    '헝가리',
-    '크로아티아',
-    '이집트',
-    '모로코',
-    '인도',
-    '네팔',
-    '스리랑카',
-    '라오스',
-    '미얀마',
-    '스웨덴',
-    '노르웨이',
-    '덴마크',
-    '핀란드',
-    '벨기에',
-    '폴란드',
-    '러시아',
-  ])
+  const exactNation = new Set(
+    [...AIR_HOTEL_KNOWN_SECTION_LABELS].filter((x) => x !== AIR_HOTEL_MISC_SECTION)
+  )
   const rawOnly = raw.trim()
   const destOnly = dest.trim()
   for (const cand of [rawOnly, destOnly]) {
