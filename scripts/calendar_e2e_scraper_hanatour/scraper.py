@@ -90,6 +90,17 @@ _LIGHT_OPS_PHASES = frozenset(
 )
 
 
+def _e2e_admin_progress(message: str) -> None:
+    if (os.environ.get("HANATOUR_E2E_ADMIN_MONTH_SESSION") or "").strip().lower() not in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return
+    sys.stderr.write(f"[HANATOUR_E2E_ADMIN] {message}\n")
+    sys.stderr.flush()
+
+
 def _e2e_timing_phase(phase: str) -> None:
     """단계별 경과(초) — stderr만, stdout JSON과 분리."""
     if _e2e_light_ops():
@@ -2466,6 +2477,23 @@ class HanatourCalendarE2EScraper:
             _e2e_hanatour_phase("before_collect_return", month=phase_month)
             _e2e_timing_phase("before_json_build")
             _e2e_hanatour_phase("before_json_build", month=phase_month)
+            t_json0 = _time.perf_counter()
+            payload = json.dumps(result, ensure_ascii=False, indent=2)
+            json_stdout_ms = (_time.perf_counter() - t_json0) * 1000.0
+            lg = result.get("log")
+            if isinstance(lg, dict):
+                b = lg.setdefault("e2e_bucket_ms", {})
+                if isinstance(b, dict):
+                    b["10_json_stdout_ms"] = round(json_stdout_ms, 1)
+                    try:
+                        sys.stderr.write(
+                            "[HANATOUR_E2E_BUCKET_MS] "
+                            + json.dumps(b, ensure_ascii=False)
+                            + "\n"
+                        )
+                        sys.stderr.flush()
+                    except Exception:
+                        pass
             payload = json.dumps(result, ensure_ascii=False, indent=2)
             _e2e_timing_phase("after_json_build")
             _e2e_hanatour_phase("after_json_build", month=phase_month)
@@ -2513,6 +2541,7 @@ class HanatourCalendarE2EScraper:
             "e2e_timing_days": [],
         }
         departures: list[dict[str, Any]] = []
+        t_e2e_wall0 = _time.perf_counter()
         own = own_browser and page is None
         if own:
             self._pw, self._browser, _, self._page = await launch_hanatour_browser(
@@ -2521,6 +2550,7 @@ class HanatourCalendarE2EScraper:
             page = self._page
         assert page is not None
         try:
+            next_month_nav_ms_acc = 0.0
             phase_month = (target_month_ym or "").strip() or "pending"
             _e2e_timer_reset()
             _e2e_hanatour_phase("month_boot", month=phase_month)
@@ -2580,6 +2610,7 @@ class HanatourCalendarE2EScraper:
                     f"liCount={lay_modal.get('liCount')} scrolled={lay_modal.get('scrolled')}"
                 )
             _e2e_timing_phase("right_list_layout_ready")
+            t_e2e_post_modal = _time.perf_counter()
 
             kst_today = kst_today_ymd()
             months_done = 0
@@ -2627,13 +2658,25 @@ class HanatourCalendarE2EScraper:
                             if wy0 == ty_nav and wm0 == tm_nav:
                                 break
                             if (wy0 < ty_nav) or (wy0 == ty_nav and wm0 < tm_nav):
+                                t_nv = _time.perf_counter()
                                 nm_ok = await _next_month(page)
+                                next_month_nav_ms_acc += (
+                                    _time.perf_counter() - t_nv
+                                ) * 1000.0
                             else:
+                                t_nv = _time.perf_counter()
                                 nm_ok = await _prev_month(page)
+                                next_month_nav_ms_acc += (
+                                    _time.perf_counter() - t_nv
+                                ) * 1000.0
                             if not nm_ok:
                                 notes.append("e2e_target_month_nav_failed")
                                 break
+                            t_hd = _time.perf_counter()
                             await human_delay(0.15, 0.35)
+                            next_month_nav_ms_acc += (
+                                _time.perf_counter() - t_hd
+                            ) * 1000.0
                     except ValueError:
                         notes.append("e2e_target_month_parse_failed")
                         skip_target_month_body = True
@@ -2669,16 +2712,29 @@ class HanatourCalendarE2EScraper:
                             if wy0 == ty and wm0 == tm:
                                 break
                             if (wy0 < ty) or (wy0 == ty and wm0 < tm):
+                                t_nv = _time.perf_counter()
                                 nm_ok = await _next_month(page)
+                                next_month_nav_ms_acc += (
+                                    _time.perf_counter() - t_nv
+                                ) * 1000.0
                             else:
+                                t_nv = _time.perf_counter()
                                 nm_ok = await _prev_month(page)
+                                next_month_nav_ms_acc += (
+                                    _time.perf_counter() - t_nv
+                                ) * 1000.0
                             if not nm_ok:
                                 notes.append("first_verify_ym_nav_failed")
                                 break
+                            t_hd = _time.perf_counter()
                             await human_delay(0.15, 0.35)
+                            next_month_nav_ms_acc += (
+                                _time.perf_counter() - t_hd
+                            ) * 1000.0
                     except ValueError:
                         pass
 
+            t_e2e_month_loop0 = _time.perf_counter()
             _e2e_timing_phase("month_loop_start")
             for mi in range(max_months_eff):
                 if skip_target_month_body and target_month_ym:
@@ -2765,6 +2821,9 @@ class HanatourCalendarE2EScraper:
                     month=phase_month,
                     rows_seen=len(days),
                     current_calendar_label=phase_month,
+                )
+                _e2e_admin_progress(
+                    f"ym={phase_month} calendar_day_slots={len(days)} (iterating…)"
                 )
                 if not mfmo:
                     _e2e_progress(f"month_loop: index={mi} {wy}-{wm:02d} day_slots={len(days)}")
@@ -3208,6 +3267,9 @@ class HanatourCalendarE2EScraper:
                     departures.append(dep)
                     month_appended += 1
                     notes.append(f"appended:{iso}")
+                    _e2e_admin_progress(
+                        f"ym={phase_month} collected={month_appended} lastIso={iso}"
+                    )
                     _e2e_hanatour_phase(
                         "row_collect_done",
                         month=phase_month,
@@ -3333,7 +3395,9 @@ class HanatourCalendarE2EScraper:
                     break
                 t_nm0 = _time.perf_counter()
                 nm_ok = await _next_month(page)
-                log["e2e_last_next_month_ms"] = round((_time.perf_counter() - t_nm0) * 1000, 1)
+                nms = (_time.perf_counter() - t_nm0) * 1000.0
+                next_month_nav_ms_acc += nms
+                log["e2e_last_next_month_ms"] = round(nms, 1)
                 if nm_ok:
                     next_month_ok_count += 1
                     notes.append(f"next_month_ok:from_m{wm}_to_next")
@@ -3382,6 +3446,33 @@ class HanatourCalendarE2EScraper:
                         (_time.perf_counter() - t_sample0) * 1000, 1
                     ),
                 }
+            t_e2e_month_loop1 = _time.perf_counter()
+            timing_days = log.get("e2e_timing_days")
+            if not isinstance(timing_days, list):
+                timing_days = []
+            sum_list = sum(
+                float((d or {}).get("listWaitTotalMs") or 0) for d in timing_days
+            )
+            sum_click = sum(float((d or {}).get("clickMs") or 0) for d in timing_days)
+            sum_pre = sum(float((d or {}).get("preListMs") or 0) for d in timing_days)
+            sum_match = sum(float((d or {}).get("matchMs") or 0) for d in timing_days)
+            wall_month_loop_ms = (t_e2e_month_loop1 - t_e2e_month_loop0) * 1000.0
+            anchor_prepare_ms = (t_e2e_month_loop0 - t_e2e_post_modal) * 1000.0
+            browser_page_ms = (t_e2e_post_modal - t_e2e_wall0) * 1000.0
+            accounted_loop_ms = sum_list + sum_click + sum_pre + sum_match
+            log["e2e_bucket_ms"] = {
+                "1_browser_page_ms": round(browser_page_ms, 1),
+                "2_anchor_month_prepare_ms": round(anchor_prepare_ms, 1),
+                "3_month_nav_clicks_ms": round(next_month_nav_ms_acc, 1),
+                "4_day_loop_list_wait_ms": round(sum_list, 1),
+                "5_day_loop_click_ms": round(sum_click, 1),
+                "6_day_loop_pre_list_ms": round(sum_pre, 1),
+                "7_day_loop_same_product_ms": round(sum_match, 1),
+                "8_month_loop_wall_ms": round(wall_month_loop_ms, 1),
+                "9_month_loop_other_ms": round(
+                    max(0.0, wall_month_loop_ms - accounted_loop_ms), 1
+                ),
+            }
             _e2e_timing_phase("month_loop_done")
             return await self._finalize_hanatour_e2e_run(
                 self._ret(departures, notes, log, detail_url=detail_url),

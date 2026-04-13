@@ -236,7 +236,9 @@ function hanatourStderrLineRelevant(line: string): boolean {
     line.includes('[hanatour]') ||
     line.includes('[HANATOUR_E2E]') ||
     line.includes('[HANATOUR_E2E_TIMING]') ||
-    line.includes('[HANATOUR_E2E_PHASE]')
+    line.includes('[HANATOUR_E2E_PHASE]') ||
+    line.includes('[HANATOUR_E2E_BUCKET_MS]') ||
+    line.includes('[HANATOUR_E2E_ADMIN]')
   )
 }
 
@@ -658,6 +660,7 @@ async function hanatourPythonCliSingleInvocation(params: {
     const stderrStr = typeof stderr === 'string' ? stderr : ''
     const stdoutStr = typeof stdout === 'string' ? stdout : ''
     const endedAtOk = new Date().toISOString()
+    const tParse0 = Date.now()
     console.log(`[hanatour] phase=month_stdout_received month=${monthLabel} chars=${stdoutStr.length}`)
     console.log(`[hanatour] phase=month_stderr_received month=${monthLabel} chars=${stderrStr.length}`)
     if (stderrStr.trim()) {
@@ -667,6 +670,10 @@ async function hanatourPythonCliSingleInvocation(params: {
       `[hanatour] phase=python-cli-exit exitCode=0 stdoutChars=${stdoutStr.length} stderrChars=${stderrStr.length}`
     )
     const parsed = tryParseHanatourStdoutJson(stdoutStr)
+    const tsPostProcessMs = Date.now() - tParse0
+    console.log(
+      `[hanatour] phase=month_ts_postprocess month=${monthLabel} parseMapMs=${tsPostProcessMs}`
+    )
     if (!parsed) {
       const diag: HanatourPythonDiagnostics = {
         ...baseDiag(),
@@ -958,7 +965,9 @@ export async function collectHanatourDepartureInputs(
     envForPython.HANATOUR_E2E_LIGHT_OPS = '1'
     envForPython.HANATOUR_E2E_ALLOW_COLLECT_WITHOUT_LIST_REFRESH =
       process.env.HANATOUR_E2E_ALLOW_COLLECT_WITHOUT_LIST_REFRESH ?? '1'
-    envForPython.HANATOUR_E2E_LIST_REFRESH_MS = process.env.HANATOUR_E2E_LIST_REFRESH_MS ?? '12000'
+    /** 관리자 월별 subprocess: 일자별 list_wait 상한을 조금 줄여(빈 날 반복 시) 총 시간 절감. env로 덮어쓰기 가능 */
+    envForPython.HANATOUR_E2E_LIST_REFRESH_MS =
+      process.env.HANATOUR_E2E_LIST_REFRESH_MS ?? (withStopAfterFirst ? '12000' : '8500')
     envForPython.HANATOUR_E2E_ALLOW_SAME_DAY_SELECTION_COMMIT =
       process.env.HANATOUR_E2E_ALLOW_SAME_DAY_SELECTION_COMMIT ?? '0'
     /** 실전 월별 subprocess: 스크래퍼에서 경량 경로(짧은 row 매칭 반복 등) 분기 */
