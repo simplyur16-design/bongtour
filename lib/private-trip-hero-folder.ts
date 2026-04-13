@@ -51,14 +51,11 @@ export function listPrivateTripHeroFolderImagePublicUrls(): string[] {
 }
 
 function folderUrlsToSlides(urls: string[]): PrivateTripHeroSlide[] {
-  return urls.map((imageUrl) => {
-    const rawName = decodeURIComponent(imageUrl.split('/').pop() ?? '').replace(/\+/g, ' ')
-    const base = rawName.replace(/\.[^.]+$/i, '').replace(/[-_]+/g, ' ').trim()
-    return {
-      imageUrl,
-      caption: base || undefined,
-    }
-  })
+  return urls.map((imageUrl) => ({
+    imageUrl,
+    /** 파일명·스토리지 키는 공개 UI에 쓰지 않음 — 멘트는 `private-trip-hero-ops-ment` 규칙 */
+    caption: undefined,
+  }))
 }
 
 /**

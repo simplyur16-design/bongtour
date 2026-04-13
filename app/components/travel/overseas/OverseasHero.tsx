@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { type FC, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { pickPrivateTripOpsHeadline, privateTripHeroCardTitle } from '@/lib/private-trip-hero-ops-ment'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
 import {
@@ -346,6 +347,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
   const [isPaused, setIsPaused] = useState(false)
   const [lastManualAt, setLastManualAt] = useState(0)
   const [reduceMotion, setReduceMotion] = useState(false)
+  const heroSlideCountRef = useRef(0)
   /** 월·목적지·scope 키별 Gemini 1줄(실패·로딩 중에는 스텁 headline 유지) */
   const [headlineByKey, setHeadlineByKey] = useState<Record<string, string>>({})
   const [calendarOpen, setCalendarOpen] = useState(false)
@@ -520,6 +522,10 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
       setHeadlineByKey({})
       return
     }
+    if (browseListingKind === 'private_trip') {
+      setHeadlineByKey({})
+      return
+    }
     const rows = heroRowsStub
     setHeadlineByKey({})
     if (rows.length === 0) return
@@ -564,21 +570,26 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
     })()
 
     return () => ac.abort()
-  }, [loading, heroRowsStub])
+  }, [loading, heroRowsStub, browseListingKind])
 
-  const heroRows = useMemo(
-    () =>
-      heroRowsStub.map((row) => {
-        const key = pageHeroMonthlyGeminiJobKey({
-          targetMonth1To12: row.slotMonth,
-          destinationDisplay: browseDestinationDisplayLabelFromBrowseHero(row).trim(),
-          travelScope: row.travelScope,
-        })
-        const gem = headlineByKey[key]
-        return gem ? { ...row, headline: gem } : row
-      }),
-    [headlineByKey, heroRowsStub],
-  )
+  const heroRows = useMemo(() => {
+    if (browseListingKind === 'private_trip') {
+      return heroRowsStub.map((row, i) => ({
+        ...row,
+        headline: pickPrivateTripOpsHeadline(row, i),
+        title: privateTripHeroCardTitle(row),
+      }))
+    }
+    return heroRowsStub.map((row) => {
+      const key = pageHeroMonthlyGeminiJobKey({
+        targetMonth1To12: row.slotMonth,
+        destinationDisplay: browseDestinationDisplayLabelFromBrowseHero(row).trim(),
+        travelScope: row.travelScope,
+      })
+      const gem = headlineByKey[key]
+      return gem ? { ...row, headline: gem } : row
+    })
+  }, [browseListingKind, headlineByKey, heroRowsStub])
 
   useEffect(() => {
     setIdx((prev) => {
@@ -591,14 +602,20 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
   const current = heroRows[idx % Math.max(heroRows.length, 1)] ?? null
 
   useEffect(() => {
-    if (heroRows.length <= 1 || isPaused || reduceMotion) return
+    heroSlideCountRef.current = heroRows.length
+    const hoverPausesAutoplay = browseListingKind !== 'private_trip'
+    if (heroRows.length <= 1 || (hoverPausesAutoplay && isPaused) || reduceMotion) return
     const t = setInterval(() => {
       // 수동 이동 직후 즉시 자동 전환되는 현상 완화
       if (Date.now() - lastManualAt < 3600) return
-      setIdx((v) => (v + 1) % heroRows.length)
+      setIdx((v) => {
+        const n = heroSlideCountRef.current
+        if (n <= 1) return v
+        return (v + 1) % n
+      })
     }, 5500)
     return () => clearInterval(t)
-  }, [heroRows.length, isPaused, reduceMotion, lastManualAt])
+  }, [heroRows.length, isPaused, reduceMotion, lastManualAt, browseListingKind])
 
   const todayYmd = useMemo(() => formatYmd(new Date()), [])
   const calendarCells = useMemo(
@@ -745,8 +762,12 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
       <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 sm:py-4">
         <div
           className="relative overflow-hidden rounded-xl border border-bt-border bg-bt-surface"
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
+          onMouseEnter={() => {
+            if (browseListingKind !== 'private_trip') setIsPaused(true)
+          }}
+          onMouseLeave={() => {
+            if (browseListingKind !== 'private_trip') setIsPaused(false)
+          }}
           aria-live={reduceMotion ? 'polite' : 'off'}
         >
           <div className="relative h-[150px] sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]">
