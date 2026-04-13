@@ -68,6 +68,13 @@ export async function resolvePrivateTripManagedHeroSlides(): Promise<PrivateTrip
     try {
       const storageUrls = await listPrivateTripHeroStoragePublicUrls()
       if (storageUrls.length > 0) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.info('[private-trip-hero] managed slides source=storage', {
+            count: storageUrls.length,
+            bucket: getImageStorageBucket(),
+            prefix: PRIVATE_TRIP_HERO_STORAGE_PREFIX,
+          })
+        }
         return folderUrlsToSlides(storageUrls)
       }
     } catch (e) {
@@ -77,9 +84,19 @@ export async function resolvePrivateTripManagedHeroSlides(): Promise<PrivateTrip
 
   const folderUrls = listPrivateTripHeroFolderImagePublicUrls()
   if (folderUrls.length > 0) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[private-trip-hero] managed slides source=disk', {
+        count: folderUrls.length,
+        path: PRIVATE_TRIP_HERO_FOLDER_PUBLIC,
+      })
+    }
     return folderUrlsToSlides(folderUrls)
   }
-  return getPrivateTripHeroSlides()
+  const jsonSlides = getPrivateTripHeroSlides()
+  if (process.env.NODE_ENV !== 'production' && jsonSlides.length > 0) {
+    console.info('[private-trip-hero] managed slides source=json', { count: jsonSlides.length })
+  }
+  return jsonSlides
 }
 
 export type PrivateTripHeroFolderListingSource = 'supabase' | 'disk'
