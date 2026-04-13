@@ -8,7 +8,6 @@ import { AIRLINE_CATALOG, airlineStringMatchesCode, buildAirlineHaystack } from 
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { effectiveBrowseTypeForProduct } from '@/lib/products-browse-filter'
-import type { CompanionFilter, TravelGradeFilter } from '@/lib/products-browse-query'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
 import type { Product } from '@prisma/client'
 
@@ -28,21 +27,14 @@ export type ProductBrowseFullRow = Product & {
 }
 
 export type ExtendedBrowseFilters = {
-  departureConfirmed?: boolean
   /** 현지옵션 없음 — DB: optionalTours 없음 & hasOptionalTours 아님 */
   noOptionalTour?: boolean
   /** 쇼핑 없음 — shoppingCount·shoppingVisitCountTotal 0 */
   noShopping?: boolean
-  /** 자유일정 포함 — 상품명·유형·포함내역 휴리스틱 */
-  freeScheduleIncluded?: boolean
   /** Brand.brandKey 또는 originSource 정규화 키 (복수 선택 시 OR) */
   brandKeys?: string[]
   /** 에어텔·단독(프라이빗)·프리미엄 (복수 선택 시 OR) — 구 URL category= */
   productCategories?: Array<'airtel' | 'private' | 'premium'>
-  /** 사용자 관점 여행 등급 (복수 선택 시 OR) — 제목·유형·포함내역 휴리스틱 */
-  travelGrades?: TravelGradeFilter[]
-  /** 동행자 (복수 선택 시 OR) */
-  companions?: CompanionFilter[]
   /** airline catalog code + 'other' (복수 선택 시 OR) */
   airlineCodes?: string[]
   /** '04-07' … '20-24' — 출발편 outboundDepartureAt 기준 (복수 선택 시 OR) */
@@ -62,25 +54,6 @@ const HOUR_BUCKETS: Record<string, [number, number]> = {
   '14-16': [14, 16],
   '16-20': [16, 20],
   '20-24': [20, 24],
-}
-
-function parseStatusLabelsJson(raw: string | null | undefined): string[] {
-  if (!raw?.trim()) return []
-  try {
-    const j = JSON.parse(raw) as unknown
-    if (!Array.isArray(j)) return []
-    return j.map((x) => String(x))
-  } catch {
-    return []
-  }
-}
-
-function departureIsConfirmed(d: ProductBrowseFullRow['departures'][0]): boolean {
-  if (d.isDepartureConfirmed === true) return true
-  const labels = parseStatusLabelsJson(d.statusLabelsRaw)
-  if (labels.some((s) => /출발\s*확정|출발확정/.test(s))) return true
-  const raw = `${d.statusRaw ?? ''}`
-  return /출발\s*확정|출발확정/.test(raw)
 }
 
 function hourInBucket(hour: number, bucket: string): boolean {
@@ -134,40 +107,6 @@ function matchesProductCategories(p: ProductBrowseFullRow, cats: Array<'airtel' 
   })
 }
 
-function browseHaystack(p: ProductBrowseFullRow): string {
-  return `${p.title} ${p.productType ?? ''} ${p.includedText ?? ''}`.toLowerCase()
-}
-
-/** 봉투어 좌측 필터 — 상품 메타에 전용 필드가 없을 때 제목·포함문구 기준 탐색용 매칭 */
-function matchesTravelGrades(p: ProductBrowseFullRow, grades: TravelGradeFilter[]): boolean {
-  if (grades.length === 0) return true
-  const hay = browseHaystack(p)
-  return grades.some((g) => {
-    if (g === 'value') {
-      return /가성비|알뜰|특가|이코노미|저렴|합리|가격\s*부담|베스트\s*가|이벤트\s*가|초특가|극\s*가성비/i.test(hay)
-    }
-    if (g === 'standard') {
-      return /스탠다드|\bstandard\b|일반\s*패키지|정통|대표\s*일정|클래식|일반\s*일정|기본\s*구성/i.test(hay)
-    }
-    if (g === 'premium') {
-      return /프리미엄|premium|품격|럭셔리|특급|최상급|5\s*성급|그랜드|럭셔리/i.test(hay)
-    }
-    return false
-  })
-}
-
-function matchesCompanions(p: ProductBrowseFullRow, comps: CompanionFilter[]): boolean {
-  if (comps.length === 0) return true
-  const hay = browseHaystack(p)
-  return comps.some((c) => {
-    if (c === 'kids') return /아이|어린이|유아|키즈|가족|육아|자녀|초등|패밀리|키즈\s*친화/i.test(hay)
-    if (c === 'parents') return /부모|부모님|효도|효여|어르신|시니어|60대|65세|노후/i.test(hay)
-    if (c === 'couple') return /커플|부부|신혼|허니문|2인\s*기준|둘이|둘만|듀오|2\s*인\s*전용/i.test(hay)
-    if (c === 'friends') return /친구|동창|우정|동호회|모임|동료|같이\s*가|함께\s*떠나/i.test(hay)
-    return false
-  })
-}
-
 function matchesAirlineCodes(p: ProductBrowseFullRow, codes: string[]): boolean {
   if (codes.length === 0) return true
   const parts: string[] = []
@@ -202,15 +141,6 @@ function matchesShoppingNone(p: ProductBrowseFullRow): boolean {
   return !shoppingVisits && !visitTotal
 }
 
-function matchesFreeSchedule(p: ProductBrowseFullRow): boolean {
-  const hay = `${p.title} ${p.productType ?? ''} ${p.includedText ?? ''}`.toLowerCase()
-  return /자유\s*일정|일정\s*일부|반일\s*자유|자유\s*관광|free\s*day|일정\s*중\s*자유/i.test(hay)
-}
-
-function matchesDepartureConfirmed(p: ProductBrowseFullRow): boolean {
-  return p.departures.some((d) => departureIsConfirmed(d))
-}
-
 function matchesDepartureHourBuckets(p: ProductBrowseFullRow, buckets: string[]): boolean {
   if (buckets.length === 0) return true
   return p.departures.some((d: ProductBrowseFullRow['departures'][number]) => {
@@ -241,16 +171,12 @@ export function productRowPassesExtendedFilters(row: ProductBrowseFullRow, f: Ex
     if (price == null || price > f.budgetMax) return false
   }
 
-  if (f.departureConfirmed && !matchesDepartureConfirmed(row)) return false
   if (f.noOptionalTour && !matchesOptionalTourNone(row)) return false
   if (f.noShopping && !matchesShoppingNone(row)) return false
-  if (f.freeScheduleIncluded && !matchesFreeSchedule(row)) return false
 
   if (f.brandKeys && f.brandKeys.length > 0 && !matchesBrandKeys(row, f.brandKeys)) return false
   if (f.productCategories && f.productCategories.length > 0 && !matchesProductCategories(row, f.productCategories))
     return false
-  if (f.travelGrades && f.travelGrades.length > 0 && !matchesTravelGrades(row, f.travelGrades)) return false
-  if (f.companions && f.companions.length > 0 && !matchesCompanions(row, f.companions)) return false
   if (f.airlineCodes && f.airlineCodes.length > 0 && !matchesAirlineCodes(row, f.airlineCodes)) return false
   if (f.departureHourBuckets && f.departureHourBuckets.length > 0) {
     if (!matchesDepartureHourBuckets(row, f.departureHourBuckets)) return false

@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import HomeProductPickSection from '@/app/components/home/HomeProductPickSection'
 import DomesticRegionExplorer, { type DomesticExploreFilter } from '@/app/components/travel/domestic/DomesticRegionExplorer'
-import DomesticTravelSubMainNav, { type DomesticNavApply } from '@/app/components/travel/domestic/DomesticTravelSubMainNav'
 import DomesticRefineSidebar from '@/app/components/travel/domestic/DomesticRefineSidebar'
 import { DOMESTIC_LANDING_SECTIONS } from '@/lib/domestic-landing-copy'
 import { DOMESTIC_NAV_PILLARS, parseDomesticUrlNav, type DomesticPillarId } from '@/lib/domestic-landing-nav-data'
@@ -128,35 +127,6 @@ export default function DomesticInteractiveShell({
     if (parsed) applyParsedNav(parsed)
   }, [initialDmPillar, initialDmItem, applyParsedNav])
 
-  const onNavApply = useCallback(
-    (a: DomesticNavApply) => {
-      if (a.kind === 'region') {
-        applyParsedNav({
-          kind: 'region',
-          groupKey: a.groupKey,
-          destinationTerms: a.destinationTerms,
-          summaryLabel: a.summaryLabel,
-        })
-        document.getElementById('travel-dm-products')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        return
-      }
-      if (a.kind === 'terms') {
-        applyParsedNav({ kind: 'terms', pillar: a.pillar, terms: a.terms, summaryLabel: a.summaryLabel })
-        document.getElementById('travel-dm-products')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        return
-      }
-      if (a.kind === 'special_theme') {
-        applyParsedNav({
-          kind: 'special_theme',
-          secondKey: a.secondKey,
-          summaryLabel: a.summaryLabel,
-        })
-        document.getElementById('travel-dm-products')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }
-    },
-    [applyParsedNav]
-  )
-
   const onExploreChange = useCallback(
     (next: DomesticExploreFilter) => {
       setExplore(next)
@@ -235,8 +205,6 @@ export default function DomesticInteractiveShell({
 
   return (
     <>
-      <DomesticTravelSubMainNav onApply={onNavApply} />
-
       {productsQueryFailed ? (
         <div className="mx-auto max-w-6xl border-b border-amber-200 bg-amber-50/90 px-4 py-3 text-center text-sm text-amber-950 sm:px-6">
           등록 상품 정보를 불러오지 못했습니다. 아래 지역 탐색·상담 가능 일정은 일부 제한될 수 있습니다.

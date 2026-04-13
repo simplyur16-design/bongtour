@@ -272,14 +272,10 @@ export async function GET(request: Request) {
     }
 
     const ext: ExtendedBrowseFilters = {
-      departureConfirmed: q.confirmed || undefined,
       noOptionalTour: q.noOptionalTour || undefined,
       noShopping: q.noShopping || undefined,
-      freeScheduleIncluded: q.freeSchedule || undefined,
       brandKeys: q.brands.length > 0 ? q.brands : undefined,
       productCategories: q.categories.length > 0 ? q.categories : undefined,
-      travelGrades: q.travelGrades.length > 0 ? q.travelGrades : undefined,
-      companions: q.companions.length > 0 ? q.companions : undefined,
       airlineCodes: q.airlines.length > 0 ? q.airlines : undefined,
       departureHourBuckets: q.departHours.length > 0 ? q.departHours : undefined,
       departureWeekdays: q.departWeekdays.length > 0 ? q.departWeekdays : undefined,
@@ -410,8 +406,6 @@ export async function GET(request: Request) {
       queryEcho: {
         type: typeParam,
         categories: q.categories,
-        travelGrades: q.travelGrades,
-        companions: q.companions,
         region,
         country,
         city,
@@ -449,8 +443,6 @@ export async function GET(request: Request) {
       queryEcho: {
         type: sp.get('type'),
         categories: q.categories,
-        travelGrades: q.travelGrades,
-        companions: q.companions,
         region: sp.get('region'),
         country: sp.get('country'),
         city: sp.get('city'),

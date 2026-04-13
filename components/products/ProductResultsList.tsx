@@ -15,6 +15,10 @@ import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverl
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { interleaveProductsBySupplier } from '@/lib/interleave-products-by-supplier'
+import {
+  matchProductToDomesticNode,
+  type DomesticProductMatchInput,
+} from '@/lib/match-domestic-product'
 
 export type ResultItem = {
   id: string
@@ -47,6 +51,8 @@ type Props = {
   groupOverseasByRegion?: boolean
   /** `/travel/air-hotel`만: 국가 단위 섹션(도시 라벨 정규화) + 섹션 내 공급사 interleave */
   groupAirHotelByCountry?: boolean
+  /** `/travel/domestic`만: 지역 고정 순서 섹션 + 섹션 내 interleave */
+  groupDomesticByRegion?: boolean
   /** 서유럽 섹션 상단 목적지 브리핑(선택) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
   /** 동유럽 섹션 직후·미주 전, 전폭 1회(데이터 없으면 미렌더) */
@@ -502,6 +508,89 @@ function AirHotelCountryGroupedList({
 /** 일반 목록용 그리드 */
 const cardGridClass = 'mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
+/** 국내 허브 지역 섹션 고정 순서(상품 수와 무관) */
+const DOMESTIC_HUB_SECTIONS: { id: string; label: string }[] = [
+  { id: 'jeju', label: '제주' },
+  { id: 'gangwon', label: '강원' },
+  { id: 'gyeongsang', label: '부산/경상' },
+  { id: 'jeolla', label: '전라' },
+  { id: 'chungcheong', label: '충청' },
+  { id: 'capital', label: '수도권' },
+  { id: '__etc__', label: '기타' },
+]
+
+function domesticTreeGroupToSectionId(gk: string | null | undefined): string {
+  if (gk === 'jeju' || gk === 'gangwon' || gk === 'gyeongsang' || gk === 'jeolla' || gk === 'chungcheong' || gk === 'capital') {
+    return gk
+  }
+  return '__etc__'
+}
+
+/** 제목 우선 → 트리 매칭(기존 `DOMESTIC_LOCATION_TREE` 규칙 재사용) */
+function domesticPublicSectionId(item: ResultItem): string {
+  const base: DomesticProductMatchInput = {
+    title: item.title,
+    originSource: item.originSource,
+    primaryDestination: item.primaryDestination,
+    primaryRegion: item.primaryRegion,
+    destinationRaw: null,
+    destination: null,
+  }
+  const titleOnly = matchProductToDomesticNode({
+    ...base,
+    primaryDestination: null,
+    primaryRegion: null,
+  })
+  if (titleOnly) return domesticTreeGroupToSectionId(titleOnly.groupKey)
+  const full = matchProductToDomesticNode(base)
+  return domesticTreeGroupToSectionId(full?.groupKey)
+}
+
+function DomesticRegionGroupedList({
+  items,
+  formatWon,
+}: {
+  items: ResultItem[]
+  formatWon: (n: number | null) => string
+}) {
+  const sections = useMemo(() => {
+    const byId = new Map<string, ResultItem[]>()
+    for (const { id } of DOMESTIC_HUB_SECTIONS) byId.set(id, [])
+    for (const item of items) {
+      const sid = domesticPublicSectionId(item)
+      const bucket = byId.get(sid) ?? byId.get('__etc__')!
+      bucket.push(item)
+    }
+    return DOMESTIC_HUB_SECTIONS.map(({ id, label }) => ({
+      id,
+      label,
+      items: interleaveProductsBySupplier(byId.get(id) ?? []),
+    })).filter((s) => s.items.length > 0)
+  }, [items])
+
+  return (
+    <div className="mt-6 space-y-10">
+      {sections.map(({ id, label, items: rowItems }, idx) => (
+        <section key={id} className="scroll-mt-4" aria-labelledby={`domestic-hub-sec-${idx}`}>
+          <h2
+            id={`domestic-hub-sec-${idx}`}
+            className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
+          >
+            {label}
+          </h2>
+          <ul className={cardGridClass} role="list">
+            {rowItems.map((row) => (
+              <li key={row.id}>
+                <ProductResultCard item={row} formatWon={formatWon} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  )
+}
+
 /** 해외 여행상품: 권역(버킷)당 한 줄 — 약 3장 노출, 나머지는 가로 스크롤(데스크톱에서도 줄바꿈 없음) */
 const countryProductRowClass =
   'mt-6 flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible overscroll-x-contain pb-2 pt-0.5 snap-x snap-proximity [-ms-overflow-style:none] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]'
@@ -674,9 +763,14 @@ export default function ProductResultsList({
   formatWon,
   groupOverseasByRegion,
   groupAirHotelByCountry = false,
+  groupDomesticByRegion = false,
   overseasEditorialBriefing = null,
   monthlyCurationMid = null,
 }: Props) {
+  if (groupDomesticByRegion && items.length > 0) {
+    return <DomesticRegionGroupedList items={items} formatWon={formatWon} />
+  }
+
   if (groupAirHotelByCountry && items.length > 0) {
     return <AirHotelCountryGroupedList items={items} formatWon={formatWon} />
   }

@@ -11,6 +11,7 @@ import {
   type BrowseQueryState,
 } from '@/lib/products-browse-query'
 import ProductsPageLayout from '@/components/products/layout/ProductsPageLayout'
+import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import ProductFilterForm, { type BrowseFacets } from '@/components/products/filter/ProductFilterForm'
 import ProductFilterMobileDrawer from '@/components/products/filter/ProductFilterMobileDrawer'
 import ProductFilterChips, { buildFilterChips } from '@/components/products/ProductFilterChips'
@@ -29,6 +30,37 @@ type ApiOk = {
   suggestedBudgetMax: number | null
   facets: BrowseFacets
 }
+
+/** 국내 허브(`/travel/domestic`)에서 browse·URL 정리 시 제거(레거시 링크 무시) */
+const DOMESTIC_HUB_QUERY_STRIP_KEYS = [
+  'dmPillar',
+  'dmItem',
+  'regionPref',
+  'domesticTransport',
+  'domesticSpecialTheme',
+  'tripDays',
+  'departMonth',
+  'region',
+  'country',
+  'city',
+  'brand',
+  'brands',
+  'airline',
+  'airlines',
+  'noOptionalTour',
+  'noShopping',
+  'departHour',
+  'departHours',
+  'departDay',
+  'departWeekdays',
+  'budgetPerPerson',
+  'budgetMin',
+  'categories',
+  'category',
+  'type',
+  'page',
+  'listingKind',
+] as const
 
 type Props = {
   basePath?: string
@@ -65,10 +97,16 @@ export default function ProductsBrowseClient({
   const searchParams = useSearchParams()
   const qs = searchParams.toString()
 
-  const q = useMemo(
-    () => parseBrowseQuery(new URLSearchParams(searchParams.toString())),
-    [searchParams]
-  )
+  const isDomesticHub = pathname === '/travel/domestic' && defaultScope === 'domestic'
+
+  const q = useMemo(() => {
+    if (isDomesticHub) {
+      const sp = new URLSearchParams(searchParams.toString())
+      for (const k of DOMESTIC_HUB_QUERY_STRIP_KEYS) sp.delete(k)
+      return parseBrowseQuery(sp)
+    }
+    return parseBrowseQuery(new URLSearchParams(searchParams.toString()))
+  }, [isDomesticHub, searchParams])
 
   const [data, setData] = useState<ApiOk | null>(null)
   const [loading, setLoading] = useState(true)
@@ -87,14 +125,26 @@ export default function ProductsBrowseClient({
       setLoading(true)
       setError(null)
       try {
-        const p = new URLSearchParams(qs)
-        if (defaultScope && !p.get('scope')) p.set('scope', defaultScope)
+        let p: URLSearchParams
+        if (isDomesticHub) {
+          p = new URLSearchParams()
+          p.set('scope', 'domestic')
+          p.set('limit', '1000')
+          const sortRaw = searchParams.get('sort')
+          if (
+            sortRaw === 'budget_fit' ||
+            sortRaw === 'price_asc' ||
+            sortRaw === 'price_desc' ||
+            sortRaw === 'departure_asc'
+          ) {
+            p.set('sort', sortRaw)
+          }
+        } else {
+          p = new URLSearchParams(qs)
+          if (defaultScope && !p.get('scope')) p.set('scope', defaultScope)
+        }
         if (defaultScope === 'overseas' && pathname === '/travel/overseas') {
           p.delete('listingKind')
-          p.set('limit', '1000')
-          p.delete('page')
-        }
-        if (defaultScope === 'domestic' && pathname === '/travel/domestic') {
           p.set('limit', '1000')
           p.delete('page')
         }
@@ -127,16 +177,25 @@ export default function ProductsBrowseClient({
     return () => {
       cancelled = true
     }
-  }, [qs, pathname, defaultScope])
+  }, [qs, pathname, defaultScope, isDomesticHub, searchParams])
 
   const navigate = useCallback(
     (next: BrowseQueryState) => {
+      if (isDomesticHub) {
+        const params = new URLSearchParams()
+        params.set('scope', 'domestic')
+        params.set('limit', '1000')
+        const s = syncTypeWithCategories(next).sort
+        if (s && s !== 'popular') params.set('sort', s)
+        router.replace(`${basePath}?${params.toString()}`, { scroll: false })
+        return
+      }
       const synced = syncTypeWithCategories(next)
       const params = new URLSearchParams(serializeBrowseQuery(synced))
       if (defaultScope && !params.get('scope')) params.set('scope', defaultScope)
-      router.replace(`${basePath}?${params.toString()}`)
+      router.replace(`${basePath}?${params.toString()}`, { scroll: false })
     },
-    [basePath, defaultScope, router]
+    [basePath, defaultScope, isDomesticHub, router]
   )
 
   const onPatch = useCallback(
@@ -147,6 +206,13 @@ export default function ProductsBrowseClient({
   )
 
   const clearMegaParams = useCallback(() => {
+    if (isDomesticHub) {
+      const sp = new URLSearchParams()
+      sp.set('scope', 'domestic')
+      sp.set('limit', '1000')
+      router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
+      return
+    }
     const sp = new URLSearchParams(searchParams.toString())
     ;[
       'confirmed',
@@ -173,8 +239,8 @@ export default function ProductsBrowseClient({
       'page',
     ].forEach((k) => sp.delete(k))
     if (defaultScope) sp.set('scope', defaultScope)
-    router.replace(`${basePath}?${sp.toString()}`)
-  }, [basePath, defaultScope, router, searchParams])
+    router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
+  }, [basePath, defaultScope, isDomesticHub, router, searchParams])
 
   const clearAllFilters = useCallback(() => {
     clearMegaParams()
@@ -182,10 +248,8 @@ export default function ProductsBrowseClient({
 
   const removeChip = useCallback(
     (key: string) => {
-      if (key === 'confirmed') onPatch({ confirmed: false })
-      else if (key === 'noOptionalTour') onPatch({ noOptionalTour: false })
+      if (key === 'noOptionalTour') onPatch({ noOptionalTour: false })
       else if (key === 'noShopping') onPatch({ noShopping: false })
-      else if (key === 'freeSchedule') onPatch({ freeSchedule: false })
       else if (key === 'budget') onPatch({ budgetMin: null, budgetPerPerson: null, sort: 'popular' })
       else if (key.startsWith('brand:')) {
         const k = key.slice('brand:'.length)
@@ -193,12 +257,6 @@ export default function ProductsBrowseClient({
       } else if (key.startsWith('cat:')) {
         const k = key.slice('cat:'.length)
         onPatch({ categories: q.categories.filter((c) => c !== k) })
-      } else if (key.startsWith('grade:')) {
-        const k = key.slice('grade:'.length)
-        onPatch({ travelGrades: q.travelGrades.filter((g) => g !== k) })
-      } else if (key.startsWith('companion:')) {
-        const k = key.slice('companion:'.length)
-        onPatch({ companions: q.companions.filter((c) => c !== k) })
       } else if (key.startsWith('air:')) {
         const k = key.slice('air:'.length)
         onPatch({ airlines: q.airlines.filter((a) => a !== k) })
@@ -220,14 +278,10 @@ export default function ProductsBrowseClient({
   const hasNonBudgetFilters = useMemo(
     () =>
       (q.categories?.length ?? 0) > 0 ||
-      (q.travelGrades?.length ?? 0) > 0 ||
-      (q.companions?.length ?? 0) > 0 ||
       (q.brands?.length ?? 0) > 0 ||
       (q.airlines?.length ?? 0) > 0 ||
-      q.confirmed ||
       q.noOptionalTour ||
       q.noShopping ||
-      q.freeSchedule ||
       (q.departHours?.length ?? 0) > 0 ||
       (q.departWeekdays?.length ?? 0) > 0 ||
       q.tripDays != null ||
@@ -258,7 +312,9 @@ export default function ProductsBrowseClient({
             {q.city ? ` · ${q.city}` : ''}
           </span>
         )}
-        {!q.region && <span>등록된 상품을 조건에 맞게 찾습니다.</span>}
+        {!q.region && (
+          <span>{isDomesticHub ? '지역별로 등록된 상품을 확인할 수 있습니다.' : '등록된 상품을 조건에 맞게 찾습니다.'}</span>
+        )}
       </p>
       {data && (
         <p className="mt-2 text-sm font-medium text-slate-800">
@@ -369,6 +425,7 @@ export default function ProductsBrowseClient({
             formatWon={formatWon}
             groupOverseasByRegion={basePath === '/travel/overseas' && defaultScope === 'overseas'}
             groupAirHotelByCountry={pathname === '/travel/air-hotel'}
+            groupDomesticByRegion={isDomesticHub}
             overseasEditorialBriefing={overseasEditorialBriefing}
             monthlyCurationMid={monthlyCurationMid}
           />
@@ -417,6 +474,16 @@ export default function ProductsBrowseClient({
       <span className="text-xs text-slate-500">{data ? `${data.total}건` : ''}</span>
     </div>
   )
+
+  if (isDomesticHub) {
+    return (
+      <div className={`${SITE_CONTENT_CLASS} py-6`}>
+        <div className="mb-4">{summary}</div>
+        {toolbar}
+        {results}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -479,7 +546,7 @@ export default function ProductsBrowseClient({
           ].forEach((k) => sp.delete(k))
           setDraft(parseBrowseQuery(new URLSearchParams(sp.toString())))
           if (defaultScope) sp.set('scope', defaultScope)
-          router.replace(`${basePath}?${sp.toString()}`)
+          router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
           setDrawerOpen(false)
         }}
       />

@@ -1,24 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type {
-  BrowseQueryState,
-  CompanionFilter,
-  TravelGradeFilter,
-} from '@/lib/products-browse-query'
+import type { BrowseQueryState } from '@/lib/products-browse-query'
 
-const TRAVEL_GRADE_OPTIONS: { id: TravelGradeFilter; label: string }[] = [
-  { id: 'value', label: '가성비' },
-  { id: 'standard', label: '스탠다드' },
-  { id: 'premium', label: '프리미엄' },
-]
-
-const COMPANION_OPTIONS: { id: CompanionFilter; label: string }[] = [
-  { id: 'kids', label: '아이와 함께' },
-  { id: 'parents', label: '부모님과 함께' },
-  { id: 'couple', label: '커플/부부' },
-  { id: 'friends', label: '친구와 함께' },
-]
 export type BrowseFacets = {
   brands: { brandKey: string; displayName: string; count: number }[]
   airlines: { code: string; label: string; count: number }[]
@@ -208,8 +192,6 @@ export default function ProductFilterForm({
     arr.some((x) => eq(x, v)) ? arr.filter((x) => !eq(x, v)) : [...arr, v]
 
   const brandCount = q.brands.length
-  const gradeCount = q.travelGrades.length
-  const companionCount = q.companions.length
   const airCount = q.airlines.length
   const hourCount = q.departHours.length
   const dayCount = q.departWeekdays.length
@@ -228,12 +210,7 @@ export default function ProductFilterForm({
     <div className="space-y-1">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">상세조건</p>
 
-      <Section title="기본" badge={(q.confirmed ? 1 : 0) + (q.noOptionalTour ? 1 : 0) + (q.noShopping ? 1 : 0) + (q.freeSchedule ? 1 : 0)}>
-        <ToggleRow
-          checked={q.confirmed}
-          label="출발확정"
-          onChange={(v) => onPatch({ confirmed: v, page: 1 })}
-        />
+      <Section title="기본" badge={(q.noOptionalTour ? 1 : 0) + (q.noShopping ? 1 : 0)}>
         <ToggleRow
           checked={q.noOptionalTour}
           label="현지옵션 없음"
@@ -243,11 +220,6 @@ export default function ProductFilterForm({
           checked={q.noShopping}
           label="쇼핑 없음"
           onChange={(v) => onPatch({ noShopping: v, page: 1 })}
-        />
-        <ToggleRow
-          checked={q.freeSchedule}
-          label="자유일정 포함"
-          onChange={(v) => onPatch({ freeSchedule: v, page: 1 })}
         />
       </Section>
 
@@ -268,38 +240,6 @@ export default function ProductFilterForm({
           ))}
           {facets.brands.length === 0 && <p className="text-xs text-slate-500">표시할 공급사가 없습니다.</p>}
         </div>
-      </Section>
-
-      <Section title="여행 등급" badge={gradeCount}>
-        {TRAVEL_GRADE_OPTIONS.map(({ id, label }) => (
-          <ToggleRow
-            key={id}
-            checked={q.travelGrades.includes(id)}
-            label={label}
-            onChange={() =>
-              onPatch({
-                travelGrades: toggle(q.travelGrades, id, (a, x) => a === x),
-                page: 1,
-              })
-            }
-          />
-        ))}
-      </Section>
-
-      <Section title="동행자" badge={companionCount}>
-        {COMPANION_OPTIONS.map(({ id, label }) => (
-          <ToggleRow
-            key={id}
-            checked={q.companions.includes(id)}
-            label={label}
-            onChange={() =>
-              onPatch({
-                companions: toggle(q.companions, id, (a, x) => a === x),
-                page: 1,
-              })
-            }
-          />
-        ))}
       </Section>
 
       <Section title={transportSectionTitle} badge={airCount}>

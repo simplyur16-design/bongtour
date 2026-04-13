@@ -3,12 +3,6 @@ import type { BrowseSort } from '@/lib/products-browse-filter'
 /** 구 URL·사이드바 호환 — 운영 상품유형(에어텔/단독/프리미엄 키워드) 필터 */
 export type ProductCategoryFilter = 'airtel' | 'private' | 'premium'
 
-/** 좌측 필터: 사용자 관점 여행 등급 (상단 상품유형과 별개) */
-export type TravelGradeFilter = 'value' | 'standard' | 'premium'
-
-/** 좌측 필터: 동행자 관점 */
-export type CompanionFilter = 'kids' | 'parents' | 'couple' | 'friends'
-
 export type BrowseQueryState = {
   type: string | null
   sort: BrowseSort
@@ -24,17 +18,11 @@ export type BrowseQueryState = {
   departMonth: string | null
   page: number
   limit: number
-  confirmed: boolean
   noOptionalTour: boolean
   noShopping: boolean
-  freeSchedule: boolean
   brands: string[]
   /** @deprecated 좌측에서 제거됨 — 구 bookmark용 파싱만 유지 */
   categories: ProductCategoryFilter[]
-  /** 여행 등급(가성비/스탠다드/프리미엄) — 복수 선택 시 OR */
-  travelGrades: TravelGradeFilter[]
-  /** 동행자 — 복수 선택 시 OR */
-  companions: CompanionFilter[]
   airlines: string[]
   departHours: string[]
   /** 0=일 … 6=토 */
@@ -80,27 +68,6 @@ function parseCategories(raw: string | null, repeated: string[]): ProductCategor
   return [...set]
 }
 
-const TRAVEL_GRADE_KEYS = new Set<string>(['value', 'standard', 'premium'])
-const COMPANION_KEYS = new Set<string>(['kids', 'parents', 'couple', 'friends'])
-
-function parseTravelGrades(raw: string | null, repeated: string[]): TravelGradeFilter[] {
-  const set = new Set<TravelGradeFilter>()
-  for (const r of [...parseMulti(raw), ...repeated]) {
-    const u = r.toLowerCase().trim()
-    if (TRAVEL_GRADE_KEYS.has(u)) set.add(u as TravelGradeFilter)
-  }
-  return [...set]
-}
-
-function parseCompanions(raw: string | null, repeated: string[]): CompanionFilter[] {
-  const set = new Set<CompanionFilter>()
-  for (const r of [...parseMulti(raw), ...repeated]) {
-    const u = r.toLowerCase().trim()
-    if (COMPANION_KEYS.has(u)) set.add(u as CompanionFilter)
-  }
-  return [...set]
-}
-
 function parseWeekdays(raw: string | null, repeated: string[]): number[] {
   const set = new Set<number>()
   const fromList = [...parseMulti(raw), ...repeated]
@@ -129,8 +96,6 @@ export function parseBrowseQuery(searchParams: URLSearchParams): BrowseQueryStat
   const repeatedBrand = searchParams.getAll('brand')
   const repeatedAirline = searchParams.getAll('airline')
   const repeatedCat = searchParams.getAll('category')
-  const repeatedTravelGrade = searchParams.getAll('travelGrade')
-  const repeatedCompanion = searchParams.getAll('companion')
   const repeatedHour = searchParams.getAll('departHour')
   const repeatedDay = searchParams.getAll('departDay')
 
@@ -149,14 +114,10 @@ export function parseBrowseQuery(searchParams: URLSearchParams): BrowseQueryStat
     departMonth: searchParams.get('departMonth'),
     page: Math.max(1, parseIntSafe(searchParams.get('page')) ?? 1),
     limit: Math.min(60, Math.max(1, parseIntSafe(searchParams.get('limit')) ?? 24)),
-    confirmed: parseBool(searchParams.get('confirmed')),
     noOptionalTour: parseBool(searchParams.get('noOptionalTour')),
     noShopping: parseBool(searchParams.get('noShopping')),
-    freeSchedule: parseBool(searchParams.get('freeSchedule')),
     brands,
     categories: parseCategories(searchParams.get('categories'), repeatedCat),
-    travelGrades: parseTravelGrades(searchParams.get('travelGrades'), repeatedTravelGrade),
-    companions: parseCompanions(searchParams.get('companions'), repeatedCompanion),
     airlines: [...new Set([...parseMulti(searchParams.get('airlines')), ...repeatedAirline])],
     departHours: [...new Set([...parseMulti(searchParams.get('departHours')), ...repeatedHour])],
     departWeekdays: parseWeekdays(searchParams.get('departWeekdays'), repeatedDay),
@@ -182,14 +143,10 @@ export function serializeBrowseQuery(state: BrowseQueryState): string {
   if (state.departMonth) set('departMonth', state.departMonth)
   if (state.page > 1) set('page', state.page)
   if (state.limit !== 24) set('limit', state.limit)
-  if (state.confirmed) set('confirmed', 'true')
   if (state.noOptionalTour) set('noOptionalTour', 'true')
   if (state.noShopping) set('noShopping', 'true')
-  if (state.freeSchedule) set('freeSchedule', 'true')
   for (const b of state.brands) p.append('brand', b)
   for (const c of state.categories) p.append('category', c)
-  for (const g of state.travelGrades) p.append('travelGrade', g)
-  for (const c of state.companions) p.append('companion', c)
   for (const a of state.airlines) p.append('airline', a)
   for (const h of state.departHours) p.append('departHour', h)
   for (const d of state.departWeekdays) {

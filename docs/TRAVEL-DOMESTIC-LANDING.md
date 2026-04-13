@@ -1,45 +1,27 @@
-# 국내여행 서브 메인 (`/travel/domestic`)
+# 국내여행 공개 페이지 (`/travel/domestic`)
 
-## 역할
+## 현재 구조 (공개 경로)
 
-- **상단 1차 메뉴 5개**: 지역별 · 일정별 · 테마별 · 대상별 · 특별기획 (`DomesticTravelSubMainNav`, 데이터 `lib/domestic-landing-nav-data.ts`).
-- **히어로 빠른 칩**: 동일 데이터로 `?dmPillar=&dmItem=` + `#travel-dm-products` 링크.
-- **권역 트리**: `DomesticRegionExplorer` — 탐색·교육용; 상품 필터는 토큰으로 `HomeProductPickSection`에 전달.
-- **상품 영역**: 좌측 `DomesticRefineSidebar`(정교한 좁히기) + 우측 카드 그리드; 해외 서브메인과 같이 **본문 전용 서브 네비** 패턴.
-- **월별 큐레이션**: 특별기획 「시즌추천」에서 `#travel-dm-curation` 스크롤 연계.
-- 카피·CTA: 예약 확정 톤 지양, **상담 신청** 계열 (`DomesticHero`, 하단 `#travel-dm-cta`).
+- **`app/travel/domestic/page.tsx`**: `Header` → `DomesticHero` → `DomesticResultsShell` (`Suspense`).
+- **`DomesticResultsShell`**: `ProductsBrowseClient`만 사용 (`basePath=/travel/domestic`, `defaultScope=domestic`).
+- **상단 하위메뉴 없음** · **좌측/모바일 필터 UI 없음** · **필터 칩 없음**.
+- 상품 목록은 **`ProductResultsList`의 지역별 섹션 모드**(`groupDomesticByRegion`): 제주 → 강원 → 부산/경상 → 전라 → 충청 → 수도권 → 기타(고정 순서, 해당 지역에 상품이 있을 때만 섹션 노출). 섹션 내 카드는 기존 `ProductResultCard`·상세 링크 유지.
+- 공개 허브 URL에서는 레거시 쿼리(`dmPillar`, `dmItem`, `regionPref`, `domesticTransport`, `domesticSpecialTheme` 등)는 **클라이언트에서 browse 요청에 넣지 않음**(북마크에 남아 있어도 목록 동작은 동일 기준).
 
-## 메타 SSOT
+## 레거시·내부 SSOT (공개 메인 경로와 분리)
 
-| 파일 | 내용 |
-|------|------|
-| `lib/domestic-location-tree.types.ts` | `DomesticLeafNode`, `DomesticAreaNode`, `DomesticRegionGroupNode` |
-| `lib/domestic-location-tree.data.ts` | `DOMESTIC_LOCATION_TREE_DATA` |
-| `lib/domestic-location-tree.ts` | export, `matchTokensForDomestic*` |
-| `lib/travel/domestic-location-tree.ts` | 재수출 |
+- **`lib/domestic-landing-nav-data.ts`**: `DOMESTIC_NAV_PILLARS`, `parseDomesticUrlNav` 등 — **browse API**(`app/api/products/browse`)·`lib/domestic-public-browse-match.ts`·갤러리형 **`DomesticInteractiveShell`** 등에서 여전히 참조될 수 있음. 공개 `/travel/domestic` 메인 플로우에서는 상단 탭 UI로 노출하지 않음.
+- **`DomesticInteractiveShell`**: 현재 **어떤 `page`에서도 import되지 않음**(보관용/실험 셸). URL `initialDmPillar` / `initialDmItem`으로 초기 상태를 파싱하는 로직만 유지 가능.
 
-## 활성 트리
+## 지역·상품 매칭
 
-- `lib/active-domestic-location-tree.ts` — `filterProductsForDomesticDestinationTree` (제목 휴리스틱 `domestic` 만), `buildActiveDomesticLocationTree`.
-- `app/travel/domestic/page.tsx` 에서 Prisma로 메타 조회 후 파생 트리를 셸에 전달.
+- **`lib/domestic-location-tree*.ts`**, **`lib/match-domestic-product.ts`**: 지역 트리·상품 haystack 매칭(지역 섹션 분류에 재사용).
+- **`lib/active-domestic-location-tree.ts`**: 등록 상품 기준 활성 트리·browse 풀 필터 등.
 
-## 상품 매칭
+## 카피·CTA
 
-- `lib/match-domestic-product.ts` — 해외와 동일 haystack 순서, `productMatchesDomesticDestinationTerms`, `matchProductToDomesticNode`.
-- `HomeProductPickSection` (`market="domestic"`): 지역 `destinationFilterTerms` + 테마 `themeFilterTerms` **AND**.
-
-## 탭
-
-- **지역별**: `DomesticRegionExplorer`
-- **추천여행**: 월별 큐레이션 본체(하단 슬롯), 상단 리드만 보조
-- **공급사별**: `normalize-supplier-origin` 키 필터
-- **테마여행**: 버스/기차/당일/박 수/반려/크루즈 등 칩 → `themeFilterTerms`
-
-## 에디토리얼
-
-- `DomesticEditorialSection` + `lib/domestic-landing-copy.ts` 의 `DOMESTIC_EDITORIAL_SAMPLES` (수원 방문의 해 등 샘플).
-- 상품 카드와 시각·톤 분리.
+- `DomesticHero`, 상담 링크 등 — 예약 확정 톤 지양, 문의·상담 유도.
 
 ## 관련
 
-- 전세·단체: 에디토리얼 하단에서 `/charter-bus` 링크.
+- 전세·단체 등: 에디토리얼·다른 페이지에서 `/charter-bus` 등으로 분리 링크 가능.
