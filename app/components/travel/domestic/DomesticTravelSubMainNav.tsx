@@ -3,11 +3,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
-import {
-  DOMESTIC_NAV_PILLARS,
-  type DomesticPillarId,
-  type DomesticSpecialMode,
-} from '@/lib/domestic-landing-nav-data'
+import { DOMESTIC_NAV_PILLARS, type DomesticPillarId } from '@/lib/domestic-landing-nav-data'
 
 const CLOSE_DELAY = 200
 
@@ -15,12 +11,12 @@ export type DomesticNavApply =
   | { kind: 'region'; pillar: 'region'; secondKey: string; groupKey?: string; destinationTerms?: string[]; summaryLabel: string }
   | {
       kind: 'terms'
-      pillar: Exclude<DomesticPillarId, 'region' | 'specials'>
+      pillar: 'schedule' | 'bus' | 'train' | 'ship'
       secondKey: string
       terms: string[]
       summaryLabel: string
     }
-  | { kind: 'special'; pillar: 'specials'; secondKey: string; mode: DomesticSpecialMode; summaryLabel: string; scrollTo?: 'curation' }
+  | { kind: 'special_theme'; pillar: 'special_theme'; secondKey: string; summaryLabel: string }
 
 type Props = {
   onApply: (a: DomesticNavApply) => void
@@ -117,7 +113,7 @@ export default function DomesticTravelSubMainNav({ onApply }: Props) {
                               onClick={() =>
                                 handleApply({
                                   kind: 'terms',
-                                  pillar: p.id as 'schedule' | 'theme' | 'audience',
+                                  pillar: p.id as 'schedule' | 'bus' | 'train' | 'ship',
                                   secondKey: item.key,
                                   terms: item.terms,
                                   summaryLabel: item.label,
@@ -128,19 +124,17 @@ export default function DomesticTravelSubMainNav({ onApply }: Props) {
                             </button>
                           </li>
                         ))}
-                        {p.specialSecond?.map((item) => (
+                        {p.specialThemeSecond?.map((item) => (
                           <li key={item.key}>
                             <button
                               type="button"
                               className="w-full rounded-lg px-3 py-2 text-left text-sm text-bt-ink hover:bg-bt-surface"
                               onClick={() =>
                                 handleApply({
-                                  kind: 'special',
-                                  pillar: 'specials',
+                                  kind: 'special_theme',
+                                  pillar: 'special_theme',
                                   secondKey: item.key,
-                                  mode: item.key,
                                   summaryLabel: item.label,
-                                  scrollTo: item.scrollTo,
                                 })
                               }
                             >
@@ -165,7 +159,7 @@ export default function DomesticTravelSubMainNav({ onApply }: Props) {
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((o) => !o)}
           >
-            <span>국내여행 분류 (1차 5개)</span>
+            <span>국내여행 분류 (1차 6개)</span>
             {mobileOpen ? <ChevronUp className="h-5 w-5 shrink-0" /> : <ChevronDown className="h-5 w-5 shrink-0" />}
           </button>
           {mobileOpen ? (
@@ -203,7 +197,7 @@ export default function DomesticTravelSubMainNav({ onApply }: Props) {
                           onClick={() =>
                             handleApply({
                               kind: 'terms',
-                              pillar: p.id as 'schedule' | 'theme' | 'audience',
+                              pillar: p.id as 'schedule' | 'bus' | 'train' | 'ship',
                               secondKey: item.key,
                               terms: item.terms,
                               summaryLabel: item.label,
@@ -214,19 +208,17 @@ export default function DomesticTravelSubMainNav({ onApply }: Props) {
                         </button>
                       </li>
                     ))}
-                    {p.specialSecond?.map((item) => (
+                    {p.specialThemeSecond?.map((item) => (
                       <li key={item.key}>
                         <button
                           type="button"
                           className="w-full rounded-lg border border-bt-border/60 bg-bt-surface px-3 py-2 text-left text-sm text-bt-ink"
                           onClick={() =>
                             handleApply({
-                              kind: 'special',
-                              pillar: 'specials',
+                              kind: 'special_theme',
+                              pillar: 'special_theme',
                               secondKey: item.key,
-                              mode: item.key,
                               summaryLabel: item.label,
-                              scrollTo: item.scrollTo,
                             })
                           }
                         >

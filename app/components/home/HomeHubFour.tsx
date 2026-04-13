@@ -89,8 +89,8 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
                       src={card.imageSrc}
                       alt=""
                       fill
-                      className={`object-cover transition duration-500 ease-out md:group-hover:scale-[1.02] md:group-focus-within:scale-[1.02] ${hubImagePosition(card.key as HomeHubCardImageKey)}`}
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, (max-width: 1536px) 480px, 520px"
+                      className={`object-cover transition duration-500 ease-out ${hubImagePosition(card.key as HomeHubCardImageKey)}`}
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, (max-width: 1280px) 48vw, 640px"
                       quality={92}
                       priority={index < 2}
                     />

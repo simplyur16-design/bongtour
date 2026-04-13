@@ -107,7 +107,12 @@ function mapKoreanSightFragmentToEnglishPexels(fragment: string, blobCtx: string
     [/스톡홀름|Stockholm/i, 'Stockholm Sweden waterfront old town scenic'],
     [/헬싱키|Helsinki/i, 'Helsinki Finland Baltic waterfront scenic'],
     [/핀에어|Finnair/i, 'Finnair airplane cabin travel Europe'],
+    [/나트랑|Nha\s*Trang|ニャチャン/i, 'Nha Trang Vietnam beach city skyline'],
+    [/레이비치|Long\s*Beach/i, 'Nha Trang beach coast resort view'],
   ]
+  if (/호핑\s*투어|호핑투어/i.test(f) && /(나트랑|Nha\s*Trang|베트남|Vietnam|다낭|Da\s*Nang)/i.test(j)) {
+    return 'Nha Trang island hopping turquoise sea'
+  }
   for (const [re, en] of rows) {
     if (re.test(f)) return en
   }
@@ -191,6 +196,16 @@ export function hanatourEnglishPexelsImageKeywordFromBlob(blob: string, day: num
   const j = blob.replace(/\r/g, '').slice(0, 24_000)
 
   const spots: [RegExp, string][] = [
+    [/나트랑|Nha\s*Trang|ニャチャン/i, 'Nha Trang Vietnam beach bay coastline'],
+    [
+      /(?:나트랑|Nha\s*Trang|베트남|Vietnam).*(?:레이비치|Long\s*Beach|Hon\s*Tre|Vinpearl)|(?:레이비치|Long\s*Beach|Hon\s*Tre|Vinpearl).*(?:나트랑|Nha|베트남|Vietnam)/i,
+      'Nha Trang beach resort bay view',
+    ],
+    [
+      /(?=.*(?:나트랑|Nha\s*Trang|베트남|Vietnam|다낭|Da\s*Nang)).*(?:호핑\s*투어|호핑투어|island\s*hopping)|(?=.*(?:호핑\s*투어|호핑투어|island\s*hopping)).*(?:나트랑|Nha|베트남|Vietnam|다낭)/i,
+      'Nha Trang island hopping boat turquoise sea',
+    ],
+    [/레이비치|Vinpearl\s*Nha|Hon\s*Tre\b/i, 'Nha Trang beach resort bay view'],
     [/스타벅스\s*리저브|Starbucks\s+Reserve\s+Roastery/i, 'Shanghai Starbucks Reserve Roastery interior'],
     [/우캉(루|로)|Wukang\s+Road/i, 'Wukang Road historic street Shanghai'],
     [/외탄|와이탄|The\s+Bund|\bBund\b/i, 'Shanghai Bund night skyline'],
@@ -237,6 +252,10 @@ export function hanatourEnglishPexelsImageKeywordFromBlob(blob: string, day: num
 
   if (hanatourBlobLooksEuropeanOrNordic(j)) {
     return buildSafeHanatourImageFallbackKeyword(blob, day, maxDay).slice(0, 120)
+  }
+
+  if (/(베트남|Vietnam)/i.test(j) && /(바다|해안|beach|호핑|섬|island|리조트|resort|다이빙|snorkel|coast|bay)/i.test(j)) {
+    return 'Vietnam tropical beach coastline resort'
   }
 
   return 'Scenic Asian city travel skyline dusk'
@@ -1549,6 +1568,7 @@ function resolveHanatourAirtelFreeTravelImageKeywordFromHaystackLocal(hay: strin
     { re: /오사카|大阪|Osaka/i, en: 'Osaka Dotonbori city night' },
     { re: /방콕|Bangkok/i, en: 'Bangkok riverside city skyline' },
     { re: /다낭|Da\s*Nang/i, en: 'Da Nang beach city skyline' },
+    { re: /나트랑|Nha\s*Trang|ニャチャン/i, en: 'Nha Trang beach city skyline' },
     { re: /바르셀로나|Barcelona/i, en: 'Barcelona Sagrada Familia city view' },
     { re: /스톡홀름|Stockholm/i, en: 'Stockholm Gamla Stan waterfront' },
     { re: /오슬로|Oslo/i, en: 'Oslo fjord harbor city view' },
@@ -1618,10 +1638,14 @@ export function applyHanatourAirtelFreeTravelImageKeywordsToScheduleIfNeeded(
 /** imageKeyword가 Pexels용 영문 noun phrase가 아니면 title·description·기존값으로 재생성 */
 export function sanitizeHanatourScheduleRowExpression(
   row: RegisterScheduleDay,
-  maxDay: number = 7
+  maxDay: number = 7,
+  /** 일정 row만 약할 때 상품 메타·붙여넣기 본문에서 도시·목적지 힌트를 읽기 위한 보조 문맥 */
+  productContextBlob?: string
 ): RegisterScheduleDay {
   const day = Math.max(1, Number(row.day) || 1)
-  const blob = `${String(row.title ?? '')}\n${String(row.description ?? '')}\n${String(row.imageKeyword ?? '')}`
+  const rowBlob = `${String(row.title ?? '')}\n${String(row.description ?? '')}\n${String(row.imageKeyword ?? '')}`
+  const ctx = typeof productContextBlob === 'string' && productContextBlob.trim() ? `\n${productContextBlob.trim()}` : ''
+  const blob = `${rowBlob}${ctx}`
   const kw0 = String(row.imageKeyword ?? '').trim()
   if (isLikelyEnglishPexelsKeyword(kw0)) return { ...row }
   return {
@@ -1666,10 +1690,23 @@ export function augmentHanatourScheduleExpressionParsed(parsed: RegisterParsed):
     }
   }
   const maxDay = Math.max(1, ...sched.map((s) => s.day))
+  const productContextBlob = [
+    parsed.title,
+    parsed.destinationRaw,
+    parsed.primaryDestination,
+    parsed.destination,
+    parsed.routeRaw,
+    parsed.hotelInfoRaw,
+    parsed.detailBodyStructured?.normalizedRaw,
+    ...sched.flatMap((r) => [r.title, r.description]),
+  ]
+    .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+    .join('\n')
+    .slice(0, 12_000)
   return {
     ...parsed,
     schedule: sched.map((r) =>
-      sanitizeHanatourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r), maxDay)
+      sanitizeHanatourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r), maxDay, productContextBlob)
     ),
   }
 }

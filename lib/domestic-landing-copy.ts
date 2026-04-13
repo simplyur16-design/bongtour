@@ -6,7 +6,7 @@ export const DOMESTIC_LANDING_SECTIONS = {
   exploreEyebrow: 'Explore',
   exploreTitle: '권역을 고르고, 지역과 목적지를 짚어 보세요',
   exploreLead:
-    '상단 5개 분류(지역·일정·테마·대상·특별기획)로 빠르게 들어온 뒤, 여기서는 권역 → 지역 → 목적지를 고릅니다. 아래 「상담 가능 일정」 왼쪽 필터로 같은 축을 더 좁힐 수 있습니다.',
+    '상단 6개 분류(지역·일정·버스·기차·선박·특별테마)로 들어온 뒤, 여기서는 권역 → 지역 → 목적지를 고릅니다. 아래 「상담 가능 일정」 왼쪽 필터로 같은 축을 더 좁힐 수 있습니다.',
 
   exploreBreadcrumbHint: '현재 필터 기준',
   exploreEmptyTreeTitle: '등록된 국내 일정에 맞는 목적지가 아직 없습니다',

@@ -57,3 +57,57 @@ export function getFinalCoverImageUrl(options: {
     null
   return pick ? getFinalScheduleDayImageUrl(pick) : null
 }
+
+/** URL 경로에 자주 나오는 저해상·썸네일 힌트(메인 허브 4카드 전용 후보만 비교) */
+const HUB_COVER_THUMB_HINT_RE =
+  /thumb|thumbnail|_s\.|_xs\b|\/small\/|\/thumb\/|w=\d{2,3}\b|width=\d{2,3}\b|size=\d{2,3}\b|\bresize\b|\bcompress\b|\/\d{2,3}x\d{2,3}\//i
+
+function scoreHubCoverUrlCandidate(
+  url: string,
+  meta?: { manualSelected?: boolean; poorCoverDay?: boolean }
+): number {
+  const u = url.trim()
+  let s = Math.min(u.length, 900)
+  if (HUB_COVER_THUMB_HINT_RE.test(u)) s -= 220
+  if (meta?.poorCoverDay) s -= 90
+  if (meta?.manualSelected) s += 120
+  return s
+}
+
+/**
+ * 메인 허브 4카드(해외/국내) 전용 — `getFinalCoverImageUrl`과 동일 필드만 사용.
+ * bg·일정 이미지 URL 후보를 모아 썸네일 힌트가 약한 쪽을 우선(동일 필드, DB 변경 없음).
+ */
+export function getHomeHubCoverImageUrl(options: {
+  bgImageUrl?: string | null
+  scheduleDays?: ScheduleImageLike[] | null
+}): string | null {
+  const scored: { url: string; score: number }[] = []
+  const bg = options.bgImageUrl?.trim()
+  if (bg) scored.push({ url: bg, score: scoreHubCoverUrlCandidate(bg) })
+
+  if (Array.isArray(options.scheduleDays) && options.scheduleDays.length > 0) {
+    const ordered = [...options.scheduleDays].sort((a, b) => (Number(a.day) || 0) - (Number(b.day) || 0))
+    for (const d of ordered) {
+      const u = getFinalScheduleDayImageUrl(d)
+      if (!u) continue
+      scored.push({
+        url: u,
+        score: scoreHubCoverUrlCandidate(u, {
+          manualSelected: d.imageManualSelected === true,
+          poorCoverDay: scheduleRowIsPoorRepresentativeCover(d),
+        }),
+      })
+    }
+  }
+
+  if (scored.length === 0) return null
+  const seen = new Set<string>()
+  const uniq = scored.filter((x) => {
+    if (seen.has(x.url)) return false
+    seen.add(x.url)
+    return true
+  })
+  uniq.sort((a, b) => b.score - a.score || b.url.length - a.url.length)
+  return uniq[0]!.url
+}

@@ -1,11 +1,11 @@
 /**
  * 메인 허브 4카드 중 해외/국내 카드용 커버 URL.
- * browse와 동일 SSOT: `getScheduleFromProduct` + `getFinalCoverImageUrl` (규칙 변경은 여기서 하지 않음).
+ * `getScheduleFromProduct` + 메인 전용 `getHomeHubCoverImageUrl`(동일 필드, URL 후보만 비교).
  * 풀 확장·주기적 슬라이드(15~30초)는 이후 `pool` 배열·클라이언트 타이머로 확장 가능.
  */
 
 import { prisma } from '@/lib/prisma'
-import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
+import { getHomeHubCoverImageUrl } from '@/lib/final-image-selection'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 
 export type HomeHubTravelCardCoverScope = 'overseas' | 'domestic'
@@ -58,7 +58,7 @@ export async function pickHomeHubTravelCardCover(
     /** Prisma where 외에 행 단위 재검증 — DB/마이그레이션 오염 시 해외·국내 풀 혼입 방지 */
     if ((p.travelScope ?? '').trim() !== scope) continue
     const scheduleDays = getScheduleFromProduct(p)
-    const url = getFinalCoverImageUrl({ bgImageUrl: p.bgImageUrl, scheduleDays })
+    const url = getHomeHubCoverImageUrl({ bgImageUrl: p.bgImageUrl, scheduleDays })
     const trimmed = (url ?? '').trim()
     if (!trimmed) continue
     const scheduleImageSummary =

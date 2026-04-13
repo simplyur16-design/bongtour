@@ -5,8 +5,6 @@ import { DOMESTIC_NAV_PILLARS } from '@/lib/domestic-landing-nav-data'
 import type { DomesticRefineState } from '@/lib/domestic-landing-refine'
 
 const schedulePillar = DOMESTIC_NAV_PILLARS.find((p) => p.id === 'schedule')
-const themePillar = DOMESTIC_NAV_PILLARS.find((p) => p.id === 'theme')
-const audiencePillar = DOMESTIC_NAV_PILLARS.find((p) => p.id === 'audience')
 
 type Props = {
   tree: DomesticRegionGroupNode[]
@@ -17,10 +15,6 @@ type Props = {
   onPickRegionGroup: (groupKey: string | '') => void
   sidebarScheduleKey: string
   setSidebarScheduleKey: (key: string) => void
-  sidebarThemeKey: string
-  setSidebarThemeKey: (key: string) => void
-  sidebarAudienceKey: string
-  setSidebarAudienceKey: (key: string) => void
 }
 
 const fieldClass =
@@ -34,10 +28,6 @@ export default function DomesticRefineSidebar({
   onPickRegionGroup,
   sidebarScheduleKey,
   setSidebarScheduleKey,
-  sidebarThemeKey,
-  setSidebarThemeKey,
-  sidebarAudienceKey,
-  setSidebarAudienceKey,
 }: Props) {
   const regionValue = refine.regionGroupKey ?? entryRegionGroupKey ?? ''
 
@@ -85,37 +75,9 @@ export default function DomesticRefineSidebar({
           </select>
         </label>
 
-        <label className="block text-[11px] font-medium text-bt-ink">
-          테마
-          <select
-            className={fieldClass}
-            value={sidebarThemeKey}
-            onChange={(e) => setSidebarThemeKey(e.target.value)}
-          >
-            <option value="">추가 조건 없음</option>
-            {themePillar?.termSecond?.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block text-[11px] font-medium text-bt-ink">
-          대상
-          <select
-            className={fieldClass}
-            value={sidebarAudienceKey}
-            onChange={(e) => setSidebarAudienceKey(e.target.value)}
-          >
-            <option value="">추가 조건 없음</option>
-            {audiencePillar?.termSecond?.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <p className="text-[10px] leading-snug text-bt-subtle">
+          버스·기차·선박(크루즈)·특별테마는 상단 「국내여행 탐색 메뉴」에서 고르세요. 아래 교통수단 필터는 상품명·포함문구 키워드로 보조합니다.
+        </p>
 
         <label className="block text-[11px] font-medium text-bt-ink">
           출발기간 (시작)
@@ -232,8 +194,6 @@ export default function DomesticRefineSidebar({
           })
           onPickRegionGroup('')
           setSidebarScheduleKey('')
-          setSidebarThemeKey('')
-          setSidebarAudienceKey('')
         }}
       >
         좌측 필터만 초기화

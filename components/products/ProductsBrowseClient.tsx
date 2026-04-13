@@ -368,6 +368,7 @@ export default function ProductsBrowseClient({
             items={data.items}
             formatWon={formatWon}
             groupOverseasByRegion={basePath === '/travel/overseas' && defaultScope === 'overseas'}
+            groupAirHotelByCountry={pathname === '/travel/air-hotel'}
             overseasEditorialBriefing={overseasEditorialBriefing}
             monthlyCurationMid={monthlyCurationMid}
           />

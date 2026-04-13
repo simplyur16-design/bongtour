@@ -45,10 +45,83 @@ type Props = {
   formatWon: (n: number | null) => string
   /** `/travel/overseas` 해외 허브만 권역 버킷별 한 줄 목록 */
   groupOverseasByRegion?: boolean
+  /** `/travel/air-hotel`만: browse `countryRowLabel` 기준 나라 섹션 + 섹션 내 공급사 interleave */
+  groupAirHotelByCountry?: boolean
   /** 서유럽 섹션 상단 목적지 브리핑(선택) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
   /** 동유럽 섹션 직후·미주 전, 전폭 1회(데이터 없으면 미렌더) */
   monthlyCurationMid?: MonthlyCurationMidPayload | null
+}
+
+const AIR_HOTEL_MISC_SECTION = '기타'
+
+/** browse `countryRowLabel` → 섹션 키(최소 보수 정리만) */
+function normalizeAirHotelCountrySectionKey(raw: string | null | undefined): string {
+  const t = (raw ?? '').replace(/\s+/g, ' ').trim()
+  if (!t) return AIR_HOTEL_MISC_SECTION
+  if (/[\n\r\t]/.test(t)) return AIR_HOTEL_MISC_SECTION
+  if (t.length > 56) return AIR_HOTEL_MISC_SECTION
+  return t
+}
+
+function AirHotelCountryGroupedList({
+  items,
+  formatWon,
+}: {
+  items: ResultItem[]
+  formatWon: (n: number | null) => string
+}) {
+  const sections = useMemo(() => {
+    const byCountry = new Map<string, ResultItem[]>()
+    for (const item of items) {
+      const key = normalizeAirHotelCountrySectionKey(item.countryRowLabel)
+      let arr = byCountry.get(key)
+      if (!arr) {
+        arr = []
+        byCountry.set(key, arr)
+      }
+      arr.push(item)
+    }
+    const entries = [...byCountry.entries()].filter(([, list]) => list.length > 0)
+    const nonMisc = entries
+      .filter(([k]) => k !== AIR_HOTEL_MISC_SECTION)
+      .sort((a, b) => {
+        const dc = b[1].length - a[1].length
+        if (dc !== 0) return dc
+        return a[0].localeCompare(b[0], 'ko')
+      })
+    const misc = entries.find(([k]) => k === AIR_HOTEL_MISC_SECTION)
+    const ordered: { countryKey: string; items: ResultItem[] }[] = nonMisc.map(([countryKey, list]) => ({
+      countryKey,
+      items: interleaveProductsBySupplier(list),
+    }))
+    if (misc && misc[1].length > 0) {
+      ordered.push({ countryKey: misc[0], items: interleaveProductsBySupplier(misc[1]) })
+    }
+    return ordered
+  }, [items])
+
+  return (
+    <div className="mt-6 space-y-10">
+      {sections.map(({ countryKey, items: rowItems }, idx) => (
+        <section key={countryKey} className="scroll-mt-4" aria-labelledby={`air-hotel-sec-${idx}`}>
+          <h2
+            id={`air-hotel-sec-${idx}`}
+            className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
+          >
+            {countryKey}
+          </h2>
+          <ul className={cardGridClass} role="list">
+            {rowItems.map((item) => (
+              <li key={item.id}>
+                <ProductResultCard item={item} formatWon={formatWon} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  )
 }
 
 /** 일반 목록용 그리드 */
@@ -225,9 +298,14 @@ export default function ProductResultsList({
   items,
   formatWon,
   groupOverseasByRegion,
+  groupAirHotelByCountry = false,
   overseasEditorialBriefing = null,
   monthlyCurationMid = null,
 }: Props) {
+  if (groupAirHotelByCountry && items.length > 0) {
+    return <AirHotelCountryGroupedList items={items} formatWon={formatWon} />
+  }
+
   const hasBucketMeta = items.some((i) => i.overseasBucket != null || i.countryRowLabel != null)
   const useGrouped =
     groupOverseasByRegion &&

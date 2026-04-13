@@ -388,7 +388,7 @@ export default function HomeProductPickSection({
     market === 'overseas'
       ? '목적지 매칭: 대표 목적지 → 목적지 원문 → 레거시 목적지 → 상품명 → 출처 문자열 순으로 토큰을 합쳐 비교합니다. 유형(패키지/자유)은 제목 휴리스틱입니다.'
       : market === 'domestic'
-        ? '국내 매칭: 대표 목적지 → 목적지 원문 → 권역 메타 → 상품명 → 출처 순으로 비교합니다. 지역별·테마 칩은 AND로 좁힙니다. 테마는 상품명·목적지 문자열과 등록된 테마 태그(쉼표 구분) 중 하나라도 맞으면 통과합니다.'
+        ? '국내 매칭: 지역·일정은 상품명·권역 메타를 우선합니다. 버스·기차·선박(크루즈)는 상단 메뉴·교통 필터로 좁힙니다. 특별테마는 displayCategory에 「국내특별테마」가 있을 때만 해당 메뉴에 노출됩니다.'
         : footnote
 
   const emptyMessage =
@@ -414,10 +414,10 @@ export default function HomeProductPickSection({
           if (hasDestinationFilter) {
             return '선택한 지역·목적지에 맞는 일정을 찾지 못했습니다. 권역 전체·지역 전체를 눌러 범위를 넓히거나 상담으로 알려 주세요.'
           }
-          if (pillar === 'specials') {
-            return '특별기획 조건에 맞는 일정이 없습니다. 아래 월별 추천·지역 트리를 함께 보시거나 상담으로 알려 주세요.'
+          if (pillar === 'special_theme') {
+            return '특별테마(displayCategory) 표기가 있는 일정이 없습니다. 운영에서 라벨을 붙인 뒤 다시 확인해 주세요.'
           }
-          if (pillar === 'theme' || pillar === 'schedule' || pillar === 'audience') {
+          if (pillar === 'bus' || pillar === 'train' || pillar === 'ship' || pillar === 'schedule') {
             return '선택한 분류에 맞는 일정이 없습니다. 지역 트리에서 권역을 함께 지정하거나 좌측 필터를 조정해 보세요.'
           }
           return '노출 가능한 국내 일정이 아직 없습니다. 상단 분류·지역 탐색·월별 추천·상담 신청으로 동선을 잡아 주세요.'

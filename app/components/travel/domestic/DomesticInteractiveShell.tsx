@@ -7,18 +7,20 @@ import DomesticRegionExplorer, { type DomesticExploreFilter } from '@/app/compon
 import DomesticTravelSubMainNav, { type DomesticNavApply } from '@/app/components/travel/domestic/DomesticTravelSubMainNav'
 import DomesticRefineSidebar from '@/app/components/travel/domestic/DomesticRefineSidebar'
 import { DOMESTIC_LANDING_SECTIONS } from '@/lib/domestic-landing-copy'
-import {
-  DOMESTIC_NAV_PILLARS,
-  parseDomesticUrlNav,
-  type DomesticPillarId,
-  type DomesticSpecialMode,
-} from '@/lib/domestic-landing-nav-data'
+import { DOMESTIC_NAV_PILLARS, parseDomesticUrlNav, type DomesticPillarId } from '@/lib/domestic-landing-nav-data'
 import {
   buildDomesticSpecialAndRefinePredicate,
   DEFAULT_DOMESTIC_REFINE,
   type DomesticRefineState,
 } from '@/lib/domestic-landing-refine'
+import {
+  domesticDisplayCategoryIsSpecialTheme,
+  domesticProductMatchesBus,
+  domesticProductMatchesShip,
+  domesticProductMatchesTrain,
+} from '@/lib/domestic-public-browse-match'
 import { TRAVEL_DOMESTIC_PRODUCT_LEAD, TRAVEL_DOMESTIC_PRODUCT_TITLE } from '@/lib/main-hub-copy'
+import type { GalleryProduct } from '@/app/api/gallery/route'
 import type { DomesticRegionGroupNode } from '@/lib/domestic-location-tree'
 import { matchTokensForDomesticGroup } from '@/lib/domestic-location-tree'
 
@@ -31,7 +33,7 @@ type Props = {
   initialDmItem?: string
 }
 
-function getTermsForSecond(pillarId: 'schedule' | 'theme' | 'audience', secondKey: string): string[] {
+function getTermsForSecond(pillarId: 'schedule', secondKey: string): string[] {
   const pillar = DOMESTIC_NAV_PILLARS.find((p) => p.id === pillarId)
   const row = pillar?.termSecond?.find((t) => t.key === secondKey)
   return row?.terms ?? []
@@ -49,12 +51,11 @@ export default function DomesticInteractiveShell({
   const [activePillar, setActivePillar] = useState<DomesticPillarId>('region')
   const [navProductTerms, setNavProductTerms] = useState<string[]>([])
   const [navScheduleStrictTerms, setNavScheduleStrictTerms] = useState<string[]>([])
-  const [specialMode, setSpecialMode] = useState<DomesticSpecialMode | null>(null)
+  const [domesticTransportNav, setDomesticTransportNav] = useState<'bus' | 'train' | 'ship' | null>(null)
+  const [domesticSpecialThemeNav, setDomesticSpecialThemeNav] = useState(false)
   const [entryRegionGroupKey, setEntryRegionGroupKey] = useState<string | null>(null)
   const [refine, setRefineState] = useState<DomesticRefineState>(DEFAULT_DOMESTIC_REFINE)
   const [sidebarScheduleKey, setSidebarScheduleKey] = useState('')
-  const [sidebarThemeKey, setSidebarThemeKey] = useState('')
-  const [sidebarAudienceKey, setSidebarAudienceKey] = useState('')
   const [externalExplorerApply, setExternalExplorerApply] = useState<{ groupKey: string; epoch: number } | null>(
     null
   )
@@ -69,10 +70,9 @@ export default function DomesticInteractiveShell({
         setActivePillar('region')
         setNavProductTerms([])
         setNavScheduleStrictTerms([])
-        setSpecialMode(null)
+        setDomesticTransportNav(null)
+        setDomesticSpecialThemeNav(false)
         setSidebarScheduleKey('')
-        setSidebarThemeKey('')
-        setSidebarAudienceKey('')
         if (parsed.groupKey) {
           const g = activeLocationTree.find((x) => x.groupKey === parsed.groupKey)
           if (g) {
@@ -98,25 +98,25 @@ export default function DomesticInteractiveShell({
         setEntryRegionGroupKey(null)
         setRefine({ regionGroupKey: null })
         setExternalExplorerApply(null)
-        setSpecialMode(null)
+        setDomesticSpecialThemeNav(false)
         setNavProductTerms(parsed.terms)
         setNavScheduleStrictTerms(parsed.pillar === 'schedule' ? parsed.terms : [])
+        if (parsed.pillar === 'bus') setDomesticTransportNav('bus')
+        else if (parsed.pillar === 'train') setDomesticTransportNav('train')
+        else if (parsed.pillar === 'ship') setDomesticTransportNav('ship')
+        else setDomesticTransportNav(null)
         return
       }
-      if (parsed.kind === 'special') {
-        setActivePillar('specials')
+      if (parsed.kind === 'special_theme') {
+        setActivePillar('special_theme')
         setNavProductTerms([])
         setNavScheduleStrictTerms([])
-        setSpecialMode(parsed.mode)
+        setDomesticTransportNav(null)
+        setDomesticSpecialThemeNav(true)
         setExplore({ terms: [], summaryLabel: '' })
         setEntryRegionGroupKey(null)
         setRefine({ regionGroupKey: null })
         setExternalExplorerApply(null)
-        if (parsed.scrollTo === 'curation') {
-          window.requestAnimationFrame(() =>
-            document.getElementById('travel-dm-curation')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          )
-        }
         return
       }
     },
@@ -145,24 +145,28 @@ export default function DomesticInteractiveShell({
         document.getElementById('travel-dm-products')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
         return
       }
-      applyParsedNav({
-        kind: 'special',
-        mode: a.mode,
-        summaryLabel: a.summaryLabel,
-        scrollTo: a.scrollTo,
-      })
-      document.getElementById('travel-dm-products')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (a.kind === 'special_theme') {
+        applyParsedNav({
+          kind: 'special_theme',
+          secondKey: a.secondKey,
+          summaryLabel: a.summaryLabel,
+        })
+        document.getElementById('travel-dm-products')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
     },
     [applyParsedNav]
   )
 
-  const onExploreChange = useCallback((next: DomesticExploreFilter) => {
-    setExplore(next)
-    if (next.terms.length === 0) {
-      setEntryRegionGroupKey(null)
-      setRefine({ regionGroupKey: null })
-    }
-  }, [setRefine])
+  const onExploreChange = useCallback(
+    (next: DomesticExploreFilter) => {
+      setExplore(next)
+      if (next.terms.length === 0) {
+        setEntryRegionGroupKey(null)
+        setRefine({ regionGroupKey: null })
+      }
+    },
+    [setRefine]
+  )
 
   const onPickRegionGroup = useCallback(
     (key: string | '') => {
@@ -188,40 +192,38 @@ export default function DomesticInteractiveShell({
     () => (sidebarScheduleKey ? getTermsForSecond('schedule', sidebarScheduleKey) : []),
     [sidebarScheduleKey]
   )
-  const sidebarThemeTerms = useMemo(
-    () => (sidebarThemeKey ? getTermsForSecond('theme', sidebarThemeKey) : []),
-    [sidebarThemeKey]
-  )
-  const sidebarAudienceTerms = useMemo(
-    () => (sidebarAudienceKey ? getTermsForSecond('audience', sidebarAudienceKey) : []),
-    [sidebarAudienceKey]
-  )
 
   const themeFilterTerms = useMemo(() => {
-    const merged = [
-      ...navProductTerms,
-      ...sidebarThemeTerms,
-      ...sidebarAudienceTerms,
-      ...sidebarScheduleTerms,
-    ]
+    const merged = [...navProductTerms, ...sidebarScheduleTerms]
     return Array.from(new Set(merged))
-  }, [navProductTerms, sidebarThemeTerms, sidebarAudienceTerms, sidebarScheduleTerms])
+  }, [navProductTerms, sidebarScheduleTerms])
 
   const scheduleStrictTerms = useMemo(() => {
     const fromSidebar = sidebarScheduleTerms
     return Array.from(new Set([...navScheduleStrictTerms, ...fromSidebar]))
   }, [navScheduleStrictTerms, sidebarScheduleTerms])
 
-  const domesticRowFilter = useMemo(
-    () => buildDomesticSpecialAndRefinePredicate(refine, specialMode),
-    [refine, specialMode]
-  )
+  const domesticRowFilter = useMemo(() => {
+    const base = buildDomesticSpecialAndRefinePredicate(refine, null)
+    return (p: GalleryProduct) => {
+      if (!base(p)) return false
+      if (domesticSpecialThemeNav && !domesticDisplayCategoryIsSpecialTheme(p.displayCategory)) return false
+      if (domesticTransportNav === 'bus' && !domesticProductMatchesBus({ title: p.title, includedText: p.includedText }))
+        return false
+      if (domesticTransportNav === 'train' && !domesticProductMatchesTrain({ title: p.title, includedText: p.includedText }))
+        return false
+      if (domesticTransportNav === 'ship' && !domesticProductMatchesShip({ title: p.title, includedText: p.includedText }))
+        return false
+      return true
+    }
+  }, [refine, domesticSpecialThemeNav, domesticTransportNav])
 
   const productLead = useMemo(() => {
     const base = TRAVEL_DOMESTIC_PRODUCT_LEAD
-    if (specialMode) {
-      return `${base} ${DOMESTIC_LANDING_SECTIONS.productLeadSpecials(specialMode)}`
-    }
+    if (domesticTransportNav === 'bus') return `${base} · 버스여행 키워드로 좁혀 보고 있습니다.`
+    if (domesticTransportNav === 'train') return `${base} · 기차·철도 키워드로 좁혀 보고 있습니다.`
+    if (domesticTransportNav === 'ship') return `${base} · 선박·크루즈·페리 키워드로 좁혀 보고 있습니다.`
+    if (domesticSpecialThemeNav) return `${base} · displayCategory에 「국내특별테마」가 있는 상품만 보고 있습니다.`
     if (activePillar !== 'region' && themeFilterTerms.length > 0) {
       return `${base} ${DOMESTIC_LANDING_SECTIONS.productFilterHintActive(themeFilterTerms.slice(0, 3).join(' · '))}`
     }
@@ -229,7 +231,7 @@ export default function DomesticInteractiveShell({
       return `${base} ${DOMESTIC_LANDING_SECTIONS.productFilterHintActive(explore.summaryLabel)}`
     }
     return `${base} ${DOMESTIC_LANDING_SECTIONS.productFilterHintAll}`
-  }, [specialMode, activePillar, themeFilterTerms, explore.terms.length, explore.summaryLabel])
+  }, [domesticTransportNav, domesticSpecialThemeNav, activePillar, themeFilterTerms, explore.terms.length, explore.summaryLabel])
 
   return (
     <>
@@ -283,10 +285,6 @@ export default function DomesticInteractiveShell({
             onPickRegionGroup={onPickRegionGroup}
             sidebarScheduleKey={sidebarScheduleKey}
             setSidebarScheduleKey={setSidebarScheduleKey}
-            sidebarThemeKey={sidebarThemeKey}
-            setSidebarThemeKey={setSidebarThemeKey}
-            sidebarAudienceKey={sidebarAudienceKey}
-            setSidebarAudienceKey={setSidebarAudienceKey}
           />
         }
       />

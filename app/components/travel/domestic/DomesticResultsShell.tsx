@@ -13,7 +13,7 @@ function applyDomesticNavToQuery(search: URLSearchParams, a: DomesticNavApply): 
   sp.set('dmPillar', a.pillar)
   sp.set('dmItem', a.secondKey)
 
-  clear(['regionPref', 'tripDays', 'companions', 'sort'])
+  clear(['regionPref', 'tripDays', 'companions', 'sort', 'domesticTransport', 'domesticSpecialTheme'])
 
   if (a.kind === 'region') {
     const pref = a.destinationTerms?.length ? a.destinationTerms.join(',') : a.summaryLabel
@@ -22,29 +22,27 @@ function applyDomesticNavToQuery(search: URLSearchParams, a: DomesticNavApply): 
   }
 
   if (a.kind === 'terms') {
-    if (a.terms.length > 0) sp.set('regionPref', a.terms.join(','))
-    if (a.pillar === 'schedule') {
-      if (a.secondKey === 'day') sp.set('tripDays', '1')
-      else if (a.secondKey === 'n1') sp.set('tripDays', '2')
-      else if (a.secondKey === 'n2p') sp.set('tripDays', '3')
+    if (a.pillar === 'bus') {
+      sp.set('domesticTransport', 'bus')
+      sp.set('sort', 'popular')
+      return sp
     }
-    if (a.pillar === 'audience') {
-      const companionMap: Record<string, string> = {
-        filial: 'parents',
-        family: 'kids',
-        couple: 'couple',
-        friends: 'friends',
-      }
-      const companion = companionMap[a.secondKey]
-      if (companion) sp.set('companions', companion)
+    if (a.pillar === 'train') {
+      sp.set('domesticTransport', 'train')
+      sp.set('sort', 'popular')
+      return sp
     }
+    if (a.pillar === 'ship') {
+      sp.set('domesticTransport', 'ship')
+      sp.set('sort', 'popular')
+      return sp
+    }
+    // schedule: 제목·dmItem 기반 browse 전용 — regionPref/tripDays 미설정
     return sp
   }
 
-  // special
-  if (a.mode === 'value') sp.set('sort', 'price_asc')
-  else if (a.mode === 'closing') sp.set('sort', 'departure_asc')
-  else sp.set('sort', 'popular')
+  sp.set('domesticSpecialTheme', '1')
+  sp.set('sort', 'popular')
   return sp
 }
 
@@ -53,8 +51,8 @@ export default function DomesticResultsShell() {
   const searchParams = useSearchParams()
 
   const onApply = useCallback(
-    (a: DomesticNavApply) => {
-      const next = applyDomesticNavToQuery(new URLSearchParams(searchParams.toString()), a)
+    (nav: DomesticNavApply) => {
+      const next = applyDomesticNavToQuery(new URLSearchParams(searchParams.toString()), nav)
       router.replace(`/travel/domestic?${next.toString()}`)
     },
     [router, searchParams]

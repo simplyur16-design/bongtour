@@ -29,6 +29,14 @@ import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import { mapMatchToOverseasDisplayBucket } from '@/lib/overseas-display-buckets'
 import { filterPoolByStoredTravelScope } from '@/lib/travel-scope-pool-filter'
 import { parseListingKind } from '@/lib/product-listing-kind'
+import {
+  domesticDisplayCategoryIsSpecialTheme,
+  domesticNavRegionProductMatches,
+  domesticProductMatchesBus,
+  domesticProductMatchesScheduleNavKey,
+  domesticProductMatchesShip,
+  domesticProductMatchesTrain,
+} from '@/lib/domestic-public-browse-match'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,6 +105,11 @@ export async function GET(request: Request) {
     const baseTerms = destinationTermsFromQuery(region, country, city)
     const destinationTerms = [...baseTerms, ...extraTerms]
 
+    const dmPillar = (searchParams.get('dmPillar') ?? '').trim()
+    const dmItem = (searchParams.get('dmItem') ?? '').trim()
+    const domesticTransport = (searchParams.get('domesticTransport') ?? '').trim().toLowerCase()
+    const domesticSpecialTheme = searchParams.get('domesticSpecialTheme') === '1'
+
     const tripDaysRaw = searchParams.get('tripDays')
     const tripDaysFilter =
       tripDaysRaw != null && tripDaysRaw !== '' ? parseInt(tripDaysRaw, 10) : null
@@ -136,6 +149,8 @@ export async function GET(request: Request) {
     const scope = searchParams.get('scope')
     const overseasLike = scope === 'overseas' || !!region
     const domesticLike = scope === 'domestic'
+    const skipGlobalTripDaysForDomesticSchedule =
+      domesticLike && dmPillar === 'schedule' && dmItem.length > 0
     /** region만 있어도 해외 목적지 트리와 동일하게 travelScope 정렬 */
     const travelScopeParam = domesticLike ? 'domestic' : overseasLike ? 'overseas' : null
     const scopedBeforeTree = filterPoolByStoredTravelScope(rowsWithPublicDepartures, travelScopeParam)
@@ -147,7 +162,7 @@ export async function GET(request: Request) {
     }
 
     let filteredRows = pool
-    if (tripDaysFilter != null && !Number.isNaN(tripDaysFilter)) {
+    if (tripDaysFilter != null && !Number.isNaN(tripDaysFilter) && !skipGlobalTripDaysForDomesticSchedule) {
       filteredRows = filteredRows.filter((p) => p.tripDays === tripDaysFilter)
     }
     if (paxFilter != null && !Number.isNaN(paxFilter) && paxFilter > 0) {
@@ -179,6 +194,35 @@ export async function GET(request: Request) {
       filteredRows = filteredRows.filter((p) => (p.listingKind ?? '').trim() !== 'air_hotel_free')
     }
 
+    let scoringDestinationTerms = destinationTerms
+    if (domesticLike) {
+      if (domesticSpecialTheme) {
+        filteredRows = filteredRows.filter((p) => domesticDisplayCategoryIsSpecialTheme(p.displayCategory))
+        scoringDestinationTerms = [...baseTerms]
+      } else if (domesticTransport === 'bus') {
+        filteredRows = filteredRows.filter((p) => domesticProductMatchesBus(p))
+        scoringDestinationTerms = [...baseTerms]
+      } else if (domesticTransport === 'train') {
+        filteredRows = filteredRows.filter((p) => domesticProductMatchesTrain(p))
+        scoringDestinationTerms = [...baseTerms]
+      } else if (domesticTransport === 'ship') {
+        filteredRows = filteredRows.filter((p) => domesticProductMatchesShip(p))
+        scoringDestinationTerms = [...baseTerms]
+      } else if (dmPillar === 'region' && dmItem) {
+        filteredRows = filteredRows.filter((p) => domesticNavRegionProductMatches(p, dmItem, extraTerms))
+        scoringDestinationTerms = [...baseTerms]
+      } else if (dmPillar === 'schedule' && dmItem) {
+        filteredRows = filteredRows.filter((p) =>
+          domesticProductMatchesScheduleNavKey(
+            { title: p.title, tripDays: p.tripDays, departures: p.departures },
+            dmItem,
+            extraTerms
+          )
+        )
+        scoringDestinationTerms = [...baseTerms]
+      }
+    }
+
     /** 사이드바 상품유형이 있으면 1차 유형은 카테고리 필터에 맡기고 목적지만 좁힌다 */
     const browseTypeForScore: ProductBrowseType | null =
       q.categories.length > 0 ? null : parseBrowseType(typeParam)
@@ -192,7 +236,7 @@ export async function GET(request: Request) {
 
     const scoredForFacets = scoreAndFilterProducts(filteredRows, {
       type: browseTypeForScore,
-      destinationTerms,
+      destinationTerms: scoringDestinationTerms,
       budgetPerPersonMax: null,
       sort: 'popular',
     })
@@ -204,7 +248,7 @@ export async function GET(request: Request) {
 
     let scored = scoreAndFilterProducts(filteredRows, {
       type: browseTypeForScore,
-      destinationTerms,
+      destinationTerms: scoringDestinationTerms,
       budgetPerPersonMax,
       sort: effectiveSort,
     })
@@ -355,7 +399,7 @@ export async function GET(request: Request) {
       page,
       limit,
       items,
-      destinationTerms,
+      destinationTerms: scoringDestinationTerms,
       suggestedBudgetMax,
       facets: {
         brands: brandFacets,

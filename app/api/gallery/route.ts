@@ -25,6 +25,10 @@ export type GalleryProduct = {
   primaryRegion: string | null
   /** 쉼표 구분 테마 태그 — 국내 테마 칩 매칭 보조 */
   themeTags: string | null
+  /** 운영 노출 메타 — 국내 특별테마 등 */
+  displayCategory: string | null
+  /** 포함 내역(앞부분만 갤러리 필터 보조) */
+  includedText: string | null
   /** 등록 시 저장한 대표 이미지 좌측 SEO 한 줄 */
   publicImageHeroSeoLine: string | null
   /** 등록 시 저장한 대표 이미지 SEO 키워드 JSON 배열 */
@@ -97,6 +101,8 @@ export async function GET(request: Request) {
           destination: p.destination ?? null,
           primaryRegion: p.primaryRegion ?? null,
           themeTags: p.themeTags ?? null,
+          displayCategory: p.displayCategory ?? null,
+          includedText: p.includedText ? String(p.includedText).slice(0, 2000) : null,
           publicImageHeroSeoLine: p.publicImageHeroSeoLine ?? null,
           publicImageHeroSeoKeywordsJson: p.publicImageHeroSeoKeywordsJson ?? null,
           departureDate: firstBookable
