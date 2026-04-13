@@ -52,7 +52,12 @@ export default async function AirHotelPage({
         </section>
 
         <Suspense fallback={<p className="py-16 text-center text-sm text-slate-500">상품을 불러오는 중…</p>}>
-          <ProductsBrowseClient basePath="/travel/air-hotel" defaultScope="overseas" pageTitle="항공+호텔" />
+          <ProductsBrowseClient
+            basePath="/travel/air-hotel"
+            defaultScope="overseas"
+            pageTitle="항공+호텔"
+            hidePageHeading
+          />
         </Suspense>
 
         <section className="border-t border-bt-border bg-slate-50">

@@ -92,6 +92,7 @@ export default async function OverseasTravelPage({
             basePath="/travel/overseas"
             defaultScope="overseas"
             pageTitle="해외여행 상품"
+            hidePageHeading
             overseasEditorialBriefing={overseasEditorialBriefing}
             monthlyCurationMid={monthlyCurationMid}
           />

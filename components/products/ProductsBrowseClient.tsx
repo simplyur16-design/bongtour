@@ -66,6 +66,8 @@ type Props = {
   basePath?: string
   defaultScope?: 'overseas' | 'domestic'
   pageTitle?: string
+  /** 히어로가 이미 제목·설명을 쓰는 허브에서만: 상단 헤더 + 모바일 필터 바 옆 건수 문구 생략 */
+  hidePageHeading?: boolean
   /** 해외 허브: 서유럽 섹션용 목적지 브리핑(서버 선별) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
   /** 해외 허브: 동유럽 section 직후·미주 전 월간 큐레이션 전폭 1회 */
@@ -89,6 +91,7 @@ export default function ProductsBrowseClient({
   basePath = '/products',
   defaultScope,
   pageTitle = '여행 상품',
+  hidePageHeading = false,
   overseasEditorialBriefing = null,
   monthlyCurationMid = null,
 }: Props) {
@@ -98,6 +101,7 @@ export default function ProductsBrowseClient({
   const qs = searchParams.toString()
 
   const isDomesticHub = pathname === '/travel/domestic' && defaultScope === 'domestic'
+  const suppressHeadingToolbarGap = hidePageHeading && isDomesticHub
 
   const q = useMemo(() => {
     if (isDomesticHub) {
@@ -294,47 +298,51 @@ export default function ProductsBrowseClient({
     [q]
   )
 
-  const summary = (
-    <header className="border-b border-slate-200 pb-4">
-      <nav className="text-xs text-slate-500">
-        <Link href="/" className="font-medium text-slate-600 hover:underline">
-          홈
-        </Link>
-        <span className="mx-1.5 text-slate-300">/</span>
-        {pageTitle}
-      </nav>
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">{pageTitle}</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        {q.region && (
-          <span>
-            선택 지역: {q.region}
-            {q.country ? ` · ${q.country}` : ''}
-            {q.city ? ` · ${q.city}` : ''}
-          </span>
-        )}
-        {!q.region && (
-          <span>{isDomesticHub ? '지역별로 등록된 상품을 확인할 수 있습니다.' : '등록된 상품을 조건에 맞게 찾습니다.'}</span>
-        )}
-      </p>
-      {data && (
-        <p className="mt-2 text-sm font-medium text-slate-800">
-          조건에 맞는 상품 {data.total.toLocaleString('ko-KR')}건
-          {data.total > 0 &&
-            data.page > 1 &&
-            !(
-              (basePath === '/travel/overseas' && defaultScope === 'overseas') ||
-              (basePath === '/travel/domestic' && defaultScope === 'domestic') ||
-              basePath === '/travel/air-hotel'
-            ) && (
-            <span className="text-slate-500">
-              {' '}
-              (페이지 {data.page})
-            </span>
+  const summary = hidePageHeading
+    ? null
+    : (
+        <header className="border-b border-slate-200 pb-4">
+          <nav className="text-xs text-slate-500">
+            <Link href="/" className="font-medium text-slate-600 hover:underline">
+              홈
+            </Link>
+            <span className="mx-1.5 text-slate-300">/</span>
+            {pageTitle}
+          </nav>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">{pageTitle}</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            {q.region && (
+              <span>
+                선택 지역: {q.region}
+                {q.country ? ` · ${q.country}` : ''}
+                {q.city ? ` · ${q.city}` : ''}
+              </span>
+            )}
+            {!q.region && (
+              <span>
+                {isDomesticHub ? '지역별로 등록된 상품을 확인할 수 있습니다.' : '등록된 상품을 조건에 맞게 찾습니다.'}
+              </span>
+            )}
+          </p>
+          {data && (
+            <p className="mt-2 text-sm font-medium text-slate-800">
+              조건에 맞는 상품 {data.total.toLocaleString('ko-KR')}건
+              {data.total > 0 &&
+                data.page > 1 &&
+                !(
+                  (basePath === '/travel/overseas' && defaultScope === 'overseas') ||
+                  (basePath === '/travel/domestic' && defaultScope === 'domestic') ||
+                  basePath === '/travel/air-hotel'
+                ) && (
+                <span className="text-slate-500">
+                  {' '}
+                  (페이지 {data.page})
+                </span>
+              )}
+            </p>
           )}
-        </p>
-      )}
-    </header>
-  )
+        </header>
+      )
 
   const facets: BrowseFacets = data?.facets ?? {
     brands: [],
@@ -347,7 +355,7 @@ export default function ProductsBrowseClient({
     (q.sort as BrowseSort) || (q.budgetPerPerson != null || q.budgetMin != null ? 'budget_fit' : 'popular')
 
   const toolbar = (
-    <div className="mt-2">
+    <div className={suppressHeadingToolbarGap ? 'mt-0' : 'mt-2'}>
       <ProductSortBar
         sort={sort}
         budgetActive={budgetActive}
@@ -463,7 +471,9 @@ export default function ProductsBrowseClient({
   )
 
   const mobileBar = (
-    <div className="mb-4 flex items-center justify-between gap-2">
+    <div
+      className={`mb-4 flex items-center gap-2 ${hidePageHeading ? 'justify-start' : 'justify-between'}`}
+    >
       <button
         type="button"
         onClick={() => setDrawerOpen(true)}
@@ -471,14 +481,16 @@ export default function ProductsBrowseClient({
       >
         필터
       </button>
-      <span className="text-xs text-slate-500">{data ? `${data.total}건` : ''}</span>
+      {!hidePageHeading ? (
+        <span className="text-xs text-slate-500">{data ? `${data.total}건` : ''}</span>
+      ) : null}
     </div>
   )
 
   if (isDomesticHub) {
     return (
-      <div className={`${SITE_CONTENT_CLASS} py-6`}>
-        <div className="mb-4">{summary}</div>
+      <div className={`${SITE_CONTENT_CLASS} ${hidePageHeading ? 'pt-3 pb-6 sm:pt-4' : 'py-6'}`}>
+        {summary != null ? <div className="mb-4">{summary}</div> : null}
         {toolbar}
         {results}
       </div>

@@ -4,7 +4,8 @@ import type { ReactNode } from 'react'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
 type Props = {
-  summary: ReactNode
+  /** null이면 상단 페이지 헤더(브레드크럼·제목·설명·건수) 슬롯 생략 — 히어로가 있는 허브 전용 */
+  summary?: ReactNode | null
   chips: ReactNode
   sidebar: ReactNode
   toolbar: ReactNode
@@ -24,11 +25,12 @@ export default function ProductsPageLayout({
   results,
   mobileFilterBar,
 }: Props) {
+  const verticalPad = summary != null ? 'py-6' : 'pt-3 pb-6 sm:pt-4'
   return (
-    <div className={`${SITE_CONTENT_CLASS} py-6`}>
+    <div className={`${SITE_CONTENT_CLASS} ${verticalPad}`}>
       <div className="lg:hidden">{mobileFilterBar}</div>
 
-      <div className="mb-4">{summary}</div>
+      {summary != null ? <div className="mb-4">{summary}</div> : null}
       <div className="mb-3">{chips}</div>
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
