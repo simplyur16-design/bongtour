@@ -105,7 +105,13 @@ export async function GET(request: Request) {
     const paxFilter = paxRaw != null && paxRaw !== '' ? parseInt(paxRaw, 10) : null
 
     const page = q.page
-    const limit = q.limit
+    const scopeForLimit = searchParams.get('scope')
+    const limitParam = searchParams.get('limit')
+    const parsedLimit =
+      limitParam != null && limitParam !== '' ? parseInt(limitParam, 10) : Number.NaN
+    const rawLimit = Number.isFinite(parsedLimit) ? parsedLimit : null
+    const limitCap = scopeForLimit === 'overseas' || scopeForLimit === 'domestic' ? 1000 : 60
+    const limit = Math.min(limitCap, Math.max(1, rawLimit ?? 24))
 
     const rows = await prisma.product.findMany({
       where: {
@@ -162,6 +168,15 @@ export async function GET(request: Request) {
         }
         return lk === listingKindParsed
       })
+    }
+
+    /** 국내 허브는 패키지·우리여행 중심 — 자유여행(항공+호텔)은 `/travel/air-hotel`로 분리 노출 */
+    const wantsAirtelHubSlice =
+      parseBrowseType(typeParam) === 'airtel' ||
+      q.categories.some((c) => c === 'airtel') ||
+      listingKindParsed === 'air_hotel_free'
+    if (domesticLike && !wantsAirtelHubSlice) {
+      filteredRows = filteredRows.filter((p) => (p.listingKind ?? '').trim() !== 'air_hotel_free')
     }
 
     /** 사이드바 상품유형이 있으면 1차 유형은 카테고리 필터에 맡기고 목적지만 좁힌다 */

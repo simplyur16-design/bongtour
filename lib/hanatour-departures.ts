@@ -9,11 +9,13 @@ import { buildCommonMatchingTrace, buildDepartureTitleLayers } from '@/lib/depar
 import {
   departureInputToYmd,
   filterDepartureInputsOnOrAfterCalendarToday,
+  resolveHanatourAdminE2eMonthsForward,
   scrapeCalendarTodayYmd,
   scrapeTodayYearMonth,
   SCRAPE_DEFAULT_MONTHS_FORWARD,
 } from '@/lib/scrape-date-bounds'
 import { applyDepartureTerminalMeetingInfo } from '@/lib/meeting-terminal-rules'
+import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 
 /**
  * 월별 subprocess `execFile` timeout(ms).
@@ -276,7 +278,8 @@ export type HanatourDepartureCollectResult = {
 
 /** `POST …/departures` 로그·응답용 — 스크래퍼 로직과 무관한 관측값만 */
 export type HanatourPythonDiagnostics = {
-  command: 'python'
+  /** 실제 spawn에 사용한 실행 파일 경로 또는 `python3` 등 */
+  command: string
   argv: string[]
   cwd: string
   timeoutMs: number
@@ -615,6 +618,7 @@ async function hanatourPythonCliSingleInvocation(params: {
   targetMonthYm?: string
 }): Promise<HanatourDepartureCollectResult> {
   const { argv, cwd, timeoutMs, envForPython, targetMonthYm } = params
+  const pythonExe = resolvePythonExecutable()
   const notes: string[] = []
   const log: Record<string, unknown> = {}
   const monthLabel = targetMonthYm ?? 'single'
@@ -624,7 +628,7 @@ async function hanatourPythonCliSingleInvocation(params: {
     `[hanatour] phase=month_subprocess_spawned argv=${JSON.stringify(argv)} timeoutMs=${timeoutMs}`
   )
   const baseDiag = (): HanatourPythonDiagnostics => ({
-    command: 'python',
+    command: pythonExe,
     argv,
     cwd,
     timeoutMs,
@@ -645,7 +649,7 @@ async function hanatourPythonCliSingleInvocation(params: {
     console.log(
       `[hanatour] phase=python-cli-start argv=${JSON.stringify(argv)} cwd=${cwd} timeoutMs=${timeoutMs}${targetMonthYm ? ` targetMonth=${targetMonthYm}` : ''}`
     )
-    const { stdout, stderr } = await execFileAsync('python', argv, {
+    const { stdout, stderr } = await execFileAsync(pythonExe, argv, {
       cwd,
       timeout: timeoutMs,
       maxBuffer: 16 * 1024 * 1024,
@@ -720,7 +724,7 @@ async function hanatourPythonCliSingleInvocation(params: {
     const fill = deriveFillMeta(inputsFiltered)
     const collectorStatus = parsed.collectorStatus
     const diagOk: HanatourPythonDiagnostics = {
-      command: 'python',
+      command: pythonExe,
       argv,
       cwd,
       timeoutMs,
@@ -824,7 +828,7 @@ async function hanatourPythonCliSingleInvocation(params: {
       const fill = deriveFillMeta(inputsFiltered)
       const appliedSv = applyDepartureTerminalMeetingInfo(inputsFiltered)
       const diagSv: HanatourPythonDiagnostics = {
-        command: 'python',
+        command: pythonExe,
         argv,
         cwd,
         timeoutMs,
@@ -876,7 +880,7 @@ async function hanatourPythonCliSingleInvocation(params: {
 
     const fill = deriveFillMeta([])
     const diagErr: HanatourPythonDiagnostics = {
-      command: 'python',
+      command: pythonExe,
       argv,
       cwd,
       timeoutMs,
@@ -1025,7 +1029,7 @@ export async function collectHanatourDepartureInputs(
   const sumParsed = pythonMonthDiagnostics.reduce((s, d) => s + d.parsedJsonRows, 0)
   const anyTimedOut = pythonMonthDiagnostics.some((d) => d.pythonTimedOut)
   const aggregateDiagnostics: HanatourPythonDiagnostics = {
-    command: 'python',
+    command: resolvePythonExecutable(),
     argv: ['-m', 'scripts.calendar_e2e_scraper_hanatour.main', resolvedDetailUrl, '(month-split)'],
     cwd,
     timeoutMs: perMonthTimeout,
@@ -1112,4 +1116,65 @@ export async function collectHanatourDepartureInputs(
     pythonDiagnostics: aggregateDiagnostics,
     pythonMonthDiagnostics,
   }
+}
+
+/**
+ * on-demand: 지정 `ymd`가 속한 **한 달만** subprocess 수집 후 동일 일자 행 1건만 반환(다른 날짜는 호출부에서 저장하지 않음).
+ */
+export async function collectHanatourDepartureInputForSingleDate(
+  detailUrl: string,
+  ymd: string
+): Promise<DepartureInput | null> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null
+  const ym = ymd.slice(0, 7)
+  const validatedYm = validateHanatourAdminMonthYm(ym)
+  if (!validatedYm) return null
+  const horizon = resolveHanatourAdminE2eMonthsForward()
+  const allowedYm = new Set(buildHanatourKstTargetMonths(horizon))
+  if (!allowedYm.has(validatedYm)) return null
+  const res = await collectHanatourDepartureInputs(detailUrl, { monthYmsOverride: [validatedYm] })
+  for (const x of res.inputs) {
+    if (departureInputToYmd(x.departureDate) === ymd) return x
+  }
+  return null
+}
+
+function eachYmdInclusiveHanatour(lo: string, hi: string): string[] {
+  const a = lo <= hi ? lo : hi
+  const b = lo <= hi ? hi : lo
+  const out: string[] = []
+  let cur = a
+  while (cur <= b) {
+    out.push(cur)
+    const [y, m, d] = cur.split('-').map(Number)
+    const dt = new Date(Date.UTC(y, m - 1, d))
+    dt.setUTCDate(dt.getUTCDate() + 1)
+    cur = dt.toISOString().slice(0, 10)
+  }
+  return out
+}
+
+/** on-demand: `[fromYmd,toYmd]`에 걸친 허용 월만 subprocess 수집 후 구간 일자만 반환. */
+export async function collectHanatourDepartureInputsForDateRange(
+  detailUrl: string,
+  fromYmd: string,
+  toYmd: string
+): Promise<DepartureInput[]> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
+  const lo = fromYmd <= toYmd ? fromYmd : toYmd
+  const hi = fromYmd <= toYmd ? toYmd : fromYmd
+  const horizon = resolveHanatourAdminE2eMonthsForward()
+  const allowedYm = new Set(buildHanatourKstTargetMonths(horizon))
+  const ymSet = new Set<string>()
+  for (const d of eachYmdInclusiveHanatour(lo, hi)) {
+    const ym = d.slice(0, 7)
+    const validatedYm = validateHanatourAdminMonthYm(ym)
+    if (validatedYm && allowedYm.has(validatedYm)) ymSet.add(validatedYm)
+  }
+  if (ymSet.size === 0) return []
+  const res = await collectHanatourDepartureInputs(detailUrl, { monthYmsOverride: [...ymSet].sort() })
+  return res.inputs.filter((x) => {
+    const d = departureInputToYmd(x.departureDate)
+    return d != null && d >= lo && d <= hi
+  })
 }

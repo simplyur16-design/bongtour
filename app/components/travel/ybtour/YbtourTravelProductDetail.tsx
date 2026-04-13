@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 import TravelCoreInfoSection from '@/app/components/detail/TravelCoreInfoSection'
@@ -16,7 +17,11 @@ import { isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-hanatour'
 import { parseLegacyStructuredOptionalTours, toLegacyBookingTypeLabel } from '@/lib/optional-tours-ui-model'
 import { getYbtourOptionalTourUiRows } from '@/lib/optional-tours-ui-ybtour'
 import { computeKRWQuotation, isScheduleAdultBookable } from '@/lib/price-utils'
-import { pickGloballyCheapestDepartureRowByAdultPrice } from '@/lib/public-default-departure-selection'
+import {
+  pickAnyRowForDateKey,
+  pickBookableRowForDateKey,
+  pickGloballyCheapestDepartureRowByAdultPrice,
+} from '@/lib/public-default-departure-selection'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
 import { buildYbtourTripDateDisplaysForSelectedRow } from '@/lib/ybtour/ybtour-selected-row-trip-display'
@@ -223,19 +228,37 @@ function applyFlightManualCorrectionForPublicOrigin(
 }
 
 export default function YbtourTravelProductDetail({ product }: Props) {
+  const router = useRouter()
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
   const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(null)
   const [pax, setPax] = useState({ adult: 1, childBed: 0, childNoBed: 0, infant: 0 })
   const [bookingOpen, setBookingOpen] = useState(false)
   const [departurePickerOpen, setDeparturePickerOpen] = useState(false)
+  const [pricePatches, setPricePatches] = useState<ProductPriceRow[]>([])
+  const [onDemandNotice, setOnDemandNotice] = useState<string | null>(null)
+  const [departureCollectOpen, setDepartureCollectOpen] = useState(false)
+
+  const mergedPrices = useMemo(() => {
+    const by = new Map<string, ProductPriceRow>()
+    for (const p of product.prices) {
+      by.set(toDateKey(p.date), p)
+    }
+    for (const p of pricePatches) {
+      by.set(toDateKey(p.date), p)
+    }
+    return [...by.values()].sort((a, b) => toDateKey(a.date).localeCompare(toDateKey(b.date)))
+  }, [product.prices, pricePatches])
 
   useEffect(() => {
     setDepartureUserPinned(false)
+    setPricePatches([])
+    setOnDemandNotice(null)
+    setDepartureCollectOpen(false)
   }, [String(product.id)])
 
   const defaultDepartureRow = useMemo(
-    () => pickGloballyCheapestDepartureRowByAdultPrice(product.prices),
-    [product.prices]
+    () => pickGloballyCheapestDepartureRowByAdultPrice(mergedPrices),
+    [mergedPrices]
   )
 
   useEffect(() => {
@@ -249,20 +272,134 @@ export default function YbtourTravelProductDetail({ product }: Props) {
 
   useEffect(() => {
     if (!selectedDepartureRowId) return
-    const row = product.prices.find((p) => p.id === selectedDepartureRowId)
-    if (!row || !isScheduleAdultBookable(row)) {
+    const row = mergedPrices.find((p) => p.id === selectedDepartureRowId)
+    if (!row) {
+      setDepartureUserPinned(false)
+      setSelectedDepartureRowId(null)
+      return
+    }
+    if (String(selectedDepartureRowId).startsWith('od-')) return
+    if (!isScheduleAdultBookable(row)) {
       setDepartureUserPinned(false)
       setSelectedDepartureRowId(null)
     }
-  }, [product.prices, selectedDepartureRowId])
+  }, [mergedPrices, selectedDepartureRowId])
 
   const selectedPriceRow = useMemo(() => {
     if (selectedDepartureRowId) {
-      const r = product.prices.find((p) => p.id === selectedDepartureRowId)
-      if (r && isScheduleAdultBookable(r)) return r
+      const r = mergedPrices.find((p) => p.id === selectedDepartureRowId)
+      if (r) return r
     }
     return defaultDepartureRow
-  }, [product.prices, selectedDepartureRowId, defaultDepartureRow])
+  }, [mergedPrices, selectedDepartureRowId, defaultDepartureRow])
+
+  const handleYbtourDeparturePick = useCallback(
+    async (dateIso: string, sourceRowId: string | null) => {
+      if (departureCollectOpen) return
+      setOnDemandNotice(null)
+      if (sourceRowId && mergedPrices.some((p) => p.id === sourceRowId)) {
+        setSelectedDepartureRowId(sourceRowId)
+        setDepartureUserPinned(true)
+        return
+      }
+      const picked = pickBookableRowForDateKey(mergedPrices, dateIso)
+      if (picked) {
+        setSelectedDepartureRowId(picked.id)
+        setDepartureUserPinned(true)
+        return
+      }
+      const anyP = pickAnyRowForDateKey(mergedPrices, dateIso)
+      if (anyP) {
+        setSelectedDepartureRowId(anyP.id)
+        setDepartureUserPinned(true)
+        return
+      }
+      setDepartureCollectOpen(true)
+      try {
+        const res = await fetch(`/api/products/${encodeURIComponent(String(product.id))}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'range-on-demand',
+            departureDate: dateIso,
+            windowDays: 14,
+          }),
+        })
+        if (!res.ok) {
+          setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+          return
+        }
+        const data = (await res.json().catch(() => ({}))) as {
+          ok?: boolean
+          reason?: string
+          status?: string
+          price?: number | null
+          cached?: boolean
+        }
+        if (data?.ok === true && data.status === 'open' && data.price != null) {
+          const row: ProductPriceRow = {
+            id: `od-${dateIso}`,
+            productId: String(product.id),
+            date: dateIso,
+            adult: data.price,
+            childBed: 0,
+            childNoBed: 0,
+            infant: 0,
+            localPrice: null,
+            priceGap: 0,
+            priceAdult: data.price,
+            priceChildWithBed: 0,
+            priceChildNoBed: 0,
+            priceInfant: 0,
+          }
+          setPricePatches((prev) => [...prev.filter((p) => toDateKey(p.date) !== dateIso), row])
+          setSelectedDepartureRowId(row.id)
+          setDepartureUserPinned(true)
+          if (data?.cached !== true) router.refresh()
+          return
+        }
+        if (data?.ok === true && (data.status === 'sold_out' || data.status === 'closed')) {
+          const row: ProductPriceRow = {
+            id: `od-${dateIso}`,
+            productId: String(product.id),
+            date: dateIso,
+            adult: 0,
+            childBed: 0,
+            childNoBed: 0,
+            infant: 0,
+            localPrice: null,
+            priceGap: 0,
+            priceAdult: 0,
+            priceChildWithBed: 0,
+            priceChildNoBed: 0,
+            priceInfant: 0,
+            status: '마감',
+          }
+          setPricePatches((prev) => [...prev.filter((p) => toDateKey(p.date) !== dateIso), row])
+          setSelectedDepartureRowId(row.id)
+          setDepartureUserPinned(true)
+          setOnDemandNotice('해당 날짜 상품은 마감되었습니다.')
+          if (data?.cached !== true) router.refresh()
+          return
+        }
+        if (data?.reason === 'departure_not_found') {
+          setOnDemandNotice('선택하신 날짜에는 출발 가능한 상품이 없습니다.')
+          router.refresh()
+          return
+        }
+        if (data?.reason === 'departure_exists_price_unavailable') {
+          setOnDemandNotice('해당 날짜 출발은 있으나 가격을 아직 확인하지 못했습니다.')
+          return
+        }
+        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+      } catch {
+        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+      } finally {
+        setDepartureCollectOpen(false)
+      }
+    },
+    [mergedPrices, product.id, router, departureCollectOpen]
+  )
 
   const selectedDate = selectedPriceRow ? toDateKey(selectedPriceRow.date) : null
 
@@ -342,8 +479,8 @@ export default function YbtourTravelProductDetail({ product }: Props) {
   }, [product.mandatoryLocalFee, product.mandatoryCurrency, product.counselingNotes])
 
   const hasBookableSchedule = useMemo(
-    () => product.prices.some((p) => isScheduleAdultBookable(p)),
-    [product.prices]
+    () => mergedPrices.some((p) => isScheduleAdultBookable(p)),
+    [mergedPrices]
   )
 
   const updatePax = (key: keyof typeof pax, delta: number) => {
@@ -671,9 +808,14 @@ export default function YbtourTravelProductDetail({ product }: Props) {
         </section>
 
         <div className="mt-6 lg:hidden">
+          {onDemandNotice ? (
+            <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
+              {onDemandNotice}
+            </p>
+          ) : null}
           <ProductLiveQuoteCard
             product={product}
-            prices={product.prices}
+            prices={mergedPrices}
             selectedDate={selectedDate}
             explicitPriceRow={selectedPriceRow}
             pax={pax}
@@ -796,9 +938,14 @@ export default function YbtourTravelProductDetail({ product }: Props) {
 
           <aside className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
             <div className="max-h-[calc(100vh-7rem)] overflow-y-auto pr-1">
+              {onDemandNotice ? (
+                <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
+                  {onDemandNotice}
+                </p>
+              ) : null}
               <ProductLiveQuoteCard
                 product={product}
-                prices={product.prices}
+                prices={mergedPrices}
                 selectedDate={selectedDate}
                 explicitPriceRow={selectedPriceRow}
                 pax={pax}
@@ -821,17 +968,19 @@ export default function YbtourTravelProductDetail({ product }: Props) {
         <DepartureDatePickerModal
           open={departurePickerOpen}
           onClose={() => setDeparturePickerOpen(false)}
-          prices={product.prices}
+          prices={mergedPrices}
           originSource={product.originSource}
           selectedDate={selectedDate}
           selectedSourceRowId={selectedPriceRow?.id ?? null}
-          onSelectDate={() => {}}
-          onSelectDeparture={({ sourceRowId }) => {
-            setSelectedDepartureRowId(sourceRowId)
-            setDepartureUserPinned(true)
+          onSelectDate={(iso) => {
+            void handleYbtourDeparturePick(iso, null)
+          }}
+          onSelectDeparture={({ dateIso, sourceRowId }) => {
+            void handleYbtourDeparturePick(dateIso, sourceRowId)
           }}
           filterDepartureListByCalendarMonth
           listFirst={false}
+          allowUndepartedCalendarPick
         />
 
         <BookingIntakeModal
@@ -845,6 +994,33 @@ export default function YbtourTravelProductDetail({ product }: Props) {
           pax={pax}
           hasPriceSchedule={hasBookableSchedule}
         />
+
+        {departureCollectOpen ? (
+          <div
+            className="fixed inset-0 z-[220] flex items-center justify-center p-4"
+            role="alertdialog"
+            aria-modal="true"
+            aria-busy="true"
+            aria-labelledby="yb-dep-collect-title"
+            aria-describedby="yb-dep-collect-desc"
+          >
+            <div className="absolute inset-0 bg-black/45" aria-hidden />
+            <div className="relative w-full max-w-md rounded-2xl border border-bt-border-soft bg-bt-surface px-6 py-7 shadow-lg">
+              <h2 id="yb-dep-collect-title" className="text-center text-base font-semibold text-bt-card-title">
+                출발일 정보 수집 중
+              </h2>
+              <p id="yb-dep-collect-desc" className="mt-3 text-center text-sm leading-relaxed text-bt-body">
+                선택하신 날짜를 포함한 출발일 정보를 확인하고 있습니다. 잠시만 기다려 주세요.
+              </p>
+              <div
+                className="mx-auto mt-6 h-10 w-10 rounded-full border-2 border-bt-border-soft border-t-bt-card-title animate-spin"
+                style={{ animationDuration: '0.9s' }}
+                aria-hidden
+              />
+              <p className="mt-4 text-center text-xs text-bt-muted">출발일 정보 수집 중입니다.</p>
+            </div>
+          </div>
+        ) : null}
       </main>
     </div>
   )

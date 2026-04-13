@@ -90,7 +90,7 @@ function calendarE2eSiteFromOrigin(originSource: string): 'hanatour' | 'modetour
   return 'hanatour'
 }
 
-function buildDetailUrl(originSource: string, originCode: string): string {
+export function buildDetailUrl(originSource: string, originCode: string): string {
   const code = encodeURIComponent((originCode ?? '').trim())
   const src = (originSource || '').toLowerCase()
   if (src.includes('紐⑤몢') || src === 'modetour') {
@@ -401,6 +401,62 @@ function mapScrapedRowsToInputs(
     })
   }
   return out
+}
+
+/** ybtour on-demand: 달력 E2E 1회 후 `ymd`와 일치하는 행만 반환. */
+export async function collectYbtourDepartureInputForSingleDate(
+  detailUrl: string,
+  originCode: string | null,
+  ymd: string
+): Promise<DepartureInput | null> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null
+  const u = withYbtourPrdtGoodsCdParam(detailUrl, originCode)
+  const statusByDate = new Map<string, { statusRaw: string | null; seatsStatusRaw: string | null }>()
+  try {
+    const cal = await scrapeLiveCalendar(u, 'ybtour')
+    const inputs = filterDepartureInputsOnOrAfterCalendarToday(
+      mapScrapedRowsToInputs(cal.rows, statusByDate)
+    )
+    for (const x of inputs) {
+      const dk =
+        x.departureDate instanceof Date
+          ? x.departureDate.toISOString().slice(0, 10)
+          : String(x.departureDate ?? '').trim().slice(0, 10)
+      if (dk === ymd) return x
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+/** ybtour on-demand: 달력 E2E 1회 후 inclusive `[fromYmd,toYmd]` 구간 행만 반환. */
+export async function collectYbtourDepartureInputsForDateRange(
+  detailUrl: string,
+  originCode: string | null,
+  fromYmd: string,
+  toYmd: string
+): Promise<DepartureInput[]> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
+  const lo = fromYmd <= toYmd ? fromYmd : toYmd
+  const hi = fromYmd <= toYmd ? toYmd : fromYmd
+  const u = withYbtourPrdtGoodsCdParam(detailUrl, originCode)
+  const statusByDate = new Map<string, { statusRaw: string | null; seatsStatusRaw: string | null }>()
+  try {
+    const cal = await scrapeLiveCalendar(u, 'ybtour')
+    const inputs = filterDepartureInputsOnOrAfterCalendarToday(
+      mapScrapedRowsToInputs(cal.rows, statusByDate)
+    )
+    return inputs.filter((x) => {
+      const dk =
+        x.departureDate instanceof Date
+          ? x.departureDate.toISOString().slice(0, 10)
+          : String(x.departureDate ?? '').trim().slice(0, 10)
+      return dk >= lo && dk <= hi
+    })
+  } catch {
+    return []
+  }
 }
 
 export async function collectDepartureInputsForAdminRescrape(

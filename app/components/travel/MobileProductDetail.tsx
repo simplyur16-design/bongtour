@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useState, useEffect, useCallback } from 'react'
-import type { TravelProduct } from './TravelProductDetail'
+import { useRouter } from 'next/navigation'
+import type { ProductPriceRow, TravelProduct } from './TravelProductDetail'
 import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
 import TravelCoreInfoSection from '@/app/components/detail/TravelCoreInfoSection'
 import ProductExtraInfoTabs from '@/app/components/detail/ProductExtraInfoTabs'
@@ -14,6 +15,7 @@ import {
 import { buildProductMetaChips } from '@/lib/product-meta-chips'
 import { formatKRW, computeKRWQuotation, isScheduleAdultBookable } from '@/lib/price-utils'
 import {
+  pickAnyRowForDateKey,
   pickBookableRowForDateKey,
   pickGloballyCheapestDepartureRowByAdultPrice,
 } from '@/lib/public-default-departure-selection'
@@ -86,7 +88,21 @@ function applyFlightManualCorrectionForPublicOrigin(
 }
 
 export default function MobileProductDetail({ product }: Props) {
-  const prices = Array.isArray(product.prices) ? product.prices : []
+  const router = useRouter()
+  const basePrices = Array.isArray(product.prices) ? product.prices : []
+  const [pricePatches, setPricePatches] = useState<ProductPriceRow[]>([])
+  const [onDemandNotice, setOnDemandNotice] = useState<string | null>(null)
+  const [departureCollectOpen, setDepartureCollectOpen] = useState(false)
+  const mergedPrices = useMemo(() => {
+    const by = new Map<string, ProductPriceRow>()
+    for (const p of basePrices) {
+      by.set(toDateKey(p.date), p)
+    }
+    for (const p of pricePatches) {
+      by.set(toDateKey(p.date), p)
+    }
+    return [...by.values()].sort((a, b) => toDateKey(a.date).localeCompare(toDateKey(b.date)))
+  }, [basePrices, pricePatches])
   const schedule = product.schedule && product.schedule.length > 0 ? (product.schedule as ScheduleDayWithMeta[]) : []
   const heroUrl = useMemo(() => coverImageUrlForTravelProductClient({ ...product, schedule }), [product, schedule])
   const daySlides = schedule.map((d) => ({
@@ -169,11 +185,14 @@ export default function MobileProductDetail({ product }: Props) {
 
   useEffect(() => {
     setDepartureUserPinned(false)
+    setPricePatches([])
+    setOnDemandNotice(null)
+    setDepartureCollectOpen(false)
   }, [String(product.id)])
 
   const defaultDepartureRow = useMemo(
-    () => pickGloballyCheapestDepartureRowByAdultPrice(prices),
-    [prices]
+    () => pickGloballyCheapestDepartureRowByAdultPrice(mergedPrices),
+    [mergedPrices]
   )
 
   useEffect(() => {
@@ -187,36 +206,135 @@ export default function MobileProductDetail({ product }: Props) {
 
   useEffect(() => {
     if (!selectedDepartureRowId) return
-    const row = prices.find((p) => p.id === selectedDepartureRowId)
-    if (!row || !isScheduleAdultBookable(row)) {
+    const row = mergedPrices.find((p) => p.id === selectedDepartureRowId)
+    if (!row) {
+      setDepartureUserPinned(false)
+      setSelectedDepartureRowId(null)
+      return
+    }
+    if (String(selectedDepartureRowId).startsWith('od-')) return
+    if (!isScheduleAdultBookable(row)) {
       setDepartureUserPinned(false)
       setSelectedDepartureRowId(null)
     }
-  }, [prices, selectedDepartureRowId])
+  }, [mergedPrices, selectedDepartureRowId])
 
   const handleDepartureDateChosen = useCallback(
-    (isoDate: string) => {
-      const picked = pickBookableRowForDateKey(prices, isoDate)
-      if (!picked) return
-      setSelectedDepartureRowId(picked.id)
-      setDepartureUserPinned(true)
+    async (isoDate: string) => {
+      if (departureCollectOpen) return
+      setOnDemandNotice(null)
+      const picked = pickBookableRowForDateKey(mergedPrices, isoDate)
+      if (picked) {
+        setSelectedDepartureRowId(picked.id)
+        setDepartureUserPinned(true)
+        return
+      }
+      const anyP = pickAnyRowForDateKey(mergedPrices, isoDate)
+      if (anyP) {
+        setSelectedDepartureRowId(anyP.id)
+        setDepartureUserPinned(true)
+        return
+      }
+      setDepartureCollectOpen(true)
+      try {
+        const res = await fetch(`/api/products/${encodeURIComponent(String(product.id))}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'range-on-demand',
+            departureDate: isoDate,
+            windowDays: 14,
+          }),
+        })
+        if (!res.ok) {
+          setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+          return
+        }
+        const data = (await res.json().catch(() => ({}))) as {
+          ok?: boolean
+          reason?: string
+          status?: string
+          price?: number | null
+          cached?: boolean
+        }
+        if (data?.ok === true && data.status === 'open' && data.price != null) {
+          const row: ProductPriceRow = {
+            id: `od-${isoDate}`,
+            productId: String(product.id),
+            date: isoDate,
+            adult: data.price,
+            childBed: 0,
+            childNoBed: 0,
+            infant: 0,
+            localPrice: null,
+            priceGap: 0,
+            priceAdult: data.price,
+            priceChildWithBed: 0,
+            priceChildNoBed: 0,
+            priceInfant: 0,
+          }
+          setPricePatches((prev) => [...prev.filter((p) => toDateKey(p.date) !== isoDate), row])
+          setSelectedDepartureRowId(row.id)
+          setDepartureUserPinned(true)
+          if (data?.cached !== true) router.refresh()
+          return
+        }
+        if (data?.ok === true && (data.status === 'sold_out' || data.status === 'closed')) {
+          const row: ProductPriceRow = {
+            id: `od-${isoDate}`,
+            productId: String(product.id),
+            date: isoDate,
+            adult: 0,
+            childBed: 0,
+            childNoBed: 0,
+            infant: 0,
+            localPrice: null,
+            priceGap: 0,
+            priceAdult: 0,
+            priceChildWithBed: 0,
+            priceChildNoBed: 0,
+            priceInfant: 0,
+            status: '마감',
+          }
+          setPricePatches((prev) => [...prev.filter((p) => toDateKey(p.date) !== isoDate), row])
+          setSelectedDepartureRowId(row.id)
+          setDepartureUserPinned(true)
+          setOnDemandNotice('해당 날짜 상품은 마감되었습니다.')
+          if (data?.cached !== true) router.refresh()
+          return
+        }
+        if (data?.reason === 'departure_not_found') {
+          setOnDemandNotice('선택하신 날짜에는 출발 가능한 상품이 없습니다.')
+          router.refresh()
+          return
+        }
+        if (data?.reason === 'departure_exists_price_unavailable') {
+          setOnDemandNotice('해당 날짜 출발은 있으나 가격을 아직 확인하지 못했습니다.')
+          return
+        }
+        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+      } catch {
+        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+      } finally {
+        setDepartureCollectOpen(false)
+      }
     },
-    [prices]
+    [mergedPrices, product.id, router, departureCollectOpen]
   )
 
   const priceRow = useMemo(() => {
     if (selectedDepartureRowId) {
-      const r = prices.find((p) => p.id === selectedDepartureRowId)
-      if (r && isScheduleAdultBookable(r)) return r
+      const r = mergedPrices.find((p) => p.id === selectedDepartureRowId)
+      if (r) return r
     }
     return defaultDepartureRow
-  }, [prices, selectedDepartureRowId, defaultDepartureRow])
+  }, [mergedPrices, selectedDepartureRowId, defaultDepartureRow])
 
   const selectedDate = priceRow ? toDateKey(priceRow.date) : null
 
   const hasBookableSchedule = useMemo(
-    () => prices.some((p) => isScheduleAdultBookable(p)),
-    [prices]
+    () => mergedPrices.some((p) => isScheduleAdultBookable(p)),
+    [mergedPrices]
   )
 
   const updatePax = (key: keyof typeof pax, delta: number) => {
@@ -526,9 +644,14 @@ export default function MobileProductDetail({ product }: Props) {
       </section>
 
       <div className="p-4">
+        {onDemandNotice ? (
+          <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
+            {onDemandNotice}
+          </p>
+        ) : null}
         <ProductLiveQuoteCard
           product={product}
-          prices={prices}
+          prices={mergedPrices}
           selectedDate={selectedDate}
           explicitPriceRow={priceRow}
           pax={pax}
@@ -648,12 +771,13 @@ export default function MobileProductDetail({ product }: Props) {
       <DepartureDatePickerModal
         open={departurePickerOpen}
         onClose={() => setDeparturePickerOpen(false)}
-        prices={prices}
+        prices={mergedPrices}
         originSource={product.originSource}
         selectedDate={selectedDate}
         selectedSourceRowId={priceRow?.id ?? null}
         onSelectDate={handleDepartureDateChosen}
         listFirst
+        allowUndepartedCalendarPick
       />
 
       <BookingIntakeModal
@@ -667,6 +791,33 @@ export default function MobileProductDetail({ product }: Props) {
         pax={pax}
         hasPriceSchedule={hasBookableSchedule}
       />
+
+      {departureCollectOpen ? (
+        <div
+          className="fixed inset-0 z-[220] flex items-center justify-center p-4"
+          role="alertdialog"
+          aria-modal="true"
+          aria-busy="true"
+          aria-labelledby="dep-collect-title-m"
+          aria-describedby="dep-collect-desc-m"
+        >
+          <div className="absolute inset-0 bg-black/45" aria-hidden />
+          <div className="relative w-full max-w-md rounded-2xl border border-bt-border-soft bg-bt-surface px-6 py-7 shadow-lg">
+            <h2 id="dep-collect-title-m" className="text-center text-base font-semibold text-bt-card-title">
+              출발일 정보 수집 중
+            </h2>
+            <p id="dep-collect-desc-m" className="mt-3 text-center text-sm leading-relaxed text-bt-body">
+              선택하신 날짜를 포함한 출발일 정보를 확인하고 있습니다. 잠시만 기다려 주세요.
+            </p>
+            <div
+              className="mx-auto mt-6 h-10 w-10 rounded-full border-2 border-bt-border-soft border-t-bt-card-title animate-spin"
+              style={{ animationDuration: '0.9s' }}
+              aria-hidden
+            />
+            <p className="mt-4 text-center text-xs text-bt-muted">출발일 정보 수집 중입니다.</p>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

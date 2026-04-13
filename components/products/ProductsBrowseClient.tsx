@@ -34,9 +34,9 @@ type Props = {
   basePath?: string
   defaultScope?: 'overseas' | 'domestic'
   pageTitle?: string
-  /** 해외 허브: 유럽 버킷 내부 목적지 브리핑(서버 선별) */
+  /** 해외 허브: 서유럽 섹션용 목적지 브리핑(서버 선별) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
-  /** 해외 허브: 유럽 section 직후·동남아 전 월간 큐레이션 전폭 1회 */
+  /** 해외 허브: 동유럽 section 직후·미주 전 월간 큐레이션 전폭 1회 */
   monthlyCurationMid?: MonthlyCurationMidPayload | null
 }
 
@@ -91,6 +91,16 @@ export default function ProductsBrowseClient({
         if (defaultScope && !p.get('scope')) p.set('scope', defaultScope)
         if (defaultScope === 'overseas' && pathname === '/travel/overseas') {
           p.delete('listingKind')
+          p.set('limit', '1000')
+          p.delete('page')
+        }
+        if (defaultScope === 'domestic' && pathname === '/travel/domestic') {
+          p.set('limit', '1000')
+          p.delete('page')
+        }
+        if (pathname === '/travel/air-hotel') {
+          p.set('limit', '1000')
+          p.delete('page')
         }
         if ((q.budgetPerPerson != null || q.budgetMin != null) && !p.get('sort')) {
           p.set('sort', 'budget_fit')
@@ -253,7 +263,13 @@ export default function ProductsBrowseClient({
       {data && (
         <p className="mt-2 text-sm font-medium text-slate-800">
           조건에 맞는 상품 {data.total.toLocaleString('ko-KR')}건
-          {data.total > 0 && data.page > 1 && (
+          {data.total > 0 &&
+            data.page > 1 &&
+            !(
+              (basePath === '/travel/overseas' && defaultScope === 'overseas') ||
+              (basePath === '/travel/domestic' && defaultScope === 'domestic') ||
+              basePath === '/travel/air-hotel'
+            ) && (
             <span className="text-slate-500">
               {' '}
               (페이지 {data.page})
@@ -355,7 +371,12 @@ export default function ProductsBrowseClient({
             overseasEditorialBriefing={overseasEditorialBriefing}
             monthlyCurationMid={monthlyCurationMid}
           />
-          {data.total > data.limit && (
+          {data.total > data.limit &&
+            !(
+              (basePath === '/travel/overseas' && defaultScope === 'overseas') ||
+              (basePath === '/travel/domestic' && defaultScope === 'domestic') ||
+              basePath === '/travel/air-hotel'
+            ) && (
             <div className="mt-10 flex items-center justify-center gap-3">
               <button
                 type="button"

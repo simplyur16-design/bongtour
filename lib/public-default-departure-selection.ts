@@ -47,3 +47,11 @@ export function pickBookableRowForDateKey<T extends { date: string; id: string }
   if (pool.length === 0) return null
   return sortByAdultPriceTiePolicy(pool)[0] ?? null
 }
+
+/** 동일 일자의 아무 출발 행 1건(예약불가·가격 0 포함). on-demand 후보 선택용. */
+export function pickAnyRowForDateKey<T extends { date: string; id: string }>(rows: T[], dateKey: string): T | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return null
+  const pool = rows.filter((r) => publicDateKeyFromRowDate(r.date) === dateKey)
+  if (pool.length === 0) return null
+  return sortByAdultPriceTiePolicy(pool)[0] ?? null
+}

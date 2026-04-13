@@ -2,7 +2,9 @@ import type { DepartureInput } from '@/lib/upsert-product-departures-verygoodtou
 import { repairUtf8MisreadAsLatin1 } from '@/lib/encoding-repair'
 import { buildCommonMatchingTrace, buildDepartureTitleLayers } from '@/lib/departure-option-verygoodtour'
 import {
+  departureInputToYmd,
   maxYearMonth,
+  scrapeCalendarTodayYmd,
   scrapeCalendarVerygoodDepartureFloorYmd,
   scrapeTodayYearMonth,
   SCRAPE_DEFAULT_MONTHS_FORWARD,
@@ -796,6 +798,48 @@ export async function collectVerygoodProductCore(detailUrl: string): Promise<{ p
     `[VG_DETAIL_HTML_BASELINE] raw_title=${product.rawTitle} pre_hash_title=${product.preHashTitle} comparison_title=${product.comparisonTitle} comparison_title_no_space=${product.comparisonTitleNoSpace} carrier_name=${product.airline ?? ''} trip_nights=${product.tripNights ?? ''} trip_days=${product.tripDays ?? ''}`
   )
   return { product, notes }
+}
+
+function monthCountCoveringYmdFromToday(ymd: string): number {
+  const [yy, mm, dd] = ymd.split('-').map(Number)
+  const end = new Date(Date.UTC(yy, mm - 1, dd))
+  const [ty, tm, td] = scrapeCalendarTodayYmd().split('-').map(Number)
+  const start = new Date(Date.UTC(ty, tm - 1, td))
+  const mDiff =
+    (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth()) + 1
+  return Math.max(1, Math.min(18, mDiff))
+}
+
+/** on-demand: 오늘→목표월까지 최소 `monthCount`로 수집 후 `ymd` 1행만 반환. */
+export async function collectVerygoodDepartureInputForSingleDate(
+  detailUrl: string,
+  ymd: string
+): Promise<DepartureInput | null> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null
+  const rows = await collectVerygoodDepartureInputs(detailUrl, { monthCount: monthCountCoveringYmdFromToday(ymd) })
+  for (const p of rows) {
+    if (departureInputToYmd(p.input.departureDate) === ymd) return p.input
+  }
+  return null
+}
+
+/** on-demand: inclusive `[fromYmd,toYmd]`를 덮도록 `monthCount`를 잡은 뒤 구간 일자만 반환. */
+export async function collectVerygoodDepartureInputsForDateRange(
+  detailUrl: string,
+  fromYmd: string,
+  toYmd: string
+): Promise<DepartureInput[]> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
+  const lo = fromYmd <= toYmd ? fromYmd : toYmd
+  const hi = fromYmd <= toYmd ? toYmd : fromYmd
+  const monthCount = monthCountCoveringYmdFromToday(hi)
+  const rows = await collectVerygoodDepartureInputs(detailUrl, { monthCount })
+  const out: DepartureInput[] = []
+  for (const p of rows) {
+    const d = departureInputToYmd(p.input.departureDate)
+    if (d != null && d >= lo && d <= hi) out.push(p.input)
+  }
+  return out
 }
 
 export function getMasterCodeFromProCode(proCode: string): string {

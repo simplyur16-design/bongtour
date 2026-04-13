@@ -14,6 +14,7 @@ import {
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
+import { interleaveProductsBySupplier } from '@/lib/interleave-products-by-supplier'
 
 export type ResultItem = {
   id: string
@@ -44,14 +45,14 @@ type Props = {
   formatWon: (n: number | null) => string
   /** `/travel/overseas` 해외 허브만 권역 버킷별 한 줄 목록 */
   groupOverseasByRegion?: boolean
-  /** 유럽 버킷 안 목적지 브리핑(선택) */
+  /** 서유럽 섹션 상단 목적지 브리핑(선택) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
-  /** 유럽 `</section>` 직후·동남아 전, 전폭 1회(데이터 없으면 미렌더) */
+  /** 동유럽 섹션 직후·미주 전, 전폭 1회(데이터 없으면 미렌더) */
   monthlyCurationMid?: MonthlyCurationMidPayload | null
 }
 
 /** 일반 목록용 그리드 */
-const cardGridClass = 'mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
+const cardGridClass = 'mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
 /** 해외 여행상품: 권역(버킷)당 한 줄 — 약 3장 노출, 나머지는 가로 스크롤(데스크톱에서도 줄바꿈 없음) */
 const countryProductRowClass =
@@ -161,12 +162,22 @@ function OverseasRegionGroupedList({
     return map
   }, [items])
 
+  const interleavedByBucket = useMemo(() => {
+    const out = new Map<OverseasDisplayBucketId, ResultItem[]>()
+    for (const bucketId of OVERSEAS_DISPLAY_BUCKET_ORDER) {
+      const raw = flattenBucketItems(bucketId, bucketToCountries)
+      out.set(bucketId, interleaveProductsBySupplier(raw))
+    }
+    return out
+  }, [bucketToCountries])
+
   return (
-    <div className="mt-6 space-y-14">
+    <div className="mt-6 space-y-12">
       {OVERSEAS_DISPLAY_BUCKET_ORDER.map((bucketId) => {
-        const flatList = flattenBucketItems(bucketId, bucketToCountries)
+        const flatList = interleavedByBucket.get(bucketId) ?? []
+        const showEuropeBriefing = bucketId === 'europe_west' && editorialBriefing
         const section =
-          flatList.length === 0 && !(bucketId === 'europe' && editorialBriefing) ? null : (
+          flatList.length === 0 && !showEuropeBriefing ? null : (
             <section className="scroll-mt-4" aria-labelledby={`overseas-bucket-${bucketId}`}>
               <h2
                 id={`overseas-bucket-${bucketId}`}
@@ -174,8 +185,8 @@ function OverseasRegionGroupedList({
               >
                 {OVERSEAS_DISPLAY_BUCKET_LABEL[bucketId]}
               </h2>
-              {bucketId === 'europe' && editorialBriefing ? (
-                <div className="mt-6">
+              {showEuropeBriefing ? (
+                <div className="mt-5">
                   <OverseasDestinationBriefingMid {...editorialBriefing} />
                 </div>
               ) : null}
@@ -184,21 +195,21 @@ function OverseasRegionGroupedList({
                   {flatList.map((item) => (
                     <li
                       key={item.id}
-                      className="shrink-0 snap-start w-[min(17.5rem,calc(100vw-2.75rem))] sm:w-[min(19rem,calc((100vw-3rem)/2))] lg:w-[calc((min(72rem,100vw)-300px-5.5rem)/3)]"
+                      className="w-[min(17.5rem,calc(100vw-2.75rem))] shrink-0 snap-start sm:w-[min(19rem,calc((100vw-3rem)/2))] lg:w-[calc((100% - 2rem) / 3)] lg:min-w-0 lg:max-w-none"
                     >
                       <ProductResultCard item={item} formatWon={formatWon} />
                     </li>
                   ))}
                 </ul>
-              ) : bucketId === 'europe' && editorialBriefing ? (
-                <p className="mt-4 text-sm text-slate-500">현재 조건에 맞는 유럽 상품이 없습니다.</p>
+              ) : showEuropeBriefing ? (
+                <p className="mt-4 text-sm text-slate-500">현재 조건에 맞는 서유럽 상품이 없습니다.</p>
               ) : null}
             </section>
           )
         return (
           <Fragment key={bucketId}>
             {section}
-            {bucketId === 'europe' && monthlyCurationMid ? (
+            {bucketId === 'europe_east' && monthlyCurationMid ? (
               <section className="scroll-mt-4 w-full" aria-label="이번 달 추천 해외여행">
                 <OverseasMonthlyCurationMid {...monthlyCurationMid} />
               </section>

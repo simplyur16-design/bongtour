@@ -1,21 +1,28 @@
 import { revalidatePath } from 'next/cache'
 import type { PrismaClient } from '@prisma/client'
 import {
+  buildDetailUrl,
   collectDepartureInputsForAdminRescrape,
+  collectYbtourDepartureInputsForDateRange,
   type DepartureRescrapeResult,
 } from '@/lib/admin-departure-rescrape'
 import {
   buildHanatourMonthSummaryLines,
   buildHanatourPartialSuccessHeadline,
+  collectHanatourDepartureInputsForDateRange,
   type HanatourPythonDiagnostics,
   type HanatourPythonMonthRun,
 } from '@/lib/hanatour-departures'
+import { collectModetourDepartureInputsForDateRange } from '@/lib/modetour-departures'
+import { collectVerygoodDepartureInputsForDateRange } from '@/lib/verygoodtour-departures'
 import {
   brandKeyResolvesToYbtour,
   normalizeBrandKeyToCanonicalSupplierKey,
 } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { syncYbtourProductPricesFromDepartureInputsDetailed } from '@/lib/ybtour-sync-product-prices-from-departure-inputs'
+import type { DepartureInput } from '@/lib/upsert-product-departures-hanatour'
+import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour'
 import * as updDeparturesModetour from '@/lib/upsert-product-departures-modetour'
 import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-verygoodtour'
@@ -278,4 +285,234 @@ export async function executeAdminDeparturesRescrapeCore(
     ...(isYbtourProduct(product) ? { productPriceSyncedCount, productPriceSyncError } : {}),
   }
   return { status: 200, body }
+}
+
+function utcMidnight(ymd: string): Date {
+  return new Date(ymd + 'T00:00:00.000Z')
+}
+
+function blobFromDepartureRow(row: { statusRaw: string | null; seatsStatusRaw: string | null }): string {
+  return `${row.statusRaw ?? ''} ${row.seatsStatusRaw ?? ''}`.toLowerCase()
+}
+
+function blobFromInput(inp: DepartureInput): string {
+  return `${inp.statusRaw ?? ''} ${inp.seatsStatusRaw ?? ''}`.toLowerCase()
+}
+
+function inferUiFromDepartureDb(row: {
+  adultPrice: number | null
+  statusRaw: string | null
+  seatsStatusRaw: string | null
+}): 'open' | 'sold_out' | 'closed' | 'price_unavailable' {
+  const b = blobFromDepartureRow(row)
+  if (/마감|만석|매진|예약\s*불가|판매\s*종료/i.test(b)) return 'sold_out'
+  if (/출발\s*대기\s*마감|접수\s*마감|모객\s*종료|행사\s*종료/i.test(b)) return 'closed'
+  const ap = row.adultPrice
+  if (ap != null && ap > 0) return 'open'
+  return 'price_unavailable'
+}
+
+function inferUiFromInput(inp: DepartureInput): 'open' | 'sold_out' | 'closed' | 'price_unavailable' {
+  const b = blobFromInput(inp)
+  if (/마감|만석|매진|예약\s*불가|판매\s*종료/i.test(b)) return 'sold_out'
+  if (/출발\s*대기\s*마감|접수\s*마감|모객\s*종료|행사\s*종료/i.test(b)) return 'closed'
+  const ap = inp.adultPrice ?? null
+  if (ap != null && ap > 0) return 'open'
+  return 'price_unavailable'
+}
+
+function addDaysUtcYmd(ymd: string, deltaDays: number): string {
+  const [y, m, d] = ymd.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d))
+  dt.setUTCDate(dt.getUTCDate() + deltaDays)
+  return dt.toISOString().slice(0, 10)
+}
+
+/**
+ * 기준일 ±windowDays 범위 on-demand(전체 재수집·큐 미사용). `windowDays === 0`이면 당일만.
+ */
+export async function executeRangeOnDemandDepartures(
+  prisma: PrismaClient,
+  product: AdminDeparturesProductRow,
+  departureDateYmd: string,
+  windowDays: number
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  const ymd = departureDateYmd.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return { status: 400, body: { ok: false, error: 'invalid_departure_date', departureDate: ymd } }
+  }
+  const wdRaw = Number(windowDays)
+  const wd = Number.isFinite(wdRaw) && wdRaw >= 0 ? Math.min(31, Math.floor(wdRaw)) : 14
+  const fromYmd = addDaysUtcYmd(ymd, -wd)
+  const toYmd = addDaysUtcYmd(ymd, wd)
+  const fetchedRange = { from: fromYmd, to: toYmd }
+
+  const existing = await prisma.productDeparture.findFirst({
+    where: { productId: product.id, departureDate: utcMidnight(ymd) },
+  })
+
+  if (existing) {
+    const ui = inferUiFromDepartureDb(existing)
+    if (ui === 'price_unavailable') {
+      return {
+        status: 200,
+        body: { ok: false, reason: 'departure_exists_price_unavailable', departureDate: ymd },
+      }
+    }
+    if (ui === 'sold_out' || ui === 'closed') {
+      return {
+        status: 200,
+        body: { ok: true, cached: true, departureDate: ymd, status: ui, price: null },
+      }
+    }
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        cached: true,
+        departureDate: ymd,
+        status: 'open',
+        price: existing.adultPrice ?? null,
+      },
+    }
+  }
+
+  const detailUrl =
+    (product.originUrl ?? '').trim() || buildDetailUrl(product.originSource ?? '', product.originCode ?? '')
+  const bk = normalizeBrandKeyToCanonicalSupplierKey(product.brand?.brandKey ?? null)
+  const norm = normalizeSupplierOrigin(product.originSource ?? '')
+
+  let livesRange: DepartureInput[] = []
+  if (bk === 'hanatour' || norm === 'hanatour') {
+    livesRange = await collectHanatourDepartureInputsForDateRange(detailUrl, fromYmd, toYmd)
+  } else if (bk === 'modetour' || norm === 'modetour') {
+    livesRange = await collectModetourDepartureInputsForDateRange(product.originUrl, fromYmd, toYmd)
+  } else if (bk === 'verygoodtour' || norm === 'verygoodtour') {
+    livesRange = await collectVerygoodDepartureInputsForDateRange(detailUrl, fromYmd, toYmd)
+  } else if (norm === 'ybtour' || bk === 'ybtour' || brandKeyResolvesToYbtour(product.brand?.brandKey ?? null)) {
+    livesRange = await collectYbtourDepartureInputsForDateRange(detailUrl, product.originCode, fromYmd, toYmd)
+  }
+
+  const scrapeByYmd = new Map<string, DepartureInput>()
+  for (const x of livesRange) {
+    const d = departureInputToYmd(x.departureDate)
+    if (!d || d < fromYmd || d > toYmd) continue
+    if (!scrapeByYmd.has(d)) scrapeByYmd.set(d, x)
+  }
+
+  let ppUnpriced = false
+  if (!scrapeByYmd.has(ymd)) {
+    const pp = await prisma.productPrice.findFirst({
+      where: { productId: product.id, date: utcMidnight(ymd) },
+    })
+    if (pp && pp.adult > 0) {
+      scrapeByYmd.set(ymd, {
+        departureDate: utcMidnight(ymd),
+        adultPrice: pp.adult,
+        childBedPrice: pp.childBed,
+        childNoBedPrice: pp.childNoBed,
+        infantPrice: pp.infant,
+        localPriceText: pp.localPrice,
+      })
+    } else if (pp) {
+      ppUnpriced = true
+    }
+  }
+
+  const toUpsert: DepartureInput[] = []
+  for (const [d, inp] of scrapeByYmd) {
+    if (d === ymd && inferUiFromInput(inp) === 'price_unavailable') continue
+    toUpsert.push(inp)
+  }
+  toUpsert.sort((a, b) => {
+    const da = departureInputToYmd(a.departureDate) ?? ''
+    const db = departureInputToYmd(b.departureDate) ?? ''
+    return da.localeCompare(db)
+  })
+
+  const updatedDates = [
+    ...new Set(
+      toUpsert
+        .map((x) => departureInputToYmd(x.departureDate))
+        .filter((x): x is string => Boolean(x))
+    ),
+  ].sort()
+
+  const upsertMod = upsertDeparturesModuleForProduct(product)
+  if (toUpsert.length > 0) {
+    await upsertMod.upsertProductDepartures(prisma, product.id, toUpsert)
+    if (isYbtourProduct(product)) {
+      await syncYbtourProductPricesFromDepartureInputsDetailed(prisma, product.id, toUpsert)
+    }
+    if ((bk === 'hanatour' || norm === 'hanatour') && toUpsert.some((x) => (x.adultPrice ?? 0) > 0)) {
+      revalidatePath(`/products/${product.id}`)
+    }
+  }
+
+  if (ppUnpriced) {
+    return {
+      status: 200,
+      body: { ok: false, reason: 'departure_exists_price_unavailable', departureDate: ymd },
+    }
+  }
+
+  const clickedFinal = scrapeByYmd.get(ymd) ?? null
+  if (!clickedFinal || departureInputToYmd(clickedFinal.departureDate) !== ymd) {
+    return {
+      status: 200,
+      body: {
+        ok: false,
+        reason: 'departure_not_found',
+        departureDate: ymd,
+        fetchedRange,
+        ...(updatedDates.length > 0 ? { updatedDates } : {}),
+      },
+    }
+  }
+
+  const clickedUi = inferUiFromInput(clickedFinal)
+  if (clickedUi === 'price_unavailable') {
+    return {
+      status: 200,
+      body: { ok: false, reason: 'departure_exists_price_unavailable', departureDate: ymd },
+    }
+  }
+
+  if (clickedUi === 'sold_out' || clickedUi === 'closed') {
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        cached: false,
+        departureDate: ymd,
+        status: clickedUi,
+        price: null,
+        source: 'live',
+        fetchedRange,
+        updatedDates,
+      },
+    }
+  }
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      cached: false,
+      departureDate: ymd,
+      status: 'open',
+      price: clickedFinal.adultPrice ?? null,
+      source: 'live',
+      fetchedRange,
+      updatedDates,
+    },
+  }
+}
+
+/** 호환: `windowDays === 0` 범위 수집과 동일. */
+export async function executeSingleDateOnDemandDepartures(
+  prisma: PrismaClient,
+  product: AdminDeparturesProductRow,
+  departureDateYmd: string
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  return executeRangeOnDemandDepartures(prisma, product, departureDateYmd, 0)
 }

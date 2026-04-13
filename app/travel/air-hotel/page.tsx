@@ -32,6 +32,10 @@ export default async function AirHotelPage({
   if (!scope || !type) {
     redirect('/travel/air-hotel?scope=overseas&type=airtel')
   }
+  if (scope !== 'overseas' && scope !== 'domestic') {
+    const t = type === 'airtel' || type === 'free' ? type : 'airtel'
+    redirect(`/travel/air-hotel?scope=overseas&type=${encodeURIComponent(t)}`)
+  }
 
   return (
     <div className="min-h-screen bg-bt-page">

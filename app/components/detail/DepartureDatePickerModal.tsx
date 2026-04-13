@@ -42,6 +42,8 @@ type Props = {
   filterDepartureListByCalendarMonth?: boolean
   /** 설정 시 달력·목록에서 행 id까지 전달(동일 일자 다행 대비). `onSelectDate`는 호출하지 않음 */
   onSelectDeparture?: (sel: DeparturePickerSelection) => void
+  /** true: 달력에 데이터 없는 일자도 눌러 on-demand 조회 가능(부모에서 처리) */
+  allowUndepartedCalendarPick?: boolean
 }
 
 export default function DepartureDatePickerModal({
@@ -55,6 +57,7 @@ export default function DepartureDatePickerModal({
   listFirst = false,
   filterDepartureListByCalendarMonth = false,
   onSelectDeparture,
+  allowUndepartedCalendarPick = false,
 }: Props) {
   const viewModels = useMemo(
     () => buildDepartureViewModels(prices, originSource),
@@ -115,7 +118,8 @@ export default function DepartureDatePickerModal({
     }
   }, [open])
 
-  if (!open || viewModels.length === 0 || !globalLow) return null
+  if (!open) return null
+  if ((viewModels.length === 0 || !globalLow) && !allowUndepartedCalendarPick) return null
 
   const pick = (iso: string) => {
     onSelectDate(iso)
@@ -132,6 +136,10 @@ export default function DepartureDatePickerModal({
       if (chosen) {
         onSelectDeparture({ dateIso: chosen.departureDate, sourceRowId: chosen.sourceRowId })
         onClose()
+        return
+      }
+      if (allowUndepartedCalendarPick) {
+        pick(iso)
       }
       return
     }
@@ -157,9 +165,10 @@ export default function DepartureDatePickerModal({
       leadBlank={leadBlank}
       byDate={byDate}
       minByMonth={minByMonth}
-      globalLow={globalLow}
+      globalLow={globalLow ?? null}
       selectedDate={selectedDate}
       onSelectDate={pickCalendarDay}
+      allowUndepartedCalendarPick={allowUndepartedCalendarPick}
     />
   )
 
@@ -231,6 +240,7 @@ function DepartureCalendarBlock({
   globalLow,
   selectedDate,
   onSelectDate,
+  allowUndepartedCalendarPick = false,
 }: {
   cursor: { y: number; m0: number }
   setCursor: Dispatch<SetStateAction<{ y: number; m0: number }>>
@@ -239,9 +249,10 @@ function DepartureCalendarBlock({
   leadBlank: number
   byDate: Record<string, DeparturePriceViewModel>
   minByMonth: Record<string, number>
-  globalLow: DeparturePriceViewModel
+  globalLow: DeparturePriceViewModel | null
   selectedDate: string | null
   onSelectDate: (iso: string) => void
+  allowUndepartedCalendarPick?: boolean
 }) {
   return (
     <div>
@@ -295,9 +306,22 @@ function DepartureCalendarBlock({
           const monthKey = iso.slice(0, 7)
           const isLowMonth =
             bookable && vm.price != null && minByMonth[monthKey] != null && vm.price === minByMonth[monthKey]
-          const isLowGlobal = bookable && globalLow?.departureDate === iso
+          const isLowGlobal = Boolean(bookable && globalLow && globalLow.departureDate === iso)
 
           if (!inData) {
+            if (allowUndepartedCalendarPick) {
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  onClick={() => onSelectDate(iso)}
+                  className="flex min-h-[52px] flex-col items-center justify-center rounded-lg border border-dashed border-bt-border py-1 text-bt-meta hover:bg-bt-page sm:min-h-[56px]"
+                >
+                  <span className="text-xs font-medium text-bt-muted">{day}</span>
+                  <span className="mt-0.5 text-[9px] text-bt-disabled">조회</span>
+                </button>
+              )
+            }
             return (
               <div
                 key={iso}

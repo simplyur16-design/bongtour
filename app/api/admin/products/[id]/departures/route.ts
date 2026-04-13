@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import { executeAdminDeparturesRescrapeCore } from '@/lib/admin-execute-departures-rescrape'
+import {
+  executeAdminDeparturesRescrapeCore,
+  executeRangeOnDemandDepartures,
+} from '@/lib/admin-execute-departures-rescrape'
 import type {
   AdminDeparturesRescrapeResponseBody,
   AdminDeparturesRescrapeStage,
@@ -125,6 +128,50 @@ export async function POST(request: Request, { params }: RouteParams) {
         { status: 400 }
       )
     }
+
+    const rawText = await request.text().catch(() => '')
+    let parsedBody: { mode?: string; departureDate?: string; windowDays?: number } | null = null
+    if (rawText.trim()) {
+      try {
+        parsedBody = JSON.parse(rawText) as { mode?: string; departureDate?: string; windowDays?: number }
+      } catch {
+        parsedBody = null
+      }
+    }
+    const onDemandDate =
+      typeof parsedBody?.departureDate === 'string' && parsedBody.departureDate.trim()
+        ? parsedBody.departureDate.trim()
+        : null
+    if (
+      (parsedBody?.mode === 'range-on-demand' || parsedBody?.mode === 'single-date-on-demand') &&
+      onDemandDate
+    ) {
+      const productSingle = await prisma.product.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          originSource: true,
+          originCode: true,
+          originUrl: true,
+          brand: { select: { brandKey: true } },
+        },
+      })
+      if (!productSingle) {
+        return NextResponse.json(
+          { ok: false, reason: 'departure_not_found', departureDate: onDemandDate },
+          { status: 404 }
+        )
+      }
+      const w =
+        parsedBody.mode === 'single-date-on-demand'
+          ? 0
+          : typeof parsedBody.windowDays === 'number'
+            ? parsedBody.windowDays
+            : 14
+      const { status, body } = await executeRangeOnDemandDepartures(prisma, productSingle, onDemandDate, w)
+      return NextResponse.json(body, { status })
+    }
+
     const url = new URL(request.url)
     const hanatourMonthParam = url.searchParams.get('hanatourMonth')?.trim() || null
 

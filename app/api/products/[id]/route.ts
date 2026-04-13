@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { executeRangeOnDemandDepartures } from '@/lib/admin-execute-departures-rescrape'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
@@ -101,6 +102,57 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
     assertNoInternalMetaLeak(payload, '/api/products/[id]')
     return NextResponse.json(payload)
+  } catch (e) {
+    console.error(e)
+    return NextResponse.json(
+      { error: '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * POST /api/products/[id] — 고객용 출발일 범위 on-demand(JSON body만 처리, 그 외 404).
+ */
+export async function POST(request: Request, { params }: RouteParams) {
+  try {
+    const { id } = await params
+    if (!id || typeof id !== 'string') {
+      return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+    }
+    let raw: unknown
+    try {
+      raw = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
+    const o = raw as { mode?: string; departureDate?: string; windowDays?: number }
+    const modesOk = o?.mode === 'range-on-demand' || o?.mode === 'single-date-on-demand'
+    if (!modesOk || typeof o.departureDate !== 'string' || !o.departureDate.trim()) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+    const product = await prisma.product.findFirst({
+      where: { id, registrationStatus: 'registered' },
+      select: {
+        id: true,
+        originSource: true,
+        originCode: true,
+        originUrl: true,
+        brand: { select: { brandKey: true } },
+      },
+    })
+    if (!product) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+    const w =
+      o.mode === 'single-date-on-demand'
+        ? 0
+        : typeof o.windowDays === 'number'
+          ? o.windowDays
+          : 14
+    const { status, body } = await executeRangeOnDemandDepartures(prisma, product, o.departureDate.trim(), w)
+    assertNoInternalMetaLeak(body, '/api/products/[id]')
+    return NextResponse.json(body, { status })
   } catch (e) {
     console.error(e)
     return NextResponse.json(

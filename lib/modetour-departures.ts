@@ -13,6 +13,7 @@ import {
 } from '@/lib/departure-option-modetour'
 import { extractPricePromotionFromHtml, type PricePromotionSnapshot } from '@/lib/price-promotion-modetour'
 import {
+  departureInputToYmd,
   filterDepartureInputsOnOrAfterCalendarToday,
   scrapeCalendarTodayYmd,
   SCRAPE_DEFAULT_MONTHS_FORWARD,
@@ -845,7 +846,13 @@ export async function collectModetourProductCore(
 
 export async function collectModetourDepartureInputs(
   originUrl: string | null | undefined,
-  options?: { monthsForward?: number; referer?: string }
+  options?: {
+    monthsForward?: number
+    referer?: string
+    singleDateYmd?: string
+    /** on-demand 범위: API `searchFrom`/`searchTo`를 이 구간으로 고정(YYYY-MM-DD, inclusive). */
+    dateRangeYmd?: { from: string; to: string }
+  }
 ): Promise<{
   inputs: DepartureInput[]
   meta: ModetourCollectMeta
@@ -872,11 +879,32 @@ export async function collectModetourDepartureInputs(
 
   const monthsForward = Math.max(1, Math.min(18, options?.monthsForward ?? SCRAPE_DEFAULT_MONTHS_FORWARD))
   const todayYmd = scrapeCalendarTodayYmd()
+  const singleYmd = (options?.singleDateYmd ?? '').trim()
+  const useSingleDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(singleYmd)
+  const dr = options?.dateRangeYmd
+  const rangeFromRaw = (dr?.from ?? '').trim()
+  const rangeToRaw = (dr?.to ?? '').trim()
+  const useDateRange =
+    dr != null &&
+    /^\d{4}-\d{2}-\d{2}$/.test(rangeFromRaw) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(rangeToRaw)
   const [y0, m0, d0] = todayYmd.split('-').map(Number)
   const rangeAnchor = new Date(Date.UTC(y0, m0 - 1, d0))
   const rangeEnd = addMonths(rangeAnchor, monthsForward)
-  const searchFrom = todayYmd
-  const searchTo = toYmd(rangeEnd)
+  const searchFrom = useDateRange
+    ? rangeFromRaw <= rangeToRaw
+      ? rangeFromRaw
+      : rangeToRaw
+    : useSingleDateOnly
+      ? singleYmd
+      : todayYmd
+  const searchTo = useDateRange
+    ? rangeFromRaw <= rangeToRaw
+      ? rangeToRaw
+      : rangeFromRaw
+    : useSingleDateOnly
+      ? singleYmd
+      : toYmd(rangeEnd)
 
   const apiUrl = `${MODETOUR_API_BASE.replace(/\/$/, '')}/Package/GetOtherDepartureDates?productNo=${encodeURIComponent(productNo)}&searchFrom=${searchFrom}&searchTo=${searchTo}`
   const detailUrlBase = `${MODETOUR_API_BASE.replace(/\/$/, '')}/Package/GetProductDetailInfo?productNo=${encodeURIComponent(productNo)}&companyNo=undefined&companyStaffNo=undefined`
@@ -1109,18 +1137,49 @@ export async function collectModetourDepartureInputs(
     )
   }
 
+  let inputsOut = inputs
+  if (useDateRange) {
+    const lo = searchFrom
+    const hi = searchTo
+    inputsOut = inputs.filter((x) => {
+      const d = departureInputToYmd(x.departureDate)
+      return d != null && d >= lo && d <= hi
+    })
+  } else if (useSingleDateOnly) {
+    const hit = inputs.filter((x) => departureInputToYmd(x.departureDate) === singleYmd)
+    if (hit.length > 0) {
+      inputsOut = hit.slice(0, 1)
+    } else {
+      const raw = rows.find((r) => String(r.departureDate ?? '').trim() === singleYmd)
+      if (raw) {
+        const price = Number(raw.minPrice ?? 0)
+        inputsOut = [
+          {
+            departureDate: singleYmd,
+            adultPrice: Number.isFinite(price) && price > 0 ? price : null,
+            carrierName: rowCarrierName(raw) ?? null,
+            supplierDepartureCodeCandidate: raw.pId ? `modetour:${String(raw.pId)}` : null,
+            matchingTraceRaw: JSON.stringify({ source: 'modetour_on_demand_api_row', singleYmd }),
+          },
+        ]
+      } else {
+        inputsOut = []
+      }
+    }
+  }
+
   const fieldStats = {
-    departureDate: inputs.some((x) => !!x.departureDate),
-    adultPrice: inputs.some((x) => (x.adultPrice ?? 0) > 0),
-    carrierName: inputs.some((x) => !!x.carrierName),
-    outboundDepartureAt: inputs.some((x) => !!x.outboundDepartureAt),
-    inboundArrivalAt: inputs.some((x) => !!x.inboundArrivalAt),
-    statusRaw: inputs.some((x) => !!x.statusRaw),
-    statusLabelsRaw: inputs.some((x) => !!x.statusLabelsRaw),
-    seatsStatusRaw: inputs.some((x) => !!x.seatsStatusRaw),
-    minPax: inputs.some((x) => (x.minPax ?? 0) > 0),
-    supplierDepartureCodeCandidate: inputs.some((x) => !!x.supplierDepartureCodeCandidate),
-    matchingTraceRaw: inputs.some((x) => !!x.matchingTraceRaw),
+    departureDate: inputsOut.some((x) => !!x.departureDate),
+    adultPrice: inputsOut.some((x) => (x.adultPrice ?? 0) > 0),
+    carrierName: inputsOut.some((x) => !!x.carrierName),
+    outboundDepartureAt: inputsOut.some((x) => !!x.outboundDepartureAt),
+    inboundArrivalAt: inputsOut.some((x) => !!x.inboundArrivalAt),
+    statusRaw: inputsOut.some((x) => !!x.statusRaw),
+    statusLabelsRaw: inputsOut.some((x) => !!x.statusLabelsRaw),
+    seatsStatusRaw: inputsOut.some((x) => !!x.seatsStatusRaw),
+    minPax: inputsOut.some((x) => (x.minPax ?? 0) > 0),
+    supplierDepartureCodeCandidate: inputsOut.some((x) => !!x.supplierDepartureCodeCandidate),
+    matchingTraceRaw: inputsOut.some((x) => !!x.matchingTraceRaw),
   }
   const filledFields = Object.entries(fieldStats)
     .filter(([, ok]) => ok)
@@ -1141,7 +1200,7 @@ export async function collectModetourDepartureInputs(
   }
 
   return {
-    inputs,
+    inputs: inputsOut,
     meta: {
       filledFields,
       missingFields,
@@ -1151,4 +1210,32 @@ export async function collectModetourDepartureInputs(
     pricePromotionFromDom,
     baselineTrace: baselineExtraction.trace,
   }
+}
+
+/** on-demand: `singleDateYmd` 하루만 API 범위로 조회한 뒤 동일 일자 행만 반환(0건이면 null). */
+export async function collectModetourDepartureInputForSingleDate(
+  originUrl: string | null | undefined,
+  ymd: string
+): Promise<DepartureInput | null> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null
+  const r = await collectModetourDepartureInputs(originUrl, { singleDateYmd: ymd })
+  const first = r.inputs[0]
+  if (!first) return null
+  return departureInputToYmd(first.departureDate) === ymd ? first : null
+}
+
+/** on-demand: inclusive `[fromYmd,toYmd]` API 조회 후 동일 구간 일자만 반환. */
+export async function collectModetourDepartureInputsForDateRange(
+  originUrl: string | null | undefined,
+  fromYmd: string,
+  toYmd: string
+): Promise<DepartureInput[]> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
+  const lo = fromYmd <= toYmd ? fromYmd : toYmd
+  const hi = fromYmd <= toYmd ? toYmd : fromYmd
+  const r = await collectModetourDepartureInputs(originUrl, { dateRangeYmd: { from: lo, to: hi } })
+  return r.inputs.filter((x) => {
+    const d = departureInputToYmd(x.departureDate)
+    return d != null && d >= lo && d <= hi
+  })
 }
