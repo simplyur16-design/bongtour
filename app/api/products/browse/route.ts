@@ -26,7 +26,7 @@ import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
-import { mapMatchToOverseasDisplayBucket } from '@/lib/overseas-display-buckets'
+import { resolveOverseasDisplayBucketForBrowse } from '@/lib/overseas-display-buckets'
 import { filterPoolByStoredTravelScope } from '@/lib/travel-scope-pool-filter'
 import { parseListingKind } from '@/lib/product-listing-kind'
 import {
@@ -360,15 +360,16 @@ export async function GET(request: Request) {
       earliestDeparture: p.departures[0]?.departureDate?.toISOString() ?? null,
       ...(scope === 'overseas' || region
         ? (() => {
-            const match = matchProductToOverseasNode({
+            const matchInput = {
               title: p.title,
               originSource: p.originSource,
               primaryDestination: p.primaryDestination,
               destinationRaw: p.destinationRaw,
               destination: p.destination,
               primaryRegion: p.primaryRegion,
-            })
-            const overseasBucket = mapMatchToOverseasDisplayBucket(match)
+            }
+            const match = matchProductToOverseasNode(matchInput)
+            const overseasBucket = resolveOverseasDisplayBucketForBrowse(matchInput, match)
             const countryRowLabel =
               match?.countryLabel?.trim() || p.primaryDestination?.trim() || '기타'
             return { overseasBucket, countryRowLabel }

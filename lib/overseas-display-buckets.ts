@@ -1,4 +1,8 @@
-import type { MatchProductToOverseasNodeResult } from '@/lib/match-overseas-product'
+import {
+  buildOverseasProductMatchHaystack,
+  type MatchProductToOverseasNodeResult,
+  type OverseasProductMatchInput,
+} from '@/lib/match-overseas-product'
 
 /** 여행상품 해외 허브 UI 권역 키 (상품 1건당 정확히 1개) */
 export type OverseasDisplayBucketId =
@@ -105,10 +109,74 @@ export function mapMatchToOverseasDisplayBucket(
       return 'americas'
     case 'guam-au-nz': {
       const ck = match.countryKey
-      if (ck === 'guam' || ck === 'saipan') return 'americas'
+      /** 여행상품 분류: 괌·사이판은 미주가 아님 — 동남아 버킷(남태평양·휴양권 성격) */
+      if (ck === 'guam' || ck === 'saipan') return 'sea'
       return 'other'
     }
     default:
       return 'other'
   }
+}
+
+/** 호주·뉴질랜드 — 잘못된 `americas` 매칭 보정 (9버킷 유지, `other` = 오세아니아·대양주 성격) */
+const RE_AU_NZ_TRAVEL = new RegExp(
+  [
+    '시드니',
+    'sydney',
+    '\\bSYD\\b',
+    '멜번',
+    '멜버른',
+    'melbourne',
+    '브리즈번',
+    'brisbane',
+    '골드코스트',
+    'gold\\s*coast',
+    '퍼스',
+    'perth',
+    '케언즈',
+    '케인즈',
+    'cairns',
+    '울룰루',
+    'uluru',
+    '호주',
+    'australia',
+    '뉴질랜드',
+    'new\\s*zealand',
+    '오클랜드',
+    'auckland',
+    '로토루아',
+    'rotorua',
+    '크라이스트처치',
+    'christchurch',
+    '퀸즈타운',
+    'queenstown',
+  ].join('|'),
+  'i',
+)
+
+const RE_GUAM_SAIPAN_TRAVEL = /괌|guam|사이판|saipan/i
+
+/**
+ * `/api/products/browse` 전용: 트리 매칭 후 **상품 문자열**로 미주 오분류를 덮어쓴다.
+ * (9버킷 키·순서·라벨은 그대로 — 버킷 id만 보정)
+ */
+export function resolveOverseasDisplayBucketForBrowse(
+  product: OverseasProductMatchInput,
+  match: MatchProductToOverseasNodeResult | null,
+): OverseasDisplayBucketId {
+  const base = mapMatchToOverseasDisplayBucket(match)
+  if (base !== 'americas') return base
+
+  const h = buildOverseasProductMatchHaystack(product)
+
+  if (RE_GUAM_SAIPAN_TRAVEL.test(h) && match?.countryKey !== 'hawaii') {
+    return 'sea'
+  }
+
+  if (RE_AU_NZ_TRAVEL.test(h)) {
+    if (match?.groupKey === 'americas' && match.countryKey === 'hawaii') return base
+    return 'other'
+  }
+
+  return base
 }
