@@ -14,6 +14,7 @@ export type RegisterPreviewProductDraft = {
   originCode: string
   supplierGroupId: string | null
   title: string
+  rawTitle?: string | null
   destinationRaw: string | null
   primaryDestination: string | null
   duration: string

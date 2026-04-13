@@ -248,6 +248,39 @@ function allowedCategoryForSupplement(
   return '현지준비'
 }
 
+/** 참좋은여행 등록 전용: 맨 앞 `[배지]`·공백만 정리. 타 공급사와 공유하지 않음. */
+function normalizeVerygoodtourRegisterTitleMinimalLocal(s: string): string {
+  let t = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+  t = t.replace(/^(\[[^\]\n]{1,120}\]\s*)+/, '')
+  t = t.replace(/[\u00a0\u3000]+/g, ' ')
+  t = t.replace(/\s+/g, ' ').trim()
+  return t
+}
+
+/** 붙여넣기 상단부에서 참좋은 상품 리스트 제목 한 줄 원문 추출 */
+function extractVerygoodtourVerbatimListingTitleRawFromPasteLocal(blob: string): string | null {
+  const text = blob.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const head = text.slice(0, 12_000)
+  const lines = head.split('\n').map((l) => l.replace(/\u00a0/g, ' ').trim()).filter(Boolean)
+  const skipRe =
+    /^(상품(?:코드|번호)|담당자|문의|예약|인쇄|공유|https?:|▼|▶|■|※\s*유의|포함사항|불포함|여행\s*일정|상품\s*개요|HOME|고위험)/i
+  for (const line of lines.slice(0, 70)) {
+    if (line.length < 15 || line.length > 220) continue
+    if (skipRe.test(line)) continue
+    if (/^https?:\/\//i.test(line)) continue
+    const hasTourShape = /(?:\d+\s*일|\d+\s*박|\d+\s*국)/.test(line)
+    const hashCount = (line.match(/#/g) || []).length
+    const hasBracketLead = /^\[/.test(line)
+    if ((hasTourShape && (hashCount >= 1 || line.length >= 32)) || (hasBracketLead && hasTourShape)) return line
+  }
+  for (const line of lines.slice(0, 28)) {
+    if (line.length < 14 || line.length > 200) continue
+    if (skipRe.test(line)) continue
+    if (/[가-힣]{8,}/.test(line) && /\d/.test(line) && /[#\[\]일박국]/.test(line)) return line
+  }
+  return null
+}
+
 function inferProductTypeFromText(rawText: string, title: string): string {
   const hay = `${rawText}\n${title}`.toLowerCase()
   if (/(에어텔|air[\s-]?tel|항공\s*\+?\s*호텔|항공권\s*\+?\s*호텔)/i.test(hay)) return 'airtel'
@@ -1667,7 +1700,13 @@ ${text.slice(0, 16000)}`
 
   schedule = polishVerygoodRegisterScheduleDescriptions(schedule)
 
-  const titleTrimmed = (raw.title ?? '').trim() || '상품명 없음'
+  const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
+  const supplierListingTitleRaw = extractVerygoodtourVerbatimListingTitleRawFromPasteLocal(pastedBlobForTitle)
+  const llmTitleNormalized = normalizeVerygoodtourRegisterTitleMinimalLocal(String(raw.title ?? '').trim())
+  const titleTrimmed =
+    supplierListingTitleRaw && supplierListingTitleRaw.length >= 10
+      ? normalizeVerygoodtourRegisterTitleMinimalLocal(supplierListingTitleRaw)
+      : llmTitleNormalized || '상품명 없음'
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
 
   const mustKnowFromLlm = forPreview
@@ -2346,6 +2385,7 @@ ${text.slice(0, 16000)}`
     originSource: normalizedSource,
     originCode: finalOriginCode,
     title: titleTrimmed,
+    supplierListingTitleRaw: supplierListingTitleRaw ?? null,
     destination: finalDestination,
     destinationRaw: finalDestination || null,
     primaryDestination: finalDestination || null,

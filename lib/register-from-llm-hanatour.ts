@@ -99,6 +99,7 @@ import {
 import { parsePricePromotionFromGeminiJson, type PricePromotionSnapshot } from './price-promotion-hanatour'
 import { buildSingleRoomExcludedLine } from '@/lib/product-excluded-display'
 import {
+  applyHanatourAirtelFreeTravelImageKeywordsToScheduleIfNeeded,
   buildPreviewHanatourScheduleFromDetailBody,
   hanatourEnglishPexelsImageKeywordFromBlob,
   isHanatourEnglishPexelsImageKeywordReady,
@@ -268,6 +269,42 @@ function allowedCategoryForSupplement(
   )
     return s
   return '현지준비'
+}
+
+/**
+ * 하나투어 등록 전용: 상품명 맨 앞 `[배지]`만 제거·공백 정리(LLM 요약·해시 제거 금지).
+ * 타 공급사/공용 모듈로 올리지 않는다.
+ */
+function normalizeHanatourRegisterTitleMinimalLocal(s: string): string {
+  let t = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+  t = t.replace(/^(\[[^\]\n]{1,120}\]\s*)+/, '')
+  t = t.replace(/[\u00a0\u3000]+/g, ' ')
+  t = t.replace(/\s+/g, ' ').trim()
+  return t
+}
+
+/** 붙여넣기 상단부에서 하나투어 상품 리스트 제목 한 줄을 원문 그대로(배지·# 유지) 추출 */
+function extractHanatourVerbatimListingTitleRawFromPasteLocal(blob: string): string | null {
+  const text = blob.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const head = text.slice(0, 12_000)
+  const lines = head.split('\n').map((l) => l.replace(/\u00a0/g, ' ').trim()).filter(Boolean)
+  const skipRe =
+    /^(상품(?:코드|번호)|담당자|문의|예약|인쇄|공유|https?:|▼|▶|■|※\s*유의|포함사항|불포함|여행\s*일정|상품\s*개요|HOME|고위험)/i
+  for (const line of lines.slice(0, 70)) {
+    if (line.length < 15 || line.length > 220) continue
+    if (skipRe.test(line)) continue
+    if (/^https?:\/\//i.test(line)) continue
+    const hasTourShape = /(?:\d+\s*일|\d+\s*박|\d+\s*국)/.test(line)
+    const hashCount = (line.match(/#/g) || []).length
+    const hasBracketLead = /^\[/.test(line)
+    if ((hasTourShape && (hashCount >= 1 || line.length >= 32)) || (hasBracketLead && hasTourShape)) return line
+  }
+  for (const line of lines.slice(0, 28)) {
+    if (line.length < 14 || line.length > 200) continue
+    if (skipRe.test(line)) continue
+    if (/[가-힣]{8,}/.test(line) && /\d/.test(line) && /[#\[\]일박국]/.test(line)) return line
+  }
+  return null
 }
 
 function inferProductTypeFromText(rawText: string, title: string): string {
@@ -1810,7 +1847,13 @@ ${text.slice(0, 16000)}`
     onTiming: options?.onTiming,
   })
 
-  const titleTrimmed = (raw.title ?? '').trim() || '상품명 없음'
+  const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
+  const supplierListingTitleRaw = extractHanatourVerbatimListingTitleRawFromPasteLocal(pastedBlobForTitle)
+  const llmTitleNormalized = normalizeHanatourRegisterTitleMinimalLocal(String(raw.title ?? '').trim())
+  const titleTrimmed =
+    supplierListingTitleRaw && supplierListingTitleRaw.length >= 10
+      ? normalizeHanatourRegisterTitleMinimalLocal(supplierListingTitleRaw)
+      : llmTitleNormalized || '상품명 없음'
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
 
   const mustKnowFromLlm = forPreview
@@ -2031,6 +2074,16 @@ ${text.slice(0, 16000)}`
       .join('\n---\n')
   }
   shoppingStopsLlmSupplementJson = shoppingStopsLlmSupplementJson?.trim() ? shoppingStopsLlmSupplementJson : null
+
+  schedule = applyHanatourAirtelFreeTravelImageKeywordsToScheduleIfNeeded(schedule, {
+    productType: inferredProductType,
+    title: titleTrimmed,
+    destinationRaw: String(raw.destination ?? '').trim() || null,
+    primaryDestination: String(raw.primaryDestination ?? '').trim() || null,
+    destination: String(raw.destination ?? '').trim() || null,
+    pastedSnippet: inferBase.slice(0, 12_000),
+  })
+
   const extractionFieldIssues: RegisterExtractionFieldIssue[] = [
     ...parseLlmExtractionFieldIssues(raw.fieldIssues),
     ...optMerged.issues,
@@ -2405,6 +2458,7 @@ ${text.slice(0, 16000)}`
     originSource: normalizedSource,
     originCode: finalOriginCode,
     title: titleTrimmed,
+    supplierListingTitleRaw: supplierListingTitleRaw ?? null,
     destination: finalDestination,
     destinationRaw: finalDestination || null,
     primaryDestination: finalDestination || null,

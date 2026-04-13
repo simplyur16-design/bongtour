@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useCallback, type ChangeEvent } from 'react'
+import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
 import AdminEmptyState from '../../components/AdminEmptyState'
 import AdminStatusBadge from '../../components/AdminStatusBadge'
@@ -15,6 +15,7 @@ import {
   adminManualPrimaryHeroUploadAndPatch,
   type AdminManualPrimaryHeroUploadPreset,
 } from '@/lib/admin-manual-primary-hero-upload'
+import { suggestAdminPendingSecondaryClassification } from '@/lib/admin-pending-secondary-classification-suggest'
 
 const GEMINI_SLOT_LABEL_KR: Record<string, string> = {
   no_person_wide: '무인물 · 넓은 구도',
@@ -71,6 +72,16 @@ type ProductDetail = {
   originUrl?: string | null
   title: string
   destination: string | null
+  primaryDestination?: string | null
+  destinationRaw?: string | null
+  productType?: string | null
+  travelScope?: string | null
+  listingKind?: string | null
+  hotelSummaryRaw?: string | null
+  includedText?: string | null
+  excludedText?: string | null
+  optionalToursStructured?: string | null
+  benefitSummary?: string | null
   duration: string | null
   airline: string | null
   registrationStatus: string | null
@@ -397,12 +408,29 @@ export default function AdminPendingDetailPanel({
   const [dayImageThumbError, setDayImageThumbError] = useState<Record<number, string | null>>({})
   /** 일차별 대표관광지 키워드 — 저장 전 편집 (저장 시 schedule.imageKeyword SSOT) */
   const [dayImageKeywordDraft, setDayImageKeywordDraft] = useState<Record<number, string>>({})
+  /** 2차 분류: 수동 편집 시 자동 초안 재주입 금지 */
+  const primaryRegionDirtyRef = useRef(false)
+  const themeTagsDirtyRef = useRef(false)
+  const targetAudienceDirtyRef = useRef(false)
+  /** 필드별 자동 초안은 상품당 성공 주입 1회만 */
+  const didAutofillPrimaryRef = useRef(false)
+  const didAutofillThemeRef = useRef(false)
+  const didAutofillAudienceRef = useRef(false)
 
   const closeLibraryModal = useCallback(() => {
     setLibraryModalOpen(false)
     setLibraryModalDay(null)
     setLibraryHistoryOpenMap({})
   }, [])
+
+  useEffect(() => {
+    primaryRegionDirtyRef.current = false
+    themeTagsDirtyRef.current = false
+    targetAudienceDirtyRef.current = false
+    didAutofillPrimaryRef.current = false
+    didAutofillThemeRef.current = false
+    didAutofillAudienceRef.current = false
+  }, [productId])
 
   useEffect(() => {
     if (!productId) {
@@ -464,6 +492,55 @@ export default function AdminPendingDetailPanel({
       setTargetAudience(detail.targetAudience ?? '')
     }
   }, [detail?.id, detail?.primaryRegion, detail?.themeTags, detail?.displayCategory, detail?.targetAudience])
+
+  useEffect(() => {
+    if (!detail?.id || detailLoading || previewLoading) return
+
+    const emptyPR = !(detail.primaryRegion ?? '').trim()
+    const emptyTT = !(detail.themeTags ?? '').trim()
+    const emptyTA = !(detail.targetAudience ?? '').trim()
+    if (!emptyPR && !emptyTT && !emptyTA) return
+
+    const sug = suggestAdminPendingSecondaryClassification({
+      title: detail.title,
+      originSource: detail.originSource,
+      primaryDestination: detail.primaryDestination ?? null,
+      destinationRaw: detail.destinationRaw ?? null,
+      destination: detail.destination ?? null,
+      productType: detail.productType ?? null,
+      travelScope: detail.travelScope ?? null,
+      listingKind: detail.listingKind ?? null,
+      schedule: detail.schedule ?? null,
+      hotelSummaryRaw: detail.hotelSummaryRaw ?? null,
+      includedText: detail.includedText ?? null,
+      excludedText: detail.excludedText ?? null,
+      optionalToursStructured: detail.optionalToursStructured ?? null,
+      benefitSummary: detail.benefitSummary ?? null,
+      itineraryDays: itineraryDayRows,
+    })
+    if (
+      emptyPR &&
+      sug.primaryRegion &&
+      !primaryRegionDirtyRef.current &&
+      !didAutofillPrimaryRef.current
+    ) {
+      setPrimaryRegion(sug.primaryRegion)
+      didAutofillPrimaryRef.current = true
+    }
+    if (emptyTT && sug.themeTags && !themeTagsDirtyRef.current && !didAutofillThemeRef.current) {
+      setThemeTags(sug.themeTags)
+      didAutofillThemeRef.current = true
+    }
+    if (
+      emptyTA &&
+      sug.targetAudience &&
+      !targetAudienceDirtyRef.current &&
+      !didAutofillAudienceRef.current
+    ) {
+      setTargetAudience(sug.targetAudience)
+      didAutofillAudienceRef.current = true
+    }
+  }, [detail, detailLoading, previewLoading, itineraryDayRows])
 
   useEffect(() => {
     setLibraryPage(1)
@@ -962,6 +1039,12 @@ export default function AdminPendingDetailPanel({
       })
       const data = await res.json()
       if (res.ok && data?.id) {
+        primaryRegionDirtyRef.current = false
+        themeTagsDirtyRef.current = false
+        targetAudienceDirtyRef.current = false
+        didAutofillPrimaryRef.current = true
+        didAutofillThemeRef.current = true
+        didAutofillAudienceRef.current = true
         setDetail({ ...detail, ...data })
         setClassificationMessage('저장되었습니다.')
       } else {
@@ -2325,13 +2408,19 @@ export default function AdminPendingDetailPanel({
       {/* 2차 분류 확정 패널 */}
       <section className="border-b border-bt-border-soft p-5">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-bt-meta">2차 분류 확정</h3>
+        <p className="mb-3 text-[11px] text-bt-meta">
+          DB에 비어 있는 항목만 초안 자동 제안(저장 없음). 입력을 손대면 해당 필드는 자동 제안이 덮어쓰지 않습니다. 확정은 「분류 저장」만 합니다. 노출 카테고리는 제안하지 않습니다.
+        </p>
         <div className="grid gap-3 text-sm">
           <div>
             <label className="mb-1 block text-xs font-medium text-bt-muted">대표 지역</label>
             <input
               type="text"
               value={primaryRegion}
-              onChange={(e) => setPrimaryRegion(e.target.value)}
+              onChange={(e) => {
+                primaryRegionDirtyRef.current = true
+                setPrimaryRegion(e.target.value)
+              }}
               placeholder="예: 동남아, 유럽"
               className="w-full rounded-lg border border-bt-border-strong px-3 py-2 text-bt-title placeholder:text-bt-subtle focus:border-bt-brand-blue-strong focus:outline-none focus:ring-2 focus:ring-bt-brand-blue-soft"
             />
@@ -2341,7 +2430,10 @@ export default function AdminPendingDetailPanel({
             <input
               type="text"
               value={themeTags}
-              onChange={(e) => setThemeTags(e.target.value)}
+              onChange={(e) => {
+                themeTagsDirtyRef.current = true
+                setThemeTags(e.target.value)
+              }}
               placeholder="예: 허니문, 오션뷰"
               className="w-full rounded-lg border border-bt-border-strong px-3 py-2 text-bt-title placeholder:text-bt-subtle focus:border-bt-brand-blue-strong focus:outline-none focus:ring-2 focus:ring-bt-brand-blue-soft"
             />
@@ -2361,7 +2453,10 @@ export default function AdminPendingDetailPanel({
             <input
               type="text"
               value={targetAudience}
-              onChange={(e) => setTargetAudience(e.target.value)}
+              onChange={(e) => {
+                targetAudienceDirtyRef.current = true
+                setTargetAudience(e.target.value)
+              }}
               placeholder="예: 성인가족, 신혼부부"
               className="w-full rounded-lg border border-bt-border-strong px-3 py-2 text-bt-title placeholder:text-bt-subtle focus:border-bt-brand-blue-strong focus:outline-none focus:ring-2 focus:ring-bt-brand-blue-soft"
             />

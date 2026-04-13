@@ -163,6 +163,8 @@ export type RegisterParsed = {
   originSource: string
   originCode: string
   title: string
+  /** 붙여넣기에서 확보한 상품명 원문(선행 `[배지]`·해시 등 포함 가능). DB `rawTitle` 보조 */
+  supplierListingTitleRaw?: string | null
   destination: string
   /** 목적지 원문. 없으면 destination과 동일 */
   destinationRaw?: string | null

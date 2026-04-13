@@ -37,8 +37,9 @@ export function buildDepartureTitleLayers(rawTitle: string | null | undefined): 
   const raw = decodeBasicHtmlEntities(String(rawTitle ?? ''))
     .replace(/\u00a0/g, ' ')
     .trim()
-  const pre = raw.replace(LEADING_BADGE, '').split('#')[0]?.trim() ?? ''
-  const comparisonTitle = pre.replace(/\s+/g, ' ').trim()
+  // 맨 앞 연속 `[배지]`만 제거; `#`·괄호·본문은 비교·식별 축으로 그대로 유지
+  const afterBadges = raw.replace(LEADING_BADGE, '').trim()
+  const comparisonTitle = afterBadges.replace(/\s+/g, ' ').trim()
   const comparisonTitleNoSpace = comparisonTitle.replace(/\s+/g, '')
   return {
     rawTitle: raw,

@@ -283,13 +283,12 @@ _NDAY_IN_PRE = re.compile(r"([^#\[\]]+?/)*[^#\[\]]+?\s+\d+\s*일")
 
 
 def hanatour_pre_hash_title(raw_title: str) -> str:
+    """TS `buildDepartureTitleLayers`와 동일 축: 맨 앞 연속 `[...]`만 제거, 본문·`#`·괄호 유지, 공백만 정리."""
     if not raw_title:
         return ""
     s = raw_title.replace("\u00a0", " ").strip()
     s = _BADGE_PREFIX.sub("", s).strip()
-    hash_idx = s.find("#")
-    before = s[:hash_idx] if hash_idx >= 0 else s
-    return " ".join(before.split())
+    return " ".join(s.split())
 
 
 def _hanatour_glue_hangul_before_nday(s: str) -> str:
@@ -315,14 +314,13 @@ def hanatour_normalized_base_title_from_pre_hash(pre_hash_title: str) -> str:
 def hanatour_title_layers(raw_title: str) -> dict[str, str]:
     raw = (raw_title or "").replace("\u00a0", " ").strip()
     pre = hanatour_pre_hash_title(raw)
-    norm = hanatour_normalized_base_title_from_pre_hash(pre)
     cmp_no_space = re.sub(r"\s+", "", pre)
     return {
         "rawTitle": raw,
         "preHashTitle": pre,
         "comparisonTitle": pre,
         "comparisonTitleNoSpace": cmp_no_space,
-        "normalizedBaseTitle": norm,
+        "normalizedBaseTitle": pre,
     }
 
 

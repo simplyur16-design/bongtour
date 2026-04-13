@@ -230,18 +230,9 @@ function parseTripNightsDaysFromModetourPage(detailText: string, detailHtml: str
   return parseTripNightsDays(detailText)
 }
 
-/**
- * 모두투어 예시: 괄호 앞·언더스코어 앞을 핵심 comparisonTitle 으로 사용 (#는 buildDepartureTitleLayers 에서 제거됨).
- */
+/** 공백만 정리. 괄호·해시·본문은 동일상품 제목 비교 축으로 유지(buildDepartureTitleLayers가 선행 `[배지]`만 제거). */
 export function modetourRefineTitleLayers(base: DepartureTitleLayers): DepartureTitleLayers {
-  const pre = base.preHashTitle
-  const core =
-    pre
-      .split(/\s*\(/)[0]
-      ?.split(/_/)[0]
-      ?.replace(/\s+/g, ' ')
-      .trim() || base.comparisonTitle
-  const comparisonTitle = core
+  const comparisonTitle = base.comparisonTitle.replace(/\s+/g, ' ').trim()
   const comparisonTitleNoSpace = comparisonTitle.replace(/\s+/g, '')
   return {
     ...base,

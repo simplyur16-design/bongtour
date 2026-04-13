@@ -14,6 +14,8 @@ export type RegisterPreviewProductDraft = {
   originCode: string
   supplierGroupId: string | null
   title: string
+  /** 붙여넣기 원문 제목(배지 포함 가능). DB `rawTitle`와 동기 */
+  rawTitle?: string | null
   destinationRaw: string | null
   primaryDestination: string | null
   duration: string

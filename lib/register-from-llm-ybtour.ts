@@ -236,6 +236,15 @@ function allowedCategoryForSupplement(
   return '현지준비'
 }
 
+/** ybtour 등록 전용: 맨 앞 `[배지]`·공백만 정리(`register-ybtour-basic` 추출 결과 후처리용). */
+function normalizeYbtourRegisterTitleMinimalLocal(s: string): string {
+  let t = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+  t = t.replace(/^(\[[^\]\n]{1,120}\]\s*)+/, '')
+  t = t.replace(/[\u00a0\u3000]+/g, ' ')
+  t = t.replace(/\s+/g, ' ').trim()
+  return t
+}
+
 function inferProductTypeFromText(rawText: string, title: string): string {
   const hay = `${rawText}\n${title}`.toLowerCase()
   if (/(에어텔|air[\s-]?tel|항공\s*\+?\s*호텔|항공권\s*\+?\s*호텔)/i.test(hay)) return 'airtel'
@@ -1588,9 +1597,12 @@ ${text.slice(0, 16000)}`
   const schedule: RegisterScheduleDay[] = scheduleBase.map(supplementScheduleDayFromDescription)
 
   const pasteForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
-  const verbatimTitle = extractYbtourVerbatimListingTitle(pasteForTitle)
-  const llmTitle = (raw.title ?? '').trim() || '상품명 없음'
-  const titleTrimmed = verbatimTitle ?? llmTitle
+  const supplierListingTitleRaw = extractYbtourVerbatimListingTitle(pasteForTitle)
+  const llmTitleRaw = String(raw.title ?? '').trim()
+  const titleTrimmed =
+    supplierListingTitleRaw && supplierListingTitleRaw.length >= 10
+      ? normalizeYbtourRegisterTitleMinimalLocal(supplierListingTitleRaw)
+      : normalizeYbtourRegisterTitleMinimalLocal(llmTitleRaw) || llmTitleRaw || '상품명 없음'
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
 
   const mustKnowFromLlm = forPreview
@@ -2171,6 +2183,7 @@ ${text.slice(0, 16000)}`
     originSource: normalizedSource,
     originCode: finalOriginCode,
     title: titleTrimmed,
+    supplierListingTitleRaw: supplierListingTitleRaw ?? null,
     destination: finalDestination,
     destinationRaw: finalDestination || null,
     primaryDestination: finalDestination || null,

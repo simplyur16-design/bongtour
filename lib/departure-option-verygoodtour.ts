@@ -40,8 +40,8 @@ export function buildDepartureTitleLayers(rawTitle: string | null | undefined): 
   const raw = decodeBasicHtmlEntities(String(rawTitle ?? ''))
     .replace(/\u00a0/g, ' ')
     .trim()
-  const pre = raw.replace(LEADING_BADGE, '').split('#')[0]?.trim() ?? ''
-  const comparisonTitle = pre.replace(/\s+/g, ' ').trim()
+  const afterBadges = raw.replace(LEADING_BADGE, '').trim()
+  const comparisonTitle = afterBadges.replace(/\s+/g, ' ').trim()
   const comparisonTitleNoSpace = comparisonTitle.replace(/\s+/g, '')
   return {
     rawTitle: raw,

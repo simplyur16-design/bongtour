@@ -16,6 +16,10 @@ export const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
 const HANGUL_RE = /[\uAC00-\uD7AF]/
 
+/** LLM/레거시가 넣은 무관한 글로벌 fallback — 유럽·북유럽 상품에서 재사용 금지 */
+const HANATOUR_TOXIC_IMAGE_KEYWORD_RES =
+  /\bscenic\s+asian\s+city\s+travel\s+skyline\s+dusk\b/i
+
 /** Pexels용: 라틴 문자·공백·구두부호만, 2~10 단어 권역 */
 function isLikelyEnglishPexelsKeyword(k: string): boolean {
   const t = k.trim()
@@ -32,7 +36,151 @@ function isLikelyEnglishPexelsKeyword(k: string): boolean {
 }
 
 export function isHanatourEnglishPexelsImageKeywordReady(kw: string): boolean {
-  return isLikelyEnglishPexelsKeyword(kw.trim())
+  const t = kw.trim()
+  if (!t || HANATOUR_TOXIC_IMAGE_KEYWORD_RES.test(t)) return false
+  return isLikelyEnglishPexelsKeyword(t)
+}
+
+function hanatourBlobLooksEuropeanOrNordic(j: string): boolean {
+  return /(코펜하겐|Copenhagen|København|오슬로|Oslo|베르겐|Bergen|스톡홀름|Stockholm|헬싱키|Helsinki|노르웨이|Norway|스웨덴|Sweden|핀란드|Finland|덴마크|Denmark|북유럽|유럽|피요르드|fjord|Fjord|게일로|Geilo|플롬|Flåm|Flam|에이드|Aurland|Aurlands|플라\b|외레브로|Örebro|Silja|DFDS|노르딜|스칸디나비아|Scandinavia|바사|Vasa|감라스탄|Gamla Stan|시벨리우스|Sibelius|우스펜스키|Uspenski|핀에어|Finnair|쉥겐|Baltic|발틱|발트)/i.test(
+    j
+  )
+}
+
+/** 일차 블록에서 관광지 후보(한글 위주) — 미리보기·키워드 보강용 */
+export function extractDayPoiCandidatesHanatour(blob: string): string[] {
+  const lines = stripHanatourScheduleNoiseLines(blob.replace(/\r/g, ''))
+  const joined = lines.join('\n')
+  const head = findHanatourItineraryHeadline(lines)
+  const seg = headlineTourismSegments(head)
+  const pois = extractOrderedKnownPoiFromJoined(joined)
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const s of [...seg, ...pois]) {
+    const k = s.trim()
+    if (!k || seen.has(k)) continue
+    seen.add(k)
+    out.push(k)
+    if (out.length >= 12) break
+  }
+  return out
+}
+
+/** 한글 관광지/도시 조각 → Pexels용 영문 구(매핑 없으면 null) */
+function mapKoreanSightFragmentToEnglishPexels(fragment: string, blobCtx: string): string | null {
+  const f = fragment.replace(/\s+/g, ' ').trim()
+  if (!f) return null
+  const j = blobCtx
+  const rows: [RegExp, string][] = [
+    [/뉘하운/i, 'Copenhagen Nyhavn canal colorful houses'],
+    [/아말리엔보르|아마리엔보/i, 'Copenhagen Amalienborg palace square'],
+    [/크리스티안스보르/i, 'Christiansborg Palace Copenhagen'],
+    [/게피온/i, 'Gefion Fountain Copenhagen'],
+    [/작은\s*인어상|인어\s*공주/i, 'Copenhagen Little Mermaid statue'],
+    [/비겔란/i, 'Oslo Vigeland Sculpture Park'],
+    [/뭉크\s*미술관|Munch\s+Museum/i, 'Oslo Munch Museum waterfront'],
+    [/시청사/i, /오슬로|Oslo/i.test(j) ? 'Oslo City Hall exterior' : /스톡홀름|Stockholm/i.test(j) ? 'Stockholm City Hall waterfront' : 'Nordic city hall architecture'],
+    [/왕궁/i, /오슬로|Oslo/i.test(j) ? 'Oslo Royal Palace' : /스톡홀름|Stockholm/i.test(j) ? 'Stockholm Royal Palace Gamla Stan' : 'European royal palace exterior'],
+    [/카를\s*요한스/i, 'Oslo Karl Johans gate shopping street'],
+    [/오슬로\s*국립극장/i, 'Oslo National Theatre building'],
+    [/게일로/i, 'Geilo Norway mountain resort scenic'],
+    [/에이드피오르드|에이드피요르드/i, 'Norway Aurland fjord scenic mountains'],
+    [/뵈링폭포|Vøringfossen|Voringfossen/i, 'Voringfossen waterfall Norway plateau'],
+    [/베르겐/i, 'Bergen Norway Bryggen harbor wooden houses'],
+    [/브리겐|브뤼겐/i, 'Bergen Bryggen UNESCO wooden wharf'],
+    [/플뢰엔|Fløyen|Floyen/i, 'Bergen Floyen funicular mountain view'],
+    [/플롬라인|플롬\s*라인/i, 'Flam railway Norway scenic train fjord'],
+    [/플롬\b|Flåm|Flam\b/i, 'Flam Norway fjord village scenic'],
+    [/송네\s*피요르드|Sognefjord/i, 'Sognefjord Norway cruise scenic cliffs'],
+    [/구드방겐|Gudvangen/i, 'Gudvangen Norway fjord village'],
+    [/플라\b/i, 'Fla Norway village Sognefjord area'],
+    [/외레브로|Örebro/i, 'Orebro Sweden city river old town'],
+    [/바사\s*박물관|바사박물관/i, 'Stockholm Vasa Museum ship interior'],
+    [/감라스탄/i, 'Stockholm Gamla Stan old town cobblestone'],
+    [/드로트닝홀름|Drottningholm/i, 'Drottningholm Palace Stockholm Sweden'],
+    [/헬싱키\s*대성당|Helsinki\s+Cathedral/i, 'Helsinki Cathedral white neoclassical dome'],
+    [/우스펜스키/i, 'Helsinki Uspenski Cathedral red brick domes'],
+    [/시벨리우스/i, 'Helsinki Sibelius Monument park'],
+    [/암석교회|Temppeliaukion/i, 'Helsinki Rock Church Temppeliaukio'],
+    [/코펜하겐|Copenhagen/i, 'Copenhagen Denmark city canal scenic'],
+    [/오슬로\b|Oslo\b/i, 'Oslo Norway city waterfront scenic'],
+    [/스톡홀름|Stockholm/i, 'Stockholm Sweden waterfront old town scenic'],
+    [/헬싱키|Helsinki/i, 'Helsinki Finland Baltic waterfront scenic'],
+    [/핀에어|Finnair/i, 'Finnair airplane cabin travel Europe'],
+  ]
+  for (const [re, en] of rows) {
+    if (re.test(f)) return en
+  }
+  return null
+}
+
+/**
+ * headline·후보에서 첫 유효 영문 키워드 — 없으면 null
+ */
+export function pickPrimarySightEnglishForHanatourDay(blob: string): string | null {
+  const lines = stripHanatourScheduleNoiseLines(blob.replace(/\r/g, ''))
+  const head = findHanatourItineraryHeadline(lines)
+  const joined = lines.join('\n')
+  for (const seg of headlineTourismSegments(head)) {
+    const hit = mapKoreanSightFragmentToEnglishPexels(seg, joined)
+    if (hit) return hit
+  }
+  for (const c of extractDayPoiCandidatesHanatour(blob)) {
+    const hit = mapKoreanSightFragmentToEnglishPexels(c, joined)
+    if (hit) return hit
+  }
+  return null
+}
+
+/** 유럽·북유럽 문맥에서만 쓰는 안전한 마지막 fallback(아시아 스카이라인 금지) */
+export function buildSafeHanatourImageFallbackKeyword(blob: string, day: number, maxDay: number): string {
+  const j = blob.replace(/\r/g, '').slice(0, 24_000)
+  const tv = j.match(/여행도시\s*([^\n예약]+)/)
+  if (tv?.[1]) {
+    const parts = tv[1]
+      .split(/[-–‑]/)
+      .map((s) => s.replace(/\([^)]*\)/g, ' ').trim())
+      .filter(Boolean)
+    const pick = parts[Math.min(Math.max(0, day - 1), parts.length - 1)] ?? parts[0]
+    if (pick) {
+      const mapped = mapKoreanSightFragmentToEnglishPexels(pick, j) ?? mapKoreanTravelCityTokenToEnglish(pick)
+      if (mapped) return mapped.slice(0, 120)
+    }
+  }
+  const primary = pickPrimarySightEnglishForHanatourDay(j)
+  if (primary) return primary.slice(0, 120)
+  if (/코펜하겐|Copenhagen/i.test(j) && day <= 3) return 'Copenhagen Denmark historic city canal travel'
+  if (/오슬로|Oslo/i.test(j)) return 'Oslo Norway fjord city scenic travel'
+  if (/베르겐|Bergen/i.test(j)) return 'Bergen Norway fjord harbor scenic'
+  if (/스톡홀름|Stockholm/i.test(j)) return 'Stockholm Sweden Baltic waterfront scenic'
+  if (/헬싱키|Helsinki/i.test(j)) return 'Helsinki Finland Nordic city waterfront scenic'
+  if (day === maxDay && maxDay >= 2 && /(인천|ICN)/i.test(j) && /(헬싱키|Helsinki|핀란드)/i.test(j)) {
+    return 'Helsinki Vantaa airport departure Finland winter'
+  }
+  return 'Northern Europe Scandinavian fjord landscape scenic'
+}
+
+function mapKoreanTravelCityTokenToEnglish(token: string): string | null {
+  const t = token.replace(/\([^)]*\)/g, ' ').replace(/\d+/g, ' ').replace(/\s+/g, ' ').trim()
+  if (!t) return null
+  const m: [RegExp, string][] = [
+    [/코펜하겐|Copenhagen/i, 'Copenhagen Denmark'],
+    [/오슬로|Oslo/i, 'Oslo Norway'],
+    [/게일로|Geilo/i, 'Geilo Norway'],
+    [/에이드피오르드|에이드피요르드/i, 'Aurland Norway fjord'],
+    [/베르겐|Bergen/i, 'Bergen Norway'],
+    [/플롬|Flåm|Flam/i, 'Flam Norway'],
+    [/구드방겐/i, 'Gudvangen Norway'],
+    [/플라\b/i, 'Fla Norway'],
+    [/외레브로/i, 'Orebro Sweden'],
+    [/스톡홀름|Stockholm/i, 'Stockholm Sweden'],
+    [/헬싱키|Helsinki/i, 'Helsinki Finland'],
+    [/보스\b|Voss/i, 'Voss Norway'],
+  ]
+  for (const [re, en] of m) {
+    if (re.test(t)) return `${en} travel scenic`
+  }
+  return null
 }
 
 /**
@@ -64,6 +212,9 @@ export function hanatourEnglishPexelsImageKeywordFromBlob(blob: string, day: num
     if (re.test(j)) return kw
   }
 
+  const fromHeadlineSight = pickPrimarySightEnglishForHanatourDay(blob)
+  if (fromHeadlineSight) return fromHeadlineSight.slice(0, 120)
+
   if (day === 1 && /ICN|인천|Incheon/i.test(j) && /PVG|Pudong|푸동|상해|Shanghai/i.test(j) && /도착|arrival/i.test(j)) {
     return 'Shanghai Pudong airport arrival'
   }
@@ -83,6 +234,10 @@ export function hanatourEnglishPexelsImageKeywordFromBlob(blob: string, day: num
   if (/도쿄|Tokyo/i.test(j)) return 'Tokyo Shibuya crossing night city lights'
   if (/파리|Paris/i.test(j)) return 'Paris Eiffel Tower skyline twilight'
   if (/인천|Incheon/i.test(j) && day === 1) return 'Incheon International Airport departure gate'
+
+  if (hanatourBlobLooksEuropeanOrNordic(j)) {
+    return buildSafeHanatourImageFallbackKeyword(blob, day, maxDay).slice(0, 120)
+  }
 
   return 'Scenic Asian city travel skyline dusk'
 }
@@ -1093,6 +1248,7 @@ function hanatourDescriptionNeedsReplace(desc: string, title?: string): boolean 
 function hanatourImageKeywordNeedsReplace(kw: string): boolean {
   const k = kw.trim()
   if (!k) return true
+  if (HANATOUR_TOXIC_IMAGE_KEYWORD_RES.test(k)) return true
   if (!isLikelyEnglishPexelsKeyword(k)) return true
   return false
 }
@@ -1290,6 +1446,175 @@ function isPlaceholderHotel(ht: string): boolean {
   return !t || t === '-' || t === '—' || t === '–'
 }
 
+/** 에어텔(항공+호텔) + 일정 빈약 시에만: 도시/권역 기반 Pexels용 키워드(하나투어 일정 표현층 전용) */
+const HANATOUR_AIRTEL_SCHEDULE_STOPWORDS = new Set([
+  '공항',
+  '호텔',
+  '이동',
+  '출발',
+  '도착',
+  '자유일정',
+  '체크인',
+  '귀국',
+  '입국',
+  '일차',
+  '미팅',
+  '호텔숙박',
+  '석식',
+  '조식',
+  '중식',
+  '식사',
+  '자유',
+  '예정',
+  '체크인',
+  '픽업',
+  '탑승',
+  '수속',
+])
+
+function hanatourAirtelScheduleRowHasPlaceSignal(row: RegisterScheduleDay): boolean {
+  const t = `${row.title ?? ''}\n${row.description ?? ''}`
+  const compact = t.replace(/\s/g, '')
+  if (compact.length < 10) return false
+  const hangulWords = t.match(/[가-힣]{3,}/g) ?? []
+  for (const w of hangulWords) {
+    if (w.length >= 3 && !HANATOUR_AIRTEL_SCHEDULE_STOPWORDS.has(w) && !/^제?\d+일차?$/.test(w)) return true
+  }
+  if (/[A-Za-z]{6,}/.test(t) && !/^day\s*\d+/i.test(t.trim())) return true
+  return false
+}
+
+export function isHanatourAirtelWeakScheduleForImageKw(sched: RegisterScheduleDay[]): boolean {
+  if (!sched.length) return true
+  const rows = sched.filter((r) => (Number(r.day) || 0) >= 1)
+  if (!rows.length) return true
+  return rows.every((r) => !hanatourAirtelScheduleRowHasPlaceSignal(r))
+}
+
+export type HanatourAirtelFreeTravelImageKwMeta = {
+  productType: string
+  title: string
+  destinationRaw: string | null | undefined
+  primaryDestination: string | null | undefined
+  destination: string | null | undefined
+  pastedSnippet: string
+}
+
+function buildHanatourAirtelFreeTravelHaystackLocal(
+  meta: HanatourAirtelFreeTravelImageKwMeta,
+  sched: RegisterScheduleDay[]
+): string {
+  const parts = [
+    meta.title,
+    meta.destinationRaw,
+    meta.primaryDestination,
+    meta.destination,
+    meta.pastedSnippet,
+    ...sched.flatMap((r) => [r.title, r.description, r.imageKeyword]),
+  ]
+    .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+    .map((x) => x.trim())
+  return parts.join('\n').slice(0, 24_000)
+}
+
+function hanatourAirtelFreeTravelRegionalFallbackLocal(h: string): string {
+  if (/(북유럽|노르웨이|스웨덴|핀란드|덴마크|스칸디나비아|Norway|Sweden|Finland|Denmark|Scandinavia)/i.test(h))
+    return 'Scandinavia Nordic waterfront city harbor view'
+  if (/(발틱|에스토니아|라트비아|리투아니아|타린|리가|빌뉴스)/i.test(h))
+    return 'Baltic historic old town cobblestone street'
+  if (/(유럽|프랑스|독일|이탈리아|스페인|포르투갈|오스트리아|스위스|그리스|크로아티아|슬로베니아)/i.test(h))
+    return 'European historic city center architecture plaza'
+  if (/(영국|아일랜드|스코틀랜드|에든버러)/i.test(h)) return 'British Isles historic city street architecture'
+  if (/(중동|터키|요르단|이집트|모로코|UAE|아랍)/i.test(h)) return 'Middle East historic mosque old city skyline'
+  if (/(아프리카|케냐|남아프리카|모잠비크)/i.test(h)) return 'Africa savanna lodge sunrise landscape'
+  if (/(호주|뉴질랜드|Oceania)/i.test(h)) return 'Oceania coastal city waterfront skyline'
+  if (/(미국|캐나다|하와이|알래스카|멕시코|Mexico)/i.test(h)) return 'North America urban skyline downtown day'
+  if (/(일본|도쿄|오사카|교토|沖縄)/i.test(h)) return 'Japan city street skyline night district'
+  if (/(중국|홍콩|마카오|대만|타이베이)/i.test(h)) return 'East Asia metropolitan skyline riverfront'
+  if (/(태국|베트남|캄보디아|라오스|미얀마|필리핀|인도네시아|말레이시아|싱가포르|동남아)/i.test(h))
+    return 'Southeast Asia tropical city riverfront temples'
+  if (/(인도|네팔|스리랑카)/i.test(h)) return 'South Asia historic monument cityscape'
+  if (/(한국|서울|제주|부산)/i.test(h)) return 'Korea modern city skyline Han river'
+  return 'International city travel destination view'
+}
+
+function resolveHanatourAirtelFreeTravelImageKeywordFromHaystackLocal(hay: string): string {
+  const h = hay.replace(/\s+/g, ' ').replace(/\r/g, ' ').trim()
+  if (!h) return 'International city travel destination view'
+
+  const cityRules: ReadonlyArray<{ re: RegExp; en: string }> = [
+    { re: /코펜하겐|Copenhagen|København/i, en: 'Copenhagen Nyhavn waterfront' },
+    { re: /파리|Paris/i, en: 'Paris Eiffel Tower city view' },
+    { re: /로마|Roma?\b|Rome/i, en: 'Rome Colosseum historic city' },
+    { re: /오사카|大阪|Osaka/i, en: 'Osaka Dotonbori city night' },
+    { re: /방콕|Bangkok/i, en: 'Bangkok riverside city skyline' },
+    { re: /다낭|Da\s*Nang/i, en: 'Da Nang beach city skyline' },
+    { re: /바르셀로나|Barcelona/i, en: 'Barcelona Sagrada Familia city view' },
+    { re: /스톡홀름|Stockholm/i, en: 'Stockholm Gamla Stan waterfront' },
+    { re: /오슬로|Oslo/i, en: 'Oslo fjord harbor city view' },
+    { re: /헬싱키|Helsinki/i, en: 'Helsinki waterfront market square' },
+    { re: /베르겐|Bergen/i, en: 'Bergen Norway harbor colorful houses' },
+    { re: /상해|上海|Shanghai/i, en: 'Shanghai Bund skyline Huangpu river' },
+    { re: /도쿄|東京|Tokyo/i, en: 'Tokyo Shibuya crossing night city' },
+    { re: /라스베이거스|Las\s*Vegas/i, en: 'Las Vegas Strip neon skyline night' },
+    { re: /런던|London/i, en: 'London Thames skyline Westminster' },
+    { re: /암스테르담|Amsterdam/i, en: 'Amsterdam canal houses bridges' },
+    { re: /프라하|Prague|Praha/i, en: 'Prague old town square historic towers' },
+    { re: /비엔나|Vienna|Wien/i, en: 'Vienna historic palace district city view' },
+    { re: /마드리드|Madrid/i, en: 'Madrid Gran Via city sunset' },
+    { re: /리스본|Lisbon/i, en: 'Lisbon Alfama hillside tram city view' },
+    { re: /뮌헨|Munich/i, en: 'Munich Marienplatz historic square' },
+    { re: /베를린|Berlin/i, en: 'Berlin Brandenburg Gate city view' },
+    { re: /취리히|Zurich/i, en: 'Zurich lake Alps city waterfront' },
+    { re: /제네바|Geneva/i, en: 'Geneva lake Jet dEau waterfront' },
+    { re: /부다페스트|Budapest/i, en: 'Budapest Danube Parliament night' },
+    { re: /두브로브니크|Dubrovnik/i, en: 'Dubrovnik old town walls Adriatic sea' },
+    { re: /레이캬비크|Reykjavik/i, en: 'Reykjavik colorful harbor houses' },
+    { re: /뉴욕|Manhattan|New\s*York/i, en: 'New York Manhattan skyline Hudson' },
+    { re: /호놀룰루|Honolulu|하와이|Hawaii/i, en: 'Honolulu Waikiki beach palm sunset' },
+    { re: /시드니|Sydney/i, en: 'Sydney Opera House harbour bridge view' },
+    { re: /멜번|Melbourne/i, en: 'Melbourne laneway cafes city day' },
+    { re: /아테네|Athens/i, en: 'Athens Acropolis historic skyline' },
+    { re: /이스탄불|Istanbul/i, en: 'Istanbul Bosporus mosque skyline sunset' },
+    { re: /두바이|Dubai/i, en: 'Dubai Marina skyline skyscrapers night' },
+    { re: /싱가포르|Singapore/i, en: 'Singapore Marina Bay night skyline' },
+    { re: /쿠알라룸푸르|Kuala Lumpur/i, en: 'Kuala Lumpur Petronas Twin Towers' },
+    { re: /세부|Cebu/i, en: 'Cebu tropical turquoise beach' },
+    { re: /치앙마이|Chiang Mai/i, en: 'Chiang Mai old city temple street' },
+    { re: /하노이|Hanoi/i, en: 'Hanoi Old Quarter colonial street day' },
+    { re: /호치민|Ho Chi Minh|사이공/i, en: 'Ho Chi Minh city skyline Saigon river' },
+    { re: /교토|京都|Kyoto/i, en: 'Kyoto bamboo forest temple path' },
+    { re: /후쿠오카|福岡|Fukuoka/i, en: 'Fukuoka city ramen street night' },
+    { re: /삿포로|札幌|Sapporo/i, en: 'Sapporo snow festival winter city' },
+    { re: /나고야|名古屋/i, en: 'Nagoya castle cherry park view' },
+    { re: /요코하마|横浜/i, en: 'Yokohama bay Minato Mirai night' },
+    { re: /괌|Guam/i, en: 'Guam Tumon beach lagoon' },
+    { re: /발리|Bali/i, en: 'Bali rice terraces jungle sunrise' },
+    { re: /연길|延吉|Yanji/i, en: 'Yanji Korean quarter winter street' },
+    { re: /북경|베이징|北京/i, en: 'Beijing Forbidden City view' },
+    { re: /광저우|广州/i, en: 'Guangzhou skyline night' },
+  ]
+  for (const { re, en } of cityRules) {
+    if (re.test(h)) return en
+  }
+  return hanatourAirtelFreeTravelRegionalFallbackLocal(h)
+}
+
+/** LLM 파싱 직후·오케스트레이션 augment 공통: 에어텔+빈약 일정이면 일괄 도시/권역 키워드로 교체 */
+export function applyHanatourAirtelFreeTravelImageKeywordsToScheduleIfNeeded(
+  schedule: RegisterScheduleDay[],
+  meta: HanatourAirtelFreeTravelImageKwMeta
+): RegisterScheduleDay[] {
+  if (meta.productType !== 'airtel') return schedule
+  if (!isHanatourAirtelWeakScheduleForImageKw(schedule)) return schedule
+  const hay = buildHanatourAirtelFreeTravelHaystackLocal(meta, schedule)
+  const kwMain = resolveHanatourAirtelFreeTravelImageKeywordFromHaystackLocal(hay).slice(0, 120)
+  return schedule.map((row) => ({
+    ...row,
+    imageKeyword: kwMain,
+  }))
+}
+
 /** imageKeyword가 Pexels용 영문 noun phrase가 아니면 title·description·기존값으로 재생성 */
 export function sanitizeHanatourScheduleRowExpression(
   row: RegisterScheduleDay,
@@ -1308,6 +1633,38 @@ export function sanitizeHanatourScheduleRowExpression(
 export function augmentHanatourScheduleExpressionParsed(parsed: RegisterParsed): RegisterParsed {
   const sched = parsed.schedule
   if (!sched?.length) return parsed
+  const productType = (parsed.productType ?? 'travel').trim() || 'travel'
+  if (productType === 'airtel' && isHanatourAirtelWeakScheduleForImageKw(sched)) {
+    const pastedSnippet = [
+      parsed.title,
+      parsed.destinationRaw,
+      parsed.primaryDestination,
+      parsed.destination,
+      parsed.routeRaw,
+      parsed.hotelInfoRaw,
+      parsed.detailBodyStructured?.normalizedRaw,
+    ]
+      .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+      .join('\n')
+      .slice(0, 12_000)
+    const meta: HanatourAirtelFreeTravelImageKwMeta = {
+      productType: 'airtel',
+      title: parsed.title ?? '',
+      destinationRaw: parsed.destinationRaw ?? null,
+      primaryDestination: parsed.primaryDestination ?? null,
+      destination: parsed.destination ?? null,
+      pastedSnippet,
+    }
+    const hay = buildHanatourAirtelFreeTravelHaystackLocal(meta, sched)
+    const kwMain = resolveHanatourAirtelFreeTravelImageKeywordFromHaystackLocal(hay).slice(0, 120)
+    return {
+      ...parsed,
+      schedule: sched.map((r) => {
+        const stripped = stripCounselingTermsFromScheduleRow(r)
+        return { ...stripped, imageKeyword: kwMain }
+      }),
+    }
+  }
   const maxDay = Math.max(1, ...sched.map((s) => s.day))
   return {
     ...parsed,

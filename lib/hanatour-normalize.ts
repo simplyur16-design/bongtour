@@ -5,25 +5,13 @@
 
 const BADGE_PREFIX = /^(?:\[[^\]]*]\s*)+/
 
-/**
- * 앞쪽 [뱃지] 반복 제거 → 첫 `#` 이전만 → 공백 정규화.
- * "도시(/도시)* + 공백 + 숫자 + 일" 패턴이 있으면 그 구간을 우선 채택.
- */
+/** 맨 앞 연속 `[배지]`만 제거 후 공백 정규화. `#`·괄호·본문은 보존(출발옵션 비교 축과 동일 계열). */
 export function normalizeHanatourBaseTitle(rawTitle: string | null | undefined): string {
   if (rawTitle == null) return ''
   let s = String(rawTitle).replace(/\u00a0/g, ' ').trim()
   if (!s) return ''
   s = s.replace(BADGE_PREFIX, '').trim()
-  const hashIdx = s.indexOf('#')
-  const beforeHash = hashIdx >= 0 ? s.slice(0, hashIdx) : s
-  const collapsed = beforeHash.replace(/\s+/g, ' ').trim()
-
-  const pattern = /([^#\[\]]+?\/)*[^#\[\]]+?\s+\d+\s*일/u
-  const m = collapsed.match(pattern)
-  if (m?.[0]) {
-    return m[0].replace(/\s+/g, ' ').trim()
-  }
-  return collapsed
+  return s.replace(/\s+/g, ' ').trim()
 }
 
 /** 상세/모달 등에서 추출한 항공사 표기 정리 (원문 보존 목적의 light trim). */
