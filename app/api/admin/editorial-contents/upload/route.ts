@@ -1,9 +1,9 @@
 ﻿import { NextResponse } from 'next/server'
+import { resolveAdminUploadedImageMime } from '@/lib/admin-upload-image-mime'
 import { requireAdmin } from '@/lib/require-admin'
 import { saveEditorialHeroImage } from '@/lib/monthly-curation-image'
 
 const MAX_FILE_BYTES = 30 * 1024 * 1024
-const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 export async function POST(request: Request) {
   const admin = await requireAdmin()
@@ -15,8 +15,15 @@ export async function POST(request: Request) {
     if (!(file instanceof File)) {
       return NextResponse.json({ error: '이미지 파일이 필요합니다.' }, { status: 400 })
     }
-    if (!ALLOWED_TYPES.has(file.type)) {
-      return NextResponse.json({ error: 'jpg/png/webp 파일만 업로드할 수 있습니다.' }, { status: 400 })
+    const resolvedMime = resolveAdminUploadedImageMime(file)
+    if (!resolvedMime) {
+      return NextResponse.json(
+        {
+          error:
+            'jpg/png/webp만 업로드할 수 있습니다. 파일 확장자·형식을 확인하세요. (일부 PC에서는 MIME이 비어 있을 수 있어 확장자로 판별합니다.)',
+        },
+        { status: 400 },
+      )
     }
     if (file.size > MAX_FILE_BYTES) {
       return NextResponse.json({ error: '파일 크기는 30MB 이하여야 합니다.' }, { status: 400 })
@@ -27,10 +34,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ...saved })
   } catch (e) {
     console.error('[editorial-content upload]', e)
-    const msg = e instanceof Error ? e.message : ''
-    if ((msg.includes('Supabase') || msg.includes('Storage'))) {
+    const msg = e instanceof Error ? e.message : String(e)
+    const lower = msg.toLowerCase()
+    if (
+      lower.includes('supabase') ||
+      lower.includes('storage') ||
+      lower.includes('설정되지') ||
+      lower.includes('service_role')
+    ) {
       return NextResponse.json({ error: msg }, { status: 503 })
     }
-    return NextResponse.json({ error: '업로드 실패' }, { status: 500 })
+    return NextResponse.json({ error: msg || '업로드 실패' }, { status: 500 })
   }
 }
