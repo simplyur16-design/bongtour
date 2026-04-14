@@ -1,10 +1,6 @@
 ﻿import { convertToWebp } from '@/lib/image-to-webp'
-import {
-  buildEditorialObjectKey,
-  buildMonthlyCurationObjectKey,
-  isObjectStorageConfigured,
-  uploadStorageObject,
-} from '@/lib/object-storage'
+import { buildMonthlyCurationWebpObjectKey } from '@/lib/monthly-curation-object-key'
+import { buildEditorialObjectKey, isObjectStorageConfigured, uploadStorageObject } from '@/lib/object-storage'
 
 function slug(s: string): string {
   return s
@@ -27,8 +23,7 @@ export async function saveMonthlyCurationImage(file: File, opts: { monthKey: str
   requireObjectStorage()
   const input = Buffer.from(await file.arrayBuffer())
   const converted = await convertToWebp(input, { maxWidth: 1600, quality: 82 })
-  const filename = `${slug(opts.monthKey || 'month')}-${slug(opts.title || 'curation')}-${Date.now()}.webp`
-  const objectKey = buildMonthlyCurationObjectKey(filename)
+  const objectKey = buildMonthlyCurationWebpObjectKey(opts)
   const { publicUrl } = await uploadStorageObject({
     objectKey,
     body: converted.buffer,

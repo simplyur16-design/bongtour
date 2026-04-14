@@ -5,6 +5,10 @@ import { saveMonthlyCurationImage } from '@/lib/monthly-curation-image'
 
 const MAX_FILE_BYTES = 30 * 1024 * 1024
 
+/**
+ * 서버 경유 멀티파트 업로드(nginx 본문 한도에 걸리기 쉬움).
+ * 운영에서는 `POST /api/admin/monthly-curation-contents/signed-upload` + 브라우저 직접 Storage 업로드를 권장.
+ */
 export async function POST(request: Request) {
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
