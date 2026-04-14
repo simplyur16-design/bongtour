@@ -1,4 +1,5 @@
 import { toSafePublicUrlOrPath } from '@/lib/cms-source-attribution'
+import { buildPublicUrlForObjectKey, isObjectStorageConfigured } from '@/lib/object-storage'
 import { prisma } from '@/lib/prisma'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 
@@ -7,6 +8,8 @@ export type HomeSeasonPickDTO = {
   id: string
   title: string
   excerpt: string
+  /** 원문 본문 — 모바일 시즌 카드 더보기용 */
+  bodyFull: string
   imageUrl: string | null
   ctaHref: string
   ctaLabel: string
@@ -33,6 +36,7 @@ export async function getHomeSeasonPickFromMonthlyContent(): Promise<HomeSeasonP
         title: true,
         bodyKr: true,
         imageUrl: true,
+        imageStorageKey: true,
         linkedProductId: true,
         linkedHref: true,
         ctaLabel: true,
@@ -49,6 +53,7 @@ export async function getHomeSeasonPickFromMonthlyContent(): Promise<HomeSeasonP
           title: true,
           bodyKr: true,
           imageUrl: true,
+          imageStorageKey: true,
           linkedProductId: true,
           linkedHref: true,
           ctaLabel: true,
@@ -58,7 +63,16 @@ export async function getHomeSeasonPickFromMonthlyContent(): Promise<HomeSeasonP
 
     if (!row) return null
 
-    const imageUrl = toSafePublicUrlOrPath(row.imageUrl)
+    const bodyFull = (row.bodyKr ?? '').trim()
+    let imageUrl = toSafePublicUrlOrPath(row.imageUrl)
+    const key = (row.imageStorageKey ?? '').trim()
+    if (!imageUrl && key && isObjectStorageConfigured()) {
+      try {
+        imageUrl = buildPublicUrlForObjectKey(key)
+      } catch {
+        imageUrl = null
+      }
+    }
 
     const productHref = row.linkedProductId?.trim()
       ? `/products/${row.linkedProductId!.trim()}`
@@ -78,7 +92,8 @@ export async function getHomeSeasonPickFromMonthlyContent(): Promise<HomeSeasonP
     return {
       id: row.id,
       title: row.title.trim() || '시즌 추천',
-      excerpt: excerptBody(row.bodyKr ?? '', 120),
+      excerpt: excerptBody(bodyFull, 120),
+      bodyFull,
       imageUrl,
       ctaHref,
       ctaLabel: (row.ctaLabel ?? '').trim() || '관련 상품 보기',
@@ -94,6 +109,7 @@ export const HOME_SEASON_PICK_FALLBACK: HomeSeasonPickDTO = {
   id: 'fallback-mobile-home',
   title: '해외 패키지 둘러보기',
   excerpt: '일정·혜택을 확인하고 상담으로 이어가 보세요.',
+  bodyFull: '일정·혜택을 확인하고 상담으로 이어가 보세요.',
   imageUrl: null,
   ctaHref: '/travel/overseas',
   ctaLabel: '관련 상품 보기',
