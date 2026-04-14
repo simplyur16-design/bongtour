@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick'
-import HomeMobileHubSeasonBody from '@/app/components/home/HomeMobileHubSeasonBody'
+import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
+import { buildHomeMobileSeasonCarouselSlides } from '@/lib/home-mobile-season-carousel-slides'
+import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
 import { MAIN_HOME_FIRST_HUB_DESCRIPTION, MAIN_HOME_FIRST_HUB_TITLE } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import PartnerOrganizationsSection from '@/app/components/home/PartnerOrganizationsSection'
@@ -31,13 +33,13 @@ const MAIN_TILES = [
 ] as const
 
 const QUICK_ACTIONS = [
-  { href: INQUIRY_TRAVEL, label: '상담접수' },
-  { href: '/air-ticketing', label: '항공권' },
-  { href: '/charter-bus', label: '전세버스' },
+  { href: INQUIRY_TRAVEL, label: '상담접수', primary: true as const },
+  { href: '/air-ticketing', label: '항공권', primary: false as const },
+  { href: '/charter-bus', label: '전세버스', primary: false as const },
 ] as const
 
 const TILE_CARD_CLASS =
-  'flex min-h-[7.75rem] flex-col items-center justify-center rounded-2xl border border-bt-border-soft bg-white px-3 py-4 text-center shadow-sm ring-1 ring-bt-border-soft/40 transition active:scale-[0.99] hover:border-bt-border-strong hover:ring-bt-border-strong/30'
+  'flex min-h-[8.75rem] flex-col items-center justify-center rounded-2xl border border-bt-border-soft bg-white px-4 py-5 text-center shadow-sm ring-1 ring-bt-border-soft/40 transition active:scale-[0.99] hover:border-bt-border-strong hover:ring-bt-border-strong/30'
 
 type Props = { seasonPick: HomeSeasonPickDTO }
 
@@ -45,8 +47,10 @@ type Props = { seasonPick: HomeSeasonPickDTO }
  * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 시즌 추천(이미지·글) / 주요 서비스 / 실무 요청 / 파트너.
  */
 export default function HomeMobileHub({ seasonPick }: Props) {
+  const seasonSlides = buildHomeMobileSeasonCarouselSlides(seasonPick)
+
   return (
-    <div className={`space-y-6 pb-8 pt-3 ${SITE_CONTENT_CLASS}`}>
+    <div className={`space-y-7 pb-8 pt-3 ${SITE_CONTENT_CLASS}`}>
       <div className="space-y-2">
         <p className="text-center text-[11px] font-semibold leading-snug tracking-tight text-teal-900 sm:text-xs">
           상담 시 여행자보험 무료
@@ -59,23 +63,16 @@ export default function HomeMobileHub({ seasonPick }: Props) {
         </Link>
       </div>
 
-      <HomeMobileHubSeasonBody
-        title={seasonPick.title}
-        excerpt={seasonPick.excerpt}
-        bodyFull={seasonPick.bodyFull}
-        imageUrl={seasonPick.imageUrl}
-        ctaHref={seasonPick.ctaHref}
-        ctaLabel={seasonPick.ctaLabel}
-      />
+      <HomeMobileHubSeasonCarousel slides={seasonSlides} />
 
       <section aria-label="주요 서비스">
-        <h2 className="mb-2.5 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">주요 서비스</h2>
-        <ul className="grid grid-cols-2 gap-3" role="list">
+        <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>주요 서비스</h2>
+        <ul className="grid grid-cols-2 gap-3.5" role="list">
           {MAIN_TILES.map((t) => (
             <li key={t.href} className="min-w-0">
               <Link href={t.href} className={TILE_CARD_CLASS}>
-                <p className="text-[15px] font-bold leading-tight text-bt-title">{t.title}</p>
-                <p className="mt-2 max-w-[11rem] text-[11px] leading-snug text-bt-muted">{t.desc}</p>
+                <p className="text-lg font-bold leading-tight text-bt-title sm:text-xl">{t.title}</p>
+                <p className="mt-2.5 max-w-[13rem] text-sm font-medium leading-snug text-bt-muted">{t.desc}</p>
               </Link>
             </li>
           ))}
@@ -83,21 +80,31 @@ export default function HomeMobileHub({ seasonPick }: Props) {
       </section>
 
       <section aria-label="실무 요청">
-        <h2 className="mb-2.5 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">실무 요청</h2>
-        <div className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-3">
-          {QUICK_ACTIONS.map((a) => (
-            <Link
-              key={a.href}
-              href={a.href}
-              className="inline-flex min-h-[2.75rem] min-w-[5.5rem] shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 px-3 text-center text-xs font-semibold text-slate-800 transition hover:border-teal-400 hover:bg-teal-50/70 sm:px-4 sm:text-sm"
-            >
-              {a.label}
-            </Link>
-          ))}
+        <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>실무 요청</h2>
+        <div className="flex w-full flex-col gap-3.5 sm:flex-row sm:flex-wrap sm:justify-center">
+          {QUICK_ACTIONS.map((a) =>
+            a.primary ? (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="inline-flex w-full min-h-[3.25rem] shrink-0 items-center justify-center rounded-xl bg-teal-700 px-5 py-3.5 text-center text-base font-bold text-white shadow-md ring-2 ring-teal-800/25 transition hover:bg-teal-800 active:scale-[0.99] sm:w-auto sm:min-w-[10.5rem]"
+              >
+                {a.label}
+              </Link>
+            ) : (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="inline-flex w-full min-h-[3.25rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-400/90 bg-slate-50 px-5 py-3.5 text-center text-base font-bold text-slate-900 shadow-sm transition hover:border-teal-600 hover:bg-teal-50/90 active:scale-[0.99] sm:w-auto sm:min-w-[9.5rem]"
+              >
+                {a.label}
+              </Link>
+            )
+          )}
         </div>
       </section>
 
-      <div className="border-t border-slate-200/80 pt-6">
+      <div className="border-t border-slate-200/80 pt-7">
         <PartnerOrganizationsSection />
       </div>
     </div>

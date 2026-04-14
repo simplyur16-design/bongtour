@@ -89,6 +89,7 @@ function buildRegisterCanonForSupplier(
     case 'verygoodtour':
       return buildRegisterCanonV(input)
     case 'ybtour':
+    case 'hanjintour':
       return buildRegisterCanonY(input)
     default: {
       const _e: never = k
@@ -109,6 +110,7 @@ function registerPreviewSsotBadgeLabelForSupplier(
     case 'verygoodtour':
       return registerPreviewSsotBadgeLabelV(b)
     case 'ybtour':
+    case 'hanjintour':
       return registerPreviewSsotBadgeLabelY(b)
     default: {
       const _e: never = k
@@ -130,6 +132,7 @@ function applyRegisterCorrectionOverlayForSupplier(
     case 'verygoodtour':
       return applyRegisterCorrectionOverlayV(parsed as RegisterParsedV, overlay)
     case 'ybtour':
+    case 'hanjintour':
       return applyRegisterCorrectionOverlayY(parsed as RegisterParsedY, overlay)
     default: {
       const _e: never = k
@@ -310,6 +313,8 @@ function parseRegisterApiPath(brandKey: AdminRegisterSupplierKey): string {
       return '/api/travel/parse-and-register-ybtour'
     case 'hanatour':
       return '/api/travel/parse-and-register-hanatour'
+    case 'hanjintour':
+      return '/api/travel/parse-and-register-hanjintour'
     default: {
       const _e: never = brandKey
       throw new Error(`Unexpected register supplier: ${_e}`)
@@ -326,6 +331,7 @@ const REGISTER_SUPPLIER_OPTIONS: Brand[] = [
   { id: '', brandKey: 'verygoodtour', displayName: '참좋은여행사', sortOrder: 2 },
   { id: '', brandKey: 'ybtour', displayName: '노랑풍선', sortOrder: 3 },
   { id: '', brandKey: 'hanatour', displayName: '하나투어', sortOrder: 4 },
+  { id: '', brandKey: 'hanjintour', displayName: '한진투어', sortOrder: 5 },
 ]
 
 {

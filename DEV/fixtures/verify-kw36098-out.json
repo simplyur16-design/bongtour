@@ -1,0 +1,548 @@
+{
+  "base_parser": {
+    "supplier": "hanjintour",
+    "originSource": "HANJINTOUR",
+    "product_code": "KW36098",
+    "product_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡",
+    "product_title_normalized": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡",
+    "trip_nights": 7,
+    "trip_days": 10,
+    "base_price_adult": 3596000,
+    "base_price_child": null,
+    "base_price_infant": null,
+    "local_join_price": null,
+    "airline_holder_price": null,
+    "guide_driver_tip": "175 USD(미국 달러)",
+    "shopping_count": 1,
+    "optional_tour_summary": "선택관광 표 SSOT 15건: 뉴욕·MOMA 현대미술관(성인 40 USD(미국 달러), 약 1시간) | 나이아가라 폭포·바람의동굴(성인 40 USD(미국 달러), 약 1시간) | 나이아가라 폭포·씨닉터널(성인 40 USD(미국 달러), 약 1시간) | 나이아가라 폴스·스카이론타워 전망대 & 중식 업그레이드(성인 110 USD(미국 달러), 약 1시간 30분) | 나이아가라 폴스·나이아가라 헬기 투어(성인 160 USD(미국 달러), 약 15분) | 나이아가라 폴스·나이아가라 헬기투어(성인 215 CAD(캐나다 달러), 약 15분) | 나이아가라 폴스·나이아가라 젯보트(성인 130 USD(미국 달러), 약 1시간) | 나이아가라 폴스·나이아가라젯보트(성인 150 CAD(캐나다 달러), 약1시간) | 나이아가라 폴스·화이트워터워크(성인 40 USD(미국 달러), 약 1시간) | 오타와·천섬 유람선(성인 45 USD(미국 달러), 약 1시간) | 나이아가라 폴스·랍스터 특식(성인 80 USD(미국 달러), 약 1시간) | 퀘벡시티·몽모렌시 폭포(성인 45 USD(미국 달러), 약 1시간) | 퀘벡시티·세인트 안 캐년(Canyon Sainte-Anne)(성인 50 USD(미국 달러), 약 1시간) | 플래츠버그·오조블 케이즘 (Ausable Chasm)(성인 50 USD(미국 달러), 약 1시간) | 뉴욕·뉴욕 야경(성인 60 USD(미국 달러), 약 1시간 30분)",
+    "optional_tours_structured": [
+      {
+        "city": "뉴욕",
+        "option_name": "MOMA 현대미술관",
+        "price_text": "성인 40 USD(미국 달러)",
+        "price_value": 40,
+        "currency": "USD",
+        "duration_text": "약 1시간",
+        "replacement_schedule": "주변 자유시간"
+      },
+      {
+        "city": "나이아가라 폭포",
+        "option_name": "바람의동굴",
+        "price_text": "성인 40 USD(미국 달러)",
+        "price_value": 40,
+        "currency": "USD",
+        "duration_text": "약 1시간",
+        "replacement_schedule": "미국측 나이아가라 폭포 주변 자유시간"
+      },
+      {
+        "city": "나이아가라 폭포",
+        "option_name": "씨닉터널",
+        "price_text": "성인 40 USD(미국 달러)",
+        "price_value": 40,
+        "currency": "USD",
+        "duration_text": "약 1시간",
+        "replacement_schedule": "주변 자유 시간"
+      },
+      {
+        "city": "나이아가라 폴스",
+        "option_name": "스카이론타워 전망대 & 중식 업그레이드",
+        "price_text": "성인 110 USD(미국 달러)",
+        "price_value": 110,
+        "currency": "USD",
+        "duration_text": "약 1시간 30분",
+        "replacement_schedule": "나이아가라 자유시간"
+      },
+      {
+        "city": "나이아가라 폴스",
+        "option_name": "나이아가라 헬기 투어",
+        "price_text": "성인 160 USD(미국 달러)",
+        "price_value": 160,
+        "currency": "USD",
+        "duration_text": "약 15분",
+        "replacement_schedule": "주변 자유 시간"
+      },
+      {
+        "city": "나이아가라 폴스",
+        "option_name": "나이아가라 헬기투어",
+        "price_text": "성인 215 CAD(캐나다 달러)",
+        "price_value": 215,
+        "currency": "CAD",
+        "duration_text": "약 15분",
+        "replacement_schedule": "주변 자유 시간"
+      },
+      {
+        "city": "나이아가라 폴스",
+        "option_name": "나이아가라 젯보트",
+        "price_text": "성인 130 USD(미국 달러)",
+        "price_value": 130,
+        "currency": "USD",
+        "duration_text": "약 1시간",
+        "replacement_schedule": "주변 자유시간"
+      },
+      {
+        "city": "나이아가라 폴스",
+        "option_name": "나이아가라젯보트",
+        "price_text": "성인 150 CAD(캐나다 달러)",
+        "price_value": 150,
+        "currency": "CAD",
+        "duration_text": "약1시간",
+        "replacement_schedule": "주변 자유시간"
+      },
+      {
+        "city": "나이아가라 폴스",
+        "option_name": "화이트워터워크",
+        "price_text": "성인 40 USD(미국 달러)",
+        "price_value": 40,
+        "currency": "USD",
+        "duration_text": "약 1시간",
+        "replacement_schedule": "주변 자유시간"
+      },
+      {
+        "city": "오타와",
+        "option_name": "천섬 유람선",
+        "price_text": "성인 45 USD(미국 달러)",
+        "price_value": 45,
+        "currency": "USD",
+        "duration_text": "약 1시간",
+        "replacement_schedule": "주변 대기"
+      },
+      {
+        "city": "나이아가라 폴스",
+        "option_name": "랍스터 특식",
+        "price_text": "성인 80 USD(미국 달러)",
+        "price_value": 80,
+        "currency": "USD",
+        "duration_text": "약 1시간",
+        "replacement_schedule": "기본 제공 일반 식당에서 식사"
+      },
+      {
+        "city": "퀘벡시티",
+        "option_name": "몽모렌시 폭포",
+        "price_text": "성인 45 USD(미국 달러)",
+        "price_value": 45,
+        "currency": "USD",
+        "duration_text": "약 1시간",
+        "replacement_schedule": "주변 자유시간"
+      },
+      {
+        "city": "퀘벡시티",
+        "option_name": "세인트 안 캐년(Canyon Sainte-Anne)",
+        "price_text": "성인 50 USD(미국 달러)",
+        "price_value": 50,
+        "currency": "USD",
+        "duration_text": "약 1시간",
+        "replacement_schedule": "주변 자유시간"
+      },
+      {
+        "city": "플래츠버그",
+        "option_name": "오조블 케이즘 (Ausable Chasm)",
+        "price_text": "성인 50 USD(미국 달러)",
+        "price_value": 50,
+        "currency": "USD",
+        "duration_text": "약 1시간",
+        "replacement_schedule": "주변 자유시간"
+      },
+      {
+        "city": "뉴욕",
+        "option_name": "뉴욕 야경",
+        "price_text": "성인 60 USD(미국 달러)",
+        "price_value": 60,
+        "currency": "USD",
+        "duration_text": "약 1시간 30분",
+        "replacement_schedule": "호텔로 이동하여 휴식"
+      }
+    ],
+    "included_items": [],
+    "excluded_items": [],
+    "extra_charge_items": [],
+    "hotel_summary": null,
+    "flight_summary": null,
+    "main_points": null,
+    "price_table_raw_text": "성인 2인부터 출발 가능! 뉴욕 리턴연장 가능 (좌석 가능 시) 여행핵심정보 이동 공유 인쇄 성인 1인 기준 3,596,000원",
+    "schedule": [],
+    "parse_notes": [
+      "product_title: next line after 상품코드 (pre)",
+      "schedule: no N일차 blocks found"
+    ]
+  },
+  "optional_tours_structured": [
+    {
+      "city": "뉴욕",
+      "option_name": "MOMA 현대미술관",
+      "price_text": "성인 40 USD(미국 달러)",
+      "price_value": 40,
+      "currency": "USD",
+      "duration_text": "약 1시간",
+      "replacement_schedule": "주변 자유시간"
+    },
+    {
+      "city": "나이아가라 폭포",
+      "option_name": "바람의동굴",
+      "price_text": "성인 40 USD(미국 달러)",
+      "price_value": 40,
+      "currency": "USD",
+      "duration_text": "약 1시간",
+      "replacement_schedule": "미국측 나이아가라 폭포 주변 자유시간"
+    },
+    {
+      "city": "나이아가라 폭포",
+      "option_name": "씨닉터널",
+      "price_text": "성인 40 USD(미국 달러)",
+      "price_value": 40,
+      "currency": "USD",
+      "duration_text": "약 1시간",
+      "replacement_schedule": "주변 자유 시간"
+    },
+    {
+      "city": "나이아가라 폴스",
+      "option_name": "스카이론타워 전망대 & 중식 업그레이드",
+      "price_text": "성인 110 USD(미국 달러)",
+      "price_value": 110,
+      "currency": "USD",
+      "duration_text": "약 1시간 30분",
+      "replacement_schedule": "나이아가라 자유시간"
+    },
+    {
+      "city": "나이아가라 폴스",
+      "option_name": "나이아가라 헬기 투어",
+      "price_text": "성인 160 USD(미국 달러)",
+      "price_value": 160,
+      "currency": "USD",
+      "duration_text": "약 15분",
+      "replacement_schedule": "주변 자유 시간"
+    },
+    {
+      "city": "나이아가라 폴스",
+      "option_name": "나이아가라 헬기투어",
+      "price_text": "성인 215 CAD(캐나다 달러)",
+      "price_value": 215,
+      "currency": "CAD",
+      "duration_text": "약 15분",
+      "replacement_schedule": "주변 자유 시간"
+    },
+    {
+      "city": "나이아가라 폴스",
+      "option_name": "나이아가라 젯보트",
+      "price_text": "성인 130 USD(미국 달러)",
+      "price_value": 130,
+      "currency": "USD",
+      "duration_text": "약 1시간",
+      "replacement_schedule": "주변 자유시간"
+    },
+    {
+      "city": "나이아가라 폴스",
+      "option_name": "나이아가라젯보트",
+      "price_text": "성인 150 CAD(캐나다 달러)",
+      "price_value": 150,
+      "currency": "CAD",
+      "duration_text": "약1시간",
+      "replacement_schedule": "주변 자유시간"
+    },
+    {
+      "city": "나이아가라 폴스",
+      "option_name": "화이트워터워크",
+      "price_text": "성인 40 USD(미국 달러)",
+      "price_value": 40,
+      "currency": "USD",
+      "duration_text": "약 1시간",
+      "replacement_schedule": "주변 자유시간"
+    },
+    {
+      "city": "오타와",
+      "option_name": "천섬 유람선",
+      "price_text": "성인 45 USD(미국 달러)",
+      "price_value": 45,
+      "currency": "USD",
+      "duration_text": "약 1시간",
+      "replacement_schedule": "주변 대기"
+    },
+    {
+      "city": "나이아가라 폴스",
+      "option_name": "랍스터 특식",
+      "price_text": "성인 80 USD(미국 달러)",
+      "price_value": 80,
+      "currency": "USD",
+      "duration_text": "약 1시간",
+      "replacement_schedule": "기본 제공 일반 식당에서 식사"
+    },
+    {
+      "city": "퀘벡시티",
+      "option_name": "몽모렌시 폭포",
+      "price_text": "성인 45 USD(미국 달러)",
+      "price_value": 45,
+      "currency": "USD",
+      "duration_text": "약 1시간",
+      "replacement_schedule": "주변 자유시간"
+    },
+    {
+      "city": "퀘벡시티",
+      "option_name": "세인트 안 캐년(Canyon Sainte-Anne)",
+      "price_text": "성인 50 USD(미국 달러)",
+      "price_value": 50,
+      "currency": "USD",
+      "duration_text": "약 1시간",
+      "replacement_schedule": "주변 자유시간"
+    },
+    {
+      "city": "플래츠버그",
+      "option_name": "오조블 케이즘 (Ausable Chasm)",
+      "price_text": "성인 50 USD(미국 달러)",
+      "price_value": 50,
+      "currency": "USD",
+      "duration_text": "약 1시간",
+      "replacement_schedule": "주변 자유시간"
+    },
+    {
+      "city": "뉴욕",
+      "option_name": "뉴욕 야경",
+      "price_text": "성인 60 USD(미국 달러)",
+      "price_value": 60,
+      "currency": "USD",
+      "duration_text": "약 1시간 30분",
+      "replacement_schedule": "호텔로 이동하여 휴식"
+    }
+  ],
+  "e2e": {
+    "failures": [],
+    "modal_open_log": [
+      "dismissed_dialog:login",
+      "dismissed_dialog:login",
+      "dismissed_dialog:login",
+      "clicked 출발일 변경 (compact control only)"
+    ],
+    "priced_date_cells": 4,
+    "date_card_counts": [
+      {
+        "clicked_date_label": "17359만",
+        "card_count": 3
+      },
+      {
+        "clicked_date_label": "359만",
+        "card_count": 3
+      },
+      {
+        "clicked_date_label": "21359만",
+        "card_count": 3
+      },
+      {
+        "clicked_date_label": "359만",
+        "card_count": 3
+      }
+    ],
+    "per_date_snapshots": [
+      {
+        "clicked_date_label": "17359만",
+        "card_count": 3,
+        "list_before_snip": " 닫기 미동부/캐나다 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (26.04.17 기준 최저가)3,596,000원~이전26.04다음일월화수목금토1234567891011121314151617359만18359만1920359만21359만222324359만25359만2627359만28359만2930출발확정예약가능대기예약마감예약가능ON/OFF출발확정ON/OFF예약상태 안내툴팁 보기예약상태 안내출발확정최소 출발인원이 예약되어 예약과 동",
+        "list_after_snip": " 닫기 미동부/캐나다 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (26.04.17 기준 최저가)3,596,000원~이전26.04다음일월화수목금토1234567891011121314151617359만18359만1920359만21359만222324359만25359만2627359만28359만2930출발확정예약가능대기예약마감예약가능ON/OFF출발확정ON/OFF예약상태 안내툴팁 보기예약상태 안내출발확정최소 출발인원이 예약되어 예약과 동",
+        "first_card_text": "기획특가현지합류SKYPASS 바우처 마감 미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 26.04.17 (금) 19:30 ~ 26.04.26 (일) 05:107박10일대한항공 예약인원 0명 (잔여좌석 : 10명) 3,596,000원"
+      },
+      {
+        "clicked_date_label": "359만",
+        "card_count": 3,
+        "list_before_snip": " 닫기 미동부/캐나다 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (26.04.17 기준 최저가)3,596,000원~이전26.04다음일월화수목금토1234567891011121314151617359만18359만1920359만21359만222324359만25359만2627359만28359만2930출발확정예약가능대기예약마감예약가능ON/OFF출발확정ON/OFF예약상태 안내툴팁 보기예약상태 안내출발확정최소 출발인원이 예약되어 예약과 동",
+        "list_after_snip": " 닫기 미동부/캐나다 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (26.04.17 기준 최저가)3,596,000원~이전26.04다음일월화수목금토1234567891011121314151617359만18359만1920359만21359만222324359만25359만2627359만28359만2930출발확정예약가능대기예약마감예약가능ON/OFF출발확정ON/OFF예약상태 안내툴팁 보기예약상태 안내출발확정최소 출발인원이 예약되어 예약과 동",
+        "first_card_text": "기획특가현지합류SKYPASS 바우처 마감 미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 26.04.17 (금) 19:30 ~ 26.04.26 (일) 05:107박10일대한항공 예약인원 0명 (잔여좌석 : 10명) 3,596,000원"
+      },
+      {
+        "clicked_date_label": "21359만",
+        "card_count": 3,
+        "list_before_snip": " 닫기 미동부/캐나다 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (26.04.17 기준 최저가)3,596,000원~이전26.04다음일월화수목금토1234567891011121314151617359만18359만1920359만21359만222324359만25359만2627359만28359만2930출발확정예약가능대기예약마감예약가능ON/OFF출발확정ON/OFF예약상태 안내툴팁 보기예약상태 안내출발확정최소 출발인원이 예약되어 예약과 동",
+        "list_after_snip": " 닫기 미동부/캐나다 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (26.04.17 기준 최저가)3,596,000원~이전26.04다음일월화수목금토1234567891011121314151617359만18359만1920359만21359만222324359만25359만2627359만28359만2930출발확정예약가능대기예약마감예약가능ON/OFF출발확정ON/OFF예약상태 안내툴팁 보기예약상태 안내출발확정최소 출발인원이 예약되어 예약과 동",
+        "first_card_text": "기획특가현지합류SKYPASS 바우처 마감 미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 26.04.17 (금) 19:30 ~ 26.04.26 (일) 05:107박10일대한항공 예약인원 0명 (잔여좌석 : 10명) 3,596,000원"
+      },
+      {
+        "clicked_date_label": "359만",
+        "card_count": 3,
+        "list_before_snip": " 닫기 미동부/캐나다 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (26.04.17 기준 최저가)3,596,000원~이전26.04다음일월화수목금토1234567891011121314151617359만18359만1920359만21359만222324359만25359만2627359만28359만2930출발확정예약가능대기예약마감예약가능ON/OFF출발확정ON/OFF예약상태 안내툴팁 보기예약상태 안내출발확정최소 출발인원이 예약되어 예약과 동",
+        "list_after_snip": " 닫기 미동부/캐나다 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (26.04.17 기준 최저가)3,596,000원~이전26.04다음일월화수목금토1234567891011121314151617359만18359만1920359만21359만222324359만25359만2627359만28359만2930출발확정예약가능대기예약마감예약가능ON/OFF출발확정ON/OFF예약상태 안내툴팁 보기예약상태 안내출발확정최소 출발인원이 예약되어 예약과 동",
+        "first_card_text": "기획특가현지합류SKYPASS 바우처 마감 미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 26.04.17 (금) 19:30 ~ 26.04.26 (일) 05:107박10일대한항공 예약인원 0명 (잔여좌석 : 10명) 3,596,000원"
+      }
+    ],
+    "card_sample": "기획특가현지합류SKYPASS 바우처 마감 미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 26.04.17 (금) 19:30 ~ 26.04.26 (일) 05:107박10일대한항공 예약인원 0명 (잔여좌석 : 10명) 3,596,000원",
+    "page_text_before_modal_snip": "로그인\n멤버십가입\n고객센터\n여행 상품 검색\n검색\n예약확인 아이콘\n예약확인\n찜 아이콘\n찜\n전체 메뉴보기\nTHE팩\n패키지여행\n전세기\n항공+호텔\n항공✈️\n기획전\n이벤트\n기획특가\n현지합류\nSKYPASS 바우처\n상품코드 KW36098\n미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡\n👉 담당자 추천 ! 미동부 필수 코스 총집합\n🗽 뉴욕, 워싱턴, 나이아가라, 토론토, 오타와, 몬트리올, 퀘벡 관광\n✈️ 성인 2인부터 출발 가능! 뉴욕 리턴연장 가능 (좌석 가능 시)\n여행핵심정보\n이동\n공유\n인쇄\n성인 1인 기준\n3,596,000원\n출발예정\n항공예정\n일정예정\n호텔예정\n가격예정\n일정\n여행기간\n7박 10일\n쇼핑\n쇼핑\n1회\n가이드 경비\n가이드 경비\n175 USD(미국 달러)\n선택관광\n선택관광\n있음\n인솔자\n인",
+    "modal_text_after_open_snip": "닫기 미동부/캐나다 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (26.04.17 기준 최저가)3,596,000원~이전26.04다음일월화수목금토1234567891011121314151617359만18359만1920359만21359만222324359만25359만2627359만28359만2930출발확정예약가능대기예약마감예약가능ON/OFF출발확정ON/OFF예약상태 안내툴팁 보기예약상태 안내출발확정최소 출발인원이 예약되어 예약과 동시에 출발이 가능합니다단, 기존 예약자의 취소로 인해 최소 출발인원이 미충족 될 경우, 출발확정 여부가 변동될 수 있습니다예약가능여유좌석 내에서 예약이 가능하며, 출발여부는 담당자 확인이 필요합니다대기예약여유좌석 확보를 위해 담당자가 확인이 필요한 상태입니다마감예약가능 인원이 마감되어 예약이 불가능한 상태입니다툴팁 닫기기획특가현지합류SKYPASS 바우처 마감 미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 26.04.17 (금) 19:30 ~ 26"
+  },
+  "derived_summary": [
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (대한항공)",
+      "airline": "대한항공",
+      "departure_datetime": "2026-04-17T19:30:00",
+      "return_datetime": "2026-04-26T05:10:00",
+      "trip_nights": 7,
+      "trip_days": 10,
+      "listed_price": 3596000,
+      "derived_key": "6ef754709a0e74e73e6cf8c4b51f490d8e59b07a5663dab6c3f180b8d311d92a",
+      "option_badges": [
+        "SKYPASS 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    },
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (대한항공)",
+      "airline": "대한항공",
+      "departure_datetime": "2026-04-17T10:00:00",
+      "return_datetime": "2026-04-26T17:50:00",
+      "trip_nights": 8,
+      "trip_days": 10,
+      "listed_price": 3796000,
+      "derived_key": "cb0dec22e09b4d97893d385e071e663b63696d29940fda29595ede3c48483e95",
+      "option_badges": [
+        "SKYPASS 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    },
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (아시아나항공)",
+      "airline": "아시아나항공",
+      "departure_datetime": "2026-04-17T21:05:00",
+      "return_datetime": "2026-04-26T06:05:00",
+      "trip_nights": 7,
+      "trip_days": 10,
+      "listed_price": 3993800,
+      "derived_key": "28f9ec30ae8a3b4bb83b22c1ff3e36d7b7ac98be125c49728125c4f7e7fb6693",
+      "option_badges": [
+        "OZ마일샵 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    },
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (대한항공)",
+      "airline": "대한항공",
+      "departure_datetime": "2026-04-17T19:30:00",
+      "return_datetime": "2026-04-26T05:10:00",
+      "trip_nights": 7,
+      "trip_days": 10,
+      "listed_price": 3596000,
+      "derived_key": "083b589c52edf498d02bd5e1c20b5437bff843bcf6be7a270dc82116d88be1a7",
+      "option_badges": [
+        "SKYPASS 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    },
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (대한항공)",
+      "airline": "대한항공",
+      "departure_datetime": "2026-04-17T10:00:00",
+      "return_datetime": "2026-04-26T17:50:00",
+      "trip_nights": 8,
+      "trip_days": 10,
+      "listed_price": 3796000,
+      "derived_key": "87593ba83f58562019a5cc8ad45ad9f27c7ae0b9eb1a637587bf6c14093ff470",
+      "option_badges": [
+        "SKYPASS 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    },
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (아시아나항공)",
+      "airline": "아시아나항공",
+      "departure_datetime": "2026-04-17T21:05:00",
+      "return_datetime": "2026-04-26T06:05:00",
+      "trip_nights": 7,
+      "trip_days": 10,
+      "listed_price": 3993800,
+      "derived_key": "b604becdd001031e1181b73bef2dd54770d3d06e7f2611a9774e20e836a06024",
+      "option_badges": [
+        "OZ마일샵 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    },
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (대한항공)",
+      "airline": "대한항공",
+      "departure_datetime": "2026-04-17T19:30:00",
+      "return_datetime": "2026-04-26T05:10:00",
+      "trip_nights": 7,
+      "trip_days": 10,
+      "listed_price": 3596000,
+      "derived_key": "4d7bb65fbec9a3b5089a7ae8d210a0fc55b4f1c94de95c5e766f713078b36906",
+      "option_badges": [
+        "SKYPASS 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    },
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (대한항공)",
+      "airline": "대한항공",
+      "departure_datetime": "2026-04-17T10:00:00",
+      "return_datetime": "2026-04-26T17:50:00",
+      "trip_nights": 8,
+      "trip_days": 10,
+      "listed_price": 3796000,
+      "derived_key": "bddda1d60f44ef885b1359acb5fc4aee5d994e3cab13e42dc6886a297e672c73",
+      "option_badges": [
+        "SKYPASS 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    },
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (아시아나항공)",
+      "airline": "아시아나항공",
+      "departure_datetime": "2026-04-17T21:05:00",
+      "return_datetime": "2026-04-26T06:05:00",
+      "trip_nights": 7,
+      "trip_days": 10,
+      "listed_price": 3993800,
+      "derived_key": "9e196487221ff162de108e818e91ede53fb95b834c897794e80783d60428112b",
+      "option_badges": [
+        "OZ마일샵 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    },
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (대한항공)",
+      "airline": "대한항공",
+      "departure_datetime": "2026-04-17T19:30:00",
+      "return_datetime": "2026-04-26T05:10:00",
+      "trip_nights": 7,
+      "trip_days": 10,
+      "listed_price": 3596000,
+      "derived_key": "bdfcafaff8444b11015af2cf39d410e544785f2cd900a20fc78219c58323f626",
+      "option_badges": [
+        "SKYPASS 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    },
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (대한항공)",
+      "airline": "대한항공",
+      "departure_datetime": "2026-04-17T10:00:00",
+      "return_datetime": "2026-04-26T17:50:00",
+      "trip_nights": 8,
+      "trip_days": 10,
+      "listed_price": 3796000,
+      "derived_key": "0376db131322a7eaf6c9dec6adcd0d05c40cb0798f437ea088319e9d13619e95",
+      "option_badges": [
+        "SKYPASS 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    },
+    {
+      "display_title": "미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 (아시아나항공)",
+      "airline": "아시아나항공",
+      "departure_datetime": "2026-04-17T21:05:00",
+      "return_datetime": "2026-04-26T06:05:00",
+      "trip_nights": 7,
+      "trip_days": 10,
+      "listed_price": 3993800,
+      "derived_key": "e0e75c1fa5ad638682796d8003e73b67dec1052c0ec7b7a8033ad0c653ebc093",
+      "option_badges": [
+        "OZ마일샵 바우처",
+        "현지합류",
+        "기획특가"
+      ]
+    }
+  ]
+}

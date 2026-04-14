@@ -5,7 +5,7 @@
  */
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 
-export type RegisterSupplierFrameKey = 'modetour' | 'verygoodtour' | 'hanatour' | 'ybtour'
+export type RegisterSupplierFrameKey = 'modetour' | 'verygoodtour' | 'hanatour' | 'ybtour' | 'hanjintour'
 
 export type RegisterPastePlaceholders = {
   body: string
@@ -290,11 +290,64 @@ const YELLOW: SupplierInputFrameSpec = {
   },
 }
 
+const HANJIN: SupplierInputFrameSpec = {
+  displayName: '한진투어',
+  axes: [
+    {
+      axis: '본문(LLM)',
+      shape: '상세 복붙 + 서술 보조',
+      slots:
+        '담당: 일정표·관광 흐름·식사·이동 요약(일차별). 비담당: 항공 슬롯·선택관광 표·쇼핑 횟수/행 — 각각 아래 정형칸만 SSOT. 상세 URL이 있으면 일정 DOM 보강에 사용.',
+    },
+    {
+      axis: '항공',
+      shape: '항공사 + 출발/귀국 블록',
+      slots:
+        '항공사 한 줄. 출발편·귀국편: 편명, 공항, 일시. 본문 flight_summary와 중복되어도 확정은 이 칸 우선.',
+    },
+    {
+      axis: '호텔',
+      shape: '요약·일차별',
+      slots: '대표 숙소·도시별 호텔·예정/미정. 일정표의 호텔 행과 다를 때는 교정으로 맞춤.',
+    },
+    {
+      axis: '옵션',
+      shape: '선택관광 표(탭 구분, 최대 15행 SSOT)',
+      slots:
+        '도시\\t옵션명\\t가격\\t소요시간\\t미참여 시 대체일정. 이 표만 구조화 SSOT — 일정 본문에 선택관광을 풀어쓰지 않음.',
+    },
+    {
+      axis: '쇼핑',
+      shape: '횟수 + 회차 표',
+      slots: '쇼핑 N회 요약 + (선택) 회차별 품목·장소. 일정 description에 쇼핑 문구를 넣지 않음.',
+    },
+  ],
+  placeholders: {
+    body: ph([
+      '[한진투어 상세 본문 — HTML 또는 <pre> 복사]',
+      '상단 URL은 반드시 입력(일정표 DOM 보강용).',
+      '일정·관광 중심. 항공/선택관광/쇼핑은 아래 칸.',
+    ]),
+    airlineTransport: ph([
+      '항공사: 대한항공',
+      '출발: 인천 2026-04-20 10:00 → 도착지 … KE○○○',
+      '귀국: … → 인천 2026-04-26 18:00 KE○○○',
+    ]),
+    hotel: ph(['박수·도시·호텔명·예정/미정', '2박 | 도쿄 | ○○호텔 | 예정']),
+    optionalTour: ph([
+      '도시\\t옵션명\\t가격\\t소요\\t대체',
+      '도쿄\\t○○투어\\tJPY 5000\\t2시간\\t자유',
+    ]),
+    shopping: ph(['쇼핑 2회', '회차 | 품목 | 장소 | 시간 | 환불']),
+  },
+}
+
 const SPECS: Record<RegisterSupplierFrameKey, SupplierInputFrameSpec> = {
   modetour: MODETOUR,
   verygoodtour: VERYGOOD,
   hanatour: HANATOUR,
   ybtour: YELLOW,
+  hanjintour: HANJIN,
 }
 
 /** 교원·기타 등: 전용 프레임 없을 때 하나투어 프레임을 기본으로 안내 */
