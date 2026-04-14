@@ -74,6 +74,8 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
       <div className="mx-auto max-w-6xl px-3 sm:px-5">
         <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5" role="list">
           {cards.map((card, index) => {
+            const ariaBits = [card.categoryLabel, card.headline?.trim(), card.description?.trim()].filter(Boolean)
+            const cardAriaLabel = ariaBits.join('. ')
             return (
               <li
                 key={card.key}
@@ -82,6 +84,7 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
               >
                 <Link
                   href={card.href}
+                  aria-label={cardAriaLabel}
                   className={`group flex flex-col overflow-hidden border border-bt-border-soft bg-white shadow-md shadow-bt-border-soft/40 ring-1 ring-bt-border-soft transition duration-300 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-link/70 ${CARD_ROUND} md:hover:-translate-y-1 md:hover:border-bt-border-strong md:hover:shadow-xl md:hover:shadow-bt-border-strong/20 md:hover:ring-bt-border-strong/60`}
                 >
                   <div className={`${IMAGE_AREA} border-b border-bt-border-soft`}>
@@ -103,8 +106,12 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
                   </div>
                   <div className="flex flex-1 flex-col gap-2 px-3 py-3 sm:px-4 sm:py-4">
                     <p className="text-base font-bold leading-tight text-bt-title sm:text-lg">{card.categoryLabel}</p>
-                    <p className="text-sm font-semibold text-bt-body">{card.headline}</p>
-                    <p className="line-clamp-2 text-xs leading-relaxed text-bt-muted">{card.description}</p>
+                    {card.headline?.trim() ? (
+                      <p className="text-sm font-semibold text-bt-body">{card.headline}</p>
+                    ) : null}
+                    {card.description?.trim() ? (
+                      <p className="line-clamp-2 text-xs leading-relaxed text-bt-muted">{card.description}</p>
+                    ) : null}
                     <div className="mt-1 flex flex-wrap gap-1">
                       {card.hints.map((h) => (
                         <span

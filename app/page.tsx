@@ -70,10 +70,10 @@ export default async function Home() {
             className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,transparent_50%)]"
             aria-hidden
           />
-          <div className="block md:hidden">
+          <div className="block lg:hidden">
             <HomeMobileHub seasonPick={homeSeasonPick} />
           </div>
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <MainHero />
             <div className="relative border-t border-slate-200/70 bg-gradient-to-b from-slate-50/50 to-transparent pt-3 md:pt-4">
               <HomeHubFour
@@ -89,7 +89,7 @@ export default async function Home() {
             </div>
           </div>
         </section>
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <PartnerOrganizationsSection />
         </div>
       </main>

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick'
+import { MAIN_HOME_FIRST_HUB_DESCRIPTION, MAIN_HOME_FIRST_HUB_TITLE } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import PartnerOrganizationsSection from '@/app/components/home/PartnerOrganizationsSection'
 
@@ -9,8 +10,8 @@ const INQUIRY_TRAVEL = '/inquiry?type=travel'
 const MAIN_TILES = [
   {
     href: '/travel/overseas',
-    title: '패키지',
-    desc: '검증된 여행상품',
+    title: MAIN_HOME_FIRST_HUB_TITLE,
+    desc: MAIN_HOME_FIRST_HUB_DESCRIPTION,
   },
   {
     href: '/travel/air-hotel',
@@ -58,7 +59,7 @@ function SeasonCtaLink({ href, label }: { href: string; label: string }) {
 type Props = { seasonPick: HomeSeasonPickDTO }
 
 /**
- * 모바일 전용(`md` 미만) 메인 홈 — 상담 CTA / 시즌 추천(이미지·글) / 주요 서비스 / 실무 요청 / 파트너.
+ * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 시즌 추천(이미지·글) / 주요 서비스 / 실무 요청 / 파트너.
  * 시즌 이미지는 관리자에서 Supabase 등 **절대 URL(https)** 로 저장하는 것을 권장(서버 `public`과 경로 불일치 방지).
  */
 export default function HomeMobileHub({ seasonPick }: Props) {

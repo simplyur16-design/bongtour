@@ -179,16 +179,19 @@ export const MAIN_HUB_FOUR_SR_HEADING = 'Bong투어 주요 서비스 영역'
 
 export type HubFourAccent = 'domestic' | 'overseas' | 'training' | 'bus'
 
+/** 메인 첫 허브(해외) — 모바일 주요 서비스 타일·PC 4카드 첫 칸 공통 문구 */
+export const MAIN_HOME_FIRST_HUB_TITLE = '해외여행' as const
+export const MAIN_HOME_FIRST_HUB_DESCRIPTION = '검증된 여행상품' as const
+
 /** 그리드 순서: 해외여행 → 국외연수 → 국내여행 → 전세버스 — headline은 짧은 헤드카피(모바일 기본·데스크톱 hover) */
 export const MAIN_HUB_FOUR_CARDS = [
   {
     key: 'overseas',
     href: '/travel/overseas',
     accent: 'overseas' as const,
-    categoryLabel: '해외여행',
-    headline: '검증된 세계로',
-    description:
-      '주요 여행사 베스트 상품을 바탕으로 패키지와 자유여행(에어텔)을 상담합니다.',
+    categoryLabel: MAIN_HOME_FIRST_HUB_TITLE,
+    headline: '',
+    description: MAIN_HOME_FIRST_HUB_DESCRIPTION,
     hints: ['패키지', '자유여행', '에어텔'] as const,
     ctaLabel: '해외여행 보기',
     imageSrc: homeHubCardImageSrc('overseas'),
