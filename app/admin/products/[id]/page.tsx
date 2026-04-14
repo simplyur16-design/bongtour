@@ -16,7 +16,10 @@ import * as fmcModetour from '@/lib/flight-manual-correction-modetour'
 import * as fmcVerygood from '@/lib/flight-manual-correction-verygoodtour'
 import * as fmcYbtour from '@/lib/flight-manual-correction-ybtour'
 import type { FlightManualCorrectionPayload } from '@/lib/flight-manual-correction-hanatour'
-import { resolvePublicConsumptionModuleKey } from '@/lib/resolve-public-consumption-module-key'
+import {
+  resolvePublicConsumptionModuleKey,
+  type PublicConsumptionModuleKey,
+} from '@/lib/resolve-public-consumption-module-key'
 import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_HANATOUR } from '@/lib/admin-register-verification-meta-hanatour'
 import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_MODETOUR } from '@/lib/admin-register-verification-meta-modetour'
 import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_VERYGOODTOUR } from '@/lib/admin-register-verification-meta-verygoodtour'
@@ -138,20 +141,23 @@ function fmcModuleForAdminProduct(
   }
 }
 
+const REGISTER_PUBLIC_PAGE_TRACE_BULLETS_BY_MODULE: Record<
+  PublicConsumptionModuleKey,
+  readonly string[]
+> = {
+  hanatour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_HANATOUR,
+  hanjintour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_HANATOUR,
+  modetour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_MODETOUR,
+  verygoodtour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_VERYGOODTOUR,
+  ybtour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_YBTOUR,
+}
+
 function registerPublicPageTraceBulletsForProduct(
   brandKey: string | null | undefined,
   originSource: string | null | undefined
 ): readonly string[] {
-  switch (resolvePublicConsumptionModuleKey(brandKey, originSource)) {
-    case 'hanatour':
-      return REGISTER_PUBLIC_PAGE_TRACE_BULLETS_HANATOUR
-    case 'modetour':
-      return REGISTER_PUBLIC_PAGE_TRACE_BULLETS_MODETOUR
-    case 'verygoodtour':
-      return REGISTER_PUBLIC_PAGE_TRACE_BULLETS_VERYGOODTOUR
-    case 'ybtour':
-      return REGISTER_PUBLIC_PAGE_TRACE_BULLETS_YBTOUR
-  }
+  const key = resolvePublicConsumptionModuleKey(brandKey, originSource)
+  return REGISTER_PUBLIC_PAGE_TRACE_BULLETS_BY_MODULE[key]
 }
 
 /** GET /api/admin/products/[id]/itinerary-days 응답 1건 */
