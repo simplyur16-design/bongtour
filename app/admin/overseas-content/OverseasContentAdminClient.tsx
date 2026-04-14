@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 
 type EditorialItem = {
   id: string
@@ -283,15 +284,6 @@ export default function OverseasContentAdminClient() {
       slug: monthlyForm.slug.trim() || null,
     }
 
-    // eslint-disable-next-line no-console -- 저장 직전: 요청 body에 이미지 필드가 들어가는지 확인
-    console.log('[saveMonthly] payload image fields', {
-      imageUrl: payload.imageUrl,
-      imageStorageKey: payload.imageStorageKey,
-      imageWidth: payload.imageWidth,
-      imageHeight: payload.imageHeight,
-      imageAlt: payload.imageAlt,
-    })
-
     const isEdit = Boolean(editingMonthlyId)
     const res = await fetch(
       isEdit ? `/api/admin/monthly-curation-contents/${editingMonthlyId}` : '/api/admin/monthly-curation-contents',
@@ -395,8 +387,6 @@ export default function OverseasContentAdminClient() {
       setError(json.error ?? '저장 중 오류가 발생했습니다.')
       return
     }
-    // eslint-disable-next-line no-console -- 운영 디버그: 업로드 응답 URL이 절대경로인지 확인
-    console.log('[uploadMonthly] response imageUrl', json.imageUrl ?? null)
     setMonthlyForm((p) => ({
       ...p,
       imageUrl: json.imageUrl ?? '',
@@ -877,6 +867,11 @@ export default function OverseasContentAdminClient() {
         <h1 className="text-2xl font-semibold text-gray-900">시즌 추천 관리</h1>
         <p className="mt-2 text-sm text-gray-600">
           해외 허브·모바일 홈 시즌 추천 카드에 올라갈 1건을 등록합니다. 아래 핵심 입력만으로도 저장할 수 있고, 출처·SEO 등은 필요할 때만 펼쳐 주세요.
+        </p>
+        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">
+          공개 해외 페이지 하단·상품 목록 중간 카드·모바일 홈 시즌 추천은{' '}
+          <strong>대상 월이 서울 기준 이번 달({getSeoulYearMonthNow()})</strong>이고 <strong>발행</strong>된 항목만
+          노출됩니다. 이미지를 올렸는데 사이트에 안 보이면 monthKey·발행 여부를 먼저 확인하세요.
         </p>
       </section>
 

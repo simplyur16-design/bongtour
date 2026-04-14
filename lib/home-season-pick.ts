@@ -1,4 +1,4 @@
-import { toSafeHttpUrl } from '@/lib/cms-source-attribution'
+import { toSafePublicUrlOrPath } from '@/lib/cms-source-attribution'
 import { prisma } from '@/lib/prisma'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 
@@ -58,8 +58,7 @@ export async function getHomeSeasonPickFromMonthlyContent(): Promise<HomeSeasonP
 
     if (!row) return null
 
-    const rawImg = (row.imageUrl ?? '').trim()
-    const imageUrl = toSafeHttpUrl(rawImg) ?? (rawImg.startsWith('/') ? rawImg : null)
+    const imageUrl = toSafePublicUrlOrPath(row.imageUrl)
 
     const productHref = row.linkedProductId?.trim()
       ? `/products/${row.linkedProductId!.trim()}`

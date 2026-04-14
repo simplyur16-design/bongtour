@@ -1,6 +1,6 @@
 /** 공개 페이지용 CMS 직렬화(해외 허브·단독여행) */
 
-import { formatCmsSourceLine, toSafeHttpUrl } from '@/lib/cms-source-attribution'
+import { formatCmsSourceLine, toSafeHttpUrl, toSafePublicUrlOrPath } from '@/lib/cms-source-attribution'
 import { editorialBodyExcerpt } from '@/lib/overseas-editorial-prioritize'
 
 export type MonthlyCurationMidPayload = {
@@ -18,7 +18,7 @@ export type MonthlyCurationMidPayload = {
   seoTitle: string | null
 }
 
-export { formatCmsSourceLine, toSafeHttpUrl }
+export { formatCmsSourceLine, toSafeHttpUrl, toSafePublicUrlOrPath }
 
 export type MonthlyCurationRowLike = {
   id: string
@@ -43,7 +43,7 @@ export function monthlyCurationRowToMidPayload(
 ): MonthlyCurationMidPayload {
   const href = row.linkedProductId
     ? `/products/${row.linkedProductId}`
-    : toSafeHttpUrl(row.linkedHref)
+    : toSafePublicUrlOrPath(row.linkedHref)
   return {
     id: row.id,
     monthKey: row.monthKey,
@@ -52,7 +52,7 @@ export function monthlyCurationRowToMidPayload(
     excerpt: editorialBodyExcerpt(row.bodyKr, excerptMax),
     ctaLabel: row.ctaLabel,
     href,
-    imageUrl: toSafeHttpUrl(row.imageUrl),
+    imageUrl: toSafePublicUrlOrPath(row.imageUrl),
     imageAlt: (row.imageAlt && row.imageAlt.trim()) || row.title,
     sourceLine: formatCmsSourceLine(row.sourceName, row.sourceUrl, row.sourceType),
     seoTitle: row.seoTitle,

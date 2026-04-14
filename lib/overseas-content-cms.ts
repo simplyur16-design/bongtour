@@ -1,3 +1,5 @@
+import { toSafePublicUrlOrPath } from '@/lib/cms-source-attribution'
+
 export type ContentScope = 'overseas' | 'domestic'
 
 export type EditorialFormInput = {
@@ -122,7 +124,7 @@ export function parseEditorialInput(body: unknown): { ok: true; data: EditorialF
       title,
       subtitle: toNullableTrimmed(b.subtitle),
       bodyKr,
-      heroImageUrl: sanitizeHttpUrl(toNullableTrimmed(b.heroImageUrl)),
+      heroImageUrl: toSafePublicUrlOrPath(toNullableTrimmed(b.heroImageUrl)),
       heroImageAlt: toNullableTrimmed(b.heroImageAlt),
       heroImageStorageKey: toNullableTrimmed(b.heroImageStorageKey),
       heroImageWidth: (() => {
@@ -161,6 +163,9 @@ export function parseMonthlyContentInput(body: unknown): { ok: true; data: Month
   if (!bodyKr) errors.bodyKr = '본문은 필수입니다.'
 
   if (Object.keys(errors).length > 0) return { ok: false, errors }
+
+  const sanitizedImageUrl = toSafePublicUrlOrPath(toNullableTrimmed(b.imageUrl))
+
   return {
     ok: true,
     data: {
@@ -173,8 +178,8 @@ export function parseMonthlyContentInput(body: unknown): { ok: true; data: Month
       bodyKr,
       ctaLabel: toNullableTrimmed(b.ctaLabel),
       linkedProductId: toNullableTrimmed(b.linkedProductId),
-      linkedHref: sanitizeHttpUrl(toNullableTrimmed(b.linkedHref)),
-      imageUrl: sanitizeHttpUrl(toNullableTrimmed(b.imageUrl)),
+      linkedHref: toSafePublicUrlOrPath(toNullableTrimmed(b.linkedHref)),
+      imageUrl: sanitizedImageUrl,
       imageAlt: toNullableTrimmed(b.imageAlt),
       imageStorageKey: toNullableTrimmed(b.imageStorageKey),
       imageWidth: (() => {

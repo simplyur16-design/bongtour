@@ -12,6 +12,20 @@ export function toSafeHttpUrl(v: string | null | undefined): string | null {
   }
 }
 
+/**
+ * CMS 대표 이미지·내부 CTA 링크: `https://` 또는 동일 출처 `/(…)` (`..` 경로는 거부).
+ * Supabase 공개 URL과 `/images/...` 레거시 모두 통과.
+ */
+export function toSafePublicUrlOrPath(v: string | null | undefined): string | null {
+  const raw = (v ?? '').trim()
+  if (!raw) return null
+  if (raw.startsWith('/')) {
+    if (raw.includes('..')) return null
+    return raw
+  }
+  return toSafeHttpUrl(raw)
+}
+
 export function formatCmsSourceLine(
   sourceName: string | null | undefined,
   sourceUrl: string | null | undefined,

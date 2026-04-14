@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { formatCmsSourceLine, toSafeHttpUrl } from '@/lib/cms-source-attribution'
+import { formatCmsSourceLine, toSafePublicUrlOrPath } from '@/lib/cms-source-attribution'
 import { prisma } from '@/lib/prisma'
 import {
   fetchPublishedOverseasEditorials,
@@ -48,9 +48,9 @@ export default async function OverseasManagedContent({
           aria-labelledby="travel-os-editorial-heading"
         >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-bt-muted">Editorial</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-bt-muted">목적지 브리핑</p>
             <h2 id="travel-os-editorial-heading" className="mt-2 text-2xl font-semibold tracking-tight text-bt-ink sm:text-3xl">
-              목적지 브리핑
+              운영 브리핑 카드
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-bt-muted">
               상품 리스트와 별도 축으로 운영되는 브리핑 콘텐츠입니다. 운영자가 관리자 페이지에서 직접 입력/수정합니다.
@@ -91,18 +91,18 @@ export default async function OverseasManagedContent({
         <section id="travel-os-curation" className="scroll-mt-24 border-b border-bt-border bg-bt-surface py-12 sm:py-14">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <header className="max-w-3xl">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-bt-accent">Monthly curation</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-bt-accent">시즌 추천</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight text-bt-ink sm:text-3xl">이번 달 추천 해외여행</h2>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-bt-muted">
-                운영에서 직접 입력한 {monthKey} 월 큐레이션입니다.
+                운영에서 직접 입력한 시즌 추천({monthKey})입니다.
               </p>
             </header>
             <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {monthlies.map((item) => {
                 const href = item.linkedProductId
                   ? `/products/${item.linkedProductId}`
-                  : toSafeHttpUrl(item.linkedHref)
-                const imageUrl = toSafeHttpUrl(item.imageUrl)
+                  : toSafePublicUrlOrPath(item.linkedHref)
+                const imageUrl = toSafePublicUrlOrPath(item.imageUrl)
                 const sourceLine = formatCmsSourceLine(item.sourceName, item.sourceUrl, item.sourceType)
                 return (
                   <li key={item.id} className="rounded-xl border border-bt-border bg-white p-5 shadow-sm">
