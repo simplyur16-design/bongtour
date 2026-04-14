@@ -124,6 +124,13 @@ function isMonthKey(v: string): boolean {
   return /^\d{4}-\d{2}$/.test(v)
 }
 
+/** 목록 행 버튼 aria-label용 — 긴 제목은 잘라 보조공학 부담을 줄인다. */
+function clipForAriaTitle(s: string | null | undefined, max = 36): string {
+  const t = (s ?? '').trim().replace(/\s+/g, ' ')
+  if (t.length <= max) return t
+  return `${t.slice(0, max - 1)}…`
+}
+
 export default function OverseasContentAdminClient() {
   const [editorials, setEditorials] = useState<EditorialItem[]>([])
   const [monthlies, setMonthlies] = useState<MonthlyItem[]>([])
@@ -830,7 +837,7 @@ export default function OverseasContentAdminClient() {
                   <button
                     type="button"
                     className="rounded border px-3 py-1.5 text-xs"
-                    aria-label={`목적지 브리핑 수정 · ${row.title}`}
+                    aria-label={`목적지 브리핑 수정 · ${clipForAriaTitle(row.title)}`}
                     onClick={() => {
                       setEditingEditorialId(row.id)
                       setEditorialForm(editorialFormFromRow(row))
@@ -841,7 +848,7 @@ export default function OverseasContentAdminClient() {
                   <button
                     type="button"
                     className="rounded border px-3 py-1.5 text-xs"
-                    aria-label={`목적지 브리핑 ${row.isPublished ? '비발행' : '발행'} · ${row.title}`}
+                    aria-label={`목적지 브리핑 ${row.isPublished ? '비발행' : '발행'} · ${clipForAriaTitle(row.title)}`}
                     onClick={() => void toggleEditorialPublish(row)}
                   >
                     {row.isPublished ? '비발행' : '발행'}
@@ -849,7 +856,7 @@ export default function OverseasContentAdminClient() {
                   <button
                     type="button"
                     className="rounded border px-3 py-1.5 text-xs"
-                    aria-label={`목적지 브리핑 삭제 · ${row.title}`}
+                    aria-label={`목적지 브리핑 삭제 · ${clipForAriaTitle(row.title)}`}
                     onClick={() => void removeEditorial(row.id)}
                   >
                     삭제
@@ -1255,7 +1262,7 @@ export default function OverseasContentAdminClient() {
                   <button
                     type="button"
                     className="rounded border px-3 py-1.5 text-xs"
-                    aria-label={`시즌 추천 수정 · ${row.monthKey} ${row.title}`}
+                    aria-label={`시즌 추천 수정 · ${row.monthKey} ${clipForAriaTitle(row.title)}`}
                     onClick={() => {
                       setEditingMonthlyId(row.id)
                       setMonthlyForm(monthlyFormFromRow(row))
@@ -1267,7 +1274,7 @@ export default function OverseasContentAdminClient() {
                   <button
                     type="button"
                     className="rounded border px-3 py-1.5 text-xs"
-                    aria-label={`시즌 추천 ${row.isPublished ? '비발행' : '발행'} · ${row.monthKey} ${row.title}`}
+                    aria-label={`시즌 추천 ${row.isPublished ? '비발행' : '발행'} · ${row.monthKey} ${clipForAriaTitle(row.title)}`}
                     onClick={() => void toggleMonthlyPublish(row)}
                   >
                     {row.isPublished ? '비발행' : '발행'}
@@ -1275,7 +1282,7 @@ export default function OverseasContentAdminClient() {
                   <button
                     type="button"
                     className="rounded border px-3 py-1.5 text-xs"
-                    aria-label={`시즌 추천 삭제 · ${row.monthKey} ${row.title}`}
+                    aria-label={`시즌 추천 삭제 · ${row.monthKey} ${clipForAriaTitle(row.title)}`}
                     onClick={() => void removeMonthly(row.id)}
                   >
                     삭제
