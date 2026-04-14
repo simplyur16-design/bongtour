@@ -85,6 +85,13 @@ const nextConfig = {
         source: '/:path*',
         headers: base,
       },
+      /** 관리자 셸이 오래 캐시되면 배포 직후 ChunkLoadError(구 HTML → 신규 청크)가 난다. */
+      {
+        source: '/admin/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'private, no-store, max-age=0, must-revalidate' },
+        ],
+      },
     ]
   },
   images: {
