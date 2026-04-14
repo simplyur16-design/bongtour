@@ -62,11 +62,31 @@ export default async function AdminHomeHubCardImagesPage() {
         </dl>
       </div>
 
-      <p className="mb-6 text-xs font-mono text-slate-500">
-        활성: public/data/home-hub-active.json · 후보: public/data/home-hub-candidates.json · 국외연수: 하이브리드 패널에서
-        통역 블록용 2번째 URL(<code className="text-slate-400">trainingPageSecondaryImage</code>) · 우리여행 히어로: Supabase
-        Storage (<code className="text-slate-400">private-trip-hero/</code>) 만
-      </p>
+      <div className="mb-6 space-y-2 text-xs leading-relaxed text-slate-500">
+        <p className="font-mono">
+          메타데이터(서버 소량 디스크): <code className="text-slate-400">public/data/home-hub-active.json</code> ·{' '}
+          <code className="text-slate-400">public/data/home-hub-candidates.json</code>
+        </p>
+        <p>
+          <span className="font-mono text-slate-400">4허브 배경</span> 픽셀 데이터는{' '}
+          <strong className="font-medium text-slate-300">Supabase Storage</strong>에만 저장됩니다. 생성 API는{' '}
+          <code className="text-slate-400">SUPABASE_URL</code>·<code className="text-slate-400">SUPABASE_SERVICE_ROLE_KEY</code>가
+          없으면 동작하지 않으며, 업로드 전에 서버에서 WebP로 변환·리사이즈(대략 가로 2400px 이하, 품질 82)합니다. 활성·후보 JSON에는{' '}
+          <span className="text-slate-400">공개 URL 문자열</span>만 들어갑니다.
+        </p>
+        <p className="font-mono text-slate-500">
+          객체 키 예: <code className="text-slate-400">home-hub/candidates/&lt;후보id&gt;.webp</code>
+        </p>
+        <p>
+          예전에 <code className="text-slate-400">/images/home-hub/candidates/...</code>처럼{' '}
+          <strong className="font-medium text-slate-400">로컬 public 경로</strong>가 JSON에 남아 있으면, 그 파일이 서버에 없을 때
+          이미지가 깨집니다. 디스크가 빡빡하면 후보를 다시 생성해 Supabase URL로 바꾼 뒤 메인 적용하세요.
+        </p>
+        <p className="font-mono">
+          국외연수 통역 2번째: 하이브리드 패널 <code className="text-slate-400">trainingPageSecondaryImage</code> · 우리여행 히어로:{' '}
+          <code className="text-slate-400">private-trip-hero/</code>
+        </p>
+      </div>
 
       <HomeHubCardImagesWorkspace initialActive={initialActive} initialTravelPoolPreview={initialTravelPoolPreview} />
 

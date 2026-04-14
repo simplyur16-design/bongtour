@@ -841,6 +841,7 @@ export default function OverseasContentAdminClient() {
                   <button
                     type="button"
                     className="rounded border px-3 py-1.5 text-xs"
+                    aria-label={`목적지 브리핑 수정 · ${row.title}`}
                     onClick={() => {
                       setEditingEditorialId(row.id)
                       setEditorialForm(editorialFormFromRow(row))
@@ -848,8 +849,22 @@ export default function OverseasContentAdminClient() {
                   >
                     수정
                   </button>
-                  <button className="rounded border px-3 py-1.5 text-xs" onClick={() => void toggleEditorialPublish(row)}>{row.isPublished ? '비발행' : '발행'}</button>
-                  <button className="rounded border px-3 py-1.5 text-xs" onClick={() => void removeEditorial(row.id)}>삭제</button>
+                  <button
+                    type="button"
+                    className="rounded border px-3 py-1.5 text-xs"
+                    aria-label={`목적지 브리핑 ${row.isPublished ? '비발행' : '발행'} · ${row.title}`}
+                    onClick={() => void toggleEditorialPublish(row)}
+                  >
+                    {row.isPublished ? '비발행' : '발행'}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded border px-3 py-1.5 text-xs"
+                    aria-label={`목적지 브리핑 삭제 · ${row.title}`}
+                    onClick={() => void removeEditorial(row.id)}
+                  >
+                    삭제
+                  </button>
                 </div>
               </div>
             ))}
@@ -1251,6 +1266,7 @@ export default function OverseasContentAdminClient() {
                   <button
                     type="button"
                     className="rounded border px-3 py-1.5 text-xs"
+                    aria-label={`시즌 추천 수정 · ${row.monthKey} ${row.title}`}
                     onClick={() => {
                       setEditingMonthlyId(row.id)
                       setMonthlyForm(monthlyFormFromRow(row))
@@ -1259,8 +1275,22 @@ export default function OverseasContentAdminClient() {
                   >
                     수정
                   </button>
-                  <button className="rounded border px-3 py-1.5 text-xs" onClick={() => void toggleMonthlyPublish(row)}>{row.isPublished ? '비발행' : '발행'}</button>
-                  <button className="rounded border px-3 py-1.5 text-xs" onClick={() => void removeMonthly(row.id)}>삭제</button>
+                  <button
+                    type="button"
+                    className="rounded border px-3 py-1.5 text-xs"
+                    aria-label={`시즌 추천 ${row.isPublished ? '비발행' : '발행'} · ${row.monthKey} ${row.title}`}
+                    onClick={() => void toggleMonthlyPublish(row)}
+                  >
+                    {row.isPublished ? '비발행' : '발행'}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded border px-3 py-1.5 text-xs"
+                    aria-label={`시즌 추천 삭제 · ${row.monthKey} ${row.title}`}
+                    onClick={() => void removeMonthly(row.id)}
+                  >
+                    삭제
+                  </button>
                 </div>
               </div>
             ))}
