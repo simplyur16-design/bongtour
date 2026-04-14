@@ -6,6 +6,8 @@ import { HomeHubCardDebugServerPanel } from './components/home/HomeHubCardDebugS
 import { pickHomeHubTravelCardCover } from '@/lib/home-hub-travel-card-cover'
 import { getHomeHubCardHybridResolutionDetail } from '@/lib/home-hub-card-hybrid-core'
 import { getHomeHubActiveFile } from '@/lib/home-hub-resolve-images'
+import HomeMobileHub from './components/home/HomeMobileHub'
+import { getHomeSeasonPickForMobile } from '@/lib/home-season-pick'
 import PartnerOrganizationsSection from './components/home/PartnerOrganizationsSection'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { SITE_NAME } from '@/lib/site-metadata'
@@ -45,6 +47,8 @@ export default async function Home() {
     productPoolDomesticUrl: domesticCover?.imageSrc ?? null,
   })
 
+  const { pick: homeSeasonPick } = await getHomeSeasonPickForMobile()
+
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">
       <SiteJsonLd />
@@ -66,21 +70,28 @@ export default async function Home() {
             className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,transparent_50%)]"
             aria-hidden
           />
-          <MainHero />
-          <div className="relative border-t border-slate-200/70 bg-gradient-to-b from-slate-50/50 to-transparent pt-3 md:pt-4">
-            <HomeHubFour
-              overseasHubImageSrc={overseasCover?.imageSrc ?? null}
-              domesticHubImageSrc={domesticCover?.imageSrc ?? null}
-            />
-            <HomeHubCardDebugServerPanel
-              overseasPick={overseasCover}
-              domesticPick={domesticCover}
-              overseasDetail={overseasDetail}
-              domesticDetail={domesticDetail}
-            />
+          <div className="block md:hidden">
+            <HomeMobileHub seasonPick={homeSeasonPick} />
+          </div>
+          <div className="hidden md:block">
+            <MainHero />
+            <div className="relative border-t border-slate-200/70 bg-gradient-to-b from-slate-50/50 to-transparent pt-3 md:pt-4">
+              <HomeHubFour
+                overseasHubImageSrc={overseasCover?.imageSrc ?? null}
+                domesticHubImageSrc={domesticCover?.imageSrc ?? null}
+              />
+              <HomeHubCardDebugServerPanel
+                overseasPick={overseasCover}
+                domesticPick={domesticCover}
+                overseasDetail={overseasDetail}
+                domesticDetail={domesticDetail}
+              />
+            </div>
           </div>
         </section>
-        <PartnerOrganizationsSection />
+        <div className="hidden md:block">
+          <PartnerOrganizationsSection />
+        </div>
       </main>
     </div>
   )

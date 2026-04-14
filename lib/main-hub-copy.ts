@@ -67,7 +67,7 @@ export const MAIN_TRUST_HIGHLIGHTS = [
 
 // ─── 월별 큐레이션 섹션 ─────────────────────────────────────────────────────
 
-export const MAIN_CURATION_EYEBROW = 'Monthly curation'
+export const MAIN_CURATION_EYEBROW = '시즌 추천'
 export const MAIN_CURATION_TITLE = '이번 달 추천 브리핑'
 export const MAIN_CURATION_LEAD =
   '운영팀이 직접 고른 목적지와 맥락입니다. 카드는 상품 진열이 아니라 상담용 초안이에요.'
