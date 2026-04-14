@@ -24,7 +24,7 @@ function buildListQueryString(searchParams: URLSearchParams): string {
 
 export default function MonthlyCurationsPageClient() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams() ?? new URLSearchParams()
   const qsKey = searchParams.toString()
 
   const [rows, setRows] = useState<AdminMonthlyCurationListItem[]>([])
@@ -124,8 +124,8 @@ export default function MonthlyCurationsPageClient() {
         </div>
 
         <AdminPageHeader
-          title="월별 큐레이션"
-          subtitle="국내·국외 월 추천 카드를 수동으로 관리합니다. 메인은 공개 API가 게시+활성 카드만 노출하며, 보통 이번 달·스코프별로 요청합니다."
+          title="레거시 월 카드 (MonthlyCurationItem)"
+          subtitle="공개 시즌 추천의 기준 축은 해외 콘텐츠 CMS의 시즌 추천(MonthlyCurationContent)입니다. 이 화면은 예전 구조화 카드 API용 데이터이며, 사이드 메뉴에서는 숨겨 두었습니다."
         />
 
         <section className="mb-4 rounded-lg border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-950">

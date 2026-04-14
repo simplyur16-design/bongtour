@@ -67,7 +67,12 @@ export async function generatePageHeroMonthlyEditorialLinesWithGemini(
     return { ok: true, lines }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    console.error('[page-hero-monthly-gemini-server]', msg)
+    const aborted = /aborted|AbortError|ECONNRESET/i.test(msg)
+    if (aborted) {
+      console.warn('[page-hero-monthly-gemini-server] generateContent aborted or network reset (timeout/cancel).')
+    } else {
+      console.error('[page-hero-monthly-gemini-server]', msg)
+    }
     return { ok: false, error: msg }
   }
 }

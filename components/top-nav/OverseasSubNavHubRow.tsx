@@ -22,7 +22,7 @@ type Props = {
  * 여행상품(mega)은 시각적으로 항상 idle(호버 시에만 틸), 현재 경로는 aria로만 표시.
  */
 export default function OverseasSubNavHubRow({ onHoverMegaEnter, onFocusMega, onHoverLinkEnter }: Props) {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ''
 
   return (
     <div

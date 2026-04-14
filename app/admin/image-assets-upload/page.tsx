@@ -61,7 +61,7 @@ type UploadResult = {
 }
 
 function ImageAssetsUploadPageInner() {
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams() ?? new URLSearchParams()
   const productContextId = (searchParams.get('productId') ?? '').trim()
 
   const [productTitle, setProductTitle] = useState<string | null>(null)

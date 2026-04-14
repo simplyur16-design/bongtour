@@ -2,6 +2,8 @@
 
 const DEV_AUTH_PLACEHOLDER = "__bongtour_dev_auth_secret_change_for_production__"
 
+let warnedAdminBearerEnv = false
+
 /** Next.js는 `process.env.NEXT_PUBLIC_*` 정적 접근을 빌드 시 인라인한다. 운영 호스트 `.env`만 바꿔도 기동 검증이 통과하도록 동적 키로 읽는다. */
 const procEnv = process.env
 function envTrim(key: string): string {
@@ -74,20 +76,20 @@ export function assertProductionServerEnv(): void {
 
   const bearer = (process.env.ADMIN_SERVICE_BEARER_SECRET ?? "").trim()
   const legacyBypass = (process.env.ADMIN_BYPASS_SECRET ?? "").trim()
-  const devBypassNew = (process.env.DEV_ADMIN_BYPASS_SECRET ?? "").trim()
-  if (!devBypassNew && !bearer) {
-    console.warn(
-      "[server-env] DEV_ADMIN_BYPASS_SECRET 과 ADMIN_SERVICE_BEARER_SECRET 가 모두 비어 있습니다. 운영 이관 중이면 ADMIN_BYPASS_SECRET 로 폴백됩니다(lib/admin-secrets). 분리 키 설정을 권장합니다."
-    )
-  }
-  if (!bearer && !legacyBypass) {
-    console.warn(
-      "[server-env] ADMIN_SERVICE_BEARER_SECRET 과 ADMIN_BYPASS_SECRET 이 모두 비어 있습니다. Bearer로 /api/admin/* 를 호출하는 스케줄러는 동작하지 않습니다."
-    )
-  } else if (legacyBypass && !bearer) {
-    console.warn(
-      "[server-env] ADMIN_SERVICE_BEARER_SECRET 를 설정하고 ADMIN_BYPASS_SECRET(Bearer) 의존을 제거하는 것을 권장합니다."
-    )
+  if (!warnedAdminBearerEnv) {
+    if (!bearer && !legacyBypass) {
+      warnedAdminBearerEnv = true
+      console.warn(
+        "[server-env] ADMIN_SERVICE_BEARER_SECRET 과 ADMIN_BYPASS_SECRET 이 모두 비어 있습니다. Bearer로 /api/admin/* 를 호출하는 스케줄러는 동작하지 않습니다."
+      )
+    } else if (legacyBypass && !bearer) {
+      warnedAdminBearerEnv = true
+      if (process.env.BONGTOUR_LOG_ADMIN_SECRET_HINTS === "1" || process.env.NODE_ENV !== "production") {
+        console.warn(
+          "[server-env] ADMIN_SERVICE_BEARER_SECRET 미설정 — Bearer는 ADMIN_BYPASS_SECRET 폴백 중입니다. 분리 키(ADMIN_SERVICE_BEARER_SECRET) 설정을 권장합니다."
+        )
+      }
+    }
   }
 
   if (errors.length > 0) {

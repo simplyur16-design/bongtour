@@ -27,7 +27,6 @@ const nav = [
   { href: '/admin/register', label: '상품 등록', icon: Package },
   { href: '/admin/pending', label: '등록대기', icon: ClipboardList },
   { href: '/admin/products', label: '상품 목록', icon: List },
-  { href: '/admin/curations/monthly', label: '월별 큐레이션', icon: CalendarDays },
   { href: '/admin/overseas-content', label: '해외 콘텐츠 CMS', icon: CalendarDays },
   { href: '/admin/inquiries', label: '문의 접수', icon: Inbox },
   { href: '/admin/reviews', label: '회원 여행 후기', icon: Star },
@@ -36,7 +35,7 @@ const nav = [
 ]
 
 export default function AdminSidebar() {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ''
   const [collapsed, setCollapsed] = useState(false)
 
   return (

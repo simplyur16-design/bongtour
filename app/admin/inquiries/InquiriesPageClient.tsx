@@ -30,7 +30,7 @@ function buildListQueryString(searchParams: URLSearchParams): string {
 
 export default function InquiriesPageClient() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams() ?? new URLSearchParams()
   const qsKey = searchParams.toString()
 
   const [rows, setRows] = useState<AdminInquiryListItem[]>([])

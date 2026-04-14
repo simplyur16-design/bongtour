@@ -96,8 +96,8 @@ export default function ProductsBrowseClient({
   monthlyCurationMid = null,
 }: Props) {
   const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const pathname = usePathname() ?? ''
+  const searchParams = useSearchParams() ?? new URLSearchParams()
   const qs = searchParams.toString()
 
   const isDomesticHub = pathname === '/travel/domestic' && defaultScope === 'domestic'

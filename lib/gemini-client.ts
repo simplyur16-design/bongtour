@@ -93,7 +93,9 @@ export function getGenAI(): InstanceType<typeof GoogleGenerativeAI> {
       console.error(`${DEBUG} GoogleGenerativeAI 로드 실패. typeof=${typeof GoogleGenerativeAI}`, GoogleGenerativeAI)
       throw new Error('GoogleGenerativeAI is not a constructor')
     }
-    console.log(`${DEBUG} GoogleGenerativeAI 생성자 호출 직전 (정상 로드 확인됨)`)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`${DEBUG} GoogleGenerativeAI 생성자 호출 직전 (정상 로드 확인됨)`)
+    }
     _genAI = new GoogleGenerativeAI(apiKey)
   }
   return _genAI

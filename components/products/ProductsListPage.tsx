@@ -34,7 +34,7 @@ type ApiOk = {
 
 export default function ProductsListPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams() ?? new URLSearchParams()
   const [data, setData] = useState<ApiOk | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

@@ -216,7 +216,7 @@ function buildMonthlyHero(items: BrowseHeroItem[]): HeroRow[] {
 
 const OverseasHero: FC = () => {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams() ?? new URLSearchParams()
   const departDateId = 'overseas-hero-depart-date'
   const adultId = 'overseas-hero-adult'
   const childId = 'overseas-hero-child'

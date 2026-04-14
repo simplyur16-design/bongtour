@@ -790,8 +790,8 @@ export default function AdminProductDetailPage({
 }: {
   params: Promise<{ id: string }> | { id: string }
 }) {
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const pathname = usePathname() ?? ''
+  const searchParams = useSearchParams() ?? new URLSearchParams()
   const showRegisterTrace = searchParams?.get('registerTrace') === '1'
   const isEditMode = pathname?.endsWith('/edit') ?? false
   const [product, setProduct] = useState<Product | null>(null)
