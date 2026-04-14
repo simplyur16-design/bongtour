@@ -5,6 +5,7 @@ import {
   SupplierRouteMismatchError,
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
+import { deriveProductLocationKeyFieldsForPrisma } from '@/lib/product-location-key-match'
 import { requireAdmin } from '@/lib/require-admin'
 import { stripRegisterInternalArtifacts, type RegisterParsed } from '@/lib/register-llm-schema-verygoodtour'
 import { parseForRegisterVerygoodtour, VERYGOOD_PRICE_SLOT_SSOT_NOTE } from '@/lib/register-parse-verygoodtour'
@@ -1332,6 +1333,14 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
           ? registerPublicImageHeroSeoLineSingle.slice(0, 128)
           : null,
       ...registerListingMeta,
+      ...deriveProductLocationKeyFieldsForPrisma({
+        title: parsed.title,
+        originSource: effectiveOriginSource,
+        destination: parsed.destination,
+        destinationRaw: parsed.destinationRaw?.trim() || parsed.destination?.trim() || null,
+        primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
+        bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
+      }),
     }
 
     let productId: string

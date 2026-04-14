@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import {
+  deriveProductLocationKeyFieldsForPrisma,
+  itineraryDescriptionsBlob,
+} from '@/lib/product-location-key-match'
 import { requireAdmin } from '@/lib/require-admin'
 import { extractTravelProductForDB } from '@/lib/travel-parse'
 import type { ParsedProductForDB } from '@/lib/parsed-product-types'
@@ -276,5 +280,13 @@ function productToUpdateData(parsed: ParsedProductForDB) {
     criticalExclusions: parsed.criticalExclusions ?? null,
     schedule,
     registrationStatus: 'pending' as const,
+    ...deriveProductLocationKeyFieldsForPrisma({
+      title: parsed.title?.trim() || '상품명 없음',
+      originSource: parsed.originSource?.trim() || '직접입력',
+      destination: parsed.destination?.trim() || undefined,
+      destinationRaw: parsed.destinationRaw?.trim() || null,
+      primaryDestination: parsed.primaryDestination?.trim() || null,
+      bodyText: itineraryDescriptionsBlob(parsed.itineraries),
+    }),
   }
 }

@@ -37,6 +37,12 @@ model Product {
   destination           String?        // [레거시] 목적지. 신규는 destinationRaw/primaryDestination
   destinationRaw        String?        // 목적지 표기 원문 (A 상세)
   primaryDestination    String?        // 대표 목적지 정규화값, 노출·필터용 (운영 메타)
+  /// `lib/overseas-location-tree` SSOT — 상품 등록 시 추론, 실패 시 null
+  countryKey            String?
+  nodeKey               String?
+  groupKey              String?
+  locationMatchConfidence String?
+  locationMatchSource   String?
   duration              String?        // 여행기간 (예: 3박4일)
   airline               String?        // 항공사
   supplierGroupId       String?        // 공급사 단체번호/운영번호 (originCode와 구분)

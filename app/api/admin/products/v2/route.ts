@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { deriveProductLocationKeyFieldsForPrisma } from '@/lib/product-location-key-match'
 import { requireAdmin } from '@/lib/require-admin'
 import type { ParsedProductForDB } from '@/lib/parsed-product-types'
 
@@ -77,6 +78,14 @@ export async function POST(request: Request) {
         mandatoryCurrency: mandatoryCurrency ?? null,
         includedText: includedText ?? null,
         excludedText: excludedText ?? null,
+        ...deriveProductLocationKeyFieldsForPrisma({
+          title: title.trim(),
+          originSource: originSource?.trim() || '직접입력',
+          destination: destination.trim(),
+          destinationRaw: null,
+          primaryDestination: null,
+          bodyText: null,
+        }),
       },
     })
 
