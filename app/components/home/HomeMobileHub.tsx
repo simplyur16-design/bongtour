@@ -84,12 +84,12 @@ export default function HomeMobileHub({ seasonPick }: Props) {
 
       <section aria-label="실무 요청">
         <h2 className="mb-2.5 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">실무 요청</h2>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-3">
           {QUICK_ACTIONS.map((a) => (
             <Link
               key={a.href}
               href={a.href}
-              className="inline-flex min-h-[2.75rem] min-w-[5.5rem] flex-1 items-center justify-center rounded-full border border-slate-300 bg-slate-50 px-3 text-center text-xs font-semibold text-slate-800 transition hover:border-teal-400 hover:bg-teal-50/70 sm:flex-none sm:px-4 sm:text-sm"
+              className="inline-flex min-h-[2.75rem] min-w-[5.5rem] shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 px-3 text-center text-xs font-semibold text-slate-800 transition hover:border-teal-400 hover:bg-teal-50/70 sm:px-4 sm:text-sm"
             >
               {a.label}
             </Link>

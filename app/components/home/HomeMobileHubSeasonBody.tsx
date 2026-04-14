@@ -83,11 +83,11 @@ export default function HomeMobileHubSeasonBody({
           )}
         </div>
         <div className="border-t border-slate-100 bg-white px-4 py-4">
-          <h3 className="text-base font-bold leading-snug text-bt-title">{title}</h3>
+          <h3 className="text-base font-semibold leading-snug tracking-tight text-slate-900">{title}</h3>
           {expanded ? (
-            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-600">{bodyFull}</p>
+            <p className="mt-2 whitespace-pre-line text-sm font-medium leading-normal text-slate-800">{bodyFull}</p>
           ) : (
-            <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600">{excerpt}</p>
+            <p className="mt-2 line-clamp-3 text-sm font-medium leading-normal text-slate-800">{excerpt}</p>
           )}
           {needsMore ? (
             <button
