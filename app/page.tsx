@@ -7,7 +7,8 @@ import { pickHomeHubTravelCardCover } from '@/lib/home-hub-travel-card-cover'
 import { getHomeHubCardHybridResolutionDetail } from '@/lib/home-hub-card-hybrid-core'
 import { getHomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 import HomeMobileHub from './components/home/HomeMobileHub'
-import { getHomeSeasonPickForMobile } from '@/lib/home-season-pick'
+import { getHomeSeasonPicksForMobileCarousel } from '@/lib/home-season-pick'
+import { padHomeSeasonSlidesToFive } from '@/lib/home-mobile-season-carousel-slides'
 import PartnerOrganizationsSection from './components/home/PartnerOrganizationsSection'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { SITE_NAME } from '@/lib/site-metadata'
@@ -47,7 +48,8 @@ export default async function Home() {
     productPoolDomesticUrl: domesticCover?.imageSrc ?? null,
   })
 
-  const { pick: homeSeasonPick } = await getHomeSeasonPickForMobile()
+  const { picks: homeSeasonPicks } = await getHomeSeasonPicksForMobileCarousel()
+  const homeSeasonSlides = padHomeSeasonSlidesToFive(homeSeasonPicks)
 
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">
@@ -71,7 +73,7 @@ export default async function Home() {
             aria-hidden
           />
           <div className="block lg:hidden">
-            <HomeMobileHub seasonPick={homeSeasonPick} />
+            <HomeMobileHub seasonSlides={homeSeasonSlides} />
           </div>
           <div className="hidden lg:block">
             <MainHero />

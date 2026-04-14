@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Fragment, useMemo } from 'react'
 import OverseasDestinationBriefingMid from '@/components/products/OverseasDestinationBriefingMid'
 import OverseasMonthlyCurationMid from '@/components/products/OverseasMonthlyCurationMid'
-import type { MonthlyCurationMidPayload } from '@/lib/overseas-cms-public'
+import type { SeasonCurationInsertBlock } from '@/lib/overseas-season-curation-placement'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import {
   OVERSEAS_DISPLAY_BUCKET_LABEL,
@@ -55,8 +55,8 @@ type Props = {
   groupDomesticByRegion?: boolean
   /** 서유럽 섹션 상단 목적지 브리핑(선택) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
-  /** 동유럽 섹션 직후·미주 전, 전폭 1회(데이터 없으면 미렌더) */
-  monthlyCurationMid?: MonthlyCurationMidPayload | null
+  /** 시즌 추천 — 권역 버킷 섹션 직후 삽입(국가 연결 우선, 없으면 일본 아래) */
+  overseasSeasonCurationBlocks?: SeasonCurationInsertBlock[] | null | undefined
 }
 
 const AIR_HOTEL_MISC_SECTION = '기타'
@@ -676,12 +676,12 @@ function OverseasRegionGroupedList({
   items,
   formatWon,
   editorialBriefing,
-  monthlyCurationMid,
+  seasonCurationBlocks,
 }: {
   items: ResultItem[]
   formatWon: (n: number | null) => string
   editorialBriefing: OverseasEditorialBriefingPayload | null | undefined
-  monthlyCurationMid: MonthlyCurationMidPayload | null | undefined
+  seasonCurationBlocks: SeasonCurationInsertBlock[] | null | undefined
 }) {
   const bucketToCountries = useMemo(() => {
     const map = new Map<OverseasDisplayBucketId, Map<string, ResultItem[]>>()
@@ -743,14 +743,19 @@ function OverseasRegionGroupedList({
               ) : null}
             </section>
           )
+        const seasonAfter = seasonCurationBlocks?.filter((b) => b.insertAfterBucket === bucketId) ?? []
         return (
           <Fragment key={bucketId}>
             {section}
-            {bucketId === 'europe_east' && monthlyCurationMid ? (
-              <section className="scroll-mt-4 w-full" aria-label="이번 달 추천 해외여행">
-                <OverseasMonthlyCurationMid {...monthlyCurationMid} />
+            {seasonAfter.map((b) => (
+              <section
+                key={`season-curation-${b.payload.id}`}
+                className="scroll-mt-4 w-full"
+                aria-label={`시즌 추천 · ${b.payload.monthKey}`}
+              >
+                <OverseasMonthlyCurationMid {...b.payload} />
               </section>
-            ) : null}
+            ))}
           </Fragment>
         )
       })}
@@ -765,7 +770,7 @@ export default function ProductResultsList({
   groupAirHotelByCountry = false,
   groupDomesticByRegion = false,
   overseasEditorialBriefing = null,
-  monthlyCurationMid = null,
+  overseasSeasonCurationBlocks = null,
 }: Props) {
   if (groupDomesticByRegion && items.length > 0) {
     return <DomesticRegionGroupedList items={items} formatWon={formatWon} />
@@ -779,7 +784,7 @@ export default function ProductResultsList({
   const useGrouped =
     groupOverseasByRegion &&
     (hasBucketMeta ||
-      monthlyCurationMid != null ||
+      (overseasSeasonCurationBlocks != null && overseasSeasonCurationBlocks.length > 0) ||
       overseasEditorialBriefing != null)
 
   if (useGrouped) {
@@ -788,7 +793,7 @@ export default function ProductResultsList({
         items={items}
         formatWon={formatWon}
         editorialBriefing={overseasEditorialBriefing}
-        monthlyCurationMid={monthlyCurationMid}
+        seasonCurationBlocks={overseasSeasonCurationBlocks}
       />
     )
   }

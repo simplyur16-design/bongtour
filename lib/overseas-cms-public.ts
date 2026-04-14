@@ -16,6 +16,8 @@ export type MonthlyCurationMidPayload = {
   sourceLine: string | null
   /** 시맨틱/스크린리더 보조 */
   seoTitle: string | null
+  /** CMS 국가·지역 연결 — 목록 삽입 위치 규칙용(없으면 null) */
+  relatedCountryCode: string | null
 }
 
 export { formatCmsSourceLine, toSafeHttpUrl, toSafePublicUrlOrPath }
@@ -35,6 +37,7 @@ export type MonthlyCurationRowLike = {
   sourceName: string | null
   sourceUrl: string | null
   seoTitle: string | null
+  countryCode?: string | null
 }
 
 export function monthlyCurationRowToMidPayload(
@@ -44,6 +47,7 @@ export function monthlyCurationRowToMidPayload(
   const href = row.linkedProductId
     ? `/products/${row.linkedProductId}`
     : toSafePublicUrlOrPath(row.linkedHref)
+  const cc = (row.countryCode ?? '').trim()
   return {
     id: row.id,
     monthKey: row.monthKey,
@@ -56,5 +60,6 @@ export function monthlyCurationRowToMidPayload(
     imageAlt: (row.imageAlt && row.imageAlt.trim()) || row.title,
     sourceLine: formatCmsSourceLine(row.sourceName, row.sourceUrl, row.sourceType),
     seoTitle: row.seoTitle,
+    relatedCountryCode: cc || null,
   }
 }

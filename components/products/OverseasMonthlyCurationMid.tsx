@@ -3,7 +3,7 @@ import Link from 'next/link'
 import type { MonthlyCurationMidPayload } from '@/lib/overseas-cms-public'
 
 /**
- * 해외 상품 목록에서 유럽·동남아 사이 전폭 블록으로 1회 삽입.
+ * 해외 상품 목록 — 권역(일본·동남아 등) 섹션 직후 삽입되는 시즌 추천 전폭 카드.
  */
 export default function OverseasMonthlyCurationMid(props: MonthlyCurationMidPayload) {
   const { title, subtitle, excerpt, ctaLabel, href, imageUrl, imageAlt, sourceLine, monthKey } = props

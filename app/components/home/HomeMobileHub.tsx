@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
-import { buildHomeMobileSeasonCarouselSlides } from '@/lib/home-mobile-season-carousel-slides'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
 import { MAIN_HOME_FIRST_HUB_DESCRIPTION, MAIN_HOME_FIRST_HUB_TITLE } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
@@ -41,19 +40,17 @@ const QUICK_ACTIONS = [
 const TILE_CARD_CLASS =
   'flex min-h-[8.75rem] flex-col items-center justify-center rounded-2xl border border-bt-border-soft bg-white px-4 py-5 text-center shadow-sm ring-1 ring-bt-border-soft/40 transition active:scale-[0.99] hover:border-bt-border-strong hover:ring-bt-border-strong/30'
 
-type Props = { seasonPick: HomeSeasonPickDTO }
+type Props = { seasonSlides: HomeSeasonPickDTO[] }
 
 /**
  * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 시즌 추천(이미지·글) / 주요 서비스 / 실무 요청 / 파트너.
  */
-export default function HomeMobileHub({ seasonPick }: Props) {
-  const seasonSlides = buildHomeMobileSeasonCarouselSlides(seasonPick)
-
+export default function HomeMobileHub({ seasonSlides }: Props) {
   return (
     <div className={`space-y-7 pb-8 pt-3 ${SITE_CONTENT_CLASS}`}>
       <div className="space-y-2">
         <p className="text-center text-[11px] font-semibold leading-snug tracking-tight text-teal-900 sm:text-xs">
-          상담 시 여행자보험 무료
+          상담 완료시 여행자보험 무료
         </p>
         <Link
           href={INQUIRY_TRAVEL}

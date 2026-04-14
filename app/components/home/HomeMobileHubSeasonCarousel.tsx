@@ -9,6 +9,10 @@ import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-secti
 const AUTO_MS = 5200
 const PAUSE_AFTER_INTERACTION_MS = 12000
 
+/** 이미지 비주얼 박스 — 높이·비율 고정(운영 확정값, 변경 금지) */
+const IMAGE_H = 'h-[11.25rem]'
+const TEXT_MIN = 'min-h-[12.25rem]'
+
 function SeasonCtaLink({ href, label }: { href: string; label: string }) {
   const cls =
     'mt-auto inline-flex h-12 w-full shrink-0 items-center justify-center rounded-xl bg-teal-700 px-4 text-center text-base font-bold text-white shadow-md transition hover:bg-teal-800 active:scale-[0.99]'
@@ -29,13 +33,9 @@ function SeasonCtaLink({ href, label }: { href: string; label: string }) {
 function SeasonSlideCard({
   slide,
   slideWidthPct,
-  imageHeightClass,
-  textMinHeightClass,
 }: {
   slide: HomeSeasonPickDTO
   slideWidthPct: number
-  imageHeightClass: string
-  textMinHeightClass: string
 }) {
   const [expanded, setExpanded] = useState(false)
   const img = slide.imageUrl
@@ -52,7 +52,7 @@ function SeasonSlideCard({
   return (
     <div className="shrink-0" style={{ width: `${slideWidthPct}%` }}>
       <div
-        className={`relative w-full overflow-hidden rounded-xl border border-slate-100 bg-slate-50/80 ${imageHeightClass}`}
+        className={`relative w-full overflow-hidden rounded-xl border border-slate-100 bg-slate-50/80 ${IMAGE_H}`}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-teal-100/90 via-slate-100 to-slate-200/90" aria-hidden />
         {img ? (
@@ -77,14 +77,17 @@ function SeasonSlideCard({
           )
         ) : (
           <div className="absolute inset-0 z-[1] flex items-center justify-center bg-gradient-to-br from-teal-600/20 via-slate-200/55 to-slate-300/45">
-            <span className="text-base font-bold text-slate-700/95">Bong투어 시즌 픽</span>
+            <span className="px-3 text-center text-sm font-semibold leading-snug text-slate-700/95">
+              시즌 안내 글
+            </span>
           </div>
         )}
       </div>
       <div
-        className={`flex flex-col border-t border-slate-100 bg-white px-4 pb-4 pt-3 ${textMinHeightClass}`}
+        className={`flex flex-col border-t border-slate-100 bg-white px-4 pb-4 pt-3 ${TEXT_MIN}`}
       >
-        <h3 className="text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">{slide.title}</h3>
+        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">읽을거리 · 짧은 안내</p>
+        <h3 className="mt-1.5 text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">{slide.title}</h3>
         {expanded ? (
           <p className="mt-2 max-h-[11rem] overflow-y-auto whitespace-pre-line text-[15px] font-medium leading-relaxed text-slate-800">
             {slide.bodyFull}
@@ -99,7 +102,7 @@ function SeasonSlideCard({
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
           >
-            {expanded ? '접기' : '더보기'}
+            {expanded ? '본문 접기' : '본문 더보기'}
           </button>
         ) : (
           <span className="mt-2 h-[1.375rem]" aria-hidden />
@@ -155,19 +158,20 @@ export default function HomeMobileHubSeasonCarousel({ slides }: Props) {
     else if (dx > 48) go(-1)
   }
 
-  const IMAGE_H = 'h-[11.25rem]'
-  const TEXT_MIN = 'min-h-[12.25rem]'
-
   return (
     <section
       aria-label="시즌 추천"
       aria-roledescription="carousel"
       className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm"
     >
-      <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>시즌 추천</h2>
+      <p className="text-center text-[11px] font-medium tracking-wide text-slate-500">추천 글 · 시즌 제안</p>
+      <h2 className={`${HOME_MOBILE_HUB_SECTION_TITLE_CLASS} mt-1`}>시즌 추천</h2>
+      <p className="mx-auto mt-1 max-w-md text-center text-[13px] leading-relaxed text-slate-600">
+        아래 「주요 서비스」와 같은 메뉴 타일이 아니라, 운영이 올려 둔 짧은 안내·제안을 읽는 영역입니다.
+      </p>
 
       <div
-        className="relative mt-1 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/50"
+        className="relative mt-3 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/50"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         onPointerDown={() => bumpInteractionPause()}
@@ -184,13 +188,7 @@ export default function HomeMobileHubSeasonCarousel({ slides }: Props) {
           }}
         >
           {slides.map((slide) => (
-            <SeasonSlideCard
-              key={slide.id}
-              slide={slide}
-              slideWidthPct={100 / n}
-              imageHeightClass={IMAGE_H}
-              textMinHeightClass={TEXT_MIN}
-            />
+            <SeasonSlideCard key={slide.id} slide={slide} slideWidthPct={100 / n} />
           ))}
         </div>
       </div>
@@ -203,7 +201,7 @@ export default function HomeMobileHubSeasonCarousel({ slides }: Props) {
               type="button"
               role="tab"
               aria-selected={i === index}
-              aria-label={`${i + 1}번째 추천`}
+              aria-label={`${i + 1}번째 안내`}
               className={
                 i === index
                   ? 'h-2.5 w-6 rounded-full bg-teal-700 transition'
