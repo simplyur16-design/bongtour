@@ -91,11 +91,7 @@ export default async function OverseasManagedContent({
         <section id="travel-os-curation" className="scroll-mt-24 border-b border-bt-border bg-bt-surface py-12 sm:py-14">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <header className="max-w-3xl">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-bt-accent">시즌 추천</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-bt-ink sm:text-3xl">이번 달 추천 해외여행</h2>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-bt-muted">
-                운영에서 직접 입력한 시즌 추천({monthKey})입니다.
-              </p>
+              <h2 className="text-2xl font-semibold tracking-tight text-bt-ink sm:text-3xl">시즌 추천</h2>
             </header>
             <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {monthlies.map((item) => {
@@ -118,8 +114,7 @@ export default async function OverseasManagedContent({
                         />
                       </div>
                     )}
-                    <p className="text-xs font-semibold text-bt-accent">{item.monthKey}</p>
-                    <h3 className="mt-1 text-lg font-semibold text-bt-ink">{item.title}</h3>
+                    <h3 className="text-lg font-semibold text-bt-ink">{item.title}</h3>
                     {item.subtitle && <p className="mt-1 text-xs text-bt-subtle">{item.subtitle}</p>}
                     <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-bt-muted">{item.bodyKr}</p>
                     {sourceLine ? (

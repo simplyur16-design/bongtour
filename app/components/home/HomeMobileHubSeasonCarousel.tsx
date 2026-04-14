@@ -9,7 +9,7 @@ import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-secti
 const AUTO_MS = 5200
 const PAUSE_AFTER_INTERACTION_MS = 12000
 
-/** 이미지 비주얼 박스 — 높이·비율 고정(운영 확정값, 변경 금지) */
+/** 이미지 비주얼 박스 — 높이 고정(변경 금지) */
 const IMAGE_H = 'h-[11.25rem]'
 const TEXT_MIN = 'min-h-[12.25rem]'
 
@@ -49,6 +49,8 @@ function SeasonSlideCard({
     return full.length > slide.excerpt.replace(/…$/, '').trim().length + 2
   }, [slide.bodyFull, slide.excerpt])
 
+  const desc = (slide.excerpt ?? '').trim()
+
   return (
     <div className="shrink-0" style={{ width: `${slideWidthPct}%` }}>
       <div
@@ -59,7 +61,7 @@ function SeasonSlideCard({
           isRemoteImg ? (
             <img
               src={img}
-              alt={slide.title}
+              alt={slide.title || ''}
               className="absolute inset-0 z-[1] h-full w-full object-cover"
               loading="lazy"
               decoding="async"
@@ -67,7 +69,7 @@ function SeasonSlideCard({
           ) : (
             <Image
               src={img}
-              alt={slide.title}
+              alt={slide.title || ''}
               fill
               className="z-[1] object-cover"
               sizes="100vw"
@@ -76,25 +78,39 @@ function SeasonSlideCard({
             />
           )
         ) : (
-          <div className="absolute inset-0 z-[1] flex items-center justify-center bg-gradient-to-br from-teal-600/20 via-slate-200/55 to-slate-300/45">
-            <span className="px-3 text-center text-sm font-semibold leading-snug text-slate-700/95">
-              시즌 안내 글
-            </span>
-          </div>
+          <div
+            className="absolute inset-0 z-[1] bg-gradient-to-br from-teal-600/20 via-slate-200/55 to-slate-300/45"
+            aria-hidden
+          />
         )}
       </div>
       <div
         className={`flex flex-col border-t border-slate-100 bg-white px-4 pb-4 pt-3 ${TEXT_MIN}`}
       >
-        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">읽을거리 · 짧은 안내</p>
-        <h3 className="mt-1.5 text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">{slide.title}</h3>
-        {expanded ? (
-          <p className="mt-2 max-h-[11rem] overflow-y-auto whitespace-pre-line text-[15px] font-medium leading-relaxed text-slate-800">
+        {slide.title ? (
+          <h3 className="text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">{slide.title}</h3>
+        ) : null}
+        {desc ? (
+          expanded ? (
+            <p
+              className={`max-h-[11rem] overflow-y-auto whitespace-pre-line text-[15px] font-medium leading-relaxed text-slate-800 ${slide.title ? 'mt-2' : ''}`}
+            >
+              {slide.bodyFull}
+            </p>
+          ) : (
+            <p
+              className={`line-clamp-3 text-[15px] font-medium leading-relaxed text-slate-800 ${slide.title ? 'mt-2' : ''}`}
+            >
+              {desc}
+            </p>
+          )
+        ) : expanded && slide.bodyFull.trim() ? (
+          <p
+            className={`max-h-[11rem] overflow-y-auto whitespace-pre-line text-[15px] font-medium leading-relaxed text-slate-800 ${slide.title ? 'mt-2' : ''}`}
+          >
             {slide.bodyFull}
           </p>
-        ) : (
-          <p className="mt-2 line-clamp-3 text-[15px] font-medium leading-relaxed text-slate-800">{slide.excerpt}</p>
-        )}
+        ) : null}
         {needsMore ? (
           <button
             type="button"
@@ -102,7 +118,7 @@ function SeasonSlideCard({
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
           >
-            {expanded ? '본문 접기' : '본문 더보기'}
+            {expanded ? '접기' : '더보기'}
           </button>
         ) : (
           <span className="mt-2 h-[1.375rem]" aria-hidden />
@@ -113,13 +129,15 @@ function SeasonSlideCard({
   )
 }
 
-type Props = { slides: HomeSeasonPickDTO[] }
+type Props = { slides: HomeSeasonPickDTO[]; /** 해외 상품 목록 등에서 섹션 타이틀 생략 */ hideHeading?: boolean }
 
-export default function HomeMobileHubSeasonCarousel({ slides }: Props) {
+export default function HomeMobileHubSeasonCarousel({ slides, hideHeading = false }: Props) {
   const n = slides.length
   const [index, setIndex] = useState(0)
   const resumeAtRef = useRef(0)
   const touchStartX = useRef<number | null>(null)
+
+  if (n === 0) return null
 
   const bumpInteractionPause = useCallback(() => {
     resumeAtRef.current = Date.now() + PAUSE_AFTER_INTERACTION_MS
@@ -159,19 +177,11 @@ export default function HomeMobileHubSeasonCarousel({ slides }: Props) {
   }
 
   return (
-    <section
-      aria-label="시즌 추천"
-      aria-roledescription="carousel"
-      className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm"
-    >
-      <p className="text-center text-[11px] font-medium tracking-wide text-slate-500">추천 글 · 시즌 제안</p>
-      <h2 className={`${HOME_MOBILE_HUB_SECTION_TITLE_CLASS} mt-1`}>시즌 추천</h2>
-      <p className="mx-auto mt-1 max-w-md text-center text-[13px] leading-relaxed text-slate-600">
-        아래 「주요 서비스」와 같은 메뉴 타일이 아니라, 운영이 올려 둔 짧은 안내·제안을 읽는 영역입니다.
-      </p>
+    <section aria-label="시즌 추천" aria-roledescription="carousel" className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
+      {!hideHeading ? <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>시즌 추천</h2> : null}
 
       <div
-        className="relative mt-3 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/50"
+        className={`relative overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/50 ${hideHeading ? 'mt-2' : 'mt-3'}`}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         onPointerDown={() => bumpInteractionPause()}
@@ -194,25 +204,45 @@ export default function HomeMobileHubSeasonCarousel({ slides }: Props) {
       </div>
 
       {n > 1 ? (
-        <div className="mt-3 flex items-center justify-center gap-2" role="tablist" aria-label="시즌 추천 슬라이드">
-          {slides.map((_, i) => (
+        <div className="mt-3 flex flex-col items-center gap-2">
+          <div className="flex items-center justify-center gap-3">
             <button
-              key={`season-dot-${i}-${slides[i]!.id}`}
               type="button"
-              role="tab"
-              aria-selected={i === index}
-              aria-label={`${i + 1}번째 안내`}
-              className={
-                i === index
-                  ? 'h-2.5 w-6 rounded-full bg-teal-700 transition'
-                  : 'h-2 w-2 rounded-full bg-slate-300 transition hover:bg-slate-400'
-              }
-              onClick={() => {
-                bumpInteractionPause()
-                setIndex(i)
-              }}
-            />
-          ))}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50"
+              onClick={() => go(-1)}
+              aria-label="이전 추천"
+            >
+              이전
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50"
+              onClick={() => go(1)}
+              aria-label="다음 추천"
+            >
+              다음
+            </button>
+          </div>
+          <div className="flex items-center justify-center gap-2" role="tablist" aria-label="시즌 추천 슬라이드">
+            {slides.map((_, i) => (
+              <button
+                key={`season-dot-${i}-${slides[i]!.id}`}
+                type="button"
+                role="tab"
+                aria-selected={i === index}
+                aria-label={`${i + 1}번째`}
+                className={
+                  i === index
+                    ? 'h-2.5 w-6 rounded-full bg-teal-700 transition'
+                    : 'h-2 w-2 rounded-full bg-slate-300 transition hover:bg-slate-400'
+                }
+                onClick={() => {
+                  bumpInteractionPause()
+                  setIndex(i)
+                }}
+              />
+            ))}
+          </div>
         </div>
       ) : null}
     </section>

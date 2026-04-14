@@ -1333,7 +1333,6 @@ export default function OverseasContentAdminClient() {
 
           <aside className="w-full shrink-0 rounded-xl border border-dashed border-slate-200 bg-slate-50/90 p-4 lg:sticky lg:top-4 lg:w-[min(100%,320px)]" aria-label="시즌 추천 카드 미리보기">
             <p className="text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">미리보기</p>
-            <p className="mt-1 text-center text-xs text-slate-500">모바일 홈 시즌 추천 슬롯과 유사</p>
             <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="relative aspect-[16/10] w-full bg-gradient-to-br from-teal-100 via-slate-100 to-slate-200">
                 {monthlyForm.imageUrl ? (
@@ -1344,8 +1343,7 @@ export default function OverseasContentAdminClient() {
                 )}
               </div>
               <div className="border-t border-slate-100 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">시즌 추천</p>
-                <p className="mt-1 text-sm font-bold text-slate-900">{monthlyForm.title.trim() || '(제목)'}</p>
+                <p className="text-sm font-bold text-slate-900">{monthlyForm.title.trim() || '(제목)'}</p>
                 <p className="mt-2 line-clamp-4 text-xs leading-relaxed text-slate-600">{seasonCardPreviewLead}</p>
                 <div className="mt-3 rounded-lg bg-teal-700 py-2.5 text-center text-xs font-semibold text-white">
                   {(monthlyForm.ctaLabel || '').trim() || '관련 상품 보기'}

@@ -2,19 +2,19 @@ import { toSafePublicUrlOrPath } from '@/lib/cms-source-attribution'
 import { buildPublicUrlForObjectKey, isObjectStorageConfigured } from '@/lib/object-storage'
 import { prisma } from '@/lib/prisma'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
+import { prioritizeEditorialsByRegionAndCountry } from '@/lib/overseas-editorial-prioritize'
 
-/** 모바일 홈 `시즌 추천` — `MonthlyCurationContent` SSOT */
+/** 모바일 홈·해외 상품 허브 공통 — `MonthlyCurationContent` 발행 행 → 순환 카드 */
 export type HomeSeasonPickDTO = {
   id: string
   title: string
   excerpt: string
-  /** 원문 본문 — 모바일 시즌 카드 더보기용 */
+  /** 원문 본문 — 더보기 펼침용 */
   bodyFull: string
   imageUrl: string | null
   ctaHref: string
   ctaLabel: string
   monthKey: string | null
-  /** CMS 국가 연결 — 해외 목록 삽입 규칙과 동일 필드명 */
   relatedCountryCode: string | null
 }
 
@@ -35,9 +35,10 @@ type MonthlyRow = {
   ctaLabel: string | null
   monthKey: string | null
   countryCode: string | null
+  regionKey: string | null
 }
 
-function monthlyRowToHomeSeasonPickDTO(row: MonthlyRow): HomeSeasonPickDTO {
+export function monthlyCurationRowToHomeSeasonPickDTO(row: MonthlyRow): HomeSeasonPickDTO {
   const bodyFull = (row.bodyKr ?? '').trim()
   let imageUrl = toSafePublicUrlOrPath(row.imageUrl)
   const key = (row.imageStorageKey ?? '').trim()
@@ -65,10 +66,11 @@ function monthlyRowToHomeSeasonPickDTO(row: MonthlyRow): HomeSeasonPickDTO {
   if (!ctaHref) ctaHref = '/travel/overseas'
 
   const cc = (row.countryCode ?? '').trim()
+  const title = (row.title ?? '').trim()
 
   return {
     id: row.id,
-    title: row.title.trim() || '시즌 추천',
+    title,
     excerpt: excerptBody(bodyFull, 120),
     bodyFull,
     imageUrl,
@@ -90,6 +92,7 @@ const monthlySelect = {
   ctaLabel: true,
   monthKey: true,
   countryCode: true,
+  regionKey: true,
 } as const
 
 /**
@@ -112,7 +115,7 @@ export async function getHomeSeasonPickFromMonthlyContent(): Promise<HomeSeasonP
       }))
 
     if (!row) return null
-    return monthlyRowToHomeSeasonPickDTO(row as MonthlyRow)
+    return monthlyCurationRowToHomeSeasonPickDTO(row as MonthlyRow)
   } catch {
     return null
   }
@@ -138,34 +141,59 @@ export async function getHomeSeasonPickForMobile(): Promise<{ pick: HomeSeasonPi
 }
 
 /**
- * 모바일 홈 시즌 추천 캐러셀 — 발행 행 최대 5건(정렬 동일).
- * 없으면 폴백 1건 + `padHomeSeasonSlidesToFive`에서 에디토리얼 슬롯으로 채움.
+ * 모바일 홈 시즌 추천 슬롯 — **발행된 행만** 길이 그대로 반환(패딩·샘플 금지).
+ * 없으면 빈 배열.
  */
-export async function getHomeSeasonPicksForMobileCarousel(): Promise<{
-  picks: HomeSeasonPickDTO[]
-  fromDatabase: boolean
-}> {
+export async function getSeasonCurationSlidesForMobileHome(): Promise<HomeSeasonPickDTO[]> {
   const monthKey = getSeoulYearMonthNow()
   try {
     let rows = await prisma.monthlyCurationContent.findMany({
       where: { pageScope: 'overseas', isPublished: true, monthKey },
       orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
-      take: 5,
+      take: 50,
       select: monthlySelect,
     })
     if (rows.length === 0) {
       rows = await prisma.monthlyCurationContent.findMany({
         where: { pageScope: 'overseas', isPublished: true },
         orderBy: [{ monthKey: 'desc' }, { sortOrder: 'asc' }, { updatedAt: 'desc' }],
-        take: 5,
+        take: 50,
         select: monthlySelect,
       })
     }
-    if (rows.length > 0) {
-      return { picks: rows.map((r) => monthlyRowToHomeSeasonPickDTO(r as MonthlyRow)), fromDatabase: true }
-    }
+    return rows.map((r) => monthlyCurationRowToHomeSeasonPickDTO(r as MonthlyRow))
   } catch {
-    // fall through
+    return []
   }
-  return { picks: [HOME_SEASON_PICK_FALLBACK], fromDatabase: false }
+}
+
+/**
+ * `/travel/overseas` 상품 목록 — 시즌 추천 **일본 섹션 아래 고정**용 슬라이드 배열.
+ * URL 필터와 동일한 우선순위로 어떤 글을 보여줄지만 결정하고, **삽입 위치는 호출부에서 일본 고정**.
+ */
+export async function getSeasonCurationSlidesForOverseasProductHub(
+  region: string | null | undefined,
+  country: string | null | undefined
+): Promise<HomeSeasonPickDTO[]> {
+  const monthKey = getSeoulYearMonthNow()
+  try {
+    let monthlyAll = await prisma.monthlyCurationContent.findMany({
+      where: { pageScope: 'overseas', isPublished: true, monthKey },
+      orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
+      take: 50,
+      select: monthlySelect,
+    })
+    if (monthlyAll.length === 0) {
+      monthlyAll = await prisma.monthlyCurationContent.findMany({
+        where: { pageScope: 'overseas', isPublished: true },
+        orderBy: [{ monthKey: 'desc' }, { sortOrder: 'asc' }, { updatedAt: 'desc' }],
+        take: 50,
+        select: monthlySelect,
+      })
+    }
+    const prioritized = prioritizeEditorialsByRegionAndCountry(monthlyAll, region, country)
+    return prioritized.map((r) => monthlyCurationRowToHomeSeasonPickDTO(r as MonthlyRow))
+  } catch {
+    return []
+  }
 }

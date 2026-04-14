@@ -6,19 +6,13 @@ import OverseasInteractiveShell from '@/app/components/travel/overseas/OverseasI
 import OverseasManagedContent from '@/app/components/travel/overseas/OverseasManagedContent'
 import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
-import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
-import { monthlyCurationRowToMidPayload } from '@/lib/overseas-cms-public'
-import {
-  resolveSeasonCurationInsertAfterBucketFromRow,
-  type SeasonCurationInsertBlock,
-} from '@/lib/overseas-season-curation-placement'
+import { getSeasonCurationSlidesForOverseasProductHub } from '@/lib/home-season-pick'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import {
   editorialRowToBriefingPayload,
   fetchPublishedOverseasEditorials,
   prioritizeEditorialsByRegionAndCountry,
 } from '@/lib/overseas-editorial-prioritize'
-import { prisma } from '@/lib/prisma'
 import { SITE_NAME } from '@/lib/site-metadata'
 
 export const dynamic = 'force-dynamic'
@@ -48,7 +42,6 @@ export default async function OverseasTravelPage({
   const country = typeof sp.country === 'string' ? sp.country : null
 
   let overseasEditorialBriefing: OverseasEditorialBriefingPayload | null = null
-  let overseasSeasonCurationBlocks: SeasonCurationInsertBlock[] = []
   try {
     const editorialAll = await fetchPublishedOverseasEditorials()
     const prioritized = prioritizeEditorialsByRegionAndCountry(editorialAll, region, country)
@@ -56,28 +49,8 @@ export default async function OverseasTravelPage({
   } catch {
     // 목록은 브리핑 없이 표시
   }
-  try {
-    const monthKey = getSeoulYearMonthNow()
-    let monthlyAll = await prisma.monthlyCurationContent.findMany({
-      where: { pageScope: 'overseas', isPublished: true, monthKey },
-      orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
-      take: 24,
-    })
-    if (monthlyAll.length === 0) {
-      monthlyAll = await prisma.monthlyCurationContent.findMany({
-        where: { pageScope: 'overseas', isPublished: true },
-        orderBy: [{ monthKey: 'desc' }, { sortOrder: 'asc' }, { updatedAt: 'desc' }],
-        take: 24,
-      })
-    }
-    const prioritizedMonthly = prioritizeEditorialsByRegionAndCountry(monthlyAll, region, country)
-    overseasSeasonCurationBlocks = prioritizedMonthly.map((row) => ({
-      payload: monthlyCurationRowToMidPayload(row, 200),
-      insertAfterBucket: resolveSeasonCurationInsertAfterBucketFromRow(row),
-    }))
-  } catch {
-    overseasSeasonCurationBlocks = []
-  }
+
+  const overseasSeasonCurationSlides = await getSeasonCurationSlidesForOverseasProductHub(region, country)
 
   return (
     <div className="min-h-screen bg-bt-page">
@@ -93,7 +66,7 @@ export default async function OverseasTravelPage({
             pageTitle="해외여행 상품"
             hidePageHeading
             overseasEditorialBriefing={overseasEditorialBriefing}
-            overseasSeasonCurationBlocks={overseasSeasonCurationBlocks}
+            overseasSeasonCurationSlides={overseasSeasonCurationSlides}
           />
         </Suspense>
 
@@ -104,7 +77,7 @@ export default async function OverseasTravelPage({
                 region={region}
                 country={country}
                 omitEditorialSection
-                omitMonthlyCuration={overseasSeasonCurationBlocks.length > 0}
+                omitMonthlyCuration={overseasSeasonCurationSlides.length > 0}
               />
             </>
           }

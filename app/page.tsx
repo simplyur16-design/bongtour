@@ -7,8 +7,7 @@ import { pickHomeHubTravelCardCover } from '@/lib/home-hub-travel-card-cover'
 import { getHomeHubCardHybridResolutionDetail } from '@/lib/home-hub-card-hybrid-core'
 import { getHomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 import HomeMobileHub from './components/home/HomeMobileHub'
-import { getHomeSeasonPicksForMobileCarousel } from '@/lib/home-season-pick'
-import { padHomeSeasonSlidesToFive } from '@/lib/home-mobile-season-carousel-slides'
+import { getSeasonCurationSlidesForMobileHome } from '@/lib/home-season-pick'
 import PartnerOrganizationsSection from './components/home/PartnerOrganizationsSection'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { SITE_NAME } from '@/lib/site-metadata'
@@ -48,8 +47,7 @@ export default async function Home() {
     productPoolDomesticUrl: domesticCover?.imageSrc ?? null,
   })
 
-  const { picks: homeSeasonPicks } = await getHomeSeasonPicksForMobileCarousel()
-  const homeSeasonSlides = padHomeSeasonSlidesToFive(homeSeasonPicks)
+  const homeSeasonSlides = await getSeasonCurationSlidesForMobileHome()
 
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">

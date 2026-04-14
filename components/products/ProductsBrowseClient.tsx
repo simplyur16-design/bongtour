@@ -17,7 +17,7 @@ import ProductFilterMobileDrawer from '@/components/products/filter/ProductFilte
 import ProductFilterChips, { buildFilterChips } from '@/components/products/ProductFilterChips'
 import ProductSortBar from '@/components/products/ProductSortBar'
 import ProductResultsList, { type ResultItem } from '@/components/products/ProductResultsList'
-import type { SeasonCurationInsertBlock } from '@/lib/overseas-season-curation-placement'
+import type { HomeSeasonPickDTO } from '@/lib/home-season-pick'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 
 type ApiOk = {
@@ -70,8 +70,8 @@ type Props = {
   hidePageHeading?: boolean
   /** 해외 허브: 서유럽 섹션용 목적지 브리핑(서버 선별) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
-  /** 해외 허브: 시즌 추천을 권역 섹션 직후(국가 연결·일본 폴백) 삽입 */
-  overseasSeasonCurationBlocks?: SeasonCurationInsertBlock[] | null
+  /** 해외 허브: 시즌 추천 순환 — 목록에서는 일본 섹션 직후 고정 */
+  overseasSeasonCurationSlides?: HomeSeasonPickDTO[] | null
 }
 
 function formatWon(n: number | null) {
@@ -93,7 +93,7 @@ export default function ProductsBrowseClient({
   pageTitle = '여행 상품',
   hidePageHeading = false,
   overseasEditorialBriefing = null,
-  overseasSeasonCurationBlocks = null,
+  overseasSeasonCurationSlides = null,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname() ?? ''
@@ -435,7 +435,7 @@ export default function ProductsBrowseClient({
             groupAirHotelByCountry={pathname === '/travel/air-hotel'}
             groupDomesticByRegion={isDomesticHub}
             overseasEditorialBriefing={overseasEditorialBriefing}
-            overseasSeasonCurationBlocks={overseasSeasonCurationBlocks}
+            overseasSeasonCurationSlides={overseasSeasonCurationSlides}
           />
           {data.total > data.limit &&
             !(

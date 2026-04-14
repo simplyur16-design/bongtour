@@ -2,9 +2,9 @@
 
 import Link from 'next/link'
 import { Fragment, useMemo } from 'react'
+import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 import OverseasDestinationBriefingMid from '@/components/products/OverseasDestinationBriefingMid'
-import OverseasMonthlyCurationMid from '@/components/products/OverseasMonthlyCurationMid'
-import type { SeasonCurationInsertBlock } from '@/lib/overseas-season-curation-placement'
+import type { HomeSeasonPickDTO } from '@/lib/home-season-pick'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import {
   OVERSEAS_DISPLAY_BUCKET_LABEL,
@@ -55,8 +55,8 @@ type Props = {
   groupDomesticByRegion?: boolean
   /** 서유럽 섹션 상단 목적지 브리핑(선택) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
-  /** 시즌 추천 — 권역 버킷 섹션 직후 삽입(국가 연결 우선, 없으면 일본 아래) */
-  overseasSeasonCurationBlocks?: SeasonCurationInsertBlock[] | null | undefined
+  /** 해외 허브: 시즌 추천 순환 슬롯 — **일본 섹션 바로 아래** 고정 */
+  overseasSeasonCurationSlides?: HomeSeasonPickDTO[] | null | undefined
 }
 
 const AIR_HOTEL_MISC_SECTION = '기타'
@@ -676,12 +676,12 @@ function OverseasRegionGroupedList({
   items,
   formatWon,
   editorialBriefing,
-  seasonCurationBlocks,
+  seasonCurationSlides,
 }: {
   items: ResultItem[]
   formatWon: (n: number | null) => string
   editorialBriefing: OverseasEditorialBriefingPayload | null | undefined
-  seasonCurationBlocks: SeasonCurationInsertBlock[] | null | undefined
+  seasonCurationSlides: HomeSeasonPickDTO[] | null | undefined
 }) {
   const bucketToCountries = useMemo(() => {
     const map = new Map<OverseasDisplayBucketId, Map<string, ResultItem[]>>()
@@ -743,19 +743,29 @@ function OverseasRegionGroupedList({
               ) : null}
             </section>
           )
-        const seasonAfter = seasonCurationBlocks?.filter((b) => b.insertAfterBucket === bucketId) ?? []
+        const seasonSlot =
+          bucketId === 'japan' && (seasonCurationSlides?.length ?? 0) > 0 ? (
+            <div className="scroll-mt-4 w-full">
+              <HomeMobileHubSeasonCarousel slides={seasonCurationSlides!} hideHeading />
+            </div>
+          ) : null
+
+        const japanHeaderOnly =
+          bucketId === 'japan' && !section && (seasonCurationSlides?.length ?? 0) > 0 ? (
+            <section className="scroll-mt-4" aria-labelledby="overseas-bucket-japan">
+              <h2
+                id="overseas-bucket-japan"
+                className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
+              >
+                {OVERSEAS_DISPLAY_BUCKET_LABEL.japan}
+              </h2>
+            </section>
+          ) : null
+
         return (
           <Fragment key={bucketId}>
-            {section}
-            {seasonAfter.map((b) => (
-              <section
-                key={`season-curation-${b.payload.id}`}
-                className="scroll-mt-4 w-full"
-                aria-label={`시즌 추천 · ${b.payload.monthKey}`}
-              >
-                <OverseasMonthlyCurationMid {...b.payload} />
-              </section>
-            ))}
+            {section ?? japanHeaderOnly}
+            {seasonSlot}
           </Fragment>
         )
       })}
@@ -770,7 +780,7 @@ export default function ProductResultsList({
   groupAirHotelByCountry = false,
   groupDomesticByRegion = false,
   overseasEditorialBriefing = null,
-  overseasSeasonCurationBlocks = null,
+  overseasSeasonCurationSlides = null,
 }: Props) {
   if (groupDomesticByRegion && items.length > 0) {
     return <DomesticRegionGroupedList items={items} formatWon={formatWon} />
@@ -784,7 +794,7 @@ export default function ProductResultsList({
   const useGrouped =
     groupOverseasByRegion &&
     (hasBucketMeta ||
-      (overseasSeasonCurationBlocks != null && overseasSeasonCurationBlocks.length > 0) ||
+      (overseasSeasonCurationSlides != null && overseasSeasonCurationSlides.length > 0) ||
       overseasEditorialBriefing != null)
 
   if (useGrouped) {
@@ -793,7 +803,7 @@ export default function ProductResultsList({
         items={items}
         formatWon={formatWon}
         editorialBriefing={overseasEditorialBriefing}
-        seasonCurationBlocks={overseasSeasonCurationBlocks}
+        seasonCurationSlides={overseasSeasonCurationSlides}
       />
     )
   }

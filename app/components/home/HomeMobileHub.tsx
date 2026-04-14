@@ -60,7 +60,7 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
         </Link>
       </div>
 
-      <HomeMobileHubSeasonCarousel slides={seasonSlides} />
+      {seasonSlides.length > 0 ? <HomeMobileHubSeasonCarousel slides={seasonSlides} /> : null}
 
       <section aria-label="주요 서비스">
         <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>주요 서비스</h2>

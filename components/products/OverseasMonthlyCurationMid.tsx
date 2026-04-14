@@ -6,7 +6,7 @@ import type { MonthlyCurationMidPayload } from '@/lib/overseas-cms-public'
  * 해외 상품 목록 — 권역(일본·동남아 등) 섹션 직후 삽입되는 시즌 추천 전폭 카드.
  */
 export default function OverseasMonthlyCurationMid(props: MonthlyCurationMidPayload) {
-  const { title, subtitle, excerpt, ctaLabel, href, imageUrl, imageAlt, sourceLine, monthKey } = props
+  const { title, subtitle, excerpt, ctaLabel, href, imageUrl, imageAlt, sourceLine } = props
   const label = ctaLabel?.trim() || '이번 달 추천 더 보기'
   const inner = (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
@@ -23,8 +23,7 @@ export default function OverseasMonthlyCurationMid(props: MonthlyCurationMidPayl
         </div>
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col justify-center py-1">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">이번 달 추천 · {monthKey}</p>
-        <h3 className="mt-2 text-lg font-semibold leading-snug text-slate-900">{title}</h3>
+        <h3 className="text-lg font-semibold leading-snug text-slate-900">{title}</h3>
         {subtitle ? <p className="mt-1 text-xs text-slate-600">{subtitle}</p> : null}
         <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-700">{excerpt}</p>
         {sourceLine ? (
