@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 
 type EditorialItem = {
   id: string
@@ -867,11 +866,6 @@ export default function OverseasContentAdminClient() {
         <h1 className="text-2xl font-semibold text-gray-900">시즌 추천 관리</h1>
         <p className="mt-2 text-sm text-gray-600">
           해외 허브·모바일 홈 시즌 추천 카드에 올라갈 1건을 등록합니다. 아래 핵심 입력만으로도 저장할 수 있고, 출처·SEO 등은 필요할 때만 펼쳐 주세요.
-        </p>
-        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">
-          공개 해외 페이지 하단·상품 목록 중간 카드·모바일 홈 시즌 추천은{' '}
-          <strong>대상 월이 서울 기준 이번 달({getSeoulYearMonthNow()})</strong>이고 <strong>발행</strong>된 항목만
-          노출됩니다. 이미지를 올렸는데 사이트에 안 보이면 monthKey·발행 여부를 먼저 확인하세요.
         </p>
       </section>
 
