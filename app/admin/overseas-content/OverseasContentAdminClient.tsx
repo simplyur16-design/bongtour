@@ -131,6 +131,14 @@ function clipForAriaTitle(s: string | null | undefined, max = 36): string {
   return `${t.slice(0, max - 1)}…`
 }
 
+function adminClientFetchErrorMessage(e: unknown): string {
+  if (e instanceof TypeError && /failed to fetch/i.test(e.message)) {
+    return '서버에 연결할 수 없습니다. 네트워크·주소(http/https)와 개발 서버 실행 여부를 확인해 주세요.'
+  }
+  if (e instanceof Error && e.message.trim()) return e.message
+  return '요청 중 오류가 발생했습니다.'
+}
+
 export default function OverseasContentAdminClient() {
   const [editorials, setEditorials] = useState<EditorialItem[]>([])
   const [monthlies, setMonthlies] = useState<MonthlyItem[]>([])
@@ -161,7 +169,7 @@ export default function OverseasContentAdminClient() {
       setEditorials(Array.isArray(aj.items) ? aj.items : [])
       setMonthlies(Array.isArray(bj.items) ? bj.items : [])
     } catch (e) {
-      setError(e instanceof Error ? e.message : '저장 중 오류가 발생했습니다.')
+      setError(adminClientFetchErrorMessage(e))
     } finally {
       setLoading(false)
     }
@@ -218,23 +226,27 @@ export default function OverseasContentAdminClient() {
     }
 
     const isEdit = Boolean(editingEditorialId)
-    const res = await fetch(
-      isEdit ? `/api/admin/editorial-contents/${editingEditorialId}` : '/api/admin/editorial-contents',
-      {
-        method: isEdit ? 'PATCH' : 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
+    try {
+      const res = await fetch(
+        isEdit ? `/api/admin/editorial-contents/${editingEditorialId}` : '/api/admin/editorial-contents',
+        {
+          method: isEdit ? 'PATCH' : 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      )
+      const json = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        setError(json.error ?? '입력값을 다시 확인해주세요.')
+        return
       }
-    )
-    const json = (await res.json().catch(() => ({}))) as { error?: string }
-    if (!res.ok) {
-      setError(json.error ?? '입력값을 다시 확인해주세요.')
-      return
+      setMessage(isEdit ? '수정되었습니다.' : '등록이 완료되었습니다.')
+      setEditorialForm(blankEditorial)
+      setEditingEditorialId(null)
+      await reload()
+    } catch (e) {
+      setError(adminClientFetchErrorMessage(e))
     }
-    setMessage(isEdit ? '수정되었습니다.' : '등록이 완료되었습니다.')
-    setEditorialForm(blankEditorial)
-    setEditingEditorialId(null)
-    await reload()
   }
 
   async function saveMonthly() {
@@ -291,74 +303,94 @@ export default function OverseasContentAdminClient() {
     }
 
     const isEdit = Boolean(editingMonthlyId)
-    const res = await fetch(
-      isEdit ? `/api/admin/monthly-curation-contents/${editingMonthlyId}` : '/api/admin/monthly-curation-contents',
-      {
-        method: isEdit ? 'PATCH' : 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
+    try {
+      const res = await fetch(
+        isEdit ? `/api/admin/monthly-curation-contents/${editingMonthlyId}` : '/api/admin/monthly-curation-contents',
+        {
+          method: isEdit ? 'PATCH' : 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      )
+      const json = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        setError(json.error ?? '입력값을 다시 확인해주세요.')
+        return
       }
-    )
-    const json = (await res.json().catch(() => ({}))) as { error?: string }
-    if (!res.ok) {
-      setError(json.error ?? '입력값을 다시 확인해주세요.')
-      return
+      setMonthlySeasonAwaitingDbSave(false)
+      setMessage('저장되었습니다.')
+      setMonthlyForm(blankMonthly)
+      setEditingMonthlyId(null)
+      await reload()
+    } catch (e) {
+      setError(adminClientFetchErrorMessage(e))
     }
-    setMonthlySeasonAwaitingDbSave(false)
-    setMessage('저장되었습니다.')
-    setMonthlyForm(blankMonthly)
-    setEditingMonthlyId(null)
-    await reload()
   }
 
   async function toggleEditorialPublish(row: EditorialItem) {
-    const res = await fetch(`/api/admin/editorial-contents/${row.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ...row, isPublished: !row.isPublished }),
-    })
-    if (!res.ok) {
-      setError('저장 중 오류가 발생했습니다.')
-      return
+    try {
+      const res = await fetch(`/api/admin/editorial-contents/${row.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...row, isPublished: !row.isPublished }),
+      })
+      if (!res.ok) {
+        setError('저장 중 오류가 발생했습니다.')
+        return
+      }
+      setMessage('발행 상태가 변경되었습니다.')
+      await reload()
+    } catch (e) {
+      setError(adminClientFetchErrorMessage(e))
     }
-    setMessage('발행 상태가 변경되었습니다.')
-    await reload()
   }
 
   async function toggleMonthlyPublish(row: MonthlyItem) {
-    const res = await fetch(`/api/admin/monthly-curation-contents/${row.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ...row, isPublished: !row.isPublished }),
-    })
-    if (!res.ok) {
-      setError('저장 중 오류가 발생했습니다.')
-      return
+    try {
+      const res = await fetch(`/api/admin/monthly-curation-contents/${row.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...row, isPublished: !row.isPublished }),
+      })
+      if (!res.ok) {
+        setError('저장 중 오류가 발생했습니다.')
+        return
+      }
+      setMessage('발행 상태가 변경되었습니다.')
+      await reload()
+    } catch (e) {
+      setError(adminClientFetchErrorMessage(e))
     }
-    setMessage('발행 상태가 변경되었습니다.')
-    await reload()
   }
 
   async function removeEditorial(id: string) {
     if (!confirm('삭제하시겠습니까?')) return
-    const res = await fetch(`/api/admin/editorial-contents/${id}`, { method: 'DELETE' })
-    if (!res.ok) {
-      setError('저장 중 오류가 발생했습니다.')
-      return
+    try {
+      const res = await fetch(`/api/admin/editorial-contents/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        setError('저장 중 오류가 발생했습니다.')
+        return
+      }
+      setMessage('삭제되었습니다.')
+      await reload()
+    } catch (e) {
+      setError(adminClientFetchErrorMessage(e))
     }
-    setMessage('삭제되었습니다.')
-    await reload()
   }
 
   async function removeMonthly(id: string) {
     if (!confirm('삭제하시겠습니까?')) return
-    const res = await fetch(`/api/admin/monthly-curation-contents/${id}`, { method: 'DELETE' })
-    if (!res.ok) {
-      setError('저장 중 오류가 발생했습니다.')
-      return
+    try {
+      const res = await fetch(`/api/admin/monthly-curation-contents/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        setError('저장 중 오류가 발생했습니다.')
+        return
+      }
+      setMessage('삭제되었습니다.')
+      await reload()
+    } catch (e) {
+      setError(adminClientFetchErrorMessage(e))
     }
-    setMessage('삭제되었습니다.')
-    await reload()
   }
 
   const editorialCount = useMemo(() => editorials.length, [editorials])
@@ -376,63 +408,71 @@ export default function OverseasContentAdminClient() {
   async function uploadMonthlyImage(file: File) {
     setUploadingMonthlyImage(true)
     setError(null)
-    const fd = new FormData()
-    fd.set('file', file)
-    fd.set('monthKey', monthlyForm.monthKey || '')
-    fd.set('title', monthlyForm.title || '')
-    const res = await fetch('/api/admin/monthly-curation-contents/upload', { method: 'POST', body: fd })
-    const json = (await res.json().catch(() => ({}))) as {
-      error?: string
-      imageUrl?: string
-      imageStorageKey?: string
-      imageWidth?: number
-      imageHeight?: number
-    }
-    if (!res.ok) {
+    try {
+      const fd = new FormData()
+      fd.set('file', file)
+      fd.set('monthKey', monthlyForm.monthKey || '')
+      fd.set('title', monthlyForm.title || '')
+      const res = await fetch('/api/admin/monthly-curation-contents/upload', { method: 'POST', body: fd })
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string
+        imageUrl?: string
+        imageStorageKey?: string
+        imageWidth?: number
+        imageHeight?: number
+      }
+      if (!res.ok) {
+        setError(json.error ?? '저장 중 오류가 발생했습니다.')
+        return
+      }
+      setMonthlyForm((p) => ({
+        ...p,
+        imageUrl: json.imageUrl ?? '',
+        imageStorageKey: json.imageStorageKey ?? '',
+        imageWidth: json.imageWidth != null ? String(json.imageWidth) : '',
+        imageHeight: json.imageHeight != null ? String(json.imageHeight) : '',
+      }))
+      setMonthlySeasonAwaitingDbSave(true)
+      setMessage('이미지를 업로드했습니다. 최종 반영하려면 아래 저장을 눌러주세요.')
+    } catch (e) {
+      setError(adminClientFetchErrorMessage(e))
+    } finally {
       setUploadingMonthlyImage(false)
-      setError(json.error ?? '저장 중 오류가 발생했습니다.')
-      return
     }
-    setMonthlyForm((p) => ({
-      ...p,
-      imageUrl: json.imageUrl ?? '',
-      imageStorageKey: json.imageStorageKey ?? '',
-      imageWidth: json.imageWidth != null ? String(json.imageWidth) : '',
-      imageHeight: json.imageHeight != null ? String(json.imageHeight) : '',
-    }))
-    setUploadingMonthlyImage(false)
-    setMonthlySeasonAwaitingDbSave(true)
-    setMessage('이미지를 업로드했습니다. 최종 반영하려면 아래 저장을 눌러주세요.')
   }
 
   async function uploadEditorialHeroImage(file: File) {
     setUploadingEditorialImage(true)
     setError(null)
-    const fd = new FormData()
-    fd.set('file', file)
-    fd.set('title', editorialForm.title || 'editorial')
-    const res = await fetch('/api/admin/editorial-contents/upload', { method: 'POST', body: fd })
-    const json = (await res.json().catch(() => ({}))) as {
-      error?: string
-      heroImageUrl?: string
-      heroImageStorageKey?: string
-      heroImageWidth?: number
-      heroImageHeight?: number
-    }
-    if (!res.ok) {
+    try {
+      const fd = new FormData()
+      fd.set('file', file)
+      fd.set('title', editorialForm.title || 'editorial')
+      const res = await fetch('/api/admin/editorial-contents/upload', { method: 'POST', body: fd })
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string
+        heroImageUrl?: string
+        heroImageStorageKey?: string
+        heroImageWidth?: number
+        heroImageHeight?: number
+      }
+      if (!res.ok) {
+        setError(json.error ?? '저장 중 오류가 발생했습니다.')
+        return
+      }
+      setEditorialForm((p) => ({
+        ...p,
+        heroImageUrl: json.heroImageUrl ?? '',
+        heroImageStorageKey: json.heroImageStorageKey ?? '',
+        heroImageWidth: json.heroImageWidth != null ? String(json.heroImageWidth) : '',
+        heroImageHeight: json.heroImageHeight != null ? String(json.heroImageHeight) : '',
+      }))
+      setMessage('이미지가 반영되었습니다.')
+    } catch (e) {
+      setError(adminClientFetchErrorMessage(e))
+    } finally {
       setUploadingEditorialImage(false)
-      setError(json.error ?? '저장 중 오류가 발생했습니다.')
-      return
     }
-    setEditorialForm((p) => ({
-      ...p,
-      heroImageUrl: json.heroImageUrl ?? '',
-      heroImageStorageKey: json.heroImageStorageKey ?? '',
-      heroImageWidth: json.heroImageWidth != null ? String(json.heroImageWidth) : '',
-      heroImageHeight: json.heroImageHeight != null ? String(json.heroImageHeight) : '',
-    }))
-    setUploadingEditorialImage(false)
-    setMessage('이미지가 반영되었습니다.')
   }
 
   function editorialFormFromRow(row: EditorialItem) {
