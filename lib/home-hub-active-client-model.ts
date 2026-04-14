@@ -10,6 +10,8 @@ export type HomeHubActiveClientModel = {
   images?: Partial<Record<HomeHubCardImageKey, string>>
   /** 메인 하이브리드용 — 생략 시 서버에서 해외/국내=product_pool, 연수/버스=manual 로 해석 */
   imageSourceModes?: Partial<Record<HomeHubCardImageKey, 'manual' | 'product_pool'>>
+  /** 국외연수 `/training` 통역 블록 등 두 번째 이미지 URL */
+  trainingPageSecondaryImage?: string
 }
 
 export function homeHubActiveFileToClientModel(cfg: HomeHubActiveFile): HomeHubActiveClientModel {
@@ -20,5 +22,6 @@ export function homeHubActiveFileToClientModel(cfg: HomeHubActiveFile): HomeHubA
     lastUpdatedBy: cfg.lastUpdatedBy,
     images: cfg.images,
     imageSourceModes: cfg.imageSourceModes,
+    trainingPageSecondaryImage: cfg.trainingPageSecondaryImage,
   }
 }

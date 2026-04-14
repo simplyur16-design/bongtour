@@ -1,7 +1,11 @@
 import type { Metadata } from 'next'
 import TrainingHub from '@/app/components/training/TrainingHub'
 import PartnerOrganizationsSection from '@/app/components/home/PartnerOrganizationsSection'
+import { resolveTrainingPageSectionImages } from '@/lib/home-hub-resolve-images'
 import { SITE_NAME } from '@/lib/site-metadata'
+
+/** `home-hub-active.json` 갱신이 곧바로 반영되도록(관리자 저장 후 새로고침 시 두 장 URL 일치) */
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: '국외연수·단체 연수',
@@ -18,9 +22,10 @@ export const metadata: Metadata = {
 }
 
 export default function TrainingPage() {
+  const { hero, interpret } = resolveTrainingPageSectionImages()
   return (
     <>
-      <TrainingHub />
+      <TrainingHub heroImageUrl={hero} interpretImageUrl={interpret} />
       <PartnerOrganizationsSection />
     </>
   )

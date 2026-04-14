@@ -47,6 +47,13 @@ const FLOW_DETAILS = [
   '현장 중 이슈 조율과 방문 후 후속 커뮤니케이션 연결까지 지원합니다.',
 ] as const
 
+type TrainingHubProps = {
+  /** 메인 허브 `training`과 동일 하이브리드 해석 URL */
+  heroImageUrl: string
+  /** 통역 블록 — 관리자 `trainingPageSecondaryImage` 없으면 hero와 동일 */
+  interpretImageUrl: string
+}
+
 const TRUST_CASES = [
   '수원시의회 보건복지위원회 · 국외연수',
   '경기도의회 ODA 에티오피아 · 국외연수',
@@ -56,9 +63,6 @@ const TRUST_CASES = [
   '경기도청 조세정의과 · 국외연수',
   '언론사 특별취재 · 동행 순차통역',
 ] as const
-
-const HERO_IMAGE = '/images/training/hero-user-provided.png'
-const INTERPRET_IMAGE = '/images/home-hub/candidates/training-spring-1774163629867-mejktl-0.png'
 
 const SERVICE_MODAL_HINT: Record<ServiceType, { hint: string }> = {
   '연수기관 섭외만': {
@@ -75,7 +79,7 @@ const SERVICE_MODAL_HINT: Record<ServiceType, { hint: string }> = {
   },
 }
 
-export default function TrainingHub() {
+export default function TrainingHub({ heroImageUrl, interpretImageUrl }: TrainingHubProps) {
   const [presetService, setPresetService] = useState<ServiceType | null>(null)
   const [inquiryOpen, setInquiryOpen] = useState(false)
 
@@ -133,11 +137,12 @@ export default function TrainingHub() {
               <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white">
                 <div className="relative h-[320px] sm:h-[380px] lg:h-[440px]">
                   <Image
-                    src={HERO_IMAGE}
+                    src={heroImageUrl}
                     alt="국외연수 서비스 안내 이미지"
                     fill
                     sizes="(max-width: 1023px) 100vw, 544px"
                     className="object-cover"
+                    unoptimized={heroImageUrl.startsWith('http')}
                   />
                 </div>
               </div>
@@ -263,11 +268,12 @@ export default function TrainingHub() {
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
               <div className="relative h-[280px] sm:h-[340px]">
                 <Image
-                  src={INTERPRET_IMAGE}
+                  src={interpretImageUrl}
                   alt="국외연수 회의·브리핑 장면"
                   fill
                   sizes="(max-width: 1023px) 100vw, (max-width: 1279px) 46vw, 544px"
                   className="object-cover"
+                  unoptimized={interpretImageUrl.startsWith('http')}
                 />
               </div>
               <p className="px-4 py-2 text-right text-xs text-slate-500">사진은 기존 사진을 AI로 변형한 내용입니다.</p>

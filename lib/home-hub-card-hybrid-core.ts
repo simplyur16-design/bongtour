@@ -12,9 +12,13 @@ export type HomeHubCardHybridActiveSlice = {
   imageSourceModes?: Partial<Record<HomeHubCardImageKey, HomeHubCardImageSourceMode>>
 }
 
-function isValidPublicImageUrl(s: string): boolean {
+/** 관리자 JSON `images.*` · `trainingPageSecondaryImage` 등에 허용하는 공개 이미지 URL 형태 */
+export function isHomeHubPublicManualImageUrl(s: string): boolean {
   const t = s.trim()
-  return t.length > 0 && (t.startsWith('/') || t.startsWith('https://'))
+  return (
+    t.length > 0 &&
+    (t.startsWith('/') || t.startsWith('https://') || t.startsWith('http://'))
+  )
 }
 
 /** `home-hub-active.json` 의 `images[key]` 가 유효 공개 URL이면 수동 지정 */
@@ -24,7 +28,7 @@ export function manualImageUrlFromHybridActive(
 ): string | null {
   if (!cfg?.images) return null
   const raw = cfg.images[key]?.trim()
-  if (!raw || !isValidPublicImageUrl(raw)) return null
+  if (!raw || !isHomeHubPublicManualImageUrl(raw)) return null
   return raw
 }
 

@@ -115,7 +115,11 @@ const nextConfig = {
       return base
     })(),
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
+    /** Windows: PackFileCacheStrategy rename ENOENT → .next 손상·`/_next/static/chunks/*.js` 404 방지 */
+    if (dev && process.platform === 'win32') {
+      config.cache = { type: 'memory' }
+    }
     if (isServer) {
       config.resolve.alias = {
         ...config.resolve.alias,

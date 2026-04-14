@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   OUR_TRAVEL_GROUP_TYPE_MENTS,
   OUR_TRAVEL_HERO_TITLES,
@@ -40,12 +40,18 @@ function modeAThirdLine(slotA: number): string {
 }
 
 export default function OurTravelHero({ imageUrls, inquiryHref }: Props) {
-  const slides = imageUrls.length > 0 ? imageUrls : [STATIC_FALLBACK_IMAGE]
+  const imageSetKey = imageUrls.join('\n')
+  /** 동일 URL 중복이면 imgIdx만 바뀌고 화면은 그대로여서 “고정”처럼 보일 수 있음 → 제거 */
+  const slides = useMemo(() => {
+    const uniq = [...new Set(imageUrls.map((u) => u.trim()).filter(Boolean))]
+    if (uniq.length === 0) return [STATIC_FALLBACK_IMAGE]
+    return uniq
+  }, [imageSetKey, imageUrls])
+
   const [rotationIndex, setRotationIndex] = useState(0)
   const [broken, setBroken] = useState<Record<number, boolean>>({})
   const [reduceMotion, setReduceMotion] = useState(false)
 
-  const imageSetKey = imageUrls.join('\n')
   useEffect(() => {
     setRotationIndex(0)
     setBroken({})
@@ -66,7 +72,7 @@ export default function OurTravelHero({ imageUrls, inquiryHref }: Props) {
       setRotationIndex((v) => v + 1)
     }, 5500)
     return () => clearInterval(t)
-  }, [reduceMotion])
+  }, [reduceMotion, slides.length])
 
   const imgIdx = rotationIndex % slides.length
   const isModeA = rotationIndex % 2 === 0
@@ -89,6 +95,7 @@ export default function OurTravelHero({ imageUrls, inquiryHref }: Props) {
         <div className="relative min-w-0 overflow-hidden rounded-xl border border-bt-border bg-bt-surface">
           <div className="relative h-[150px] sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]">
             <img
+              key={`${imgIdx}-${src.slice(0, 120)}`}
               src={src}
               alt=""
               className="h-full w-full object-cover"
@@ -124,14 +131,14 @@ export default function OurTravelHero({ imageUrls, inquiryHref }: Props) {
           </div>
           <div className="border-t border-bt-border-soft bg-white px-3 py-3 sm:px-4 sm:py-4">
             {isModeA ? (
-              <div className="space-y-2 sm:space-y-2.5">
+              <div className="mx-auto max-w-3xl space-y-2 text-center sm:space-y-2.5">
                 <h2 className="text-base font-bold leading-snug text-bt-title sm:text-lg">{title}</h2>
                 <p className="text-sm leading-relaxed text-slate-600">{subtext}</p>
                 <p className="text-xs leading-relaxed text-slate-700 sm:text-sm">{modeAThird}</p>
               </div>
             ) : null}
             <div
-              className={`flex flex-wrap justify-center gap-2 sm:justify-start sm:gap-3 ${isModeA ? 'mt-4' : 'mt-3'}`}
+              className={`flex flex-wrap justify-center gap-2 sm:gap-3 ${isModeA ? 'mt-4' : 'mt-3'}`}
             >
               <Link
                 href={inquiryHref}

@@ -30,8 +30,22 @@ export function HomeHubCardImagesWorkspace({ initialActive, initialTravelPoolPre
   const [refreshToken, setRefreshToken] = useState(0)
   const [banner, setBanner] = useState<{ variant: 'success' | 'error'; message: string } | null>(null)
 
+  /**
+   * RSC가 `router.refresh()`마다 새 객체를 넘기면 `active` 참조만 바뀌고 하이브리드 패널이
+   * 초안을 전부 서버 스냅샷으로 다시 싱크해 버립니다(국외연수 ②만 고른 뒤 저장 전에 초기화되는 현상).
+   * `lastUpdatedAt`이 같으면 디스크의 활성 JSON이 바뀌지 않은 것으로 보고 `active`를 유지합니다.
+   */
   useEffect(() => {
-    setActive(initialActive)
+    setActive((prev) => {
+      if (!initialActive) return null
+      if (!prev) return initialActive
+      const sameStamp =
+        Boolean(prev.lastUpdatedAt) &&
+        Boolean(initialActive.lastUpdatedAt) &&
+        prev.lastUpdatedAt === initialActive.lastUpdatedAt
+      if (sameStamp) return prev
+      return initialActive
+    })
   }, [initialActive])
 
   const bump = useCallback(() => setRefreshToken((n) => n + 1), [])
@@ -96,6 +110,7 @@ export function HomeHubCardImagesWorkspace({ initialActive, initialTravelPoolPre
         initialTravelPool={initialTravelPoolPreview}
         onSaved={onHybridSaved}
         onSaveError={onActivateError}
+        candidatesRefreshToken={refreshToken}
       />
 
       <PrivateTripHeroSlidesPanel />

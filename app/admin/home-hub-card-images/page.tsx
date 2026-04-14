@@ -63,7 +63,8 @@ export default async function AdminHomeHubCardImagesPage() {
       </div>
 
       <p className="mb-6 text-xs font-mono text-slate-500">
-        활성: public/data/home-hub-active.json · 후보: public/data/home-hub-candidates.json · 우리여행 히어로: Supabase
+        활성: public/data/home-hub-active.json · 후보: public/data/home-hub-candidates.json · 국외연수: 하이브리드 패널에서
+        통역 블록용 2번째 URL(<code className="text-slate-400">trainingPageSecondaryImage</code>) · 우리여행 히어로: Supabase
         Storage (<code className="text-slate-400">private-trip-hero/</code>) 만
       </p>
 

@@ -93,7 +93,8 @@ function objectKeysFromV1ListRows(
   const strict = candidates.filter(
     (row) => row.id != null || (typeof row.metadata?.mimetype === 'string' && row.metadata.mimetype.startsWith('image/')),
   )
-  const picked = strict.length > 0 ? strict : candidates
+  /** 일부 행만 id/mimetype이 있으면 strict가 1건 등으로 줄어들어 나머지 이미지가 통째로 빠지는 문제 방지 */
+  const picked = strict.length > 0 && strict.length === candidates.length ? strict : candidates
   return picked.map((row) => rowNameToObjectKey(folder, row.name))
 }
 

@@ -10,6 +10,7 @@ import {
   getHomeHubCardHybridResolutionDetail,
 } from '@/lib/home-hub-card-hybrid-core'
 import type { HomeHubActiveFile } from '@/lib/home-hub-resolve-images'
+import type { HomeHubCandidateRecord } from '@/lib/home-hub-candidates-types'
 
 const KEYS: HomeHubCardImageKey[] = ['overseas', 'training', 'domestic', 'bus']
 
@@ -21,6 +22,8 @@ type Props = {
   initialTravelPool: TravelPoolPreview
   onSaved: (active: HomeHubActiveFile) => void
   onSaveError?: (message: string) => void
+  /** 후보 갤러리와 같이 올리면, 생성·삭제 후 국외연수 후보 목록이 다시 불러와집니다. */
+  candidatesRefreshToken?: number
 }
 
 function badgeClass(tier: string) {
@@ -35,10 +38,16 @@ export function HomeHubHybridCardOperationsPanel({
   initialTravelPool,
   onSaved,
   onSaveError,
+  candidatesRefreshToken = 0,
 }: Props) {
   const [poolPreview, setPoolPreview] = useState<TravelPoolPreview>(initialTravelPool)
   const [modeDraft, setModeDraft] = useState<Partial<Record<HomeHubCardImageKey, HomeHubCardImageSourceMode>>>({})
   const [manualDraft, setManualDraft] = useState<Partial<Record<HomeHubCardImageKey, string>>>({})
+  /** 국외연수 `/training` 통역 블록 전용 — `home-hub-active.json` `trainingPageSecondaryImage` */
+  const [trainingSecondaryDraft, setTrainingSecondaryDraft] = useState('')
+  const [trainingCandidates, setTrainingCandidates] = useState<HomeHubCandidateRecord[]>([])
+  const [trainingCandidatesLoading, setTrainingCandidatesLoading] = useState(false)
+  const [trainingCandidatesError, setTrainingCandidatesError] = useState<string | null>(null)
   const [savingKey, setSavingKey] = useState<HomeHubCardImageKey | null>(null)
   const [poolBusy, setPoolBusy] = useState(false)
 
@@ -50,6 +59,7 @@ export function HomeHubHybridCardOperationsPanel({
     if (!active) {
       setModeDraft({})
       setManualDraft({})
+      setTrainingSecondaryDraft('')
       return
     }
     const snap = { images: active.images, imageSourceModes: active.imageSourceModes }
@@ -61,11 +71,42 @@ export function HomeHubHybridCardOperationsPanel({
     }
     setModeDraft(m)
     setManualDraft(u)
+    setTrainingSecondaryDraft(active.trainingPageSecondaryImage?.trim() ?? '')
   }, [active])
 
   useEffect(() => {
     syncDraftsFromActive()
   }, [syncDraftsFromActive])
+
+  const loadTrainingCandidates = useCallback(async () => {
+    setTrainingCandidatesLoading(true)
+    setTrainingCandidatesError(null)
+    try {
+      const res = await fetch('/api/admin/home-hub-images/candidates?cardKey=training')
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean
+        items?: HomeHubCandidateRecord[]
+        error?: string
+      }
+      if (!res.ok || !data.ok) {
+        setTrainingCandidates([])
+        setTrainingCandidatesError(data.error ?? `후보 목록을 불러오지 못했습니다(HTTP ${res.status}).`)
+        return
+      }
+      const list = data.items ?? []
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      setTrainingCandidates(list)
+    } catch {
+      setTrainingCandidates([])
+      setTrainingCandidatesError('후보 목록 요청이 끊겼습니다.')
+    } finally {
+      setTrainingCandidatesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadTrainingCandidates()
+  }, [loadTrainingCandidates, candidatesRefreshToken])
 
   const snapshotForCard = useCallback(
     (key: HomeHubCardImageKey) => {
@@ -102,7 +143,14 @@ export function HomeHubHybridCardOperationsPanel({
   }, [onSaveError])
 
   const patchCard = useCallback(
-    async (key: HomeHubCardImageKey, body: { imageSourceModes?: Record<string, string>; images?: Record<string, string> }) => {
+    async (
+      key: HomeHubCardImageKey,
+      body: {
+        imageSourceModes?: Record<string, string>
+        images?: Record<string, string>
+        trainingPageSecondaryImage?: string | null
+      },
+    ) => {
       setSavingKey(key)
       try {
         const res = await fetch('/api/admin/home-hub-card-settings', {
@@ -132,9 +180,13 @@ export function HomeHubHybridCardOperationsPanel({
       return
     }
     const manual = manualDraft[key] ?? ''
+    const trimmedSecondary = trainingSecondaryDraft.trim()
     await patchCard(key, {
       imageSourceModes: { [key]: mode },
       images: { [key]: manual },
+      ...(key === 'training'
+        ? { trainingPageSecondaryImage: trimmedSecondary ? trimmedSecondary : null }
+        : {}),
     })
   }
 
@@ -201,6 +253,108 @@ export function HomeHubHybridCardOperationsPanel({
               key={key}
               className="overflow-hidden rounded-lg border border-teal-800/50 bg-slate-950/50 p-3 ring-1 ring-teal-500/10"
             >
+              {key === 'training' ? (
+                <div className="mb-3 rounded-md border border-amber-800/40 bg-amber-950/25 px-2.5 py-2 text-[11px] leading-relaxed text-amber-100/95">
+                  <p className="font-semibold text-amber-50">국외연수 이미지 2곳 고정하는 법</p>
+                  <ol className="mt-1.5 list-decimal space-y-1 pl-4 marker:text-amber-400">
+                    <li>
+                      아래 <strong className="text-amber-50">①</strong>에 URL 넣기 → 메인 허브 카드 +{' '}
+                      <code className="text-amber-200/90">/training</code> 맨 위 사진
+                    </li>
+                    <li>
+                      <strong className="text-amber-50">②</strong>에 다른 URL 넣기 → 같은 페이지의「통역 방식」절 왼쪽 사진만
+                    </li>
+                    <li>
+                      맨 아래 <strong className="text-amber-50">「이 카드 저장」</strong> 한 번 누르기 (①② 같이 저장됨)
+                    </li>
+                  </ol>
+                  <p className="mt-1.5 text-amber-200/80">②를 비우면 ① 이미지가 통역 블록에도 그대로 쓰입니다.</p>
+                  <a
+                    href="/training"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-block font-medium text-teal-300 underline-offset-2 hover:underline"
+                  >
+                    /training 새 탭에서 확인
+                  </a>
+                  <div className="mt-2 border-t border-amber-800/30 pt-2">
+                    <p className="font-medium text-amber-100/95">생성된 국외연수 후보에서 고르기</p>
+                    <p className="mt-0.5 text-[10px] text-amber-200/75">
+                      아래 썸네일의 <strong className="text-amber-50">①</strong>·<strong className="text-amber-50">②</strong>를
+                      누르면 위 입력칸에 URL이 자동으로 들어갑니다. 저장은 맨 아래 「①② 저장」으로 합니다.
+                    </p>
+                    {trainingCandidatesError ? (
+                      <p className="mt-1.5 text-[10px] text-red-300/95">{trainingCandidatesError}</p>
+                    ) : null}
+                    {trainingCandidatesLoading ? (
+                      <p className="mt-1.5 text-[10px] text-amber-200/60">후보 불러오는 중…</p>
+                    ) : trainingCandidates.length === 0 ? (
+                      <p className="mt-1.5 text-[10px] text-amber-200/55">
+                        아직 국외연수 후보가 없습니다. 이 페이지 위쪽에서 후보를 생성하면 여기에 나타납니다.
+                      </p>
+                    ) : (
+                      <ul className="mt-2 flex max-w-full gap-2 overflow-x-auto pb-1 pt-0.5 [scrollbar-gutter:stable]">
+                        {trainingCandidates.map((c) => {
+                          const path = c.imagePath.trim()
+                          const d1 = (manualDraft.training ?? '').trim()
+                          const d2 = trainingSecondaryDraft.trim()
+                          const onPrimary = Boolean(path) && d1 === path
+                          const onSecondary = Boolean(path) && d2 === path
+                          const ring =
+                            onPrimary && onSecondary
+                              ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-slate-950'
+                              : onPrimary
+                                ? 'ring-2 ring-teal-400 ring-offset-1 ring-offset-slate-950'
+                                : onSecondary
+                                  ? 'ring-2 ring-violet-400 ring-offset-1 ring-offset-slate-950'
+                                  : 'ring-1 ring-slate-700/80'
+
+                          return (
+                            <li
+                              key={c.id}
+                              className={`w-[88px] flex-shrink-0 overflow-hidden rounded-md bg-slate-900/80 ${ring}`}
+                            >
+                              <div className="relative aspect-video w-full bg-slate-800">
+                                <Image
+                                  src={c.imagePath}
+                                  alt=""
+                                  fill
+                                  className="object-cover"
+                                  sizes="96px"
+                                  unoptimized={c.imagePath.startsWith('http')}
+                                />
+                              </div>
+                              <div className="flex gap-0.5 border-t border-slate-800/90 p-0.5">
+                                <button
+                                  type="button"
+                                  title="① 메인·상단에 이 URL 넣기"
+                                  onClick={() =>
+                                    setManualDraft((p) => ({
+                                      ...p,
+                                      training: path,
+                                    }))
+                                  }
+                                  className="flex-1 rounded bg-slate-800 py-1 text-[10px] font-bold text-teal-200 hover:bg-slate-700"
+                                >
+                                  ①
+                                </button>
+                                <button
+                                  type="button"
+                                  title="② 통역 블록에 이 URL 넣기"
+                                  onClick={() => setTrainingSecondaryDraft(path)}
+                                  className="flex-1 rounded bg-slate-800 py-1 text-[10px] font-bold text-violet-200 hover:bg-slate-700"
+                                >
+                                  ②
+                                </button>
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              ) : null}
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
                 <span className="text-sm font-semibold text-slate-100">{cardLabels[key]}</span>
                 <span
@@ -232,7 +386,14 @@ export function HomeHubHybridCardOperationsPanel({
                   <dd>{poolSupported ? '대상 카드 (해외·국내)' : '미사용 (연수·버스는 manual 기본)'}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">수동 이미지 URL (JSON images)</dt>
+                  <dt className="text-slate-500">
+                    {key === 'training' ? '① 메인 허브 + /training 상단 (images.training)' : '수동 이미지 URL (JSON images)'}
+                  </dt>
+                  {key === 'training' ? (
+                    <dd className="mb-1 text-[10px] leading-snug text-slate-500">
+                      위 후보 썸네일의 ①·②로 자동 입력하거나, 필요하면 여기서 직접 수정합니다.
+                    </dd>
+                  ) : null}
                   <dd className="mt-0.5">
                     <textarea
                       rows={2}
@@ -243,6 +404,24 @@ export function HomeHubHybridCardOperationsPanel({
                     />
                   </dd>
                 </div>
+                {key === 'training' ? (
+                  <div>
+                    <dt className="text-slate-500">② /training 만 — 통역·운영 절 왼쪽 큰 사진</dt>
+                    <dd className="mb-1 text-[10px] leading-snug text-slate-500">
+                      JSON 필드 <code className="text-slate-400">trainingPageSecondaryImage</code>에 저장됩니다. ①과
+                      다르게 넣으면 두 장이 고정됩니다.
+                    </dd>
+                    <dd className="mt-0.5">
+                      <textarea
+                        rows={2}
+                        value={trainingSecondaryDraft}
+                        onChange={(e) => setTrainingSecondaryDraft(e.target.value)}
+                        className="w-full resize-y rounded border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[10px] text-teal-100/90 placeholder:text-slate-600"
+                        placeholder="② 전용 URL (비우면 ①과 동일)"
+                      />
+                    </dd>
+                  </div>
+                ) : null}
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <span className="text-slate-500">모드</span>
                   {poolSupported ? (
@@ -273,7 +452,7 @@ export function HomeHubHybridCardOperationsPanel({
                   onClick={() => void saveCard(key)}
                   className="rounded-lg border border-teal-600/80 bg-teal-950/50 px-3 py-1.5 text-xs font-semibold text-teal-100 hover:bg-teal-900/50 disabled:opacity-50"
                 >
-                  {busy ? '저장 중…' : '이 카드 저장'}
+                  {busy ? '저장 중…' : key === 'training' ? '①② 저장 (이 카드)' : '이 카드 저장'}
                 </button>
                 {poolSupported ? (
                   <button

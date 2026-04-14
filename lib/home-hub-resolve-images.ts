@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { homeHubCardImageSrc, type HomeHubCardImageKey, type HomeHubSeasonId } from '@/lib/home-hub-images'
 import {
+  isHomeHubPublicManualImageUrl,
   resolveHomeHubCardHybridImageFromSnapshot,
   type HomeHubCardImageSourceMode,
 } from '@/lib/home-hub-card-hybrid-core'
@@ -39,6 +40,11 @@ export type HomeHubActiveFile = {
    * 메인 최종 우선순위는 `resolveHomeHubCardHybridImageSrc` 주석과 동일.
    */
   imageSourceModes?: Partial<Record<HomeHubCardImageKey, HomeHubCardImageSourceMode>>
+  /**
+   * 국외연수 `/training` 페이지 통역 블록 등 **두 번째** 이미지.
+   * 비어 있으면 페이지는 메인과 동일한 `images.training`(하이브리드 해석)만 써서 히어로·통역 슬롯을 동일 URL로 채움.
+   */
+  trainingPageSecondaryImage?: string
 }
 
 const HUB_CARD_KEYS: HomeHubCardImageKey[] = ['overseas', 'training', 'domestic', 'bus']
@@ -81,12 +87,21 @@ export function resolveHomeHubCardHybridImageSrc(
  * `public/data/home-hub-active.json` 이 있으면 그 값을 우선하고, 없거나 키 누락 시 파일 경로 폴백.
  * 관리자에서 생성·업로드 후 이 JSON만 수정해도 메인 반영(재배포 없이 파일만 갱신 시 ISR/재시작 정책에 따름).
  */
+/** 국외연수 페이지 상단(히어로) + 통역 섹션 이미지 — 메인 카드와 동일 `training` 하이브리드 + 선택적 보조 URL */
+export function resolveTrainingPageSectionImages(): { hero: string; interpret: string } {
+  const cfg = getHomeHubActiveFile()
+  const hero = resolveHomeHubCardHybridImageSrc('training', { activeFile: cfg })
+  const raw = cfg?.trainingPageSecondaryImage?.trim()
+  const interpret = raw && isHomeHubPublicManualImageUrl(raw) ? raw : hero
+  return { hero, interpret }
+}
+
 export function resolveHomeHubImageSrc(key: HomeHubCardImageKey): string {
   try {
     const raw = fs.readFileSync(configPath(), 'utf8')
     const cfg = JSON.parse(raw) as HomeHubActiveFile
     const url = cfg.images?.[key]?.trim()
-    if (url && (url.startsWith('/') || url.startsWith('https://'))) return url
+    if (url && isHomeHubPublicManualImageUrl(url)) return url
   } catch {
     /* 파일 없음·파싱 실패 → 폴백 */
   }
@@ -117,7 +132,7 @@ export function countActiveHubImages(cfg: HomeHubActiveFile | null): number {
   if (!cfg?.images) return 0
   return HUB_CARD_KEYS.filter((k) => {
     const u = cfg.images![k]?.trim()
-    return u && (u.startsWith('/') || u.startsWith('https://'))
+    return u && isHomeHubPublicManualImageUrl(u)
   }).length
 }
 
@@ -126,6 +141,8 @@ export type WriteHomeHubActiveMergedInput = {
   imageSourceModes?: Partial<Record<HomeHubCardImageKey, HomeHubCardImageSourceMode>>
   activeSeason?: string
   lastUpdatedBy?: string
+  /** `null` 또는 빈 문자열이면 필드 제거 */
+  trainingPageSecondaryImage?: string | null
 }
 
 /**
@@ -137,15 +154,24 @@ export function writeHomeHubActiveMerged(patch: WriteHomeHubActiveMergedInput): 
     activeSeason: 'default',
     images: {},
   }
+  const { trainingPageSecondaryImage: secondaryPatch, ...restPatch } = patch
   const next: HomeHubActiveFile = {
     ...base,
-    ...patch,
-    images: { ...base.images, ...patch.images },
-    imageSourceModes: { ...base.imageSourceModes, ...patch.imageSourceModes },
+    ...restPatch,
+    images: { ...base.images, ...(patch.images ?? {}) },
+    imageSourceModes: { ...base.imageSourceModes, ...(patch.imageSourceModes ?? {}) },
     lastUpdatedAt: new Date().toISOString(),
   }
   if (patch.lastUpdatedBy !== undefined) {
     next.lastUpdatedBy = patch.lastUpdatedBy
+  }
+  if (secondaryPatch !== undefined) {
+    const v = secondaryPatch === null ? '' : secondaryPatch.trim()
+    if (!v) {
+      delete next.trainingPageSecondaryImage
+    } else {
+      next.trainingPageSecondaryImage = v
+    }
   }
   const dir = path.dirname(configPath())
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })

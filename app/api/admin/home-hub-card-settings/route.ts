@@ -14,6 +14,7 @@ export async function PATCH(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     images?: Record<string, unknown>
     imageSourceModes?: Record<string, unknown>
+    trainingPageSecondaryImage?: unknown
   }
 
   const updatedBy =
@@ -41,8 +42,19 @@ export async function PATCH(request: Request) {
     patch.imageSourceModes = imageSourceModes
   }
 
-  if (!patch.images && !patch.imageSourceModes) {
-    return NextResponse.json({ ok: false, error: 'images 또는 imageSourceModes 가 필요합니다.' }, { status: 400 })
+  if (body.trainingPageSecondaryImage !== undefined) {
+    if (body.trainingPageSecondaryImage === null) {
+      patch.trainingPageSecondaryImage = null
+    } else if (typeof body.trainingPageSecondaryImage === 'string') {
+      patch.trainingPageSecondaryImage = body.trainingPageSecondaryImage
+    }
+  }
+
+  if (!patch.images && !patch.imageSourceModes && patch.trainingPageSecondaryImage === undefined) {
+    return NextResponse.json(
+      { ok: false, error: 'images, imageSourceModes, trainingPageSecondaryImage 중 하나가 필요합니다.' },
+      { status: 400 },
+    )
   }
 
   try {

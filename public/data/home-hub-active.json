@@ -1,6 +1,6 @@
 {
   "activeSeason": "spring",
-  "lastUpdatedAt": "2026-04-12T05:12:41.939Z",
+  "lastUpdatedAt": "2026-04-14T03:28:19.280Z",
   "images": {
     "overseas": "",
     "training": "/images/home-hub/candidates/training-spring-1774163629867-mejktl-1.png",
@@ -10,6 +10,8 @@
   "lastUpdatedBy": "__mock_admin__",
   "imageSourceModes": {
     "overseas": "product_pool",
-    "domestic": "product_pool"
-  }
+    "domestic": "product_pool",
+    "training": "manual"
+  },
+  "trainingPageSecondaryImage": "https://spuptilbzyxrvyyyheza.supabase.co/storage/v1/object/public/bongtour-images/home-hub/candidates/training-spring-1776136505480-sd9f0a-3.webp"
 }
