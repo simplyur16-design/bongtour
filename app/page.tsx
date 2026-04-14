@@ -10,6 +10,9 @@ import PartnerOrganizationsSection from './components/home/PartnerOrganizationsS
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { SITE_NAME } from '@/lib/site-metadata'
 
+/** `home-hub-active.json` 갱신이 빌드 없이 메인에 반영되도록(정적 프리렌더 고정 방지). */
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: '해외·국내 여행 상품 안내',
   description:

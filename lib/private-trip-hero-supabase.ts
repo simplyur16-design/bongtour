@@ -151,11 +151,13 @@ export async function listPrivateTripHeroStoragePublicUrls(): Promise<string[]> 
   const folder = normalizedHeroFolder()
   const bucketApi = supabase.storage.from(bucket)
 
-  let objectKeys: string[] = await listHeroObjectKeysViaListV2(supabase, bucket, folder)
-
-  if (objectKeys.length === 0) {
-    objectKeys = await listHeroObjectKeysViaV1Paginated(bucketApi, folder)
-  }
+  /**
+   * listV2만 쓰고 v1을 생략하면, 일부 Supabase/버킷 조합에서 v2가 1건만 주고 끝나는 경우가 있어
+   * 화면은 1장만 돌아가는 것처럼 보인다. v1·v2를 항상 합쳐 키를 잡는다.
+   */
+  const v2Keys = await listHeroObjectKeysViaListV2(supabase, bucket, folder)
+  const v1Keys = await listHeroObjectKeysViaV1Paginated(bucketApi, folder)
+  const objectKeys = [...new Set([...v2Keys, ...v1Keys])]
 
   if (objectKeys.length === 0) {
     if (process.env.NODE_ENV !== 'production') {
@@ -168,5 +170,19 @@ export async function listPrivateTripHeroStoragePublicUrls(): Promise<string[]> 
   }
 
   objectKeys.sort((a, b) => a.localeCompare(b, 'ko', { sensitivity: 'base' }))
-  return objectKeys.map((key) => buildPublicUrlForObjectKey(key))
+  const publicUrls = objectKeys.map((key) => buildPublicUrlForObjectKey(key))
+  if (process.env.PRIVATE_TRIP_HERO_PIPELINE_LOG === '1') {
+    const uniqUrls = new Set(publicUrls)
+    console.info(
+      '[private-trip-hero-pipeline]',
+      JSON.stringify({
+        v2KeyCount: v2Keys.length,
+        v1KeyCount: v1Keys.length,
+        mergedKeyCount: objectKeys.length,
+        publicUrlCount: publicUrls.length,
+        uniquePublicUrlCount: uniqUrls.size,
+      }),
+    )
+  }
+  return publicUrls
 }

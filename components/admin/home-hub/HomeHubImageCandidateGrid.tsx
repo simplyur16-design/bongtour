@@ -258,6 +258,7 @@ export function HomeHubImageCandidateGrid({
                       fill
                       className="object-cover"
                       sizes="(max-width:1024px) 50vw, 33vw"
+                      unoptimized={/^https?:\/\//i.test(c.imagePath)}
                     />
                   </button>
                 </div>
@@ -347,6 +348,7 @@ export function HomeHubImageCandidateGrid({
                 fill
                 className="object-contain"
                 sizes="100vw"
+                unoptimized={/^https?:\/\//i.test(preview.imagePath)}
               />
             </div>
             <p className="mt-2 text-xs text-slate-400">{preview.promptText}</p>

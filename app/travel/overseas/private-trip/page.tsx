@@ -14,6 +14,19 @@ import { SITE_NAME, absoluteUrl } from '@/lib/site-metadata'
 
 const INQUIRY_SOURCE = '/travel/overseas/private-trip'
 
+function storageOriginFromImageUrls(urls: string[]): string | null {
+  for (const raw of urls) {
+    const s = typeof raw === 'string' ? raw.trim() : ''
+    if (!s) continue
+    try {
+      return new URL(s).origin
+    } catch {
+      /* ignore */
+    }
+  }
+  return null
+}
+
 const defaultMetadata: Metadata = {
   title: '우리여행',
   description:
@@ -67,14 +80,25 @@ export default async function PrivateTripPage() {
     heroImageUrls = []
   }
 
+  const prefetchOrigin = storageOriginFromImageUrls(heroImageUrls)
+  const heroPrimary = heroImageUrls[0]?.trim()
+  const heroSecondary = heroImageUrls[1]?.trim()
+
   return (
-    <div className="min-h-screen bg-bt-page">
-      <Header />
-      <OverseasTravelSubMainNav variant="links" />
-      <main>
-        <OurTravelHero imageUrls={heroImageUrls} inquiryHref={inquiryHref} />
-        <PrivateTripLanding inquiryHref={inquiryHref} groupMeetingReviews={groupMeetingReviews} />
-      </main>
-    </div>
+    <>
+      {prefetchOrigin ? (
+        <link rel="preconnect" href={prefetchOrigin} crossOrigin="anonymous" />
+      ) : null}
+      {heroPrimary ? <link rel="preload" href={heroPrimary} as="image" /> : null}
+      {heroSecondary ? <link rel="preload" href={heroSecondary} as="image" /> : null}
+      <div className="min-h-screen bg-bt-page">
+        <Header />
+        <OverseasTravelSubMainNav variant="links" />
+        <main>
+          <OurTravelHero imageUrls={heroImageUrls} inquiryHref={inquiryHref} />
+          <PrivateTripLanding inquiryHref={inquiryHref} groupMeetingReviews={groupMeetingReviews} />
+        </main>
+      </div>
+    </>
   )
 }

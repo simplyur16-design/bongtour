@@ -86,6 +86,7 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
                 >
                   <div className={`${IMAGE_AREA} border-b border-bt-border-soft`}>
                     <Image
+                      key={card.imageSrc}
                       src={card.imageSrc}
                       alt=""
                       fill
@@ -93,6 +94,7 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
                       sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, min(600px, calc((min(100vw, 72rem) - 2.5rem) / 2))"
                       quality={92}
                       priority={index < 2}
+                      unoptimized={/^https?:\/\//i.test(card.imageSrc)}
                     />
                     <div
                       className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accentWash(card.accent)} opacity-[0.18] transition-opacity duration-300 md:group-hover:opacity-[0.32] md:group-focus-within:opacity-[0.32]`}
