@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Header from '@/app/components/Header'
 import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
-import PrivateTripHero from '@/app/travel/overseas/private-trip/_components/PrivateTripHero'
+import OurTravelHero from '@/app/travel/overseas/private-trip/_components/OurTravelHero'
 import PrivateTripLanding from '@/app/travel/overseas/private-trip/_components/PrivateTripLanding'
 import { loadGroupMeetingReviewsFromCsv } from '@/lib/group-meeting-reviews-csv'
 import {
@@ -9,8 +9,8 @@ import {
   prioritizeEditorialsByRegionAndCountry,
   selectPrivateTripHeroEditorialRow,
 } from '@/lib/overseas-editorial-prioritize'
+import { listPrivateTripHeroStoragePublicUrls } from '@/lib/private-trip-hero-supabase'
 import { SITE_NAME, absoluteUrl } from '@/lib/site-metadata'
-import { resolvePrivateTripManagedHeroSlides } from '@/lib/private-trip-hero-folder'
 
 const INQUIRY_SOURCE = '/travel/overseas/private-trip'
 
@@ -60,14 +60,19 @@ export const dynamic = 'force-dynamic'
 export default async function PrivateTripPage() {
   const groupMeetingReviews = await loadGroupMeetingReviewsFromCsv()
   const inquiryHref = `/inquiry?type=travel&source=${encodeURIComponent(INQUIRY_SOURCE)}`
-  const managedHeroSlides = await resolvePrivateTripManagedHeroSlides()
+  let heroImageUrls: string[] = []
+  try {
+    heroImageUrls = await listPrivateTripHeroStoragePublicUrls()
+  } catch {
+    heroImageUrls = []
+  }
 
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
       <OverseasTravelSubMainNav variant="links" />
       <main>
-        <PrivateTripHero inquiryHref={inquiryHref} managedHeroSlides={managedHeroSlides} />
+        <OurTravelHero imageUrls={heroImageUrls} inquiryHref={inquiryHref} />
         <PrivateTripLanding inquiryHref={inquiryHref} groupMeetingReviews={groupMeetingReviews} />
       </main>
     </div>

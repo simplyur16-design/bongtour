@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { type FC, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { pickPrivateTripOpsHeadline, privateTripHeroCardTitle } from '@/lib/private-trip-hero-ops-ment'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
 import {
@@ -16,7 +15,6 @@ import {
   pageHeroMonthlyGeminiJobKey,
 } from '@/lib/page-hero-monthly-shared'
 import type { PageHeroMonthlyGeminiJob } from '@/lib/page-hero-monthly-types'
-import type { PrivateTripHeroSlide } from '@/lib/private-trip-hero-types'
 
 const WEEKDAYS_KR = ['일', '월', '화', '수', '목', '금', '토'] as const
 
@@ -149,11 +147,6 @@ type HeroRow = BrowseHeroItem & {
   slotMonth: number
   headline: string
   travelScope: PublicPageHeroTravelScope
-  /**
-   * 우리여행 관리자 슬라이드 전용. 정의되면 상품 상세 링크 대신 사용.
-   * `''` 이면 이미지에 링크 없음.
-   */
-  managedHeroHref?: string
 }
 
 function heroRowHasDestinationContext(item: BrowseHeroItem): boolean {
@@ -221,106 +214,7 @@ function buildMonthlyHero(items: BrowseHeroItem[]): HeroRow[] {
   })
 }
 
-const PRIVATE_TRIP_HERO_PER_LEG = 5
-
-function takeDistinctHeroCandidates(items: BrowseHeroItem[], max: number): BrowseHeroItem[] {
-  const seen = new Set<string>()
-  const out: BrowseHeroItem[] = []
-  for (const x of items) {
-    if (out.length >= max) break
-    if (seen.has(x.id)) continue
-    seen.add(x.id)
-    out.push(x)
-  }
-  return out
-}
-
-/** 단독여행 히어만: 해외 단독·국내 패키지 출처를 교차(최대 각 5, 짝이 맞는 만큼만). */
-function buildPrivateTripInterleavedHero(
-  overseasItems: BrowseHeroItem[],
-  domesticItems: BrowseHeroItem[],
-): HeroRow[] {
-  const overseas = takeDistinctHeroCandidates(overseasItems, PRIVATE_TRIP_HERO_PER_LEG)
-  const domestic = takeDistinctHeroCandidates(domesticItems, PRIVATE_TRIP_HERO_PER_LEG)
-  const pairs = Math.min(overseas.length, domestic.length, PRIVATE_TRIP_HERO_PER_LEG)
-  const now = new Date()
-  const slotMonth = now.getMonth() + 1
-  const out: HeroRow[] = []
-  for (let i = 0; i < pairs; i++) {
-    const oItem = overseas[i]!
-    const dItem = domestic[i]!
-    out.push({
-      ...oItem,
-      slotMonth,
-      travelScope: 'overseas',
-      headline: buildPublicPageHeroEditorialLineMonthlyStub({
-        targetMonth1To12: slotMonth,
-        destinationDisplay: browseDestinationDisplayLabelFromBrowseHero(oItem),
-        verbSlotIndex: i * 2,
-        travelScope: 'overseas',
-      }),
-    })
-    out.push({
-      ...dItem,
-      slotMonth,
-      travelScope: 'domestic',
-      headline: buildPublicPageHeroEditorialLineMonthlyStub({
-        targetMonth1To12: slotMonth,
-        destinationDisplay: browseDestinationDisplayLabelFromBrowseHero(dItem),
-        verbSlotIndex: i * 2 + 1,
-        travelScope: 'domestic',
-      }),
-    })
-  }
-  return out
-}
-
-function managedPrivateTripSlidesToHeroRows(slides: PrivateTripHeroSlide[]): HeroRow[] {
-  const now = new Date()
-  const slotMonth = now.getMonth() + 1
-  return slides.map((s, i) => {
-    const url = s.imageUrl.trim()
-    const link = (s.linkHref ?? '').trim()
-    const headline =
-      (s.headline ?? '').trim() ||
-      buildPublicPageHeroEditorialLineMonthlyStub({
-        targetMonth1To12: slotMonth,
-        destinationDisplay: '맞춤 여행',
-        verbSlotIndex: i,
-        travelScope: 'overseas',
-      })
-    const title = (s.caption ?? '').trim() || '우리여행'
-    return {
-      id: `private-trip-managed-${i}`,
-      title,
-      originSource: null,
-      primaryDestination: null,
-      bgImageUrl: url,
-      coverImageUrl: url,
-      earliestDeparture: null,
-      updatedAt: null,
-      duration: null,
-      bgImageSource: null,
-      bgImageIsGenerated: null,
-      slotMonth,
-      travelScope: 'overseas',
-      headline,
-      managedHeroHref: link,
-    }
-  })
-}
-
-export type OverseasHeroProps = {
-  /**
-   * 히어로 카드에 쓸 상품을 DB `listingKind` 로 한정.
-   * 단독여행 허브는 `private_trip` 만 (제목 추론 등으로 섞인 일반 해외상품 제외).
-   */
-  browseListingKind?: 'private_trip'
-  /** 비어 있지 않으면 우리여행 히어로는 상품 풀 대신 이 슬라이드만 사용 */
-  managedPrivateTripSlides?: PrivateTripHeroSlide[] | null
-}
-
-const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivateTripSlides }) => {
+const OverseasHero: FC = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const departDateId = 'overseas-hero-depart-date'
@@ -340,7 +234,6 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
   const [adultCount, setAdultCount] = useState(searchParams.get('adult') ?? '1')
   const [childCount, setChildCount] = useState(searchParams.get('child') ?? '0')
   const [items, setItems] = useState<BrowseHeroItem[]>([])
-  const [domesticHeroPool, setDomesticHeroPool] = useState<BrowseHeroItem[]>([])
   const [idx, setIdx] = useState(0)
   const [loading, setLoading] = useState(true)
   const [broken, setBroken] = useState<Record<string, boolean>>({})
@@ -357,11 +250,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
     return { y: d.getFullYear(), m: d.getMonth() + 1 }
   })
 
-  /** 단독 허브는 검색·날짜 이동도 `/travel/overseas/private-trip` 에 머물게 함 (해외 상품 허브로 튕기지 않음) */
-  const hubPath = useMemo(
-    () => (browseListingKind === 'private_trip' ? '/travel/overseas/private-trip' : '/travel/overseas'),
-    [browseListingKind],
-  )
+  const hubPath = '/travel/overseas'
 
   useEffect(() => {
     const nextDepartRaw = searchParams.get('departDate') ?? ''
@@ -414,13 +303,8 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
     p.set('child', String(childNum))
     // 기존 browse API의 pax 필터 경로 재사용
     p.set('pax', String(adultNum + childNum))
-    if (browseListingKind === 'private_trip') {
-      p.set('listingKind', 'private_trip')
-      p.set('type', 'private')
-    } else {
-      p.delete('listingKind')
-      p.delete('type')
-    }
+    p.delete('listingKind')
+    p.delete('type')
     router.replace(`${hubPath}?${p.toString()}`)
   }
 
@@ -430,64 +314,26 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
       limit: '100',
       sort: 'popular',
     })
-    if (browseListingKind === 'private_trip') {
-      q.set('listingKind', 'private_trip')
-      q.set('type', 'private')
-    }
     return `/api/products/browse?${q.toString()}`
-  }, [browseListingKind])
-
-  const domesticBrowseUrl = useMemo(
-    () =>
-      `/api/products/browse?${new URLSearchParams({
-        scope: 'domestic',
-        limit: '100',
-        sort: 'popular',
-        listingKind: 'travel',
-      }).toString()}`,
-    [],
-  )
+  }, [])
 
   useEffect(() => {
     let off = false
     const withImage = (rows: BrowseHeroItem[]) =>
       rows.filter((x) => Boolean((x.coverImageUrl ?? x.bgImageUrl ?? '').trim()))
     ;(async () => {
-      if (browseListingKind === 'private_trip' && managedPrivateTripSlides && managedPrivateTripSlides.length > 0) {
-        if (!off) {
-          setItems([])
-          setDomesticHeroPool([])
-          setLoading(false)
-        }
-        return
-      }
       setLoading(true)
       try {
-        if (browseListingKind === 'private_trip') {
-          const [resOs, resDom] = await Promise.all([
-            fetch(browseUrl, { cache: 'no-store' }),
-            fetch(domesticBrowseUrl, { cache: 'no-store' }),
-          ])
-          const jsonOs = (await resOs.json()) as ApiOk | { ok: false }
-          const jsonDom = (await resDom.json()) as ApiOk | { ok: false }
-          if (!off) {
-            setItems(resOs.ok && 'ok' in jsonOs && jsonOs.ok ? withImage(jsonOs.items ?? []) : [])
-            setDomesticHeroPool(resDom.ok && 'ok' in jsonDom && jsonDom.ok ? withImage(jsonDom.items ?? []) : [])
-          }
-        } else {
-          setDomesticHeroPool([])
-          const res = await fetch(browseUrl, { cache: 'no-store' })
-          const json = (await res.json()) as ApiOk | { ok: false }
-          if (!off && res.ok && 'ok' in json && json.ok) {
-            setItems(withImage(json.items ?? []))
-          } else if (!off) {
-            setItems([])
-          }
+        const res = await fetch(browseUrl, { cache: 'no-store' })
+        const json = (await res.json()) as ApiOk | { ok: false }
+        if (!off && res.ok && 'ok' in json && json.ok) {
+          setItems(withImage(json.items ?? []))
+        } else if (!off) {
+          setItems([])
         }
       } catch {
         if (!off) {
           setItems([])
-          setDomesticHeroPool([])
         }
       } finally {
         if (!off) setLoading(false)
@@ -496,7 +342,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
     return () => {
       off = true
     }
-  }, [browseListingKind, browseUrl, domesticBrowseUrl, managedPrivateTripSlides])
+  }, [browseUrl])
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
@@ -507,22 +353,10 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
     return () => mq.removeEventListener('change', apply)
   }, [])
 
-  const heroRowsStub = useMemo(() => {
-    if (browseListingKind === 'private_trip' && managedPrivateTripSlides && managedPrivateTripSlides.length > 0) {
-      return managedPrivateTripSlidesToHeroRows(managedPrivateTripSlides)
-    }
-    if (browseListingKind === 'private_trip') {
-      return buildPrivateTripInterleavedHero(items, domesticHeroPool)
-    }
-    return buildMonthlyHero(items)
-  }, [browseListingKind, items, domesticHeroPool, managedPrivateTripSlides])
+  const heroRowsStub = useMemo(() => buildMonthlyHero(items), [items])
 
   useEffect(() => {
     if (loading) {
-      setHeadlineByKey({})
-      return
-    }
-    if (browseListingKind === 'private_trip') {
       setHeadlineByKey({})
       return
     }
@@ -570,16 +404,9 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
     })()
 
     return () => ac.abort()
-  }, [loading, heroRowsStub, browseListingKind])
+  }, [loading, heroRowsStub])
 
   const heroRows = useMemo(() => {
-    if (browseListingKind === 'private_trip') {
-      return heroRowsStub.map((row, i) => ({
-        ...row,
-        headline: pickPrivateTripOpsHeadline(row, i),
-        title: privateTripHeroCardTitle(row),
-      }))
-    }
     return heroRowsStub.map((row) => {
       const key = pageHeroMonthlyGeminiJobKey({
         targetMonth1To12: row.slotMonth,
@@ -589,7 +416,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
       const gem = headlineByKey[key]
       return gem ? { ...row, headline: gem } : row
     })
-  }, [browseListingKind, headlineByKey, heroRowsStub])
+  }, [headlineByKey, heroRowsStub])
 
   useEffect(() => {
     setIdx((prev) => {
@@ -603,8 +430,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
 
   useEffect(() => {
     heroSlideCountRef.current = heroRows.length
-    const hoverPausesAutoplay = browseListingKind !== 'private_trip'
-    if (heroRows.length <= 1 || (hoverPausesAutoplay && isPaused) || reduceMotion) return
+    if (heroRows.length <= 1 || isPaused || reduceMotion) return
     const t = setInterval(() => {
       // 수동 이동 직후 즉시 자동 전환되는 현상 완화
       if (Date.now() - lastManualAt < 3600) return
@@ -615,7 +441,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
       })
     }, 5500)
     return () => clearInterval(t)
-  }, [heroRows.length, isPaused, reduceMotion, lastManualAt, browseListingKind])
+  }, [heroRows.length, isPaused, reduceMotion, lastManualAt])
 
   const todayYmd = useMemo(() => formatYmd(new Date()), [])
   const calendarCells = useMemo(
@@ -762,12 +588,8 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
       <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 sm:py-4">
         <div
           className="relative overflow-hidden rounded-xl border border-bt-border bg-bt-surface"
-          onMouseEnter={() => {
-            if (browseListingKind !== 'private_trip') setIsPaused(true)
-          }}
-          onMouseLeave={() => {
-            if (browseListingKind !== 'private_trip') setIsPaused(false)
-          }}
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
           aria-live={reduceMotion ? 'polite' : 'off'}
         >
           <div className="relative h-[150px] sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]">
@@ -780,8 +602,6 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
               </div>
             ) : (
               (() => {
-                const heroRow = current as HeroRow
-                const mh = heroRow.managedHeroHref
                 const src =
                   broken[current.id] ? HERO_FALLBACK : current.coverImageUrl ?? current.bgImageUrl ?? HERO_FALLBACK
                 const dots =
@@ -827,28 +647,6 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
                     {dots}
                   </>
                 )
-                if (mh !== undefined) {
-                  if (mh.length > 0) {
-                    return (
-                      <Link
-                        href={mh}
-                        className="group relative block h-full w-full"
-                        aria-label={current.headline || current.title || '우리여행'}
-                      >
-                        {inner}
-                      </Link>
-                    )
-                  }
-                  return (
-                    <div
-                      className="group relative block h-full w-full"
-                      role="group"
-                      aria-label={current.headline || current.title || '우리여행 히어로'}
-                    >
-                      {inner}
-                    </div>
-                  )
-                }
                 return (
                   <Link
                     href={`/products/${current.id}`}
@@ -870,7 +668,6 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
         </div>
       </div>
 
-      {browseListingKind === 'private_trip' ? null : (
       <div className="mx-auto max-w-6xl px-4 pb-4 sm:px-6 sm:pb-5">
         <form
           onSubmit={(e) => {
@@ -948,7 +745,6 @@ const OverseasHero: FC<OverseasHeroProps> = ({ browseListingKind, managedPrivate
           </div>
         </form>
       </div>
-      )}
     </section>
   )
 }

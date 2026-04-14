@@ -4,53 +4,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   PRIVATE_TRIP_HERO_COVER_HEIGHT,
   PRIVATE_TRIP_HERO_COVER_WIDTH,
-  PRIVATE_TRIP_HERO_FOLDER_PUBLIC,
   PRIVATE_TRIP_HERO_STORAGE_PREFIX,
 } from '@/lib/private-trip-hero-constants'
-import type { PrivateTripHeroSlide, PrivateTripHeroSlidesFile } from '@/lib/private-trip-hero-types'
 
-const EMPTY_ROW: PrivateTripHeroSlide = {
-  imageUrl: '',
-  headline: '',
-  caption: '',
-  linkHref: '',
-}
-
-const JSON_SLIDE_MAX = 50
-
-type Props = {
-  initialFile: PrivateTripHeroSlidesFile | null
-}
-
-function rowsFromFile(file: PrivateTripHeroSlidesFile | null): PrivateTripHeroSlide[] {
-  const slides = file?.slides ?? []
-  const rows = slides.map((s) => ({
-    imageUrl: s.imageUrl ?? '',
-    headline: s.headline ?? '',
-    caption: s.caption ?? '',
-    linkHref: s.linkHref ?? '',
-  }))
-  if (rows.length === 0) return [{ ...EMPTY_ROW }]
-  if (rows.length >= JSON_SLIDE_MAX) return rows.slice(0, JSON_SLIDE_MAX)
-  return [...rows, { ...EMPTY_ROW }]
-}
-
-export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
+/** 우리여행 히어로: Supabase Storage 이미지 풀만 관리 (공개 `/travel/overseas/private-trip`와 동일 소스) */
+export function PrivateTripHeroSlidesPanel() {
   const [folderUrls, setFolderUrls] = useState<string[]>([])
-  const [folderDiskPath, setFolderDiskPath] = useState<string>('')
-  const [folderSource, setFolderSource] = useState<'supabase' | 'disk'>('disk')
+  const [folderLocationNote, setFolderLocationNote] = useState<string>('')
+  const [folderSource, setFolderSource] = useState<'supabase' | 'none'>('none')
+  const [storageConfigured, setStorageConfigured] = useState(false)
   const [directUploadAvailable, setDirectUploadAvailable] = useState(false)
-  const [heroStorageBucket, setHeroStorageBucket] = useState('bongtour-images')
   const [folderLoading, setFolderLoading] = useState(true)
-
-  const [rows, setRows] = useState<PrivateTripHeroSlide[]>(() => rowsFromFile(initialFile))
-  const [meta, setMeta] = useState<{ at: string | null; by: string | null }>(() => ({
-    at: initialFile?.lastUpdatedAt ?? null,
-    by: initialFile?.lastUpdatedBy ?? null,
-  }))
-  const [jsonLoading, setJsonLoading] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [deletingPublicUrl, setDeletingPublicUrl] = useState<string | null>(null)
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -61,23 +27,23 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
       const data = (await res.json()) as {
         ok?: boolean
         publicUrls?: string[]
-        diskPath?: string
-        source?: 'supabase' | 'disk'
+        locationNote?: string
+        source?: 'supabase' | 'none'
+        storageConfigured?: boolean
         directUploadAvailable?: boolean
-        storageBucket?: string
         error?: string
       }
       if (!res.ok || !data.ok) {
-        setMessage({ kind: 'err', text: data.error || '히어로 이미지 목록을 불러오지 못했습니다.' })
+        setMessage({ kind: 'err', text: data.error || 'Storage 목록을 불러오지 못했습니다.' })
         return
       }
       setFolderUrls(Array.isArray(data.publicUrls) ? data.publicUrls : [])
-      setFolderDiskPath(typeof data.diskPath === 'string' ? data.diskPath : '')
-      setFolderSource(data.source === 'supabase' ? 'supabase' : 'disk')
+      setFolderLocationNote(typeof data.locationNote === 'string' ? data.locationNote : '')
+      setFolderSource(data.source === 'supabase' ? 'supabase' : 'none')
+      setStorageConfigured(data.storageConfigured === true)
       setDirectUploadAvailable(data.directUploadAvailable === true)
-      setHeroStorageBucket(typeof data.storageBucket === 'string' ? data.storageBucket : 'bongtour-images')
     } catch {
-      setMessage({ kind: 'err', text: '히어로 이미지 목록을 불러오지 못했습니다.' })
+      setMessage({ kind: 'err', text: 'Storage 목록을 불러오지 못했습니다.' })
     } finally {
       setFolderLoading(false)
     }
@@ -136,7 +102,8 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
               !signData.incomingPath ||
               !signData.token ||
               !signData.supabaseUrl ||
-              !signData.supabaseAnonKey
+              !signData.supabaseAnonKey ||
+              !signData.bucket
             ) {
               errors.push(
                 `${file.name}: ${signData.error || '서버에 SUPABASE_URL·SUPABASE_ANON_KEY(또는 NEXT_PUBLIC_* anon)가 없습니다.'}`,
@@ -146,7 +113,7 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
 
             const { createClient } = await import('@supabase/supabase-js')
             const sb = createClient(signData.supabaseUrl, signData.supabaseAnonKey)
-            const bucket = signData.bucket || heroStorageBucket
+            const bucket = signData.bucket
             const { error: upErr } = await sb.storage
               .from(bucket)
               .uploadToSignedUrl(signData.incomingPath, signData.token, file, { upsert: true })
@@ -182,7 +149,7 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
             let line = `${file.name}: ${data.error || String(res.status)}${detail}`
             if (res.status === 413) {
               line +=
-                ' — 우리여행 히어로(이 섹션) 업로드가 nginx 본문 한도에 걸렸습니다. `server { }`에 `client_max_body_size 35m;`를 넣거나, 서버에 `SUPABASE_ANON_KEY` 등 직접 업로드 설정을 켜 주세요.'
+                ' — nginx 본문 한도(413)면 `client_max_body_size`를 늘리거나, 직접 업로드(SUPABASE_ANON_KEY)를 켜 주세요.'
             }
             errors.push(line)
           }
@@ -197,130 +164,95 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
       if (errors.length) {
         setMessage({
           kind: 'err',
-          text:
-            errors.slice(0, 6).join('\n') + (errors.length > 6 ? `\n… 외 ${errors.length - 6}건` : ''),
+          text: errors.slice(0, 6).join('\n') + (errors.length > 6 ? `\n… 외 ${errors.length - 6}건` : ''),
         })
       } else {
         setMessage({
           kind: 'ok',
-          text: `${list.length}개 처리 완료: ${PRIVATE_TRIP_HERO_COVER_WIDTH}×${PRIVATE_TRIP_HERO_COVER_HEIGHT} WebP(cover)로 저장했습니다.`,
+          text: `${list.length}개 처리 완료: ${PRIVATE_TRIP_HERO_COVER_WIDTH}×${PRIVATE_TRIP_HERO_COVER_HEIGHT} WebP(cover)로 Storage에 저장했습니다.`,
         })
       }
     },
-    [loadFolder, directUploadAvailable, heroStorageBucket],
+    [loadFolder, directUploadAvailable],
   )
 
-  const refreshJson = useCallback(async () => {
-    setJsonLoading(true)
-    setMessage(null)
-    try {
-      const res = await fetch('/api/admin/private-trip-hero-slides')
-      const data = (await res.json()) as { ok?: boolean; file?: PrivateTripHeroSlidesFile }
-      if (!res.ok || !data.ok || !data.file) {
-        setMessage({ kind: 'err', text: 'JSON을 불러오지 못했습니다.' })
-        return
+  const deleteImage = useCallback(
+    async (publicUrl: string) => {
+      if (!storageConfigured) return
+      const ok = window.confirm(
+        '이 이미지를 Storage에서 삭제할까요?\n삭제 후 공개 우리여행 상단 목록에서도 사라집니다.',
+      )
+      if (!ok) return
+
+      setDeletingPublicUrl(publicUrl)
+      setMessage(null)
+      try {
+        const res = await fetch('/api/admin/private-trip-hero-folder', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ publicUrl }),
+        })
+        const raw = await res.text()
+        let data: { ok?: boolean; error?: string }
+        try {
+          data = JSON.parse(raw) as { ok?: boolean; error?: string }
+        } catch {
+          data = { ok: false, error: raw.slice(0, 120) || `HTTP ${res.status}` }
+        }
+        if (!res.ok || !data.ok) {
+          setMessage({ kind: 'err', text: data.error || '삭제에 실패했습니다.' })
+          return
+        }
+        setMessage({ kind: 'ok', text: 'Storage에서 삭제했습니다. 공개 상단은 동일 Storage 목록을 씁니다.' })
+        try {
+          await loadFolder()
+        } catch (e2) {
+          const m2 = e2 instanceof Error ? e2.message : String(e2)
+          setMessage({
+            kind: 'err',
+            text: `삭제는 완료되었으나 목록 새로고침에 실패했습니다: ${m2}\n아래「목록 새로고침」을 눌러 주세요.`,
+          })
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        setMessage({ kind: 'err', text: `삭제 요청 실패: ${msg}` })
+      } finally {
+        setDeletingPublicUrl(null)
       }
-      setRows(rowsFromFile(data.file))
-      setMeta({ at: data.file.lastUpdatedAt ?? null, by: data.file.lastUpdatedBy ?? null })
-    } catch {
-      setMessage({ kind: 'err', text: 'JSON을 불러오지 못했습니다.' })
-    } finally {
-      setJsonLoading(false)
-    }
-  }, [])
+    },
+    [loadFolder, storageConfigured],
+  )
 
-  useEffect(() => {
-    if (!initialFile) void refreshJson()
-  }, [initialFile, refreshJson])
-
-  const setRow = (i: number, patch: Partial<PrivateTripHeroSlide>) => {
-    setRows((prev) => {
-      const next = [...prev]
-      next[i] = { ...next[i]!, ...patch }
-      return next
-    })
-  }
-
-  const addRow = () => {
-    setRows((prev) => (prev.length >= JSON_SLIDE_MAX ? prev : [...prev, { ...EMPTY_ROW }]))
-  }
-
-  const removeRow = (i: number) => {
-    setRows((prev) => {
-      const next = prev.filter((_, j) => j !== i)
-      return next.length === 0 ? [{ ...EMPTY_ROW }] : next
-    })
-  }
-
-  const saveJson = async () => {
-    setSaving(true)
-    setMessage(null)
-    const slides = rows
-      .map((r) => ({
-        imageUrl: r.imageUrl.trim(),
-        headline: r.headline?.trim() || undefined,
-        caption: r.caption?.trim() || undefined,
-        linkHref: r.linkHref?.trim() || undefined,
-      }))
-      .filter((r) => r.imageUrl.length > 0)
-    try {
-      const res = await fetch('/api/admin/private-trip-hero-slides', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slides }),
-      })
-      const data = (await res.json()) as { ok?: boolean; file?: PrivateTripHeroSlidesFile; error?: string }
-      if (!res.ok || !data.ok || !data.file) {
-        setMessage({ kind: 'err', text: data.error || '저장에 실패했습니다.' })
-        return
-      }
-      setRows(rowsFromFile(data.file))
-      setMeta({ at: data.file.lastUpdatedAt ?? null, by: data.file.lastUpdatedBy ?? null })
-      setMessage({
-        kind: 'ok',
-        text:
-          folderUrls.length > 0
-            ? 'JSON을 저장했습니다. 지금은 히어로 이미지 풀(저장소·디스크)에 파일이 있어 풀만 쓰입니다. 풀을 비우면 이 JSON이 적용됩니다.'
-            : '저장했습니다. 우리여행 페이지를 새로고침해 확인하세요.',
-      })
-    } catch {
-      setMessage({ kind: 'err', text: '저장에 실패했습니다.' })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const filled = rows.filter((r) => r.imageUrl.trim().length > 0).length
   const folderActive = folderUrls.length > 0
 
   return (
     <section className="rounded-xl border border-slate-600 bg-slate-900/40 p-4 sm:p-5">
       <div className="border-b border-slate-700 pb-4">
-        <h2 className="text-base font-semibold text-white">우리여행 히어로 (이미지 풀)</h2>
-        <p className="mt-2 text-sm text-slate-400">
-          <strong className="text-slate-200">Supabase Storage</strong>가 서버에 연결되어 있으면 버킷 접두사{' '}
-          <code className="text-teal-200/90">{PRIVATE_TRIP_HERO_STORAGE_PREFIX}/</code> 아래 파일을 우선 사용합니다.
-          비어 있거나 미연결이면 <strong className="text-slate-200">서버 디스크</strong>{' '}
-          <code className="text-slate-300">{PRIVATE_TRIP_HERO_FOLDER_PUBLIC}/</code> 를 봅니다. 장 수는{' '}
-          <span className="text-slate-300">상한 500</span>, 파일명 오름차순입니다.
+        <h2 className="text-base font-semibold text-white">우리여행 히어로 (Storage 이미지 풀)</h2>
+        <p className="mt-2 text-sm text-amber-100/90">
+          <strong className="text-white">공개</strong>{' '}
+          <code className="text-amber-200/90">/travel/overseas/private-trip</code> 상단과 동일하게, 버킷 접두사{' '}
+          <code className="text-teal-200/90">{PRIVATE_TRIP_HERO_STORAGE_PREFIX}/</code> 의 파일만 사용합니다.
         </p>
         <p className="mt-2 text-sm text-slate-400">
-          <strong className="text-slate-200">업로드</strong> 시 서버가 바로{' '}
+          <strong className="text-slate-200">업로드</strong> 시{' '}
           <span className="text-teal-200/90">
-            {PRIVATE_TRIP_HERO_COVER_WIDTH}×{PRIVATE_TRIP_HERO_COVER_HEIGHT} 와이드에 맞춰 중앙 크롭
-          </span>
-          하고 <span className="text-teal-200/90">WebP</span>로 맞춥니다(히어로 영역·용량 통일).
+            {PRIVATE_TRIP_HERO_COVER_WIDTH}×{PRIVATE_TRIP_HERO_COVER_HEIGHT}
+          </span>{' '}
+          cover·<span className="text-teal-200/90">WebP</span>로 맞춰 Storage에 올립니다.{' '}
+          <strong className="text-slate-200">삭제</strong>는 각 썸네일에서 Storage 객체만 제거합니다.
         </p>
-        <p className="mt-2 font-mono text-xs text-teal-200/90">
-          {folderSource === 'supabase' ? '저장소 URL' : `${PRIVATE_TRIP_HERO_FOLDER_PUBLIC}/`}
-          <span className="text-slate-400">(이미지 파일만)</span>
-        </p>
-        {folderDiskPath ? (
-          <p className="mt-1 font-mono text-[11px] text-slate-500">서버 경로: {folderDiskPath}</p>
+        {folderLocationNote ? (
+          <p className="mt-2 font-mono text-[11px] leading-relaxed text-slate-500">{folderLocationNote}</p>
+        ) : null}
+        {!storageConfigured ? (
+          <p className="mt-2 text-xs text-rose-200/90">
+            서버에 Supabase Storage(SUPABASE_URL·SUPABASE_SERVICE_ROLE_KEY 등)가 없으면 목록·업로드를 할 수 없습니다.
+          </p>
         ) : null}
         {directUploadAvailable ? (
           <p className="mt-2 text-xs text-emerald-300/90">
-            대용량은 브라우저가 Supabase Storage로 직접 올려 nginx 본문 한도(413)의 영향을 줄입니다. (서버에 SUPABASE_URL·SUPABASE_ANON_KEY·service role 등 Storage 설정 시)
+            대용량은 브라우저가 Storage로 직접 올려 nginx 본문 한도(413)의 영향을 줄입니다.
           </p>
         ) : null}
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -330,13 +262,13 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
             accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif"
             multiple
             className="hidden"
-            disabled={uploading}
+            disabled={uploading || !storageConfigured}
             onChange={(e) => void uploadFiles(e.target.files)}
           />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploading || folderLoading}
+            disabled={uploading || folderLoading || !storageConfigured}
             className="rounded-lg border border-teal-600/70 bg-teal-950/40 px-3 py-1.5 text-xs font-semibold text-teal-200 hover:bg-teal-900/50 disabled:opacity-50"
           >
             {uploading ? '업로드·변환 중…' : '이미지 업로드 (자동 맞춤)'}
@@ -347,7 +279,7 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
             disabled={folderLoading || uploading}
             className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-800 disabled:opacity-50"
           >
-            {folderLoading ? '폴더 읽는 중…' : '폴더 다시 읽기'}
+            {folderLoading ? '목록 불러오는 중…' : '목록 새로고침'}
           </button>
           <a
             href="/travel/overseas/private-trip"
@@ -370,138 +302,45 @@ export function PrivateTripHeroSlidesPanel({ initialFile }: Props) {
 
       <div className="mt-4">
         <p className="text-sm font-medium text-slate-200">
-          히어로 이미지 {folderLoading ? '…' : `${folderUrls.length}장`}
+          Storage 이미지 {folderLoading ? '…' : `${folderUrls.length}장`}
           {folderActive ? (
-            <span className="ml-2 text-xs font-normal text-emerald-300">
-              → 히어로에 이 {folderSource === 'supabase' ? '저장소' : '폴더'}만 사용 중
-            </span>
-          ) : (
-            <span className="ml-2 text-xs font-normal text-slate-500">
-              → 이미지 풀이 비어 있으면 아래 JSON 또는 상품 풀
-            </span>
-          )}
+            <span className="ml-2 text-xs font-normal text-emerald-300">→ 공개 상단에 동일하게 반영됩니다.</span>
+          ) : folderSource === 'supabase' ? (
+            <span className="ml-2 text-xs font-normal text-slate-500">→ 아직 없습니다. 업로드하면 공개에 표시됩니다.</span>
+          ) : null}
         </p>
         {!folderLoading && folderUrls.length > 0 ? (
           <ul className="mt-3 grid max-h-64 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3 md:grid-cols-4">
             {folderUrls.map((url) => (
               <li
                 key={url}
-                className="overflow-hidden rounded-lg border border-slate-700 bg-slate-950/60"
-                title={url}
+                className="flex flex-col overflow-hidden rounded-lg border border-slate-700 bg-slate-950/60"
+                title="미리보기"
               >
-                <img src={url} alt="" className="aspect-[16/10] w-full object-cover" loading="lazy" />
-                <p className="truncate px-1.5 py-1 font-mono text-[10px] text-slate-500">{decodeURIComponent(url.split('/').pop() ?? '')}</p>
+                <div className="relative min-h-0 flex-1">
+                  <img src={url} alt="" className="aspect-[16/10] w-full object-cover" loading="lazy" />
+                </div>
+                <div className="border-t border-slate-700/80 p-1.5">
+                  <button
+                    type="button"
+                    disabled={Boolean(deletingPublicUrl) || uploading || !storageConfigured}
+                    onClick={() => void deleteImage(url)}
+                    className="w-full rounded-md border border-rose-900/60 bg-rose-950/30 px-2 py-1 text-[11px] font-medium text-rose-200 hover:bg-rose-950/50 disabled:opacity-50"
+                  >
+                    {deletingPublicUrl === url ? '삭제 중…' : '이 이미지 삭제'}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
         ) : !folderLoading && folderUrls.length === 0 ? (
           <p className="mt-2 text-sm text-slate-500">
-            아직 파일이 없습니다. 「이미지 업로드」를 쓰거나, Supabase 미사용 환경이면 서버에{' '}
-            <code className="text-slate-400">public/images/private-trip-hero/</code> 에 넣은 뒤 「폴더 다시 읽기」를
-            누르세요.
+            {!storageConfigured
+              ? 'Supabase Storage를 설정한 뒤 다시 시도하세요.'
+              : '이미지를 업로드하면 여기와 공개 페이지에 표시됩니다.'}
           </p>
         ) : null}
       </div>
-
-      <details className="mt-8 rounded-lg border border-slate-700/80 bg-slate-950/30 p-3">
-        <summary className="cursor-pointer text-sm font-medium text-slate-300">
-          JSON 보조 설정 (이미지 풀이 <span className="text-amber-200/90">완전히 비어 있을 때만</span> 히어로에 사용, 최대{' '}
-          {JSON_SLIDE_MAX}줄)
-        </summary>
-        <p className="mt-2 text-xs text-slate-500">
-          파일: <code className="text-slate-400">public/data/private-trip-hero-slides.json</code>
-          {meta.at ? (
-            <>
-              {' '}
-              · 마지막 저장: {new Date(meta.at).toLocaleString('ko-KR')}
-              {meta.by ? ` (${meta.by})` : ''}
-            </>
-          ) : null}
-        </p>
-        <div className="mt-2 flex gap-2">
-          <button
-            type="button"
-            onClick={() => void refreshJson()}
-            disabled={jsonLoading}
-            className="rounded-md border border-slate-600 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50"
-          >
-            JSON 불러오기
-          </button>
-        </div>
-
-        <div className="mt-4 space-y-4">
-          {rows.map((row, i) => (
-            <div
-              key={`slide-row-${i}`}
-              className="rounded-lg border border-slate-700/80 bg-slate-950/40 p-3 sm:flex sm:items-stretch sm:gap-3"
-            >
-              <div className="min-w-0 flex-1 space-y-2">
-                <label className="block">
-                  <span className="text-xs font-medium text-slate-400">이미지 URL *</span>
-                  <input
-                    value={row.imageUrl}
-                    onChange={(e) => setRow(i, { imageUrl: e.target.value })}
-                    placeholder="https://… 또는 /images/…"
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 placeholder:text-slate-600"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-medium text-slate-400">헤드라인</span>
-                  <input
-                    value={row.headline ?? ''}
-                    onChange={(e) => setRow(i, { headline: e.target.value })}
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 text-sm text-slate-100"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-medium text-slate-400">캡션</span>
-                  <input
-                    value={row.caption ?? ''}
-                    onChange={(e) => setRow(i, { caption: e.target.value })}
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 text-sm text-slate-100"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-medium text-slate-400">클릭 URL (선택)</span>
-                  <input
-                    value={row.linkHref ?? ''}
-                    onChange={(e) => setRow(i, { linkHref: e.target.value })}
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 text-sm text-slate-100"
-                  />
-                </label>
-              </div>
-              <div className="mt-2 flex shrink-0 sm:mt-0 sm:flex-col sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => removeRow(i)}
-                  className="rounded-md border border-slate-600 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
-                >
-                  삭제
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={addRow}
-            disabled={rows.length >= JSON_SLIDE_MAX}
-            className="rounded-lg border border-slate-600 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800 disabled:opacity-40"
-          >
-            행 추가 ({filled}/{JSON_SLIDE_MAX})
-          </button>
-          <button
-            type="button"
-            onClick={() => void saveJson()}
-            disabled={saving || filled === 0}
-            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-40"
-          >
-            {saving ? '저장 중…' : 'JSON 저장'}
-          </button>
-        </div>
-      </details>
     </section>
   )
 }

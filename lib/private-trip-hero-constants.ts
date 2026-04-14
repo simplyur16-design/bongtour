@@ -2,8 +2,6 @@
  * 우리여행 히어로 — 브라우저 번들에 포함 가능한 상수만 (fs/sharp 없음).
  */
 
-export const PRIVATE_TRIP_HERO_FOLDER_PUBLIC = '/images/private-trip-hero'
-
 /** Supabase Storage(`SUPABASE_IMAGE_BUCKET`) 안 객체 키 접두사 — ASCII만 사용 */
 export const PRIVATE_TRIP_HERO_STORAGE_PREFIX = 'private-trip-hero'
 

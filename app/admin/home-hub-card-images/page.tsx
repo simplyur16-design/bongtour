@@ -8,8 +8,6 @@ import {
 import { homeHubActiveFileToClientModel } from '@/lib/home-hub-active-client-model'
 import { HomeHubCardImagesWorkspace } from './HomeHubCardImagesWorkspace'
 import { pickHomeHubTravelCardCover } from '@/lib/home-hub-travel-card-cover'
-import { readPrivateTripHeroSlidesFile } from '@/lib/private-trip-hero-slides'
-
 export default async function AdminHomeHubCardImagesPage() {
   const session = await requireAdmin()
   if (!session) redirect('/auth/signin?callbackUrl=/admin/home-hub-card-images')
@@ -27,8 +25,6 @@ export default async function AdminHomeHubCardImagesPage() {
     overseas: overPool?.imageSrc ?? null,
     domestic: domPool?.imageSrc ?? null,
   }
-  const initialPrivateTripHeroFile = readPrivateTripHeroSlidesFile()
-
   return (
     <div className="mx-auto max-w-5xl px-4 pb-16 text-slate-100">
       <div className="mb-6 rounded-xl border border-slate-700 bg-slate-900/60 p-4">
@@ -67,15 +63,11 @@ export default async function AdminHomeHubCardImagesPage() {
       </div>
 
       <p className="mb-6 text-xs font-mono text-slate-500">
-        활성: public/data/home-hub-active.json · 후보: public/data/home-hub-candidates.json · 우리여행 히어로:{' '}
-        public/images/private-trip-hero/ · public/data/private-trip-hero-slides.json
+        활성: public/data/home-hub-active.json · 후보: public/data/home-hub-candidates.json · 우리여행 히어로: Supabase
+        Storage (<code className="text-slate-400">private-trip-hero/</code>) 만
       </p>
 
-      <HomeHubCardImagesWorkspace
-        initialActive={initialActive}
-        initialTravelPoolPreview={initialTravelPoolPreview}
-        initialPrivateTripHeroFile={initialPrivateTripHeroFile}
-      />
+      <HomeHubCardImagesWorkspace initialActive={initialActive} initialTravelPoolPreview={initialTravelPoolPreview} />
 
       <section className="mt-10 space-y-3 text-sm leading-relaxed text-slate-400">
         <p>

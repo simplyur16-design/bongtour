@@ -13,26 +13,65 @@ function normalizedHeroFolder(): string {
   return PRIVATE_TRIP_HERO_STORAGE_PREFIX.replace(/^\/+|\/+$/g, '')
 }
 
+function basenameForImageTest(name: string): string {
+  const n = name.replace(/^\/+/, '')
+  const i = n.lastIndexOf('/')
+  return i >= 0 ? n.slice(i + 1) : n
+}
+
+function rowNameToObjectKey(folder: string, name: string): string {
+  const n = name.replace(/^\/+/, '')
+  if (n.startsWith(`${folder}/`)) return n
+  return `${folder}/${n}`
+}
+
+function isHeroImageRowName(name: string): boolean {
+  const base = basenameForImageTest(name)
+  return Boolean(base && !base.startsWith('.') && IMAGE_EXT.test(base))
+}
+
 /**
  * List V2: flat `objects` — v1 `list(folder)`가 빈 배열만 주는 Storage 버전에서도 히어로 파일을 잡는다.
  */
+type ListV2Page = {
+  objects?: { key?: string; name?: string }[]
+  hasNext?: boolean
+  nextCursor?: string
+}
+
+type ListV2Result = {
+  data: ListV2Page | null
+  error: { message?: string } | null
+}
+
 async function listHeroObjectKeysViaListV2(supabase: SupabaseClient, bucket: string, folder: string): Promise<string[]> {
-  const api = supabase.storage.from(bucket)
+  const api = supabase.storage.from(bucket) as unknown as {
+    listV2?: (opts: Record<string, unknown>) => Promise<ListV2Result>
+  }
   if (typeof api.listV2 !== 'function') return []
 
   const listPrefix = `${folder}/`
   const keys: string[] = []
   let cursor: string | undefined
-  for (let page = 0; page < 25 && keys.length < 600; page++) {
-    const { data, error } = await api.listV2({
-      prefix: listPrefix,
-      limit: 500,
-      cursor,
-      sortBy: { column: 'name', order: 'asc' },
-    })
-    if (error || !data) break
-    for (const obj of data.objects ?? []) {
-      const fullKey = (obj.key ?? `${folder}/${obj.name}`).replace(/^\/+/, '')
+  for (let pageIdx = 0; pageIdx < 25 && keys.length < 600; pageIdx++) {
+    const fetchPage = async (withSort: boolean): Promise<ListV2Result> =>
+      (await api.listV2!({
+        prefix: listPrefix,
+        limit: 500,
+        cursor,
+        ...(withSort ? { sortBy: { column: 'name', order: 'asc' as const } } : {}),
+      })) as ListV2Result
+
+    let res = await fetchPage(true)
+    if (res.error) res = await fetchPage(false)
+    if (res.error || res.data == null) break
+
+    const batch = res.data
+
+    for (const obj of batch.objects ?? []) {
+      const raw = (obj.key ?? obj.name ?? '').replace(/^\/+/, '')
+      if (!raw) continue
+      const fullKey = raw.startsWith(`${folder}/`) ? raw : `${folder}/${raw}`
       if (!fullKey.startsWith(`${folder}/`)) continue
       if (fullKey.includes('/incoming/')) continue
       const rel = fullKey.slice(folder.length + 1)
@@ -40,8 +79,8 @@ async function listHeroObjectKeysViaListV2(supabase: SupabaseClient, bucket: str
       if (!IMAGE_EXT.test(rel)) continue
       keys.push(fullKey)
     }
-    if (!data.hasNext || !data.nextCursor) break
-    cursor = data.nextCursor
+    if (!batch.hasNext || !batch.nextCursor) break
+    cursor = batch.nextCursor
   }
   return [...new Set(keys)]
 }
@@ -50,12 +89,53 @@ function objectKeysFromV1ListRows(
   folder: string,
   rows: { id: string | null; name: string; metadata?: { mimetype?: string } | null }[],
 ): string[] {
-  const candidates = rows.filter((row) => row.name && !row.name.startsWith('.') && IMAGE_EXT.test(row.name))
+  const candidates = rows.filter((row) => row.name && isHeroImageRowName(row.name))
   const strict = candidates.filter(
     (row) => row.id != null || (typeof row.metadata?.mimetype === 'string' && row.metadata.mimetype.startsWith('image/')),
   )
   const picked = strict.length > 0 ? strict : candidates
-  return picked.map((row) => `${folder}/${row.name}`)
+  return picked.map((row) => rowNameToObjectKey(folder, row.name))
+}
+
+async function listHeroObjectKeysViaV1Paginated(
+  bucketApi: ReturnType<SupabaseClient['storage']['from']>,
+  folder: string,
+): Promise<string[]> {
+  const collected = new Map<string, true>()
+  const pageSize = 500
+  const maxPages = 25
+
+  for (const path of [folder, `${folder}/`]) {
+    const listPath = path === '' ? undefined : path
+    for (let page = 0; page < maxPages; page++) {
+      const offset = page * pageSize
+      const listOnce = async (withSort: boolean) =>
+        bucketApi.list(listPath, {
+          limit: pageSize,
+          offset,
+          ...(withSort ? { sortBy: { column: 'name', order: 'asc' as const } } : {}),
+        })
+
+      let { data, error } = await listOnce(true)
+      if (error) ({ data, error } = await listOnce(false))
+      if (error) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[private-trip-hero] Supabase Storage list (v1)', listPath, offset, error)
+        }
+        break
+      }
+      const rows = data ?? []
+      if (rows.length === 0) break
+      for (const key of objectKeysFromV1ListRows(folder, rows)) {
+        if (key.includes('/incoming/')) continue
+        collected.set(key, true)
+      }
+      if (rows.length < pageSize) break
+    }
+    if (collected.size > 0) break
+  }
+
+  return [...collected.keys()]
 }
 
 /**
@@ -73,23 +153,18 @@ export async function listPrivateTripHeroStoragePublicUrls(): Promise<string[]> 
   let objectKeys: string[] = await listHeroObjectKeysViaListV2(supabase, bucket, folder)
 
   if (objectKeys.length === 0) {
-    for (const path of [folder, `${folder}/`]) {
-      const { data, error } = await bucketApi.list(path === '' ? undefined : path, {
-        limit: 500,
-        sortBy: { column: 'name', order: 'asc' },
-      })
-      if (error) {
-        console.error('[private-trip-hero] Supabase Storage list (v1)', path, error)
-        throw new Error(error.message)
-      }
-      if (data?.length) {
-        objectKeys = objectKeysFromV1ListRows(folder, data)
-        if (objectKeys.length > 0) break
-      }
-    }
+    objectKeys = await listHeroObjectKeysViaV1Paginated(bucketApi, folder)
   }
 
-  if (objectKeys.length === 0) return []
+  if (objectKeys.length === 0) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[private-trip-hero] Storage list returned 0 image keys', {
+        bucket,
+        prefix: `${folder}/`,
+      })
+    }
+    return []
+  }
 
   objectKeys.sort((a, b) => a.localeCompare(b, 'ko', { sensitivity: 'base' }))
   return objectKeys.map((key) => buildPublicUrlForObjectKey(key))
