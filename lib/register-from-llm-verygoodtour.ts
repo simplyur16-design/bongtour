@@ -103,6 +103,7 @@ import {
   extractVerygoodScheduleRowsFromPasteBody,
   mergeVerygoodGeminiScheduleWithDeterministicBlocks,
 } from '@/lib/verygoodtour-schedule-blocks-from-paste'
+import { polishVerygoodRegisterScheduleDescriptions } from '@/lib/verygoodtour-schedule-description-polish'
 import { polishVerygoodRegisterScheduleImageKeywords } from '@/lib/verygoodtour-schedule-image-keyword'
 import { registerScheduleToDayInputs } from '@/lib/upsert-itinerary-days-verygoodtour'
 
@@ -1707,6 +1708,7 @@ ${text.slice(0, 16000)}`
     schedule = scheduleFromDet
   }
 
+  schedule = polishVerygoodRegisterScheduleDescriptions(schedule)
   schedule = polishVerygoodRegisterScheduleImageKeywords(schedule, detRows)
 
   const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)

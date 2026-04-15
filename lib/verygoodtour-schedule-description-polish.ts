@@ -1,6 +1,7 @@
 /**
  * 참좋은여행(verygoodtour) 전용: 일차 `description`을 하루 흐름 요약으로 정리한다.
  * 일차 `title`은 미리보기 1줄 헤더용으로 **방문지 A-B-C** 형식(하이픈 연결)만 정규화한다.
+ * 일차 `description`은 카드용 **일정 요약**으로 **3~5문장**(상한만 두고, 원문이 짧으면 그보다 짧을 수 있음)을 목표로 한다.
  *
  * 서술형 레이어: `composeNarrativeVerygoodDayDescription` 등으로 관광→자유→이동→숙박 호흡을 잡되,
  * 원문 밖 정보는 넣지 않는다. `coercePolishLastDayFlag`·run-on 분리·저녁/호텔 병합 등 기존 안정화는 유지.
@@ -8,6 +9,10 @@
  * 톤 가드: 과장·연속 감탄만 최소 완화. 단어 단위 전역 삭제 금지(§9.3 금지어를 일정 문장에서 잘라내면 조건·구분·약관 의미가 깨짐).
  */
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
+
+/** `finalizeVerygoodScheduleDescription`: 요약 문장·글자 상한 (3~5문장 분량에 맞춤) */
+const VERYGOOD_DESCRIPTION_MAX_SENTENCES = 5
+const VERYGOOD_DESCRIPTION_MAX_CHARS = 800
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
@@ -241,8 +246,67 @@ function coercePolishLastDayFlag(isLastDay: boolean, ...hayParts: string[]): boo
   return false
 }
 
+/**
+ * LLM·본문 병합 후에도 남는 일정표 복붙 노이즈 제거 (ItineraryDay 요약용).
+ * 선택관광·이동시간 괄호·항공편·반복 연결어·숙박 푸터·현지 안내문 등.
+ */
+function stripVerygoodItineraryDescriptionPasteNoise(text: string): string {
+  let t = String(text ?? '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  t = t.replace(/●\s*선택\s+관광\s*●[^\n●]{0,180}/gi, ' ')
+  t = t.replace(/●\s*선택관광\s*●\s*[^●\n]*?[_＿]\s*\d{1,4}\s*유로/gi, ' ')
+  t = t.replace(/[_＿]\s*\d{1,4}\s*유로/gi, '')
+  t = t.replace(/\(약\s*\d{1,2}\s*(?:시간|분)[^)]*소요\)/g, '')
+  t = t.replace(/\(약[^)]*소요\)/g, '')
+  t = t.replace(/※\s*현지\s*상황에\s*따른[^\n。.]{0,120}/g, '')
+  t = t.replace(/※\s*현지\s*상황에\s*따라[^\n。.]{0,120}/g, '')
+  t = t.replace(/호텔\s*투숙\s*및\s*휴식[^\n。.]{0,120}/g, '')
+  t = t.replace(/※[^※\n]*유람선[^※\n]*※[^\n]*/g, '')
+  t = t.replace(/※\s*유람선[^※]{0,260}/g, '')
+  t = t.replace(/\b(?:OZ|KE|LJ|TW|BX|SK)\s*\d{3,4}\b/gi, '')
+  t = t.replace(/\d{1,2}:\d{2}\s*(?=(?:OZ|KE|LJ|TW|BX|SK)\s*\d)/gi, '')
+  t = t.replace(/([가-힣]{2,12})\s+\d{1,2}:\d{2}\s+\1(?=\s|,|$|[.])/gu, '$1')
+  t = t.replace(/출발\s*-\s*[가-힣]{2,12}\s*향발/gu, ' ')
+  t = t.replace(/출발\s*\d+\s*주\s*전[^\n。.]*/g, '')
+  t = t.replace(/변경\s*유무\s*확인[^\n。.]*/g, '')
+  for (let k = 0; k < 12; k++) {
+    t = t.replace(/(?:이후\s*,\s*){2,}/g, '이후 ')
+    t = t.replace(/(?:이동해\s*,\s*){2,}/g, '이동하여 ')
+    t = t.replace(/이동해\s*,\s*이동해\s*,/g, '이동하여 ')
+    t = t.replace(/이동하여\s+이동해/g, '이동하여')
+    t = t.replace(/둘러본\s*뒤\s*둘러본\s*뒤/g, '둘러본 뒤')
+    t = t.replace(/관광\s*후\s*둘러본\s*뒤\s*둘러본\s*뒤/g, '관광 후 ')
+    t = t.replace(/도착\s*후\s*도착\s*후/g, '도착 후 ')
+  }
+  t = t.replace(/(?:이후\s*){2,}/g, '이후 ')
+  t = t.replace(/\s*,\s*이후\s*,\s*이후/gu, ' 이후')
+  t = t.replace(/[,\s]*이후\s*[,.]\s*$/g, '')
+  for (let k = 0; k < 4; k++) {
+    t = t.replace(/\s+-\s+[A-Z][a-z]{2,26}\b/g, '')
+  }
+  t = t.replace(/^([가-힣]+)\s+호텔\s*조식\s*후\s*/u, '')
+  t = t.replace(/([가-힣]{2,12})\s*(시내에서)\s*,\s*\1(?=\s|$|[,.])/gu, '$1 $2')
+  t = t.replace(/\s*'\s*[^']{1,40}\s*'\s+OR\s+'[^']{1,40}'/gi, '')
+  t = t.replace(/■+/g, '')
+  t = t.replace(/자유\s*시간\s+,/gu, '자유시간 ')
+  t = t.replace(/,\s*$/g, '')
+  t = t.replace(/\n+/g, ' ')
+  return t.replace(/\s+/g, ' ').trim()
+}
+
+function hardCapVerygoodDescriptionLength(text: string, max = VERYGOOD_DESCRIPTION_MAX_CHARS): string {
+  const s = text.replace(/\s+/g, ' ').trim()
+  if (s.length <= max) return s
+  const cut = s.slice(0, max)
+  const idx = Math.max(cut.lastIndexOf('。'), cut.lastIndexOf('.'), cut.lastIndexOf(','), cut.lastIndexOf(' '))
+  if (idx > Math.floor(max * 0.45)) return `${cut.slice(0, idx).trim()}…`
+  return `${cut.trim()}…`
+}
+
 function finalizeVerygoodScheduleDescription(text: string): string {
-  return capDescriptionToMaxSentences(applyVerygoodScheduleDescriptionToneGuard(text), 3)
+  const stripped = stripVerygoodItineraryDescriptionPasteNoise(text)
+  const toned = applyVerygoodScheduleDescriptionToneGuard(stripped)
+  const capped = capDescriptionToMaxSentences(toned, VERYGOOD_DESCRIPTION_MAX_SENTENCES)
+  return hardCapVerygoodDescriptionLength(capped, VERYGOOD_DESCRIPTION_MAX_CHARS)
 }
 
 /** 마침표·개행이 거의 없는 붙여넣기 나열을 이정표 키워드 앞에서 잘게 나눈다(과분할 방지: 경계 앞 최소 글자 수). */
@@ -266,7 +330,11 @@ function splitKoreanItineraryRunOnsOnce(s: string): string[] {
       re: /(?<!오후)(?<!오전)(?<!저녁)\s+(?=도착\s)/gu,
       minBefore: 12,
     },
-    { re: /\s+(?=출발\s|탑승\s|환승\s)/gu, minBefore: 12 },
+    {
+      // "이동 후 출발 …" 등은 한 흐름으로 둔다(앞만 남으면 요약이 `…이동 후`로 끊김).
+      re: /(?<!\s후)(?<![가-힣]후)\s+(?=출발\s|탑승\s|환승\s)/gu,
+      minBefore: 12,
+    },
     {
       // "저녁 호텔 투숙"은 한 덩어리로 유지(앞에서 `저녁`만 잘리면 strip 길이로 전부 탈락함).
       re: /(?<!저녁)(?<!호텔)\s+(?=호텔\s*(?:투숙|숙박)|예정\s*호텔|투숙\s*및|투숙|숙박)(?=\s|[가-힣])/gu,
@@ -376,12 +444,19 @@ function classifyMeaningSlot(s: string): MeaningSlot | null {
   if (/^도착\s*후\s*시내|^오후\s*도착\s*후/u.test(t.trim())) return 'flow'
   if (/^저녁\s+호텔/u.test(t)) return 'closure'
   if (/^저녁\s*$/u.test(t)) return 'closure'
+  if (
+    t.length >= 28 &&
+    /(?:거리|골목|시장|어시장|광장|성당|교회|박물관|미술관|궁전|유람|피오르드|빙하|전망대|국립공원|조망|둘러보)/u.test(t) &&
+    !/^도착\s*후\s*시내/u.test(t.trim())
+  ) {
+    return 'sight'
+  }
   const hasSightWord =
     /관광|방문|전경|감상|박물관|궁전|사원|파크|피어|시내|명소|세븐|랜드마크|조망|관람|입장|체험|둘러보|유람|산책/i.test(t)
   const hasStrongSight =
     /관광|방문|전경|감상|박물관|궁전|사원|파크|피어|명소|세븐|랜드마크|조망|관람|입장|체험|둘러보|유람|산책/i.test(t)
   const hasClosureOnly =
-    /(?:^|[^가-힣])(?:OZ|KE|LJ|TW|BX)\s*\d{2,4}\b|편으로|편\s*으로|탑승\s*수속|수하물|미팅\s*장소|집결|소요\s*시간|출발\s*전\s*안내|공항|터미널|귀국|입국|인천국제|국제선|국내선|투숙|숙박|휴식|해산|짐\s*수령/.test(
+    /(?:^|[^가-힣])(?:OZ|KE|LJ|TW|BX|SK)\s*\d{2,4}\b|편으로|편\s*으로|탑승\s*수속|수하물|미팅\s*장소|집결|소요\s*시간|출발\s*전\s*안내|공항|터미널|귀국|입국|인천국제|국제선|국내선|투숙|숙박|휴식|해산|짐\s*수령/.test(
       t
     )
   if (hasSightWord) {
@@ -394,13 +469,14 @@ function classifyMeaningSlot(s: string): MeaningSlot | null {
   }
   if (/휴식|투숙|숙박|공항|터미널|OZ\d|KE\d|편으로|귀국|입국|인천국제|인천|김포|해산|짐\s*수령|이후\s*공항|국제선|국내선|탑승\s*수속/.test(t))
     return 'closure'
-  if (/도착|출발/.test(t) && /공항|터미널|인천|김포|ICN|GMP|항공|국제선|편으로|OZ|KE/.test(t)) return 'closure'
+  if (/도착|출발/.test(t) && /공항|터미널|인천|김포|ICN|GMP|항공|국제선|편으로|OZ|KE|SK/.test(t)) return 'closure'
   if (
     /관광|방문|전경|감상|박물관|궁전|사원|파크|피어|시내|명소|세븐|랜드마크|쇼핑/.test(t)
   )
     return 'sight'
   if (/이동|출발|향해|경유|에서\s*출발|으로\s*이동|로\s*이동|편성/.test(t)) return 'flow'
   if (/(?:호텔|숙소)\s*로\s*복귀|호텔(?:로)?\s*복귀|숙소(?:로)?\s*복귀/u.test(t)) return 'closure'
+  if (/,\s*이후\s*$/.test(t) || /^이후\s*[,.]?\s*$/u.test(t)) return 'flow'
   return null
 }
 
@@ -550,7 +626,7 @@ function stripVerygoodClauseOperationalNoise(u: string): string | null {
   if (/^(?:미팅|집결|수하물|소요\s*시간|출발\s*전|탑승\s*전)\b/i.test(t)) return null
   if (/^식사\s*[:：]/i.test(t) && t.length < 48) return null
   t = t
-    .replace(/(?:OZ|KE|LJ|TW|BX)\s*\d{2,4}\s*편?/gi, ' ')
+    .replace(/(?:OZ|KE|LJ|TW|BX|SK)\s*\d{2,4}\s*편?/gi, ' ')
     .replace(/(?:미팅\s*장소|집결\s*장소|수하물\s*안내|출발\s*전\s*안내)\s*[:：]?\s*[^\n.]{0,56}/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -561,7 +637,7 @@ function stripVerygoodClauseOperationalNoise(u: string): string | null {
 function isAirportClosureClause(u: string, slot: MeaningSlot | null): boolean {
   return (
     slot === 'closure' &&
-    /(?:OZ|KE|LJ|TW|BX|편으로|편\s*으로|공항|터미널|인천|김포|ICN|GMP|항공|국제선|귀국|입국|탑승)/i.test(u)
+    /(?:OZ|KE|LJ|TW|BX|SK|편으로|편\s*으로|공항|터미널|인천|김포|ICN|GMP|항공|국제선|귀국|입국|탑승)/i.test(u)
   )
 }
 
@@ -657,7 +733,7 @@ function mergeFreeEveningHotelTriplet(metas: UnitMeta[]): UnitMeta[] {
 function collectUnitMetas(text: string): UnitMeta[] {
   const t = stripVerygoodScheduleUiNoiseLines(text)
   const lines = t.split(/\n/).map((l) => l.trim()).filter(Boolean).filter((l) => !isLikelyHotelOrMealOnlyLine(l))
-  const joined = lines.join(' ').replace(/\s+/g, ' ').trim()
+  const joined = stripVerygoodItineraryDescriptionPasteNoise(lines.join(' ').replace(/\s+/g, ' ').trim())
   if (!joined) return []
   const units = splitIntoSentenceUnits(joined)
     .flatMap((u) => splitCompoundFreeTailClauses(u))
@@ -860,7 +936,7 @@ function composeSightCentricDay(
 }
 
 /**
- * 의미 단위(metas)를 1~3문장 분량의 서술형 흐름으로 재조합한다.
+ * 의미 단위(metas)를 3~5문장 분량의 서술형 흐름으로 재조합한다(최종은 `finalizeVerygoodScheduleDescription`에서 상한 적용).
  * imageKeyword·스키마는 건드리지 않는다.
  */
 function composeNarrativeVerygoodDayDescription(metas: UnitMeta[], opts: { isLastDay: boolean }): string {

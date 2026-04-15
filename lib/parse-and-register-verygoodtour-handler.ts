@@ -91,6 +91,7 @@ import {
   extractVerygoodScheduleRowsFromPasteBody,
   mergeVerygoodGeminiScheduleWithDeterministicBlocks,
 } from '@/lib/verygoodtour-schedule-blocks-from-paste'
+import { polishVerygoodRegisterScheduleDescriptions } from '@/lib/verygoodtour-schedule-description-polish'
 import { polishVerygoodRegisterScheduleImageKeywords } from '@/lib/verygoodtour-schedule-image-keyword'
 /** 참좋은여행 등록 POST 전용 */
 let currentLogPrefix = '[parse-and-register-verygoodtour]'
@@ -727,9 +728,10 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     }
     parsed = augmentVerygoodtourScheduleExpressionParsed(parsed)
     parsed = stripBodyDerivedMeetingFromRegisterParsed(parsed)
+    const scheduleDescPolished = polishVerygoodRegisterScheduleDescriptions(parsed.schedule ?? [])
     parsed = {
       ...parsed,
-      schedule: polishVerygoodRegisterScheduleImageKeywords(parsed.schedule ?? [], detRowsForImageKeyword),
+      schedule: polishVerygoodRegisterScheduleImageKeywords(scheduleDescPolished, detRowsForImageKeyword),
     }
 
     const tripAnchors = extractVerygoodTripAnchorDatesFromPasteBlob(
