@@ -319,7 +319,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     } else if (nextImageUrl) {
       const mode = normalizeSelectionMode(nextSelectionMode ?? 'manual-pick', nextSourceType ?? source)
       await recordAssetUsage({
-        assetId: externalId,
+        assetId: externalIdResolved,
         assetPath: nextImageUrl,
         productId: id,
         day,

@@ -88,7 +88,7 @@ export function buildProductHeroImageStorageKey(input: {
   /** Pexels photo id, short hash 등 */
   sourceIdSegment: string
   ext: string
-}): { objectKey: string; pattern: ProductPexelsRehostResult['pathPattern'] } {
+}): { objectKey: string; pathPattern: ProductPexelsRehostResult['pathPattern'] } {
   const place = input.placeSlug?.trim() || null
   const city = input.citySlug?.trim() || null
   const safeExt = input.ext.replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'jpg'
@@ -99,25 +99,25 @@ export function buildProductHeroImageStorageKey(input: {
   if (place && city) {
     return {
       objectKey: `cities/${city}/${stem(place)}.${safeExt}`,
-      pattern: 'city-with-place',
+      pathPattern: 'city-with-place',
     }
   }
   if (place) {
     return {
       objectKey: `places/${place}/${stem(place)}.${safeExt}`,
-      pattern: 'places-only',
+      pathPattern: 'places-only',
     }
   }
   if (city) {
     return {
       objectKey: `cities/${city}/${stem(city)}.${safeExt}`,
-      pattern: 'cities-only',
+      pathPattern: 'cities-only',
     }
   }
   const geo = 'unknown'
   return {
     objectKey: `places/${geo}/${stem(geo)}.${safeExt}`,
-    pattern: 'places-only',
+    pathPattern: 'places-only',
   }
 }
 
@@ -169,7 +169,7 @@ export async function rehostPexelsProductHeroIfNeeded(input: ProductPexelsRehost
   let bucket = getImageStorageBucket()
   let width: number | null = null
   let height: number | null = null
-  let pattern: ProductPexelsRehostResult['pathPattern'] = 'places-only'
+  let pathPattern: ProductPexelsRehostResult['pathPattern'] = 'places-only'
 
   const placeRaw = input.placeName?.trim() || null
   const cityRaw = input.cityName?.trim() || null
@@ -190,7 +190,7 @@ export async function rehostPexelsProductHeroIfNeeded(input: ProductPexelsRehost
       bucket,
       width: null,
       height: null,
-      pattern: placeSlug && citySlug ? 'city-with-place' : placeSlug ? 'places-only' : 'cities-only',
+      pathPattern: placeSlug && citySlug ? 'city-with-place' : placeSlug ? 'places-only' : 'cities-only',
       sourceTypeSegment,
       placeNameStored: placeRaw,
       cityNameStored: cityRaw,
@@ -213,7 +213,7 @@ export async function rehostPexelsProductHeroIfNeeded(input: ProductPexelsRehost
     ext,
   })
   objectKey = built.objectKey
-  pattern = built.pattern
+  pathPattern = built.pathPattern
 
   const uploadContentType =
     contentType?.split(';')[0]?.trim() ||
@@ -239,7 +239,7 @@ export async function rehostPexelsProductHeroIfNeeded(input: ProductPexelsRehost
     bucket: up.bucket,
     width,
     height,
-    pattern,
+    pathPattern,
     sourceTypeSegment,
     placeNameStored: placeRaw,
     cityNameStored: cityRaw,
