@@ -22,29 +22,19 @@ function hubCardImageSrc(key: HomeHubCardImageKey, props: HomeHubFourProps): str
 
 const CARD_ROUND = 'rounded-2xl'
 
-/** PC 메인 4카드 공통 외곽 높이 — 동일 높이 유지, 내부는 이미지 위주 분배 */
-const HUB_FOUR_CARD_LG_HEIGHT = 'lg:h-[35rem] lg:min-h-[35rem] lg:max-h-[35rem] lg:overflow-hidden'
+/** PC 메인 4카드 — 동일 높이, 전면 이미지 + 중앙 오버레이(하단 흰 본문칸 없음) */
+const HUB_FOUR_CARD_HEIGHT = 'h-[35rem] min-h-[35rem] max-h-[35rem]'
 
-/**
- * 이미지 밴드: `<lg` 는 기존 비율 유지.
- * `lg` PC 메인: 카드 높이 대비 ~64% 시각 비중(22.5rem / 35rem) — 본문이 반을 먹지 않게.
- */
-const IMAGE_AREA =
-  'relative block w-full shrink-0 overflow-hidden aspect-[10/13] min-h-[200px] sm:min-h-[220px] md:aspect-[16/10] md:min-h-[240px] lg:aspect-auto lg:h-[22.5rem] lg:min-h-[22.5rem] lg:max-h-[22.5rem]'
-
-/**
- * 카테고리 힌트만 살짝 — 기본은 거의 보이지 않게, hover 시에만 살짝 강조.
- */
 function accentWash(accent: HubFourAccent): string {
   switch (accent) {
     case 'overseas':
-      return 'from-[color-mix(in_srgb,var(--bt-brand-blue)_18%,transparent)] via-transparent to-transparent'
+      return 'from-[color-mix(in_srgb,var(--bt-brand-blue)_22%,transparent)] via-transparent to-transparent'
     case 'training':
-      return 'from-[color-mix(in_srgb,var(--bt-brand-gold)_14%,transparent)] via-transparent to-transparent'
+      return 'from-[color-mix(in_srgb,var(--bt-brand-gold)_18%,transparent)] via-transparent to-transparent'
     case 'domestic':
-      return 'from-[color-mix(in_srgb,var(--bt-success)_12%,transparent)] via-transparent to-transparent'
+      return 'from-[color-mix(in_srgb,var(--bt-success)_14%,transparent)] via-transparent to-transparent'
     case 'bus':
-      return 'from-[color-mix(in_srgb,var(--bt-text-muted)_10%,transparent)] via-transparent to-transparent'
+      return 'from-[color-mix(in_srgb,var(--bt-text-muted)_12%,transparent)] via-transparent to-transparent'
   }
 }
 
@@ -61,6 +51,13 @@ function hubImagePosition(key: HomeHubCardImageKey): string {
     default:
       return 'object-center'
   }
+}
+
+/** 기본 노출용 한 줄 요약: 헤드라인 우선, 없으면 본문(길면 clamp) */
+function hubCardShortLine(card: (typeof MAIN_HUB_FOUR_CARDS)[number]): string {
+  const h = card.headline?.trim()
+  if (h) return h
+  return card.description?.trim() ?? ''
 }
 
 export default function HomeHubFour(props: HomeHubFourProps = {}) {
@@ -84,6 +81,13 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
           {cards.map((card, index) => {
             const ariaBits = [card.categoryLabel, card.headline?.trim(), card.description?.trim()].filter(Boolean)
             const cardAriaLabel = ariaBits.join('. ')
+            const shortLine = hubCardShortLine(card)
+            const descFull = card.description?.trim() ?? ''
+            const hasHeadline = Boolean(card.headline?.trim())
+            /** 헤드라인이 있으면 본문은 hover에서 풀고, 없어도 본문이 길면(2줄 넘김) hover에서 전체 노출 */
+            const showExpandedCopy =
+              descFull.length > 0 && (hasHeadline || descFull.replace(/\s/g, '').length > 44)
+
             return (
               <li
                 key={card.key}
@@ -93,59 +97,74 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
                 <Link
                   href={card.href}
                   aria-label={cardAriaLabel}
-                  className={`group flex flex-col overflow-hidden border border-bt-border-soft bg-white shadow-md shadow-bt-border-soft/40 ring-1 ring-bt-border-soft transition duration-300 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-link/70 ${CARD_ROUND} ${HUB_FOUR_CARD_LG_HEIGHT} md:hover:-translate-y-1 md:hover:border-bt-border-strong md:hover:shadow-xl md:hover:shadow-bt-border-strong/20 md:hover:ring-bt-border-strong/60`}
+                  className={`group relative flex w-full flex-col overflow-hidden border border-bt-border-soft shadow-md shadow-bt-border-soft/40 ring-1 ring-bt-border-soft transition duration-300 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-link/70 lg:hover:-translate-y-1 lg:hover:border-bt-border-strong lg:hover:shadow-xl lg:hover:shadow-bt-border-strong/20 lg:hover:ring-bt-border-strong/60 ${CARD_ROUND} ${HUB_FOUR_CARD_HEIGHT}`}
                 >
-                  <div className={`${IMAGE_AREA} border-b border-bt-border-soft`}>
-                    <Image
-                      key={card.imageSrc}
-                      src={card.imageSrc}
-                      alt=""
-                      fill
-                      className={`object-cover transition duration-500 ease-out ${hubImagePosition(card.key as HomeHubCardImageKey)}`}
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, min(600px, calc((min(100vw, 72rem) - 2.5rem) / 2))"
-                      quality={92}
-                      priority={index < 2}
-                      unoptimized={/^https?:\/\//i.test(card.imageSrc)}
-                    />
-                    <div
-                      className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accentWash(card.accent)} opacity-[0.18] transition-opacity duration-300 md:group-hover:opacity-[0.32] md:group-focus-within:opacity-[0.32]`}
-                      aria-hidden
-                    />
-                  </div>
-                  <div className="flex min-h-0 flex-1 flex-col gap-2 px-3 py-3 sm:px-4 sm:py-4 lg:min-h-0 lg:flex-1 lg:justify-between lg:gap-1.5 lg:px-3 lg:py-2">
-                    <div className="min-h-0 shrink lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:justify-start lg:gap-1.5">
-                      <div className="shrink-0 lg:flex lg:h-[3rem] lg:flex-col lg:justify-start lg:gap-0.5">
-                        <p className="line-clamp-1 text-base font-bold leading-tight text-bt-title sm:text-lg">
-                          {card.categoryLabel}
+                  <span className="pointer-events-none absolute inset-0 z-0 bg-slate-200" aria-hidden />
+
+                  <Image
+                    key={card.imageSrc}
+                    src={card.imageSrc}
+                    alt=""
+                    fill
+                    className={`object-cover transition duration-700 ease-out will-change-transform ${hubImagePosition(card.key as HomeHubCardImageKey)} z-[1] scale-100 lg:group-hover:scale-[1.04] lg:group-focus-within:scale-[1.04]`}
+                    sizes="(max-width: 1024px) 50vw, min(600px, calc((min(100vw, 72rem) - 2.5rem) / 2))"
+                    quality={92}
+                    priority={index < 2}
+                    unoptimized={/^https?:\/\//i.test(card.imageSrc)}
+                  />
+
+                  {/* 읽기용 그라데이션: 중앙·하단 가독성 */}
+                  <div
+                    className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-slate-950/55 via-slate-950/25 to-slate-950/80"
+                    aria-hidden
+                  />
+                  <div
+                    className={`pointer-events-none absolute inset-0 z-[2] bg-gradient-to-br ${accentWash(card.accent)} opacity-25 transition-opacity duration-300 lg:group-hover:opacity-40 lg:group-focus-within:opacity-40`}
+                    aria-hidden
+                  />
+
+                  <div className="relative z-[3] flex h-full flex-col items-center justify-center px-4 py-8 text-center sm:px-5">
+                    <div className="flex w-full max-w-[17rem] flex-col items-center gap-2.5 sm:max-w-xs">
+                      <p className="text-xl font-bold leading-tight tracking-tight text-white drop-shadow-md sm:text-2xl">
+                        {card.categoryLabel}
+                      </p>
+
+                      {shortLine ? (
+                        <p className="line-clamp-2 text-sm font-semibold leading-snug text-white/95 drop-shadow sm:text-[0.9375rem]">
+                          {shortLine}
                         </p>
-                        {card.headline?.trim() ? (
-                          <p className="line-clamp-1 text-sm font-semibold leading-snug text-bt-body">{card.headline}</p>
-                        ) : (
-                          <span className="hidden lg:block lg:min-h-[1.125rem]" aria-hidden />
-                        )}
-                      </div>
-                      {card.description?.trim() ? (
-                        <div className="shrink-0 lg:h-[2.375rem] lg:overflow-hidden">
-                          <p className="line-clamp-2 text-xs leading-relaxed text-bt-muted lg:text-[11px] lg:leading-snug">
-                            {card.description}
-                          </p>
-                        </div>
                       ) : null}
-                      <div className="mt-0.5 flex shrink-0 flex-wrap content-start gap-1 lg:mt-0 lg:min-h-0 lg:max-h-[2.125rem] lg:overflow-hidden">
+
+                      <div className="mt-0.5 flex max-w-full flex-wrap justify-center gap-1.5">
                         {card.hints.map((h) => (
                           <span
                             key={h}
-                            className="rounded-full border border-bt-border-soft bg-bt-surface-soft px-2 py-0.5 text-[10px] font-medium text-bt-meta"
+                            className="rounded-full border border-white/35 bg-white/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/95 shadow-sm backdrop-blur-[2px] sm:text-[11px]"
                           >
                             {h}
                           </span>
                         ))}
                       </div>
+
+                      {/* hover·키보드 포커스: 상세 본문 + CTA */}
+                      <div
+                        className={`mt-3 flex w-full flex-col items-center gap-3 transition duration-300 ease-out motion-reduce:transition-none ${
+                          showExpandedCopy
+                            ? 'max-h-0 translate-y-2 opacity-0 overflow-hidden lg:group-hover:max-h-[14rem] lg:group-hover:translate-y-0 lg:group-hover:opacity-100 lg:group-focus-within:max-h-[14rem] lg:group-focus-within:translate-y-0 lg:group-focus-within:opacity-100'
+                            : 'max-h-0 translate-y-1.5 opacity-0 overflow-hidden lg:group-hover:max-h-[6rem] lg:group-hover:translate-y-0 lg:group-hover:opacity-100 lg:group-focus-within:max-h-[6rem] lg:group-focus-within:translate-y-0 lg:group-focus-within:opacity-100'
+                        }`}
+                      >
+                        {showExpandedCopy ? (
+                          <p className="max-h-[9.5rem] overflow-y-auto text-left text-xs leading-relaxed text-white/92 sm:text-sm">
+                            {descFull}
+                          </p>
+                        ) : null}
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-xs font-bold text-white shadow-sm backdrop-blur-sm sm:text-sm">
+                          {card.ctaLabel}
+                          <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden />
+                        </span>
+                      </div>
                     </div>
-                    <span className="mt-auto flex shrink-0 items-center gap-1 pt-1 text-xs font-semibold text-bt-link sm:text-sm lg:mt-0 lg:pt-0.5">
-                      {card.ctaLabel}
-                      <ArrowUpRight className="h-4 w-4" aria-hidden />
-                    </span>
                   </div>
                 </Link>
               </li>

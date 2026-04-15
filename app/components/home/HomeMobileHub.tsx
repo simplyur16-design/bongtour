@@ -1,28 +1,31 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 import MobileHomeClientErrorBoundary from '@/app/components/home/MobileHomeClientErrorBoundary'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
 import { MAIN_HOME_FIRST_HUB_DESCRIPTION, MAIN_HOME_FIRST_HUB_TITLE } from '@/lib/main-hub-copy'
-import { homeHubCardImageSrc } from '@/lib/home-hub-images'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import PartnerOrganizationsSection from '@/app/components/home/PartnerOrganizationsSection'
 
 const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
-/** 모바일 주요 서비스 카드 배경 — 메인 허브와 동일 키 규칙(`public/images/home-hub/…`). 항공+호텔은 국내 키로 톤 분리. */
+/**
+ * 모바일 주요 서비스 카드 배경 — 레포에 실제 포함된 `public` 자산만 사용.
+ * (`/images/home-hub/base/*.jpg` 는 README만 있고 파일이 없어 404 → 배경 미노출이었음.)
+ */
 const MAIN_TILES = [
   {
     href: '/travel/overseas',
     title: MAIN_HOME_FIRST_HUB_TITLE,
     desc: MAIN_HOME_FIRST_HUB_DESCRIPTION,
-    bgSrc: homeHubCardImageSrc('overseas'),
+    bgSrc: '/images/org-logos/korea-tourism-org.jpg',
   },
   {
     href: '/travel/air-hotel',
     title: '항공+호텔',
     desc: '자유여행 · 에어텔',
-    bgSrc: homeHubCardImageSrc('domestic'),
+    bgSrc: '/images/org-logos/yongin.jpg',
   },
   {
     href: '/travel/overseas/private-trip',
@@ -34,7 +37,7 @@ const MAIN_TILES = [
     href: '/training',
     title: '국외연수',
     desc: '학교 · 기업 · 공공기관',
-    bgSrc: homeHubCardImageSrc('training'),
+    bgSrc: '/images/org-logos/gyeonggi-province-office.jpg',
   },
 ] as const
 
@@ -44,17 +47,21 @@ const QUICK_ACTIONS = [
   { href: '/charter-bus', label: '전세버스', primary: false as const },
 ] as const
 
-/** 카드 외곽·높이·라운드 공통 — 배경은 자식 레이어(이미지+오버레이) */
+/**
+ * 카드 외곽·높이·라운드 공통.
+ * `isolate` + 음수 z-index 제거: 배경 레이어가 `bg-slate-100` 뒤로 깔려 이미지가 안 보이던 문제 방지.
+ */
 const TILE_CARD_CLASS =
-  'relative isolate flex min-h-[8.75rem] flex-col items-center justify-center overflow-hidden rounded-2xl border border-bt-border-soft bg-slate-100 px-4 py-5 text-center shadow-sm ring-1 ring-bt-border-soft/40 transition active:scale-[0.99] hover:border-bt-border-strong hover:ring-bt-border-strong/30'
+  'relative flex min-h-[8.75rem] flex-col items-center justify-center overflow-hidden rounded-2xl border border-bt-border-soft bg-slate-100 px-4 py-5 text-center shadow-sm ring-1 ring-bt-border-soft/40 transition active:scale-[0.99] hover:border-bt-border-strong hover:ring-bt-border-strong/30'
 
-/** 모바일(`max-lg`)에서만 배경 이미지 스택 — PC 메인 허브와 겹치지 않도록 동일 컴포넌트라도 뷰포트로 제한 */
-const TILE_BG_IMG =
-  'pointer-events-none absolute inset-0 -z-20 bg-cover bg-center opacity-55 saturate-[0.82] contrast-[0.97] max-lg:block lg:hidden'
+/** 배경 사진 레이어 — 양수 z-index로 링크 배경 위에만 얹음 */
+const TILE_BG_IMAGE_WRAP = 'pointer-events-none absolute inset-0 z-0 max-lg:block lg:hidden'
+
 const TILE_BG_SCRIM =
-  'pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-white/93 via-white/86 to-slate-50/90 max-lg:block lg:hidden'
+  'pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-white/92 via-white/84 to-slate-50/90 max-lg:block lg:hidden'
+
 const TILE_BG_VIGNETTE =
-  'pointer-events-none absolute inset-0 -z-[9] bg-gradient-to-t from-slate-900/12 via-transparent to-slate-900/5 max-lg:block lg:hidden'
+  'pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-slate-900/11 via-transparent to-slate-900/5 max-lg:block lg:hidden'
 
 type Props = { seasonSlides: HomeSeasonPickDTO[] }
 
@@ -82,14 +89,18 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
           {MAIN_TILES.map((t) => (
             <li key={t.href} className="min-w-0">
               <Link href={t.href} className={TILE_CARD_CLASS}>
-                <span
-                  aria-hidden
-                  className={TILE_BG_IMG}
-                  style={{ backgroundImage: `url(${JSON.stringify(t.bgSrc)})` }}
-                />
+                <span className={TILE_BG_IMAGE_WRAP} aria-hidden>
+                  <Image
+                    src={t.bgSrc}
+                    alt=""
+                    fill
+                    sizes="(max-width: 1024px) 45vw, 280px"
+                    className="object-cover opacity-[0.58] saturate-[0.86] contrast-[0.98]"
+                  />
+                </span>
                 <span aria-hidden className={TILE_BG_SCRIM} />
                 <span aria-hidden className={TILE_BG_VIGNETTE} />
-                <span className="relative z-10 flex flex-col items-center text-center">
+                <span className="relative z-[3] flex flex-col items-center text-center">
                   <p className="text-lg font-bold leading-tight text-slate-900 drop-shadow-[0_1px_0_rgba(255,255,255,0.85)] sm:text-xl">
                     {t.title}
                   </p>
