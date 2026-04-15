@@ -43,7 +43,7 @@ const TILE_CARD_CLASS =
 type Props = { seasonSlides: HomeSeasonPickDTO[] }
 
 /**
- * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 시즌 추천(이미지·글) / 주요 서비스 / 실무 요청 / 파트너.
+ * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 주요 서비스 / 시즌 추천(이미지·글) / 실무 요청 / 파트너.
  */
 export default function HomeMobileHub({ seasonSlides }: Props) {
   return (
@@ -60,8 +60,6 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
         </Link>
       </div>
 
-      {seasonSlides.length > 0 ? <HomeMobileHubSeasonCarousel slides={seasonSlides} /> : null}
-
       <section aria-label="주요 서비스">
         <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>주요 서비스</h2>
         <ul className="grid grid-cols-2 gap-3.5" role="list">
@@ -75,6 +73,10 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
           ))}
         </ul>
       </section>
+
+      {seasonSlides.length > 0 ? (
+        <HomeMobileHubSeasonCarousel slides={seasonSlides} hideManualNav />
+      ) : null}
 
       <section aria-label="실무 요청">
         <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>실무 요청</h2>

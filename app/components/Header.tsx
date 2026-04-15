@@ -29,6 +29,12 @@ const MAIN_NAV: { label: string; href: string }[] = [
   { label: '고객지원', href: '/support' },
 ]
 
+/** `lg` 미만 햄버거 패널 전용 — 모바일 홈·푸터 등에 이미 있는 링크는 제외하고 상단 접근이 약한 핵심만. */
+const MOBILE_HAMBURGER_NAV: { label: string; href: string }[] = [
+  { label: '국내여행', href: '/travel/domestic' },
+  { label: '고객지원', href: '/support' },
+]
+
 function HeaderAuthRow({ className = '' }: { className?: string }) {
   const { data: session, status } = useSession()
 
@@ -120,7 +126,6 @@ function InstagramGlyphIcon({ gradientId }: { gradientId: string }) {
 export default function Header() {
   const [open, setOpen] = useState(false)
   const instagramGradientId = `ig-glyph-${useId().replace(/:/g, '')}`
-  const instagramGradientIdMobile = `ig-glyph-m-${useId().replace(/:/g, '')}`
 
   useEffect(() => {
     if (!open) return
@@ -196,8 +201,8 @@ export default function Header() {
       {open && (
         <div className="border-t border-bt-border-soft bg-white lg:hidden">
           <ul className={`py-2.5 ${SITE_CONTENT_CLASS}`}>
-            {MAIN_NAV.map((item) => (
-              <li key={item.label} className="border-b border-slate-100">
+            {MOBILE_HAMBURGER_NAV.map((item) => (
+              <li key={item.href} className="border-b border-slate-100 last:border-0">
                 <Link
                   href={item.href}
                   className="block py-4 text-center text-[17px] font-semibold leading-snug text-bt-title"
@@ -207,18 +212,6 @@ export default function Header() {
                 </Link>
               </li>
             ))}
-            <li className="border-b border-slate-100 last:border-0">
-              <a
-                href={instagramHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-4 text-[17px] font-semibold leading-snug text-bt-title"
-                onClick={() => setOpen(false)}
-              >
-                <InstagramGlyphIcon gradientId={instagramGradientIdMobile} />
-                인스타그램
-              </a>
-            </li>
           </ul>
         </div>
       )}

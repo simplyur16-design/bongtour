@@ -129,9 +129,15 @@ function SeasonSlideCard({
   )
 }
 
-type Props = { slides: HomeSeasonPickDTO[]; /** 해외 상품 목록 등에서 섹션 타이틀 생략 */ hideHeading?: boolean }
+type Props = {
+  slides: HomeSeasonPickDTO[]
+  /** 해외 상품 목록 등에서 섹션 타이틀 생략 */
+  hideHeading?: boolean
+  /** 모바일 메인 홈 등: 이전/다음·점·슬라이드 인덱스 배지를 렌더하지 않음(자동 슬라이드만). */
+  hideManualNav?: boolean
+}
 
-export default function HomeMobileHubSeasonCarousel({ slides, hideHeading = false }: Props) {
+export default function HomeMobileHubSeasonCarousel({ slides, hideHeading = false, hideManualNav = false }: Props) {
   const n = slides.length
   const [index, setIndex] = useState(0)
   const resumeAtRef = useRef(0)
@@ -186,9 +192,11 @@ export default function HomeMobileHubSeasonCarousel({ slides, hideHeading = fals
         onTouchEnd={onTouchEnd}
         onPointerDown={() => bumpInteractionPause()}
       >
-        <div className="pointer-events-none absolute right-3 top-2 z-[2] rounded-full bg-slate-900/70 px-2 py-0.5 text-xs font-semibold text-white">
-          {index + 1}/{n}
-        </div>
+        {!hideManualNav ? (
+          <div className="pointer-events-none absolute right-3 top-2 z-[2] hidden rounded-full bg-slate-900/70 px-2 py-0.5 text-xs font-semibold text-white lg:block">
+            {index + 1}/{n}
+          </div>
+        ) : null}
 
         <div
           className="flex transition-transform duration-300 ease-out motion-reduce:transition-none"
@@ -203,8 +211,8 @@ export default function HomeMobileHubSeasonCarousel({ slides, hideHeading = fals
         </div>
       </div>
 
-      {n > 1 ? (
-        <div className="mt-3 flex flex-col items-center gap-2">
+      {n > 1 && !hideManualNav ? (
+        <div className="mt-3 hidden flex-col items-center gap-2 lg:flex">
           <div className="flex items-center justify-center gap-3">
             <button
               type="button"
