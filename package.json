@@ -24,6 +24,7 @@
     "migrate:prisma-images-ncloud": "npx tsx scripts/migrate-prisma-images-to-ncloud.ts",
     "test:ncloud-storage": "npx tsx scripts/test-ncloud-object-storage.ts",
     "db:push": "prisma db push",
+    "db:sqlite:ensure-product-bgimage": "node scripts/sqlite-add-missing-product-bgimage-columns.mjs",
     "db:seed": "npx tsx scripts/seed-brands.ts",
     "seed:travel-reviews": "npx tsx scripts/seed-travel-reviews.ts",
     "reviews:replace-csv": "npx tsx scripts/replace-travel-reviews-from-csv.ts",
