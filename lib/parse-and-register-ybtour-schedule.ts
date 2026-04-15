@@ -17,6 +17,7 @@ import {
   deriveYbtourScheduleDayHeaderTitle,
   shouldReplaceYbtourScheduleDayTitle,
 } from '@/lib/ybtour-schedule-day-header-title'
+import { buildEnglishPlaceTripartiteImageKeyword } from '@/lib/register-schedule-english-place-image-keyword'
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
@@ -159,12 +160,13 @@ function extractMealsFromYbtourBlock(block: string): Partial<RegisterScheduleDay
   return out
 }
 
-function keywordFromTitleDescription(title: string, description: string): string {
-  const merged = `${title} ${description}`
-  const latin = merged.match(/\b[A-Za-z]{3,}(?:\s+[A-Za-z][A-Za-z]+){0,3}\b/)
-  if (latin) return latin[0]!.slice(0, 120)
-  const t = title.trim().slice(0, 40)
-  return t || description.trim().slice(0, 40)
+/** 일차 표현층·붙여넣기 병합에서 imageKeyword 보강 시 사용 (노랑풍선 SSOT). */
+export function keywordFromTitleDescription(title: string, description: string): string {
+  return buildEnglishPlaceTripartiteImageKeyword({
+    title,
+    description,
+    rawDayBody: '',
+  }).slice(0, 180)
 }
 
 function extractYbtourDayDateIso(block: string): string | null {
@@ -228,7 +230,7 @@ export function ybtourScheduleDayFromPastedBlock(day: number, block: string): Re
     day,
     title: title.trim().slice(0, 200),
     description: descFinal,
-    imageKeyword: keywordFromTitleDescription(title, descFinal).slice(0, 120),
+    imageKeyword: keywordFromTitleDescription(title, descFinal).slice(0, 180),
     dateText,
     hotelText,
     breakfastText: meals.breakfastText ?? null,

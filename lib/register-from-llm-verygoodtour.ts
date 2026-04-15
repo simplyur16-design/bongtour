@@ -103,7 +103,6 @@ import {
   extractVerygoodScheduleRowsFromPasteBody,
   mergeVerygoodGeminiScheduleWithDeterministicBlocks,
 } from '@/lib/verygoodtour-schedule-blocks-from-paste'
-import { polishVerygoodRegisterScheduleDescriptions } from '@/lib/verygoodtour-schedule-description-polish'
 import { polishVerygoodRegisterScheduleImageKeywords } from '@/lib/verygoodtour-schedule-image-keyword'
 import { registerScheduleToDayInputs } from '@/lib/upsert-itinerary-days-verygoodtour'
 
@@ -112,11 +111,6 @@ const REGISTER_PASTE_MAX_CHARS = 32000
 const MAX_SHOPPING_STOPS = 15
 
 const REGISTER_BRAND = 'verygoodtour' as const
-
-/** `runScheduleExtractLlm`에만 덧붙임 — 다른 공급사 호출에는 전달하지 않는다. */
-const VERYGOOD_SCHEDULE_EXTRACT_ADDENDUM = `- 참좋은여행 붙여넣기는 항공·호텔·식사·자유시간 줄이 길게 섞이는 경우가 많다. description에서는 **방문·관광·체험·조망** 문장을 중심으로 재구성하고, 이동·항공·투숙·자유시간은 필요할 때만 짧게 덧붙인다.
-- 일정표 원문을 통째로 복사하지 말고, 그날 **핵심 방문지·경험**이 드러나는 **1~3문장**으로 쓴다(원문에 없는 사실·수치 추가 금지).
-- imageKeyword: **도시명만 나열하거나 A-B-C 하이픈 체인으로 쓰지 말 것.** 한 줄로 \`장소·랜드마크 / 눈에 보이는 배경 요소 / 촬영·조망 시점\`을 슬래시(/)로 구분(한국어 짧은 구). 막연한 「시내 전경」「도시 풍경」만 단독으로 쓰지 말 것. 순수 귀국·공항 이동 일은 원문에 맞게 공항·탑승 동선 수준으로 담백히 쓴다.`
 
 const EMPTY_PASTE_PLACEHOLDER =
   '((관리자 복붙 본문 없음 — 붙여넣은 텍스트가 필수. prices·schedule은 빈 배열 [] 로 둘 것. URL·외부 수집 추측 금지.))'
@@ -916,10 +910,10 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - 가격 매핑: 성인 가격(adultPrice 또는 adultBase+adultFuel)을 숫자로 추출하고, 해당 날짜의 예약 상태(status)를 1:1로 매핑하여 prices 배열에 넣어라.
 - 주관 배제: 텍스트에 없는 날짜를 생성하지 말고, 오직 로그에 존재하는 데이터만 팩트대로 추출하라.
 
-# [schedule] 일차별 (필수)
+# [schedule] 일차별 (필수) — 노랑풍선(ybtour) 등록 REGISTER_PROMPT와 동일 규칙
 - day, title, description, imageKeyword
-- description: 해당 일차 블록 전체를 근거로 **핵심 방문지·체험·조망**을 중심으로 문어체 존댓말로 **1~3문장**(권장 120~320자)에 재구성한다. 일정표 원문을 **통째로 복사**하지 말 것. 항공·호텔·자유시간·이동은 보조 정보로만 짧게 언급한다(식사·숙박 세부는 hotelText·meal* 필드 우선).
-- imageKeyword: **도시명만 나열·A-B-C 하이픈 체인 금지.** 한 줄로 \`장소·랜드마크 / 눈에 보이는 배경 요소 / 촬영·조망 시점\`을 슬래시(/)로 구분(한국어 짧은 구). 관광객이 이미지 검색·생성에 쓸 수 있는 **구체적 시각 요소**를 담는다. 막연한 「시내 전경」「도시 풍경」만 단독 사용 금지. 원문에 없는 장소·장면을 지어내지 말 것.
+- description: 해당 일차 블록 전체를 근거로 관광·이동·식사·숙박을 **빠짐없이** 반영한 문어체 존댓말 요약. **3~6문장·450자 이내**를 목표로 하며, 한 줄·한두 문장만 쓰지 말 것. 복수 관광지가 있으면 모두 짧게라도 언급.
+- imageKeyword: 해당 일차의 실존하는 장소 이름만 사용 (창조·추상 금지). 영문 명사 (예: Osaka Castle, Taipei 101)
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
 # [prices] 출발일별 요금 (달력과 동일한 날짜만)
@@ -1053,7 +1047,7 @@ date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel,
       "day": 1,
       "title": "",
       "description": "",
-      "imageKeyword": "장소 / 배경 요소 / 시점 (한국어, 슬래시 구분)",
+      "imageKeyword": "Real place name in English",
       "hotelText": null,
       "breakfastText": null,
       "lunchText": null,
@@ -1486,7 +1480,6 @@ export async function parseForRegisterLlmVerygoodtour(
       logLabel: forPreview
         ? 'parseForRegisterLlmVerygoodtour-schedule-first-preview'
         : 'parseForRegisterLlmVerygoodtour-schedule-first',
-      scheduleExtractAddendum: VERYGOOD_SCHEDULE_EXTRACT_ADDENDUM,
     })
     if (sr.rows.length === expectedDaysForSchedule) {
       scheduleFirstPassRows = sr.rows
@@ -1714,7 +1707,6 @@ ${text.slice(0, 16000)}`
     schedule = scheduleFromDet
   }
 
-  schedule = polishVerygoodRegisterScheduleDescriptions(schedule)
   schedule = polishVerygoodRegisterScheduleImageKeywords(schedule, detRows)
 
   const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
