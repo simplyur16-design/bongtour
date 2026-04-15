@@ -183,7 +183,7 @@ export type HubFourAccent = 'domestic' | 'overseas' | 'training' | 'bus'
 export const MAIN_HOME_FIRST_HUB_TITLE = '해외여행' as const
 export const MAIN_HOME_FIRST_HUB_DESCRIPTION = '검증된 여행상품' as const
 
-/** 그리드 순서: 해외여행 → 국외연수 → 국내여행 → 전세버스 — headline은 짧은 헤드카피(모바일 기본·데스크톱 hover) */
+/** 그리드 순서: 해외여행 → 국외연수 → 국내여행 → 전세버스 — headline은 짧은 헤드카피(국외연수는 제목 한 줄에 병합) */
 export const MAIN_HUB_FOUR_CARDS = [
   {
     key: 'overseas',
@@ -200,8 +200,8 @@ export const MAIN_HUB_FOUR_CARDS = [
     key: 'training',
     href: '/training',
     accent: 'training' as const,
-    categoryLabel: '국외연수',
-    headline: '목적형 연수 설계',
+    categoryLabel: '국외연수 [목적형 연수 설계]',
+    headline: '',
     description:
       '정부·공공·기업 목적에 맞춰 기관 섭외와 통역, 이동 운영까지 처음부터 설계합니다.',
     hints: ['정부·공공', '기업', '기관섭외'] as const,
