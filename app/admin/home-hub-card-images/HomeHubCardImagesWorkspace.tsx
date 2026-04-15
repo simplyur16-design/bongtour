@@ -11,6 +11,7 @@ import type { HomeHubActiveClientModel } from '@/lib/home-hub-active-client-mode
 import { homeHubActiveFileToClientModel } from '@/lib/home-hub-active-client-model'
 import type { HomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 import { PrivateTripHeroSlidesPanel } from '@/components/admin/home-hub/PrivateTripHeroSlidesPanel'
+import { MobileMainServiceTilesPanel } from '@/components/admin/home-hub/MobileMainServiceTilesPanel'
 
 const CARD_LABEL: Record<HomeHubCardImageKey, string> = {
   overseas: '해외여행',
@@ -112,6 +113,8 @@ export function HomeHubCardImagesWorkspace({ initialActive, initialTravelPoolPre
         onSaveError={onActivateError}
         candidatesRefreshToken={refreshToken}
       />
+
+      <MobileMainServiceTilesPanel active={active} onSaved={onHybridSaved} onSaveError={onActivateError} />
 
       <PrivateTripHeroSlidesPanel />
     </div>

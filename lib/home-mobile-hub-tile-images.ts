@@ -5,14 +5,6 @@ import { getHomeHubActiveFile, type MobileMainServiceTileKey } from '@/lib/home-
 
 export type MobileMainTileBgKey = MobileMainServiceTileKey
 
-/** `public/images/home-hub/mobile/` — 모바일 주요 서비스 4카드 전용 SSOT(파일이 레포에 포함됨) */
-export const MOBILE_MAIN_SERVICE_TILE_DEFAULT_PATHS: Record<MobileMainTileBgKey, string> = {
-  overseas: '/images/home-hub/mobile/overseas.jpg',
-  airHotel: '/images/home-hub/mobile/air-hotel.jpg',
-  privateTrip: '/images/home-hub/mobile/private-trip.webp',
-  training: '/images/home-hub/mobile/training.jpg',
-}
-
 function isRemoteUrl(s: string): boolean {
   return /^https?:\/\//i.test(s.trim())
 }
@@ -33,20 +25,17 @@ function publicFileExists(urlPath: string): boolean {
 /**
  * 모바일 홈 `HomeMobileHub` 주요 서비스 카드 배경 URL.
  *
- * 1. `public/data/home-hub-active.json` 의 `mobileMainServiceTiles[key]` 가 유효하면 사용(로컬은 파일 존재 시, 원격은 그대로).
- * 2. 아니면 `MOBILE_MAIN_SERVICE_TILE_DEFAULT_PATHS`(동일 `public/images/home-hub/mobile/*`).
- *
- * org-logos 등 임시 폴백은 사용하지 않는다.
+ * `home-hub-active.json` 의 `mobileMainServiceTiles[key]` 만 사용한다.
+ * — 원격(`https://…`)은 통과, 로컬 `/images/…` 는 `public` 아래 파일이 실제로 있을 때만.
+ * 유효 URL이 없으면 `null` → UI는 그라데이션만(관리자에서 Supabase 등 URL 지정 후 반영).
  */
-export function resolveMobileMainTileBgSrc(key: MobileMainTileBgKey): string {
+export function resolveMobileMainTileBgSrc(key: MobileMainTileBgKey): string | null {
   const cfg = getHomeHubActiveFile()
   const raw = cfg?.mobileMainServiceTiles?.[key]?.trim()
-  const fromJson =
-    raw && isHomeHubPublicManualImageUrl(raw) ? raw : null
-  const primary = fromJson ?? MOBILE_MAIN_SERVICE_TILE_DEFAULT_PATHS[key]
+  const fromJson = raw && isHomeHubPublicManualImageUrl(raw) ? raw : null
+  if (!fromJson) return null
 
-  if (isRemoteUrl(primary)) return primary
-  if (publicFileExists(primary)) return primary
-
-  return MOBILE_MAIN_SERVICE_TILE_DEFAULT_PATHS[key]
+  if (isRemoteUrl(fromJson)) return fromJson
+  if (publicFileExists(fromJson)) return fromJson
+  return null
 }

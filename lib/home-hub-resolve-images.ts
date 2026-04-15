@@ -49,8 +49,8 @@ export type HomeHubActiveFile = {
    */
   trainingPageSecondaryImage?: string
   /**
-   * 모바일 홈 `HomeMobileHub` 주요 서비스 4카드 배경 — `/images/...` 또는 `https://...`.
-   * 키 누락·무효 시 `lib/home-mobile-hub-tile-images.ts` 의 `public/images/home-hub/mobile/*` 기본 경로를 쓴다.
+   * 모바일 홈 `HomeMobileHub` 주요 서비스 4카드 배경 — `/images/...` 또는 `https://...`(Supabase 공개 URL 등).
+   * 비어 있거나 무효·파일 없음이면 배경 사진 없이 그라데이션만 표시.
    */
   mobileMainServiceTiles?: Partial<Record<MobileMainServiceTileKey, string>>
 }
@@ -151,6 +151,8 @@ export type WriteHomeHubActiveMergedInput = {
   lastUpdatedBy?: string
   /** `null` 또는 빈 문자열이면 필드 제거 */
   trainingPageSecondaryImage?: string | null
+  /** 모바일 홈 주요 서비스 4타일 — 부분 병합 */
+  mobileMainServiceTiles?: Partial<Record<MobileMainServiceTileKey, string>>
 }
 
 /**
@@ -162,13 +164,20 @@ export function writeHomeHubActiveMerged(patch: WriteHomeHubActiveMergedInput): 
     activeSeason: 'default',
     images: {},
   }
-  const { trainingPageSecondaryImage: secondaryPatch, ...restPatch } = patch
+  const {
+    trainingPageSecondaryImage: secondaryPatch,
+    mobileMainServiceTiles: mobileTilesPatch,
+    ...restPatch
+  } = patch
   const next: HomeHubActiveFile = {
     ...base,
     ...restPatch,
     images: { ...base.images, ...(patch.images ?? {}) },
     imageSourceModes: { ...base.imageSourceModes, ...(patch.imageSourceModes ?? {}) },
     lastUpdatedAt: new Date().toISOString(),
+  }
+  if (mobileTilesPatch !== undefined) {
+    next.mobileMainServiceTiles = { ...base.mobileMainServiceTiles, ...mobileTilesPatch }
   }
   if (patch.lastUpdatedBy !== undefined) {
     next.lastUpdatedBy = patch.lastUpdatedBy

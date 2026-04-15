@@ -11,7 +11,10 @@ import PartnerOrganizationsSection from '@/app/components/home/PartnerOrganizati
 
 const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
-/** 카피·링크·하이브리드 매핑 키 — 실제 `bgSrc`는 렌더 시 `resolveMobileMainTileBgSrc`로 확정 */
+/**
+ * 카피·링크·하이브리드 매핑 키 — 실제 `bgSrc`는 `resolveMobileMainTileBgSrc`로 확정.
+ * 배경 URL은 관리자 권장: 해외=유럽(영·프 등), 항공+호텔=이륙기, 우리여행=가족, 국외연수=회의장.
+ */
 const MAIN_TILES_SPEC = [
   {
     href: '/travel/overseas',
@@ -50,21 +53,32 @@ const QUICK_ACTIONS = [
  * `isolate` + 음수 z-index 제거: 배경 레이어가 `bg-slate-100` 뒤로 깔려 이미지가 안 보이던 문제 방지.
  */
 const TILE_CARD_CLASS =
-  'relative flex min-h-[8.75rem] flex-col items-center justify-center overflow-hidden rounded-2xl border border-bt-border-soft bg-slate-900 px-4 py-5 text-center shadow-sm ring-1 ring-bt-border-soft/40 transition active:scale-[0.99] hover:border-bt-border-strong hover:ring-bt-border-strong/30'
+  'relative flex min-h-[8.75rem] flex-col items-center justify-center overflow-hidden rounded-2xl border border-bt-border-soft bg-[#4a5d72] px-4 py-5 text-center shadow-sm ring-1 ring-bt-border-soft/40 transition active:scale-[0.99] hover:border-bt-border-strong hover:ring-bt-border-strong/30'
 
-/** 배경 사진 — 링크 배경 위 z-0 */
+/** 배경 사진 또는 무이미지 시 대체 그라데이션 — 링크 배경 위 z-0 */
 const TILE_BG_IMAGE_WRAP =
   'pointer-events-none absolute inset-0 z-0 block min-h-[8.75rem] w-full min-w-0'
 
 /**
- * 텍스트 가독용 스크림 — 흰색 전면 워시(from-white/90)는 사진을 완전히 덮어 배경이 안 보이는 원인이었음.
- * 하단·중앙만 어둡게 해 사진이 보이면서 글자 대비 확보.
+ * `mobileMainServiceTiles` URL 미설정 시 — 쿨그레이보다 살짝만 채도 있는 스틸블루(형광 없이 여행사 톤).
+ * 실제 배경은 관리자에서 타일별 URL 지정 권장.
  */
+const TILE_BG_FALLBACK_GRADIENT =
+  'bg-gradient-to-br from-slate-600 via-blue-900 to-slate-800'
+
+/** 사진 있을 때: 기존 하단 스크림 */
 const TILE_BG_SCRIM =
   'pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-transparent via-black/35 to-black/78 max-lg:block lg:hidden'
 
+/** 사진 없을 때: 스틸블루 베이스 위 가벼운 하단만 살짝 어둡게 */
+const TILE_BG_SCRIM_FALLBACK =
+  'pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-transparent via-blue-950/28 to-slate-900/55 max-lg:block lg:hidden'
+
 const TILE_BG_VIGNETTE =
   'pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-black/25 via-transparent to-black/15 max-lg:block lg:hidden'
+
+const TILE_BG_VIGNETTE_FALLBACK =
+  'pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-slate-900/32 via-transparent to-slate-500/14 max-lg:block lg:hidden'
 
 type Props = { seasonSlides: HomeSeasonPickDTO[] }
 
@@ -97,19 +111,23 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
           {mainTiles.map((t, index) => (
             <li key={t.href} className="min-w-0">
               <Link href={t.href} className={TILE_CARD_CLASS}>
-                <span className={TILE_BG_IMAGE_WRAP} aria-hidden>
-                  <Image
-                    src={t.bgSrc}
-                    alt=""
-                    fill
-                    sizes="(max-width: 1024px) 48vw, 300px"
-                    className="object-cover saturate-[0.92] contrast-[1.02]"
-                    priority={index < 4}
-                    unoptimized
-                  />
-                </span>
-                <span aria-hidden className={TILE_BG_SCRIM} />
-                <span aria-hidden className={TILE_BG_VIGNETTE} />
+                {t.bgSrc ? (
+                  <span className={TILE_BG_IMAGE_WRAP} aria-hidden>
+                    <Image
+                      src={t.bgSrc}
+                      alt=""
+                      fill
+                      sizes="(max-width: 1024px) 48vw, 300px"
+                      className="object-cover saturate-[0.92] contrast-[1.02]"
+                      priority={index < 4}
+                      unoptimized={/^https?:\/\//i.test(t.bgSrc)}
+                    />
+                  </span>
+                ) : (
+                  <span className={`${TILE_BG_IMAGE_WRAP} ${TILE_BG_FALLBACK_GRADIENT}`} aria-hidden />
+                )}
+                <span aria-hidden className={t.bgSrc ? TILE_BG_SCRIM : TILE_BG_SCRIM_FALLBACK} />
+                <span aria-hidden className={t.bgSrc ? TILE_BG_VIGNETTE : TILE_BG_VIGNETTE_FALLBACK} />
                 <span className="relative z-[3] flex flex-col items-center text-center">
                   <p className="text-lg font-extrabold leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] sm:text-xl">
                     {t.title}

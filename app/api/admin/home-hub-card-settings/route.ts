@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
 import { isValidCardKey } from '@/lib/home-hub-candidates'
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
-import type { HomeHubCardImageSourceMode } from '@/lib/home-hub-card-hybrid-core'
-import { writeHomeHubActiveMerged, type WriteHomeHubActiveMergedInput } from '@/lib/home-hub-resolve-images'
+import { isHomeHubPublicManualImageUrl, type HomeHubCardImageSourceMode } from '@/lib/home-hub-card-hybrid-core'
+import {
+  writeHomeHubActiveMerged,
+  type MobileMainServiceTileKey,
+  type WriteHomeHubActiveMergedInput,
+} from '@/lib/home-hub-resolve-images'
+
+const MOBILE_TILE_KEYS = new Set<MobileMainServiceTileKey>(['overseas', 'airHotel', 'privateTrip', 'training'])
 
 export async function PATCH(request: Request) {
   const admin = await requireAdmin()
@@ -15,6 +21,7 @@ export async function PATCH(request: Request) {
     images?: Record<string, unknown>
     imageSourceModes?: Record<string, unknown>
     trainingPageSecondaryImage?: unknown
+    mobileMainServiceTiles?: Record<string, unknown>
   }
 
   const updatedBy =
@@ -50,9 +57,37 @@ export async function PATCH(request: Request) {
     }
   }
 
-  if (!patch.images && !patch.imageSourceModes && patch.trainingPageSecondaryImage === undefined) {
+  if (body.mobileMainServiceTiles && typeof body.mobileMainServiceTiles === 'object' && !Array.isArray(body.mobileMainServiceTiles)) {
+    const mobileMainServiceTiles: Partial<Record<MobileMainServiceTileKey, string>> = {}
+    for (const [k, v] of Object.entries(body.mobileMainServiceTiles)) {
+      if (!MOBILE_TILE_KEYS.has(k as MobileMainServiceTileKey)) continue
+      if (typeof v !== 'string') continue
+      const t = v.trim()
+      if (t && !isHomeHubPublicManualImageUrl(t)) {
+        return NextResponse.json(
+          { ok: false, error: `mobileMainServiceTiles.${k} 는 /images/... 또는 http(s):// 공개 URL만 허용됩니다.` },
+          { status: 400 },
+        )
+      }
+      mobileMainServiceTiles[k as MobileMainServiceTileKey] = t
+    }
+    if (Object.keys(mobileMainServiceTiles).length > 0) {
+      patch.mobileMainServiceTiles = mobileMainServiceTiles
+    }
+  }
+
+  if (
+    !patch.images &&
+    !patch.imageSourceModes &&
+    patch.trainingPageSecondaryImage === undefined &&
+    !patch.mobileMainServiceTiles
+  ) {
     return NextResponse.json(
-      { ok: false, error: 'images, imageSourceModes, trainingPageSecondaryImage 중 하나가 필요합니다.' },
+      {
+        ok: false,
+        error:
+          'images, imageSourceModes, trainingPageSecondaryImage, mobileMainServiceTiles 중 하나가 필요합니다.',
+      },
       { status: 400 },
     )
   }

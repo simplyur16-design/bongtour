@@ -2,10 +2,10 @@
   "activeSeason": "spring",
   "lastUpdatedAt": "2026-04-14T03:28:19.280Z",
   "mobileMainServiceTiles": {
-    "overseas": "/images/home-hub/mobile/overseas.jpg",
-    "airHotel": "/images/home-hub/mobile/air-hotel.jpg",
-    "privateTrip": "/images/home-hub/mobile/private-trip.webp",
-    "training": "/images/home-hub/mobile/training.jpg"
+    "overseas": "",
+    "airHotel": "",
+    "privateTrip": "",
+    "training": ""
   },
   "images": {
     "overseas": "",
