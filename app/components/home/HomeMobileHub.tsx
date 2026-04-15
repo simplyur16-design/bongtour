@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
+import MobileHomeClientErrorBoundary from '@/app/components/home/MobileHomeClientErrorBoundary'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
 import { MAIN_HOME_FIRST_HUB_DESCRIPTION, MAIN_HOME_FIRST_HUB_TITLE } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
@@ -75,7 +76,9 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
       </section>
 
       {seasonSlides.length > 0 ? (
-        <HomeMobileHubSeasonCarousel slides={seasonSlides} hideManualNav />
+        <MobileHomeClientErrorBoundary section="season-carousel">
+          <HomeMobileHubSeasonCarousel slides={seasonSlides} hideManualNav />
+        </MobileHomeClientErrorBoundary>
       ) : null}
 
       <section aria-label="실무 요청">

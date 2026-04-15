@@ -1,6 +1,7 @@
 'use client'
 
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import { devWarnMobileHome } from '@/lib/mobile-home-dev-log'
 import { useEffect, useId, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -129,11 +130,27 @@ export default function Header() {
 
   useEffect(() => {
     if (!open) return
+    if (typeof window === 'undefined') return
     const onResize = () => {
-      if (window.innerWidth >= 1024) setOpen(false)
+      try {
+        if (window.innerWidth >= 1024) setOpen(false)
+      } catch (e) {
+        devWarnMobileHome('header-resize', e)
+      }
     }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    try {
+      window.addEventListener('resize', onResize)
+    } catch (e) {
+      devWarnMobileHome('header-resize-listen', e)
+      return undefined
+    }
+    return () => {
+      try {
+        window.removeEventListener('resize', onResize)
+      } catch {
+        /* ignore */
+      }
+    }
   }, [open])
 
   return (

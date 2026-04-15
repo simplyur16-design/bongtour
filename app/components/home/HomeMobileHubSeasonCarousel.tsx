@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { HomeSeasonPickDTO } from '@/lib/home-season-pick'
+import { normalizeHomeSeasonSlidesForClient, type HomeSeasonPickDTO } from '@/lib/home-season-pick'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
+import { devWarnMobileHome } from '@/lib/mobile-home-dev-log'
 
 const AUTO_MS = 5200
 const PAUSE_AFTER_INTERACTION_MS = 12000
@@ -14,18 +15,20 @@ const IMAGE_H = 'h-[11.25rem]'
 const TEXT_MIN = 'min-h-[12.25rem]'
 
 function SeasonCtaLink({ href, label }: { href: string; label: string }) {
+  const safeHref = typeof href === 'string' && href.trim() ? href.trim() : '/travel/overseas'
+  const safeLabel = typeof label === 'string' && label.trim() ? label.trim() : '자세히 보기'
   const cls =
     'mt-auto inline-flex h-12 w-full shrink-0 items-center justify-center rounded-xl bg-teal-700 px-4 text-center text-base font-bold text-white shadow-md transition hover:bg-teal-800 active:scale-[0.99]'
-  if (/^https?:\/\//i.test(href)) {
+  if (/^https?:\/\//i.test(safeHref)) {
     return (
-      <a href={href} className={cls} rel="noopener noreferrer">
-        {label}
+      <a href={safeHref} className={cls} rel="noopener noreferrer">
+        {safeLabel}
       </a>
     )
   }
   return (
-    <Link href={href} className={cls}>
-      {label}
+    <Link href={safeHref} className={cls}>
+      {safeLabel}
     </Link>
   )
 }
@@ -38,18 +41,27 @@ function SeasonSlideCard({
   slideWidthPct: number
 }) {
   const [expanded, setExpanded] = useState(false)
-  const img = slide.imageUrl
+  const bodyFull = String(slide?.bodyFull ?? '')
+  const excerpt = String(slide?.excerpt ?? '')
+  const title = String(slide?.title ?? '')
+  const imgRaw = slide?.imageUrl
+  const img = typeof imgRaw === 'string' ? imgRaw.trim() : ''
   const isRemoteImg = Boolean(img && /^https?:\/\//i.test(img))
-  const imageUnoptimized = isRemoteImg || Boolean(img?.startsWith('/'))
+  const imageUnoptimized = isRemoteImg || Boolean(img.startsWith('/'))
 
   const needsMore = useMemo(() => {
-    const full = slide.bodyFull.replace(/\s+/g, ' ').trim()
-    if (!full) return false
-    if (slide.excerpt.endsWith('…')) return true
-    return full.length > slide.excerpt.replace(/…$/, '').trim().length + 2
-  }, [slide.bodyFull, slide.excerpt])
+    try {
+      const full = bodyFull.replace(/\s+/g, ' ').trim()
+      if (!full) return false
+      if (excerpt.endsWith('…')) return true
+      return full.length > excerpt.replace(/…$/, '').trim().length + 2
+    } catch (e) {
+      devWarnMobileHome('season-slide-needsMore', e)
+      return false
+    }
+  }, [bodyFull, excerpt])
 
-  const desc = (slide.excerpt ?? '').trim()
+  const desc = excerpt.trim()
 
   return (
     <div className="shrink-0" style={{ width: `${slideWidthPct}%` }}>
@@ -61,7 +73,7 @@ function SeasonSlideCard({
           isRemoteImg ? (
             <img
               src={img}
-              alt={slide.title || ''}
+              alt={title}
               className="absolute inset-0 z-[1] h-full w-full object-cover"
               loading="lazy"
               decoding="async"
@@ -69,7 +81,7 @@ function SeasonSlideCard({
           ) : (
             <Image
               src={img}
-              alt={slide.title || ''}
+              alt={title}
               fill
               className="z-[1] object-cover"
               sizes="100vw"
@@ -87,28 +99,28 @@ function SeasonSlideCard({
       <div
         className={`flex flex-col border-t border-slate-100 bg-white px-4 pb-4 pt-3 ${TEXT_MIN}`}
       >
-        {slide.title ? (
-          <h3 className="text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">{slide.title}</h3>
+        {title ? (
+          <h3 className="text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">{title}</h3>
         ) : null}
         {desc ? (
           expanded ? (
             <p
-              className={`max-h-[11rem] overflow-y-auto whitespace-pre-line text-[15px] font-medium leading-relaxed text-slate-800 ${slide.title ? 'mt-2' : ''}`}
+              className={`max-h-[11rem] overflow-y-auto whitespace-pre-line text-[15px] font-medium leading-relaxed text-slate-800 ${title ? 'mt-2' : ''}`}
             >
-              {slide.bodyFull}
+              {bodyFull}
             </p>
           ) : (
             <p
-              className={`line-clamp-3 text-[15px] font-medium leading-relaxed text-slate-800 ${slide.title ? 'mt-2' : ''}`}
+              className={`line-clamp-3 text-[15px] font-medium leading-relaxed text-slate-800 ${title ? 'mt-2' : ''}`}
             >
               {desc}
             </p>
           )
-        ) : expanded && slide.bodyFull.trim() ? (
+        ) : expanded && bodyFull.trim() ? (
           <p
-            className={`max-h-[11rem] overflow-y-auto whitespace-pre-line text-[15px] font-medium leading-relaxed text-slate-800 ${slide.title ? 'mt-2' : ''}`}
+            className={`max-h-[11rem] overflow-y-auto whitespace-pre-line text-[15px] font-medium leading-relaxed text-slate-800 ${title ? 'mt-2' : ''}`}
           >
-            {slide.bodyFull}
+            {bodyFull}
           </p>
         ) : null}
         {needsMore ? (
@@ -123,7 +135,7 @@ function SeasonSlideCard({
         ) : (
           <span className="mt-2 h-[1.375rem]" aria-hidden />
         )}
-        <SeasonCtaLink href={slide.ctaHref} label={slide.ctaLabel} />
+        <SeasonCtaLink href={String(slide?.ctaHref ?? '')} label={String(slide?.ctaLabel ?? '')} />
       </div>
     </div>
   )
@@ -138,10 +150,27 @@ type Props = {
 }
 
 export default function HomeMobileHubSeasonCarousel({ slides, hideHeading = false, hideManualNav = false }: Props) {
-  const n = slides.length
+  const safeSlides = useMemo(() => {
+    const next = normalizeHomeSeasonSlidesForClient(slides)
+    if (
+      process.env.NODE_ENV === 'development' &&
+      Array.isArray(slides) &&
+      slides.length > 0 &&
+      next.length === 0
+    ) {
+      devWarnMobileHome('season-slides-all-invalid', { incoming: slides.length })
+    }
+    return next
+  }, [slides])
+
+  const n = safeSlides.length
   const [index, setIndex] = useState(0)
   const resumeAtRef = useRef(0)
   const touchStartX = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (index >= n && n > 0) setIndex(0)
+  }, [index, n])
 
   if (n === 0) return null
 
@@ -151,11 +180,30 @@ export default function HomeMobileHubSeasonCarousel({ slides, hideHeading = fals
 
   useEffect(() => {
     if (n <= 1) return
-    const t = window.setInterval(() => {
-      if (Date.now() < resumeAtRef.current) return
-      setIndex((i) => (i + 1) % n)
-    }, AUTO_MS)
-    return () => window.clearInterval(t)
+    if (typeof window === 'undefined') return
+    let id: number | undefined
+    try {
+      id = window.setInterval(() => {
+        try {
+          if (Date.now() < resumeAtRef.current) return
+          setIndex((i) => (i + 1) % n)
+        } catch (e) {
+          devWarnMobileHome('carousel-tick', e)
+        }
+      }, AUTO_MS)
+    } catch (e) {
+      devWarnMobileHome('carousel-interval-init', e)
+      return undefined
+    }
+    return () => {
+      if (id != null) {
+        try {
+          window.clearInterval(id)
+        } catch {
+          /* ignore */
+        }
+      }
+    }
   }, [n])
 
   const go = useCallback(
@@ -205,7 +253,7 @@ export default function HomeMobileHubSeasonCarousel({ slides, hideHeading = fals
             transform: `translateX(-${(100 / n) * index}%)`,
           }}
         >
-          {slides.map((slide) => (
+          {safeSlides.map((slide) => (
             <SeasonSlideCard key={slide.id} slide={slide} slideWidthPct={100 / n} />
           ))}
         </div>
@@ -232,9 +280,9 @@ export default function HomeMobileHubSeasonCarousel({ slides, hideHeading = fals
             </button>
           </div>
           <div className="flex items-center justify-center gap-2" role="tablist" aria-label="시즌 추천 슬라이드">
-            {slides.map((_, i) => (
+            {safeSlides.map((dotSlide, i) => (
               <button
-                key={`season-dot-${i}-${slides[i]!.id}`}
+                key={`season-dot-${i}-${dotSlide.id}`}
                 type="button"
                 role="tab"
                 aria-selected={i === index}
