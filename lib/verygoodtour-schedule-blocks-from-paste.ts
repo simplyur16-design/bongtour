@@ -145,7 +145,8 @@ function parseOneDaySegment(day: number, segmentLinesRaw: string[]): {
     day,
     title: title || `Day ${day}`,
     description: bodyStr,
-    imageKeyword: (title || bodyStr || `Day ${day} travel`).slice(0, 120),
+    /** 결정론 단계에서는 비워 두고, LLM·후처리(`polishVerygoodRegisterScheduleImageKeywords`)가 채운다. */
+    imageKeyword: '',
     dateText,
     hotelText,
     ...mealParsed,

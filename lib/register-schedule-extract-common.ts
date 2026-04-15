@@ -244,11 +244,20 @@ export function registerPromptWithScheduleEmptyForConfirm(registerPrompt: string
   )
 }
 
-function buildScheduleOnlyPrompt(expectedDays: number, pastedBody: string, hintJson: string | null): string {
+function buildScheduleOnlyPrompt(
+  expectedDays: number,
+  pastedBody: string,
+  hintJson: string | null,
+  addendum: string | null
+): string {
   const body = buildScheduleExtractInputForLlm(pastedBody)
   const hint =
     hintJson && hintJson.trim()
       ? `참고(부분·잘림 가능, 본문과 충돌 시 본문 우선):\n${hintJson.slice(0, 6000)}\n`
+      : ''
+  const add =
+    addendum && addendum.trim()
+      ? `# 일정 선추출 보강(공급사 전용 지시가 있을 때만)\n${addendum.trim()}\n\n`
       : ''
   return (
     `# Role: 여행 상품 붙여넣기 — schedule[] 전용 (공급사 무관)\n` +
@@ -265,18 +274,28 @@ function buildScheduleOnlyPrompt(expectedDays: number, pastedBody: string, hintJ
     `- description: 해당 일차의 이동·관광·식사·숙박 흐름을 **짧은 문어체**로 요약. 원문 장문·HTML을 **통째로 복사**하지 말 것.\n` +
     `- 방문지가 많으면 **이름 위주로 묶어** 쓰고, 식사·호텔 디테일은 가능하면 meal·hotel 필드에 둔다.\n\n` +
     hint +
+    add +
     `# 붙여넣기 본문\n` +
     body
   )
 }
 
-function buildScheduleOnlyPromptForSingleDay(day: number, dayBlob: string, hintJson: string | null): string {
+function buildScheduleOnlyPromptForSingleDay(
+  day: number,
+  dayBlob: string,
+  hintJson: string | null,
+  addendum: string | null
+): string {
   const raw = dayBlob.trim()
   const body =
     raw.length <= SCHEDULE_CHUNK_SINGLE_DAY_MAX_CHARS ? raw : raw.slice(0, SCHEDULE_CHUNK_SINGLE_DAY_MAX_CHARS)
   const hint =
     hintJson && hintJson.trim()
       ? `참고(부분·잘림 가능, 본문과 충돌 시 본문 우선):\n${hintJson.slice(0, 2000)}\n`
+      : ''
+  const add =
+    addendum && addendum.trim()
+      ? `# 일정 선추출 보강(공급사 전용 지시가 있을 때만)\n${addendum.trim()}\n\n`
       : ''
   return (
     `# Role: 여행 상품 붙여넣기 — schedule[] 전용 (공급사 무관)\n` +
@@ -291,6 +310,7 @@ function buildScheduleOnlyPromptForSingleDay(day: number, dayBlob: string, hintJ
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
     `- description: 해당 일차를 **짧게** 요약. 원문 복붙·장황한 나열 금지.\n\n` +
     hint +
+    add +
     `# 붙여넣기 본문 (제${day}일차)\n` +
     body
   )
@@ -306,10 +326,11 @@ async function runScheduleExtractLlmMonolithic(
   model: ReturnType<ReturnType<typeof getGenAI>['getGenerativeModel']>,
   pastedBody: string,
   expectedDays: number,
-  opts: { logLabel: string; hintScheduleJson?: string | null }
+  opts: { logLabel: string; hintScheduleJson?: string | null; scheduleExtractAddendum?: string | null }
 ): Promise<ScheduleExtractLlmResult> {
   const hint = opts.hintScheduleJson ?? null
-  const prompt = buildScheduleOnlyPrompt(expectedDays, pastedBody, hint)
+  const addendum = opts.scheduleExtractAddendum ?? null
+  const prompt = buildScheduleOnlyPrompt(expectedDays, pastedBody, hint, addendum)
   const result = await model.generateContent(
     {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -343,9 +364,10 @@ async function runScheduleExtractLlmChunkedByDay(
   pastedBody: string,
   expectedDays: number,
   dayMap: Map<number, string>,
-  opts: { logLabel: string; hintScheduleJson?: string | null }
+  opts: { logLabel: string; hintScheduleJson?: string | null; scheduleExtractAddendum?: string | null }
 ): Promise<ScheduleExtractLlmResult> {
   const hint = opts.hintScheduleJson ?? null
+  const addendum = opts.scheduleExtractAddendum ?? null
   const allRows: CommonScheduleDayRow[] = []
   let worstFinish: string | null = null
   const days = Array.from({ length: expectedDays }, (_, i) => i + 1)
@@ -354,7 +376,7 @@ async function runScheduleExtractLlmChunkedByDay(
     const batchResults = await Promise.all(
       batch.map(async (day) => {
         const blob = (dayMap.get(day) ?? '').trim()
-        const prompt = buildScheduleOnlyPromptForSingleDay(day, blob, hint)
+        const prompt = buildScheduleOnlyPromptForSingleDay(day, blob, hint, addendum)
         const result = await model.generateContent(
           {
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -404,7 +426,7 @@ export async function runScheduleExtractLlm(
   model: ReturnType<ReturnType<typeof getGenAI>['getGenerativeModel']>,
   pastedBody: string,
   expectedDays: number,
-  opts: { logLabel: string; hintScheduleJson?: string | null }
+  opts: { logLabel: string; hintScheduleJson?: string | null; scheduleExtractAddendum?: string | null }
 ): Promise<ScheduleExtractLlmResult> {
   if (expectedDays >= SCHEDULE_CHUNK_DAY_THRESHOLD) {
     const dayMap = splitPastedBodyByDayHeaders(pastedBody)

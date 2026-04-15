@@ -7,7 +7,11 @@ import {
 import { prisma } from '@/lib/prisma'
 import { deriveProductLocationKeyFieldsForPrisma } from '@/lib/product-location-key-match'
 import { requireAdmin } from '@/lib/require-admin'
-import { stripRegisterInternalArtifacts, type RegisterParsed } from '@/lib/register-llm-schema-verygoodtour'
+import {
+  stripRegisterInternalArtifacts,
+  type RegisterParsed,
+  type RegisterScheduleDay,
+} from '@/lib/register-llm-schema-verygoodtour'
 import { parseForRegisterVerygoodtour, VERYGOOD_PRICE_SLOT_SSOT_NOTE } from '@/lib/register-parse-verygoodtour'
 import { finalizeVerygoodRegisterParsedPricing } from '@/lib/register-verygoodtour-price'
 import { testGeminiConnection } from '@/lib/gemini-client'
@@ -88,6 +92,7 @@ import {
   mergeVerygoodGeminiScheduleWithDeterministicBlocks,
 } from '@/lib/verygoodtour-schedule-blocks-from-paste'
 import { polishVerygoodRegisterScheduleDescriptions } from '@/lib/verygoodtour-schedule-description-polish'
+import { polishVerygoodRegisterScheduleImageKeywords } from '@/lib/verygoodtour-schedule-image-keyword'
 /** 참좋은여행 등록 POST 전용 */
 let currentLogPrefix = '[parse-and-register-verygoodtour]'
 const isDev = process.env.NODE_ENV === 'development'
@@ -708,11 +713,13 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
         parsed = { ...parsed, schedule: det.rows }
       }
     }
+    let detRowsForImageKeyword: RegisterScheduleDay[] = []
     /** 확정 저장 직전: LLM 일정이 이미 있으면 N일차 결정론 블록과 병합(동일 규칙을 parseForRegisterLlmVerygoodtour 본류와 맞춤) */
     if (mode === 'confirm' && text.trim() && (parsed.schedule?.length ?? 0) > 0) {
       const { clipped } = clipVerygoodMarketingTailFromPaste(text)
       const det = extractVerygoodScheduleRowsFromPasteBody(clipped)
       if (det.rows.length > 0) {
+        detRowsForImageKeyword = det.rows
         parsed = {
           ...parsed,
           schedule: mergeVerygoodGeminiScheduleWithDeterministicBlocks(parsed.schedule ?? [], det.rows),
@@ -721,9 +728,10 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     }
     parsed = augmentVerygoodtourScheduleExpressionParsed(parsed)
     parsed = stripBodyDerivedMeetingFromRegisterParsed(parsed)
+    const scheduleDescPolished = polishVerygoodRegisterScheduleDescriptions(parsed.schedule ?? [])
     parsed = {
       ...parsed,
-      schedule: polishVerygoodRegisterScheduleDescriptions(parsed.schedule ?? []),
+      schedule: polishVerygoodRegisterScheduleImageKeywords(scheduleDescPolished, detRowsForImageKeyword),
     }
 
     const tripAnchors = extractVerygoodTripAnchorDatesFromPasteBlob(
