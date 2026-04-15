@@ -22,12 +22,15 @@ function hubCardImageSrc(key: HomeHubCardImageKey, props: HomeHubFourProps): str
 
 const CARD_ROUND = 'rounded-2xl'
 
-/** PC 메인 4카드 공통 외곽 높이 — 텍스트 길이와 무관하게 동일(`flex-col`은 링크에 유지) */
-const HUB_FOUR_CARD_LG_HEIGHT = 'lg:h-[32rem] lg:min-h-[32rem] lg:max-h-[32rem] lg:overflow-hidden'
+/** PC 메인 4카드 공통 외곽 높이 — 동일 높이 유지, 내부는 이미지 위주 분배 */
+const HUB_FOUR_CARD_LG_HEIGHT = 'lg:h-[35rem] lg:min-h-[35rem] lg:max-h-[35rem] lg:overflow-hidden'
 
-/** 이미지 밴드: 뷰포트별 비율 유지 + `lg`에서 모든 카드 동일 픽셀 높이 */
+/**
+ * 이미지 밴드: `<lg` 는 기존 비율 유지.
+ * `lg` PC 메인: 카드 높이 대비 ~64% 시각 비중(22.5rem / 35rem) — 본문이 반을 먹지 않게.
+ */
 const IMAGE_AREA =
-  'relative block w-full shrink-0 overflow-hidden aspect-[10/13] min-h-[200px] sm:min-h-[220px] md:aspect-[16/10] md:min-h-[240px] lg:aspect-auto lg:h-[240px] lg:min-h-[240px] lg:max-h-[240px]'
+  'relative block w-full shrink-0 overflow-hidden aspect-[10/13] min-h-[200px] sm:min-h-[220px] md:aspect-[16/10] md:min-h-[240px] lg:aspect-auto lg:h-[22.5rem] lg:min-h-[22.5rem] lg:max-h-[22.5rem]'
 
 /**
  * 카테고리 힌트만 살짝 — 기본은 거의 보이지 않게, hover 시에만 살짝 강조.
@@ -109,33 +112,37 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
                       aria-hidden
                     />
                   </div>
-                  <div className="flex min-h-0 flex-1 flex-col gap-2 px-3 py-3 sm:px-4 sm:py-4 lg:min-h-0 lg:flex-1">
-                    <div className="shrink-0 lg:flex lg:h-[4.25rem] lg:flex-col lg:justify-start lg:gap-1">
-                      <p className="line-clamp-1 text-base font-bold leading-tight text-bt-title sm:text-lg">
-                        {card.categoryLabel}
-                      </p>
-                      {card.headline?.trim() ? (
-                        <p className="line-clamp-1 text-sm font-semibold text-bt-body">{card.headline}</p>
-                      ) : (
-                        <span className="hidden lg:block lg:min-h-[1.375rem]" aria-hidden />
-                      )}
-                    </div>
-                    {card.description?.trim() ? (
-                      <div className="shrink-0 lg:h-[2.875rem] lg:overflow-hidden">
-                        <p className="line-clamp-2 text-xs leading-relaxed text-bt-muted">{card.description}</p>
+                  <div className="flex min-h-0 flex-1 flex-col gap-2 px-3 py-3 sm:px-4 sm:py-4 lg:min-h-0 lg:flex-1 lg:justify-between lg:gap-1.5 lg:px-3 lg:py-2">
+                    <div className="min-h-0 shrink lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:justify-start lg:gap-1.5">
+                      <div className="shrink-0 lg:flex lg:h-[3rem] lg:flex-col lg:justify-start lg:gap-0.5">
+                        <p className="line-clamp-1 text-base font-bold leading-tight text-bt-title sm:text-lg">
+                          {card.categoryLabel}
+                        </p>
+                        {card.headline?.trim() ? (
+                          <p className="line-clamp-1 text-sm font-semibold leading-snug text-bt-body">{card.headline}</p>
+                        ) : (
+                          <span className="hidden lg:block lg:min-h-[1.125rem]" aria-hidden />
+                        )}
                       </div>
-                    ) : null}
-                    <div className="mt-1 flex shrink-0 flex-wrap content-start gap-1 lg:min-h-[2.75rem]">
-                      {card.hints.map((h) => (
-                        <span
-                          key={h}
-                          className="rounded-full border border-bt-border-soft bg-bt-surface-soft px-2 py-0.5 text-[10px] font-medium text-bt-meta"
-                        >
-                          {h}
-                        </span>
-                      ))}
+                      {card.description?.trim() ? (
+                        <div className="shrink-0 lg:h-[2.375rem] lg:overflow-hidden">
+                          <p className="line-clamp-2 text-xs leading-relaxed text-bt-muted lg:text-[11px] lg:leading-snug">
+                            {card.description}
+                          </p>
+                        </div>
+                      ) : null}
+                      <div className="mt-0.5 flex shrink-0 flex-wrap content-start gap-1 lg:mt-0 lg:min-h-0 lg:max-h-[2.125rem] lg:overflow-hidden">
+                        {card.hints.map((h) => (
+                          <span
+                            key={h}
+                            className="rounded-full border border-bt-border-soft bg-bt-surface-soft px-2 py-0.5 text-[10px] font-medium text-bt-meta"
+                          >
+                            {h}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <span className="mt-auto flex shrink-0 items-center gap-1 pt-1 text-xs font-semibold text-bt-link sm:text-sm">
+                    <span className="mt-auto flex shrink-0 items-center gap-1 pt-1 text-xs font-semibold text-bt-link sm:text-sm lg:mt-0 lg:pt-0.5">
                       {card.ctaLabel}
                       <ArrowUpRight className="h-4 w-4" aria-hidden />
                     </span>
