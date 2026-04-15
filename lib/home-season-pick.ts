@@ -2,82 +2,11 @@ import { toSafePublicUrlOrPath } from '@/lib/cms-source-attribution'
 import { buildPublicUrlForObjectKey, isObjectStorageConfigured } from '@/lib/object-storage'
 import { prisma } from '@/lib/prisma'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
+import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
+import { excerptBody } from '@/lib/home-season-pick-shared'
 
-/** 모바일 홈·해외 상품 허브 공통 — `MonthlyCurationContent` 발행 행 → 순환 카드 */
-export type HomeSeasonPickDTO = {
-  id: string
-  title: string
-  excerpt: string
-  /** 원문 본문 — 더보기 펼침용 */
-  bodyFull: string
-  imageUrl: string | null
-  ctaHref: string
-  ctaLabel: string
-  monthKey: string | null
-  relatedCountryCode: string | null
-}
-
-function excerptBody(body: string, max: number): string {
-  const t = body.replace(/\s+/g, ' ').trim()
-  if (t.length <= max) return t
-  return `${t.slice(0, max).trimEnd()}…`
-}
-
-const FALLBACK_CTA_HREF = '/travel/overseas'
-const FALLBACK_CTA_LABEL = '자세히 보기'
-
-/**
- * 클라이언트·서버 경계에서 잘못된/부분 객체가 섞여도 슬라이드 렌더가 죽지 않게 정규화한다.
- * (`bodyFull`/`excerpt` 비문자열 시 `.replace` / `.endsWith` 런타임 예외 방지)
- */
-export function normalizeHomeSeasonSlidesForClient(input: unknown): HomeSeasonPickDTO[] {
-  if (!Array.isArray(input)) return []
-  const out: HomeSeasonPickDTO[] = []
-  for (const el of input) {
-    const row = normalizeHomeSeasonPickUnknown(el)
-    if (row) out.push(row)
-  }
-  return out
-}
-
-function normalizeHomeSeasonPickUnknown(raw: unknown): HomeSeasonPickDTO | null {
-  if (!raw || typeof raw !== 'object') return null
-  const r = raw as Record<string, unknown>
-  const id = typeof r.id === 'string' ? r.id.trim() : String(r.id ?? '').trim()
-  if (!id) return null
-
-  const bodyFull = typeof r.bodyFull === 'string' ? r.bodyFull : String(r.bodyFull ?? '')
-  const excerptRaw = typeof r.excerpt === 'string' ? r.excerpt : String(r.excerpt ?? '')
-  const excerptTrim = excerptRaw.replace(/\s+/g, ' ').trim()
-  const excerpt = excerptTrim || excerptBody(bodyFull.trim(), 120)
-
-  let imageUrl: string | null = null
-  if (typeof r.imageUrl === 'string' && r.imageUrl.trim()) imageUrl = r.imageUrl.trim()
-  else if (r.imageUrl === null || r.imageUrl === undefined) imageUrl = null
-
-  let ctaHref = typeof r.ctaHref === 'string' ? r.ctaHref.trim() : String(r.ctaHref ?? '').trim()
-  if (!ctaHref) ctaHref = FALLBACK_CTA_HREF
-
-  const ctaLabel =
-    (typeof r.ctaLabel === 'string' ? r.ctaLabel.trim() : String(r.ctaLabel ?? '').trim()) || FALLBACK_CTA_LABEL
-  const title = typeof r.title === 'string' ? r.title.trim() : String(r.title ?? '').trim()
-
-  const monthKey = typeof r.monthKey === 'string' && r.monthKey.trim() ? r.monthKey.trim() : null
-  const relatedCountryCode =
-    typeof r.relatedCountryCode === 'string' && r.relatedCountryCode.trim() ? r.relatedCountryCode.trim() : null
-
-  return {
-    id,
-    title,
-    excerpt,
-    bodyFull: bodyFull.trim(),
-    imageUrl,
-    ctaHref,
-    ctaLabel,
-    monthKey,
-    relatedCountryCode,
-  }
-}
+/** 타입만 재보냄. `normalizeHomeSeasonSlidesForClient`는 클라이언트에서 `@/lib/home-season-pick-shared`만 import. */
+export type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 
 type MonthlyRow = {
   id: string

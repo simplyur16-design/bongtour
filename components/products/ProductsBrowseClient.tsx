@@ -17,7 +17,7 @@ import ProductFilterMobileDrawer from '@/components/products/filter/ProductFilte
 import ProductFilterChips, { buildFilterChips } from '@/components/products/ProductFilterChips'
 import ProductSortBar from '@/components/products/ProductSortBar'
 import ProductResultsList, { type ResultItem } from '@/components/products/ProductResultsList'
-import type { HomeSeasonPickDTO } from '@/lib/home-season-pick'
+import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 
 type ApiOk = {

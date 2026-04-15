@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import type { HomeSeasonPickDTO } from '@/lib/home-season-pick'
+import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 import MobileHomeClientErrorBoundary from '@/app/components/home/MobileHomeClientErrorBoundary'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'

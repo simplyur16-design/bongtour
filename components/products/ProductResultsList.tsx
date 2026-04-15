@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Fragment, useMemo } from 'react'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 import OverseasDestinationBriefingMid from '@/components/products/OverseasDestinationBriefingMid'
-import type { HomeSeasonPickDTO } from '@/lib/home-season-pick'
+import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import {
   OVERSEAS_DISPLAY_BUCKET_LABEL,
