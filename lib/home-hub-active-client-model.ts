@@ -1,5 +1,5 @@
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
-import type { HomeHubActiveFile } from '@/lib/home-hub-resolve-images'
+import type { HomeHubActiveFile, MobileMainServiceTileKey } from '@/lib/home-hub-resolve-images'
 
 /** 클라이언트·API 응답용 활성 JSON 스냅샷 (`home-hub-resolve-images` 의존 없음) */
 export type HomeHubActiveClientModel = {
@@ -12,6 +12,8 @@ export type HomeHubActiveClientModel = {
   imageSourceModes?: Partial<Record<HomeHubCardImageKey, 'manual' | 'product_pool'>>
   /** 국외연수 `/training` 통역 블록 등 두 번째 이미지 URL */
   trainingPageSecondaryImage?: string
+  /** 모바일 홈 주요 서비스 4카드 배경 */
+  mobileMainServiceTiles?: Partial<Record<MobileMainServiceTileKey, string>>
 }
 
 export function homeHubActiveFileToClientModel(cfg: HomeHubActiveFile): HomeHubActiveClientModel {
@@ -23,5 +25,6 @@ export function homeHubActiveFileToClientModel(cfg: HomeHubActiveFile): HomeHubA
     images: cfg.images,
     imageSourceModes: cfg.imageSourceModes,
     trainingPageSecondaryImage: cfg.trainingPageSecondaryImage,
+    mobileMainServiceTiles: cfg.mobileMainServiceTiles,
   }
 }

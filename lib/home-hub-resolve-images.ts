@@ -22,6 +22,9 @@ const CONFIG_REL = ['public', 'data', 'home-hub-active.json'] as const
 
 export type HomeHubActiveSeasonUi = 'default' | 'spring' | 'summer' | 'autumn' | 'winter'
 
+/** 모바일 홈 주요 서비스 4타일 배경 — `home-hub-active.json` 의 `mobileMainServiceTiles` 키와 동일 */
+export type MobileMainServiceTileKey = 'overseas' | 'airHotel' | 'privateTrip' | 'training'
+
 export type HomeHubActiveFile = {
   /**
    * 메인·관리자 요약에서 쓰는 **운영 시즌** (UI 설계 기준).
@@ -45,6 +48,11 @@ export type HomeHubActiveFile = {
    * 비어 있으면 페이지는 메인과 동일한 `images.training`(하이브리드 해석)만 써서 히어로·통역 슬롯을 동일 URL로 채움.
    */
   trainingPageSecondaryImage?: string
+  /**
+   * 모바일 홈 `HomeMobileHub` 주요 서비스 4카드 배경 — `/images/...` 또는 `https://...`.
+   * 키 누락·무효 시 `lib/home-mobile-hub-tile-images.ts` 의 `public/images/home-hub/mobile/*` 기본 경로를 쓴다.
+   */
+  mobileMainServiceTiles?: Partial<Record<MobileMainServiceTileKey, string>>
 }
 
 const HUB_CARD_KEYS: HomeHubCardImageKey[] = ['overseas', 'training', 'domestic', 'bus']

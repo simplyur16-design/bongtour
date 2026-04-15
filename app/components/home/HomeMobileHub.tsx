@@ -6,38 +6,36 @@ import MobileHomeClientErrorBoundary from '@/app/components/home/MobileHomeClien
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
 import { MAIN_HOME_FIRST_HUB_DESCRIPTION, MAIN_HOME_FIRST_HUB_TITLE } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import { resolveMobileMainTileBgSrc, type MobileMainTileBgKey } from '@/lib/home-mobile-hub-tile-images'
 import PartnerOrganizationsSection from '@/app/components/home/PartnerOrganizationsSection'
 
 const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
-/**
- * 모바일 주요 서비스 카드 배경 — 레포에 실제 포함된 `public` 자산만 사용.
- * (`/images/home-hub/base/*.jpg` 는 README만 있고 파일이 없어 404 → 배경 미노출이었음.)
- */
-const MAIN_TILES = [
+/** 카피·링크·하이브리드 매핑 키 — 실제 `bgSrc`는 렌더 시 `resolveMobileMainTileBgSrc`로 확정 */
+const MAIN_TILES_SPEC = [
   {
     href: '/travel/overseas',
     title: MAIN_HOME_FIRST_HUB_TITLE,
     desc: MAIN_HOME_FIRST_HUB_DESCRIPTION,
-    bgSrc: '/images/org-logos/korea-tourism-org.jpg',
+    bgKey: 'overseas' as const satisfies MobileMainTileBgKey,
   },
   {
     href: '/travel/air-hotel',
     title: '항공+호텔',
     desc: '자유여행 · 에어텔',
-    bgSrc: '/images/org-logos/yongin.jpg',
+    bgKey: 'airHotel' as const satisfies MobileMainTileBgKey,
   },
   {
     href: '/travel/overseas/private-trip',
     title: '우리여행',
     desc: '가족 · 소규모 맞춤여행',
-    bgSrc: '/images/private-trip-hero/rjbl2142-0c881383-a.webp',
+    bgKey: 'privateTrip' as const satisfies MobileMainTileBgKey,
   },
   {
     href: '/training',
     title: '국외연수',
     desc: '학교 · 기업 · 공공기관',
-    bgSrc: '/images/org-logos/gyeonggi-province-office.jpg',
+    bgKey: 'training' as const satisfies MobileMainTileBgKey,
   },
 ] as const
 
@@ -69,6 +67,11 @@ type Props = { seasonSlides: HomeSeasonPickDTO[] }
  * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 주요 서비스 / 시즌 추천(이미지·글) / 실무 요청 / 파트너.
  */
 export default function HomeMobileHub({ seasonSlides }: Props) {
+  const mainTiles = MAIN_TILES_SPEC.map((t) => ({
+    ...t,
+    bgSrc: resolveMobileMainTileBgSrc(t.bgKey),
+  }))
+
   return (
     <div className={`space-y-7 pb-8 pt-3 ${SITE_CONTENT_CLASS}`}>
       <div className="space-y-2">
@@ -86,16 +89,17 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
       <section aria-label="주요 서비스">
         <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>주요 서비스</h2>
         <ul className="grid grid-cols-2 gap-3.5" role="list">
-          {MAIN_TILES.map((t) => (
+          {mainTiles.map((t) => (
             <li key={t.href} className="min-w-0">
               <Link href={t.href} className={TILE_CARD_CLASS}>
-                <span className={TILE_BG_IMAGE_WRAP} aria-hidden>
+                <span className={`${TILE_BG_IMAGE_WRAP} block size-full min-h-[inherit]`} aria-hidden>
                   <Image
                     src={t.bgSrc}
                     alt=""
                     fill
                     sizes="(max-width: 1024px) 45vw, 280px"
                     className="object-cover opacity-[0.58] saturate-[0.86] contrast-[0.98]"
+                    unoptimized={/^https?:\/\//i.test(t.bgSrc)}
                   />
                 </span>
                 <span aria-hidden className={TILE_BG_SCRIM} />
