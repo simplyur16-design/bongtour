@@ -3,7 +3,10 @@
  * LLM 일정 누락·보강 시 본문 N일차 블록으로 보조한다.
  */
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
-import { pickMergedVerygoodDayDescription } from '@/lib/verygoodtour-schedule-description-polish'
+import {
+  pickMergedVerygoodDayDescription,
+  verygoodGeminiScheduleDescriptionWinsMerge,
+} from '@/lib/verygoodtour-schedule-description-polish'
 import {
   normalizeVerygoodPasteForScheduleExtract,
   sliceVerygoodItineraryBodyForDayMarkers,
@@ -258,11 +261,14 @@ export function mergeVerygoodGeminiScheduleWithDeterministicBlocks(
     if (!d) return s
     const day = Number(s.day) || 0
     const isLastDay = maxDay >= 1 && day === maxDay
+    const geminiDesc = typeof s.description === 'string' ? s.description : ''
     return {
       ...s,
       dateText: str(d.dateText) ? d.dateText : s.dateText,
       title: str(s.title) ? s.title : d.title,
-      description: pickMergedVerygoodDayDescription(s, d, { isLastDay }),
+      description: verygoodGeminiScheduleDescriptionWinsMerge(geminiDesc)
+        ? s.description
+        : pickMergedVerygoodDayDescription(s, d, { isLastDay }),
       imageKeyword: str(s.imageKeyword) ? s.imageKeyword : d.imageKeyword,
       hotelText: pick(s.hotelText, d.hotelText),
       breakfastText: pick(s.breakfastText, d.breakfastText),

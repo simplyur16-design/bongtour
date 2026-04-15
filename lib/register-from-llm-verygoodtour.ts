@@ -104,6 +104,10 @@ import {
   mergeVerygoodGeminiScheduleWithDeterministicBlocks,
 } from '@/lib/verygoodtour-schedule-blocks-from-paste'
 import { polishVerygoodRegisterScheduleDescriptions } from '@/lib/verygoodtour-schedule-description-polish'
+import {
+  traceVerygoodDetScheduleDesc,
+  traceVerygoodScheduleDesc,
+} from '@/lib/verygoodtour-schedule-description-trace'
 import { polishVerygoodRegisterScheduleImageKeywords } from '@/lib/verygoodtour-schedule-image-keyword'
 import { registerScheduleToDayInputs } from '@/lib/upsert-itinerary-days-verygoodtour'
 
@@ -1687,15 +1691,28 @@ ${text.slice(0, 16000)}`
     })
     .filter((s) => s.day > 0)
 
+  traceVerygoodScheduleDesc('register-llm-A-scheduleBase-from-json', scheduleBase, {
+    source: 'register-from-llm-verygoodtour',
+    forPreview,
+  })
+
   const detExtract =
     blockB && blockB !== EMPTY_PASTE_PLACEHOLDER ? extractVerygoodScheduleRowsFromPasteBody(blockB) : null
   const detRows = detExtract?.rows ?? []
+  traceVerygoodDetScheduleDesc('register-llm-A2-det-rows-from-paste', detRows)
 
   let schedule: RegisterScheduleDay[] = scheduleBase.map(supplementScheduleDayFromDescription)
+  traceVerygoodScheduleDesc('register-llm-B-after-supplementScheduleDayFromDescription', schedule, {
+    note: '식사/호텔 필드만 보강·description 원문 변경 없음',
+  })
   if (schedule.length > 0 && detRows.length > 0) {
+    traceVerygoodScheduleDesc('register-llm-C-pre-merge-gemini', schedule)
     schedule = mergeVerygoodGeminiScheduleWithDeterministicBlocks(schedule, detRows).map(
       supplementScheduleDayFromDescription
     )
+    traceVerygoodScheduleDesc('register-llm-C-post-merge-det-supplement', schedule, {
+      note: 'mergeVerygoodGeminiScheduleWithDeterministicBlocks + supplement',
+    })
   }
   if (schedule.length === 0 && blockB && blockB !== EMPTY_PASTE_PLACEHOLDER && detRows.length > 0) {
     const scheduleFromDet = detRows.map(supplementScheduleDayFromDescription)
@@ -1709,7 +1726,9 @@ ${text.slice(0, 16000)}`
   }
 
   schedule = polishVerygoodRegisterScheduleDescriptions(schedule)
+  traceVerygoodScheduleDesc('register-llm-D-after-polishVerygoodRegisterScheduleDescriptions', schedule)
   schedule = polishVerygoodRegisterScheduleImageKeywords(schedule, detRows)
+  traceVerygoodScheduleDesc('register-llm-E-after-polishVerygoodRegisterScheduleImageKeywords', schedule)
 
   const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
   const supplierListingTitleRaw = extractVerygoodtourVerbatimListingTitleRawFromPasteLocal(pastedBlobForTitle)

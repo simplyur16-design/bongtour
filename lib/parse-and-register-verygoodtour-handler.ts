@@ -92,6 +92,13 @@ import {
   mergeVerygoodGeminiScheduleWithDeterministicBlocks,
 } from '@/lib/verygoodtour-schedule-blocks-from-paste'
 import { polishVerygoodRegisterScheduleDescriptions } from '@/lib/verygoodtour-schedule-description-polish'
+import {
+  traceVerygoodDetScheduleDesc,
+  traceVerygoodItineraryDayDbReadBack,
+  traceVerygoodItineraryDrafts,
+  traceVerygoodItineraryLegacyTable,
+  traceVerygoodScheduleDesc,
+} from '@/lib/verygoodtour-schedule-description-trace'
 import { polishVerygoodRegisterScheduleImageKeywords } from '@/lib/verygoodtour-schedule-image-keyword'
 /** 참좋은여행 등록 POST 전용 */
 let currentLogPrefix = '[parse-and-register-verygoodtour]'
@@ -609,9 +616,18 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       parsed = run.parsed
       lastPipelineAnalysisId = run.analysisId
       llmRanThisRequest = true
+      traceVerygoodScheduleDesc('handler-1-llm-parse-after', parsed.schedule, {
+        route: 'parse-and-register-verygoodtour',
+        llmRanThisRequest: true,
+      })
     } else if (hasParsed) {
       parsed = stripRegisterInternalArtifacts(body.parsed as RegisterParsed)
       timing.mark('after-parseFn-reused')
+      traceVerygoodScheduleDesc('handler-1-parsed-reused-incoming', parsed.schedule, {
+        route: 'parse-and-register-verygoodtour',
+        llmRanThisRequest: false,
+        hasParsed: true,
+      })
     }
 
     if (!parsed) {
@@ -720,19 +736,28 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       const det = extractVerygoodScheduleRowsFromPasteBody(clipped)
       if (det.rows.length > 0) {
         detRowsForImageKeyword = det.rows
+        traceVerygoodScheduleDesc('handler-2-pre-merge-gemini-schedule', parsed.schedule, { mode: 'confirm' })
+        traceVerygoodDetScheduleDesc('handler-2-pre-merge-det-poi-summary', det.rows)
         parsed = {
           ...parsed,
           schedule: mergeVerygoodGeminiScheduleWithDeterministicBlocks(parsed.schedule ?? [], det.rows),
         }
+        traceVerygoodScheduleDesc('handler-2-post-merge-pickMerged', parsed.schedule, {
+          note: 'mergeVerygoodGeminiScheduleWithDeterministicBlocks: gemini description kept when winsMerge; else pickMergedVerygoodDayDescription',
+        })
       }
     }
     parsed = augmentVerygoodtourScheduleExpressionParsed(parsed)
+    traceVerygoodScheduleDesc('handler-3-post-augment-expression', parsed.schedule)
     parsed = stripBodyDerivedMeetingFromRegisterParsed(parsed)
+    traceVerygoodScheduleDesc('handler-3b-post-strip-body-derived-meeting', parsed.schedule)
     const scheduleDescPolished = polishVerygoodRegisterScheduleDescriptions(parsed.schedule ?? [])
+    traceVerygoodScheduleDesc('handler-4-post-polish-description', scheduleDescPolished)
     parsed = {
       ...parsed,
       schedule: polishVerygoodRegisterScheduleImageKeywords(scheduleDescPolished, detRowsForImageKeyword),
     }
+    traceVerygoodScheduleDesc('handler-4-post-polish-imageKeyword-only', parsed.schedule)
 
     const tripAnchors = extractVerygoodTripAnchorDatesFromPasteBlob(
       text,
@@ -769,6 +794,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
 
     let itineraryDayDrafts = registerScheduleToDayInputs(schedule ?? [])
     itineraryDayDrafts = finalizeVerygoodtourItineraryDayDraftsFromSchedule(itineraryDayDrafts, schedule ?? [])
+    traceVerygoodItineraryDrafts('handler-5-pre-upsert-itineraryDay-summaryTextRaw', itineraryDayDrafts)
 
     const geminiPm = parsePricePromotionFromGeminiJson(
       (parsed as { pricePromotion?: unknown }).pricePromotion
@@ -1447,10 +1473,12 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
           description: [s.title, s.description].filter(Boolean).join('\n\n') || String(s.day),
         })),
       })
+      await traceVerygoodItineraryLegacyTable(prisma, productId, 'handler-6-after-save-itinerary-legacy-readback')
     }
 
     if (itineraryDayDrafts.length > 0) {
       await upsertItineraryDays(prisma, productId, itineraryDayDrafts)
+      await traceVerygoodItineraryDayDbReadBack(prisma, productId, 'handler-6-after-save-itineraryDay-readback')
     }
     timing.mark('after-itinerary-save')
 

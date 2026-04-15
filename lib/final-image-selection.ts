@@ -14,6 +14,13 @@ export type ScheduleImageLike = {
 const POOR_COVER_DAY_TEXT_RE =
   /인천|김포|공항|\bICN\b|\bGMP\b|출발|도착|이동|기내|미팅|탑승|송영|공항철도|체크인|환승|픽업|셔틀|탑승장|게이트|수속/i
 
+/** 상품 대표 커버·히어로 SSOT: 본 관광·랜드마크 가산, 공항·첫·막일 감산 */
+const COVER_LANDMARK_HINT_RE =
+  /피오르드|fjord|geiranger|nyhavn|sigiriya|stupa|ruwanwelisaya|temple|palace|castle|museum|fortress|monument|국립|세계유산|랜드마크|harbor|harbour|heritage|unesco|waterfall|canyon|glacier|fjäll|square|plaza|old\s*town|wieliczka/i
+
+const COVER_STRONG_AIRPORT_RE =
+  /인천|김포|\bICN\b|\bGMP\b|\bCMB\b|bandaranaike|international\s+airport|airport\s+terminal|출국장|입국장|탑승동|boarding\s*gate|departure\s*hall/i
+
 function haystackForCoverDay(day: ScheduleImageLike): string {
   return [day.title, day.description, day.imageKeyword, day.imageDisplayName]
     .map((x) => (typeof x === 'string' ? x : ''))
@@ -27,6 +34,45 @@ export function scheduleRowIsPoorRepresentativeCover(day: ScheduleImageLike): bo
   const t = haystackForCoverDay(day)
   if (!t) return false
   return POOR_COVER_DAY_TEXT_RE.test(t)
+}
+
+/**
+ * 상품 대표 이미지(커버) 후보 일차 스코어 — 높을수록 우선.
+ * 1·막일·공항 동선은 낮추고, 중간 일정·랜드마크 힌트는 올린다.
+ */
+export function scoreScheduleDayForProductCover(day: ScheduleImageLike, maxDay: number): number {
+  const dayNum = Number(day.day) || 0
+  const hay = haystackForCoverDay(day)
+  let s = 0
+  if (hay && !scheduleRowIsPoorRepresentativeCover(day)) s += 72
+  if (COVER_LANDMARK_HINT_RE.test(hay)) s += 58
+  if (COVER_STRONG_AIRPORT_RE.test(hay)) s -= 125
+  if (maxDay > 1) {
+    if (dayNum === 1) s -= 48
+    if (dayNum === maxDay) s -= 32
+    if (dayNum >= 2 && dayNum < maxDay) s += 52
+  }
+  return s
+}
+
+type ScheduleImageWithUrl = ScheduleImageLike & { imageUrl?: string | null }
+
+/** 일정 슬롯 중 상품 대표 커버로 쓸 한 장 — 첫 일차·공항 위주가 아니라 전체 여행의 상징 일차 */
+export function pickRepresentativeCoverScheduleDay<T extends ScheduleImageWithUrl>(rows: T[]): T | null {
+  const withUrl = rows.filter((r) => {
+    const u = r.imageUrl != null ? String(r.imageUrl).trim() : ''
+    return !!u && !!getFinalScheduleDayImageUrl(r)
+  })
+  if (withUrl.length === 0) return null
+  const maxDay = Math.max(...withUrl.map((r) => Number(r.day) || 0), 0)
+  const scored = withUrl.map((r) => ({ r, score: scoreScheduleDayForProductCover(r, maxDay) }))
+  scored.sort((a, b) => b.score - a.score || (Number(a.r.day) || 0) - (Number(b.r.day) || 0))
+  const top = scored[0]!
+  if (top.score >= -80) return top.r
+  const rescue = [...scored].sort(
+    (a, b) => (Number(b.r.day) || 0) - (Number(a.r.day) || 0) || b.score - a.score
+  )
+  return rescue.find((x) => x.score > -200)?.r ?? top.r
 }
 
 export function getFinalScheduleDayImageUrl(day: ScheduleImageLike | null | undefined): string | null {
@@ -49,12 +95,11 @@ export function getFinalCoverImageUrl(options: {
   const withUrl = ordered.filter((d) => !!getFinalScheduleDayImageUrl(d))
   if (withUrl.length === 0) return null
 
-  const good = withUrl.filter((d) => !scheduleRowIsPoorRepresentativeCover(d))
-  const pick =
-    good[0] ??
-    withUrl.find((d) => (Number(d.day) || 0) >= 2) ??
-    withUrl[0] ??
-    null
+  const enriched = withUrl.map((d) => ({
+    ...d,
+    imageUrl: getFinalScheduleDayImageUrl(d),
+  }))
+  const pick = pickRepresentativeCoverScheduleDay(enriched)
   return pick ? getFinalScheduleDayImageUrl(pick) : null
 }
 
@@ -131,15 +176,18 @@ export function getHomeHubCoverImageUrl(options: {
 
   if (Array.isArray(options.scheduleDays) && options.scheduleDays.length > 0) {
     const ordered = [...options.scheduleDays].sort((a, b) => (Number(a.day) || 0) - (Number(b.day) || 0))
+    const maxDay = Math.max(...ordered.map((d) => Number(d.day) || 0), 0)
     for (const d of ordered) {
       const u = getFinalScheduleDayImageUrl(d)
       if (!u) continue
+      const coverBias = scoreScheduleDayForProductCover(d, maxDay) * 0.22
       scored.push({
         url: u,
-        score: scoreHubCoverUrlCandidate(u, {
-          manualSelected: d.imageManualSelected === true,
-          poorCoverDay: scheduleRowIsPoorRepresentativeCover(d),
-        }),
+        score:
+          scoreHubCoverUrlCandidate(u, {
+            manualSelected: d.imageManualSelected === true,
+            poorCoverDay: scheduleRowIsPoorRepresentativeCover(d),
+          }) + coverBias,
       })
     }
   }

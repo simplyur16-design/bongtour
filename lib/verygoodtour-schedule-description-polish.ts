@@ -255,6 +255,7 @@ function stripVerygoodItineraryDescriptionPasteNoise(text: string): string {
   t = t.replace(/●\s*선택\s+관광\s*●[^\n●]{0,180}/gi, ' ')
   t = t.replace(/●\s*선택관광\s*●\s*[^●\n]*?[_＿]\s*\d{1,4}\s*유로/gi, ' ')
   t = t.replace(/[_＿]\s*\d{1,4}\s*유로/gi, '')
+  t = t.replace(/\(\s*약\s*\d{1,2}\s*(?:시간|분)[^)]*소요\s*\)/g, '')
   t = t.replace(/\(약\s*\d{1,2}\s*(?:시간|분)[^)]*소요\)/g, '')
   t = t.replace(/\(약[^)]*소요\)/g, '')
   t = t.replace(/※\s*현지\s*상황에\s*따른[^\n。.]{0,120}/g, '')
@@ -262,6 +263,15 @@ function stripVerygoodItineraryDescriptionPasteNoise(text: string): string {
   t = t.replace(/호텔\s*투숙\s*및\s*휴식[^\n。.]{0,120}/g, '')
   t = t.replace(/※[^※\n]*유람선[^※\n]*※[^\n]*/g, '')
   t = t.replace(/※\s*유람선[^※]{0,260}/g, '')
+  t = t.replace(/※\s*중식[^\n。.]{0,160}/g, '')
+  t = t.replace(/※\s*중간항공[^\n。.]{0,220}/g, '')
+  t = t.replace(/※\s*현지사정[^\n。.]{0,160}/g, '')
+  t = t.replace(/※\s*오슬로\s*가이드[^\n。.]{0,240}/g, '')
+  t = t.replace(/※\s*내부\s*행사[^\n。.]{0,200}/g, '')
+  t = t.replace(/※\s*노르웨이\s*일정은[^\n。.]{0,260}/g, '')
+  t = t.replace(/※현지\s*도로상황[^\n。.]{0,220}/g, '')
+  t = t.replace(/●\s*[^●\n]{2,140}?(?:\d{1,3}\s*유로\s*)?옵션\s*포함\s*●/gi, ' ')
+  t = t.replace(/\d{1,2}:\d{2}\s*편(?=\s+[가-힣])/g, '')
   t = t.replace(/\b(?:OZ|KE|LJ|TW|BX|SK)\s*\d{3,4}\b/gi, '')
   t = t.replace(/\d{1,2}:\d{2}\s*(?=(?:OZ|KE|LJ|TW|BX|SK)\s*\d)/gi, '')
   t = t.replace(/([가-힣]{2,12})\s+\d{1,2}:\d{2}\s+\1(?=\s|,|$|[.])/gu, '$1')
@@ -284,13 +294,34 @@ function stripVerygoodItineraryDescriptionPasteNoise(text: string): string {
     t = t.replace(/\s+-\s+[A-Z][a-z]{2,26}\b/g, '')
   }
   t = t.replace(/^([가-힣]+)\s+호텔\s*조식\s*후\s*/u, '')
+  t = t.replace(/^선상\s*조식\s*후\s*/u, '')
   t = t.replace(/([가-힣]{2,12})\s*(시내에서)\s*,\s*\1(?=\s|$|[,.])/gu, '$1 $2')
+  t = t.replace(/([가-힣]{2,14})\s*시내,\s*\1\s*,\s*도착/gu, '$1 시내, 도착')
+  t = t.replace(/\bRailway\b/gi, '')
   t = t.replace(/\s*'\s*[^']{1,40}\s*'\s+OR\s+'[^']{1,40}'/gi, '')
   t = t.replace(/■+/g, '')
   t = t.replace(/자유\s*시간\s+,/gu, '자유시간 ')
   t = t.replace(/,\s*$/g, '')
   t = t.replace(/\n+/g, ' ')
+  t = t.replace(/\s+/g, ' ').trim()
+  t = collapseVerygoodDuplicateSummaryRun(t)
   return t.replace(/\s+/g, ' ').trim()
+}
+
+/** 같은 문단이 `., ` 등으로 두 번 붙은 붙여넣기 제거(길이·반복 상한으로만). */
+function collapseVerygoodDuplicateSummaryRun(s: string): string {
+  let t = s.replace(/\s+/g, ' ').trim()
+  for (let k = 0; k < 8; k++) {
+    const n = t.replace(/([\s\S]{55,500}?)(?:\.\s*,\s*|\s*,\s*)\1(?:$|[.。]|,)/u, '$1')
+    if (n === t) break
+    t = n
+  }
+  for (let k = 0; k < 6; k++) {
+    const n = t.replace(/(.{55,360})\1/u, '$1')
+    if (n === t) break
+    t = n
+  }
+  return t
 }
 
 function hardCapVerygoodDescriptionLength(text: string, max = VERYGOOD_DESCRIPTION_MAX_CHARS): string {
@@ -506,12 +537,6 @@ function kindsInSentence(s: string): Set<LegacyKind> {
   return o
 }
 
-function kindsInText(t: string): Set<LegacyKind> {
-  const u = new Set<LegacyKind>()
-  for (const k of kindsInSentence(t)) u.add(k)
-  return u
-}
-
 function splitIntoSentenceUnits(t: string): string[] {
   const normalized = t.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
   const runOnPieces = expandRunOnsBeforeSentenceSplit(normalized)
@@ -539,40 +564,6 @@ function coverageKinds(units: string[]): Set<LegacyKind> {
     for (const k of kindsInSentence(s)) u.add(k)
   }
   return u
-}
-
-function isLikelySinglePlaceToken(text: string): boolean {
-  const t = text.trim()
-  if (!t) return false
-  if (/[\n。．.!?]/.test(t)) return false
-  if (/\s/.test(t)) return false
-  if (/[·\/]/.test(t)) return false
-  return /^[가-힣A-Za-z0-9]+$/.test(t)
-}
-
-function llmDescriptionIsAdequateScheduleSummary(text: string): boolean {
-  const t = stripVerygoodScheduleUiNoiseLines(text).trim()
-  if (!t) return false
-  const units = splitIntoSentenceUnits(t)
-  if (units.length === 0) return false
-  const slots = new Set(units.map(classifyMeaningSlot).filter((x): x is MeaningSlot => x != null))
-  if (slots.size >= 2) return true
-  if (units.length >= 2 && slots.size >= 1) return true
-  if (units.length === 1) {
-    const one = units[0]!
-    if (isLikelySinglePlaceToken(one)) return false
-    return classifyMeaningSlot(one) != null || kindsInSentence(one).size >= 1
-  }
-  return false
-}
-
-function llmDescriptionIsStructurallyThin(text: string): boolean {
-  const t = stripVerygoodScheduleUiNoiseLines(text).trim()
-  if (!t) return true
-  if (isLikelySinglePlaceToken(t) && kindsInText(t).size === 0) return true
-  const units = splitIntoSentenceUnits(t)
-  if (units.length <= 1 && kindsInText(t).size === 0) return true
-  return false
 }
 
 function looksLikePastedBlockStructure(text: string): boolean {
@@ -1007,41 +998,6 @@ function polishDescriptionFromMergedText(text: string, opts: { isLastDay: boolea
   return toned || joinVerygoodDescriptionClauses(picked.map((p) => p.u), opts)
 }
 
-function uniquePoolStrings(a: string[]): string[] {
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const s of a) {
-    const t = s.trim()
-    if (!t || seen.has(t)) continue
-    seen.add(t)
-    out.push(t)
-  }
-  return out
-}
-
-/** 결정론 문장 순서를 먼저 두고, LLM 문장을 중복 제외해 뒤에 붙인 뒤 슬롯별로 고른다 */
-function mergeLlmPoolWithDeterministic(llmText: string, detText: string, opts: { isLastDay: boolean }): string {
-  const llmMetas = collectUnitMetas(llmText)
-  const detMetas = collectUnitMetas(detText)
-  const pool: UnitMeta[] = []
-  let o = 0
-  const seen = new Set<string>()
-  for (const m of detMetas) {
-    if (seen.has(m.u)) continue
-    seen.add(m.u)
-    pool.push({ ...m, i: o++ })
-  }
-  for (const m of llmMetas) {
-    if (seen.has(m.u)) continue
-    seen.add(m.u)
-    pool.push({ ...m, i: o++ })
-  }
-  const picked = selectDiverseMeaningUnitMetas(pool, opts)
-  const nar = composeNarrativeVerygoodDayDescription(picked, opts)
-  const toned = finalizeVerygoodNarrativeTone(nar)
-  return toned || joinVerygoodDescriptionClauses(picked.map((p) => p.u), opts)
-}
-
 export function narrativeCompactVerygoodDayDescription(raw: string, opts?: { isLastDay?: boolean }): string {
   const stripped = stripVerygoodScheduleUiNoiseLines(raw).trim()
   if (!stripped) return ''
@@ -1065,6 +1021,29 @@ export function narrativeCompactVerygoodDayDescription(raw: string, opts?: { isL
   return finalizeVerygoodScheduleDescription(polishDescriptionFromMergedText(stripped, { isLastDay }))
 }
 
+/** Gemini 일정 요약이 merge에서 결정론 원문으로 덮어쓰이지 않도록 할 만큼 실질 내용이 있는지 */
+export function verygoodGeminiScheduleDescriptionWinsMerge(gsRaw: string): boolean {
+  const gs = stripVerygoodScheduleUiNoiseLines(gsRaw).trim()
+  if (gs.length < 10) return false
+  if (/^[\s\-–—•,.／/|※]+$/u.test(gs)) return false
+  return true
+}
+
+/** 결정론 `d.description`을 요약 fallback으로 쓰기엔 노이즈·원문 덩어리가 과한 경우 */
+function verygoodDeterministicDescriptionUnacceptableForFallback(ds: string): boolean {
+  const u = ds.replace(/\s+/g, ' ').trim()
+  if (!u) return true
+  if (u.length > 720) return true
+  const flowHits = (u.match(/(?:이후|도착\s*후|이동해|둘러본\s*뒤)/g) ?? []).length
+  if (flowHits >= 5) return true
+  if (/선택\s*관광|●\s*선택|선택관광/u.test(u)) return true
+  if (/호텔\s*투숙|투숙\s*및\s*휴식|호텔에서\s*휴식/u.test(u)) return true
+  if (/※\s*현지|현지\s*상황|여행\s*일정\s*변경/u.test(u)) return true
+  if (/(?:항공편|출발\s*전\s*안내|출발\s*안내)/u.test(u) && flowHits >= 2) return true
+  if ((u.match(/\d{1,2}:\d{2}/g) ?? []).length >= 9) return true
+  return false
+}
+
 export function pickMergedVerygoodDayDescription(
   g: RegisterScheduleDay,
   d: RegisterScheduleDay | undefined,
@@ -1075,37 +1054,30 @@ export function pickMergedVerygoodDayDescription(
   const gs = stripVerygoodScheduleUiNoiseLines(gsRaw).trim()
   const isLastDay = coercePolishLastDayFlag(Boolean(opts?.isLastDay), gsRaw, dsRaw)
 
+  const fromGemini = () => narrativeCompactVerygoodDayDescription(gsRaw, { isLastDay })
+
+  if (verygoodGeminiScheduleDescriptionWinsMerge(gsRaw)) {
+    return fromGemini()
+  }
+
   if (!d || !dsRaw) {
     if (!gs) return ''
-    if (looksLikePastedBlockStructure(gsRaw)) return narrativeCompactVerygoodDayDescription(gsRaw, { isLastDay })
-    return finalizeVerygoodScheduleDescription(polishDescriptionFromMergedText(gs, { isLastDay }))
+    return fromGemini()
   }
 
-  const ds = stripVerygoodScheduleUiNoiseLines(dsRaw).trim()
-
-  if (!gs) return finalizeVerygoodScheduleDescription(buildSummaryFromDeterministicRaw(ds, { isLastDay }))
-
-  if (looksLikePastedBlockStructure(gsRaw)) {
-    const compactG = buildSummaryFromDeterministicRaw(gs, { isLastDay })
-    const gMetas = collectUnitMetas(compactG)
-    const slotSet = new Set(gMetas.map((m) => m.slot).filter((x): x is MeaningSlot => x != null))
-    if (slotSet.size >= 2) return finalizeVerygoodScheduleDescription(compactG)
-    return finalizeVerygoodScheduleDescription(buildSummaryFromDeterministicRaw(ds, { isLastDay }))
+  const dsClean = stripVerygoodScheduleUiNoiseLines(dsRaw).trim()
+  if (!gs) {
+    if (verygoodDeterministicDescriptionUnacceptableForFallback(dsClean)) return ''
+    return narrativeCompactVerygoodDayDescription(dsRaw, { isLastDay })
   }
 
-  if (llmDescriptionIsStructurallyThin(gsRaw)) {
-    if (isLikelySinglePlaceToken(gs))
-      return finalizeVerygoodScheduleDescription(buildSummaryFromDeterministicRaw(ds, { isLastDay }))
-    const merged = uniquePoolStrings([...splitIntoSentenceUnits(gs), ...splitIntoSentenceUnits(ds)]).join(' ')
-    return finalizeVerygoodScheduleDescription(polishDescriptionFromMergedText(merged, { isLastDay }))
+  if (verygoodDeterministicDescriptionUnacceptableForFallback(dsClean)) {
+    return fromGemini()
   }
 
-  if (llmDescriptionIsAdequateScheduleSummary(gsRaw)) {
-    const merged = mergeLlmPoolWithDeterministic(gs, ds, { isLastDay })
-    if (merged.trim()) return finalizeVerygoodScheduleDescription(merged)
-  }
-
-  return finalizeVerygoodScheduleDescription(mergeLlmPoolWithDeterministic(gs, ds, { isLastDay }))
+  const fromDet = narrativeCompactVerygoodDayDescription(dsRaw, { isLastDay })
+  if (fromDet.trim()) return fromDet
+  return fromGemini()
 }
 
 export function polishVerygoodRegisterScheduleDescriptions(schedule: RegisterScheduleDay[]): RegisterScheduleDay[] {

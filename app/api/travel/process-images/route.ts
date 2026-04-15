@@ -10,7 +10,10 @@ import { resolveDayHeroWithFallback, saveDayHeroResult } from '@/lib/itinerary-d
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import { recordAssetUsage } from '@/lib/asset-usage-log'
 import { requireAdmin } from '@/lib/require-admin'
-import { scheduleRowIsPoorRepresentativeCover, type ScheduleImageLike } from '@/lib/final-image-selection'
+import {
+  pickRepresentativeCoverScheduleDay,
+  type ScheduleImageLike,
+} from '@/lib/final-image-selection'
 import { isObjectStorageConfigured } from '@/lib/object-storage'
 import { rehostPexelsUrlsInScheduleEntries, type ScheduleEntryRecord } from '@/lib/schedule-day-image-rehost'
 
@@ -570,22 +573,25 @@ export async function POST(req: Request) {
       }
     })
 
-    let bgPhoto = mainPhoto
-    for (let i = 0; i < workingSchedule.length && i < schedulePhotos.length; i++) {
-      const sched = workingSchedule[i]
-      if (!sched) continue
-      const meta: ScheduleImageLike = {
-        day: sched.day,
-        imageUrl: null,
-        title: sched.title,
-        description: sched.description,
-        imageKeyword: sched.imageKeyword,
-      }
-      if (!scheduleRowIsPoorRepresentativeCover(meta) && schedulePhotos[i]?.photo) {
-        bgPhoto = schedulePhotos[i]!.photo
-        break
-      }
-    }
+    const coverCandidates = schedulePhotos
+      .map((sp, i) => {
+        const sched = workingSchedule[i]
+        if (!sched?.day || !sp?.photo?.url) return null
+        const meta: ScheduleImageLike = {
+          day: sched.day,
+          imageUrl: sp.photo.url,
+          title: sched.title,
+          description: sched.description,
+          imageKeyword: sp.imageKeyword ?? sched.imageKeyword,
+        }
+        return { meta, photo: sp.photo }
+      })
+      .filter((x): x is { meta: ScheduleImageLike; photo: PhotoResult } => x != null)
+    const bestCover = pickRepresentativeCoverScheduleDay(coverCandidates.map((c) => c.meta))
+    const bgPhoto =
+      bestCover && bestCover.imageUrl
+        ? coverCandidates.find((c) => c.meta === bestCover)?.photo ?? mainPhoto
+        : mainPhoto
 
     const scheduleStrFinal = await stringifyScheduleWithPexelsRehost(
       product.id as string,
