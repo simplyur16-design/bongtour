@@ -646,6 +646,17 @@ export default function AdminPendingDetailPanel({
     setPrimaryImageMessage(null)
     setPrimaryImageSavingId(photo.id)
     try {
+      const poiRaw = await fetchFirstPoiNamesRaw(detail.id)
+      const placeGuess =
+        poiRaw
+          ?.split(/[,，\n|/]/)
+          .map((s) => s.trim())
+          .find((s) => s.length > 0) ?? null
+      const cityGuess =
+        detail.primaryDestination?.trim() ||
+        detail.destinationRaw?.trim() ||
+        detail.destination?.trim() ||
+        null
       const res = await fetch(`/api/admin/products/${detail.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -655,6 +666,9 @@ export default function AdminPendingDetailPanel({
           primaryImagePhotographer: photo.photographer,
           primaryImageSourceUrl: photo.sourceUrl,
           primaryImageExternalId: String(photo.id),
+          primaryImageSearchKeyword: pexelsQuery ?? undefined,
+          primaryImagePlaceName: placeGuess ?? undefined,
+          primaryImageCityName: cityGuess ?? undefined,
         }),
       })
       const data = await res.json()
@@ -1133,6 +1147,13 @@ export default function AdminPendingDetailPanel({
           imageAttractionName: payload.imageAttractionName ?? null,
           imageSeoTitleKr: payload.imageSeoTitleKr ?? null,
           imageDisplayNameManual: payload.imageDisplayNameManual ?? null,
+          imagePlaceName: payload.imageAttractionName ?? null,
+          imageCityName:
+            detail.primaryDestination?.trim() ||
+            detail.destinationRaw?.trim() ||
+            detail.destination?.trim() ||
+            null,
+          imageSearchKeyword: (dayImageKeywordDraft[day] ?? '').trim() || null,
         }),
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }

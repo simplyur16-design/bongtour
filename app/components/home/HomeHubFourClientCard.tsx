@@ -133,12 +133,12 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
         <div className="relative z-[3] h-full min-h-0">
           {detailOpen ? (
             <div
-              className={`absolute inset-x-4 top-[30%] bottom-24 z-[4] flex max-h-none min-h-0 flex-col items-center gap-2.5 overflow-y-auto overscroll-contain rounded-xl p-3 text-center shadow-lg backdrop-blur-[2px] sm:inset-x-5 ${
-                denseBg ? 'bg-black/48 ring-1 ring-white/22' : 'bg-black/42 ring-1 ring-white/18'
+              className={`absolute inset-x-4 top-[30%] bottom-24 z-[4] flex max-h-none min-h-0 flex-col items-center gap-2.5 overflow-y-auto overscroll-contain px-2 py-2 text-center backdrop-blur-[2px] sm:inset-x-5 ${
+                denseBg ? 'bg-black/32' : 'bg-black/28'
               }`}
             >
               {subtitle ? (
-                <p className="w-full text-base font-bold leading-snug text-white sm:text-[1.0625rem] drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]">
+                <p className="inline-block max-w-full rounded-md bg-black/45 px-3 py-1.5 text-base font-bold leading-snug text-white ring-1 ring-white/22 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)] sm:text-[1.0625rem]">
                   {subtitle}
                 </p>
               ) : null}
@@ -165,7 +165,7 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
           ) : null}
 
           <p
-            className={`absolute left-4 right-4 z-[6] text-center text-[clamp(2.4rem,3.9vw+1rem,3.55rem)] font-black leading-[1.05] tracking-tight text-white transition-[top,transform] duration-300 ease-out sm:left-5 sm:right-5 ${
+            className={`absolute left-4 right-4 z-[6] text-center text-[clamp(2.4rem,3.9vw+1rem,3.55rem)] font-black leading-[1.05] tracking-tight text-white transition-[top,transform] duration-300 ease-out sm:left-5 sm:right-5 lg:tracking-[-0.01em] ${
               detailOpen ? 'top-12 translate-y-0 sm:top-14' : 'top-1/2 -translate-y-1/2'
             } ${
               denseBg

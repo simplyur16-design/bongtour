@@ -4,6 +4,7 @@
 
 import { slugify as transliterateSlugify } from 'transliteration'
 
+/** 공개 스토리지 경로·파일명 등 범용 slug (한글 등 → 라틴 하이픈). */
 export function toAssetSlug(input: string): string {
   const raw = transliterateSlugify(String(input ?? '').trim(), {
     lowercase: true,

@@ -20,6 +20,12 @@ import {
 } from '@/lib/meeting-airline-operational-ssot'
 import { computeAdminProductSupplierDerivatives } from '@/lib/admin-product-supplier-derivatives'
 import { LISTING_KIND_VALUES, TRAVEL_SCOPE_VALUES } from '@/lib/product-listing-kind'
+import { isObjectStorageConfigured } from '@/lib/object-storage'
+import {
+  rehostPexelsProductHeroIfNeeded,
+  extractPexelsPhotoIdFromCdnUrl,
+} from '@/lib/product-pexels-image-rehost'
+import { rehostPexelsUrlsInScheduleEntries, type ScheduleEntryRecord } from '@/lib/schedule-day-image-rehost'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -122,6 +128,15 @@ export async function GET(_request: Request, { params }: RouteParams) {
         bgImageSourceUrl: true,
         bgImageExternalId: true,
         bgImageIsGenerated: true,
+        bgImageStoragePath: true,
+        bgImageStorageBucket: true,
+        bgImageRehostSearchLabel: true,
+        bgImagePlaceName: true,
+        bgImageCityName: true,
+        bgImageWidth: true,
+        bgImageHeight: true,
+        bgImageRehostedAt: true,
+        bgImageSourceType: true,
         schedule: true,
         isFuelIncluded: true,
         isGuideFeeIncluded: true,
@@ -240,6 +255,15 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       bgImageSourceUrl?: string | null
       bgImageExternalId?: string | null
       bgImageIsGenerated?: boolean
+      bgImageStoragePath?: string | null
+      bgImageStorageBucket?: string | null
+      bgImageRehostSearchLabel?: string | null
+      bgImagePlaceName?: string | null
+      bgImageCityName?: string | null
+      bgImageWidth?: number | null
+      bgImageHeight?: number | null
+      bgImageRehostedAt?: Date | null
+      bgImageSourceType?: string | null
       needsImageReview?: boolean
       imageReviewRequestedAt?: Date | null
       rawMeta?: string | null
@@ -340,7 +364,48 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }
     }
     if (body.schedule !== undefined) {
-      data.schedule = body.schedule == null ? null : typeof body.schedule === 'string' ? body.schedule : JSON.stringify(body.schedule)
+      if (body.schedule == null) {
+        data.schedule = null
+      } else {
+        const raw =
+          typeof body.schedule === 'string' ? body.schedule : JSON.stringify(body.schedule)
+        if (isObjectStorageConfigured()) {
+          try {
+            const parsed = JSON.parse(raw) as unknown
+            if (Array.isArray(parsed)) {
+              const productShort = await prisma.product.findUnique({
+                where: { id },
+                select: { primaryDestination: true, destinationRaw: true, destination: true },
+              })
+              const cityFb =
+                productShort?.primaryDestination?.trim() ||
+                productShort?.destinationRaw?.trim() ||
+                productShort?.destination?.trim() ||
+                null
+              const nextArr = await rehostPexelsUrlsInScheduleEntries(
+                id,
+                parsed as ScheduleEntryRecord[],
+                (_day, row) => {
+                  const kw = typeof row.imageKeyword === 'string' ? String(row.imageKeyword).trim() : ''
+                  const placeGuess = kw ? kw.split(/[|,]/)[0]?.trim() || null : null
+                  return {
+                    placeName: placeGuess,
+                    cityName: cityFb,
+                    searchKeyword: kw || placeGuess || cityFb,
+                  }
+                }
+              )
+              data.schedule = JSON.stringify(nextArr)
+            } else {
+              data.schedule = raw
+            }
+          } catch {
+            data.schedule = raw
+          }
+        } else {
+          data.schedule = raw
+        }
+      }
     }
     if (body.registrationStatus !== undefined) {
       const v = body.registrationStatus
@@ -388,12 +453,102 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (body.targetAudience !== undefined) data.targetAudience = strOrNull(body.targetAudience)
     // 대표 이미지 (Pexels 선택 등): primaryImage* → bgImage* (URL 비우면 메타도 null)
     if (body.primaryImageUrl !== undefined) {
-      const url = String(body.primaryImageUrl).trim().slice(0, MAX_URL) || null
+      let url = String(body.primaryImageUrl).trim().slice(0, MAX_URL) || null
+      const srcLower = String(body.primaryImageSource ?? '').trim().toLowerCase()
+      const isPexelsSource = srcLower === 'pexels'
+
+      const clearPexelsStorageMeta = () => {
+        data.bgImageStoragePath = null
+        data.bgImageStorageBucket = null
+        data.bgImageRehostSearchLabel = null
+        data.bgImagePlaceName = null
+        data.bgImageCityName = null
+        data.bgImageWidth = null
+        data.bgImageHeight = null
+        data.bgImageRehostedAt = null
+        data.bgImageSourceType = null
+      }
+
+      let pexelsIdResolvedForDb: string | null = null
+
+      if (!url) {
+        clearPexelsStorageMeta()
+      } else if (isPexelsSource) {
+        const needRehost =
+          url.includes('images.pexels.com') ||
+          (url.toLowerCase().includes('pexels.com') && url.toLowerCase().includes('photo'))
+        const idRaw = body.primaryImageExternalId
+        const pidFromBody = idRaw != null ? Number(String(idRaw).trim()) : NaN
+        const pidFromUrl = extractPexelsPhotoIdFromCdnUrl(url)
+        const pid =
+          Number.isInteger(pidFromBody) && pidFromBody > 0 ? pidFromBody : pidFromUrl != null ? pidFromUrl : NaN
+        const isNumericPexelsId = Number.isInteger(pid) && pid > 0
+        if (isNumericPexelsId) pexelsIdResolvedForDb = String(pid)
+
+        if (needRehost) {
+          if (!isNumericPexelsId) {
+            return NextResponse.json(
+              { error: 'Pexels 대표 이미지는 사진 ID(URL 경로 또는 primaryImageExternalId)가 필요합니다.' },
+              { status: 400 }
+            )
+          }
+          const prodShort = await prisma.product.findUnique({
+            where: { id },
+            select: {
+              primaryDestination: true,
+              destinationRaw: true,
+              destination: true,
+            },
+          })
+          const placeFromBody = strOrNull(body.primaryImagePlaceName, 200)
+          const cityFromBody = strOrNull(body.primaryImageCityName, 200)
+          const searchFromBody = strOrNull(body.primaryImageSearchKeyword, 300)
+          const cityFallback =
+            cityFromBody ??
+            prodShort?.primaryDestination?.trim() ||
+            prodShort?.destinationRaw?.trim() ||
+            prodShort?.destination?.trim() ||
+            null
+          const placeName = placeFromBody
+          const cityName = cityFallback
+          const searchLabel = searchFromBody ?? placeName ?? cityName ?? null
+
+          try {
+            const rh = await rehostPexelsProductHeroIfNeeded({
+              downloadUrl: url,
+              pexelsPhotoId: pid,
+              photographer: strOrNull(body.primaryImagePhotographer, 200),
+              pexelsPageUrl: strOrNull(body.primaryImageSourceUrl, MAX_URL),
+              searchKeyword: searchLabel,
+              placeName,
+              cityName,
+            })
+            url = rh.publicUrl
+            data.bgImageStoragePath = rh.objectKey ? rh.objectKey : null
+            data.bgImageStorageBucket = rh.objectKey ? rh.bucket : null
+            data.bgImageRehostSearchLabel = rh.searchLabelStored
+            data.bgImagePlaceName = rh.placeNameStored
+            data.bgImageCityName = rh.cityNameStored
+            data.bgImageWidth = rh.width
+            data.bgImageHeight = rh.height
+            data.bgImageRehostedAt = new Date()
+            data.bgImageSourceType = rh.sourceTypeSegment
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : 'Pexels 이미지 저장 실패'
+            console.error('[PATCH product] pexels rehost', e)
+            return NextResponse.json({ error: msg }, { status: 503 })
+          }
+        }
+        // 이미 우리 Storage URL이면 storage 메타는 PATCH에서 건드리지 않음(기존 행 유지)
+      } else {
+        clearPexelsStorageMeta()
+      }
+
       data.bgImageUrl = url
       data.bgImageSource = url ? strOrNull(body.primaryImageSource, 100) : null
       data.bgImagePhotographer = url ? strOrNull(body.primaryImagePhotographer, 200) : null
       data.bgImageSourceUrl = url ? strOrNull(body.primaryImageSourceUrl, MAX_URL) : null
-      data.bgImageExternalId = url ? strOrNull(body.primaryImageExternalId, 100) : null
+      data.bgImageExternalId = url ? strOrNull(body.primaryImageExternalId, 100) ?? pexelsIdResolvedForDb : null
       if (!url) {
         data.bgImageIsGenerated = false
       } else if (body.primaryImageIsGenerated === undefined) {
@@ -516,6 +671,15 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         bgImageSourceUrl: true,
         bgImageExternalId: true,
         bgImageIsGenerated: true,
+        bgImageStoragePath: true,
+        bgImageStorageBucket: true,
+        bgImageRehostSearchLabel: true,
+        bgImagePlaceName: true,
+        bgImageCityName: true,
+        bgImageWidth: true,
+        bgImageHeight: true,
+        bgImageRehostedAt: true,
+        bgImageSourceType: true,
         schedule: true,
         isFuelIncluded: true,
         isGuideFeeIncluded: true,

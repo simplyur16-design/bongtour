@@ -47,10 +47,25 @@ model Product {
   airline               String?        // 항공사
   supplierGroupId       String?        // 공급사 단체번호/운영번호 (originCode와 구분)
   bgImageUrl            String?        // 대표 이미지 URL (제미나이/process-images 또는 관리자 Pexels 선택)
-  bgImageSource         String?        // 출처 (pexels, gemini 등)
+  bgImageSource         String?        // 출처 (pexels, gemini_auto 등 — UI·레거시 표기)
+  /// 스토리지 파일명 `{geo}-{source}-{id}`의 source와 동일한 canonical 키 (pexels, gemini, manual, istock, userphoto …)
+  bgImageSourceType     String?
   bgImagePhotographer   String?        // 작가명 (Pexels 등)
   bgImageSourceUrl      String?        // 원본 페이지 URL
   bgImageExternalId     String?        // 외부 ID (예: Pexels photo id)
+  /// Pexels 등 재호스팅 시 Supabase 객체 경로 (예: cities/da-nang/dragon-bridge-pexels-123456.jpg)
+  bgImageStoragePath    String?
+  /// Supabase 버킷명 (기본 bongtour-images)
+  bgImageStorageBucket  String?
+  /// 이미지 검색·저장 시 사용한 검색어/라벨(원문 일부, 운영 참고)
+  bgImageRehostSearchLabel String?
+  /// 재호스팅 기준 관광지명(원문, slug의 근거)
+  bgImagePlaceName      String?
+  /// 재호스팅 기준 도시명(원문)
+  bgImageCityName       String?
+  bgImageWidth          Int?
+  bgImageHeight         Int?
+  bgImageRehostedAt     DateTime?
   /// 대표 이미지가 AI 생성·변형임을 표시할 때 true (수동 업로드·출처 편집과 병행)
   bgImageIsGenerated    Boolean        @default(false)
   counselingNotes       String?        // [MUST/TIP/PLUS] 정밀 메모 (JSON 문자열)

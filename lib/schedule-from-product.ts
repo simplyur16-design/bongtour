@@ -32,6 +32,13 @@ export type ScheduleDayInternalMeta = {
   imageManualSelected?: boolean
   imageSelectionMode?: string | null
   imageCandidateOrigin?: string | null
+  imageStoragePath?: string | null
+  imageStorageBucket?: string | null
+  imageRehostSearchLabel?: string | null
+  imagePlaceName?: string | null
+  imageCityName?: string | null
+  imageWidth?: number | null
+  imageHeight?: number | null
 }
 
 type ProductLike = {
@@ -139,11 +146,30 @@ export function getScheduleFromProduct(
             meals: optionalScheduleMealCol(row, 'meals'),
           }
           if (options?.includeInternalMeta === true) {
+            const imageStoragePath =
+              typeof row?.imageStoragePath === 'string' ? row.imageStoragePath.trim() || null : null
+            const imageStorageBucket =
+              typeof row?.imageStorageBucket === 'string' ? row.imageStorageBucket.trim() || null : null
+            const imageRehostSearchLabel =
+              typeof row?.imageRehostSearchLabel === 'string' ? row.imageRehostSearchLabel.trim() || null : null
+            const imagePlaceName =
+              typeof row?.imagePlaceName === 'string' ? row.imagePlaceName.trim() || null : null
+            const imageCityName =
+              typeof row?.imageCityName === 'string' ? row.imageCityName.trim() || null : null
+            const imageWidth = typeof row?.imageWidth === 'number' ? row.imageWidth : null
+            const imageHeight = typeof row?.imageHeight === 'number' ? row.imageHeight : null
             return {
               ...base,
               imageManualSelected,
               imageSelectionMode,
               imageCandidateOrigin,
+              imageStoragePath,
+              imageStorageBucket,
+              imageRehostSearchLabel,
+              imagePlaceName,
+              imageCityName,
+              imageWidth,
+              imageHeight,
             }
           }
           return base

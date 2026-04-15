@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { recordAssetUsage, normalizeSelectionMode } from '@/lib/asset-usage-log'
 import { findImageAssetByPublicUrl } from '@/lib/image-assets-db'
+import { isObjectStorageConfigured } from '@/lib/object-storage'
+import { extractPexelsPhotoIdFromCdnUrl, isPexelsCdnUrl } from '@/lib/product-pexels-image-rehost'
+import { rehostPexelsScheduleDayImageIfNeeded } from '@/lib/schedule-day-image-rehost'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -12,7 +15,16 @@ type ScheduleEntry = {
   description?: string
   imageKeyword?: string
   imageUrl?: string | null
-  imageSource?: { source?: string; photographer?: string; originalLink?: string; externalId?: string | null }
+  imageSource?: {
+    source?: string
+    photographer?: string
+    originalLink?: string
+    externalId?: string | null
+    /** canonical — 파일명 source 세그먼트와 동일 */
+    sourceType?: string
+    /** 재호스팅 전 Pexels CDN 등 원본 다운로드 URL */
+    sourceImageUrl?: string | null
+  }
   imageManualSelected?: boolean
   imageSelectionMode?: string | null
   imageCandidateOrigin?: string | null
@@ -20,6 +32,13 @@ type ScheduleEntry = {
   imageSeoTitleKr?: string | null
   imageAttractionName?: string | null
   imageDisplayNameManual?: string | null
+  imageStoragePath?: string | null
+  imageStorageBucket?: string | null
+  imageRehostSearchLabel?: string | null
+  imagePlaceName?: string | null
+  imageCityName?: string | null
+  imageWidth?: number | null
+  imageHeight?: number | null
 }
 
 /**
@@ -45,6 +64,9 @@ export async function POST(request: Request, { params }: RouteParams) {
       imageSeoTitleKr?: string | null
       imageAttractionName?: string | null
       imageDisplayNameManual?: string | null
+      imagePlaceName?: string | null
+      imageCityName?: string | null
+      imageSearchKeyword?: string | null
     }
     const day = Number(body.day)
     if (!Number.isInteger(day) || day < 1) {
@@ -96,7 +118,8 @@ export async function POST(request: Request, { params }: RouteParams) {
     const source = String(body.source ?? 'manual').trim().slice(0, 100) || 'manual'
     const photographer = body.photographer == null ? null : String(body.photographer).trim().slice(0, 200) || null
     const originalLink = body.originalLink == null ? null : String(body.originalLink).trim().slice(0, 2000) || null
-    const externalId = body.externalId == null ? null : String(body.externalId).trim().slice(0, 100) || null
+    const externalIdFromBody = body.externalId == null ? null : String(body.externalId).trim().slice(0, 100) || null
+    let externalIdResolved: string | null = externalIdFromBody
     const manualSelected = body.manualSelected !== false
     const selectionMode = body.selectionMode == null ? null : String(body.selectionMode).trim().slice(0, 50) || null
 
@@ -113,9 +136,79 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'imageUrl이 필요합니다.' }, { status: 400 })
     }
 
-    if (!clearManualOnly && imageUrl && !resolvedSeoKr && /^https?:\/\//i.test(imageUrl)) {
+    const currentRow = schedule.find((x) => Number(x.day) === day)
+    const scheduleKw = typeof currentRow?.imageKeyword === 'string' ? currentRow.imageKeyword.trim() : ''
+    let persistedImageUrl = imageUrl
+    let rehostExtra: Partial<ScheduleEntry> = {}
+    let rehostedSourceType: string | null = null
+    let originalCdnUrlForMeta: string | null = null
+    if (!clearManualOnly && imageUrl && isObjectStorageConfigured() && isPexelsCdnUrl(imageUrl)) {
+      const prodMeta = await prisma.product.findUnique({
+        where: { id },
+        select: { primaryDestination: true, destinationRaw: true, destination: true },
+      })
+      const idRaw = body.externalId
+      const pidFromBody = idRaw != null ? Number(String(idRaw).trim()) : NaN
+      const pidFromUrl = extractPexelsPhotoIdFromCdnUrl(imageUrl)
+      const pid =
+        Number.isInteger(pidFromBody) && pidFromBody > 0 ? pidFromBody : pidFromUrl != null ? pidFromUrl : NaN
+      if (!Number.isInteger(pid) || pid <= 0) {
+        return NextResponse.json(
+          { error: 'Pexels 일정 이미지는 사진 ID(URL 경로 또는 externalId)가 필요합니다.' },
+          { status: 400 }
+        )
+      }
+      const cityFromBody =
+        body.imageCityName == null ? null : String(body.imageCityName).trim().slice(0, 200) || null
+      const placeFromBody =
+        body.imagePlaceName == null ? null : String(body.imagePlaceName).trim().slice(0, 200) || null
+      const searchFromBody =
+        body.imageSearchKeyword == null ? null : String(body.imageSearchKeyword).trim().slice(0, 300) || null
+      const placeFromKw = scheduleKw ? scheduleKw.split(/[|,]/)[0]?.trim() || null : null
+      const cityFallback =
+        cityFromBody ??
+        prodMeta?.primaryDestination?.trim() ||
+        prodMeta?.destinationRaw?.trim() ||
+        prodMeta?.destination?.trim() ||
+        null
+      const placeName = placeFromBody ?? placeFromKw
+      const cityName = cityFallback
+      const searchLabel = searchFromBody ?? placeName ?? cityName ?? scheduleKw || null
+      originalCdnUrlForMeta = imageUrl
       try {
-        const asset = await findImageAssetByPublicUrl(imageUrl)
+        const rh = await rehostPexelsScheduleDayImageIfNeeded({
+          downloadUrl: imageUrl,
+          productId: id,
+          day,
+          pexelsPhotoId: pid,
+          photographer,
+          pexelsPageUrl: originalLink,
+          searchKeyword: searchLabel,
+          placeName,
+          cityName,
+        })
+        persistedImageUrl = rh.publicUrl
+        rehostedSourceType = rh.sourceTypeSegment
+        externalIdResolved = String(pid)
+        rehostExtra = {
+          imageStoragePath: rh.objectKey || null,
+          imageStorageBucket: rh.objectKey ? rh.bucket : null,
+          imageRehostSearchLabel: rh.searchLabelStored,
+          imagePlaceName: rh.placeNameStored,
+          imageCityName: rh.cityNameStored,
+          imageWidth: rh.width,
+          imageHeight: rh.height,
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '일정 이미지 저장 실패'
+        console.error('[schedule-images] pexels rehost', e)
+        return NextResponse.json({ error: msg }, { status: 503 })
+      }
+    }
+
+    if (!clearManualOnly && persistedImageUrl && !resolvedSeoKr && /^https?:\/\//i.test(persistedImageUrl)) {
+      try {
+        const asset = await findImageAssetByPublicUrl(persistedImageUrl)
         if (asset) {
           const fromAsset = (asset.seo_title_kr || asset.title_kr || '').trim()
           if (fromAsset) resolvedSeoKr = fromAsset.slice(0, 400)
@@ -142,7 +235,7 @@ export async function POST(request: Request, { params }: RouteParams) {
           imageSelectionMode: null,
         }
       }
-      nextImageUrl = imageUrl
+      nextImageUrl = persistedImageUrl
       nextSourceType = source
       nextSelectionMode = selectionMode
       const itemRest: ScheduleEntry = { ...item }
@@ -151,12 +244,15 @@ export async function POST(request: Request, { params }: RouteParams) {
       delete itemRest.imageDisplayNameManual
       return {
         ...itemRest,
-        imageUrl,
+        ...rehostExtra,
+        imageUrl: persistedImageUrl,
         imageSource: {
           source,
+          sourceType: rehostedSourceType ?? undefined,
           photographer: photographer ?? source,
           originalLink: originalLink ?? '',
-          externalId,
+          externalId: externalIdResolved,
+          ...(originalCdnUrlForMeta ? { sourceImageUrl: originalCdnUrlForMeta } : {}),
         },
         imageManualSelected: manualSelected,
         imageSelectionMode: selectionMode,
@@ -167,7 +263,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       }
     })
     if (!updated && !clearManualOnly) {
-      nextImageUrl = imageUrl
+      nextImageUrl = persistedImageUrl
       nextSourceType = source
       nextSelectionMode = selectionMode
       next.push({
@@ -175,12 +271,15 @@ export async function POST(request: Request, { params }: RouteParams) {
         title: `DAY ${day}`,
         description: '',
         imageKeyword: `day_${day}`,
-        imageUrl,
+        ...rehostExtra,
+        imageUrl: persistedImageUrl,
         imageSource: {
           source,
+          sourceType: rehostedSourceType ?? undefined,
           photographer: photographer ?? source,
           originalLink: originalLink ?? '',
-          externalId,
+          externalId: externalIdResolved,
+          ...(originalCdnUrlForMeta ? { sourceImageUrl: originalCdnUrlForMeta } : {}),
         },
         imageManualSelected: manualSelected,
         imageSelectionMode: selectionMode,
@@ -222,7 +321,14 @@ export async function POST(request: Request, { params }: RouteParams) {
       })
     }
 
-    return NextResponse.json({ ok: true, productId: id, day, imageUrl: imageUrl || null, source, manualSelected })
+    return NextResponse.json({
+      ok: true,
+      productId: id,
+      day,
+      imageUrl: clearManualOnly ? null : persistedImageUrl || null,
+      source,
+      manualSelected,
+    })
   } catch (e) {
     console.error(e)
     const dev = process.env.NODE_ENV === 'development'

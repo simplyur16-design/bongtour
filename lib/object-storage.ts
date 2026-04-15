@@ -77,6 +77,135 @@ export async function removeStorageObject(objectKey: string): Promise<void> {
   }
 }
 
+type StorageListRow = {
+  name: string
+  metadata?: { size?: number } | null
+  created_at?: string
+  updated_at?: string
+}
+
+function storageListRowIsFile(row: StorageListRow): boolean {
+  return row.metadata != null && typeof row.metadata.size === 'number'
+}
+
+export type ListedStorageObject = {
+  objectKey: string
+  created_at?: string
+  updated_at?: string
+}
+
+/**
+ * 버킷 내 `prefix`(예: `cities`, `cities/da-nang`) 아래의 **파일** object key를 재귀 수집.
+ * 폴더는 `metadata.size`가 없는 항목으로 간주하고 하위로 내려간다.
+ */
+export async function listStorageObjectKeysRecursive(params: {
+  prefix: string
+  maxKeys?: number
+  maxDepth?: number
+}): Promise<{ objects: ListedStorageObject[]; truncated: boolean }> {
+  const { bucket } = getObjectStorageEnv()
+  const supabase = getSupabaseAdmin()
+  const maxKeys = params.maxKeys ?? 100_000
+  const maxDepth = params.maxDepth ?? 24
+  const root = params.prefix.replace(/^\/+/, '').replace(/\/+$/, '')
+  const out: ListedStorageObject[] = []
+  let truncated = false
+
+  async function walk(rel: string, depth: number): Promise<void> {
+    if (out.length >= maxKeys) {
+      truncated = true
+      return
+    }
+    if (depth > maxDepth) {
+      truncated = true
+      return
+    }
+    let offset = 0
+    const pageSize = 1000
+    for (;;) {
+      if (out.length >= maxKeys) {
+        truncated = true
+        return
+      }
+      const { data, error } = await supabase.storage.from(bucket).list(rel, {
+        limit: pageSize,
+        offset,
+        sortBy: { column: 'name', order: 'asc' },
+      })
+      if (error) {
+        throw new Error(`Supabase Storage list failed (${rel}): ${error.message}`)
+      }
+      const rows = (data ?? []) as StorageListRow[]
+      if (rows.length === 0) break
+      for (const row of rows) {
+        if (out.length >= maxKeys) {
+          truncated = true
+          return
+        }
+        const name = row.name
+        if (!name) continue
+        const full = rel ? `${rel}/${name}` : name
+        if (storageListRowIsFile(row)) {
+          out.push({
+            objectKey: full,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+          })
+        } else {
+          await walk(full, depth + 1)
+        }
+      }
+      if (rows.length < pageSize) break
+      offset += pageSize
+    }
+  }
+
+  await walk(root, 0)
+  return { objects: out, truncated }
+}
+
+export type RemoveStorageBatchResult = {
+  removed: string[]
+  failed: { key: string; message: string }[]
+}
+
+/** 여러 객체 삭제. 배치 실패 시 청크 단위로 재시도 후 개별 폴백. */
+export async function removeStorageObjectsBatched(
+  keys: string[],
+  opts?: { batchSize?: number }
+): Promise<RemoveStorageBatchResult> {
+  const batchSize = opts?.batchSize ?? 80
+  const { bucket } = getObjectStorageEnv()
+  const supabase = getSupabaseAdmin()
+  const normalized = [...new Set(keys.map((k) => k.replace(/^\/+/, '')))].filter(Boolean)
+  const removed: string[] = []
+  const failed: { key: string; message: string }[] = []
+
+  async function removeOne(key: string): Promise<boolean> {
+    const { error } = await supabase.storage.from(bucket).remove([key])
+    if (error) {
+      failed.push({ key, message: error.message })
+      return false
+    }
+    removed.push(key)
+    return true
+  }
+
+  for (let i = 0; i < normalized.length; i += batchSize) {
+    const chunk = normalized.slice(i, i + batchSize)
+    const { error } = await supabase.storage.from(bucket).remove(chunk)
+    if (!error) {
+      removed.push(...chunk)
+      continue
+    }
+    for (const key of chunk) {
+      await removeOne(key)
+    }
+  }
+
+  return { removed, failed }
+}
+
 export function tryParseObjectKeyFromPublicUrl(publicUrl: string): string | null {
   if (!isObjectStorageConfigured()) return null
   try {

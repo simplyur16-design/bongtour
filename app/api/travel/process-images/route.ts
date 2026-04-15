@@ -11,6 +11,8 @@ import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import { recordAssetUsage } from '@/lib/asset-usage-log'
 import { requireAdmin } from '@/lib/require-admin'
 import { scheduleRowIsPoorRepresentativeCover, type ScheduleImageLike } from '@/lib/final-image-selection'
+import { isObjectStorageConfigured } from '@/lib/object-storage'
+import { rehostPexelsUrlsInScheduleEntries, type ScheduleEntryRecord } from '@/lib/schedule-day-image-rehost'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -27,7 +29,7 @@ type ScheduleEntry = {
   description?: string
   imageKeyword?: string
   imageUrl?: string | null
-  imageSource?: { source: string; photographer: string; originalLink: string }
+  imageSource?: { source: string; photographer: string; originalLink: string; externalId?: string }
   imageManualSelected?: boolean
   imageSelectionMode?: string | null
   imageCandidateOrigin?: string | null
@@ -88,6 +90,43 @@ function createPhotoUsage() {
   }
 }
 
+function scheduleMetaForProcessImages(
+  day: number,
+  row: ScheduleEntryRecord,
+  destination: string,
+  itineraryRows: ItineraryRowLite[]
+) {
+  const itRow = itineraryRows.find((r) => r.day === day) ?? null
+  const kw = typeof row.imageKeyword === 'string' ? row.imageKeyword.trim() : ''
+  const placeFromPoi = itRow?.poiNamesRaw?.split(/[|,\n]/)?.[0]?.trim() || null
+  const placeGuess = placeFromPoi || (kw ? kw.split(/[|,]/)[0]?.trim() || null : null)
+  const cityName =
+    itRow?.city?.trim() ||
+    destination.split(',')[0]?.trim() ||
+    destination.trim() ||
+    null
+  return {
+    placeName: placeGuess,
+    cityName,
+    searchKeyword: kw || placeGuess || cityName,
+  }
+}
+
+async function stringifyScheduleWithPexelsRehost(
+  productId: string,
+  entries: ScheduleEntry[],
+  destination: string,
+  itineraryRows: ItineraryRowLite[]
+): Promise<string> {
+  if (!isObjectStorageConfigured()) return JSON.stringify(entries)
+  const rehosted = await rehostPexelsUrlsInScheduleEntries(
+    productId,
+    entries as ScheduleEntryRecord[],
+    (day, row) => scheduleMetaForProcessImages(day, row, destination, itineraryRows)
+  )
+  return JSON.stringify(rehosted)
+}
+
 function parseSchedule(schedule: string | null): ScheduleEntry[] {
   if (!schedule || typeof schedule !== 'string') return []
   try {
@@ -105,6 +144,10 @@ function parseSchedule(schedule: string | null): ScheduleEntry[] {
               source: String((item.imageSource as Record<string, unknown>).source ?? 'Pexels'),
               photographer: String((item.imageSource as Record<string, unknown>).photographer ?? 'Pexels'),
               originalLink: String((item.imageSource as Record<string, unknown>).originalLink ?? 'https://www.pexels.com'),
+              ...(typeof (item.imageSource as Record<string, unknown>).externalId === 'string' ||
+              (item.imageSource as Record<string, unknown>).externalId != null
+                ? { externalId: String((item.imageSource as Record<string, unknown>).externalId) }
+                : {}),
             }
           : undefined,
       imageManualSelected: item.imageManualSelected === true,
@@ -229,11 +272,17 @@ export async function POST(req: Request) {
             : item.imageSource,
         }
       })
+      const scheduleStr = await stringifyScheduleWithPexelsRehost(
+        product.id as string,
+        updatedSchedule,
+        destination,
+        itineraryRows
+      )
       await prisma.product.update({
         where: { id: product.id as string },
         data: {
           bgImageUrl: mainUrl,
-          schedule: JSON.stringify(updatedSchedule),
+          schedule: scheduleStr,
         },
       })
       return NextResponse.json({ success: true, source: 'pool', cacheHit: 5, newFetch: 0 })
@@ -277,11 +326,17 @@ export async function POST(req: Request) {
             : item.imageSource,
         }
       })
+      const scheduleStrPre = await stringifyScheduleWithPexelsRehost(
+        product.id as string,
+        updatedSchedule,
+        destination,
+        itineraryRows
+      )
       await prisma.product.update({
         where: { id: product.id as string },
         data: {
           bgImageUrl: preMade.mainPhoto.url,
-          schedule: JSON.stringify(updatedSchedule),
+          schedule: scheduleStrPre,
         },
       })
       return NextResponse.json({
@@ -502,7 +557,12 @@ export async function POST(req: Request) {
         imageKeyword: slot?.imageKeyword ?? `day_${item.day ?? i + 1}`,
         imageUrl: photo?.url ?? item.imageUrl ?? null,
         imageSource: photo
-          ? { source: photo.source, photographer: photo.photographer, originalLink: photo.originalLink }
+          ? {
+              source: photo.source,
+              photographer: photo.photographer,
+              originalLink: photo.originalLink,
+              ...(photo.externalId ? { externalId: photo.externalId } : {}),
+            }
           : item.imageSource,
         imageManualSelected: item.imageManualSelected === true,
         imageSelectionMode: item.imageSelectionMode ?? null,
@@ -527,11 +587,17 @@ export async function POST(req: Request) {
       }
     }
 
+    const scheduleStrFinal = await stringifyScheduleWithPexelsRehost(
+      product.id as string,
+      updatedSchedule,
+      destination,
+      itineraryRows
+    )
     await prisma.product.update({
       where: { id: product.id as string },
       data: {
         bgImageUrl: bgPhoto.url,
-        schedule: JSON.stringify(updatedSchedule),
+        schedule: scheduleStrFinal,
       },
     })
 
