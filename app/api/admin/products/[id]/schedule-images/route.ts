@@ -115,7 +115,8 @@ export async function POST(request: Request, { params }: RouteParams) {
       schedule = []
     }
 
-    const source = String(body.source ?? 'manual').trim().slice(0, 100) || 'manual'
+    const sourceRaw = String(body.source ?? 'manual').trim().slice(0, 100)
+    const source = sourceRaw || 'manual'
     const photographer = body.photographer == null ? null : String(body.photographer).trim().slice(0, 200) || null
     const originalLink = body.originalLink == null ? null : String(body.originalLink).trim().slice(0, 2000) || null
     const externalIdFromBody = body.externalId == null ? null : String(body.externalId).trim().slice(0, 100) || null
@@ -166,14 +167,23 @@ export async function POST(request: Request, { params }: RouteParams) {
         body.imageSearchKeyword == null ? null : String(body.imageSearchKeyword).trim().slice(0, 300) || null
       const placeFromKw = scheduleKw ? scheduleKw.split(/[|,]/)[0]?.trim() || null : null
       const cityFallback =
-        cityFromBody ??
-        prodMeta?.primaryDestination?.trim() ||
-        prodMeta?.destinationRaw?.trim() ||
-        prodMeta?.destination?.trim() ||
-        null
-      const placeName = placeFromBody ?? placeFromKw
+        cityFromBody != null
+          ? cityFromBody
+          : prodMeta?.primaryDestination?.trim() ||
+            prodMeta?.destinationRaw?.trim() ||
+            prodMeta?.destination?.trim() ||
+            null
+      const placeName = placeFromBody != null ? placeFromBody : placeFromKw
       const cityName = cityFallback
-      const searchLabel = searchFromBody ?? placeName ?? cityName ?? scheduleKw || null
+      const searchLabelCore =
+        searchFromBody != null
+          ? searchFromBody
+          : placeName != null
+            ? placeName
+            : cityName != null
+              ? cityName
+              : scheduleKw
+      const searchLabel = searchLabelCore || null
       originalCdnUrlForMeta = imageUrl
       try {
         const rh = await rehostPexelsScheduleDayImageIfNeeded({

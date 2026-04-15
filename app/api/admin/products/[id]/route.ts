@@ -504,14 +504,22 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           const cityFromBody = strOrNull(body.primaryImageCityName, 200)
           const searchFromBody = strOrNull(body.primaryImageSearchKeyword, 300)
           const cityFallback =
-            cityFromBody ??
-            prodShort?.primaryDestination?.trim() ||
-            prodShort?.destinationRaw?.trim() ||
-            prodShort?.destination?.trim() ||
-            null
+            cityFromBody != null
+              ? cityFromBody
+              : prodShort?.primaryDestination?.trim() ||
+                prodShort?.destinationRaw?.trim() ||
+                prodShort?.destination?.trim() ||
+                null
           const placeName = placeFromBody
           const cityName = cityFallback
-          const searchLabel = searchFromBody ?? placeName ?? cityName ?? null
+          const searchLabel =
+            searchFromBody != null
+              ? searchFromBody
+              : placeName != null
+                ? placeName
+                : cityName != null
+                  ? cityName
+                  : null
 
           try {
             const rh = await rehostPexelsProductHeroIfNeeded({
@@ -548,7 +556,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       data.bgImageSource = url ? strOrNull(body.primaryImageSource, 100) : null
       data.bgImagePhotographer = url ? strOrNull(body.primaryImagePhotographer, 200) : null
       data.bgImageSourceUrl = url ? strOrNull(body.primaryImageSourceUrl, MAX_URL) : null
-      data.bgImageExternalId = url ? strOrNull(body.primaryImageExternalId, 100) ?? pexelsIdResolvedForDb : null
+      data.bgImageExternalId = url ? (strOrNull(body.primaryImageExternalId, 100) ?? pexelsIdResolvedForDb) : null
       if (!url) {
         data.bgImageIsGenerated = false
       } else if (body.primaryImageIsGenerated === undefined) {
