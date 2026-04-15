@@ -50,16 +50,21 @@ const QUICK_ACTIONS = [
  * `isolate` + 음수 z-index 제거: 배경 레이어가 `bg-slate-100` 뒤로 깔려 이미지가 안 보이던 문제 방지.
  */
 const TILE_CARD_CLASS =
-  'relative flex min-h-[8.75rem] flex-col items-center justify-center overflow-hidden rounded-2xl border border-bt-border-soft bg-slate-100 px-4 py-5 text-center shadow-sm ring-1 ring-bt-border-soft/40 transition active:scale-[0.99] hover:border-bt-border-strong hover:ring-bt-border-strong/30'
+  'relative flex min-h-[8.75rem] flex-col items-center justify-center overflow-hidden rounded-2xl border border-bt-border-soft bg-slate-900 px-4 py-5 text-center shadow-sm ring-1 ring-bt-border-soft/40 transition active:scale-[0.99] hover:border-bt-border-strong hover:ring-bt-border-strong/30'
 
-/** 배경 사진 레이어 — 양수 z-index로 링크 배경 위에만 얹음 */
-const TILE_BG_IMAGE_WRAP = 'pointer-events-none absolute inset-0 z-0 max-lg:block lg:hidden'
+/** 배경 사진 — 링크 배경 위 z-0 */
+const TILE_BG_IMAGE_WRAP =
+  'pointer-events-none absolute inset-0 z-0 block min-h-[8.75rem] w-full min-w-0'
 
+/**
+ * 텍스트 가독용 스크림 — 흰색 전면 워시(from-white/90)는 사진을 완전히 덮어 배경이 안 보이는 원인이었음.
+ * 하단·중앙만 어둡게 해 사진이 보이면서 글자 대비 확보.
+ */
 const TILE_BG_SCRIM =
-  'pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-white/92 via-white/84 to-slate-50/90 max-lg:block lg:hidden'
+  'pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-transparent via-black/35 to-black/78 max-lg:block lg:hidden'
 
 const TILE_BG_VIGNETTE =
-  'pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-slate-900/11 via-transparent to-slate-900/5 max-lg:block lg:hidden'
+  'pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-black/25 via-transparent to-black/15 max-lg:block lg:hidden'
 
 type Props = { seasonSlides: HomeSeasonPickDTO[] }
 
@@ -89,26 +94,27 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
       <section aria-label="주요 서비스">
         <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>주요 서비스</h2>
         <ul className="grid grid-cols-2 gap-3.5" role="list">
-          {mainTiles.map((t) => (
+          {mainTiles.map((t, index) => (
             <li key={t.href} className="min-w-0">
               <Link href={t.href} className={TILE_CARD_CLASS}>
-                <span className={`${TILE_BG_IMAGE_WRAP} block size-full min-h-[inherit]`} aria-hidden>
+                <span className={TILE_BG_IMAGE_WRAP} aria-hidden>
                   <Image
                     src={t.bgSrc}
                     alt=""
                     fill
-                    sizes="(max-width: 1024px) 45vw, 280px"
-                    className="object-cover opacity-[0.58] saturate-[0.86] contrast-[0.98]"
-                    unoptimized={/^https?:\/\//i.test(t.bgSrc)}
+                    sizes="(max-width: 1024px) 48vw, 300px"
+                    className="object-cover saturate-[0.92] contrast-[1.02]"
+                    priority={index < 4}
+                    unoptimized
                   />
                 </span>
                 <span aria-hidden className={TILE_BG_SCRIM} />
                 <span aria-hidden className={TILE_BG_VIGNETTE} />
                 <span className="relative z-[3] flex flex-col items-center text-center">
-                  <p className="text-lg font-bold leading-tight text-slate-900 drop-shadow-[0_1px_0_rgba(255,255,255,0.85)] sm:text-xl">
+                  <p className="text-lg font-extrabold leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] sm:text-xl">
                     {t.title}
                   </p>
-                  <p className="mt-2.5 max-w-[13rem] text-sm font-semibold leading-snug text-slate-700 drop-shadow-[0_1px_0_rgba(255,255,255,0.75)]">
+                  <p className="mt-2.5 max-w-[13rem] text-sm font-semibold leading-snug text-white/95 drop-shadow-[0_1px_6px_rgba(0,0,0,0.75)]">
                     {t.desc}
                   </p>
                 </span>

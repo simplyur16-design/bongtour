@@ -1,0 +1,182 @@
+'use client'
+
+import Image from 'next/image'
+import Link from 'next/link'
+import { ArrowUpRight } from 'lucide-react'
+import { useCallback, useState, type FocusEvent } from 'react'
+import type { HubFourAccent } from '@/lib/main-hub-copy'
+import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
+import { hubSectionFragmentId } from '@/lib/hub-section-anchor'
+
+export type HomeHubFourClientCardModel = {
+  key: HomeHubCardImageKey
+  href: string
+  accent: HubFourAccent
+  categoryLabel: string
+  headline: string
+  description: string
+  hints: readonly string[]
+  ctaLabel: string
+  imageSrc: string
+}
+
+const TRAINING_PRIMARY_TITLE = '국외연수'
+const TRAINING_HOVER_SUBTITLE = '목적형 연수 설계'
+
+function accentWash(accent: HubFourAccent): string {
+  switch (accent) {
+    case 'overseas':
+      return 'from-[color-mix(in_srgb,var(--bt-brand-blue)_22%,transparent)] via-transparent to-transparent'
+    case 'training':
+      return 'from-[color-mix(in_srgb,var(--bt-brand-gold)_18%,transparent)] via-transparent to-transparent'
+    case 'domestic':
+      return 'from-[color-mix(in_srgb,var(--bt-success)_14%,transparent)] via-transparent to-transparent'
+    case 'bus':
+      return 'from-[color-mix(in_srgb,var(--bt-text-muted)_12%,transparent)] via-transparent to-transparent'
+  }
+}
+
+function hubImagePosition(key: HomeHubCardImageKey): string {
+  switch (key) {
+    case 'overseas':
+      return 'object-[center_30%]'
+    case 'training':
+      return 'object-[center_38%]'
+    case 'domestic':
+      return 'object-[center_35%]'
+    case 'bus':
+      return 'object-[center_32%]'
+    default:
+      return 'object-center'
+  }
+}
+
+function hubPrimaryTitle(card: HomeHubFourClientCardModel): string {
+  if (card.key === 'training') return TRAINING_PRIMARY_TITLE
+  return card.categoryLabel.replace(/\s*\[[^\]]+\]\s*/g, '').trim() || card.categoryLabel
+}
+
+function hubHoverSubtitle(card: HomeHubFourClientCardModel): string | null {
+  if (card.key === 'training') return TRAINING_HOVER_SUBTITLE
+  const h = card.headline?.trim()
+  return h || null
+}
+
+function isDomesticOrBus(key: HomeHubCardImageKey): boolean {
+  return key === 'domestic' || key === 'bus'
+}
+
+const CARD_ROUND = 'rounded-2xl'
+const HUB_FOUR_CARD_HEIGHT = 'h-[35rem] min-h-[35rem] max-h-[35rem]'
+
+type Props = { card: HomeHubFourClientCardModel; index: number }
+
+export default function HomeHubFourClientCard({ card, index }: Props) {
+  const key = card.key
+  const denseBg = isDomesticOrBus(key)
+  const primaryTitle = hubPrimaryTitle(card)
+  const subtitle = hubHoverSubtitle(card)
+  const descFull = card.description?.trim() ?? ''
+  const [detailOpen, setDetailOpen] = useState(false)
+
+  const cardAriaLabel = [primaryTitle, subtitle, descFull, ...card.hints, card.ctaLabel].filter(Boolean).join('. ')
+
+  const open = useCallback(() => setDetailOpen(true), [])
+  const close = useCallback(() => setDetailOpen(false), [])
+
+  const onBlurLink = useCallback((e: FocusEvent<HTMLAnchorElement>) => {
+    const next = e.relatedTarget as Node | null
+    if (next && e.currentTarget.contains(next)) return
+    setDetailOpen(false)
+  }, [])
+
+  return (
+    <li id={hubSectionFragmentId(card.key)} className="relative min-w-0 scroll-mt-[5.5rem] sm:scroll-mt-24">
+      <Link
+        href={card.href}
+        aria-label={cardAriaLabel}
+        onMouseEnter={open}
+        onMouseLeave={close}
+        onFocus={open}
+        onBlur={onBlurLink}
+        className={`relative flex w-full flex-col overflow-hidden border border-bt-border-soft shadow-md shadow-bt-border-soft/40 ring-1 ring-bt-border-soft transition duration-300 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-link/70 lg:hover:-translate-y-0.5 lg:hover:border-bt-border-strong lg:hover:shadow-xl lg:hover:shadow-bt-border-strong/20 lg:hover:ring-bt-border-strong/60 ${CARD_ROUND} ${HUB_FOUR_CARD_HEIGHT}`}
+      >
+        <span className="pointer-events-none absolute inset-0 z-0 bg-slate-200" aria-hidden />
+
+        <Image
+          key={card.imageSrc}
+          src={card.imageSrc}
+          alt=""
+          fill
+          className={`object-cover transition duration-500 ease-out ${hubImagePosition(key)} z-[1] ${detailOpen ? 'scale-[1.03]' : 'scale-100'}`}
+          sizes="(max-width: 1024px) 50vw, min(600px, calc((min(100vw, 72rem) - 2.5rem) / 2))"
+          quality={92}
+          priority={index < 2}
+          unoptimized={/^https?:\/\//i.test(card.imageSrc)}
+        />
+
+        <div
+          className={`pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t ${
+            denseBg
+              ? 'from-black/[0.94] via-black/[0.58] to-black/[0.32]'
+              : 'from-black/[0.84] via-black/[0.38] to-black/[0.16]'
+          }`}
+          aria-hidden
+        />
+        <div
+          className={`pointer-events-none absolute inset-0 z-[2] transition-colors duration-300 ${detailOpen ? 'bg-black/40' : 'bg-black/0'}`}
+          aria-hidden
+        />
+        <div
+          className={`pointer-events-none absolute inset-0 z-[2] bg-gradient-to-br ${accentWash(card.accent)} transition-opacity duration-300 ${detailOpen ? 'opacity-30' : 'opacity-[0.16]'}`}
+          aria-hidden
+        />
+
+        <div className="relative z-[3] flex h-full min-h-0 flex-col justify-end px-4 pb-7 pt-10 text-left sm:px-5 sm:pb-8">
+          {detailOpen ? (
+            <div
+              className={`absolute left-4 right-4 z-[4] flex max-h-[min(52%,18.5rem)] min-h-0 flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-xl p-3 shadow-lg bottom-[6.75rem] sm:left-5 sm:right-5 sm:bottom-[7rem] ${
+                denseBg ? 'bg-black/80 ring-1 ring-white/25' : 'bg-black/70 ring-1 ring-white/20'
+              }`}
+            >
+              {subtitle ? (
+                <p className="text-base font-bold leading-snug text-white sm:text-[1.0625rem] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  {subtitle}
+                </p>
+              ) : null}
+              {descFull ? (
+                <p className="rounded-lg bg-black/70 px-3 py-2.5 text-sm font-semibold leading-relaxed text-white ring-1 ring-white/20 drop-shadow-md sm:text-[0.9375rem]">
+                  {descFull}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                {card.hints.map((h) => (
+                  <span
+                    key={h}
+                    className="rounded-full border border-white/55 bg-white/15 px-3 py-2 text-sm font-semibold leading-none text-white shadow-md backdrop-blur-sm"
+                  >
+                    {h}
+                  </span>
+                ))}
+              </div>
+              <span className="inline-flex items-center gap-1.5 pt-0.5 text-sm font-bold tracking-tight text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+                {card.ctaLabel}
+                <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden />
+              </span>
+            </div>
+          ) : null}
+
+          <p
+            className={`relative z-[5] text-[clamp(2.4rem,3.9vw+1rem,3.55rem)] font-black leading-[1.05] tracking-tight text-white ${
+              denseBg
+                ? 'drop-shadow-[0_3px_0_rgba(0,0,0,0.55)] drop-shadow-[0_4px_20px_rgba(0,0,0,0.75)] drop-shadow-[0_0_28px_rgba(0,0,0,0.55)]'
+                : 'drop-shadow-[0_3px_16px_rgba(0,0,0,0.55)] drop-shadow-[0_0_20px_rgba(0,0,0,0.45)]'
+            }`}
+          >
+            {primaryTitle}
+          </p>
+        </div>
+      </Link>
+    </li>
+  )
+}
