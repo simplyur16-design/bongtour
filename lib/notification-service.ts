@@ -80,7 +80,8 @@ async function sendSolapiMessage(
 
 /**
  * 솔라피 API로 관리자 휴대폰에 상담 접수 알림 발송.
- * DB 저장 완료 후 비동기 호출. 실패 시 DB에 notificationStatus='failed' 기록.
+ * SOLAPI_API_KEY 등 네 변수가 모두 있을 때만 발송한다. 없으면 알림을 건너뛰고 ok(로그·DB 갱신 없음).
+ * DB 저장 완료 후 비동기 호출. API 실패 시 DB에 notificationStatus='failed' 기록.
  * 재시도: 최대 MAX_RETRIES 회 (첫 요청 + 재시도).
  */
 export async function sendAdminNotification(booking: BookingForAlert): Promise<SendAdminNotificationResult> {
@@ -97,10 +98,7 @@ export async function sendAdminNotificationWithPayload(
   const senderPhone = process.env.SENDER_PHONE
 
   if (!apiKey || !apiSecret || !adminPhone || !senderPhone) {
-    const msg = 'SOLAPI_API_KEY, SOLAPI_API_SECRET, ADMIN_PHONE, SENDER_PHONE 중 누락'
-    console.error('[sendAdminNotification] 환경 변수 누락:', msg)
-    await updateBookingNotificationFailed(booking.id, msg)
-    return { ok: false, message: msg }
+    return { ok: true }
   }
 
   const text = payload ? buildAdminNotificationMessageFromPayload(payload) : buildAdminNotificationMessage(booking)

@@ -40,6 +40,7 @@ export async function POST(req: Request) {
   if (honeypot) {
     return NextResponse.json({ error: '요청 형식이 올바르지 않습니다.' }, { status: 400 })
   }
+  const nameRaw = typeof o.name === 'string' ? o.name.trim() : ''
   const email = typeof o.email === 'string' ? o.email.trim().toLowerCase() : ''
   const password = typeof o.password === 'string' ? o.password : ''
   const passwordConfirm = typeof o.passwordConfirm === 'string' ? o.passwordConfirm : ''
@@ -49,6 +50,12 @@ export async function POST(req: Request) {
   const marketingConsentVersion =
     typeof o.marketingConsentVersion === 'string' ? o.marketingConsentVersion.trim() : ''
 
+  if (!nameRaw) {
+    return NextResponse.json({ error: '이름을 입력해 주세요.' }, { status: 400 })
+  }
+  if (nameRaw.length > 80) {
+    return NextResponse.json({ error: '이름은 80자 이내로 입력해 주세요.' }, { status: 400 })
+  }
   if (!email || !EMAIL_RE.test(email)) {
     return NextResponse.json({ error: '유효한 이메일을 입력해 주세요.' }, { status: 400 })
   }
@@ -81,6 +88,7 @@ export async function POST(req: Request) {
 
   const user = await prisma.user.create({
     data: {
+      name: nameRaw,
       email,
       passwordHash,
       signupMethod: 'email',

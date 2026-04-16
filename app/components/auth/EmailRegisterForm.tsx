@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 
 export default function EmailRegisterForm() {
   const router = useRouter()
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
@@ -26,6 +27,10 @@ export default function EmailRegisterForm() {
       setErr('회원가입을 위한 개인정보 수집·이용 안내 확인이 필요합니다.')
       return
     }
+    if (!name.trim()) {
+      setErr('이름을 입력해 주세요.')
+      return
+    }
     if (!passwordConfirm.trim()) {
       setPasswordConfirmErr('비밀번호 확인을 입력해 주세요.')
       return
@@ -40,6 +45,7 @@ export default function EmailRegisterForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          name: name.trim(),
           email: email.trim().toLowerCase(),
           password,
           passwordConfirm,
@@ -80,6 +86,25 @@ export default function EmailRegisterForm() {
         onChange={(e) => setHpWebsite(e.target.value)}
         className="pointer-events-none absolute left-[-9999px] h-px w-px opacity-0"
       />
+      <div>
+        <label htmlFor="reg-name" className="mb-1 block text-xs font-medium text-bt-body">
+          이름
+        </label>
+        <input
+          id="reg-name"
+          type="text"
+          name="name"
+          autoComplete="name"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value)
+            setErr('')
+          }}
+          className="w-full rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
+          required
+          maxLength={80}
+        />
+      </div>
       <div>
         <label htmlFor="reg-email" className="mb-1 block text-xs font-medium text-bt-body">
           이메일
@@ -175,7 +200,7 @@ export default function EmailRegisterForm() {
           <div className="mt-2 space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
             <p className="font-semibold text-slate-900">[선택] 마케팅 정보 수신 동의</p>
             <p>Bong투어는 서비스 소식, 혜택, 이벤트, 맞춤형 제안 등 마케팅 정보를 제공하기 위해 아래와 같이 개인정보를 이용할 수 있습니다.</p>
-            <p>1. 수집·이용 항목: 이메일, 연락처</p>
+            <p>1. 수집·이용 항목: 이름, 이메일, 연락처</p>
             <p>2. 이용 목적: 서비스 소식/이벤트 안내, 혜택·프로모션·맞춤형 제안 제공, 뉴스레터 및 마케팅 정보 발송</p>
             <p>3. 보유 및 이용 기간: 동의일로부터 2년 또는 동의 철회 시까지</p>
             <p>4. 동의 거부 권리: 동의하지 않아도 회원가입 및 기본 서비스 이용에는 제한이 없습니다.</p>

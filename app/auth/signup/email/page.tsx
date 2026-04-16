@@ -9,7 +9,7 @@ export default function SignUpEmailPage() {
       <main className="mx-auto max-w-md px-4 py-14">
         <h1 className="mb-2 text-xl font-bold text-bt-strong">이메일로 회원가입</h1>
         <p className="mb-6 text-sm leading-relaxed text-bt-body">
-          이메일과 비밀번호로 가입합니다. 상품 탐색은 로그인 없이도 이용할 수 있습니다.
+          이름, 이메일, 비밀번호로 가입합니다. 상품 탐색은 로그인 없이도 이용할 수 있습니다.
         </p>
         <EmailRegisterForm />
         <p className="mt-6 text-center text-sm text-bt-body">
