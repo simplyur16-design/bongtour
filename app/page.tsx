@@ -11,6 +11,7 @@ import { getSeasonCurationSlidesForMobileHome } from '@/lib/home-season-pick'
 import { normalizeHomeSeasonSlidesForClient } from '@/lib/home-season-pick-shared'
 import PartnerOrganizationsSection from './components/home/PartnerOrganizationsSection'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
+import PreopenNoticeModal from '@/app/components/common/PreopenNoticeModal'
 import { SITE_NAME } from '@/lib/site-metadata'
 
 /** `home-hub-active.json` 갱신이 빌드 없이 메인에 반영되도록(정적 프리렌더 고정 방지). */
@@ -52,6 +53,7 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">
+      <PreopenNoticeModal />
       <SiteJsonLd />
       <Header />
       <main className="flex-1">
