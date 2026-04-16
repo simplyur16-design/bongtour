@@ -639,6 +639,11 @@ model CustomerInquiry {
   emailSentStatus       String? // sent | failed
   emailError            String?
 
+  /// 레거시: 과거 문의 운영자 SMS 추적용. 현재 POST /api/inquiries는 기록하지 않음(이메일만 자동 알림).
+  operatorSmsSentAt     DateTime?
+  operatorSmsStatus     String? // sent | failed
+  operatorSmsError      String?
+
   payloadJson           String? // 유형별 확장 필드 직렬화 (SQLite)
 
   createdAt             DateTime @default(now())

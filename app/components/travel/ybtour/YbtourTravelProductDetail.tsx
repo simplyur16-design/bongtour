@@ -16,19 +16,29 @@ import {
 import { isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-hanatour'
 import { parseLegacyStructuredOptionalTours, toLegacyBookingTypeLabel } from '@/lib/optional-tours-ui-model'
 import { getYbtourOptionalTourUiRows } from '@/lib/optional-tours-ui-ybtour'
-import { computeKRWQuotation, isScheduleAdultBookable } from '@/lib/price-utils'
+import { computeKRWQuotation } from '@/lib/price-utils'
 import {
   pickAnyRowForDateKey,
   pickBookableRowForDateKey,
   pickGloballyCheapestDepartureRowByAdultPrice,
 } from '@/lib/public-default-departure-selection'
+import {
+  advisoryForDepartureRow,
+  findPriceRowForDateKey,
+  quotePriceRowStrictForSelectedDate,
+  resolvePublicDetailDateKey,
+} from '@/lib/booking-departure-ssot'
+import { parseRangeOnDemandResponse, postRangeOnDemandDepartures } from '@/lib/departure-range-on-demand-client'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
 import { buildYbtourTripDateDisplaysForSelectedRow } from '@/lib/ybtour/ybtour-selected-row-trip-display'
 import ProductHeroCarousel from '@/app/components/detail/ProductHeroCarousel'
 import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
 import ProductLiveQuoteCard from '@/app/components/detail/ProductLiveQuoteCard'
+import DeparturePriceCollectOverlay from '@/app/components/detail/DeparturePriceCollectOverlay'
 import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
+import { resolveDeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
+import { useDeparturePriceCollectPhase } from '@/lib/hooks/use-departure-price-collect-phase'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
@@ -237,6 +247,7 @@ export default function YbtourTravelProductDetail({ product }: Props) {
   const [pricePatches, setPricePatches] = useState<ProductPriceRow[]>([])
   const [onDemandNotice, setOnDemandNotice] = useState<string | null>(null)
   const [departureCollectOpen, setDepartureCollectOpen] = useState(false)
+  const [calendarDateKey, setCalendarDateKey] = useState<string | null>(null)
 
   const mergedPrices = useMemo(() => {
     const by = new Map<string, ProductPriceRow>()
@@ -254,6 +265,7 @@ export default function YbtourTravelProductDetail({ product }: Props) {
     setPricePatches([])
     setOnDemandNotice(null)
     setDepartureCollectOpen(false)
+    setCalendarDateKey(null)
   }, [String(product.id)])
 
   const defaultDepartureRow = useMemo(
@@ -276,26 +288,58 @@ export default function YbtourTravelProductDetail({ product }: Props) {
     if (!row) {
       setDepartureUserPinned(false)
       setSelectedDepartureRowId(null)
-      return
-    }
-    if (String(selectedDepartureRowId).startsWith('od-')) return
-    if (!isScheduleAdultBookable(row)) {
-      setDepartureUserPinned(false)
-      setSelectedDepartureRowId(null)
     }
   }, [mergedPrices, selectedDepartureRowId])
 
-  const selectedPriceRow = useMemo(() => {
-    if (selectedDepartureRowId) {
-      const r = mergedPrices.find((p) => p.id === selectedDepartureRowId)
-      if (r) return r
-    }
-    return defaultDepartureRow
-  }, [mergedPrices, selectedDepartureRowId, defaultDepartureRow])
+  const runRangeOnDemandCollect = useCallback(
+    async (isoDate: string) => {
+      setDepartureCollectOpen(true)
+      setOnDemandNotice(null)
+      try {
+        const { ok, data } = await postRangeOnDemandDepartures(String(product.id), isoDate, 14)
+        if (!ok) {
+          setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+          return
+        }
+        const parsed = parseRangeOnDemandResponse(String(product.id), isoDate, data)
+        if (parsed.kind === 'open_row') {
+          setPricePatches((prev) => [...prev.filter((p) => toDateKey(p.date) !== isoDate), parsed.row])
+          setSelectedDepartureRowId(parsed.row.id)
+          setDepartureUserPinned(true)
+          if (parsed.refreshRouter) router.refresh()
+          return
+        }
+        if (parsed.kind === 'closed_row') {
+          setPricePatches((prev) => [...prev.filter((p) => toDateKey(p.date) !== isoDate), parsed.row])
+          setSelectedDepartureRowId(parsed.row.id)
+          setDepartureUserPinned(true)
+          setOnDemandNotice(parsed.notice)
+          if (parsed.refreshRouter) router.refresh()
+          return
+        }
+        if (parsed.kind === 'departure_not_found') {
+          setOnDemandNotice('선택하신 날짜에는 출발 가능한 상품이 없습니다.')
+          if (parsed.refreshRouter) router.refresh()
+          return
+        }
+        if (parsed.kind === 'price_unavailable') {
+          setOnDemandNotice('해당 날짜 출발은 있으나 가격을 아직 확인하지 못했습니다.')
+          return
+        }
+        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+      } catch {
+        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+      } finally {
+        setDepartureCollectOpen(false)
+      }
+    },
+    [product.id, router]
+  )
 
   const handleYbtourDeparturePick = useCallback(
     async (dateIso: string, sourceRowId: string | null) => {
       if (departureCollectOpen) return
+      setCalendarDateKey(dateIso)
       setOnDemandNotice(null)
       if (sourceRowId && mergedPrices.some((p) => p.id === sourceRowId)) {
         setSelectedDepartureRowId(sourceRowId)
@@ -314,94 +358,64 @@ export default function YbtourTravelProductDetail({ product }: Props) {
         setDepartureUserPinned(true)
         return
       }
-      setDepartureCollectOpen(true)
-      try {
-        const res = await fetch(`/api/products/${encodeURIComponent(String(product.id))}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mode: 'range-on-demand',
-            departureDate: dateIso,
-            windowDays: 14,
-          }),
-        })
-        if (!res.ok) {
-          setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
-          return
-        }
-        const data = (await res.json().catch(() => ({}))) as {
-          ok?: boolean
-          reason?: string
-          status?: string
-          price?: number | null
-          cached?: boolean
-        }
-        if (data?.ok === true && data.status === 'open' && data.price != null) {
-          const row: ProductPriceRow = {
-            id: `od-${dateIso}`,
-            productId: String(product.id),
-            date: dateIso,
-            adult: data.price,
-            childBed: 0,
-            childNoBed: 0,
-            infant: 0,
-            localPrice: null,
-            priceGap: 0,
-            priceAdult: data.price,
-            priceChildWithBed: 0,
-            priceChildNoBed: 0,
-            priceInfant: 0,
-          }
-          setPricePatches((prev) => [...prev.filter((p) => toDateKey(p.date) !== dateIso), row])
-          setSelectedDepartureRowId(row.id)
-          setDepartureUserPinned(true)
-          if (data?.cached !== true) router.refresh()
-          return
-        }
-        if (data?.ok === true && (data.status === 'sold_out' || data.status === 'closed')) {
-          const row: ProductPriceRow = {
-            id: `od-${dateIso}`,
-            productId: String(product.id),
-            date: dateIso,
-            adult: 0,
-            childBed: 0,
-            childNoBed: 0,
-            infant: 0,
-            localPrice: null,
-            priceGap: 0,
-            priceAdult: 0,
-            priceChildWithBed: 0,
-            priceChildNoBed: 0,
-            priceInfant: 0,
-            status: '마감',
-          }
-          setPricePatches((prev) => [...prev.filter((p) => toDateKey(p.date) !== dateIso), row])
-          setSelectedDepartureRowId(row.id)
-          setDepartureUserPinned(true)
-          setOnDemandNotice('해당 날짜 상품은 마감되었습니다.')
-          if (data?.cached !== true) router.refresh()
-          return
-        }
-        if (data?.reason === 'departure_not_found') {
-          setOnDemandNotice('선택하신 날짜에는 출발 가능한 상품이 없습니다.')
-          router.refresh()
-          return
-        }
-        if (data?.reason === 'departure_exists_price_unavailable') {
-          setOnDemandNotice('해당 날짜 출발은 있으나 가격을 아직 확인하지 못했습니다.')
-          return
-        }
-        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
-      } catch {
-        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
-      } finally {
-        setDepartureCollectOpen(false)
-      }
+      await runRangeOnDemandCollect(dateIso)
     },
-    [mergedPrices, product.id, router, departureCollectOpen]
+    [mergedPrices, departureCollectOpen, runRangeOnDemandCollect]
   )
 
-  const selectedDate = selectedPriceRow ? toDateKey(selectedPriceRow.date) : null
+  const openBookingIntake = useCallback(() => {
+    const dk = resolvePublicDetailDateKey({
+      calendarDateKey,
+      selectedDepartureRowId,
+      mergedPrices,
+      defaultDepartureRow,
+    })
+    if (dk && !findPriceRowForDateKey(mergedPrices, dk) && !departureCollectOpen) {
+      void runRangeOnDemandCollect(dk)
+    }
+    setBookingOpen(true)
+  }, [
+    calendarDateKey,
+    selectedDepartureRowId,
+    mergedPrices,
+    defaultDepartureRow,
+    departureCollectOpen,
+    runRangeOnDemandCollect,
+  ])
+
+  const selectedDate = useMemo(
+    () =>
+      resolvePublicDetailDateKey({
+        calendarDateKey,
+        selectedDepartureRowId,
+        mergedPrices,
+        defaultDepartureRow,
+      }),
+    [calendarDateKey, selectedDepartureRowId, mergedPrices, defaultDepartureRow]
+  )
+
+  const selectedPriceRow = useMemo(() => {
+    const explicit = selectedDepartureRowId
+      ? (mergedPrices.find((p) => p.id === selectedDepartureRowId) ?? null)
+      : null
+    return quotePriceRowStrictForSelectedDate(mergedPrices, selectedDate, explicit)
+  }, [mergedPrices, selectedDate, selectedDepartureRowId])
+
+  const collectUi = useDeparturePriceCollectPhase(departureCollectOpen)
+  const priceCollectUiPhase = useMemo(
+    () =>
+      resolveDeparturePriceCollectUiPhase(
+        departureCollectOpen,
+        collectUi.phase === 'delayed_collecting',
+        Boolean(selectedDate?.trim() && !selectedPriceRow && !departureCollectOpen)
+      ),
+    [departureCollectOpen, collectUi.phase, selectedDate, selectedPriceRow]
+  )
+
+  const intakeDepartureAdvisory = useMemo(
+    () => advisoryForDepartureRow(findPriceRowForDateKey(mergedPrices, selectedDate), departureCollectOpen),
+    [mergedPrices, selectedDate, departureCollectOpen]
+  )
 
   const structuredOptionalTours = useMemo(
     () => parseLegacyStructuredOptionalTours(product.optionalToursStructured),
@@ -477,11 +491,6 @@ export default function YbtourTravelProductDetail({ product }: Props) {
     })
     return lines
   }, [product.mandatoryLocalFee, product.mandatoryCurrency, product.counselingNotes])
-
-  const hasBookableSchedule = useMemo(
-    () => mergedPrices.some((p) => isScheduleAdultBookable(p)),
-    [mergedPrices]
-  )
 
   const updatePax = (key: keyof typeof pax, delta: number) => {
     setPax((prev) => {
@@ -817,12 +826,16 @@ export default function YbtourTravelProductDetail({ product }: Props) {
             product={product}
             prices={mergedPrices}
             selectedDate={selectedDate}
-            explicitPriceRow={selectedPriceRow}
+            explicitPriceRow={
+              selectedDepartureRowId
+                ? (mergedPrices.find((p) => p.id === selectedDepartureRowId) ?? null)
+                : null
+            }
             pax={pax}
             updatePax={updatePax}
             updateChildCombined={updateChildCombined}
             highRiskAlerts={highRiskAlerts}
-            onBookingOpen={() => setBookingOpen(true)}
+            onBookingOpen={openBookingIntake}
             onOpenDeparturePicker={() => setDeparturePickerOpen(true)}
             variant="desktop"
             fromScreen="product_detail_desktop"
@@ -830,6 +843,8 @@ export default function YbtourTravelProductDetail({ product }: Props) {
             heroTripDepartureDisplay={heroDepartureDisplay}
             heroTripReturnDisplay={heroReturnDisplay}
             modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
+            isCollectingPrices={departureCollectOpen}
+            priceCollectUiPhase={priceCollectUiPhase}
           />
         </div>
 
@@ -947,12 +962,16 @@ export default function YbtourTravelProductDetail({ product }: Props) {
                 product={product}
                 prices={mergedPrices}
                 selectedDate={selectedDate}
-                explicitPriceRow={selectedPriceRow}
+                explicitPriceRow={
+                  selectedDepartureRowId
+                    ? (mergedPrices.find((p) => p.id === selectedDepartureRowId) ?? null)
+                    : null
+                }
                 pax={pax}
                 updatePax={updatePax}
                 updateChildCombined={updateChildCombined}
                 highRiskAlerts={highRiskAlerts}
-                onBookingOpen={() => setBookingOpen(true)}
+                onBookingOpen={openBookingIntake}
                 onOpenDeparturePicker={() => setDeparturePickerOpen(true)}
                 variant="desktop"
                 fromScreen="product_detail_desktop"
@@ -960,6 +979,8 @@ export default function YbtourTravelProductDetail({ product }: Props) {
                 heroTripDepartureDisplay={heroDepartureDisplay}
                 heroTripReturnDisplay={heroReturnDisplay}
                 modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
+                isCollectingPrices={departureCollectOpen}
+                priceCollectUiPhase={priceCollectUiPhase}
               />
             </div>
           </aside>
@@ -991,35 +1012,19 @@ export default function YbtourTravelProductDetail({ product }: Props) {
           originSource={product.originSource}
           originCode={product.originCode}
           selectedDateFromCalendar={selectedDate}
+          departureRowId={selectedDepartureRowId}
+          departureAdvisoryLabel={intakeDepartureAdvisory}
           pax={pax}
-          hasPriceSchedule={hasBookableSchedule}
+          hasPriceSchedule={mergedPrices.length > 0}
+          isCollectingPrices={departureCollectOpen}
+          priceCollectUiPhase={priceCollectUiPhase}
         />
 
-        {departureCollectOpen ? (
-          <div
-            className="fixed inset-0 z-[220] flex items-center justify-center p-4"
-            role="alertdialog"
-            aria-modal="true"
-            aria-busy="true"
-            aria-labelledby="yb-dep-collect-title"
-            aria-describedby="yb-dep-collect-desc"
-          >
-            <div className="absolute inset-0 bg-black/45" aria-hidden />
-            <div className="relative w-full max-w-md rounded-2xl border border-bt-border-soft bg-bt-surface px-6 py-7 shadow-lg">
-              <h2 id="yb-dep-collect-title" className="text-center text-base font-semibold text-bt-card-title">
-                출발일 정보 수집 중
-              </h2>
-              <p id="yb-dep-collect-desc" className="mt-3 text-center text-sm leading-relaxed text-bt-body">
-                선택하신 날짜를 포함한 출발일 정보를 확인하고 있습니다. 잠시만 기다려 주세요.
-              </p>
-              <div
-                className="mx-auto mt-6 h-10 w-10 rounded-full border-2 border-bt-border-soft border-t-bt-card-title animate-spin"
-                style={{ animationDuration: '0.9s' }}
-                aria-hidden
-              />
-              <p className="mt-4 text-center text-xs text-bt-muted">출발일 정보 수집 중입니다.</p>
-            </div>
-          </div>
+        {departureCollectOpen && !bookingOpen && collectUi.phase !== 'idle' ? (
+          <DeparturePriceCollectOverlay
+            phase={collectUi.phase === 'delayed_collecting' ? 'delayed_collecting' : 'collecting'}
+            onContinueBooking={() => setBookingOpen(true)}
+          />
         ) : null}
       </main>
     </div>

@@ -4,8 +4,8 @@
  * @see docs/GTM-KAKAO-COUNSEL-GA4.md — GTM→GA4 매핑·검증
  */
 
+import { buildCounselChannelSummary } from '@/lib/booking-counsel-contract'
 import { KAKAO_OPEN_CHAT_URL } from '@/lib/kakao-open-chat'
-import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 
 export type CounselIntent = 'booking' | 'departure' | 'benefit' | 'schedule'
 
@@ -26,19 +26,14 @@ export type CounselPax = {
   infant: number
 }
 
-const INTENT_LABEL: Record<CounselIntent, string> = {
-  booking: '예약문의',
-  departure: '출발일문의',
-  benefit: '혜택문의',
-  schedule: '일정문의',
-}
-
 export type BuildKakaoCounselSummaryParams = {
   intent: CounselIntent
   productId: string
   productTitle: string
   originSource: string
   originCode: string
+  /** 리스트/공급사 노출 상품번호 — 없으면 요약에서 노출코드 줄만 강조 */
+  listingProductNumber?: string | null
   selectedDepartureDate?: string | null
   selectedDepartureId?: string | null
   preferredDepartureDate?: string | null
@@ -51,34 +46,35 @@ export type BuildKakaoCounselSummaryParams = {
   localFeeCurrency?: string | null
   /** 사용자가 보고 있던 페이지 URL */
   pageUrl?: string | null
+  /** 접수 폼 등에서 넘기는 고객 메모(고정 스냅샷) */
+  customerMemo?: string | null
+  /** 변동형: 일정 상태 라벨(참고 블록) */
+  advisoryLabel?: string | null
+  pricingMode?: string | null
+  isCollectingPrices?: boolean
 }
 
 export function buildKakaoCounselSummaryText(p: BuildKakaoCounselSummaryParams): string {
-  const supplier = formatOriginSourceForDisplay(p.originSource)
-  const productCode = (p.originCode || '').trim() || String(p.productId)
-  const departureHint =
-    p.selectedDepartureDate?.trim() ||
-    p.preferredDepartureDate?.trim() ||
-    ''
-  const paxHint =
-    p.pax.adult + p.pax.childBed + p.pax.childNoBed + p.pax.infant > 0
-      ? `성인 ${p.pax.adult} / 아동 ${p.pax.childBed + p.pax.childNoBed} / 유아 ${p.pax.infant}`
-      : '성인 / 아동 / 유아'
-  const link = p.pageUrl?.trim() || '상품 링크 확인 필요'
-
-  return [
-    '[예약 상담]',
-    '',
-    `상품명: ${p.productTitle}`,
-    `상품코드: ${productCode}`,
-    `공급사: ${supplier}`,
-    `상품링크: ${link}`,
-    '',
-    `출발 희망일: ${departureHint}`,
-    `인원: ${paxHint}`,
-    '전화번호(권장):',
-    '문의 내용:',
-  ].join('\n')
+  return buildCounselChannelSummary('[예약 상담]', {
+    productId: String(p.productId),
+    originCode: p.originCode,
+    listingProductNumber: p.listingProductNumber ?? null,
+    productTitle: p.productTitle,
+    originSource: p.originSource,
+    selectedDepartureDate: p.selectedDepartureDate ?? null,
+    selectedDepartureId: p.selectedDepartureId ?? null,
+    preferredDepartureDate: p.preferredDepartureDate ?? null,
+    pax: p.pax,
+    bookingId: p.bookingId ?? null,
+    pageUrl: p.pageUrl ?? null,
+    customerMemo: p.customerMemo ?? null,
+    advisoryLabel: p.advisoryLabel ?? null,
+    pricingMode: p.pricingMode ?? null,
+    isCollectingPrices: p.isCollectingPrices,
+    quotationKrwTotal: p.quotationKrwTotal ?? null,
+    localFeePerPerson: p.localFeePerPerson ?? null,
+    localFeeCurrency: p.localFeeCurrency ?? null,
+  })
 }
 
 export type KakaoCounselClickPayload = {
@@ -86,11 +82,15 @@ export type KakaoCounselClickPayload = {
   product_id: string
   product_title?: string
   origin_source: string
+  /** 공급사/리스트 노출 상품코드(요약의 listing 줄과 동일 우선순위) */
   origin_code?: string
+  /** 리스트 상품번호가 origin_code와 다를 때 구분용(선택) */
+  listing_product_number?: string | null
   from_screen: CounselFromScreen
   selected_departure_date?: string | null
   selected_departure_id?: string | null
   preferred_departure_date?: string | null
+  booking_request_id?: number | null
   adult_count?: number
   child_bed_count?: number
   child_no_bed_count?: number
@@ -118,9 +118,11 @@ export function pushKakaoCounselDataLayer(payload: KakaoCounselClickPayload): vo
     from_screen: payload.from_screen,
     product_title: payload.product_title ?? null,
     origin_code: payload.origin_code ?? null,
+    listing_product_number: payload.listing_product_number ?? null,
     selected_departure_date: payload.selected_departure_date ?? null,
     selected_departure_id: payload.selected_departure_id ?? null,
     preferred_departure_date: payload.preferred_departure_date ?? null,
+    booking_request_id: payload.booking_request_id ?? null,
     adult_count: payload.adult_count ?? null,
     child_bed_count: payload.child_bed_count ?? null,
     child_no_bed_count: payload.child_no_bed_count ?? null,

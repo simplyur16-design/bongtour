@@ -1,22 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import type { CounselFromScreen, CounselPax } from '@/lib/kakao-counsel'
 import {
-  buildKakaoCounselSummaryText,
-  copyTextAndOpenKakaoOpenChat,
-  pushKakaoCounselDataLayer,
-  type CounselFromScreen,
-  type CounselIntent,
-  type CounselPax,
-} from '@/lib/kakao-counsel'
-
-export type { CounselIntent, CounselFromScreen, CounselPax }
+  buildNaverTalktalkCounselSummaryText,
+  copyTextAndOpenNaverTalktalk,
+  NAVER_TALKTALK_ENTRY_URL,
+  pushNaverTalktalkCounselDataLayer,
+} from '@/lib/naver-talktalk-counsel'
 
 type Props = {
-  intent: CounselIntent
   fromScreen: CounselFromScreen
   productId: string
-  /** 리스트/공급사 상품번호(있으면 요약에 별도 표기) */
   listingProductNumber?: string | null
   productTitle: string
   originSource: string
@@ -29,22 +24,19 @@ type Props = {
   quotationKrwTotal?: number | null
   localFeePerPerson?: number | null
   localFeeCurrency?: string | null
-  /** 접수·상세 폼 메모 스냅샷(고정 블록) */
   customerMemo?: string | null
-  /** 변동·참고: 일정 상태 라벨 */
   advisoryLabel?: string | null
   pricingMode?: string | null
   isCollectingPrices?: boolean
-  variant?: 'secondary' | 'kakaoSoft'
   className?: string
   showHelper?: boolean
 }
 
 /**
- * 1:1 카카오 상담: 요약 복사 후 오픈채팅 새 탭, dataLayer 이벤트 전송.
+ * 네이버 톡톡: 요약은 클립보드에 복사하고, 톡톡 진입 URL(설정 시)을 연다.
+ * URL 미설정 시 버튼은 비활성(운영에서 env만 채우면 활성화).
  */
-export default function KakaoCounselCta({
-  intent,
+export default function NaverTalktalkCounselCta({
   fromScreen,
   productId,
   listingProductNumber,
@@ -63,42 +55,37 @@ export default function KakaoCounselCta({
   advisoryLabel,
   pricingMode,
   isCollectingPrices,
-  variant = 'secondary',
-  showHelper = true,
   className = '',
+  showHelper = true,
 }: Props) {
   const [copied, setCopied] = useState(false)
-
-  const base =
-    variant === 'kakaoSoft'
-      ? 'border border-[#e5d78a] bg-[#FFFBEB] text-[#191919] hover:bg-[#FFF8DC]'
-      : 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
+  const enabled = Boolean(NAVER_TALKTALK_ENTRY_URL.trim())
 
   const handleClick = async () => {
+    if (!enabled) return
     const pageUrl = typeof window !== 'undefined' ? window.location.href : null
-    const text = buildKakaoCounselSummaryText({
-      intent,
+    const common = {
       productId,
+      originCode,
       listingProductNumber: listingProductNumber ?? null,
       productTitle,
       originSource,
-      originCode,
-      selectedDepartureDate,
-      selectedDepartureId,
-      preferredDepartureDate,
+      selectedDepartureDate: selectedDepartureDate ?? null,
+      selectedDepartureId: selectedDepartureId ?? null,
+      preferredDepartureDate: preferredDepartureDate ?? null,
       pax,
       bookingId: bookingId ?? null,
-      quotationKrwTotal: quotationKrwTotal ?? null,
-      localFeePerPerson: localFeePerPerson ?? null,
-      localFeeCurrency: localFeeCurrency ?? null,
       pageUrl,
       customerMemo: customerMemo ?? null,
       advisoryLabel: advisoryLabel ?? null,
       pricingMode: pricingMode ?? null,
       isCollectingPrices: Boolean(isCollectingPrices),
-    })
-    pushKakaoCounselDataLayer({
-      intent,
+      quotationKrwTotal: quotationKrwTotal ?? null,
+      localFeePerPerson: localFeePerPerson ?? null,
+      localFeeCurrency: localFeeCurrency ?? null,
+    }
+    const text = buildNaverTalktalkCounselSummaryText(common)
+    pushNaverTalktalkCounselDataLayer({
       product_id: productId,
       product_title: productTitle,
       origin_source: originSource,
@@ -108,18 +95,10 @@ export default function KakaoCounselCta({
       selected_departure_date: selectedDepartureDate ?? null,
       selected_departure_id: selectedDepartureId ?? null,
       preferred_departure_date: preferredDepartureDate ?? null,
-      adult_count: pax.adult,
-      child_bed_count: pax.childBed,
-      child_no_bed_count: pax.childNoBed,
-      infant_count: pax.infant,
-      total_pax: pax.adult + pax.childBed + pax.childNoBed + pax.infant,
-      quotation_krw_total: quotationKrwTotal ?? null,
-      local_fee_per_person: localFeePerPerson ?? null,
-      local_fee_currency: localFeeCurrency ?? null,
-      page_url: pageUrl,
       booking_request_id: bookingId ?? null,
+      page_url: pageUrl,
     })
-    await copyTextAndOpenKakaoOpenChat(text)
+    await copyTextAndOpenNaverTalktalk(text, pageUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2500)
   }
@@ -129,13 +108,21 @@ export default function KakaoCounselCta({
       <button
         type="button"
         onClick={handleClick}
-        className={`flex w-full flex-col items-center justify-center gap-0.5 rounded-lg px-4 py-2.5 text-center text-sm font-medium transition ${base}`}
+        disabled={!enabled}
+        className={`flex w-full flex-col items-center justify-center gap-0.5 rounded-lg border px-4 py-2.5 text-center text-sm font-medium transition ${
+          enabled
+            ? 'border-[#03C75A]/40 bg-[#E8FFF3] text-[#0a3d2c] hover:bg-[#d6f5e6]'
+            : 'cursor-not-allowed border-bt-border-soft bg-bt-surface-soft text-bt-disabled'
+        }`}
       >
-        <span>{copied ? '상담창 열림' : '1:1 카카오 상담하기'}</span>
-        {showHelper && !copied && (
-          <span className="text-[11px] font-normal text-slate-500">
-            상품 정보 자동 전달 + 입력창 비어 있으면 복사된 내용을 붙여넣어 주세요
+        <span>{!enabled ? '네이버 톡톡(연결 준비 중)' : copied ? '톡톡 창 열림' : '네이버 톡톡 상담하기'}</span>
+        {showHelper && enabled && !copied && (
+          <span className="text-[11px] font-normal text-bt-meta">
+            요약은 클립보드에 복사됩니다. 톡톡 입력창에 붙여넣어 주세요.
           </span>
+        )}
+        {!enabled && (
+          <span className="text-[11px] font-normal text-bt-subtle">NEXT_PUBLIC_NAVER_TALKTALK_URL 설정 후 사용</span>
         )}
       </button>
     </div>

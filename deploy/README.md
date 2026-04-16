@@ -32,6 +32,8 @@ nginx(www 리다이렉트·프록시 헤더)는 `nginx-bongtour-site.conf.exampl
 
 전체 절차: `docs/DEPLOY-NAVER-CLOUD.md`.
 
+문의 접수 **관리자 알림 메일(SMTP)** env·테스트·실패 시 동작: `docs/OPS-INQUIRY-SMTP.md` — `npm run test:inquiry-smtp` / `--ethereal`.
+
 ---
 
 ## 가동·관측 (권장)

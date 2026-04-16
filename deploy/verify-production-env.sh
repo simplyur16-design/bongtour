@@ -116,6 +116,22 @@ echo "[참고 — 이메일 로그인]"
 echo "  env 불필요. DB User에 email·passwordHash·accountStatus=active 필요."
 echo ""
 
+echo "[권장 — 문의 접수 관리자 메일 SMTP (lib/inquiry-email.ts)]"
+smtp_ok=0
+[[ -n "$(val_of "$(merged_line SMTP_HOST)")" ]] && \
+[[ -n "$(val_of "$(merged_line SMTP_USER)")" ]] && \
+[[ -n "$(val_of "$(merged_line SMTP_PASS)")" ]] && {
+  if [[ -n "$(val_of "$(merged_line INQUIRY_MAIL_FROM)")" ]] || [[ -n "$(val_of "$(merged_line SMTP_USER)")" ]]; then
+    smtp_ok=1
+  fi
+}
+if [[ "$smtp_ok" -eq 1 ]]; then
+  echo "  [OK] SMTP_HOST + SMTP_USER + SMTP_PASS + 발신(INQUIRY_MAIL_FROM 또는 USER)"
+else
+  echo "  [미설정] 문의 알림 메일 — 미설정 시 접수는 되나 메일 실패·notification 지연 처리( docs/OPS-INQUIRY-SMTP.md )"
+fi
+echo ""
+
 echo "[권장 — 로컬과 동일한 이미지·키워드·생성 파이프라인]"
 # 파서 코드는 동일하나, Pexels/Gemini 키가 없으면 API가 빈 결과·fallback만 나와 검색어·대표이미지 결과가 로컬과 달라짐
 if [[ -n "$(val_of "$(merged_line PEXELS_API_KEY)")" ]]; then

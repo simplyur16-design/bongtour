@@ -208,6 +208,11 @@ export default function AdminBookingsPage() {
                     이 접수는 희망 출발일 기준으로 접수되었습니다. 금액은 담당자 확인 후 안내됩니다.
                   </p>
                 )}
+                {detail.pricingMode === 'schedule_selected_pending_quote' && (
+                  <p className="rounded-lg border border-amber-100 bg-amber-50/80 px-3 py-2 text-sm text-amber-900">
+                    선택 출발일은 저장되었으나 해당 일자 요금 행이 없어 견적 금액은 0으로 접수되었습니다. 담당자 확인 후 안내해 주세요.
+                  </p>
+                )}
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700">

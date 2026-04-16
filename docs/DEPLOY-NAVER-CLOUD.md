@@ -3,6 +3,7 @@
 BongTour Next.js 앱을 단일 서버에 올릴 때의 최소 절차입니다. 공급사 스크래퍼·어댑터 코드와 무관합니다.
 
 - **비밀 파일**: 루트 `.env.production`은 `.gitignore`에 포함되어 **커밋되지 않습니다**. 저장소에는 `.env.production.example`만 두고, 서버에서 `cp .env.production.example .env.production` 후 편집하세요.
+- **문의 관리자 메일(SMTP)**: `docs/OPS-INQUIRY-SMTP.md` — 배포 후 `pm2 restart … --update-env`, 검증은 `npm run test:inquiry-smtp`.
 
 ## 전제
 

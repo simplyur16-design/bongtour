@@ -21,7 +21,7 @@ function getClientIp(headers: Headers): string {
  * 보안·운영:
  * - 동일 출처(Origin/Referer) 검증 후 IP rate limit — lib/public-mutation-origin
  * - Captcha: 미적용 — 봇 남용 시 bot 관리·캡차 등 검토
- * - 관리자 알림(카카오/이메일·웹훅): 미구현 — 접수 알림은 후속 단계에서 연동
+ * - 운영자 자동 알림: 이메일 `sendInquiryReceivedEmail`만 사용(SMS 미사용). 실패는 DB·로그·`notification.channels`로 구분.
  * - `sourcePagePath` / `snapshot*`: 운영·분석 추적용(클라이언트 입력이므로 신뢰 검증은 하지 않음)
  */
 export async function POST(request: Request) {
@@ -119,6 +119,7 @@ export async function POST(request: Request) {
       selectedServiceType = null
     }
 
+    /** DB 저장 — 알림과 분리. 이후 단계 실패해도 롤백하지 않음. */
     const row = await prisma.customerInquiry.create({
       data: {
         inquiryType: v.inquiryType,
@@ -153,21 +154,41 @@ export async function POST(request: Request) {
         message: true,
         sourcePagePath: true,
         payloadJson: true,
+        productId: true,
+        snapshotProductTitle: true,
+        snapshotCardLabel: true,
       },
     })
 
-    try {
-      await sendInquiryReceivedEmail({
-        inquiryId: row.id,
-        inquiryType: row.inquiryType,
-        applicantName: row.applicantName,
-        applicantPhone: row.applicantPhone,
-        applicantEmail: row.applicantEmail,
-        message: row.message,
-        sourcePagePath: row.sourcePagePath,
-        createdAtIso: row.createdAt.toISOString(),
-        payloadJson: row.payloadJson,
+    let productMeta: { title: string; originCode: string; originSource: string } | null = null
+    if (row.productId) {
+      const p = await prisma.product.findUnique({
+        where: { id: row.productId },
+        select: { title: true, originCode: true, originSource: true },
       })
+      if (p) productMeta = p
+    }
+
+    const notifyInput = {
+      inquiryId: row.id,
+      inquiryType: row.inquiryType,
+      applicantName: row.applicantName,
+      applicantPhone: row.applicantPhone,
+      applicantEmail: row.applicantEmail,
+      message: row.message,
+      sourcePagePath: row.sourcePagePath,
+      createdAtIso: row.createdAt.toISOString(),
+      payloadJson: row.payloadJson,
+      productId: row.productId,
+      snapshotProductTitle: row.snapshotProductTitle,
+      snapshotCardLabel: row.snapshotCardLabel,
+      product: productMeta,
+    }
+
+    let emailOk = false
+    try {
+      await sendInquiryReceivedEmail(notifyInput)
+      emailOk = true
       await prisma.customerInquiry.update({
         where: { id: row.id },
         data: {
@@ -177,22 +198,23 @@ export async function POST(request: Request) {
         },
       })
     } catch (mailError) {
+      const errMsg = mailError instanceof Error ? mailError.message.slice(0, 500) : 'unknown'
       await prisma.customerInquiry.update({
         where: { id: row.id },
         data: {
           emailSentAt: null,
           emailSentStatus: 'failed',
-          emailError: mailError instanceof Error ? mailError.message.slice(0, 500) : 'unknown',
+          emailError: errMsg,
         },
       })
-      console.error('[POST /api/inquiries] mail send failed', mailError)
-      return NextResponse.json(
-        {
-          ok: false,
-          error: '문의 저장 후 알림 전송에 실패했습니다. 잠시 후 다시 시도해 주세요.',
-          fieldErrors: {} as Record<string, string>,
-        },
-        { status: 500 }
+      console.error(
+        '[POST /api/inquiries] notification_email_failed',
+        JSON.stringify({
+          inquiryId: row.id,
+          inquiryType: row.inquiryType,
+          stage: 'smtp_inquiry_received',
+          error: errMsg,
+        })
       )
     }
 
@@ -205,6 +227,13 @@ export async function POST(request: Request) {
         leadTimeRisk: row.leadTimeRisk,
         createdAt: row.createdAt.toISOString(),
       },
+      notification: {
+        ok: emailOk,
+        delayed: !emailOk,
+        channels: {
+          email: { ok: emailOk },
+        },
+      },
     }
     assertNoInternalMetaLeak(payload, '/api/inquiries')
     return NextResponse.json(payload)
@@ -213,7 +242,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: '일시적으로 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+        error: '문의 접수에 실패했습니다. 잠시 후 다시 시도해 주세요.',
         fieldErrors: {} as Record<string, string>,
       },
       { status: 500 }

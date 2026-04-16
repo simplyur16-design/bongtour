@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { validateBookingIntake } from '@/lib/booking-intake-contract'
 import KakaoCounselCta from '@/app/components/travel/KakaoCounselCta'
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const EMAIL_FORMAT_ERROR = '올바른 이메일 형식을 입력해 주세요.'
+import NaverTalktalkCounselCta from '@/app/components/travel/NaverTalktalkCounselCta'
+import type { DeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
+import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
+import { formatKoreanTelInput } from '@/lib/korean-tel-format'
+import { OPTIONAL_EMAIL_FORMAT_ERROR, optionalEmailFormatError } from '@/lib/email-format'
 
 export type BookingPax = {
   adult: number
@@ -23,16 +25,24 @@ type Props = {
   originCode: string
   /** 상세에서 고른 출발일 YYYY-MM-DD (일정이 있을 때) */
   selectedDateFromCalendar: string | null
+  /** 상세에서 고른 출발 가격 행 id (있으면 접수·카카오 요약에 포함) */
+  departureRowId?: string | null
+  /** 선택일 기준 운영 라벨(예약가능/상담필요/수집중 등) — 참고 표시만 */
+  departureAdvisoryLabel?: string | null
   pax: BookingPax
-  /** 가격 일정이 하나도 없으면 희망일만 접수 */
+  /** DB/병합 일정 행 존재 여부 — UI 분기용. 접수 차단에는 쓰지 않음 */
   hasPriceSchedule: boolean
+  /** 전후 2주 on-demand 수집 중 — 상담 요약 참고 블록용 */
+  isCollectingPrices?: boolean
+  /** 수집·지연·pending_quote — 모달 상단 안내(접수 차단 없음) */
+  priceCollectUiPhase?: DeparturePriceCollectUiPhase
 }
 
 type ApiSuccess = {
   ok: true
   bookingId: number
   message: string
-  pricingMode?: 'schedule_price' | 'wish_date_only'
+  pricingMode?: 'schedule_price' | 'wish_date_only' | 'schedule_selected_pending_quote'
 }
 
 export default function BookingIntakeModal({
@@ -43,8 +53,12 @@ export default function BookingIntakeModal({
   originSource,
   originCode,
   selectedDateFromCalendar,
+  departureRowId = null,
+  departureAdvisoryLabel = null,
   pax,
   hasPriceSchedule,
+  isCollectingPrices = false,
+  priceCollectUiPhase = 'idle',
 }: Props) {
   const childCount = pax.childBed + pax.childNoBed
   const infantCount = pax.infant
@@ -69,18 +83,23 @@ export default function BookingIntakeModal({
   const [clientError, setClientError] = useState('')
   const [serverError, setServerError] = useState('')
   const [success, setSuccess] = useState<ApiSuccess | null>(null)
+  /** 접수 직전 폼의 상담 메모 — 제출 후 필드 초기화해도 CTA 요약에 유지 */
+  const [successMemoSnapshot, setSuccessMemoSnapshot] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setClientError('')
     setServerError('')
     setSuccess(null)
-    if (!hasPriceSchedule) {
+    setSuccessMemoSnapshot(null)
+    if (selectedDateFromCalendar) {
+      setDepartureMode('schedule')
+    } else if (!hasPriceSchedule) {
       setDepartureMode('wish')
     } else {
       setDepartureMode('schedule')
     }
-  }, [open, hasPriceSchedule])
+  }, [open, hasPriceSchedule, selectedDateFromCalendar])
 
   useEffect(() => {
     const n = childCount + infantCount
@@ -115,6 +134,7 @@ export default function BookingIntakeModal({
       productId: String(productId),
       originSource,
       originCode,
+      departureId: departureRowId?.trim() || null,
       selectedDepartureDate: selectedDepartureDate,
       preferredDepartureDate,
       customerName: customerName.trim(),
@@ -132,16 +152,16 @@ export default function BookingIntakeModal({
     }
   }
 
-  const hasValidEmailFormat = (value: string): boolean => EMAIL_RE.test(value.trim())
+  const hasValidEmailFormat = (value: string): boolean => !optionalEmailFormatError(value)
 
   const runClientChecks = (): string | null => {
-    if (departureMode === 'schedule' && hasPriceSchedule && !selectedDateFromCalendar) {
-      return '상단에서 출발일을 선택하거나, “희망 출발일만”으로 접수해 주세요.'
+    if (departureMode === 'schedule' && !selectedDateFromCalendar) {
+      return '상단에서 출발일을 선택하거나, 아래에서 “희망 출발일만”으로 접수해 주세요.'
     }
     if (departureMode === 'wish' && !preferredDateOnly.trim()) {
       return '희망 출발일을 입력해 주세요.'
     }
-    if (departureMode === 'schedule' && hasPriceSchedule && selectedDateFromCalendar) {
+    if (departureMode === 'schedule' && selectedDateFromCalendar) {
       if (additionalPreferredWhenSchedule.trim() && !/^\d{4}-\d{2}-\d{2}$/.test(additionalPreferredWhenSchedule.trim())) {
         return '추가 희망일은 YYYY-MM-DD 형식이어야 합니다.'
       }
@@ -149,9 +169,8 @@ export default function BookingIntakeModal({
     if (departureMode === 'wish' && preferredDateOnly.trim() && !/^\d{4}-\d{2}-\d{2}$/.test(preferredDateOnly.trim())) {
       return '희망 출발일은 YYYY-MM-DD 형식이어야 합니다.'
     }
-    if (customerEmail.trim() && !hasValidEmailFormat(customerEmail)) {
-      return EMAIL_FORMAT_ERROR
-    }
+    const emErr = optionalEmailFormatError(customerEmail)
+    if (emErr) return emErr
     for (let i = 0; i < childCount + infantCount; i++) {
       const v = birthDates[i]?.trim() ?? ''
       if (!v) return '아동·유아 생년월일을 모두 입력해 주세요.'
@@ -201,6 +220,10 @@ export default function BookingIntakeModal({
         body.selectedDate = validated.value.selectedDepartureDate
         body.selectedDepartureDate = validated.value.selectedDepartureDate
       }
+      if (validated.value.departureId) {
+        body.departureId = validated.value.departureId
+        body.sourceRowId = validated.value.departureId
+      }
       if (validated.value.preferredDepartureDate) {
         body.preferredDepartureDate = validated.value.preferredDepartureDate
       }
@@ -216,12 +239,14 @@ export default function BookingIntakeModal({
         return
       }
       if (data.ok && data.message) {
+        const memoSnap = requestNotes.trim() || null
         setSuccess({
           ok: true,
           bookingId: data.bookingId ?? 0,
           message: data.message,
           pricingMode: data.pricingMode,
         })
+        setSuccessMemoSnapshot(memoSnap)
         setCustomerName('')
         setCustomerPhone('')
         setCustomerEmail('')
@@ -268,9 +293,15 @@ export default function BookingIntakeModal({
                   희망 출발일 기준으로 접수되었습니다. 금액·좌석은 담당자 확인 후 안내됩니다.
                 </p>
               )}
-              {success.pricingMode === 'schedule_price' && (
+              {(success.pricingMode === 'schedule_price' ||
+                success.pricingMode === 'schedule_selected_pending_quote') && (
                 <p className="mt-2 text-xs text-bt-meta">
                   안내된 견적은 참고용이며, 최종 조건은 담당자 확인 후 확정됩니다.
+                </p>
+              )}
+              {success.pricingMode === 'schedule_selected_pending_quote' && (
+                <p className="mt-3 rounded border border-bt-border-soft bg-bt-surface-alt px-3 py-2 text-sm text-bt-body">
+                  선택하신 출발일은 접수되었으나, 해당 일자 요금 행이 아직 없어 견적 금액은 0으로 저장됩니다. 담당자가 확인 후 연락드립니다.
                 </p>
               )}
               <p className="mt-3 text-xs text-bt-meta">
@@ -280,22 +311,45 @@ export default function BookingIntakeModal({
             <div className="rounded-lg border border-dashed border-bt-border-soft bg-bt-surface p-3">
               <p className="text-xs font-medium text-bt-body">추가 문의</p>
               <p className="mt-1 text-[11px] leading-relaxed text-bt-meta">
-                접수와 별도로 상품·일정을 바로 물어보시려면 카카오 상담으로 연결할 수 있습니다.
+                접수와 별도로 상품·일정을 바로 물어보시려면 카카오 오픈채팅 또는 네이버 톡톡으로 연결할 수 있습니다. 요약 형식은 동일합니다.
               </p>
-              <div className="mt-2">
+              <div className="mt-2 space-y-2">
                 <KakaoCounselCta
                   variant="kakaoSoft"
                   showHelper
                   intent="booking"
                   fromScreen="booking_success_modal"
                   productId={productId}
+                  listingProductNumber={originCode}
                   productTitle={productTitle}
                   originSource={originSource}
                   originCode={originCode}
-                  selectedDepartureDate={selectedDepartureDate}
+                  selectedDepartureDate={selectedDepartureDate ?? selectedDateFromCalendar}
+                  selectedDepartureId={departureRowId}
                   preferredDepartureDate={preferredDepartureDate}
                   pax={pax}
                   bookingId={success.bookingId}
+                  customerMemo={successMemoSnapshot}
+                  advisoryLabel={departureAdvisoryLabel}
+                  pricingMode={success.pricingMode ?? null}
+                  isCollectingPrices={isCollectingPrices}
+                />
+                <NaverTalktalkCounselCta
+                  fromScreen="booking_success_modal"
+                  productId={productId}
+                  listingProductNumber={originCode}
+                  productTitle={productTitle}
+                  originSource={originSource}
+                  originCode={originCode}
+                  selectedDepartureDate={selectedDepartureDate ?? selectedDateFromCalendar}
+                  selectedDepartureId={departureRowId}
+                  preferredDepartureDate={preferredDepartureDate}
+                  pax={pax}
+                  bookingId={success.bookingId}
+                  customerMemo={successMemoSnapshot}
+                  advisoryLabel={departureAdvisoryLabel}
+                  pricingMode={success.pricingMode ?? null}
+                  isCollectingPrices={isCollectingPrices}
                 />
               </div>
             </div>
@@ -319,6 +373,45 @@ export default function BookingIntakeModal({
               aria-hidden="true"
               className="hidden"
             />
+            {(priceCollectUiPhase === 'collecting' || priceCollectUiPhase === 'delayed_collecting') && (
+              <div
+                className={`rounded-lg border px-3 py-2.5 text-sm leading-relaxed ${
+                  priceCollectUiPhase === 'delayed_collecting'
+                    ? 'border-amber-200 bg-amber-50/90 text-amber-950'
+                    : 'border-bt-border-soft bg-bt-surface-alt text-bt-body'
+                }`}
+                role="status"
+                aria-live="polite"
+              >
+                <p>
+                  {priceCollectUiPhase === 'delayed_collecting'
+                    ? departurePriceCollectUiCopy.modalBannerDelayed
+                    : departurePriceCollectUiCopy.modalBannerCollecting}
+                </p>
+              </div>
+            )}
+            {priceCollectUiPhase === 'pending_quote' && !isCollectingPrices ? (
+              <div
+                className="rounded-lg border border-bt-border-soft bg-bt-surface-alt px-3 py-2.5 text-sm leading-relaxed text-bt-body"
+                role="status"
+              >
+                {departurePriceCollectUiCopy.cardPendingQuoteHint}
+              </div>
+            ) : null}
+            {selectedDateFromCalendar ? (
+              <div className="rounded-lg border border-bt-border-soft bg-bt-surface-alt p-3">
+                <p className="text-xs font-medium text-bt-muted">선택 출발일 (상세와 동일)</p>
+                <p className="mt-1 text-lg font-bold tabular-nums text-bt-title">{selectedDateFromCalendar}</p>
+                {departureAdvisoryLabel ? (
+                  <p className="mt-1 text-xs text-bt-meta">
+                    일정 상태(참고): <span className="font-semibold text-bt-body">{departureAdvisoryLabel}</span>
+                  </p>
+                ) : null}
+                <p className="mt-2 text-[11px] leading-relaxed text-bt-subtle">
+                  예약 가능 표시와 관계없이 요청 접수가 가능합니다. 실제 좌석·조건은 상담으로 확정됩니다.
+                </p>
+              </div>
+            ) : null}
             {hasPriceSchedule && (
               <div className="space-y-2 rounded-lg border border-bt-border-soft bg-bt-surface-alt p-3">
                 <p className="text-xs font-medium text-bt-body">출발일</p>
@@ -423,14 +516,14 @@ export default function BookingIntakeModal({
                   type="tel"
                   autoComplete="tel"
                   value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  onChange={(e) => setCustomerPhone(formatKoreanTelInput(e.target.value))}
                   className="w-full rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
                   required
                 />
               </div>
               <div>
                 <label htmlFor="bin-email" className="mb-1 block text-xs font-medium text-bt-muted">
-                  이메일 <span className="text-bt-danger">*</span>
+                  이메일 <span className="text-bt-subtle">(선택)</span>
                 </label>
                 <input
                   id="bin-email"
@@ -441,17 +534,15 @@ export default function BookingIntakeModal({
                   onChange={(e) => {
                     const next = e.target.value
                     setCustomerEmail(next)
-                    if (clientError === EMAIL_FORMAT_ERROR && hasValidEmailFormat(next)) {
+                    if (clientError === OPTIONAL_EMAIL_FORMAT_ERROR && hasValidEmailFormat(next)) {
                       setClientError('')
                     }
                   }}
                   onBlur={() => {
-                    if (customerEmail.trim() && !hasValidEmailFormat(customerEmail)) {
-                      setClientError(EMAIL_FORMAT_ERROR)
-                    }
+                    const err = optionalEmailFormatError(customerEmail)
+                    if (err) setClientError(err)
                   }}
                   className="w-full rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
-                  required
                 />
               </div>
             </div>

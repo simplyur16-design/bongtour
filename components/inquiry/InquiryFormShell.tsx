@@ -14,14 +14,19 @@ import {
 } from '@/lib/inquiry-page'
 import type { FieldErrors } from '@/lib/customer-inquiry-intake'
 import { KAKAO_OPEN_CHAT_URL } from '@/lib/kakao-open-chat'
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const EMAIL_FORMAT_ERROR = '올바른 이메일 형식을 입력해 주세요.'
+import { formatKoreanTelInput } from '@/lib/korean-tel-format'
+import { optionalEmailFormatError } from '@/lib/email-format'
 
 type ApiErrorJson = {
   ok?: boolean
   error?: string
   fieldErrors?: FieldErrors
+  inquiry?: { id: string }
+  notification?: {
+    ok: boolean
+    delayed?: boolean
+    channels?: { email?: { ok: boolean } }
+  }
 }
 
 export type InquiryFormShellProps = {
@@ -89,6 +94,8 @@ export default function InquiryFormShell({
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [done, setDone] = useState(false)
+  /** 접수 DB 성공 후 운영자 이메일 알림이 실패한 경우 */
+  const [notificationDelayed, setNotificationDelayed] = useState(false)
 
   const baseId = useId()
   const ids = useMemo(
@@ -116,15 +123,12 @@ export default function InquiryFormShell({
       .map(([, v]) => v)
   }, [fieldErrors])
 
-  const validateEmailFormat = (value: string): string | null => {
-    const trimmed = value.trim()
-    if (!trimmed) return null
-    return EMAIL_RE.test(trimmed) ? null : EMAIL_FORMAT_ERROR
-  }
+  const validateEmailFormat = (value: string): string | null => optionalEmailFormatError(value)
 
   const submit = useCallback(async () => {
     setFormError(null)
     setFieldErrors({})
+    setNotificationDelayed(false)
     setSubmitting(true)
     try {
       const q = initialQuery
@@ -192,13 +196,14 @@ export default function InquiryFormShell({
       const data = (await res.json()) as ApiErrorJson
 
       if (!res.ok || data.ok === false) {
-        setFormError(typeof data.error === 'string' ? data.error : '접수에 실패했습니다.')
+        setFormError(typeof data.error === 'string' ? data.error : '문의 접수에 실패했습니다. 잠시 후 다시 시도해 주세요.')
         if (data.fieldErrors && typeof data.fieldErrors === 'object') {
           setFieldErrors(data.fieldErrors)
         }
         return
       }
 
+      setNotificationDelayed(Boolean(data.notification && data.notification.ok === false))
       setDone(true)
     } catch {
       setFormError('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')
@@ -227,7 +232,14 @@ export default function InquiryFormShell({
     return (
       <div className="mx-auto max-w-lg px-4 py-10 sm:px-6">
         <InquirySuccessPanel type={kind as InquirySuccessKind} />
-        <p className="mt-4 text-center text-sm text-slate-700">{successMessage}</p>
+        {notificationDelayed ? (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center">
+            <p className="text-sm font-medium text-slate-900">문의는 정상 접수되었습니다.</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-700">알림 전송이 지연될 수 있습니다.</p>
+          </div>
+        ) : (
+          <p className="mt-4 text-center text-sm text-slate-700">{successMessage}</p>
+        )}
         {successHintMessage ? <p className="mt-2 text-center text-xs text-slate-600">{successHintMessage}</p> : null}
         {showOpenKakaoCta ? (
           <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-center">
@@ -311,7 +323,7 @@ export default function InquiryFormShell({
               autoComplete="tel"
               required
               value={applicantPhone}
-              onChange={(e) => setApplicantPhone(e.target.value)}
+              onChange={(e) => setApplicantPhone(formatKoreanTelInput(e.target.value))}
               aria-invalid={Boolean(fieldErrors.applicantPhone)}
               aria-describedby={fieldErrors.applicantPhone ? `${ids.phone}-err` : undefined}
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"

@@ -3,6 +3,9 @@
  * 정책 상세: docs/BOOKING-INTAKE-POLICY.md
  */
 
+import { digitsOnlyTel } from '@/lib/korean-tel-format'
+import { optionalEmailFormatError } from '@/lib/email-format'
+
 export type PassengerBirth = {
   type: 'child' | 'infant'
   birthDate: string // YYYY-MM-DD
@@ -37,9 +40,6 @@ export type BookingIntakeDto = {
 export type BookingValidationResult =
   | { ok: true; value: BookingIntakeDto }
   | { ok: false; errors: string[] }
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const EMAIL_FORMAT_ERROR = '올바른 이메일 형식을 입력해 주세요.'
 
 function isYmd(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s)
@@ -95,8 +95,12 @@ export function validateBookingIntake(input: unknown): BookingValidationResult {
 
   if (!customerName) errors.push('고객 이름을 입력해 주세요.')
   if (!customerPhone) errors.push('휴대폰 번호를 입력해 주세요.')
-  if (!customerEmail) errors.push('이메일을 입력해 주세요.')
-  else if (!EMAIL_RE.test(customerEmail)) errors.push(EMAIL_FORMAT_ERROR)
+  else {
+    const phoneDigits = digitsOnlyTel(customerPhone)
+    if (phoneDigits.length < 8) errors.push('연락처를 확인해 주세요. (숫자 8자리 이상)')
+  }
+  const emailErr = optionalEmailFormatError(customerEmail)
+  if (emailErr) errors.push(emailErr)
   if (!productId) errors.push('productId가 필요합니다.')
   if (!originSource) errors.push('originSource가 필요합니다.')
   if (!originCode) errors.push('originCode가 필요합니다.')
@@ -146,7 +150,7 @@ export function validateBookingIntake(input: unknown): BookingValidationResult {
       departureId,
       customerName,
       customerPhone,
-      customerEmail,
+      customerEmail: customerEmail.trim(),
       totalPax: computedTotalPax,
       adultCount,
       childCount,

@@ -6,6 +6,8 @@ export type AdminBookingAlertPayload = {
   customerEmail: string
   productTitle?: string | null
   originSource: string
+  /** 접수 시 선택한 출발 행 id(있으면) */
+  departureRowId?: string | null
   preferredOrSelectedDate: string | null
   paxSummary: string
   singleRoomRequested: boolean
@@ -27,9 +29,10 @@ export function buildAdminBookingAlertPayload(
   return {
     customerName: intake.customerName,
     customerPhone: intake.customerPhone,
-    customerEmail: intake.customerEmail,
+    customerEmail: (intake.customerEmail ?? '').trim(),
     productTitle: opts.productTitle ?? null,
     originSource: intake.originSource,
+    departureRowId: intake.departureId ?? null,
     preferredOrSelectedDate,
     paxSummary,
     singleRoomRequested: intake.singleRoomRequested,

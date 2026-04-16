@@ -53,10 +53,11 @@ export function parseInquirySearchParams(
   }
   const ym = first('targetYearMonth')
   const ymOk = ym && /^\d{4}-\d{2}$/.test(ym) ? ym : null
+  const snapshotProductTitle = first('snapshotProductTitle') ?? first('productHint')
   return {
     productId: first('productId'),
     monthlyCurationItemId: first('monthlyCurationItemId'),
-    snapshotProductTitle: first('snapshotProductTitle'),
+    snapshotProductTitle,
     snapshotCardLabel: first('snapshotCardLabel'),
     targetYearMonth: ymOk,
     trainingServiceScope: first('service'),

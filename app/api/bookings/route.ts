@@ -74,7 +74,12 @@ export async function POST(request: Request) {
       originCode: typeof body.originCode === 'string' ? body.originCode.trim() : (product.originCode ?? ''),
       selectedDepartureDate,
       preferredDepartureDate,
-      departureId: body.departureId == null ? null : String(body.departureId).trim() || null,
+      departureId:
+        body.departureId != null && String(body.departureId).trim()
+          ? String(body.departureId).trim()
+          : body.sourceRowId != null && String(body.sourceRowId).trim()
+            ? String(body.sourceRowId).trim()
+            : null,
       customerName: typeof body.customerName === 'string' ? body.customerName.trim() : '',
       customerPhone: typeof body.customerPhone === 'string' ? body.customerPhone.trim() : '',
       customerEmail: typeof body.customerEmail === 'string' ? body.customerEmail.trim() : '',
@@ -112,7 +117,6 @@ export async function POST(request: Request) {
     }
 
     const hasSelected = Boolean(intake.selectedDepartureDate)
-    const pricingMode = hasSelected ? 'schedule_price' : 'wish_date_only'
     const primaryDate = intake.selectedDepartureDate ?? intake.preferredDepartureDate
     if (!primaryDate) {
       return NextResponse.json({ error: '출발일 정보가 없습니다.' }, { status: 400 })
@@ -123,6 +127,7 @@ export async function POST(request: Request) {
     let totalLocalAmount = 0
     const localCurrency = product.mandatoryCurrency ?? 'USD'
 
+    let pricingMode: 'schedule_price' | 'wish_date_only' | 'schedule_selected_pending_quote'
     if (hasSelected) {
       const priceRow = product.prices.find((p) => {
         const raw = p.date
@@ -131,24 +136,27 @@ export async function POST(request: Request) {
         return d === dateKey
       })
       if (!priceRow) {
-        return NextResponse.json(
-          { error: '선택한 출발일에 대한 가격 정보가 없습니다. 일정이 매진·변경된 경우 희망 출발일로 다시 접수해 주세요.' },
-          { status: 400 }
-        )
+        pricingMode = 'schedule_selected_pending_quote'
+        totalKrwAmount = 0
+        totalLocalAmount = 0
+      } else {
+        pricingMode = 'schedule_price'
+        const paxForKrw = {
+          adult: pax.adult,
+          childBed: pax.childBed,
+          childNoBed: pax.childNoBed,
+          infant: pax.infant,
+        }
+        const { total } = computeKRWQuotation(priceRow as PriceRowLike, paxForKrw)
+        totalKrwAmount = total
+        totalLocalAmount = computeLocalFeeTotal(product.mandatoryLocalFee, {
+          adult: pax.adult,
+          childBed: pax.childBed,
+          childNoBed: pax.childNoBed,
+        }) ?? 0
       }
-      const paxForKrw = {
-        adult: pax.adult,
-        childBed: pax.childBed,
-        childNoBed: pax.childNoBed,
-        infant: pax.infant,
-      }
-      const { total } = computeKRWQuotation(priceRow as PriceRowLike, paxForKrw)
-      totalKrwAmount = total
-      totalLocalAmount = computeLocalFeeTotal(product.mandatoryLocalFee, {
-        adult: pax.adult,
-        childBed: pax.childBed,
-        childNoBed: pax.childNoBed,
-      }) ?? 0
+    } else {
+      pricingMode = 'wish_date_only'
     }
 
     const birthsJson = JSON.stringify(
@@ -176,7 +184,7 @@ export async function POST(request: Request) {
         localCurrency,
         customerName: intake.customerName,
         customerPhone: intake.customerPhone,
-        customerEmail: intake.customerEmail,
+        customerEmail: intake.customerEmail.trim() ? intake.customerEmail.trim() : null,
         requestNotes: intake.requestNotes ?? null,
         preferredContactChannel: intake.preferredContactChannel,
         singleRoomRequested: intake.singleRoomRequested,

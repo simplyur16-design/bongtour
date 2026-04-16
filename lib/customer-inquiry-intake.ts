@@ -1,4 +1,5 @@
 import { computeLeadTimeRisk } from '@/lib/inquiry-lead-time-risk'
+import { optionalEmailFormatError } from '@/lib/email-format'
 
 /** Prisma `CustomerInquiry.inquiryType` — 공개 API 허용값 */
 export const CUSTOMER_INQUIRY_TYPES = [
@@ -21,8 +22,6 @@ const MIN_PRIVATE_MESSAGE = 10
 const MIN_TRAINING_PURPOSE = 8
 const MIN_TRAINING_MESSAGE = 12
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const EMAIL_FORMAT_ERROR = '올바른 이메일 형식을 입력해 주세요.'
 const CONTACT_CHANNELS = ['email', 'kakao', 'both'] as const
 
 export type FieldErrors = Record<string, string>
@@ -83,13 +82,12 @@ export function validateCustomerInquiryBody(
   const body = raw as Record<string, unknown>
   const preferredContactChannelRaw =
     typeof body.preferredContactChannel === 'string' ? body.preferredContactChannel.trim().toLowerCase() : ''
-  const preferredContactChannel = CONTACT_CHANNELS.includes(
-    preferredContactChannelRaw as (typeof CONTACT_CHANNELS)[number]
-  )
-    ? (preferredContactChannelRaw as 'email' | 'kakao' | 'both')
-    : null
-  if (!preferredContactChannel) {
-    fieldErrors.preferredContactChannel = '답변받을 방법을 선택해 주세요.'
+  /** UI에서 생략 시(여행·기관 문의 등): 전화 중심 운영 — 카카오 안내 노출용 기본값 */
+  let preferredContactChannel: 'email' | 'kakao' | 'both' = 'kakao'
+  if (
+    CONTACT_CHANNELS.includes(preferredContactChannelRaw as (typeof CONTACT_CHANNELS)[number])
+  ) {
+    preferredContactChannel = preferredContactChannelRaw as 'email' | 'kakao' | 'both'
   }
 
   const inquiryTypeRaw = body.inquiryType
@@ -112,8 +110,9 @@ export function validateCustomerInquiryBody(
 
   const emailR = optionalTrimmedString(body.applicantEmail, MAX_EMAIL, 'applicantEmail')
   if (!emailR.ok) fieldErrors.applicantEmail = emailR.err
-  else if (emailR.value && !EMAIL_RE.test(emailR.value)) {
-    fieldErrors.applicantEmail = EMAIL_FORMAT_ERROR
+  else if (emailR.value) {
+    const fe = optionalEmailFormatError(emailR.value)
+    if (fe) fieldErrors.applicantEmail = fe
   }
 
   const messageR = optionalTrimmedString(body.message, MAX_MESSAGE, 'message')
@@ -246,10 +245,13 @@ export function validateCustomerInquiryBody(
       fieldErrors.headcount = '예상 인원은 1명 이상의 숫자로 입력해 주세요.'
     }
 
-    if (!emailR.ok) {
-      fieldErrors.applicantEmail = EMAIL_FORMAT_ERROR
-    } else if ((preferredContactChannel === 'email' || preferredContactChannel === 'both') && !emailR.value) {
-      fieldErrors.applicantEmail = '이메일을 입력해 주세요.'
+    if (emailR.ok) {
+      if ((preferredContactChannel === 'email' || preferredContactChannel === 'both') && !emailR.value) {
+        fieldErrors.applicantEmail = '이메일을 입력해 주세요.'
+      } else if (emailR.value) {
+        const fe = optionalEmailFormatError(emailR.value)
+        if (fe) fieldErrors.applicantEmail = fe
+      }
     }
 
     if (!messageR.ok || !messageR.value || messageR.value.trim().length < MIN_TRAINING_MESSAGE) {
@@ -284,10 +286,13 @@ export function validateCustomerInquiryBody(
       fieldErrors.estimatedHeadcount = '예상 인원은 1명 이상의 숫자로 입력해 주세요.'
     }
 
-    if (!emailR.ok) {
-      fieldErrors.applicantEmail = EMAIL_FORMAT_ERROR
-    } else if ((preferredContactChannel === 'email' || preferredContactChannel === 'both') && !emailR.value) {
-      fieldErrors.applicantEmail = '이메일을 입력해 주세요.'
+    if (emailR.ok) {
+      if ((preferredContactChannel === 'email' || preferredContactChannel === 'both') && !emailR.value) {
+        fieldErrors.applicantEmail = '이메일을 입력해 주세요.'
+      } else if (emailR.value) {
+        const fe = optionalEmailFormatError(emailR.value)
+        if (fe) fieldErrors.applicantEmail = fe
+      }
     }
 
     if (!messageR.ok || !messageR.value || messageR.value.trim().length < MIN_PRIVATE_MESSAGE) {

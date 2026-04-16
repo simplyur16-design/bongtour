@@ -68,7 +68,6 @@ export default function TrainingInquiryForm({
     const fieldErrors: FieldErrors = {}
     if (!organizationName.trim()) fieldErrors.organizationName = '기관명/학교명/단체명을 입력해 주세요.'
     if (!serviceScope) fieldErrors.serviceScope = '필요한 서비스 범위를 선택해 주세요.'
-    if (!preferredContactChannel) fieldErrors.preferredContactChannel = '답변받을 방법을 선택해 주세요.'
     if (!trainingPurpose.trim()) fieldErrors.trainingPurpose = '연수 목적을 입력해 주세요.'
     if (!destinationSummary.trim()) fieldErrors.destinationSummary = '희망 국가 또는 도시를 입력해 주세요.'
     if (!preferredDepartureDate && !preferredDepartureMonth) {
@@ -81,7 +80,7 @@ export default function TrainingInquiryForm({
       return { fieldErrors, formError: '필수 입력값을 확인해 주세요.' }
     }
     return {}
-  }, [destinationSummary, headcount, organizationName, preferredContactChannel, preferredDepartureDate, preferredDepartureMonth, serviceScope, trainingPurpose])
+  }, [destinationSummary, headcount, organizationName, preferredDepartureDate, preferredDepartureMonth, serviceScope, trainingPurpose])
 
   const buildPayloadJson = useCallback(() => {
     const head = parseInt(headcount.replace(/[^\d]/g, ''), 10)

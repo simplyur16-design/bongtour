@@ -131,6 +131,13 @@ export async function POST(request: Request, { params }: RouteParams) {
     if (!modesOk || typeof o.departureDate !== 'string' || !o.departureDate.trim()) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
+    /** 실브라우저·UI 검증 전용. 설정 시에만 지연(운영 미설정 권장). */
+    if (o.mode === 'range-on-demand') {
+      const ms = Number(process.env.BONGTOUR_E2E_SLOW_RANGE_ON_DEMAND_MS)
+      if (Number.isFinite(ms) && ms > 0 && ms <= 30_000) {
+        await new Promise((r) => setTimeout(r, ms))
+      }
+    }
     const product = await prisma.product.findFirst({
       where: { id, registrationStatus: 'registered' },
       select: {
