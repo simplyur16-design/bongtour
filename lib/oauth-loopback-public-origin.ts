@@ -4,6 +4,9 @@
  *
  * loopback 은 항상 http:// 로 고정한다. (nginx 등이 x-forwarded-proto=https 를 잘못 넘기면
  * https://localhost:3000 이 되어 카카오 KOE006·미등록 redirect_uri 로 거절됨)
+ *
+ * Host 가 bongtour.com 등 공개 도메인이면 request.url 을 보지 않는다. (프록시 뒤에서
+ * request.url 이 http://localhost:3000 / 127.0.0.1 로 잡혀 redirect_uri 가 로컬로 나가는 KOE006 방지)
  */
 
 function stripTrailingSlash(u: string): string {
@@ -20,6 +23,7 @@ export function publicOriginIfLoopbackRequest(request: Request): string | null {
     if (hostNoPort === 'localhost' || hostNoPort === '127.0.0.1') {
       return stripTrailingSlash(`http://${hostHeader}`)
     }
+    return null
   }
   try {
     const u = new URL(request.url)
