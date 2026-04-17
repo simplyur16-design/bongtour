@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import NaverTalktalkPartnerBanner from '@/app/components/travel/NaverTalktalkPartnerBanner'
 import RepresentativeNameImage from '@/app/components/common/RepresentativeNameImage'
 import { COMPANY_FOOTER } from '@/lib/company-footer'
 import { MAIN_MINIMAL_FOOTER_LINKS } from '@/lib/main-hub-copy'
@@ -100,6 +101,10 @@ export default function SiteFooter() {
           <p className="text-slate-500">
             상담 가능 시간 08:00~19:00 · 간단한 문의/예약 상담은 오픈카톡, 급한 문의는 전화, 자료 첨부는 이메일 문의를 이용해 주세요.
           </p>
+        </div>
+
+        <div className="mt-3 border-t border-slate-800/90 pt-3">
+          <NaverTalktalkPartnerBanner />
         </div>
 
         <p className="mt-2.5 border-t border-slate-800/90 pt-2 text-[10px] text-slate-600 sm:text-[11px]">
