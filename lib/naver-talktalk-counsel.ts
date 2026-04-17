@@ -15,16 +15,39 @@ export function buildNaverTalktalkCounselSummaryText(input: CounselChannelCommon
 }
 
 /**
- * 톡톡 진입 URL에 `ref`로 현재 페이지를 붙인다(유입 링크 미리보기·상담 맥락).
+ * 탭 단위 유입 구분값. 네이버 `open` 이벤트의 `options.from`으로 전달될 수 있음(챗봇 API 문서).
+ * 파트너 계정과 같은 브라우저 세션을 섞지 않도록, 고객 테스트는 시크릿/다른 브라우저 권장 — UI 안내 참고.
+ */
+function talkSessionFromToken(): string {
+  if (typeof window === 'undefined') return ''
+  try {
+    const k = 'bongtour_naver_talk_from'
+    let v = sessionStorage.getItem(k)
+    if (!v) {
+      v = `bt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 11)}`
+      sessionStorage.setItem(k, v)
+    }
+    return v
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * 톡톡 진입 URL에 `ref`(현재 페이지), `from`(탭별 유입 토큰)을 붙인다.
  * 톡톡 URL이 비어 있으면 null.
  */
 export function buildNaverTalktalkEntryUrl(pageUrl: string | null): string | null {
   const base = NAVER_TALKTALK_ENTRY_URL.trim()
   if (!base) return null
+  const qs: string[] = []
   const ref = (pageUrl ?? '').trim()
-  if (!ref) return base
+  if (ref) qs.push(`ref=${encodeURIComponent(ref)}`)
+  const from = talkSessionFromToken()
+  if (from) qs.push(`from=${encodeURIComponent(from)}`)
+  if (qs.length === 0) return base
   const joiner = base.includes('?') ? '&' : '?'
-  return `${base}${joiner}ref=${encodeURIComponent(ref)}`
+  return `${base}${joiner}${qs.join('&')}`
 }
 
 export type NaverTalktalkCounselClickPayload = {

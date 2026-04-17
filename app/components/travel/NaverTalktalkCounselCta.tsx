@@ -119,6 +119,9 @@ export default function NaverTalktalkCounselCta({
         {showHelper && enabled && !copied && (
           <span className="text-[11px] font-normal text-bt-meta">
             요약은 클립보드에 복사됩니다. 톡톡 입력창에 붙여넣어 주세요.
+            <span className="mt-1 block text-[11px] text-amber-900/85">
+              파트너센터·운영자 네이버로 <strong className="font-medium">같은 브라우저</strong>에 로그인된 채 열면 고객과 구분이 깨져 보일 수 있습니다. 고객 테스트는 시크릿 창·다른 브라우저·휴대폰 일반 계정으로 해 주세요.
+            </span>
           </span>
         )}
         {!enabled && (
