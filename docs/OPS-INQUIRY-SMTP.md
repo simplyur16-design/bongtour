@@ -1,7 +1,7 @@
 # 문의 접수 — 운영자 자동 알림(이메일)
 
 코드 기준: `app/api/inquiries/route.ts` — **순서: DB 저장 → SMTP 이메일**.  
-문의 접수에 **운영자 SMS는 사용하지 않음**(레거시 DB 컬럼 `operatorSms*`만 존재, 신규 행에는 미기록).  
+문의 접수에 **운영자 SMS는 사용하지 않음**(`CustomerInquiry` Prisma 모델에도 SMS 추적 필드 없음 — 이메일 필드만 사용).  
 이메일: `lib/inquiry-email.ts`, 본문·제목 조립: `lib/inquiry-notification-format.ts`.
 
 **고객 상담 진입(자동 푸시 아님)**  
