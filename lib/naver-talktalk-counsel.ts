@@ -2,7 +2,7 @@
  * 네이버 톡톡 상담 진입.
  * 카카오 오픈채팅과 달리 입력창에 자유 텍스트를 URL로 넣는 방식은 제한적이며,
  * 파트너센터에서 제공하는 **상담 진입 URL + ref(유입 페이지)** 조합이 일반적이다.
- * @see https://talk.naver.com — 실제 `NEXT_PUBLIC_NAVER_TALKTALK_URL` 은 파트너센터에서 발급
+ * @see https://talk.naver.com — `NEXT_PUBLIC_NAVER_TALKTALK_URL` 경로는 **챗봇 API·Webhook을 켠 그 프로필의 채팅 URL**과 한 글자까지 같아야 함. 다르면 고객 화면이 중지·오상대로 보이거나 Webhook이 안 옴.
  */
 import type { CounselChannelCommonInput } from '@/lib/booking-counsel-contract'
 import { buildCounselChannelSummary } from '@/lib/booking-counsel-contract'

@@ -12,6 +12,19 @@ const PRODUCT_ID = 'cmnvfupq400061xuldipptqfp'
 const PRODUCT_URL = `${BASE}/products/${PRODUCT_ID}`
 const mode = (process.argv[2] || 'priced').toLowerCase()
 
+/** 톡톡 팝업 URL 검증: env 경로 마지막 세그먼트, 없으면 운영 프로필 기본값 */
+function naverTalkPathIdForAssert() {
+  const raw = (process.env.NEXT_PUBLIC_NAVER_TALKTALK_URL || '').trim()
+  if (!raw) return 'w2r7vau'
+  try {
+    const u = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
+    const parts = u.pathname.split('/').filter(Boolean)
+    return (parts[parts.length - 1] || 'w2r7vau').toLowerCase()
+  } catch {
+    return 'w2r7vau'
+  }
+}
+
 function counselFieldChecks(clip) {
   return {
     hasNaverBanner: clip.indexOf('[네이버 톡톡 상담]') !== -1,
@@ -679,8 +692,9 @@ async function runNaver() {
 
   var naverChecks = counselFieldChecks(naverClip)
   var uLower = (openedUrl || '').toLowerCase()
+  var naverId = naverTalkPathIdForAssert()
   var baseOk =
-    Boolean(openedUrl) && uLower.indexOf('talk.naver') !== -1 && uLower.indexOf('w5v34z') !== -1
+    Boolean(openedUrl) && uLower.indexOf('talk.naver') !== -1 && uLower.indexOf(naverId) !== -1
   var refInUrl = Boolean(openedUrl && (openedUrl.indexOf('ref=') !== -1 || openedUrl.indexOf('ref%3D') !== -1))
 
   console.log(

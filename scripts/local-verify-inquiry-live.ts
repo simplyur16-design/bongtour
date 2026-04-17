@@ -81,8 +81,8 @@ function startNextDev(sandbox: boolean, ethereal?: { user: string; pass: string 
           INQUIRY_RECEIVER_EMAIL: 'inquiry-sandbox@example.com',
           NODE_ENV: 'development',
           NEXT_PUBLIC_APP_URL: BASE,
-          /** 샌드박스 전용: 구조 검증용 고정 URL(운영 검수와 무관) */
-          NEXT_PUBLIC_NAVER_TALKTALK_URL: 'https://talk.naver.com/W5V34Z',
+          /** 샌드박스 전용: 구조 검증용 고정 URL(운영 검수와 무관). 운영 프로필 ID와 맞출 것. */
+          NEXT_PUBLIC_NAVER_TALKTALK_URL: 'https://talk.naver.com/w2r7vau',
         }
       : {
           ...process.env,
@@ -517,7 +517,7 @@ async function main(): Promise<void> {
       )
       console.log('[verify] 네이버 톡톡 팝업 URL:', naverUrl)
       if (SANDBOX) {
-        const naverOk = naverUrl.includes('talk.naver.com') && naverUrl.toLowerCase().includes('w5v34z')
+        const naverOk = naverUrl.includes('talk.naver.com') && naverUrl.toLowerCase().includes('w2r7vau')
         if (!naverOk) throw new Error(`[sandbox] 톡톡 URL 예상과 다름: ${naverUrl}`)
       } else if (configuredNaver) {
         if (!naverPopupMatchesConfigured(naverUrl, configuredNaver)) {
