@@ -4,20 +4,35 @@ import { NextResponse } from 'next/server'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import { appendNaverSessionCookie, redirectAfterNaverLogin } from '@/lib/naver-auth-session'
 import type { NaverTokenResponse, NaverProfileResponse } from '@/lib/naver-oauth-types'
+import {
+  NAVER_OAUTH_REDIRECT_COOKIE,
+  NAVER_OAUTH_STATE_COOKIE,
+  clearNaverOAuthStateCookies,
+  maskNaverClientId,
+  maskNaverState,
+  naverOAuthLog,
+  resolveNaverOAuthPublicOrigin,
+  resolveNaverRedirectUri,
+} from '@/lib/naver-oauth-public'
+import { readCookieFromRequestHeader } from '@/lib/parse-cookie-header'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
 const TOKEN_URL = 'https://nid.naver.com/oauth2.0/token'
 const PROFILE_URL = 'https://openapi.naver.com/v1/nid/me'
-const STATE_COOKIE = 'naver_oauth_state'
-const REDIRECT_COOKIE = 'naver_oauth_redirect'
 
 function jsonError(status: number, error: string, detail?: string) {
   return NextResponse.json(
     { error, ...(detail !== undefined ? { detail } : {}) },
     { status }
   )
+}
+
+function jsonErrorClearState(request: Request, status: number, error: string, detail?: string) {
+  const res = jsonError(status, error, detail)
+  clearNaverOAuthStateCookies(res, request)
+  return res
 }
 
 function safeStateEqual(a: string, b: string): boolean {
@@ -49,37 +64,79 @@ function expiresAtFromToken(t: NaverTokenResponse): number | null {
 }
 
 export async function GET(request: Request) {
+  const publicOrigin = resolveNaverOAuthPublicOrigin(request)
+  const redirectUri = resolveNaverRedirectUri(request)
+
   const { searchParams } = new URL(request.url)
   const oauthErr = searchParams.get('error')
   const oauthErrDesc = searchParams.get('error_description')
   if (oauthErr) {
-    return jsonError(400, '네이버 인증 오류', oauthErrDesc ?? oauthErr)
+    return jsonErrorClearState(
+      request,
+      400,
+      '네이버 인증 오류',
+      oauthErrDesc ?? oauthErr
+    )
   }
 
   const code = searchParams.get('code')
   const state = searchParams.get('state')
   if (!state) {
-    return jsonError(400, 'state 파라미터가 없습니다.')
+    return jsonErrorClearState(request, 400, 'state 파라미터가 없습니다.')
   }
 
   const cookieStore = cookies()
-  const savedState = cookieStore.get(STATE_COOKIE)?.value
+  const savedState =
+    cookieStore.get(NAVER_OAUTH_STATE_COOKIE)?.value ??
+    readCookieFromRequestHeader(request, NAVER_OAUTH_STATE_COOKIE)
+
+  naverOAuthLog('callback:begin', {
+    nodeEnv: process.env.NODE_ENV,
+    requestHost: request.headers.get('host'),
+    publicOrigin,
+    redirectUri,
+    queryState: maskNaverState(state),
+    storedStatePresent: Boolean(savedState),
+  })
+
   if (!savedState || !safeStateEqual(savedState, state)) {
-    return jsonError(400, 'state가 일치하지 않습니다.')
+    console.warn('[naver-oauth] state mismatch', {
+      nodeEnv: process.env.NODE_ENV,
+      requestHost: request.headers.get('host'),
+      publicOrigin,
+      redirectUri,
+      queryState: maskNaverState(state),
+      storedPresent: Boolean(savedState),
+      storedState: maskNaverState(savedState),
+    })
+    return jsonErrorClearState(
+      request,
+      400,
+      'state가 일치하지 않습니다.',
+      '로그인 시작과 동일한 공개 URL에서 콜백이 열렸는지 확인하세요. NEXTAUTH_URL·NAVER_OAUTH_PUBLIC_ORIGIN·NAVER_CALLBACK_URL(선택)이 실제 접속 도메인과 일치해야 합니다. www·apex 혼용 시 NAVER_OAUTH_COOKIE_DOMAIN=.도메인 을 검토하세요.'
+    )
   }
 
   if (!code) {
-    return jsonError(400, 'code 파라미터가 없습니다.')
+    return jsonErrorClearState(request, 400, 'code 파라미터가 없습니다.')
   }
 
-  const redirectPath = safeRedirectPath(cookieStore.get(REDIRECT_COOKIE)?.value)
+  const redirectPath = safeRedirectPath(
+    cookieStore.get(NAVER_OAUTH_REDIRECT_COOKIE)?.value ??
+      readCookieFromRequestHeader(request, NAVER_OAUTH_REDIRECT_COOKIE)
+  )
 
   const clientId = process.env.NAVER_CLIENT_ID?.trim()
   const clientSecret = process.env.NAVER_CLIENT_SECRET?.trim()
-  const redirectUri = process.env.NAVER_CALLBACK_URL?.trim()
-  if (!clientId || !clientSecret || !redirectUri) {
-    return jsonError(500, '네이버 OAuth 환경 변수가 누락되었습니다.')
+  if (!clientId || !clientSecret) {
+    return jsonErrorClearState(request, 500, '네이버 OAuth 환경 변수가 누락되었습니다.')
   }
+
+  naverOAuthLog('callback:after-state', {
+    hasCode: true,
+    clientId: maskNaverClientId(clientId),
+    redirectPath,
+  })
 
   const tokenBody = new URLSearchParams({
     grant_type: 'authorization_code',
@@ -98,8 +155,15 @@ export async function GET(request: Request) {
   })
 
   const tokenJson = (await tokenRes.json()) as NaverTokenResponse
+  naverOAuthLog('callback:token', {
+    ok: tokenRes.ok && !tokenJson.error,
+    status: tokenRes.status,
+    error: tokenJson.error ? String(tokenJson.error) : undefined,
+  })
+
   if (!tokenRes.ok || tokenJson.error) {
-    return jsonError(
+    return jsonErrorClearState(
+      request,
       400,
       '액세스 토큰 발급에 실패했습니다.',
       tokenJson.error_description ?? tokenJson.error ?? tokenRes.statusText
@@ -108,7 +172,7 @@ export async function GET(request: Request) {
 
   const accessToken = tokenJson.access_token?.trim()
   if (!accessToken) {
-    return jsonError(400, '액세스 토큰 응답에 access_token이 없습니다.')
+    return jsonErrorClearState(request, 400, '액세스 토큰 응답에 access_token이 없습니다.')
   }
 
   const profileRes = await fetch(PROFILE_URL, {
@@ -117,13 +181,24 @@ export async function GET(request: Request) {
   })
 
   const profileJson = (await profileRes.json()) as NaverProfileResponse
+  naverOAuthLog('callback:profile', {
+    ok: profileRes.ok && profileJson.resultcode === '00',
+    status: profileRes.status,
+    resultcode: profileJson.resultcode,
+  })
+
   if (!profileRes.ok || profileJson.resultcode !== '00') {
-    return jsonError(400, '프로필 조회에 실패했습니다.', profileJson.message ?? profileRes.statusText)
+    return jsonErrorClearState(
+      request,
+      400,
+      '프로필 조회에 실패했습니다.',
+      profileJson.message ?? profileRes.statusText
+    )
   }
 
   const naverId = profileJson.response?.id
   if (!naverId) {
-    return jsonError(400, '프로필 응답에 response.id가 없습니다.')
+    return jsonErrorClearState(request, 400, '프로필 응답에 response.id가 없습니다.')
   }
 
   const emailRaw = profileJson.response.email?.trim().toLowerCase()
@@ -147,7 +222,7 @@ export async function GET(request: Request) {
   if (linked) {
     const u = linked.user
     if (u.accountStatus === 'suspended' || u.accountStatus === 'withdrawn') {
-      return jsonError(403, '이용이 제한된 계정입니다.')
+      return jsonErrorClearState(request, 403, '이용이 제한된 계정입니다.')
     }
     await prisma.user.update({
       where: { id: u.id },
@@ -170,7 +245,7 @@ export async function GET(request: Request) {
     const byEmail = await prisma.user.findUnique({ where: { email: emailRaw } })
     if (byEmail) {
       if (byEmail.accountStatus === 'suspended' || byEmail.accountStatus === 'withdrawn') {
-        return jsonError(403, '이용이 제한된 계정입니다.')
+        return jsonErrorClearState(request, 403, '이용이 제한된 계정입니다.')
       }
       await prisma.account.create({
         data: {
@@ -245,16 +320,15 @@ export async function GET(request: Request) {
     select: { id: true, name: true, email: true, image: true, role: true, accountStatus: true },
   })
   if (!full) {
-    return jsonError(500, '회원 정보를 불러오지 못했습니다.')
+    return jsonErrorClearState(request, 500, '회원 정보를 불러오지 못했습니다.')
   }
   if (full.accountStatus === 'suspended' || full.accountStatus === 'withdrawn') {
-    return jsonError(403, '이용이 제한된 계정입니다.')
+    return jsonErrorClearState(request, 403, '이용이 제한된 계정입니다.')
   }
 
   const target = redirectAfterNaverLogin(request, redirectPath)
   const res = NextResponse.redirect(target)
-  res.cookies.delete(STATE_COOKIE)
-  res.cookies.delete(REDIRECT_COOKIE)
+  clearNaverOAuthStateCookies(res, request)
 
   const sessionOk = await appendNaverSessionCookie({
     request,
@@ -269,8 +343,10 @@ export async function GET(request: Request) {
     },
   })
   if (!sessionOk) {
-    return jsonError(500, '세션을 생성하지 못했습니다.')
+    naverOAuthLog('callback:session', { ok: false })
+    return jsonErrorClearState(request, 500, '세션을 생성하지 못했습니다.')
   }
 
+  naverOAuthLog('callback:success', { userId: full.id })
   return res
 }

@@ -103,12 +103,18 @@ echo ""
 echo "[선택 — 네이버 로그인 버튼]"
 nv=0
 [[ -n "$(val_of "$(merged_line NAVER_CLIENT_ID)")" ]] && \
-[[ -n "$(val_of "$(merged_line NAVER_CLIENT_SECRET)")" ]] && \
-[[ -n "$(val_of "$(merged_line NAVER_CALLBACK_URL)")" ]] && nv=1
+[[ -n "$(val_of "$(merged_line NAVER_CLIENT_SECRET)")" ]] && {
+  if [[ -n "$(val_of "$(merged_line NAVER_CALLBACK_URL)")" ]] || \
+     [[ -n "$(val_of "$(merged_line NAVER_OAUTH_PUBLIC_ORIGIN)")" ]] || \
+     [[ -n "$(val_of "$(merged_line NEXTAUTH_URL)")" ]] || \
+     [[ -n "$(val_of "$(merged_line NEXT_PUBLIC_SITE_URL)")" ]]; then
+    nv=1
+  fi
+}
 if [[ "$nv" -eq 1 ]]; then
-  echo "  [OK] NAVER_CLIENT_ID + NAVER_CLIENT_SECRET + NAVER_CALLBACK_URL"
+  echo "  [OK] NAVER_CLIENT_ID + NAVER_CLIENT_SECRET + (NAVER_CALLBACK_URL 또는 NEXTAUTH_URL 등으로 redirect_uri 결정)"
 else
-  echo "  [미설정] 네이버 — 위 셋 다 채워야 버튼·OAuth 동작"
+  echo "  [미설정] 네이버 — CLIENT_ID/SECRET 및 callback 기준 URL(NAVER_CALLBACK_URL 또는 NEXTAUTH_URL 등) 필요"
 fi
 echo ""
 
