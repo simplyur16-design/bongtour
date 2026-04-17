@@ -1,10 +1,10 @@
 /**
  * Edge 미들웨어용 — Prisma·Credentials(authorize)·bcrypt 없음.
  * `middleware.ts`는 `NextAuth(authConfig)`만 import해 jose JWE/deflate 등 Node 전용 경로 번들을 피한다.
+ * 카카오 로그인은 NextAuth 프로바이더가 아니라 `/api/auth/kakao` 수동 OAuth (네이버와 동일 패턴).
  * @see https://authjs.dev/getting-started/middleware
  */
 import type { NextAuthConfig } from 'next-auth'
-import Kakao from 'next-auth/providers/kakao'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -25,20 +25,11 @@ if (!isProduction && resolvedAuthSecret === '__bongtour_dev_auth_secret_change_f
   )
 }
 
-const kakaoConfigured = Boolean(process.env.KAKAO_CLIENT_ID?.trim() && process.env.KAKAO_CLIENT_SECRET?.trim())
-
-/** Credentials는 `auth.ts`에서만 추가(Prisma authorize). 미들웨어 번들에는 카카오만 포함. */
+/** Credentials는 `auth.ts`에서만 추가(Prisma authorize). 미들웨어 번들에는 OAuth 프로바이더 없음. */
 export default {
   trustHost: true,
   secret: resolvedAuthSecret,
-  providers: kakaoConfigured
-    ? [
-        Kakao({
-          clientId: process.env.KAKAO_CLIENT_ID!,
-          clientSecret: process.env.KAKAO_CLIENT_SECRET!,
-        }),
-      ]
-    : [],
+  providers: [],
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   pages: {
     signIn: '/auth/signin',

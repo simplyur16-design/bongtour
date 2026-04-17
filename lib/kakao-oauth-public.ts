@@ -1,27 +1,27 @@
 /**
- * 네이버 OAuth2 (authorization code) — 공개 origin, redirect_uri, state 쿠키 옵션.
- * authorize / callback 이 동일한 redirect_uri·쿠키 규칙을 쓰도록 단일화.
+ * 카카오 OAuth2 (authorization code) — 공개 origin, redirect_uri, state 쿠키.
+ * 네이버 OAuth(`lib/naver-oauth-public.ts`)와 동일 원칙.
  */
 
 import type { NextResponse } from 'next/server'
 import { publicOriginIfLoopbackRequest } from '@/lib/oauth-loopback-public-origin'
 
-export const NAVER_OAUTH_STATE_COOKIE = 'naver_oauth_state'
-export const NAVER_OAUTH_REDIRECT_COOKIE = 'naver_oauth_redirect'
-const NAVER_CALLBACK_PATH = '/api/auth/naver/callback'
+export const KAKAO_OAUTH_STATE_COOKIE = 'kakao_oauth_state'
+export const KAKAO_OAUTH_REDIRECT_COOKIE = 'kakao_oauth_redirect'
+const KAKAO_CALLBACK_PATH = '/api/auth/kakao/callback'
 const STATE_MAX_AGE_SEC = 60 * 10
 
 function stripTrailingSlash(u: string): string {
   return u.replace(/\/+$/, '')
 }
 
-export function maskNaverState(s: string | undefined | null): string {
+export function maskKakaoState(s: string | undefined | null): string {
   if (!s) return '(empty)'
   if (s.length <= 8) return `len=${s.length}`
   return `${s.slice(0, 8)}…len=${s.length}`
 }
 
-export function maskNaverClientId(id: string | undefined): string {
+export function maskKakaoClientId(id: string | undefined): string {
   if (!id) return '(empty)'
   if (id.length < 8) return '***'
   return `${id.slice(0, 6)}…`
@@ -38,15 +38,9 @@ function parseOrigin(raw: string): string | null {
   }
 }
 
-/**
- * 공개 사이트 origin (authorize 의 redirect_uri·쿠키 Secure 판단에 동일 사용).
- * 우선순위: loopback 요청 → NAVER_OAUTH_PUBLIC_ORIGIN → (비운영) → NEXTAUTH_URL 등 → 운영 시 요청 Host.
- */
-export function resolveNaverOAuthPublicOrigin(request: Request): string {
-  const loop = publicOriginIfLoopbackRequest(request)
-  if (loop) return loop
-
-  const explicit = process.env.NAVER_OAUTH_PUBLIC_ORIGIN?.trim()
+/** KAKAO_OAUTH_PUBLIC_ORIGIN → (비운영 localhost) → NEXTAUTH_URL 등 → 요청 Host */
+export function resolveKakaoOAuthPublicOrigin(request: Request): string {
+  const explicit = process.env.KAKAO_OAUTH_PUBLIC_ORIGIN?.trim()
   if (explicit) {
     const o = parseOrigin(explicit)
     if (o) return o
@@ -91,20 +85,17 @@ export function resolveNaverOAuthPublicOrigin(request: Request): string {
   return `${proto}://${host}`
 }
 
-/**
- * 네이버에 넘기는 redirect_uri (= 토큰 교환 시 동일 값).
- * NAVER_CALLBACK_URL 이 있으면 그대로(레거시·콘솔과 문자열 일치), 없으면 origin + 고정 경로.
- */
-export function resolveNaverRedirectUri(request: Request): string {
+/** loopback 이면 env 콜백 무시하고 로컬 callback. 그 외 KAKAO_CALLBACK_URL 또는 origin + 경로 */
+export function resolveKakaoRedirectUri(request: Request): string {
   const loop = publicOriginIfLoopbackRequest(request)
-  if (loop) return `${loop}${NAVER_CALLBACK_PATH}`
-  const fromEnv = process.env.NAVER_CALLBACK_URL?.trim()
+  if (loop) return `${loop}${KAKAO_CALLBACK_PATH}`
+  const fromEnv = process.env.KAKAO_CALLBACK_URL?.trim()
   if (fromEnv) return fromEnv
-  return `${resolveNaverOAuthPublicOrigin(request)}${NAVER_CALLBACK_PATH}`
+  return `${resolveKakaoOAuthPublicOrigin(request)}${KAKAO_CALLBACK_PATH}`
 }
 
 function resolveCookieDomainFromHostname(hostname: string): string | undefined {
-  const raw = process.env.NAVER_OAUTH_COOKIE_DOMAIN?.trim()
+  const raw = process.env.KAKAO_OAUTH_COOKIE_DOMAIN?.trim() ?? process.env.NAVER_OAUTH_COOKIE_DOMAIN?.trim()
   if (raw) {
     const h = raw.replace(/^\./, '')
     return `.${h}`
@@ -118,7 +109,7 @@ function resolveCookieDomainFromHostname(hostname: string): string | undefined {
   return undefined
 }
 
-export type NaverOAuthStateCookieOptions = {
+export type KakaoOAuthStateCookieOptions = {
   httpOnly: true
   secure: boolean
   sameSite: 'lax'
@@ -127,9 +118,8 @@ export type NaverOAuthStateCookieOptions = {
   domain?: string
 }
 
-/** state / redirect 쿠키 — authorize·callback 삭제 시 동일 옵션 사용 */
-export function buildNaverOAuthStateCookieOptions(request: Request): NaverOAuthStateCookieOptions {
-  const publicOrigin = resolveNaverOAuthPublicOrigin(request)
+export function buildKakaoOAuthStateCookieOptions(request: Request): KakaoOAuthStateCookieOptions {
+  const publicOrigin = resolveKakaoOAuthPublicOrigin(request)
   const secure = publicOrigin.startsWith('https://')
   let hostname = ''
   try {
@@ -148,18 +138,18 @@ export function buildNaverOAuthStateCookieOptions(request: Request): NaverOAuthS
   }
 }
 
-export function clearNaverOAuthStateCookies(res: NextResponse, request: Request): void {
-  const o = buildNaverOAuthStateCookieOptions(request)
-  const cleared: NaverOAuthStateCookieOptions = { ...o, maxAge: 0 }
-  res.cookies.set(NAVER_OAUTH_STATE_COOKIE, '', cleared)
-  res.cookies.set(NAVER_OAUTH_REDIRECT_COOKIE, '', cleared)
+export function clearKakaoOAuthStateCookies(res: NextResponse, request: Request): void {
+  const o = buildKakaoOAuthStateCookieOptions(request)
+  const cleared: KakaoOAuthStateCookieOptions = { ...o, maxAge: 0 }
+  res.cookies.set(KAKAO_OAUTH_STATE_COOKIE, '', cleared)
+  res.cookies.set(KAKAO_OAUTH_REDIRECT_COOKIE, '', cleared)
 }
 
-export function naverOAuthVerboseLog(): boolean {
-  return process.env.NAVER_OAUTH_DEBUG === '1' || process.env.NODE_ENV !== 'production'
+export function kakaoOAuthVerboseLog(): boolean {
+  return process.env.KAKAO_OAUTH_DEBUG === '1' || process.env.NODE_ENV !== 'production'
 }
 
-export function naverOAuthLog(stage: string, payload: Record<string, unknown>): void {
-  if (!naverOAuthVerboseLog()) return
-  console.log(`[naver-oauth] ${stage}`, payload)
+export function kakaoOAuthLog(stage: string, payload: Record<string, unknown>): void {
+  if (!kakaoOAuthVerboseLog()) return
+  console.log(`[kakao-oauth] ${stage}`, payload)
 }
