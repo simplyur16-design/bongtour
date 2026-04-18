@@ -23,18 +23,18 @@
 
 | 변수 | 필수 | 설명 |
 |------|------|------|
-| `SMTP_HOST` | 예 | SMTP 서버 호스트 |
-| `SMTP_USER` | 예 | SMTP 로그인 사용자(일반적으로 발신 메일과 동일 계정) |
-| `SMTP_PASS` | 예 | 비밀번호 또는 제공사의 앱 비밀번호 |
-| `INQUIRY_MAIL_FROM` | 조건부 | 발신(From). **비우면 `SMTP_USER`가 From으로 사용됨** — 이 경우에도 `SMTP_USER`는 반드시 있어야 함 |
-| `SMTP_PORT` | 아니오 | 비우면 `SMTP_SECURE=true` → `465`, 아니면 `587` |
+| `SMTP_HOST` | 예 | SMTP 서버 호스트(예: 네이버 `smtp.naver.com`) |
+| `SMTP_PORT` | 예 | 포트 문자열(예: `587`, `465`) |
 | `SMTP_SECURE` | 아니오 | `"true"`면 TLS 직결(보통 465), 그 외 STARTTLS(보통 587) |
-| `INQUIRY_RECEIVER_EMAIL` | 아니오 | 수신(To) 관리자 주소. 비우면 코드 기본 `bongtour24@naver.com` — **운영에서는 명시 권장** |
+| `SMTP_USER` | 예 | SMTP 인증 계정 |
+| `SMTP_PASS` | 예 | 비밀번호 또는 앱 비밀번호 |
+| `SMTP_FROM_NAME` | 예 | 발신 표시 이름(예: `봉투어`) |
+| `SMTP_FROM_EMAIL` | 예 | 발신 주소(From). **고객 이메일을 여기 넣지 말 것** |
+| `INQUIRY_NOTIFICATION_EMAIL` | 예 | 운영자 수신(To) |
 
-필수 조합(코드의 `if (!host || !port || !user || !pass || !from)`):
+고객이 입력한 이메일은 **Reply-To** 로만 설정됨(`lib/inquiry-email.ts`).
 
-- `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` 비어 있으면 안 됨
-- `from` = `INQUIRY_MAIL_FROM?.trim() || user` 이므로 `INQUIRY_MAIL_FROM`이 비어 있어도 `SMTP_USER`로 충족
+필수 조합: 위 표의 **예** 항목이 모두 비어 있지 않아야 `sendInquiryReceivedEmail` 이 발송한다. 누락 시 `throw` 전 `[inquiry-email] smtp_env_presence` 로그(비밀번호 미출력).
 
 ## 2. 미설정·발송 실패 시 동작
 

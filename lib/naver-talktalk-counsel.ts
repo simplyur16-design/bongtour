@@ -10,6 +10,10 @@ import { buildCounselChannelSummary } from '@/lib/booking-counsel-contract'
 export const NAVER_TALKTALK_ENTRY_URL =
   (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_NAVER_TALKTALK_URL?.trim()) || ''
 
+/** 톡톡 프로필 홈(선택). 비우면 CTA에서 프로필 링크 미표시. */
+export const NAVER_TALKTALK_PROFILE_URL =
+  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_NAVER_TALKTALK_PROFILE_URL?.trim()) || ''
+
 export function buildNaverTalktalkCounselSummaryText(input: CounselChannelCommonInput): string {
   return buildCounselChannelSummary('[네이버 톡톡 상담]', input)
 }

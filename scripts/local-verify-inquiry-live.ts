@@ -77,12 +77,13 @@ function startNextDev(sandbox: boolean, ethereal?: { user: string; pass: string 
           SMTP_SECURE: 'false',
           SMTP_USER: ethereal.user,
           SMTP_PASS: ethereal.pass,
-          INQUIRY_MAIL_FROM: `"BongTour sandbox" <${ethereal.user}>`,
-          INQUIRY_RECEIVER_EMAIL: 'inquiry-sandbox@example.com',
+          SMTP_FROM_NAME: 'BongTour sandbox',
+          SMTP_FROM_EMAIL: ethereal.user,
+          INQUIRY_NOTIFICATION_EMAIL: 'inquiry-sandbox@example.com',
           NODE_ENV: 'development',
           NEXT_PUBLIC_APP_URL: BASE,
           /** 샌드박스 전용: 구조 검증용 고정 URL(운영 검수와 무관). 운영 프로필 ID와 맞출 것. */
-          NEXT_PUBLIC_NAVER_TALKTALK_URL: 'https://talk.naver.com/w2r7vau',
+          NEXT_PUBLIC_NAVER_TALKTALK_URL: 'https://talk.naver.com/W2R7VAU',
         }
       : {
           ...process.env,
@@ -162,8 +163,8 @@ async function main(): Promise<void> {
     operationalMasked = assertOperationalInquiryVerifyEnv()
     console.log('[verify] 운영 env 요약(비밀번호·전체 URL·쿼리 미출력):', {
       smtpHost: operationalMasked.smtpHost,
-      INQUIRY_MAIL_FROM: operationalMasked.inquiryMailFrom,
-      INQUIRY_RECEIVER_EMAIL: operationalMasked.inquiryReceiver,
+      SMTP_FROM_EMAIL: operationalMasked.smtpFromEmail,
+      INQUIRY_NOTIFICATION_EMAIL: operationalMasked.inquiryNotificationEmail,
       NEXT_PUBLIC_KAKAO_OPEN_CHAT_URL: operationalMasked.kakao,
       NEXT_PUBLIC_NAVER_TALKTALK_URL: operationalMasked.naver,
     })
@@ -578,7 +579,7 @@ async function main(): Promise<void> {
       console.log(
         [
           '\n========== 운영자 수동 확인 체크리스트 (필수) ==========',
-          `1) 메일함(${operationalMasked?.inquiryReceiver ?? 'INQUIRY_RECEIVER'}) — 3건 수신, 제목·본문에 유형 prefix·여행상품 시 상품명/상품번호/공급사/일정/인원/접수번호`,
+          `1) 메일함(${operationalMasked?.inquiryNotificationEmail ?? 'INQUIRY_NOTIFICATION_EMAIL'}) — 3건 수신, 제목·본문에 유형 prefix·여행상품 시 상품명/상품번호/공급사/일정/인원/접수번호`,
           '2) 카카오 — 팝업이 위 로그의 host+path 와 동일 계열인지, 요약(text/클립보드)에 상품명·번호·일정·인원',
           '3) 네이버 톡톡 — 팝업이 위 naver host+path 와 일치하는지, 요약에 동일 필드',
           '4) `/inquiry` 폼에서 이메일 실패 유도 시 — 화면에 “문의는 정상 접수…” 지연 문구(저장≠알림 분리)',

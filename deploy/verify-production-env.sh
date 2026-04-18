@@ -125,14 +125,15 @@ echo ""
 echo "[권장 — 문의 접수 관리자 메일 SMTP (lib/inquiry-email.ts)]"
 smtp_ok=0
 [[ -n "$(val_of "$(merged_line SMTP_HOST)")" ]] && \
+[[ -n "$(val_of "$(merged_line SMTP_PORT)")" ]] && \
 [[ -n "$(val_of "$(merged_line SMTP_USER)")" ]] && \
-[[ -n "$(val_of "$(merged_line SMTP_PASS)")" ]] && {
-  if [[ -n "$(val_of "$(merged_line INQUIRY_MAIL_FROM)")" ]] || [[ -n "$(val_of "$(merged_line SMTP_USER)")" ]]; then
-    smtp_ok=1
-  fi
-}
+[[ -n "$(val_of "$(merged_line SMTP_PASS)")" ]] && \
+[[ -n "$(val_of "$(merged_line SMTP_FROM_EMAIL)")" ]] && \
+[[ -n "$(val_of "$(merged_line SMTP_FROM_NAME)")" ]] && \
+[[ -n "$(val_of "$(merged_line INQUIRY_NOTIFICATION_EMAIL)")" ]] && \
+smtp_ok=1
 if [[ "$smtp_ok" -eq 1 ]]; then
-  echo "  [OK] SMTP_HOST + SMTP_USER + SMTP_PASS + 발신(INQUIRY_MAIL_FROM 또는 USER)"
+  echo "  [OK] 문의 SMTP: HOST+PORT+USER+PASS+FROM_*+INQUIRY_NOTIFICATION_EMAIL"
 else
   echo "  [미설정] 문의 알림 메일 — 미설정 시 접수는 되나 메일 실패·notification 지연 처리( docs/OPS-INQUIRY-SMTP.md )"
 fi

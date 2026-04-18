@@ -7,8 +7,8 @@
  *
  * **운영 최종 검수**는 `npm run verify:inquiry:live` 만 사용한다. `--ethereal` 결과로는 통과 인정하지 말 것.
  *
- * 실SMTP: SMTP_HOST, SMTP_USER, SMTP_PASS 필수 + 발신 INQUIRY_MAIL_FROM(미설정 시 SMTP_USER).
- * SMTP_PORT 비우면 STARTTLS 587(또는 SMTP_SECURE=true 일 때 465) 기본.
+ * 필수: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM_NAME, SMTP_FROM_EMAIL, INQUIRY_NOTIFICATION_EMAIL
+ * SMTP_SECURE — "true" 이면 465 TLS, 아니면 STARTTLS(보통 587)
  */
 import nodemailer from 'nodemailer'
 
@@ -17,13 +17,15 @@ import { sendInquiryReceivedEmail } from '@/lib/inquiry-email'
 
 function hasRealSmtp(): boolean {
   const host = process.env.SMTP_HOST?.trim()
+  const portRaw = process.env.SMTP_PORT?.trim()
   const user = process.env.SMTP_USER?.trim()
   const pass = process.env.SMTP_PASS?.trim()
-  const from = process.env.INQUIRY_MAIL_FROM?.trim() || user
-  const portRaw = process.env.SMTP_PORT?.trim()
+  const fromName = process.env.SMTP_FROM_NAME?.trim()
+  const fromEmail = process.env.SMTP_FROM_EMAIL?.trim()
+  const to = process.env.INQUIRY_NOTIFICATION_EMAIL?.trim()
   const secure = process.env.SMTP_SECURE === 'true'
   const port = Number(portRaw || (secure ? 465 : 587))
-  return Boolean(host && user && pass && from && port > 0)
+  return Boolean(host && portRaw && user && pass && fromName && fromEmail && to && Number.isFinite(port) && port > 0)
 }
 
 async function applyEtherealEnv(): Promise<void> {
@@ -33,8 +35,9 @@ async function applyEtherealEnv(): Promise<void> {
   process.env.SMTP_SECURE = 'false'
   process.env.SMTP_USER = acc.user
   process.env.SMTP_PASS = acc.pass
-  process.env.INQUIRY_MAIL_FROM = `"BongTour SMTP smoke" <${acc.user}>`
-  process.env.INQUIRY_RECEIVER_EMAIL = 'inquiry-receiver@example.com'
+  process.env.SMTP_FROM_NAME = 'BongTour SMTP smoke'
+  process.env.SMTP_FROM_EMAIL = acc.user
+  process.env.INQUIRY_NOTIFICATION_EMAIL = 'inquiry-receiver@example.com'
   console.log('[test-inquiry-smtp] Ethereal test account user:', acc.user)
 }
 
@@ -46,7 +49,7 @@ async function main(): Promise<void> {
     await applyEtherealEnv()
   } else if (!hasRealSmtp()) {
     console.error(
-      '[test-inquiry-smtp] 실제 SMTP env 가 부족합니다. `.env.local` 에 SMTP_HOST, SMTP_USER, SMTP_PASS, INQUIRY_MAIL_FROM(또는 USER로 대체) 를 채우거나 `--ethereal` 로 스모크하세요.'
+      '[test-inquiry-smtp] 실제 SMTP env 가 부족합니다. `.env.local` 에 SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM_NAME, SMTP_FROM_EMAIL, INQUIRY_NOTIFICATION_EMAIL 을 채우거나 `--ethereal` 로 스모크하세요.'
     )
     process.exit(2)
   }

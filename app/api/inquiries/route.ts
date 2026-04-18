@@ -21,7 +21,7 @@ function getClientIp(headers: Headers): string {
  * 보안·운영:
  * - 동일 출처(Origin/Referer) 검증 후 IP rate limit — lib/public-mutation-origin
  * - Captcha: 미적용 — 봇 남용 시 bot 관리·캡차 등 검토
- * - 운영자 자동 알림: 이메일 `sendInquiryReceivedEmail`만 사용(SMS 미사용). 실패는 DB·로그·`notification.channels`로 구분.
+ * - 운영자 자동 알림: `sendInquiryReceivedEmail`(SMTP_FROM_* / INQUIRY_NOTIFICATION_EMAIL, 고객은 replyTo). 실패는 DB·로그·`notification.channels`로 구분.
  * - `sourcePagePath` / `snapshot*`: 운영·분석 추적용(클라이언트 입력이므로 신뢰 검증은 하지 않음)
  */
 export async function POST(request: Request) {

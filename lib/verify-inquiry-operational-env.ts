@@ -7,18 +7,20 @@ import { KAKAO_OPEN_CHAT_URL_FALLBACK } from '@/lib/kakao-open-chat'
 
 export const OPERATIONAL_INQUIRY_VERIFY_ENV_KEYS = [
   'SMTP_HOST',
+  'SMTP_PORT',
   'SMTP_USER',
   'SMTP_PASS',
-  'INQUIRY_MAIL_FROM',
-  'INQUIRY_RECEIVER_EMAIL',
+  'SMTP_FROM_NAME',
+  'SMTP_FROM_EMAIL',
+  'INQUIRY_NOTIFICATION_EMAIL',
   'NEXT_PUBLIC_KAKAO_OPEN_CHAT_URL',
   'NEXT_PUBLIC_NAVER_TALKTALK_URL',
 ] as const
 
 export type OperationalInquiryVerifyMaskedLog = {
   smtpHost: string
-  inquiryMailFrom: string
-  inquiryReceiver: string
+  smtpFromEmail: string
+  inquiryNotificationEmail: string
   kakao: { host: string; pathname: string }
   naver: { host: string; pathname: string }
 }
@@ -61,10 +63,12 @@ export function assertOperationalInquiryVerifyEnv(): OperationalInquiryVerifyMas
   const errors: string[] = []
 
   const smtpHost = process.env.SMTP_HOST?.trim()
+  const smtpPort = process.env.SMTP_PORT?.trim()
   const smtpUser = process.env.SMTP_USER?.trim()
   const smtpPass = process.env.SMTP_PASS?.trim()
-  const mailFrom = process.env.INQUIRY_MAIL_FROM?.trim()
-  const receiver = process.env.INQUIRY_RECEIVER_EMAIL?.trim()
+  const fromName = process.env.SMTP_FROM_NAME?.trim()
+  const fromEmail = process.env.SMTP_FROM_EMAIL?.trim()
+  const receiver = process.env.INQUIRY_NOTIFICATION_EMAIL?.trim()
   const kakao = process.env.NEXT_PUBLIC_KAKAO_OPEN_CHAT_URL?.trim()
   const naver = process.env.NEXT_PUBLIC_NAVER_TALKTALK_URL?.trim()
 
@@ -76,16 +80,21 @@ export function assertOperationalInquiryVerifyEnv(): OperationalInquiryVerifyMas
 
   if (!smtpPass) errors.push('SMTP_PASS 비어 있음')
 
-  if (!mailFrom) {
-    errors.push('INQUIRY_MAIL_FROM 비어 있음 (SMTP_USER 로 대체 불가 — 운영 검수에서 명시 필수)')
-  } else if (isForbiddenEmail(mailFrom)) {
-    errors.push('INQUIRY_MAIL_FROM 이 example/ethereal 계열입니다.')
+  if (!smtpPort) errors.push('SMTP_PORT 비어 있음')
+  else if (!Number.isFinite(Number(smtpPort)) || Number(smtpPort) <= 0) errors.push('SMTP_PORT 가 유효한 양의 정수가 아님')
+
+  if (!fromName) errors.push('SMTP_FROM_NAME 비어 있음')
+
+  if (!fromEmail) {
+    errors.push('SMTP_FROM_EMAIL 비어 있음')
+  } else if (isForbiddenEmail(fromEmail)) {
+    errors.push('SMTP_FROM_EMAIL 이 example/ethereal 계열입니다.')
   }
 
   if (!receiver) {
-    errors.push('INQUIRY_RECEIVER_EMAIL 비어 있음 (앱 코드 기본값 폴백으로는 운영 검수 불가)')
+    errors.push('INQUIRY_NOTIFICATION_EMAIL 비어 있음')
   } else if (isForbiddenEmail(receiver)) {
-    errors.push('INQUIRY_RECEIVER_EMAIL 이 example/ethereal 계열입니다.')
+    errors.push('INQUIRY_NOTIFICATION_EMAIL 이 example/ethereal 계열입니다.')
   }
 
   if (!kakao) {
@@ -135,8 +144,8 @@ export function assertOperationalInquiryVerifyEnv(): OperationalInquiryVerifyMas
 
   return {
     smtpHost: smtpHost!,
-    inquiryMailFrom: maskEmailForLog(mailFrom!),
-    inquiryReceiver: maskEmailForLog(receiver!),
+    smtpFromEmail: maskEmailForLog(fromEmail!),
+    inquiryNotificationEmail: maskEmailForLog(receiver!),
     kakao: kakaoHp,
     naver: naverHp,
   }

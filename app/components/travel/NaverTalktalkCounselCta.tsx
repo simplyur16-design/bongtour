@@ -6,6 +6,7 @@ import {
   buildNaverTalktalkCounselSummaryText,
   copyTextAndOpenNaverTalktalk,
   NAVER_TALKTALK_ENTRY_URL,
+  NAVER_TALKTALK_PROFILE_URL,
   pushNaverTalktalkCounselDataLayer,
 } from '@/lib/naver-talktalk-counsel'
 
@@ -60,6 +61,7 @@ export default function NaverTalktalkCounselCta({
 }: Props) {
   const [copied, setCopied] = useState(false)
   const enabled = Boolean(NAVER_TALKTALK_ENTRY_URL.trim())
+  const profileUrl = NAVER_TALKTALK_PROFILE_URL.trim()
 
   const handleClick = async () => {
     if (!enabled) return
@@ -128,6 +130,16 @@ export default function NaverTalktalkCounselCta({
           <span className="text-[11px] font-normal text-bt-subtle">NEXT_PUBLIC_NAVER_TALKTALK_URL 설정 후 사용</span>
         )}
       </button>
+      {enabled && profileUrl ? (
+        <a
+          href={profileUrl.startsWith('http') ? profileUrl : `https://${profileUrl}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1.5 block text-center text-[11px] text-[#03C75A] underline underline-offset-2 hover:text-[#02a64a]"
+        >
+          톡톡 프로필 홈
+        </a>
+      ) : null}
     </div>
   )
 }
