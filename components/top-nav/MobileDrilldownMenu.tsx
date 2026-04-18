@@ -1,15 +1,13 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { ProductBrowseType } from '@/lib/products-browse-filter'
 import { TOP_NAV_MEGA_REGIONS } from '@/lib/top-nav-resolve'
 import { buildProductsHref, buildProductsHrefCountryOnly } from '@/lib/top-nav-resolve'
 import { OVERSEAS_SUB_NAV_ITEMS } from '@/components/top-nav/overseas-sub-nav-items'
-import BudgetFinderButton from '@/components/top-nav/BudgetFinderButton'
-import BudgetFinderPanel from '@/components/top-nav/BudgetFinderPanel'
-import PrivateQuoteButton from '@/components/top-nav/PrivateQuoteButton'
+
 type Step = 'types' | 'regions' | 'countries' | 'cities'
 
 type Props = {
@@ -22,8 +20,6 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
   const [regionId, setRegionId] = useState<string | null>(null)
   const [countryLabel, setCountryLabel] = useState<string | null>(null)
   const [step, setStep] = useState<Step>('types')
-  const [budgetOpen, setBudgetOpen] = useState(false)
-  const budgetRef = useRef<HTMLDivElement>(null)
 
   const region = regionId ? TOP_NAV_MEGA_REGIONS.find((r) => r.id === regionId) : null
 
@@ -41,16 +37,6 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
           : 'border-t border-slate-200 bg-white px-4 py-3'
       }
     >
-      <div className="mb-3 flex gap-2">
-        <div ref={budgetRef} className="relative flex-1">
-          <BudgetFinderButton open={budgetOpen} onClick={() => setBudgetOpen((o) => !o)} />
-          <div className="relative">
-            <BudgetFinderPanel open={budgetOpen} onClose={() => setBudgetOpen(false)} anchorRef={budgetRef} />
-          </div>
-        </div>
-        <PrivateQuoteButton />
-      </div>
-
       {step === 'types' && (
         <ul className="space-y-0">
           {OVERSEAS_SUB_NAV_ITEMS.map((t) =>

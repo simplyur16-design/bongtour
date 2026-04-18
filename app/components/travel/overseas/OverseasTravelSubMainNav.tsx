@@ -7,7 +7,7 @@ import OverseasSubNavLinksRow, { OverseasSubNavMobileScrollRow } from '@/compone
 /**
  * 해외여행 서브메인 전용 — 전역 Header 1차 네비와 별개.
  * - hub: 여행상품 hover 시 권역/국가/도시 메가메뉴 ( `/travel/overseas` 만 )
- * - links: 단독/항공+호텔/E-sim 등 — 동일 4링크만, 권역 UI 없음
+ * - links: 우리끼리·항공+호텔·투어&액티비티·E-sim 등 — 권역 UI 없이 소메뉴만
  */
 export default function OverseasTravelSubMainNav({ variant = 'hub' }: { variant?: 'hub' | 'links' }) {
   if (variant === 'links') {

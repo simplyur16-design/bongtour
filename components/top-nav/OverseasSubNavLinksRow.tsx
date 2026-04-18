@@ -26,14 +26,14 @@ function OverseasSubNavLinkLabel({ item }: { item: OverseasSubNavItem }) {
 }
 
 /**
- * 해외여행 전용 하위 페이지 — 권역/국가 메가메뉴 없이 동일 4개 링크만 표시
+ * 해외여행 전용 하위 페이지 — 권역/국가 메가메뉴 없이 소메뉴 링크만 표시
  */
 export default function OverseasSubNavLinksRow() {
   const pathname = usePathname() ?? ''
 
   return (
     <div
-      className="grid w-full min-w-0 grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-4 sm:gap-x-3 md:gap-x-4 lg:gap-x-5"
+      className="grid w-full min-w-0 grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-3 sm:gap-x-3 md:gap-x-4 lg:grid-cols-5 lg:gap-x-5"
       role="navigation"
       aria-label="해외여행 하위 메뉴"
     >
@@ -59,15 +59,14 @@ export default function OverseasSubNavLinksRow() {
 }
 
 /**
- * 좁은 화면: 4개 소메뉴를 한 줄에 동시 노출.
- * (이전: flex + 탭 공통 `w-full` 때문에 각 항목이 뷰포트 전체 너비를 차지해 첫 탭만 보이는 문제가 있었음)
+ * 좁은 화면: 소메뉴를 그리드로 동시 노출 (2열 → 중간 3열 → 넓은 화면 5열).
  */
 export function OverseasSubNavMobileScrollRow() {
   const pathname = usePathname() ?? ''
 
   return (
     <div
-      className="grid w-full min-w-0 grid-cols-4 gap-1 pb-2 pt-1 sm:gap-1.5"
+      className="grid w-full min-w-0 grid-cols-2 gap-1 pb-2 pt-1 sm:grid-cols-3 sm:gap-1.5 md:grid-cols-5"
       role="navigation"
       aria-label="해외여행 하위 메뉴"
     >

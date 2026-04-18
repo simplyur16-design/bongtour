@@ -19,7 +19,7 @@ const ROWS: { key: MobileMainServiceTileKey; title: string; hint: string; imageG
   },
   {
     key: 'privateTrip',
-    title: '우리여행',
+    title: '우리끼리',
     hint: '맞춤·소규모',
     imageGuide: '권장 컷: 가족·소그룹이 함께하는 여행 사진(얼굴·초상권 동의된 컷).',
   },

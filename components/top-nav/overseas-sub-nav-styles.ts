@@ -1,5 +1,5 @@
 /**
- * 해외여행 소메뉴 4버튼 공통 스타일 — LinksRow / MobileScroll / HubRow 동일 시스템
+ * 해외여행 소메뉴 공통 스타일 — LinksRow / MobileScroll / HubRow 동일 시스템
  * hover는 duration-75로 즉시에 가깝게 반응, active는 현재 경로만
  */
 import type { OverseasSubNavItem } from '@/components/top-nav/overseas-sub-nav-items'
@@ -11,7 +11,7 @@ export const overseasSubNavTabBase =
 export const overseasSubNavTabIdle =
   `${overseasSubNavTabBase} border-slate-200 bg-white font-medium text-slate-700 shadow-sm hover:border-teal-400 hover:bg-teal-50 hover:text-teal-900`
 
-/** 현재 페이지만 — 4버튼 동일 active 톤 */
+/** 현재 페이지만 — 링크 항목 동일 active 톤 */
 export const overseasSubNavTabActive =
   `${overseasSubNavTabBase} border-teal-500 bg-teal-50 font-semibold text-teal-900 shadow-sm ring-1 ring-inset ring-teal-500/20`
 

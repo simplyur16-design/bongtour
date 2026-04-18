@@ -26,7 +26,7 @@ export default function OverseasSubNavHubRow({ onHoverMegaEnter, onFocusMega, on
 
   return (
     <div
-      className="grid w-full min-w-0 grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-4 sm:gap-x-3 md:gap-x-4 lg:gap-x-5"
+      className="grid w-full min-w-0 grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-3 sm:gap-x-3 md:gap-x-4 lg:grid-cols-5 lg:gap-x-5"
       role="tablist"
       aria-label="해외여행 하위 메뉴"
     >

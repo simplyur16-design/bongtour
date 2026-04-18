@@ -13,7 +13,7 @@ const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
 /**
  * 카피·링크·하이브리드 매핑 키 — 실제 `bgSrc`는 `resolveMobileMainTileBgSrc`로 확정.
- * 배경 URL은 관리자 권장: 해외=유럽(영·프 등), 항공+호텔=이륙기, 우리여행=가족, 국외연수=회의장.
+ * 배경 URL은 관리자 권장: 해외=유럽(영·프 등), 항공+호텔=이륙기, 우리끼리=가족, 국외연수=회의장.
  */
 const MAIN_TILES_SPEC = [
   {
@@ -30,7 +30,7 @@ const MAIN_TILES_SPEC = [
   },
   {
     href: '/travel/overseas/private-trip',
-    title: '우리여행',
+    title: '우리끼리',
     desc: '가족 · 소규모 맞춤여행',
     bgKey: 'privateTrip' as const satisfies MobileMainTileBgKey,
   },
