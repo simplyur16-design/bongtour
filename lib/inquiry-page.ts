@@ -1,5 +1,12 @@
 import type { CustomerInquiryType } from '@/lib/customer-inquiry-intake'
 
+/**
+ * URL `?type=` ↔ POST `inquiryType` SSOT (4종만).
+ * - travel → travel_consult
+ * - institution → institution_request
+ * - training → overseas_training_quote
+ * - bus → bus_quote
+ */
 /** URL `?type=` — 단일 페이지에서 4종 분기 */
 export const INQUIRY_KINDS = ['travel', 'institution', 'training', 'bus'] as const
 export type InquiryKind = (typeof INQUIRY_KINDS)[number]
@@ -64,6 +71,18 @@ export function parseInquirySearchParams(
   }
 }
 
+/** 비여행 문의로 전환 시 상품·큐레이션 딥링크가 URL에 남지 않도록 제거 */
+export function sanitizeInquiryQueryForKind(kind: InquiryKind, q: InquiryPageQuery): InquiryPageQuery {
+  if (kind === 'travel') return { ...q }
+  return {
+    ...q,
+    productId: null,
+    monthlyCurationItemId: null,
+    snapshotProductTitle: null,
+    snapshotCardLabel: null,
+  }
+}
+
 /** 유형별 상단 제목·설명 (상담/접수 톤, 쇼핑몰형 지양) */
 export const INQUIRY_UI_META: Record<
   InquiryKind,
@@ -91,16 +110,23 @@ export const INQUIRY_UI_META: Record<
   },
 }
 
-/** 유형 탭 전환 시 productId 등 컨텍스트 유지 */
+/** 유형 탭 전환 — `travel`일 때만 상품·큐레이션 쿼리 유지 */
 export function buildInquiryHref(kind: InquiryKind, q: InquiryPageQuery): string {
+  const safe = sanitizeInquiryQueryForKind(kind, q)
   const p = new URLSearchParams()
   p.set('type', kind)
-  if (q.productId) p.set('productId', q.productId)
-  if (q.monthlyCurationItemId) p.set('monthlyCurationItemId', q.monthlyCurationItemId)
-  if (q.snapshotProductTitle) p.set('snapshotProductTitle', q.snapshotProductTitle)
-  if (q.snapshotCardLabel) p.set('snapshotCardLabel', q.snapshotCardLabel)
-  if (q.targetYearMonth) p.set('targetYearMonth', q.targetYearMonth)
-  if (q.trainingServiceScope) p.set('service', q.trainingServiceScope)
+  if (kind === 'travel') {
+    if (safe.productId) p.set('productId', safe.productId)
+    if (safe.monthlyCurationItemId) p.set('monthlyCurationItemId', safe.monthlyCurationItemId)
+    if (safe.snapshotProductTitle) p.set('snapshotProductTitle', safe.snapshotProductTitle)
+    if (safe.snapshotCardLabel) p.set('snapshotCardLabel', safe.snapshotCardLabel)
+  }
+  if (kind === 'training') {
+    if (safe.targetYearMonth) p.set('targetYearMonth', safe.targetYearMonth)
+    if (safe.trainingServiceScope) p.set('service', safe.trainingServiceScope)
+  } else if (safe.targetYearMonth && (kind === 'travel' || kind === 'institution' || kind === 'bus')) {
+    p.set('targetYearMonth', safe.targetYearMonth)
+  }
   return `/inquiry?${p.toString()}`
 }
 

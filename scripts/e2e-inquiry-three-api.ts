@@ -85,7 +85,7 @@ async function main(): Promise<void> {
       departurePlace: '서울',
       arrivalPlace: '부산',
       estimatedHeadcount: 25,
-      tripType: 'one_way',
+      tripType: 'round_trip',
       waitingRequired: false,
       luggageRequired: false,
     },

@@ -1,7 +1,10 @@
 import { computeLeadTimeRisk } from '@/lib/inquiry-lead-time-risk'
 import { optionalEmailFormatError } from '@/lib/email-format'
 
-/** Prisma `CustomerInquiry.inquiryType` — 공개 API 허용값 */
+/**
+ * Prisma `CustomerInquiry.inquiryType` — 공개 POST `/api/inquiries` 허용값(SSOT).
+ * URL `?type=` → 이 배열 값: `lib/inquiry-page.ts` 의 `inquiryKindToApiType` 과 반드시 일치.
+ */
 export const CUSTOMER_INQUIRY_TYPES = [
   'travel_consult',
   'institution_request',
@@ -261,6 +264,21 @@ export function validateCustomerInquiryBody(
   const inquiryType = inquiryTypeRaw as CustomerInquiryType
   const leadTimeRisk = computeLeadTimeRisk(payloadObject)
 
+  const productAttach =
+    inquiryType === 'travel_consult'
+      ? {
+          productId: pidR.ok ? pidR.value : null,
+          monthlyCurationItemId: curR.ok ? curR.value : null,
+          snapshotProductTitle: snapTitleR.ok ? snapTitleR.value : null,
+          snapshotCardLabel: snapCardR.ok ? snapCardR.value : null,
+        }
+      : {
+          productId: null,
+          monthlyCurationItemId: null,
+          snapshotProductTitle: null,
+          snapshotCardLabel: null,
+        }
+
   return {
     ok: true,
     value: {
@@ -269,10 +287,10 @@ export function validateCustomerInquiryBody(
       applicantPhone: phoneR.ok && phoneR.value ? phoneR.value : '',
       applicantEmail: emailR.ok ? emailR.value : null,
       message: messageR.ok ? messageR.value : null,
-      productId: pidR.ok ? pidR.value : null,
-      monthlyCurationItemId: curR.ok ? curR.value : null,
-      snapshotProductTitle: snapTitleR.ok ? snapTitleR.value : null,
-      snapshotCardLabel: snapCardR.ok ? snapCardR.value : null,
+      productId: productAttach.productId,
+      monthlyCurationItemId: productAttach.monthlyCurationItemId,
+      snapshotProductTitle: productAttach.snapshotProductTitle,
+      snapshotCardLabel: productAttach.snapshotCardLabel,
       sourcePagePath: pathR.ok ? pathR.value : null,
       privacyAgreed: true,
       privacyNoticeConfirmedAt: privacyConfirmedAt as Date,

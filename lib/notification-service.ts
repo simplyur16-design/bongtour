@@ -1,3 +1,4 @@
+import { inquiryTypeLabel } from '@/lib/admin-inquiry'
 import { prisma } from '@/lib/prisma'
 import { createSolapiAuthorizationHeader } from '@/lib/solapi-auth'
 import { buildAdminNotificationMessage, buildAdminNotificationMessageFromPayload } from '@/lib/message-service'
@@ -171,7 +172,7 @@ export type AdminInquiryNotificationParams = AdminInquiryLmsBodyInput
 function buildInquiryCustomerLmsText(p: { inquiryType: string; productLabel: string }): string {
   return [
     '[봉투어] 상담문의가 접수되었습니다.',
-    `문의유형: ${p.inquiryType}`,
+    `문의유형: ${inquiryTypeLabel(p.inquiryType)}`,
     `문의상품: ${truncateForSms(p.productLabel, 200)}`,
     '담당자가 확인 후 연락드립니다.',
   ].join('\n')

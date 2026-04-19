@@ -99,7 +99,7 @@ export function sortInquiriesByRiskThenDate<
 
 export const INQUIRY_TYPE_LABELS: Record<CustomerInquiryType, string> = {
   travel_consult: '일반 여행 상담',
-  institution_request: '연수기관 섭외',
+  institution_request: '기관/단체 문의',
   overseas_training_quote: '국외연수 견적',
   bus_quote: '전세버스 견적',
 }

@@ -1,6 +1,8 @@
 /**
  * tsx로 실행하는 스크립트가 프로젝트 루트 `.env.local` / `.env` 를 읽도록 함 (Next와 동일 파일).
- * 이미 설정된 process.env 키는 덮어쓰지 않음.
+ *
+ * **주의:** 이미 `process.env` 에 값이 있으면(IDE/터미널/Windows 사용자 환경변수 등) **파일 값으로 덮어쓰지 않음**.
+ * 네이버 535가 나오는데 `.env.local` 은 맞다고 느껴지면, 셸에 남은 `SMTP_USER` / `SMTP_PASS` 를 먼저 확인한다.
  */
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'

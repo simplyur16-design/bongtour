@@ -3,6 +3,7 @@ import InquiryPageClient from '@/components/inquiry/InquiryPageClient'
 import {
   normalizeInquiryKind,
   parseInquirySearchParams,
+  sanitizeInquiryQueryForKind,
 } from '@/lib/inquiry-page'
 import { SITE_NAME } from '@/lib/site-metadata'
 
@@ -36,7 +37,7 @@ export default async function InquiryPage({ searchParams }: PageProps) {
   const sp = await searchParams
   const rawType = typeof sp.type === 'string' ? sp.type : undefined
   const kind = normalizeInquiryKind(rawType)
-  const initialQuery = parseInquirySearchParams(sp)
+  const initialQuery = sanitizeInquiryQueryForKind(kind, parseInquirySearchParams(sp))
 
   return <InquiryPageClient kind={kind} initialQuery={initialQuery} />
 }

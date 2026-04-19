@@ -1,3 +1,5 @@
+import { INQUIRY_MAIL_PREFIX } from '@/lib/inquiry-routing-metadata'
+import { CUSTOMER_INQUIRY_TYPES } from '@/lib/customer-inquiry-intake'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 
 /** POST /api/inquiries 이후 운영자 이메일 알림 공통 입력 */
@@ -47,29 +49,34 @@ function hasTravelProductContext(input: InquiryNotifyInput): boolean {
 }
 
 /**
- * 운영자 알림 제목·본문 첫머리용 접두어(요구 스펙 7종 + 일반).
- * `inquiryType` + `payloadJson` + `sourcePagePath` + 상품 컨텍스트로만 판별(추측 없음).
+ * 운영자 알림 제목·본문 첫머리용 접두어.
+ * `travel_consult` 분기 순서(고정): 우리견적 → 항공권 경로 → 상품 맥락 → 일반.
+ * 4종 외 `inquiryType`은 `[일반 문의]`로 뭉개지 않고 `[문의 접수]`만 사용.
  */
 export function resolveInquiryAlertPrefix(input: InquiryNotifyInput): string {
   const payload = parseInquiryPayloadJson(input.payloadJson)
   const path = pathLower(input.sourcePagePath)
 
-  if (input.inquiryType === 'overseas_training_quote') return '[국외연수 문의]'
-  if (input.inquiryType === 'bus_quote') return '[전세버스 문의]'
+  if (!(CUSTOMER_INQUIRY_TYPES as readonly string[]).includes(input.inquiryType)) {
+    return INQUIRY_MAIL_PREFIX.FALLBACK
+  }
+
+  if (input.inquiryType === 'overseas_training_quote') return INQUIRY_MAIL_PREFIX.TRAINING
+  if (input.inquiryType === 'bus_quote') return INQUIRY_MAIL_PREFIX.BUS
 
   if (input.inquiryType === 'institution_request') {
-    if (payload.interpreterNeeded === true) return '[통역 문의]'
-    return '[일반 문의]'
+    if (payload.interpreterNeeded === true) return INQUIRY_MAIL_PREFIX.INTERPRETER
+    return INQUIRY_MAIL_PREFIX.INSTITUTION
   }
 
   if (input.inquiryType === 'travel_consult') {
-    if (payload.quoteKind === 'private_custom') return '[우리여행 견적]'
-    if (path.includes('air-ticketing')) return '[항공권 문의]'
-    if (hasTravelProductContext(input)) return '[여행상품 문의]'
-    return '[일반 문의]'
+    if (payload.quoteKind === 'private_custom') return INQUIRY_MAIL_PREFIX.PRIVATE_QUOTE
+    if (path.includes('air-ticketing')) return INQUIRY_MAIL_PREFIX.FLIGHT
+    if (hasTravelProductContext(input)) return INQUIRY_MAIL_PREFIX.TRAVEL_PRODUCT
+    return INQUIRY_MAIL_PREFIX.TRAVEL_GENERAL
   }
 
-  return '[일반 문의]'
+  return INQUIRY_MAIL_PREFIX.FALLBACK
 }
 
 export function adminBaseUrl(): string {
@@ -135,32 +142,37 @@ export function buildInquiryEmailSubject(input: InquiryNotifyInput, prefix: stri
   const name = input.applicantName.trim() || '고객'
   const payload = parseInquiryPayloadJson(input.payloadJson)
 
-  if (prefix === '[여행상품 문의]') {
+  if (prefix === INQUIRY_MAIL_PREFIX.TRAVEL_PRODUCT) {
     const supplier = travelProductDisplaySupplier(input)
     const title = travelProductDisplayTitle(input).slice(0, 56)
     const code = travelProductDisplayCode(input)
     return `${prefix} ${supplier} / ${title} / 상품번호 ${code} / ${name}`
   }
-  if (prefix === '[우리여행 견적]') {
+  if (prefix === INQUIRY_MAIL_PREFIX.PRIVATE_QUOTE) {
     const dest = inquiryPayloadField(payload, 'destinationSummary').slice(0, 36) || '지역미입력'
     return `${prefix} ${dest} / ${name}`
   }
-  if (prefix === '[전세버스 문의]') {
+  if (prefix === INQUIRY_MAIL_PREFIX.BUS) {
     const dep = inquiryPayloadField(payload, 'departurePlace').slice(0, 16)
     const arr = inquiryPayloadField(payload, 'arrivalPlace').slice(0, 16)
     const when = inquiryPayloadField(payload, 'useDate') !== '-' ? inquiryPayloadField(payload, 'useDate') : inquiryPayloadField(payload, 'targetYearMonth')
     return `${prefix} ${when} / ${dep}→${arr} / ${name}`
   }
-  if (prefix === '[통역 문의]') {
+  if (prefix === INQUIRY_MAIL_PREFIX.INTERPRETER) {
     const city = inquiryPayloadField(payload, 'preferredCountryCity').slice(0, 28)
     return `${prefix} ${city} / ${name}`
   }
-  if (prefix === '[국외연수 문의]') {
+  if (prefix === INQUIRY_MAIL_PREFIX.INSTITUTION) {
+    const org = inquiryPayloadField(payload, 'organizationName').slice(0, 28) || '기관명미입력'
+    const city = inquiryPayloadField(payload, 'preferredCountryCity').slice(0, 24)
+    return `${prefix} ${org}${city !== '-' ? ` / ${city}` : ''} / ${name}`
+  }
+  if (prefix === INQUIRY_MAIL_PREFIX.TRAINING) {
     const org = inquiryPayloadField(payload, 'organizationName').slice(0, 28)
     const dest = inquiryPayloadField(payload, 'destinationSummary').slice(0, 24)
     return `${prefix} ${org} / ${dest} / ${name}`
   }
-  if (prefix === '[항공권 문의]') {
+  if (prefix === INQUIRY_MAIL_PREFIX.FLIGHT) {
     const region = inquiryPayloadField(payload, 'preferredRegion').slice(0, 28)
     return `${prefix} ${region} / ${name}`
   }
@@ -172,10 +184,6 @@ export function buildInquiryEmailSummaryBlock(input: InquiryNotifyInput, prefix:
   const payload = parseInquiryPayloadJson(input.payloadJson)
   const base = adminBaseUrl()
   const adminInquiries = base ? `${base}/admin/inquiries` : '/admin/inquiries'
-  const adminProduct =
-    input.productId && base ? `${base}/admin/products/${encodeURIComponent(input.productId.trim())}` : null
-  const publicProduct =
-    input.productId && base ? `${base}/products/${encodeURIComponent(input.productId.trim())}` : null
 
   const lines: string[] = [
     '━━━━━━━━━━━━━━━━',
@@ -187,18 +195,14 @@ export function buildInquiryEmailSummaryBlock(input: InquiryNotifyInput, prefix:
     `관리 목록: ${adminInquiries}`,
   ]
 
-  if (prefix === '[여행상품 문의]') {
+  if (prefix === INQUIRY_MAIL_PREFIX.TRAVEL_PRODUCT) {
     lines.push(
-      `상품명: ${travelProductDisplayTitle(input)}`,
-      `상품번호(공급사코드): ${travelProductDisplayCode(input)}`,
-      `공급사: ${travelProductDisplaySupplier(input)}`,
-      `출발·일정: ${travelDepartureOrSchedule(payload)}`,
-      `인원: ${travelPaxSummary(payload)}`
+      `[상품 문의 — 요약]`,
+      `한 줄: ${travelProductDisplaySupplier(input)} / ${travelProductDisplayTitle(input)} / 코드 ${travelProductDisplayCode(input)}`,
+      `공급사·출발일·선택가·상품 URL·유입 페이지 전체는 본문 하단 「상품 문의 정보」 appendix 참조.`
     )
-    if (adminProduct) lines.push(`관리 상품: ${adminProduct}`)
-    if (publicProduct) lines.push(`상품 페이지: ${publicProduct}`)
     if (input.snapshotCardLabel?.trim()) lines.push(`카드스냅샷: ${input.snapshotCardLabel.trim()}`)
-  } else if (prefix === '[우리여행 견적]') {
+  } else if (prefix === INQUIRY_MAIL_PREFIX.PRIVATE_QUOTE) {
     lines.push(
       `희망지역/국가: ${inquiryPayloadField(payload, 'destinationSummary')}`,
       `일정: ${travelDepartureOrSchedule(payload)}`,
@@ -206,7 +210,7 @@ export function buildInquiryEmailSummaryBlock(input: InquiryNotifyInput, prefix:
       `권역: ${inquiryPayloadField(payload, 'travelRegion')}`,
       `예산·비고: ${inquiryPayloadField(payload, 'budgetNote')}`
     )
-  } else if (prefix === '[전세버스 문의]') {
+  } else if (prefix === INQUIRY_MAIL_PREFIX.BUS) {
     lines.push(
       `이용목적: ${inquiryPayloadField(payload, 'usageType')}`,
       `이용일: ${inquiryPayloadField(payload, 'useDate') !== '-' ? inquiryPayloadField(payload, 'useDate') : inquiryPayloadField(payload, 'targetYearMonth')}`,
@@ -216,15 +220,27 @@ export function buildInquiryEmailSummaryBlock(input: InquiryNotifyInput, prefix:
       `인원: ${inquiryPayloadField(payload, 'estimatedHeadcount')}`,
       `차량희망: ${inquiryPayloadField(payload, 'vehicleClassPreference')}`
     )
-  } else if (prefix === '[통역 문의]') {
+  } else if (prefix === INQUIRY_MAIL_PREFIX.INTERPRETER) {
     lines.push(
+      `[기관/단체 문의 보조 · 통역 희망]`,
       `기관명: ${inquiryPayloadField(payload, 'organizationName')}`,
-      `희망 국가·도시: ${inquiryPayloadField(payload, 'preferredCountryCity')}`,
-      `방문분야: ${inquiryPayloadField(payload, 'visitField')}`,
-      `희망 시기: ${inquiryPayloadField(payload, 'preferredTiming')}`,
-      `인원: ${inquiryPayloadField(payload, 'estimatedHeadcount')}`
+      `희망 국가/도시: ${inquiryPayloadField(payload, 'preferredCountryCity')}`,
+      `희망 일정/시기: ${inquiryPayloadField(payload, 'preferredTiming')}`,
+      `예상 인원: ${inquiryPayloadField(payload, 'estimatedHeadcount')}`,
+      `방문 분야: ${inquiryPayloadField(payload, 'visitField')}`,
+      `유입 페이지: ${input.sourcePagePath ?? '-'}`
     )
-  } else if (prefix === '[국외연수 문의]') {
+  } else if (prefix === INQUIRY_MAIL_PREFIX.INSTITUTION) {
+    lines.push(
+      `[기관/단체 문의 보조]`,
+      `기관명: ${inquiryPayloadField(payload, 'organizationName')}`,
+      `희망 국가/도시: ${inquiryPayloadField(payload, 'preferredCountryCity')}`,
+      `희망 일정/시기: ${inquiryPayloadField(payload, 'preferredTiming')}`,
+      `예상 인원: ${inquiryPayloadField(payload, 'estimatedHeadcount')}`,
+      `방문 분야: ${inquiryPayloadField(payload, 'visitField')}`,
+      `유입 페이지: ${input.sourcePagePath ?? '-'}`
+    )
+  } else if (prefix === INQUIRY_MAIL_PREFIX.TRAINING) {
     lines.push(
       `기관명: ${inquiryPayloadField(payload, 'organizationName')}`,
       `목적지: ${inquiryPayloadField(payload, 'destinationSummary')}`,
@@ -233,7 +249,7 @@ export function buildInquiryEmailSummaryBlock(input: InquiryNotifyInput, prefix:
       `서비스범위: ${inquiryPayloadField(payload, 'serviceScope')}`,
       `연수목적: ${inquiryPayloadField(payload, 'trainingPurpose')}`
     )
-  } else if (prefix === '[항공권 문의]') {
+  } else if (prefix === INQUIRY_MAIL_PREFIX.FLIGHT) {
     lines.push(
       `희망지역: ${inquiryPayloadField(payload, 'preferredRegion')}`,
       `희망월: ${inquiryPayloadField(payload, 'targetYearMonth')}`,

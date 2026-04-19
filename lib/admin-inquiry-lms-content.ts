@@ -22,7 +22,7 @@ export const ADMIN_INQUIRY_LMS_HEADER = '[봉투어 신규문의]'
 
 export const ADMIN_INQUIRY_LMS_TYPE_LABELS: Record<string, string> = {
   travel_consult: '여행상담',
-  institution_request: '기관문의',
+  institution_request: '기관/단체',
   overseas_training_quote: '국외연수 견적',
   bus_quote: '전세버스 견적',
 }
