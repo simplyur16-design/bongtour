@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
+import type { PrismaClient } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { fetchPexelsPhotoObject, isPexelsFallbackUrl, type PexelsPhotoObject } from '@/lib/pexels-service'
+import { extractPexelsPhotoIdFromCdnUrl } from '@/lib/product-pexels-image-rehost'
 import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { buildImageCacheFromDb, getCachedPhoto, type CachedPhotoObject } from '@/lib/image-cache'
 import { PEXELS_REALISTIC_KEYWORDS } from '@/lib/image-style'
@@ -16,6 +18,10 @@ import {
 } from '@/lib/final-image-selection'
 import { isObjectStorageConfigured } from '@/lib/object-storage'
 import { rehostPexelsUrlsInScheduleEntries, type ScheduleEntryRecord } from '@/lib/schedule-day-image-rehost'
+import {
+  internalizeProductCoverImageUrl,
+  isExternalHttpProductImageUrl,
+} from '@/lib/travel-product-image-internalize'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -123,6 +129,7 @@ async function stringifyScheduleWithPexelsRehost(
 ): Promise<string> {
   if (!isObjectStorageConfigured()) return JSON.stringify(entries)
   const rehosted = await rehostPexelsUrlsInScheduleEntries(
+    prisma,
     productId,
     entries as ScheduleEntryRecord[],
     (day, row) => scheduleMetaForProcessImages(day, row, destination, itineraryRows)
@@ -188,6 +195,63 @@ function pexelsToResult(p: PexelsPhotoObject): PhotoResult {
     originalLink: p.originalLink,
     externalId: p.externalId,
   }
+}
+
+async function sealProductCoverPhoto(
+  prisma: PrismaClient,
+  destination: string,
+  photo: PhotoResult,
+  poolAttractionLabel: string,
+  poolSource?: string
+): Promise<PhotoResult> {
+  if (!isObjectStorageConfigured() || !isExternalHttpProductImageUrl(photo.url)) {
+    return photo
+  }
+  const extId = photo.externalId != null ? Number(String(photo.externalId).trim()) : NaN
+  const pidFromUrl = extractPexelsPhotoIdFromCdnUrl(photo.url)
+  const pexelsPhotoId =
+    Number.isInteger(extId) && extId > 0 ? extId : pidFromUrl != null && pidFromUrl > 0 ? pidFromUrl : null
+  const cityLine = destination.split(',')[0]?.trim() || destination.trim() || null
+  const url = await internalizeProductCoverImageUrl(prisma, {
+    remoteUrl: photo.url,
+    destination,
+    poolAttractionLabel: poolAttractionLabel.slice(0, 80) || 'Landmark',
+    poolSource: poolSource ?? photo.source,
+    pexelsPhotoId,
+    photographer: photo.photographer,
+    pexelsPageUrl: photo.originalLink?.trim() || null,
+    searchKeyword: poolAttractionLabel,
+    placeName: null,
+    cityName: cityLine,
+  })
+  return { ...photo, url }
+}
+
+async function sealPexelsPhotoObjectForScheduleSlot(
+  prisma: PrismaClient,
+  destination: string,
+  p: PexelsPhotoObject,
+  poolAttractionLabel: string
+): Promise<PexelsPhotoObject> {
+  if (!isObjectStorageConfigured() || !isExternalHttpProductImageUrl(p.url)) return p
+  const extId = p.externalId != null ? Number(String(p.externalId).trim()) : NaN
+  const pidFromUrl = extractPexelsPhotoIdFromCdnUrl(p.url)
+  const pexelsPhotoId =
+    Number.isInteger(extId) && extId > 0 ? extId : pidFromUrl != null && pidFromUrl > 0 ? pidFromUrl : null
+  const cityLine = destination.split(',')[0]?.trim() || destination.trim() || null
+  const url = await internalizeProductCoverImageUrl(prisma, {
+    remoteUrl: p.url,
+    destination,
+    poolAttractionLabel: poolAttractionLabel.slice(0, 80) || 'day',
+    poolSource: p.source,
+    pexelsPhotoId,
+    photographer: p.photographer,
+    pexelsPageUrl: p.originalLink?.trim() || null,
+    searchKeyword: poolAttractionLabel,
+    placeName: poolAttractionLabel,
+    cityName: cityLine,
+  })
+  return { ...p, url }
 }
 
 /** 일정 슬롯 수를 ItineraryDay/최소 4일 중 큰 값으로 맞춤 */
@@ -316,8 +380,20 @@ export async function POST(req: Request) {
         schedPhotos.push(preMade.schedulePhotos[pad % preMade.schedulePhotos.length])
         pad++
       }
+      const mainSealed = await sealPexelsPhotoObjectForScheduleSlot(
+        prisma,
+        destination,
+        preMade.mainPhoto,
+        'premade_main'
+      )
+      const schedSealed: PexelsPhotoObject[] = []
+      for (let i = 0; i < schedPhotos.length; i++) {
+        schedSealed.push(
+          await sealPexelsPhotoObjectForScheduleSlot(prisma, destination, schedPhotos[i]!, `premade_${i + 1}`)
+        )
+      }
       const updatedSchedule: ScheduleEntry[] = scheduleArr.map((item, i) => {
-        const photo = schedPhotos[i] ?? null
+        const photo = schedSealed[i] ?? null
         return {
           day: item.day,
           title: item.title,
@@ -338,7 +414,7 @@ export async function POST(req: Request) {
       await prisma.product.update({
         where: { id: product.id as string },
         data: {
-          bgImageUrl: preMade.mainPhoto.url,
+          bgImageUrl: mainSealed.url,
           schedule: scheduleStrPre,
         },
       })
@@ -399,6 +475,7 @@ export async function POST(req: Request) {
         }
       }
     }
+    mainPhoto = await sealProductCoverPhoto(prisma, destination, mainPhoto, 'Landmark', mainPhoto.source)
     usage.mark(mainPhoto)
 
     const maxItineraryDay =
@@ -413,19 +490,32 @@ export async function POST(req: Request) {
       const sched = workingSchedule[n]
       const dayNum = typeof sched?.day === 'number' && sched.day > 0 ? sched.day : n + 1
       if (sched?.imageManualSelected === true && sched?.imageUrl) {
-        schedulePhotos.push({
-          photo: {
+        const manualPhoto = await sealProductCoverPhoto(
+          prisma,
+          destination,
+          {
             url: String(sched.imageUrl),
             source: sched.imageSource?.source || 'manual',
             photographer: sched.imageSource?.photographer || 'manual',
             originalLink: sched.imageSource?.originalLink || '',
+            externalId:
+              sched.imageSource && typeof (sched.imageSource as { externalId?: string }).externalId === 'string'
+                ? (sched.imageSource as { externalId: string }).externalId
+                : (sched.imageSource as { externalId?: string })?.externalId != null
+                  ? String((sched.imageSource as { externalId: unknown }).externalId)
+                  : undefined,
           },
+          sched.imageKeyword || `day_${dayNum}`,
+          sched.imageSource?.source || 'manual'
+        )
+        schedulePhotos.push({
+          photo: manualPhoto,
           imageKeyword: sched.imageKeyword || `day_${dayNum}`,
         })
         slotDebug.push({
           day: dayNum,
-          imageUrl: String(sched.imageUrl),
-          imageSource: sched.imageSource?.source || 'manual',
+          imageUrl: manualPhoto.url,
+          imageSource: manualPhoto.source,
           candidateOrigin: 'manual-lock',
           semanticKey: normalizeSemanticPoiKey(sched.imageKeyword || `day_${dayNum}`),
           fallbackUsed: false,
@@ -481,7 +571,8 @@ export async function POST(req: Request) {
         usedHeroPlaceKeys.add(heroOut.semanticKey)
         usedSemanticKeys.add(heroOut.semanticKey)
         newFetchCount++
-        await saveDayHeroResult(prisma, product.id as string, dayNum, heroOut.bundle)
+        const bundleToSave = { ...heroOut.bundle, heroImageUrl: heroOut.photo.url }
+        await saveDayHeroResult(prisma, product.id as string, dayNum, bundleToSave)
         console.log(`[HERO] day ${dayNum} ${heroOut.bundle.heroImageSource} → ${photo.url.slice(0, 80)}…`)
       }
 
@@ -534,7 +625,8 @@ export async function POST(req: Request) {
         usedSemanticKeys.add(normalizeSemanticPoiKey(keywordUsed))
       }
 
-      schedulePhotos.push({ photo, imageKeyword: keywordUsed })
+      const sealedSlot = await sealProductCoverPhoto(prisma, destination, photo, keywordUsed, photo.source)
+      schedulePhotos.push({ photo: sealedSlot, imageKeyword: keywordUsed })
       slotDebug.push({
         day: dayNum,
         imageUrl: photo.url,
@@ -588,10 +680,17 @@ export async function POST(req: Request) {
       })
       .filter((x): x is { meta: ScheduleImageLike; photo: PhotoResult } => x != null)
     const bestCover = pickRepresentativeCoverScheduleDay(coverCandidates.map((c) => c.meta))
-    const bgPhoto =
+    let bgPhoto =
       bestCover && bestCover.imageUrl
         ? coverCandidates.find((c) => c.meta === bestCover)?.photo ?? mainPhoto
         : mainPhoto
+    bgPhoto = await sealProductCoverPhoto(
+      prisma,
+      destination,
+      bgPhoto,
+      (bestCover?.imageKeyword || 'cover').toString().slice(0, 80),
+      bgPhoto.source
+    )
 
     const scheduleStrFinal = await stringifyScheduleWithPexelsRehost(
       product.id as string,

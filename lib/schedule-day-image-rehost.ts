@@ -1,9 +1,11 @@
 /**
- * 일정 JSON 슬롯의 Pexels CDN 이미지를 Supabase Storage로 재호스팅.
- * 경로: schedules/{productId}/{day}/{geo-slug}-{source}-{pexelsId}.{ext}
+ * 일정 JSON 슬롯 이미지를 Supabase Storage로만 남기도록 정리한다.
+ * 1) `http(s)` 외부 URL → **PhotoPool(WebP)만** 저장 (Pexels·기타 외부 동일, schedules/ 우회 없음)
+ * 2) Pool 실패 시 `imageUrl` 제거 + `sourceImageUrl`에 원본 보존(추적)
  * stem 규칙은 대표 히어로(`buildProductHeroImageStorageKey`)와 동일 철학(place+city→place 우선 등).
  */
 
+import type { PrismaClient } from '@prisma/client'
 import sharp from 'sharp'
 import {
   uploadStorageObject,
@@ -16,12 +18,8 @@ import {
   toHeroStorageSourceTypeSegment,
   sanitizeHeroStorageSourceIdSegment,
 } from '@/lib/product-hero-image-source-type'
-import {
-  downloadRemoteImage,
-  extractPexelsPhotoIdFromCdnUrl,
-  extFromContentType,
-  isPexelsCdnUrl,
-} from '@/lib/product-pexels-image-rehost'
+import { downloadRemoteImage, extFromContentType, isPexelsCdnUrl } from '@/lib/product-pexels-image-rehost'
+import { savePhotoFromUrlWithRetry } from '@/lib/photo-pool'
 
 export type ScheduleEntryRecord = Record<string, unknown>
 
@@ -162,11 +160,30 @@ function readImageSource(row: ScheduleEntryRecord): Record<string, unknown> {
   return {}
 }
 
+function rowWithClearedExternalImage(
+  row: ScheduleEntryRecord,
+  srcObj: Record<string, unknown>,
+  urlRaw: string,
+  reason: string
+): ScheduleEntryRecord {
+  console.warn('[schedule-day-image-rehost] cleared external imageUrl', reason, urlRaw.slice(0, 120))
+  return {
+    ...row,
+    imageUrl: null,
+    imageSource: {
+      ...srcObj,
+      sourceImageUrl: urlRaw,
+      internalizationFailed: reason,
+    },
+  }
+}
+
 /**
- * schedule 배열의 각 행에서 Pexels CDN `imageUrl`만 Supabase 공개 URL로 바꾼다.
+ * schedule 배열의 각 행에서 외부 `http(s)` imageUrl을 **PhotoPool 공개 URL**로만 바꾼다.
  * Storage 미설정 시 입력 그대로 반환.
  */
 export async function rehostPexelsUrlsInScheduleEntries(
+  prisma: PrismaClient,
   productId: string,
   entries: ScheduleEntryRecord[],
   resolveMeta: (day: number, row: ScheduleEntryRecord) => ScheduleMetaForDay
@@ -174,12 +191,13 @@ export async function rehostPexelsUrlsInScheduleEntries(
   if (!isObjectStorageConfigured()) return entries
   const out: ScheduleEntryRecord[] = []
   for (const row of entries) {
-    out.push(await rehostOneScheduleRowIfPexels(productId, row, resolveMeta))
+    out.push(await finalizeOneScheduleRowImageUrl(prisma, productId, row, resolveMeta))
   }
   return out
 }
 
-async function rehostOneScheduleRowIfPexels(
+async function finalizeOneScheduleRowImageUrl(
+  prisma: PrismaClient,
   productId: string,
   row: ScheduleEntryRecord,
   resolveMeta: (day: number, row: ScheduleEntryRecord) => ScheduleMetaForDay
@@ -187,58 +205,48 @@ async function rehostOneScheduleRowIfPexels(
   const urlRaw = row.imageUrl != null ? String(row.imageUrl).trim() : ''
   if (!urlRaw) return row
   if (tryParseObjectKeyFromPublicUrl(urlRaw)) return row
-  if (!isPexelsCdnUrl(urlRaw)) return row
+  if (!/^https?:\/\//i.test(urlRaw)) return row
 
   const day = Number(row.day) || 1
   const meta = resolveMeta(day, row)
   const srcObj = readImageSource(row)
-  const idBody = srcObj.externalId != null ? String(srcObj.externalId).trim() : ''
-  const pidFromBody = idBody ? Number(idBody) : NaN
-  const pidFromUrl = extractPexelsPhotoIdFromCdnUrl(urlRaw)
-  const pid =
-    Number.isInteger(pidFromBody) && pidFromBody > 0 ? pidFromBody : pidFromUrl != null ? pidFromUrl : NaN
-  if (!Number.isInteger(pid) || pid <= 0) return row
-
+  const sourceLabelRaw = typeof srcObj.source === 'string' ? srcObj.source.trim() : ''
+  const sourceLabel = sourceLabelRaw || 'ingest'
   const pageUrl = typeof srcObj.originalLink === 'string' ? srcObj.originalLink.trim() || null : null
   const photographer =
     typeof srcObj.photographer === 'string' ? srcObj.photographer.trim() || null : null
-  const sourceLabel = typeof srcObj.source === 'string' ? srcObj.source.trim() : 'pexels'
 
-  try {
-    const rh = await rehostPexelsScheduleDayImageIfNeeded({
-      downloadUrl: urlRaw,
-      productId,
-      day,
-      pexelsPhotoId: pid,
-      photographer,
-      pexelsPageUrl: pageUrl,
-      searchKeyword: meta.searchKeyword ?? meta.placeName ?? meta.cityName ?? null,
-      placeName: meta.placeName,
-      cityName: meta.cityName,
-    })
+  const cityForPool = meta.cityName?.trim() || 'unknown'
+  const attractionForPool =
+    (meta.placeName?.trim() ||
+      meta.searchKeyword?.trim() ||
+      (typeof row.imageKeyword === 'string' ? row.imageKeyword.trim() : '') ||
+      `schedule_day_${day}`).slice(0, 80) || `schedule_day_${day}`
+
+  const poolRec = await savePhotoFromUrlWithRetry(prisma, urlRaw, cityForPool, attractionForPool, sourceLabel)
+  if (poolRec) {
+    const key = tryParseObjectKeyFromPublicUrl(poolRec.filePath)
     const nextSource: Record<string, unknown> = {
       ...srcObj,
-      source: sourceLabel || 'pexels',
-      sourceType: rh.sourceTypeSegment,
-      photographer: photographer ?? sourceLabel ?? 'pexels',
+      source: sourceLabel,
+      sourceType: toHeroStorageSourceTypeSegment(sourceLabel),
+      photographer: photographer ?? sourceLabel,
       originalLink: pageUrl ?? '',
-      externalId: String(pid),
       sourceImageUrl: urlRaw,
     }
     return {
       ...row,
-      imageUrl: rh.publicUrl,
+      imageUrl: poolRec.filePath,
       imageSource: nextSource,
-      imageStoragePath: rh.objectKey || null,
-      imageStorageBucket: rh.objectKey ? rh.bucket : null,
-      imageRehostSearchLabel: rh.searchLabelStored,
-      imagePlaceName: rh.placeNameStored,
-      imageCityName: rh.cityNameStored,
-      imageWidth: rh.width,
-      imageHeight: rh.height,
+      imageStoragePath: key,
+      imageStorageBucket: key ? getImageStorageBucket() : null,
+      imageRehostSearchLabel: meta.searchKeyword ?? meta.placeName ?? meta.cityName ?? null,
+      imagePlaceName: meta.placeName,
+      imageCityName: meta.cityName,
+      imageWidth: null,
+      imageHeight: null,
     }
-  } catch (e) {
-    console.warn('[schedule-day-image-rehost] row skip', productId, day, e)
-    return row
   }
+
+  return rowWithClearedExternalImage(row, srcObj, urlRaw, 'photo-pool-ingest-failed')
 }

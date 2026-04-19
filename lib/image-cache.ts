@@ -4,8 +4,18 @@
  */
 
 import type { PexelsPhotoObject } from '@/lib/pexels-service'
+import { tryParseObjectKeyFromPublicUrl } from '@/lib/object-storage'
 
 export type CachedPhotoObject = PexelsPhotoObject
+
+/** 최종 상품과 동일하게: 외부 CDN URL은 캐시 히트로 재사용하지 않는다(내부 Storage 공개 URL·상대 경로만). */
+function isCacheableInternalImageUrl(url: string): boolean {
+  const t = (url ?? '').trim()
+  if (!t) return false
+  if (t.startsWith('/')) return true
+  if (!/^https?:\/\//i.test(t)) return false
+  return tryParseObjectKeyFromPublicUrl(t) != null
+}
 
 /** 캐시 키: destination|imageKeyword (정규화) */
 function cacheKey(destination: string, imageKeyword: string): string {
@@ -43,7 +53,7 @@ export async function buildImageCacheFromDb(
   })
   for (const p of products) {
     const productDest = (p.destination ?? dest ?? '').trim()
-    if (p.bgImageUrl && typeof p.bgImageUrl === 'string') {
+    if (p.bgImageUrl && typeof p.bgImageUrl === 'string' && isCacheableInternalImageUrl(p.bgImageUrl)) {
       const key = cacheKey(productDest, 'Landmark')
       if (!map.has(key)) {
         map.set(key, {
@@ -67,7 +77,7 @@ export async function buildImageCacheFromDb(
       const keyword = (item.imageKeyword ?? item.title ?? '').trim()
       if (!keyword) continue
       const url = item.imageUrl
-      if (!url || typeof url !== 'string') continue
+      if (!url || typeof url !== 'string' || !isCacheableInternalImageUrl(url)) continue
       const src = item.imageSource
       const photo: CachedPhotoObject = {
         url,

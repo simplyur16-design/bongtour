@@ -22,7 +22,10 @@ import {
   IMAGEN_ITINERARY_DAY_HERO_CONSTRAINTS,
   ITINERARY_DAY_HERO_REGENERATE_PROMPT_EN,
 } from '@/lib/image-style'
-import { savePhotoFromUrl, savePhotoToPool, type PoolPhotoRecord } from '@/lib/photo-pool'
+import { isObjectStorageConfigured } from '@/lib/object-storage'
+import { extractPexelsPhotoIdFromCdnUrl } from '@/lib/product-pexels-image-rehost'
+import { savePhotoFromUrlWithRetry, savePhotoToPool, type PoolPhotoRecord } from '@/lib/photo-pool'
+import { internalizeHeroDisplayUrl, isExternalHttpProductImageUrl } from '@/lib/travel-product-image-internalize'
 import { buildHeroPexelsQuerySet, type PexelsQuerySet } from '@/lib/pexels-hero-query'
 import {
   extractEnglishPoiFromLabel,
@@ -451,6 +454,43 @@ function poolToHeroPhoto(rec: PoolPhotoRecord): DayHeroPhotoResult {
   }
 }
 
+async function sealHeroPhotoForStorage(
+  prisma: PrismaClient,
+  input: DayHeroResolveInput,
+  place: DayHeroPlaceChoice,
+  queries: PexelsQuerySet,
+  photo: DayHeroPhotoResult,
+  pexelsIdHint: number | null
+): Promise<DayHeroPhotoResult> {
+  if (!isExternalHttpProductImageUrl(photo.url)) return photo
+  if (!isObjectStorageConfigured()) {
+    throw new Error('Supabase Storage가 설정되지 않아 히어로 이미지를 내부 저장할 수 없습니다.')
+  }
+  const ext = photo.externalId != null ? Number(String(photo.externalId).trim()) : NaN
+  const pidFromUrl = extractPexelsPhotoIdFromCdnUrl(photo.url)
+  const mergedPid =
+    pexelsIdHint != null && Number.isInteger(pexelsIdHint) && pexelsIdHint > 0
+      ? pexelsIdHint
+      : Number.isInteger(ext) && ext > 0
+        ? ext
+        : pidFromUrl != null && pidFromUrl > 0
+          ? pidFromUrl
+          : null
+  const cityName = input.city?.trim() || input.destination.split(',')[0]?.trim() || null
+  const nextUrl = await internalizeHeroDisplayUrl(prisma, {
+    remoteUrl: photo.url,
+    destination: input.destination,
+    attractionStem: place.pexelsQueryStem,
+    pexelsPhotoId: mergedPid,
+    photographer: photo.photographer,
+    pexelsPageUrl: photo.originalLink?.trim() || null,
+    searchKeyword: queries.primaryQuery,
+    placeName: place.chosenPlaceName,
+    cityName,
+  })
+  return { ...photo, url: nextUrl }
+}
+
 export async function resolveDayHeroWithFallback(
   input: DayHeroResolveInput,
   prisma: PrismaClient,
@@ -494,7 +534,7 @@ export async function resolveDayHeroWithFallback(
   let bundle: DayHeroImageBundle
 
   if (picked) {
-    const saved = await savePhotoFromUrl(
+    const saved = await savePhotoFromUrlWithRetry(
       prisma,
       picked.candidate.imageUrl,
       input.destination,
@@ -510,6 +550,7 @@ export async function resolveDayHeroWithFallback(
           originalLink: picked.candidate.originalLink,
           externalId: String(picked.candidate.pexelsId),
         }
+    photo = await sealHeroPhotoForStorage(prisma, input, place, queries, photo, picked.candidate.pexelsId)
     usage.mark({
       url: photo.url,
       originalLink: photo.originalLink,
@@ -568,14 +609,16 @@ export async function resolveDayHeroWithFallback(
   const pex = await fetchPexelsPhotoObject(queries.primaryQuery)
   heroFallbackUsed = true
   if (!isPexelsFallbackUrl(pex.url)) {
-    const saved = await savePhotoFromUrl(prisma, pex.url, input.destination, place.pexelsQueryStem, 'Pexels')
-    photo = saved ? poolToHeroPhoto(saved) : {
-        url: pex.url,
-        source: pex.source,
-        photographer: pex.photographer,
-        originalLink: pex.originalLink,
-        externalId: pex.externalId,
-      }
+    const saved = await savePhotoFromUrlWithRetry(prisma, pex.url, input.destination, place.pexelsQueryStem, 'Pexels')
+    photo = saved
+      ? poolToHeroPhoto(saved)
+      : {
+          url: pex.url,
+          source: pex.source,
+          photographer: pex.photographer,
+          originalLink: pex.originalLink,
+          externalId: pex.externalId,
+        }
   } else {
     photo = {
       url: pex.url,
@@ -585,6 +628,8 @@ export async function resolveDayHeroWithFallback(
       externalId: pex.externalId,
     }
   }
+  const pidHint = pex.externalId ? Number(pex.externalId) || null : null
+  photo = await sealHeroPhotoForStorage(prisma, input, place, queries, photo, pidHint)
   usage.mark(photo)
   bundle = {
     heroPlaceName: place.chosenPlaceName,

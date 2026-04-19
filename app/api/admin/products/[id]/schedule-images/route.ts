@@ -3,9 +3,10 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { recordAssetUsage, normalizeSelectionMode } from '@/lib/asset-usage-log'
 import { findImageAssetByPublicUrl } from '@/lib/image-assets-db'
-import { isObjectStorageConfigured } from '@/lib/object-storage'
-import { extractPexelsPhotoIdFromCdnUrl, isPexelsCdnUrl } from '@/lib/product-pexels-image-rehost'
-import { rehostPexelsScheduleDayImageIfNeeded } from '@/lib/schedule-day-image-rehost'
+import { getImageStorageBucket, isObjectStorageConfigured, tryParseObjectKeyFromPublicUrl } from '@/lib/object-storage'
+import { isPexelsCdnUrl } from '@/lib/product-pexels-image-rehost'
+import { savePhotoFromUrlWithRetry } from '@/lib/photo-pool'
+import { toHeroStorageSourceTypeSegment } from '@/lib/product-hero-image-source-type'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -143,22 +144,17 @@ export async function POST(request: Request, { params }: RouteParams) {
     let rehostExtra: Partial<ScheduleEntry> = {}
     let rehostedSourceType: string | null = null
     let originalCdnUrlForMeta: string | null = null
-    if (!clearManualOnly && imageUrl && isObjectStorageConfigured() && isPexelsCdnUrl(imageUrl)) {
+    if (
+      !clearManualOnly &&
+      imageUrl &&
+      isObjectStorageConfigured() &&
+      /^https?:\/\//i.test(imageUrl) &&
+      tryParseObjectKeyFromPublicUrl(imageUrl) == null
+    ) {
       const prodMeta = await prisma.product.findUnique({
         where: { id },
         select: { primaryDestination: true, destinationRaw: true, destination: true },
       })
-      const idRaw = body.externalId
-      const pidFromBody = idRaw != null ? Number(String(idRaw).trim()) : NaN
-      const pidFromUrl = extractPexelsPhotoIdFromCdnUrl(imageUrl)
-      const pid =
-        Number.isInteger(pidFromBody) && pidFromBody > 0 ? pidFromBody : pidFromUrl != null ? pidFromUrl : NaN
-      if (!Number.isInteger(pid) || pid <= 0) {
-        return NextResponse.json(
-          { error: 'Pexels 일정 이미지는 사진 ID(URL 경로 또는 externalId)가 필요합니다.' },
-          { status: 400 }
-        )
-      }
       const cityFromBody =
         body.imageCityName == null ? null : String(body.imageCityName).trim().slice(0, 200) || null
       const placeFromBody =
@@ -184,35 +180,29 @@ export async function POST(request: Request, { params }: RouteParams) {
               ? cityName
               : scheduleKw
       const searchLabel = searchLabelCore || null
+      const poolCity = (cityName ?? 'unknown').trim() || 'unknown'
+      const poolAttraction = (placeName ?? searchLabel ?? scheduleKw ?? `day_${day}`).slice(0, 80) || `day_${day}`
       originalCdnUrlForMeta = imageUrl
-      try {
-        const rh = await rehostPexelsScheduleDayImageIfNeeded({
-          downloadUrl: imageUrl,
-          productId: id,
-          day,
-          pexelsPhotoId: pid,
-          photographer,
-          pexelsPageUrl: originalLink,
-          searchKeyword: searchLabel,
-          placeName,
-          cityName,
-        })
-        persistedImageUrl = rh.publicUrl
-        rehostedSourceType = rh.sourceTypeSegment
-        externalIdResolved = String(pid)
+
+      const poolRec = await savePhotoFromUrlWithRetry(prisma, imageUrl, poolCity, poolAttraction, source || 'manual')
+      if (poolRec) {
+        const key = tryParseObjectKeyFromPublicUrl(poolRec.filePath)
+        persistedImageUrl = poolRec.filePath
+        rehostedSourceType = toHeroStorageSourceTypeSegment(source)
         rehostExtra = {
-          imageStoragePath: rh.objectKey || null,
-          imageStorageBucket: rh.objectKey ? rh.bucket : null,
-          imageRehostSearchLabel: rh.searchLabelStored,
-          imagePlaceName: rh.placeNameStored,
-          imageCityName: rh.cityNameStored,
-          imageWidth: rh.width,
-          imageHeight: rh.height,
+          imageStoragePath: key,
+          imageStorageBucket: key ? getImageStorageBucket() : null,
+          imageRehostSearchLabel: searchLabel,
+          imagePlaceName: placeName,
+          imageCityName: cityName,
+          imageWidth: null,
+          imageHeight: null,
         }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : '일정 이미지 저장 실패'
-        console.error('[schedule-images] pexels rehost', e)
-        return NextResponse.json({ error: msg }, { status: 503 })
+      } else {
+        const hint = isPexelsCdnUrl(imageUrl)
+          ? 'Pexels 이미지도 PhotoPool 저장에 실패했습니다. 잠시 후 다시 시도하거나 다른 사진을 선택해 주세요.'
+          : '외부 이미지를 PhotoPool에 저장하지 못했습니다. 다른 URL을 선택하거나 잠시 후 다시 시도해 주세요.'
+        return NextResponse.json({ error: hint }, { status: 503 })
       }
     }
 

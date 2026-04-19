@@ -20,12 +20,15 @@ import {
 } from '@/lib/meeting-airline-operational-ssot'
 import { computeAdminProductSupplierDerivatives } from '@/lib/admin-product-supplier-derivatives'
 import { LISTING_KIND_VALUES, TRAVEL_SCOPE_VALUES } from '@/lib/product-listing-kind'
-import { isObjectStorageConfigured } from '@/lib/object-storage'
 import {
-  rehostPexelsProductHeroIfNeeded,
-  extractPexelsPhotoIdFromCdnUrl,
-} from '@/lib/product-pexels-image-rehost'
+  getImageStorageBucket,
+  isObjectStorageConfigured,
+  tryParseObjectKeyFromPublicUrl,
+} from '@/lib/object-storage'
+import { extractPexelsPhotoIdFromCdnUrl } from '@/lib/product-pexels-image-rehost'
+import { toHeroStorageSourceTypeSegment } from '@/lib/product-hero-image-source-type'
 import { rehostPexelsUrlsInScheduleEntries, type ScheduleEntryRecord } from '@/lib/schedule-day-image-rehost'
+import { internalizeProductCoverImageUrl } from '@/lib/travel-product-image-internalize'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -383,6 +386,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
                 productShort?.destination?.trim() ||
                 null
               const nextArr = await rehostPexelsUrlsInScheduleEntries(
+                prisma,
                 id,
                 parsed as ScheduleEntryRecord[],
                 (_day, row) => {
@@ -522,8 +526,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
                   : null
 
           try {
-            const rh = await rehostPexelsProductHeroIfNeeded({
-              downloadUrl: url,
+            const destLine =
+              prodShort?.primaryDestination?.trim() ||
+              prodShort?.destinationRaw?.trim() ||
+              prodShort?.destination?.trim() ||
+              'unknown'
+            url = await internalizeProductCoverImageUrl(prisma, {
+              remoteUrl: url,
+              destination: destLine,
+              poolAttractionLabel: 'primary_cover',
+              poolSource: 'pexels',
               pexelsPhotoId: pid,
               photographer: strOrNull(body.primaryImagePhotographer, 200),
               pexelsPageUrl: strOrNull(body.primaryImageSourceUrl, MAX_URL),
@@ -531,25 +543,69 @@ export async function PATCH(request: Request, { params }: RouteParams) {
               placeName,
               cityName,
             })
-            url = rh.publicUrl
-            data.bgImageStoragePath = rh.objectKey ? rh.objectKey : null
-            data.bgImageStorageBucket = rh.objectKey ? rh.bucket : null
-            data.bgImageRehostSearchLabel = rh.searchLabelStored
-            data.bgImagePlaceName = rh.placeNameStored
-            data.bgImageCityName = rh.cityNameStored
-            data.bgImageWidth = rh.width
-            data.bgImageHeight = rh.height
+            const key = tryParseObjectKeyFromPublicUrl(url)
+            data.bgImageStoragePath = key
+            data.bgImageStorageBucket = key ? getImageStorageBucket() : null
+            data.bgImageRehostSearchLabel = searchLabel
+            data.bgImagePlaceName = placeName
+            data.bgImageCityName = cityName
+            data.bgImageWidth = null
+            data.bgImageHeight = null
             data.bgImageRehostedAt = new Date()
-            data.bgImageSourceType = rh.sourceTypeSegment
+            data.bgImageSourceType = toHeroStorageSourceTypeSegment('pexels')
           } catch (e) {
             const msg = e instanceof Error ? e.message : 'Pexels 이미지 저장 실패'
-            console.error('[PATCH product] pexels rehost', e)
+            console.error('[PATCH product] pexels internalize', e)
             return NextResponse.json({ error: msg }, { status: 503 })
           }
         }
         // 이미 우리 Storage URL이면 storage 메타는 PATCH에서 건드리지 않음(기존 행 유지)
       } else {
         clearPexelsStorageMeta()
+        if (
+          url &&
+          /^https?:\/\//i.test(url) &&
+          tryParseObjectKeyFromPublicUrl(url) == null &&
+          isObjectStorageConfigured()
+        ) {
+          try {
+            const prodShort = await prisma.product.findUnique({
+              where: { id },
+              select: { primaryDestination: true, destinationRaw: true, destination: true },
+            })
+            const destLine =
+              prodShort?.primaryDestination?.trim() ||
+              prodShort?.destinationRaw?.trim() ||
+              prodShort?.destination?.trim() ||
+              'unknown'
+            url = await internalizeProductCoverImageUrl(prisma, {
+              remoteUrl: url,
+              destination: destLine,
+              poolAttractionLabel: 'primary_cover',
+              poolSource: srcLower || 'manual',
+              pexelsPhotoId: null,
+              photographer: strOrNull(body.primaryImagePhotographer, 200),
+              pexelsPageUrl: strOrNull(body.primaryImageSourceUrl, MAX_URL),
+              searchKeyword: 'primary',
+              placeName: null,
+              cityName: destLine.split(',')[0]?.trim() || destLine,
+            })
+            const key = tryParseObjectKeyFromPublicUrl(url)
+            data.bgImageStoragePath = key
+            data.bgImageStorageBucket = key ? getImageStorageBucket() : null
+            data.bgImageRehostSearchLabel = null
+            data.bgImagePlaceName = null
+            data.bgImageCityName = destLine.split(',')[0]?.trim() || destLine
+            data.bgImageWidth = null
+            data.bgImageHeight = null
+            data.bgImageRehostedAt = new Date()
+            data.bgImageSourceType = toHeroStorageSourceTypeSegment(srcLower || 'manual')
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : '대표 이미지 Storage 저장 실패'
+            console.error('[PATCH product] cover internalize', e)
+            return NextResponse.json({ error: msg }, { status: 503 })
+          }
+        }
       }
 
       data.bgImageUrl = url

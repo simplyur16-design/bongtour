@@ -151,6 +151,11 @@ export async function savePhotoToPool(
 /**
  * URL에서 이미지 다운로드 후 풀에 저장 (Pexels/제미나이 결과 보강용)
  */
+const IMAGE_INGEST_FETCH_HEADERS: Record<string, string> = {
+  Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+  'User-Agent': 'BongTour-ImageIngest/1.0',
+}
+
 export async function savePhotoFromUrl(
   prisma: Parameters<typeof savePhotoToPool>[0],
   imageUrl: string,
@@ -159,7 +164,11 @@ export async function savePhotoFromUrl(
   source: string
 ): Promise<PoolPhotoRecord | null> {
   try {
-    const res = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) })
+    const res = await fetch(imageUrl, {
+      signal: AbortSignal.timeout(20000),
+      headers: IMAGE_INGEST_FETCH_HEADERS,
+      redirect: 'follow',
+    })
     if (!res.ok) return null
     const buf = Buffer.from(await res.arrayBuffer())
     return savePhotoToPool(prisma, buf, cityName, attractionName, source, {
@@ -170,4 +179,29 @@ export async function savePhotoFromUrl(
   } catch {
     return null
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+/**
+ * 원격 URL → PhotoPool(Supabase) 저장. 일시 네트워크 실패에 대비한 소수 재시도.
+ */
+export async function savePhotoFromUrlWithRetry(
+  prisma: Parameters<typeof savePhotoToPool>[0],
+  imageUrl: string,
+  cityName: string,
+  attractionName: string,
+  source: string,
+  options?: { retries?: number; baseDelayMs?: number }
+): Promise<PoolPhotoRecord | null> {
+  const retries = Math.max(1, Math.min(6, options?.retries ?? 3))
+  const baseDelayMs = options?.baseDelayMs ?? 450
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const got = await savePhotoFromUrl(prisma, imageUrl, cityName, attractionName, source)
+    if (got) return got
+    if (attempt < retries) await sleep(baseDelayMs * attempt)
+  }
+  return null
 }

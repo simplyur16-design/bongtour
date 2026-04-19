@@ -65,7 +65,7 @@ async function main() {
     touched++
     console.log(apply ? '[apply]' : '[dry-run]', 'would rehost schedule pexels for', p.id)
     if (!apply) continue
-    const next = await rehostPexelsUrlsInScheduleEntries(p.id, arr, (_day, row) => {
+    const next = await rehostPexelsUrlsInScheduleEntries(prisma, p.id, arr, (_day, row) => {
       const kw = typeof row.imageKeyword === 'string' ? String(row.imageKeyword).trim() : ''
       const placeGuess = kw ? kw.split(/[|,]/)[0]?.trim() || null : null
       return { placeName: placeGuess, cityName: cityFb, searchKeyword: kw || placeGuess || cityFb }
