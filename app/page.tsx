@@ -12,21 +12,23 @@ import { normalizeHomeSeasonSlidesForClient } from '@/lib/home-season-pick-share
 import PartnerOrganizationsSection from './components/home/PartnerOrganizationsSection'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import PreopenNoticeModal from '@/app/components/common/PreopenNoticeModal'
-import { SITE_NAME } from '@/lib/site-metadata'
+import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from '@/lib/home-page-metadata'
 
 /** `home-hub-active.json` 갱신이 빌드 없이 메인에 반영되도록(정적 프리렌더 고정 방지). */
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '해외·국내 여행 상품 안내',
-  description:
-    '해외·국내 패키지와 여행 상품을 둘러보고, 출발 일정과 안내를 확인하세요. 예약·상담은 문의를 통해 순차 안내됩니다.',
+  title: { absolute: HOME_PAGE_TITLE },
+  description: HOME_PAGE_DESCRIPTION,
   alternates: { canonical: '/' },
   openGraph: {
-    title: `${SITE_NAME} — 해외·국내 여행`,
-    description:
-      '해외·국내 패키지와 여행 상품을 둘러보고, 출발 일정과 안내를 확인하세요. 예약·상담은 문의를 통해 순차 안내됩니다.',
+    title: HOME_PAGE_TITLE,
+    description: HOME_PAGE_DESCRIPTION,
     url: '/',
+  },
+  twitter: {
+    title: HOME_PAGE_TITLE,
+    description: HOME_PAGE_DESCRIPTION,
   },
 }
 
