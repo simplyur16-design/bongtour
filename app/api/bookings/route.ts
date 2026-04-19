@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { computeKRWQuotation, computeLocalFeeTotal, type PriceRowLike } from '@/lib/price-utils'
+import { sendBookingReceivedEmailToAdmin } from '@/lib/booking-email'
 import { sendAdminNotificationWithPayload } from '@/lib/notification-service'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import {
@@ -200,11 +201,52 @@ export async function POST(request: Request) {
       productTitle: booking.productTitle,
       adminLinkBase: process.env.NEXT_PUBLIC_APP_URL || process.env.BONGTOUR_API_BASE || '',
     })
+
+    console.log('[booking]', JSON.stringify({ step: 'db_saved', bookingId: booking.id }))
+
+    const hasSolapiKey = Boolean(process.env.SOLAPI_API_KEY?.trim())
+    const hasSolapiSecret = Boolean(process.env.SOLAPI_API_SECRET?.trim())
+    const hasAdminPhone = Boolean(process.env.ADMIN_PHONE?.trim())
+    const hasSenderPhone = Boolean(process.env.SENDER_PHONE?.trim())
+    const smsEnvOk = hasSolapiKey && hasSolapiSecret && hasAdminPhone && hasSenderPhone
+    if (!smsEnvOk) {
+      const missing: string[] = []
+      if (!hasSolapiKey) missing.push('SOLAPI_API_KEY')
+      if (!hasSolapiSecret) missing.push('SOLAPI_API_SECRET')
+      if (!hasAdminPhone) missing.push('ADMIN_PHONE')
+      if (!hasSenderPhone) missing.push('SENDER_PHONE')
+      console.warn('[booking sms] skipped: missing env', missing.join(', '))
+    } else {
+      console.log(
+        '[booking sms] start',
+        JSON.stringify({
+          bookingId: booking.id,
+          recipientDigitsLen: process.env.ADMIN_PHONE!.replace(/\D/g, '').length,
+          senderDigitsLen: process.env.SENDER_PHONE!.replace(/\D/g, '').length,
+        })
+      )
+    }
+
     void sendAdminNotificationWithPayload(booking, adminPayload)
       .then((r) => {
-        if (!r.ok) console.error('[sendAdminNotification] 실패:', r.code ?? r.message)
+        if (!smsEnvOk) return
+        if (r.ok) {
+          console.log('[booking sms] sent', JSON.stringify({ bookingId: booking.id }))
+        } else {
+          console.error(
+            '[booking sms] failed:',
+            r.code ?? r.message,
+            JSON.stringify({ bookingId: booking.id })
+          )
+        }
       })
-      .catch(() => console.error('[sendAdminNotification] 예외'))
+      .catch((e) => console.error('[booking sms] exception:', e, JSON.stringify({ bookingId: booking.id })))
+
+    void sendBookingReceivedEmailToAdmin(booking, adminPayload)
+      .then((sent) => {
+        if (sent) console.log('[booking email] sent', JSON.stringify({ bookingId: booking.id }))
+      })
+      .catch((e) => console.error('[booking email] failed:', e))
 
     const payload = {
       ok: true,
