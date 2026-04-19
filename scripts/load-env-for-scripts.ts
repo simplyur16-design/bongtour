@@ -1,5 +1,7 @@
 /**
- * tsx로 실행하는 스크립트가 프로젝트 루트 `.env.local` / `.env` 를 읽도록 함 (Next와 동일 파일).
+ * tsx로 실행하는 스크립트가 프로젝트 루트 env 파일을 읽도록 함.
+ * 순서: `.env.local` → `.env` → `.env.production` (각 키는 이미 셸/앞선 파일에 있으면 덮어쓰지 않음).
+ * 운영 서버에서 `DATABASE_URL` 등은 보통 `.env.production`에만 있을 수 있음.
  *
  * **주의:** 이미 `process.env` 에 값이 있으면(IDE/터미널/Windows 사용자 환경변수 등) **파일 값으로 덮어쓰지 않음**.
  * 네이버 535가 나오는데 `.env.local` 은 맞다고 느껴지면, 셸에 남은 `SMTP_USER` / `SMTP_PASS` 를 먼저 확인한다.
@@ -25,7 +27,7 @@ function parseLine(line: string): { key: string; val: string } | null {
 }
 
 export function loadEnvForScripts(): void {
-  for (const name of ['.env.local', '.env']) {
+  for (const name of ['.env.local', '.env', '.env.production']) {
     const p = join(process.cwd(), name)
     if (!existsSync(p)) continue
     const content = readFileSync(p, 'utf8')

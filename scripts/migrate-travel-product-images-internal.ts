@@ -10,6 +10,8 @@
  *
  * `--apply` 없으면 dry-run(DB 미변경). `--dry-run`은 명시용으로 같이 써도 됨.
  *
+ * 루트에서 실행. `import './load-env-for-scripts'` 가 `.env.local` / `.env` / `.env.production` 순으로 로드한다.
+ *
  * npx tsx scripts/migrate-travel-product-images-internal.ts --dry-run --limit=30
  * npx tsx scripts/migrate-travel-product-images-internal.ts --apply --limit=30
  */
