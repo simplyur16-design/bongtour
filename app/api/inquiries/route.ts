@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { validateCustomerInquiryBody } from '@/lib/customer-inquiry-intake'
 import { sendInquiryReceivedEmail } from '@/lib/inquiry-email'
+import { sendAdminInquiryNotification, sendInquiryCustomerLmsFallback } from '@/lib/notification-service'
+import { attemptSendCustomerInquiryAlimTalk } from '@/lib/solapi-alimtalk'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError } from '@/lib/public-mutation-origin'
@@ -21,7 +23,8 @@ function getClientIp(headers: Headers): string {
  * 보안·운영:
  * - 동일 출처(Origin/Referer) 검증 후 IP rate limit — lib/public-mutation-origin
  * - Captcha: 미적용 — 봇 남용 시 bot 관리·캡차 등 검토
- * - 운영자 자동 알림: `sendInquiryReceivedEmail`(SMTP_FROM_* / INQUIRY_NOTIFICATION_EMAIL, 고객은 replyTo). 실패는 DB·로그·`notification.channels`로 구분.
+ * - 운영자 이메일: `sendInquiryReceivedEmail`(SMTP_* / INQUIRY_NOTIFICATION_EMAIL). 실패는 DB·로그·`notification.channels.email`.
+ * - 솔라피: 고객 알림톡 시도(`attemptSendCustomerInquiryAlimTalk`, 미설정 시 TODO·LMS 폴백) → `sendInquiryCustomerLmsFallback`; 담당자 `sendAdminInquiryNotification` — `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_SENDER`, `SOLAPI_RECEIVER`(쉼표 구분 복수). 문자 실패는 문의 저장 성공과 분리·`console.error`.
  * - `sourcePagePath` / `snapshot*`: 운영·분석 추적용(클라이언트 입력이므로 신뢰 검증은 하지 않음)
  */
 export async function POST(request: Request) {
@@ -151,6 +154,7 @@ export async function POST(request: Request) {
         applicantName: true,
         applicantPhone: true,
         applicantEmail: true,
+        preferredContactChannel: true,
         message: true,
         sourcePagePath: true,
         payloadJson: true,
@@ -214,6 +218,67 @@ export async function POST(request: Request) {
           inquiryType: row.inquiryType,
           stage: 'smtp_inquiry_received',
           error: errMsg,
+        })
+      )
+    }
+
+    const productLabel =
+      productMeta?.title?.trim() ||
+      row.snapshotProductTitle?.trim() ||
+      row.snapshotCardLabel?.trim() ||
+      '상담문의'
+
+    /** `여행상담접수완료` #{상품명} 전용 — snapshotCardLabel 은 #{미리보기} 로만 사용 */
+    const travelConsultProductTitle =
+      productMeta?.title?.trim() || row.snapshotProductTitle?.trim() || '상담문의'
+
+    const alim = await attemptSendCustomerInquiryAlimTalk({
+      inquiryId: row.id,
+      inquiryType: row.inquiryType,
+      applicantName: row.applicantName,
+      applicantPhone: row.applicantPhone,
+      payloadJson: row.payloadJson,
+      productLabel,
+      travelConsultProductTitle,
+      snapshotCardLabel: row.snapshotCardLabel,
+    })
+    if (!alim.ok && alim.shouldSendLmsFallback) {
+      const lmsCustomer = await sendInquiryCustomerLmsFallback({
+        inquiryId: row.id,
+        inquiryType: row.inquiryType,
+        productLabel,
+        applicantPhone: row.applicantPhone,
+      })
+      if (!lmsCustomer.ok) {
+        console.error(
+          '[POST /api/inquiries] inquiry_customer_lms_failed',
+          JSON.stringify({
+            inquiryId: row.id,
+            message: lmsCustomer.message,
+            code: 'code' in lmsCustomer ? lmsCustomer.code : undefined,
+          })
+        )
+      }
+    }
+
+    const lmsAdmin = await sendAdminInquiryNotification({
+      inquiryId: row.id,
+      inquiryType: row.inquiryType,
+      productLabel,
+      applicantName: row.applicantName,
+      applicantPhone: row.applicantPhone,
+      applicantEmail: row.applicantEmail ?? null,
+      preferredContactChannel: row.preferredContactChannel ?? null,
+      message: row.message ?? null,
+      payloadJson: row.payloadJson,
+    })
+    if (lmsAdmin.failed.length > 0) {
+      console.error(
+        '[POST /api/inquiries] inquiry_admin_lms_failed',
+        JSON.stringify({
+          inquiryId: row.id,
+          succeeded: lmsAdmin.succeeded,
+          failed: lmsAdmin.failed,
         })
       )
     }

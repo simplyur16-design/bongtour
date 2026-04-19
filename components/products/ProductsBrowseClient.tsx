@@ -87,6 +87,27 @@ function syncTypeWithCategories(q: BrowseQueryState): BrowseQueryState {
   return q
 }
 
+/** 일반 여행 상담 CTA — `TravelInquiryForm` (`/inquiry?type=travel`) + `sourcePagePath` 추적용 */
+function travelConsultInquiryHref(
+  basePath: string,
+  pathname: string,
+  defaultScope: 'overseas' | 'domestic' | undefined
+): string {
+  if (basePath === '/travel/air-hotel' || pathname === '/travel/air-hotel') {
+    return `/inquiry?type=travel&source=${encodeURIComponent('/travel/air-hotel')}`
+  }
+  if (basePath === '/travel/domestic' || pathname === '/travel/domestic') {
+    return `/inquiry?type=travel&source=${encodeURIComponent('/travel/domestic')}`
+  }
+  if (basePath === '/travel/overseas' || pathname === '/travel/overseas') {
+    return `/inquiry?type=travel&source=${encodeURIComponent('/travel/overseas')}`
+  }
+  if (defaultScope === 'overseas') {
+    return `/inquiry?type=travel&source=${encodeURIComponent('/travel/overseas')}`
+  }
+  return '/inquiry?type=travel'
+}
+
 export default function ProductsBrowseClient({
   basePath = '/products',
   defaultScope,
@@ -102,6 +123,11 @@ export default function ProductsBrowseClient({
 
   const isDomesticHub = pathname === '/travel/domestic' && defaultScope === 'domestic'
   const suppressHeadingToolbarGap = hidePageHeading && isDomesticHub
+
+  const emptyStateTravelInquiryHref = useMemo(
+    () => travelConsultInquiryHref(basePath, pathname, defaultScope),
+    [basePath, pathname, defaultScope]
+  )
 
   const q = useMemo(() => {
     if (isDomesticHub) {
@@ -415,9 +441,7 @@ export default function ProductsBrowseClient({
             </Link>
             {' · '}
             <Link
-              href={
-                defaultScope === 'overseas' ? '/inquiry?type=travel&source=/travel/overseas' : '/inquiry?type=travel'
-              }
+              href={emptyStateTravelInquiryHref}
               className="font-medium text-bt-link underline-offset-2 hover:text-bt-link-hover hover:underline"
             >
               상담 신청

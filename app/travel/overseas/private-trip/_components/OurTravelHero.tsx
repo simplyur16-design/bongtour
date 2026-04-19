@@ -16,10 +16,13 @@ const STATIC_FALLBACK_IMAGE =
 type Props = {
   /** Supabase Storage 풀 URL만 (비어 있으면 정적 1장) */
   imageUrls: string[]
-  inquiryHref: string
+  /** 우리견적 — `PrivateQuoteFormEntry` (`/quote/private`) */
+  privateQuoteHref: string
+  /** 일반 여행 상담 — `TravelInquiryForm` (`/inquiry?type=travel`) */
+  travelConsultHref: string
 }
 
-export default function OurTravelHero({ imageUrls, inquiryHref }: Props) {
+export default function OurTravelHero({ imageUrls, privateQuoteHref, travelConsultHref }: Props) {
   const imageSetKey = imageUrls.join('\n')
   const slides = useMemo(() => {
     const uniq = [...new Set(imageUrls.map((u) => u.trim()).filter(Boolean))]
@@ -49,7 +52,7 @@ export default function OurTravelHero({ imageUrls, inquiryHref }: Props) {
   const safeImg = (i: number) => (broken[i] ? STATIC_FALLBACK_IMAGE : slides[i]!)
   const src = safeImg(imgIdx)
 
-  const customTopicHref = `${inquiryHref}${inquiryHref.includes('?') ? '&' : '?'}topic=custom`
+  const customTopicHref = `${travelConsultHref}${travelConsultHref.includes('?') ? '&' : '?'}topic=custom`
 
   return (
     <section className="border-b border-bt-border bg-gradient-to-b from-white to-bt-surface">
@@ -95,7 +98,7 @@ export default function OurTravelHero({ imageUrls, inquiryHref }: Props) {
           <div className="border-t border-bt-border-soft bg-white px-3 py-3 sm:px-4 sm:py-4">
             <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
               <Link
-                href={inquiryHref}
+                href={privateQuoteHref}
                 className="inline-flex min-h-[44px] min-w-[10rem] items-center justify-center rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors duration-75 hover:bg-teal-800"
               >
                 우리견적 문의하기

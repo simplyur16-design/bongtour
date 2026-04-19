@@ -140,6 +140,8 @@ export async function sendInquiryReceivedEmail(input: InquiryNotifyInput): Promi
     port,
     secure,
     auth: { user, pass },
+    /** 네이버·다수 호스트: 587 + STARTTLS 조합에서 연결 안정화 */
+    ...(!secure && port === 587 ? { requireTLS: true as const } : {}),
   })
 
   const mail: Parameters<typeof transporter.sendMail>[0] = {

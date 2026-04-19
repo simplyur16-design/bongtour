@@ -46,11 +46,16 @@ const benefits = [
 ] as const
 
 type Props = {
-  inquiryHref: string
+  privateQuoteHref: string
+  travelConsultHref: string
   groupMeetingReviews: GroupMeetingReviewCardModel[]
 }
 
-export default function PrivateTripLanding({ inquiryHref, groupMeetingReviews }: Props) {
+export default function PrivateTripLanding({
+  privateQuoteHref,
+  travelConsultHref,
+  groupMeetingReviews,
+}: Props) {
   return (
     <>
       <section className="bg-white py-16 sm:py-20">
@@ -106,13 +111,13 @@ export default function PrivateTripLanding({ inquiryHref, groupMeetingReviews }:
           <p className="mt-4 text-sm leading-relaxed text-slate-300">어떤 방식이 잘 맞는지 함께 안내해드립니다.</p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <Link
-              href={inquiryHref}
+              href={privateQuoteHref}
               className="inline-flex min-h-[48px] min-w-[200px] items-center justify-center rounded-xl bg-teal-500 px-8 py-3 text-sm font-semibold text-white transition-colors duration-75 hover:bg-teal-400"
             >
               우리견적 문의하기
             </Link>
             <Link
-              href={`${inquiryHref}${inquiryHref.includes('?') ? '&' : '?'}topic=custom`}
+              href={`${travelConsultHref}${travelConsultHref.includes('?') ? '&' : '?'}topic=custom`}
               className="inline-flex min-h-[48px] min-w-[200px] items-center justify-center rounded-xl border border-white/25 bg-white/10 px-8 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-colors duration-75 hover:border-teal-300/50 hover:bg-teal-500/20"
             >
               맞춤여행 상담 받기

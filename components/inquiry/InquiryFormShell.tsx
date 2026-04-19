@@ -220,6 +220,10 @@ export default function InquiryFormShell({
     privacyAgreed,
     preferredContactChannel,
     initialQuery,
+    beforeSubmit,
+    messageLabel,
+    messageRequired,
+    privacyNoticeVersion,
   ])
 
   if (done) {
@@ -349,6 +353,7 @@ export default function InquiryFormShell({
               name="applicantEmail"
               type="email"
               autoComplete="email"
+              required={applicantEmailRequired}
               value={applicantEmail}
               onChange={(e) => {
                 const next = e.target.value
@@ -408,7 +413,7 @@ export default function InquiryFormShell({
         </div>
 
         <div className="space-y-4 rounded-xl border border-slate-200/90 bg-slate-50/80 p-5 sm:p-6">
-          <h2 className="text-sm font-semibold text-slate-800">추가 정보</h2>
+          <h2 className="text-sm font-semibold text-slate-800">추가 정보 (선택)</h2>
           {children}
         </div>
 

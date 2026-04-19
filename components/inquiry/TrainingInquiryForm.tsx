@@ -66,21 +66,12 @@ export default function TrainingInquiryForm({
 
   const validateBeforeSubmit = useCallback((): { fieldErrors?: FieldErrors; formError?: string } => {
     const fieldErrors: FieldErrors = {}
-    if (!organizationName.trim()) fieldErrors.organizationName = '기관명/학교명/단체명을 입력해 주세요.'
     if (!serviceScope) fieldErrors.serviceScope = '필요한 서비스 범위를 선택해 주세요.'
-    if (!trainingPurpose.trim()) fieldErrors.trainingPurpose = '연수 목적을 입력해 주세요.'
-    if (!destinationSummary.trim()) fieldErrors.destinationSummary = '희망 국가 또는 도시를 입력해 주세요.'
-    if (!preferredDepartureDate && !preferredDepartureMonth) {
-      fieldErrors.departureDateOrMonth = '희망 일정 또는 출발 시기를 입력해 주세요.'
-    }
-    const headcountNum = parseInt(headcount.replace(/[^\d]/g, ''), 10)
-    if (!headcount.trim()) fieldErrors.headcount = '예상 인원을 입력해 주세요.'
-    else if (!Number.isFinite(headcountNum) || headcountNum < 1) fieldErrors.headcount = '인원은 1명 이상의 숫자로 입력해 주세요.'
     if (Object.keys(fieldErrors).length > 0) {
       return { fieldErrors, formError: '필수 입력값을 확인해 주세요.' }
     }
     return {}
-  }, [destinationSummary, headcount, organizationName, preferredDepartureDate, preferredDepartureMonth, serviceScope, trainingPurpose])
+  }, [serviceScope])
 
   const buildPayloadJson = useCallback(() => {
     const head = parseInt(headcount.replace(/[^\d]/g, ''), 10)
@@ -144,7 +135,7 @@ export default function TrainingInquiryForm({
       buildPayloadJson={buildPayloadJson}
       beforeSubmit={validateBeforeSubmit}
       applicantNameLabel="담당자 이름"
-      applicantEmailRequired={preferredContactChannel !== 'kakao'}
+      applicantEmailRequired
       messageRequired
       messageLabel="문의 내용"
       submitButtonLabel="국외연수 문의 접수하기"
@@ -162,7 +153,10 @@ export default function TrainingInquiryForm({
         <div className="space-y-2">
           <p>Bong투어는 국외연수 문의 접수 및 상담 진행을 위해 아래와 같이 개인정보를 수집·이용합니다.</p>
           <p className="font-medium text-slate-800">1. 수집 항목</p>
-          <p>담당자 이름, 연락처, 이메일, 기관명/학교명/단체명, 필요한 서비스, 연수 목적, 희망 국가/도시, 희망 일정/출발 시기, 예상 인원, 문의 내용, 기타 직접 입력 정보</p>
+          <p>
+            담당자 이름, 연락처, 이메일, 필요한 서비스, 문의 내용, 답변 방법, 기관·일정 관련 항목 중 입력하신 정보, 기타 직접
+            입력 정보
+          </p>
           <p className="font-medium text-slate-800">2. 수집 및 이용 목적</p>
           <p>국외연수 문의 접수, 문의 내용 확인 및 회신, 서비스 제공 가능 여부 검토, 맞춤형 상담 및 제안, 선택한 답변 방법(이메일/카카오톡)에 따른 상담 진행, 문의 이력 관리 및 후속 응대</p>
           <p className="font-medium text-slate-800">3. 처리의 근거</p>
@@ -179,7 +173,7 @@ export default function TrainingInquiryForm({
         overlayMeta ?? {
           title: '국외연수 문의하기',
           description:
-            '기관·학교·단체 목적에 맞는 국외연수 일정을 상담해드립니다. 연수 목적, 인원, 희망 국가와 일정 조건을 남겨주시면 맞춤형으로 검토 후 안내드립니다.',
+            '연락처와 필요 서비스만으로도 상담 접수가 가능합니다. 일정·지역·인원은 상담 단계에서 함께 정리하셔도 됩니다.',
         }
       }
     >
@@ -191,18 +185,7 @@ export default function TrainingInquiryForm({
           </section>
         ) : null}
         <section className="space-y-3 rounded-lg border border-slate-200 bg-white px-3 py-3">
-          <h3 className="text-sm font-semibold text-slate-800">1) 담당자 / 기관 정보</h3>
-          <div>
-            <label htmlFor={`${id}-org`} className="block text-sm font-medium text-slate-700">
-              기관명 / 학교명 / 단체명 <span className="text-rose-600">*</span>
-            </label>
-            <input
-              id={`${id}-org`}
-              value={organizationName}
-              onChange={(e) => setOrganizationName(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-            />
-          </div>
+          <h3 className="text-sm font-semibold text-slate-800">문의 조건</h3>
           <div>
             <label htmlFor={`${id}-service-scope`} className="block text-sm font-medium text-slate-700">
               필요한 서비스 <span className="text-rose-600">*</span>
@@ -223,7 +206,7 @@ export default function TrainingInquiryForm({
           </div>
           <div>
             <label htmlFor={`${id}-preferred-contact`} className="block text-sm font-medium text-slate-700">
-              답변받을 방법 <span className="text-rose-600">*</span>
+              답변받을 방법 <span className="text-slate-400">(선택)</span>
             </label>
             <select
               id={`${id}-preferred-contact`}
@@ -247,7 +230,7 @@ export default function TrainingInquiryForm({
           </div>
           <div>
             <label htmlFor={`${id}-org-type`} className="block text-sm font-medium text-slate-700">
-              기관 유형 <span className="text-slate-400">(권장)</span>
+              기관 유형 <span className="text-slate-400">(선택)</span>
             </label>
             <select
               id={`${id}-org-type`}
@@ -264,11 +247,31 @@ export default function TrainingInquiryForm({
           </div>
         </section>
 
-        <section className="space-y-3 rounded-lg border border-slate-200 bg-white px-3 py-3">
-          <h3 className="text-sm font-semibold text-slate-800">2) 연수 기본 조건</h3>
+        <details className="rounded-lg border border-slate-200 bg-white [&_summary::-webkit-details-marker]:hidden">
+          <summary className="cursor-pointer list-none px-3 py-3 text-sm font-semibold text-slate-800 outline-none ring-emerald-600 focus-visible:ring-2">
+            추가정보 입력(선택)
+          </summary>
+          <div className="space-y-4 border-t border-slate-100 px-3 pb-4 pt-3">
+            <p className="text-xs leading-relaxed text-slate-600">
+              아래 정보는 미정이어도 접수 가능합니다. 자세한 내용은 상담하면서 함께 정리해드립니다.
+            </p>
+            <div>
+              <label htmlFor={`${id}-org`} className="block text-sm font-medium text-slate-700">
+                기관명 / 학교명 / 단체명 <span className="text-slate-400">(선택)</span>
+              </label>
+              <input
+                id={`${id}-org`}
+                value={organizationName}
+                onChange={(e) => setOrganizationName(e.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              />
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">연수 일정·조건</h4>
+              <div className="mt-2 space-y-3">
           <div>
             <label htmlFor={`${id}-dest`} className="block text-sm font-medium text-slate-700">
-              희망 국가 또는 도시 <span className="text-rose-600">*</span>
+              희망 국가 또는 도시 <span className="text-slate-400">(선택)</span>
             </label>
             <input
               id={`${id}-dest`}
@@ -319,7 +322,7 @@ export default function TrainingInquiryForm({
             </div>
             <div>
               <label htmlFor={`${id}-headcount`} className="block text-sm font-medium text-slate-700">
-                예상 인원 <span className="text-rose-600">*</span>
+                예상 인원 <span className="text-slate-400">(선택)</span>
               </label>
               <input
                 id={`${id}-headcount`}
@@ -343,13 +346,14 @@ export default function TrainingInquiryForm({
               />
             </div>
           </div>
-        </section>
+              </div>
+            </div>
 
-        <section className="space-y-3 rounded-lg border border-slate-200 bg-white px-3 py-3">
-          <h3 className="text-sm font-semibold text-slate-800">3) 연수 내용 / 목적</h3>
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">연수 내용 · 목적</h4>
           <div>
             <label htmlFor={`${id}-purpose`} className="block text-sm font-medium text-slate-700">
-              연수 목적 <span className="text-rose-600">*</span>
+              연수 목적 <span className="text-slate-400">(선택)</span>
             </label>
             <textarea
               id={`${id}-purpose`}
@@ -425,10 +429,10 @@ export default function TrainingInquiryForm({
               </label>
             </div>
           </div>
-        </section>
+            </div>
 
-        <section className="space-y-3 rounded-lg border border-slate-200 bg-white px-3 py-3">
-          <h3 className="text-sm font-semibold text-slate-800">4) 예산 / 기타 요청</h3>
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">예산 · 기타</h4>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label htmlFor={`${id}-budget`} className="block text-sm font-medium text-slate-700">
@@ -475,7 +479,9 @@ export default function TrainingInquiryForm({
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             />
           </div>
-        </section>
+            </div>
+          </div>
+        </details>
       </div>
     </InquiryFormShell>
   )

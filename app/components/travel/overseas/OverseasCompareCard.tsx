@@ -35,6 +35,7 @@ export default function OverseasCompareCard({ product, priority = false, product
   const hasPrice = product.priceKrw != null && product.priceKrw > 0
   const url = product.imageSet?.[0] ?? product.coverImageUrl
   const supplier = formatOriginSourceForDisplay(product.originSource)
+  const snapshotCardLabel = [productTypeLabel, product.duration, product.primaryDestination].filter(Boolean).join(' · ')
 
   return (
     <article className="overflow-hidden rounded-xl border border-bt-border-soft bg-bt-surface shadow-sm transition hover:border-bt-link/35 hover:shadow-md">
@@ -115,7 +116,11 @@ export default function OverseasCompareCard({ product, priority = false, product
                 상세 보기
               </Link>
               <Link
-                href={`/inquiry?type=travel&source=/travel/overseas&productId=${encodeURIComponent(product.id)}&snapshotProductTitle=${encodeURIComponent(product.title.slice(0, 500))}`}
+                href={`/inquiry?type=travel&source=${encodeURIComponent('/travel/overseas')}&productId=${encodeURIComponent(product.id)}&snapshotProductTitle=${encodeURIComponent(product.title.slice(0, 500))}${
+                  snapshotCardLabel
+                    ? `&snapshotCardLabel=${encodeURIComponent(snapshotCardLabel.slice(0, 500))}`
+                    : ''
+                }`}
                 className="inline-flex rounded-lg bg-bt-cta-primary px-3 py-2 text-xs font-semibold text-bt-cta-primary-fg transition hover:bg-bt-cta-primary-hover"
               >
                 상담 신청

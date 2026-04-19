@@ -19,8 +19,6 @@ const MAX_SNAPSHOT = 500
 const MAX_SOURCE_PATH = 2000
 const MAX_PAYLOAD_JSON_CHARS = 32000
 const MIN_PRIVATE_MESSAGE = 10
-const MIN_TRAINING_PURPOSE = 8
-const MIN_TRAINING_MESSAGE = 12
 
 const CONTACT_CHANNELS = ['email', 'kakao', 'both'] as const
 
@@ -202,97 +200,52 @@ export function validateCustomerInquiryBody(
   }
 
   if (inquiryTypeRaw === 'overseas_training_quote') {
-    const organizationName = typeof payloadObject?.organizationName === 'string' ? payloadObject.organizationName.trim() : ''
-    if (!organizationName) {
-      fieldErrors.organizationName = '기관명/학교명/단체명을 입력해 주세요.'
-    }
-
-    const destinationSummary =
-      typeof payloadObject?.destinationSummary === 'string' ? payloadObject.destinationSummary.trim() : ''
-    if (!destinationSummary) {
-      fieldErrors.destinationSummary = '희망 국가 또는 도시를 입력해 주세요.'
-    }
-
-    const trainingPurpose =
-      typeof payloadObject?.trainingPurpose === 'string' ? payloadObject.trainingPurpose.trim() : ''
     const serviceScope = typeof payloadObject?.serviceScope === 'string' ? payloadObject.serviceScope.trim() : ''
     if (!serviceScope) {
       fieldErrors.serviceScope = '필요한 서비스를 선택해 주세요.'
     }
-    if (!trainingPurpose) {
-      fieldErrors.trainingPurpose = '연수 목적을 입력해 주세요.'
-    } else if (trainingPurpose.length < MIN_TRAINING_PURPOSE) {
-      fieldErrors.trainingPurpose = `연수 목적은 최소 ${MIN_TRAINING_PURPOSE}자 이상 입력해 주세요.`
+
+    if (!emailR.ok) {
+      fieldErrors.applicantEmail = emailR.err
+    } else if (!emailR.value) {
+      fieldErrors.applicantEmail = '이메일을 입력해 주세요.'
+    } else {
+      const fe = optionalEmailFormatError(emailR.value)
+      if (fe) fieldErrors.applicantEmail = fe
     }
 
-    const departureDate =
-      typeof payloadObject?.preferredDepartureDate === 'string'
-        ? payloadObject.preferredDepartureDate.trim()
-        : ''
     const departureMonth =
       typeof payloadObject?.preferredDepartureMonth === 'string'
         ? payloadObject.preferredDepartureMonth.trim()
         : ''
-    if (!departureDate && !departureMonth) {
-      fieldErrors.departureDateOrMonth = '희망 일정 또는 출발 시기를 입력해 주세요.'
-    }
     if (departureMonth && !/^\d{4}-\d{2}$/.test(departureMonth)) {
       fieldErrors.preferredDepartureMonth = '출발 희망월은 YYYY-MM 형식이어야 합니다.'
     }
 
-    const hc = payloadObject?.headcount
-    if (typeof hc !== 'number' || !Number.isInteger(hc) || hc < 1) {
-      fieldErrors.headcount = '예상 인원은 1명 이상의 숫자로 입력해 주세요.'
-    }
-
-    if (emailR.ok) {
-      if ((preferredContactChannel === 'email' || preferredContactChannel === 'both') && !emailR.value) {
-        fieldErrors.applicantEmail = '이메일을 입력해 주세요.'
-      } else if (emailR.value) {
-        const fe = optionalEmailFormatError(emailR.value)
-        if (fe) fieldErrors.applicantEmail = fe
-      }
-    }
-
-    if (!messageR.ok || !messageR.value || messageR.value.trim().length < MIN_TRAINING_MESSAGE) {
-      fieldErrors.message = `문의 내용은 최소 ${MIN_TRAINING_MESSAGE}자 이상 입력해 주세요.`
+    if (!messageR.ok || !messageR.value || messageR.value.trim().length < MIN_PRIVATE_MESSAGE) {
+      fieldErrors.message = `문의 내용은 최소 ${MIN_PRIVATE_MESSAGE}자 이상 입력해 주세요.`
     }
   }
 
   if (inquiryTypeRaw === 'bus_quote') {
-    const usageType = typeof payloadObject?.usageType === 'string' ? payloadObject.usageType.trim() : ''
-    if (!usageType) {
-      fieldErrors.usageType = '이용 목적을 선택해 주세요.'
-    }
-
-    const useDate = typeof payloadObject?.useDate === 'string' ? payloadObject.useDate.trim() : ''
-    const targetYearMonth =
-      typeof payloadObject?.targetYearMonth === 'string' ? payloadObject.targetYearMonth.trim() : ''
-    if (!useDate && !targetYearMonth) {
-      fieldErrors.useDate = '이용 날짜 또는 이용 희망 월을 입력해 주세요.'
-    }
-    if (targetYearMonth && !/^\d{4}-\d{2}$/.test(targetYearMonth)) {
-      fieldErrors.targetYearMonth = '이용 희망 월은 YYYY-MM 형식이어야 합니다.'
-    }
-
-    const departurePlace =
-      typeof payloadObject?.departurePlace === 'string' ? payloadObject.departurePlace.trim() : ''
-    const arrivalPlace = typeof payloadObject?.arrivalPlace === 'string' ? payloadObject.arrivalPlace.trim() : ''
-    if (!departurePlace) fieldErrors.departurePlace = '출발지를 입력해 주세요.'
-    if (!arrivalPlace) fieldErrors.arrivalPlace = '도착지를 입력해 주세요.'
-
     const hc = payloadObject?.estimatedHeadcount
     if (typeof hc !== 'number' || !Number.isInteger(hc) || hc < 1) {
       fieldErrors.estimatedHeadcount = '예상 인원은 1명 이상의 숫자로 입력해 주세요.'
     }
 
-    if (emailR.ok) {
-      if ((preferredContactChannel === 'email' || preferredContactChannel === 'both') && !emailR.value) {
-        fieldErrors.applicantEmail = '이메일을 입력해 주세요.'
-      } else if (emailR.value) {
-        const fe = optionalEmailFormatError(emailR.value)
-        if (fe) fieldErrors.applicantEmail = fe
-      }
+    if (!emailR.ok) {
+      fieldErrors.applicantEmail = emailR.err
+    } else if (!emailR.value) {
+      fieldErrors.applicantEmail = '이메일을 입력해 주세요.'
+    } else {
+      const fe = optionalEmailFormatError(emailR.value)
+      if (fe) fieldErrors.applicantEmail = fe
+    }
+
+    const targetYearMonth =
+      typeof payloadObject?.targetYearMonth === 'string' ? payloadObject.targetYearMonth.trim() : ''
+    if (targetYearMonth && !/^\d{4}-\d{2}$/.test(targetYearMonth)) {
+      fieldErrors.targetYearMonth = '이용 희망 월은 YYYY-MM 형식이어야 합니다.'
     }
 
     if (!messageR.ok || !messageR.value || messageR.value.trim().length < MIN_PRIVATE_MESSAGE) {

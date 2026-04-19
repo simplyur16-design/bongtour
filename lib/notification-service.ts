@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { createSolapiAuthorizationHeader } from '@/lib/solapi-auth'
 import { buildAdminNotificationMessage, buildAdminNotificationMessageFromPayload } from '@/lib/message-service'
 import type { AdminBookingAlertPayload } from '@/lib/booking-alert-payload'
+import { buildAdminInquiryLmsBody, type AdminInquiryLmsBodyInput } from '@/lib/admin-inquiry-lms-content'
 
 const SOLAPI_SEND_URL = 'https://api.solapi.com/messages/v4/send'
 
@@ -126,6 +127,139 @@ export async function sendAdminNotificationWithPayload(
   const errorMessage = lastResult.code ? `${lastResult.code}: ${lastResult.message}` : lastResult.message
   await updateBookingNotificationFailed(booking.id, errorMessage)
   return lastResult
+}
+
+function digitsOnlyPhone(raw: string): string {
+  return raw.replace(/\D/g, '')
+}
+
+/**
+ * 문의 관리자 LMS 수신: `SOLAPI_RECEIVER` 쉼표 구분. trim·빈값 제거·숫자 기준 dedupe.
+ * (테스트 라우트 등에서 수신 목록 표시용으로 export)
+ */
+export function parseSolapiReceiverPhones(): string[] {
+  const raw = process.env.SOLAPI_RECEIVER?.trim()
+  if (!raw) return []
+  const rawParts = raw.split(',')
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const part of rawParts) {
+    const d = digitsOnlyPhone(part.trim())
+    if (!d) continue
+    if (seen.has(d)) continue
+    seen.add(d)
+    out.push(d)
+  }
+  return out
+}
+
+export type SendAdminInquiryNotificationResult = {
+  /** SOLAPI 키/발신번호 없음 또는 수신 번호 0건 */
+  skipped: boolean
+  succeeded: string[]
+  failed: { to: string; code?: string; message: string }[]
+}
+
+function truncateForSms(s: string, max: number): string {
+  const t = s.trim()
+  if (t.length <= max) return t
+  return `${t.slice(0, max - 1)}…`
+}
+
+export type AdminInquiryNotificationParams = AdminInquiryLmsBodyInput
+
+function buildInquiryCustomerLmsText(p: { inquiryType: string; productLabel: string }): string {
+  return [
+    '[봉투어] 상담문의가 접수되었습니다.',
+    `문의유형: ${p.inquiryType}`,
+    `문의상품: ${truncateForSms(p.productLabel, 200)}`,
+    '담당자가 확인 후 연락드립니다.',
+  ].join('\n')
+}
+
+/**
+ * 문의 접수 — 관리자 LMS. `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_SENDER`, `SOLAPI_RECEIVER`(쉼표 구분 복수).
+ * 키·발신·수신 0건이면 skipped. 고객 LMS·예약 문자 env 와 분리.
+ */
+export async function sendAdminInquiryNotification(p: AdminInquiryNotificationParams): Promise<SendAdminInquiryNotificationResult> {
+  const apiKey = process.env.SOLAPI_API_KEY
+  const apiSecret = process.env.SOLAPI_API_SECRET
+  const senderRaw = process.env.SOLAPI_SENDER?.trim()
+
+  if (!apiKey || !apiSecret || !senderRaw) {
+    return { skipped: true, succeeded: [], failed: [] }
+  }
+
+  const recipients = parseSolapiReceiverPhones()
+  if (recipients.length === 0) {
+    return { skipped: true, succeeded: [], failed: [] }
+  }
+
+  const from = digitsOnlyPhone(senderRaw)
+  if (!from) {
+    return { skipped: true, succeeded: [], failed: [] }
+  }
+
+  const text = buildAdminInquiryLmsBody(p)
+  const succeeded: string[] = []
+  const failed: { to: string; code?: string; message: string }[] = []
+
+  for (const to of recipients) {
+    const r = await sendSolapiMessage(apiKey, apiSecret, from, to, text)
+    if (r.ok) succeeded.push(to)
+    else failed.push({ to, code: r.code, message: r.message })
+  }
+
+  if (failed.length === 0) {
+    console.log(
+      '[sendAdminInquiryNotification] all_succeeded',
+      JSON.stringify({ inquiryId: p.inquiryId, succeeded })
+    )
+  }
+  // 부분/전체 실패 로그는 POST /api/inquiries 가 `inquiry_admin_lms_failed` 로 남김
+
+  return { skipped: false, succeeded, failed }
+}
+
+/**
+ * 문의 접수 — 고객 LMS 폴백 (동일 env·동일 `messages/v4/send` 본문 형식).
+ */
+export async function sendInquiryCustomerLmsFallback(p: {
+  inquiryId: string
+  inquiryType: string
+  productLabel: string
+  applicantPhone: string
+}): Promise<SendAdminNotificationResult> {
+  const apiKey = process.env.SOLAPI_API_KEY
+  const apiSecret = process.env.SOLAPI_API_SECRET
+  const senderPhone = process.env.SENDER_PHONE
+
+  if (!apiKey || !apiSecret || !senderPhone) {
+    return { ok: true }
+  }
+
+  const toDigits = digitsOnlyPhone(p.applicantPhone)
+  if (toDigits.length < 10) {
+    console.error(
+      '[sendInquiryCustomerLmsFallback] skipped invalid_phone',
+      JSON.stringify({ inquiryId: p.inquiryId, applicantPhone: p.applicantPhone })
+    )
+    return { ok: false, message: 'invalid_phone' }
+  }
+
+  const from = senderPhone.replace(/-/g, '').trim()
+  const text = buildInquiryCustomerLmsText({
+    inquiryType: p.inquiryType,
+    productLabel: p.productLabel,
+  })
+  const r = await sendSolapiMessage(apiKey, apiSecret, from, toDigits, text)
+  if (!r.ok) {
+    console.error(
+      '[sendInquiryCustomerLmsFallback] failed',
+      JSON.stringify({ inquiryId: p.inquiryId, code: r.code ?? null, message: r.message })
+    )
+  }
+  return r
 }
 
 /** @deprecated sendAdminNotification 사용 권장 */

@@ -72,7 +72,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function PrivateTripPage() {
   const groupMeetingReviews = await loadGroupMeetingReviewsFromCsv()
-  const inquiryHref = `/inquiry?type=travel&source=${encodeURIComponent(INQUIRY_SOURCE)}`
+  const travelConsultHref = `/inquiry?type=travel&source=${encodeURIComponent(INQUIRY_SOURCE)}`
+  const privateQuoteHref = '/quote/private'
   let heroImageUrls: string[] = []
   try {
     heroImageUrls = await listPrivateTripHeroStoragePublicUrls()
@@ -95,8 +96,16 @@ export default async function PrivateTripPage() {
         <Header />
         <OverseasTravelSubMainNav variant="links" />
         <main>
-          <OurTravelHero imageUrls={heroImageUrls} inquiryHref={inquiryHref} />
-          <PrivateTripLanding inquiryHref={inquiryHref} groupMeetingReviews={groupMeetingReviews} />
+          <OurTravelHero
+            imageUrls={heroImageUrls}
+            privateQuoteHref={privateQuoteHref}
+            travelConsultHref={travelConsultHref}
+          />
+          <PrivateTripLanding
+            privateQuoteHref={privateQuoteHref}
+            travelConsultHref={travelConsultHref}
+            groupMeetingReviews={groupMeetingReviews}
+          />
         </main>
       </div>
     </>

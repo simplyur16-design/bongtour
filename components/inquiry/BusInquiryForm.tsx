@@ -22,7 +22,6 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
   const [departurePlace, setDeparturePlace] = useState('')
   const [arrivalPlace, setArrivalPlace] = useState('')
   const [viaPoints, setViaPoints] = useState('')
-  const [tripType, setTripType] = useState<'one_way' | 'round_trip'>('round_trip')
   const [waitingRequired, setWaitingRequired] = useState(false)
   const [luggageRequired, setLuggageRequired] = useState(false)
   const [estimatedHeadcount, setEstimatedHeadcount] = useState('')
@@ -32,12 +31,6 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
 
   const validateBeforeSubmit = useCallback((): { fieldErrors?: FieldErrors; formError?: string } => {
     const fieldErrors: FieldErrors = {}
-    if (!usageType.trim()) fieldErrors.usageType = '이용 목적을 선택해 주세요.'
-    if (!useDate.trim() && !targetYearMonth.trim()) {
-      fieldErrors.useDate = '이용 날짜 또는 이용 희망 월을 입력해 주세요.'
-    }
-    if (!departurePlace.trim()) fieldErrors.departurePlace = '출발지를 입력해 주세요.'
-    if (!arrivalPlace.trim()) fieldErrors.arrivalPlace = '도착지를 입력해 주세요.'
     const head = parseInt(estimatedHeadcount.replace(/[^\d]/g, ''), 10)
     if (!estimatedHeadcount.trim()) fieldErrors.estimatedHeadcount = '예상 인원을 입력해 주세요.'
     else if (!Number.isFinite(head) || head < 1) fieldErrors.estimatedHeadcount = '예상 인원은 1명 이상의 숫자로 입력해 주세요.'
@@ -45,7 +38,7 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
       return { fieldErrors, formError: '필수 입력값을 확인해 주세요.' }
     }
     return {}
-  }, [arrivalPlace, departurePlace, estimatedHeadcount, targetYearMonth, usageType, useDate])
+  }, [estimatedHeadcount])
 
   const buildPayloadJson = useCallback(() => {
     const head = parseInt(estimatedHeadcount.replace(/[^\d]/g, ''), 10)
@@ -61,10 +54,10 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
       ...(departurePlace.trim() ? { departurePlace: departurePlace.trim() } : {}),
       ...(arrivalPlace.trim() ? { arrivalPlace: arrivalPlace.trim() } : {}),
       ...(viaPoints.trim() ? { viaPoints: viaPoints.trim() } : {}),
-      tripType,
+      tripType: 'round_trip' as const,
       waitingRequired,
       luggageRequired,
-      ...(head !== undefined && Number.isFinite(head) ? { estimatedHeadcount: head } : {}),
+      ...(Number.isFinite(head) && head > 0 ? { estimatedHeadcount: head } : {}),
       ...(vehicleClassPreference.trim() ? { vehicleClassPreference: vehicleClassPreference.trim() } : {}),
       preferredContactChannel,
       ...(extraRequest.trim() ? { extraRequest: extraRequest.trim() } : {}),
@@ -79,7 +72,6 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
     preferredContactChannel,
     startTime,
     targetYearMonth,
-    tripType,
     usageType,
     useDate,
     vehicleClassPreference,
@@ -95,7 +87,7 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
       buildPayloadJson={buildPayloadJson}
       beforeSubmit={validateBeforeSubmit}
       applicantNameLabel="담당자 이름"
-      applicantEmailRequired={preferredContactChannel !== 'kakao'}
+      applicantEmailRequired
       messageRequired
       messageLabel="문의 내용"
       submitButtonLabel="전세버스 문의 접수하기"
@@ -113,7 +105,10 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
         <div className="space-y-2">
           <p>Bong투어는 전세버스 문의 접수 및 상담 진행을 위해 아래와 같이 개인정보를 수집·이용합니다.</p>
           <p className="font-medium text-slate-800">1. 수집 항목</p>
-          <p>담당자 이름, 연락처, 이메일, 단체명/기관명/회사명, 이용 목적, 이용 날짜, 출발지/도착지, 예상 인원, 차량 관련 요청사항, 문의 내용, 기타 직접 입력 정보</p>
+          <p>
+            담당자 이름, 연락처, 이메일, 문의 내용, 예상 인원(왕복 기준), 답변 방법, 일정·노선·차량 관련 항목 중 입력하신 정보,
+            기타 직접 입력 정보
+          </p>
           <p className="font-medium text-slate-800">2. 수집 및 이용 목적</p>
           <p>전세버스 문의 접수, 문의 내용 확인 및 회신, 선택한 답변 방법(이메일/카카오톡)에 따른 상담 진행, 문의 이력 관리 및 후속 응대</p>
           <p className="font-medium text-slate-800">3. 보유 및 이용 기간</p>
@@ -126,39 +121,27 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
     >
       <div className="space-y-4">
         <section className="space-y-3 rounded-lg border border-slate-200 bg-white px-3 py-3">
-          <h3 className="text-sm font-semibold text-slate-800">1) 기본 정보</h3>
+          <h3 className="text-sm font-semibold text-slate-800">이용 조건</h3>
           <div>
-            <label htmlFor={`${id}-org`} className="block text-sm font-medium text-slate-700">
-              단체명 / 기관명 / 회사명 <span className="text-slate-400">(선택)</span>
+            <label htmlFor={`${id}-pax`} className="block text-sm font-medium text-slate-700">
+              예상 인원 <span className="text-rose-600">*</span>
+              <span className="ml-1 font-normal text-slate-400">(왕복 기준)</span>
             </label>
             <input
-              id={`${id}-org`}
-              value={organizationName}
-              onChange={(e) => setOrganizationName(e.target.value)}
+              id={`${id}-pax`}
+              name="estimatedHeadcount"
+              type="number"
+              min={1}
+              inputMode="numeric"
+              value={estimatedHeadcount}
+              onChange={(e) => setEstimatedHeadcount(e.target.value)}
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             />
-          </div>
-          <div>
-            <label htmlFor={`${id}-purpose`} className="block text-sm font-medium text-slate-700">
-              이용 목적 <span className="text-rose-600">*</span>
-            </label>
-            <select
-              id={`${id}-purpose`}
-              value={usageType}
-              onChange={(e) => setUsageType(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-            >
-              <option value="">이용 목적을 선택해 주세요</option>
-              <option value="기업/기관 이동">기업/기관 이동</option>
-              <option value="학교/학원 일정">학교/학원 일정</option>
-              <option value="행사/모임 이동">행사/모임 이동</option>
-              <option value="관광/자유 일정 이동">관광/자유 일정 이동</option>
-              <option value="기타">기타</option>
-            </select>
+            <p className="mt-1.5 text-xs text-slate-500">전세버스 문의는 왕복 운행을 기준으로 접수합니다.</p>
           </div>
           <div>
             <label htmlFor={`${id}-preferred-contact`} className="block text-sm font-medium text-slate-700">
-              답변받을 방법 <span className="text-rose-600">*</span>
+              답변받을 방법 <span className="text-slate-400">(선택)</span>
             </label>
             <select
               id={`${id}-preferred-contact`}
@@ -178,12 +161,51 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
           </div>
         </section>
 
-        <section className="space-y-3 rounded-lg border border-slate-200 bg-white px-3 py-3">
-          <h3 className="text-sm font-semibold text-slate-800">2) 이용 일정 및 동선</h3>
+        <details className="rounded-lg border border-slate-200 bg-white [&_summary::-webkit-details-marker]:hidden">
+          <summary className="cursor-pointer list-none px-3 py-3 text-sm font-semibold text-slate-800 outline-none ring-emerald-600 focus-visible:ring-2">
+            추가정보 입력(선택)
+          </summary>
+          <div className="space-y-4 border-t border-slate-100 px-3 pb-4 pt-3">
+            <p className="text-xs leading-relaxed text-slate-600">
+              아래 정보는 미정이어도 접수 가능합니다. 자세한 일정과 차량 조건은 상담하면서 안내해드립니다.
+            </p>
+            <div>
+              <label htmlFor={`${id}-org`} className="block text-sm font-medium text-slate-700">
+                단체명 / 기관명 / 회사명 <span className="text-slate-400">(선택)</span>
+              </label>
+              <input
+                id={`${id}-org`}
+                value={organizationName}
+                onChange={(e) => setOrganizationName(e.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              />
+            </div>
+            <div>
+              <label htmlFor={`${id}-purpose`} className="block text-sm font-medium text-slate-700">
+                이용 목적 <span className="text-slate-400">(선택)</span>
+              </label>
+              <select
+                id={`${id}-purpose`}
+                value={usageType}
+                onChange={(e) => setUsageType(e.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              >
+                <option value="">선택 안 함</option>
+                <option value="기업/기관 이동">기업/기관 이동</option>
+                <option value="학교/학원 일정">학교/학원 일정</option>
+                <option value="행사/모임 이동">행사/모임 이동</option>
+                <option value="관광/자유 일정 이동">관광/자유 일정 이동</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">이용 일정 · 동선</h4>
+              <div className="mt-2 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label htmlFor={`${id}-date`} className="block text-sm font-medium text-slate-700">
-                이용 날짜 <span className="text-rose-600">*</span>
+                이용 날짜 <span className="text-slate-400">(선택)</span>
               </label>
               <input
                 id={`${id}-date`}
@@ -235,7 +257,7 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
           </div>
           <div>
             <label htmlFor={`${id}-from`} className="block text-sm font-medium text-slate-700">
-              출발지 <span className="text-rose-600">*</span>
+              출발지 <span className="text-slate-400">(선택)</span>
             </label>
             <input
               id={`${id}-from`}
@@ -248,7 +270,7 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
           </div>
           <div>
             <label htmlFor={`${id}-to`} className="block text-sm font-medium text-slate-700">
-              도착지 <span className="text-rose-600">*</span>
+              도착지 <span className="text-slate-400">(선택)</span>
             </label>
             <input
               id={`${id}-to`}
@@ -273,41 +295,11 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             />
           </div>
-        </section>
+              </div>
+            </div>
 
-        <section className="space-y-3 rounded-lg border border-slate-200 bg-white px-3 py-3">
-          <h3 className="text-sm font-semibold text-slate-800">3) 차량 및 이용 조건</h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label htmlFor={`${id}-trip`} className="block text-sm font-medium text-slate-700">
-                편도 / 왕복 여부 <span className="text-rose-600">*</span>
-              </label>
-              <select
-                id={`${id}-trip`}
-                value={tripType}
-                onChange={(e) => setTripType(e.target.value as 'one_way' | 'round_trip')}
-                className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-              >
-                <option value="one_way">편도</option>
-                <option value="round_trip">왕복</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor={`${id}-pax`} className="block text-sm font-medium text-slate-700">
-                예상 인원 <span className="text-rose-600">*</span>
-              </label>
-              <input
-                id={`${id}-pax`}
-                name="estimatedHeadcount"
-                type="number"
-                min={1}
-                inputMode="numeric"
-                value={estimatedHeadcount}
-                onChange={(e) => setEstimatedHeadcount(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-              />
-            </div>
-          </div>
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">차량 · 기타 조건</h4>
           <label className="flex gap-2 text-sm text-slate-700">
             <input
               id={`${id}-wait`}
@@ -360,7 +352,9 @@ export default function BusInquiryForm({ initialQuery, overlayMeta = null }: Pro
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             />
           </div>
-        </section>
+            </div>
+          </div>
+        </details>
       </div>
     </InquiryFormShell>
   )
