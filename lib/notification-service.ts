@@ -94,10 +94,10 @@ export async function sendAdminNotificationWithPayload(
   booking: BookingForAlert,
   payload?: AdminBookingAlertPayload
 ): Promise<SendAdminNotificationResult> {
-  const apiKey = process.env.SOLAPI_API_KEY
-  const apiSecret = process.env.SOLAPI_API_SECRET
-  const adminPhone = process.env.ADMIN_PHONE
-  const senderPhone = process.env.SENDER_PHONE
+  const apiKey = process.env.SOLAPI_API_KEY?.trim()
+  const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
+  const adminPhone = process.env.ADMIN_PHONE?.trim()
+  const senderPhone = process.env.SENDER_PHONE?.trim()
 
   if (!apiKey || !apiSecret || !adminPhone || !senderPhone) {
     return { ok: true }

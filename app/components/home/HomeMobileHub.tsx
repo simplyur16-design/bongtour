@@ -4,7 +4,7 @@ import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 import MobileHomeClientErrorBoundary from '@/app/components/home/MobileHomeClientErrorBoundary'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
-import { MAIN_HOME_FIRST_HUB_DESCRIPTION, MAIN_HOME_FIRST_HUB_TITLE } from '@/lib/main-hub-copy'
+import { MAIN_HOME_FIRST_HUB_TILE_DESC, MAIN_HOME_FIRST_HUB_TITLE } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { resolveMobileMainTileBgSrc, type MobileMainTileBgKey } from '@/lib/home-mobile-hub-tile-images'
 import PartnerOrganizationsSection from '@/app/components/home/PartnerOrganizationsSection'
@@ -19,7 +19,7 @@ const MAIN_TILES_SPEC = [
   {
     href: '/travel/overseas',
     title: MAIN_HOME_FIRST_HUB_TITLE,
-    desc: MAIN_HOME_FIRST_HUB_DESCRIPTION,
+    desc: MAIN_HOME_FIRST_HUB_TILE_DESC,
     bgKey: 'overseas' as const satisfies MobileMainTileBgKey,
   },
   {

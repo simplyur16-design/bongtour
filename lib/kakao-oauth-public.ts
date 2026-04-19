@@ -1,6 +1,9 @@
 /**
  * 카카오 OAuth2 (authorization code) — 공개 origin, redirect_uri, state 쿠키.
  * 네이버 OAuth(`lib/naver-oauth-public.ts`)와 동일 원칙.
+ *
+ * 운영 콘솔: Redirect URI + 비즈니스 인증 리다이렉트 URI → 동일 `…/api/auth/kakao/callback`.
+ * `KAKAO_CLIENT_SECRET` 은 「카카오 로그인」Client Secret (callback/route 토큰 교환). 설정 절차: `.env.example` · `env.local.social-login.example`.
  */
 
 import type { NextResponse } from 'next/server'

@@ -70,14 +70,12 @@ export default function TopMegaMenu() {
         className="flex w-full flex-col items-stretch"
         onMouseLeave={scheduleClose}
       >
-        <div className="flex min-h-[3.1rem] w-full flex-nowrap items-center gap-4 sm:gap-5 lg:min-h-[3.25rem] lg:gap-6 xl:gap-8">
-          <div className="min-w-0 flex-1">
-            <OverseasSubNavHubRow
-              onHoverMegaEnter={onHoverMegaEnter}
-              onFocusMega={onFocusMega}
-              onHoverLinkEnter={scheduleClose}
-            />
-          </div>
+        <div className="min-h-[3.1rem] w-full min-w-0 lg:min-h-[3.25rem]">
+          <OverseasSubNavHubRow
+            onHoverMegaEnter={onHoverMegaEnter}
+            onFocusMega={onFocusMega}
+            onHoverLinkEnter={scheduleClose}
+          />
         </div>
 
         {isMegaMenuOpen && activeRegion && activeRegion.countryGroups && (

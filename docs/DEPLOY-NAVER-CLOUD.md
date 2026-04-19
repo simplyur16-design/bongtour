@@ -76,6 +76,7 @@ pm2 start node_modules/next/dist/bin/next --name bongtour -- start
 | `NEXT_PUBLIC_SITE_URL` | 선호. 공개 URL·SEO·메타 |
 | `NEXT_PUBLIC_APP_URL` | `NEXT_PUBLIC_SITE_URL` 보조 |
 | `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` / `NAVER_CALLBACK_URL` | 네이버 로그인 사용 시 필수. `NAVER_CALLBACK_URL`은 네이버 개발자센터에 등록한 Callback URL과 **완전히 동일**해야 함 — 보통 `https://도메인/api/auth/naver/callback` (`.env.example` 참고) |
+| 문의 SMTP 일곱 키 + 수신 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_NAME`, `SMTP_FROM_EMAIL`, `INQUIRY_NOTIFICATION_EMAIL` — 로컬에서 통과한 값을 서버 `.env.production`에 복사 후 `pm2 restart bongtour --update-env`. 절차: `docs/OPS-INQUIRY-SMTP.md` §3 |
 
 기능별 선택 변수는 루트 `.env.example` 전체를 참고하세요.
 

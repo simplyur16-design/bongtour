@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { HomeHubActiveClientModel } from '@/lib/home-hub-active-client-model'
 import type { HomeHubActiveFile, MobileMainServiceTileKey } from '@/lib/home-hub-resolve-images'
+import { MobileTileStoragePickerModal } from '@/components/admin/home-hub/MobileTileStoragePickerModal'
 
 const ROWS: { key: MobileMainServiceTileKey; title: string; hint: string; imageGuide: string }[] = [
   {
@@ -41,9 +42,17 @@ function emptyDraft(): Record<MobileMainServiceTileKey, string> {
   return { overseas: '', airHotel: '', privateTrip: '', training: '' }
 }
 
+function isLikelyImageUrl(s: string): boolean {
+  const t = s.trim().toLowerCase()
+  if (!t) return false
+  if (t.startsWith('/images/')) return true
+  return /^https?:\/\//i.test(t) && /\.(webp|png|jpe?g|gif|avif)(\?|$)/i.test(t)
+}
+
 export function MobileMainServiceTilesPanel({ active, onSaved, onSaveError }: Props) {
   const [draft, setDraft] = useState(emptyDraft)
   const [saving, setSaving] = useState(false)
+  const [pickerKey, setPickerKey] = useState<MobileMainServiceTileKey | null>(null)
 
   useEffect(() => {
     const m = active?.mobileMainServiceTiles
@@ -80,33 +89,84 @@ export function MobileMainServiceTilesPanel({ active, onSaved, onSaveError }: Pr
     }
   }, [draft, onSaveError, onSaved])
 
+  const pickerTitle = pickerKey ? ROWS.find((r) => r.key === pickerKey)?.title ?? pickerKey : ''
+
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-lg font-bold text-slate-900">모바일 홈 · 주요 서비스 4칸 배경</h2>
       <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
-        비워 두면 사진 없이 톤 그라데이션만 표시됩니다. 여행사 메인이라 너무 가볍거나 무거운 스톡보다는 아래「권장 컷」에 맞는 이미지를 올리는 것을 권합니다. Supabase 스토리지 등 공개 URL(
-        <code className="rounded bg-slate-100 px-1 text-xs">https://</code>
-        ) 또는 <code className="rounded bg-slate-100 px-1 text-xs">/images/...</code> 경로를 넣으세요.
+        기본은 <strong className="font-semibold text-slate-800">Supabase에서 선택</strong>으로 공개 이미지를 고릅니다. 저장값은 기존과 동일하게{' '}
+        <code className="rounded bg-slate-100 px-1 text-xs">https://…</code> 공개 URL(또는 <code className="rounded bg-slate-100 px-1 text-xs">/images/…</code>
+        )입니다. 예외 시에만 아래「직접 URL 입력」을 펼쳐 붙여넣기 하세요.
       </p>
-      <ul className="mt-4 space-y-4">
-        {ROWS.map((row) => (
-          <li key={row.key}>
-            <label className="block text-sm font-semibold text-slate-800">
-              {row.title}
-              <span className="ml-2 font-normal text-slate-500">({row.hint})</span>
-            </label>
-            <p className="mt-1 text-xs leading-snug text-slate-600">{row.imageGuide}</p>
-            <input
-              type="text"
-              name={`mobile-tile-${row.key}`}
-              value={draft[row.key]}
-              onChange={(e) => setField(row.key, e.target.value)}
-              placeholder="비우면 그라데이션만"
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600"
-              autoComplete="off"
-            />
-          </li>
-        ))}
+      <ul className="mt-4 space-y-6">
+        {ROWS.map((row) => {
+          const url = draft[row.key]
+          const showPreview = isLikelyImageUrl(url)
+          return (
+            <li
+              key={row.key}
+              className="rounded-xl border border-slate-100 bg-slate-50/60 p-4 shadow-sm ring-1 ring-slate-100/80"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                <div className="shrink-0 sm:w-44">
+                  <div className="relative aspect-[16/10] w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-200">
+                    {showPreview ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- Supabase/절대경로 혼합
+                      <img src={url.trim()} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full min-h-[5.5rem] items-center justify-center px-2 text-center text-xs text-slate-500">
+                        미리보기 없음
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {row.title}
+                      <span className="ml-2 font-normal text-slate-500">({row.hint})</span>
+                    </p>
+                    <p className="mt-1 text-xs leading-snug text-slate-600">{row.imageGuide}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPickerKey(row.key)}
+                      className="rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-teal-800"
+                    >
+                      Supabase에서 선택
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setField(row.key, '')}
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                    >
+                      초기화
+                    </button>
+                  </div>
+                  <details className="group rounded-lg border border-slate-200 bg-white">
+                    <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-teal-800 marker:content-none [&::-webkit-details-marker]:hidden">
+                      <span className="underline-offset-2 group-open:underline">직접 URL 입력</span>
+                      <span className="ml-2 text-xs font-normal text-slate-500">(보조)</span>
+                    </summary>
+                    <div className="border-t border-slate-100 px-3 pb-3 pt-2">
+                      <input
+                        type="text"
+                        name={`mobile-tile-${row.key}`}
+                        value={draft[row.key]}
+                        onChange={(e) => setField(row.key, e.target.value)}
+                        placeholder="https://… 또는 /images/… (비우면 그라데이션만)"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600"
+                        autoComplete="off"
+                      />
+                    </div>
+                  </details>
+                </div>
+              </div>
+            </li>
+          )
+        })}
       </ul>
       <div className="mt-5 flex flex-wrap gap-3">
         <button
@@ -118,6 +178,16 @@ export function MobileMainServiceTilesPanel({ active, onSaved, onSaveError }: Pr
           {saving ? '저장 중…' : '모바일 타일 URL 저장'}
         </button>
       </div>
+
+      <MobileTileStoragePickerModal
+        open={pickerKey !== null}
+        tileKey={pickerKey}
+        tileTitle={pickerTitle}
+        onClose={() => setPickerKey(null)}
+        onConfirm={(publicUrl) => {
+          if (pickerKey) setField(pickerKey, publicUrl)
+        }}
+      />
     </section>
   )
 }

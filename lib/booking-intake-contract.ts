@@ -165,7 +165,23 @@ export function validateBookingIntake(input: unknown): BookingValidationResult {
   }
 }
 
-export function buildCustomerBookingReceiptMessage(name: string): string {
-  const safeName = name.trim() || '고객님'
-  return `${safeName}, 예약 요청이 정상 접수되었습니다. 담당자가 확인 후 연락드립니다. 실제 예약 가능 여부/결제/혜택은 확인 후 안내됩니다.`
+export function buildCustomerBookingReceiptMessage(input: {
+  customerName: string
+  productTitle: string
+  departureDateLabel: string
+  bookingId: number
+}): string {
+  const safeName = input.customerName.trim() || '고객님'
+  const title = input.productTitle.trim() || '상품명 미확인'
+  const depart = input.departureDateLabel.trim() || '출발일 미확인'
+  return [
+    `${safeName}님, 예약 요청이 접수되었습니다.`,
+    '',
+    `상품명: ${title}`,
+    `출발일: ${depart}`,
+    `접수번호: ${input.bookingId}`,
+    '',
+    '담당자가 내용을 확인한 뒤 순차적으로 연락드립니다.',
+    '실제 예약 가능 여부와 결제 안내는 확인 후 안내됩니다.',
+  ].join('\n')
 }

@@ -14,7 +14,7 @@ export default function NaverLoginLink({ callbackUrl, className = '', children }
   return (
     <a
       href={href}
-      className={`inline-flex w-full items-center justify-center rounded-lg bg-[#03C75A] px-5 py-3 text-[15px] font-medium text-white transition hover:opacity-90 ${className}`}
+      className={`inline-flex w-full items-center justify-center rounded-lg bg-[#03A94D] px-5 py-3 text-[15px] font-medium text-white transition hover:opacity-90 ${className}`}
     >
       {children ?? '네이버로 로그인'}
     </a>

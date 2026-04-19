@@ -179,19 +179,26 @@ export const MAIN_HUB_FOUR_SR_HEADING = 'Bong투어 주요 서비스 영역'
 
 export type HubFourAccent = 'domestic' | 'overseas' | 'training' | 'bus'
 
-/** 메인 첫 허브(해외) — 모바일 주요 서비스 타일·PC 4카드 첫 칸 공통 문구 */
+/** 메인 첫 허브(해외) — 큰 제목(모바일 타일 제목·PC 카드 categoryLabel 공통) */
 export const MAIN_HOME_FIRST_HUB_TITLE = '해외여행' as const
-export const MAIN_HOME_FIRST_HUB_DESCRIPTION = '검증된 여행상품' as const
+/** 모바일 첫 타일 한 줄 설명(PC 호버 소제목 pill과 동일 문구, 짧게 유지) */
+export const MAIN_HOME_FIRST_HUB_TILE_DESC = '검증된 여행상품' as const
+/** PC 메인 4카드 해외 칸 호버 본문만(모바일 타일과 분리) */
+export const MAIN_HOME_OVERSEAS_HUB_CARD_DESCRIPTION =
+  '하나투어, 모두투어, 참좋은여행, 노랑풍선 등 주요 여행사 상품 중 검토된 상품만 모았습니다.' as const
 
-/** 그리드 순서: 해외여행 → 국외연수 → 국내여행 → 전세버스 — PC 카드는 기본 제목만 노출·국외연수 부제는 `HomeHubFour` hover 전용 */
+/** @deprecated `MAIN_HOME_FIRST_HUB_TILE_DESC` 사용 */
+export const MAIN_HOME_FIRST_HUB_DESCRIPTION = MAIN_HOME_FIRST_HUB_TILE_DESC
+
+/** 그리드 순서: 해외여행 → 국외연수 → 국내여행 → 전세버스 — 호버 시 headline·description은 `HomeHubFourClientCard` */
 export const MAIN_HUB_FOUR_CARDS = [
   {
     key: 'overseas',
     href: '/travel/overseas',
     accent: 'overseas' as const,
     categoryLabel: MAIN_HOME_FIRST_HUB_TITLE,
-    headline: '',
-    description: MAIN_HOME_FIRST_HUB_DESCRIPTION,
+    headline: MAIN_HOME_FIRST_HUB_TILE_DESC,
+    description: MAIN_HOME_OVERSEAS_HUB_CARD_DESCRIPTION,
     hints: ['패키지', '자유여행', '에어텔'] as const,
     ctaLabel: '해외여행 보기',
     imageSrc: homeHubCardImageSrc('overseas'),

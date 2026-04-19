@@ -1,7 +1,8 @@
 import nodemailer from 'nodemailer'
 
 import type { AdminBookingAlertPayload } from '@/lib/booking-alert-payload'
-import { formatDepartureDate, formatPaxSummary, formatTotalQuotation } from '@/lib/message-service'
+import { formatDepartureDate, formatPaxSummary } from '@/lib/message-service'
+import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 
 /** `POST /api/bookings` 직후 `prisma.booking.create` 결과 + `include: { product: true }` */
 export type BookingRowForAdminEmail = {
@@ -27,7 +28,35 @@ export type BookingRowForAdminEmail = {
   childInfantBirthDatesJson: string | null
   originSourceSnapshot: string | null
   originCodeSnapshot: string | null
-  product?: { originSource: string; originCode: string; title: string } | null
+  product?: {
+    originSource: string
+    originCode: string
+    title: string
+    supplierProductCode?: string | null
+  } | null
+}
+
+function formatReceivedAtSeoul(d: Date): string {
+  return d.toLocaleString('sv-SE', { timeZone: 'Asia/Seoul', hour12: false }).slice(0, 16)
+}
+
+function safeDepartureLine(d: Date): string {
+  if (Number.isNaN(d.getTime())) return '출발일 미확인'
+  return formatDepartureDate(d)
+}
+
+/** 공백·null·undefined → 빈 문자열 */
+function normText(s: string | null | undefined): string {
+  return (s ?? '').trim()
+}
+
+function formatPreferredContactForAdmin(raw: string | null | undefined): string {
+  const k = normText(raw).toLowerCase()
+  if (!k) return '미지정'
+  if (k === 'phone') return '전화'
+  if (k === 'kakao') return '카카오톡'
+  if (k === 'email') return '이메일'
+  return normText(raw) || '미지정'
 }
 
 function escapeHtml(s: string): string {
@@ -70,8 +99,8 @@ export function logBookingSmtpEnvPresence(logger: typeof console.error = console
 }
 
 export function buildBookingAdminEmailSubject(booking: BookingRowForAdminEmail): string {
-  const name = booking.customerName?.trim() || ''
-  const title = booking.productTitle?.trim() || ''
+  const name = normText(booking.customerName)
+  const title = normText(booking.productTitle) || '상품명 미확인'
   if (name && title) return `[예약요청접수] ${name} / ${title}`
   if (title) return `[예약요청접수] ${title}`
   return `[예약요청접수] 예약 #${booking.id}`
@@ -83,8 +112,24 @@ export function buildBookingAdminEmailText(
 ): string {
   const listBase = adminPayload.adminLink.trim().replace(/\/$/, '')
   const detailLink = `${listBase}/${booking.id}`
-  const departureLine = formatDepartureDate(booking.selectedDate)
-  const paxBlock = formatPaxSummary({
+  const departureLine = safeDepartureLine(booking.selectedDate)
+  const receivedAt = Number.isNaN(booking.createdAt.getTime())
+    ? '시각 미확인'
+    : formatReceivedAtSeoul(booking.createdAt)
+
+  const originRaw = normText(
+    booking.originSourceSnapshot ?? booking.product?.originSource ?? adminPayload.originSource
+  )
+  const supplierName =
+    formatOriginSourceForDisplay(originRaw || undefined) || originRaw || '공급사 미확인'
+
+  const codeRaw = normText(booking.originCodeSnapshot ?? booking.product?.originCode)
+  const codeAux = normText(booking.product?.supplierProductCode ?? undefined)
+  const supplierProductNo = codeRaw || codeAux || '상품번호 미확인'
+
+  const totalPax =
+    booking.adultCount + booking.childBedCount + booking.childNoBedCount + booking.infantCount
+  const paxLine = formatPaxSummary({
     productTitle: booking.productTitle,
     selectedDate: booking.selectedDate,
     adultCount: booking.adultCount,
@@ -98,77 +143,85 @@ export function buildBookingAdminEmailText(
     customerPhone: booking.customerPhone,
     product: booking.product ?? undefined,
   })
-  const quoteLine = formatTotalQuotation(
-    booking.totalKrwAmount,
-    booking.totalLocalAmount,
-    booking.localCurrency
-  )
   const births = adminPayload.childInfantBirthDates.length
     ? adminPayload.childInfantBirthDates.join('\n')
     : '-'
   const notes = (booking.requestNotes ?? adminPayload.requestNotes ?? '-').trim() || '-'
-  const origin =
-    (booking.originSourceSnapshot ?? booking.product?.originSource ?? adminPayload.originSource ?? '-').trim() ||
-    '-'
-  const code = (booking.originCodeSnapshot ?? booking.product?.originCode ?? '-').trim() || '-'
+  const prefChannel = formatPreferredContactForAdmin(
+    booking.preferredContactChannel ?? adminPayload.preferredContactChannel
+  )
 
-  return [
+  const displayTitle = normText(booking.productTitle) || '상품명 미확인'
+  const displayCustomerName = normText(booking.customerName) || '고객명 미확인'
+  const displayPhone = normText(booking.customerPhone) || '연락처 미확인'
+  const displayEmail = normText(booking.customerEmail) || '(없음)'
+
+  const lines: string[] = [
     '━━━━━━━━━━━━━━━━',
-    '■ 예약 요청 접수 (관리자)',
+    '■ 예약 요청 접수',
     '━━━━━━━━━━━━━━━━',
     `접수번호: ${booking.id}`,
-    `접수시각(서버): ${booking.createdAt.toISOString()}`,
-    `상품 ID: ${booking.productId}`,
-    `상품명: ${booking.productTitle}`,
-    `출발일(기준): ${departureLine}`,
-    `가격 모드: ${booking.pricingMode ?? '-'}`,
-    `견적(참고): ${quoteLine}`,
+    `접수시각: ${receivedAt}`,
+    `공급사: ${supplierName}`,
+    `상품번호: ${supplierProductNo}`,
+    `상품명: ${displayTitle}`,
+    `출발일: ${departureLine}`,
+    `인원: 총 ${totalPax}명 (${paxLine})`,
     '',
-    '■ 고객',
-    `이름: ${booking.customerName}`,
-    `연락처: ${booking.customerPhone}`,
-    `이메일: ${booking.customerEmail?.trim() || '(없음)'}`,
-    `연락 선호: ${booking.preferredContactChannel ?? adminPayload.preferredContactChannel}`,
+    `고객명: ${displayCustomerName}`,
+    `연락처: ${displayPhone}`,
+    `이메일: ${displayEmail}`,
+    `선호 연락 방식: ${prefChannel}`,
+    '',
+    '■ 관리자 확인',
+    `목록: ${adminPayload.adminLink}`,
+    `상세: ${detailLink}`,
+    '',
+    '■ 추가 정보',
+    `요금 반영 방식: ${normText(booking.pricingMode) || '-'}`,
     `1인실 요청: ${booking.singleRoomRequested ? '예' : '아니오'}`,
-    '',
-    '■ 인원',
-    adminPayload.paxSummary,
-    `요약(표시용): ${paxBlock}`,
-    '',
-    '■ 일정·행',
-    `선택/희망일(원문): ${adminPayload.preferredOrSelectedDate ?? '-'}`,
-    `출발 가격 행 id: ${adminPayload.departureRowId?.trim() || '-'}`,
-    `공급사/코드: ${origin} / ${code}`,
     '',
     '■ 아동·유아 생년월일',
     births,
     '',
     '■ 요청사항',
     notes,
-    '',
-    '■ 관리자',
-    `목록: ${adminPayload.adminLink}`,
-    `상세: ${detailLink}`,
-    '',
-    '■ 알림 페이로드(요약)',
-    JSON.stringify(
-      {
-        customerName: adminPayload.customerName,
-        customerPhone: adminPayload.customerPhone,
-        customerEmail: adminPayload.customerEmail,
-        departureRowId: adminPayload.departureRowId,
-        preferredOrSelectedDate: adminPayload.preferredOrSelectedDate,
-        paxSummary: adminPayload.paxSummary,
-        singleRoomRequested: adminPayload.singleRoomRequested,
-        preferredContactChannel: adminPayload.preferredContactChannel,
-      },
-      null,
-      2
-    ),
-    '',
-    '■ childInfantBirthDatesJson (원문)',
-    booking.childInfantBirthDatesJson?.trim() || '-',
-  ].join('\n')
+  ]
+
+  const debugOn =
+    process.env.BOOKING_ADMIN_EMAIL_DEBUG === '1' ||
+    process.env.BOOKING_ADMIN_EMAIL_DEBUG === 'true'
+
+  if (debugOn) {
+    lines.push(
+      '',
+      '[개발 참고]',
+      `internal productId: ${booking.productId}`,
+      `departureRowId: ${adminPayload.departureRowId?.trim() || '-'}`,
+      `preferredOrSelectedDate(필드): ${adminPayload.preferredOrSelectedDate ?? '-'}`,
+      '알림 페이로드(요약 JSON):',
+      JSON.stringify(
+        {
+          customerName: adminPayload.customerName,
+          customerPhone: adminPayload.customerPhone,
+          customerEmail: adminPayload.customerEmail,
+          departureRowId: adminPayload.departureRowId,
+          preferredOrSelectedDate: adminPayload.preferredOrSelectedDate,
+          paxSummary: adminPayload.paxSummary,
+          singleRoomRequested: adminPayload.singleRoomRequested,
+          preferredContactChannel: adminPayload.preferredContactChannel,
+        },
+        null,
+        2
+      ),
+      '',
+      'childInfantBirthDatesJson (원문):',
+      booking.childInfantBirthDatesJson?.trim() || '-'
+    )
+  }
+
+  lines.push('━━━━━━━━━━━━━━━━')
+  return lines.join('\n')
 }
 
 /**

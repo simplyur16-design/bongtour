@@ -33,7 +33,7 @@ export default function OverseasSubNavLinksRow() {
 
   return (
     <div
-      className="grid w-full min-w-0 grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-3 sm:gap-x-3 md:gap-x-4 lg:grid-cols-5 lg:gap-x-5"
+      className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-x-3 md:gap-x-4 lg:gap-x-5"
       role="navigation"
       aria-label="해외여행 하위 메뉴"
     >
@@ -43,15 +43,16 @@ export default function OverseasSubNavLinksRow() {
         /** 여행상품은 기본·호버만 (항상 올라온 active 톤 제거), 나머지는 현재 경로만 active */
         const showActiveStyle = item.kind !== 'mega' && pathActive
         return (
-          <Link
-            key={href}
-            href={href}
-            className={showActiveStyle ? overseasSubNavTabActive : overseasSubNavTabIdle}
-            aria-current={pathActive ? 'page' : undefined}
-            aria-label={item.kind === 'link' && item.labelLines ? item.label : undefined}
-          >
-            <OverseasSubNavLinkLabel item={item} />
-          </Link>
+          <div key={href} className="min-w-0 sm:flex-1 sm:basis-0">
+            <Link
+              href={href}
+              className={showActiveStyle ? overseasSubNavTabActive : overseasSubNavTabIdle}
+              aria-current={pathActive ? 'page' : undefined}
+              aria-label={item.kind === 'link' && item.labelLines ? item.label : undefined}
+            >
+              <OverseasSubNavLinkLabel item={item} />
+            </Link>
+          </div>
         )
       })}
     </div>
@@ -59,14 +60,14 @@ export default function OverseasSubNavLinksRow() {
 }
 
 /**
- * 좁은 화면: 소메뉴를 그리드로 동시 노출 (2열 → 중간 3열 → 넓은 화면 5열).
+ * 좁은 화면: 소메뉴를 그리드로 동시 노출 (2열 → sm 이상 4열).
  */
 export function OverseasSubNavMobileScrollRow() {
   const pathname = usePathname() ?? ''
 
   return (
     <div
-      className="grid w-full min-w-0 grid-cols-2 gap-1 pb-2 pt-1 sm:grid-cols-3 sm:gap-1.5 md:grid-cols-5"
+      className="grid w-full min-w-0 grid-cols-2 gap-1 pb-2 pt-1 sm:grid-cols-4 sm:gap-1.5"
       role="navigation"
       aria-label="해외여행 하위 메뉴"
     >

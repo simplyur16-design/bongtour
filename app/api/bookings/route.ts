@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { computeKRWQuotation, computeLocalFeeTotal, type PriceRowLike } from '@/lib/price-utils'
+import { formatDepartureDate } from '@/lib/message-service'
 import { sendBookingReceivedEmailToAdmin } from '@/lib/booking-email'
 import { sendAdminNotificationWithPayload } from '@/lib/notification-service'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
@@ -251,7 +252,12 @@ export async function POST(request: Request) {
     const payload = {
       ok: true,
       bookingId: booking.id,
-      message: buildCustomerBookingReceiptMessage(intake.customerName),
+      message: buildCustomerBookingReceiptMessage({
+        customerName: intake.customerName,
+        productTitle: booking.productTitle,
+        departureDateLabel: formatDepartureDate(booking.selectedDate),
+        bookingId: booking.id,
+      }),
       pricingMode,
     }
     assertNoInternalMetaLeak(payload, '/api/bookings')

@@ -10,7 +10,7 @@ bash deploy/verify-production-env.sh
 ```
 
 - **필수** 누락이면 exit code 1 → `nano .env` 로 채운 뒤 `pm2 restart bongtour --update-env`
-- **카카오**: `KAKAO_CLIENT_ID` + `KAKAO_CLIENT_SECRET` (둘 다)
+- **카카오**: `KAKAO_CLIENT_ID`(REST API 키) + `KAKAO_CLIENT_SECRET`(**카카오 로그인** Client Secret). 콘솔 Redirect·비즈니스 인증 URI는 `https://bongtour.com/api/auth/kakao/callback` 등 앱과 동일 문자열. 운영 권장: `KAKAO_CALLBACK_URL=https://bongtour.com/api/auth/kakao/callback`
 - **네이버**: `NAVER_CLIENT_ID` + `NAVER_CLIENT_SECRET` + `NAVER_CALLBACK_URL` (셋 다, 콜백 URL은 네이버 개발자센터와 동일)
 - **이메일 로그인**: env 없음 · DB 사용자만
 

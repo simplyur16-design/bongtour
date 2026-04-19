@@ -26,40 +26,43 @@ export default function OverseasSubNavHubRow({ onHoverMegaEnter, onFocusMega, on
 
   return (
     <div
-      className="grid w-full min-w-0 grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-3 sm:gap-x-3 md:gap-x-4 lg:grid-cols-5 lg:gap-x-5"
+      className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-x-3 md:gap-x-4 lg:gap-x-5"
       role="tablist"
       aria-label="해외여행 하위 메뉴"
     >
       {OVERSEAS_SUB_NAV_ITEMS.map((item) => {
         const href = hrefForOverseasSubNavItem(item)
+        const cell = 'min-w-0 sm:flex-1 sm:basis-0'
         if (item.kind === 'mega') {
           const travelHubActive = pathname === '/travel/overseas'
           return (
-            <button
-              key={item.label}
-              type="button"
-              role="tab"
-              aria-selected={travelHubActive}
-              aria-current={travelHubActive ? 'page' : undefined}
-              className={overseasSubNavTabIdle}
-              onMouseEnter={onHoverMegaEnter}
-              onFocus={onFocusMega}
-            >
-              {item.label}
-            </button>
+            <div key={item.label} className={cell}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={travelHubActive}
+                aria-current={travelHubActive ? 'page' : undefined}
+                className={overseasSubNavTabIdle}
+                onMouseEnter={onHoverMegaEnter}
+                onFocus={onFocusMega}
+              >
+                {item.label}
+              </button>
+            </div>
           )
         }
         const linkActive = isOverseasSubNavHrefActive(pathname, href)
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={linkActive ? overseasSubNavTabActive : overseasSubNavTabIdle}
-            aria-current={linkActive ? 'page' : undefined}
-            onMouseEnter={onHoverLinkEnter}
-          >
-            {item.label}
-          </Link>
+          <div key={item.href} className={cell}>
+            <Link
+              href={href}
+              className={linkActive ? overseasSubNavTabActive : overseasSubNavTabIdle}
+              aria-current={linkActive ? 'page' : undefined}
+              onMouseEnter={onHoverLinkEnter}
+            >
+              {item.label}
+            </Link>
+          </div>
         )
       })}
     </div>
