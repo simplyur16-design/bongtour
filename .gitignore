@@ -52,8 +52,8 @@ prisma/migrations/**/migration_lock.toml
 prisma-gen
 prisma-gen-runtime/
 **/*.dll.node.tmp*
-prisma/*.db
-prisma/*.db-journal
+# prisma/*.db
+# prisma/*.db-journal
 
 # Python
 __pycache__/
