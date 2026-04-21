@@ -27,7 +27,7 @@ from . import config as _e2e_config
 
 # --- KST (TS SCRAPE_DEFAULT_MONTHS_FORWARD 와 맞춤) ---
 KST = timezone(timedelta(hours=9))
-DEFAULT_MAX_MONTHS = 6
+DEFAULT_MAX_MONTHS = 3
 
 
 def kst_today_ymd() -> str:
@@ -257,6 +257,10 @@ def parse_hanatour_product_identifiers(detail_url: str) -> dict[str, str | None]
 
 # --- 하나투어 동일상품 키 (identifiers.py 핵심 이식) ---
 _BADGE_PREFIX = re.compile(r"^(?:\[[^\]]*]\s*)+")
+_HANATOUR_PROMO_BLOCK_RE = re.compile(
+    r"^[★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯][^★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯#\n]{0,80}[★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯]\s*"
+)
+_HANATOUR_LEADING_SPECIAL_RE = re.compile(r"^[★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯\s]+")
 _WS_COLLAPSE_VARIANT = re.compile(r"\s+")
 _STATUS_ONLY_BADGE_INNER = re.compile(
     r"^(?:"
@@ -288,6 +292,8 @@ def hanatour_pre_hash_title(raw_title: str) -> str:
         return ""
     s = raw_title.replace("\u00a0", " ").strip()
     s = _BADGE_PREFIX.sub("", s).strip()
+    s = _HANATOUR_PROMO_BLOCK_RE.sub("", s).strip()
+    s = _HANATOUR_LEADING_SPECIAL_RE.sub("", s).strip()
     return " ".join(s.split())
 
 

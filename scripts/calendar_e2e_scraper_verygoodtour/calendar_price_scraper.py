@@ -32,9 +32,13 @@ from .utils import (
 
 _KST = dt.timezone(dt.timedelta(hours=9))
 # lib/scrape-date-bounds.ts SCRAPE_DEFAULT_MONTHS_FORWARD 와 맞춤
-DEFAULT_CALENDAR_MONTH_LIMIT = 6
+DEFAULT_CALENDAR_MONTH_LIMIT = 3
 
 _LEADING_BADGE_RE_VG = re.compile(r"^(?:\[[^\]]*\]\s*)+")
+_VERYGOOD_PROMO_BLOCK_RE = re.compile(
+    r"^[★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯][^★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯#\n]{0,80}[★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯]\s*"
+)
+_VERYGOOD_LEADING_SPECIAL_RE = re.compile(r"^[★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯\s]+")
 
 
 def _verygood_strip_tags(html: str) -> str:
@@ -56,6 +60,8 @@ def _verygood_detail_title_raw(detail_html: str) -> str:
 def _verygood_title_pre_hash(raw: str) -> str:
     t = _verygood_strip_tags(raw)
     t = _LEADING_BADGE_RE_VG.sub("", t)
+    t = _VERYGOOD_PROMO_BLOCK_RE.sub("", t).strip()
+    t = _VERYGOOD_LEADING_SPECIAL_RE.sub("", t).strip()
     return (t.split("#")[0] or "").strip()
 
 
@@ -696,13 +702,13 @@ def scrape_verygood_departures_from_network(detail_url: str) -> List[Dict[str, A
                         arr_date = comb["arrival_date"]
                     if not arr_time:
                         arr_time = comb["arr_time"]
-            # 출발·귀국 일시는 분리 필드 또는 일정 한 줄( combined )에서 채움. 항공사명 없으면 미표기.
-            if not dep_time or not arr_date or not arr_time:
-                continue
+            # 출발·귀국 일시: 셋 다 없을 때만 버림. 일부만 없으면 null 허용.
             if not tn:
                 tn = "미표기"
-            out_dep_at = f"{date} {dep_time}"
-            in_arr_at = f"{arr_date} {arr_time}"
+            if not dep_time and not arr_date and not arr_time:
+                continue
+            out_dep_at = f"{date} {dep_time}" if dep_time else None
+            in_arr_at = f"{arr_date} {arr_time}" if arr_date and arr_time else None
             rest_int = _verygood_calendar_rest_seat_int(v)
             if rest_int is None:
                 if re.search(r"마감|예약\s*마감|예약마감|불가", status_raw):
@@ -897,6 +903,7 @@ class CalendarPriceScraper:
         # 버튼 못 찾은 경우에도 현재 DOM에서 리스트 추출 시도
         rows: Dict[str, Dict[str, Any]] = {}
         for mi in range(DEFAULT_CALENDAR_MONTH_LIMIT):
+            rows_before_month = len(rows)
             for _ in range(6):
                 await self._scroll_verygood_popup_list()
             for item in await self._collect_verygood_popup_rows():
@@ -934,6 +941,8 @@ class CalendarPriceScraper:
                     break
                 except Exception:
                     continue
+            if mi > 0 and len(rows) == rows_before_month:
+                break
             if not moved:
                 break
 

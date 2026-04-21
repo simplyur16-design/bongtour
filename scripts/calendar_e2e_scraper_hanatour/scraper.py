@@ -1731,10 +1731,31 @@ def _e2e_probe_log_snapshot(tag: str, iso: str, cal: Any, list_probe: Any) -> No
         pass
 
 
+_NON_TITLE_LINE_RE = re.compile(
+    r"^(?:"
+    r"\d{1,2}/\d{1,2}"  # 04/28 날짜
+    r"|\d{4}-\d{2}-\d{2}"  # ISO 날짜
+    r"|[가-힣a-zA-Z]{2,10}항공"  # 에어부산, 대한항공 등
+    r"|[가-힣a-zA-Z]{1,8}에어"  # 에어서울 등
+    r"|잔여\s*\d"  # 잔여 20석
+    r"|[\d,]+\s*원"  # 999,900원
+    r"|\d{1,2}:\d{2}"  # 09:40
+    r")"
+)
+
+
+def _find_title_line(lines: list[str]) -> str | None:
+    """항공사·날짜·가격 줄을 건너뛰고 상품명 줄을 반환."""
+    for ln in lines:
+        if not _NON_TITLE_LINE_RE.match(ln):
+            return ln
+    return None
+
+
 def _row_to_candidate(raw: dict[str, str]) -> dict[str, Any]:
     text = raw.get("text") or ""
     lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
-    title_line = lines[0] if lines else text[:200]
+    title_line = _find_title_line(lines) or (lines[0] if lines else text[:200])
     layers = hanatour_title_layers(title_line)
     merged = _parse_row_times_and_airline(text)
     return {
@@ -3392,6 +3413,9 @@ class HanatourCalendarE2EScraper:
                 if stop_all_months:
                     break
                 if mi >= max_months_eff - 1:
+                    break
+                if month_appended == 0:
+                    notes.append(f"season_end_detected:{phase_month}")
                     break
                 t_nm0 = _time.perf_counter()
                 nm_ok = await _next_month(page)

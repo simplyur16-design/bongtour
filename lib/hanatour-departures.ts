@@ -967,7 +967,7 @@ export async function collectHanatourDepartureInputs(
       process.env.HANATOUR_E2E_ALLOW_COLLECT_WITHOUT_LIST_REFRESH ?? '1'
     /** 관리자 월별 subprocess: 일자별 list_wait 상한을 조금 줄여(빈 날 반복 시) 총 시간 절감. env로 덮어쓰기 가능 */
     envForPython.HANATOUR_E2E_LIST_REFRESH_MS =
-      process.env.HANATOUR_E2E_LIST_REFRESH_MS ?? (withStopAfterFirst ? '12000' : '8500')
+      process.env.HANATOUR_E2E_LIST_REFRESH_MS ?? (withStopAfterFirst ? '4000' : '3500')
     envForPython.HANATOUR_E2E_ALLOW_SAME_DAY_SELECTION_COMMIT =
       process.env.HANATOUR_E2E_ALLOW_SAME_DAY_SELECTION_COMMIT ?? '0'
     /** 실전 월별 subprocess: 스크래퍼에서 경량 경로(짧은 row 매칭 반복 등) 분기 */

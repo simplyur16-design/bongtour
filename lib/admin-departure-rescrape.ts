@@ -233,7 +233,8 @@ function resolveYbtourPythonRepoRoot(): string {
 
 async function scrapeLiveCalendar(
   detailUrl: string,
-  site: 'modetour' | 'verygoodtour' | 'ybtour'
+  site: 'modetour' | 'verygoodtour' | 'ybtour',
+  extraEnv?: Record<string, string>
 ): Promise<{ rows: ScrapedCalendarItem[]; stderr: string; ybtourPythonOkFalse?: YbtourPythonOkFalseMeta }> {
   const py = resolvePythonExecutable()
   const argv = ['-m', CALENDAR_PRICE_SCRAPER_MODULE[site], detailUrl]
@@ -242,6 +243,9 @@ async function scrapeLiveCalendar(
   const envForChild: Record<string, string | undefined> = {
     ...process.env,
     PYTHONPATH: cwd,
+  }
+  if (extraEnv) {
+    Object.assign(envForChild, extraEnv)
   }
 
   if (site === 'ybtour') {
@@ -443,7 +447,11 @@ export async function collectYbtourDepartureInputsForDateRange(
   const u = withYbtourPrdtGoodsCdParam(detailUrl, originCode)
   const statusByDate = new Map<string, { statusRaw: string | null; seatsStatusRaw: string | null }>()
   try {
-    const cal = await scrapeLiveCalendar(u, 'ybtour')
+    const cal = await scrapeLiveCalendar(u, 'ybtour', {
+      YBTOUR_DATE_FROM: lo,
+      YBTOUR_DATE_TO: hi,
+      YBTOUR_SEASON_END_STOP: '0', // range 모드에서는 시즌 종료 중단 비활성화
+    })
     const inputs = filterDepartureInputsOnOrAfterCalendarToday(
       mapScrapedRowsToInputs(cal.rows, statusByDate)
     )

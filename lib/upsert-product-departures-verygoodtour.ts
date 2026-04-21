@@ -8,8 +8,8 @@ import { deriveHanatourConfirmationFlags, parseStatusLabelsJson } from './hanato
 
 const MAX_RAW = 2000
 
-/** 참좋은(verygood) 전용: 성인만 갱신 입력으로 덮고, 아동·유아는 이번 요청에 숫자가 있을 때만 갱신·없으면 DB 유지 */
-function pickPreservedChildInfantPriceVerygoodtour(
+/** 아동: 명시 숫자만 반영, 없으면 DB. 유아: 0은 미전달(기존 유지) */
+function pickPreservedChildPriceVerygoodtour(
   incoming: number | null | undefined,
   existing: number | null | undefined
 ): number | null {
@@ -17,6 +17,19 @@ function pickPreservedChildInfantPriceVerygoodtour(
     return incoming
   }
   if (existing !== undefined && existing !== null && Number.isFinite(existing)) {
+    return existing
+  }
+  return null
+}
+
+function pickPreservedInfantPriceVerygoodtour(
+  incoming: number | null | undefined,
+  existing: number | null | undefined
+): number | null {
+  if (incoming !== undefined && incoming !== null && Number.isFinite(incoming) && incoming > 0) {
+    return incoming
+  }
+  if (existing !== undefined && existing !== null && Number.isFinite(existing) && existing > 0) {
     return existing
   }
   return null
@@ -272,9 +285,11 @@ export async function upsertProductDepartures(
 
     const previous = existingChildByUtc.get(departureDate.getTime())
     const adultPrice = d.adultPrice != null && !Number.isNaN(d.adultPrice) ? d.adultPrice : null
-    const childBedPrice = pickPreservedChildInfantPriceVerygoodtour(d.childBedPrice, previous?.childBedPrice)
-    const childNoBedPrice = pickPreservedChildInfantPriceVerygoodtour(d.childNoBedPrice, previous?.childNoBedPrice)
-    const infantPrice = pickPreservedChildInfantPriceVerygoodtour(d.infantPrice, previous?.infantPrice)
+    const childBedRaw = pickPreservedChildPriceVerygoodtour(d.childBedPrice, previous?.childBedPrice)
+    const childBedPrice = childBedRaw ?? adultPrice
+    const childNoBedRaw = pickPreservedChildPriceVerygoodtour(d.childNoBedPrice, previous?.childNoBedPrice)
+    const childNoBedPrice = childNoBedRaw ?? adultPrice
+    const infantPrice = pickPreservedInfantPriceVerygoodtour(d.infantPrice, previous?.infantPrice)
     const minPax = d.minPax != null && !Number.isNaN(d.minPax) ? d.minPax : null
     const localPriceText = d.localPriceText != null && String(d.localPriceText).trim() ? String(d.localPriceText).trim().slice(0, 200) : null
     const statusRaw = d.statusRaw != null && String(d.statusRaw).trim() ? String(d.statusRaw).trim().slice(0, 200) : null

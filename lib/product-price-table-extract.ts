@@ -48,25 +48,15 @@ function stripLeadingPriceRowNoise(s: string): string {
 function detectTierSlot(labelOrLine: string): Slot | null {
   const s = labelOrLine.replace(/\s+/g, ' ').trim()
   if (!s) return null
-  if (
-    /아동\s*[（(]\s*extra\s*bed/i.test(s) ||
-    /아동\s*extra\s*bed/i.test(s) ||
-    /아동\s*\(\s*extra/i.test(s)
-  )
-    return 'childExtra'
-  if (
-    /아동\s*[（(]\s*no\s*bed/i.test(s) ||
-    /아동\s*no\s*bed/i.test(s) ||
-    /아동\s*\(\s*no\s*bed/i.test(s)
-  )
-    return 'childNo'
-  // JS \b는 한글 경계를 보장하지 않음 → 뒤 경계를 명시
+  // 유아/소아 먼저 체크 (아동보다 우선)
   if (
     /^유아(?:만)?(?=[\s\d(;]|$)/i.test(s) ||
     /^소아\s*\(\s*만\s*2\s*세\s*미만/i.test(s)
   )
     return 'infant'
   if (/^성인(?:만)?(?=[\s\d(;]|$)/i.test(s)) return 'adult'
+  // 아동: Extra Bed / No Bed 구분 없이 모두 childExtra (동일 취급)
+  if (/^아동(?=[\s\d(（]|$)/i.test(s)) return 'childExtra'
   return null
 }
 

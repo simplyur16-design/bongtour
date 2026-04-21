@@ -80,7 +80,7 @@ export function maxYearMonth(a: YearMonth, b: YearMonth): YearMonth {
 }
 
 /** parse-and-register·재수집 등 공통: 앞으로 스캔할 월 수 (당일 출발 제외 전제) */
-export const SCRAPE_DEFAULT_MONTHS_FORWARD = 6
+export const SCRAPE_DEFAULT_MONTHS_FORWARD = 3
 
 /**
  * 모두투어 **등록 확정(confirm)** 시 `GetOtherDepartureDates` 검색 상한만큼의 월 수.

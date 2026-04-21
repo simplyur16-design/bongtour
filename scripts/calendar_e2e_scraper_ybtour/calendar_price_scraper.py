@@ -26,7 +26,7 @@ from .utils import (
 
 _KST = dt.timezone(dt.timedelta(hours=9))
 # lib/scrape-date-bounds.ts SCRAPE_DEFAULT_MONTHS_FORWARD 와 맞춤
-DEFAULT_CALENDAR_MONTH_LIMIT = 6
+DEFAULT_CALENDAR_MONTH_LIMIT = 3
 
 
 def _kst_today_ymd() -> str:
@@ -52,7 +52,7 @@ def _filter_calendar_rows_kst_floor(rows: List[Dict[str, Any]]) -> List[Dict[str
 DELAY_MIN = 0.5
 DELAY_MAX = 1.0
 SLIDE_WAIT_MS = 1000
-MONTH_WAIT_MS = 1500
+MONTH_WAIT_MS = 900
 
 # 출발일 변경: 우측 스티키/요약 영역 CTA 우선, 이후 일반 본문 버튼
 YBTOUR_POPUP_OPEN_SELECTORS = [
@@ -204,12 +204,22 @@ def _ybtour_dedupe_by_departure_date_richer(rows: List[Dict[str, Any]]) -> List[
     return [by_date[k] for k in sorted(order)]
 
 
+_YBTOUR_PROMO_BLOCK_RE = re.compile(
+    r"^[★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯][^★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯#\n]{0,80}[★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯]\s*"
+)
+_YBTOUR_LEADING_SPECIAL_RE = re.compile(
+    r"^[★☆♥♡✦•●◆□▪❤♪♫♬♭♮♯\s]+"
+)
+
+
 def _ybtour_title_layers_from_text(raw: str) -> Dict[str, str]:
     """상세 제목·리스트 행 제목을 동일 규칙으로 정규화(baseline JS와 동일 계열)."""
     s = re.sub(r"\s+", " ", str(raw or "").strip())
     if not s:
         return {"rawTitle": "", "comparisonTitle": "", "comparisonTitleNoSpace": ""}
     no_badge = re.sub(r"^(?:\[[^\]]*\]\s*)+", "", s)
+    no_badge = _YBTOUR_PROMO_BLOCK_RE.sub("", no_badge).strip()
+    no_badge = _YBTOUR_LEADING_SPECIAL_RE.sub("", no_badge).strip()
     pre_hash = no_badge.split("#")[0].strip()
     comparison = re.sub(r"\s+", " ", pre_hash).strip()
     comparison_ns = re.sub(r"\s+", "", comparison)
@@ -1118,6 +1128,12 @@ class CalendarPriceScraper:
                     iso = _ybtour_iso_from_year_month_day(yp, mp, d_int)
                     if not iso or iso < kst_floor:
                         continue
+                    _date_from = (os.environ.get("YBTOUR_DATE_FROM") or "").strip()
+                    _date_to = (os.environ.get("YBTOUR_DATE_TO") or "").strip()
+                    if _date_from and iso < _date_from:
+                        continue
+                    if _date_to and iso > _date_to:
+                        continue
                     prev_d = await self._ybtour_list_rows_digest()
                     clicked = await self._ybtour_click_calendar_day(d_int)
                     if clicked:
@@ -1144,6 +1160,13 @@ class CalendarPriceScraper:
                 f"firstRange={fr!r} lastRange={lr!r}"
             )
             if priced_rows == 0 and len(batch) == 0:
+                if os.environ.get("YBTOUR_SEASON_END_STOP", "1").strip() == "1":
+                    _ybtour_modal_log(
+                        f"phase=month-empty-stop monthRound={mi + 1} monthKey={ym!r} "
+                        f"(no priced list rows; season end detected)"
+                    )
+                    stop_reason = "season-end-detected"
+                    break
                 _ybtour_modal_log(
                     f"phase=month-empty-continue monthRound={mi + 1} monthKey={ym!r} "
                     f"(no priced list rows this month; advance next-month)"

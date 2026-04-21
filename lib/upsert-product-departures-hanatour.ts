@@ -10,8 +10,8 @@ import { deriveHanatourConfirmationFlags, parseStatusLabelsJson } from './hanato
 
 const MAX_RAW = 2000
 
-/** 하나투어 전용: 성인만 갱신 입력으로 덮고, 아동·유아는 이번 요청에 숫자가 있을 때만 갱신·없으면 DB 유지 */
-function pickPreservedChildInfantPriceHanatour(
+/** 아동: incoming이 명시적 숫자면 사용, 없으면 DB 유지 */
+function pickPreservedChildPriceHanatour(
   incoming: number | null | undefined,
   existing: number | null | undefined
 ): number | null {
@@ -19,6 +19,20 @@ function pickPreservedChildInfantPriceHanatour(
     return incoming
   }
   if (existing !== undefined && existing !== null && Number.isFinite(existing)) {
+    return existing
+  }
+  return null
+}
+
+/** 유아: 0은 미전달로 보고 DB 기존값 유지 */
+function pickPreservedInfantPriceHanatour(
+  incoming: number | null | undefined,
+  existing: number | null | undefined
+): number | null {
+  if (incoming !== undefined && incoming !== null && Number.isFinite(incoming) && incoming > 0) {
+    return incoming
+  }
+  if (existing !== undefined && existing !== null && Number.isFinite(existing) && existing > 0) {
     return existing
   }
   return null
@@ -259,9 +273,13 @@ export async function upsertProductDepartures(
 
     const previous = existingChildByUtc.get(departureDate.getTime())
     const adultPrice = d.adultPrice != null && !Number.isNaN(d.adultPrice) ? d.adultPrice : null
-    const childBedPrice = pickPreservedChildInfantPriceHanatour(d.childBedPrice, previous?.childBedPrice)
-    const childNoBedPrice = pickPreservedChildInfantPriceHanatour(d.childNoBedPrice, previous?.childNoBedPrice)
-    const infantPrice = pickPreservedChildInfantPriceHanatour(d.infantPrice, previous?.infantPrice)
+    // 아동: incoming 없으면 기존 DB값 유지, 둘 다 없으면 성인가로 채움
+    const childBedRaw = pickPreservedChildPriceHanatour(d.childBedPrice, previous?.childBedPrice)
+    const childBedPrice = childBedRaw ?? adultPrice
+    const childNoBedRaw = pickPreservedChildPriceHanatour(d.childNoBedPrice, previous?.childNoBedPrice)
+    const childNoBedPrice = childNoBedRaw ?? adultPrice
+    // 유아: 0은 미전달로 보고 기존값 유지
+    const infantPrice = pickPreservedInfantPriceHanatour(d.infantPrice, previous?.infantPrice)
     const minPax = d.minPax != null && !Number.isNaN(d.minPax) ? d.minPax : null
     const localPriceText = d.localPriceText != null && String(d.localPriceText).trim() ? String(d.localPriceText).trim().slice(0, 200) : null
     const statusRaw = d.statusRaw != null && String(d.statusRaw).trim() ? String(d.statusRaw).trim().slice(0, 200) : null

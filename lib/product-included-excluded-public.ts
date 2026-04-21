@@ -17,6 +17,10 @@ const STANDALONE_DROP_FROM_PUBLIC_IE_TABS =
 const LINE_BELONGS_EXCLUDED_NOT_INCLUDED =
   /(?:가이드\s*[&＆]\s*기사|기사\s*[&＆]\s*가이드).*경비.*불포함|불포함\s*되어.*추가\s*경비|^불포함\s*내역\s*$|본\s*상품은\s*전\s*일정\s*패키지|전\s*일정\s*패키지\s*전용/i
 
+/** 포함 블록에서 발견되면 불포함으로 이동해야 하는 가이드·기사 비용 줄 */
+const LINE_GUIDE_DRIVER_FEE_EXCLUDED =
+  /(?:가이드|기사|드라이버)\s*(?:비용|경비|팁|tip|gratuity|수고비|사례비).*(?:불포함|별도|제외|미포함)|현지\s*(?:가이드|기사)\s*(?:비용|경비)\s*(?:불포함|별도)|가이드\s*(?:비|비용)\s*(?:불포함|별도|미포함)/i
+
 function splitLines(text: string | null | undefined): string[] {
   if (!text?.trim()) return []
   return text
@@ -149,7 +153,7 @@ export function splitIncludedExcludedForPublicDisplay(
       return
     }
     if (HEADER_INCLUDED.test(t) || HEADER_EXCLUDED.test(t)) return
-    if (LINE_BELONGS_EXCLUDED_NOT_INCLUDED.test(t)) {
+    if (LINE_BELONGS_EXCLUDED_NOT_INCLUDED.test(t) || LINE_GUIDE_DRIVER_FEE_EXCLUDED.test(t)) {
       outExc.push(t)
       return
     }
@@ -179,7 +183,7 @@ export function splitIncludedExcludedForPublicDisplay(
 
   const cleanedInc: string[] = []
   for (const line of outInc) {
-    if (LINE_BELONGS_EXCLUDED_NOT_INCLUDED.test(line)) {
+    if (LINE_BELONGS_EXCLUDED_NOT_INCLUDED.test(line) || LINE_GUIDE_DRIVER_FEE_EXCLUDED.test(line)) {
       if (!outExc.includes(line)) outExc.push(line)
     } else {
       cleanedInc.push(line)

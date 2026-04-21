@@ -47,6 +47,35 @@ server {
     }
 }
 
+# -----------------------------------------------------------------------------
+# Optional: dev host (e.g. dev.bongtour.com) — same Node upstream, own TLS cert
+# Usimsa webhook (planned): https://dev.bongtour.com/api/usimsa/webhook
+# Health: https://dev.bongtour.com/api/usimsa/health
+# Duplicate the location / block; set ssl_certificate paths for dev.bongtour.com
+# (e.g. certbot: sudo certbot certonly --nginx -d dev.bongtour.com)
+# -----------------------------------------------------------------------------
+# server {
+#     listen 443 ssl http2;
+#     listen [::]:443 ssl http2;
+#     server_name dev.bongtour.com;
+#     ssl_certificate     /etc/letsencrypt/live/dev.bongtour.com/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/dev.bongtour.com/privkey.pem;
+#     client_max_body_size 35m;
+#     location / {
+#         proxy_pass         http://bongtour_node;
+#         proxy_http_version 1.1;
+#         proxy_set_header   Host              $host;
+#         proxy_set_header   X-Real-IP         $remote_addr;
+#         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+#         proxy_set_header   X-Forwarded-Proto $scheme;
+#         proxy_set_header   Upgrade           $http_upgrade;
+#         proxy_set_header   Connection        "upgrade";
+#         proxy_connect_timeout 60s;
+#         proxy_send_timeout     960s;
+#         proxy_read_timeout     960s;
+#     }
+# }
+
 # HTTP → HTTPS (keep one block if certbot already added one)
 # server {
 #     listen 80;

@@ -27,7 +27,7 @@ from .utils import (
 
 _KST = dt.timezone(dt.timedelta(hours=9))
 # lib/scrape-date-bounds.ts SCRAPE_DEFAULT_MONTHS_FORWARD 와 맞춤
-DEFAULT_CALENDAR_MONTH_LIMIT = 6
+DEFAULT_CALENDAR_MONTH_LIMIT = 3
 
 
 def _kst_today_ymd() -> str:
@@ -50,10 +50,10 @@ def _filter_calendar_rows_kst_floor(rows: List[Dict[str, Any]]) -> List[Dict[str
 
 
 # 명세: 화살표/로딩 대기 딜레이
-DELAY_MIN = 1.5
-DELAY_MAX = 3.0
-SLIDE_WAIT_MS = 1000
-MONTH_WAIT_MS = 1500
+DELAY_MIN = 0.8
+DELAY_MAX = 1.8
+SLIDE_WAIT_MS = 800
+MONTH_WAIT_MS = 1000
 
 MODETOUR_GENERIC_MONTH_NEXT_SELECTORS = [
     ".month_next",
@@ -384,7 +384,7 @@ class CalendarPriceScraper:
                 price = p2
         range_text = self._modetour_panel_range_text(panel_txt)
         carrier = ""
-        m2 = re.search(r"항공여정\s*\n\s*\n\s*([^\n]+)", panel_txt)
+        m2 = re.search(r"항공여정\s*\n+\s*([^\n]+)", panel_txt)
         if m2:
             carrier = m2.group(1).strip()
         seats_text = ""
@@ -639,6 +639,7 @@ class CalendarPriceScraper:
         month_limit = DEFAULT_CALENDAR_MONTH_LIMIT
 
         while month_count < month_limit:
+            result_before_month = len(result)
             try:
                 year_month_text = await self._get_current_year_month()
                 if not year_month_text:
@@ -683,6 +684,8 @@ class CalendarPriceScraper:
                 inner_rounds += 1
 
             month_count += 1
+            if month_count > 1 and len(result) == result_before_month:
+                break
             try:
                 month_btn = await self._page.query_selector(
                     config.SELECTOR_MONTH_NEXT_ARROW
