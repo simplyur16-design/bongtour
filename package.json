@@ -22,7 +22,6 @@
     "prisma:generate:safe": "node scripts/prisma-generate-safe.js",
     "admin:bootstrap": "npx tsx scripts/bootstrap-admin.ts",
     "migrate:prisma-images-ncloud": "npx tsx scripts/migrate-prisma-images-to-ncloud.ts",
-    "test:ncloud-storage": "npx tsx scripts/test-ncloud-object-storage.ts",
     "test:inquiry-smtp": "npx tsx scripts/test-inquiry-smtp.ts",
     "test:inquiry-smtp:587": "npx tsx scripts/test-inquiry-smtp.ts --try-587",
     "verify:inquiry:live": "npx tsx scripts/local-verify-inquiry-live.ts",
@@ -67,7 +66,6 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
-    "@aws-sdk/client-s3": "^3.1026.0",
     "@google/generative-ai": "^0.21.0",
     "@prisma/client": "^5.22.0",
     "@supabase/supabase-js": "^2.100.1",

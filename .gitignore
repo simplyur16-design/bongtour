@@ -73,3 +73,15 @@ recent_changed_files.txt
 hanatour_e2e_result.json
 hanatour_e2e_test_*.txt
 hanatour_*_scan.txt
+
+# === AI 리뷰/정리 산출물 (로컬 전용) ===
+/README.md
+/00_REVIEW_REPORT.md
+/01_cleanup-project.ps1
+/02_REFACTORING_PRIORITIES.md
+/03_BONGSIM_MIGRATION_CHECKLIST.md
+/DIAGNOSIS_IMAGE_STORAGE.md
+/ROTATION_CHECKLIST.md
+/_archive/
+.env.local.backup-*
+.env.*.backup-*
