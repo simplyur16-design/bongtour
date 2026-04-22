@@ -24,7 +24,6 @@ import type {
   DepartureRow,
   FlightManualFormDraft,
   FlightManualFormLegDraft,
-  ItineraryDayRow,
   OptionalTourDraft,
   Product,
   ScheduleEntry,
@@ -49,6 +48,8 @@ import {
 import ScheduleImage from './_components/ScheduleImage'
 import PrimaryImagePreview from './_components/PrimaryImagePreview'
 import { parseStructuredSignalsView } from './_lib/parsers'
+import { useItineraryDays } from './_hooks/use-itinerary-days'
+import { useProductIdFromParams } from './_hooks/use-product-id-from-params'
 
 export default function AdminProductDetailPage({
   params,
@@ -59,9 +60,9 @@ export default function AdminProductDetailPage({
   const searchParams = useSearchParams() ?? new URLSearchParams()
   const showRegisterTrace = searchParams?.get('registerTrace') === '1'
   const isEditMode = pathname?.endsWith('/edit') ?? false
+  const id = useProductIdFromParams(params)
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
-  const [id, setId] = useState<string | null>(null)
   const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>([])
   const [scheduleDirty, setScheduleDirty] = useState(false)
   const [savingSchedule, setSavingSchedule] = useState(false)
@@ -89,7 +90,7 @@ export default function AdminProductDetailPage({
   const [heroMetaMessage, setHeroMetaMessage] = useState<string | null>(null)
   const [manualHeroUploadPreset, setManualHeroUploadPreset] = useState<AdminManualPrimaryHeroUploadPreset>('photo_owned')
   const [manualHeroUploadOtherNote, setManualHeroUploadOtherNote] = useState('')
-  const [itineraryDays, setItineraryDays] = useState<ItineraryDayRow[] | null>(null)
+  const itineraryDays = useItineraryDays(id)
   const [departures, setDepartures] = useState<DepartureRow[] | null>(null)
   const [optionalToursDraft, setOptionalToursDraft] = useState<OptionalTourDraft[]>([])
   const [savingOptionalTours, setSavingOptionalTours] = useState(false)
@@ -165,10 +166,6 @@ export default function AdminProductDetailPage({
   }, [product, supplierInternal])
 
   useEffect(() => {
-    Promise.resolve(params).then((p) => setId(p.id))
-  }, [params])
-
-  useEffect(() => {
     if (!product) return
     setPublicDetailDraft({
       included: product.includedText ?? '',
@@ -205,14 +202,6 @@ export default function AdminProductDetailPage({
     product?.counselingNotes,
     product?.flightAdminJson,
   ])
-
-  useEffect(() => {
-    if (!id) return
-    fetch(`/api/admin/products/${id}/itinerary-days`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: ItineraryDayRow[]) => setItineraryDays(Array.isArray(data) ? data : []))
-      .catch(() => setItineraryDays([]))
-  }, [id])
 
   useEffect(() => {
     if (!id) return
