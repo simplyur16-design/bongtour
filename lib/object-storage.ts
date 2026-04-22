@@ -3,6 +3,7 @@
  * Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY; optional SUPABASE_IMAGE_BUCKET (default bongtour-images).
  */
 import { createHash } from 'node:crypto'
+import sharp from 'sharp'
 import { getSupabaseAdmin } from './supabase-admin'
 
 const DEFAULT_BUCKET = 'bongtour-images'
@@ -48,6 +49,74 @@ export type UploadStorageObjectResult = {
   bucket: string
 }
 
+function primaryMimeType(contentType: string): string {
+  return (contentType || '').split(';')[0]?.trim().toLowerCase() || ''
+}
+
+/** 마지막 경로 세그먼트의 확장자를 `.webp`로 바꾼다(없으면 `<name>.webp`). */
+function replaceStorageObjectKeyExtensionWithWebp(objectKey: string): string {
+  const key = objectKey.replace(/^\/+/, '')
+  const lastSlash = key.lastIndexOf('/')
+  const dir = lastSlash >= 0 ? key.slice(0, lastSlash + 1) : ''
+  const file = lastSlash >= 0 ? key.slice(lastSlash + 1) : key
+  const dot = file.lastIndexOf('.')
+  const base = dot >= 0 ? file.slice(0, dot) : file
+  return `${dir}${base}.webp`
+}
+
+/**
+ * 이미지면 sharp로 리사이즈·WebP(품질 82, 최대 너비 1920) 후 업로드.
+ * GIF·애니 WebP는 그대로, SVG는 건드리지 않음. 실패 시 원본 업로드(안전망).
+ */
+async function prepareImageBodyForUpload(params: {
+  objectKey: string
+  body: Buffer
+  contentType: string
+}): Promise<{ objectKey: string; body: Buffer; contentType: string }> {
+  const mime = primaryMimeType(params.contentType)
+  let objectKey = params.objectKey.replace(/^\/+/, '')
+  const { body, contentType } = params
+
+  if (!mime.startsWith('image/')) {
+    return { objectKey, body, contentType }
+  }
+  if (mime === 'image/svg+xml') {
+    return { objectKey, body, contentType }
+  }
+  if (mime === 'image/gif') {
+    return { objectKey, body, contentType }
+  }
+
+  try {
+    const meta = await sharp(body).metadata()
+    if (meta.format === 'gif') {
+      return { objectKey, body, contentType }
+    }
+    if (meta.format === 'webp' && (meta.pages ?? 1) > 1) {
+      return { objectKey, body, contentType }
+    }
+
+    const out = await sharp(body)
+      .rotate()
+      .resize({ width: 1920, withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer()
+
+    return {
+      objectKey: replaceStorageObjectKeyExtensionWithWebp(objectKey),
+      body: out,
+      contentType: 'image/webp',
+    }
+  } catch (err) {
+    console.warn('[object-storage] upload image optimize failed, using original bytes', {
+      objectKey,
+      contentType,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return { objectKey, body, contentType }
+  }
+}
+
 export async function uploadStorageObject(params: {
   objectKey: string
   body: Buffer
@@ -55,9 +124,10 @@ export async function uploadStorageObject(params: {
 }): Promise<UploadStorageObjectResult> {
   const { bucket } = getObjectStorageEnv()
   const supabase = getSupabaseAdmin()
-  const key = params.objectKey.replace(/^\/+/, '')
-  const { error } = await supabase.storage.from(bucket).upload(key, params.body, {
-    contentType: params.contentType,
+  const prepared = await prepareImageBodyForUpload(params)
+  const key = prepared.objectKey.replace(/^\/+/, '')
+  const { error } = await supabase.storage.from(bucket).upload(key, prepared.body, {
+    contentType: prepared.contentType,
     upsert: true,
   })
   if (error) {
