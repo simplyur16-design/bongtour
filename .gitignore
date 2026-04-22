@@ -89,3 +89,41 @@ hanatour_*_scan.txt
 
 .env.backup-*
 
+# Env backups
+.env.backup-*
+.env.local.backup-*
+
+# DB backups
+prisma/*.backup-*
+prisma/*.db.backup-*
+prisma/dev.backup-*
+
+# Prisma schema backups
+prisma/schema.prisma.backup-*
+
+# Temp test files
+BONGTOUR_TMP_TEST.txt
+lib/_cursor_test.txt
+scripts/test-write.txt
+scripts/patch-test.txt
+
+# Temp patch scripts (underscore prefix)
+lib/_patch-*
+scripts/_patch-*
+scripts/_patch_*
+scripts/_check-*
+scripts/_count-*
+scripts/_test-*
+scripts/_write-*
+scripts/_vg_*
+
+# Temp patch scripts (no prefix but clearly temp)
+scripts/patch-admin-pending-gemini-ui.js
+scripts/patch-env-closeout.mjs
+scripts/patch-hero-fetch.py
+scripts/patch-hub-scroll.mjs
+scripts/patch-upload-error-messages.mjs
+scripts/write-object-storage.py
+
+# Tool outputs
+tools/_e2e-out/

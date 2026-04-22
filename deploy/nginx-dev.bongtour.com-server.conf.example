@@ -1,0 +1,33 @@
+# Append this `server { ... }` block to the SAME file as `deploy/nginx-bongtour-site.conf.example`
+# AFTER the shared `upstream bongtour_node { ... }` block (do not duplicate upstream name).
+#
+# Prerequisites:
+# - DNS A/AAAA: dev.bongtour.com → this server's public IP
+# - TLS: sudo certbot certonly --webroot -w /var/www/certbot -d dev.bongtour.com
+#   (or certbot --nginx -d dev.bongtour.com) so paths below exist
+# - Next.js: pm2 (or systemd) listening on the same port as upstream (default 127.0.0.1:3000)
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name dev.bongtour.com;
+
+    ssl_certificate     /etc/letsencrypt/live/dev.bongtour.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/dev.bongtour.com/privkey.pem;
+
+    client_max_body_size 35m;
+
+    location / {
+        proxy_pass         http://bongtour_node;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   Upgrade           $http_upgrade;
+        proxy_set_header   Connection        "upgrade";
+        proxy_connect_timeout 60s;
+        proxy_send_timeout     960s;
+        proxy_read_timeout     960s;
+    }
+}
