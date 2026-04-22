@@ -127,3 +127,6 @@ scripts/write-object-storage.py
 
 # Tool outputs
 tools/_e2e-out/
+
+# DB backups
+backups/

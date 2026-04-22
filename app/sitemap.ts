@@ -2,6 +2,9 @@ import type { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 import { getSiteOrigin } from '@/lib/site-metadata'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 3600
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = getSiteOrigin()
   const now = new Date()
