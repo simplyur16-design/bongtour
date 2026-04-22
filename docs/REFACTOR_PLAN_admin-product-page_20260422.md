@@ -255,3 +255,49 @@ app/admin/products/[id]/
 - [ ] 각 커밋 후 `npx next build` 성공.
 - [ ] `/admin/products/[id]` 및 `/admin/products/[id]/edit` 수동 스모크 (로딩·저장·재스크랩·히어로).
 - [ ] push는 **사용자 승인 후**만.
+
+---
+
+## Level 2 Hooks Analysis
+
+> 기준: `AdminProductDetailPage` 내 **useState 약 40개** + **useEffect 9개** (레벨 1 이후 기준; 정확 개수는 `page.tsx` grep으로 확인).
+
+### 2-1. useState 분류 (기능 축)
+
+| 그룹 | 상태 예시 |
+|------|-----------|
+| **코어 / 라우팅** | `product`, `loading`, ~~`id`~~ → `useProductIdFromParams`로 분리됨 |
+| **일정·스크래핑** | `scheduleEntries`, `scheduleDirty`, `savingSchedule`, `generatingSchedule`, ~~`itineraryDays`~~ → `useItineraryDays`로 분리됨, `departures`, `rescraping`, `hanatourPickMonthYm`, `rescrapingHanatourMonth`, `departureRescrapeReport` |
+| **가격** | `priceForm`, `savingPrice` |
+| **이미지·히어로** | `imageReviewSaving`, `imageReviewMessage`, `primaryImageUploading`, `heroReselectBusy`, `primaryImageMessage`, `heroMetaDraft`, `savingHeroMeta`, `heroMetaMessage`, `manualHeroUploadPreset`, `manualHeroUploadOtherNote` |
+| **현지옵션·공개문구** | `optionalToursDraft`, `savingOptionalTours`, `optionalToursSnapshot`, `publicDetailDraft`, `savingPublicDetail` |
+| **기본·혜택·메모·항공** | `basicDraft`, `benefitDraft`, `counselingDraft`, `flightAdminDraft`, `savingBasic`, `savingBenefit`, `savingCounseling`, `savingFlightAdmin` |
+| **항공 수동 보정** | `flightManualPanelOpen`, `flightManualDraft`, `savingFlightManual` |
+| **등록·기타** | `registering` |
+
+### 2-2. 제안 훅 후보
+
+| 훅 | 담당 | 비고 |
+|----|------|------|
+| `useProductIdFromParams` | `params` → `id` | **구현 완료** — 외부 상태 없음, 최상단 호출 안전 |
+| `useItineraryDays` | `id` → itinerary GET | **구현 완료** — `setItineraryDays`를 페이지 밖에서만 사용하던 패턴과 동일 |
+| `useProductDepartures` | `id` → departures GET + 재스크랩 후 `setDepartures` | 다음 후보; 다수 핸들러가 `setDepartures` 호출 → 훅에서 `refetch` 콜백 노출 필요 |
+| `useProductBasicDrafts` | `basicDraft` / `benefitDraft` / `counselingDraft` / `flightAdminDraft` + product 동기화 effect | `product` 의존 강함 |
+| `useProductHeroMeta` | 히어로 메타 draft + 관련 saving/message | 이미지 업로드 핸들러와 강결합 |
+| `useProductOptionalTours` | optional draft + snapshot + saving | `fetchProduct`와 PATCH 흐름과 결합 |
+| `useProductUI` | `loading`, 패널 열림 등 | 범위가 넓으면 오히려 복잡도 증가 |
+
+### 2-3. 의존성·결합
+
+- **`product` ↔ 거의 모든 draft·saving**: 한 번에 `useProductForm`으로 몰면 거대 훅이 됨 → 축별로 쪼개되, **`setProduct`를 여러 훅에 넘기면** 업데이트 순서·stale closure 주의.
+- **`id` ↔ `fetchProduct` ↔ `scheduleEntries` / optional snapshot**: `fetchProduct`가 일정·옵션까지 초기화 — `useProductLoad` 단일화가 장기적으로 유리하나 **한 번에 옮기면 회귀 면적 큼**.
+- **`departures`**: 초기 fetch + 재스크랩 버튼에서 동시 갱신 → `useDepartures(productId, { refetchKey })` 또는 `refetch()` 반환이 안전.
+
+### 2-4. 추천 분리 순서 (안전 → 고위험)
+
+1. ~~`useProductIdFromParams`~~ (완료)
+2. ~~`useItineraryDays`~~ (완료)
+3. **`useDepartures` 또는 `useProductSideData(id)`** — itinerary와 대칭; `refetch` API만 정리하면 됨
+4. **`useHeroMetaDraft(product)`** — hero meta effect + draft state만 (저장 핸들러는 props로 주입)
+5. **`useOptionalToursState`** — dirty 스냅샷 로직 분리
+6. **`useProductLoad(id)`** — `fetchProduct` + loading + 초기 파생 상태 (대형, 마지막 단계 권장)
