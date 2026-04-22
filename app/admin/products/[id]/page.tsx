@@ -54,6 +54,7 @@ import {
   parseSchedule,
   registerPublicPageTraceBulletsForProduct,
 } from './_lib/utils'
+import ScheduleImage from './_components/ScheduleImage'
 
 function parseStructuredSignalsView(
   rawMeta: string | null | undefined,
@@ -298,19 +299,6 @@ function parseStructuredSignalsView(
   } catch {
     return null
   }
-}
-
-function ScheduleImage({ url, alt }: { url: string | null | undefined; alt: string }) {
-  const [broken, setBroken] = useState(false)
-  const src = !url || broken ? FALLBACK_IMAGE : url
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className="h-24 w-full rounded object-cover"
-      onError={() => setBroken(true)}
-    />
-  )
 }
 
 function PrimaryImagePreview({ url }: { url: string | null | undefined }) {
