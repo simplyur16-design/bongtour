@@ -26,7 +26,7 @@ export default function SiteFooter() {
             aria-label="봉투어 홈"
           >
             <Image
-              src="/images/bongtour-logo.png"
+              src="/images/bongtour-logo.webp"
               alt=""
               width={96}
               height={28}

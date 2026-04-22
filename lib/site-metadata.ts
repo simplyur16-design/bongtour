@@ -26,7 +26,7 @@ export function toAbsoluteImageUrl(url: string | null | undefined): string | und
 }
 
 /** 메타 이미지 fallback — 공개 정적 자산 */
-export const DEFAULT_OG_IMAGE_PATH = '/images/bongtour-logo.png'
+export const DEFAULT_OG_IMAGE_PATH = '/images/bongtour-logo.webp'
 
 /** 상품 상세 description — 메타·JSON-LD 공통 (DB 필드만 사용) */
 export function buildPublicProductDescription(input: {

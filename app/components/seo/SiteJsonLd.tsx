@@ -3,7 +3,7 @@ import { absoluteUrl, SITE_NAME } from '@/lib/site-metadata'
 /** 메인: Organization + WebSite (최소) */
 export default function SiteJsonLd() {
   const origin = absoluteUrl('/')
-  const logo = absoluteUrl('/images/bongtour-logo.png')
+  const logo = absoluteUrl('/images/bongtour-logo.webp')
   const data = {
     '@context': 'https://schema.org',
     '@graph': [

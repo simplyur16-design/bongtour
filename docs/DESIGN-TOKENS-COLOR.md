@@ -69,7 +69,7 @@
 
 ## 로고 노출 정책 (헤더 + 히어로)
 
-- **헤더:** `public/images/bongtour-logo.png` — 브랜드 식별의 기본 위치.
+- **헤더:** `public/images/bongtour-logo.webp` — 브랜드 식별의 기본 위치.
 - **메인 히어로 (`MainHero`):** 로고 이미지 **미사용**. 카피·메시지 중심으로 두어 헤더와 중복되지 않게 한다.
 
 ## Tailwind (`tailwind.config.ts`)
