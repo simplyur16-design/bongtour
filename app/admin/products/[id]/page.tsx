@@ -41,7 +41,6 @@ import {
   buildFlightManualCorrectionForSave,
   draftFromFlightManualCorrection,
   emptyFlightManualFormDraft,
-  FALLBACK_IMAGE,
   formatDepartureDt,
   fmcModuleForAdminProduct,
   hasFlightOrMeeting,
@@ -55,6 +54,7 @@ import {
   registerPublicPageTraceBulletsForProduct,
 } from './_lib/utils'
 import ScheduleImage from './_components/ScheduleImage'
+import PrimaryImagePreview from './_components/PrimaryImagePreview'
 
 function parseStructuredSignalsView(
   rawMeta: string | null | undefined,
@@ -299,19 +299,6 @@ function parseStructuredSignalsView(
   } catch {
     return null
   }
-}
-
-function PrimaryImagePreview({ url }: { url: string | null | undefined }) {
-  const [broken, setBroken] = useState(false)
-  const src = !url || broken ? FALLBACK_IMAGE : url
-  return (
-    <img
-      src={src}
-      alt="대표 이미지"
-      className="max-h-48 w-full rounded-lg object-contain bg-bt-title"
-      onError={() => setBroken(true)}
-    />
-  )
 }
 
 export default function AdminProductDetailPage({
