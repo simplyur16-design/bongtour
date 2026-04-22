@@ -1,7 +1,7 @@
 /**
  * 흰색(및 밝은 배경)을 제거하여 투명 PNG로 저장.
  * 사용: node scripts/remove-logo-background.js
- * 입력: public/bongtour-logo.png
+ * 입력: public/images/bongtour-logo.webp
  * 출력: public/images/logo-transparent.png
  */
 
@@ -9,7 +9,7 @@ const sharp = require('sharp')
 const path = require('path')
 const fs = require('fs')
 
-const INPUT = path.join(__dirname, '..', 'public', 'bongtour-logo.png')
+const INPUT = path.join(__dirname, '..', 'public', 'images', 'bongtour-logo.webp')
 const OUT_DIR = path.join(__dirname, '..', 'public', 'images')
 const OUTPUT = path.join(OUT_DIR, 'logo-transparent.png')
 
