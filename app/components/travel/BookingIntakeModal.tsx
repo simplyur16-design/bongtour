@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { validateBookingIntake } from '@/lib/booking-intake-contract'
 import KakaoCounselCta from '@/app/components/travel/KakaoCounselCta'
-import NaverTalktalkCounselCta from '@/app/components/travel/NaverTalktalkCounselCta'
 import type { DeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
 import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
 import { formatKoreanTelInput } from '@/lib/korean-tel-format'
@@ -311,30 +310,13 @@ export default function BookingIntakeModal({
             <div className="rounded-lg border border-dashed border-bt-border-soft bg-bt-surface p-3">
               <p className="text-xs font-medium text-bt-body">추가 문의</p>
               <p className="mt-1 text-[11px] leading-relaxed text-bt-meta">
-                접수와 별도로 상품·일정을 바로 물어보시려면 카카오 오픈채팅 또는 네이버 톡톡으로 연결할 수 있습니다. 요약 형식은 동일합니다.
+                접수와 별도로 상품·일정을 바로 물어보시려면 카카오 오픈채팅으로 연결할 수 있습니다. 요약 형식은 동일합니다.
               </p>
               <div className="mt-2 space-y-2">
                 <KakaoCounselCta
                   variant="kakaoSoft"
                   showHelper
                   intent="booking"
-                  fromScreen="booking_success_modal"
-                  productId={productId}
-                  listingProductNumber={originCode}
-                  productTitle={productTitle}
-                  originSource={originSource}
-                  originCode={originCode}
-                  selectedDepartureDate={selectedDepartureDate ?? selectedDateFromCalendar}
-                  selectedDepartureId={departureRowId}
-                  preferredDepartureDate={preferredDepartureDate}
-                  pax={pax}
-                  bookingId={success.bookingId}
-                  customerMemo={successMemoSnapshot}
-                  advisoryLabel={departureAdvisoryLabel}
-                  pricingMode={success.pricingMode ?? null}
-                  isCollectingPrices={isCollectingPrices}
-                />
-                <NaverTalktalkCounselCta
                   fromScreen="booking_success_modal"
                   productId={productId}
                   listingProductNumber={originCode}

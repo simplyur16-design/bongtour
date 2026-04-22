@@ -14,7 +14,6 @@ export const OPERATIONAL_INQUIRY_VERIFY_ENV_KEYS = [
   'SMTP_FROM_EMAIL',
   'INQUIRY_NOTIFICATION_EMAIL',
   'NEXT_PUBLIC_KAKAO_OPEN_CHAT_URL',
-  'NEXT_PUBLIC_NAVER_TALKTALK_URL',
 ] as const
 
 export type OperationalInquiryVerifyMaskedLog = {
@@ -22,7 +21,6 @@ export type OperationalInquiryVerifyMaskedLog = {
   smtpFromEmail: string
   inquiryNotificationEmail: string
   kakao: { host: string; pathname: string }
-  naver: { host: string; pathname: string }
 }
 
 function maskLocalPart(local: string): string {
@@ -70,7 +68,6 @@ export function assertOperationalInquiryVerifyEnv(): OperationalInquiryVerifyMas
   const fromEmail = process.env.SMTP_FROM_EMAIL?.trim()
   const receiver = process.env.INQUIRY_NOTIFICATION_EMAIL?.trim()
   const kakao = process.env.NEXT_PUBLIC_KAKAO_OPEN_CHAT_URL?.trim()
-  const naver = process.env.NEXT_PUBLIC_NAVER_TALKTALK_URL?.trim()
 
   if (!smtpHost) errors.push('SMTP_HOST 비어 있음')
   else if (isForbiddenSmtpHost(smtpHost)) errors.push('SMTP_HOST 가 테스트용 호스트(ethereal 등)입니다. 실제 SMTP 호스트를 설정하세요.')
@@ -115,24 +112,6 @@ export function assertOperationalInquiryVerifyEnv(): OperationalInquiryVerifyMas
     }
   }
 
-  if (!naver) {
-    errors.push('NEXT_PUBLIC_NAVER_TALKTALK_URL 비어 있음')
-  } else {
-    if (naver.toLowerCase().includes('example.com')) errors.push('NEXT_PUBLIC_NAVER_TALKTALK_URL 에 example.com 이 포함되어 있습니다.')
-    try {
-      const u = new URL(naver.startsWith('http') ? naver : `https://${naver}`)
-      if (u.hostname.toLowerCase() !== 'talk.naver.com') {
-        errors.push(`NEXT_PUBLIC_NAVER_TALKTALK_URL 호스트는 talk.naver.com 이어야 합니다. (현재: ${u.hostname})`)
-      }
-      if (!u.pathname || u.pathname === '/' || u.pathname.length < 3) {
-        errors.push('NEXT_PUBLIC_NAVER_TALKTALK_URL 경로에 톡톡 진입 식별자가 없습니다.')
-      }
-      if (u.protocol !== 'https:') errors.push('NEXT_PUBLIC_NAVER_TALKTALK_URL 은 https:// 권장(운영 검수).')
-    } catch {
-      errors.push('NEXT_PUBLIC_NAVER_TALKTALK_URL 파싱 실패')
-    }
-  }
-
   if (errors.length) {
     throw new Error(
       `운영 검수 env 검증 실패 (${errors.length}건):\n- ${errors.join('\n- ')}\n\n필수 키: ${OPERATIONAL_INQUIRY_VERIFY_ENV_KEYS.join(', ')}`
@@ -140,13 +119,11 @@ export function assertOperationalInquiryVerifyEnv(): OperationalInquiryVerifyMas
   }
 
   const kakaoHp = parseHostPath(kakao!, 'NEXT_PUBLIC_KAKAO_OPEN_CHAT_URL')
-  const naverHp = parseHostPath(naver!, 'NEXT_PUBLIC_NAVER_TALKTALK_URL')
 
   return {
     smtpHost: smtpHost!,
     smtpFromEmail: maskEmailForLog(fromEmail!),
     inquiryNotificationEmail: maskEmailForLog(receiver!),
     kakao: kakaoHp,
-    naver: naverHp,
   }
 }

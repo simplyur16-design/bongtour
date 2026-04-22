@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /**
  * Puppeteer 실브라우저 E2E (CommonJS — TS __name 주입 없음)
- * npx node tools/browser-e2e-booking-modetour.cjs [priced|ondemand|ondemand-slow|naver]
+ * npx node tools/browser-e2e-booking-modetour.cjs [priced|ondemand|ondemand-slow]
  */
 const fs = require('fs')
 const path = require('path')
@@ -12,22 +12,8 @@ const PRODUCT_ID = 'cmnvfupq400061xuldipptqfp'
 const PRODUCT_URL = `${BASE}/products/${PRODUCT_ID}`
 const mode = (process.argv[2] || 'priced').toLowerCase()
 
-/** 톡톡 팝업 URL 검증: env 경로 마지막 세그먼트, 없으면 운영 프로필 기본값 */
-function naverTalkPathIdForAssert() {
-  const raw = (process.env.NEXT_PUBLIC_NAVER_TALKTALK_URL || '').trim()
-  if (!raw) return 'w2r7vau'
-  try {
-    const u = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
-    const parts = u.pathname.split('/').filter(Boolean)
-    return (parts[parts.length - 1] || 'w2r7vau').toLowerCase()
-  } catch {
-    return 'w2r7vau'
-  }
-}
-
 function counselFieldChecks(clip) {
   return {
-    hasNaverBanner: clip.indexOf('[네이버 톡톡 상담]') !== -1,
     hasKakaoStyleBanner: clip.indexOf('[예약 상담]') !== -1,
     hasSystemId: clip.indexOf('상품번호(시스템):') !== -1,
     hasListing: clip.indexOf('상품번호(리스트·노출):') !== -1,
@@ -276,22 +262,6 @@ async function runPriced() {
     return window.__clip || ''
   })
 
-  var naverInfo = await page.evaluate(function () {
-    var buttons = Array.from(document.querySelectorAll('button'))
-    var b = null
-    for (var i = 0; i < buttons.length; i++) {
-      if ((buttons[i].textContent || '').indexOf('네이버 톡톡') !== -1) {
-        b = buttons[i]
-        break
-      }
-    }
-    return {
-      found: Boolean(b),
-      disabled: b ? b.disabled : null,
-      text: b ? (b.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 80) : null,
-    }
-  })
-
   var shotDir = path.join(process.cwd(), 'tools', '_e2e-out')
   fs.mkdirSync(shotDir, { recursive: true })
   await page.screenshot({ path: path.join(shotDir, 'priced-success.png'), fullPage: true })
@@ -333,7 +303,6 @@ async function runPriced() {
         responseBookingId: parsedRes ? parsedRes.bookingId : null,
         kakaoClipboardChecks: kakaoChecks,
         kakaoClipboardLength: clip.length,
-        naverButton: naverInfo,
         screenshot: 'tools/_e2e-out/priced-success.png',
       },
       null,
@@ -510,218 +479,10 @@ async function runOndemandSlow() {
   )
 }
 
-async function runNaver() {
-  var posts = []
-  var ress = []
-
-  var browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-popup-blocking'],
-  })
-  var page = await browser.newPage()
-  await page.setViewport({ width: 1440, height: 900 })
-
-  await page.evaluateOnNewDocument(function () {
-    var w = window
-    var orig = navigator.clipboard.writeText.bind(navigator.clipboard)
-    navigator.clipboard.writeText = function (t) {
-      w.__clip = t
-      return orig(t)
-    }
-  })
-
-  page.on('request', function (req) {
-    var u = req.url()
-    if (req.method() === 'POST' && (u.indexOf('/api/bookings') !== -1 || u.indexOf('/api/products/' + PRODUCT_ID) !== -1)) {
-      posts.push({ url: u.split('?')[0], postData: req.postData() })
-    }
-  })
-
-  page.on('response', async function (res) {
-    var u = res.url()
-    if (res.request().method() !== 'POST') return
-    if (u.indexOf('/api/bookings') === -1) return
-    try {
-      var body = await res.text()
-      ress.push({ url: u.split('?')[0], status: res.status(), body: body })
-    } catch (e) {
-      ress.push({ url: u, status: res.status(), body: '' })
-    }
-  })
-
-  await page.goto(PRODUCT_URL, { waitUntil: 'networkidle2', timeout: 120000 })
-  await page.waitForFunction('document.body.innerText.includes("출발일 변경")', { timeout: 60000 })
-  await page.evaluate(function () {
-    var aside = document.querySelector('aside')
-    var root = aside || document.body
-    var nodes = Array.from(root.querySelectorAll('button,a'))
-    for (var i = 0; i < nodes.length; i++) {
-      if ((nodes[i].textContent || '').indexOf('출발일 변경') !== -1) {
-        nodes[i].click()
-        break
-      }
-    }
-  })
-  await page.waitForSelector('[role="dialog"]', { timeout: 30000 })
-  await gotoCalendarMonth(page, 2026, 4)
-  var ok22 = await clickCalendarDay(page, 22)
-  if (!ok22) throw new Error('Could not click calendar day 22')
-  await page.waitForFunction('!document.querySelector(\'[role="dialog"]\')', { timeout: 15000 }).catch(function () {})
-  await sleep(800)
-
-  await page.evaluate(function () {
-    var aside = document.querySelector('aside')
-    var root = aside || document.body
-    var buttons = Array.from(root.querySelectorAll('button'))
-    for (var i = 0; i < buttons.length; i++) {
-      if ((buttons[i].textContent || '').trim() === '예약 요청 접수') {
-        buttons[i].click()
-        break
-      }
-    }
-  })
-
-  await page.waitForSelector('#bin-name', { visible: true, timeout: 60000 })
-
-  await page.evaluate(function () {
-    function fire(id, v) {
-      var el = document.querySelector(id)
-      if (!el) return
-      el.focus()
-      var proto = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
-      if (proto && proto.set) proto.set.call(el, v)
-      else el.value = v
-      el.dispatchEvent(new Event('input', { bubbles: true }))
-      el.dispatchEvent(new Event('change', { bubbles: true }))
-    }
-    fire('#bin-name', 'E2E브라우저')
-    fire('#bin-phone', '01099998888')
-    fire('#bin-email', 'e2e-browser@example.com')
-  })
-
-  await page.evaluate(function () {
-    var subs = Array.from(document.querySelectorAll('button[type="submit"]'))
-    for (var i = 0; i < subs.length; i++) {
-      if ((subs[i].textContent || '').indexOf('요청 접수하기') !== -1) {
-        subs[i].click()
-        break
-      }
-    }
-  })
-
-  await page.waitForFunction(
-    'document.body.innerText.includes("요청이 접수되었습니다") || document.body.innerText.includes("접수에 실패")',
-    { timeout: 45000 }
-  )
-
-  var naverBefore = await page.evaluate(function () {
-    var layers = Array.from(document.querySelectorAll('.fixed.inset-0'))
-    var topZ = 0
-    var topEl = null
-    for (var i = 0; i < layers.length; i++) {
-      var z = parseInt(window.getComputedStyle(layers[i]).zIndex, 10) || 0
-      var r = layers[i].getBoundingClientRect()
-      if (r.width > 100 && z >= topZ) {
-        topZ = z
-        topEl = layers[i]
-      }
-    }
-    var root = topEl || document.body
-    var buttons = Array.from(root.querySelectorAll('button'))
-    for (var j = 0; j < buttons.length; j++) {
-      if ((buttons[j].textContent || '').indexOf('네이버 톡톡') !== -1) {
-        return {
-          found: true,
-          disabled: buttons[j].disabled,
-          label: (buttons[j].textContent || '').replace(/\s+/g, ' ').trim().slice(0, 140),
-        }
-      }
-    }
-    return { found: false, disabled: null, label: null }
-  })
-
-  var newTabPromise = browser.waitForTarget(function (t) {
-    return t.opener() === page.target()
-  }, { timeout: 25000 })
-
-  await page.evaluate(function () {
-    var layers = Array.from(document.querySelectorAll('.fixed.inset-0'))
-    var topZ = 0
-    var topEl = null
-    for (var i = 0; i < layers.length; i++) {
-      var z = parseInt(window.getComputedStyle(layers[i]).zIndex, 10) || 0
-      var r = layers[i].getBoundingClientRect()
-      if (r.width > 100 && z >= topZ) {
-        topZ = z
-        topEl = layers[i]
-      }
-    }
-    var root = topEl || document.body
-    var buttons = Array.from(root.querySelectorAll('button'))
-    for (var j = 0; j < buttons.length; j++) {
-      if ((buttons[j].textContent || '').indexOf('네이버 톡톡 상담하기') !== -1) {
-        buttons[j].click()
-        break
-      }
-    }
-  })
-
-  var openedUrl = null
-  var newTabError = null
-  try {
-    var nt = await newTabPromise
-    var p2 = await nt.page()
-    if (p2) {
-      await p2.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 25000 }).catch(function () {})
-      await sleep(2500)
-      openedUrl = p2.url()
-    }
-  } catch (e) {
-    newTabError = String(e && e.message ? e.message : e)
-  }
-
-  await sleep(600)
-  var naverClip = await page.evaluate(function () {
-    return window.__clip || ''
-  })
-
-  var shotDir = path.join(process.cwd(), 'tools', '_e2e-out')
-  fs.mkdirSync(shotDir, { recursive: true })
-  await page.screenshot({ path: path.join(shotDir, 'naver-active-success.png'), fullPage: true })
-  await browser.close()
-
-  var naverChecks = counselFieldChecks(naverClip)
-  var uLower = (openedUrl || '').toLowerCase()
-  var naverId = naverTalkPathIdForAssert()
-  var baseOk =
-    Boolean(openedUrl) && uLower.indexOf('talk.naver') !== -1 && uLower.indexOf(naverId) !== -1
-  var refInUrl = Boolean(openedUrl && (openedUrl.indexOf('ref=') !== -1 || openedUrl.indexOf('ref%3D') !== -1))
-
-  console.log(
-    JSON.stringify(
-      {
-        mode: 'naver',
-        productUrl: PRODUCT_URL,
-        naverButtonBeforeClick: naverBefore,
-        newTabUrl: openedUrl,
-        newTabMatchesConfiguredChannel: baseOk,
-        newTabHasRefParam: refInUrl,
-        newTabError: newTabError,
-        naverClipboardChecks: naverChecks,
-        naverClipboardLength: naverClip.length,
-        screenshot: 'tools/_e2e-out/naver-active-success.png',
-      },
-      null,
-      2
-    )
-  )
-}
-
 var runners = {
   priced: runPriced,
   ondemand: runOndemand,
   'ondemand-slow': runOndemandSlow,
-  naver: runNaver,
 }
 ;(runners[mode] || runPriced)().catch(function (e) {
   console.error(e)

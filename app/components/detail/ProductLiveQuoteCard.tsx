@@ -3,7 +3,6 @@
 import { useMemo } from 'react'
 import type { TravelProduct, ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
 import KakaoCounselCta from '@/app/components/travel/KakaoCounselCta'
-import NaverTalktalkCounselCta from '@/app/components/travel/NaverTalktalkCounselCta'
 import ShareActions from '@/app/components/detail/ShareActions'
 import { computeKRWQuotation } from '@/lib/price-utils'
 import {
@@ -519,24 +518,6 @@ export default function ProductLiveQuoteCard({
           pricingMode={counselPricingMode}
           isCollectingPrices={isCollectingPrices}
         />
-        <NaverTalktalkCounselCta
-          fromScreen={fromScreen}
-          productId={String(product.id)}
-          listingProductNumber={product.originCode}
-          productTitle={product.title}
-          originSource={product.originSource}
-          originCode={product.originCode}
-          selectedDepartureDate={selectedDate}
-          selectedDepartureId={priceRow?.id ? String(priceRow.id) : null}
-          preferredDepartureDate={null}
-          pax={pax}
-          quotationKrwTotal={quotationTotal}
-          localFeePerPerson={localFeePerPerson}
-          localFeeCurrency={product.mandatoryCurrency ?? null}
-          advisoryLabel={departureAdvisoryLabel}
-          pricingMode={counselPricingMode}
-          isCollectingPrices={isCollectingPrices}
-        />
         {showCollectingBanner || showPendingQuoteBanner ? (
           <p className="text-center text-[11px] leading-relaxed text-bt-subtle">
             {showCollectingBanner
@@ -548,7 +529,7 @@ export default function ProductLiveQuoteCard({
           상품·출발일·인원 요약은 상담 채널로 전달됩니다. 전화번호(권장)·문의 내용을 보완해 주세요.
         </p>
         <p className="mt-0.5 text-center text-[11px] text-bt-subtle">
-          입력창이 비어 있으면 복사된 요약을 붙여넣어 주세요. 네이버 톡톡은 운영에서 URL 설정 후 사용할 수 있습니다.
+          입력창이 비어 있으면 복사된 요약을 붙여넣어 주세요.
         </p>
       </div>
       <ShareActions title={product.title} summaryLine={shareSummary} className="mt-2" />

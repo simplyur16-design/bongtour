@@ -3,8 +3,8 @@
  *
  * ■ 운영 검수 (기본) — `npm run verify:inquiry:live`
  *    - `lib/verify-inquiry-operational-env.ts` 로 env 전부 검증 후에만 Next 기동.
- *    - Ethereal / example.com / 코드 기본 카카오 URL / 빈 톡톡 URL → **즉시 실패**.
- *    - 이메일 수신·본문 전체·카카오/톡톡 앱 내 화면은 **운영자가 실제 채널에서 수동 확인**(스크립트는 SMTP 발송 성공 + 팝업 URL 일치까지).
+ *    - Ethereal / example.com / 코드 기본 카카오 URL → **즉시 실패**.
+ *    - 이메일 수신·본문 전체·카카오 앱 내 화면은 **운영자가 실제 채널에서 수동 확인**(스크립트는 SMTP 발송 성공 + 팝업 URL 일치까지).
  *
  * ■ 샌드박스 (구조·회귀만, 운영 통과 **무효**)
  *      npx tsx scripts/local-verify-inquiry-live.ts --sandbox
@@ -28,7 +28,6 @@ import {
   type InquiryNotifyInput,
 } from '@/lib/inquiry-notification-format'
 import { KAKAO_OPEN_CHAT_URL } from '@/lib/kakao-open-chat'
-import { buildNaverTalktalkCounselSummaryText } from '@/lib/naver-talktalk-counsel'
 import {
   assertOperationalInquiryVerifyEnv,
   type OperationalInquiryVerifyMaskedLog,
@@ -82,8 +81,6 @@ function startNextDev(sandbox: boolean, ethereal?: { user: string; pass: string 
           INQUIRY_NOTIFICATION_EMAIL: 'inquiry-sandbox@example.com',
           NODE_ENV: 'development',
           NEXT_PUBLIC_APP_URL: BASE,
-          /** 샌드박스 전용: 구조 검증용 고정 URL(운영 검수와 무관). 운영 프로필 ID와 맞출 것. */
-          NEXT_PUBLIC_NAVER_TALKTALK_URL: 'https://talk.naver.com/W2R7VAU',
         }
       : {
           ...process.env,
@@ -138,20 +135,6 @@ function kakaoPopupMatchesConfigured(opened: string, configuredRaw: string): boo
   }
 }
 
-/** 톡톡 팝업이 설정 URL의 파트너/경로 식별자와 일치하는지(대소문자 무시) */
-function naverPopupMatchesConfigured(opened: string, configuredRaw: string): boolean {
-  if (!opened.includes('talk.naver.com')) return false
-  try {
-    const c = new URL(configuredRaw.trim().startsWith('http') ? configuredRaw.trim() : `https://${configuredRaw.trim()}`)
-    const parts = c.pathname.split('/').filter(Boolean)
-    const id = parts[parts.length - 1] ?? ''
-    if (!id) return false
-    return opened.toLowerCase().includes(id.toLowerCase())
-  } catch {
-    return opened.includes(configuredRaw.replace(/^https?:\/\//i, ''))
-  }
-}
-
 async function main(): Promise<void> {
   let operationalMasked: OperationalInquiryVerifyMaskedLog | null = null
   if (SANDBOX) {
@@ -166,7 +149,6 @@ async function main(): Promise<void> {
       SMTP_FROM_EMAIL: operationalMasked.smtpFromEmail,
       INQUIRY_NOTIFICATION_EMAIL: operationalMasked.inquiryNotificationEmail,
       NEXT_PUBLIC_KAKAO_OPEN_CHAT_URL: operationalMasked.kakao,
-      NEXT_PUBLIC_NAVER_TALKTALK_URL: operationalMasked.naver,
     })
   }
 
@@ -406,9 +388,8 @@ async function main(): Promise<void> {
     }
 
     const configuredKakao = SANDBOX ? undefined : process.env.NEXT_PUBLIC_KAKAO_OPEN_CHAT_URL!.trim()
-    const configuredNaver = SANDBOX ? undefined : process.env.NEXT_PUBLIC_NAVER_TALKTALK_URL!.trim()
 
-    console.log('[verify] Puppeteer: 상품 상세 카카오/톡톡…')
+    console.log('[verify] Puppeteer: 상품 상세 카카오…')
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -501,67 +482,6 @@ async function main(): Promise<void> {
       } catch (e) {
         console.warn('[verify] 카카오 클립보드 읽기 실패(헤드리스):', e)
       }
-
-      const naverUrl = await waitPopupUrl(
-        (u) => u.includes('talk.naver.com'),
-        async () => {
-          const clicked = await page.evaluate(() => {
-            const buttons = Array.from(document.querySelectorAll('button[type="button"]'))
-            const b = buttons.find((x) => (x.textContent || '').includes('네이버 톡톡 상담하기'))
-            if (!b) return false
-            b.scrollIntoView({ block: 'center', inline: 'nearest' })
-            ;(b as HTMLButtonElement).click()
-            return true
-          })
-          if (!clicked) throw new Error('네이버 톡톡 버튼 없음')
-        }
-      )
-      console.log('[verify] 네이버 톡톡 팝업 URL:', naverUrl)
-      if (SANDBOX) {
-        const naverOk = naverUrl.includes('talk.naver.com') && naverUrl.toLowerCase().includes('w2r7vau')
-        if (!naverOk) throw new Error(`[sandbox] 톡톡 URL 예상과 다름: ${naverUrl}`)
-      } else if (configuredNaver) {
-        if (!naverPopupMatchesConfigured(naverUrl, configuredNaver)) {
-          throw new Error(
-            `톡톡 팝업이 설정 URL과 불일치합니다.\n설정: ${configuredNaver}\n열림: ${naverUrl.slice(0, 200)}`
-          )
-        }
-      }
-
-      await sleep(600)
-      await page.bringToFront()
-      let clipNaver = ''
-      try {
-        clipNaver = await page.evaluate(() => navigator.clipboard.readText())
-      } catch (e) {
-        console.warn('[verify] 톡톡 클립보드 읽기 실패:', e)
-      }
-      console.log('[verify] 톡톡 클립보드(앞 400자):', clipNaver.slice(0, 400))
-      if (!clipNaver) {
-        const syn = buildNaverTalktalkCounselSummaryText({
-          productId: product.id,
-          originCode: product.originCode,
-          listingProductNumber: product.originCode,
-          productTitle: product.title ?? '',
-          originSource: product.originSource,
-          selectedDepartureDate: null,
-          selectedDepartureId: null,
-          preferredDepartureDate: null,
-          pax: { adult: 2, childBed: 0, childNoBed: 0, infant: 0 },
-          bookingId: null,
-          pageUrl: productUrl,
-          customerMemo: null,
-          advisoryLabel: null,
-          pricingMode: null,
-          isCollectingPrices: false,
-          quotationKrwTotal: null,
-          localFeePerPerson: null,
-          localFeeCurrency: null,
-        })
-        console.log('[verify] 톡톡 요약(코드 재구성·클립보드 비었을 때):\n', syn.slice(0, 600))
-        assertContains(syn, product.id, '톡톡 요약 productId')
-        assertContains(syn, product.originCode, '톡톡 요약 상품번호')
-      }
     } finally {
       await browser.close()
     }
@@ -581,8 +501,7 @@ async function main(): Promise<void> {
           '\n========== 운영자 수동 확인 체크리스트 (필수) ==========',
           `1) 메일함(${operationalMasked?.inquiryNotificationEmail ?? 'INQUIRY_NOTIFICATION_EMAIL'}) — 3건 수신, 제목·본문에 유형 prefix·여행상품 시 상품명/상품번호/공급사/일정/인원/접수번호`,
           '2) 카카오 — 팝업이 위 로그의 host+path 와 동일 계열인지, 요약(text/클립보드)에 상품명·번호·일정·인원',
-          '3) 네이버 톡톡 — 팝업이 위 naver host+path 와 일치하는지, 요약에 동일 필드',
-          '4) `/inquiry` 폼에서 이메일 실패 유도 시 — 화면에 “문의는 정상 접수…” 지연 문구(저장≠알림 분리)',
+          '3) `/inquiry` 폼에서 이메일 실패 유도 시 — 화면에 “문의는 정상 접수…” 지연 문구(저장≠알림 분리)',
           '========================================================\n',
         ].join('\n')
       )
