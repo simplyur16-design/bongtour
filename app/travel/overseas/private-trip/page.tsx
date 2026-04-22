@@ -3,6 +3,7 @@ import Header from '@/app/components/Header'
 import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
 import OurTravelHero from '@/app/travel/overseas/private-trip/_components/OurTravelHero'
 import PrivateTripLanding from '@/app/travel/overseas/private-trip/_components/PrivateTripLanding'
+import { loadGroupMeetingReviewsFromDb } from '@/lib/group-meeting-reviews-db'
 import { loadGroupMeetingReviewsFromCsv } from '@/lib/group-meeting-reviews-csv'
 import {
   fetchPublishedOverseasEditorials,
@@ -71,7 +72,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = 'force-dynamic'
 
 export default async function PrivateTripPage() {
-  const groupMeetingReviews = await loadGroupMeetingReviewsFromCsv()
+  let groupMeetingReviews = await loadGroupMeetingReviewsFromDb()
+  if (!groupMeetingReviews.length) {
+    console.warn('[private-trip] DB에서 리뷰 없음, CSV fallback 사용')
+    groupMeetingReviews = await loadGroupMeetingReviewsFromCsv()
+  }
   const travelConsultHref = `/inquiry?type=travel&source=${encodeURIComponent(INQUIRY_SOURCE)}`
   const privateQuoteHref = '/quote/private'
   let heroImageUrls: string[] = []

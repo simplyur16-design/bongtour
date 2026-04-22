@@ -1,4 +1,4 @@
-import GroupMeetingReviewsMarquee from '@/app/components/travel/reviews/GroupMeetingReviewsMarquee'
+import GroupMeetingReviewsFlipGrid from '@/app/components/travel/reviews/GroupMeetingReviewsFlipGrid'
 import type { GroupMeetingReviewCardModel } from '@/lib/group-meeting-reviews-csv'
 
 type Props = {
@@ -32,7 +32,7 @@ export default function GroupMeetingReviewsSection({ reviews }: Props) {
         </p>
 
         {n > 0 ? (
-          <GroupMeetingReviewsMarquee reviews={reviews} />
+          <GroupMeetingReviewsFlipGrid reviews={reviews} />
         ) : (
           <div className="mt-10 rounded-2xl border border-dashed border-bt-border bg-white/60 px-6 py-12 text-center">
             <p className="text-sm text-bt-muted">후기 데이터를 불러오지 못했습니다.</p>

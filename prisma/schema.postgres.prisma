@@ -1,0 +1,780 @@
+// =============================================================================
+// 봉투어 Prisma 스키마
+// =============================================================================
+// - Product: 상품 마스터. (originSource, originCode) 복합 유니크. destinationRaw/primaryDestination, priceFrom/priceCurrency, supplierGroupId
+// - ProductPrice: 출발일별 가격 (레거시). 신규 동기화는 ProductDeparture
+// - Itinerary: 일차별 일정 레거시. schedule = 렌더용, ItineraryDay = 공급사 원문 일정표 정본
+// - ItineraryDay: MVP 공급사 원문 일정표. (productId, day) 유니크
+// - ProductDeparture: MVP 출발일/가격/상태 동기화(B). (productId, departureDate) 유니크
+// - OptionalTour: 현지옵션(공급사: 선택관광 등) (name, priceUsd, duration, waitPlaceIfNotJoined) — 클릭 시 펼쳐서 표시
+// - Product: shoppingCount, shoppingItems (쇼핑정보, 클릭 시 펼침), mandatoryLocalFee/Currency (가이드비)
+// - Booking: 예약 마스터 (한국 결제액·현지 외화·솔라피 알림)
+// - AgentScrapeReport: 스크래퍼 경로 이탈 보고
+// - Auth: User, Account, Session, VerificationToken
+// - Destination, DestinationGalleryCache, Brand: 여행지·갤러리·브랜드
+// - CustomerInquiry: 공통 문의 접수 (inquiryType/status/leadTimeRisk String, payloadJson 확장)
+// - MonthlyCurationItem: 월별 큐레이션 카드 1행=1카드 (부모 테이블 없음, linkedProductId 선택)
+// - 클라이언트 생성: output = "../prisma-gen-runtime" (Windows lock 회피)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../prisma-gen-runtime"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---- 봉투어 실시간 동기화용 (상품코드 기반) ----
+model Product {
+  id                    String         @id @default(cuid())
+  originSource          String         // 여행사 표시명 (하나투어, 모두투어 등)
+  originCode            String         // 공급사 상품코드. 유니크: @@unique([originSource, originCode])
+  originUrl             String?        // 원본 상세페이지 URL (추적/중복체크, 유니크 아님)
+  title                 String         // 상품명
+  destination           String?        // [레거시] 목적지. 신규는 destinationRaw/primaryDestination
+  destinationRaw        String?        // 목적지 표기 원문 (A 상세)
+  primaryDestination    String?        // 대표 목적지 정규화값, 노출·필터용 (운영 메타)
+  /// `lib/overseas-location-tree` SSOT — 상품 등록 시 추론, 실패 시 null
+  countryKey            String?
+  nodeKey               String?
+  groupKey              String?
+  locationMatchConfidence String?
+  locationMatchSource   String?
+  duration              String?        // 여행기간 (예: 3박4일)
+  airline               String?        // 항공사
+  supplierGroupId       String?        // 공급사 단체번호/운영번호 (originCode와 구분)
+  bgImageUrl            String?        // 대표 이미지 URL (제미나이/process-images 또는 관리자 Pexels 선택)
+  bgImageSource         String?        // 출처 (pexels, gemini_auto 등 — UI·레거시 표기)
+  /// 스토리지 파일명 `{geo}-{source}-{id}`의 source와 동일한 canonical 키 (pexels, gemini, manual, istock, userphoto …)
+  bgImageSourceType     String?
+  bgImagePhotographer   String?        // 작가명 (Pexels 등)
+  bgImageSourceUrl      String?        // 원본 페이지 URL
+  bgImageExternalId     String?        // 외부 ID (예: Pexels photo id)
+  /// Pexels 등 재호스팅 시 Supabase 객체 경로 (예: cities/da-nang/dragon-bridge-pexels-123456.jpg)
+  bgImageStoragePath    String?
+  /// Supabase 버킷명 (기본 bongtour-images)
+  bgImageStorageBucket  String?
+  /// 이미지 검색·저장 시 사용한 검색어/라벨(원문 일부, 운영 참고)
+  bgImageRehostSearchLabel String?
+  /// 재호스팅 기준 관광지명(원문, slug의 근거)
+  bgImagePlaceName      String?
+  /// 재호스팅 기준 도시명(원문)
+  bgImageCityName       String?
+  bgImageWidth          Int?
+  bgImageHeight         Int?
+  bgImageRehostedAt     DateTime?
+  /// 대표 이미지가 AI 생성·변형임을 표시할 때 true (수동 업로드·출처 편집과 병행)
+  bgImageIsGenerated    Boolean        @default(false)
+  counselingNotes       String?        // [MUST/TIP/PLUS] 정밀 메모 (JSON 문자열)
+  schedule              String?        // 일차별 일정 표시 SSOT (JSON: [{ day, description, imageUrl?, ... }])
+  isFuelIncluded        Boolean?       // 유류할증료 포함 여부
+  isGuideFeeIncluded    Boolean?       // 가이드/기사 경비 포함 여부
+  mandatoryLocalFee     Float?         // 현지 필수 지불액 (예: 40)
+  mandatoryCurrency     String?        // 화폐 (USD, EUR 등)
+  priceFrom             Int?           // 대표 최저가 원 단위 (A 상세)
+  priceCurrency         String?        // 대표 가격 통화 KRW 등 (A 상세)
+  includedText          String?        // 포함 내역 전체 텍스트
+  excludedText          String?        // 불포함 내역 전체 텍스트
+  criticalExclusions    String?        // 상담용 불포함 요약 (예: 가이드비 $30, 유류세 변동)
+  shoppingCount         Int?           // 쇼핑 방문 횟수 (0이면 노쇼핑)
+  shoppingItems         String?        // 쇼핑 품목 (쉼표 등으로 구분)
+  registrationStatus    String?        @default("pending") // pending=등록대기, on_hold=보류, rejected=반려, registered=검수 후 등록 완료
+  rejectReason          String?        // 반려 시 사유 (최대 200자, 운영 메모 성격)
+  rejectedAt            DateTime?      // 반려 처리 시각
+  needsImageReview      Boolean        @default(false)    // 이미지 보강 검수 대상 (legacy 등)
+  imageReviewRequestedAt DateTime?     // 보강 요청 시각
+  // 2차 분류 (등록대기 검수 시 확정)
+  primaryRegion         String?        // 대표 지역 (예: 동남아, 유럽)
+  themeTags             String?        // 테마 태그 쉼표 구분 (예: 허니문,오션뷰)
+  displayCategory       String?        // 노출 카테고리 (예: 롯데몰노출, 메인베너)
+  targetAudience        String?        // 타깃 고객 쉼표 구분 (예: 성인가족,신혼부부)
+  prices                ProductPrice[]   // 레거시 출발일별 가격. 신규 동기화는 ProductDeparture
+  itineraries           Itinerary[]      // 레거시. 읽기 시 schedule 우선, fallback용
+  itineraryDays         ItineraryDay[]  // MVP: 공급사 원문 일정표(itinerary) 정본
+  departures            ProductDeparture[] // MVP: 출발일/달력/가격/상태 동기화(B)
+  optionalTours         OptionalTour[]
+  bookings              Booking[]
+  inquiries             CustomerInquiry[]
+  monthlyCurationItems  MonthlyCurationItem[]
+  assetUsageLogs        AssetUsageLog[]
+  brand                 Brand?         @relation(fields: [brandId], references: [id])
+  brandId               String?        // 여행사 구분 (하나투어/모두투어/추가 여행사)
+
+  // ---- 하나투어·공급사 공통 확장 (상품 코어만; 출발일별 데이터는 ProductDeparture) ----
+  rawTitle                 String?  // 상세 원제목
+  normalizedBaseTitle      String?  // 동일상품 판정용: 뱃지·해시 제거 후 정규화
+  /// 하나투어 운영 유형 라벨(두 단어 등). 상세 h1·모달 row와 동일 원문(trim+공백만 정규화).
+  variantLabelKey          String?
+  supplierProductCode      String?  // 공급사 내부 품번(표시/매칭 보조, originCode와 별개일 수 있음)
+  productType              String?  // 패키지/자유 등 원문 분류
+  airtelHotelInfoJson      String?  // 에어텔 전용 호텔 상세(JSON 문자열)
+  airportTransferType      String?  // NONE | PICKUP | SENDING | BOTH
+  summary                  String?  // 소개 요약
+  benefitSummary           String?  // 혜택 요약(상세 상단 등)
+  tripNights               Int?
+  tripDays                 Int?
+  shoppingVisitCountTotal  Int?     // "총 n회 쇼핑" 파싱값 (shoppingCount와 병행; 수집기가 채움)
+  shoppingCustomsNoticeRaw String?
+  shoppingRefundNoticeRaw  String?
+  shoppingCautionNoticeRaw String?
+  shoppingShopOptions      String?  // JSON 문자열: [{ city, shopName, ... }] (SQLite)
+  optionalTourSummaryRaw   String?
+  hasOptionalTours         Boolean?
+  optionalToursStructured    String?  // JSON 문자열: 구조화 현지옵션 (OptionalTour 테이블과 별도)
+  cardBenefitSummaryShort  String?
+  benefitMonthRef          String?  // YYYY-MM → HanatourMonthlyBenefit 와 논리 연결
+  hasMonthlyCardBenefit    Boolean?
+  themeLabelsRaw           String?
+  promotionLabelsRaw       String?
+  insuranceSummaryRaw      String?
+  hotelSummaryRaw          String?
+  /// 상품 전체 호텔 요약(예: 대표호텔명 외 n). 공급사 원문·LLM 추출, 없으면 null
+  hotelSummaryText         String?
+  foodSummaryRaw           String?
+  reservationNoticeRaw     String?
+  guideTypeRaw             String?
+  tourLeaderTypeRaw        String?
+  detailStatusLabelsRaw    String?  // 상세 상단 상태 뱃지 JSON 배열 문자열
+  rawMeta                  String?  // JSON 문자열: 공급사별 확장 메타 (SQLite)
+  /// 공급사 본문 추출 — 최소 출발 인원
+  minimumDepartureCount    Int?
+  minimumDepartureText     String?
+  isDepartureGuaranteed    Boolean?
+  currentBookedCount       Int?
+  departureStatusText      String?
+  /// 관리자 확정 항공여정(JSON). 자동추출(rawMeta structured)과 분리 — 공개 화면은 이 값 우선.
+  flightAdminJson          String?
+
+  /// 여행 범위(국내/해외). 상품 노출 유형(listingKind)과 별개 — 공개 browse `scope`와 정렬 시 우선.
+  travelScope              String?      // domestic | overseas
+  /// 상품 카테고리·노출 유형. 공개 허브/목록 분기 시 제목 추론보다 우선(travel | private_trip | air_hotel_free).
+  listingKind              String?
+
+  /// 대표 이미지 좌측 SEO 한 줄 — 등록 확정 시 붙여넣기 본문·파싱 필드로 생성해 저장. 없으면 공개 휴리스틱.
+  publicImageHeroSeoLine   String?
+  /// 대표 이미지 좌측 SEO 키워드 2~3개(JSON 문자열 배열). 있으면 공개 시 이 값을 1순위로 합쳐 표시.
+  publicImageHeroSeoKeywordsJson String?
+
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@unique([originSource, originCode])
+}
+
+model OptionalTour {
+  id                   String   @id @default(cuid())
+  productId            String
+  product              Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name                 String   // 관광명
+  priceUsd             Int      // USD 가격
+  duration             String?  // 소요시간 (예: 약 4시간)
+  waitPlaceIfNotJoined String?  // 미참여 시 대기장소
+}
+
+model ProductPrice {
+  id         String   @id @default(cuid())
+  date       DateTime // 출발일
+  adult      Int      // 성인 요금
+  childBed   Int      // 아동(베드)
+  childNoBed Int      // 아동(노베드)
+  infant     Int      // 유아
+  localPrice String?  // 현지 지불액 (예: $60)
+  priceGap   Int      @default(0) // 전일 대비 차액
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, date])
+}
+
+// ---- 에이전트 경로 이탈 보고 (UI 변경 감지) ----
+model AgentScrapeReport {
+  id             Int       @id @default(autoincrement())
+  productId      String?
+  step           String    // 해외여행, 국가, 상품, 달력 등
+  message        String    // "경로 이탈: 여행사 UI 변경 감지" 등
+  screenshotPath String?   // /errors/...
+  resolved       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+}
+
+// ---- 재수집 큐: 선택 상품 즉시 재수집 시 순차 처리용 ----
+model ScraperQueue {
+  id        Int      @id @default(autoincrement())
+  productId String
+  createdAt DateTime @default(now())
+}
+
+// 보조 기록. 표시 SSOT는 Product.schedule. schedule 없을 때만 fallback으로 읽음.
+model Itinerary {
+  id          Int     @id @default(autoincrement())
+  productId   String
+  day         Int
+  description String
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// ---- MVP: 공급사 원문 일정표(itinerary) 정본. schedule은 별도 렌더용 가공 ----
+model ItineraryDay {
+  id              String   @id @default(cuid())
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  day             Int      // 일차 1,2,3…
+  dateText        String?  // 해당 일 날짜 표기 원문
+  city            String?  // 도시/지역 원문
+  summaryTextRaw  String?  // 해당 일 일정 요약 문장 원문
+  poiNamesRaw     String?  // 방문지/POI 나열 원문
+  meals           String?  // 식사 원문
+  accommodation   String?  // 숙박 원문
+  /// 해당 일 예정 숙소/호텔 한 줄(원문 우선)
+  hotelText       String?
+  breakfastText   String?
+  lunchText       String?
+  dinnerText      String?
+  mealSummaryText String?
+  transport       String?  // 현지 교통 원문
+  notes           String?  // 유의사항 원문
+  rawBlock        String?  // 해당 일 원문 블록 전체 (text/JSON)
+  /// 일차 대표 이미지·장소 선정 결과 (JSON 문자열; SQLite Json 타입 미사용)
+  heroImageBundle String?
+
+  @@unique([productId, day])
+}
+
+// ---- MVP: 출발일/달력/가격/상태 동기화(B). 주기 갱신용. priceGap 미포함 ----
+model ProductDeparture {
+  id              String    @id @default(cuid())
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  departureDate   DateTime  // 출발일(날짜). SQLite/Prisma는 Date 없음 → 날짜만 사용 시 00:00:00 등으로 저장
+  adultPrice      Int?      // 원 단위. 미노출/문의형/파싱 실패 시 null 허용
+  childBedPrice   Int?
+  childNoBedPrice Int?
+  infantPrice     Int?
+  localPriceText  String?   // 현지 지불 표기 원문
+  statusRaw       String?   // 출발일 행 상태·진행 문구 원문(마감·확정 등). 좌석 표기와 구분
+  seatsStatusRaw  String?   // 잔여석·예약석 등 좌석/예약 관련 표기 원문(statusRaw 와 별도)
+  isConfirmed     Boolean?  // 파생, statusRaw 기반
+  isBookable      Boolean?  // 파생, seatsStatusRaw 등 기반
+  minPax          Int?
+  syncedAt        DateTime? // 주기 수집 시 갱신
+
+  // 출발 회차별 항공·미팅 (원문 우선, Product.airline 요약과 별개)
+  carrierName              String?   // 항공사명 원문
+  outboundFlightNo         String?
+  outboundDepartureAirport String?
+  outboundDepartureAt      DateTime?
+  outboundArrivalAirport   String?
+  outboundArrivalAt        DateTime?
+  inboundFlightNo          String?
+  inboundDepartureAirport  String?
+  inboundDepartureAt       DateTime?
+  inboundArrivalAirport    String?
+  inboundArrivalAt         DateTime?
+  meetingInfoRaw           String?   // 미팅 안내 통합 원문(일정표참조 등)
+  meetingPointRaw          String?
+  meetingTerminalRaw       String?
+  meetingGuideNoticeRaw    String?
+  meetingDateRaw           String?
+
+  statusLabelsRaw          String?   // JSON: ["출발확정","항공예정",...]
+  reservationCount         Int?
+  seatCount                Int?
+  fuelSurchargeIncluded    Boolean?
+  taxIncluded              Boolean?
+  isDepartureConfirmed     Boolean?
+  isAirConfirmed           Boolean?
+  isScheduleConfirmed      Boolean?
+  isHotelConfirmed         Boolean?
+  isPriceConfirmed         Boolean?
+  supplierDepartureCodeCandidate String?
+  matchingTraceRaw         String?   // 동일상품 후보 선정·충돌 로그
+
+  /// 출발 회차별 교통 축 (제주 항공·울릉 선박·버스·기차·자가·복합). Product 가 아닌 회차 단위.
+  transportType            String?   // AIR | SHIP | BUS | TRAIN | SELF | MIXED | ETC
+  boardingPlace            String?   // 탑승/탑승지 안내 (정규화 또는 요약). 집결·미팅 장소는 meetingPointRaw
+  departureTimeText        String?   // 출발 시각 표기 (원문·현지 기준 문자열)
+  returnTimeText           String?   // 귀경/해산 시각 표기
+  vehicleNote              String?   // 차량·선박·편명 외 비고
+  transportSegmentRaw      String?   // 교통 구간 통합 원문 스니펫
+  supplierPriceKey         String?   // 공급사 가격표 행/키 식별자 (원문)
+
+  @@unique([productId, departureDate])
+}
+
+// ---- 하나투어 월별 카드사/제휴 혜택 (상품별 중복 저장 금지; 월 단위 SSOT) ----
+model HanatourMonthlyBenefit {
+  id                       String   @id @default(cuid())
+  supplierKey              String   @default("hanatour")
+  benefitMonth             String   // YYYY-MM
+  sourceUrl                String?
+  isActive                 Boolean  @default(true)
+  cardInstallmentBenefits  String?  // JSON 문자열: [{ cardCompanyName, ... }]
+  hanaExtraCards           String?  // JSON 문자열: [{ cardProductName, benefitBullets, ... }]
+  commonNoticesRaw         String?
+  benefitSummaryRaw        String?
+  fetchedAt                DateTime?
+  rawMeta                  String?  // JSON 문자열 (SQLite)
+
+  @@unique([supplierKey, benefitMonth])
+}
+
+// ---- 예약 마스터 ----
+model Booking {
+  id                Int      @id @default(autoincrement())
+  productId         String
+  productTitle      String   // 예약 당시의 상품명 백업
+  selectedDate      DateTime // 기준 출발일(선택 일정 또는 희망일-only 접수 시 희망일)
+  preferredDepartureDate DateTime? // 선택 일정이 있을 때 추가 희망일 메모
+  pricingMode       String?  // schedule_price | wish_date_only (견적 산정 방식)
+
+  adultCount        Int
+  childBedCount     Int
+  childNoBedCount   Int
+  infantCount       Int
+
+  totalKrwAmount    Int      // 한국 결제 예정액
+  totalLocalAmount  Float    // 현지 지불 외화 합계
+  localCurrency     String   // 화폐 단위 (예: USD)
+
+  customerName      String
+  customerPhone     String
+  customerEmail     String?
+  requestNotes              String?
+  preferredContactChannel   String? // phone | kakao | email
+  singleRoomRequested       Boolean @default(false)
+  childInfantBirthDatesJson String? // JSON [{ type, birthDate }] (SQLite: 문자열 저장)
+  originSourceSnapshot      String?
+  originCodeSnapshot        String?
+
+  status            String   // 접수완료|상담중|예약진행중|예약확정|보류|취소 (lib/booking-status-policy.ts 와 동기화)
+
+  // 솔라피 알림 발송 상태 (null: 미발송/대기, sent: 성공, failed: 실패)
+  notificationStatus String?  // 'sent' | 'failed'
+  notificationError   String?  // 실패 시 에러 메시지
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+}
+
+// ---- Auth.js (NextAuth v5) ----
+// User.role: USER|STAFF|ADMIN|SUPER_ADMIN (null=일반). signupMethod: email|kakao|google|apple. accountStatus: active|inactive|suspended|withdrawn
+model User {
+  id                   String    @id @default(cuid())
+  name                 String?
+  email                String?   @unique
+  emailVerified        DateTime?
+  image                String?
+  role                 String?
+  passwordHash         String?
+  phone                String?
+  signupMethod         String?
+  socialProvider       String?
+  socialProviderUserId String?
+  accountStatus        String    @default("active")
+  privacyNoticeConfirmedAt DateTime?
+  privacyNoticeVersion String?
+  marketingConsent     Boolean   @default(false)
+  marketingConsentAt   DateTime?
+  marketingConsentVersion String?
+  lastLoginAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  accounts             Account[]
+  sessions             Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---- 기존: 여행지·갤러리·브랜드 ----
+model Destination {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DestinationGalleryCache {
+  id              String   @id @default(cuid())
+  destinationName String   @unique
+  imageUrls       String
+  keywords        String
+  fetchedAt       DateTime @default(now())
+}
+
+// 도시별 미리 저장한 이미지 세트 (있으면 process-images에서 Pexels 대신 사용)
+model DestinationImageSet {
+  id                String   @id @default(cuid())
+  destinationName   String   @unique   // 오사카, 다낭, 도쿄 등
+  mainImageUrl      String?            // 메인 1장
+  mainImageSource   String?            // JSON: { source, photographer, originalLink }
+  scheduleImageUrls String?            // JSON 배열: [ { url, source?, photographer?, originalLink? }, ... ] 최대 4개
+  updatedAt         DateTime @updatedAt
+}
+
+// 사진넣기: 관리자가 올린 사진 풀. process-images에서 1순위로 사용, 없으면 Pexels→제미나이
+// filePath = Supabase Storage 공개 URL (레거시: Ncloud 또는 /uploads/) (레거시 행: /uploads/photos/xxx.webp)
+model PhotoPool {
+  id             String   @id @default(cuid())
+  cityName       String   // 도시명 (매칭용)
+  attractionName String   // 명소명
+  source         String   // 출처 (Pexels, Gemini 등)
+  filePath       String   @unique // 스토리지 URL (동일 도시·파일명 로직이면 덮어쓰기)
+  sortOrder      Int      @default(0)  // 도시 내 순서 (0=메인, 1~4=일정)
+  createdAt      DateTime @default(now())
+}
+
+// day 이미지 선택/교체 이력(감사 추적)
+model AssetUsageLog {
+  id            String   @id @default(cuid())
+  assetId       String?  // PhotoPool.id 또는 외부 식별자(pexels id 등)
+  assetPath     String?  // /uploads/... 또는 원본 imageUrl
+  productId     String
+  day           Int
+  selectionMode String   // manual-pick, manual-upload, library-reuse, gemini-pick, pexels-pick, auto, auto-revert
+  sourceType    String   // pexels, gemini, manual-upload, library-reuse, auto-selected 등
+  actorType     String   // admin | system
+  actorId       String?
+  notes         String?
+  usedAt        DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, day, usedAt])
+  @@index([assetId, usedAt])
+  @@index([assetPath, usedAt])
+}
+
+model Brand {
+  id                 String    @id @default(cuid())
+  brandKey           String    @unique
+  displayName        String
+  logoPath           String?
+  primaryColor       String?
+  disclaimerText     String?
+  officialUrl        String?
+  productUrlTemplate String?
+  defaultTerms       String?
+  cancelFeeTerms     String?
+  sortOrder          Int       @default(0)
+  products           Product[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+// ---- MVP: 월별 큐레이션 카드 (플랫; 부모 monthly_curations 없음) ----
+model MonthlyCurationItem {
+  id                 String   @id @default(cuid())
+  yearMonth          String   // "YYYY-MM"
+  scope              String   // domestic | overseas (앱에서 Zod 등으로 검증)
+
+  destinationName    String
+  oneLineTheme       String
+  whyNowText         String
+  recommendedForText String
+  leadTimeLabel      String   // 관리자 입력 문구 (lead_time_rule 테이블은 2차)
+
+  primaryInquiryType   String // travel_consult | institution_request | overseas_training_quote | bus_quote
+  briefingSourceType   String // supplier_based | bongtour_editorial | hybrid
+
+  linkedProductId    String?
+  linkedProduct      Product? @relation(fields: [linkedProductId], references: [id], onDelete: SetNull)
+
+  sortOrder          Int      @default(0)
+  status             String   @default("draft") // draft | published
+  isActive           Boolean  @default(true)
+
+  inquiries          CustomerInquiry[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([yearMonth, scope, status, isActive])
+  @@index([linkedProductId])
+}
+
+/// 운영 CMS: 해외/국내 페이지의 브리핑 콘텐츠(상품과 분리 저장)
+model EditorialContent {
+  id           String   @id @default(cuid())
+  pageScope    String   @default("overseas") // overseas | domestic ...
+  regionKey    String?  // asia, europe ...
+  countryCode  String?  // jp, vn ...
+  title        String
+  subtitle     String?
+  bodyKr       String
+  /// 히어로·카드 대표 이미지(수동 업로드 URL)
+  heroImageUrl         String?
+  heroImageAlt         String?
+  heroImageStorageKey  String?
+  heroImageWidth       Int?
+  heroImageHeight      Int?
+  /// 수동 이미지 출처(선택·직접입력)
+  sourceType   String?  // self | stock | partner | press | other
+  sourceName   String?
+  sourceUrl    String?
+  /// SEO·노출
+  seoTitle       String?
+  seoDescription String?
+  slug           String?  // 향후 전용 랜딩 키(선택)
+  /// 단독여행 히어로 우측 운영 슬롯(전역·미지정 권역만). true인 항목 중 sortOrder 우선.
+  privateTripHeroSlot Boolean @default(false)
+  /// 카드 CTA (비우면 문의 링크·기본 문구)
+  ctaLabel       String?
+  /// 상대경로(/) 또는 https 링크
+  ctaHref        String?
+  /// 카드 칩 — 쉼표·전각쉼표·顿号 구분
+  cardTags       String?
+  isPublished  Boolean  @default(false)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([pageScope, isPublished, sortOrder])
+  @@index([regionKey])
+  @@index([countryCode])
+}
+
+/// 운영 CMS: 월별 큐레이션 소개 문구(상품과 분리 저장)
+model MonthlyCurationContent {
+  id            String   @id @default(cuid())
+  monthKey      String   // YYYY-MM
+  pageScope     String   @default("overseas") // overseas | domestic ...
+  regionKey     String?
+  countryCode   String?
+  title         String
+  subtitle      String?
+  bodyKr        String
+  ctaLabel      String?
+  linkedProductId String?
+  linkedHref    String?
+  imageUrl      String?
+  imageAlt      String?
+  imageStorageKey String?
+  imageWidth    Int?
+  imageHeight   Int?
+  /// 이미지·콘텐츠 출처
+  sourceType    String?
+  sourceName    String?
+  sourceUrl     String?
+  /// SEO
+  seoTitle       String?
+  seoDescription String?
+  slug           String?
+  isPublished   Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([pageScope, monthKey, isPublished, sortOrder])
+  @@index([regionKey])
+  @@index([countryCode])
+  @@index([linkedProductId])
+}
+
+// ---- MVP: 고객 문의 단일 저장소 (4종 폼 + 큐레이션/상품 스냅샷) ----
+model CustomerInquiry {
+  id                    String   @id @default(cuid())
+  inquiryType           String   // travel_consult | institution_request | overseas_training_quote | bus_quote
+  status                String   @default("received") // received | reviewing | contacted | quoted | scheduled | closed | dropped
+  leadTimeRisk          String   @default("normal") // normal | late | urgent
+
+  applicantName         String
+  applicantPhone        String
+  applicantEmail        String?
+  message               String?
+
+  productId             String?
+  product               Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  monthlyCurationItemId String?
+  monthlyCurationItem   MonthlyCurationItem? @relation(fields: [monthlyCurationItemId], references: [id], onDelete: SetNull)
+
+  snapshotProductTitle    String?
+  snapshotCardLabel       String?
+
+  routingReasonJson     String? // MVP: { "source": "form", "path": "/inquiry" } 등 JSON 문자열
+  sourcePagePath        String?
+  privacyAgreed         Boolean  @default(false)
+  privacyNoticeConfirmedAt DateTime?
+  privacyNoticeVersion  String?
+  preferredContactChannel String? // email | kakao | both
+  selectedServiceType   String?
+  emailSentAt           DateTime?
+  emailSentStatus       String? // sent | failed
+  emailError            String?
+
+  payloadJson           String? // 유형별 확장 필드 직렬화 (SQLite)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([inquiryType])
+  @@index([status])
+  @@index([leadTimeRisk])
+  @@index([createdAt])
+  @@index([productId])
+  @@index([monthlyCurationItemId])
+}
+
+/// 이미지 메타데이터 SSOT (SQLite). 파일은 Supabase Storage (lib/object-storage.ts, lib/image-assets-db.ts).
+model ImageAsset {
+  id              String    @id
+  entityType      String    @map("entity_type")
+  entityId        String    @map("entity_id")
+  entityNameKr    String    @map("entity_name_kr")
+  entityNameEn    String?   @map("entity_name_en")
+  supplierName    String?   @map("supplier_name")
+  serviceType     String    @map("service_type")
+  imageRole       String    @map("image_role")
+  isPrimary       Boolean   @map("is_primary")
+  sortOrder       Int       @map("sort_order")
+  fileName        String    @map("file_name")
+  fileExt         String    @map("file_ext")
+  mimeType        String    @map("mime_type")
+  storageBucket   String    @map("storage_bucket")
+  storagePath     String    @map("storage_path")
+  publicUrl       String    @map("public_url")
+  altKr           String    @map("alt_kr")
+  altEn           String    @map("alt_en")
+  titleKr         String?   @map("title_kr")
+  titleEn         String?   @map("title_en")
+  sourceType      String    @map("source_type")
+  sourceName      String?   @map("source_name")
+  sourceNote      String?   @map("source_note")
+  isGenerated     Boolean?  @map("is_generated")
+  seoTitleKr      String?   @map("seo_title_kr")
+  seoTitleEn      String?   @map("seo_title_en")
+  uploadStatus    String    @map("upload_status")
+  uploadedBy      String?   @map("uploaded_by")
+  uploadedAt      DateTime  @map("uploaded_at")
+  updatedAt       DateTime  @map("updated_at")
+  sheetSyncStatus String?   @map("sheet_sync_status")
+  sheetSyncError  String?   @map("sheet_sync_error")
+  sheetSyncedAt   DateTime? @map("sheet_synced_at")
+
+  @@index([entityType, entityId, imageRole])
+  @@index([publicUrl])
+  @@map("image_assets")
+}
+
+/// Supabase travel_reviews (introspected 2026-04-22). RLS + check constraints; migrations need extra setup.
+model travel_reviews {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String    @db.Uuid
+  category            String    @default("overseas")
+  review_type         String
+  title               String
+  excerpt             String
+  body                String?
+  customer_type       String?
+  destination_country String?
+  destination_city    String?
+  tags                String[]  @default([])
+  travel_month        DateTime? @db.Date
+  displayed_date      DateTime? @db.Date
+  rating_label        String?
+  thumbnail_url       String?
+  is_featured         Boolean   @default(false)
+  display_order       Int       @default(0)
+  status              String    @default("pending")
+  rejection_reason    String?
+  source_type         String    @default("customer_submitted")
+  approved_at         DateTime? @db.Timestamptz(6)
+  approved_by         String?   @db.Uuid
+  published_at        DateTime? @db.Timestamptz(6)
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([created_at(sort: Desc)], map: "idx_travel_reviews_created_at")
+  @@index([display_order], map: "idx_travel_reviews_display_order")
+  @@index([displayed_date(sort: Desc)], map: "idx_travel_reviews_displayed_date")
+  @@index([review_type], map: "idx_travel_reviews_review_type")
+  @@index([status, category, is_featured], map: "idx_travel_reviews_status_category_featured")
+  @@index([user_id], map: "idx_travel_reviews_user_id")
+}
+
+// ---- 관리자 상품 AI 등록 파이프라인 (수집·공급사 전용 파서와 분리; 공용 orchestration 전용) ----
+model RegisterAdminInputSnapshot {
+  id               String   @id @default(cuid())
+  brandKey         String?
+  originSource     String
+  originUrl        String?
+  /// LLM 이전에는 null일 수 있음. 확정 후 보강.
+  originCode       String?
+  bodyText         String
+  pastedBlocksJson String?
+  inputDigest      String
+  travelScope      String?
+  requestMode      String
+  status           String   @default("raw_saved")
+  /// cleanup 스크립트가 이 시각 이후 행을 물리삭제(자식 RegisterAdminAnalysis는 cascade). null이면 신규 정책 전 레거시 행.
+  retentionExpiresAt DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  analyses         RegisterAdminAnalysis[]
+
+  @@index([inputDigest])
+  @@index([status, createdAt])
+  @@index([retentionExpiresAt])
+}
+
+model RegisterAdminAnalysis {
+  id                   String   @id @default(cuid())
+  snapshotId           String
+  snapshot             RegisterAdminInputSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  attemptNo            Int      @default(1)
+  status               String   @default("analysis_running")
+  llmFinishReason      String?
+  repairAttempted      Boolean  @default(false)
+  repairFinishReason   String?
+  parseErrorMessage    String?
+  llmRawFirstPass      String?
+  llmRawRepair         String?
+  parsedJson           String?
+  normalizedJson       String?
+  extractionIssuesJson String?
+  reviewState          String?
+  originCodeResolved   String?
+  productId            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([snapshotId, attemptNo])
+  @@index([status])
+}
