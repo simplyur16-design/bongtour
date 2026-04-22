@@ -1,0 +1,17 @@
+/**
+ * Anti-copy UI (public pages only). Toggled via [data-anti-copy="on"] on <html>.
+ * Form fields and .allow-user-select remain selectable.
+ */
+[data-anti-copy='on'] {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+[data-anti-copy='on'] input,
+[data-anti-copy='on'] textarea,
+[data-anti-copy='on'] select,
+[data-anti-copy='on'] [contenteditable='true'],
+[data-anti-copy='on'] .allow-user-select {
+  -webkit-user-drag: auto;
+  user-select: text !important;
+}

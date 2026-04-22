@@ -3,6 +3,7 @@ import { Noto_Sans_KR } from 'next/font/google'
 import './globals.css'
 import SessionProvider from './components/providers/SessionProvider'
 import ChunkLoadRecovery from './components/ChunkLoadRecovery'
+import AntiCopyProtectionGate from './components/AntiCopyProtectionGate'
 import ConditionalSiteFooter from './components/ConditionalSiteFooter'
 import GoogleTagManager from './components/GoogleTagManager'
 import { DEFAULT_OG_IMAGE_PATH, getSiteOrigin, SITE_NAME } from '@/lib/site-metadata'
@@ -63,6 +64,7 @@ export default function RootLayout({
     <html lang="ko" className={notoSansKr.variable} suppressHydrationWarning>
       <body className="min-h-screen bg-beige antialiased font-sans flex flex-col">
         <ChunkLoadRecovery />
+        <AntiCopyProtectionGate />
         <GoogleTagManager />
         <SessionProvider>
           <div className="flex-1 flex flex-col">{children}</div>
