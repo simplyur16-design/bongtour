@@ -117,10 +117,9 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
                       src={t.bgSrc}
                       alt=""
                       fill
-                      sizes="(max-width: 1024px) 48vw, 300px"
+                      sizes="(max-width: 768px) 100vw, 50vw"
                       className="object-cover saturate-[0.92] contrast-[1.02]"
                       priority={index < 4}
-                      unoptimized={/^https?:\/\//i.test(t.bgSrc)}
                     />
                   </span>
                 ) : (

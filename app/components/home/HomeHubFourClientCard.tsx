@@ -114,10 +114,9 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
           alt=""
           fill
           className={`object-cover transition duration-500 ease-out ${hubImagePosition(key)} z-[1] ${detailOpen ? 'scale-[1.03] brightness-[1.04]' : 'scale-100 brightness-100'}`}
-          sizes="(max-width: 1024px) 50vw, min(600px, calc((min(100vw, 72rem) - 2.5rem) / 2))"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           quality={92}
           priority={index < 2}
-          unoptimized={/^https?:\/\//i.test(card.imageSrc)}
         />
 
         <div className={`pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t ${baseGradient}`} aria-hidden />

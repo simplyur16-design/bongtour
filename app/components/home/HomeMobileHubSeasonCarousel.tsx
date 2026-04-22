@@ -46,8 +46,6 @@ function SeasonSlideCard({
   const title = String(slide?.title ?? '')
   const imgRaw = slide?.imageUrl
   const img = typeof imgRaw === 'string' ? imgRaw.trim() : ''
-  const isRemoteImg = Boolean(img && /^https?:\/\//i.test(img))
-  const imageUnoptimized = isRemoteImg || Boolean(img.startsWith('/'))
 
   const needsMore = useMemo(() => {
     try {
@@ -70,25 +68,14 @@ function SeasonSlideCard({
       >
         <div className="absolute inset-0 bg-gradient-to-br from-teal-100/90 via-slate-100 to-slate-200/90" aria-hidden />
         {img ? (
-          isRemoteImg ? (
-            <img
-              src={img}
-              alt={title}
-              className="absolute inset-0 z-[1] h-full w-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : (
-            <Image
-              src={img}
-              alt={title}
-              fill
-              className="z-[1] object-cover"
-              sizes="100vw"
-              unoptimized={imageUnoptimized}
-              priority={false}
-            />
-          )
+          <Image
+            src={img}
+            alt={title}
+            fill
+            className="z-[1] object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 420px"
+            priority={false}
+          />
         ) : (
           <div
             className="absolute inset-0 z-[1] bg-gradient-to-br from-teal-600/20 via-slate-200/55 to-slate-300/45"

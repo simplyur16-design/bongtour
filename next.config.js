@@ -100,6 +100,8 @@ const nextConfig = {
         { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
         { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
         { protocol: 'https', hostname: 'images.pexels.com', pathname: '/**' },
+        /** Supabase Storage — env 기반 호스트 외 타 프로젝트 URL·프리뷰 배포용 */
+        { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/**' },
         /** 레거시 Ncloud 공개 객체 (기존 DB URL) */
         { protocol: 'https', hostname: 'kr.object.ncloudstorage.com', pathname: '/**' },
         { protocol: 'https', hostname: '**.object.ncloudstorage.com', pathname: '/**' },

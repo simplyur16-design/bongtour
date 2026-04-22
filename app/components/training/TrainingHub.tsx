@@ -142,7 +142,6 @@ export default function TrainingHub({ heroImageUrl, interpretImageUrl }: Trainin
                     fill
                     sizes="(max-width: 1023px) 100vw, 544px"
                     className="object-cover"
-                    unoptimized={heroImageUrl.startsWith('http')}
                   />
                 </div>
               </div>
@@ -273,7 +272,6 @@ export default function TrainingHub({ heroImageUrl, interpretImageUrl }: Trainin
                   fill
                   sizes="(max-width: 1023px) 100vw, (max-width: 1279px) 46vw, 544px"
                   className="object-cover"
-                  unoptimized={interpretImageUrl.startsWith('http')}
                 />
               </div>
               <p className="px-4 py-2 text-right text-xs text-slate-500">사진은 기존 사진을 AI로 변형한 내용입니다.</p>
