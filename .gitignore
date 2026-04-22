@@ -60,6 +60,7 @@ __pycache__/
 *.pyc
 scripts/__pycache__/
 scripts/.tmp-paste-verify/
+scripts/_test-*.mjs
 
 # 로컬 임시·메모
 tmp*.txt
@@ -85,3 +86,6 @@ hanatour_*_scan.txt
 /_archive/
 .env.local.backup-*
 .env.*.backup-*
+
+.env.backup-*
+
