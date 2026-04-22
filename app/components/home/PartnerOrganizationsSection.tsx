@@ -54,63 +54,63 @@ const LOGO_BOOST_SUBTLE =
 const partnerOrganizations: PartnerOrg[] = [
   {
     name: '\uacbd\uae30\uad00\uad11\uacf5\uc0ac',
-    src: '/images/org-logos/gyeonggi-tourism-org.png',
+    src: '/images/org-logos/gyeonggi-tourism-org.webp',
     wrapperClassName: LOGO_RAIL_WRAPPER_BOOSTED,
   },
   {
     name: '\uc548\uc591\uc2dc',
-    src: '/images/org-logos/anyang.png',
+    src: '/images/org-logos/anyang.webp',
     logoClassName: LOGO_BOOST_CITY,
   },
   {
     name: '\ud55c\uad6d\uad00\uad11\uacf5\uc0ac',
-    src: '/images/org-logos/korea-tourism-org.jpg',
+    src: '/images/org-logos/korea-tourism-org.webp',
     logoClassName: LOGO_BOOST_SUBTLE,
   },
-  { name: '\uae40\ud3ec\uc2dc', src: '/images/org-logos/gimpo.png' },
-  { name: '\uc218\uc6d0\ub3c4\uc2dc\uc7ac\ub2e8', src: '/images/org-logos/suwon-urban-foundation.png' },
+  { name: '\uae40\ud3ec\uc2dc', src: '/images/org-logos/gimpo.webp' },
+  { name: '\uc218\uc6d0\ub3c4\uc2dc\uc7ac\ub2e8', src: '/images/org-logos/suwon-urban-foundation.webp' },
   {
     name: '\uace0\uc591\uc2dc',
-    src: '/images/org-logos/goyang.png',
+    src: '/images/org-logos/goyang.webp',
     logoClassName: LOGO_SHRINK_CITY,
   },
   {
     name: '\uc911\ubd80\uc77c\ubcf4',
-    src: '/images/org-logos/jungbu-ilbo.png',
+    src: '/images/org-logos/jungbu-ilbo.webp',
     logoClassName: LOGO_BOOST_SUBTLE,
   },
   {
     name: '\ud30c\uc8fc\uc2dc',
-    src: '/images/org-logos/paju.jpg',
+    src: '/images/org-logos/paju.webp',
     logoClassName: LOGO_SHRINK_CITY,
   },
-  { name: '\uacbd\uae30\ub3c4\uc758\ud68c', src: '/images/org-logos/gyeonggi-assembly.jpg' },
+  { name: '\uacbd\uae30\ub3c4\uc758\ud68c', src: '/images/org-logos/gyeonggi-assembly.webp' },
   {
     name: '\ud558\ub0a8\uc2dc',
-    src: '/images/org-logos/hanam.png',
+    src: '/images/org-logos/hanam.webp',
     logoClassName: LOGO_SHRINK_CITY_HANAM,
   },
-  { name: '\uc218\uc6d0\ud2b9\ub840\uc2dc\uc758\ud68c', src: '/images/org-logos/suwon-city-assembly.png' },
+  { name: '\uc218\uc6d0\ud2b9\ub840\uc2dc\uc758\ud68c', src: '/images/org-logos/suwon-city-assembly.webp' },
   {
     name: '\uc624\uc0b0\uc2dc',
-    src: '/images/org-logos/osan.jpg',
+    src: '/images/org-logos/osan.webp',
     logoClassName: LOGO_BOOST_CITY,
   },
   {
     name: '\uacbd\uae30\ubb38\ud654\uc7ac\ub2e8',
-    src: '/images/org-logos/gyeonggi-culture-foundation.jpg',
+    src: '/images/org-logos/gyeonggi-culture-foundation.webp',
     wrapperClassName: LOGO_RAIL_WRAPPER_BOOSTED,
     logoClassName: LOGO_BOOST_SUBTLE,
   },
   {
     name: '\uc2dc\ud765\uc2dc',
-    src: '/images/org-logos/siheung.png',
+    src: '/images/org-logos/siheung.webp',
     wrapperClassName: LOGO_RAIL_WRAPPER_BOOSTED,
     logoClassName: LOGO_BOOST_SIHEUNG,
   },
   {
     name: '\uacbd\uae30\ub3c4\uacbd\uc81c\uacfc\ud559\uc9c4\ud765\uc6d0',
-    src: '/images/org-logos/gyeonggi-gti.png',
+    src: '/images/org-logos/gyeonggi-gti.webp',
     logoClassName: LOGO_SHRINK_GTI,
   },
   {
@@ -120,18 +120,18 @@ const partnerOrganizations: PartnerOrg[] = [
   },
   {
     name: '\uacbd\uae30\ub3c4\uccad',
-    src: '/images/org-logos/gyeonggi-province-office.jpg',
+    src: '/images/org-logos/gyeonggi-province-office.webp',
     wrapperClassName: LOGO_RAIL_WRAPPER_PROVINCE_OFFICE,
   },
-  { name: '\uc6a9\uc778\ud2b9\ub840\uc2dc', src: '/images/org-logos/yongin.jpg' },
-  { name: '\uc218\uc6d0\ud2b9\ub840\uc2dc', src: '/images/org-logos/suwon-city.png' },
+  { name: '\uc6a9\uc778\ud2b9\ub840\uc2dc', src: '/images/org-logos/yongin.webp' },
+  { name: '\uc218\uc6d0\ud2b9\ub840\uc2dc', src: '/images/org-logos/suwon-city.webp' },
   {
     name: '\uad70\ud3ec\uc2dc',
-    src: '/images/org-logos/gunpo.png',
+    src: '/images/org-logos/gunpo.webp',
     wrapperClassName: LOGO_RAIL_WRAPPER_GUNPO,
     logoClassName: LOGO_BOOST_GUNPO,
   },
-  { name: '\uad11\uba85\uc2dc', src: '/images/org-logos/gwangmyung.jpg' },
+  { name: '\uad11\uba85\uc2dc', src: '/images/org-logos/gwangmyung.webp' },
 ]
 
 /** Rail logo viewport height (slightly shorter on small screens). */

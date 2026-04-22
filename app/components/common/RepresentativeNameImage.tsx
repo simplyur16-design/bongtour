@@ -18,7 +18,7 @@ export default function RepresentativeNameImage({ className = '', compact = fals
   return (
     <span className={`inline-flex items-center align-middle ${className}`} aria-hidden="true">
       <Image
-        src="/images/footer/representative-name-mark.png"
+        src="/images/footer/representative-name-mark.webp"
         alt=""
         width={220}
         height={36}

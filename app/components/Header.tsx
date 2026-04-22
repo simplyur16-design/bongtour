@@ -167,7 +167,7 @@ export default function Header() {
           aria-label="Bong투어 홈"
         >
           <Image
-            src="/images/bongtour-logo.png"
+            src="/images/bongtour-logo.webp"
             alt=""
             width={274}
             height={78}
