@@ -6,8 +6,9 @@ import { saveMonthlyCurationImage } from '@/lib/monthly-curation-image'
 const MAX_FILE_BYTES = 30 * 1024 * 1024
 
 /**
- * 서버 경유 멀티파트 업로드(nginx 본문 한도에 걸리기 쉬움).
- * 운영에서는 `POST /api/admin/monthly-curation-contents/signed-upload` + 브라우저 직접 Storage 업로드를 권장.
+ * 서버 경유 업로드 — 시즌 추천 이미지의 기본 경로.
+ * `saveMonthlyCurationImage` → `uploadStorageObject`에서 sharp로 리사이즈·WebP 변환(버킷 정책과 동일).
+ * 대용량 시 nginx `client_max_body_size` 등 본문 한도를 맞춰야 한다.
  */
 export async function POST(request: Request) {
   const admin = await requireAdmin()

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { convertMonthlyCurationFileToWebp } from '@/lib/monthly-curation-client-webp'
 
 type EditorialItem = {
   id: string
@@ -410,73 +409,14 @@ export default function OverseasContentAdminClient() {
     setUploadingMonthlyImage(true)
     setError(null)
     try {
-      let webpPack: Awaited<ReturnType<typeof convertMonthlyCurationFileToWebp>>
-      try {
-        webpPack = await convertMonthlyCurationFileToWebp(file)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : '이미지를 처리하지 못했습니다.')
-        return
-      }
-
-      const signRes = await fetch('/api/admin/monthly-curation-contents/signed-upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          monthKey: monthlyForm.monthKey || '',
-          title: monthlyForm.title || '',
-          byteLength: webpPack.blob.size,
-          contentType: 'image/webp',
-        }),
-      })
-      const signJson = (await signRes.json().catch(() => ({}))) as {
-        ok?: boolean
-        error?: string
-        objectKey?: string
-        token?: string
-        imageUrl?: string
-        imageStorageKey?: string
-        supabaseUrl?: string
-        supabaseAnonKey?: string
-        bucket?: string
-      }
-
-      const directOk =
-        signRes.ok &&
-        signJson.ok &&
-        signJson.objectKey &&
-        signJson.token &&
-        signJson.supabaseUrl &&
-        signJson.supabaseAnonKey &&
-        signJson.bucket
-
-      if (directOk) {
-        const { createClient } = await import('@supabase/supabase-js')
-        const sb = createClient(signJson.supabaseUrl!, signJson.supabaseAnonKey!)
-        const webpFile = new File([webpPack.blob], 'monthly-curation.webp', { type: 'image/webp' })
-        const { error: upErr } = await sb.storage
-          .from(signJson.bucket!)
-          .uploadToSignedUrl(signJson.objectKey!, signJson.token!, webpFile, { upsert: true })
-        if (upErr) {
-          setError(`Storage 직접 업로드 실패 — ${upErr.message}`)
-          return
-        }
-        setMonthlyForm((p) => ({
-          ...p,
-          imageUrl: signJson.imageUrl ?? '',
-          imageStorageKey: signJson.imageStorageKey ?? '',
-          imageWidth: String(webpPack.width),
-          imageHeight: String(webpPack.height),
-        }))
-        setMonthlySeasonAwaitingDbSave(true)
-        setMessage('이미지를 업로드했습니다. 최종 반영하려면 아래 저장을 눌러주세요.')
-        return
-      }
-
       const fd = new FormData()
       fd.set('file', file)
       fd.set('monthKey', monthlyForm.monthKey || '')
       fd.set('title', monthlyForm.title || '')
-      const res = await fetch('/api/admin/monthly-curation-contents/upload', { method: 'POST', body: fd })
+      const res = await fetch('/api/admin/monthly-curation-contents/upload', {
+        method: 'POST',
+        body: fd,
+      })
       const json = (await res.json().catch(() => ({}))) as {
         error?: string
         imageUrl?: string
@@ -487,11 +427,7 @@ export default function OverseasContentAdminClient() {
       if (!res.ok) {
         let msg = json.error ?? '저장 중 오류가 발생했습니다.'
         if (res.status === 413) {
-          msg +=
-            ' — nginx 본문 한도(413)면 `client_max_body_size`를 늘리거나, 직접 업로드(SUPABASE_ANON_KEY 등)를 켜 주세요.'
-        }
-        if (!signRes.ok && signJson.error) {
-          msg = `${signJson.error} (${msg})`
+          msg += ' — nginx 본문 한도(413)면 `client_max_body_size`를 늘려 주세요.'
         }
         setError(msg)
         return

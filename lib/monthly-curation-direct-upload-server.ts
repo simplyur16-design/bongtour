@@ -1,3 +1,8 @@
+/**
+ * @deprecated 2026-04-22 — signed upload(createSignedUploadUrl) 폐기.
+ * 시즌 추천 이미지는 `POST /api/admin/monthly-curation-contents/upload` + `uploadStorageObject`(sharp WebP)로 통일.
+ * 이 모듈은 롤백·참고용으로 유지한다. (`signed-upload` 라우트는 410 Gone.)
+ */
 import { buildMonthlyCurationWebpObjectKey } from '@/lib/monthly-curation-object-key'
 import {
   buildPublicUrlForObjectKey,
