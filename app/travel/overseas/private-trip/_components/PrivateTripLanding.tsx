@@ -102,23 +102,23 @@ export default function PrivateTripLanding({
 
       <GroupMeetingReviewsSection reviews={groupMeetingReviews} />
 
-      <section className="border-t border-slate-200 bg-gradient-to-b from-slate-900 to-slate-950 py-16 text-white sm:py-20">
+      <section className="border-t border-teal-100 bg-gradient-to-b from-teal-50 to-cyan-50 py-16 sm:py-20">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-          <UserRound className="mx-auto h-10 w-10 text-teal-300/90" strokeWidth={1.25} aria-hidden />
-          <h2 className="mt-6 text-xl font-semibold leading-snug sm:text-2xl">
+          <UserRound className="mx-auto h-10 w-10 text-teal-700" strokeWidth={1.25} aria-hidden />
+          <h2 className="mt-6 text-xl font-bold leading-snug text-slate-900 sm:text-2xl">
             우리끼리 편하게 떠날 수 있는지, 우리견적과 일정 방향부터 상담으로 확인해보세요.
           </h2>
-          <p className="mt-4 text-sm leading-relaxed text-slate-300">어떤 방식이 잘 맞는지 함께 안내해드립니다.</p>
+          <p className="mt-4 text-sm leading-relaxed text-slate-600">어떤 방식이 잘 맞는지 함께 안내해드립니다.</p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <Link
               href={privateQuoteHref}
-              className="inline-flex min-h-[48px] min-w-[200px] items-center justify-center rounded-xl bg-teal-500 px-8 py-3 text-sm font-semibold text-white transition-colors duration-75 hover:bg-teal-400"
+              className="inline-flex min-h-[48px] min-w-[200px] items-center justify-center rounded-xl bg-teal-600 px-8 py-3 text-sm font-semibold text-white transition-colors duration-75 hover:bg-teal-700"
             >
               우리견적 문의하기
             </Link>
             <Link
               href={`${travelConsultHref}${travelConsultHref.includes('?') ? '&' : '?'}topic=custom`}
-              className="inline-flex min-h-[48px] min-w-[200px] items-center justify-center rounded-xl border border-white/25 bg-white/10 px-8 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-colors duration-75 hover:border-teal-300/50 hover:bg-teal-500/20"
+              className="inline-flex min-h-[48px] min-w-[200px] items-center justify-center rounded-xl border border-slate-300 bg-white px-8 py-3 text-sm font-semibold text-slate-900 transition-colors duration-75 hover:bg-slate-50"
             >
               맞춤여행 상담 받기
             </Link>

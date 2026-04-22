@@ -9,6 +9,11 @@ const PURPOSE_BY_REVIEW_TYPE: Record<string, string> = {
   senior_group: '시니어·휴양',
   association: '협회·워크숍',
   small_group: '소규모·친목',
+  group_corporate: '회사·단체',
+  group_friends: '친구 모임',
+  group_small: '소규모 모임',
+  parents: '부모님 동반',
+  hiking: '등산·트레킹',
 }
 
 /** 메타줄 2번째: tags에서 목적류 우선, 없으면 review_type 기반 */
