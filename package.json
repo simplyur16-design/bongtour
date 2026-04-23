@@ -14,7 +14,7 @@
     "dev:clean": "npm run clean:next && next dev -p 3000",
     "build:clean": "npm run clean:next && npm run build",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
     "check:register-supplier-imports": "node scripts/check-register-supplier-cross-imports.mjs",
     "check": "npm run check:register-supplier-imports && npm run lint",
