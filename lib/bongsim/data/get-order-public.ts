@@ -45,6 +45,7 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
 
   const id = orderId.trim();
   if (!id) return { ok: false, reason: "not_found" };
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return { ok: false, reason: "not_found" };
 
   const gate = process.env.BONGSIM_ORDER_READ_KEY?.trim();
   if (gate) {
