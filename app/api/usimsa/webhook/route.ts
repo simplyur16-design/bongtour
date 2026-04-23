@@ -1,36 +1,40 @@
 import { NextResponse } from "next/server";
+import {
+  extractClientIp,
+  getAllowedUsimsaWebhookIps,
+  isAllowedUsimsaIp,
+} from "@/lib/bongsim/supplier/usimsa/allowed-ips";
+import { handleUsimsaWebhook } from "@/lib/bongsim/supplier/usimsa/webhook-parser";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function summarizePayload(body: unknown): Record<string, unknown> {
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    return { shape: typeof body };
+export async function POST(req: Request) {
+  const clientIp = extractClientIp(req.headers);
+  const allowed = getAllowedUsimsaWebhookIps();
+
+  if (!isAllowedUsimsaIp(clientIp, allowed)) {
+    console.warn("[usimsa:webhook] ip blocked", { clientIp, allowed });
+    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
-  const o = body as Record<string, unknown>;
-
-  return {
-    keys: Object.keys(o),
-    hasTopupId: typeof o.topupId === "string",
-    hasOptionId: typeof o.optionId === "string",
-    hasIccid: typeof o.iccid === "string",
-  };
-}
-
-export async function POST(req: Request) {
   let body: unknown;
-
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json(
-      { ok: false as const, error: "Invalid JSON body" },
-      { status: 400 }
-    );
+    console.warn("[usimsa:webhook] invalid json", { clientIp });
+    return NextResponse.json({ ok: true, note: "invalid_json_swallowed" }, { status: 200 });
   }
 
-  console.info("[usimsa:webhook]", summarizePayload(body));
-
-  return NextResponse.json({ ok: true as const }, { status: 200 });
+  try {
+    const result = await handleUsimsaWebhook(body);
+    console.info("[usimsa:webhook]", { clientIp, outcome: result.outcome });
+    return NextResponse.json({ ok: true }, { status: 200 });
+  } catch (e) {
+    console.error("[usimsa:webhook] handler threw", {
+      clientIp,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return NextResponse.json({ ok: true, note: "error_swallowed" }, { status: 200 });
+  }
 }
