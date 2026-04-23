@@ -64,6 +64,8 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react'],
     // puppeteer-extra → merge-deep → clone-deep 동적 require로 webpack 정적 분석 실패 방지
     serverComponentsExternalPackages: [
+      '@prisma/client',
+      'prisma',
       'puppeteer',
       'puppeteer-core',
       'puppeteer-extra',

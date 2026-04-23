@@ -18,8 +18,9 @@
 // =============================================================================
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../prisma-gen-runtime"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+  output        = "../prisma-gen-runtime"
 }
 
 datasource db {

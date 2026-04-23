@@ -7,12 +7,13 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "postinstall": "prisma generate",
     "prebuild": "npm run check:register-supplier-imports && prisma generate",
     "dev": "next dev -p 3000",
     "clean:next": "node scripts/clean-next.js",
     "dev:clean": "npm run clean:next && next dev -p 3000",
     "build:clean": "npm run clean:next && npm run build",
-    "build": "node scripts/build-next.js",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "check:register-supplier-imports": "node scripts/check-register-supplier-cross-imports.mjs",
