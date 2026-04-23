@@ -36,7 +36,8 @@ async function upsertProductOption(client: PoolClient, opt: BongsimProductOption
       install_benchmark_raw, activation_policy_raw, mcc_raw, mnc_raw, flags, price_block, raw_row,
       classification_conflict, classification_notes, created_at, updated_at
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24::jsonb,$25::jsonb,$26::jsonb,$27,$28,$29::timestamptz,$30::timestamptz
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,
+      $25::jsonb,$26::jsonb,$27::jsonb,$28,$29,$30::timestamptz,$31::timestamptz
     )
     ON CONFLICT (option_api_id) DO UPDATE SET
       vendor_code = EXCLUDED.vendor_code,
