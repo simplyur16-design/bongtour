@@ -17,12 +17,14 @@ import {
   Images,
   Users,
   Star,
+  Share2,
 } from 'lucide-react'
 
 const nav = [
   { href: '/admin', label: '대시보드', icon: LayoutDashboard },
   { href: '/admin/members', label: '회원 관리', icon: Users },
   { href: '/admin/home-hub-card-images', label: '메인 허브 이미지', icon: Images },
+  { href: '/admin/og-images', label: 'OG 이미지 (공유)', icon: Share2 },
   { href: '/admin/image-assets-upload', label: '이미지 업로드 · 출처(iStock)', icon: Images },
   { href: '/admin/register', label: '상품 등록', icon: Package },
   { href: '/admin/pending', label: '등록대기', icon: ClipboardList },

@@ -693,6 +693,22 @@ model ImageAsset {
   @@map("image_assets")
 }
 
+/// 공개 페이지별 OG 이미지 (Supabase URL + 객체 경로). 없으면 정적 `/og/*.png` 폴백.
+model PageOgImage {
+  id           String   @id @default(cuid())
+  pageKey      String   @unique @map("page_key")
+  imageUrl     String   @map("image_url")
+  storagePath  String?  @map("storage_path")
+  width        Int?
+  height       Int?
+  fileSize     Int?     @map("file_size")
+  uploadedBy   String?  @map("uploaded_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("page_og_images")
+}
+
 // ---- 관리자 상품 AI 등록 파이프라인 (수집·공급사 전용 파서와 분리; 공용 orchestration 전용) ----
 model RegisterAdminInputSnapshot {
   id               String   @id @default(cuid())

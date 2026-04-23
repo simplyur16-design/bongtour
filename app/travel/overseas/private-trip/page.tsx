@@ -11,6 +11,7 @@ import {
   selectPrivateTripHeroEditorialRow,
 } from '@/lib/overseas-editorial-prioritize'
 import { listPrivateTripHeroStoragePublicUrls } from '@/lib/private-trip-hero-supabase'
+import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME, absoluteUrl } from '@/lib/site-metadata'
 
 const INQUIRY_SOURCE = '/travel/overseas/private-trip'
@@ -47,12 +48,19 @@ export async function generateMetadata(): Promise<Metadata> {
     const editorialAll = await fetchPublishedOverseasEditorials()
     const prioritized = prioritizeEditorialsByRegionAndCountry(editorialAll, null, null)
     const row = selectPrivateTripHeroEditorialRow(prioritized) ?? prioritized[0]
-    if (!row) return defaultMetadata
+    if (!row) {
+      const images = await ogImagesForMetadata('private-trip', `우리여행 | ${SITE_NAME}`)
+      return {
+        ...defaultMetadata,
+        openGraph: { ...defaultMetadata.openGraph, images },
+      }
+    }
     const titleBase = row.title?.trim() || row.seoTitle?.trim() || '우리여행'
     const desc =
       row.seoDescription?.trim() ||
       defaultMetadata.description ||
       '맞춤여행·우리견적 상담을 안내합니다.'
+    const images = await ogImagesForMetadata('private-trip', `${titleBase} | 우리여행 | ${SITE_NAME}`)
     return {
       ...defaultMetadata,
       title: titleBase,
@@ -62,14 +70,20 @@ export async function generateMetadata(): Promise<Metadata> {
         description: desc,
         url: absoluteUrl('/travel/overseas/private-trip'),
         type: 'website',
+        images,
       },
     }
   } catch {
-    return defaultMetadata
+    const images = await ogImagesForMetadata('private-trip', `우리여행 | ${SITE_NAME}`)
+    return {
+      ...defaultMetadata,
+      openGraph: { ...defaultMetadata.openGraph, images },
+    }
   }
 }
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 export default async function PrivateTripPage() {
   let groupMeetingReviews = await loadGroupMeetingReviewsFromDb()

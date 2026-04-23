@@ -13,23 +13,29 @@ import {
   fetchPublishedOverseasEditorials,
   prioritizeEditorialsByRegionAndCountry,
 } from '@/lib/overseas-editorial-prioritize'
+import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
-export const metadata: Metadata = {
-  title: '해외여행 상품',
-  description:
-    '해외 패키지 상품을 지역·조건에 맞게 찾아보세요. 출발 일정과 안내는 상품별로 확인할 수 있으며, 예약·상담은 문의를 통해 안내됩니다.',
-  alternates: { canonical: '/travel/overseas' },
-  openGraph: {
-    title: `해외여행 | ${SITE_NAME}`,
+export async function generateMetadata(): Promise<Metadata> {
+  const images = await ogImagesForMetadata('overseas', `해외여행 상품 | ${SITE_NAME}`)
+  return {
+    title: '해외여행 상품',
     description:
-      '해외 패키지 상품을 지역·조건에 맞게 찾아보세요. 출발 일정과 안내는 상품별로 확인할 수 있습니다.',
-    url: '/travel/overseas',
-    type: 'website',
-  },
-  twitter: { card: 'summary_large_image' },
+      '해외 패키지 상품을 지역·조건에 맞게 찾아보세요. 출발 일정과 안내는 상품별로 확인할 수 있으며, 예약·상담은 문의를 통해 안내됩니다.',
+    alternates: { canonical: '/travel/overseas' },
+    openGraph: {
+      title: `해외여행 | ${SITE_NAME}`,
+      description:
+        '해외 패키지 상품을 지역·조건에 맞게 찾아보세요. 출발 일정과 안내는 상품별로 확인할 수 있습니다.',
+      url: '/travel/overseas',
+      type: 'website',
+      images,
+    },
+    twitter: { card: 'summary_large_image' },
+  }
 }
 
 export default async function OverseasTravelPage({
