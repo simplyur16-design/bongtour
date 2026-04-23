@@ -1,0 +1,34 @@
+/** Raw row shape from `bongsim_product_option` (Postgres `pg`). */
+export type BongsimProductOptionDbRow = {
+  option_api_id: string;
+  vendor_code: string;
+  sim_kind: string;
+  excel_update_type: string | null;
+  excel_sheet: string;
+  excel_sheet_language: string;
+  plan_line_excel: string;
+  network_family: string;
+  plan_type: string | null;
+  plan_name: string;
+  days_raw: string;
+  allowance_label: string;
+  option_label: string;
+  carrier_raw: string | null;
+  data_class_raw: string | null;
+  network_raw: string | null;
+  internet_raw: string | null;
+  qos_raw: string | null;
+  validity_raw: string | null;
+  apn_raw: string | null;
+  install_benchmark_raw: string | null;
+  activation_policy_raw: string | null;
+  mcc_raw: string | null;
+  mnc_raw: string | null;
+  flags: unknown;
+  price_block: unknown;
+  raw_row: unknown;
+  classification_conflict: boolean;
+  classification_notes: string | null;
+  created_at: Date;
+  updated_at: Date;
+};
