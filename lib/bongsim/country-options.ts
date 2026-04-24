@@ -143,16 +143,11 @@ function dedupeByCode(rows: Row[]): Row[] {
 
 const UNIQUE = dedupeByCode(ROWS);
 
-export const COUNTRY_OPTIONS: CountryOption[] = UNIQUE.map(([code, nameKr, flag, terms]) => ({
+/** 검색은 `nameKr`·`code` 중심 — 구 `searchTerms`(도시 영문 등)는 제거됨. */
+export const COUNTRY_OPTIONS: CountryOption[] = UNIQUE.map(([code, nameKr, flag]) => ({
   code,
   nameKr,
   flag,
-  searchTerms: terms
-    ? terms
-        .split(/\s+/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : undefined,
 })).sort((a, b) => a.nameKr.localeCompare(b.nameKr, "ko"));
 
 /** 국가 코드 → DB/엑셀과 맞출 단일 플랜명(한글). 추천/조회 시 `plan_name` 정확 일치 보조용 */
@@ -169,8 +164,7 @@ export function filterCountryOptions(list: CountryOption[], query: string): Coun
   if (!t) return noKr;
   return noKr.filter((c) => {
     if (c.nameKr.toLowerCase().includes(t)) return true;
-    if (c.subtitleKr?.toLowerCase().includes(t)) return true;
     if (c.code.toLowerCase().includes(t)) return true;
-    return c.searchTerms?.some((s) => s.toLowerCase().includes(t)) ?? false;
+    return false;
   });
 }

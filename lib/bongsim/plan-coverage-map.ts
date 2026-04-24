@@ -91,7 +91,8 @@ function normalizeIsoCodes(codes: string[]): string[] {
   });
 }
 
-function resolveMultiCoverage(planName: string): string[] | undefined {
+/** 다국가 플랜명(엑셀/DB `plan_name`)이면 커버 국가 배열, 아니면 `undefined`. */
+export function resolveMultiCoverage(planName: string): string[] | undefined {
   const t = planName.trim();
   if (MULTI_COUNTRY_PLAN_COVERAGE[t]) return MULTI_COUNTRY_PLAN_COVERAGE[t];
   const tc = compact(t);

@@ -1,23 +1,23 @@
 {
-  "activeSeason": "spring",
-  "lastUpdatedAt": "2026-04-14T03:28:19.280Z",
-  "mobileMainServiceTiles": {
-    "overseas": "/images/home-hub/mobile/overseas.webp",
-    "airHotel": "/images/home-hub/mobile/air-hotel.webp",
-    "privateTrip": "/images/home-hub/mobile/private-trip.webp",
-    "training": "/images/home-hub/mobile/training.webp"
-  },
   "images": {
-    "overseas": "",
-    "training": "/images/home-hub/candidates/training-spring-1774163629867-mejktl-1.webp",
+    "bus": "/images/home-hub/base/bus.jpg",
     "domestic": "/images/home-hub/candidates/domestic-spring-1774163272667-lqevr0-1.webp",
-    "bus": "/images/home-hub/base/bus.jpg"
+    "overseas": "",
+    "training": "/images/home-hub/candidates/training-spring-1774163629867-mejktl-1.webp"
   },
-  "lastUpdatedBy": "__mock_admin__",
+  "activeSeason": "spring",
+  "lastUpdatedAt": "2026-04-24T14:54:59.632Z",
+  "lastUpdatedBy": "simplyur@naver.com",
   "imageSourceModes": {
-    "overseas": "product_pool",
     "domestic": "product_pool",
+    "overseas": "product_pool",
     "training": "manual"
+  },
+  "mobileMainServiceTiles": {
+    "airHotel": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/DAY5_manual-upload__b86e68532f8e48a3.webp",
+    "overseas": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/Shell_House_Salamanca_pexels__1d43728e124fcb7c.webp",
+    "training": "https://kr.object.ncloudstorage.com/bongtour/home-hub/candidates/training-spring-1776136505480-sd9f0a-3.webp",
+    "privateTrip": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/Phu_Quoc_Pepper_Farm_pexels__c6780f67e46cbf0c.webp"
   },
   "trainingPageSecondaryImage": "https://spuptilbzyxrvyyyheza.supabase.co/storage/v1/object/public/bongtour-images/home-hub/candidates/training-spring-1776136505480-sd9f0a-3.webp"
 }

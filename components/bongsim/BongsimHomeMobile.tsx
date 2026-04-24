@@ -21,7 +21,7 @@ function matchesQuery(
   if (c.nameKr.toLowerCase().includes(t)) return true;
   if (c.subtitleKr?.toLowerCase().includes(t)) return true;
   if (c.code.toLowerCase().includes(t)) return true;
-  return c.searchTerms?.some((s) => s.toLowerCase().includes(t)) ?? false;
+  return false;
 }
 
 export function BongsimHomeMobile() {
