@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import SafeImage from '@/app/components/SafeImage'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
 import { groupBrowseScoredProductsByCountry } from '@/lib/overseas-products-by-country'
 import { PRODUCT_PRICE_FOR_BROWSE_INCLUDE } from '@/lib/product-price-per-person'
@@ -75,8 +76,7 @@ export default async function OverseasRegisteredProductsSection() {
                       >
                         <div className="relative aspect-[16/10] w-full bg-bt-surface">
                           {(getFinalCoverImageUrl({ bgImageUrl: item.bgImageUrl, scheduleDays: getScheduleFromProduct(item) }) ?? item.bgImageUrl) ? (
-                            /* eslint-disable-next-line @next/next/no-img-element -- registered product cards: remote URLs */
-                            <img
+                            <SafeImage
                               src={
                                 getFinalCoverImageUrl({
                                   bgImageUrl: item.bgImageUrl,
@@ -84,7 +84,9 @@ export default async function OverseasRegisteredProductsSection() {
                                 }) ?? item.bgImageUrl ?? ''
                               }
                               alt=""
-                              className="absolute inset-0 h-full w-full object-cover"
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 640px) 90vw, 400px"
                               loading="lazy"
                             />
                           ) : (

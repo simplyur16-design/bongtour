@@ -6,6 +6,7 @@ import {
   PRIVATE_TRIP_HERO_COVER_WIDTH,
   PRIVATE_TRIP_HERO_STORAGE_PREFIX,
 } from '@/lib/private-trip-hero-constants'
+import SafeImage from '@/app/components/SafeImage'
 
 /** 우리여행 히어로: Supabase Storage 이미지 풀만 관리 (공개 `/travel/overseas/private-trip`와 동일 소스) */
 export function PrivateTripHeroSlidesPanel() {
@@ -317,8 +318,8 @@ export function PrivateTripHeroSlidesPanel() {
                 className="flex flex-col overflow-hidden rounded-lg border border-slate-700 bg-slate-950/60"
                 title="미리보기"
               >
-                <div className="relative min-h-0 flex-1">
-                  <img src={url} alt="" className="aspect-[16/10] w-full object-cover" loading="lazy" />
+                <div className="relative aspect-[16/10] w-full min-h-0 flex-1 overflow-hidden">
+                  <SafeImage src={url} alt="" fill className="object-cover" sizes="200px" loading="lazy" />
                 </div>
                 <div className="border-t border-slate-700/80 p-1.5">
                   <button

@@ -569,14 +569,14 @@ export default function HomeProductPickSection({
                     <OverseasCompareCard
                       key={product.id}
                       product={product}
-                      priority={i < 2}
+                      priority={i === 0}
                       productTypeLabel={productTypeShortLabel(triageProductTitleForPickTab(product.title))}
                     />
                   ) : (
                     <AgentCard
                       key={product.id}
                       product={product}
-                      priority={i < 2}
+                      priority={i === 0}
                       pickStyle
                       typeBadge={productTypeShortLabel(triageProductTitleForPickTab(product.title))}
                     />

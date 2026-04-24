@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
+import SafeImage from '@/app/components/SafeImage'
 import { sanitizeDetailText } from '@/lib/sanitize-text'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { parseShoppingStopsJson } from '@/lib/public-product-extras'
@@ -2101,7 +2102,16 @@ export default function AdminProductDetailPage({
                       onClick={() => void pickScheduleEntryAsHero(e)}
                       className="flex flex-col items-center gap-1 rounded border border-bt-border-strong bg-bt-title p-2 hover:bg-bt-surface-soft disabled:opacity-50"
                     >
-                      <img src={e.imageUrl!.trim()} alt="" className="h-14 w-24 rounded object-cover" />
+                      <span className="relative block h-14 w-24 overflow-hidden rounded">
+                        <SafeImage
+                          src={e.imageUrl!.trim()}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          sizes="96px"
+                          loading="lazy"
+                        />
+                      </span>
                       <span className="text-[11px] text-bt-muted">{e.day}일차</span>
                     </button>
                   ))}

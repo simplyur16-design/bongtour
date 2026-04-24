@@ -155,6 +155,14 @@ export const COUNTRY_OPTIONS: CountryOption[] = UNIQUE.map(([code, nameKr, flag,
     : undefined,
 })).sort((a, b) => a.nameKr.localeCompare(b.nameKr, "ko"));
 
+/** 국가 코드 → DB/엑셀과 맞출 단일 플랜명(한글). 추천/조회 시 `plan_name` 정확 일치 보조용 */
+export function planNameKrFromCountryCode(code: string): string | null {
+  const lc = code.trim().toLowerCase();
+  if (lc === "kr") return "대한민국";
+  const found = COUNTRY_OPTIONS.find((c) => c.code === lc);
+  return found?.nameKr ?? null;
+}
+
 export function filterCountryOptions(list: CountryOption[], query: string): CountryOption[] {
   const noKr = list.filter((c) => c.code !== "kr");
   const t = query.trim().toLowerCase();

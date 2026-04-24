@@ -31,6 +31,9 @@ type ApiOk = {
   facets: BrowseFacets
 }
 
+/** 허브 페이지 browse 1회 요청 상한 — 전량(1000) 조회는 API·DB 부하만 키움 */
+const BROWSE_HUB_FETCH_LIMIT = '30'
+
 /** 국내 허브(`/travel/domestic`)에서 browse·URL 정리 시 제거(레거시 링크 무시) */
 const DOMESTIC_HUB_QUERY_STRIP_KEYS = [
   'dmPillar',
@@ -159,7 +162,7 @@ export default function ProductsBrowseClient({
         if (isDomesticHub) {
           p = new URLSearchParams()
           p.set('scope', 'domestic')
-          p.set('limit', '1000')
+          p.set('limit', BROWSE_HUB_FETCH_LIMIT)
           const sortRaw = searchParams.get('sort')
           if (
             sortRaw === 'budget_fit' ||
@@ -175,11 +178,11 @@ export default function ProductsBrowseClient({
         }
         if (defaultScope === 'overseas' && pathname === '/travel/overseas') {
           p.delete('listingKind')
-          p.set('limit', '1000')
+          p.set('limit', BROWSE_HUB_FETCH_LIMIT)
           p.delete('page')
         }
         if (pathname === '/travel/air-hotel') {
-          p.set('limit', '1000')
+          p.set('limit', BROWSE_HUB_FETCH_LIMIT)
           p.delete('page')
         }
         if ((q.budgetPerPerson != null || q.budgetMin != null) && !p.get('sort')) {
@@ -214,7 +217,7 @@ export default function ProductsBrowseClient({
       if (isDomesticHub) {
         const params = new URLSearchParams()
         params.set('scope', 'domestic')
-        params.set('limit', '1000')
+        params.set('limit', BROWSE_HUB_FETCH_LIMIT)
         const s = syncTypeWithCategories(next).sort
         if (s && s !== 'popular') params.set('sort', s)
         router.replace(`${basePath}?${params.toString()}`, { scroll: false })
@@ -239,7 +242,7 @@ export default function ProductsBrowseClient({
     if (isDomesticHub) {
       const sp = new URLSearchParams()
       sp.set('scope', 'domestic')
-      sp.set('limit', '1000')
+      sp.set('limit', BROWSE_HUB_FETCH_LIMIT)
       router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
       return
     }

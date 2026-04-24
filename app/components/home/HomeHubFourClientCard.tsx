@@ -80,6 +80,8 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
   const [detailOpen, setDetailOpen] = useState(false)
 
   const cardAriaLabel = [primaryTitle, subtitle, descFull, ...card.hints, card.ctaLabel].filter(Boolean).join('. ')
+  /** 원격 URL은 `/_next/image` 최적화 큐를 타면 LCP·대역만 지연될 수 있어 브라우저 직접 로드 */
+  const hubImageUnoptimized = /^https?:\/\//i.test(card.imageSrc)
 
   const open = useCallback(() => setDetailOpen(true), [])
   const close = useCallback(() => setDetailOpen(false), [])
@@ -115,8 +117,10 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
           fill
           className={`object-cover transition duration-500 ease-out ${hubImagePosition(key)} z-[1] ${detailOpen ? 'scale-[1.03] brightness-[1.04]' : 'scale-100 brightness-100'}`}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          quality={92}
-          priority={index < 2}
+          quality={index === 0 ? 85 : 72}
+          priority={index === 0}
+          loading={index === 0 ? undefined : 'lazy'}
+          unoptimized={hubImageUnoptimized}
         />
 
         <div className={`pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t ${baseGradient}`} aria-hidden />

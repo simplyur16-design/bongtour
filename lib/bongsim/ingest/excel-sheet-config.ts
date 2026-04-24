@@ -15,12 +15,13 @@ export type BongsimIngestSheetConfig = {
 
 /** Sheets that share the standard SKU column layout (row-2 headers). */
 export const BONGSIM_INGEST_SHEETS: BongsimIngestSheetConfig[] = [
-  { sheet_name: "로컬(전체)", sheet_language: "ko", plan_line_excel: "로컬" },
-  { sheet_name: "무제한(전체)", sheet_language: "ko", plan_line_excel: "무제한" },
-  { sheet_name: "종량제(전체)", sheet_language: "ko", plan_line_excel: "종량제" },
-  { sheet_name: "데일리(전체)", sheet_language: "ko", plan_line_excel: "데일리" },
+  /** 영문 시트를 먼저 처리하고, 동일 `option_api_id`는 뒤에 오는 한글 시트가 덮어써서 `plan_name` 등이 한글로 유지되게 함 */
   { sheet_name: "Local(all)", sheet_language: "en", plan_line_excel: "로컬" },
   { sheet_name: "Unlimited(all)", sheet_language: "en", plan_line_excel: "무제한" },
   { sheet_name: "Fix(all)", sheet_language: "en", plan_line_excel: "종량제" },
   { sheet_name: "daily (all)", sheet_language: "en", plan_line_excel: "데일리" },
+  { sheet_name: "로컬(전체)", sheet_language: "ko", plan_line_excel: "로컬" },
+  { sheet_name: "무제한(전체)", sheet_language: "ko", plan_line_excel: "무제한" },
+  { sheet_name: "종량제(전체)", sheet_language: "ko", plan_line_excel: "종량제" },
+  { sheet_name: "데일리(전체)", sheet_language: "ko", plan_line_excel: "데일리" },
 ];

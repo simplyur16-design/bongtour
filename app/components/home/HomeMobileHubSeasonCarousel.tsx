@@ -74,7 +74,7 @@ function SeasonSlideCard({
             fill
             className="z-[1] object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 420px"
-            priority={false}
+            loading="lazy"
           />
         ) : (
           <div

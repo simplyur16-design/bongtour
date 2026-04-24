@@ -162,6 +162,7 @@ model Product {
   updatedAt             DateTime       @updatedAt
 
   @@unique([originSource, originCode])
+  @@index([registrationStatus, updatedAt])
 }
 
 model OptionalTour {

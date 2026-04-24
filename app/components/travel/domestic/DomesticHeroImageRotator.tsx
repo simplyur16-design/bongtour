@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 
 type BrowseItem = {
@@ -76,7 +77,7 @@ export default function DomesticHeroImageRotator({ eyebrow, title, lead }: Domes
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch('/api/products/browse?scope=domestic&limit=60&sort=popular', {
+        const res = await fetch('/api/products/browse?scope=domestic&limit=10&sort=popular', {
           cache: 'no-store',
         })
         const data = (await res.json()) as { ok?: boolean; items?: BrowseItem[] }
@@ -145,13 +146,15 @@ export default function DomesticHeroImageRotator({ eyebrow, title, lead }: Domes
           className="absolute inset-0 z-0 block"
           aria-label={`${current.title} 상세 보기`}
         >
-          <img
+          <Image
             src={displaySrc}
             alt=""
-            className="h-full w-full object-cover"
-            loading="eager"
-            fetchPriority="high"
+            fill
+            className="object-cover"
+            sizes="(max-width: 1024px) 100vw, min(1152px, 100vw)"
+            priority
             decoding="async"
+            unoptimized={displaySrc.startsWith('data:')}
             onError={() => setBroken((prev) => ({ ...prev, [current.id]: true }))}
           />
         </Link>

@@ -27,11 +27,22 @@ export function findHeaderRowIndex(matrix: unknown[][]): number {
   return -1;
 }
 
+/**
+ * 헤더 셀 문자열 → 열 인덱스.
+ * 동일 헤더가 두 번 이상 나오면(예: "기존" / "변경" 구간에 같은 `소비자가(KRW)`),
+ * Excel과 동일하게 두 번째부터 `이름.1`, `이름.2` 키를 붙여 `excel-map-columns`의
+ * `소비자가(KRW).1` 등과 매칭되게 한다.
+ */
 export function matrixToHeaderIndexMap(headerRow: unknown[]): Map<string, number> {
   const m = new Map<string, number>();
+  const occurrence = new Map<string, number>();
   headerRow.forEach((cell, j) => {
-    const k = normHeader(cell);
-    if (k && !m.has(k)) m.set(k, j);
+    const base = normHeader(cell);
+    if (!base) return;
+    const n = (occurrence.get(base) ?? 0) + 1;
+    occurrence.set(base, n);
+    const key = n === 1 ? base : `${base}.${n - 1}`;
+    m.set(key, j);
   });
   return m;
 }

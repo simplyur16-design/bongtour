@@ -1,6 +1,7 @@
 import type { ReviewCardModel } from '@/lib/reviews-types'
 import { reviewTypeLabel } from '@/lib/review-type-labels'
 import { formatReviewDestination, formatReviewWhen } from '@/app/components/travel/reviews/travel-review-utils'
+import SafeImage from '@/app/components/SafeImage'
 
 type Props = {
   review: ReviewCardModel
@@ -15,8 +16,14 @@ export default function TravelReviewCard({ review }: Props) {
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-bt-border bg-white/90 shadow-sm ring-1 ring-black/[0.03] transition hover:border-bt-accent/35 hover:shadow-md">
       {review.thumbnail_url ? (
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-bt-surface">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={review.thumbnail_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+          <SafeImage
+            src={review.thumbnail_url}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            loading="lazy"
+          />
         </div>
       ) : null}
       <div className="flex flex-1 flex-col p-5 sm:p-6">

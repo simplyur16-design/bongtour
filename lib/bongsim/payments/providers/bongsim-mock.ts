@@ -1,3 +1,4 @@
+import { bongsimPath } from "@/lib/bongsim/constants";
 import type { BongsimPaymentProviderAdapter, BongsimPaymentProviderCreateInput, BongsimPaymentProviderCreateResult } from "@/lib/bongsim/payments/provider-types";
 
 /**
@@ -14,7 +15,7 @@ export class BongsimMockPaymentProvider implements BongsimPaymentProviderAdapter
       orderId: input.order_id,
       ref: public_session_ref,
     });
-    const redirect_path = `/checkout/payment/mock?${q.toString()}`;
+    const redirect_path = `${bongsimPath("/checkout/payment/mock")}?${q.toString()}`;
     return {
       provider_session_id,
       client: { kind: "mock_redirect", redirect_path, public_session_ref },

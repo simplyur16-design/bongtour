@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import {
   OUR_TRAVEL_HERO_OVERLAY_DESCRIPTION,
@@ -59,14 +60,16 @@ export default function OurTravelHero({ imageUrls, privateQuoteHref, travelConsu
       <div className="mx-auto min-w-0 max-w-6xl px-4 py-3 sm:px-6 sm:py-4">
         <div className="relative min-w-0 overflow-hidden rounded-xl border border-bt-border bg-bt-surface">
           <div className="relative h-[150px] bg-slate-900 sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]">
-            <img
+            <Image
               key={`our-travel-hero-${imgIdx}-${src}`}
               src={src}
               alt=""
-              className="h-full w-full object-cover"
-              loading="eager"
-              fetchPriority="high"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, min(1152px, 100vw)"
+              priority={imgIdx === 0}
               decoding={imgIdx === 0 ? 'sync' : 'async'}
+              unoptimized={src.startsWith('data:')}
               onError={() => setBroken((prev) => ({ ...prev, [imgIdx]: true }))}
             />
             <div

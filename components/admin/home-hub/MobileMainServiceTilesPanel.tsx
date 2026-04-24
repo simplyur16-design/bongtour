@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { HomeHubActiveClientModel } from '@/lib/home-hub-active-client-model'
 import type { HomeHubActiveFile, MobileMainServiceTileKey } from '@/lib/home-hub-resolve-images'
 import { MobileTileStoragePickerModal } from '@/components/admin/home-hub/MobileTileStoragePickerModal'
+import SafeImage from '@/app/components/SafeImage'
 
 const ROWS: { key: MobileMainServiceTileKey; title: string; hint: string; imageGuide: string }[] = [
   {
@@ -112,8 +113,14 @@ export function MobileMainServiceTilesPanel({ active, onSaved, onSaveError }: Pr
                 <div className="shrink-0 sm:w-44">
                   <div className="relative aspect-[16/10] w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-200">
                     {showPreview ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- Supabase/절대경로 혼합
-                      <img src={url.trim()} alt="" className="h-full w-full object-cover" />
+                      <SafeImage
+                        src={url.trim()}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, 200px"
+                        loading="lazy"
+                      />
                     ) : (
                       <div className="flex h-full min-h-[5.5rem] items-center justify-center px-2 text-center text-xs text-slate-500">
                         미리보기 없음

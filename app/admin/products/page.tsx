@@ -7,6 +7,7 @@ import AdminEmptyState from '../components/AdminEmptyState'
 import AdminKpiCard from '../components/AdminKpiCard'
 import AdminPageHeader from '../components/AdminPageHeader'
 import AdminStatusBadge from '../components/AdminStatusBadge'
+import SafeImage from '@/app/components/SafeImage'
 import { adminProductBgImageAttributionLine, adminProductBgImageSourceTypeLabel } from '@/lib/product-bg-image-attribution'
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
@@ -707,8 +708,15 @@ export default function AdminProductsPage() {
                           ) : (
                             <div className="flex flex-col gap-1">
                               {p.bgImageUrl ? (
-                                <div className="h-12 w-20 overflow-hidden rounded border border-gray-200 bg-gray-100">
-                                  <img src={p.bgImageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+                                <div className="relative h-12 w-20 overflow-hidden rounded border border-gray-200 bg-gray-100">
+                                  <SafeImage
+                                    src={p.bgImageUrl}
+                                    alt=""
+                                    fill
+                                    className="object-cover"
+                                    sizes="80px"
+                                    loading="lazy"
+                                  />
                                 </div>
                               ) : null}
                               <span className="inline-flex w-fit rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-800">있음</span>

@@ -20,6 +20,7 @@ import type { RegisterPreviewPayload as RegisterPreviewPayloadM } from '@/lib/re
 import type { RegisterPreviewPayload as RegisterPreviewPayloadV } from '@/lib/register-preview-payload-verygoodtour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadY } from '@/lib/register-preview-payload-ybtour'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
+import SafeImage from '@/app/components/SafeImage'
 import AdminPageHeader from '../components/AdminPageHeader'
 import RegisterCorrectionDrawer from './components/RegisterCorrectionDrawer'
 import RegisterVerificationPanel from './components/RegisterVerificationPanel'
@@ -1780,11 +1781,12 @@ export default function AdminRegisterPage() {
                         >
                           {/* 썸네일 위: 출처만 우하단. 도시·관광지 키워드는 위쪽 「마지막 미리보기 검색어」·입력란을 본다. */}
                           <div className="relative h-24 w-full overflow-hidden bg-slate-100">
-                            {/* eslint-disable-next-line @next/next/no-img-element -- 외부 Pexels 썸네일 미리보기 */}
-                            <img
+                            <SafeImage
                               src={ph.thumbnail || ph.medium}
                               alt=""
-                              className="h-full w-full object-cover"
+                              fill
+                              className="object-cover"
+                              sizes="200px"
                               loading="lazy"
                             />
                             <span

@@ -8,7 +8,17 @@ export function getSiteOrigin(): string {
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
     process.env.NEXTAUTH_URL?.trim() ||
     'http://localhost:3000'
-  return raw.replace(/\/$/, '')
+  let s = raw.replace(/\/$/, '')
+  /** `bongtour.com` 처럼 스킴이 없으면 `app/layout.tsx` 의 `new URL(siteOrigin)` 이 프로덕션에서 즉시 500 을 유발한다. */
+  if (s.length > 0 && !/^https?:\/\//i.test(s)) {
+    s = `https://${s.replace(/^\/+/, '')}`
+  }
+  try {
+    new URL(s)
+    return s.replace(/\/$/, '')
+  } catch {
+    return 'http://localhost:3000'
+  }
 }
 
 export function absoluteUrl(path: string): string {
@@ -26,7 +36,7 @@ export function toAbsoluteImageUrl(url: string | null | undefined): string | und
 }
 
 /** 메타 이미지 fallback — 공개 정적 자산 */
-export const DEFAULT_OG_IMAGE_PATH = '/og/default.png'
+export const DEFAULT_OG_IMAGE_PATH = '/og/default.webp'
 
 /** 상품 상세 description — 메타·JSON-LD 공통 (DB 필드만 사용) */
 export function buildPublicProductDescription(input: {

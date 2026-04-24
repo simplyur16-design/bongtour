@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import SafeImage from '@/app/components/SafeImage'
 import type { MobileMainServiceTileKey } from '@/lib/home-hub-resolve-images'
 
 export const STORAGE_IMAGE_PICKER_PREFIX_OPTIONS: { value: string; label: string }[] = [
@@ -184,11 +185,12 @@ export function MobileTileStoragePickerModal({ open, tileKey, tileTitle, onClose
                       }`}
                     >
                       <div className="relative aspect-[4/3] w-full bg-slate-200">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- 외부 Storage URL, 관리자 전용 */}
-                        <img
+                        <SafeImage
                           src={it.publicUrl}
                           alt=""
-                          className="h-full w-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 45vw, 200px"
                           loading="lazy"
                         />
                       </div>

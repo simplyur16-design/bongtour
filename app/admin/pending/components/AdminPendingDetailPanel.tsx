@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
@@ -313,7 +314,7 @@ async function fetchAdminProductDetail(productId: string): Promise<ProductDetail
   }
 }
 
-/** Prod CSP and legacy relative URLs — normalize so <img> loads in this panel */
+/** Prod CSP and legacy relative URLs — normalize so preview `Image`/`next/image` loads in this panel */
 function adminPreviewImgSrc(url: string | null | undefined): string | undefined {
   if (url == null) return undefined
   const u = String(url).trim()
@@ -1676,12 +1677,14 @@ export default function AdminPendingDetailPanel({
                     </div>
                   </div>
                   <div className="mt-2 flex items-start gap-3">
-                    <div className="h-16 w-24 overflow-hidden rounded border border-bt-border-soft bg-bt-surface-alt">
+                    <div className="relative h-16 w-24 overflow-hidden rounded border border-bt-border-soft bg-bt-surface-alt">
                       {row.imageUrl ? (
-                        <img
+                        <Image
                           src={adminPreviewImgSrc(row.imageUrl) ?? row.imageUrl}
                           alt=""
-                          className="h-full w-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="96px"
                           onLoad={() =>
                             setDayImageThumbError((prev) => ({ ...prev, [row.day]: null }))
                           }
@@ -1778,11 +1781,16 @@ export default function AdminPendingDetailPanel({
                             title="이 사진을 일정 이미지로 적용"
                             className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left disabled:opacity-50"
                           >
-                            <img
-                              src={adminPreviewImgSrc(photo.thumbnail) ?? photo.thumbnail}
-                              alt=""
-                              className="aspect-video w-full object-cover"
-                            />
+                            <span className="relative block aspect-video w-full">
+                              <Image
+                                src={adminPreviewImgSrc(photo.thumbnail) ?? photo.thumbnail}
+                                alt=""
+                                fill
+                                className="object-cover"
+                                sizes="120px"
+                                loading="lazy"
+                              />
+                            </span>
                             <span className="block truncate px-1 py-0.5 text-[9px] text-bt-meta">일정 이미지로 적용</span>
                             <span className="block truncate px-1 py-0.5 text-[10px] text-bt-muted">{photo.photographer}</span>
                           </button>
@@ -1824,11 +1832,16 @@ export default function AdminPendingDetailPanel({
                               {geminiSlotLabelKr(item.slot)}
                             </span>
                             {item.imageUrl ? (
-                              <img
-                                src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
-                                alt=""
-                                className="aspect-video w-full object-cover"
-                              />
+                              <span className="relative block aspect-video w-full">
+                                <Image
+                                  src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
+                                  alt=""
+                                  fill
+                                  className="object-cover"
+                                  sizes="120px"
+                                  loading="lazy"
+                                />
+                              </span>
                             ) : (
                               <div className="flex aspect-video w-full flex-col items-center justify-center bg-bt-surface-alt px-1 py-2 text-center">
                                 <span className="text-[10px] font-medium text-bt-warning">생성 실패</span>
@@ -1867,11 +1880,16 @@ export default function AdminPendingDetailPanel({
                           disabled={dayImageSaving[row.day] === true}
                           className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left disabled:opacity-50"
                         >
-                          <img
-                            src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
-                            alt=""
-                            className="aspect-video w-full object-cover"
-                          />
+                          <span className="relative block aspect-video w-full">
+                            <Image
+                              src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
+                              alt=""
+                              fill
+                              className="object-cover"
+                              sizes="120px"
+                              loading="lazy"
+                            />
+                          </span>
                           <span className="block truncate px-1 py-1 text-[10px] text-bt-muted">{item.label}</span>
                           <span
                             className="block truncate px-1 pb-1 text-[9px] text-bt-meta"
@@ -1950,11 +1968,16 @@ export default function AdminPendingDetailPanel({
                           onClick={() => void selectLibraryAssetForDay(libraryModalDay, item)}
                           className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left"
                         >
-                          <img
-                            src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
-                            alt=""
-                            className="aspect-video w-full object-cover"
-                          />
+                          <span className="relative block aspect-video w-full">
+                            <Image
+                              src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
+                              alt=""
+                              fill
+                              className="object-cover"
+                              sizes="150px"
+                              loading="lazy"
+                            />
+                          </span>
                           <span className="block truncate px-1 py-1 text-[10px] text-bt-muted">{item.label}</span>
                           <span
                             className="block truncate px-1 pb-1 text-[9px] text-bt-meta"
@@ -1974,11 +1997,16 @@ export default function AdminPendingDetailPanel({
                     const historyOpen = libraryHistoryOpenMap[key] === true
                     return (
                       <div key={key} className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface">
-                        <img
+                        <span className="relative block aspect-video w-full">
+                          <Image
                             src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
                             alt=""
-                            className="aspect-video w-full object-cover"
+                            fill
+                            className="object-cover"
+                            sizes="150px"
+                            loading="lazy"
                           />
+                        </span>
                         <div className="space-y-1 px-2 py-2">
                           <p className="truncate text-[10px] text-bt-muted">{item.label}</p>
                           <p
@@ -2054,12 +2082,14 @@ export default function AdminPendingDetailPanel({
                 href={detail.bgImageSourceUrl ?? detail.bgImageUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block h-16 w-24 shrink-0 overflow-hidden rounded border border-bt-border-soft bg-bt-surface-alt"
+                className="relative block h-16 w-24 shrink-0 overflow-hidden rounded border border-bt-border-soft bg-bt-surface-alt"
               >
-                <img
+                <Image
                   src={adminPreviewImgSrc(detail.bgImageUrl) ?? detail.bgImageUrl ?? ''}
                   alt=""
-                  className="h-full w-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="96px"
                 />
               </a>
               <div className="min-w-0 text-xs text-bt-muted">
@@ -2205,9 +2235,9 @@ export default function AdminPendingDetailPanel({
                     href={photo.sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block aspect-video w-full bg-bt-surface-alt"
+                    className="relative block aspect-video w-full bg-bt-surface-alt"
                   >
-                    <img
+                    <Image
                       src={
                         adminPreviewImgSrc(photo.medium || photo.thumbnail) ??
                         photo.medium ??
@@ -2215,7 +2245,10 @@ export default function AdminPendingDetailPanel({
                         ''
                       }
                       alt=""
-                      className="h-full w-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="200px"
+                      loading="lazy"
                     />
                   </a>
                   <p className="truncate px-2 py-1 text-xs text-bt-meta" title={photo.photographer}>
@@ -2252,12 +2285,15 @@ export default function AdminPendingDetailPanel({
                         href={candidate.sourceUrl ?? candidate.imageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block aspect-video w-full bg-bt-surface-alt"
+                        className="relative block aspect-video w-full bg-bt-surface-alt"
                       >
-                        <img
+                        <Image
                           src={adminPreviewImgSrc(candidate.imageUrl) ?? candidate.imageUrl ?? ''}
                           alt=""
-                          className="h-full w-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="200px"
+                          loading="lazy"
                         />
                       </a>
                       <p className="truncate px-2 py-1 text-xs font-medium text-bt-body" title={candidate.label}>
@@ -2291,12 +2327,15 @@ export default function AdminPendingDetailPanel({
                         href={candidate.sourceUrl ?? candidate.imageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block aspect-video w-full bg-bt-surface-alt"
+                        className="relative block aspect-video w-full bg-bt-surface-alt"
                       >
-                        <img
+                        <Image
                           src={adminPreviewImgSrc(candidate.imageUrl) ?? candidate.imageUrl ?? ''}
                           alt=""
-                          className="h-full w-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="200px"
+                          loading="lazy"
                         />
                       </a>
                       <p className="truncate px-2 py-1 text-xs font-medium text-bt-body" title={candidate.label}>
@@ -2363,11 +2402,16 @@ export default function AdminPendingDetailPanel({
                     {geminiSlotLabelKr(item.slot)}
                   </span>
                   {item.imageUrl ? (
-                    <img
-                      src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
-                      alt=""
-                      className="aspect-video w-full object-cover"
-                    />
+                    <span className="relative block aspect-video w-full">
+                      <Image
+                        src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="200px"
+                        loading="lazy"
+                      />
+                    </span>
                   ) : (
                     <div className="flex aspect-video w-full flex-col items-center justify-center bg-bt-surface-alt px-2 py-2 text-center">
                       <span className="text-[11px] font-medium text-bt-warning">생성 실패</span>

@@ -12,6 +12,7 @@ import {
   type OverseasDisplayBucketId,
 } from '@/lib/overseas-display-buckets'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
+import SafeImage from '@/app/components/SafeImage'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { interleaveProductsBySupplier } from '@/lib/interleave-products-by-supplier'
@@ -610,11 +611,12 @@ export function ProductResultCard({
       <div className="relative aspect-[16/10] w-full bg-slate-100">
         {item.coverImageUrl || item.bgImageUrl ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary remote image hosts */}
-            <img
+            <SafeImage
               src={item.coverImageUrl ?? item.bgImageUrl ?? ''}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               loading="lazy"
             />
             <PublicImageBottomOverlay

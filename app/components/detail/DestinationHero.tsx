@@ -1,3 +1,4 @@
+import SafeImage from '@/app/components/SafeImage'
 import PexelsSourceCaption from './PexelsSourceCaption'
 
 const REFERENCE_DISCLAIMER =
@@ -19,11 +20,14 @@ export default function DestinationHero({ destinationName, imageUrl }: Props) {
     <section className="overflow-hidden border border-gray-200 bg-white">
       <div className="relative aspect-[21/9] w-full bg-gradient-to-br from-amber-100 to-orange-50">
         {imageUrl ? (
-          <PexelsSourceCaption className="h-full w-full" showCaption>
-            <img
+          <PexelsSourceCaption className="absolute inset-0 h-full w-full" showCaption>
+            <SafeImage
               src={imageUrl}
               alt={displayName}
-              className="h-full w-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 960px"
+              loading="lazy"
             />
           </PexelsSourceCaption>
         ) : (

@@ -24,7 +24,7 @@ export function isValidOgPageKey(key: string): key is OgPageKey {
 }
 
 function staticPathForPage(pageKey: string): string {
-  return `/og/${pageKey}.png`
+  return `/og/${pageKey}.webp`
 }
 
 /**
@@ -46,7 +46,7 @@ export async function getOgImageForPage(pageKey: string): Promise<string> {
     })
   }
   if (key && VALID_SET.has(key)) return staticPathForPage(key)
-  return '/og/default.png'
+  return '/og/default.webp'
 }
 
 export type OgImageMetadataEntry = { url: string; width: number; height: number; alt: string }

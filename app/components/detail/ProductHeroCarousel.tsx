@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
+import SafeImage from '@/app/components/SafeImage'
 import { warnLegacyGeminiUploadPath } from '@/lib/legacy-gemini-upload-path'
 import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
 import { resolveCarouselDaySlideLeftLabel } from '@/lib/public-product-carousel-day-slide-left-label'
@@ -148,13 +149,17 @@ export default function ProductHeroCarousel({
     <div className={`relative overflow-hidden rounded-2xl border border-bt-border-strong bg-bt-title shadow-lg ${className}`}>
       <div className="relative aspect-[16/10] w-full">
         {slides.map((s, i) => (
-          <img
+          <SafeImage
             key={s.src + i}
             src={s.src}
             alt={s.alt}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+            fill
+            className={`object-cover transition-opacity duration-500 ${
               i === index ? 'opacity-100' : 'opacity-0'
             }`}
+            sizes="(max-width: 1024px) 100vw, min(896px, 100vw)"
+            loading={i === 0 ? 'eager' : 'lazy'}
+            priority={i === 0}
           />
         ))}
         <PublicImageBottomOverlay leftLabel={current.leftLabel} rightLabel={current.rightLabel} />

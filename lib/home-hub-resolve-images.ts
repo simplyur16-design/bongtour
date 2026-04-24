@@ -17,6 +17,7 @@ export {
   type HomeHubCardHybridResolutionTier,
   type HomeHubCardHybridActiveSlice,
 } from '@/lib/home-hub-card-hybrid-core'
+import { upsertHomeHubActiveConfigRecord } from '@/lib/home-hub-active-db'
 
 const CONFIG_REL = ['public', 'data', 'home-hub-active.json'] as const
 
@@ -193,5 +194,11 @@ export function writeHomeHubActiveMerged(patch: WriteHomeHubActiveMergedInput): 
   const dir = path.dirname(configPath())
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(configPath(), JSON.stringify(next, null, 2), 'utf8')
+
+  // DB 영구 저장 (배포 간 복원용). fire-and-forget.
+  upsertHomeHubActiveConfigRecord(next).catch((e) => {
+    console.error('[home-hub-resolve-images] DB persist failed (non-fatal):', e)
+  })
+
   return next
 }

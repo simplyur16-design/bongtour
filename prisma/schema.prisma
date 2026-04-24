@@ -164,6 +164,7 @@ model Product {
   updatedAt             DateTime       @updatedAt
 
   @@unique([originSource, originCode])
+  @@index([registrationStatus, updatedAt])
 }
 
 model OptionalTour {
@@ -695,7 +696,7 @@ model ImageAsset {
   @@map("image_assets")
 }
 
-/// 공개 페이지별 OG 이미지 (Supabase URL + 객체 경로). 없으면 정적 `/og/*.png` 폴백.
+/// 공개 페이지별 OG 이미지 (Supabase URL + 객체 경로). 없으면 정적 `/og/*.webp` 폴백.
 model PageOgImage {
   id           String   @id @default(cuid())
   pageKey      String   @unique @map("page_key")
@@ -759,4 +760,10 @@ model RegisterAdminAnalysis {
 
   @@index([snapshotId, attemptNo])
   @@index([status])
+}
+
+model HomeHubActiveConfig {
+  id        String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
 }

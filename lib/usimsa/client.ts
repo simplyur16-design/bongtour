@@ -45,11 +45,15 @@ export async function usimsaRequest<T>(params: {
 }): Promise<T> {
   const cfg = getUsimsaConfig();
   const path = params.path.startsWith("/") ? params.path : `/${params.path}`;
-  const pathAndQuery = `${path}${buildQueryString(params.query)}`;
+  const queryString = buildQueryString(params.query);
+  const pathAndQuery = `${path}${queryString}`;
+  /** 실제 요청 URL은 …/api + /v2/… → pathname /api/v2/… — USIMSA 서명 StringToSign도 이 path 기준. */
+  const pathForSign = path.startsWith("/api") ? path : `/api${path}`;
+  const pathAndQueryForSign = `${pathForSign}${queryString}`;
   const timestamp = createUsimsaTimestamp();
   const signature = createUsimsaSignature({
     method: params.method,
-    pathAndQuery,
+    pathAndQuery: pathAndQueryForSign,
     timestamp,
     accessKey: cfg.accessKey,
     secretKey: cfg.secretKey,

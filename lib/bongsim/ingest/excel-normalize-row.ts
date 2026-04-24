@@ -44,6 +44,17 @@ function headerCandidates(lang: ExcelSheetLanguage, key: keyof typeof BONGSIM_EX
   if (key === "days") {
     extra.push(BONGSIM_EXCEL_COLUMN_MAP.en.days_fix);
   }
+  if (lang === "ko") {
+    if (key === "consumer_after") {
+      extra.push("(변경)소비자가(KRW)", "변경 소비자가(KRW)", "변경_소비자가(KRW)");
+    }
+    if (key === "recommended_after") {
+      extra.push("(변경)권장판매가(KRW)", "변경 권장판매가(KRW)", "변경_권장판매가(KRW)");
+    }
+    if (key === "supply_after") {
+      extra.push("(변경)공급가(KRW)", "변경 공급가(KRW)", "변경_공급가(KRW)");
+    }
+  }
   const set = new Set<string>();
   [ko, en, ...extra].forEach((x) => {
     if (x) set.add(x);
@@ -53,6 +64,13 @@ function headerCandidates(lang: ExcelSheetLanguage, key: keyof typeof BONGSIM_EX
 
 function cell(rec: Record<string, unknown>, lang: ExcelSheetLanguage, key: keyof typeof BONGSIM_EXCEL_COLUMN_MAP.ko): string {
   return pickFromRecord(rec, headerCandidates(lang, key));
+}
+
+/** 행에 한글 `플랜명` 열이 있으면 우선(영문 시트와 병행 시 한글 plan_name 유지). */
+function cellPlanName(rec: Record<string, unknown>, lang: ExcelSheetLanguage): string {
+  const fromKo = pickFromRecord(rec, headerCandidates("ko", "plan_name"));
+  if (fromKo) return fromKo;
+  return cell(rec, lang, "plan_name");
 }
 
 function numFromHeaders(rec: Record<string, unknown>, lang: ExcelSheetLanguage, key: keyof typeof BONGSIM_EXCEL_COLUMN_MAP.ko): number | null {
@@ -146,7 +164,7 @@ export function normalizeExcelRow(meta: BongsimExcelSourceMetaV1, rec: Record<st
     plan_line_excel,
     network_family,
     plan_type,
-    plan_name: cell(rec, lang, "plan_name") || "—",
+    plan_name: cellPlanName(rec, lang) || "—",
     days_raw: cell(rec, lang, "days") || "—",
     allowance_label: cell(rec, lang, "allowance") || "—",
     option_label: cell(rec, lang, "option_name") || "—",

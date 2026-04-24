@@ -123,7 +123,8 @@ export async function GET(request: Request) {
     const parsedLimit =
       limitParam != null && limitParam !== '' ? parseInt(limitParam, 10) : Number.NaN
     const rawLimit = Number.isFinite(parsedLimit) ? parsedLimit : null
-    const limitCap = scopeForLimit === 'overseas' || scopeForLimit === 'domestic' ? 1000 : 60
+    /** 클라이언트가 큰 limit을 요청해도 상한 — 응답 크기 제한 */
+    const limitCap = scopeForLimit === 'overseas' || scopeForLimit === 'domestic' ? 120 : 60
     const limit = Math.min(limitCap, Math.max(1, rawLimit ?? 24))
 
     const rows = await prisma.product.findMany({

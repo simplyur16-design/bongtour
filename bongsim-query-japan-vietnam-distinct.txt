@@ -1,0 +1,428 @@
+◇ injected env (48) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+=== Japan (plan_name ILIKE 'japan') ===
+
+(node:144696) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
+(Use `node --trace-warnings ...` to show where the warning was created)
+┌─────────┬───────────────────┬─────────────────────────────────────────┬─────────────┬────────────────┬─────┐
+│ (index) │ allowance_label   │ option_label                            │ plan_type   │ network_family │ cnt │
+├─────────┼───────────────────┼─────────────────────────────────────────┼─────────────┼────────────────┼─────┤
+│ 0       │ '1GB'             │ '10days / daily 1GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 1       │ '1GB'             │ '10days / daily 1GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 2       │ '1GB'             │ '12days / daily 1GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 3       │ '1GB'             │ '12days / daily 1GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 4       │ '1GB'             │ '15days / daily 1GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 5       │ '1GB'             │ '15days / daily 1GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 6       │ '1GB'             │ '1days / daily 1GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 7       │ '1GB'             │ '1days / daily 1GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 8       │ '1GB'             │ '20days / daily 1GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 9       │ '1GB'             │ '20days / daily 1GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 10      │ '1GB'             │ '2days / daily 1GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 11      │ '1GB'             │ '2days / daily 1GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 12      │ '1GB'             │ '30days / daily 1GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 13      │ '1GB'             │ '30days / daily 1GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 14      │ '1GB'             │ '3days / daily 1GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 15      │ '1GB'             │ '3days / daily 1GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 16      │ '1GB'             │ '4days / daily 1GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 17      │ '1GB'             │ '4days / daily 1GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 18      │ '1GB'             │ '5days / daily 1GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 19      │ '1GB'             │ '5days / daily 1GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 20      │ '1GB'             │ '6days / daily 1GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 21      │ '1GB'             │ '6days / daily 1GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 22      │ '1GB'             │ '7days / daily 1GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 23      │ '1GB'             │ '7days / daily 1GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 24      │ '1GB'             │ '8days / daily 1GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 25      │ '2GB'             │ '10days / daily 2GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 26      │ '2GB'             │ '10days / daily 2GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 27      │ '2GB'             │ '12days / daily 2GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 28      │ '2GB'             │ '12days / daily 2GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 29      │ '2GB'             │ '15days / daily 2GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 30      │ '2GB'             │ '15days / daily 2GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 31      │ '2GB'             │ '1days / daily 2GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 32      │ '2GB'             │ '1days / daily 2GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 33      │ '2GB'             │ '20days / daily 2GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 34      │ '2GB'             │ '20days / daily 2GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 35      │ '2GB'             │ '2days / daily 2GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 36      │ '2GB'             │ '2days / daily 2GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 37      │ '2GB'             │ '30days / daily 2GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 38      │ '2GB'             │ '30days / daily 2GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 39      │ '2GB'             │ '3days / daily 2GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 40      │ '2GB'             │ '3days / daily 2GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 41      │ '2GB'             │ '4days / daily 2GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 42      │ '2GB'             │ '4days / daily 2GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 43      │ '2GB'             │ '5days / daily 2GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 44      │ '2GB'             │ '5days / daily 2GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 45      │ '2GB'             │ '6days / daily 2GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 46      │ '2GB'             │ '6days / daily 2GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 47      │ '2GB'             │ '7days / daily 2GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 48      │ '2GB'             │ '7days / daily 2GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 49      │ '2GB'             │ '8days / daily 2GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 50      │ '3GB'             │ '10days / daily 3GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 51      │ '3GB'             │ '10days / daily 3GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 52      │ '3GB'             │ '12days / daily 3GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 53      │ '3GB'             │ '12days / daily 3GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 54      │ '3GB'             │ '15days / daily 3GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 55      │ '3GB'             │ '15days / daily 3GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 56      │ '3GB'             │ '1days / daily 3GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 57      │ '3GB'             │ '1days / daily 3GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 58      │ '3GB'             │ '20days / daily 3GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 59      │ '3GB'             │ '20days / daily 3GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 60      │ '3GB'             │ '2days / daily 3GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 61      │ '3GB'             │ '2days / daily 3GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 62      │ '3GB'             │ '30days / daily 3GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 63      │ '3GB'             │ '30days / daily 3GB 이후 속도저하'      │ null        │ 'local'        │ 2   │
+│ 64      │ '3GB'             │ '3days / daily 3GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 65      │ '3GB'             │ '3days / daily 3GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 66      │ '3GB'             │ '4days / daily 3GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 67      │ '3GB'             │ '4days / daily 3GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 68      │ '3GB'             │ '5days / daily 3GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 69      │ '3GB'             │ '5days / daily 3GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 70      │ '3GB'             │ '6days / daily 3GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 71      │ '3GB'             │ '6days / daily 3GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 72      │ '3GB'             │ '7days / daily 3GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 73      │ '3GB'             │ '7days / daily 3GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 74      │ '3GB'             │ '8days / daily 3GB 이후 속도저하'       │ null        │ 'local'        │ 2   │
+│ 75      │ '4GB'             │ '10days / daily 4GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 76      │ '4GB'             │ '12days / daily 4GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 77      │ '4GB'             │ '15days / daily 4GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 78      │ '4GB'             │ '1days / daily 4GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 79      │ '4GB'             │ '20days / daily 4GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 80      │ '4GB'             │ '2days / daily 4GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 81      │ '4GB'             │ '30days / daily 4GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 82      │ '4GB'             │ '3days / daily 4GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 83      │ '4GB'             │ '4days / daily 4GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 84      │ '4GB'             │ '5days / daily 4GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 85      │ '4GB'             │ '6days / daily 4GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 86      │ '4GB'             │ '7days / daily 4GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 87      │ '500MB'           │ '10days / daily 500MB speed slow down'  │ null        │ 'local'        │ 2   │
+│ 88      │ '500MB'           │ '10days / daily 500MB 이후 속도저하'    │ null        │ 'local'        │ 1   │
+│ 89      │ '500MB'           │ '12days / daily 500MB speed slow down'  │ null        │ 'local'        │ 2   │
+│ 90      │ '500MB'           │ '12days / daily 500MB 이후 속도저하'    │ null        │ 'local'        │ 1   │
+│ 91      │ '500MB'           │ '15days / daily 500MB speed slow down'  │ null        │ 'local'        │ 2   │
+│ 92      │ '500MB'           │ '15days / daily 500MB 이후 속도저하'    │ null        │ 'local'        │ 1   │
+│ 93      │ '500MB'           │ '1days / daily 500MB speed slow down'   │ null        │ 'local'        │ 2   │
+│ 94      │ '500MB'           │ '1days / daily 500MB 이후 속도저하'     │ null        │ 'local'        │ 1   │
+│ 95      │ '500MB'           │ '20days / daily 500MB speed slow down'  │ null        │ 'local'        │ 2   │
+│ 96      │ '500MB'           │ '20days / daily 500MB 이후 속도저하'    │ null        │ 'local'        │ 1   │
+│ 97      │ '500MB'           │ '2days / daily 500MB speed slow down'   │ null        │ 'local'        │ 2   │
+│ 98      │ '500MB'           │ '2days / daily 500MB 이후 속도저하'     │ null        │ 'local'        │ 1   │
+│ 99      │ '500MB'           │ '30days / daily 500MB speed slow down'  │ null        │ 'local'        │ 2   │
+│ 100     │ '500MB'           │ '30days / daily 500MB 이후 속도저하'    │ null        │ 'local'        │ 1   │
+│ 101     │ '500MB'           │ '3days / daily 500MB speed slow down'   │ null        │ 'local'        │ 2   │
+│ 102     │ '500MB'           │ '3days / daily 500MB 이후 속도저하'     │ null        │ 'local'        │ 1   │
+│ 103     │ '500MB'           │ '4days / daily 500MB speed slow down'   │ null        │ 'local'        │ 2   │
+│ 104     │ '500MB'           │ '4days / daily 500MB 이후 속도저하'     │ null        │ 'local'        │ 1   │
+│ 105     │ '500MB'           │ '5days / daily 500MB speed slow down'   │ null        │ 'local'        │ 2   │
+│ 106     │ '500MB'           │ '5days / daily 500MB 이후 속도저하'     │ null        │ 'local'        │ 1   │
+│ 107     │ '500MB'           │ '6days / daily 500MB speed slow down'   │ null        │ 'local'        │ 2   │
+│ 108     │ '500MB'           │ '6days / daily 500MB 이후 속도저하'     │ null        │ 'local'        │ 1   │
+│ 109     │ '500MB'           │ '7days / daily 500MB speed slow down'   │ null        │ 'local'        │ 2   │
+│ 110     │ '500MB'           │ '7days / daily 500MB 이후 속도저하'     │ null        │ 'local'        │ 1   │
+│ 111     │ '500MB'           │ '8days / daily 500MB 이후 속도저하'     │ null        │ 'local'        │ 1   │
+│ 112     │ '5GB'             │ '10days / daily 5GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 113     │ '5GB'             │ '12days / daily 5GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 114     │ '5GB'             │ '15days / daily 5GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 115     │ '5GB'             │ '1days / daily 5GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 116     │ '5GB'             │ '20days / daily 5GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 117     │ '5GB'             │ '2days / daily 5GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 118     │ '5GB'             │ '30days / daily 5GB speed slow down'    │ null        │ 'local'        │ 2   │
+│ 119     │ '5GB'             │ '3days / daily 5GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 120     │ '5GB'             │ '4days / daily 5GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 121     │ '5GB'             │ '5days / daily 5GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 122     │ '5GB'             │ '6days / daily 5GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 123     │ '5GB'             │ '7days / daily 5GB speed slow down'     │ null        │ 'local'        │ 2   │
+│ 124     │ 'Truly unlimited' │ '10days / Truly unlimited'              │ null        │ 'local'        │ 2   │
+│ 125     │ 'Truly unlimited' │ '12days / Truly unlimited'              │ null        │ 'local'        │ 2   │
+│ 126     │ 'Truly unlimited' │ '15days / Truly unlimited'              │ null        │ 'local'        │ 2   │
+│ 127     │ 'Truly unlimited' │ '1days / Truly unlimited'               │ null        │ 'local'        │ 2   │
+│ 128     │ 'Truly unlimited' │ '20days / Truly unlimited'              │ null        │ 'local'        │ 2   │
+│ 129     │ 'Truly unlimited' │ '2days / Truly unlimited'               │ null        │ 'local'        │ 2   │
+│ 130     │ 'Truly unlimited' │ '30days / Truly unlimited'              │ null        │ 'local'        │ 2   │
+│ 131     │ 'Truly unlimited' │ '3days / Truly unlimited'               │ null        │ 'local'        │ 2   │
+│ 132     │ 'Truly unlimited' │ '4days / Truly unlimited'               │ null        │ 'local'        │ 2   │
+│ 133     │ 'Truly unlimited' │ '5days / Truly unlimited'               │ null        │ 'local'        │ 2   │
+│ 134     │ 'Truly unlimited' │ '6days / Truly unlimited'               │ null        │ 'local'        │ 2   │
+│ 135     │ 'Truly unlimited' │ '7days / Truly unlimited'               │ null        │ 'local'        │ 2   │
+│ 136     │ '1GB'             │ '1 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 137     │ '1GB'             │ '10 days / daily 1GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 138     │ '1GB'             │ '12 days / daily 1GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 139     │ '1GB'             │ '15 days / daily 1GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 140     │ '1GB'             │ '2 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 141     │ '1GB'             │ '20 days / daily 1GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 142     │ '1GB'             │ '3 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 143     │ '1GB'             │ '30 days / daily 1GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 144     │ '1GB'             │ '4 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 145     │ '1GB'             │ '5 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 146     │ '1GB'             │ '6 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 147     │ '1GB'             │ '7 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 148     │ '1GB'             │ '8days / daily 1GB speed slow down'     │ 'daily'     │ 'roaming'      │ 1   │
+│ 149     │ '2GB'             │ '1 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 150     │ '2GB'             │ '10 days / daily 2GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 151     │ '2GB'             │ '12 days / daily 2GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 152     │ '2GB'             │ '15 days / daily 2GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 153     │ '2GB'             │ '2 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 154     │ '2GB'             │ '20 days / daily 2GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 155     │ '2GB'             │ '3 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 156     │ '2GB'             │ '30 days / daily 2GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 157     │ '2GB'             │ '4 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 158     │ '2GB'             │ '5 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 159     │ '2GB'             │ '6 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 160     │ '2GB'             │ '7 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 161     │ '2GB'             │ '8days / daily 2GB speed slow down'     │ 'daily'     │ 'roaming'      │ 1   │
+│ 162     │ '3GB'             │ '1 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 163     │ '3GB'             │ '10 days / daily 3GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 164     │ '3GB'             │ '12 days / daily 3GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 165     │ '3GB'             │ '15 days / daily 3GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 166     │ '3GB'             │ '2 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 167     │ '3GB'             │ '20 days / daily 3GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 168     │ '3GB'             │ '3 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 169     │ '3GB'             │ '30 days / daily 3GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 170     │ '3GB'             │ '4 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 171     │ '3GB'             │ '5 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 172     │ '3GB'             │ '6 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 173     │ '3GB'             │ '7 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 174     │ '3GB'             │ '8days / daily 3GB speed slow down'     │ 'daily'     │ 'roaming'      │ 1   │
+│ 175     │ '4GB'             │ '1 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 176     │ '4GB'             │ '10 days / daily 4GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 177     │ '4GB'             │ '12 days / daily 4GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 178     │ '4GB'             │ '15 days / daily 4GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 179     │ '4GB'             │ '2 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 180     │ '4GB'             │ '20 days / daily 4GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 181     │ '4GB'             │ '3 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 182     │ '4GB'             │ '30 days / daily 4GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 183     │ '4GB'             │ '4 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 184     │ '4GB'             │ '5 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 185     │ '4GB'             │ '6 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 186     │ '4GB'             │ '7 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 187     │ '4GB'             │ '8days / daily 4GB speed slow down'     │ 'daily'     │ 'roaming'      │ 1   │
+│ 188     │ '500MB'           │ '1 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 189     │ '500MB'           │ '10 days / daily 500MB speed slow down' │ 'daily'     │ 'roaming'      │ 1   │
+│ 190     │ '500MB'           │ '12 days / daily 500MB speed slow down' │ 'daily'     │ 'roaming'      │ 1   │
+│ 191     │ '500MB'           │ '15 days / daily 500MB speed slow down' │ 'daily'     │ 'roaming'      │ 1   │
+│ 192     │ '500MB'           │ '2 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 193     │ '500MB'           │ '20 days / daily 500MB speed slow down' │ 'daily'     │ 'roaming'      │ 1   │
+│ 194     │ '500MB'           │ '3 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 195     │ '500MB'           │ '30 days / daily 500MB speed slow down' │ 'daily'     │ 'roaming'      │ 1   │
+│ 196     │ '500MB'           │ '4 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 197     │ '500MB'           │ '5 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 198     │ '500MB'           │ '6 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 199     │ '500MB'           │ '7 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 200     │ '500MB'           │ '8days / daily 500MB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 201     │ '5GB'             │ '1 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 202     │ '5GB'             │ '10 days / daily 5GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 203     │ '5GB'             │ '12 days / daily 5GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 204     │ '5GB'             │ '15 days / daily 5GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 205     │ '5GB'             │ '2 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 206     │ '5GB'             │ '20 days / daily 5GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 207     │ '5GB'             │ '3 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 208     │ '5GB'             │ '30 days / daily 5GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 209     │ '5GB'             │ '4 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 210     │ '5GB'             │ '5 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 211     │ '5GB'             │ '6 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 212     │ '5GB'             │ '7 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 213     │ '5GB'             │ '8days / daily 5GB speed slow down'     │ 'daily'     │ 'roaming'      │ 1   │
+│ 214     │ '10GB'            │ '30 days / 10GB'                        │ 'fixed'     │ 'roaming'      │ 1   │
+│ 215     │ '15GB'            │ '30 days / 15GB'                        │ 'fixed'     │ 'roaming'      │ 1   │
+│ 216     │ '1GB'             │ '30 days / 1GB'                         │ 'fixed'     │ 'roaming'      │ 1   │
+│ 217     │ '1GB'             │ '7 days / 1GB'                          │ 'fixed'     │ 'roaming'      │ 1   │
+│ 218     │ '20GB'            │ '30 days / 20GB'                        │ 'fixed'     │ 'roaming'      │ 1   │
+│ 219     │ '2GB'             │ '15 days / 2GB'                         │ 'fixed'     │ 'roaming'      │ 1   │
+│ 220     │ '2GB'             │ '30 days / 2GB'                         │ 'fixed'     │ 'roaming'      │ 1   │
+│ 221     │ '3GB'             │ '30 days / 3GB'                         │ 'fixed'     │ 'roaming'      │ 1   │
+│ 222     │ '5GB'             │ '30 days / 5GB'                         │ 'fixed'     │ 'roaming'      │ 1   │
+│ 223     │ 'Truly unlimited' │ '1 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 224     │ 'Truly unlimited' │ '10 Days / Truly unlimited'             │ 'unlimited' │ 'roaming'      │ 1   │
+│ 225     │ 'Truly unlimited' │ '12 Days / Truly unlimited'             │ 'unlimited' │ 'roaming'      │ 1   │
+│ 226     │ 'Truly unlimited' │ '15 Days / Truly unlimited'             │ 'unlimited' │ 'roaming'      │ 1   │
+│ 227     │ 'Truly unlimited' │ '2 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 228     │ 'Truly unlimited' │ '20 Days / Truly unlimited'             │ 'unlimited' │ 'roaming'      │ 1   │
+│ 229     │ 'Truly unlimited' │ '3 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 230     │ 'Truly unlimited' │ '30 Days / Truly unlimited'             │ 'unlimited' │ 'roaming'      │ 1   │
+│ 231     │ 'Truly unlimited' │ '4 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 232     │ 'Truly unlimited' │ '5 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 233     │ 'Truly unlimited' │ '6 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 234     │ 'Truly unlimited' │ '7 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 235     │ 'unlimited'       │ '1 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 236     │ 'unlimited'       │ '10 Days / unlimited'                   │ 'unlimited' │ 'roaming'      │ 1   │
+│ 237     │ 'unlimited'       │ '12 Days / unlimited'                   │ 'unlimited' │ 'roaming'      │ 1   │
+│ 238     │ 'unlimited'       │ '15 Days / unlimited'                   │ 'unlimited' │ 'roaming'      │ 1   │
+│ 239     │ 'unlimited'       │ '2 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 240     │ 'unlimited'       │ '20 Days / unlimited'                   │ 'unlimited' │ 'roaming'      │ 1   │
+│ 241     │ 'unlimited'       │ '3 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 242     │ 'unlimited'       │ '30 Days / unlimited'                   │ 'unlimited' │ 'roaming'      │ 1   │
+│ 243     │ 'unlimited'       │ '4 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 244     │ 'unlimited'       │ '5 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 245     │ 'unlimited'       │ '6 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 246     │ 'unlimited'       │ '7 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+└─────────┴───────────────────┴─────────────────────────────────────────┴─────────────┴────────────────┴─────┘
+
+=== Vietnam (plan_name ILIKE 'vietnam') ===
+
+┌─────────┬───────────────────┬─────────────────────────────────────────┬─────────────┬────────────────┬─────┐
+│ (index) │ allowance_label   │ option_label                            │ plan_type   │ network_family │ cnt │
+├─────────┼───────────────────┼─────────────────────────────────────────┼─────────────┼────────────────┼─────┤
+│ 0       │ '1GB'             │ '10days / daily 1GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 1       │ '1GB'             │ '12days / daily 1GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 2       │ '1GB'             │ '15days / daily 1GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 3       │ '1GB'             │ '1days / daily 1GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 4       │ '1GB'             │ '20days / daily 1GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 5       │ '1GB'             │ '2days / daily 1GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 6       │ '1GB'             │ '30days / daily 1GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 7       │ '1GB'             │ '3days / daily 1GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 8       │ '1GB'             │ '4days / daily 1GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 9       │ '1GB'             │ '5days / daily 1GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 10      │ '1GB'             │ '6days / daily 1GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 11      │ '1GB'             │ '7days / daily 1GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 12      │ '2GB'             │ '10days / daily 2GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 13      │ '2GB'             │ '12days / daily 2GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 14      │ '2GB'             │ '15days / daily 2GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 15      │ '2GB'             │ '1days / daily 2GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 16      │ '2GB'             │ '20days / daily 2GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 17      │ '2GB'             │ '2days / daily 2GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 18      │ '2GB'             │ '30days / daily 2GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 19      │ '2GB'             │ '3days / daily 2GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 20      │ '2GB'             │ '4days / daily 2GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 21      │ '2GB'             │ '5days / daily 2GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 22      │ '2GB'             │ '6days / daily 2GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 23      │ '2GB'             │ '7days / daily 2GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 24      │ '3GB'             │ '10days / daily 3GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 25      │ '3GB'             │ '12days / daily 3GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 26      │ '3GB'             │ '15days / daily 3GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 27      │ '3GB'             │ '1days / daily 3GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 28      │ '3GB'             │ '20days / daily 3GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 29      │ '3GB'             │ '2days / daily 3GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 30      │ '3GB'             │ '30days / daily 3GB speed slow down'    │ null        │ 'local'        │ 3   │
+│ 31      │ '3GB'             │ '3days / daily 3GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 32      │ '3GB'             │ '4days / daily 3GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 33      │ '3GB'             │ '5days / daily 3GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 34      │ '3GB'             │ '6days / daily 3GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 35      │ '3GB'             │ '7days / daily 3GB speed slow down'     │ null        │ 'local'        │ 3   │
+│ 36      │ '500MB'           │ '10days / daily 500MB speed slow down'  │ null        │ 'local'        │ 3   │
+│ 37      │ '500MB'           │ '12days / daily 500MB speed slow down'  │ null        │ 'local'        │ 3   │
+│ 38      │ '500MB'           │ '15days / daily 500MB speed slow down'  │ null        │ 'local'        │ 3   │
+│ 39      │ '500MB'           │ '1days / daily 500MB speed slow down'   │ null        │ 'local'        │ 3   │
+│ 40      │ '500MB'           │ '20days / daily 500MB speed slow down'  │ null        │ 'local'        │ 3   │
+│ 41      │ '500MB'           │ '2days / daily 500MB speed slow down'   │ null        │ 'local'        │ 3   │
+│ 42      │ '500MB'           │ '30days / daily 500MB speed slow down'  │ null        │ 'local'        │ 3   │
+│ 43      │ '500MB'           │ '3days / daily 500MB speed slow down'   │ null        │ 'local'        │ 3   │
+│ 44      │ '500MB'           │ '4days / daily 500MB speed slow down'   │ null        │ 'local'        │ 3   │
+│ 45      │ '500MB'           │ '5days / daily 500MB speed slow down'   │ null        │ 'local'        │ 3   │
+│ 46      │ '500MB'           │ '6days / daily 500MB speed slow down'   │ null        │ 'local'        │ 3   │
+│ 47      │ '500MB'           │ '7days / daily 500MB speed slow down'   │ null        │ 'local'        │ 3   │
+│ 48      │ 'Truly unlimited' │ '10days / Truly unlimited'              │ null        │ 'local'        │ 3   │
+│ 49      │ 'Truly unlimited' │ '12days / Truly unlimited'              │ null        │ 'local'        │ 3   │
+│ 50      │ 'Truly unlimited' │ '15days / Truly unlimited'              │ null        │ 'local'        │ 3   │
+│ 51      │ 'Truly unlimited' │ '1days / Truly unlimited'               │ null        │ 'local'        │ 3   │
+│ 52      │ 'Truly unlimited' │ '20days / Truly unlimited'              │ null        │ 'local'        │ 3   │
+│ 53      │ 'Truly unlimited' │ '2days / Truly unlimited'               │ null        │ 'local'        │ 3   │
+│ 54      │ 'Truly unlimited' │ '30days / Truly unlimited'              │ null        │ 'local'        │ 3   │
+│ 55      │ 'Truly unlimited' │ '3days / Truly unlimited'               │ null        │ 'local'        │ 3   │
+│ 56      │ 'Truly unlimited' │ '4days / Truly unlimited'               │ null        │ 'local'        │ 3   │
+│ 57      │ 'Truly unlimited' │ '5days / Truly unlimited'               │ null        │ 'local'        │ 3   │
+│ 58      │ 'Truly unlimited' │ '6days / Truly unlimited'               │ null        │ 'local'        │ 3   │
+│ 59      │ 'Truly unlimited' │ '7days / Truly unlimited'               │ null        │ 'local'        │ 3   │
+│ 60      │ '1GB'             │ '1 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 61      │ '1GB'             │ '10 days / daily 1GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 62      │ '1GB'             │ '12 days / daily 1GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 63      │ '1GB'             │ '15 days / daily 1GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 64      │ '1GB'             │ '2 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 65      │ '1GB'             │ '20 days / daily 1GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 66      │ '1GB'             │ '3 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 67      │ '1GB'             │ '30 days / daily 1GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 68      │ '1GB'             │ '4 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 69      │ '1GB'             │ '5 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 70      │ '1GB'             │ '6 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 71      │ '1GB'             │ '7 days / daily 1GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 72      │ '2GB'             │ '1 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 73      │ '2GB'             │ '10 days / daily 2GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 74      │ '2GB'             │ '12 days / daily 2GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 75      │ '2GB'             │ '15 days / daily 2GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 76      │ '2GB'             │ '2 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 77      │ '2GB'             │ '20 days / daily 2GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 78      │ '2GB'             │ '3 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 79      │ '2GB'             │ '30 days / daily 2GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 80      │ '2GB'             │ '4 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 81      │ '2GB'             │ '5 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 82      │ '2GB'             │ '6 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 83      │ '2GB'             │ '7 days / daily 2GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 84      │ '3GB'             │ '1 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 85      │ '3GB'             │ '10 days / daily 3GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 86      │ '3GB'             │ '12 days / daily 3GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 87      │ '3GB'             │ '15 days / daily 3GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 88      │ '3GB'             │ '2 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 89      │ '3GB'             │ '20 days / daily 3GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 90      │ '3GB'             │ '3 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 91      │ '3GB'             │ '30 days / daily 3GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 92      │ '3GB'             │ '4 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 93      │ '3GB'             │ '5 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 94      │ '3GB'             │ '6 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 95      │ '3GB'             │ '7 days / daily 3GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 96      │ '4GB'             │ '1 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 97      │ '4GB'             │ '10 days / daily 4GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 98      │ '4GB'             │ '12 days / daily 4GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 99      │ '4GB'             │ '15 days / daily 4GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 100     │ '4GB'             │ '2 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 101     │ '4GB'             │ '20 days / daily 4GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 102     │ '4GB'             │ '3 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 103     │ '4GB'             │ '30 days / daily 4GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 104     │ '4GB'             │ '4 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 105     │ '4GB'             │ '5 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 106     │ '4GB'             │ '6 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 107     │ '4GB'             │ '7 days / daily 4GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 108     │ '500MB'           │ '1 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 109     │ '500MB'           │ '10 days / daily 500MB speed slow down' │ 'daily'     │ 'roaming'      │ 1   │
+│ 110     │ '500MB'           │ '12 days / daily 500MB speed slow down' │ 'daily'     │ 'roaming'      │ 1   │
+│ 111     │ '500MB'           │ '15 days / daily 500MB speed slow down' │ 'daily'     │ 'roaming'      │ 1   │
+│ 112     │ '500MB'           │ '2 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 113     │ '500MB'           │ '20 days / daily 500MB speed slow down' │ 'daily'     │ 'roaming'      │ 1   │
+│ 114     │ '500MB'           │ '3 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 115     │ '500MB'           │ '30 days / daily 500MB speed slow down' │ 'daily'     │ 'roaming'      │ 1   │
+│ 116     │ '500MB'           │ '4 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 117     │ '500MB'           │ '5 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 118     │ '500MB'           │ '6 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 119     │ '500MB'           │ '7 days / daily 500MB speed slow down'  │ 'daily'     │ 'roaming'      │ 1   │
+│ 120     │ '5GB'             │ '1 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 121     │ '5GB'             │ '10 days / daily 5GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 122     │ '5GB'             │ '12 days / daily 5GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 123     │ '5GB'             │ '15 days / daily 5GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 124     │ '5GB'             │ '2 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 125     │ '5GB'             │ '20 days / daily 5GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 126     │ '5GB'             │ '3 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 127     │ '5GB'             │ '30 days / daily 5GB speed slow down'   │ 'daily'     │ 'roaming'      │ 1   │
+│ 128     │ '5GB'             │ '4 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 129     │ '5GB'             │ '5 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 130     │ '5GB'             │ '6 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 131     │ '5GB'             │ '7 days / daily 5GB speed slow down'    │ 'daily'     │ 'roaming'      │ 1   │
+│ 132     │ '10GB'            │ '30 days / 10GB'                        │ 'fixed'     │ 'roaming'      │ 1   │
+│ 133     │ '15GB'            │ '30 days / 15GB'                        │ 'fixed'     │ 'roaming'      │ 1   │
+│ 134     │ '1GB'             │ '30 days / 1GB'                         │ 'fixed'     │ 'roaming'      │ 1   │
+│ 135     │ '1GB'             │ '7 days / 1GB'                          │ 'fixed'     │ 'roaming'      │ 1   │
+│ 136     │ '20GB'            │ '30 days / 20GB'                        │ 'fixed'     │ 'roaming'      │ 1   │
+│ 137     │ '2GB'             │ '15 days / 2GB'                         │ 'fixed'     │ 'roaming'      │ 1   │
+│ 138     │ '2GB'             │ '30 days / 2GB'                         │ 'fixed'     │ 'roaming'      │ 1   │
+│ 139     │ '3GB'             │ '30 days / 3GB'                         │ 'fixed'     │ 'roaming'      │ 1   │
+│ 140     │ '5GB'             │ '30 days / 5GB'                         │ 'fixed'     │ 'roaming'      │ 1   │
+│ 141     │ 'Truly unlimited' │ '1 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 142     │ 'Truly unlimited' │ '10 Days / Truly unlimited'             │ 'unlimited' │ 'roaming'      │ 1   │
+│ 143     │ 'Truly unlimited' │ '12 Days / Truly unlimited'             │ 'unlimited' │ 'roaming'      │ 1   │
+│ 144     │ 'Truly unlimited' │ '15 Days / Truly unlimited'             │ 'unlimited' │ 'roaming'      │ 1   │
+│ 145     │ 'Truly unlimited' │ '2 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 146     │ 'Truly unlimited' │ '20 Days / Truly unlimited'             │ 'unlimited' │ 'roaming'      │ 1   │
+│ 147     │ 'Truly unlimited' │ '3 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 148     │ 'Truly unlimited' │ '30 Days / Truly unlimited'             │ 'unlimited' │ 'roaming'      │ 1   │
+│ 149     │ 'Truly unlimited' │ '4 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 150     │ 'Truly unlimited' │ '5 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 151     │ 'Truly unlimited' │ '6 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 152     │ 'Truly unlimited' │ '7 Days / Truly unlimited'              │ 'unlimited' │ 'roaming'      │ 1   │
+│ 153     │ 'unlimited'       │ '1 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 154     │ 'unlimited'       │ '10 Days / unlimited'                   │ 'unlimited' │ 'roaming'      │ 1   │
+│ 155     │ 'unlimited'       │ '12 Days / unlimited'                   │ 'unlimited' │ 'roaming'      │ 1   │
+│ 156     │ 'unlimited'       │ '15 Days / unlimited'                   │ 'unlimited' │ 'roaming'      │ 1   │
+│ 157     │ 'unlimited'       │ '2 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 158     │ 'unlimited'       │ '20 Days / unlimited'                   │ 'unlimited' │ 'roaming'      │ 1   │
+│ 159     │ 'unlimited'       │ '3 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 160     │ 'unlimited'       │ '30 Days / unlimited'                   │ 'unlimited' │ 'roaming'      │ 1   │
+│ 161     │ 'unlimited'       │ '4 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 162     │ 'unlimited'       │ '5 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 163     │ 'unlimited'       │ '6 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+│ 164     │ 'unlimited'       │ '7 Days / unlimited'                    │ 'unlimited' │ 'roaming'      │ 1   │
+└─────────┴───────────────────┴─────────────────────────────────────────┴─────────────┴────────────────┴─────┘

@@ -119,7 +119,8 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
                       fill
                       sizes="(max-width: 768px) 100vw, 50vw"
                       className="object-cover saturate-[0.92] contrast-[1.02]"
-                      priority={index < 4}
+                      priority={index === 0}
+                      loading={index === 0 ? undefined : 'lazy'}
                     />
                   </span>
                 ) : (

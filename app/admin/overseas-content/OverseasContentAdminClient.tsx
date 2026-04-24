@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import SafeImage from '@/app/components/SafeImage'
 
 type EditorialItem = {
   id: string
@@ -685,7 +686,16 @@ export default function OverseasContentAdminClient() {
             </div>
             {editorialForm.heroImageUrl ? (
               <div className="mt-2">
-                <img src={editorialForm.heroImageUrl} alt="" className="h-28 w-auto rounded border object-cover" />
+                <div className="relative h-28 w-full max-w-md overflow-hidden rounded border">
+                  <SafeImage
+                    src={editorialForm.heroImageUrl}
+                    alt=""
+                    fill
+                    className="object-cover object-left"
+                    sizes="448px"
+                    loading="lazy"
+                  />
+                </div>
                 <p className="mt-1 text-[11px] text-slate-500">{editorialForm.heroImageStorageKey}</p>
               </div>
             ) : null}
@@ -1018,7 +1028,16 @@ export default function OverseasContentAdminClient() {
               </div>
               {monthlyForm.imageUrl ? (
                 <div className="mt-1">
-                  <img src={monthlyForm.imageUrl} alt="" className="max-h-36 w-auto rounded border object-cover" />
+                  <div className="relative h-36 w-full max-w-md overflow-hidden rounded border">
+                    <SafeImage
+                      src={monthlyForm.imageUrl}
+                      alt=""
+                      fill
+                      className="object-cover object-left"
+                      sizes="448px"
+                      loading="lazy"
+                    />
+                  </div>
                   <p className="mt-1.5 text-[11px] leading-snug text-amber-900/85">
                     이미지를 업로드했습니다. 최종 반영하려면 아래 저장을 눌러주세요.
                   </p>
@@ -1272,8 +1291,14 @@ export default function OverseasContentAdminClient() {
             <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="relative aspect-[16/10] w-full bg-gradient-to-br from-teal-100 via-slate-100 to-slate-200">
                 {monthlyForm.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- 관리자 미리보기(임의 URL)
-                  <img src={monthlyForm.imageUrl} alt={monthlyForm.imageAlt || monthlyForm.title || '미리보기'} className="h-full w-full object-cover" />
+                  <SafeImage
+                    src={monthlyForm.imageUrl}
+                    alt={monthlyForm.imageAlt || monthlyForm.title || '미리보기'}
+                    fill
+                    className="object-cover"
+                    sizes="320px"
+                    loading="lazy"
+                  />
                 ) : (
                   <div className="flex h-full items-center justify-center text-xs font-medium text-slate-500">이미지 없음</div>
                 )}
@@ -1302,7 +1327,18 @@ export default function OverseasContentAdminClient() {
                 </div>
                 <p className="mt-1 line-clamp-2 whitespace-pre-line text-sm text-slate-600">{row.bodyKr}</p>
                 <p className="mt-1 text-xs text-slate-500">{row.imageUrl ? '이미지 있음' : '이미지 없음'}</p>
-                {row.imageUrl && <img src={row.imageUrl} alt={row.imageAlt ?? row.title} className="mt-2 h-16 w-auto rounded border object-cover" />}
+                {row.imageUrl ? (
+                  <div className="relative mt-2 h-16 w-28 overflow-hidden rounded border">
+                    <SafeImage
+                      src={row.imageUrl}
+                      alt={row.imageAlt ?? row.title}
+                      fill
+                      className="object-cover"
+                      sizes="112px"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : null}
                 <div className="mt-2 flex gap-2">
                   <button
                     type="button"

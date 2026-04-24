@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import SafeImage from '@/app/components/SafeImage'
 import ImageAssetEditDrawer, { type ImageAssetApiRow } from './ImageAssetEditDrawer'
 import {
   ADMIN_MANUAL_PRIMARY_HERO_UPLOAD_OPTIONS,
@@ -446,9 +447,8 @@ function ImageAssetsUploadPageInner() {
         <ul className="mt-3 max-h-[min(70vh,32rem)] space-y-4 overflow-y-auto overscroll-contain pr-1 text-xs [-webkit-overflow-scrolling:touch]">
           {recent.map((r) => (
             <li key={r.id} className="flex gap-3 border-b border-bt-border pb-4">
-              <div className="shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={r.publicUrl} alt="" className="h-16 w-16 rounded border border-slate-200 object-cover" loading="lazy" />
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded border border-slate-200">
+                <SafeImage src={r.publicUrl} alt="" fill className="object-cover" sizes="64px" loading="lazy" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-slate-900">{r.entityNameKr}</div>

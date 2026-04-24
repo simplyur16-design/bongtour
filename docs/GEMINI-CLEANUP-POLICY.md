@@ -2,8 +2,8 @@
 
 ## 1) 현재 Gemini 파일 관리의 문제점
 
-- 등록대기에서 Gemini 생성 시 `public/uploads/gemini/<baseId>-0.png`, `-1.png`, `-2.png` 형태로 3장 저장된다.
-- 운영자가 그중 1장만 대표 이미지로 선택하면 `Product.bgImageUrl`에 해당 상대 경로(예: `/uploads/gemini/<baseId>-1.png`)가 저장된다.
+- (레거시) 로컬 디스크 저장 시 `public/uploads/gemini/<baseId>-0.png` … 형태가 있었고, 마이그레이션 후에는 동일 베이스명 `.webp`를 쓴다.
+- 운영자가 그중 1장만 대표 이미지로 선택하면 `Product.bgImageUrl`에 해당 상대 경로(예: `/uploads/gemini/<baseId>-1.webp`)가 저장된다.
 - **선택되지 않은 2장 + 다른 세션에서 생성된 미선택 후보**는 디스크에 그대로 남아, 시간이 지나면 폴더가 비대해진다.
 - 참조 중인 파일과 미사용 후보를 구분하는 로직이 없었고, 정리 정책도 없었다.
 

@@ -1,7 +1,7 @@
 /**
  * Gemini 생성 이미지 정리: 참조되지 않고 유예기간이 지난 파일만 삭제.
  * - Product.bgImageUrl에 저장된 경로는 절대 삭제하지 않음.
- * - public/uploads/gemini/*.png 중 참조되지 않으며 수정 시각이 N일 초과인 파일만 삭제 대상.
+ * - public/uploads/gemini/*.png · *.webp 중 참조되지 않으며 수정 시각이 N일 초과인 파일만 삭제 대상.
  */
 
 import { readdir, stat, unlink } from 'fs/promises'
@@ -30,7 +30,7 @@ function normalizeWebPath(url: string | null): string | null {
  */
 export async function getReferencedGeminiPaths(prisma: PrismaClient): Promise<Set<string>> {
   const products = await prisma.product.findMany({
-    where: { bgImageUrl: { not: null } },
+    where: { bgImageUrl: { contains: '/uploads/gemini/' } },
     select: { bgImageUrl: true },
   })
   const set = new Set<string>()
@@ -43,13 +43,19 @@ export async function getReferencedGeminiPaths(prisma: PrismaClient): Promise<Se
 
 /**
  * public/uploads/gemini 디렉터리 내 파일명 목록 반환.
- * .png만 대상으로 함.
+ * .png / .webp 파일만 대상 (레거시 PNG는 마이그레이션 후 WebP 중심).
  */
 export async function listGeminiUploadFilenames(): Promise<string[]> {
   const dir = path.join(process.cwd(), UPLOAD_DIR)
   try {
     const entries = await readdir(dir, { withFileTypes: true })
-    return entries.filter((e) => e.isFile() && e.name.toLowerCase().endsWith('.png')).map((e) => e.name)
+    return entries
+      .filter((e) => {
+        if (!e.isFile()) return false
+        const n = e.name.toLowerCase()
+        return n.endsWith('.png') || n.endsWith('.webp')
+      })
+      .map((e) => e.name)
   } catch {
     return []
   }

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import SafeImage from '@/app/components/SafeImage'
 import { resizeImageFileForUpload } from '@/lib/browser-resize-image-for-upload'
 
 const MAX_FILES = 50
@@ -400,7 +401,16 @@ export default function AdminPhotoPoolPage() {
                 className={`flex items-center gap-2 rounded border bg-white p-2 ${draggedId === item.id ? 'opacity-50' : ''}`}
               >
                 <span className="cursor-move shrink-0 text-gray-400" aria-hidden>⋮⋮</span>
-                <img src={item.filePath} alt="" className="h-10 w-14 shrink-0 rounded object-cover" />
+                <span className="relative block h-10 w-14 shrink-0 overflow-hidden rounded">
+                  <SafeImage
+                    src={item.filePath}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="56px"
+                    loading="lazy"
+                  />
+                </span>
                 <span className="min-w-0 shrink-0 text-sm font-medium">{item.cityName}</span>
                 <span className="min-w-0 shrink text-sm text-gray-600">{item.attractionName}</span>
                 <span className="min-w-0 truncate text-xs text-gray-400" title={item.filePath}>

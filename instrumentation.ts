@@ -16,6 +16,8 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { loadEnvConfig } = await import('@next/env')
     loadEnvConfig(process.cwd())
+    const { bootstrapHomeHubActiveFromDb } = await import('@/lib/home-hub-active-bootstrap')
+    await bootstrapHomeHubActiveFromDb()
   }
   assertProductionServerEnv()
   if (process.env.NODE_ENV === 'development' && process.env.NEXT_RUNTIME === 'nodejs') {

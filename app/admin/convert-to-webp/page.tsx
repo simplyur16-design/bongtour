@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function ConvertToWebpPage() {
   const [file, setFile] = useState<File | null>(null)
@@ -238,7 +239,14 @@ export default function ConvertToWebpPage() {
           </p>
           {result.dataUrl && (
             <>
-              <img src={result.dataUrl} alt="WebP 미리보기" className="max-h-48 rounded border object-contain" />
+              <Image
+                src={result.dataUrl}
+                alt="WebP 미리보기"
+                width={result.width || 400}
+                height={result.height || 300}
+                unoptimized
+                className="max-h-48 w-auto rounded border object-contain"
+              />
               <button
                 type="button"
                 onClick={copyDataUrl}

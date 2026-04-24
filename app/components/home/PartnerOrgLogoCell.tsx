@@ -5,7 +5,8 @@ import { useState } from 'react'
 type Props = {
   name: string
   src: string
-  sizes: string
+  /** 레거시: next/image용이었음. `<img>`에는 미사용 */
+  sizes?: string
   imageClassName: string
   /** 고정 높이 로고 영역 (카드 높이와 분리) */
   wrapperClassName?: string
@@ -13,14 +14,10 @@ type Props = {
   logoClassName?: string
 }
 
-/**
- * Plain <img> so missing files under public/images/org-logos/ hit onError reliably.
- * next/image optimization treats 404/HTML as invalid and spams the dev console.
- */
+/** `public/images/org-logos/` 로컬 로고 — 작은 정적 파일은 `<img>`로 직접 로드( `/_next/image` 큐 회피 ) */
 export default function PartnerOrgLogoCell({
   name,
   src,
-  sizes,
   imageClassName,
   wrapperClassName = 'h-[48px] w-full min-h-0 sm:h-[52px] md:h-[56px]',
   logoClassName,
@@ -38,14 +35,15 @@ export default function PartnerOrgLogoCell({
   }
 
   return (
-    <div className={`flex w-full min-w-0 items-center justify-center ${wrapperClassName}`}>
+    <div className={`relative flex w-full min-w-0 items-center justify-center ${wrapperClassName}`}>
       <img
         src={src}
         alt={name}
-        sizes={sizes}
+        width={200}
+        height={80}
         loading="lazy"
         decoding="async"
-        className={`max-w-full object-contain object-center ${imageClassName} ${logoClassName ?? 'max-h-full'}`}
+        className={`max-h-full max-w-full object-contain object-center ${imageClassName} ${logoClassName ?? 'max-h-full'}`}
         onError={() => setFailed(true)}
       />
     </div>

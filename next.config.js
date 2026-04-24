@@ -97,8 +97,12 @@ const nextConfig = {
     ]
   },
   images: {
+    /** `/_next/image` 응답 캐시(초). CDN·엣지 히트율·재방문 LCP에 유리. */
+    minimumCacheTTL: 2592000,
     remotePatterns: (() => {
       const base = [
+        /** 국기 CDN (eSIM 추천·국가 선택 등) */
+        { protocol: 'https', hostname: 'flagcdn.com', pathname: '/**' },
         { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
         { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
         { protocol: 'https', hostname: 'images.pexels.com', pathname: '/**' },

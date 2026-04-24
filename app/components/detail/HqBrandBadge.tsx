@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 import { getBrandLabel } from '@/lib/brands'
 
@@ -17,9 +18,11 @@ export default function HqBrandBadge({ brandKey }: Props) {
       <span className="text-xs font-medium text-gray-500">공식 제휴 상품</span>
       <span className="text-gray-300">|</span>
       {!logoError ? (
-        <img
+        <Image
           src={logoSrc}
           alt={label}
+          width={120}
+          height={24}
           className="h-6 max-w-[120px] object-contain object-left"
           onError={() => setLogoError(true)}
         />

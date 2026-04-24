@@ -1,5 +1,7 @@
 'use client'
 
+import SafeImage from '@/app/components/SafeImage'
+
 /** 관리자 미리보기용: `source`가 있을 때만 우측 하단 캡션 표시 */
 type Props = {
   imageUrl?: string | null
@@ -20,11 +22,9 @@ export default function AdminImageAttribution({
   return (
     <div className={`relative overflow-hidden rounded-lg border border-gray-200 bg-gray-50 ${className}`}>
       {children ?? (imageUrl ? (
-        <img
-          src={imageUrl}
-          alt={alt}
-          className="h-full w-full object-cover"
-        />
+        <div className="relative aspect-[4/3] min-h-[10rem] w-full">
+          <SafeImage src={imageUrl} alt={alt} fill className="object-cover" sizes="480px" loading="lazy" />
+        </div>
       ) : (
         <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 text-center text-gray-400 text-xs">
           <span>이미지 준비 중</span>

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { type FC, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
@@ -635,12 +636,14 @@ const OverseasHero: FC = () => {
                   ) : null
                 const inner = (
                   <>
-                    <img
+                    <Image
                       src={src}
                       alt=""
-                      className="h-full w-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 1024px) 100vw, min(1152px, 100vw)"
                       loading={idx === 0 ? 'eager' : 'lazy'}
-                      fetchPriority={idx === 0 ? 'high' : 'auto'}
+                      priority={idx === 0}
                       decoding="async"
                       onError={() => setBroken((prev) => ({ ...prev, [current.id]: true }))}
                     />

@@ -30,9 +30,16 @@ export const BONGSIM_EXCEL_COLUMN_MAP = {
     request_shipment: "요청(발송)",
     status_check: "상태\n(설치,사용량 등)",
     extension: "연장\n(동일한 ICCID \n추가 탑업)",
+    /** 기존(현재) 가격 — 시트 첫 번째 동명 헤더와 매칭 */
     consumer_before: "소비자가(KRW)",
     recommended_before: "권장판매가(KRW)",
     supply_before: "공급가(KRW)",
+    /**
+     * 변경 가격 → `price_block.after`.
+     * - Excel이 두 번째 열에 자동 부여한 `.1` 헤더와 매칭되거나,
+     * - `excel-parse-workbook`에서 동일 문자열 두 번째 열에 `.1` 키를 붙여 매칭.
+     * 별칭은 `excel-normalize-row` headerCandidates 참고.
+     */
     consumer_after: "소비자가(KRW).1",
     recommended_after: "권장판매가(KRW).1",
     supply_after: "공급가(KRW).1",

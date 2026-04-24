@@ -21,6 +21,7 @@ function isSrcOptimizableByNextImage(src: ImageProps['src']): boolean {
     if (host === 'picsum.photos') return true
     if (host === 'images.unsplash.com') return true
     if (host === 'images.pexels.com') return true
+    if (host === 'flagcdn.com' || host.endsWith('.flagcdn.com')) return true
     if (host === 'kr.object.ncloudstorage.com') return true
     if (host.endsWith('.object.ncloudstorage.com')) return true
     if (host.endsWith('.supabase.co') && u.pathname.startsWith('/storage/v1')) return true

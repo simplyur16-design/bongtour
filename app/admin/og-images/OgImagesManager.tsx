@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 type OgPageKey = 'default' | 'overseas' | 'private-trip' | 'domestic' | 'training' | 'esim'
@@ -266,10 +267,11 @@ export default function OgImagesManager({ actorRole }: Props) {
 
                 <div className="mt-4 flex min-h-[140px] items-center justify-center rounded-lg border border-dashed border-bt-border bg-bt-surface-soft">
                   {hasDb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={row!.imageUrl}
+                    <Image
+                      src={row!.imageUrl ?? ''}
                       alt=""
+                      width={1200}
+                      height={630}
                       className="max-h-36 max-w-full object-contain"
                       onError={(ev) => {
                         const t = ev.currentTarget

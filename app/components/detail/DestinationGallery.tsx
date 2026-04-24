@@ -1,3 +1,4 @@
+import SafeImage from '@/app/components/SafeImage'
 import PexelsSourceCaption from './PexelsSourceCaption'
 
 const GALLERY_DISCLAIMER =
@@ -24,12 +25,14 @@ export default function DestinationGallery({ imageUrls, destinationName }: Props
       <div className="grid grid-cols-2 gap-1.5 sm:gap-2 md:grid-cols-4">
         <div className="relative col-span-2 aspect-[21/9] w-full bg-gray-100 md:col-span-4">
           {main ? (
-            <PexelsSourceCaption className="h-full w-full" showCaption>
-              <img
+            <PexelsSourceCaption className="absolute inset-0 h-full w-full" showCaption>
+              <SafeImage
                 src={main}
                 alt={destinationName ? `${destinationName} 대표` : '여행지'}
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
                 sizes="(max-width: 768px) 100vw, 800px"
+                loading="lazy"
               />
             </PexelsSourceCaption>
           ) : null}
@@ -40,12 +43,14 @@ export default function DestinationGallery({ imageUrls, destinationName }: Props
             className="relative aspect-[4/3] w-full bg-gray-100"
           >
             {url ? (
-              <PexelsSourceCaption className="h-full w-full" showCaption>
-                <img
+              <PexelsSourceCaption className="absolute inset-0 h-full w-full" showCaption>
+                <SafeImage
                   src={url}
                   alt={destinationName ? `${destinationName} ${i + 2}` : `갤러리 ${i + 2}`}
-                  className="h-full w-full object-cover"
+                  fill
+                  className="object-cover"
                   sizes="(max-width: 768px) 50vw, 25vw"
+                  loading="lazy"
                 />
               </PexelsSourceCaption>
             ) : null}
