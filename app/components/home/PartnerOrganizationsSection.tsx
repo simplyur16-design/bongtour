@@ -134,6 +134,11 @@ const partnerOrganizations: PartnerOrg[] = [
   { name: '\uad11\uba85\uc2dc', src: '/images/org-logos/gwangmyung.webp' },
 ]
 
+/** 마퀴 대신 정적 그리드로 노출할 로고 수(동시 로드·대역 절감). */
+const PARTNER_LOGO_GRID_MAX = 10
+
+const partnerOrganizationsDisplay = partnerOrganizations.slice(0, PARTNER_LOGO_GRID_MAX)
+
 /** Rail logo viewport height (slightly shorter on small screens). */
 const LOGO_RAIL_WRAPPER =
   'h-[2.35rem] w-full min-h-0 sm:h-[2.75rem] md:h-[3.15rem]'
@@ -188,30 +193,14 @@ export default function PartnerOrganizationsSection() {
         </p>
 
         <div
-          className="group relative mt-8 overflow-hidden"
+          className="group relative mt-8"
           aria-label={
             '\uc8fc\uc694 \uac70\ub798\u00b7\ud611\ub825 \uae30\uad00 \ubc0f \uc9c0\uc790\uccb4 \ub85c\uace0'
           }
         >
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-8 bg-gradient-to-r from-white to-transparent sm:w-12 md:w-16"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-8 bg-gradient-to-l from-white to-transparent sm:w-12 md:w-16"
-            aria-hidden
-          />
-          <div className="bt-partner-org-marquee-track flex w-max flex-nowrap">
-            <ul className="flex shrink-0 list-none items-center gap-x-8 pr-8">
-              <PartnerOrgRailItems idSuffix="a" organizations={partnerOrganizations} />
-            </ul>
-            <ul
-              className="flex shrink-0 list-none items-center gap-x-8 pr-8"
-              aria-hidden="true"
-            >
-              <PartnerOrgRailItems idSuffix="b" organizations={partnerOrganizations} />
-            </ul>
-          </div>
+          <ul className="mx-auto grid max-w-5xl list-none grid-cols-2 justify-items-center gap-x-4 gap-y-8 px-2 sm:grid-cols-3 sm:gap-x-6 md:grid-cols-5 md:gap-x-6">
+            <PartnerOrgRailItems idSuffix="grid" organizations={partnerOrganizationsDisplay} />
+          </ul>
         </div>
 
         <p className="mt-8 text-center text-[11px] leading-snug text-slate-500 sm:text-xs">

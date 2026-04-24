@@ -21,6 +21,21 @@ export function isHomeHubPublicManualImageUrl(s: string): boolean {
   )
 }
 
+/** 메인 허브: Supabase Storage 원격 URL은 Railway 동일 오리진 정적 자산으로 치환 */
+function rewriteSupabaseHubImageToFallback(url: string, key: HomeHubCardImageKey): string {
+  const t = url.trim()
+  if (!t.startsWith('http')) return t
+  try {
+    const u = new URL(t)
+    if (u.hostname.endsWith('.supabase.co') && u.pathname.includes('/storage/')) {
+      return homeHubCardImageSrc(key, 'webp')
+    }
+  } catch {
+    return t
+  }
+  return t
+}
+
 /** `home-hub-active.json` 의 `images[key]` 가 유효 공개 URL이면 수동 지정 */
 export function manualImageUrlFromHybridActive(
   cfg: HomeHubCardHybridActiveSlice | null,
@@ -54,17 +69,17 @@ export function resolveHomeHubCardHybridImageFromSnapshot(
 ): string {
   const cfg = input.activeSnapshot
   const manual = manualImageUrlFromHybridActive(cfg, key)
-  if (manual) return manual
+  if (manual) return rewriteSupabaseHubImageToFallback(manual, key)
 
   const mode = effectiveHomeHubCardImageSourceMode(key, cfg)
   if (mode === 'product_pool') {
     if (key === 'overseas') {
       const u = (input.productPoolOverseasUrl ?? '').trim()
-      if (u) return u
+      if (u) return rewriteSupabaseHubImageToFallback(u, key)
     }
     if (key === 'domestic') {
       const u = (input.productPoolDomesticUrl ?? '').trim()
-      if (u) return u
+      if (u) return rewriteSupabaseHubImageToFallback(u, key)
     }
   }
 
@@ -97,7 +112,7 @@ export function getHomeHubCardHybridResolutionDetail(
 
   if (manualUrl) {
     return {
-      url: manualUrl,
+      url: rewriteSupabaseHubImageToFallback(manualUrl, key),
       tier: 'manual',
       effectiveMode: mode,
       manualUrl,
@@ -113,7 +128,7 @@ export function getHomeHubCardHybridResolutionDetail(
     const u = key === 'overseas' ? poolOver : poolDom
     if (u) {
       return {
-        url: u,
+        url: rewriteSupabaseHubImageToFallback(u, key),
         tier: 'product_pool',
         effectiveMode: mode,
         manualUrl: null,

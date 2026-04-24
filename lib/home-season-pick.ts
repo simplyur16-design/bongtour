@@ -3,7 +3,7 @@ import { buildPublicUrlForObjectKey, isObjectStorageConfigured } from '@/lib/obj
 import { prisma } from '@/lib/prisma'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
-import { excerptBody } from '@/lib/home-season-pick-shared'
+import { excerptBody, stripSupabaseStorageForHomeSeasonImage } from '@/lib/home-season-pick-shared'
 
 /** 타입만 재보냄. `normalizeHomeSeasonSlidesForClient`는 클라이언트에서 `@/lib/home-season-pick-shared`만 import. */
 export type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
@@ -33,6 +33,7 @@ export function monthlyCurationRowToHomeSeasonPickDTO(row: MonthlyRow): HomeSeas
       imageUrl = null
     }
   }
+  imageUrl = stripSupabaseStorageForHomeSeasonImage(imageUrl)
 
   const productHref = row.linkedProductId?.trim()
     ? `/products/${row.linkedProductId!.trim()}`

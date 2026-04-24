@@ -99,6 +99,9 @@ const nextConfig = {
   images: {
     /** `/_next/image` 응답 캐시(초). CDN·엣지 히트율·재방문 LCP에 유리. */
     minimumCacheTTL: 2592000,
+    /** 생성되는 반응형 변형 수 축소 → 빌드·런타임 부담 완화 */
+    deviceSizes: [640, 750, 828, 1080],
+    imageSizes: [16, 32, 48, 64, 96],
     remotePatterns: (() => {
       const base = [
         /** 국기 CDN (eSIM 추천·국가 선택 등) */

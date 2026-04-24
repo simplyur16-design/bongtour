@@ -30,12 +30,16 @@ function preferStaticHubCoverOverSlowCdNs(url: string, scope: HomeHubTravelCardC
   const t = url.trim()
   if (!t || !/^https?:\/\//i.test(t)) return t
   try {
-    const { hostname } = new URL(t)
+    const { hostname, pathname } = new URL(t)
     if (
       hostname === 'images.pexels.com' ||
       hostname === 'images.unsplash.com' ||
       hostname.endsWith('.pexels.com')
     ) {
+      return homeHubCardImageSrc(scope, 'webp')
+    }
+    /** Supabase Storage는 리전 왕복이 커서 메인 카드는 정적 public WebP로 통일 */
+    if (hostname.endsWith('.supabase.co') && pathname.includes('/storage/')) {
       return homeHubCardImageSrc(scope, 'webp')
     }
   } catch {
