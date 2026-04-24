@@ -6,6 +6,7 @@ import Header from "@/app/components/Header";
 import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
 import { CountryPickerGrid } from "@/components/bongsim/CountryPickerGrid";
 import { ProductCombinationStep } from "@/components/bongsim/recommend/ProductCombinationStep";
+import { CountryNameMultiline } from "@/lib/bongsim/country-name-display";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import type { CountryOption } from "@/lib/bongsim/types";
 import EsimServiceNoticeBanner from "@/app/travel/esim/components/EsimServiceNoticeBanner";
@@ -199,13 +200,12 @@ export default function RecommendPage() {
                               sizes="48px"
                             />
                           </div>
-                          <span
-                            className={`mt-1 text-center text-xs ${
+                          <CountryNameMultiline
+                            nameKr={country.nameKr}
+                            className={`mt-1 text-xs ${
                               isSelected ? "font-bold text-blue-500" : "font-medium text-gray-700"
                             }`}
-                          >
-                            {country.nameKr}
-                          </span>
+                          />
                         </button>
                       );
                     })}

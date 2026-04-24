@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useMediaQueryBelow } from "@/hooks/useMediaQueryBelow";
+import { CountryNameMultiline } from "@/lib/bongsim/country-name-display";
 import type { CountryOption } from "@/lib/bongsim/types";
 
 /**
@@ -114,13 +115,12 @@ export function CountryPickerGrid({
                     </span>
                   ) : null}
                 </span>
-                <span
-                  className={`mt-1 line-clamp-2 w-full min-w-0 break-keep px-0.5 text-center text-xs leading-snug ${
+                <CountryNameMultiline
+                  nameKr={c.nameKr}
+                  className={`mt-1 w-full min-w-0 px-0.5 text-xs ${
                     sel ? "font-bold text-blue-500" : "font-medium text-gray-700"
                   }`}
-                >
-                  {c.nameKr}
-                </span>
+                />
                 {c.subtitleKr ? (
                   <span className="mt-0.5 line-clamp-1 w-full min-w-0 px-0.5 text-center text-[9px] font-medium leading-tight text-slate-500 sm:text-[10px]">
                     {c.subtitleKr}
