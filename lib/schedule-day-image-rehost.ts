@@ -1,5 +1,5 @@
 /**
- * 일정 JSON 슬롯 이미지를 Supabase Storage로만 남기도록 정리한다.
+ * 일정 JSON 슬롯 이미지를 Object Storage로만 남기도록 정리한다.
  * 1) `http(s)` 외부 URL → **PhotoPool(WebP)만** 저장 (Pexels·기타 외부 동일, schedules/ 우회 없음)
  * 2) Pool 실패 시 `imageUrl` 제거 + `sourceImageUrl`에 원본 보존(추적)
  * stem 규칙은 대표 히어로(`buildProductHeroImageStorageKey`)와 동일 철학(place+city→place 우선 등).
@@ -82,7 +82,7 @@ export async function rehostPexelsScheduleDayImageIfNeeded(
 ): Promise<ScheduleDayPexelsRehostResult> {
   const downloadUrl = String(input.downloadUrl ?? '').trim()
   if (!downloadUrl) throw new Error('다운로드 URL이 비어 있습니다.')
-  if (!isObjectStorageConfigured()) throw new Error('Supabase Storage가 설정되지 않았습니다.')
+  if (!isObjectStorageConfigured()) throw new Error('Object Storage(NCLOUD_*)가 설정되지 않았습니다.')
 
   const bucket = getImageStorageBucket()
   const parsedKey = tryParseObjectKeyFromPublicUrl(downloadUrl)

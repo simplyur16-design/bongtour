@@ -45,7 +45,7 @@ export type SavePrivateTripHeroUploadResult = {
 }
 
 /**
- * 처리된 WebP를 Supabase Storage `private-trip-hero/` 에만 저장한다.
+ * 처리된 WebP를 Object Storage `private-trip-hero/` 에만 저장한다.
  * (공개·관리자 모두 Storage-only)
  */
 export async function saveProcessedPrivateTripHeroWebp(
@@ -54,7 +54,7 @@ export async function saveProcessedPrivateTripHeroWebp(
 ): Promise<SavePrivateTripHeroUploadResult> {
   if (!isObjectStorageConfigured()) {
     throw new Error(
-      'Supabase Storage가 설정되어 있지 않습니다. 우리여행 히어로 이미지는 Storage에만 저장됩니다. (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)',
+      'Object Storage(NCLOUD_*)가 설정되어 있지 않습니다. 우리여행 히어로 이미지는 Object Storage에만 저장됩니다.',
     )
   }
 

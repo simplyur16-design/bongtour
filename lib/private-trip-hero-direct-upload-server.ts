@@ -4,10 +4,18 @@ import {
   PRIVATE_TRIP_HERO_UPLOAD_MAX_BYTES,
 } from '@/lib/private-trip-hero-constants'
 import { processPrivateTripHeroImageToWebpCover, saveProcessedPrivateTripHeroWebp } from '@/lib/private-trip-hero-upload'
-import { getImageStorageBucket, isObjectStorageConfigured, removeStorageObject } from '@/lib/object-storage'
+import { getSupabaseImageStorageBucket, isSupabaseStorageAdminConfigured } from '@/lib/object-storage'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 const INCOMING = `${PRIVATE_TRIP_HERO_STORAGE_PREFIX}/incoming`
+
+async function removeSupabaseIncomingKeys(keys: string[]): Promise<void> {
+  if (keys.length === 0) return
+  const supabase = getSupabaseAdmin()
+  const bucket = getSupabaseImageStorageBucket()
+  const { error } = await supabase.storage.from(bucket).remove(keys)
+  if (error) throw new Error(error.message)
+}
 
 /**
  * 브라우저 `createClient`용 — **anon 공개 키만**(service role 금지).
@@ -17,7 +25,6 @@ export function getPrivateTripHeroBrowserSupabaseClientConfig(): {
   supabaseUrl: string
   anonKey: string
 } | null {
-  if (!isObjectStorageConfigured()) return null
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '').trim()
   const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? '').trim()
   if (!supabaseUrl || !anonKey) return null
@@ -60,8 +67,8 @@ export async function signPrivateTripHeroIncomingUpload(params: {
   byteLength: number
   mimeType: string
 }): Promise<{ incomingPath: string; token: string }> {
-  if (!isObjectStorageConfigured()) {
-    throw new Error('Supabase Storage가 설정되어 있지 않습니다.')
+  if (!isSupabaseStorageAdminConfigured()) {
+    throw new Error('Supabase Storage(서비스 롤)가 설정되어 있지 않습니다.')
   }
   if (params.byteLength <= 0 || params.byteLength > PRIVATE_TRIP_HERO_UPLOAD_MAX_BYTES) {
     throw new Error(`파일은 ${Math.round(PRIVATE_TRIP_HERO_UPLOAD_MAX_BYTES / 1024 / 1024)}MB 이하여야 합니다.`)
@@ -77,7 +84,7 @@ export async function signPrivateTripHeroIncomingUpload(params: {
   const incomingPath = `${INCOMING}/${id}.${ext}`
 
   const supabase = getSupabaseAdmin()
-  const bucket = getImageStorageBucket()
+  const bucket = getSupabaseImageStorageBucket()
   const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(incomingPath, { upsert: true })
   if (error || !data?.token) {
     throw new Error(error?.message || 'signed URL 생성 실패')
@@ -99,7 +106,7 @@ export async function finalizePrivateTripHeroIncomingUpload(incomingPath: string
   }
 
   const supabase = getSupabaseAdmin()
-  const bucket = getImageStorageBucket()
+  const bucket = getSupabaseImageStorageBucket()
   const { data: blob, error: dlErr } = await supabase.storage.from(bucket).download(incomingPath)
   if (dlErr || !blob) {
     throw new Error(dlErr?.message || '임시 파일을 읽지 못했습니다.')
@@ -115,13 +122,13 @@ export async function finalizePrivateTripHeroIncomingUpload(incomingPath: string
     webp = await processPrivateTripHeroImageToWebpCover(buffer)
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    await removeStorageObject(incomingPath).catch(() => {})
+    await removeSupabaseIncomingKeys([incomingPath]).catch(() => {})
     throw new Error(`이미지 처리 실패: ${msg}`)
   }
 
   const saved = await saveProcessedPrivateTripHeroWebp(webp, originalFileName || 'upload')
-  await removeStorageObject(incomingPath).catch((e) => {
-    console.warn('[private-trip-hero] incoming 삭제 실패(무시 가능):', incomingPath, e)
+  await removeSupabaseIncomingKeys([incomingPath]).catch((err) => {
+    console.warn('[private-trip-hero] incoming 삭제 실패(무시 가능):', incomingPath, err)
   })
 
   return saved

@@ -1,5 +1,5 @@
 /**
- * 이미지 업로드: Supabase Storage → public_url → Prisma image_assets.
+ * 이미지 업로드: Object Storage(Ncloud S3) → public_url → Prisma image_assets.
  */
 
 import { randomUUID } from 'crypto'
@@ -61,7 +61,7 @@ export async function runImageAssetUpload(input: ImageAssetUploadInput): Promise
 }> {
   if (!isObjectStorageConfigured()) {
     throw new Error(
-      'Supabase Storage가 설정되지 않았습니다. SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, 선택 SUPABASE_IMAGE_BUCKET(기본 bongtour-images)를 설정하세요.'
+      'Object Storage가 설정되지 않았습니다. NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_ENDPOINT, NCLOUD_OBJECT_STORAGE_BUCKET, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL을 설정하세요.',
     )
   }
 

@@ -6,8 +6,8 @@
 import { buildMonthlyCurationWebpObjectKey } from '@/lib/monthly-curation-object-key'
 import {
   buildPublicUrlForObjectKey,
-  getImageStorageBucket,
-  isObjectStorageConfigured,
+  getSupabaseImageStorageBucket,
+  isSupabaseStorageAdminConfigured,
 } from '@/lib/object-storage'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
@@ -18,7 +18,6 @@ const MAX_BYTES = 30 * 1024 * 1024
  * `NEXT_PUBLIC_*` 없이 서버 env만 써도 되게: `SUPABASE_URL` + `SUPABASE_ANON_KEY` 조합 허용.
  */
 export function getMonthlyCurationBrowserSupabaseClientConfig(): { supabaseUrl: string; anonKey: string } | null {
-  if (!isObjectStorageConfigured()) return null
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '').trim()
   const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? '').trim()
   if (!supabaseUrl || !anonKey) return null
@@ -44,8 +43,8 @@ export async function signMonthlyCurationWebpDirectUpload(params: {
   imageUrl: string
   imageStorageKey: string
 }> {
-  if (!isObjectStorageConfigured()) {
-    throw new Error('Supabase Storage가 설정되어 있지 않습니다.')
+  if (!isSupabaseStorageAdminConfigured()) {
+    throw new Error('Supabase Storage(서비스 롤)가 설정되어 있지 않습니다.')
   }
   const ct = (params.contentType || '').toLowerCase().split(';')[0]!.trim()
   if (ct !== 'image/webp') {
@@ -64,7 +63,7 @@ export async function signMonthlyCurationWebpDirectUpload(params: {
   }
 
   const supabase = getSupabaseAdmin()
-  const bucket = getImageStorageBucket()
+  const bucket = getSupabaseImageStorageBucket()
   const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(objectKey, { upsert: true })
   if (error || !data?.token) {
     throw new Error(error?.message || 'signed URL 생성 실패')

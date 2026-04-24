@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
-import { getImageStorageBucket } from '@/lib/object-storage'
+import { getSupabaseImageStorageBucket } from '@/lib/object-storage'
 import {
   getPrivateTripHeroBrowserSupabaseClientConfig,
   isPrivateTripHeroDirectBrowserUploadConfigured,
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       token,
       supabaseUrl: clientCfg.supabaseUrl,
       supabaseAnonKey: clientCfg.anonKey,
-      bucket: getImageStorageBucket(),
+      bucket: getSupabaseImageStorageBucket(),
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'signed URL 실패'

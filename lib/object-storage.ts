@@ -1,18 +1,67 @@
 /**
- * Supabase Storage: server-side uploads. Use a public-read bucket in the Supabase dashboard.
- * Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY; optional SUPABASE_IMAGE_BUCKET (default bongtour-images).
+ * 서버 이미지 업로드: Naver Cloud Object Storage(S3 호환) + sharp(WebP).
+ * Env: NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_ENDPOINT,
+ * NCLOUD_OBJECT_STORAGE_BUCKET, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL,
+ * 선택 NCLOUD_OBJECT_STORAGE_REGION(기본 kr-standard), NCLOUD_OBJECT_STORAGE_S3_ADDRESSING(기본 path; virtual이면 virtual-hosted).
+ *
+ * 브라우저→Supabase incoming 등 레거시 경로는 `getSupabaseImageStorageBucket` + `isSupabaseStorageAdminConfigured`를 사용한다.
  */
+import {
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3'
 import { createHash } from 'node:crypto'
 import sharp from 'sharp'
-import { getSupabaseAdmin } from './supabase-admin'
 
-const DEFAULT_BUCKET = 'bongtour-images'
+const DEFAULT_NCLOUD_BUCKET = 'bongtour'
+const DEFAULT_SUPABASE_IMAGE_BUCKET = 'bongtour-images'
 
+let s3Client: S3Client | null = null
+
+function getS3Client(): S3Client {
+  if (!s3Client) {
+    const addressing = (process.env.NCLOUD_OBJECT_STORAGE_S3_ADDRESSING ?? 'path').toLowerCase().trim()
+    const forcePathStyle = addressing !== 'virtual'
+    const region = process.env.NCLOUD_OBJECT_STORAGE_REGION?.trim() || 'kr-standard'
+    const endpoint = process.env.NCLOUD_OBJECT_STORAGE_ENDPOINT!.trim()
+    s3Client = new S3Client({
+      region,
+      endpoint,
+      credentials: {
+        accessKeyId: process.env.NCLOUD_ACCESS_KEY!.trim(),
+        secretAccessKey: process.env.NCLOUD_SECRET_KEY!.trim(),
+      },
+      forcePathStyle,
+    })
+  }
+  return s3Client
+}
+
+/** 앱·DB에 기록되는 객체 스토리지 버킷(네이버 클라우드). */
 export function getImageStorageBucket(): string {
-  return process.env.SUPABASE_IMAGE_BUCKET?.trim() || DEFAULT_BUCKET
+  return process.env.NCLOUD_OBJECT_STORAGE_BUCKET?.trim() || DEFAULT_NCLOUD_BUCKET
+}
+
+/** Supabase Storage API(직접 업로드·incoming 등) 전용 버킷명. */
+export function getSupabaseImageStorageBucket(): string {
+  return process.env.SUPABASE_IMAGE_BUCKET?.trim() || DEFAULT_SUPABASE_IMAGE_BUCKET
 }
 
 export function isObjectStorageConfigured(): boolean {
+  return Boolean(
+    process.env.NCLOUD_ACCESS_KEY?.trim() &&
+      process.env.NCLOUD_SECRET_KEY?.trim() &&
+      process.env.NCLOUD_OBJECT_STORAGE_ENDPOINT?.trim() &&
+      process.env.NCLOUD_OBJECT_STORAGE_BUCKET?.trim() &&
+      process.env.NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL?.trim(),
+  )
+}
+
+/** Supabase 서비스 롤로 Storage API 호출 가능 여부(incoming·bootstrap 등). */
+export function isSupabaseStorageAdminConfigured(): boolean {
   return Boolean(process.env.SUPABASE_URL?.trim() && process.env.SUPABASE_SERVICE_ROLE_KEY?.trim())
 }
 
@@ -24,23 +73,28 @@ export type ObjectStorageEnv = {
 export function getObjectStorageEnv(): ObjectStorageEnv {
   if (!isObjectStorageConfigured()) {
     throw new Error(
-      'Supabase Storage env is incomplete. Set SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and optional SUPABASE_IMAGE_BUCKET (default bongtour-images).'
+      'Ncloud Object Storage env가 불완전합니다. NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_ENDPOINT, NCLOUD_OBJECT_STORAGE_BUCKET, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL을 설정하세요.',
     )
   }
-  const supabaseUrl = process.env.SUPABASE_URL!.trim().replace(/\/+$/, '')
   const bucket = getImageStorageBucket()
-  return {
-    bucket,
-    publicBaseUrl: `${supabaseUrl}/storage/v1/object/public/${bucket}`,
-  }
+  const publicBaseUrl = process.env.NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL!.trim().replace(/\/+$/, '')
+  return { bucket, publicBaseUrl }
 }
 
 export function buildPublicUrlForObjectKey(objectKey: string): string {
-  const bucket = getImageStorageBucket()
-  const supabase = getSupabaseAdmin()
+  const { publicBaseUrl } = getObjectStorageEnv()
   const key = objectKey.replace(/^\/+/, '')
-  const { data } = supabase.storage.from(bucket).getPublicUrl(key)
-  return data.publicUrl
+  const encoded = key
+    .split('/')
+    .map((seg) => {
+      try {
+        return encodeURIComponent(decodeURIComponent(seg))
+      } catch {
+        return encodeURIComponent(seg)
+      }
+    })
+    .join('/')
+  return `${publicBaseUrl}/${encoded}`
 }
 
 export type UploadStorageObjectResult = {
@@ -122,40 +176,27 @@ export async function uploadStorageObject(params: {
   body: Buffer
   contentType: string
 }): Promise<UploadStorageObjectResult> {
-  const { bucket } = getObjectStorageEnv()
-  const supabase = getSupabaseAdmin()
+  const { bucket, publicBaseUrl } = getObjectStorageEnv()
   const prepared = await prepareImageBodyForUpload(params)
   const key = prepared.objectKey.replace(/^\/+/, '')
-  const { error } = await supabase.storage.from(bucket).upload(key, prepared.body, {
-    contentType: prepared.contentType,
-    upsert: true,
-  })
-  if (error) {
-    throw new Error(`Supabase Storage upload failed: ${error.message}`)
-  }
-  const { data } = supabase.storage.from(bucket).getPublicUrl(key)
-  return { objectKey: key, publicUrl: data.publicUrl, bucket }
+  const client = getS3Client()
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: prepared.body,
+      ContentType: prepared.contentType,
+    }),
+  )
+  const publicUrl = buildPublicUrlForObjectKey(key)
+  return { objectKey: key, publicUrl, bucket }
 }
 
 export async function removeStorageObject(objectKey: string): Promise<void> {
   const { bucket } = getObjectStorageEnv()
-  const supabase = getSupabaseAdmin()
   const key = objectKey.replace(/^\/+/, '')
-  const { error } = await supabase.storage.from(bucket).remove([key])
-  if (error) {
-    throw new Error(`Supabase Storage delete failed: ${error.message}`)
-  }
-}
-
-type StorageListRow = {
-  name: string
-  metadata?: { size?: number } | null
-  created_at?: string
-  updated_at?: string
-}
-
-function storageListRowIsFile(row: StorageListRow): boolean {
-  return row.metadata != null && typeof row.metadata.size === 'number'
+  const client = getS3Client()
+  await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
 }
 
 export type ListedStorageObject = {
@@ -165,73 +206,47 @@ export type ListedStorageObject = {
 }
 
 /**
- * 버킷 내 `prefix`(예: `cities`, `cities/da-nang`) 아래의 **파일** object key를 재귀 수집.
- * 폴더는 `metadata.size`가 없는 항목으로 간주하고 하위로 내려간다.
+ * `prefix` 아래 객체 키를 평면 나열(ListObjectsV2). (폴더 개념 없음 — S3 prefix 매칭)
  */
 export async function listStorageObjectKeysRecursive(params: {
   prefix: string
   maxKeys?: number
+  /** Supabase 재귀 목록 호환용 — S3에서는 무시됨 */
   maxDepth?: number
 }): Promise<{ objects: ListedStorageObject[]; truncated: boolean }> {
   const { bucket } = getObjectStorageEnv()
-  const supabase = getSupabaseAdmin()
   const maxKeys = params.maxKeys ?? 100_000
-  const maxDepth = params.maxDepth ?? 24
-  const root = params.prefix.replace(/^\/+/, '').replace(/\/+$/, '')
-  const out: ListedStorageObject[] = []
+  const prefix = params.prefix.replace(/^\/+/, '')
+  const client = getS3Client()
+  const objects: ListedStorageObject[] = []
   let truncated = false
+  let continuationToken: string | undefined
 
-  async function walk(rel: string, depth: number): Promise<void> {
-    if (out.length >= maxKeys) {
-      truncated = true
-      return
-    }
-    if (depth > maxDepth) {
-      truncated = true
-      return
-    }
-    let offset = 0
-    const pageSize = 1000
-    for (;;) {
-      if (out.length >= maxKeys) {
-        truncated = true
-        return
-      }
-      const { data, error } = await supabase.storage.from(bucket).list(rel, {
-        limit: pageSize,
-        offset,
-        sortBy: { column: 'name', order: 'asc' },
+  for (;;) {
+    const res = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+        MaxKeys: Math.min(1000, maxKeys - objects.length),
+      }),
+    )
+    for (const item of res.Contents ?? []) {
+      if (!item.Key) continue
+      objects.push({
+        objectKey: item.Key,
+        updated_at: item.LastModified?.toISOString(),
       })
-      if (error) {
-        throw new Error(`Supabase Storage list failed (${rel}): ${error.message}`)
+      if (objects.length >= maxKeys) {
+        truncated = Boolean(res.IsTruncated)
+        return { objects, truncated }
       }
-      const rows = (data ?? []) as StorageListRow[]
-      if (rows.length === 0) break
-      for (const row of rows) {
-        if (out.length >= maxKeys) {
-          truncated = true
-          return
-        }
-        const name = row.name
-        if (!name) continue
-        const full = rel ? `${rel}/${name}` : name
-        if (storageListRowIsFile(row)) {
-          out.push({
-            objectKey: full,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-          })
-        } else {
-          await walk(full, depth + 1)
-        }
-      }
-      if (rows.length < pageSize) break
-      offset += pageSize
     }
+    if (!res.IsTruncated || !res.NextContinuationToken) break
+    continuationToken = res.NextContinuationToken
   }
 
-  await walk(root, 0)
-  return { objects: out, truncated }
+  return { objects, truncated }
 }
 
 export type RemoveStorageBatchResult = {
@@ -239,75 +254,113 @@ export type RemoveStorageBatchResult = {
   failed: { key: string; message: string }[]
 }
 
-/** 여러 객체 삭제. 배치 실패 시 청크 단위로 재시도 후 개별 폴백. */
+/** 여러 객체 삭제(S3 DeleteObjects, 실패 시 단건 DeleteObject 폴백). */
 export async function removeStorageObjectsBatched(
   keys: string[],
-  opts?: { batchSize?: number }
+  opts?: { batchSize?: number },
 ): Promise<RemoveStorageBatchResult> {
-  const batchSize = opts?.batchSize ?? 80
+  const batchSize = Math.min(opts?.batchSize ?? 1000, 1000)
   const { bucket } = getObjectStorageEnv()
-  const supabase = getSupabaseAdmin()
+  const client = getS3Client()
   const normalized = [...new Set(keys.map((k) => k.replace(/^\/+/, '')))].filter(Boolean)
   const removed: string[] = []
   const failed: { key: string; message: string }[] = []
 
   async function removeOne(key: string): Promise<boolean> {
-    const { error } = await supabase.storage.from(bucket).remove([key])
-    if (error) {
-      failed.push({ key, message: error.message })
+    try {
+      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+      removed.push(key)
+      return true
+    } catch (e) {
+      failed.push({ key, message: e instanceof Error ? e.message : String(e) })
       return false
     }
-    removed.push(key)
-    return true
   }
 
   for (let i = 0; i < normalized.length; i += batchSize) {
     const chunk = normalized.slice(i, i + batchSize)
-    const { error } = await supabase.storage.from(bucket).remove(chunk)
-    if (!error) {
-      removed.push(...chunk)
-      continue
-    }
-    for (const key of chunk) {
-      await removeOne(key)
+    try {
+      const out = await client.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: { Objects: chunk.map((Key) => ({ Key })), Quiet: true },
+        }),
+      )
+      const errByKey = new Map<string, string>()
+      for (const er of out.Errors ?? []) {
+        if (er.Key) errByKey.set(er.Key, er.Message ?? 'DeleteObjects error')
+      }
+      for (const key of chunk) {
+        if (errByKey.has(key)) {
+          try {
+            await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+            removed.push(key)
+          } catch (e2) {
+            failed.push({
+              key,
+              message: errByKey.get(key) ?? (e2 instanceof Error ? e2.message : String(e2)),
+            })
+          }
+        } else {
+          removed.push(key)
+        }
+      }
+    } catch {
+      for (const key of chunk) {
+        await removeOne(key)
+      }
     }
   }
 
   return { removed, failed }
 }
 
+function decodeKeyPath(raw: string): string {
+  return raw
+    .split('/')
+    .map((seg) => {
+      try {
+        return decodeURIComponent(seg)
+      } catch {
+        return seg
+      }
+    })
+    .join('/')
+}
+
 export function tryParseObjectKeyFromPublicUrl(publicUrl: string): string | null {
-  if (!isObjectStorageConfigured()) return null
   try {
-    const { publicBaseUrl } = getObjectStorageEnv()
-    const base = publicBaseUrl.replace(/\/+$/, '')
     let u = publicUrl.trim()
     const q = u.indexOf('?')
     if (q >= 0) u = u.slice(0, q)
-    if (!u.startsWith(base)) return null
-    const raw = u.slice(base.length).replace(/^\/+/, '')
-    if (!raw) return null
-    return raw
-      .split('/')
-      .map((seg) => {
-        try {
-          return decodeURIComponent(seg)
-        } catch {
-          return seg
-        }
-      })
-      .join('/')
+
+    if (isObjectStorageConfigured()) {
+      const base = getObjectStorageEnv().publicBaseUrl.replace(/\/+$/, '')
+      if (u.startsWith(`${base}/`) || u === base) {
+        const raw = u.slice(base.length).replace(/^\/+/, '')
+        if (!raw) return null
+        return decodeKeyPath(raw)
+      }
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL?.trim().replace(/\/+$/, '')
+    const supBucket = getSupabaseImageStorageBucket()
+    if (supabaseUrl) {
+      const legacy = `${supabaseUrl}/storage/v1/object/public/${supBucket}`
+      const lb = legacy.replace(/\/+$/, '')
+      if (u.startsWith(`${lb}/`) || u === lb) {
+        const raw = u.slice(lb.length).replace(/^\/+/, '')
+        if (!raw) return null
+        return decodeKeyPath(raw)
+      }
+    }
   } catch {
     return null
   }
+  return null
 }
 
-export function buildGeminiGeneratedObjectKey(
-  now: Date,
-  baseId: string,
-  slot: string,
-  index: number
-): string {
+export function buildGeminiGeneratedObjectKey(now: Date, baseId: string, slot: string, index: number): string {
   const y = String(now.getUTCFullYear())
   const m = String(now.getUTCMonth() + 1).padStart(2, '0')
   const safeSlot = slot.replace(/[^a-zA-Z0-9_-]/g, '_')

@@ -133,7 +133,7 @@ async function main(): Promise<void> {
   const includeHttp = hasFlag('--include-http')
 
   if (!isObjectStorageConfigured()) {
-    throw new Error('Supabase Storage 환경 변수(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)가 필요합니다.')
+    throw new Error('Object Storage 환경 변수(NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_*)가 필요합니다.')
   }
   const store = getObjectStorageEnv()
   const publicBase = store.publicBaseUrl

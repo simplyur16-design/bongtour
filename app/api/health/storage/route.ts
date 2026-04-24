@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getImageStorageBucket, isObjectStorageConfigured } from '@/lib/object-storage'
 
 /**
- * Supabase Storage(이미지 업로드) 설정 여부 — 비밀값 없이 진단용.
+ * Object Storage(Ncloud S3, 이미지 업로드) 설정 여부 — 비밀값 없이 진단용.
  * 서버: `curl -sS "https://도메인/api/health/storage" | jq`
  * 로컬은 되는데 서버만 실패할 때: `?probe=1` 로 이 호스트에서 sharp(WebP 변환) 로드 여부 확인.
  */
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
   const hints: string[] = []
   if (!ok) {
-    hints.push('SUPABASE_URL 과 SUPABASE_SERVICE_ROLE_KEY 를 서버 .env(PM2 ecosystem 포함)에 넣고 프로세스를 재시작하세요.')
+    hints.push('NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_* 를 서버 .env(PM2 ecosystem 포함)에 넣고 프로세스를 재시작하세요.')
   } else {
     hints.push(
       '로컬 OK·서버만 실패: Nginx 등 앞단에서 client_max_body_size(예: 32m)·413 여부, PM2에 위 env가 실제로 주입됐는지 확인하세요.',

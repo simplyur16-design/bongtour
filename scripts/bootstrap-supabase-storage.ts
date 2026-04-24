@@ -4,7 +4,7 @@
  * Requires: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (optional SUPABASE_IMAGE_BUCKET)
  */
 import "./load-env-for-scripts"
-import { getImageStorageBucket, isObjectStorageConfigured } from "../lib/object-storage"
+import { getSupabaseImageStorageBucket, isSupabaseStorageAdminConfigured } from "../lib/object-storage"
 import { getSupabaseAdmin } from "../lib/supabase-admin"
 
 const FOLDER_MARKERS = [
@@ -43,11 +43,11 @@ async function seedFolderMarkers(bucket: string): Promise<void> {
 }
 
 async function main() {
-  if (!isObjectStorageConfigured()) {
+  if (!isSupabaseStorageAdminConfigured()) {
     console.error("[bootstrap-supabase-storage] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required.")
     process.exit(1)
   }
-  const bucket = getImageStorageBucket()
+  const bucket = getSupabaseImageStorageBucket()
   await ensurePublicBucket(bucket)
   await seedFolderMarkers(bucket)
   console.log("[bootstrap-supabase-storage] ok")

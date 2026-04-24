@@ -22,7 +22,7 @@ function parseLimit(raw: string | null, fallback: number): number {
 }
 
 /**
- * Supabase Storage 공개 객체 목록(관리자 이미지 피커용).
+ * Object Storage(Ncloud S3) 공개 객체 목록(관리자 이미지 피커용).
  * GET ?prefix=photo-pool&limit=500 — 반환 `publicUrl`은 기존 홈허브·모바일 타일 저장과 동일 포맷(https 공개 URL).
  */
 export async function GET(request: Request) {
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
   if (!isObjectStorageConfigured()) {
     return NextResponse.json(
-      { ok: false, error: 'Supabase Storage(SUPABASE_URL·SUPABASE_SERVICE_ROLE_KEY)가 설정되지 않았습니다.' },
+      { ok: false, error: 'Object Storage(NCLOUD_* 환경 변수)가 설정되지 않았습니다.' },
       { status: 503 },
     )
   }

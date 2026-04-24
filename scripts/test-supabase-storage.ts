@@ -1,6 +1,6 @@
 ﻿/**
- * Supabase Storage smoke: upload -> public URL -> remove.
- * Run: npx tsx scripts/test-supabase-storage.ts (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in .env)
+ * Object Storage(Ncloud S3) smoke: upload -> public URL -> remove.
+ * Run: npx tsx scripts/test-supabase-storage.ts (.env.local에 NCLOUD_* 설정)
  */
 import "./load-env-for-scripts"
 import {
@@ -12,12 +12,12 @@ import {
 
 async function main() {
   if (!isObjectStorageConfigured()) {
-    console.error("[test-supabase-storage] SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY required")
+    console.error("[test-supabase-storage] NCLOUD_* Object Storage env required")
     process.exit(1)
   }
   const env = getObjectStorageEnv()
   const key = `smoke/${Date.now()}-bongtour.txt`
-  const body = Buffer.from("bongtour-supabase-smoke", "utf8")
+  const body = Buffer.from("bongtour-object-storage-smoke", "utf8")
   const r = await uploadStorageObject({
     objectKey: key,
     body,

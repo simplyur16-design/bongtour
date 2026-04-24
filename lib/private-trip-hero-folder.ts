@@ -12,11 +12,11 @@ export async function getPrivateTripHeroFolderListing(): Promise<{
 }> {
   const bucket = getImageStorageBucket()
   const prefix = `${PRIVATE_TRIP_HERO_STORAGE_PREFIX}/`
-  const locationLine = `Supabase Storage · ${bucket}/${prefix}`
+  const locationLine = `Object Storage · ${bucket}/${prefix}`
 
   if (!isObjectStorageConfigured()) {
     return {
-      locationNote: `${locationLine} — 서버에 SUPABASE_URL·SUPABASE_SERVICE_ROLE_KEY(·버킷)가 필요합니다.`,
+      locationNote: `${locationLine} — 서버에 NCLOUD_* Object Storage 환경 변수가 필요합니다.`,
       publicUrls: [],
       source: 'none',
     }
