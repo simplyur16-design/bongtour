@@ -8,6 +8,8 @@
  *
  *   node scripts/migrate-supabase-to-ncloud.mjs           # dry-run: 인벤토리 출력, 업로드·DB 미적용
  *   node scripts/migrate-supabase-to-ncloud.mjs --apply   # 실제 업로드 + DB 갱신
+ *
+ * 동일 object key로 다시 실행하면 PutObject가 **덮어쓰기**된다(ACL public-read 유지).
  */
 
 import { existsSync } from 'fs'
@@ -261,6 +263,7 @@ async function main() {
           Key: key,
           Body: buf,
           ContentType: contentTypeForKey(key),
+          ACL: 'public-read',
         }),
       )
       uploaded += 1

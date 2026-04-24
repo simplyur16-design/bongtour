@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import PartnerOrgLogoCell from './PartnerOrgLogoCell'
 
@@ -134,11 +135,6 @@ const partnerOrganizations: PartnerOrg[] = [
   { name: '\uad11\uba85\uc2dc', src: '/images/org-logos/gwangmyung.webp' },
 ]
 
-/** 마퀴 대신 정적 그리드로 노출할 로고 수(동시 로드·대역 절감). */
-const PARTNER_LOGO_GRID_MAX = 10
-
-const partnerOrganizationsDisplay = partnerOrganizations.slice(0, PARTNER_LOGO_GRID_MAX)
-
 /** Rail logo viewport height (slightly shorter on small screens). */
 const LOGO_RAIL_WRAPPER =
   'h-[2.35rem] w-full min-h-0 sm:h-[2.75rem] md:h-[3.15rem]'
@@ -171,6 +167,50 @@ function PartnerOrgRailItems({
   )
 }
 
+/**
+ * 무한 마퀴 한 줄: 동일 시퀀스를 두 번 렌더해 translateX(-50%) 루프 (globals.css `@keyframes marquee`).
+ */
+function PartnerOrgMarqueeRow({
+  rowKey,
+  organizations,
+  trackStyle,
+}: {
+  rowKey: string
+  organizations: PartnerOrg[]
+  /** e.g. 다른 줄과 속도 차 */
+  trackStyle?: CSSProperties
+}) {
+  return (
+    <div className="relative overflow-hidden">
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-8 bg-gradient-to-r from-white to-transparent sm:w-12 md:w-16"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-8 bg-gradient-to-l from-white to-transparent sm:w-12 md:w-16"
+        aria-hidden
+      />
+      <div className="bt-partner-org-marquee-track flex w-max flex-nowrap" style={trackStyle}>
+        <ul className="flex shrink-0 list-none items-center gap-x-8 pr-8">
+          <PartnerOrgRailItems idSuffix={`${rowKey}-a`} organizations={organizations} />
+        </ul>
+        <ul className="flex shrink-0 list-none items-center gap-x-8 pr-8" aria-hidden="true">
+          <PartnerOrgRailItems idSuffix={`${rowKey}-b`} organizations={organizations} />
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+const partnerMarqueeRowSplit = (() => {
+  const n = partnerOrganizations.length
+  const mid = Math.ceil(n / 2)
+  return {
+    track1: partnerOrganizations.slice(0, mid),
+    track2: partnerOrganizations.slice(mid),
+  }
+})()
+
 export default function PartnerOrganizationsSection() {
   return (
     <section
@@ -193,14 +233,17 @@ export default function PartnerOrganizationsSection() {
         </p>
 
         <div
-          className="group relative mt-8"
+          className="group relative mt-8 space-y-6"
           aria-label={
             '\uc8fc\uc694 \uac70\ub798\u00b7\ud611\ub825 \uae30\uad00 \ubc0f \uc9c0\uc790\uccb4 \ub85c\uace0'
           }
         >
-          <ul className="mx-auto grid max-w-5xl list-none grid-cols-2 justify-items-center gap-x-4 gap-y-8 px-2 sm:grid-cols-3 sm:gap-x-6 md:grid-cols-5 md:gap-x-6">
-            <PartnerOrgRailItems idSuffix="grid" organizations={partnerOrganizationsDisplay} />
-          </ul>
+          <PartnerOrgMarqueeRow rowKey="t1" organizations={partnerMarqueeRowSplit.track1} />
+          <PartnerOrgMarqueeRow
+            rowKey="t2"
+            organizations={partnerMarqueeRowSplit.track2}
+            trackStyle={{ '--bt-partner-marquee-dur': '44s' } as CSSProperties}
+          />
         </div>
 
         <p className="mt-8 text-center text-[11px] leading-snug text-slate-500 sm:text-xs">

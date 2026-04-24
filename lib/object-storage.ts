@@ -186,6 +186,7 @@ export async function uploadStorageObject(params: {
       Key: key,
       Body: prepared.body,
       ContentType: prepared.contentType,
+      ACL: 'public-read',
     }),
   )
   const publicUrl = buildPublicUrlForObjectKey(key)
