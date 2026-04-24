@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/app/components/Header";
@@ -34,7 +34,7 @@ type TossPaymentsInstance = {
   widgets: (args: { customerKey: string }) => WidgetsInstance;
 };
 
-export default function TossCheckoutPage() {
+function TossPaymentContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const paymentAttemptId = sp?.get("paymentAttemptId") ?? "";
@@ -253,5 +253,19 @@ export default function TossCheckoutPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function TossPaymentPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-bt-page text-sm text-slate-600">
+          결제 처리 중...
+        </div>
+      }
+    >
+      <TossPaymentContent />
+    </Suspense>
   );
 }
