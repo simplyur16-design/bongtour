@@ -3,13 +3,15 @@
 import { bongsimPath } from '@/lib/bongsim/constants'
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BONGSIM_CHECKOUT_TERMS_VERSION } from "@/lib/bongsim/checkout/terms";
 import {
   BONGSIM_RECOMMEND_CHECKOUT_QUEUE_KEY,
   type BongsimRecommendCheckoutLine,
 } from "@/lib/bongsim/constants";
+import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import type { BongsimProductDetailV1 } from "@/lib/bongsim/contracts/product-detail.v1";
+import { extractSingleCountryCode, getPlanCoveredCountries } from "@/lib/bongsim/plan-coverage-map";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/payment-session.v1";
 
@@ -23,6 +25,33 @@ function parseQtySearch(raw: string | null): number | undefined {
   const n = Number.parseInt(raw.trim(), 10);
   if (!Number.isFinite(n) || n < 1 || n > 99) return undefined;
   return n;
+}
+
+/** 체크아웃 상단 — 국기 + 한글 국가/권역명 */
+function checkoutCountryHeadline(planName: string): { flag: string; name: string } {
+  const plan = planName.trim();
+  let code = extractSingleCountryCode(plan);
+  if (!code) {
+    const codes = getPlanCoveredCountries(plan);
+    if (codes.length === 1) code = codes[0]!;
+  }
+  if (code) {
+    const c = COUNTRY_OPTIONS.find((x) => x.code === code);
+    if (c) return { flag: c.flag, name: c.nameKr };
+  }
+  return { flag: "🌍", name: plan || "상품" };
+}
+
+function checkoutPlanSubtitle(detail: BongsimProductDetailV1, countryHeadlineName: string): string {
+  const pn = detail.summary.plan_name.trim();
+  const ol = (detail.summary.option_label || "").trim();
+  const parts: string[] = [];
+  if (pn && pn !== "—" && pn !== countryHeadlineName) parts.push(pn);
+  if (ol && ol !== "—") parts.push(ol);
+  if (parts.length) return parts.join(" · ");
+  if (ol && ol !== "—") return ol;
+  if (pn && pn !== "—") return pn;
+  return "—";
 }
 
 /** API `display_basis` 내부 키를 사용자용 문구로만 노출 */
@@ -135,6 +164,12 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
       cancelled = true;
     };
   }, [optionApiId]);
+
+  const checkoutSummary = useMemo(() => {
+    if (!detail) return null;
+    const head = checkoutCountryHeadline(detail.summary.plan_name);
+    return { head, planSubtitle: checkoutPlanSubtitle(detail, head.name) };
+  }, [detail]);
 
   const onSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -275,9 +310,18 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 </p>
               </section>
             ) : null}
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
-              <p className="text-lg font-semibold text-slate-900 lg:text-xl">{detail.summary.plan_name}</p>
-              <p className="mt-1.5 text-base text-slate-600">{detail.summary.option_label}</p>
+            <section className="rounded-xl border border-teal-200 bg-teal-50 p-4 shadow-sm lg:p-5">
+              {checkoutSummary ? (
+                <>
+                  <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
+                    <span className="text-2xl leading-none" aria-hidden>
+                      {checkoutSummary.head.flag}
+                    </span>
+                    <span>{checkoutSummary.head.name}</span>
+                  </p>
+                  <p className="mt-2 text-base leading-snug text-slate-800">{checkoutSummary.planSubtitle}</p>
+                </>
+              ) : null}
               <p className="mt-4 text-2xl font-bold text-slate-900 lg:mt-5 lg:text-3xl">
                 {new Intl.NumberFormat("ko-KR").format(detail.summary.pricing.display_amount_krw)}원
                 <span className="ml-2 text-sm font-normal text-slate-500 lg:text-base">

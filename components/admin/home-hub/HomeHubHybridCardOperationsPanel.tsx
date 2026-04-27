@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
 import type { HomeHubActiveClientModel } from '@/lib/home-hub-active-client-model'
 import type { HomeHubCardImageSourceMode } from '@/lib/home-hub-card-hybrid-core'
@@ -50,6 +50,9 @@ export function HomeHubHybridCardOperationsPanel({
   const [trainingCandidatesError, setTrainingCandidatesError] = useState<string | null>(null)
   const [savingKey, setSavingKey] = useState<HomeHubCardImageKey | null>(null)
   const [poolBusy, setPoolBusy] = useState(false)
+  const [uploadingImageKey, setUploadingImageKey] = useState<HomeHubCardImageKey | null>(null)
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<Partial<Record<HomeHubCardImageKey, string>>>({})
+  const fileInputRefs = useRef<Partial<Record<HomeHubCardImageKey, HTMLInputElement | null>>>({})
 
   useEffect(() => {
     setPoolPreview(initialTravelPool)
@@ -197,6 +200,45 @@ export function HomeHubHybridCardOperationsPanel({
       images: { [key]: '' },
     })
   }
+
+  const onHubImageFileChange = useCallback(
+    async (key: HomeHubCardImageKey, e: ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0]
+      e.target.value = ''
+      if (!f) return
+
+      const blobUrl = URL.createObjectURL(f)
+      setPendingPreviewUrl((prev) => {
+        const old = prev[key]
+        if (old) URL.revokeObjectURL(old)
+        return { ...prev, [key]: blobUrl }
+      })
+      setUploadingImageKey(key)
+      try {
+        const fd = new FormData()
+        fd.append('file', f)
+        fd.append('cardKey', key)
+        const res = await fetch('/api/admin/upload-image', { method: 'POST', body: fd })
+        const data = (await res.json().catch(() => ({}))) as { ok?: boolean; path?: string; error?: string }
+        if (!res.ok || !data.ok || !data.path) {
+          onSaveError?.(data.error ?? '이미지 업로드에 실패했습니다.')
+          return
+        }
+        setManualDraft((p) => ({ ...p, [key]: data.path! }))
+      } catch {
+        onSaveError?.('네트워크 오류로 업로드하지 못했습니다.')
+      } finally {
+        setPendingPreviewUrl((prev) => {
+          const u = prev[key]
+          if (u) URL.revokeObjectURL(u)
+          const { [key]: _removed, ...rest } = prev
+          return rest
+        })
+        setUploadingImageKey(null)
+      }
+    },
+    [onSaveError],
+  )
 
   if (!active) {
     return (
@@ -402,6 +444,38 @@ export function HomeHubHybridCardOperationsPanel({
                       className="w-full resize-y rounded border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[10px] text-teal-100/90 placeholder:text-slate-600"
                       placeholder="/images/... 또는 https://... (비우면 수동 미지정)"
                     />
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <input
+                        ref={(el) => {
+                          fileInputRefs.current[key] = el
+                        }}
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        aria-label={`${cardLabels[key]} 이미지 파일 선택`}
+                        onChange={(ev) => void onHubImageFileChange(key, ev)}
+                      />
+                      <button
+                        type="button"
+                        disabled={busy || uploadingImageKey === key}
+                        onClick={() => fileInputRefs.current[key]?.click()}
+                        className="rounded-lg border border-teal-600/80 bg-teal-950/40 px-2.5 py-1 text-[11px] font-semibold text-teal-100 shadow-sm hover:bg-teal-900/50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {uploadingImageKey === key ? '업로드 중…' : '이미지 업로드'}
+                      </button>
+                      {pendingPreviewUrl[key] ? (
+                        <span className="relative inline-block h-11 w-16 shrink-0 overflow-hidden rounded-md border border-slate-600 bg-slate-900">
+                          {/* 로컬 blob 미리보기 — 업로드 직전·진행 중 */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={pendingPreviewUrl[key]}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        </span>
+                      ) : null}
+                      <span className="text-[10px] text-slate-500">선택한 파일은 서버에 저장된 뒤 위 URL란에 자동 입력됩니다.</span>
+                    </div>
                   </dd>
                 </div>
                 {key === 'training' ? (

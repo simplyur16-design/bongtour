@@ -8,6 +8,8 @@ type Props = {
   children: React.ReactNode;
   /** 배경 클릭 시 닫기 (기본 false) */
   closeOnBackdrop?: boolean;
+  /** 다이얼로그 패널 너비 (Tailwind max-w-*). 기본 max-w-md */
+  maxWidthClassName?: string;
 };
 
 export function RecommendModalShell({
@@ -15,6 +17,7 @@ export function RecommendModalShell({
   onClose,
   children,
   closeOnBackdrop = false,
+  maxWidthClassName = "max-w-md",
 }: Props) {
   const [entered, setEntered] = useState(false);
 
@@ -38,7 +41,7 @@ export function RecommendModalShell({
       <div
         role="dialog"
         aria-modal="true"
-        className={`max-h-[92vh] w-full max-w-md overflow-hidden rounded-t-2xl bg-white shadow-2xl transition-all duration-300 ease-out sm:rounded-2xl ${
+        className={`max-h-[92vh] w-full ${maxWidthClassName} overflow-hidden rounded-t-2xl bg-white shadow-2xl transition-all duration-300 ease-out sm:rounded-2xl ${
           entered ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
         }`}
         onClick={(e) => e.stopPropagation()}
