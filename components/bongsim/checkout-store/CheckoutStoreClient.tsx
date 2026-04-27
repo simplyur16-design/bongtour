@@ -5,23 +5,59 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BONGSIM_CHECKOUT_TERMS_VERSION } from "@/lib/bongsim/checkout/terms";
+import {
+  BONGSIM_RECOMMEND_CHECKOUT_QUEUE_KEY,
+  type BongsimRecommendCheckoutLine,
+} from "@/lib/bongsim/constants";
 import type { BongsimProductDetailV1 } from "@/lib/bongsim/contracts/product-detail.v1";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/payment-session.v1";
 
 type Props = {
   optionApiIdInitial: string;
+  quantityInitial?: number;
 };
 
-export function CheckoutStoreClient({ optionApiIdInitial }: Props) {
+function parseQtySearch(raw: string | null): number | undefined {
+  if (raw == null || raw.trim() === "") return undefined;
+  const n = Number.parseInt(raw.trim(), 10);
+  if (!Number.isFinite(n) || n < 1 || n > 99) return undefined;
+  return n;
+}
+
+function readRecommendQueue(): BongsimRecommendCheckoutLine[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(BONGSIM_RECOMMEND_CHECKOUT_QUEUE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return null;
+    const out: BongsimRecommendCheckoutLine[] = [];
+    for (const row of parsed) {
+      if (!row || typeof row !== "object") continue;
+      const o = row as Record<string, unknown>;
+      const id = typeof o.optionApiId === "string" ? o.optionApiId.trim() : "";
+      const q = typeof o.quantity === "number" ? o.quantity : Number.parseInt(String(o.quantity ?? ""), 10);
+      if (!id || !Number.isFinite(q) || q < 1 || q > 99) continue;
+      out.push({ optionApiId: id, quantity: Math.trunc(q) });
+    }
+    return out.length ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
   const optionApiId = (sp?.get("optionApiId") ?? optionApiIdInitial).trim();
+  const qtyFromSearch = parseQtySearch(sp?.get("qty") ?? null);
 
   const [detail, setDetail] = useState<BongsimProductDetailV1 | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(() => quantityInitial ?? 1);
+  const [recommendQueue, setRecommendQueue] = useState<BongsimRecommendCheckoutLine[] | null>(null);
   const [terms, setTerms] = useState(false);
   const [locale, setLocale] = useState<"ko" | "en" | "">("");
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -35,6 +71,20 @@ export function CheckoutStoreClient({ optionApiIdInitial }: Props) {
     checkoutIdempotencyRef.current = null;
     paymentIdempotencyRef.current = null;
   }, [optionApiId]);
+
+  useEffect(() => {
+    const q = readRecommendQueue();
+    setRecommendQueue(q);
+    const fromUrl = qtyFromSearch ?? quantityInitial;
+    if (fromUrl != null) {
+      setQuantity(fromUrl);
+      return;
+    }
+    if (q) {
+      const line = q.find((l) => l.optionApiId === optionApiId);
+      if (line) setQuantity(line.quantity);
+    }
+  }, [optionApiId, qtyFromSearch, quantityInitial]);
 
   useEffect(() => {
     if (!optionApiId) {
@@ -196,6 +246,16 @@ export function CheckoutStoreClient({ optionApiIdInitial }: Props) {
           <p className="mt-4 text-sm text-slate-600">불러오는 중…</p>
         ) : (
           <div className="mt-4 space-y-4">
+            {recommendQueue && recommendQueue.length > 1 ? (
+              <section className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-[13px] leading-snug text-amber-950">
+                <p className="font-semibold">추천에서 여러 국가 상품을 담았어요</p>
+                <p className="mt-1.5 text-amber-900/90">
+                  현재 주문은 <strong>이 상품 1건</strong>만 포함합니다. 결제를 마친 뒤, 같은 방식으로 나머지{" "}
+                  <strong>{recommendQueue.length - 1}건</strong>을 각각 주문해 주세요. (체크아웃 API는 국가당 1상품
+                  주문만 지원합니다.)
+                </p>
+              </section>
+            ) : null}
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-[13px] font-semibold text-slate-900">{detail.summary.plan_name}</p>
               <p className="mt-1 text-[12px] text-slate-600">{detail.summary.option_label}</p>

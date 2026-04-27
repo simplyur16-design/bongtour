@@ -40,14 +40,15 @@ type Props = {
   mobileCollapseInitialCount?: number;
 };
 
-const DEFAULT_GRID = "grid w-full grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-9";
+/** 인기 여행지 / 전체 국가 그리드 공통 — 모바일 5열, `sm` 7열, `md+` 9열 */
+export const COUNTRY_PICKER_GRID_CLASS = "grid w-full grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-9";
 
 export function CountryPickerGrid({
   countries,
   selectedCode,
   selectedCodes,
   onSelect,
-  gridClassName = DEFAULT_GRID,
+  gridClassName = COUNTRY_PICKER_GRID_CLASS,
   mobileCollapseInitialCount = 20,
 }: Props) {
   const isMobile = useMediaQueryBelow(MOBILE_BREAKPOINT_PX);

@@ -24,7 +24,7 @@ const CONFIG_REL = ['public', 'data', 'home-hub-active.json'] as const
 export type HomeHubActiveSeasonUi = 'default' | 'spring' | 'summer' | 'autumn' | 'winter'
 
 /** 모바일 홈 주요 서비스 4타일 배경 — `home-hub-active.json` 의 `mobileMainServiceTiles` 키와 동일 */
-export type MobileMainServiceTileKey = 'overseas' | 'airHotel' | 'privateTrip' | 'training'
+export type MobileMainServiceTileKey = 'overseas' | 'airHotel' | 'privateTrip' | 'esim'
 
 export type HomeHubActiveFile = {
   /**

@@ -26,6 +26,8 @@ export interface ProductOption {
   days_raw: string;
   allowance_label: string;
   option_label: string;
+  /** DB `qos_raw` — plans API 등에서 노출 */
+  qos_raw?: string | null;
   price_block: {
     before?: { recommended_krw?: unknown };
     after?: { recommended_krw?: unknown };
@@ -35,9 +37,14 @@ export interface ProductOption {
   recommended_price?: number;
 }
 
-/** 천 단위 콤마 + "원~" */
+/** 천 단위 콤마 + "원" */
 export function formatKrw(n: number): string {
-  return `${Number(n).toLocaleString("ko-KR", { maximumFractionDigits: 0 })}원~`;
+  return `${Number(n).toLocaleString("ko-KR", { maximumFractionDigits: 0 })}원`;
+}
+
+/** 천 단위 콤마 + "원/일" (권장가÷상품 `days_raw` 일당 등) */
+export function formatKrwPerDay(n: number): string {
+  return `${Number(n).toLocaleString("ko-KR", { maximumFractionDigits: 0 })}원/일`;
 }
 
 /** 엑셀 용량(allowance_label) 기준: 정확히 무제한/완전 무제한/unlimited 만 진짜 무제한. 500MB·1GB 등은 저속 무제한(가짜). */

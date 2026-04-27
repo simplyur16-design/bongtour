@@ -2,10 +2,12 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
-import { isCountryWithLocalNetworkChoice } from "@/lib/bongsim/recommend/local-network-countries";
+import { BONGSIM_RECOMMEND_CHECKOUT_QUEUE_KEY, bongsimPath } from "@/lib/bongsim/constants";
 import {
   computeRecommendedPrice,
   extractDaysFromDaysRaw,
@@ -17,18 +19,6 @@ import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-rang
 
 const HERO_IMAGE_SIZES = "(max-width:768px) 100vw, 512px";
 
-/** DB 없음 — Unsplash 고정 URL (국가별 히어로) */
-const COUNTRY_HERO: Record<string, string> = {
-  jp: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&q=75&fit=crop",
-  tw: "https://images.unsplash.com/photo-1470004914212-05527e49370b?w=600&q=75&fit=crop",
-  vn: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600&q=75&fit=crop",
-  th: "https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=75&fit=crop",
-  hk: "https://images.unsplash.com/photo-1536599018102-9f803c140fc1?w=600&q=75&fit=crop",
-  sg: "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=600&q=75&fit=crop",
-  us: "https://images.unsplash.com/photo-1485738422979-f5c462d49f04?w=600&q=75&fit=crop",
-  cn: "https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=600&q=75&fit=crop",
-};
-
 export type CountryProductPack = {
   roaming: { min_price: number; products: ProductOption[] };
   local: { min_price: number; products: ProductOption[] } | null;
@@ -36,8 +26,8 @@ export type CountryProductPack = {
   local_unlimited_min: number | null;
 };
 
-function countryHeroUrl(code: string): string | undefined {
-  return COUNTRY_HERO[code.toLowerCase()];
+function countryHeroUrl(code: string, heroMap: Record<string, string>): string | undefined {
+  return heroMap[code.toLowerCase()];
 }
 
 function flagCdnUrl(code: string): string {
@@ -53,6 +43,26 @@ function unitPriceKrw(p: ProductOption): number | null {
     return p.recommended_price;
   }
   return computeRecommendedPrice(p.price_block);
+}
+
+/** 로밍·로컬 구분 없이 해당 국가 패키지 전체 상품 중 권장가 최저 1개 */
+function overallMinUnitPriceKrw(pack: CountryProductPack): number | null {
+  let min: number | null = null;
+  for (const p of pack.roaming.products) {
+    const u = unitPriceKrw(p);
+    if (u != null && u > 0 && Number.isFinite(u)) {
+      if (min == null || u < min) min = u;
+    }
+  }
+  if (pack.local) {
+    for (const p of pack.local.products) {
+      const u = unitPriceKrw(p);
+      if (u != null && u > 0 && Number.isFinite(u)) {
+        if (min == null || u < min) min = u;
+      }
+    }
+  }
+  return min;
 }
 
 function multiPlanDisplayNameKr(planName: string): string {
@@ -112,11 +122,10 @@ interface ProductCombinationData {
 }
 
 type FlowState =
-  | { kind: "duration"; code: string; network: "roaming" | "local" }
+  | { kind: "duration"; code: string }
   | {
       kind: "plan";
       code: string;
-      network: "roaming" | "local";
       tripDays: number;
       start: Date;
       end: Date;
@@ -126,33 +135,26 @@ export type CountryPlanSelection = { product: ProductOption; quantity: number };
 
 interface ProductCombinationStepProps {
   selectedCodes: string[];
+  /** GET /api/bongsim/country-heroes — 없는 코드는 국기 blur 폴백 */
+  heroMap: Record<string, string>;
   onBack: () => void;
   onNext?: (selection: Record<string, CountryPlanSelection>) => void;
 }
 
-function heroCaptionLine(pack: CountryProductPack): string | null {
-  const A = pack.roaming_unlimited_min;
-  const B = pack.local_unlimited_min;
-  if (A != null && B != null) {
-    const v = Math.min(A, B);
-    return `무제한 1일 ${formatKrw(v)}`;
-  }
-  if (A != null) return `무제한 1일 ${formatKrw(A)}`;
-  if (B != null) return `무제한 1일 ${formatKrw(B)}`;
-  const r = pack.roaming.min_price;
-  const l = pack.local?.min_price;
-  const fallback = l != null && Number.isFinite(l) ? Math.min(r, l) : r;
-  if (fallback != null && Number.isFinite(fallback) && fallback > 0) {
-    return `1일 ${formatKrw(fallback)}`;
-  }
+function cardPriceCaption(pack: CountryProductPack): string | null {
+  const min = overallMinUnitPriceKrw(pack);
+  if (min != null && min > 0) return `1일 ${formatKrw(min)}~`;
   return null;
 }
 
 export function ProductCombinationStep({
   selectedCodes,
+  heroMap,
   onBack,
   onNext,
 }: ProductCombinationStepProps) {
+  const router = useRouter();
+  const { status: sessionStatus } = useSession();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ProductCombinationData | null>(null);
   const [completed, setCompleted] = useState<Record<string, CountryPlanSelection>>({});
@@ -208,10 +210,10 @@ export function ProductCombinationStep({
     return best;
   }, [data, selectedCodes.length]);
 
-  const startDuration = (code: string, network: "roaming" | "local") => {
+  const startDuration = (code: string) => {
     if (completed[code]) return;
     setTripResume(null);
-    setFlow({ kind: "duration", code, network });
+    setFlow({ kind: "duration", code });
   };
 
   const closeFlow = () => {
@@ -231,13 +233,38 @@ export function ProductCombinationStep({
       return;
     }
     if (redirectRef.current) return;
+    if (sessionStatus === "loading") return;
+
     const payload = { ...completed };
     onNext?.(payload);
-    const firstId = selectedCodes.map((c) => completed[c]?.product.option_api_id).find(Boolean);
-    if (!firstId) return;
+
+    const queue = selectedCodes
+      .map((code) => {
+        const sel = completed[code];
+        if (!sel) return null;
+        return { optionApiId: sel.product.option_api_id, quantity: sel.quantity };
+      })
+      .filter((row): row is { optionApiId: string; quantity: number } => row != null);
+    if (queue.length === 0) return;
+
+    try {
+      sessionStorage.setItem(BONGSIM_RECOMMEND_CHECKOUT_QUEUE_KEY, JSON.stringify(queue));
+    } catch {
+      /* quota / private mode */
+    }
+
+    const first = queue[0]!;
+    const checkoutPath = `${bongsimPath("/checkout")}?optionApiId=${encodeURIComponent(first.optionApiId)}&qty=${encodeURIComponent(String(first.quantity))}`;
+
     redirectRef.current = true;
-    window.alert("결제 시스템 준비 중입니다. 다음 주부터 이용 가능합니다.");
-  }, [allDone, completed, onNext, selectedCodes]);
+
+    if (sessionStatus === "unauthenticated") {
+      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(checkoutPath)}`);
+      return;
+    }
+
+    router.push(checkoutPath);
+  }, [allDone, completed, onNext, router, selectedCodes, sessionStatus]);
 
   const shell = (inner: ReactNode) => (
     <div className="mx-auto w-full max-w-lg px-4">{inner}</div>
@@ -287,14 +314,10 @@ export function ProductCombinationStep({
           const country = countryByCode[code];
           const pack = data.individual[code];
           const done = Boolean(completed[code]);
-          const hero = countryHeroUrl(code);
+          const hero = countryHeroUrl(code, heroMap);
           const selection = completed[code];
           const range = countryDateRanges.find((r) => r.code === code);
-          const heroLine = pack ? heroCaptionLine(pack) : null;
-          const roamingBtnPrice =
-            pack && pack.roaming.min_price > 0 ? formatKrw(pack.roaming.min_price) : "—";
-          const localBtnPrice =
-            pack?.local && pack.local.min_price > 0 ? formatKrw(pack.local.min_price) : "—";
+          const priceLine = pack ? cardPriceCaption(pack) : null;
 
           const summaryParts: string[] = [];
           if (selection) {
@@ -313,7 +336,23 @@ export function ProductCombinationStep({
                   </span>
                 </div>
               ) : null}
-              <div className="w-full overflow-hidden rounded-2xl shadow-lg">
+              <div
+                className={`w-full overflow-hidden rounded-2xl shadow-lg ${
+                  !done ? "cursor-pointer transition hover:ring-2 hover:ring-blue-300/60" : ""
+                }`}
+                role={!done ? "button" : undefined}
+                tabIndex={!done ? 0 : undefined}
+                onClick={() => {
+                  if (!done) startDuration(code);
+                }}
+                onKeyDown={(e) => {
+                  if (done) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    startDuration(code);
+                  }
+                }}
+              >
                 <div className="relative h-44 w-full overflow-hidden bg-gray-900">
                   {hero ? (
                     <Image
@@ -363,8 +402,8 @@ export function ProductCombinationStep({
                         <p className="truncate text-xl font-bold text-white drop-shadow-md">
                           {country?.nameKr ?? code.toUpperCase()}
                         </p>
-                        {heroLine ? (
-                          <p className="mt-0.5 text-sm text-white/80 drop-shadow-md">{heroLine}</p>
+                        {priceLine ? (
+                          <p className="mt-0.5 text-sm text-white/80 drop-shadow-md">{priceLine}</p>
                         ) : null}
                       </div>
                     </div>
@@ -390,37 +429,8 @@ export function ProductCombinationStep({
                         {summaryLine}
                       </span>
                     </div>
-                  ) : isCountryWithLocalNetworkChoice(code) ? (
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => startDuration(code, "roaming")}
-                        className="flex min-h-[5.5rem] flex-1 flex-col items-center justify-center rounded-xl border border-gray-200 px-4 py-3 text-center transition hover:border-blue-400 hover:bg-blue-50"
-                      >
-                        <span className="text-sm font-bold text-gray-900">가심비 최상</span>
-                        <span className="mt-0.5 text-xs text-gray-500">로밍망</span>
-                        <span className="mt-1 text-sm font-semibold text-blue-500">{roamingBtnPrice}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => startDuration(code, "local")}
-                        className="flex min-h-[5.5rem] flex-1 flex-col items-center justify-center rounded-xl border border-gray-200 px-4 py-3 text-center transition hover:border-blue-400 hover:bg-blue-50"
-                      >
-                        <span className="text-sm font-bold text-gray-900">현지인들처럼</span>
-                        <span className="mt-0.5 text-xs text-gray-500">로컬망</span>
-                        <span className="mt-1 text-sm font-semibold text-blue-500">{localBtnPrice}</span>
-                      </button>
-                    </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => startDuration(code, "roaming")}
-                      className="flex w-full min-h-[5.5rem] flex-col items-center justify-center rounded-xl border border-gray-200 px-4 py-3 text-center transition hover:border-blue-400 hover:bg-blue-50"
-                    >
-                      <span className="text-sm font-bold text-gray-900">가심비 최상</span>
-                      <span className="mt-0.5 text-xs text-gray-500">로밍망</span>
-                      <span className="mt-1 text-sm font-semibold text-blue-500">{roamingBtnPrice}</span>
-                    </button>
+                    <p className="text-center text-sm text-gray-500">카드를 눌러 여행 기간을 선택하세요</p>
                   )}
                 </div>
               </div>
@@ -470,7 +480,6 @@ export function ProductCombinationStep({
           setFlow({
             kind: "plan",
             code: flow.code,
-            network: flow.network,
             tripDays: payload.tripDays,
             start: payload.start,
             end: payload.end,
@@ -484,13 +493,11 @@ export function ProductCombinationStep({
           countryName={flowCountryName}
           countryCode={flow.code}
           allSelectedCodes={selectedCodes}
-          network={flow.network}
           tripDays={flow.tripDays}
           onBack={() => {
             setFlow({
               kind: "duration",
               code: flow.code,
-              network: flow.network,
             });
           }}
           onComplete={(product, quantity) => {

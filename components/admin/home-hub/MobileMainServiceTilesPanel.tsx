@@ -26,10 +26,10 @@ const ROWS: { key: MobileMainServiceTileKey; title: string; hint: string; imageG
     imageGuide: '권장 컷: 가족·소그룹이 함께하는 여행 사진(얼굴·초상권 동의된 컷).',
   },
   {
-    key: 'training',
-    title: '국외연수',
-    hint: '학교·기업·공공',
-    imageGuide: '권장 컷: 회의장·세미나룸·연수 진행 장면.',
+    key: 'esim',
+    title: 'eSIM',
+    hint: '여행용 eSIM',
+    imageGuide: '권장 컷: 스마트폰·여행 연결감(과한 UI 스크린샷은 피하고 톤만).',
   },
 ]
 
@@ -40,7 +40,7 @@ type Props = {
 }
 
 function emptyDraft(): Record<MobileMainServiceTileKey, string> {
-  return { overseas: '', airHotel: '', privateTrip: '', training: '' }
+  return { overseas: '', airHotel: '', privateTrip: '', esim: '' }
 }
 
 function isLikelyImageUrl(s: string): boolean {
@@ -57,11 +57,12 @@ export function MobileMainServiceTilesPanel({ active, onSaved, onSaveError }: Pr
 
   useEffect(() => {
     const m = active?.mobileMainServiceTiles
+    const legacyTraining = (m as Record<string, string | undefined> | undefined)?.['training']?.trim() ?? ''
     setDraft({
       overseas: m?.overseas?.trim() ?? '',
       airHotel: m?.airHotel?.trim() ?? '',
       privateTrip: m?.privateTrip?.trim() ?? '',
-      training: m?.training?.trim() ?? '',
+      esim: m?.esim?.trim() ?? legacyTraining,
     })
   }, [active?.lastUpdatedAt, active?.mobileMainServiceTiles])
 

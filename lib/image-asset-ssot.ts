@@ -10,15 +10,30 @@ export { toAssetSlug } from '@/lib/image-asset-slug'
 /** 기본 버킷명 문서용. 실제 값은 SUPABASE_IMAGE_BUCKET(기본 bongtour-images). */
 export const IMAGE_ASSET_STORAGE_BUCKET = 'bongtour-images' as const
 
-export type ImageAssetEntityType = 'product' | 'city' | 'country' | 'study' | 'bus' | 'page'
+export type ImageAssetEntityType =
+  | 'product'
+  | 'city'
+  | 'country'
+  | 'study'
+  | 'bus'
+  | 'page'
+  | 'bongsim_esim_country'
 
 export type ImageAssetServiceType = 'overseas' | 'domestic' | 'study' | 'bus' | 'support'
 
-export type ImageAssetRole = 'hero' | 'thumb' | 'gallery' | 'og'
+export type ImageAssetRole = 'hero' | 'thumb' | 'gallery' | 'og' | 'recommend_hero'
 
-const ENTITY_TYPES = new Set<ImageAssetEntityType>(['product', 'city', 'country', 'study', 'bus', 'page'])
+const ENTITY_TYPES = new Set<ImageAssetEntityType>([
+  'product',
+  'city',
+  'country',
+  'study',
+  'bus',
+  'page',
+  'bongsim_esim_country',
+])
 const SERVICE_TYPES = new Set<ImageAssetServiceType>(['overseas', 'domestic', 'study', 'bus', 'support'])
-const IMAGE_ROLES = new Set<ImageAssetRole>(['hero', 'thumb', 'gallery', 'og'])
+const IMAGE_ROLES = new Set<ImageAssetRole>(['hero', 'thumb', 'gallery', 'og', 'recommend_hero'])
 
 export function assertEntityType(v: string): ImageAssetEntityType {
   const x = v as ImageAssetEntityType
@@ -157,6 +172,8 @@ export function buildAltKr(p: AltParams): string {
       const region = (p.regionLabelKr ?? nameKr).trim()
       return `${region} 안내 대표 이미지`
     }
+    case 'bongsim_esim_country':
+      return `${nameKr} eSIM 추천 히어로`
     default:
       return `${nameKr} 대표 이미지`
   }
@@ -191,6 +208,8 @@ export function buildAltEn(p: AltParams): string {
     }
     case 'page':
       return `${productTitle} page main image`
+    case 'bongsim_esim_country':
+      return `${productTitle} eSIM recommendation hero image`
     default:
       return `${productTitle} image`
   }

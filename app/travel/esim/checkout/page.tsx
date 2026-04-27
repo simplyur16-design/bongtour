@@ -3,11 +3,22 @@ import Header from '@/app/components/Header'
 import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
 import { CheckoutStoreClient } from "@/components/bongsim/checkout-store/CheckoutStoreClient";
 
-type Props = { searchParams: { optionApiId?: string } };
+type Props = { searchParams: { optionApiId?: string; qty?: string } };
+
+function parseQtyInitial(raw: string | undefined): number | undefined {
+  const n = Number.parseInt(String(raw ?? "").trim(), 10);
+  if (!Number.isFinite(n) || n < 1 || n > 99) return undefined;
+  return n;
+}
 
 async function CheckoutInner({ searchParams }: Props) {
   const q = searchParams;
-  return <CheckoutStoreClient optionApiIdInitial={(q.optionApiId ?? "").trim()} />;
+  return (
+    <CheckoutStoreClient
+      optionApiIdInitial={(q.optionApiId ?? "").trim()}
+      quantityInitial={parseQtyInitial(q.qty)}
+    />
+  );
 }
 
 export default function CheckoutPage(props: Props) {

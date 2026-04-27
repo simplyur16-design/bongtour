@@ -47,6 +47,7 @@ export function isOtherCountryBoundaryDay(
 
 /**
  * 두 inclusive 구간이 허용되는지: 겹침 없음 또는 하루만 겹치며 그날이 한쪽의 종료·다른 쪽의 시작(경계 맞닿음).
+ * 예: A 4/28~5/2, B 5/2~5/5 → 5/2 하루만 겹침·허용. A 4/28~5/3, B 5/1~5/5 → 내부일 다중 겹침·불가.
  */
 export function rangesTouchCompatible(a1: Date, a2: Date, b1: Date, b2: Date): boolean {
   const t = dayKey;

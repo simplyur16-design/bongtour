@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Header from "@/app/components/Header";
 import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
-import { CountryPickerGrid } from "@/components/bongsim/CountryPickerGrid";
+import { COUNTRY_PICKER_GRID_CLASS, CountryPickerGrid } from "@/components/bongsim/CountryPickerGrid";
 import { ProductCombinationStep } from "@/components/bongsim/recommend/ProductCombinationStep";
 import { CountryNameMultiline } from "@/lib/bongsim/country-name-display";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
@@ -40,6 +40,7 @@ export default function RecommendPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [standaloneCountries, setStandaloneCountries] = useState<CountryOption[] | null>(null);
   const [countriesLoadError, setCountriesLoadError] = useState<string | null>(null);
+  const [heroMap, setHeroMap] = useState<Record<string, string>>({});
 
   const loadCountries = useCallback(async () => {
     setCountriesLoadError(null);
@@ -61,6 +62,29 @@ export default function RecommendPage() {
   useEffect(() => {
     void loadCountries();
   }, [loadCountries]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/bongsim/country-heroes", { cache: "no-store" })
+      .then(async (res) => {
+        if (cancelled || !res.ok) return;
+        const data = (await res.json().catch(() => null)) as unknown;
+        if (cancelled || !data || typeof data !== "object" || Array.isArray(data)) return;
+        const obj = data as Record<string, unknown>;
+        if (typeof obj.error === "string") return;
+        const next: Record<string, string> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          if (typeof v === "string" && v.trim()) {
+            next[k.trim().toLowerCase()] = v.trim();
+          }
+        }
+        setHeroMap(next);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const allCountriesExceptKorea = useMemo(() => {
     if (!standaloneCountries) return [];
@@ -161,7 +185,7 @@ export default function RecommendPage() {
               </div>
             )}
 
-            <section className="mb-10">
+            <section className="mb-8 border-b border-slate-200 pb-8">
               <h2 className="mb-3 text-[15px] font-bold text-slate-800">🔥 인기 여행지</h2>
               <div className="px-2">
                 {standaloneCountries === null ? (
@@ -171,7 +195,7 @@ export default function RecommendPage() {
                     인기 여행지 중 단독 플랜이 있는 국가가 없습니다.
                   </p>
                 ) : (
-                  <div className="grid grid-cols-5 gap-2 sm:grid-cols-9 md:grid-cols-10">
+                  <div className={COUNTRY_PICKER_GRID_CLASS}>
                     {popularCountries.map((country) => {
                       const isSelected = selectedCodes.includes(country.code);
                       return (
@@ -202,7 +226,7 @@ export default function RecommendPage() {
                           </div>
                           <CountryNameMultiline
                             nameKr={country.nameKr}
-                            className={`mt-1 text-xs ${
+                            className={`mt-1 w-full min-w-0 px-0.5 text-xs ${
                               isSelected ? "font-bold text-blue-500" : "font-medium text-gray-700"
                             }`}
                           />
@@ -310,6 +334,7 @@ export default function RecommendPage() {
           /* Step 2: 상품 조합 선택 */
           <ProductCombinationStep
             selectedCodes={selectedCodes}
+            heroMap={heroMap}
             onBack={handleStep2Back}
             onNext={handleStep2Next}
           />

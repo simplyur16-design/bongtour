@@ -2,51 +2,32 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { RecommendModalShell } from "@/components/bongsim/recommend/RecommendModalShell";
-import type { AllowanceBucketId } from "@/lib/bongsim/recommend/allowance-buckets";
-import { orderedBucketEntries, pickCheapestPerBucket } from "@/lib/bongsim/recommend/allowance-buckets";
-import { getPlanCoveredCountries } from "@/lib/bongsim/plan-coverage-map";
 import {
   computeRecommendedPrice,
+  extractDaysFromDaysRaw,
   formatKrw,
-  isTrueUnlimited,
+  formatKrwPerDay,
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
+import { matchBillableTripDays } from "@/lib/bongsim/recommend/allowance-buckets";
 
-const BUCKET_UI: Record<
-  Exclude<AllowanceBucketId, "unlimited">,
-  { title: string; subtitle: string; foot: string }
-> = {
-  "500mb": {
-    title: "500MB",
-    subtitle: "지도·검색만 이용한다면",
-    foot: "매일 500MB 이후 속도 저하",
-  },
-  "1gb": {
-    title: "1GB",
-    subtitle: "카톡으로 사진 몇 장 정도",
-    foot: "매일 1GB 이후 속도 저하",
-  },
-  "2gb": {
-    title: "2GB",
-    subtitle: "인스타로 바로바로",
-    foot: "매일 2GB 이후 속도 저하",
-  },
-  "3gb": {
-    title: "3GB",
-    subtitle: "영상·클라우드까지 여유 있게",
-    foot: "매일 3GB 이후 속도 저하",
-  },
-  "4gb": {
-    title: "4GB",
-    subtitle: "화상회의·실시간 라이브방송",
-    foot: "매일 4GB 이후 속도 저하",
-  },
-  "5gb": {
-    title: "5GB",
-    subtitle: "이동중에 실시간 스트리밍, 영상",
-    foot: "매일 5GB 이후 속도 저하",
-  },
-};
+const TIER_ORDER = ["premium", "value", "balance", "budget", "cheapest"] as const;
+type TierKey = (typeof TIER_ORDER)[number];
+
+type RecommendedTiersV1 = Partial<
+  Record<TierKey, (ProductOption & { tier_label: string }) | null>
+>;
+
+function capacityFooterBadge() {
+  return (
+    <p className="mt-2 inline-flex max-w-full items-center gap-1 rounded-md border border-teal-200/90 bg-teal-50 px-2.5 py-1.5 text-[11px] font-semibold leading-snug text-teal-900 shadow-sm ring-1 ring-teal-100/80">
+      <span className="shrink-0 rounded-sm bg-teal-600 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+        안내
+      </span>
+      <span>구글맵 · ChatGPT 데이터 무제한 제공</span>
+    </p>
+  );
+}
 
 function displayRecommended(p: ProductOption): number | null {
   if (typeof p.recommended_price === "number" && Number.isFinite(p.recommended_price)) {
@@ -55,61 +36,34 @@ function displayRecommended(p: ProductOption): number | null {
   return computeRecommendedPrice(p.price_block);
 }
 
-function isMultiCountryPlan(p: ProductOption): boolean {
-  return getPlanCoveredCountries(p.plan_name).length >= 2;
+function productBillableDays(p: ProductOption, fallback: number): number {
+  return extractDaysFromDaysRaw(p.days_raw) ?? fallback;
 }
 
-function singleMatchesCountry(p: ProductOption, code: string): boolean {
-  const cov = getPlanCoveredCountries(p.plan_name);
-  return cov.length === 1 && cov[0].toLowerCase() === code.toLowerCase();
+function dailyRateFromProduct(p: ProductOption, fallbackDays: number): number | null {
+  const total = displayRecommended(p);
+  if (total == null || !Number.isFinite(total)) return null;
+  const d = productBillableDays(p, fallbackDays);
+  if (d <= 0) return null;
+  return total / d;
 }
 
-function eligibleRoamingRecommendUnlimited(p: ProductOption, countryCode: string): boolean {
-  return (
-    !isMultiCountryPlan(p) &&
-    singleMatchesCountry(p, countryCode) &&
-    (p.network_family || "").toLowerCase() === "roaming" &&
-    isTrueUnlimited(p)
-  );
-}
-
-function eligibleLocalRecommendUnlimited(p: ProductOption, countryCode: string): boolean {
-  if (isMultiCountryPlan(p) || !singleMatchesCountry(p, countryCode)) return false;
-  if ((p.network_family || "").toLowerCase() !== "local") return false;
-  return isTrueUnlimited(p);
-}
-
-function pickCheapestProduct(products: ProductOption[]): ProductOption | undefined {
-  let best: ProductOption | undefined;
-  let bestPr: number | null = null;
-  for (const p of products) {
-    const pr = displayRecommended(p);
-    if (pr == null) {
-      if (!best) best = p;
-      continue;
-    }
-    if (bestPr == null || pr < bestPr) {
-      bestPr = pr;
-      best = p;
-    }
+function networkFamilyLabelKr(family: string | undefined): string {
+  switch ((family ?? "").toLowerCase()) {
+    case "local":
+      return "로컬";
+    case "roaming":
+      return "로밍";
+    default:
+      return family?.trim() || "—";
   }
-  return best;
 }
-
-type DisplayEntry = {
-  id: AllowanceBucketId;
-  product: ProductOption;
-  tripTotal?: number;
-  perDay?: number;
-  recommendGradient?: boolean;
-};
 
 type Props = {
   open: boolean;
   countryName: string;
   countryCode: string;
   allSelectedCodes: string[];
-  network: "roaming" | "local";
   tripDays: number;
   onBack: () => void;
   onComplete: (product: ProductOption, quantity: number) => void;
@@ -120,20 +74,23 @@ export function PlanSelectPopup({
   countryName,
   countryCode,
   allSelectedCodes,
-  network,
   tripDays,
   onBack,
   onComplete,
 }: Props) {
   const [loading, setLoading] = useState(false);
-  const [plans, setPlans] = useState<ProductOption[]>([]);
+  const [recommendedTiers, setRecommendedTiers] = useState<RecommendedTiersV1>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [err, setErr] = useState<string | null>(null);
 
+  const billableDays = useMemo(() => matchBillableTripDays(tripDays), [tripDays]);
+  const tripDaysFloored = Math.max(1, Math.floor(tripDays));
+  const showDayMatchNotice = tripDaysFloored !== billableDays;
+
   useEffect(() => {
     if (!open) {
-      setPlans([]);
+      setRecommendedTiers({});
       setSelectedId(null);
       setQuantity(1);
       setErr(null);
@@ -146,20 +103,19 @@ export function PlanSelectPopup({
       try {
         const q = new URLSearchParams({
           country: countryCode,
-          network,
-          days: String(tripDays),
+          days: String(billableDays),
         });
         if (allSelectedCodes.length > 0) {
           q.set("codes", allSelectedCodes.map((c) => c.toLowerCase()).join(","));
         }
         const res = await fetch(`/api/bongsim/products/plans?${q.toString()}`);
         if (!res.ok) throw new Error("fetch failed");
-        const json = await res.json();
-        if (!cancelled) setPlans(json.plans ?? []);
+        const json = (await res.json()) as { recommended_tiers?: RecommendedTiersV1 };
+        if (!cancelled) setRecommendedTiers(json.recommended_tiers ?? {});
       } catch {
         if (!cancelled) {
           setErr("플랜을 불러오지 못했습니다.");
-          setPlans([]);
+          setRecommendedTiers({});
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -168,91 +124,35 @@ export function PlanSelectPopup({
     return () => {
       cancelled = true;
     };
-  }, [open, countryCode, network, tripDays, allSelectedCodes.join(",")]);
+  }, [open, countryCode, billableDays, allSelectedCodes.join(",")]);
 
-  const displayEntries: DisplayEntry[] = useMemo(() => {
-    const recommendCandidates =
-      network === "roaming"
-        ? plans.filter((p) => eligibleRoamingRecommendUnlimited(p, countryCode))
-        : plans.filter((p) => eligibleLocalRecommendUnlimited(p, countryCode));
-    const recommendProduct = pickCheapestProduct(recommendCandidates);
-
-    const plansSansMultiUnl = plans.filter(
-      (p) =>
-        !(
-          isMultiCountryPlan(p) &&
-          (p.plan_type || "").trim().toLowerCase() === "unlimited" &&
-          isTrueUnlimited(p)
-        ),
-    );
-
-    const restForBucket = recommendProduct
-      ? plansSansMultiUnl.filter((p) => p.option_api_id !== recommendProduct.option_api_id)
-      : plansSansMultiUnl;
-
-    const byBucket = pickCheapestPerBucket(restForBucket);
-    if (recommendProduct) {
-      delete byBucket.unlimited;
-    }
-
-    const ordered = orderedBucketEntries(byBucket);
-    const days = Math.max(1, Math.floor(tripDays));
-    const rows: DisplayEntry[] = [];
-
-    if (recommendProduct) {
-      rows.push({
-        id: "unlimited",
-        product: recommendProduct,
-        recommendGradient: true,
-      });
-    }
-
-    for (const { id, product } of ordered) {
-      if (recommendProduct && product.option_api_id === recommendProduct.option_api_id) continue;
-      if (id === "unlimited") {
-        rows.push({
-          id,
-          product,
-          recommendGradient: false,
-        });
-      } else {
-        const perDay = displayRecommended(product);
-        const tripTotal = perDay != null ? perDay * days : undefined;
-        rows.push({ id, product, tripTotal, perDay: perDay ?? undefined });
+  const tierRows = useMemo(() => {
+    const rows: { key: TierKey; product: ProductOption & { tier_label: string } }[] = [];
+    for (const key of TIER_ORDER) {
+      const entry = recommendedTiers[key];
+      if (entry && typeof entry === "object" && entry.option_api_id) {
+        rows.push({ key, product: entry });
       }
     }
-
     return rows;
-  }, [plans, tripDays, countryCode, network]);
+  }, [recommendedTiers]);
 
-  const selectedProduct =
-    selectedId != null ? plans.find((p) => p.option_api_id === selectedId) ?? null : null;
-
-  const selectedEntry = useMemo(
-    () => displayEntries.find((e) => e.product.option_api_id === selectedId) ?? null,
-    [displayEntries, selectedId],
+  const selectedProduct = useMemo(
+    () => (selectedId != null ? tierRows.find((r) => r.product.option_api_id === selectedId)?.product ?? null : null),
+    [tierRows, selectedId],
   );
 
-  const days = Math.max(1, Math.floor(tripDays));
-
   const unitKrw = useMemo(() => {
-    if (!selectedEntry) return null;
-    const pt = (selectedEntry.product.plan_type || "").trim().toLowerCase();
-    if (selectedEntry.id === "unlimited") {
-      if (pt === "unlimited") return displayRecommended(selectedEntry.product);
-      const perDay = displayRecommended(selectedEntry.product);
-      return perDay != null ? perDay * days : null;
-    }
-    return selectedEntry.tripTotal ?? null;
-  }, [selectedEntry, days]);
+    if (!selectedProduct) return null;
+    return displayRecommended(selectedProduct);
+  }, [selectedProduct]);
 
   useEffect(() => {
     if (!open) return;
     setQuantity(1);
   }, [open, selectedId]);
 
-  const totalKrw =
-    unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
+  const totalKrw = unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
 
   const canComplete = Boolean(selectedId && selectedProduct && quantity >= 1);
 
@@ -261,10 +161,15 @@ export function PlanSelectPopup({
       <div className="flex max-h-[92vh] flex-col">
         <div className="border-b border-slate-100 px-5 pb-4 pt-5">
           <p className="text-[12px] text-slate-500">
-            {countryName} · {tripDays}일
+            {countryName} · {tripDaysFloored}일
           </p>
+          {showDayMatchNotice ? (
+            <p className="mt-1.5 rounded-lg border border-blue-100 bg-blue-50/90 px-3 py-2 text-[12px] font-medium leading-snug text-blue-900">
+              {tripDaysFloored}일 여정에 맞는 {billableDays}일 플랜입니다
+            </p>
+          ) : null}
           <h2 className="mt-1 text-[1.05rem] font-bold leading-snug text-slate-900">
-            {tripDays}일 동안 사용할 플랜을 골라주세요
+            {tripDaysFloored}일 동안 사용할 플랜을 골라주세요
           </h2>
         </div>
 
@@ -273,126 +178,72 @@ export function PlanSelectPopup({
             <div className="py-10 text-center text-[14px] text-slate-600">불러오는 중…</div>
           )}
           {!loading && err && <p className="text-center text-[14px] text-red-600">{err}</p>}
-          {!loading && !err && displayEntries.length === 0 && (
+          {!loading && !err && tierRows.length === 0 && (
             <p className="py-8 text-center text-[14px] text-slate-600">
               해당 조건의 상품이 없습니다.
             </p>
           )}
           {!loading &&
             !err &&
-            displayEntries.map(({ id, product, tripTotal, perDay, recommendGradient }) => {
+            tierRows.map(({ key, product }) => {
               const active = selectedId === product.option_api_id;
-
-              if (id === "unlimited") {
-                const pt = (product.plan_type || "").trim().toLowerCase();
-                const perDayVal = displayRecommended(product);
-                const priceShow =
-                  pt === "unlimited"
-                    ? perDayVal
-                    : perDayVal != null
-                      ? perDayVal * days
-                      : tripTotal ?? null;
-                const showGradient = Boolean(recommendGradient);
-                return (
-                  <div
-                    key={`${id}-${product.option_api_id}-${showGradient ? "rec" : "plain"}`}
-                    onClick={() => setSelectedId(product.option_api_id)}
-                    className={`w-full cursor-pointer rounded-xl border-2 p-4 text-left transition ${
-                      active
-                        ? "border-blue-400 bg-blue-50"
-                        : "border-slate-200 bg-white hover:border-slate-300"
-                    }`}
-                  >
-                    {showGradient ? (
-                      <>
-                        <div className="mb-2 inline-block rounded-full bg-gradient-to-r from-violet-600 to-blue-600 px-3 py-1 text-[11px] font-bold text-white">
-                          추천 플랜
-                        </div>
-                        <p className="text-[14px] font-semibold text-slate-700">
-                          마음껏 자유롭게 쓰고 싶다면
-                        </p>
-                        <p className="mt-1 text-xl font-bold text-slate-900">무제한</p>
-                        <p className="mt-1 text-sm text-blue-400">데이터 걱정 끝~~!!</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-[14px] font-semibold text-slate-700">무제한 데이터</p>
-                        <p className="mt-1 text-xl font-bold text-slate-900">무제한</p>
-                      </>
-                    )}
-                    {priceShow != null && (
-                      <p className="mt-2 text-[16px] font-bold text-blue-500">{formatKrw(priceShow)}</p>
-                    )}
-
-                    {active && (
-                      <div className="mt-4 border-t border-blue-200 pt-3" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[14px] font-semibold text-slate-800">수량</span>
-                          <div className="inline-flex items-center gap-3">
-                            <button
-                              type="button"
-                              aria-label="수량 감소"
-                              disabled={quantity <= 1}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setQuantity((q) => Math.max(1, q - 1));
-                              }}
-                              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-[18px] font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              -
-                            </button>
-                            <span className="min-w-[2rem] text-center text-[16px] font-bold tabular-nums text-slate-900">
-                              {quantity}
-                            </span>
-                            <button
-                              type="button"
-                              aria-label="수량 증가"
-                              disabled={quantity >= 10}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setQuantity((q) => Math.min(10, q + 1));
-                              }}
-                              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-[18px] font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                        {totalKrw != null && (
-                          <p className="mt-2 text-right text-[15px] font-bold text-blue-500">
-                            총 {formatKrw(totalKrw)}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-
-              const ui = BUCKET_UI[id];
-              const totalLabel =
-                tripTotal != null && Number.isFinite(tripTotal) ? formatKrw(tripTotal) : null;
-              const perDayLabel =
-                perDay != null && Number.isFinite(perDay) ? `(1일 ${formatKrw(perDay)})` : null;
+              const isPremium = key === "premium";
+              const packageTotal = displayRecommended(product);
+              const dailyRate = dailyRateFromProduct(product, billableDays);
+              const totalShow = packageTotal != null && Number.isFinite(packageTotal) ? packageTotal : null;
+              const dailyShow = dailyRate != null && Number.isFinite(dailyRate) ? dailyRate : null;
 
               return (
                 <div
-                  key={`${id}-${product.option_api_id}`}
+                  key={`${key}-${product.option_api_id}`}
                   onClick={() => setSelectedId(product.option_api_id)}
                   className={`w-full cursor-pointer rounded-xl border-2 p-4 text-left transition ${
-                    active
-                      ? "border-blue-400 bg-blue-50"
-                      : "border-slate-200 bg-white hover:border-slate-300"
+                    isPremium
+                      ? active
+                        ? "border-violet-400 bg-gradient-to-br from-violet-50 via-white to-blue-50 shadow-md ring-1 ring-violet-200/60"
+                        : "border-slate-200 bg-gradient-to-br from-violet-50/40 via-white to-blue-50/50 hover:border-violet-300 hover:shadow-sm"
+                      : active
+                        ? "border-blue-400 bg-blue-50"
+                        : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >
-                  <p className="text-[14px] font-semibold text-slate-700">{ui.subtitle}</p>
-                  <p className="mt-1 text-[17px] font-bold text-slate-900">{ui.title}</p>
-                  <p className="mt-1 text-[12px] text-slate-500">{ui.foot}</p>
-                  {totalLabel != null && (
-                    <p className="mt-2 text-[16px] font-bold text-blue-500">{totalLabel}</p>
+                  {isPremium ? (
+                    <div className="mb-2 inline-block rounded-full bg-gradient-to-r from-violet-600 to-blue-600 px-3 py-1 text-[11px] font-bold text-white shadow-sm">
+                      {product.tier_label}
+                    </div>
+                  ) : (
+                    <div className="mb-2 inline-block rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-700">
+                      {product.tier_label}
+                    </div>
                   )}
-                  {perDayLabel != null && (
-                    <p className="mt-0.5 text-[12px] text-slate-500">{perDayLabel}</p>
+
+                  {isPremium ? (
+                    <>
+                      <p className="text-[14px] font-semibold text-slate-700">마음껏 자유롭게 쓰고 싶다면</p>
+                      <p className="mt-1 text-xl font-bold text-slate-900">
+                        {(product.allowance_label || "").trim() || "무제한"}
+                      </p>
+                      <p className="mt-1 text-sm text-blue-500">데이터 걱정 끝~~!!</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[14px] font-semibold text-slate-700">{product.plan_name.trim()}</p>
+                      <p className="mt-1 text-[17px] font-bold text-slate-900">
+                        {(product.allowance_label || "").trim() || "—"}
+                      </p>
+                      <p className="mt-0.5 text-[12px] text-slate-500">
+                        {networkFamilyLabelKr(product.network_family)}
+                      </p>
+                    </>
+                  )}
+
+                  {capacityFooterBadge()}
+
+                  {totalShow != null && (
+                    <p className="mt-2 text-[16px] font-bold text-blue-500">{formatKrw(totalShow)}</p>
+                  )}
+                  {dailyShow != null && (
+                    <p className="mt-0.5 text-[12px] font-medium text-slate-600">{formatKrwPerDay(dailyShow)}</p>
                   )}
 
                   {active && (

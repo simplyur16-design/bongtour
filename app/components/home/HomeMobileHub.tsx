@@ -13,7 +13,7 @@ const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
 /**
  * 카피·링크·하이브리드 매핑 키 — 실제 `bgSrc`는 `resolveMobileMainTileBgSrc`로 확정.
- * 배경 URL은 관리자 권장: 해외=유럽(영·프 등), 항공+호텔=이륙기, 우리끼리=가족, 국외연수=회의장.
+ * 배경 URL은 관리자 권장: 해외=유럽(영·프 등), 항공+호텔=이륙기, 우리끼리=가족, eSIM=연결·통신 톤(또는 기본 폴백).
  */
 const MAIN_TILES_SPEC = [
   {
@@ -35,16 +35,17 @@ const MAIN_TILES_SPEC = [
     bgKey: 'privateTrip' as const satisfies MobileMainTileBgKey,
   },
   {
-    href: '/training',
-    title: '국외연수',
-    desc: '학교 · 기업 · 공공기관',
-    bgKey: 'training' as const satisfies MobileMainTileBgKey,
+    href: '/travel/esim',
+    title: 'eSIM',
+    desc: '여행용 eSIM 간편 구매',
+    bgKey: 'esim' as const satisfies MobileMainTileBgKey,
   },
 ] as const
 
 const QUICK_ACTIONS = [
   { href: INQUIRY_TRAVEL, label: '상담접수', primary: true as const },
   { href: '/air-ticketing', label: '항공권', primary: false as const },
+  { href: '/training', label: '국외연수', primary: false as const },
   { href: '/charter-bus', label: '전세버스', primary: false as const },
 ] as const
 

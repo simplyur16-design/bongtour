@@ -46,6 +46,7 @@ export function resolveOperationalGroupKey(p: OperationalPathInput): string {
       return 'common'
     case 'city':
     case 'country':
+    case 'bongsim_esim_country':
     case 'study':
     case 'bus': {
       const raw = (p.groupKeyInput ?? '').trim()
@@ -139,6 +140,8 @@ export function buildAltKrOperational(p: {
     }
     case 'page':
       return `${nameKr} 안내 대표 이미지`
+    case 'bongsim_esim_country':
+      return `${nameKr} eSIM 추천 히어로`
     default:
       return `${nameKr} 대표 이미지`
   }
@@ -177,6 +180,8 @@ export function buildAltEnOperational(p: {
       return productTitle ? `${productTitle} charter bus service image` : null
     case 'page':
       return productTitle ? `${productTitle} page main image` : null
+    case 'bongsim_esim_country':
+      return productTitle ? `${productTitle} eSIM recommendation hero image` : null
     default:
       return productTitle ? `${productTitle} image` : null
   }

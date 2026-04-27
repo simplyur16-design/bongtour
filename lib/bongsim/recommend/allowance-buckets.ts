@@ -10,6 +10,18 @@ export type AllowanceBucketId =
   | "4gb"
   | "5gb";
 
+/** `bongsim_product_option` 일수 스텝 — 여정 일수를 API·플랜 카드에 맞출 때 사용 */
+export const BONGSIM_PLAN_DAY_TIERS = [1, 2, 3, 4, 5, 10, 15, 30] as const;
+
+/** `tripDays`보다 작지 않은 가장 작은 티어(상위 일수). 예: 13→15, 18→30, 31→30 */
+export function matchBillableTripDays(tripDays: number): number {
+  const d = Math.max(1, Math.floor(Number(tripDays)));
+  for (const t of BONGSIM_PLAN_DAY_TIERS) {
+    if (t >= d) return t;
+  }
+  return 30;
+}
+
 const ORDER: AllowanceBucketId[] = [
   "unlimited",
   "500mb",

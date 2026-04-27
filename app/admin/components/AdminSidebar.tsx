@@ -18,6 +18,7 @@ import {
   Users,
   Star,
   Share2,
+  Smartphone,
 } from 'lucide-react'
 
 const nav = [
@@ -26,6 +27,7 @@ const nav = [
   { href: '/admin/home-hub-card-images', label: '메인 허브 이미지', icon: Images },
   { href: '/admin/og-images', label: 'OG 이미지 (공유)', icon: Share2 },
   { href: '/admin/image-assets-upload', label: '이미지 업로드 · 출처(iStock)', icon: Images },
+  { href: '/admin/bongsim/country-heroes', label: '봉심 eSIM 국가 히어로', icon: Smartphone },
   { href: '/admin/register', label: '상품 등록', icon: Package },
   { href: '/admin/pending', label: '등록대기', icon: ClipboardList },
   { href: '/admin/products', label: '상품 목록', icon: List },

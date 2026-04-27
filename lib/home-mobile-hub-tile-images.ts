@@ -10,7 +10,8 @@ const MOBILE_HUB_DEFAULT_TILE_BG: Record<MobileMainServiceTileKey, string> = {
   overseas: '/images/home-hub/mobile/overseas.webp',
   airHotel: '/images/home-hub/mobile/air-hotel.webp',
   privateTrip: '/images/home-hub/mobile/private-trip.webp',
-  training: '/images/home-hub/mobile/training.webp',
+  /** 전용 컷 없음 — 기존 연수 타일과 동일 로컬 폴백(관리자 URL 권장) */
+  esim: '/images/home-hub/mobile/training.webp',
 }
 
 function isRemoteUrl(s: string): boolean {
@@ -37,9 +38,17 @@ function publicFileExists(urlPath: string): boolean {
  * — 원격(`https://…`)은 통과, 로컬 `/images/…` 는 `public` 아래 파일이 실제로 있을 때만.
  * 비어 있거나 경로가 깨지면 `public/images/home-hub/mobile/*.webp` 기본 타일로 폴백.
  */
+function mobileMainTileUrlFromCfg(cfg: ReturnType<typeof getHomeHubActiveFile>, key: MobileMainTileBgKey): string | undefined {
+  const m = cfg?.mobileMainServiceTiles as Partial<Record<MobileMainTileBgKey, string>> & { training?: string } | undefined
+  const direct = m?.[key]?.trim()
+  if (direct) return direct
+  if (key === 'esim' && m?.training?.trim()) return m.training.trim()
+  return undefined
+}
+
 export function resolveMobileMainTileBgSrc(key: MobileMainTileBgKey): string | null {
   const cfg = getHomeHubActiveFile()
-  const raw = cfg?.mobileMainServiceTiles?.[key]?.trim()
+  const raw = mobileMainTileUrlFromCfg(cfg, key)
   const fromJson = raw && isHomeHubPublicManualImageUrl(raw) ? raw : null
   if (fromJson) {
     if (isRemoteUrl(fromJson)) return fromJson

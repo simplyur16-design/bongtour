@@ -15,6 +15,9 @@ const DISABLED = "#D1D5DB";
 
 const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
+const RANGE_OVERLAP_OTHER_COUNTRIES_MSG =
+  "다른 국가에 이미 정한 일정과 하루 이상 겹칩니다. 같은 날짜가 한쪽은 종료일·다른 쪽은 시작일이 되게만 맞춰 주세요.";
+
 function formatKrDate(d: Date): string {
   return `${d.getFullYear()}년 ${String(d.getMonth() + 1).padStart(2, "0")}월 ${String(d.getDate()).padStart(2, "0")}일`;
 }
@@ -67,6 +70,7 @@ export function DurationPopup({
   const [rangeStart, setRangeStart] = useState<Date | null>(null);
   const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
   const [pickingHint, setPickingHint] = useState<"시작일" | "종료일">("시작일");
+  const [rangeOverlapNotice, setRangeOverlapNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -75,6 +79,7 @@ export function DurationPopup({
       setRangeStart(null);
       setRangeEnd(null);
       setPickingHint("시작일");
+      setRangeOverlapNotice(null);
     }
   }, [open]);
 
@@ -96,6 +101,7 @@ export function DurationPopup({
       setApplied(false);
       setCalendarOpen(false);
       setPickingHint("시작일");
+      setRangeOverlapNotice(null);
     }
   }, [open, resumeKey]);
 
@@ -109,6 +115,7 @@ export function DurationPopup({
   const openCalendar = () => {
     setCalendarOpen(true);
     setApplied(false);
+    setRangeOverlapNotice(null);
   };
 
   const onDayClick = (d: Date) => {
@@ -117,13 +124,19 @@ export function DurationPopup({
       setRangeStart(d);
       setRangeEnd(null);
       setPickingHint("종료일");
+      setRangeOverlapNotice(null);
     } else {
       if (d < rangeStart) {
         setRangeStart(d);
         setRangeEnd(null);
         setPickingHint("종료일");
+        setRangeOverlapNotice(null);
       } else {
-        if (!isRangeAllowedWithOthers(rangeStart, d, others, exclude)) return;
+        if (!isRangeAllowedWithOthers(rangeStart, d, others, exclude)) {
+          if (others.length > 0) setRangeOverlapNotice(RANGE_OVERLAP_OTHER_COUNTRIES_MSG);
+          return;
+        }
+        setRangeOverlapNotice(null);
         setRangeEnd(d);
       }
     }
@@ -133,6 +146,7 @@ export function DurationPopup({
     setRangeStart(null);
     setRangeEnd(null);
     setPickingHint("시작일");
+    setRangeOverlapNotice(null);
   };
 
   const applyRange = () => {
@@ -234,6 +248,19 @@ export function DurationPopup({
               <p className="mb-3 text-center text-[13px] font-semibold text-slate-700">
                 {pickingHint === "시작일" ? "시작일을 선택하세요" : "종료일을 선택하세요"}
               </p>
+              {others.length > 0 ? (
+                <p className="mb-2 text-center text-[12px] leading-snug text-slate-500">
+                  다른 나라 일정과는 하루만 맞닿게(한쪽 종료·다른 쪽 시작) 선택할 수 있어요.
+                </p>
+              ) : null}
+              {rangeOverlapNotice ? (
+                <p
+                  role="alert"
+                  className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-2 text-center text-[12px] font-medium leading-snug text-amber-900"
+                >
+                  {rangeOverlapNotice}
+                </p>
+              ) : null}
               <div className="max-h-[48vh] space-y-6 overflow-y-auto pr-1">
                 {months.map(({ y, m, label }) => (
                   <div key={`${y}-${m}`}>
@@ -267,11 +294,16 @@ export function DurationPopup({
                           const colFromMon = (jsDay + 6) % 7;
                           const isSat = colFromMon === 5;
                           const isSun = colFromMon === 6;
-                          let weekendTone = "text-slate-800";
-                          if (!disabled && !sel) {
-                            if (isSat) weekendTone = "text-blue-500";
-                            else if (isSun) weekendTone = "text-red-500";
-                          }
+                          const weekendToneActive = isSat
+                            ? "text-blue-500"
+                            : isSun
+                              ? "text-red-500"
+                              : "text-slate-800";
+                          const weekendToneDisabled = isSat
+                            ? "text-blue-500/40"
+                            : isSun
+                              ? "text-red-500/40"
+                              : "text-slate-300";
                           const boundaryDot =
                             !disabled &&
                             isOtherCountryBoundaryDay(cell, others, exclude);
@@ -283,12 +315,12 @@ export function DurationPopup({
                               onClick={() => onDayClick(cell)}
                               className={`relative h-9 rounded-lg text-[13px] font-medium transition ${
                                 disabled
-                                  ? "cursor-not-allowed text-slate-300"
+                                  ? `cursor-not-allowed ${weekendToneDisabled}`
                                   : sel
                                     ? edge
                                       ? "bg-[#3B82F6] text-white"
-                                      : "bg-sky-100 text-slate-900"
-                                    : `${weekendTone} hover:bg-slate-100`
+                                      : "bg-blue-400 text-white"
+                                    : `${weekendToneActive} hover:bg-slate-100`
                               }`}
                             >
                               {cell.getDate()}

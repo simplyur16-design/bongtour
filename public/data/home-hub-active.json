@@ -16,7 +16,7 @@
   "mobileMainServiceTiles": {
     "airHotel": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/DAY5_manual-upload__b86e68532f8e48a3.webp",
     "overseas": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/Shell_House_Salamanca_pexels__1d43728e124fcb7c.webp",
-    "training": "https://kr.object.ncloudstorage.com/bongtour/home-hub/candidates/training-spring-1776136505480-sd9f0a-3.webp",
+    "esim": "https://kr.object.ncloudstorage.com/bongtour/home-hub/candidates/training-spring-1776136505480-sd9f0a-3.webp",
     "privateTrip": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/Phu_Quoc_Pepper_Farm_pexels__c6780f67e46cbf0c.webp"
   },
   "trainingPageSecondaryImage": "https://spuptilbzyxrvyyyheza.supabase.co/storage/v1/object/public/bongtour-images/home-hub/candidates/training-spring-1776136505480-sd9f0a-3.webp"
