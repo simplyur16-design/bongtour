@@ -13,7 +13,7 @@ const CARDS: { key: HomeHubCardImageKey | ''; label: string }[] = [
   { key: 'overseas', label: '해외여행' },
   { key: 'training', label: '국외연수' },
   { key: 'domestic', label: '국내여행' },
-  { key: 'bus', label: '전세버스' },
+  { key: 'esim', label: 'eSIM' },
 ]
 
 const SEASONS: { key: HubImageSeasonKey | ''; label: string }[] = [

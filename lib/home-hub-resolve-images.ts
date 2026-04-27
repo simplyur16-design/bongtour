@@ -40,7 +40,7 @@ export type HomeHubActiveFile = {
   /** 카드별 공개 URL — `/images/...` 또는 `https://...` */
   images: Partial<Record<HomeHubCardImageKey, string>>
   /**
-   * 카드별 이미지 소스 모드. 생략 시: 해외/국내 → `product_pool`, 국외연수/전세버스 → `manual`.
+   * 카드별 이미지 소스 모드. 생략 시: 해외/국내 → `product_pool`, 국외연수/eSIM → `manual`.
    * 메인 최종 우선순위는 `resolveHomeHubCardHybridImageSrc` 주석과 동일.
    */
   imageSourceModes?: Partial<Record<HomeHubCardImageKey, HomeHubCardImageSourceMode>>
@@ -56,7 +56,7 @@ export type HomeHubActiveFile = {
   mobileMainServiceTiles?: Partial<Record<MobileMainServiceTileKey, string>>
 }
 
-const HUB_CARD_KEYS: HomeHubCardImageKey[] = ['overseas', 'training', 'domestic', 'bus']
+const HUB_CARD_KEYS: HomeHubCardImageKey[] = ['overseas', 'training', 'domestic', 'esim']
 
 function configPath(): string {
   return path.join(process.cwd(), ...CONFIG_REL)

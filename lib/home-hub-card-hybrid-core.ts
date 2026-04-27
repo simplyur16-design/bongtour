@@ -155,7 +155,7 @@ export function getHomeHubCardHybridResolutionDetail(
     manualUrl: null,
     poolInputUrl: null,
     explanationShort:
-      mode === 'manual' && (key === 'training' || key === 'bus')
+      mode === 'manual' && (key === 'training' || key === 'esim')
         ? '수동 URL이 비어 있어 정적 기본 이미지입니다. 후보 활성화 또는 URL을 입력하세요.'
         : '정적 기본 이미지입니다.',
   }

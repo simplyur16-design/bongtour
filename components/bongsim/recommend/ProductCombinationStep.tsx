@@ -17,7 +17,7 @@ import {
 } from "@/lib/bongsim/recommend/product-option";
 import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-ranges";
 
-const HERO_IMAGE_SIZES = "(max-width:768px) 100vw, 512px";
+const HERO_IMAGE_SIZES = "(max-width:768px) 100vw, (max-width:1024px) 70vw, 896px";
 
 export type CountryProductPack = {
   roaming: { min_price: number; products: ProductOption[] };
@@ -267,26 +267,26 @@ export function ProductCombinationStep({
   }, [allDone, completed, onNext, router, selectedCodes, sessionStatus]);
 
   const shell = (inner: ReactNode) => (
-    <div className="mx-auto w-full max-w-lg px-4">{inner}</div>
+    <div className="mx-auto w-full max-w-lg px-4 lg:max-w-3xl lg:px-6">{inner}</div>
   );
 
   if (loading) {
     return shell(
-      <div className="py-20 text-center">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-teal-600 border-t-transparent" />
-        <p className="mt-4 text-sm text-gray-600">상품 조회 중...</p>
+      <div className="py-20 text-center lg:py-24">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-teal-600 border-t-transparent lg:h-10 lg:w-10 lg:border-[5px]" />
+        <p className="mt-4 text-sm text-gray-600 lg:mt-5 lg:text-base">상품 조회 중...</p>
       </div>,
     );
   }
 
   if (!data) {
     return shell(
-      <div className="py-20 text-center">
-        <p className="text-sm text-red-600">상품을 불러올 수 없습니다.</p>
+      <div className="py-20 text-center lg:py-24">
+        <p className="text-sm text-red-600 lg:text-base">상품을 불러올 수 없습니다.</p>
         <button
           type="button"
           onClick={onBack}
-          className="mt-4 text-sm font-semibold text-teal-700 underline"
+          className="mt-4 text-sm font-semibold text-teal-700 underline lg:mt-5 lg:text-base"
         >
           ← 국가 선택으로 돌아가기
         </button>
@@ -295,21 +295,21 @@ export function ProductCombinationStep({
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 pb-8">
+    <div className="mx-auto w-full max-w-lg px-4 pb-8 lg:max-w-3xl lg:px-6 lg:pb-10">
       <button
         type="button"
         onClick={onBack}
-        className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-gray-600 transition hover:text-teal-700"
+        className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-gray-600 transition hover:text-teal-700 lg:mb-5 lg:gap-1.5 lg:text-base"
       >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-4 w-4 lg:h-5 lg:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
         국가 선택으로 돌아가기
       </button>
 
-      <h1 className="text-center text-lg font-bold text-gray-900">{headerTitle}</h1>
+      <h1 className="text-center text-lg font-bold text-gray-900 lg:text-2xl">{headerTitle}</h1>
 
-      <div className="mt-8">
+      <div className="mt-8 lg:mt-10">
         {selectedCodes.map((code, idx) => {
           const country = countryByCode[code];
           const pack = data.individual[code];
@@ -330,8 +330,8 @@ export function ProductCombinationStep({
           return (
             <Fragment key={code}>
               {idx > 0 ? (
-                <div className="my-3 flex justify-center">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-lg font-light text-gray-500">
+                <div className="my-3 flex justify-center lg:my-4">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-lg font-light text-gray-500 lg:h-12 lg:w-12 lg:text-xl">
                     +
                   </span>
                 </div>
@@ -353,7 +353,7 @@ export function ProductCombinationStep({
                   }
                 }}
               >
-                <div className="relative h-44 w-full overflow-hidden bg-gray-900">
+                <div className="relative h-44 w-full overflow-hidden bg-gray-900 lg:h-52">
                   {hero ? (
                     <Image
                       src={hero}
@@ -383,9 +383,9 @@ export function ProductCombinationStep({
                     className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"
                     aria-hidden
                   />
-                  <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-12">
-                    <div className="flex items-end gap-3">
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full shadow-lg ring-1 ring-gray-200">
+                  <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-12 lg:px-5 lg:pb-5 lg:pt-14">
+                    <div className="flex items-end gap-3 lg:gap-4">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full shadow-lg ring-1 ring-gray-200 lg:h-14 lg:w-14">
                         <Image
                           src={flagCdnUrl(code)}
                           alt=""
@@ -393,28 +393,28 @@ export function ProductCombinationStep({
                           height={48}
                           quality={90}
                           className="h-full w-full object-cover"
-                          sizes="48px"
+                          sizes="(max-width:1024px) 48px, 56px"
                           loading="lazy"
                           referrerPolicy="no-referrer"
                         />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-xl font-bold text-white drop-shadow-md">
+                        <p className="truncate text-xl font-bold text-white drop-shadow-md lg:text-2xl">
                           {country?.nameKr ?? code.toUpperCase()}
                         </p>
                         {priceLine ? (
-                          <p className="mt-0.5 text-sm text-white/80 drop-shadow-md">{priceLine}</p>
+                          <p className="mt-0.5 text-sm text-white/80 drop-shadow-md lg:text-base">{priceLine}</p>
                         ) : null}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white px-4 py-3">
+                <div className="bg-white px-4 py-3 lg:px-5 lg:py-4">
                   {done ? (
-                    <div className="flex items-start gap-2 rounded-xl bg-blue-50 px-4 py-3">
+                    <div className="flex items-start gap-2 rounded-xl bg-blue-50 px-4 py-3 lg:gap-2.5 lg:px-5 lg:py-3.5">
                       <svg
-                        className="mt-0.5 h-5 w-5 shrink-0 text-blue-500"
+                        className="mt-0.5 h-5 w-5 shrink-0 text-blue-500 lg:mt-1 lg:h-6 lg:w-6"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                         aria-hidden
@@ -425,12 +425,14 @@ export function ProductCombinationStep({
                           clipRule="evenodd"
                         />
                       </svg>
-                      <span className="text-sm font-medium text-blue-600" title={summaryLine}>
+                      <span className="text-sm font-medium text-blue-600 lg:text-base" title={summaryLine}>
                         {summaryLine}
                       </span>
                     </div>
                   ) : (
-                    <p className="text-center text-sm text-gray-500">카드를 눌러 여행 기간을 선택하세요</p>
+                    <p className="text-center text-sm text-gray-500 lg:text-base">
+                      카드를 눌러 여행 기간을 선택하세요
+                    </p>
                   )}
                 </div>
               </div>
@@ -440,17 +442,19 @@ export function ProductCombinationStep({
       </div>
 
       {selectedCodes.length >= 2 && cheapestMulti != null ? (
-        <section className="mt-10 border-t border-gray-200 pt-8">
-          <h3 className="mb-4 text-base font-bold text-gray-800">다른 상품들과도 비교해보세요</h3>
-          <div className="rounded-xl border border-gray-200 p-4">
-            <p className="text-base font-bold text-gray-900">
+        <section className="mt-10 border-t border-gray-200 pt-8 lg:mt-12 lg:pt-10">
+          <h3 className="mb-4 text-base font-bold text-gray-800 lg:mb-5 lg:text-lg">
+            다른 상품들과도 비교해보세요
+          </h3>
+          <div className="rounded-xl border border-gray-200 p-4 lg:p-5">
+            <p className="text-base font-bold text-gray-900 lg:text-lg">
               {multiPlanDisplayNameKr(cheapestMulti.plan_name)}
             </p>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 lg:mt-1.5 lg:text-base">
               {formatDaysRawKr(cheapestMulti.days_raw)} / {planTypeLabelKr(cheapestMulti.plan_type)}
             </p>
             {unitPriceKrw(cheapestMulti) != null && (
-              <p className="mt-2 text-base font-semibold text-blue-500">
+              <p className="mt-2 text-base font-semibold text-blue-500 lg:mt-3 lg:text-lg">
                 {formatKrw(unitPriceKrw(cheapestMulti)!)}
               </p>
             )}

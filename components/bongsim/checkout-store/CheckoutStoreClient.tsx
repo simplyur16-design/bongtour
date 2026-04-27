@@ -228,90 +228,97 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
 
   return (
     <div className="min-h-full bg-slate-50 pb-24">
-      <main className="mx-auto max-w-lg px-4 pt-3 sm:max-w-xl sm:px-6 sm:pt-4">
-        <nav className="text-[12px] text-slate-500">
+      <main className="mx-auto w-full max-w-lg px-4 pt-3 sm:max-w-xl sm:px-6 sm:pt-4 lg:max-w-2xl lg:px-8 lg:pt-6">
+        <nav className="text-[12px] text-slate-500 lg:text-sm">
           <Link href={bongsimPath()} className="hover:text-teal-800">
             홈
           </Link>
           <span className="mx-1.5 text-slate-300">/</span>
           <span className="text-slate-800">결제</span>
         </nav>
-        <h1 className="mt-3 text-[20px] font-semibold text-slate-900">주문·결제</h1>
+        <h1 className="mt-3 text-[20px] font-semibold text-slate-900 lg:mt-4 lg:text-2xl">주문·결제</h1>
 
         {!optionApiId ? (
-          <p className="mt-4 text-sm text-slate-600">상품을 선택한 뒤 다시 시도해 주세요.</p>
+          <p className="mt-4 text-sm text-slate-600 lg:mt-5 lg:text-base">상품을 선택한 뒤 다시 시도해 주세요.</p>
         ) : loadError ? (
-          <p className="mt-4 text-sm text-red-700">{loadError}</p>
+          <p className="mt-4 text-sm text-red-700 lg:mt-5 lg:text-base">{loadError}</p>
         ) : !detail ? (
-          <p className="mt-4 text-sm text-slate-600">불러오는 중…</p>
+          <p className="mt-4 text-sm text-slate-600 lg:mt-5 lg:text-base">불러오는 중…</p>
         ) : (
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 space-y-4 lg:mt-5 lg:space-y-5">
             {recommendQueue && recommendQueue.length > 1 ? (
-              <section className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-[13px] leading-snug text-amber-950">
+              <section className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-[13px] leading-snug text-amber-950 lg:p-5 lg:text-[15px]">
                 <p className="font-semibold">추천에서 여러 국가 상품을 담았어요</p>
-                <p className="mt-1.5 text-amber-900/90">
+                <p className="mt-1.5 text-amber-900/90 lg:mt-2">
                   현재 주문은 <strong>이 상품 1건</strong>만 포함합니다. 결제를 마친 뒤, 같은 방식으로 나머지{" "}
                   <strong>{recommendQueue.length - 1}건</strong>을 각각 주문해 주세요. (체크아웃 API는 국가당 1상품
                   주문만 지원합니다.)
                 </p>
               </section>
             ) : null}
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-[13px] font-semibold text-slate-900">{detail.summary.plan_name}</p>
-              <p className="mt-1 text-[12px] text-slate-600">{detail.summary.option_label}</p>
-              <p className="mt-3 text-[16px] font-semibold text-slate-900">
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
+              <p className="text-[13px] font-semibold text-slate-900 lg:text-base">{detail.summary.plan_name}</p>
+              <p className="mt-1 text-[12px] text-slate-600 lg:mt-1.5 lg:text-sm">{detail.summary.option_label}</p>
+              <p className="mt-3 text-[16px] font-semibold text-slate-900 lg:mt-4 lg:text-xl">
                 {new Intl.NumberFormat("ko-KR").format(detail.summary.pricing.display_amount_krw)}원
-                <span className="ml-2 text-[11px] font-normal text-slate-500">(표시 기준: {detail.summary.pricing.display_basis})</span>
+                <span className="ml-2 text-[11px] font-normal text-slate-500 lg:text-xs">
+                  (표시 기준: {detail.summary.pricing.display_basis})
+                </span>
               </p>
             </section>
 
-            <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:space-y-5 lg:p-5">
               <label className="block">
-                <span className="text-[12px] font-medium text-slate-700">이메일</span>
+                <span className="text-[12px] font-medium text-slate-700 lg:text-sm">이메일</span>
                 <input
                   type="email"
                   value={email}
                   onChange={(ev) => setEmail(ev.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm lg:mt-1.5 lg:px-4 lg:py-3 lg:text-base"
                   autoComplete="email"
                   required
                 />
               </label>
               <label className="block">
-                <span className="text-[12px] font-medium text-slate-700">수량</span>
+                <span className="text-[12px] font-medium text-slate-700 lg:text-sm">수량</span>
                 <input
                   type="number"
                   min={1}
                   max={99}
                   value={quantity}
                   onChange={(ev) => setQuantity(Number.parseInt(ev.target.value, 10) || 1)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm lg:mt-1.5 lg:px-4 lg:py-3 lg:text-base"
                   required
                 />
               </label>
               <label className="block">
-                <span className="text-[12px] font-medium text-slate-700">언어 (선택)</span>
+                <span className="text-[12px] font-medium text-slate-700 lg:text-sm">언어 (선택)</span>
                 <select
                   value={locale}
                   onChange={(ev) => setLocale(ev.target.value as "ko" | "en" | "")}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm lg:mt-1.5 lg:px-4 lg:py-3 lg:text-base"
                 >
                   <option value="">기본</option>
                   <option value="ko">한국어</option>
                   <option value="en">English</option>
                 </select>
               </label>
-              <label className="flex items-start gap-2 text-[13px] text-slate-700">
-                <input type="checkbox" checked={terms} onChange={(ev) => setTerms(ev.target.checked)} className="mt-0.5" />
+              <label className="flex items-start gap-2 text-[13px] text-slate-700 lg:gap-2.5 lg:text-[15px]">
+                <input
+                  type="checkbox"
+                  checked={terms}
+                  onChange={(ev) => setTerms(ev.target.checked)}
+                  className="mt-0.5 lg:mt-1 lg:h-4 lg:w-4"
+                />
                 <span>
                   이용약관 및 결제 진행에 동의합니다. (약관 버전 {BONGSIM_CHECKOUT_TERMS_VERSION})
                 </span>
               </label>
-              {submitError ? <p className="text-sm text-red-700">{submitError}</p> : null}
+              {submitError ? <p className="text-sm text-red-700 lg:text-base">{submitError}</p> : null}
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
+                className="w-full rounded-xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60 lg:py-4 lg:text-base"
               >
                 {submitting ? "처리 중…" : "다음: 결제 진행"}
               </button>

@@ -21,7 +21,7 @@ function candidatesPath(): string {
   return path.join(process.cwd(), ...CANDIDATES_REL)
 }
 
-const VALID_CARD: HomeHubCardImageKey[] = ['overseas', 'training', 'domestic', 'bus']
+const VALID_CARD: HomeHubCardImageKey[] = ['overseas', 'training', 'domestic', 'esim']
 const VALID_SEASON: HubImageSeasonKey[] = ['default', 'spring', 'summer', 'autumn', 'winter']
 
 export function isValidCardKey(k: string): k is HomeHubCardImageKey {

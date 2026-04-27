@@ -177,7 +177,7 @@ export const MAIN_INQUIRY_TYPES = [
 
 export const MAIN_HUB_FOUR_SR_HEADING = 'Bong투어 주요 서비스 영역'
 
-export type HubFourAccent = 'domestic' | 'overseas' | 'training' | 'bus'
+export type HubFourAccent = 'domestic' | 'overseas' | 'training' | 'esim'
 
 /** 메인 첫 허브(해외) — 큰 제목(모바일 타일 제목·PC 카드 categoryLabel 공통) */
 export const MAIN_HOME_FIRST_HUB_TITLE = '해외여행' as const
@@ -190,7 +190,7 @@ export const MAIN_HOME_OVERSEAS_HUB_CARD_DESCRIPTION =
 /** @deprecated `MAIN_HOME_FIRST_HUB_TILE_DESC` 사용 */
 export const MAIN_HOME_FIRST_HUB_DESCRIPTION = MAIN_HOME_FIRST_HUB_TILE_DESC
 
-/** 그리드 순서: 해외여행 → 국외연수 → 국내여행 → 여행 eSIM — 4번째 이미지 슬롯은 `bus` 키(관리자 전세버스 자산) 유지, 호버 카피는 `HomeHubFourClientCard` */
+/** 그리드 순서: 해외여행 → 국외연수 → 국내여행 → 여행 eSIM — 4번째 이미지 키는 `esim`(관리자·`home-hub-active.json`과 동일), 호버 카피는 `HomeHubFourClientCard` */
 export const MAIN_HUB_FOUR_CARDS = [
   {
     key: 'overseas',
@@ -228,16 +228,16 @@ export const MAIN_HUB_FOUR_CARDS = [
     imageSrc: homeHubCardImageSrc('domestic'),
   },
   {
-    key: 'bus',
+    key: 'esim',
     href: '/travel/esim',
-    accent: 'bus' as const,
+    accent: 'esim' as const,
     categoryLabel: '여행 eSIM',
     headline: '여행용 eSIM 간편 구매',
     description:
       '목적지에 맞는 여행용 eSIM 요금과 개통 흐름을 한곳에서 안내합니다.',
     hints: ['데이터 전용', '국가별 요금', '출국 전 준비'] as const,
     ctaLabel: 'eSIM 알아보기',
-    imageSrc: homeHubCardImageSrc('bus'),
+    imageSrc: homeHubCardImageSrc('esim'),
   },
 ] as const
 

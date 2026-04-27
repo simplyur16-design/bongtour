@@ -18,8 +18,8 @@ const CARD_BASE: Record<HomeHubCardImageKey, string> = {
     'Institutional visit and professional exchange mood, briefing or collaborative scene, natural light, credible but not stiff stock conference room, editorial, no text no watermark, center area clear for text overlay',
   domestic:
     'Korean local landscape or urban depth, seasonal atmosphere, discovery and warmth, editorial travel style, no text no watermark, center composition breathing room',
-  bus:
-    'Group mobility and airport or highway context, reliable fleet operations mood, restrained not car-ad exaggerated, silver and charcoal tones, no text no watermark, clear lower area for labels',
+  esim:
+    'Traveler with smartphone or travel SIM / connectivity mood, airport or journey context, bright trustworthy editorial, no text no watermark no logos, center area clear for typography overlay',
 }
 
 /**
@@ -40,10 +40,12 @@ export const HOME_HUB_DEFAULT_PROMPTS: Record<HomeHubCardImageKey, string> = {
   overseas: getDefaultHomeHubImagePrompt('overseas', 'default'),
   training: getDefaultHomeHubImagePrompt('training', 'default'),
   domestic: getDefaultHomeHubImagePrompt('domestic', 'default'),
-  bus: getDefaultHomeHubImagePrompt('bus', 'default'),
+  esim: getDefaultHomeHubImagePrompt('esim', 'default'),
 }
 
 export const homeHubOverseasDefaultPrompt = HOME_HUB_DEFAULT_PROMPTS.overseas
 export const homeHubTrainingDefaultPrompt = HOME_HUB_DEFAULT_PROMPTS.training
 export const homeHubDomesticDefaultPrompt = HOME_HUB_DEFAULT_PROMPTS.domestic
-export const homeHubBusDefaultPrompt = HOME_HUB_DEFAULT_PROMPTS.bus
+export const homeHubEsimDefaultPrompt = HOME_HUB_DEFAULT_PROMPTS.esim
+/** @deprecated `homeHubEsimDefaultPrompt` 사용 — 메인 4번째 허브가 eSIM 카드로 변경됨 */
+export const homeHubBusDefaultPrompt = homeHubEsimDefaultPrompt

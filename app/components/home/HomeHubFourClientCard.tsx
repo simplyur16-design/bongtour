@@ -31,8 +31,8 @@ function accentWash(accent: HubFourAccent): string {
       return 'from-[color-mix(in_srgb,var(--bt-brand-gold)_18%,transparent)] via-transparent to-transparent'
     case 'domestic':
       return 'from-[color-mix(in_srgb,var(--bt-success)_14%,transparent)] via-transparent to-transparent'
-    case 'bus':
-      return 'from-[color-mix(in_srgb,var(--bt-text-muted)_12%,transparent)] via-transparent to-transparent'
+    case 'esim':
+      return 'from-[color-mix(in_srgb,var(--bt-brand-blue)_18%,transparent)] via-transparent to-transparent'
   }
 }
 
@@ -44,7 +44,7 @@ function hubImagePosition(key: HomeHubCardImageKey): string {
       return 'object-[center_38%]'
     case 'domestic':
       return 'object-[center_35%]'
-    case 'bus':
+    case 'esim':
       return 'object-[center_32%]'
     default:
       return 'object-center'
@@ -65,7 +65,7 @@ function hubCardTitlePair(card: HomeHubFourClientCardModel): { ko: string; en: s
       return { ko: '국외연수', en: 'Global Training' }
     case 'domestic':
       return { ko: '국내여행', en: 'Domestic' }
-    case 'bus':
+    case 'esim':
       return { ko: '여행 eSIM', en: 'Travel eSIM' }
     default:
       return { ko: hubPrimaryTitle(card), en: hubPrimaryTitle(card) }
@@ -173,8 +173,8 @@ function hubHoverSubtitle(card: HomeHubFourClientCardModel): string | null {
   return h || null
 }
 
-function isDomesticOrBus(key: HomeHubCardImageKey): boolean {
-  return key === 'domestic' || key === 'bus'
+function isDomesticOrEsimDense(key: HomeHubCardImageKey): boolean {
+  return key === 'domestic' || key === 'esim'
 }
 
 const CARD_ROUND = 'rounded-2xl'
@@ -184,7 +184,7 @@ type Props = { card: HomeHubFourClientCardModel; index: number }
 
 export default function HomeHubFourClientCard({ card, index }: Props) {
   const key = card.key
-  const denseBg = isDomesticOrBus(key)
+  const denseBg = isDomesticOrEsimDense(key)
   const titlePair = hubCardTitlePair(card)
   const subtitle = hubHoverSubtitle(card)
   const descFull = card.description?.trim() ?? ''

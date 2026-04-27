@@ -12,7 +12,7 @@ import {
 import type { HomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 import type { HomeHubCandidateRecord } from '@/lib/home-hub-candidates-types'
 
-const KEYS: HomeHubCardImageKey[] = ['overseas', 'training', 'domestic', 'bus']
+const KEYS: HomeHubCardImageKey[] = ['overseas', 'training', 'domestic', 'esim']
 
 export type TravelPoolPreview = { overseas: string | null; domestic: string | null }
 

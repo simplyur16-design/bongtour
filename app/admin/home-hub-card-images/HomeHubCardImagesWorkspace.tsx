@@ -17,7 +17,7 @@ const CARD_LABEL: Record<HomeHubCardImageKey, string> = {
   overseas: '해외여행',
   training: '국외연수',
   domestic: '국내여행',
-  bus: '전세버스',
+  esim: 'eSIM',
 }
 
 type Props = {

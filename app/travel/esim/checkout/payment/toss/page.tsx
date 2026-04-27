@@ -150,34 +150,36 @@ function TossPaymentContent() {
       <Header />
       <OverseasTravelSubMainNav variant="links" />
       <main>
-        <div className="mx-auto w-full max-w-2xl px-4 pb-20 pt-6 sm:px-6 sm:pt-8 lg:pb-28 lg:pt-10">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-teal-700">결제</p>
-          <h1 className="mt-2 text-[1.4rem] font-bold leading-snug tracking-tight text-slate-900 sm:text-2xl">
+        <div className="mx-auto w-full max-w-2xl px-4 pb-20 pt-6 sm:px-6 sm:pt-8 lg:max-w-3xl lg:px-8 lg:pb-28 lg:pt-10">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-teal-700 lg:text-sm">
+            결제
+          </p>
+          <h1 className="mt-2 text-[1.4rem] font-bold leading-snug tracking-tight text-slate-900 sm:text-2xl lg:mt-3 lg:text-3xl">
             {isSuccessCallback ? "결제 확인 중이에요" : "신용카드 결제"}
           </h1>
-          <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+          <p className="mt-2 text-[13px] leading-relaxed text-slate-600 lg:mt-3 lg:text-base">
             {isSuccessCallback
               ? "잠시만 기다려 주세요. Bong투어와 토스페이먼츠가 결제 내역을 확인하고 있어요."
               : "아래 정보를 확인한 뒤 결제하기를 누르면 토스페이먼츠 결제창이 열려요."}
           </p>
 
           {isSuccessCallback ? (
-            <div className="mt-8 flex flex-col items-center justify-center rounded-3xl border border-slate-200 bg-white px-6 py-16 shadow-sm">
+            <div className="mt-8 flex flex-col items-center justify-center rounded-3xl border border-slate-200 bg-white px-6 py-16 shadow-sm lg:mt-10 lg:py-20">
               <div
-                className="h-10 w-10 animate-spin rounded-full border-4 border-teal-600 border-t-transparent"
+                className="h-10 w-10 animate-spin rounded-full border-4 border-teal-600 border-t-transparent lg:h-12 lg:w-12 lg:border-[5px]"
                 aria-hidden
               />
-              <p className="mt-5 text-[13px] text-slate-600">결제를 확정하고 있어요…</p>
+              <p className="mt-5 text-[13px] text-slate-600 lg:mt-6 lg:text-base">결제를 확정하고 있어요…</p>
             </div>
           ) : null}
 
           {phase === "error" && !isSuccessCallback ? (
-            <div className="mt-8 rounded-2xl border border-orange-200 bg-orange-50/70 p-5 text-[13px] text-orange-900">
+            <div className="mt-8 rounded-2xl border border-orange-200 bg-orange-50/70 p-5 text-[13px] text-orange-900 lg:mt-10 lg:p-6 lg:text-[15px]">
               <p className="font-bold">결제를 시작할 수 없어요</p>
-              <p className="mt-1.5 leading-relaxed">{errorMsg}</p>
+              <p className="mt-1.5 leading-relaxed lg:mt-2">{errorMsg}</p>
               <Link
                 href={bongsimPath("/checkout")}
-                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-5 text-[13px] font-bold text-orange-900 ring-1 ring-orange-200 hover:bg-orange-100"
+                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-5 text-[13px] font-bold text-orange-900 ring-1 ring-orange-200 hover:bg-orange-100 lg:mt-5 lg:min-h-12 lg:px-6 lg:text-base"
               >
                 장바구니로 돌아가기
               </Link>
@@ -185,17 +187,19 @@ function TossPaymentContent() {
           ) : null}
 
           {!isSuccessCallback ? (
-            <div className={phase === "loading" ? "mt-8 animate-pulse space-y-4" : "mt-8 space-y-4"}>
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">결제 요약</p>
-                <div className="mt-3 flex items-center justify-between text-[14px]">
+            <div className={phase === "loading" ? "mt-8 animate-pulse space-y-4" : "mt-8 space-y-4 lg:mt-10 lg:space-y-5"}>
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:p-6">
+                <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500 lg:text-sm">
+                  결제 요약
+                </p>
+                <div className="mt-3 flex items-center justify-between text-[14px] lg:mt-4 lg:text-base">
                   <span className="text-slate-600">결제 금액</span>
-                  <span className="text-lg font-bold text-slate-900">
+                  <span className="text-lg font-bold text-slate-900 lg:text-2xl">
                     {Number.isFinite(amount) ? `${amount.toLocaleString("ko-KR")}원` : "-"}
                   </span>
                 </div>
                 {orderName ? (
-                  <div className="mt-3 border-t border-slate-100 pt-3 text-[13px]">
+                  <div className="mt-3 border-t border-slate-100 pt-3 text-[13px] lg:mt-4 lg:pt-4 lg:text-[15px]">
                     <div className="flex items-start justify-between gap-3">
                       <span className="shrink-0 text-slate-600">주문명</span>
                       <span className="text-right font-medium text-slate-900">{orderName}</span>
@@ -208,7 +212,7 @@ function TossPaymentContent() {
                 type="button"
                 onClick={handlePay}
                 disabled={phase !== "ready" || isSubmitting}
-                className="mt-2 flex min-h-[3.35rem] w-full items-center justify-center rounded-2xl bg-teal-700 px-6 text-[15px] font-bold text-white shadow-md transition enabled:hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                className="mt-2 flex min-h-[3.35rem] w-full items-center justify-center rounded-2xl bg-teal-700 px-6 text-[15px] font-bold text-white shadow-md transition enabled:hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400 lg:min-h-[3.75rem] lg:text-lg"
               >
                 {phase === "ready"
                   ? isSubmitting
@@ -219,7 +223,7 @@ function TossPaymentContent() {
                     : "결제 불가"}
               </button>
 
-              <p className="text-center text-[11.5px] leading-relaxed text-slate-500">
+              <p className="text-center text-[11.5px] leading-relaxed text-slate-500 lg:text-sm">
                 결제 진행은 토스페이먼츠가 안전하게 처리해요. 결제 완료 후 이메일로 QR코드를 보내드려요.
               </p>
             </div>
