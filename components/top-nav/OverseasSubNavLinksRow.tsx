@@ -60,14 +60,18 @@ export default function OverseasSubNavLinksRow() {
 }
 
 /**
- * 좁은 화면: 소메뉴를 그리드로 동시 노출 (2열 → sm 이상 4열).
+ * 좁은 화면: 소메뉴를 그리드로 동시 노출 — 열 수 = 항목 수(전 너비 균등 분할).
  */
 export function OverseasSubNavMobileScrollRow() {
   const pathname = usePathname() ?? ''
+  const colCount = OVERSEAS_SUB_NAV_ITEMS.length
 
   return (
     <div
-      className="grid w-full min-w-0 grid-cols-2 gap-1 pb-2 pt-1 sm:grid-cols-4 sm:gap-1.5"
+      className="grid w-full min-w-0 gap-1 pb-2 pt-1 sm:gap-1.5"
+      style={{
+        gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
+      }}
       role="navigation"
       aria-label="해외여행 하위 메뉴"
     >

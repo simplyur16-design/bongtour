@@ -62,35 +62,43 @@ export default function EsimPage() {
           </Link>
         </section>
 
-        {/* 봉sim의 장점 */}
+        {/* 왜 Bong투어 eSIM인가 */}
         <section className="mt-20">
-          <h2 className="mb-8 text-center text-[1.3rem] font-bold text-slate-900 sm:text-2xl">
-            ✨ 봉<span className="text-orange-600">SIM</span>의 장점
+          <h2 className="mb-6 text-center text-[1.3rem] font-bold text-slate-900 sm:text-2xl">
+            왜 Bong투어 <span className="text-orange-600">eSIM</span>일까요?
           </h2>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm transition hover:border-orange-300 hover:shadow-md">
-              <div className="mb-3 text-4xl">📞</div>
-              <h3 className="text-[15px] font-bold text-slate-900">24시간 안심 고객센터</h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-slate-600">언제 어디서든 한국어로 빠른 응대</p>
+          <div className="grid items-stretch gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
+            <div className="flex min-h-[10.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-3.5 text-center shadow-sm sm:min-h-[11rem]">
+              <div className="text-[1.75rem] leading-none" aria-hidden>
+                💬
+              </div>
+              <h3 className="text-[14px] font-bold leading-snug text-slate-900">24시간 안심 고객센터</h3>
+              <p className="text-[12px] leading-snug text-slate-600">언제 어디서든 한국어로 빠른 응대</p>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm transition hover:border-orange-300 hover:shadow-md">
-              <div className="mb-3 text-4xl">💯</div>
-              <h3 className="text-[15px] font-bold text-slate-900">100% 환불 보장</h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-slate-600">미사용 시 전액 환불 가능</p>
+            <div className="flex min-h-[10.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-3.5 text-center shadow-sm sm:min-h-[11rem]">
+              <div className="text-[1.75rem] leading-none" aria-hidden>
+                🛡️
+              </div>
+              <h3 className="text-[14px] font-bold leading-snug text-slate-900">100% 환불보장</h3>
+              <p className="text-[12px] leading-snug text-slate-600">제품 결함 시 전액 환불</p>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm transition hover:border-orange-300 hover:shadow-md">
-              <div className="mb-3 text-4xl">📶</div>
-              <h3 className="text-[15px] font-bold text-slate-900">데이터 안정성</h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-slate-600">현지 주요 통신사 직접 연결</p>
+            <div className="flex min-h-[10.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-3.5 text-center shadow-sm sm:min-h-[11rem]">
+              <div className="text-[1.75rem] leading-none" aria-hidden>
+                📶
+              </div>
+              <h3 className="text-[14px] font-bold leading-snug text-slate-900">데이터 안정성</h3>
+              <p className="text-[12px] leading-snug text-slate-600">현지 주요 통신사 직접 연결</p>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm transition hover:border-orange-300 hover:shadow-md">
-              <div className="mb-3 text-4xl">🎁</div>
-              <h3 className="text-[15px] font-bold text-slate-900">간편한 선물하기 기능</h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-slate-600">친구·가족에게 쉽게 전송</p>
+            <div className="flex min-h-[10.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-3.5 text-center shadow-sm sm:min-h-[11rem]">
+              <div className="text-[1.75rem] leading-none" aria-hidden>
+                🎁
+              </div>
+              <h3 className="text-[14px] font-bold leading-snug text-slate-900">간편한 선물하기 기능</h3>
+              <p className="text-[12px] leading-snug text-slate-600">친구·가족에게 쉽게 전송</p>
             </div>
           </div>
         </section>

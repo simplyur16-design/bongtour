@@ -3,7 +3,7 @@ import type { ProductBrowseType } from '@/lib/products-browse-filter'
 /**
  * 해외여행 서브메인 상단 소메뉴 — 메인 헤더 1차 네비와 별개.
  * - 여행상품: 권역/국가/도시 메가메뉴(TopMegaMenu)와 연동
- * - 우리끼리·항공+호텔: 각 전용 경로 (eSIM은 모바일 홈 주요 서비스 등에서 별도 진입)
+ * - 우리끼리·항공+호텔: 각 전용 경로 (eSIM은 모바일 홈 상단 등에서 별도 진입)
  */
 export type OverseasSubNavItem =
   | { kind: 'mega'; browseType: ProductBrowseType; label: string }

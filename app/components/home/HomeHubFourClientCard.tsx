@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowUpRight } from 'lucide-react'
-import { useCallback, useState, type FocusEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FocusEvent } from 'react'
 import type { HubFourAccent } from '@/lib/main-hub-copy'
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
 import { hubSectionFragmentId } from '@/lib/hub-section-anchor'
@@ -56,6 +56,117 @@ function hubPrimaryTitle(card: HomeHubFourClientCardModel): string {
   return card.categoryLabel.replace(/\s*\[[^\]]+\]\s*/g, '').trim() || card.categoryLabel
 }
 
+/** 허브 카드 큰 타이틀 한·영 (애니메이션 SSOT — `categoryLabel`과 별도로 키 기준 고정) */
+function hubCardTitlePair(card: HomeHubFourClientCardModel): { ko: string; en: string } {
+  switch (card.key) {
+    case 'overseas':
+      return { ko: '해외여행', en: 'Overseas' }
+    case 'training':
+      return { ko: '국외연수', en: 'Global Training' }
+    case 'domestic':
+      return { ko: '국내여행', en: 'Domestic' }
+    case 'bus':
+      return { ko: '여행 eSIM', en: 'Travel eSIM' }
+    default:
+      return { ko: hubPrimaryTitle(card), en: hubPrimaryTitle(card) }
+  }
+}
+
+const TITLE_HOLD_MS = 4200
+const TITLE_FADE_MS = 800
+const TITLE_STAGGER_MS = 720
+
+const TITLE_MOTION_TRANSITION = `transform ${TITLE_FADE_MS}ms ease-in-out, opacity ${TITLE_FADE_MS}ms ease-in-out`
+
+function HubFourAnimatedHubTitle({
+  pair,
+  index,
+  detailOpen,
+  denseBg,
+}: {
+  pair: { ko: string; en: string }
+  index: number
+  detailOpen: boolean
+  denseBg: boolean
+}) {
+  const [lang, setLang] = useState<'ko' | 'en'>('ko')
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const between = TITLE_HOLD_MS + TITLE_FADE_MS
+    const stagger = index * TITLE_STAGGER_MS
+
+    const clearTimer = () => {
+      if (timerRef.current != null) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    }
+
+    const flip = () => setLang((l) => (l === 'ko' ? 'en' : 'ko'))
+
+    const scheduleNext = (delay: number) => {
+      clearTimer()
+      timerRef.current = setTimeout(() => {
+        if (cancelled) return
+        flip()
+        scheduleNext(between)
+      }, delay)
+    }
+
+    scheduleNext(stagger + TITLE_HOLD_MS)
+
+    return () => {
+      cancelled = true
+      clearTimer()
+    }
+  }, [index])
+
+  const positionClasses = detailOpen
+    ? 'top-12 translate-y-0 sm:top-14'
+    : 'top-1/2 -translate-y-1/2'
+  const shadowKo = denseBg
+    ? 'drop-shadow-[0_2px_0_rgba(0,0,0,0.4)] drop-shadow-[0_4px_18px_rgba(0,0,0,0.5)]'
+    : 'drop-shadow-[0_2px_14px_rgba(0,0,0,0.45)] drop-shadow-[0_0_16px_rgba(0,0,0,0.35)]'
+  const shadowEn = denseBg
+    ? 'drop-shadow-[0_2px_0_rgba(0,0,0,0.35)] drop-shadow-[0_4px_16px_rgba(0,0,0,0.45)]'
+    : 'drop-shadow-[0_2px_12px_rgba(0,0,0,0.4)] drop-shadow-[0_0_14px_rgba(0,0,0,0.3)]'
+
+  const sizeClass =
+    'text-[clamp(2.4rem,3.9vw+1rem,3.55rem)] leading-[1.05] tracking-tight lg:tracking-[-0.01em]'
+
+  return (
+    <div
+      className={`absolute left-4 right-4 z-[6] text-center transition-[top,transform] duration-300 ease-out sm:left-5 sm:right-5 ${positionClasses}`}
+    >
+      <span className="sr-only">
+        {pair.ko}, {pair.en}
+      </span>
+      <div className={`relative mx-auto grid w-full min-h-[1.15em] place-items-center ${sizeClass}`}>
+        <span
+          aria-hidden
+          className={`col-start-1 row-start-1 max-w-full text-center font-black text-white ${shadowKo} ${
+            lang === 'ko' ? 'translate-y-0 opacity-100' : '-translate-y-[20px] opacity-0'
+          }`}
+          style={{ transition: TITLE_MOTION_TRANSITION }}
+        >
+          {pair.ko}
+        </span>
+        <span
+          aria-hidden
+          className={`col-start-1 row-start-1 max-w-full text-center font-semibold tracking-wider text-white [font-family:var(--font-hub-outfit),ui-sans-serif,system-ui,sans-serif] ${shadowEn} ${
+            lang === 'en' ? 'translate-y-0 opacity-100' : 'translate-y-[20px] opacity-0'
+          }`}
+          style={{ transition: TITLE_MOTION_TRANSITION }}
+        >
+          {pair.en}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 function hubHoverSubtitle(card: HomeHubFourClientCardModel): string | null {
   if (card.key === 'training') return TRAINING_HOVER_SUBTITLE
   const h = card.headline?.trim()
@@ -74,12 +185,14 @@ type Props = { card: HomeHubFourClientCardModel; index: number }
 export default function HomeHubFourClientCard({ card, index }: Props) {
   const key = card.key
   const denseBg = isDomesticOrBus(key)
-  const primaryTitle = hubPrimaryTitle(card)
+  const titlePair = hubCardTitlePair(card)
   const subtitle = hubHoverSubtitle(card)
   const descFull = card.description?.trim() ?? ''
   const [detailOpen, setDetailOpen] = useState(false)
 
-  const cardAriaLabel = [primaryTitle, subtitle, descFull, ...card.hints, card.ctaLabel].filter(Boolean).join('. ')
+  const cardAriaLabel = [titlePair.ko, titlePair.en, subtitle, descFull, ...card.hints, card.ctaLabel]
+    .filter(Boolean)
+    .join('. ')
   /** 원격 URL은 `/_next/image` 최적화 큐를 타면 LCP·대역만 지연될 수 있어 브라우저 직접 로드 */
   const hubImageUnoptimized = /^https?:\/\//i.test(card.imageSrc)
 
@@ -167,17 +280,7 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
             </div>
           ) : null}
 
-          <p
-            className={`absolute left-4 right-4 z-[6] text-center text-[clamp(2.4rem,3.9vw+1rem,3.55rem)] font-black leading-[1.05] tracking-tight text-white transition-[top,transform] duration-300 ease-out sm:left-5 sm:right-5 lg:tracking-[-0.01em] ${
-              detailOpen ? 'top-12 translate-y-0 sm:top-14' : 'top-1/2 -translate-y-1/2'
-            } ${
-              denseBg
-                ? 'drop-shadow-[0_2px_0_rgba(0,0,0,0.4)] drop-shadow-[0_4px_18px_rgba(0,0,0,0.5)]'
-                : 'drop-shadow-[0_2px_14px_rgba(0,0,0,0.45)] drop-shadow-[0_0_16px_rgba(0,0,0,0.35)]'
-            }`}
-          >
-            {primaryTitle}
-          </p>
+          <HubFourAnimatedHubTitle pair={titlePair} index={index} detailOpen={detailOpen} denseBg={denseBg} />
         </div>
       </Link>
     </li>

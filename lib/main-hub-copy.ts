@@ -190,7 +190,7 @@ export const MAIN_HOME_OVERSEAS_HUB_CARD_DESCRIPTION =
 /** @deprecated `MAIN_HOME_FIRST_HUB_TILE_DESC` 사용 */
 export const MAIN_HOME_FIRST_HUB_DESCRIPTION = MAIN_HOME_FIRST_HUB_TILE_DESC
 
-/** 그리드 순서: 해외여행 → 국외연수 → 국내여행 → 전세버스 — 호버 시 headline·description은 `HomeHubFourClientCard` */
+/** 그리드 순서: 해외여행 → 국외연수 → 국내여행 → 여행 eSIM — 4번째 이미지 슬롯은 `bus` 키(관리자 전세버스 자산) 유지, 호버 카피는 `HomeHubFourClientCard` */
 export const MAIN_HUB_FOUR_CARDS = [
   {
     key: 'overseas',
@@ -229,14 +229,14 @@ export const MAIN_HUB_FOUR_CARDS = [
   },
   {
     key: 'bus',
-    href: '/charter-bus',
+    href: '/travel/esim',
     accent: 'bus' as const,
-    categoryLabel: '전세버스',
-    headline: '6인승부터 45인승까지',
+    categoryLabel: '여행 eSIM',
+    headline: '여행용 eSIM 간편 구매',
     description:
-      '행사·연수·공항 이동까지 인원과 목적에 맞는 차량을 직영 운영 기준으로 제안합니다.',
-    hints: ['공항 이동', '행사 운영', '단체 이동'] as const,
-    ctaLabel: '전세버스 보기',
+      '목적지에 맞는 여행용 eSIM 요금과 개통 흐름을 한곳에서 안내합니다.',
+    hints: ['데이터 전용', '국가별 요금', '출국 전 준비'] as const,
+    ctaLabel: 'eSIM 알아보기',
     imageSrc: homeHubCardImageSrc('bus'),
   },
 ] as const

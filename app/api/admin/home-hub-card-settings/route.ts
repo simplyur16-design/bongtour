@@ -9,7 +9,7 @@ import {
   type WriteHomeHubActiveMergedInput,
 } from '@/lib/home-hub-resolve-images'
 
-const MOBILE_TILE_KEYS = new Set<MobileMainServiceTileKey>(['overseas', 'airHotel', 'privateTrip', 'esim'])
+const MOBILE_TILE_KEYS = new Set<MobileMainServiceTileKey>(['overseas', 'airHotel', 'privateTrip', 'training'])
 
 export async function PATCH(request: Request) {
   const admin = await requireAdmin()

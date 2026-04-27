@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import dynamic from 'next/dynamic'
-import { Noto_Sans_KR } from 'next/font/google'
+import { Noto_Sans_KR, Outfit } from 'next/font/google'
 import './globals.css'
 import SessionProvider from './components/providers/SessionProvider'
 import ChunkLoadRecovery from './components/ChunkLoadRecovery'
@@ -61,13 +61,22 @@ const notoSansKr = Noto_Sans_KR({
   preload: true,
 })
 
+/** 메인 허브 4카드 영문 타이틀 등 — `HomeHubFourClientCard`에서 `var(--font-hub-outfit)` 로 사용 */
+const hubOutfit = Outfit({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-hub-outfit',
+  display: 'swap',
+  preload: false,
+})
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="ko" className={notoSansKr.variable} suppressHydrationWarning>
+    <html lang="ko" className={`${notoSansKr.variable} ${hubOutfit.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-beige antialiased font-sans flex flex-col">
         <BongtourSplash />
         <ChunkLoadRecovery />

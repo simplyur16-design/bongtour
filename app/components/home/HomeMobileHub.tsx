@@ -13,7 +13,7 @@ const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
 /**
  * 카피·링크·하이브리드 매핑 키 — 실제 `bgSrc`는 `resolveMobileMainTileBgSrc`로 확정.
- * 배경 URL은 관리자 권장: 해외=유럽(영·프 등), 항공+호텔=이륙기, 우리끼리=가족, eSIM=연결·통신 톤(또는 기본 폴백).
+ * 배경 URL은 관리자 권장: 해외=유럽(영·프 등), 항공+호텔=이륙기, 우리끼리=가족, 국외연수=회의장.
  */
 const MAIN_TILES_SPEC = [
   {
@@ -35,17 +35,16 @@ const MAIN_TILES_SPEC = [
     bgKey: 'privateTrip' as const satisfies MobileMainTileBgKey,
   },
   {
-    href: '/travel/esim',
-    title: 'eSIM',
-    desc: '여행용 eSIM 간편 구매',
-    bgKey: 'esim' as const satisfies MobileMainTileBgKey,
+    href: '/training',
+    title: '국외연수',
+    desc: '학교 · 기업 · 공공기관',
+    bgKey: 'training' as const satisfies MobileMainTileBgKey,
   },
 ] as const
 
 const QUICK_ACTIONS = [
   { href: INQUIRY_TRAVEL, label: '상담접수', primary: true as const },
   { href: '/air-ticketing', label: '항공권', primary: false as const },
-  { href: '/training', label: '국외연수', primary: false as const },
   { href: '/charter-bus', label: '전세버스', primary: false as const },
 ] as const
 
@@ -94,17 +93,19 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
 
   return (
     <div className={`space-y-7 pb-8 pt-3 ${SITE_CONTENT_CLASS}`}>
-      <div className="space-y-2">
-        <p className="text-center text-[11px] font-semibold leading-snug tracking-tight text-teal-900 sm:text-xs">
-          상담 완료시 여행자보험 무료
-        </p>
-        <Link
-          href={INQUIRY_TRAVEL}
-          className="flex w-full items-center justify-center rounded-xl bg-teal-700 px-4 py-4 text-center text-base font-semibold text-white shadow-md transition hover:bg-teal-800"
-        >
-          내 여행 시작하기
-        </Link>
-      </div>
+      <Link
+        href="/travel/esim"
+        className="flex w-full min-h-[3.25rem] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-700 via-teal-600 to-cyan-700 px-4 py-4 text-center text-base font-semibold text-white shadow-md ring-2 ring-cyan-400/35 transition hover:from-teal-600 hover:via-teal-500 hover:to-cyan-600 hover:ring-cyan-300/50 active:scale-[0.99]"
+        aria-label="나에게 맞는 eSIM 찾기 — 여행용 eSIM 안내로 이동"
+      >
+        <span className="text-xl leading-none sm:text-2xl" aria-hidden>
+          ✈️
+        </span>
+        <span className="text-center leading-tight">나에게 맞는 eSIM 찾기</span>
+        <span className="rounded-md border border-white/25 bg-white/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/95" aria-hidden>
+          eSIM
+        </span>
+      </Link>
 
       <section aria-label="주요 서비스">
         <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>주요 서비스</h2>
