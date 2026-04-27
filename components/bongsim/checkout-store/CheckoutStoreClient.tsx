@@ -112,6 +112,13 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
 
+  const [couponOpen, setCouponOpen] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponBusy, setCouponBusy] = useState(false);
+  /** 주문 합계에서 차감되는 할인액(KRW). 쿠폰 API 연동 후 설정. */
+  const [appliedOrderDiscountKrw, setAppliedOrderDiscountKrw] = useState<number | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   const checkoutIdempotencyRef = useRef<string | null>(null);
   const paymentIdempotencyRef = useRef<string | null>(null);
 
@@ -119,6 +126,18 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
     checkoutIdempotencyRef.current = null;
     paymentIdempotencyRef.current = null;
   }, [optionApiId]);
+
+  useEffect(() => {
+    setCouponCode("");
+    setCouponOpen(false);
+    setAppliedOrderDiscountKrw(null);
+  }, [optionApiId]);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const t = window.setTimeout(() => setToastMessage(null), 3800);
+    return () => window.clearTimeout(t);
+  }, [toastMessage]);
 
   useEffect(() => {
     const q = readRecommendQueue();
@@ -170,6 +189,37 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
     const head = checkoutCountryHeadline(detail.summary.plan_name);
     return { head, planSubtitle: checkoutPlanSubtitle(detail, head.name) };
   }, [detail]);
+
+  const applyCoupon = useCallback(async () => {
+    setCouponBusy(true);
+    try {
+      const res = await fetch("/api/bongsim/coupon/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: couponCode.trim(),
+          option_api_id: optionApiId,
+          quantity,
+        }),
+      });
+      if (res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { discount_krw?: number };
+        const d = typeof data.discount_krw === "number" && Number.isFinite(data.discount_krw) ? Math.trunc(data.discount_krw) : 0;
+        if (d > 0) {
+          setAppliedOrderDiscountKrw(d);
+          setToastMessage("쿠폰이 적용되었습니다.");
+          return;
+        }
+      }
+      setAppliedOrderDiscountKrw(null);
+      setToastMessage("쿠폰 기능 준비 중입니다");
+    } catch {
+      setAppliedOrderDiscountKrw(null);
+      setToastMessage("쿠폰 기능 준비 중입니다");
+    } finally {
+      setCouponBusy(false);
+    }
+  }, [couponCode, optionApiId, quantity]);
 
   const onSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -322,12 +372,35 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   <p className="mt-2 text-base leading-snug text-slate-800">{checkoutSummary.planSubtitle}</p>
                 </>
               ) : null}
-              <p className="mt-4 text-2xl font-bold text-slate-900 lg:mt-5 lg:text-3xl">
-                {new Intl.NumberFormat("ko-KR").format(detail.summary.pricing.display_amount_krw)}원
-                <span className="ml-2 text-sm font-normal text-slate-500 lg:text-base">
-                  ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
-                </span>
-              </p>
+              {(() => {
+                const unit = detail.summary.pricing.display_amount_krw;
+                const subtotal = unit * Math.max(1, quantity);
+                const disc = appliedOrderDiscountKrw ?? 0;
+                const final = Math.max(0, subtotal - disc);
+                const nf = new Intl.NumberFormat("ko-KR");
+                if (disc > 0) {
+                  return (
+                    <div className="mt-4 space-y-1 lg:mt-5">
+                      <p className="text-lg font-medium text-slate-500 line-through lg:text-xl">
+                        {nf.format(subtotal)}원
+                      </p>
+                      <p className="text-2xl font-bold text-teal-600 lg:text-3xl">{nf.format(final)}원</p>
+                      <p className="text-sm font-semibold text-teal-700 lg:text-base">-{nf.format(disc)}원</p>
+                      <p className="text-sm font-normal text-slate-500 lg:text-base">
+                        ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <p className="mt-4 text-2xl font-bold text-slate-900 lg:mt-5 lg:text-3xl">
+                    {nf.format(unit)}원
+                    <span className="ml-2 text-sm font-normal text-slate-500 lg:text-base">
+                      ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
+                    </span>
+                  </p>
+                );
+              })()}
             </section>
 
             <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:space-y-5 lg:p-5">
@@ -377,6 +450,41 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   이용약관 및 결제 진행에 동의합니다. (약관 버전 {BONGSIM_CHECKOUT_TERMS_VERSION})
                 </span>
               </label>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/90">
+                <button
+                  type="button"
+                  onClick={() => setCouponOpen((o) => !o)}
+                  className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm font-medium text-slate-800 lg:px-4 lg:py-3 lg:text-base"
+                  aria-expanded={couponOpen}
+                >
+                  쿠폰이 있으신가요?
+                  <span className="text-slate-400">{couponOpen ? "▲" : "▼"}</span>
+                </button>
+                {couponOpen ? (
+                  <div className="border-t border-slate-200 px-3 pb-3 pt-1 lg:px-4 lg:pb-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(ev) => setCouponCode(ev.target.value)}
+                        placeholder="쿠폰 코드"
+                        className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 lg:px-4 lg:py-2.5 lg:text-lg"
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        disabled={couponBusy}
+                        onClick={() => void applyCoupon()}
+                        className="shrink-0 rounded-lg bg-teal-700 px-4 py-2 text-base font-semibold text-white hover:bg-teal-800 disabled:opacity-60 lg:px-5 lg:text-lg"
+                      >
+                        {couponBusy ? "…" : "적용"}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
               {submitError ? <p className="text-sm text-red-700 lg:text-base">{submitError}</p> : null}
               <button
                 type="submit"
@@ -389,6 +497,17 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
           </div>
         )}
       </main>
+
+      {toastMessage ? (
+        <div
+          className="pointer-events-none fixed bottom-6 left-1/2 z-[60] max-w-md -translate-x-1/2 px-4"
+          role="status"
+        >
+          <div className="pointer-events-auto rounded-xl bg-slate-900 px-4 py-3 text-center text-sm font-medium text-white shadow-lg lg:text-base">
+            {toastMessage}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
