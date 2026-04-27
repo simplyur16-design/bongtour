@@ -1,5 +1,6 @@
 "use client";
 
+import type { TossPaymentsPayment } from "@tosspayments/tosspayments-sdk";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -8,31 +9,18 @@ import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasT
 import { bongsimPath } from "@/lib/bongsim/constants";
 
 /**
- * 토스페이먼츠 결제창 페이지.
+ * 토스페이먼츠 V2 SDK — 결제창(Payment Window) + API 개별 연동 클라이언트 키(test_ck_ / live_ck_).
  *
- * 2가지 모드로 동작:
- *   1. 초기 진입 (URL에 paymentKey 없음): 토스 위젯 렌더링 + 결제 버튼
- *   2. successUrl 콜백 (URL에 paymentKey·amount 붙어있음): 서버 confirm 호출 → success/fail 페이지로 리다이렉트
+ * 결제위젯 연동 키(test_gck_ 등)는 `widgets()` 전용이라 사용하지 않는다.
+ * `loadTossPayments(NEXT_PUBLIC_TOSS_CLIENT_KEY)` → `payment({ customerKey: ANONYMOUS })` →
+ * `requestPayment({ method: "CARD", ... })` 흐름만 사용한다.
  *
- * 실패/취소 시에는 토스가 failUrl로내므로 이 페이지는 paymentKey가 붙은 경우만 처리.
+ * 쿼리: paymentAttemptId, orderId, tossOrderId, amount, orderName, customerEmail(선택).
+ *
+ * 모드:
+ *   1) paymentKey 없음: 요약 UI + 결제하기 → 결제창
+ *   2) paymentKey 있음(성공 리다이렉트): 기존과 동일하게 서버 confirm 후 success/fail 이동
  */
-
-type WidgetsInstance = {
-  setAmount: (args: { currency: "KRW"; value: number }) => Promise<void>;
-  renderPaymentMethods: (args: { selector: string; variantKey?: string }) => Promise<unknown>;
-  renderAgreement: (args: { selector: string; variantKey?: string }) => Promise<unknown>;
-  requestPayment: (args: {
-    orderId: string;
-    orderName: string;
-    successUrl: string;
-    failUrl: string;
-    customerEmail?: string;
-  }) => Promise<void>;
-};
-
-type TossPaymentsInstance = {
-  widgets: (args: { customerKey: string }) => WidgetsInstance;
-};
 
 function TossPaymentContent() {
   const router = useRouter();
@@ -54,7 +42,7 @@ function TossPaymentContent() {
   const [phase, setPhase] = useState<"loading" | "ready" | "confirming" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const widgetsRef = useRef<WidgetsInstance | null>(null);
+  const paymentRef = useRef<TossPaymentsPayment | null>(null);
 
   useEffect(() => {
     if (!isSuccessCallback) return;
@@ -110,22 +98,14 @@ function TossPaymentContent() {
 
     (async () => {
       try {
-        const mod = await import("@tosspayments/tosspayments-sdk");
+        const { loadTossPayments, ANONYMOUS } = await import("@tosspayments/tosspayments-sdk");
         if (cancelled) return;
-        const { loadTossPayments, ANONYMOUS } = mod as {
-          loadTossPayments: (key: string) => Promise<TossPaymentsInstance>;
-          ANONYMOUS: string;
-        };
 
         const tossPayments = await loadTossPayments(clientKey);
         if (cancelled) return;
 
-        const widgets = tossPayments.widgets({ customerKey: ANONYMOUS });
-        widgetsRef.current = widgets;
-
-        await widgets.setAmount({ currency: "KRW", value: amount });
-        await widgets.renderPaymentMethods({ selector: "#toss-payment-method", variantKey: "DEFAULT" });
-        await widgets.renderAgreement({ selector: "#toss-agreement", variantKey: "AGREEMENT" });
+        const payment = tossPayments.payment({ customerKey: ANONYMOUS });
+        paymentRef.current = payment;
 
         if (!cancelled) setPhase("ready");
       } catch (e) {
@@ -142,25 +122,22 @@ function TossPaymentContent() {
   }, []);
 
   const handlePay = async () => {
-    const widgets = widgetsRef.current;
-    if (!widgets || isSubmitting) return;
+    const payment = paymentRef.current;
+    if (!payment || isSubmitting) return;
     setIsSubmitting(true);
     try {
       const origin = window.location.origin;
-      const successParams = new URLSearchParams({
-        paymentAttemptId,
-        orderId,
-        tossOrderId,
-      });
-      const failParams = new URLSearchParams({
-        orderId,
-      });
-      await widgets.requestPayment({
+      const successUrl = `${origin}${window.location.pathname}${window.location.search}`;
+      const failUrl = `${origin}${bongsimPath("/checkout/return/fail")}`;
+
+      await payment.requestPayment({
+        method: "CARD",
+        amount: { currency: "KRW", value: amount },
         orderId: tossOrderId,
         orderName,
-        successUrl: `${origin}${bongsimPath("/checkout/payment/toss")}?${successParams.toString()}`,
-        failUrl: `${origin}${bongsimPath("/checkout/return/fail")}?${failParams.toString()}`,
-        customerEmail: customerEmail || undefined,
+        successUrl,
+        failUrl,
+        ...(customerEmail ? { customerEmail } : {}),
       });
     } catch (e) {
       setIsSubmitting(false);
@@ -176,12 +153,12 @@ function TossPaymentContent() {
         <div className="mx-auto w-full max-w-2xl px-4 pb-20 pt-6 sm:px-6 sm:pt-8 lg:pb-28 lg:pt-10">
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-teal-700">결제</p>
           <h1 className="mt-2 text-[1.4rem] font-bold leading-snug tracking-tight text-slate-900 sm:text-2xl">
-            {isSuccessCallback ? "결제 확인 중이에요" : "결제 수단 선택"}
+            {isSuccessCallback ? "결제 확인 중이에요" : "신용카드 결제"}
           </h1>
           <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
             {isSuccessCallback
               ? "잠시만 기다려 주세요. Bong투어와 토스페이먼츠가 결제 내역을 확인하고 있어요."
-              : "안전한 토스페이먼츠 결제창에서 원하는 결제 수단을 선택해 주세요."}
+              : "아래 정보를 확인한 뒤 결제하기를 누르면 토스페이먼츠 결제창이 열려요."}
           </p>
 
           {isSuccessCallback ? (
@@ -209,23 +186,20 @@ function TossPaymentContent() {
 
           {!isSuccessCallback ? (
             <div className={phase === "loading" ? "mt-8 animate-pulse space-y-4" : "mt-8 space-y-4"}>
-              <div
-                id="toss-payment-method"
-                className="min-h-[360px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-              />
-              <div id="toss-agreement" className="min-h-[80px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" />
-
-              <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-[13px] text-slate-700">
-                <div className="flex items-center justify-between">
-                  <span>결제 금액</span>
-                  <span className="text-base font-bold text-slate-900">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">결제 요약</p>
+                <div className="mt-3 flex items-center justify-between text-[14px]">
+                  <span className="text-slate-600">결제 금액</span>
+                  <span className="text-lg font-bold text-slate-900">
                     {Number.isFinite(amount) ? `${amount.toLocaleString("ko-KR")}원` : "-"}
                   </span>
                 </div>
                 {orderName ? (
-                  <div className="mt-1.5 flex items-center justify-between text-[12px] text-slate-500">
-                    <span>주문명</span>
-                    <span className="max-w-[60%] truncate text-right">{orderName}</span>
+                  <div className="mt-3 border-t border-slate-100 pt-3 text-[13px]">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="shrink-0 text-slate-600">주문명</span>
+                      <span className="text-right font-medium text-slate-900">{orderName}</span>
+                    </div>
                   </div>
                 ) : null}
               </div>
