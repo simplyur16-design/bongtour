@@ -147,37 +147,6 @@ function cardPriceCaption(pack: CountryProductPack): string | null {
   return null;
 }
 
-/** EU 회원국 등 — 평균 1.2GB (요청 스펙). 그 외 미매핑 국가는 1.3GB. */
-const EU_AVERAGE_DAILY_GB_CODES = new Set([
-  "at",
-  "be",
-  "bg",
-  "hr",
-  "cy",
-  "cz",
-  "dk",
-  "ee",
-  "fi",
-  "fr",
-  "de",
-  "gr",
-  "hu",
-  "ie",
-  "it",
-  "lv",
-  "lt",
-  "lu",
-  "mt",
-  "nl",
-  "pl",
-  "pt",
-  "ro",
-  "sk",
-  "si",
-  "es",
-  "se",
-]);
-
 const EXPLICIT_AVG_DAILY_GB: Record<string, number> = {
   jp: 1.6,
   tw: 1.3,
@@ -189,12 +158,10 @@ const EXPLICIT_AVG_DAILY_GB: Record<string, number> = {
 };
 
 const DEFAULT_AVG_DAILY_GB = 1.3;
-const EU_AVG_DAILY_GB = 1.2;
 
 function averageDailyDataGbForCountry(code: string): number {
   const lc = code.trim().toLowerCase();
   if (EXPLICIT_AVG_DAILY_GB[lc] != null) return EXPLICIT_AVG_DAILY_GB[lc]!;
-  if (EU_AVERAGE_DAILY_GB_CODES.has(lc)) return EU_AVG_DAILY_GB;
   return DEFAULT_AVG_DAILY_GB;
 }
 
@@ -213,25 +180,25 @@ function TravelerDataUsageGuide({ countryNameKr, code }: TravelerDataUsageGuideP
   return (
     <div>
       <h3 className="mb-2 text-sm font-semibold text-slate-700">{title}</h3>
-      <div className="flex gap-2">
-        <div className="flex-1 rounded-lg border border-slate-200 bg-white p-2.5 text-center">
-          <p className="text-xs font-medium text-teal-600">알뜰형</p>
+      <div className="flex min-w-0 gap-2">
+        <div className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white p-2.5 text-center">
+          <p className="text-xs font-semibold text-slate-800">알뜰형</p>
           <p className="mt-1 text-xs font-bold text-teal-600">하루 500MB~1GB</p>
           <p className="mt-1 text-[10px] text-slate-500">지도, 메시지, 기본 검색</p>
         </div>
-        <div className="flex-1 rounded-lg border border-slate-200 bg-teal-50 p-2.5 text-center ring-2 ring-teal-400">
+        <div className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-teal-50 p-2.5 text-center ring-2 ring-teal-400">
           <p className="text-xs font-semibold text-slate-800">스마트형</p>
           <p className="mt-1 text-xs font-bold text-teal-600">하루 1~2GB</p>
           <p className="mt-1 text-[10px] text-slate-500">SNS, 맛집검색, 번역앱</p>
           <p className="mt-1 text-[10px] text-slate-500">💡 사진은 호텔 Wi-Fi로!</p>
         </div>
-        <div className="flex-1 rounded-lg border border-slate-200 bg-white p-2.5 text-center">
+        <div className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white p-2.5 text-center">
           <p className="text-xs font-semibold text-slate-800">자유형</p>
           <p className="mt-1 text-xs font-bold text-teal-600">하루 2~5GB+</p>
           <p className="mt-1 text-[10px] text-slate-500">실시간 스트리밍, 영상통화</p>
         </div>
       </div>
-      <p className="mt-1 text-[10px] text-slate-400">* 2025 해외여행 데이터 사용량 분석 기준</p>
+      <p className="mt-2 text-[10px] text-slate-400">* 2025 해외여행 데이터 사용량 분석 기준</p>
     </div>
   );
 }
