@@ -25,6 +25,25 @@ function parseQtySearch(raw: string | null): number | undefined {
   return n;
 }
 
+/** API `display_basis` 내부 키를 사용자용 문구로만 노출 */
+function displayBasisLabelKr(basis: string): string {
+  switch (basis) {
+    case "after.recommended_krw":
+    case "before.recommended_krw":
+      return "권장 판매가 기준";
+    case "after.consumer_krw":
+    case "before.consumer_krw":
+      return "소비자가 기준";
+    case "after.supply_krw":
+    case "before.supply_krw":
+      return "공급가 기준";
+    case "missing_all_price_cells":
+      return "가격 미확인";
+    default:
+      return "표시 가격 기준";
+  }
+}
+
 function readRecommendQueue(): BongsimRecommendCheckoutLine[] | null {
   if (typeof window === "undefined") return null;
   try {
@@ -257,12 +276,12 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
               </section>
             ) : null}
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
-              <p className="text-[13px] font-semibold text-slate-900 lg:text-base">{detail.summary.plan_name}</p>
-              <p className="mt-1 text-[12px] text-slate-600 lg:mt-1.5 lg:text-sm">{detail.summary.option_label}</p>
-              <p className="mt-3 text-[16px] font-semibold text-slate-900 lg:mt-4 lg:text-xl">
+              <p className="text-lg font-semibold text-slate-900 lg:text-xl">{detail.summary.plan_name}</p>
+              <p className="mt-1.5 text-base text-slate-600">{detail.summary.option_label}</p>
+              <p className="mt-4 text-2xl font-bold text-slate-900 lg:mt-5 lg:text-3xl">
                 {new Intl.NumberFormat("ko-KR").format(detail.summary.pricing.display_amount_krw)}원
-                <span className="ml-2 text-[11px] font-normal text-slate-500 lg:text-xs">
-                  (표시 기준: {detail.summary.pricing.display_basis})
+                <span className="ml-2 text-sm font-normal text-slate-500 lg:text-base">
+                  ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
                 </span>
               </p>
             </section>
@@ -274,7 +293,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   type="email"
                   value={email}
                   onChange={(ev) => setEmail(ev.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm lg:mt-1.5 lg:px-4 lg:py-3 lg:text-base"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
                   autoComplete="email"
                   required
                 />
@@ -287,7 +306,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   max={99}
                   value={quantity}
                   onChange={(ev) => setQuantity(Number.parseInt(ev.target.value, 10) || 1)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm lg:mt-1.5 lg:px-4 lg:py-3 lg:text-base"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
                   required
                 />
               </label>
@@ -296,7 +315,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 <select
                   value={locale}
                   onChange={(ev) => setLocale(ev.target.value as "ko" | "en" | "")}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm lg:mt-1.5 lg:px-4 lg:py-3 lg:text-base"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
                 >
                   <option value="">기본</option>
                   <option value="ko">한국어</option>
@@ -318,7 +337,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60 lg:py-4 lg:text-base"
+                className="w-full rounded-xl bg-teal-700 px-4 py-3 text-lg font-semibold text-white hover:bg-teal-800 disabled:opacity-60 lg:py-4"
               >
                 {submitting ? "처리 중…" : "다음: 결제 진행"}
               </button>

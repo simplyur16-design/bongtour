@@ -9,7 +9,6 @@ import { ProductCombinationStep } from "@/components/bongsim/recommend/ProductCo
 import { CountryNameMultiline } from "@/lib/bongsim/country-name-display";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import type { CountryOption } from "@/lib/bongsim/types";
-import EsimServiceNoticeBanner from "@/app/travel/esim/components/EsimServiceNoticeBanner";
 
 /**
  * 나에게 맞는 eSIM 찾기 — 추천 퍼널.
@@ -138,7 +137,6 @@ export default function RecommendPage() {
       <Header />
       <OverseasTravelSubMainNav variant="links" />
       <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-6 sm:px-6 sm:pt-8 lg:pb-28 lg:pt-10">
-        <EsimServiceNoticeBanner />
         {currentStep === 1 ? (
           <>
             {/* Step 1: 국가 선택 */}

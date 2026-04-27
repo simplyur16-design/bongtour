@@ -147,6 +147,95 @@ function cardPriceCaption(pack: CountryProductPack): string | null {
   return null;
 }
 
+/** EU 회원국 등 — 평균 1.2GB (요청 스펙). 그 외 미매핑 국가는 1.3GB. */
+const EU_AVERAGE_DAILY_GB_CODES = new Set([
+  "at",
+  "be",
+  "bg",
+  "hr",
+  "cy",
+  "cz",
+  "dk",
+  "ee",
+  "fi",
+  "fr",
+  "de",
+  "gr",
+  "hu",
+  "ie",
+  "it",
+  "lv",
+  "lt",
+  "lu",
+  "mt",
+  "nl",
+  "pl",
+  "pt",
+  "ro",
+  "sk",
+  "si",
+  "es",
+  "se",
+]);
+
+const EXPLICIT_AVG_DAILY_GB: Record<string, number> = {
+  jp: 1.6,
+  tw: 1.3,
+  us: 1,
+  sg: 0.92,
+  ph: 0.75,
+  th: 1.1,
+  vn: 1,
+};
+
+const DEFAULT_AVG_DAILY_GB = 1.3;
+const EU_AVG_DAILY_GB = 1.2;
+
+function averageDailyDataGbForCountry(code: string): number {
+  const lc = code.trim().toLowerCase();
+  if (EXPLICIT_AVG_DAILY_GB[lc] != null) return EXPLICIT_AVG_DAILY_GB[lc]!;
+  if (EU_AVERAGE_DAILY_GB_CODES.has(lc)) return EU_AVG_DAILY_GB;
+  return DEFAULT_AVG_DAILY_GB;
+}
+
+/** 소수 GB 표기 (예: 1.6GB, 0.92GB, 1GB) */
+function formatAvgDailyGbLabel(gb: number): string {
+  const s = (Math.round(gb * 100) / 100).toFixed(2).replace(/\.?0+$/, "");
+  return `${s}GB`;
+}
+
+type TravelerDataUsageGuideProps = { countryNameKr: string; code: string };
+
+/** 미완료 국가 카드 하단 — 히어로 아래 흰 영역 (선택 완료 시 비표시) */
+function TravelerDataUsageGuide({ countryNameKr, code }: TravelerDataUsageGuideProps) {
+  const avgGb = averageDailyDataGbForCountry(code);
+  const title = `${countryNameKr} 여행자 평균 하루 ${formatAvgDailyGbLabel(avgGb)} 사용`;
+  return (
+    <div>
+      <h3 className="mb-2 text-sm font-semibold text-slate-700">{title}</h3>
+      <div className="flex gap-2">
+        <div className="flex-1 rounded-lg border border-slate-200 bg-white p-2.5 text-center">
+          <p className="text-xs font-medium text-teal-600">알뜰형</p>
+          <p className="mt-1 text-xs font-bold text-teal-600">하루 500MB~1GB</p>
+          <p className="mt-1 text-[10px] text-slate-500">지도, 메시지, 기본 검색</p>
+        </div>
+        <div className="flex-1 rounded-lg border border-slate-200 bg-teal-50 p-2.5 text-center ring-2 ring-teal-400">
+          <p className="text-xs font-semibold text-slate-800">스마트형</p>
+          <p className="mt-1 text-xs font-bold text-teal-600">하루 1~2GB</p>
+          <p className="mt-1 text-[10px] text-slate-500">SNS, 맛집검색, 번역앱</p>
+          <p className="mt-1 text-[10px] text-slate-500">💡 사진은 호텔 Wi-Fi로!</p>
+        </div>
+        <div className="flex-1 rounded-lg border border-slate-200 bg-white p-2.5 text-center">
+          <p className="text-xs font-semibold text-slate-800">자유형</p>
+          <p className="mt-1 text-xs font-bold text-teal-600">하루 2~5GB+</p>
+          <p className="mt-1 text-[10px] text-slate-500">실시간 스트리밍, 영상통화</p>
+        </div>
+      </div>
+      <p className="mt-1 text-[10px] text-slate-400">* 2025 해외여행 데이터 사용량 분석 기준</p>
+    </div>
+  );
+}
+
 export function ProductCombinationStep({
   selectedCodes,
   heroMap,
@@ -359,7 +448,7 @@ export function ProductCombinationStep({
                       src={hero}
                       alt=""
                       fill
-                      className="object-cover"
+                      className="object-cover object-center"
                       sizes={HERO_IMAGE_SIZES}
                       quality={90}
                       loading="lazy"
@@ -371,7 +460,7 @@ export function ProductCombinationStep({
                         alt=""
                         fill
                         quality={90}
-                        className="scale-110 object-cover blur-[20px]"
+                        className="h-full w-full scale-110 object-cover object-center blur-[20px]"
                         sizes={HERO_IMAGE_SIZES}
                         loading="lazy"
                         referrerPolicy="no-referrer"
@@ -383,35 +472,55 @@ export function ProductCombinationStep({
                     className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"
                     aria-hidden
                   />
-                  <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-12 lg:px-5 lg:pb-5 lg:pt-14">
-                    <div className="flex items-end gap-3 lg:gap-4">
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full shadow-lg ring-1 ring-gray-200 lg:h-14 lg:w-14">
-                        <Image
-                          src={flagCdnUrl(code)}
-                          alt=""
-                          width={48}
-                          height={48}
-                          quality={90}
-                          className="h-full w-full object-cover"
-                          sizes="(max-width:1024px) 48px, 56px"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xl font-bold text-white drop-shadow-md lg:text-2xl">
-                          {country?.nameKr ?? code.toUpperCase()}
-                        </p>
-                        {priceLine ? (
-                          <p className="mt-0.5 text-sm text-white/80 drop-shadow-md lg:text-base">{priceLine}</p>
-                        ) : null}
+                  <div className="absolute inset-x-0 bottom-0 flex flex-col justify-end">
+                    <div
+                      className={
+                        done
+                          ? "px-4 pb-4 pt-12 lg:px-5 lg:pb-5 lg:pt-14"
+                          : "px-4 pb-2 pt-10 lg:px-5 lg:pb-3 lg:pt-11"
+                      }
+                    >
+                      <div className="flex items-end gap-3 lg:gap-4">
+                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full shadow-lg ring-1 ring-gray-200 lg:h-14 lg:w-14">
+                          <Image
+                            src={flagCdnUrl(code)}
+                            alt=""
+                            width={48}
+                            height={48}
+                            quality={90}
+                            className="h-full w-full object-cover"
+                            sizes="(max-width:1024px) 48px, 56px"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xl font-bold text-white drop-shadow-md lg:text-2xl">
+                            {country?.nameKr ?? code.toUpperCase()}
+                          </p>
+                          {priceLine ? (
+                            <p className="mt-0.5 text-sm text-white/80 drop-shadow-md lg:text-base">{priceLine}</p>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white px-4 py-3 lg:px-5 lg:py-4">
-                  {done ? (
+                {!done ? (
+                  <div className="border-t border-slate-100 bg-white px-3 py-2.5 lg:px-4 lg:py-3">
+                    <TravelerDataUsageGuide
+                      code={code}
+                      countryNameKr={country?.nameKr ?? code.toUpperCase()}
+                    />
+                    <p className="mt-2 border-t border-slate-100 pt-2 text-center text-sm text-slate-500 lg:text-base">
+                      카드를 눌러 여행 기간을 선택하세요
+                    </p>
+                  </div>
+                ) : null}
+
+                {done ? (
+                  <div className="bg-white px-4 py-3 lg:px-5 lg:py-4">
                     <div className="flex items-start gap-2 rounded-xl bg-blue-50 px-4 py-3 lg:gap-2.5 lg:px-5 lg:py-3.5">
                       <svg
                         className="mt-0.5 h-5 w-5 shrink-0 text-blue-500 lg:mt-1 lg:h-6 lg:w-6"
@@ -429,12 +538,8 @@ export function ProductCombinationStep({
                         {summaryLine}
                       </span>
                     </div>
-                  ) : (
-                    <p className="text-center text-sm text-gray-500 lg:text-base">
-                      카드를 눌러 여행 기간을 선택하세요
-                    </p>
-                  )}
-                </div>
+                  </div>
+                ) : null}
               </div>
             </Fragment>
           );

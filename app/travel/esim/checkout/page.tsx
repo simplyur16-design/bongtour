@@ -26,8 +26,16 @@ export default function CheckoutPage(props: Props) {
     <div className="min-h-screen bg-bt-page">
       <Header />
       <OverseasTravelSubMainNav variant="links" />
-      <Suspense fallback={<div className="min-h-full bg-slate-50 p-6 text-sm text-slate-600">로딩…</div>}>
-        <CheckoutInner {...props} />
+      <Suspense
+        fallback={
+          <div className="mx-auto min-h-full w-full max-w-3xl bg-slate-50 p-6 text-center text-sm text-slate-600">
+            로딩…
+          </div>
+        }
+      >
+        <div className="mx-auto w-full max-w-3xl">
+          <CheckoutInner {...props} />
+        </div>
       </Suspense>
     </div>
   );
