@@ -38,7 +38,7 @@ function buildContentSecurityPolicy() {
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://js.tosspayments.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.tosspayments.com",
     // globals.css @import Pretendard from jsDelivr — Chrome may enforce style-src-elem separately
     // next/font/google(Noto 등)는 fonts.googleapis.com 링크·fonts.gstatic.com 글리프를 쓸 수 있음
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
@@ -46,10 +46,10 @@ function buildContentSecurityPolicy() {
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com",
-    "frame-src 'self' https://www.googletagmanager.com https://www.google.com https://js.tosspayments.com https://pay.tosspayments.com",
+    "frame-src 'self' https://www.googletagmanager.com https://www.google.com https://*.tosspayments.com",
     // www / non-www 혼용 시 RSC·fetch가 'self'와 달라 connect-src 에서 막힘 — origin 통일 전까지 둘 다 허용
     // jsDelivr: Pretendard 등 @import 리소스의 .map 소스맵 fetch(connect) — style-src/font-src 와 별도
-    "connect-src 'self' https://bongtour.com https://www.bongtour.com https://*.supabase.co https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com https://api.tosspayments.com https://pay.tosspayments.com",
+    "connect-src 'self' https://bongtour.com https://www.bongtour.com https://*.supabase.co https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com https://*.tosspayments.com",
     "worker-src 'self' blob:",
   ]
   return directives.join('; ')
