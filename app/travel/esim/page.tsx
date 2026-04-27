@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Gift, MessageCircle, ShieldCheck, Signal } from "lucide-react";
 import Header from "@/app/components/Header";
 import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
 import { bongsimPath } from "@/lib/bongsim/constants";
@@ -9,114 +10,111 @@ export const metadata: Metadata = {
   description: "24시간 고객센터, 100% 환불 보장. 여행지에 맞는 최적의 eSIM을 찾아드립니다.",
 };
 
+const WHY_ITEMS = [
+  {
+    icon: MessageCircle,
+    title: "24시간 안심 고객센터",
+    body: "언제 어디서든 한국어로 빠른 응대",
+    circleClass: "bg-teal-500 text-white",
+  },
+  {
+    icon: ShieldCheck,
+    title: "100% 환불보장",
+    body: "제품 결함 시 전액 환불",
+    circleClass: "bg-emerald-500 text-white",
+  },
+  {
+    icon: Signal,
+    title: "데이터 안정성",
+    body: "현지 주요 통신사 직접 연결",
+    circleClass: "bg-blue-500 text-white",
+  },
+  {
+    icon: Gift,
+    title: "간편한 선물하기 기능",
+    body: "친구·가족에게 쉽게 전송",
+    circleClass: "bg-amber-500 text-white",
+  },
+] as const;
+
 export default function EsimPage() {
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <OverseasTravelSubMainNav variant="links" />
 
-      <main className="mx-auto max-w-5xl px-4 pb-20 pt-8 sm:px-6 lg:max-w-6xl lg:pb-24 lg:pt-10">
-        {/* 상단: Bong투어 eSIM 타이틀 + 사용가능 기기 */}
-        <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4 lg:pb-5">
-          <div>
-            <h1 className="text-[1.6rem] font-bold tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">
-              Bong투어 <span className="text-orange-600">eSIM</span>
-            </h1>
-            <p className="mt-1 text-[13px] text-slate-600 lg:mt-2 lg:text-base">
-              해외 여행 데이터, 이제 더 쉽게
-            </p>
-          </div>
-          <Link
-            href={bongsimPath("/devices")}
-            className="shrink-0 text-[13px] font-semibold text-teal-700 underline decoration-teal-300 decoration-2 underline-offset-4 transition hover:text-teal-800 hover:decoration-teal-400 lg:text-base"
-          >
-            사용가능 기기 확인하기 →
-          </Link>
-        </div>
-
-        {/* 히어로 섹션: 캐치프레이즈 + CTA */}
-        <section className="mt-8 text-center lg:mt-7">
-          <p className="text-[15px] font-medium leading-relaxed text-slate-700 sm:text-[17px] lg:text-xl">
-            <span className="text-orange-600">&quot;이심전심&quot;</span> 데이터를 중요함을 알기에
+      <section
+        className="w-full bg-gradient-to-br from-sky-50 to-teal-50 px-4 py-12 text-center sm:py-14 lg:px-8 lg:py-16"
+        aria-labelledby="esim-hero-heading"
+      >
+        <div className="mx-auto max-w-5xl lg:max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-800/80 sm:text-sm">
+            Bong투어 eSIM
           </p>
-
-          {/* 메인 CTA 이미지 영역 — 모바일은 좁게, PC는 가로 활용 */}
-          <div className="mx-auto mt-6 max-w-md lg:mt-5 lg:max-w-5xl">
-            <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-orange-50 via-teal-50 to-blue-50 p-8 shadow-lg lg:aspect-[2/1] lg:p-12">
-              <div className="flex h-full flex-col items-center justify-center">
-                <div className="mb-4 flex items-center gap-3 lg:mb-5 lg:gap-5">
-                  <span className="text-5xl lg:text-7xl" aria-hidden>
-                    🌍
-                  </span>
-                  <span className="text-5xl lg:text-7xl" aria-hidden>
-                    📱
-                  </span>
-                  <span className="text-5xl lg:text-7xl" aria-hidden>
-                    ✈️
-                  </span>
-                </div>
-                <p className="text-[14px] font-semibold text-slate-700 lg:text-lg">
-                  여행지에 딱 맞는 eSIM을 찾아드려요
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <Link
-            href={bongsimPath("/recommend")}
-            className="mt-4 inline-flex min-h-[3.5rem] items-center justify-center rounded-2xl bg-gradient-to-r from-orange-600 to-orange-500 px-10 text-[16px] font-bold text-white shadow-xl transition hover:from-orange-700 hover:to-orange-600 hover:shadow-2xl active:scale-[0.98] lg:mt-5 lg:min-h-[3.75rem] lg:px-12 lg:text-lg"
+          <h1
+            id="esim-hero-heading"
+            className="mt-2 text-balance text-3xl font-bold leading-tight tracking-tight text-slate-900 lg:mt-3 lg:text-5xl"
           >
-            나에게 맞는 eSIM 찾기
-          </Link>
-        </section>
+            여행지에 딱 맞는 eSIM
+          </h1>
+          <div className="mx-auto mt-3 flex max-w-2xl flex-col items-center gap-2 sm:mt-4 lg:mt-5">
+            <p className="text-lg text-slate-600 lg:text-xl">해외 여행 데이터, 이제 더 쉽게</p>
+            <Link
+              href={bongsimPath("/devices")}
+              className="text-sm font-medium text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-teal-800 hover:decoration-teal-400"
+            >
+              사용가능 기기 확인하기 →
+            </Link>
+          </div>
+          <div className="mt-8 sm:mt-10 lg:mt-12">
+            <Link
+              href={bongsimPath("/recommend")}
+              className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-500 px-10 py-4 text-lg font-bold text-white shadow-lg transition hover:from-teal-700 hover:to-cyan-600 hover:shadow-xl active:scale-[0.99]"
+            >
+              나에게 맞는 eSIM 찾기
+            </Link>
+          </div>
+        </div>
+      </section>
 
-        {/* 왜 Bong투어 eSIM인가 */}
-        <section className="mt-14 sm:mt-16 lg:mt-16">
-          <h2 className="mb-5 text-center text-[1.3rem] font-bold text-slate-900 sm:text-2xl lg:mb-6 lg:text-3xl">
+      <main className="mx-auto max-w-5xl px-4 pb-12 pt-10 sm:px-6 sm:pb-14 sm:pt-12 lg:max-w-6xl lg:pb-16 lg:pt-14">
+        <section className="text-center" aria-labelledby="esim-why-heading">
+          <h2 id="esim-why-heading" className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">
             왜 Bong투어 <span className="text-orange-600">eSIM</span>일까요?
           </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-slate-600 lg:mt-4 lg:text-lg">
+            여행 준비부터 현지 체류까지, 데이터 걱정을 덜어 드립니다.
+          </p>
 
-          <div className="grid items-stretch gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6">
-            <div className="flex min-h-[10.5rem] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-4 text-center shadow-sm sm:min-h-[11rem] lg:min-h-[12rem] lg:gap-2.5 lg:px-4 lg:py-5">
-              <div className="text-3xl leading-none lg:text-4xl" aria-hidden>
-                💬
+          <div className="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-4 text-left sm:mt-10 sm:grid-cols-2 sm:gap-5 lg:mt-12 lg:max-w-none lg:gap-6">
+            {WHY_ITEMS.map(({ icon: Icon, title, body, circleClass }) => (
+              <div
+                key={title}
+                className="flex gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:gap-4"
+              >
+                <div
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${circleClass}`}
+                  aria-hidden
+                >
+                  <Icon className="h-6 w-6" strokeWidth={2} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-bold text-slate-900 lg:text-xl">{title}</h3>
+                  <p className="mt-1 text-base leading-relaxed text-slate-600 lg:text-[1.05rem]">{body}</p>
+                </div>
               </div>
-              <h3 className="text-base font-bold leading-snug text-slate-900 lg:text-lg">24시간 안심 고객센터</h3>
-              <p className="text-sm leading-snug text-slate-600 lg:text-[15px]">언제 어디서든 한국어로 빠른 응대</p>
-            </div>
-
-            <div className="flex min-h-[10.5rem] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-4 text-center shadow-sm sm:min-h-[11rem] lg:min-h-[12rem] lg:gap-2.5 lg:px-4 lg:py-5">
-              <div className="text-3xl leading-none lg:text-4xl" aria-hidden>
-                🛡️
-              </div>
-              <h3 className="text-base font-bold leading-snug text-slate-900 lg:text-lg">100% 환불보장</h3>
-              <p className="text-sm leading-snug text-slate-600 lg:text-[15px]">제품 결함 시 전액 환불</p>
-            </div>
-
-            <div className="flex min-h-[10.5rem] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-4 text-center shadow-sm sm:min-h-[11rem] lg:min-h-[12rem] lg:gap-2.5 lg:px-4 lg:py-5">
-              <div className="text-3xl leading-none lg:text-4xl" aria-hidden>
-                📶
-              </div>
-              <h3 className="text-base font-bold leading-snug text-slate-900 lg:text-lg">데이터 안정성</h3>
-              <p className="text-sm leading-snug text-slate-600 lg:text-[15px]">현지 주요 통신사 직접 연결</p>
-            </div>
-
-            <div className="flex min-h-[10.5rem] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-4 text-center shadow-sm sm:min-h-[11rem] lg:min-h-[12rem] lg:gap-2.5 lg:px-4 lg:py-5">
-              <div className="text-3xl leading-none lg:text-4xl" aria-hidden>
-                🎁
-              </div>
-              <h3 className="text-base font-bold leading-snug text-slate-900 lg:text-lg">간편한 선물하기 기능</h3>
-              <p className="text-sm leading-snug text-slate-600 lg:text-[15px]">친구·가족에게 쉽게 전송</p>
-            </div>
+            ))}
           </div>
         </section>
+      </main>
 
-        <div className="mt-10 rounded-lg bg-slate-50 px-6 py-4 text-center lg:mt-12 lg:py-5">
-          <p className="text-[13px] leading-relaxed text-slate-600 lg:text-base">
+      <footer className="w-full bg-slate-50 py-8">
+        <div className="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:max-w-6xl">
+          <p className="text-sm leading-relaxed text-slate-600 lg:text-base">
             <span className="font-semibold text-slate-800">간편이심</span>은 Bong투어가 직접 운영하고 판매하는 서비스입니다.
           </p>
         </div>
-      </main>
+      </footer>
     </div>
   );
 }
