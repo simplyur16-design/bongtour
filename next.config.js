@@ -42,7 +42,7 @@ function buildContentSecurityPolicy() {
     // globals.css @import Pretendard from jsDelivr — Chrome may enforce style-src-elem separately
     // next/font/google(Noto 등)는 fonts.googleapis.com 링크·fonts.gstatic.com 글리프를 쓸 수 있음
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
-    "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+    "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://*.paywelcome.co.kr",
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com",
