@@ -708,7 +708,7 @@ export function ProductResultCard({
   seasonalPickBadge?: boolean
 }) {
   const cardSrc = (item.coverImageUrl ?? item.bgImageUrl ?? '').trim()
-  const useNextImage = Boolean(cardSrc) && isSrcOptimizableByNextImage(cardSrc)
+  const cardBlur = Boolean(cardSrc) && isSrcOptimizableByNextImage(cardSrc)
 
   return (
     <Link
@@ -718,31 +718,19 @@ export function ProductResultCard({
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
         {cardSrc ? (
           <>
-            {useNextImage ? (
-              <SafeImage
-                src={cardSrc}
-                alt=""
-                fill
-                width={400}
-                height={300}
-                className="object-cover"
-                sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
-                quality={60}
-                placeholder="blur"
-                blurDataURL={PRODUCT_CARD_IMAGE_BLUR_DATA_URL}
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element -- `remotePatterns` 미등록 호스트는 네이티브 `<img>` 로 로드
-              <img
-                src={cardSrc}
-                alt=""
-                width={400}
-                height={300}
-                loading="lazy"
-                decoding="async"
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            )}
+            <SafeImage
+              src={cardSrc}
+              alt=""
+              fill
+              width={400}
+              height={300}
+              className="object-cover"
+              sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
+              quality={60}
+              {...(cardBlur
+                ? { placeholder: 'blur' as const, blurDataURL: PRODUCT_CARD_IMAGE_BLUR_DATA_URL }
+                : {})}
+            />
             <PublicImageBottomOverlay
               leftLabel={item.coverImageSeoKeyword ?? null}
               rightLabel={item.coverImageSourceUserLabel ?? null}

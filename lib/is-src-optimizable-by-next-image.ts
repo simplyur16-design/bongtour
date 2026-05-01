@@ -16,10 +16,8 @@ export function isSrcOptimizableByNextImage(src: ImageProps['src']): boolean {
     if (host === 'images.unsplash.com') return true
     if (host === 'images.pexels.com') return true
     if (host === 'flagcdn.com' || host.endsWith('.flagcdn.com')) return true
-    if (host === 'kr.object.ncloudstorage.com') return true
-    if (host.endsWith('.object.ncloudstorage.com')) return true
-    if (host.endsWith('.ncloudstorage.com')) return true
-    if (host.endsWith('.ncloud.com')) return true
+    /** Ncloud 객체 URL — `SafeImage`에서 `<img>` 직접 로드(Railway `/_next/image` 프록시 미경유). */
+    if (host.endsWith('.ncloudstorage.com') || host.endsWith('.ncloud.com')) return false
     if (host.endsWith('.supabase.co') && u.pathname.startsWith('/storage/v1')) return true
     return false
   } catch {
