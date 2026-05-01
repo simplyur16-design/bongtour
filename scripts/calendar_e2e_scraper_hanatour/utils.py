@@ -133,9 +133,9 @@ def fix_airline_name_str(s: str | None) -> str | None:
     return fix_mojibake_korean_str(s, max_len=120)
 
 
-# --- 딜레이·가격 ---
-MIN_DELAY = 1.5
-MAX_DELAY = 3.5
+# --- 딜레이·가격 (기본 액션 2초 미만 방지) ---
+MIN_DELAY = 2.0
+MAX_DELAY = 4.0
 
 
 async def human_delay(min_sec: float | None = None, max_sec: float | None = None) -> None:
@@ -176,9 +176,9 @@ def dedupe_departures_by_date(rows: list[dict[str, Any]]) -> list[dict[str, Any]
 
 # --- UA / stealth / 브라우저 ---
 USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0.0.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0",
 ]
 
 

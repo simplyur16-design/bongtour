@@ -269,7 +269,7 @@ class CalendarE2EScraper:
                     if disabled is not None:
                         break
                     await slide_btn.click()
-                    await human_delay(1.0, 2.0)
+                    await human_delay(3.0, 5.0)
                     inner_loop_count += 1
                 except Exception:
                     break
@@ -286,7 +286,7 @@ class CalendarE2EScraper:
                 if disabled is not None:
                     break
                 await month_btn.click()
-                await human_delay(1.5, 3.0)
+                await human_delay(3.0, 5.0)
             except Exception:
                 break
 

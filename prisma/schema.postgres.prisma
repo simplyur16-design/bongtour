@@ -208,6 +208,20 @@ model ScraperQueue {
   createdAt DateTime @default(now())
 }
 
+/// 달력 가격 E2E 배치 체크포인트 (Supabase `bongsim_scraper_checkpoint` 와 동일)
+model BongsimScraperCheckpoint {
+  id                   String    @id
+  lastCollectedDate    DateTime  @map("last_collected_date") @db.Date
+  lastRunAt            DateTime? @map("last_run_at")
+  lastRunMode          String?   @map("last_run_mode")
+  lastRunStatus        String?   @map("last_run_status")
+  totalProductsScraped Int       @default(0) @map("total_products_scraped")
+  errorMessage         String?   @map("error_message")
+  updatedAt            DateTime  @default(now()) @map("updated_at")
+
+  @@map("bongsim_scraper_checkpoint")
+}
+
 // 보조 기록. 표시 SSOT는 Product.schedule. schedule 없을 때만 fallback으로 읽음.
 model Itinerary {
   id          Int     @id @default(autoincrement())

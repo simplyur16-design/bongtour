@@ -59,6 +59,21 @@ type SchedulerConfig = {
   headlessMode: boolean
 }
 
+type SchedulerCheckpointPayload = {
+  lastCollectedDate: string | null
+  lastRunAt: string | null
+  lastRunMode: string | null
+  lastRunStatus: string | null
+  totalProductsScraped: number
+  errorMessage: string | null
+  currentMode?: string
+  modeLabel: string
+  nextRunHint: string
+  progress: { coveredDaysOutOfHorizon: number; horizonDays: number }
+  activeDateRange: { startYmd: string; endYmd: string }
+  error?: string
+}
+
 const REST_MIN_LIMIT = 10
 const REST_MAX_LIMIT = 120
 
@@ -99,6 +114,30 @@ export default function AdminSchedulerSettingsPage() {
     results: HanatourMonthRunItem[]
   } | null>(null)
 
+  const [checkpoint, setCheckpoint] = useState<SchedulerCheckpointPayload | null>(null)
+  const [checkpointLoading, setCheckpointLoading] = useState(true)
+  const [checkpointError, setCheckpointError] = useState<string | null>(null)
+
+  const fetchCheckpoint = useCallback(async () => {
+    setCheckpointLoading(true)
+    setCheckpointError(null)
+    try {
+      const res = await fetch('/api/admin/scheduler/checkpoint', { signal: AbortSignal.timeout(12000) })
+      const data = (await res.json().catch(() => ({}))) as SchedulerCheckpointPayload & { error?: string }
+      if (res.ok && !data.error) {
+        setCheckpoint(data)
+      } else {
+        setCheckpoint(null)
+        setCheckpointError(data.error ?? '체크포인트를 불러오지 못했습니다.')
+      }
+    } catch (e) {
+      setCheckpoint(null)
+      setCheckpointError(e instanceof Error ? e.message : '체크포인트 요청 실패')
+    } finally {
+      setCheckpointLoading(false)
+    }
+  }, [])
+
   const fetchConfig = useCallback(async () => {
     setLoading(true)
     setLoadingError(null)
@@ -123,6 +162,10 @@ export default function AdminSchedulerSettingsPage() {
   useEffect(() => {
     fetchConfig()
   }, [fetchConfig])
+
+  useEffect(() => {
+    void fetchCheckpoint()
+  }, [fetchCheckpoint])
 
   const fetchHanatourList = useCallback(async () => {
     setHanatourListLoading(true)
@@ -370,6 +413,72 @@ export default function AdminSchedulerSettingsPage() {
           title="스케줄러·보안"
           subtitle="공급사별 E2E 가격 동기화(run-once), 하나투어 지정 월 출발 재수집, 실행 시간·지연·보안·비상 정지."
         />
+
+        <section className="mb-8 rounded-xl border border-teal-100 bg-teal-50/40 p-6 shadow-sm">
+          <h2 className="mb-3 border-b border-teal-100 pb-2 text-sm font-semibold uppercase tracking-wider text-teal-900">
+            달력 가격 수집 체크포인트
+          </h2>
+          {checkpointLoading ? (
+            <p className="text-sm text-gray-600">불러오는 중…</p>
+          ) : checkpointError ? (
+            <p className="text-sm text-red-600">{checkpointError}</p>
+          ) : checkpoint ? (
+            <div className="space-y-3 text-sm text-gray-800">
+              <p>
+                <span className="font-medium text-gray-900">마지막 수집 날짜(달력 상한):</span>{' '}
+                {checkpoint.lastCollectedDate ?? '—'}
+              </p>
+              <p>
+                <span className="font-medium text-gray-900">마지막 실행:</span>{' '}
+                {checkpoint.lastRunAt
+                  ? new Date(checkpoint.lastRunAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
+                  : '—'}
+              </p>
+              <p>
+                <span className="font-medium text-gray-900">모드:</span> {checkpoint.modeLabel}
+              </p>
+              <p>
+                <span className="font-medium text-gray-900">다음 자동 실행:</span> {checkpoint.nextRunHint}
+              </p>
+              <p className="text-xs text-gray-600">
+                현재 배치 구간: {checkpoint.activeDateRange.startYmd} ~ {checkpoint.activeDateRange.endYmd} (수동
+                run-once 시 자동 결정과 동일 기준)
+              </p>
+              <div>
+                <div className="mb-1 flex justify-between text-xs text-gray-600">
+                  <span>오늘 기준 확보 일수</span>
+                  <span>
+                    {checkpoint.progress.coveredDaysOutOfHorizon} / {checkpoint.progress.horizonDays}일
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className="h-full rounded-full bg-teal-600 transition-[width]"
+                    style={{
+                      width: `${Math.min(100, Math.round((checkpoint.progress.coveredDaysOutOfHorizon / checkpoint.progress.horizonDays) * 100))}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              {checkpoint.lastRunStatus ? (
+                <p className="text-xs text-gray-600">
+                  직전 상태: <span className="font-mono">{checkpoint.lastRunStatus}</span>
+                  {checkpoint.totalProductsScraped != null ? ` · 상품 처리 ${checkpoint.totalProductsScraped}건` : null}
+                </p>
+              ) : null}
+              {checkpoint.errorMessage ? (
+                <p className="text-xs text-red-700">오류: {checkpoint.errorMessage}</p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void fetchCheckpoint()}
+                className="mt-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-50"
+              >
+                새로고침
+              </button>
+            </div>
+          ) : null}
+        </section>
 
         <section className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 border-b border-gray-100 pb-2 text-sm font-semibold uppercase tracking-wider text-gray-600">

@@ -18,6 +18,15 @@ export async function register() {
     loadEnvConfig(process.cwd())
     const { bootstrapHomeHubActiveFromDb } = await import('@/lib/home-hub-active-bootstrap')
     await bootstrapHomeHubActiveFromDb()
+    if (process.env.NODE_ENV === 'production') {
+      const { getAdminServiceBearerSecret } = await import('@/lib/admin-secrets')
+      const hasBearer =
+        Boolean(getAdminServiceBearerSecret().trim()) || Boolean((process.env.ADMIN_BYPASS_SECRET ?? '').trim())
+      if (hasBearer && (process.env.DATABASE_URL ?? '').trim()) {
+        const { startInstrumentationCalendarCron } = await import('@/lib/instrumentation-calendar-cron')
+        startInstrumentationCalendarCron()
+      }
+    }
   }
   assertProductionServerEnv()
   if (process.env.NODE_ENV === 'development' && process.env.NEXT_RUNTIME === 'nodejs') {

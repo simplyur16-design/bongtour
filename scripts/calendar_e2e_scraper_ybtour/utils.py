@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-인간 모사 & Anti-Blocking: Action Delay 1.5~3.5초, Product Interval 5~10초, PageDown 간 1~2초.
+인간 모사 & Anti-Blocking: Action Delay 2~4초, Product Interval 4~7초, PageDown 간 2~3.5초.
 playwright-stealth 스타일 WebDriver/User-Agent 숨김.
 
 전사 공통 원칙·표준 이벤트 로그: docs/SCRAPER-HUMAN-OPERATOR-PRINCIPLES.md
@@ -19,26 +19,26 @@ from .config import (
 )
 
 USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0.0.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0",
 ]
 
 
 async def human_delay(min_sec: float = None, max_sec: float = None) -> None:
-    """Action Delay: 페이지 이동, Hover, 달력 화살표 Click 사이 random.uniform(1.5, 3.5) 초 강제."""
+    """Action Delay: 페이지 이동, Hover, 달력 화살표 Click 사이 random.uniform(MIN_DELAY, MAX_DELAY) 초."""
     lo = min_sec if min_sec is not None else MIN_DELAY
     hi = max_sec if max_sec is not None else MAX_DELAY
     await asyncio.sleep(random.uniform(lo, hi))
 
 
 async def product_interval() -> None:
-    """Product Interval: 상품 A 파싱 완료 후 B로 넘어가기 전 5~10초 휴식 (WAF/IP 차단 방지)."""
+    """Product Interval: 상품 A 파싱 완료 후 B로 넘어가기 전 4~7초 휴식 (WAF/IP 차단 방지)."""
     await asyncio.sleep(random.uniform(PRODUCT_INTERVAL_MIN, PRODUCT_INTERVAL_MAX))
 
 
 async def pagedown_delay() -> None:
-    """각 PageDown 사이 random.uniform(1.0, 2.0) 초 대기."""
+    """각 PageDown 사이 random.uniform(PAGEDOWN_DELAY_MIN, PAGEDOWN_DELAY_MAX) 초 대기."""
     await asyncio.sleep(random.uniform(PAGEDOWN_DELAY_MIN, PAGEDOWN_DELAY_MAX))
 
 

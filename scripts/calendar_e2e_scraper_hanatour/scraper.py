@@ -205,7 +205,7 @@ async def _post_page_load_delay() -> None:
     if (os.environ.get("HANATOUR_E2E_FAST", "") or "").strip().lower() in ("1", "true", "yes"):
         await human_delay(0.45, 0.9)
     else:
-        await human_delay(1.0, 1.8)
+        await human_delay(2.0, 3.5)
 
 from playwright.async_api import ElementHandle, Locator, Page
 
@@ -2974,8 +2974,8 @@ class HanatourCalendarE2EScraper:
                             max(0.02, config.POST_CLICK_BEFORE_LIST_MS / 1000.0)
                         )
                     else:
-                        await human_delay(0.22, 0.45)
-                        await asyncio.sleep(0.06)
+                        # 날짜(일자) 클릭 직후 — 사람이 다음 UI를 읽는 시간
+                        await human_delay(2.0, 3.0)
                     pre_list_ms = (_time.perf_counter() - t_pre0) * 1000
                     refresh_proof = ""
                     list_refresh_forced_aggressive = False

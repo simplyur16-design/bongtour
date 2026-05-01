@@ -1,20 +1,13 @@
 /**
  * 본사(하나투어/모두투어 등) 실시간 동기화 스크래퍼.
- * Puppeteer + Stealth, 랜덤 딜레이 3~7초.
+ * Puppeteer + Stealth, 사람 속도 딜레이·세션별 UA.
  * 상품코드·단체번호로 접속해 예약상태/가격/출발확정 수집.
  */
 import puppeteer from 'puppeteer-extra'
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
+import { humanDelay, pickRandomUserAgent } from '@/lib/scraper-throttle'
 
 puppeteer.use(StealthPlugin())
-
-const MIN_DELAY_MS = 3000
-const MAX_DELAY_MS = 7000
-
-function randomDelay() {
-  const ms = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS)
-  return new Promise((r) => setTimeout(r, ms))
-}
 
 export type ScrapeParams = {
   productCode: string
@@ -42,7 +35,7 @@ export async function scrapeHqProduct(params: ScrapeParams): Promise<ScrapeResul
     .replace('{code}', encodeURIComponent(productCode))
     .replace('{group}', encodeURIComponent(groupNumber))
 
-  await randomDelay()
+  await humanDelay(3000, 7000)
 
   const browser = await puppeteer.launch({
     headless: true,
@@ -51,6 +44,7 @@ export async function scrapeHqProduct(params: ScrapeParams): Promise<ScrapeResul
 
   try {
     const page = await browser.newPage()
+    await page.setUserAgent(pickRandomUserAgent())
     await page.setViewport({ width: 1280, height: 800 })
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
 
