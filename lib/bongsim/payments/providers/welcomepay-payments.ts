@@ -18,7 +18,8 @@ export class WelcomepayPaymentsProvider implements BongsimPaymentProviderAdapter
       throw new Error("[welcomepay] WELCOMEPAY_MID is not configured");
     }
     const welcomeOid = generateOrderNumber(mid);
-    const publicRef = `wp_${input.payment_attempt_id.slice(0, 8)}`;
+    const attemptIdStr = String(input.payment_attempt_id);
+    const publicRef = `wp_${attemptIdStr.replace(/-/g, "").slice(0, 8)}`;
     const orderName = buildOrderName(input.order_number);
 
     const q = new URLSearchParams({

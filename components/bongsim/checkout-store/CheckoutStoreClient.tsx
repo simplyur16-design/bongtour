@@ -300,10 +300,14 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
             return_urls: { success_url: successUrl, fail_url: failUrl, cancel_url: cancelUrl },
           }),
         });
-        const pj = (await pr.json()) as BongsimPaymentSessionResponseV1 & { error?: string };
+        const pj = (await pr.json()) as BongsimPaymentSessionResponseV1 & {
+          error?: string;
+          details?: { message?: string; welcomepay?: string; [k: string]: string | undefined };
+        };
         if (!pr.ok) {
           paymentIdempotencyRef.current = null;
-          setSubmitError(pj.error ?? "결제 세션을 만들지 못했습니다.");
+          const detailMsg = pj.details?.message ?? pj.details?.welcomepay;
+          setSubmitError(detailMsg ?? pj.error ?? "결제 세션을 만들지 못했습니다.");
           return;
         }
         if (pj.schema !== "bongsim.payment_session.response.v1" || !pj.client?.redirect_path) {

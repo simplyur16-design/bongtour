@@ -52,7 +52,9 @@ export async function POST(req: Request) {
     if (res.reason === "db_unconfigured") {
       return NextResponse.json({ schema: "bongsim.payment_session.error.v1", error: "db_unconfigured" }, { status: 503 });
     }
-    return NextResponse.json({ schema: "bongsim.payment_session.error.v1", error: "db_error" }, { status: 500 });
+    const errPayload: Record<string, unknown> = { schema: "bongsim.payment_session.error.v1", error: "db_error" };
+    if ("details" in res && res.details) errPayload.details = res.details;
+    return NextResponse.json(errPayload, { status: 500 });
   }
 
   return NextResponse.json(res.body, { status: res.body.reused ? 200 : 201 });

@@ -7,6 +7,7 @@ import type {
 import type { PaymentAttemptStatus } from "@/lib/bongsim/contracts/public-enums";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { mergeOrderReadKeyIntoReturnUrls } from "@/lib/bongsim/payments/merge-order-read-key-into-return-urls";
+import type { BongsimPaymentProviderCreateResult } from "@/lib/bongsim/payments/provider-types";
 import { getPaymentProviderAdapter } from "@/lib/bongsim/payments/payment-provider-registry";
 import { isMockPaymentCaptureAllowed } from "@/lib/bongsim/runtime/mock-payment-allowance";
 import { isNodeProduction } from "@/lib/bongsim/runtime/node-env";
@@ -188,6 +189,14 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
   const adapter = getPaymentProviderAdapter(effProvider);
   if (!adapter) return { ok: false, reason: "provider_not_supported", details: { provider: effProvider } };
 
+  if (effProvider === "welcomepay" && !(process.env.WELCOMEPAY_MID ?? "").trim()) {
+    return {
+      ok: false,
+      reason: "validation",
+      details: { welcomepay: "WELCOMEPAY_MID가 설정되지 않았습니다. 서버 .env를 확인하세요." },
+    };
+  }
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -260,19 +269,39 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
     const payment_attempt_id = insAttempt.rows[0]?.payment_attempt_id;
     if (!payment_attempt_id) {
       await client.query("ROLLBACK");
-      return { ok: false, reason: "db_error" };
+      console.error("[bongsim] createPaymentSession: INSERT returned no payment_attempt_id", {
+        order_id: req.order_id,
+        provider: effProvider,
+      });
+      return {
+        ok: false,
+        reason: "db_error",
+        details: { message: "INSERT가 payment_attempt_id를 반환하지 않았습니다." },
+      };
     }
 
-    const prov = await adapter.createSession({
-      provider: adapter.id,
-      payment_attempt_id,
-      order_id: order.order_id,
-      order_number: order.order_number,
-      buyer_email: order.buyer_email,
-      amount_krw: amount,
-      currency: "KRW",
-      return_urls: req.return_urls,
-    });
+    let prov: BongsimPaymentProviderCreateResult;
+    try {
+      prov = await adapter.createSession({
+        provider: adapter.id,
+        payment_attempt_id,
+        order_id: order.order_id,
+        order_number: order.order_number,
+        buyer_email: order.buyer_email,
+        amount_krw: amount,
+        currency: "KRW",
+        return_urls: req.return_urls,
+      });
+    } catch (sessionErr) {
+      await client.query("ROLLBACK");
+      const msg = sessionErr instanceof Error ? sessionErr.message : String(sessionErr);
+      console.error("[bongsim] createPaymentSession: adapter.createSession failed", sessionErr);
+      return {
+        ok: false,
+        reason: "db_error",
+        details: { message: `결제 세션(PG) 생성 실패: ${msg}` },
+      };
+    }
 
     await client.query(
       `UPDATE bongsim_payment_attempt
@@ -284,7 +313,15 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
     const row = await loadAttempt(client, order.order_id, req.idempotency_key);
     if (!row) {
       await client.query("ROLLBACK");
-      return { ok: false, reason: "db_error" };
+      console.error("[bongsim] createPaymentSession: loadAttempt returned null after UPDATE", {
+        order_id: req.order_id,
+        payment_attempt_id,
+      });
+      return {
+        ok: false,
+        reason: "db_error",
+        details: { message: "결제 시도 행을 UPDATE 후 조회하지 못했습니다." },
+      };
     }
 
     await client.query("COMMIT");
@@ -297,14 +334,27 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
     } catch {
       /* ignore */
     }
+    console.error("[bongsim] createPaymentSessionFromRequest", e);
     const err = e as { code?: string };
     if (err.code === "23505") {
       const c2 = await pool.connect();
       try {
         const order = await loadOrder(c2, req.order_id);
-        if (!order) return { ok: false, reason: "db_error" };
+        if (!order) {
+          return {
+            ok: false,
+            reason: "db_error",
+            details: { message: "유니크 충돌(23505) 복구 중 주문을 찾지 못했습니다." },
+          };
+        }
         const row = await loadAttempt(c2, order.order_id, req.idempotency_key);
-        if (!row) return { ok: false, reason: "db_error" };
+        if (!row) {
+          return {
+            ok: false,
+            reason: "db_error",
+            details: { message: "유니크 충돌(23505) 복구 중 결제 시도 행을 찾지 못했습니다." },
+          };
+        }
         const st = row.status as PaymentAttemptStatus;
         const amountOk = toInt(row.amount_krw) === toInt(order.grand_total_krw);
         const providerOk = row.provider === (req.provider ?? "bongsim_mock");
@@ -315,16 +365,27 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
             parseStoredReturnUrls(row.return_urls) ?? req.return_urls,
             readKeyForUrls,
           );
-          const provRace = await adapterRace.createSession({
-            provider: row.provider,
-            payment_attempt_id: row.payment_attempt_id,
-            order_id: order.order_id,
-            order_number: order.order_number,
-            buyer_email: order.buyer_email,
-            amount_krw: toInt(order.grand_total_krw),
-            currency: "KRW",
-            return_urls: returnUrlsRace,
-          });
+          let provRace: BongsimPaymentProviderCreateResult;
+          try {
+            provRace = await adapterRace.createSession({
+              provider: row.provider,
+              payment_attempt_id: row.payment_attempt_id,
+              order_id: order.order_id,
+              order_number: order.order_number,
+              buyer_email: order.buyer_email,
+              amount_krw: toInt(order.grand_total_krw),
+              currency: "KRW",
+              return_urls: returnUrlsRace,
+            });
+          } catch (raceSessionErr) {
+            const msg = raceSessionErr instanceof Error ? raceSessionErr.message : String(raceSessionErr);
+            console.error("[bongsim] createPaymentSession: race createSession failed", raceSessionErr);
+            return {
+              ok: false,
+              reason: "db_error",
+              details: { message: `결제 세션(PG) 재생성 실패: ${msg}` },
+            };
+          }
           return { ok: true, body: attemptToResponse(order, row, provRace.client, true) };
         }
         return { ok: false, reason: "idempotency_incompatible", details: { status: row.status } };
@@ -332,7 +393,15 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
         c2.release();
       }
     }
-    return { ok: false, reason: "db_error" };
+    const pgExtra = e as { code?: string; detail?: string };
+    const fallMsg = e instanceof Error ? e.message : String(e);
+    return {
+      ok: false,
+      reason: "db_error",
+      details: {
+        message: pgExtra.code ? `${fallMsg} (PostgreSQL ${pgExtra.code})` : fallMsg,
+      },
+    };
   } finally {
     client.release();
   }
