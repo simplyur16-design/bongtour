@@ -2,7 +2,7 @@
 
 import Header from "@/app/components/Header";
 import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
-import { bongsimPath } from "@/lib/bongsim/constants";
+import { bongsimPath, BONGSIM_KAKAO_CHANNEL_URL } from "@/lib/bongsim/constants";
 import { Ban, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -103,9 +103,14 @@ function ResultInner() {
 
               <p className="text-center text-sm text-slate-400">
                 문제가 있으신가요?{" "}
-                <Link href="/support" className="text-slate-500 underline underline-offset-2 hover:text-slate-700">
+                <a
+                  href={BONGSIM_KAKAO_CHANNEL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-teal-600 underline hover:text-teal-700"
+                >
                   고객센터 문의
-                </Link>
+                </a>
               </p>
             </div>
           </div>
@@ -147,9 +152,14 @@ function ResultInner() {
               </div>
               <p className="mt-6 text-center text-sm text-slate-400">
                 문제가 있으신가요?{" "}
-                <Link href="/support" className="text-slate-500 underline underline-offset-2 hover:text-slate-700">
+                <a
+                  href={BONGSIM_KAKAO_CHANNEL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-teal-600 underline hover:text-teal-700"
+                >
                   고객센터 문의
-                </Link>
+                </a>
               </p>
             </div>
           </div>
@@ -192,9 +202,14 @@ function ResultInner() {
               </div>
               <p className="mt-6 text-center text-sm text-slate-400">
                 문제가 있으신가요?{" "}
-                <Link href="/support" className="text-slate-500 underline underline-offset-2 hover:text-slate-700">
+                <a
+                  href={BONGSIM_KAKAO_CHANNEL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-teal-600 underline hover:text-teal-700"
+                >
                   고객센터 문의
-                </Link>
+                </a>
               </p>
             </div>
           </div>
@@ -222,9 +237,14 @@ function ResultInner() {
               </Link>
               <p className="mt-6 text-center text-sm text-slate-400">
                 문제가 있으신가요?{" "}
-                <Link href="/support" className="text-slate-500 underline underline-offset-2 hover:text-slate-700">
+                <a
+                  href={BONGSIM_KAKAO_CHANNEL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-teal-600 underline hover:text-teal-700"
+                >
                   고객센터 문의
-                </Link>
+                </a>
               </p>
             </div>
           </div>

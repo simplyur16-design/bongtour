@@ -1,14 +1,16 @@
 {
   "images": {
-    "esim": "https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750",
+    "bus": "/images/home-hub/base/bus.jpg",
+    "esim": "https://images.pexels.com/photos/3769138/pexels-photo-3769138.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750",
     "domestic": "/images/home-hub/candidates/domestic-spring-1774163272667-lqevr0-1.webp",
     "overseas": "",
     "training": "/images/home-hub/candidates/training-spring-1774163629867-mejktl-1.webp"
   },
   "activeSeason": "spring",
-  "lastUpdatedAt": "2026-04-24T14:54:59.632Z",
+  "lastUpdatedAt": "2026-04-27T13:34:44.698Z",
   "lastUpdatedBy": "simplyur@naver.com",
   "imageSourceModes": {
+    "esim": "manual",
     "domestic": "product_pool",
     "overseas": "product_pool",
     "training": "manual"

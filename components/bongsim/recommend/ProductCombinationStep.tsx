@@ -15,6 +15,10 @@ import {
   isTrueUnlimited,
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
+import {
+  planNameMatchesSuggestion,
+  suggestMultiPlanNamesForSelection,
+} from "@/lib/bongsim/recommend/multi-country-suggest";
 import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-ranges";
 
 const HERO_IMAGE_SIZES = "(max-width:768px) 100vw, (max-width:1024px) 70vw, 896px";
@@ -147,7 +151,8 @@ function cardPriceCaption(pack: CountryProductPack): string | null {
   return null;
 }
 
-const EXPLICIT_AVG_DAILY_GB: Record<string, number> = {
+/** 국가별 평균 일일 데이터 (GB). 미등록 국가는 1.3GB. */
+const AVG_DATA_BY_COUNTRY: Record<string, number> = {
   jp: 1.6,
   tw: 1.3,
   us: 1,
@@ -157,92 +162,79 @@ const EXPLICIT_AVG_DAILY_GB: Record<string, number> = {
   vn: 1,
 };
 
-const DEFAULT_AVG_DAILY_GB = 1.3;
-
-function averageDailyDataGbForCountry(code: string): number {
-  const lc = code.trim().toLowerCase();
-  if (EXPLICIT_AVG_DAILY_GB[lc] != null) return EXPLICIT_AVG_DAILY_GB[lc]!;
-  return DEFAULT_AVG_DAILY_GB;
-}
-
 /** 소수 GB 표기 (예: 1.6GB, 0.92GB, 1GB) */
 function formatAvgDailyGbLabel(gb: number): string {
   const s = (Math.round(gb * 100) / 100).toFixed(2).replace(/\.?0+$/, "");
   return `${s}GB`;
 }
 
-type TravelerDataUsageGuideProps = { countryNameKr: string; code: string };
+type TravelerAvgDailyProgressBarProps = { countryNameKr: string; code: string };
 
-/** 0~5GB 스케일에서 평균 마커 가로 위치(%) */
-function avgMarkerLeftPercent(avgGb: number): number {
-  const clamped = Math.min(5, Math.max(0, avgGb));
-  return (clamped / 5) * 100;
-}
-
-/** 미완료 국가 카드 하단 — 히어로 아래 흰 영역 (선택 완료 시 비표시) */
-function TravelerDataUsageGuide({ countryNameKr, code }: TravelerDataUsageGuideProps) {
-  const avgGb = averageDailyDataGbForCountry(code);
-  const title = `${countryNameKr} 여행자 평균 하루 ${formatAvgDailyGbLabel(avgGb)} 사용`;
-  const markerLeft = avgMarkerLeftPercent(avgGb);
+/** 미완료 카드 전용 — 일일 평균 사용량 vs 알뜰/스마트/자유 구간 (표시만, 클릭 없음) */
+function TravelerAvgDailyProgressBar({ countryNameKr, code }: TravelerAvgDailyProgressBarProps) {
+  const avgGb = AVG_DATA_BY_COUNTRY[code?.toLowerCase() ?? ""] ?? 1.3;
+  const markerLeftPct = Math.min(95, Math.max(5, (avgGb / 5) * 100));
 
   return (
-    <div>
-      <h3 className="mb-2 text-sm font-semibold text-slate-700">{title}</h3>
+    <div className="mt-3 px-3 pb-3">
+      <p className="mb-2 text-xs font-semibold text-slate-700">
+        {countryNameKr} 여행자 평균 하루 {formatAvgDailyGbLabel(avgGb)} 사용
+      </p>
 
-      <div className="relative pt-7">
+      <div className="relative w-full">
+        <div className="flex w-full overflow-hidden rounded-full border border-slate-200 h-7">
+          <div className="flex flex-[0_0_20%] items-center justify-center bg-emerald-100">
+            <span className="text-[9px] font-medium text-emerald-700">알뜰</span>
+          </div>
+          <div className="flex flex-[0_0_20%] items-center justify-center border-x border-white/50 bg-teal-100">
+            <span className="text-[9px] font-medium text-teal-700">스마트</span>
+          </div>
+          <div className="flex flex-[0_0_60%] items-center justify-center bg-sky-100">
+            <span className="text-[9px] font-medium text-sky-700">자유</span>
+          </div>
+        </div>
+
+        <div className="relative mt-0.5 flex justify-between px-0.5">
+          <span className="text-[8px] text-slate-400">0</span>
+          <span
+            className="absolute text-[8px] text-slate-400"
+            style={{ left: "20%", transform: "translateX(-50%)" }}
+          >
+            1GB
+          </span>
+          <span
+            className="absolute text-[8px] text-slate-400"
+            style={{ left: "40%", transform: "translateX(-50%)" }}
+          >
+            2GB
+          </span>
+          <span className="absolute text-[8px] text-slate-400" style={{ right: 0 }}>
+            5GB+
+          </span>
+        </div>
+
         <div
-          className="pointer-events-none absolute top-0 flex flex-col items-center"
-          style={{ left: `${markerLeft}%`, transform: "translateX(-50%)" }}
+          className="absolute -top-1"
+          style={{ left: `${markerLeftPct}%`, transform: "translateX(-50%)" }}
         >
-          <span className="text-xs font-semibold text-teal-600 whitespace-nowrap">
-            평균 {formatAvgDailyGbLabel(avgGb)}
-          </span>
-          <span className="leading-none text-teal-600" aria-hidden>
-            ▼
-          </span>
-        </div>
-
-        <div className="relative flex h-8 w-full overflow-hidden rounded-full bg-slate-100">
-          <div className="relative flex h-full w-[20%] shrink-0 items-center justify-center rounded-l-full bg-emerald-100 px-0.5">
-            <span className="text-center text-[10px] font-medium leading-tight text-slate-700">
-              알뜰형
-              <br />
-              (0~1GB)
+          <div className="flex flex-col items-center">
+            <span className="rounded border border-teal-200 bg-white px-1 text-[9px] font-bold text-teal-600 shadow-sm">
+              평균 {formatAvgDailyGbLabel(avgGb)}
             </span>
-          </div>
-          <div className="w-px shrink-0 self-stretch bg-slate-300/80" aria-hidden />
-          <div className="relative flex h-full w-[40%] shrink-0 items-center justify-center bg-teal-100 px-0.5">
-            <span className="text-center text-[10px] font-medium leading-tight text-slate-700">
-              스마트형
-              <br />
-              (1~2GB)
-            </span>
-          </div>
-          <div className="w-px shrink-0 self-stretch bg-slate-300/80" aria-hidden />
-          <div className="relative flex h-full w-[40%] shrink-0 items-center justify-center rounded-r-full bg-sky-100 px-0.5">
-            <span className="text-center text-[10px] font-medium leading-tight text-slate-700">
-              자유형
-              <br />
-              (2~5GB+)
+            <span className="text-[10px] leading-none text-teal-500" aria-hidden>
+              ▼
             </span>
           </div>
         </div>
-
-        <div className="relative mt-1 h-4 w-full text-[10px] text-slate-400">
-          <span className="absolute left-[10%] -translate-x-1/2 whitespace-nowrap">500MB</span>
-          <span className="absolute left-[20%] -translate-x-1/2 whitespace-nowrap">1GB</span>
-          <span className="absolute left-[40%] -translate-x-1/2 whitespace-nowrap">2GB</span>
-          <span className="absolute left-full -translate-x-full whitespace-nowrap">5GB+</span>
-        </div>
-
-        <p className="mt-1 text-[10px] text-slate-500">알뜰형: 지도, 메시지, 기본 검색</p>
-        <p className="text-[10px] text-slate-500">
-          스마트형: SNS, 맛집검색, 번역앱 💡 사진은 호텔 Wi-Fi로!
-        </p>
-        <p className="text-[10px] text-slate-500">자유형: 실시간 스트리밍, 영상통화</p>
       </div>
 
-      <p className="mt-2 text-[10px] text-slate-400">* 2025 해외여행 데이터 사용량 분석 기준</p>
+      <div className="mt-2 space-y-0.5">
+        <p className="text-[9px] text-slate-500">알뜰: 지도, 메시지, 기본 검색</p>
+        <p className="text-[9px] text-slate-500">스마트: SNS, 맛집검색, 번역앱 💡사진은 호텔 Wi-Fi로!</p>
+        <p className="text-[9px] text-slate-500">자유: 실시간 스트리밍, 영상통화</p>
+      </div>
+
+      <p className="mt-1 text-[8px] text-slate-400">* 2025 해외여행 데이터 사용량 분석 기준</p>
     </div>
   );
 }
@@ -293,22 +285,40 @@ export function ProductCombinationStep({
     return `${joined}의 하루 최저가격은?`;
   }, [selectedCodes, countryByCode]);
 
-  const cheapestMulti = useMemo(() => {
-    if (selectedCodes.length < 2) return null;
-    const list = data?.multi ?? [];
-    if (list.length === 0) return null;
-    let best: ProductOption | null = null;
-    let bestPrice = Infinity;
-    for (const p of list) {
-      const pr = unitPriceKrw(p);
-      if (pr == null) continue;
-      if (pr < bestPrice) {
-        bestPrice = pr;
-        best = p;
-      }
+  const suggestedPlanHints = useMemo(() => suggestMultiPlanNamesForSelection(selectedCodes), [selectedCodes]);
+
+  const suggestedMultiProducts = useMemo(() => {
+    if (selectedCodes.length < 2) return [];
+    const multi = data?.multi ?? [];
+    const hinted = suggestedPlanHints.length
+      ? multi.filter((p) => planNameMatchesSuggestion(p.plan_name, suggestedPlanHints))
+      : [];
+    const list = hinted.length > 0 ? hinted : multi;
+    return [...list].sort((a, b) => (unitPriceKrw(a) ?? 1e15) - (unitPriceKrw(b) ?? 1e15));
+  }, [data, selectedCodes, suggestedPlanHints]);
+
+  const estimateTripDays = useMemo(() => {
+    let m = 7;
+    for (const r of countryDateRanges) {
+      const ms = r.end.getTime() - r.start.getTime();
+      const days = Math.max(1, Math.ceil(ms / 86400000) + 1);
+      m = Math.max(m, days);
     }
-    return best;
-  }, [data, selectedCodes.length]);
+    return m;
+  }, [countryDateRanges]);
+
+  const individualEstimateTotalKrw = useMemo(() => {
+    if (!data || selectedCodes.length < 2) return 0;
+    let sum = 0;
+    for (const code of selectedCodes) {
+      const pack = data.individual[code];
+      if (!pack) continue;
+      const u = overallMinUnitPriceKrw(pack);
+      if (u == null || u <= 0) continue;
+      sum += u * estimateTripDays;
+    }
+    return sum;
+  }, [data, selectedCodes, estimateTripDays]);
 
   const startDuration = (code: string) => {
     if (completed[code]) return;
@@ -520,7 +530,7 @@ export function ProductCombinationStep({
 
                 {!done ? (
                   <div className="border-t border-slate-100 bg-white px-3 py-2.5 lg:px-4 lg:py-3">
-                    <TravelerDataUsageGuide
+                    <TravelerAvgDailyProgressBar
                       code={code}
                       countryNameKr={country?.nameKr ?? code.toUpperCase()}
                     />
@@ -557,24 +567,77 @@ export function ProductCombinationStep({
         })}
       </div>
 
-      {selectedCodes.length >= 2 && cheapestMulti != null ? (
+      {selectedCodes.length >= 2 ? (
         <section className="mt-10 border-t border-gray-200 pt-8 lg:mt-12 lg:pt-10">
-          <h3 className="mb-4 text-base font-bold text-gray-800 lg:mb-5 lg:text-lg">
-            다른 상품들과도 비교해보세요
-          </h3>
-          <div className="rounded-xl border border-gray-200 p-4 lg:p-5">
-            <p className="text-base font-bold text-gray-900 lg:text-lg">
-              {multiPlanDisplayNameKr(cheapestMulti.plan_name)}
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 lg:px-5 lg:py-4 lg:text-base">
+            <span className="font-semibold">💡 다국가 플랜이 더 저렴할 수 있어요!</span>
+            <p className="mt-1 text-xs leading-relaxed text-blue-800/90 lg:text-sm">
+              선택하신 국가 조합에 맞는 다국가 요금제를 함께 비교해 보세요. (여행 일수는 아래 추정치로 합산합니다 — 기간을
+              입력하면 자동 반영됩니다.)
             </p>
-            <p className="mt-1 text-sm text-gray-500 lg:mt-1.5 lg:text-base">
-              {formatDaysRawKr(cheapestMulti.days_raw)} / {planTypeLabelKr(cheapestMulti.plan_type)}
-            </p>
-            {unitPriceKrw(cheapestMulti) != null && (
-              <p className="mt-2 text-base font-semibold text-blue-500 lg:mt-3 lg:text-lg">
-                {formatKrw(unitPriceKrw(cheapestMulti)!)}
-              </p>
-            )}
           </div>
+
+          <h3 className="mb-3 mt-6 text-base font-bold text-gray-800 lg:mb-4 lg:mt-8 lg:text-lg">다국가 플랜 비교</h3>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm lg:p-5 lg:text-base">
+            <p>
+              <span className="font-medium text-slate-900">추정 여행 일수</span>{" "}
+              <span className="font-mono text-teal-700">{estimateTripDays}일</span>
+            </p>
+            <p className="mt-2">
+              <span className="font-medium text-slate-900">개별 국가 최저가 합계(추정)</span>{" "}
+              <span className="font-semibold text-slate-900">{formatKrw(individualEstimateTotalKrw)}</span>
+              <span className="text-xs text-slate-500"> · 국가별 카드에 표시된 1일 최저가 × 일수</span>
+            </p>
+          </div>
+
+          {suggestedMultiProducts.length === 0 ? (
+            <p className="mt-4 text-sm text-gray-500">이 조합을 모두 커버하는 다국가 상품이 없습니다.</p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {suggestedMultiProducts.map((p) => {
+                const unit = unitPriceKrw(p);
+                const multiTotal = unit != null && unit > 0 ? unit * estimateTripDays : null;
+                const diff =
+                  multiTotal != null && individualEstimateTotalKrw > 0
+                    ? individualEstimateTotalKrw - multiTotal
+                    : null;
+                return (
+                  <li
+                    key={p.option_api_id}
+                    className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm lg:p-5"
+                  >
+                    <p className="text-base font-bold text-gray-900 lg:text-lg">{multiPlanDisplayNameKr(p.plan_name)}</p>
+                    <p className="mt-1 text-sm text-gray-500 lg:text-base">
+                      {formatDaysRawKr(p.days_raw)} / {planTypeLabelKr(p.plan_type)} · {networkFamilyLabelKr(p.network_family)}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      {unit != null ? (
+                        <span className="text-sm text-gray-600">
+                          1일 <span className="font-semibold text-gray-900">{formatKrw(unit)}</span>
+                        </span>
+                      ) : null}
+                      {multiTotal != null ? (
+                        <span className="text-sm text-gray-600">
+                          {estimateTripDays}일 합계{" "}
+                          <span className="text-lg font-semibold text-blue-600 lg:text-xl">{formatKrw(multiTotal)}</span>
+                        </span>
+                      ) : null}
+                    </div>
+                    {diff != null && multiTotal != null ? (
+                      <p className={`mt-2 text-xs font-medium lg:text-sm ${diff > 0 ? "text-teal-700" : "text-amber-700"}`}>
+                        {diff > 0
+                          ? `개별 합계 대비 약 ${formatKrw(diff)} 절감(추정)`
+                          : diff < 0
+                            ? `개별 합계보다 약 ${formatKrw(-diff)} 높음(추정)`
+                            : "개별 합계와 유사(추정)"}
+                      </p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </section>
       ) : null}
 

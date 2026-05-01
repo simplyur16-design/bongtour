@@ -9,6 +9,9 @@ import type { EsimProductTypeOption, FunnelState } from "./types";
  */
 export const BONGSIM_BASE_PATH = "/travel/esim" as const;
 
+/** 유심사(간편이심) 공식 카카오톡 채널 — eSIM 고객 문의 */
+export const BONGSIM_KAKAO_CHANNEL_URL = "https://pf.kakao.com/_fqTkK" as const;
+
 export function bongsimPath(sub: string = ""): string {
   if (!sub) return BONGSIM_BASE_PATH;
   const normalized = sub.startsWith("/") ? sub : `/${sub}`;

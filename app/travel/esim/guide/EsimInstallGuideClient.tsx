@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Header from "@/app/components/Header";
 import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
-import { bongsimPath } from "@/lib/bongsim/constants";
+import { bongsimPath, BONGSIM_KAKAO_CHANNEL_URL } from "@/lib/bongsim/constants";
 
 type Os = "iphone" | "samsung";
 
@@ -245,13 +245,19 @@ export function EsimInstallGuideClient() {
           >
             나에게 맞는 eSIM 찾기
           </Link>
-          <p className="mt-6 flex flex-col items-center gap-1.5 text-sm text-slate-600 lg:flex-row lg:justify-center lg:gap-2">
+          <p className="mt-6 flex flex-col flex-wrap items-center justify-center gap-x-2 gap-y-1.5 text-center text-sm text-slate-600 lg:flex-row">
             <span className="inline-flex items-center gap-1.5">
               <Headphones className="h-4 w-4 text-teal-600" aria-hidden />
-              문제가 있으신가요?
+              문제가 있으신가요? 24시간 고객센터
             </span>
-            <span className="font-medium text-slate-800">24시간 고객센터</span>
-            <span className="text-xs text-slate-400">(연결 예정)</span>
+            <a
+              href={BONGSIM_KAKAO_CHANNEL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-teal-600 underline hover:text-teal-700"
+            >
+              카카오톡 문의하기
+            </a>
           </p>
         </div>
 

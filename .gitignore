@@ -11,7 +11,7 @@
 .cursor/
 
 # Dependencies
-node_modules
+node_modules/
 .venv/
 .pnp
 .pnp.js
@@ -20,9 +20,18 @@ node_modules
 .next/
 out/
 
+# 로컬·생성 대용량/임시 트리 (실수 커밋 방지)
+_bundle3i_tmp/
+_files_zip_tmp/
+DEV/
+debug/
+
 # Build
 dist
 build
+
+# Logs (일반)
+*.log
 
 # Debug
 debug/hanatour/

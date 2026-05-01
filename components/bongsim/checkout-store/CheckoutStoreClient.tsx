@@ -1,12 +1,13 @@
 "use client";
 
-import { bongsimPath } from '@/lib/bongsim/constants'
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BONGSIM_CHECKOUT_TERMS_VERSION } from "@/lib/bongsim/checkout/terms";
 import {
+  BONGSIM_KAKAO_CHANNEL_URL,
   BONGSIM_RECOMMEND_CHECKOUT_QUEUE_KEY,
+  bongsimPath,
   type BongsimRecommendCheckoutLine,
 } from "@/lib/bongsim/constants";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
@@ -572,6 +573,17 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                     ? "처리 중…"
                     : "다음: 결제 진행"}
               </button>
+              <p className="text-center text-xs text-slate-400">
+                문의사항이 있으신가요?{" "}
+                <a
+                  href={BONGSIM_KAKAO_CHANNEL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-teal-600 underline hover:text-teal-700"
+                >
+                  카카오톡 문의하기
+                </a>
+              </p>
             </form>
           </div>
         )}

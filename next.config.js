@@ -99,6 +99,8 @@ const nextConfig = {
   images: {
     /** `/_next/image` 응답 캐시(초). CDN·엣지 히트율·재방문 LCP에 유리. */
     minimumCacheTTL: 2592000,
+    /** WebP 우선 생성 — 용량·LCP 개선 (AVIF는 디코딩 비용·호환 고려 후 선택). */
+    formats: ['image/webp', 'image/avif'],
     /** 생성되는 반응형 변형 수 축소 → 빌드·런타임 부담 완화 */
     deviceSizes: [640, 750, 828, 1080],
     imageSizes: [16, 32, 48, 64, 96],
@@ -133,6 +135,14 @@ const nextConfig = {
       return base
     })(),
   },
+  /*
+   * TODO(first-load / 번들): `app/layout.tsx`·Header·무거운 클라이언트 트리 — 가능한 브랜치는 서버 컴포넌트로 유지하고,
+   *   인터랙션만 있는 섹션만 `use client` 경계로 좁히기.
+   * TODO(first-load / 폰트): `globals.css` @import Pretendard 대신 `next/font/local` 또는 `next/font/google` self-host 검토
+   *   (CSP style-src·서브셋·FOIT 방지).
+   * TODO(first-load / lazy): 대시보드·관리자·지도/차트 등 무거운 위젯은 `next/dynamic(() => import('…'), { ssr: false|true })`
+   *   로 초기 JS 분할 검토 (LCP 경로에는 dynamic 금지).
+   */
   webpack: (config, { isServer, dev }) => {
     /** Windows: PackFileCacheStrategy rename ENOENT → .next 손상·`/_next/static/chunks/*.js` 404 방지 */
     if (dev && process.platform === 'win32') {

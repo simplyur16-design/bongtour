@@ -43,32 +43,26 @@ export default function CouponReportClient() {
     void load();
   }, [load]);
 
-  const downloadCsv = () => {
-    const header = ["날짜(UTC)", "주문번호", "쿠폰코드", "원가", "할인액", "결제액"];
-    const lines = [header.join(",")];
-    for (const r of rows) {
-      lines.push(
-        [
-          r.used_at,
-          r.order_number,
-          r.code,
-          r.original_amount_krw,
-          r.discount_amount_krw,
-          r.final_amount_krw,
-        ].join(","),
-      );
+  const downloadCsv = async () => {
+    try {
+      const q = new URLSearchParams({ year: String(year), month: String(month) });
+      const res = await fetch(`/api/admin/bongsim/coupon-report/export?${q.toString()}`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error ?? "다운로드 실패");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `bongsim-coupon-report-${year}-${String(month).padStart(2, "0")}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "CSV 오류");
     }
-    if (summary) {
-      lines.push("");
-      lines.push(`합계,건수,${summary.count},할인합,${summary.total_discount_krw},결제합,${summary.total_final_krw}`);
-    }
-    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `bongsim-coupon-usage-${year}-${String(month).padStart(2, "0")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -111,9 +105,8 @@ export default function CouponReportClient() {
         </button>
         <button
           type="button"
-          onClick={downloadCsv}
-          disabled={!rows.length}
-          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-40"
+          onClick={() => void downloadCsv()}
+          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500"
         >
           CSV 다운로드
         </button>
