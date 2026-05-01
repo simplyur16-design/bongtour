@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import Header from '@/app/components/Header'
 import TrainingInquiryForm, { TRAINING_SERVICE_OPTIONS } from '@/components/inquiry/TrainingInquiryForm'
 
@@ -136,7 +136,7 @@ export default function TrainingHub({ heroImageUrl, interpretImageUrl }: Trainin
             <div>
               <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white">
                 <div className="relative h-[320px] sm:h-[380px] lg:h-[440px]">
-                  <Image
+                  <SafeImage
                     src={heroImageUrl}
                     alt="국외연수 서비스 안내 이미지"
                     fill
@@ -266,7 +266,7 @@ export default function TrainingHub({ heroImageUrl, interpretImageUrl }: Trainin
           <div className="mt-6 grid gap-5 lg:grid-cols-2">
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
               <div className="relative h-[280px] sm:h-[340px]">
-                <Image
+                <SafeImage
                   src={interpretImageUrl}
                   alt="국외연수 회의·브리핑 장면"
                   fill

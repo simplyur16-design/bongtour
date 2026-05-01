@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import { ArrowUpRight } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type FocusEvent } from 'react'
@@ -193,7 +193,7 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
   const cardAriaLabel = [titlePair.ko, titlePair.en, subtitle, descFull, ...card.hints, card.ctaLabel]
     .filter(Boolean)
     .join('. ')
-  /** 원격 URL은 `/_next/image` 최적화 큐를 타면 LCP·대역만 지연될 수 있어 브라우저 직접 로드 */
+  /** 원격 https는 `SafeImage`에서 호스트별로 최적화·직접 `<img>` 분기 */
   const hubImageUnoptimized = /^https?:\/\//i.test(card.imageSrc)
 
   const open = useCallback(() => setDetailOpen(true), [])
@@ -223,7 +223,7 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
       >
         <span className="pointer-events-none absolute inset-0 z-0 bg-slate-200" aria-hidden />
 
-        <Image
+        <SafeImage
           key={card.imageSrc}
           src={card.imageSrc}
           alt=""

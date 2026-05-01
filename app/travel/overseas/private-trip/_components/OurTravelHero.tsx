@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { useEffect, useMemo, useState } from 'react'
 import {
   OUR_TRAVEL_HERO_OVERLAY_DESCRIPTION,
@@ -60,7 +60,7 @@ export default function OurTravelHero({ imageUrls, privateQuoteHref, travelConsu
       <div className="mx-auto min-w-0 max-w-6xl px-4 py-3 sm:px-6 sm:py-4">
         <div className="relative min-w-0 overflow-hidden rounded-xl border border-bt-border bg-bt-surface">
           <div className="relative h-[150px] bg-slate-900 sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]">
-            <Image
+            <SafeImage
               key={`our-travel-hero-${imgIdx}-${src}`}
               src={src}
               alt=""

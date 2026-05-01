@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 
 type Props = {
   className?: string
@@ -17,7 +17,7 @@ export default function RepresentativeNameImage({ className = '', compact = fals
 
   return (
     <span className={`inline-flex items-center align-middle ${className}`} aria-hidden="true">
-      <Image
+      <SafeImage
         src="/images/footer/representative-name-mark.webp"
         alt=""
         width={220}

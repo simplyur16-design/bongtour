@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
@@ -115,7 +115,7 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
               <Link href={t.href} className={TILE_CARD_CLASS}>
                 {t.bgSrc ? (
                   <span className={TILE_BG_IMAGE_WRAP} aria-hidden>
-                    <Image
+                    <SafeImage
                       src={t.bgSrc}
                       alt=""
                       fill

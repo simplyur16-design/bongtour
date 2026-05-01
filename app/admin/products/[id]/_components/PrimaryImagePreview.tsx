@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { useState } from 'react'
 import { FALLBACK_IMAGE } from '../_lib/utils'
 
@@ -12,7 +12,7 @@ export default function PrimaryImagePreview({ url }: PrimaryImagePreviewProps) {
   const [broken, setBroken] = useState(false)
   const src = !url || broken ? FALLBACK_IMAGE : url
   return (
-    <Image
+    <SafeImage
       src={src}
       alt="대표 이미지"
       width={800}

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { motion } from 'framer-motion'
 import type { GalleryProduct } from '@/app/api/gallery/route'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
@@ -79,7 +79,7 @@ export default function AgentCard({
                 key={`${url}-${idx}`}
                 className={`relative flex-shrink-0 snap-start w-[42vw] min-w-[140px] max-w-[220px] ${GALLERY_ASPECT} sm:w-[180px] sm:min-w-[160px] sm:max-w-[200px]`}
               >
-                <Image
+                <SafeImage
                   src={url}
                   alt=""
                   fill

@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
@@ -1679,7 +1679,7 @@ export default function AdminPendingDetailPanel({
                   <div className="mt-2 flex items-start gap-3">
                     <div className="relative h-16 w-24 overflow-hidden rounded border border-bt-border-soft bg-bt-surface-alt">
                       {row.imageUrl ? (
-                        <Image
+                        <SafeImage
                           src={adminPreviewImgSrc(row.imageUrl) ?? row.imageUrl}
                           alt=""
                           fill
@@ -1782,7 +1782,7 @@ export default function AdminPendingDetailPanel({
                             className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left disabled:opacity-50"
                           >
                             <span className="relative block aspect-video w-full">
-                              <Image
+                              <SafeImage
                                 src={adminPreviewImgSrc(photo.thumbnail) ?? photo.thumbnail}
                                 alt=""
                                 fill
@@ -1833,7 +1833,7 @@ export default function AdminPendingDetailPanel({
                             </span>
                             {item.imageUrl ? (
                               <span className="relative block aspect-video w-full">
-                                <Image
+                                <SafeImage
                                   src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
                                   alt=""
                                   fill
@@ -1881,7 +1881,7 @@ export default function AdminPendingDetailPanel({
                           className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left disabled:opacity-50"
                         >
                           <span className="relative block aspect-video w-full">
-                            <Image
+                            <SafeImage
                               src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
                               alt=""
                               fill
@@ -1969,7 +1969,7 @@ export default function AdminPendingDetailPanel({
                           className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left"
                         >
                           <span className="relative block aspect-video w-full">
-                            <Image
+                            <SafeImage
                               src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
                               alt=""
                               fill
@@ -1998,7 +1998,7 @@ export default function AdminPendingDetailPanel({
                     return (
                       <div key={key} className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface">
                         <span className="relative block aspect-video w-full">
-                          <Image
+                          <SafeImage
                             src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
                             alt=""
                             fill
@@ -2084,7 +2084,7 @@ export default function AdminPendingDetailPanel({
                 rel="noopener noreferrer"
                 className="relative block h-16 w-24 shrink-0 overflow-hidden rounded border border-bt-border-soft bg-bt-surface-alt"
               >
-                <Image
+                <SafeImage
                   src={adminPreviewImgSrc(detail.bgImageUrl) ?? detail.bgImageUrl ?? ''}
                   alt=""
                   fill
@@ -2237,7 +2237,7 @@ export default function AdminPendingDetailPanel({
                     rel="noopener noreferrer"
                     className="relative block aspect-video w-full bg-bt-surface-alt"
                   >
-                    <Image
+                    <SafeImage
                       src={
                         adminPreviewImgSrc(photo.medium || photo.thumbnail) ??
                         photo.medium ??
@@ -2287,7 +2287,7 @@ export default function AdminPendingDetailPanel({
                         rel="noopener noreferrer"
                         className="relative block aspect-video w-full bg-bt-surface-alt"
                       >
-                        <Image
+                        <SafeImage
                           src={adminPreviewImgSrc(candidate.imageUrl) ?? candidate.imageUrl ?? ''}
                           alt=""
                           fill
@@ -2329,7 +2329,7 @@ export default function AdminPendingDetailPanel({
                         rel="noopener noreferrer"
                         className="relative block aspect-video w-full bg-bt-surface-alt"
                       >
-                        <Image
+                        <SafeImage
                           src={adminPreviewImgSrc(candidate.imageUrl) ?? candidate.imageUrl ?? ''}
                           alt=""
                           fill
@@ -2403,7 +2403,7 @@ export default function AdminPendingDetailPanel({
                   </span>
                   {item.imageUrl ? (
                     <span className="relative block aspect-video w-full">
-                      <Image
+                      <SafeImage
                         src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
                         alt=""
                         fill

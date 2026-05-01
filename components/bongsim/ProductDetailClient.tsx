@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import SafeImage from "@/app/components/SafeImage";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -142,7 +142,7 @@ export function ProductDetailClient({ model }: Props) {
           <div className="min-w-0">
             <div className="relative -mx-4 mt-2 sm:-mx-6 lg:mx-0 lg:mt-0">
               <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[16/9] lg:aspect-[2.2/1] lg:rounded-3xl lg:shadow-md lg:ring-1 lg:ring-slate-200/80">
-                <Image
+                <SafeImage
                   src={detail.heroImage}
                   alt={detail.heroAlt ?? `${detail.nameKr} eSIM`}
                   fill

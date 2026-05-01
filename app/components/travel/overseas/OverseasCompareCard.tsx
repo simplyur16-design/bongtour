@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import type { GalleryProduct } from '@/app/api/gallery/route'
 import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
@@ -42,7 +42,7 @@ export default function OverseasCompareCard({ product, priority = false, product
       <div className="flex flex-col sm:flex-row">
         <Link href={`/products/${product.id}`} className="relative block shrink-0 sm:w-[200px] lg:w-[240px]">
           <div className="relative aspect-[16/10] w-full sm:aspect-auto sm:h-full sm:min-h-[168px]">
-            <Image
+            <SafeImage
               src={url}
               alt=""
               fill

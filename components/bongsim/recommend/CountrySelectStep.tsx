@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import SafeImage from "@/app/components/SafeImage";
 import { COUNTRY_PICKER_GRID_CLASS, CountryPickerGrid } from "@/components/bongsim/CountryPickerGrid";
 import { CountryNameMultiline } from "@/lib/bongsim/country-name-display";
 import type { CountryOption } from "@/lib/bongsim/types";
@@ -105,7 +105,7 @@ export function CountrySelectStep({
                           isSelected ? "shadow-lg ring-2 ring-blue-400" : "shadow-lg ring-1 ring-gray-200"
                         }`}
                       >
-                        <Image
+                        <SafeImage
                           src={`https://flagcdn.com/w160/${country.code}.png`}
                           alt=""
                           width={48}

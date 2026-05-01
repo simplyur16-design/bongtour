@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
 import type { HomeHubActiveClientModel } from '@/lib/home-hub-active-client-model'
@@ -357,7 +357,7 @@ export function HomeHubHybridCardOperationsPanel({
                               className={`w-[88px] flex-shrink-0 overflow-hidden rounded-md bg-slate-900/80 ${ring}`}
                             >
                               <div className="relative aspect-video w-full bg-slate-800">
-                                <Image
+                                <SafeImage
                                   src={c.imagePath}
                                   alt=""
                                   fill
@@ -406,7 +406,7 @@ export function HomeHubHybridCardOperationsPanel({
                 </span>
               </div>
               <div className="relative mt-2 aspect-[16/9] w-full overflow-hidden rounded-md bg-slate-800">
-                <Image
+                <SafeImage
                   src={detail.url}
                   alt=""
                   fill

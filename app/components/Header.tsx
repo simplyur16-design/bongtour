@@ -3,7 +3,7 @@
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { devWarnMobileHome } from '@/lib/mobile-home-dev-log'
 import { useEffect, useId, useState } from 'react'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { Menu, X } from 'lucide-react'
@@ -166,7 +166,7 @@ export default function Header() {
           className="relative isolate z-10 inline-flex shrink-0 items-center overflow-hidden py-0.5"
           aria-label="Bong투어 홈"
         >
-          <Image
+          <SafeImage
             src="/images/bongtour-logo.webp"
             alt=""
             width={274}

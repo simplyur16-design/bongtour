@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { type FC, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
@@ -636,7 +636,7 @@ const OverseasHero: FC = () => {
                   ) : null
                 const inner = (
                   <>
-                    <Image
+                    <SafeImage
                       src={src}
                       alt=""
                       fill

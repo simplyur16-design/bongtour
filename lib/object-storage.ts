@@ -193,6 +193,30 @@ export async function uploadStorageObject(params: {
   return { objectKey: key, publicUrl, bucket }
 }
 
+/**
+ * sharp 전처리 없이 바이트 그대로 업로드 (이미 WebP로 변환된 버퍼·마이그레이션 스크립트용).
+ */
+export async function uploadStorageObjectRaw(params: {
+  objectKey: string
+  body: Buffer
+  contentType: string
+}): Promise<UploadStorageObjectResult> {
+  const { bucket } = getObjectStorageEnv()
+  const key = params.objectKey.replace(/^\/+/, '')
+  const client = getS3Client()
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: params.body,
+      ContentType: params.contentType,
+      ACL: 'public-read',
+    }),
+  )
+  const publicUrl = buildPublicUrlForObjectKey(key)
+  return { objectKey: key, publicUrl, bucket }
+}
+
 export async function removeStorageObject(objectKey: string): Promise<void> {
   const { bucket } = getObjectStorageEnv()
   const key = objectKey.replace(/^\/+/, '')

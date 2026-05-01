@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { useState } from 'react'
 import { getLogoPathForDisplayName } from '@/lib/brands'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
@@ -24,7 +24,7 @@ export default function ProductOfficialBadge({ organizerName }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-4 border border-gray-200 bg-white px-4 py-3 sm:gap-5">
       {showLogo ? (
-        <Image
+        <SafeImage
           src={logoPath}
           alt={name}
           width={120}

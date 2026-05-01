@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { formatCmsSourceLine, toSafePublicUrlOrPath } from '@/lib/cms-source-attribution'
 import { prisma } from '@/lib/prisma'
 import {
@@ -104,7 +104,7 @@ export default async function OverseasManagedContent({
                   <li key={item.id} className="rounded-xl border border-bt-border bg-white p-5 shadow-sm">
                     {imageUrl && (
                       <div className="relative mb-3 aspect-[16/9] w-full overflow-hidden rounded-lg bg-bt-surface">
-                        <Image
+                        <SafeImage
                           src={imageUrl}
                           alt={item.imageAlt || item.title}
                           fill

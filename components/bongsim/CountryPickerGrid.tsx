@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import SafeImage from "@/app/components/SafeImage";
 import { useMediaQueryBelow } from "@/hooks/useMediaQueryBelow";
 import { CountryNameMultiline } from "@/lib/bongsim/country-name-display";
 import type { CountryOption } from "@/lib/bongsim/types";
@@ -90,7 +90,7 @@ export function CountryPickerGrid({
                     aria-hidden
                   >
                     {useFlagImage ? (
-                      <Image
+                      <SafeImage
                         src={flagImageUrl(c.code)}
                         alt=""
                         width={48}

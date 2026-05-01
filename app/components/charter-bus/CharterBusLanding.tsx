@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import Header from '@/app/components/Header'
 import BusInquiryForm from '@/components/inquiry/BusInquiryForm'
 
@@ -158,7 +158,7 @@ export default function CharterBusLanding() {
                 <article key={v.name} className="overflow-hidden rounded-xl border border-bt-border bg-white shadow-sm">
                   {v.imageSrc ? (
                     <div className="relative h-[180px] w-full">
-                      <Image src={v.imageSrc} alt={v.imageAlt ?? v.name} fill sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 25vw" className="object-cover" />
+                      <SafeImage src={v.imageSrc} alt={v.imageAlt ?? v.name} fill sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 25vw" className="object-cover" />
                       {v.aiGenerated ? (
                         <p className="pointer-events-none absolute bottom-1 right-1 whitespace-nowrap rounded bg-black/45 px-1.5 py-0.5 text-[7px] font-medium leading-tight text-white/95 shadow-sm backdrop-blur-[1px] sm:bottom-1.5 sm:right-1.5 sm:text-[8px]">
                           AI로 생성되었습니다.

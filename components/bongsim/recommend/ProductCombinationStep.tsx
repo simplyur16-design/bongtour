@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import Image from "next/image";
+import SafeImage from "@/app/components/SafeImage";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
@@ -465,7 +465,7 @@ export function ProductCombinationStep({
               >
                 <div className="relative h-44 w-full overflow-hidden bg-gray-900 lg:h-52">
                   {hero ? (
-                    <Image
+                    <SafeImage
                       src={hero}
                       alt=""
                       fill
@@ -476,7 +476,7 @@ export function ProductCombinationStep({
                     />
                   ) : (
                     <div className="absolute inset-0 overflow-hidden">
-                      <Image
+                      <SafeImage
                         src={flagCdnBlurBg(code)}
                         alt=""
                         fill
@@ -503,7 +503,7 @@ export function ProductCombinationStep({
                     >
                       <div className="flex items-end gap-3 lg:gap-4">
                         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full shadow-lg ring-1 ring-gray-200 lg:h-14 lg:w-14">
-                          <Image
+                          <SafeImage
                             src={flagCdnUrl(code)}
                             alt=""
                             width={48}

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 
 export default function ConvertToWebpPage() {
   const [file, setFile] = useState<File | null>(null)
@@ -239,7 +239,7 @@ export default function ConvertToWebpPage() {
           </p>
           {result.dataUrl && (
             <>
-              <Image
+              <SafeImage
                 src={result.dataUrl}
                 alt="WebP 미리보기"
                 width={result.width || 400}

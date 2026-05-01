@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 type OgPageKey = 'default' | 'overseas' | 'private-trip' | 'domestic' | 'training' | 'esim'
@@ -267,7 +267,7 @@ export default function OgImagesManager({ actorRole }: Props) {
 
                 <div className="mt-4 flex min-h-[140px] items-center justify-center rounded-lg border border-dashed border-bt-border bg-bt-surface-soft">
                   {hasDb ? (
-                    <Image
+                    <SafeImage
                       src={row!.imageUrl ?? ''}
                       alt=""
                       width={1200}

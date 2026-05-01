@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { useCallback, useEffect, useState } from 'react'
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
 import type { HomeHubCandidateRecord } from '@/lib/home-hub-candidates-types'
@@ -252,7 +252,7 @@ export function HomeHubImageCandidateGrid({
                     onClick={() => setPreview(c)}
                     title="확대 보기"
                   >
-                    <Image
+                    <SafeImage
                       src={c.imagePath}
                       alt=""
                       fill
@@ -342,7 +342,7 @@ export function HomeHubImageCandidateGrid({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative aspect-video w-full min-w-[280px] max-w-3xl">
-              <Image
+              <SafeImage
                 src={preview.imagePath}
                 alt=""
                 fill

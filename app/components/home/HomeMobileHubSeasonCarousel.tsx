@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeHomeSeasonSlidesForClient, type HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
@@ -68,7 +68,7 @@ function SeasonSlideCard({
       >
         <div className="absolute inset-0 bg-gradient-to-br from-teal-100/90 via-slate-100 to-slate-200/90" aria-hidden />
         {img ? (
-          <Image
+          <SafeImage
             src={img}
             alt={title}
             fill

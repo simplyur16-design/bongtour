@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import RepresentativeNameImage from '@/app/components/common/RepresentativeNameImage'
 import { COMPANY_FOOTER } from '@/lib/company-footer'
 import { MAIN_MINIMAL_FOOTER_LINKS } from '@/lib/main-hub-copy'
@@ -24,7 +24,7 @@ export default function SiteFooter() {
             className="inline-flex shrink-0 items-center opacity-80 transition hover:opacity-100"
             aria-label="봉투어 홈"
           >
-            <Image
+            <SafeImage
               src="/images/bongtour-logo.webp"
               alt=""
               width={96}

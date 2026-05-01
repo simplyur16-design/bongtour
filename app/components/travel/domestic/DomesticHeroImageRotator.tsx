@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { useEffect, useMemo, useState } from 'react'
 
 type BrowseItem = {
@@ -146,7 +146,7 @@ export default function DomesticHeroImageRotator({ eyebrow, title, lead }: Domes
           className="absolute inset-0 z-0 block"
           aria-label={`${current.title} 상세 보기`}
         >
-          <Image
+          <SafeImage
             src={displaySrc}
             alt=""
             fill

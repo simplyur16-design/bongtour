@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import { useCallback, useEffect, useState } from 'react'
 
 type CountryRow = { code: string; nameKr: string }
@@ -251,10 +251,10 @@ export default function CountryHeroesAdminClient() {
               >
                 <div className="relative h-40 w-full overflow-hidden bg-gray-900">
                   {hero ? (
-                    <Image src={hero} alt="" fill className="object-cover" sizes="(max-width:768px) 100vw, 320px" />
+                    <SafeImage src={hero} alt="" fill className="object-cover" sizes="(max-width:768px) 100vw, 320px" />
                   ) : (
                     <div className="absolute inset-0 overflow-hidden">
-                      <Image
+                      <SafeImage
                         src={flagCdnUrl(code)}
                         alt=""
                         fill
@@ -272,7 +272,7 @@ export default function CountryHeroesAdminClient() {
                   />
                   <div className="absolute inset-x-0 bottom-0 flex items-end gap-2 px-3 pb-3">
                     <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1 ring-white/30">
-                      <Image
+                      <SafeImage
                         src={flagCdnUrl(code)}
                         alt=""
                         width={40}
@@ -384,7 +384,7 @@ export default function CountryHeroesAdminClient() {
                           } disabled:opacity-50`}
                         >
                           <span className="relative block aspect-video w-full bg-slate-950">
-                            <Image
+                            <SafeImage
                               src={
                                 adminPreviewImgSrc(photo.medium || photo.thumbnail) ??
                                 photo.medium ??

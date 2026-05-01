@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import type { MonthlyCurationMidPayload } from '@/lib/overseas-cms-public'
 
@@ -12,7 +12,7 @@ export default function OverseasMonthlyCurationMid(props: MonthlyCurationMidPayl
     <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
       {imageUrl ? (
         <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:aspect-auto sm:h-auto sm:w-[min(42%,280px)] sm:min-h-[140px]">
-          <Image
+          <SafeImage
             src={imageUrl}
             alt={imageAlt || title}
             fill
