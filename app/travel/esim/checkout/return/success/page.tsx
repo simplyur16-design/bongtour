@@ -28,14 +28,14 @@ function SuccessInner() {
       if (n > 90) {
         if (intervalRef.current) clearInterval(intervalRef.current);
         queueMicrotask(() =>
-          setError("?? ?? ??? ???????. ?? ???? ??? ???."),
+          setError("확인에 시간이 오래 걸리고 있어요. 잠시 후에도 같으면 고객센터로 문의해 주세요."),
         );
         return;
       }
       try {
         const res = await fetch(`/api/bongsim/orders/${encodeURIComponent(orderId)}${readKeyQuery}`, { cache: "no-store" });
         if (!res.ok) {
-          queueMicrotask(() => setStatus("?? ? ??"));
+          queueMicrotask(() => setStatus("조회 실패"));
           return;
         }
         const o = (await res.json()) as BongsimOrderPublicV1;
@@ -47,7 +47,7 @@ function SuccessInner() {
           router.replace(bongsimPath(`/order/${encodeURIComponent(orderId)}/complete${readKeyQuery}`));
         }
       } catch {
-        queueMicrotask(() => setStatus("???? ??"));
+        queueMicrotask(() => setStatus("일시적 오류"));
       }
     };
     void tick();
@@ -64,21 +64,21 @@ function SuccessInner() {
       <OverseasTravelSubMainNav variant="links" />
       <div className="min-h-full bg-slate-50">
       <main className="mx-auto max-w-lg px-4 py-8">
-        <h1 className="text-lg font-semibold text-slate-900">?? ?? ?</h1>
+        <h1 className="text-lg font-semibold text-slate-900">결제 확인 중</h1>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          ???? ?????? ??? ??? ?? ????. ???? ?? ??? ??? ? ???? ?????.
+          결제가 정상적으로 반영됐는지 확인하고 있어요. 잠시만 기다려 주세요. 완료되면 자동으로 다음 화면으로 이동합니다.
         </p>
         {!orderId ? (
-          <p className="mt-4 text-sm text-red-700">orderId? ????.</p>
+          <p className="mt-4 text-sm text-red-700">주문 정보(orderId)가 없습니다.</p>
         ) : (
           <p className="mt-2 text-xs font-mono text-slate-500">
-            ?? ID: {orderId}
-            {status ? ` ? ??: ${status}` : ""}
+            주문 ID: {orderId}
+            {status ? ` · 상태: ${status}` : ""}
           </p>
         )}
         {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
         <Link href={bongsimPath()} className="mt-8 inline-block text-sm text-teal-800 underline">
-          ???
+          eSIM 메인
         </Link>
       </main>
       </div>
@@ -93,7 +93,7 @@ export default function CheckoutReturnSuccessPage() {
         <div className="min-h-screen bg-bt-page">
           <Header />
           <OverseasTravelSubMainNav variant="links" />
-          <div className="min-h-full bg-slate-50 p-6 text-sm">???</div>
+          <div className="min-h-full bg-slate-50 p-6 text-sm">불러오는 중…</div>
         </div>
       }
     >

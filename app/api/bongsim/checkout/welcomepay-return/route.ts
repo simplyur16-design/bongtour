@@ -9,6 +9,7 @@ import {
   pickTid,
   resultCodeOf,
 } from "@/lib/bongsim/welcomepay-callback-parse";
+import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
 import { isPaywelcomeHttpsUrl, welcomepayPayAuthUrl } from "@/lib/bongsim/welcomepay";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
   const origin = requestOrigin(req);
   const fail = (orderId: string, reason: string) =>
     NextResponse.redirect(
-      `${origin}${bongsimPath(`/checkout/return/fail?orderId=${encodeURIComponent(orderId)}&reason=${encodeURIComponent(reason)}`)}`,
+      buildCheckoutPaymentResultRedirectUrl(origin, { status: "fail", orderId, message: reason }),
       303,
     );
 

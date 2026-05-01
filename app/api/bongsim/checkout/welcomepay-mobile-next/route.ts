@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { bongsimPath } from "@/lib/bongsim/constants";
+import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import {
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
   const origin = requestOrigin(req);
   const fail = (orderId: string, reason: string) =>
     NextResponse.redirect(
-      `${origin}${bongsimPath(`/checkout/return/fail?orderId=${encodeURIComponent(orderId)}&reason=${encodeURIComponent(reason)}`)}`,
+      buildCheckoutPaymentResultRedirectUrl(origin, { status: "fail", orderId, message: reason }),
       303,
     );
 
