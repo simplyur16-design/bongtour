@@ -77,7 +77,7 @@ export default function MainGallery() {
                 <AgentCard
                   key={product.id}
                   product={product}
-                  priority={page === 1 && i < 3}
+                  priority={page === 1 && i === 0}
                   editorial
                 />
               ))}

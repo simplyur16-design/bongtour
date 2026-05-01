@@ -84,7 +84,7 @@ export default function AgentCard({
                   alt=""
                   fill
                   className={`object-cover ${editorial ? 'transition-transform duration-500 group-hover:scale-[1.02]' : 'transition-transform duration-500 group-hover:scale-105'}`}
-                  sizes="(max-width: 640px) 42vw, 180px"
+                  sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
                   priority={priority && idx === 0}
                 />
               </li>

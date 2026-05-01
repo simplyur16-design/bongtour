@@ -1,3 +1,5 @@
+'use client'
+
 import type { CSSProperties } from 'react'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import PartnerOrgLogoCell from './PartnerOrgLogoCell'

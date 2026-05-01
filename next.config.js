@@ -97,23 +97,19 @@ const nextConfig = {
     ]
   },
   images: {
-    /** `/_next/image` 응답 캐시(초). CDN·엣지 히트율·재방문 LCP에 유리. */
-    minimumCacheTTL: 2592000,
-    /** WebP 우선 생성 — 용량·LCP 개선 (AVIF는 디코딩 비용·호환 고려 후 선택). */
-    formats: ['image/webp', 'image/avif'],
-    /** 생성되는 반응형 변형 수 축소 → 빌드·런타임 부담 완화 */
-    deviceSizes: [640, 750, 828, 1080],
-    imageSizes: [16, 32, 48, 64, 96],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
     remotePatterns: (() => {
       const base = [
-        /** 국기 CDN (eSIM 추천·국가 선택 등) */
+        { protocol: 'https', hostname: '**.ncloudstorage.com', pathname: '/**' },
+        { protocol: 'https', hostname: '**.ncloud.com', pathname: '/**' },
         { protocol: 'https', hostname: 'flagcdn.com', pathname: '/**' },
         { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
         { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
         { protocol: 'https', hostname: 'images.pexels.com', pathname: '/**' },
-        /** Supabase Storage — env 기반 호스트 외 타 프로젝트 URL·프리뷰 배포용 */
         { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/**' },
-        /** 레거시 Ncloud 공개 객체 (기존 DB URL) */
         { protocol: 'https', hostname: 'kr.object.ncloudstorage.com', pathname: '/**' },
         { protocol: 'https', hostname: '**.object.ncloudstorage.com', pathname: '/**' },
       ]

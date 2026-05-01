@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Fragment, useMemo } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 import OverseasDestinationBriefingMid from '@/components/products/OverseasDestinationBriefingMid'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
@@ -13,6 +13,8 @@ import {
 } from '@/lib/overseas-display-buckets'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import SafeImage from '@/app/components/SafeImage'
+import { isSrcOptimizableByNextImage } from '@/lib/is-src-optimizable-by-next-image'
+import { PRODUCT_CARD_IMAGE_BLUR_DATA_URL } from '@/lib/product-card-image-blur'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { interleaveProductsBySupplier } from '@/lib/interleave-products-by-supplier'
@@ -43,6 +45,50 @@ export type ResultItem = {
   /** scope=overseas 시 browse API가 채움 */
   overseasBucket?: OverseasDisplayBucketId
   countryRowLabel?: string | null
+}
+
+const PRODUCT_CARD_LOAD_STEP = 4
+const PRODUCT_LIST_INITIAL_MOBILE = 4
+const PRODUCT_LIST_INITIAL_DESKTOP = 8
+
+function useProductListInitialVisible() {
+  const [initialLimit, setInitialLimit] = useState(PRODUCT_LIST_INITIAL_MOBILE)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const sync = () => setInitialLimit(mq.matches ? PRODUCT_LIST_INITIAL_MOBILE : PRODUCT_LIST_INITIAL_DESKTOP)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+  return initialLimit
+}
+
+function useProgressiveProductCount(total: number, resetKey: string) {
+  const initialLimit = useProductListInitialVisible()
+  const [visibleCount, setVisibleCount] = useState(() => Math.min(PRODUCT_LIST_INITIAL_MOBILE, total))
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    setVisibleCount(Math.min(initialLimit, total))
+  }, [total, resetKey, initialLimit])
+
+  useEffect(() => {
+    if (visibleCount >= total) return
+    const el = sentinelRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e?.isIntersecting) {
+          setVisibleCount((c) => Math.min(c + PRODUCT_CARD_LOAD_STEP, total))
+        }
+      },
+      { rootMargin: '200px', threshold: 0 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [visibleCount, total])
+
+  return { visibleCount, sentinelRef }
 }
 
 type Props = {
@@ -487,29 +533,50 @@ function AirHotelCountryGroupedList({
     return ordered
   }, [items])
 
+  const orderedGlobalItems = useMemo(() => sections.flatMap((s) => s.items), [sections])
+  const listResetKey = useMemo(
+    () =>
+      orderedGlobalItems.length === 0
+        ? '0'
+        : `${orderedGlobalItems[0]?.id ?? ''}:${orderedGlobalItems[orderedGlobalItems.length - 1]?.id ?? ''}:${orderedGlobalItems.length}`,
+    [orderedGlobalItems],
+  )
+  const { visibleCount, sentinelRef } = useProgressiveProductCount(orderedGlobalItems.length, listResetKey)
+  const visibleIdSet = useMemo(
+    () => new Set(orderedGlobalItems.slice(0, visibleCount).map((i) => i.id)),
+    [orderedGlobalItems, visibleCount],
+  )
+
   return (
     <div className="mt-6 space-y-10">
-      {sections.map(({ countryKey, items: rowItems }, idx) => (
-        <section key={countryKey} className="scroll-mt-4" aria-labelledby={`air-hotel-sec-${idx}`}>
-          <h2
-            id={`air-hotel-sec-${idx}`}
-            className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
-          >
-            {countryKey}
-          </h2>
-          <ul className={cardGridClass} role="list">
-            {rowItems.map((item) => (
-              <li key={item.id}>
-                <ProductResultCard
-                  item={item}
-                  formatWon={formatWon}
-                  seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      {sections.map(({ countryKey, items: rowItems }, idx) => {
+        const rowVisible = rowItems.filter((item) => visibleIdSet.has(item.id))
+        if (rowVisible.length === 0) return null
+        return (
+          <section key={countryKey} className="scroll-mt-4" aria-labelledby={`air-hotel-sec-${idx}`}>
+            <h2
+              id={`air-hotel-sec-${idx}`}
+              className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
+            >
+              {countryKey}
+            </h2>
+            <ul className={cardGridClass} role="list">
+              {rowVisible.map((item) => (
+                <li key={item.id}>
+                  <ProductResultCard
+                    item={item}
+                    formatWon={formatWon}
+                    seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      })}
+      {visibleCount < orderedGlobalItems.length ? (
+        <div ref={sentinelRef} className="h-8 w-full shrink-0" aria-hidden />
+      ) : null}
     </div>
   )
 }
@@ -579,29 +646,50 @@ function DomesticRegionGroupedList({
     })).filter((s) => s.items.length > 0)
   }, [items])
 
+  const orderedGlobalItems = useMemo(() => sections.flatMap((s) => s.items), [sections])
+  const listResetKey = useMemo(
+    () =>
+      orderedGlobalItems.length === 0
+        ? '0'
+        : `${orderedGlobalItems[0]?.id ?? ''}:${orderedGlobalItems[orderedGlobalItems.length - 1]?.id ?? ''}:${orderedGlobalItems.length}`,
+    [orderedGlobalItems],
+  )
+  const { visibleCount, sentinelRef } = useProgressiveProductCount(orderedGlobalItems.length, listResetKey)
+  const visibleIdSet = useMemo(
+    () => new Set(orderedGlobalItems.slice(0, visibleCount).map((i) => i.id)),
+    [orderedGlobalItems, visibleCount],
+  )
+
   return (
     <div className="mt-6 space-y-10">
-      {sections.map(({ id, label, items: rowItems }, idx) => (
-        <section key={id} className="scroll-mt-4" aria-labelledby={`domestic-hub-sec-${idx}`}>
-          <h2
-            id={`domestic-hub-sec-${idx}`}
-            className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
-          >
-            {label}
-          </h2>
-          <ul className={cardGridClass} role="list">
-            {rowItems.map((row) => (
-              <li key={row.id}>
-                <ProductResultCard
-                  item={row}
-                  formatWon={formatWon}
-                  seasonalPickBadge={Boolean(seasonalPickIds?.has(row.id))}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      {sections.map(({ id, label, items: rowItems }, idx) => {
+        const rowVisible = rowItems.filter((row) => visibleIdSet.has(row.id))
+        if (rowVisible.length === 0) return null
+        return (
+          <section key={id} className="scroll-mt-4" aria-labelledby={`domestic-hub-sec-${idx}`}>
+            <h2
+              id={`domestic-hub-sec-${idx}`}
+              className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
+            >
+              {label}
+            </h2>
+            <ul className={cardGridClass} role="list">
+              {rowVisible.map((row) => (
+                <li key={row.id}>
+                  <ProductResultCard
+                    item={row}
+                    formatWon={formatWon}
+                    seasonalPickBadge={Boolean(seasonalPickIds?.has(row.id))}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      })}
+      {visibleCount < orderedGlobalItems.length ? (
+        <div ref={sentinelRef} className="h-8 w-full shrink-0" aria-hidden />
+      ) : null}
     </div>
   )
 }
@@ -619,22 +707,42 @@ export function ProductResultCard({
   formatWon: (n: number | null) => string
   seasonalPickBadge?: boolean
 }) {
+  const cardSrc = (item.coverImageUrl ?? item.bgImageUrl ?? '').trim()
+  const useNextImage = Boolean(cardSrc) && isSrcOptimizableByNextImage(cardSrc)
+
   return (
     <Link
       href={`/products/${item.id}`}
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md"
     >
-      <div className="relative aspect-[16/10] w-full bg-slate-100">
-        {item.coverImageUrl || item.bgImageUrl ? (
+      <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
+        {cardSrc ? (
           <>
-            <SafeImage
-              src={item.coverImageUrl ?? item.bgImageUrl ?? ''}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              loading="lazy"
-            />
+            {useNextImage ? (
+              <SafeImage
+                src={cardSrc}
+                alt=""
+                fill
+                width={400}
+                height={300}
+                className="object-cover"
+                sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
+                quality={60}
+                placeholder="blur"
+                blurDataURL={PRODUCT_CARD_IMAGE_BLUR_DATA_URL}
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element -- `remotePatterns` 미등록 호스트는 네이티브 `<img>` 로 로드
+              <img
+                src={cardSrc}
+                alt=""
+                width={400}
+                height={300}
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )}
             <PublicImageBottomOverlay
               leftLabel={item.coverImageSeoKeyword ?? null}
               rightLabel={item.coverImageSourceUserLabel ?? null}
@@ -733,6 +841,32 @@ function OverseasRegionGroupedList({
     return out
   }, [bucketToCountries])
 
+  const orderedGlobalItems = useMemo(() => {
+    const out: ResultItem[] = []
+    for (const bucketId of OVERSEAS_DISPLAY_BUCKET_ORDER) {
+      const rawFlat = interleavedByBucket.get(bucketId) ?? []
+      const flatList =
+        seasonalPickIds && seasonalPickIds.size > 0
+          ? [...rawFlat.filter((p) => seasonalPickIds.has(p.id)), ...rawFlat.filter((p) => !seasonalPickIds.has(p.id))]
+          : rawFlat
+      out.push(...flatList)
+    }
+    return out
+  }, [interleavedByBucket, seasonalPickIds])
+
+  const listResetKey = useMemo(
+    () =>
+      orderedGlobalItems.length === 0
+        ? '0'
+        : `${orderedGlobalItems[0]?.id ?? ''}:${orderedGlobalItems[orderedGlobalItems.length - 1]?.id ?? ''}:${orderedGlobalItems.length}`,
+    [orderedGlobalItems],
+  )
+  const { visibleCount, sentinelRef } = useProgressiveProductCount(orderedGlobalItems.length, listResetKey)
+  const visibleIdSet = useMemo(
+    () => new Set(orderedGlobalItems.slice(0, visibleCount).map((i) => i.id)),
+    [orderedGlobalItems, visibleCount],
+  )
+
   return (
     <div className="mt-6 space-y-12">
       {OVERSEAS_DISPLAY_BUCKET_ORDER.map((bucketId) => {
@@ -741,9 +875,12 @@ function OverseasRegionGroupedList({
           seasonalPickIds && seasonalPickIds.size > 0
             ? [...rawFlat.filter((p) => seasonalPickIds.has(p.id)), ...rawFlat.filter((p) => !seasonalPickIds.has(p.id))]
             : rawFlat
+        const visibleInBucket = flatList.filter((item) => visibleIdSet.has(item.id))
         const showEuropeBriefing = bucketId === 'europe_west' && editorialBriefing
-        const section =
-          flatList.length === 0 && !showEuropeBriefing ? null : (
+        const hideSection =
+          (flatList.length === 0 && !showEuropeBriefing) ||
+          (flatList.length > 0 && visibleInBucket.length === 0 && !showEuropeBriefing)
+        const section = hideSection ? null : (
             <section className="scroll-mt-4" aria-labelledby={`overseas-bucket-${bucketId}`}>
               <h2
                 id={`overseas-bucket-${bucketId}`}
@@ -756,9 +893,9 @@ function OverseasRegionGroupedList({
                   <OverseasDestinationBriefingMid {...editorialBriefing} />
                 </div>
               ) : null}
-              {flatList.length > 0 ? (
+              {visibleInBucket.length > 0 ? (
                 <ul className={countryProductRowClass} role="list">
-                  {flatList.map((item) => (
+                  {visibleInBucket.map((item) => (
                     <li
                       key={item.id}
                       className="w-[min(17.5rem,calc(100vw-2.75rem))] shrink-0 snap-start sm:w-[min(19rem,calc((100vw-3rem)/2))] lg:w-[calc((100% - 2rem) / 3)] lg:min-w-0 lg:max-w-none"
@@ -771,7 +908,7 @@ function OverseasRegionGroupedList({
                     </li>
                   ))}
                 </ul>
-              ) : showEuropeBriefing ? (
+              ) : flatList.length === 0 && showEuropeBriefing ? (
                 <p className="mt-4 text-sm text-slate-500">현재 조건에 맞는 서유럽 상품이 없습니다.</p>
               ) : null}
             </section>
@@ -802,7 +939,49 @@ function OverseasRegionGroupedList({
           </Fragment>
         )
       })}
+      {visibleCount < orderedGlobalItems.length ? (
+        <div ref={sentinelRef} className="h-8 w-full shrink-0" aria-hidden />
+      ) : null}
     </div>
+  )
+}
+
+function FlatProductResultsList({
+  items,
+  formatWon,
+  seasonalPickIds,
+}: {
+  items: ResultItem[]
+  formatWon: (n: number | null) => string
+  seasonalPickIds?: ReadonlySet<string> | null
+}) {
+  const listResetKey = useMemo(
+    () =>
+      items.length === 0
+        ? '0'
+        : `${items[0]?.id ?? ''}:${items[items.length - 1]?.id ?? ''}:${items.length}`,
+    [items],
+  )
+  const { visibleCount, sentinelRef } = useProgressiveProductCount(items.length, listResetKey)
+  const visibleItems = useMemo(() => items.slice(0, visibleCount), [items, visibleCount])
+
+  return (
+    <>
+      <ul className={cardGridClass}>
+        {visibleItems.map((item) => (
+          <li key={item.id}>
+            <ProductResultCard
+              item={item}
+              formatWon={formatWon}
+              seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+            />
+          </li>
+        ))}
+      </ul>
+      {visibleCount < items.length ? (
+        <div ref={sentinelRef} className="mt-2 h-10 w-full shrink-0" aria-hidden />
+      ) : null}
+    </>
   )
 }
 
@@ -843,17 +1022,5 @@ export default function ProductResultsList({
     )
   }
 
-  return (
-    <ul className={cardGridClass}>
-      {items.map((item) => (
-        <li key={item.id}>
-          <ProductResultCard
-            item={item}
-            formatWon={formatWon}
-            seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
-          />
-        </li>
-      ))}
-    </ul>
-  )
+  return <FlatProductResultsList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
 }

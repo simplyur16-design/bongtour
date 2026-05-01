@@ -7,7 +7,7 @@ import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-secti
 import { MAIN_HOME_FIRST_HUB_TILE_DESC, MAIN_HOME_FIRST_HUB_TITLE } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { resolveMobileMainTileBgSrc, type MobileMainTileBgKey } from '@/lib/home-mobile-hub-tile-images'
-import PartnerOrganizationsSection from '@/app/components/home/PartnerOrganizationsSection'
+import PartnerOrganizationsSectionGate from '@/app/components/home/PartnerOrganizationsSectionGate'
 
 const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
@@ -119,7 +119,8 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
                       src={t.bgSrc}
                       alt=""
                       fill
-                      sizes="(max-width: 768px) 100vw, 50vw"
+                      sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
+                      quality={index === 0 ? 80 : 75}
                       className="object-cover saturate-[0.92] contrast-[1.02]"
                       priority={index === 0}
                       loading={index === 0 ? undefined : 'lazy'}
@@ -176,7 +177,7 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
       </section>
 
       <div className="border-t border-slate-200/80 pt-7">
-        <PartnerOrganizationsSection />
+        <PartnerOrganizationsSectionGate />
       </div>
     </div>
   )

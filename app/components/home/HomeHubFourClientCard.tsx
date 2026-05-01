@@ -229,9 +229,14 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
           alt=""
           fill
           className={`object-cover transition duration-500 ease-out ${hubImagePosition(key)} z-[1] ${detailOpen ? 'scale-[1.03] brightness-[1.04]' : 'scale-100 brightness-100'}`}
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          quality={index === 0 ? 85 : 72}
+          sizes={
+            index === 0
+              ? '(max-width: 1280px) 50vw, 600px'
+              : '(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw'
+          }
+          quality={index === 0 ? 80 : 75}
           priority={index === 0}
+          fetchPriority={index === 0 ? 'high' : 'low'}
           loading={index === 0 ? undefined : 'lazy'}
           unoptimized={hubImageUnoptimized}
         />

@@ -1,7 +1,19 @@
 import type { Metadata } from 'next'
+import nextDynamic from 'next/dynamic'
 import Header from './components/Header'
 import MainHero from './components/MainHero'
-import HomeHubFour from './components/home/HomeHubFour'
+
+const HomeHubFour = nextDynamic(() => import('./components/home/HomeHubFour'), {
+  ssr: false,
+  loading: () => (
+    <div
+      className="mx-auto max-w-6xl px-3 py-6 sm:px-5"
+      aria-hidden
+    >
+      <div className="grid min-h-[20rem] grid-cols-2 gap-3 rounded-2xl bg-slate-100/80 sm:gap-4 md:gap-5" />
+    </div>
+  ),
+})
 import { HomeHubCardDebugServerPanel } from './components/home/HomeHubCardDebugServerPanel'
 import { pickHomeHubTravelCardCover } from '@/lib/home-hub-travel-card-cover'
 import { getHomeHubCardHybridResolutionDetail } from '@/lib/home-hub-card-hybrid-core'
@@ -9,7 +21,7 @@ import { getHomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 import HomeMobileHub from './components/home/HomeMobileHub'
 import { getSeasonCurationSlidesForMobileHome } from '@/lib/home-season-pick'
 import { normalizeHomeSeasonSlidesForClient } from '@/lib/home-season-pick-shared'
-import PartnerOrganizationsSection from './components/home/PartnerOrganizationsSection'
+import PartnerOrganizationsSectionGate from './components/home/PartnerOrganizationsSectionGate'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from '@/lib/home-page-metadata'
 
@@ -93,7 +105,7 @@ export default async function Home() {
           </div>
         </section>
         <div className="hidden lg:block">
-          <PartnerOrganizationsSection />
+          <PartnerOrganizationsSectionGate />
         </div>
       </main>
     </div>

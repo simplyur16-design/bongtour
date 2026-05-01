@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import TrainingHub from '@/app/components/training/TrainingHub'
-import PartnerOrganizationsSection from '@/app/components/home/PartnerOrganizationsSection'
+import PartnerOrganizationsSectionGate from '@/app/components/home/PartnerOrganizationsSectionGate'
 import { resolveTrainingPageSectionImages } from '@/lib/home-hub-resolve-images'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
@@ -32,7 +32,7 @@ export default function TrainingPage() {
   return (
     <>
       <TrainingHub heroImageUrl={hero} interpretImageUrl={interpret} />
-      <PartnerOrganizationsSection />
+      <PartnerOrganizationsSectionGate />
     </>
   )
 }

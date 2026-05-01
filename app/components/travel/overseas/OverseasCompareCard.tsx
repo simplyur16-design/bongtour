@@ -47,8 +47,10 @@ export default function OverseasCompareCard({ product, priority = false, product
               alt=""
               fill
               className="object-cover"
-              sizes="(max-width:640px) 100vw, 240px"
+              sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
+              quality={60}
               priority={priority}
+              loading={priority ? undefined : 'lazy'}
             />
             <PublicImageBottomOverlay
               leftLabel={resolvePublicProductHeroSeoKeywordOverlay({

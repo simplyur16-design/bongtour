@@ -213,7 +213,13 @@ export default function MyEsimOrdersClient() {
             </div>
             <div className="mt-4 flex justify-center rounded-xl bg-white p-4">
               {/* eslint-disable-next-line @next/next/no-img-element -- 외부 USIMSA QR URL 동적 도메인 */}
-              <img src={qrUrl} alt="eSIM QR 코드" className="max-h-[min(70vh,320px)] w-full max-w-[320px] object-contain" />
+              <img
+                src={qrUrl}
+                alt="eSIM QR 코드"
+                loading="eager"
+                decoding="async"
+                className="max-h-[min(70vh,320px)] w-full max-w-[320px] object-contain"
+              />
             </div>
             <p className="mt-3 text-center text-xs text-slate-500">설치 앱에서 QR을 스캔해 주세요.</p>
           </div>

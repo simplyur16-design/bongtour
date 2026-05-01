@@ -470,6 +470,8 @@ export function HomeHubHybridCardOperationsPanel({
                           <img
                             src={pendingPreviewUrl[key]}
                             alt=""
+                            loading="lazy"
+                            decoding="async"
                             className="h-full w-full object-cover"
                           />
                         </span>
