@@ -1,5 +1,6 @@
 import type { PoolClient } from "pg";
 import type { PaymentAttemptStatus } from "@/lib/bongsim/contracts/public-enums";
+import { recordBongsimCouponUsageAfterCapture } from "@/lib/bongsim/data/bongsim-coupon";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 
 /**
@@ -240,6 +241,17 @@ export async function processWelcomepayPaymentOutcome(
         dedupeKey,
       ],
     );
+
+    try {
+      await recordBongsimCouponUsageAfterCapture(client, order.order_id);
+    } catch (e) {
+      const er = e as { code?: string; message?: string };
+      if (er.code === "42P01" || er.code === "42703") {
+        console.warn("[bongsim_coupon_usage] skipped (schema):", er.message);
+      } else {
+        throw e;
+      }
+    }
 
     await client.query("COMMIT");
     return { ok: true, duplicate: false };

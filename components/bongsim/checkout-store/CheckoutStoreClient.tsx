@@ -118,8 +118,10 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
   const [couponOpen, setCouponOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponBusy, setCouponBusy] = useState(false);
-  /** 주문 합계에서 차감되는 할인액(KRW). 쿠폰 API 연동 후 설정. */
+  /** 주문 합계에서 차감되는 할인액(KRW). */
   const [appliedOrderDiscountKrw, setAppliedOrderDiscountKrw] = useState<number | null>(null);
+  /** `/api/bongsim/coupon/validate` 응답의 coupon_id — 주문 생성 시 함께 전달. */
+  const [appliedCouponId, setAppliedCouponId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const checkoutIdempotencyRef = useRef<string | null>(null);
@@ -134,7 +136,8 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
     setCouponCode("");
     setCouponOpen(false);
     setAppliedOrderDiscountKrw(null);
-  }, [optionApiId]);
+    setAppliedCouponId(null);
+  }, [optionApiId, quantity]);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -205,20 +208,33 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
           quantity,
         }),
       });
-      if (res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { discount_krw?: number };
-        const d = typeof data.discount_krw === "number" && Number.isFinite(data.discount_krw) ? Math.trunc(data.discount_krw) : 0;
-        if (d > 0) {
-          setAppliedOrderDiscountKrw(d);
-          setToastMessage("쿠폰이 적용되었습니다.");
-          return;
-        }
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        discount_krw?: number;
+        coupon_id?: string;
+      };
+      if (!res.ok || data.ok !== true) {
+        setAppliedOrderDiscountKrw(null);
+        setAppliedCouponId(null);
+        setToastMessage(typeof data.error === "string" ? data.error : "쿠폰을 적용할 수 없습니다.");
+        return;
+      }
+      const d = typeof data.discount_krw === "number" && Number.isFinite(data.discount_krw) ? Math.trunc(data.discount_krw) : 0;
+      const cid = typeof data.coupon_id === "string" ? data.coupon_id.trim() : "";
+      if (d > 0 && cid) {
+        setAppliedOrderDiscountKrw(d);
+        setAppliedCouponId(cid);
+        setToastMessage("쿠폰이 적용되었습니다.");
+        return;
       }
       setAppliedOrderDiscountKrw(null);
-      setToastMessage("쿠폰 기능 준비 중입니다");
+      setAppliedCouponId(null);
+      setToastMessage("적용 가능한 할인이 없습니다.");
     } catch {
       setAppliedOrderDiscountKrw(null);
-      setToastMessage("쿠폰 기능 준비 중입니다");
+      setAppliedCouponId(null);
+      setToastMessage("쿠폰 확인 중 오류가 발생했습니다.");
     } finally {
       setCouponBusy(false);
     }
@@ -256,23 +272,29 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
       const checkoutKey = checkoutIdempotencyRef.current ?? (checkoutIdempotencyRef.current = crypto.randomUUID());
 
       try {
+        const confirmBody: Record<string, unknown> = {
+          schema: "bongsim.checkout_confirm.request.v1",
+          option_api_id: optionApiId,
+          quantity,
+          buyer_email: em,
+          buyer_locale: locale === "ko" || locale === "en" ? locale : undefined,
+          idempotency_key: checkoutKey,
+          checkout_channel: "web",
+          consents: {
+            terms_version: BONGSIM_CHECKOUT_TERMS_VERSION,
+            terms_accepted: true,
+            marketing: { accepted: false, version: null },
+          },
+        };
+        if (appliedCouponId && appliedOrderDiscountKrw != null && appliedOrderDiscountKrw > 0) {
+          confirmBody.coupon_id = appliedCouponId;
+          confirmBody.coupon_discount_krw = appliedOrderDiscountKrw;
+        }
+
         const cr = await fetch("/api/bongsim/checkout/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            schema: "bongsim.checkout_confirm.request.v1",
-            option_api_id: optionApiId,
-            quantity,
-            buyer_email: em,
-            buyer_locale: locale === "ko" || locale === "en" ? locale : undefined,
-            idempotency_key: checkoutKey,
-            checkout_channel: "web",
-            consents: {
-              terms_version: BONGSIM_CHECKOUT_TERMS_VERSION,
-              terms_accepted: true,
-              marketing: { accepted: false, version: null },
-            },
-          }),
+          body: JSON.stringify(confirmBody),
         });
         const cj = (await cr.json()) as BongsimCheckoutConfirmResponseV1 & { error?: string; details?: Record<string, string> };
         if (!cr.ok) {
@@ -344,7 +366,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
         setSubmitting(false);
       }
     },
-    [detail, email, locale, optionApiId, quantity, router, terms],
+    [appliedCouponId, appliedOrderDiscountKrw, detail, email, locale, optionApiId, quantity, router, terms],
   );
 
   return (

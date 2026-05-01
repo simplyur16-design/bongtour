@@ -7,6 +7,7 @@ import { getPgPool } from "@/lib/bongsim/db/pool";
 import type { BongsimProductOptionDbRow } from "@/lib/bongsim/data/bongsim-product-option-db-row";
 import { mapDbRowToProductOptionV1 } from "@/lib/bongsim/data/map-row-to-product-option-v1";
 import { parseFlagsJson, parsePriceBlockJson } from "@/lib/bongsim/data/parse-product-json";
+import { assertBongsimCouponForOrderInsert } from "@/lib/bongsim/data/bongsim-coupon";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
 
@@ -134,6 +135,14 @@ function defaultFulfillment(): BongsimOrderV1["order"]["fulfillment"] {
 function parseConsents(raw: unknown): BongsimOrderV1["order"]["consents"] {
   const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const marketing = o.marketing && typeof o.marketing === "object" ? (o.marketing as Record<string, unknown>) : {};
+  const cid = typeof o.coupon_id === "string" ? o.coupon_id.trim() : "";
+  const cdRaw = o.coupon_discount_krw;
+  const cd =
+    typeof cdRaw === "number" && Number.isFinite(cdRaw)
+      ? Math.trunc(cdRaw)
+      : typeof cdRaw === "string"
+        ? Number.parseInt(cdRaw, 10)
+        : undefined;
   return {
     terms_version: typeof o.terms_version === "string" ? o.terms_version : "",
     terms_accepted: true,
@@ -141,6 +150,8 @@ function parseConsents(raw: unknown): BongsimOrderV1["order"]["consents"] {
       accepted: Boolean(marketing.accepted),
       version: typeof marketing.version === "string" ? marketing.version : null,
     },
+    ...(cid ? { coupon_id: cid } : {}),
+    ...(cd != null && Number.isFinite(cd) && cd > 0 ? { coupon_discount_krw: cd } : {}),
   };
 }
 
@@ -269,6 +280,22 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
   } else if (quantity > 99) {
     details.quantity = "max_99";
   }
+  const coupon_id_raw = typeof o.coupon_id === "string" ? o.coupon_id.trim() : "";
+  const cdiscRaw = o.coupon_discount_krw;
+  const coupon_discount_krw =
+    typeof cdiscRaw === "number"
+      ? cdiscRaw
+      : typeof cdiscRaw === "string"
+        ? Number.parseInt(cdiscRaw, 10)
+        : Number.NaN;
+  const hasCouponId = Boolean(coupon_id_raw);
+  const hasCouponDisc = Number.isInteger(coupon_discount_krw) && coupon_discount_krw > 0;
+  if ((hasCouponId || hasCouponDisc) && (!hasCouponId || !hasCouponDisc)) {
+    details.coupon = "coupon_id_and_discount_required_together";
+  }
+  if (coupon_id_raw && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(coupon_id_raw)) {
+    details.coupon_id = "invalid_uuid";
+  }
   if (Object.keys(details).length) return { ok: false, details };
   const locale = o.buyer_locale;
   const buyer_locale = locale === "ko" || locale === "en" ? locale : undefined;
@@ -284,6 +311,7 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
       o.consents && typeof o.consents === "object"
         ? (o.consents as BongsimCheckoutConfirmRequestV1["consents"])
         : undefined,
+    ...(hasCouponId && hasCouponDisc ? { coupon_id: coupon_id_raw, coupon_discount_krw: Math.trunc(coupon_discount_krw) } : {}),
   };
   return { ok: true, req };
 }
@@ -294,6 +322,12 @@ function assertIdempotentMatch(order: BongsimOrderV1["order"], req: BongsimCheck
   if (line.option_api_id !== req.option_api_id) return false;
   if (line.quantity !== req.quantity) return false;
   if (normEmail(order.buyer.email) !== req.buyer_email) return false;
+  const prevC = (order.consents.coupon_id ?? "").trim();
+  const nextC = (req.coupon_id ?? "").trim();
+  if (prevC !== nextC) return false;
+  const prevD = Math.trunc(order.consents.coupon_discount_krw ?? 0);
+  const nextD = Math.trunc(req.coupon_discount_krw ?? 0);
+  if (prevD !== nextD) return false;
   return true;
 }
 
@@ -335,7 +369,22 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const line_total = unit_krw * req.quantity;
     const snapshot = buildLineSnapshot(opt, basis_key, unit_krw);
 
-    const consentsJson = {
+    let discount_krw = 0;
+    if (req.coupon_id && req.coupon_discount_krw != null) {
+      const cv = await assertBongsimCouponForOrderInsert(client, {
+        coupon_id: req.coupon_id,
+        client_discount_krw: req.coupon_discount_krw,
+        option_api_id: req.option_api_id,
+        quantity: req.quantity,
+      });
+      if (!cv.ok) {
+        await client.query("ROLLBACK");
+        return { ok: false, reason: "validation", details: { coupon: cv.error } };
+      }
+      discount_krw = cv.discount_krw;
+    }
+
+    const consentsJson: Record<string, unknown> = {
       terms_version: req.consents?.terms_version ?? "",
       terms_accepted: req.consents?.terms_accepted !== false,
       marketing: {
@@ -343,13 +392,18 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
         version: req.consents?.marketing?.version ?? null,
       },
     };
+    if (req.coupon_id && discount_krw > 0) {
+      consentsJson.coupon_id = req.coupon_id;
+      consentsJson.coupon_discount_krw = discount_krw;
+    }
 
+    const grand_total = Math.max(0, line_total - discount_krw);
     const orderNumber = makeOrderNumber();
     const ins = await client.query<OrderRow>(
       `INSERT INTO bongsim_order (
         order_number, status, checkout_channel, buyer_email, buyer_locale,
         idempotency_key, consents, currency, subtotal_krw, discount_krw, tax_krw, grand_total_krw
-      ) VALUES ($1, 'awaiting_payment', $2, $3, $4, $5, $6::jsonb, 'KRW', $7, 0, 0, $7)
+      ) VALUES ($1, 'awaiting_payment', $2, $3, $4, $5, $6::jsonb, 'KRW', $7, $8, 0, $9)
       RETURNING *`,
       [
         orderNumber,
@@ -359,6 +413,8 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
         req.idempotency_key,
         JSON.stringify(consentsJson),
         line_total,
+        discount_krw,
+        grand_total,
       ],
     );
     const orderRow = ins.rows[0];

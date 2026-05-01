@@ -13,6 +13,9 @@ export type BongsimCheckoutConfirmRequestV1 = {
     terms_accepted?: boolean;
     marketing?: { accepted?: boolean; version?: string | null };
   };
+  /** `/api/bongsim/coupon/validate` 응답의 `coupon_id` + 할인액(원). 둘 다 있을 때만 적용. */
+  coupon_id?: string | null;
+  coupon_discount_krw?: number | null;
 };
 
 export type BongsimCheckoutConfirmResponseV1 = {

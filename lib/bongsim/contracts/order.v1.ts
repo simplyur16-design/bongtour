@@ -68,6 +68,9 @@ export type BongsimOrderConsentsV1 = {
   terms_version: string;
   terms_accepted: true;
   marketing: { accepted: boolean; version: string | null };
+  /** 주문 생성 시 적용된 쿠폰(결제 캡처 후 `bongsim_coupon_usage` 기록용). */
+  coupon_id?: string | null;
+  coupon_discount_krw?: number;
 };
 
 export type BongsimOrderPaymentV1 = {
