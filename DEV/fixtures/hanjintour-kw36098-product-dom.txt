@@ -1,0 +1,20 @@
+children of change-date__products: 1
+product-event__wrap children: 2
+  inner 0 tag=DIV cls=flex flex--row flex--space-between mb-16 text=예약가능ON/OFF출발확정ON/OFF예약상태 안내툴팁 보기예약상태 안내출발확정최소 출발인원이 예약되어 예약과 동시에 출발이 가능합니다단, 기존 예약자의 취소로 인해 최소 출발인원이 미충족 될 경우, 출발확정 여부가 변동될 수 있습니다예약가능여유좌석 내에서 예약이 가능하며, 출발여부는 담당자 확인이 필요합니다대기예약여유좌석 확보를 위해 담당자가 확인이 필요한 상태입니다마감예약가능 인원이 마감되어 예약이 불가능한 상태입니다툴팁 닫기
+  inner 1 tag=DIV cls=product-event product-event--selectable text=기획특가현지합류SKYPASS 바우처 마감 미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 26.04.17 (금) 19:30 ~ 26.04.26 (일) 05:107박10일대한항공 예약인원 0명 (잔여좌석 : 10명) 3,596,000원기획특가현지합류SKYPASS 바우처 마감 미동부/캐나다 8박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 26.04.17 (금) 10:00 ~ 26.04.26 (일) 17:508박10일대한항공 예약인원 0명 (잔여좌석 : 10명) 3,796,000원기획특가현지합류OZ마일샵 바우처 마감 미동부/캐나다 7박 10일 #2인출발 #뉴욕 #나이아가라 #퀘벡 26.04.17 (금) 21:05 ~ 26.04.26 (일) 06:057박10일아시아나항공 예약인원 0명 (잔여좌석 : 10명) 3,993,800원
+nodes with class containing product: 48
+  cand 0 cls=product-event__wrap len=661
+  cand 1 cls=product-event product-event--selectable len=420
+  cand 2 cls=product-event__list len=420
+  cand 3 cls=product-event__item len=140
+  cand 4 cls=product-badges__wrap mb-16 len=23
+  cand 5 cls=product-badges len=19
+  cand 6 cls=product-badges__group product-badges__group--important len=4
+  cand 7 cls=product-event__content len=117
+  cand 8 cls=product-event__info len=117
+  cand 9 cls=product-event__title len=36
+  cand 10 cls=product-event__period len=44
+  cand 11 cls=product-event__detail len=27
+  cand 12 cls=product-event__airline text-list text-list--division text-list--division--size12 len=5
+  cand 13 cls=product-event__airline-item len=5
+  cand 14 cls=product-event__airline-value len=5
