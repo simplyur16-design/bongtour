@@ -132,23 +132,76 @@ function WelcomepayPaymentContent() {
       return;
     }
 
+    let cancelled = false;
+    setSdkReady(false);
+
+    const markReadyIfIniAttached = () => {
+      if (cancelled) return;
+      if (typeof window.INIStdPay?.pay === "function") setSdkReady(true);
+    };
+
     const src = prep.pcStdPayScriptUrl.trim();
     const existing = document.querySelector(`script[data-welcomepay-ini="1"]`);
     if (existing) {
-      setSdkReady(true);
-      return;
+      markReadyIfIniAttached();
+      const poll = window.setInterval(() => {
+        if (cancelled) {
+          window.clearInterval(poll);
+          return;
+        }
+        markReadyIfIniAttached();
+        if (typeof window.INIStdPay?.pay === "function") window.clearInterval(poll);
+      }, 50);
+      const giveUp = window.setTimeout(() => {
+        window.clearInterval(poll);
+        if (cancelled) return;
+        if (typeof window.INIStdPay?.pay !== "function") {
+          setPhase("error");
+          setErrorMsg("웰컴페이먼츠 결제 모듈을 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.");
+        }
+      }, 15000);
+      return () => {
+        cancelled = true;
+        window.clearInterval(poll);
+        window.clearTimeout(giveUp);
+      };
     }
+
+    let postLoadPoll: number | null = null;
     const s = document.createElement("script");
     s.src = src;
     s.async = true;
     s.dataset.welcomepayIni = "1";
-    s.onload = () => setSdkReady(true);
+    s.onload = () => {
+      markReadyIfIniAttached();
+      if (cancelled || typeof window.INIStdPay?.pay === "function") return;
+      let n = 0;
+      postLoadPoll = window.setInterval(() => {
+        if (cancelled) {
+          if (postLoadPoll) window.clearInterval(postLoadPoll);
+          postLoadPoll = null;
+          return;
+        }
+        n += 1;
+        markReadyIfIniAttached();
+        if (typeof window.INIStdPay?.pay === "function" || n >= 80) {
+          if (postLoadPoll) window.clearInterval(postLoadPoll);
+          postLoadPoll = null;
+        }
+      }, 50);
+    };
     s.onerror = () => {
+      if (cancelled) return;
       setPhase("error");
       setErrorMsg("웰컴페이먼츠 결제 스크립트를 불러오지 못했어요.");
     };
     document.body.appendChild(s);
     return () => {
+      cancelled = true;
+      if (postLoadPoll) {
+        window.clearInterval(postLoadPoll);
+        postLoadPoll = null;
+      }
       s.onload = null;
       s.onerror = null;
     };
@@ -164,6 +217,12 @@ function WelcomepayPaymentContent() {
     if (uaMobile === true) {
       setIsSubmitting(true);
       mobileFormRef.current?.submit();
+      return;
+    }
+    const form = document.getElementById("SendPayForm_id") as HTMLFormElement | null;
+    console.log("form fields:", form?.elements);
+    if (!form) {
+      setErrorMsg("결제 폼을 찾을 수 없어요. 새로고침 후 다시 시도해 주세요.");
       return;
     }
     const pay = window.INIStdPay?.pay;
@@ -243,7 +302,6 @@ function WelcomepayPaymentContent() {
 
               {prep && uaMobile === false ? (
                 <form id="SendPayForm_id" name="SendPayForm_id" method="post" acceptCharset="UTF-8">
-                  <input type="hidden" name="version" value="1.0" />
                   <input type="hidden" name="gopaymethod" value="Card" />
                   <input type="hidden" name="mid" value={prep.mid} />
                   <input type="hidden" name="oid" value={prep.orderNumber} />
@@ -251,6 +309,7 @@ function WelcomepayPaymentContent() {
                   <input type="hidden" name="timestamp" value={prep.timestamp} />
                   <input type="hidden" name="signature" value={prep.signature} />
                   <input type="hidden" name="mKey" value={prep.mKey} />
+                  <input type="hidden" name="currency" value="WON" />
                   <input type="hidden" name="goodname" value={orderName} />
                   <input type="hidden" name="buyername" value={buyerName} />
                   <input type="hidden" name="buyertel" value="01000000000" />
@@ -259,6 +318,7 @@ function WelcomepayPaymentContent() {
                   <input type="hidden" name="closeUrl" value={prep.closeUrl} />
                   <input type="hidden" name="popupUrl" value={prep.popupUrl} />
                   <input type="hidden" name="payViewType" value="overlay" />
+                  <input type="hidden" name="version" value="1.0" />
                 </form>
               ) : null}
 
