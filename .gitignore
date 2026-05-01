@@ -32,6 +32,8 @@ yarn-error.log*
 
 # Misc
 .DS_Store
+# macOS AppleDouble / resource fork (copy from Mac)
+._*
 *.pem
 
 # Agent 스크래핑 에러 스크린샷 (민감 페이지 포함 가능)
