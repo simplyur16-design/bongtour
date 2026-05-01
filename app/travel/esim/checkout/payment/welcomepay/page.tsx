@@ -6,7 +6,6 @@ import Link from "next/link";
 import Header from "@/app/components/Header";
 import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
 import { bongsimPath } from "@/lib/bongsim/constants";
-import { welcomepayStdPayScriptUrl } from "@/lib/bongsim/welcomepay";
 
 type PrepareMobile = {
   submitUrl: string;
@@ -34,6 +33,8 @@ type PrepareOk = {
   returnUrl: string;
   closeUrl: string;
   popupUrl: string;
+  /** PC INIStdPay.js — 서버에서 계산한 절대 URL (클라이언트는 `lib/bongsim/welcomepay` import 금지). */
+  pcStdPayScriptUrl: string;
   mobile: PrepareMobile;
 };
 
@@ -105,9 +106,9 @@ function WelcomepayPaymentContent() {
           return;
         }
         const ok = data as PrepareOk;
-        if (!ok.mobile?.submitUrl) {
+        if (!ok.mobile?.submitUrl || !ok.pcStdPayScriptUrl?.trim()) {
           setPhase("error");
-          setErrorMsg("모바일 결제 정보가 응답에 없어요.");
+          setErrorMsg("결제 준비 응답이 불완전해요.");
           return;
         }
         setPrep(ok);
@@ -131,7 +132,7 @@ function WelcomepayPaymentContent() {
       return;
     }
 
-    const src = welcomepayStdPayScriptUrl();
+    const src = prep.pcStdPayScriptUrl.trim();
     const existing = document.querySelector(`script[data-welcomepay-ini="1"]`);
     if (existing) {
       setSdkReady(true);

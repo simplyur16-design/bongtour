@@ -9,6 +9,7 @@ import {
   generatePcStdPaySignature,
   generateTimestamp,
   welcomepayMobileWelpaySubmitUrl,
+  welcomepayStdPayScriptUrl,
 } from "@/lib/bongsim/welcomepay";
 
 export const dynamic = "force-dynamic";
@@ -134,6 +135,7 @@ export async function POST(req: Request) {
     returnUrl,
     closeUrl,
     popupUrl,
+    pcStdPayScriptUrl: welcomepayStdPayScriptUrl(),
     mobile: {
       submitUrl: welcomepayMobileWelpaySubmitUrl(),
       pNextUrl,

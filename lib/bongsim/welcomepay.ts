@@ -1,3 +1,6 @@
+/** 서버 전용 — `node:crypto` 사용. 클라이언트 번들에서 import 금지. */
+import "server-only";
+
 import { createHash } from "node:crypto";
 
 /** test | production (default test) */
