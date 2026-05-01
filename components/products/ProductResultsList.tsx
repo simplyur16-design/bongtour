@@ -58,6 +58,8 @@ type Props = {
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
   /** 해외 허브: 시즌 추천 순환 슬롯 — **일본 섹션 바로 아래** 고정 */
   overseasSeasonCurationSlides?: HomeSeasonPickDTO[] | null | undefined
+  /** 해외 목록 시즌 정렬 시 `이달의 추천` 배지 대상 */
+  seasonalPickIds?: ReadonlySet<string> | null
 }
 
 const AIR_HOTEL_MISC_SECTION = '기타'
@@ -432,9 +434,11 @@ function resolveAirHotelNationSection(item: ResultItem): {
 function AirHotelCountryGroupedList({
   items,
   formatWon,
+  seasonalPickIds,
 }: {
   items: ResultItem[]
   formatWon: (n: number | null) => string
+  seasonalPickIds?: ReadonlySet<string> | null
 }) {
   const sections = useMemo(() => {
     const byCountry = new Map<string, ResultItem[]>()
@@ -496,7 +500,11 @@ function AirHotelCountryGroupedList({
           <ul className={cardGridClass} role="list">
             {rowItems.map((item) => (
               <li key={item.id}>
-                <ProductResultCard item={item} formatWon={formatWon} />
+                <ProductResultCard
+                  item={item}
+                  formatWon={formatWon}
+                  seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                />
               </li>
             ))}
           </ul>
@@ -550,9 +558,11 @@ function domesticPublicSectionId(item: ResultItem): string {
 function DomesticRegionGroupedList({
   items,
   formatWon,
+  seasonalPickIds,
 }: {
   items: ResultItem[]
   formatWon: (n: number | null) => string
+  seasonalPickIds?: ReadonlySet<string> | null
 }) {
   const sections = useMemo(() => {
     const byId = new Map<string, ResultItem[]>()
@@ -582,7 +592,11 @@ function DomesticRegionGroupedList({
           <ul className={cardGridClass} role="list">
             {rowItems.map((row) => (
               <li key={row.id}>
-                <ProductResultCard item={row} formatWon={formatWon} />
+                <ProductResultCard
+                  item={row}
+                  formatWon={formatWon}
+                  seasonalPickBadge={Boolean(seasonalPickIds?.has(row.id))}
+                />
               </li>
             ))}
           </ul>
@@ -599,9 +613,11 @@ const countryProductRowClass =
 export function ProductResultCard({
   item,
   formatWon,
+  seasonalPickBadge = false,
 }: {
   item: ResultItem
   formatWon: (n: number | null) => string
+  seasonalPickBadge?: boolean
 }) {
   return (
     <Link
@@ -630,9 +646,14 @@ export function ProductResultCard({
       </div>
       <div className="flex flex-1 flex-col p-4">
         <p className="text-[11px] font-medium text-slate-500">{formatOriginSourceForDisplay(item.originSource)}</p>
-        <h2 className="mt-1 line-clamp-2 text-sm font-semibold text-slate-900 group-hover:text-teal-800">
-          {item.title}
-        </h2>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <h2 className="line-clamp-2 flex-1 min-w-0 text-sm font-semibold text-slate-900 group-hover:text-teal-800">
+            {item.title}
+          </h2>
+          {seasonalPickBadge ? (
+            <span className="shrink-0 rounded-full bg-teal-100 px-2 py-0.5 text-xs text-teal-700">이달의 추천</span>
+          ) : null}
+        </div>
         {item.primaryDestination && <p className="mt-1 text-xs text-slate-600">{item.primaryDestination}</p>}
         {isAirHotelFreeListingForUi(item.listingKind) && (item.hotelName || item.hotelGrade || item.roomType) && (
           <p className="mt-1 text-xs text-slate-600">
@@ -679,11 +700,13 @@ function OverseasRegionGroupedList({
   formatWon,
   editorialBriefing,
   seasonCurationSlides,
+  seasonalPickIds,
 }: {
   items: ResultItem[]
   formatWon: (n: number | null) => string
   editorialBriefing: OverseasEditorialBriefingPayload | null | undefined
   seasonCurationSlides: HomeSeasonPickDTO[] | null | undefined
+  seasonalPickIds?: ReadonlySet<string> | null
 }) {
   const bucketToCountries = useMemo(() => {
     const map = new Map<OverseasDisplayBucketId, Map<string, ResultItem[]>>()
@@ -713,7 +736,11 @@ function OverseasRegionGroupedList({
   return (
     <div className="mt-6 space-y-12">
       {OVERSEAS_DISPLAY_BUCKET_ORDER.map((bucketId) => {
-        const flatList = interleavedByBucket.get(bucketId) ?? []
+        const rawFlat = interleavedByBucket.get(bucketId) ?? []
+        const flatList =
+          seasonalPickIds && seasonalPickIds.size > 0
+            ? [...rawFlat.filter((p) => seasonalPickIds.has(p.id)), ...rawFlat.filter((p) => !seasonalPickIds.has(p.id))]
+            : rawFlat
         const showEuropeBriefing = bucketId === 'europe_west' && editorialBriefing
         const section =
           flatList.length === 0 && !showEuropeBriefing ? null : (
@@ -736,7 +763,11 @@ function OverseasRegionGroupedList({
                       key={item.id}
                       className="w-[min(17.5rem,calc(100vw-2.75rem))] shrink-0 snap-start sm:w-[min(19rem,calc((100vw-3rem)/2))] lg:w-[calc((100% - 2rem) / 3)] lg:min-w-0 lg:max-w-none"
                     >
-                      <ProductResultCard item={item} formatWon={formatWon} />
+                      <ProductResultCard
+                        item={item}
+                        formatWon={formatWon}
+                        seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -783,13 +814,14 @@ export default function ProductResultsList({
   groupDomesticByRegion = false,
   overseasEditorialBriefing = null,
   overseasSeasonCurationSlides = null,
+  seasonalPickIds = null,
 }: Props) {
   if (groupDomesticByRegion && items.length > 0) {
-    return <DomesticRegionGroupedList items={items} formatWon={formatWon} />
+    return <DomesticRegionGroupedList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
   }
 
   if (groupAirHotelByCountry && items.length > 0) {
-    return <AirHotelCountryGroupedList items={items} formatWon={formatWon} />
+    return <AirHotelCountryGroupedList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
   }
 
   const hasBucketMeta = items.some((i) => i.overseasBucket != null || i.countryRowLabel != null)
@@ -806,6 +838,7 @@ export default function ProductResultsList({
         formatWon={formatWon}
         editorialBriefing={overseasEditorialBriefing}
         seasonCurationSlides={overseasSeasonCurationSlides}
+        seasonalPickIds={seasonalPickIds}
       />
     )
   }
@@ -814,7 +847,11 @@ export default function ProductResultsList({
     <ul className={cardGridClass}>
       {items.map((item) => (
         <li key={item.id}>
-          <ProductResultCard item={item} formatWon={formatWon} />
+          <ProductResultCard
+            item={item}
+            formatWon={formatWon}
+            seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+          />
         </li>
       ))}
     </ul>

@@ -19,6 +19,7 @@ import ProductSortBar from '@/components/products/ProductSortBar'
 import ProductResultsList, { type ResultItem } from '@/components/products/ProductResultsList'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
+import { sortProductsBySeason } from '@/lib/product-sort'
 
 type ApiOk = {
   ok: true
@@ -383,6 +384,19 @@ export default function ProductsBrowseClient({
   const sort: BrowseSort =
     (q.sort as BrowseSort) || (q.budgetPerPerson != null || q.budgetMin != null ? 'budget_fit' : 'popular')
 
+  const scopeFromUrl = searchParams.get('scope')
+  const isOverseasBrowse =
+    (pathname === '/travel/overseas' && defaultScope === 'overseas') || scopeFromUrl === 'overseas'
+
+  const browsePresented = useMemo(() => {
+    if (!data) return { items: [] as ResultItem[], seasonalPickIds: null as ReadonlySet<string> | null }
+    if (!isOverseasBrowse || budgetActive || sort !== 'popular') {
+      return { items: data.items, seasonalPickIds: null }
+    }
+    const { items, seasonalPickIds } = sortProductsBySeason(data.items, new Date().getMonth() + 1)
+    return { items, seasonalPickIds }
+  }, [data, isOverseasBrowse, budgetActive, sort])
+
   const toolbar = (
     <div className={suppressHeadingToolbarGap ? 'mt-0' : 'mt-2'}>
       <ProductSortBar
@@ -456,13 +470,14 @@ export default function ProductsBrowseClient({
       {!loading && data && data.total > 0 && (
         <>
           <ProductResultsList
-            items={data.items}
+            items={browsePresented.items}
             formatWon={formatWon}
             groupOverseasByRegion={basePath === '/travel/overseas' && defaultScope === 'overseas'}
             groupAirHotelByCountry={pathname === '/travel/air-hotel'}
             groupDomesticByRegion={isDomesticHub}
             overseasEditorialBriefing={overseasEditorialBriefing}
             overseasSeasonCurationSlides={overseasSeasonCurationSlides}
+            seasonalPickIds={browsePresented.seasonalPickIds}
           />
           {data.total > data.limit &&
             !(
