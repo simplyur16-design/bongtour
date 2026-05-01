@@ -5,7 +5,7 @@ import { getPgPool } from "@/lib/bongsim/db/pool";
 
 /**
  * 웰컴페이먼츠(표준결제) 승인 완료 후 DB 반영.
- * `processTossPaymentOutcome` 과 동일한 불변식·멱등( provider_event_id ) 패턴.
+ * mock PG 최종화(`processMockPaymentWebhook`)와 동일한 불변식·멱등( provider_event_id ) 패턴.
  */
 
 export const WELCOMEPAY_PROVIDER_ID = "welcomepay";

@@ -17,5 +17,5 @@
     "paths": { "@/*": ["./*"], "@prisma/client": ["./prisma-gen-runtime"], "@prisma/client/*": ["./prisma-gen-runtime/*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "scripts"]
+  "exclude": ["node_modules", "scripts", "_bundle3i_tmp", "_files_zip_tmp"]
 }

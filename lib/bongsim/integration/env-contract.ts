@@ -22,10 +22,6 @@
  * - `BONGSIM_ORDER_READ_KEY` (optional): 주문 공개 조회 시 쿼리 `read_key` 강제.
  * - `BONGSIM_ALLOW_MOCK_CAPTURE=1`: production에서만 mock 결제 스택 허용(기본 차단).
  *
- * --- Toss Payments ---
- * - `TOSS_SECRET_KEY`: 서버 전용 시크릿 (승인·조회·웹훅 double-check).
- * - `NEXT_PUBLIC_TOSS_CLIENT_KEY`: 브라우저 SDK 초기화용 클라이언트 키.
- *
  * --- Welcome Payments (PayWelcome, 봉심 eSIM) ---
  * - `WELCOMEPAY_MID`: 가맹점 ID.
  * - `WELCOMEPAY_SIGN_KEY`: 서버 전용 서명 키(노출 금지).

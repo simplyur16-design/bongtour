@@ -342,14 +342,6 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
           return;
         }
         let path = pj.client.redirect_path.startsWith("/") ? pj.client.redirect_path : `/${pj.client.redirect_path}`;
-        if (pj.client.kind === "toss_sdk") {
-          const u = new URL(path, originBase);
-          u.searchParams.set("tossOrderId", pj.client.toss_order_id);
-          u.searchParams.set("orderName", pj.client.order_name);
-          u.searchParams.set("customerEmail", pj.client.customer_email);
-          u.searchParams.set("amount", String(pj.client.amount_krw));
-          path = `${u.pathname}${u.search}`;
-        }
         if (pj.client.kind === "welcomepay_std") {
           const u = new URL(path, originBase);
           u.searchParams.set("welcomeOid", pj.client.welcome_oid);

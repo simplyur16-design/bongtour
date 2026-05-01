@@ -19,6 +19,8 @@ import {
   Star,
   Share2,
   Smartphone,
+  TicketPercent,
+  BarChart3,
 } from 'lucide-react'
 
 const nav = [
@@ -28,6 +30,8 @@ const nav = [
   { href: '/admin/og-images', label: 'OG 이미지 (공유)', icon: Share2 },
   { href: '/admin/image-assets-upload', label: '이미지 업로드 · 출처(iStock)', icon: Images },
   { href: '/admin/bongsim/country-heroes', label: '봉심 eSIM 국가 히어로', icon: Smartphone },
+  { href: '/admin/bongsim/coupons', label: '쿠폰 관리', icon: TicketPercent },
+  { href: '/admin/bongsim/coupon-report', label: '할인 리포트', icon: BarChart3 },
   { href: '/admin/register', label: '상품 등록', icon: Package },
   { href: '/admin/pending', label: '등록대기', icon: ClipboardList },
   { href: '/admin/products', label: '상품 목록', icon: List },

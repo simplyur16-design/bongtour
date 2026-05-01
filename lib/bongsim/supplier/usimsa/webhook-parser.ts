@@ -15,7 +15,8 @@ export type UsimsaWebhookResult =
   | { outcome: "invalid_payload"; reason: string }
   | { outcome: "database_unavailable" };
 
-function normalizeQrUrl(p: UsimsaWebhookPayload): string | null {
+/** QR 이미지 URL (USIMSA 필드명 변형 호환). */
+export function normalizeUsimsaQrCodeImgUrl(p: UsimsaWebhookPayload): string | null {
   return (p.qrcodeImgUrl ?? p.qrCodeImgUrl ?? null) || null;
 }
 
@@ -87,7 +88,7 @@ export async function handleUsimsaWebhook(
     /* 감사 로그 실패는 치명적 아님 */
   }
 
-  const qrUrl = normalizeQrUrl(payload);
+  const qrUrl = normalizeUsimsaQrCodeImgUrl(payload);
   const client = await pool.connect();
   try {
     await client.query("BEGIN");

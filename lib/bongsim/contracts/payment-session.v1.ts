@@ -18,18 +18,6 @@ export type BongsimPaymentSessionClientV1 =
       public_session_ref: string;
     }
   | {
-      kind: "toss_sdk";
-      /** Same-origin route that loads Toss SDK and triggers payment widget. */
-      redirect_path: string;
-      public_session_ref: string;
-      /** Toss orderId to pass into SDK. Derived from order + attempt for uniqueness. */
-      toss_order_id: string;
-      /** Order name displayed on Toss widget (shortened product title). */
-      order_name: string;
-      customer_email: string;
-      amount_krw: number;
-    }
-  | {
       kind: "welcomepay_std";
       redirect_path: string;
       public_session_ref: string;
