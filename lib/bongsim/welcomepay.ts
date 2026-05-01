@@ -34,27 +34,11 @@ export function welcomepayMobileWelpaySubmitUrl(): string {
 }
 
 /**
- * 모바일 welpay `P_TIMESTAMP` — KST 기준 `YYYYMMDDHHmmss` (PG 매뉴얼과 다르면 조정).
+ * 모바일 welpay `P_TIMESTAMP` — PC 표준결제와 동일하게 Unix epoch 밀리초 문자열.
+ * `generateMobileSignature` 입력값과 반드시 일치해야 함.
  */
-export function generateMobileWelpayTimestamp(d = new Date()): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(d);
-  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "00";
-  const y = get("year");
-  const mo = get("month");
-  const da = get("day");
-  const h = get("hour");
-  const mi = get("minute");
-  const se = get("second");
-  return `${y}${mo}${da}${h}${mi}${se}`;
+export function generateMobileWelpayTimestamp(): string {
+  return generateTimestamp();
 }
 
 /** 승인/인증 콜백 URL이 웰컴페이먼츠 호스트인지(오픈 리다이렉트 방지). */
@@ -70,19 +54,13 @@ export function isPaywelcomeHttpsUrl(raw: string): boolean {
 }
 
 /**
- * 웰컴페이먼츠 PC 표준결제 요청용 타임스탬프.
- * 형식: `YYYY-MM-DD HH:mm:ss.SSS`
+ * 웰컴페이먼츠 PC 표준결제·모바일 welpay 공통 타임스탬프.
+ * Unix epoch 밀리초(`Date.now().toString()`), 통상 13자 — PG 길이 제한(1~20자) 준수.
+ * PHP `SignatureUtil->getTimestamp()` 밀리초 타임스탬프와 동일 규약.
+ * `generatePcStdPaySignature` / 폼 `timestamp` 필드와 반드시 동일 값으로 사용.
  */
-export function generateTimestamp(d = new Date()): string {
-  const pad = (n: number, w: number) => String(n).padStart(w, "0");
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1, 2);
-  const day = pad(d.getDate(), 2);
-  const h = pad(d.getHours(), 2);
-  const min = pad(d.getMinutes(), 2);
-  const s = pad(d.getSeconds(), 2);
-  const ms = pad(d.getMilliseconds(), 3);
-  return `${y}-${m}-${day} ${h}:${min}:${s}.${ms}`;
+export function generateTimestamp(): string {
+  return Date.now().toString();
 }
 
 /** `mKey` = SHA256(signKey) — 16진 소문자 문자열 */
