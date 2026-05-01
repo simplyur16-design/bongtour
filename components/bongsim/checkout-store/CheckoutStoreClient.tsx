@@ -27,6 +27,21 @@ function parseQtySearch(raw: string | null): number | undefined {
   return n;
 }
 
+/** 입력 중 하이픈 자동 — 010-xxxx-xxxx(11자리) 우선. */
+function formatKrMobileTelDisplay(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  if (d.length === 0) return "";
+  if (d.startsWith("010")) {
+    if (d.length <= 3) return d;
+    if (d.length <= 7) return `${d.slice(0, 3)}-${d.slice(3)}`;
+    return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+  }
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`;
+  if (d.length <= 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+}
+
 /** 체크아웃 상단 — 국기 + 한글 국가/권역명 */
 function checkoutCountryHeadline(planName: string): { flag: string; name: string } {
   const plan = planName.trim();
@@ -104,6 +119,8 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
   const [detail, setDetail] = useState<BongsimProductDetailV1 | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [buyerTel, setBuyerTel] = useState("");
+  const [kakaoId, setKakaoId] = useState("");
   const [quantity, setQuantity] = useState(() => quantityInitial ?? 1);
   const [recommendQueue, setRecommendQueue] = useState<BongsimRecommendCheckoutLine[] | null>(null);
   const [terms, setTerms] = useState(false);
@@ -131,6 +148,8 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
     setCouponCode("");
     setCouponOpen(false);
     setAppliedOrderDiscountKrw(null);
+    setBuyerTel("");
+    setKakaoId("");
   }, [optionApiId]);
 
   useEffect(() => {
@@ -240,6 +259,11 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
         setSubmitError("유효한 이메일을 입력해 주세요.");
         return;
       }
+      const telDigits = buyerTel.replace(/\D/g, "");
+      if (!telDigits || telDigits.length < 10 || telDigits.length > 11) {
+        setSubmitError("연락처(휴대전화)를 10~11자리로 입력해 주세요.");
+        return;
+      }
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
         setSubmitError("수량은 1~99 사이 정수여야 합니다.");
         return;
@@ -259,6 +283,8 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
             option_api_id: optionApiId,
             quantity,
             buyer_email: em,
+            buyertel: formatKrMobileTelDisplay(buyerTel),
+            ...(kakaoId.trim() ? { kakaoId: kakaoId.trim() } : {}),
             buyer_locale: locale === "ko" || locale === "en" ? locale : undefined,
             idempotency_key: checkoutKey,
             checkout_channel: "web",
@@ -339,7 +365,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
         setSubmitting(false);
       }
     },
-    [detail, email, locale, optionApiId, quantity, router, terms],
+    [buyerTel, detail, email, kakaoId, locale, optionApiId, quantity, router, terms],
   );
 
   return (
@@ -425,6 +451,30 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
                   autoComplete="email"
                   required
+                />
+              </label>
+              <label className="block">
+                <span className="text-[12px] font-medium text-slate-700 lg:text-sm">연락처 (eSIM 전달용)</span>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder="010-1234-5678"
+                  value={buyerTel}
+                  onChange={(ev) => setBuyerTel(formatKrMobileTelDisplay(ev.target.value))}
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-[12px] font-medium text-slate-700 lg:text-sm">카카오톡 ID (선택)</span>
+                <input
+                  type="text"
+                  placeholder="카카오톡 알림을 받으실 ID"
+                  value={kakaoId}
+                  onChange={(ev) => setKakaoId(ev.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
+                  autoComplete="username"
                 />
               </label>
               <label className="block">

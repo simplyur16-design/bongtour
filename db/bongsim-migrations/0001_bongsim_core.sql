@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS bongsim_product_option_price_event (
 CREATE INDEX IF NOT EXISTS bongsim_product_option_price_event_option_idx
   ON bongsim_product_option_price_event (option_api_id, ingested_at DESC);
 
+-- 체크아웃 연락처·카카오 ID: 현재는 `consents` JSONB 에만 저장됨. 전용 컬럼이 필요하면 `buyer_tel`, `kakao_id` 등 ALTER 로 추가 후 앱 INSERT 분리.
 CREATE TABLE IF NOT EXISTS bongsim_order (
   order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_number TEXT NOT NULL,

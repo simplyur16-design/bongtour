@@ -68,6 +68,16 @@ export type BongsimOrderConsentsV1 = {
   terms_version: string;
   terms_accepted: true;
   marketing: { accepted: boolean; version: string | null };
+  /**
+   * eSIM 전달용 연락처(국내 휴대전화).
+   * DB: `bongsim_order` 에 `buyer_tel` 컬럼이 없으면 마이그레이션으로 추가한 뒤 INSERT 에서 분리 저장 권장.
+   */
+  buyertel?: string;
+  /**
+   * 카카오톡 알림용 ID(선택).
+   * DB: `kakao_id` 전용 컬럼이 없으면 마이그레이션으로 추가한 뒤 분리 저장 권장.
+   */
+  kakao_id?: string | null;
 };
 
 export type BongsimOrderPaymentV1 = {

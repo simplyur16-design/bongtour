@@ -5,6 +5,10 @@ export type BongsimCheckoutConfirmRequestV1 = {
   option_api_id: string;
   quantity: number;
   buyer_email: string;
+  /** 국내 휴대전화(하이픈 포함 가능). */
+  buyertel: string;
+  /** 카카오톡 알림 ID(선택). */
+  kakaoId?: string | null;
   buyer_locale?: "ko" | "en" | null;
   idempotency_key: string;
   checkout_channel?: string;
