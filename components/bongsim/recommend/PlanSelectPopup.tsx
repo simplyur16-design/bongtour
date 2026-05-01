@@ -11,22 +11,25 @@ import {
 } from "@/lib/bongsim/recommend/product-option";
 import { matchBillableTripDays } from "@/lib/bongsim/recommend/allowance-buckets";
 
-const TIER_ORDER = ["premium", "value", "balance", "budget", "cheapest"] as const;
+const TIER_ORDER = ["premium", "value", "budget", "cheapest"] as const;
 type TierKey = (typeof TIER_ORDER)[number];
 
 type RecommendedTiersV1 = Partial<
   Record<TierKey, (ProductOption & { tier_label: string }) | null>
 >;
 
-function capacityFooterBadge() {
-  return (
-    <p className="mt-2 inline-flex max-w-full items-center gap-1 rounded-md border border-teal-200/90 bg-teal-50 px-2.5 py-1.5 text-[11px] font-semibold leading-snug text-teal-900 shadow-sm ring-1 ring-teal-100/80 lg:text-xs">
-      <span className="shrink-0 rounded-sm bg-teal-600 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white lg:text-[10px]">
-        안내
-      </span>
-      <span>구글맵 · ChatGPT 데이터 무제한 제공</span>
-    </p>
-  );
+function tierSpeedBadgeText(key: TierKey): string {
+  switch (key) {
+    case "premium":
+      return "최대 5Mbps";
+    case "value":
+      return "최대 1Mbps";
+    case "budget":
+    case "cheapest":
+      return "소진 후 384kbps";
+    default:
+      return "";
+  }
 }
 
 function displayRecommended(p: ProductOption): number | null {
@@ -207,15 +210,20 @@ export function PlanSelectPopup({
                         : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >
-                  {isPremium ? (
-                    <div className="mb-2 inline-flex items-center rounded-full bg-gradient-to-r from-violet-600 to-blue-600 px-3 py-1.5 text-[11px] font-extrabold tracking-wide text-white shadow-md ring-2 ring-violet-300/80 lg:px-4 lg:py-2 lg:text-xs">
-                      {product.tier_label}
-                    </div>
-                  ) : (
-                    <div className="mb-2 inline-flex items-center rounded-full border-2 border-teal-400 bg-gradient-to-r from-teal-100 to-cyan-50 px-3 py-1.5 text-[11px] font-extrabold text-teal-900 shadow-sm ring-1 ring-teal-200/70 lg:px-4 lg:py-2 lg:text-xs">
-                      {product.tier_label}
-                    </div>
-                  )}
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    {isPremium ? (
+                      <div className="inline-flex items-center rounded-full bg-gradient-to-r from-violet-600 to-blue-600 px-3 py-1.5 text-[11px] font-extrabold tracking-wide text-white shadow-md ring-2 ring-violet-300/80 lg:px-4 lg:py-2 lg:text-xs">
+                        {product.tier_label}
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center rounded-full border-2 border-teal-400 bg-gradient-to-r from-teal-100 to-cyan-50 px-3 py-1.5 text-[11px] font-extrabold text-teal-900 shadow-sm ring-1 ring-teal-200/70 lg:px-4 lg:py-2 lg:text-xs">
+                        {product.tier_label}
+                      </div>
+                    )}
+                    <span className="text-xs rounded-full bg-slate-100 px-2 py-0.5 text-slate-700">
+                      {tierSpeedBadgeText(key)}
+                    </span>
+                  </div>
 
                   {isPremium ? (
                     <>
@@ -236,8 +244,6 @@ export function PlanSelectPopup({
                       </p>
                     </>
                   )}
-
-                  {capacityFooterBadge()}
 
                   {totalShow != null && (
                     <p className="mt-2 text-lg font-bold text-blue-600 lg:text-xl">{formatKrw(totalShow)}</p>

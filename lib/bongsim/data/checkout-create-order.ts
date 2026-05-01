@@ -57,25 +57,6 @@ function normEmail(s: string): string {
   return s.trim().toLowerCase();
 }
 
-function digitsOnly(s: string): string {
-  return s.replace(/\D/g, "");
-}
-
-/** 010-1234-5678 형태(11자리 010) 등 국내 휴대 표시용. */
-function formatKrBuyertelDisplay(raw: string): string {
-  const d = digitsOnly(raw).slice(0, 11);
-  if (d.length === 0) return "";
-  if (d.startsWith("010")) {
-    if (d.length <= 3) return d;
-    if (d.length <= 7) return `${d.slice(0, 3)}-${d.slice(3)}`;
-    return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
-  }
-  if (d.length <= 3) return d;
-  if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`;
-  if (d.length <= 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
-  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
-}
-
 function makeOrderNumber(): string {
   const day = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const rnd = randomBytes(4).toString("hex").toUpperCase();
@@ -153,10 +134,6 @@ function defaultFulfillment(): BongsimOrderV1["order"]["fulfillment"] {
 function parseConsents(raw: unknown): BongsimOrderV1["order"]["consents"] {
   const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const marketing = o.marketing && typeof o.marketing === "object" ? (o.marketing as Record<string, unknown>) : {};
-  const kakaoRaw = o.kakaoId ?? o.kakao_id;
-  const kakaoStr = typeof kakaoRaw === "string" ? kakaoRaw.trim() : "";
-  const telRaw = o.buyertel ?? o.buyer_tel;
-  const telStr = typeof telRaw === "string" ? telRaw.trim() : "";
   return {
     terms_version: typeof o.terms_version === "string" ? o.terms_version : "",
     terms_accepted: true,
@@ -164,8 +141,6 @@ function parseConsents(raw: unknown): BongsimOrderV1["order"]["consents"] {
       accepted: Boolean(marketing.accepted),
       version: typeof marketing.version === "string" ? marketing.version : null,
     },
-    ...(telStr ? { buyertel: telStr } : {}),
-    ...(kakaoStr ? { kakao_id: kakaoStr } : {}),
   };
 }
 
@@ -294,16 +269,6 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
   } else if (quantity > 99) {
     details.quantity = "max_99";
   }
-  const buyertelRaw = typeof o.buyertel === "string" ? o.buyertel : "";
-  const telDigits = digitsOnly(buyertelRaw);
-  if (!telDigits) {
-    details.buyertel = "required";
-  } else if (telDigits.length < 10 || telDigits.length > 11) {
-    details.buyertel = "invalid_phone";
-  }
-  const kakaoIdRaw = o.kakaoId;
-  const kakaoTrim =
-    typeof kakaoIdRaw === "string" ? kakaoIdRaw.trim().slice(0, 64) : typeof o.kakao_id === "string" ? o.kakao_id.trim().slice(0, 64) : "";
   if (Object.keys(details).length) return { ok: false, details };
   const locale = o.buyer_locale;
   const buyer_locale = locale === "ko" || locale === "en" ? locale : undefined;
@@ -312,8 +277,6 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
     option_api_id,
     quantity,
     buyer_email: normEmail(buyer_email),
-    buyertel: formatKrBuyertelDisplay(buyertelRaw),
-    kakaoId: kakaoTrim || undefined,
     buyer_locale,
     idempotency_key,
     checkout_channel: typeof o.checkout_channel === "string" ? o.checkout_channel : undefined,
@@ -331,11 +294,6 @@ function assertIdempotentMatch(order: BongsimOrderV1["order"], req: BongsimCheck
   if (line.option_api_id !== req.option_api_id) return false;
   if (line.quantity !== req.quantity) return false;
   if (normEmail(order.buyer.email) !== req.buyer_email) return false;
-  const storedTel = order.consents.buyertel ?? "";
-  if (digitsOnly(storedTel) !== digitsOnly(req.buyertel)) return false;
-  const storedKakao = (order.consents.kakao_id ?? "").trim();
-  const reqKakao = (req.kakaoId ?? "").trim();
-  if (storedKakao !== reqKakao) return false;
   return true;
 }
 
@@ -377,19 +335,16 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const line_total = unit_krw * req.quantity;
     const snapshot = buildLineSnapshot(opt, basis_key, unit_krw);
 
-    const consentsJson: Record<string, unknown> = {
+    const consentsJson = {
       terms_version: req.consents?.terms_version ?? "",
       terms_accepted: req.consents?.terms_accepted !== false,
       marketing: {
         accepted: Boolean(req.consents?.marketing?.accepted),
         version: req.consents?.marketing?.version ?? null,
       },
-      buyertel: req.buyertel,
     };
-    if (req.kakaoId?.trim()) consentsJson.kakaoId = req.kakaoId.trim();
 
     const orderNumber = makeOrderNumber();
-    // NOTE: `bongsim_order` 에 `buyer_tel` / `kakao_id` 전용 컬럼이 없으면 ALTER 로 추가 후 INSERT 에서 분리 저장하는 편이 좋음. 현재는 `consents` JSONB 에만 보관.
     const ins = await client.query<OrderRow>(
       `INSERT INTO bongsim_order (
         order_number, status, checkout_channel, buyer_email, buyer_locale,
