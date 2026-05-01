@@ -418,7 +418,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   type="email"
                   value={email}
                   onChange={(ev) => setEmail(ev.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
                   autoComplete="email"
                   required
                 />
@@ -431,7 +431,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   max={99}
                   value={quantity}
                   onChange={(ev) => setQuantity(Number.parseInt(ev.target.value, 10) || 1)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
                   required
                 />
               </label>
@@ -440,11 +440,17 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 <select
                   value={locale}
                   onChange={(ev) => setLocale(ev.target.value as "ko" | "en" | "")}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
                 >
-                  <option value="">기본</option>
-                  <option value="ko">한국어</option>
-                  <option value="en">English</option>
+                  <option value="" className="text-slate-900">
+                    기본
+                  </option>
+                  <option value="ko" className="text-slate-900">
+                    한국어
+                  </option>
+                  <option value="en" className="text-slate-900">
+                    English
+                  </option>
                 </select>
               </label>
               <div className="flex items-start gap-2 text-[13px] text-slate-700 lg:gap-2.5 lg:text-[15px]">
@@ -453,7 +459,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   type="checkbox"
                   checked={terms}
                   onChange={(ev) => setTerms(ev.target.checked)}
-                  className="mt-0.5 lg:mt-1 lg:h-4 lg:w-4"
+                  className="mt-0.5 accent-teal-700 lg:mt-1 lg:h-4 lg:w-4"
                 />
                 <div className="min-w-0 flex-1 space-y-1">
                   <label htmlFor="bongsim-checkout-terms" className="block cursor-pointer leading-snug">
