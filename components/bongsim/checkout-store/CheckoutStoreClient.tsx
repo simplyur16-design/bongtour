@@ -296,7 +296,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
             schema: "bongsim.payment_session.request.v1",
             order_id: orderId,
             idempotency_key: paymentKey,
-            provider: "toss_payments",
+            provider: "welcomepay",
             return_urls: { success_url: successUrl, fail_url: failUrl, cancel_url: cancelUrl },
           }),
         });
@@ -314,6 +314,14 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
         if (pj.client.kind === "toss_sdk") {
           const u = new URL(path, originBase);
           u.searchParams.set("tossOrderId", pj.client.toss_order_id);
+          u.searchParams.set("orderName", pj.client.order_name);
+          u.searchParams.set("customerEmail", pj.client.customer_email);
+          u.searchParams.set("amount", String(pj.client.amount_krw));
+          path = `${u.pathname}${u.search}`;
+        }
+        if (pj.client.kind === "welcomepay_std") {
+          const u = new URL(path, originBase);
+          u.searchParams.set("welcomeOid", pj.client.welcome_oid);
           u.searchParams.set("orderName", pj.client.order_name);
           u.searchParams.set("customerEmail", pj.client.customer_email);
           u.searchParams.set("amount", String(pj.client.amount_krw));
@@ -439,17 +447,38 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   <option value="en">English</option>
                 </select>
               </label>
-              <label className="flex items-start gap-2 text-[13px] text-slate-700 lg:gap-2.5 lg:text-[15px]">
+              <div className="flex items-start gap-2 text-[13px] text-slate-700 lg:gap-2.5 lg:text-[15px]">
                 <input
+                  id="bongsim-checkout-terms"
                   type="checkbox"
                   checked={terms}
                   onChange={(ev) => setTerms(ev.target.checked)}
                   className="mt-0.5 lg:mt-1 lg:h-4 lg:w-4"
                 />
-                <span>
-                  이용약관 및 결제 진행에 동의합니다. (약관 버전 {BONGSIM_CHECKOUT_TERMS_VERSION})
-                </span>
-              </label>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <label htmlFor="bongsim-checkout-terms" className="block cursor-pointer leading-snug">
+                    이용약관 및 eSIM 환불·서비스 정책을 확인하였으며 결제 진행에 동의합니다. (약관 버전{" "}
+                    {BONGSIM_CHECKOUT_TERMS_VERSION})
+                  </label>
+                  <p className="text-[12px] leading-snug text-slate-500 lg:text-[13px]">
+                    <Link
+                      href="/terms"
+                      className="font-medium text-teal-700 underline decoration-teal-300 underline-offset-2 hover:text-teal-800"
+                    >
+                      이용약관
+                    </Link>
+                    <span className="text-slate-400" aria-hidden>
+                      {" · "}
+                    </span>
+                    <Link
+                      href={bongsimPath("/policy")}
+                      className="font-medium text-teal-700 underline decoration-teal-300 underline-offset-2 hover:text-teal-800"
+                    >
+                      eSIM 환불·서비스 정책
+                    </Link>
+                  </p>
+                </div>
+              </div>
 
               <div className="rounded-xl border border-slate-200 bg-slate-50/90">
                 <button

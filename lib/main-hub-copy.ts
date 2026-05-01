@@ -443,4 +443,5 @@ export const MAIN_MINIMAL_FOOTER_LINKS = [
   { label: '고객지원', href: '/support' },
   { label: '개인정보처리방침', href: '/privacy' },
   { label: '이용약관', href: '/terms' },
+  { label: 'eSIM 환불정책', href: '/travel/esim/policy' },
 ] as const

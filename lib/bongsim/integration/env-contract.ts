@@ -25,6 +25,11 @@
  * --- Toss Payments ---
  * - `TOSS_SECRET_KEY`: 서버 전용 시크릿 (승인·조회·웹훅 double-check).
  * - `NEXT_PUBLIC_TOSS_CLIENT_KEY`: 브라우저 SDK 초기화용 클라이언트 키.
+ *
+ * --- Welcome Payments (PayWelcome, 봉심 eSIM) ---
+ * - `WELCOMEPAY_MID`: 가맹점 ID.
+ * - `WELCOMEPAY_SIGN_KEY`: 서버 전용 서명 키(노출 금지).
+ * - `WELCOMEPAY_ENV`: `test` | `production` (엔드포인트·스크립트 URL 분기).
  */
 export const BONGSIM_ENV_KEYS = {
   DATABASE_URL: "DATABASE_URL",

@@ -28,6 +28,16 @@ export type BongsimPaymentSessionClientV1 =
       order_name: string;
       customer_email: string;
       amount_krw: number;
+    }
+  | {
+      kind: "welcomepay_std";
+      redirect_path: string;
+      public_session_ref: string;
+      /** PG 주문번호(oid) — `bongsim_payment_attempt.provider_session_id` 와 동일. */
+      welcome_oid: string;
+      order_name: string;
+      customer_email: string;
+      amount_krw: number;
     };
 
 export type BongsimPaymentSessionResponseV1 = {

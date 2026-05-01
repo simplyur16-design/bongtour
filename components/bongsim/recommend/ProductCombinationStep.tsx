@@ -173,31 +173,75 @@ function formatAvgDailyGbLabel(gb: number): string {
 
 type TravelerDataUsageGuideProps = { countryNameKr: string; code: string };
 
+/** 0~5GB 스케일에서 평균 마커 가로 위치(%) */
+function avgMarkerLeftPercent(avgGb: number): number {
+  const clamped = Math.min(5, Math.max(0, avgGb));
+  return (clamped / 5) * 100;
+}
+
 /** 미완료 국가 카드 하단 — 히어로 아래 흰 영역 (선택 완료 시 비표시) */
 function TravelerDataUsageGuide({ countryNameKr, code }: TravelerDataUsageGuideProps) {
   const avgGb = averageDailyDataGbForCountry(code);
   const title = `${countryNameKr} 여행자 평균 하루 ${formatAvgDailyGbLabel(avgGb)} 사용`;
+  const markerLeft = avgMarkerLeftPercent(avgGb);
+
   return (
     <div>
       <h3 className="mb-2 text-sm font-semibold text-slate-700">{title}</h3>
-      <div className="flex min-w-0 gap-2">
-        <div className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white p-2.5 text-center">
-          <p className="text-xs font-semibold text-slate-800">알뜰형</p>
-          <p className="mt-1 text-xs font-bold text-teal-600">하루 500MB~1GB</p>
-          <p className="mt-1 text-[10px] text-slate-500">지도, 메시지, 기본 검색</p>
+
+      <div className="relative pt-7">
+        <div
+          className="pointer-events-none absolute top-0 flex flex-col items-center"
+          style={{ left: `${markerLeft}%`, transform: "translateX(-50%)" }}
+        >
+          <span className="text-xs font-semibold text-teal-600 whitespace-nowrap">
+            평균 {formatAvgDailyGbLabel(avgGb)}
+          </span>
+          <span className="leading-none text-teal-600" aria-hidden>
+            ▼
+          </span>
         </div>
-        <div className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-teal-50 p-2.5 text-center ring-2 ring-teal-400">
-          <p className="text-xs font-semibold text-slate-800">스마트형</p>
-          <p className="mt-1 text-xs font-bold text-teal-600">하루 1~2GB</p>
-          <p className="mt-1 text-[10px] text-slate-500">SNS, 맛집검색, 번역앱</p>
-          <p className="mt-1 text-[10px] text-slate-500">💡 사진은 호텔 Wi-Fi로!</p>
+
+        <div className="relative flex h-8 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="relative flex h-full w-[20%] shrink-0 items-center justify-center rounded-l-full bg-emerald-100 px-0.5">
+            <span className="text-center text-[10px] font-medium leading-tight text-slate-700">
+              알뜰형
+              <br />
+              (0~1GB)
+            </span>
+          </div>
+          <div className="w-px shrink-0 self-stretch bg-slate-300/80" aria-hidden />
+          <div className="relative flex h-full w-[40%] shrink-0 items-center justify-center bg-teal-100 px-0.5">
+            <span className="text-center text-[10px] font-medium leading-tight text-slate-700">
+              스마트형
+              <br />
+              (1~2GB)
+            </span>
+          </div>
+          <div className="w-px shrink-0 self-stretch bg-slate-300/80" aria-hidden />
+          <div className="relative flex h-full w-[40%] shrink-0 items-center justify-center rounded-r-full bg-sky-100 px-0.5">
+            <span className="text-center text-[10px] font-medium leading-tight text-slate-700">
+              자유형
+              <br />
+              (2~5GB+)
+            </span>
+          </div>
         </div>
-        <div className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white p-2.5 text-center">
-          <p className="text-xs font-semibold text-slate-800">자유형</p>
-          <p className="mt-1 text-xs font-bold text-teal-600">하루 2~5GB+</p>
-          <p className="mt-1 text-[10px] text-slate-500">실시간 스트리밍, 영상통화</p>
+
+        <div className="relative mt-1 h-4 w-full text-[10px] text-slate-400">
+          <span className="absolute left-[10%] -translate-x-1/2 whitespace-nowrap">500MB</span>
+          <span className="absolute left-[20%] -translate-x-1/2 whitespace-nowrap">1GB</span>
+          <span className="absolute left-[40%] -translate-x-1/2 whitespace-nowrap">2GB</span>
+          <span className="absolute left-full -translate-x-full whitespace-nowrap">5GB+</span>
         </div>
+
+        <p className="mt-1 text-[10px] text-slate-500">알뜰형: 지도, 메시지, 기본 검색</p>
+        <p className="text-[10px] text-slate-500">
+          스마트형: SNS, 맛집검색, 번역앱 💡 사진은 호텔 Wi-Fi로!
+        </p>
+        <p className="text-[10px] text-slate-500">자유형: 실시간 스트리밍, 영상통화</p>
       </div>
+
       <p className="mt-2 text-[10px] text-slate-400">* 2025 해외여행 데이터 사용량 분석 기준</p>
     </div>
   );
