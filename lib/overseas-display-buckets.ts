@@ -14,6 +14,7 @@ export type OverseasDisplayBucketId =
   | 'europe_north'
   | 'europe_east'
   | 'americas'
+  | 'oceania'
   | 'other'
 
 /** 화면 표기 순서 고정 (라벨과 동일 순서) */
@@ -26,6 +27,7 @@ export const DISPLAY_CATEGORIES = [
   '북유럽',
   '동유럽',
   '미주',
+  '대양주',
   '그외',
 ] as const
 
@@ -38,6 +40,7 @@ export const OVERSEAS_DISPLAY_BUCKET_ORDER: OverseasDisplayBucketId[] = [
   'europe_north',
   'europe_east',
   'americas',
+  'oceania',
   'other',
 ]
 
@@ -50,6 +53,7 @@ export const OVERSEAS_DISPLAY_BUCKET_LABEL: Record<OverseasDisplayBucketId, stri
   europe_north: '북유럽',
   europe_east: '동유럽',
   americas: '미주',
+  oceania: '대양주',
   other: '그외',
 }
 
@@ -105,12 +109,8 @@ export function mapMatchToOverseasDisplayBucket(
       return europeMeAfricaToBucket(match)
     case 'americas':
       return 'americas'
-    case 'guam-au-nz': {
-      const ck = match.countryKey
-      /** 여행상품 분류: 괌·사이판은 미주가 아님 — 동남아 버킷(남태평양·휴양권 성격) */
-      if (ck === 'guam' || ck === 'saipan') return 'sea'
-      return 'other'
-    }
+    case 'guam-au-nz':
+      return 'oceania'
     default:
       return 'other'
   }
@@ -156,7 +156,7 @@ const RE_GUAM_SAIPAN_TRAVEL = /괌|guam|사이판|saipan/i
 
 /**
  * `/api/products/browse` 전용: 트리 매칭 후 **상품 문자열**로 미주 오분류를 덮어쓴다.
- * (9버킷 키·순서·라벨은 그대로 — 버킷 id만 보정)
+ * (대양주·미주 버킷만 문자열로 보정)
  */
 export function resolveOverseasDisplayBucketForBrowse(
   product: OverseasProductMatchInput,
@@ -168,12 +168,12 @@ export function resolveOverseasDisplayBucketForBrowse(
   const h = buildOverseasProductMatchHaystack(product)
 
   if (RE_GUAM_SAIPAN_TRAVEL.test(h) && match?.countryKey !== 'hawaii') {
-    return 'sea'
+    return 'oceania'
   }
 
   if (RE_AU_NZ_TRAVEL.test(h)) {
     if (match?.groupKey === 'americas' && match.countryKey === 'hawaii') return base
-    return 'other'
+    return 'oceania'
   }
 
   return base

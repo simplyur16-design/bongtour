@@ -34,8 +34,13 @@ type ApiOk = {
   facets: BrowseFacets
 }
 
-/** 허브 페이지 browse 1회 요청 상한 — 전량(1000) 조회는 API·DB 부하만 키움 */
-const BROWSE_HUB_FETCH_LIMIT = '30'
+/** 국내 허브 browse 1회 요청 상한 */
+const BROWSE_DOMESTIC_HUB_FETCH_LIMIT = '30'
+/**
+ * 해외 허브(`/travel/overseas`) 기본 목록 — 지역별 섹션 전체를 한 번에 내려받기 위해 browse API 해외 상한과 동일.
+ * (점진 렌더는 `ProductResultsList`의 Intersection Observer가 담당)
+ */
+const BROWSE_OVERSEAS_HUB_FETCH_LIMIT = '120'
 /** 항공+호텔: 나라별 칩 집계·클라이언트 필터용으로 browse 상한까지 한 번에 로드 */
 const AIR_HOTEL_BROWSE_FETCH_LIMIT = '120'
 
@@ -268,7 +273,7 @@ export default function ProductsBrowseClient({
         if (isDomesticHub) {
           p = new URLSearchParams()
           p.set('scope', 'domestic')
-          p.set('limit', BROWSE_HUB_FETCH_LIMIT)
+          p.set('limit', BROWSE_DOMESTIC_HUB_FETCH_LIMIT)
           const sortRaw = searchParams.get('sort')
           if (
             sortRaw === 'budget_fit' ||
@@ -284,7 +289,7 @@ export default function ProductsBrowseClient({
         }
         if (defaultScope === 'overseas' && pathname === '/travel/overseas') {
           p.delete('listingKind')
-          p.set('limit', BROWSE_HUB_FETCH_LIMIT)
+          p.set('limit', BROWSE_OVERSEAS_HUB_FETCH_LIMIT)
           p.delete('page')
         }
         if (pathname === '/travel/air-hotel') {
@@ -326,7 +331,7 @@ export default function ProductsBrowseClient({
       if (isDomesticHub) {
         const params = new URLSearchParams()
         params.set('scope', 'domestic')
-        params.set('limit', BROWSE_HUB_FETCH_LIMIT)
+        params.set('limit', BROWSE_DOMESTIC_HUB_FETCH_LIMIT)
         const s = syncTypeWithCategories(next).sort
         if (s && s !== 'popular') params.set('sort', s)
         router.replace(`${basePath}?${params.toString()}`, { scroll: false })
@@ -355,7 +360,7 @@ export default function ProductsBrowseClient({
     if (isDomesticHub) {
       const sp = new URLSearchParams()
       sp.set('scope', 'domestic')
-      sp.set('limit', BROWSE_HUB_FETCH_LIMIT)
+      sp.set('limit', BROWSE_DOMESTIC_HUB_FETCH_LIMIT)
       router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
       return
     }
