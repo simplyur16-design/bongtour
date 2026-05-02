@@ -70,8 +70,6 @@ import {
   type RegisterParsed,
   type RegisterScheduleDay,
 } from '@/lib/register-llm-schema-modetour'
-import { isModetourScheduleWeakForAirtelImageKw, polishModetourImageKeyword } from '@/lib/modetour-schedule-image-keyword'
-
 /** preset 없을 때 비표시 — 모두투어는 `resolveDirectedFlightLinesModetour` 주입 전제 */
 function resolveDirectedFlightLinesDefault(_detailBody: DetailBodyParseSnapshot): {
   departureSegmentFromStructured: string | null
@@ -1594,38 +1592,16 @@ ${text.slice(0, 16000)}`
   } catch {
     registerAdminPersistedLlmParsedJson = null
   }
-  const prelimTitleTrimmed = (raw.title ?? '').trim() || '상품명 없음'
-  const pastedForInferEarly = options?.pastedBodyForInference?.trim() ?? ''
-  const inferBaseEarly = pastedForInferEarly.length > 0 ? pastedForInferEarly : prelimTitleTrimmed
-  const inferredProductTypeEarly = inferProductTypeFromText(inferBaseEarly, prelimTitleTrimmed)
-  const rawSchedForWeak = (raw.schedule ?? []) as Array<{ title?: unknown; description?: unknown }>
-  const scheduleWeakEarly = isModetourScheduleWeakForAirtelImageKw(
-    rawSchedForWeak.map((s) => ({
-      title: String(s.title ?? '').trim(),
-      description: String(s.description ?? '').trim(),
-    }))
-  )
-  const modetourAirtelImagePolishExtras = {
-    airtelFreeTravelImageKw:
-      inferredProductTypeEarly === 'airtel' && scheduleWeakEarly ? ('force-city' as const) : ('off' as const),
-    productTitle: prelimTitleTrimmed,
-    productPrimaryDestination: String(raw.primaryDestination ?? '').trim() || null,
-    productDestination: String(raw.destination ?? '').trim() || null,
-  }
   const scheduleBase: RegisterScheduleDay[] = (raw.schedule ?? [])
     .map((s) => {
       const rec = s as Record<string, unknown>
+      const dayNum = Number(s?.day) || 0
       return {
-        day: Number(s?.day) || 0,
+        day: dayNum,
         title: String(s?.title ?? '').trim(),
         description: String(s?.description ?? '').trim(),
         routeText: strOrNull(rec.routeText),
-        imageKeyword: polishModetourImageKeyword(String(s?.imageKeyword ?? '').trim(), {
-          day: Number(s?.day) || 0,
-          title: String(s?.title ?? '').trim(),
-          description: String(s?.description ?? '').trim(),
-          ...modetourAirtelImagePolishExtras,
-        }),
+        imageKeyword: String(s?.imageKeyword ?? '').trim() || `Day ${dayNum} travel`,
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),
         lunchText: strOrNull(rec.lunchText),

@@ -23,11 +23,6 @@ import {
 } from '@/lib/modetour-itinerary-schedule-overlay'
 import { supplementModetourScheduleFromPastedBody } from '@/lib/register-modetour-pasted-schedule'
 import {
-  isModetourScheduleWeakForAirtelImageKw,
-  polishModetourImageKeyword,
-  type ModetourImageKeywordContext,
-} from '@/lib/modetour-schedule-image-keyword'
-import {
   upsertItineraryDays,
   registerScheduleToDayInputs,
   type ItineraryDayInput,
@@ -275,52 +270,16 @@ function assertJsonSerializable(ctx: ParseRegisterLogCtx, label: string, payload
   }
 }
 
-type ModetourStoredScheduleImagePolishPick = Pick<
-  ModetourImageKeywordContext,
-  'airtelFreeTravelImageKw' | 'productTitle' | 'productPrimaryDestination' | 'productDestination'
->
-
-function modetourBuildStoredScheduleImagePolishContext(
-  p: Pick<
-    RegisterParsed,
-    'productType' | 'title' | 'primaryDestination' | 'destination' | 'destinationRaw' | 'schedule'
-  >
-): ModetourStoredScheduleImagePolishPick {
-  const sched = p.schedule ?? []
-  const weak = isModetourScheduleWeakForAirtelImageKw(
-    sched.map((s) => ({ title: s.title, description: s.description }))
-  )
-  const airtel = (p.productType ?? 'travel') === 'airtel'
-  return {
-    airtelFreeTravelImageKw: airtel && weak ? 'force-city' : 'off',
-    productTitle: p.title ?? '',
-    productPrimaryDestination: p.primaryDestination ?? null,
-    productDestination: (p.destinationRaw ?? p.destination ?? '').trim() || null,
-  }
-}
-
 /** 일정 JSON(이미지·제목 등)만 — itineraryDayDrafts가 없을 때 */
 function buildScheduleJsonThin(
-  parsedSchedule: Array<{ day: number; title: string; description: string; imageKeyword: string }>,
-  polishExtras?: ModetourStoredScheduleImagePolishPick | null
+  parsedSchedule: Array<{ day: number; title: string; description: string; imageKeyword: string }>
 ) {
-  const ex: ModetourStoredScheduleImagePolishPick = polishExtras ?? {
-    airtelFreeTravelImageKw: 'off',
-    productTitle: '',
-    productPrimaryDestination: null,
-    productDestination: null,
-  }
   return JSON.stringify(
     parsedSchedule.map((day) => ({
       day: day.day,
       title: day.title,
       description: day.description,
-      imageKeyword: polishModetourImageKeyword(day.imageKeyword, {
-        day: day.day,
-        title: day.title,
-        description: day.description,
-        ...ex,
-      }),
+      imageKeyword: String(day.imageKeyword ?? '').trim() || `Day ${day.day} travel`,
       imageUrl: null,
     }))
   )
@@ -332,16 +291,9 @@ function buildScheduleJsonThin(
  */
 function buildModetourProductScheduleJson(
   parsedSchedule: NonNullable<RegisterParsed['schedule']>,
-  drafts: ItineraryDayInput[],
-  polishExtras?: ModetourStoredScheduleImagePolishPick | null
+  drafts: ItineraryDayInput[]
 ): string {
-  const ex: ModetourStoredScheduleImagePolishPick = polishExtras ?? {
-    airtelFreeTravelImageKw: 'off',
-    productTitle: '',
-    productPrimaryDestination: null,
-    productDestination: null,
-  }
-  if (!drafts.length) return buildScheduleJsonThin(parsedSchedule, ex)
+  if (!drafts.length) return buildScheduleJsonThin(parsedSchedule)
   const schedByDay = new Map(
     parsedSchedule
       .map((s) => [Number(s.day), s] as const)
@@ -354,10 +306,8 @@ function buildModetourProductScheduleJson(
       const title = s && typeof s.title === 'string' ? s.title : ''
       const description =
         (s && typeof s.description === 'string' ? s.description : '') || (d.summaryTextRaw ?? '').trim()
-      const imageKeyword = polishModetourImageKeyword(
-        (s && typeof s.imageKeyword === 'string' ? s.imageKeyword : '') || '',
-        { day: d.day, title, description, ...ex }
-      )
+      const rawKw = s && typeof s.imageKeyword === 'string' ? s.imageKeyword : ''
+      const imageKeyword = String(rawKw ?? '').trim() || `Day ${d.day} travel`
       return {
         day: d.day,
         title,
@@ -1550,11 +1500,10 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       return NextResponse.json(previewPayload)
     }
 
-    const modetourScheduleImagePolishCtx = modetourBuildStoredScheduleImagePolishContext(parsedWithFinalNotice)
     const scheduleJson =
       itineraryDayDrafts.length > 0
-        ? buildModetourProductScheduleJson(schedule, itineraryDayDrafts, modetourScheduleImagePolishCtx)
-        : buildScheduleJsonThin(schedule, modetourScheduleImagePolishCtx)
+        ? buildModetourProductScheduleJson(schedule, itineraryDayDrafts)
+        : buildScheduleJsonThin(schedule)
 
     stage = 'prismaFindProduct'
     ctx.stage = stage

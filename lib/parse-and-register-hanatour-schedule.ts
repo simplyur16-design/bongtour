@@ -1176,8 +1176,9 @@ function composeHanatourScheduleDescriptionSentence(
   return hanatourTrimOneSentenceMax(desc, HANATOUR_CARD_DESCRIPTION_MAX)
 }
 
-function inferHanatourImageKeyword(day: number, maxDay: number, rawBlob: string): string {
-  return hanatourEnglishPexelsImageKeywordFromBlob(rawBlob, day, maxDay).slice(0, 120)
+function inferHanatourImageKeyword(day: number, _maxDay: number, _rawBlob: string): string {
+  const d = Math.max(1, day)
+  return `Day ${d} travel`
 }
 
 function hanatourTitleLooksLikePlaceRoute(t: string): boolean {
@@ -1613,79 +1614,21 @@ export function applyHanatourAirtelFreeTravelImageKeywordsToScheduleIfNeeded(
   }))
 }
 
-/** imageKeyword가 Pexels용 영문 noun phrase가 아니면 title·description·기존값으로 재생성 */
+/** 등록 파이프라인: imageKeyword는 LLM·상위 단계 값을 그대로 둔다(상담어 제거만 상위에서 처리). */
 export function sanitizeHanatourScheduleRowExpression(
   row: RegisterScheduleDay,
-  maxDay: number = 7,
-  /** 일정 row만 약할 때 상품 메타·붙여넣기 본문에서 도시·목적지 힌트를 읽기 위한 보조 문맥 */
-  productContextBlob?: string
+  _maxDay: number = 7,
+  _productContextBlob?: string
 ): RegisterScheduleDay {
-  const day = Math.max(1, Number(row.day) || 1)
-  const rowBlob = `${String(row.title ?? '')}\n${String(row.description ?? '')}\n${String(row.imageKeyword ?? '')}`
-  const ctx = typeof productContextBlob === 'string' && productContextBlob.trim() ? `\n${productContextBlob.trim()}` : ''
-  const blob = `${rowBlob}${ctx}`
-  const kw0 = String(row.imageKeyword ?? '').trim()
-  if (isLikelyEnglishPexelsKeyword(kw0)) return { ...row }
-  return {
-    ...row,
-    imageKeyword: hanatourEnglishPexelsImageKeywordFromBlob(blob, day, maxDay).slice(0, 120),
-  }
+  return { ...row }
 }
 
 export function augmentHanatourScheduleExpressionParsed(parsed: RegisterParsed): RegisterParsed {
   const sched = parsed.schedule
   if (!sched?.length) return parsed
-  const productType = (parsed.productType ?? 'travel').trim() || 'travel'
-  if (productType === 'airtel' && isHanatourAirtelWeakScheduleForImageKw(sched)) {
-    const pastedSnippet = [
-      parsed.title,
-      parsed.destinationRaw,
-      parsed.primaryDestination,
-      parsed.destination,
-      parsed.routeRaw,
-      parsed.hotelInfoRaw,
-      parsed.detailBodyStructured?.normalizedRaw,
-    ]
-      .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
-      .join('\n')
-      .slice(0, 12_000)
-    const meta: HanatourAirtelFreeTravelImageKwMeta = {
-      productType: 'airtel',
-      title: parsed.title ?? '',
-      destinationRaw: parsed.destinationRaw ?? null,
-      primaryDestination: parsed.primaryDestination ?? null,
-      destination: parsed.destination ?? null,
-      pastedSnippet,
-    }
-    const hay = buildHanatourAirtelFreeTravelHaystackLocal(meta, sched)
-    const kwMain = resolveHanatourAirtelFreeTravelImageKeywordFromHaystackLocal(hay).slice(0, 120)
-    return {
-      ...parsed,
-      schedule: sched.map((r) => {
-        const stripped = stripCounselingTermsFromScheduleRow(r)
-        return { ...stripped, imageKeyword: kwMain }
-      }),
-    }
-  }
-  const maxDay = Math.max(1, ...sched.map((s) => s.day))
-  const productContextBlob = [
-    parsed.title,
-    parsed.destinationRaw,
-    parsed.primaryDestination,
-    parsed.destination,
-    parsed.routeRaw,
-    parsed.hotelInfoRaw,
-    parsed.detailBodyStructured?.normalizedRaw,
-    ...sched.flatMap((r) => [r.title, r.description]),
-  ]
-    .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
-    .join('\n')
-    .slice(0, 12_000)
   return {
     ...parsed,
-    schedule: sched.map((r) =>
-      sanitizeHanatourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r), maxDay, productContextBlob)
-    ),
+    schedule: sched.map((r) => stripCounselingTermsFromScheduleRow(r)),
   }
 }
 

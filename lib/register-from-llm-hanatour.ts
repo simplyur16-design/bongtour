@@ -99,10 +99,7 @@ import {
 import { parsePricePromotionFromGeminiJson, type PricePromotionSnapshot } from './price-promotion-hanatour'
 import { buildSingleRoomExcludedLine } from '@/lib/product-excluded-display'
 import {
-  applyHanatourAirtelFreeTravelImageKeywordsToScheduleIfNeeded,
   buildPreviewHanatourScheduleFromDetailBody,
-  hanatourEnglishPexelsImageKeywordFromBlob,
-  isHanatourEnglishPexelsImageKeywordReady,
   polishHanatourScheduleRowsGeminiCardTextIfNeeded,
   polishHanatourScheduleRowsPreferDetailBody,
 } from '@/lib/parse-and-register-hanatour-schedule'
@@ -963,7 +960,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - day, title, description, imageKeyword
 - **title**: 핵심 장소·동선을 하이픈+공백("- ")으로 연결한 요약(2–6개, 호텔·식사·날짜·문장형 제목 금지).
 - **description**: 공개 일정 카드용 **짧은 1문장** 브리프만(약 120자 이내·이동·핵심 관광 위주). 일정표 장문·유의·홍보·선택관광 안내를 여기에 붙이지 말 것. **조식·중식·석식·호텔·숙소 문구는 description에 넣지 말고** breakfastText·lunchText·dinnerText·hotelText·mealSummaryText 로만.
-- **imageKeyword**: Pexels 검색에 바로 쓸 **영문** 짧은 명사구(실존 장소·도시+명소 수준). 창조·추상 금지.
+- **imageKeyword**: 해당 일차의 실존하는 장소 이름만 사용 (창조·추상 금지). 영문 명사 (예: Osaka Castle, Taipei 101)
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
 # [prices] 출발일별 요금 (달력과 동일한 날짜만)
@@ -1812,20 +1809,13 @@ ${text.slice(0, 16000)}`
     registerAdminPersistedLlmParsedJson = null
   }
   const rawScheduleRows = raw.schedule ?? []
-  const maxDayFromRawSchedule = rawScheduleRows.length
-    ? Math.max(1, ...rawScheduleRows.map((x) => Number((x as { day?: unknown }).day) || 0))
-    : 1
   const scheduleBase: RegisterScheduleDay[] = rawScheduleRows
     .map((s) => {
       const rec = s as Record<string, unknown>
       const day = Number(s?.day) || 0
       const title = String(s?.title ?? '').trim()
       const description = String(s?.description ?? '').trim()
-      const ik = String(s?.imageKeyword ?? '').trim()
-      const blob = `${ik}\n${title}\n${description}`
-      const imageKeyword = isHanatourEnglishPexelsImageKeywordReady(ik)
-        ? ik.slice(0, 120)
-        : hanatourEnglishPexelsImageKeywordFromBlob(blob, Math.max(1, day), maxDayFromRawSchedule).slice(0, 120)
+      const imageKeyword = String(s?.imageKeyword ?? '').trim() || `Day ${day} travel`
       return {
         day,
         title,
@@ -2075,15 +2065,6 @@ ${text.slice(0, 16000)}`
       .join('\n---\n')
   }
   shoppingStopsLlmSupplementJson = shoppingStopsLlmSupplementJson?.trim() ? shoppingStopsLlmSupplementJson : null
-
-  schedule = applyHanatourAirtelFreeTravelImageKeywordsToScheduleIfNeeded(schedule, {
-    productType: inferredProductType,
-    title: titleTrimmed,
-    destinationRaw: String(raw.destination ?? '').trim() || null,
-    primaryDestination: String(raw.primaryDestination ?? '').trim() || null,
-    destination: String(raw.destination ?? '').trim() || null,
-    pastedSnippet: inferBase.slice(0, 12_000),
-  })
 
   const extractionFieldIssues: RegisterExtractionFieldIssue[] = [
     ...parseLlmExtractionFieldIssues(raw.fieldIssues),
