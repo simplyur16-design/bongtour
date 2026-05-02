@@ -25,8 +25,8 @@ import PartnerOrganizationsSectionGate from './components/home/PartnerOrganizati
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from '@/lib/home-page-metadata'
 
-/** `home-hub-active.json` 갱신이 빌드 없이 메인에 반영되도록(정적 프리렌더 고정 방지). */
-export const dynamic = 'force-dynamic'
+/** 5분 ISR — 허브 카드 풀·시즌 큐레이션은 최대 5분 지연 후 반영. */
+export const revalidate = 300
 
 export const metadata: Metadata = {
   title: { absolute: HOME_PAGE_TITLE },
@@ -45,9 +45,12 @@ export const metadata: Metadata = {
 
 /** 메인: 밝은 헤더 + 통합 라이트 상단 + 비주얼 허브 (하단 회사정보는 전역 SiteFooter) */
 export default async function Home() {
-  /** 해외·국내 스코프 혼선 추적을 쉽게 하기 위해 순차 호출(결과는 각각 overseas / domestic 전용). */
-  const overseasCover = await pickHomeHubTravelCardCover('overseas')
-  const domesticCover = await pickHomeHubTravelCardCover('domestic')
+  const [overseasCover, domesticCover, homeSeasonSlidesRaw] = await Promise.all([
+    pickHomeHubTravelCardCover('overseas'),
+    pickHomeHubTravelCardCover('domestic'),
+    getSeasonCurationSlidesForMobileHome(),
+  ])
+  const homeSeasonSlides = normalizeHomeSeasonSlidesForClient(homeSeasonSlidesRaw)
 
   const hubActive = getHomeHubActiveFile()
   const hubSnap = hubActive ? { images: hubActive.images, imageSourceModes: hubActive.imageSourceModes } : null
@@ -61,8 +64,6 @@ export default async function Home() {
     productPoolOverseasUrl: overseasCover?.imageSrc ?? null,
     productPoolDomesticUrl: domesticCover?.imageSrc ?? null,
   })
-
-  const homeSeasonSlides = normalizeHomeSeasonSlidesForClient(await getSeasonCurationSlidesForMobileHome())
 
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">

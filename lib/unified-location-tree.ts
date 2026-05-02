@@ -47,9 +47,12 @@ export type UnifiedLocationNode = {
 
 export const OVERSEAS_LOCATION_TREE_SOURCE: OverseasRegionGroupNode[] = OVERSEAS_LOCATION_TREE_DATA
 
-const CONTINENT_TABS: { id: string; label: string }[] = [
-  { id: 'northeast-asia', label: '동북아' },
-  { id: 'southeast-asia', label: '동남아' },
+/** 메가메뉴 탭 순서·라벨. `treeLabel`은 통합 트리(문서/확장)용 대륙 표기. */
+const CONTINENT_TABS: { id: string; label: string; treeLabel?: string }[] = [
+  { id: 'japan', label: '일본', treeLabel: '일본' },
+  { id: 'southeast-asia', label: '동남아', treeLabel: '동남아 · 대만 · 서남아' },
+  { id: 'china-mongolia-ca', label: '중국', treeLabel: '중국/몽골/중앙아시아' },
+  { id: 'hongkong-macau', label: '홍콩/마카오', treeLabel: '홍콩/마카오' },
   { id: 'europe', label: '유럽' },
   { id: 'me-africa', label: '중동/아프리카' },
   { id: 'americas', label: '미주' },
@@ -74,7 +77,11 @@ export function collectLeafTerms(country: OverseasCountryNode, leaf: OverseasLea
 
 /** 유럽 블록 vs 중동·아프리카 블록 분리 (공급사 `europe-me-africa` 그룹 내부) */
 function continentIdForLegacyCountry(groupKey: string, countryKey: string): string {
-  if (groupKey === 'japan' || groupKey === 'china-circle') return 'northeast-asia'
+  if (groupKey === 'japan') return 'japan'
+  if (groupKey === 'china-circle') {
+    if (countryKey === 'hk-mo-sz') return 'hongkong-macau'
+    return 'china-mongolia-ca'
+  }
   if (groupKey === 'sea-taiwan-south-asia') return 'southeast-asia'
   if (groupKey === 'guam-au-nz') return 'oceania'
   if (groupKey === 'americas') return 'americas'
@@ -93,7 +100,7 @@ function continentIdForLegacyCountry(groupKey: string, countryKey: string): stri
 }
 
 /**
- * 레거시 매칭 트리를 6개 대륙 탭 메가메뉴로 변환.
+ * 레거시 매칭 트리를 지리 권역 탭 메가메뉴로 변환.
  * 국가 라벨이 동일하면 같은 헤더 아래 도시만 합친다.
  */
 export function buildGeographicMegaMenuRegions(): MegaMenuRegion[] {
@@ -241,7 +248,7 @@ export function topNavMegaRegionsFiltered(regions: MegaMenuRegion[]): MegaMenuRe
 }
 
 /**
- * 6개 대륙 + 매칭 그룹을 합친 통합 뷰(플랫하지 않음) — 확장·문서용.
+ * 지리 권역 탭 + 매칭 그룹을 합친 통합 뷰(플랫하지 않음) — 확장·문서용.
  */
 /** `matchProductToOverseasNode` 결과 → browse `continent` 쿼리 슬러그 */
 export function continentTabIdForMatch(groupKey: string, countryKey: string | undefined): string {
@@ -251,7 +258,7 @@ export function continentTabIdForMatch(groupKey: string, countryKey: string | un
 export function buildUnifiedLocationRoot(): UnifiedLocationNode[] {
   const continents: UnifiedLocationNode[] = CONTINENT_TABS.map((c) => ({
     id: c.id,
-    label: c.label,
+    label: c.treeLabel ?? c.label,
     type: 'continent',
     megaMenuVisible: true,
     children: [],

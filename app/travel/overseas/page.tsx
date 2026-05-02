@@ -16,7 +16,6 @@ import {
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
 
-export const dynamic = 'force-dynamic'
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -47,16 +46,20 @@ export default async function OverseasTravelPage({
   const region = typeof sp.region === 'string' ? sp.region : null
   const country = typeof sp.country === 'string' ? sp.country : null
 
+  const [editorialAll, overseasSeasonCurationSlides] = await Promise.all([
+    fetchPublishedOverseasEditorials().catch(
+      (): Awaited<ReturnType<typeof fetchPublishedOverseasEditorials>> => [],
+    ),
+    getSeasonCurationSlidesForOverseasProductHub(region, country),
+  ])
+
   let overseasEditorialBriefing: OverseasEditorialBriefingPayload | null = null
   try {
-    const editorialAll = await fetchPublishedOverseasEditorials()
     const prioritized = prioritizeEditorialsByRegionAndCountry(editorialAll, region, country)
     overseasEditorialBriefing = editorialRowToBriefingPayload(prioritized[0], 220)
   } catch {
     // 목록은 브리핑 없이 표시
   }
-
-  const overseasSeasonCurationSlides = await getSeasonCurationSlidesForOverseasProductHub(region, country)
 
   return (
     <div className="min-h-screen bg-bt-page">

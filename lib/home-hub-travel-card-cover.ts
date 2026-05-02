@@ -73,7 +73,7 @@ export async function pickHomeHubTravelCardCover(
         itineraries: {
           select: { day: true, description: true },
           orderBy: { day: 'asc' },
-          take: 60,
+          take: 24,
         },
       },
     })

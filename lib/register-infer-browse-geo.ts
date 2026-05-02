@@ -14,8 +14,10 @@ export type InferredBrowseGeo = { continent: string; country: string; city: stri
 
 /** continent id → Pexels·UI용 한글 권역 라벨 */
 export const CONTINENT_ID_TO_PRIMARY_REGION_KR: Record<string, string> = {
-  'northeast-asia': '동북아',
+  japan: '일본',
   'southeast-asia': '동남아',
+  'china-mongolia-ca': '중국',
+  'hongkong-macau': '홍콩/마카오',
   europe: '유럽',
   'me-africa': '중동·아프리카',
   americas: '미주',

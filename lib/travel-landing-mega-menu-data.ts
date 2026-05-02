@@ -24,8 +24,10 @@ export const OVERSEAS_DESTINATION_BRIEF_FALLBACK =
   '표시 상품은 공급사 등록 기준이며, 일정·요금·출발 확정은 상담 시 안내드립니다.'
 
 export const OVERSEAS_DESTINATION_BRIEFS: Record<string, string> = {
-  'northeast-asia': '일본·중국·대만 등 단거리 일정은 항공·비자 확인이 중요합니다.',
+  japan: '일본 일정은 지역·항공편 확인이 중요합니다.',
   'southeast-asia': '동남아·대만은 휴양·가족 문의가 많고, 도시마다 성수기가 다릅니다.',
+  'china-mongolia-ca': '중국·몽골·중앙아시아는 비자·동선 변경 가능성을 함께 확인하세요.',
+  'hongkong-macau': '홍콩·마카오·심천은 입국 규정·항공 스케줄을 확인하는 것이 좋습니다.',
   europe: '유럽 일정은 항공 스케줄·비자 확인이 중요합니다.',
   'me-africa': '중동·아프리카는 비자·안전 공지·항공편에 따라 동선이 달라질 수 있습니다.',
   americas: '미주·캐나다는 동부·서부 동선과 시차를 고려한 일정이 많습니다.',

@@ -12,7 +12,7 @@ export default function RegionHoverTabs({ regions, activeRegionId, onHoverRegion
   return (
     <div className="border-b border-slate-200 bg-white">
       <div
-        className="mx-auto flex w-full max-w-6xl flex-nowrap items-stretch gap-0 overflow-x-auto px-2 py-0 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-3 [&::-webkit-scrollbar]:hidden"
+        className="mx-auto flex w-full max-w-6xl flex-nowrap items-stretch justify-center gap-0 overflow-x-auto px-2 py-0 text-center [-ms-overflow-style:none] [scrollbar-width:none] sm:px-3 [&::-webkit-scrollbar]:hidden"
         role="tablist"
         aria-label="권역"
       >
@@ -24,8 +24,8 @@ export default function RegionHoverTabs({ regions, activeRegionId, onHoverRegion
             aria-selected={activeRegionId === r.id}
             className={
               activeRegionId === r.id
-                ? 'shrink-0 whitespace-nowrap border-b-2 border-teal-600 bg-white px-3 py-3 text-left text-[12px] font-semibold text-teal-700 sm:px-3.5 sm:text-[13px]'
-                : 'shrink-0 whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-left text-[12px] font-medium text-slate-800 transition hover:border-slate-300 hover:text-slate-950 sm:px-3.5 sm:text-[13px]'
+                ? 'shrink-0 whitespace-nowrap border-b-2 border-teal-600 bg-white px-3 py-3 text-center text-[12px] font-semibold text-teal-700 sm:px-3.5 sm:text-[13px]'
+                : 'shrink-0 whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-center text-[12px] font-medium text-slate-800 transition hover:border-slate-300 hover:text-slate-950 sm:px-3.5 sm:text-[13px]'
             }
             onMouseEnter={() => onHoverRegion(r.id)}
             onFocus={() => onHoverRegion(r.id)}

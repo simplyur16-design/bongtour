@@ -19,12 +19,12 @@ const DENSE_CITY_GRID_MIN = 5
  */
 export default function CountryCityMegaPanel({ regionId, countryGroups, activeProductType }: Props) {
   return (
-    <div className="max-h-[min(78vh,560px)] min-h-[300px] overflow-y-auto p-6 text-center">
+    <div className="max-h-[min(78vh,560px)] min-h-[300px] overflow-y-auto p-6">
       <div className="mx-auto grid w-full max-w-6xl grid-cols-3 justify-items-center gap-x-8 gap-y-6 lg:grid-cols-4">
         {countryGroups.map((g, idx) => {
           const denseCities = g.cities.length >= DENSE_CITY_GRID_MIN
           return (
-            <div key={`${g.countryLabel}-${idx}`} className="flex min-w-0 w-full max-w-[220px] flex-col items-center text-center">
+            <div key={`${g.countryLabel}-${idx}`} className="flex min-w-0 w-full max-w-[220px] flex-col items-center">
               <Link
                 href={buildProductsHrefCountryOnly({
                   type: activeProductType,
@@ -38,12 +38,12 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
               <ul
                 className={
                   denseCities
-                    ? 'grid w-full grid-cols-2 justify-items-center gap-x-4 gap-y-1.5 text-center'
-                    : 'flex w-full flex-col items-center space-y-1.5 text-center'
+                    ? 'grid w-full grid-cols-2 justify-items-start gap-x-4 gap-y-1.5 text-left'
+                    : 'flex w-full flex-col items-stretch space-y-1.5 text-left'
                 }
               >
                 {g.cities.map((c) => (
-                  <li key={c.label} className="min-w-0 w-full max-w-full text-center">
+                  <li key={c.label} className="min-w-0 w-full max-w-full text-left">
                     <Link
                       href={buildProductsHref({
                         type: activeProductType,
@@ -51,7 +51,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                         countryLabel: g.countryLabel,
                         leaf: c,
                       })}
-                      className="block truncate py-0.5 text-center text-sm text-slate-600 transition hover:text-teal-600"
+                      className="block truncate py-0.5 text-left text-sm text-slate-600 transition hover:text-teal-600"
                       title={c.label}
                     >
                       {c.label}
