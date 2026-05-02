@@ -406,14 +406,24 @@ export function HomeHubHybridCardOperationsPanel({
                 </span>
               </div>
               <div className="relative mt-2 aspect-[16/9] w-full overflow-hidden rounded-md bg-slate-800">
-                <SafeImage
-                  src={detail.url}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="(max-width:1024px) 100vw, 50vw"
-                  unoptimized={detail.url.startsWith('http')}
-                />
+                {detail.url.startsWith('http') ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- 외부 URL은 next/image 프록시 없이 직접 로드(관리자 미리보기)
+                  <img
+                    src={detail.url}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  <SafeImage
+                    src={detail.url}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="(max-width:1024px) 100vw, 50vw"
+                  />
+                )}
                 <div className="absolute bottom-1 left-1 right-1 rounded bg-slate-950/88 px-2 py-1 text-[10px] leading-snug text-slate-300">
                   {detail.explanationShort}
                 </div>
