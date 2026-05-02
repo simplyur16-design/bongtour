@@ -129,7 +129,7 @@ export function isHanatourEnglishPexelsImageKeywordReady(kw: string): boolean {
 }
 
 function hanatourBlobLooksEuropeanOrNordic(j: string): boolean {
-  return /(코펜하겐|Copenhagen|København|오슬로|Oslo|베르겐|Bergen|스톡홀름|Stockholm|헬싱키|Helsinki|노르웨이|Norway|스웨덴|Sweden|핀란드|Finland|덴마크|Denmark|북유럽|유럽|피요르드|fjord|Fjord|게일로|Geilo|플롬|Flåm|Flam|에이드|Aurland|Aurlands|플라\b|외레브로|Örebro|Silja|DFDS|노르딜|스칸디나비아|Scandinavia|바사|Vasa|감라스탄|Gamla Stan|시벨리우스|Sibelius|우스펜스키|Uspenski|핀에어|Finnair|쉥겐|Baltic|발틱|발트)/i.test(
+  return /(코펜하겐|Copenhagen|København|오슬로|Oslo|베르겐|Bergen|스톡홀름|Stockholm|헬싱키|Helsinki|노르웨이|Norway|스웨덴|Sweden|핀란드|Finland|덴마크|Denmark|북유럽|유럽|동유럽|중유럽|남유럽|지중해|피요르드|fjord|Fjord|게일로|Geilo|플롬|Flåm|Flam|에이드|Aurland|Aurlands|플라\b|외레브로|Örebro|Silja|DFDS|노르딜|스칸디나비아|Scandinavia|바사|Vasa|감라스탄|Gamla Stan|시벨리우스|Sibelius|우스펜스키|Uspenski|핀에어|Finnair|쉥겐|Baltic|발틱|발트|부다페스트|Budapest|헝가리|Hungary|자그레브|Zagreb|크로아티아|Croatia|스플리트|Split\b|두브로브니크|Dubrovnik|발칸|Balkan|아드리아|Adriatic|슬로베니아|Slovenia|류블랴나|Ljubljana|루마니아|Romania|부카레스트|Bucharest|발라톤|Balaton|티하니|Tihany|플리트비체|Plitvice|비엔나|Vienna|프라하|Prague|로마|Rome|파리|Paris|바르셀로나|Barcelona)/i.test(
     j
   )
 }
@@ -194,6 +194,12 @@ function mapKoreanSightFragmentToEnglishPexels(fragment: string, blobCtx: string
     [/스톡홀름|Stockholm/i, 'Stockholm Sweden waterfront old town scenic'],
     [/헬싱키|Helsinki/i, 'Helsinki Finland Baltic waterfront scenic'],
     [/핀에어|Finnair/i, 'Finnair airplane cabin travel Europe'],
+    [/부다페스트|Budapest/i, 'Budapest Hungary Parliament Danube scenic'],
+    [/자그레브|Zagreb/i, 'Zagreb Croatia historic upper town'],
+    [/스플리트|Split\b/i, 'Split Croatia Diocletian palace waterfront'],
+    [/두브로브니크|Dubrovnik/i, 'Dubrovnik Croatia old town walls Adriatic'],
+    [/티하니|Tihany/i, 'Lake Balaton Tihany peninsula village Hungary'],
+    [/발라톤|Balaton/i, 'Lake Balaton Hungary lakeshore scenic'],
     [/나트랑|Nha\s*Trang|ニャチャン/i, 'Nha Trang Vietnam beach city skyline'],
     [/레이비치|Long\s*Beach/i, 'Nha Trang beach coast resort view'],
   ]
@@ -249,6 +255,13 @@ export function buildSafeHanatourImageFallbackKeyword(blob: string, day: number,
   if (day === maxDay && maxDay >= 2 && /(인천|ICN)/i.test(j) && /(헬싱키|Helsinki|핀란드)/i.test(j)) {
     return 'Helsinki Vantaa airport departure Finland winter'
   }
+  if (
+    /(부다페스트|Budapest|헝가리|Hungary|자그레브|Zagreb|크로아티아|Croatia|스플리트|Split|두브로브니크|Dubrovnik|발칸|Balkan|발라톤|Balaton|티하니|Tihany|아드리아|Adriatic|슬로베니아|Slovenia|류블랴나|Ljubljana|부카레스트|Bucharest)/i.test(
+      j
+    )
+  ) {
+    return 'Central Europe historic city travel Adriatic scenic'
+  }
   return 'Northern Europe Scandinavian fjord landscape scenic'
 }
 
@@ -268,9 +281,31 @@ function mapKoreanTravelCityTokenToEnglish(token: string): string | null {
     [/스톡홀름|Stockholm/i, 'Stockholm Sweden'],
     [/헬싱키|Helsinki/i, 'Helsinki Finland'],
     [/보스\b|Voss/i, 'Voss Norway'],
+    [/부다페스트|Budapest/i, 'Budapest Hungary Danube Parliament scenic'],
+    [/자그레브|Zagreb/i, 'Zagreb Croatia historic upper town'],
+    [/스플리트|Split\b/i, 'Split Croatia Diocletian palace waterfront'],
+    [/두브로브니크|Dubrovnik/i, 'Dubrovnik Croatia old town walls Adriatic'],
+    [/티하니|Tihany/i, 'Lake Balaton Tihany peninsula village Hungary'],
+    [/발라톤|Balaton/i, 'Lake Balaton Hungary lakeshore scenic'],
+    [/부카레스트|Bucharest/i, 'Bucharest Romania city architecture'],
+    [/류블랴나|Ljubljana/i, 'Ljubljana Slovenia old town river'],
   ]
   for (const [re, en] of m) {
     if (re.test(t)) return `${en} travel scenic`
+  }
+  return null
+}
+
+/** 본문에 등장하는 매핑 가능한 첫 도시(한국 공항·출발지 토큰 제외) → 영문 키워드 */
+function firstHanatourBlobMappedEnglishCityKeyword(blob: string): string | null {
+  const j = blob.slice(0, 14_000)
+  for (const name of [..._hanatour_PLACE_NAMES].sort((a, b) => b.length - a.length)) {
+    if (!j.includes(name)) continue
+    if (/^(인천|김포|김해|대구|광주|청주|양양|서울)$/i.test(name)) continue
+    if (/^(ICN|GMP|PUS|TAE|CJJ|YNY)$/i.test(name)) continue
+    if (/공항/.test(name)) continue
+    const en = mapKoreanSightFragmentToEnglishPexels(name, j) ?? mapKoreanTravelCityTokenToEnglish(name)
+    if (en) return en.replace(/\s+travel\s+scenic$/i, ' travel scenic').slice(0, 120)
   }
   return null
 }
@@ -317,6 +352,10 @@ export function hanatourEnglishPexelsImageKeywordFromBlob(blob: string, day: num
   const fromHeadlineSight = pickPrimarySightEnglishForHanatourDay(blob)
   if (fromHeadlineSight) return fromHeadlineSight.slice(0, 120)
 
+  /** 일차 chunk만 있어도 본문에 등장하는 유럽·발칸 도시명 → 영문 키워드 우선(인천·Asian 폴백보다 앞) */
+  const bodyCityKwEarly = firstHanatourBlobMappedEnglishCityKeyword(j)
+  if (bodyCityKwEarly) return bodyCityKwEarly.slice(0, 120)
+
   if (day === 1 && /ICN|인천|Incheon/i.test(j) && /PVG|Pudong|푸동|상해|Shanghai/i.test(j) && /도착|arrival/i.test(j)) {
     return 'Shanghai Pudong airport arrival'
   }
@@ -335,17 +374,51 @@ export function hanatourEnglishPexelsImageKeywordFromBlob(blob: string, day: num
   if (/방콕|Bangkok/i.test(j)) return 'Bangkok temple river golden hour skyline'
   if (/도쿄|Tokyo/i.test(j)) return 'Tokyo Shibuya crossing night city lights'
   if (/파리|Paris/i.test(j)) return 'Paris Eiffel Tower skyline twilight'
-  if (/인천|Incheon/i.test(j) && day === 1) return 'Incheon International Airport departure gate'
 
   if (hanatourBlobLooksEuropeanOrNordic(j)) {
     return buildSafeHanatourImageFallbackKeyword(blob, day, maxDay).slice(0, 120)
+  }
+
+  if (day === 1 && /인천|Incheon|ICN/i.test(j)) {
+    const hasForeignArrival =
+      /(도착|입국|착륙|arrival|landed).{0,160}(부다페스트|로마|파리|런던|프라하|비엔나|자그레브|두브로브|스플리트|부카레스트|자다르|류블랴나|부다페|헝가리|크로아티아|Budapest|Rome|Paris|London|Prague|Vienna|Zagreb|Dubrovnik|Split|Ljubljana)/i.test(
+        j
+      ) ||
+      /(부다페스트|로마|파리|런던|프라하|비엔나|자그레브|두브로브|스플리트|Budapest|Rome|Paris|London|Prague|Vienna|Zagreb|Dubrovnik).{0,120}(도착|입국|착륙)/i.test(
+        j
+      )
+    if (hasForeignArrival) {
+      const kw = firstHanatourBlobMappedEnglishCityKeyword(j) ?? pickPrimarySightEnglishForHanatourDay(blob)
+      if (kw) return kw.slice(0, 120)
+    }
+    if (!hasForeignArrival) return 'Incheon International Airport departure gate'
   }
 
   if (/(베트남|Vietnam)/i.test(j) && /(바다|해안|beach|호핑|섬|island|리조트|resort|다이빙|snorkel|coast|bay)/i.test(j)) {
     return 'Vietnam tropical beach coastline resort'
   }
 
-  return 'Scenic Asian city travel skyline dusk'
+  if (
+    /(상해|上海|Shanghai|연길|延吉|Yanji|방콕|Bangkok|도쿄|Tokyo|오사카|Osaka|나트랑|Nha\s*Trang|다낭|Da\s*Nang|호치민|하노이|발리|Bali|싱가포르|Singapore|타이페이|Taipei|서울\s*근교|제주)/i.test(
+      j
+    )
+  ) {
+    if (/(상해|上海|Shanghai)/i.test(j)) return 'Shanghai skyline night Huangpu river'
+    if (/(연길|延吉|Yanji)/i.test(j)) return 'Yanji Korean quarter street night market'
+    if (/(방콕|Bangkok)/i.test(j)) return 'Bangkok temple river golden hour skyline'
+    if (/(도쿄|Tokyo)/i.test(j)) return 'Tokyo Shibuya crossing night city lights'
+    if (/(오사카|Osaka)/i.test(j)) return 'Osaka Dotonbori city night'
+    if (/(나트랑|Nha\s*Trang)/i.test(j)) return 'Nha Trang beach city skyline'
+    if (/(다낭|Da\s*Nang)/i.test(j)) return 'Da Nang beach city skyline'
+    if (/(호치민|하노이)/i.test(j)) return 'Vietnam city river colonial architecture'
+    if (/발리|Bali/i.test(j)) return 'Bali rice terraces jungle sunrise'
+    if (/싱가포르|Singapore/i.test(j)) return 'Singapore Marina Bay night skyline'
+    if (/(타이페이|Taipei)/i.test(j)) return 'Taipei city skyline night district'
+    if (/(서울\s*근교|제주)/i.test(j)) return 'Korea coastal city scenic travel'
+    return 'East Asia city travel street architecture scenic'
+  }
+
+  return 'European city travel historic architecture scenic'
 }
 
 /** 카드 description: 3~4문장 권장, 허용 200~400자(C1 정책과 정합) */
@@ -486,6 +559,25 @@ function stripLeadingHanatourDatePrefix(s: string): string {
 }
 
 /** 장문 일정표·리스트·다문장이 카드 description으로 들어온 경우 */
+/** 일차 chunk에 섞이면 안 되는 메타 섹션(가이드·유의사항·출입국 등) */
+function isHanatourMetaScheduleNoiseLine(line: string): boolean {
+  const t = line.trim()
+  if (!t) return false
+  if (/가이드\s*\/\s*인솔자|인솔자\s*및\s*미팅|미팅\s*정보|가이드\/인솔자|가이드\s*및\s*인솔|인솔자\s*안내|미팅정보/i.test(t)) return true
+  if (/여행\s*시\s*유의사항|예약\s*전\s*유의사항|출입국\s*카드|출입국\s*정보|여행자\s*보험|패스포트\s*안내|e\s*티켓|이티켓/i.test(t)) return true
+  if (/^※.*(유의|미팅|가이드|인솔)/i.test(t)) return true
+  if (/^[\[【].*(유의사항|미팅|가이드|인솔|출입국)/i.test(t)) return true
+  if (/상품\s*안내\s*및\s*유의사항|여행\s*계약서|하나투어\s*고객센터/i.test(t)) return true
+  return false
+}
+
+const HANATOUR_TOURISM_BOILERPLATE_RE =
+  /핵심\s*일정을\s*중심으로\s*관광합니다|일대를\s*순서대로\s*둘러본\s*뒤\s*이동과\s*관람을\s*이어가며\s*당일\s*관광\s*일정을\s*마무리합니다|둘러본\s*뒤\s*관광과\s*이동을\s*이어가며\s*일정을\s*마무리합니다|중심으로\s*당일\s*코스를\s*관광합니다|당일\s*예정\s*코스를\s*따라\s*둘러본\s*뒤|순서대로\s*둘러본\s*뒤\s*이동과\s*관람을\s*이어가며|일대를\s*순서대로\s*둘러본\s*뒤/
+
+function looksLikeHanatourTourismBoilerplate(s: string): boolean {
+  return HANATOUR_TOURISM_BOILERPLATE_RE.test(s)
+}
+
 function hanatourDescriptionLooksLikeDetailDump(s: string): boolean {
   const t = s.trim()
   if (!t) return false
@@ -515,12 +607,14 @@ function stripHanatourScheduleNoiseLines(raw: string): string[] {
     }
     const low = line.toLowerCase()
     if (HANATOUR_TITLE_FORBIDDEN.has(low)) continue
+    if (isHanatourMetaScheduleNoiseLine(line)) continue
     if (HANATOUR_LINE_NOISE_RES.some((re) => re.test(line))) continue
     if (isHanatourMealOrHotelLine(line)) continue
     if (line.length > 200) continue
     const compact = line.replace(/\s+/g, '')
     if (compact.length >= 24 && /^(.{6,40})\1{2,}/.test(compact)) continue
-    if (line === prev && line.length < 120) continue
+    /** 동일 줄이 연속 반복(본문 복제·파싱 오류) 시 1회만 유지 — 길이 제한 없음 */
+    if (line === prev) continue
     out.push(line)
     prev = line
   }
@@ -675,8 +769,13 @@ function mergeHanatourTitlePlaceParts(parts: string[], maxParts: number): string
     out.push(n)
     if (out.length >= maxParts) break
   }
-  if (out.length >= 2) return out.join(' - ').slice(0, 80)
-  if (out.length === 1) return out[0]!
+  const deduped: string[] = []
+  for (const p of out) {
+    if (deduped.length && deduped[deduped.length - 1] === p) continue
+    deduped.push(p)
+  }
+  if (deduped.length >= 2) return deduped.join(' - ').slice(0, 80)
+  if (deduped.length === 1) return deduped[0]!
   return null
 }
 
@@ -883,18 +982,22 @@ function extractHanatourOrderedPlaceHints(j: string): string[] {
 function headlineTourismSegments(headLine: string | null): string[] {
   if (!headLine) return []
   const t = stripLeadingHanatourDatePrefix(headLine)
-  return t
-    .split(/[,，、·]/)
-    .map((s) => s.trim())
-    .filter(
-      (s) =>
-        s.length >= 2 &&
-        s.length <= 28 &&
-        !isHanatourMealOrHotelLine(s) &&
-        !isHanatourDateLikeScheduleToken(s) &&
-        !/요금|소요시간|대체일정|TIP|호텔|조식|중식|석식/i.test(s)
-    )
-    .slice(0, 3)
+  const seen = new Set<string>()
+  const seg: string[] = []
+  for (const raw of t.split(/[,，、·]/)) {
+    const s = raw.trim()
+    if (s.length < 2 || s.length > 28) continue
+    if (isHanatourMealOrHotelLine(s)) continue
+    if (isHanatourDateLikeScheduleToken(s)) continue
+    if (/요금|소요시간|대체일정|TIP|호텔|조식|중식|석식/i.test(s)) continue
+    if (seen.has(s)) continue
+    /** 연속 동일 도시·구(스플리트, 스플리트) 제거 */
+    if (seg.length && seg[seg.length - 1] === s) continue
+    seen.add(s)
+    seg.push(s)
+    if (seg.length >= 3) break
+  }
+  return seg
 }
 
 function pickBestHanatourMotionSummaryLine(lines: string[]): string | null {
@@ -904,6 +1007,7 @@ function pickBestHanatourMotionSummaryLine(lines: string[]): string | null {
     const line = stripLeadingHanatourDatePrefix(raw).replace(/\s+/g, ' ').trim()
     if (line.length < 12 || line.length > 160) continue
     if (isHanatourMealOrHotelLine(line)) continue
+    if (isHanatourMetaScheduleNoiseLine(line)) continue
     if (/요금|소요시간|대체일정|TIP|상세내용|이전다음|일정표_|^이동\s*\(/i.test(line)) continue
     if (!/(출발|도착|입국|귀국|경유|미팅|공항|터미널|항공)/.test(line)) continue
     const score =
@@ -923,6 +1027,7 @@ function pickBestHanatourTourismSummaryLine(lines: string[]): string | null {
     const line = stripLeadingHanatourDatePrefix(raw).replace(/\s+/g, ' ').trim()
     if (line.length < 12 || line.length > 160) continue
     if (isHanatourMealOrHotelLine(line)) continue
+    if (isHanatourMetaScheduleNoiseLine(line)) continue
     if (/요금|소요시간|대체일정|TIP|상세내용|이전다음|일정표_|유의사항/i.test(line)) continue
     if (!/(관광|탐방|명소|유람|코스|방문|데이투어)/.test(line)) continue
     if (/^이동\s*\(/.test(line) && line.length < 70) continue
@@ -973,9 +1078,22 @@ function primaryGeoToken(joined: string, title: string): string | null {
 }
 
 /** 다문장 허용: 길이만 상한으로 맞추고(문장 개수 강제 없음), 끝 문장부호만 보정한다. */
-function hanatourTrimOneSentenceMax(s: string, max: number = HANATOUR_CARD_DESCRIPTION_MAX): string {
+function hanatourTrimOneSentenceMax(
+  s: string,
+  max: number = HANATOUR_CARD_DESCRIPTION_MAX,
+  /** 빈 문자열일 때만: 본문 스니펫(템플릿 문장 대신) */
+  emptyFallbackSnippet?: string
+): string {
   let t = s.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim()
-  if (!t) return '일정표에 따라 이동·관광을 진행합니다.'
+  if (!t) {
+    const fb = (emptyFallbackSnippet ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
+    const fbLines = fb
+      .split(/[.!?。\n]/)
+      .map((x) => x.replace(/\s+/g, ' ').trim())
+      .filter((x) => x.length >= 12 && !looksLikeHanatourTourismBoilerplate(x) && !isHanatourMetaScheduleNoiseLine(x))
+    t = fbLines[0] ?? (fb.length >= 10 ? fb : '')
+  }
+  if (!t) return ''
   if (t.length > max) {
     const cut = t.slice(0, max)
     const sp = cut.lastIndexOf(' ')
@@ -994,6 +1112,7 @@ function hanatourEnsureDescriptionMinLength(
   const bare = () => t.replace(/\.$/, '').length
   if (bare() >= HANATOUR_CARD_DESCRIPTION_TARGET) return t
   let guard = 0
+  const usedFrags = new Set<string>()
   while (bare() < HANATOUR_CARD_DESCRIPTION_TARGET && guard < 4) {
     guard += 1
     const ml =
@@ -1007,6 +1126,10 @@ function hanatourEnsureDescriptionMinLength(
     const sp = clip.lastIndexOf(' ')
     const prefix = (sp > 22 ? clip.slice(0, sp) : clip).trim()
     if (prefix.length < 12) break
+    const norm = prefix.replace(/\s+/g, '').slice(0, 80)
+    if (usedFrags.has(norm)) break
+    usedFrags.add(norm)
+    if (t.includes(prefix) || (prefix.length >= 16 && t.includes(prefix.slice(0, Math.min(24, prefix.length))))) break
     const merged = `${prefix} ${t}`.replace(/\s+/g, ' ').trim()
     if (merged.length <= bare() + 2) break
     t = merged
@@ -1045,25 +1168,107 @@ function hanatourMovementDescriptionFallback(joined: string, day: number, maxDay
   )
 }
 
+/** 본문 줄만으로 3~4문장 분량의 관광 설명(고정 템플릿 문장 금지) */
+function composeHanatourTourismDescriptionFromBodyLines(lines: string[], joined: string, title: string): string | null {
+  const cand: string[] = []
+  const primary = pickBestHanatourTourismSummaryLine(lines)
+  if (primary && !looksLikeHanatourTourismBoilerplate(primary)) {
+    cand.push(stripLeadingHanatourDatePrefix(primary).replace(/\s+/g, ' ').trim())
+  }
+  for (const raw of lines) {
+    const line = stripLeadingHanatourDatePrefix(raw).replace(/\s+/g, ' ').trim()
+    if (line.length < 14 || line.length > 220) continue
+    if (isHanatourMealOrHotelLine(line)) continue
+    if (isHanatourMetaScheduleNoiseLine(line)) continue
+    if (/요금|소요시간|대체일정|TIP|이전다음|일정표_/i.test(line)) continue
+    if (looksLikeHanatourTourismBoilerplate(line)) continue
+    if (!/(관광|방문|탐방|명소|유람|체험|포토|둘러보|코스|일정|이동|공항|도착|출발)/.test(line)) continue
+    if (cand.some((c) => c === line)) continue
+    cand.push(line)
+    if (cand.length >= 5) break
+  }
+  if (!cand.length) {
+    const head = findHanatourItineraryHeadline(lines)
+    if (head && !looksLikeHanatourTourismBoilerplate(head)) {
+      const h = stripLeadingHanatourDatePrefix(head).replace(/\s+/g, ' ').trim()
+      if (h.length >= 12) cand.push(h)
+    }
+  }
+  if (!cand.length) return null
+  const sentences: string[] = []
+  for (const block of cand) {
+    const parts = block
+      .split(/(?<=[.!?。])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 10 && !looksLikeHanatourTourismBoilerplate(s))
+    if (parts.length) {
+      for (const p of parts) {
+        sentences.push(/[.!?。]$/.test(p) ? p : `${p}.`)
+        if (sentences.length >= 4) break
+      }
+    } else if (!looksLikeHanatourTourismBoilerplate(block)) {
+      sentences.push(/[.!?。]$/.test(block) ? block : `${block}.`)
+    }
+    if (sentences.length >= 4) break
+  }
+  let out = sentences.join(' ').replace(/\s+/g, ' ').trim()
+  if (out.length < 50 && cand[0] && !looksLikeHanatourTourismBoilerplate(cand[0]!)) {
+    const b0 = /[.!?。]$/.test(cand[0]!) ? cand[0]! : `${cand[0]!}.`
+    const stem = b0.replace(/\.$/, '')
+    if (!out.includes(stem)) out = `${b0} ${out}`.replace(/\s+/g, ' ').trim()
+  }
+  if (!out || looksLikeHanatourTourismBoilerplate(out)) return null
+  const titleParts = title.split(/\s*-\s*/).map((s) => s.trim()).filter((s) => s.length >= 2 && s.length <= 22)
+  if (out.length < 90 && titleParts.length >= 2) {
+    const hint = titleParts.slice(0, 4).join(', ')
+    if (hint && joined.includes(titleParts[0]!) && !out.includes(titleParts[0]!)) {
+      out = `${out} (${hint}).`.replace(/\s+/g, ' ').trim()
+    }
+  }
+  return out.length >= 24 ? out : null
+}
+
 function hanatourTourismDescriptionFallback(
   joined: string,
   title: string,
   day: number,
-  maxDay: number
+  maxDay: number,
+  lines: string[]
 ): string {
   if (isHanatourMovementPatternDay(joined, day, maxDay)) {
     return hanatourMovementDescriptionFallback(joined, day, maxDay)
   }
+  const fromLines = composeHanatourTourismDescriptionFromBodyLines(lines, joined, title)
+  if (fromLines) {
+    return hanatourTrimOneSentenceMax(fromLines, HANATOUR_CARD_DESCRIPTION_MAX, joined.slice(0, 400))
+  }
   const pois = extractOrderedKnownPoiFromJoined(joined)
-  if (pois.length >= 2) {
-    return hanatourTrimOneSentenceMax(
-      `${pois.slice(0, Math.min(5, pois.length)).join(', ')} 일대를 순서대로 둘러본 뒤 이동과 관람을 이어가며 당일 관광 일정을 마무리합니다.`,
-      HANATOUR_CARD_DESCRIPTION_MAX
-    )
+  const poisDedup = pois.filter((p, i) => i === 0 || p !== pois[i - 1])
+  if (poisDedup.length >= 2) {
+    const rawList = [...new Set(poisDedup)].slice(0, 8).join(', ')
+    return hanatourTrimOneSentenceMax(`${rawList}.`, HANATOUR_CARD_DESCRIPTION_MAX, joined.slice(0, 400))
+  }
+  const head = findHanatourItineraryHeadline(lines)
+  if (head) {
+    const h = stripLeadingHanatourDatePrefix(head).replace(/\s+/g, ' ').trim().slice(0, 380)
+    if (h.length >= 14 && !looksLikeHanatourTourismBoilerplate(h)) {
+      return hanatourTrimOneSentenceMax(h, HANATOUR_CARD_DESCRIPTION_MAX, joined.slice(0, 400))
+    }
+  }
+  const rawJoin = lines
+    .map((l) => stripLeadingHanatourDatePrefix(l).trim())
+    .filter((l) => l.length >= 14 && !isHanatourMetaScheduleNoiseLine(l) && !isHanatourMealOrHotelLine(l))
+    .slice(0, 4)
+    .join(' ')
+  if (rawJoin.length >= 24) {
+    return hanatourTrimOneSentenceMax(rawJoin, HANATOUR_CARD_DESCRIPTION_MAX, joined.slice(0, 400))
   }
   const geo = primaryGeoToken(joined, title)
-  if (geo) return `${geo} 핵심 일정을 중심으로 관광합니다.`
-  return `일정표에 따라 관광·이동을 진행합니다.`
+  if (geo && !/^(인천|김포|서울|ICN|GMP)$/i.test(geo)) {
+    const hit = lines.find((l) => l.includes(geo) && l.length >= 16) ?? joined.split('\n').find((l) => l.includes(geo))
+    if (hit?.trim()) return hanatourTrimOneSentenceMax(hit.trim().slice(0, 380), HANATOUR_CARD_DESCRIPTION_MAX, joined.slice(0, 400))
+  }
+  return hanatourTrimOneSentenceMax(joined.slice(0, 280).trim(), HANATOUR_CARD_DESCRIPTION_MAX, joined.slice(0, 400))
 }
 
 function buildHanatourMovementDayDescription(
@@ -1117,34 +1322,34 @@ function buildHanatourTourismDayDescription(
   day: number,
   maxDay: number
 ): string {
-  const parts = title.split(/\s*-\s*/).map((s) => s.trim()).filter((s) => s.length >= 2)
-  const geo = primaryGeoToken(joined, title) ?? ''
-  let core = ''
-  if (parts.length >= 4) {
-    const lead = parts.slice(0, 4).join(', ')
-    const g = geo || parts[0]!
-    core = `${lead} 등 ${g} 일대를 순서대로 둘러본 뒤 관광과 이동을 이어가며 당일 일정을 마무리합니다.`
-  } else if (parts.length === 3) {
-    core = `${parts[0]}, ${parts[1]}, ${parts[2]} 일대를 연속으로 둘러본 뒤 동선을 따라 관광과 이동을 마무리합니다.`
-  } else if (parts.length === 2) {
-    core = `${parts[0]}와 ${parts[1]} 일대를 차례로 둘러본 뒤 당일 관광과 이동을 마무리합니다.`
-  } else if (parts.length === 1) {
-    const head = findHanatourItineraryHeadline(lines)
-    const seg = headlineTourismSegments(head)
-    if (seg.length >= 2) core = `${parts[0]} ${seg[0]}, ${seg[1]} 등을 둘러본 뒤 일정을 마무리합니다.`
-    else core = `${parts[0]} 중심으로 당일 코스를 관광합니다.`
-  } else {
-    const head = findHanatourItineraryHeadline(lines)
-    const seg = headlineTourismSegments(head)
-    if (seg.length >= 3) core = `${seg.slice(0, 3).join(', ')} 등을 둘러본 뒤 일정을 마무리합니다.`
-    else if (seg.length === 2) core = `${seg[0]}와 ${seg[1]} 일대를 둘러본 뒤 일정을 마무리합니다.`
-    else
-      return hanatourTrimOneSentenceMax(
-        hanatourEnsureDescriptionMinLength(hanatourTourismDescriptionFallback(joined, title, day, maxDay), lines),
-        HANATOUR_CARD_DESCRIPTION_MAX
-      )
+  const fromBody = composeHanatourTourismDescriptionFromBodyLines(lines, joined, title)
+  if (fromBody && !looksLikeHanatourTourismBoilerplate(fromBody)) {
+    return hanatourTrimOneSentenceMax(
+      hanatourEnsureDescriptionMinLength(fromBody, lines),
+      HANATOUR_CARD_DESCRIPTION_MAX,
+      joined.slice(0, 400)
+    )
   }
-  return hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(core, lines), HANATOUR_CARD_DESCRIPTION_MAX)
+  let fb = hanatourTourismDescriptionFallback(joined, title, day, maxDay, lines)
+  if (looksLikeHanatourTourismBoilerplate(fb)) {
+    const rawJoin = lines
+      .map((l) => stripLeadingHanatourDatePrefix(l).trim())
+      .filter(
+        (l) =>
+          l.length >= 14 &&
+          !isHanatourMetaScheduleNoiseLine(l) &&
+          !isHanatourMealOrHotelLine(l) &&
+          !looksLikeHanatourTourismBoilerplate(l)
+      )
+      .slice(0, 4)
+      .join(' ')
+    fb = rawJoin.length >= 24 ? rawJoin : joined.slice(0, 280).trim()
+  }
+  return hanatourTrimOneSentenceMax(
+    hanatourEnsureDescriptionMinLength(fb, lines),
+    HANATOUR_CARD_DESCRIPTION_MAX,
+    joined.slice(0, 400)
+  )
 }
 
 function inferHanatourReturnHomeDay(day: number, maxDay: number, joined: string): boolean {
@@ -1212,28 +1417,26 @@ function buildDenseMovementArrivalDescription(joined: string, lines: string[]): 
   return out
 }
 
-function buildDenseTourismDescriptionFromPois(joined: string, title: string): string {
+function buildDenseTourismDescriptionFromPois(joined: string, title: string, lines: string[]): string {
+  const fromBody = composeHanatourTourismDescriptionFromBodyLines(lines, joined, title)
+  if (fromBody) return fromBody
   const pois = extractOrderedKnownPoiFromJoined(joined)
   const titleParts = title.split(/\s*-\s*/).map((s) => s.trim()).filter((s) => s.length >= 2)
-  const ordered = [...new Set([...titleParts, ...pois])].filter(Boolean).slice(0, 6)
-  const geo = primaryGeoToken(joined, title) ?? ''
-  if (ordered.length >= 5) {
-    const a = ordered.slice(0, 3).join(', ')
-    const b = ordered.slice(3, 5).join(', ')
-    return `${geo ? `${geo} ` : ''}${a}와 ${b}를 잇는 동선으로 둘러본 뒤 당일 관광과 이동을 마무리합니다.`.replace(/\s+/g, ' ')
+  const uniq = [...new Set([...titleParts, ...pois])].filter(Boolean).slice(0, 8)
+  const ordered: string[] = []
+  for (const x of uniq) {
+    if (ordered.length && ordered[ordered.length - 1] === x) continue
+    ordered.push(x)
   }
-  if (ordered.length >= 4) {
-    const a = ordered.slice(0, 2).join(', ')
-    const b = ordered.slice(2, 4).join(', ')
-    return `${geo ? `${geo} ` : ''}${a}, ${b} 일대를 연속으로 둘러본 뒤 관광과 이동을 이어가며 일정을 마무리합니다.`.replace(/\s+/g, ' ')
+  if (ordered.length >= 2) {
+    return ordered.join(', ') + '.'
   }
-  if (ordered.length === 3) {
-    return `${geo ? `${geo} ` : ''}${ordered[0]}, ${ordered[1]}, ${ordered[2]}를 순서대로 둘러본 뒤 당일 동선을 따라 관광을 마무리합니다.`.replace(/\s+/g, ' ')
+  const head = findHanatourItineraryHeadline(lines)
+  if (head) {
+    const h = stripLeadingHanatourDatePrefix(head).replace(/\s+/g, ' ').trim()
+    if (h.length >= 14) return h.slice(0, 380)
   }
-  if (ordered.length === 2) {
-    return `${geo ? `${geo} ` : ''}${ordered[0]}와 ${ordered[1]} 일대를 차례로 둘러본 뒤 이동과 관람을 이어가며 일정을 정리합니다.`.replace(/\s+/g, ' ')
-  }
-  return `${geo || '현지'} 당일 예정 코스를 따라 둘러본 뒤 관광과 이동을 마무리합니다.`
+  return joined.slice(0, 260).trim()
 }
 
 /**
@@ -1281,16 +1484,21 @@ function finalizeHanatourCardDescriptionInformation(
       core = rebuildMovementDayDescriptionWithoutTourismWording(lines, joined, day, maxDay).replace(/\.$/, '')
     }
   } else {
-    if (L() < HANATOUR_CARD_DESCRIPTION_MIN || /핵심\s*일정을\s*중심으로/.test(core)) {
-      core = buildDenseTourismDescriptionFromPois(joined, title).replace(/\.$/, '')
+    if (
+      L() < HANATOUR_CARD_DESCRIPTION_MIN ||
+      /핵심\s*일정을\s*중심으로/.test(core) ||
+      looksLikeHanatourTourismBoilerplate(core)
+    ) {
+      const reb = composeHanatourTourismDescriptionFromBodyLines(lines, joined, title)
+      core = (reb ?? buildDenseTourismDescriptionFromPois(joined, title, lines)).replace(/\.$/, '')
     }
     if (L() < HANATOUR_CARD_DESCRIPTION_TARGET && extractOrderedKnownPoiFromJoined(joined).length >= 4) {
-      const alt = buildDenseTourismDescriptionFromPois(joined, title).replace(/\.$/, '')
+      const alt = buildDenseTourismDescriptionFromPois(joined, title, lines).replace(/\.$/, '')
       if (alt.length > L()) core = alt
     }
     if (L() < HANATOUR_CARD_DESCRIPTION_MIN) {
       core = hanatourEnsureDescriptionMinLength(
-        `${hanatourTourismDescriptionFallback(joined, title, day, maxDay)}`,
+        `${hanatourTourismDescriptionFallback(joined, title, day, maxDay, lines)}`,
         lines
       ).replace(/\.$/, '')
     }
@@ -1327,7 +1535,7 @@ function composeHanatourScheduleDescriptionSentence(
     desc = hanatourEnsureDescriptionMinLength(
       movementDay
         ? hanatourMovementDescriptionFallback(joined, day, maxDay)
-        : hanatourTourismDescriptionFallback(joined, title, day, maxDay),
+        : hanatourTourismDescriptionFallback(joined, title, day, maxDay, lines),
       lines
     )
   }
@@ -1335,18 +1543,31 @@ function composeHanatourScheduleDescriptionSentence(
     desc = hanatourEnsureDescriptionMinLength(
       movementDay
         ? hanatourMovementDescriptionFallback(joined, day, maxDay)
-        : hanatourTourismDescriptionFallback(joined, title, day, maxDay),
+        : hanatourTourismDescriptionFallback(joined, title, day, maxDay, lines),
       lines
     )
     if (hanatourDescriptionOverlapsTitle(title, desc)) {
+      const rawSnippet = lines
+        .map((l) => stripLeadingHanatourDatePrefix(l).trim())
+        .filter(
+          (l) =>
+            l.length >= 16 &&
+            !isHanatourMetaScheduleNoiseLine(l) &&
+            !isHanatourMealOrHotelLine(l) &&
+            !looksLikeHanatourTourismBoilerplate(l)
+        )
+        .slice(0, 2)
+        .join(' ')
+      const lastResort =
+        rawSnippet.length >= 24
+          ? rawSnippet.slice(0, 320)
+          : movementDay
+            ? joined.slice(0, 220).trim()
+            : joined.slice(0, 320).trim()
       desc = hanatourTrimOneSentenceMax(
-        hanatourEnsureDescriptionMinLength(
-          movementDay
-            ? '공항·구간 이동에 따라 당일 동선을 진행합니다.'
-            : '관광·이동 순서에 따라 당일 일정을 진행합니다.',
-          lines
-        ),
-        HANATOUR_CARD_DESCRIPTION_MAX
+        hanatourEnsureDescriptionMinLength(lastResort, lines),
+        HANATOUR_CARD_DESCRIPTION_MAX,
+        joined.slice(0, 400)
       )
     }
   }
@@ -1538,9 +1759,9 @@ export function gatherHanatourScheduleSectionBodiesByDay(detailBody: DetailBodyP
       currentDay = d
       buf.length = 0
       const rest = stripDayHeader(line)
-      if (rest) buf.push(rest)
+      if (rest && !isHanatourMetaScheduleNoiseLine(rest)) buf.push(rest)
     } else if (currentDay > 0) {
-      buf.push(line)
+      if (!isHanatourMetaScheduleNoiseLine(line)) buf.push(line)
     }
   }
   if (currentDay > 0) {
@@ -1995,6 +2216,7 @@ function validateHanatourGeminiCardPolishOutput(
     /(조식|중식|석식|호텔\s*투숙|예정\s*호텔|Holiday\s*Inn|홀리데이\s*인|딤섬|일정표_|상세보기|이전다음|요금\s*:|소요시간|대체일정|\[TIP\]|※\s*※)/i
   if (forbid.test(t) || forbid.test(d)) return null
   if (!d.endsWith('.')) return null
+  if (looksLikeHanatourTourismBoilerplate(d)) return null
   if (kind === 'return_home') {
     if (!/(귀국|인천)/.test(d)) return null
     if (/(관광합니다|핵심\s*코스)/.test(d)) return null
