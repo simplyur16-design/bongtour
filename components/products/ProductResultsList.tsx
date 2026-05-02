@@ -18,6 +18,7 @@ import { PRODUCT_CARD_IMAGE_BLUR_DATA_URL } from '@/lib/product-card-image-blur'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { interleaveProductsBySupplier } from '@/lib/interleave-products-by-supplier'
+import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import {
   matchProductToDomesticNode,
   type DomesticProductMatchInput,
@@ -57,6 +58,11 @@ const PRODUCT_LIST_INITIAL_DESKTOP = 8
 const productCardGridClassDefault = 'mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
 /** 해외 허브: 전체 너비 — 3/4열 */
 const productCardGridClassOverseasWide = 'mt-6 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
+
+function overseasFlatGridClassAfterHeading(wideLayout: boolean): string {
+  const base = wideLayout ? productCardGridClassOverseasWide : productCardGridClassDefault
+  return base.replace(/^mt-\d+\s+/, 'mt-4 ')
+}
 
 /** 권역별 가로 스크롤 줄: 카드 폭 (좁은 메인 / 넓은 메인) */
 const overseasBucketRowLiClassDefault =
@@ -121,6 +127,11 @@ type Props = {
   seasonalPickIds?: ReadonlySet<string> | null
   /** `/travel/overseas` 에서 지역 미선택 시 — 카드 그리드·가로줄 카드 폭 확장 */
   overseasHubWideLayout?: boolean
+  /**
+   * browse URL `country` 슬러그가 있을 때: 대륙(버킷) 그룹핑 없이 한글 나라명 헤더 + 플랫 그리드.
+   * `region`만 있으면 null 유지 → 권역(버킷) 그룹 유지.
+   */
+  overseasFlatByCountrySlug?: string | null
 }
 
 const AIR_HOTEL_MISC_SECTION = '기타'
@@ -997,6 +1008,7 @@ export default function ProductResultsList({
   overseasSeasonCurationSlides = null,
   seasonalPickIds = null,
   overseasHubWideLayout = false,
+  overseasFlatByCountrySlug = null,
 }: Props) {
   if (groupDomesticByRegion && items.length > 0) {
     return <DomesticRegionGroupedList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
@@ -1004,6 +1016,29 @@ export default function ProductResultsList({
 
   if (groupAirHotelByCountry && items.length > 0) {
     return <AirHotelCountryGroupedList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
+  }
+
+  const countrySlugForFlat = (overseasFlatByCountrySlug ?? '').trim().toLowerCase()
+  const overseasCountryFlatMode = Boolean(groupOverseasByRegion && countrySlugForFlat)
+  if (overseasCountryFlatMode) {
+    const heading = koreanCountryLabelFromBrowseSlug(countrySlugForFlat) ?? countrySlugForFlat
+    const flatGridClass = overseasFlatGridClassAfterHeading(overseasHubWideLayout)
+    return (
+      <section className="mt-6 scroll-mt-4" aria-labelledby="overseas-country-flat-heading">
+        <h2
+          id="overseas-country-flat-heading"
+          className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
+        >
+          {heading}
+        </h2>
+        <FlatProductResultsList
+          items={items}
+          formatWon={formatWon}
+          seasonalPickIds={seasonalPickIds}
+          cardGridClass={flatGridClass}
+        />
+      </section>
+    )
   }
 
   const hasBucketMeta = items.some((i) => i.overseasBucket != null || i.countryRowLabel != null)

@@ -766,10 +766,11 @@ export default function ProductsBrowseClient({
             groupDomesticByRegion={isDomesticHub}
             overseasEditorialBriefing={overseasEditorialBriefing}
             overseasSeasonCurationSlides={
-              isOverseasProductsHub && !hasMegaGeo ? null : overseasSeasonCurationSlides
+              pathname === '/travel/overseas' && defaultScope === 'overseas' ? null : overseasSeasonCurationSlides
             }
             seasonalPickIds={browsePresented.seasonalPickIds}
             overseasHubWideLayout={overseasHubWideLayout}
+            overseasFlatByCountrySlug={q.country?.trim() || null}
           />
           {data.total > data.limit &&
             !(
