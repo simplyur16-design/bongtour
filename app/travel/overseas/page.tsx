@@ -62,8 +62,7 @@ export default async function OverseasTravelPage({
     getSeasonCurationSlidesForOverseasProductHub(region, country),
   ])
 
-  const overseasSeasonCurationSlides =
-    overseasHubMonthCurations.length > 0 ? null : overseasSeasonCurationSlidesRaw
+  const overseasSeasonCurationSlides = overseasSeasonCurationSlidesRaw
 
   let overseasEditorialBriefing: OverseasEditorialBriefingPayload | null = null
   try {
@@ -100,9 +99,7 @@ export default async function OverseasTravelPage({
                 region={region}
                 country={country}
                 omitEditorialSection
-                omitMonthlyCuration={
-                  overseasHubMonthCurations.length > 0 || (overseasSeasonCurationSlidesRaw?.length ?? 0) > 0
-                }
+                omitMonthlyCuration={overseasHubMonthCurations.length > 0}
               />
             </>
           }

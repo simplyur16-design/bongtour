@@ -802,13 +802,7 @@ export default function ProductsBrowseClient({
             groupAirHotelByCountry={pathname === '/travel/air-hotel'}
             groupDomesticByRegion={isDomesticHub}
             overseasEditorialBriefing={overseasEditorialBriefing}
-            overseasSeasonCurationSlides={
-              pathname === '/travel/overseas' &&
-              defaultScope === 'overseas' &&
-              (overseasHubMonthCurations?.length ?? 0) > 0
-                ? null
-                : overseasSeasonCurationSlides
-            }
+            overseasSeasonCurationSlides={overseasSeasonCurationSlides}
             seasonalPickIds={browsePresented.seasonalPickIds}
             overseasHubWideLayout={overseasHubWideLayout}
           />
