@@ -52,6 +52,8 @@ export function modetourItineraryDraftsApplyParsedScheduleOverlay(
   return drafts.map((d) => {
     const o = byDay.get(d.day)
     if (!o) return d
+    const mergedCity = d.city?.trim() || o.city?.trim() || null
+    const mergedPoiNamesRaw = d.poiNamesRaw?.trim() || o.poiNamesRaw?.trim() || null
     const sRow = schedByDay.get(d.day)
     const mealFromDesc = extractModetourMealSummaryFromScheduleDescription(
       typeof sRow?.description === 'string' ? sRow.description : undefined
@@ -84,13 +86,15 @@ export function modetourItineraryDraftsApplyParsedScheduleOverlay(
       accommodation: hotelText ?? (d.accommodation?.trim() || null),
     }
     if (brief.length < 8 && !hasMeal && !hasMealFromDraft) {
-      return { ...d, ...mealFields }
+      return { ...d, ...mealFields, city: mergedCity, poiNamesRaw: mergedPoiNamesRaw }
     }
     return {
       ...d,
       summaryTextRaw: brief.length >= 8 ? o.summaryTextRaw : d.summaryTextRaw,
       rawBlock: brief.length >= 8 ? (o.rawBlock ?? d.rawBlock) : d.rawBlock,
       ...mealFields,
+      city: mergedCity,
+      poiNamesRaw: mergedPoiNamesRaw,
     }
   })
 }

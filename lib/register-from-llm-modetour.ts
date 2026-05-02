@@ -1619,6 +1619,7 @@ ${text.slice(0, 16000)}`
         day: Number(s?.day) || 0,
         title: String(s?.title ?? '').trim(),
         description: String(s?.description ?? '').trim(),
+        routeText: strOrNull(rec.routeText),
         imageKeyword: polishModetourImageKeyword(String(s?.imageKeyword ?? '').trim(), {
           day: Number(s?.day) || 0,
           title: String(s?.title ?? '').trim(),
