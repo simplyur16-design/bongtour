@@ -1,101 +1,33 @@
 /**
  * 상단 메가메뉴 URL ↔ 목적지 매칭용 terms.
- * `lib/travel-landing-mega-menu-data`의 권역·국가·도시와 동일 slug로 역조회한다.
+ * 권역·슬러그는 `lib/unified-location-tree` + `lib/location-url-slugs` 와 동일 규칙.
  */
 import type { MegaMenuLeaf, MegaMenuRegion } from '@/lib/travel-landing-mega-menu-data'
 import { OVERSEAS_MEGA_MENU_REGIONS } from '@/lib/travel-landing-mega-menu-data'
+import { countrySlugFromLabel, citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
 
 /** 메가메뉴에서 일반 권역만 (추천/자유/공급사 특수 탭 제외) */
 export const TOP_NAV_MEGA_REGIONS: MegaMenuRegion[] = OVERSEAS_MEGA_MENU_REGIONS.filter(
-  (r) => !r.special && r.countryGroups?.length
+  (r) => !r.special && r.countryGroups?.length,
 )
 
-/** 영문 slug (URL에 사용) — 국가 라벨 */
-const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
-  서유럽: 'western-europe',
-  동유럽: 'eastern-europe',
-  남유럽: 'southern-europe',
-  북유럽: 'northern-europe',
-  중동: 'middle-east',
-  아프리카: 'africa',
-  태국: 'thailand',
-  베트남: 'vietnam',
-  필리핀: 'philippines',
-  대만: 'taiwan',
-  싱가포르: 'singapore',
-  인도네시아: 'indonesia',
-  라오스: 'laos',
-  몰디브: 'maldives',
-  '인도/네팔/스리랑카': 'india-nepal-sri-lanka',
-  일본: 'japan',
-  중국: 'china',
-  '홍콩 · 마카오': 'hong-kong-macau',
-  몽골: 'mongolia',
-  '괌 · 사이판': 'guam-saipan',
-  호주: 'australia',
-  '뉴질랜드': 'new-zealand',
-  하와이: 'hawaii',
-  미국: 'usa',
-  캐나다: 'canada',
-  중남미: 'latin-america',
-  '허니문 인기': 'honeymoon-picks',
-  '동경/관동': 'tokyo-kanto',
-  '오사카/간사이': 'osaka-kansai',
-  알펜루트: 'alpine-route',
-  '홍콩/마카오/심천': 'hk-mo-sz',
-  '상해/북경': 'shanghai-beijing',
-  '청도/위해/연태': 'qingdao-weihai-yantai',
-  '계림/침주': 'guilin-chenzhou',
-  '성도/구채구': 'chengdu-jiuzhaigou',
-  하이난: 'hainan',
-  '몽골/내몽고': 'mongolia-inner',
-  말레이시아: 'malaysia',
-  캄보디아: 'cambodia',
-  '동남아 다국가여행': 'sea-multi',
-  미서부: 'us-west',
-  미동부: 'us-east',
-  '중남미/멕시코': 'latin-mexico',
-  '스포츠 테마': 'sports-theme',
-  '국내 출발지': 'korea-departure',
-  '골프 인기': 'golf-popular',
-  '지중해·북유럽': 'cruise-med-north',
-}
-
-function slugFromEnglishTerm(terms: string[]): string {
-  const en = terms.find((t) => /^[A-Za-z]/.test(t.trim()))
-  if (en) {
-    return en
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-  }
-  return ''
-}
-
-export function countrySlugFromLabel(countryLabel: string): string {
-  const mapped = COUNTRY_SLUG_BY_LABEL[countryLabel]
-  if (mapped) return mapped
-  return countryLabel
-    .toLowerCase()
-    .replace(/[^a-z0-9가-힣]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
+export { countrySlugFromLabel }
 
 export function citySlugFromLeaf(leaf: MegaMenuLeaf): string {
-  const fromEn = slugFromEnglishTerm(leaf.terms)
-  if (fromEn) return fromEn
-  return leaf.label
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9가-힣-]+/g, '')
+  return citySlugFromTermsAndLabel(leaf.label, leaf.terms)
 }
 
-/** 메가메뉴 기본 `travel` 은 URL에 넣지 않음 — 실제 상품이 에어텔/자유로만 분류돼도 목적지 필터만으로 0건이 되지 않게 */
+/** 메가메뉴 기본 `travel` 은 URL에 넣지 않음 */
 function appendBrowseTypeParamIfNarrowing(params: URLSearchParams, type: string): void {
   const u = type.trim().toLowerCase()
   if (u === '' || u === 'travel') return
   params.set('type', type.trim())
+}
+
+export type BrowseHrefScope = 'overseas' | 'domestic'
+
+function browseBasePath(scope: BrowseHrefScope): string {
+  return scope === 'domestic' ? '/travel/domestic' : '/travel/overseas'
 }
 
 export function buildProductsHref(opts: {
@@ -103,25 +35,34 @@ export function buildProductsHref(opts: {
   regionId: string
   countryLabel: string
   leaf: MegaMenuLeaf
+  /** 기본 해외 허브 — 국내 전용 링크만 domestic */
+  scope?: BrowseHrefScope
 }): string {
   const params = new URLSearchParams()
   appendBrowseTypeParamIfNarrowing(params, opts.type)
+  const scope = opts.scope ?? 'overseas'
+  if (scope === 'overseas') params.set('scope', 'overseas')
+  else params.set('scope', 'domestic')
   params.set('region', opts.regionId)
   params.set('country', countrySlugFromLabel(opts.countryLabel))
   params.set('city', citySlugFromLeaf(opts.leaf))
-  return `/products?${params.toString()}`
+  return `${browseBasePath(scope)}?${params.toString()}`
 }
 
 export function buildProductsHrefCountryOnly(opts: {
   type: string
   regionId: string
   countryLabel: string
+  scope?: BrowseHrefScope
 }): string {
   const params = new URLSearchParams()
   appendBrowseTypeParamIfNarrowing(params, opts.type)
+  const scope = opts.scope ?? 'overseas'
+  if (scope === 'overseas') params.set('scope', 'overseas')
+  else params.set('scope', 'domestic')
   params.set('region', opts.regionId)
   params.set('country', countrySlugFromLabel(opts.countryLabel))
-  return `/products?${params.toString()}`
+  return `${browseBasePath(scope)}?${params.toString()}`
 }
 
 /**
@@ -137,6 +78,6 @@ export function destinationTermsFromQuery(region: string | null, country: string
   if (!city) {
     return group.cities.flatMap((c) => c.terms)
   }
-  const leaf = group.cities.find((c) => citySlugFromLeaf(c) === city)
+  const leaf = group.cities.find((c) => citySlugFromTermsAndLabel(c.label, c.terms) === city)
   return leaf ? [...leaf.terms] : []
 }

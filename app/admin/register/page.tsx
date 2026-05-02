@@ -20,6 +20,10 @@ import type { RegisterPreviewPayload as RegisterPreviewPayloadM } from '@/lib/re
 import type { RegisterPreviewPayload as RegisterPreviewPayloadV } from '@/lib/register-preview-payload-verygoodtour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadY } from '@/lib/register-preview-payload-ybtour'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
+import {
+  CONTINENT_ID_TO_PRIMARY_REGION_KR,
+  inferBrowseGeoFromDestinationText,
+} from '@/lib/register-infer-browse-geo'
 import SafeImage from '@/app/components/SafeImage'
 import AdminPageHeader from '../components/AdminPageHeader'
 import RegisterCorrectionDrawer from './components/RegisterCorrectionDrawer'
@@ -51,6 +55,17 @@ import {
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
 
 const LOADING_STATUS = '분석 중…' as const
+
+function draftPrimaryRegionKr(
+  d: { primaryDestination?: string | null; destinationRaw?: string | null } | null | undefined,
+): string | null {
+  if (!d) return null
+  const g = inferBrowseGeoFromDestinationText({
+    primaryDestination: d.primaryDestination,
+    destinationRaw: d.destinationRaw,
+  })
+  return g ? CONTINENT_ID_TO_PRIMARY_REGION_KR[g.continent] ?? null : null
+}
 
 /** 브라우저·프록시 무한 대기 방지(LLM·다중 호출로 길어질 수 있음) */
 const REGISTER_PREVIEW_FETCH_TIMEOUT_MS = 15 * 60 * 1000
@@ -214,7 +229,7 @@ function buildRegisterPexelsUiRows(
     const autoKw =
       buildPexelsKeyword({
         destination: d.primaryDestination ?? d.destinationRaw ?? null,
-        primaryRegion: null,
+        primaryRegion: draftPrimaryRegionKr(d),
         themeTags: null,
         title: d.title ?? null,
         poiNamesRaw: raw.poiNamesRaw ?? null,
@@ -460,7 +475,7 @@ export default function AdminRegisterPage() {
     if (!token || !d) return
     const k = buildPexelsKeyword({
       destination: d.primaryDestination ?? d.destinationRaw ?? null,
-      primaryRegion: null,
+      primaryRegion: draftPrimaryRegionKr(d),
       themeTags: null,
       title: d.title ?? null,
       poiNamesRaw: null,
@@ -675,6 +690,8 @@ export default function AdminRegisterPage() {
     }
     setConfirming(true)
     setError('')
+    // TODO(geo): 각 공급사 confirm API가 `Product.continent`·`country`·`city`(browse 슬러그)까지
+    // 저장하도록 확장할 때, `inferBrowseGeoFromDestinationText` 결과를 parsed와 함께 넘긴다.
     try {
       const parsedMerged = applyRegisterCorrectionOverlayForSupplier(
         selectedBrandKey,

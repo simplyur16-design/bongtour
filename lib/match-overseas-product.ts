@@ -21,6 +21,10 @@ export type OverseasProductMatchInput = {
   destination?: string | null
   /** 동남아·유럽 등 1차 권역 메타 */
   primaryRegion?: string | null
+  /** browse URL·메가메뉴와 동일 슬러그 — 있으면 지역 필터에서 텍스트보다 우선 */
+  continent?: string | null
+  country?: string | null
+  city?: string | null
 }
 
 /**
@@ -40,8 +44,23 @@ export function buildOverseasProductMatchHaystack(p: OverseasProductMatchInput):
 
 export function productMatchesOverseasDestinationTerms(
   product: OverseasProductMatchInput,
-  terms: string[]
+  terms: string[],
+  urlGeo?: { region: string | null; country: string | null; city: string | null }
 ): boolean {
+  const dbCont = (product.continent ?? '').trim().toLowerCase()
+  const dbCountry = (product.country ?? '').trim().toLowerCase()
+  const dbCity = (product.city ?? '').trim().toLowerCase()
+  const hasDbGeo = Boolean(dbCont && dbCountry)
+
+  if (urlGeo?.region && urlGeo?.country && hasDbGeo) {
+    const r = urlGeo.region.trim().toLowerCase()
+    const c = urlGeo.country.trim().toLowerCase()
+    if (dbCont !== r || dbCountry !== c) return false
+    const urlCity = (urlGeo.city ?? '').trim().toLowerCase()
+    if (!urlCity) return true
+    if (dbCity) return dbCity === urlCity
+  }
+
   if (terms.length === 0) return true
   const haystack = buildOverseasProductMatchHaystack(product)
   return terms.some((t) => {

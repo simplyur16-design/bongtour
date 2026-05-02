@@ -1,6 +1,6 @@
 /**
  * 등록된 해외 상품과 매칭되는 목적지 노드만 남긴 파생 트리.
- * 원본 OVERSEAS_LOCATION_TREE / OVERSEAS_LOCATION_TREE_CLEAN 은 SSOT로 유지.
+ * 원본 매칭 트리는 `lib/unified-location-tree` → `overseas-location-tree.data` SSOT.
  */
 import { triageProductTitleForPickTab } from '@/lib/gallery-product-triage'
 import { parseTravelScope } from '@/lib/product-listing-kind'

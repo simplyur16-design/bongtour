@@ -60,6 +60,9 @@ export function toOverseasMatchInput(p: {
   destinationRaw: string | null
   destination: string | null
   primaryRegion: string | null
+  continent?: string | null
+  country?: string | null
+  city?: string | null
 }): OverseasProductMatchInput {
   return {
     title: p.title,
@@ -68,6 +71,9 @@ export function toOverseasMatchInput(p: {
     destinationRaw: p.destinationRaw,
     destination: p.destination,
     primaryRegion: p.primaryRegion,
+    continent: p.continent ?? null,
+    country: p.country ?? null,
+    city: p.city ?? null,
   }
 }
 
@@ -97,12 +103,14 @@ export function scoreAndFilterProducts(
     destinationTerms: string[]
     budgetPerPersonMax: number | null
     sort: BrowseSort
+    /** URL `region`·`country`·`city` — DB continent/country/city 슬러그와 직접 비교 */
+    urlGeo?: { region: string | null; country: string | null; city: string | null }
   }
 ): BrowseScoredProduct[] {
   const list: BrowseScoredProduct[] = []
   for (const p of rows) {
     if (!productMatchesBrowseType(p, opts.type)) continue
-    if (!productMatchesOverseasDestinationTerms(toOverseasMatchInput(p), opts.destinationTerms)) continue
+    if (!productMatchesOverseasDestinationTerms(toOverseasMatchInput(p), opts.destinationTerms, opts.urlGeo)) continue
     const effectivePricePerPerson = computeEffectivePricePerPersonKrwFromRow(p)
     if (opts.budgetPerPersonMax != null) {
       if (effectivePricePerPerson == null || effectivePricePerPerson > opts.budgetPerPersonMax) continue

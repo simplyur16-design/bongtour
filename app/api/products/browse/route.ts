@@ -235,11 +235,14 @@ export async function GET(request: Request) {
           ? 'popular'
           : sort
 
+    const urlGeo = { region, country, city }
+
     const scoredForFacets = scoreAndFilterProducts(filteredRows, {
       type: browseTypeForScore,
       destinationTerms: scoringDestinationTerms,
       budgetPerPersonMax: null,
       sort: 'popular',
+      urlGeo,
     })
 
     const facetRows = scoredForFacets.map((s) => s.product as ProductBrowseFullRow)
@@ -252,6 +255,7 @@ export async function GET(request: Request) {
       destinationTerms: scoringDestinationTerms,
       budgetPerPersonMax,
       sort: effectiveSort,
+      urlGeo,
     })
 
     if (departMonth && /^\d{4}-\d{2}$/.test(departMonth)) {
@@ -368,6 +372,9 @@ export async function GET(request: Request) {
               destinationRaw: p.destinationRaw,
               destination: p.destination,
               primaryRegion: p.primaryRegion,
+              continent: p.continent ?? null,
+              country: p.country ?? null,
+              city: p.city ?? null,
             }
             const match = matchProductToOverseasNode(matchInput)
             const overseasBucket = resolveOverseasDisplayBucketForBrowse(matchInput, match)

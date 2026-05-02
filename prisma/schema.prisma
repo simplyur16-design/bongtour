@@ -39,6 +39,12 @@ model Product {
   destination           String?        // [레거시] 목적지. 신규는 destinationRaw/primaryDestination
   destinationRaw        String?        // 목적지 표기 원문 (A 상세)
   primaryDestination    String?        // 대표 목적지 정규화값, 노출·필터용 (운영 메타)
+  /// `lib/unified-location-tree`·메가메뉴 URL과 동일한 대륙 슬러그(예: northeast-asia). 수동 매핑 우선.
+  continent             String?
+  /// browse 국가 슬러그(예: thailand). `countryKey`(트리 매칭)와 별개.
+  country               String?
+  /// browse 도시 슬러그(예: bangkok). `nodeKey`와 별개일 수 있음.
+  city                  String?
   /// `lib/overseas-location-tree` SSOT — 상품 등록 시 추론, 실패 시 null
   countryKey            String?
   nodeKey               String?
