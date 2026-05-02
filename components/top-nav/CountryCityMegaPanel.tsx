@@ -12,26 +12,26 @@ type Props = {
 }
 
 /** 도시가 많은 나라 블록은 2열로 읽기 쉽게 */
-const DENSE_CITY_GRID_MIN = 5
+const DENSE_CITY_GRID_MIN = 6
 
 /**
  * 여행사형 메가패널 — 나라별 블록 구분·도시 탭/클릭 영역 강화.
  */
 export default function CountryCityMegaPanel({ regionId, countryGroups, activeProductType }: Props) {
   return (
-    <div className="max-h-[min(78vh,560px)] min-h-[300px] overflow-y-auto p-6">
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-3 justify-items-center gap-x-8 gap-y-6 lg:grid-cols-4">
+    <div className="max-h-[min(78vh,560px)] min-h-[300px] overflow-y-auto px-10 py-8">
+      <div className="mx-auto grid w-full max-w-[1200px] grid-cols-3 gap-x-16 gap-y-10 lg:grid-cols-4">
         {countryGroups.map((g, idx) => {
           const denseCities = g.cities.length >= DENSE_CITY_GRID_MIN
           return (
-            <div key={`${g.countryLabel}-${idx}`} className="flex min-w-0 w-full max-w-[220px] flex-col items-center">
+            <div key={`${g.countryLabel}-${idx}`} className="flex min-w-0 w-full max-w-[220px] flex-col items-start">
               <Link
                 href={buildProductsHrefCountryOnly({
                   type: activeProductType,
                   regionId,
                   countryLabel: g.countryLabel,
                 })}
-                className="mb-2 block w-full border-b border-slate-200 pb-1 text-center text-base font-bold leading-snug tracking-tight text-slate-900 transition hover:text-teal-700"
+                className="mb-3 block text-left text-[15px] font-bold leading-snug text-slate-800 transition hover:text-teal-600"
               >
                 {g.countryLabel}
               </Link>
@@ -51,7 +51,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                         countryLabel: g.countryLabel,
                         leaf: c,
                       })}
-                      className="block truncate py-0.5 text-left text-sm text-slate-600 transition hover:text-teal-600"
+                      className="block py-0.5 text-left text-[13px] text-slate-400 transition hover:text-teal-500"
                       title={c.label}
                     >
                       {c.label}
