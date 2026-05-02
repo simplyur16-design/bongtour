@@ -53,6 +53,17 @@ const PRODUCT_CARD_LOAD_STEP = 4
 const PRODUCT_LIST_INITIAL_MOBILE = 4
 const PRODUCT_LIST_INITIAL_DESKTOP = 8
 
+/** 해외 허브: 좌측 필터 있음 — 2/3열 */
+const productCardGridClassDefault = 'mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
+/** 해외 허브: 전체 너비 — 3/4열 */
+const productCardGridClassOverseasWide = 'mt-6 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
+
+/** 권역별 가로 스크롤 줄: 카드 폭 (좁은 메인 / 넓은 메인) */
+const overseasBucketRowLiClassDefault =
+  'w-[min(17.5rem,calc(100vw-2.75rem))] shrink-0 snap-start sm:w-[min(19rem,calc((100vw-3rem)/2))] lg:w-[calc((100%-2rem)/3)] lg:min-w-0 lg:max-w-none'
+const overseasBucketRowLiClassWide =
+  'w-[min(16.25rem,calc(100vw-2.5rem))] shrink-0 snap-start sm:w-[min(17rem,calc((100vw-2.5rem)/2))] lg:w-[calc((100%-3rem)/4)] lg:min-w-0 lg:max-w-none'
+
 function useProductListInitialVisible() {
   const [initialLimit, setInitialLimit] = useState(PRODUCT_LIST_INITIAL_MOBILE)
   useEffect(() => {
@@ -108,6 +119,8 @@ type Props = {
   overseasSeasonCurationSlides?: HomeSeasonPickDTO[] | null | undefined
   /** 해외 목록 시즌 정렬 시 `이달의 추천` 배지 대상 */
   seasonalPickIds?: ReadonlySet<string> | null
+  /** `/travel/overseas` 에서 지역 미선택 시 — 카드 그리드·가로줄 카드 폭 확장 */
+  overseasHubWideLayout?: boolean
 }
 
 const AIR_HOTEL_MISC_SECTION = '기타'
@@ -562,7 +575,7 @@ function AirHotelCountryGroupedList({
             >
               {countryKey}
             </h2>
-            <ul className={cardGridClass} role="list">
+            <ul className={productCardGridClassDefault} role="list">
               {rowVisible.map((item) => (
                 <li key={item.id}>
                   <ProductResultCard
@@ -582,9 +595,6 @@ function AirHotelCountryGroupedList({
     </div>
   )
 }
-
-/** 일반 목록용 그리드 */
-const cardGridClass = 'mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
 /** 국내 허브 지역 섹션 고정 순서(상품 수와 무관) */
 const DOMESTIC_HUB_SECTIONS: { id: string; label: string }[] = [
@@ -675,7 +685,7 @@ function DomesticRegionGroupedList({
             >
               {label}
             </h2>
-            <ul className={cardGridClass} role="list">
+            <ul className={productCardGridClassDefault} role="list">
               {rowVisible.map((row) => (
                 <li key={row.id}>
                   <ProductResultCard
@@ -799,13 +809,16 @@ function OverseasRegionGroupedList({
   editorialBriefing,
   seasonCurationSlides,
   seasonalPickIds,
+  wideLayout,
 }: {
   items: ResultItem[]
   formatWon: (n: number | null) => string
   editorialBriefing: OverseasEditorialBriefingPayload | null | undefined
   seasonCurationSlides: HomeSeasonPickDTO[] | null | undefined
   seasonalPickIds?: ReadonlySet<string> | null
+  wideLayout: boolean
 }) {
+  const bucketRowLiClass = wideLayout ? overseasBucketRowLiClassWide : overseasBucketRowLiClassDefault
   const bucketToCountries = useMemo(() => {
     const map = new Map<OverseasDisplayBucketId, Map<string, ResultItem[]>>()
     for (const id of OVERSEAS_DISPLAY_BUCKET_ORDER) {
@@ -886,10 +899,7 @@ function OverseasRegionGroupedList({
               {visibleInBucket.length > 0 ? (
                 <ul className={countryProductRowClass} role="list">
                   {visibleInBucket.map((item) => (
-                    <li
-                      key={item.id}
-                      className="w-[min(17.5rem,calc(100vw-2.75rem))] shrink-0 snap-start sm:w-[min(19rem,calc((100vw-3rem)/2))] lg:w-[calc((100% - 2rem) / 3)] lg:min-w-0 lg:max-w-none"
-                    >
+                    <li key={item.id} className={bucketRowLiClass}>
                       <ProductResultCard
                         item={item}
                         formatWon={formatWon}
@@ -940,10 +950,12 @@ function FlatProductResultsList({
   items,
   formatWon,
   seasonalPickIds,
+  cardGridClass,
 }: {
   items: ResultItem[]
   formatWon: (n: number | null) => string
   seasonalPickIds?: ReadonlySet<string> | null
+  cardGridClass: string
 }) {
   const listResetKey = useMemo(
     () =>
@@ -984,6 +996,7 @@ export default function ProductResultsList({
   overseasEditorialBriefing = null,
   overseasSeasonCurationSlides = null,
   seasonalPickIds = null,
+  overseasHubWideLayout = false,
 }: Props) {
   if (groupDomesticByRegion && items.length > 0) {
     return <DomesticRegionGroupedList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
@@ -1008,9 +1021,18 @@ export default function ProductResultsList({
         editorialBriefing={overseasEditorialBriefing}
         seasonCurationSlides={overseasSeasonCurationSlides}
         seasonalPickIds={seasonalPickIds}
+        wideLayout={overseasHubWideLayout}
       />
     )
   }
 
-  return <FlatProductResultsList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
+  const flatGridClass = overseasHubWideLayout ? productCardGridClassOverseasWide : productCardGridClassDefault
+  return (
+    <FlatProductResultsList
+      items={items}
+      formatWon={formatWon}
+      seasonalPickIds={seasonalPickIds}
+      cardGridClass={flatGridClass}
+    />
+  )
 }

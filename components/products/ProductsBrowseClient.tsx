@@ -491,6 +491,16 @@ export default function ProductsBrowseClient({
     return data.total
   }, [data, isAirHotelHub, q.country, browsePresented.items.length])
 
+  const isOverseasProductsHub = pathname === '/travel/overseas' && defaultScope === 'overseas'
+  const hasGeoFilter = Boolean(
+    (q.region ?? '').trim() ||
+      (q.country ?? '').trim() ||
+      (q.city ?? '').trim() ||
+      (searchParams.get('hubSeason') ?? '').trim(),
+  )
+  const showOverseasSidebar = !isOverseasProductsHub || hasGeoFilter
+  const overseasHubWideLayout = isOverseasProductsHub && !hasGeoFilter
+
   const summary = hidePageHeading
     ? null
     : (
@@ -614,7 +624,13 @@ export default function ProductsBrowseClient({
             {overseasHubSeasonHeading ? (
               <h2 className="text-xl font-bold text-slate-900">{overseasHubSeasonHeading}</h2>
             ) : null}
-            <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div
+              className={
+                overseasHubWideLayout
+                  ? 'mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'
+                  : 'mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4'
+              }
+            >
               {(overseasHubMonthCurations ?? []).map((c) => {
                 const slug = (c.resolvedProductCountrySlug ?? '').trim().toLowerCase()
                 const sel = Boolean(slug && hubSeasonSlug === slug)
@@ -681,7 +697,14 @@ export default function ProductsBrowseClient({
                   <p className="shrink-0 py-6 text-sm text-slate-500">표시할 상품이 없습니다.</p>
                 ) : (
                   seasonHubItems.slice(0, 6).map((item) => (
-                    <div key={item.id} className="w-[min(280px,78vw)] shrink-0 snap-start">
+                    <div
+                      key={item.id}
+                      className={
+                        overseasHubWideLayout
+                          ? 'w-[min(300px,42vw)] shrink-0 snap-start sm:w-[min(280px,30vw)]'
+                          : 'w-[min(280px,78vw)] shrink-0 snap-start'
+                      }
+                    >
                       <ProductResultCard item={item} formatWon={formatWon} />
                     </div>
                   ))
@@ -787,6 +810,7 @@ export default function ProductsBrowseClient({
                 : overseasSeasonCurationSlides
             }
             seasonalPickIds={browsePresented.seasonalPickIds}
+            overseasHubWideLayout={overseasHubWideLayout}
           />
           {data.total > data.limit &&
             !(
@@ -821,26 +845,27 @@ export default function ProductsBrowseClient({
     </>
   )
 
-  const mobileBar = (
-    <div
-      className={`mb-4 flex items-center gap-2 ${hidePageHeading ? 'justify-start' : 'justify-between'}`}
-    >
-      <button
-        type="button"
-        onClick={() => setDrawerOpen(true)}
-        className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm"
+  const mobileBar =
+    showOverseasSidebar ? (
+      <div
+        className={`mb-4 flex items-center gap-2 ${hidePageHeading ? 'justify-start' : 'justify-between'}`}
       >
-        필터
-      </button>
-      {!hidePageHeading ? (
-        <span className="text-xs text-slate-500">
-          {data ? `${listedProductCount ?? data.total}건` : ''}
-        </span>
-      ) : isAirHotelHub && data ? (
-        <span className="text-xs text-slate-500">{`${listedProductCount ?? data.total}건`}</span>
-      ) : null}
-    </div>
-  )
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm"
+        >
+          필터
+        </button>
+        {!hidePageHeading ? (
+          <span className="text-xs text-slate-500">
+            {data ? `${listedProductCount ?? data.total}건` : ''}
+          </span>
+        ) : isAirHotelHub && data ? (
+          <span className="text-xs text-slate-500">{`${listedProductCount ?? data.total}건`}</span>
+        ) : null}
+      </div>
+    ) : null
 
   if (isDomesticHub) {
     return (
@@ -860,14 +885,16 @@ export default function ProductsBrowseClient({
           <ProductFilterChips chips={chips} onRemove={removeChip} onClearAll={clearAllFilters} />
         }
         sidebar={
-          <ProductFilterForm
-            q={q}
-            facets={facets}
-            onPatch={onPatch}
-            airlineShowAll={airlineShowAll}
-            setAirlineShowAll={setAirlineShowAll}
-            travelContext={defaultScope === 'domestic' ? 'domestic' : 'overseas'}
-          />
+          showOverseasSidebar ? (
+            <ProductFilterForm
+              q={q}
+              facets={facets}
+              onPatch={onPatch}
+              airlineShowAll={airlineShowAll}
+              setAirlineShowAll={setAirlineShowAll}
+              travelContext={defaultScope === 'domestic' ? 'domestic' : 'overseas'}
+            />
+          ) : null
         }
         toolbar={toolbar}
         results={results}
