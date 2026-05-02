@@ -3,8 +3,6 @@ import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
 import Header from '@/app/components/Header'
 import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
-import { getHomeHubCardHybridResolutionDetail } from '@/lib/home-hub-card-hybrid-core'
-import { getHomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 import { bongsimPath } from '@/lib/bongsim/constants'
 
 const EsimLandingBelowFold = nextDynamic(() => import('./EsimLandingBelowFold'), {
@@ -21,32 +19,17 @@ export const metadata: Metadata = {
   description: '24시간 고객센터, 100% 환불 보장. 여행지에 맞는 최적의 eSIM을 찾아드립니다.',
 }
 
-export default async function EsimPage() {
-  /** 메인 4허브 eSIM 카드와 동일 SSOT — 관리자 `home-hub-active.json`·`/images/home-hub/esim-*.png` 반영 */
-  const hubActive = getHomeHubActiveFile()
-  const hubSnap = hubActive ? { images: hubActive.images, imageSourceModes: hubActive.imageSourceModes } : null
-  const esimHero = getHomeHubCardHybridResolutionDetail('esim', {
-    activeSnapshot: hubSnap,
-    productPoolOverseasUrl: null,
-    productPoolDomesticUrl: null,
-  })
-  const heroImageUrl = esimHero.url
-
+export default function EsimPage() {
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <OverseasTravelSubMainNav variant="links" />
 
       <section
-        className="relative w-full overflow-hidden px-4 py-12 text-center lg:py-20"
+        className="w-full bg-gradient-to-br from-sky-50 to-teal-50 px-4 py-16 text-center lg:py-24"
         aria-labelledby="esim-hero-heading"
       >
-        <div className="pointer-events-none absolute inset-0" aria-hidden>
-          {/* eslint-disable-next-line @next/next/no-img-element -- 공개 URL·로컬 `/images/` 혼합, LCP 히어로 */}
-          <img src={heroImageUrl} alt="" className="h-full min-h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-br from-sky-50/88 to-teal-50/88" />
-        </div>
-        <div className="relative z-10 mx-auto max-w-4xl lg:max-w-5xl">
+        <div className="mx-auto max-w-4xl lg:max-w-5xl">
           <h1
             id="esim-hero-heading"
             className="text-balance text-3xl font-bold leading-tight tracking-tight text-slate-900 lg:text-5xl"
