@@ -333,6 +333,8 @@ export function extractHanatourThreeSlotPricesFromBlob(blob: string): HanatourTh
 
 export type HanatourSingleRoomExtract = {
   amount: number
+  /** 본문 통화 표기 보존(환산 없음). */
+  currency: string
   displayText: string
   rawLine: string
   /** 불포함/추가비용 안내(가격 슬롯 아님) — 본문에 있을 때만 */
@@ -344,29 +346,77 @@ export function extractHanatourSingleRoomSurchargeFromBlob(blob: string): Hanato
   if (!blob?.trim()) return null
   const noticeLine = extractHanatourSingleRoomUsageNoticeLineFromBlob(blob)
 
-  const lines = blob.replace(/\r/g, '\n').split('\n').map((l) => l.trim())
-  for (const line of lines) {
-    if (!/1인\s*객실|객실\s*1인\s*사용|싱글\s*룸\s*사용|객실\s*추가\s*요금/i.test(line)) continue
+  const parseNum = (s: string) => {
+    const n = Number(s.replace(/,/g, ''))
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : null
+  }
+
+  const amountCurrencyFromLine = (line: string): { amount: number; currency: string } | null => {
+    const usdM = line.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/)
+    if (usdM?.[1]) {
+      const amount = parseNum(usdM[1])
+      if (amount != null) return { amount, currency: 'USD' }
+    }
+    const eurM =
+      line.match(/€\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/i) ||
+      line.match(/\b([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*EUR\b/i)
+    if (eurM?.[1]) {
+      const amount = parseNum(eurM[1])
+      if (amount != null) return { amount, currency: 'EUR' }
+    }
+    const jpyM =
+      line.match(/¥\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/) ||
+      line.match(/￥\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/) ||
+      line.match(/\b([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*(?:엔|円|JPY)\b/i)
+    if (jpyM?.[1]) {
+      const amount = parseNum(jpyM[1])
+      if (amount != null) return { amount, currency: 'JPY' }
+    }
     const m =
       line.match(/1인\s*객실\s*사용료\s*[:：]?\s*([\d,]+)\s*원/i) ||
       line.match(/객실\s*1인\s*사용료\s*[:：]?\s*([\d,]+)\s*원/i) ||
       line.match(/객실\s*추가\s*요금\s*[:：]?\s*([\d,]+)\s*원/i)
-    if (!m?.[1]) continue
-    const n = Number(m[1].replace(/,/g, ''))
-    if (!Number.isFinite(n) || n <= 0) continue
-    const displayText = `1인 객실 사용료 ${Math.round(n).toLocaleString('ko-KR')}원`
-    return { amount: Math.round(n), displayText, rawLine: line.slice(0, 500), noticeLine }
+    if (m?.[1]) {
+      const amount = parseNum(m[1])
+      if (amount != null) return { amount, currency: 'KRW' }
+    }
+    return null
   }
-  const loose = blob.match(/1인\s*객실\s*사용료\s*[:：]?\s*([\d,]+)\s*원/i)
-  if (loose?.[1]) {
-    const n = Number(loose[1].replace(/,/g, ''))
-    if (Number.isFinite(n) && n > 0) {
-      return {
-        amount: Math.round(n),
-        displayText: `1인 객실 사용료 ${loose[1]}원`,
-        rawLine: loose[0]!.slice(0, 500),
-        noticeLine,
-      }
+
+  const lines = blob.replace(/\r/g, '\n').split('\n').map((l) => l.trim())
+  for (const line of lines) {
+    if (!/1인\s*객실|객실\s*1인\s*사용|싱글\s*룸\s*사용|객실\s*추가\s*요금/i.test(line)) continue
+    const parsed = amountCurrencyFromLine(line)
+    if (!parsed) continue
+    const displayText = line.replace(/\s+/g, ' ').trim().slice(0, 240)
+    return {
+      amount: parsed.amount,
+      currency: parsed.currency,
+      displayText,
+      rawLine: line.slice(0, 500),
+      noticeLine,
+    }
+  }
+  const looseSpecs: Array<{ re: RegExp; currency: string }> = [
+    { re: /1인\s*객실\s*사용료\s*[:：]?\s*\$\s*([\d,]+)/i, currency: 'USD' },
+    { re: /1인\s*객실\s*사용료\s*[:：]?\s*€\s*([\d,]+)/i, currency: 'EUR' },
+    { re: /1인\s*객실\s*사용료\s*[:：]?\s*¥\s*([\d,]+)/i, currency: 'JPY' },
+    { re: /1인\s*객실\s*사용료\s*[:：]?\s*￥\s*([\d,]+)/i, currency: 'JPY' },
+    { re: /1인\s*객실\s*사용료\s*[:：]?\s*([\d,]+)\s*(?:엔|円|JPY)\b/i, currency: 'JPY' },
+    { re: /1인\s*객실\s*사용료\s*[:：]?\s*([\d,]+)\s*원/i, currency: 'KRW' },
+  ]
+  for (const { re, currency } of looseSpecs) {
+    const loose = blob.match(re)
+    if (!loose?.[1]) continue
+    const n = parseNum(loose[1])
+    if (n == null) continue
+    const raw = loose[0] ?? ''
+    return {
+      amount: n,
+      currency,
+      displayText: raw.replace(/\s+/g, ' ').trim().slice(0, 240),
+      rawLine: raw.slice(0, 500),
+      noticeLine,
     }
   }
   return null
@@ -595,7 +645,7 @@ export function finalizeHanatourRegisterParsedPricing(parsed: RegisterParsed): R
     next = {
       ...next,
       singleRoomSurchargeAmount: sr.amount,
-      singleRoomSurchargeCurrency: 'KRW',
+      singleRoomSurchargeCurrency: sr.currency,
       singleRoomSurchargeRaw: sr.rawLine,
       singleRoomSurchargeDisplayText: sr.displayText,
       hasSingleRoomSurcharge: true,

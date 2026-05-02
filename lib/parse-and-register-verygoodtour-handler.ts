@@ -100,6 +100,24 @@ import {
   traceVerygoodScheduleDesc,
 } from '@/lib/verygoodtour-schedule-description-trace'
 import { polishVerygoodRegisterScheduleImageKeywords } from '@/lib/verygoodtour-schedule-image-keyword'
+import { applyVerygoodHotelUndeterminedDepartureNotice } from '@/lib/register-from-llm-verygoodtour'
+
+function buildVerygoodRegisterHotelSummaryFromNames(names: readonly string[]): string | null {
+  const clean = names.map((n) => String(n).trim()).filter(Boolean)
+  if (clean.length === 0) return null
+  if (clean.length === 1) return clean[0]!
+  return `${clean[0]!} 외 ${clean.length - 1}개`
+}
+
+function resolveVerygoodRegisterHotelSummaryText(
+  existingSummary: string | null | undefined,
+  hotelNames: readonly string[]
+): string | null {
+  const t = existingSummary?.trim()
+  if (t) return t
+  return buildVerygoodRegisterHotelSummaryFromNames(hotelNames)
+}
+
 /** 참좋은여행 등록 POST 전용 */
 let currentLogPrefix = '[parse-and-register-verygoodtour]'
 const isDev = process.env.NODE_ENV === 'development'
@@ -224,8 +242,19 @@ function verygoodRegisterPersistedHasCalendarDraftSignals(
 function mergeRawMetaWithStructuredSignals(
   existingRawMeta: string | null | undefined,
   parsed: RegisterParsed,
-  heroAudit?: { heroDepartureDateSource: string; heroReturnDateSource: string } | null
+  heroAudit?: { heroDepartureDateSource: string; heroReturnDateSource: string } | null,
+  pastedBodyForHotelNotice?: string | null
 ): string | null {
+  const hotelDepartureHaystack = [
+    pastedBodyForHotelNotice ?? '',
+    parsed.detailBodyStructured?.normalizedRaw ?? '',
+    parsed.hotelInfoRaw ?? '',
+    parsed.hotelNoticeRaw ?? '',
+    parsed.hotelStatusText ?? '',
+  ]
+    .map((x) => String(x).trim())
+    .filter(Boolean)
+    .join('\n')
   // SSOT docs:
   // - docs/detail-body-input-priority.md (raw/structured/final boundaries)
   // - docs/detail-body-review-policy.md (review + exposure semantics)
@@ -273,7 +302,13 @@ function mergeRawMetaWithStructuredSignals(
     hotelInfoRaw: nullIfEmptyTrim(parsed.hotelInfoRaw),
     hotelNames: normalizeStringList(parsed.hotelNames),
     dayHotelPlans: parsed.dayHotelPlans?.length ? parsed.dayHotelPlans : null,
-    hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+    hotelSummaryText: nullIfEmptyTrim(
+      applyVerygoodHotelUndeterminedDepartureNotice(
+        resolveVerygoodRegisterHotelSummaryText(parsed.hotelSummaryText, normalizeStringList(parsed.hotelNames)),
+        normalizeStringList(parsed.hotelNames),
+        hotelDepartureHaystack
+      )
+    ),
     hotelStatusText: nullIfEmptyTrim(parsed.hotelStatusText),
     hotelNoticeRaw: nullIfEmptyTrim(parsed.hotelNoticeRaw),
     singleRoomSurchargeAmount: parsed.singleRoomSurchargeAmount ?? null,
@@ -1009,6 +1044,17 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       }
     }
 
+    const verygoodHotelDepartureHaystackForSave = [
+      text,
+      parsedWithFinalNotice.detailBodyStructured?.normalizedRaw ?? '',
+      nullIfEmptyTrim(parsedWithFinalNotice.hotelInfoRaw) ?? '',
+      nullIfEmptyTrim(parsedWithFinalNotice.hotelNoticeRaw) ?? '',
+      nullIfEmptyTrim(parsedWithFinalNotice.hotelStatusText) ?? '',
+    ]
+      .map((x) => String(x).trim())
+      .filter(Boolean)
+      .join('\n')
+
     const productDraft = {
       originSource: effectiveOriginSource,
       originCode: parsed.originCode,
@@ -1067,7 +1113,16 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       hotelInfoRaw: nullIfEmptyTrim(parsed.hotelInfoRaw),
       hotelNames: normalizeStringList(parsed.hotelNames),
       dayHotelPlans: parsed.dayHotelPlans?.length ? parsed.dayHotelPlans : null,
-      hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+      hotelSummaryText: nullIfEmptyTrim(
+        applyVerygoodHotelUndeterminedDepartureNotice(
+          resolveVerygoodRegisterHotelSummaryText(
+            parsedWithFinalNotice.hotelSummaryText,
+            normalizeStringList(parsed.hotelNames)
+          ),
+          normalizeStringList(parsed.hotelNames),
+          verygoodHotelDepartureHaystackForSave
+        )
+      ),
       hotelStatusText: nullIfEmptyTrim(parsed.hotelStatusText),
       hotelNoticeRaw: nullIfEmptyTrim(parsed.hotelNoticeRaw),
       minimumDepartureCount: parsed.minimumDepartureCount ?? null,
@@ -1282,10 +1337,15 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
         tripAnchors.tripEndSource !== 'none' ? tripAnchors.tripEndSource : heroAuditForMetaBase.returnSource,
     }
 
-    const baseRawMeta = mergeRawMetaWithStructuredSignals(rawMetaForPromotion, parsedWithFinalNotice, {
-      heroDepartureDateSource: heroAuditForMeta.departureSource,
-      heroReturnDateSource: heroAuditForMeta.returnSource,
-    })
+    const baseRawMeta = mergeRawMetaWithStructuredSignals(
+      rawMetaForPromotion,
+      parsedWithFinalNotice,
+      {
+        heroDepartureDateSource: heroAuditForMeta.departureSource,
+        heroReturnDateSource: heroAuditForMeta.returnSource,
+      },
+      text
+    )
     const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
     const registerHeroSeoInput = {
       rawBodyText: text,
@@ -1321,7 +1381,16 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       productType: parsed.productType || 'travel',
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       hotelSummaryRaw,
-      hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+      hotelSummaryText: nullIfEmptyTrim(
+        applyVerygoodHotelUndeterminedDepartureNotice(
+          resolveVerygoodRegisterHotelSummaryText(
+            parsedWithFinalNotice.hotelSummaryText,
+            normalizeStringList(parsed.hotelNames)
+          ),
+          normalizeStringList(parsed.hotelNames),
+          verygoodHotelDepartureHaystackForSave
+        )
+      ),
       airportTransferType: parsed.airportTransferType ?? null,
       optionalToursStructured: parsed.optionalToursStructured ?? null,
       isFuelIncluded: parsed.isFuelIncluded !== false,

@@ -18,13 +18,24 @@ import {
 } from '@/lib/bongtour-tone-manner-llm-ssot'
 
 /**
- * 풀 등록(`forPreview: false`) JSON 출력 상한. 호텔·일정 배열이 길면 32k에서 MAX_TOKENS 잘림이 난다.
- * `GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS`로 조정(모델 상한 내).
+ * 풀 등록(`forPreview: false`) JSON 출력 상한. 노랑풍선은 일정·가격 필드가 길어 65k에서도 잘리며
+ * `sliceFromFirstBraceToLastBrace`/`JSON.parse` 조합으로 루트가 배열로 오인되거나 `parsed value is not a JSON object`가 난 사례가 있어
+ * 기본값만 타 공급사보다 높게 둔다.
+ * - 우선: `GEMINI_REGISTER_YBTOUR_FULL_MAX_OUTPUT_TOKENS`
+ * - 다음: `GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS`
  */
 const REGISTER_FULL_MAX_OUTPUT_TOKENS = Math.max(
   8192,
-  Math.min(131072, Number(process.env.GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS) || 65536)
+  Math.min(
+    131072,
+    Number(process.env.GEMINI_REGISTER_YBTOUR_FULL_MAX_OUTPUT_TOKENS) ||
+      Number(process.env.GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS) ||
+      98_304
+  )
 )
+
+/** JSON repair 호출은 본문 한 번 더 생성하므로 메인과 동일 상한이면 재잘림이 나기 쉬워 소폭 가산(상한 캡). */
+const REGISTER_YBTOUR_JSON_REPAIR_MAX_OUTPUT_TOKENS = Math.min(131072, REGISTER_FULL_MAX_OUTPUT_TOKENS + 24_576)
 import type { ParsedProductPrice } from './parsed-product-types'
 import { normalizeCalendarDate } from './date-normalize'
 import { extractDestinationFromTitle } from './destination-from-title'
@@ -46,7 +57,12 @@ import { MAX_OPTIONAL_TOURS, OPTIONAL_TOUR_UI_MAX_ROWS } from '@/lib/optional-to
 import { filterOptionalTourRows, optionalTourRowPassesStrictGate, type OptionalTourRowFields } from '@/lib/optional-tour-row-gate-ybtour'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 import { isMustKnowInsufficient, supplementMustKnowWithWebSearch } from './must-know-web-supplement'
-import { parseLlmJsonObject } from './llm-json-extract'
+import {
+  extractFirstBalancedJsonArray,
+  extractFirstBalancedJsonObject,
+  parseLlmJsonObject,
+  stripLlmMarkdownJsonFence,
+} from './llm-json-extract'
 import { extractYbtourVerbatimListingTitle } from '@/lib/register-ybtour-basic'
 import {
   mergeDayHotelPlansForRegister,
@@ -102,6 +118,101 @@ const REGISTER_BRAND = 'ybtour' as const
 
 const EMPTY_PASTE_PLACEHOLDER =
   '((관리자 복붙 본문 없음 — 붙여넣은 텍스트가 필수. prices·schedule은 빈 배열 [] 로 둘 것. URL·외부 수집 추측 금지.))'
+
+/** `parseLlmJsonObject`가 잘못된 `{...}` 구간만 골라 루트가 배열·원시로만 파싱된 경우 보완(노랑풍선 전용). */
+function ybtourLlmJsonRootLooksShapeful(o: Record<string, unknown>): boolean {
+  return (
+    Object.prototype.hasOwnProperty.call(o, 'schedule') ||
+    Object.prototype.hasOwnProperty.call(o, 'prices') ||
+    Object.prototype.hasOwnProperty.call(o, 'title')
+  )
+}
+
+function trySalvageYbtourRegisterGeminiJsonRoot(text: string): RegisterGeminiLlmJson | null {
+  const raw = String(text ?? '').trim().replace(/^\uFEFF/, '')
+  const fenced = stripLlmMarkdownJsonFence(raw)
+  const tryChunks = Array.from(new Set([fenced, raw].filter((c) => c && c.trim().length > 0)))
+  for (const chunk of tryChunks) {
+    const t = chunk.trim()
+    if (t) {
+      try {
+        const p = JSON.parse(t) as unknown
+        if (p !== null && typeof p === 'object' && !Array.isArray(p)) {
+          const o = p as Record<string, unknown>
+          if (ybtourLlmJsonRootLooksShapeful(o)) return p as RegisterGeminiLlmJson
+        }
+        if (Array.isArray(p) && p.length >= 1) {
+          for (const el of p) {
+            if (el !== null && typeof el === 'object' && !Array.isArray(el)) {
+              const o = el as Record<string, unknown>
+              if (ybtourLlmJsonRootLooksShapeful(o)) return el as RegisterGeminiLlmJson
+            }
+          }
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+    const arrSpan = extractFirstBalancedJsonArray(chunk)
+    if (arrSpan) {
+      try {
+        const p = JSON.parse(arrSpan) as unknown
+        if (Array.isArray(p) && p.length >= 1) {
+          for (const el of p) {
+            if (el !== null && typeof el === 'object' && !Array.isArray(el)) {
+              const o = el as Record<string, unknown>
+              if (ybtourLlmJsonRootLooksShapeful(o)) return el as RegisterGeminiLlmJson
+            }
+          }
+        }
+      } catch {
+        /* */
+      }
+    }
+    let searchFrom = 0
+    while (true) {
+      const rel = chunk.indexOf('{', searchFrom)
+      if (rel < 0) break
+      const objStr = extractFirstBalancedJsonObject(chunk.slice(rel))
+      if (!objStr) {
+        searchFrom = rel + 1
+        continue
+      }
+      try {
+        const p = JSON.parse(objStr) as unknown
+        if (p !== null && typeof p === 'object' && !Array.isArray(p)) {
+          const o = p as Record<string, unknown>
+          if (ybtourLlmJsonRootLooksShapeful(o)) return p as RegisterGeminiLlmJson
+        }
+      } catch {
+        /* */
+      }
+      searchFrom = rel + 1
+    }
+  }
+  return null
+}
+
+function trySalvageYbtourPreviewLlmJsonRoot(text: string): Record<string, unknown> | null {
+  const full = trySalvageYbtourRegisterGeminiJsonRoot(text)
+  if (full) return full as Record<string, unknown>
+  const raw = String(text ?? '').trim().replace(/^\uFEFF/, '')
+  const fenced = stripLlmMarkdownJsonFence(raw)
+  for (const chunk of [fenced, raw]) {
+    const t = chunk.trim()
+    if (!t) continue
+    try {
+      const p = JSON.parse(t) as unknown
+      if (p !== null && typeof p === 'object' && !Array.isArray(p)) return p as Record<string, unknown>
+      if (Array.isArray(p) && p[0] !== null && typeof p[0] === 'object' && !Array.isArray(p[0])) {
+        return p[0] as Record<string, unknown>
+      }
+    } catch {
+      /* */
+    }
+  }
+  return null
+}
 
 function normalizeRegisterPasteNewlines(s: string): string {
   return s.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
@@ -367,6 +478,48 @@ function normalizeDedupText(v: string): string {
     .trim()
 }
 
+/** 가격표·본문에서 가이드/기사·현지 경비 **원문 줄**만 추출(본문에 실제 줄이 있을 때만 후보). */
+function extractGuideDriverFeeLinesFromRegisterPasteBlob(blob: string | null | undefined): string[] {
+  if (!blob?.trim()) return []
+  const out: string[] = []
+  const seen = new Set<string>()
+  const starter =
+    /^[\s\-–—*•·\d.)[\]]]*\s*(가이드\s*경비\b|기사\s*경비\b|인솔\s*경비\b|가이드\s*\/\s*기사\s*경비\b|가이드\/\s*기사\s*경비\b|가이드\s*\/\s*기사(?:\s*경비)?\b)/i
+  const localWithMoney =
+    /^[\s\-–—*•·\d.)[\]]]*\s*현지\s*경비\b.+(?:\$|€|£|¥|￥|USD|EUR|KRW|원|₩|엔|円|JPY|\d[\d,]*\s*(?:USD|EUR|KRW|원|엔|JPY)?)/i
+  for (const raw of blob.replace(/\r/g, '\n').split('\n')) {
+    const line = raw.trim()
+    if (!line) continue
+    const compact = line.replace(/\s+/g, ' ').trim()
+    const hits =
+      starter.test(line) ||
+      localWithMoney.test(line) ||
+      (/가이드\s*\/\s*기사\s*경비/i.test(compact) &&
+        /(\$|€|£|¥|￥|USD|EUR|KRW|원|₩|엔|円|JPY|\d[\d,]{1,})/i.test(compact))
+    if (!hits) continue
+    if (compact.length < 4 || compact.length > 240) continue
+    const key = compact.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(compact)
+  }
+  return out
+}
+
+function guideDriverFeeLineAlreadyCoveredInExcluded(excludedItems: readonly string[], candidateKey: string): boolean {
+  const cn = candidateKey.trim()
+  if (!cn) return true
+  for (const ex of excludedItems) {
+    const ek = normalizeDedupText(ex)
+    if (!ek) continue
+    if (ek === cn) return true
+    const shorter = cn.length <= ek.length ? cn : ek
+    const longer = cn.length > ek.length ? cn : ek
+    if (shorter.length >= 12 && longer.includes(shorter)) return true
+  }
+  return false
+}
+
 function hasSingleRoomSurchargeHint(text: string): boolean {
   return /(1\s*인\s*(?:객실|실)|독실|싱글\s*차지|single\s*(?:room|charge))/i.test(text)
 }
@@ -391,15 +544,62 @@ function extractSingleRoomSurcharge(rawText: string): {
     null
 
   const source = matchedLine ?? t
-  const m = source.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*(원|KRW)?/i)
-  const amount = m ? Number(m[1].replace(/,/g, '')) : null
-  const currency = amount != null && Number.isFinite(amount) ? 'KRW' : null
+  const parseNum = (s: string) => {
+    const n = Number(String(s).replace(/,/g, ''))
+    return Number.isFinite(n) && n > 0 ? n : null
+  }
+  let amount: number | null = null
+  let currency: string | null = null
+
+  const usdM = source.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/)
+  if (usdM?.[1]) {
+    amount = parseNum(usdM[1])
+    currency = amount != null ? 'USD' : null
+  }
+  if (amount == null) {
+    const eurM =
+      source.match(/€\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/i) ||
+      source.match(/\b([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*EUR\b/i)
+    if (eurM?.[1]) {
+      amount = parseNum(eurM[1])
+      currency = amount != null ? 'EUR' : null
+    }
+  }
+  if (amount == null) {
+    const jpyM =
+      source.match(/¥\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/) ||
+      source.match(/￥\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/) ||
+      source.match(/\b([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*(?:엔|円|JPY)\b/i)
+    if (jpyM?.[1]) {
+      amount = parseNum(jpyM[1])
+      currency = amount != null ? 'JPY' : null
+    }
+  }
+  if (amount == null) {
+    const m = source.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*(원|KRW)?/i)
+    if (m?.[1]) {
+      amount = parseNum(m[1])
+      currency = amount != null ? 'KRW' : null
+    }
+  }
 
   return {
-    amount: amount != null && Number.isFinite(amount) ? amount : null,
+    amount,
     currency,
     raw: source.slice(0, 500),
   }
+}
+
+function inferListingPriceCurrencyFromHaystack(haystack: string | null | undefined, rawPriceCurrency: unknown): string | null {
+  const pc = strOrNull(rawPriceCurrency)
+  if (pc) return pc.trim()
+  const t = (haystack ?? '').slice(0, 24_000)
+  if (!t.trim()) return null
+  if (/(?:^|\n)[^\n]{0,160}\$\s*[\d,]/m.test(t)) return 'USD'
+  if (/(?:^|\n)[^\n]{0,160}(€|[\d,]+\s*EUR\b|\bEUR\s*[:：]?\s*[\d,])/im.test(t)) return 'EUR'
+  if (/(?:^|\n)[^\n]{0,160}(¥|￥|[\d,]+\s*(?:엔|円)|\bJPY\s*[:：]?\s*[\d,])/im.test(t)) return 'JPY'
+  if (/원\b|KRW|₩|성인\s*1\s*인\s*[:：]\s*[\d,]+\s*원/i.test(t)) return 'KRW'
+  return null
 }
 
 function llmOptionalToursToStructured(rows: Array<Record<string, unknown>> | undefined): {
@@ -1134,6 +1334,95 @@ function extractDurationLineFromPaste(blob: string): string | null {
   return `${m[1]}박 ${m[2]}일`
 }
 
+/** 상품 호텔 요약 한 줄: 2개 이상 → 「대표명 외 (N-1)개」, 1개→이름만, 0→null (미정 등은 LLM/본문 summary 유지). */
+function buildYbtourRegisterHotelSummaryFromNames(names: readonly string[]): string | null {
+  const clean = names.map((n) => String(n).trim()).filter(Boolean)
+  if (clean.length === 0) return null
+  if (clean.length === 1) return clean[0]!
+  return `${clean[0]!} 외 ${clean.length - 1}개`
+}
+
+function resolveYbtourRegisterHotelSummaryFromLlmAndNames(
+  existingSummary: unknown,
+  hotelNames: readonly string[]
+): string | null {
+  const fromLlm = strOrNull(existingSummary as string | null | undefined)
+  if (fromLlm) return fromLlm
+  return buildYbtourRegisterHotelSummaryFromNames(hotelNames)
+}
+
+function _ybtourIsPlaceholderHotelListName(n: string): boolean {
+  const t = String(n).trim()
+  if (!t) return true
+  if (/^(미정|TBA|TBD|[-—]+)$/i.test(t)) return true
+  if (/^동급|^예정\s*호텔|^예정호텔/i.test(t)) return true
+  return false
+}
+
+function _ybtourHasConfirmedHotelFromNames(names: readonly string[]): boolean {
+  return names.some((n) => !_ybtourIsPlaceholderHotelListName(n))
+}
+
+function _ybtourSummaryLooksLikeSingleHotelNameLine(summary: string | null | undefined): boolean {
+  const s = String(summary ?? '').replace(/\s+/g, ' ').trim()
+  if (!s || s.length > 120) return false
+  if (/미정|TBD|예정호텔|동급|숙박|홈페이지|알려드|안내|출발\s*\d+\s*일전/i.test(s)) return false
+  if (/\s+외\s+\d+\s*개\s*$/.test(s)) return false
+  return s.length >= 2
+}
+
+function _ybtourSummaryLooksLikeConfirmedHotelProduct(
+  summary: string | null | undefined,
+  names: readonly string[]
+): boolean {
+  if (_ybtourHasConfirmedHotelFromNames(names)) return true
+  const s = String(summary ?? '').replace(/\s+/g, ' ').trim()
+  if (!s) return false
+  const m = s.match(/^(.+?)\s+외\s+(\d+)\s*개\s*$/)
+  if (m?.[1] && !_ybtourIsPlaceholderHotelListName(m[1])) return true
+  if (_ybtourSummaryLooksLikeSingleHotelNameLine(s)) return true
+  return false
+}
+
+function _ybtourIsHotelProductUndeterminedForNotice(summary: string | null, names: readonly string[]): boolean {
+  if (_ybtourSummaryLooksLikeConfirmedHotelProduct(summary, names)) return false
+  const s = String(summary ?? '').trim()
+  if (!s && names.length === 0) return true
+  const onlyPlaceholders = names.length === 0 || names.every(_ybtourIsPlaceholderHotelListName)
+  if (!onlyPlaceholders) return false
+  if (!s) return true
+  if (/미정|TBD|예정호텔|동급|숙박시설.*미정|확인\s*불가|별도\s*공지|현재\s*미정|미정입니다|예정호텔\s*외/i.test(s)) return true
+  return false
+}
+
+function extractYbtourHotelDepartureNoticeDaysFromHaystack(haystack: string): number {
+  const h = haystack.replace(/\s+/g, ' ')
+  const m1 = h.match(/출발\s*(\d+)\s*일\s*전까지\s*홈페이지/i)
+  if (m1?.[1]) {
+    const d = parseInt(m1[1], 10)
+    if (d >= 1 && d <= 14) return d
+  }
+  const m2 = /출발\s*(\d+)\s*일\s*전까지/i.exec(h)
+  if (m2?.[1]) {
+    const d = parseInt(m2[1], 10)
+    if (d >= 1 && d <= 14) return d
+  }
+  return 1
+}
+
+/** 호텔 미정일 때만 본문 일수 반영해 `(출발 N일전까지 안내)` 부착. */
+export function applyYbtourHotelUndeterminedDepartureNotice(
+  summary: string | null,
+  hotelNames: readonly string[],
+  haystack: string
+): string | null {
+  if (!_ybtourIsHotelProductUndeterminedForNotice(summary, hotelNames)) return summary
+  const base = (summary?.replace(/\s+/g, ' ').trim() || '미정')
+  if (/\(출발\s*\d+\s*일전까지\s*안내\)/.test(base)) return summary
+  const days = extractYbtourHotelDepartureNoticeDaysFromHaystack(haystack)
+  return `${base} (출발 ${days}일전까지 안내)`
+}
+
 function buildPreviewDeterministicRegisterRaw(args: {
   detailBody: DetailBodyParseSnapshot
   blockB: string
@@ -1163,7 +1452,8 @@ function buildPreviewDeterministicRegisterRaw(args: {
         .map((r) => [r.dayLabel, r.dateText, r.hotelNameText].filter(Boolean).join(' '))
         .filter(Boolean)
         .join('\n')
-      out.hotelSummaryText = names.length === 1 ? names[0] : `${names[0]} 외 ${names.length - 1}`
+      const summaryLine = buildYbtourRegisterHotelSummaryFromNames(names)
+      if (summaryLine) out.hotelSummaryText = summaryLine
     }
   }
 
@@ -1431,14 +1721,18 @@ export async function parseForRegisterLlmYbtour(
   let repairFinishReason: string | null = null
   let repairLlmRawCaptured: string | null = null
   let firstParseError: string | undefined
-  if (forPreview) {
+  {
     const te = text.trimEnd()
-    console.info('[ybtour-llm] preview Gemini response shape', {
-      finishReason: finishReason ?? null,
-      endsWithClosingBrace: te.endsWith('}'),
-      charLength: text.length,
-      minimalPrompt: true,
-    })
+    console.info(
+      forPreview ? '[ybtour-llm] preview Gemini response shape' : '[ybtour-llm] full-register Gemini response shape',
+      {
+        finishReason: finishReason ?? null,
+        endsWithClosingBrace: te.endsWith('}'),
+        charLength: text.length,
+        blockBPasteChars: blockB.length,
+        minimalPrompt: forPreview,
+      }
+    )
   }
   if (finishReason === 'MAX_TOKENS') {
     console.error('[ybtour-llm] Gemini finishReason=MAX_TOKENS (출력 상한 도달·JSON 잘림 가능)', {
@@ -1472,91 +1766,122 @@ export async function parseForRegisterLlmYbtour(
     options?.onTiming?.('parse-failed')
     firstParseError = firstErr instanceof Error ? firstErr.message : String(firstErr)
     const te = text.trimEnd()
-    // JSON repair는 출력 잘림·MAX_TOKENS 등 명백한 truncation에만 제한(단순 스키마/형식 오류는 재호출하지 않음 → 토큰 절감).
-    const shouldAttemptJsonRepair =
-      finishReason === 'MAX_TOKENS' ||
-      !te.endsWith('}') ||
-      (Boolean(firstParseError?.includes('Unterminated string')) && !te.endsWith('}'))
-    if (!shouldAttemptJsonRepair) {
-      console.error('[ybtour-llm] LLM JSON parse failed; repair skipped (truncation/형식 정책)', {
-        finishReason,
-        length: text.length,
-        endsWithClosingBrace: te.endsWith('}'),
+
+    const salvagedPreview = forPreview ? trySalvageYbtourPreviewLlmJsonRoot(text) : null
+    const salvagedFull = !forPreview ? trySalvageYbtourRegisterGeminiJsonRoot(text) : null
+    if (forPreview && salvagedPreview) {
+      const det = buildPreviewDeterministicRegisterRaw({
+        detailBody,
+        blockB,
+        pastedHotel: pb.hotel ?? null,
+        originSource,
+        brandKey: REGISTER_BRAND,
+        originUrl: options?.originUrl?.trim() || null,
+        resolveDirectedLines: resolveLines,
+      })
+      raw = finalizePreviewRegisterRaw(mergePreviewDeterministicWithLlm(det, salvagedPreview))
+      console.info('[ybtour-llm] salvaged preview JSON after parseLlmJsonObject failure', {
         firstError: firstParseError,
       })
-      options?.onTiming?.('repair-skipped')
-      throw new RegisterLlmParseError({
-        message: firstParseError,
-        parseErrorMessage: firstParseError,
-        firstPassLlmRaw: firstPassLlmRawCaptured,
-        repairLlmRaw: null,
-        repairAttempted: false,
-        finishReason: finishReason ?? null,
-        repairFinishReason: null,
+      options?.onTiming?.('after-parse-salvage')
+      options?.onTiming?.('after-parse')
+    } else if (!forPreview && salvagedFull) {
+      raw = salvagedFull
+      console.info('[ybtour-llm] salvaged full-register JSON after parseLlmJsonObject failure', {
+        firstError: firstParseError,
       })
-    }
-    repairAttempted = true
-    console.error('[ybtour-llm] LLM JSON parse failed; attempting one repair generateContent call', {
-      finishReason,
-      length: text.length,
-      firstError: firstParseError,
-    })
-    const repairPrompt = `Return ONLY one valid JSON object, no markdown, no code fence. Fix the broken JSON below: add missing closing braces, brackets, and double-quotes; remove trailing commas before } or ]; keep readable keys and values. Use null for values that were cut off mid-string.
+      options?.onTiming?.('after-parse-salvage')
+      options?.onTiming?.('after-parse')
+    } else {
+      // JSON repair: 잘림·루트 파싱 실패(`parsed value is not a JSON object` 등)에 한해 1회 재호출.
+      const shouldAttemptJsonRepair =
+        finishReason === 'MAX_TOKENS' ||
+        !te.endsWith('}') ||
+        (Boolean(firstParseError?.includes('Unterminated string')) && !te.endsWith('}')) ||
+        Boolean(firstParseError?.includes('parsed value is not a JSON object')) ||
+        Boolean(firstParseError?.includes('Unexpected token')) ||
+        Boolean(firstParseError?.includes('Unexpected end'))
+      if (!shouldAttemptJsonRepair) {
+        console.error('[ybtour-llm] LLM JSON parse failed; repair skipped (truncation/형식 정책)', {
+          finishReason,
+          length: text.length,
+          endsWithClosingBrace: te.endsWith('}'),
+          firstError: firstParseError,
+        })
+        options?.onTiming?.('repair-skipped')
+        throw new RegisterLlmParseError({
+          message: firstParseError,
+          parseErrorMessage: firstParseError,
+          firstPassLlmRaw: firstPassLlmRawCaptured,
+          repairLlmRaw: null,
+          repairAttempted: false,
+          finishReason: finishReason ?? null,
+          repairFinishReason: null,
+        })
+      }
+      repairAttempted = true
+      console.error('[ybtour-llm] LLM JSON parse failed; attempting one repair generateContent call', {
+        finishReason,
+        length: text.length,
+        firstError: firstParseError,
+      })
+      const repairPrompt = `Return ONLY one valid JSON object, no markdown, no code fence. Fix the broken JSON below: add missing closing braces, brackets, and double-quotes; remove trailing commas before } or ]; keep readable keys and values. Use null for values that were cut off mid-string.
 
 ---
-${text.slice(0, 16000)}`
-    options?.onTiming?.('repair-start')
-    if (options?.llmCallMetrics) options.llmCallMetrics.repairLlm += 1
-    const tJsonRepairGen = Date.now()
-    const repairResult = await model.generateContent(
-      {
-        contents: [{ role: 'user', parts: [{ text: repairPrompt }] }],
-        generationConfig: {
-          temperature: 0,
-          maxOutputTokens: forPreview ? 4096 : REGISTER_FULL_MAX_OUTPUT_TOKENS,
-          ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
+${text.slice(0, 32_000)}`
+      options?.onTiming?.('repair-start')
+      if (options?.llmCallMetrics) options.llmCallMetrics.repairLlm += 1
+      const tJsonRepairGen = Date.now()
+      const repairResult = await model.generateContent(
+        {
+          contents: [{ role: 'user', parts: [{ text: repairPrompt }] }],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: forPreview ? 4096 : REGISTER_YBTOUR_JSON_REPAIR_MAX_OUTPUT_TOKENS,
+            ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
+          },
         },
-      },
-      geminiTimeoutOpts()
-    )
-    options?.onTiming?.('repair-end')
-    console.info(
-      `[ybtour][timing] json-repair-generateContent +${Date.now() - tJsonRepairGen}ms forPreview=${forPreview}`
-    )
-    repairFinishReason = repairResult.response.candidates?.[0]?.finishReason ?? null
-    text = repairResult.response.text()
-    repairLlmRawCaptured = text
-    try {
-      if (forPreview) {
-        const previewLlm = parseLlmJsonObject<Record<string, unknown>>(text, {
-          logLabel: 'parseForRegisterLlmYbtour-preview-minimal-repair',
+        geminiTimeoutOpts()
+      )
+      options?.onTiming?.('repair-end')
+      console.info(
+        `[ybtour][timing] json-repair-generateContent +${Date.now() - tJsonRepairGen}ms forPreview=${forPreview}`
+      )
+      repairFinishReason = repairResult.response.candidates?.[0]?.finishReason ?? null
+      text = repairResult.response.text()
+      repairLlmRawCaptured = text
+      try {
+        if (forPreview) {
+          const previewLlm = parseLlmJsonObject<Record<string, unknown>>(text, {
+            logLabel: 'parseForRegisterLlmYbtour-preview-minimal-repair',
+          })
+          const det = buildPreviewDeterministicRegisterRaw({
+            detailBody,
+            blockB,
+            pastedHotel: pb.hotel ?? null,
+            originSource,
+            brandKey: REGISTER_BRAND,
+            originUrl: options?.originUrl?.trim() || null,
+            resolveDirectedLines: resolveLines,
+          })
+          raw = finalizePreviewRegisterRaw(mergePreviewDeterministicWithLlm(det, previewLlm))
+        } else {
+          raw = parseLlmJsonObject<RegisterGeminiLlmJson>(text, { logLabel: 'parseForRegisterLlmYbtour-repair-retry' })
+        }
+        options?.onTiming?.('after-repair-parse')
+      } catch (repairParseErr) {
+        options?.onTiming?.('after-repair-parse-failed')
+        const repairMsg = repairParseErr instanceof Error ? repairParseErr.message : String(repairParseErr)
+        throw new RegisterLlmParseError({
+          message: repairMsg,
+          parseErrorMessage: repairMsg,
+          firstPassLlmRaw: firstPassLlmRawCaptured,
+          repairLlmRaw: repairLlmRawCaptured,
+          repairAttempted: true,
+          finishReason: finishReason ?? null,
+          repairFinishReason,
         })
-        const det = buildPreviewDeterministicRegisterRaw({
-          detailBody,
-          blockB,
-          pastedHotel: pb.hotel ?? null,
-          originSource,
-          brandKey: REGISTER_BRAND,
-          originUrl: options?.originUrl?.trim() || null,
-          resolveDirectedLines: resolveLines,
-        })
-        raw = finalizePreviewRegisterRaw(mergePreviewDeterministicWithLlm(det, previewLlm))
-      } else {
-        raw = parseLlmJsonObject<RegisterGeminiLlmJson>(text, { logLabel: 'parseForRegisterLlmYbtour-repair-retry' })
       }
-      options?.onTiming?.('after-repair-parse')
-    } catch (repairParseErr) {
-      options?.onTiming?.('after-repair-parse-failed')
-      const repairMsg = repairParseErr instanceof Error ? repairParseErr.message : String(repairParseErr)
-      throw new RegisterLlmParseError({
-        message: repairMsg,
-        parseErrorMessage: repairMsg,
-        firstPassLlmRaw: firstPassLlmRawCaptured,
-        repairLlmRaw: repairLlmRawCaptured,
-        repairAttempted: true,
-        finishReason: finishReason ?? null,
-        repairFinishReason,
-      })
     }
   }
   if (!forPreview && scheduleFirstPassRows?.length && expectedDaysForSchedule != null && expectedDaysForSchedule >= 1) {
@@ -1999,8 +2324,7 @@ ${text.slice(0, 16000)}`
       .join('\n')
   )
   const singleRoomSurchargeAmount = llmSingleRoomAmount ?? inferredSingleRoom.amount
-  const singleRoomSurchargeCurrency =
-    llmSingleRoomCurrency ?? inferredSingleRoom.currency ?? (singleRoomSurchargeAmount != null ? 'KRW' : null)
+  const singleRoomSurchargeCurrency = llmSingleRoomCurrency ?? inferredSingleRoom.currency ?? null
   const singleRoomSurchargeRaw = llmSingleRoomRaw ?? inferredSingleRoom.raw
   const hasSingleRoomSurcharge =
     Boolean(raw.hasSingleRoomSurcharge) ||
@@ -2017,10 +2341,28 @@ ${text.slice(0, 16000)}`
     ? hasSingleRoomSurchargeHint(excludedTextSource)
     : false
   const excludedItems = [...excludedItemsBase]
+  const excludedItemDedupKeys = new Set(excludedItems.map((x) => normalizeDedupText(x)))
   if (singleRoomSurchargeDisplayText && !excludedTextHasSingleRoom) {
-    const existingKeys = new Set(excludedItems.map((x) => normalizeDedupText(x)))
     const nextKey = normalizeDedupText(singleRoomSurchargeDisplayText)
-    if (!existingKeys.has(nextKey)) excludedItems.push(singleRoomSurchargeDisplayText)
+    if (!excludedItemDedupKeys.has(nextKey)) {
+      excludedItemDedupKeys.add(nextKey)
+      excludedItems.push(singleRoomSurchargeDisplayText)
+    }
+  }
+  const guideDriverFeeHaystack = [
+    (pb.priceTable ?? '').trim(),
+    strOrNull(raw.priceTableRawText) ?? '',
+    stripHtmlForPriceBlob(strOrNull(raw.priceTableRawHtml)),
+    blockB,
+    pastedForSupplier,
+  ]
+    .filter((x) => String(x).trim().length > 0)
+    .join('\n\n')
+  for (const gl of extractGuideDriverFeeLinesFromRegisterPasteBlob(guideDriverFeeHaystack)) {
+    const k = normalizeDedupText(gl)
+    if (excludedItemDedupKeys.has(k) || guideDriverFeeLineAlreadyCoveredInExcluded(excludedItems, k)) continue
+    excludedItemDedupKeys.add(k)
+    excludedItems.push(gl)
   }
   const includedTextMerged =
     (raw.includedRaw as string)?.trim() ||
@@ -2180,6 +2522,35 @@ ${text.slice(0, 16000)}`
   }
   options?.onTiming?.('register-parsed-ready')
 
+  const hotelNamesForProductSummary: string[] =
+    detailBody.hotelStructured.rows.length > 0
+      ? detailBody.hotelStructured.rows.map((r) => r.hotelNameText).filter(Boolean)
+      : Array.isArray(raw.hotelNames)
+        ? raw.hotelNames.map((x) => String(x)).filter((x) => String(x).trim())
+        : []
+
+  const hotelDepartureNoticeHaystack = [
+    pastedForSupplier,
+    blockB,
+    strOrNull(raw.hotelInfoRaw) ?? '',
+    strOrNull(raw.hotelNoticeRaw) ?? '',
+    strOrNull(raw.hotelStatusText) ?? '',
+    detailBody.normalizedRaw ?? '',
+    pb.hotel ?? '',
+  ]
+    .filter((x) => String(x).trim().length > 0)
+    .join('\n')
+
+  const hotelSummaryResolvedYbtour = resolveYbtourRegisterHotelSummaryFromLlmAndNames(
+    (raw as { hotelSummaryText?: unknown }).hotelSummaryText,
+    hotelNamesForProductSummary
+  )
+  const hotelSummaryWithNoticeYbtour = applyYbtourHotelUndeterminedDepartureNotice(
+    hotelSummaryResolvedYbtour,
+    hotelNamesForProductSummary,
+    hotelDepartureNoticeHaystack
+  )
+
   return {
     originSource: normalizedSource,
     originCode: finalOriginCode,
@@ -2222,7 +2593,9 @@ ${text.slice(0, 16000)}`
       freeTime: freeTimeSummaryFinal,
     },
     priceFrom: priceFromResolved,
-    priceCurrency: priceFromResolved != null ? 'KRW' : null,
+    priceCurrency:
+      inferListingPriceCurrencyFromHaystack(priceBlobForInfant, (raw as { priceCurrency?: unknown }).priceCurrency) ??
+      (priceFromResolved != null ? 'KRW' : null),
     duration: (raw.duration ?? '').trim() || '미지정',
     airline: airlineDisplay,
     isFuelIncluded: raw.isFuelIncluded !== false,
@@ -2282,7 +2655,7 @@ ${text.slice(0, 16000)}`
           ? raw.hotelNames.map((x) => String(x))
           : undefined,
     dayHotelPlans: dayHotelPlans.length ? dayHotelPlans : undefined,
-    hotelSummaryText: strOrNull((raw as { hotelSummaryText?: unknown }).hotelSummaryText),
+    hotelSummaryText: hotelSummaryWithNoticeYbtour,
     hotelStatusText: strOrNull(raw.hotelStatusText),
     hotelNoticeRaw: strOrNull(raw.hotelNoticeRaw),
     extractionFieldIssues: filterRegisterExtractionIssuesShoppingGeminiNoise(extractionFieldIssues),

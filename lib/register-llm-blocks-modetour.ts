@@ -177,7 +177,7 @@ export function buildRegisterLlmInputBlocks(
 
 === [미리보기 — 옵션·쇼핑·일정 출력 상한] ===
 - JSON 출력: optionalTours **최대 3행**, shoppingStops **최대 3행**, 각 행 \`raw\` 는 null. 총 개수는 optionalTourCount·shoppingVisitCount·summary 텍스트만.
-- schedule 은 일차당 title·description 을 공급사 일정표에 맞게 **충실히**(일차당 description 3~6문장·450자 이내 권장, 한 줄 요약 금지). 필요 시 일차 수 14 이하.`
+- schedule 은 일차당 title·description 을 공급사 일정표에 맞게 **충실히**(일차당 description 3~4문장·400자 이내 권장, 한 줄 요약 금지). 필요 시 일차 수 14 이하.`
     : `=== [STRUCTURED HOTEL / MEAL — JSON 추출 규칙] ===
 - hotelSummaryText: 상품 전체 호텔 요약 한 줄(예: 대표호텔명 외 1). [PASTED HOTEL INFO]·본문 원문에 있을 때만. 없으면 null.
 - schedule[] 각 일차: hotelText(해당 일 예정 숙소/호텔), breakfastText·lunchText·dinnerText(조·중·석), mealSummaryText(식사 원문 전체). 상품 전체 호텔과 일차 호텔은 분리.

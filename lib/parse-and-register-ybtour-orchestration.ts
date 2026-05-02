@@ -121,6 +121,23 @@ import {
 import { mergeYbtourDeterministicFieldsFromPaste } from '@/lib/ybtour-paste-deterministic-patch-ybtour'
 import { extractYbtourTripAnchorsFromPaste } from '@/lib/ybtour-trip-anchors-from-paste-ybtour'
 import { ybtourBuildMinimalDepartureInputs } from '@/lib/ybtour-synthetic-departure-ybtour'
+import { applyYbtourHotelUndeterminedDepartureNotice } from '@/lib/register-from-llm-ybtour'
+
+function buildYbtourRegisterHotelSummaryFromNames(names: readonly string[]): string | null {
+  const clean = names.map((n) => String(n).trim()).filter(Boolean)
+  if (clean.length === 0) return null
+  if (clean.length === 1) return clean[0]!
+  return `${clean[0]!} 외 ${clean.length - 1}개`
+}
+
+function resolveYbtourRegisterHotelSummaryText(
+  existingSummary: string | null | undefined,
+  hotelNames: readonly string[]
+): string | null {
+  const t = existingSummary?.trim()
+  if (t) return t
+  return buildYbtourRegisterHotelSummaryFromNames(hotelNames)
+}
 
 type HeroTripDatesSupplement = Partial<Pick<Parameters<typeof resolveYbtourHeroTripDates>[0], 'ybtourFlightStructured'>>
 
@@ -272,8 +289,19 @@ function buildScheduleJson(parsedSchedule: Array<{ day: number; title: string; d
 function mergeRawMetaWithStructuredSignals(
   existingRawMeta: string | null | undefined,
   parsed: RegisterParsed,
-  heroAudit?: { heroDepartureDateSource: string; heroReturnDateSource: string } | null
+  heroAudit?: { heroDepartureDateSource: string; heroReturnDateSource: string } | null,
+  pastedBodyForHotelNotice?: string | null
 ): string | null {
+  const hotelDepartureHaystack = [
+    pastedBodyForHotelNotice ?? '',
+    parsed.detailBodyStructured?.normalizedRaw ?? '',
+    parsed.hotelInfoRaw ?? '',
+    parsed.hotelNoticeRaw ?? '',
+    parsed.hotelStatusText ?? '',
+  ]
+    .map((x) => String(x).trim())
+    .filter(Boolean)
+    .join('\n')
   // SSOT docs:
   // - docs/detail-body-input-priority.md (raw/structured/final boundaries)
   // - docs/detail-body-review-policy.md (review + exposure semantics)
@@ -321,7 +349,13 @@ function mergeRawMetaWithStructuredSignals(
     hotelInfoRaw: nullIfEmptyTrim(parsed.hotelInfoRaw),
     hotelNames: normalizeStringList(parsed.hotelNames),
     dayHotelPlans: parsed.dayHotelPlans?.length ? parsed.dayHotelPlans : null,
-    hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+    hotelSummaryText: nullIfEmptyTrim(
+      applyYbtourHotelUndeterminedDepartureNotice(
+        resolveYbtourRegisterHotelSummaryText(parsed.hotelSummaryText, normalizeStringList(parsed.hotelNames)),
+        normalizeStringList(parsed.hotelNames),
+        hotelDepartureHaystack
+      )
+    ),
     hotelStatusText: nullIfEmptyTrim(parsed.hotelStatusText),
     hotelNoticeRaw: nullIfEmptyTrim(parsed.hotelNoticeRaw),
     singleRoomSurchargeAmount: parsed.singleRoomSurchargeAmount ?? null,
@@ -1144,6 +1178,17 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       }
     }
 
+    const ybtourHotelDepartureHaystackForSave = [
+      text,
+      parsedWithFinalNotice.detailBodyStructured?.normalizedRaw ?? '',
+      nullIfEmptyTrim(parsedWithFinalNotice.hotelInfoRaw) ?? '',
+      nullIfEmptyTrim(parsedWithFinalNotice.hotelNoticeRaw) ?? '',
+      nullIfEmptyTrim(parsedWithFinalNotice.hotelStatusText) ?? '',
+    ]
+      .map((x) => String(x).trim())
+      .filter(Boolean)
+      .join('\n')
+
     const productDraft = {
       originSource: effectiveOriginSource,
       originCode: parsed.originCode,
@@ -1202,7 +1247,16 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       hotelInfoRaw: nullIfEmptyTrim(parsed.hotelInfoRaw),
       hotelNames: normalizeStringList(parsed.hotelNames),
       dayHotelPlans: parsed.dayHotelPlans?.length ? parsed.dayHotelPlans : null,
-      hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+      hotelSummaryText: nullIfEmptyTrim(
+        applyYbtourHotelUndeterminedDepartureNotice(
+          resolveYbtourRegisterHotelSummaryText(
+            parsedWithFinalNotice.hotelSummaryText,
+            normalizeStringList(parsed.hotelNames)
+          ),
+          normalizeStringList(parsed.hotelNames),
+          ybtourHotelDepartureHaystackForSave
+        )
+      ),
       hotelStatusText: nullIfEmptyTrim(parsed.hotelStatusText),
       hotelNoticeRaw: nullIfEmptyTrim(parsed.hotelNoticeRaw),
       minimumDepartureCount: parsed.minimumDepartureCount ?? null,
@@ -1408,10 +1462,15 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       ybtourFlightStructured: heroTripDatesExtra.ybtourFlightStructured ?? null,
     })
 
-    const baseRawMeta = mergeRawMetaWithStructuredSignals(rawMetaForPromotion, parsedWithFinalNotice, {
-      heroDepartureDateSource: heroAuditForMeta.departureSource,
-      heroReturnDateSource: heroAuditForMeta.returnSource,
-    })
+    const baseRawMeta = mergeRawMetaWithStructuredSignals(
+      rawMetaForPromotion,
+      parsedWithFinalNotice,
+      {
+        heroDepartureDateSource: heroAuditForMeta.departureSource,
+        heroReturnDateSource: heroAuditForMeta.returnSource,
+      },
+      text
+    )
     const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
     const registerHeroSeoInput = {
       rawBodyText: text,
@@ -1447,7 +1506,16 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       productType: parsed.productType || 'travel',
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       hotelSummaryRaw,
-      hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+      hotelSummaryText: nullIfEmptyTrim(
+        applyYbtourHotelUndeterminedDepartureNotice(
+          resolveYbtourRegisterHotelSummaryText(
+            parsedWithFinalNotice.hotelSummaryText,
+            normalizeStringList(parsed.hotelNames)
+          ),
+          normalizeStringList(parsed.hotelNames),
+          ybtourHotelDepartureHaystackForSave
+        )
+      ),
       airportTransferType: parsed.airportTransferType ?? null,
       optionalToursStructured: parsed.optionalToursStructured ?? null,
       isFuelIncluded: parsed.isFuelIncluded !== false,

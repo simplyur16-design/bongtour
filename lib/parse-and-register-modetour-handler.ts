@@ -84,6 +84,7 @@ import {
 import { buildPriceDisplaySsot, validatePriceDisplaySsot } from '@/lib/price-display-ssot'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-modetour'
 import { nullIfEmptyTrim, normalizeStringList } from '@/lib/null-normalize'
+import { applyModetourHotelUndeterminedDepartureNotice } from '@/lib/register-from-llm-modetour'
 import { mergeDayHotelPlansForRegister } from '@/lib/day-hotel-plans-modetour'
 import { normalizePromotionMarketingCopy } from '@/lib/promotion-copy-normalize'
 import { addDaysIso, extractIsoDate, inferHeroReturnDayOffset } from '@/lib/hero-date-utils'
@@ -133,6 +134,22 @@ import {
   attachPreservedMeetingOperatorToStructuredSignals,
   stripBodyDerivedMeetingFromRegisterParsed,
 } from '@/lib/meeting-operator-ssot'
+
+function buildModetourRegisterHotelSummaryFromNames(names: readonly string[]): string | null {
+  const clean = names.map((n) => String(n).trim()).filter(Boolean)
+  if (clean.length === 0) return null
+  if (clean.length === 1) return clean[0]!
+  return `${clean[0]!} 외 ${clean.length - 1}개`
+}
+
+function resolveModetourRegisterHotelSummaryText(
+  existingSummary: string | null | undefined,
+  hotelNames: readonly string[]
+): string | null {
+  const t = existingSummary?.trim()
+  if (t) return t
+  return buildModetourRegisterHotelSummaryFromNames(hotelNames)
+}
 
 // --- 일정 일차 title A-B-C 후처리 (노랑풍선 ybtour-schedule-day-header-title.ts 로직 복사·독립) ---
 const _modetour_DAY_N_TRAVEL = /^day\s*\d+\s*travel$/i
@@ -465,8 +482,19 @@ function buildModetourProductScheduleJson(
 function mergeRawMetaWithStructuredSignals(
   existingRawMeta: string | null | undefined,
   parsed: RegisterParsed,
-  heroAudit?: { heroDepartureDateSource: string; heroReturnDateSource: string } | null
+  heroAudit?: { heroDepartureDateSource: string; heroReturnDateSource: string } | null,
+  pastedBodyForHotelNotice?: string | null
 ): string | null {
+  const hotelDepartureHaystack = [
+    pastedBodyForHotelNotice ?? '',
+    parsed.detailBodyStructured?.normalizedRaw ?? '',
+    parsed.hotelInfoRaw ?? '',
+    parsed.hotelNoticeRaw ?? '',
+    parsed.hotelStatusText ?? '',
+  ]
+    .map((x) => String(x).trim())
+    .filter(Boolean)
+    .join('\n')
   // SSOT docs:
   // - docs/detail-body-input-priority.md (raw/structured/final boundaries)
   // - docs/detail-body-review-policy.md (review + exposure semantics)
@@ -514,7 +542,13 @@ function mergeRawMetaWithStructuredSignals(
     hotelInfoRaw: nullIfEmptyTrim(parsed.hotelInfoRaw),
     hotelNames: normalizeStringList(parsed.hotelNames),
     dayHotelPlans: parsed.dayHotelPlans?.length ? parsed.dayHotelPlans : null,
-    hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+    hotelSummaryText: nullIfEmptyTrim(
+      applyModetourHotelUndeterminedDepartureNotice(
+        resolveModetourRegisterHotelSummaryText(parsed.hotelSummaryText, normalizeStringList(parsed.hotelNames)),
+        normalizeStringList(parsed.hotelNames),
+        hotelDepartureHaystack
+      )
+    ),
     hotelStatusText: nullIfEmptyTrim(parsed.hotelStatusText),
     hotelNoticeRaw: nullIfEmptyTrim(parsed.hotelNoticeRaw),
     singleRoomSurchargeAmount: parsed.singleRoomSurchargeAmount ?? null,
@@ -1452,6 +1486,17 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       }
     }
 
+    const modetourHotelDepartureHaystackForSave = [
+      text,
+      parsedWithFinalNotice.detailBodyStructured?.normalizedRaw ?? '',
+      nullIfEmptyTrim(parsedWithFinalNotice.hotelInfoRaw) ?? '',
+      nullIfEmptyTrim(parsedWithFinalNotice.hotelNoticeRaw) ?? '',
+      nullIfEmptyTrim(parsedWithFinalNotice.hotelStatusText) ?? '',
+    ]
+      .map((x) => String(x).trim())
+      .filter(Boolean)
+      .join('\n')
+
     const productDraft = {
       originSource: effectiveOriginSource,
       originCode: parsed.originCode,
@@ -1510,7 +1555,16 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       hotelInfoRaw: nullIfEmptyTrim(parsed.hotelInfoRaw),
       hotelNames: normalizeStringList(parsed.hotelNames),
       dayHotelPlans: parsed.dayHotelPlans?.length ? parsed.dayHotelPlans : null,
-      hotelSummaryText: nullIfEmptyTrim(parsedWithFinalNotice.hotelSummaryText),
+      hotelSummaryText: nullIfEmptyTrim(
+        applyModetourHotelUndeterminedDepartureNotice(
+          resolveModetourRegisterHotelSummaryText(
+            parsedWithFinalNotice.hotelSummaryText,
+            normalizeStringList(parsed.hotelNames)
+          ),
+          normalizeStringList(parsed.hotelNames),
+          modetourHotelDepartureHaystackForSave
+        )
+      ),
       hotelStatusText: nullIfEmptyTrim(parsed.hotelStatusText),
       hotelNoticeRaw: nullIfEmptyTrim(parsed.hotelNoticeRaw),
       minimumDepartureCount: parsed.minimumDepartureCount ?? null,
@@ -1718,10 +1772,15 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       modetourBodyHaystack: modetourMetaHeroBodyHaystack(effectiveOriginSource, text),
     })
 
-    const baseRawMeta = mergeRawMetaWithStructuredSignals(rawMetaForPromotion, parsedWithFinalNotice, {
-      heroDepartureDateSource: heroAuditForMeta.departureSource,
-      heroReturnDateSource: heroAuditForMeta.returnSource,
-    })
+    const baseRawMeta = mergeRawMetaWithStructuredSignals(
+      rawMetaForPromotion,
+      parsedWithFinalNotice,
+      {
+        heroDepartureDateSource: heroAuditForMeta.departureSource,
+        heroReturnDateSource: heroAuditForMeta.returnSource,
+      },
+      text
+    )
     const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
     const registerHeroSeoInput = {
       rawBodyText: text,
@@ -1757,7 +1816,16 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       productType: parsed.productType || 'travel',
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       hotelSummaryRaw,
-      hotelSummaryText: nullIfEmptyTrim(parsedWithFinalNotice.hotelSummaryText),
+      hotelSummaryText: nullIfEmptyTrim(
+        applyModetourHotelUndeterminedDepartureNotice(
+          resolveModetourRegisterHotelSummaryText(
+            parsedWithFinalNotice.hotelSummaryText,
+            normalizeStringList(parsed.hotelNames)
+          ),
+          normalizeStringList(parsed.hotelNames),
+          modetourHotelDepartureHaystackForSave
+        )
+      ),
       airportTransferType: parsed.airportTransferType ?? null,
       optionalToursStructured: parsed.optionalToursStructured ?? null,
       isFuelIncluded: parsed.isFuelIncluded !== false,
