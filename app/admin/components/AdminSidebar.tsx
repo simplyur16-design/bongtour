@@ -45,6 +45,7 @@ const navEntries: NavEntry[] = [
       { href: '/admin/bongsim/coupon-report', label: '할인 리포트', icon: BarChart3 },
       { href: '/admin/bongsim/payments', label: '결제 내역', icon: CreditCard },
       { href: '/admin/bongsim/products', label: '상품 관리', icon: Package },
+      { href: '/admin/bongsim/monthly-curation', label: '월별 큐레이션(Gemini)', icon: CalendarDays },
     ],
   },
   { type: 'link', href: '/admin/register', label: '상품 등록', icon: Package },

@@ -26,6 +26,10 @@ export async function register() {
         const { startInstrumentationCalendarCron } = await import('@/lib/instrumentation-calendar-cron')
         startInstrumentationCalendarCron()
       }
+      if ((process.env.DATABASE_URL ?? '').trim()) {
+        const { startInstrumentationCurationCron } = await import('@/lib/instrumentation-curation-cron')
+        startInstrumentationCurationCron()
+      }
     }
   }
   assertProductionServerEnv()

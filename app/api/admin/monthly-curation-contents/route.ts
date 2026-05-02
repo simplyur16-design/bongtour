@@ -9,9 +9,13 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   const scope = searchParams.get('scope')?.trim() || 'overseas'
+  const monthKey = searchParams.get('monthKey')?.trim()
 
   const items = await prisma.monthlyCurationContent.findMany({
-    where: { pageScope: scope },
+    where: {
+      pageScope: scope,
+      ...(monthKey && /^\d{4}-\d{2}$/.test(monthKey) ? { monthKey } : {}),
+    },
     orderBy: [{ monthKey: 'desc' }, { sortOrder: 'asc' }, { updatedAt: 'desc' }],
   })
   return NextResponse.json({ items })
