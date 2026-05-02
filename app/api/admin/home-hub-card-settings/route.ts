@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
 import { isValidCardKey } from '@/lib/home-hub-candidates'
@@ -93,7 +94,8 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const active = writeHomeHubActiveMerged(patch)
+    const active = await writeHomeHubActiveMerged(patch)
+    revalidatePath('/')
     return NextResponse.json({ ok: true, active })
   } catch (e) {
     console.error('[home-hub-card-settings]', e)

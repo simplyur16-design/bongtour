@@ -35,7 +35,7 @@ export async function fetchHomeHubActiveConfigRecord(): Promise<HomeHubActiveDbR
 
 /**
  * fire-and-forget 용. 호출자가 await 하지 않아도 에러는 로그로 남는다.
- * 동기 함수(`writeHomeHubActiveMerged`)에서 호출하기 위함.
+ * `writeHomeHubActiveMerged`에서 await로 호출한다.
  */
 export async function upsertHomeHubActiveConfigRecord(data: unknown): Promise<void> {
   await prisma.homeHubActiveConfig.upsert({

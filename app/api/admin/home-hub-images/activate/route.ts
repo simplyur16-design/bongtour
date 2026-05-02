@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     'admin'
 
   try {
-    const { candidate, active } = activateHomeHubCandidate(candidateId, { updatedBy })
+    const { candidate, active } = await activateHomeHubCandidate(candidateId, { updatedBy })
     return NextResponse.json({ ok: true, candidate, active })
   } catch (e) {
     const msg = e instanceof Error ? e.message : ''

@@ -73,10 +73,10 @@ export function appendHomeHubCandidates(newItems: HomeHubCandidateRecord[]): Hom
  * 후보를 메인 활성으로 승격. 동일 `cardKey`의 다른 후보 `isActive`/`isSelected` 해제 후
  * `home-hub-active.json` 의 해당 카드 URL·`activeSeason` 갱신.
  */
-export function activateHomeHubCandidate(
+export async function activateHomeHubCandidate(
   candidateId: string,
   options?: { updatedBy?: string }
-): { candidate: HomeHubCandidateRecord; active: HomeHubActiveFile } {
+): Promise<{ candidate: HomeHubCandidateRecord; active: HomeHubActiveFile }> {
   const data = readHomeHubCandidates()
   const idx = data.candidates.findIndex((c) => c.id === candidateId)
   if (idx < 0) throw new Error('후보를 찾을 수 없습니다.')
@@ -96,7 +96,7 @@ export function activateHomeHubCandidate(
 
   writeHomeHubCandidates(data)
 
-  const active = writeHomeHubActiveMerged({
+  const active = await writeHomeHubActiveMerged({
     images: { [target.cardKey]: target.imagePath },
     activeSeason: target.season,
     lastUpdatedBy: options?.updatedBy,
@@ -121,7 +121,7 @@ function safeUnlinkCandidateImageFile(imagePath: string): void {
   }
 }
 
-/** Supabase Storage 공개 URL이면 객체 삭제, 레거시 로컬 후보 경로면 파일 삭제 */
+/** Ncloud 등 공개 URL이면 스토리지 객체 삭제, 레거시 로컬 후보 경로면 파일 삭제 */
 async function removeStoredCandidateImage(imagePath: string): Promise<void> {
   const trimmed = imagePath.trim()
   const key = tryParseObjectKeyFromPublicUrl(trimmed)
@@ -137,7 +137,7 @@ async function removeStoredCandidateImage(imagePath: string): Promise<void> {
 }
 
 /**
- * 후보 1건 삭제: JSON에서 제거 + Supabase Storage 또는 레거시 `public/images/home-hub/candidates/` 파일 삭제.
+ * 후보 1건 삭제: JSON에서 제거 + 객체 스토리지 또는 레거시 `public/images/home-hub/candidates/` 파일 삭제.
  * 메인 활성 URL이 이 후보와 같으면 카드별 기본 이미지로 되돌림.
  */
 export async function deleteHomeHubCandidate(
@@ -160,7 +160,7 @@ export async function deleteHomeHubCandidate(
   data.candidates.splice(idx, 1)
 
   if (mainPointsHere) {
-    writeHomeHubActiveMerged({
+    await writeHomeHubActiveMerged({
       images: { [target.cardKey]: homeHubCardImageSrc(target.cardKey) },
       lastUpdatedBy: options?.updatedBy,
     })

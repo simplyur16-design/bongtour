@@ -4,7 +4,7 @@
  * NCLOUD_OBJECT_STORAGE_BUCKET, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL,
  * 선택 NCLOUD_OBJECT_STORAGE_REGION(기본 kr-standard), NCLOUD_OBJECT_STORAGE_S3_ADDRESSING(기본 path; virtual이면 virtual-hosted).
  *
- * 브라우저→Supabase incoming 등 레거시 경로는 `getSupabaseImageStorageBucket` + `isSupabaseStorageAdminConfigured`를 사용한다.
+ * 레거시·기타 업로드 경로는 `getSupabaseImageStorageBucket` 등(별도 모듈)을 사용한다.
  */
 import {
   DeleteObjectCommand,
@@ -363,18 +363,6 @@ export function tryParseObjectKeyFromPublicUrl(publicUrl: string): string | null
       const base = getObjectStorageEnv().publicBaseUrl.replace(/\/+$/, '')
       if (u.startsWith(`${base}/`) || u === base) {
         const raw = u.slice(base.length).replace(/^\/+/, '')
-        if (!raw) return null
-        return decodeKeyPath(raw)
-      }
-    }
-
-    const supabaseUrl = process.env.SUPABASE_URL?.trim().replace(/\/+$/, '')
-    const supBucket = getSupabaseImageStorageBucket()
-    if (supabaseUrl) {
-      const legacy = `${supabaseUrl}/storage/v1/object/public/${supBucket}`
-      const lb = legacy.replace(/\/+$/, '')
-      if (u.startsWith(`${lb}/`) || u === lb) {
-        const raw = u.slice(lb.length).replace(/^\/+/, '')
         if (!raw) return null
         return decodeKeyPath(raw)
       }

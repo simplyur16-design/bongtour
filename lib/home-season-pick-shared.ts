@@ -30,19 +30,11 @@ export function excerptBody(body: string, max: number): string {
 const FALLBACK_CTA_HREF = '/travel/overseas'
 const FALLBACK_CTA_LABEL = '자세히 보기'
 
-/** 시즌 슬라이드: Supabase Storage 원격 URL은 지연·해외 리전 이슈로 제외(그라데이션·텍스트만 노출). */
+/** 시즌 슬라이드 이미지 URL — 정규화만(호스트별 제외 없음). */
 export function stripSupabaseStorageForHomeSeasonImage(url: string | null): string | null {
   if (url == null) return null
   const t = url.trim()
-  if (!t) return null
-  if (!/^https?:\/\//i.test(t)) return t
-  try {
-    const u = new URL(t)
-    if (u.hostname.endsWith('.supabase.co') && u.pathname.includes('/storage/')) return null
-  } catch {
-    return t
-  }
-  return t
+  return t || null
 }
 
 /**

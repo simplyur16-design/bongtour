@@ -50,7 +50,7 @@ export type HomeHubActiveFile = {
    */
   trainingPageSecondaryImage?: string
   /**
-   * 모바일 홈 `HomeMobileHub` 주요 서비스 4카드 배경 — `/images/...` 또는 `https://...`(Supabase 공개 URL 등).
+   * 모바일 홈 `HomeMobileHub` 주요 서비스 4카드 배경 — `/images/...` 또는 공개 `https://...`(Ncloud Object Storage 등).
    * 비어 있거나 무효·파일 없음이면 배경 사진 없이 그라데이션만 표시.
    */
   mobileMainServiceTiles?: Partial<Record<MobileMainServiceTileKey, string>>
@@ -158,8 +158,11 @@ export type WriteHomeHubActiveMergedInput = {
 
 /**
  * 기존 `home-hub-active.json`을 읽어 병합 후 저장. 없으면 기본 골격 생성.
+ * DB upsert는 await로 끝까지 시도하며, 실패해도 JSON 저장은 유지한 채 로그만 남긴다.
  */
-export function writeHomeHubActiveMerged(patch: WriteHomeHubActiveMergedInput): HomeHubActiveFile {
+export async function writeHomeHubActiveMerged(
+  patch: WriteHomeHubActiveMergedInput,
+): Promise<HomeHubActiveFile> {
   const cur = getHomeHubActiveFile()
   const base: HomeHubActiveFile = cur ?? {
     activeSeason: 'default',
@@ -195,10 +198,11 @@ export function writeHomeHubActiveMerged(patch: WriteHomeHubActiveMergedInput): 
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(configPath(), JSON.stringify(next, null, 2), 'utf8')
 
-  // DB 영구 저장 (배포 간 복원용). fire-and-forget.
-  upsertHomeHubActiveConfigRecord(next).catch((e) => {
-    console.error('[home-hub-resolve-images] DB persist failed (non-fatal):', e)
-  })
+  try {
+    await upsertHomeHubActiveConfigRecord(next)
+  } catch (e) {
+    console.error('[home-hub-resolve-images] DB persist failed (JSON saved):', e)
+  }
 
   return next
 }
