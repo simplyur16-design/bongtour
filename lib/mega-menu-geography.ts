@@ -84,7 +84,7 @@ export function buildEuropeMegaMenuGroups(): MegaMenuCountryGroupInput[] {
       leafKeys?: readonly string[]
       termsOverride?: string[]
     }[],
-    nonLinkHeader = true,
+    nonLinkHeader = false,
   ): MegaMenuCountryGroupInput => ({
     countryLabel: header,
     nonLinkHeader,
@@ -157,7 +157,7 @@ export function buildMeAfricaMegaMenuGroups(): MegaMenuCountryGroupInput[] {
   const g = (
     header: string,
     items: { label: string; ck: string; leafKeys?: readonly string[] }[],
-    nonLinkHeader = true,
+    nonLinkHeader = false,
   ): MegaMenuCountryGroupInput => ({
     countryLabel: header,
     nonLinkHeader,
@@ -203,7 +203,7 @@ export function buildChinaMegaMenuGroups(): MegaMenuCountryGroupInput[] {
   const g = (
     header: string,
     items: { label: string; ck: string; leafKeys?: readonly string[]; termsOverride?: string[] }[],
-    nonLinkHeader = true,
+    nonLinkHeader = false,
   ): MegaMenuCountryGroupInput => ({
     countryLabel: header,
     nonLinkHeader,

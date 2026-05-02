@@ -79,7 +79,11 @@ export function productMatchesOverseasDestinationTerms(
 
   if (hasDbBrowseGeo) {
     if (rRaw && rContLower) {
-      if (dbCont !== rContLower && dbCountry !== rContLower) return false
+      const urlCountryMatchesDb =
+        Boolean(c) && dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw)
+      if (!urlCountryMatchesDb) {
+        if (dbCont !== rContLower && dbCountry !== rContLower) return false
+      }
     }
     if (cRaw && !dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw)) return false
     if (ctRaw && !dbCityMatchesBrowseCityParam(dbCityRaw, ctRaw)) return false

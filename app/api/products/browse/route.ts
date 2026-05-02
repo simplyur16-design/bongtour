@@ -109,12 +109,14 @@ export async function GET(request: Request) {
       } else if (r && c) {
         if (continentFromRegion) overseasGeoAnd.push({ continent: continentFromRegion })
         const dbCountries = resolveBrowseCountryParamToDbCountries(c)
-        if (dbCountries.length === 1) overseasGeoAnd.push({ country: dbCountries[0] })
-        else if (dbCountries.length > 1) overseasGeoAnd.push({ country: { in: dbCountries } })
+        if (dbCountries.length === 0) overseasGeoAnd.push({ country: { in: [] } })
+        else if (dbCountries.length === 1) overseasGeoAnd.push({ country: dbCountries[0] })
+        else overseasGeoAnd.push({ country: { in: dbCountries } })
       } else if (!r && c) {
         const dbCountries = resolveBrowseCountryParamToDbCountries(c)
-        if (dbCountries.length === 1) overseasGeoAnd.push({ country: dbCountries[0] })
-        else if (dbCountries.length > 1) overseasGeoAnd.push({ country: { in: dbCountries } })
+        if (dbCountries.length === 0) overseasGeoAnd.push({ country: { in: [] } })
+        else if (dbCountries.length === 1) overseasGeoAnd.push({ country: dbCountries[0] })
+        else overseasGeoAnd.push({ country: { in: dbCountries } })
       }
       if (ct) {
         const dbCity = resolveBrowseCityParamToDbCity(ct)

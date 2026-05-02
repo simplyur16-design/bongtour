@@ -698,8 +698,16 @@ export default function ProductsBrowseClient({
       )}
       {!loading && data && data.total === 0 && !budgetActive && hasNonBudgetFilters && (
         <div className="mt-10 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-6 text-sm text-slate-900">
-          <p className="font-semibold">선택한 조건에 맞는 상품이 없습니다.</p>
-          <p className="mt-2 text-slate-700">필터를 조정하거나 초기화한 뒤 다시 찾아보세요.</p>
+          <p className="font-semibold">
+            {hasMegaGeo || Boolean((q.city ?? '').trim())
+              ? '등록된 여행상품이 없습니다.'
+              : '선택한 조건에 맞는 상품이 없습니다.'}
+          </p>
+          <p className="mt-2 text-slate-700">
+            {hasMegaGeo || Boolean((q.city ?? '').trim())
+              ? '현재 이 목적지·지역으로 노출되는 상품이 없습니다. 다른 지역을 선택하거나 필터를 조정해 보세요.'
+              : '필터를 조정하거나 초기화한 뒤 다시 찾아보세요.'}
+          </p>
           <button
             type="button"
             onClick={clearAllFilters}
