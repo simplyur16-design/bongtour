@@ -4,6 +4,15 @@ import { requireAdmin } from "@/lib/require-admin";
 
 export const dynamic = "force-dynamic";
 
+type CouponReportDbRow = {
+  used_at: Date;
+  order_number: string;
+  code: string;
+  original_amount_krw: string;
+  discount_amount_krw: string;
+  final_amount_krw: string;
+};
+
 export async function GET(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -25,14 +34,7 @@ export async function GET(req: Request) {
   const end = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
 
   try {
-    const r = await pool.query<{
-      used_at: Date;
-      order_number: string;
-      code: string;
-      original_amount_krw: string;
-      discount_amount_krw: string;
-      final_amount_krw: string;
-    }>(
+    const r = await pool.query<CouponReportDbRow>(
       `SELECT u.used_at, o.order_number, c.code,
               u.original_amount_krw::text AS original_amount_krw,
               u.discount_amount_krw::text AS discount_amount_krw,
@@ -55,7 +57,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       year,
       month,
-      rows: r.rows.map((x) => ({
+      rows: r.rows.map((x: CouponReportDbRow) => ({
         used_at: x.used_at.toISOString(),
         order_number: x.order_number,
         code: x.code,
