@@ -119,25 +119,39 @@ const DB_CITY_LABELS = new Set<string>([
   '제천',
 ])
 
-/** browse `region` 쿼리 → DB `continent` (없으면 null — me-africa 등) */
+/** browse `region` 쿼리 → DB `continent` (단일 매칭; 병합 탭은 `browseRegionToDbContinents` 사용) */
 const BROWSE_REGION_TO_DB_CONTINENT = new Set([
   'japan',
   'southeast-asia',
   'china-mongolia-ca',
   'hongkong-macau',
   'europe',
+  'me-africa',
   'americas',
   'oceania',
 ])
 
 /**
  * URL `region`(메가메뉴 탭 id)을 DB `Product.continent` 값으로 정규화.
- * `me-africa` 등 DB에 없는 권역은 null → Prisma에서 continent 조건 생략.
+ * 병합 탭(`europe-me`, `china-hk-mo`)은 null — Prisma·매칭은 `browseRegionToDbContinents`로 처리.
  */
 export function normalizeBrowseRegionToDbContinent(region: string | null | undefined): string | null {
   const t = (region ?? '').trim().toLowerCase()
   if (!t) return null
   return BROWSE_REGION_TO_DB_CONTINENT.has(t) ? t : null
+}
+
+/**
+ * 메가메뉴 탭 id → DB `Product.continent` 값 1개 이상 (Prisma `OR`·매칭용).
+ * 빈 배열이면 continent 조건 없음.
+ */
+export function browseRegionToDbContinents(region: string | null | undefined): string[] {
+  const t = (region ?? '').trim().toLowerCase()
+  if (!t) return []
+  if (t === 'europe-me') return ['europe', 'me-africa']
+  if (t === 'china-hk-mo') return ['china-mongolia-ca', 'hongkong-macau']
+  const one = normalizeBrowseRegionToDbContinent(t)
+  return one ? [one] : []
 }
 
 function uniqueStrings(xs: string[]): string[] {
@@ -273,14 +287,39 @@ export function dbCityMatchesBrowseCityParam(dbCityRaw: string | null | undefine
  */
 const CHINA_MEGA_BROWSE_ROWS: { label: string; countries: string[]; keywords: string[] }[] = [
   {
+    label: '청도',
+    countries: ['중국'],
+    keywords: ['청도', '칭다오', 'qingdao'],
+  },
+  {
+    label: '위해',
+    countries: ['중국'],
+    keywords: ['위해', 'weihai', '웨이하이'],
+  },
+  {
+    label: '연태',
+    countries: ['중국'],
+    keywords: ['연태', 'yantai', '옌타이'],
+  },
+  {
     label: '상해',
     countries: ['중국'],
-    keywords: ['상해', '상하이', 'shanghai', '소주', 'suzhou', '주가각', 'zhujiajiao'],
+    keywords: ['상해', '상하이', 'shanghai'],
+  },
+  {
+    label: '소주',
+    countries: ['중국'],
+    keywords: ['소주', 'suzhou', '苏州', '주가각', 'zhujiajiao', '무석', 'wuxi'],
   },
   {
     label: '북경',
     countries: ['중국'],
-    keywords: ['북경', '베이징', 'beijing', '천진', '톈진', 'tianjin'],
+    keywords: ['북경', '베이징', 'beijing'],
+  },
+  {
+    label: '천진',
+    countries: ['중국'],
+    keywords: ['천진', '톈진', 'tianjin'],
   },
   {
     label: '청도 · 위해 · 연태',
@@ -304,7 +343,7 @@ const CHINA_MEGA_BROWSE_ROWS: { label: string; countries: string[]; keywords: st
   {
     label: '대련',
     countries: ['중국'],
-    keywords: ['대련', 'dalian', '하얼빈', 'harbin'],
+    keywords: ['대련', 'dalian'],
   },
   {
     label: '장가계',
@@ -332,6 +371,11 @@ const CHINA_MEGA_BROWSE_ROWS: { label: string; countries: string[]; keywords: st
     keywords: ['광저우', '광주', 'guangzhou', '广州'],
   },
   {
+    label: '연길',
+    countries: ['중국'],
+    keywords: ['연길', 'yanji', 'yanbian', '백두산', 'changbai', '장백산', '심양', 'shenyang', '장춘', 'changchun'],
+  },
+  {
     label: '연길 · 심양 · 장춘 · 백두산',
     countries: ['중국'],
     keywords: ['연길', '심양', '장춘', '백두산', 'changbai'],
@@ -339,7 +383,7 @@ const CHINA_MEGA_BROWSE_ROWS: { label: string; countries: string[]; keywords: st
   {
     label: '하얼빈',
     countries: ['중국'],
-    keywords: ['하얼빈', 'harbin', '대련', 'dalian'],
+    keywords: ['하얼빈', 'harbin'],
   },
   {
     label: '성도 · 구채구',
@@ -433,6 +477,14 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   'mongolia-inner': ['몽골', '중국'],
   'tokyo-kanto': ['일본'],
   'osaka-kansai': ['일본'],
+  니세코: ['일본'],
+  센다이: ['일본'],
+  벳부: ['일본'],
+  유후인: ['일본'],
+  가고시마: ['일본'],
+  나가사키: ['일본'],
+  나하: ['일본'],
+  후라노: ['일본'],
   'alpine-route': ['일본'],
   'guam-saipan': ['괌', '사이판'],
   'india-nepal-sri-lanka': ['인도', '스리랑카'],
@@ -446,6 +498,9 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   czech: ['동유럽'],
   austria: ['동유럽'],
   hungary: ['동유럽'],
+  poland: ['동유럽'],
+  warsaw: ['동유럽'],
+  바르샤바: ['동유럽'],
   spain: ['스페인'],
   portugal: ['포르투갈'],
   greece: ['그리스'],

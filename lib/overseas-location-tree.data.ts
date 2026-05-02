@@ -370,6 +370,12 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
       }),
       C('hungary', '헝가리', [L('hu', '헝가리', { aliases: ['hungary', '부다페스트'] })], { aliases: ['헝가리'] }),
       C(
+        'poland',
+        '폴란드',
+        [L('warsaw', '바르샤바', { aliases: ['warsaw', 'warszawa', '바르샤바', '폴란드', 'poland'] })],
+        { aliases: ['폴란드', 'poland'], dbCountryValues: ['동유럽'] }
+      ),
+      C(
         'balkans',
         '발칸 · 크로아티아 · 슬로베니아',
         [
@@ -386,13 +392,27 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         aliases: ['포르투갈'],
       }),
       C('morocco', '모로코', [L('ma', '모로코', { aliases: ['morocco', '마라케시'] })], { aliases: ['모로코'] }),
-      C('turkey', '튀르키예', [L('tr', '튀르키예', { aliases: ['turkey', 'turkiye', '터키', '이스탄불', 'istanbul'] })], {
-        aliases: ['튀르키예', '터키'],
-        supplierKeywords: ['튀르키예(터키)'],
-      }),
-      C('greece', '그리스', [L('greece', '그리스', { aliases: ['greece', '그리스', '아테네', '산토리니'] })], {
-        aliases: ['그리스'],
-      }),
+      C(
+        'turkey',
+        '튀르키예',
+        [
+          L('istanbul', '이스탄불', { aliases: ['istanbul', '이스탄불', 'ist', '터키'] }),
+          L('cappadocia', '카파도키아', { aliases: ['cappadocia', '카파도키아', 'goreme', '고레메', 'kapadokya'] }),
+        ],
+        {
+          aliases: ['튀르키예', '터키'],
+          supplierKeywords: ['튀르키예(터키)'],
+        }
+      ),
+      C(
+        'greece',
+        '그리스',
+        [
+          L('athens', '아테네', { aliases: ['athens', '아테네', '애테네', 'athena'] }),
+          L('santorini', '산토리니', { aliases: ['santorini', '산토리니', 'thira'] }),
+        ],
+        { aliases: ['그리스'] }
+      ),
       C('egypt', '이집트', [L('egypt', '이집트', { aliases: ['egypt', '이집트', '카이로', '룩소르'], supplierKeywords: ['이집트'] })], {
         aliases: ['이집트'],
       }),
@@ -458,7 +478,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
     'china-circle',
     '중국권 · 홍콩 · 마카오 · 몽골 · 중앙아',
     [
-      C('mongolia', '몽골', [L('ulaanbaatar', '울란바토르', { aliases: ['ulaanbaatar', '울란바토르', '몽골'] })], {
+      C('mongolia', '몽골', [L('ulaanbaatar', '울란바타르', { aliases: ['ulaanbaatar', '울란바토르', '울란바타르', '몽골'] })], {
         aliases: ['몽골'],
       }),
       C(
@@ -532,7 +552,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
 
   G(
     'guam-au-nz',
-    '괌 · 사이판 · 호주 · 뉴질랜드',
+    '괌/사이판/호주/뉴질랜드',
     [
       C('guam', '괌', [L('guam', '괌', { aliases: ['guam', '괌'] })], { aliases: ['괌'] }),
       C('saipan', '사이판', [L('saipan', '사이판', { aliases: ['saipan', '사이판'] })], { aliases: ['사이판'] }),

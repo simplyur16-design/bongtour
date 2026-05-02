@@ -11,9 +11,9 @@ import {
   type OverseasRegionGroupNode,
 } from '@/lib/overseas-location-tree'
 import {
+  browseRegionToDbContinents,
   dbCityMatchesBrowseCityParam,
   dbCountryMatchesBrowseCountryParam,
-  normalizeBrowseRegionToDbContinent,
 } from '@/lib/browse-country-url-resolve'
 
 /** 갤러리·API 등 최소 필드 */
@@ -53,8 +53,7 @@ export function productMatchesOverseasDestinationTerms(
   urlGeo?: { region: string | null; country: string | null; city: string | null }
 ): boolean {
   const rRaw = (urlGeo?.region ?? '').trim()
-  const rCont = normalizeBrowseRegionToDbContinent(rRaw)
-  const rContLower = rCont?.toLowerCase() ?? ''
+  const rDbConts = browseRegionToDbContinents(rRaw).map((x) => x.toLowerCase())
   const cRaw = (urlGeo?.country ?? '').trim()
   const c = cRaw.toLowerCase()
   const ctRaw = (urlGeo?.city ?? '').trim()
@@ -78,11 +77,13 @@ export function productMatchesOverseasDestinationTerms(
   if (!hasUrlGeo) return termsMatch()
 
   if (hasDbBrowseGeo) {
-    if (rRaw && rContLower) {
+    if (rRaw && rDbConts.length > 0) {
       const urlCountryMatchesDb =
         Boolean(c) && dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw)
       if (!urlCountryMatchesDb) {
-        if (dbCont !== rContLower && dbCountry !== rContLower) return false
+        const contOk = rDbConts.includes(dbCont)
+        const countryAsTab = rDbConts.includes(dbCountry)
+        if (!contOk && !countryAsTab) return false
       }
     }
     if (cRaw && !dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw)) return false

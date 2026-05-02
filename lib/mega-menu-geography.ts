@@ -110,17 +110,27 @@ export function buildEuropeMegaMenuGroups(): MegaMenuCountryGroupInput[] {
 
   return [
     g('서유럽', [
+      { label: '이탈리아', ck: 'italy' },
       { label: '프랑스', ck: 'france' },
       { label: '스위스', ck: 'switzerland' },
-      { label: '이탈리아', ck: 'italy' },
       { label: '영국', ck: 'uk' },
-      { label: '네덜란드', ck: 'netherlands' },
+      { label: '독일', ck: 'germany' },
     ]),
     g('동유럽', [
       { label: '체코', ck: 'czech' },
       { label: '오스트리아', ck: 'austria' },
       { label: '헝가리', ck: 'hungary' },
-      { label: '독일', ck: 'germany' },
+      { label: '폴란드', ck: 'poland' },
+    ]),
+    g('북유럽', [
+      { label: '덴마크', ck: 'nordic-baltic', leafKeys: ['denmark'] },
+      { label: '노르웨이', ck: 'nordic-baltic', leafKeys: ['norway'] },
+      { label: '스웨덴', ck: 'nordic-baltic', leafKeys: ['sweden'] },
+      { label: '핀란드', ck: 'nordic-baltic', leafKeys: ['finland'] },
+    ]),
+    g('스페인/포르투갈', [
+      { label: '스페인', ck: 'spain' },
+      { label: '포르투갈', ck: 'portugal' },
     ]),
     g('발칸', [
       {
@@ -134,21 +144,13 @@ export function buildEuropeMegaMenuGroups(): MegaMenuCountryGroupInput[] {
         termsOverride: ['슬로베니아', 'slovenia', '발칸', 'balkan'],
       },
     ]),
-    g('스페인/포르투갈', [
-      { label: '스페인', ck: 'spain' },
-      { label: '포르투갈', ck: 'portugal' },
-      { label: '모로코', ck: 'morocco' },
+    g('그리스', [
+      { label: '아테네', ck: 'greece', leafKeys: ['athens'] },
+      { label: '산토리니', ck: 'greece', leafKeys: ['santorini'] },
     ]),
-    g('튀르키예', [{ label: '튀르키예', ck: 'turkey' }]),
-    g('이집트', [{ label: '이집트', ck: 'egypt' }]),
-    g('그리스', [{ label: '그리스', ck: 'greece' }]),
-    g('북유럽', [
-      { label: '노르웨이', ck: 'nordic-baltic', leafKeys: ['norway'] },
-      { label: '핀란드', ck: 'nordic-baltic', leafKeys: ['finland'] },
-      { label: '덴마크', ck: 'nordic-baltic', leafKeys: ['denmark'] },
-      { label: '스웨덴', ck: 'nordic-baltic', leafKeys: ['sweden'] },
-      { label: '아이슬란드', ck: 'nordic-baltic', leafKeys: ['iceland'] },
-      { label: '발트 3국', ck: 'nordic-baltic', leafKeys: ['baltic3'] },
+    g('튀르키예', [
+      { label: '이스탄불', ck: 'turkey', leafKeys: ['istanbul'] },
+      { label: '카파도키아', ck: 'turkey', leafKeys: ['cappadocia'] },
     ]),
   ]
 }
@@ -175,6 +177,7 @@ export function buildMeAfricaMegaMenuGroups(): MegaMenuCountryGroupInput[] {
   })
 
   return [
+    g('북아프·지중해', [{ label: '이집트', ck: 'egypt' }]),
     g('중동', [
       { label: '두바이', ck: 'middle-east', leafKeys: ['dubai'] },
       { label: '아부다비', ck: 'middle-east', leafKeys: ['abudhabi'] },
@@ -266,6 +269,368 @@ export function buildChinaMegaMenuGroups(): MegaMenuCountryGroupInput[] {
       { label: '우즈베키스탄', ck: 'central-asia', leafKeys: ['uzbekistan'] },
       { label: '키르기스스탄', ck: 'central-asia', leafKeys: ['kyrgyzstan'] },
       { label: '중국 트레킹', ck: 'china-trekking', leafKeys: ['cn-trek'] },
+    ]),
+  ]
+}
+
+const GK_JP = 'japan' as const
+const GK_SEA = 'sea-taiwan-south-asia' as const
+const GK_GUAM = 'guam-au-nz' as const
+const GK_AM = 'americas' as const
+
+type MegaRow = {
+  label: string
+  ck: string
+  leafKeys?: readonly string[]
+  termsOverride?: string[]
+  browseCountryLabelForUrl?: string
+}
+
+function megaGroup(header: string, groupKey: string, items: MegaRow[], nonLinkHeader = false): MegaMenuCountryGroupInput {
+  return {
+    countryLabel: header,
+    nonLinkHeader,
+    cities: items
+      .map((it) =>
+        leafFromCountry({
+          groupKey,
+          countryKey: it.ck,
+          displayLabel: it.label,
+          leafKeys: it.leafKeys,
+          termsOverride: it.termsOverride,
+          browseCountryLabelForUrl: it.browseCountryLabelForUrl,
+        }),
+      )
+      .filter((x): x is MegaMenuLeafInput => x != null),
+  }
+}
+
+/** 일본 탭 — 지역(행) + 도시 */
+export function buildJapanMegaMenuGroups(): MegaMenuCountryGroupInput[] {
+  return [
+    megaGroup('홋카이도', GK_JP, [
+      { label: '삿포로', ck: 'jp-hokkaido', leafKeys: ['sapporo'], browseCountryLabelForUrl: '삿포로' },
+      {
+        label: '니세코',
+        ck: 'jp-hokkaido',
+        termsOverride: ['니세코', 'Niseko', 'niseko'],
+        browseCountryLabelForUrl: '니세코',
+      },
+      { label: '오타루', ck: 'jp-hokkaido', leafKeys: ['otaru'], browseCountryLabelForUrl: '오타루' },
+      {
+        label: '후라노',
+        ck: 'jp-hokkaido',
+        leafKeys: ['furano-biei'],
+        browseCountryLabelForUrl: '후라노',
+      },
+      { label: '하코다테', ck: 'jp-hokkaido', leafKeys: ['hakodate'], browseCountryLabelForUrl: '하코다테' },
+    ]),
+    megaGroup('도호쿠', GK_JP, [
+      {
+        label: '센다이',
+        ck: 'jp-tohoku',
+        termsOverride: ['센다이', 'sendai', '도호쿠'],
+        browseCountryLabelForUrl: '센다이',
+      },
+      { label: '아오모리', ck: 'jp-tohoku', leafKeys: ['aomori'], browseCountryLabelForUrl: '아오모리' },
+    ]),
+    megaGroup('간토', GK_JP, [
+      { label: '도쿄', ck: 'jp-kanto', leafKeys: ['tokyo'], browseCountryLabelForUrl: '도쿄' },
+      {
+        label: '요코하마',
+        ck: 'jp-kanto',
+        leafKeys: ['yokohama-kamakura'],
+        browseCountryLabelForUrl: '요코하마',
+      },
+    ]),
+    megaGroup('추부', GK_JP, [
+      { label: '나고야', ck: 'jp-chubu-hokuriku', leafKeys: ['nagoya'], browseCountryLabelForUrl: '나고야' },
+      {
+        label: '가나자와',
+        ck: 'jp-chubu-hokuriku',
+        leafKeys: ['kanazawa-komatsu'],
+        browseCountryLabelForUrl: '가나자와',
+      },
+      { label: '다카야마', ck: 'jp-chubu-hokuriku', leafKeys: ['takayama'], browseCountryLabelForUrl: '다카야마' },
+    ]),
+    megaGroup('간사이', GK_JP, [
+      { label: '오사카', ck: 'jp-kansai', leafKeys: ['osaka'], browseCountryLabelForUrl: '오사카' },
+      { label: '교토', ck: 'jp-kansai', leafKeys: ['kyoto'], browseCountryLabelForUrl: '교토' },
+      { label: '고베', ck: 'jp-kansai', leafKeys: ['kobe'], browseCountryLabelForUrl: '고베' },
+      { label: '나라', ck: 'jp-kansai', leafKeys: ['nara'], browseCountryLabelForUrl: '나라' },
+    ]),
+    megaGroup('주고쿠-시코쿠', GK_JP, [
+      { label: '히로시마', ck: 'jp-shikoku-chugoku', leafKeys: ['hiroshima'], browseCountryLabelForUrl: '히로시마' },
+      { label: '요나고', ck: 'jp-shikoku-chugoku', leafKeys: ['yonago'], browseCountryLabelForUrl: '요나고' },
+      { label: '돗토리', ck: 'jp-shikoku-chugoku', leafKeys: ['tottori'], browseCountryLabelForUrl: '돗토리' },
+      {
+        label: '마츠야마',
+        ck: 'jp-shikoku-chugoku',
+        leafKeys: ['matsuyama'],
+        browseCountryLabelForUrl: '마츠야마',
+      },
+    ]),
+    megaGroup('규슈', GK_JP, [
+      { label: '후쿠오카', ck: 'jp-kyushu', leafKeys: ['fukuoka'], browseCountryLabelForUrl: '후쿠오카' },
+      {
+        label: '나가사키',
+        ck: 'jp-kyushu',
+        termsOverride: ['나가사키', 'nagasaki', '규슈'],
+        browseCountryLabelForUrl: '나가사키',
+      },
+      {
+        label: '벳부',
+        ck: 'jp-kyushu',
+        termsOverride: ['벳부', 'beppu'],
+        browseCountryLabelForUrl: '벳부',
+      },
+      {
+        label: '유후인',
+        ck: 'jp-kyushu',
+        termsOverride: ['유후인', 'yufuin'],
+        browseCountryLabelForUrl: '유후인',
+      },
+      {
+        label: '가고시마',
+        ck: 'jp-kyushu',
+        termsOverride: ['가고시마', 'kagoshima', '규슈'],
+        browseCountryLabelForUrl: '가고시마',
+      },
+    ]),
+    megaGroup('오키나와', GK_JP, [
+      { label: '오키나와', ck: 'jp-okinawa', leafKeys: ['okinawa-main'], browseCountryLabelForUrl: '오키나와' },
+      {
+        label: '나하',
+        ck: 'jp-okinawa',
+        termsOverride: ['나하', 'naha', '오키나와'],
+        browseCountryLabelForUrl: '나하',
+      },
+    ]),
+  ]
+}
+
+/** 동남아/대만/서남아 탭 — 나라(열) + 도시 */
+export function buildSeaMegaMenuGroups(): MegaMenuCountryGroupInput[] {
+  return [
+    megaGroup('베트남', GK_SEA, [
+      { label: '다낭', ck: 'vietnam', leafKeys: ['danang'], browseCountryLabelForUrl: '다낭' },
+      { label: '나트랑', ck: 'vietnam', leafKeys: ['nhatrang'], browseCountryLabelForUrl: '나트랑' },
+      { label: '푸꾸옥', ck: 'vietnam', leafKeys: ['phuquoc'], browseCountryLabelForUrl: '푸꾸옥' },
+      {
+        label: '하노이',
+        ck: 'vietnam',
+        leafKeys: ['hanoi-halong'],
+        browseCountryLabelForUrl: '하노이',
+      },
+      { label: '호치민', ck: 'vietnam', leafKeys: ['hochiminh'], browseCountryLabelForUrl: '호치민' },
+    ]),
+    megaGroup('태국', GK_SEA, [
+      { label: '방콕', ck: 'thailand', leafKeys: ['bangkok'], browseCountryLabelForUrl: '방콕' },
+      {
+        label: '푸켓',
+        ck: 'thailand',
+        termsOverride: ['푸켓', 'phuket', '끄라비', 'krabi'],
+        browseCountryLabelForUrl: '푸켓',
+      },
+      {
+        label: '치앙마이',
+        ck: 'thailand',
+        leafKeys: ['chiangmai-chiangrai'],
+        browseCountryLabelForUrl: '치앙마이',
+      },
+      { label: '파타야', ck: 'thailand', leafKeys: ['pattaya'], browseCountryLabelForUrl: '파타야' },
+    ]),
+    megaGroup('싱가포르', GK_SEA, [
+      { label: '싱가포르', ck: 'singapore', leafKeys: ['singapore'], browseCountryLabelForUrl: '싱가포르' },
+    ]),
+    megaGroup('인도네시아', GK_SEA, [
+      { label: '발리', ck: 'indonesia', leafKeys: ['bali'], browseCountryLabelForUrl: '발리' },
+      { label: '마나도', ck: 'indonesia', leafKeys: ['manado'], browseCountryLabelForUrl: '마나도' },
+    ]),
+    megaGroup('필리핀', GK_SEA, [
+      { label: '보홀', ck: 'philippines', leafKeys: ['bohol'], browseCountryLabelForUrl: '보홀' },
+      { label: '세부', ck: 'philippines', leafKeys: ['cebu'], browseCountryLabelForUrl: '세부' },
+      { label: '클락', ck: 'philippines', leafKeys: ['clark'], browseCountryLabelForUrl: '클락' },
+    ]),
+    megaGroup('대만', GK_SEA, [
+      { label: '타이베이', ck: 'taiwan', leafKeys: ['taipei'], browseCountryLabelForUrl: '타이베이' },
+      { label: '가오슝', ck: 'taiwan', leafKeys: ['kaohsiung'], browseCountryLabelForUrl: '가오슝' },
+    ]),
+    megaGroup('말레이시아', GK_SEA, [
+      {
+        label: '코타키나발루',
+        ck: 'malaysia-brunei',
+        leafKeys: ['kotakinabalu'],
+        browseCountryLabelForUrl: '코타키나발루',
+      },
+      {
+        label: '쿠알라룸푸르',
+        ck: 'malaysia-brunei',
+        leafKeys: ['kuala-lumpur'],
+        browseCountryLabelForUrl: '쿠알라룸푸르',
+      },
+    ]),
+    megaGroup('라오스', GK_SEA, [
+      { label: '비엔티안', ck: 'laos', leafKeys: ['vientiane'], browseCountryLabelForUrl: '비엔티안' },
+    ]),
+    megaGroup('인도', GK_SEA, [
+      {
+        label: '델리',
+        ck: 'india-nepal-sri-bhutan',
+        leafKeys: ['india'],
+        browseCountryLabelForUrl: '델리',
+      },
+    ]),
+    megaGroup('스리랑카', GK_SEA, [
+      {
+        label: '콜롬보',
+        ck: 'india-nepal-sri-bhutan',
+        leafKeys: ['srilanka'],
+        browseCountryLabelForUrl: '콜롬보',
+      },
+    ]),
+  ]
+}
+
+/** 중국/홍콩/마카오/몽골 탭 */
+export function buildChinaHkMoMegaMenuGroups(): MegaMenuCountryGroupInput[] {
+  const cn = (header: string, items: MegaRow[]) => megaGroup(header, GK_CN, items)
+  return [
+    cn('산동', [
+      {
+        label: '청도',
+        ck: 'china-major',
+        termsOverride: ['청도', '칭다오', 'qingdao', '산동'],
+        browseCountryLabelForUrl: '청도',
+      },
+      {
+        label: '위해',
+        ck: 'china-major',
+        termsOverride: ['위해', 'weihai', '웨이하이', '산동'],
+        browseCountryLabelForUrl: '위해',
+      },
+      {
+        label: '연태',
+        ck: 'china-major',
+        termsOverride: ['연태', 'yantai', '옌타이', '산동'],
+        browseCountryLabelForUrl: '연태',
+      },
+    ]),
+    cn('화동', [
+      { label: '상해', ck: 'china-major', leafKeys: ['shanghai'], browseCountryLabelForUrl: '상해' },
+      {
+        label: '소주',
+        ck: 'china-major',
+        browseCountryLabelForUrl: '소주',
+        termsOverride: ['소주', 'suzhou', '苏州'],
+      },
+      { label: '항주', ck: 'china-major', leafKeys: ['hangzhou'], browseCountryLabelForUrl: '항주' },
+    ]),
+    cn('동북', [
+      {
+        label: '대련',
+        ck: 'china-major',
+        leafKeys: ['dalian-harbin'],
+        browseCountryLabelForUrl: '대련',
+      },
+      {
+        label: '연길',
+        ck: 'china-major',
+        browseCountryLabelForUrl: '연길',
+        termsOverride: ['연길', 'yanji', '백두산', 'changbai'],
+      },
+      {
+        label: '하얼빈',
+        ck: 'china-major',
+        browseCountryLabelForUrl: '하얼빈',
+        termsOverride: ['하얼빈', 'harbin'],
+      },
+    ]),
+    cn('화북', [
+      {
+        label: '북경',
+        ck: 'china-major',
+        browseCountryLabelForUrl: '북경',
+        termsOverride: ['북경', 'beijing', '베이징'],
+      },
+      {
+        label: '천진',
+        ck: 'china-major',
+        browseCountryLabelForUrl: '천진',
+        termsOverride: ['천진', 'tianjin', '톈진'],
+      },
+    ]),
+    cn('기타', [
+      {
+        label: '장가계',
+        ck: 'china-major',
+        leafKeys: ['zhangjiajie'],
+        browseCountryLabelForUrl: '장가계',
+      },
+      { label: '계림', ck: 'china-major', leafKeys: ['guilin'], browseCountryLabelForUrl: '계림' },
+      { label: '성도', ck: 'china-major', leafKeys: ['sichuan'], browseCountryLabelForUrl: '성도' },
+    ]),
+    megaGroup('홍콩', GK_CN, [
+      {
+        label: '홍콩',
+        ck: 'hk-mo-sz',
+        leafKeys: ['hongkong'],
+        browseCountryLabelForUrl: '홍콩',
+      },
+    ]),
+    megaGroup('마카오', GK_CN, [
+      {
+        label: '마카오',
+        ck: 'hk-mo-sz',
+        leafKeys: ['macau'],
+        browseCountryLabelForUrl: '마카오',
+      },
+    ]),
+    megaGroup('몽골', GK_CN, [{ label: '울란바타르', ck: 'mongolia', leafKeys: ['ulaanbaatar'] }]),
+  ]
+}
+
+/** 괌/사이판/호주/뉴질랜드 */
+export function buildOceaniaMegaMenuGroups(): MegaMenuCountryGroupInput[] {
+  return [
+    megaGroup('괌', GK_GUAM, [{ label: '괌', ck: 'guam', leafKeys: ['guam'], browseCountryLabelForUrl: '괌' }]),
+    megaGroup('사이판', GK_GUAM, [
+      { label: '사이판', ck: 'saipan', leafKeys: ['saipan'], browseCountryLabelForUrl: '사이판' },
+    ]),
+    megaGroup('호주', GK_GUAM, [
+      { label: '시드니', ck: 'australia', leafKeys: ['sydney'], browseCountryLabelForUrl: '시드니' },
+      { label: '멜버른', ck: 'australia', leafKeys: ['melbourne'], browseCountryLabelForUrl: '멜버른' },
+    ]),
+    megaGroup('뉴질랜드', GK_GUAM, [
+      { label: '오클랜드', ck: 'newzealand', leafKeys: ['auckland'], browseCountryLabelForUrl: '오클랜드' },
+    ]),
+  ]
+}
+
+/** 미주/캐나다/하와이 */
+export function buildAmericasMegaMenuGroups(): MegaMenuCountryGroupInput[] {
+  return [
+    megaGroup('미국', GK_AM, [
+      {
+        label: '로스앤젤레스',
+        ck: 'usa-west',
+        leafKeys: ['la'],
+        browseCountryLabelForUrl: '로스앤젤레스',
+      },
+      { label: '뉴욕', ck: 'usa-east', leafKeys: ['nyc'], browseCountryLabelForUrl: '뉴욕' },
+      {
+        label: '샌프란시스코',
+        ck: 'usa-west',
+        leafKeys: ['sf'],
+        browseCountryLabelForUrl: '샌프란시스코',
+      },
+    ]),
+    megaGroup('캐나다', GK_AM, [
+      { label: '밴쿠버', ck: 'canada', leafKeys: ['vancouver'], browseCountryLabelForUrl: '밴쿠버' },
+      { label: '밴프', ck: 'canada', leafKeys: ['banff'], browseCountryLabelForUrl: '밴프' },
+    ]),
+    megaGroup('하와이', GK_AM, [
+      { label: '호놀룰루', ck: 'hawaii', leafKeys: ['honolulu'], browseCountryLabelForUrl: '호놀룰루' },
     ]),
   ]
 }

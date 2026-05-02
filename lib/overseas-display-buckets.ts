@@ -6,82 +6,43 @@ import {
 
 /** 여행상품 해외 허브 UI 권역 키 (상품 1건당 정확히 1개) */
 export type OverseasDisplayBucketId =
+  | 'europe_me_af'
+  | 'sea_taiwan'
   | 'japan'
-  | 'china'
-  | 'hongkong'
-  | 'sea'
-  | 'europe_west'
-  | 'europe_north'
-  | 'europe_east'
+  | 'china_hk_mo'
   | 'americas'
   | 'oceania'
   | 'other'
 
-/** 화면 표기 순서 고정 (라벨과 동일 순서) */
+/** 화면 표기 순서 — 메가메뉴 병합 권역과 동일 */
 export const DISPLAY_CATEGORIES = [
+  '유럽/중동/아프리카',
+  '동남아/대만/서남아',
   '일본',
-  '중국',
-  '홍콩',
-  '동남아',
-  '서유럽',
-  '북유럽',
-  '동유럽',
-  '미주',
-  '대양주',
+  '중국/홍콩/마카오/몽골',
+  '미주/캐나다/하와이',
+  '괌/사이판/호주/뉴질랜드',
   '그외',
 ] as const
 
 export const OVERSEAS_DISPLAY_BUCKET_ORDER: OverseasDisplayBucketId[] = [
+  'europe_me_af',
+  'sea_taiwan',
   'japan',
-  'china',
-  'hongkong',
-  'sea',
-  'europe_west',
-  'europe_north',
-  'europe_east',
+  'china_hk_mo',
   'americas',
   'oceania',
   'other',
 ]
 
 export const OVERSEAS_DISPLAY_BUCKET_LABEL: Record<OverseasDisplayBucketId, string> = {
+  europe_me_af: '유럽/중동/아프리카',
+  sea_taiwan: '동남아/대만/서남아',
   japan: '일본',
-  china: '중국',
-  hongkong: '홍콩',
-  sea: '동남아',
-  europe_west: '서유럽',
-  europe_north: '북유럽',
-  europe_east: '동유럽',
-  americas: '미주',
-  oceania: '대양주',
+  china_hk_mo: '중국/홍콩/마카오/몽골',
+  americas: '미주/캐나다/하와이',
+  oceania: '괌/사이판/호주/뉴질랜드',
   other: '그외',
-}
-
-const EUROPE_WEST_COUNTRIES = new Set<string>([
-  'uk',
-  'switzerland',
-  'italy',
-  'france',
-  'netherlands',
-  'spain',
-  'portugal',
-  'morocco',
-  'greece',
-  'turkey',
-  'egypt',
-])
-
-const EUROPE_NORTH_COUNTRIES = new Set<string>(['nordic-baltic'])
-
-const EUROPE_EAST_COUNTRIES = new Set<string>(['czech', 'hungary', 'balkans', 'germany', 'austria'])
-
-/** `europe-me-africa` 그룹 중 표시 9분류에 없는 국가·테마 → 그외 */
-function europeMeAfricaToBucket(match: MatchProductToOverseasNodeResult): OverseasDisplayBucketId {
-  const ck = match.countryKey
-  if (ck && EUROPE_WEST_COUNTRIES.has(ck)) return 'europe_west'
-  if (ck && EUROPE_NORTH_COUNTRIES.has(ck)) return 'europe_north'
-  if (ck && EUROPE_EAST_COUNTRIES.has(ck)) return 'europe_east'
-  return 'other'
 }
 
 /**
@@ -97,16 +58,18 @@ export function mapMatchToOverseasDisplayBucket(
       return 'japan'
     case 'china-circle': {
       const ck = match.countryKey
-      if (!ck) return 'china'
-      if (ck === 'hk-mo-sz') return 'hongkong'
-      if (ck === 'china-major' || ck === 'inner-mongolia' || ck === 'china-trekking') return 'china'
+      if (!ck) return 'china_hk_mo'
+      if (ck === 'hk-mo-sz') return 'china_hk_mo'
+      if (ck === 'china-major' || ck === 'inner-mongolia' || ck === 'china-trekking' || ck === 'mongolia')
+        return 'china_hk_mo'
+      if (ck === 'central-asia') return 'china_hk_mo'
       return 'other'
     }
     case 'sea-taiwan-south-asia':
-      if (match.countryKey === 'india-nepal-sri-bhutan') return 'other'
-      return 'sea'
+      if (match.countryKey === 'india-nepal-sri-bhutan') return 'sea_taiwan'
+      return 'sea_taiwan'
     case 'europe-me-africa':
-      return europeMeAfricaToBucket(match)
+      return 'europe_me_af'
     case 'americas':
       return 'americas'
     case 'guam-au-nz':
@@ -116,7 +79,7 @@ export function mapMatchToOverseasDisplayBucket(
   }
 }
 
-/** 호주·뉴질랜드 — 잘못된 `americas` 매칭 보정 (9버킷 유지, `other` = 오세아니아·대양주 성격) */
+/** 호주·뉴질랜드 — 잘못된 `americas` 매칭 보정 */
 const RE_AU_NZ_TRAVEL = new RegExp(
   [
     '시드니',
@@ -156,7 +119,6 @@ const RE_GUAM_SAIPAN_TRAVEL = /괌|guam|사이판|saipan/i
 
 /**
  * `/api/products/browse` 전용: 트리 매칭 후 **상품 문자열**로 미주 오분류를 덮어쓴다.
- * (대양주·미주 버킷만 문자열로 보정)
  */
 export function resolveOverseasDisplayBucketForBrowse(
   product: OverseasProductMatchInput,

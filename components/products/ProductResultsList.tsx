@@ -890,7 +890,7 @@ function OverseasRegionGroupedList({
             ? [...rawFlat.filter((p) => seasonalPickIds.has(p.id)), ...rawFlat.filter((p) => !seasonalPickIds.has(p.id))]
             : rawFlat
         const visibleInBucket = flatList.filter((item) => visibleIdSet.has(item.id))
-        const showEuropeBriefing = bucketId === 'europe_west' && editorialBriefing
+        const showEuropeBriefing = bucketId === 'europe_me_af' && editorialBriefing
         const hideSection =
           (flatList.length === 0 && !showEuropeBriefing) ||
           (flatList.length > 0 && visibleInBucket.length === 0 && !showEuropeBriefing)
@@ -920,7 +920,9 @@ function OverseasRegionGroupedList({
                   ))}
                 </ul>
               ) : flatList.length === 0 && showEuropeBriefing ? (
-                <p className="mt-4 text-sm text-slate-500">현재 조건에 맞는 서유럽 상품이 없습니다.</p>
+                <p className="mt-4 text-sm text-slate-500">
+                  현재 조건에 맞는 유럽·중동·아프리카 상품이 없습니다.
+                </p>
               ) : null}
             </section>
           )

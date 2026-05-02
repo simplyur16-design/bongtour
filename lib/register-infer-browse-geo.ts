@@ -18,10 +18,12 @@ export const CONTINENT_ID_TO_PRIMARY_REGION_KR: Record<string, string> = {
   'southeast-asia': '동남아',
   'china-mongolia-ca': '중국',
   'hongkong-macau': '홍콩/마카오',
+  'china-hk-mo': '중국/홍콩/마카오/몽골',
+  'europe-me': '유럽/중동/아프리카',
   europe: '유럽',
   'me-africa': '중동·아프리카',
-  americas: '미주',
-  oceania: '대양주',
+  americas: '미주/캐나다/하와이',
+  oceania: '괌/사이판/호주/뉴질랜드',
 }
 
 const SEG_SPLIT = /[,，、]/

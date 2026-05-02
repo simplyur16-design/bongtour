@@ -28,7 +28,7 @@ import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import {
-  normalizeBrowseRegionToDbContinent,
+  browseRegionToDbContinents,
   resolveBrowseCityParamToDbCity,
   resolveBrowseCountryParamToDbCountries,
   resolveChinaSubregionDbCityKeywords,
@@ -117,12 +117,16 @@ export async function GET(request: Request) {
       const r = (region ?? '').trim()
       const c = (country ?? '').trim()
       const ct = (city ?? '').trim()
-      const continentFromRegion = normalizeBrowseRegionToDbContinent(r)
+      const continentList = browseRegionToDbContinents(r)
 
       if (r && !c) {
-        if (continentFromRegion) overseasGeoAnd.push({ continent: continentFromRegion })
+        if (continentList.length === 1) overseasGeoAnd.push({ continent: continentList[0]! })
+        else if (continentList.length > 1)
+          overseasGeoAnd.push({ OR: continentList.map((continent) => ({ continent })) })
       } else if (r && c) {
-        if (continentFromRegion) overseasGeoAnd.push({ continent: continentFromRegion })
+        if (continentList.length === 1) overseasGeoAnd.push({ continent: continentList[0]! })
+        else if (continentList.length > 1)
+          overseasGeoAnd.push({ OR: continentList.map((continent) => ({ continent })) })
         const dbCountries = resolveBrowseCountryParamToDbCountries(c)
         if (dbCountries.length === 0) overseasGeoAnd.push({ country: { in: [] } })
         else if (dbCountries.length === 1) overseasGeoAnd.push({ country: dbCountries[0] })
@@ -141,14 +145,18 @@ export async function GET(request: Request) {
 
     const regionTrim = (region ?? '').trim()
     const countryTrim = (country ?? '').trim()
-    const continentFromBrowseRegion = normalizeBrowseRegionToDbContinent(regionTrim)
+    const continentListForSubfilters = browseRegionToDbContinents(regionTrim)
 
-    if (continentFromBrowseRegion === 'japan' && countryTrim) {
+    if (continentListForSubfilters.includes('japan') && countryTrim) {
       const jpKw = resolveJapanSubregionDbCityKeywords(countryTrim)
       if (jpKw?.length) appendSubregionCityOrDestinationOr(overseasGeoAnd, jpKw)
     }
 
-    if (continentFromBrowseRegion === 'china-mongolia-ca' && countryTrim) {
+    if (
+      (continentListForSubfilters.includes('china-mongolia-ca') ||
+        continentListForSubfilters.includes('hongkong-macau')) &&
+      countryTrim
+    ) {
       const dbs = resolveBrowseCountryParamToDbCountries(countryTrim)
       if (dbs.length === 1 && dbs[0] === '중국') {
         const cnKw = resolveChinaSubregionDbCityKeywords(countryTrim)

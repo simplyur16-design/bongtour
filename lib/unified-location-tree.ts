@@ -4,9 +4,13 @@
  */
 import { OVERSEAS_LOCATION_TREE_DATA } from '@/lib/overseas-location-tree.data'
 import {
-  buildChinaMegaMenuGroups,
+  buildAmericasMegaMenuGroups,
+  buildChinaHkMoMegaMenuGroups,
   buildEuropeMegaMenuGroups,
+  buildJapanMegaMenuGroups,
   buildMeAfricaMegaMenuGroups,
+  buildOceaniaMegaMenuGroups,
+  buildSeaMegaMenuGroups,
   type MegaMenuCountryGroupInput,
 } from '@/lib/mega-menu-geography'
 import type {
@@ -57,16 +61,14 @@ export type UnifiedLocationNode = {
 
 export const OVERSEAS_LOCATION_TREE_SOURCE: OverseasRegionGroupNode[] = OVERSEAS_LOCATION_TREE_DATA
 
-/** 메가메뉴 탭 순서·라벨. `treeLabel`은 통합 트리(문서/확장)용 대륙 표기. */
+/** 메가메뉴 지리 탭 순서·라벨(10탭 중 지리 6개). `treeLabel`은 통합 트리용. */
 const CONTINENT_TABS: { id: string; label: string; treeLabel?: string }[] = [
+  { id: 'europe-me', label: '유럽/중동/아프리카', treeLabel: '유럽 · 중동 · 아프리카' },
+  { id: 'southeast-asia', label: '동남아/대만/서남아', treeLabel: '동남아 · 대만 · 서남아' },
   { id: 'japan', label: '일본', treeLabel: '일본' },
-  { id: 'southeast-asia', label: '동남아', treeLabel: '동남아 · 대만 · 서남아' },
-  { id: 'china-mongolia-ca', label: '중국', treeLabel: '중국/몽골/중앙아시아' },
-  { id: 'hongkong-macau', label: '홍콩/마카오', treeLabel: '홍콩/마카오' },
-  { id: 'europe', label: '유럽' },
-  { id: 'me-africa', label: '중동/아프리카' },
-  { id: 'americas', label: '미주' },
-  { id: 'oceania', label: '대양주' },
+  { id: 'china-hk-mo', label: '중국/홍콩/마카오/몽골', treeLabel: '중국 · 홍콩 · 마카오 · 몽골' },
+  { id: 'oceania', label: '괌/사이판/호주/뉴질랜드', treeLabel: '괌 · 사이판 · 호주 · 뉴질랜드' },
+  { id: 'americas', label: '미주/캐나다/하와이', treeLabel: '미주 · 캐나다 · 하와이' },
 ]
 
 function addTerm(set: Set<string>, s?: string | null) {
@@ -85,27 +87,14 @@ export function collectLeafTerms(country: OverseasCountryNode, leaf: OverseasLea
   return [...set]
 }
 
-/** 유럽 블록 vs 중동·아프리카 블록 분리 (공급사 `europe-me-africa` 그룹 내부) */
+/** 메가메뉴·browse `region` 탭 id (병합 탭: 유럽+ME·아프, 중국+HK+MO+몽골) */
 function continentIdForLegacyCountry(groupKey: string, countryKey: string): string {
   if (groupKey === 'japan') return 'japan'
-  if (groupKey === 'china-circle') {
-    if (countryKey === 'hk-mo-sz') return 'hongkong-macau'
-    return 'china-mongolia-ca'
-  }
+  if (groupKey === 'china-circle') return 'china-hk-mo'
   if (groupKey === 'sea-taiwan-south-asia') return 'southeast-asia'
   if (groupKey === 'guam-au-nz') return 'oceania'
   if (groupKey === 'americas') return 'americas'
-  if (groupKey === 'europe-me-africa') {
-    if (!countryKey) return 'europe'
-    if (countryKey === 'europe-pilgrimage') return 'me-africa'
-    const meAfrica = new Set([
-      'middle-east',
-      'africa',
-      'caucasus',
-    ])
-    if (meAfrica.has(countryKey)) return 'me-africa'
-    return 'europe'
-  }
+  if (groupKey === 'europe-me-africa') return 'europe-me'
   return 'oceania'
 }
 
@@ -124,70 +113,23 @@ function mapMegaGroupInput(g: MegaMenuCountryGroupInput): MegaMenuCountryGroup {
 }
 
 /**
- * 레거시 매칭 트리를 지리 권역 탭 메가메뉴로 변환.
- * 유럽·중동/아프리카·중국은 지역 헤더 + 하위 행(모두투어식), 그 외는 국가 헤더 + 도시.
+ * 지리 권역 탭 메가메뉴 — 탭별 전용 빌더로 나라→지역→도시(열) 구조 고정.
  */
 export function buildGeographicMegaMenuRegions(): MegaMenuRegion[] {
-  type Bucket = Map<string, MegaMenuCountryGroup>
-  const byContinent = new Map<string, Bucket>()
-  for (const c of CONTINENT_TABS) {
-    byContinent.set(c.id, new Map())
+  const tabToGroups: Record<string, MegaMenuCountryGroupInput[]> = {
+    'europe-me': [...buildEuropeMegaMenuGroups(), ...buildMeAfricaMegaMenuGroups()],
+    'southeast-asia': buildSeaMegaMenuGroups(),
+    japan: buildJapanMegaMenuGroups(),
+    'china-hk-mo': buildChinaHkMoMegaMenuGroups(),
+    oceania: buildOceaniaMegaMenuGroups(),
+    americas: buildAmericasMegaMenuGroups(),
   }
 
-  for (const group of OVERSEAS_LOCATION_TREE_DATA) {
-    if (group.groupKey === 'europe-me-africa') continue
-
-    for (const country of group.countries) {
-      if (group.groupKey === 'china-circle') {
-        const cid = continentIdForLegacyCountry(group.groupKey, country.countryKey)
-        if (cid === 'china-mongolia-ca') continue
-      }
-
-      const contId = continentIdForLegacyCountry(group.groupKey, country.countryKey)
-      const bucket = byContinent.get(contId)
-      if (!bucket) continue
-
-      const label = country.countryLabel
-      let cg = bucket.get(label)
-      if (!cg) {
-        cg = { countryLabel: label, cities: [] }
-        bucket.set(label, cg)
-      }
-      for (const leaf of country.children) {
-        if (country.children.length === 1 && leaf.nodeLabel.trim() === country.countryLabel.trim()) continue
-        cg.cities.push({
-          label: leaf.nodeLabel,
-          terms: collectLeafTerms(country, leaf),
-        })
-      }
-    }
-  }
-
-  const eu = byContinent.get('europe')!
-  for (const x of buildEuropeMegaMenuGroups()) {
-    eu.set(x.countryLabel, mapMegaGroupInput(x))
-  }
-
-  const me = byContinent.get('me-africa')!
-  for (const x of buildMeAfricaMegaMenuGroups()) {
-    me.set(x.countryLabel, mapMegaGroupInput(x))
-  }
-
-  const cn = byContinent.get('china-mongolia-ca')!
-  /** `buildChinaMegaMenuGroups`는 `china-major` 등 한 노드를 여러 행으로 나누며 행별 `browseCountryLabelForUrl`을 둔다.
-   * 유럽 탭의 `nordic-baltic`·`middle-east` 등도 동일 구조라 행별 browse 슬러그·Prisma 서브필터는 추후 확장 가능. */
-  for (const x of buildChinaMegaMenuGroups()) {
-    cn.set(x.countryLabel, mapMegaGroupInput(x))
-  }
-
-  return CONTINENT_TABS.map((tab) => {
-    const bucket = byContinent.get(tab.id)!
-    return {
-      id: tab.id,
-      label: tab.label,
-      countryGroups: [...bucket.values()].filter((g) => g.cities.length > 0),
-    }
-  })
+  return CONTINENT_TABS.map((tab) => ({
+    id: tab.id,
+    label: tab.label,
+    countryGroups: (tabToGroups[tab.id] ?? []).map(mapMegaGroupInput).filter((g) => g.cities.length > 0),
+  }))
 }
 
 /** 테마·크루즈·지방출발 등 — 매칭 트리와 별도 유지 */
