@@ -1,7 +1,7 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
+import sharp from "sharp";
 import { isValidCardKey } from "@/lib/home-hub-candidates";
+import { isObjectStorageConfigured, uploadStorageObjectRaw } from "@/lib/object-storage";
 import { requireAdmin } from "@/lib/require-admin";
 
 const MAX_BYTES = 12 * 1024 * 1024;
@@ -34,6 +34,17 @@ export async function POST(request: Request) {
   const admin = await requireAdmin();
   if (!admin) {
     return NextResponse.json({ ok: false, error: "인증이 필요합니다." }, { status: 401 });
+  }
+
+  if (!isObjectStorageConfigured()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Ncloud Object Storage가 설정되지 않았습니다. NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_ENDPOINT, NCLOUD_OBJECT_STORAGE_BUCKET, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL을 확인하세요.",
+      },
+      { status: 503 },
+    );
   }
 
   let form: FormData;
@@ -70,19 +81,30 @@ export async function POST(request: Request) {
   }
 
   const ts = Date.now();
-  const filename = `${cardKeyRaw}-${ts}.${ext}`;
-  const dir = path.join(process.cwd(), "public", "images", "home-hub");
-  const fullPath = path.join(dir, filename);
+  const objectKey = `home-hub/${cardKeyRaw}-${ts}.webp`;
 
+  let webpBody: Buffer;
   try {
-    await mkdir(dir, { recursive: true });
     const buf = Buffer.from(await file.arrayBuffer());
-    await writeFile(fullPath, buf);
+    webpBody = await sharp(buf)
+      .rotate()
+      .resize({ width: 1200, withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
   } catch (e) {
-    console.error("[admin/upload-image] write", e);
-    return NextResponse.json({ ok: false, error: "파일 저장에 실패했습니다." }, { status: 500 });
+    console.error("[admin/upload-image] sharp webp", e);
+    return NextResponse.json({ ok: false, error: "이미지 변환에 실패했습니다. 다른 파일로 시도해 주세요." }, { status: 400 });
   }
 
-  const publicPath = `/images/home-hub/${filename}`;
-  return NextResponse.json({ ok: true, path: publicPath });
+  try {
+    const { publicUrl } = await uploadStorageObjectRaw({
+      objectKey,
+      body: webpBody,
+      contentType: "image/webp",
+    });
+    return NextResponse.json({ ok: true, path: publicUrl });
+  } catch (e) {
+    console.error("[admin/upload-image] ncloud upload", e);
+    return NextResponse.json({ ok: false, error: "스토리지 업로드에 실패했습니다." }, { status: 500 });
+  }
 }
