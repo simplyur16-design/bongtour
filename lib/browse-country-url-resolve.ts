@@ -268,11 +268,161 @@ export function dbCityMatchesBrowseCityParam(dbCityRaw: string | null | undefine
 }
 
 /**
+ * 중국 탭 메가메뉴 행(`mega-menu-geography` browseCountryLabelForUrl = 행 라벨) → DB country·Prisma 서브필터 키워드.
+ * `china-major` 등 트리 단일 노드 전체는 키워드 없음(별도 슬러그로 null 처리).
+ */
+const CHINA_MEGA_BROWSE_ROWS: { label: string; countries: string[]; keywords: string[] }[] = [
+  {
+    label: '상해',
+    countries: ['중국'],
+    keywords: ['상해', '상하이', 'shanghai', '소주', 'suzhou', '주가각', 'zhujiajiao'],
+  },
+  {
+    label: '북경',
+    countries: ['중국'],
+    keywords: ['북경', '베이징', 'beijing', '천진', '톈진', 'tianjin'],
+  },
+  {
+    label: '청도 · 위해 · 연태',
+    countries: ['중국'],
+    keywords: [
+      '청도',
+      '위해',
+      '연태',
+      '칭다오',
+      'qingdao',
+      '웨이하이',
+      'weihai',
+      '옌타이',
+      'yantai',
+      '제난',
+      'jinan',
+      '산동',
+      'shandong',
+    ],
+  },
+  {
+    label: '대련',
+    countries: ['중국'],
+    keywords: ['대련', 'dalian', '하얼빈', 'harbin'],
+  },
+  {
+    label: '장가계',
+    countries: ['중국'],
+    keywords: ['장가계', 'zhangjiajie'],
+  },
+  {
+    label: '장사',
+    countries: ['중국'],
+    keywords: ['장사', 'changsha', '长沙', '장가계', 'zhangjiajie'],
+  },
+  {
+    label: '무한',
+    countries: ['중국'],
+    keywords: ['무한', 'wuhan', '은시', 'yichang', '무당산'],
+  },
+  {
+    label: '계림',
+    countries: ['중국'],
+    keywords: ['계림', 'guilin', '양삭'],
+  },
+  {
+    label: '광저우',
+    countries: ['중국'],
+    keywords: ['광저우', '광주', 'guangzhou', '广州'],
+  },
+  {
+    label: '연길 · 심양 · 장춘 · 백두산',
+    countries: ['중국'],
+    keywords: ['연길', '심양', '장춘', '백두산', 'changbai'],
+  },
+  {
+    label: '하얼빈',
+    countries: ['중국'],
+    keywords: ['하얼빈', 'harbin', '대련', 'dalian'],
+  },
+  {
+    label: '성도 · 구채구',
+    countries: ['중국'],
+    keywords: [
+      '성도',
+      'chengdu',
+      '구채구',
+      'jiuzhaigou',
+      '사천',
+      'sichuan',
+      '티벳',
+      'tibet',
+      '충칭',
+      'chongqing',
+      '중경',
+    ],
+  },
+  {
+    label: '서안 · 우루무치',
+    countries: ['중국'],
+    keywords: ['서안', '우루무치', 'urumqi', "xi'an", 'xian'],
+  },
+  {
+    label: '곤명 · 여강',
+    countries: ['중국'],
+    keywords: ['곤명', 'kunming', '여강', 'lijiang', '리장'],
+  },
+  {
+    label: '귀주 · 안순',
+    countries: ['중국'],
+    keywords: ['귀양', 'guiyang', '안순', 'anshun', '귀주'],
+  },
+  {
+    label: '하이난',
+    countries: ['중국'],
+    keywords: ['하이난', 'hainan', '삼야', 'sanya', '하이커우', 'haikou'],
+  },
+  {
+    label: '항주',
+    countries: ['중국'],
+    keywords: ['항주', 'hangzhou', '杭州'],
+  },
+  {
+    label: '내몽골',
+    countries: ['중국'],
+    keywords: [
+      '후룬베이얼',
+      'hulunbuir',
+      '오르도스',
+      'ordos',
+      '적봉',
+      '치펑',
+      'chifeng',
+      '내몽골',
+      '내몽고',
+    ],
+  },
+  { label: '중국 트레킹', countries: ['중국'], keywords: [] },
+]
+
+const CHINA_TAB_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {}
+const CHINA_SUBREGION_SLUG_TO_CITY_KEYWORDS_CN: Record<string, string[]> = {}
+for (const row of CHINA_MEGA_BROWSE_ROWS) {
+  const k = countrySlugFromLabel(row.label).toLowerCase()
+  CHINA_TAB_SLUG_TO_DB_COUNTRIES[k] = uniqueStrings(row.countries)
+  if (row.keywords.length > 0) {
+    CHINA_SUBREGION_SLUG_TO_CITY_KEYWORDS_CN[k] = uniqueStrings(row.keywords)
+  }
+}
+const shandongSlug = countrySlugFromLabel('청도 · 위해 · 연태').toLowerCase()
+const shandongKw = CHINA_SUBREGION_SLUG_TO_CITY_KEYWORDS_CN[shandongSlug]
+if (shandongKw?.length) {
+  CHINA_SUBREGION_SLUG_TO_CITY_KEYWORDS_CN['qingdao-weihai-yantai'] = [...shandongKw]
+}
+
+/**
  * browse `country` 슬러그(소문자 키) → DB `country` IN 목록.
  * 트리(`countryKey`·`countryLabel`→슬러그) 매핑 우선, 이후 정적·라벨 폴백.
  */
 const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   ...TREE_SLUG_TO_DB_COUNTRIES,
+  ...CHINA_TAB_SLUG_TO_DB_COUNTRIES,
   'hk-mo-sz': ['홍콩', '마카오'],
   'hong-kong-macau': ['홍콩', '마카오'],
   'shanghai-beijing': ['중국'],
@@ -430,6 +580,147 @@ export function resolveBrowseCountryParamToDbCountries(param: string | null | un
   if (OVERSEAS_AND_DB_COUNTRY_LABELS.has(raw)) return [raw]
 
   return []
+}
+
+/** 일본 권역(메가메뉴 `country` 슬러그) → DB `city`·목적지 부분문자열 매칭용 키워드 */
+const JP_KANTO = uniqueStrings([
+  '도쿄',
+  '요코하마',
+  '치바',
+  '사이타마',
+  '가나가와',
+])
+const JP_KANSAI = uniqueStrings(['오사카', '고베', '교토', '나라', '와카야마'])
+const JP_KYUSHU = uniqueStrings([
+  '후쿠오카',
+  '나가사키',
+  '구마모토',
+  '가고시마',
+  '오이타',
+  '미야자키',
+  '벳부',
+  '유후인',
+])
+const JP_HOKKAIDO = uniqueStrings([
+  '삿포로',
+  '니세코',
+  '오타루',
+  '후라노',
+  '비에이',
+  '하코다테',
+  '아사히카와',
+])
+const JP_OKINAWA = uniqueStrings(['오키나와', '나하'])
+const JP_SHIKOKU_CHUGOKU = uniqueStrings([
+  '요나고',
+  '돗토리',
+  '히로시마',
+  '마츠에',
+  '구라요시',
+  '마츠야마',
+  '다카마츠',
+  '다카마쓰',
+])
+const JP_TOHOKU = uniqueStrings(['센다이', '아오모리', '아키타'])
+const JP_CHUBU = uniqueStrings(['나고야', '가나자와', '다카야마'])
+
+function buildJapanSubregionSlugToCityKeywords(): Record<string, string[]> {
+  const pairs: [readonly string[], string[]][] = [
+    [
+      [
+        '간토-관동',
+        'jp-kanto',
+        'tokyo-kanto',
+        'kanto',
+        '간토',
+        '관동',
+      ],
+      JP_KANTO,
+    ],
+    [
+      ['간사이-관서', 'jp-kansai', 'osaka-kansai', 'kansai', '간사이', '관서'],
+      JP_KANSAI,
+    ],
+    [['규슈', 'jp-kyushu', 'kyushu', '큐슈'], JP_KYUSHU],
+    [['홋카이도', 'jp-hokkaido', 'hokkaido', '북해도'], JP_HOKKAIDO],
+    [['오키나와', 'jp-okinawa', 'okinawa'], JP_OKINAWA],
+    [
+      ['시코쿠-주고쿠', '주고쿠-시코쿠', 'jp-shikoku-chugoku', '시코쿠', '주고쿠'],
+      JP_SHIKOKU_CHUGOKU,
+    ],
+    [
+      [
+        '중부-호쿠리쿠-알펜루트',
+        'jp-chubu-hokuriku',
+        'alpine-route',
+        '추부',
+        '호쿠리쿠',
+        '중부',
+      ],
+      JP_CHUBU,
+    ],
+    [['도호쿠-동북', 'jp-tohoku', 'tohoku', '도호쿠', '동북'], JP_TOHOKU],
+  ]
+  const acc: Record<string, string[]> = {}
+  for (const [slugs, cities] of pairs) {
+    for (const s of slugs) {
+      const k = s.trim().toLowerCase()
+      if (!k) continue
+      acc[k] = cities
+    }
+  }
+  return acc
+}
+
+const JAPAN_SUBREGION_SLUG_TO_CITY_KEYWORDS: Record<string, string[]> =
+  buildJapanSubregionSlugToCityKeywords()
+
+/**
+ * browse URL `country`가 일본 하위 권역(간사이·간토 등)이면 DB `city`·목적지 검색용 키워드.
+ * `japan`·`일본`(전체)·선박 연계 등은 null.
+ */
+export function resolveJapanSubregionDbCityKeywords(
+  countryParam: string | null | undefined
+): string[] | null {
+  const raw = (countryParam ?? '').trim()
+  if (!raw) return null
+  const lower = raw.toLowerCase()
+  if (lower === 'japan' || lower === '일본' || lower === '일본-선박-연계' || lower === 'jp-ferry') {
+    return null
+  }
+  const hit = JAPAN_SUBREGION_SLUG_TO_CITY_KEYWORDS[lower]
+  if (!hit?.length) return null
+  return uniqueStrings(hit)
+}
+
+/**
+ * browse URL `country`가 중국 탭 메가메뉴 하위 행(산동·상해·동북 등)이면 DB `city`·목적지 검색용 키워드.
+ * 몽골·중앙아·`china-major` 전체·`중국` 단독 등은 null.
+ */
+export function resolveChinaSubregionDbCityKeywords(
+  countryParam: string | null | undefined
+): string[] | null {
+  const raw = (countryParam ?? '').trim()
+  if (!raw) return null
+  const lower = raw.toLowerCase()
+  if (
+    lower === 'china' ||
+    lower === '중국' ||
+    lower === 'china-major' ||
+    lower === '중국-주요-도시' ||
+    lower === '중국-주요도시' ||
+    lower === 'mongolia' ||
+    lower === '몽골' ||
+    lower === 'central-asia' ||
+    lower === '중앙아시아' ||
+    lower === 'china-trekking' ||
+    lower === '중국-트레킹'
+  ) {
+    return null
+  }
+  const hit = CHINA_SUBREGION_SLUG_TO_CITY_KEYWORDS_CN[lower]
+  if (!hit?.length) return null
+  return uniqueStrings(hit)
 }
 
 /** DB에 저장된 `country`가 browse URL의 country 슬러그와 맞는지 */

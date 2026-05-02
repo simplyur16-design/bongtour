@@ -1,6 +1,10 @@
 /**
  * 해외 메가메뉴 지리 탭 — 유럽·중동/아프리카·중국 등 권역별 그룹 헤더 + 하위 행.
  * 매칭용 트리 키(groupKey/countryKey/leaf)는 `overseas-location-tree.data` SSOT 유지.
+ *
+ * 동일 트리 국가 노드(예: `china-major`, 유럽 `nordic-baltic`·`middle-east`)를 여러 메가메뉴 행으로 쪼갤 때는
+ * `browseCountryLabelForUrl`으로 행마다 browse `country` 슬러그를 다르게 두고, `browse-country-url-resolve`의
+ * 권역별 서브필터(일본·중국 등)와 맞춘다.
  */
 import { OVERSEAS_LOCATION_TREE_DATA } from '@/lib/overseas-location-tree.data'
 import type { OverseasCountryNode, OverseasLeafNode } from '@/lib/overseas-location-tree.types'
@@ -45,14 +49,17 @@ function leafFromCountry(config: {
   displayLabel: string
   leafKeys?: readonly string[]
   termsOverride?: string[]
+  /** 메가메뉴 행마다 browse `country` 슬러그를 다르게 할 때(중국 주요도시 등 동일 트리 노드 복수 행) */
+  browseCountryLabelForUrl?: string
 }): MegaMenuLeafInput | null {
   const country = findCountry(config.groupKey, config.countryKey)
   if (!country) return null
+  const browseCountryLabel = config.browseCountryLabelForUrl ?? country.countryLabel
   if (config.termsOverride?.length) {
     return {
       label: config.displayLabel,
       terms: [...new Set(config.termsOverride)],
-      browseCountryLabel: country.countryLabel,
+      browseCountryLabel,
     }
   }
   const leaves =
@@ -67,7 +74,7 @@ function leafFromCountry(config: {
   return {
     label: config.displayLabel,
     terms: [...termSet],
-    browseCountryLabel: country.countryLabel,
+    browseCountryLabel,
   }
 }
 
@@ -209,6 +216,10 @@ export function buildChinaMegaMenuGroups(): MegaMenuCountryGroupInput[] {
           displayLabel: it.label,
           leafKeys: it.leafKeys,
           termsOverride: it.termsOverride,
+          browseCountryLabelForUrl:
+            it.ck === 'china-major' || it.ck === 'inner-mongolia' || it.ck === 'china-trekking'
+              ? it.label
+              : undefined,
         }),
       )
       .filter((x): x is MegaMenuLeafInput => x != null),

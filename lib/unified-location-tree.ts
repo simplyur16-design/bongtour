@@ -174,6 +174,8 @@ export function buildGeographicMegaMenuRegions(): MegaMenuRegion[] {
   }
 
   const cn = byContinent.get('china-mongolia-ca')!
+  /** `buildChinaMegaMenuGroups`는 `china-major` 등 한 노드를 여러 행으로 나누며 행별 `browseCountryLabelForUrl`을 둔다.
+   * 유럽 탭의 `nordic-baltic`·`middle-east` 등도 동일 구조라 행별 browse 슬러그·Prisma 서브필터는 추후 확장 가능. */
   for (const x of buildChinaMegaMenuGroups()) {
     cn.set(x.countryLabel, mapMegaGroupInput(x))
   }

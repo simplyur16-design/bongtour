@@ -31,6 +31,8 @@ import {
   normalizeBrowseRegionToDbContinent,
   resolveBrowseCityParamToDbCity,
   resolveBrowseCountryParamToDbCountries,
+  resolveChinaSubregionDbCityKeywords,
+  resolveJapanSubregionDbCityKeywords,
 } from '@/lib/browse-country-url-resolve'
 import { resolveOverseasDisplayBucketForBrowse } from '@/lib/overseas-display-buckets'
 import { filterPoolByStoredTravelScope } from '@/lib/travel-scope-pool-filter'
@@ -77,6 +79,19 @@ function parseSort(raw: string | null): BrowseSort {
   return 'popular'
 }
 
+function appendSubregionCityOrDestinationOr(
+  overseasGeoAnd: Prisma.ProductWhereInput[],
+  keywords: string[],
+) {
+  const orParts: Prisma.ProductWhereInput[] = [{ city: { in: keywords } }]
+  for (const lab of keywords) {
+    orParts.push({ destination: { contains: lab } })
+    orParts.push({ destinationRaw: { contains: lab } })
+    orParts.push({ primaryDestination: { contains: lab } })
+  }
+  overseasGeoAnd.push({ OR: orParts })
+}
+
 /**
  * GET /api/products/browse
  *
@@ -121,6 +136,23 @@ export async function GET(request: Request) {
       if (ct) {
         const dbCity = resolveBrowseCityParamToDbCity(ct)
         if (dbCity) overseasGeoAnd.push({ city: dbCity })
+      }
+    }
+
+    const regionTrim = (region ?? '').trim()
+    const countryTrim = (country ?? '').trim()
+    const continentFromBrowseRegion = normalizeBrowseRegionToDbContinent(regionTrim)
+
+    if (continentFromBrowseRegion === 'japan' && countryTrim) {
+      const jpKw = resolveJapanSubregionDbCityKeywords(countryTrim)
+      if (jpKw?.length) appendSubregionCityOrDestinationOr(overseasGeoAnd, jpKw)
+    }
+
+    if (continentFromBrowseRegion === 'china-mongolia-ca' && countryTrim) {
+      const dbs = resolveBrowseCountryParamToDbCountries(countryTrim)
+      if (dbs.length === 1 && dbs[0] === '중국') {
+        const cnKw = resolveChinaSubregionDbCityKeywords(countryTrim)
+        if (cnKw?.length) appendSubregionCityOrDestinationOr(overseasGeoAnd, cnKw)
       }
     }
 
