@@ -1830,6 +1830,7 @@ ${text.slice(0, 16000)}`
         day,
         title,
         description,
+        routeText: strOrNull(rec.routeText),
         imageKeyword,
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),

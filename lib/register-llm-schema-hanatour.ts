@@ -106,7 +106,13 @@ export type RegisterGeminiLlmJson = Record<string, unknown> & {
   meetingNoticeRaw?: string | null
   meetingFallbackText?: string | null
   counselingNotes?: unknown
-  schedule?: Array<{ day?: number; title?: string; description?: string; imageKeyword?: string }>
+  schedule?: Array<{
+    day?: number
+    title?: string
+    description?: string
+    routeText?: string | null
+    imageKeyword?: string
+  }>
   prices?: Array<Record<string, unknown>>
   optionalTourNoticeRaw?: string | null
   optionalTourNoticeItems?: string[]
@@ -131,6 +137,8 @@ export type RegisterScheduleDay = {
   day: number
   title: string
   description: string
+  /** 그날 방문 도시·장소를 본문 순서대로 ' - '로 연결한 한 줄 경로. 옵션관광·메타 섹션 제외. */
+  routeText?: string | null
   /** 실존하는 장소 명칭만 (Pexels 검색용 영문, 예: Osaka Castle) */
   imageKeyword: string
   hotelText?: string | null

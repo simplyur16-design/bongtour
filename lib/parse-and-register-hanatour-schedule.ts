@@ -382,6 +382,22 @@ function hanatourDescriptionLooksLikeDetailDump(s: string): boolean {
   return false
 }
 
+/** 일차 헤더 직후 본문이 메타 섹션이면 해당 줄을 일차로 인식하지 않음 */
+function isHanatourScheduleMetaSectionHead(rest: string): boolean {
+  const t = rest.trim()
+  return /^(여행일정 변경에 관한|사전 동의안내|가이드\/인솔자 및 미팅정보|가이드\/인솔자|여행 시 유의사항|출입국 카드 정보)/.test(
+    t
+  )
+}
+
+/** 일차 블록 밖에서 단독으로 등장하는 메타 섹션 — 마지막 일차에 병합하지 않음 */
+function isHanatourStandaloneMetaScheduleLine(line: string): boolean {
+  const t = line.trim()
+  return /^(여행일정 변경에 관한|사전 동의안내|가이드\/인솔자 및 미팅정보|가이드\/인솔자|여행 시 유의사항|출입국 카드 정보)/.test(
+    t
+  )
+}
+
 function stripHanatourScheduleNoiseLines(raw: string): string[] {
   const lines = raw.replace(/\r/g, '').split('\n')
   const out: string[] = []
@@ -414,11 +430,40 @@ function extractHanatourMealsFromScheduleBlock(t: string): Partial<
   const out: Partial<
     Pick<RegisterScheduleDay, 'breakfastText' | 'lunchText' | 'dinnerText' | 'mealSummaryText'>
   > = {}
-  const bracket3 = t.match(/\[조식\]\s*([^[\]]+?)\s*\[중식\]\s*([^[\]]+?)\s*\[석식\]\s*([^[\]\n]+)/i)
+  const bracket3 =
+    t.match(
+      /\[조식\]\s*([\s\S]*?)\s*\[중식\]\s*([\s\S]*?)\s*\[석식\]\s*([\s\S]+?)(?=\s*(?:\[TIP\]|상세보기|※\s*※|\n\n|$))/i
+    ) || t.match(/\[조식\]\s*([\s\S]*?)\s*\[중식\]\s*([\s\S]*?)\s*\[석식\]\s*([\s\S]+)/i)
   if (bracket3) {
     const a = bracket3[1]?.replace(/상세보기.*/i, '').trim()
     const b = bracket3[2]?.replace(/상세보기.*/i, '').trim()
     const c = bracket3[3]?.replace(/상세보기.*/i, '').trim()
+    if (a) out.breakfastText = a.slice(0, 200)
+    if (b) out.lunchText = b.slice(0, 200)
+    if (c) out.dinnerText = c.slice(0, 200)
+    out.mealSummaryText = [a, b, c].filter(Boolean).join(' · ').slice(0, 500)
+    return out
+  }
+  const slashTrip = t.match(
+    /(?:조식|아침)\s*[:：]?\s*([^/|｜\n]+?)\s*[/／｜]\s*(?:중식|점심)\s*[:：]?\s*([^/|｜\n]+?)\s*[/／｜]\s*(?:석식|저녁)\s*[:：]?\s*([^\n|]+)/i
+  )
+  if (slashTrip) {
+    const a = slashTrip[1]?.replace(/상세보기.*/i, '').trim()
+    const b = slashTrip[2]?.replace(/상세보기.*/i, '').trim()
+    const c = slashTrip[3]?.replace(/상세보기.*/i, '').trim()
+    if (a) out.breakfastText = a.slice(0, 200)
+    if (b) out.lunchText = b.slice(0, 200)
+    if (c) out.dinnerText = c.slice(0, 200)
+    out.mealSummaryText = [a, b, c].filter(Boolean).join(' · ').slice(0, 500)
+    return out
+  }
+  const spacedTrip = t.match(
+    /(?:조식|아침)\s+([^\n중석]{1,120}?)\s+(?:중식|점심)\s+([^\n중석]{1,120}?)\s+(?:석식|저녁)\s+([^\n]+)/i
+  )
+  if (spacedTrip) {
+    const a = spacedTrip[1]?.replace(/상세보기.*/i, '').trim()
+    const b = spacedTrip[2]?.replace(/상세보기.*/i, '').trim()
+    const c = spacedTrip[3]?.replace(/상세보기.*/i, '').trim()
     if (a) out.breakfastText = a.slice(0, 200)
     if (b) out.lunchText = b.slice(0, 200)
     if (c) out.dinnerText = c.slice(0, 200)
@@ -533,11 +578,23 @@ function extractOrderedKnownPoiFromJoined(joined: string): string[] {
   return picked.map((h) => h.s).slice(0, 8)
 }
 
-function normaliseHanatourTitleSegment(s: string): string {
-  return stripLeadingHanatourDatePrefix(s)
-    .replace(/\s+/g, ' ')
-    .replace(/[,.，、·]$/, '')
+/** title·route 후보에서 옵션관광 대괄호 태그 제거 */
+function stripHanatourBracketSalesTags(s: string): string {
+  return s
+    .replace(/\[\s*현지투어플러스\s*\]/gi, ' ')
+    .replace(/\[\s*옵션관광\s*\]/gi, ' ')
+    .replace(/\[\s*선택관광\s*\]/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
     .trim()
+}
+
+function normaliseHanatourTitleSegment(s: string): string {
+  return stripHanatourBracketSalesTags(
+    stripLeadingHanatourDatePrefix(s)
+      .replace(/\s+/g, ' ')
+      .replace(/[,.，、·]$/, '')
+      .trim()
+  )
 }
 
 function mergeHanatourTitlePlaceParts(parts: string[], maxParts: number): string | null {
@@ -816,21 +873,35 @@ function pickBestHanatourTourismSummaryLine(lines: string[]): string | null {
   return best
 }
 
-function primaryGeoToken(joined: string, title: string): string | null {
-  const blob = `${joined}\n${title}`
-  const m = blob.match(
-    /(연길|상해|주가각|백두산|방콕|도쿄|파리|인천|이도백하|장백|금강대|서파|북파|푸동|YNJ|PVG)/i
-  )
-  if (m?.[1]) return m[1]!
-  const h = title.match(/([\uAC00-\uD7AF]{2,8})/)
-  const g = h?.[1]
-  if (g && !/^(일차|일정|현지)$/.test(g)) return g
-  return null
+/** 본문 줄에서 설명용 스니펫(템플릿·메타 제외) */
+function pickHanatourDescriptionSnippetFromLines(lines: string[], joined: string, maxLen: number = 400): string {
+  const parts: string[] = []
+  for (const raw of lines) {
+    const line = stripLeadingHanatourDatePrefix(raw).replace(/\s+/g, ' ').trim()
+    if (line.length < 14 || line.length > 220) continue
+    if (isHanatourMealOrHotelLine(line)) continue
+    if (
+      /요금|소요시간|대체일정|TIP|상세내용|이전다음|일정표_|유의사항|여행일정 변경|사전 동의|미팅정보|출입국 카드/i.test(line)
+    )
+      continue
+    if (
+      /일정표에 따라 관광|일정표에 따라 이동|핵심\s*일정을\s*중심으로|일대를\s*순서대로\s*둘러본\s*뒤|현지\s*공항에\s*입국한\s*뒤/.test(
+        line
+      )
+    )
+      continue
+    parts.push(line)
+    if (parts.join(' ').length >= maxLen) break
+  }
+  const s = parts.join(' ').trim()
+  if (s.length >= 24) return s.slice(0, maxLen)
+  const j = joined.replace(/\s+/g, ' ').trim().slice(0, maxLen)
+  return j.length >= 24 ? j : ''
 }
 
 function hanatourTrimOneSentenceMax(s: string, max: number = HANATOUR_CARD_DESCRIPTION_MAX): string {
   let t = s.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim()
-  if (!t) return '일정표에 따라 이동·관광을 진행합니다.'
+  if (!t) return ''
   const dotIdx = t.indexOf('.', 24)
   if (dotIdx !== -1 && dotIdx < t.length - 1) {
     const rest = t.slice(dotIdx + 1).trim()
@@ -841,6 +912,7 @@ function hanatourTrimOneSentenceMax(s: string, max: number = HANATOUR_CARD_DESCR
     const sp = cut.lastIndexOf(' ')
     t = (sp > 40 ? cut.slice(0, sp) : cut).trim()
   }
+  if (!t) return ''
   if (!/[.!?…]$/.test(t)) t = `${t}.`
   return t.slice(0, HANATOUR_CARD_DESCRIPTION_MAX).trim()
 }
@@ -874,56 +946,17 @@ function hanatourEnsureDescriptionMinLength(
   return t
 }
 
-function hanatourMovementDescriptionFallback(joined: string, day: number, maxDay: number): string {
-  const p = extractHanatourOrderedPlaceHints(joined)
-  if (p.length >= 3) {
-    return hanatourTrimOneSentenceMax(
-      `${p[0]} 구간에서 출발해 ${p[1]}를 경유한 뒤 ${p[2]} 방향으로 이동하며 당일 공항·이동 절차와 접속 동선을 이어갑니다.`,
-      HANATOUR_CARD_DESCRIPTION_MAX
-    )
-  }
-  if (p.length >= 2) {
-    return hanatourTrimOneSentenceMax(
-      `${p[0]}에서 출발해 ${p[1]}로 이어지는 이동 동선을 따라 이동하며 당일 교통·이동 일정을 진행합니다.`,
-      HANATOUR_CARD_DESCRIPTION_MAX
-    )
-  }
-  if (p.length === 1) {
-    if (day === maxDay && maxDay >= 2)
-      return hanatourTrimOneSentenceMax(
-        `${p[0]}에서 출발해 인천 방향으로 귀국 동선에 올라 탑승과 출국 절차를 마치며 당일 여정을 마무리합니다.`,
-        HANATOUR_CARD_DESCRIPTION_MAX
-      )
-    return hanatourTrimOneSentenceMax(
-      `${p[0]}에 도착한 뒤 공항·현지 접속 절차를 밟고 당일 이동 일정을 시작합니다.`,
-      HANATOUR_CARD_DESCRIPTION_MAX
-    )
-  }
-  return hanatourTrimOneSentenceMax(
-    '일정표에 따른 공항·구간 이동 순서를 따라 당일 이동과 접속 절차를 진행합니다.',
-    HANATOUR_CARD_DESCRIPTION_MAX
-  )
+function hanatourMovementDescriptionFallback(_joined: string, _day: number, _maxDay: number): string {
+  return ''
 }
 
 function hanatourTourismDescriptionFallback(
-  joined: string,
-  title: string,
-  day: number,
-  maxDay: number
+  _joined: string,
+  _title: string,
+  _day: number,
+  _maxDay: number
 ): string {
-  if (isHanatourMovementPatternDay(joined, day, maxDay)) {
-    return hanatourMovementDescriptionFallback(joined, day, maxDay)
-  }
-  const pois = extractOrderedKnownPoiFromJoined(joined)
-  if (pois.length >= 2) {
-    return hanatourTrimOneSentenceMax(
-      `${pois.slice(0, Math.min(5, pois.length)).join(', ')} 일대를 순서대로 둘러본 뒤 이동과 관람을 이어가며 당일 관광 일정을 마무리합니다.`,
-      HANATOUR_CARD_DESCRIPTION_MAX
-    )
-  }
-  const geo = primaryGeoToken(joined, title)
-  if (geo) return `${geo} 핵심 일정을 중심으로 관광합니다.`
-  return `일정표에 따라 관광·이동을 진행합니다.`
+  return ''
 }
 
 function buildHanatourMovementDayDescription(
@@ -942,69 +975,48 @@ function buildHanatourMovementDayDescription(
       )
     }
   }
-  const p = extractHanatourOrderedPlaceHints(joined)
-  const arrival =
-    p.length > 0 ? p[p.length - 1]! : joined.match(/(상해|연길|푸동|인천|김포|서울)/)?.[1] ?? ''
   const ml = pickBestHanatourMotionSummaryLine(lines)
   if (
     ml &&
     /(입국|미팅|공항|피켓|터미널|PVG|ICN|GMP|도착)/.test(ml) &&
     !/(조식|중식|석식|호텔\s*[:：])/i.test(ml)
   ) {
-    const frag = stripLeadingHanatourDatePrefix(ml).replace(/\s+/g, ' ').trim().slice(0, 88)
-    const tail = arrival
-      ? `${arrival} 도착 기준으로 가이드 미팅을 진행하고 호텔로 이동합니다.`
-      : `가이드 미팅을 진행하고 호텔로 이동합니다.`
-    const core = `${frag} 뒤 ${tail}`.replace(/\s+/g, ' ')
+    const frag = stripLeadingHanatourDatePrefix(ml).replace(/\s+/g, ' ').trim().slice(0, 220)
+    const core = frag.length >= 20 ? frag : pickHanatourDescriptionSnippetFromLines(lines, joined, 220)
     let out = hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(core, lines, true), HANATOUR_CARD_DESCRIPTION_MAX)
     if (movementDescriptionHasForbiddenTourismWording(out))
       out = rebuildMovementDayDescriptionWithoutTourismWording(lines, joined, day, maxDay)
     return out
   }
-  const tail2 = arrival
-    ? `${arrival} 도착 후 가이드 미팅을 진행하고 호텔로 이동합니다.`
-    : `가이드 미팅을 진행한 뒤 당일 동선으로 이동합니다.`
-  let out2 = hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(tail2, lines, true), HANATOUR_CARD_DESCRIPTION_MAX)
-  if (movementDescriptionHasForbiddenTourismWording(out2))
-    out2 = rebuildMovementDayDescriptionWithoutTourismWording(lines, joined, day, maxDay)
-  return out2
+  const snippet = pickHanatourDescriptionSnippetFromLines(lines, joined, 280)
+  if (snippet) {
+    let out2 = hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(snippet, lines, true), HANATOUR_CARD_DESCRIPTION_MAX)
+    if (movementDescriptionHasForbiddenTourismWording(out2))
+      out2 = rebuildMovementDayDescriptionWithoutTourismWording(lines, joined, day, maxDay)
+    return out2
+  }
+  return ''
 }
 
 function buildHanatourTourismDayDescription(
   lines: string[],
   joined: string,
-  title: string,
-  day: number,
-  maxDay: number
+  _title: string,
+  _day: number,
+  _maxDay: number
 ): string {
-  const parts = title.split(/\s*-\s*/).map((s) => s.trim()).filter((s) => s.length >= 2)
-  const geo = primaryGeoToken(joined, title) ?? ''
-  let core = ''
-  if (parts.length >= 4) {
-    const lead = parts.slice(0, 4).join(', ')
-    const g = geo || parts[0]!
-    core = `${lead} 등 ${g} 일대를 순서대로 둘러본 뒤 관광과 이동을 이어가며 당일 일정을 마무리합니다.`
-  } else if (parts.length === 3) {
-    core = `${parts[0]}, ${parts[1]}, ${parts[2]} 일대를 연속으로 둘러본 뒤 동선을 따라 관광과 이동을 마무리합니다.`
-  } else if (parts.length === 2) {
-    core = `${parts[0]}와 ${parts[1]} 일대를 차례로 둘러본 뒤 당일 관광과 이동을 마무리합니다.`
-  } else if (parts.length === 1) {
-    const head = findHanatourItineraryHeadline(lines)
-    const seg = headlineTourismSegments(head)
-    if (seg.length >= 2) core = `${parts[0]} ${seg[0]}, ${seg[1]} 등을 둘러본 뒤 일정을 마무리합니다.`
-    else core = `${parts[0]} 중심으로 당일 코스를 관광합니다.`
-  } else {
-    const head = findHanatourItineraryHeadline(lines)
-    const seg = headlineTourismSegments(head)
-    if (seg.length >= 3) core = `${seg.slice(0, 3).join(', ')} 등을 둘러본 뒤 일정을 마무리합니다.`
-    else if (seg.length === 2) core = `${seg[0]}와 ${seg[1]} 일대를 둘러본 뒤 일정을 마무리합니다.`
-    else
-      return hanatourTrimOneSentenceMax(
-        hanatourEnsureDescriptionMinLength(hanatourTourismDescriptionFallback(joined, title, day, maxDay), lines),
-        HANATOUR_CARD_DESCRIPTION_MAX
-      )
+  const snippet = pickHanatourDescriptionSnippetFromLines(lines, joined, 520)
+  if (snippet) {
+    return hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(snippet, lines), HANATOUR_CARD_DESCRIPTION_MAX)
   }
-  return hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(core, lines), HANATOUR_CARD_DESCRIPTION_MAX)
+  const head = findHanatourItineraryHeadline(lines)
+  if (head) {
+    const h = stripLeadingHanatourDatePrefix(head).replace(/\s+/g, ' ').trim()
+    if (h.length >= 16) {
+      return hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(h.slice(0, 400), lines), HANATOUR_CARD_DESCRIPTION_MAX)
+    }
+  }
+  return ''
 }
 
 function inferHanatourReturnHomeDay(day: number, maxDay: number, joined: string): boolean {
@@ -1039,61 +1051,18 @@ function rebuildMovementDayDescriptionWithoutTourismWording(
   maxDay: number
 ): string {
   const arrivalish = day === 1 || /입국|도착|공항/.test(joined.slice(0, 4000))
-  const base = arrivalish
-    ? buildDenseMovementArrivalDescription(joined, lines)
-    : hanatourMovementDescriptionFallback(joined, day, maxDay)
+  const base = arrivalish ? buildDenseMovementArrivalDescription(joined, lines) : ''
+  if (!base.trim()) return ''
   return hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(base, lines, true), HANATOUR_CARD_DESCRIPTION_MAX)
 }
 
 function buildDenseMovementArrivalDescription(joined: string, lines: string[]): string {
-  const j = joined.slice(0, 8000)
-  const airport = /푸동국제공항|PVG|푸동/.test(j) ? '푸동국제공항' : /김포|GMP/.test(j) ? '김포공항' : /상해/.test(j) ? '상해 공항' : '현지 공항'
-  let s = ''
-  if (/하나투어\s*미팅|미팅\s*피켓|피켓/.test(j)) {
-    s = `${airport}에 입국한 뒤 하나투어 미팅 피켓 앞에서 가이드 미팅을 진행하고, 이후 일정상 체류 지역으로 이동합니다.`
-  } else if (/가이드\s*미팅|미팅/.test(j)) {
-    s = `${airport}에 입국한 뒤 가이드 미팅 장소에서 미팅을 진행하고, 이후 일정상 체류 지역으로 이동합니다.`
-  } else {
-    s = `${airport}에 입국한 뒤 공항 절차를 마치고 현지 미팅 포인트로 이동한 뒤, 이어서 일정상 체류 지역으로 이동합니다.`
-  }
-  let out = s.replace(/\s+/g, ' ')
   const ml = pickBestHanatourMotionSummaryLine(lines)
   if (ml) {
     const hint = stripLeadingHanatourDatePrefix(ml).replace(/\s+/g, ' ').trim()
-    if (
-      hint.length >= 16 &&
-      hint.length <= 96 &&
-      !/(조식|중식|석식|호텔\s*[:：])/i.test(hint) &&
-      !/(관광|둘러보|탐방|방문|명소|유람)/.test(hint)
-    ) {
-      out = `${hint} 내용을 반영해 ${out.charAt(0).toLowerCase()}${out.slice(1)}`
-    }
+    if (hint.length >= 16 && hint.length <= 220) return hint
   }
-  return out
-}
-
-function buildDenseTourismDescriptionFromPois(joined: string, title: string): string {
-  const pois = extractOrderedKnownPoiFromJoined(joined)
-  const titleParts = title.split(/\s*-\s*/).map((s) => s.trim()).filter((s) => s.length >= 2)
-  const ordered = [...new Set([...titleParts, ...pois])].filter(Boolean).slice(0, 6)
-  const geo = primaryGeoToken(joined, title) ?? ''
-  if (ordered.length >= 5) {
-    const a = ordered.slice(0, 3).join(', ')
-    const b = ordered.slice(3, 5).join(', ')
-    return `${geo ? `${geo} ` : ''}${a}와 ${b}를 잇는 동선으로 둘러본 뒤 당일 관광과 이동을 마무리합니다.`.replace(/\s+/g, ' ')
-  }
-  if (ordered.length >= 4) {
-    const a = ordered.slice(0, 2).join(', ')
-    const b = ordered.slice(2, 4).join(', ')
-    return `${geo ? `${geo} ` : ''}${a}, ${b} 일대를 연속으로 둘러본 뒤 관광과 이동을 이어가며 일정을 마무리합니다.`.replace(/\s+/g, ' ')
-  }
-  if (ordered.length === 3) {
-    return `${geo ? `${geo} ` : ''}${ordered[0]}, ${ordered[1]}, ${ordered[2]}를 순서대로 둘러본 뒤 당일 동선을 따라 관광을 마무리합니다.`.replace(/\s+/g, ' ')
-  }
-  if (ordered.length === 2) {
-    return `${geo ? `${geo} ` : ''}${ordered[0]}와 ${ordered[1]} 일대를 차례로 둘러본 뒤 이동과 관람을 이어가며 일정을 정리합니다.`.replace(/\s+/g, ' ')
-  }
-  return `${geo || '현지'} 당일 예정 코스를 따라 둘러본 뒤 관광과 이동을 마무리합니다.`
+  return pickHanatourDescriptionSnippetFromLines(lines, joined, 220)
 }
 
 /**
@@ -1129,10 +1098,10 @@ function finalizeHanatourCardDescriptionInformation(
       /일대를\s*둘러본|핵심\s*코스를\s*관광|핵심\s*일정을\s*중심으로/.test(core)
     if (L() < HANATOUR_CARD_DESCRIPTION_MIN || badTourismInMovement) {
       const arrivalish = day === 1 || /입국|도착|공항/.test(joined.slice(0, 4000))
-      core = (arrivalish ? buildDenseMovementArrivalDescription(joined, lines) : hanatourMovementDescriptionFallback(joined, day, maxDay)).replace(
-        /\.$/,
-        ''
-      )
+      const patch = arrivalish
+        ? buildDenseMovementArrivalDescription(joined, lines)
+        : pickHanatourDescriptionSnippetFromLines(lines, joined, 320)
+      core = patch.replace(/\.$/, '')
     }
     if (L() < HANATOUR_CARD_DESCRIPTION_MIN) {
       core = hanatourEnsureDescriptionMinLength(`${core}.`, lines, true).replace(/\.$/, '')
@@ -1141,22 +1110,21 @@ function finalizeHanatourCardDescriptionInformation(
       core = rebuildMovementDayDescriptionWithoutTourismWording(lines, joined, day, maxDay).replace(/\.$/, '')
     }
   } else {
-    if (L() < HANATOUR_CARD_DESCRIPTION_MIN || /핵심\s*일정을\s*중심으로/.test(core)) {
-      core = buildDenseTourismDescriptionFromPois(joined, title).replace(/\.$/, '')
+    if (
+      L() < HANATOUR_CARD_DESCRIPTION_MIN ||
+      /핵심\s*일정을\s*중심으로|일정표에 따라 관광|일대를\s*순서대로\s*둘러본\s*뒤/.test(core)
+    ) {
+      const sn = pickHanatourDescriptionSnippetFromLines(lines, joined, 500)
+      if (sn) core = sn.replace(/\.$/, '')
     }
-    if (L() < HANATOUR_CARD_DESCRIPTION_TARGET && extractOrderedKnownPoiFromJoined(joined).length >= 4) {
-      const alt = buildDenseTourismDescriptionFromPois(joined, title).replace(/\.$/, '')
-      if (alt.length > L()) core = alt
-    }
-    if (L() < HANATOUR_CARD_DESCRIPTION_MIN) {
-      core = hanatourEnsureDescriptionMinLength(
-        `${hanatourTourismDescriptionFallback(joined, title, day, maxDay)}`,
-        lines
-      ).replace(/\.$/, '')
+    if (L() < HANATOUR_CARD_DESCRIPTION_TARGET) {
+      const sn2 = pickHanatourDescriptionSnippetFromLines(lines, joined, 500)
+      if (sn2 && sn2.length > L()) core = sn2.replace(/\.$/, '')
     }
   }
 
   let out = core.trim()
+  if (!out) return ''
   if (!/[.!?…]$/.test(out)) out = `${out}.`
   return hanatourTrimOneSentenceMax(out, HANATOUR_CARD_DESCRIPTION_MAX)
 }
@@ -1184,27 +1152,18 @@ function composeHanatourScheduleDescriptionSentence(
     desc.length < HANATOUR_CARD_DESCRIPTION_MIN ||
     hanatourDescriptionOverlapsTitle(title, desc)
   ) {
-    desc = hanatourEnsureDescriptionMinLength(
-      movementDay
-        ? hanatourMovementDescriptionFallback(joined, day, maxDay)
-        : hanatourTourismDescriptionFallback(joined, title, day, maxDay),
-      lines
-    )
+    const sn = pickHanatourDescriptionSnippetFromLines(lines, joined, 400) || joined.slice(0, 280).trim()
+    desc = hanatourEnsureDescriptionMinLength(sn, lines, movementDay)
   }
   if (hanatourDescriptionOverlapsTitle(title, desc)) {
-    desc = hanatourEnsureDescriptionMinLength(
-      movementDay
-        ? hanatourMovementDescriptionFallback(joined, day, maxDay)
-        : hanatourTourismDescriptionFallback(joined, title, day, maxDay),
-      lines
-    )
+    const sn = pickHanatourDescriptionSnippetFromLines(lines, joined, 400) || joined.slice(0, 280).trim()
+    desc = hanatourEnsureDescriptionMinLength(sn, lines, movementDay)
     if (hanatourDescriptionOverlapsTitle(title, desc)) {
       desc = hanatourTrimOneSentenceMax(
         hanatourEnsureDescriptionMinLength(
+          pickHanatourDescriptionSnippetFromLines(lines, joined, 500) || joined.slice(0, 320).trim(),
+          lines,
           movementDay
-            ? '공항·구간 이동에 따라 당일 동선을 진행합니다.'
-            : '관광·이동 순서에 따라 당일 일정을 진행합니다.',
-          lines
         ),
         HANATOUR_CARD_DESCRIPTION_MAX
       )
@@ -1251,9 +1210,16 @@ function hanatourTitleNeedsReplace(title: string, description?: string): boolean
 }
 
 function hanatourDescriptionNeedsReplace(desc: string, title?: string): boolean {
-  if (!desc.trim()) return true
-  if (desc.trim().length < HANATOUR_CARD_DESCRIPTION_MIN) return true
-  if (desc.length > HANATOUR_CARD_DESCRIPTION_MAX) return true
+  const d = desc.trim()
+  if (!d) return false
+  if (
+    /일정표에 따라 관광·이동을|일정표에 따라 이동|핵심\s*일정을\s*중심으로|일대를\s*순서대로\s*둘러본\s*뒤|현지\s*공항에\s*입국한\s*뒤/.test(
+      d
+    )
+  )
+    return true
+  if (d.length < HANATOUR_CARD_DESCRIPTION_MIN) return false
+  if (d.length > HANATOUR_CARD_DESCRIPTION_MAX) return true
   if (hanatourDescriptionLooksLikeDetailDump(desc)) return true
   if (/이전다음|상세보기|상세내용을 확인/.test(desc)) return true
   if (/핵심\s*일정을\s*중심으로\s*관광합니다/.test(desc)) return true
@@ -1296,6 +1262,7 @@ export function polishHanatourScheduleDayFromRawBody(
     day,
     title,
     description,
+    routeText: title ? title.slice(0, 500) : null,
     imageKeyword: imageKeyword.slice(0, 120),
     breakfastText: meals.breakfastText ?? null,
     lunchText: meals.lunchText ?? null,
@@ -1338,6 +1305,7 @@ export function polishHanatourScheduleDayForItinerary(
     ...row,
     title: title.slice(0, 200).trim(),
     description,
+    routeText: row.routeText?.trim() || rebuilt.routeText?.trim() || null,
     imageKeyword,
     breakfastText: row.breakfastText?.trim() || rebuilt.breakfastText || null,
     lunchText: row.lunchText?.trim() || rebuilt.lunchText || null,
@@ -1372,18 +1340,26 @@ export function gatherHanatourScheduleSectionBodiesByDay(detailBody: DetailBodyP
   if (!parts.length) return new Map()
 
   const lines = parts.join('\n\n').split(/\r?\n/)
-  const startDayFromLine = (line: string): number | null => {
-    const m1 = line.match(/^\s*(\d{1,2})\s*일차/i)
-    if (m1) return parseInt(m1[1]!, 10)
-    const m2 = line.match(/^\s*DAY\s*(\d{1,2})\b/i)
-    if (m2) return parseInt(m2[1]!, 10)
-    return null
-  }
   const stripDayHeader = (line: string): string =>
     line
       .replace(/^\s*\d{1,2}\s*일차\s*/i, '')
       .replace(/^\s*DAY\s*\d{1,2}\s*/i, '')
       .trim()
+  const startDayFromLine = (line: string): number | null => {
+    const m1 = line.match(/^\s*(\d{1,2})\s*일차/i)
+    if (m1) {
+      const rest = stripDayHeader(line)
+      if (isHanatourScheduleMetaSectionHead(rest)) return null
+      return parseInt(m1[1]!, 10)
+    }
+    const m2 = line.match(/^\s*DAY\s*(\d{1,2})\b/i)
+    if (m2) {
+      const rest = stripDayHeader(line)
+      if (isHanatourScheduleMetaSectionHead(rest)) return null
+      return parseInt(m2[1]!, 10)
+    }
+    return null
+  }
 
   let currentDay = 0
   const buf: string[] = []
@@ -1398,8 +1374,9 @@ export function gatherHanatourScheduleSectionBodiesByDay(detailBody: DetailBodyP
       currentDay = d
       buf.length = 0
       const rest = stripDayHeader(line)
-      if (rest) buf.push(rest)
+      if (rest && !isHanatourScheduleMetaSectionHead(rest)) buf.push(rest)
     } else if (currentDay > 0) {
+      if (isHanatourStandaloneMetaScheduleLine(line)) continue
       buf.push(line)
     }
   }
@@ -1437,6 +1414,7 @@ export function polishHanatourScheduleRowsPreferDetailBody(
       return {
         ...polished,
         day: row.day,
+        routeText: row.routeText?.trim() || polished.routeText?.trim() || null,
         breakfastText: polished.breakfastText?.trim() || row.breakfastText?.trim() || null,
         lunchText: polished.lunchText?.trim() || row.lunchText?.trim() || null,
         dinnerText: polished.dinnerText?.trim() || row.dinnerText?.trim() || null,

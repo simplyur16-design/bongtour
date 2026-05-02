@@ -177,12 +177,16 @@ export function buildRegisterLlmInputBlocks(
 
 === [미리보기 — 옵션·쇼핑·일정 출력 상한] ===
 - JSON 출력: optionalTours **최대 3행**, shoppingStops **최대 3행**, 각 행 \`raw\` 는 null. 총 개수는 optionalTourCount·shoppingVisitCount·summary 텍스트만.
-- schedule 은 일차당 title·description 을 공급사 일정표에 맞게 **충실히**(일차당 description 3~6문장·450자 이내 권장, 한 줄 요약 금지). 필요 시 일차 수 14 이하.`
+- schedule 은 일차당 title·description 을 공급사 일정표에 맞게 **충실히**(일차당 description 3~6문장·450자 이내 권장, 한 줄 요약 금지). 필요 시 일차 수 14 이하.
+- schedule[].routeText: 그날 방문하는 도시·관광지를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 예: 인천 - 부다페스트 - 나지카니자 / 자다르 - 트로기르 - 스플리트. 옵션관광·[현지투어플러스]·[옵션관광]·[선택관광] 항목은 routeText에 포함하지 마라. 메타 섹션("여행일정 변경", "사전 동의안내", "가이드/인솔자 미팅" 등)은 일차 일정으로 다루지 마라. 본문 [관광] 탭의 도시·관광지만 추출. 빈 일정이면 null.
+- schedule[].description: 그날 일정을 한국어 3~4문장으로 작성. 본문에서 가져온 실제 방문지·체험·이동을 자연스럽게 서술. 본문 정보가 부족하면 짧게라도 본문 그대로 인용. 절대 빈 문자열로 두지 마라. 다음 문구는 금지: "일정표에 따라 관광·이동을 진행합니다", "{도시} 핵심 일정을 중심으로 관광합니다", "{도시} 일대를 순서대로 둘러본 뒤", "현지 공항에 입국한 뒤" 및 본문에 없는 일반론. 폴백 문장보다 짧은 본문 인용이 낫고, 인용도 어렵다면 description은 빈 문자열 허용(null 아님 "").`
     : `=== [STRUCTURED HOTEL / MEAL — JSON 추출 규칙] ===
 - hotelSummaryText: 상품 전체 호텔 요약 한 줄(예: 대표호텔명 외 1). [PASTED HOTEL INFO]·본문 원문에 있을 때만. 없으면 null.
 - schedule[] 각 일차: hotelText(해당 일 예정 숙소/호텔), breakfastText·lunchText·dinnerText(조·중·석), mealSummaryText(식사 원문 전체). 상품 전체 호텔과 일차 호텔은 분리.
-- 식사는 가능하면 조·중·석으로 나누고, 불확실하면 mealSummaryText에만 원문 보존(breakfast/lunch/dinner는 null).
-- 창작·추론·빈 문자열 생성 금지. 없으면 null.`
+- 식사는 가능하면 조·중·석으로 나누고, 불확실하면 mealSummaryText에만 원문 보존(breakfast/lunch/dinner는 null). 본문에 [조식]…[중식]…[석식]…, "조식: … / 중식: … / 석식: …", "조식 … 중식 … 석식 …" 형태가 있으면 각각 breakfastText·lunchText·dinnerText에 반드시 채운다(한 칸만 채우고 나머지 null 금지).
+- 창작·추론·빈 문자열 생성 금지. 없으면 null.
+- schedule[].routeText: 그날 방문하는 도시·관광지를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 옵션관광·[현지투어플러스]·[옵션관광]·[선택관광] 항목은 routeText에 포함하지 마라. 메타 섹션("여행일정 변경", "사전 동의안내", "가이드/인솔자 미팅" 등)은 일차 일정으로 다루지 마라. 본문 [관광] 탭의 도시·관광지만 추출. 빈 일정이면 null.
+- schedule[].description: 그날 일정을 한국어 3~4문장으로 작성. 본문에서 가져온 실제 방문지·체험·이동을 자연스럽게 서술. 본문 정보가 부족하면 짧게라도 본문 그대로 인용. 절대 빈 문자열로 두지 마라. 다음 문구는 금지: "일정표에 따라 관광·이동을 진행합니다", "{도시} 핵심 일정을 중심으로 관광합니다", "{도시} 일대를 순서대로 둘러본 뒤", "현지 공항에 입국한 뒤" 및 본문에 없는 일반론. 폴백 문장보다 짧은 본문 인용이 낫고, 인용도 어렵다면 description은 빈 문자열 허용(null 아님 "").`
 
   return `
 === [PASTED SUPPLIER BODY] ===

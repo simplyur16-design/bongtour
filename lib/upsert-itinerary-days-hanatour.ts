@@ -96,6 +96,7 @@ export function registerScheduleToDayInputs(
     title?: string
     description?: string
     imageKeyword?: string
+    routeText?: string | null
     hotelText?: string | null
     breakfastText?: string | null
     lunchText?: string | null
@@ -110,10 +111,16 @@ export function registerScheduleToDayInputs(
     const title = String(s.title ?? '').trim()
     const description = String(s.description ?? '').trim()
     const imageKeyword = String((s as { imageKeyword?: string }).imageKeyword ?? '').trim()
+    const routeText = String((s as { routeText?: string | null }).routeText ?? '').trim()
     const summaryTextRaw = description || title || null
     const rawBlock =
-      title || description || imageKeyword
-        ? JSON.stringify({ title, description, imageKeyword })
+      title || description || imageKeyword || routeText
+        ? JSON.stringify({
+            title,
+            description,
+            imageKeyword,
+            ...(routeText ? { routeText } : {}),
+          })
         : null
     const hotelText = trimNull(s.hotelText)
     const breakfastText = trimNull(s.breakfastText)
@@ -125,7 +132,8 @@ export function registerScheduleToDayInputs(
     return [
       {
         day,
-        city: title || null,
+        city: routeText || title || null,
+        poiNamesRaw: routeText || null,
         summaryTextRaw: summaryTextRaw || null,
         rawBlock,
         hotelText,
