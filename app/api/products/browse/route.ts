@@ -27,7 +27,11 @@ import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
-import { resolveBrowseCountryParamToDbCountries } from '@/lib/browse-country-url-resolve'
+import {
+  normalizeBrowseRegionToDbContinent,
+  resolveBrowseCityParamToDbCity,
+  resolveBrowseCountryParamToDbCountries,
+} from '@/lib/browse-country-url-resolve'
 import { resolveOverseasDisplayBucketForBrowse } from '@/lib/overseas-display-buckets'
 import { filterPoolByStoredTravelScope } from '@/lib/travel-scope-pool-filter'
 import { parseListingKind } from '@/lib/product-listing-kind'
@@ -98,13 +102,24 @@ export async function GET(request: Request) {
       const r = (region ?? '').trim()
       const c = (country ?? '').trim()
       const ct = (city ?? '').trim()
-      if (r) overseasGeoAnd.push({ OR: [{ continent: r }, { country: r }] })
-      if (c) {
+      const continentFromRegion = normalizeBrowseRegionToDbContinent(r)
+
+      if (r && !c) {
+        if (continentFromRegion) overseasGeoAnd.push({ continent: continentFromRegion })
+      } else if (r && c) {
+        if (continentFromRegion) overseasGeoAnd.push({ continent: continentFromRegion })
+        const dbCountries = resolveBrowseCountryParamToDbCountries(c)
+        if (dbCountries.length === 1) overseasGeoAnd.push({ country: dbCountries[0] })
+        else if (dbCountries.length > 1) overseasGeoAnd.push({ country: { in: dbCountries } })
+      } else if (!r && c) {
         const dbCountries = resolveBrowseCountryParamToDbCountries(c)
         if (dbCountries.length === 1) overseasGeoAnd.push({ country: dbCountries[0] })
         else if (dbCountries.length > 1) overseasGeoAnd.push({ country: { in: dbCountries } })
       }
-      if (ct) overseasGeoAnd.push({ city: ct })
+      if (ct) {
+        const dbCity = resolveBrowseCityParamToDbCity(ct)
+        if (dbCity) overseasGeoAnd.push({ city: dbCity })
+      }
     }
 
     const seasonCountriesRaw = (searchParams.get('seasonCountries') ?? '').trim()

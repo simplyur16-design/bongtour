@@ -21,7 +21,7 @@ import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import { sortProductsBySeason } from '@/lib/product-sort'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
-import SafeImage from '@/app/components/SafeImage'
+import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 
 type ApiOk = {
   ok: true
@@ -78,11 +78,8 @@ type Props = {
   hidePageHeading?: boolean
   /** 해외 허브: 서유럽 섹션용 목적지 브리핑(서버 선별) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
-  /** 해외 허브: 시즌 추천 순환 — 목록에서는 일본 섹션 직후 고정 */
+  /** 해외 허브: 시즌 추천 순환 — 허브 기본 화면 상단 캐러셀(메가 지역 선택 시 목록 내 슬롯) */
   overseasSeasonCurationSlides?: HomeSeasonPickDTO[] | null
-  /** 해외 허브 상단: 이번 달 MonthlyCurationContent 카드(월별) */
-  overseasHubMonthCurations?: HomeSeasonPickDTO[] | null
-  overseasHubSeasonHeading?: string | null
 }
 
 function formatWon(n: number | null) {
@@ -130,8 +127,6 @@ export default function ProductsBrowseClient({
   hidePageHeading = false,
   overseasEditorialBriefing = null,
   overseasSeasonCurationSlides = null,
-  overseasHubMonthCurations = null,
-  overseasHubSeasonHeading = null,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname() ?? ''
@@ -183,15 +178,22 @@ export default function ProductsBrowseClient({
 
   const hubSeasonSlug = (searchParams.get('hubSeason') ?? '').trim().toLowerCase() || null
 
+  const seasonHeading = useMemo(() => {
+    const now = new Date()
+    const currentMonth = now.getMonth() + 1
+    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1
+    return `${currentMonth}~${nextMonth}월 떠나기 좋은 여행지`
+  }, [])
+
   const curatedCountrySlugs = useMemo(() => {
-    const list = overseasHubMonthCurations ?? []
+    const list = overseasSeasonCurationSlides ?? []
     const s = new Set<string>()
     for (const c of list) {
       const slug = (c.resolvedProductCountrySlug ?? '').trim().toLowerCase()
       if (slug) s.add(slug)
     }
     return [...s]
-  }, [overseasHubMonthCurations])
+  }, [overseasSeasonCurationSlides])
 
   const slugsForSeasonHubFetch = useMemo(() => {
     if (curatedCountrySlugs.length === 0) return [] as string[]
@@ -200,7 +202,16 @@ export default function ProductsBrowseClient({
   }, [curatedCountrySlugs, hubSeasonSlug])
 
   useEffect(() => {
-    if (pathname !== '/travel/overseas' || defaultScope !== 'overseas' || slugsForSeasonHubFetch.length === 0) {
+    const megaGeo =
+      Boolean((q.region ?? '').trim() || (q.country ?? '').trim()) &&
+      pathname === '/travel/overseas' &&
+      defaultScope === 'overseas'
+    if (
+      pathname !== '/travel/overseas' ||
+      defaultScope !== 'overseas' ||
+      megaGeo ||
+      slugsForSeasonHubFetch.length === 0
+    ) {
       setSeasonHubItems([])
       setSeasonHubLoading(false)
       return
@@ -230,7 +241,7 @@ export default function ProductsBrowseClient({
     return () => {
       cancelled = true
     }
-  }, [pathname, defaultScope, slugsForSeasonHubFetch.join(',')])
+  }, [pathname, defaultScope, q.country, q.region, slugsForSeasonHubFetch.join(',')])
 
   const setHubSeasonQuery = useCallback(
     (slug: string | null) => {
@@ -492,14 +503,15 @@ export default function ProductsBrowseClient({
   }, [data, isAirHotelHub, q.country, browsePresented.items.length])
 
   const isOverseasProductsHub = pathname === '/travel/overseas' && defaultScope === 'overseas'
+  /** 메가메뉴 권역·나라 선택 — 시즌 허브 카드/시즌 추천 상품 숨김용 */
+  const hasMegaGeo = Boolean((q.region ?? '').trim() || (q.country ?? '').trim())
   const hasGeoFilter = Boolean(
-    (q.region ?? '').trim() ||
-      (q.country ?? '').trim() ||
+    hasMegaGeo ||
       (q.city ?? '').trim() ||
       (searchParams.get('hubSeason') ?? '').trim(),
   )
   const showOverseasSidebar = !isOverseasProductsHub || hasGeoFilter
-  const overseasHubWideLayout = isOverseasProductsHub && !hasGeoFilter
+  const overseasHubWideLayout = isOverseasProductsHub && !hasMegaGeo
 
   const summary = hidePageHeading
     ? null
@@ -617,68 +629,17 @@ export default function ProductsBrowseClient({
       )}
       {!loading &&
         data &&
+        !hasMegaGeo &&
         pathname === '/travel/overseas' &&
-        defaultScope === 'overseas' &&
-        (overseasHubMonthCurations?.length ?? 0) > 0 && (
+        defaultScope === 'overseas' && (
           <div className="mb-10 space-y-8">
-            {overseasHubSeasonHeading ? (
-              <h2 className="text-xl font-bold text-slate-900">{overseasHubSeasonHeading}</h2>
+            {(overseasSeasonCurationSlides?.length ?? 0) > 0 ? (
+              <HomeMobileHubSeasonCarousel slides={overseasSeasonCurationSlides ?? []} hideHeading />
             ) : null}
-            <div
-              className={
-                overseasHubWideLayout
-                  ? 'mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'
-                  : 'mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4'
-              }
-            >
-              {(overseasHubMonthCurations ?? []).map((c) => {
-                const slug = (c.resolvedProductCountrySlug ?? '').trim().toLowerCase()
-                const sel = Boolean(slug && hubSeasonSlug === slug)
-                const img = (c.imageUrl ?? '').trim()
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    disabled={!slug}
-                    onClick={() => slug && setHubSeasonQuery(sel ? null : slug)}
-                    className={`relative aspect-[4/3] w-full overflow-hidden rounded-xl border text-left shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                      sel ? 'ring-2 ring-teal-600 ring-offset-2' : 'border-slate-200 hover:border-teal-300'
-                    }`}
-                  >
-                    {img ? (
-                      <SafeImage
-                        src={img}
-                        alt=""
-                        fill
-                        width={400}
-                        height={300}
-                        className="object-cover"
-                        sizes="(max-width:1024px) 50vw, 25vw"
-                        quality={60}
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-teal-700 to-slate-900" aria-hidden />
-                    )}
-                    <div
-                      className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent"
-                      aria-hidden
-                    />
-                    <div className="absolute inset-x-0 bottom-0 p-3">
-                      <p className="text-sm font-bold text-white drop-shadow-sm">{c.title}</p>
-                      {c.subtitle ? (
-                        <p className="mt-1 line-clamp-2 text-xs text-white/90">{c.subtitle}</p>
-                      ) : c.excerpt ? (
-                        <p className="mt-1 line-clamp-2 text-xs text-white/90">{c.excerpt}</p>
-                      ) : null}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
             <section aria-labelledby="overseas-hub-season-products-heading">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 id="overseas-hub-season-products-heading" className="text-xl font-bold text-slate-900">
-                  시즌 추천 상품
+                  {seasonHeading}
                 </h2>
                 {hubSeasonSlug ? (
                   <button
@@ -691,7 +652,9 @@ export default function ProductsBrowseClient({
                 ) : null}
               </div>
               <div className={overseasHubSeasonProductRowClass}>
-                {seasonHubLoading ? (
+                {slugsForSeasonHubFetch.length === 0 ? (
+                  <p className="shrink-0 py-6 text-sm text-slate-500">표시할 상품이 없습니다.</p>
+                ) : seasonHubLoading ? (
                   <p className="shrink-0 py-6 text-sm text-slate-500">불러오는 중…</p>
                 ) : seasonHubItems.length === 0 ? (
                   <p className="shrink-0 py-6 text-sm text-slate-500">표시할 상품이 없습니다.</p>
@@ -772,7 +735,7 @@ export default function ProductsBrowseClient({
         !(
           pathname === '/travel/overseas' &&
           defaultScope === 'overseas' &&
-          (overseasHubMonthCurations?.length ?? 0) > 0
+          !hasMegaGeo
         ) && (
         <div className="mt-10 w-full rounded-xl border border-bt-border bg-bt-surface px-4 py-8 text-center text-sm text-bt-muted">
           <p className="text-base font-semibold text-bt-ink">등록된 여행상품이 아직 없습니다.</p>
@@ -802,7 +765,9 @@ export default function ProductsBrowseClient({
             groupAirHotelByCountry={pathname === '/travel/air-hotel'}
             groupDomesticByRegion={isDomesticHub}
             overseasEditorialBriefing={overseasEditorialBriefing}
-            overseasSeasonCurationSlides={overseasSeasonCurationSlides}
+            overseasSeasonCurationSlides={
+              isOverseasProductsHub && !hasMegaGeo ? null : overseasSeasonCurationSlides
+            }
             seasonalPickIds={browsePresented.seasonalPickIds}
             overseasHubWideLayout={overseasHubWideLayout}
           />

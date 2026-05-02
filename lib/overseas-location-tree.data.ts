@@ -12,6 +12,7 @@ function L(
     supplierKeywords?: string[]
     supplierOnlyLabels?: string[]
     nodeType?: OverseasLeafNode['nodeType']
+    dbCityValue?: string | null
   }
 ): OverseasLeafNode {
   return {
@@ -21,6 +22,7 @@ function L(
     supplierKeywords: opt?.supplierKeywords,
     supplierOnlyLabels: opt?.supplierOnlyLabels,
     nodeType: opt?.nodeType ?? 'city',
+    dbCityValue: opt?.dbCityValue,
   }
 }
 
@@ -28,13 +30,14 @@ function C(
   countryKey: string,
   countryLabel: string,
   children: OverseasLeafNode[],
-  opt?: { aliases?: string[]; supplierKeywords?: string[] }
+  opt?: { aliases?: string[]; supplierKeywords?: string[]; dbCountryValues?: string[] }
 ): OverseasCountryNode {
   return {
     countryKey,
     countryLabel,
     aliases: opt?.aliases,
     supplierKeywords: opt?.supplierKeywords,
+    dbCountryValues: opt?.dbCountryValues,
     children,
   }
 }
@@ -220,7 +223,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           }),
           L('nikko', '닛꼬', { aliases: ['nikko', '닛코', '日光'], supplierKeywords: ['닛꼬'] }),
         ],
-        { aliases: ['간토', '관동', 'kanto', '동경'], supplierKeywords: ['간토(관동)'] }
+        { aliases: ['간토', '관동', 'kanto', '동경'], supplierKeywords: ['간토(관동)'], dbCountryValues: ['일본'] }
       ),
       C(
         'jp-kansai',
@@ -232,7 +235,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('nara', '나라', { aliases: ['nara', '나라', '奈良'], supplierKeywords: ['나라'] }),
           L('wakayama-shirahama', '와카야마 · 시라하마', { aliases: ['wakayama', '시라하마', 'shirahama'] }),
         ],
-        { aliases: ['간사이', '관서', 'kansai', '오사카'] }
+        { aliases: ['간사이', '관서', 'kansai', '오사카'], dbCountryValues: ['일본'] }
       ),
       C(
         'jp-kyushu',
@@ -249,7 +252,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
             supplierKeywords: ['기타큐슈', '시모노세키'],
           }),
         ],
-        { aliases: ['규슈', 'kyushu', '큐슈'], supplierKeywords: ['큐슈'] }
+        { aliases: ['규슈', 'kyushu', '큐슈'], supplierKeywords: ['큐슈'], dbCountryValues: ['일본'] }
       ),
       C(
         'jp-hokkaido',
@@ -263,7 +266,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('otaru', '오타루', { aliases: ['otaru', '오타루'], supplierKeywords: ['오타루'] }),
           L('toya-jozankei', '도야 · 죠잔케이', { aliases: ['toya', '도야', 'jozankei', '죠잔케이', '조잔케이'] }),
         ],
-        { aliases: ['홋카이도', 'hokkaido', '북해도'], supplierKeywords: ['북해도'] }
+        { aliases: ['홋카이도', 'hokkaido', '북해도'], supplierKeywords: ['북해도'], dbCountryValues: ['일본'] }
       ),
       C(
         'jp-shikoku-chugoku',
@@ -278,7 +281,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('okayama', '오카야마', { aliases: ['okayama', '오카야마'] }),
           L('shimonoseki', '시모노세키', { aliases: ['shimonoseki'], supplierKeywords: ['시모노세키'] }),
         ],
-        { aliases: ['시코쿠', '주고쿠'], supplierKeywords: ['시코쿠/주고쿠'] }
+        { aliases: ['시코쿠', '주고쿠'], supplierKeywords: ['시코쿠/주고쿠'], dbCountryValues: ['일본'] }
       ),
       C(
         'jp-okinawa',
@@ -288,7 +291,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('miyakojima', '미야코지마', { aliases: ['miyako', '미야코지마'] }),
           L('ishigaki', '이시가키', { aliases: ['ishigaki', '이시가키', '石垣'] }),
         ],
-        { aliases: ['오키나와', 'okinawa'] }
+        { aliases: ['오키나와', 'okinawa'], dbCountryValues: ['일본'] }
       ),
       C(
         'jp-chubu-hokuriku',
@@ -299,7 +302,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('takayama', '다카야마', { aliases: ['takayama', '다카야마'] }),
           L('kanazawa-komatsu', '고마츠 · 가나자와권', { aliases: ['komatsu', '고마츠', 'kanazawa', '가나자와'] }),
         ],
-        { aliases: ['호쿠리쿠', '중부'], supplierKeywords: ['알펜루트'] }
+        { aliases: ['호쿠리쿠', '중부'], supplierKeywords: ['알펜루트'], dbCountryValues: ['일본'] }
       ),
       C(
         'jp-tohoku',
@@ -309,7 +312,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('aomori', '아오모리', { aliases: ['aomori', '아오모리'] }),
           L('akita-sendai', '아키타 · 센다이', { aliases: ['akita', 'sendai', '센다이', '아키타'] }),
         ],
-        { aliases: ['도호쿠', '동북', 'tohoku'], supplierKeywords: ['도호쿠'] }
+        { aliases: ['도호쿠', '동북', 'tohoku'], supplierKeywords: ['도호쿠'], dbCountryValues: ['일본'] }
       ),
       C(
         'jp-ferry',
@@ -319,7 +322,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('ferry-fukuoka', '후쿠오카(선박)', { nodeType: 'route', supplierKeywords: ['후쿠오카(선박)'] }),
           L('ferry-osaka', '오사카(선박)', { nodeType: 'route', supplierKeywords: ['오사카(선박)'] }),
         ],
-        { supplierKeywords: ['일본(선박)'] }
+        { supplierKeywords: ['일본(선박)'], dbCountryValues: ['일본'] }
       ),
     ],
     ['일본', 'japan', '재팬']
@@ -471,7 +474,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('ordos', '오르도스', { aliases: ['ordos', '오르도스'] }),
           L('chifeng', '적봉 · 치펑', { aliases: ['chifeng', '적봉'] }),
         ],
-        { aliases: ['내몽골', '내몽고', 'inner mongolia'] }
+        { aliases: ['내몽골', '내몽고', 'inner mongolia'], dbCountryValues: ['중국'] }
       ),
       C(
         'china-major',
@@ -500,7 +503,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('wuhan-yichang', '무한 · 은시 · 무당산', { aliases: ['wuhan', '무한', 'yichang', '은시', '무당산'] }),
           L('changbai', '백두산 · 연길 · 심양 · 장춘', { aliases: ['백두산', 'changbai', '연길', '심양', '장춘'] }),
         ],
-        { aliases: ['중국', 'china'], supplierKeywords: ['중국권'] }
+        { aliases: ['중국', 'china'], supplierKeywords: ['중국권'], dbCountryValues: ['중국'] }
       ),
       C(
         'central-asia',

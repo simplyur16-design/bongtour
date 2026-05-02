@@ -10,7 +10,11 @@ import {
   matchTokensForLeaf,
   type OverseasRegionGroupNode,
 } from '@/lib/overseas-location-tree'
-import { dbCountryMatchesBrowseCountryParam } from '@/lib/browse-country-url-resolve'
+import {
+  dbCityMatchesBrowseCityParam,
+  dbCountryMatchesBrowseCountryParam,
+  normalizeBrowseRegionToDbContinent,
+} from '@/lib/browse-country-url-resolve'
 
 /** 갤러리·API 등 최소 필드 */
 export type OverseasProductMatchInput = {
@@ -48,17 +52,19 @@ export function productMatchesOverseasDestinationTerms(
   terms: string[],
   urlGeo?: { region: string | null; country: string | null; city: string | null }
 ): boolean {
-  const r = (urlGeo?.region ?? '').trim().toLowerCase()
+  const rRaw = (urlGeo?.region ?? '').trim()
+  const rCont = normalizeBrowseRegionToDbContinent(rRaw)
+  const rContLower = rCont?.toLowerCase() ?? ''
   const cRaw = (urlGeo?.country ?? '').trim()
   const c = cRaw.toLowerCase()
-  const ct = (urlGeo?.city ?? '').trim().toLowerCase()
-  const hasUrlGeo = Boolean(r || c || ct)
+  const ctRaw = (urlGeo?.city ?? '').trim()
+  const hasUrlGeo = Boolean(rRaw || c || ctRaw)
 
   const dbCont = (product.continent ?? '').trim().toLowerCase()
   const dbCountry = (product.country ?? '').trim().toLowerCase()
   const dbCountryRaw = (product.country ?? '').trim()
-  const dbCity = (product.city ?? '').trim().toLowerCase()
-  const hasDbBrowseGeo = Boolean(dbCont || dbCountry)
+  const dbCityRaw = (product.city ?? '').trim()
+  const hasDbBrowseGeo = Boolean(dbCont || dbCountry || dbCityRaw)
 
   const haystack = buildOverseasProductMatchHaystack(product)
   const termsMatch = (): boolean => {
@@ -72,9 +78,11 @@ export function productMatchesOverseasDestinationTerms(
   if (!hasUrlGeo) return termsMatch()
 
   if (hasDbBrowseGeo) {
-    if (r && dbCont !== r && dbCountry !== r) return false
+    if (rRaw && rContLower) {
+      if (dbCont !== rContLower && dbCountry !== rContLower) return false
+    }
     if (cRaw && !dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw)) return false
-    if (ct && dbCity !== ct) return false
+    if (ctRaw && !dbCityMatchesBrowseCityParam(dbCityRaw, ctRaw)) return false
     return termsMatch()
   }
 

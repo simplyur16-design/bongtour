@@ -14,6 +14,8 @@ export type OverseasLeafNode = {
   /** UI에는 안 쓰고 매칭에만 쓰는 공급사 전용 라벨 토큰 */
   supplierOnlyLabels?: string[]
   nodeType?: 'city' | 'region' | 'route' | 'theme'
+  /** browse `city` 슬러그 → DB `Product.city` 한글(없으면 nodeLabel·접두로 추론) */
+  dbCityValue?: string | null
 }
 
 export type OverseasCountryNode = {
@@ -21,6 +23,8 @@ export type OverseasCountryNode = {
   countryLabel: string
   aliases?: string[]
   supplierKeywords?: string[]
+  /** browse `country` 슬러그 → DB `Product.country` 한글(복수면 IN). 없으면 라벨에서 추론 시도 */
+  dbCountryValues?: string[]
   children: OverseasLeafNode[]
 }
 
