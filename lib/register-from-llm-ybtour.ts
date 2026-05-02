@@ -18,13 +18,70 @@ import {
 } from '@/lib/bongtour-tone-manner-llm-ssot'
 
 /**
- * 풀 등록(`forPreview: false`) JSON 출력 상한. 호텔·일정 배열이 길면 32k에서 MAX_TOKENS 잘림이 난다.
- * `GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS`로 조정(모델 상한 내).
+ * 풀 등록(`forPreview: false`) JSON 출력 상한. ybtour 전용 우선순위:
+ * `GEMINI_REGISTER_YBTOUR_FULL_MAX_OUTPUT_TOKENS` > `GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS` > 기본 98304.
+ * 파싱 실패·MAX_TOKENS 시 동일 세션에서 1회 1.5배(상한 131072) 자동 재호출.
  */
-const REGISTER_FULL_MAX_OUTPUT_TOKENS = Math.max(
-  8192,
-  Math.min(131072, Number(process.env.GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS) || 65536)
-)
+const YBTOUR_REGISTER_FULL_MAX_OUTPUT_CAP = 131072
+const YBTOUR_REGISTER_FULL_MAX_OUTPUT_FLOOR = 8192
+
+function resolveYbtourRegisterFullMaxOutputTokens(): number {
+  const yb = Number(process.env.GEMINI_REGISTER_YBTOUR_FULL_MAX_OUTPUT_TOKENS)
+  if (Number.isFinite(yb) && yb > 0) {
+    return Math.max(
+      YBTOUR_REGISTER_FULL_MAX_OUTPUT_FLOOR,
+      Math.min(YBTOUR_REGISTER_FULL_MAX_OUTPUT_CAP, Math.trunc(yb))
+    )
+  }
+  const full = Number(process.env.GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS)
+  if (Number.isFinite(full) && full > 0) {
+    return Math.max(
+      YBTOUR_REGISTER_FULL_MAX_OUTPUT_FLOOR,
+      Math.min(YBTOUR_REGISTER_FULL_MAX_OUTPUT_CAP, Math.trunc(full))
+    )
+  }
+  return 98304
+}
+
+const REGISTER_FULL_MAX_OUTPUT_TOKENS = resolveYbtourRegisterFullMaxOutputTokens()
+
+function bumpYbtourMainMaxOutputTokens(current: number): number {
+  return Math.min(YBTOUR_REGISTER_FULL_MAX_OUTPUT_CAP, Math.ceil(current * 1.5))
+}
+
+function ybtourMainParseFailureSuggestsTruncationOrBrokenJson(
+  finishReason: string | undefined,
+  text: string,
+  parseErrorMessage: string
+): boolean {
+  const te = text.trimEnd()
+  const msg = parseErrorMessage.toLowerCase()
+  return (
+    finishReason === 'MAX_TOKENS' ||
+    !te.endsWith('}') ||
+    msg.includes('parsed value is not a json object') ||
+    msg.includes('unexpected token') ||
+    msg.includes('unexpected end') ||
+    msg.includes('unterminated string')
+  )
+}
+
+function ybtourShouldAttemptJsonRepairAfterMain(
+  finishReason: string | undefined,
+  text: string,
+  parseErrorMessage: string | undefined
+): boolean {
+  const te = text.trimEnd()
+  const msg = (parseErrorMessage ?? '').toLowerCase()
+  return (
+    finishReason === 'MAX_TOKENS' ||
+    !te.endsWith('}') ||
+    msg.includes('unterminated string') ||
+    msg.includes('parsed value is not a json object') ||
+    msg.includes('unexpected token') ||
+    msg.includes('unexpected end')
+  )
+}
 import type { ParsedProductPrice } from './parsed-product-types'
 import { normalizeCalendarDate } from './date-normalize'
 import { extractDestinationFromTitle } from './destination-from-title'
@@ -1407,29 +1464,42 @@ export async function parseForRegisterLlmYbtour(
   options?.onTiming?.('llm-start')
   if (options?.llmCallMetrics) options.llmCallMetrics.mainLlm += 1
   const tMainGen = Date.now()
-  const result = await model.generateContent(
+  let mainLlmMaxOutputTokens = forPreview ? 4096 : REGISTER_FULL_MAX_OUTPUT_TOKENS
+  let result = await model.generateContent(
     {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0,
-        maxOutputTokens: forPreview ? 4096 : REGISTER_FULL_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: mainLlmMaxOutputTokens,
         /** 가능한 모델에서 순수 JSON만 받아 마크다운·설명 혼입 완화 (@google/generative-ai 타입에 없을 수 있어 단언) */
         ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
       },
     },
     geminiTimeoutOpts()
   )
-  console.info(
-    `[ybtour][timing] main-generateContent +${Date.now() - tMainGen}ms forPreview=${forPreview} maxOutTokens=${forPreview ? 4096 : REGISTER_FULL_MAX_OUTPUT_TOKENS}`
-  )
   options?.onTiming?.('llm-end')
-  const finishReason = result.response.candidates?.[0]?.finishReason
+  let finishReason = result.response.candidates?.[0]?.finishReason
   let text = result.response.text()
   const firstPassLlmRawCaptured = text
   let repairAttempted = false
   let repairFinishReason: string | null = null
   let repairLlmRawCaptured: string | null = null
   let firstParseError: string | undefined
+  const logMainAttempt = (isRetry: boolean) => {
+    const te = text.trimEnd()
+    console.info('[ybtour-llm] main Gemini register response', {
+      forPreview,
+      isRetry,
+      finishReason: finishReason ?? null,
+      charLength: text.length,
+      endsWithClosingBrace: te.endsWith('}'),
+      maxOutputTokens: mainLlmMaxOutputTokens,
+    })
+  }
+  logMainAttempt(false)
+  console.info(
+    `[ybtour][timing] main-generateContent +${Date.now() - tMainGen}ms forPreview=${forPreview} maxOutTokens=${mainLlmMaxOutputTokens}`
+  )
   if (forPreview) {
     const te = text.trimEnd()
     console.info('[ybtour-llm] preview Gemini response shape', {
@@ -1446,7 +1516,9 @@ export async function parseForRegisterLlmYbtour(
       rawLength: text.length,
     })
   }
-  let raw: RegisterGeminiLlmJson
+  let raw: RegisterGeminiLlmJson | undefined
+  /** 풀 등록에서 출력 상한 1.5배 재호출은 전체 1회만(파싱 실패 재시도와 공유). */
+  let didYbtourMainOutputBumpRetry = false
   options?.onTiming?.('parse-start')
   try {
     if (forPreview) {
@@ -1470,13 +1542,95 @@ export async function parseForRegisterLlmYbtour(
   } catch (firstErr) {
     options?.onTiming?.('parse-failed')
     firstParseError = firstErr instanceof Error ? firstErr.message : String(firstErr)
-    const te = text.trimEnd()
-    // JSON repair는 출력 잘림·MAX_TOKENS 등 명백한 truncation에만 제한(단순 스키마/형식 오류는 재호출하지 않음 → 토큰 절감).
-    const shouldAttemptJsonRepair =
-      finishReason === 'MAX_TOKENS' ||
-      !te.endsWith('}') ||
-      (Boolean(firstParseError?.includes('Unterminated string')) && !te.endsWith('}'))
+    const canBumpMain =
+      !forPreview &&
+      ybtourMainParseFailureSuggestsTruncationOrBrokenJson(finishReason, text, firstParseError)
+    if (canBumpMain) {
+      const bumped = bumpYbtourMainMaxOutputTokens(mainLlmMaxOutputTokens)
+      if (bumped > mainLlmMaxOutputTokens) {
+        didYbtourMainOutputBumpRetry = true
+        if (options?.llmCallMetrics) options.llmCallMetrics.mainLlm += 1
+        const tMainRetry = Date.now()
+        mainLlmMaxOutputTokens = bumped
+        options?.onTiming?.('llm-retry-start')
+        result = await model.generateContent(
+          {
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0,
+              maxOutputTokens: mainLlmMaxOutputTokens,
+              ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
+            },
+          },
+          geminiTimeoutOpts()
+        )
+        options?.onTiming?.('llm-retry-end')
+        finishReason = result.response.candidates?.[0]?.finishReason
+        text = result.response.text()
+        logMainAttempt(true)
+        console.info(
+          `[ybtour][timing] main-generateContent-retry +${Date.now() - tMainRetry}ms forPreview=${forPreview} maxOutTokens=${mainLlmMaxOutputTokens}`
+        )
+        try {
+          raw = parseLlmJsonObject<RegisterGeminiLlmJson>(text, { logLabel: 'parseForRegisterLlmYbtour-retry-bumped' })
+          options?.onTiming?.('after-parse')
+        } catch (retryErr) {
+          firstParseError = retryErr instanceof Error ? retryErr.message : String(retryErr)
+        }
+      }
+    }
+  }
+
+  if (
+    raw !== undefined &&
+    !forPreview &&
+    finishReason === 'MAX_TOKENS' &&
+    !didYbtourMainOutputBumpRetry
+  ) {
+    const bumped = bumpYbtourMainMaxOutputTokens(mainLlmMaxOutputTokens)
+    if (bumped > mainLlmMaxOutputTokens) {
+      didYbtourMainOutputBumpRetry = true
+      if (options?.llmCallMetrics) options.llmCallMetrics.mainLlm += 1
+      const tMainRetryMax = Date.now()
+      mainLlmMaxOutputTokens = bumped
+      options?.onTiming?.('llm-retry-start')
+      result = await model.generateContent(
+        {
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: mainLlmMaxOutputTokens,
+            ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
+          },
+        },
+        geminiTimeoutOpts()
+      )
+      options?.onTiming?.('llm-retry-end')
+      finishReason = result.response.candidates?.[0]?.finishReason
+      text = result.response.text()
+      logMainAttempt(true)
+      console.info(
+        `[ybtour][timing] main-generateContent-retry-maxtokens +${Date.now() - tMainRetryMax}ms forPreview=${forPreview} maxOutTokens=${mainLlmMaxOutputTokens}`
+      )
+      try {
+        raw = parseLlmJsonObject<RegisterGeminiLlmJson>(text, {
+          logLabel: 'parseForRegisterLlmYbtour-retry-maxtokens',
+        })
+        options?.onTiming?.('after-parse')
+      } catch (maxTokRetryErr) {
+        firstParseError = maxTokRetryErr instanceof Error ? maxTokRetryErr.message : String(maxTokRetryErr)
+        raw = undefined
+      }
+    }
+  }
+
+  if (raw === undefined) {
+    if (firstParseError === undefined) {
+      firstParseError = 'LLM JSON parse failed'
+    }
+    const shouldAttemptJsonRepair = ybtourShouldAttemptJsonRepairAfterMain(finishReason, text, firstParseError)
     if (!shouldAttemptJsonRepair) {
+      const te = text.trimEnd()
       console.error('[ybtour-llm] LLM JSON parse failed; repair skipped (truncation/형식 정책)', {
         finishReason,
         length: text.length,
@@ -1512,7 +1666,7 @@ ${text.slice(0, 16000)}`
         contents: [{ role: 'user', parts: [{ text: repairPrompt }] }],
         generationConfig: {
           temperature: 0,
-          maxOutputTokens: forPreview ? 4096 : REGISTER_FULL_MAX_OUTPUT_TOKENS,
+          maxOutputTokens: forPreview ? 4096 : mainLlmMaxOutputTokens,
           ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
         },
       },
