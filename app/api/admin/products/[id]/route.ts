@@ -25,7 +25,7 @@ import {
   isObjectStorageConfigured,
   tryParseObjectKeyFromPublicUrl,
 } from '@/lib/object-storage'
-import { extractPexelsPhotoIdFromCdnUrl } from '@/lib/product-pexels-image-rehost'
+import { extractPexelsPhotoIdFromCdnUrl, rehostPexelsProductHeroIfNeeded } from '@/lib/product-pexels-image-rehost'
 import { toHeroStorageSourceTypeSegment } from '@/lib/product-hero-image-source-type'
 import { rehostPexelsUrlsInScheduleEntries, type ScheduleEntryRecord } from '@/lib/schedule-day-image-rehost'
 import { internalizeProductCoverImageUrl } from '@/lib/travel-product-image-internalize'
@@ -531,8 +531,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
               prodShort?.destinationRaw?.trim() ||
               prodShort?.destination?.trim() ||
               'unknown'
+            const pexelsRemoteUrl = url
             url = await internalizeProductCoverImageUrl(prisma, {
-              remoteUrl: url,
+              remoteUrl: pexelsRemoteUrl,
               destination: destLine,
               poolAttractionLabel: 'primary_cover',
               poolSource: 'pexels',
@@ -546,13 +547,33 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             const key = tryParseObjectKeyFromPublicUrl(url)
             data.bgImageStoragePath = key
             data.bgImageStorageBucket = key ? getImageStorageBucket() : null
-            data.bgImageRehostSearchLabel = searchLabel
-            data.bgImagePlaceName = placeName
-            data.bgImageCityName = cityName
-            data.bgImageWidth = null
-            data.bgImageHeight = null
             data.bgImageRehostedAt = new Date()
             data.bgImageSourceType = toHeroStorageSourceTypeSegment('pexels')
+            let rhW: number | null = null
+            let rhH: number | null = null
+            try {
+              const rh = await rehostPexelsProductHeroIfNeeded({
+                downloadUrl: pexelsRemoteUrl,
+                pexelsPhotoId: pid,
+                photographer: strOrNull(body.primaryImagePhotographer, 200),
+                pexelsPageUrl: strOrNull(body.primaryImageSourceUrl, MAX_URL),
+                searchKeyword: searchLabel,
+                placeName,
+                cityName,
+              })
+              data.bgImageRehostSearchLabel = rh.searchLabelStored ?? searchLabel
+              data.bgImagePlaceName = rh.placeNameStored ?? placeName
+              data.bgImageCityName = rh.cityNameStored ?? cityName
+              rhW = rh.width
+              rhH = rh.height
+            } catch (rehostErr) {
+              console.warn('[PATCH product] pexels rehost (non-fatal after internalize)', rehostErr)
+              data.bgImageRehostSearchLabel = searchLabel
+              data.bgImagePlaceName = placeName
+              data.bgImageCityName = cityName
+            }
+            data.bgImageWidth = rhW
+            data.bgImageHeight = rhH
           } catch (e) {
             const msg = e instanceof Error ? e.message : 'Pexels 이미지 저장 실패'
             console.error('[PATCH product] pexels internalize', e)
