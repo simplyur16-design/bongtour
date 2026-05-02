@@ -14,6 +14,8 @@ export type MegaMenuLeafInput = {
   terms: string[]
   /** browse URL `country` 슬러그 — 트리 `country.countryLabel` 과 동일해야 destination 매칭이 된다 */
   browseCountryLabel: string
+  /** 메가메뉴 보조 한 줄 — URL·매칭에 미사용 */
+  sublabel?: string
 }
 
 export type MegaMenuCountryGroupInput = {

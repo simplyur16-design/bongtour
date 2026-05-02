@@ -26,6 +26,8 @@ export type MegaMenuLeaf = {
   terms: string[]
   /** browse URL `country` 슬러그 — 트리 국가 라벨과 다를 때(권역 헤더 아래 나라 행) */
   browseCountryLabel?: string
+  /** 보조 한 줄(골프장·기항지·노선 힌트 등) — URL·매칭 terms와 별도 */
+  sublabel?: string
 }
 
 export type MegaMenuCountryGroup = {
@@ -107,6 +109,7 @@ function mapMegaGroupInput(g: MegaMenuCountryGroupInput): MegaMenuCountryGroup {
         label: c.label,
         terms: c.terms,
         browseCountryLabel: c.browseCountryLabel,
+        sublabel: c.sublabel,
       }),
     ),
   }
@@ -140,23 +143,70 @@ export const OVERSEAS_MEGA_MENU_THEME_REGIONS: MegaMenuRegion[] = [
     countryGroups: [
       {
         countryLabel: '지중해·북유럽',
+        nonLinkHeader: true,
         cities: [
-          { label: '지중해', terms: ['지중해', 'Mediterranean', '크루즈'] },
-          { label: '북유럽', terms: ['북유럽', '크루즈', '노르웨이'] },
+          {
+            label: '서부 지중해',
+            terms: ['지중해', 'Mediterranean', '크루즈', '바르셀로나', '마르세유', '제노바'],
+            sublabel: '바르셀로나 · 몬테카를로 · 로마(치비타베키아)',
+          },
+          {
+            label: '동부 지중해',
+            terms: ['지중해', '그리스', '크루즈', '아테네', '산토리니'],
+            sublabel: '아테네 · 미코노스 · 산토리니 · 두브로브니크',
+          },
+          {
+            label: '북유럽·발트',
+            terms: ['북유럽', '크루즈', '노르웨이', '피오르', '베르겐'],
+            sublabel: '베르겐 · 플롬 · 게이랑어르 · 탈린 · 스톡홀름',
+          },
+          {
+            label: '서지중해(서반부)',
+            terms: ['지중해', '크루즈', '나폴리', '팔레르모'],
+            sublabel: '나폴리 · 팔레르모 · 발레타',
+          },
         ],
       },
       {
         countryLabel: '알래스카·캐리비안',
+        nonLinkHeader: true,
         cities: [
-          { label: '알래스카', terms: ['알래스카', 'Alaska', '크루즈'] },
-          { label: '캐리비안', terms: ['캐리비안', 'Caribbean', '크루즈'] },
+          {
+            label: '알래스카',
+            terms: ['알래스카', 'Alaska', '크루즈', '주노', '스카그웨이'],
+            sublabel: '주노 · 스카그웨이 · 케치칸 · 빙하만',
+          },
+          {
+            label: '동카리브',
+            terms: ['캐리비안', 'Caribbean', '크루즈', '바하마', '푸에르토리코'],
+            sublabel: '나소 · 샌후안 · 세인트토마스',
+          },
+          {
+            label: '서카리브·중남미',
+            terms: ['캐리비안', 'Caribbean', '크루즈', '쿠바', '멕시코'],
+            sublabel: '코즈멜 · 그랜드케이맨 · 로아탄',
+          },
         ],
       },
       {
-        countryLabel: '동아시아',
+        countryLabel: '동아시아·남태평양',
+        nonLinkHeader: true,
         cities: [
-          { label: '일본', terms: ['일본', '크루즈'] },
-          { label: '동남아', terms: ['동남아', '싱가포르', '크루즈'] },
+          {
+            label: '일본',
+            terms: ['일본', '크루즈', '후쿠오카', '나가사키', '요코하마'],
+            sublabel: '후쿠오카 · 나가사키 · 요코하마 · 오키나와',
+          },
+          {
+            label: '동남아',
+            terms: ['동남아', '싱가포르', '크루즈', '방콕', '베트남'],
+            sublabel: '싱가포르 · 페낭 · 방콕 · 호치민',
+          },
+          {
+            label: '호주·뉴질랜드',
+            terms: ['호주', '뉴질랜드', '크루즈', '시드니', '오클랜드'],
+            sublabel: '시드니 · 멜버른 · 오클랜드 · 피오르드랜드',
+          },
         ],
       },
     ],
@@ -166,13 +216,83 @@ export const OVERSEAS_MEGA_MENU_THEME_REGIONS: MegaMenuRegion[] = [
     label: '지방출발',
     countryGroups: [
       {
-        countryLabel: '국내 출발지',
+        countryLabel: '부산',
         cities: [
-          { label: '부산', terms: ['부산', '출발'] },
-          { label: '대구', terms: ['대구', '출발'] },
-          { label: '광주', terms: ['광주', '출발'] },
-          { label: '제주', terms: ['제주', '출발'] },
-          { label: '청주', terms: ['청주', '출발'] },
+          {
+            label: '일본',
+            terms: ['부산', '출발', '일본', '후쿠오카', '오사카'],
+            sublabel: '후쿠오카 · 오사카 · 나고야',
+          },
+          {
+            label: '동남아',
+            terms: ['부산', '출발', '동남아', '방콕', '다낭'],
+            sublabel: '방콕 · 다낭 · 세부',
+          },
+          {
+            label: '중국',
+            terms: ['부산', '출발', '중국', '상해', '칭다오'],
+            sublabel: '상해 · 칭다오 · 연길',
+          },
+        ],
+      },
+      {
+        countryLabel: '대구',
+        cities: [
+          {
+            label: '일본',
+            terms: ['대구', '출발', '일본', '오사카', '후쿠오카'],
+            sublabel: '오사카 · 후쿠오카 · 도쿄',
+          },
+          {
+            label: '동남아',
+            terms: ['대구', '출발', '동남아', '방콕', '다낭'],
+            sublabel: '방콕 · 치앙마이',
+          },
+          { label: '제주', terms: ['대구', '출발', '제주'], sublabel: '국내 연계' },
+        ],
+      },
+      {
+        countryLabel: '광주',
+        cities: [
+          {
+            label: '동남아',
+            terms: ['광주', '출발', '동남아', '방콕', '다낭'],
+            sublabel: '방콕 · 하노이 · 나트랑',
+          },
+          {
+            label: '일본',
+            terms: ['광주', '출발', '일본', '후쿠오카'],
+            sublabel: '후쿠오카 · 오사카',
+          },
+          { label: '중국', terms: ['광주', '출발', '중국', '상해'], sublabel: '상해 · 장가계' },
+        ],
+      },
+      {
+        countryLabel: '제주',
+        cities: [
+          {
+            label: '동남아',
+            terms: ['제주', '출발', '동남아', '방콕', '다낭'],
+            sublabel: '방콕 · 다낭 · 세부',
+          },
+          { label: '일본', terms: ['제주', '출발', '일본', '오사카'], sublabel: '오사카 · 후쿠오카' },
+          { label: '대만', terms: ['제주', '출발', '대만', '타이베이'], sublabel: '타이베이 · 가오슝' },
+        ],
+      },
+      {
+        countryLabel: '청주',
+        cities: [
+          {
+            label: '동남아',
+            terms: ['청주', '출발', '동남아', '다낭', '세부'],
+            sublabel: '다낭 · 세부 · 클락',
+          },
+          {
+            label: '일본',
+            terms: ['청주', '출발', '일본', '도쿄', '오사카'],
+            sublabel: '도쿄 · 오사카 · 삿포로',
+          },
+          { label: '괌·사이판', terms: ['청주', '출발', '괌', '사이판'], sublabel: '괌 · 사이판' },
         ],
       },
     ],
@@ -182,13 +302,118 @@ export const OVERSEAS_MEGA_MENU_THEME_REGIONS: MegaMenuRegion[] = [
     label: '골프',
     countryGroups: [
       {
-        countryLabel: '골프 인기',
+        countryLabel: '하와이',
         cities: [
-          { label: '하와이', terms: ['하와이', '골프', 'Hawaii'] },
-          { label: '괌', terms: ['괌', '골프', 'Guam'] },
-          { label: '일본', terms: ['일본', '골프'] },
-          { label: '태국', terms: ['태국', '골프', '치앙마이'] },
-          { label: '필리핀', terms: ['필리핀', '골프', '세부'] },
+          {
+            label: '오아후',
+            terms: ['하와이', '골프', 'Hawaii', '오아후', '호놀룰루', '와이키키'],
+            sublabel: '카폴레이 · 코올리나 · 와이키키',
+          },
+          {
+            label: '마우이',
+            terms: ['하와이', '골프', '마우이', 'Maui', '카팔루아'],
+            sublabel: '카팔루아 · 와일레아',
+          },
+          {
+            label: '빅아일랜드',
+            terms: ['하와이', '골프', '빅아일랜드', 'hilo', 'kona'],
+            sublabel: '마우나 케아 권',
+          },
+        ],
+      },
+      {
+        countryLabel: '괌',
+        cities: [
+          {
+            label: '투몬·탬닝',
+            terms: ['괌', '골프', 'Guam', '투몬', '리오'],
+            sublabel: '리오 팰리스 · 레오 팰리스',
+          },
+          {
+            label: '정글·남부',
+            terms: ['괌', '골프', 'Starts Guam', '남부'],
+            sublabel: 'Starts Guam 등',
+          },
+        ],
+      },
+      {
+        countryLabel: '일본',
+        cities: [
+          {
+            label: '홋카이도',
+            terms: ['일본', '골프', '니세코', '삿포로', '홋카이도'],
+            sublabel: '니세코 · 루스츠 · 삿포로',
+          },
+          {
+            label: '오키나와',
+            terms: ['일본', '골프', '오키나와', '미야코지마'],
+            sublabel: '오키나와 · 미야코지마',
+          },
+          {
+            label: '간사이',
+            terms: ['일본', '골프', '오사카', '교토', '간사이'],
+            sublabel: '오사카 · 교토 · 고베',
+          },
+          {
+            label: '시코쿠',
+            terms: ['일본', '골프', '시코쿠', '마쓰야마'],
+            sublabel: '마쓰야마 · 가가와',
+          },
+        ],
+      },
+      {
+        countryLabel: '중국',
+        cities: [
+          {
+            label: '산동',
+            terms: ['중국', '골프', '위해', '연태', '청도', '산동'],
+            sublabel: '위해 · 연태 · 청도',
+          },
+          {
+            label: '화동',
+            terms: ['중국', '골프', '상해', '항주', '소주'],
+            sublabel: '상해 · 항주 · 소주',
+          },
+        ],
+      },
+      {
+        countryLabel: '태국',
+        cities: [
+          {
+            label: '방콕·파타야',
+            terms: ['태국', '골프', '방콕', '파타야', 'BKK'],
+            sublabel: '시암 컨트리 · 파타야 비치',
+          },
+          {
+            label: '푸켓·끄라비',
+            terms: ['태국', '골프', '푸켓', '끄라비', 'Phuket'],
+            sublabel: '레이크 · 레드 마운틴',
+          },
+          {
+            label: '치앙마이',
+            terms: ['태국', '골프', '치앙마이', 'Chiang Mai'],
+            sublabel: '고원 코스 · 알파인',
+          },
+        ],
+      },
+      {
+        countryLabel: '필리핀',
+        cities: [
+          {
+            label: '세부',
+            terms: ['필리핀', '골프', '세부', 'Cebu', '막탄'],
+            sublabel: '막탄 · 세부 컨트리',
+          },
+          {
+            label: '클락',
+            terms: ['필리핀', '골프', '클락', 'Clark', '앙헬레스'],
+            sublabel: '앙헬레스 권',
+          },
+          {
+            label: '마닐라',
+            terms: ['필리핀', '골프', '마닐라', 'Manila'],
+            sublabel: '안티폴로 · 잭니컬스',
+          },
         ],
       },
     ],
