@@ -177,12 +177,28 @@ export function buildRegisterLlmInputBlocks(
 
 === [미리보기 — 옵션·쇼핑·일정 출력 상한] ===
 - JSON 출력: optionalTours **최대 3행**, shoppingStops **최대 3행**, 각 행 \`raw\` 는 null. 총 개수는 optionalTourCount·shoppingVisitCount·summary 텍스트만.
-- schedule 은 일차당 title·description 을 공급사 일정표에 맞게 **충실히**(일차당 description 3~6문장·450자 이내 권장, 한 줄 요약 금지). 필요 시 일차 수 14 이하.`
+- schedule 은 일차당 title·description 을 공급사 일정표에 맞게 **충실히**. 필요 시 일차 수 14 이하.
+- schedule[].description: 한국어 **3~4문장**으로 작성. **한 줄 요약 금지.**
+  - 그날 방문하는 도시·관광지·체험·이동을 본문 순서대로 자연스럽게 서술
+  - 첫 문장: 그날의 핵심 관광지/도시 소개
+  - 둘째~셋째 문장: 주요 체험 또는 추가 관광지
+  - 마지막 문장: 이동/숙박 마무리 또는 인상 요약
+  - 폴백 템플릿("일정표에 따라 관광합니다", "{도시} 핵심 일정") 사용 금지
+  - 본문에 정보가 부족하면 짧게라도 본문 그대로 인용
+- 일차당 description 권장 길이 **약 400자 이내**(짧은 1~2문장·한 줄 요약 금지).`
     : `=== [STRUCTURED HOTEL / MEAL — JSON 추출 규칙] ===
 - hotelSummaryText: 상품 전체 호텔 요약 한 줄(예: 대표호텔명 외 1). [PASTED HOTEL INFO]·본문 원문에 있을 때만. 없으면 null.
 - schedule[] 각 일차: hotelText(해당 일 예정 숙소/호텔), breakfastText·lunchText·dinnerText(조·중·석), mealSummaryText(식사 원문 전체). 상품 전체 호텔과 일차 호텔은 분리.
 - 식사는 가능하면 조·중·석으로 나누고, 불확실하면 mealSummaryText에만 원문 보존(breakfast/lunch/dinner는 null).
-- 창작·추론·빈 문자열 생성 금지. 없으면 null.`
+- 창작·추론·빈 문자열 생성 금지. 없으면 null.
+- schedule[].description: 한국어 **3~4문장**으로 작성. **한 줄 요약 금지.**
+  - 그날 방문하는 도시·관광지·체험·이동을 본문 순서대로 자연스럽게 서술
+  - 첫 문장: 그날의 핵심 관광지/도시 소개
+  - 둘째~셋째 문장: 주요 체험 또는 추가 관광지
+  - 마지막 문장: 이동/숙박 마무리 또는 인상 요약
+  - 폴백 템플릿("일정표에 따라 관광합니다", "{도시} 핵심 일정") 사용 금지
+  - 본문에 정보가 부족하면 짧게라도 본문 그대로 인용
+- 일차당 description 권장 길이 **약 400자 이내**(짧은 1~2문장·한 줄 요약 금지).`
 
   return `
 === [PASTED SUPPLIER BODY] ===

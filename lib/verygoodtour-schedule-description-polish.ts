@@ -1,7 +1,7 @@
 /**
  * 참좋은여행(verygoodtour) 전용: 일차 `description`을 하루 흐름 요약으로 정리한다.
  * 일차 `title`은 미리보기 1줄 헤더용으로 **방문지 A-B-C** 형식(하이픈 연결)만 정규화한다.
- * 일차 `description`은 카드용 **일정 요약**으로 **3~5문장**(상한만 두고, 원문이 짧으면 그보다 짧을 수 있음)을 목표로 한다.
+ * 일차 `description`은 카드용 **일정 요약**으로 **3~4문장**(상한만 두고, 원문이 짧으면 그보다 짧을 수 있음)을 목표로 한다.
  *
  * 서술형 레이어: `composeNarrativeVerygoodDayDescription` 등으로 관광→자유→이동→숙박 호흡을 잡되,
  * 원문 밖 정보는 넣지 않는다. `coercePolishLastDayFlag`·run-on 분리·저녁/호텔 병합 등 기존 안정화는 유지.
@@ -10,9 +10,9 @@
  */
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 
-/** `finalizeVerygoodScheduleDescription`: 요약 문장·글자 상한 (3~5문장 분량에 맞춤) */
-const VERYGOOD_DESCRIPTION_MAX_SENTENCES = 5
-const VERYGOOD_DESCRIPTION_MAX_CHARS = 800
+/** `finalizeVerygoodScheduleDescription`: 요약 문장·글자 상한 (3~4문장 분량에 맞춤) */
+const VERYGOOD_DESCRIPTION_MAX_SENTENCES = 6
+const VERYGOOD_DESCRIPTION_MAX_CHARS = 960
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
@@ -744,10 +744,10 @@ function collectUnitMetas(text: string): UnitMeta[] {
  * 출력 순서는 관광 실체 우선(이동·항공이 관광 앞에 오지 않게)으로 재정렬한다.
  */
 function selectDiverseMeaningUnitMetas(metas: UnitMeta[], opts: { isLastDay: boolean }): UnitMeta[] {
-  const maxTotal = opts.isLastDay ? 6 : 5
+  const maxTotal = opts.isLastDay ? 8 : 7
   const limits = opts.isLastDay
-    ? { sight: 2, free: 1, flow: 1, closure: 4 }
-    : { sight: 2, free: 1, flow: 3, closure: 1 }
+    ? { sight: 3, free: 1, flow: 2, closure: 5 }
+    : { sight: 4, free: 1, flow: 4, closure: 2 }
 
   let nf = 0
   let ns = 0
@@ -927,7 +927,7 @@ function composeSightCentricDay(
 }
 
 /**
- * 의미 단위(metas)를 3~5문장 분량의 서술형 흐름으로 재조합한다(최종은 `finalizeVerygoodScheduleDescription`에서 상한 적용).
+ * 의미 단위(metas)를 3~4문장 분량의 서술형 흐름으로 재조합한다(최종은 `finalizeVerygoodScheduleDescription`에서 상한 적용).
  * imageKeyword·스키마는 건드리지 않는다.
  */
 function composeNarrativeVerygoodDayDescription(metas: UnitMeta[], opts: { isLastDay: boolean }): string {
@@ -937,13 +937,6 @@ function composeNarrativeVerygoodDayDescription(metas: UnitMeta[], opts: { isLas
   }))
   const usable = flow.filter((m) => m.u.length > 1)
   if (usable.length === 0) return ''
-
-  if (opts.isLastDay) {
-    const blob0 = usable.map((m) => m.u).join(' ')
-    if (/인천국제공항[^\n]{0,120}도착/u.test(blob0)) {
-      return '인천국제공항에 도착합니다.'
-    }
-  }
 
   if (opts.isLastDay && usable.every((m) => m.slot === 'closure' || isAirportClosureClause(m.u, m.slot))) {
     const r = composeReturnDayNarrative(usable)
@@ -998,20 +991,24 @@ function polishDescriptionFromMergedText(text: string, opts: { isLastDay: boolea
   return toned || joinVerygoodDescriptionClauses(picked.map((p) => p.u), opts)
 }
 
+/** LLM이 이미 3문장 이상·충분한 길이로 썼으면 의미 슬롯 재조합으로 줄이지 않는다. */
+function shouldPreserveLlmDescriptionVerbatim(stripped: string): boolean {
+  const t = stripped.replace(/\s+/g, ' ').trim()
+  if (t.length < 120) return false
+  const units = splitForSentenceCapOnly(t)
+  if (units.length >= 3) return true
+  const koEnds = (t.match(/(?:합니다|습니다|입니다|됩니다|집니다|예요|이에요|니다|어요)\s*[.!?。．]?/g) ?? []).length
+  return koEnds >= 3
+}
+
 export function narrativeCompactVerygoodDayDescription(raw: string, opts?: { isLastDay?: boolean }): string {
   const stripped = stripVerygoodScheduleUiNoiseLines(raw).trim()
   if (!stripped) return ''
   const isLastDay = coercePolishLastDayFlag(Boolean(opts?.isLastDay), raw, stripped)
-  const flat = stripped.replace(/\s+/g, ' ')
-  if (
-    isLastDay &&
-    /인천국제공항/u.test(flat) &&
-    /제1터미널|ICN|T1\b/u.test(flat) &&
-    /도착/u.test(flat) &&
-    !/바르샤바\s*도착/u.test(flat) &&
-    flat.length < 900
-  ) {
-    return finalizeVerygoodScheduleDescription('인천국제공항에 도착합니다.')
+  if (shouldPreserveLlmDescriptionVerbatim(stripped)) {
+    const noiseStripped = stripVerygoodItineraryDescriptionPasteNoise(stripped)
+    const toned = applyVerygoodScheduleDescriptionToneGuard(noiseStripped)
+    return finalizeVerygoodScheduleDescription(toned)
   }
 
   if (looksLikePastedBlockStructure(raw) || looksLikePastedBlockStructure(stripped)) {
