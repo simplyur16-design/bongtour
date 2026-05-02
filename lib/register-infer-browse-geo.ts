@@ -22,7 +22,7 @@ export const CONTINENT_ID_TO_PRIMARY_REGION_KR: Record<string, string> = {
   'europe-me': '유럽/중동/아프리카',
   europe: '유럽',
   'me-africa': '중동·아프리카',
-  americas: '미주/캐나다/하와이',
+  americas: '미주/캐나다/하와이/중남미',
   oceania: '괌/사이판/호주/뉴질랜드',
 }
 

@@ -20,8 +20,8 @@ export const DISPLAY_CATEGORIES = [
   '동남아/대만/서남아',
   '일본',
   '중국/홍콩/마카오/몽골',
-  '미주/캐나다/하와이',
   '괌/사이판/호주/뉴질랜드',
+  '미주/캐나다/하와이/중남미',
   '그외',
 ] as const
 
@@ -30,8 +30,8 @@ export const OVERSEAS_DISPLAY_BUCKET_ORDER: OverseasDisplayBucketId[] = [
   'sea_taiwan',
   'japan',
   'china_hk_mo',
-  'americas',
   'oceania',
+  'americas',
   'other',
 ]
 
@@ -40,7 +40,7 @@ export const OVERSEAS_DISPLAY_BUCKET_LABEL: Record<OverseasDisplayBucketId, stri
   sea_taiwan: '동남아/대만/서남아',
   japan: '일본',
   china_hk_mo: '중국/홍콩/마카오/몽골',
-  americas: '미주/캐나다/하와이',
+  americas: '미주/캐나다/하와이/중남미',
   oceania: '괌/사이판/호주/뉴질랜드',
   other: '그외',
 }

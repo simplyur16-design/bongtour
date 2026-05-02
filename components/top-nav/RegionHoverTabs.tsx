@@ -24,8 +24,8 @@ export default function RegionHoverTabs({ regions, activeRegionId, onHoverRegion
             aria-selected={activeRegionId === r.id}
             className={
               activeRegionId === r.id
-                ? 'shrink-0 whitespace-nowrap border-b-2 border-orange-500 bg-white px-3 py-3 text-center text-[12px] font-bold text-orange-500 sm:px-3.5 sm:text-[13px]'
-                : 'shrink-0 whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-center text-[12px] font-medium text-slate-400 transition hover:border-slate-300 hover:text-slate-600 sm:px-3.5 sm:text-[13px]'
+                ? 'shrink-0 whitespace-nowrap border-b-2 border-orange-500 bg-white px-3 py-3 text-center text-[14px] font-medium text-orange-500 sm:px-3.5'
+                : 'shrink-0 whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-center text-[14px] font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 sm:px-3.5'
             }
             onMouseEnter={() => onHoverRegion(r.id)}
             onFocus={() => onHoverRegion(r.id)}
