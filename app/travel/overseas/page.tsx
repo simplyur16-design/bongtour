@@ -71,7 +71,7 @@ export default async function OverseasTravelPage({
       <Header />
       <OverseasTravelSubMainNav />
       <main>
-        <OverseasHero />
+        <OverseasHero selectedCountrySlug={country} allMonthCurations={allMonthCurations} />
 
         <Suspense fallback={<p className="py-16 text-center text-sm text-slate-500">상품을 불러오는 중…</p>}>
           <ProductsBrowseClient
@@ -81,7 +81,6 @@ export default async function OverseasTravelPage({
             hidePageHeading
             overseasEditorialBriefing={overseasEditorialBriefing}
             overseasSeasonCurationSlides={overseasSeasonCurationSlides}
-            allMonthCurations={allMonthCurations}
           />
         </Suspense>
 

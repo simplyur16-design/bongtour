@@ -21,7 +21,6 @@ import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import { sortProductsBySeason } from '@/lib/product-sort'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
-import { resolveBrowseCountryParamToDbCountries } from '@/lib/browse-country-url-resolve'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 
 type ApiOk = {
@@ -81,8 +80,6 @@ type Props = {
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
   /** 해외 허브: 시즌 추천 순환 — 허브 기본 화면 상단 캐러셀(메가 지역 선택 시 목록 내 슬롯) */
   overseasSeasonCurationSlides?: HomeSeasonPickDTO[] | null
-  /** 서울 기준 이번 달 `MonthlyCurationContent` 전체 — 나라 선택 시 히어로 매칭용 */
-  allMonthCurations?: HomeSeasonPickDTO[] | null
 }
 
 function formatWon(n: number | null) {
@@ -123,79 +120,6 @@ function travelConsultInquiryHref(
   return '/inquiry?type=travel'
 }
 
-function findMonthlyCurationForBrowseCountrySlug(
-  curations: HomeSeasonPickDTO[] | null | undefined,
-  countryParam: string
-): HomeSeasonPickDTO | null {
-  const slug = countryParam.trim().toLowerCase()
-  if (!slug || !curations?.length) return null
-  const dbCountries = resolveBrowseCountryParamToDbCountries(countryParam)
-  for (const c of curations) {
-    const ccRaw = (c.relatedCountryCode ?? '').trim()
-    if (ccRaw) {
-      if (dbCountries.includes(ccRaw)) return c
-      const ccLower = ccRaw.toLowerCase()
-      if (/^[a-z0-9-]+$/.test(ccLower) && ccLower === slug) return c
-    }
-    const rs = (c.resolvedProductCountrySlug ?? '').trim().toLowerCase()
-    if (rs && rs === slug) return c
-  }
-  return null
-}
-
-function OverseasBrowseCountryHero({
-  imageUrl,
-  title,
-  subtitle,
-  footerLine,
-  showCta,
-  ctaHref,
-}: {
-  imageUrl: string | null
-  title: string
-  subtitle: string
-  footerLine: string
-  showCta: boolean
-  ctaHref: string
-}) {
-  const href = (ctaHref ?? '').trim() || '/travel/overseas'
-  const external = /^https?:\/\//i.test(href)
-  const sub = subtitle.replace(/\s+/g, ' ').trim()
-  return (
-    <div className="relative h-[240px] w-full overflow-hidden rounded-xl border border-slate-200/90 lg:h-[300px]">
-      {imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- 히어로 전용 원격 URL·eager 로딩
-        <img src={imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" loading="eager" />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-teal-800 to-slate-900" aria-hidden />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" aria-hidden />
-      <div className="absolute bottom-0 left-0 flex w-full flex-col p-6 text-white">
-        <h2 className="line-clamp-2 text-lg font-bold leading-snug lg:text-xl">{title}</h2>
-        {sub ? <p className="mt-1 line-clamp-2 text-sm text-white/80">{sub}</p> : null}
-        <p className="mt-2 text-sm text-white/90">{footerLine}</p>
-        {showCta ? (
-          <div className="mt-3">
-            {external ? (
-              <a
-                href={href}
-                className="text-sm font-semibold text-white underline underline-offset-2 hover:text-white/90"
-                rel="noopener noreferrer"
-              >
-                더보기
-              </a>
-            ) : (
-              <Link href={href} className="text-sm font-semibold text-white underline underline-offset-2 hover:text-white/90">
-                더보기
-              </Link>
-            )}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
 export default function ProductsBrowseClient({
   basePath = '/products',
   defaultScope,
@@ -203,7 +127,6 @@ export default function ProductsBrowseClient({
   hidePageHeading = false,
   overseasEditorialBriefing = null,
   overseasSeasonCurationSlides = null,
-  allMonthCurations = null,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname() ?? ''
@@ -590,47 +513,6 @@ export default function ProductsBrowseClient({
   const showOverseasSidebar = !isOverseasProductsHub || hasGeoFilter
   const overseasHubWideLayout = isOverseasProductsHub && !hasMegaGeo
 
-  const showOverseasCountryHero =
-    isOverseasProductsHub && hasMegaGeo && Boolean((q.country ?? '').trim())
-
-  const countryDisplayName = useMemo(() => {
-    const p = (q.country ?? '').trim()
-    if (!p) return ''
-    const db = resolveBrowseCountryParamToDbCountries(p)
-    if (db[0]) return db[0]
-    return koreanCountryLabelFromBrowseSlug(p.toLowerCase()) ?? p
-  }, [q.country])
-
-  const matchedMonthCuration = useMemo(() => {
-    const p = (q.country ?? '').trim()
-    if (!isOverseasProductsHub || !hasMegaGeo || !p) return null
-    return findMonthlyCurationForBrowseCountrySlug(allMonthCurations, p)
-  }, [isOverseasProductsHub, hasMegaGeo, q.country, allMonthCurations])
-
-  const autoHeroFromProducts = useMemo((): {
-    imageUrl: string | null
-    title: string
-    subtitle: string
-  } | null => {
-    if (!data || matchedMonthCuration) return null
-    const items = browsePresented.items
-    if (items.length === 0) return null
-    let pick = items[0]!
-    let img: string | null = null
-    for (const it of items) {
-      const u = (it.bgImageUrl ?? '').trim() || (it.coverImageUrl ?? '').trim()
-      if (u) {
-        pick = it
-        img = u
-        break
-      }
-    }
-    const dest = (pick.primaryDestination ?? '').trim()
-    const dur = (pick.duration ?? '').trim()
-    const subtitle = [dest, dur].filter(Boolean).join(' · ')
-    return { imageUrl: img, title: pick.title, subtitle }
-  }, [data, matchedMonthCuration, browsePresented.items])
-
   const summary = hidePageHeading
     ? null
     : (
@@ -745,44 +627,6 @@ export default function ProductsBrowseClient({
           {error}
         </p>
       )}
-      {showOverseasCountryHero && matchedMonthCuration ? (
-        <div className="mb-10">
-          <OverseasBrowseCountryHero
-            imageUrl={matchedMonthCuration.imageUrl}
-            title={matchedMonthCuration.title}
-            subtitle={(matchedMonthCuration.subtitle ?? matchedMonthCuration.excerpt ?? '').trim()}
-            footerLine={
-              data != null
-                ? `${countryDisplayName} 여행상품 ${data.total.toLocaleString('ko-KR')}개`
-                : `${countryDisplayName} 여행상품`
-            }
-            showCta
-            ctaHref={matchedMonthCuration.ctaHref}
-          />
-        </div>
-      ) : showOverseasCountryHero && !loading && data ? (
-        <div className="mb-10">
-          {autoHeroFromProducts ? (
-            <OverseasBrowseCountryHero
-              imageUrl={autoHeroFromProducts.imageUrl}
-              title={autoHeroFromProducts.title}
-              subtitle={autoHeroFromProducts.subtitle}
-              footerLine={`${countryDisplayName} 여행상품 ${data.total.toLocaleString('ko-KR')}개`}
-              showCta={false}
-              ctaHref=""
-            />
-          ) : (
-            <OverseasBrowseCountryHero
-              imageUrl={null}
-              title={`${countryDisplayName} 여행상품`}
-              subtitle=""
-              footerLine={`${countryDisplayName} 여행상품 ${data.total.toLocaleString('ko-KR')}개`}
-              showCta={false}
-              ctaHref=""
-            />
-          )}
-        </div>
-      ) : null}
       {!loading &&
         data &&
         !hasMegaGeo &&

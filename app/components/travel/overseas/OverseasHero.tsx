@@ -16,6 +16,12 @@ import {
   pageHeroMonthlyGeminiJobKey,
 } from '@/lib/page-hero-monthly-shared'
 import type { PageHeroMonthlyGeminiJob } from '@/lib/page-hero-monthly-types'
+import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
+import {
+  countryDisplayNameFromBrowseParam,
+  findMonthlyCurationForBrowseCountrySlug,
+} from '@/lib/overseas-browse-country-hero'
+import OverseasCountryHeroBanner from '@/components/travel/overseas/OverseasCountryHeroBanner'
 
 const WEEKDAYS_KR = ['일', '월', '화', '수', '목', '금', '토'] as const
 
@@ -215,7 +221,22 @@ function buildMonthlyHero(items: BrowseHeroItem[]): HeroRow[] {
   })
 }
 
-const OverseasHero: FC = () => {
+type CountryBrowseHeroRow = {
+  title: string
+  primaryDestination: string | null
+  duration: string | null
+  bgImageUrl: string | null
+  coverImageUrl: string | null
+}
+
+export type OverseasHeroProps = {
+  /** `searchParams.country` — 나라 선택 시 상단 히어로 전환 */
+  selectedCountrySlug?: string | null
+  /** 이번 달 해외 월간 큐레이션 전체(서버) */
+  allMonthCurations?: HomeSeasonPickDTO[] | null
+}
+
+const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMonthCurations = null }) => {
   const router = useRouter()
   const searchParams = useSearchParams() ?? new URLSearchParams()
   const departDateId = 'overseas-hero-depart-date'
@@ -245,6 +266,11 @@ const OverseasHero: FC = () => {
   /** 월·목적지·scope 키별 Gemini 1줄(실패·로딩 중에는 스텁 headline 유지) */
   const [headlineByKey, setHeadlineByKey] = useState<Record<string, string>>({})
   const [calendarOpen, setCalendarOpen] = useState(false)
+  const [countryBrowseData, setCountryBrowseData] = useState<{
+    total: number
+    items: CountryBrowseHeroRow[]
+  } | null>(null)
+  const [countryBrowseLoading, setCountryBrowseLoading] = useState(false)
   const [viewMonth, setViewMonth] = useState(() => {
     const fromUrl = parseYmd(sanitizeDepartDate(searchParams.get('departDate')))
     const d = fromUrl ?? new Date()
@@ -252,6 +278,96 @@ const OverseasHero: FC = () => {
   })
 
   const hubPath = '/travel/overseas'
+
+  const countrySlug = useMemo(() => {
+    const fromProps = (selectedCountrySlug ?? '').trim()
+    if (fromProps) return fromProps
+    return (searchParams.get('country') ?? '').trim() || null
+  }, [selectedCountrySlug, searchParams])
+
+  const monthCurationsList = allMonthCurations ?? []
+
+  const matchedCountryCuration = useMemo(
+    () => (countrySlug ? findMonthlyCurationForBrowseCountrySlug(monthCurationsList, countrySlug) : null),
+    [countrySlug, monthCurationsList],
+  )
+
+  const countryHeroDisplayName = useMemo(
+    () => (countrySlug ? countryDisplayNameFromBrowseParam(countrySlug) : ''),
+    [countrySlug],
+  )
+
+  const autoHeroFromCountryBrowse = useMemo((): {
+    imageUrl: string | null
+    title: string
+    subtitle: string
+  } | null => {
+    if (matchedCountryCuration || !countryBrowseData?.items?.length) return null
+    const items = countryBrowseData.items
+    let pick = items[0]!
+    let img: string | null = null
+    for (const it of items) {
+      const u = (it.bgImageUrl ?? '').trim() || (it.coverImageUrl ?? '').trim()
+      if (u) {
+        pick = it
+        img = u
+        break
+      }
+    }
+    const dest = (pick.primaryDestination ?? '').trim()
+    const dur = (pick.duration ?? '').trim()
+    const subtitle = [dest, dur].filter(Boolean).join(' · ')
+    return { imageUrl: img, title: pick.title, subtitle }
+  }, [matchedCountryCuration, countryBrowseData])
+
+  useEffect(() => {
+    if (!countrySlug) {
+      setCountryBrowseData(null)
+      setCountryBrowseLoading(false)
+      return
+    }
+    let cancelled = false
+    setCountryBrowseLoading(true)
+    ;(async () => {
+      try {
+        const p = new URLSearchParams({
+          scope: 'overseas',
+          limit: '30',
+          sort: 'popular',
+        })
+        p.set('country', countrySlug)
+        const r = (searchParams.get('region') ?? '').trim()
+        if (r) p.set('region', r)
+        const res = await fetch(`/api/products/browse?${p.toString()}`, { cache: 'no-store' })
+        const json = (await res.json()) as {
+          ok?: boolean
+          total?: number
+          items?: CountryBrowseHeroRow[]
+        }
+        if (cancelled) return
+        if (res.ok && json?.ok === true && typeof json.total === 'number') {
+          const raw = Array.isArray(json.items) ? json.items : []
+          const items: CountryBrowseHeroRow[] = raw.map((row) => ({
+            title: typeof row?.title === 'string' ? row.title : '',
+            primaryDestination: typeof row?.primaryDestination === 'string' ? row.primaryDestination : null,
+            duration: typeof row?.duration === 'string' ? row.duration : null,
+            bgImageUrl: typeof row?.bgImageUrl === 'string' ? row.bgImageUrl : null,
+            coverImageUrl: typeof row?.coverImageUrl === 'string' ? row.coverImageUrl : null,
+          }))
+          setCountryBrowseData({ total: json.total, items })
+        } else {
+          setCountryBrowseData({ total: 0, items: [] })
+        }
+      } catch {
+        if (!cancelled) setCountryBrowseData(null)
+      } finally {
+        if (!cancelled) setCountryBrowseLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [countrySlug, searchParams])
 
   useEffect(() => {
     const nextDepartRaw = searchParams.get('departDate') ?? ''
@@ -319,6 +435,11 @@ const OverseasHero: FC = () => {
   }, [])
 
   useEffect(() => {
+    if (countrySlug) {
+      setItems([])
+      setLoading(false)
+      return
+    }
     let off = false
     const withImage = (rows: BrowseHeroItem[]) =>
       rows.filter((x) => Boolean((x.coverImageUrl ?? x.bgImageUrl ?? '').trim()))
@@ -343,7 +464,7 @@ const OverseasHero: FC = () => {
     return () => {
       off = true
     }
-  }, [browseUrl])
+  }, [browseUrl, countrySlug])
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
@@ -593,8 +714,49 @@ const OverseasHero: FC = () => {
           onMouseLeave={() => setIsPaused(false)}
           aria-live={reduceMotion ? 'polite' : 'off'}
         >
-          <div className="relative h-[150px] sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]">
-            {loading ? (
+          <div
+            className={
+              countrySlug
+                ? 'relative min-h-[240px] lg:min-h-[300px]'
+                : 'relative h-[150px] sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]'
+            }
+          >
+            {countrySlug ? (
+              matchedCountryCuration ? (
+                <OverseasCountryHeroBanner
+                  imageUrl={matchedCountryCuration.imageUrl}
+                  title={matchedCountryCuration.title}
+                  subtitle={(matchedCountryCuration.subtitle ?? matchedCountryCuration.excerpt ?? '').trim()}
+                  footerLine={
+                    countryBrowseData != null
+                      ? `${countryHeroDisplayName} 여행상품 ${countryBrowseData.total.toLocaleString('ko-KR')}개`
+                      : `${countryHeroDisplayName} 여행상품`
+                  }
+                  showCta
+                  ctaHref={matchedCountryCuration.ctaHref}
+                />
+              ) : countryBrowseLoading ? (
+                <div className="h-[240px] w-full animate-pulse rounded-xl bg-slate-200/70 lg:h-[300px]" />
+              ) : autoHeroFromCountryBrowse ? (
+                <OverseasCountryHeroBanner
+                  imageUrl={autoHeroFromCountryBrowse.imageUrl}
+                  title={autoHeroFromCountryBrowse.title}
+                  subtitle={autoHeroFromCountryBrowse.subtitle}
+                  footerLine={`${countryHeroDisplayName} 여행상품 ${(countryBrowseData?.total ?? 0).toLocaleString('ko-KR')}개`}
+                  showCta={false}
+                  ctaHref=""
+                />
+              ) : (
+                <OverseasCountryHeroBanner
+                  imageUrl={null}
+                  title={`${countryHeroDisplayName} 여행상품`}
+                  subtitle=""
+                  footerLine={`${countryHeroDisplayName} 여행상품 ${(countryBrowseData?.total ?? 0).toLocaleString('ko-KR')}개`}
+                  showCta={false}
+                  ctaHref=""
+                />
+              )
+            ) : loading ? (
               <div className="h-full w-full animate-pulse bg-slate-200/60" />
             ) : !current ? (
               <div className="flex h-full flex-col items-center justify-center gap-1 text-sm text-bt-subtle">
@@ -662,7 +824,7 @@ const OverseasHero: FC = () => {
               })()
             )}
           </div>
-          {!loading && current ? (
+          {!loading && current && !countrySlug ? (
             <div className="border-t border-bt-border-soft bg-white px-3 py-2">
               <p className="text-xs font-semibold text-bt-title sm:text-sm">{current.headline}</p>
               <p className="mt-0.5 line-clamp-1 text-[11px] text-bt-meta">{current.title}</p>
