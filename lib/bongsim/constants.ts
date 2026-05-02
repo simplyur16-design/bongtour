@@ -9,8 +9,18 @@ import type { EsimProductTypeOption, FunnelState } from "./types";
  */
 export const BONGSIM_BASE_PATH = "/travel/esim" as const;
 
-/** 유심사(간편이심) 공식 카카오톡 채널 — eSIM 고객 문의 */
-export const BONGSIM_KAKAO_CHANNEL_URL = "https://pf.kakao.com/_fqTkK" as const;
+/** 봉투어 오픈카톡 — `lib/kakao-open-chat.ts` 와 동일 env */
+export const BONGSIM_KAKAO_CHANNEL_URL = process.env.NEXT_PUBLIC_KAKAO_OPEN_CHAT_URL || ''
+
+/** 자사 카카오 링크 없을 때 — 유심사 운영 신뢰, 고객을 유심사 채널로 보내지 않음 */
+export const BONGSIM_ESIM_USIM_SUPPORT_COPY =
+  'eSIM 고객지원은 국내 최대 eSIM 전문기업 유심사에서 24시간 운영합니다'
+
+/** eSIM 메인 랜딩 「24시간 안심 고객센터」 카드 부제 */
+export const BONGSIM_ESIM_SUPPORT_CARD_BODY = 'Bong투어 카카오톡으로 문의하세요'
+
+/** 결제·가이드·기기·체크아웃 등 1차 문의 */
+export const BONGSIM_ESIM_SUPPORT_EMAIL_LINE = '고객지원 문의: bongtour@bongtour.com'
 
 export function bongsimPath(sub: string = ""): string {
   if (!sub) return BONGSIM_BASE_PATH;

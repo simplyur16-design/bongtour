@@ -2,7 +2,8 @@
 
 import Header from "@/app/components/Header";
 import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
-import { bongsimPath, BONGSIM_KAKAO_CHANNEL_URL } from "@/lib/bongsim/constants";
+import { bongsimPath } from "@/lib/bongsim/constants";
+import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
 import { Ban, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -49,7 +50,7 @@ function ResultInner() {
             />
             <h1 className="mt-5 text-2xl font-bold text-slate-900">결제가 완료되었습니다!</h1>
             <p className="mx-auto mt-2 max-w-md text-slate-600">
-              eSIM QR코드가 곧 이메일과 카카오톡으로 전송됩니다.
+              eSIM QR코드 안내가 곧 등록하신 이메일로 전송됩니다.
             </p>
           </section>
 
@@ -80,7 +81,7 @@ function ResultInner() {
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-sm font-semibold text-slate-900">다음 단계</h2>
                 <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm leading-relaxed text-slate-700 sm:text-[15px]">
-                  <li>이메일/카카오톡에서 QR코드를 확인해주세요</li>
+                  <li>이메일에서 QR코드를 확인해 주세요</li>
                   <li>설정 → 셀룰러 → eSIM 추가에서 QR코드를 스캔하세요</li>
                   <li>여행지 도착 후 eSIM 데이터를 켜주세요</li>
                 </ol>
@@ -101,17 +102,7 @@ function ResultInner() {
                 </Link>
               </div>
 
-              <p className="text-center text-sm text-slate-400">
-                문제가 있으신가요?{" "}
-                <a
-                  href={BONGSIM_KAKAO_CHANNEL_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-teal-600 underline hover:text-teal-700"
-                >
-                  고객센터 문의
-                </a>
-              </p>
+              <EsimSupportFootnote />
             </div>
           </div>
         </main>
@@ -150,17 +141,9 @@ function ResultInner() {
                   eSIM 메인으로
                 </Link>
               </div>
-              <p className="mt-6 text-center text-sm text-slate-400">
-                문제가 있으신가요?{" "}
-                <a
-                  href={BONGSIM_KAKAO_CHANNEL_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-teal-600 underline hover:text-teal-700"
-                >
-                  고객센터 문의
-                </a>
-              </p>
+              <div className="mt-6">
+                <EsimSupportFootnote />
+              </div>
             </div>
           </div>
         </main>
@@ -200,17 +183,9 @@ function ResultInner() {
                   eSIM 메인으로
                 </Link>
               </div>
-              <p className="mt-6 text-center text-sm text-slate-400">
-                문제가 있으신가요?{" "}
-                <a
-                  href={BONGSIM_KAKAO_CHANNEL_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-teal-600 underline hover:text-teal-700"
-                >
-                  고객센터 문의
-                </a>
-              </p>
+              <div className="mt-6">
+                <EsimSupportFootnote />
+              </div>
             </div>
           </div>
         </main>
@@ -235,17 +210,9 @@ function ResultInner() {
               >
                 eSIM 메인으로
               </Link>
-              <p className="mt-6 text-center text-sm text-slate-400">
-                문제가 있으신가요?{" "}
-                <a
-                  href={BONGSIM_KAKAO_CHANNEL_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-teal-600 underline hover:text-teal-700"
-                >
-                  고객센터 문의
-                </a>
-              </p>
+              <div className="mt-6">
+                <EsimSupportFootnote />
+              </div>
             </div>
           </div>
         </main>

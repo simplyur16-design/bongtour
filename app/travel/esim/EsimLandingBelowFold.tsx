@@ -1,13 +1,16 @@
 import { Gift, MessageCircle, ShieldCheck, Signal } from 'lucide-react'
-import { BONGSIM_KAKAO_CHANNEL_URL } from '@/lib/bongsim/constants'
+import {
+  BONGSIM_ESIM_SUPPORT_CARD_BODY,
+  BONGSIM_ESIM_USIM_SUPPORT_COPY,
+  BONGSIM_KAKAO_CHANNEL_URL,
+} from '@/lib/bongsim/constants'
 
 const WHY_ITEMS = [
   {
     icon: MessageCircle,
     title: '24시간 안심 고객센터',
-    body: '언제 어디서든 한국어로 빠른 응대 →',
+    body: BONGSIM_ESIM_SUPPORT_CARD_BODY,
     circleClass: 'bg-teal-100 text-teal-600',
-    cardHref: BONGSIM_KAKAO_CHANNEL_URL,
   },
   {
     icon: ShieldCheck,
@@ -43,10 +46,11 @@ export default function EsimLandingBelowFold() {
           </p>
 
           <div className="mx-auto mt-8 grid grid-cols-1 gap-4 text-left sm:mt-10 sm:grid-cols-2 lg:mt-12">
-            {WHY_ITEMS.map((item) => {
+            {WHY_ITEMS.map((item, idx) => {
               const { icon: Icon, title, body, circleClass } = item
               const cardClass =
                 'flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-teal-200 hover:shadow-md'
+              const kakaoUrl = BONGSIM_KAKAO_CHANNEL_URL.trim()
               const inner = (
                 <>
                   <div
@@ -58,23 +62,23 @@ export default function EsimLandingBelowFold() {
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-slate-900">{title}</h3>
                     <p className="mt-1 text-sm leading-relaxed text-slate-500">{body}</p>
+                    {idx === 0 ? (
+                      kakaoUrl ? (
+                        <a
+                          href={kakaoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-block text-sm font-medium text-teal-600 underline hover:text-teal-700"
+                        >
+                          카카오톡 문의하기
+                        </a>
+                      ) : (
+                        <p className="mt-2 text-xs leading-relaxed text-slate-500">{BONGSIM_ESIM_USIM_SUPPORT_COPY}</p>
+                      )
+                    ) : null}
                   </div>
                 </>
               )
-              const href = 'cardHref' in item ? item.cardHref : undefined
-              if (href) {
-                return (
-                  <a
-                    key={title}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`${cardClass} text-inherit no-underline`}
-                  >
-                    {inner}
-                  </a>
-                )
-              }
               return (
                 <div key={title} className={cardClass}>
                   {inner}

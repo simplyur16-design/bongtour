@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import Header from "@/app/components/Header";
 import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
-import { bongsimPath, BONGSIM_KAKAO_CHANNEL_URL } from "@/lib/bongsim/constants";
+import { bongsimPath } from "@/lib/bongsim/constants";
+import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
 
 export const metadata: Metadata = {
   title: "eSIM 지원 기기 확인 | Bong투어 eSIM",
@@ -126,17 +127,8 @@ export default function EsimDevicesPage() {
             </Link>
           </div>
 
-          <p className="text-center text-sm text-slate-500">
-            기기 확인이 어려우신가요?{" "}
-            <a
-              href={BONGSIM_KAKAO_CHANNEL_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-teal-600 underline hover:text-teal-700"
-            >
-              카카오톡 문의하기
-            </a>
-          </p>
+          <p className="text-center text-sm text-slate-500">기기 확인이 어려우신가요?</p>
+          <EsimSupportFootnote className="mt-2" />
           <p className="mt-3 text-center text-sm text-slate-500">
             <Link href={bongsimPath()} className="font-medium text-teal-700 underline-offset-4 hover:underline">
               ← eSIM 홈으로
