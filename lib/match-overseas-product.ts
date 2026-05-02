@@ -10,6 +10,7 @@ import {
   matchTokensForLeaf,
   type OverseasRegionGroupNode,
 } from '@/lib/overseas-location-tree'
+import { dbCountryMatchesBrowseCountryParam } from '@/lib/browse-country-url-resolve'
 
 /** 갤러리·API 등 최소 필드 */
 export type OverseasProductMatchInput = {
@@ -48,12 +49,14 @@ export function productMatchesOverseasDestinationTerms(
   urlGeo?: { region: string | null; country: string | null; city: string | null }
 ): boolean {
   const r = (urlGeo?.region ?? '').trim().toLowerCase()
-  const c = (urlGeo?.country ?? '').trim().toLowerCase()
+  const cRaw = (urlGeo?.country ?? '').trim()
+  const c = cRaw.toLowerCase()
   const ct = (urlGeo?.city ?? '').trim().toLowerCase()
   const hasUrlGeo = Boolean(r || c || ct)
 
   const dbCont = (product.continent ?? '').trim().toLowerCase()
   const dbCountry = (product.country ?? '').trim().toLowerCase()
+  const dbCountryRaw = (product.country ?? '').trim()
   const dbCity = (product.city ?? '').trim().toLowerCase()
   const hasDbBrowseGeo = Boolean(dbCont || dbCountry)
 
@@ -70,7 +73,7 @@ export function productMatchesOverseasDestinationTerms(
 
   if (hasDbBrowseGeo) {
     if (r && dbCont !== r && dbCountry !== r) return false
-    if (c && dbCountry !== c) return false
+    if (cRaw && !dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw)) return false
     if (ct && dbCity !== ct) return false
     return termsMatch()
   }

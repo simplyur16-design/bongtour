@@ -27,6 +27,7 @@ import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
+import { resolveBrowseCountryParamToDbCountries } from '@/lib/browse-country-url-resolve'
 import { resolveOverseasDisplayBucketForBrowse } from '@/lib/overseas-display-buckets'
 import { filterPoolByStoredTravelScope } from '@/lib/travel-scope-pool-filter'
 import { parseListingKind } from '@/lib/product-listing-kind'
@@ -98,8 +99,27 @@ export async function GET(request: Request) {
       const c = (country ?? '').trim()
       const ct = (city ?? '').trim()
       if (r) overseasGeoAnd.push({ OR: [{ continent: r }, { country: r }] })
-      if (c) overseasGeoAnd.push({ country: c })
+      if (c) {
+        const dbCountries = resolveBrowseCountryParamToDbCountries(c)
+        if (dbCountries.length === 1) overseasGeoAnd.push({ country: dbCountries[0] })
+        else if (dbCountries.length > 1) overseasGeoAnd.push({ country: { in: dbCountries } })
+      }
       if (ct) overseasGeoAnd.push({ city: ct })
+    }
+
+    const seasonCountriesRaw = (searchParams.get('seasonCountries') ?? '').trim()
+    const seasonCountrySlugs = seasonCountriesRaw
+      ? seasonCountriesRaw
+          .split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+      : []
+    if ((scope ?? '').trim().toLowerCase() !== 'domestic' && seasonCountrySlugs.length > 0) {
+      const seasonDbCountries = [
+        ...new Set(seasonCountrySlugs.flatMap((s) => resolveBrowseCountryParamToDbCountries(s))),
+      ]
+      if (seasonDbCountries.length === 1) overseasGeoAnd.push({ country: seasonDbCountries[0] })
+      else if (seasonDbCountries.length > 1) overseasGeoAnd.push({ country: { in: seasonDbCountries } })
     }
 
     const budgetRaw = searchParams.get('budgetPerPerson')

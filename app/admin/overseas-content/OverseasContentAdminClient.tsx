@@ -1231,17 +1231,20 @@ export default function OverseasContentAdminClient() {
                       />
                     </div>
                     <div className="min-w-0">
-                      <label htmlFor="oc-monthly-countryCode" className="sr-only">
-                        국가 코드
+                      <label htmlFor="oc-monthly-countryCode" className="mb-0.5 block text-xs font-medium text-slate-600">
+                        상품 매칭 나라 슬러그
                       </label>
                       <input
                         id="oc-monthly-countryCode"
                         name="monthlyCountryCode"
-                        placeholder="국가 코드"
+                        placeholder="browse country 슬러그 (예: spain, vietnam, japan)"
                         className="w-full rounded border px-3 py-2 text-sm"
                         value={monthlyForm.countryCode}
                         onChange={(e) => setMonthlyForm((p) => ({ ...p, countryCode: e.target.value }))}
                       />
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        해외여행 허브 시즌 카드·상품 매칭에 사용됩니다. 비우면 제목(○월의 ○○)에서 나라를 추정합니다.
+                      </p>
                     </div>
                   </div>
                   <div>

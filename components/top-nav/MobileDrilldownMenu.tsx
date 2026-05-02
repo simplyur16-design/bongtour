@@ -145,17 +145,23 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
             <ChevronLeft className="h-4 w-4" />
             국가
           </button>
-          <Link
-            href={buildProductsHrefCountryOnly({
-              type: productType,
-              regionId: region.id,
-              countryLabel,
-            })}
-            className="mb-3 block text-sm font-semibold text-teal-700 underline"
-            onClick={reset}
-          >
-            {countryLabel} 전체 상품 보기
-          </Link>
+          {(() => {
+            const grp = region.countryGroups.find((g) => g.countryLabel === countryLabel)
+            if (grp?.nonLinkHeader) return null
+            return (
+              <Link
+                href={buildProductsHrefCountryOnly({
+                  type: productType,
+                  regionId: region.id,
+                  countryLabel,
+                })}
+                className="mb-3 block text-sm font-semibold text-teal-700 underline"
+                onClick={reset}
+              >
+                {countryLabel} 전체 상품 보기
+              </Link>
+            )
+          })()}
           <ul className="space-y-1">
             {region.countryGroups
               .find((g) => g.countryLabel === countryLabel)

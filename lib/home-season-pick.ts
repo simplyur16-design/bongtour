@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { excerptBody, stripSupabaseStorageForHomeSeasonImage } from '@/lib/home-season-pick-shared'
+import { resolveMonthlyCurationProductCountrySlug } from '@/lib/monthly-curation-product-country'
 
 /** 타입만 재보냄. `normalizeHomeSeasonSlidesForClient`는 클라이언트에서 `@/lib/home-season-pick-shared`만 import. */
 export type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
@@ -11,6 +12,7 @@ export type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 type MonthlyRow = {
   id: string
   title: string
+  subtitle: string | null
   bodyKr: string | null
   imageUrl: string | null
   imageStorageKey: string | null
@@ -52,6 +54,8 @@ export function monthlyCurationRowToHomeSeasonPickDTO(row: MonthlyRow): HomeSeas
 
   const cc = (row.countryCode ?? '').trim()
   const title = (row.title ?? '').trim()
+  const subtitle = (row.subtitle ?? '').trim() || null
+  const resolvedProductCountrySlug = resolveMonthlyCurationProductCountrySlug(row.countryCode, title)
 
   return {
     id: row.id,
@@ -63,12 +67,15 @@ export function monthlyCurationRowToHomeSeasonPickDTO(row: MonthlyRow): HomeSeas
     ctaLabel: (row.ctaLabel ?? '').trim() || '자세히 보기',
     monthKey: row.monthKey ?? null,
     relatedCountryCode: cc || null,
+    subtitle,
+    resolvedProductCountrySlug,
   }
 }
 
 const monthlySelect = {
   id: true,
   title: true,
+  subtitle: true,
   bodyKr: true,
   imageUrl: true,
   imageStorageKey: true,
@@ -121,6 +128,20 @@ export async function getSeasonCurationSlidesForOverseasProductHub(
   return getPublishedOverseasSeasonCurationSlides()
 }
 
+/** 해외 허브 상단 — 서울 기준 `monthKey` 월의 발행 큐레이션만 */
+export async function getPublishedOverseasMonthlyCurationsForMonth(monthKey: string): Promise<HomeSeasonPickDTO[]> {
+  try {
+    const rows = await prisma.monthlyCurationContent.findMany({
+      where: { pageScope: 'overseas', isPublished: true, monthKey },
+      orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
+      select: monthlySelect,
+    })
+    return rows.map((r) => monthlyCurationRowToHomeSeasonPickDTO(r as MonthlyRow))
+  } catch {
+    return []
+  }
+}
+
 /**
  * 해외 스코프, 이번 달 `monthKey` 우선 → 없으면 최근 발행 1건.
  */
@@ -158,6 +179,8 @@ export const HOME_SEASON_PICK_FALLBACK: HomeSeasonPickDTO = {
   ctaLabel: '자세히 보기',
   monthKey: null,
   relatedCountryCode: null,
+  subtitle: null,
+  resolvedProductCountrySlug: null,
 }
 
 export async function getHomeSeasonPickForMobile(): Promise<{ pick: HomeSeasonPickDTO; fromDatabase: boolean }> {

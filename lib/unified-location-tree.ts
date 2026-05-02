@@ -3,6 +3,12 @@
  * 메가메뉴 권역·URL 슬러그·(선택) 통합 노드 뷰를 생성한다.
  */
 import { OVERSEAS_LOCATION_TREE_DATA } from '@/lib/overseas-location-tree.data'
+import {
+  buildChinaMegaMenuGroups,
+  buildEuropeMegaMenuGroups,
+  buildMeAfricaMegaMenuGroups,
+  type MegaMenuCountryGroupInput,
+} from '@/lib/mega-menu-geography'
 import type {
   OverseasCountryNode,
   OverseasLeafNode,
@@ -14,11 +20,15 @@ import type {
 export type MegaMenuLeaf = {
   label: string
   terms: string[]
+  /** browse URL `country` 슬러그 — 트리 국가 라벨과 다를 때(권역 헤더 아래 나라 행) */
+  browseCountryLabel?: string
 }
 
 export type MegaMenuCountryGroup = {
   countryLabel: string
   cities: MegaMenuLeaf[]
+  /** true면 헤더는 링크 없이 텍스트(서유럽 등) */
+  nonLinkHeader?: boolean
 }
 
 export type MegaMenuSpecial = 'free' | 'supplier' | 'curation'
@@ -87,10 +97,10 @@ function continentIdForLegacyCountry(groupKey: string, countryKey: string): stri
   if (groupKey === 'americas') return 'americas'
   if (groupKey === 'europe-me-africa') {
     if (!countryKey) return 'europe'
+    if (countryKey === 'europe-pilgrimage') return 'me-africa'
     const meAfrica = new Set([
       'middle-east',
       'africa',
-      'morocco',
       'caucasus',
     ])
     if (meAfrica.has(countryKey)) return 'me-africa'
@@ -99,9 +109,23 @@ function continentIdForLegacyCountry(groupKey: string, countryKey: string): stri
   return 'oceania'
 }
 
+function mapMegaGroupInput(g: MegaMenuCountryGroupInput): MegaMenuCountryGroup {
+  return {
+    countryLabel: g.countryLabel,
+    nonLinkHeader: g.nonLinkHeader,
+    cities: g.cities.map(
+      (c): MegaMenuLeaf => ({
+        label: c.label,
+        terms: c.terms,
+        browseCountryLabel: c.browseCountryLabel,
+      }),
+    ),
+  }
+}
+
 /**
  * 레거시 매칭 트리를 지리 권역 탭 메가메뉴로 변환.
- * 국가 라벨이 동일하면 같은 헤더 아래 도시만 합친다.
+ * 유럽·중동/아프리카·중국은 지역 헤더 + 하위 행(모두투어식), 그 외는 국가 헤더 + 도시.
  */
 export function buildGeographicMegaMenuRegions(): MegaMenuRegion[] {
   type Bucket = Map<string, MegaMenuCountryGroup>
@@ -111,7 +135,14 @@ export function buildGeographicMegaMenuRegions(): MegaMenuRegion[] {
   }
 
   for (const group of OVERSEAS_LOCATION_TREE_DATA) {
+    if (group.groupKey === 'europe-me-africa') continue
+
     for (const country of group.countries) {
+      if (group.groupKey === 'china-circle') {
+        const cid = continentIdForLegacyCountry(group.groupKey, country.countryKey)
+        if (cid === 'china-mongolia-ca') continue
+      }
+
       const contId = continentIdForLegacyCountry(group.groupKey, country.countryKey)
       const bucket = byContinent.get(contId)
       if (!bucket) continue
@@ -123,12 +154,28 @@ export function buildGeographicMegaMenuRegions(): MegaMenuRegion[] {
         bucket.set(label, cg)
       }
       for (const leaf of country.children) {
+        if (country.children.length === 1 && leaf.nodeLabel.trim() === country.countryLabel.trim()) continue
         cg.cities.push({
           label: leaf.nodeLabel,
           terms: collectLeafTerms(country, leaf),
         })
       }
     }
+  }
+
+  const eu = byContinent.get('europe')!
+  for (const x of buildEuropeMegaMenuGroups()) {
+    eu.set(x.countryLabel, mapMegaGroupInput(x))
+  }
+
+  const me = byContinent.get('me-africa')!
+  for (const x of buildMeAfricaMegaMenuGroups()) {
+    me.set(x.countryLabel, mapMegaGroupInput(x))
+  }
+
+  const cn = byContinent.get('china-mongolia-ca')!
+  for (const x of buildChinaMegaMenuGroups()) {
+    cn.set(x.countryLabel, mapMegaGroupInput(x))
   }
 
   return CONTINENT_TABS.map((tab) => {

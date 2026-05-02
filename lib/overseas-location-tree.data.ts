@@ -78,24 +78,6 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           supplierKeywords: ['태국일주', '방콕파타야'],
         }
       ),
-      C('singapore', '싱가포르', [L('singapore', '싱가포르', { aliases: ['singapore', '싱가폴'], supplierKeywords: ['SIN'] })], {
-        aliases: ['싱가포르'],
-      }),
-      C('maldives', '몰디브', [L('maldives', '몰디브', { aliases: ['maldives', '몰디브', 'male'] })], {
-        aliases: ['몰디브'],
-      }),
-      C(
-        'philippines',
-        '필리핀',
-        [
-          L('boracay', '보라카이', { aliases: ['boracay', '보라카이'] }),
-          L('cebu', '세부', { aliases: ['cebu', '세부'], supplierKeywords: ['CEB'] }),
-          L('bohol', '보홀', { aliases: ['bohol', '보홀'] }),
-          L('manila', '마닐라', { aliases: ['manila', '마닐라'], supplierKeywords: ['MNL'] }),
-          L('clark', '클락', { aliases: ['clark', '클락', '앙헬레스'] }),
-        ],
-        { aliases: ['필리핀', 'philippines'] }
-      ),
       C(
         'vietnam',
         '베트남',
@@ -117,6 +99,18 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         { aliases: ['베트남', 'vietnam'] }
       ),
       C(
+        'philippines',
+        '필리핀',
+        [
+          L('boracay', '보라카이', { aliases: ['boracay', '보라카이'] }),
+          L('cebu', '세부', { aliases: ['cebu', '세부'], supplierKeywords: ['CEB'] }),
+          L('bohol', '보홀', { aliases: ['bohol', '보홀'] }),
+          L('manila', '마닐라', { aliases: ['manila', '마닐라'], supplierKeywords: ['MNL'] }),
+          L('clark', '클락', { aliases: ['clark', '클락', '앙헬레스'] }),
+        ],
+        { aliases: ['필리핀', 'philippines'] }
+      ),
+      C(
         'malaysia-brunei',
         '말레이시아 · 브루나이',
         [
@@ -127,15 +121,20 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         { aliases: ['말레이시아', 'malaysia', '브루나이'] }
       ),
       C(
-        'indonesia',
-        '인도네시아',
+        'taiwan',
+        '대만',
         [
-          L('bali', '발리', { aliases: ['bali', '발리', '덴파사르'], supplierKeywords: ['DPS'] }),
-          L('batam', '바탐', { aliases: ['batam', '바탐'] }),
-          L('manado', '마나도', { aliases: ['manado', '마나도'] }),
+          L('taipei', '타이베이', { aliases: ['taipei', '타이페이', '타이베이', '타이페이'], supplierKeywords: ['타이페이'] }),
+          L('taichung', '타이중', { aliases: ['taichung', '타이중'] }),
+          L('kaohsiung', '가오슝', { aliases: ['kaohsiung', '가오슝'] }),
+          L('tainan', '타이난', { aliases: ['tainan', '타이난'] }),
+          L('hualien', '화련', { aliases: ['hualien', '화련', '타로코'] }),
         ],
-        { aliases: ['인도네시아', 'indonesia'] }
+        { aliases: ['대만', 'taiwan', '타이완'] }
       ),
+      C('singapore', '싱가포르', [L('singapore', '싱가포르', { aliases: ['singapore', '싱가폴'], supplierKeywords: ['SIN'] })], {
+        aliases: ['싱가포르'],
+      }),
       C(
         'laos',
         '라오스',
@@ -158,16 +157,14 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         { aliases: ['캄보디아', 'cambodia'] }
       ),
       C(
-        'taiwan',
-        '대만',
+        'indonesia',
+        '인도네시아',
         [
-          L('taipei', '타이베이', { aliases: ['taipei', '타이페이', '타이베이', '타이페이'], supplierKeywords: ['타이페이'] }),
-          L('taichung', '타이중', { aliases: ['taichung', '타이중'] }),
-          L('kaohsiung', '가오슝', { aliases: ['kaohsiung', '가오슝'] }),
-          L('tainan', '타이난', { aliases: ['tainan', '타이난'] }),
-          L('hualien', '화련', { aliases: ['hualien', '화련', '타로코'] }),
+          L('bali', '발리', { aliases: ['bali', '발리', '덴파사르'], supplierKeywords: ['DPS'] }),
+          L('batam', '바탐', { aliases: ['batam', '바탐'] }),
+          L('manado', '마나도', { aliases: ['manado', '마나도'] }),
         ],
-        { aliases: ['대만', 'taiwan', '타이완'] }
+        { aliases: ['인도네시아', 'indonesia'] }
       ),
       C(
         'india-nepal-sri-bhutan',
@@ -180,6 +177,9 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         ],
         { aliases: ['인도', '네팔', '스리랑카'] }
       ),
+      C('maldives', '몰디브', [L('maldives', '몰디브', { aliases: ['maldives', '몰디브', 'male'] })], {
+        aliases: ['몰디브'],
+      }),
       C(
         'sea-multi',
         '동남아 다국가 · 연계',

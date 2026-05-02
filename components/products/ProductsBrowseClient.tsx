@@ -16,11 +16,12 @@ import ProductFilterForm, { type BrowseFacets } from '@/components/products/filt
 import ProductFilterMobileDrawer from '@/components/products/filter/ProductFilterMobileDrawer'
 import ProductFilterChips, { buildFilterChips } from '@/components/products/ProductFilterChips'
 import ProductSortBar from '@/components/products/ProductSortBar'
-import ProductResultsList, { type ResultItem } from '@/components/products/ProductResultsList'
+import ProductResultsList, { ProductResultCard, type ResultItem } from '@/components/products/ProductResultsList'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import { sortProductsBySeason } from '@/lib/product-sort'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
+import SafeImage from '@/app/components/SafeImage'
 
 type ApiOk = {
   ok: true
@@ -79,12 +80,19 @@ type Props = {
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
   /** 해외 허브: 시즌 추천 순환 — 목록에서는 일본 섹션 직후 고정 */
   overseasSeasonCurationSlides?: HomeSeasonPickDTO[] | null
+  /** 해외 허브 상단: 이번 달 MonthlyCurationContent 카드(월별) */
+  overseasHubMonthCurations?: HomeSeasonPickDTO[] | null
+  overseasHubSeasonHeading?: string | null
 }
 
 function formatWon(n: number | null) {
   if (n == null) return '문의'
   return `${n.toLocaleString('ko-KR')}원~`
 }
+
+/** 해외 허브 시즌 추천 상품 행 — `ProductResultsList` 나라별 줄과 동일한 가로 스크롤 */
+const overseasHubSeasonProductRowClass =
+  'mt-4 flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible overscroll-x-contain pb-2 pt-0.5 snap-x snap-proximity [-ms-overflow-style:none] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]'
 
 function syncTypeWithCategories(q: BrowseQueryState): BrowseQueryState {
   if (q.categories.length !== 1) return q
@@ -122,6 +130,8 @@ export default function ProductsBrowseClient({
   hidePageHeading = false,
   overseasEditorialBriefing = null,
   overseasSeasonCurationSlides = null,
+  overseasHubMonthCurations = null,
+  overseasHubSeasonHeading = null,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname() ?? ''
@@ -168,6 +178,70 @@ export default function ProductsBrowseClient({
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [draft, setDraft] = useState<BrowseQueryState>(q)
   const [airlineShowAll, setAirlineShowAll] = useState(false)
+  const [seasonHubItems, setSeasonHubItems] = useState<ResultItem[]>([])
+  const [seasonHubLoading, setSeasonHubLoading] = useState(false)
+
+  const hubSeasonSlug = (searchParams.get('hubSeason') ?? '').trim().toLowerCase() || null
+
+  const curatedCountrySlugs = useMemo(() => {
+    const list = overseasHubMonthCurations ?? []
+    const s = new Set<string>()
+    for (const c of list) {
+      const slug = (c.resolvedProductCountrySlug ?? '').trim().toLowerCase()
+      if (slug) s.add(slug)
+    }
+    return [...s]
+  }, [overseasHubMonthCurations])
+
+  const slugsForSeasonHubFetch = useMemo(() => {
+    if (curatedCountrySlugs.length === 0) return [] as string[]
+    if (hubSeasonSlug && curatedCountrySlugs.includes(hubSeasonSlug)) return [hubSeasonSlug]
+    return curatedCountrySlugs
+  }, [curatedCountrySlugs, hubSeasonSlug])
+
+  useEffect(() => {
+    if (pathname !== '/travel/overseas' || defaultScope !== 'overseas' || slugsForSeasonHubFetch.length === 0) {
+      setSeasonHubItems([])
+      setSeasonHubLoading(false)
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      setSeasonHubLoading(true)
+      try {
+        const p = new URLSearchParams()
+        p.set('scope', 'overseas')
+        p.set('limit', '6')
+        p.set('seasonCountries', slugsForSeasonHubFetch.join(','))
+        const res = await fetch(`/api/products/browse?${p.toString()}`, { cache: 'no-store' })
+        const json = (await res.json()) as ApiOk | { ok?: false }
+        if (cancelled) return
+        if (res.ok && json && typeof json === 'object' && 'ok' in json && (json as ApiOk).ok === true) {
+          setSeasonHubItems((json as ApiOk).items ?? [])
+        } else {
+          setSeasonHubItems([])
+        }
+      } catch {
+        if (!cancelled) setSeasonHubItems([])
+      } finally {
+        if (!cancelled) setSeasonHubLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [pathname, defaultScope, slugsForSeasonHubFetch.join(',')])
+
+  const setHubSeasonQuery = useCallback(
+    (slug: string | null) => {
+      const sp = new URLSearchParams(searchParams.toString())
+      if (slug) sp.set('hubSeason', slug)
+      else sp.delete('hubSeason')
+      if (defaultScope && !sp.get('scope')) sp.set('scope', defaultScope)
+      router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
+    },
+    [basePath, defaultScope, router, searchParams],
+  )
 
   useEffect(() => {
     if (drawerOpen) setDraft(parseBrowseQuery(new URLSearchParams(searchParams.toString())))
@@ -250,9 +324,13 @@ export default function ProductsBrowseClient({
       const synced = syncTypeWithCategories(next)
       const params = new URLSearchParams(serializeBrowseQuery(synced))
       if (defaultScope && !params.get('scope')) params.set('scope', defaultScope)
+      const hubKeep = (searchParams.get('hubSeason') ?? '').trim()
+      if (hubKeep && pathname === '/travel/overseas' && defaultScope === 'overseas') {
+        params.set('hubSeason', hubKeep)
+      }
       router.replace(`${basePath}?${params.toString()}`, { scroll: false })
     },
-    [basePath, defaultScope, isDomesticHub, router]
+    [basePath, defaultScope, isDomesticHub, pathname, router, searchParams]
   )
 
   const onPatch = useCallback(
@@ -297,6 +375,7 @@ export default function ProductsBrowseClient({
       'region',
       'country',
       'city',
+      'hubSeason',
     ].forEach((k) => sp.delete(k))
     if (defaultScope) sp.set('scope', defaultScope)
     router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
@@ -328,12 +407,20 @@ export default function ProductsBrowseClient({
         onPatch({ departWeekdays: q.departWeekdays.filter((x) => x !== d) })
       } else if (key === 'countryFilter') {
         onPatch({ country: null, page: 1 })
+      } else if (key === 'hubSeason') {
+        setHubSeasonQuery(null)
       }
     },
-    [onPatch, q]
+    [onPatch, q, setHubSeasonQuery]
   )
 
-  const chips = useMemo(() => buildFilterChips(q), [q])
+  const chips = useMemo(() => {
+    const base = buildFilterChips(q)
+    const hs = (searchParams.get('hubSeason') ?? '').trim().toLowerCase()
+    if (!hs) return base
+    const lab = koreanCountryLabelFromBrowseSlug(hs) ?? hs
+    return [...base, { key: 'hubSeason', label: `시즌:${lab}` }]
+  }, [q, searchParams])
 
   const budgetActive = q.budgetPerPerson != null || q.budgetMin != null
 
@@ -351,9 +438,10 @@ export default function ProductsBrowseClient({
       Boolean(q.region?.trim()) ||
       Boolean(q.country?.trim()) ||
       Boolean(q.city?.trim()) ||
+      Boolean((searchParams.get('hubSeason') ?? '').trim()) ||
       Boolean(q.regionPref?.trim()) ||
       Boolean(q.type?.trim()),
-    [q]
+    [q, searchParams]
   )
 
   const sort: BrowseSort =
@@ -517,6 +605,92 @@ export default function ProductsBrowseClient({
           {error}
         </p>
       )}
+      {!loading &&
+        data &&
+        pathname === '/travel/overseas' &&
+        defaultScope === 'overseas' &&
+        (overseasHubMonthCurations?.length ?? 0) > 0 && (
+          <div className="mb-10 space-y-8">
+            {overseasHubSeasonHeading ? (
+              <h2 className="text-xl font-bold text-slate-900">{overseasHubSeasonHeading}</h2>
+            ) : null}
+            <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {(overseasHubMonthCurations ?? []).map((c) => {
+                const slug = (c.resolvedProductCountrySlug ?? '').trim().toLowerCase()
+                const sel = Boolean(slug && hubSeasonSlug === slug)
+                const img = (c.imageUrl ?? '').trim()
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    disabled={!slug}
+                    onClick={() => slug && setHubSeasonQuery(sel ? null : slug)}
+                    className={`relative aspect-[4/3] w-full overflow-hidden rounded-xl border text-left shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                      sel ? 'ring-2 ring-teal-600 ring-offset-2' : 'border-slate-200 hover:border-teal-300'
+                    }`}
+                  >
+                    {img ? (
+                      <SafeImage
+                        src={img}
+                        alt=""
+                        fill
+                        width={400}
+                        height={300}
+                        className="object-cover"
+                        sizes="(max-width:1024px) 50vw, 25vw"
+                        quality={60}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-teal-700 to-slate-900" aria-hidden />
+                    )}
+                    <div
+                      className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent"
+                      aria-hidden
+                    />
+                    <div className="absolute inset-x-0 bottom-0 p-3">
+                      <p className="text-sm font-bold text-white drop-shadow-sm">{c.title}</p>
+                      {c.subtitle ? (
+                        <p className="mt-1 line-clamp-2 text-xs text-white/90">{c.subtitle}</p>
+                      ) : c.excerpt ? (
+                        <p className="mt-1 line-clamp-2 text-xs text-white/90">{c.excerpt}</p>
+                      ) : null}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <section aria-labelledby="overseas-hub-season-products-heading">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 id="overseas-hub-season-products-heading" className="text-xl font-bold text-slate-900">
+                  시즌 추천 상품
+                </h2>
+                {hubSeasonSlug ? (
+                  <button
+                    type="button"
+                    onClick={() => setHubSeasonQuery(null)}
+                    className="text-xs font-medium text-teal-700 underline-offset-2 hover:underline"
+                  >
+                    큐레이션 전체
+                  </button>
+                ) : null}
+              </div>
+              <div className={overseasHubSeasonProductRowClass}>
+                {seasonHubLoading ? (
+                  <p className="shrink-0 py-6 text-sm text-slate-500">불러오는 중…</p>
+                ) : seasonHubItems.length === 0 ? (
+                  <p className="shrink-0 py-6 text-sm text-slate-500">표시할 상품이 없습니다.</p>
+                ) : (
+                  seasonHubItems.slice(0, 6).map((item) => (
+                    <div key={item.id} className="w-[min(280px,78vw)] shrink-0 snap-start">
+                      <ProductResultCard item={item} formatWon={formatWon} />
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+            <h2 className="text-xl font-bold text-slate-900">전체 여행상품</h2>
+          </div>
+        )}
       {!loading && data && data.total === 0 && budgetActive && (
         <div className="mt-10 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-6 text-sm text-slate-900">
           <p className="font-semibold">입력한 1인당 예산 범위에 맞는 상품이 없습니다.</p>
@@ -567,7 +741,16 @@ export default function ProductsBrowseClient({
             </button>
           </div>
         )}
-      {!loading && data && data.total === 0 && !budgetActive && !hasNonBudgetFilters && (
+      {!loading &&
+        data &&
+        data.total === 0 &&
+        !budgetActive &&
+        !hasNonBudgetFilters &&
+        !(
+          pathname === '/travel/overseas' &&
+          defaultScope === 'overseas' &&
+          (overseasHubMonthCurations?.length ?? 0) > 0
+        ) && (
         <div className="mt-10 w-full rounded-xl border border-bt-border bg-bt-surface px-4 py-8 text-center text-sm text-bt-muted">
           <p className="text-base font-semibold text-bt-ink">등록된 여행상품이 아직 없습니다.</p>
           <p className="mt-3 leading-relaxed">준비 중인 상품은 순차적으로 업데이트됩니다.</p>
@@ -596,7 +779,13 @@ export default function ProductsBrowseClient({
             groupAirHotelByCountry={pathname === '/travel/air-hotel'}
             groupDomesticByRegion={isDomesticHub}
             overseasEditorialBriefing={overseasEditorialBriefing}
-            overseasSeasonCurationSlides={overseasSeasonCurationSlides}
+            overseasSeasonCurationSlides={
+              pathname === '/travel/overseas' &&
+              defaultScope === 'overseas' &&
+              (overseasHubMonthCurations?.length ?? 0) > 0
+                ? null
+                : overseasSeasonCurationSlides
+            }
             seasonalPickIds={browsePresented.seasonalPickIds}
           />
           {data.total > data.limit &&

@@ -2,6 +2,7 @@
  * 시즌 추천 DTO + 클라이언트 안전 정규화만.
  * Prisma / object-storage / `node:crypto` 없음 — `use client` 번들에서 import 가능.
  */
+import { resolveMonthlyCurationProductCountrySlug } from '@/lib/monthly-curation-product-country'
 
 export type HomeSeasonPickDTO = {
   id: string
@@ -14,6 +15,10 @@ export type HomeSeasonPickDTO = {
   ctaLabel: string
   monthKey: string | null
   relatedCountryCode: string | null
+  /** CMS 부제 — 카드 오버레이 */
+  subtitle: string | null
+  /** 상품 browse `country` 슬러그 — 필터·매칭용 */
+  resolvedProductCountrySlug: string | null
 }
 
 export function excerptBody(body: string, max: number): string {
@@ -81,6 +86,15 @@ function normalizeHomeSeasonPickUnknown(raw: unknown): HomeSeasonPickDTO | null 
   const monthKey = typeof r.monthKey === 'string' && r.monthKey.trim() ? r.monthKey.trim() : null
   const relatedCountryCode =
     typeof r.relatedCountryCode === 'string' && r.relatedCountryCode.trim() ? r.relatedCountryCode.trim() : null
+  const subtitle =
+    typeof r.subtitle === 'string' && r.subtitle.trim() ? r.subtitle.trim() : null
+  let resolvedProductCountrySlug =
+    typeof r.resolvedProductCountrySlug === 'string' && r.resolvedProductCountrySlug.trim()
+      ? r.resolvedProductCountrySlug.trim().toLowerCase()
+      : null
+  if (!resolvedProductCountrySlug) {
+    resolvedProductCountrySlug = resolveMonthlyCurationProductCountrySlug(relatedCountryCode, title)
+  }
 
   return {
     id,
@@ -92,5 +106,7 @@ function normalizeHomeSeasonPickUnknown(raw: unknown): HomeSeasonPickDTO | null 
     ctaLabel,
     monthKey,
     relatedCountryCode,
+    subtitle,
+    resolvedProductCountrySlug,
   }
 }

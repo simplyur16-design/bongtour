@@ -22,6 +22,7 @@ const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
   '인도/네팔/스리랑카': 'india-nepal-sri-lanka',
   일본: 'japan',
   이탈리아: 'italy',
+  스페인: 'spain',
   스위스: 'switzerland',
   프랑스: 'france',
   중국: 'china',

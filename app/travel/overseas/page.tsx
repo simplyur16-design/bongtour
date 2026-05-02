@@ -6,7 +6,11 @@ import OverseasInteractiveShell from '@/app/components/travel/overseas/OverseasI
 import OverseasManagedContent from '@/app/components/travel/overseas/OverseasManagedContent'
 import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
-import { getSeasonCurationSlidesForOverseasProductHub } from '@/lib/home-season-pick'
+import {
+  getPublishedOverseasMonthlyCurationsForMonth,
+  getSeasonCurationSlidesForOverseasProductHub,
+} from '@/lib/home-season-pick'
+import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import {
   editorialRowToBriefingPayload,
@@ -46,12 +50,20 @@ export default async function OverseasTravelPage({
   const region = typeof sp.region === 'string' ? sp.region : null
   const country = typeof sp.country === 'string' ? sp.country : null
 
-  const [editorialAll, overseasSeasonCurationSlides] = await Promise.all([
+  const monthKey = getSeoulYearMonthNow()
+  const monthNum = Math.max(1, Math.min(12, parseInt(monthKey.slice(5, 7), 10) || 1))
+  const overseasHubSeasonHeading = `${monthNum}월, 지금 떠나기 좋은 여행지`
+
+  const [editorialAll, overseasHubMonthCurations, overseasSeasonCurationSlidesRaw] = await Promise.all([
     fetchPublishedOverseasEditorials().catch(
       (): Awaited<ReturnType<typeof fetchPublishedOverseasEditorials>> => [],
     ),
+    getPublishedOverseasMonthlyCurationsForMonth(monthKey),
     getSeasonCurationSlidesForOverseasProductHub(region, country),
   ])
+
+  const overseasSeasonCurationSlides =
+    overseasHubMonthCurations.length > 0 ? null : overseasSeasonCurationSlidesRaw
 
   let overseasEditorialBriefing: OverseasEditorialBriefingPayload | null = null
   try {
@@ -76,6 +88,8 @@ export default async function OverseasTravelPage({
             hidePageHeading
             overseasEditorialBriefing={overseasEditorialBriefing}
             overseasSeasonCurationSlides={overseasSeasonCurationSlides}
+            overseasHubMonthCurations={overseasHubMonthCurations}
+            overseasHubSeasonHeading={overseasHubSeasonHeading}
           />
         </Suspense>
 
@@ -86,7 +100,9 @@ export default async function OverseasTravelPage({
                 region={region}
                 country={country}
                 omitEditorialSection
-                omitMonthlyCuration={overseasSeasonCurationSlides.length > 0}
+                omitMonthlyCuration={
+                  overseasHubMonthCurations.length > 0 || (overseasSeasonCurationSlidesRaw?.length ?? 0) > 0
+                }
               />
             </>
           }

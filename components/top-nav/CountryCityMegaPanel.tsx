@@ -25,16 +25,22 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
           const denseCities = g.cities.length >= DENSE_CITY_GRID_MIN
           return (
             <div key={`${g.countryLabel}-${idx}`} className="flex min-w-0 w-full max-w-[220px] flex-col items-start">
-              <Link
-                href={buildProductsHrefCountryOnly({
-                  type: activeProductType,
-                  regionId,
-                  countryLabel: g.countryLabel,
-                })}
-                className="mb-3 block text-left text-[15px] font-bold leading-snug text-slate-800 transition hover:text-teal-600"
-              >
-                {g.countryLabel}
-              </Link>
+              {g.nonLinkHeader ? (
+                <span className="mb-3 block text-left text-[15px] font-bold leading-snug text-slate-800">
+                  {g.countryLabel}
+                </span>
+              ) : (
+                <Link
+                  href={buildProductsHrefCountryOnly({
+                    type: activeProductType,
+                    regionId,
+                    countryLabel: g.countryLabel,
+                  })}
+                  className="mb-3 block text-left text-[15px] font-bold leading-snug text-slate-800 transition hover:text-teal-600"
+                >
+                  {g.countryLabel}
+                </Link>
+              )}
               <ul
                 className={
                   denseCities

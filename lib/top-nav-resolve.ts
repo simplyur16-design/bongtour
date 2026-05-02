@@ -2,7 +2,7 @@
  * 상단 메가메뉴 URL ↔ 목적지 매칭용 terms.
  * 권역·슬러그는 `lib/unified-location-tree` + `lib/location-url-slugs` 와 동일 규칙.
  */
-import type { MegaMenuLeaf, MegaMenuRegion } from '@/lib/travel-landing-mega-menu-data'
+import type { MegaMenuCountryGroup, MegaMenuLeaf, MegaMenuRegion } from '@/lib/travel-landing-mega-menu-data'
 import { OVERSEAS_MEGA_MENU_REGIONS } from '@/lib/travel-landing-mega-menu-data'
 import { countrySlugFromLabel, citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
 
@@ -44,7 +44,8 @@ export function buildProductsHref(opts: {
   if (scope === 'overseas') params.set('scope', 'overseas')
   else params.set('scope', 'domestic')
   params.set('region', opts.regionId)
-  params.set('country', countrySlugFromLabel(opts.countryLabel))
+  const countrySlugSource = opts.leaf.browseCountryLabel ?? opts.countryLabel
+  params.set('country', countrySlugFromLabel(countrySlugSource))
   params.set('city', citySlugFromLeaf(opts.leaf))
   return `${browseBasePath(scope)}?${params.toString()}`
 }
@@ -53,6 +54,8 @@ export function buildProductsHrefCountryOnly(opts: {
   type: string
   regionId: string
   countryLabel: string
+  /** 그룹 헤더와 browse country 슬러그가 다를 때 */
+  headerBrowseCountryLabel?: string
   scope?: BrowseHrefScope
 }): string {
   const params = new URLSearchParams()
@@ -61,7 +64,7 @@ export function buildProductsHrefCountryOnly(opts: {
   if (scope === 'overseas') params.set('scope', 'overseas')
   else params.set('scope', 'domestic')
   params.set('region', opts.regionId)
-  params.set('country', countrySlugFromLabel(opts.countryLabel))
+  params.set('country', countrySlugFromLabel(opts.headerBrowseCountryLabel ?? opts.countryLabel))
   return `${browseBasePath(scope)}?${params.toString()}`
 }
 
@@ -73,11 +76,33 @@ export function destinationTermsFromQuery(region: string | null, country: string
   if (!region || !country) return []
   const reg = TOP_NAV_MEGA_REGIONS.find((r) => r.id === region)
   if (!reg?.countryGroups) return []
-  const group = reg.countryGroups.find((g) => countrySlugFromLabel(g.countryLabel) === country)
-  if (!group) return []
-  if (!city) {
-    return group.cities.flatMap((c) => c.terms)
+  const countryNorm = country.trim().toLowerCase()
+
+  for (const g of reg.countryGroups) {
+    if (countrySlugFromLabel(g.countryLabel) === countryNorm) {
+      if (!city) {
+        const out = new Set<string>()
+        for (const c of g.cities) c.terms.forEach((t) => out.add(t))
+        return [...out]
+      }
+      const leaf = g.cities.find((c) => citySlugFromTermsAndLabel(c.label, c.terms) === city)
+      return leaf ? [...leaf.terms] : []
+    }
   }
-  const leaf = group.cities.find((c) => citySlugFromTermsAndLabel(c.label, c.terms) === city)
-  return leaf ? [...leaf.terms] : []
+
+  const matches: { g: MegaMenuCountryGroup; c: MegaMenuLeaf }[] = []
+  for (const g of reg.countryGroups) {
+    for (const c of g.cities) {
+      const slug = countrySlugFromLabel(c.browseCountryLabel ?? g.countryLabel)
+      if (slug === countryNorm) matches.push({ g, c })
+    }
+  }
+  if (matches.length === 0) return []
+  if (!city) {
+    const out = new Set<string>()
+    for (const { c } of matches) c.terms.forEach((t) => out.add(t))
+    return [...out]
+  }
+  const hit = matches.find(({ c }) => citySlugFromTermsAndLabel(c.label, c.terms) === city)
+  return hit ? [...hit.c.terms] : []
 }
