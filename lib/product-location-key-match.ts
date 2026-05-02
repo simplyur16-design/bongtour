@@ -5,6 +5,7 @@
  */
 import type { OverseasProductMatchInput } from '@/lib/match-overseas-product'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
+import { inferBrowseGeoFromDestinationText } from '@/lib/register-infer-browse-geo'
 
 export type ProductLocationKeyMatchInput = {
   title: string
@@ -24,6 +25,10 @@ export type ProductLocationKeyPrismaFields = {
   groupKey: string | null
   locationMatchConfidence: string | null
   locationMatchSource: string | null
+  /** browse URL·필터와 동일한 슬러그 (`inferBrowseGeoFromDestinationText`) */
+  continent: string | null
+  country: string | null
+  city: string | null
 }
 
 const BODY_MAX = 8000
@@ -47,6 +52,9 @@ export function deriveProductLocationKeyFieldsForPrisma(
     groupKey: null,
     locationMatchConfidence: null,
     locationMatchSource: null,
+    continent: null,
+    country: null,
+    city: null,
   }
 
   try {
@@ -74,12 +82,21 @@ export function deriveProductLocationKeyFieldsForPrisma(
     const nodeKey = m.scope === 'leaf' && m.leafKey ? m.leafKey : null
     const countryKey = m.countryKey ?? null
 
+    const browseGeo = inferBrowseGeoFromDestinationText({
+      primaryDestination: input.primaryDestination,
+      destinationRaw: input.destinationRaw,
+      title: title || null,
+    })
+
     return {
       countryKey,
       nodeKey,
       groupKey: m.groupKey,
       locationMatchConfidence: confidence,
       locationMatchSource: `overseas-tree:${m.scope}`,
+      continent: browseGeo?.continent ?? null,
+      country: browseGeo?.country ?? null,
+      city: browseGeo?.city ?? null,
     }
   } catch {
     return empty

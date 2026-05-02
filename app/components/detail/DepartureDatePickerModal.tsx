@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from
 import type { ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
 import {
   buildDepartureViewModels,
+  earliestMinBookablePriceDateByMonth,
   formatDeparturePrice,
   globalLowestBookable,
   minBookablePriceByMonth,
@@ -71,6 +72,10 @@ export default function DepartureDatePickerModal({
   }, [viewModels])
 
   const minByMonth = useMemo(() => minBookablePriceByMonth(viewModels), [viewModels])
+  const earliestMinDateByMonth = useMemo(
+    () => earliestMinBookablePriceDateByMonth(viewModels),
+    [viewModels]
+  )
   const globalLow = useMemo(() => globalLowestBookable(viewModels), [viewModels])
 
   const initialCursor = useMemo(() => {
@@ -165,6 +170,7 @@ export default function DepartureDatePickerModal({
       leadBlank={leadBlank}
       byDate={byDate}
       minByMonth={minByMonth}
+      earliestMinDateByMonth={earliestMinDateByMonth}
       globalLow={globalLow ?? null}
       selectedDate={selectedDate}
       onSelectDate={pickCalendarDay}

@@ -47,26 +47,35 @@ export function productMatchesOverseasDestinationTerms(
   terms: string[],
   urlGeo?: { region: string | null; country: string | null; city: string | null }
 ): boolean {
+  const r = (urlGeo?.region ?? '').trim().toLowerCase()
+  const c = (urlGeo?.country ?? '').trim().toLowerCase()
+  const ct = (urlGeo?.city ?? '').trim().toLowerCase()
+  const hasUrlGeo = Boolean(r || c || ct)
+
   const dbCont = (product.continent ?? '').trim().toLowerCase()
   const dbCountry = (product.country ?? '').trim().toLowerCase()
   const dbCity = (product.city ?? '').trim().toLowerCase()
-  const hasDbGeo = Boolean(dbCont && dbCountry)
+  const hasDbBrowseGeo = Boolean(dbCont || dbCountry)
 
-  if (urlGeo?.region && urlGeo?.country && hasDbGeo) {
-    const r = urlGeo.region.trim().toLowerCase()
-    const c = urlGeo.country.trim().toLowerCase()
-    if (dbCont !== r || dbCountry !== c) return false
-    const urlCity = (urlGeo.city ?? '').trim().toLowerCase()
-    if (!urlCity) return true
-    if (dbCity) return dbCity === urlCity
+  const haystack = buildOverseasProductMatchHaystack(product)
+  const termsMatch = (): boolean => {
+    if (terms.length === 0) return true
+    return terms.some((t) => {
+      const k = t.trim().toLowerCase()
+      return k.length > 0 && haystack.includes(k)
+    })
   }
 
-  if (terms.length === 0) return true
-  const haystack = buildOverseasProductMatchHaystack(product)
-  return terms.some((t) => {
-    const k = t.trim().toLowerCase()
-    return k.length > 0 && haystack.includes(k)
-  })
+  if (!hasUrlGeo) return termsMatch()
+
+  if (hasDbBrowseGeo) {
+    if (r && dbCont !== r && dbCountry !== r) return false
+    if (c && dbCountry !== c) return false
+    if (ct && dbCity !== ct) return false
+    return termsMatch()
+  }
+
+  return termsMatch()
 }
 
 export type OverseasTreeMatchScope = 'leaf' | 'country' | 'group'

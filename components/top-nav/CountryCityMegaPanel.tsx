@@ -11,46 +11,57 @@ type Props = {
   activeProductType: ProductBrowseType
 }
 
+/** 도시가 많은 나라 블록은 2열로 읽기 쉽게 */
+const DENSE_CITY_GRID_MIN = 5
+
 /**
- * 여행사형 메가패널: 4열 그리드(캡처와 유사), 국가 헤더 + 구분선 + 도시 2열.
+ * 여행사형 메가패널 — 나라별 블록 구분·도시 탭/클릭 영역 강화.
  */
 export default function CountryCityMegaPanel({ regionId, countryGroups, activeProductType }: Props) {
   return (
-    <div className="max-h-[min(78vh,560px)] overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-x-8">
-        {countryGroups.map((g, idx) => (
-          <div key={`${g.countryLabel}-${idx}`} className="min-w-0">
-            <Link
-              href={buildProductsHrefCountryOnly({
-                type: activeProductType,
-                regionId,
-                countryLabel: g.countryLabel,
-              })}
-              className="block text-[13px] font-bold leading-tight tracking-tight text-slate-900 hover:text-teal-700 sm:text-sm"
-            >
-              {g.countryLabel}
-            </Link>
-            <div className="mt-2 border-b border-slate-800/85" aria-hidden />
-            <ul className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1.5 text-[12px] sm:text-[13px]">
-              {g.cities.map((c) => (
-                <li key={c.label} className="min-w-0">
-                  <Link
-                    href={buildProductsHref({
-                      type: activeProductType,
-                      regionId,
-                      countryLabel: g.countryLabel,
-                      leaf: c,
-                    })}
-                    className="block truncate text-slate-700 transition hover:text-teal-700 hover:underline"
-                    title={c.label}
-                  >
-                    {c.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+    <div className="max-h-[min(78vh,560px)] min-h-[300px] overflow-y-auto p-6">
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-3 gap-x-8 gap-y-6 lg:grid-cols-4">
+        {countryGroups.map((g, idx) => {
+          const denseCities = g.cities.length >= DENSE_CITY_GRID_MIN
+          return (
+            <div key={`${g.countryLabel}-${idx}`} className="min-w-0">
+              <Link
+                href={buildProductsHrefCountryOnly({
+                  type: activeProductType,
+                  regionId,
+                  countryLabel: g.countryLabel,
+                })}
+                className="mb-2 block border-b border-slate-200 pb-1 text-base font-bold leading-snug tracking-tight text-slate-900 transition hover:text-teal-700"
+              >
+                {g.countryLabel}
+              </Link>
+              <ul
+                className={
+                  denseCities
+                    ? 'grid grid-cols-2 gap-x-4 gap-y-1.5'
+                    : 'flex flex-col space-y-1.5'
+                }
+              >
+                {g.cities.map((c) => (
+                  <li key={c.label} className="min-w-0">
+                    <Link
+                      href={buildProductsHref({
+                        type: activeProductType,
+                        regionId,
+                        countryLabel: g.countryLabel,
+                        leaf: c,
+                      })}
+                      className="block truncate py-0.5 text-sm text-slate-600 transition hover:text-teal-600"
+                      title={c.label}
+                    >
+                      {c.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

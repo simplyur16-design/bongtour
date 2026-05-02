@@ -95,10 +95,34 @@ export function minBookablePriceByMonth(vms: DeparturePriceViewModel[]): Record<
   return byMonth
 }
 
+/**
+ * 월별 최저가와 동일한 금액인 날짜가 여러 개일 때, 배지는 **가장 이른 출발일 1일**에만 붙인다.
+ * (동일 일자·여러 행은 같은 ISO이므로 달력 칸은 하나)
+ */
+export function earliestMinBookablePriceDateByMonth(
+  vms: DeparturePriceViewModel[]
+): Record<string, string> {
+  const mins = minBookablePriceByMonth(vms)
+  const out: Record<string, string> = {}
+  for (const v of vms) {
+    if (!v.isAvailable || v.price == null) continue
+    const mk = v.departureDate.slice(0, 7)
+    const m = mins[mk]
+    if (m == null || v.price !== m) continue
+    const prev = out[mk]
+    if (prev == null || v.departureDate.localeCompare(prev) < 0) out[mk] = v.departureDate
+  }
+  return out
+}
+
 export function globalLowestBookable(vms: DeparturePriceViewModel[]): DeparturePriceViewModel | null {
   const bookable = filterBookableDepartures(vms)
   if (bookable.length === 0) return null
-  return bookable.reduce((a, b) => (a.price! <= b.price! ? a : b))
+  return bookable.reduce((a, b) => {
+    if (a.price! < b.price!) return a
+    if (b.price! < a.price!) return b
+    return a.departureDate.localeCompare(b.departureDate) <= 0 ? a : b
+  })
 }
 
 /** 일정상 가장 이른 예약 가능 출발일 */

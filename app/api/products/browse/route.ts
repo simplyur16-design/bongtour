@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { PRODUCT_BROWSE_FULL_INCLUDE } from '@/lib/product-browse-full-include'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
@@ -87,6 +88,19 @@ export async function GET(request: Request) {
     const region = searchParams.get('region')
     const country = searchParams.get('country')
     const city = searchParams.get('city')
+    const scope = searchParams.get('scope')
+    const hasOverseasUrlGeo =
+      scope !== 'domestic' &&
+      Boolean((region ?? '').trim() || (country ?? '').trim() || (city ?? '').trim())
+    const overseasGeoAnd: Prisma.ProductWhereInput[] = []
+    if (hasOverseasUrlGeo) {
+      const r = (region ?? '').trim()
+      const c = (country ?? '').trim()
+      const ct = (city ?? '').trim()
+      if (r) overseasGeoAnd.push({ OR: [{ continent: r }, { country: r }] })
+      if (c) overseasGeoAnd.push({ country: c })
+      if (ct) overseasGeoAnd.push({ city: ct })
+    }
 
     const budgetRaw = searchParams.get('budgetPerPerson')
     const budgetPerPersonMax =
@@ -130,6 +144,7 @@ export async function GET(request: Request) {
     const rows = await prisma.product.findMany({
       where: {
         registrationStatus: 'registered',
+        ...(overseasGeoAnd.length > 0 ? { AND: overseasGeoAnd } : {}),
       },
       orderBy: { updatedAt: 'desc' },
       include: PRODUCT_BROWSE_FULL_INCLUDE,
@@ -147,7 +162,6 @@ export async function GET(request: Request) {
       return { ...p, departures: nextDepartures }
     })
 
-    const scope = searchParams.get('scope')
     const overseasLike = scope === 'overseas' || !!region
     const domesticLike = scope === 'domestic'
     const skipGlobalTripDaysForDomesticSchedule =
@@ -196,6 +210,9 @@ export async function GET(request: Request) {
     }
 
     let scoringDestinationTerms = destinationTerms
+    if (hasOverseasUrlGeo) {
+      scoringDestinationTerms = extraTerms.length > 0 ? [...extraTerms] : []
+    }
     if (domesticLike) {
       if (domesticSpecialTheme) {
         filteredRows = filteredRows.filter((p) => domesticDisplayCategoryIsSpecialTheme(p.displayCategory))

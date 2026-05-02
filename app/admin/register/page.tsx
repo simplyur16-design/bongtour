@@ -57,12 +57,13 @@ import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-d
 const LOADING_STATUS = '분석 중…' as const
 
 function draftPrimaryRegionKr(
-  d: { primaryDestination?: string | null; destinationRaw?: string | null } | null | undefined,
+  d: { primaryDestination?: string | null; destinationRaw?: string | null; title?: string | null } | null | undefined,
 ): string | null {
   if (!d) return null
   const g = inferBrowseGeoFromDestinationText({
     primaryDestination: d.primaryDestination,
     destinationRaw: d.destinationRaw,
+    title: d.title,
   })
   return g ? CONTINENT_ID_TO_PRIMARY_REGION_KR[g.continent] ?? null : null
 }
@@ -690,8 +691,6 @@ export default function AdminRegisterPage() {
     }
     setConfirming(true)
     setError('')
-    // TODO(geo): 각 공급사 confirm API가 `Product.continent`·`country`·`city`(browse 슬러그)까지
-    // 저장하도록 확장할 때, `inferBrowseGeoFromDestinationText` 결과를 parsed와 함께 넘긴다.
     try {
       const parsedMerged = applyRegisterCorrectionOverlayForSupplier(
         selectedBrandKey,
@@ -702,6 +701,20 @@ export default function AdminRegisterPage() {
         ),
         correctionOverlay
       )
+      const geo = inferBrowseGeoFromDestinationText({
+        primaryDestination: parsedMerged.primaryDestination,
+        destinationRaw: parsedMerged.destinationRaw,
+        title: parsedMerged.title,
+      })
+      let parsedForApi: RegisterParsed = parsedMerged
+      if (geo != null) {
+        parsedForApi = Object.assign({}, parsedMerged, {
+          primaryRegion: CONTINENT_ID_TO_PRIMARY_REGION_KR[geo.continent] ?? null,
+          continent: geo.continent,
+          country: geo.country,
+          city: geo.city,
+        }) as unknown as RegisterParsed
+      }
       const originSource = selectedBrandKey
       const urlToCheck = normalizeUrl(originUrl)
       const blocksPayload = buildPastedBlocksPayload(pastedBlocks)
@@ -717,7 +730,7 @@ export default function AdminRegisterPage() {
             mode: 'confirm',
             previewToken: preview.previewToken,
             text: rawText.trim(),
-            parsed: parsedMerged,
+            parsed: parsedForApi,
             originSource,
             ...(selectedBrandKey && { brandKey: selectedBrandKey }),
             ...(urlToCheck && { originUrl: urlToCheck }),
