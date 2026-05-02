@@ -90,6 +90,7 @@ export type HomeHubCardHybridResolutionTier = 'manual' | 'product_pool' | 'fallb
 
 export type HomeHubCardHybridResolutionDetail = {
   url: string
+  alt?: string
   tier: HomeHubCardHybridResolutionTier
   effectiveMode: HomeHubCardImageSourceMode
   manualUrl: string | null
