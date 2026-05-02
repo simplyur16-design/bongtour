@@ -65,6 +65,11 @@ export default function SiteFooter() {
                 ·{' '}
               </span>
               통신판매업 신고번호 {COMPANY_FOOTER.mailOrderReportNo}
+              <span className="text-slate-600" aria-hidden="true">
+                {' '}
+                ·{' '}
+              </span>
+              관광사업자등록번호 제2024-0033호
             </span>
           </p>
 
