@@ -397,7 +397,8 @@ export async function GET(request: Request) {
             const overseasBucket = resolveOverseasDisplayBucketForBrowse(matchInput, match)
             const countryRowLabel =
               match?.countryLabel?.trim() || p.primaryDestination?.trim() || '기타'
-            return { overseasBucket, countryRowLabel }
+            const browseCountry = (p.country ?? '').trim() || null
+            return { overseasBucket, countryRowLabel, browseCountry }
           })()
         : {}),
     }

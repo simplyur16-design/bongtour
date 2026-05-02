@@ -69,6 +69,21 @@ function slugFromEnglishTerm(terms: string[]): string {
   return ''
 }
 
+/** browse `Product.country` 슬러그 → 칩·표시용 한글 라벨(메가메뉴 매핑 역조회, 없으면 null) */
+const BROWSE_SLUG_TO_KR_LABEL: Record<string, string> = (() => {
+  const m: Record<string, string> = {}
+  for (const [label, slug] of Object.entries(COUNTRY_SLUG_BY_LABEL)) {
+    if (!(slug in m)) m[slug] = label
+  }
+  return m
+})()
+
+export function koreanCountryLabelFromBrowseSlug(slug: string | null | undefined): string | null {
+  const s = (slug ?? '').trim().toLowerCase()
+  if (!s) return null
+  return BROWSE_SLUG_TO_KR_LABEL[s] ?? null
+}
+
 export function countrySlugFromLabel(countryLabel: string): string {
   const mapped = COUNTRY_SLUG_BY_LABEL[countryLabel]
   if (mapped) return mapped

@@ -45,6 +45,8 @@ export type ResultItem = {
   /** scope=overseas 시 browse API가 채움 */
   overseasBucket?: OverseasDisplayBucketId
   countryRowLabel?: string | null
+  /** DB `Product.country` browse 슬러그 — 항공+호텔 허브 필터 칩용 */
+  browseCountry?: string | null
 }
 
 const PRODUCT_CARD_LOAD_STEP = 4

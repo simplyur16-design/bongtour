@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, useMemo, useState, useTransition, type Dispatch, type SetStateAction } from 'react'
 import type { ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
 import {
   buildDepartureViewModels,
@@ -185,6 +185,7 @@ export default function DepartureDatePickerModal({
       selectedSourceRowId={selectedSourceRowId}
       onPickRow={pickListRow}
       minByMonth={minByMonth}
+      earliestMinDateByMonth={earliestMinDateByMonth}
     />
   )
 
@@ -243,6 +244,7 @@ function DepartureCalendarBlock({
   leadBlank,
   byDate,
   minByMonth,
+  earliestMinDateByMonth,
   globalLow,
   selectedDate,
   onSelectDate,
@@ -255,22 +257,26 @@ function DepartureCalendarBlock({
   leadBlank: number
   byDate: Record<string, DeparturePriceViewModel>
   minByMonth: Record<string, number>
+  earliestMinDateByMonth: Record<string, string>
   globalLow: DeparturePriceViewModel | null
   selectedDate: string | null
   onSelectDate: (iso: string) => void
   allowUndepartedCalendarPick?: boolean
 }) {
+  const [monthNavPending, startMonthNav] = useTransition()
   return (
-    <div>
+    <div className={monthNavPending ? 'opacity-80 transition-opacity' : ''}>
       <div className="mb-3 flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() =>
-            setCursor((c) => {
-              const nm = c.m0 - 1
-              if (nm < 0) return { y: c.y - 1, m0: 11 }
-              return { y: c.y, m0: nm }
-            })
+            startMonthNav(() =>
+              setCursor((c) => {
+                const nm = c.m0 - 1
+                if (nm < 0) return { y: c.y - 1, m0: 11 }
+                return { y: c.y, m0: nm }
+              })
+            )
           }
           className="rounded-lg border border-bt-border px-3 py-2 text-sm font-semibold text-bt-title hover:bg-bt-page"
           aria-label="이전 달"
@@ -281,11 +287,13 @@ function DepartureCalendarBlock({
         <button
           type="button"
           onClick={() =>
-            setCursor((c) => {
-              const nm = c.m0 + 1
-              if (nm > 11) return { y: c.y + 1, m0: 0 }
-              return { y: c.y, m0: nm }
-            })
+            startMonthNav(() =>
+              setCursor((c) => {
+                const nm = c.m0 + 1
+                if (nm > 11) return { y: c.y + 1, m0: 0 }
+                return { y: c.y, m0: nm }
+              })
+            )
           }
           className="rounded-lg border border-bt-border px-3 py-2 text-sm font-semibold text-bt-title hover:bg-bt-page"
           aria-label="다음 달"
@@ -293,6 +301,9 @@ function DepartureCalendarBlock({
           ›
         </button>
       </div>
+      {monthNavPending ? (
+        <div className="mb-1.5 h-1 w-full animate-pulse rounded-full bg-bt-border-soft" aria-hidden />
+      ) : null}
 
       <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-bt-muted sm:text-xs">
         {WEEKDAY.map((w) => (
@@ -310,8 +321,14 @@ function DepartureCalendarBlock({
           const bookable = vm?.isAvailable ?? false
           const isSel = selectedDate === iso
           const monthKey = iso.slice(0, 7)
+          const earliestLowIso = earliestMinDateByMonth[monthKey]
           const isLowMonth =
-            bookable && vm.price != null && minByMonth[monthKey] != null && vm.price === minByMonth[monthKey]
+            bookable &&
+            vm.price != null &&
+            minByMonth[monthKey] != null &&
+            vm.price === minByMonth[monthKey] &&
+            earliestLowIso != null &&
+            iso === earliestLowIso
           const isLowGlobal = Boolean(bookable && globalLow && globalLow.departureDate === iso)
 
           if (!inData) {
@@ -368,12 +385,12 @@ function DepartureCalendarBlock({
               <span className="mt-0.5 flex flex-wrap justify-center gap-0.5">
                 {isLowMonth ? (
                   <span className="rounded bg-emerald-100 px-1 text-[9px] font-bold text-emerald-900 sm:text-[10px]">
-                    이달 최저
+                    이달 최저가
                   </span>
                 ) : null}
                 {isLowGlobal ? (
                   <span className="rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-900 sm:text-[10px]">
-                    원최저가
+                    전체 최저가
                   </span>
                 ) : null}
               </span>
@@ -391,12 +408,14 @@ function DepartureListBlock({
   selectedSourceRowId,
   onPickRow,
   minByMonth,
+  earliestMinDateByMonth,
 }: {
   viewModels: DeparturePriceViewModel[]
   selectedDate: string | null
   selectedSourceRowId: string | null
   onPickRow: (vm: DeparturePriceViewModel) => void
   minByMonth: Record<string, number>
+  earliestMinDateByMonth: Record<string, string>
 }) {
   return (
     <div>
@@ -424,11 +443,14 @@ function DepartureListBlock({
                   ? selectedSourceRowId === vm.sourceRowId
                   : selectedDate === vm.departureDate
               const monthKey = vm.departureDate.slice(0, 7)
+              const earliestLowIso = earliestMinDateByMonth[monthKey]
               const lowMonth =
                 vm.isAvailable &&
                 vm.price != null &&
                 minByMonth[monthKey] != null &&
-                vm.price === minByMonth[monthKey]
+                vm.price === minByMonth[monthKey] &&
+                earliestLowIso != null &&
+                vm.departureDate === earliestLowIso
               return (
                 <tr
                   key={vm.sourceRowId}

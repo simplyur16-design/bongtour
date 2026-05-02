@@ -20,6 +20,7 @@ import ProductResultsList, { type ResultItem } from '@/components/products/Produ
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import { sortProductsBySeason } from '@/lib/product-sort'
+import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 
 type ApiOk = {
   ok: true
@@ -34,6 +35,8 @@ type ApiOk = {
 
 /** 허브 페이지 browse 1회 요청 상한 — 전량(1000) 조회는 API·DB 부하만 키움 */
 const BROWSE_HUB_FETCH_LIMIT = '30'
+/** 항공+호텔: 나라별 칩 집계·클라이언트 필터용으로 browse 상한까지 한 번에 로드 */
+const AIR_HOTEL_BROWSE_FETCH_LIMIT = '120'
 
 /** 국내 허브(`/travel/domestic`)에서 browse·URL 정리 시 제거(레거시 링크 무시) */
 const DOMESTIC_HUB_QUERY_STRIP_KEYS = [
@@ -126,7 +129,18 @@ export default function ProductsBrowseClient({
   const qs = searchParams.toString()
 
   const isDomesticHub = pathname === '/travel/domestic' && defaultScope === 'domestic'
+  const isAirHotelHub = pathname === '/travel/air-hotel'
   const suppressHeadingToolbarGap = hidePageHeading && isDomesticHub
+
+  /** 항공+호텔: `country` 등은 클라이언트 필터 — 동일 목록 재요청 방지용 fetch 키 */
+  const airHotelBrowseFetchKey = useMemo(() => {
+    if (!isAirHotelHub) return null
+    const sp = new URLSearchParams(searchParams.toString())
+    sp.delete('country')
+    sp.delete('region')
+    sp.delete('city')
+    return sp.toString()
+  }, [isAirHotelHub, searchParams])
 
   const emptyStateTravelInquiryHref = useMemo(
     () => travelConsultInquiryHref(basePath, pathname, defaultScope),
@@ -141,6 +155,12 @@ export default function ProductsBrowseClient({
     }
     return parseBrowseQuery(new URLSearchParams(searchParams.toString()))
   }, [isDomesticHub, searchParams])
+
+  const browseReloadKey = useMemo(() => {
+    if (isDomesticHub) return searchParams.toString()
+    if (isAirHotelHub) return airHotelBrowseFetchKey ?? ''
+    return qs
+  }, [isDomesticHub, isAirHotelHub, airHotelBrowseFetchKey, qs, searchParams])
 
   const [data, setData] = useState<ApiOk | null>(null)
   const [loading, setLoading] = useState(true)
@@ -183,8 +203,11 @@ export default function ProductsBrowseClient({
           p.delete('page')
         }
         if (pathname === '/travel/air-hotel') {
-          p.set('limit', BROWSE_HUB_FETCH_LIMIT)
+          p.set('limit', AIR_HOTEL_BROWSE_FETCH_LIMIT)
           p.delete('page')
+          p.delete('country')
+          p.delete('region')
+          p.delete('city')
         }
         if ((q.budgetPerPerson != null || q.budgetMin != null) && !p.get('sort')) {
           p.set('sort', 'budget_fit')
@@ -211,7 +234,7 @@ export default function ProductsBrowseClient({
     return () => {
       cancelled = true
     }
-  }, [qs, pathname, defaultScope, isDomesticHub, searchParams])
+  }, [browseReloadKey, pathname, defaultScope, isDomesticHub, q.budgetMin, q.budgetPerPerson])
 
   const navigate = useCallback(
     (next: BrowseQueryState) => {
@@ -271,6 +294,9 @@ export default function ProductsBrowseClient({
       'budgetMin',
       'sort',
       'page',
+      'region',
+      'country',
+      'city',
     ].forEach((k) => sp.delete(k))
     if (defaultScope) sp.set('scope', defaultScope)
     router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
@@ -300,6 +326,8 @@ export default function ProductsBrowseClient({
       } else if (key.startsWith('day:')) {
         const d = parseInt(key.slice('day:'.length), 10)
         onPatch({ departWeekdays: q.departWeekdays.filter((x) => x !== d) })
+      } else if (key === 'countryFilter') {
+        onPatch({ country: null, page: 1 })
       }
     },
     [onPatch, q]
@@ -327,6 +355,53 @@ export default function ProductsBrowseClient({
       Boolean(q.type?.trim()),
     [q]
   )
+
+  const sort: BrowseSort =
+    (q.sort as BrowseSort) || (q.budgetPerPerson != null || q.budgetMin != null ? 'budget_fit' : 'popular')
+
+  const scopeFromUrl = searchParams.get('scope')
+  const isOverseasBrowse =
+    (pathname === '/travel/overseas' && defaultScope === 'overseas') || scopeFromUrl === 'overseas'
+
+  const itemsAfterAirHotelCountry = useMemo(() => {
+    if (!data?.items) return [] as ResultItem[]
+    if (!isAirHotelHub) return data.items
+    const c = q.country?.trim()
+    if (!c) return data.items
+    return data.items.filter((it) => (it.browseCountry ?? '').trim() === c)
+  }, [data?.items, isAirHotelHub, q.country])
+
+  const browsePresented = useMemo(() => {
+    if (!data) return { items: [] as ResultItem[], seasonalPickIds: null as ReadonlySet<string> | null }
+    const baseItems = itemsAfterAirHotelCountry
+    if (!isOverseasBrowse || budgetActive || sort !== 'popular') {
+      return { items: baseItems, seasonalPickIds: null }
+    }
+    const { items, seasonalPickIds } = sortProductsBySeason(baseItems, new Date().getMonth() + 1)
+    return { items, seasonalPickIds }
+  }, [data, isOverseasBrowse, budgetActive, sort, itemsAfterAirHotelCountry])
+
+  const airHotelCountryChips = useMemo(() => {
+    if (!isAirHotelHub || !data?.items?.length) return []
+    const acc = new Map<string, { slug: string; label: string; count: number }>()
+    for (const it of data.items) {
+      const slug = (it.browseCountry ?? '').trim()
+      if (!slug) continue
+      const fromSlug = koreanCountryLabelFromBrowseSlug(slug)
+      const label =
+        fromSlug || (it.countryRowLabel ?? '').replace(/\s+/g, ' ').trim() || slug
+      const prev = acc.get(slug)
+      if (prev) prev.count += 1
+      else acc.set(slug, { slug, label, count: 1 })
+    }
+    return [...acc.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'ko'))
+  }, [isAirHotelHub, data?.items])
+
+  const listedProductCount = useMemo(() => {
+    if (!data) return null
+    if (isAirHotelHub && q.country?.trim()) return browsePresented.items.length
+    return data.total
+  }, [data, isAirHotelHub, q.country, browsePresented.items.length])
 
   const summary = hidePageHeading
     ? null
@@ -356,7 +431,7 @@ export default function ProductsBrowseClient({
           </p>
           {data && (
             <p className="mt-2 text-sm font-medium text-slate-800">
-              조건에 맞는 상품 {data.total.toLocaleString('ko-KR')}건
+              조건에 맞는 상품 {(listedProductCount ?? data.total).toLocaleString('ko-KR')}건
               {data.total > 0 &&
                 data.page > 1 &&
                 !(
@@ -381,22 +456,6 @@ export default function ProductsBrowseClient({
     hasWeekdayData: false,
   }
 
-  const sort: BrowseSort =
-    (q.sort as BrowseSort) || (q.budgetPerPerson != null || q.budgetMin != null ? 'budget_fit' : 'popular')
-
-  const scopeFromUrl = searchParams.get('scope')
-  const isOverseasBrowse =
-    (pathname === '/travel/overseas' && defaultScope === 'overseas') || scopeFromUrl === 'overseas'
-
-  const browsePresented = useMemo(() => {
-    if (!data) return { items: [] as ResultItem[], seasonalPickIds: null as ReadonlySet<string> | null }
-    if (!isOverseasBrowse || budgetActive || sort !== 'popular') {
-      return { items: data.items, seasonalPickIds: null }
-    }
-    const { items, seasonalPickIds } = sortProductsBySeason(data.items, new Date().getMonth() + 1)
-    return { items, seasonalPickIds }
-  }, [data, isOverseasBrowse, budgetActive, sort])
-
   const toolbar = (
     <div className={suppressHeadingToolbarGap ? 'mt-0' : 'mt-2'}>
       <ProductSortBar
@@ -407,8 +466,51 @@ export default function ProductsBrowseClient({
     </div>
   )
 
+  const airHotelCountryChipRow =
+    isAirHotelHub && airHotelCountryChips.length > 0 ? (
+      <div
+        className="mb-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+        aria-label="나라별 필터"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={!q.country?.trim()}
+          onClick={() => onPatch({ country: null, page: 1 })}
+          className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+            !q.country?.trim()
+              ? 'border-teal-600 bg-teal-600 text-white'
+              : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300'
+          }`}
+        >
+          전체
+        </button>
+        {airHotelCountryChips.map((c) => {
+          const sel = q.country?.trim() === c.slug
+          return (
+            <button
+              key={c.slug}
+              type="button"
+              role="tab"
+              aria-selected={sel}
+              onClick={() => onPatch({ country: c.slug, page: 1 })}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                sel
+                  ? 'border-teal-600 bg-teal-600 text-white'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300'
+              }`}
+            >
+              {c.label}({c.count})
+            </button>
+          )
+        })}
+      </div>
+    ) : null
+
   const results = (
     <>
+      {airHotelCountryChipRow}
       {loading && <p className="mt-10 text-center text-sm text-slate-500">불러오는 중…</p>}
       {error && (
         <p className="mt-10 text-center text-sm text-rose-700" role="alert">
@@ -447,6 +549,24 @@ export default function ProductsBrowseClient({
           </button>
         </div>
       )}
+      {!loading &&
+        data &&
+        data.total > 0 &&
+        isAirHotelHub &&
+        q.country?.trim() &&
+        browsePresented.items.length === 0 && (
+          <div className="mt-10 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-6 text-sm text-slate-900">
+            <p className="font-semibold">선택한 나라에 해당하는 항공+호텔 상품이 없습니다.</p>
+            <p className="mt-2 text-slate-700">다른 나라를 선택하거나 전체로 돌아가 보세요.</p>
+            <button
+              type="button"
+              onClick={() => onPatch({ country: null, page: 1 })}
+              className="mt-4 inline-flex rounded-full border border-teal-600 bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+            >
+              전체 보기
+            </button>
+          </div>
+        )}
       {!loading && data && data.total === 0 && !budgetActive && !hasNonBudgetFilters && (
         <div className="mt-10 w-full rounded-xl border border-bt-border bg-bt-surface px-4 py-8 text-center text-sm text-bt-muted">
           <p className="text-base font-semibold text-bt-ink">등록된 여행상품이 아직 없습니다.</p>
@@ -467,7 +587,7 @@ export default function ProductsBrowseClient({
           </p>
         </div>
       )}
-      {!loading && data && data.total > 0 && (
+      {!loading && data && browsePresented.items.length > 0 && (
         <>
           <ProductResultsList
             items={browsePresented.items}
@@ -524,7 +644,11 @@ export default function ProductsBrowseClient({
         필터
       </button>
       {!hidePageHeading ? (
-        <span className="text-xs text-slate-500">{data ? `${data.total}건` : ''}</span>
+        <span className="text-xs text-slate-500">
+          {data ? `${listedProductCount ?? data.total}건` : ''}
+        </span>
+      ) : isAirHotelHub && data ? (
+        <span className="text-xs text-slate-500">{`${listedProductCount ?? data.total}건`}</span>
       ) : null}
     </div>
   )
