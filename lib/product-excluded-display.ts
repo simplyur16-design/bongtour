@@ -14,19 +14,13 @@ export function buildSingleRoomExcludedLine(
   currency: string | null | undefined,
   options?: { useFallbackWhenEmpty?: boolean }
 ): string | null {
-  const disp = displayText?.replace(/\s+/g, ' ').trim()
-  if (disp && /1인실|싱글|독실|단독|객실|single/i.test(disp) && /\d/.test(disp) && disp.length <= 200) {
-    return disp
-  }
   const amt = amount != null && amount > 0 && Number.isFinite(amount) ? amount : null
-  const cRaw = (currency ?? '').trim()
-  const c = cRaw.toUpperCase()
+  const c = (currency ?? 'KRW').toUpperCase()
   if (amt != null) {
-    if (!cRaw || c === 'KRW') {
+    if (c === 'KRW' || !currency) {
       return `1인실 객실 추가요금 ${amt.toLocaleString('ko-KR')}원`
     }
-    /** 비원화: 환율·원화 변환 없이 숫자·통화 코드만 표시(본문 통화와 동일 코드 사용 전제). */
-    return `1인실 객실 추가요금 ${amt.toLocaleString('en-US')} ${cRaw}`
+    return `1인실 객실 추가요금 - ${amt.toLocaleString('ko-KR')} ${c}`
   }
   const collapsed = displayText?.replace(/\s+/g, ' ').trim()
   if (collapsed) return collapsed

@@ -876,7 +876,6 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - 선택관광: optionalTourNoticeRaw / optionalTourNoticeItems 는 안내문만. optionalTours[] 는 표 행만(안내문 번호 문장을 행에 넣지 말 것). "진행 여부 확인" 같은 문구를 모든 행에 기계적으로 복제하지 말 것.
 - 쇼핑: shoppingNoticeRaw + shoppingStops[] 표 행 분리.
 - 포함/불포함: includedItems[]·excludedItems[] 구분. 전체 덤프는 includedRaw·excludedRaw·includedExcludedRaw에 보존 가능.
-- 현지 가이드 비용·기사 비용·팁(gratuity)은 원문에 "포함" 표기가 명확하지 않으면 반드시 excludedItems[]에 넣는다. "가이드 & 기사 경비 불포함", "가이드비 별도", "현지 가이드 비용 불포함" 등 표현이 있으면 excludedItems[]에 한 줄로 반영.
 - 1인실 추가요금(싱글차지/독실사용료)은 반드시 불포함사항으로 처리한다. singleRoomSurcharge* 필드에 구조화하고, excludedItems[]에 반영한다. singleRoomSurchargeDisplayText는 **한 줄만**(항목명과 금액을 같은 줄에, 줄바꿈으로 금액 분리 금지). 금액이 있으면 예: 「1인실 객실 추가요금 200,000원」 형태를 우선한다.
 - 미팅: meetingPlaceRaw·meetingNoticeRaw·meetingFallbackText. 상세 없으면 meetingFallbackText는 "미팅장소는 상담 시 확인하여 안내드리겠습니다."를 사용.
 - 꼭 확인하세요: mustKnowItems[]/mustKnowRaw 는 **공급사 원문([PASTED REQUIRED CHECKS]·본문 해당 구간) 우선** 구조화. 상담 키워드/불포함/보험/유류/현지경비 반복 금지.
@@ -1229,91 +1228,6 @@ function buildVerygoodDepartureArrivalDisplayRawFromFlight(
   return { departure: dep || null, arrival: arr || null }
 }
 
-/** 상품 호텔 요약 한 줄: 2개 이상 → 「대표명 외 (N-1)개」, 1개→이름만, 0→null (미정 등은 LLM/본문 summary 유지). */
-function buildVerygoodRegisterHotelSummaryFromNames(names: readonly string[]): string | null {
-  const clean = names.map((n) => String(n).trim()).filter(Boolean)
-  if (clean.length === 0) return null
-  if (clean.length === 1) return clean[0]!
-  return `${clean[0]!} 외 ${clean.length - 1}개`
-}
-
-function resolveVerygoodRegisterHotelSummaryFromLlmAndNames(
-  existingSummary: unknown,
-  hotelNames: readonly string[]
-): string | null {
-  const fromLlm = strOrNull(existingSummary as string | null | undefined)
-  if (fromLlm) return fromLlm
-  return buildVerygoodRegisterHotelSummaryFromNames(hotelNames)
-}
-
-function _verygoodIsPlaceholderHotelListName(n: string): boolean {
-  const t = String(n).trim()
-  if (!t) return true
-  if (/^(미정|TBA|[-—]+)$/i.test(t)) return true
-  if (/^동급|^예정\s*호텔|^예정호텔/i.test(t)) return true
-  return false
-}
-
-function _verygoodHasConfirmedHotelFromNames(names: readonly string[]): boolean {
-  return names.some((n) => !_verygoodIsPlaceholderHotelListName(n))
-}
-
-function _verygoodSummaryLooksLikeSingleHotelNameLine(summary: string | null | undefined): boolean {
-  const s = String(summary ?? '').replace(/\s+/g, ' ').trim()
-  if (!s || s.length > 120) return false
-  if (/미정|예정호텔|동급|숙박|홈페이지|알려드|안내|출발\s*\d+\s*일전/.test(s)) return false
-  if (/\s+외\s+\d+\s*개\s*$/.test(s)) return false
-  return s.length >= 2
-}
-
-function _verygoodSummaryLooksLikeConfirmedHotelProduct(
-  summary: string | null | undefined,
-  names: readonly string[]
-): boolean {
-  if (_verygoodHasConfirmedHotelFromNames(names)) return true
-  const s = String(summary ?? '').replace(/\s+/g, ' ').trim()
-  if (!s) return false
-  const m = s.match(/^(.+?)\s+외\s+(\d+)\s*개\s*$/)
-  if (m?.[1] && !_verygoodIsPlaceholderHotelListName(m[1])) return true
-  if (_verygoodSummaryLooksLikeSingleHotelNameLine(s)) return true
-  return false
-}
-
-function _verygoodIsHotelProductUndeterminedForNotice(summary: string | null, names: readonly string[]): boolean {
-  if (_verygoodSummaryLooksLikeConfirmedHotelProduct(summary, names)) return false
-  const s = String(summary ?? '').trim()
-  if (!s && names.length === 0) return true
-  const onlyPlaceholders = names.length === 0 || names.every(_verygoodIsPlaceholderHotelListName)
-  if (!onlyPlaceholders) return false
-  if (!s) return true
-  if (/미정|예정호텔|동급|숙박시설.*미정|확인\s*불가|별도\s*공지|현재\s*미정|미정입니다|예정호텔\s*외/.test(s)) return true
-  return false
-}
-
-function extractVerygoodHotelDepartureNoticeDaysFromHaystack(haystack: string): number {
-  const h = haystack.replace(/\s+/g, ' ')
-  if (/출발\s*전까지\s*홈페이지/i.test(h) && !/출발\s*\d+\s*일/.test(h)) return 1
-  const m = /출발\s*(\d+)\s*일\s*전까지/i.exec(h)
-  if (m?.[1]) {
-    const d = parseInt(m[1], 10)
-    if (d >= 1 && d <= 14) return d
-  }
-  return 1
-}
-
-/** 호텔 미정일 때만 본문 일수 반영해 `(출발 N일전까지 안내)` 부착. */
-export function applyVerygoodHotelUndeterminedDepartureNotice(
-  summary: string | null,
-  hotelNames: readonly string[],
-  haystack: string
-): string | null {
-  if (!_verygoodIsHotelProductUndeterminedForNotice(summary, hotelNames)) return summary
-  const base = (summary?.replace(/\s+/g, ' ').trim() || '미정')
-  if (/\(출발\s*\d+\s*일전까지\s*안내\)/.test(base)) return summary
-  const days = extractVerygoodHotelDepartureNoticeDaysFromHaystack(haystack)
-  return `${base} (출발 ${days}일전까지 안내)`
-}
-
 function buildPreviewDeterministicRegisterRaw(args: {
   detailBody: DetailBodyParseSnapshot
   blockB: string
@@ -1346,8 +1260,7 @@ function buildPreviewDeterministicRegisterRaw(args: {
         .map((r) => [r.dayLabel, r.dateText, r.hotelNameText].filter(Boolean).join(' '))
         .filter(Boolean)
         .join('\n')
-      const summaryLine = buildVerygoodRegisterHotelSummaryFromNames(names)
-      if (summaryLine) out.hotelSummaryText = summaryLine
+      out.hotelSummaryText = names.length === 1 ? names[0] : `${names[0]} 외 ${names.length - 1}`
     }
   }
 
@@ -2491,36 +2404,6 @@ ${text.slice(0, 16000)}`
   }
   options?.onTiming?.('register-parsed-ready')
 
-  const hotelNamesForProductSummary: string[] =
-    detailBody.hotelStructured.rows.length > 0
-      ? detailBody.hotelStructured.rows.map((r) => r.hotelNameText).filter(Boolean)
-      : Array.isArray(raw.hotelNames)
-        ? raw.hotelNames.map((x) => String(x)).filter((x) => String(x).trim())
-        : []
-
-  const hotelDepartureNoticeHaystack = [
-    pastedForSupplier,
-    blockB,
-    strOrNull(raw.hotelInfoRaw) ?? '',
-    strOrNull(raw.hotelNoticeRaw) ?? '',
-    strOrNull(raw.hotelStatusText) ?? '',
-    detailBody.normalizedRaw ?? '',
-    pb.hotel ?? '',
-    verygoodPriceAddonHaystack,
-  ]
-    .filter((x) => String(x).trim().length > 0)
-    .join('\n')
-
-  const hotelSummaryResolvedVerygood = resolveVerygoodRegisterHotelSummaryFromLlmAndNames(
-    (raw as { hotelSummaryText?: unknown }).hotelSummaryText,
-    hotelNamesForProductSummary
-  )
-  const hotelSummaryWithNoticeVerygood = applyVerygoodHotelUndeterminedDepartureNotice(
-    hotelSummaryResolvedVerygood,
-    hotelNamesForProductSummary,
-    hotelDepartureNoticeHaystack
-  )
-
   if (!optionalPaste) {
     optionalToursLlmSupplementJson = null
   }
@@ -2640,7 +2523,7 @@ ${text.slice(0, 16000)}`
           ? raw.hotelNames.map((x) => String(x))
           : undefined,
     dayHotelPlans: dayHotelPlans.length ? dayHotelPlans : undefined,
-    hotelSummaryText: hotelSummaryWithNoticeVerygood,
+    hotelSummaryText: strOrNull((raw as { hotelSummaryText?: unknown }).hotelSummaryText),
     hotelStatusText: strOrNull(raw.hotelStatusText),
     hotelNoticeRaw: strOrNull(raw.hotelNoticeRaw),
     extractionFieldIssues: filterRegisterExtractionIssuesShoppingGeminiNoise(extractionFieldIssues),

@@ -390,48 +390,6 @@ function normalizeDedupText(v: string): string {
     .trim()
 }
 
-/** 가격표·본문에서 가이드/기사·현지 경비 **원문 줄**만 추출(본문에 실제 줄이 있을 때만 후보). */
-function extractGuideDriverFeeLinesFromRegisterPasteBlob(blob: string | null | undefined): string[] {
-  if (!blob?.trim()) return []
-  const out: string[] = []
-  const seen = new Set<string>()
-  const starter =
-    /^[\s\-–—*•·\d.)[\]]]*\s*(가이드\s*경비\b|기사\s*경비\b|인솔\s*경비\b|가이드\s*\/\s*기사\s*경비\b|가이드\/\s*기사\s*경비\b|가이드\s*\/\s*기사(?:\s*경비)?\b)/i
-  const localWithMoney =
-    /^[\s\-–—*•·\d.)[\]]]*\s*현지\s*경비\b.+(?:\$|€|£|¥|￥|USD|EUR|KRW|원|₩|엔|円|JPY|\d[\d,]*\s*(?:USD|EUR|KRW|원|엔|JPY)?)/i
-  for (const raw of blob.replace(/\r/g, '\n').split('\n')) {
-    const line = raw.trim()
-    if (!line) continue
-    const compact = line.replace(/\s+/g, ' ').trim()
-    const hits =
-      starter.test(line) ||
-      localWithMoney.test(line) ||
-      (/가이드\s*\/\s*기사\s*경비/i.test(compact) &&
-        /(\$|€|£|¥|￥|USD|EUR|KRW|원|₩|엔|円|JPY|\d[\d,]{1,})/i.test(compact))
-    if (!hits) continue
-    if (compact.length < 4 || compact.length > 240) continue
-    const key = compact.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    out.push(compact)
-  }
-  return out
-}
-
-function guideDriverFeeLineAlreadyCoveredInExcluded(excludedItems: readonly string[], candidateKey: string): boolean {
-  const cn = candidateKey.trim()
-  if (!cn) return true
-  for (const ex of excludedItems) {
-    const ek = normalizeDedupText(ex)
-    if (!ek) continue
-    if (ek === cn) return true
-    const shorter = cn.length <= ek.length ? cn : ek
-    const longer = cn.length > ek.length ? cn : ek
-    if (shorter.length >= 12 && longer.includes(shorter)) return true
-  }
-  return false
-}
-
 function hasSingleRoomSurchargeHint(text: string): boolean {
   return /(1\s*인\s*(?:객실|실)|독실|싱글\s*차지|single\s*(?:room|charge))/i.test(text)
 }
@@ -456,62 +414,15 @@ function extractSingleRoomSurcharge(rawText: string): {
     null
 
   const source = matchedLine ?? t
-  const parseNum = (s: string) => {
-    const n = Number(String(s).replace(/,/g, ''))
-    return Number.isFinite(n) && n > 0 ? n : null
-  }
-  let amount: number | null = null
-  let currency: string | null = null
-
-  const usdM = source.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/)
-  if (usdM?.[1]) {
-    amount = parseNum(usdM[1])
-    currency = amount != null ? 'USD' : null
-  }
-  if (amount == null) {
-    const eurM =
-      source.match(/€\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/i) ||
-      source.match(/\b([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*EUR\b/i)
-    if (eurM?.[1]) {
-      amount = parseNum(eurM[1])
-      currency = amount != null ? 'EUR' : null
-    }
-  }
-  if (amount == null) {
-    const jpyM =
-      source.match(/¥\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/) ||
-      source.match(/￥\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\b/) ||
-      source.match(/\b([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*(?:엔|円|JPY)\b/i)
-    if (jpyM?.[1]) {
-      amount = parseNum(jpyM[1])
-      currency = amount != null ? 'JPY' : null
-    }
-  }
-  if (amount == null) {
-    const m = source.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*(원|KRW)?/i)
-    if (m?.[1]) {
-      amount = parseNum(m[1])
-      currency = amount != null ? 'KRW' : null
-    }
-  }
+  const m = source.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*(원|KRW)?/i)
+  const amount = m ? Number(m[1].replace(/,/g, '')) : null
+  const currency = amount != null && Number.isFinite(amount) ? 'KRW' : null
 
   return {
-    amount,
+    amount: amount != null && Number.isFinite(amount) ? amount : null,
     currency,
     raw: source.slice(0, 500),
   }
-}
-
-function inferListingPriceCurrencyFromHaystack(haystack: string | null | undefined, rawPriceCurrency: unknown): string | null {
-  const pc = strOrNull(rawPriceCurrency)
-  if (pc) return pc.trim()
-  const t = (haystack ?? '').slice(0, 24_000)
-  if (!t.trim()) return null
-  if (/(?:^|\n)[^\n]{0,160}\$\s*[\d,]/m.test(t)) return 'USD'
-  if (/(?:^|\n)[^\n]{0,160}(€|[\d,]+\s*EUR\b|\bEUR\s*[:：]?\s*[\d,])/im.test(t)) return 'EUR'
-  if (/(?:^|\n)[^\n]{0,160}(¥|￥|[\d,]+\s*(?:엔|円)|\bJPY\s*[:：]?\s*[\d,])/im.test(t)) return 'JPY'
-  if (/원\b|KRW|₩|성인\s*1\s*인\s*[:：]\s*[\d,]+\s*원/i.test(t)) return 'KRW'
-  return null
 }
 
 function llmOptionalToursToStructured(rows: Array<Record<string, unknown>> | undefined): {
@@ -945,7 +856,6 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - 선택관광: optionalTourNoticeRaw / optionalTourNoticeItems 는 안내문만. optionalTours[] 는 표 행만(안내문 번호 문장을 행에 넣지 말 것). "진행 여부 확인" 같은 문구를 모든 행에 기계적으로 복제하지 말 것.
 - 쇼핑: shoppingNoticeRaw + shoppingStops[] 표 행 분리.
 - 포함/불포함: includedItems[]·excludedItems[] 구분. 전체 덤프는 includedRaw·excludedRaw·includedExcludedRaw에 보존 가능.
-- 현지 가이드 비용·기사 비용·팁(gratuity)은 원문에 "포함" 표기가 명확하지 않으면 반드시 excludedItems[]에 넣는다. "가이드 & 기사 경비 불포함", "가이드비 별도", "현지 가이드 비용 불포함" 등 표현이 있으면 excludedItems[]에 한 줄로 반영.
 - 1인실 추가요금(싱글차지/독실사용료)은 반드시 불포함사항으로 처리한다. singleRoomSurcharge* 필드에 구조화하고, excludedItems[]에 반영한다. singleRoomSurchargeDisplayText는 **한 줄만**(항목명과 금액을 같은 줄에, 줄바꿈으로 금액 분리 금지). 금액이 있으면 예: 「1인실 객실 추가요금 200,000원」 형태를 우선한다.
 - 미팅: meetingPlaceRaw·meetingNoticeRaw·meetingFallbackText. 상세 없으면 meetingFallbackText는 "미팅장소는 상담 시 확인하여 안내드리겠습니다."를 사용.
 - 꼭 확인하세요: mustKnowItems[]/mustKnowRaw 는 **공급사 원문([PASTED REQUIRED CHECKS]·본문 해당 구간) 우선** 구조화. 상담 키워드/불포함/보험/유류/현지경비 반복 금지.
@@ -1244,99 +1154,6 @@ function extractDurationLineFromPaste(blob: string): string | null {
   return `${m[1]}박 ${m[2]}일`
 }
 
-/** 상품 호텔 요약 한 줄: 2개 이상 → 「대표명 외 (N-1)개」, 1개→이름만, 0→null (미정 등은 LLM/본문 summary 유지). */
-function buildModetourRegisterHotelSummaryFromNames(names: readonly string[]): string | null {
-  const clean = names.map((n) => String(n).trim()).filter(Boolean)
-  if (clean.length === 0) return null
-  if (clean.length === 1) return clean[0]!
-  return `${clean[0]!} 외 ${clean.length - 1}개`
-}
-
-function resolveModetourRegisterHotelSummaryFromLlmAndNames(
-  existingSummary: unknown,
-  hotelNames: readonly string[]
-): string | null {
-  const fromLlm = strOrNull(existingSummary as string | null | undefined)
-  if (fromLlm) return fromLlm
-  return buildModetourRegisterHotelSummaryFromNames(hotelNames)
-}
-
-function _modetourIsPlaceholderHotelListName(n: string): boolean {
-  const t = String(n).trim()
-  if (!t) return true
-  if (/^(미정|TBA|TBD|[-—]+)$/i.test(t)) return true
-  if (/^동급|^예정\s*호텔|^예정호텔/i.test(t)) return true
-  return false
-}
-
-function _modetourHasConfirmedHotelFromNames(names: readonly string[]): boolean {
-  return names.some((n) => !_modetourIsPlaceholderHotelListName(n))
-}
-
-function _modetourSummaryLooksLikeSingleHotelNameLine(summary: string | null | undefined): boolean {
-  const s = String(summary ?? '').replace(/\s+/g, ' ').trim()
-  if (!s || s.length > 120) return false
-  if (/미정|TBD|예정호텔|동급|숙박|홈페이지|알려드|안내|출발\s*\d+\s*일전/i.test(s)) return false
-  if (/\s+외\s+\d+\s*개\s*$/.test(s)) return false
-  return s.length >= 2
-}
-
-function _modetourSummaryLooksLikeConfirmedHotelProduct(
-  summary: string | null | undefined,
-  names: readonly string[]
-): boolean {
-  if (_modetourHasConfirmedHotelFromNames(names)) return true
-  const s = String(summary ?? '').replace(/\s+/g, ' ').trim()
-  if (!s) return false
-  const m = s.match(/^(.+?)\s+외\s+(\d+)\s*개\s*$/)
-  if (m?.[1] && !_modetourIsPlaceholderHotelListName(m[1])) return true
-  if (_modetourSummaryLooksLikeSingleHotelNameLine(s)) return true
-  return false
-}
-
-function _modetourIsHotelProductUndeterminedForNotice(summary: string | null, names: readonly string[]): boolean {
-  if (_modetourSummaryLooksLikeConfirmedHotelProduct(summary, names)) return false
-  const s = String(summary ?? '').trim()
-  if (!s && names.length === 0) return true
-  const onlyPlaceholders = names.length === 0 || names.every(_modetourIsPlaceholderHotelListName)
-  if (!onlyPlaceholders) return false
-  if (!s) return true
-  if (/미정|TBD|예정호텔|동급|숙박시설.*미정|확인\s*불가|별도\s*공지|현재\s*미정|미정입니다|예정호텔\s*외/i.test(s)) return true
-  return false
-}
-
-function extractModetourHotelDepartureNoticeDaysFromHaystack(haystack: string): number {
-  const h = haystack.replace(/\s+/g, ' ')
-  const seq = [
-    /출발\s*(\d+)\s*일\s*전까지/gi,
-    /출발\s*(\d+)\s*일전까지/gi,
-    /(\d+)\s*일\s*전까지\s*(?:확정|알려|안내)/gi,
-    /호텔[^.\n]{0,80}?(\d+)\s*일\s*전까지/gi,
-  ]
-  for (const re of seq) {
-    re.lastIndex = 0
-    const m = re.exec(h)
-    if (m?.[1]) {
-      const d = parseInt(m[1], 10)
-      if (d >= 1 && d <= 14) return d
-    }
-  }
-  return 1
-}
-
-/** 호텔 미정일 때만 본문 일수 반영해 `(출발 N일전까지 안내)` 부착. */
-export function applyModetourHotelUndeterminedDepartureNotice(
-  summary: string | null,
-  hotelNames: readonly string[],
-  haystack: string
-): string | null {
-  if (!_modetourIsHotelProductUndeterminedForNotice(summary, hotelNames)) return summary
-  const base = (summary?.replace(/\s+/g, ' ').trim() || '미정')
-  if (/\(출발\s*\d+\s*일전까지\s*안내\)/.test(base)) return summary
-  const days = extractModetourHotelDepartureNoticeDaysFromHaystack(haystack)
-  return `${base} (출발 ${days}일전까지 안내)`
-}
-
 function buildPreviewDeterministicRegisterRaw(args: {
   detailBody: DetailBodyParseSnapshot
   blockB: string
@@ -1366,8 +1183,7 @@ function buildPreviewDeterministicRegisterRaw(args: {
         .map((r) => [r.dayLabel, r.dateText, r.hotelNameText].filter(Boolean).join(' '))
         .filter(Boolean)
         .join('\n')
-      const summaryLine = buildModetourRegisterHotelSummaryFromNames(names)
-      if (summaryLine) out.hotelSummaryText = summaryLine
+      out.hotelSummaryText = names.length === 1 ? names[0] : `${names[0]} 외 ${names.length - 1}`
     }
   }
 
@@ -2229,7 +2045,8 @@ ${text.slice(0, 16000)}`
       .join('\n')
   )
   const singleRoomSurchargeAmount = llmSingleRoomAmount ?? inferredSingleRoom.amount
-  const singleRoomSurchargeCurrency = llmSingleRoomCurrency ?? inferredSingleRoom.currency ?? null
+  const singleRoomSurchargeCurrency =
+    llmSingleRoomCurrency ?? inferredSingleRoom.currency ?? (singleRoomSurchargeAmount != null ? 'KRW' : null)
   const singleRoomSurchargeRaw = llmSingleRoomRaw ?? inferredSingleRoom.raw
   const hasSingleRoomSurcharge =
     Boolean(raw.hasSingleRoomSurcharge) ||
@@ -2246,28 +2063,10 @@ ${text.slice(0, 16000)}`
     ? hasSingleRoomSurchargeHint(excludedTextSource)
     : false
   const excludedItems = [...excludedItemsBase]
-  const excludedItemDedupKeys = new Set(excludedItems.map((x) => normalizeDedupText(x)))
   if (singleRoomSurchargeDisplayText && !excludedTextHasSingleRoom) {
+    const existingKeys = new Set(excludedItems.map((x) => normalizeDedupText(x)))
     const nextKey = normalizeDedupText(singleRoomSurchargeDisplayText)
-    if (!excludedItemDedupKeys.has(nextKey)) {
-      excludedItemDedupKeys.add(nextKey)
-      excludedItems.push(singleRoomSurchargeDisplayText)
-    }
-  }
-  const guideDriverFeeHaystack = [
-    (pb.priceTable ?? '').trim(),
-    strOrNull(raw.priceTableRawText) ?? '',
-    stripHtmlForPriceBlob(strOrNull(raw.priceTableRawHtml)),
-    blockB,
-    pastedForSupplier,
-  ]
-    .filter((x) => String(x).trim().length > 0)
-    .join('\n\n')
-  for (const gl of extractGuideDriverFeeLinesFromRegisterPasteBlob(guideDriverFeeHaystack)) {
-    const k = normalizeDedupText(gl)
-    if (excludedItemDedupKeys.has(k) || guideDriverFeeLineAlreadyCoveredInExcluded(excludedItems, k)) continue
-    excludedItemDedupKeys.add(k)
-    excludedItems.push(gl)
+    if (!existingKeys.has(nextKey)) excludedItems.push(singleRoomSurchargeDisplayText)
   }
   const includedTextMerged =
     (raw.includedRaw as string)?.trim() ||
@@ -2427,35 +2226,6 @@ ${text.slice(0, 16000)}`
   }
   options?.onTiming?.('register-parsed-ready')
 
-  const hotelNamesForProductSummary: string[] =
-    detailBody.hotelStructured.rows.length > 0
-      ? detailBody.hotelStructured.rows.map((r) => r.hotelNameText).filter(Boolean)
-      : Array.isArray(raw.hotelNames)
-        ? raw.hotelNames.map((x) => String(x)).filter((x) => String(x).trim())
-        : []
-
-  const hotelDepartureNoticeHaystack = [
-    pastedForSupplier,
-    blockB,
-    strOrNull(raw.hotelInfoRaw) ?? '',
-    strOrNull(raw.hotelNoticeRaw) ?? '',
-    strOrNull(raw.hotelStatusText) ?? '',
-    detailBody.normalizedRaw ?? '',
-    pb.hotel ?? '',
-  ]
-    .filter((x) => String(x).trim().length > 0)
-    .join('\n')
-
-  const hotelSummaryResolved = resolveModetourRegisterHotelSummaryFromLlmAndNames(
-    (raw as { hotelSummaryText?: unknown }).hotelSummaryText,
-    hotelNamesForProductSummary
-  )
-  const hotelSummaryWithNotice = applyModetourHotelUndeterminedDepartureNotice(
-    hotelSummaryResolved,
-    hotelNamesForProductSummary,
-    hotelDepartureNoticeHaystack
-  )
-
   return {
     originSource: normalizedSource,
     originCode: finalOriginCode,
@@ -2498,9 +2268,7 @@ ${text.slice(0, 16000)}`
       freeTime: freeTimeSummaryFinal,
     },
     priceFrom: priceFromResolved,
-    priceCurrency:
-      inferListingPriceCurrencyFromHaystack(priceBlobForInfant, (raw as { priceCurrency?: unknown }).priceCurrency) ??
-      (priceFromResolved != null ? 'KRW' : null),
+    priceCurrency: priceFromResolved != null ? 'KRW' : null,
     duration: (raw.duration ?? '').trim() || '미지정',
     airline: airlineDisplay,
     isFuelIncluded: raw.isFuelIncluded !== false,
@@ -2560,7 +2328,7 @@ ${text.slice(0, 16000)}`
           ? raw.hotelNames.map((x) => String(x))
           : undefined,
     dayHotelPlans: dayHotelPlans.length ? dayHotelPlans : undefined,
-    hotelSummaryText: hotelSummaryWithNotice,
+    hotelSummaryText: strOrNull((raw as { hotelSummaryText?: unknown }).hotelSummaryText),
     hotelStatusText: strOrNull(raw.hotelStatusText),
     hotelNoticeRaw: strOrNull(raw.hotelNoticeRaw),
     extractionFieldIssues: filterRegisterExtractionIssuesShoppingGeminiNoise(extractionFieldIssues),

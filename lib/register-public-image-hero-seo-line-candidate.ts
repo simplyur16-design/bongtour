@@ -126,22 +126,6 @@ const REGISTER_KEYWORD_POLLUTED_RES: readonly RegExp[] = [
   /\b\d{5,}\b/,
 ]
 
-/** 상품 카드·목록 UI 배지·코드(관광지 키워드로 오인 방지) */
-const LISTING_META_CONTAMINATION_RE =
-  /상품번호|상품코드|리뷰\s*\d|리뷰\s*건|\(\s*리뷰|리뷰\s*0건|리뷰\s*\d+건|\/\s*5\s*\(|\/\s*5\s*$|\d+(?:\.\d+)?\s*\/\s*5\b|[-–—]\s*\/\s*5\b/i
-
-/** 공급사 마케팅 칩(단독 토큰) */
-const STANDALONE_MARKETING_LABEL_RE = /^해외패키지$/u
-
-/** CEG3060, CEP1002-260Z, FAQP14Z0IC 등 — 공백 제거 후 판별(순수 8자+ 영문만은 제외해 지명 오탐 완화) */
-function looksLikeSupplierProductCodeToken(s: string): boolean {
-  const compact = s.replace(/\s+/g, '').replace(/[…\.]+$/g, '')
-  if (compact.length < 4) return false
-  if (/^(?=.*\d)[A-Z0-9]{8,}$/i.test(compact)) return true
-  if (/^[A-Z]{2,}\d/i.test(compact)) return true
-  return false
-}
-
 function registerKeywordContaminated(line: string): boolean {
   const t = line.replace(/\s+/g, ' ').trim()
   if (isProductHeroListingSeoContaminated(t)) return true
@@ -150,37 +134,10 @@ function registerKeywordContaminated(line: string): boolean {
     if (c.includes(w)) return true
   }
   if (/현지\s*옵션|옵션\s*\d/.test(t)) return true
-  if (LISTING_META_CONTAMINATION_RE.test(t)) return true
-  if (STANDALONE_MARKETING_LABEL_RE.test(t.trim())) return true
-  if (/리뷰/.test(t)) return true
-  if (looksLikeSupplierProductCodeToken(t)) return true
   for (const re of REGISTER_KEYWORD_POLLUTED_RES) {
     if (re.test(t)) return true
   }
   return false
-}
-
-/** 키워드·한 줄 모두 실패 시에도 NULL 저장 방지 */
-function buildGuaranteedRegisterSeoOneLine(input: RegisterPublicImageHeroSeoLineCandidateInput): string {
-  const title = (input.title ?? '').replace(/\s+/g, ' ').trim()
-  const head =
-    (input.primaryDestination ?? '').replace(/\s+/g, ' ').trim() ||
-    (input.destination ?? '').split(/[,，、]/)[0]?.replace(/\s+/g, ' ').trim() ||
-    (input.city ?? '').replace(/\s+/g, ' ').trim() ||
-    (input.country ?? '').replace(/\s+/g, ' ').trim() ||
-    ''
-  const dur = compactDurationLabelForProductSeo(input.duration)
-  if (head && dur) return truncateLine(`${head} ${dur}`, LINE_MAX)
-  if (head) return truncateLine(`${head} 핵심`, LINE_MAX)
-  const chunk = title.match(/[가-힣][가-힣0-9·\s]{0,14}/u)?.[0]?.replace(/\s+/g, ' ').trim()
-  if (chunk && chunk.length >= 2 && !registerKeywordContaminated(chunk)) {
-    return truncateLine(chunk, LINE_MAX)
-  }
-  const lat = title.match(/\b[A-Za-z][A-Za-z\s]{2,18}\b/)?.[0]?.trim()
-  if (lat && lat.length >= 3 && !registerKeywordContaminated(lat)) {
-    return truncateLine(lat, LINE_MAX)
-  }
-  return truncateLine('해외 여행', LINE_MAX)
 }
 
 export type RegisterPublicImageHeroSeoLineCandidateInput = {
@@ -188,9 +145,6 @@ export type RegisterPublicImageHeroSeoLineCandidateInput = {
   title: string
   primaryDestination?: string | null
   destination?: string | null
-  /** 선택. 전달 시 목적지 토큰·폴백 한 줄 보강에 사용(미전달 시 무시). */
-  country?: string | null
-  city?: string | null
   duration?: string | null
   summary?: string | null
   themeTags?: string | null
@@ -218,7 +172,7 @@ export type RegisterPublicImageHeroSeoLineCandidateInput = {
  */
 export function buildRegisterPublicImageHeroSeoLineCandidate(
   input: RegisterPublicImageHeroSeoLineCandidateInput
-): string {
+): string | null {
   const title = (input.title ?? '').trim()
 
   const blocks: string[] = []
@@ -274,7 +228,7 @@ export function buildRegisterPublicImageHeroSeoLineCandidate(
     if (!SUPPLIER_NAME_BAN.test(merged)) return truncateLine(merged, LINE_MAX)
   }
 
-  const overlay = buildPublicProductHeroSeoKeywordOverlay({
+  return buildPublicProductHeroSeoKeywordOverlay({
     seoCaptionFromAsset: null,
     title,
     primaryDestination: input.primaryDestination ?? null,
@@ -282,19 +236,6 @@ export function buildRegisterPublicImageHeroSeoLineCandidate(
     duration: input.duration ?? null,
     originSource: input.originSourceForFallback,
   })
-  if (overlay) {
-    const cleaned = overlay.replace(/\s+/g, ' ').trim()
-    if (
-      cleaned &&
-      !registerKeywordContaminated(cleaned) &&
-      !SUPPLIER_NAME_BAN.test(cleaned) &&
-      !PHRASE_BAN.test(cleaned)
-    ) {
-      return truncateLine(cleaned, LINE_MAX)
-    }
-  }
-
-  return buildGuaranteedRegisterSeoOneLine(input)
 }
 
 /** `resolvePublicProductHeroSeoKeywordOverlay` 저장 JSON 토큰 자르기 상한과 동일하게 유지 */
@@ -303,14 +244,9 @@ const REGISTER_KEYWORD_EACH_MAX = 16
 /** 다도시·다국 목적지 문자열에서 짧은 지명 1~2개만 추출(등록 키워드 보강, 옵션 요약 미사용) */
 function cleanShortDestinationTokens(
   primary: string | null | undefined,
-  destination: string | null | undefined,
-  extras?: readonly (string | null | undefined)[]
+  destination: string | null | undefined
 ): string[] {
   const ordered: string[] = []
-  for (const e of extras ?? []) {
-    const ex = (e ?? '').replace(/\s+/g, ' ').trim()
-    if (ex && !/[，,、]/.test(ex) && ex.length >= 2 && ex.length <= 10) ordered.push(ex)
-  }
   const p = (primary ?? '').replace(/\s+/g, ' ').trim()
   if (p && !/[，,、]/.test(p) && p.length >= 2 && p.length <= 10) ordered.push(p)
   for (const x of (destination ?? '').split(/[,，、/|·]+/)) {
@@ -407,10 +343,7 @@ export function buildRegisterPublicImageHeroSeoKeywords(
   const slotsAfterBodyAndTheme = out.length
 
   // 3순위: 목적지·권역·기간
-  for (const tok of cleanShortDestinationTokens(input.primaryDestination, input.destination, [
-    input.country,
-    input.city,
-  ])) {
+  for (const tok of cleanShortDestinationTokens(input.primaryDestination, input.destination)) {
     push(tok)
   }
 

@@ -65,7 +65,7 @@ const SCHEDULE_CHUNK_PER_DAY_MAX_OUTPUT_TOKENS = parseEnvIntInRange(
 /** 일차 description 하드 상한(LLM이 길게 써도 서버에서 잘림). */
 const SCHEDULE_EXTRACT_DESCRIPTION_MAX_CHARS = parseEnvIntInRange(
   process.env.GEMINI_SCHEDULE_EXTRACT_DESCRIPTION_MAX_CHARS,
-  400,
+  300,
   120,
   600
 )
@@ -269,7 +269,7 @@ function buildScheduleOnlyPrompt(
     `- **schedule 배열 길이 = 정확히 ${expectedDays}개.**\n` +
     `- **day는 1부터 ${expectedDays}까지 각각 1개씩, 중복·누락 금지.**\n` +
     `- 마지막 일차(귀국·출국·기내박·숙박 없음)까지 반드시 포함.\n` +
-    `- 각 항목: day, title, description(한국어 **3~4문장·400자 이내**), imageKeyword(영문 장소명 짧게), ` +
+    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), imageKeyword(영문 장소명 짧게), ` +
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
     `- description: 해당 일차의 이동·관광·식사·숙박 흐름을 **짧은 문어체**로 요약. 원문 장문·HTML을 **통째로 복사**하지 말 것.\n` +
     `- 방문지가 많으면 **이름 위주로 묶어** 쓰고, 식사·호텔 디테일은 가능하면 meal·hotel 필드에 둔다.\n\n` +
@@ -306,7 +306,7 @@ function buildScheduleOnlyPromptForSingleDay(
     `- 아래 본문은 **제${day}일차** 구간만 포함한다.\n` +
     `- **schedule 배열 길이 = 정확히 1개.** day=${day} 인 항목만.\n` +
     `- **day 필드는 반드시 정수 ${day}**\n` +
-    `- 각 항목: day, title, description(한국어 **3~4문장·400자 이내**), imageKeyword(영문 장소명 짧게), ` +
+    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), imageKeyword(영문 장소명 짧게), ` +
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
     `- description: 해당 일차를 **짧게** 요약. 원문 복붙·장황한 나열 금지.\n\n` +
     hint +
@@ -441,23 +441,6 @@ export async function runScheduleExtractLlm(
   return runScheduleExtractLlmMonolithic(model, pastedBody, expectedDays, opts)
 }
 
-const FIRST_PASS_DAY_N_TRAVEL_KW_RE = /^Day\s*\d+\s*travel$/i
-const FIRST_PASS_DESCRIPTION_MIN_FOR_TRUST = 100
-
-function isFirstPassSchedulePlaceholderDescription(desc: string): boolean {
-  const t = desc.replace(/\r\n/g, '\n').trim()
-  if (!t) return true
-  const oneLine = t.replace(/\s+/g, ' ').trim()
-  if (/^(?:해당\s*)?(?:\d+\s*)?일차(?:\s*일정)?입니다\.?$/iu.test(oneLine)) return true
-  if (/^일정입니다\.?$/iu.test(oneLine)) return true
-  if (/^day\s*\d+\s*$/iu.test(oneLine)) return true
-  return false
-}
-
-function firstPassImageKeywordIsGenericTravelPlaceholder(kw: string): boolean {
-  return FIRST_PASS_DAY_N_TRAVEL_KW_RE.test(kw.trim())
-}
-
 /**
  * 일정 선추출(`runScheduleExtractLlm`) 행이 있으면 **일차별로** 메인 JSON `schedule`보다 우선한다.
  * 선추출이 일수만큼 안 나와도 기존처럼 전부 버리지 않고, 나온 일차는 선추출 문장을 쓴다.
@@ -481,27 +464,13 @@ export function mergeScheduleWithFirstPassPreferExtractRows(
     const fp = fpByDay.get(d)
     const main = mainByDay.get(d)
     if (fp && main) {
-      const mainTitle = String(main.title ?? '').trim()
-      const mainDesc = String(main.description ?? '').trim()
-      const mainKw = String(main.imageKeyword ?? '').trim()
-      const fpTitle = fp.title.trim()
-      const fpDesc = fp.description.trim()
-      const fpKw = fp.imageKeyword.trim()
-      const preferMainDesc =
-        fpDesc.length < FIRST_PASS_DESCRIPTION_MIN_FOR_TRUST ||
-        isFirstPassSchedulePlaceholderDescription(fpDesc)
-      const preferMainKw = firstPassImageKeywordIsGenericTravelPlaceholder(fpKw)
-      const titleMerged = preferMainDesc ? mainTitle || fpTitle : fpTitle || mainTitle
-      const descriptionMerged = preferMainDesc ? mainDesc || fpDesc : fpDesc || mainDesc
-      const imageKeywordMerged = preferMainKw
-        ? mainKw || fpKw || `Day ${d} travel`
-        : fpKw || mainKw || `Day ${d} travel`
       out.push({
         ...main,
         day: fp.day,
-        title: titleMerged,
-        description: descriptionMerged,
-        imageKeyword: imageKeywordMerged,
+        title: fp.title.trim() || String(main.title ?? '').trim(),
+        description: fp.description.trim() || String(main.description ?? '').trim(),
+        imageKeyword:
+          fp.imageKeyword.trim() || String(main.imageKeyword ?? '').trim() || `Day ${d} travel`,
         hotelText: fp.hotelText ?? main.hotelText ?? null,
         breakfastText: fp.breakfastText ?? main.breakfastText ?? null,
         lunchText: fp.lunchText ?? main.lunchText ?? null,
