@@ -332,28 +332,36 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
     'europe-me-africa',
     '유럽 · 중동 · 아프리카',
     [
-      C('uk', '영국', [L('uk', '영국 일반', { aliases: ['영국', 'london', '런던', 'UK'], supplierKeywords: ['LHR', 'LGW'] })], {
-        aliases: ['영국', 'britain'],
+      C('france', '프랑스', [
+        L('fr', '프랑스', { aliases: ['프랑스', 'france', '파리', 'paris', '니스'] }),
+        L('cotedazur', '코트다쥐르', {
+          aliases: ['nice', '니스', '칸', 'cannes', 'cote dazur', '남프랑스', 'south france'],
+        }),
+      ], {
+        aliases: ['프랑스', '남프랑스'],
       }),
       C('switzerland', '스위스', [L('ch', '스위스', { aliases: ['스위스', 'switzerland', '취리히', 'zurich', '인터라켄'] })], {
         aliases: ['스위스'],
       }),
-      C('italy', '이탈리아', [L('it', '이탈리아', { aliases: ['이탈리아', 'italy', '로마', 'roma', '밀라노', '베네치아'] })], {
-        aliases: ['이탈리아'],
+      C('italy', '이탈리아', [
+        L('it', '이탈리아', { aliases: ['이탈리아', 'italy', '로마', 'roma', '밀라노', '베네치아'] }),
+        L('sicily', '시칠리아', { aliases: ['sicily', '시칠리아', '팔레르모', 'sicilia'] }),
+      ], {
+        aliases: ['이탈리아', '시칠리아'],
       }),
-      C('france', '프랑스', [L('fr', '프랑스', { aliases: ['프랑스', 'france', '파리', 'paris', '니스'] })], {
-        aliases: ['프랑스'],
+      C('uk', '영국', [
+        L('uk', '영국 일반', { aliases: ['영국', 'london', '런던', 'UK'], supplierKeywords: ['LHR', 'LGW'] }),
+        L('ie', '아일랜드', { aliases: ['ireland', 'Ireland', '더블린', 'Dublin'] }),
+      ], {
+        aliases: ['영국', 'britain', '아일랜드'],
       }),
-      C('south-france', '남프랑스', [L('cotedazur', '코트다쥐르', { aliases: ['nice', '니스', '칸', 'cannes'] })], {
-        aliases: ['남프랑스'],
+      C('netherlands', '네덜란드', [
+        L('nl', '네덜란드', { aliases: ['netherlands', '암스테르담', 'holland', 'Amsterdam'] }),
+        L('be', '벨기에', { aliases: ['belgium', '벨기에', '브뤼셀', 'Brussels'] }),
+      ], {
+        aliases: ['네덜란드', '벨기에'],
       }),
-      C('sicily', '시칠리아', [L('sicily', '시칠리아', { aliases: ['sicily', '팔레르모'] })], { aliases: ['시칠리아'] }),
       C('germany', '독일', [L('de', '독일', { aliases: ['독일', 'germany', '베를린', '뮌헨'] })], { aliases: ['독일'] }),
-      C('ireland', '아일랜드', [L('ie', '아일랜드', { aliases: ['ireland', '더블린'] })], { aliases: ['아일랜드'] }),
-      C('netherlands', '네덜란드', [L('nl', '네덜란드', { aliases: ['netherlands', '암스테르담', 'holland'] })], {
-        aliases: ['네덜란드'],
-      }),
-      C('belgium', '벨기에', [L('be', '벨기에', { aliases: ['belgium', '브뤼셀'] })], { aliases: ['벨기에'] }),
       C('austria', '오스트리아', [L('at', '오스트리아', { aliases: ['austria', '비엔나', '잘츠부르크'] })], {
         aliases: ['오스트리아'],
       }),
@@ -382,15 +390,12 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         aliases: ['튀르키예', '터키'],
         supplierKeywords: ['튀르키예(터키)'],
       }),
-      C(
-        'greece-egypt',
-        '그리스 · 이집트',
-        [
-          L('greece', '그리스', { aliases: ['greece', '그리스', '아테네', '산토리니'] }),
-          L('egypt', '이집트', { aliases: ['egypt', '이집트', '카이로', '룩소르'], supplierKeywords: ['이집트'] }),
-        ],
-        { aliases: ['그리스', '이집트'] }
-      ),
+      C('greece', '그리스', [L('greece', '그리스', { aliases: ['greece', '그리스', '아테네', '산토리니'] })], {
+        aliases: ['그리스'],
+      }),
+      C('egypt', '이집트', [L('egypt', '이집트', { aliases: ['egypt', '이집트', '카이로', '룩소르'], supplierKeywords: ['이집트'] })], {
+        aliases: ['이집트'],
+      }),
       C(
         'caucasus',
         '코카서스 3국',

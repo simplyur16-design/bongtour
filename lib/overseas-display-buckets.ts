@@ -58,20 +58,18 @@ const EUROPE_WEST_COUNTRIES = new Set<string>([
   'switzerland',
   'italy',
   'france',
-  'south-france',
-  'sicily',
-  'germany',
-  'ireland',
   'netherlands',
-  'belgium',
-  'austria',
   'spain',
   'portugal',
+  'morocco',
+  'greece',
+  'turkey',
+  'egypt',
 ])
 
 const EUROPE_NORTH_COUNTRIES = new Set<string>(['nordic-baltic'])
 
-const EUROPE_EAST_COUNTRIES = new Set<string>(['czech', 'hungary', 'balkans'])
+const EUROPE_EAST_COUNTRIES = new Set<string>(['czech', 'hungary', 'balkans', 'germany', 'austria'])
 
 /** `europe-me-africa` 그룹 중 표시 9분류에 없는 국가·테마 → 그외 */
 function europeMeAfricaToBucket(match: MatchProductToOverseasNodeResult): OverseasDisplayBucketId {

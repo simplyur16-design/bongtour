@@ -108,10 +108,6 @@ export function buildEuropeMegaMenuGroups(): MegaMenuCountryGroupInput[] {
       { label: '이탈리아', ck: 'italy' },
       { label: '영국', ck: 'uk' },
       { label: '네덜란드', ck: 'netherlands' },
-      { label: '벨기에', ck: 'belgium' },
-      { label: '아일랜드', ck: 'ireland' },
-      { label: '남프랑스', ck: 'south-france' },
-      { label: '시칠리아', ck: 'sicily' },
     ]),
     g('동유럽', [
       { label: '체코', ck: 'czech' },
@@ -136,11 +132,9 @@ export function buildEuropeMegaMenuGroups(): MegaMenuCountryGroupInput[] {
       { label: '포르투갈', ck: 'portugal' },
       { label: '모로코', ck: 'morocco' },
     ]),
-    g('그리스/튀르키예', [
-      { label: '그리스', ck: 'greece-egypt', leafKeys: ['greece'] },
-      { label: '튀르키예', ck: 'turkey' },
-      { label: '이집트', ck: 'greece-egypt', leafKeys: ['egypt'] },
-    ]),
+    g('튀르키예', [{ label: '튀르키예', ck: 'turkey' }]),
+    g('이집트', [{ label: '이집트', ck: 'egypt' }]),
+    g('그리스', [{ label: '그리스', ck: 'greece' }]),
     g('북유럽', [
       { label: '노르웨이', ck: 'nordic-baltic', leafKeys: ['norway'] },
       { label: '핀란드', ck: 'nordic-baltic', leafKeys: ['finland'] },

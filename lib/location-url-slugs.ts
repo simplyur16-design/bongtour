@@ -71,6 +71,8 @@ const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
   '아프리카 · 모리셔스': 'africa-browse-countries',
   '발칸 · 크로아티아 · 슬로베니아': 'balkans',
   '그리스 · 이집트': 'greece-egypt',
+  그리스: 'greece',
+  이집트: 'egypt',
   영국: 'uk',
   독일: 'germany',
   체코: 'czech',
@@ -87,7 +89,6 @@ const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
   아이슬란드: 'iceland',
   모로코: 'morocco',
   튀르키예: 'turkey',
-  그리스: 'greece',
   '중국 주요 도시': 'china-major-cities',
   '내몽골(내몽고)': 'inner-mongolia',
   중앙아시아: 'central-asia',
@@ -97,8 +98,8 @@ const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
   '중남미 · 카리브': 'latin-caribbean',
   '스포츠 · 경기 직관': 'sports-tours',
   동아시아: 'cruise-east-asia',
-  남프랑스: 'south-france',
-  시칠리아: 'sicily',
+  남프랑스: 'france',
+  시칠리아: 'italy',
   '중국 트레킹': 'china-trekking',
 }
 
