@@ -159,6 +159,10 @@ SLIDE_WAIT_MS = 1000
 MONTH_WAIT_MS = 1000
 
 VERYGOOD_POPUP_OPEN_SELECTORS = [
+    "a.btn.small.jq_cl_dayChange",
+    "a.jq_cl_dayChange",
+    "button:has-text('출발일변경')",
+    "a:has-text('출발일변경')",
     "button:has-text('출발일 변경')",
     "a:has-text('출발일 변경')",
     "button:has-text('출발일선택')",
@@ -170,6 +174,8 @@ VERYGOOD_POPUP_OPEN_SELECTORS = [
     "[class*='btn']:has-text('출발일')",
 ]
 VERYGOOD_MONTH_NEXT_SELECTORS = [
+    "a.date_arr.date_next.jq_cl_moveMonth",
+    "a.jq_cl_moveMonth.date_next",
     ".month_next",
     ".calendar_next",
     "button.next",
@@ -181,11 +187,154 @@ VERYGOOD_MONTH_NEXT_SELECTORS = [
     "[class*='next_month']",
     "button[title*='다음']",
 ]
+VERYGOOD_MODAL_WAIT_SELECTORS = [
+    ".ui-dialog.ui-widget",
+    ".ui-dialog .pop_wrap.layer_pop",
+    ".dep_left_wrap",
+    ".dep_right_wrap",
+    "[role='dialog']",
+]
 
 
 def _verygood_log(msg: str) -> None:
     """관리자 subprocess는 stdout=JSON 이므로 진단은 stderr."""
     print(msg, file=__import__("sys").stderr, flush=True)
+
+
+def _verygood_phase_always(phase: str, detail: str = "") -> None:
+    """환경과 무관하게 stderr phase 한 줄 (운영 로그·Node 진단용)."""
+    d = (detail or "").strip()
+    if d:
+        _verygood_log(f"[verygoodtour] phase={phase} {d}")
+    else:
+        _verygood_log(f"[verygoodtour] phase={phase}")
+
+
+def _verygood_detail_url_summary(detail_url: str) -> str:
+    try:
+        p = urllib.parse.urlparse(detail_url)
+        host = p.netloc or "—"
+        path = (p.path or "—")[:96]
+        q = urllib.parse.parse_qs(p.query)
+        pc = (q.get("ProCode") or q.get("procode") or [None])[0]
+        ps = (q.get("PriceSeq") or q.get("priceseq") or [None])[0]
+        c = str(pc)[:48] if pc else "—"
+        s = str(ps)[:12] if ps else "—"
+        return f"host={host} path={path} ProCode={c} PriceSeq={s}"
+    except Exception:
+        return "host=? url_parse_error"
+
+
+# 좌측 td.jq_cl_day + 우측 li.jq_cl_detailViewBtn 일괄 (명세 DOM)
+VERYGOOD_MODAL_DOM_BUNDLE_JS = r"""
+() => {
+  const dialog =
+    document.querySelector('.ui-dialog.ui-widget') ||
+    document.querySelector('.ui-dialog.ui-widget-content') ||
+    document.querySelector('.ui-dialog') ||
+    document.querySelector('[role="dialog"]');
+  const pop = dialog ? (dialog.querySelector('.pop_wrap.layer_pop') || dialog) : null;
+  const root = pop || document.body;
+  const left = root.querySelector('.dep_left_wrap') || root;
+  const dateTxtEl =
+    root.querySelector('span.date_txt') ||
+    left.querySelector('span.date_txt') ||
+    document.querySelector('.dep_left_wrap span.date_txt');
+  const dtRaw = dateTxtEl ? String(dateTxtEl.innerText || '').replace(/\s+/g, '').trim() : '';
+  let y = '';
+  let mo = '';
+  const dtM = dtRaw.match(/^(20\d{2})\.(\d{1,2})$/);
+  if (dtM) {
+    y = dtM[1];
+    mo = String(parseInt(dtM[2], 10)).padStart(2, '0');
+  }
+  const leftCells = [];
+  if (y && mo) {
+    for (const td of left.querySelectorAll('td.jq_cl_day')) {
+      const raw = (td.innerText || '').replace(/\s+/g, ' ').trim();
+      const mm = raw.match(/^(\d{1,2})(?:\s+(\d+)\s*만원~?)?$/);
+      if (!mm) continue;
+      const day = parseInt(mm[1], 10);
+      const man = mm[2] ? parseInt(mm[2], 10) : 0;
+      const iso = y + '-' + mo + '-' + String(day).padStart(2, '0');
+      leftCells.push({ date: iso, approxPrice: man > 0 ? man * 10000 : 0, raw });
+    }
+  }
+  const right = root.querySelector('.dep_right_wrap') || root;
+  const carriers =
+    '에미레이트항공|에미레이트|튀르키예항공|터키항공|카타르항공|카타르|' +
+    '에티하드항공|에티하드|영국항공|싱가포르항공|태국항공|베트남항공|티웨이항공|대한항공|아시아나항공|제주항공|진에어|에어부산|에어서울|이스타항공|' +
+    '에어프레미아|플라이강원|루프트한자|에어부산항공|에어캐나다|델타항공|유나이티드항공|에뉴질랜드|핀에어|ANA|전일본공수';
+  const carrierRe = new RegExp('(' + carriers + ')');
+  const rightRows = [];
+  for (const li of right.querySelectorAll('li.jq_cl_detailViewBtn')) {
+    const t = (li.innerText || '').replace(/\s+/g, ' ').trim();
+    if (t.length < 8 || t.length > 2500) continue;
+    let price = 0;
+    const pw =
+      li.querySelector('.price_wrap.fs18.mr0') ||
+      li.querySelector('.price_wrap.fs18') ||
+      li.querySelector('.price_wrap');
+    if (pw) {
+      const ptx = (pw.innerText || '').replace(/\s+/g, ' ');
+      let pm = ptx.match(/([0-9]{1,3}(?:,[0-9]{3})+)\s*원/);
+      if (!pm) pm = ptx.match(/([0-9]{4,9})\s*원/);
+      if (pm) price = parseInt(pm[1].replace(/,/g, ''), 10);
+    }
+    let date = '';
+    const dm = t.match(/(20\d{2})\s*[.\/-]\s*(\d{1,2})\s*[.\/-]\s*(\d{1,2})/);
+    if (dm) {
+      date =
+        dm[1] +
+        '-' +
+        String(parseInt(dm[2], 10)).padStart(2, '0') +
+        '-' +
+        String(parseInt(dm[3], 10)).padStart(2, '0');
+    } else if (y && mo) {
+      const sm = t.match(/(?:^|\s)(\d{1,2})\s*[.\/-]\s*(\d{1,2})(?:\s|$)/);
+      if (sm) {
+        const mm = String(parseInt(sm[1], 10)).padStart(2, '0');
+        const dd = String(parseInt(sm[2], 10)).padStart(2, '0');
+        date = y + '-' + mm + '-' + dd;
+      }
+    }
+    if (!date) continue;
+    if (!price || price <= 0) continue;
+    let status = '';
+    let seatsRaw = '';
+    const seatM = t.match(/(\d+)\s*석/);
+    if (seatM) seatsRaw = seatM[0];
+    if (!seatsRaw) {
+      const jm = t.match(/잔여\s*(\d+)/);
+      if (jm) seatsRaw = '잔여' + jm[1];
+    }
+    if (/대기예약/.test(t)) status = '대기예약';
+    else if (/예약마감|마감/.test(t)) status = '예약마감';
+    else if (/예약가능/.test(t)) status = '예약가능';
+    else if (seatsRaw) status = seatsRaw;
+    const rangeM = t.match(
+      /20\d{2}\s*[.\/-]\s*\d{1,2}\s*[.\/-]\s*\d{1,2}\s*\([^)]+\)\s*\d{1,2}:\d{2}\s*[~∼～-]\s*[\s\S]{0,120}/
+    );
+    const rangeText = rangeM ? rangeM[0].replace(/\s+/g, ' ').trim() : '';
+    let carrierName = '';
+    const cm = t.match(carrierRe);
+    if (cm) carrierName = cm[1];
+    let flightNo = '';
+    const fn = t.match(/\b([A-Z]{2}\d{3,4})\b/);
+    if (fn) flightNo = fn[1];
+    rightRows.push({
+      date,
+      price,
+      status,
+      seatsStatusRaw: seatsRaw || null,
+      carrierName,
+      departureRangeText: rangeText || null,
+      flightNo: flightNo || null,
+    });
+  }
+  return { ym: dtRaw, leftCells, rightRows };
+}
+"""
 
 
 def _parse_year_month(text: Optional[str]) -> tuple:
@@ -816,6 +965,7 @@ class CalendarPriceScraper:
             await self._context.add_init_script(STEALTH_INIT_SCRIPT)
             self._page = await self._context.new_page()
             self._page.set_default_timeout(config.PAGE_LOAD_TIMEOUT_MS)
+            _verygood_phase_always("browser-launching", "playwright_ready")
         except Exception:
             raise
 
@@ -837,8 +987,11 @@ class CalendarPriceScraper:
         반환: [ {"date": "YYYY-MM-DD", "price": int}, ... ] (중복 제거, 정렬)
         """
         if not self._page:
+            _verygood_phase_always("script-entry", "no_page")
+            _verygood_phase_always("process-exit", "no_page")
             return []
-        # 1순위: 상세 → 출발일 변경 모달 우측 리스트 DOM (사이트 변경 시 ProductCalendarSearch JSON이 빌 수 있음)
+        summ = _verygood_detail_url_summary(detail_url)
+        _verygood_phase_always("script-entry", summ)
         priced_popup: List[Dict[str, Any]] = []
         try:
             await human_delay(DELAY_MIN, DELAY_MAX)
@@ -854,9 +1007,12 @@ class CalendarPriceScraper:
             if self.random_mouse:
                 await random_mouse_move(self._page)
             await human_delay(DELAY_MIN, DELAY_MAX)
+            _verygood_phase_always("page-navigated", summ)
             priced_popup = await self._run_verygoodtour_departures()
         except Exception as ex:
             _verygood_log(f"[verygoodtour] modal scrape failed: {ex}")
+        finally:
+            _verygood_phase_always("process-exit", summ)
         with_price = [
             r
             for r in priced_popup
@@ -880,14 +1036,43 @@ class CalendarPriceScraper:
             _verygood_log(f"[verygoodtour] network fallback failed: {ex2}")
             return []
 
+    async def _verygood_eval_modal_bundle_py(self) -> Dict[str, Any]:
+        try:
+            data = await self._page.evaluate(VERYGOOD_MODAL_DOM_BUNDLE_JS)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+        return {"ym": "", "leftCells": [], "rightRows": []}
+
+    async def _verygood_wait_month_label_changed(self, prev_norm: str) -> None:
+        if not self._page:
+            return
+        prev = re.sub(r"\s+", "", (prev_norm or "").strip())[:32]
+        fb_ms = int(getattr(config, "VERYGOOD_E2E_MONTH_NAV_POST_MS", 1500) or 1500)
+        timeout_ms = int(getattr(config, "VERYGOOD_E2E_MONTH_HEADER_TIMEOUT_MS", 5000) or 5000)
+        if not prev:
+            await self._page.wait_for_timeout(fb_ms)
+            return
+        js = (
+            "(p) => {\n"
+            "  const el = document.querySelector('.ui-dialog span.date_txt, .dep_left_wrap span.date_txt, span.date_txt');\n"
+            "  const cur = el ? String(el.innerText || '').replace(/\\s+/g, '').trim().slice(0, 32) : '';\n"
+            "  return cur && cur !== p && /20\\d{2}\\.\\d{1,2}/.test(cur);\n"
+            "}"
+        )
+        try:
+            await self._page.wait_for_function(js, arg=prev, timeout=timeout_ms)
+        except Exception:
+            await self._page.wait_for_timeout(min(fb_ms, timeout_ms))
+
     async def _run_verygoodtour_departures(self) -> List[Dict[str, Any]]:
         """
         참좋은여행 전용:
-        1) 출발일 변경 팝업 열기
-        2) 월 이동(최대 12)하며 팝업 리스트의 출발일/가격/상태 수집
-        3) 상세 본문에서 항공/미팅/최소출발인원 추출하여 각 row에 병합
+        1) 출발일 변경(단순 click) → .ui-dialog / .pop_wrap.layer_pop 대기
+        2) 좌측 td.jq_cl_day(만원~) + 우측 li.jq_cl_detailViewBtn(원) 일괄 추출 후 dedupe
+        3) 다음달 a.date_next.jq_cl_moveMonth → span.date_txt 변경 대기 + 보조 sleep
         """
-        # 팝업 열기 (본문 innerText로 shared 추출 금지 — 행은 모달 DOM만)
         opened = False
         for sel in VERYGOOD_POPUP_OPEN_SELECTORS:
             try:
@@ -900,17 +1085,56 @@ class CalendarPriceScraper:
                     break
             except Exception:
                 continue
-        # 버튼 못 찾은 경우에도 현재 DOM에서 리스트 추출 시도
+        if opened:
+            modal_ms = int(getattr(config, "VERYGOOD_E2E_MODAL_VISIBLE_MS", 15000) or 15000)
+            for msel in VERYGOOD_MODAL_WAIT_SELECTORS:
+                try:
+                    await self._page.wait_for_selector(
+                        msel, state="visible", timeout=min(12000, modal_ms)
+                    )
+                    _verygood_phase_always("modal-opened", msel)
+                    break
+                except Exception:
+                    continue
+        scroll_passes = int(getattr(config, "VERYGOOD_E2E_RIGHT_SCROLL_PASSES", 2) or 2)
+        post_nav = int(getattr(config, "VERYGOOD_E2E_MONTH_NAV_POST_MS", 1500) or 1500)
         rows: Dict[str, Dict[str, Any]] = {}
+
         for mi in range(DEFAULT_CALENDAR_MONTH_LIMIT):
+            mo_phase = mi + 1
+            _verygood_phase_always(f"month-{mo_phase}-collect-start", "")
             rows_before_month = len(rows)
-            for _ in range(6):
+            spec = await self._verygood_eval_modal_bundle_py()
+            prev_ym = re.sub(r"\s+", "", str(spec.get("ym") or "").strip())[:32]
+            left_cells = spec.get("leftCells") if isinstance(spec.get("leftCells"), list) else []
+            by_left: Dict[str, Dict[str, Any]] = {}
+            for c in left_cells:
+                if isinstance(c, dict):
+                    ds = str(c.get("date") or "").strip()[:10]
+                    if len(ds) == 10:
+                        by_left[ds] = c
+            for _ in range(max(1, scroll_passes)):
                 await self._scroll_verygood_popup_list()
-            for item in await self._collect_verygood_popup_rows():
+            rlist = spec.get("rightRows") if isinstance(spec.get("rightRows"), list) else []
+            if not rlist:
+                rlist = await self._collect_verygood_popup_rows()
+            for item in rlist:
+                if not isinstance(item, dict):
+                    continue
                 date = item.get("date")
                 if not date:
                     continue
                 price_v = int(item.get("price") or 0)
+                d10 = str(date).strip()[:10]
+                if len(d10) == 10 and d10 in by_left:
+                    approx = int(by_left[d10].get("approxPrice") or 0)
+                    if approx > 0 and price_v > 0:
+                        rel = abs(approx - price_v) / max(price_v, 1)
+                        if rel > 0.12:
+                            _verygood_phase_always(
+                                "price-hint-mismatch",
+                                f"date={d10} leftApproxWon={approx} rightExactWon={price_v}",
+                            )
                 dedupe_key = "|".join(
                     [
                         str(date),
@@ -923,20 +1147,28 @@ class CalendarPriceScraper:
                 if not prev or price_v > int(prev.get("price") or 0):
                     rows[dedupe_key] = item
             _verygood_log(
-                f"[verygoodtour] month_round={mi + 1} unique_row_keys={len(rows)} (modal opened={opened})"
+                f"[verygoodtour] month_round={mo_phase} unique_row_keys={len(rows)} "
+                f"(modal opened={opened} right_rows={len(rlist)})"
             )
+            _verygood_phase_always(f"month-{mo_phase}-collect-end", f"keys={len(rows)}")
             moved = False
-            for sel in VERYGOOD_MONTH_NEXT_SELECTORS:
+            for nsel in VERYGOOD_MONTH_NEXT_SELECTORS:
                 try:
-                    nxt = await self._page.query_selector(sel)
+                    nxt = await self._page.query_selector(nsel)
                     if not nxt:
                         continue
                     disabled = await nxt.get_attribute("disabled")
                     if disabled is not None:
                         continue
+                    txt = (await nxt.text_content() or "").strip()
+                    if txt and re.search(r"이전|prev|전달", txt, re.I) and not re.search(
+                        r"다음|next", txt, re.I
+                    ):
+                        continue
                     await human_delay(DELAY_MIN, DELAY_MAX)
                     await nxt.click()
-                    await self._page.wait_for_timeout(MONTH_WAIT_MS)
+                    await self._verygood_wait_month_label_changed(prev_ym)
+                    await self._page.wait_for_timeout(post_nav)
                     moved = True
                     break
                 except Exception:
@@ -1036,14 +1268,17 @@ class CalendarPriceScraper:
         return out
 
     async def _scroll_verygood_popup_list(self) -> None:
-        """모달 우측 리스트 끝까지 스크롤해 가려진 row 로딩 유도."""
+        """모달 `.dep_right_wrap` 우선 스크롤 → 가려진 li 로딩 유도."""
         try:
             await self._page.evaluate(
                 """() => {
-  const modalSel = '[role="dialog"], .ui-dialog, .layer_pop, .pop_layer, #divLayerCalendar, [class*="layer_pop"], [class*="calendar_layer"], .pop_calendar, [class*="q-dialog"], [class*="calendar_wrap"], [class*="leaveLayer"], [class*="LayerCalendar"], [class*="modal"]';
-  const modal = document.querySelector(modalSel);
-  const root = modal || document.body;
-  const scrollables = root.querySelectorAll('.scroll_wrap, .list_wrap, [class*="scroll"], ul, .mCustomScrollBox, [style*="overflow"]');
+  const dialog = document.querySelector('.ui-dialog.ui-widget') || document.querySelector('.ui-dialog');
+  const wrap = dialog ? (dialog.querySelector('.pop_wrap.layer_pop') || dialog) : null;
+  const right = wrap ? wrap.querySelector('.dep_right_wrap') : null;
+  const root = right || wrap || document.body;
+  const scrollables = root.querySelectorAll(
+    '.dep_right_wrap, .scroll_wrap, .list_wrap, [class*="scroll"], ul, .mCustomScrollBox, [style*="overflow"]'
+  );
   for (const el of scrollables) {
     try {
       el.scrollTop = el.scrollHeight;
@@ -1051,7 +1286,7 @@ class CalendarPriceScraper:
   }
 }"""
             )
-            await self._page.wait_for_timeout(500)
+            await self._page.wait_for_timeout(320)
         except Exception:
             pass
 

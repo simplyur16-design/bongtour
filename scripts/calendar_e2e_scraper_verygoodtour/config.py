@@ -14,6 +14,20 @@ PAGEDOWN_DELAY_MAX = 3.5
 PAGE_LOAD_TIMEOUT_MS = 35000
 NETWORK_IDLE_TIMEOUT_MS = 10000
 
+# E2E 모달·월 이동 (환경변수 숫자만 오버라이드, 미설정 시 아래 기본)
+def _int_env(name: str, default: int) -> int:
+    try:
+        v = int((os.getenv(name) or "").strip())
+        return v if v > 0 else default
+    except ValueError:
+        return default
+
+
+VERYGOOD_E2E_MODAL_VISIBLE_MS = _int_env("VERYGOOD_E2E_MODAL_VISIBLE_MS", 15000)
+VERYGOOD_E2E_MONTH_NAV_POST_MS = _int_env("VERYGOOD_E2E_MONTH_NAV_POST_MS", 1500)
+VERYGOOD_E2E_MONTH_HEADER_TIMEOUT_MS = _int_env("VERYGOOD_E2E_MONTH_HEADER_TIMEOUT_MS", 5000)
+VERYGOOD_E2E_RIGHT_SCROLL_PASSES = _int_env("VERYGOOD_E2E_RIGHT_SCROLL_PASSES", 2)
+
 SELECTOR_GNB_OVERSEAS = "a:has-text('해외여행'), nav a:has-text('해외여행'), .gnb a:has-text('해외여행')"
 SELECTOR_COUNTRY = ".gnb_sub a, .sub_menu a, .depth2 a"
 SELECTOR_CITY = ".gnb_sub a, .depth3 a, .sub_list a"
