@@ -73,9 +73,10 @@ import { tryApplyVerygoodPublicProductSerializedPatch } from '@/lib/verygood-pub
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { tryCaptionFromPublicImageUrl } from '@/lib/image-asset-public-caption'
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
-import ProductJsonLd from '@/app/components/seo/ProductJsonLd'
+import ProductJsonLd, { type ProductJsonLdAggregateOffer } from '@/app/components/seo/ProductJsonLd'
 import ProductDetailCopyGuard from '@/app/components/travel/ProductDetailCopyGuard'
 import {
+  absoluteUrl,
   buildPublicProductDescription,
   toAbsoluteImageUrl,
 } from '@/lib/site-metadata'
@@ -486,6 +487,11 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
   const verygoodPublicPriceFromRepRow =
     verygoodPublicRepRow != null ? getPriceAdult(verygoodPublicRepRow as never) : null
 
+  const resolvedPriceFrom =
+    verygoodtourPublicRowFactsOnly && verygoodPublicPriceFromRepRow != null && verygoodPublicPriceFromRepRow > 0
+      ? verygoodPublicPriceFromRepRow
+      : travelProduct.priceFrom ?? null
+
   const meetingPublic = resolveOperationalMeetingDisplay(
     pickPrimaryAirlineNameForOperationalMeeting({
       departureCarrierFirst:
@@ -542,10 +548,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       normalizePromotionMarketingCopy(travelProduct.promotionLabelsRaw) ??
       travelProduct.promotionLabelsRaw ??
       null,
-    priceFrom:
-      verygoodtourPublicRowFactsOnly && verygoodPublicPriceFromRepRow != null && verygoodPublicPriceFromRepRow > 0
-        ? verygoodPublicPriceFromRepRow
-        : travelProduct.priceFrom ?? null,
+    priceFrom: resolvedPriceFrom,
     priceCurrency: travelProduct.priceCurrency ?? null,
     departureKeyFactsByDate,
     departureKeyFactsByDepartureId,
@@ -654,6 +657,64 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       <TravelProductDetail product={serialized} />
     )
 
+  const pricedDepartures = departures.filter((d) => d.adultPrice != null && d.adultPrice > 0)
+  const isUnavailable = (d: (typeof departures)[number]) => {
+    const sold =
+      (d.statusRaw ?? '').includes('마감') || (d.seatsStatusRaw ?? '').includes('마감')
+    return sold
+  }
+  const unavailableCount = departures.filter(isUnavailable).length
+  const totalCount = departures.length
+
+  const formatYmd = (d: Date) => d.toISOString().slice(0, 10)
+
+  let seoOffers: ProductJsonLdAggregateOffer | null = null
+  if (pricedDepartures.length > 0) {
+    const prices = pricedDepartures.map((d) => d.adultPrice as number)
+    const dates = pricedDepartures.map((d) => d.departureDate).sort((a, b) => +a - +b)
+
+    let availability: 'InStock' | 'LimitedAvailability' | 'SoldOut' = 'InStock'
+    if (totalCount > 0 && unavailableCount === totalCount) availability = 'SoldOut'
+    else if (totalCount > 0 && unavailableCount * 2 >= totalCount) availability = 'LimitedAvailability'
+
+    seoOffers = {
+      lowPrice: Math.min(...prices),
+      highPrice: Math.max(...prices),
+      offerCount: pricedDepartures.length,
+      availability,
+      validFrom: formatYmd(dates[0]),
+      priceValidUntil: formatYmd(dates[dates.length - 1]),
+    }
+  } else if (resolvedPriceFrom != null && resolvedPriceFrom > 0) {
+    seoOffers = {
+      lowPrice: resolvedPriceFrom,
+      highPrice: resolvedPriceFrom,
+      offerCount: 0,
+      availability: 'OutOfStock',
+    }
+  }
+
+  const travelScopeLabel =
+    travelProduct.travelScope === 'overseas'
+      ? '해외여행'
+      : travelProduct.travelScope === 'domestic'
+        ? '국내여행'
+        : null
+  const travelScopeHref =
+    travelProduct.travelScope === 'overseas'
+      ? '/travel/overseas'
+      : travelProduct.travelScope === 'domestic'
+        ? '/travel/domestic'
+        : '/products'
+
+  const seoBreadcrumbItems = [
+    { position: 1, name: '홈', item: absoluteUrl('/') },
+    ...(travelScopeLabel
+      ? [{ position: 2, name: travelScopeLabel, item: absoluteUrl(travelScopeHref) }]
+      : []),
+    { position: travelScopeLabel ? 3 : 2, name: travelProduct.title ?? '상품' },
+  ]
+
   return (
     <>
       {travelProduct.registrationStatus === 'registered' ? (
@@ -662,6 +723,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
           name={travelProduct.title ?? ''}
           description={seoProductDescription}
           imageUrl={seoCoverUrl}
+          offers={seoOffers}
+          breadcrumbItems={seoBreadcrumbItems}
         />
       ) : null}
       <ProductDetailCopyGuard>
