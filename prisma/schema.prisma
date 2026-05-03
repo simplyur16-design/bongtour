@@ -637,6 +637,8 @@ model MonthlyCurationContent {
 // ---- MVP: 고객 문의 단일 저장소 (4종 폼 + 큐레이션/상품 스냅샷) ----
 model CustomerInquiry {
   id                    String   @id @default(cuid())
+  /// 인쇄·고객 안내용 접수번호 (예: BT260503-0001). PK `id`(cuid)와 별개.
+  receiptNumber         String?  @unique
   inquiryType           String   // travel_consult | institution_request | overseas_training_quote | bus_quote
   status                String   @default("received") // received | reviewing | contacted | quoted | scheduled | closed | dropped
   leadTimeRisk          String   @default("normal") // normal | late | urgent
