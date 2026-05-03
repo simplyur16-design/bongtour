@@ -81,10 +81,9 @@ async function sendSolapiMessage(
 }
 
 /**
- * 솔라피 API로 관리자 휴대폰에 상담 접수 알림 발송.
- * SOLAPI_API_KEY 등 네 변수가 모두 있을 때만 발송한다. 없으면 알림을 건너뛰고 ok(로그·DB 갱신 없음).
- * DB 저장 완료 후 비동기 호출. API 실패 시 DB에 notificationStatus='failed' 기록.
- * 재시도: 최대 MAX_RETRIES 회 (첫 요청 + 재시도).
+ * 솔라피 API로 관리자 휴대폰에 예약 접수 알림 발송.
+ * `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_FROM_PHONE`, `SOLAPI_ADMIN_PHONES`(쉼표 구분)가 갖춰졌을 때만 발송.
+ * 없으면 알림을 건너뛰고 ok(로그·DB 갱신 없음). 수신별 재시도 MAX_RETRIES. 전부 성공 시 sent, 하나라도 실패 시 failed.
  */
 export async function sendAdminNotification(booking: BookingForAlert): Promise<SendAdminNotificationResult> {
   return sendAdminNotificationWithPayload(booking)
@@ -96,48 +95,64 @@ export async function sendAdminNotificationWithPayload(
 ): Promise<SendAdminNotificationResult> {
   const apiKey = process.env.SOLAPI_API_KEY?.trim()
   const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
-  const adminPhone = process.env.ADMIN_PHONE?.trim()
   const senderPhone = process.env.SOLAPI_FROM_PHONE?.trim()
+  const recipients = parseSolapiReceiverPhones()
 
-  if (!apiKey || !apiSecret || !adminPhone || !senderPhone) {
+  if (!apiKey || !apiSecret || !senderPhone || recipients.length === 0) {
     console.error(
       '[sendAdminNotification] skipped_missing_env',
       JSON.stringify({
         bookingId: booking.id,
         hasKey: Boolean(apiKey),
         hasSecret: Boolean(apiSecret),
-        hasAdminPhone: Boolean(adminPhone),
         hasFromPhone: Boolean(senderPhone),
+        adminRecipientCount: recipients.length,
       })
     )
     return { ok: true }
   }
 
-  const text = payload ? buildAdminNotificationMessageFromPayload(payload) : buildAdminNotificationMessage(booking)
   const from = digitsOnlyPhone(senderPhone)
-  const to = digitsOnlyPhone(adminPhone)
-
-  let lastResult: SendAdminNotificationResult = { ok: false, message: 'unknown' }
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    lastResult = await sendSolapiMessage(apiKey, apiSecret, from, to, text)
-    if (lastResult.ok) {
-      await prisma.booking.update({
-        where: { id: booking.id },
-        data: { notificationStatus: 'sent', notificationError: null },
-      })
-      return lastResult
-    }
+  if (!from || !isPlausibleKrSmsTo(from)) {
     console.error(
-      `[sendAdminNotification] bookingId=${booking.id} attempt=${attempt}/${MAX_RETRIES} code=${lastResult.code ?? '-'} message=${lastResult.message}`
+      '[sendAdminNotification] skipped_invalid_from_phone',
+      JSON.stringify({ bookingId: booking.id })
     )
-    if (attempt < MAX_RETRIES) {
-      await new Promise((r) => setTimeout(r, 1000))
+    return { ok: true }
+  }
+
+  const text = payload ? buildAdminNotificationMessageFromPayload(payload) : buildAdminNotificationMessage(booking)
+
+  const failed: { to: string; code?: string; message: string }[] = []
+
+  for (const to of recipients) {
+    let lastResult: SendAdminNotificationResult = { ok: false, message: 'unknown' }
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      lastResult = await sendSolapiMessage(apiKey, apiSecret, from, to, text)
+      if (lastResult.ok) break
+      console.error(
+        `[sendAdminNotification] bookingId=${booking.id} to=${to} attempt=${attempt}/${MAX_RETRIES} code=${lastResult.code ?? '-'} message=${lastResult.message}`
+      )
+      if (attempt < MAX_RETRIES) {
+        await new Promise((r) => setTimeout(r, 1000))
+      }
+    }
+    if (!lastResult.ok) {
+      failed.push({ to, code: lastResult.code, message: lastResult.message })
     }
   }
 
-  const errorMessage = lastResult.code ? `${lastResult.code}: ${lastResult.message}` : lastResult.message
+  if (failed.length === 0) {
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: { notificationStatus: 'sent', notificationError: null },
+    })
+    return { ok: true }
+  }
+
+  const errorMessage = failed.map((f) => `${f.to}: ${f.code ?? ''} ${f.message}`.trim()).join('; ')
   await updateBookingNotificationFailed(booking.id, errorMessage)
-  return lastResult
+  return { ok: false, code: failed[0]?.code, message: errorMessage }
 }
 
 function digitsOnlyPhone(raw: string): string {

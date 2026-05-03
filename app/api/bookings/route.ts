@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { computeKRWQuotation, computeLocalFeeTotal, type PriceRowLike } from '@/lib/price-utils'
 import { formatDepartureDate } from '@/lib/message-service'
 import { sendBookingReceivedEmailToAdmin } from '@/lib/booking-email'
-import { sendAdminNotificationWithPayload } from '@/lib/notification-service'
+import { parseSolapiReceiverPhones, sendAdminNotificationWithPayload } from '@/lib/notification-service'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import {
   buildCustomerBookingReceiptMessage,
@@ -207,14 +207,15 @@ export async function POST(request: Request) {
 
     const hasSolapiKey = Boolean(process.env.SOLAPI_API_KEY?.trim())
     const hasSolapiSecret = Boolean(process.env.SOLAPI_API_SECRET?.trim())
-    const hasAdminPhone = Boolean(process.env.ADMIN_PHONE?.trim())
+    const adminRecipients = parseSolapiReceiverPhones()
+    const hasAdminRecipients = adminRecipients.length > 0
     const hasSenderPhone = Boolean(process.env.SOLAPI_FROM_PHONE?.trim())
-    const smsEnvOk = hasSolapiKey && hasSolapiSecret && hasAdminPhone && hasSenderPhone
+    const smsEnvOk = hasSolapiKey && hasSolapiSecret && hasAdminRecipients && hasSenderPhone
     if (!smsEnvOk) {
       const missing: string[] = []
       if (!hasSolapiKey) missing.push('SOLAPI_API_KEY')
       if (!hasSolapiSecret) missing.push('SOLAPI_API_SECRET')
-      if (!hasAdminPhone) missing.push('ADMIN_PHONE')
+      if (!hasAdminRecipients) missing.push('SOLAPI_ADMIN_PHONES')
       if (!hasSenderPhone) missing.push('SOLAPI_FROM_PHONE')
       console.warn('[booking sms] skipped: missing env', missing.join(', '))
     } else {
@@ -222,7 +223,7 @@ export async function POST(request: Request) {
         '[booking sms] start',
         JSON.stringify({
           bookingId: booking.id,
-          recipientDigitsLen: process.env.ADMIN_PHONE!.replace(/\D/g, '').length,
+          adminRecipientCount: adminRecipients.length,
           senderDigitsLen: process.env.SOLAPI_FROM_PHONE!.replace(/\D/g, '').length,
         })
       )
