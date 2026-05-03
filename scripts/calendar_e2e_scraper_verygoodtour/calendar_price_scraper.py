@@ -1099,10 +1099,11 @@ class CalendarPriceScraper:
         scroll_passes = int(getattr(config, "VERYGOOD_E2E_RIGHT_SCROLL_PASSES", 2) or 2)
         post_nav = int(getattr(config, "VERYGOOD_E2E_MONTH_NAV_POST_MS", 1500) or 1500)
         rows: Dict[str, Dict[str, Any]] = {}
+        e2e_month_limit = int(getattr(config, "VERYGOOD_E2E_MONTH_LIMIT", 12) or 12)
 
-        for mi in range(DEFAULT_CALENDAR_MONTH_LIMIT):
+        for mi in range(e2e_month_limit):
             mo_phase = mi + 1
-            _verygood_phase_always(f"month-{mo_phase}-collect-start", "")
+            _verygood_phase_always(f"verygood-month-{mo_phase}-collect-start", "")
             rows_before_month = len(rows)
             spec = await self._verygood_eval_modal_bundle_py()
             prev_ym = re.sub(r"\s+", "", str(spec.get("ym") or "").strip())[:32]
@@ -1150,7 +1151,7 @@ class CalendarPriceScraper:
                 f"[verygoodtour] month_round={mo_phase} unique_row_keys={len(rows)} "
                 f"(modal opened={opened} right_rows={len(rlist)})"
             )
-            _verygood_phase_always(f"month-{mo_phase}-collect-end", f"keys={len(rows)}")
+            _verygood_phase_always(f"verygood-month-{mo_phase}-collect-end", f"keys={len(rows)}")
             moved = False
             for nsel in VERYGOOD_MONTH_NEXT_SELECTORS:
                 try:
@@ -1202,13 +1203,15 @@ class CalendarPriceScraper:
                 continue
             rest_int = _verygood_modal_remain_seats_int(item, status_raw)
             if rest_int is None:
-                continue
-            ss_raw = item.get("seatsStatusRaw")
-            seats_line = (
-                ss_raw
-                if isinstance(ss_raw, str) and ss_raw.strip()
-                else f"잔여{rest_int}"
-            )
+                seats_line = "좌석수미표기"
+                _verygood_phase_always("verygood-row-kept-no-seats", f"date={d}")
+            else:
+                ss_raw = item.get("seatsStatusRaw")
+                seats_line = (
+                    ss_raw
+                    if isinstance(ss_raw, str) and ss_raw.strip()
+                    else f"잔여{rest_int}"
+                )
             price_v = int(item.get("price") or 0)
             if price_v <= 0:
                 continue
