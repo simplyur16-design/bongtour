@@ -29,6 +29,29 @@ _KST = dt.timezone(dt.timedelta(hours=9))
 # lib/scrape-date-bounds.ts SCRAPE_DEFAULT_MONTHS_FORWARD 와 맞춤
 DEFAULT_CALENDAR_MONTH_LIMIT = 3
 
+# page.evaluate() 안에 그대로 삽입 — 4곳에서 재사용 (modetourLayerRoot 단일 정의)
+_MODETOUR_LAYER_ROOT_JS = r"""
+function modetourLayerRoot() {
+  const cd = document.querySelector('.absolute.CalendarDay');
+  if (cd) return cd;
+  const absCands = Array.from(document.querySelectorAll('div, section')).filter((el) => {
+    const cs = window.getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    const zi = parseInt(String(cs.zIndex), 10);
+    return cs.position === 'absolute' && !Number.isNaN(zi) && zi >= 1000
+        && r.width >= 500 && el.querySelectorAll('table.CalendarMonth_table').length >= 4;
+  });
+  if (absCands[0]) return absCands[0];
+  const d = document.querySelector('[role="dialog"],[aria-modal="true"]');
+  if (d && d.querySelectorAll('table td').length > 5) return d;
+  const candidates = Array.from(document.querySelectorAll('div, section')).filter((el) => {
+    const t = el.innerText || '';
+    return /20\d{2}\.\d{2}/.test(t) && /만/.test(t) && el.querySelectorAll('table td').length > 10;
+  });
+  return candidates[0] || d || null;
+}
+"""
+
 
 def _kst_today_ymd() -> str:
     return dt.datetime.now(_KST).strftime("%Y-%m-%d")
@@ -107,6 +130,15 @@ def _modetour_log(msg: str) -> None:
 def _modetour_modal_log(msg: str) -> None:
     """관리자 subprocess stderr: modal 단계 진단."""
     print(f"[modetour] [modetour-modal] {msg}", file=__import__("sys").stderr, flush=True)
+
+
+def _modetour_phase_always(phase: str, detail: str = "") -> None:
+    """stderr 단일 형식 — Node 포워더 없이 운영자가 직접 stderr 확인."""
+    d = (detail or "").strip()
+    if d:
+        _modetour_log(f"[modetour] phase={phase} {d}")
+    else:
+        _modetour_log(f"[modetour] phase={phase}")
 
 
 def _modetour_detail_url_summary(detail_url: str) -> str:
@@ -254,6 +286,7 @@ class CalendarPriceScraper:
             await self._context.add_init_script(STEALTH_INIT_SCRIPT)
             self._page = await self._context.new_page()
             self._page.set_default_timeout(config.PAGE_LOAD_TIMEOUT_MS)
+            _modetour_phase_always("modetour-browser-launching", "playwright_ready")
         except Exception:
             raise
 
@@ -271,48 +304,102 @@ class CalendarPriceScraper:
 
     async def _eval_modetour_calendar_cells(self) -> List[Dict[str, Any]]:
         """
-        modetour 달력 td: '12 64만' 형태(만원) → 날짜·추정가·td 인덱스.
-        table td 순서는 클릭 시 locator.nth 와 일치해야 함.
+        modetour 달력: table.CalendarMonth_table 별 월 헤더 매핑(우선) 또는 기존 단일 td 스캔(fallback).
+        가격 셀: 공백 없음 `844만` 우선 파싱(일+만원 분리) + 공백 `8 44만` 호환. tdIndex는 모달 내 table td 전역 순서.
         """
-        script = """
-() => {
-  function modetourLayerRoot() {
-    const d = document.querySelector('[role="dialog"],[aria-modal="true"]');
-    if (d && d.querySelectorAll('table td').length > 5) return d;
-    const candidates = Array.from(document.querySelectorAll('div, section')).filter((el) => {
-      const t = el.innerText || '';
-      return /20\\d{2}\\.\\d{2}/.test(t) && /만/.test(t) && el.querySelectorAll('table td').length > 10;
-    });
-    return candidates[0] || d || null;
-  }
-  const modal = modetourLayerRoot();
-  if (!modal) return [];
-  const head = (modal.innerText || '').match(/(20\\d{2})\\.(\\d{2})/);
-  let y = head ? parseInt(head[1], 10) : 2026;
-  let mo = head ? parseInt(head[2], 10) : 4;
-  const all = Array.from(modal.querySelectorAll('table td'));
-  let lastDay = -1;
-  const out = [];
-  for (let i = 0; i < all.length; i++) {
-    const raw = (all[i].innerText || '').replace(/\\s+/g, ' ').trim();
-    if (!raw) continue;
-    const dm = raw.match(/^(\\d{1,2})\\s+(\\d+)만$/);
-    const dayOnly = raw.match(/^(\\d{1,2})$/);
-    if (dayOnly) {
-      const d = parseInt(dayOnly[1], 10);
-      if (lastDay > 0 && d === 1 && lastDay >= 28) {
-        mo += 1;
-        if (mo > 12) { mo = 1; y += 1; }
-      } else if (lastDay > 0 && d < lastDay && lastDay > 20) {
-        mo += 1;
-        if (mo > 12) { mo = 1; y += 1; }
-      }
-      lastDay = d;
-      continue;
+        script = (
+            "() => {\n"
+            + _MODETOUR_LAYER_ROOT_JS
+            + r"""
+  function parseDayPriceMan(raw) {
+    let m0 = raw.match(/^(\d{1,2})(\d+)만$/);
+    if (m0) {
+      const d0 = parseInt(m0[1], 10);
+      const man0 = parseInt(m0[2], 10);
+      if (d0 >= 1 && d0 <= 31 && man0 > 0) return { d: d0, man: man0 };
     }
-    if (dm) {
-      const d = parseInt(dm[1], 10);
-      const man = parseInt(dm[2], 10);
+    let m = raw.match(/^(\d{1,2})\s+(\d+)만$/);
+    if (m) return { d: parseInt(m[1], 10), man: parseInt(m[2], 10) };
+    const c = raw.match(/^(\d+)만$/);
+    if (!c) return null;
+    const digits = c[1];
+    for (const nd of [2, 1]) {
+      if (digits.length <= nd) continue;
+      const d = parseInt(digits.slice(0, nd), 10);
+      const man = parseInt(digits.slice(nd), 10);
+      if (d >= 1 && d <= 31 && man > 0) return { d, man };
+    }
+    return null;
+  }
+  function refineManFromSpan(td, man) {
+    let span = null;
+    try {
+      span = td.querySelector('span.text-\[12px\].font-semibold');
+    } catch (e) { span = null; }
+    if (!span) span = td.querySelector('span.font-semibold');
+    if (!span) return man;
+    const st = (span.innerText || '').replace(/\s+/g, '').trim();
+    const sm = st.match(/^(\d+)만$/);
+    if (sm) return parseInt(sm[1], 10);
+    return man;
+  }
+  function ymFromTable(tbl) {
+    let sib = tbl.previousElementSibling;
+    for (let k = 0; k < 12 && sib; k++) {
+      const t = (sib.textContent || '').replace(/\s+/g, '').trim();
+      const mx = t.match(/^(20\d{2})\.(\d{1,2})$/);
+      if (mx) return { y: parseInt(mx[1], 10), mo: parseInt(mx[2], 10) };
+      sib = sib.previousElementSibling;
+    }
+    const parent = tbl.parentElement;
+    if (parent) {
+      const divs = parent.querySelectorAll(':scope > div');
+      for (const el of divs) {
+        const t = (el.textContent || '').replace(/\s+/g, '').trim();
+        const mx = t.match(/^(20\d{2})\.(\d{1,2})$/);
+        if (!mx) continue;
+        if (el.querySelector('table.CalendarMonth_table')) continue;
+        return { y: parseInt(mx[1], 10), mo: parseInt(mx[2], 10) };
+      }
+    }
+    return null;
+  }
+  const phases = [];
+  const modal = modetourLayerRoot();
+  if (!modal) return { cells: [], phases: phases.concat(['modetour-eval-no-modal']) };
+  const head = (modal.innerText || '').match(/(20\d{2})\.(\d{2})/);
+  const fallbackY = head ? parseInt(head[1], 10) : 2026;
+  const fallbackMo = head ? parseInt(head[2], 10) : 4;
+  const out = [];
+  const monthTables = Array.from(modal.querySelectorAll('table.CalendarMonth_table'));
+  const allTdsGlobal = Array.from(modal.querySelectorAll('table td'));
+
+  if (monthTables.length === 0) {
+    phases.push('modetour-calendar-fallback-single-td-scan');
+    const all = Array.from(modal.querySelectorAll('table td'));
+    let y = fallbackY;
+    let mo = fallbackMo;
+    let lastDay = -1;
+    for (let i = 0; i < all.length; i++) {
+      const raw = (all[i].innerText || '').replace(/\s+/g, ' ').trim();
+      if (!raw) continue;
+      const dayOnly = raw.match(/^(\d{1,2})$/);
+      if (dayOnly) {
+        const d = parseInt(dayOnly[1], 10);
+        if (lastDay > 0 && d === 1 && lastDay >= 28) {
+          mo += 1;
+          if (mo > 12) { mo = 1; y += 1; }
+        } else if (lastDay > 0 && d < lastDay && lastDay > 20) {
+          mo += 1;
+          if (mo > 12) { mo = 1; y += 1; }
+        }
+        lastDay = d;
+        continue;
+      }
+      const pr = parseDayPriceMan(raw);
+      if (!pr) continue;
+      const d = pr.d;
+      let man = refineManFromSpan(all[i], pr.man);
       if (lastDay > 0 && d < lastDay && lastDay > 20) {
         mo += 1;
         if (mo > 12) { mo = 1; y += 1; }
@@ -322,35 +409,69 @@ class CalendarPriceScraper:
       const iso = y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
       out.push({ date: iso, price, tdIndex: i });
     }
+    return { cells: out, phases };
   }
-  return out;
+
+  for (let mIdx = 0; mIdx < monthTables.length; mIdx++) {
+    phases.push('modetour-month-' + (mIdx + 1) + '-collect-start');
+    const tbl = monthTables[mIdx];
+    const ym = ymFromTable(tbl);
+    const y = ym ? ym.y : fallbackY;
+    const mo = ym ? ym.mo : fallbackMo;
+    const tdsInTable = tbl.querySelectorAll('td');
+    for (let i = 0; i < tdsInTable.length; i++) {
+      const td = tdsInTable[i];
+      const cls = td.className || '';
+      const hasDefault = cls.indexOf('CalendarDay__default') >= 0
+        && cls.indexOf('CalendarDay__defaultCursor') < 0;
+      if (!hasDefault) continue;
+      const raw = (td.innerText || '').replace(/\s+/g, ' ').trim();
+      const pr = parseDayPriceMan(raw);
+      if (!pr) continue;
+      const d = pr.d;
+      const man = refineManFromSpan(td, pr.man);
+      const price = man * 10000;
+      const iso = y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      const globalIdx = allTdsGlobal.indexOf(td);
+      if (globalIdx < 0) continue;
+      out.push({ date: iso, price, tdIndex: globalIdx });
+    }
+    phases.push('modetour-month-' + (mIdx + 1) + '-collect-end');
+  }
+  return { cells: out, phases };
 }
 """
+        )
         try:
-            rows = await self._page.evaluate(script)
+            result = await self._page.evaluate(script)
+            rows: List[Dict[str, Any]] = []
+            phase_lines: List[str] = []
+            if isinstance(result, dict):
+                rows = result.get("cells") or []
+                phase_lines = result.get("phases") or []
+            elif isinstance(result, list):
+                rows = result
+            for ph in phase_lines:
+                _modetour_phase_always(str(ph))
             if not rows:
-                dbg = await self._page.evaluate(
-                    """() => {
-  function modetourLayerRoot() {
-    const d = document.querySelector('[role="dialog"],[aria-modal="true"]');
-    if (d && d.querySelectorAll('table td').length > 5) return d;
-    const candidates = Array.from(document.querySelectorAll('div, section')).filter((el) => {
-      const t = el.innerText || '';
-      return /20\\d{2}\\.\\d{2}/.test(t) && /만/.test(t) && el.querySelectorAll('table td').length > 10;
-    });
-    return candidates[0] || d || null;
-  }
+                dbg_script = (
+                    "() => {\n"
+                    + _MODETOUR_LAYER_ROOT_JS
+                    + r"""
   const m = modetourLayerRoot();
   if (!m) return { err: 'no_layer' };
   const tds = m.querySelectorAll('table td');
   const samples = Array.from(tds).slice(0, 24).map((td) =>
-    (td.innerText || '').replace(/\\s+/g, ' ').trim().slice(0, 40)
+    (td.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 40)
   );
-  return { tdCount: tds.length, samples };
-}"""
+  const nCal = m.querySelectorAll('table.CalendarMonth_table').length;
+  return { tdCount: tds.length, calendarMonthTables: nCal, samples };
+}
+"""
                 )
+                dbg = await self._page.evaluate(dbg_script)
                 _modetour_modal_log(f"phase=modetour-calendar-empty-debug {dbg!r}")
-            return rows if isinstance(rows, list) else []
+            return rows
         except Exception:
             return []
 
@@ -409,22 +530,17 @@ class CalendarPriceScraper:
 
     async def _read_modetour_modal_panel_text(self) -> str:
         try:
-            t = await self._page.evaluate(
-                """() => {
-  function modetourLayerRoot() {
-    const d = document.querySelector('[role="dialog"],[aria-modal="true"]');
-    if (d && d.querySelectorAll('table td').length > 5) return d;
-    const candidates = Array.from(document.querySelectorAll('div, section')).filter((el) => {
-      const t = el.innerText || '';
-      return /20\\d{2}\\.\\d{2}/.test(t) && /만/.test(t) && el.querySelectorAll('table td').length > 10;
-    });
-    return candidates[0] || d || null;
-  }
+            panel_script = (
+                "() => {\n"
+                + _MODETOUR_LAYER_ROOT_JS
+                + r"""
   const m = modetourLayerRoot();
   if (m && m.innerText) return m.innerText;
   return document.body.innerText || '';
-}"""
+}
+"""
             )
+            t = await self._page.evaluate(panel_script)
             return t if isinstance(t, str) else ""
         except Exception:
             return ""
@@ -453,6 +569,25 @@ class CalendarPriceScraper:
             except Exception:
                 continue
         return False
+
+    async def _scroll_modetour_modal_list(self) -> None:
+        """모달 루트를 뷰포트 중앙으로 — 달력·우측 패널이 잘릴 때 보조."""
+        try:
+            scroll_script = (
+                "() => {\n"
+                + _MODETOUR_LAYER_ROOT_JS
+                + r"""
+  const m = modetourLayerRoot();
+  if (m) {
+    try { m.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) {}
+  }
+}
+"""
+            )
+            await self._page.evaluate(scroll_script)
+            await self._page.wait_for_timeout(400)
+        except Exception:
+            pass
 
     async def _run_modetour_departures(self) -> List[Dict[str, Any]]:
         """package 상세: 출발일 변경 모달 → 달력 td(NN만) + 일자 클릭 후 우측 패널에서 항공·좌석·정확가."""
@@ -484,43 +619,42 @@ class CalendarPriceScraper:
             pass
         await self._page.wait_for_timeout(800)
         await self._scroll_modetour_modal_list()
+        _modetour_phase_always("modetour-modal-opened", "table_td_visible")
 
         kst_floor = _kst_today_ymd()
         rows_merged: Dict[str, Dict[str, Any]] = {}
         done_dates: set = set()
-        max_clicks = 16
+        max_clicks = int(getattr(config, "MODETOUR_E2E_MAX_CLICKS", 32) or 32)
 
         for mi in range(DEFAULT_CALENDAR_MONTH_LIMIT):
-            cells = await self._eval_modetour_calendar_cells()
-            _modetour_modal_log(
-                f"phase=modetour-calendar monthRound={mi + 1} pricedCells={len(cells)}"
+            _modetour_phase_always(
+                f"modetour-calendar-month-round-{mi + 1}-start",
+                f"max_clicks={max_clicks}",
             )
-            for c in cells:
-                if not isinstance(c, dict):
-                    continue
-                d = str(c.get("date") or "")[:10]
-                if len(d) != 10 or d < kst_floor:
-                    continue
-                if d in done_dates:
-                    continue
-                if len(done_dates) >= max_clicks:
-                    break
-                td_idx = c.get("tdIndex")
-                if td_idx is None:
-                    continue
-                try:
-                    td_i = int(td_idx)
-                    clicked = await self._page.evaluate(
-                        """(idx) => {
-  function modetourLayerRoot() {
-    const d = document.querySelector('[role="dialog"],[aria-modal="true"]');
-    if (d && d.querySelectorAll('table td').length > 5) return d;
-    const candidates = Array.from(document.querySelectorAll('div, section')).filter((el) => {
-      const t = el.innerText || '';
-      return /20\\d{2}\\.\\d{2}/.test(t) && /만/.test(t) && el.querySelectorAll('table td').length > 10;
-    });
-    return candidates[0] || d || null;
-  }
+            try:
+                cells = await self._eval_modetour_calendar_cells()
+                _modetour_modal_log(
+                    f"phase=modetour-calendar monthRound={mi + 1} pricedCells={len(cells)}"
+                )
+                for c in cells:
+                    if not isinstance(c, dict):
+                        continue
+                    d = str(c.get("date") or "")[:10]
+                    if len(d) != 10 or d < kst_floor:
+                        continue
+                    if d in done_dates:
+                        continue
+                    if len(done_dates) >= max_clicks:
+                        break
+                    td_idx = c.get("tdIndex")
+                    if td_idx is None:
+                        continue
+                    try:
+                        td_i = int(td_idx)
+                        click_script = (
+                            "(idx) => {\n"
+                            + _MODETOUR_LAYER_ROOT_JS
+                            + r"""
   const m = modetourLayerRoot();
   if (!m) return false;
   const tds = m.querySelectorAll('table td');
@@ -529,47 +663,58 @@ class CalendarPriceScraper:
   try { el.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) {}
   try { el.click(); } catch (e) { return false; }
   return true;
-}""",
-                        td_i,
-                    )
-                    if not clicked:
+}
+"""
+                        )
+                        clicked = await self._page.evaluate(click_script, td_i)
+                        if not clicked:
+                            continue
+                    except Exception:
                         continue
-                except Exception:
-                    continue
-                await human_delay(0.35, 0.65)
-                panel_txt = ""
-                d_dot = d.replace("-", ".")
-                for _ in range(28):
-                    await self._page.wait_for_timeout(90)
-                    panel_txt = await self._read_modetour_modal_panel_text()
-                    if d_dot in panel_txt and "항공여정" in panel_txt:
-                        break
-                item = self._modetour_merge_cell_and_panel(c, panel_txt)
-                dedupe_key = "|".join(
-                    [
-                        str(item.get("date") or "")[:10],
-                        str(item.get("departureRangeText") or "")[:160],
-                        str(item.get("airlineName") or ""),
-                        str(item.get("price") or 0),
-                    ]
+                    await human_delay(0.35, 0.65)
+                    panel_txt = ""
+                    d_dot = d.replace("-", ".")
+                    for _ in range(28):
+                        await self._page.wait_for_timeout(90)
+                        panel_txt = await self._read_modetour_modal_panel_text()
+                        if d_dot in panel_txt and "항공여정" in panel_txt:
+                            break
+                    item = self._modetour_merge_cell_and_panel(c, panel_txt)
+                    dedupe_key = "|".join(
+                        [
+                            str(item.get("date") or "")[:10],
+                            str(item.get("departureRangeText") or "")[:160],
+                            str(item.get("airlineName") or ""),
+                            str(item.get("price") or 0),
+                        ]
+                    )
+                    if dedupe_key.replace("|", "").strip() in ("", "0"):
+                        continue
+                    prev = rows_merged.get(dedupe_key)
+                    pr = int(item.get("price") or 0)
+                    if not prev or pr >= int(prev.get("price") or 0):
+                        rows_merged[dedupe_key] = item
+                        manwon = pr // 10000 if pr >= 10000 else pr
+                        _modetour_phase_always(
+                            "modetour-row-kept",
+                            f"date={str(item.get('date') or '')[:10]} price={manwon}만",
+                        )
+                    done_dates.add(d)
+                if len(done_dates) >= max_clicks:
+                    break
+                # 모달 안에 2개월 이상이 한꺼번에 그려지는 경우가 많음 → '다음달' 클릭은 다른 UI를 건드릴 수 있어 생략
+                if len(cells) >= 20:
+                    _modetour_modal_log(
+                        "phase=modetour-calendar skip-month-nav multi_month_dom=true"
+                    )
+                    break
+                if not await self._modetour_try_month_next():
+                    break
+            finally:
+                _modetour_phase_always(
+                    f"modetour-calendar-month-round-{mi + 1}-end",
+                    f"done_dates={len(done_dates)}",
                 )
-                if dedupe_key.replace("|", "").strip() in ("", "0"):
-                    continue
-                prev = rows_merged.get(dedupe_key)
-                pr = int(item.get("price") or 0)
-                if not prev or pr >= int(prev.get("price") or 0):
-                    rows_merged[dedupe_key] = item
-                done_dates.add(d)
-            if len(done_dates) >= max_clicks:
-                break
-            # 모달 안에 2개월 이상이 한꺼번에 그려지는 경우가 많음 → '다음달' 클릭은 다른 UI를 건드릴 수 있어 생략
-            if len(cells) >= 20:
-                _modetour_modal_log(
-                    "phase=modetour-calendar skip-month-nav multi_month_dom=true"
-                )
-                break
-            if not await self._modetour_try_month_next():
-                break
 
         out: List[Dict[str, Any]] = []
         dropped_past_kst = 0
@@ -711,6 +856,8 @@ class CalendarPriceScraper:
         if not self._page:
             return []
         self._detail_url = detail_url
+        summ = _modetour_detail_url_summary(detail_url)
+        _modetour_phase_always("modetour-script-entry", summ)
         try:
             await human_delay(DELAY_MIN, DELAY_MAX)
             await self._page.goto(
@@ -725,13 +872,15 @@ class CalendarPriceScraper:
             if self.random_mouse:
                 await random_mouse_move(self._page)
             await human_delay(DELAY_MIN, DELAY_MAX)
+            _modetour_phase_always("modetour-page-navigated", summ)
+            modal_rows = await self._run_modetour_departures()
+            if len(modal_rows) > 0:
+                return modal_rows
+            return await self._run_legacy_inline_calendar_only()
         except Exception:
             return []
-
-        modal_rows = await self._run_modetour_departures()
-        if len(modal_rows) > 0:
-            return modal_rows
-        return await self._run_legacy_inline_calendar_only()
+        finally:
+            _modetour_phase_always("modetour-process-exit", summ)
 
     async def _get_current_year_month(self) -> Optional[str]:
         try:

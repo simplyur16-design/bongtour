@@ -14,6 +14,18 @@ PAGEDOWN_DELAY_MAX = 3.5
 PAGE_LOAD_TIMEOUT_MS = 35000
 NETWORK_IDLE_TIMEOUT_MS = 10000
 
+
+def _int_env(name: str, default: int) -> int:
+    try:
+        v = int((os.getenv(name) or "").strip())
+        return v if v > 0 else default
+    except ValueError:
+        return default
+
+
+# 모달 E2E: 가격 셀 클릭·패널 병합 최대 건수 (운영 subprocess 120s 등과 트레이드오프)
+MODETOUR_E2E_MAX_CLICKS = _int_env("MODETOUR_E2E_MAX_CLICKS", 32)
+
 SELECTOR_GNB_OVERSEAS = "a:has-text('해외여행'), nav a:has-text('해외여행'), .gnb a:has-text('해외여행')"
 SELECTOR_COUNTRY = ".gnb_sub a, .sub_menu a, .depth2 a"
 SELECTOR_CITY = ".gnb_sub a, .depth3 a, .sub_list a"
