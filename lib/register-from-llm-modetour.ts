@@ -8,7 +8,7 @@ import {
   registerPromptWithScheduleEmptyForConfirm,
   runScheduleExtractLlm,
   type CommonScheduleDayRow,
-} from '@/lib/register-schedule-extract-common'
+} from '@/lib/register-schedule-extract-modetour'
 import {
   BONGTOUR_TONE_MANNER_LLM_BLOCK,
   LLM_JSON_OUTPUT_DISCIPLINE_BLOCK,
