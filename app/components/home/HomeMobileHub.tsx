@@ -114,10 +114,10 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
             <li key={t.href} className="min-w-0">
               <Link href={t.href} className={TILE_CARD_CLASS}>
                 {t.bgSrc ? (
-                  <span className={TILE_BG_IMAGE_WRAP} aria-hidden>
+                  <span className={TILE_BG_IMAGE_WRAP}>
                     <SafeImage
                       src={t.bgSrc}
-                      alt=""
+                      alt={`${t.title} 주요 서비스 배경`}
                       fill
                       sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
                       quality={index === 0 ? 80 : 75}

@@ -226,7 +226,7 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
         <SafeImage
           key={card.imageSrc}
           src={card.imageSrc}
-          alt=""
+          alt={`${titlePair.ko} 홈 허브 배경`}
           fill
           className={`object-cover transition duration-500 ease-out ${hubImagePosition(key)} z-[1] ${detailOpen ? 'scale-[1.03] brightness-[1.04]' : 'scale-100 brightness-100'}`}
           sizes={

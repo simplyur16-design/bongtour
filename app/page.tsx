@@ -24,6 +24,7 @@ import { normalizeHomeSeasonSlidesForClient } from '@/lib/home-season-pick-share
 import PartnerOrganizationsSectionGate from './components/home/PartnerOrganizationsSectionGate'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from '@/lib/home-page-metadata'
+import { DEFAULT_OG_IMAGE_PATH, SITE_NAME } from '@/lib/site-metadata'
 
 /** 5분 ISR — 허브 카드 풀·시즌 큐레이션은 최대 5분 지연 후 반영. */
 export const revalidate = 300
@@ -33,9 +34,13 @@ export const metadata: Metadata = {
   description: HOME_PAGE_DESCRIPTION,
   alternates: { canonical: '/' },
   openGraph: {
+    type: 'website',
+    locale: 'ko_KR',
+    siteName: SITE_NAME,
     title: HOME_PAGE_TITLE,
     description: HOME_PAGE_DESCRIPTION,
     url: '/',
+    images: [{ url: DEFAULT_OG_IMAGE_PATH, alt: SITE_NAME }],
   },
   twitter: {
     title: HOME_PAGE_TITLE,
