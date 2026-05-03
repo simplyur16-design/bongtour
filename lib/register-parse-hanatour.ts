@@ -155,7 +155,7 @@ export async function parseForRegisterHanatour(
     /** 정형 파서(detailBody)가 표·항공을 이미 구조화 — 섹션별 repair generateContent 연속 호출 생략 */
     skipDetailSectionGeminiRepairs: true,
     /** confirm 이중 LLM(일정 선추출+메인) 축소 — 기본 일정은 메인 JSON 한 번에서만 */
-    skipScheduleExtractLlm: options?.skipScheduleExtractLlm ?? true,
+    skipScheduleExtractLlm: options?.skipScheduleExtractLlm ?? false,
   })
   parsed = applyHanatourBasicInfoBodyExtract(parsed, detailBody.normalizedRaw ?? '')
   parsed = sanitizeHanatourRegisterParsedDepartureFields(parsed, detailBody.normalizedRaw ?? '')
