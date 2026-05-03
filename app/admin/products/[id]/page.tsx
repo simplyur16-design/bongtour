@@ -18,6 +18,9 @@ import { readAdminProductSupplierDerivatives } from '@/lib/admin-product-supplie
 import {
   LISTING_KIND_LABELS,
   LISTING_KIND_VALUES,
+  LOCAL_DEPARTURE_TAG_LABELS,
+  LOCAL_DEPARTURE_TAG_VALUES,
+  type LocalDepartureTag,
   TRAVEL_SCOPE_LABELS,
   TRAVEL_SCOPE_VALUES,
 } from '@/lib/product-listing-kind'
@@ -362,6 +365,7 @@ export default function AdminProductDetailPage({
     travelScope: '' as '' | 'domestic' | 'overseas',
     listingKind: '' as '' | 'travel' | 'private_trip' | 'air_hotel_free',
   })
+  const [localDepartureTagDraft, setLocalDepartureTagDraft] = useState<LocalDepartureTag[]>([])
   const [benefitDraft, setBenefitDraft] = useState('')
   const [counselingDraft, setCounselingDraft] = useState('')
   const [flightAdminDraft, setFlightAdminDraft] = useState('')
@@ -443,6 +447,11 @@ export default function AdminProductDetailPage({
           ? product.listingKind
           : '',
     })
+    setLocalDepartureTagDraft(
+      LOCAL_DEPARTURE_TAG_VALUES.filter(
+        (k) => Array.isArray(product.localDepartureTag) && product.localDepartureTag!.includes(k)
+      )
+    )
     setBenefitDraft(product.benefitSummary ?? '')
     setCounselingDraft(product.counselingNotes ?? '')
     setFlightAdminDraft(product.flightAdminJson ?? '')
@@ -453,6 +462,7 @@ export default function AdminProductDetailPage({
     product?.airline,
     product?.travelScope,
     product?.listingKind,
+    product?.localDepartureTag,
     product?.benefitSummary,
     product?.counselingNotes,
     product?.flightAdminJson,
@@ -1415,6 +1425,29 @@ export default function AdminProductDetailPage({
             <p className="text-[10px] leading-relaxed text-bt-subtle">
               여행 범위와 상품 카테고리는 서로 다른 축입니다. 항공권+호텔(자유여행) 노출은 상품 카테고리에서 선택하세요.
             </p>
+            <div className="mt-3 rounded border border-bt-border-strong bg-bt-title/30 px-3 py-2">
+              <p className="text-[11px] font-semibold text-bt-inverse">출발지 (수동 지정)</p>
+              <p className="mt-1 text-[10px] text-bt-subtle">
+                인천/김포만 해당하면 모두 해제. 부산·청주·대구 출발 상품은 해당 항목을 체크하세요.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-bt-inverse">
+                {LOCAL_DEPARTURE_TAG_VALUES.map((tag) => (
+                  <label key={tag} className="inline-flex cursor-pointer items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 rounded border-bt-border-strong"
+                      checked={localDepartureTagDraft.includes(tag)}
+                      onChange={() =>
+                        setLocalDepartureTagDraft((prev) =>
+                          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                        )
+                      }
+                    />
+                    <span>{LOCAL_DEPARTURE_TAG_LABELS[tag]}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
           <button
             type="button"
@@ -1432,6 +1465,7 @@ export default function AdminProductDetailPage({
                     airline: basicDraft.airline.trim() || null,
                     travelScope: basicDraft.travelScope || null,
                     listingKind: basicDraft.listingKind || null,
+                    localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTagDraft.includes(k)),
                   }),
                 })
                 const text = await res.text()

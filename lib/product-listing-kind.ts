@@ -31,3 +31,30 @@ export function parseTravelScope(raw: string | null | undefined): ProductTravelS
   const t = raw.trim()
   return TRAVEL_SCOPE_VALUES.includes(t as ProductTravelScope) ? (t as ProductTravelScope) : null
 }
+
+/** 관리자 수동 지정 — 지방 출발 메가 메뉴·browse 필터용 (`Product.localDepartureTag`). */
+export const LOCAL_DEPARTURE_TAG_VALUES = ['busan', 'cheongju', 'daegu'] as const
+export type LocalDepartureTag = (typeof LOCAL_DEPARTURE_TAG_VALUES)[number]
+
+export const LOCAL_DEPARTURE_TAG_LABELS: Record<LocalDepartureTag, string> = {
+  busan: '부산출발',
+  cheongju: '청주출발',
+  daegu: '대구출발',
+}
+
+const LOCAL_DEPARTURE_TAG_SET = new Set<string>(LOCAL_DEPARTURE_TAG_VALUES)
+
+/**
+ * 관리자 등록/수정 POST 본문에서만 사용. 허용값 외는 무시, 중복 제거, canonical 순서.
+ */
+export function parseLocalDepartureTagArrayFromAdminBody(body: Record<string, unknown>): LocalDepartureTag[] {
+  const raw = body.localDepartureTag
+  if (raw == null) return []
+  if (!Array.isArray(raw)) return []
+  const seen = new Set<string>()
+  for (const x of raw) {
+    const s = typeof x === 'string' ? x.trim() : ''
+    if (LOCAL_DEPARTURE_TAG_SET.has(s)) seen.add(s)
+  }
+  return LOCAL_DEPARTURE_TAG_VALUES.filter((k) => seen.has(k))
+}

@@ -79,6 +79,7 @@ import {
   finalizeVerygoodtourItineraryDayDraftsFromSchedule,
   verygoodConfirmHasScheduleExpressionLayer,
 } from '@/lib/parse-and-register-verygoodtour-schedule'
+import { parseLocalDepartureTagArrayFromAdminBody } from '@/lib/product-listing-kind'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import {
   buildRegisterPublicImageHeroSeoKeywords,
@@ -1375,6 +1376,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
         primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
         bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
       }),
+      localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
     }
 
     let productId: string

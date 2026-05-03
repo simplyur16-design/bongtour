@@ -118,6 +118,7 @@ import {
   resolveOrCreateRegisterAdminInputSnapshot,
 } from '@/lib/register-admin-input-persist-modetour'
 import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confirm-reuse-modetour'
+import { parseLocalDepartureTagArrayFromAdminBody } from '@/lib/product-listing-kind'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import {
   buildRegisterPublicImageHeroSeoKeywords,
@@ -1673,6 +1674,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
         primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
         bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
       }),
+      localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
     }
 
     let productId: string

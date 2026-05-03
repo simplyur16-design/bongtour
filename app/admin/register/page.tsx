@@ -49,6 +49,11 @@ import {
   REGISTER_INPUT_PRIORITY_RULES,
 } from '@/lib/admin-register-supplier-input-frames'
 import {
+  LOCAL_DEPARTURE_TAG_LABELS,
+  LOCAL_DEPARTURE_TAG_VALUES,
+  type LocalDepartureTag,
+} from '@/lib/product-listing-kind'
+import {
   CANONICAL_OVERSEAS_SUPPLIER_KEYS,
   type CanonicalOverseasSupplierKey,
 } from '@/lib/overseas-supplier-canonical-keys'
@@ -379,6 +384,8 @@ function registerSupplierDisplayName(brandKey: string | null | undefined): strin
 export default function AdminRegisterPage() {
   /** 관리자 상품 상위 유형: 해외 패키지 / 국내 패키지 / 항공권+호텔(자유여행) — API 필드명은 기존 `travelScope` 유지 */
   const [travelScope, setTravelScope] = useState<'overseas' | 'domestic' | 'air_hotel_free'>('overseas')
+  /** 지방 출발 메가 메뉴·browse용 — LLM 비사용, 확정 시 DB `Product.localDepartureTag`만 반영 */
+  const [localDepartureTag, setLocalDepartureTag] = useState<LocalDepartureTag[]>([])
   const [rawText, setRawText] = useState('')
   const [originUrl, setOriginUrl] = useState('')
   const [loading, setLoading] = useState(false)
@@ -517,6 +524,11 @@ export default function AdminRegisterPage() {
       return ''
     }
   }
+  const toggleLocalDepartureTag = useCallback((tag: LocalDepartureTag) => {
+    setLocalDepartureTag((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    )
+  }, [])
   const currentRegisterPreviewFingerprint = () =>
     buildRegisterCanonForSupplier(selectedBrandKey, {
       text: rawText.trim(),
@@ -617,6 +629,7 @@ export default function AdminRegisterPage() {
             ...(urlToCheck && { originUrl: urlToCheck }),
             ...(blocksPayload && { pastedBlocks: blocksPayload }),
             travelScope,
+            localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
           }),
           signal: controller.signal,
         })
@@ -738,6 +751,7 @@ export default function AdminRegisterPage() {
             travelScope,
             ...(correctionOverlay && { correctionOverlay }),
             previewContentDigest: preview.previewContentDigest,
+            localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
           }),
           signal: controller.signal,
         })
@@ -924,6 +938,29 @@ export default function AdminRegisterPage() {
               </ul>
             </div>
           )}
+        </div>
+
+        <div className="mt-6 border-l-4 border-[#0f172a] pl-6">
+          <p className="text-sm font-semibold text-slate-800">출발지 (수동 지정)</p>
+          <p className="mt-1 text-xs text-slate-500">
+            인천/김포 출발만 해당하면 모두 해제하세요. 체크한 값은 확정 저장 시 DB <code className="text-[11px]">localDepartureTag</code>에만
+            반영되며, 미리보기 본문 지문과는 무관합니다.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-800">
+            {LOCAL_DEPARTURE_TAG_VALUES.map((tag) => (
+              <label key={tag} className="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-400 text-[#0f172a] focus:ring-[#0f172a]"
+                  checked={localDepartureTag.includes(tag)}
+                  onChange={() => toggleLocalDepartureTag(tag)}
+                  disabled={loading || confirming}
+                />
+                <span>{LOCAL_DEPARTURE_TAG_LABELS[tag]}</span>
+                <span className="font-mono text-[11px] text-slate-500">({tag})</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* A-3. 본문 전체 원문 */}
@@ -1184,6 +1221,17 @@ export default function AdminRegisterPage() {
                       : '본문 자동 추출 사용'}
                   </li>
                 </ul>
+              </div>
+
+              <div className="rounded border border-violet-200 bg-violet-50/80 p-3 text-xs text-violet-950">
+                <p className="font-semibold text-violet-900">지방 출발 태그 (수동)</p>
+                <p className="mt-1 text-violet-900/90">
+                  {localDepartureTag.length === 0
+                    ? '없음 (인천/김포 기본)'
+                    : LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k))
+                        .map((k) => LOCAL_DEPARTURE_TAG_LABELS[k])
+                        .join(', ')}
+                </p>
               </div>
 
               {(() => {

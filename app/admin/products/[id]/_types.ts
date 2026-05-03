@@ -82,6 +82,8 @@ export type Product = {
   travelScope?: string | null
   /** travel | private_trip | air_hotel_free — 미설정 시 제목·유형 추론 */
   listingKind?: string | null
+  /** 지방 출발 메가 메뉴·browse — `busan` | `cheongju` | `daegu` */
+  localDepartureTag?: string[]
 }
 
 /** GET /api/admin/products/[id]/itinerary-days 응답 1건 */

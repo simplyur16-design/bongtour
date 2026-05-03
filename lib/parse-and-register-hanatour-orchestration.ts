@@ -110,6 +110,7 @@ import {
 import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confirm-reuse-hanatour'
 import { buildRegisterVerificationBundle } from '@/lib/admin-register-verification-meta-hanatour'
 import type { RegisterPreviewProductDraft } from '@/lib/register-preview-payload-hanatour'
+import { parseLocalDepartureTagArrayFromAdminBody } from '@/lib/product-listing-kind'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import {
   buildRegisterPublicImageHeroSeoKeywords,
@@ -1497,6 +1498,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
         bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
       }),
+      localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
     }
 
     let productId: string
