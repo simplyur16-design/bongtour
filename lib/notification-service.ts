@@ -62,7 +62,13 @@ async function sendSolapiMessage(
       'Content-Type': 'application/json; charset=utf-8',
       Authorization: authHeader,
     },
-    body: JSON.stringify({ from, to, text }),
+    body: JSON.stringify({
+      message: {
+        from,
+        to,
+        text,
+      },
+    }),
   })
 
   const data = (await res.json().catch(() => ({}))) as {
@@ -79,7 +85,7 @@ async function sendSolapiMessage(
     console.error('[solapi-debug] full response:', {
       httpStatus: res.status,
       data: JSON.stringify(data),
-      requestPayload: { from, to, text: text.slice(0, 50) + '...' },
+      requestPayload: { message: { from, to, text: text.slice(0, 50) + '...' } },
     })
     return { ok: false, code, message }
   }
