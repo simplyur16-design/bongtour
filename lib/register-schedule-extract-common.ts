@@ -476,6 +476,8 @@ export function mergeScheduleWithFirstPassPreferExtractRows(
         lunchText: fp.lunchText ?? main.lunchText ?? null,
         dinnerText: fp.dinnerText ?? main.dinnerText ?? null,
         mealSummaryText: fp.mealSummaryText ?? main.mealSummaryText ?? null,
+        // 선추출 행에 routeText 없음: 메인 JSON의 routeText만 유지(덮어쓰기 방지).
+        routeText: strOrNull(main.routeText),
       })
     } else if (fp) {
       out.push({

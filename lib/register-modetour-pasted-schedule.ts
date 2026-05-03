@@ -2,11 +2,11 @@
  * 모두투어: 붙여넣은 본문 텍스트만으로 일차 블록 분리 → RegisterParsed.schedule 보강 (HTML/DOM 미사용).
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
-import {
-  deriveModetourImageKeyword,
-  isModetourPlaceholderImageKeyword,
-  polishModetourImageKeyword,
-} from '@/lib/modetour-schedule-image-keyword'
+import { isModetourPlaceholderImageKeyword } from '@/lib/modetour-schedule-image-keyword'
+
+function modetourScheduleImageKeywordFallback(day: number): string {
+  return `Day ${day} travel`
+}
 
 const NOISE_LINE =
   /더보기|크게\s*보기|크게보기|접기|펼치기|후기\s*작성|리뷰\s*작성|좋아요|공유하기|공유|배너|이벤트\s*응모|예약하기\s*버튼|바로가기|^\s*click\s|placeholder|\[이미지\]|img\s*\d|이미지\s*첨부|이미지\s*확대|광고|개인정보\s*처리|이용약관|쿠키\s*설정|단독\s*예약|조기\s*마감|한정\s*특가|프로모션\s*안내/i
@@ -327,10 +327,6 @@ function normalizeModetourMealCapture(s: string): string {
     .trim()
 }
 
-function buildImageKeywordFromBlock(day: number, blob: string, title: string, description: string): string {
-  return deriveModetourImageKeyword({ day, title, description, blob })
-}
-
 /** 유의/개요/더보기 구간: 장문만 건너뛰고 같은 일차의 이동·호텔·식사 줄은 다시 받는다. */
 function isModetourCoreItineraryResumeLine(t: string): boolean {
   const L = t.replace(/\s+/g, ' ').trim()
@@ -552,7 +548,7 @@ function blockToScheduleDay(day: number, lines: string[]): RegisterScheduleDay {
   const blob = useful.join('\n')
   const meal = extractMealHotelFromBlock(blob)
   const { title, description } = finalizeModetourTitleAndDescription(useful)
-  const imageKeyword = buildImageKeywordFromBlock(day, blob, title, description)
+  const imageKeyword = modetourScheduleImageKeywordFallback(day)
   return {
     day,
     title,
@@ -613,20 +609,11 @@ function applyModetourScheduleRowBlobFinale(
       ...ex,
     } as RegisterScheduleDay)
   }
-  if (isDayNTravelKeyword(next.imageKeyword) || !next.imageKeyword?.trim()) {
+  if (!next.imageKeyword?.trim()) {
     next = {
       ...next,
-      imageKeyword: buildImageKeywordFromBlock(next.day, blob, next.title, next.description),
+      imageKeyword: modetourScheduleImageKeywordFallback(next.day),
     }
-  }
-  next = {
-    ...next,
-    imageKeyword: polishModetourImageKeyword(next.imageKeyword ?? '', {
-      day: next.day,
-      title: next.title,
-      description: next.description,
-      blob,
-    }),
   }
   return next
 }
@@ -674,17 +661,17 @@ function mergeWeakWithBody(
   next = mergeModetourMealHotelPreferWeakBody(next, body)
   next = mergeScheduleMealHotelPatch(next, body)
   next = applyModetourBodyHotelTextWins(next, body)
-  if (isDayNTravelKeyword(next.imageKeyword) || !next.imageKeyword?.trim()) {
+  if (!next.imageKeyword?.trim()) {
     next = {
       ...next,
-      imageKeyword: buildImageKeywordFromBlock(next.day, dayBlob, next.title, next.description),
+      imageKeyword: modetourScheduleImageKeywordFallback(next.day),
     }
   }
   return next
 }
 
 /**
- * parseForRegister 직후: schedule 비었거나 빈약하면 붙여넣기 본문으로 보강. `Day N travel`은 가능하면 교체.
+ * parseForRegister 직후: schedule 비었거나 빈약하면 붙여넣기 본문으로 보강(식사·숙소 등). imageKeyword는 LLM 값 우선.
  */
 export function supplementModetourScheduleFromPastedBody(
   parsed: RegisterParsed,
@@ -734,7 +721,7 @@ export function supplementModetourScheduleFromPastedBody(
         if (needKeywordFix && isDayNTravelKeyword(next.imageKeyword)) {
           next = {
             ...next,
-            imageKeyword: buildImageKeywordFromBlock(r.day, blob, next.title, next.description),
+            imageKeyword: modetourScheduleImageKeywordFallback(r.day),
           }
         }
       }
@@ -802,7 +789,7 @@ export function supplementModetourScheduleFromPastedBody(
             imageKeyword:
               body.imageKeyword && !isDayNTravelKeyword(body.imageKeyword)
                 ? body.imageKeyword
-                : buildImageKeywordFromBlock(day, blob, llm.title, llm.description),
+                : modetourScheduleImageKeywordFallback(day),
           }
         }
         if (blob.trim()) {
