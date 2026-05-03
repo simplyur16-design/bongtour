@@ -15,6 +15,8 @@ export const CUSTOMER_INQUIRY_TYPES = [
 export type CustomerInquiryType = (typeof CUSTOMER_INQUIRY_TYPES)[number]
 
 const MAX_NAME = 120
+const PRODUCTION_NAME_MAX = 30
+const PRODUCTION_NAME_REGEX = /^[가-힣a-zA-Z\s]{2,30}$/
 const MAX_PHONE = 40
 const MAX_EMAIL = 254
 const MAX_MESSAGE = 8000
@@ -69,12 +71,67 @@ function optionalId(v: unknown, field: string): { ok: true; value: string | null
   return { ok: false, err: `${field} 형식이 올바르지 않습니다.` }
 }
 
+function normalizeKoreanTelDigits(input: string): string {
+  let d = input.replace(/\D/g, '')
+  if (d.startsWith('82')) d = `0${d.slice(2)}`
+  return d
+}
+
+/** 한국 휴대(01x)·지역(02·0xx) 번호로 보이는지(운영 규격). */
+function isValidKoreanInquiryPhone(raw: string): boolean {
+  const d = normalizeKoreanTelDigits(raw)
+  if (d.length < 9 || d.length > 11) return false
+  if (/^01[0-9]\d{7,8}$/.test(d)) return true
+  if (/^02\d{7,8}$/.test(d)) return true
+  if (/^0[3-6][0-9]\d{7,9}$/.test(d)) return true
+  if (/^0[7-9][0-9]\d{7,9}$/.test(d)) return true
+  if (/^070\d{8}$/.test(d)) return true
+  return false
+}
+
+function isLikelyGmailDotTrickEmail(email: string): boolean {
+  const at = email.lastIndexOf('@')
+  if (at < 1) return false
+  const local = email.slice(0, at)
+  const domain = email.slice(at + 1).toLowerCase()
+  if (domain !== 'gmail.com' && domain !== 'googlemail.com') return false
+  const dots = (local.match(/\./g) ?? []).length
+  if (dots >= 7) return true
+  if (local.length > 0 && dots / local.length >= 0.3) return true
+  return false
+}
+
+function hasHangul(s: string): boolean {
+  return /[가-힣]/.test(s)
+}
+
+function isAsciiLettersAndSpacesOnly(s: string): boolean {
+  return /^[a-zA-Z\s]+$/.test(s)
+}
+
+function payloadStringField(obj: Record<string, unknown> | null, key: string): string {
+  if (!obj) return ''
+  const v = obj[key]
+  return typeof v === 'string' ? v.trim() : ''
+}
+
+export type ValidateCustomerInquiryOptions = {
+  productionInquiryRules?: boolean
+}
+
+export type ValidateCustomerInquiryBodyResult =
+  | { ok: true; value: ValidatedInquiryCreate }
+  | { ok: false; error: string; fieldErrors: FieldErrors }
+  | { ok: 'silent_bot' }
+
 /**
  * 공개 POST /api/inquiries 본문 검증 (라이브러리 무거운 도입 없음).
  */
 export function validateCustomerInquiryBody(
-  raw: unknown
-): { ok: true; value: ValidatedInquiryCreate } | { ok: false; error: string; fieldErrors: FieldErrors } {
+  raw: unknown,
+  options?: ValidateCustomerInquiryOptions
+): ValidateCustomerInquiryBodyResult {
+  const productionInquiryRules = Boolean(options?.productionInquiryRules)
   const fieldErrors: FieldErrors = {}
 
   if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
@@ -96,9 +153,15 @@ export function validateCustomerInquiryBody(
     fieldErrors.inquiryType = '문의 유형이 올바르지 않습니다.'
   }
 
-  const nameR = optionalTrimmedString(body.applicantName, MAX_NAME, 'applicantName')
+  const nameMax = productionInquiryRules ? PRODUCTION_NAME_MAX : MAX_NAME
+  const nameR = optionalTrimmedString(body.applicantName, nameMax, 'applicantName')
   if (!nameR.ok) fieldErrors.applicantName = nameR.err
   else if (!nameR.value) fieldErrors.applicantName = '이름을 입력해 주세요.'
+  else if (productionInquiryRules) {
+    if (nameR.value.length < 2 || !PRODUCTION_NAME_REGEX.test(nameR.value)) {
+      fieldErrors.applicantName = '이름은 2~30자 한글·영문·공백만 입력해 주세요.'
+    }
+  }
 
   const phoneR = optionalTrimmedString(body.applicantPhone, MAX_PHONE, 'applicantPhone')
   if (!phoneR.ok) fieldErrors.applicantPhone = phoneR.err
@@ -107,6 +170,8 @@ export function validateCustomerInquiryBody(
     fieldErrors.applicantPhone = '연락처 형식을 확인해 주세요.'
   } else if (phoneR.value.replace(/\D/g, '').length < 8) {
     fieldErrors.applicantPhone = '연락처가 너무 짧습니다.'
+  } else if (productionInquiryRules && !isValidKoreanInquiryPhone(phoneR.value)) {
+    fieldErrors.applicantPhone = '휴대폰 또는 유선 전화 형식을 확인해 주세요.'
   }
 
   const emailR = optionalTrimmedString(body.applicantEmail, MAX_EMAIL, 'applicantEmail')
@@ -259,6 +324,39 @@ export function validateCustomerInquiryBody(
   if (Object.keys(fieldErrors).length > 0) {
     const first = Object.values(fieldErrors)[0] ?? '입력값을 확인해 주세요.'
     return { ok: false, error: first, fieldErrors }
+  }
+
+  if (productionInquiryRules) {
+    const nm = nameR.ok && nameR.value ? nameR.value : ''
+    const nameLettersOnlyLen = nm.replace(/\s/g, '').length
+    if (nm && isAsciiLettersAndSpacesOnly(nm) && !hasHangul(nm) && nameLettersOnlyLen >= 12) {
+      return { ok: 'silent_bot' }
+    }
+
+    const em = emailR.ok ? emailR.value : null
+    if (em && isLikelyGmailDotTrickEmail(em)) {
+      return { ok: 'silent_bot' }
+    }
+
+    const msgTrim = messageR.ok && messageR.value ? messageR.value.trim() : ''
+    if (msgTrim.length > 0 && !hasHangul(msgTrim)) {
+      return { ok: 'silent_bot' }
+    }
+
+    if (quoteKind === 'private_custom') {
+      const dest =
+        typeof payloadObject?.destinationSummary === 'string' ? payloadObject.destinationSummary.trim() : ''
+      if (dest.length > 0 && !hasHangul(dest)) {
+        return { ok: 'silent_bot' }
+      }
+    }
+
+    if (inquiryTypeRaw === 'bus_quote' && payloadObject) {
+      for (const key of ['departurePlace', 'arrivalPlace', 'viaPoints'] as const) {
+        const t = payloadStringField(payloadObject, key)
+        if (t.length > 0 && !hasHangul(t)) return { ok: 'silent_bot' }
+      }
+    }
   }
 
   const inquiryType = inquiryTypeRaw as CustomerInquiryType
