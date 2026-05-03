@@ -897,7 +897,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - day, title, description, imageKeyword, routeText
 - description: 해당 일차 블록 전체를 근거로 관광·이동·식사·숙박을 **빠짐없이** 반영한 문어체 존댓말 요약. **3~6문장·450자 이내**를 목표로 하며, 한 줄·한두 문장만 쓰지 말 것. 복수 관광지가 있으면 모두 짧게라도 언급.
 - imageKeyword: 해당 일차의 실존하는 장소 이름만 사용 (창조·추상 금지). 영문 명사 (예: Osaka Castle, Taipei 101)
-- routeText: 그날 방문 장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 예: "Victoria Falls - Zambezi River - Sunset Cruise". 한국어 또는 영문 모두 OK (본문 표기 그대로). 본문에 [조망], [차창관광], [외부관람], [선택관광] 태그가 있으면 (조망), (차창), (외부관람), (선택관광)로 괄호 안에 보존. 빈 일정이면 null.
+- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. **한국어로 작성.** 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기를 사용한다. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
 # [prices] 출발일별 요금 (달력과 동일한 날짜만)
@@ -1032,7 +1032,7 @@ date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel,
       "title": "",
       "description": "",
       "imageKeyword": "Real place name in English",
-      "routeText": "Incheon - Victoria Falls - Sunset Cruise",
+      "routeText": "인천 - 아디스아바바 - 빅토리아 폭포",
       "hotelText": null,
       "breakfastText": null,
       "lunchText": null,

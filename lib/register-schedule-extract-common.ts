@@ -273,7 +273,7 @@ function buildScheduleOnlyPrompt(
     `- 마지막 일차(귀국·출국·기내박·숙박 없음)까지 반드시 포함.\n` +
     `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), imageKeyword(영문 장소명 짧게), routeText, ` +
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
-    `- routeText: 그날 방문 장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 예: "Incheon - Victoria Falls - Sunset Cruise". 본문에 [조망], [차창관광], [외부관람], [선택관광] 태그가 있으면 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
+    `- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 한국어로 작성. 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
     `- description: 해당 일차의 이동·관광·식사·숙박 흐름을 **짧은 문어체**로 요약. 원문 장문·HTML을 **통째로 복사**하지 말 것.\n` +
     `- 방문지가 많으면 **이름 위주로 묶어** 쓰고, 식사·호텔 디테일은 가능하면 meal·hotel 필드에 둔다.\n\n` +
     hint +
@@ -311,7 +311,7 @@ function buildScheduleOnlyPromptForSingleDay(
     `- **day 필드는 반드시 정수 ${day}**\n` +
     `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), imageKeyword(영문 장소명 짧게), routeText, ` +
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
-    `- routeText: 그날 방문 장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 예: "Incheon - Victoria Falls - Sunset Cruise". 본문에 [조망], [차창관광], [외부관람], [선택관광] 태그가 있으면 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
+    `- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 한국어로 작성. 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
     `- description: 해당 일차를 **짧게** 요약. 원문 복붙·장황한 나열 금지.\n\n` +
     hint +
     add +
