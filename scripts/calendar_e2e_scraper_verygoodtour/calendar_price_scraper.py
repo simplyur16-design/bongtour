@@ -266,7 +266,7 @@ VERYGOOD_MODAL_DOM_BUNDLE_JS = r"""
     '에티하드항공|에티하드|영국항공|싱가포르항공|태국항공|베트남항공|티웨이항공|대한항공|아시아나항공|제주항공|진에어|에어부산|에어서울|이스타항공|' +
     '에어프레미아|플라이강원|루프트한자|에어부산항공|에어캐나다|델타항공|유나이티드항공|에뉴질랜드|핀에어|ANA|전일본공수|' +
     '폴란드항공|LOT|에어로플로트|러시아항공|스위스항공|SWISS|오스트리아항공|중국국제항공|남방항공|하이난항공|에어아시아|필리핀항공|' +
-    '스칸디나비아항공|에어인디아|스리랑카항공|에티오피아항공|에티오피아|중국동방항공';
+    '스칸디나비아항공|에어인디아|스리랑카항공|에티오피아항공|에티오피아|중국동방항공|핀란드항공';
   const carrierRe = new RegExp('(' + carriers + ')');
   const rightRows = [];
   for (const li of right.querySelectorAll('li.jq_cl_detailViewBtn')) {
@@ -1201,8 +1201,12 @@ class CalendarPriceScraper:
             in_fno = in_fn if in_fn and in_fn != ob_fn else None
             ob_at = sched.get("outboundDepartureAt")
             ib_at = sched.get("inboundArrivalAt")
-            if not row_carrier or not ob_at or not ib_at:
+            if not ob_at or not ib_at:
                 continue
+            # TS verygood: carrier 빈 값 → '미표기' (lib/verygoodtour-departures.ts 동일 의미)
+            if not row_carrier:
+                row_carrier = "미표기"
+                _verygood_phase_always("verygood-row-kept-no-carrier", f"date={d}")
             rest_int = _verygood_modal_remain_seats_int(item, status_raw)
             if rest_int is None:
                 seats_line = "좌석수미표기"
