@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-참좋은여행(verygoodtour) 달력 + 출발일 변경 **일정행** 기준.
-- 네트워크 JSON 경로: 월별 `ProductCalendarSearch` + 상세 1회(패키지 제목·N박M일 베이스만).
+참좋은여행(verygoodtour) 달력 + 출발일 변경 **일정행** 기준 (Playwright 모달 E2E 단일 경로).
 - 같은 일정행: **MasterCode 접두 + N박M일 일치** + **상품명 전체 일치**(상세 preHash vs 행 ProductName, 공백 정규화).
 - 행에서 채움: 출발·귀국 일시, 가격, 예약가능 문구, 항공사 등.
-- 모달 일정 리스트는 스크롤 가능 → Playwright 경로에서 `_scroll_verygood_popup_list` 로 끝까지 스크롤.
+- 모달 일정 리스트는 스크롤 가능 → `_scroll_verygood_popup_list` 로 끝까지 스크롤.
 - 출발일·금액 수집 하한: KST **오늘 +3일**(`_kst_verygood_departure_floor_ymd`) 미만 제외.
+- 선택: `VERYGOOD_DATE_FROM` / `VERYGOOD_DATE_TO`(YYYY-MM-DD) 설정 시 해당 구간 출발일만 stdout JSON에 포함.
 """
 import asyncio
 import datetime as dt
@@ -13,7 +13,6 @@ import json
 import os
 import re
 import urllib.parse
-import urllib.request
 from typing import Any, Dict, List, Optional
 
 from playwright.async_api import Page, async_playwright
@@ -31,8 +30,6 @@ from .utils import (
 )
 
 _KST = dt.timezone(dt.timedelta(hours=9))
-# lib/scrape-date-bounds.ts SCRAPE_DEFAULT_MONTHS_FORWARD 와 맞춤
-DEFAULT_CALENDAR_MONTH_LIMIT = 3
 
 _LEADING_BADGE_RE_VG = re.compile(r"^(?:\[[^\]]*\]\s*)+")
 _VERYGOOD_PROMO_BLOCK_RE = re.compile(
@@ -619,312 +616,25 @@ def _extract_shared_departure_meta_from_text(page_text: str) -> Dict[str, Any]:
     return meta
 
 
-def _http_get_text(url: str, referer: Optional[str] = None) -> str:
-    headers = {"User-Agent": get_user_agent(fixed=True)}
-    if referer:
-        headers["Referer"] = referer
-    req = urllib.request.Request(url, headers=headers, method="GET")
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return resp.read().decode("utf-8", errors="ignore")
-
-
-def _extract_calendar_json_from_html(html: str) -> List[Dict[str, Any]]:
-    """ProductCalendarSearch HTML에서 달력 JSON — lib/verygoodtour-departures.ts parseCalendarJson 과 동일 패턴."""
-    patterns = [
-        r"var\s+\$calendarProductListJson\s*=\s*(\[[\s\S]*?\]);",
-        r"\$calendarProductListJson\s*=\s*(\[[\s\S]*?\]);",
-        r"calendarProductListJson\s*=\s*(\[[\s\S]*?\]);",
-        r"ProductCalendar\w*Json\s*=\s*(\[[\s\S]*?\]);",
-    ]
-    for pat in patterns:
-        m = re.search(pat, html, re.I)
-        if not m:
-            continue
-        raw = m.group(1)
-        try:
-            data = json.loads(raw)
-            if isinstance(data, list):
-                return data
-        except Exception:
-            continue
-    return _extract_calendar_json_array_balanced(html)
-
-
-def _extract_calendar_json_array_balanced(html: str) -> List[Dict[str, Any]]:
-    """
-    정규식 non-greedy가 중첩 대괄호/긴 배열에서 잘못 자를 때를 대비해
-    $calendarProductListJson = [...] 구간을 괄호 균형으로 잘라 JSON 파싱.
-    """
-    markers = ("$calendarProductListJson", "calendarProductListJson")
-    for mk in markers:
-        i = html.find(mk)
-        if i < 0:
-            continue
-        eq = html.find("=", i)
-        if eq < 0:
-            continue
-        j = html.find("[", eq)
-        if j < 0:
-            continue
-        depth = 0
-        in_str = False
-        esc = False
-        for k in range(j, len(html)):
-            ch = html[k]
-            if in_str:
-                if esc:
-                    esc = False
-                elif ch == "\\":
-                    esc = True
-                elif ch == '"':
-                    in_str = False
-                continue
-            if ch == '"':
-                in_str = True
-                continue
-            if ch == "[":
-                depth += 1
-            elif ch == "]":
-                depth -= 1
-                if depth == 0:
-                    raw = html[j : k + 1]
-                    try:
-                        data = json.loads(raw)
-                        if isinstance(data, list):
-                            return data
-                    except Exception:
-                        pass
-                    break
-    return []
-
-
-def _verygood_calendar_adult_price(v: Dict[str, Any]) -> int:
-    ap = v.get("AdultPrice")
-    if ap is None:
-        return 0
-    try:
-        s = str(ap).replace(",", "").strip()
-        if not s:
-            return 0
-        return int(float(s))
-    except Exception:
-        return 0
-
-
-def _extract_airports_from_detail_html(html: str) -> Dict[str, Optional[str]]:
-    out: Dict[str, Optional[str]] = {
-        "outboundDepartureAirport": None,
-        "outboundArrivalAirport": None,
-        "inboundDepartureAirport": None,
-        "inboundArrivalAirport": None,
-    }
-    # 한국출발 블록: "... 15:30</b> 인천 출발" / "... 17:55</b> 도쿄 도착"
-    dep_block = re.search(r'<div class="inout depature">([\s\S]*?)</div></div>', html)
-    if dep_block:
-        t = dep_block.group(1)
-        m1 = re.search(r"</b>\s*([^<\s]+)\s*출발", t)
-        m2 = re.search(r"</b>\s*([^<\s]+)\s*도착", t)
-        if m1:
-            out["outboundDepartureAirport"] = m1.group(1).strip()
-        if m2:
-            out["outboundArrivalAirport"] = m2.group(1).strip()
-    ent_block = re.search(r'<div class="inout entry">([\s\S]*?)</div></div>', html)
-    if ent_block:
-        t = ent_block.group(1)
-        m1 = re.search(r"</b>\s*([^<\s]+)\s*출발", t)
-        m2 = re.search(r"</b>\s*([^<\s]+)\s*도착", t)
-        if m1:
-            out["inboundDepartureAirport"] = m1.group(1).strip()
-        if m2:
-            out["inboundArrivalAirport"] = m2.group(1).strip()
+def _verygood_rows_filter_env_date_range(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    lo = (os.environ.get("VERYGOOD_DATE_FROM") or "").strip()
+    hi = (os.environ.get("VERYGOOD_DATE_TO") or "").strip()
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", lo) or not re.match(r"^\d{4}-\d{2}-\d{2}$", hi):
+        return rows
+    if lo > hi:
+        lo, hi = hi, lo
+    out: List[Dict[str, Any]] = []
+    for r in rows:
+        d = str(r.get("date") or "").strip()
+        if d >= lo and d <= hi:
+            out.append(r)
     return out
-
-
-def _extract_meeting_from_detail_html(html: str) -> Dict[str, Optional[str]]:
-    out: Dict[str, Optional[str]] = {
-        "meetingInfoRaw": None,
-        "meetingPointRaw": None,
-        "meetingTerminalRaw": None,
-        "meetingGuideNoticeRaw": None,
-    }
-    m = re.search(r"<h4 class=\"detail-h\">미팅장소</h4>[\s\S]*?<p>\s*([\s\S]*?)\s*</p>", html)
-    if not m:
-        return out
-    raw = re.sub(r"<[^>]+>", " ", m.group(1))
-    point = re.sub(r"\s+", " ", raw).strip()
-    if point:
-        out["meetingInfoRaw"] = point
-        out["meetingPointRaw"] = point
-        tm = re.search(r"(제\d터미널|T\d)", point)
-        if tm:
-            out["meetingTerminalRaw"] = tm.group(1)
-    return out
-
-
-def _month_iter_from_procode(procode: str, months: int = 12) -> List[tuple]:
-    # 예: JPP423-260329TW -> 시작월 2026-03 (단, KST 오늘 이전 월은 건너뜀)
-    start = _kst_month_start()
-    m = re.search(r"-(\d{2})(\d{2})\d{2}", procode or "")
-    if m:
-        yy = int(m.group(1))
-        mm = int(m.group(2))
-        start = dt.date(2000 + yy, max(1, min(mm, 12)), 1)
-    floor_m = _kst_month_start()
-    if start < floor_m:
-        start = floor_m
-    out: List[tuple] = []
-    cur = start
-    for _ in range(months):
-        out.append((cur.year, cur.month))
-        if cur.month == 12:
-            cur = dt.date(cur.year + 1, 1, 1)
-        else:
-            cur = dt.date(cur.year, cur.month + 1, 1)
-    return out
-
-
-def scrape_verygood_departures_from_network(detail_url: str) -> List[Dict[str, Any]]:
-    u = urllib.parse.urlparse(detail_url)
-    q = urllib.parse.parse_qs(u.query)
-    procode = (q.get("ProCode") or [""])[0].strip()
-    menu_code = (q.get("MenuCode") or q.get("menuCode") or ["leaveLayer"])[0].strip() or "leaveLayer"
-    if not procode:
-        return []
-    master_code = procode.split("-")[0].strip()
-    # 달력 JSON + 상세 1회(패키지 제목·N박M일)로 일정행 필터. 본문 shared 보강 없음.
-
-    detail_html = ""
-    try:
-        detail_html = _http_get_text(detail_url, referer=detail_url)
-    except Exception:
-        pass
-    base_trip, base_title_front = _verygood_detail_nm_and_title_front(detail_html)
-
-    merged: Dict[str, Dict[str, Any]] = {}
-    base = f"{u.scheme}://{u.netloc}"
-    # 참좋은여행: 월 단위로 다음 달 이동하며 수집 (과거 월은 procode 기준에서도 KST 오늘 이후로 클램프)
-    for year, month in _month_iter_from_procode(procode, months=DEFAULT_CALENDAR_MONTH_LIMIT):
-        cal_url = f"{base}/Product/ProductCalendarSearch?MasterCode={master_code}&MenuCode={menu_code}&Year={year}&Month={month:02d}"
-        try:
-            html = _http_get_text(cal_url, referer=detail_url)
-        except Exception:
-            continue
-        rows = _extract_calendar_json_from_html(html)
-        for v in rows:
-            date = str(v.get("DepartureDateToShortString") or "").strip()
-            if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
-                continue
-            if date < _kst_verygood_departure_floor_ymd():
-                continue
-            adult_price = _verygood_calendar_adult_price(v)
-            if adult_price <= 0:
-                continue
-            row_pc = str(v.get("ProductCode") or "").strip()
-            if row_pc and master_code and not row_pc.upper().startswith(master_code.upper()):
-                continue
-            row_title_raw = str(v.get("ProductName") or v.get("ProductTitle") or v.get("Title") or "").strip()
-            row_title = fix_mojibake_korean_str(row_title_raw) or row_title_raw
-            has_trip = base_trip is not None
-            has_title = bool((base_title_front or "").strip())
-            if has_trip or has_title:
-                if has_trip:
-                    row_nm = _verygood_row_primary_nm(v, row_title)
-                    if not row_nm or tuple(row_nm) != tuple(base_trip):
-                        continue
-                if has_title:
-                    if not _verygood_product_name_exact(base_title_front, row_title):
-                        continue
-            _btn = str(v.get("BtnReserveAltTag") or "").strip() or "예약가능"
-            status_raw = fix_mojibake_korean_str(_btn) or _btn
-            trans_code = str(v.get("TransCode") or "").strip()
-            trans_num = str(v.get("TransNumber") or "").strip().replace(" ", "")
-            dep_time = _verygood_pad_hhmm(str(v.get("DepartureDepartureTime") or "").strip())
-            arr_time = _verygood_pad_hhmm(str(v.get("ArrivalArrivalTime") or "").strip())
-            arr_date = str(v.get("ArrivalDateToShortString") or "").strip()
-            tn = str(v.get("TrasnName") or "").strip()
-            comb = _verygood_try_combined_schedule_range(v)
-            dep_norm = _verygood_norm_ymd(date)
-            if comb and dep_norm:
-                c0 = _verygood_norm_ymd(comb["departure_date"])
-                if c0 == dep_norm:
-                    if not dep_time:
-                        dep_time = comb["dep_time"]
-                    if not arr_date:
-                        arr_date = comb["arrival_date"]
-                    if not arr_time:
-                        arr_time = comb["arr_time"]
-            # 출발·귀국 일시: 셋 다 없을 때만 버림. 일부만 없으면 null 허용.
-            if not tn:
-                tn = "미표기"
-            if not dep_time and not arr_date and not arr_time:
-                continue
-            out_dep_at = f"{date} {dep_time}" if dep_time else None
-            in_arr_at = f"{arr_date} {arr_time}" if arr_date and arr_time else None
-            rest_int = _verygood_calendar_rest_seat_int(v)
-            if rest_int is None:
-                if re.search(r"마감|예약\s*마감|예약마감|불가", status_raw):
-                    rest_int = 0
-            seats = f"잔여{rest_int}" if rest_int is not None else "좌석수미표기"
-            child_bed = _verygood_calendar_optional_int_price(
-                v, "ChildPrice", "SaleChildPrice", "ChildBedPrice", "ChildBedAmt"
-            )
-            child_no_bed = _verygood_calendar_optional_int_price(
-                v, "ChildNoBedPrice", "ChildNoBedAmt", "SaleChildNoBedPrice"
-            )
-            infant = _verygood_calendar_optional_int_price(
-                v, "InfantPrice", "BabyPrice", "InfantAmt", "SaleInfantPrice"
-            )
-            row = {
-                "date": date,
-                "price": adult_price,
-                "status": status_raw,
-                "statusRaw": status_raw,
-                "seatsStatusRaw": seats,
-                "adultPrice": adult_price,
-                "childBedPrice": child_bed,
-                "childNoBedPrice": child_no_bed,
-                "infantPrice": infant,
-                "localPriceText": None,
-                "minPax": int(v.get("MinCount")) if str(v.get("MinCount") or "").isdigit() else None,
-                "carrierName": fix_airline_name_str(tn),
-                "outboundFlightNo": (f"{trans_code}{trans_num}" if trans_code and trans_num else None),
-                "outboundDepartureAirport": None,
-                "outboundDepartureAt": out_dep_at,
-                "outboundArrivalAirport": None,
-                "outboundArrivalAt": None,
-                "inboundFlightNo": None,
-                "inboundDepartureAirport": None,
-                "inboundDepartureAt": None,
-                "inboundArrivalAirport": None,
-                "inboundArrivalAt": in_arr_at,
-                "meetingInfoRaw": None,
-                "meetingPointRaw": None,
-                "meetingTerminalRaw": None,
-                "meetingGuideNoticeRaw": None,
-            }
-            _verygood_attach_canonical_row_fields(
-                row,
-                departure_date=date,
-                departure_time=dep_time,
-                return_date=arr_date,
-                return_time=arr_time,
-                price=adult_price,
-                remain_seats=rest_int,
-                booking_status=status_raw,
-                airline_name=row["carrierName"],
-            )
-            key = f"{date}|{v.get('ProductCode')}|{v.get('PriceSeq')}"
-            merged[key] = row
-    return _filter_calendar_rows_kst_floor(
-        sorted(list(merged.values()), key=lambda x: x.get("date", ""))
-    )
 
 
 class CalendarPriceScraper:
     """
-    참좋은여행(verygoodtour) 달력 + 출발일 변경 **일정행**(모달 우측 스크롤 리스트).
+    참좋은여행(verygoodtour) 달력 + 출발일 변경 **일정행**(모달 우측 스크롤 리스트, Playwright E2E 단일).
     - 모달 열린 뒤 `_scroll_verygood_popup_list` 로 리스트 끝까지 스크롤 후 DOM에서 행 수집.
-    - 네트워크 JSON 경로(`scrape_verygood_departures_from_network`)는 월별 캘린더 JSON + 상세 1회로 N박M일·제목 앞부분 필터.
     """
 
     def __init__(
@@ -1027,16 +737,11 @@ class CalendarPriceScraper:
             )
             for r in with_price:
                 r.pop("_popupOpened", None)
-            return _filter_calendar_rows_kst_floor(
+            out = _filter_calendar_rows_kst_floor(
                 sorted(with_price, key=lambda x: str(x.get("date", "")))
             )
-        try:
-            net = scrape_verygood_departures_from_network(detail_url)
-            _verygood_log(f"[verygoodtour] network fallback rows: {len(net)}")
-            return net
-        except Exception as ex2:
-            _verygood_log(f"[verygoodtour] network fallback failed: {ex2}")
-            return []
+            return _verygood_rows_filter_env_date_range(out)
+        return []
 
     async def _verygood_eval_modal_bundle_py(self) -> Dict[str, Any]:
         try:

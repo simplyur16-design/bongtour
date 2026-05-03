@@ -3,7 +3,6 @@ import fs from 'fs'
 import path from 'path'
 import { promisify } from 'util'
 import type { PrismaClient } from '@prisma/client'
-import { collectVerygoodDepartureInputs } from '@/lib/verygoodtour-departures'
 import { collectModetourDepartureInputs } from '@/lib/modetour-departures'
 import {
   buildHanatourKstTargetMonths,
@@ -33,6 +32,7 @@ export type DepartureRescrapeResult = {
   mode: 'live-rescrape' | 'fallback-rebuild'
   source:
     | 'verygoodtour-adapter'
+    | 'verygoodtour-live-calendar'
     | 'modetour-adapter'
     | 'hanatour-adapter'
     | 'ybtour-calendar-scraper'
@@ -231,7 +231,7 @@ function resolveYbtourPythonRepoRoot(): string {
   return path.resolve(process.cwd())
 }
 
-async function scrapeLiveCalendar(
+export async function scrapeLiveCalendar(
   detailUrl: string,
   site: 'modetour' | 'verygoodtour' | 'ybtour',
   extraEnv?: Record<string, string>
@@ -264,8 +264,8 @@ async function scrapeLiveCalendar(
   try {
     const r = await execFileAsync(py, argv, {
       cwd,
-      // ybtour Playwright 달력 E2E는 상품·월 루프에 따라 2~3분 이상 걸릴 수 있음(120s 초과 시 Command failed + fallback).
-      timeout: site === 'ybtour' ? 300_000 : 120_000,
+      // ybtour / 참좋은 Playwright 달력 E2E는 상품·월 루프에 따라 2~3분 이상 걸릴 수 있음.
+      timeout: site === 'ybtour' || site === 'verygoodtour' ? 300_000 : 120_000,
       maxBuffer: 8 * 1024 * 1024,
       env: envForChild as NodeJS.ProcessEnv,
     })
@@ -370,7 +370,7 @@ function formatYbtourLiveScrapeFailure(e: unknown): string {
   return `ybtour-calendar-scraper: ${(e instanceof Error ? e.message : 'unknown').slice(0, 200)}`.slice(0, 240)
 }
 
-function mapScrapedRowsToInputs(
+export function mapScrapedRowsToInputs(
   rows: ScrapedCalendarItem[],
   existingStatusByDate: Map<string, { statusRaw: string | null; seatsStatusRaw: string | null }>
 ): DepartureInput[] {
@@ -497,30 +497,6 @@ export async function collectDepartureInputsForAdminRescrape(
   })()
   let liveError: string | null = null
   let attemptedLive = false
-  if (site === 'verygoodtour' && product.originUrl) {
-    attemptedLive = true
-    const parsed = await collectVerygoodDepartureInputs(product.originUrl, {
-      monthCount: SCRAPE_DEFAULT_MONTHS_FORWARD,
-    })
-    if (parsed.length > 0) {
-      const fillMeta = deriveFillMeta(parsed.map((x) => x.input))
-      return {
-        mode: 'live-rescrape',
-        source: 'verygoodtour-adapter',
-        inputs: parsed.map((x) => x.input),
-        attemptedLive,
-        liveError: null,
-        filledFields: fillMeta.filledFields,
-        missingFields: fillMeta.missingFields,
-        mappingStatus: 'per-date-confirmed',
-        site,
-        detailUrl: detailUrlForTrace,
-        detailUrlSummary,
-        collectorStatus: null,
-      }
-    }
-    liveError = 'verygoodtour-adapter returned 0 rows'
-  }
   if (site === 'modetour') {
     attemptedLive = true
     try {
@@ -725,7 +701,9 @@ export async function collectDepartureInputsForAdminRescrape(
               ? 'modetour-adapter'
               : site === 'ybtour'
                 ? 'ybtour-calendar-scraper'
-                : 'hanatour-adapter',
+                : site === 'verygoodtour'
+                  ? 'verygoodtour-live-calendar'
+                  : 'hanatour-adapter',
           inputs,
           attemptedLive,
           liveError: null,

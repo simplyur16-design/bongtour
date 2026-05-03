@@ -4,6 +4,8 @@ import {
   buildDetailUrl,
   collectDepartureInputsForAdminRescrape,
   collectYbtourDepartureInputsForDateRange,
+  mapScrapedRowsToInputs,
+  scrapeLiveCalendar,
   type DepartureRescrapeResult,
 } from '@/lib/admin-departure-rescrape'
 import {
@@ -14,7 +16,6 @@ import {
   type HanatourPythonMonthRun,
 } from '@/lib/hanatour-departures'
 import { collectModetourDepartureInputsForDateRange } from '@/lib/modetour-departures'
-import { collectVerygoodDepartureInputsForDateRange } from '@/lib/verygoodtour-departures'
 import {
   brandKeyResolvesToYbtour,
   normalizeBrandKeyToCanonicalSupplierKey,
@@ -22,7 +23,7 @@ import {
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { syncYbtourProductPricesFromDepartureInputsDetailed } from '@/lib/ybtour-sync-product-prices-from-departure-inputs'
 import type { DepartureInput } from '@/lib/upsert-product-departures-hanatour'
-import { departureInputToYmd } from '@/lib/scrape-date-bounds'
+import { departureInputToYmd, filterDepartureInputsOnOrAfterCalendarToday } from '@/lib/scrape-date-bounds'
 import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour'
 import * as updDeparturesModetour from '@/lib/upsert-product-departures-modetour'
 import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-verygoodtour'
@@ -388,7 +389,23 @@ export async function executeRangeOnDemandDepartures(
   } else if (bk === 'modetour' || norm === 'modetour') {
     livesRange = await collectModetourDepartureInputsForDateRange(product.originUrl, fromYmd, toYmd)
   } else if (bk === 'verygoodtour' || norm === 'verygoodtour') {
-    livesRange = await collectVerygoodDepartureInputsForDateRange(detailUrl, fromYmd, toYmd)
+    const lo = fromYmd <= toYmd ? fromYmd : toYmd
+    const hi = fromYmd <= toYmd ? toYmd : fromYmd
+    const statusByDate = new Map<string, { statusRaw: string | null; seatsStatusRaw: string | null }>()
+    try {
+      const cal = await scrapeLiveCalendar(detailUrl, 'verygoodtour', {
+        VERYGOOD_DATE_FROM: lo,
+        VERYGOOD_DATE_TO: hi,
+      })
+      livesRange = filterDepartureInputsOnOrAfterCalendarToday(
+        mapScrapedRowsToInputs(cal.rows, statusByDate)
+      ).filter((x) => {
+        const dk = departureInputToYmd(x.departureDate)
+        return dk != null && dk >= lo && dk <= hi
+      })
+    } catch {
+      livesRange = []
+    }
   } else if (norm === 'ybtour' || bk === 'ybtour' || brandKeyResolvesToYbtour(product.brand?.brandKey ?? null)) {
     livesRange = await collectYbtourDepartureInputsForDateRange(detailUrl, product.originCode, fromYmd, toYmd)
   }
