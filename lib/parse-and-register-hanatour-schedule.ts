@@ -1417,6 +1417,13 @@ export function polishHanatourScheduleRowsPreferDetailBody(
       const llmKwIsFallback = DAY_N_TRAVEL_RE.test(llmKw)
       const preservedImageKeyword =
         llmKw && !llmKwIsFallback ? llmKw.slice(0, 120) : polished.imageKeyword
+      // LLM description이 충분히 의미 있으면(30자 이상) 보존, 아니면 polished 사용
+      // polished.description은 본문 청크에서 단순 추출한 값이라 단편적이기 쉬움
+      const llmDescRaw = (row.description ?? '').trim()
+      const preservedDescription =
+        llmDescRaw.length >= 30
+          ? llmDescRaw.slice(0, HANATOUR_CARD_DESCRIPTION_MAX)
+          : polished.description
       return {
         ...polished,
         day: row.day,
@@ -1427,6 +1434,7 @@ export function polishHanatourScheduleRowsPreferDetailBody(
         mealSummaryText: polished.mealSummaryText?.trim() || row.mealSummaryText?.trim() || null,
         hotelText: polished.hotelText?.trim() || row.hotelText?.trim() || null,
         imageKeyword: preservedImageKeyword,
+        description: preservedDescription,
       }
     }
     return polishHanatourScheduleDayForItinerary(row, maxDay)
