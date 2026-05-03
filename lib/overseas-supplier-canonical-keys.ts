@@ -4,42 +4,36 @@
  */
 import canonicalJson from './overseas-supplier-canonical-keys.json'
 
-const EXPECTED = new Set(['hanatour', 'hanjintour', 'modetour', 'ybtour', 'verygoodtour'])
+const EXPECTED = new Set(['hanatour', 'modetour', 'ybtour', 'verygoodtour'])
 
 if (
   !Array.isArray(canonicalJson) ||
-  canonicalJson.length !== 5 ||
+  canonicalJson.length !== 4 ||
   !canonicalJson.every((x): x is string => typeof x === 'string' && EXPECTED.has(x)) ||
-  new Set(canonicalJson).size !== 5
+  new Set(canonicalJson).size !== 4
 ) {
   throw new Error(
-    'lib/overseas-supplier-canonical-keys.json must be a length-5 array of: hanatour, hanjintour, modetour, ybtour, verygoodtour (no duplicates).'
+    'lib/overseas-supplier-canonical-keys.json must be a length-4 array of: hanatour, modetour, ybtour, verygoodtour (no duplicates).'
   )
 }
 
-export type CanonicalOverseasSupplierKey =
-  | 'hanatour'
-  | 'hanjintour'
-  | 'modetour'
-  | 'ybtour'
-  | 'verygoodtour'
+export type CanonicalOverseasSupplierKey = 'hanatour' | 'modetour' | 'ybtour' | 'verygoodtour'
 
 export const CANONICAL_OVERSEAS_SUPPLIER_KEYS = canonicalJson as readonly CanonicalOverseasSupplierKey[]
 
-/** 라우트 가드 등록 API 기대 공급사 — canonical 5종과 동일. */
+/** 라우트 가드 등록 API 기대 공급사 — canonical 4종과 동일. */
 export type RegisterRouteSupplierKey = CanonicalOverseasSupplierKey
 
 /** `originSource` 등에 쓰는 canonical 문자열(스크립트·테스트에서 리터럴 드리프트 방지). */
 export const SUPPLIER_ORIGIN_CANONICAL: Record<CanonicalOverseasSupplierKey, CanonicalOverseasSupplierKey> = {
   hanatour: 'hanatour',
-  hanjintour: 'hanjintour',
   modetour: 'modetour',
   ybtour: 'ybtour',
   verygoodtour: 'verygoodtour',
 }
 
 /**
- * ASCII canonical 5종만 1순위로 인정(대소문자 무시 → 소문자 키 반환).
+ * ASCII canonical 4종만 1순위로 인정(대소문자 무시 → 소문자 키 반환).
  * @returns 매칭 시 canonical 키, 아니면 null
  */
 export function tryResolveCanonicalSupplierKeyAscii(raw: string): CanonicalOverseasSupplierKey | null {
@@ -57,7 +51,7 @@ export function isCanonicalOverseasSupplierKey(s: string): s is CanonicalOversea
 
 /**
  * DB `Brand.brandKey` 등에 남을 수 있는 레거시 토큰 → canonical.
- * (ASCII canonical 5종은 `tryResolveCanonicalSupplierKeyAscii`로 처리)
+ * (ASCII canonical 4종은 `tryResolveCanonicalSupplierKeyAscii`로 처리)
  */
 export const LEGACY_BRAND_KEY_TO_CANONICAL: Readonly<Record<string, CanonicalOverseasSupplierKey>> = {
   yellowballoon: 'ybtour',
