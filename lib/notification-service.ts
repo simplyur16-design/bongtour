@@ -75,6 +75,12 @@ async function sendSolapiMessage(
   if (!res.ok) {
     const code = data.statusCode ?? data.errorCode ?? String(res.status)
     const message = data.statusMessage ?? data.message ?? res.statusText
+    // 임시 디버깅: 솔라피 ValidationError 등 원인 필드 확인용 (진단 후 제거 예정)
+    console.error('[solapi-debug] full response:', {
+      httpStatus: res.status,
+      data: JSON.stringify(data),
+      requestPayload: { from, to, text: text.slice(0, 50) + '...' },
+    })
     return { ok: false, code, message }
   }
   return { ok: true }
