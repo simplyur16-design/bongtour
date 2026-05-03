@@ -20,8 +20,8 @@ def _int_env(name: str, default: int) -> int:
 PAGE_LOAD_TIMEOUT_MS = _int_env("HANATOUR_E2E_PAGE_LOAD_MS", 45000)
 NETWORK_IDLE_TIMEOUT_MS = _int_env("HANATOUR_E2E_NETWORK_IDLE_MS", 6000)
 MODAL_WAIT_MS = _int_env("HANATOUR_E2E_MODAL_WAIT_MS", 10000)
-# 우측 리스트 비동기 갱신·레이아웃 지연 대비 (기본 32s)
-LIST_REFRESH_TIMEOUT_MS = _int_env("HANATOUR_E2E_LIST_REFRESH_MS", 4000)
+# 우측 리스트 비동기 갱신·레이아웃 지연 대비 (env `HANATOUR_E2E_LIST_REFRESH_MS`로 덮어쓰기)
+LIST_REFRESH_TIMEOUT_MS = _int_env("HANATOUR_E2E_LIST_REFRESH_MS", 8000)
 LIST_POLL_MS = _int_env("HANATOUR_E2E_LIST_POLL_MS", 100)
 LIST_POLL_FAST_MS = _int_env("HANATOUR_E2E_LIST_POLL_FAST_MS", 45)
 LIST_FAST_PHASE_MS = _int_env("HANATOUR_E2E_LIST_FAST_PHASE_MS", 2800)
@@ -109,6 +109,12 @@ DIALOG_SELECTOR_PARTS = [
     ".q-dialog",
 ]
 DIALOG_SELECTOR = ", ".join(DIALOG_SELECTOR_PARTS)
+
+# 모달 내 우측 출발/상품 목록 루트 — `querySelector` 단일 인자(콤마 우선순위). scraper.py 인라인 JS와 동기 유지.
+RIGHT_LIST_ROOT_SELECTOR = (
+    ".prod_list_wrap, .sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, "
+    '[class*="list_srchword"], [class*="sub_list_wrap"]'
+)
 
 RIGHT_LIST_ROW_SELECTOR = (
     ".sub_list_wrap li, div.list_srchword_wrap li, [class*='list_srchword'] li"

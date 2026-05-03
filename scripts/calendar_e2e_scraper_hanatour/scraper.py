@@ -89,6 +89,27 @@ _LIGHT_OPS_PHASES = frozenset(
     }
 )
 
+# LIGHT_OPS=1일 때도 stderr에 남겨 병목·lastPhase 진단용(그 외 phase는 기존 화이트리스트만)
+_LIGHT_OPS_DIAGNOSTIC_PHASES = frozenset(
+    {
+        "script-entry",
+        "browser-launching",
+        "page-navigated",
+        "modal-opened",
+        "process-exit",
+    }
+)
+
+
+def _hanatour_phase_allowed_under_light_ops(phase: str) -> bool:
+    if phase in _LIGHT_OPS_PHASES:
+        return True
+    if phase in _LIGHT_OPS_DIAGNOSTIC_PHASES:
+        return True
+    if re.match(r"^month-\d+-collect-(start|end)$", phase or ""):
+        return True
+    return False
+
 
 def _e2e_admin_progress(message: str) -> None:
     if (os.environ.get("HANATOUR_E2E_ADMIN_MONTH_SESSION") or "").strip().lower() not in (
@@ -124,7 +145,7 @@ def _e2e_hanatour_phase(
     extra_ms: float | None = None,
 ) -> None:
     """병목 가시화용 — HANATOUR_E2E_PROGRESS와 무관하게 stderr에 항상 기록."""
-    if _e2e_light_ops() and phase not in _LIGHT_OPS_PHASES:
+    if _e2e_light_ops() and not _hanatour_phase_allowed_under_light_ops(phase):
         return
     elapsed = _time.monotonic() - _E2E_T0 if _E2E_T0 else 0.0
     parts = [
@@ -269,6 +290,7 @@ def _inject_dialog_selector(js: str) -> str:
 
 
 _LIST_LI_QUERY = (
+    ".prod_list_wrap .cont_unit, .prod_list_wrap li, "
     ".sub_list_wrap li, .sub_list_wrap > ul > li, "
     "div.list_srchword_wrap.type.v2 li, div.list_srchword_wrap li, "
     "[class*='list_srchword'] li, [class*='sub_list_wrap'] li, [class*='departure_list'] li"
@@ -292,6 +314,12 @@ _SCROLL_CLICK_JS = _inject_dialog_selector("""
   if (!d) return { ok:false, reason:'bad_iso' };
   function isPadLi(li) {
     return /\bbefore\b/i.test(li.className||'') && d >= 8;
+  }
+  function pricedLowCell(li){
+    const cls = li.className || '';
+    if (!/\\blow\\b/i.test(cls)) return false;
+    const s = txt(li);
+    return /^\\d{1,2}\\s+.+만\\s*최저가/i.test(s);
   }
   const dialog = __hanatourPickDialog();
   const wrap = dialog.querySelector('.calendar_wrap, [class*="calendar_wrap"]') || dialog;
@@ -327,6 +355,8 @@ _SCROLL_CLICK_JS = _inject_dialog_selector("""
   }
   let li0 = null;
   let bestArea = -1;
+  let fb = null;
+  let fbArea = -1;
   for (const ul of calArea.querySelectorAll('ul.day, ul[class*="day"]')){
     for (const li of ul.querySelectorAll(':scope > li')){
       if (dayNum(li)!==d) continue;
@@ -334,9 +364,12 @@ _SCROLL_CLICK_JS = _inject_dialog_selector("""
       const r = li.getBoundingClientRect();
       const ar = r.width * r.height;
       if (ar < 40) continue;
-      if (ar > bestArea){ bestArea = ar; li0 = li; }
+      if (pricedLowCell(li)) {
+        if (ar > bestArea){ bestArea = ar; li0 = li; }
+      } else if (ar > fbArea) { fbArea = ar; fb = li; }
     }
   }
+  if (!li0) li0 = fb;
   if (!li0){
     for (const ul of calArea.querySelectorAll('ul.day, ul[class*="day"]')){
       for (const li of ul.querySelectorAll(':scope > li')){
@@ -394,6 +427,18 @@ _SCROLL_CLICK_JS = _inject_dialog_selector("""
     try {
       const r = el.getBoundingClientRect();
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      for (const type of ['mousedown','mouseup','click']){
+        try {
+          el.dispatchEvent(new MouseEvent(type, {
+            bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy, button: 0
+          }));
+        } catch(e){}
+      }
+      return true;
+    } catch(e) {}
+    try {
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
       const seq = ['pointerdown','pointerup','mousedown','mouseup','click'];
       for (let i = 0; i < seq.length; i++){
         try {
@@ -430,6 +475,12 @@ _CALENDAR_DAY_PREPARE_AND_POINT_JS = _inject_dialog_selector("""
   function isPadLi(li) {
     return /\bbefore\b/i.test(li.className||'') && d >= 8;
   }
+  function pricedLowCell(li){
+    const cls = li.className || '';
+    if (!/\\blow\\b/i.test(cls)) return false;
+    const s = txt(li);
+    return /^\\d{1,2}\\s+.+만\\s*최저가/i.test(s);
+  }
   const dialog = __hanatourPickDialog();
   const wrap = dialog.querySelector('.calendar_wrap, [class*="calendar_wrap"]') || dialog;
   const calArea = wrap.querySelector('.calendar_area') || wrap;
@@ -464,6 +515,8 @@ _CALENDAR_DAY_PREPARE_AND_POINT_JS = _inject_dialog_selector("""
   }
   let li0 = null;
   let bestArea = -1;
+  let fb = null;
+  let fbArea = -1;
   for (const ul of calArea.querySelectorAll('ul.day, ul[class*="day"]')){
     for (const li of ul.querySelectorAll(':scope > li')){
       if (dayNum(li)!==d) continue;
@@ -471,9 +524,12 @@ _CALENDAR_DAY_PREPARE_AND_POINT_JS = _inject_dialog_selector("""
       const r = li.getBoundingClientRect();
       const ar = r.width * r.height;
       if (ar < 40) continue;
-      if (ar > bestArea){ bestArea = ar; li0 = li; }
+      if (pricedLowCell(li)) {
+        if (ar > bestArea){ bestArea = ar; li0 = li; }
+      } else if (ar > fbArea) { fbArea = ar; fb = li; }
     }
   }
+  if (!li0) li0 = fb;
   if (!li0){
     for (const ul of calArea.querySelectorAll('ul.day, ul[class*="day"]')){
       for (const li of ul.querySelectorAll(':scope > li')){
@@ -557,17 +613,28 @@ _CALENDAR_DAY_STATE_JS = _inject_dialog_selector("""
     const m = s.match(/^(\\d{1,2})\\b/);
     return m ? parseInt(m[1],10) : 0;
   }
+  function pricedLowCell(li){
+    const cls = li.className || '';
+    if (!/\\blow\\b/i.test(cls)) return false;
+    const s = txt(li);
+    return /^\\d{1,2}\\s+.+만\\s*최저가/i.test(s);
+  }
   let best = null;
   let bestArea = -1;
+  let fb = null;
+  let fbArea = -1;
   for (const ul of calArea.querySelectorAll('ul.day, ul[class*="day"]')){
     for (const li of ul.querySelectorAll(':scope > li')){
       if (dayNum(li) !== d) continue;
       const r = li.getBoundingClientRect();
       const ar = r.width * r.height;
       if (ar < 40) continue;
-      if (ar > bestArea){ bestArea = ar; best = li; }
+      if (pricedLowCell(li)) {
+        if (ar > bestArea){ bestArea = ar; best = li; }
+      } else if (ar > fbArea) { fbArea = ar; fb = li; }
     }
   }
+  if (!best) best = fb;
   if (best){
     const a = best.querySelector('a');
     return {
@@ -591,7 +658,7 @@ _LIST_TOP_DEPARTURE_ROWS_PROBE_JS = _inject_dialog_selector("""
   const dialog = __hanatourPickDialog();
   const cal = dialog.querySelector('.calendar_wrap, [class*="calendar_wrap"]');
   const listRoot = dialog.querySelector(
-    '.sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
+    '.prod_list_wrap, .sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
   );
   function dataAttrs(el){
     const o = {};
@@ -605,9 +672,18 @@ _LIST_TOP_DEPARTURE_ROWS_PROBE_JS = _inject_dialog_selector("""
   }
   if (!listRoot) return { ok: false, rows: [] };
   const out = [];
-  const lis = listRoot.querySelectorAll(':scope li');
+  let lis = [];
+  const units = listRoot.querySelectorAll(':scope > .cont_unit, .cont_unit');
+  if (units && units.length) {
+    for (const el of units) {
+      if (cal && cal.contains(el)) continue;
+      lis.push(el);
+    }
+  }
+  if (!lis.length) {
+    lis = Array.from(listRoot.querySelectorAll(':scope li')).filter((li) => !(cal && cal.contains(li)));
+  }
   for (const li of lis){
-    if (cal && cal.contains(li)) continue;
     const tx = (li.innerText || '').replace(/\\s+/g,' ').trim();
     if (tx.length < 16) continue;
     if (/^(?:출발일|다른\\s*출발|상품\\s*안내|이용\\s*안내)/.test(tx.slice(0,40))) continue;
@@ -641,15 +717,35 @@ _LIST_SNAPSHOT_JS = _inject_list_li_query(
   const dialog = __hanatourPickDialog();
   const cal = dialog.querySelector('.calendar_wrap, [class*="calendar_wrap"]');
   const listRoot = dialog.querySelector(
-    '.sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
+    '.prod_list_wrap, .sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
   );
-  const lis = listRoot
-    ? listRoot.querySelectorAll(':scope li')
-    : dialog.querySelectorAll(__LIST_LI__);
+  function rowNodes(root, dlg, c){
+    const acc = [];
+    if (root) {
+      const units = root.querySelectorAll(':scope > .cont_unit, .cont_unit');
+      if (units && units.length) {
+        for (const el of units) {
+          if (c && c.contains(el)) continue;
+          acc.push(el);
+        }
+        return acc;
+      }
+      for (const li of root.querySelectorAll(':scope li')) {
+        if (c && c.contains(li)) continue;
+        acc.push(li);
+      }
+      return acc;
+    }
+    for (const li of dlg.querySelectorAll(__LIST_LI__)) {
+      if (c && c.contains(li)) continue;
+      acc.push(li);
+    }
+    return acc;
+  }
+  const lis = rowNodes(listRoot, dialog, cal);
   const parts = [];
   const sep = String.fromCharCode(30);
   for (const li of lis){
-    if (cal && cal.contains(li)) continue;
     const tx = (li.innerText || '').replace(/\\s+/g,' ').trim();
     if (tx.length < 16) continue;
     if (/^(?:출발일|다른\\s*출발|상품\\s*안내|이용\\s*안내)/.test(tx.slice(0,40))) continue;
@@ -670,12 +766,27 @@ _LIST_FIRST_DEPARTURE_ROW_SNAPSHOT_JS = _inject_dialog_selector("""
   const dialog = __hanatourPickDialog();
   const cal = dialog.querySelector('.calendar_wrap, [class*="calendar_wrap"]');
   const listRoot = dialog.querySelector(
-    '.sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
+    '.prod_list_wrap, .sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
   );
   if (!listRoot) return { ok: false, reason: 'no_list_root' };
-  const lis = listRoot.querySelectorAll(':scope li');
+  function rowNodes(root, c){
+    const acc = [];
+    const units = root.querySelectorAll(':scope > .cont_unit, .cont_unit');
+    if (units && units.length) {
+      for (const el of units) {
+        if (c && c.contains(el)) continue;
+        acc.push(el);
+      }
+      return acc;
+    }
+    for (const li of root.querySelectorAll(':scope li')) {
+      if (c && c.contains(li)) continue;
+      acc.push(li);
+    }
+    return acc;
+  }
+  const lis = rowNodes(listRoot, cal);
   for (const li of lis){
-    if (cal && cal.contains(li)) continue;
     const tx = (li.innerText || '').replace(/\\s+/g,' ').trim();
     if (tx.length < 16) continue;
     if (/^(?:출발일|다른\\s*출발|상품\\s*안내|이용\\s*안내)/.test(tx.slice(0,40))) continue;
@@ -693,7 +804,7 @@ _ENSURE_LIST_VISIBLE_JS = _inject_list_li_query(
   const dialog = __hanatourPickDialog();
   const cal = dialog.querySelector('.calendar_wrap, [class*="calendar_wrap"]');
   const listRoot = dialog.querySelector(
-    '.sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
+    '.prod_list_wrap, .sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
   );
   let liCount = 0;
   try {
@@ -788,7 +899,7 @@ _COLLECT_ROWS_FULL_JS = _inject_list_li_query(
   const dialog = __hanatourPickDialog();
   const cal = dialog.querySelector('.calendar_wrap, [class*="calendar_wrap"]');
   const listRootForRows = dialog.querySelector(
-    '.sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
+    '.prod_list_wrap, .sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
   );
   function isScrollableY(el){
     try {
@@ -802,7 +913,7 @@ _COLLECT_ROWS_FULL_JS = _inject_list_li_query(
   }
   function findRightListScroller(){
     const listRoot = dialog.querySelector(
-      '.sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
+      '.prod_list_wrap, .sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
     );
     if (!listRoot) return null;
     const seen = new Set();
@@ -823,19 +934,51 @@ _COLLECT_ROWS_FULL_JS = _inject_list_li_query(
   }
   const seen = new Set();
   const out = [];
+  function collectRowNodes(root, dlg, c){
+    const acc = [];
+    if (root) {
+      const units = root.querySelectorAll(':scope > .cont_unit, .cont_unit');
+      if (units && units.length) {
+        for (const el of units) {
+          if (c && c.contains(el)) continue;
+          acc.push(el);
+        }
+        return acc;
+      }
+      for (const li of root.querySelectorAll(':scope li')) {
+        if (c && c.contains(li)) continue;
+        acc.push(li);
+      }
+      return acc;
+    }
+    for (const li of dlg.querySelectorAll(__LIST_LI__)) {
+      if (c && c.contains(li)) continue;
+      acc.push(li);
+    }
+    return acc;
+  }
+  function priceHintFrom(el){
+    try {
+      const pr = el.querySelector('.inr.right .price, .price_group .price');
+      if (pr) return (pr.innerText||'').replace(/\\s+/g,' ').trim();
+    } catch (e) {}
+    return '';
+  }
   function grab(){
-    const lis = listRootForRows
-      ? listRootForRows.querySelectorAll(':scope li')
-      : dialog.querySelectorAll(__LIST_LI__);
-    for (const li of lis){
-      if (cal && cal.contains(li)) continue;
+    const nodes = collectRowNodes(listRootForRows, dialog, cal);
+    for (const li of nodes){
       const tx = (li.innerText || '').replace(/\\s+/g,' ').trim();
       if (tx.length < 16) continue;
       if (/^(?:출발일|다른\\s*출발|상품\\s*안내|이용\\s*안내)/.test(tx.slice(0,40))) continue;
       const key = tx.slice(0, 4000);
       if (seen.has(key)) continue;
       seen.add(key);
-      out.push({ text: tx.slice(0, 5000), html: (li.outerHTML||'').slice(0, 1800) });
+      const ph = priceHintFrom(li);
+      out.push({
+        text: tx.slice(0, 5000),
+        html: (li.outerHTML||'').slice(0, 1800),
+        priceHint: ph || null,
+      });
     }
   }
   grab();
@@ -867,7 +1010,7 @@ _SCROLL_RIGHT_LIST_JS = _inject_dialog_selector("""
   const delta = Math.max(0, parseInt(String((arg && arg.delta) != null ? arg.delta : 0), 10) || 0);
   const dialog = __hanatourPickDialog();
   const listRoot = dialog.querySelector(
-    '.sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
+    '.prod_list_wrap, .sub_list_wrap, div.list_srchword_wrap.type.v2, .list_srchword_wrap, [class*="list_srchword"], [class*="sub_list_wrap"]'
   );
   if (!listRoot) return { ok: false, reason: 'no_list_root' };
   function isScrollableY(el){
@@ -1195,10 +1338,18 @@ _ENUM_DAYS_JS = _inject_dialog_selector("""
   const wrap = dialog.querySelector('.calendar_wrap, [class*="calendar_wrap"]') || dialog;
   const grid = wrap.querySelector('.calendar_area') || wrap;
   const out = [];
+  function isPricedDayLi(li) {
+    const cls = li.className || '';
+    if (!/\\blow\\b/i.test(cls)) return false;
+    const s = (li.innerText||'').replace(/\\s+/g,' ').trim();
+    if (!/^\\d{1,2}\\s+.+만\\s*최저가/i.test(s)) return false;
+    return true;
+  }
   for (const ul of grid.querySelectorAll('ul.day, ul[class*="day"]')){
     for (const li of ul.querySelectorAll(':scope > li')){
       const r = li.getBoundingClientRect();
       if (r.width * r.height < 40) continue;
+      if (!isPricedDayLi(li)) continue;
       const s = (li.innerText||'').trim();
       const m = s.match(/^(\\d{1,2})\\b/);
       if (!m) continue;
@@ -1353,6 +1504,12 @@ async (args) => {
     if (/\bbefore\b/i.test(c) && d >= 8) return true;
     return false;
   }
+  function pricedLowCell(li){
+    const cls = li.className || '';
+    if (!/\blow\b/i.test(cls)) return false;
+    const s = txt(li);
+    return /^\d{1,2}\s+.+만\s*최저가/i.test(s);
+  }
   function area(el){
     try { const r = el.getBoundingClientRect(); return r.width * r.height; } catch(e){ return 0; }
   }
@@ -1374,6 +1531,18 @@ async (args) => {
   }
   function firePointerClick(el, li){
     try { if (el && el.focus) el.focus(); } catch(e){}
+    try {
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      for (const type of ['mousedown','mouseup','click']){
+        try {
+          el.dispatchEvent(new MouseEvent(type, {
+            bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy, button: 0
+          }));
+        } catch(e){}
+      }
+      return true;
+    } catch(e) {}
     try {
       const r = el.getBoundingClientRect();
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
@@ -1403,9 +1572,11 @@ async (args) => {
       raw.push({ li, ar, pad: isPaddingLi(li), vis: inCalViewport(li) });
     }
   }
+  const rawLow = raw.filter((x) => pricedLowCell(x.li));
+  const rawUse = rawLow.length ? rawLow : raw;
   timings.candidate_scan_ms = performance.now() - tScan0;
-  let cands = raw.filter((x) => x.vis);
-  if (cands.length < 1) cands = raw.slice();
+  let cands = rawUse.filter((x) => x.vis);
+  if (cands.length < 1) cands = rawUse.slice();
   const tRank0 = performance.now();
   cands.sort((a,b) => {
     if (a.pad !== b.pad) return a.pad ? 1 : -1;
@@ -1427,8 +1598,10 @@ async (args) => {
         raw2.push({ li, ar, pad: isPaddingLi(li), vis: inCalViewport(li) });
       }
     }
-    let c2 = raw2.filter((x) => x.vis);
-    if (c2.length < 1) c2 = raw2.slice();
+    const raw2Low = raw2.filter((x) => pricedLowCell(x.li));
+    const raw2u = raw2Low.length ? raw2Low : raw2;
+    let c2 = raw2u.filter((x) => x.vis);
+    if (c2.length < 1) c2 = raw2u.slice();
     c2.sort((a,b) => {
       if (a.pad !== b.pad) return a.pad ? 1 : -1;
       if (a.vis !== b.vis) return a.vis ? -1 : 1;
@@ -1754,10 +1927,12 @@ def _find_title_line(lines: list[str]) -> str | None:
 
 def _row_to_candidate(raw: dict[str, str]) -> dict[str, Any]:
     text = raw.get("text") or ""
+    price_hint = str(raw.get("priceHint") or "").strip()
+    parse_blob = text if not price_hint else f"{text}\n{price_hint}"
     lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
     title_line = _find_title_line(lines) or (lines[0] if lines else text[:200])
     layers = hanatour_title_layers(title_line)
-    merged = _parse_row_times_and_airline(text)
+    merged = _parse_row_times_and_airline(parse_blob)
     return {
         "candidateRawTitle": title_line,
         "candidatePreHashTitle": layers.get("preHashTitle"),
@@ -2216,9 +2391,13 @@ async def _click_day(
             dlg = page.locator(sel.strip()).first
             if await dlg.count() == 0:
                 continue
-            loc = dlg.locator(".calendar_area ul.day li").filter(
-                has_text=re.compile(rf"^\s*{d}\b")
-            )
+            loc = dlg.locator(
+                ".calendar_area ul.day li.low, .calendar_area ul.day li.select.low"
+            ).filter(has_text=re.compile(rf"^\s*{d}\b"))
+            if await loc.count() == 0:
+                loc = dlg.locator(".calendar_area ul.day li").filter(
+                    has_text=re.compile(rf"^\s*{d}\b")
+                )
             if await loc.count() == 0:
                 continue
             target = loc.first
@@ -2232,6 +2411,60 @@ async def _click_day(
                       li.style.opacity = '1';
                     }"""
                 )
+            except Exception:
+                pass
+            inner_triple = target.locator("a").first
+            if await inner_triple.count() > 0:
+                try:
+                    await inner_triple.scroll_into_view_if_needed(timeout=8000)
+                except Exception:
+                    pass
+                try:
+                    await inner_triple.evaluate(
+                        """el => {
+                          ['mousedown','mouseup','click'].forEach(t => {
+                            el.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window }));
+                          });
+                        }"""
+                    )
+                    await asyncio.sleep(0.07)
+                    out = await _verify_calendar_selection(
+                        page,
+                        isot,
+                        {
+                            "ok": True,
+                            "scrollSteps": 0,
+                            "pwDayClick": True,
+                            "pwPath": "inner_mouse_seq",
+                        },
+                    )
+                    if out:
+                        return out
+                except Exception:
+                    pass
+            try:
+                await target.evaluate(
+                    """el => {
+                      const li = el.closest('li') || el;
+                      const t = li.querySelector('a') || li;
+                      ['mousedown','mouseup','click'].forEach(ev => {
+                        t.dispatchEvent(new MouseEvent(ev, { bubbles: true, cancelable: true, view: window }));
+                      });
+                    }"""
+                )
+                await asyncio.sleep(0.06)
+                out = await _verify_calendar_selection(
+                    page,
+                    isot,
+                    {
+                        "ok": True,
+                        "scrollSteps": 0,
+                        "pwDayClick": True,
+                        "pwPath": "li_mouse_seq",
+                    },
+                )
+                if out:
+                    return out
             except Exception:
                 pass
             for force in (False, True):
@@ -2367,6 +2600,42 @@ async def _js_dispatch_dom_click(el: ElementHandle) -> None:
     )
 
 
+async def _try_dialog_footer_month_nav(
+    page: Page, direction: str, expected: tuple[int, int]
+) -> bool:
+    """모달 내 `a.next` / `a.prev`(이전달·다음달) — 단순 click 대신 mousedown→mouseup→click + lazy 대기."""
+    global _LAST_MONTH_NAV_PATH
+    arrow = "a.next" if direction == "next" else "a.prev"
+    for dpart in config.DIALOG_SELECTOR_PARTS:
+        ds = (dpart or "").strip()
+        if not ds:
+            continue
+        try:
+            dlg = page.locator(ds).first
+            if await dlg.count() == 0:
+                continue
+            arr = dlg.locator(arrow).first
+            if await arr.count() == 0:
+                continue
+            if not await arr.is_visible():
+                continue
+            await arr.evaluate(
+                """el => {
+                  ['mousedown','mouseup','click'].forEach(type => {
+                    el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+                  });
+                }"""
+            )
+            await asyncio.sleep(2.0)
+            if await _month_nav_goal_reached(page, expected):
+                _LAST_MONTH_NAV_PATH = f"dialog_footer:{arrow}"
+                _e2e_progress(f"month_nav ok via {arrow} in dialog {ds[:48]!r}")
+                return True
+        except Exception:
+            continue
+    return False
+
+
 async def _nav_month_by_header_arrow(
     page: Page, direction: str, expected: tuple[int, int]
 ) -> bool:
@@ -2458,6 +2727,8 @@ async def _next_month(page: Page) -> bool:
     if not before:
         return False
     exp = _expected_next_month(*before)
+    if await _try_dialog_footer_month_nav(page, "next", exp):
+        return True
     if await _nav_month_by_header_arrow(page, "next", exp):
         return True
     return await _next_month_legacy(page, before)
@@ -2468,6 +2739,8 @@ async def _prev_month(page: Page) -> bool:
     if not before:
         return False
     exp = _expected_prev_month(*before)
+    if await _try_dialog_footer_month_nav(page, "prev", exp):
+        return True
     if await _nav_month_by_header_arrow(page, "prev", exp):
         return True
     return await _prev_month_legacy(page, before)
@@ -2542,6 +2815,7 @@ class HanatourCalendarE2EScraper:
                 pass
         _e2e_timing_phase("after_browser_close")
         _e2e_hanatour_phase("after_browser_close", month=phase_month)
+        _e2e_hanatour_phase("process-exit", month=phase_month)
         return {**result, "_hanatourStdoutEmitted": emit}
 
     async def run(
@@ -2563,8 +2837,11 @@ class HanatourCalendarE2EScraper:
         }
         departures: list[dict[str, Any]] = []
         t_e2e_wall0 = _time.perf_counter()
+        phase_month = (target_month_ym or "").strip() or "pending"
+        _e2e_hanatour_phase("script-entry", month=phase_month)
         own = own_browser and page is None
         if own:
+            _e2e_hanatour_phase("browser-launching", month=phase_month)
             self._pw, self._browser, _, self._page = await launch_hanatour_browser(
                 headless=self.headless
             )
@@ -2572,13 +2849,13 @@ class HanatourCalendarE2EScraper:
         assert page is not None
         try:
             next_month_nav_ms_acc = 0.0
-            phase_month = (target_month_ym or "").strip() or "pending"
             _e2e_timer_reset()
             _e2e_hanatour_phase("month_boot", month=phase_month)
             _e2e_timing_phase("browser_launched")
             if not getattr(config, "MONTH_FIRST_MATCH_ONLY", False):
                 _e2e_progress(f"goto: {detail_url[:120]}...")
             await page.goto(detail_url, wait_until="domcontentloaded", timeout=config.PAGE_LOAD_TIMEOUT_MS)
+            _e2e_hanatour_phase("page-navigated", month=phase_month)
             _e2e_progress("wait_load_state: networkidle (optional, short timeout)")
             try:
                 await page.wait_for_load_state(
@@ -2600,6 +2877,7 @@ class HanatourCalendarE2EScraper:
                 _e2e_progress("open_modal: OK (dialog visible)")
                 _e2e_timing_phase("departure_modal_opened")
                 _e2e_hanatour_phase("departure_modal_opened", month=phase_month)
+                _e2e_hanatour_phase("modal-opened", month=phase_month)
             if not opened:
                 notes.append("modal_open_failed")
                 log["collectorStatus"] = "modal_failed"
@@ -2851,6 +3129,12 @@ class HanatourCalendarE2EScraper:
                 notes_at_month_start = len(notes)
                 month_matched_this = False
                 sm = sample_mode and not mfmo
+                _e2e_hanatour_phase(
+                    f"month-{wm}-collect-start",
+                    month=phase_month,
+                    rows_seen=len(days),
+                    current_calendar_label=phase_month,
+                )
                 for slot in days:
                     iso = str((slot or {}).get("iso") or "")
                     if len(iso) < 10 or iso < kst_today:
@@ -3403,6 +3687,13 @@ class HanatourCalendarE2EScraper:
                         }
                     )
 
+                _e2e_hanatour_phase(
+                    f"month-{wm}-collect-end",
+                    month=phase_month,
+                    appended_count=month_appended,
+                    rows_seen=len(days),
+                    current_calendar_label=phase_month,
+                )
                 _e2e_hanatour_phase(
                     "month_collect_done",
                     month=phase_month,
