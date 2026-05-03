@@ -1,0 +1,19 @@
+[phases.setup]
+nixPkgs = ["nodejs", "python3", "python3Packages.pip"]
+
+[phases.install]
+cmds = [
+  "npm install",
+  "python3 -m pip install --break-system-packages -r scripts/calendar_e2e_scraper_modetour/requirements.txt",
+  "python3 -m pip install --break-system-packages -r scripts/calendar_e2e_scraper_hanatour/requirements.txt",
+  "python3 -m pip install --break-system-packages -r scripts/calendar_e2e_scraper_ybtour/requirements.txt",
+  "python3 -m pip install --break-system-packages -r scripts/calendar_e2e_scraper_verygoodtour/requirements.txt",
+  "python3 -m playwright install chromium",
+  "python3 -m playwright install-deps chromium"
+]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"
