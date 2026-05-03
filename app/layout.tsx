@@ -51,6 +51,11 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  verification: {
+    other: {
+      'naver-site-verification': '3f9184c6e176330957acec29603387d07115e54d',
+    },
+  },
 }
 
 const notoSansKr = Noto_Sans_KR({
