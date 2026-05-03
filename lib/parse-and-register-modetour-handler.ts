@@ -272,7 +272,13 @@ function assertJsonSerializable(ctx: ParseRegisterLogCtx, label: string, payload
 
 /** 일정 JSON(이미지·제목 등)만 — itineraryDayDrafts가 없을 때 */
 function buildScheduleJsonThin(
-  parsedSchedule: Array<{ day: number; title: string; description: string; imageKeyword: string }>
+  parsedSchedule: Array<{
+    day: number
+    title: string
+    description: string
+    imageKeyword: string
+    routeText?: string | null
+  }>
 ) {
   return JSON.stringify(
     parsedSchedule.map((day) => ({
@@ -280,6 +286,7 @@ function buildScheduleJsonThin(
       title: day.title,
       description: day.description,
       imageKeyword: String(day.imageKeyword ?? '').trim() || `Day ${day.day} travel`,
+      routeText: nullIfEmptyTrim(day.routeText),
       imageUrl: null,
     }))
   )
@@ -308,11 +315,13 @@ function buildModetourProductScheduleJson(
         (s && typeof s.description === 'string' ? s.description : '') || (d.summaryTextRaw ?? '').trim()
       const rawKw = s && typeof s.imageKeyword === 'string' ? s.imageKeyword : ''
       const imageKeyword = String(rawKw ?? '').trim() || `Day ${d.day} travel`
+      const routeText = s ? nullIfEmptyTrim((s as { routeText?: string | null }).routeText) : null
       return {
         day: d.day,
         title,
         description,
         imageKeyword,
+        routeText,
         imageUrl: null,
         hotelText: d.hotelText ?? null,
         breakfastText: d.breakfastText ?? null,

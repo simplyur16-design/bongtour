@@ -81,6 +81,7 @@ export type CommonScheduleDayRow = {
   title: string
   description: string
   imageKeyword: string
+  routeText?: string | null
   hotelText: string | null
   breakfastText: string | null
   lunchText: string | null
@@ -178,6 +179,7 @@ function parseScheduleRowsFromLlmJson(
       title: String(rec.title ?? '').trim(),
       description: clampScheduleDescriptionText(String(rec.description ?? '')),
       imageKeyword: String(rec.imageKeyword ?? '').trim() || `Day ${day} travel`,
+      routeText: strOrNull(rec.routeText),
       hotelText: strOrNull(rec.hotelText),
       breakfastText: strOrNull(rec.breakfastText),
       lunchText: strOrNull(rec.lunchText),
@@ -269,8 +271,9 @@ function buildScheduleOnlyPrompt(
     `- **schedule 배열 길이 = 정확히 ${expectedDays}개.**\n` +
     `- **day는 1부터 ${expectedDays}까지 각각 1개씩, 중복·누락 금지.**\n` +
     `- 마지막 일차(귀국·출국·기내박·숙박 없음)까지 반드시 포함.\n` +
-    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), imageKeyword(영문 장소명 짧게), ` +
+    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), imageKeyword(영문 장소명 짧게), routeText, ` +
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
+    `- routeText: 그날 방문 장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 예: "Incheon - Victoria Falls - Sunset Cruise". 본문에 [조망], [차창관광], [외부관람], [선택관광] 태그가 있으면 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
     `- description: 해당 일차의 이동·관광·식사·숙박 흐름을 **짧은 문어체**로 요약. 원문 장문·HTML을 **통째로 복사**하지 말 것.\n` +
     `- 방문지가 많으면 **이름 위주로 묶어** 쓰고, 식사·호텔 디테일은 가능하면 meal·hotel 필드에 둔다.\n\n` +
     hint +
@@ -306,8 +309,9 @@ function buildScheduleOnlyPromptForSingleDay(
     `- 아래 본문은 **제${day}일차** 구간만 포함한다.\n` +
     `- **schedule 배열 길이 = 정확히 1개.** day=${day} 인 항목만.\n` +
     `- **day 필드는 반드시 정수 ${day}**\n` +
-    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), imageKeyword(영문 장소명 짧게), ` +
+    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), imageKeyword(영문 장소명 짧게), routeText, ` +
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
+    `- routeText: 그날 방문 장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 예: "Incheon - Victoria Falls - Sunset Cruise". 본문에 [조망], [차창관광], [외부관람], [선택관광] 태그가 있으면 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
     `- description: 해당 일차를 **짧게** 요약. 원문 복붙·장황한 나열 금지.\n\n` +
     hint +
     add +
@@ -476,8 +480,7 @@ export function mergeScheduleWithFirstPassPreferExtractRows(
         lunchText: fp.lunchText ?? main.lunchText ?? null,
         dinnerText: fp.dinnerText ?? main.dinnerText ?? null,
         mealSummaryText: fp.mealSummaryText ?? main.mealSummaryText ?? null,
-        // 선추출 행에 routeText 없음: 메인 JSON의 routeText만 유지(덮어쓰기 방지).
-        routeText: strOrNull(main.routeText),
+        routeText: strOrNull(fp.routeText) ?? strOrNull(main.routeText),
       })
     } else if (fp) {
       out.push({
@@ -485,6 +488,7 @@ export function mergeScheduleWithFirstPassPreferExtractRows(
         title: fp.title,
         description: fp.description,
         imageKeyword: fp.imageKeyword,
+        routeText: strOrNull(fp.routeText),
         hotelText: fp.hotelText,
         breakfastText: fp.breakfastText,
         lunchText: fp.lunchText,
