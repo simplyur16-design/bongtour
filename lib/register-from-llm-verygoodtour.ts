@@ -8,7 +8,7 @@ import {
   registerPromptWithScheduleEmptyForConfirm,
   runScheduleExtractLlm,
   type CommonScheduleDayRow,
-} from '@/lib/register-schedule-extract-common'
+} from '@/lib/register-schedule-extract-verygoodtour'
 
 /**
  * 풀 등록(`forPreview: false`) JSON 출력 상한. 호텔·일정 배열이 길면 32k에서 MAX_TOKENS 잘림이 난다.
