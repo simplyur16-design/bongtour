@@ -48,6 +48,15 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+/** 메가메뉴 탭 id → `Product.localDepartureTag` 배열 원소 (Prisma `has`) */
+function localDepartureTagForBrowseRegion(region: string | null | undefined): 'busan' | 'cheongju' | 'daegu' | null {
+  const t = (region ?? '').trim().toLowerCase()
+  if (t === 'busan_dep') return 'busan'
+  if (t === 'cheongju_dep') return 'cheongju'
+  if (t === 'daegu_dep') return 'daegu'
+  return null
+}
+
 function displayNameFromImageUrl(url: string | null | undefined): string | null {
   const raw = (url ?? '').trim()
   if (!raw) return null
@@ -117,6 +126,10 @@ export async function GET(request: Request) {
       const r = (region ?? '').trim()
       const c = (country ?? '').trim()
       const ct = (city ?? '').trim()
+      const localDepTag = localDepartureTagForBrowseRegion(r)
+      if (localDepTag) {
+        overseasGeoAnd.push({ localDepartureTag: { has: localDepTag } })
+      }
       const continentList = browseRegionToDbContinents(r)
 
       if (r && !c) {
