@@ -52,6 +52,7 @@ def _filter_calendar_rows_kst_floor(rows: List[Dict[str, Any]]) -> List[Dict[str
 DELAY_MIN = 0.5
 DELAY_MAX = 1.0
 SLIDE_WAIT_MS = 1000
+# 월 이동 후 라벨 변경 대기 상한 — 세부는 config.YBTOUR_E2E_MONTH_LABEL_TIMEOUT_MS
 MONTH_WAIT_MS = 900
 
 # 출발일 변경: 우측 스티키/요약 영역 CTA 우선, 이후 일반 본문 버튼
@@ -98,11 +99,30 @@ YBTOUR_MONTH_PREV_SELECTORS = [
     ".cal_nav .prev",
 ]
 
-# prdt.ybtour.co.kr 등: 출발일 팝업이 styled-components `.popup_content` — 기존 dialog 순서만 보면 body로 떨어져 달력 td/가격을 못 찾음.
+# prdt: `.kuBJvw` 우선 → `.popup_content` → fixed 대형 +「출발일 보기」휴리스틱 → role/dialog…
 YBTOUR_MODAL_ROOT_JS = r"""
 function ybtourModalRoot() {
+  var kb = document.querySelector('.kuBJvw, [class*="kuBJvw"]');
+  if (kb) {
+    var kt = (kb.innerText || '').replace(/\s+/g, ' ');
+    if (kb.querySelector('table') || kb.querySelector('td.kFBOJx') || kb.querySelector('[class*="kFBOJx"]') || /출발일/.test(kt)) return kb;
+  }
   var p = document.querySelector('.popup_content, [class*="popup_content"]');
   if (p && (p.querySelector('table') || p.querySelector('li'))) return p;
+  var els = document.querySelectorAll('body > div, body > section, [role="dialog"]');
+  for (var i = 0; i < els.length; i++) {
+    var el = els[i];
+    try {
+      var st = getComputedStyle(el);
+      if (st.position !== 'fixed') continue;
+      var z = parseInt(st.zIndex, 10) || 0;
+      if (z < 100) continue;
+      var r = el.getBoundingClientRect();
+      if (r.width < 1000) continue;
+      var tx = (el.innerText || '').replace(/\s+/g, ' ');
+      if (tx.indexOf('출발일 보기') >= 0 || tx.indexOf('출발일보기') >= 0 || tx.indexOf('출발일 변경') >= 0) return el;
+    } catch (e) {}
+  }
   var m = document.querySelector('[role="dialog"], .modal, .pop_layer, .layer_pop, .ly_pop, [class*="layer_pop"], [class*="popCal"], [class*="calendar_pop"], [class*="calendarLayer"], .ui-dialog, #divLayerCalendar');
   return m || document.body;
 }
@@ -132,6 +152,14 @@ def _ybtour_log(msg: str) -> None:
         sys.stderr.flush()
     except Exception:
         pass
+
+
+def _ybtour_phase_always(phase: str, detail: str = "") -> None:
+    """환경과 무관하게 stderr에 phase=… (Node `forwardYbtourPythonStderr` 필터 호환)."""
+    line = f"[ybtour] phase={phase}"
+    if detail:
+        line += f" {detail}"
+    _ybtour_log(line)
 
 
 def _ybtour_modal_log(msg: str) -> None:
@@ -331,6 +359,33 @@ def _parse_year_month(text: Optional[str]) -> tuple:
     return None, None
 
 
+_YB_BANNER_MIN_RE = re.compile(
+    r"최저가\s*([\d,]+)\s*원\s*\(?(20\d{2})\.(\d{2})\.(\d{2})\)?"
+)
+_YB_BANNER_MAX_RE = re.compile(
+    r"최고가\s*([\d,]+)\s*원\s*\(?(20\d{2})\.(\d{2})\.(\d{2})\)?"
+)
+
+
+def _ybtour_calendar_index_min_approx_won(cells: List[Dict[str, Any]]) -> Optional[int]:
+    """td 일괄 텍스트(만 단위 근사)에서 최소 원화 추정 — 배너 최저가와 대조용."""
+    mns: List[int] = []
+    for c in cells:
+        if not isinstance(c, dict):
+            continue
+        t = str(c.get("calendarPriceText") or "").replace(" ", "").replace("\u3000", "")
+        mm = re.match(r"^(\d{2})(\d+)만~?(?:원)?$", t)
+        if not mm:
+            continue
+        try:
+            man = int(mm.group(2), 10)
+            if man > 0:
+                mns.append(man * 10000)
+        except ValueError:
+            continue
+    return min(mns) if mns else None
+
+
 class CalendarPriceScraper:
     """
     ybtour 상품 상세 출발일 모달에서 우측 리스트·달력을 순회하며
@@ -370,6 +425,7 @@ class CalendarPriceScraper:
             ) from ex
         try:
             self._playwright = await async_playwright().start()
+            _ybtour_phase_always("browser-launching", "playwright_started")
             # Ubuntu 소형 VM·기본 /dev/shm 에서 Chromium이 바로 죽는 경우 방지(노랑풍선 전용).
             self._browser = await self._playwright.chromium.launch(
                 headless=self.headless,
@@ -405,16 +461,76 @@ class CalendarPriceScraper:
         except Exception:
             pass
 
+    async def _ybtour_dispatch_triple_click_el(self, el: Any) -> None:
+        """mousedown → mouseup → click (단순 Playwright click 실패 대비)."""
+        if el is None:
+            return
+        try:
+            await el.evaluate(
+                """el => {
+                  for (const t of ['mousedown', 'mouseup', 'click']) {
+                    el.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window }));
+                  }
+                }"""
+            )
+        except Exception:
+            pass
+
+    async def _ybtour_wait_month_header_changed(self, prev_label: str) -> None:
+        """월 헤더(라벨 또는 YYYY.MM) 문자열 변경까지 대기 — 최대 config.YBTOUR_E2E_MONTH_LABEL_TIMEOUT_MS."""
+        prev = (prev_label or "").strip()[:120]
+        timeout_ms = int(getattr(config, "YBTOUR_E2E_MONTH_LABEL_TIMEOUT_MS", 5000) or 5000)
+        fb_ms = int(getattr(config, "YBTOUR_E2E_MONTH_POST_NAV_FALLBACK_MS", 1500) or 1500)
+        js = (
+            "(p) => {\n"
+            + YBTOUR_MODAL_ROOT_JS
+            + """
+  const prev = String(p || '').trim().slice(0, 120);
+  const r = ybtourModalRoot();
+  const lab = r.querySelector('label.kWQgJw, .kWQgJw');
+  let cur = '';
+  if (lab) cur = (lab.innerText || '').replace(/\\s+/g, '').trim().slice(0, 24);
+  if (!cur) {
+    const blob = (r.innerText || '').replace(/\\s+/g, ' ');
+    const m2 = blob.match(/\\b(20\\d{2}\\.\\d{1,2})\\b/);
+    if (m2) cur = m2[1];
+  }
+  return cur && cur !== prev && cur.length >= 6;
+}"""
+        )
+        try:
+            await self._page.wait_for_function(js, arg=prev, timeout=timeout_ms)
+        except Exception:
+            await self._page.wait_for_timeout(min(fb_ms, timeout_ms))
+
+    async def _ybtour_read_modal_top_slice(self, max_chars: int = 8000) -> str:
+        try:
+            mc = max(500, min(int(max_chars), 12000))
+            t = await self._page.evaluate(
+                "() => {\n"
+                + YBTOUR_MODAL_ROOT_JS
+                + "\n  const r = ybtourModalRoot();\n  const mc = "
+                + str(int(mc))
+                + ";\n  return (r && r.innerText) ? String(r.innerText).slice(0, mc) : '';\n}"
+            )
+            return str(t or "").strip()
+        except Exception:
+            return ""
+
     async def run_on_detail_url(self, detail_url: str) -> List[Dict[str, Any]]:
         """
         상품 상세 URL 한 건에 대해 달력 1년 치 [날짜, 가격]만 수집.
         반환: [ {"date": "YYYY-MM-DD", "price": int}, ... ] (중복 제거, 정렬)
         """
         if not self._page:
+            _ybtour_phase_always("script-entry", "no_page")
+            _ybtour_phase_always("process-exit", "no_page")
             return []
-        priced_popup: List[Dict[str, Any]] = []
         self._detail_url = detail_url
-        _ybtour_log(f"[ybtour] phase=scraper-entry site=ybtour {_ybtour_detail_url_summary(detail_url)}")
+        summ = _ybtour_detail_url_summary(detail_url)
+        _ybtour_phase_always("script-entry", summ)
+        _ybtour_log(f"[ybtour] phase=scraper-entry site=ybtour {summ}")
+        priced_popup: List[Dict[str, Any]] = []
         page_load_ok = False
         try:
             await human_delay(DELAY_MIN, DELAY_MAX)
@@ -429,6 +545,7 @@ class CalendarPriceScraper:
                     timeout=config.NETWORK_IDLE_TIMEOUT_MS,
                 )
                 page_load_ok = True
+                _ybtour_phase_always("page-navigated", summ)
                 _ybtour_log("[ybtour] phase=detail-page-loaded ok=true (domcontentloaded+networkidle)")
             except Exception as ex:
                 _ybtour_log(
@@ -447,6 +564,11 @@ class CalendarPriceScraper:
                 )
                 _ybtour_log("[ybtour] phase=diagnosis code=modal-or-inner-exception")
             _ybtour_log(f"[ybtour] phase=catch summary={type(ex).__name__}")
+        finally:
+            _ybtour_phase_always(
+                "process-exit",
+                _ybtour_detail_url_summary(getattr(self, "_detail_url", "") or detail_url),
+            )
         with_price = [
             r
             for r in priced_popup
@@ -549,7 +671,7 @@ class CalendarPriceScraper:
                 + """
   const root = ybtourModalRoot();
   const items = root.querySelectorAll(
-    'aside li, .popup_content li, [class*="popup_content"] li, [class*="list_area"] li, [class*="departure"] li'
+    '.kuBJvw li, [class*="kuBJvw"] li, aside li, .popup_content li, [class*="popup_content"] li, [class*="list_area"] li, [class*="departure"] li'
   );
   const bits = [];
   let n = 0;
@@ -569,17 +691,24 @@ class CalendarPriceScraper:
             return ""
 
     async def _ybtour_await_list_digest_change(
-        self, prev_digest: str, timeout_ms: int = 4200
+        self, prev_digest: str, timeout_ms: Optional[int] = None
     ) -> None:
         prev_digest = prev_digest or ""
-        steps = max(4, min(32, int(timeout_ms / 130)))
+        to = int(
+            timeout_ms
+            if timeout_ms is not None
+            else getattr(config, "YBTOUR_E2E_LIST_DIGEST_TIMEOUT_MS", 2500)
+        )
+        poll = int(getattr(config, "YBTOUR_E2E_LIST_DIGEST_POLL_MS", 80) or 80)
+        poll = max(40, min(poll, 250))
+        steps = max(4, min(48, int(to / poll)))
         for _ in range(steps):
-            await self._page.wait_for_timeout(130)
+            await self._page.wait_for_timeout(poll)
             cur = await self._ybtour_list_rows_digest()
             if cur != prev_digest:
-                await human_delay(0.2, 0.45)
+                await human_delay(0.12, 0.28)
                 return
-        await human_delay(0.25, 0.5)
+        await human_delay(0.15, 0.35)
 
     async def _ybtour_collect_popup_rows_filtered(
         self, baseline: Dict[str, str]
@@ -592,21 +721,32 @@ class CalendarPriceScraper:
         ]
 
     async def _ybtour_click_next_month_in_popup(self) -> bool:
-        """prdt 팝업 내 '다음달' — 셀렉터 실패 시 텍스트 매칭으로 클릭."""
+        """prdt 팝업 내 '다음달' — span 텍스트 → 부모 button에 mousedown/mouseup/click."""
         script = (
             """() => {
 """
             + YBTOUR_MODAL_ROOT_JS
             + """
   const root = ybtourModalRoot();
+  function fireSeq(el) {
+    for (const ev of ['mousedown', 'mouseup', 'click']) {
+      el.dispatchEvent(new MouseEvent(ev, { bubbles: true, cancelable: true, view: window }));
+    }
+  }
+  const spans = root.querySelectorAll('span');
+  for (const sp of spans) {
+    const tx = (sp.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (tx !== '다음달' && tx !== '다음 달') continue;
+    let b = sp.closest('button');
+    if (!b && sp.parentElement && sp.parentElement.tagName === 'BUTTON') b = sp.parentElement;
+    if (!b) continue;
+    try { fireSeq(b); return true; } catch (e) {}
+  }
   const btns = root.querySelectorAll('button, a, [role="button"], span[role="button"]');
   for (const b of btns) {
     const t = (b.textContent || '').replace(/\\s+/g, ' ').trim();
     if (/다음/.test(t) && /달/.test(t) && !/이전/.test(t)) {
-      try {
-        b.click();
-        return true;
-      } catch (e) {}
+      try { fireSeq(b); return true; } catch (e) {}
     }
   }
   return false;
@@ -618,21 +758,32 @@ class CalendarPriceScraper:
             return False
 
     async def _ybtour_click_prev_month_in_popup(self) -> bool:
-        """prdt 팝업 내 '이전달' — 셀렉터 실패 시 텍스트 매칭으로 클릭."""
+        """prdt 팝업 내 '이전달' — span → 부모 button mousedown/mouseup/click."""
         script = (
             """() => {
 """
             + YBTOUR_MODAL_ROOT_JS
             + """
   const root = ybtourModalRoot();
+  function fireSeq(el) {
+    for (const ev of ['mousedown', 'mouseup', 'click']) {
+      el.dispatchEvent(new MouseEvent(ev, { bubbles: true, cancelable: true, view: window }));
+    }
+  }
+  const spans = root.querySelectorAll('span');
+  for (const sp of spans) {
+    const tx = (sp.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (tx !== '이전달' && tx !== '이전 달') continue;
+    let b = sp.closest('button');
+    if (!b && sp.parentElement && sp.parentElement.tagName === 'BUTTON') b = sp.parentElement;
+    if (!b) continue;
+    try { fireSeq(b); return true; } catch (e) {}
+  }
   const btns = root.querySelectorAll('button, a, [role="button"], span[role="button"]');
   for (const b of btns) {
     const t = (b.textContent || '').replace(/\\s+/g, ' ').trim();
     if (/이전/.test(t) && /달/.test(t) && !/다음/.test(t)) {
-      try {
-        b.click();
-        return true;
-      } catch (e) {}
+      try { fireSeq(b); return true; } catch (e) {}
     }
   }
   return false;
@@ -645,6 +796,7 @@ class CalendarPriceScraper:
 
     async def _ybtour_click_next_month_nav(self) -> bool:
         """다음달 컨트롤(셀렉터 우선, 실패 시 JS 텍스트 매칭)."""
+        ym_before = await self._ybtour_read_month_label()
         for nsel in YBTOUR_MONTH_NEXT_SELECTORS + YBTOUR_POPUP_NEXT_MONTH_SELECTORS:
             try:
                 nxt = await self._page.query_selector(nsel)
@@ -659,18 +811,23 @@ class CalendarPriceScraper:
                 ):
                     continue
                 await human_delay(DELAY_MIN, DELAY_MAX)
-                await nxt.click()
-                await self._page.wait_for_timeout(MONTH_WAIT_MS)
+                try:
+                    await nxt.scroll_into_view_if_needed()
+                except Exception:
+                    pass
+                await self._ybtour_dispatch_triple_click_el(nxt)
+                await self._ybtour_wait_month_header_changed(ym_before)
                 return True
             except Exception:
                 continue
         moved = await self._ybtour_click_next_month_in_popup()
         if moved:
-            await self._page.wait_for_timeout(MONTH_WAIT_MS)
+            await self._ybtour_wait_month_header_changed(ym_before)
         return moved
 
     async def _ybtour_click_prev_month_nav(self) -> bool:
         """이전달 컨트롤(셀렉터 우선, 실패 시 JS 텍스트 매칭)."""
+        ym_before = await self._ybtour_read_month_label()
         for nsel in YBTOUR_MONTH_PREV_SELECTORS + YBTOUR_POPUP_PREV_MONTH_SELECTORS:
             try:
                 prv = await self._page.query_selector(nsel)
@@ -685,14 +842,18 @@ class CalendarPriceScraper:
                 ):
                     continue
                 await human_delay(DELAY_MIN, DELAY_MAX)
-                await prv.click()
-                await self._page.wait_for_timeout(MONTH_WAIT_MS)
+                try:
+                    await prv.scroll_into_view_if_needed()
+                except Exception:
+                    pass
+                await self._ybtour_dispatch_triple_click_el(prv)
+                await self._ybtour_wait_month_header_changed(ym_before)
                 return True
             except Exception:
                 continue
         moved = await self._ybtour_click_prev_month_in_popup()
         if moved:
-            await self._page.wait_for_timeout(MONTH_WAIT_MS)
+            await self._ybtour_wait_month_header_changed(ym_before)
         return moved
 
     async def _ybtour_align_popup_to_kst_month_floor(self) -> None:
@@ -749,30 +910,42 @@ class CalendarPriceScraper:
 () => {{
   {YBTOUR_MODAL_ROOT_JS}
   const root = ybtourModalRoot();
+  function fireSeq(el) {{
+    for (const ev of ['mousedown', 'mouseup', 'click']) {{
+      el.dispatchEvent(new MouseEvent(ev, {{ bubbles: true, cancelable: true, view: window }}));
+    }}
+  }}
   const tds = root.querySelectorAll(
-    '.calendar_wrap td, .cal_wrap td, table.calendar td, .ui-datepicker-calendar td, tbody.cal_body td, [class*="calendar"] table td, .cal td, table td'
+    'td.kFBOJx, td[class*="kFBOJx"], .calendar_wrap td, .cal_wrap td, table.calendar td, .ui-datepicker-calendar td, tbody.cal_body td, [class*="calendar"] table td, .cal td, table td'
   );
   const want = {d};
   for (const td of tds) {{
     const raw = (td.innerText || '').replace(/\\s+/g, ' ').trim();
-    const dm = raw.match(/^(\\d{{1,2}})\\b/);
-    if (!dm) continue;
-    const dnum = parseInt(dm[1], 10);
+    const raw0 = raw.replace(/\\s+/g, '');
+    let dnum = 0;
+    const dm2 = raw0.match(/^(\\d{{2}})(\\d+)/);
+    if (dm2) dnum = parseInt(dm2[1], 10);
+    else {{
+      const dm = raw.match(/^(\\d{{1,2}})\\b/);
+      if (!dm) continue;
+      dnum = parseInt(dm[1], 10);
+    }}
     if (dnum !== want) continue;
-    const looksPrice = /[\\d,]+\\s*원\\~?|[\\d,]+\\s*만\\s*~?|\\d+\\s*만\\~?|\\d{{1,2}}\\s+\\d+만\\~?|\\d+\\s*만|만\\s*~/.test(raw);
+    const looksPrice = /[\\d,]+\\s*원\\~?|[\\d,]+\\s*만\\s*~?|\\d+\\s*만\\~?|\\d{{1,2}}\\s+\\d+만\\~?|\\d+\\s*만|만\\s*~|만~/.test(raw) || /^\\d{{2}}\\d+만/.test(raw0);
     if (!looksPrice) continue;
     let target = td;
     const inner = td.querySelector('button, a[href], [role="button"], span[role="button"]');
     if (inner) target = inner;
+    try {{ fireSeq(target); return true; }} catch (e1) {{}}
     try {{
       target.click();
       return true;
-    }} catch (e1) {{}}
+    }} catch (e2) {{}}
     try {{
       const ev = new MouseEvent('click', {{ bubbles: true, cancelable: true, view: window }});
       target.dispatchEvent(ev);
       return true;
-    }} catch (e2) {{}}
+    }} catch (e3) {{}}
   }}
   return false;
 }}
@@ -788,9 +961,11 @@ class CalendarPriceScraper:
                 f"""() => {{
   {YBTOUR_MODAL_ROOT_JS}
   const root = ybtourModalRoot();
-  const heads = root.querySelectorAll('h2, h3, h4, .calendar_title, .year_month, [class*="month_tit"], [class*="cal_head"], [class*="CalendarHead"]');
+  const heads = root.querySelectorAll('label.kWQgJw, .kWQgJw, h2, h3, h4, .calendar_title, .year_month, [class*="month_tit"], [class*="cal_head"], [class*="CalendarHead"]');
   for (const el of heads) {{
     const s = (el.innerText || '').trim();
+    const sc = s.replace(/\\s+/g, '');
+    if (/^20\\d{{2}}\\.\\d{{1,2}}$/.test(sc)) return s.slice(0, 64);
     if (/20\\d{{2}}\\s*[.년\\s/]*\\s*\\d{{1,2}}\\s*월?/.test(s)) return s.slice(0, 64);
   }}
   const blob = (root.innerText || '').replace(/\\s+/g, ' ').trim();
@@ -804,7 +979,7 @@ class CalendarPriceScraper:
             pass
         try:
             ym_el = await self._page.query_selector(
-                ".popup_content .calendar_title, .popup_content [class*='month'], .calendar_title, .year_month, [class*='month_tit'], [class*='cal_head'], .cal_head, [class*='CalendarHead']"
+                "label.kWQgJw, .kWQgJw, .popup_content .calendar_title, .popup_content [class*='month'], .calendar_title, .year_month, [class*='month_tit'], [class*='cal_head'], .cal_head, [class*='CalendarHead']"
             )
             if ym_el:
                 return (await ym_el.text_content() or "").strip()[:64]
@@ -813,30 +988,60 @@ class CalendarPriceScraper:
         return ""
 
     async def _collect_ybtour_calendar_price_index(self) -> List[Dict[str, Any]]:
-        """좌측 달력 셀: 일자 + 가격 문구(인덱스·보조 검증)."""
+        """좌측 달력 셀: td.kFBOJx 우선 + 'DDNNN만~' 명세 정규식, 없으면 기존 휴리스틱."""
         script = f"""
 () => {{
   {YBTOUR_MODAL_ROOT_JS}
   const root = ybtourModalRoot();
-  const tds = root.querySelectorAll(
-    '.calendar_wrap td, .cal_wrap td, table.calendar td, .ui-datepicker-calendar td, tbody.cal_body td, [class*="calendar"] table td, .cal td, table td'
-  );
-  const out = [];
-  const seen = new Set();
-  for (const td of tds) {{
+  function pushSpec(td, out, seen) {{
+    const raw0 = (td.innerText || '').replace(/\\s+/g, '').trim();
+    if (!raw0 || raw0.length > 100) return;
+    const ep = td.querySelector('.ePUMbc, [class*="ePUMbc"]');
+    const childTxt = ep ? (ep.innerText || '').replace(/\\s+/g, '').trim().slice(0, 32) : '';
+    const m = raw0.match(/^(\\d{{2}})(\\d+)만~?(?:원)?$/);
+    if (!m) return;
+    const day = parseInt(m[1], 10);
+    const man = parseInt(m[2], 10);
+    if (day < 1 || day > 31 || man < 1) return;
+    const key = day + '|' + raw0.slice(0, 48);
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({{ calendarDate: day, calendarPriceText: raw0.slice(0, 72), childPriceText: childTxt || null }});
+  }}
+  function pushLegacy(td, out, seen) {{
     const raw = (td.innerText || '').replace(/\\s+/g, ' ').trim();
-    if (!raw || raw.length > 100) continue;
+    if (!raw || raw.length > 100) return;
     const dm = raw.match(/^(\\d{{1,2}})\\b/);
-    if (!dm) continue;
+    if (!dm) return;
     const day = parseInt(dm[1], 10);
-    if (day < 1 || day > 31) continue;
+    if (day < 1 || day > 31) return;
     const key = day + '|' + raw.slice(0, 48);
-    if (seen.has(key)) continue;
+    if (seen.has(key)) return;
     seen.add(key);
     const looksPrice =
       /[\\d,]+\\s*원\\~?|[\\d,]+\\s*만\\s*~?|\\d+\\s*만\\~?|\\d{{1,2}}\\s+\\d+만\\~?|\\d+\\s*만|만\\s*~/.test(raw);
-    if (!looksPrice) continue;
-    out.push({{ calendarDate: day, calendarPriceText: raw.slice(0, 72) }});
+    if (!looksPrice) return;
+    out.push({{ calendarDate: day, calendarPriceText: raw.slice(0, 72), childPriceText: null }});
+  }}
+  const out = [];
+  const seen = new Set();
+  const pri = root.querySelectorAll('td.kFBOJx, td[class*="kFBOJx"]');
+  if (pri && pri.length) {{
+    for (const td of pri) pushSpec(td, out, seen);
+    if (out.length) return out;
+  }}
+  const tbl = root.querySelectorAll('table.iTOLDK td, table[class*="iTOLDK"] td');
+  if (tbl && tbl.length) {{
+    for (const td of tbl) pushSpec(td, out, seen);
+    if (out.length) return out;
+  }}
+  const tds = root.querySelectorAll(
+    '.calendar_wrap td, .cal_wrap td, table.calendar td, .ui-datepicker-calendar td, tbody.cal_body td, [class*="calendar"] table td, .cal td, table td'
+  );
+  for (const td of tds) {{
+    const raw0 = (td.innerText || '').replace(/\\s+/g, '').trim();
+    if (/^(\\d{{2}})(\\d+)만~?(?:원)?$/.test(raw0)) pushSpec(td, out, seen);
+    else pushLegacy(td, out, seen);
   }}
   return out;
 }}"""
@@ -895,7 +1100,7 @@ class CalendarPriceScraper:
   const carrierGeneric = /([가-힣A-Za-z·\\.]{2,22}항공)/;
   const root = ybtourModalRoot();
   const narrow = root.querySelectorAll(
-    '.popup_content li, [class*="popup_content"] li, aside li, [class*="list_area"] li, [class*="departure"] li, [class*="Departure"] li, [class*="goods_list"] li, ul.scroll_wrap li, .scroll_wrap li, .departure_list li, tbody tr'
+    '.kuBJvw li, [class*="kuBJvw"] li, .popup_content li, [class*="popup_content"] li, aside li, [class*="list_area"] li, [class*="departure"] li, [class*="Departure"] li, [class*="goods_list"] li, ul.scroll_wrap li, .scroll_wrap li, .departure_list li, tbody tr'
   );
   let cands = [];
   root.querySelectorAll('li').forEach(function (li) {
@@ -1044,8 +1249,16 @@ class CalendarPriceScraper:
                 btn = await self._page.query_selector(sel)
                 if btn:
                     await human_delay(DELAY_MIN, DELAY_MAX)
-                    await btn.click()
-                    await self._page.wait_for_timeout(950)
+                    try:
+                        await btn.scroll_into_view_if_needed()
+                    except Exception:
+                        pass
+                    await self._ybtour_dispatch_triple_click_el(btn)
+                    try:
+                        await btn.click(timeout=2500)
+                    except Exception:
+                        pass
+                    await self._page.wait_for_timeout(400)
                     opened = True
                     opening_sel_hit = sel[:100]
                     break
@@ -1058,13 +1271,17 @@ class CalendarPriceScraper:
                 f"phase=modal-open ok=true hit_sel={opening_sel_hit!r} selectors_tried={selectors_tried}"
             )
             await human_delay(DELAY_MIN, DELAY_MAX)
+            vis_to = int(getattr(config, "YBTOUR_E2E_MODAL_VISIBLE_MS", 10000) or 10000)
             try:
                 await self._page.wait_for_selector(
-                    ".popup_content, [class*='popup_content']", timeout=9000, state="visible"
+                    ".kuBJvw, [class*='kuBJvw'], .popup_content, [class*='popup_content']",
+                    timeout=vis_to,
+                    state="visible",
                 )
             except Exception:
                 pass
-            await self._page.wait_for_timeout(700)
+            _ybtour_phase_always("modal-opened", (opening_sel_hit or "")[:96])
+            await self._page.wait_for_timeout(320)
             await self._ybtour_align_popup_to_kst_month_floor()
         else:
             reason = last_modal_open_err or "no_button_found"
@@ -1090,6 +1307,17 @@ class CalendarPriceScraper:
         prev_cal_sig: Optional[str] = None
         for mi in range(DEFAULT_CALENDAR_MONTH_LIMIT if opened else 0):
             ym = await self._ybtour_read_month_label()
+            yp, mp = _parse_year_month(ym)
+            try:
+                mo_phase = int(str(mp or "0"), 10)
+            except ValueError:
+                mo_phase = mi + 1
+            if mo_phase < 1 or mo_phase > 12:
+                mo_phase = mi + 1
+            _ybtour_phase_always(
+                f"month-{mo_phase}-collect-start",
+                f"monthKey={ym!r} index={mi}",
+            )
             cal_cells = await self._collect_ybtour_calendar_price_index()
             priced_days = len(cal_cells)
             samp = [c.get("calendarPriceText") for c in cal_cells[:4]]
@@ -1104,10 +1332,25 @@ class CalendarPriceScraper:
             _ybtour_modal_log(
                 f"phase=calendar monthKey={ym!r} pricedDays={priced_days} samplePrices={samp!r}"
             )
+            try:
+                top_txt = await self._ybtour_read_modal_top_slice()
+                bm = _YB_BANNER_MIN_RE.search(top_txt.replace("\n", " "))
+                banner_min = int(bm.group(1).replace(",", ""), 10) if bm else None
+                td_min = _ybtour_calendar_index_min_approx_won(cal_cells)
+                if banner_min and td_min and banner_min > 0 and td_min > 0:
+                    rel = abs(float(banner_min) - float(td_min)) / max(
+                        float(banner_min), float(td_min)
+                    )
+                    if rel > 0.12:
+                        _ybtour_phase_always(
+                            "price-hint-mismatch",
+                            f"bannerMinWon={banner_min} tdMinApproxWon={td_min} rel={rel:.3f} monthKey={ym!r}",
+                        )
+            except Exception:
+                pass
 
             await self._scroll_ybtour_popup_list_deep()
             await human_delay(0.35, 0.75)
-            yp, mp = _parse_year_month(ym)
             kst_floor = _kst_today_ymd()
             merged_month: List[Dict[str, Any]] = []
             if priced_days > 0 and yp and mp:
@@ -1224,6 +1467,10 @@ class CalendarPriceScraper:
             _ybtour_modal_log(
                 f"phase=merge monthRound={mi + 1} batchRows={len(batch)} new_unique_keys={new_keys} "
                 f"cumulative_unique={len(rows_merged)}"
+            )
+            _ybtour_phase_always(
+                f"month-{mo_phase}-collect-end",
+                f"monthKey={ym!r} batchRows={len(batch)} newKeys={new_keys}",
             )
 
             ym_before_nav = ym

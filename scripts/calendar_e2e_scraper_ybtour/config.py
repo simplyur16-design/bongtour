@@ -5,6 +5,24 @@ from pathlib import Path
 
 BASE_URL = os.getenv("YBTOUR_BASE_URL") or os.getenv("YELLOWBALLOON_BASE_URL", "https://www.ybtour.co.kr")
 
+
+def _int_env(name: str, default: int) -> int:
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return default
+
+
+# calendar_price_scraper 전용 — env로 덮어쓰기 (YBTOUR_E2E_*)
+YBTOUR_E2E_MODAL_VISIBLE_MS = _int_env("YBTOUR_E2E_MODAL_VISIBLE_MS", 10000)
+YBTOUR_E2E_LIST_DIGEST_TIMEOUT_MS = _int_env("YBTOUR_E2E_LIST_DIGEST_TIMEOUT_MS", 2500)
+YBTOUR_E2E_LIST_DIGEST_POLL_MS = _int_env("YBTOUR_E2E_LIST_DIGEST_POLL_MS", 80)
+YBTOUR_E2E_MONTH_LABEL_TIMEOUT_MS = _int_env("YBTOUR_E2E_MONTH_LABEL_TIMEOUT_MS", 5000)
+YBTOUR_E2E_MONTH_POST_NAV_FALLBACK_MS = _int_env("YBTOUR_E2E_MONTH_POST_NAV_FALLBACK_MS", 1500)
+
 MIN_DELAY = 2.0
 MAX_DELAY = 4.0
 PRODUCT_INTERVAL_MIN = 4.0
