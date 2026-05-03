@@ -208,14 +208,14 @@ export async function POST(request: Request) {
     const hasSolapiKey = Boolean(process.env.SOLAPI_API_KEY?.trim())
     const hasSolapiSecret = Boolean(process.env.SOLAPI_API_SECRET?.trim())
     const hasAdminPhone = Boolean(process.env.ADMIN_PHONE?.trim())
-    const hasSenderPhone = Boolean(process.env.SENDER_PHONE?.trim())
+    const hasSenderPhone = Boolean(process.env.SOLAPI_FROM_PHONE?.trim())
     const smsEnvOk = hasSolapiKey && hasSolapiSecret && hasAdminPhone && hasSenderPhone
     if (!smsEnvOk) {
       const missing: string[] = []
       if (!hasSolapiKey) missing.push('SOLAPI_API_KEY')
       if (!hasSolapiSecret) missing.push('SOLAPI_API_SECRET')
       if (!hasAdminPhone) missing.push('ADMIN_PHONE')
-      if (!hasSenderPhone) missing.push('SENDER_PHONE')
+      if (!hasSenderPhone) missing.push('SOLAPI_FROM_PHONE')
       console.warn('[booking sms] skipped: missing env', missing.join(', '))
     } else {
       console.log(
@@ -223,7 +223,7 @@ export async function POST(request: Request) {
         JSON.stringify({
           bookingId: booking.id,
           recipientDigitsLen: process.env.ADMIN_PHONE!.replace(/\D/g, '').length,
-          senderDigitsLen: process.env.SENDER_PHONE!.replace(/\D/g, '').length,
+          senderDigitsLen: process.env.SOLAPI_FROM_PHONE!.replace(/\D/g, '').length,
         })
       )
     }

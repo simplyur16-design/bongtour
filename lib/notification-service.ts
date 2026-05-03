@@ -97,15 +97,25 @@ export async function sendAdminNotificationWithPayload(
   const apiKey = process.env.SOLAPI_API_KEY?.trim()
   const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
   const adminPhone = process.env.ADMIN_PHONE?.trim()
-  const senderPhone = process.env.SENDER_PHONE?.trim()
+  const senderPhone = process.env.SOLAPI_FROM_PHONE?.trim()
 
   if (!apiKey || !apiSecret || !adminPhone || !senderPhone) {
+    console.error(
+      '[sendAdminNotification] skipped_missing_env',
+      JSON.stringify({
+        bookingId: booking.id,
+        hasKey: Boolean(apiKey),
+        hasSecret: Boolean(apiSecret),
+        hasAdminPhone: Boolean(adminPhone),
+        hasFromPhone: Boolean(senderPhone),
+      })
+    )
     return { ok: true }
   }
 
   const text = payload ? buildAdminNotificationMessageFromPayload(payload) : buildAdminNotificationMessage(booking)
-  const from = senderPhone.replace(/-/g, '').trim()
-  const to = adminPhone.replace(/-/g, '').trim()
+  const from = digitsOnlyPhone(senderPhone)
+  const to = digitsOnlyPhone(adminPhone)
 
   let lastResult: SendAdminNotificationResult = { ok: false, message: 'unknown' }
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -134,12 +144,18 @@ function digitsOnlyPhone(raw: string): string {
   return raw.replace(/\D/g, '')
 }
 
+/** 한국 SMS 수신 번호로 쓸 만한 길이(숫자만)인지 */
+function isPlausibleKrSmsTo(digits: string): boolean {
+  const n = digits.length
+  return n >= 10 && n <= 12
+}
+
 /**
- * 문의 관리자 LMS 수신: `SOLAPI_RECEIVER` 쉼표 구분. trim·빈값 제거·숫자 기준 dedupe.
+ * 문의 관리자 LMS 수신: `SOLAPI_ADMIN_PHONES` 쉼표 구분. trim·빈값 제거·숫자 기준 dedupe·길이 검증.
  * (테스트 라우트 등에서 수신 목록 표시용으로 export)
  */
 export function parseSolapiReceiverPhones(): string[] {
-  const raw = process.env.SOLAPI_RECEIVER?.trim()
+  const raw = process.env.SOLAPI_ADMIN_PHONES?.trim()
   if (!raw) return []
   const rawParts = raw.split(',')
   const seen = new Set<string>()
@@ -147,6 +163,10 @@ export function parseSolapiReceiverPhones(): string[] {
   for (const part of rawParts) {
     const d = digitsOnlyPhone(part.trim())
     if (!d) continue
+    if (!isPlausibleKrSmsTo(d)) {
+      console.error('[parseSolapiReceiverPhones] skipped_invalid_phone', JSON.stringify({ segment: part.trim() }))
+      continue
+    }
     if (seen.has(d)) continue
     seen.add(d)
     out.push(d)
@@ -179,25 +199,42 @@ function buildInquiryCustomerLmsText(p: { inquiryType: string; productLabel: str
 }
 
 /**
- * 문의 접수 — 관리자 LMS. `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_SENDER`, `SOLAPI_RECEIVER`(쉼표 구분 복수).
+ * 문의 접수 — 관리자 LMS. `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_FROM_PHONE`, `SOLAPI_ADMIN_PHONES`(쉼표 구분 복수).
  * 키·발신·수신 0건이면 skipped. 고객 LMS·예약 문자 env 와 분리.
  */
 export async function sendAdminInquiryNotification(p: AdminInquiryNotificationParams): Promise<SendAdminInquiryNotificationResult> {
-  const apiKey = process.env.SOLAPI_API_KEY
-  const apiSecret = process.env.SOLAPI_API_SECRET
-  const senderRaw = process.env.SOLAPI_SENDER?.trim()
+  const apiKey = process.env.SOLAPI_API_KEY?.trim()
+  const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
+  const senderRaw = process.env.SOLAPI_FROM_PHONE?.trim()
 
   if (!apiKey || !apiSecret || !senderRaw) {
+    console.error(
+      '[sendAdminInquiryNotification] skipped_missing_env',
+      JSON.stringify({
+        inquiryId: p.inquiryId,
+        hasKey: Boolean(apiKey),
+        hasSecret: Boolean(apiSecret),
+        hasFromPhone: Boolean(senderRaw),
+      })
+    )
     return { skipped: true, succeeded: [], failed: [] }
   }
 
   const recipients = parseSolapiReceiverPhones()
   if (recipients.length === 0) {
+    console.error(
+      '[sendAdminInquiryNotification] skipped_no_admin_phones',
+      JSON.stringify({ inquiryId: p.inquiryId, hint: 'SOLAPI_ADMIN_PHONES empty or all invalid' })
+    )
     return { skipped: true, succeeded: [], failed: [] }
   }
 
   const from = digitsOnlyPhone(senderRaw)
-  if (!from) {
+  if (!from || !isPlausibleKrSmsTo(from)) {
+    console.error(
+      '[sendAdminInquiryNotification] skipped_invalid_from_phone',
+      JSON.stringify({ inquiryId: p.inquiryId })
+    )
     return { skipped: true, succeeded: [], failed: [] }
   }
 
@@ -231,11 +268,20 @@ export async function sendInquiryCustomerLmsFallback(p: {
   productLabel: string
   applicantPhone: string
 }): Promise<SendAdminNotificationResult> {
-  const apiKey = process.env.SOLAPI_API_KEY
-  const apiSecret = process.env.SOLAPI_API_SECRET
-  const senderPhone = process.env.SENDER_PHONE
+  const apiKey = process.env.SOLAPI_API_KEY?.trim()
+  const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
+  const senderPhone = process.env.SOLAPI_FROM_PHONE?.trim()
 
   if (!apiKey || !apiSecret || !senderPhone) {
+    console.error(
+      '[sendInquiryCustomerLmsFallback] skipped_missing_env',
+      JSON.stringify({
+        inquiryId: p.inquiryId,
+        hasKey: Boolean(apiKey),
+        hasSecret: Boolean(apiSecret),
+        hasFromPhone: Boolean(senderPhone),
+      })
+    )
     return { ok: true }
   }
 
@@ -248,7 +294,15 @@ export async function sendInquiryCustomerLmsFallback(p: {
     return { ok: false, message: 'invalid_phone' }
   }
 
-  const from = senderPhone.replace(/-/g, '').trim()
+  const from = digitsOnlyPhone(senderPhone)
+  if (!from || !isPlausibleKrSmsTo(from)) {
+    console.error(
+      '[sendInquiryCustomerLmsFallback] skipped_invalid_from_phone',
+      JSON.stringify({ inquiryId: p.inquiryId })
+    )
+    return { ok: true }
+  }
+
   const text = buildInquiryCustomerLmsText({
     inquiryType: p.inquiryType,
     productLabel: p.productLabel,

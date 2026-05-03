@@ -54,7 +54,7 @@ function buildSilentInquiryAcceptPayload(body: Record<string, unknown>) {
  * - Honeypot(`website`·`website_url`)·운영 시각(`formOpenedAt`)·`validateCustomerInquiryBody` 봇 패턴: DB·알림 없이 성공 형태 200.
  * - Captcha: 미적용 — 봇 남용 시 bot 관리·캡차 등 검토
  * - 운영자 이메일: `sendInquiryReceivedEmail`(SMTP_* / INQUIRY_NOTIFICATION_EMAIL). 실패는 DB·로그·`notification.channels.email`.
- * - 솔라피: 고객 알림톡 시도(`attemptSendCustomerInquiryAlimTalk`, 미설정 시 TODO·LMS 폴백) → `sendInquiryCustomerLmsFallback`; 담당자 `sendAdminInquiryNotification` — `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_SENDER`, `SOLAPI_RECEIVER`(쉼표 구분 복수). 문자 실패는 문의 저장 성공과 분리·`console.error`.
+ * - 솔라피: 고객 알림톡 시도(`attemptSendCustomerInquiryAlimTalk`, 미설정 시 LMS 폴백) → `sendInquiryCustomerLmsFallback`; 담당자 `sendAdminInquiryNotification` — `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_FROM_PHONE`, `SOLAPI_ADMIN_PHONES`(쉼표 구분 복수). 문자 실패는 문의 저장 성공과 분리·`console.error`.
  * - `sourcePagePath` / `snapshot*`: 운영·분석 추적용(클라이언트 입력이므로 신뢰 검증은 하지 않음)
  */
 export async function POST(request: Request) {

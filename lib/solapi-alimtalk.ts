@@ -2,15 +2,11 @@ import { SolapiMessageService } from 'solapi'
 import { generateSmartLink } from '@/lib/link-builder'
 import {
   buildInquiryCustomerAlimtalkVariables,
+  resolveInquiryCustomerAlimtalkKind,
   selectInquiryCustomerAlimtalkTemplateId,
   type InquiryCustomerAlimtalkContext,
 } from '@/lib/inquiry-customer-alimtalk'
 import { parseInquiryPayloadJson } from '@/lib/inquiry-notification-format'
-
-const sdk = new SolapiMessageService(
-  process.env.SOLAPI_KEY!,
-  process.env.SOLAPI_SECRET!
-)
 
 export type AlimtalkCustomerData = {
   phone: string
@@ -29,39 +25,44 @@ export type CustomerInquiryAlimtalkAttemptResult =
   | { ok: false; shouldSendLmsFallback: true; detail: string }
 
 /**
- * 문의 접수 고객 알림톡 — `SOLAPI_KEY`/`SOLAPI_SECRET`(SDK) + `SOLAPI_KAKAO_PF_ID` + `SOLAPI_SENDER`.
- * 템플릿 5종(`lib/inquiry-customer-alimtalk.ts`). 미설정·미등록·발송 실패 시 LMS 폴백.
+ * 문의 접수 고객 알림톡 — `SOLAPI_API_KEY`/`SOLAPI_API_SECRET`(SDK) + `SOLAPI_PFID` + `SOLAPI_FROM_PHONE`.
+ * 템플릿 ID는 `SOLAPI_TPL_*` env. 미설정·미등록·발송 실패 시 LMS 폴백.
  */
 export async function attemptSendCustomerInquiryAlimTalk(
   ctx: InquiryCustomerAlimtalkContext
 ): Promise<CustomerInquiryAlimtalkAttemptResult> {
-  const apiKey = process.env.SOLAPI_KEY?.trim()
-  const apiSecret = process.env.SOLAPI_SECRET?.trim()
-  const pfId = process.env.SOLAPI_KAKAO_PF_ID?.trim()
-  const senderRaw = process.env.SOLAPI_SENDER?.trim()
+  const apiKey = process.env.SOLAPI_API_KEY?.trim()
+  const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
+  const pfId = process.env.SOLAPI_PFID?.trim()
+  const senderRaw = process.env.SOLAPI_FROM_PHONE?.trim()
 
   if (!apiKey || !apiSecret || !pfId || !senderRaw) {
-    console.warn(
+    console.error(
       '[solapi-alimtalk] inquiry_alimtalk_skipped_env',
       JSON.stringify({
         inquiryId: ctx.inquiryId,
         hasKey: Boolean(apiKey),
         hasSecret: Boolean(apiSecret),
         hasPfId: Boolean(pfId),
-        hasSender: Boolean(senderRaw),
+        hasFromPhone: Boolean(senderRaw),
       })
     )
     return { ok: false, shouldSendLmsFallback: true, detail: 'inquiry_alimtalk_missing_env' }
   }
 
   const payload = parseInquiryPayloadJson(ctx.payloadJson)
-  const templateId = selectInquiryCustomerAlimtalkTemplateId(ctx.inquiryType, payload)
-  if (!templateId) {
-    console.warn(
+  const kind = resolveInquiryCustomerAlimtalkKind(ctx.inquiryType, payload)
+  if (!kind) {
+    console.error(
       '[solapi-alimtalk] inquiry_alimtalk_unknown_branch',
       JSON.stringify({ inquiryId: ctx.inquiryId, inquiryType: ctx.inquiryType })
     )
     return { ok: false, shouldSendLmsFallback: true, detail: 'inquiry_alimtalk_unknown_branch' }
+  }
+
+  const templateId = selectInquiryCustomerAlimtalkTemplateId(ctx.inquiryType, payload)
+  if (!templateId) {
+    return { ok: false, shouldSendLmsFallback: true, detail: 'inquiry_alimtalk_missing_template_env' }
   }
 
   const to = ctx.applicantPhone.replace(/\D/g, '')
@@ -74,7 +75,7 @@ export async function attemptSendCustomerInquiryAlimTalk(
     return { ok: false, shouldSendLmsFallback: true, detail: 'inquiry_alimtalk_invalid_sender' }
   }
 
-  const variables = buildInquiryCustomerAlimtalkVariables(templateId, ctx)
+  const variables = buildInquiryCustomerAlimtalkVariables(kind, ctx)
 
   try {
     const one = new SolapiMessageService(apiKey, apiSecret)
@@ -112,9 +113,25 @@ export async function sendAlimtalkWithDetail(customerData: AlimtalkCustomerData)
     productId,
   } = customerData
 
+  const apiKey = process.env.SOLAPI_API_KEY?.trim()
+  const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
+  const fromRaw = process.env.SOLAPI_FROM_PHONE?.trim()
+  if (!apiKey || !apiSecret || !fromRaw) {
+    console.error(
+      '[solapi-alimtalk] sendAlimtalkWithDetail missing env',
+      JSON.stringify({
+        hasKey: Boolean(apiKey),
+        hasSecret: Boolean(apiSecret),
+        hasFromPhone: Boolean(fromRaw),
+      })
+    )
+    throw new Error('solapi_credentials_or_from_phone_missing')
+  }
+
+  const fromDigits = fromRaw.replace(/\D/g, '')
   const message = {
     to: phone,
-    from: process.env.SOLAPI_SENDER!,
+    from: fromDigits,
     type: 'ATA' as const,
     templateId: 'BONGTOUR_QUOTATION_01',
     text: `[Bong투어] ${agency}/${code}/${title}\n- 날짜: ${date}\n- 인원: ${composition}\n- 견적: ${totalKrw}+${totalForeign}`,
@@ -133,5 +150,6 @@ export async function sendAlimtalkWithDetail(customerData: AlimtalkCustomerData)
     ],
   }
 
-  return await sdk.sendOne(message)
+  const one = new SolapiMessageService(apiKey, apiSecret)
+  return await one.sendOne(message)
 }

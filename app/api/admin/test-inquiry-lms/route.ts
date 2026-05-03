@@ -20,7 +20,7 @@ export async function GET() {
     sendMethod: 'POST only (GET does not send)',
     curl: 'curl -X POST http://localhost:3000/api/admin/test-inquiry-lms',
     auth: 'Admin session or Authorization: Bearer <ADMIN_SERVICE_BEARER_SECRET>',
-    env: ['SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'SOLAPI_SENDER', 'SOLAPI_RECEIVER'],
+    env: ['SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'SOLAPI_FROM_PHONE', 'SOLAPI_ADMIN_PHONES'],
     fixedPayload: ADMIN_INQUIRY_LMS_TEST_FIXTURE,
   })
 }
@@ -49,11 +49,11 @@ export async function POST() {
           if (!process.env.SOLAPI_API_KEY?.trim() || !process.env.SOLAPI_API_SECRET?.trim()) {
             return 'missing SOLAPI_API_KEY or SOLAPI_API_SECRET'
           }
-          if (!process.env.SOLAPI_SENDER?.trim()) return 'missing SOLAPI_SENDER'
-          if (!(process.env.SOLAPI_SENDER.trim().replace(/\D/g, '') ?? '')) {
-            return 'SOLAPI_SENDER has no digits after normalize'
+          if (!process.env.SOLAPI_FROM_PHONE?.trim()) return 'missing SOLAPI_FROM_PHONE'
+          if (!(process.env.SOLAPI_FROM_PHONE.trim().replace(/\D/g, '') ?? '')) {
+            return 'SOLAPI_FROM_PHONE has no digits after normalize'
           }
-          if (receivers.length === 0) return 'missing or empty SOLAPI_RECEIVER (no valid numbers)'
+          if (receivers.length === 0) return 'missing or empty SOLAPI_ADMIN_PHONES (no valid numbers)'
           return 'skipped_unknown'
         })(),
       }
