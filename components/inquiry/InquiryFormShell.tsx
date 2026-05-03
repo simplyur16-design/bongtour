@@ -89,6 +89,9 @@ export default function InquiryFormShell({
   const [message, setMessage] = useState('')
   const [privacyAgreed, setPrivacyAgreed] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
+  /** 페이지(폼) 로드 시각 — 서버에서 최소 체류 시간 검증용 */
+  const [formOpenedAt] = useState(() => Date.now())
+  const [websiteUrl, setWebsiteUrl] = useState('')
 
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -143,6 +146,8 @@ export default function InquiryFormShell({
         applicantName: applicantName.trim(),
         applicantPhone: applicantPhone.trim(),
         website: '',
+        website_url: websiteUrl.trim(),
+        formOpenedAt,
         privacyAgreed: true,
         privacyNoticeConfirmedAt: new Date().toISOString(),
         privacyNoticeVersion,
@@ -224,6 +229,8 @@ export default function InquiryFormShell({
     messageLabel,
     messageRequired,
     privacyNoticeVersion,
+    websiteUrl,
+    formOpenedAt,
   ])
 
   if (done) {
@@ -289,6 +296,16 @@ export default function InquiryFormShell({
           tabIndex={-1}
           aria-hidden="true"
           className="hidden"
+        />
+        <input
+          type="text"
+          name="website_url"
+          value={websiteUrl}
+          onChange={(e) => setWebsiteUrl(e.target.value)}
+          autoComplete="off"
+          tabIndex={-1}
+          aria-hidden="true"
+          style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
         />
         <div className="space-y-4 rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-sm font-semibold text-slate-800">연락처·문의 내용</h2>

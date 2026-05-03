@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { validateCustomerInquiryBody } from '@/lib/customer-inquiry-intake'
+import {
+  CUSTOMER_INQUIRY_TYPES,
+  validateCustomerInquiryBody,
+  type CustomerInquiryType,
+} from '@/lib/customer-inquiry-intake'
 import { sendInquiryReceivedEmail } from '@/lib/inquiry-email'
 import { sendAdminInquiryNotification, sendInquiryCustomerLmsFallback } from '@/lib/notification-service'
 import { attemptSendCustomerInquiryAlimTalk } from '@/lib/solapi-alimtalk'
@@ -9,7 +13,7 @@ import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError } from '@/lib/public-mutation-origin'
 
 const INQUIRY_RATE_LIMIT_WINDOW_MS = 60_000
-const INQUIRY_RATE_LIMIT_MAX = 12
+const INQUIRY_RATE_LIMIT_MAX = 5
 
 function getClientIp(headers: Headers): string {
   const xff = headers.get('x-forwarded-for')
@@ -17,11 +21,37 @@ function getClientIp(headers: Headers): string {
   return headers.get('x-real-ip') || 'unknown'
 }
 
+function buildSilentInquiryAcceptPayload(body: Record<string, unknown>) {
+  const rawType = body.inquiryType
+  const inquiryType: CustomerInquiryType =
+    typeof rawType === 'string' && (CUSTOMER_INQUIRY_TYPES as readonly string[]).includes(rawType)
+      ? (rawType as CustomerInquiryType)
+      : 'travel_consult'
+  const id = `in${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`
+  const createdAt = new Date().toISOString()
+  return {
+    ok: true as const,
+    inquiry: {
+      id,
+      inquiryType,
+      status: 'received' as const,
+      leadTimeRisk: 'normal' as const,
+      createdAt,
+    },
+    notification: {
+      ok: true as const,
+      delayed: false as const,
+      channels: { email: { ok: true as const } },
+    },
+  }
+}
+
 /**
  * POST /api/inquiries — 공개 문의 생성 (`CustomerInquiry` 단일 저장소)
  *
  * 보안·운영:
  * - 동일 출처(Origin/Referer) 검증 후 IP rate limit — lib/public-mutation-origin
+ * - Honeypot(`website`·`website_url`)·운영 시각(`formOpenedAt`)·`validateCustomerInquiryBody` 봇 패턴: DB·알림 없이 성공 형태 200.
  * - Captcha: 미적용 — 봇 남용 시 bot 관리·캡차 등 검토
  * - 운영자 이메일: `sendInquiryReceivedEmail`(SMTP_* / INQUIRY_NOTIFICATION_EMAIL). 실패는 DB·로그·`notification.channels.email`.
  * - 솔라피: 고객 알림톡 시도(`attemptSendCustomerInquiryAlimTalk`, 미설정 시 TODO·LMS 폴백) → `sendInquiryCustomerLmsFallback`; 담당자 `sendAdminInquiryNotification` — `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_SENDER`, `SOLAPI_RECEIVER`(쉼표 구분 복수). 문자 실패는 문의 저장 성공과 분리·`console.error`.
@@ -60,16 +90,36 @@ export async function POST(request: Request) {
     )
   }
   const obj = (body ?? {}) as Record<string, unknown>
-  const honeypot = typeof obj.website === 'string' ? obj.website.trim() : ''
-  if (honeypot) {
-    return NextResponse.json(
-      { ok: false, error: '요청 형식이 올바르지 않습니다.', fieldErrors: {} as Record<string, string> },
-      { status: 400 }
-    )
+  const honeypotWebsite = typeof obj.website === 'string' ? obj.website.trim() : ''
+  const honeypotWebsiteUrl = typeof obj.website_url === 'string' ? obj.website_url.trim() : ''
+  if (honeypotWebsite || honeypotWebsiteUrl) {
+    const payload = buildSilentInquiryAcceptPayload(obj)
+    assertNoInternalMetaLeak(payload, '/api/inquiries')
+    return NextResponse.json(payload)
   }
 
-  const validated = validateCustomerInquiryBody(body)
-  if (!validated.ok) {
+  const productionInquiry = process.env.NODE_ENV === 'production'
+  if (productionInquiry) {
+    const opened = obj.formOpenedAt
+    const now = Date.now()
+    const openedMs = typeof opened === 'number' && Number.isFinite(opened) ? opened : NaN
+    const minTs = 1_700_000_000_000 /** ~2023-11 — 과거·0 방지 */
+    const tooFast =
+      !Number.isFinite(openedMs) || openedMs < minTs || openedMs > now || now - openedMs < 3000
+    if (tooFast) {
+      const payload = buildSilentInquiryAcceptPayload(obj)
+      assertNoInternalMetaLeak(payload, '/api/inquiries')
+      return NextResponse.json(payload)
+    }
+  }
+
+  const validated = validateCustomerInquiryBody(body, { productionInquiryRules: productionInquiry })
+  if (validated.ok === 'silent_bot') {
+    const payload = buildSilentInquiryAcceptPayload(obj)
+    assertNoInternalMetaLeak(payload, '/api/inquiries')
+    return NextResponse.json(payload)
+  }
+  if (validated.ok === false) {
     return NextResponse.json(
       { ok: false, error: validated.error, fieldErrors: validated.fieldErrors },
       { status: 400 }
