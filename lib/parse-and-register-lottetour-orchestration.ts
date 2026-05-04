@@ -16,7 +16,7 @@ import {
   type RegisterScheduleDay,
 } from '@/lib/register-llm-schema-lottetour'
 
-/** hanatour/lottetour/잔여 공용 save 게이트: 달력 행만이 아니라 표·항공 구조화·일정 초안을 함께 본다. */
+/** lottetour 등록 save 게이트: 달력 행만이 아니라 표·항공 구조화·일정 초안을 함께 본다. */
 function registerPersistedHasCalendarDraftSignals(
   parsed: RegisterParsed,
   departureInputsLength: number,

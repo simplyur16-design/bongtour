@@ -673,7 +673,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
     primaryRegion: travelProduct.primaryRegion ?? null,
     airtelHotelInfoJson: travelProduct.airtelHotelInfoJson ?? null,
     schedule,
-    // 출발일/가격 행: ProductDeparture가 있으면 SSOT(하나투어 재수집은 여기만 갱신). 없을 때만 ProductPrice 레거시 fallback.
+    // 출발일/가격 행: ProductDeparture가 있으면 SSOT(스케줄러·재수집은 출발행 기준). 없을 때만 ProductPrice 레거시 fallback.
     prices: priceRowsForPublic,
     optionalTours: (travelProduct as { optionalTours?: { id: string; name: string; priceUsd: number; duration: string | null; waitPlaceIfNotJoined: string | null }[] }).optionalTours?.map((o) => ({
       id: o.id,
