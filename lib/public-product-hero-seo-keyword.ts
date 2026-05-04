@@ -6,7 +6,7 @@ import { isProductHeroListingSeoContaminated } from '@/lib/product-hero-listing-
  * 공급사명·출처 문자열은 포함하지 않는다.
  *
  * 대표 슬라이드·카드·비교 카드 공통 `resolvePublicProductHeroSeoKeywordOverlay` 최종 우선순위(고정):
- * 1) `Product.publicImageHeroSeoKeywordsJson` — 저장된 2~3개 키워드를 ` · ` 로 합친 뒤 길이 상한 적용
+ * 1) `Product.publicImageHeroSeoKeywordsJson` — 섹션 라벨 오염(BROKEN) 토큰 제거 후 `primaryDestination`(있으면) + 키워드 최대 3개를 ` · ` 로 합침, 길이 상한 적용
  * 2) `Product.publicImageHeroSeoLine` — 구 등록 한 줄
  * 3) 대표 이미지 자산 캡션(`seoCaptionFromAsset`, 품질 통과 시)
  * 4) 공개 휴리스틱 `buildPublicProductHeroSeoKeywordOverlay` (자산 캡션 제외)
@@ -256,6 +256,27 @@ const HERO_KEYWORDS_JOINED_MAX = 48
 /** 등록 시 `buildRegisterPublicImageHeroSeoKeywords` 토큰 상한과 맞춤 */
 const STORED_HERO_KEYWORD_EACH_MAX = 16
 
+/** 키워드 배열에서 섹션 라벨 오염(BROKEN_LABEL) 제거 */
+const BROKEN_KEYWORD_PATTERNS = [
+  /^여행기간/,
+  /^요약설명/,
+  /^여행일정/,
+  /^주요방문지/,
+  /^포함사항/,
+  /^불포함사항/,
+] as const
+
+function isBrokenKeyword(kw: string): boolean {
+  const trimmed = kw.trim()
+  if (!trimmed) return true
+  return BROKEN_KEYWORD_PATTERNS.some((rx) => rx.test(trimmed))
+}
+
+function filterValidKeywords(kws: string[] | null | undefined): string[] {
+  if (!kws?.length) return []
+  return kws.filter((kw) => typeof kw === 'string' && !isBrokenKeyword(kw))
+}
+
 function parseStoredRegisterHeroKeywordsJson(raw: string | null | undefined): string[] | null {
   const s = (raw ?? '').trim()
   if (!s) return null
@@ -277,11 +298,37 @@ function parseStoredRegisterHeroKeywordsJson(raw: string | null | undefined): st
  * 공개 화면 공통 — 우선순위는 파일 상단 블록 주석과 동일.
  */
 export function resolvePublicProductHeroSeoKeywordOverlay(input: PublicProductSeoKeywordResolveInput): string | null {
-  const kws = parseStoredRegisterHeroKeywordsJson(input.storedRegisterSeoKeywordsJson)
-  if (kws?.length) {
-    const joined = kws.join(' · ')
-    return truncateOneLine(joined, HERO_KEYWORDS_JOINED_MAX)
+  const rawKws = parseStoredRegisterHeroKeywordsJson(input.storedRegisterSeoKeywordsJson)
+  const validKws = filterValidKeywords(rawKws ?? undefined)
+
+  if (validKws.length > 0) {
+    const dest = (input.primaryDestination ?? '').trim()
+    const tokens: string[] = []
+
+    if (dest) {
+      tokens.push(dest)
+      for (const kw of validKws) {
+        const kwTrim = kw.trim()
+        if (!kwTrim) continue
+        if (kwTrim === dest) continue
+        if (dest.includes(kwTrim) || kwTrim.includes(dest)) continue
+        tokens.push(kwTrim)
+        if (tokens.length >= 4) break
+      }
+    } else {
+      for (const kw of validKws) {
+        const kwTrim = kw.trim()
+        if (!kwTrim) continue
+        tokens.push(kwTrim)
+        if (tokens.length >= 3) break
+      }
+    }
+
+    if (tokens.length > 0) {
+      return truncateOneLine(tokens.join(' · '), HERO_KEYWORDS_JOINED_MAX)
+    }
   }
+
   const stored = (input.storedRegisterSeoLine ?? '').trim()
   if (stored.length > 0 && !isProductHeroListingSeoContaminated(stored)) {
     return truncateOneLine(stored, OVERLAY_MAX)
