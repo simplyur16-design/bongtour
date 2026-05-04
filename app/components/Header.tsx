@@ -1,6 +1,7 @@
 'use client'
 
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import { SITE_NAME } from '@/lib/site-metadata'
 import { devWarnMobileHome } from '@/lib/mobile-home-dev-log'
 import { useEffect, useId, useState } from 'react'
 import SafeImage from '@/app/components/SafeImage'
@@ -168,7 +169,7 @@ export default function Header() {
         >
           <SafeImage
             src="/images/bongtour-logo.webp"
-            alt=""
+            alt={SITE_NAME}
             width={274}
             height={78}
             className="relative z-0 block h-11 w-auto object-contain object-left sm:h-12 lg:h-[3.1rem]"

@@ -4,6 +4,7 @@ import RepresentativeNameImage from '@/app/components/common/RepresentativeNameI
 import { COMPANY_FOOTER } from '@/lib/company-footer'
 import { MAIN_MINIMAL_FOOTER_LINKS } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import { SITE_NAME } from '@/lib/site-metadata'
 
 /**
  * 전역 공통 푸터 — 짧은 하단 정보영역(압축 corporate footer)
@@ -26,7 +27,7 @@ export default function SiteFooter() {
           >
             <SafeImage
               src="/images/bongtour-logo.webp"
-              alt=""
+              alt={SITE_NAME}
               width={96}
               height={28}
               className="h-4 w-auto object-contain object-left brightness-0 invert sm:h-[1.125rem]"
