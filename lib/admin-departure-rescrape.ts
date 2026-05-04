@@ -20,10 +20,7 @@ import {
 } from '@/lib/scrape-date-bounds'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
-import {
-  collectKyowontourCalendarRange,
-  mapKyowontourCalendarToDepartureInputs,
-} from '@/lib/kyowontour-stub'
+import { collectKyowontourCalendarRange, mapKyowontourCalendarToDepartureInputs } from '@/lib/kyowontour-departures'
 
 const execFileAsync = promisify(execFile)
 const HANATOUR_BASE = process.env.HANATOUR_BASE_URL ?? 'https://www.hanatour.com'
