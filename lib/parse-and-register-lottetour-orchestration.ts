@@ -906,7 +906,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         lottetourBuildMinimalDepartureInputs(lottetourAnchors.tripStartIso, parsed, text)
       )
     }
-    if (isDev && process.env.DEV_REGISTER_PERF_LOG === '1') {
+    if (isDev && process.env.LOTTETOUR_REGISTER_PERF_LOG === '1') {
       console.info('[register-lottetour]', {
         supplier: 'lottetour',
         mode,

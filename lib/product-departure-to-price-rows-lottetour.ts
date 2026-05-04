@@ -321,7 +321,10 @@ export function departureInputsToProductPriceCreateMany(
     const kb = `${b.supplierPriceKey ?? ''}|${b.supplierDepartureCodeCandidate ?? ''}`
     return ka.localeCompare(kb)
   })
-  /** 동일 출발일에 evtCd(팀)별 행이 여러 개면 Prisma `ProductPrice` 단일 date 키에 맞춰 마지막 행만 유지한다. */
+  /**
+   * 동일 출발일에 evtCd(팀)별 행이 여러 개면 Prisma `ProductPrice` 단일 date 키에 맞춰 마지막 행만 유지한다(옵션 A).
+   * 다중 팀을 스키마에 반영할지는 R-4-H/J에서 가격·좌석 데이터를 본 뒤 확정한다.
+   */
   const lastByYmd = new Map<string, DepartureInput>()
   for (const d of sorted) {
     lastByYmd.set(toYmd(d), d)

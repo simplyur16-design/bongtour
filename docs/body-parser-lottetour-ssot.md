@@ -3,7 +3,7 @@
 ## 목적
 
 관리자 등록 시 **붙여넣기 본문**을 나누어 `DetailBodyParseSnapshot`을 만든다.  
-`ybtour` 본문 축(`docs/body-parser-ybtour-ssot.md`)과 **동일한 슬라이스·클립 계약**을 따르되, 롯데관광 URL·헤더·앵커만 이 문서와 `detail-body-parser-utils-lottetour`에서 분기한다.
+슬라이스·클립 계약은 [body-parser-ybtour-ssot.md](./body-parser-ybtour-ssot.md)와 동일하게 유지하고, 롯데관광 URL·헤더·앵커만 이 문서와 `detail-body-parser-utils-lottetour`에서 분기한다.
 
 **우선순위:** 본 문서 > 공통 정책. 공급사 키는 canonical **`lottetour`**.
 

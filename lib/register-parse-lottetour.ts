@@ -5,7 +5,7 @@
  * 항공·옵션·쇼핑 **구조화**는 이 파일에서 `register-input-parse-lottetour`로, **정형 입력란**(`pastedBlocks`) 기준으로만 수행한다.
  * 본문에 같은 표가 있어도 입력란이 비어 있으면 해당 축은 비어 있을 수 있다.
  *
- * @see docs/body-parser-lottetour-ssot.md — 롯데관광(lottetour) 본문 축 SSOT(ybtour 베이스 카피·패턴 공유).
+ * @see docs/body-parser-lottetour-ssot.md — 롯데관광 본문 축 SSOT.
  *
  * 상위 규약: `docs/admin-register-supplier-precise-spec.md` §4. 일정 표현: `docs/register_schedule_expression_ssot.md`.
  */

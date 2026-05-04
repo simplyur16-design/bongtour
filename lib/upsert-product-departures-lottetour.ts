@@ -1,7 +1,8 @@
 /**
  * 롯데관광(lottetour) 경로용 — ProductDeparture MVP: 출발일/가격/상태 동기화 적재.
  * (productId, departureDate) 기준 upsert. 스키마 `@@unique([productId, departureDate])`이므로
- * 동일 출발일에 evtCd(팀)별 행이 여러 개면 마지막 입력만 남긴다(`supplierPriceKey` 정렬로 결정).
+ * 동일 출발일에 evtCd(팀)별 행이 여러 개면 마지막 입력만 남긴다(`supplierPriceKey` 정렬로 결정, 옵션 A).
+ * 다중 팀 정책 확정은 R-4-H/J 이후(스키마·저장 방식 변경은 별도 작업).
  * 날짜 정규화·raw 보존·파생은 보수적으로.
  */
 import type { PrismaClient } from '@prisma/client'

@@ -11,7 +11,7 @@ import type { FlightStructured } from '@/lib/detail-body-parser-types'
 type FlightLeg = FlightStructured['outbound']
 
 /** 날짜 + 선택 요일 괄호 + 시각(00~23시) */
-const YB_DT =
+const LT_DT =
   /(\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2})\s*(?:\(([^)]*)\))?\s*((?:[01]?\d|2[0-3]):[0-5]\d)/
 
 function normYbDate(d: string): string {
@@ -99,9 +99,9 @@ function parseLegChunk(chunk: string[]): Partial<FlightLeg> | null {
 
   const arrRaw = lines[idx + 3] ?? ''
 
-  const dm1 = depRaw.trim().match(YB_DT)
+  const dm1 = depRaw.trim().match(LT_DT)
 
-  const dm2 = arrRaw.trim().match(YB_DT)
+  const dm2 = arrRaw.trim().match(LT_DT)
 
   if (!flightNo || !dm1 || !dm2) return null
 
@@ -174,7 +174,7 @@ function parseLottetourInlineLegAfterKeyword(rest: string): Partial<FlightLeg> |
   if (!fnM || fnM.index == null) return null
   const flightNo = fnM[1]!.toUpperCase()
   const afterFn = flat.slice(fnM.index + fnM[0].length).trim()
-  const re = new RegExp(YB_DT.source, 'g')
+  const re = new RegExp(LT_DT.source, 'g')
   const matches: RegExpExecArray[] = []
   let m: RegExpExecArray | null
   while ((m = re.exec(afterFn)) !== null) matches.push(m)
@@ -279,8 +279,8 @@ function parseLottetourMainScheduleLegLine(line: string): Partial<FlightLeg> | n
   const depRaw = parts[2] ?? ''
   const arrCity = parts[3] ?? ''
   const arrRaw = parts[4] ?? ''
-  const dm1 = depRaw.trim().match(YB_DT)
-  const dm2 = arrRaw.trim().match(YB_DT)
+  const dm1 = depRaw.trim().match(LT_DT)
+  const dm2 = arrRaw.trim().match(LT_DT)
   if (!flightNo || !dm1 || !dm2) return null
   return {
     departureAirport: depCity,

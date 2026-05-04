@@ -11,7 +11,7 @@ import { sanitizeIncludedExcludedItemsLines } from '@/lib/included-excluded-post
 
 const PREFIX = '[lottetour-basic]'
 
-const YB_SURCHARGE_SUMMARY =
+const LT_SURCHARGE_SUMMARY =
   '호텔 써차지·갈라디너·성수기 등 추가비용 발생 가능(일자·금액은 본문 별도 고지 참고).'
 
 function compactJson(obj: Record<string, unknown>, maxLen = 900): string {
@@ -141,7 +141,7 @@ function collectLottetourSurchargeChunk(lines: string[], startIdx: number): { co
   const flat = buf.map(normLine).filter(Boolean)
   const dateish = flat.filter((l) => /\d{4}\s*[-./년]\s*\d{1,2}/.test(l) || /\d{4}-\d{4}/.test(l)).length
   if (flat.length >= 8 || dateish >= 4) {
-    return { consumed: j - startIdx, summary: YB_SURCHARGE_SUMMARY }
+    return { consumed: j - startIdx, summary: LT_SURCHARGE_SUMMARY }
   }
   const joined = flat.slice(0, 14).join('\n').trim()
   return { consumed: j - startIdx, summary: joined.length ? joined.slice(0, 1200) : null }
@@ -243,7 +243,7 @@ export function parseLottetourIncludedExcludedSection(section: string): Included
       if (startsLottetourExtraChargeBlock(line)) {
         const { consumed, summary } = collectLottetourSurchargeChunk(lines, i)
         if (summary) {
-          if (summary === YB_SURCHARGE_SUMMARY) noteParts.push(summary)
+          if (summary === LT_SURCHARGE_SUMMARY) noteParts.push(summary)
           else excludedItems.push(summary)
         }
         i += Math.max(1, consumed)
@@ -277,7 +277,7 @@ export function parseLottetourIncludedExcludedSection(section: string): Included
     if (mode === 'idle' && startsLottetourExtraChargeBlock(line)) {
       const { consumed, summary } = collectLottetourSurchargeChunk(lines, i)
       if (summary) {
-        if (summary === YB_SURCHARGE_SUMMARY) noteParts.push(summary)
+        if (summary === LT_SURCHARGE_SUMMARY) noteParts.push(summary)
         else excludedItems.push(summary)
       }
       i += Math.max(1, consumed)
