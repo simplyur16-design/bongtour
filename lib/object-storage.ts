@@ -13,7 +13,6 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
-import { createHash } from 'node:crypto'
 import sharp from 'sharp'
 
 const DEFAULT_NCLOUD_BUCKET = 'bongtour'
@@ -381,7 +380,8 @@ export function buildGeminiGeneratedObjectKey(now: Date, baseId: string, slot: s
 }
 
 /**
- * Supabase rejects non-ASCII object names ("Invalid key"). Logical names stay in app code; keys use ASCII + hash.
+ * 객체 스토리지(Ncloud S3 주력)용 파일명: 논리명을 ASCII slug로 정규화한 뒤 `__` + 밀리초 timestamp(base36, ~8자)로 충돌 회피.
+ * (레거시 주석의 Supabase non-ASCII 키 제한은 과거 파이프라인 배경; SEO상 URL 마지막 세그먼트에는 의미 토큰 + 짧은 suffix가 유리.)
  */
 export function toAsciiStorageFilename(logicalFilename: string): string {
   const trimmed = logicalFilename.replace(/^\/+/, '').replace(/\.\./g, '')
@@ -389,16 +389,16 @@ export function toAsciiStorageFilename(logicalFilename: string): string {
   let ext = lastDot >= 0 ? trimmed.slice(lastDot) : '.webp'
   if (!/^\.[a-zA-Z0-9]+$/.test(ext) || ext.length > 12) ext = '.webp'
   const base = lastDot >= 0 ? trimmed.slice(0, lastDot) : trimmed
-  const digest = createHash('sha256').update(trimmed, 'utf8').digest('hex').slice(0, 16)
   let ascii = base
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-zA-Z0-9._-]/g, '_')
     .replace(/_+/g, '_')
     .replace(/^_|_$/g, '')
-    .slice(0, 96)
+    .slice(0, 80)
   if (!ascii) ascii = 'file'
-  return `${ascii}__${digest}${ext}`
+  const ts = Date.now().toString(36)
+  return `${ascii}__${ts}${ext}`
 }
 
 export function buildPhotoPoolObjectKey(filename: string): string {
