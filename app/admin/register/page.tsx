@@ -395,6 +395,7 @@ const REGISTER_SUPPLIER_OPTIONS: Brand[] = [
   { id: '', brandKey: 'ybtour', displayName: '노랑풍선', sortOrder: 3 },
   { id: '', brandKey: 'hanatour', displayName: '하나투어', sortOrder: 4 },
   { id: '', brandKey: 'kyowontour', displayName: '교원이지', sortOrder: 5 },
+  { id: '', brandKey: 'lottetour', displayName: '롯데관광', sortOrder: 6 },
 ]
 
 {
