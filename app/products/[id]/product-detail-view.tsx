@@ -73,7 +73,10 @@ import { tryApplyVerygoodPublicProductSerializedPatch } from '@/lib/verygood-pub
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { tryCaptionFromPublicImageUrl } from '@/lib/image-asset-public-caption'
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
-import ProductJsonLd, { type ProductJsonLdAggregateOffer } from '@/app/components/seo/ProductJsonLd'
+import ProductJsonLd, {
+  type ProductJsonLdAggregateOffer,
+  type ProductJsonLdItineraryItem,
+} from '@/app/components/seo/ProductJsonLd'
 import ProductDetailCopyGuard from '@/app/components/travel/ProductDetailCopyGuard'
 import {
   absoluteUrl,
@@ -189,6 +192,29 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         })
       : []
   const scheduleMerged = scheduleMergedBase
+  const seoItinerary: ProductJsonLdItineraryItem[] =
+    scheduleMerged.length > 0
+      ? scheduleMerged.flatMap((s, idx) => {
+          const rawDay = Number(s.day)
+          const dayNum = Number.isFinite(rawDay) && rawDay >= 1 ? Math.floor(rawDay) : idx + 1
+          const fromTitle = typeof s.title === 'string' ? s.title.trim() : ''
+          const descFirst =
+            typeof s.description === 'string'
+              ? (s.description
+                  .trim()
+                  .split(/\r?\n/)
+                  .find((ln) => ln.trim().length > 0) ?? ''
+                ).trim()
+              : ''
+          const title = (fromTitle || descFirst || `제${dayNum}일`).slice(0, 240).trim()
+          if (!title) return []
+          const cityField = (s as { city?: string | null }).city
+          const city: string | null =
+            typeof cityField === 'string' && cityField.trim() ? cityField.trim() : null
+          const row: ProductJsonLdItineraryItem = { dayNumber: dayNum, title, city }
+          return [row]
+        })
+      : []
   const schedule = scheduleMerged.length > 0 ? scheduleMerged : null
 
   const seoCoverUrl = getFinalCoverImageUrl({
@@ -725,6 +751,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
           imageUrl={seoCoverUrl}
           offers={seoOffers}
           breadcrumbItems={seoBreadcrumbItems}
+          itinerary={seoItinerary.length > 0 ? seoItinerary : null}
         />
       ) : null}
       <ProductDetailCopyGuard>
