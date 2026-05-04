@@ -23,7 +23,7 @@ import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 import {
   collectKyowontourCalendarRange,
   mapKyowontourCalendarToDepartureInputs,
-} from '@/lib/kyowontour/departures'
+} from '@/lib/kyowontour-stub'
 
 const execFileAsync = promisify(execFile)
 const HANATOUR_BASE = process.env.HANATOUR_BASE_URL ?? 'https://www.hanatour.com'

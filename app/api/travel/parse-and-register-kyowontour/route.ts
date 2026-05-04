@@ -3,7 +3,7 @@ import {
   assertRegisterRouteSupplierMatch,
   SupplierRouteMismatchError,
 } from '@/lib/assert-supplier-route-match'
-import { handleKyowontourRegisterRequest } from '@/lib/kyowontour/parse-handler'
+import { handleKyowontourRegisterRequest } from '@/lib/kyowontour-stub'
 import { requireAdmin } from '@/lib/require-admin'
 
 export const maxDuration = 300

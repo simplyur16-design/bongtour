@@ -58,7 +58,7 @@ import {
   type CanonicalOverseasSupplierKey,
 } from '@/lib/overseas-supplier-canonical-keys'
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
-import type { KyowontourFinalParsed } from '@/lib/kyowontour/orchestration'
+import type { KyowontourFinalParsed } from '@/lib/kyowontour-stub'
 
 const LOADING_STATUS = '분석 중…' as const
 

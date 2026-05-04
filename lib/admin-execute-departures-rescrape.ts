@@ -28,7 +28,7 @@ import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour
 import * as updDeparturesModetour from '@/lib/upsert-product-departures-modetour'
 import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-verygoodtour'
 import * as updDeparturesYbtour from '@/lib/upsert-product-departures-ybtour'
-import { upsertKyowontourDepartures } from '@/lib/kyowontour/upsert-departures'
+import { upsertKyowontourDepartures } from '@/lib/kyowontour-stub'
 import type {
   AdminDeparturesRescrapeResponseBody,
   AdminDeparturesRescrapeStage,
