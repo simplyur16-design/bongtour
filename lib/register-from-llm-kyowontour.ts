@@ -940,7 +940,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 # [schedule] 일차별 (필수)
 - day, title, description, imageKeyword
 - description: 해당 일차 블록 전체를 근거로 관광·이동·식사·숙박을 **빠짐없이** 반영한 문어체 존댓말 요약. **3~6문장·450자 이내**를 목표로 하며, 한 줄·한두 문장만 쓰지 말 것. 복수 관광지가 있으면 모두 짧게라도 언급.
-- imageKeyword: 해당 일차의 실존하는 장소 이름만 사용 (창조·추상 금지). 영문 명사 (예: Osaka Castle, Taipei 101)
+- imageKeyword: Pexels 검색용 **영문** 권장 형식 「{장소명} / {대표 배경 요소} / {대표 시점}」(슬래시 양쪽 공백). 해당 일차 description에서 **가장 대표적인 관광지** 하나를 고른다. 배경: 그 장소의 특징적 건축·자연·거리 풍경. 시점: eye-level, front view, wide angle, night, sunrise 등. 예: "Da Nang APEC Park / Han River waterfront / wide angle", "Hoi An Ancient Town / lantern-lit street / eye-level", "Golden Bridge Ba Na Hills / giant stone hands / wide angle". **피할 것**: 단순 도시명만(Da Nang, Hoi An 단독), 한글만. 불확실하면 빈 문자열로 두고 서버 fallback이 채운다.
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
 # [prices] 출발일별 요금 (달력과 동일한 날짜만)
@@ -1074,7 +1074,7 @@ date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel,
       "day": 1,
       "title": "",
       "description": "",
-      "imageKeyword": "Real place name in English",
+      "imageKeyword": "Place / distinctive background / viewpoint (English, Pexels)",
       "hotelText": null,
       "breakfastText": null,
       "lunchText": null,

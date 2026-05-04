@@ -50,7 +50,7 @@ const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /하라주쿠|原宿/u, en: 'Harajuku Takeshita street Tokyo' },
   { re: /금각사|金閣寺/u, en: 'Kinkakuji golden pavilion Kyoto' },
   { re: /은각사|銀閣寺/u, en: 'Ginkakuji temple Kyoto' },
-  { re: /후시미\s*이나리|伏見稲荷/u, en: 'Fushimi Inari torii gates Kyoto' },
+  { re: /후시미\s*이나리|伏見稲荷/u, en: 'Fushimi Inari Shrine / thousand vermilion torii gates / eye-level front view' },
   { re: /도톤보리|道頓堀/u, en: 'Dotonbori Osaka night' },
   { re: /(?:유|우)니버설|USJ/u, en: 'Universal Studios Japan Osaka' },
   { re: /도쿄\s*디즈니|디즈니(?:랜드|씨)/u, en: 'Tokyo Disneyland castle' },
@@ -85,7 +85,8 @@ const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /방콕/u, en: 'Bangkok Wat Arun temple' },
   { re: /치앙마이/u, en: 'Chiang Mai old city temple' },
   { re: /파타야/u, en: 'Pattaya beach sunset' },
-  { re: /다낭/u, en: 'Da Nang Marble Mountains view' },
+  { re: /호이안|會安|Hoi\s*An/u, en: 'Hoi An Ancient Town / lantern-lit street / eye-level' },
+  { re: /다낭/u, en: 'Da Nang Han River / Dragon Bridge waterfront skyline / wide angle' },
   { re: /하노이/u, en: 'Hanoi Old Quarter street' },
   { re: /호치민/u, en: 'Ho Chi Minh city skyline' },
   { re: /세부/u, en: 'Cebu tropical beach' },
@@ -157,7 +158,7 @@ function hasBadSubstrings(s: string): boolean {
   return false
 }
 
-/** 이미 영문 이미지 검색어로 쓸 만하면 true (한글 금지) */
+/** 이미 영문 이미지 검색어로 쓸 만하면 true (한글 금지). `{장소} / {배경} / {시점}` 형태는 단어 상한을 넉넉히 허용(R-3.6). */
 function isAcceptableEnglishKeyword(s: string): boolean {
   const t = stripDatesAndNoise(s)
   if (t.length < 4 || t.length > 120) return false
@@ -165,7 +166,8 @@ function isAcceptableEnglishKeyword(s: string): boolean {
   if (isKyowontourPlaceholderImageKeyword(t)) return false
   if (hasBadSubstrings(t)) return false
   if (!/[a-z]{4,}/i.test(t)) return false
-  if (countWords(t) > 10) return false
+  const wc = countWords(t.replace(/\s*\/\s*/g, ' '))
+  if (wc > (t.includes('/') ? 18 : 10)) return false
   return true
 }
 
@@ -197,6 +199,47 @@ function firstMatchingEn(rules: ReadonlyArray<{ re: RegExp; en: string }>, h: st
     if (re.test(h)) return en
   }
   return null
+}
+
+/** Pexels 검색용 권장 `{장소} / {대표 배경} / {대표 시점}` — description·blob 우선 (교원이지 R-3.6) */
+const KYOWONTOUR_DESC_TRIPLE: ReadonlyArray<{ re: RegExp; en: string }> = [
+  { re: /(APEC\s*공원|아펙|사랑의\s*부두|Love\s*Lock)/iu, en: 'Da Nang APEC Park / Han River waterfront / wide angle' },
+  {
+    re: /(호이안|회안|Hoi\s*An).{0,48}(올드|고택|Ancient|등불|올드타운)/iu,
+    en: 'Hoi An Ancient Town / lantern-lit street / eye-level',
+  },
+  { re: /(골든\s*브릿지|Golden\s*Bridge|바나\s*힐|바나산)/iu, en: 'Golden Bridge Ba Na Hills / giant stone hands / wide angle' },
+  {
+    re: /(영흥사|린\s*웅|Linh\s*Ung|다낭\s*대성당)/iu,
+    en: 'Linh Ung Pagoda Da Nang / Lady Buddha statue sea view / front view',
+  },
+  {
+    re: /(인천\s*공항|ICN\b|Incheon\s*International)/iu,
+    en: 'Incheon International Airport / departure terminal / front view',
+  },
+  {
+    re: /(미케|My\s*Khe|마블\s*마운틴|Marble\s*Mountain|논\s*누옥)/iu,
+    en: 'Marble Mountains Da Nang / stone peaks pagodas / wide angle',
+  },
+]
+
+const IMAGE_KEYWORD_MAX_WORDS = 20
+
+const PEXELS_GENERIC_CITY_EN =
+  /^(da\s*nang|hoi\s*an|hanoi|ha\s*noi|saigon|ho\s*chi\s*minh|tokyo|osaka|kyoto|seoul|busan|bangkok|paris|london|new\s*york)\s*$/i
+
+/** 단순 도시명 등 Pexels 검색에 너무 넓은 키워드 */
+export function isKyowontourPexelsTooGeneric(s: string): boolean {
+  const t = stripDatesAndNoise(String(s ?? '').trim())
+  if (!t) return true
+  if (t.includes('/')) return false
+  if (PEXELS_GENERIC_CITY_EN.test(t)) return true
+  if (countWords(t) <= 2 && t.length <= 22) return true
+  return false
+}
+
+function normalizeSlashSpacing(s: string): string {
+  return s.replace(/\s*\/\s*/g, ' / ').replace(/\s+/g, ' ').trim()
 }
 
 const KYOWONTOUR_AIRTEL_SCHEDULE_STOPWORDS = new Set([
@@ -290,7 +333,7 @@ function kyowontourResolveAirtelFreeTravelImageKeywordLocal(ctx: KyowontourImage
     { re: /로마|Roma?\b|Rome/i, en: 'Rome Colosseum historic city' },
     { re: /오사카|大阪|Osaka/i, en: 'Osaka Dotonbori city night' },
     { re: /방콕|Bangkok/i, en: 'Bangkok riverside city skyline' },
-    { re: /다낭|Da\s*Nang/i, en: 'Da Nang beach city skyline' },
+    { re: /다낭|Da\s*Nang/i, en: 'Da Nang Han River / Dragon Bridge waterfront / wide angle' },
     { re: /바르셀로나|Barcelona/i, en: 'Barcelona Sagrada Familia city view' },
     { re: /스톡홀름|Stockholm/i, en: 'Stockholm Gamla Stan waterfront' },
     { re: /오슬로|Oslo/i, en: 'Oslo fjord harbor city view' },
@@ -344,6 +387,9 @@ function kyowontourResolveAirtelFreeTravelImageKeywordLocal(ctx: KyowontourImage
 /** 붙여넣기/LLM 후처리 공통: 본문·제목에서 영문 검색어 유도 */
 export function deriveKyowontourImageKeyword(ctx: KyowontourImageKeywordContext): string {
   const h = hay(ctx)
+  const descTriple = firstMatchingEn(KYOWONTOUR_DESC_TRIPLE, h)
+  if (descTriple) return descTriple
+
   const spot = firstMatchingEn(SPOT_RULES, h)
   if (spot) return spot
 
@@ -367,12 +413,26 @@ export function polishKyowontourImageKeyword(raw: string, ctx: KyowontourImageKe
   const cleaned = stripDatesAndNoise(String(raw ?? '').trim())
   if (ctx.airtelFreeTravelImageKw === 'force-city') {
     const kw = kyowontourResolveAirtelFreeTravelImageKeywordLocal(ctx)
-    if (kw.trim()) return clampWords(kw, 8)
+    if (kw.trim())
+      return clampWords(normalizeSlashSpacing(kw), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
   }
-  if (cleaned && isAcceptableEnglishKeyword(cleaned)) return clampWords(cleaned, 8)
+  if (cleaned && isAcceptableEnglishKeyword(cleaned)) {
+    let chosen = cleaned
+    if (isKyowontourPexelsTooGeneric(cleaned)) {
+      const d = deriveKyowontourImageKeyword(ctx)
+      if (d.trim()) chosen = d
+    }
+    return clampWords(normalizeSlashSpacing(chosen), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
+  }
   if (cleaned && !hasHangul(cleaned) && !isKyowontourPlaceholderImageKeyword(cleaned) && !hasBadSubstrings(cleaned)) {
-    const t2 = clampWords(cleaned.replace(/[,，]+/g, ' '), 8)
-    if (t2.length >= 4 && /[a-z]{3,}/i.test(t2)) return t2
+    const t2 = clampWords(cleaned.replace(/[,，]+/g, ' '), IMAGE_KEYWORD_MAX_WORDS)
+    if (t2.length >= 4 && /[a-z]{3,}/i.test(t2)) {
+      if (isKyowontourPexelsTooGeneric(t2)) {
+        const d = deriveKyowontourImageKeyword(ctx)
+        if (d.trim()) return clampWords(normalizeSlashSpacing(d), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
+      }
+      return clampWords(normalizeSlashSpacing(t2), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
+    }
   }
-  return clampWords(deriveKyowontourImageKeyword(ctx), 8)
+  return clampWords(normalizeSlashSpacing(deriveKyowontourImageKeyword(ctx)), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
 }
