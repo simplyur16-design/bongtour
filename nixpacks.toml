@@ -1,3 +1,4 @@
+# Playwright install-deps: apt mirror swap + retry (archive.ubuntu.com occasional Packages.gz size mismatch during sync).
 [phases.setup]
 nixPkgs = ["nodejs", "python3", "curl"]
 
@@ -11,7 +12,8 @@ cmds = [
   "python3 -m pip install --break-system-packages -r scripts/calendar_e2e_scraper_ybtour/requirements.txt",
   "python3 -m pip install --break-system-packages -r scripts/calendar_e2e_scraper_verygoodtour/requirements.txt",
   "python3 -m playwright install chromium",
-  "python3 -m playwright install-deps chromium"
+  "bash -c 'for f in /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do if [ -f \"$f\" ]; then sed -i \"s|http://archive.ubuntu.com|http://mirror.kakao.com|g; s|https://archive.ubuntu.com|http://mirror.kakao.com|g\" \"$f\"; fi; done; true'",
+  "(apt-get update -o Acquire::Retries=5 --fix-missing && python3 -m playwright install-deps chromium) || (sleep 35 && apt-get update -o Acquire::Retries=5 --fix-missing && python3 -m playwright install-deps chromium)"
 ]
 
 [phases.build]
