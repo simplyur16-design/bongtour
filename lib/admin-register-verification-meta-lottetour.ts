@@ -8,7 +8,7 @@ import type { RegisterParsed } from '@/lib/register-llm-schema-lottetour'
 import type { RegisterPreviewProductDraft } from '@/lib/register-preview-payload-lottetour'
 import type { PricePromotionFieldIssue } from '@/lib/price-promotion-lottetour'
 import type { RegisterExtractionFieldIssue } from '@/lib/register-llm-schema-lottetour'
-import { normalizeFlightLabelForPublicDisplay } from '@/lib/text-encoding-guard'
+import { normalizeLottetourFlightLabelStrict } from '@/lib/text-encoding-guard'
 import type { RegisterVerificationShoppingRowDisplay } from '@/lib/admin-register-verification-display-types'
 
 export type RegisterVerificationV1 = {
@@ -187,9 +187,9 @@ export function computeStructuredFingerprint(parsed: RegisterParsed, draft: Regi
   return h.slice(0, 20)
 }
 
-function lottetourVerificationFlightLabel(brandKey: string, s: string | null | undefined): string | null {
+function LottetourVerificationFlightLabel(brandKey: string, s: string | null | undefined): string | null {
   if (brandKey !== 'lottetour') return s ?? null
-  return normalizeFlightLabelForPublicDisplay(s)
+  return normalizeLottetourFlightLabelStrict(s)
 }
 
 function mapFieldIssues(
@@ -278,17 +278,17 @@ export function buildRegisterVerificationBundle(args: {
     },
     display: {
       flight: {
-        airlineName: lottetourVerificationFlightLabel(
+        airlineName: LottetourVerificationFlightLabel(
           brandKey,
           parsed.airlineName ?? productDraft?.airlineName ?? null
         ),
         outboundFlightNo: parsed.outboundFlightNo ?? null,
         inboundFlightNo: parsed.inboundFlightNo ?? null,
-        departureSegmentText: lottetourVerificationFlightLabel(
+        departureSegmentText: LottetourVerificationFlightLabel(
           brandKey,
           parsed.departureSegmentText ?? productDraft?.departureSegmentText ?? null
         ),
-        returnSegmentText: lottetourVerificationFlightLabel(
+        returnSegmentText: LottetourVerificationFlightLabel(
           brandKey,
           parsed.returnSegmentText ?? productDraft?.returnSegmentText ?? null
         ),

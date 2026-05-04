@@ -72,6 +72,13 @@ export function normalizeYbtourFlightLabelStrict(s: string | null | undefined): 
 }
 
 /**
+ * 롯데관광 항공 라벨 최종값 — 복구 우선, 실패 시 깨진 문자열 대신 null.
+ */
+export function normalizeLottetourFlightLabelStrict(s: string | null | undefined): string | null {
+  return sanitizeRegisterFlightLabelText(s)
+}
+
+/**
  * 사용자 상세 항공사 한 줄 — 복구 가능하면 교정, 아니면 null (깨진 문자열 비노출).
  */
 export function normalizeFlightLabelForPublicDisplay(s: string | null | undefined): string | null {
