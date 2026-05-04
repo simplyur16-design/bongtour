@@ -20,13 +20,17 @@ import {
 } from '@/lib/scrape-date-bounds'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
+import {
+  collectKyowontourCalendarRange,
+  mapKyowontourCalendarToDepartureInputs,
+} from '@/lib/kyowontour/departures'
 
 const execFileAsync = promisify(execFile)
 const HANATOUR_BASE = process.env.HANATOUR_BASE_URL ?? 'https://www.hanatour.com'
 const MODETOUR_BASE = process.env.MODETOUR_BASE_URL ?? 'https://www.modetour.com'
 const VERYGOODTOUR_BASE = process.env.VERYGOODTOUR_BASE_URL ?? 'https://www.verygoodtour.com'
 
-export type DepartureRescrapeSite = 'hanatour' | 'modetour' | 'verygoodtour' | 'ybtour'
+export type DepartureRescrapeSite = 'hanatour' | 'modetour' | 'verygoodtour' | 'ybtour' | 'kyowontour'
 
 export type DepartureRescrapeResult = {
   mode: 'live-rescrape' | 'fallback-rebuild'
@@ -37,6 +41,7 @@ export type DepartureRescrapeResult = {
     | 'hanatour-adapter'
     | 'ybtour-calendar-scraper'
     | 'product-price-rebuild'
+    | 'kyowontour-differentDepartDate'
   inputs: DepartureInput[]
   attemptedLive: boolean
   liveError?: string | null
@@ -84,15 +89,19 @@ function deriveFillMeta(inputs: DepartureInput[]): { filledFields: string[]; mis
  * Python calendar E2E / ?쇱씠釉??대뙌??遺꾧린?? `normalizeSupplierOrigin`怨??숈씪 SSOT濡?留욎텣??
  * ?????녿뒗 異쒖쿂???섎굹?ъ뼱 寃쎈줈(湲곗〈 toSite 湲곕낯媛?濡??대갚.
  */
-function calendarE2eSiteFromOrigin(originSource: string): 'hanatour' | 'modetour' | 'verygoodtour' | 'ybtour' {
+function calendarE2eSiteFromOrigin(originSource: string): DepartureRescrapeSite {
   const n = normalizeSupplierOrigin(originSource)
-  if (n === 'modetour' || n === 'verygoodtour' || n === 'ybtour') return n
+  if (n === 'modetour' || n === 'verygoodtour' || n === 'ybtour' || n === 'kyowontour') return n
   return 'hanatour'
 }
 
 export function buildDetailUrl(originSource: string, originCode: string): string {
   const code = encodeURIComponent((originCode ?? '').trim())
   const src = (originSource || '').toLowerCase()
+  if (src === 'kyowontour' || normalizeSupplierOrigin(originSource) === 'kyowontour') {
+    const base = (process.env.KYOWONTOUR_API_BASE_URL ?? 'https://www.kyowontour.com').replace(/\/$/, '')
+    return `${base}/goods/goodsDetail.do?tourCd=${code}`
+  }
   if (src.includes('紐⑤몢') || src === 'modetour') {
     return `${MODETOUR_BASE.replace(/\/$/, '')}/package/detail?pkgCd=${code}`
   }
@@ -497,6 +506,92 @@ export async function collectDepartureInputsForAdminRescrape(
   })()
   let liveError: string | null = null
   let attemptedLive = false
+
+  if (site === 'kyowontour') {
+    attemptedLive = true
+    const masterCode = (product.originCode ?? '').trim()
+    if (!masterCode) {
+      const fillMeta = deriveFillMeta([])
+      return {
+        mode: 'live-rescrape',
+        source: 'kyowontour-differentDepartDate',
+        inputs: [],
+        attemptedLive,
+        liveError: 'kyowontour: originCode(상품·마스터 코드)가 비어 있어 캘린더를 호출할 수 없습니다.',
+        filledFields: fillMeta.filledFields,
+        missingFields: fillMeta.missingFields,
+        mappingStatus: 'detail-candidate-found-but-unmapped',
+        notes: [],
+        site,
+        detailUrl: detailUrlForTrace,
+        detailUrlSummary,
+        collectorStatus: null,
+      }
+    }
+    try {
+      const { rows, warnings } = await collectKyowontourCalendarRange(masterCode, {
+        tourCodeForE2EFallback: masterCode,
+        e2eMasterCodeHint: masterCode,
+        logLabel: `admin-departure-rescrape:${product.id}`,
+      })
+      const mapped = mapKyowontourCalendarToDepartureInputs(rows, product.id)
+      const inputs = filterDepartureInputsOnOrAfterCalendarToday(mapped as DepartureInput[])
+      if (inputs.length > 0) {
+        const fillMeta = deriveFillMeta(inputs)
+        return {
+          mode: 'live-rescrape',
+          source: 'kyowontour-differentDepartDate',
+          inputs,
+          attemptedLive,
+          liveError: null,
+          filledFields: fillMeta.filledFields,
+          missingFields: fillMeta.missingFields,
+          mappingStatus: 'per-date-confirmed',
+          notes: warnings.length ? warnings : undefined,
+          site,
+          detailUrl: detailUrlForTrace,
+          detailUrlSummary,
+          collectorStatus: null,
+        }
+      }
+      const fillMeta = deriveFillMeta([])
+      const tail = warnings.length ? ` · ${warnings.slice(0, 4).join(' · ')}` : ''
+      return {
+        mode: 'live-rescrape',
+        source: 'kyowontour-differentDepartDate',
+        inputs: [],
+        attemptedLive,
+        liveError: `kyowontour: 유효 출발일 0건(오늘 이후 필터 후)${tail}`,
+        filledFields: fillMeta.filledFields,
+        missingFields: fillMeta.missingFields,
+        mappingStatus: 'detail-candidate-found-but-unmapped',
+        notes: warnings.length ? warnings : undefined,
+        site,
+        detailUrl: detailUrlForTrace,
+        detailUrlSummary,
+        collectorStatus: null,
+      }
+    } catch (e) {
+      const fillMeta = deriveFillMeta([])
+      const msg = e instanceof Error ? e.message : String(e)
+      return {
+        mode: 'live-rescrape',
+        source: 'kyowontour-differentDepartDate',
+        inputs: [],
+        attemptedLive,
+        liveError: `kyowontour: ${msg.slice(0, 400)}`,
+        filledFields: fillMeta.filledFields,
+        missingFields: fillMeta.missingFields,
+        mappingStatus: 'detail-candidate-found-but-unmapped',
+        notes: [],
+        site,
+        detailUrl: detailUrlForTrace,
+        detailUrlSummary,
+        collectorStatus: null,
+      }
+    }
+  }
+
   if (site === 'modetour') {
     attemptedLive = true
     try {

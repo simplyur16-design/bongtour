@@ -4,6 +4,7 @@
  * - verygoodtour → `…-verygoodtour`
  * - ybtour → `…-ybtour` (관리자 메뉴는 canonical `ybtour`만; 레거시 별도 URL은 비관리자 호환용)
  * - hanatour → `…-hanatour`
+ * - kyowontour → `…-kyowontour`
  */
 import { NextResponse } from 'next/server'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
@@ -15,7 +16,7 @@ export async function POST() {
   const payload = {
     success: false,
     error:
-      '이 엔드포인트는 사용하지 않습니다. 전용 등록 API(parse-and-register-modetour|verygoodtour|ybtour|hanatour)를 호출하세요.',
+      '이 엔드포인트는 사용하지 않습니다. 전용 등록 API(parse-and-register-modetour|verygoodtour|ybtour|hanatour|kyowontour)를 호출하세요.',
   }
   assertNoInternalMetaLeak(payload, 'POST /api/travel/parse-and-register (410)')
   return NextResponse.json(payload, { status: 410 })

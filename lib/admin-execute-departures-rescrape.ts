@@ -28,6 +28,7 @@ import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour
 import * as updDeparturesModetour from '@/lib/upsert-product-departures-modetour'
 import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-verygoodtour'
 import * as updDeparturesYbtour from '@/lib/upsert-product-departures-ybtour'
+import { upsertKyowontourDepartures } from '@/lib/kyowontour/upsert-departures'
 import type {
   AdminDeparturesRescrapeResponseBody,
   AdminDeparturesRescrapeStage,
@@ -43,9 +44,25 @@ function upsertDeparturesModuleForProduct(p: {
   if (fromBrand === 'verygoodtour') return updDeparturesVerygoodtour
   if (fromBrand === 'ybtour') return updDeparturesYbtour
   if (fromBrand === 'hanatour') return updDeparturesHanatour
+  if (fromBrand === 'kyowontour') {
+    return {
+      upsertProductDepartures: async (prisma: PrismaClient, productId: string, departures: DepartureInput[]) => {
+        const r = await upsertKyowontourDepartures(prisma, productId, departures)
+        return r.created + r.updated
+      },
+    }
+  }
   if (norm === 'modetour') return updDeparturesModetour
   if (norm === 'verygoodtour') return updDeparturesVerygoodtour
   if (norm === 'ybtour') return updDeparturesYbtour
+  if (norm === 'kyowontour') {
+    return {
+      upsertProductDepartures: async (prisma: PrismaClient, productId: string, departures: DepartureInput[]) => {
+        const r = await upsertKyowontourDepartures(prisma, productId, departures)
+        return r.created + r.updated
+      },
+    }
+  }
   return updDeparturesHanatour
 }
 

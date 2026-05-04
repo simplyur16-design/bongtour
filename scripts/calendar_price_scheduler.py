@@ -50,7 +50,23 @@ _CALENDAR_MODULE_BY_SITE: Dict[str, str] = {
     "verygoodtour": "scripts.calendar_e2e_scraper_verygoodtour.calendar_price_scraper",
     "ybtour": "scripts.calendar_e2e_scraper_ybtour.calendar_price_scraper",
     "yellowballoon": "scripts.calendar_e2e_scraper_ybtour.calendar_price_scraper",
+    "kyowontour": "scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper",
 }
+
+
+def _kyowontour_tour_code_from_url(detail_url: str) -> str:
+    from urllib.parse import parse_qs, urlparse
+
+    try:
+        u = urlparse((detail_url or "").strip())
+        q = parse_qs(u.query)
+        for key in ("tourCd", "goodsCd", "goodscd", "TOUR_CD", "GOODS_CD"):
+            vals = q.get(key)
+            if vals and str(vals[0]).strip():
+                return str(vals[0]).strip()
+    except Exception:
+        pass
+    return ""
 
 
 def _calendar_module_for_site(site: str) -> str:
@@ -61,6 +77,39 @@ def _calendar_module_for_site(site: str) -> str:
 
 
 def _run_calendar_price_from_url(detail_url: str, site: str, headless: bool) -> Any:
+    s = (site or "").strip().lower()
+    if s == "kyowontour":
+        from scripts.calendar_e2e_scraper_kyowontour import config as kcfg
+        from scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper import run_scrape
+
+        tour = _kyowontour_tour_code_from_url(detail_url)
+        if not tour:
+            raise ValueError("kyowontour: detail URL에서 tourCd/goodsCd를 찾을 수 없습니다.")
+        raw = run_scrape(tour, None, kcfg.MONTH_LIMIT, kcfg.DATE_FROM, kcfg.DATE_TO)
+        rows = raw.get("rows") if isinstance(raw, dict) else None
+        out: List[Dict[str, Any]] = []
+        if isinstance(rows, list):
+            for r in rows:
+                if not isinstance(r, dict):
+                    continue
+                dd = str(r.get("departDate") or "")[:10]
+                if not dd:
+                    continue
+                ap = r.get("adultPriceFromCalendar", r.get("adultPrice"))
+                price: Any = None
+                if ap is not None and str(ap).strip():
+                    try:
+                        price = int(float(str(ap).replace(",", "")))
+                    except ValueError:
+                        price = None
+                row: Dict[str, Any] = {
+                    "date": dd,
+                    "adultPrice": price,
+                    "price": price,
+                    "statusRaw": str(r.get("status") or ""),
+                }
+                out.append(row)
+        return out
     mod_name = _calendar_module_for_site(site)
     mod = importlib.import_module(mod_name)
     return asyncio.run(mod.run_calendar_price_from_url(detail_url, headless=headless))
