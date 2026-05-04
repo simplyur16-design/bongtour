@@ -22,6 +22,7 @@ import {
 import { buildDetailReviewPolicyLottetour } from '@/lib/review-policy-lottetour'
 import { finalizeLottetourRegisterParsedPricing } from '@/lib/register-lottetour-price'
 import { finalizeLottetourRegisterParsedShopping } from '@/lib/register-lottetour-shopping'
+import { applyLottetourBasicInfoMustKnowExtract } from '@/lib/lottetour-basic-info-must-know-extract'
 import {
   applyLottetourStructuredPreviewFields,
   extractLottetourProductCodeFromBlob,
@@ -135,6 +136,9 @@ export async function parseForRegisterLottetour(
     parsed = { ...parsed, originCode: originBlobCode }
   }
   logLottetourBasicRegisterFinal(parsed, rawText?.length ?? 0)
+
+  const norm = parsed.detailBodyStructured?.normalizedRaw?.trim() || rawText.trim()
+  parsed = applyLottetourBasicInfoMustKnowExtract(parsed, norm)
 
   const prevNotes = parsed.registerPreviewPolicyNotes ?? []
   const extra: string[] = []

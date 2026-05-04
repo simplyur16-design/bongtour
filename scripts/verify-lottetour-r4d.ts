@@ -3,6 +3,7 @@
  * 실행: npx tsx scripts/verify-lottetour-r4d.ts
  */
 import assert from 'node:assert/strict'
+import { applyLottetourBasicInfoMustKnowExtract } from '../lib/lottetour-basic-info-must-know-extract'
 import { buildLottetourScheduleFromPastedText } from '../lib/parse-and-register-lottetour-schedule'
 import { mergeLottetourDeterministicFieldsFromPaste } from '../lib/lottetour-paste-deterministic-patch'
 import { extractLottetourTripAnchorsFromPaste } from '../lib/lottetour-trip-anchors-from-paste'
@@ -74,6 +75,38 @@ https://www.lottetour.com/evtDetail/826/857/1063/1067?evtCd=B28A260513KE003
   )
   assert.equal(merged.evtCd, 'B28A260513KE003')
   assert.deepEqual(merged.categoryMenuNo, { no1: '826', no2: '857', no3: '1063', no4: '1067' })
+}
+
+const hoChiMinDetailLike = `
+https://www.lottetour.com/evtDetail/826/857/1063/1067?evtCd=B28A260513KE003
+미팅 장소: 인천공항 T2 A존
+항공 KE475 인천–호치민
+호텔 인디고 사이공 더 시티 또는 동급 ★★★★★
+가이드: 현지 가이드 동행
+인솔자: 없음
+예약 시 유의 사항
+현지에서 휴대폰 로밍을 확인하세요. 여행자 보험 가입을 권장합니다.
+항공여정
+`.trim()
+
+{
+  assert.ok(hoChiMinDetailLike.includes('KE475'))
+  assert.ok(/호텔\s*인디고\s*사이공/i.test(hoChiMinDetailLike))
+  const merged = mergeLottetourDeterministicFieldsFromPaste({ title: 'indigo', duration: '' } as RegisterParsed, hoChiMinDetailLike)
+  assert.equal(merged.evtCd, 'B28A260513KE003')
+  assert.equal(merged.godId == null || String(merged.godId).trim() === '', true, 'evtDetail URL만 있을 때 godId는 R-4-H evtList 보강 전까지 비어 있을 수 있음')
+}
+
+{
+  const p0 = {
+    title: 'x',
+    duration: '',
+    detailBodyStructured: {
+      includedExcludedStructured: { noteText: '비자 필요 국가는 사전 확인하세요.' },
+    },
+  } as RegisterParsed
+  const p1 = applyLottetourBasicInfoMustKnowExtract(p0, hoChiMinDetailLike)
+  assert.ok((p1.mustKnowItems?.length ?? 0) >= 1)
 }
 
 console.log('verify-lottetour-r4d: ok')

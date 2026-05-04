@@ -5,6 +5,7 @@ import type { RegisterPreviewPayload as RegisterPreviewPayloadM } from '@/lib/re
 import type { RegisterPreviewPayload as RegisterPreviewPayloadV } from '@/lib/register-preview-payload-verygoodtour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadY } from '@/lib/register-preview-payload-ybtour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadK } from '@/lib/register-preview-payload-kyowontour'
+import type { RegisterPreviewPayload as RegisterPreviewPayloadLt } from '@/lib/register-preview-payload-lottetour'
 import type {
   RegisterCorrectionFieldKey,
   RegisterCorrectionOverlayV1,
@@ -12,6 +13,7 @@ import type {
   RegisterCorrectionIssueHintDetailV1,
 } from '@/lib/register-correction-types-hanatour'
 import { REGISTER_CORRECTION_PREVIEW_VERSION } from '@/lib/register-correction-types-hanatour'
+import RegisterShoppingCorrectionEditor from './RegisterShoppingCorrectionEditor'
 
 type RegisterPreviewPayload =
   | RegisterPreviewPayloadH
@@ -19,7 +21,7 @@ type RegisterPreviewPayload =
   | RegisterPreviewPayloadV
   | RegisterPreviewPayloadY
   | RegisterPreviewPayloadK
-import RegisterShoppingCorrectionEditor from './RegisterShoppingCorrectionEditor'
+  | RegisterPreviewPayloadLt
 
 type Props = {
   open: boolean

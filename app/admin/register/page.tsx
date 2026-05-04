@@ -8,21 +8,25 @@ import { buildRegisterPreviewCanonicalString as buildRegisterCanonM } from '@/li
 import { buildRegisterPreviewCanonicalString as buildRegisterCanonV } from '@/lib/register-preview-content-fingerprint-verygoodtour'
 import { buildRegisterPreviewCanonicalString as buildRegisterCanonY } from '@/lib/register-preview-content-fingerprint-ybtour'
 import { buildRegisterPreviewCanonicalString as buildRegisterCanonKw } from '@/lib/register-preview-content-fingerprint-kyowontour'
+import { buildRegisterPreviewCanonicalString as buildRegisterCanonLt } from '@/lib/register-preview-content-fingerprint-lottetour'
 import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelH } from '@/lib/register-preview-ssot-hanatour'
 import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelM } from '@/lib/register-preview-ssot-modetour'
 import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelV } from '@/lib/register-preview-ssot-verygoodtour'
 import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelY } from '@/lib/register-preview-ssot-ybtour'
 import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelKw } from '@/lib/register-preview-ssot-kyowontour'
+import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelLt } from '@/lib/register-preview-ssot-lottetour'
 import type { RegisterParsed as RegisterParsedH, RegisterScheduleDay as RegisterScheduleDayH } from '@/lib/register-llm-schema-hanatour'
 import type { RegisterParsed as RegisterParsedM, RegisterScheduleDay as RegisterScheduleDayM } from '@/lib/register-llm-schema-modetour'
 import type { RegisterParsed as RegisterParsedV, RegisterScheduleDay as RegisterScheduleDayV } from '@/lib/register-llm-schema-verygoodtour'
 import type { RegisterParsed as RegisterParsedY, RegisterScheduleDay as RegisterScheduleDayY } from '@/lib/register-llm-schema-ybtour'
 import type { RegisterParsed as RegisterParsedKw, RegisterScheduleDay as RegisterScheduleDayKw } from '@/lib/register-llm-schema-kyowontour'
+import type { RegisterParsed as RegisterParsedLt, RegisterScheduleDay as RegisterScheduleDayLt } from '@/lib/register-llm-schema-lottetour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadH } from '@/lib/register-preview-payload-hanatour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadM } from '@/lib/register-preview-payload-modetour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadV } from '@/lib/register-preview-payload-verygoodtour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadY } from '@/lib/register-preview-payload-ybtour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadKw } from '@/lib/register-preview-payload-kyowontour'
+import type { RegisterPreviewPayload as RegisterPreviewPayloadLt } from '@/lib/register-preview-payload-lottetour'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
 import {
   CONTINENT_ID_TO_PRIMARY_REGION_KR,
@@ -44,11 +48,13 @@ import { applyRegisterCorrectionOverlayToParsed as applyRegisterCorrectionOverla
 import { applyRegisterCorrectionOverlayToParsed as applyRegisterCorrectionOverlayV } from '@/lib/register-correction-types-verygoodtour'
 import { applyRegisterCorrectionOverlayToParsed as applyRegisterCorrectionOverlayY } from '@/lib/register-correction-types-ybtour'
 import { applyRegisterCorrectionOverlayToParsed as applyRegisterCorrectionOverlayKw } from '@/lib/register-correction-types-kyowontour'
+import { applyRegisterCorrectionOverlayToParsed as applyRegisterCorrectionOverlayLt } from '@/lib/register-correction-types-lottetour'
 import type { RegisterVerificationV1 as RegisterVerificationV1H } from '@/lib/admin-register-verification-meta-hanatour'
 import type { RegisterVerificationV1 as RegisterVerificationV1M } from '@/lib/admin-register-verification-meta-modetour'
 import type { RegisterVerificationV1 as RegisterVerificationV1V } from '@/lib/admin-register-verification-meta-verygoodtour'
 import type { RegisterVerificationV1 as RegisterVerificationV1Y } from '@/lib/admin-register-verification-meta-ybtour'
 import type { RegisterVerificationV1 as RegisterVerificationV1Kw } from '@/lib/admin-register-verification-meta-kyowontour'
+import type { RegisterVerificationV1 as RegisterVerificationV1Lt } from '@/lib/admin-register-verification-meta-lottetour'
 import {
   getRegisterPastePlaceholders,
   getSupplierInputFrameSpec,
@@ -93,25 +99,28 @@ type Brand = { id: string; brandKey: CanonicalOverseasSupplierKey; displayName: 
 /** 관리자 상품등록 메뉴에서만 선택 — canonical SSOT와 동일 키만 (`lib/overseas-supplier-canonical-keys.json`). */
 type AdminRegisterSupplierKey = CanonicalOverseasSupplierKey
 
-type RegisterParsed = RegisterParsedH | RegisterParsedM | RegisterParsedV | RegisterParsedY | RegisterParsedKw
+type RegisterParsed = RegisterParsedH | RegisterParsedM | RegisterParsedV | RegisterParsedY | RegisterParsedKw | RegisterParsedLt
 type RegisterScheduleDay =
   | RegisterScheduleDayH
   | RegisterScheduleDayM
   | RegisterScheduleDayV
   | RegisterScheduleDayY
   | RegisterScheduleDayKw
+  | RegisterScheduleDayLt
 type AdminRegisterPreviewPayload =
   | RegisterPreviewPayloadH
   | RegisterPreviewPayloadM
   | RegisterPreviewPayloadV
   | RegisterPreviewPayloadY
   | RegisterPreviewPayloadKw
+  | RegisterPreviewPayloadLt
 type RegisterVerificationV1 =
   | RegisterVerificationV1H
   | RegisterVerificationV1M
   | RegisterVerificationV1V
   | RegisterVerificationV1Y
   | RegisterVerificationV1Kw
+  | RegisterVerificationV1Lt
 
 function buildRegisterCanonForSupplier(
   k: AdminRegisterSupplierKey,
@@ -129,7 +138,7 @@ function buildRegisterCanonForSupplier(
     case 'kyowontour':
       return buildRegisterCanonKw(input)
     case 'lottetour':
-      return buildRegisterCanonY(input)
+      return buildRegisterCanonLt(input as Parameters<typeof buildRegisterCanonLt>[0])
     default: {
       const _e: never = k
       return _e
@@ -153,7 +162,7 @@ function registerPreviewSsotBadgeLabelForSupplier(
     case 'kyowontour':
       return registerPreviewSsotBadgeLabelKw(b)
     case 'lottetour':
-      return registerPreviewSsotBadgeLabelY(b)
+      return registerPreviewSsotBadgeLabelLt(b)
     default: {
       const _e: never = k
       return _e
@@ -181,7 +190,10 @@ function applyRegisterCorrectionOverlayForSupplier(
         overlay as Parameters<typeof applyRegisterCorrectionOverlayKw>[1]
       ) as RegisterParsed
     case 'lottetour':
-      return parsed
+      return applyRegisterCorrectionOverlayLt(
+        parsed as RegisterParsedLt,
+        overlay as Parameters<typeof applyRegisterCorrectionOverlayLt>[1]
+      ) as RegisterParsed
     default: {
       const _e: never = k
       return _e
@@ -628,10 +640,6 @@ export default function AdminRegisterPage() {
     const urlToCheck = normalizeUrl(originUrl)
     /** 전용 등록 API·route guard SSOT — `normalizeSupplierOrigin` 기대 키와 동일한 문자열 */
     const originSource = selectedBrandKey
-    if (selectedBrandKey === 'lottetour') {
-      setError('롯데관광 등록 기능 풀카피 작업 중입니다. R-4-D 완료 후 사용할 수 있습니다.')
-      return
-    }
     if (!rawText.trim()) {
       setError('공급사 상세 본문을 붙여넣어 주세요.')
       return
@@ -783,10 +791,6 @@ export default function AdminRegisterPage() {
   }
 
   async function handleConfirmRegister() {
-    if (selectedBrandKey === 'lottetour') {
-      setError('롯데관광 등록 기능 풀카피 작업 중입니다. R-4-D 완료 후 사용할 수 있습니다.')
-      return
-    }
     if (!preview || !parsedForConfirm) return
     if (!preview.previewToken) {
       setError('미리보기 토큰이 없습니다. 미리보기를 다시 실행한 뒤 저장하세요.')
