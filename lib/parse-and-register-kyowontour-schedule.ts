@@ -18,6 +18,7 @@ import {
   shouldReplaceKyowontourScheduleDayTitle,
 } from '@/lib/kyowontour-schedule-day-header-title'
 import { buildEnglishPlaceTripartiteImageKeyword } from '@/lib/register-schedule-english-place-image-keyword'
+import { polishKyowontourImageKeyword } from '@/lib/kyowontour-schedule-image-keyword'
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
@@ -306,20 +307,33 @@ export function augmentKyowontourScheduleExpressionParsed(
   const sched = next.schedule
   if (!sched?.length) return next
   const cleaned = sched.map((r) => sanitizeKyowontourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r)))
+  const titled = cleaned.map((r) => {
+    const title = String(r.title ?? '').trim()
+    const description = String(r.description ?? '').trim()
+    if (!shouldReplaceKyowontourScheduleDayTitle(title, description)) return r
+    const nextTitle = deriveKyowontourScheduleDayHeaderTitle({
+      day: r.day,
+      title,
+      description,
+      dateText: r.dateText ?? undefined,
+    }).trim()
+    if (!nextTitle) return r
+    return { ...r, title: nextTitle.slice(0, 200) }
+  })
+  const pasteBlob = pastedBodyText?.trim() ? pastedBodyText.trim().slice(0, 24_000) : undefined
   return {
     ...next,
-    schedule: cleaned.map((r) => {
+    schedule: titled.map((r) => {
       const title = String(r.title ?? '').trim()
       const description = String(r.description ?? '').trim()
-      if (!shouldReplaceKyowontourScheduleDayTitle(title, description)) return r
-      const nextTitle = deriveKyowontourScheduleDayHeaderTitle({
+      const kw = polishKyowontourImageKeyword(String(r.imageKeyword ?? ''), {
         day: r.day,
         title,
         description,
-        dateText: r.dateText ?? undefined,
-      }).trim()
-      if (!nextTitle) return r
-      return { ...r, title: nextTitle.slice(0, 200) }
+        blob: pasteBlob,
+        airtelFreeTravelImageKw: 'off',
+      })
+      return { ...r, imageKeyword: kw.slice(0, 180) }
     }),
   }
 }
