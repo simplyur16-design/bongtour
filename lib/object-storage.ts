@@ -401,9 +401,36 @@ export function toAsciiStorageFilename(logicalFilename: string): string {
   return `${ascii}__${ts}${ext}`
 }
 
+/**
+ * Ncloud Object Storage용 파일명: 한글·유니코드 보존 + URL 위험 문자만 제거 후 `__` + 밀리초 timestamp(base36)로 충돌 회피.
+ * Ncloud 한글 키 허용 검증 완료 (CASE_A).
+ * SEO: 이미지 검색에서 도시·랜드마크 한글 시그널 노출.
+ */
+export function toUnicodeStorageFilename(logicalFilename: string): string {
+  const trimmed = logicalFilename.replace(/^\/+/, '').replace(/\.\./g, '')
+  const lastDot = trimmed.lastIndexOf('.')
+  let ext = lastDot >= 0 ? trimmed.slice(lastDot) : '.webp'
+  if (!/^\.[a-zA-Z0-9]+$/.test(ext) || ext.length > 12) ext = '.webp'
+  const base = lastDot >= 0 ? trimmed.slice(0, lastDot) : trimmed
+
+  let cleaned = base
+    .replace(/[/\\?#%&]/g, '_')
+    .replace(/[<>"']/g, '_')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 80)
+
+  if (!cleaned) cleaned = 'file'
+
+  const ts = Date.now().toString(36)
+  return `${cleaned}__${ts}${ext}`
+}
+
+/** PhotoPool 전용: 한글 SEO 시그널 보존 (Ncloud 한글 키 허용 CASE_A). */
 export function buildPhotoPoolObjectKey(filename: string): string {
   const safe = filename.replace(/^\/+/, '').replace(/\.\./g, '')
-  return `photo-pool/${toAsciiStorageFilename(safe)}`
+  return `photo-pool/${toUnicodeStorageFilename(safe)}`
 }
 
 export function buildMonthlyCurationObjectKey(filename: string): string {
