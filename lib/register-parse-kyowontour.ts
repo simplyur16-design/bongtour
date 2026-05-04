@@ -29,6 +29,7 @@ import {
   logKyowontourBasicRegisterFinal,
 } from '@/lib/register-kyowontour-basic'
 import { sanitizeKyowontourRegisterParsedStrings } from '@/lib/register-kyowontour-text-sanitize'
+import { applyKyowontourBasicInfoMustKnowExtract } from '@/lib/kyowontour-basic-info-must-know-extract'
 
 type ParseOpts = NonNullable<Parameters<typeof parseForRegisterLlmKyowontour>[2]>
 
@@ -131,6 +132,9 @@ export async function parseForRegisterKyowontour(
     parsed = { ...parsed, originCode: ybCode }
   }
   logKyowontourBasicRegisterFinal(parsed, rawText?.length ?? 0)
+
+  const norm = parsed.detailBodyStructured?.normalizedRaw?.trim() || rawText.trim()
+  parsed = applyKyowontourBasicInfoMustKnowExtract(parsed, norm)
 
   const prevNotes = parsed.registerPreviewPolicyNotes ?? []
   const extra: string[] = []
