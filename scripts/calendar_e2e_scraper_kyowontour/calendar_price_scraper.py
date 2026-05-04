@@ -4,7 +4,7 @@
 
 1) Selenium으로 상품 상세 접속 → hidden `#masterCode` (또는 동등 input) 추출
 2) 브라우저 쿠키를 `requests` 세션에 이식 후 `/goods/differentDepartDate` 월별 POST
-   (캘린더 DOM 클릭 대신 API 호출로 안정화; masterCode 오인 시 빈 dayAirList 방지)
+   (캘린더 DOM 클릭 대신 사이트 내부 AJAX로 안정화; masterCode 오인 시 빈 dayAirList 방지)
 3) stdout 한 줄 JSON (Node `departures.ts` spawn 파싱용). 진행 로그는 stderr.
 """
 from __future__ import annotations
@@ -392,7 +392,7 @@ def run_scrape(
 
             session = _session_from_driver(driver)
         else:
-            _log(f"--master-code 로 DOM 생략, 직접 API만 사용: {master_code!r}", logs)
+            _log(f"--master-code 로 DOM 생략, 사이트 내부 AJAX만 사용: {master_code!r}", logs)
             session = requests.Session()
             session.headers.update(
                 {
@@ -434,7 +434,7 @@ def run_scrape(
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Kyowontour calendar E2E (Selenium + requests)")
+    p = argparse.ArgumentParser(description="Kyowontour calendar E2E (Selenium + HTTP; differentDepartDate AJAX)")
     p.add_argument("--tour-code", required=True, help="상품 tourCode / goodsCd")
     p.add_argument("--master-code", default=None, help="이미 알고 있으면 DOM 생략")
     p.add_argument("--months", type=int, default=config.MONTH_LIMIT, help="최대 월 수")

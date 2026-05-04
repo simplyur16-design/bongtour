@@ -1,11 +1,20 @@
 /**
  * 교보이지(kyowontour) 출발일 캘린더 — 사이트 내부 AJAX `POST /goods/differentDepartDate` (공개 HTTP, 인증 없음).
  * DOM 캘린더 클릭 대신 월별 JSON(`dayAirList`) 수집.
+ * HTTP만으로 `dayAirList`가 비는 경우 `tourCodeForE2EFallback`이 있으면 Python E2E(Selenium+requests)를 한 번 시도한다.
  */
+import { execFile } from 'child_process'
+import fs from 'fs'
+import path from 'path'
+import { promisify } from 'util'
 import type { PrismaClient } from '@prisma/client'
 import { buildCommonMatchingTrace, buildDepartureTitleLayers, type DepartureTitleLayers } from '@/lib/departure-option-kyowontour'
+import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 import type { DepartureInput } from '@/lib/upsert-product-departures-kyowontour'
 import { upsertProductDepartures } from '@/lib/upsert-product-departures-kyowontour'
+
+const execFileAsync = promisify(execFile)
+const KYOWONTOUR_CALENDAR_PY_MODULE = 'scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper'
 
 export type KyowontourCalendarRow = {
   departDate: string
@@ -92,6 +101,137 @@ function normalizeYmd(raw: unknown): string {
   const digits = s.replace(/\D/g, '')
   if (digits.length >= 8) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
   return ''
+}
+
+function resolveKyowontourPythonRepoRoot(): string {
+  const fromEnv = (process.env.BONGTOUR_REPO_ROOT ?? '').trim()
+  if (fromEnv) return path.resolve(fromEnv)
+  const markerRel = path.join('scripts', 'calendar_e2e_scraper_kyowontour', 'calendar_price_scraper.py')
+  let dir = path.resolve(process.cwd())
+  for (let i = 0; i < 12; i++) {
+    try {
+      if (fs.existsSync(path.join(dir, markerRel))) return dir
+    } catch {
+      /* ignore */
+    }
+    const parent = path.dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  return path.resolve(process.cwd())
+}
+
+function kyowontourE2eFallbackEnabled(): boolean {
+  const v = (process.env.KYOWONTOUR_E2E_FALLBACK ?? '1').trim().toLowerCase()
+  return v !== '0' && v !== 'false' && v !== 'off'
+}
+
+function parseKyowontourPythonStdoutJson(stdout: string): Record<string, unknown> | null {
+  const s = stdout.trim()
+  if (!s) return null
+  const lines = s.split(/\r?\n/).filter((l) => l.trim().startsWith('{'))
+  const last = lines[lines.length - 1] ?? s
+  try {
+    const o = JSON.parse(last) as Record<string, unknown>
+    return o && typeof o === 'object' ? o : null
+  } catch {
+    return null
+  }
+}
+
+function normalizeCalendarStatusFromPython(raw: string): KyowontourCalendarRow['status'] {
+  const s = raw.trim()
+  if (s === 'available' || s === 'soldout' || s === 'closed' || s === 'unknown') return s
+  return mapStatus(s)
+}
+
+function calendarRowFromPythonE2eDict(r: Record<string, unknown>): KyowontourCalendarRow | null {
+  const dep = normalizeYmd(r.departDate ?? '')
+  if (!dep) return null
+  const ret = normalizeYmd(r.returnDate ?? '') || ''
+  const tc = String(r.tourCode ?? '').trim()
+  const airline = String(r.airline ?? '').trim()
+  const adultPriceFromCalendar = parsePrice(r.adultPriceFromCalendar ?? r.adultPrice ?? r.price)
+  const status = normalizeCalendarStatusFromPython(String(r.status ?? 'unknown'))
+  const rawJson =
+    r.rawJson && typeof r.rawJson === 'object' && !Array.isArray(r.rawJson) ? (r.rawJson as object) : r
+  return {
+    departDate: dep,
+    returnDate: ret,
+    tourCode: tc,
+    airline,
+    adultPriceFromCalendar,
+    status,
+    rawJson,
+  }
+}
+
+async function collectKyowontourCalendarViaPythonE2eOnce(args: {
+  tourCode: string
+  monthCount: number
+  timeoutMs: number
+}): Promise<{ rows: KyowontourCalendarRow[]; stderr: string; phase?: string; message?: string }> {
+  const py = (process.env.KYOWONTOUR_PYTHON ?? '').trim() || resolvePythonExecutable()
+  const cwd = resolveKyowontourPythonRepoRoot()
+  const months = Math.max(1, Math.min(36, args.monthCount))
+  const argv = [
+    '-m',
+    KYOWONTOUR_CALENDAR_PY_MODULE,
+    '--tour-code',
+    args.tourCode.trim(),
+    '--months',
+    String(months),
+  ]
+  const envForChild: Record<string, string | undefined> = {
+    ...process.env,
+    PYTHONPATH: cwd,
+  }
+  let stdout = ''
+  let stderr = ''
+  try {
+    const r = await execFileAsync(py, argv, {
+      cwd,
+      timeout: args.timeoutMs,
+      maxBuffer: 12 * 1024 * 1024,
+      env: envForChild as NodeJS.ProcessEnv,
+    })
+    stdout = r.stdout == null ? '' : Buffer.isBuffer(r.stdout) ? r.stdout.toString('utf8') : String(r.stdout)
+    stderr = r.stderr == null ? '' : Buffer.isBuffer(r.stderr) ? r.stderr.toString('utf8') : String(r.stderr)
+  } catch (e: unknown) {
+    const err = e as { stdout?: unknown; stderr?: unknown; message?: string }
+    stdout = err.stdout == null ? '' : Buffer.isBuffer(err.stdout) ? err.stdout.toString('utf8') : String(err.stdout)
+    stderr = err.stderr == null ? '' : Buffer.isBuffer(err.stderr) ? err.stderr.toString('utf8') : String(err.stderr)
+    return {
+      rows: [],
+      stderr,
+      phase: 'error',
+      message: err.message ?? String(e),
+    }
+  }
+  const payload = parseKyowontourPythonStdoutJson(stdout)
+  if (!payload) {
+    return { rows: [], stderr, phase: 'error', message: 'stdout JSON 파싱 실패' }
+  }
+  if (String(payload.phase) === 'error') {
+    return {
+      rows: [],
+      stderr,
+      phase: 'error',
+      message: String(payload.message ?? 'python phase=error'),
+    }
+  }
+  const rawRows = payload.rows
+  if (!Array.isArray(rawRows)) {
+    return { rows: [], stderr, phase: 'error', message: 'rows 배열 없음' }
+  }
+  const rows: KyowontourCalendarRow[] = []
+  for (const item of rawRows) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue
+    const row = calendarRowFromPythonE2eDict(item as Record<string, unknown>)
+    if (row) rows.push(row)
+  }
+  rows.sort((a, b) => a.departDate.localeCompare(b.departDate))
+  return { rows, stderr }
 }
 
 function dayAirToRow(
@@ -211,7 +351,7 @@ async function postDifferentDepartDateMonth(args: {
 
 /**
  * `masterCode` 기준으로 월별 사이트 내부 AJAX를 호출해 출발 행을 모은다.
- * `dayAirList`가 비면 masterCode·네트워크·차단 여부를 확인한다(R-3-I E2E 보조 가능).
+ * 최종 0건이면 `tourCodeForE2EFallback`·`KYOWONTOUR_E2E_FALLBACK` 조건에서 Python E2E를 한 번 시도한다.
  */
 export async function collectKyowontourCalendarRange(
   masterCode: string,
@@ -257,7 +397,52 @@ export async function collectKyowontourCalendarRange(
     }
   }
 
-  const rows = [...byDate.values()].sort((a, b) => a.departDate.localeCompare(b.departDate))
+  let rows = [...byDate.values()].sort((a, b) => a.departDate.localeCompare(b.departDate))
+
+  const e2eTour = (options?.tourCodeForE2EFallback ?? '').trim()
+  if (
+    rows.length === 0 &&
+    e2eTour &&
+    !options?.disableE2EFallback &&
+    kyowontourE2eFallbackEnabled()
+  ) {
+    const e2eMs = Math.max(
+      30_000,
+      Math.min(600_000, Number(process.env.KYOWONTOUR_E2E_TIMEOUT_MS ?? '120000') || 120_000)
+    )
+    if (options?.log) {
+      console.log(
+        `[kyowontour-departures] ${options.logLabel ?? 'collect'} e2e_fallback tour=${e2eTour.slice(0, 48)} timeoutMs=${e2eMs}`
+      )
+    }
+    const py = await collectKyowontourCalendarViaPythonE2eOnce({
+      tourCode: e2eTour,
+      monthCount,
+      timeoutMs: e2eMs,
+    })
+    if (py.rows.length > 0) {
+      const merged = new Map<string, KyowontourCalendarRow>()
+      for (const r of py.rows) merged.set(r.departDate, r)
+      rows = [...merged.values()].sort((a, b) => a.departDate.localeCompare(b.departDate))
+      warnings.push(
+        `Python E2E(Selenium+requests) 폴백으로 ${rows.length}건 수집(서버 fetch만으로는 0건)`
+      )
+    } else {
+      const tail = py.message ? ` · ${py.message.slice(0, 200)}` : ''
+      warnings.push(`E2E 폴백 실패 또는 0건${tail}`)
+      const stderrTail = py.stderr?.trim()
+        ? py.stderr
+            .trim()
+            .split(/\r?\n/)
+            .slice(-3)
+            .join(' ')
+        : ''
+      if (stderrTail) warnings.push(`E2E stderr tail: ${stderrTail.slice(0, 240)}`)
+    }
+  } else if (rows.length === 0 && e2eTour && options?.disableE2EFallback) {
+    warnings.push('E2E 폴백 생략: disableE2EFallback')
+  }
+
   return { rows, warnings }
 }
 

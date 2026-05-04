@@ -92,6 +92,21 @@ function calendarE2eSiteFromOrigin(originSource: string): DepartureRescrapeSite 
   return 'hanatour'
 }
 
+/** 상세 URL의 `tourCd`/`goodsCd`가 있으면 E2E `--tour-code`에 우선 사용(originCode가 마스터와 다를 때). */
+function kyowontourTourCodeHintForE2e(product: { originCode: string; originUrl: string | null }): string {
+  const url = (product.originUrl ?? '').trim()
+  if (url) {
+    try {
+      const u = new URL(url)
+      const t = u.searchParams.get('tourCd') ?? u.searchParams.get('goodsCd')
+      if (t?.trim()) return t.trim()
+    } catch {
+      /* ignore */
+    }
+  }
+  return (product.originCode ?? '').trim()
+}
+
 export function buildDetailUrl(originSource: string, originCode: string): string {
   const code = encodeURIComponent((originCode ?? '').trim())
   const src = (originSource || '').toLowerCase()
@@ -527,8 +542,12 @@ export async function collectDepartureInputsForAdminRescrape(
     }
     try {
       const { rows, warnings } = await collectKyowontourCalendarRange(masterCode, {
-        tourCodeForE2EFallback: masterCode,
+        tourCodeForE2EFallback: kyowontourTourCodeHintForE2e(product),
         e2eMasterCodeHint: masterCode,
+        monthCount: Math.max(
+          1,
+          Math.min(36, Number(process.env.KYOWONTOUR_CALENDAR_MONTH_COUNT ?? '12') || 12)
+        ),
         logLabel: `admin-departure-rescrape:${product.id}`,
       })
       const mapped = mapKyowontourCalendarToDepartureInputs(rows, product.id)
