@@ -72,12 +72,14 @@ function forbiddenOtherMarkers(importPath, current) {
   return bad
 }
 
+/** R-3-B..L: kyowontour는 ybtour 베이스로 `*-ybtour` 모듈을 임시 참조하는 파일. R-3-M에서 정리 후 제거. */
+const KYOWONTOUR_CROSS_IMPORT_SKIP = new Set(['register-from-llm-kyowontour.ts', 'register-parse-kyowontour.ts'])
+
 function main() {
   const files = walk(ROOT)
   const errors = []
   for (const rel of files.sort()) {
-    /** R-3-A..L: `register-from-llm-kyowontour`는 ybtour 베이스로 타 공급사 전용 모듈(`*-ybtour`)을 임시 참조한다. R-3-M에서 정리 후 이 분기 제거. */
-    if (rel === 'register-from-llm-kyowontour.ts') continue
+    if (KYOWONTOUR_CROSS_IMPORT_SKIP.has(rel)) continue
     const full = path.join(ROOT, rel)
     const cur = detectSupplier(full)
     if (!cur) {

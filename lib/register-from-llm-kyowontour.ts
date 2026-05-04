@@ -93,7 +93,7 @@ import {
   buildRegisterPreviewMinimalLlmInputBlocks,
   segmentSupplierPasteForLlm,
   type RegisterPastedBlocksInput,
-} from '@/lib/register-llm-blocks-ybtour'
+} from '@/lib/register-llm-blocks-kyowontour'
 import {
   enrichParsedPricesInboundArrivalDateFromRawBlob,
   enrichParsedProductPricesWithFlightHeuristics,
@@ -104,7 +104,7 @@ import { filterOptionalTourRows, optionalTourRowPassesStrictGate, type OptionalT
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 import { isMustKnowInsufficient, supplementMustKnowWithWebSearch } from './must-know-web-supplement'
 import { parseLlmJsonObject } from './llm-json-extract'
-import { extractYbtourVerbatimListingTitle } from '@/lib/register-ybtour-basic'
+import { extractKyowontourVerbatimListingTitle } from '@/lib/register-kyowontour-basic'
 import {
   mergeDayHotelPlansForRegister,
   parseDayHotelPlansFromSupplierText,
@@ -167,7 +167,7 @@ function normalizeRegisterPasteNewlines(s: string): string {
 /**
  * extractStructuredTourSignals / extractOptionalToursStructured 입력용.
  * 쇼핑·옵션을 본문과 별도 블록으로 붙인 경우 primary(복붙 본문)에 표가 없으면 signals가 비는 문제를 막는다.
- * 본문에 이미 포함된 블록은 중복 합치지 않는다(`register-llm-blocks-ybtour` omit 규칙과 동일한 ⊂ 판별).
+ * 본문에 이미 포함된 블록은 중복 합치지 않는다(`register-llm-blocks-kyowontour` omit 규칙과 동일한 ⊂ 판별).
  */
 function buildRegisterSignalsHaystack(
   rawText: string,
@@ -293,7 +293,7 @@ function allowedCategoryForSupplement(
   return '현지준비'
 }
 
-/** kyowontour 등록 전용: 맨 앞 `[배지]`·공백만 정리(`register-ybtour-basic` 추출 결과 후처리용). */
+/** kyowontour 등록 전용: 맨 앞 `[배지]`·공백만 정리(`register-kyowontour-basic` 추출 결과 후처리용). */
 function normalizeKyowontourRegisterTitleMinimalLocal(s: string): string {
   let t = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
   t = t.replace(/^(\[[^\]\n]{1,120}\]\s*)+/, '')
@@ -1766,7 +1766,7 @@ ${text.slice(0, 16000)}`
   )
 
   const pasteForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
-  const supplierListingTitleRaw = extractYbtourVerbatimListingTitle(pasteForTitle)
+  const supplierListingTitleRaw = extractKyowontourVerbatimListingTitle(pasteForTitle)
   const llmTitleRaw = String(raw.title ?? '').trim()
   const titleTrimmed =
     supplierListingTitleRaw && supplierListingTitleRaw.length >= 10
