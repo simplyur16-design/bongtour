@@ -7,7 +7,7 @@ import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import type { DayHotelPlan } from '@/lib/day-hotel-plans-ybtour'
 import type { ParsedProductPrice } from './parsed-product-types'
 import type { PricePromotionSnapshot } from './price-promotion-ybtour'
-import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-ybtour'
+import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-lottetour'
 
 /** 롯데관광(lottetour) 본문 메타 — R-4-A 스키마 확장 */
 export type LottetourCategoryMenuNo = { no1?: string; no2?: string; no3?: string; no4?: string }

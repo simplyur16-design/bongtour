@@ -1,4 +1,4 @@
-// 롯데관광(lottetour) 전용 schedule extract 모듈 (ybtour 구현 복사, R-4-B/C에서 정리)
+// 롯데관광(lottetour) 전용 schedule extract 모듈 (베이스 구현 복사, R-4-B/C에서 정리)
 // lib/register-schedule-extract-common.ts에서 분리됨 (단계적 독립화 작업)
 // 다른 공급사(modetour/hanatour/verygoodtour)는 각자 자기 파일 사용
 /**
