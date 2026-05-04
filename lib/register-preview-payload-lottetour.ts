@@ -7,6 +7,7 @@ import type { RegisterPreviewSsotMeta } from '@/lib/register-preview-ssot-lottet
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import type { RegisterCorrectionPreviewV1 } from '@/lib/register-correction-types-lottetour'
 import type { RegisterVerificationV1 } from '@/lib/admin-register-verification-meta-lottetour'
+import type { LottetourFinalParsed } from '@/lib/lottetour-admin-preview-card-types'
 
 /** 등록 파서 라우트(`parse-and-register-*` 전용 + 잔여 공용) `mode: preview` 응답의 productDraft (필드는 동일 라우트와 동기화). */
 export type RegisterPreviewProductDraft = {
@@ -160,4 +161,6 @@ export type RegisterPreviewPayload<Parsed = unknown> = {
   previewContentDigest?: string
   /** 공급사별 핸들러 주입: 실검증 패널(registerVerification) 구조화 요약 */
   registerVerification?: RegisterVerificationV1
+  /** 관리자 미리보기 카드용 요약(교원이지 `data`와 동일 역할) */
+  data?: LottetourFinalParsed | null
 }

@@ -113,6 +113,11 @@ import {
 import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confirm-reuse-lottetour'
 import { buildRegisterVerificationBundle } from '@/lib/admin-register-verification-meta-lottetour'
 import type { RegisterPreviewProductDraft } from '@/lib/register-preview-payload-lottetour'
+import type {
+  LottetourFinalParsed,
+  LottetourOptionalTourFromBody,
+  LottetourShoppingItemFromBody,
+} from '@/lib/lottetour-admin-preview-card-types'
 import { parseLocalDepartureTagArrayFromAdminBody } from '@/lib/product-listing-kind'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import {
@@ -129,6 +134,123 @@ function defaultReservationNoticeRawForProductSave(parsed: RegisterParsed): stri
   if ((parsed.mustKnowItems?.length ?? 0) > 0) return null
   const r = parsed.mustKnowRaw?.trim()
   return r ? r.slice(0, 6000) : null
+}
+
+/** `app/admin/register` 롯데관광 분기가 기대하는 `LottetourFinalParsed` — 전체 SSOT는 `previewPayload` 본류. */
+function buildLottetourAdminPreviewCardData(args: {
+  parsed: RegisterParsed
+  productDraft: RegisterPreviewProductDraft
+  schedule: RegisterScheduleDay[]
+  originalBodyText: string
+  fieldIssues: Array<PricePromotionFieldIssue | RegisterExtractionFieldIssue>
+}): LottetourFinalParsed {
+  const { parsed, productDraft, schedule, originalBodyText, fieldIssues } = args
+  const pt = productDraft.productPriceTable ?? parsed.productPriceTable ?? null
+  const priceAdult = Math.max(0, Math.floor(Number(pt?.adultPrice ?? productDraft.priceFrom ?? parsed.priceFrom ?? 0)))
+  const priceChild = Math.max(0, Math.floor(Number(pt?.childExtraBedPrice ?? 0)))
+  const priceInfant = Math.max(0, Math.floor(Number(pt?.infantPrice ?? 0)))
+  const firstPrice = parsed.prices?.[0]
+  const fuel =
+    firstPrice && typeof firstPrice.adultFuel === 'number' && firstPrice.adultFuel > 0
+      ? Math.floor(firstPrice.adultFuel)
+      : undefined
+  const policy = parsed.registerPreviewPolicyNotes ?? []
+  const issueMsgs = fieldIssues.map((i) => i.reason).filter(Boolean)
+  const warnings = Array.from(new Set([...policy, ...issueMsgs])).slice(0, 24)
+
+  const scheduleFinal = schedule.map((d) => ({
+    dayNumber: d.day,
+    title: d.title?.trim() || undefined,
+    activities: d.description?.trim() ? [d.description.trim()] : [],
+    hotel: d.hotelText?.trim() || undefined,
+    meals: {
+      breakfast: (d.breakfastText ?? '').trim(),
+      lunch: (d.lunchText ?? '').trim(),
+      dinner: (d.dinnerText ?? '').trim(),
+    },
+  }))
+
+  let optionalTours: LottetourOptionalTourFromBody[] = []
+  const optRaw = parsed.optionalToursStructured
+  if (optRaw && typeof optRaw === 'string') {
+    try {
+      const arr = JSON.parse(optRaw) as unknown
+      if (Array.isArray(arr)) {
+        optionalTours = arr
+          .map((x) => {
+            if (!x || typeof x !== 'object' || Array.isArray(x)) return null
+            const o = x as Record<string, unknown>
+            const name = String(o.name ?? o.tourName ?? o.title ?? '').trim()
+            if (!name) return null
+            const cur = String(o.currency ?? 'KRW').toUpperCase() === 'USD' ? 'USD' : 'KRW'
+            return {
+              name,
+              description: String(o.description ?? o.summary ?? ''),
+              priceAdult: Math.max(0, Math.floor(Number(o.priceAdult ?? o.adultPrice ?? 0))),
+              priceChild: Math.max(0, Math.floor(Number(o.priceChild ?? o.childPrice ?? 0))),
+              priceInfant: Math.max(0, Math.floor(Number(o.priceInfant ?? o.infantPrice ?? 0))),
+              currency: cur,
+              duration: String(o.duration ?? ''),
+              alternativeProgram: String(o.alternativeProgram ?? o.alternate ?? ''),
+            } satisfies LottetourOptionalTourFromBody
+          })
+          .filter((x): x is LottetourOptionalTourFromBody => x != null)
+      }
+    } catch {
+      optionalTours = []
+    }
+  }
+
+  let shoppingItems: LottetourShoppingItemFromBody[] = []
+  const shopRaw = parsed.shoppingStops
+  if (shopRaw && typeof shopRaw === 'string') {
+    try {
+      const arr = JSON.parse(shopRaw) as unknown
+      if (Array.isArray(arr)) {
+        shoppingItems = arr
+          .map((x) => {
+            if (!x || typeof x !== 'object' || Array.isArray(x)) return null
+            const o = x as Record<string, unknown>
+            const itemName = String(o.itemName ?? o.itemType ?? o.name ?? '').trim()
+            if (!itemName) return null
+            return {
+              itemName,
+              shopLocation: String(o.shopLocation ?? o.location ?? ''),
+              duration: String(o.duration ?? ''),
+              refundable: String(o.refundable ?? ''),
+            } satisfies LottetourShoppingItemFromBody
+          })
+          .filter((x): x is LottetourShoppingItemFromBody => x != null)
+      }
+    } catch {
+      shoppingItems = []
+    }
+  }
+
+  const meetingLoc = (parsed.meetingPlaceRaw ?? parsed.meetingInfoRaw ?? '').trim()
+  return {
+    productCode: (parsed.originCode ?? '').trim(),
+    title: (parsed.title || productDraft.title || '').trim() || '(제목 없음)',
+    durationLabel: (productDraft.duration || parsed.duration || '').trim() || '-',
+    expectedDayCount: Math.max(scheduleFinal.length, parsed.schedule?.length ?? 0),
+    priceAdult,
+    priceChild,
+    priceInfant,
+    fuelSurcharge: fuel,
+    currency: 'KRW',
+    flight: null,
+    schedule: scheduleFinal,
+    meetingInfo: meetingLoc ? { location: meetingLoc.slice(0, 500), time: '' } : undefined,
+    hotelGradeLabel: undefined,
+    includedItems:
+      parsed.includedItems?.length ? parsed.includedItems : parsed.includedText?.trim() ? [parsed.includedText.trim()] : [],
+    excludedItems:
+      parsed.excludedItems?.length ? parsed.excludedItems : parsed.excludedText?.trim() ? [parsed.excludedText.trim()] : [],
+    optionalTours,
+    shoppingItems,
+    originalBodyText: originalBodyText.slice(0, 120_000),
+    warnings,
+  }
 }
 
 /** lottetour 등록 preview/confirm 전용 오케스트레이션 — `handleParseAndRegisterLottetourRequest`만 연결. */
@@ -1322,6 +1444,22 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         pastedBlocksPreview: manualPasted.pastedBlocksPreview,
         brandKey,
       })
+      const registerVerification = buildRegisterVerificationBundle({
+        phase: 'preview',
+        brandKey: forcedBrandKey,
+        route: '/api/travel/parse-and-register-lottetour',
+        handler: 'parse-and-register-lottetour-handler',
+        parsed: parsedForPreview,
+        productDraft,
+        fieldIssues: combinedFieldIssues,
+      })
+      const data: LottetourFinalParsed = buildLottetourAdminPreviewCardData({
+        parsed: parsedForPreview,
+        productDraft,
+        schedule,
+        originalBodyText: text,
+        fieldIssues: combinedFieldIssues,
+      })
       const previewPayload = {
         success: true as const,
         mode: 'preview' as const,
@@ -1338,6 +1476,8 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         fieldIssues: combinedFieldIssues,
         ssotPreview,
         correctionPreview,
+        registerVerification,
+        data,
         registerSnapshotId,
         registerAnalysisId: lastPipelineAnalysisId,
       }
