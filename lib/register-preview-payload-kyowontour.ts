@@ -5,8 +5,8 @@ import type { RegisterExtractionFieldIssue } from '@/lib/register-llm-schema-kyo
 import type { DayHotelPlan } from '@/lib/day-hotel-plans-kyowontour'
 import type { RegisterPreviewSsotMeta } from '@/lib/register-preview-ssot-kyowontour'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
-import type { RegisterCorrectionPreviewV1 } from '@/lib/register-correction-types-ybtour'
-import type { RegisterVerificationV1 } from '@/lib/admin-register-verification-meta-ybtour'
+import type { RegisterCorrectionPreviewV1 } from '@/lib/register-correction-types-kyowontour'
+import type { RegisterVerificationV1 } from '@/lib/admin-register-verification-meta-kyowontour'
 
 /** 등록 파이프라인(`parse-and-register-*` 전용 + 잔여 공용) `mode: preview` 응답의 productDraft (필드는 엔드포인트와 동기화). */
 export type RegisterPreviewProductDraft = {

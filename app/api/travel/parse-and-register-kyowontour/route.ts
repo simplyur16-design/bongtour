@@ -3,7 +3,7 @@ import {
   assertRegisterRouteSupplierMatch,
   SupplierRouteMismatchError,
 } from '@/lib/assert-supplier-route-match'
-import { handleKyowontourRegisterRequest } from '@/lib/kyowontour-stub'
+import { handleParseAndRegisterKyowontourRequest } from '@/lib/parse-and-register-kyowontour-handler'
 import { requireAdmin } from '@/lib/require-admin'
 
 export const maxDuration = 300
@@ -65,5 +65,5 @@ export async function POST(request: Request) {
     headers: request.headers,
     body: JSON.stringify(merged),
   })
-  return handleKyowontourRegisterRequest(nextRequest)
+  return handleParseAndRegisterKyowontourRequest(nextRequest)
 }
