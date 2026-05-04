@@ -70,7 +70,7 @@ export default function AdminDashboardPage() {
     { brandKey: 'modetour', displayName: '모두투어' },
     { brandKey: 'ybtour', displayName: '노랑풍선' },
     { brandKey: 'verygoodtour', displayName: '참좋은여행사' },
-    { brandKey: 'gyowontour', displayName: '교원투어' },
+    { brandKey: 'kyowontour', displayName: '교보이지' },
     { brandKey: 'other', displayName: '기타' },
   ])
   const [primaryDestination, setPrimaryDestination] = useState('')

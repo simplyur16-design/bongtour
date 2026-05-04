@@ -58,6 +58,7 @@ import {
   type CanonicalOverseasSupplierKey,
 } from '@/lib/overseas-supplier-canonical-keys'
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
+import type { KyowontourFinalParsed } from '@/lib/kyowontour/orchestration'
 
 const LOADING_STATUS = '분석 중…' as const
 
@@ -112,6 +113,8 @@ function buildRegisterCanonForSupplier(
       return buildRegisterCanonV(input)
     case 'ybtour':
       return buildRegisterCanonY(input)
+    case 'kyowontour':
+      return buildRegisterCanonH(input)
     default: {
       const _e: never = k
       return _e
@@ -132,6 +135,8 @@ function registerPreviewSsotBadgeLabelForSupplier(
       return registerPreviewSsotBadgeLabelV(b)
     case 'ybtour':
       return registerPreviewSsotBadgeLabelY(b)
+    case 'kyowontour':
+      return registerPreviewSsotBadgeLabelH(b)
     default: {
       const _e: never = k
       return _e
@@ -153,6 +158,8 @@ function applyRegisterCorrectionOverlayForSupplier(
       return applyRegisterCorrectionOverlayV(parsed as RegisterParsedV, overlay)
     case 'ybtour':
       return applyRegisterCorrectionOverlayY(parsed as RegisterParsedY, overlay)
+    case 'kyowontour':
+      return parsed
     default: {
       const _e: never = k
       return _e
@@ -272,6 +279,19 @@ function mergeRegisterParsedScheduleWithManualPexels(
   return { ...parsed, schedule: withManual }
 }
 
+/** 교보이지 API는 단일 `bodyText`만 수신 — 정형칸을 본문 뒤에 덧붙여 site-parser·LLM 입력으로 쓴다. */
+function buildKyowontourBodyTextWithStructuredBlocks(
+  raw: string,
+  b: { optionalTour: string; shopping: string; hotel: string; airlineTransport: string }
+): string {
+  const parts = [raw.trim()]
+  if (b.airlineTransport.trim()) parts.push(`\n\n[항공 정형 입력]\n${b.airlineTransport.trim()}`)
+  if (b.hotel.trim()) parts.push(`\n\n[호텔 정형 입력]\n${b.hotel.trim()}`)
+  if (b.optionalTour.trim()) parts.push(`\n\n[선택관광 정형 입력]\n${b.optionalTour.trim()}`)
+  if (b.shopping.trim()) parts.push(`\n\n[쇼핑 정형 입력]\n${b.shopping.trim()}`)
+  return parts.join('')
+}
+
 function buildPastedBlocksPayload(b: {
   optionalTour: string
   shopping: string
@@ -332,6 +352,8 @@ function parseRegisterApiPath(brandKey: AdminRegisterSupplierKey): string {
       return '/api/travel/parse-and-register-ybtour'
     case 'hanatour':
       return '/api/travel/parse-and-register-hanatour'
+    case 'kyowontour':
+      return '/api/travel/parse-and-register-kyowontour'
     default: {
       const _e: never = brandKey
       throw new Error(`Unexpected register supplier: ${_e}`)
@@ -348,6 +370,7 @@ const REGISTER_SUPPLIER_OPTIONS: Brand[] = [
   { id: '', brandKey: 'verygoodtour', displayName: '참좋은여행사', sortOrder: 2 },
   { id: '', brandKey: 'ybtour', displayName: '노랑풍선', sortOrder: 3 },
   { id: '', brandKey: 'hanatour', displayName: '하나투어', sortOrder: 4 },
+  { id: '', brandKey: 'kyowontour', displayName: '교보이지', sortOrder: 5 },
 ]
 
 {
@@ -387,6 +410,8 @@ export default function AdminRegisterPage() {
   const [error, setError] = useState('')
   const [savedProductId, setSavedProductId] = useState<string | null>(null)
   const [preview, setPreview] = useState<AdminRegisterPreviewPayload | null>(null)
+  /** 교보이지 전용 — `parse-and-register-kyowontour` 응답 `KyowontourFinalParsed` (4공급사 미리보기 토큰 플로우와 별도). */
+  const [kyowontourPreview, setKyowontourPreview] = useState<KyowontourFinalParsed | null>(null)
   const [parsedForConfirm, setParsedForConfirm] = useState<unknown>(null)
   const [confirming, setConfirming] = useState(false)
   const [selectedBrandKey, setSelectedBrandKey] = useState<AdminRegisterSupplierKey>(
@@ -587,6 +612,7 @@ export default function AdminRegisterPage() {
     setError('')
     setSavedProductId(null)
     setPreview(null)
+    setKyowontourPreview(null)
     setParsedForConfirm(null)
     setConfirmVerification(null)
     setLastAdminTracePath(null)
@@ -611,20 +637,30 @@ export default function AdminRegisterPage() {
       const ttl = setTimeout(() => controller.abort(), REGISTER_PREVIEW_FETCH_TIMEOUT_MS)
       let res: Response
       try {
+        const trimmedBody = rawText.trim()
         res = await fetch(parseRegisterApiPath(selectedBrandKey), {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mode: 'preview',
-            text: rawText.trim(),
-            originSource,
-            ...(selectedBrandKey && { brandKey: selectedBrandKey }),
-            ...(urlToCheck && { originUrl: urlToCheck }),
-            ...(blocksPayload && { pastedBlocks: blocksPayload }),
-            travelScope,
-            localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
-          }),
+          body: JSON.stringify(
+            selectedBrandKey === 'kyowontour'
+              ? {
+                  bodyText: buildKyowontourBodyTextWithStructuredBlocks(trimmedBody, pastedBlocks),
+                  originSource,
+                  ...(selectedBrandKey && { brandKey: selectedBrandKey }),
+                  ...(urlToCheck && { originUrl: urlToCheck }),
+                }
+              : {
+                  mode: 'preview',
+                  text: trimmedBody,
+                  originSource,
+                  ...(selectedBrandKey && { brandKey: selectedBrandKey }),
+                  ...(urlToCheck && { originUrl: urlToCheck }),
+                  ...(blocksPayload && { pastedBlocks: blocksPayload }),
+                  travelScope,
+                  localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
+                }
+          ),
           signal: controller.signal,
         })
       } finally {
@@ -644,6 +680,34 @@ export default function AdminRegisterPage() {
           : null
       if (!res.ok) throw new Error(errMsg ?? '등록 실패')
 
+      if (selectedBrandKey === 'kyowontour') {
+        const kres = data as { success?: boolean; data?: KyowontourFinalParsed; error?: string }
+        if (!kres.success || !kres.data) {
+          throw new Error(typeof kres.error === 'string' ? kres.error : '교보이지 분석 응답이 올바르지 않습니다.')
+        }
+        setKyowontourPreview(kres.data)
+        setPreview(null)
+        setParsedForConfirm(null)
+        setConfirmVerification(null)
+        setLastAdminTracePath(null)
+        previewContentFingerprintRef.current = currentRegisterPreviewFingerprint()
+        previewStructuredFingerprintRef.current = null
+        setManualPexelsKeywordsByDay({})
+        setRegisterPexelsPhotos([])
+        setRegisterPexelsError(null)
+        setRegisterPexelsLastQuery(null)
+        setRegisterPexelsLoading(false)
+        setCorrectionOverlay(null)
+        setCorrectionDrawerOpen(false)
+        setCorrectionTargetKey(null)
+        setCorrectionHintDetail(null)
+        lastPreviewOriginCodeRef.current = (kres.data.productCode ?? '').trim() || null
+        setStatusText('분석 완료 · 교보이지 결과를 아래에서 확인하세요')
+        setLoading(false)
+        return
+      }
+
+      setKyowontourPreview(null)
       setStatusText('분석 완료 · 등록 전 미리보기를 확인하세요')
       const pdata = data as AdminRegisterPreviewPayload
       const oc =
@@ -680,6 +744,12 @@ export default function AdminRegisterPage() {
   }
 
   async function handleConfirmRegister() {
+    if (selectedBrandKey === 'kyowontour') {
+      setError(
+        '교보이지는 이 화면의 「미리보기 확인 후 최종 저장」플로우와 아직 연결되지 않았습니다. 위 분석 결과를 참고해 주세요.'
+      )
+      return
+    }
     if (!preview || !parsedForConfirm) return
     if (!preview.previewToken) {
       setError('미리보기 토큰이 없습니다. 미리보기를 다시 실행한 뒤 저장하세요.')
@@ -827,6 +897,7 @@ export default function AdminRegisterPage() {
                 if (next === selectedBrandKey) return
                 setSelectedBrandKey(next)
                 setPreview(null)
+                setKyowontourPreview(null)
                 setParsedForConfirm(null)
                 previewContentFingerprintRef.current = null
                 setCorrectionOverlay(null)
@@ -1162,7 +1233,7 @@ export default function AdminRegisterPage() {
           </div>
         ) : null}
 
-        {preview &&
+        {(preview || kyowontourPreview) &&
         previewContentFingerprintRef.current != null &&
         currentRegisterPreviewFingerprint() !== previewContentFingerprintRef.current ? (
           <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
@@ -1172,6 +1243,50 @@ export default function AdminRegisterPage() {
             </p>
           </div>
         ) : null}
+
+        {kyowontourPreview && (
+          <div className="mt-6 border-l-4 border-teal-500 pl-6">
+            <p className="text-sm font-semibold text-slate-800">교보이지 분석 결과</p>
+            <p className="mt-1 text-xs text-slate-500">
+              상품코드·가격·일정은 서버 병합 결과입니다. 아래 「미리보기 확인 후 최종 저장」은 다른 공급사 전용이며 교보이지는 아직
+              연결되지 않았습니다.
+            </p>
+            <div className="mt-3 rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-800">
+              <p>
+                <span className="font-semibold text-slate-900">상품코드</span> {kyowontourPreview.productCode}
+              </p>
+              <p className="mt-1">
+                <span className="font-semibold text-slate-900">제목</span> {kyowontourPreview.title}
+              </p>
+              <p className="mt-1">
+                <span className="font-semibold text-slate-900">기간</span> {kyowontourPreview.durationLabel} · 일정{' '}
+                {kyowontourPreview.expectedDayCount}일
+              </p>
+              <p className="mt-1">
+                <span className="font-semibold text-slate-900">성인가</span>{' '}
+                {kyowontourPreview.priceAdult.toLocaleString('ko-KR')}원
+                {kyowontourPreview.fuelSurcharge != null && kyowontourPreview.fuelSurcharge > 0
+                  ? ` (유류할증 ${kyowontourPreview.fuelSurcharge.toLocaleString('ko-KR')}원)`
+                  : ''}
+              </p>
+              {kyowontourPreview.warnings?.length ? (
+                <ul className="mt-2 list-inside list-disc text-amber-900">
+                  {kyowontourPreview.warnings.slice(0, 12).map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+              ) : null}
+              <p className="mt-2 font-semibold text-slate-900">일정 요약</p>
+              <ul className="mt-1 max-h-48 overflow-y-auto space-y-1 border border-slate-100 bg-slate-50/80 p-2">
+                {(kyowontourPreview.schedule ?? []).slice(0, 14).map((d) => (
+                  <li key={d.dayNumber}>
+                    {d.dayNumber}일차 — {d.title || '(제목 없음)'}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
 
         {preview && (
           <div className="mt-6 border-l-4 border-slate-300 pl-6">

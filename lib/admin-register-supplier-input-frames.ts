@@ -5,7 +5,7 @@
  */
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 
-export type RegisterSupplierFrameKey = 'modetour' | 'verygoodtour' | 'hanatour' | 'ybtour'
+export type RegisterSupplierFrameKey = 'modetour' | 'verygoodtour' | 'hanatour' | 'ybtour' | 'kyowontour'
 
 export type RegisterPastePlaceholders = {
   body: string
@@ -290,14 +290,81 @@ const YELLOW: SupplierInputFrameSpec = {
   },
 }
 
+/** 교보이지(kyowontour) — 정형칸 SSOT (본문 LLM과 분리). */
+const KYOWONTOUR: SupplierInputFrameSpec = {
+  displayName: '교보이지',
+  axes: [
+    {
+      axis: '본문(LLM)',
+      shape: '서술 전용',
+      slots:
+        '담당: 일정·관광·식사·이동·포함/불포함·주의사항. 비담당: 항공·호텔·옵션·쇼핑 확정 데이터는 아래 정형칸이 우선(SSOT).',
+    },
+    {
+      axis: '항공',
+      shape: 'LCC/정규편 — 한국↔현지 구간 슬롯',
+      slots:
+        '항공사(예: 비엣젯 VJ) | 가는편: 한국 출발 공항·일시 → 현지 도착 공항·일시 | 오는편: 현지 출발 → 한국 도착. 편명·공항코드 보존.',
+    },
+    {
+      axis: '호텔',
+      shape: '등급·구간 요약',
+      slots: '도시별 "시내 4성급 또는 동급" 등급·숙박일수·동급 변경 가능 여부.',
+    },
+    {
+      axis: '옵션',
+      shape: 'USD 성인·아동·유아 + 소요시간 + 대체일정',
+      slots:
+        '옵션명 | 성인 USD | 아동 USD | 유아 USD | 소요시간 | 미참여 시 대체일정(호텔 대기/자유 등) | 동행 여부.',
+    },
+    {
+      axis: '쇼핑',
+      shape: '품목·장소·시간·환불',
+      slots: '쇼핑 횟수 요약(선택) | 품목 | 대표 장소 | 소요시간 | 환불 가능 여부.',
+    },
+  ],
+  placeholders: {
+    body: ph([
+      '[교보이지 본문 — LLM·서술]',
+      '일차별 관광·식사·이동, 포함/불포함, 유의사항.',
+      '(항공·호텔·옵션·쇼핑은 아래 정형칸이 본문 자동추출보다 우선)',
+    ]),
+    airlineTransport: ph([
+      '항공사: 비엣젯 (VJ)',
+      '— 한국 출발 —',
+      'VJ○○○ | 인천(ICN) 2026-08-10 09:20 → 다낭(DAD) 2026-08-10 12:05',
+      '— 현지 출발(귀국) —',
+      'VJ○○○ | 다낭(DAD) 2026-08-15 13:10 → 인천(ICN) 2026-08-15 19:40',
+      '— 현지 구간(국내선) 예시 —',
+      'VN○○○ | 호치민 2026-08-12 08:00 → 다낭 2026-08-12 09:30',
+    ]),
+    hotel: ph([
+      '다낭 3박 | 시내 4성급 또는 동급 | 예정 | 동급 변경 가능',
+      '호이안 1박 | 구시가지 4성 호텔급 | 예정',
+    ]),
+    optionalTour: ph([
+      '옵션명 | 성인 USD | 아동 USD | 유아 USD | 소요시간 | 대체일정',
+      '바나힐 케이블카+내부 관광 | 85 | 75 | 0 | 약 6시간 | 미참여: 호텔 자유(가이드 미동행)',
+      '챠밍 데이 투어 | 45 | 40 | 0 | 약 4시간 | 미참여: 인근 해변 자유',
+    ]),
+    shopping: ph([
+      '쇼핑 총 2회(요약)',
+      '품목 | 장소 | 시간 | 환불',
+      '실크·대나무 제품 | 호이안 올드타운 기념품 거리 | 40분 | 조건부',
+      '커피·과자 | 다낭 대형 마트 | 30분 | 불가',
+    ]),
+  },
+}
+
 const SPECS: Record<RegisterSupplierFrameKey, SupplierInputFrameSpec> = {
   modetour: MODETOUR,
   verygoodtour: VERYGOOD,
   hanatour: HANATOUR,
   ybtour: YELLOW,
+  kyowontour: KYOWONTOUR,
 }
 
-/** 교원·기타 등: 전용 프레임 없을 때 하나투어 프레임을 기본으로 안내 */
+/** canonical 5공급사는 전용 프레임. 그 외·비표준 키는 하나투어 프레임으로 안내 */
 export function registerSupplierFrameKey(brandKey: string | null | undefined): RegisterSupplierFrameKey {
   const canon = normalizeBrandKeyToCanonicalSupplierKey(brandKey)
   if (canon) return canon
