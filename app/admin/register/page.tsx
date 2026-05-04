@@ -36,6 +36,8 @@ import SafeImage from '@/app/components/SafeImage'
 import AdminPageHeader from '../components/AdminPageHeader'
 import RegisterCorrectionDrawer from './components/RegisterCorrectionDrawer'
 import RegisterVerificationPanel from './components/RegisterVerificationPanel'
+import RegisterAdminFinalParsedSummaryCard from './components/RegisterAdminFinalParsedSummaryCard'
+import type { RegisterAdminFinalParsedSummary } from './components/RegisterAdminFinalParsedSummaryCard'
 import {
   applyRegisterCorrectionOverlayToParsed as applyRegisterCorrectionOverlayH,
   inferCorrectionKeyFromIssueField,
@@ -121,6 +123,13 @@ type RegisterVerificationV1 =
   | RegisterVerificationV1Y
   | RegisterVerificationV1Kw
   | RegisterVerificationV1Lt
+
+/** 교원이지·롯데관광 미리보기 `data` — 응답에 포함될 때만 카드에 사용한다. */
+function previewFinalParsedSummaryFromPayload(p: AdminRegisterPreviewPayload | null): RegisterAdminFinalParsedSummary | null {
+  if (!p) return null
+  const d = (p as { data?: RegisterAdminFinalParsedSummary | null }).data
+  return d ?? null
+}
 
 function buildRegisterCanonForSupplier(
   k: AdminRegisterSupplierKey,
@@ -718,6 +727,15 @@ export default function AdminRegisterPage() {
           : null
       if (!res.ok) throw new Error(errMsg ?? '등록 실패')
 
+      if (selectedBrandKey === 'lottetour') {
+        const chk = data as { success?: unknown; mode?: unknown; error?: unknown }
+        if (chk.success !== true || chk.mode !== 'preview') {
+          throw new Error(
+            typeof chk.error === 'string' ? chk.error : '롯데관광 분석 응답이 올바르지 않습니다. 미리보기를 다시 실행하세요.'
+          )
+        }
+      }
+
       if (selectedBrandKey === 'kyowontour') {
         const kres = data as RegisterPreviewPayloadKw & {
           success?: boolean
@@ -776,6 +794,12 @@ export default function AdminRegisterPage() {
       setRegisterPexelsError(null)
       setRegisterPexelsLastQuery(null)
       setRegisterPexelsLoading(false)
+      if (selectedBrandKey === 'lottetour') {
+        setCorrectionOverlay(null)
+        setCorrectionDrawerOpen(false)
+        setCorrectionTargetKey(null)
+        setCorrectionHintDetail(null)
+      }
     } catch (e) {
       if (isAbortError(e)) {
         setError(
@@ -1761,6 +1785,15 @@ export default function AdminRegisterPage() {
                   </div>
                 </dl>
               </div>
+
+              {(() => {
+                const fd = previewFinalParsedSummaryFromPayload(preview)
+                return fd ? (
+                  <div className="mt-4">
+                    <RegisterAdminFinalParsedSummaryCard data={fd} />
+                  </div>
+                ) : null
+              })()}
 
               {preview.productDraft.optionalToursStructured ? (
                 <details className="rounded border border-slate-200 bg-slate-50/80 p-3 text-xs">
