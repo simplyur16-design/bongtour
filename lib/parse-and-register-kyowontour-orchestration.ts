@@ -117,7 +117,7 @@ import type {
   KyowontourFinalParsed,
   KyowontourOptionalTourFromBody,
   KyowontourShoppingItemFromBody,
-} from '@/lib/kyowontour-stub'
+} from '@/lib/kyowontour-admin-preview-card-types'
 import { parseLocalDepartureTagArrayFromAdminBody } from '@/lib/product-listing-kind'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import {
