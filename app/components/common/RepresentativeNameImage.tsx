@@ -7,8 +7,9 @@ type Props = {
 }
 
 /**
- * 대표자 성명은 법적 표시를 위해 시각적으로만 노출 (자산: /images/footer/representative-name-mark.png).
- * alt/aria·메타에 성명 문자열을 넣지 않는다.
+ * 대표자 성명은 법적 표시를 위해 시각적으로만 노출 (자산: /images/footer/representative-name-mark.webp).
+ * 실명 문자열은 alt·aria·메타 어디에도 넣지 않는다.
+ * SEO·도구 점검을 위해 역할만 밝힌 alt(예: 주식회사 봉투어 대표)는 허용한다. 부모 span의 aria-hidden으로 스크린리더는 이 블록을 건너뛴다.
  */
 export default function RepresentativeNameImage({ className = '', compact = false }: Props) {
   const imgClass = compact
@@ -19,7 +20,7 @@ export default function RepresentativeNameImage({ className = '', compact = fals
     <span className={`inline-flex items-center align-middle ${className}`} aria-hidden="true">
       <SafeImage
         src="/images/footer/representative-name-mark.webp"
-        alt=""
+        alt="주식회사 봉투어 대표"
         width={220}
         height={36}
         sizes={compact ? '96px' : '140px'}
