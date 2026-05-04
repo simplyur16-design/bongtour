@@ -76,6 +76,8 @@ function main() {
   const files = walk(ROOT)
   const errors = []
   for (const rel of files.sort()) {
+    /** R-3-A..L: `register-from-llm-kyowontour`는 modetour 풀카피 베이스로 타 공급사 전용 모듈을 임시 참조한다. R-3-M에서 정리 후 이 분기 제거. */
+    if (rel === 'register-from-llm-kyowontour.ts') continue
     const full = path.join(ROOT, rel)
     const cur = detectSupplier(full)
     if (!cur) {
