@@ -886,7 +886,14 @@ export default function AdminProductDetailPage({
           <Link href="/admin/products" className="text-sm text-bt-meta hover:text-bt-inverse">
             ← 목록
           </Link>
-          <h1 className="max-w-xl truncate text-lg font-bold text-bt-inverse">{product.title}</h1>
+          <div className="flex min-w-0 max-w-2xl flex-col gap-0.5">
+            <h1 className="truncate text-lg font-bold text-bt-inverse">{product.title}</h1>
+            {product.originalTitle?.trim() && product.originalTitle.trim() !== (product.title ?? '').trim() ? (
+              <p className="truncate text-[11px] text-bt-subtle" title={product.originalTitle}>
+                공급사 원본 상품명: {product.originalTitle}
+              </p>
+            ) : null}
+          </div>
           {isEditMode && (
             <span className="inline-flex rounded-full border border-blue-300 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
               편집 모드

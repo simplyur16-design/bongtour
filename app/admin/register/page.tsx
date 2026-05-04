@@ -27,6 +27,7 @@ import type { RegisterPreviewPayload as RegisterPreviewPayloadV } from '@/lib/re
 import type { RegisterPreviewPayload as RegisterPreviewPayloadY } from '@/lib/register-preview-payload-ybtour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadKw } from '@/lib/register-preview-payload-kyowontour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadLt } from '@/lib/register-preview-payload-lottetour'
+import type { BongtourProductTitlePreviewFields } from '@/lib/bongtour-product-title-register-bridge'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
 import {
   CONTINENT_ID_TO_PRIMARY_REGION_KR,
@@ -109,13 +110,15 @@ type RegisterScheduleDay =
   | RegisterScheduleDayY
   | RegisterScheduleDayKw
   | RegisterScheduleDayLt
-type AdminRegisterPreviewPayload =
+type AdminRegisterPreviewPayload = (
   | RegisterPreviewPayloadH
   | RegisterPreviewPayloadM
   | RegisterPreviewPayloadV
   | RegisterPreviewPayloadY
   | RegisterPreviewPayloadKw
   | RegisterPreviewPayloadLt
+) &
+  Partial<BongtourProductTitlePreviewFields>
 type RegisterVerificationV1 =
   | RegisterVerificationV1H
   | RegisterVerificationV1M
@@ -894,6 +897,10 @@ export default function AdminRegisterPage() {
               snap.registerSnapshotId.trim() && { registerSnapshotId: snap.registerSnapshotId.trim() }),
             ...(typeof snap.registerAnalysisId === 'string' &&
               snap.registerAnalysisId.trim() && { registerAnalysisId: snap.registerAnalysisId.trim() }),
+            ...(typeof preview.bongtourProductTitle === 'string' &&
+              preview.bongtourProductTitle.trim() && {
+                bongtourProductTitle: preview.bongtourProductTitle.trim(),
+              }),
           }),
           signal: controller.signal,
         })
@@ -1694,6 +1701,42 @@ export default function AdminRegisterPage() {
                     <dt className="text-[11px] text-slate-500">상품명</dt>
                     <dd className="font-medium">{preview.productDraft.title}</dd>
                   </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-[11px] text-slate-500">봉투어 노출 상품명 (저장 시 Product.title)</dt>
+                    <dd className="font-medium text-slate-900">
+                      {preview.bongtourProductTitle?.trim()
+                        ? preview.bongtourProductTitle.trim()
+                        : '— (미생성 시 공급사 상품명으로 저장)'}
+                    </dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-[11px] text-slate-500">공급사 원본 (저장 시 Product.originalTitle)</dt>
+                    <dd className="text-slate-800">
+                      {(preview.originalProductTitle ?? preview.productDraft.title)?.trim() || '—'}
+                    </dd>
+                  </div>
+                  {preview.bongtourTitleValidation ? (
+                    <div className="sm:col-span-2 rounded border border-slate-200 bg-slate-50/80 p-2 text-[11px] text-slate-700">
+                      <p className="font-semibold text-slate-900">
+                        봉투어 상품명 검사{' '}
+                        {preview.bongtourTitleValidation.ok ? (
+                          <span className="text-emerald-700">통과</span>
+                        ) : (
+                          <span className="text-amber-800">참고</span>
+                        )}
+                        {preview.bongtourTitleToneVersion ? (
+                          <span className="ml-2 font-normal text-slate-500">({preview.bongtourTitleToneVersion})</span>
+                        ) : null}
+                      </p>
+                      {preview.bongtourTitleValidation.issues.length > 0 ? (
+                        <ul className="mt-1 list-inside list-disc text-[10px] text-slate-600">
+                          {preview.bongtourTitleValidation.issues.map((msg, i) => (
+                            <li key={`btitle_${i}`}>{msg}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div>
                     <dt className="text-[11px] text-slate-500">originCode</dt>
                     <dd>{preview.productDraft.originCode}</dd>

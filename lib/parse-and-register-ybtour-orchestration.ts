@@ -7,6 +7,10 @@ import {
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { prisma } from '@/lib/prisma'
 import { deriveProductLocationKeyFieldsForPrisma } from '@/lib/product-location-key-match'
+import {
+  buildBongtourProductTitleFieldsForRegisterPreview,
+  productTitlePairForRegisterConfirm,
+} from '@/lib/bongtour-product-title-register-bridge'
 import { requireAdmin } from '@/lib/require-admin'
 import {
   stripRegisterInternalArtifacts,
@@ -1313,6 +1317,14 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         pastedBlocksPreview: manualPasted.pastedBlocksPreview,
         brandKey,
       })
+      const scheduleTitlesForBongtour = schedule.map((d) => String(d.title ?? '').trim())
+      const bongtourTitleBlock = await buildBongtourProductTitleFieldsForRegisterPreview({
+        brandKey: forcedBrandKey,
+        originalProductTitle: parsed.title,
+        pastedBodyText: text,
+        duration: parsed.duration,
+        scheduleDayTitles: scheduleTitlesForBongtour,
+      })
       const previewPayload = {
         success: true as const,
         mode: 'preview' as const,
@@ -1331,6 +1343,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         correctionPreview,
         registerSnapshotId,
         registerAnalysisId: lastPipelineAnalysisId,
+        ...bongtourTitleBlock,
       }
       assertJsonSerializable(ctx, 'previewPayload', previewPayload)
       if (isDev) {
@@ -1414,9 +1427,10 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       heroReturnDateSource: heroAuditForMeta.returnSource,
     })
     const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
+    const titlePair = productTitlePairForRegisterConfirm(body, parsed.title)
     const registerHeroSeoInput = {
       rawBodyText: text,
-      title: parsed.title,
+      title: titlePair.prismaTitle,
       primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
       destination: parsed.destination,
       duration: parsed.duration,
@@ -1435,7 +1449,8 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
-      title: parsed.title,
+      title: titlePair.prismaTitle,
+      originalTitle: titlePair.prismaOriginalTitle,
       rawTitle: parsed.supplierListingTitleRaw ?? null,
       destination: parsed.destination,
       destinationRaw: parsed.destinationRaw?.trim() || parsed.destination?.trim() || null,
@@ -1495,7 +1510,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
           : null,
       ...registerListingMeta,
       ...deriveProductLocationKeyFieldsForPrisma({
-        title: parsed.title,
+        title: titlePair.prismaTitle,
         originSource: effectiveOriginSource,
         destination: parsed.destination,
         destinationRaw: parsed.destinationRaw?.trim() || parsed.destination?.trim() || null,

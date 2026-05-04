@@ -66,10 +66,10 @@ function normalizeForScan(s: string): string {
   return s.trim().toLowerCase()
 }
 
-/** 일수 토큰: `10일`, `3박 4일` 내 `4일`, `9일` 등 */
+/** 일수 토큰: `10일`, `3박 4일` 내 `4일`, `9일` 등 (JS `\\b`는 한글 경계에 부적합해 숫자-일 패턴만 본다) */
 export function titleHasDayCountToken(title: string): boolean {
   const t = title.trim()
-  if (/\d+\s*일\b/.test(t)) return true
+  if (/(?<!\d)\d+\s*일(?!\d)/.test(t)) return true
   if (/\d+\s*박\s*\d+\s*일/.test(t)) return true
   return false
 }
