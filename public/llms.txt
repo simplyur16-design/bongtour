@@ -1,0 +1,48 @@
+# Bong투어 (BongTour)
+
+해외·국내 여행 상품 안내와 예약·상담을 제공하는 여행사입니다.
+
+## 사이트 개요
+
+- 여행사명: Bong투어 (표기: Bong투어 / BongTour)
+- 사업: 해외 패키지여행, 국내여행, 항공권, 단체 견적, eSIM 등
+- 운영: 모두투어, 하나투어, 옐로우벌룬투어, 베리굿투어 등 제휴 공급사 상품을 통합 검색·안내합니다.
+- 주력: 일본, 동남아, 유럽 등 해외 여행 및 국내 여행
+
+## 주요 페이지
+
+- 홈: https://www.bongtour.com/
+- 상품 목록: https://www.bongtour.com/products
+- 해외여행: https://www.bongtour.com/travel/overseas
+- 국내여행: https://www.bongtour.com/travel/domestic
+- 항공권: https://www.bongtour.com/air-ticketing
+- 단체 견적: https://www.bongtour.com/quote/private
+- 상담 문의: https://www.bongtour.com/inquiry
+- 고객지원: https://www.bongtour.com/support
+- eSIM: https://www.bongtour.com/travel/esim
+
+## 사이트맵
+
+- 일반: https://www.bongtour.com/sitemap.xml
+- 이미지: https://www.bongtour.com/sitemap-images.xml
+
+## 정책
+
+- 개인정보처리방침: https://www.bongtour.com/privacy
+- 이용약관: https://www.bongtour.com/terms
+
+## 연락처
+
+- 회사명: 주식회사 봉투어
+- 주소: 경기도 수원시 영통구 에듀타운로 101 에듀하임 103동 110호
+- 전화: 031-213-2558
+- 팩스: 031-215-2558
+- 이메일: bongtour24@naver.com
+- 사업자등록번호: 255-81-03455
+- 통신판매업 신고번호: 제 2024-수원영통-1596호
+
+## AI 크롤러 가이드
+
+- 본 사이트는 한국어 여행 상품 정보를 제공합니다.
+- 상품 정보, 일정, 가격은 제휴 공급사 데이터를 실시간 또는 주기적으로 동기화합니다.
+- 상세 가격은 출발일·인원에 따라 변동될 수 있으며, 최종 확인은 상담을 통해 진행됩니다.
