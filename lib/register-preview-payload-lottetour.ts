@@ -1,8 +1,8 @@
 /** [lottetour] register-preview-payload */
 import type { DeparturePreviewRow } from '@/lib/departure-preview'
-import type { PricePromotionFieldIssue, PricePromotionSnapshot } from '@/lib/price-promotion-ybtour'
+import type { PricePromotionFieldIssue, PricePromotionSnapshot } from '@/lib/price-promotion-lottetour'
 import type { RegisterExtractionFieldIssue } from '@/lib/register-llm-schema-lottetour'
-import type { DayHotelPlan } from '@/lib/day-hotel-plans-ybtour'
+import type { DayHotelPlan } from '@/lib/day-hotel-plans-lottetour'
 import type { RegisterPreviewSsotMeta } from '@/lib/register-preview-ssot-lottetour'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import type { RegisterCorrectionPreviewV1 } from '@/lib/register-correction-types-lottetour'

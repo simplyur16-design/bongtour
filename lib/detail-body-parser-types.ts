@@ -187,6 +187,14 @@ export type DetailBodyParseSnapshot = {
     flightRaw: string | null
     /** `brandKey === 'hanatour'`일 때만 채움. 가격/좌석 필드화는 등록 파이프가 소비. */
     hanatourReservationStatus?: HanatourReservationStatusParsed | null
+    /** `detail-body-parser-lottetour`만 채움 — 본문·URL에서 선추출한 롯데관광 메타 */
+    lottetourBodyExtract?: {
+      godId?: string | null
+      evtCd?: string | null
+      categoryMenuNo?: { no1?: string; no2?: string; no3?: string; no4?: string } | null
+      meetingPlaceRaw?: string | null
+      seatUpgradeLines?: string[] | null
+    } | null
   }
   brandKey?: string | null
 }

@@ -12,7 +12,7 @@
  * - inboundArrivalAt: 날짜만 보강된 값은 시각·편명 검수 필요로 표시.
  */
 import type { DeparturePreviewRow } from '@/lib/departure-preview'
-import type { PricePromotionFieldIssue, PricePromotionSnapshot } from '@/lib/price-promotion-ybtour'
+import type { PricePromotionFieldIssue, PricePromotionSnapshot } from '@/lib/price-promotion-lottetour'
 import type { RegisterExtractionFieldIssue } from '@/lib/register-llm-schema-lottetour'
 
 export const REGISTER_PREVIEW_SSOT_POLICY_VERSION = '2025-03-26'

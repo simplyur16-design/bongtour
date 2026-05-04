@@ -87,15 +87,6 @@ function main() {
     for (const imp of imports) {
       const bad = forbiddenOtherMarkers(imp, cur)
       for (const o of bad) {
-        /** R-4-A~M: lottetour는 일부 ybtour 모듈을 임시 브리지로 사용. R-4-M에서 제거 후 이 분기 삭제. */
-        if (
-          cur === 'lottetour' &&
-          (rel.replace(/\\/g, '/').endsWith('register-from-llm-lottetour.ts') ||
-            rel.replace(/\\/g, '/').endsWith('register-parse-lottetour.ts')) &&
-          o === 'ybtour'
-        ) {
-          continue
-        }
         errors.push(`${rel}: 다른 공급사 import 의심 — "${imp}" (현재=${cur}, 금지 토큰=-${o})`)
       }
     }

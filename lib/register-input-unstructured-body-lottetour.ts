@@ -39,7 +39,7 @@ const SHOPPING_HEADER_ALIASES = {
     '노랑 쇼핑 횟수',
   ],
 } as const
-import { parseOptionalTourTableRowsFromRawText, parseShoppingStopsFromLines } from '@/lib/structured-tour-signals-ybtour'
+import { parseOptionalTourTableRowsFromRawText, parseShoppingStopsFromLines } from '@/lib/structured-tour-signals-lottetour'
 
 const OPTIONAL_BANNED = /(선택경비|마일리지|적립|안내|유의사항|본\s*상품은|진행되며|합류|조인|참고|환불규정)/i
 const OPTIONAL_SECTION_TITLE_ONLY = /^(선택관광|선택옵션|현지옵션|옵션투어|옵션관광)\s*$/i

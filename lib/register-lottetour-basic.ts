@@ -1,6 +1,6 @@
 /**
  * 롯데관광(lottetour) 기본정보: 포함사항·불포함사항·추가비용 블록(써차지·비자 등) 결정적 분리.
- * 롯데관광 등록은 상세 본문 슬라이스에 `detail-body-parser-ybtour` 브리지를 쓴다(R-4-C에서 전용 파서로 이관 가능).
+ * 롯데관광 등록은 상세 본문 슬라이스에 `detail-body-parser-lottetour`를 쓴다.
  */
 import type {
   DetailBodyParseSnapshot,
@@ -400,6 +400,31 @@ export function mergeLottetourMasterIdsFromBlob(parsed: RegisterParsed, blob: st
   const evt = extractLottetourEvtCdFromBlob(blob)
   if (evt && !String(next.evtCd ?? '').trim()) {
     next = { ...next, evtCd: evt }
+  }
+  return next
+}
+
+/** `detail-body-parser-lottetour`가 넣은 `raw.lottetourBodyExtract`를 RegisterParsed에 합류 */
+export function mergeLottetourDetailBodyExtractIntoParsed(
+  parsed: RegisterParsed,
+  detailBody: DetailBodyParseSnapshot | null | undefined
+): RegisterParsed {
+  const ex = detailBody?.raw?.lottetourBodyExtract
+  if (!ex) return parsed
+  let next = { ...parsed }
+  if (ex.godId && !String(next.godId ?? '').trim()) next = { ...next, godId: ex.godId }
+  if (ex.evtCd && !String(next.evtCd ?? '').trim()) next = { ...next, evtCd: ex.evtCd }
+  if (ex.categoryMenuNo && !next.categoryMenuNo) next = { ...next, categoryMenuNo: ex.categoryMenuNo }
+  const meet = (ex.meetingPlaceRaw ?? '').trim()
+  if (meet) {
+    if (!String(next.meetingPlaceRaw ?? '').trim()) next = { ...next, meetingPlaceRaw: meet }
+    if (!String(next.meetingInfo?.location ?? '').trim()) {
+      next = { ...next, meetingInfo: { ...(next.meetingInfo ?? {}), location: meet } }
+    }
+  }
+  const su = ex.seatUpgradeLines
+  if (su?.length && !(next.seatUpgradeOptions?.length)) {
+    next = { ...next, seatUpgradeOptions: [...su] }
   }
   return next
 }

@@ -1,15 +1,15 @@
 /**
  * 롯데관광 전용 등록 파싱 orchestration.
  *
- * **책임 분리:** `parseDetailBodyStructuredYbtour`(ybtour 상세 파서 브리지)는 본문 슬라이스·호텔·포함불포함만 책운다.
+ * **책임 분리:** `parseDetailBodyStructuredLottetour`는 본문 슬라이스·호텔·포함불포함만 책운다.
  * 항공·옵션·쇼핑 **구조화**는 이 파일에서 `register-input-parse-lottetour`로, **정형 입력란**(`pastedBlocks`) 기준으로만 수행한다.
  * 본문에 같은 표가 있어도 입력란이 비어 있으면 해당 축은 비어 있을 수 있다.
  *
- * @see docs/body-parser-ybtour-ssot.md — 롯데관광(lottetour) 등록 본문 상세 파싱은 동일 SSOT(ybtour 모듈 브리지).
+ * @see docs/body-parser-ybtour-ssot.md — 롯데관광(lottetour) 본문 축 SSOT(노랑풍선 베이스 문서·패턴 공유).
  *
  * 상위 규약: `docs/admin-register-supplier-precise-spec.md` §4. 일정 표현: `docs/register_schedule_expression_ssot.md`.
  */
-import { parseDetailBodyStructuredYbtour } from '@/lib/detail-body-parser-ybtour'
+import { parseDetailBodyStructuredLottetour } from '@/lib/detail-body-parser-lottetour'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import { parseForRegisterLlmLottetour } from '@/lib/register-from-llm-lottetour'
 import type { RegisterParsed } from '@/lib/register-llm-schema-lottetour'
@@ -19,7 +19,7 @@ import {
   parseLottetourOptionalInput,
   parseLottetourShoppingInput,
 } from '@/lib/register-input-parse-lottetour'
-import { buildDetailReviewPolicyYbtour } from '@/lib/review-policy-ybtour'
+import { buildDetailReviewPolicyLottetour } from '@/lib/review-policy-lottetour'
 import { finalizeLottetourRegisterParsedPricing } from '@/lib/register-lottetour-price'
 import { finalizeLottetourRegisterParsedShopping } from '@/lib/register-lottetour-shopping'
 import {
@@ -27,6 +27,7 @@ import {
   extractLottetourProductCodeFromBlob,
   logLottetourBasicDetailBody,
   logLottetourBasicRegisterFinal,
+  mergeLottetourDetailBodyExtractIntoParsed,
   mergeLottetourMasterIdsFromBlob,
 } from '@/lib/register-lottetour-basic'
 import { sanitizeLottetourRegisterParsedStrings } from '@/lib/register-lottetour-text-sanitize'
@@ -48,7 +49,7 @@ function mergeAirlineTransportPaste(
 }
 
 function refreshLottetourDetailBodyPolicy(detailBody: DetailBodyParseSnapshot): DetailBodyParseSnapshot {
-  const policy = buildDetailReviewPolicyYbtour({
+  const policy = buildDetailReviewPolicyLottetour({
     sections: detailBody.sections,
     flightStructured: detailBody.flightStructured,
     hotelStructured: detailBody.hotelStructured,
@@ -96,7 +97,7 @@ export async function parseForRegisterLottetour(
   console.log(
     `[lottetour] phase=parse-for-register entry fn=parseForRegisterLottetour originSource_preview=${JSON.stringify(osPrev)} rawText_len=${rawText?.length ?? 0}`
   )
-  let detailBody = parseDetailBodyStructuredYbtour({
+  let detailBody = parseDetailBodyStructuredLottetour({
     rawText,
     hotelRaw: options?.pastedBlocks?.hotel ?? null,
     optionalRaw: options?.pastedBlocks?.optionalTour ?? null,
@@ -127,6 +128,7 @@ export async function parseForRegisterLottetour(
   parsed = finalizeLottetourRegisterParsedShopping(parsed)
   parsed = applyLottetourStructuredPreviewFields(parsed)
   parsed = mergeLottetourMasterIdsFromBlob(parsed, rawText)
+  parsed = mergeLottetourDetailBodyExtractIntoParsed(parsed, detailBody)
 
   const originBlobCode = extractLottetourProductCodeFromBlob(rawText)
   if (originBlobCode && !(parsed.originCode ?? '').trim()) {

@@ -32,6 +32,7 @@ function legCoreCount(leg: FlightLeg): number {
 /**
  * 롯데관광(lottetour) 관리자 항공 붙여넣기 전용 — `출발`/`도착` 블록·편명·공항·일시.
  * (공용 `parseFlightSectionGeneric` 미사용)
+ * 한국 출발/한국 도착 한 줄 형식·플레이스홀더 편명(예: KE0000)은 추출 후 `partial`·검수로 둔다.
  */
 export function parseFlightSectionLottetour(
   section: string,

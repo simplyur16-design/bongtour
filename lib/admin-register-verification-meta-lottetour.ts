@@ -6,7 +6,7 @@
 import { createHash } from 'crypto'
 import type { RegisterParsed } from '@/lib/register-llm-schema-lottetour'
 import type { RegisterPreviewProductDraft } from '@/lib/register-preview-payload-lottetour'
-import type { PricePromotionFieldIssue } from '@/lib/price-promotion-ybtour'
+import type { PricePromotionFieldIssue } from '@/lib/price-promotion-lottetour'
 import type { RegisterExtractionFieldIssue } from '@/lib/register-llm-schema-lottetour'
 import { normalizeFlightLabelForPublicDisplay } from '@/lib/text-encoding-guard'
 import type { RegisterVerificationShoppingRowDisplay } from '@/lib/admin-register-verification-display-types'

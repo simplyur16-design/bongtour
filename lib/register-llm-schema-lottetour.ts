@@ -4,9 +4,9 @@
  * Gemini·프롬프트·병합 본체는 `register-from-llm-*.ts` 공급사별 파일을 사용한다.
  */
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
-import type { DayHotelPlan } from '@/lib/day-hotel-plans-ybtour'
+import type { DayHotelPlan } from '@/lib/day-hotel-plans-lottetour'
 import type { ParsedProductPrice } from './parsed-product-types'
-import type { PricePromotionSnapshot } from './price-promotion-ybtour'
+import type { PricePromotionSnapshot } from './price-promotion-lottetour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-lottetour'
 
 /** 롯데관광(lottetour) 본문 메타 — R-4-A 스키마 확장 */
