@@ -35,7 +35,9 @@ model Product {
   originSource          String         // 여행사 표시명 (하나투어, 모두투어 등)
   originCode            String         // 공급사 상품코드. 유니크: @@unique([originSource, originCode])
   originUrl             String?        // 원본 상세페이지 URL (추적/중복체크, 유니크 아님)
-  title                 String         // 상품명
+  title                 String         // 봉투어 톤 노출 상품명(R-5 이후 신규 등록). 기존 행은 공급사 원문 유지
+  /// 공급사 파싱·원문 상품명(R-5). 신규 등록 시 채움. 기존 행은 null
+  originalTitle         String?
   destination           String?        // [레거시] 목적지. 신규는 destinationRaw/primaryDestination
   destinationRaw        String?        // 목적지 표기 원문 (A 상세)
   primaryDestination    String?        // 대표 목적지 정규화값, 노출·필터용 (운영 메타)
