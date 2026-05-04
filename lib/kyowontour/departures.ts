@@ -1,7 +1,9 @@
 /**
  * 교원이지(kyowontour) — 출발일 캘린더 `/goods/differentDepartDate` HTTP 수집 (Phase 2-D).
- * 실패 시 명시적 에러 → Phase 2-E E2E(Selenium 등) fallback 연결 신호.
+ * Phase 2-E: HTTP 0건·일부 실패·E2E 힌트 시 Python Selenium 스크래퍼 spawn fallback.
  */
+import { spawn } from 'node:child_process'
+
 import { normalizeCalendarDate } from '@/lib/date-normalize'
 import type { ProductDepartureInput } from '@/lib/kyowontour/upsert-departures'
 
@@ -45,6 +47,174 @@ export type KyowontourCalendarRangeOptions = KyowontourCalendarFetchOptions & {
   monthCount?: number
   /** 시작 월 (1일 기준, 기본: UTC 기준 이번 달) */
   startMonth?: Date
+  /**
+   * HTTP로 `dayAirList`가 비거나(잘못된 masterCode 등) E2E 힌트 오류 시
+   * `python -m scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper` 1회 시도.
+   */
+  tourCodeForE2EFallback?: string
+  disableE2EFallback?: boolean
+  /** E2E에만 전달(이미 알고 있는 masterCode 프리필) */
+  e2eMasterCodeHint?: string | null
+}
+
+const DEFAULT_E2E_TIMEOUT_MS = Math.min(
+  600_000,
+  Math.max(60_000, Number(process.env.KYOWONTOUR_E2E_TIMEOUT_MS) || 120_000)
+)
+
+export type KyowontourE2EScraperNodeOptions = {
+  months?: number
+  masterCodeHint?: string | null
+  dateFrom?: string | null
+  dateTo?: string | null
+  timeoutMs?: number
+}
+
+export type KyowontourE2EScraperResult = {
+  rows: KyowontourCalendarRow[]
+  warnings: string[]
+  masterCode?: string
+}
+
+function e2eRowToKyowontour(r: Record<string, unknown>): KyowontourCalendarRow {
+  const stRaw = String(r.status ?? 'unknown')
+  const status: KyowontourCalendarRow['status'] =
+    stRaw === 'available' || stRaw === 'soldout' || stRaw === 'closed' ? stRaw : 'unknown'
+  const adult =
+    typeof r.adultPriceFromCalendar === 'number' && Number.isFinite(r.adultPriceFromCalendar)
+      ? r.adultPriceFromCalendar
+      : typeof r.adultPrice === 'number' && Number.isFinite(r.adultPrice)
+        ? r.adultPrice
+        : (() => {
+            const n = Number(r.adultPrice ?? r.adultPriceFromCalendar ?? 0)
+            return Number.isFinite(n) ? Math.round(n) : 0
+          })()
+  const raw = r.rawJson
+  return {
+    departDate: String(r.departDate ?? ''),
+    returnDate: String(r.returnDate ?? ''),
+    tourCode: String(r.tourCode ?? ''),
+    airline: String(r.airline ?? ''),
+    adultPriceFromCalendar: adult,
+    status,
+    rawJson: raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as object) : {},
+  }
+}
+
+function parseE2eStdoutPayload(text: string): KyowontourE2EScraperResult {
+  const trimmed = text.trim()
+  let payload: unknown
+  try {
+    payload = JSON.parse(trimmed) as unknown
+  } catch {
+    const lines = trimmed.split(/\n/).filter(Boolean)
+    const last = lines[lines.length - 1]
+    payload = JSON.parse(last) as unknown
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new KyowontourCalendarParseError('E2E stdout: JSON 루트가 객체가 아님', snippet(trimmed))
+  }
+  const o = payload as Record<string, unknown>
+  if (o.phase === 'error') {
+    throw new KyowontourCalendarParseError(String(o.message ?? 'E2E phase=error'), snippet(trimmed))
+  }
+  if (o.phase !== 'rows') {
+    throw new KyowontourCalendarParseError(`E2E stdout: 예상 phase=rows, got=${String(o.phase)}`, snippet(trimmed))
+  }
+  const wr = Array.isArray(o.warnings) ? o.warnings.map((x) => String(x)) : []
+  const rowsRaw = o.rows
+  const rows: KyowontourCalendarRow[] = []
+  if (Array.isArray(rowsRaw)) {
+    for (const item of rowsRaw) {
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        rows.push(e2eRowToKyowontour(item as Record<string, unknown>))
+      }
+    }
+  }
+  const masterCode = typeof o.masterCode === 'string' && o.masterCode.trim() ? o.masterCode.trim() : undefined
+  return { rows, warnings: wr, masterCode }
+}
+
+/**
+ * Python Selenium 스크래퍼 1회 실행 → `KyowontourCalendarRow[]`.
+ * `cwd`는 저장소 루트, `python -m scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper`.
+ */
+export async function runKyowontourE2EScraper(
+  tourCode: string,
+  options?: KyowontourE2EScraperNodeOptions
+): Promise<KyowontourE2EScraperResult> {
+  const py = (process.env.KYOWONTOUR_PYTHON ?? 'python').trim() || 'python'
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_E2E_TIMEOUT_MS
+  const args = ['-m', 'scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper', '--tour-code', tourCode.trim()]
+  if (options?.masterCodeHint?.trim()) {
+    args.push('--master-code', options.masterCodeHint.trim())
+  }
+  const months = options?.months != null && Number.isFinite(options.months) ? Math.max(1, Math.floor(options.months)) : undefined
+  if (months != null) args.push('--months', String(months))
+  if (options?.dateFrom?.trim()) args.push('--from', options.dateFrom.trim())
+  if (options?.dateTo?.trim()) args.push('--to', options.dateTo.trim())
+
+  const cwd = process.cwd()
+  const stderrChunks: Buffer[] = []
+  const stdoutChunks: Buffer[] = []
+
+  await new Promise<void>((resolve, reject) => {
+    let settled = false
+    const proc = spawn(py, args, {
+      cwd,
+      env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' },
+      shell: false,
+    })
+    const finish = (fn: () => void) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      fn()
+    }
+    const timer = setTimeout(() => {
+      try {
+        proc.kill('SIGTERM')
+      } catch {
+        /* ignore */
+      }
+      finish(() =>
+        reject(
+          new KyowontourCalendarHttpError(
+            `E2E subprocess timeout ${timeoutMs}ms`,
+            undefined,
+            undefined,
+            'E2E_FALLBACK_SUGGESTED'
+          )
+        )
+      )
+    }, timeoutMs)
+    proc.stdout.on('data', (c: Buffer) => stdoutChunks.push(c))
+    proc.stderr.on('data', (c: Buffer) => stderrChunks.push(c))
+    proc.on('error', (err) => {
+      finish(() => reject(err))
+    })
+    proc.on('close', (code) => {
+      const errText = Buffer.concat(stderrChunks).toString('utf8').trim()
+      if (code !== 0 && errText) {
+        console.warn('[kyowontour-e2e][stderr]', errText.slice(0, 4000))
+      }
+      if (code !== 0) {
+        finish(() =>
+          reject(
+            new KyowontourCalendarParseError(
+              `E2E exit code=${code ?? 'null'}`,
+              Buffer.concat(stdoutChunks).toString('utf8').slice(0, 800)
+            )
+          )
+        )
+        return
+      }
+      finish(() => resolve())
+    })
+  })
+
+  const outText = Buffer.concat(stdoutChunks).toString('utf8')
+  return parseE2eStdoutPayload(outText)
 }
 
 export class KyowontourCalendarHttpError extends Error {
@@ -460,14 +630,45 @@ export async function collectKyowontourCalendarRange(
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       warnings.push(`월 ${monthYmd} 수집 실패: ${msg}`)
-      if (KyowontourCalendarHttpError.is(e) && e.status && e.status < 500) {
+      const canE2e =
+        Boolean(options?.tourCodeForE2EFallback) &&
+        !options?.disableE2EFallback &&
+        (KyowontourCalendarParseError.is(e) ||
+          (KyowontourCalendarHttpError.is(e) && e.hint === 'E2E_FALLBACK_SUGGESTED'))
+      if (KyowontourCalendarHttpError.is(e) && e.status && e.status < 500 && !canE2e) {
         throw e
       }
-      if (i === 0) throw e
+      if (i === 0 && !canE2e) throw e
+      if (canE2e && i === 0) {
+        warnings.push('[kyowontour] 첫 월 HTTP 실패·E2E로 재시도하기 위해 월 순회 중단')
+        break
+      }
     }
   }
 
-  const rows = [...byKey.values()].sort((a, b) => a.departDate.localeCompare(b.departDate))
+  let rows = [...byKey.values()].sort((a, b) => a.departDate.localeCompare(b.departDate))
+
+  if (
+    rows.length === 0 &&
+    options?.tourCodeForE2EFallback &&
+    !options?.disableE2EFallback
+  ) {
+    warnings.push('[kyowontour] HTTP 수집 0행 — Selenium E2E fallback 시도')
+    try {
+      const e2e = await runKyowontourE2EScraper(options.tourCodeForE2EFallback, {
+        months: monthCount,
+        masterCodeHint: options.e2eMasterCodeHint ?? undefined,
+        dateFrom: process.env.KYOWONTOUR_DATE_FROM ?? null,
+        dateTo: process.env.KYOWONTOUR_DATE_TO ?? null,
+      })
+      rows = e2e.rows
+      warnings.push(...e2e.warnings)
+      if (e2e.masterCode) warnings.push(`[kyowontour] E2E masterCode=${e2e.masterCode}`)
+    } catch (err) {
+      warnings.push(`[kyowontour] E2E fallback 실패: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+
   return { rows, warnings }
 }
 
