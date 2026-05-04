@@ -400,6 +400,19 @@ export async function executeRangeOnDemandDepartures(
   const bk = normalizeBrandKeyToCanonicalSupplierKey(product.brand?.brandKey ?? null)
   const norm = normalizeSupplierOrigin(product.originSource ?? '')
 
+  if (bk === 'lottetour' || norm === 'lottetour') {
+    return {
+      status: 503,
+      body: {
+        ok: false,
+        reason: 'lottetour_fullcopy_pending',
+        error: '롯데관광 출발일 라이브 재수집은 R-4-H 완료 후 사용할 수 있습니다.',
+        departureDate: ymd,
+        fetchedRange,
+      },
+    }
+  }
+
   let livesRange: DepartureInput[] = []
   if (bk === 'hanatour' || norm === 'hanatour') {
     livesRange = await collectHanatourDepartureInputsForDateRange(detailUrl, fromYmd, toYmd)

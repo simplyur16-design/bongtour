@@ -26,8 +26,9 @@ const execFileAsync = promisify(execFile)
 const HANATOUR_BASE = process.env.HANATOUR_BASE_URL ?? 'https://www.hanatour.com'
 const MODETOUR_BASE = process.env.MODETOUR_BASE_URL ?? 'https://www.modetour.com'
 const VERYGOODTOUR_BASE = process.env.VERYGOODTOUR_BASE_URL ?? 'https://www.verygoodtour.com'
+const LOTTETOUR_BASE = process.env.LOTTETOUR_BASE_URL ?? 'https://www.lottetour.com'
 
-export type DepartureRescrapeSite = 'hanatour' | 'modetour' | 'verygoodtour' | 'ybtour' | 'kyowontour'
+export type DepartureRescrapeSite = 'hanatour' | 'modetour' | 'verygoodtour' | 'ybtour' | 'kyowontour' | 'lottetour'
 
 export type DepartureRescrapeResult = {
   mode: 'live-rescrape' | 'fallback-rebuild'
@@ -39,6 +40,7 @@ export type DepartureRescrapeResult = {
     | 'ybtour-calendar-scraper'
     | 'product-price-rebuild'
     | 'kyowontour-differentDepartDate'
+    | 'lottetour-fullcopy-pending'
   inputs: DepartureInput[]
   attemptedLive: boolean
   liveError?: string | null
@@ -88,7 +90,7 @@ function deriveFillMeta(inputs: DepartureInput[]): { filledFields: string[]; mis
  */
 function calendarE2eSiteFromOrigin(originSource: string): DepartureRescrapeSite {
   const n = normalizeSupplierOrigin(originSource)
-  if (n === 'modetour' || n === 'verygoodtour' || n === 'ybtour' || n === 'kyowontour') return n
+  if (n === 'modetour' || n === 'verygoodtour' || n === 'ybtour' || n === 'kyowontour' || n === 'lottetour') return n
   return 'hanatour'
 }
 
@@ -518,6 +520,26 @@ export async function collectDepartureInputsForAdminRescrape(
   })()
   let liveError: string | null = null
   let attemptedLive = false
+
+  if (site === 'lottetour') {
+    attemptedLive = true
+    const fillMeta = deriveFillMeta([])
+    return {
+      mode: 'live-rescrape',
+      source: 'lottetour-fullcopy-pending',
+      inputs: [],
+      attemptedLive,
+      liveError: '롯데관광 출발일 라이브 재수집은 R-4-H(evtListAjax·HTML 캘린더) 완료 후 사용할 수 있습니다.',
+      filledFields: fillMeta.filledFields,
+      missingFields: fillMeta.missingFields,
+      mappingStatus: 'detail-candidate-found-but-unmapped',
+      notes: ['lottetour 풀카피 진행 중 (R-4)'],
+      site,
+      detailUrl: detailUrlForTrace,
+      detailUrlSummary,
+      collectorStatus: null,
+    }
+  }
 
   if (site === 'kyowontour') {
     attemptedLive = true

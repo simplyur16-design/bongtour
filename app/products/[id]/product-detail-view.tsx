@@ -147,6 +147,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return flightManualYbtour
       case 'kyowontour':
         return flightManualKyowontour
+      case 'lottetour':
+        return flightManualHanatour
       default:
         return flightManualHanatour
     }
@@ -162,6 +164,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return dayHotelYbtour
       case 'kyowontour':
         return dayHotelKyowontour
+      case 'lottetour':
+        return dayHotelHanatour
       default:
         return dayHotelHanatour
     }
@@ -177,6 +181,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return priceRowsYbtour
       case 'kyowontour':
         return priceRowsKyowontour
+      case 'lottetour':
+        return priceRowsHanatour
       default:
         return priceRowsHanatour
     }
@@ -311,6 +317,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return publicConsumptionYbtour.resolveShoppingConsumption(input)
       case 'kyowontour':
         return publicConsumptionKyowontour.resolveShoppingConsumption(input)
+      case 'lottetour':
+        return publicConsumptionHanatour.resolveShoppingConsumption(input)
       default:
         return publicConsumptionHanatour.resolveShoppingConsumption(input)
     }
@@ -329,6 +337,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return publicConsumptionYbtour.resolveOptionalToursConsumption(input)
       case 'kyowontour':
         return publicConsumptionKyowontour.resolveOptionalToursConsumption(input)
+      case 'lottetour':
+        return publicConsumptionHanatour.resolveOptionalToursConsumption(input)
       default:
         return publicConsumptionHanatour.resolveOptionalToursConsumption(input)
     }
@@ -349,6 +359,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return publicConsumptionYbtour.resolveHotelConsumption(input)
       case 'kyowontour':
         return publicConsumptionKyowontour.resolveHotelConsumption(input)
+      case 'lottetour':
+        return publicConsumptionHanatour.resolveHotelConsumption(input)
       default:
         return publicConsumptionHanatour.resolveHotelConsumption(input)
     }

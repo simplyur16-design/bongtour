@@ -128,6 +128,8 @@ function buildRegisterCanonForSupplier(
       return buildRegisterCanonY(input)
     case 'kyowontour':
       return buildRegisterCanonKw(input)
+    case 'lottetour':
+      return buildRegisterCanonY(input)
     default: {
       const _e: never = k
       return _e
@@ -150,6 +152,8 @@ function registerPreviewSsotBadgeLabelForSupplier(
       return registerPreviewSsotBadgeLabelY(b)
     case 'kyowontour':
       return registerPreviewSsotBadgeLabelKw(b)
+    case 'lottetour':
+      return registerPreviewSsotBadgeLabelY(b)
     default: {
       const _e: never = k
       return _e
@@ -176,6 +180,8 @@ function applyRegisterCorrectionOverlayForSupplier(
         parsed as RegisterParsedKw,
         overlay as Parameters<typeof applyRegisterCorrectionOverlayKw>[1]
       ) as RegisterParsed
+    case 'lottetour':
+      return parsed
     default: {
       const _e: never = k
       return _e
@@ -370,6 +376,8 @@ function parseRegisterApiPath(brandKey: AdminRegisterSupplierKey): string {
       return '/api/travel/parse-and-register-hanatour'
     case 'kyowontour':
       return '/api/travel/parse-and-register-kyowontour'
+    case 'lottetour':
+      return '/api/travel/parse-and-register-lottetour'
     default: {
       const _e: never = brandKey
       throw new Error(`Unexpected register supplier: ${_e}`)
@@ -619,6 +627,10 @@ export default function AdminRegisterPage() {
     const urlToCheck = normalizeUrl(originUrl)
     /** 전용 등록 API·route guard SSOT — `normalizeSupplierOrigin` 기대 키와 동일한 문자열 */
     const originSource = selectedBrandKey
+    if (selectedBrandKey === 'lottetour') {
+      setError('롯데관광 등록 기능 풀카피 작업 중입니다. R-4-D 완료 후 사용할 수 있습니다.')
+      return
+    }
     if (!rawText.trim()) {
       setError('공급사 상세 본문을 붙여넣어 주세요.')
       return
@@ -770,6 +782,10 @@ export default function AdminRegisterPage() {
   }
 
   async function handleConfirmRegister() {
+    if (selectedBrandKey === 'lottetour') {
+      setError('롯데관광 등록 기능 풀카피 작업 중입니다. R-4-D 완료 후 사용할 수 있습니다.')
+      return
+    }
     if (!preview || !parsedForConfirm) return
     if (!preview.previewToken) {
       setError('미리보기 토큰이 없습니다. 미리보기를 다시 실행한 뒤 저장하세요.')

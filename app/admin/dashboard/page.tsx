@@ -71,6 +71,7 @@ export default function AdminDashboardPage() {
     { brandKey: 'ybtour', displayName: '노랑풍선' },
     { brandKey: 'verygoodtour', displayName: '참좋은여행사' },
     { brandKey: 'kyowontour', displayName: '교보이지' },
+    { brandKey: 'lottetour', displayName: '롯데관광' },
     { brandKey: 'other', displayName: '기타' },
   ])
   const [primaryDestination, setPrimaryDestination] = useState('')

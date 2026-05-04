@@ -15,6 +15,7 @@ export const OVERSEAS_SUPPLIER_LABEL: Record<OverseasSupplierKey, string> = {
   verygoodtour: '참좋은여행사',
   ybtour: '노랑풍선',
   kyowontour: '교보이지',
+  lottetour: '롯데관광',
   etc: '기타 공급사',
 }
 
@@ -55,11 +56,20 @@ const PATTERN_RULES: { key: CanonicalOverseasSupplierKey; patterns: RegExp[] }[]
       /교보\s*이지/i,
     ],
   },
+  {
+    key: 'lottetour',
+    patterns: [
+      /\blottetour\b/i,
+      /롯데관광/i,
+      /롯데\s*관광/i,
+      /lotte\s*tour/i,
+    ],
+  },
 ]
 
 /**
  * @returns 내부 공급사 키. 어떤 규칙에도 안 맞으면 `etc`.
- * 1) canonical 4종(ASCII, 대소문자 무시) → 해당 키
+ * 1) canonical 해외 공급사 ASCII 키(대소문자 무시) → 해당 키
  * 2) 레거시 전체 문자열 별칭(예: yellowballoon)
  * 3) 표시명·흔한 표기 패턴
  */

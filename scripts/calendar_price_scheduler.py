@@ -73,11 +73,19 @@ def _calendar_module_for_site(site: str) -> str:
     raw = (site or "hanatour").strip().lower()
     if raw == "yellowballoon":
         raw = "ybtour"
+    if raw == "lottetour":
+        raise ValueError(
+            "lottetour: 달력 배치 스크립트는 R-4-I에서 scripts.calendar_e2e_scraper_lottetour 로 연결됩니다."
+        )
     return _CALENDAR_MODULE_BY_SITE.get(raw) or _CALENDAR_MODULE_BY_SITE["hanatour"]
 
 
 def _run_calendar_price_from_url(detail_url: str, site: str, headless: bool) -> Any:
     s = (site or "").strip().lower()
+    if s == "lottetour":
+        raise ValueError(
+            "lottetour: 달력 스크랩은 R-4-I 이전에 실행하지 마세요. (R-4-H evtListAjax 연동 후)"
+        )
     if s == "kyowontour":
         from scripts.calendar_e2e_scraper_kyowontour import config as kcfg
         from scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper import run_scrape

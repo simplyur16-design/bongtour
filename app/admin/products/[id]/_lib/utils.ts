@@ -33,6 +33,8 @@ export function fmcModuleForAdminProduct(
       return fmcVerygood
     case 'ybtour':
       return fmcYbtour
+    case 'lottetour':
+      return fmcHanatour
     default:
       return fmcHanatour
   }
@@ -47,6 +49,8 @@ const REGISTER_PUBLIC_PAGE_TRACE_BULLETS_BY_MODULE: Record<
   verygoodtour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_VERYGOODTOUR,
   ybtour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_YBTOUR,
   kyowontour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_HANATOUR,
+  /** R-4-L: 롯데관광 전용 불릿 연결 전까지 하나투어 불릿을 임시 표시 */
+  lottetour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_HANATOUR,
 }
 
 export function registerPublicPageTraceBulletsForProduct(

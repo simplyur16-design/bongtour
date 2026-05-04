@@ -5,7 +5,13 @@
  */
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 
-export type RegisterSupplierFrameKey = 'modetour' | 'verygoodtour' | 'hanatour' | 'ybtour' | 'kyowontour'
+export type RegisterSupplierFrameKey =
+  | 'modetour'
+  | 'verygoodtour'
+  | 'hanatour'
+  | 'ybtour'
+  | 'kyowontour'
+  | 'lottetour'
 
 export type RegisterPastePlaceholders = {
   body: string
@@ -291,6 +297,66 @@ const YELLOW: SupplierInputFrameSpec = {
 }
 
 /** 교보이지(kyowontour) — 정형칸 SSOT (본문 LLM과 분리). */
+/** 롯데관광(lottetour) — 상세 URL·마스터/행사 이원·정형칸 SSOT (교보이지 프레임을 베이스로 사이트 구조만 반영). */
+const LOTTETOUR: SupplierInputFrameSpec = {
+  displayName: '롯데관광',
+  axes: [
+    {
+      axis: '본문(LLM)',
+      shape: '서술 전용 (DAY n·포함/불포함·일정표 SSR)',
+      slots:
+        '담당: 일정·관광·식사·이동·포함/불포함·인솔자·주의사항. 비담당: 항공·호텔·옵션·쇼핑 확정 데이터는 아래 정형칸이 우선(SSOT). 상품 URL은 `originUrl`에 `/evtDetail/{menuNo1}/{menuNo2}/{menuNo3}/{menuNo4}?evtCd=…` 형태로 저장.',
+    },
+    {
+      axis: '항공',
+      shape: '한국출발 / 한국도착 블록 (전세기·KE0000 placeholder 가능)',
+      slots:
+        '항공사·편명(placeholder 포함). 한국출발·현지도착·현지출발·한국도착 일시·공항. 정형칸이 있으면 본문 항공 추출보다 우선.',
+    },
+    {
+      axis: '호텔',
+      shape: '도시별 예정·다후보·[미정]',
+      slots: '도시별 호텔 후보(최대 4안)·[미정]·동급 변경 문구. 일정표 SSR과 정형칸 병행 시 표가 우선.',
+    },
+    {
+      axis: '옵션',
+      shape: '유로/원 표 + 소요시간 + 인솔자 동행 여부',
+      slots: '선택관광명 | 통화·1인요금 | 소요시간 | 대체일정 | 인솔자 동행(미동반 등).',
+    },
+    {
+      axis: '쇼핑',
+      shape: '품목·장소·시간·환불',
+      slots: '쇼핑 횟수 요약(선택) | 품목 | 장소 | 소요시간 | 환불 가능 여부.',
+    },
+  ],
+  placeholders: {
+    body: ph([
+      '[롯데관광 본문 — LLM·서술]',
+      'originUrl 예: https://www.lottetour.com/evtDetail/826/854/1000/4900?evtCd=E01A260624KE007',
+      '식별: godId(마스터)=65222, evtCd(행사·팀)=E01A260624KE007, menuNo1~4=826/854/1000/4900',
+      '일차별 DAY 1~DAY n, 포함/불포함, 인솔자·현지필수경비(불포함) 등.',
+    ]),
+    airlineTransport: ph([
+      '항공사: 대한항공 (전세기)',
+      '한국출발: 2026-06-24(수) 11:40 KE0000 인천 → …',
+      '한국도착: 2026-07-02(목) 13:35 KE0000 인천',
+      '(KE0000 등 placeholder는 정형칸·파서에서 사이트 스크랩 결과로 치환)',
+    ]),
+    hotel: ph([
+      '도시 | 예정 호텔 후보(미정 가능)',
+      '베니스 | A호텔 / B호텔 / C호텔 / D호텔 또는 [미정]',
+    ]),
+    optionalTour: ph([
+      '선택관광명 | 1인요금 | 소요시간 | 인솔자',
+      '베니스 곤돌라 | €60 | 약 40분 | 미동반',
+    ]),
+    shopping: ph([
+      '쇼핑 횟수(요약)',
+      '품목 | 장소 | 시간 | 환불',
+    ]),
+  },
+}
+
 const KYOWONTOUR: SupplierInputFrameSpec = {
   displayName: '교보이지',
   axes: [
@@ -362,9 +428,10 @@ const SPECS: Record<RegisterSupplierFrameKey, SupplierInputFrameSpec> = {
   hanatour: HANATOUR,
   ybtour: YELLOW,
   kyowontour: KYOWONTOUR,
+  lottetour: LOTTETOUR,
 }
 
-/** canonical 5공급사는 전용 프레임. 그 외·비표준 키는 하나투어 프레임으로 안내 */
+/** canonical 해외 공급사는 전용 프레임. 그 외·비표준 키는 하나투어 프레임으로 안내 */
 export function registerSupplierFrameKey(brandKey: string | null | undefined): RegisterSupplierFrameKey {
   const canon = normalizeBrandKeyToCanonicalSupplierKey(brandKey)
   if (canon) return canon
