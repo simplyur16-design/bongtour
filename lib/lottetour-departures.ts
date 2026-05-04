@@ -5,9 +5,13 @@
  * 동일 출발일에 evtCd(팀)가 N개인 경우 수집은 전부 유지하고, `mapLottetourCalendarToDepartureInputs`에서
  * upsert 입력 정렬 규칙(R-4-D 옵션 A: 동일 날짜 마지막 행 우선)에 맞게 supplierPriceKey를 둔다.
  *
- * HTML만으로 0건이고 `e2eTourCodeHint`가 있으면 R-4-I(Python E2E) 폴백을 시도할 수 있으나,
- * R-4-H 범위에서는 TS만 두고 폴백은 주석·경고 메시지로 남긴다.
+ * HTML만으로 0건이고 `e2eTourCodeHint`가 있으며 `LOTTETOUR_E2E_FALLBACK`이 꺼지지 않았으면
+ * `scripts.calendar_e2e_scraper_lottetour.calendar_price_scraper`를 subprocess로 한 번 호출한다.
  */
+import { execFile } from 'child_process'
+import fs from 'fs'
+import path from 'path'
+import { promisify } from 'util'
 import type { PrismaClient } from '@prisma/client'
 import {
   buildCommonMatchingTrace,
@@ -17,6 +21,10 @@ import {
 import { extractLottetourMasterIdsFromBlob } from '@/lib/lottetour-paste-deterministic-patch'
 import type { DepartureInput } from '@/lib/upsert-product-departures-lottetour'
 import { upsertProductDepartures } from '@/lib/upsert-product-departures-lottetour'
+import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
+
+const execFileAsync = promisify(execFile)
+const LOTTETOUR_CALENDAR_PY_MODULE = 'scripts.calendar_e2e_scraper_lottetour.calendar_price_scraper'
 
 const DEFAULT_BASE = 'https://www.lottetour.com'
 const DEFAULT_TIMEOUT_MS = 25_000
@@ -56,7 +64,7 @@ export type LottetourCalendarRangeOptions = {
   monthCount?: number
   /** 첫 월 `YYYY-MM` (없으면 당월·`LOTTETOUR_DATE_FROM`) */
   dateFrom?: string | null
-  /** R-4-I: Python E2E 힌트(이번 TS 모듈에서는 미사용, 경고만) */
+  /** R-4-I: evtCd 등 힌트 — TS HTML 수집 0건일 때 Python E2E 폴백 트리거에 사용 */
   e2eTourCodeHint?: string | null
   disableE2EFallback?: boolean
   maxEvtCnt?: number
@@ -139,6 +147,168 @@ export function departDateFromLottetourEvtCd(evtCd: string): string | null {
   const dd = six.slice(4, 6)
   const yyyy = yy2 >= 70 ? 1900 + yy2 : 2000 + yy2
   return `${yyyy}-${mm}-${dd}`
+}
+
+function resolveLottetourPythonRepoRoot(): string {
+  const fromEnv = (process.env.BONGTOUR_REPO_ROOT ?? process.env.LOTTETOUR_REPO_ROOT ?? '').trim()
+  if (fromEnv) return path.resolve(fromEnv)
+  const markerRel = path.join('scripts', 'calendar_e2e_scraper_lottetour', 'calendar_price_scraper.py')
+  let dir = path.resolve(process.cwd())
+  for (let i = 0; i < 12; i++) {
+    try {
+      if (fs.existsSync(path.join(dir, markerRel))) return dir
+    } catch {
+      /* ignore */
+    }
+    const parent = path.dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  return path.resolve(process.cwd())
+}
+
+function lottetourE2eFallbackEnabled(): boolean {
+  const v = (process.env.LOTTETOUR_E2E_FALLBACK ?? '1').trim().toLowerCase()
+  return v !== '0' && v !== 'false' && v !== 'off'
+}
+
+function parseLottetourPythonStdoutJson(stdout: string): Record<string, unknown> | null {
+  const s = stdout.trim()
+  if (!s) return null
+  const lines = s.split(/\r?\n/).filter((l) => l.trim().startsWith('{'))
+  const last = lines[lines.length - 1] ?? s
+  try {
+    const o = JSON.parse(last) as Record<string, unknown>
+    return o && typeof o === 'object' ? o : null
+  } catch {
+    return null
+  }
+}
+
+function numPrice(v: unknown): number {
+  if (typeof v === 'number' && Number.isFinite(v)) return Math.trunc(v)
+  const s = String(v ?? '').replace(/[^\d]/g, '')
+  return s ? parseInt(s, 10) : 0
+}
+
+function lottetourCalendarRowFromPythonE2eDict(r: Record<string, unknown>): LottetourCalendarRow | null {
+  const evtCd = String(r.evtCd ?? '').trim()
+  if (!LOTTETOUR_EVT_CD_RE.test(evtCd)) return null
+  const fromEvt = departDateFromLottetourEvtCd(evtCd)
+  const depStr = String(r.departDate ?? '').trim().slice(0, 10)
+  const departDate =
+    fromEvt && /^\d{4}-\d{2}-\d{2}$/.test(fromEvt) ? fromEvt : /^\d{4}-\d{2}-\d{2}$/.test(depStr) ? depStr : ''
+  if (!departDate) return null
+  const depYmRaw = String(r.depYm ?? '').trim()
+  const depYm =
+    /^\d{6}$/.test(depYmRaw) ? depYmRaw : `${departDate.slice(0, 4)}${departDate.slice(5, 7)}`
+  const godId = String(r.godId ?? '').trim()
+  if (!godId) return null
+  return {
+    depYm,
+    godId,
+    evtCd,
+    departDate,
+    returnDate: (() => {
+      const x = String(r.returnDate ?? '').trim().slice(0, 10)
+      return /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : null
+    })(),
+    departTimeText: r.departTimeText != null ? String(r.departTimeText).trim().slice(0, 120) || null : null,
+    returnTimeText: r.returnTimeText != null ? String(r.returnTimeText).trim().slice(0, 120) || null : null,
+    carrierText: r.carrierText != null ? String(r.carrierText).trim().slice(0, 200) || null : null,
+    gradeText: r.gradeText != null ? String(r.gradeText).trim().slice(0, 120) || null : null,
+    tourTitleRaw: r.tourTitleRaw != null ? String(r.tourTitleRaw).trim().slice(0, 400) || null : null,
+    durationText: r.durationText != null ? String(r.durationText).trim().slice(0, 80) || null : null,
+    adultPrice: numPrice(r.adultPrice),
+    statusRaw: r.statusRaw != null ? String(r.statusRaw).trim().slice(0, 200) || null : null,
+    seatsStatusRaw: r.seatsStatusRaw != null ? String(r.seatsStatusRaw).trim().slice(0, 200) || null : null,
+    seatCount:
+      r.seatCount != null && Number.isFinite(Number(r.seatCount)) ? Math.trunc(Number(r.seatCount)) : null,
+  }
+}
+
+async function collectLottetourCalendarViaPythonE2eOnce(args: {
+  godId: string
+  menuNos: readonly [string, string, string, string]
+  monthCount: number
+  timeoutMs: number
+  evtCdHint: string
+}): Promise<{ rows: LottetourCalendarRow[]; stderr: string; phase?: string; message?: string }> {
+  const py = (process.env.LOTTETOUR_PYTHON ?? '').trim() || resolvePythonExecutable()
+  const cwd = resolveLottetourPythonRepoRoot()
+  const months = Math.max(1, Math.min(36, args.monthCount))
+  const argv = [
+    '-m',
+    LOTTETOUR_CALENDAR_PY_MODULE,
+    '--god-id',
+    args.godId.trim(),
+    '--menu-no1',
+    args.menuNos[0]!,
+    '--menu-no2',
+    args.menuNos[1]!,
+    '--menu-no3',
+    args.menuNos[2]!,
+    '--menu-no4',
+    args.menuNos[3]!,
+    '--months',
+    String(months),
+    '--evt-cd-hint',
+    args.evtCdHint.trim(),
+  ]
+  const envForChild: Record<string, string | undefined> = {
+    ...process.env,
+    PYTHONPATH: cwd,
+  }
+  let stdout = ''
+  let stderr = ''
+  try {
+    const r = await execFileAsync(py, argv, {
+      cwd,
+      timeout: args.timeoutMs,
+      maxBuffer: 12 * 1024 * 1024,
+      env: envForChild as NodeJS.ProcessEnv,
+    })
+    stdout = r.stdout == null ? '' : Buffer.isBuffer(r.stdout) ? r.stdout.toString('utf8') : String(r.stdout)
+    stderr = r.stderr == null ? '' : Buffer.isBuffer(r.stderr) ? r.stderr.toString('utf8') : String(r.stderr)
+  } catch (e: unknown) {
+    const err = e as { stdout?: unknown; stderr?: unknown; message?: string }
+    stdout = err.stdout == null ? '' : Buffer.isBuffer(err.stdout) ? err.stdout.toString('utf8') : String(err.stdout)
+    stderr = err.stderr == null ? '' : Buffer.isBuffer(err.stderr) ? err.stderr.toString('utf8') : String(err.stderr)
+    return {
+      rows: [],
+      stderr,
+      phase: 'error',
+      message: err.message ?? String(e),
+    }
+  }
+  const payload = parseLottetourPythonStdoutJson(stdout)
+  if (!payload) {
+    return { rows: [], stderr, phase: 'error', message: 'stdout JSON 파싱 실패' }
+  }
+  if (String(payload.phase) === 'error') {
+    return {
+      rows: [],
+      stderr,
+      phase: 'error',
+      message: String(payload.message ?? 'python phase=error'),
+    }
+  }
+  const rawRows = payload.rows
+  if (!Array.isArray(rawRows)) {
+    return { rows: [], stderr, phase: 'error', message: 'rows 배열 없음' }
+  }
+  const rows: LottetourCalendarRow[] = []
+  for (const item of rawRows) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue
+    const row = lottetourCalendarRowFromPythonE2eDict(item as Record<string, unknown>)
+    if (row) rows.push(row)
+  }
+  rows.sort((a, b) => {
+    const c = a.departDate.localeCompare(b.departDate)
+    if (c !== 0) return c
+    return a.evtCd.localeCompare(b.evtCd)
+  })
+  return { rows, stderr }
 }
 
 export function buildLottetourEvtDetailUrl(
@@ -548,15 +718,41 @@ export async function collectLottetourCalendarRange(
     }
   }
 
-  if (
-    all.length === 0 &&
-    (options?.e2eTourCodeHint ?? '').trim() &&
-    !options?.disableE2EFallback &&
-    (process.env.LOTTETOUR_E2E_FALLBACK ?? '1').trim().toLowerCase() !== '0'
-  ) {
-    warnings.push(
-      'R-4-I: HTML 수집 0건 + e2eTourCodeHint 존재 — Python E2E(`scripts.calendar_e2e_scraper_lottetour`) 폴백은 아직 연결되지 않았습니다.'
+  const e2eHint = (options?.e2eTourCodeHint ?? '').trim()
+  if (all.length === 0 && e2eHint && !options?.disableE2EFallback && lottetourE2eFallbackEnabled()) {
+    const e2eMs = Math.max(
+      30_000,
+      Math.min(600_000, Number(process.env.LOTTETOUR_E2E_TIMEOUT_MS ?? '600000') || 600_000)
     )
+    if (options?.log) {
+      console.log(
+        `[lottetour-departures] ${options.logLabel ?? 'collect'} e2e_fallback evt=${e2eHint.slice(0, 48)} timeoutMs=${e2eMs}`
+      )
+    }
+    const py = await collectLottetourCalendarViaPythonE2eOnce({
+      godId,
+      menuNos,
+      monthCount,
+      timeoutMs: e2eMs,
+      evtCdHint: e2eHint,
+    })
+    if (py.rows.length > 0) {
+      for (const r of py.rows) all.push(r)
+      warnings.push(`Python E2E(requests·GET evtListAjax HTML) 폴백으로 ${py.rows.length}건 수집(TS 경로 0건)`)
+    } else {
+      const tail = py.message ? ` · ${py.message.slice(0, 200)}` : ''
+      warnings.push(`E2E 폴백 실패 또는 0건${tail}`)
+      const stderrTail = py.stderr?.trim()
+        ? py.stderr
+            .trim()
+            .split(/\r?\n/)
+            .slice(-3)
+            .join(' ')
+        : ''
+      if (stderrTail) warnings.push(`E2E stderr tail: ${stderrTail.slice(0, 240)}`)
+    }
+  } else if (all.length === 0 && e2eHint && options?.disableE2EFallback) {
+    warnings.push('E2E 폴백 생략: disableE2EFallback')
   }
 
   all.sort((a, b) => {

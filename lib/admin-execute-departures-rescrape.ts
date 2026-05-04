@@ -473,7 +473,13 @@ export async function executeRangeOnDemandDepartures(
     for (const ym of months) {
       const { rows } = await collectLottetourCalendarRange(
         { godId: hints.godId, menuNos: hints.menuNos },
-        { monthCount: 1, dateFrom: ym, logLabel: `execute-range-on-demand:${product.id}` }
+        {
+          monthCount: 1,
+          dateFrom: ym,
+          logLabel: `execute-range-on-demand:${product.id}`,
+          e2eTourCodeHint:
+            (hints.detailEvtCd ?? '').trim() || (product.originCode ?? '').trim() || null,
+        }
       )
       allRows.push(...rows)
     }

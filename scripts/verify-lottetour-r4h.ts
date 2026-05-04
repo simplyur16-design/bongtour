@@ -62,6 +62,24 @@ async function main() {
   )
   assert.equal(collected.rows.length, 3)
 
+  const prevFb = process.env.LOTTETOUR_E2E_FALLBACK
+  process.env.LOTTETOUR_E2E_FALLBACK = '0'
+  const emptyHtml = '<html><body><table><tbody></tbody></table></body></html>'
+  const emptyMap = new Map([['202606', emptyHtml]])
+  const noE2e = await collectLottetourCalendarRange(
+    { godId: '65222', menuNos: ['826', '854', '1000', '4900'] },
+    {
+      monthCount: 1,
+      dateFrom: '2026-06',
+      htmlByDepYm: emptyMap,
+      e2eTourCodeHint: 'E01A260624KE007',
+    }
+  )
+  assert.equal(noE2e.rows.length, 0)
+  assert.ok(!noE2e.warnings.some((w) => w.includes('Python E2E')), 'E2E_FALLBACK=0 이면 Python 폴백 미실행')
+  if (prevFb === undefined) delete process.env.LOTTETOUR_E2E_FALLBACK
+  else process.env.LOTTETOUR_E2E_FALLBACK = prevFb
+
   console.log('verify-lottetour-r4h: ok')
 }
 

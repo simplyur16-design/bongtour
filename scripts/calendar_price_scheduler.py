@@ -16,6 +16,7 @@ import asyncio
 import importlib
 import json
 import logging
+import re
 import os
 import random
 import sys
@@ -51,7 +52,32 @@ _CALENDAR_MODULE_BY_SITE: Dict[str, str] = {
     "ybtour": "scripts.calendar_e2e_scraper_ybtour.calendar_price_scraper",
     "yellowballoon": "scripts.calendar_e2e_scraper_ybtour.calendar_price_scraper",
     "kyowontour": "scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper",
+    "lottetour": "scripts.calendar_e2e_scraper_lottetour.calendar_price_scraper",
 }
+
+
+def _lottetour_ids_from_url(detail_url: str) -> Tuple[str, Tuple[str, str, str, str], str]:
+    from urllib.parse import parse_qs, urlparse
+
+    u = urlparse((detail_url or "").strip())
+    q = parse_qs(u.query)
+    god = ""
+    vals = q.get("godId")
+    if vals and str(vals[0]).strip():
+        god = str(vals[0]).strip()
+    evt = ""
+    for key in ("evtCd", "EVT_CD"):
+        ev = q.get(key)
+        if ev and str(ev[0]).strip():
+            evt = str(ev[0]).strip()
+            break
+    m = re.search(r"/evt(?:Detail|List)/(\d+)/(\d+)/(\d+)/(\d+)", u.path, re.I)
+    if not m:
+        raise ValueError("lottetour: 상세·목록 URL 경로에서 menuNo1~4를 찾을 수 없습니다.")
+    menus = (m.group(1), m.group(2), m.group(3), m.group(4))
+    if not god:
+        raise ValueError("lottetour: URL에 godId가 없습니다. evtList URL을 쓰거나 Product 메타를 보강하세요.")
+    return god, menus, evt
 
 
 def _kyowontour_tour_code_from_url(detail_url: str) -> str:
@@ -73,19 +99,53 @@ def _calendar_module_for_site(site: str) -> str:
     raw = (site or "hanatour").strip().lower()
     if raw == "yellowballoon":
         raw = "ybtour"
-    if raw == "lottetour":
-        raise ValueError(
-            "lottetour: 달력 배치 스크립트는 R-4-I에서 scripts.calendar_e2e_scraper_lottetour 로 연결됩니다."
-        )
     return _CALENDAR_MODULE_BY_SITE.get(raw) or _CALENDAR_MODULE_BY_SITE["hanatour"]
 
 
 def _run_calendar_price_from_url(detail_url: str, site: str, headless: bool) -> Any:
     s = (site or "").strip().lower()
     if s == "lottetour":
-        raise ValueError(
-            "lottetour: 달력 스크랩은 R-4-I 이전에 실행하지 마세요. (R-4-H evtListAjax 연동 후)"
+        god, menus, evt = _lottetour_ids_from_url(detail_url)
+        from scripts.calendar_e2e_scraper_lottetour import config as lcfg
+        from scripts.calendar_e2e_scraper_lottetour.calendar_price_scraper import run_scrape
+
+        raw = run_scrape(
+            god_id=god,
+            menu1=menus[0],
+            menu2=menus[1],
+            menu3=menus[2],
+            menu4=menus[3],
+            months=lcfg.MONTH_LIMIT,
+            date_from=lcfg.DATE_FROM,
+            date_to=lcfg.DATE_TO,
+            depart_month=None,
+            evt_cd_hint=evt or None,
         )
+        rows = raw.get("rows") if isinstance(raw, dict) else None
+        out_lt: List[Dict[str, Any]] = []
+        if isinstance(rows, list):
+            for r in rows:
+                if not isinstance(r, dict):
+                    continue
+                dd = str(r.get("departDate") or "")[:10]
+                if not dd:
+                    continue
+                ap = r.get("adultPrice")
+                price: Any = None
+                if ap is not None and str(ap).strip():
+                    try:
+                        price = int(float(str(ap).replace(",", "")))
+                    except ValueError:
+                        price = None
+                row_lt: Dict[str, Any] = {
+                    "date": dd,
+                    "adultPrice": price,
+                    "price": price,
+                    "statusRaw": str(r.get("statusRaw") or r.get("status") or ""),
+                    "seatsStatusRaw": str(r.get("seatsStatusRaw") or ""),
+                }
+                out_lt.append(row_lt)
+        return out_lt
     if s == "kyowontour":
         from scripts.calendar_e2e_scraper_kyowontour import config as kcfg
         from scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper import run_scrape

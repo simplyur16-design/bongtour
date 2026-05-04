@@ -585,6 +585,8 @@ export async function collectDepartureInputsForAdminRescrape(
         {
           monthCount,
           logLabel: `admin-departure-rescrape:${product.id}`,
+          e2eTourCodeHint:
+            (hints.detailEvtCd ?? '').trim() || (product.originCode ?? '').trim() || null,
         }
       )
       const mapped = mapLottetourCalendarToDepartureInputs(rows, product.id)
