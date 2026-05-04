@@ -23,12 +23,19 @@ import {
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { syncYbtourProductPricesFromDepartureInputsDetailed } from '@/lib/ybtour-sync-product-prices-from-departure-inputs'
 import type { DepartureInput } from '@/lib/upsert-product-departures-hanatour'
+import type { DepartureInput as LottetourDepartureInput } from '@/lib/upsert-product-departures-lottetour'
 import { departureInputToYmd, filterDepartureInputsOnOrAfterCalendarToday } from '@/lib/scrape-date-bounds'
 import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour'
 import * as updDeparturesModetour from '@/lib/upsert-product-departures-modetour'
 import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-verygoodtour'
 import * as updDeparturesYbtour from '@/lib/upsert-product-departures-ybtour'
 import { upsertKyowontourDepartures } from '@/lib/kyowontour-departures'
+import {
+  collectLottetourCalendarRange,
+  mapLottetourCalendarToDepartureInputs,
+  parseLottetourEvtListCollectionHints,
+  upsertLottetourDepartures,
+} from '@/lib/lottetour-departures'
 import type {
   AdminDeparturesRescrapeResponseBody,
   AdminDeparturesRescrapeStage,
@@ -52,6 +59,14 @@ function upsertDeparturesModuleForProduct(p: {
       },
     }
   }
+  if (fromBrand === 'lottetour') {
+    return {
+      upsertProductDepartures: async (prisma: PrismaClient, productId: string, departures: DepartureInput[]) => {
+        const r = await upsertLottetourDepartures(prisma, productId, departures as unknown as LottetourDepartureInput[])
+        return r.created + r.updated
+      },
+    }
+  }
   if (norm === 'modetour') return updDeparturesModetour
   if (norm === 'verygoodtour') return updDeparturesVerygoodtour
   if (norm === 'ybtour') return updDeparturesYbtour
@@ -59,6 +74,14 @@ function upsertDeparturesModuleForProduct(p: {
     return {
       upsertProductDepartures: async (prisma: PrismaClient, productId: string, departures: DepartureInput[]) => {
         const r = await upsertKyowontourDepartures(prisma, productId, departures)
+        return r.created + r.updated
+      },
+    }
+  }
+  if (norm === 'lottetour') {
+    return {
+      upsertProductDepartures: async (prisma: PrismaClient, productId: string, departures: DepartureInput[]) => {
+        const r = await upsertLottetourDepartures(prisma, productId, departures as unknown as LottetourDepartureInput[])
         return r.created + r.updated
       },
     }
@@ -346,6 +369,29 @@ function addDaysUtcYmd(ymd: string, deltaDays: number): string {
   return dt.toISOString().slice(0, 10)
 }
 
+/** `fromYmd`~`toYmd` 구간이 덮는 달 목록 `YYYY-MM`(UTC 날짜 문자열 기준) */
+function eachYmBetweenInclusive(fromYmd: string, toYmd: string): string[] {
+  const lo = fromYmd <= toYmd ? fromYmd : toYmd
+  const hi = fromYmd <= toYmd ? toYmd : fromYmd
+  const sm = lo.slice(0, 7)
+  const em = hi.slice(0, 7)
+  let y = parseInt(sm.slice(0, 4), 10)
+  let m = parseInt(sm.slice(5, 7), 10)
+  const ey = parseInt(em.slice(0, 4), 10)
+  const emo = parseInt(em.slice(5, 7), 10)
+  const out: string[] = []
+  for (;;) {
+    out.push(`${y}-${String(m).padStart(2, '0')}`)
+    if (y === ey && m === emo) break
+    m += 1
+    if (m > 12) {
+      m = 1
+      y += 1
+    }
+  }
+  return out
+}
+
 /**
  * 기준일 ±windowDays 범위 on-demand(전체 재수집·큐 미사용). `windowDays === 0`이면 당일만.
  */
@@ -400,21 +446,52 @@ export async function executeRangeOnDemandDepartures(
   const bk = normalizeBrandKeyToCanonicalSupplierKey(product.brand?.brandKey ?? null)
   const norm = normalizeSupplierOrigin(product.originSource ?? '')
 
-  if (bk === 'lottetour' || norm === 'lottetour') {
-    return {
-      status: 503,
-      body: {
-        ok: false,
-        reason: 'lottetour_fullcopy_pending',
-        error: '롯데관광 출발일 라이브 재수집은 R-4-H 완료 후 사용할 수 있습니다.',
-        departureDate: ymd,
-        fetchedRange,
-      },
-    }
-  }
-
   let livesRange: DepartureInput[] = []
-  if (bk === 'hanatour' || norm === 'hanatour') {
+  if (bk === 'lottetour' || norm === 'lottetour') {
+    const metaRow = await prisma.product.findUnique({
+      where: { id: product.id },
+      select: { rawMeta: true, originUrl: true },
+    })
+    const hints = parseLottetourEvtListCollectionHints({
+      rawMeta: metaRow?.rawMeta ?? null,
+      originUrl: (product.originUrl ?? '').trim() || metaRow?.originUrl || null,
+    })
+    if (!hints.godId || !hints.menuNos) {
+      return {
+        status: 422,
+        body: {
+          ok: false,
+          reason: 'lottetour_missing_god_or_menu',
+          departureDate: ymd,
+          fetchedRange,
+          warnings: hints.warnings,
+        },
+      }
+    }
+    const months = eachYmBetweenInclusive(fromYmd, toYmd)
+    const allRows = []
+    for (const ym of months) {
+      const { rows } = await collectLottetourCalendarRange(
+        { godId: hints.godId, menuNos: hints.menuNos },
+        { monthCount: 1, dateFrom: ym, logLabel: `execute-range-on-demand:${product.id}` }
+      )
+      allRows.push(...rows)
+    }
+    const mapped = mapLottetourCalendarToDepartureInputs(allRows, product.id)
+    const lo = fromYmd <= toYmd ? fromYmd : toYmd
+    const hi = fromYmd <= toYmd ? toYmd : fromYmd
+    const filtered = mapped.filter((x) => {
+      const dk = departureInputToYmd(x.departureDate as unknown as string)
+      return dk != null && dk >= lo && dk <= hi
+    })
+    filtered.sort((a, b) => {
+      const da = departureInputToYmd(a.departureDate as unknown as string) ?? ''
+      const db = departureInputToYmd(b.departureDate as unknown as string) ?? ''
+      if (da !== db) return da.localeCompare(db)
+      return (a.supplierPriceKey ?? '').localeCompare(b.supplierPriceKey ?? '')
+    })
+    livesRange = filterDepartureInputsOnOrAfterCalendarToday(filtered as unknown as DepartureInput[])
+  } else if (bk === 'hanatour' || norm === 'hanatour') {
     livesRange = await collectHanatourDepartureInputsForDateRange(detailUrl, fromYmd, toYmd)
   } else if (bk === 'modetour' || norm === 'modetour') {
     livesRange = await collectModetourDepartureInputsForDateRange(product.originUrl, fromYmd, toYmd)
@@ -444,7 +521,7 @@ export async function executeRangeOnDemandDepartures(
   for (const x of livesRange) {
     const d = departureInputToYmd(x.departureDate)
     if (!d || d < fromYmd || d > toYmd) continue
-    if (!scrapeByYmd.has(d)) scrapeByYmd.set(d, x)
+    scrapeByYmd.set(d, x)
   }
 
   let ppUnpriced = false

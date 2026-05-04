@@ -2,8 +2,8 @@
  * 롯데관광(lottetour) 출발옵션 — 제목 레이어·matchingTraceRaw (전용).
  * 이전 공용 출발옵션 모듈에서 분리.
  *
- * R-4-H에서 `lottetour-departures.ts` 등 달력·행 매칭 신설 시 `DepartureTitleLayers`,
- * `buildDepartureTitleLayers`, `buildCommonMatchingTrace`를 import 할 예정.
+ * `lottetour-departures.ts` evtListAjax HTML 수집 경로에서 `DepartureTitleLayers`,
+ * `buildDepartureTitleLayers`, `buildCommonMatchingTrace`를 import 한다.
  */
 
 export type DepartureTitleLayers = {

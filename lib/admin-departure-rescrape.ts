@@ -21,6 +21,12 @@ import {
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 import { collectKyowontourCalendarRange, mapKyowontourCalendarToDepartureInputs } from '@/lib/kyowontour-departures'
+import {
+  buildLottetourEvtDetailUrl,
+  collectLottetourCalendarRange,
+  mapLottetourCalendarToDepartureInputs,
+  parseLottetourEvtListCollectionHints,
+} from '@/lib/lottetour-departures'
 
 const execFileAsync = promisify(execFile)
 const HANATOUR_BASE = process.env.HANATOUR_BASE_URL ?? 'https://www.hanatour.com'
@@ -40,7 +46,7 @@ export type DepartureRescrapeResult = {
     | 'ybtour-calendar-scraper'
     | 'product-price-rebuild'
     | 'kyowontour-differentDepartDate'
-    | 'lottetour-fullcopy-pending'
+    | 'lottetour-evtListAjax-html'
   inputs: DepartureInput[]
   attemptedLive: boolean
   liveError?: string | null
@@ -121,6 +127,10 @@ export function buildDetailUrl(originSource: string, originCode: string): string
   }
   if (src.includes('李몄쥕?') || src.includes('verygoodtour')) {
     return `${VERYGOODTOUR_BASE.replace(/\/$/, '')}/Product/PackageDetail?ProCode=${code}&PriceSeq=1&MenuCode=leaveLayer`
+  }
+  if (normalizeSupplierOrigin(originSource) === 'lottetour') {
+    const base = LOTTETOUR_BASE.replace(/\/$/, '')
+    return `${base}/`
   }
   if (src.includes('?몃옉?띿꽑') || src.includes('ybtour') || src.includes('yellowballoon') || src === 'yellow') {
     const c = (originCode ?? '').trim()
@@ -523,21 +533,115 @@ export async function collectDepartureInputsForAdminRescrape(
 
   if (site === 'lottetour') {
     attemptedLive = true
-    const fillMeta = deriveFillMeta([])
-    return {
-      mode: 'live-rescrape',
-      source: 'lottetour-fullcopy-pending',
-      inputs: [],
-      attemptedLive,
-      liveError: '롯데관광 출발일 라이브 재수집은 R-4-H(evtListAjax·HTML 캘린더) 완료 후 사용할 수 있습니다.',
-      filledFields: fillMeta.filledFields,
-      missingFields: fillMeta.missingFields,
-      mappingStatus: 'detail-candidate-found-but-unmapped',
-      notes: ['lottetour 풀카피 진행 중 (R-4)'],
-      site,
-      detailUrl: detailUrlForTrace,
-      detailUrlSummary,
-      collectorStatus: null,
+    const metaRow = await prisma.product.findUnique({
+      where: { id: product.id },
+      select: { rawMeta: true, originUrl: true },
+    })
+    const hints = parseLottetourEvtListCollectionHints({
+      rawMeta: metaRow?.rawMeta ?? null,
+      originUrl: product.originUrl?.trim() || metaRow?.originUrl || null,
+    })
+    const detailUrlResolved =
+      product.originUrl?.trim() ||
+      (hints.menuNos && hints.detailEvtCd
+        ? buildLottetourEvtDetailUrl(hints.menuNos, hints.detailEvtCd)
+        : detailUrlForTrace)
+    const detailUrlSummaryLt = (() => {
+      try {
+        const u = new URL(detailUrlResolved)
+        return `host=${u.host} path_len=${u.pathname.length} godId=${hints.godId ?? '(none)'}`
+      } catch {
+        return 'detail_url_invalid'
+      }
+    })()
+    if (!hints.godId || !hints.menuNos) {
+      const fillMeta = deriveFillMeta([])
+      return {
+        mode: 'live-rescrape',
+        source: 'lottetour-evtListAjax-html',
+        inputs: [],
+        attemptedLive,
+        liveError: `롯데관광: evtList 공개 HTML 수집에 필요한 godId·menuNo 경로가 없습니다. ${hints.warnings.join(' ')}`.slice(
+          0,
+          500
+        ),
+        filledFields: fillMeta.filledFields,
+        missingFields: fillMeta.missingFields,
+        mappingStatus: 'detail-candidate-found-but-unmapped',
+        notes: hints.warnings,
+        site,
+        detailUrl: detailUrlResolved,
+        detailUrlSummary: detailUrlSummaryLt,
+        collectorStatus: null,
+      }
+    }
+    try {
+      const monthCount = Math.max(
+        1,
+        Math.min(36, Number(process.env.LOTTETOUR_CALENDAR_MONTH_COUNT ?? '12') || 12)
+      )
+      const { rows, warnings } = await collectLottetourCalendarRange(
+        { godId: hints.godId, menuNos: hints.menuNos },
+        {
+          monthCount,
+          logLabel: `admin-departure-rescrape:${product.id}`,
+        }
+      )
+      const mapped = mapLottetourCalendarToDepartureInputs(rows, product.id)
+      const inputs = filterDepartureInputsOnOrAfterCalendarToday(mapped as DepartureInput[])
+      if (inputs.length > 0) {
+        const fillMeta = deriveFillMeta(inputs)
+        return {
+          mode: 'live-rescrape',
+          source: 'lottetour-evtListAjax-html',
+          inputs,
+          attemptedLive,
+          liveError: null,
+          filledFields: fillMeta.filledFields,
+          missingFields: fillMeta.missingFields,
+          mappingStatus: 'per-date-confirmed',
+          notes: [...hints.warnings, ...warnings],
+          site,
+          detailUrl: detailUrlResolved,
+          detailUrlSummary: detailUrlSummaryLt,
+          collectorStatus: null,
+        }
+      }
+      const fillMeta = deriveFillMeta([])
+      const tail = warnings.length ? ` · ${warnings.slice(0, 4).join(' · ')}` : ''
+      return {
+        mode: 'live-rescrape',
+        source: 'lottetour-evtListAjax-html',
+        inputs: [],
+        attemptedLive,
+        liveError: `롯데관광: 유효 출발일 0건(오늘 이후 필터 후)${tail}`,
+        filledFields: fillMeta.filledFields,
+        missingFields: fillMeta.missingFields,
+        mappingStatus: 'detail-candidate-found-but-unmapped',
+        notes: [...hints.warnings, ...warnings],
+        site,
+        detailUrl: detailUrlResolved,
+        detailUrlSummary: detailUrlSummaryLt,
+        collectorStatus: null,
+      }
+    } catch (e) {
+      const fillMeta = deriveFillMeta([])
+      const msg = e instanceof Error ? e.message : String(e)
+      return {
+        mode: 'live-rescrape',
+        source: 'lottetour-evtListAjax-html',
+        inputs: [],
+        attemptedLive,
+        liveError: `롯데관광: ${msg.slice(0, 400)}`,
+        filledFields: fillMeta.filledFields,
+        missingFields: fillMeta.missingFields,
+        mappingStatus: 'detail-candidate-found-but-unmapped',
+        notes: hints.warnings,
+        site,
+        detailUrl: detailUrlResolved,
+        detailUrlSummary: detailUrlSummaryLt,
+        collectorStatus: null,
+      }
     }
   }
 
