@@ -4,7 +4,7 @@
  * NCLOUD_OBJECT_STORAGE_BUCKET, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL,
  * 선택 NCLOUD_OBJECT_STORAGE_REGION(기본 kr-standard), NCLOUD_OBJECT_STORAGE_S3_ADDRESSING(기본 path; virtual이면 virtual-hosted).
  *
- * 레거시·기타 업로드 경로는 `getSupabaseImageStorageBucket` 등(별도 모듈)을 사용한다.
+ * 공개 이미지 바이너리는 Ncloud 버킷에 저장한다. Supabase Storage API는 사용하지 않는다.
  */
 import {
   DeleteObjectCommand,
@@ -18,7 +18,6 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import sharp from 'sharp'
 
 const DEFAULT_NCLOUD_BUCKET = 'bongtour'
-const DEFAULT_SUPABASE_IMAGE_BUCKET = 'bongtour-images'
 
 let s3Client: S3Client | null = null
 
@@ -46,11 +45,6 @@ export function getImageStorageBucket(): string {
   return process.env.NCLOUD_OBJECT_STORAGE_BUCKET?.trim() || DEFAULT_NCLOUD_BUCKET
 }
 
-/** Supabase Storage API(직접 업로드·incoming 등) 전용 버킷명. */
-export function getSupabaseImageStorageBucket(): string {
-  return process.env.SUPABASE_IMAGE_BUCKET?.trim() || DEFAULT_SUPABASE_IMAGE_BUCKET
-}
-
 export function isObjectStorageConfigured(): boolean {
   return Boolean(
     process.env.NCLOUD_ACCESS_KEY?.trim() &&
@@ -59,11 +53,6 @@ export function isObjectStorageConfigured(): boolean {
       process.env.NCLOUD_OBJECT_STORAGE_BUCKET?.trim() &&
       process.env.NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL?.trim(),
   )
-}
-
-/** Supabase 서비스 롤로 Storage API 호출 가능 여부(incoming·bootstrap 등). */
-export function isSupabaseStorageAdminConfigured(): boolean {
-  return Boolean(process.env.SUPABASE_URL?.trim() && process.env.SUPABASE_SERVICE_ROLE_KEY?.trim())
 }
 
 export type ObjectStorageEnv = {
