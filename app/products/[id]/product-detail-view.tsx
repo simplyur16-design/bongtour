@@ -20,6 +20,7 @@ import * as priceRowsModetour from '@/lib/product-departure-to-price-rows-modeto
 import * as priceRowsVerygoodtour from '@/lib/product-departure-to-price-rows-verygoodtour'
 import * as priceRowsYbtour from '@/lib/product-departure-to-price-rows-ybtour'
 import * as priceRowsKyowontour from '@/lib/product-departure-to-price-rows-kyowontour'
+import * as priceRowsLottetour from '@/lib/product-departure-to-price-rows-lottetour'
 import {
   extractProductPriceTableByLabels,
   mergeProductPriceTableWithLabelExtract,
@@ -38,6 +39,7 @@ import * as publicConsumptionModetour from '@/lib/public-consumption-modetour'
 import * as publicConsumptionVerygoodtour from '@/lib/public-consumption-verygoodtour'
 import * as publicConsumptionYbtour from '@/lib/public-consumption-ybtour'
 import * as publicConsumptionKyowontour from '@/lib/public-consumption-kyowontour'
+import * as publicConsumptionLottetour from '@/lib/public-consumption-lottetour'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import {
   buildModetourDirectedDisplayFromFlightStructured,
@@ -60,11 +62,13 @@ import * as flightManualModetour from '@/lib/flight-manual-correction-modetour'
 import * as flightManualVerygoodtour from '@/lib/flight-manual-correction-verygoodtour'
 import * as flightManualYbtour from '@/lib/flight-manual-correction-ybtour'
 import * as flightManualKyowontour from '@/lib/flight-manual-correction-kyowontour'
+import * as flightManualLottetour from '@/lib/flight-manual-correction-lottetour'
 import * as dayHotelHanatour from '@/lib/day-hotel-plans-hanatour'
 import * as dayHotelModetour from '@/lib/day-hotel-plans-modetour'
 import * as dayHotelVerygoodtour from '@/lib/day-hotel-plans-verygoodtour'
 import * as dayHotelYbtour from '@/lib/day-hotel-plans-ybtour'
 import * as dayHotelKyowontour from '@/lib/day-hotel-plans-kyowontour'
+import * as dayHotelLottetour from '@/lib/day-hotel-plans-lottetour'
 import { normalizePromotionMarketingCopy, normalizePricePromotionViewCopy } from '@/lib/promotion-copy-normalize'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { getPriceAdult } from '@/lib/price-utils'
@@ -97,6 +101,11 @@ import {
   sanitizeKyowontourPublicDepartureKeyFacts,
   sanitizeKyowontourPublicProductAirlineLine,
 } from '@/lib/kyowontour-product-public-display'
+import {
+  formatLottetourStickyLocalPayPerPersonLine,
+  sanitizeLottetourPublicDepartureKeyFacts,
+  sanitizeLottetourPublicProductAirlineLine,
+} from '@/lib/lottetour-product-public-display'
 import { PRODUCT_DETAIL_PAGE_INCLUDE } from '@/lib/product-detail-page-include'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
 
@@ -148,7 +157,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       case 'kyowontour':
         return flightManualKyowontour
       case 'lottetour':
-        return flightManualHanatour
+        return flightManualLottetour
       default:
         return flightManualHanatour
     }
@@ -165,7 +174,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       case 'kyowontour':
         return dayHotelKyowontour
       case 'lottetour':
-        return dayHotelHanatour
+        return dayHotelLottetour
       default:
         return dayHotelHanatour
     }
@@ -182,7 +191,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       case 'kyowontour':
         return priceRowsKyowontour
       case 'lottetour':
-        return priceRowsHanatour
+        return priceRowsLottetour
       default:
         return priceRowsHanatour
     }
@@ -292,7 +301,9 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
   const useModetourPriceMergeContext = useModetourDirectedParse
   const useYbtourPriceMergeContext = publicConsumptionModuleKey === 'ybtour'
   const useKyowontourPriceMergeContext = publicConsumptionModuleKey === 'kyowontour'
+  const useLottetourPriceMergeContext = publicConsumptionModuleKey === 'lottetour'
   const useKyowontourPublicFlightScrub = publicConsumptionModuleKey === 'kyowontour'
+  const useLottetourPublicFlightScrub = publicConsumptionModuleKey === 'lottetour'
   const modetourDirectedDisplay = useModetourDirectedParse
     ? buildModetourDirectedDisplayFromStructuredBody(
         structured?.flightRaw ?? null,
@@ -318,7 +329,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       case 'kyowontour':
         return publicConsumptionKyowontour.resolveShoppingConsumption(input)
       case 'lottetour':
-        return publicConsumptionHanatour.resolveShoppingConsumption(input)
+        return publicConsumptionLottetour.resolveShoppingConsumption(input)
       default:
         return publicConsumptionHanatour.resolveShoppingConsumption(input)
     }
@@ -338,7 +349,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       case 'kyowontour':
         return publicConsumptionKyowontour.resolveOptionalToursConsumption(input)
       case 'lottetour':
-        return publicConsumptionHanatour.resolveOptionalToursConsumption(input)
+        return publicConsumptionLottetour.resolveOptionalToursConsumption(input)
       default:
         return publicConsumptionHanatour.resolveOptionalToursConsumption(input)
     }
@@ -360,7 +371,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       case 'kyowontour':
         return publicConsumptionKyowontour.resolveHotelConsumption(input)
       case 'lottetour':
-        return publicConsumptionHanatour.resolveHotelConsumption(input)
+        return publicConsumptionLottetour.resolveHotelConsumption(input)
       default:
         return publicConsumptionHanatour.resolveHotelConsumption(input)
     }
@@ -475,6 +486,14 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       ])
     )
   }
+  if (useLottetourPublicFlightScrub && departureKeyFactsByDate) {
+    departureKeyFactsByDate = Object.fromEntries(
+      Object.entries(departureKeyFactsByDate).map(([dateKey, facts]) => [
+        dateKey,
+        sanitizeLottetourPublicDepartureKeyFacts(facts),
+      ])
+    )
+  }
 
   /** 가격: 본문 라벨 추출 보강·날짜별 아동/유아 후처리는 모두투어 컨텍스트에서만 (타 공급사 공통화 금지) */
   const priceTableRawTrim = structured?.priceTableRawText?.trim() ?? ''
@@ -530,7 +549,9 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         ? { ybtourVaryingAdultChildLinkage: true }
         : useKyowontourPriceMergeContext
           ? { kyowontourVaryingAdultChildLinkage: true }
-          : undefined
+          : useLottetourPriceMergeContext
+            ? { lottetourVaryingAdultChildLinkage: true }
+            : undefined
   )
   const priceRowsForPublic = Array.isArray(mergedPriceRows) ? mergedPriceRows : []
 
@@ -590,7 +611,9 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         ? sanitizeModetourPublicProductAirlineLine(raw) ?? raw
         : useKyowontourPublicFlightScrub
           ? sanitizeKyowontourPublicProductAirlineLine(raw) ?? raw
-          : raw
+          : useLottetourPublicFlightScrub
+            ? sanitizeLottetourPublicProductAirlineLine(raw) ?? raw
+            : raw
     })(),
     destination: travelProduct.destination ?? '',
     title: travelProduct.title ?? '',
@@ -710,7 +733,14 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
               travelProduct.mandatoryCurrency ?? null
             ),
           }
-        : {}),
+        : useLottetourPriceMergeContext
+          ? {
+              modetourStickyLocalPayLine: formatLottetourStickyLocalPayPerPersonLine(
+                travelProduct.mandatoryLocalFee ?? null,
+                travelProduct.mandatoryCurrency ?? null
+              ),
+            }
+          : {}),
   }
   assertNoInternalMetaLeak(serialized, '/products/[id]')
 

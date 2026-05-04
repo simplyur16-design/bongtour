@@ -24,6 +24,7 @@ import {
 } from '@/lib/product-included-excluded-public'
 import { mergeModetourExcludedWithSingleRoomForPublicTab } from '@/lib/modetour-product-public-display'
 import { mergeKyowontourExcludedWithSingleRoomForPublicTab } from '@/lib/kyowontour-product-public-display'
+import { mergeLottetourExcludedWithSingleRoomForPublicTab } from '@/lib/lottetour-product-public-display'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import {
   SUPPLIER_TIER_PRICE_TABLE_DISCLAIMER,
@@ -97,6 +98,14 @@ export default function ProductExtraInfoTabs({
     }
     if (origin === 'kyowontour') {
       return mergeKyowontourExcludedWithSingleRoomForPublicTab(
+        baseExcluded,
+        product.singleRoomSurchargeDisplayText ?? null,
+        product.singleRoomSurchargeAmount ?? null,
+        product.singleRoomSurchargeCurrency ?? null
+      )
+    }
+    if (origin === 'lottetour') {
+      return mergeLottetourExcludedWithSingleRoomForPublicTab(
         baseExcluded,
         product.singleRoomSurchargeDisplayText ?? null,
         product.singleRoomSurchargeAmount ?? null,

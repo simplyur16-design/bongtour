@@ -3,6 +3,7 @@ import * as fmcHanatour from '@/lib/flight-manual-correction-hanatour'
 import * as fmcModetour from '@/lib/flight-manual-correction-modetour'
 import * as fmcVerygood from '@/lib/flight-manual-correction-verygoodtour'
 import * as fmcYbtour from '@/lib/flight-manual-correction-ybtour'
+import * as fmcLottetour from '@/lib/flight-manual-correction-lottetour'
 import type { FlightManualCorrectionPayload } from '@/lib/flight-manual-correction-hanatour'
 import {
   resolvePublicConsumptionModuleKey,
@@ -12,6 +13,7 @@ import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLET
 import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_MODETOUR } from '@/lib/admin-register-verification-meta-modetour'
 import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_VERYGOODTOUR } from '@/lib/admin-register-verification-meta-verygoodtour'
 import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_YBTOUR } from '@/lib/admin-register-verification-meta-ybtour'
+import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_LOTTETOUR } from '@/lib/admin-register-verification-meta-lottetour'
 import { repairUtf8MisreadAsLatin1 } from '@/lib/encoding-repair'
 import { adminProductBgImageSourceTypeLabel } from '@/lib/product-bg-image-attribution'
 import type {
@@ -34,7 +36,7 @@ export function fmcModuleForAdminProduct(
     case 'ybtour':
       return fmcYbtour
     case 'lottetour':
-      return fmcHanatour
+      return fmcLottetour
     default:
       return fmcHanatour
   }
@@ -49,8 +51,7 @@ const REGISTER_PUBLIC_PAGE_TRACE_BULLETS_BY_MODULE: Record<
   verygoodtour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_VERYGOODTOUR,
   ybtour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_YBTOUR,
   kyowontour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_HANATOUR,
-  /** R-4-L: 롯데관광 전용 불릿 연결 전까지 하나투어 불릿을 임시 표시 */
-  lottetour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_HANATOUR,
+  lottetour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_LOTTETOUR,
 }
 
 export function registerPublicPageTraceBulletsForProduct(
