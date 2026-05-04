@@ -1,5 +1,5 @@
 /**
- * 교보이지 호텔: 미정·설명형 허용, 상품소개/싱글/가이드경비는 호텔명에서 분리.
+ * 교원이지 호텔: 미정·설명형 허용, 상품소개/싱글/가이드경비는 호텔명에서 분리.
  */
 import type { HotelStructured } from '@/lib/detail-body-parser-types'
 import { parseHotelSectionGeneric } from '@/lib/hotel-table-parser-kyowontour'

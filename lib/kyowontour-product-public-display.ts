@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 공개 상세·스티키 카드 전용 표시 문자열 (공급사 공용화 없음).
+ * 교원이지(kyowontour) 공개 상세·스티키 카드 전용 표시 문자열 (공급사 공용화 없음).
  */
 import type { DepartureKeyFacts, DepartureLegCard } from '@/lib/departure-key-facts'
 
@@ -64,7 +64,7 @@ export function buildKyowontourSingleRoomExcludedLineForTab(
   return null
 }
 
-/** `ProductExtraInfoTabs` 불포함 칸 — 교보이지 사이트 노출 문구만 전용 정규화 */
+/** `ProductExtraInfoTabs` 불포함 칸 — 교원이지 사이트 노출 문구만 전용 정규화 */
 export function mergeKyowontourExcludedWithSingleRoomForPublicTab(
   excludedText: string | null | undefined,
   singleRoomSurchargeDisplayText: string | null | undefined,

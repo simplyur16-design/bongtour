@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 전용 — 공개 상세 consumption resolution (선택관광·쇼핑·호텔 canonical / legacy 우선순위).
+ * 교원이지(kyowontour) 전용 — 공개 상세 consumption resolution (선택관광·쇼핑·호텔 canonical / legacy 우선순위).
  *
  * 계약
  * - 호출부는 레거시 공용 resolution 합본·페이지 공통 모듈 선택기 없이 이 파일의 `resolve*`만 직접 호출한다.

@@ -1,5 +1,5 @@
 /**
- * 교보이지 등록 분석 결과 — 항공 라벨 문자열 모지바케 방어.
+ * 교원이지 등록 분석 결과 — 항공 라벨 문자열 모지바케 방어.
  * 깨진 원문을 `??`로 되살리지 않는다(sanitize 실패 시 null).
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-kyowontour'

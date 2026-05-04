@@ -4,7 +4,7 @@ function cleanLine(line: string): string {
   return line.replace(/\s+/g, ' ').trim()
 }
 
-/** 교보이지(kyowontour) 전용 — 호텔 섹션 표·서술에서 행 복원 */
+/** 교원이지(kyowontour) 전용 — 호텔 섹션 표·서술에서 행 복원 */
 export function parseHotelSectionGeneric(section: string): HotelStructured {
   const lines = section.split('\n').map(cleanLine).filter(Boolean)
   const splitCandidates = (v: string): string[] =>

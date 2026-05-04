@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 관리자 등록 — **본문 축** 스냅샷만 조립한다.
+ * 교원이지(kyowontour) 관리자 등록 — **본문 축** 스냅샷만 조립한다.
  *
  * 담당: 본문 정규화, 섹션 앵커·분리·슬라이스, 호텔 본문 구조화, 포함/불포함, `raw.flightRaw` 등 슬라이스 원료,
  * 약관/예약금 경계(클립). 일정 원료는 섹션 텍스트로만 남기고 일차 배열화는 하지 않는다.
@@ -7,7 +7,7 @@
  * **비담당(SSOT = 입력 파서):** 항공·선택관광/옵션·쇼핑 구조화 — `register-input-parse-kyowontour` 및
  * `register-parse-kyowontour`의 정형 입력란만이 구조화한다. 본문에 동일 문구가 있어도 여기서는 채우지 않는다.
  *
- * @see docs/body-parser-ybtour-ssot.md — 교보이지(kyowontour) 등록 본문 파싱은 동일 SSOT 규약을 적용한다.
+ * @see docs/body-parser-ybtour-ssot.md — 교원이지(kyowontour) 등록 본문 파싱은 동일 SSOT 규약을 적용한다.
  *
  * 상위 규약: `docs/admin-register-supplier-precise-spec.md` §4. 일정 표현: `docs/register_schedule_expression_ssot.md`.
  */

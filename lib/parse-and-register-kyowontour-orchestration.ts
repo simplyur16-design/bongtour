@@ -16,7 +16,7 @@ import {
   type RegisterScheduleDay,
 } from '@/lib/register-llm-schema-kyowontour'
 
-/** hanatour/교보이지/잔여 공용 save 게이트: 달력 행만이 아니라 표·항공 구조화·일정 초안을 함께 본다. */
+/** hanatour/교원이지/잔여 공용 save 게이트: 달력 행만이 아니라 표·항공 구조화·일정 초안을 함께 본다. */
 function registerPersistedHasCalendarDraftSignals(
   parsed: RegisterParsed,
   departureInputsLength: number,
@@ -136,7 +136,7 @@ function defaultReservationNoticeRawForProductSave(parsed: RegisterParsed): stri
   return r ? r.slice(0, 6000) : null
 }
 
-/** `app/admin/register` 교보이지 분기가 기대하는 `KyowontourFinalParsed` — 전체 SSOT는 `previewPayload` 본류. */
+/** `app/admin/register` 교원이지 분기가 기대하는 `KyowontourFinalParsed` — 전체 SSOT는 `previewPayload` 본류. */
 function buildKyowontourAdminPreviewCardData(args: {
   parsed: RegisterParsed
   productDraft: RegisterPreviewProductDraft
@@ -253,12 +253,12 @@ function buildKyowontourAdminPreviewCardData(args: {
   }
 }
 
-/** 교보이지(kyowontour) 등록 preview/confirm 전용 오케스트레이션 — `handleParseAndRegisterKyowontourRequest`만 연결. */
+/** 교원이지(kyowontour) 등록 preview/confirm 전용 오케스트레이션 — `handleParseAndRegisterKyowontourRequest`만 연결. */
 let currentLogPrefix = '[parse-and-register]'
 const isDev = process.env.NODE_ENV === 'development'
 
 /**
- * 교보이지 전용: 단계별 경과 시간을 항상 서버 로그에 남김(개발·운영 공통).
+ * 교원이지 전용: 단계별 경과 시간을 항상 서버 로그에 남김(개발·운영 공통).
  * `parse-and-register-timing`은 dev에서만 출력하므로, 4분 지연 구간 특정용으로 별도 사용.
  */
 function createKyowontourRegisterTiming(logPrefix: string) {

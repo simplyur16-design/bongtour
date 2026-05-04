@@ -1,11 +1,11 @@
 /**
- * 교보이지 전용 등록 파싱 orchestration.
+ * 교원이지 전용 등록 파싱 orchestration.
  *
  * **책임 분리:** `parseDetailBodyStructuredKyowontour`는 본문 슬라이스·호텔·포함불포함만 책운다.
  * 항공·옵션·쇼핑 **구조화**는 이 파일에서 `register-input-parse-kyowontour`로, **정형 입력란**(`pastedBlocks`) 기준으로만 수행한다.
  * 본문에 같은 표가 있어도 입력란이 비어 있으면 해당 축은 비어 있을 수 있다.
  *
- * @see docs/body-parser-ybtour-ssot.md — 교보이지(kyowontour) 등록 본문 파싱은 동일 SSOT 규약.
+ * @see docs/body-parser-ybtour-ssot.md — 교원이지(kyowontour) 등록 본문 파싱은 동일 SSOT 규약.
  *
  * 상위 규약: `docs/admin-register-supplier-precise-spec.md` §4. 일정 표현: `docs/register_schedule_expression_ssot.md`.
  */
@@ -82,10 +82,10 @@ function applyKyowontourMergedFlightRawToStructured(detailBody: DetailBodyParseS
 }
 
 export const KYOWONTOUR_PRICE_SLOT_SSOT_NOTE =
-  '교보이지 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
+  '교원이지 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
 
 export const KYOWONTOUR_FLIGHT_PREVIEW_NOTE =
-  '교보이지 항공: 정형칸 병합 후 flightStructured를 재계산합니다. 출발/도착 블록에서 항공사(첫 줄)·편명·도시·일시를 구조화합니다.'
+  '교원이지 항공: 정형칸 병합 후 flightStructured를 재계산합니다. 출발/도착 블록에서 항공사(첫 줄)·편명·도시·일시를 구조화합니다.'
 
 export async function parseForRegisterKyowontour(
   rawText: string,
@@ -138,8 +138,8 @@ export async function parseForRegisterKyowontour(
 
   const prevNotes = parsed.registerPreviewPolicyNotes ?? []
   const extra: string[] = []
-  if (!prevNotes.some((n) => n.includes('교보이지 가격(3슬롯)'))) extra.push(KYOWONTOUR_PRICE_SLOT_SSOT_NOTE)
-  if (!prevNotes.some((n) => n.includes('교보이지 항공:'))) extra.push(KYOWONTOUR_FLIGHT_PREVIEW_NOTE)
+  if (!prevNotes.some((n) => n.includes('교원이지 가격(3슬롯)'))) extra.push(KYOWONTOUR_PRICE_SLOT_SSOT_NOTE)
+  if (!prevNotes.some((n) => n.includes('교원이지 항공:'))) extra.push(KYOWONTOUR_FLIGHT_PREVIEW_NOTE)
   if (extra.length) {
     parsed = { ...parsed, registerPreviewPolicyNotes: [...prevNotes, ...extra] }
   }

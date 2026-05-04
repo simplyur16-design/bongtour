@@ -296,8 +296,8 @@ const YELLOW: SupplierInputFrameSpec = {
   },
 }
 
-/** 교보이지(kyowontour) — 정형칸 SSOT (본문 LLM과 분리). */
-/** 롯데관광(lottetour) — 상세 URL·마스터/행사 이원·정형칸 SSOT (교보이지 프레임을 베이스로 사이트 구조만 반영). */
+/** 교원이지(kyowontour) — 정형칸 SSOT (본문 LLM과 분리). */
+/** 롯데관광(lottetour) — 상세 URL·마스터/행사 이원·정형칸 SSOT (교원이지 프레임을 베이스로 사이트 구조만 반영). */
 const LOTTETOUR: SupplierInputFrameSpec = {
   displayName: '롯데관광',
   axes: [
@@ -358,7 +358,7 @@ const LOTTETOUR: SupplierInputFrameSpec = {
 }
 
 const KYOWONTOUR: SupplierInputFrameSpec = {
-  displayName: '교보이지',
+  displayName: '교원이지',
   axes: [
     {
       axis: '본문(LLM)',
@@ -391,7 +391,7 @@ const KYOWONTOUR: SupplierInputFrameSpec = {
   ],
   placeholders: {
     body: ph([
-      '[교보이지 본문 — LLM·서술]',
+      '[교원이지 본문 — LLM·서술]',
       '일차별 관광·식사·이동, 포함/불포함, 유의사항.',
       '(항공·호텔·옵션·쇼핑은 아래 정형칸이 본문 자동추출보다 우선)',
     ]),

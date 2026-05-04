@@ -152,7 +152,7 @@ function verygoodtourSnippet(
   })
 }
 
-/** 교보이지: 공항명 줄·시각 줄이 분리된 경우 인접 줄을 묶어 evidence로 쓴다 */
+/** 교원이지: 공항명 줄·시각 줄이 분리된 경우 인접 줄을 묶어 evidence로 쓴다 */
 function kyowontourAirportWithAdjacentTime(
   block: string[],
   which: 'first' | 'last',
@@ -174,7 +174,7 @@ function kyowontourAirportWithAdjacentTime(
   return null
 }
 
-/** 교보이지 */
+/** 교원이지 */
 function kyowontourSnippet(
   kind: RegisterFlightEvidenceKind,
   parsed: RegisterParsed,

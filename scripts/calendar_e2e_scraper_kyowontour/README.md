@@ -1,4 +1,4 @@
-# 교보이지(kyowontour) 출발일 캘린더 E2E 스크래퍼
+# 교원이지(kyowontour) 출발일 캘린더 E2E 스크래퍼
 
 `lib/kyowontour-departures.ts`의 서버 `fetch` 수집이 **빈 `dayAirList`**일 때, `tourCodeForE2EFallback`이 있으면 Node가 subprocess로 **한 번** 호출하는 **Selenium + requests** 보조 경로입니다(ybtour·modetour 등과 동일하게 `python -m …` 패턴).
 

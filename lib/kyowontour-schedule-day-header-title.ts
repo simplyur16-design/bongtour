@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 전용: 일차 헤더 `title`(장소·동선 요약)만 생성.
+ * 교원이지(kyowontour) 전용: 일차 헤더 `title`(장소·동선 요약)만 생성.
  * description / 식사·숙소 / imageKeyword는 변경하지 않는다.
  */
 

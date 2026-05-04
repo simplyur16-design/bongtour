@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 등록 파이프: 일정 표현층만 보정.
+ * 교원이지(kyowontour) 등록 파이프: 일정 표현층만 보정.
  * 누락 일차: 붙여넣기 본문의 `N일차` 블록으로만 보충 (LLM 행은 덮어쓰지 않음).
  * @see docs/register_schedule_expression_ssot.md
  */
@@ -161,7 +161,7 @@ function extractMealsFromKyowontourBlock(block: string): Partial<RegisterSchedul
   return out
 }
 
-/** 일차 표현층·붙여넣기 병합에서 imageKeyword 보강 시 사용 (교보이지 SSOT). */
+/** 일차 표현층·붙여넣기 병합에서 imageKeyword 보강 시 사용 (교원이지 SSOT). */
 export function keywordFromTitleDescription(title: string, description: string): string {
   return buildEnglishPlaceTripartiteImageKeyword({
     title,

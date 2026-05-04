@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 등록 전용: detail review 집계 + 쇼핑 Gemini 노이즈 필터.
+ * 교원이지(kyowontour) 등록 전용: detail review 집계 + 쇼핑 Gemini 노이즈 필터.
  */
 import type {
   DetailBodyParseSnapshot,

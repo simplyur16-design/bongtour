@@ -1,5 +1,5 @@
 /**
- * 교보이지 등록 가격: 3슬롯(성인·아동·유아). 쿠폰·총액·잔여석·적립·무이자 등 메타는 슬롯 제외.
+ * 교원이지 등록 가격: 3슬롯(성인·아동·유아). 쿠폰·총액·잔여석·적립·무이자 등 메타는 슬롯 제외.
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-kyowontour'
 

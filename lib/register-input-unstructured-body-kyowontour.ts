@@ -1,7 +1,7 @@
-/** 교보이지 등록 전용: 비정형 옵션·쇼핑 본문 휴리스틱. `register-input-parse-kyowontour`만 import. */
+/** 교원이지 등록 전용: 비정형 옵션·쇼핑 본문 휴리스틱. `register-input-parse-kyowontour`만 import. */
 import type { OptionalToursStructured, ShoppingStructured } from '@/lib/detail-body-parser-types'
 
-/** 교보이지 비정형 본문 전용 표·줄 키워드 */
+/** 교원이지 비정형 본문 전용 표·줄 키워드 */
 const OPTIONAL_HEADER_ALIASES = {
   tourName: [
     '선택관광명',

@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 출발옵션 — 제목 레이어·matchingTraceRaw (전용).
+ * 교원이지(kyowontour) 출발옵션 — 제목 레이어·matchingTraceRaw (전용).
  * 이전 공용 출발옵션 모듈에서 분리.
  */
 

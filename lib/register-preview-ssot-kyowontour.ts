@@ -7,7 +7,7 @@
  *
  * 필드별 요약:
  * - pricePromotion.salePrice: 달력/가격표 확정가와 다르면 병합 결과에서 제거(이미 reconcile).
- * - shoppingVisitCount: 본문·시그널의 "방문 횟수". 쇼핑 표 행 수와 동일시하지 않음.
+ * - shoppingVisitCount: 본문·시그널의 "방문 횟수". 교원이지는 본문에 총 N회 등이 없을 때 쇼핑 표 행 수로 폴백한다.
  * - optionalToursStructured: 표/regex 우선, LLM은 optionalToursLlmSupplementJson 보조.
  * - inboundArrivalAt: 날짜만 보강된 값은 시각·편명 검수 필요로 표시.
  */
@@ -128,7 +128,7 @@ export function buildRegisterPreviewSsotMeta(opts: {
   const hasShoppingDraft =
     (visit != null && Number(visit) > 0) || (rows != null && rows > 0)
   const separationNote = hasShoppingDraft
-    ? '쇼핑 방문 횟수와 후보지 목록은 서로 다른 개념입니다. 방문 횟수는 메타 요약이며, 후보지 목록은 참고·안내용입니다.'
+    ? '교원이지: 본문에 방문 횟수가 없으면 표 행 수를 횟수로 쓴다. 후보지 목록은 참고·안내용이다.'
     : null
 
   return {

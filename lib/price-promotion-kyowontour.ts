@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 전용 — 상품 상단 가격·혜택·쿠폰 블록 (adapter DOM 우선, 복붙+Gemini 보완, preview/raw 보존).
+ * 교원이지(kyowontour) 전용 — 상품 상단 가격·혜택·쿠폰 블록 (adapter DOM 우선, 복붙+Gemini 보완, preview/raw 보존).
  * 레거시 공용 단일 모듈은 제거됨. 등록·미리보기는 이 파일만 import한다.
  */
 

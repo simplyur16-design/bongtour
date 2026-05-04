@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 출발일 캘린더 — 사이트 내부 AJAX `POST /goods/differentDepartDate` (공개 HTTP, 인증 없음).
+ * 교원이지(kyowontour) 출발일 캘린더 — 사이트 내부 AJAX `POST /goods/differentDepartDate` (공개 HTTP, 인증 없음).
  * DOM 캘린더 클릭 대신 월별 JSON(`dayAirList`) 수집.
  * HTTP만으로 `dayAirList`가 비는 경우 `tourCodeForE2EFallback`이 있으면 Python E2E(Selenium+requests)를 한 번 시도한다.
  */

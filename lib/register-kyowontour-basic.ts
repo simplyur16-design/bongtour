@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 기본정보: 포함사항·불포함사항·추가비용 블록(써차지·비자 등) 결정적 분리.
+ * 교원이지(kyowontour) 기본정보: 포함사항·불포함사항·추가비용 블록(써차지·비자 등) 결정적 분리.
  * `detail-body-parser-kyowontour`는 이 파서만 사용한다(공용 줄 키워드 fallback 없음).
  */
 import type {

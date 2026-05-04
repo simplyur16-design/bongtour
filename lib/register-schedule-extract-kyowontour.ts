@@ -1,4 +1,4 @@
-// kyowontour(교보이지) 전용 schedule extract 모듈
+// kyowontour(교원이지) 전용 schedule extract 모듈
 // lib/register-schedule-extract-common.ts에서 분리됨 (단계적 독립화 작업)
 // 다른 공급사(modetour/hanatour/verygoodtour)는 각자 자기 파일 사용
 /**

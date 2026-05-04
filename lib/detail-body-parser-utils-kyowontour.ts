@@ -1,10 +1,10 @@
 /**
- * 교보이지(kyowontour) 등록 detail-body: 정규화·앵커·섹션 분리·슬라이스.
+ * 교원이지(kyowontour) 등록 detail-body: 정규화·앵커·섹션 분리·슬라이스.
  *
  * `flight_section` / `optional_tour_section` / `shopping_section` 앵커는 **일정·호텔·포함불포함과의 경계**를 잡기 위한 것이며,
  * 이 축의 **표·항공 구조화**는 하지 않는다(SSOT: `register-input-parse-kyowontour` + 정형 입력란).
  *
- * @see docs/body-parser-ybtour-ssot.md — 교보이지(kyowontour)는 동일 SSOT 규약.
+ * @see docs/body-parser-ybtour-ssot.md — 교원이지(kyowontour)는 동일 SSOT 규약.
  *
  * 상위 정책: `docs/admin-register-supplier-precise-spec.md` §4.
  */
@@ -18,7 +18,7 @@ export type DetailSectionSlices = {
   incExcSection: string
 }
 
-/** 교보이지 상세 본문·일정 블록 상단 정렬에 맞춘 앵커 */
+/** 교원이지 상세 본문·일정 블록 상단 정렬에 맞춘 앵커 */
 const KYOWONTOUR_SECTION_ANCHOR_ALIASES: Record<DetailSectionType, string[]> = {
   summary_section: [
     '여행핵심정보',
@@ -35,7 +35,7 @@ const KYOWONTOUR_SECTION_ANCHOR_ALIASES: Record<DetailSectionType, string[]> = {
     '여행도시',
     '출발인원',
     '상품특전',
-    '교보이지',
+    '교원이지',
     '옐로우',
   ],
   flight_section: [
@@ -217,7 +217,7 @@ function cleanLine(line: string): string {
 export function normalizeDetailRawText(raw: string): string {
   /** 줄 전체가 UI 잔재일 때만 제거(본문 중간 '여행후기' 문장 보존). */
   const dropLine = (t: string) =>
-    /^(더보기|크게보기|후기|리뷰|좋아요|공유|배너|이벤트|버튼|[-_=]{3,}|교보이지\s*고객|옐로우\s*볼)$/i.test(
+    /^(더보기|크게보기|후기|리뷰|좋아요|공유|배너|이벤트|버튼|[-_=]{3,}|교원이지\s*고객|옐로우\s*볼)$/i.test(
       t.replace(/\s+/g, ' ').trim()
     )
   return raw

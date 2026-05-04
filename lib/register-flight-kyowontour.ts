@@ -1,5 +1,5 @@
 /**
- * 교보이지 등록: structured 항공으로 가는/오는 편 한 줄.
+ * 교원이지 등록: structured 항공으로 가는/오는 편 한 줄.
  * 공용 `resolveDirectedFlightLinesDeterministicOnly`는 modetour 전용 플래그에 묶여 항상 null.
  */
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'

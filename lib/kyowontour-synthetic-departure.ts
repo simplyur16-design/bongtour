@@ -1,5 +1,5 @@
 /**
- * 교보이지 전용: prices[] 비어 있을 때 최소 ProductDeparture 1행 합성.
+ * 교원이지 전용: prices[] 비어 있을 때 최소 ProductDeparture 1행 합성.
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-kyowontour'
 import { parseDepartureDateTime, type DepartureInput } from '@/lib/upsert-product-departures-kyowontour'

@@ -1,5 +1,5 @@
 /**
- * `app/admin/register` 교보이지 미리보기 카드용 타입 — 전체 등록 SSOT는 `RegisterParsed`·previewPayload 본류.
+ * `app/admin/register` 교원이지 미리보기 카드용 타입 — 전체 등록 SSOT는 `RegisterParsed`·previewPayload 본류.
  */
 
 export type KyowontourFlightSegment = {

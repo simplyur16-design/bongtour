@@ -1,5 +1,5 @@
 /**
- * ItineraryDay: 교보이지(kyowontour) 등록/저장 경로용 — 공급사 원문 일정표 정본(raw/source-of-truth) 계층.
+ * ItineraryDay: 교원이지(kyowontour) 등록/저장 경로용 — 공급사 원문 일정표 정본(raw/source-of-truth) 계층.
  * (productId, day) 기준. 일정 전체 재저장 시 기존 row 삭제 후 createMany.
  * 정책: docs/itinerary-policy.md
  */

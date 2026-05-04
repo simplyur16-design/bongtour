@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 관리자 등록 — 옵션관광·쇼핑·항공 **입력 해석** 전용 진입점.
+ * 교원이지(kyowontour) 관리자 등록 — 옵션관광·쇼핑·항공 **입력 해석** 전용 진입점.
  * 과거 `yellowballoon` 등록 경로는 노랑풍선 핸들러와 파서 계열을 공유한다(이행 참고).
  */
 import type { FlightStructured, OptionalToursStructured, ShoppingStructured } from '@/lib/detail-body-parser-types'

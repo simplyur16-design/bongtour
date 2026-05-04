@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 경로용 — 일차별 예정호텔(1일차 예정호텔 …) 구조. 상세 호텔정보 탭 SSOT.
+ * 교원이지(kyowontour) 경로용 — 일차별 예정호텔(1일차 예정호텔 …) 구조. 상세 호텔정보 탭 SSOT.
  * DB 필드명은 Prisma와 무관하게 rawMeta.structuredSignals + 서버 병합으로 전달.
  */
 

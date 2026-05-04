@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 경로용 — ProductDeparture MVP: 출발일/가격/상태 동기화 적재.
+ * 교원이지(kyowontour) 경로용 — ProductDeparture MVP: 출발일/가격/상태 동기화 적재.
  * (productId, departureDate) 기준 upsert. 날짜 정규화·raw 보존·파생은 보수적으로.
  */
 import type { PrismaClient } from '@prisma/client'
@@ -8,7 +8,7 @@ import { deriveHanatourConfirmationFlags, parseStatusLabelsJson } from './hanato
 
 const MAX_RAW = 2000
 
-/** 교보이지(kyowontour) 전용: 성인만 갱신 입력으로 덮고, 아동·유아는 이번 요청에 숫자가 있을 때만 갱신·없으면 DB 유지 */
+/** 교원이지(kyowontour) 전용: 성인만 갱신 입력으로 덮고, 아동·유아는 이번 요청에 숫자가 있을 때만 갱신·없으면 DB 유지 */
 function pickPreservedChildInfantPriceKyowontour(
   incoming: number | null | undefined,
   existing: number | null | undefined

@@ -189,7 +189,7 @@ function tryKyowontourHeroFromFlightStructured(
 }
 
 /**
- * 교보이지(kyowontour) 등록 미리보기·공개 상세 히어로 — 구조화 항공에서 출발·귀국 시각 오버라이드 후 공용 `resolveHeroTripDates`로 폴백.
+ * 교원이지(kyowontour) 등록 미리보기·공개 상세 히어로 — 구조화 항공에서 출발·귀국 시각 오버라이드 후 공용 `resolveHeroTripDates`로 폴백.
  *
  * `disableFlightStructuredFallback`: true면 상품 본문 `kyowontourFlightStructured`를 쓰지 않는다(출발 행·`departureKeyFactsByDate`만 SSOT).
  */

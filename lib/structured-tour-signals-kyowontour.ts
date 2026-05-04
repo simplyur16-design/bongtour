@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 전용 — structured tour signals (선택관광·쇼핑 등 본문 신호 추출).
+ * 교원이지(kyowontour) 전용 — structured tour signals (선택관광·쇼핑 등 본문 신호 추출).
  *
  * Gate 연결
  * - 선택관광 행 필터/금칙은 `@/lib/optional-tour-row-gate-kyowontour`만 import한다. 공용 `optional-tour-row-gate.ts`는 없다.
@@ -229,7 +229,7 @@ function findShoppingMergedHeader(lines: string[]): {
   const hasShopItem = (s: string) =>
     /\uC1FC\uD551\s*\uD488\uBAA9|\uC1FC\uD551\s*\uD56D\uBAA9|\uC1FC\uD551\uD488\uBAA9|\uC1FC\uD551\uBA85/i.test(s)
   const hasShopPlaceOrMore = (s: string) =>
-    /\uC1FC\uD551\s*\uC7A5\uC18C|\uC1FC\uD551\uC7A5\uC18C|\uC608\uC0C1\uC18C\uC694\uC2DC\uAC04|\uC18C\uC694\uC2DC\uAC04|\uD658\uBD88|\uAD6C\uBD84|\uCCB4\uB958/i.test(
+    /\uC1FC\uD551\s*\uC7A5\uC18C|\uC1FC\uD551\uC7A5\uC18C|\uC608\uC0C1\uC18C\uC694\uC2DC\uAC04|\uC18C\uC694\uC2DC\uAC04|\uD658\uBD88|\uAD6C\uBD84|\uCCB4\uB958|(?:^|[\t\s/|｜／＿])장소(?:$|[\t\s/|｜／＿])/i.test(
       s
     )
   const singleIdx = lines.findIndex((l) => hasShopItem(l) && hasShopPlaceOrMore(l))
@@ -399,7 +399,7 @@ function parseShopping(lines: string[]): {
   shoppingStops: StructuredShoppingStopRow[]
   shoppingVisitCount: number | null
 } {
-  const shoppingVisitCount = parseIntLoose(
+  const visitFromExplicitMeta = parseIntLoose(
     lines.find((l) => /\uC1FC\uD551\s*\d+\s*\uD68C|\uCD1D\s*\d+\s*\uD68C/i.test(l)) ?? undefined
   )
   const noticeIdx = lines.findIndex((l) =>
@@ -413,7 +413,7 @@ function parseShopping(lines: string[]): {
   const start =
     headerIdx >= 0 ? headerIdx + headerLinesConsumed : noticeIdx >= 0 ? noticeIdx + 1 : -1
   const rows: StructuredShoppingStopRow[] = []
-  if (start < 0) return { shoppingNoticeRaw: noticeRaw, shoppingStops: rows, shoppingVisitCount }
+  if (start < 0) return { shoppingNoticeRaw: noticeRaw, shoppingStops: rows, shoppingVisitCount: visitFromExplicitMeta }
 
   let colMap: { typeIdx: number | null; itemIdx: number; placeIdx: number; durIdx: number; refIdx: number } | null =
     null
@@ -425,7 +425,10 @@ function parseShopping(lines: string[]): {
       /\uC1FC\uD551\s*\uD488\uBAA9|\uC1FC\uD551\s*\uD56D\uBAA9|\uC1FC\uD551\uD488\uBAA9|\uC1FC\uD551\uBA85/i.test(c)
     )
     const iPlace = idx(
-      (c) => /\uC1FC\uD551\s*\uC7A5\uC18C|\uC1FC\uD551\uC7A5\uC18C/i.test(c) || /^[\uC7A5\uC18C]$/i.test(c.trim())
+      (c) =>
+        /\uC1FC\uD551\s*\uC7A5\uC18C|\uC1FC\uD551\uC7A5\uC18C/i.test(c) ||
+        /^[\uC7A5\uC18C]$/i.test(c.trim()) ||
+        /^장소$/i.test(c.trim())
     )
     const iDur = idx((c) => /\uC18C\uC694|\uC608\uC0C1\uC18C\uC694\uC2DC\uAC04|\uCCB4\uB958/i.test(c) && !/\uD658\uBD88/i.test(c))
     const iRef = idx((c) => /\uD658\uBD88/i.test(c))
@@ -492,6 +495,8 @@ function parseShopping(lines: string[]): {
         raw: r.raw,
       })
   )
+  const shoppingVisitCount =
+    visitFromExplicitMeta != null ? visitFromExplicitMeta : filteredRows.length > 0 ? filteredRows.length : null
   return { shoppingNoticeRaw: noticeRaw, shoppingStops: filteredRows, shoppingVisitCount }
 }
 

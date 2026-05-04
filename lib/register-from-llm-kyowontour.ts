@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-kyowontour`만 호출.
+ * 교원이지(kyowontour) 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-kyowontour`만 호출.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import {
@@ -130,7 +130,7 @@ import {
 } from '@/lib/register-llm-schema-kyowontour'
 
 
-/** preset 없을 때 비표시 — 교보이지는 `resolveDirectedFlightLinesKyowontour` 주입 전제 */
+/** preset 없을 때 비표시 — 교원이지는 `resolveDirectedFlightLinesKyowontour` 주입 전제 */
 function resolveDirectedFlightLinesDefault(_detailBody: DetailBodyParseSnapshot): {
   departureSegmentFromStructured: string | null
   returnSegmentFromStructured: string | null
@@ -190,7 +190,7 @@ function buildRegisterSignalsHaystack(
   return parts.join('\n\n\n').slice(0, REGISTER_PASTE_MAX_CHARS)
 }
 
-/** 전용 입력란 비어 있을 때 본문·regex·LLM 해당 축 미사용 — 교보이지(kyowontour) 이 파일 전용 */
+/** 전용 입력란 비어 있을 때 본문·regex·LLM 해당 축 미사용 — 교원이지(kyowontour) 이 파일 전용 */
 function kyowontourClearLlmWhenDedicatedPasteEmpty(
   raw: RegisterGeminiLlmJson,
   pb: Partial<RegisterPastedBlocksInput> | undefined
@@ -882,7 +882,7 @@ ${BONGTOUR_TONE_MANNER_LLM_BLOCK}
 
 ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 
-# [교보이지(kyowontour) 본문 형식 — 추출 힌트]
+# [교원이지(kyowontour) 본문 형식 — 추출 힌트]
 - 일정은 본문에 **「1일차」「2일차」… 한글 N일차** 또는 **DAY 1** 형태가 섞일 수 있다. 일수·일차 경계는 이 헤더를 최우선으로 맞출 것.
 - 상품 식별: 본문·헤더에 **tourCode**, **masterCode** 쌍이 나오면 가능한 범위에서 둘 다 추출(숫자 vs 마스터 혼동 시 fieldIssues).
 - 항공: 본문에 **실제 편명**(예: TW671, XJ701)이 있으면 반드시 해당 필드에 반영(가짜 placeholder 금지).
@@ -2104,7 +2104,7 @@ ${text.slice(0, 16000)}`
     shopRows > 0 ||
     (manualPasteAxes.hasManualShoppingInput && Boolean(String(pb.shopping ?? '').trim())) ||
     (raw.shoppingVisitCount != null && Number(raw.shoppingVisitCount) > 0)
-  /** 요약 문구(정규 추출) 우선 — 표 row 수와 동일 의미가 아님 */
+  /** 요약 문구(정규 추출) 우선. 본문에 방문 횟수가 없을 때는 표 행 수(교원이지)로 폴백 */
   const shoppingVisitCountFinal =
     manualPasteAxes.hasManualShoppingInput && Boolean(String(pb.shopping ?? '').trim()) && shopRows <= 0
       ? null
@@ -2112,7 +2112,9 @@ ${text.slice(0, 16000)}`
         ? signals.shoppingVisitCount
         : raw.shoppingVisitCount != null
           ? Number(raw.shoppingVisitCount)
-          : null
+          : shopRows > 0
+            ? shopRows
+            : null
   const shoppingSummaryFinal =
     (raw.shoppingSummaryText ?? '').trim() ||
     (manualPasteAxes.hasManualShoppingInput &&

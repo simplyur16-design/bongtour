@@ -301,7 +301,7 @@ function mergeRegisterParsedScheduleWithManualPexels(
   return { ...parsed, schedule: withManual }
 }
 
-/** 교보이지 API는 단일 `bodyText`만 수신 — 정형칸을 본문 뒤에 덧붙여 site-parser·LLM 입력으로 쓴다. */
+/** 교원이지(kyowontour) 등록 경로는 단일 bodyText만 수신 — 정형칸을 본문 뒤에 덧붙여 site-parser·LLM 입력으로 쓴다. */
 function buildKyowontourBodyTextWithStructuredBlocks(
   raw: string,
   b: { optionalTour: string; shopping: string; hotel: string; airlineTransport: string }
@@ -394,7 +394,7 @@ const REGISTER_SUPPLIER_OPTIONS: Brand[] = [
   { id: '', brandKey: 'verygoodtour', displayName: '참좋은여행사', sortOrder: 2 },
   { id: '', brandKey: 'ybtour', displayName: '노랑풍선', sortOrder: 3 },
   { id: '', brandKey: 'hanatour', displayName: '하나투어', sortOrder: 4 },
-  { id: '', brandKey: 'kyowontour', displayName: '교보이지', sortOrder: 5 },
+  { id: '', brandKey: 'kyowontour', displayName: '교원이지', sortOrder: 5 },
 ]
 
 {
@@ -717,7 +717,7 @@ export default function AdminRegisterPage() {
           error?: string
         }
         if (!kres.success || kres.mode !== 'preview') {
-          throw new Error(typeof kres.error === 'string' ? kres.error : '교보이지 분석 응답이 올바르지 않습니다.')
+          throw new Error(typeof kres.error === 'string' ? kres.error : '교원이지 분석 응답이 올바르지 않습니다.')
         }
         setPreview(kres as AdminRegisterPreviewPayload)
         setParsedForConfirm(kres.parsed ?? null)

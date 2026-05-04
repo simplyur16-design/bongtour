@@ -30,7 +30,7 @@ function legCoreCount(leg: FlightLeg): number {
 }
 
 /**
- * 교보이지(kyowontour) 관리자 항공 붙여넣기 전용 — `출발`/`도착` 블록·편명·공항·일시.
+ * 교원이지(kyowontour) 관리자 항공 붙여넣기 전용 — `출발`/`도착` 블록·편명·공항·일시.
  * (공용 `parseFlightSectionGeneric` 미사용)
  */
 export function parseFlightSectionKyowontour(
@@ -52,7 +52,7 @@ export function parseFlightSectionKyowontour(
   const expectFlightNumber = true
 
   if (!blocks?.outbound?.flightNo || !blocks?.inbound?.flightNo) {
-    const reviewReasons = ['교보이지 출발/도착 블록 또는 편명·일시 추출 실패']
+    const reviewReasons = ['교원이지 출발/도착 블록 또는 편명·일시 추출 실패']
     return {
       airlineName: blocks?.airlineName?.trim() ?? null,
       outbound: empty,
@@ -89,7 +89,7 @@ export function parseFlightSectionKyowontour(
   const exposurePolicy =
     status === 'success' ? 'public_full' : status === 'partial' ? 'public_limited' : 'admin_only'
   const reviewReasons: string[] = []
-  if (status !== 'success') reviewReasons.push('교보이지 항공 구조화 일부만 성공 — 원문 검수')
+  if (status !== 'success') reviewReasons.push('교원이지 항공 구조화 일부만 성공 — 원문 검수')
 
   const selectedOutRaw = kyowontourSynthesizePreferredRaw(blocks.outbound, '가는편')
   const selectedInRaw = kyowontourSynthesizePreferredRaw(blocks.inbound, '오는편')

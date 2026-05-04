@@ -1,5 +1,5 @@
 /**
- * 교보이지: 쇼핑 회차·환불 중심 행은 옵션에서 제외.
+ * 교원이지: 쇼핑 회차·환불 중심 행은 옵션에서 제외.
  * 옵션 붙여넣기: (1) 웹 본문형 `비용60유로` + 소요시간 + 참고사항 (4필드 SSOT)
  * (2) 레거시 `$` + 미참가시 3열 표.
  */
@@ -312,7 +312,7 @@ function parseKyowontourBlock(lines: string[], start: number, end: number): {
   return { durationText, minPeopleText, alternateScheduleText, waitingPlaceText, guide同行Text }
 }
 
-/** 교보이지 관리자 옵션 칸 붙여넣기 — 유로 웹본문 우선, 없으면 `$` 블록. */
+/** 교원이지 관리자 옵션 칸 붙여넣기 — 유로 웹본문 우선, 없으면 `$` 블록. */
 export function parseKyowontourOptionalTourPasteSection(section: string): OptionalToursStructured {
   const euroFirst = parseKyowontourEuroWebsiteSection(section)
   if (euroFirst.rows.length > 0) return euroFirst

@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 경로용 — 공개 상품 상세는 레거시 ProductPrice[] 를 직렬화해 쓰는데,
+ * 교원이지(kyowontour) 경로용 — 공개 상품 상세는 레거시 ProductPrice[] 를 직렬화해 쓰는데,
  * 신규 SSOT는 ProductDeparture — 둘을 맞춰 달력·요금이 보이게 한다.
  *
  * 달력·출발행(ProductDeparture)과 본문 가격표 병합 시 성인가·아동·유아 슬롯은 이 모듈의 merge 규칙을 따른다.
@@ -85,7 +85,7 @@ export type MergeProductPriceBodyTableOptions = {
    */
   modetourVaryingAdultChildLinkage?: boolean
   /**
-   * 교보이지(kyowontour) 전용: 출발별 성인가가 다를 때 아동=행별 성인가 연동(post).
+   * 교원이지(kyowontour) 전용: 출발별 성인가가 다를 때 아동=행별 성인가 연동(post).
    * 본문 표의 유아 단가는 **절대** 행에 덮어쓰지 않는다(최초 유아 단가·행 값 유지).
    */
   kyowontourVaryingAdultChildLinkage?: boolean

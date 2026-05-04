@@ -1,5 +1,5 @@
 /**
- * 교보이지(kyowontour) 등록 POST 전용 — 공용 `handleParseAndRegisterRequest` 미사용.
+ * 교원이지(kyowontour) 등록 POST 전용 — 공용 `handleParseAndRegisterRequest` 미사용.
  * 일정 표현층: 미리보기 schedule 비움 우회·확정 시 drafts/ItineraryDay/Product.schedule 정렬은 `parse-and-register-kyowontour-schedule`.
  */
 import { parseForRegisterKyowontour } from '@/lib/register-parse-kyowontour'
