@@ -1,7 +1,9 @@
+// kyowontour(교보이지) 전용 schedule extract 모듈
+// lib/register-schedule-extract-common.ts에서 분리됨 (단계적 독립화 작업)
+// 다른 공급사(modetour/hanatour/verygoodtour)는 각자 자기 파일 사용
 /**
- * [kyowontour] 붙여넣기 본문에서 일정(schedule[])만 경량 LLM으로 먼저 추출한다.
+ * 공급사 공통: 붙여넣기 본문에서 일정(schedule[])만 경량 LLM으로 먼저 추출한다.
  * 풀 등록 JSON과 동시에 거대 schedule을 출력하면 MAX_TOKENS·일차 누락이 나기 쉬워 분리한다.
- * (공급사 독립화: `register-schedule-extract-common`과 동일 로직·프롬프트 보존.)
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { buildScheduleExtractToneBlock } from '@/lib/bongtour-tone-manner-llm-ssot'

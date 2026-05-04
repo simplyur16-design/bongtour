@@ -1,5 +1,5 @@
 /**
- * 교보이지(여행이지, kyowontour) 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-kyowontour`만 호출(R-3-B 연결).
+ * 교보이지(kyowontour) 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-kyowontour`만 호출.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import {
@@ -18,40 +18,98 @@ import {
 } from '@/lib/bongtour-tone-manner-llm-ssot'
 
 /**
- * 풀 등록(`forPreview: false`) JSON 출력 상한. 호텔·일정 배열이 길면 32k에서 MAX_TOKENS 잘림이 난다.
- * `GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS`로 조정(모델 상한 내).
+ * 풀 등록(`forPreview: false`) JSON 출력 상한. kyowontour 전용 우선순위:
+ * `GEMINI_REGISTER_KYOWONTOUR_FULL_MAX_OUTPUT_TOKENS` > `GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS` > 기본 98304.
+ * 파싱 실패·MAX_TOKENS 시 동일 세션에서 1회 1.5배(상한 131072) 자동 재호출.
  */
-const REGISTER_FULL_MAX_OUTPUT_TOKENS = Math.max(
-  8192,
-  Math.min(131072, Number(process.env.GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS) || 65536)
-)
+const KYOWONTOUR_REGISTER_FULL_MAX_OUTPUT_CAP = 131072
+const KYOWONTOUR_REGISTER_FULL_MAX_OUTPUT_FLOOR = 8192
+
+function resolveKyowontourRegisterFullMaxOutputTokens(): number {
+  const yb = Number(process.env.GEMINI_REGISTER_KYOWONTOUR_FULL_MAX_OUTPUT_TOKENS)
+  if (Number.isFinite(yb) && yb > 0) {
+    return Math.max(
+      KYOWONTOUR_REGISTER_FULL_MAX_OUTPUT_FLOOR,
+      Math.min(KYOWONTOUR_REGISTER_FULL_MAX_OUTPUT_CAP, Math.trunc(yb))
+    )
+  }
+  const full = Number(process.env.GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS)
+  if (Number.isFinite(full) && full > 0) {
+    return Math.max(
+      KYOWONTOUR_REGISTER_FULL_MAX_OUTPUT_FLOOR,
+      Math.min(KYOWONTOUR_REGISTER_FULL_MAX_OUTPUT_CAP, Math.trunc(full))
+    )
+  }
+  return 98304
+}
+
+const REGISTER_FULL_MAX_OUTPUT_TOKENS = resolveKyowontourRegisterFullMaxOutputTokens()
+
+function bumpKyowontourMainMaxOutputTokens(current: number): number {
+  return Math.min(KYOWONTOUR_REGISTER_FULL_MAX_OUTPUT_CAP, Math.ceil(current * 1.5))
+}
+
+function kyowontourMainParseFailureSuggestsTruncationOrBrokenJson(
+  finishReason: string | undefined,
+  text: string,
+  parseErrorMessage: string
+): boolean {
+  const te = text.trimEnd()
+  const msg = parseErrorMessage.toLowerCase()
+  return (
+    finishReason === 'MAX_TOKENS' ||
+    !te.endsWith('}') ||
+    msg.includes('parsed value is not a json object') ||
+    msg.includes('unexpected token') ||
+    msg.includes('unexpected end') ||
+    msg.includes('unterminated string')
+  )
+}
+
+function kyowontourShouldAttemptJsonRepairAfterMain(
+  finishReason: string | undefined,
+  text: string,
+  parseErrorMessage: string | undefined
+): boolean {
+  const te = text.trimEnd()
+  const msg = (parseErrorMessage ?? '').toLowerCase()
+  return (
+    finishReason === 'MAX_TOKENS' ||
+    !te.endsWith('}') ||
+    msg.includes('unterminated string') ||
+    msg.includes('parsed value is not a json object') ||
+    msg.includes('unexpected token') ||
+    msg.includes('unexpected end')
+  )
+}
 import type { ParsedProductPrice } from './parsed-product-types'
 import { normalizeCalendarDate } from './date-normalize'
 import { extractDestinationFromTitle } from './destination-from-title'
 import { normalizeOriginSource } from './supplier-origin'
-import { extractStructuredTourSignals } from './structured-tour-signals-modetour'
-import type { StructuredOptionalTourRow, StructuredShoppingStopRow } from './structured-tour-signals-modetour'
+import { extractStructuredTourSignals } from './structured-tour-signals-ybtour'
+import type { StructuredOptionalTourRow, StructuredShoppingStopRow } from './structured-tour-signals-ybtour'
 import {
   buildRegisterLlmInputBlocks,
   buildRegisterPreviewMinimalLlmInputBlocks,
   segmentSupplierPasteForLlm,
   type RegisterPastedBlocksInput,
-} from '@/lib/register-llm-blocks-modetour'
+} from '@/lib/register-llm-blocks-ybtour'
 import {
   enrichParsedPricesInboundArrivalDateFromRawBlob,
   enrichParsedProductPricesWithFlightHeuristics,
   mergeProductLevelFlightSegments,
 } from './flight-leg-heuristics'
 import { MAX_OPTIONAL_TOURS, OPTIONAL_TOUR_UI_MAX_ROWS } from '@/lib/optional-tour-limits'
-import { filterOptionalTourRows, optionalTourRowPassesStrictGate, type OptionalTourRowFields } from '@/lib/optional-tour-row-gate-modetour'
+import { filterOptionalTourRows, optionalTourRowPassesStrictGate, type OptionalTourRowFields } from '@/lib/optional-tour-row-gate-ybtour'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 import { isMustKnowInsufficient, supplementMustKnowWithWebSearch } from './must-know-web-supplement'
 import { parseLlmJsonObject } from './llm-json-extract'
+import { extractYbtourVerbatimListingTitle } from '@/lib/register-ybtour-basic'
 import {
   mergeDayHotelPlansForRegister,
   parseDayHotelPlansFromSupplierText,
   type DayHotelPlan,
-} from '@/lib/day-hotel-plans-modetour'
+} from '@/lib/day-hotel-plans-ybtour'
 import { mergeInfantPriceIntoProductPriceTable } from '@/lib/infant-price-extract'
 import {
   extractProductPriceTableByLabels,
@@ -70,7 +128,9 @@ import {
   type RegisterParsed,
   type RegisterScheduleDay,
 } from '@/lib/register-llm-schema-kyowontour'
-/** preset 없을 때 비표시 — 교보이지는 `resolveDirectedFlightLinesKyowontour` 주입 전제(R-3-B) */
+
+
+/** preset 없을 때 비표시 — 교보이지는 `resolveDirectedFlightLinesYbtour`(ybtour 베이스) 주입 전제 */
 function resolveDirectedFlightLinesDefault(_detailBody: DetailBodyParseSnapshot): {
   departureSegmentFromStructured: string | null
   returnSegmentFromStructured: string | null
@@ -82,13 +142,13 @@ import { readManualPasteAxesFromBlocks } from '@/lib/register-manual-paste-ssot'
 import {
   filterRegisterExtractionIssuesShoppingGeminiNoise,
   shouldEmitShoppingBothEmptyExtractionIssue,
-} from '@/lib/review-policy-modetour'
+} from '@/lib/review-policy-ybtour'
 import { decideSectionRepairPolicy, runDetailSectionGeminiRepair } from '@/lib/gemini-repair-chain'
 import {
   buildDestinationCoherenceFieldIssues,
   normalizeDestinationExtractionIssuesInPlace,
 } from '@/lib/register-destination-coherence'
-import { parsePricePromotionFromGeminiJson, type PricePromotionSnapshot } from './price-promotion-modetour'
+import { parsePricePromotionFromGeminiJson, type PricePromotionSnapshot } from './price-promotion-ybtour'
 import { buildSingleRoomExcludedLine } from '@/lib/product-excluded-display'
 
 /** parse/route TEXT_LIMIT(26k)보다 넉넉히 — 등록 프롬프트가 더 길어 32k. 초과분은 잘라 입력 토큰·지연을 줄임 */
@@ -107,7 +167,7 @@ function normalizeRegisterPasteNewlines(s: string): string {
 /**
  * extractStructuredTourSignals / extractOptionalToursStructured 입력용.
  * 쇼핑·옵션을 본문과 별도 블록으로 붙인 경우 primary(복붙 본문)에 표가 없으면 signals가 비는 문제를 막는다.
- * 본문에 이미 포함된 블록은 중복 합치지 않는다(`register-llm-blocks-modetour` omit 규칙과 동일한 ⊂ 판별).
+ * 본문에 이미 포함된 블록은 중복 합치지 않는다(`register-llm-blocks-ybtour` omit 규칙과 동일한 ⊂ 판별).
  */
 function buildRegisterSignalsHaystack(
   rawText: string,
@@ -130,7 +190,7 @@ function buildRegisterSignalsHaystack(
   return parts.join('\n\n\n').slice(0, REGISTER_PASTE_MAX_CHARS)
 }
 
-/** 전용 입력란 비어 있을 때 본문·regex·LLM 해당 축 미사용 — 교보이지 이 파일 전용 */
+/** 전용 입력란 비어 있을 때 본문·regex·LLM 해당 축 미사용 — 교보이지(kyowontour) 이 파일 전용 */
 function kyowontourClearLlmWhenDedicatedPasteEmpty(
   raw: RegisterGeminiLlmJson,
   pb: Partial<RegisterPastedBlocksInput> | undefined
@@ -233,37 +293,13 @@ function allowedCategoryForSupplement(
   return '현지준비'
 }
 
-/** 교보이지 등록 전용: 맨 앞 `[배지]`·공백만 정리(요약·해시 제거 금지). 타 공급사와 공유하지 않음. */
+/** kyowontour 등록 전용: 맨 앞 `[배지]`·공백만 정리(`register-ybtour-basic` 추출 결과 후처리용). */
 function normalizeKyowontourRegisterTitleMinimalLocal(s: string): string {
   let t = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
   t = t.replace(/^(\[[^\]\n]{1,120}\]\s*)+/, '')
   t = t.replace(/[\u00a0\u3000]+/g, ' ')
   t = t.replace(/\s+/g, ' ').trim()
   return t
-}
-
-/** 붙여넣기 상단부에서 교보이지 상품 리스트 제목 한 줄 원문 추출 */
-function extractKyowontourVerbatimListingTitleRawFromPasteLocal(blob: string): string | null {
-  const text = blob.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  const head = text.slice(0, 12_000)
-  const lines = head.split('\n').map((l) => l.replace(/\u00a0/g, ' ').trim()).filter(Boolean)
-  const skipRe =
-    /^(상품(?:코드|번호)|담당자|문의|예약|인쇄|공유|https?:|▼|▶|■|※\s*유의|포함사항|불포함|여행\s*일정|상품\s*개요|HOME|고위험)/i
-  for (const line of lines.slice(0, 70)) {
-    if (line.length < 15 || line.length > 220) continue
-    if (skipRe.test(line)) continue
-    if (/^https?:\/\//i.test(line)) continue
-    const hasTourShape = /(?:\d+\s*일|\d+\s*박|\d+\s*국)/.test(line)
-    const hashCount = (line.match(/#/g) || []).length
-    const hasBracketLead = /^\[/.test(line)
-    if ((hasTourShape && (hashCount >= 1 || line.length >= 32)) || (hasBracketLead && hasTourShape)) return line
-  }
-  for (const line of lines.slice(0, 28)) {
-    if (line.length < 14 || line.length > 200) continue
-    if (skipRe.test(line)) continue
-    if (/[가-힣]{8,}/.test(line) && /\d/.test(line) && /[#\[\]일박국]/.test(line)) return line
-  }
-  return null
 }
 
 function inferProductTypeFromText(rawText: string, title: string): string {
@@ -846,13 +882,12 @@ ${BONGTOUR_TONE_MANNER_LLM_BLOCK}
 
 ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 
-# [교보이지(여행이지) — 사이트 본문 특성]
-- 일정 헤더: **N일차**(한글) 또는 **DAY N** 이 흔함. 일차 수와 schedule[] 길이를 일치시킬 것.
-- 상품 식별: 본문·URL·숨은 필드에 **tourCode**, **masterCode** 등이 섞여 나올 수 있음. 가능한 범위에서 원문 그대로 추출(행사 vs 마스터 혼동 시 fieldIssues).
-- 가격: 성인·소아·유아·유류할증·제세 등 줄 단위 표기. 숫자는 콤마 제거·정수화.
-- 항공: 본문에 **실제 편명**(예: TW671, XJ701)이 있으면 반드시 해당 값 사용(가공 placeholder 금지).
-- 호텔: 「4성급 또는 동급」「시내 4성급」 등 **등급+동급** 문구는 hotelText·hotelNames·dayHotelPlans에 원문 보존.
-- 인솔자/가이드/기사경비·현지 필수 경비 등은 **excludedItems[]**에 반드시 포함하고 포함항목과 중복되지 않게 할 것.
+# [교보이지(kyowontour) 본문 형식 — 추출 힌트]
+- 일정은 본문에 **「1일차」「2일차」… 한글 N일차** 또는 **DAY 1** 형태가 섞일 수 있다. 일수·일차 경계는 이 헤더를 최우선으로 맞출 것.
+- 상품 식별: 본문·헤더에 **tourCode**, **masterCode** 쌍이 나오면 가능한 범위에서 둘 다 추출(숫자 vs 마스터 혼동 시 fieldIssues).
+- 항공: 본문에 **실제 편명**(예: TW671, XJ701)이 있으면 반드시 해당 필드에 반영(가짜 placeholder 금지).
+- 호텔 문구에 **「시내 4성급 또는 동급」**처럼 등급·동급 표현이 있으면 hotelSummaryText·dayHotelPlans·hotelNames에 원문에 가깝게 보존.
+- **인솔자·가이드·기사경비** 등 정액·정수 경비 문구는 **excludedItems[]**에 반드시 넣고 포함·불포함과 중복되지 않게 할 것.
 
 # [추출 SSOT — 절대 약화 금지]
 - 일반 본문 "요약"으로 표·리스트·항공·미팅·가격표를 대체하지 말 것. 구조화해야 할 블록은 반드시 해당 JSON 필드에 넣을 것.
@@ -866,7 +901,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - 미팅: meetingPlaceRaw·meetingNoticeRaw·meetingFallbackText. 상세 없으면 meetingFallbackText는 "미팅장소는 상담 시 확인하여 안내드리겠습니다."를 사용.
 - 꼭 확인하세요: mustKnowItems[]/mustKnowRaw 는 **공급사 원문([PASTED REQUIRED CHECKS]·본문 해당 구간) 우선** 구조화. 상담 키워드/불포함/보험/유류/현지경비 반복 금지.
   - 포함/불포함/선택관광 안내문을 재탕하지 말 것.
-  - 원문에 해당 정보가 없으면 mustKnowItems는 비우거나 최소화. **검색·외부 사실 보완은 이 Gemini 단계에서 하지 말 것**(서버 후처리).
+  - 원문에 해당 정보가 없으면 mustKnowItems는 비우거나 최소화. **검색·외부 사실 보완은 이 Gemini 단계에서 하지 말 것**(공개 HTTP·클라이언트 직렬화 경로 포함; 서버 후처리만).
   - mustKnowSource: 공급사 원문만 구조화했으면 "supplier".
 - 애매하면 값을 버리지 말고 fieldIssues에 { field, reason, source:"llm", severity:"info"|"warn" } 로 남길 것.
 
@@ -883,6 +918,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 
 # [추출 필드 - 강제]
 - originCode, title, destination, duration, schedule[], prices[] (달력 행)
+- **title**: 상품 상단에 보이는 상품명·여행 제목을 **붙여넣기 원문과 동일한 문자열**로만 출력한다. 공백·#해시태그·항공편 코드(예: LJ)·기종 표기·'N일' 붙임 방식을 바꾸지 않는다. 고객용으로 다듬는 의역·요약·재작성(괄호로 나열하는 식 포함)을 하지 않는다.
 - 상품가격표 원문: priceTableRawText, priceTableRawHtml(있을 때), productPriceTable: adultPrice, childExtraBedPrice, childNoBedPrice, infantPrice (본문 표에서만; 없으면 null). **infantPrice**: "유아/소아(만 2세 미만)/INFANT/유아 요금" 등과 같은 줄·인접 줄의 원 단위 숫자를 반드시 구조화한다.
 - 항공(상품/구간 요약): airlineName, departureSegmentText, returnSegmentText, outboundFlightNo, inboundFlightNo, departureDateTimeRaw, arrivalDateTimeRaw, routeRaw — 항공사를 태그 한 줄에만 묻지 말고 필드로 분리.
 - 미팅(상품 단위): meetingInfoRaw, meetingPlaceRaw, meetingNoticeRaw, meetingFallbackText
@@ -902,10 +938,9 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - 주관 배제: 텍스트에 없는 날짜를 생성하지 말고, 오직 로그에 존재하는 데이터만 팩트대로 추출하라.
 
 # [schedule] 일차별 (필수)
-- day, title, description, imageKeyword, routeText
+- day, title, description, imageKeyword
 - description: 해당 일차 블록 전체를 근거로 관광·이동·식사·숙박을 **빠짐없이** 반영한 문어체 존댓말 요약. **3~6문장·450자 이내**를 목표로 하며, 한 줄·한두 문장만 쓰지 말 것. 복수 관광지가 있으면 모두 짧게라도 언급.
 - imageKeyword: 해당 일차의 실존하는 장소 이름만 사용 (창조·추상 금지). 영문 명사 (예: Osaka Castle, Taipei 101)
-- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. **한국어로 작성.** 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기를 사용한다. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
 # [prices] 출발일별 요금 (달력과 동일한 날짜만)
@@ -1040,7 +1075,6 @@ date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel,
       "title": "",
       "description": "",
       "imageKeyword": "Real place name in English",
-      "routeText": "인천 - 아디스아바바 - 빅토리아 폭포",
       "hotelText": null,
       "breakfastText": null,
       "lunchText": null,
@@ -1074,6 +1108,7 @@ const REGISTER_PREVIEW_MINIMAL_PROMPT = `${REGISTER_PREVIEW_MINIMAL_TONE_BLOCK}
 
 # 채울 필드만 (본문·꼭 확인 구간 근거)
 - originSource, originCode, title, destination, duration(예: 3박 4일, 없으면 null)
+- **title**: 상품 페이지 제목을 원문 그대로(해시태그·항공코드 유지). 의역·괄호 요약 금지.
 - airlineName: 한 줄 또는 null
 - hasOptionalTour (bool), optionalTourCount (숫자 또는 null)
 - hasShopping (bool), shoppingSummaryText: 짧은 쇼핑 요약만 또는 null
@@ -1257,6 +1292,7 @@ export async function parseForRegisterLlmKyowontour(
   let detailBody: DetailBodyParseSnapshot = options.presetDetailBody
   const model = getGenAI().getGenerativeModel({ model: getModelName() })
   options?.onTiming?.('before-section-repairs')
+  const tSectionRepairs = Date.now()
   // Section-level Gemini repair chain: required/warning 정책에 따른 조건부 보정
   const maxSectionRepairs = Math.max(0, options?.maxDetailSectionRepairs ?? 3)
   let sectionRepairsUsed = 0
@@ -1372,6 +1408,9 @@ export async function parseForRegisterLlmKyowontour(
     detailBody = { ...detailBody, geminiRepairLog: repairLog }
   }
   options?.onTiming?.('after-section-repairs')
+  console.info(
+    `[kyowontour][timing] section-repairs-total +${Date.now() - tSectionRepairs}ms maxRepairs=${maxSectionRepairs} used=${sectionRepairsUsed} forPreview=${Boolean(options?.forPreview)}`
+  )
   const blockB = rawText.trim() ? rawText.slice(0, REGISTER_PASTE_MAX_CHARS) : EMPTY_PASTE_PLACEHOLDER
   const pb = options?.pastedBlocks ?? {}
   const manualPasteAxes = readManualPasteAxesFromBlocks(pb)
@@ -1402,15 +1441,8 @@ export async function parseForRegisterLlmKyowontour(
       )
   let scheduleFirstPassRows: CommonScheduleDayRow[] | null = null
   let useScheduleEmptyMainPrompt = false
-  /** preview에서도 일정 일수를 추정하면 schedule-first 전용 LLM으로 미리 채워, 미리보기에 일정 설명이 보이게 한다. */
+  /** preview에서도 일정 일수를 추정하면 schedule-first 전용 LLM으로 미리 채워, 미리보기 후 풀 파싱 복구를 피한다. */
   const expectedDaysForSchedule = inferExpectedScheduleDayCountFromPaste(blockB, '')
-  if (expectedDaysForSchedule == null || expectedDaysForSchedule < 1) {
-    console.info('[kyowontour][timing] schedule-extract-llm skipped', {
-      reason: 'infer_day_count_unavailable',
-      forPreview,
-      blockLen: blockB.length,
-    })
-  }
   if (expectedDaysForSchedule != null && expectedDaysForSchedule >= 1) {
     const tScheduleExtract = Date.now()
     const sr = await runScheduleExtractLlm(model, blockB, expectedDaysForSchedule, {
@@ -1438,12 +1470,14 @@ export async function parseForRegisterLlmKyowontour(
 
   options?.onTiming?.('llm-start')
   if (options?.llmCallMetrics) options.llmCallMetrics.mainLlm += 1
-  const result = await model.generateContent(
+  const tMainGen = Date.now()
+  let mainLlmMaxOutputTokens = forPreview ? 4096 : REGISTER_FULL_MAX_OUTPUT_TOKENS
+  let result = await model.generateContent(
     {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0,
-        maxOutputTokens: forPreview ? 4096 : REGISTER_FULL_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: mainLlmMaxOutputTokens,
         /** 가능한 모델에서 순수 JSON만 받아 마크다운·설명 혼입 완화 (@google/generative-ai 타입에 없을 수 있어 단언) */
         ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
       },
@@ -1451,13 +1485,28 @@ export async function parseForRegisterLlmKyowontour(
     geminiTimeoutOpts()
   )
   options?.onTiming?.('llm-end')
-  const finishReason = result.response.candidates?.[0]?.finishReason
+  let finishReason = result.response.candidates?.[0]?.finishReason
   let text = result.response.text()
   const firstPassLlmRawCaptured = text
   let repairAttempted = false
   let repairFinishReason: string | null = null
   let repairLlmRawCaptured: string | null = null
   let firstParseError: string | undefined
+  const logMainAttempt = (isRetry: boolean) => {
+    const te = text.trimEnd()
+    console.info('[kyowontour-llm] main Gemini register response', {
+      forPreview,
+      isRetry,
+      finishReason: finishReason ?? null,
+      charLength: text.length,
+      endsWithClosingBrace: te.endsWith('}'),
+      maxOutputTokens: mainLlmMaxOutputTokens,
+    })
+  }
+  logMainAttempt(false)
+  console.info(
+    `[kyowontour][timing] main-generateContent +${Date.now() - tMainGen}ms forPreview=${forPreview} maxOutTokens=${mainLlmMaxOutputTokens}`
+  )
   if (forPreview) {
     const te = text.trimEnd()
     console.info('[kyowontour-llm] preview Gemini response shape', {
@@ -1474,7 +1523,9 @@ export async function parseForRegisterLlmKyowontour(
       rawLength: text.length,
     })
   }
-  let raw: RegisterGeminiLlmJson
+  let raw: RegisterGeminiLlmJson | undefined
+  /** 풀 등록에서 출력 상한 1.5배 재호출은 전체 1회만(파싱 실패 재시도와 공유). */
+  let didKyowontourMainOutputBumpRetry = false
   options?.onTiming?.('parse-start')
   try {
     if (forPreview) {
@@ -1498,13 +1549,95 @@ export async function parseForRegisterLlmKyowontour(
   } catch (firstErr) {
     options?.onTiming?.('parse-failed')
     firstParseError = firstErr instanceof Error ? firstErr.message : String(firstErr)
-    const te = text.trimEnd()
-    // JSON repair는 출력 잘림·MAX_TOKENS 등 명백한 truncation에만 제한(단순 스키마/형식 오류는 재호출하지 않음 → 토큰 절감).
-    const shouldAttemptJsonRepair =
-      finishReason === 'MAX_TOKENS' ||
-      !te.endsWith('}') ||
-      (Boolean(firstParseError?.includes('Unterminated string')) && !te.endsWith('}'))
+    const canBumpMain =
+      !forPreview &&
+      kyowontourMainParseFailureSuggestsTruncationOrBrokenJson(finishReason, text, firstParseError)
+    if (canBumpMain) {
+      const bumped = bumpKyowontourMainMaxOutputTokens(mainLlmMaxOutputTokens)
+      if (bumped > mainLlmMaxOutputTokens) {
+        didKyowontourMainOutputBumpRetry = true
+        if (options?.llmCallMetrics) options.llmCallMetrics.mainLlm += 1
+        const tMainRetry = Date.now()
+        mainLlmMaxOutputTokens = bumped
+        options?.onTiming?.('llm-retry-start')
+        result = await model.generateContent(
+          {
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0,
+              maxOutputTokens: mainLlmMaxOutputTokens,
+              ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
+            },
+          },
+          geminiTimeoutOpts()
+        )
+        options?.onTiming?.('llm-retry-end')
+        finishReason = result.response.candidates?.[0]?.finishReason
+        text = result.response.text()
+        logMainAttempt(true)
+        console.info(
+          `[kyowontour][timing] main-generateContent-retry +${Date.now() - tMainRetry}ms forPreview=${forPreview} maxOutTokens=${mainLlmMaxOutputTokens}`
+        )
+        try {
+          raw = parseLlmJsonObject<RegisterGeminiLlmJson>(text, { logLabel: 'parseForRegisterLlmKyowontour-retry-bumped' })
+          options?.onTiming?.('after-parse')
+        } catch (retryErr) {
+          firstParseError = retryErr instanceof Error ? retryErr.message : String(retryErr)
+        }
+      }
+    }
+  }
+
+  if (
+    raw !== undefined &&
+    !forPreview &&
+    finishReason === 'MAX_TOKENS' &&
+    !didKyowontourMainOutputBumpRetry
+  ) {
+    const bumped = bumpKyowontourMainMaxOutputTokens(mainLlmMaxOutputTokens)
+    if (bumped > mainLlmMaxOutputTokens) {
+      didKyowontourMainOutputBumpRetry = true
+      if (options?.llmCallMetrics) options.llmCallMetrics.mainLlm += 1
+      const tMainRetryMax = Date.now()
+      mainLlmMaxOutputTokens = bumped
+      options?.onTiming?.('llm-retry-start')
+      result = await model.generateContent(
+        {
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: mainLlmMaxOutputTokens,
+            ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
+          },
+        },
+        geminiTimeoutOpts()
+      )
+      options?.onTiming?.('llm-retry-end')
+      finishReason = result.response.candidates?.[0]?.finishReason
+      text = result.response.text()
+      logMainAttempt(true)
+      console.info(
+        `[kyowontour][timing] main-generateContent-retry-maxtokens +${Date.now() - tMainRetryMax}ms forPreview=${forPreview} maxOutTokens=${mainLlmMaxOutputTokens}`
+      )
+      try {
+        raw = parseLlmJsonObject<RegisterGeminiLlmJson>(text, {
+          logLabel: 'parseForRegisterLlmKyowontour-retry-maxtokens',
+        })
+        options?.onTiming?.('after-parse')
+      } catch (maxTokRetryErr) {
+        firstParseError = maxTokRetryErr instanceof Error ? maxTokRetryErr.message : String(maxTokRetryErr)
+        raw = undefined
+      }
+    }
+  }
+
+  if (raw === undefined) {
+    if (firstParseError === undefined) {
+      firstParseError = 'LLM JSON parse failed'
+    }
+    const shouldAttemptJsonRepair = kyowontourShouldAttemptJsonRepairAfterMain(finishReason, text, firstParseError)
     if (!shouldAttemptJsonRepair) {
+      const te = text.trimEnd()
       console.error('[kyowontour-llm] LLM JSON parse failed; repair skipped (truncation/형식 정책)', {
         finishReason,
         length: text.length,
@@ -1534,18 +1667,22 @@ export async function parseForRegisterLlmKyowontour(
 ${text.slice(0, 16000)}`
     options?.onTiming?.('repair-start')
     if (options?.llmCallMetrics) options.llmCallMetrics.repairLlm += 1
+    const tJsonRepairGen = Date.now()
     const repairResult = await model.generateContent(
       {
         contents: [{ role: 'user', parts: [{ text: repairPrompt }] }],
         generationConfig: {
           temperature: 0,
-          maxOutputTokens: forPreview ? 4096 : REGISTER_FULL_MAX_OUTPUT_TOKENS,
+          maxOutputTokens: forPreview ? 4096 : mainLlmMaxOutputTokens,
           ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
         },
       },
       geminiTimeoutOpts()
     )
     options?.onTiming?.('repair-end')
+    console.info(
+      `[kyowontour][timing] json-repair-generateContent +${Date.now() - tJsonRepairGen}ms forPreview=${forPreview}`
+    )
     repairFinishReason = repairResult.response.candidates?.[0]?.finishReason ?? null
     text = repairResult.response.text()
     repairLlmRawCaptured = text
@@ -1605,13 +1742,11 @@ ${text.slice(0, 16000)}`
   const scheduleBase: RegisterScheduleDay[] = (raw.schedule ?? [])
     .map((s) => {
       const rec = s as Record<string, unknown>
-      const dayNum = Number(s?.day) || 0
       return {
-        day: dayNum,
+        day: Number(s?.day) || 0,
         title: String(s?.title ?? '').trim(),
         description: String(s?.description ?? '').trim(),
-        routeText: strOrNull(rec.routeText),
-        imageKeyword: String(s?.imageKeyword ?? '').trim() || `Day ${dayNum} travel`,
+        imageKeyword: String(s?.imageKeyword ?? '').trim() || `Day ${s?.day ?? 0} travel`,
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),
         lunchText: strOrNull(rec.lunchText),
@@ -1630,13 +1765,13 @@ ${text.slice(0, 16000)}`
       expectedDaysForSchedule >= 1
   )
 
-  const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
-  const supplierListingTitleRaw = extractKyowontourVerbatimListingTitleRawFromPasteLocal(pastedBlobForTitle)
-  const llmTitleNormalized = normalizeKyowontourRegisterTitleMinimalLocal(String(raw.title ?? '').trim())
+  const pasteForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
+  const supplierListingTitleRaw = extractYbtourVerbatimListingTitle(pasteForTitle)
+  const llmTitleRaw = String(raw.title ?? '').trim()
   const titleTrimmed =
     supplierListingTitleRaw && supplierListingTitleRaw.length >= 10
       ? normalizeKyowontourRegisterTitleMinimalLocal(supplierListingTitleRaw)
-      : llmTitleNormalized || '상품명 없음'
+      : normalizeKyowontourRegisterTitleMinimalLocal(llmTitleRaw) || llmTitleRaw || '상품명 없음'
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
 
   const mustKnowFromLlm = forPreview
@@ -2352,7 +2487,7 @@ ${text.slice(0, 16000)}`
               )
             } else {
               base.push(
-                '미리보기: 선추출 결과가 있었으나 일정 행이 파싱에서 제거되었습니다. 본문·일차 표기를 확인하세요.'
+                '미리보기: 일정(schedule[])·달력 행이 비어 있어도 정상입니다. 확정(전체) 파싱에서 채우며, 아래는 메타·본문 구조 확인용입니다.'
               )
             }
             return base

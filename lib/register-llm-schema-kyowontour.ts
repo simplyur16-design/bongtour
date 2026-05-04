@@ -4,10 +4,10 @@
  * Gemini 호출·프롬프트·병합 본체는 `register-from-llm-*.ts` 공급사별 파일을 사용한다.
  */
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
-import type { DayHotelPlan } from '@/lib/day-hotel-plans-modetour'
+import type { DayHotelPlan } from '@/lib/day-hotel-plans-ybtour'
 import type { ParsedProductPrice } from './parsed-product-types'
-import type { PricePromotionSnapshot } from './price-promotion-modetour'
-import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-modetour'
+import type { PricePromotionSnapshot } from './price-promotion-ybtour'
+import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-ybtour'
 
 export type DirectedFlightLineResolver = (
   detailBody: DetailBodyParseSnapshot
@@ -106,13 +106,7 @@ export type RegisterGeminiLlmJson = Record<string, unknown> & {
   meetingNoticeRaw?: string | null
   meetingFallbackText?: string | null
   counselingNotes?: unknown
-  schedule?: Array<{
-    day?: number
-    title?: string
-    description?: string
-    routeText?: string | null
-    imageKeyword?: string
-  }>
+  schedule?: Array<{ day?: number; title?: string; description?: string; imageKeyword?: string }>
   prices?: Array<Record<string, unknown>>
   optionalTourNoticeRaw?: string | null
   optionalTourNoticeItems?: string[]
@@ -135,10 +129,10 @@ export type RegisterGeminiLlmJson = Record<string, unknown> & {
 
 export type RegisterScheduleDay = {
   day: number
+  /** 일차 상단 `YYYY.MM.DD` 또는 `YYYY년 M월 D일`에서 추출한 ISO 날짜(YYYY-MM-DD) */
+  dateText?: string | null
   title: string
   description: string
-  /** 그날 방문 장소를 본문 순서대로 ' - '로 연결한 이동경로. 모두투어 페이지의 [조망]/[차창관광] 태그는 (조망)/(차창)로 보존. */
-  routeText?: string | null
   /** 실존하는 장소 명칭만 (Pexels 검색용 영문, 예: Osaka Castle) */
   imageKeyword: string
   hotelText?: string | null
@@ -271,7 +265,7 @@ export type RegisterParsed = {
   extractionFieldIssues?: RegisterExtractionFieldIssue[]
   /**
    * 일정 선추출(`runScheduleExtractLlm`)이 1행 이상 반환했고 최종 `schedule`에 반영됨.
-   * `supplementKyowontourScheduleFromPastedBody`가 본문 정규식으로 title/description을 덮어쓰지 않게 한다(R-3-B).
+   * 이후 본문 기반 일정 보강이 선추출 요약을 덮어쓰지 않게 한다(R-3-B 이후 전용 보강 함수와 연동).
    */
   kyowontourScheduleExtractFilled?: boolean
   /**
@@ -301,6 +295,8 @@ export type RegisterParsed = {
   minimumDepartureText?: string | null
   isDepartureGuaranteed?: boolean | null
   currentBookedCount?: number | null
+  /** 본문 `잔여 N석` — 예약 인원과 구분 */
+  remainingSeatsCount?: number | null
   departureStatusText?: string | null
   /** 본문 구조화 파서 스냅샷(raw/section/canonical/review) */
   detailBodyStructured?: DetailBodyParseSnapshot
