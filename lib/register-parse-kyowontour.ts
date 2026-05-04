@@ -1,7 +1,7 @@
 /**
  * 교보이지 전용 등록 파싱 orchestration.
  *
- * **책임 분리:** `parseDetailBodyStructuredYbtour`는 본문 슬라이스·호텔·포함불포함만 책운다.
+ * **책임 분리:** `parseDetailBodyStructuredKyowontour`는 본문 슬라이스·호텔·포함불포함만 책운다.
  * 항공·옵션·쇼핑 **구조화**는 이 파일에서 `register-input-parse-kyowontour`로, **정형 입력란**(`pastedBlocks`) 기준으로만 수행한다.
  * 본문에 같은 표가 있어도 입력란이 비어 있으면 해당 축은 비어 있을 수 있다.
  *
@@ -9,17 +9,17 @@
  *
  * 상위 규약: `docs/admin-register-supplier-precise-spec.md` §4. 일정 표현: `docs/register_schedule_expression_ssot.md`.
  */
-import { parseDetailBodyStructuredYbtour } from '@/lib/detail-body-parser-ybtour'
+import { parseDetailBodyStructuredKyowontour } from '@/lib/detail-body-parser-kyowontour'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import { parseForRegisterLlmKyowontour } from '@/lib/register-from-llm-kyowontour'
 import type { RegisterParsed } from '@/lib/register-llm-schema-kyowontour'
-import { resolveDirectedFlightLinesYbtour } from '@/lib/register-flight-ybtour'
+import { resolveDirectedFlightLinesKyowontour } from '@/lib/register-flight-kyowontour'
 import {
   parseKyowontourFlightInput,
   parseKyowontourOptionalInput,
   parseKyowontourShoppingInput,
 } from '@/lib/register-input-parse-kyowontour'
-import { buildDetailReviewPolicyYbtour } from '@/lib/review-policy-ybtour'
+import { buildDetailReviewPolicyKyowontour } from '@/lib/review-policy-kyowontour'
 import { finalizeKyowontourRegisterParsedPricing } from '@/lib/register-kyowontour-price'
 import { finalizeKyowontourRegisterParsedShopping } from '@/lib/register-kyowontour-shopping'
 import {
@@ -47,7 +47,7 @@ function mergeAirlineTransportPaste(
 }
 
 function refreshKyowontourDetailBodyPolicy(detailBody: DetailBodyParseSnapshot): DetailBodyParseSnapshot {
-  const policy = buildDetailReviewPolicyYbtour({
+  const policy = buildDetailReviewPolicyKyowontour({
     sections: detailBody.sections,
     flightStructured: detailBody.flightStructured,
     hotelStructured: detailBody.hotelStructured,
@@ -95,7 +95,7 @@ export async function parseForRegisterKyowontour(
   console.log(
     `[kyowontour] phase=parse-for-register entry fn=parseForRegisterKyowontour originSource_preview=${JSON.stringify(osPrev)} rawText_len=${rawText?.length ?? 0}`
   )
-  let detailBody = parseDetailBodyStructuredYbtour({
+  let detailBody = parseDetailBodyStructuredKyowontour({
     rawText,
     hotelRaw: options?.pastedBlocks?.hotel ?? null,
     optionalRaw: options?.pastedBlocks?.optionalTour ?? null,
@@ -120,7 +120,7 @@ export async function parseForRegisterKyowontour(
   let parsed = await parseForRegisterLlmKyowontour(rawText, originSource, {
     ...options,
     presetDetailBody: detailBody,
-    resolveDirectedFlightLines: resolveDirectedFlightLinesYbtour,
+    resolveDirectedFlightLines: resolveDirectedFlightLinesKyowontour,
   })
   parsed = finalizeKyowontourRegisterParsedPricing(parsed)
   parsed = finalizeKyowontourRegisterParsedShopping(parsed)

@@ -1,8 +1,8 @@
 /** [kyowontour] register-preview-payload */
 import type { DeparturePreviewRow } from '@/lib/departure-preview'
-import type { PricePromotionFieldIssue, PricePromotionSnapshot } from '@/lib/price-promotion-ybtour'
+import type { PricePromotionFieldIssue, PricePromotionSnapshot } from '@/lib/price-promotion-kyowontour'
 import type { RegisterExtractionFieldIssue } from '@/lib/register-llm-schema-kyowontour'
-import type { DayHotelPlan } from '@/lib/day-hotel-plans-ybtour'
+import type { DayHotelPlan } from '@/lib/day-hotel-plans-kyowontour'
 import type { RegisterPreviewSsotMeta } from '@/lib/register-preview-ssot-kyowontour'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import type { RegisterCorrectionPreviewV1 } from '@/lib/register-correction-types-ybtour'

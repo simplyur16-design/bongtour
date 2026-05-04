@@ -71,7 +71,7 @@ function parseKyowontourShoppingVisitCount(hay: string): number | null {
   return null
 }
 
-export function ybtourShoppingRowLooksPlausible(r: ShoppingStructured['rows'][number]): boolean {
+export function kyowontourShoppingRowLooksPlausible(r: ShoppingStructured['rows'][number]): boolean {
   const item = (r.shoppingItem ?? '').trim()
   const place = (r.shoppingPlace ?? '').trim()
   const dur = (r.durationText ?? '').trim()
@@ -97,7 +97,7 @@ export function sanitizeKyowontourShoppingStructured(
   if (paste) {
     const tabbed = parseKyowontourShoppingPasteTab(paste)
     if (tabbed && tabbed.rows.length > 0) {
-      const filtered = tabbed.rows.filter(ybtourShoppingRowLooksPlausible)
+      const filtered = tabbed.rows.filter(kyowontourShoppingRowLooksPlausible)
       const maxVisit = Math.max(0, ...filtered.map((r) => r.visitNo ?? 0))
       const totalVisits = Math.max(maxVisit, filtered.length)
       return {
@@ -114,7 +114,7 @@ export function sanitizeKyowontourShoppingStructured(
   if (!shoppingCountText.trim() && vc != null && vc > 0) {
     shoppingCountText = `쇼핑 ${vc}회`
   }
-  const filtered = structured.rows.filter(ybtourShoppingRowLooksPlausible)
+  const filtered = structured.rows.filter(kyowontourShoppingRowLooksPlausible)
   return {
     ...structured,
     rows: filtered,
@@ -125,7 +125,7 @@ export function sanitizeKyowontourShoppingStructured(
 export function finalizeKyowontourRegisterParsedShopping(parsed: RegisterParsed): RegisterParsed {
   const st = parsed.detailBodyStructured?.shoppingStructured
   if (!st) return parsed
-  const plausible = st.rows.filter(ybtourShoppingRowLooksPlausible)
+  const plausible = st.rows.filter(kyowontourShoppingRowLooksPlausible)
   const n = parseKyowontourShoppingVisitCount(st.shoppingCountText ?? '') ??
     parseKyowontourShoppingVisitCount(parsed.shoppingSummaryText ?? '')
   const visitFromRows = (() => {

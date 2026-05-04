@@ -17,7 +17,7 @@ function stripLeadingPriceRowNoise(s: string): string {
     .trim()
 }
 
-function lineIsYbtourMeta(line: string): boolean {
+function lineIsKyowontourMeta(line: string): boolean {
   const s = line.replace(/\s+/g, ' ').trim()
   if (!s) return true
   if (/(성인|아동|유아)\s*[:/]/.test(s)) return false
@@ -43,23 +43,23 @@ type Tier = 'adult' | 'child' | 'infant'
 
 function detectTier(line: string): Tier | null {
   const s = stripLeadingPriceRowNoise(line).replace(/\s+/g, ' ').trim()
-  if (!s || lineIsYbtourMeta(s)) return null
+  if (!s || lineIsKyowontourMeta(s)) return null
   if (/^유아(?=[\s(]|$)/i.test(s) || /^소아\s*\(\s*만\s*2\s*세\s*미만/i.test(s)) return 'infant'
   if (/^성인(?=[\s(]|$)/i.test(s)) return 'adult'
   if (/^아동(?=[\s(]|$)/i.test(s)) return 'child'
   return null
 }
 
-export type YbtourThreeSlotExtract = {
+export type KyowontourThreeSlotExtract = {
   adultPrice: number | null
   childPrice: number | null
   infantPrice: number | null
 }
 
-export function extractKyowontourThreeSlotPricesFromBlob(blob: string): YbtourThreeSlotExtract | null {
+export function extractKyowontourThreeSlotPricesFromBlob(blob: string): KyowontourThreeSlotExtract | null {
   if (!blob?.trim()) return null
   const lines = blob.replace(/\r/g, '\n').split('\n')
-  const out: YbtourThreeSlotExtract = { adultPrice: null, childPrice: null, infantPrice: null }
+  const out: KyowontourThreeSlotExtract = { adultPrice: null, childPrice: null, infantPrice: null }
   for (let i = 0; i < lines.length; i++) {
     let line = stripLeadingPriceRowNoise(lines[i]!)
     if (!line) continue
@@ -91,7 +91,7 @@ export function extractKyowontourThreeSlotPricesFromBlob(blob: string): YbtourTh
   return filled > 0 ? out : null
 }
 
-function ybtourExtraPriceBlobFromDetailBody(parsed: RegisterParsed): string {
+function kyowontourExtraPriceBlobFromDetailBody(parsed: RegisterParsed): string {
   const snap = parsed.detailBodyStructured
   if (!snap?.sections?.length) return ''
   const chunks: string[] = []
@@ -123,14 +123,14 @@ function ybtourExtraPriceBlobFromDetailBody(parsed: RegisterParsed): string {
   return [...chunks, tail].filter(Boolean).join('\n\n')
 }
 
-function ybtourPriceBlobFromParsed(parsed: RegisterParsed): string {
+function kyowontourPriceBlobFromParsed(parsed: RegisterParsed): string {
   const nr = parsed.detailBodyStructured?.normalizedRaw?.trim() ?? ''
   /** 섹션 앵커(예: `쇼핑 5회`) 때문에 가격 블록이 summary에서 잘리는 경우 — 상단 원문 일부를 항상 넣어 3슬롯 추출 안정화 */
   const head = nr.length > 0 ? nr.slice(0, 14000) : ''
   return [
     (parsed.priceTableRawText ?? '').trim(),
     stripHtmlLoose(parsed.priceTableRawHtml ?? null),
-    ybtourExtraPriceBlobFromDetailBody(parsed),
+    kyowontourExtraPriceBlobFromDetailBody(parsed),
     head,
   ]
     .filter((x) => x.length > 0)
@@ -177,7 +177,7 @@ export function finalizeKyowontourProductPriceTable(
 }
 
 export function finalizeKyowontourRegisterParsedPricing(parsed: RegisterParsed): RegisterParsed {
-  const blob = ybtourPriceBlobFromParsed(parsed)
+  const blob = kyowontourPriceBlobFromParsed(parsed)
   const next = finalizeKyowontourProductPriceTable(parsed.productPriceTable ?? null, blob)
   if (next === null) return parsed
   return { ...parsed, productPriceTable: next }

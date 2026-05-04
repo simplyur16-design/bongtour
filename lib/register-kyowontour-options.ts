@@ -13,7 +13,7 @@ const ROOM_META = /(싱글\s*차지|싱글차지|1인실|객실\s*추가|룸차�
 type YbFeeAnchor = { feeLineIdx: number; priceText: string; currency: string }
 
 /** 옵션 칸 전용: UI 잔재 제거(개행 유지). */
-export function normalizeYbtourOptionalPasteSection(section: string): string {
+export function normalizeKyowontourOptionalPasteSection(section: string): string {
   const lines = section.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
   const out: string[] = []
   for (const line of lines) {
@@ -45,14 +45,14 @@ function collectKyowontourFeeAnchors(lines: string[]): YbFeeAnchor[] {
       if (m) raw.push({ feeLineIdx: i, priceText: `$${m[1]}`, currency: '$' })
     }
   }
-  return dedupeYbtourFeeAnchorsSamePriceWithoutRefBetween(raw, lines)
+  return dedupeKyowontourFeeAnchorsSamePriceWithoutRefBetween(raw, lines)
 }
 
 /**
  * 동일 옵션 블록 안에서 `비용60유로` 다음 또 `비용`/`60유로`가 나오는 중복 앵커만 제거.
  * 서로 다른 옵션이 같은 금액(예: 60유로×2)이면 그 사이에 `참고사항`이 있어 구분된다.
  */
-function dedupeYbtourFeeAnchorsSamePriceWithoutRefBetween(anchors: YbFeeAnchor[], lines: string[]): YbFeeAnchor[] {
+function dedupeKyowontourFeeAnchorsSamePriceWithoutRefBetween(anchors: YbFeeAnchor[], lines: string[]): YbFeeAnchor[] {
   const out: YbFeeAnchor[] = []
   for (const a of anchors) {
     const prev = out[out.length - 1]
@@ -68,7 +68,7 @@ function dedupeYbtourFeeAnchorsSamePriceWithoutRefBetween(anchors: YbFeeAnchor[]
 
 /** `비용60유로` / `비용`+`60유로` / `비용: 60유로` */
 
-function ybtourHasDetailEuroFeeBlock(lines: string[], fromIdx: number): boolean {
+function kyowontourHasDetailEuroFeeBlock(lines: string[], fromIdx: number): boolean {
   for (let k = fromIdx + 1; k < Math.min(lines.length, fromIdx + 45); k++) {
     const a = lines[k] ?? ''
     const b = (lines[k + 1] ?? '').trim()
@@ -77,7 +77,7 @@ function ybtourHasDetailEuroFeeBlock(lines: string[], fromIdx: number): boolean 
   return false
 }
 
-function summarizeYbtourOptionalRefWaiting(noteBlob: string): string {
+function summarizeKyowontourOptionalRefWaiting(noteBlob: string): string {
   const head = noteBlob.split(/※/)[0].replace(/\s+/g, ' ').trim()
   const m = head.match(/미참가\s*시\s*(.+?)(?:입니다|다\.|\.|\(|$)/u)
   if (m?.[1]) return m[1].replace(/\s+/g, '').trim()
@@ -105,7 +105,7 @@ function collectKyowontourEuroFeeAnchors(lines: string[]): YbFeeAnchor[] {
     const L = lines[i]!
     const euroSignInline = L.match(/^비용\s*€\s*(\d+)/i)
     if (euroSignInline) {
-      if (!ybtourHasDetailEuroFeeBlock(lines, i)) {
+      if (!kyowontourHasDetailEuroFeeBlock(lines, i)) {
         raw.push({ feeLineIdx: i, priceText: ybtourEuroPriceDisplay(euroSignInline[1]!), currency: 'EUR' })
       }
       continue
@@ -129,7 +129,7 @@ function collectKyowontourEuroFeeAnchors(lines: string[]): YbFeeAnchor[] {
       if (m) raw.push({ feeLineIdx: i, priceText: ybtourEuroPriceDisplay(m[1]!), currency: 'EUR' })
     }
   }
-  return dedupeYbtourFeeAnchorsSamePriceWithoutRefBetween(raw, lines)
+  return dedupeKyowontourFeeAnchorsSamePriceWithoutRefBetween(raw, lines)
 }
 
 /** fee 직전까지 스킵해 옵션 제목 줄 인덱스 */
@@ -174,7 +174,7 @@ function findTitleLineIndexForFee(lines: string[], feeLineIdx: number): number {
   return j >= 0 ? j : 0
 }
 
-function ybtourTitleForEuroAnchor(lines: string[], feeLineIdx: number): string {
+function kyowontourTitleForEuroAnchor(lines: string[], feeLineIdx: number): string {
   const ti = findTitleLineIndexForFee(lines, feeLineIdx)
   const cand = (lines[ti] ?? '').replace(/\s+/g, ' ').trim()
   if (!cand || /^비용/i.test(cand)) return '옵션'
@@ -207,7 +207,7 @@ function parseKyowontourEuroMetaSlice(slice: string[]): {
       return {
         durationText,
         descriptionText: body,
-        waitingPlaceText: summarizeYbtourOptionalRefWaiting(body),
+        waitingPlaceText: summarizeKyowontourOptionalRefWaiting(body),
       }
     }
     i++
@@ -225,7 +225,7 @@ function parseKyowontourEuroWebsiteRows(lines: string[], anchors: YbFeeAnchor[])
     if (endExclusive <= feeLineIdx) endExclusive = lines.length
     const metaSlice = lines.slice(feeLineIdx, endExclusive)
     const meta = parseKyowontourEuroMetaSlice(metaSlice)
-    const title = ybtourTitleForEuroAnchor(lines, feeLineIdx)
+    const title = kyowontourTitleForEuroAnchor(lines, feeLineIdx)
     rows.push({
       tourName: title,
       currency,
@@ -244,7 +244,7 @@ function parseKyowontourEuroWebsiteRows(lines: string[], anchors: YbFeeAnchor[])
 }
 
 function parseKyowontourEuroWebsiteSection(section: string): OptionalToursStructured {
-  const normalized = normalizeYbtourOptionalPasteSection(section)
+  const normalized = normalizeKyowontourOptionalPasteSection(section)
   const lines = normalized.split('\n').map((l) => l.replace(/\s+/g, ' ').trim())
   const anchors = collectKyowontourEuroFeeAnchors(lines)
   if (anchors.length === 0) {
@@ -254,7 +254,7 @@ function parseKyowontourEuroWebsiteSection(section: string): OptionalToursStruct
   return { rows, reviewNeeded: false, reviewReasons: [] }
 }
 
-function ybtourTitleForAnchor(lines: string[], anchorIdx: number): string {
+function kyowontourTitleForAnchor(lines: string[], anchorIdx: number): string {
   if (anchorIdx <= 0) return '옵션'
   let j = anchorIdx - 1
   while (j >= 0 && /^더보기$/i.test(lines[j]!)) j--
@@ -317,7 +317,7 @@ export function parseKyowontourOptionalTourPasteSection(section: string): Option
   const euroFirst = parseKyowontourEuroWebsiteSection(section)
   if (euroFirst.rows.length > 0) return euroFirst
 
-  const raw = normalizeYbtourOptionalPasteSection(section).replace(/\r/g, '\n')
+  const raw = normalizeKyowontourOptionalPasteSection(section).replace(/\r/g, '\n')
   const lines = raw.split('\n').map((l) => l.replace(/\s+/g, ' ').trim())
   const anchors = collectKyowontourFeeAnchors(lines)
   if (anchors.length === 0) {
@@ -328,7 +328,7 @@ export function parseKyowontourOptionalTourPasteSection(section: string): Option
   for (let a = 0; a < anchors.length; a++) {
     const { feeLineIdx, priceText, currency } = anchors[a]!
     const nextStart = a + 1 < anchors.length ? anchors[a + 1]!.feeLineIdx : lines.length
-    const title = ybtourTitleForAnchor(lines, feeLineIdx)
+    const title = kyowontourTitleForAnchor(lines, feeLineIdx)
     const meta = parseKyowontourBlock(lines, feeLineIdx, nextStart)
     const numM = priceText.match(/\$(\d+)/)
     const adultPrice = numM ? Number(numM[1]) : null

@@ -86,8 +86,8 @@ import type { ParsedProductPrice } from './parsed-product-types'
 import { normalizeCalendarDate } from './date-normalize'
 import { extractDestinationFromTitle } from './destination-from-title'
 import { normalizeOriginSource } from './supplier-origin'
-import { extractStructuredTourSignals } from './structured-tour-signals-ybtour'
-import type { StructuredOptionalTourRow, StructuredShoppingStopRow } from './structured-tour-signals-ybtour'
+import { extractStructuredTourSignals } from './structured-tour-signals-kyowontour'
+import type { StructuredOptionalTourRow, StructuredShoppingStopRow } from './structured-tour-signals-kyowontour'
 import {
   buildRegisterLlmInputBlocks,
   buildRegisterPreviewMinimalLlmInputBlocks,
@@ -100,7 +100,7 @@ import {
   mergeProductLevelFlightSegments,
 } from './flight-leg-heuristics'
 import { MAX_OPTIONAL_TOURS, OPTIONAL_TOUR_UI_MAX_ROWS } from '@/lib/optional-tour-limits'
-import { filterOptionalTourRows, optionalTourRowPassesStrictGate, type OptionalTourRowFields } from '@/lib/optional-tour-row-gate-ybtour'
+import { filterOptionalTourRows, optionalTourRowPassesStrictGate, type OptionalTourRowFields } from '@/lib/optional-tour-row-gate-kyowontour'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 import { isMustKnowInsufficient, supplementMustKnowWithWebSearch } from './must-know-web-supplement'
 import { parseLlmJsonObject } from './llm-json-extract'
@@ -109,7 +109,7 @@ import {
   mergeDayHotelPlansForRegister,
   parseDayHotelPlansFromSupplierText,
   type DayHotelPlan,
-} from '@/lib/day-hotel-plans-ybtour'
+} from '@/lib/day-hotel-plans-kyowontour'
 import { mergeInfantPriceIntoProductPriceTable } from '@/lib/infant-price-extract'
 import {
   extractProductPriceTableByLabels,
@@ -130,7 +130,7 @@ import {
 } from '@/lib/register-llm-schema-kyowontour'
 
 
-/** preset 없을 때 비표시 — 교보이지는 `resolveDirectedFlightLinesYbtour`(ybtour 베이스) 주입 전제 */
+/** preset 없을 때 비표시 — 교보이지는 `resolveDirectedFlightLinesKyowontour` 주입 전제 */
 function resolveDirectedFlightLinesDefault(_detailBody: DetailBodyParseSnapshot): {
   departureSegmentFromStructured: string | null
   returnSegmentFromStructured: string | null
@@ -142,13 +142,13 @@ import { readManualPasteAxesFromBlocks } from '@/lib/register-manual-paste-ssot'
 import {
   filterRegisterExtractionIssuesShoppingGeminiNoise,
   shouldEmitShoppingBothEmptyExtractionIssue,
-} from '@/lib/review-policy-ybtour'
+} from '@/lib/review-policy-kyowontour'
 import { decideSectionRepairPolicy, runDetailSectionGeminiRepair } from '@/lib/gemini-repair-chain'
 import {
   buildDestinationCoherenceFieldIssues,
   normalizeDestinationExtractionIssuesInPlace,
 } from '@/lib/register-destination-coherence'
-import { parsePricePromotionFromGeminiJson, type PricePromotionSnapshot } from './price-promotion-ybtour'
+import { parsePricePromotionFromGeminiJson, type PricePromotionSnapshot } from './price-promotion-kyowontour'
 import { buildSingleRoomExcludedLine } from '@/lib/product-excluded-display'
 
 /** parse/route TEXT_LIMIT(26k)보다 넉넉히 — 등록 프롬프트가 더 길어 32k. 초과분은 잘라 입력 토큰·지연을 줄임 */

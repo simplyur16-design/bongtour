@@ -3,7 +3,7 @@
  * 과거 `yellowballoon` 등록 경로는 노랑풍선 핸들러와 파서 계열을 공유한다(이행 참고).
  */
 import type { FlightStructured, OptionalToursStructured, ShoppingStructured } from '@/lib/detail-body-parser-types'
-import { parseFlightSectionYbtour } from '@/lib/flight-parser-ybtour'
+import { parseFlightSectionKyowontour } from '@/lib/flight-parser-kyowontour'
 import {
   filterKyowontourOptionalTourRows,
   parseKyowontourOptionalTourPasteSection,
@@ -49,5 +49,5 @@ export function parseKyowontourFlightInput(
   flightSection: string,
   fullBodyNormalized: string | null | undefined
 ): FlightStructured {
-  return parseFlightSectionYbtour(flightSection, fullBodyNormalized)
+  return parseFlightSectionKyowontour(flightSection, fullBodyNormalized)
 }

@@ -4,10 +4,10 @@
  * Gemini 호출·프롬프트·병합 본체는 `register-from-llm-*.ts` 공급사별 파일을 사용한다.
  */
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
-import type { DayHotelPlan } from '@/lib/day-hotel-plans-ybtour'
+import type { DayHotelPlan } from '@/lib/day-hotel-plans-kyowontour'
 import type { ParsedProductPrice } from './parsed-product-types'
-import type { PricePromotionSnapshot } from './price-promotion-ybtour'
-import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-ybtour'
+import type { PricePromotionSnapshot } from './price-promotion-kyowontour'
+import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-kyowontour'
 
 export type DirectedFlightLineResolver = (
   detailBody: DetailBodyParseSnapshot
