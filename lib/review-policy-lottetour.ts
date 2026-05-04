@@ -168,6 +168,9 @@ export function buildDetailReviewPolicyLottetour(args: {
   if (/특약\s*조건|취소료\s*규정|■\s*취소수수료|약관\s*\/\s*취소/i.test(joinedSectionsText)) {
     info.push('약관·취소료 블록 감지 — 규정 문구 원문 확보 권장')
   }
+  if (/롯데관광\s*약관|행사\s*약관|행사약관/i.test(joinedSectionsText)) {
+    info.push('롯데관광·행사 약관 헤더 감지 — 취소·특약과 교차 검수')
+  }
 
   const flightSectionRequired: string[] = []
   if (flightEngaged && flightStructured.reviewNeeded) {

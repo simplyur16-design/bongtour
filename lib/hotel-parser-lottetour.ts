@@ -4,10 +4,10 @@
 import type { HotelStructured } from '@/lib/detail-body-parser-types'
 import { parseHotelSectionGeneric } from '@/lib/hotel-table-parser-lottetour'
 
-const YB_HOTEL_META =
+const LT_HOTEL_META =
   /(싱글\s*차지|가이드\s*경비|인솔자\s*동행|상품\s*소개|특전\s*안내|쿠폰\s*적용|적립\s*포인트)/i
 
-const YB_DESC_ONLY =
+const LT_DESC_ONLY =
   /^(?:※|▶|\*|•|-)?\s*(?:미정|동급|예정\s*호텔|지역\s*호텔|숙박\s*은|투숙\s*호텔)/i
 
 export function parseHotelSectionLottetour(section: string): HotelStructured {
@@ -17,14 +17,14 @@ export function parseHotelSectionLottetour(section: string): HotelStructured {
     .map((r) => {
       let hotelNameText = r.hotelNameText.replace(/\s+/g, ' ').trim()
       let noteText = r.noteText ?? ''
-      if (YB_HOTEL_META.test(hotelNameText) && hotelNameText.length > 60) {
+      if (LT_HOTEL_META.test(hotelNameText) && hotelNameText.length > 60) {
         const cut = hotelNameText.split(/[.!?。]/)[0]?.slice(0, 90).trim() ?? hotelNameText.slice(0, 60)
         if (cut.length >= 4) {
           noteText = [hotelNameText.slice(cut.length).trim(), noteText].filter(Boolean).join('\n')
           hotelNameText = cut
         }
       }
-      if (YB_DESC_ONLY.test(hotelNameText) && !/(호텔|리조트|숙소)/i.test(hotelNameText)) {
+      if (LT_DESC_ONLY.test(hotelNameText) && !/(호텔|리조트|숙소)/i.test(hotelNameText)) {
         noteText = [hotelNameText, noteText].filter(Boolean).join('\n')
         hotelNameText = hotelNameText.slice(0, 40) || '숙박(설명형)'
       }
@@ -33,7 +33,7 @@ export function parseHotelSectionLottetour(section: string): HotelStructured {
     .filter((r) => {
       const hn = r.hotelNameText.trim()
       if (!hn) return false
-      if (YB_HOTEL_META.test(hn) && !/(호텔|리조트|숙소|미정|동급|일차)/i.test(hn)) return false
+      if (LT_HOTEL_META.test(hn) && !/(호텔|리조트|숙소|미정|동급|일차)/i.test(hn)) return false
       return true
     })
 

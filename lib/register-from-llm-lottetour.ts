@@ -26,11 +26,11 @@ const LOTTETOUR_REGISTER_FULL_MAX_OUTPUT_CAP = 131072
 const LOTTETOUR_REGISTER_FULL_MAX_OUTPUT_FLOOR = 8192
 
 function resolveLottetourRegisterFullMaxOutputTokens(): number {
-  const yb = Number(process.env.GEMINI_REGISTER_LOTTETOUR_FULL_MAX_OUTPUT_TOKENS)
-  if (Number.isFinite(yb) && yb > 0) {
+  const explicitCap = Number(process.env.GEMINI_REGISTER_LOTTETOUR_FULL_MAX_OUTPUT_TOKENS)
+  if (Number.isFinite(explicitCap) && explicitCap > 0) {
     return Math.max(
       LOTTETOUR_REGISTER_FULL_MAX_OUTPUT_FLOOR,
-      Math.min(LOTTETOUR_REGISTER_FULL_MAX_OUTPUT_CAP, Math.trunc(yb))
+      Math.min(LOTTETOUR_REGISTER_FULL_MAX_OUTPUT_CAP, Math.trunc(explicitCap))
     )
   }
   const full = Number(process.env.GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS)

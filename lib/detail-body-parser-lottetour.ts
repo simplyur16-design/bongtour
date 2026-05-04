@@ -7,7 +7,7 @@
  * **비담당(SSOT = 입력 파서):** 항공·선택관광/옵션·쇼핑 구조화 — `register-input-parse-lottetour` 및
  * `register-parse-lottetour`의 정형 입력란만이 구조화한다. 본문에 동일 문구가 있어도 여기서는 채우지 않는다.
  *
- * @see docs/body-parser-ybtour-ssot.md (롯데관광 본문 축은 동일 SSOT에서 분기)
+ * @see docs/body-parser-lottetour-ssot.md
  *
  * 상위 규약: `docs/admin-register-supplier-precise-spec.md` §4. 일정 표현: `docs/register_schedule_expression_ssot.md`.
  */
@@ -44,6 +44,8 @@ export function clipLottetourIncExcInputForParse(blob: string): string {
     if (/^■\s*기간에\s*따른/i.test(t)) break
     if (/^■\s*감염병/i.test(t)) break
     if (/^#\s*약관\b/i.test(t)) break
+    if (/^롯데관광\s*약관/i.test(t)) break
+    if (/^행사\s*약관/i.test(t)) break
     out.push(line)
   }
   return out.join('\n').trim()
@@ -53,14 +55,18 @@ function extractLottetourBodyExtractFromNormalizedRaw(normalizedRaw: string): No
   DetailBodyParseSnapshot['raw']['lottetourBodyExtract']
 > {
   const god =
+    normalizedRaw.match(/\/evtList\/\d+\/\d+\/\d+\/\d+[^\n\r?#]*\?[^\n\r#]*godId=(\d+)/i)?.[1]?.trim() ??
     normalizedRaw.match(/[?&]godId=(\d+)/i)?.[1]?.trim() ??
     normalizedRaw.match(/\bgodId\s*[:：=]\s*(\d{4,})\b/i)?.[1]?.trim() ??
     null
   const evt =
     normalizedRaw.match(/[?&]evtCd=([^&\s#'"<>]+)/i)?.[1]?.trim() ??
     normalizedRaw.match(/\bevtCd\s*[:：=]\s*([A-Za-z0-9_-]{8,34})\b/i)?.[1]?.trim() ??
+    normalizedRaw.match(/evtCd=([A-Z]\d{2}[A-Z]\d{6}[A-Z]{2}\d{3})\b/i)?.[1]?.trim() ??
     null
-  const menu = normalizedRaw.match(/\/evtDetail\/(\d+)\/(\d+)\/(\d+)\/(\d+)/i)
+  const menuDetail = normalizedRaw.match(/\/evtDetail\/(\d+)\/(\d+)\/(\d+)\/(\d+)/i)
+  const menuList = normalizedRaw.match(/\/evtList\/(\d+)\/(\d+)\/(\d+)\/(\d+)/i)
+  const menu = menuDetail ?? menuList
   const categoryMenuNo =
     menu?.[1] && menu[2] && menu[3] && menu[4]
       ? { no1: menu[1]!, no2: menu[2]!, no3: menu[3]!, no4: menu[4]! }

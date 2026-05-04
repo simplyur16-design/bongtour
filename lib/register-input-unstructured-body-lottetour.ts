@@ -10,7 +10,8 @@ const OPTIONAL_HEADER_ALIASES = {
     '선택옵션명',
     '현지옵션명',
     '옵션명',
-    '노랑 옵션',
+    '롯데 옵션',
+    '롯데관광 옵션',
     '옐로우 옵션',
     '롯데 옵션',
   ],
@@ -25,7 +26,7 @@ const OPTIONAL_HEADER_ALIASES = {
 } as const
 
 const SHOPPING_HEADER_ALIASES = {
-  shoppingItem: ['쇼핑품목', '품목', '쇼핑항목', '쇼핑 품목', '구입품목', '구매품목', '노랑 쇼핑', '롯데 쇼핑'],
+  shoppingItem: ['쇼핑품목', '품목', '쇼핑항목', '쇼핑 품목', '구입품목', '구매품목', '롯데 쇼핑', '롯데관광 쇼핑'],
   shoppingPlace: ['쇼핑장소', '장소', '쇼핑샵명', '쇼핑샵명(위치)', '쇼핑 장소', '매장', '센터명'],
   durationText: ['예상소요시간', '소요시간', '시간', '체류시간', '예정시간'],
   refundPolicyText: ['환불여부', '환불 가능', '교환/환불', '현지/귀국 후 환불여부', '환불정책', '교환 및 환불'],
@@ -36,7 +37,7 @@ const SHOPPING_HEADER_ALIASES = {
     '총 1회 방문',
     '아래 품목 중 총 1회 쇼핑',
     '쇼핑센터 방문 1회',
-    '노랑 쇼핑 횟수',
+    '롯데 쇼핑 횟수',
   ],
 } as const
 import { parseOptionalTourTableRowsFromRawText, parseShoppingStopsFromLines } from '@/lib/structured-tour-signals-lottetour'

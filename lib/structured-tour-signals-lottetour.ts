@@ -458,6 +458,7 @@ function parseShopping(lines: string[]): {
       )
     )
       break
+    if (/좌석\s*승급|승급\s*옵션|프리미엄\s*좌석|업그레이드\s*좌석|좌석\s*업그레이드/i.test(ln)) break
     const cols = splitTableCells(ln)
     if (cols.length < 2) continue
     if (
