@@ -119,9 +119,9 @@ import {
   buildRegisterPublicImageHeroSeoKeywords,
   buildRegisterPublicImageHeroSeoLineCandidate,
 } from '@/lib/register-public-image-hero-seo-line-candidate'
-import { mergeKyowontourDeterministicFieldsFromPaste } from '@/lib/ybtour-paste-deterministic-patch-kyowontour'
-import { extractKyowontourTripAnchorsFromPaste } from '@/lib/ybtour-trip-anchors-from-paste-kyowontour'
-import { kyowontourBuildMinimalDepartureInputs } from '@/lib/ybtour-synthetic-departure-kyowontour'
+import { mergeKyowontourDeterministicFieldsFromPaste } from '@/lib/kyowontour-paste-deterministic-patch'
+import { extractKyowontourTripAnchorsFromPaste } from '@/lib/kyowontour-trip-anchors-from-paste'
+import { kyowontourBuildMinimalDepartureInputs } from '@/lib/kyowontour-synthetic-departure'
 
 type HeroTripDatesSupplement = Partial<Pick<Parameters<typeof resolveKyowontourHeroTripDates>[0], 'kyowontourFlightStructured'>>
 

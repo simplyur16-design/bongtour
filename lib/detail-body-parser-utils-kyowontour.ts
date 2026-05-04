@@ -4,7 +4,7 @@
  * `flight_section` / `optional_tour_section` / `shopping_section` 앵커는 **일정·호텔·포함불포함과의 경계**를 잡기 위한 것이며,
  * 이 축의 **표·항공 구조화**는 하지 않는다(SSOT: `register-input-parse-kyowontour` + 정형 입력란).
  *
- * @see docs/body-parser-ybtour-ssot.md
+ * @see docs/body-parser-ybtour-ssot.md — 교보이지(kyowontour)는 동일 SSOT 규약.
  *
  * 상위 정책: `docs/admin-register-supplier-precise-spec.md` §4.
  */
@@ -185,7 +185,7 @@ function splitKyowontourSectionsByAnchors(normalized: string): Array<{ type: Det
   return out
 }
 
-/** 항공 시드: flight 블록(join) → schedule → summary 순으로 이어 붙임. 하한 72. (일정이 요약보다 앞선 붙여넣기를 가정 — `docs/body-parser-ybtour-ssot.md` 항공 시드 슬라이스와 동일.) */
+/** 항공 시드: flight 블록(join) → schedule → summary 순으로 이어 붙임. 하한 72. (일정이 요약보다 앞선 붙여넣기를 가정 — ybtour SSOT 문서의 항공 시드 슬라이스와 동일.) */
 const KYOWONTOUR_FLIGHT_SEED_MIN_LEN = 72
 
 export function sliceDetailBodySections(

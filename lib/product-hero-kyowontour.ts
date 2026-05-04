@@ -38,7 +38,7 @@ function returnFromListFacts(facts: DepartureKeyFacts | null): { iso: string | n
   return { iso, source: iso ? 'departure_list_inbound' : 'none' }
 }
 
-function combineYbtourFlightDateTime(d: string | null | undefined, t: string | null | undefined): string | null {
+function combineKyowontourFlightDateTime(d: string | null | undefined, t: string | null | undefined): string | null {
   const dd = (d ?? '').replace(/-/g, '.').trim()
   const tt = (t ?? '').trim()
   if (dd && tt) return `${dd} ${tt}`.replace(/\s+\(/g, '(')
@@ -47,7 +47,7 @@ function combineYbtourFlightDateTime(d: string | null | undefined, t: string | n
 }
 
 /** 선택 출발일(달력 SSOT) + 시각 문자열 → 해당 일자 기준 한 줄 표시 */
-function alignYbtourAtTextToDateIso(atText: string | null | undefined, dateIso: string | null): string | null {
+function alignKyowontourAtTextToDateIso(atText: string | null | undefined, dateIso: string | null): string | null {
   const raw = (atText ?? '').trim()
   if (!raw) return null
   if (dateIso && /^\d{4}-\d{2}-\d{2}$/.test(dateIso)) {
@@ -64,7 +64,7 @@ function alignYbtourAtTextToDateIso(atText: string | null | undefined, dateIso: 
  * 공개 상세에서 선택 행 날짜의 `departureKeyFacts`가 있으면,
  * 히어로 출발·귀국 표시는 구조화 본문(kyowontourFlightStructured)보다 이쪽만 쓴다(날짜·귀국 혼선 방지).
  */
-function tryYbtourHeroFromDepartureKeyFactsOnly(
+function tryKyowontourHeroFromDepartureKeyFactsOnly(
   calendarDep: string | null,
   facts: DepartureKeyFacts,
   duration: string | null | undefined
@@ -84,14 +84,14 @@ function tryYbtourHeroFromDepartureKeyFactsOnly(
     retIso = fb.iso
   }
 
-  const depLabel = alignYbtourAtTextToDateIso(dOut, calendarDep) ?? dOut
-  const retLabel = (retIso ? alignYbtourAtTextToDateIso(dInArr, retIso) : null) ?? dInArr
+  const depLabel = alignKyowontourAtTextToDateIso(dOut, calendarDep) ?? dOut
+  const retLabel = (retIso ? alignKyowontourAtTextToDateIso(dInArr, retIso) : null) ?? dInArr
 
   return {
     departureIso: calendarDep,
     returnIso: retIso,
-    departureSource: 'ybtour_departure_key_facts',
-    returnSource: retIso ? 'ybtour_departure_key_facts_inbound' : 'none',
+    departureSource: 'kyowontour_departure_key_facts',
+    returnSource: retIso ? 'kyowontour_departure_key_facts_inbound' : 'none',
     departureDisplayOverride: depLabel,
     returnDisplayOverride: retLabel,
   }
@@ -101,7 +101,7 @@ function tryYbtourHeroFromDepartureKeyFactsOnly(
  * 출발/귀국 leg 중 하나만 있어도 **선택 출발일(`departureKeyFactsByDate`)** 기준으로 히어로를 맞춘다.
  * 본문 `flightStructured`와 섞지 않기 위한 공개 상세용.
  */
-function tryYbtourHeroFromDepartureKeyFactsPartial(
+function tryKyowontourHeroFromDepartureKeyFactsPartial(
   calendarDep: string | null,
   facts: DepartureKeyFacts,
   duration: string | null | undefined
@@ -120,11 +120,11 @@ function tryYbtourHeroFromDepartureKeyFactsPartial(
   }
 
   const depLabel =
-    (dOut ? alignYbtourAtTextToDateIso(dOut, calendarDep) ?? dOut : null) ?? formatHeroDateKorean(calendarDep)
+    (dOut ? alignKyowontourAtTextToDateIso(dOut, calendarDep) ?? dOut : null) ?? formatHeroDateKorean(calendarDep)
 
   let retLabel: string | null = null
   if (dInArr && retIso) {
-    retLabel = alignYbtourAtTextToDateIso(dInArr, retIso) ?? dInArr
+    retLabel = alignKyowontourAtTextToDateIso(dInArr, retIso) ?? dInArr
   } else if (dInArr) {
     retLabel = dInArr
   } else if (retIso) {
@@ -136,18 +136,18 @@ function tryYbtourHeroFromDepartureKeyFactsPartial(
   return {
     departureIso: calendarDep,
     returnIso: retIso,
-    departureSource: 'ybtour_departure_key_facts_partial',
+    departureSource: 'kyowontour_departure_key_facts_partial',
     returnSource: retIso
       ? dInArr
-        ? 'ybtour_departure_key_facts_inbound'
-        : 'ybtour_departure_key_facts_duration'
+        ? 'kyowontour_departure_key_facts_inbound'
+        : 'kyowontour_departure_key_facts_duration'
       : 'none',
     departureDisplayOverride: depLabel ?? null,
     returnDisplayOverride: retLabel ?? null,
   }
 }
 
-function tryYbtourHeroFromFlightStructured(
+function tryKyowontourHeroFromFlightStructured(
   fs: Pick<FlightStructured, 'outbound' | 'inbound'> | null | undefined,
   calendarDep: string | null,
   duration: string | null | undefined,
@@ -162,7 +162,7 @@ function tryYbtourHeroFromFlightStructured(
 
   const depIso = calendarDep ?? extractIsoDate(ob.departureDate)
   let retIso = extractIsoDate(ib.arrivalDate)
-  let retSrc = 'ybtour_flight_structured_inbound_arrival'
+  let retSrc = 'kyowontour_flight_structured_inbound_arrival'
   if (!retIso) {
     const list = returnFromListFacts(facts)
     retIso = list.iso
@@ -174,14 +174,14 @@ function tryYbtourHeroFromFlightStructured(
     retSrc = fb.source
   }
 
-  const depLabel = combineYbtourFlightDateTime(depIso ?? ob.departureDate, obTime)
-  const retLabel = combineYbtourFlightDateTime(retIso ?? ib.arrivalDate, ibArrTime)
+  const depLabel = combineKyowontourFlightDateTime(depIso ?? ob.departureDate, obTime)
+  const retLabel = combineKyowontourFlightDateTime(retIso ?? ib.arrivalDate, ibArrTime)
   if (!depLabel || !retLabel) return null
 
   return {
     departureIso: depIso,
     returnIso: retIso,
-    departureSource: depIso ? 'ybtour_flight_structured_outbound' : 'none',
+    departureSource: depIso ? 'kyowontour_flight_structured_outbound' : 'none',
     returnSource: retSrc,
     departureDisplayOverride: depLabel,
     returnDisplayOverride: retLabel,
@@ -204,14 +204,19 @@ export function resolveKyowontourHeroTripDates(opts: {
 }): HeroTripResolved {
   const dep = calendarDeparture(opts.selectedDate, opts.fallbackPriceRowDate)
   if (opts.departureFacts) {
-    const fromFacts = tryYbtourHeroFromDepartureKeyFactsOnly(dep, opts.departureFacts, opts.duration)
+    const fromFacts = tryKyowontourHeroFromDepartureKeyFactsOnly(dep, opts.departureFacts, opts.duration)
     if (fromFacts) return fromFacts
-    const fromFactsPartial = tryYbtourHeroFromDepartureKeyFactsPartial(dep, opts.departureFacts, opts.duration)
+    const fromFactsPartial = tryKyowontourHeroFromDepartureKeyFactsPartial(dep, opts.departureFacts, opts.duration)
     if (fromFactsPartial) return fromFactsPartial
   }
   if (!opts.disableFlightStructuredFallback) {
-    const yb = tryYbtourHeroFromFlightStructured(opts.kyowontourFlightStructured, dep, opts.duration, opts.departureFacts)
-    if (yb) return yb
+    const fromFlight = tryKyowontourHeroFromFlightStructured(
+      opts.kyowontourFlightStructured,
+      dep,
+      opts.duration,
+      opts.departureFacts
+    )
+    if (fromFlight) return fromFlight
   }
   return resolveHeroTripDates({
     originSource: 'kyowontour',

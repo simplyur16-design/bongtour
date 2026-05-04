@@ -7,7 +7,7 @@
  * **비담당(SSOT = 입력 파서):** 항공·선택관광/옵션·쇼핑 구조화 — `register-input-parse-kyowontour` 및
  * `register-parse-kyowontour`의 정형 입력란만이 구조화한다. 본문에 동일 문구가 있어도 여기서는 채우지 않는다.
  *
- * @see docs/body-parser-ybtour-ssot.md
+ * @see docs/body-parser-ybtour-ssot.md — 교보이지(kyowontour) 등록 본문 파싱은 동일 SSOT 규약을 적용한다.
  *
  * 상위 규약: `docs/admin-register-supplier-precise-spec.md` §4. 일정 표현: `docs/register_schedule_expression_ssot.md`.
  */
@@ -22,7 +22,7 @@ import { parseHotelSectionKyowontour } from '@/lib/hotel-parser-kyowontour'
 import { parseKyowontourIncludedExcludedSection } from '@/lib/register-kyowontour-basic'
 import { buildDetailReviewPolicyKyowontour } from '@/lib/review-policy-kyowontour'
 
-/** 포함/불포함 구조화 입력에서 약관·취소·예약금 장문 이후는 잘라 내어 `register-kyowontour-basic` 파서 오염을 막는다(SSOT: `docs/body-parser-ybtour-ssot.md`). */
+/** 포함/불포함 구조화 입력에서 약관·취소·예약금 장문 이후는 잘라 내어 `register-kyowontour-basic` 파서 오염을 막는다(SSOT: ybtour 문서와 동일 규약 — `docs/body-parser-ybtour-ssot.md`). */
 export function clipKyowontourIncExcInputForParse(blob: string): string {
   const lines = blob.split('\n')
   const out: string[] = []

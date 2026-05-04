@@ -9,7 +9,7 @@ import { deriveHanatourConfirmationFlags, parseStatusLabelsJson } from './hanato
 const MAX_RAW = 2000
 
 /** 교보이지(kyowontour) 전용: 성인만 갱신 입력으로 덮고, 아동·유아는 이번 요청에 숫자가 있을 때만 갱신·없으면 DB 유지 */
-function pickPreservedChildInfantPriceYbtour(
+function pickPreservedChildInfantPriceKyowontour(
   incoming: number | null | undefined,
   existing: number | null | undefined
 ): number | null {
@@ -23,7 +23,7 @@ function pickPreservedChildInfantPriceYbtour(
 }
 
 /** 유아는 0을 “미전달”으로 보고 기존값을 유지한다(달력 재수집 등). */
-function pickPreservedInfantPriceYbtour(
+function pickPreservedInfantPriceKyowontour(
   incoming: number | null | undefined,
   existing: number | null | undefined
 ): number | null {
@@ -40,7 +40,7 @@ function pickPreservedInfantPriceYbtour(
  * 달력 등에서 아동 단가가 비어 있으면 해당 행 성인가에 맞춘다.
  * 명시적 0은 “미전달”에 가깝게 취급해 성인가가 있으면 성인가로 맞춘다.
  */
-function resolveYbtourChildSlotPrice(
+function resolveKyowontourChildSlotPrice(
   incoming: number | null | undefined,
   adultPrice: number | null,
   previous: number | null | undefined
@@ -48,7 +48,7 @@ function resolveYbtourChildSlotPrice(
   if (incoming === 0 && adultPrice != null && adultPrice > 0) return adultPrice
   if (incoming != null && Number.isFinite(incoming) && incoming > 0) return incoming
   if (incoming === undefined && adultPrice != null && adultPrice > 0) return adultPrice
-  return pickPreservedChildInfantPriceYbtour(incoming, previous)
+  return pickPreservedChildInfantPriceKyowontour(incoming, previous)
 }
 
 /** 동일 상품의 다른 출발행·ProductPrice에서 유아 단가 후보를 찾는다(신규 출발일 행 보강). */
@@ -325,9 +325,9 @@ export async function upsertProductDepartures(
 
     const previous = existingChildByUtc.get(departureDate.getTime())
     const adultPrice = d.adultPrice != null && !Number.isNaN(d.adultPrice) ? d.adultPrice : null
-    const childBedPrice = resolveYbtourChildSlotPrice(d.childBedPrice, adultPrice, previous?.childBedPrice)
-    const childNoBedPrice = resolveYbtourChildSlotPrice(d.childNoBedPrice, adultPrice, previous?.childNoBedPrice)
-    let infantPrice = pickPreservedInfantPriceYbtour(d.infantPrice, previous?.infantPrice)
+    const childBedPrice = resolveKyowontourChildSlotPrice(d.childBedPrice, adultPrice, previous?.childBedPrice)
+    const childNoBedPrice = resolveKyowontourChildSlotPrice(d.childNoBedPrice, adultPrice, previous?.childNoBedPrice)
+    let infantPrice = pickPreservedInfantPriceKyowontour(d.infantPrice, previous?.infantPrice)
     if (infantPrice == null && productInfantFallback != null && productInfantFallback > 0) {
       infantPrice = productInfantFallback
     }

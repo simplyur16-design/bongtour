@@ -5,7 +5,7 @@
  * 항공·옵션·쇼핑 **구조화**는 이 파일에서 `register-input-parse-kyowontour`로, **정형 입력란**(`pastedBlocks`) 기준으로만 수행한다.
  * 본문에 같은 표가 있어도 입력란이 비어 있으면 해당 축은 비어 있을 수 있다.
  *
- * @see docs/body-parser-ybtour-ssot.md
+ * @see docs/body-parser-ybtour-ssot.md — 교보이지(kyowontour) 등록 본문 파싱은 동일 SSOT 규약.
  *
  * 상위 규약: `docs/admin-register-supplier-precise-spec.md` §4. 일정 표현: `docs/register_schedule_expression_ssot.md`.
  */

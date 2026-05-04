@@ -282,7 +282,7 @@ export function mergePricePromotionLayers(
 /**
  * 달력/가격표로 확정된 판매가와 충돌하는 프로모 `salePrice`는 구조값에서 제거한다.
  * 운영 SSOT: 가격은 달력/가격표 우선 — 프로모 문구·LLM 숫자는 참고만.
- * @see lib/register-preview-ssot-hanatour.ts · lib/register-preview-ssot-modetour.ts · lib/register-preview-ssot-verygoodtour.ts · lib/register-preview-ssot-ybtour.ts (미리보기 배지·문구, 공급사별)
+ * @see lib/register-preview-ssot-hanatour.ts · lib/register-preview-ssot-modetour.ts · lib/register-preview-ssot-verygoodtour.ts · lib/register-preview-ssot-kyowontour.ts (미리보기 배지·문구, 공급사별)
  */
 export function reconcilePromotionSalePriceWithAuthoritative(
   merged: PricePromotionSnapshot,

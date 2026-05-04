@@ -7,7 +7,7 @@ import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-sch
 import {
   normalizeKyowontourPasteForScheduleExtract,
   sliceKyowontourItineraryBodyForDayMarkers,
-} from '@/lib/ybtour-paste-normalize-for-register-kyowontour'
+} from '@/lib/kyowontour-paste-normalize-for-register'
 import { stripCounselingTermsFromScheduleRow } from '@/lib/itinerary-counseling-terms-strip'
 import {
   registerScheduleToDayInputs,
@@ -84,7 +84,7 @@ function kyowontourFirstDayBlockLooksDetailed(s: string, bodyStart: number, next
  * - 그중 블록 상단에 날짜(YYYY.MM.DD 등)가 있는 **상세 일정**부터 체인을 시작한다.
  * (상단 요약 일정표·빈 탭 헤더 줄만 있는 1일차는 제외)
  */
-function findFirstYbtourDay1MatchIndex(
+function findFirstKyowontourDay1MatchIndex(
   matches: Array<{ day: number; headerStart: number; bodyStart: number }>,
   s: string,
   minHeaderStart: number
@@ -105,14 +105,14 @@ function findFirstYbtourDay1MatchIndex(
 }
 
 /** 본문에서 첫 번째 1일차부터 연속 증가하는 일차 헤더만 체인으로 삼음 (다음 상품·표의 재등장 1일차에서 중단) */
-export function findYbtourAscendingDayHeaderChain(
+export function findKyowontourAscendingDayHeaderChain(
   haystack: string
 ): Array<{ day: number; headerStart: number; bodyStart: number }> {
   const s = haystack.replace(/\r\n/g, '\n')
   const matches = scanKyowontourAllDayHeaders(s)
   const labelEnd = getKyowontourDetailSectionLabelEnd(s)
   const minHeaderStart = labelEnd > 0 ? labelEnd : 0
-  const first1 = findFirstYbtourDay1MatchIndex(matches, s, minHeaderStart)
+  const first1 = findFirstKyowontourDay1MatchIndex(matches, s, minHeaderStart)
   if (first1 < 0) return []
   const chain: Array<{ day: number; headerStart: number; bodyStart: number }> = [matches[first1]!]
   for (let i = first1 + 1; i < matches.length; i++) {
@@ -125,7 +125,7 @@ export function findYbtourAscendingDayHeaderChain(
   return chain
 }
 
-function extractHotelFromYbtourBlock(block: string): string | null {
+function extractHotelFromKyowontourBlock(block: string): string | null {
   const hotel = block.match(/예정호텔\s*[\n\r]+\s*([^\n\r]+)/i)?.[1]?.trim()
   if (hotel) return hotel.slice(0, 500)
   const suk = block.match(/숙박\s*[\n\r]+\s*([^\n\r]+)/i)?.[1]?.trim()
@@ -134,7 +134,7 @@ function extractHotelFromYbtourBlock(block: string): string | null {
   return line ? line.slice(0, 500) : null
 }
 
-function extractMealsFromYbtourBlock(block: string): Partial<RegisterScheduleDay> {
+function extractMealsFromKyowontourBlock(block: string): Partial<RegisterScheduleDay> {
   const mealSection = block.match(
     /식사\s*[\n\r]+([\s\S]*?)(?=\n\s*\d{1,2}일차(?:\s|$|\r?\n)|$)/i
   )?.[1]?.trim()
@@ -169,7 +169,7 @@ export function keywordFromTitleDescription(title: string, description: string):
   }).slice(0, 180)
 }
 
-function extractYbtourDayDateIso(block: string): string | null {
+function extractKyowontourDayDateIso(block: string): string | null {
   const dot = block.match(/(?:^|\n)\s*(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\s*(?:\([^)]*\))?/)
   if (dot) {
     return `${dot[1]}-${dot[2]!.padStart(2, '0')}-${dot[3]!.padStart(2, '0')}`
@@ -182,8 +182,8 @@ function extractYbtourDayDateIso(block: string): string | null {
 }
 
 /** 단일 일차 블록 → 표현층 최소 행 (본문에 있는 문구만) */
-export function ybtourScheduleDayFromPastedBlock(day: number, block: string): RegisterScheduleDay {
-  const dateText = extractYbtourDayDateIso(block)
+export function kyowontourScheduleDayFromPastedBlock(day: number, block: string): RegisterScheduleDay {
+  const dateText = extractKyowontourDayDateIso(block)
   const lines = block.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
   const useful: string[] = []
   for (const l of lines) {
@@ -223,8 +223,8 @@ export function ybtourScheduleDayFromPastedBlock(day: number, block: string): Re
     }).trim()
     if (derived) title = derived.slice(0, 200)
   }
-  const meals = extractMealsFromYbtourBlock(block)
-  const hotelText = extractHotelFromYbtourBlock(block)
+  const meals = extractMealsFromKyowontourBlock(block)
+  const hotelText = extractHotelFromKyowontourBlock(block)
 
   return {
     day,
@@ -241,10 +241,10 @@ export function ybtourScheduleDayFromPastedBlock(day: number, block: string): Re
 }
 
 /** 붙여넣기 본문만으로 일차 행 후보 (연속 체인 전체; LLM 대체용 아님) */
-export function buildYbtourScheduleFromPastedText(pastedBody: string): RegisterScheduleDay[] {
+export function buildKyowontourScheduleFromPastedText(pastedBody: string): RegisterScheduleDay[] {
   const sliced = sliceKyowontourItineraryBodyForDayMarkers(pastedBody)
   const normalized = normalizeKyowontourPasteForScheduleExtract(sliced)
-  const chain = findYbtourAscendingDayHeaderChain(normalized)
+  const chain = findKyowontourAscendingDayHeaderChain(normalized)
   if (!chain.length) return []
   const full = pastedBody.replace(/\r\n/g, '\n')
   const allHdr = scanKyowontourAllDayHeaders(full)
@@ -259,17 +259,17 @@ export function buildYbtourScheduleFromPastedText(pastedBody: string): RegisterS
       end = next ? next.headerStart : full.length
     }
     const block = full.slice(bodyStart, end)
-    out.push(ybtourScheduleDayFromPastedBlock(day, block))
+    out.push(kyowontourScheduleDayFromPastedBlock(day, block))
   }
   return out
 }
 
 /** LLM `parsed.schedule`에 없는 day만 본문 보조 행으로 추가 후 day 오름차순 */
-export function mergeMissingYbtourScheduleDays(
+export function mergeMissingKyowontourScheduleDays(
   parsed: RegisterParsed,
   pastedBody: string
 ): RegisterParsed {
-  const bodyRows = buildYbtourScheduleFromPastedText(pastedBody)
+  const bodyRows = buildKyowontourScheduleFromPastedText(pastedBody)
   if (!bodyRows.length) return parsed
 
   const existing = parsed.schedule ?? []
@@ -286,7 +286,7 @@ export function mergeMissingYbtourScheduleDays(
 }
 
 /** 공용 기본 imageKeyword `Day N travel` 제거·대체 (title → description → 빈 문자열) */
-export function sanitizeYbtourScheduleRowExpression(row: RegisterScheduleDay): RegisterScheduleDay {
+export function sanitizeKyowontourScheduleRowExpression(row: RegisterScheduleDay): RegisterScheduleDay {
   const kw = String(row.imageKeyword ?? '').trim()
   if (!DAY_N_TRAVEL_RE.test(kw)) return row
   const fromTitle = String(row.title ?? '').trim().slice(0, 120)
@@ -301,11 +301,11 @@ export function augmentKyowontourScheduleExpressionParsed(
 ): RegisterParsed {
   let next = parsed
   if (pastedBodyText?.trim()) {
-    next = mergeMissingYbtourScheduleDays(next, pastedBodyText)
+    next = mergeMissingKyowontourScheduleDays(next, pastedBodyText)
   }
   const sched = next.schedule
   if (!sched?.length) return next
-  const cleaned = sched.map((r) => sanitizeYbtourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r)))
+  const cleaned = sched.map((r) => sanitizeKyowontourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r)))
   return {
     ...next,
     schedule: cleaned.map((r) => {

@@ -13,13 +13,13 @@ const ITIN_END = [
   /^\s*약관\s*\/\s*취소수수료/i,
 ]
 
-export function normalizeYbtourRegisterPasteLineEndings(raw: string): string {
+export function normalizeKyowontourRegisterPasteLineEndings(raw: string): string {
   return raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
 }
 
 /** 일정 추출용: UI 줄 제거·연속 공백 축소(탭→공백은 detail-body 쪽과 별도). */
 export function normalizeKyowontourPasteForScheduleExtract(raw: string): string {
-  const lines = normalizeYbtourRegisterPasteLineEndings(raw).split('\n')
+  const lines = normalizeKyowontourRegisterPasteLineEndings(raw).split('\n')
   const out: string[] = []
   for (const line of lines) {
     const t = line.trim()
@@ -35,7 +35,7 @@ export function normalizeKyowontourPasteForScheduleExtract(raw: string): string 
 
 /** `여행 일정` / `일차별 일정` / 첫 상세 `1일차` ~ 하단 앵커 직전 */
 export function sliceKyowontourItineraryBodyForDayMarkers(raw: string): string {
-  const full = normalizeYbtourRegisterPasteLineEndings(raw)
+  const full = normalizeKyowontourRegisterPasteLineEndings(raw)
   const labelIdx = (re: RegExp) => {
     const m = re.exec(full)
     return m ? m.index : -1

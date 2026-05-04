@@ -88,7 +88,7 @@ export type MergeProductPriceBodyTableOptions = {
    * 교보이지(kyowontour) 전용: 출발별 성인가가 다를 때 아동=행별 성인가 연동(post).
    * 본문 표의 유아 단가는 **절대** 행에 덮어쓰지 않는다(최초 유아 단가·행 값 유지).
    */
-  ybtourVaryingAdultChildLinkage?: boolean
+  kyowontourVaryingAdultChildLinkage?: boolean
 }
 
 /** rawMeta 본문 가격표(연령별)가 있으면 출발일별 행에 덮어씀 — 달력은 Departure, 구간 단가는 본문 표 SSOT */
@@ -129,9 +129,9 @@ export function mergeProductPriceRowsWithBodyPriceTable(
     (!childNoBedVaries || childNoBedOnlyMirrorsAdultAcrossRows(rows)) &&
     (!adultVaries || !anyRowHasChildNoBed || !anyRowHasRealChildNoBedTier)
   const varyingAdultChildLinkage =
-    options?.modetourVaryingAdultChildLinkage === true || options?.ybtourVaryingAdultChildLinkage === true
+    options?.modetourVaryingAdultChildLinkage === true || options?.kyowontourVaryingAdultChildLinkage === true
   const mergeInfant =
-    !options?.ybtourVaryingAdultChildLinkage &&
+    !options?.kyowontourVaryingAdultChildLinkage &&
     table.infantPrice != null &&
     table.infantPrice > 0 &&
     !infantVaries &&
@@ -203,7 +203,7 @@ export function mergeProductPriceRowsWithBodyPriceTable(
       const next: ProductPriceRow = { ...r }
       const ad = num(r.adult ?? r.priceAdult)
       const mirrorChildToAdult =
-        (options?.ybtourVaryingAdultChildLinkage === true && ad > 0) ||
+        (options?.kyowontourVaryingAdultChildLinkage === true && ad > 0) ||
         (bodyChildMirrorsTableAdult && ad > 0)
       if (mirrorChildToAdult) {
         next.childBed = ad
@@ -212,7 +212,7 @@ export function mergeProductPriceRowsWithBodyPriceTable(
         next.priceChildNoBed = ad
       }
       if (
-        options?.ybtourVaryingAdultChildLinkage !== true &&
+        options?.kyowontourVaryingAdultChildLinkage !== true &&
         tin != null &&
         tin > 0 &&
         positiveSlot(next.priceInfant ?? next.infant) == null

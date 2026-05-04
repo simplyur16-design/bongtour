@@ -4,7 +4,7 @@
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import { normalizeCalendarDate } from '@/lib/date-normalize'
 
-export type YbtourTripAnchors = {
+export type KyowontourTripAnchors = {
   tripStartIso: string | null
   tripEndIso: string | null
   tripStartSource: string
@@ -22,7 +22,7 @@ function isoFromDots(s: string | null | undefined): string | null {
 export function extractKyowontourTripAnchorsFromPaste(
   blob: string,
   fs: FlightStructured | null | undefined
-): YbtourTripAnchors {
+): KyowontourTripAnchors {
   let tripStartIso: string | null = null
   let tripEndIso: string | null = null
   let tripStartSource = 'none'
