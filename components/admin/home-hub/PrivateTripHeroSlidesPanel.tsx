@@ -8,7 +8,7 @@ import {
 } from '@/lib/private-trip-hero-constants'
 import SafeImage from '@/app/components/SafeImage'
 
-/** 우리여행 히어로: Supabase Storage 이미지 풀만 관리 (공개 `/travel/overseas/private-trip`와 동일 소스) */
+/** 우리여행 히어로: Object Storage(Ncloud) 이미지 풀만 관리 (공개 `/travel/overseas/private-trip`와 동일 소스) */
 export function PrivateTripHeroSlidesPanel() {
   const [folderUrls, setFolderUrls] = useState<string[]>([])
   const [folderLocationNote, setFolderLocationNote] = useState<string>('')
@@ -92,34 +92,26 @@ export function PrivateTripHeroSlidesPanel() {
               ok?: boolean
               error?: string
               incomingPath?: string
-              token?: string
-              supabaseUrl?: string
-              supabaseAnonKey?: string
-              bucket?: string
+              uploadUrl?: string
+              contentType?: string
             }
-            if (
-              !signRes.ok ||
-              !signData.ok ||
-              !signData.incomingPath ||
-              !signData.token ||
-              !signData.supabaseUrl ||
-              !signData.supabaseAnonKey ||
-              !signData.bucket
-            ) {
+            if (!signRes.ok || !signData.ok || !signData.incomingPath || !signData.uploadUrl || !signData.contentType) {
               errors.push(
-                `${file.name}: ${signData.error || '서버에 SUPABASE_URL·SUPABASE_ANON_KEY(또는 NEXT_PUBLIC_* anon)가 없습니다.'}`,
+                `${file.name}: ${signData.error || '서버에 NCLOUD Object Storage 설정이 없거나 presigned URL 발급에 실패했습니다.'}`,
               )
               continue
             }
 
-            const { createClient } = await import('@supabase/supabase-js')
-            const sb = createClient(signData.supabaseUrl, signData.supabaseAnonKey)
-            const bucket = signData.bucket
-            const { error: upErr } = await sb.storage
-              .from(bucket)
-              .uploadToSignedUrl(signData.incomingPath, signData.token, file, { upsert: true })
-            if (upErr) {
-              errors.push(`${file.name}: Storage 직접 업로드 실패 — ${upErr.message}`)
+            const putRes = await fetch(signData.uploadUrl, {
+              method: 'PUT',
+              body: file,
+              headers: { 'Content-Type': signData.contentType },
+            })
+            if (!putRes.ok) {
+              const putSnippet = (await putRes.text()).replace(/\s+/g, ' ').trim().slice(0, 200)
+              errors.push(
+                `${file.name}: Ncloud 직접 업로드 실패 HTTP ${putRes.status}${putSnippet ? ` — ${putSnippet}` : ''}`,
+              )
               continue
             }
 
@@ -150,7 +142,7 @@ export function PrivateTripHeroSlidesPanel() {
             let line = `${file.name}: ${data.error || String(res.status)}${detail}`
             if (res.status === 413) {
               line +=
-                ' — nginx 본문 한도(413)면 `client_max_body_size`를 늘리거나, 직접 업로드(SUPABASE_ANON_KEY)를 켜 주세요.'
+                ' — nginx 본문 한도(413)면 `client_max_body_size`를 늘리거나, NCLOUD Object Storage 직접 업로드(presigned PUT)를 켜 주세요.'
             }
             errors.push(line)
           }

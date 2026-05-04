@@ -9,10 +9,12 @@
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
+  GetObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import sharp from 'sharp'
 
 const DEFAULT_NCLOUD_BUCKET = 'bongtour'
@@ -221,6 +223,52 @@ export async function removeStorageObject(objectKey: string): Promise<void> {
   const key = objectKey.replace(/^\/+/, '')
   const client = getS3Client()
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+}
+
+/**
+ * Ncloud Object Storage용 presigned PUT URL 생성.
+ * 브라우저에서 직접 fetch PUT 가능. Phase 1 CORS 검증 완료.
+ */
+export async function createPresignedPutUrl(opts: {
+  key: string
+  contentType: string
+  expiresInSeconds?: number
+}): Promise<{ url: string; key: string }> {
+  if (!isObjectStorageConfigured()) {
+    throw new Error(
+      'Ncloud Object Storage env가 불완전합니다. NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_ENDPOINT, NCLOUD_OBJECT_STORAGE_BUCKET, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL을 설정하세요.',
+    )
+  }
+  const { bucket } = getObjectStorageEnv()
+  const key = opts.key.replace(/^\/+/, '')
+  const client = getS3Client()
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ContentType: opts.contentType,
+  })
+  const url = await getSignedUrl(client, command, { expiresIn: opts.expiresInSeconds ?? 600 })
+  return { url, key }
+}
+
+/**
+ * Ncloud에서 객체 바이트 읽기 (서버 전용). Supabase Storage download 대체.
+ */
+export async function readStorageObject(key: string): Promise<Buffer> {
+  if (!isObjectStorageConfigured()) {
+    throw new Error(
+      'Ncloud Object Storage env가 불완전합니다. NCLOUD_ACCESS_KEY, NCLOUD_SECRET_KEY, NCLOUD_OBJECT_STORAGE_ENDPOINT, NCLOUD_OBJECT_STORAGE_BUCKET, NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL을 설정하세요.',
+    )
+  }
+  const { bucket } = getObjectStorageEnv()
+  const k = key.replace(/^\/+/, '')
+  const client = getS3Client()
+  const res = await client.send(new GetObjectCommand({ Bucket: bucket, Key: k }))
+  if (!res.Body) {
+    throw new Error(`Object not found: ${k}`)
+  }
+  const bytes = await res.Body.transformToByteArray()
+  return Buffer.from(bytes)
 }
 
 export type ListedStorageObject = {

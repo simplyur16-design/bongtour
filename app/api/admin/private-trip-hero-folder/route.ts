@@ -18,7 +18,7 @@ export async function GET() {
     source,
     storageConfigured: isObjectStorageConfigured(),
     count: publicUrls.length,
-    /** true면 브라우저가 Supabase로 직접 올려 nginx 본문 한도를 피함 */
+    /** true면 브라우저가 Ncloud presigned PUT으로 직접 올려 nginx 본문 한도를 피함 */
     directUploadAvailable: isPrivateTripHeroDirectBrowserUploadConfigured(),
   })
 }
@@ -30,7 +30,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ ok: false, error: '인증이 필요합니다.' }, { status: 401 })
   }
   if (!isObjectStorageConfigured()) {
-    return NextResponse.json({ ok: false, error: 'Supabase Storage가 설정되지 않았습니다.' }, { status: 503 })
+    return NextResponse.json({ ok: false, error: 'Object Storage(Ncloud)가 설정되지 않았습니다.' }, { status: 503 })
   }
 
   let body: unknown

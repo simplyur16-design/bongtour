@@ -143,3 +143,4 @@ backups/
 
 # 개발용 검증 스크립트 (untracked 유지)
 scripts/verify-ncloud-korean-key.ts
+scripts/verify-ncloud-cors-presigned-put.ts
