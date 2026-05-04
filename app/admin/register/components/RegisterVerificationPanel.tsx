@@ -6,12 +6,14 @@ import type { RegisterVerificationV1 as RegisterVerificationV1H } from '@/lib/ad
 import type { RegisterVerificationV1 as RegisterVerificationV1M } from '@/lib/admin-register-verification-meta-modetour'
 import type { RegisterVerificationV1 as RegisterVerificationV1V } from '@/lib/admin-register-verification-meta-verygoodtour'
 import type { RegisterVerificationV1 as RegisterVerificationV1Y } from '@/lib/admin-register-verification-meta-ybtour'
+import type { RegisterVerificationV1 as RegisterVerificationV1K } from '@/lib/admin-register-verification-meta-kyowontour'
 
 type RegisterVerificationV1 =
   | RegisterVerificationV1H
   | RegisterVerificationV1M
   | RegisterVerificationV1V
   | RegisterVerificationV1Y
+  | RegisterVerificationV1K
 
 type Props = {
   verification: RegisterVerificationV1

@@ -524,8 +524,12 @@ function parsePastedBlocksFromBody(body: Record<string, unknown>): Partial<
   return Object.keys(out).length > 0 ? out : null
 }
 
+function primaryPasteTextFromRegisterBody(body: Record<string, unknown>): string {
+  return (typeof body.text === 'string' ? body.text : typeof body.bodyText === 'string' ? body.bodyText : '').trim()
+}
+
 function computePreviewContentDigestForBody(body: Record<string, unknown>): string {
-  const text = typeof body.text === 'string' ? body.text.trim() : ''
+  const text = primaryPasteTextFromRegisterBody(body)
   const brandKey = 'kyowontour' as const
   let originUrl: string | null = typeof body.originUrl === 'string' ? body.originUrl.trim() : null
   if (originUrl === '') originUrl = null

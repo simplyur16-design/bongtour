@@ -4,6 +4,7 @@ import type { RegisterPreviewPayload as RegisterPreviewPayloadH } from '@/lib/re
 import type { RegisterPreviewPayload as RegisterPreviewPayloadM } from '@/lib/register-preview-payload-modetour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadV } from '@/lib/register-preview-payload-verygoodtour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadY } from '@/lib/register-preview-payload-ybtour'
+import type { RegisterPreviewPayload as RegisterPreviewPayloadK } from '@/lib/register-preview-payload-kyowontour'
 import type {
   RegisterCorrectionFieldKey,
   RegisterCorrectionOverlayV1,
@@ -17,6 +18,7 @@ type RegisterPreviewPayload =
   | RegisterPreviewPayloadM
   | RegisterPreviewPayloadV
   | RegisterPreviewPayloadY
+  | RegisterPreviewPayloadK
 import RegisterShoppingCorrectionEditor from './RegisterShoppingCorrectionEditor'
 
 type Props = {
