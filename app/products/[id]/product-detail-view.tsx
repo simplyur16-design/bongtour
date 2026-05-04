@@ -19,6 +19,7 @@ import * as priceRowsHanatour from '@/lib/product-departure-to-price-rows-hanato
 import * as priceRowsModetour from '@/lib/product-departure-to-price-rows-modetour'
 import * as priceRowsVerygoodtour from '@/lib/product-departure-to-price-rows-verygoodtour'
 import * as priceRowsYbtour from '@/lib/product-departure-to-price-rows-ybtour'
+import * as priceRowsKyowontour from '@/lib/product-departure-to-price-rows-kyowontour'
 import {
   extractProductPriceTableByLabels,
   mergeProductPriceTableWithLabelExtract,
@@ -36,6 +37,7 @@ import * as publicConsumptionHanatour from '@/lib/public-consumption-hanatour'
 import * as publicConsumptionModetour from '@/lib/public-consumption-modetour'
 import * as publicConsumptionVerygoodtour from '@/lib/public-consumption-verygoodtour'
 import * as publicConsumptionYbtour from '@/lib/public-consumption-ybtour'
+import * as publicConsumptionKyowontour from '@/lib/public-consumption-kyowontour'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import {
   buildModetourDirectedDisplayFromFlightStructured,
@@ -57,10 +59,12 @@ import * as flightManualHanatour from '@/lib/flight-manual-correction-hanatour'
 import * as flightManualModetour from '@/lib/flight-manual-correction-modetour'
 import * as flightManualVerygoodtour from '@/lib/flight-manual-correction-verygoodtour'
 import * as flightManualYbtour from '@/lib/flight-manual-correction-ybtour'
+import * as flightManualKyowontour from '@/lib/flight-manual-correction-kyowontour'
 import * as dayHotelHanatour from '@/lib/day-hotel-plans-hanatour'
 import * as dayHotelModetour from '@/lib/day-hotel-plans-modetour'
 import * as dayHotelVerygoodtour from '@/lib/day-hotel-plans-verygoodtour'
 import * as dayHotelYbtour from '@/lib/day-hotel-plans-ybtour'
+import * as dayHotelKyowontour from '@/lib/day-hotel-plans-kyowontour'
 import { normalizePromotionMarketingCopy, normalizePricePromotionViewCopy } from '@/lib/promotion-copy-normalize'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { getPriceAdult } from '@/lib/price-utils'
@@ -88,6 +92,11 @@ import {
   sanitizeModetourPublicDepartureKeyFacts,
   sanitizeModetourPublicProductAirlineLine,
 } from '@/lib/modetour-product-public-display'
+import {
+  formatKyowontourStickyLocalPayPerPersonLine,
+  sanitizeKyowontourPublicDepartureKeyFacts,
+  sanitizeKyowontourPublicProductAirlineLine,
+} from '@/lib/kyowontour-product-public-display'
 import { PRODUCT_DETAIL_PAGE_INCLUDE } from '@/lib/product-detail-page-include'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
 
@@ -136,6 +145,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return flightManualVerygoodtour
       case 'ybtour':
         return flightManualYbtour
+      case 'kyowontour':
+        return flightManualKyowontour
       default:
         return flightManualHanatour
     }
@@ -149,6 +160,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return dayHotelVerygoodtour
       case 'ybtour':
         return dayHotelYbtour
+      case 'kyowontour':
+        return dayHotelKyowontour
       default:
         return dayHotelHanatour
     }
@@ -162,6 +175,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return priceRowsVerygoodtour
       case 'ybtour':
         return priceRowsYbtour
+      case 'kyowontour':
+        return priceRowsKyowontour
       default:
         return priceRowsHanatour
     }
@@ -270,6 +285,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
   /** 가격 병합 보정도 동일 조건에서만 활성(다른 공급사에는 미적용) */
   const useModetourPriceMergeContext = useModetourDirectedParse
   const useYbtourPriceMergeContext = publicConsumptionModuleKey === 'ybtour'
+  const useKyowontourPriceMergeContext = publicConsumptionModuleKey === 'kyowontour'
+  const useKyowontourPublicFlightScrub = publicConsumptionModuleKey === 'kyowontour'
   const modetourDirectedDisplay = useModetourDirectedParse
     ? buildModetourDirectedDisplayFromStructuredBody(
         structured?.flightRaw ?? null,
@@ -292,6 +309,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return publicConsumptionVerygoodtour.resolveShoppingConsumption(input)
       case 'ybtour':
         return publicConsumptionYbtour.resolveShoppingConsumption(input)
+      case 'kyowontour':
+        return publicConsumptionKyowontour.resolveShoppingConsumption(input)
       default:
         return publicConsumptionHanatour.resolveShoppingConsumption(input)
     }
@@ -308,6 +327,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return publicConsumptionVerygoodtour.resolveOptionalToursConsumption(input)
       case 'ybtour':
         return publicConsumptionYbtour.resolveOptionalToursConsumption(input)
+      case 'kyowontour':
+        return publicConsumptionKyowontour.resolveOptionalToursConsumption(input)
       default:
         return publicConsumptionHanatour.resolveOptionalToursConsumption(input)
     }
@@ -326,6 +347,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         return publicConsumptionVerygoodtour.resolveHotelConsumption(input)
       case 'ybtour':
         return publicConsumptionYbtour.resolveHotelConsumption(input)
+      case 'kyowontour':
+        return publicConsumptionKyowontour.resolveHotelConsumption(input)
       default:
         return publicConsumptionHanatour.resolveHotelConsumption(input)
     }
@@ -432,6 +455,14 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       ])
     )
   }
+  if (useKyowontourPublicFlightScrub && departureKeyFactsByDate) {
+    departureKeyFactsByDate = Object.fromEntries(
+      Object.entries(departureKeyFactsByDate).map(([dateKey, facts]) => [
+        dateKey,
+        sanitizeKyowontourPublicDepartureKeyFacts(facts),
+      ])
+    )
+  }
 
   /** 가격: 본문 라벨 추출 보강·날짜별 아동/유아 후처리는 모두투어 컨텍스트에서만 (타 공급사 공통화 금지) */
   const priceTableRawTrim = structured?.priceTableRawText?.trim() ?? ''
@@ -485,7 +516,9 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       ? { modetourVaryingAdultChildLinkage: true }
       : useYbtourPriceMergeContext
         ? { ybtourVaryingAdultChildLinkage: true }
-        : undefined
+        : useKyowontourPriceMergeContext
+          ? { kyowontourVaryingAdultChildLinkage: true }
+          : undefined
   )
   const priceRowsForPublic = Array.isArray(mergedPriceRows) ? mergedPriceRows : []
 
@@ -541,7 +574,11 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
         if (verygoodPublicRepCarrier) return verygoodPublicRepCarrier
         return travelProduct.airline ?? null
       })()
-      return useModetourDirectedParse ? sanitizeModetourPublicProductAirlineLine(raw) ?? raw : raw
+      return useModetourDirectedParse
+        ? sanitizeModetourPublicProductAirlineLine(raw) ?? raw
+        : useKyowontourPublicFlightScrub
+          ? sanitizeKyowontourPublicProductAirlineLine(raw) ?? raw
+          : raw
     })(),
     destination: travelProduct.destination ?? '',
     title: travelProduct.title ?? '',
@@ -654,7 +691,14 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
             travelProduct.mandatoryCurrency ?? null
           ),
         }
-      : {}),
+      : useKyowontourPriceMergeContext
+        ? {
+            modetourStickyLocalPayLine: formatKyowontourStickyLocalPayPerPersonLine(
+              travelProduct.mandatoryLocalFee ?? null,
+              travelProduct.mandatoryCurrency ?? null
+            ),
+          }
+        : {}),
   }
   assertNoInternalMetaLeak(serialized, '/products/[id]')
 

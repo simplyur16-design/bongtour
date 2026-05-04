@@ -179,6 +179,7 @@ export default function ProductLiveQuoteCard({
   const isMobile = variant === 'mobile'
   const pad = isMobile ? 'p-4' : 'p-6'
   const isModetourProduct = normalizeSupplierOrigin(product.originSource) === 'modetour'
+  const isKyowontourProduct = normalizeSupplierOrigin(product.originSource) === 'kyowontour'
   const isHanatourProduct = normalizeSupplierOrigin(product.originSource) === 'hanatour'
 
   const stickyPaxRows = useMemo(
@@ -345,7 +346,7 @@ export default function ProductLiveQuoteCard({
 
       <div className="mt-4 border-t border-bt-border-soft pt-3">
         <p className="text-xs text-bt-meta">
-          {isModetourProduct && modetourStickyLocalPayLine?.trim() ? (
+          {(isModetourProduct || isKyowontourProduct) && modetourStickyLocalPayLine?.trim() ? (
             <>선택관광·현지 옵션은 부가 정보의 「현지옵션」 탭에서 확인해 주세요.</>
           ) : (
             <>
