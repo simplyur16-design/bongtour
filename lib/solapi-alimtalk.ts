@@ -79,7 +79,7 @@ export async function attemptSendCustomerInquiryAlimTalk(
 
   try {
     const one = new SolapiMessageService(apiKey, apiSecret)
-    await one.sendOne({
+    await one.send({
       to,
       from,
       type: 'ATA',
@@ -115,13 +115,15 @@ export async function sendAlimtalkWithDetail(customerData: AlimtalkCustomerData)
 
   const apiKey = process.env.SOLAPI_API_KEY?.trim()
   const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
+  const pfId = process.env.SOLAPI_PFID?.trim()
   const fromRaw = process.env.SOLAPI_FROM_PHONE?.trim()
-  if (!apiKey || !apiSecret || !fromRaw) {
+  if (!apiKey || !apiSecret || !pfId || !fromRaw) {
     console.error(
       '[solapi-alimtalk] sendAlimtalkWithDetail missing env',
       JSON.stringify({
         hasKey: Boolean(apiKey),
         hasSecret: Boolean(apiSecret),
+        hasPfId: Boolean(pfId),
         hasFromPhone: Boolean(fromRaw),
       })
     )
@@ -129,27 +131,32 @@ export async function sendAlimtalkWithDetail(customerData: AlimtalkCustomerData)
   }
 
   const fromDigits = fromRaw.replace(/\D/g, '')
-  const message = {
-    to: phone,
-    from: fromDigits,
-    type: 'ATA' as const,
-    templateId: 'BONGTOUR_QUOTATION_01',
-    text: `[Bong투어] ${agency}/${code}/${title}\n- 날짜: ${date}\n- 인원: ${composition}\n- 견적: ${totalKrw}+${totalForeign}`,
-    buttons: [
-      {
-        buttonName: '상세 일정 및 현지 사진 보기',
-        buttonType: 'WL' as const,
-        linkMo: generateSmartLink(productId),
-        linkPc: generateSmartLink(productId),
-      },
-      {
-        buttonName: '사장님과 직접 상담하기',
-        buttonType: 'AL' as const,
-        linkMo: 'kakaoplus://plusfriend/friend/@봉투어',
-      },
-    ],
-  }
+  const toDigits = phone.replace(/\D/g, '')
+  const plusFriendLink = 'kakaoplus://plusfriend/friend/@봉투어'
 
   const one = new SolapiMessageService(apiKey, apiSecret)
-  return await one.sendOne(message)
+  return await one.send({
+    to: toDigits,
+    from: fromDigits,
+    type: 'ATA',
+    text: `[Bong투어] ${agency}/${code}/${title}\n- 날짜: ${date}\n- 인원: ${composition}\n- 견적: ${totalKrw}+${totalForeign}`,
+    kakaoOptions: {
+      pfId,
+      templateId: 'BONGTOUR_QUOTATION_01',
+      buttons: [
+        {
+          buttonName: '상세 일정 및 현지 사진 보기',
+          buttonType: 'WL',
+          linkMo: generateSmartLink(productId),
+          linkPc: generateSmartLink(productId),
+        },
+        {
+          buttonName: '사장님과 직접 상담하기',
+          buttonType: 'AL',
+          linkAnd: plusFriendLink,
+          linkIos: plusFriendLink,
+        },
+      ],
+    },
+  })
 }
