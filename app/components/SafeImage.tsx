@@ -23,7 +23,7 @@ function urlPathEndsWithWebp(src: string): boolean {
  * 콘솔에 에러가 나와도 애니메이션 흐름은 계속 진행됩니다.
  *
  * **Ncloud** (`ncloudstorage` / `ncloud`) URL은 `next/image`를 쓰지 않고 `<img>`로 직접 로드합니다(프록시·재인코딩 없음).
- * 경로가 `.webp`가 아니면 `console.warn`으로 이후 WebP 변환 후보를 표시합니다. 그 외 호스트만 `next/image` 사용.
+ * 경로가 `.webp`가 아니면 개발 모드에서만 `console.warn`으로 WebP 변환 후보를 표시합니다. 그 외 호스트만 `next/image` 사용.
  */
 export default function SafeImage({
   src,
@@ -42,7 +42,9 @@ export default function SafeImage({
     if (typeof src !== 'string' || error) return
     if (!isNcloudHostUrl(src)) return
     if (urlPathEndsWithWebp(src)) return
-    console.warn('[SafeImage] non-webp ncloud image:', src)
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[SafeImage] non-webp ncloud image: ${src}`)
+    }
   }, [src, error])
 
   const handleError = () => {
