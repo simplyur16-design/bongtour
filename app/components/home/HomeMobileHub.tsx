@@ -112,7 +112,11 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
         <ul className="grid grid-cols-2 gap-3.5" role="list">
           {mainTiles.map((t, index) => (
             <li key={t.href} className="min-w-0">
-              <Link href={t.href} className={TILE_CARD_CLASS}>
+              <Link
+                href={t.href}
+                prefetch={t.href !== '/travel/overseas/private-trip'}
+                className={TILE_CARD_CLASS}
+              >
                 {t.bgSrc ? (
                   <span className={TILE_BG_IMAGE_WRAP}>
                     <SafeImage

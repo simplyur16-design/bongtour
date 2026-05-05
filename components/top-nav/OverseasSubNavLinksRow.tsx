@@ -11,6 +11,9 @@ import {
 } from '@/components/top-nav/overseas-sub-nav-styles'
 import type { OverseasSubNavItem } from '@/components/top-nav/overseas-sub-nav-items'
 
+/** 우리여행 히어로(Ncloud) preload가 다른 라우트 prefetch에 딸려 오지 않도록 링크 prefetch 끔 */
+const PRIVATE_TRIP_HREF = '/travel/overseas/private-trip'
+
 export { hrefForOverseasSubNavItem } from '@/components/top-nav/overseas-sub-nav-styles'
 
 function OverseasSubNavLinkLabel({ item }: { item: OverseasSubNavItem }) {
@@ -46,6 +49,7 @@ export default function OverseasSubNavLinksRow() {
           <div key={href} className="min-w-0 sm:flex-1 sm:basis-0">
             <Link
               href={href}
+              prefetch={href !== PRIVATE_TRIP_HREF}
               className={showActiveStyle ? overseasSubNavTabActive : overseasSubNavTabIdle}
               aria-current={pathActive ? 'page' : undefined}
               aria-label={item.kind === 'link' && item.labelLines ? item.label : undefined}
@@ -83,6 +87,7 @@ export function OverseasSubNavMobileScrollRow() {
           <Link
             key={href}
             href={href}
+            prefetch={href !== PRIVATE_TRIP_HREF}
             className={`${
               showActiveStyle ? overseasSubNavTabActive : overseasSubNavTabIdle
             } min-h-[3rem] min-w-0 max-w-none touch-manipulation whitespace-normal px-1 py-2 text-[10px] leading-snug [-webkit-tap-highlight-color:transparent] active:opacity-[0.92] sm:min-h-[2.75rem] sm:px-1.5 sm:text-[11px] md:text-[12px]`}

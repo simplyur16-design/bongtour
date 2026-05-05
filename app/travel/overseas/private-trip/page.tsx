@@ -101,16 +101,13 @@ export default async function PrivateTripPage() {
   }
 
   const prefetchOrigin = storageOriginFromImageUrls(heroImageUrls)
-  const heroPrimary = heroImageUrls[0]?.trim()
-  const heroSecondary = heroImageUrls[1]?.trim()
 
   return (
     <>
+      {/* 히어로 이미지: `<link rel="preload">` 제거 — `OurTravelHero`의 next/image `priority`만 사용(타 페이지 prefetch 낭비 방지). */}
       {prefetchOrigin ? (
         <link rel="preconnect" href={prefetchOrigin} crossOrigin="anonymous" />
       ) : null}
-      {heroPrimary ? <link rel="preload" href={heroPrimary} as="image" /> : null}
-      {heroSecondary ? <link rel="preload" href={heroSecondary} as="image" /> : null}
       <div className="min-h-screen bg-bt-page">
         <Header />
         <OverseasTravelSubMainNav variant="links" />
