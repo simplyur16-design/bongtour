@@ -189,20 +189,25 @@ export async function POST(req: NextRequest) {
 
     const results: HanatourMonthRunItem[] = []
 
+    const postProductSelect = {
+      id: true,
+      title: true,
+      originSource: true,
+      originCode: true,
+      originUrl: true,
+      registrationStatus: true,
+      brand: { select: { brandKey: true } },
+    } as const
+
+    const products = await prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: postProductSelect,
+    })
+    const productById = new Map(products.map((p) => [p.id, p]))
+
     for (const productId of ids) {
       const t0 = Date.now()
-      const product = await prisma.product.findUnique({
-        where: { id: productId },
-        select: {
-          id: true,
-          title: true,
-          originSource: true,
-          originCode: true,
-          originUrl: true,
-          registrationStatus: true,
-          brand: { select: { brandKey: true } },
-        },
-      })
+      const product = productById.get(productId)
 
       if (!product) {
         results.push({
