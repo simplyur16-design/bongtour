@@ -4,7 +4,6 @@ import Header from './components/Header'
 import MainHero from './components/MainHero'
 
 const HomeHubFour = nextDynamic(() => import('./components/home/HomeHubFour'), {
-  ssr: false,
   loading: () => (
     <div
       className="mx-auto max-w-6xl px-3 py-6 sm:px-5"

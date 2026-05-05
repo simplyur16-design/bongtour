@@ -2,10 +2,6 @@
 
 import AdminProductDetailPage from '../page'
 
-export default function AdminProductEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }> | { id: string }
-}) {
-  return <AdminProductDetailPage params={params} />
+export default function AdminProductEditPage(props: { params: Promise<{ id: string }> }) {
+  return <AdminProductDetailPage params={props.params} />
 }

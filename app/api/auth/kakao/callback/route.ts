@@ -80,7 +80,7 @@ export async function GET(request: Request) {
     return jsonErrorClearState(request, 400, 'state 파라미터가 없습니다.')
   }
 
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const savedState =
     cookieStore.get(KAKAO_OAUTH_STATE_COOKIE)?.value ??
     readCookieFromRequestHeader(request, KAKAO_OAUTH_STATE_COOKIE)

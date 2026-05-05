@@ -5,13 +5,9 @@ import AdminEmptyState from './components/AdminEmptyState'
 import AdminKpiCard from './components/AdminKpiCard'
 import AdminPageHeader from './components/AdminPageHeader'
 
-const AdminDashboardControl = dynamic(
-  () => import('./components/AdminDashboardControl'),
-  {
-    ssr: false,
-    loading: () => <div className="text-sm text-gray-500">대시보드 로딩 중...</div>,
-  },
-)
+const AdminDashboardControl = dynamic(() => import('./components/AdminDashboardControl'), {
+  loading: () => <div className="text-sm text-gray-500">대시보드 로딩 중...</div>,
+})
 
 type Props = {
   searchParams: Promise<{ auth?: string }>

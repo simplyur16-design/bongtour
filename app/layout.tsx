@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import dynamic from 'next/dynamic'
 import { Noto_Sans_KR, Outfit } from 'next/font/google'
 import './globals.css'
 import SessionProvider from './components/providers/SessionProvider'
@@ -7,11 +6,7 @@ import ChunkLoadRecovery from './components/ChunkLoadRecovery'
 import AntiCopyProtectionGate from './components/AntiCopyProtectionGate'
 import ConditionalSiteFooter from './components/ConditionalSiteFooter'
 import GoogleTagManager from './components/GoogleTagManager'
-
-const BongtourSplash = dynamic(
-  () => import('@/components/bongtour/BongtourSplash').then((m) => ({ default: m.BongtourSplash })),
-  { ssr: false },
-)
+import { BongtourSplash } from '@/components/bongtour/BongtourSplash'
 import { DEFAULT_OG_IMAGE_PATH, getSiteOrigin, SITE_NAME } from '@/lib/site-metadata'
 
 const siteOrigin = getSiteOrigin()

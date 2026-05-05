@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { getOrderPublic } from "@/lib/bongsim/data/get-order-public";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 
-type Ctx = { params: { orderId: string } };
+type Ctx = { params: Promise<{ orderId: string }> };
 
 export async function GET(req: Request, ctx: Ctx) {
   if (!getPgPool()) {
     return NextResponse.json({ error: "db_unconfigured" }, { status: 503 });
   }
-  const { orderId } = ctx.params;
+  const { orderId } = (await ctx.params);
   const u = new URL(req.url);
   const readKey = u.searchParams.get("read_key");
   const res = await getOrderPublic(orderId, { readKey });

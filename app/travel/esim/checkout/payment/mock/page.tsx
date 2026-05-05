@@ -5,9 +5,10 @@ import { bongsimPath } from "@/lib/bongsim/constants";
 import { completeMockPaymentForm } from "@/lib/bongsim/checkout/complete-mock-payment-action";
 import { isMockPaymentCaptureAllowed } from "@/lib/bongsim/runtime/mock-payment-allowance";
 
-type Props = { searchParams: { paymentAttemptId?: string; orderId?: string; ref?: string } };
+type Props = { searchParams: Promise<{ paymentAttemptId?: string; orderId?: string; ref?: string }> };
 
-export default async function MockPaymentPage({ searchParams }: Props) {
+export default async function MockPaymentPage(props: Props) {
+  const searchParams = await props.searchParams;
   const q = searchParams;
   const paymentAttemptId = (q.paymentAttemptId ?? "").trim();
   const orderId = (q.orderId ?? "").trim();

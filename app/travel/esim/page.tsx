@@ -6,7 +6,6 @@ import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasT
 import { bongsimPath } from '@/lib/bongsim/constants'
 
 const EsimLandingBelowFold = nextDynamic(() => import('./EsimLandingBelowFold'), {
-  ssr: false,
   loading: () => (
     <div className="mx-auto min-h-[28rem] max-w-4xl px-4 py-10 lg:max-w-5xl">
       <div className="animate-pulse rounded-xl bg-slate-100/90 py-32" aria-hidden />

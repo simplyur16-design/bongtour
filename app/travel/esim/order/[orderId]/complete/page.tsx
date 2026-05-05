@@ -6,9 +6,11 @@ import { notFound } from "next/navigation";
 import { OrderCompleteRealView } from "@/components/bongsim/order-complete/OrderCompleteRealView";
 import { getOrderPublic } from "@/lib/bongsim/data/get-order-public";
 
-type Props = { params: { orderId: string }; searchParams: { read_key?: string } };
+type Props = { params: Promise<{ orderId: string }>; searchParams: Promise<{ read_key?: string }> };
 
-export default async function OrderCompletePage({ params, searchParams }: Props) {
+export default async function OrderCompletePage(props: Props) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const { orderId } = params;
   const sp = searchParams;
   const res = await getOrderPublic(orderId, { readKey: sp.read_key ?? null });

@@ -27,7 +27,7 @@ function isDevMockAdminEnabled(): boolean {
 export async function requireAdmin(): Promise<AdminSession | null> {
   const secret = getAdminServiceBearerSecret()
   if (secret) {
-    const authHeader = headers().get('authorization') ?? headers().get('Authorization')
+    const authHeader = (await headers()).get('authorization') ?? (await headers()).get('Authorization')
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7).trim()
       if (token === secret) {
@@ -45,7 +45,7 @@ export async function requireAdmin(): Promise<AdminSession | null> {
     return MOCK_ADMIN
   }
   if (isDevAdminBypassRuntimeAllowed()) {
-    const cookieVal = cookies().get(ADMIN_BYPASS_COOKIE_NAME)?.value
+    const cookieVal = (await cookies()).get(ADMIN_BYPASS_COOKIE_NAME)?.value
     if (isAdminBypassAllowed({ cookieValue: cookieVal, authQuery: undefined })) {
       return MOCK_ADMIN
     }
@@ -69,7 +69,7 @@ export async function requireMembersViewer(): Promise<AdminSession | null> {
     return MOCK_ADMIN
   }
   if (isDevAdminBypassRuntimeAllowed()) {
-    const cookieVal = cookies().get(ADMIN_BYPASS_COOKIE_NAME)?.value
+    const cookieVal = (await cookies()).get(ADMIN_BYPASS_COOKIE_NAME)?.value
     if (isAdminBypassAllowed({ cookieValue: cookieVal, authQuery: undefined })) {
       return MOCK_ADMIN
     }
@@ -99,7 +99,7 @@ export async function requireMembersEditor(): Promise<MembersEditorResult> {
     return { ok: true, session: MOCK_ADMIN }
   }
   if (isDevAdminBypassRuntimeAllowed()) {
-    const cookieVal = cookies().get(ADMIN_BYPASS_COOKIE_NAME)?.value
+    const cookieVal = (await cookies()).get(ADMIN_BYPASS_COOKIE_NAME)?.value
     if (isAdminBypassAllowed({ cookieValue: cookieVal, authQuery: undefined })) {
       return { ok: true, session: MOCK_ADMIN }
     }

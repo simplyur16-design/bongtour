@@ -6,9 +6,10 @@ import { notFound } from "next/navigation";
 import { ProductDetailV1View } from "@/components/bongsim/detail-v1/ProductDetailV1View";
 import { getProductDetailByOptionApiId } from "@/lib/bongsim/data/get-product-detail-by-option-api-id";
 
-type Props = { params: { optionApiId: string } };
+type Props = { params: Promise<{ optionApiId: string }> };
 
-export default async function ProductDetailV1Page({ params }: Props) {
+export default async function ProductDetailV1Page(props: Props) {
+  const params = await props.params;
   const { optionApiId } = params;
   const res = await getProductDetailByOptionApiId(optionApiId);
   if (!res.ok) {

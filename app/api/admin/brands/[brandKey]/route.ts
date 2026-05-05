@@ -2,15 +2,13 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 
-type RouteParams = { params: { brandKey: string } }
+type RouteParams = { params: Promise<{ brandKey: string }> }
 
 /**
  * PATCH /api/admin/brands/[brandKey]. 인증: 관리자.
  */
-export async function PATCH(
-  request: Request,
-  { params }: RouteParams
-) {
+export async function PATCH(request: Request, props: RouteParams) {
+  const params = await props.params;
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
   try {

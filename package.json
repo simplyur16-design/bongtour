@@ -91,7 +91,7 @@
     "google-auth-library": "^10.6.2",
     "ioredis": "^5.10.1",
     "lucide-react": "^1.14.0",
-    "next": "14.2.35",
+    "next": "^15.5.15",
     "next-auth": "^5.0.0-beta.30",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.7",
@@ -114,9 +114,10 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "^16.2.4",
+    "@next/bundle-analyzer": "^15.5.15",
     "better-sqlite3": "^12.9.0",
     "dotenv": "^17.4.2",
+    "eslint-config-next": "^15.5.15",
     "prisma": "^5.22.0",
     "tsx": "^4.19.0"
   },

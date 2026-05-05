@@ -55,19 +55,18 @@ function buildContentSecurityPolicy() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   productionBrowserSourceMaps: false,
+  /** Next 15: puppeteer-extra → merge-deep → clone-deep 동적 require로 webpack 정적 분석 실패 방지 */
+  serverExternalPackages: [
+    '@prisma/client',
+    'prisma',
+    'puppeteer',
+    'puppeteer-core',
+    'puppeteer-extra',
+    'puppeteer-extra-plugin-stealth',
+  ],
   experimental: {
-    instrumentationHook: true,
     /** lucide named import 시 서버 vendor chunk 분절 완화(개발 중 ENOENT 완화에 도움) */
     optimizePackageImports: ['lucide-react'],
-    // puppeteer-extra → merge-deep → clone-deep 동적 require로 webpack 정적 분석 실패 방지
-    serverComponentsExternalPackages: [
-      '@prisma/client',
-      'prisma',
-      'puppeteer',
-      'puppeteer-core',
-      'puppeteer-extra',
-      'puppeteer-extra-plugin-stealth',
-    ],
   },
   async headers() {
     const base = [

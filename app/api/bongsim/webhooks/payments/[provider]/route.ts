@@ -5,10 +5,10 @@ import { parseMockWebhookBody } from "@/lib/bongsim/payments/webhook/mock-webhoo
 import { isPaymentWebhookProviderSupported, verifyPaymentWebhookHeaders } from "@/lib/bongsim/payments/webhook/webhook-verifier-registry";
 import { isNodeProduction } from "@/lib/bongsim/runtime/node-env";
 
-type Ctx = { params: { provider: string } };
+type Ctx = { params: Promise<{ provider: string }> };
 
 export async function POST(req: Request, ctx: Ctx) {
-  const { provider } = ctx.params;
+  const { provider } = (await ctx.params);
   if (!getPgPool()) {
     return NextResponse.json({ schema: "bongsim.payment_webhook.error.v1", ok: false, error: "db_unconfigured" }, { status: 503 });
   }
