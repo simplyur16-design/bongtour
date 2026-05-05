@@ -1,9 +1,14 @@
 ﻿const path = require('path')
 
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-  openAnalyzer: process.env.ANALYZE === 'true',
-})
+let withBundleAnalyzer = (config) => config
+if (process.env.ANALYZE === 'true') {
+  // 분석 모드일 때만 require → 프로덕션(devDeps 미설치)에서 모듈 누락 영향 없음
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  withBundleAnalyzer = require('@next/bundle-analyzer')({
+    enabled: true,
+    openAnalyzer: true,
+  })
+}
 
 /**
  * 프로덕션 전용 CSP·HSTS. `next dev`에서는 NODE_ENV=development 이므로 적용되지 않아 HMR(ws)을 깨지 않는다.
