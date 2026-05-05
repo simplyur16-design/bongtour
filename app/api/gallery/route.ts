@@ -5,6 +5,38 @@ import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
+import { LUXURY_FALLBACK_IMAGE_URL } from '@/lib/image-fallback'
+
+/** 갤러리 한 요청당 Pexels 검색 상한 — 초과 분은 로컬 럭셔리 폴백 URL과 동일 처리(getPexelsImage 실패 경로와 정합) */
+const GALLERY_PEXELS_MAX_FETCHES = 12
+
+const galleryProductDbSelect = {
+  id: true,
+  title: true,
+  originSource: true,
+  bgImageSource: true,
+  bgImageIsGenerated: true,
+  primaryDestination: true,
+  destinationRaw: true,
+  destination: true,
+  primaryRegion: true,
+  themeTags: true,
+  displayCategory: true,
+  includedText: true,
+  publicImageHeroSeoLine: true,
+  publicImageHeroSeoKeywordsJson: true,
+  bgImageUrl: true,
+  schedule: true,
+  prices: {
+    select: { date: true, adult: true },
+    orderBy: { date: 'asc' as const },
+    take: 40,
+  },
+  itineraries: {
+    select: { day: true, description: true },
+    orderBy: { day: 'asc' as const },
+  },
+} as const
 
 /** `request.url` 사용 — 정적 사전 렌더 시 Dynamic server usage 경고 방지 */
 export const dynamic = 'force-dynamic'
@@ -59,64 +91,93 @@ export async function GET(request: Request) {
         orderBy: { updatedAt: 'desc' },
         skip: offset,
         take: limit,
-        include: {
-          prices: { orderBy: { date: 'asc' }, take: 40 },
-          itineraries: { orderBy: { day: 'asc' } },
-        },
+        select: galleryProductDbSelect,
       }),
       prisma.product.count({ where: { registrationStatus: 'registered' } }),
     ])
 
     const defaultKeyword = 'luxury travel panorama'
-    const items: GalleryProduct[] = await Promise.all(
-      products.map(async (p) => {
-        const publicPrices = p.prices.filter((pp) => isOnOrAfterPublicBookableMinDate(pp.date))
-        const firstBookable = publicPrices.find((pp) => pp.adult > 0)
-        const firstPrice = firstBookable ?? publicPrices[0]
-        const scheduleRows = getScheduleFromProduct({ schedule: p.schedule, itineraries: p.itineraries })
-        const scheduleLength = scheduleRows.length
-        const scheduleImages = scheduleRows.map((e) => e.imageUrl).filter((url): url is string => Boolean(url))
-        const dayCount = scheduleLength > 0 ? scheduleLength : p.itineraries.length
-        const duration = dayCount > 0 ? `${dayCount}일` : '—'
-        // 대표 이미지 우선순위: 1) 관리자/저장 bgImageUrl 2) 일정 첫 장 3) placeholder
-        let coverImageUrl = getFinalCoverImageUrl({ bgImageUrl: p.bgImageUrl, scheduleDays: scheduleRows }) ?? ''
-        if (!coverImageUrl) coverImageUrl = await getPexelsImage(defaultKeyword)
-        const imageSet =
-          p.bgImageUrl && scheduleImages.length > 0
-            ? [p.bgImageUrl, ...scheduleImages]
-            : p.bgImageUrl
-              ? [p.bgImageUrl]
-              : scheduleImages.length > 0
-                ? scheduleImages
-                : [coverImageUrl]
 
-        return {
-          id: p.id,
-          title: p.title,
-          originSource: p.originSource,
-          bgImageSource: p.bgImageSource ?? null,
-          bgImageIsGenerated: p.bgImageIsGenerated ?? false,
-          primaryDestination: p.primaryDestination ?? null,
-          destinationRaw: p.destinationRaw ?? null,
-          destination: p.destination ?? null,
-          primaryRegion: p.primaryRegion ?? null,
-          themeTags: p.themeTags ?? null,
-          displayCategory: p.displayCategory ?? null,
-          includedText: p.includedText ? String(p.includedText).slice(0, 2000) : null,
-          publicImageHeroSeoLine: p.publicImageHeroSeoLine ?? null,
-          publicImageHeroSeoKeywordsJson: p.publicImageHeroSeoKeywordsJson ?? null,
-          departureDate: firstBookable
-            ? new Date(firstBookable.date).toISOString().slice(0, 10)
-            : firstPrice
-              ? new Date(firstPrice.date).toISOString().slice(0, 10)
-              : null,
-          duration,
-          priceKrw: firstBookable ? firstBookable.adult : null,
-          coverImageUrl,
-          imageSet,
-        }
-      })
-    )
+    type GalleryRow = (typeof products)[number]
+
+    const intermediates = products.map((p: GalleryRow) => {
+      const publicPrices = p.prices.filter((pp) => isOnOrAfterPublicBookableMinDate(pp.date))
+      const firstBookable = publicPrices.find((pp) => pp.adult > 0)
+      const firstPrice = firstBookable ?? publicPrices[0]
+      const scheduleRows = getScheduleFromProduct({ schedule: p.schedule, itineraries: p.itineraries })
+      const scheduleLength = scheduleRows.length
+      const scheduleImages = scheduleRows.map((e) => e.imageUrl).filter((url): url is string => Boolean(url))
+      const dayCount = scheduleLength > 0 ? scheduleLength : p.itineraries.length
+      const duration = dayCount > 0 ? `${dayCount}일` : '—'
+      const coverFromAssets = getFinalCoverImageUrl({ bgImageUrl: p.bgImageUrl, scheduleDays: scheduleRows }) ?? ''
+
+      return {
+        p,
+        firstBookable,
+        firstPrice,
+        scheduleRows,
+        scheduleImages,
+        duration,
+        coverFromAssets,
+      }
+    })
+
+    const needPexelsIdx = intermediates
+      .map((row, i) => (!row.coverFromAssets ? i : -1))
+      .filter((i): i is number => i >= 0)
+    const pexelsFetchIdx = needPexelsIdx.slice(0, GALLERY_PEXELS_MAX_FETCHES)
+    const pexelsUrls =
+      pexelsFetchIdx.length > 0
+        ? await Promise.all(pexelsFetchIdx.map(() => getPexelsImage(defaultKeyword)))
+        : []
+    const pexelsUrlByRowIndex = new Map<number, string>()
+    pexelsFetchIdx.forEach((idx, j) => {
+      const u = pexelsUrls[j]
+      if (u) pexelsUrlByRowIndex.set(idx, u)
+    })
+
+    const items: GalleryProduct[] = intermediates.map((row, i) => {
+      const { p, firstBookable, firstPrice, scheduleImages, duration, coverFromAssets } = row
+      let coverImageUrl = coverFromAssets
+      if (!coverImageUrl) {
+        coverImageUrl = pexelsUrlByRowIndex.get(i) ?? LUXURY_FALLBACK_IMAGE_URL
+      }
+
+      const imageSet =
+        p.bgImageUrl && scheduleImages.length > 0
+          ? [p.bgImageUrl, ...scheduleImages]
+          : p.bgImageUrl
+            ? [p.bgImageUrl]
+            : scheduleImages.length > 0
+              ? scheduleImages
+              : [coverImageUrl]
+
+      return {
+        id: p.id,
+        title: p.title,
+        originSource: p.originSource,
+        bgImageSource: p.bgImageSource ?? null,
+        bgImageIsGenerated: p.bgImageIsGenerated ?? false,
+        primaryDestination: p.primaryDestination ?? null,
+        destinationRaw: p.destinationRaw ?? null,
+        destination: p.destination ?? null,
+        primaryRegion: p.primaryRegion ?? null,
+        themeTags: p.themeTags ?? null,
+        displayCategory: p.displayCategory ?? null,
+        includedText: p.includedText ? String(p.includedText).slice(0, 2000) : null,
+        publicImageHeroSeoLine: p.publicImageHeroSeoLine ?? null,
+        publicImageHeroSeoKeywordsJson: p.publicImageHeroSeoKeywordsJson ?? null,
+        departureDate: firstBookable
+          ? new Date(firstBookable.date).toISOString().slice(0, 10)
+          : firstPrice
+            ? new Date(firstPrice.date).toISOString().slice(0, 10)
+            : null,
+        duration,
+        priceKrw: firstBookable ? firstBookable.adult : null,
+        coverImageUrl,
+        imageSet,
+      }
+    })
 
     const payload = {
       items,
