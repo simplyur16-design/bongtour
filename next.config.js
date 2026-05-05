@@ -1,8 +1,13 @@
 ﻿const path = require('path')
 
 /**
- * 프로덕션 전용 CSP. `next dev`에서는 NODE_ENV=development 이므로 적용되지 않아 HMR(ws)을 깨지 않는다.
- * GTM·Google Maps embed·원격 이미지(https) 등을 허용한다. (Ncloud Object Storage 등)
+ * 프로덕션 전용 CSP·HSTS. `next dev`에서는 NODE_ENV=development 이므로 적용되지 않아 HMR(ws)을 깨지 않는다.
+ * GTM·Welcomepay·원격 이미지(https) 등을 허용한다. (Ncloud Object Storage 등)
+ *
+ * script-src: `'unsafe-inline'`은 GTM 스니펫·일부 인라인 초기화에 필요할 수 있음(nonce 트랙 별도).
+ * `'unsafe-eval'`은 앱 소스에서 미사용 → 제거. GTM 커스텀 HTML 등으로 위반 시 도메인 단위 조정 또는 복원 검토.
+ *
+ * Cross-Origin-Opener-Policy / Cross-Origin-Resource-Policy 는 OAuth 팝업·결제 iframe과 충돌 가능성이 있어 미부여.
  */
 
 /** NCLOUD_OBJECT_STORAGE_PUBLIC_BASE_URL — DB에 남은 구 URL용 (선택). */
@@ -25,7 +30,7 @@ function buildContentSecurityPolicy() {
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.paywelcome.co.kr",
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.paywelcome.co.kr",
     // globals.css @import Pretendard from jsDelivr — Chrome may enforce style-src-elem separately
     // next/font/google(Noto 등)는 fonts.googleapis.com 링크·fonts.gstatic.com 글리프를 쓸 수 있음
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
@@ -67,6 +72,10 @@ const nextConfig = {
       { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
     ]
     if (process.env.NODE_ENV === 'production') {
+      base.push({
+        key: 'Strict-Transport-Security',
+        value: 'max-age=63072000; includeSubDomains; preload',
+      })
       base.push({ key: 'Content-Security-Policy', value: buildContentSecurityPolicy() })
     }
     return [
