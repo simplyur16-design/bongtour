@@ -1,5 +1,9 @@
 ﻿const path = require('path')
 
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
 /**
  * 프로덕션 전용 CSP·HSTS. `next dev`에서는 NODE_ENV=development 이므로 적용되지 않아 HMR(ws)을 깨지 않는다.
  * GTM·Welcomepay·원격 이미지(https) 등을 허용한다. (Ncloud Object Storage 등)
@@ -148,4 +152,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+module.exports = withBundleAnalyzer(nextConfig)

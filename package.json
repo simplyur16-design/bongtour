@@ -113,6 +113,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.2.4",
     "better-sqlite3": "^12.9.0",
     "dotenv": "^17.4.2",
     "prisma": "^5.22.0",
