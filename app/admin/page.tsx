@@ -1,9 +1,17 @@
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { prisma } from '@/lib/prisma'
-import AdminDashboardControl from './components/AdminDashboardControl'
 import AdminEmptyState from './components/AdminEmptyState'
 import AdminKpiCard from './components/AdminKpiCard'
 import AdminPageHeader from './components/AdminPageHeader'
+
+const AdminDashboardControl = dynamic(
+  () => import('./components/AdminDashboardControl'),
+  {
+    ssr: false,
+    loading: () => <div className="text-sm text-gray-500">대시보드 로딩 중...</div>,
+  },
+)
 
 type Props = {
   searchParams: Promise<{ auth?: string }>
