@@ -7,6 +7,9 @@ import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 
+/** Next 15 GET Route Handler 기본 비캐시 대응 — 메인 위젯·Pexels 폴백 호출 완화 */
+export const revalidate = 60
+
 /**
  * GET /api/featured
  * 메인 페이지용 대표 상품 1건: 상품명, 첫 출발일, 첫 가격, 상담 안내, 커버 이미지 URL

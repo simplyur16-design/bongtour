@@ -7,6 +7,9 @@ import {
 } from '@/lib/monthly-curation'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 
+/** Next 15 GET Route Handler 기본 비캐시 대응 — `fetch-curations-main`·메인 ISR과 동일 톤 */
+export const revalidate = 300
+
 /**
  * GET /api/curations/monthly
  * 공개: `status === 'published'` 이고 `isActive === true` 인 카드만.

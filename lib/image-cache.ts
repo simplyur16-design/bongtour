@@ -96,11 +96,19 @@ export async function buildImageCacheFromDb(
 export async function validateImageUrl(url: string): Promise<boolean> {
   if (!url || !url.startsWith('http')) return false
   try {
-    const res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(5000) })
+    const res = await fetch(url, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(5000),
+      cache: 'no-store',
+    })
     return res.ok
   } catch {
     try {
-      const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5000) })
+      const res = await fetch(url, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+        cache: 'no-store',
+      })
       return res.ok
     } catch {
       return false

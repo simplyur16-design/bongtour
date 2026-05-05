@@ -131,7 +131,10 @@ async function fetchAvailableFlashModels(): Promise<string[]> {
   for (const ver of versions) {
     try {
       const url = `https://generativelanguage.googleapis.com/${ver}/models?key=${apiKey}`
-      const res = await fetch(url)
+      const res = await fetch(url, {
+        /** 모델 목록은 자주 바뀌지 않음 — 반복 호출 완화 */
+        next: { revalidate: 3600 },
+      })
       const data = (await res.json()) as { models?: Array<{ name?: string }> }
       const names = (data?.models ?? []).map((m) => (m?.name ?? '').replace(/^models\//, ''))
       const flash = names.filter((n) => n.toLowerCase().includes('flash'))

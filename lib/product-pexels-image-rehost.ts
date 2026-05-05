@@ -132,6 +132,7 @@ export async function downloadRemoteImage(
       'User-Agent': 'BongTour-Admin-PexelsRehost/1.0',
     },
     redirect: 'follow',
+    cache: 'no-store',
   })
   if (!res.ok) {
     throw new Error(`이미지 다운로드 실패 HTTP ${res.status}`)

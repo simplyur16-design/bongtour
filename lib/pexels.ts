@@ -13,7 +13,8 @@ export async function fetchOnePhotoUrl(
       `${PEXELS_API}?query=${encodeURIComponent(keyword)}&per_page=1&orientation=landscape`,
       {
         headers: { Authorization: apiKey },
-        next: { revalidate: 0 },
+        /** Next 15 기본 비캐시 대응 — 동일 검색어 Rate limit·비용 완화 */
+        next: { revalidate: 86400 },
       }
     )
     if (!res.ok) return null

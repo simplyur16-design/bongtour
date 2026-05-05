@@ -168,6 +168,7 @@ export async function savePhotoFromUrl(
       signal: AbortSignal.timeout(20000),
       headers: IMAGE_INGEST_FETCH_HEADERS,
       redirect: 'follow',
+      cache: 'no-store',
     })
     if (!res.ok) return null
     const buf = Buffer.from(await res.arrayBuffer())
