@@ -36,10 +36,10 @@ export default function SiteFooter() {
         </div>
 
         <nav
-          className="border-t-[0.5px] border-white/[0.14] pt-4 mt-4"
+          className="border-t-[0.5px] border-white/[0.14] pt-3 mt-3"
           aria-label="하단 서비스 링크"
         >
-          <ul className="flex flex-wrap gap-x-[14px] gap-y-[22px] text-[13px] leading-snug text-white/[0.88]">
+          <ul className="flex flex-wrap gap-x-[14px] gap-y-2 text-[13px] leading-snug text-white/[0.88]">
             {MAIN_MINIMAL_FOOTER_LINKS.map((item) => (
               <li key={`${item.href}-${item.label}`}>
                 <Link
@@ -53,25 +53,29 @@ export default function SiteFooter() {
           </ul>
         </nav>
 
-        {/* 회사 정보 — 라벨 110px · 값 1fr (모바일 stack) */}
-        <dl className="border-t-[0.5px] border-white/[0.14] pt-4 mt-4 space-y-3 text-xs leading-relaxed sm:text-[12px]">
+        {/* 회사 정보 — 라벨 110px · 값 1fr (모바일 stack), 5행 콤팩트 */}
+        <dl className="border-t-[0.5px] border-white/[0.14] pt-3 mt-3 space-y-2 text-xs leading-relaxed sm:text-[12px]">
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:gap-x-4 sm:items-center">
             <dt className="text-white/[0.55] sm:shrink-0">대표자</dt>
             <dd className="text-white/90">
               <RepresentativeNameImage compact className="max-sm:mt-0.5" />
             </dd>
           </div>
-          <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:gap-x-4 sm:items-center">
-            <dt className="text-white/[0.55] sm:shrink-0">사업자등록번호</dt>
-            <dd className="text-white/90">{COMPANY_FOOTER.bizRegNo}</dd>
-          </div>
-          <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:gap-x-4 sm:items-center">
-            <dt className="text-white/[0.55] sm:shrink-0">통신판매업</dt>
-            <dd className="text-white/90">{COMPANY_FOOTER.mailOrderReportNo}</dd>
-          </div>
-          <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:gap-x-4 sm:items-center">
-            <dt className="text-white/[0.55] sm:shrink-0">관광사업자등록</dt>
-            <dd className="text-white/90">제2024-0033호</dd>
+          <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:gap-x-4 sm:items-start">
+            <dt className="text-white/[0.55] sm:shrink-0 pt-px">사업자등록</dt>
+            <dd className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-white/90">
+              <span className="font-medium">{COMPANY_FOOTER.bizRegNo}</span>
+              <span className="text-white/25" aria-hidden="true">
+                ·
+              </span>
+              <span>
+                통신판매업 {COMPANY_FOOTER.mailOrderReportNo}
+              </span>
+              <span className="text-white/25" aria-hidden="true">
+                ·
+              </span>
+              <span>관광사업자등록 제2024-0033호</span>
+            </dd>
           </div>
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:gap-x-4 sm:items-start">
             <dt className="text-white/[0.55] sm:shrink-0 pt-px">주소</dt>
@@ -79,7 +83,7 @@ export default function SiteFooter() {
           </div>
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:gap-x-4 sm:items-center">
             <dt className="text-white/[0.55] sm:shrink-0">연락처</dt>
-            <dd className="flex flex-wrap items-center gap-x-2 gap-y-1 text-white/90">
+            <dd className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-white/90">
               <span>
                 전화{' '}
                 <a
@@ -110,14 +114,16 @@ export default function SiteFooter() {
 
         {/* 상담 가능 시간 */}
         <div
-          className="mt-4 border-t-[0.5px] border-white/[0.14] pt-4 rounded-r-md border-l-2 border-[var(--bong-orange)] p-3 sm:mt-5"
+          className="mt-3 border-t-[0.5px] border-white/[0.14] pt-3 rounded-r-md border-l-2 border-[var(--bong-orange)] px-3 py-2.5"
           style={{
             backgroundColor: 'color-mix(in srgb, var(--bong-orange) 8%, transparent)',
           }}
         >
-          <p className="text-xs font-medium text-[var(--bong-orange)]">상담 가능 시간</p>
-          <p className="mt-1 text-sm font-medium text-white/95">평일 08:00 ~ 19:00</p>
-          <p className="mt-2 text-xs leading-relaxed text-white/70">
+          <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span className="text-xs font-medium text-[var(--bong-orange)]">상담 가능 시간</span>
+            <span className="text-sm font-medium text-white/95">평일 08:00 ~ 19:00</span>
+          </p>
+          <p className="mt-1.5 text-xs leading-relaxed text-white/70">
             간단한 문의·예약 상담은 <span className="text-white/90">오픈카톡</span>
             <span className="text-white/40"> · </span>
             급한 문의는 <span className="text-white/90">전화</span>
@@ -127,7 +133,7 @@ export default function SiteFooter() {
         </div>
 
         {/* 저작권 · 사업자정보확인 */}
-        <div className="flex flex-col gap-2 border-t-[0.5px] border-white/[0.14] pt-4 mt-4 text-xs sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
+        <div className="flex flex-col gap-2 border-t-[0.5px] border-white/[0.14] pt-3 mt-3 text-xs sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
           <p className="text-white/50">
             © {year} {COMPANY_FOOTER.copyrightHolder}. All rights reserved.
           </p>
