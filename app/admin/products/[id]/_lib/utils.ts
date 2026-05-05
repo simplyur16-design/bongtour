@@ -9,11 +9,7 @@ import {
   resolvePublicConsumptionModuleKey,
   type PublicConsumptionModuleKey,
 } from '@/lib/resolve-public-consumption-module-key'
-import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_HANATOUR } from '@/lib/admin-register-verification-meta-hanatour'
-import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_MODETOUR } from '@/lib/admin-register-verification-meta-modetour'
-import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_VERYGOODTOUR } from '@/lib/admin-register-verification-meta-verygoodtour'
-import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_YBTOUR } from '@/lib/admin-register-verification-meta-ybtour'
-import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS as REGISTER_PUBLIC_PAGE_TRACE_BULLETS_LOTTETOUR } from '@/lib/admin-register-verification-meta-lottetour'
+import { REGISTER_PUBLIC_PAGE_TRACE_BULLETS } from '@/lib/admin-register-trace-bullets'
 import { repairUtf8MisreadAsLatin1 } from '@/lib/encoding-repair'
 import { adminProductBgImageSourceTypeLabel } from '@/lib/product-bg-image-attribution'
 import type {
@@ -46,12 +42,12 @@ const REGISTER_PUBLIC_PAGE_TRACE_BULLETS_BY_MODULE: Record<
   PublicConsumptionModuleKey,
   readonly string[]
 > = {
-  hanatour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_HANATOUR,
-  modetour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_MODETOUR,
-  verygoodtour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_VERYGOODTOUR,
-  ybtour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_YBTOUR,
-  kyowontour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_HANATOUR,
-  lottetour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS_LOTTETOUR,
+  hanatour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS,
+  modetour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS,
+  verygoodtour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS,
+  ybtour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS,
+  kyowontour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS,
+  lottetour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS,
 }
 
 export function registerPublicPageTraceBulletsForProduct(
