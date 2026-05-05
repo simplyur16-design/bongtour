@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import type { ItineraryDay } from '@prisma/client'
 import type { Prisma } from '@prisma/client'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
@@ -111,8 +110,10 @@ import { parseCounselingNotes } from '@/lib/parsed-product-types'
 
 export type ProductDetailViewRow = Prisma.ProductGetPayload<{ include: typeof PRODUCT_DETAIL_PAGE_INCLUDE }>
 
-function itineraryDayMetaByDay(days: ItineraryDay[]): Map<number, ItineraryDay> {
-  const m = new Map<number, ItineraryDay>()
+type ProductDetailItineraryDayRow = NonNullable<ProductDetailViewRow['itineraryDays']>[number]
+
+function itineraryDayMetaByDay(days: readonly ProductDetailItineraryDayRow[]): Map<number, ProductDetailItineraryDayRow> {
+  const m = new Map<number, ProductDetailItineraryDayRow>()
   for (const d of days) {
     const k = Math.floor(Number(d.day))
     if (Number.isFinite(k) && k >= 1) m.set(k, d)
