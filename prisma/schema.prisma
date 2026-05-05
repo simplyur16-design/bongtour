@@ -15,6 +15,7 @@
 // - CustomerInquiry: 공통 문의 접수 (inquiryType/status/leadTimeRisk String, payloadJson 확장)
 // - MonthlyCurationItem: 월별 큐레이션 카드 1행=1카드 (부모 테이블 없음, linkedProductId 선택)
 // - 클라이언트 생성: output = "../prisma-gen-runtime" (Windows lock 회피)
+// - BongSpot 자동 광고 v1: BongSpot·SeasonalNote·Food·Tip·Campaign·Drafts(BongDraftReviewStatus)·소셜 포스트 (마이그레이션 add_bong_marketing_v1)
 // =============================================================================
 
 generator client {
@@ -110,6 +111,8 @@ model Product {
   inquiries             CustomerInquiry[]
   monthlyCurationItems  MonthlyCurationItem[]
   assetUsageLogs        AssetUsageLog[]
+  /// 가볼 곳(BongSpot)과 다대다 — 조인 `ProductBongSpot`
+  bongSpots             ProductBongSpot[] @relation("ProductBongSpots")
   brand                 Brand?         @relation(fields: [brandId], references: [id])
   brandId               String?        // 여행사 구분 (하나투어/모두투어/추가 여행사)
 
@@ -791,4 +794,224 @@ model HomeHubActiveConfig {
   id        String   @id
   data      Json
   updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// 봉투어 자동 광고 시스템 v1 (B-2: 마이그레이션 add_bong_marketing_v1)
+// -----------------------------------------------------------------------------
+
+enum BongContentStatus {
+  draft
+  approved
+  published
+}
+
+/// 자동 초안 검수 큐 전용 (본문 엔티티의 publish 플로우와 분리)
+enum BongDraftReviewStatus {
+  pending
+  approved
+  rejected
+}
+
+/// 상품 ↔ 가볼 곳 카드 다대다 조인
+model ProductBongSpot {
+  id         String   @id @default(cuid())
+  productId  String
+  bongSpotId String
+  product    Product  @relation("ProductBongSpots", fields: [productId], references: [id], onDelete: Cascade)
+  bongSpot   BongSpot @relation("ProductBongSpots", fields: [bongSpotId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([productId, bongSpotId])
+  @@index([bongSpotId])
+}
+
+/// 가볼 곳 카드
+model BongSpot {
+  id              String             @id @default(cuid())
+  title           String
+  slug            String?            @unique
+  summary         String?
+  body            String?            @db.Text
+  /// browse/트리와 맞출 수 있는 슬러그·키 (Product.country/city·countryKey 등과 동일 계열)
+  country         String?
+  city            String?
+  countryKey      String?
+  cityKey         String?
+  heroImageUrl    String?
+  status          BongContentStatus  @default(draft)
+  seasonalNotes   BongSeasonalNote[]
+  relatedProducts ProductBongSpot[]  @relation("ProductBongSpots")
+  spotDrafts      BongSpotDraft[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([country, city])
+  @@index([countryKey, cityKey])
+  @@index([status])
+}
+
+/// 봉 시즌·리즌 — BongSpot 자식, 월 단위 1행
+model BongSeasonalNote {
+  id         String            @id @default(cuid())
+  bongSpotId String
+  bongSpot   BongSpot          @relation(fields: [bongSpotId], references: [id], onDelete: Cascade)
+  /// 1–12
+  month      Int
+  title      String?
+  body       String?           @db.Text
+  status     BongContentStatus @default(draft)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@unique([bongSpotId, month])
+  @@index([status])
+}
+
+/// 봉 푸드 — 도시(및 국가) 단위
+model BongFood {
+  id          String            @id @default(cuid())
+  name        String
+  description String?           @db.Text
+  category    String?
+  country     String?
+  city        String?
+  countryKey  String?
+  cityKey     String?
+  status      BongContentStatus @default(draft)
+  foodDrafts  BongFoodDraft[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([countryKey, cityKey])
+  @@index([status])
+}
+
+/// 봉 팁 — 국가·도시 단위 (비자·교통 등)
+model BongTip {
+  id         String            @id @default(cuid())
+  title      String
+  body       String?           @db.Text
+  /// 예: visa, transport, money, general
+  tipKind    String?
+  country    String?
+  city       String?
+  countryKey String?
+  cityKey    String?
+  status     BongContentStatus @default(draft)
+  tipDrafts  BongTipDraft[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([countryKey])
+  @@index([countryKey, cityKey])
+  @@index([status])
+}
+
+/// 캠페인 — 노출 윈도우 + Gemini 추천 캐시
+model BongCampaign {
+  id              String            @id @default(cuid())
+  name            String
+  windowStart     DateTime
+  windowEnd       DateTime
+  geminiCacheJson Json?
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  status          BongContentStatus @default(draft)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([windowStart, windowEnd])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+/// BongSpot 자동 초안 검수 큐
+model BongSpotDraft {
+  id          String                @id @default(cuid())
+  bongSpotId  String?
+  bongSpot    BongSpot?             @relation(fields: [bongSpotId], references: [id], onDelete: SetNull)
+  title       String?
+  payloadJson Json?
+  country     String?
+  city        String?
+  countryKey  String?
+  cityKey     String?
+  status      BongDraftReviewStatus @default(pending)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([bongSpotId])
+  @@index([status])
+  @@index([countryKey, cityKey])
+}
+
+/// BongFood 자동 초안 검수 큐
+model BongFoodDraft {
+  id          String                @id @default(cuid())
+  bongFoodId  String?
+  bongFood    BongFood?             @relation(fields: [bongFoodId], references: [id], onDelete: SetNull)
+  name        String?
+  payloadJson Json?
+  countryKey  String?
+  cityKey     String?
+  status      BongDraftReviewStatus @default(pending)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([bongFoodId])
+  @@index([status])
+}
+
+/// BongTip 자동 초안 검수 큐
+model BongTipDraft {
+  id          String                @id @default(cuid())
+  bongTipId   String?
+  bongTip     BongTip?              @relation(fields: [bongTipId], references: [id], onDelete: SetNull)
+  title       String?
+  payloadJson Json?
+  countryKey  String?
+  cityKey     String?
+  status      BongDraftReviewStatus @default(pending)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([bongTipId])
+  @@index([status])
+}
+
+/// 네이버 블로그 게시물 메타
+model BongBlogPost {
+  id           String            @id @default(cuid())
+  naverPostKey String?           @unique
+  title        String
+  excerpt      String?
+  url          String?
+  publishedAt  DateTime?
+  scheduledAt  DateTime?
+  status       BongContentStatus @default(draft)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([publishedAt])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+/// 페이스북 게시물 메타
+model BongFacebookPost {
+  id             String            @id @default(cuid())
+  facebookPostId String?           @unique
+  title          String?
+  body           String?           @db.Text
+  url            String?
+  publishedAt    DateTime?
+  scheduledAt    DateTime?
+  status         BongContentStatus @default(draft)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([publishedAt])
+  @@index([scheduledAt])
+  @@index([status])
 }
