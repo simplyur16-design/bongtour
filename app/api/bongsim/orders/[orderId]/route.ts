@@ -8,7 +8,7 @@ export async function GET(req: Request, ctx: Ctx) {
   if (!getPgPool()) {
     return NextResponse.json({ error: "db_unconfigured" }, { status: 503 });
   }
-  const { orderId } = (await ctx.params);
+  const { orderId } = await ctx.params;
   const u = new URL(req.url);
   const readKey = u.searchParams.get("read_key");
   const res = await getOrderPublic(orderId, { readKey });

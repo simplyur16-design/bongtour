@@ -7,9 +7,8 @@ import { isMockPaymentCaptureAllowed } from "@/lib/bongsim/runtime/mock-payment-
 
 type Props = { searchParams: Promise<{ paymentAttemptId?: string; orderId?: string; ref?: string }> };
 
-export default async function MockPaymentPage(props: Props) {
-  const searchParams = await props.searchParams;
-  const q = searchParams;
+export default async function MockPaymentPage({ searchParams }: Props) {
+  const q = await searchParams;
   const paymentAttemptId = (q.paymentAttemptId ?? "").trim();
   const orderId = (q.orderId ?? "").trim();
   const devOnly = isMockPaymentCaptureAllowed();

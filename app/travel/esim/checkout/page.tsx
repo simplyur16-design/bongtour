@@ -1,18 +1,27 @@
-import { Suspense } from 'react'
+import { Suspense } from "react";
 import Header from '@/app/components/Header'
 import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
-import { CheckoutStoreClient } from '@/components/bongsim/checkout-store/CheckoutStoreClient'
+import { CheckoutStoreClient } from "@/components/bongsim/checkout-store/CheckoutStoreClient";
 
-type Props = { searchParams: Promise<{ optionApiId?: string; qty?: string }> }
+type Props = { searchParams: Promise<{ optionApiId?: string; qty?: string }> };
 
 function parseQtyInitial(raw: string | undefined): number | undefined {
-  const n = Number.parseInt(String(raw ?? '').trim(), 10)
-  if (!Number.isFinite(n) || n < 1 || n > 99) return undefined
-  return n
+  const n = Number.parseInt(String(raw ?? "").trim(), 10);
+  if (!Number.isFinite(n) || n < 1 || n > 99) return undefined;
+  return n;
 }
 
-export default async function CheckoutPage({ searchParams }: Props) {
-  const q = await searchParams
+async function CheckoutInner({ searchParams }: Props) {
+  const q = await searchParams;
+  return (
+    <CheckoutStoreClient
+      optionApiIdInitial={(q.optionApiId ?? "").trim()}
+      quantityInitial={parseQtyInitial(q.qty)}
+    />
+  );
+}
+
+export default function CheckoutPage(props: Props) {
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
@@ -25,12 +34,9 @@ export default async function CheckoutPage({ searchParams }: Props) {
         }
       >
         <div className="mx-auto w-full max-w-3xl">
-          <CheckoutStoreClient
-            optionApiIdInitial={(q.optionApiId ?? '').trim()}
-            quantityInitial={parseQtyInitial(q.qty)}
-          />
+          <CheckoutInner {...props} />
         </div>
       </Suspense>
     </div>
-  )
+  );
 }

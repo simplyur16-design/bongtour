@@ -8,7 +8,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (!getPgPool()) {
     return NextResponse.json({ error: "db_unconfigured" }, { status: 503 });
   }
-  const { optionApiId } = (await ctx.params);
+  const { optionApiId } = await ctx.params;
   const res = await getProductDetailByOptionApiId(optionApiId);
   if (!res.ok) {
     if (res.reason === "not_found") {

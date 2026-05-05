@@ -8,9 +8,8 @@ import { getProductDetailByOptionApiId } from "@/lib/bongsim/data/get-product-de
 
 type Props = { params: Promise<{ optionApiId: string }> };
 
-export default async function ProductDetailV1Page(props: Props) {
-  const params = await props.params;
-  const { optionApiId } = params;
+export default async function ProductDetailV1Page({ params }: Props) {
+  const { optionApiId } = await params;
   const res = await getProductDetailByOptionApiId(optionApiId);
   if (!res.ok) {
     if (res.reason === "not_found") notFound();

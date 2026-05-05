@@ -8,7 +8,7 @@ import { isNodeProduction } from "@/lib/bongsim/runtime/node-env";
 type Ctx = { params: Promise<{ provider: string }> };
 
 export async function POST(req: Request, ctx: Ctx) {
-  const { provider } = (await ctx.params);
+  const { provider } = await ctx.params;
   if (!getPgPool()) {
     return NextResponse.json({ schema: "bongsim.payment_webhook.error.v1", ok: false, error: "db_unconfigured" }, { status: 503 });
   }

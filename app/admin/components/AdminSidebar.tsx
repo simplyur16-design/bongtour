@@ -23,6 +23,9 @@ import {
   Ticket,
   BarChart3,
   CreditCard,
+  MapPin,
+  UtensilsCrossed,
+  Lightbulb,
 } from 'lucide-react'
 
 type NavLink = { href: string; label: string; icon: LucideIcon }
@@ -35,6 +38,15 @@ const navEntries: NavEntry[] = [
   { type: 'link', href: '/admin/members', label: '회원 관리', icon: Users },
   { type: 'link', href: '/admin/home-hub-card-images', label: '메인 허브 이미지', icon: Images },
   { type: 'link', href: '/admin/og-images', label: 'OG 이미지 (공유)', icon: Share2 },
+  {
+    type: 'group',
+    label: '마케팅',
+    items: [
+      { href: '/admin/marketing/bong-spots', label: '봉 스팟', icon: MapPin },
+      { href: '/admin/marketing/bong-foods', label: '봉 푸드', icon: UtensilsCrossed },
+      { href: '/admin/marketing/bong-tips', label: '봉 팁', icon: Lightbulb },
+    ],
+  },
   { type: 'link', href: '/admin/image-assets-upload', label: '이미지 업로드 · 출처(iStock)', icon: Images },
   { type: 'link', href: '/admin/bongsim/country-heroes', label: '봉심 eSIM 국가 히어로', icon: Smartphone },
   {

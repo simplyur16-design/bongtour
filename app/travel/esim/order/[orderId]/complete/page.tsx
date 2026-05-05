@@ -8,11 +8,9 @@ import { getOrderPublic } from "@/lib/bongsim/data/get-order-public";
 
 type Props = { params: Promise<{ orderId: string }>; searchParams: Promise<{ read_key?: string }> };
 
-export default async function OrderCompletePage(props: Props) {
-  const searchParams = await props.searchParams;
-  const params = await props.params;
-  const { orderId } = params;
-  const sp = searchParams;
+export default async function OrderCompletePage({ params, searchParams }: Props) {
+  const { orderId } = await params;
+  const sp = await searchParams;
   const res = await getOrderPublic(orderId, { readKey: sp.read_key ?? null });
 
   if (!res.ok) {

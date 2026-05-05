@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, Fragment, use } from 'react';
+import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import SafeImage from '@/app/components/SafeImage'
@@ -305,8 +305,7 @@ function parseStructuredSignalsView(
   }
 }
 
-export default function AdminProductDetailPage(props: { params: Promise<{ id: string }> }) {
-  const params = use(props.params)
+export default function AdminProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const pathname = usePathname() ?? ''
   const searchParams = useSearchParams() ?? new URLSearchParams()
   const showRegisterTrace = searchParams?.get('registerTrace') === '1'
@@ -418,8 +417,8 @@ export default function AdminProductDetailPage(props: { params: Promise<{ id: st
   }, [product, supplierInternal])
 
   useEffect(() => {
-    setId(params.id)
-  }, [params.id])
+    Promise.resolve(params).then((p) => setId(p.id))
+  }, [params])
 
   useEffect(() => {
     if (!product) return
@@ -2863,5 +2862,5 @@ export default function AdminProductDetailPage(props: { params: Promise<{ id: st
         )}
       </main>
     </div>
-  );
+  )
 }
