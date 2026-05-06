@@ -117,6 +117,8 @@ model Product {
   assetUsageLogs           AssetUsageLog[]
   /// 가볼 곳(BongSpot)과 다대다 — 조인 `ProductBongSpot`
   bongSpots                ProductBongSpot[]     @relation("ProductBongSpots")
+  /// B-4-2 네이버 블로그 초안 등 `BongBlogPost.linkedProductId` 역참조
+  bongBlogPosts            BongBlogPost[]        @relation("ProductBongBlogPosts")
   /// G-2: 다국가·트리 browse 보조 태그 (대표 geo는 Product 단일 필드 유지, 옵션 C)
   countryTags              ProductCountryTag[]
   /// I-1: 다도시 태그 (cityKey → I-3에서 City FK)
@@ -1120,20 +1122,38 @@ model BongTipDraft {
 
 /// 네이버 블로그 게시물 메타
 model BongBlogPost {
-  id           String            @id @default(cuid())
-  naverPostKey String?           @unique
-  title        String
-  excerpt      String?
-  url          String?
-  publishedAt  DateTime?
-  scheduledAt  DateTime?
-  status       BongContentStatus @default(draft)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id                      String            @id @default(cuid())
+  naverPostKey            String?           @unique
+  title                   String
+  excerpt                 String?
+  url                     String?
+  publishedAt             DateTime?
+  scheduledAt             DateTime?
+  status                  BongContentStatus @default(draft)
+  /// B-4-2 패키지 초안 본문(마크다운)
+  body                    String?           @db.Text
+  linkedProductId         String?
+  linkedProduct           Product?          @relation("ProductBongBlogPosts", fields: [linkedProductId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  /// 캠페인 월 (YYYY-MM)
+  monthKey                String?
+  /// browse 도시 슬러그 등
+  citySlug                String?
+  /// browse 국가 슬러그 등
+  countrySlug             String?
+  generationModel         String?
+  generationPromptVersion String?
+  reviewedAt              DateTime?
+  reviewedBy              String?
+  rejectedReason          String?           @db.Text
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
 
   @@index([publishedAt])
   @@index([scheduledAt])
   @@index([status])
+  @@index([monthKey, status])
+  @@index([linkedProductId])
+  @@index([citySlug, monthKey])
 }
 
 /// 페이스북 게시물 메타
