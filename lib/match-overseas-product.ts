@@ -18,13 +18,19 @@ import {
   resolveBrowseCityParamToCountryTagNodeKeys,
   resolveBrowseCountryParamToCountryKeySlugs,
 } from '@/lib/browse-country-url-resolve'
+import { masterContinentKeysFromBrowseDbContinents } from '@/lib/browse-master-geo'
 import type { OverseasCountryNode, OverseasLeafNode } from '@/lib/overseas-location-tree.types'
 
-/** G-3: browse·트리 OR 매칭용 (Prisma select 최소 필드) */
+/** G-3 / I-4: browse·트리 OR 매칭용 (Prisma select 최소 필드) */
 export type CountryTagMatchSlice = {
   countryKey: string
   nodeKey: string | null
   groupKey: string | null
+  country?: { continentKey: string } | null
+}
+
+export type CityTagMatchSlice = {
+  cityKey: string
 }
 
 /** 갤러리·API 등 최소 필드 */
@@ -41,8 +47,15 @@ export type OverseasProductMatchInput = {
   continent?: string | null
   country?: string | null
   city?: string | null
+  /** 트리·마스터와 동일 스펙의 국가 슬러그 (`Product.countryKey`) */
+  countryKey?: string | null
+  /** I-3: SSOT 대륙·도시 FK */
+  continentKey?: string | null
+  cityKey?: string | null
   /** G-3: `ProductCountryTag` 보조 (없으면 기존 단일 geo만) */
   countryTags?: readonly CountryTagMatchSlice[]
+  /** I-4: `ProductCityTag` 보조 */
+  cityTags?: readonly CityTagMatchSlice[]
 }
 
 /**
@@ -93,12 +106,20 @@ export function productMatchesOverseasDestinationTerms(
 
   const tagMatchesRegionContinent = (): boolean => {
     if (!tags?.length || !rDbConts.length) return false
-    const want = new Set(dbContinentsToProductCountryTagGroupKeys(rDbConts))
-    if (want.size === 0) return false
+    const wantGroup = new Set(dbContinentsToProductCountryTagGroupKeys(rDbConts))
+    const wantMaster = new Set(masterContinentKeysFromBrowseDbContinents(rDbConts))
     return tags.some((t) => {
       const g = (t.groupKey ?? '').trim().toLowerCase()
-      return Boolean(g) && want.has(g)
+      if (g && wantGroup.has(g)) return true
+      const mc = t.country?.continentKey
+      return Boolean(mc && wantMaster.has(mc))
     })
+  }
+
+  const masterProductContinentMatchesRegion = (): boolean => {
+    if (!rDbConts.length || !product.continentKey?.trim()) return false
+    const want = new Set(masterContinentKeysFromBrowseDbContinents(rDbConts))
+    return want.has(product.continentKey.trim())
   }
 
   const tagMatchesCountryParam = (): boolean => {
@@ -118,6 +139,37 @@ export function productMatchesOverseasDestinationTerms(
     })
   }
 
+  const wantMasterCityKeysForUrl = (): Set<string> => {
+    const want = new Set<string>()
+    if (ctRaw) {
+      for (const nk of resolveBrowseCityParamToCountryTagNodeKeys(ctRaw)) {
+        if (nk) want.add(nk.toLowerCase())
+      }
+      const low = ctRaw.trim().toLowerCase()
+      if (/^[a-z0-9-]+$/.test(low)) want.add(low)
+    }
+    return want
+  }
+
+  const masterProductCityMatchesUrl = (): boolean => {
+    if (!ctRaw) return false
+    const want = wantMasterCityKeysForUrl()
+    if (want.size === 0) return false
+    const pk = (product.cityKey ?? '').trim().toLowerCase()
+    if (pk && want.has(pk)) return true
+    const ctags = product.cityTags
+    if (!ctags?.length) return false
+    return ctags.some((t) => want.has((t.cityKey ?? '').trim().toLowerCase()))
+  }
+
+  const masterProductCountryKeyMatchesUrl = (): boolean => {
+    if (!cRaw) return false
+    const want = new Set(resolveBrowseCountryParamToCountryKeySlugs(cRaw).map((x) => x.toLowerCase()))
+    if (want.size === 0) return false
+    const pk = (product.countryKey ?? '').trim().toLowerCase()
+    return Boolean(pk && want.has(pk))
+  }
+
   if (hasDbBrowseGeo) {
     if (rRaw && rDbConts.length > 0) {
       const urlCountryMatchesDb =
@@ -125,11 +177,29 @@ export function productMatchesOverseasDestinationTerms(
       if (!urlCountryMatchesDb) {
         const contOk = rDbConts.includes(dbCont)
         const countryAsTab = rDbConts.includes(dbCountry)
-        if (!contOk && !countryAsTab && !tagMatchesRegionContinent()) return false
+        if (
+          !contOk &&
+          !countryAsTab &&
+          !tagMatchesRegionContinent() &&
+          !masterProductContinentMatchesRegion()
+        )
+          return false
       }
     }
-    if (cRaw && !dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw) && !tagMatchesCountryParam()) return false
-    if (ctRaw && !dbCityMatchesBrowseCityParam(dbCityRaw, ctRaw) && !tagMatchesCityParam()) return false
+    if (
+      cRaw &&
+      !dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw) &&
+      !tagMatchesCountryParam() &&
+      !masterProductCountryKeyMatchesUrl()
+    )
+      return false
+    if (
+      ctRaw &&
+      !dbCityMatchesBrowseCityParam(dbCityRaw, ctRaw) &&
+      !tagMatchesCityParam() &&
+      !masterProductCityMatchesUrl()
+    )
+      return false
     return termsMatch()
   }
 
@@ -169,6 +239,18 @@ export function productCountryTagMatchesCountryShallowNode(
   if (!tags?.length) return false
   const want = country.countryKey.trim().toLowerCase()
   return tags.some((t) => (t.countryKey ?? '').trim().toLowerCase() === want)
+}
+
+/** I-4: 마스터 도시 키·다도시 태그 ↔ 트리 leaf */
+export function productCityTagMatchesLeafNode(
+  leaf: OverseasLeafNode,
+  cityKey: string | null | undefined,
+  cityTags?: readonly CityTagMatchSlice[],
+): boolean {
+  const lk = leaf.nodeKey.trim().toLowerCase()
+  const pk = (cityKey ?? '').trim().toLowerCase()
+  if (pk && pk === lk) return true
+  return cityTags?.some((t) => (t.cityKey ?? '').trim().toLowerCase() === lk) ?? false
 }
 
 export type OverseasTreeMatchScope = 'leaf' | 'country' | 'group'

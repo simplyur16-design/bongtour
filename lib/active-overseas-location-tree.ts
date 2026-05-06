@@ -5,6 +5,7 @@
 import { triageProductTitleForPickTab } from '@/lib/gallery-product-triage'
 import { parseTravelScope } from '@/lib/product-listing-kind'
 import {
+  productCityTagMatchesLeafNode,
   productCountryTagMatchesCountryShallowNode,
   productCountryTagMatchesLeafNode,
   productMatchesOverseasDestinationTerms,
@@ -47,16 +48,19 @@ function leafHasMatchingProduct(
   return products.some(
     (p) =>
       productMatchesOverseasDestinationTerms(p, terms) ||
-      productCountryTagMatchesLeafNode(country, leaf, p.countryTags)
+      productCountryTagMatchesLeafNode(country, leaf, p.countryTags) ||
+      productCityTagMatchesLeafNode(leaf, p.cityKey, p.cityTags)
   )
 }
 
 function countryHasShallowMatch(country: OverseasCountryNode, products: OverseasProductMatchInput[]): boolean {
   const terms = matchTokensForCountryShallow(country)
+  const ck = country.countryKey.trim().toLowerCase()
   return products.some(
     (p) =>
       productMatchesOverseasDestinationTerms(p, terms) ||
-      productCountryTagMatchesCountryShallowNode(country, p.countryTags)
+      productCountryTagMatchesCountryShallowNode(country, p.countryTags) ||
+      (p.countryKey ?? '').trim().toLowerCase() === ck
   )
 }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { PRODUCT_BROWSE_FULL_INCLUDE } from '@/lib/product-browse-full-include'
+import { PRODUCT_BROWSE_FULL_INCLUDE, type ProductBrowseIncludedRow } from '@/lib/product-browse-full-include'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
 import { filterProductsForDomesticDestinationTree } from '@/lib/active-domestic-location-tree'
@@ -29,14 +29,16 @@ import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import {
   browseRegionToDbContinents,
-  dbContinentsToProductCountryTagGroupKeys,
-  resolveBrowseCityParamToCountryTagNodeKeys,
-  resolveBrowseCityParamToDbCity,
   resolveBrowseCountryParamToCountryKeySlugs,
   resolveBrowseCountryParamToDbCountries,
   resolveChinaSubregionDbCityKeywords,
   resolveJapanSubregionDbCityKeywords,
 } from '@/lib/browse-country-url-resolve'
+import {
+  prismaWhereCityMasterOrTagWithLegacyNull,
+  prismaWhereContinentMasterOrTagWithLegacyNull,
+  prismaWhereCountryTreeKeyOrTagWithLegacyNull,
+} from '@/lib/browse-master-geo'
 import { resolveOverseasDisplayBucketForBrowse } from '@/lib/overseas-display-buckets'
 import { filterPoolByStoredTravelScope } from '@/lib/travel-scope-pool-filter'
 import { parseListingKind } from '@/lib/product-listing-kind'
@@ -91,32 +93,6 @@ function parseSort(raw: string | null): BrowseSort {
   return 'popular'
 }
 
-/** G-3: primary `continent` OR `ProductCountryTag.groupKey` (트리 상위 그룹과 동일 키) */
-function prismaContinentOrTagGroupKeys(continentList: string[]): Prisma.ProductWhereInput {
-  const tagGks = dbContinentsToProductCountryTagGroupKeys(continentList)
-  const primary: Prisma.ProductWhereInput =
-    continentList.length === 1
-      ? { continent: continentList[0]! }
-      : { OR: continentList.map((continent) => ({ continent })) }
-  if (tagGks.length === 0) return primary
-  return {
-    OR: [primary, { countryTags: { some: { groupKey: { in: tagGks } } } }],
-  }
-}
-
-/** G-3: primary `country` 한글 OR `ProductCountryTag.countryKey` */
-function prismaCountryOrTagCountryKeys(countryParam: string): Prisma.ProductWhereInput {
-  const dbCountries = resolveBrowseCountryParamToDbCountries(countryParam)
-  const slugKeys = resolveBrowseCountryParamToCountryKeySlugs(countryParam)
-  if (dbCountries.length === 0) return { country: { in: [] } }
-  const primary: Prisma.ProductWhereInput =
-    dbCountries.length === 1 ? { country: dbCountries[0]! } : { country: { in: dbCountries } }
-  if (slugKeys.length === 0) return primary
-  return {
-    OR: [primary, { countryTags: { some: { countryKey: { in: slugKeys } } } }],
-  }
-}
-
 function appendSubregionCityOrDestinationOr(
   overseasGeoAnd: Prisma.ProductWhereInput[],
   keywords: string[],
@@ -162,27 +138,21 @@ export async function GET(request: Request) {
       const continentList = browseRegionToDbContinents(r)
 
       if (r && !c) {
-        if (continentList.length === 1) overseasGeoAnd.push(prismaContinentOrTagGroupKeys([continentList[0]!]))
-        else if (continentList.length > 1) overseasGeoAnd.push(prismaContinentOrTagGroupKeys(continentList))
+        if (continentList.length === 1)
+          overseasGeoAnd.push(prismaWhereContinentMasterOrTagWithLegacyNull([continentList[0]!]))
+        else if (continentList.length > 1)
+          overseasGeoAnd.push(prismaWhereContinentMasterOrTagWithLegacyNull(continentList))
       } else if (r && c) {
-        if (continentList.length === 1) overseasGeoAnd.push(prismaContinentOrTagGroupKeys([continentList[0]!]))
-        else if (continentList.length > 1) overseasGeoAnd.push(prismaContinentOrTagGroupKeys(continentList))
-        overseasGeoAnd.push(prismaCountryOrTagCountryKeys(c))
+        if (continentList.length === 1)
+          overseasGeoAnd.push(prismaWhereContinentMasterOrTagWithLegacyNull([continentList[0]!]))
+        else if (continentList.length > 1)
+          overseasGeoAnd.push(prismaWhereContinentMasterOrTagWithLegacyNull(continentList))
+        overseasGeoAnd.push(prismaWhereCountryTreeKeyOrTagWithLegacyNull(c))
       } else if (!r && c) {
-        overseasGeoAnd.push(prismaCountryOrTagCountryKeys(c))
+        overseasGeoAnd.push(prismaWhereCountryTreeKeyOrTagWithLegacyNull(c))
       }
       if (ct) {
-        const dbCity = resolveBrowseCityParamToDbCity(ct)
-        const nodeKeys = resolveBrowseCityParamToCountryTagNodeKeys(ct)
-        if (dbCity && nodeKeys.length > 0) {
-          overseasGeoAnd.push({
-            OR: [{ city: dbCity }, { countryTags: { some: { nodeKey: { in: nodeKeys } } } }],
-          })
-        } else if (dbCity) {
-          overseasGeoAnd.push({ city: dbCity })
-        } else if (nodeKeys.length > 0) {
-          overseasGeoAnd.push({ countryTags: { some: { nodeKey: { in: nodeKeys } } } })
-        }
+        overseasGeoAnd.push(await prismaWhereCityMasterOrTagWithLegacyNull(c, ct))
       }
     }
 
@@ -227,7 +197,11 @@ export async function GET(request: Request) {
         const primary = { country: seasonDbCountries[0]! }
         if (seasonKeySlugs.length > 0) {
           overseasGeoAnd.push({
-            OR: [primary, { countryTags: { some: { countryKey: { in: seasonKeySlugs } } } }],
+            OR: [
+              primary,
+              { countryTags: { some: { countryKey: { in: seasonKeySlugs } } } },
+              { countryKey: { in: seasonKeySlugs } },
+            ],
           })
         } else {
           overseasGeoAnd.push(primary)
@@ -236,7 +210,11 @@ export async function GET(request: Request) {
         const primary = { country: { in: seasonDbCountries } }
         if (seasonKeySlugs.length > 0) {
           overseasGeoAnd.push({
-            OR: [primary, { countryTags: { some: { countryKey: { in: seasonKeySlugs } } } }],
+            OR: [
+              primary,
+              { countryTags: { some: { countryKey: { in: seasonKeySlugs } } } },
+              { countryKey: { in: seasonKeySlugs } },
+            ],
           })
         } else {
           overseasGeoAnd.push(primary)
@@ -468,7 +446,8 @@ export async function GET(request: Request) {
       .map((m) => m.coverUrl as string)
     const captionMap = await buildCaptionLookupMapFromPublicUrls(urlsForCaptionBatch)
 
-    const items = metaRows.map(({ p, effectivePricePerPerson, coverUrl, firstScheduleName }) => {
+    const items = metaRows.map(({ p: pRaw, effectivePricePerPerson, coverUrl, firstScheduleName }) => {
+      const p = pRaw as ProductBrowseIncludedRow
       const seoAssetHint = lookupCaptionFromMap(captionMap, coverUrl)
       const coverImageSeoKeyword = resolvePublicProductHeroSeoKeywordOverlay({
         storedRegisterSeoKeywordsJson: p.publicImageHeroSeoKeywordsJson,
@@ -534,6 +513,11 @@ export async function GET(request: Request) {
               continent: p.continent ?? null,
               country: p.country ?? null,
               city: p.city ?? null,
+              countryKey: p.countryKey ?? null,
+              continentKey: p.continentKey ?? null,
+              cityKey: p.cityKey ?? null,
+              countryTags: p.countryTags,
+              cityTags: p.cityTags,
             }
             const match = matchProductToOverseasNode(matchInput)
             const overseasBucket = resolveOverseasDisplayBucketForBrowse(matchInput, match)

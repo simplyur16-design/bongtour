@@ -9,22 +9,10 @@ import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { effectiveBrowseTypeForProduct } from '@/lib/products-browse-filter'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
-import type { Product } from '@prisma/client'
+import type { ProductBrowseIncludedRow } from '@/lib/product-browse-full-include'
 
-export type ProductBrowseFullRow = Product & {
-  departures: Array<{
-    adultPrice: number | null
-    departureDate: Date
-    outboundDepartureAt: Date | null
-    carrierName: string | null
-    isDepartureConfirmed: boolean | null
-    statusLabelsRaw: string | null
-    statusRaw: string | null
-  }>
-  prices: { adult: number }[]
-  brand: { brandKey: string; displayName: string } | null
-  _count: { optionalTours: number }
-}
+/** browse API `findMany` + `PRODUCT_BROWSE_FULL_INCLUDE` 행 타입 */
+export type ProductBrowseFullRow = ProductBrowseIncludedRow
 
 export type ExtendedBrowseFilters = {
   /** 현지옵션 없음 — DB: optionalTours 없음 & hasOptionalTours 아님 */

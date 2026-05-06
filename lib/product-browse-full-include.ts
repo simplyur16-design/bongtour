@@ -2,6 +2,8 @@
  * 상품 목록 browse 전용 — 필터(출발확정·항공시간·요일·현지옵션 등)에 필요한 필드까지 포함.
  * 인당 가격 계산은 `adultPrice`·`departureDate`만 필수이며 나머지는 필터 전용.
  */
+import type { Prisma } from '@prisma/client'
+
 export const PRODUCT_BROWSE_FULL_INCLUDE = {
   departures: {
     orderBy: { departureDate: 'asc' as const },
@@ -25,15 +27,24 @@ export const PRODUCT_BROWSE_FULL_INCLUDE = {
   brand: {
     select: { brandKey: true, displayName: true },
   },
-  /** G-3: browse·트리 다국가 OR — 최소 필드만 */
+  /** G-3 / I-4: browse·트리 다국가 OR — 최소 필드 + 마스터 대륙 */
   countryTags: {
     select: {
       countryKey: true,
       nodeKey: true,
       groupKey: true,
+      country: { select: { continentKey: true } },
     },
+  },
+  /** I-4: 다도시 태그 OR */
+  cityTags: {
+    select: { cityKey: true },
   },
   _count: {
     select: { optionalTours: true },
   },
 } as const
+
+export type ProductBrowseIncludedRow = Prisma.ProductGetPayload<{
+  include: typeof PRODUCT_BROWSE_FULL_INCLUDE
+}>

@@ -63,7 +63,11 @@ export function toOverseasMatchInput(p: {
   continent?: string | null
   country?: string | null
   city?: string | null
+  countryKey?: string | null
+  continentKey?: string | null
+  cityKey?: string | null
   countryTags?: OverseasProductMatchInput['countryTags']
+  cityTags?: OverseasProductMatchInput['cityTags']
 }): OverseasProductMatchInput {
   return {
     title: p.title,
@@ -75,7 +79,11 @@ export function toOverseasMatchInput(p: {
     continent: p.continent ?? null,
     country: p.country ?? null,
     city: p.city ?? null,
+    countryKey: p.countryKey ?? null,
+    continentKey: p.continentKey ?? null,
+    cityKey: p.cityKey ?? null,
     countryTags: p.countryTags,
+    cityTags: p.cityTags,
   }
 }
 
