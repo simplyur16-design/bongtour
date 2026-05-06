@@ -14,7 +14,18 @@ import {
   browseRegionToDbContinents,
   dbCityMatchesBrowseCityParam,
   dbCountryMatchesBrowseCountryParam,
+  dbContinentsToProductCountryTagGroupKeys,
+  resolveBrowseCityParamToCountryTagNodeKeys,
+  resolveBrowseCountryParamToCountryKeySlugs,
 } from '@/lib/browse-country-url-resolve'
+import type { OverseasCountryNode, OverseasLeafNode } from '@/lib/overseas-location-tree.types'
+
+/** G-3: browse·트리 OR 매칭용 (Prisma select 최소 필드) */
+export type CountryTagMatchSlice = {
+  countryKey: string
+  nodeKey: string | null
+  groupKey: string | null
+}
 
 /** 갤러리·API 등 최소 필드 */
 export type OverseasProductMatchInput = {
@@ -30,6 +41,8 @@ export type OverseasProductMatchInput = {
   continent?: string | null
   country?: string | null
   city?: string | null
+  /** G-3: `ProductCountryTag` 보조 (없으면 기존 단일 geo만) */
+  countryTags?: readonly CountryTagMatchSlice[]
 }
 
 /**
@@ -76,6 +89,35 @@ export function productMatchesOverseasDestinationTerms(
 
   if (!hasUrlGeo) return termsMatch()
 
+  const tags = product.countryTags
+
+  const tagMatchesRegionContinent = (): boolean => {
+    if (!tags?.length || !rDbConts.length) return false
+    const want = new Set(dbContinentsToProductCountryTagGroupKeys(rDbConts))
+    if (want.size === 0) return false
+    return tags.some((t) => {
+      const g = (t.groupKey ?? '').trim().toLowerCase()
+      return Boolean(g) && want.has(g)
+    })
+  }
+
+  const tagMatchesCountryParam = (): boolean => {
+    if (!tags?.length || !cRaw) return false
+    const want = new Set(resolveBrowseCountryParamToCountryKeySlugs(cRaw).map((x) => x.toLowerCase()))
+    if (want.size === 0) return false
+    return tags.some((t) => want.has((t.countryKey ?? '').trim().toLowerCase()))
+  }
+
+  const tagMatchesCityParam = (): boolean => {
+    if (!tags?.length || !ctRaw) return false
+    const want = new Set(resolveBrowseCityParamToCountryTagNodeKeys(ctRaw).map((x) => x.toLowerCase()))
+    if (want.size === 0) return false
+    return tags.some((t) => {
+      const nk = (t.nodeKey ?? '').trim().toLowerCase()
+      return Boolean(nk) && want.has(nk)
+    })
+  }
+
   if (hasDbBrowseGeo) {
     if (rRaw && rDbConts.length > 0) {
       const urlCountryMatchesDb =
@@ -83,15 +125,50 @@ export function productMatchesOverseasDestinationTerms(
       if (!urlCountryMatchesDb) {
         const contOk = rDbConts.includes(dbCont)
         const countryAsTab = rDbConts.includes(dbCountry)
-        if (!contOk && !countryAsTab) return false
+        if (!contOk && !countryAsTab && !tagMatchesRegionContinent()) return false
       }
     }
-    if (cRaw && !dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw)) return false
-    if (ctRaw && !dbCityMatchesBrowseCityParam(dbCityRaw, ctRaw)) return false
+    if (cRaw && !dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw) && !tagMatchesCountryParam()) return false
+    if (ctRaw && !dbCityMatchesBrowseCityParam(dbCityRaw, ctRaw) && !tagMatchesCityParam()) return false
     return termsMatch()
   }
 
   return termsMatch()
+}
+
+/** 메가메뉴 트리 leaf 활성화 — 태그로 동일 국가·리프(또는 국가 전체 태그) 매칭 */
+export function productCountryTagMatchesLeafNode(
+  country: OverseasCountryNode,
+  leaf: OverseasLeafNode,
+  tags?: readonly CountryTagMatchSlice[]
+): boolean {
+  if (!tags?.length) return false
+  const wantCountry = country.countryKey.trim().toLowerCase()
+  const leafKey = leaf.nodeKey.trim().toLowerCase()
+  for (const t of tags) {
+    const ck = (t.countryKey ?? '').trim().toLowerCase()
+    if (ck !== wantCountry) continue
+    const nk = (t.nodeKey ?? '').trim().toLowerCase()
+    if (!nk) return true
+    if (nk === leafKey) return true
+    const leafTerms = matchTokensForLeaf(country, leaf)
+    for (const term of leafTerms) {
+      const low = term.trim().toLowerCase()
+      if (!low) continue
+      if (low === nk || nk.includes(low) || low.includes(nk)) return true
+    }
+  }
+  return false
+}
+
+/** 국가 shallow(리프 없이 국가만) — 해당 국가키 태그가 있으면 활성 */
+export function productCountryTagMatchesCountryShallowNode(
+  country: OverseasCountryNode,
+  tags?: readonly CountryTagMatchSlice[]
+): boolean {
+  if (!tags?.length) return false
+  const want = country.countryKey.trim().toLowerCase()
+  return tags.some((t) => (t.countryKey ?? '').trim().toLowerCase() === want)
 }
 
 export type OverseasTreeMatchScope = 'leaf' | 'country' | 'group'

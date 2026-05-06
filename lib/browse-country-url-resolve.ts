@@ -230,6 +230,31 @@ export function browseRegionToDbContinents(region: string | null | undefined): s
   return one ? [one] : []
 }
 
+/**
+ * DB `Product.continent` 값 → 메가메뉴 트리 최상위 `groupKey` (`ProductCountryTag.groupKey`와 동일 스펙).
+ * G-3 browse 권역 필터에서 primary continent OR 보조 태그 매칭에 사용.
+ */
+const DB_CONTINENT_TO_TREE_GROUP_KEYS: Record<string, readonly string[]> = {
+  'southeast-asia': ['sea-taiwan-south-asia'],
+  japan: ['japan'],
+  'china-mongolia-ca': ['china-circle'],
+  'hongkong-macau': ['china-circle'],
+  europe: ['europe-me-africa'],
+  'me-africa': ['europe-me-africa'],
+  oceania: ['guam-au-nz'],
+  americas: ['americas'],
+}
+
+export function dbContinentsToProductCountryTagGroupKeys(continents: string[]): string[] {
+  const out = new Set<string>()
+  for (const raw of continents) {
+    const c = raw.trim().toLowerCase()
+    const keys = DB_CONTINENT_TO_TREE_GROUP_KEYS[c]
+    if (keys) keys.forEach((k) => out.add(k))
+  }
+  return [...out]
+}
+
 function uniqueStrings(xs: string[]): string[] {
   const out: string[] = []
   const seen = new Set<string>()
@@ -402,6 +427,31 @@ export function resolveBrowseCityParamToDbCity(param: string | null | undefined)
   if (mapped) return mapped
   if (DB_CITY_LABELS.has(raw)) return raw
   return null
+}
+
+/**
+ * browse `city` URL 값 → `ProductCountryTag.nodeKey` 후보 (소문자).
+ * 슬러그 자체 + 매핑된 DB 도시에 해당하는 트리 leaf `nodeKey`.
+ */
+export function resolveBrowseCityParamToCountryTagNodeKeys(param: string | null | undefined): string[] {
+  const raw = (param ?? '').trim().toLowerCase()
+  const out = new Set<string>()
+  if (raw) out.add(raw)
+  const dbCity = resolveBrowseCityParamToDbCity(param)
+  if (dbCity) {
+    for (const [slug, city] of Object.entries(BROWSE_CITY_SLUG_TO_DB_CITY)) {
+      if (city === dbCity) out.add(slug.trim().toLowerCase())
+    }
+    for (const g of OVERSEAS_LOCATION_TREE_DATA) {
+      for (const co of g.countries) {
+        for (const leaf of co.children) {
+          const inferred = inferDbCityFromLeaf(leaf)
+          if (inferred === dbCity) out.add(leaf.nodeKey.trim().toLowerCase())
+        }
+      }
+    }
+  }
+  return [...out].filter(Boolean)
 }
 
 /** DB `city`가 browse URL의 city 슬러그와 맞는지 */
@@ -807,6 +857,26 @@ export function resolveBrowseCountryParamToDbCountries(param: string | null | un
   if (OVERSEAS_AND_DB_COUNTRY_LABELS.has(raw)) return [raw]
 
   return []
+}
+
+/**
+ * browse `country` URL 값 → `ProductCountryTag.countryKey` 후보 (소문자, 트리 `countryKey` 정합).
+ */
+export function resolveBrowseCountryParamToCountryKeySlugs(param: string | null | undefined): string[] {
+  const raw = (param ?? '').trim().toLowerCase()
+  const out = new Set<string>()
+  if (raw) out.add(raw)
+  const dbCountries = resolveBrowseCountryParamToDbCountries(param)
+  for (const g of OVERSEAS_LOCATION_TREE_DATA) {
+    for (const co of g.countries) {
+      const vals = inferDbCountriesFromTreeLabel(co)
+      if (vals.some((v) => dbCountries.includes(v))) {
+        const ck = co.countryKey.trim().toLowerCase()
+        if (ck) out.add(ck)
+      }
+    }
+  }
+  return [...out].filter(Boolean)
 }
 
 function hasHangulLocal(s: string): boolean {

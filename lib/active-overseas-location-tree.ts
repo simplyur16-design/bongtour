@@ -4,7 +4,12 @@
  */
 import { triageProductTitleForPickTab } from '@/lib/gallery-product-triage'
 import { parseTravelScope } from '@/lib/product-listing-kind'
-import { productMatchesOverseasDestinationTerms, type OverseasProductMatchInput } from '@/lib/match-overseas-product'
+import {
+  productCountryTagMatchesCountryShallowNode,
+  productCountryTagMatchesLeafNode,
+  productMatchesOverseasDestinationTerms,
+  type OverseasProductMatchInput,
+} from '@/lib/match-overseas-product'
 import {
   OVERSEAS_LOCATION_TREE_CLEAN,
   matchTokensForCountryShallow,
@@ -39,12 +44,20 @@ function leafHasMatchingProduct(
   products: OverseasProductMatchInput[]
 ): boolean {
   const terms = matchTokensForLeaf(country, leaf)
-  return products.some((p) => productMatchesOverseasDestinationTerms(p, terms))
+  return products.some(
+    (p) =>
+      productMatchesOverseasDestinationTerms(p, terms) ||
+      productCountryTagMatchesLeafNode(country, leaf, p.countryTags)
+  )
 }
 
 function countryHasShallowMatch(country: OverseasCountryNode, products: OverseasProductMatchInput[]): boolean {
   const terms = matchTokensForCountryShallow(country)
-  return products.some((p) => productMatchesOverseasDestinationTerms(p, terms))
+  return products.some(
+    (p) =>
+      productMatchesOverseasDestinationTerms(p, terms) ||
+      productCountryTagMatchesCountryShallowNode(country, p.countryTags)
+  )
 }
 
 /**

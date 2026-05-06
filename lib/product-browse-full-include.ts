@@ -25,6 +25,14 @@ export const PRODUCT_BROWSE_FULL_INCLUDE = {
   brand: {
     select: { brandKey: true, displayName: true },
   },
+  /** G-3: browse·트리 다국가 OR — 최소 필드만 */
+  countryTags: {
+    select: {
+      countryKey: true,
+      nodeKey: true,
+      groupKey: true,
+    },
+  },
   _count: {
     select: { optionalTours: true },
   },
