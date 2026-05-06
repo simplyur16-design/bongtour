@@ -381,7 +381,7 @@ async function applyMasterGeo(id: string, body: MasterBody, auditor: string) {
   })
 
   const bodyText = bodyTextFromSchedule(existing.schedule)
-  const normalizedIfRerun = normalizeProductGeoForPrisma({
+  const normalizedIfRerun = await normalizeProductGeoForPrisma(prisma, {
     title: existing.title ?? '',
     originSource: existing.originSource ?? '',
     destination: existing.destination,
@@ -601,7 +601,7 @@ async function applyLegacyTree(id: string, body: LegacyBody, auditor: string) {
   })
 
   const bodyText = bodyTextFromSchedule(existing.schedule)
-  const normalizedIfRerun = normalizeProductGeoForPrisma({
+  const normalizedIfRerun = await normalizeProductGeoForPrisma(prisma, {
     title: existing.title ?? '',
     originSource: existing.originSource ?? '',
     destination: existing.destination,

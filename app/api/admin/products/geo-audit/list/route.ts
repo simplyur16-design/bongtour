@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
+import { normalizeProductGeoTreePreview } from '@/lib/normalize-product-geo'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { mapTreeKeysToMasterKeys } from '@/lib/product-master-mapping'
 import { geoKeysMatch, productRowNeedsGeoAudit } from '../lib/shared'
@@ -100,7 +100,7 @@ export async function GET(req: Request) {
 
   const masterHints = slice.map((p) => {
     const bodyText = bodyTextFromSchedule(p.schedule)
-    const suggestion = normalizeProductGeoForPrisma({
+    const suggestion = normalizeProductGeoTreePreview({
       title: p.title ?? '',
       originSource: p.originSource ?? '',
       destination: p.destination,
@@ -138,7 +138,7 @@ export async function GET(req: Request) {
 
   const items = slice.map((p, i) => {
     const bodyText = bodyTextFromSchedule(p.schedule)
-    const suggestion = normalizeProductGeoForPrisma({
+    const suggestion = normalizeProductGeoTreePreview({
       title: p.title ?? '',
       originSource: p.originSource ?? '',
       destination: p.destination,

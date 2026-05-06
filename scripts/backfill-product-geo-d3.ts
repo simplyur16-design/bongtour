@@ -32,6 +32,8 @@ const GEO_FIELDS = [
   'nodeKey',
   'groupKey',
   'continent',
+  'continentKey',
+  'cityKey',
   'locationMatchConfidence',
   'locationMatchSource',
 ] as const
@@ -116,6 +118,8 @@ async function main() {
       nodeKey: true,
       groupKey: true,
       continent: true,
+      continentKey: true,
+      cityKey: true,
       locationMatchConfidence: true,
       locationMatchSource: true,
     },
@@ -131,7 +135,7 @@ async function main() {
     }
 
     const bodyText = bodyTextFromSchedule(r.schedule)
-    const next = normalizeProductGeoForPrisma({
+    const next = await normalizeProductGeoForPrisma(prisma, {
       title: r.title ?? '',
       originSource: r.originSource ?? '',
       destination: r.destination,

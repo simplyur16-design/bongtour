@@ -7,6 +7,11 @@ import {
 import { prisma } from '@/lib/prisma'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
+  detectMultiCountryAutoPlan,
+  multiCountryNeedsOperatorReview,
+  syncAutoMultiCountryTags,
+} from '@/lib/normalize-product-geo-master'
+import {
   buildBongtourProductTitleFieldsForRegisterPreview,
   productTitlePairForRegisterConfirm,
 } from '@/lib/bongtour-product-title-register-bridge'
@@ -1320,14 +1325,29 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     const registerPublicImageHeroSeoLineSingle = registerPublicImageHeroSeoKeywords?.length
       ? null
       : buildRegisterPublicImageHeroSeoLineCandidate(registerHeroSeoInput)
-    const geo = normalizeProductGeoForPrisma({
+    const geoInput = {
       title: titlePair.prismaTitle,
       originSource: effectiveOriginSource,
       destination: parsed.destination,
       destinationRaw: parsed.destinationRaw?.trim() || parsed.destination?.trim() || null,
       primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
       bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
-    })
+    }
+    const geo = await normalizeProductGeoForPrisma(prisma, geoInput)
+    const multiPlan = await detectMultiCountryAutoPlan(
+      prisma,
+      {
+        title: titlePair.prismaTitle,
+        primaryDestination: geoInput.primaryDestination,
+        destinationRaw: geoInput.destinationRaw,
+      },
+      geo.countryKey,
+    )
+    const registrationStatusForSave = multiCountryNeedsOperatorReview(multiPlan)
+      ? 'pending'
+      : existing?.registrationStatus === 'registered'
+        ? 'registered'
+        : 'pending'
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1357,7 +1377,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       counselingNotes: parsed.counselingNotes ? JSON.stringify(parsed.counselingNotes) : null,
       criticalExclusions: parsed.criticalExclusions ?? null,
       schedule: scheduleJson,
-      registrationStatus: 'pending',
+      registrationStatus: registrationStatusForSave,
       benefitSummary,
       promotionLabelsRaw,
       reservationNoticeRaw,
@@ -1419,6 +1439,12 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       productId = created.id
     }
     timing.mark('after-pending-save')
+
+    await syncAutoMultiCountryTags(prisma, productId, geo, {
+      title: titlePair.prismaTitle,
+      primaryDestination: geoInput.primaryDestination,
+      destinationRaw: geoInput.destinationRaw,
+    })
 
     const sortedPrices = [...(parsed.prices ?? [])].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()

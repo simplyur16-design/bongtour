@@ -44,6 +44,10 @@ export type ProductLocationKeyPrismaFields = {
   locationMatchSource: string | null
   /** 메가메뉴 탭 id 계열 (`inferBrowseGeoFromDestinationText`) */
   continent: string | null
+  /** I-6: `Continent.continentKey` — 마스터 보강 시 채움 */
+  continentKey: string | null
+  /** I-6: `City.cityKey` — 단일 도시 마스터 매칭 시만 */
+  cityKey: string | null
   /** 내부 추론값 — 저장 SSOT 한글은 `normalizeProductGeoForPrisma` 사용 */
   country: string | null
   city: string | null
@@ -266,6 +270,8 @@ export function deriveProductLocationKeyFieldsForPrisma(
     locationMatchConfidence: null,
     locationMatchSource: null,
     continent: null,
+    continentKey: null,
+    cityKey: null,
     country: null,
     city: null,
   }
@@ -368,6 +374,8 @@ export function deriveProductLocationKeyFieldsForPrisma(
       locationMatchConfidence: confidence,
       locationMatchSource: `overseas-tree:${m.scope}`,
       continent,
+      continentKey: null,
+      cityKey: null,
       country: browseGeo?.country ?? null,
       city: browseGeo?.city ?? null,
     }

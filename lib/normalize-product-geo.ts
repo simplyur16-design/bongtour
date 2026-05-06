@@ -1,19 +1,13 @@
 /**
  * D-3: 상품 지리 메타 단일 정규화 — 등록·재처리·백필 공통.
  * - `countryKey` / `nodeKey` / `groupKey` / `continent` / 신뢰도: `deriveProductLocationKeyFieldsForPrisma`와 동일
- * - `country` / `city`: browse·메가메뉴 Prisma 필터와 맞춘 **한글 SSOT** (`browse-country-url-resolve`)
- * - D-3-FIX: 표기(country/city 슬러그)는 트리 leaf·country 매칭과 정렬되며, 목적지 메타가 있을 때 일정 본문은 매칭에 섞지 않음(derive 쪽).
+ * - I-6: 마스터(Continent/Country/City) 조회로 `country`·`city` 한글 SSOT = **마스터 koreanLabel** 강제,
+ *   `continentKey`·`cityKey`(단일 도시)·canonical `countryKey` 보강 (`lib/normalize-product-geo-master.ts`).
  */
+import type { Prisma } from '@prisma/client'
 import { resolveProductCityToKoreanDisplay, resolveProductCountryToKoreanDisplay } from '@/lib/browse-country-url-resolve'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
-
-/** `resolveBrowseCountryParamToDbCountries`가 광역 슬러그를 미국·캐나다 등으로 접는 경우 — 메가메뉴 라벨 SSOT 유지 */
-const BROWSE_SLUG_PREFER_TREE_KR_LABEL = new Set([
-  'latin-caribbean',
-  'latin-america',
-  'latin-mexico',
-  'alaska-caribbean-cruise',
-])
+import { enrichPrismaGeoWithMasterLabels } from '@/lib/normalize-product-geo-master'
 import {
   deriveProductLocationKeyFieldsForPrisma,
   type ProductLocationKeyMatchInput,
@@ -21,11 +15,15 @@ import {
 } from '@/lib/product-location-key-match'
 export type { ProductLocationKeyMatchInput, ProductLocationKeyPrismaFields } from '@/lib/product-location-key-match'
 
-/**
- * 스크래퍼·관리자·업서트가 Product에 spread할 지리 필드(한글 country/city 포함).
- */
-export function normalizeProductGeoForPrisma(input: ProductLocationKeyMatchInput): ProductLocationKeyPrismaFields {
-  const d = deriveProductLocationKeyFieldsForPrisma(input)
+/** D-3-FIX browse 헬퍼 — 트리 미리보기·geo-audit 목록(트리 추천 패널)용, DB 조회 없음 */
+const BROWSE_SLUG_PREFER_TREE_KR_LABEL = new Set([
+  'latin-caribbean',
+  'latin-america',
+  'latin-mexico',
+  'alaska-caribbean-cruise',
+])
+
+function applyBrowseDisplayLabelsToDerived(d: ProductLocationKeyPrismaFields): ProductLocationKeyPrismaFields {
   const slugForKr = (d.countryKey ?? d.country ?? '').trim().toLowerCase()
   const fromResolve =
     resolveProductCountryToKoreanDisplay(d.country) ??
@@ -41,4 +39,23 @@ export function normalizeProductGeoForPrisma(input: ProductLocationKeyMatchInput
     country: countryKr,
     city: cityKr,
   }
+}
+
+/**
+ * 트리 SSOT + browse 한글 표기만 (마스터 FK·라벨 강제 없음). F-1 geo-audit 목록의 「D-3-FIX 추천(트리)」 패널용.
+ */
+export function normalizeProductGeoTreePreview(input: ProductLocationKeyMatchInput): ProductLocationKeyPrismaFields {
+  const d = deriveProductLocationKeyFieldsForPrisma(input)
+  return applyBrowseDisplayLabelsToDerived(d)
+}
+
+/**
+ * 스크래퍼·관리자·업서트가 Product에 spread할 지리 필드(한글 country/city = 마스터 라벨).
+ */
+export async function normalizeProductGeoForPrisma(
+  db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
+  input: ProductLocationKeyMatchInput,
+): Promise<ProductLocationKeyPrismaFields> {
+  const d = deriveProductLocationKeyFieldsForPrisma(input)
+  return enrichPrismaGeoWithMasterLabels(db, d)
 }
