@@ -44,6 +44,8 @@ type ListItem = {
   originUrl: string | null
   current: GeoBlock
   suggestion: GeoBlock
+  /** DB 마스터(Overseas*) 검증 — null 이면 마스터 미시드 또는 미검사 */
+  suggestionMasterOk: boolean | null
   suggestionMatchesKeys: boolean
   lastGeoAuditAt: string | null
   lastGeoAuditedBy: string | null
@@ -58,6 +60,7 @@ type ListResponse = {
   limit: number
   totalPages: number
   includeSkipped: boolean
+  overseasMasterReady?: boolean
 }
 
 type FlatPick = {
@@ -121,7 +124,8 @@ function GeoBlockView({ label, g }: { label: string; g: GeoBlock }) {
 }
 
 export default function GeoAuditPage() {
-  const flatPicks = useMemo(() => flattenTree(OVERSEAS_LOCATION_TREE_CLEAN), [])
+  const [selectorTree, setSelectorTree] = useState<OverseasRegionGroupNode[]>(OVERSEAS_LOCATION_TREE_CLEAN)
+  const flatPicks = useMemo(() => flattenTree(selectorTree), [selectorTree])
   const [page, setPage] = useState(1)
   const [limit] = useState(25)
   const [includeSkipped, setIncludeSkipped] = useState(false)
@@ -170,6 +174,25 @@ export default function GeoAuditPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const r = await fetch('/api/admin/overseas-tree', { credentials: 'include' })
+        if (!r.ok || cancelled) return
+        const j = (await r.json()) as { tree?: OverseasRegionGroupNode[] }
+        if (Array.isArray(j.tree) && j.tree.length > 0 && !cancelled) {
+          setSelectorTree(j.tree)
+        }
+      } catch {
+        /* 코드 SSOT 트리 유지 */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const selected = data?.items.find((x) => x.id === selectedId) ?? null
 
@@ -249,7 +272,9 @@ export default function GeoAuditPage() {
       })
       const j = await r.json().catch(() => ({}))
       if (!r.ok) {
-        setApplyMsg(typeof j.error === 'string' ? j.error : `적용 실패 (${r.status})`)
+        const err = typeof j.error === 'string' ? j.error : `적용 실패 (${r.status})`
+        const reason = typeof (j as { reason?: unknown }).reason === 'string' ? String((j as { reason: string }).reason) : ''
+        setApplyMsg(reason ? `${err}: ${reason}` : err)
         return
       }
       const sec = typeof j.secondaryTagsApplied === 'number' ? j.secondaryTagsApplied : 0
@@ -300,8 +325,15 @@ export default function GeoAuditPage() {
     <div className="mx-auto max-w-[1600px] space-y-6">
       <AdminPageHeader
         title="상품 지리 정규화 검수"
-        subtitle="등록 완료 해외 상품 중 키·표기가 비어 있거나 영문 슬러그인 행만 표시합니다. 대표(primary)는 Product 단일 컬럼으로 저장하고, 실제 방문국이 여러 개이면 보조 태그로 추가하면 Browse·메가메뉴 OR에 반영됩니다. 자동 추천은 참고용이며 자동 저장되지 않습니다."
+        subtitle="등록 완료 해외 상품 중 키·표기가 비어 있거나 영문 슬러그인 행만 표시합니다. 적용(Apply)은 DB 마스터(OverseasGroup/Country/Node) 검증을 통과해야 하며, 트리 선택 UI는 마스터가 있으면 API에서 불러옵니다. 자동 추천은 참고용이며 자동 저장되지 않습니다."
       />
+
+      {data?.overseasMasterReady === false && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          DB에 해외 마스터(OverseasCountry)가 없습니다. 시드 후 적용 버튼이 동작합니다:{' '}
+          <code className="rounded bg-white px-1">npm run seed:overseas-tree:apply</code>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <label className="flex items-center gap-2">
@@ -347,7 +379,13 @@ export default function GeoAuditPage() {
                       row.id === selectedId
                         ? 'border-bt-brand-blue bg-bt-brand-blue-soft'
                         : 'border-transparent hover:bg-bt-surface-soft'
-                    } ${titleSuggestsMultiCountry(row.title) ? 'border-l-4 border-l-amber-400 pl-1.5' : ''}`}
+                    } ${
+                      row.suggestionMasterOk === false
+                        ? 'border-l-4 border-l-red-500 pl-1.5'
+                        : titleSuggestsMultiCountry(row.title)
+                          ? 'border-l-4 border-l-amber-400 pl-1.5'
+                          : ''
+                    }`}
                   >
                     <div className="truncate font-medium text-bt-title">{row.title}</div>
                     <div className="truncate text-xs text-bt-muted">
@@ -361,6 +399,11 @@ export default function GeoAuditPage() {
                     {titleSuggestsMultiCountry(row.title) && (
                       <span className="mt-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-950">
                         다국가 문구 감지
+                      </span>
+                    )}
+                    {row.suggestionMasterOk === false && (
+                      <span className="mt-1 inline-block rounded bg-red-100 px-1.5 py-0.5 text-[10px] text-red-900">
+                        추천·마스터 불일치
                       </span>
                     )}
                   </button>
@@ -437,6 +480,12 @@ export default function GeoAuditPage() {
                 <GeoBlockView label="현재 DB" g={selected.current} />
                 <GeoBlockView label="D-3-FIX 추천 (자동 적용 안 함)" g={selected.suggestion} />
               </div>
+
+              {selected.suggestionMasterOk === false && (
+                <div className="rounded-lg border border-red-200 bg-red-50/90 px-4 py-3 text-sm text-red-900">
+                  이 행의 D-3-FIX 추천 키 조합이 DB 마스터(Overseas*)와 맞지 않습니다. 트리 시드·상품 키를 점검하세요.
+                </div>
+              )}
 
               {titleSuggestsMultiCountry(selected.title) && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950 shadow-sm">

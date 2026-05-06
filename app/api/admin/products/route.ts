@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { itineraryDescriptionsBlob } from '@/lib/product-location-key-match'
-import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
+import { normalizeProductGeoForPrismaWithMaster } from '@/lib/normalize-product-geo'
+import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import { requireAdmin } from '@/lib/require-admin'
 import { mapToParsedProductForDB } from '@/lib/map-to-parsed-product'
 import type { ExtractedProduct } from '@/lib/extraction-schema'
@@ -80,7 +81,7 @@ export async function GET() {
   }
 }
 
-function productToUpdateData(parsed: ParsedProductForDB) {
+async function productToUpdateData(parsed: ParsedProductForDB, travelScope: string | null) {
   const schedule =
     parsed.itineraries?.length > 0
       ? JSON.stringify(
@@ -93,6 +94,19 @@ function productToUpdateData(parsed: ParsedProductForDB) {
           }))
         )
       : null
+
+  const geo = await normalizeProductGeoForPrismaWithMaster(
+    prisma,
+    {
+      title: parsed.title?.trim() || '상품명 없음',
+      originSource: parsed.originSource?.trim() || '직접입력',
+      destination: parsed.destination?.trim() || undefined,
+      destinationRaw: parsed.destinationRaw?.trim() || null,
+      primaryDestination: parsed.primaryDestination?.trim() || null,
+      bodyText: itineraryDescriptionsBlob(parsed.itineraries),
+    },
+    { travelScope },
+  )
 
   return {
     originSource: parsed.originSource?.trim() || '직접입력',
@@ -119,14 +133,7 @@ function productToUpdateData(parsed: ParsedProductForDB) {
     criticalExclusions: parsed.criticalExclusions ?? null,
     schedule,
     registrationStatus: 'pending' as const,
-    ...normalizeProductGeoForPrisma({
-      title: parsed.title?.trim() || '상품명 없음',
-      originSource: parsed.originSource?.trim() || '직접입력',
-      destination: parsed.destination?.trim() || undefined,
-      destinationRaw: parsed.destinationRaw?.trim() || null,
-      primaryDestination: parsed.primaryDestination?.trim() || null,
-      bodyText: itineraryDescriptionsBlob(parsed.itineraries),
-    }),
+    ...geo,
   }
 }
 
@@ -148,6 +155,7 @@ export async function POST(request: Request) {
       organizerName?: string
       primaryDestination?: string
       brandKey?: string
+      travelScope?: string
     }
 
     const product: ExtractedProduct = { ...body }
@@ -208,8 +216,11 @@ export async function POST(request: Request) {
       },
     })
 
+    const { travelScope: scopeForGeo } = travelScopeAndListingKindFromAdminRegister(
+      typeof body.travelScope === 'string' ? body.travelScope : null,
+    )
     const updateData = {
-      ...productToUpdateData(parsed),
+      ...(await productToUpdateData(parsed, scopeForGeo)),
       ...(brandId != null && { brandId }),
     }
     let productId: string

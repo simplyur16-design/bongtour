@@ -5,7 +5,7 @@ import {
   SupplierRouteMismatchError,
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
-import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
+import { normalizeProductGeoForPrismaWithMaster } from '@/lib/normalize-product-geo'
 import {
   buildBongtourProductTitleFieldsForRegisterPreview,
   productTitlePairForRegisterConfirm,
@@ -1442,6 +1442,18 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     const registerPublicImageHeroSeoLineSingle = registerPublicImageHeroSeoKeywords?.length
       ? null
       : buildRegisterPublicImageHeroSeoLineCandidate(registerHeroSeoInput)
+    const geo = await normalizeProductGeoForPrismaWithMaster(
+      prisma,
+      {
+        title: titlePair.prismaTitle,
+        originSource: effectiveOriginSource,
+        destination: parsed.destination,
+        destinationRaw: parsed.destinationRaw?.trim() || parsed.destination?.trim() || null,
+        primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
+        bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
+      },
+      { travelScope: registerListingMeta.travelScope },
+    )
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1505,14 +1517,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
           ? registerPublicImageHeroSeoLineSingle.slice(0, 128)
           : null,
       ...registerListingMeta,
-      ...normalizeProductGeoForPrisma({
-        title: titlePair.prismaTitle,
-        originSource: effectiveOriginSource,
-        destination: parsed.destination,
-        destinationRaw: parsed.destinationRaw?.trim() || parsed.destination?.trim() || null,
-        primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
-        bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
-      }),
+      ...geo,
       localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
     }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
+import { normalizeProductGeoForPrismaWithMaster } from '@/lib/normalize-product-geo'
 import { requireAdmin } from '@/lib/require-admin'
 import type { ParsedProductForDB } from '@/lib/parsed-product-types'
 
@@ -64,6 +64,19 @@ export async function POST(request: Request) {
       )
     }
 
+    const geo = await normalizeProductGeoForPrismaWithMaster(
+      prisma,
+      {
+        title: title.trim(),
+        originSource: originSource?.trim() || '직접입력',
+        destination: destination.trim(),
+        destinationRaw: null,
+        primaryDestination: null,
+        bodyText: null,
+      },
+      { travelScope: 'overseas' },
+    )
+
     const product = await prisma.product.create({
       data: {
         originSource: originSource?.trim() || '직접입력',
@@ -78,14 +91,7 @@ export async function POST(request: Request) {
         mandatoryCurrency: mandatoryCurrency ?? null,
         includedText: includedText ?? null,
         excludedText: excludedText ?? null,
-        ...normalizeProductGeoForPrisma({
-          title: title.trim(),
-          originSource: originSource?.trim() || '직접입력',
-          destination: destination.trim(),
-          destinationRaw: null,
-          primaryDestination: null,
-          bodyText: null,
-        }),
+        ...geo,
       },
     })
 

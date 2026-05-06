@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { itineraryDescriptionsBlob } from '@/lib/product-location-key-match'
-import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
+import { normalizeProductGeoForPrismaWithMaster } from '@/lib/normalize-product-geo'
 import { requireAdmin } from '@/lib/require-admin'
 import { extractTravelProductForDB } from '@/lib/travel-parse'
 import type { ParsedProductForDB } from '@/lib/parsed-product-types'
@@ -117,14 +117,16 @@ export async function POST(request: Request) {
       },
       select: {
         id: true,
+        travelScope: true,
         brand: { select: { brandKey: true } },
       },
     })
 
     let productId: string
 
+    const travelScopeForGeo = existing?.travelScope ?? 'overseas'
     const updateData = {
-      ...productToUpdateData(parsed),
+      ...(await productToUpdateData(parsed, travelScopeForGeo)),
       ...(brandId != null && { brandId }),
     }
     if (existing) {
@@ -243,7 +245,7 @@ export async function POST(request: Request) {
 }
 
 /** [일정 SSOT] Product.schedule 작성 규칙: 배열 항목은 day(필수), description(필수), title/imageKeyword/imageUrl(선택). process-images가 나중에 imageUrl 채움. */
-function productToUpdateData(parsed: ParsedProductForDB) {
+async function productToUpdateData(parsed: ParsedProductForDB, travelScope: string | null) {
   const schedule =
     parsed.itineraries?.length > 0
       ? JSON.stringify(
@@ -256,6 +258,19 @@ function productToUpdateData(parsed: ParsedProductForDB) {
           }))
         )
       : null
+
+  const geo = await normalizeProductGeoForPrismaWithMaster(
+    prisma,
+    {
+      title: parsed.title?.trim() || '상품명 없음',
+      originSource: parsed.originSource?.trim() || '직접입력',
+      destination: parsed.destination?.trim() || undefined,
+      destinationRaw: parsed.destinationRaw?.trim() || null,
+      primaryDestination: parsed.primaryDestination?.trim() || null,
+      bodyText: itineraryDescriptionsBlob(parsed.itineraries),
+    },
+    { travelScope },
+  )
 
   return {
     originSource: parsed.originSource?.trim() || '직접입력',
@@ -278,13 +293,6 @@ function productToUpdateData(parsed: ParsedProductForDB) {
     criticalExclusions: parsed.criticalExclusions ?? null,
     schedule,
     registrationStatus: 'pending' as const,
-    ...normalizeProductGeoForPrisma({
-      title: parsed.title?.trim() || '상품명 없음',
-      originSource: parsed.originSource?.trim() || '직접입력',
-      destination: parsed.destination?.trim() || undefined,
-      destinationRaw: parsed.destinationRaw?.trim() || null,
-      primaryDestination: parsed.primaryDestination?.trim() || null,
-      bodyText: itineraryDescriptionsBlob(parsed.itineraries),
-    }),
+    ...geo,
   }
 }

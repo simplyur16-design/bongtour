@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
+import { normalizeProductGeoForPrismaWithMaster } from '@/lib/normalize-product-geo'
+import { validateOverseasGeoFromMaster } from '@/lib/overseas-master-validation'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { findGroupKeyForCountryKey } from '@/lib/overseas-location-tree'
-import { geoKeysMatch, resolveGeoFromTreeSelection, type ResolvedGeoPatch, type TreeSelectionInput } from '../lib/shared'
+import { geoKeysMatch, type ResolvedGeoPatch, type TreeSelectionInput } from '../lib/shared'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,9 +26,14 @@ function normalizeNodeKeyInput(v: unknown): string | null {
   return t || null
 }
 
-/** G-4: 보조 태그 행 검증·정규화 (트리에 없는 조합 제외) */
-function parseSecondaryEntries(raw: unknown): Array<{ groupKey: string; countryKey: string; nodeKey: string | null }> {
-  if (!Array.isArray(raw)) return []
+/** G-4: 보조 태그 — DB 마스터(Overseas*)로만 검증 */
+async function parseSecondaryEntries(
+  raw: unknown,
+): Promise<
+  | { ok: true; rows: Array<{ groupKey: string; countryKey: string; nodeKey: string | null }> }
+  | { ok: false; reason: string }
+> {
+  if (!Array.isArray(raw)) return { ok: true, rows: [] }
   const out: Array<{ groupKey: string; countryKey: string; nodeKey: string | null }> = []
   const seen = new Set<string>()
   for (const row of raw) {
@@ -36,21 +42,21 @@ function parseSecondaryEntries(raw: unknown): Array<{ groupKey: string; countryK
     const countryKey = typeof o.countryKey === 'string' ? o.countryKey.trim() : ''
     if (!countryKey) continue
     const gkRaw = typeof o.groupKey === 'string' ? o.groupKey.trim() : ''
-    const groupKey = gkRaw || findGroupKeyForCountryKey(countryKey)
-    if (!groupKey) continue
+    const groupKey = gkRaw || findGroupKeyForCountryKey(countryKey) || ''
+    if (!groupKey) return { ok: false, reason: 'secondary:missing_group' }
     const nodeKey = normalizeNodeKeyInput(o.nodeKey)
-    const patch = resolveGeoFromTreeSelection({ groupKey, countryKey, nodeKey })
-    if (!patch) continue
-    const key = `${patch.groupKey}|${patch.countryKey}|${patch.nodeKey ?? ''}`
+    const v = await validateOverseasGeoFromMaster(prisma, { groupKey, countryKey, nodeKey })
+    if (!v.ok) return { ok: false, reason: v.reason }
+    const key = `${v.resolved.groupKey}|${v.resolved.countryKey}|${v.resolved.nodeKey ?? ''}`
     if (seen.has(key)) continue
     seen.add(key)
     out.push({
-      groupKey: patch.groupKey,
-      countryKey: patch.countryKey,
-      nodeKey: patch.nodeKey,
+      groupKey: v.resolved.groupKey,
+      countryKey: v.resolved.countryKey,
+      nodeKey: v.resolved.nodeKey,
     })
   }
-  return out
+  return { ok: true, rows: out }
 }
 
 function geoTuple(p: { groupKey: string; countryKey: string; nodeKey: string | null }) {
@@ -71,6 +77,16 @@ type Body = {
 export async function POST(req: Request) {
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  if ((await prisma.overseasCountry.count()) === 0) {
+    return NextResponse.json(
+      {
+        error: 'overseas_master_empty',
+        reason: 'DB에 OverseasCountry 행이 없습니다. `npm run seed:overseas-tree:apply` 후 다시 시도하세요.',
+      },
+      { status: 400 },
+    )
+  }
 
   let body: Body
   try {
@@ -107,10 +123,33 @@ export async function POST(req: Request) {
     primaryInput = { groupKey, countryKey, nodeKey }
   }
 
-  const secondariesRaw = parseSecondaryEntries(body.secondary)
-  const patch = resolveGeoFromTreeSelection(primaryInput)
-  if (!patch) {
-    return NextResponse.json({ error: 'invalid_tree_selection' }, { status: 400 })
+  const secParsed = await parseSecondaryEntries(body.secondary)
+  if (!secParsed.ok) {
+    return NextResponse.json(
+      { error: 'master_validation_failed', reason: secParsed.reason },
+      { status: 400 },
+    )
+  }
+  const secondariesRaw = secParsed.rows
+
+  const pri = await validateOverseasGeoFromMaster(prisma, {
+    groupKey: primaryInput.groupKey,
+    countryKey: primaryInput.countryKey,
+    nodeKey: primaryInput.nodeKey,
+  })
+  if (!pri.ok) {
+    return NextResponse.json({ error: 'master_validation_failed', reason: pri.reason }, { status: 400 })
+  }
+  const r0 = pri.resolved
+  const patch: ResolvedGeoPatch = {
+    continent: r0.continent,
+    groupKey: r0.groupKey,
+    countryKey: r0.countryKey,
+    nodeKey: r0.nodeKey,
+    country: r0.country,
+    city: r0.city,
+    locationMatchConfidence: r0.nodeKey ? 'high' : 'medium',
+    locationMatchSource: 'geo-audit:manual',
   }
 
   const primaryTuple = geoTuple({
@@ -139,6 +178,7 @@ export async function POST(req: Request) {
       continent: true,
       locationMatchConfidence: true,
       locationMatchSource: true,
+      travelScope: true,
     },
   })
 
@@ -233,16 +273,21 @@ export async function POST(req: Request) {
   })
 
   const bodyText = bodyTextFromSchedule(existing.schedule)
-  const normalizedIfRerun = normalizeProductGeoForPrisma({
-    title: existing.title ?? '',
-    originSource: existing.originSource ?? '',
-    destination: existing.destination,
-    destinationRaw: existing.destinationRaw,
-    primaryDestination: existing.primaryDestination,
-    bodyText,
-    browseHintCountry: patch.country,
-    browseHintCity: patch.city,
-  })
+  const travelScope = existing.travelScope ?? 'overseas'
+  const normalizedIfRerun = await normalizeProductGeoForPrismaWithMaster(
+    prisma,
+    {
+      title: existing.title ?? '',
+      originSource: existing.originSource ?? '',
+      destination: existing.destination,
+      destinationRaw: existing.destinationRaw,
+      primaryDestination: existing.primaryDestination,
+      bodyText,
+      browseHintCountry: patch.country,
+      browseHintCity: patch.city,
+    },
+    { travelScope },
+  )
 
   const normalizeWouldMatchApplied = geoKeysMatch(
     {
