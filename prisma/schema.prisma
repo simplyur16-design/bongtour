@@ -174,6 +174,15 @@ model Product {
   /// 대표 이미지 좌측 SEO 키워드 2~3개(JSON 문자열 배열). 있으면 공개 시 이 값을 1순위로 합쳐 표시.
   publicImageHeroSeoKeywordsJson String?
 
+  /// F-1 geo-audit: 운영자 수동 지리 정규화 적용 시각
+  lastGeoAuditAt        DateTime?
+  /// F-1: 적용 주체(세션 id·이메일 등)
+  lastGeoAuditedBy      String?
+  /// F-1: 보류 시각 — 기본 목록에서 제외(쿼리로 다시 표시 가능)
+  geoAuditSkippedAt     DateTime?
+  /// F-1: 최근 1건 JSON `{ action, before, after, at, by }`
+  geoAuditLastPatchJson String?
+
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
