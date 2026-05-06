@@ -258,23 +258,15 @@ async function applyMasterGeo(id: string, body: MasterBody, auditor: string) {
     }
   }
 
-  const pgk = findGroupKeyForCountryKey(countryKey)
-  if (!pgk) {
-    return NextResponse.json({ error: 'validation_failed', reason: 'primary_group_unresolved' }, { status: 400 })
-  }
-  for (const s of secondaries) {
-    if (!findGroupKeyForCountryKey(s.countryKey)) {
-      return NextResponse.json(
-        { error: 'validation_failed', reason: `secondary_group_unresolved:${s.countryKey}` },
-        { status: 400 },
-      )
-    }
-  }
-
   const tree = deriveTreeGeoFromMasterPrimary(countryKey, cityKey)
-  const groupKey = tree.groupKey ?? existing.groupKey
-  const nodeKey = tree.nodeKey
-  const continent = tree.continent ?? existing.continent
+  const treeResolved = tree.groupKey != null
+  if (!treeResolved) {
+    console.warn('[geo-audit:apply] master→tree unresolved (primary)', { id, countryKey, cityKey })
+  }
+  // 트리 매핑 성공 시에만 트리 컬럼 갱신; 실패 시 기존 값 유지 (마스터 키·한글은 아래 after에서 항상 반영)
+  const groupKey = treeResolved ? tree.groupKey : existing.groupKey
+  const nodeKey = treeResolved ? tree.nodeKey : existing.nodeKey
+  const continent = treeResolved ? (tree.continent ?? existing.continent) : existing.continent
 
   const after = {
     continentKey,
@@ -304,13 +296,19 @@ async function applyMasterGeo(id: string, body: MasterBody, auditor: string) {
       productId: id,
       countryKey,
       nodeKey,
-      groupKey: pgk,
+      groupKey,
       isPrimary: true,
       sortOrder: 0,
     })
     for (let i = 0; i < secondaries.length; i++) {
       const s = secondaries[i]!
-      const gk = findGroupKeyForCountryKey(s.countryKey)!
+      const gk = findGroupKeyForCountryKey(s.countryKey)
+      if (!gk) {
+        console.warn('[geo-audit:apply] master→tree unresolved (secondary country tag)', {
+          id,
+          countryKey: s.countryKey,
+        })
+      }
       countryTagRows.push({
         productId: id,
         countryKey: s.countryKey,
