@@ -52,6 +52,10 @@ model Product {
   countryKey               String?
   nodeKey                  String?
   groupKey                 String?
+  /// I-3: SSOT Continent.continentKey FK (메가메뉴·필터). 트리 groupKey와 별개.
+  continentKey             String?
+  /// I-3: SSOT City.cityKey FK. 트리 nodeKey·browse `city`와 별개일 수 있음.
+  cityKey                  String?
   locationMatchConfidence  String?
   locationMatchSource      String?
   duration                 String? // 여행기간 (예: 3박4일)
@@ -117,6 +121,8 @@ model Product {
   countryTags              ProductCountryTag[]
   /// I-1: 다도시 태그 (cityKey → I-3에서 City FK)
   cityTags                 ProductCityTag[]
+  continentMaster          Continent?            @relation("ProductContinentMaster", fields: [continentKey], references: [continentKey], onDelete: Restrict, onUpdate: Cascade)
+  masterCity               City?                 @relation("ProductMasterCity", fields: [cityKey], references: [cityKey], onDelete: Restrict, onUpdate: Cascade)
   brand                    Brand?                @relation(fields: [brandId], references: [id])
   brandId                  String? // 여행사 구분 (하나투어/모두투어/추가 여행사)
 
@@ -192,6 +198,8 @@ model Product {
 
   @@unique([originSource, originCode])
   @@index([registrationStatus, updatedAt])
+  @@index([continentKey])
+  @@index([cityKey])
 }
 
 model OptionalTour {
@@ -883,6 +891,7 @@ model Continent {
   updatedAt    DateTime          @default(now()) @updatedAt
   countries    Country[]
   megaMenuCards MegaMenuGroupCard[]
+  productsContinentMaster Product[] @relation("ProductContinentMaster")
 }
 
 model Country {
@@ -912,6 +921,7 @@ model City {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
   megaMenuCardCities MegaMenuGroupCardCity[]
+  productsMasterCity Product[] @relation("ProductMasterCity")
 
   @@index([countryKey])
 }
