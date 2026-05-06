@@ -38,6 +38,8 @@
     "verify:public-leaks": "npx tsx scripts/verify-public-api-leak-guards.ts",
     "verify:prisma-runtime-policy": "npx tsx scripts/verify-prisma-runtime-policy.ts",
     "backfill:product-geo:d3": "npx tsx scripts/backfill-product-geo-d3.ts",
+    "seed:master": "npx tsx scripts/seed-master-data.ts",
+    "seed:master:apply": "npx tsx scripts/seed-master-data.ts --apply",
     "verify:rate-limit-store": "npx tsx scripts/verify-rate-limit-store.ts",
     "verify:departure-price-collect-ui": "npx tsx tools/verify-departure-price-collect-ui.ts",
     "verify:hotel-meal-display": "npx tsx scripts/verify-hotel-meal-display.ts",
