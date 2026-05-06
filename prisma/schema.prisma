@@ -854,6 +854,47 @@ model ProductCountryTag {
   @@index([groupKey])
 }
 
+// -----------------------------------------------------------------------------
+// H-1/H-2: 해외 목적지 DB 마스터 (코드 트리 시드 SSOT, Product FK는 별도 트랙)
+// -----------------------------------------------------------------------------
+
+model OverseasGroup {
+  groupKey     String            @id
+  koreanLabel  String
+  continent    String
+  sortOrder    Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @default(now()) @updatedAt
+  countries    OverseasCountry[]
+}
+
+model OverseasCountry {
+  countryKey   String         @id
+  groupKey     String
+  koreanLabel  String
+  sortOrder    Int            @default(0)
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+  group        OverseasGroup  @relation(fields: [groupKey], references: [groupKey], onDelete: Restrict, onUpdate: Cascade)
+  nodes        OverseasNode[]
+
+  @@index([groupKey])
+}
+
+model OverseasNode {
+  nodeKey     String          @id
+  countryKey  String
+  koreanLabel String
+  sortOrder   Int             @default(0)
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now()) @updatedAt
+  country     OverseasCountry @relation(fields: [countryKey], references: [countryKey], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([countryKey])
+}
+
 /// 가볼 곳 카드
 model BongSpot {
   id              String             @id @default(cuid())
