@@ -6,7 +6,7 @@ import {
 } from '@/lib/assert-supplier-route-match'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { prisma } from '@/lib/prisma'
-import { normalizeProductGeoForPrismaWithMaster } from '@/lib/normalize-product-geo'
+import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
   buildBongtourProductTitleFieldsForRegisterPreview,
   productTitlePairForRegisterConfirm,
@@ -1446,18 +1446,14 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     const registerPublicImageHeroSeoLineSingle = registerPublicImageHeroSeoKeywords?.length
       ? null
       : buildRegisterPublicImageHeroSeoLineCandidate(registerHeroSeoInput)
-    const geo = await normalizeProductGeoForPrismaWithMaster(
-      prisma,
-      {
-        title: titlePair.prismaTitle,
-        originSource: effectiveOriginSource,
-        destination: parsed.destination,
-        destinationRaw: parsed.destinationRaw?.trim() || parsed.destination?.trim() || null,
-        primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
-        bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
-      },
-      { travelScope: registerListingMeta.travelScope },
-    )
+    const geo = normalizeProductGeoForPrisma({
+      title: titlePair.prismaTitle,
+      originSource: effectiveOriginSource,
+      destination: parsed.destination,
+      destinationRaw: parsed.destinationRaw?.trim() || parsed.destination?.trim() || null,
+      primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
+      bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
+    })
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,

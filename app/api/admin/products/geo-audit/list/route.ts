@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
-import { validateOverseasGeoFromMaster } from '@/lib/overseas-master-validation'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { geoKeysMatch, productRowNeedsGeoAudit } from '../lib/shared'
 
@@ -72,96 +71,76 @@ export async function GET(req: Request) {
   const auditRows = all.filter(productRowNeedsGeoAudit)
   const total = auditRows.length
   const slice = auditRows.slice((page - 1) * limit, page * limit)
-  const masterReady = (await prisma.overseasCountry.count()) > 0
 
-  const items = await Promise.all(
-    slice.map(async (p) => {
-      const bodyText = bodyTextFromSchedule(p.schedule)
-      const suggestion = normalizeProductGeoForPrisma({
-        title: p.title ?? '',
-        originSource: p.originSource ?? '',
-        destination: p.destination,
-        destinationRaw: p.destinationRaw,
-        primaryDestination: p.primaryDestination,
-        bodyText,
-        browseHintCountry: p.country,
-        browseHintCity: p.city,
-      })
+  const items = slice.map((p) => {
+    const bodyText = bodyTextFromSchedule(p.schedule)
+    const suggestion = normalizeProductGeoForPrisma({
+      title: p.title ?? '',
+      originSource: p.originSource ?? '',
+      destination: p.destination,
+      destinationRaw: p.destinationRaw,
+      primaryDestination: p.primaryDestination,
+      bodyText,
+      browseHintCountry: p.country,
+      browseHintCity: p.city,
+    })
 
-      let suggestionMasterOk: boolean | null = null
-      if (masterReady) {
-        const gk = (suggestion.groupKey ?? '').trim()
-        const ck = (suggestion.countryKey ?? '').trim()
-        if (!gk || !ck) {
-          suggestionMasterOk = false
-        } else {
-          const mv = await validateOverseasGeoFromMaster(prisma, {
-            groupKey: gk,
-            countryKey: ck,
-            nodeKey: suggestion.nodeKey,
-          })
-          suggestionMasterOk = mv.ok
-        }
-      }
+    const suggestionMatchesKeys = geoKeysMatch(
+      {
+        countryKey: p.countryKey,
+        nodeKey: p.nodeKey,
+        groupKey: p.groupKey,
+        continent: p.continent,
+      },
+      {
+        countryKey: suggestion.countryKey,
+        nodeKey: suggestion.nodeKey,
+        groupKey: suggestion.groupKey,
+        continent: suggestion.continent,
+      },
+    )
 
-      const suggestionMatchesKeys = geoKeysMatch(
-        {
-          countryKey: p.countryKey,
-          nodeKey: p.nodeKey,
-          groupKey: p.groupKey,
-          continent: p.continent,
-        },
-        {
-          countryKey: suggestion.countryKey,
-          nodeKey: suggestion.nodeKey,
-          groupKey: suggestion.groupKey,
-          continent: suggestion.continent,
-        },
-      )
-
-      return {
-        id: p.id,
-        originSource: p.originSource,
-        title: p.title,
-        destinationRaw: p.destinationRaw,
-        primaryDestination: p.primaryDestination,
-        destination: p.destination,
-        originUrl: p.originUrl,
-        current: {
-          country: p.country,
-          city: p.city,
-          countryKey: p.countryKey,
-          nodeKey: p.nodeKey,
-          groupKey: p.groupKey,
-          continent: p.continent,
-          locationMatchConfidence: p.locationMatchConfidence,
-          locationMatchSource: p.locationMatchSource,
-        },
-        suggestion: {
-          country: suggestion.country,
-          city: suggestion.city,
-          countryKey: suggestion.countryKey,
-          nodeKey: suggestion.nodeKey,
-          groupKey: suggestion.groupKey,
-          continent: suggestion.continent,
-          locationMatchConfidence: suggestion.locationMatchConfidence,
-          locationMatchSource: suggestion.locationMatchSource,
-        },
-        suggestionMasterOk,
-        suggestionMatchesKeys,
-        lastGeoAuditAt: p.lastGeoAuditAt?.toISOString() ?? null,
-        lastGeoAuditedBy: p.lastGeoAuditedBy,
-        geoAuditSkippedAt: p.geoAuditSkippedAt?.toISOString() ?? null,
-        countryTags: (p.countryTags ?? []).map((t) => ({
-          countryKey: t.countryKey,
-          nodeKey: t.nodeKey,
-          groupKey: t.groupKey,
-          isPrimary: t.isPrimary,
-          sortOrder: t.sortOrder,
-        })),
-      }
-    }),
-  )
+    return {
+      id: p.id,
+      originSource: p.originSource,
+      title: p.title,
+      destinationRaw: p.destinationRaw,
+      primaryDestination: p.primaryDestination,
+      destination: p.destination,
+      originUrl: p.originUrl,
+      current: {
+        country: p.country,
+        city: p.city,
+        countryKey: p.countryKey,
+        nodeKey: p.nodeKey,
+        groupKey: p.groupKey,
+        continent: p.continent,
+        locationMatchConfidence: p.locationMatchConfidence,
+        locationMatchSource: p.locationMatchSource,
+      },
+      suggestion: {
+        country: suggestion.country,
+        city: suggestion.city,
+        countryKey: suggestion.countryKey,
+        nodeKey: suggestion.nodeKey,
+        groupKey: suggestion.groupKey,
+        continent: suggestion.continent,
+        locationMatchConfidence: suggestion.locationMatchConfidence,
+        locationMatchSource: suggestion.locationMatchSource,
+      },
+      suggestionMatchesKeys,
+      lastGeoAuditAt: p.lastGeoAuditAt?.toISOString() ?? null,
+      lastGeoAuditedBy: p.lastGeoAuditedBy,
+      geoAuditSkippedAt: p.geoAuditSkippedAt?.toISOString() ?? null,
+      countryTags: (p.countryTags ?? []).map((t) => ({
+        countryKey: t.countryKey,
+        nodeKey: t.nodeKey,
+        groupKey: t.groupKey,
+        isPrimary: t.isPrimary,
+        sortOrder: t.sortOrder,
+      })),
+    }
+  })
 
   return NextResponse.json({
     items,
@@ -170,6 +149,5 @@ export async function GET(req: Request) {
     limit,
     totalPages: Math.max(1, Math.ceil(total / limit)),
     includeSkipped,
-    overseasMasterReady: masterReady,
   })
 }
