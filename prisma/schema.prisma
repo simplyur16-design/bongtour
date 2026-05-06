@@ -113,6 +113,8 @@ model Product {
   assetUsageLogs        AssetUsageLog[]
   /// 가볼 곳(BongSpot)과 다대다 — 조인 `ProductBongSpot`
   bongSpots             ProductBongSpot[] @relation("ProductBongSpots")
+  /// G-2: 다국가·트리 browse 보조 태그 (대표 geo는 Product 단일 필드 유지, 옵션 C)
+  countryTags           ProductCountryTag[]
   brand                 Brand?         @relation(fields: [brandId], references: [id])
   brandId               String?        // 여행사 구분 (하나투어/모두투어/추가 여행사)
 
@@ -833,6 +835,23 @@ model ProductBongSpot {
 
   @@unique([productId, bongSpotId])
   @@index([bongSpotId])
+}
+
+/// G-2: 상품 ↔ 국가·노드 키 보조 태그 (primary는 Product.countryKey/nodeKey 등 단일 필드)
+model ProductCountryTag {
+  id          String   @id @default(cuid())
+  productId   String
+  countryKey  String
+  nodeKey     String?
+  groupKey    String?
+  isPrimary   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([countryKey, nodeKey])
+  @@index([groupKey])
 }
 
 /// 가볼 곳 카드
