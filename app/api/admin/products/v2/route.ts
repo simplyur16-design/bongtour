@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const geo = await normalizeProductGeoForPrisma(prisma, {
+    const { geo } = await normalizeProductGeoForPrisma(prisma, {
       title: title.trim(),
       originSource: originSource?.trim() || '직접입력',
       destination: destination.trim(),

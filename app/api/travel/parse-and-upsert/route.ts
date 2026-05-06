@@ -259,7 +259,7 @@ async function productToUpdateData(parsed: ParsedProductForDB, travelScope: stri
         )
       : null
 
-  const geo = await normalizeProductGeoForPrisma(prisma, {
+  const { geo } = await normalizeProductGeoForPrisma(prisma, {
     title: parsed.title?.trim() || '상품명 없음',
     originSource: parsed.originSource?.trim() || '직접입력',
     destination: parsed.destination?.trim() || undefined,

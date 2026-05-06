@@ -29,6 +29,10 @@ export async function register() {
       if ((process.env.DATABASE_URL ?? '').trim()) {
         const { startInstrumentationCurationCron } = await import('@/lib/instrumentation-curation-cron')
         startInstrumentationCurationCron()
+        const { startInstrumentationMasterIntegrityCron } = await import(
+          '@/lib/instrumentation-master-integrity-cron'
+        )
+        startInstrumentationMasterIntegrityCron()
       }
     }
   }

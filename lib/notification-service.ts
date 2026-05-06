@@ -338,6 +338,59 @@ export async function sendInquiryCustomerLmsFallback(p: {
   return r
 }
 
+/**
+ * I-7: 예약·문의 외 운영 알림(Solapi LMS). `MASTER_INTEGRITY_ALERT_DRY_RUN=1|true` 이면 발송 생략·로그만.
+ */
+export async function sendAdminOperationalLms(text: string): Promise<{
+  skipped: boolean
+  dryRun: boolean
+  succeeded: string[]
+  failed: { to: string; code?: string; message: string }[]
+}> {
+  const dryRun =
+    process.env.MASTER_INTEGRITY_ALERT_DRY_RUN === '1' ||
+    process.env.MASTER_INTEGRITY_ALERT_DRY_RUN === 'true'
+  const body = truncateForSms(text, 2000)
+
+  if (dryRun) {
+    console.log(
+      '[sendAdminOperationalLms] dry_run',
+      JSON.stringify({ len: body.length, preview: body.slice(0, 160) }),
+    )
+    return { skipped: false, dryRun: true, succeeded: [], failed: [] }
+  }
+
+  const apiKey = process.env.SOLAPI_API_KEY?.trim()
+  const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
+  const senderRaw = process.env.SOLAPI_FROM_PHONE?.trim()
+  if (!apiKey || !apiSecret || !senderRaw) {
+    console.error('[sendAdminOperationalLms] skipped_missing_env')
+    return { skipped: true, dryRun: false, succeeded: [], failed: [] }
+  }
+  const recipients = parseSolapiReceiverPhones()
+  if (recipients.length === 0) {
+    console.error('[sendAdminOperationalLms] skipped_no_admin_phones')
+    return { skipped: true, dryRun: false, succeeded: [], failed: [] }
+  }
+  const from = digitsOnlyPhone(senderRaw)
+  if (!from || !isPlausibleKrSmsTo(from)) {
+    console.error('[sendAdminOperationalLms] skipped_invalid_from_phone')
+    return { skipped: true, dryRun: false, succeeded: [], failed: [] }
+  }
+
+  const succeeded: string[] = []
+  const failed: { to: string; code?: string; message: string }[] = []
+  for (const to of recipients) {
+    const r = await sendSolapiMessage(apiKey, apiSecret, from, to, body)
+    if (r.ok) succeeded.push(to)
+    else failed.push({ to, code: r.code, message: r.message })
+  }
+  if (failed.length === 0) {
+    console.log('[sendAdminOperationalLms] all_succeeded', JSON.stringify({ succeeded }))
+  }
+  return { skipped: false, dryRun: false, succeeded, failed }
+}
+
 /** @deprecated sendAdminNotification 사용 권장 */
 export async function sendBookingAlert(booking: BookingForAlert): Promise<SendAdminNotificationResult> {
   return sendAdminNotification(booking)

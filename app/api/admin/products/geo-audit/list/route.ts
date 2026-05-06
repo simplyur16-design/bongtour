@@ -26,10 +26,11 @@ export async function GET(req: Request) {
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1)
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '25', 10) || 25))
   const includeSkipped = searchParams.get('includeSkipped') === '1'
+  const includePending = searchParams.get('includePending') === '1'
 
   const all = await prisma.product.findMany({
     where: {
-      registrationStatus: 'registered',
+      registrationStatus: includePending ? { in: ['registered', 'pending'] } : 'registered',
       NOT: { travelScope: 'domestic' },
       ...(includeSkipped ? {} : { geoAuditSkippedAt: null }),
     },
@@ -80,7 +81,7 @@ export async function GET(req: Request) {
     },
   })
 
-  const auditRows = all.filter(productRowNeedsGeoAudit)
+  const auditRows = all.filter((r) => productRowNeedsGeoAudit(r, { includePending }))
   const total = auditRows.length
   const slice = auditRows.slice((page - 1) * limit, page * limit)
 
@@ -179,6 +180,7 @@ export async function GET(req: Request) {
 
     return {
       id: p.id,
+      registrationStatus: p.registrationStatus,
       originSource: p.originSource,
       title: p.title,
       destinationRaw: p.destinationRaw,
@@ -237,5 +239,6 @@ export async function GET(req: Request) {
     limit,
     totalPages: Math.max(1, Math.ceil(total / limit)),
     includeSkipped,
+    includePending,
   })
 }

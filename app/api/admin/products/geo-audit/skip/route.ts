@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   })
 
   if (!existing) return NextResponse.json({ error: 'not_found' }, { status: 404 })
-  if (existing.registrationStatus !== 'registered') {
+  if (existing.registrationStatus !== 'registered' && existing.registrationStatus !== 'pending') {
     return NextResponse.json({ error: 'not_registered' }, { status: 400 })
   }
 

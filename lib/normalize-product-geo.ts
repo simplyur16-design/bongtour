@@ -7,7 +7,7 @@
 import type { Prisma } from '@prisma/client'
 import { resolveProductCityToKoreanDisplay, resolveProductCountryToKoreanDisplay } from '@/lib/browse-country-url-resolve'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
-import { enrichPrismaGeoWithMasterLabels } from '@/lib/normalize-product-geo-master'
+import { enrichPrismaGeoWithMasterLabels, masterGeoMeetsRegistrationBar } from '@/lib/normalize-product-geo-master'
 import {
   deriveProductLocationKeyFieldsForPrisma,
   type ProductLocationKeyMatchInput,
@@ -49,13 +49,23 @@ export function normalizeProductGeoTreePreview(input: ProductLocationKeyMatchInp
   return applyBrowseDisplayLabelsToDerived(d)
 }
 
+export type NormalizeProductGeoResult = {
+  geo: ProductLocationKeyPrismaFields
+  /** I-7: false면 신규 등록·재처리 시 pending 유지(마스터 정합 실패) */
+  masterRegistrationOk: boolean
+}
+
 /**
  * 스크래퍼·관리자·업서트가 Product에 spread할 지리 필드(한글 country/city = 마스터 라벨).
  */
 export async function normalizeProductGeoForPrisma(
   db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
   input: ProductLocationKeyMatchInput,
-): Promise<ProductLocationKeyPrismaFields> {
-  const d = deriveProductLocationKeyFieldsForPrisma(input)
-  return enrichPrismaGeoWithMasterLabels(db, d)
+): Promise<NormalizeProductGeoResult> {
+  const tree = deriveProductLocationKeyFieldsForPrisma(input)
+  const geo = await enrichPrismaGeoWithMasterLabels(db, tree)
+  return {
+    geo,
+    masterRegistrationOk: masterGeoMeetsRegistrationBar(tree, geo),
+  }
 }

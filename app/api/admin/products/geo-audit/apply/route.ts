@@ -212,7 +212,7 @@ async function applyMasterGeo(id: string, body: MasterBody, auditor: string) {
   })
 
   if (!existing) return NextResponse.json({ error: 'not_found' }, { status: 404 })
-  if (existing.registrationStatus !== 'registered') {
+  if (existing.registrationStatus !== 'registered' && existing.registrationStatus !== 'pending') {
     return NextResponse.json({ error: 'not_registered' }, { status: 400 })
   }
 
@@ -381,7 +381,7 @@ async function applyMasterGeo(id: string, body: MasterBody, auditor: string) {
   })
 
   const bodyText = bodyTextFromSchedule(existing.schedule)
-  const normalizedIfRerun = await normalizeProductGeoForPrisma(prisma, {
+  const { geo: normalizedIfRerun } = await normalizeProductGeoForPrisma(prisma, {
     title: existing.title ?? '',
     originSource: existing.originSource ?? '',
     destination: existing.destination,
@@ -512,7 +512,7 @@ async function applyLegacyTree(id: string, body: LegacyBody, auditor: string) {
   })
 
   if (!existing) return NextResponse.json({ error: 'not_found' }, { status: 404 })
-  if (existing.registrationStatus !== 'registered') {
+  if (existing.registrationStatus !== 'registered' && existing.registrationStatus !== 'pending') {
     return NextResponse.json({ error: 'not_registered' }, { status: 400 })
   }
 
@@ -601,7 +601,7 @@ async function applyLegacyTree(id: string, body: LegacyBody, auditor: string) {
   })
 
   const bodyText = bodyTextFromSchedule(existing.schedule)
-  const normalizedIfRerun = await normalizeProductGeoForPrisma(prisma, {
+  const { geo: normalizedIfRerun } = await normalizeProductGeoForPrisma(prisma, {
     title: existing.title ?? '',
     originSource: existing.originSource ?? '',
     destination: existing.destination,

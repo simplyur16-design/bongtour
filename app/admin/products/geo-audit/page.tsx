@@ -65,6 +65,7 @@ type SuggestionMasterValidated = {
 
 type ListItem = {
   id: string
+  registrationStatus?: string | null
   originSource: string
   title: string
   destinationRaw: string | null
@@ -90,6 +91,7 @@ type ListResponse = {
   limit: number
   totalPages: number
   includeSkipped: boolean
+  includePending?: boolean
 }
 
 const EMPTY_PRIMARY: MasterPrimaryValue = { continentKey: '', countryKey: '', cityKey: null }
@@ -144,6 +146,7 @@ export default function GeoAuditPage() {
   const [page, setPage] = useState(1)
   const [limit] = useState(25)
   const [includeSkipped, setIncludeSkipped] = useState(false)
+  const [includePending, setIncludePending] = useState(false)
   const [data, setData] = useState<ListResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
@@ -167,6 +170,7 @@ export default function GeoAuditPage() {
       u.searchParams.set('page', String(page))
       u.searchParams.set('limit', String(limit))
       if (includeSkipped) u.searchParams.set('includeSkipped', '1')
+      if (includePending) u.searchParams.set('includePending', '1')
       const r = await fetch(u.toString(), { credentials: 'include' })
       if (!r.ok) {
         setErr(`목록 로드 실패 (${r.status})`)
@@ -186,7 +190,7 @@ export default function GeoAuditPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, limit, includeSkipped])
+  }, [page, limit, includeSkipped, includePending])
 
   useEffect(() => {
     void load()
@@ -350,6 +354,17 @@ export default function GeoAuditPage() {
           />
           보류 포함
         </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={includePending}
+            onChange={(e) => {
+              setIncludePending(e.target.checked)
+              setPage(1)
+            }}
+          />
+          등록대기(pending) 포함
+        </label>
         {data != null && (
           <span className="text-bt-muted">
             검수 대상 {data.total}건 · {data.page}/{data.totalPages} 페이지
@@ -388,6 +403,11 @@ export default function GeoAuditPage() {
                     <div className="truncate text-xs text-bt-muted">
                       {row.originSource} · {row.current.continentKey ?? '—'} / {row.current.cityKey ?? '—'}
                     </div>
+                    {row.registrationStatus === 'pending' && (
+                      <span className="mt-1 inline-block rounded bg-sky-100 px-1.5 py-0.5 text-[10px] text-sky-950">
+                        pending
+                      </span>
+                    )}
                     {row.suggestionMatchesKeys && (
                       <span className="mt-1 inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-900">
                         추천 트리 키 = 현재 트리 키

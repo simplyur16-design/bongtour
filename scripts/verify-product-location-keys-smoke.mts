@@ -76,7 +76,7 @@ async function main() {
   const ids: string[] = []
   try {
     for (const c of cases) {
-      const loc = await normalizeProductGeoForPrisma(prisma, {
+      const { geo: loc } = await normalizeProductGeoForPrisma(prisma, {
         title: c.title,
         originSource: c.originSource,
         destination: c.destination,

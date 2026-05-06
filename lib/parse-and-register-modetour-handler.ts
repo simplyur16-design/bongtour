@@ -1631,7 +1631,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
       bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
     }
-    const geo = await normalizeProductGeoForPrisma(prisma, geoInput)
+    const { geo, masterRegistrationOk } = await normalizeProductGeoForPrisma(prisma, geoInput)
     const multiPlan = await detectMultiCountryAutoPlan(
       prisma,
       {
@@ -1641,11 +1641,12 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       },
       geo.countryKey,
     )
-    const registrationStatusForSave = multiCountryNeedsOperatorReview(multiPlan)
-      ? 'pending'
-      : existing?.registrationStatus === 'registered'
-        ? 'registered'
-        : 'pending'
+    const registrationStatusForSave =
+      !masterRegistrationOk || multiCountryNeedsOperatorReview(multiPlan)
+        ? 'pending'
+        : existing?.registrationStatus === 'registered'
+          ? 'registered'
+          : 'pending'
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,

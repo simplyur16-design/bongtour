@@ -135,7 +135,7 @@ async function main() {
     }
 
     const bodyText = bodyTextFromSchedule(r.schedule)
-    const next = await normalizeProductGeoForPrisma(prisma, {
+    const { geo: next } = await normalizeProductGeoForPrisma(prisma, {
       title: r.title ?? '',
       originSource: r.originSource ?? '',
       destination: r.destination,

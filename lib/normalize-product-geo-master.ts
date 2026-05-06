@@ -225,3 +225,25 @@ export async function syncAutoMultiCountryTags(
 
   await db.productCountryTag.createMany({ data: rows })
 }
+
+/**
+ * I-7: 트리가 국가를 특정했는데 마스터 continent/단일 도시 cityKey를 채우지 못하면 등록 승인 불가(pending).
+ */
+export function masterGeoMeetsRegistrationBar(
+  tree: ProductLocationKeyPrismaFields,
+  enriched: ProductLocationKeyPrismaFields,
+): boolean {
+  if (!tree.countryKey?.trim()) return true
+  if (!enriched.continentKey?.trim()) return false
+  if (!enriched.countryKey?.trim()) return false
+
+  const mapped = mapTreeKeysToMasterKeys({
+    groupKey: tree.groupKey,
+    countryKey: tree.countryKey,
+    nodeKey: tree.nodeKey,
+  })
+  if (mapped.cityKey?.trim() && !isMultiCityClusterNode(mapped.cityKey)) {
+    if (!enriched.cityKey?.trim()) return false
+  }
+  return true
+}
