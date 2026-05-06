@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
+import { mapTreeKeysToMasterKeys } from '@/lib/product-master-mapping'
 import { geoKeysMatch, productRowNeedsGeoAudit } from '../lib/shared'
 
 export const dynamic = 'force-dynamic'
@@ -48,6 +49,8 @@ export async function GET(req: Request) {
       nodeKey: true,
       groupKey: true,
       continent: true,
+      continentKey: true,
+      cityKey: true,
       locationMatchConfidence: true,
       locationMatchSource: true,
       registrationStatus: true,
@@ -62,6 +65,15 @@ export async function GET(req: Request) {
           groupKey: true,
           isPrimary: true,
           sortOrder: true,
+          country: { select: { koreanLabel: true } },
+        },
+        orderBy: { sortOrder: 'asc' },
+      },
+      cityTags: {
+        select: {
+          cityKey: true,
+          isPrimary: true,
+          sortOrder: true,
         },
         orderBy: { sortOrder: 'asc' },
       },
@@ -72,7 +84,59 @@ export async function GET(req: Request) {
   const total = auditRows.length
   const slice = auditRows.slice((page - 1) * limit, page * limit)
 
-  const items = slice.map((p) => {
+  const allCityKeysInSlice = new Set<string>()
+  for (const p of slice) {
+    if (p.cityKey) allCityKeysInSlice.add(p.cityKey)
+    for (const t of p.cityTags ?? []) allCityKeysInSlice.add(t.cityKey)
+  }
+  const cityLabelRows =
+    allCityKeysInSlice.size > 0
+      ? await prisma.city.findMany({
+          where: { cityKey: { in: [...allCityKeysInSlice] } },
+          select: { cityKey: true, koreanLabel: true },
+        })
+      : []
+  const cityLabelByKey = new Map(cityLabelRows.map((c) => [c.cityKey, c.koreanLabel]))
+
+  const masterHints = slice.map((p) => {
+    const bodyText = bodyTextFromSchedule(p.schedule)
+    const suggestion = normalizeProductGeoForPrisma({
+      title: p.title ?? '',
+      originSource: p.originSource ?? '',
+      destination: p.destination,
+      destinationRaw: p.destinationRaw,
+      primaryDestination: p.primaryDestination,
+      bodyText,
+      browseHintCountry: p.country,
+      browseHintCity: p.city,
+    })
+    return mapTreeKeysToMasterKeys({
+      groupKey: suggestion.groupKey,
+      countryKey: suggestion.countryKey,
+      nodeKey: suggestion.nodeKey,
+    })
+  })
+
+  const contKeys = [...new Set(masterHints.map((m) => m.continentKey).filter(Boolean))] as string[]
+  const countryKeys = [...new Set(masterHints.map((m) => m.masterCountryKey).filter(Boolean))] as string[]
+  const cityKeysHint = [...new Set(masterHints.map((m) => m.cityKey).filter(Boolean))] as string[]
+
+  const [contRows, countryRows, cityRows] = await Promise.all([
+    contKeys.length
+      ? prisma.continent.findMany({ where: { continentKey: { in: contKeys } }, select: { continentKey: true } })
+      : Promise.resolve([]),
+    countryKeys.length
+      ? prisma.country.findMany({ where: { countryKey: { in: countryKeys } }, select: { countryKey: true } })
+      : Promise.resolve([]),
+    cityKeysHint.length
+      ? prisma.city.findMany({ where: { cityKey: { in: cityKeysHint } }, select: { cityKey: true } })
+      : Promise.resolve([]),
+  ])
+  const contOk = new Set(contRows.map((r) => r.continentKey))
+  const countryOk = new Set(countryRows.map((r) => r.countryKey))
+  const cityOk = new Set(cityRows.map((r) => r.cityKey))
+
+  const items = slice.map((p, i) => {
     const bodyText = bodyTextFromSchedule(p.schedule)
     const suggestion = normalizeProductGeoForPrisma({
       title: p.title ?? '',
@@ -100,6 +164,19 @@ export async function GET(req: Request) {
       },
     )
 
+    const ms = masterHints[i]!
+    const suggestionMaster = {
+      continentKey: ms.continentKey,
+      countryKey: ms.masterCountryKey,
+      cityKey: ms.cityKey,
+      reasons: ms.reasons,
+    }
+    const suggestionMasterValidated = {
+      continent: ms.continentKey ? contOk.has(ms.continentKey) : false,
+      country: ms.masterCountryKey ? countryOk.has(ms.masterCountryKey) : false,
+      city: ms.cityKey ? cityOk.has(ms.cityKey) : true,
+    }
+
     return {
       id: p.id,
       originSource: p.originSource,
@@ -115,6 +192,8 @@ export async function GET(req: Request) {
         nodeKey: p.nodeKey,
         groupKey: p.groupKey,
         continent: p.continent,
+        continentKey: p.continentKey,
+        cityKey: p.cityKey,
         locationMatchConfidence: p.locationMatchConfidence,
         locationMatchSource: p.locationMatchSource,
       },
@@ -129,6 +208,8 @@ export async function GET(req: Request) {
         locationMatchSource: suggestion.locationMatchSource,
       },
       suggestionMatchesKeys,
+      suggestionMaster,
+      suggestionMasterValidated,
       lastGeoAuditAt: p.lastGeoAuditAt?.toISOString() ?? null,
       lastGeoAuditedBy: p.lastGeoAuditedBy,
       geoAuditSkippedAt: p.geoAuditSkippedAt?.toISOString() ?? null,
@@ -138,6 +219,13 @@ export async function GET(req: Request) {
         groupKey: t.groupKey,
         isPrimary: t.isPrimary,
         sortOrder: t.sortOrder,
+        koreanLabel: t.country?.koreanLabel ?? null,
+      })),
+      cityTags: (p.cityTags ?? []).map((t) => ({
+        cityKey: t.cityKey,
+        isPrimary: t.isPrimary,
+        sortOrder: t.sortOrder,
+        koreanLabel: cityLabelByKey.get(t.cityKey) ?? null,
       })),
     }
   })

@@ -8,18 +8,26 @@ export function isLikelyAsciiLocationSlug(s: string | null | undefined): boolean
   return ASCII_SLUG.test(s.trim())
 }
 
+/** browse `country` 한글 권역 라벨(정규화 전) — 마스터 단일 국가와 불일치 */
+const KOREAN_REGION_COUNTRY_LABEL = /^(동유럽|서유럽|북유럽|중유럽|남유럽|스칸디나비아|발칸|중남미|남태평양|미서부|미동부)/
+
 export function productRowNeedsGeoAudit(row: {
   registrationStatus: string | null
   travelScope: string | null
   countryKey: string | null
   country: string | null
   city: string | null
+  continentKey?: string | null
+  cityKey?: string | null
 }): boolean {
   if (row.registrationStatus !== 'registered') return false
   if (row.travelScope === 'domestic') return false
   if (row.countryKey == null) return true
+  if (row.continentKey == null || row.cityKey == null) return true
   if (isLikelyAsciiLocationSlug(row.country)) return true
   if (isLikelyAsciiLocationSlug(row.city)) return true
+  const co = (row.country ?? '').trim()
+  if (co && KOREAN_REGION_COUNTRY_LABEL.test(co)) return true
   return false
 }
 

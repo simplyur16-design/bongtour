@@ -1,9 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
-import { OVERSEAS_LOCATION_TREE_CLEAN } from '@/lib/overseas-location-tree'
-import type { OverseasRegionGroupNode } from '@/lib/overseas-location-tree.types'
+import {
+  MasterCityMultiPicker,
+  MasterCountryMultiPicker,
+  MasterPrimaryGeoPicker,
+  resolveMasterPrimaryFromRow,
+  type MasterPrimaryValue,
+  type MasterTreeContinent,
+} from '@/components/admin/MasterGeoSelectors'
 
 type CountryTagRow = {
   countryKey: string
@@ -11,6 +17,14 @@ type CountryTagRow = {
   groupKey: string | null
   isPrimary: boolean
   sortOrder: number
+  koreanLabel?: string | null
+}
+
+type CityTagRow = {
+  cityKey: string
+  isPrimary: boolean
+  sortOrder: number
+  koreanLabel?: string | null
 }
 
 /** 제목만으로 다국가 패키지 의심(운영자 확인용, 자동 판정 아님) */
@@ -30,8 +44,23 @@ type GeoBlock = {
   nodeKey: string | null
   groupKey: string | null
   continent: string | null
+  continentKey?: string | null
+  cityKey?: string | null
   locationMatchConfidence: string | null
   locationMatchSource: string | null
+}
+
+type SuggestionMaster = {
+  continentKey: string | null
+  countryKey: string | null
+  cityKey: string | null
+  reasons: unknown
+}
+
+type SuggestionMasterValidated = {
+  continent: boolean
+  country: boolean
+  city: boolean
 }
 
 type ListItem = {
@@ -45,10 +74,13 @@ type ListItem = {
   current: GeoBlock
   suggestion: GeoBlock
   suggestionMatchesKeys: boolean
+  suggestionMaster: SuggestionMaster
+  suggestionMasterValidated: SuggestionMasterValidated
   lastGeoAuditAt: string | null
   lastGeoAuditedBy: string | null
   geoAuditSkippedAt: string | null
   countryTags: CountryTagRow[]
+  cityTags: CityTagRow[]
 }
 
 type ListResponse = {
@@ -60,38 +92,22 @@ type ListResponse = {
   includeSkipped: boolean
 }
 
-type FlatPick = {
-  path: string
-  groupKey: string
-  countryKey: string
-  nodeKey: string | null
-}
+const EMPTY_PRIMARY: MasterPrimaryValue = { continentKey: '', countryKey: '', cityKey: null }
 
-function flatPickKey(p: FlatPick) {
-  return `${p.groupKey}|${p.countryKey}|${p.nodeKey ?? ''}`
-}
-
-function flattenTree(tree: OverseasRegionGroupNode[]): FlatPick[] {
-  const out: FlatPick[] = []
-  for (const g of tree) {
-    for (const c of g.countries) {
-      out.push({
-        path: `${g.groupLabel} › ${c.countryLabel} (국가 단위 · 리프 없음)`,
-        groupKey: g.groupKey,
-        countryKey: c.countryKey,
-        nodeKey: null,
-      })
-      for (const leaf of c.children) {
-        out.push({
-          path: `${g.groupLabel} › ${c.countryLabel} › ${leaf.nodeLabel}`,
-          groupKey: g.groupKey,
-          countryKey: c.countryKey,
-          nodeKey: leaf.nodeKey,
-        })
-      }
-    }
+function suggestionToPrimary(selected: ListItem): MasterPrimaryValue | null {
+  const sm = selected.suggestionMaster
+  const v = selected.suggestionMasterValidated
+  if (!sm?.continentKey?.trim() || !sm?.countryKey?.trim()) return null
+  if (!v?.continent || !v?.country) return null
+  const cityKey = sm.cityKey?.trim() || null
+  if (cityKey && !v.city) {
+    return { continentKey: sm.continentKey.trim(), countryKey: sm.countryKey.trim(), cityKey: null }
   }
-  return out
+  return {
+    continentKey: sm.continentKey.trim(),
+    countryKey: sm.countryKey.trim(),
+    cityKey,
+  }
 }
 
 function GeoBlockView({ label, g }: { label: string; g: GeoBlock }) {
@@ -103,13 +119,17 @@ function GeoBlockView({ label, g }: { label: string; g: GeoBlock }) {
         <dd>{g.country ?? '—'}</dd>
         <dt className="text-bt-muted">city</dt>
         <dd>{g.city ?? '—'}</dd>
+        <dt className="text-bt-muted">continentKey</dt>
+        <dd className="font-mono text-xs">{g.continentKey ?? '—'}</dd>
         <dt className="text-bt-muted">countryKey</dt>
         <dd className="font-mono text-xs">{g.countryKey ?? '—'}</dd>
+        <dt className="text-bt-muted">cityKey</dt>
+        <dd className="font-mono text-xs">{g.cityKey ?? '—'}</dd>
         <dt className="text-bt-muted">nodeKey</dt>
         <dd className="font-mono text-xs">{g.nodeKey ?? '—'}</dd>
         <dt className="text-bt-muted">groupKey</dt>
         <dd className="font-mono text-xs">{g.groupKey ?? '—'}</dd>
-        <dt className="text-bt-muted">continent</dt>
+        <dt className="text-bt-muted">continent (탭)</dt>
         <dd className="font-mono text-xs">{g.continent ?? '—'}</dd>
         <dt className="text-bt-muted">신뢰도</dt>
         <dd>{g.locationMatchConfidence ?? '—'}</dd>
@@ -121,8 +141,6 @@ function GeoBlockView({ label, g }: { label: string; g: GeoBlock }) {
 }
 
 export default function GeoAuditPage() {
-  const selectorTree = OVERSEAS_LOCATION_TREE_CLEAN
-  const flatPicks = useMemo(() => flattenTree(selectorTree), [selectorTree])
   const [page, setPage] = useState(1)
   const [limit] = useState(25)
   const [includeSkipped, setIncludeSkipped] = useState(false)
@@ -130,11 +148,13 @@ export default function GeoAuditPage() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  const [pick, setPick] = useState<FlatPick | null>(null)
-  /** G-4: 보조 태그(대표와 중복 불가) */
-  const [secondaryPicks, setSecondaryPicks] = useState<FlatPick[]>([])
-  const [secondaryDraftKey, setSecondaryDraftKey] = useState('')
+  const [masterTree, setMasterTree] = useState<{ continents: MasterTreeContinent[] } | null>(null)
+  const [masterErr, setMasterErr] = useState<string | null>(null)
+
+  const [primary, setPrimary] = useState<MasterPrimaryValue>(EMPTY_PRIMARY)
+  const [secondaryCountries, setSecondaryCountries] = useState<string[]>([])
+  const [secondaryCities, setSecondaryCities] = useState<string[]>([])
+
   const [applyBusy, setApplyBusy] = useState(false)
   const [applyMsg, setApplyMsg] = useState<string | null>(null)
   const [normalizeWarn, setNormalizeWarn] = useState<string | null>(null)
@@ -172,60 +192,65 @@ export default function GeoAuditPage() {
     void load()
   }, [load])
 
+  useEffect(() => {
+    void fetch('/api/admin/master-tree', { credentials: 'include' })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(String(r.status))
+        return r.json() as Promise<{ continents: MasterTreeContinent[] }>
+      })
+      .then((j) => {
+        setMasterTree(j)
+        setMasterErr(null)
+      })
+      .catch(() => {
+        setMasterTree(null)
+        setMasterErr('마스터 트리를 불러오지 못했습니다.')
+      })
+  }, [])
+
   const selected = data?.items.find((x) => x.id === selectedId) ?? null
 
   useEffect(() => {
-    if (!data || !selectedId) {
-      setSecondaryPicks([])
+    if (!selected) {
+      setSecondaryCountries([])
+      setSecondaryCities([])
       return
     }
-    const row = data.items.find((x) => x.id === selectedId)
-    const tags = row?.countryTags ?? []
-    if (!tags.length) {
-      setSecondaryPicks([])
+    const ctags = [...(selected.countryTags ?? [])].sort((a, b) => a.sortOrder - b.sortOrder)
+    setSecondaryCountries(ctags.filter((t) => !t.isPrimary).map((t) => t.countryKey))
+    const citytags = [...(selected.cityTags ?? [])].sort((a, b) => a.sortOrder - b.sortOrder)
+    setSecondaryCities(citytags.filter((t) => !t.isPrimary).map((t) => t.cityKey))
+  }, [selectedId, selected])
+
+  useEffect(() => {
+    if (!selected) {
+      setPrimary(EMPTY_PRIMARY)
       return
     }
-    const picks: FlatPick[] = []
-    for (const t of tags) {
-      if (t.isPrimary) continue
-      const gk = (t.groupKey ?? '').trim()
-      if (!gk) continue
-      const fp = flatPicks.find(
-        (p) =>
-          p.groupKey === gk &&
-          p.countryKey === t.countryKey &&
-          (p.nodeKey ?? '') === (t.nodeKey ?? ''),
-      )
-      if (fp) picks.push(fp)
+    if (!masterTree?.continents?.length) {
+      return
     }
-    setSecondaryPicks(picks)
-  }, [selectedId, data, flatPicks])
-
-  const filteredPicks = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return flatPicks
-    return flatPicks.filter((p) => p.path.toLowerCase().includes(q) || p.groupKey.includes(q) || p.countryKey.includes(q))
-  }, [flatPicks, search])
-
-  function addSecondaryDraft() {
-    if (!secondaryDraftKey || !pick) return
-    const [groupKey, countryKey, nodeKeyRaw] = secondaryDraftKey.split('|')
-    const nodeKey = nodeKeyRaw === '' ? null : nodeKeyRaw
-    const found = flatPicks.find(
-      (p) =>
-        p.groupKey === groupKey && p.countryKey === countryKey && (p.nodeKey ?? '') === (nodeKey ?? ''),
-    )
-    if (!found) return
-    if (flatPickKey(found) === flatPickKey(pick)) return
-    setSecondaryPicks((prev) => {
-      if (prev.some((p) => flatPickKey(p) === flatPickKey(found))) return prev
-      return [...prev, found]
+    const resolved = resolveMasterPrimaryFromRow(masterTree.continents, {
+      continentKey: selected.current.continentKey ?? null,
+      countryKey: selected.current.countryKey ?? null,
+      cityKey: selected.current.cityKey ?? null,
     })
-    setSecondaryDraftKey('')
-  }
+    const fromSuggestion = suggestionToPrimary(selected)
+    if (resolved?.continentKey) {
+      setPrimary(resolved)
+    } else if (fromSuggestion) {
+      setPrimary(fromSuggestion)
+    } else {
+      setPrimary(EMPTY_PRIMARY)
+    }
+  }, [selected, masterTree, selectedId])
 
   async function onApply() {
-    if (!selected || !pick) return
+    if (!selected) return
+    if (!primary.continentKey || !primary.countryKey) {
+      setApplyMsg('권역·국가를 선택하세요.')
+      return
+    }
     setApplyBusy(true)
     setApplyMsg(null)
     setNormalizeWarn(null)
@@ -237,34 +262,38 @@ export default function GeoAuditPage() {
         body: JSON.stringify({
           id: selected.id,
           primary: {
-            groupKey: pick.groupKey,
-            countryKey: pick.countryKey,
-            nodeKey: pick.nodeKey,
+            continentKey: primary.continentKey,
+            countryKey: primary.countryKey,
+            cityKey: primary.cityKey,
           },
-          secondary: secondaryPicks.map((p) => ({
-            groupKey: p.groupKey,
-            countryKey: p.countryKey,
-            nodeKey: p.nodeKey,
+          secondaryCountries: secondaryCountries.map((countryKey, i) => ({
+            countryKey,
+            sortOrder: i + 1,
+          })),
+          secondaryCities: secondaryCities.map((cityKey, i) => ({
+            cityKey,
+            sortOrder: i + 1,
           })),
         }),
       })
       const j = await r.json().catch(() => ({}))
       if (!r.ok) {
-        const err = typeof j.error === 'string' ? j.error : `적용 실패 (${r.status})`
+        const errMsg = typeof j.error === 'string' ? j.error : `적용 실패 (${r.status})`
         const reason = typeof (j as { reason?: unknown }).reason === 'string' ? String((j as { reason: string }).reason) : ''
-        setApplyMsg(reason ? `${err}: ${reason}` : err)
+        setApplyMsg(reason ? `${errMsg}: ${reason}` : errMsg)
         return
       }
-      const sec = typeof j.secondaryTagsApplied === 'number' ? j.secondaryTagsApplied : 0
-      const pt = j.primaryCountryTagInserted === true
-      setApplyMsg(
-        sec > 0
-          ? `저장되었습니다. 보조 태그 ${sec}건${pt ? ' + 대표 태그(동기화)' : ''}.`
-          : '저장되었습니다. (보조 태그 없음 — 기존 보조 태그는 모두 제거됨)',
-      )
+      const secC = typeof j.secondaryCountriesApplied === 'number' ? j.secondaryCountriesApplied : 0
+      const secCi = typeof j.secondaryCitiesApplied === 'number' ? j.secondaryCitiesApplied : 0
+      const pt = j.primaryTagInserted === true
+      const parts: string[] = ['저장되었습니다.']
+      if (secC > 0) parts.push(`보조 국가 ${secC}건${pt ? ' + 대표 국가 태그' : ''}`)
+      if (secCi > 0) parts.push(`보조 도시 ${secCi}건`)
+      if (secC === 0 && secCi === 0) parts.push('보조 태그 없음 — 기존 보조 태그는 모두 제거됨')
+      setApplyMsg(parts.join(' '))
       if (j.normalizeWouldMatchApplied === false) {
         setNormalizeWarn(
-          '참고: D-3-FIX 정규화(`normalizeProductGeoForPrisma`)로 재계산하면 키가 달라질 수 있습니다. 의도한 매핑인지 확인하세요.',
+          '참고: D-3-FIX 정규화(`normalizeProductGeoForPrisma`)로 재계산하면 트리 키가 달라질 수 있습니다. 의도한 매핑인지 확인하세요.',
         )
       }
       await load()
@@ -299,11 +328,14 @@ export default function GeoAuditPage() {
     }
   }
 
+  const sm = selected?.suggestionMaster
+  const smv = selected?.suggestionMasterValidated
+
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <AdminPageHeader
         title="상품 지리 정규화 검수"
-        subtitle="등록 완료 해외 상품 중 키·표기가 비어 있거나 영문 슬러그인 행만 표시합니다. 적용(Apply)은 메가메뉴 코드 트리(`lib/overseas-location-tree`) 선택이 유효해야 합니다. 자동 추천(D-3-FIX)은 참고용이며 자동 저장되지 않습니다."
+        subtitle="등록 완료 해외 상품 중 마스터 키·표기가 비어 있거나 영문 슬러그·권역명(country)인 행만 표시합니다. 대표 위치는 Continent → Country → City 마스터로 고르고, 실제 방문국·방문도시만 보조 태그로 추가합니다. 트리 슬러그(groupKey/nodeKey/continent 탭)는 적용 시 G-3 폴백용으로 자동 보강됩니다."
       />
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -326,6 +358,7 @@ export default function GeoAuditPage() {
       </div>
 
       {err && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">{err}</div>}
+      {masterErr && <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">{masterErr}</div>}
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <section className="lg:w-[380px] lg:shrink-0">
@@ -344,23 +377,20 @@ export default function GeoAuditPage() {
                       setSelectedId(row.id)
                       setApplyMsg(null)
                       setNormalizeWarn(null)
-                      setSecondaryDraftKey('')
                     }}
                     className={`w-full rounded-lg border px-2 py-2 text-left text-sm transition-colors ${
                       row.id === selectedId
                         ? 'border-bt-brand-blue bg-bt-brand-blue-soft'
                         : 'border-transparent hover:bg-bt-surface-soft'
-                    } ${
-                      titleSuggestsMultiCountry(row.title) ? 'border-l-4 border-l-amber-400 pl-1.5' : ''
-                    }`}
+                    } ${titleSuggestsMultiCountry(row.title) ? 'border-l-4 border-l-amber-400 pl-1.5' : ''}`}
                   >
                     <div className="truncate font-medium text-bt-title">{row.title}</div>
                     <div className="truncate text-xs text-bt-muted">
-                      {row.originSource} · {row.current.countryKey ?? '키없음'}
+                      {row.originSource} · {row.current.continentKey ?? '—'} / {row.current.cityKey ?? '—'}
                     </div>
                     {row.suggestionMatchesKeys && (
                       <span className="mt-1 inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-900">
-                        추천 키 = 현재 키
+                        추천 트리 키 = 현재 트리 키
                       </span>
                     )}
                     {titleSuggestsMultiCountry(row.title) && (
@@ -438,10 +468,30 @@ export default function GeoAuditPage() {
                 </dl>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 lg:grid-cols-2">
                 <GeoBlockView label="현재 DB" g={selected.current} />
-                <GeoBlockView label="D-3-FIX 추천 (자동 적용 안 함)" g={selected.suggestion} />
+                <GeoBlockView label="D-3-FIX 추천 (트리, 자동 적용 안 함)" g={selected.suggestion} />
               </div>
+
+              {sm && (
+                <div className="rounded-lg border border-bt-border bg-white p-3 text-sm">
+                  <div className="mb-2 font-medium text-bt-title">마스터 추천 (normalize + 매핑, 자동 적용 안 함)</div>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+                    <dt className="text-bt-muted">continentKey</dt>
+                    <dd className="font-mono">{sm.continentKey ?? '—'}</dd>
+                    <dt className="text-bt-muted">countryKey</dt>
+                    <dd className="font-mono">{sm.countryKey ?? '—'}</dd>
+                    <dt className="text-bt-muted">cityKey</dt>
+                    <dd className="font-mono">{sm.cityKey ?? '—'}</dd>
+                  </dl>
+                  {smv && (
+                    <p className="mt-2 text-xs text-bt-muted">
+                      DB 검증: 권역 {smv.continent ? '✓' : '✗'} · 국가 {smv.country ? '✓' : '✗'} · 도시{' '}
+                      {sm.cityKey ? (smv.city ? '✓' : '✗') : '(없음)'}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {titleSuggestsMultiCountry(selected.title) && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950 shadow-sm">
@@ -458,116 +508,42 @@ export default function GeoAuditPage() {
               )}
 
               <div className="rounded-xl border border-bt-border bg-white p-4 shadow-sm">
-                <h2 className="mb-2 text-sm font-semibold text-bt-title">대표(primary) — 메가메뉴 트리</h2>
+                <h2 className="mb-2 text-sm font-semibold text-bt-title">대표(primary) — 마스터</h2>
                 <p className="mb-3 text-xs text-bt-muted">
-                  권역 › 국가 › 리프 경로를 검색하거나 아래 목록에서 고릅니다. 「국가 단위」는 해당 browse 국가 노드만 지정합니다(nodeKey
-                  null). 적용 시 <code className="rounded bg-bt-surface-soft px-1">Product</code> 단일 컬럼(country, city,
-                  countryKey, nodeKey, groupKey, continent)이 이 선택으로 갱신됩니다.
+                  권역·국가는 필수입니다. 도시는 없을 수 있습니다. 적용 시 <code className="rounded bg-bt-surface-soft px-1">Product</code>{' '}
+                  의 <code className="rounded bg-bt-surface-soft px-1">continentKey</code>, <code className="rounded bg-bt-surface-soft px-1">countryKey</code>,{' '}
+                  <code className="rounded bg-bt-surface-soft px-1">cityKey</code> 및 한글 <code className="rounded bg-bt-surface-soft px-1">country</code>/
+                  <code className="rounded bg-bt-surface-soft px-1">city</code>가 마스터 라벨로 갱신됩니다.
                 </p>
-                <input
-                  type="search"
-                  placeholder="경로·슬러그 검색…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="mb-2 w-full rounded border border-bt-border px-3 py-2 text-sm"
-                />
-                <select
-                  className="mb-4 max-h-48 w-full rounded border border-bt-border px-2 py-2 text-sm"
-                  size={8}
-                  value={
-                    pick
-                      ? `${pick.groupKey}|${pick.countryKey}|${pick.nodeKey ?? ''}`
-                      : ''
-                  }
-                  onChange={(e) => {
-                    const v = e.target.value
-                    const [groupKey, countryKey, nodeKeyRaw] = v.split('|')
-                    const nodeKey = nodeKeyRaw === '' ? null : nodeKeyRaw
-                    const found = flatPicks.find(
-                      (p) =>
-                        p.groupKey === groupKey && p.countryKey === countryKey && (p.nodeKey ?? '') === (nodeKey ?? ''),
-                    )
-                    setPick(found ?? null)
-                  }}
-                >
-                  <option value="">— 선택 —</option>
-                  {filteredPicks.map((p) => (
-                    <option key={`${p.groupKey}|${p.countryKey}|${p.nodeKey ?? ''}`} value={`${p.groupKey}|${p.countryKey}|${p.nodeKey ?? ''}`}>
-                      {p.path}
-                    </option>
-                  ))}
-                </select>
-
-                {pick && (
-                  <pre className="mb-4 overflow-x-auto rounded bg-bt-surface-soft p-3 text-xs">
-                    {JSON.stringify(
-                      { groupKey: pick.groupKey, countryKey: pick.countryKey, nodeKey: pick.nodeKey },
-                      null,
-                      2,
-                    )}
-                  </pre>
+                {!masterTree?.continents?.length ? (
+                  <p className="text-sm text-bt-muted">마스터 트리를 불러오는 중…</p>
+                ) : (
+                  <MasterPrimaryGeoPicker continents={masterTree.continents} value={primary} onChange={setPrimary} />
                 )}
 
-                <div className="mb-6 rounded-lg border border-dashed border-bt-border bg-bt-surface-soft/50 p-4">
-                  <h3 className="text-sm font-semibold text-bt-title">보조 국가·도시 태그 (다국가)</h3>
-                  <p className="mt-1 text-xs text-bt-muted">
-                    실제 방문국을 트리에서 고른 뒤 「추가」합니다. 순서가 sortOrder가 됩니다. 대표와 동일한 노드는 서버에서 자동
-                    제외됩니다. 보조가 없으면 기존 <code className="rounded bg-white px-1">ProductCountryTag</code> 행은 전부
-                    삭제됩니다(단일 국가와 동일).
-                  </p>
-                  {secondaryPicks.length > 0 && (
-                    <ul className="mt-3 space-y-2">
-                      {secondaryPicks.map((p, idx) => (
-                        <li
-                          key={flatPickKey(p)}
-                          className="flex items-start justify-between gap-2 rounded border border-bt-border bg-white px-3 py-2 text-xs"
-                        >
-                          <span>
-                            <span className="text-bt-muted">{idx + 1}. </span>
-                            {flatPicks.find((x) => flatPickKey(x) === flatPickKey(p))?.path ?? flatPickKey(p)}
-                          </span>
-                          <button
-                            type="button"
-                            className="shrink-0 text-red-600 hover:underline"
-                            onClick={() => setSecondaryPicks((prev) => prev.filter((x) => flatPickKey(x) !== flatPickKey(p)))}
-                          >
-                            × 삭제
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
-                    <div className="min-w-0 flex-1">
-                      <label className="mb-1 block text-[11px] font-medium text-bt-muted">보조 노드 선택</label>
-                      <select
-                        className="w-full rounded border border-bt-border px-2 py-2 text-sm"
-                        value={secondaryDraftKey}
-                        onChange={(e) => setSecondaryDraftKey(e.target.value)}
-                      >
-                        <option value="">— 노드 선택 후 추가 —</option>
-                        {filteredPicks.map((p) => (
-                          <option key={`sec-${flatPickKey(p)}`} value={flatPickKey(p)}>
-                            {p.path}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={!secondaryDraftKey || !pick}
-                      onClick={() => addSecondaryDraft()}
-                      className="rounded-lg border border-bt-border bg-white px-3 py-2 text-sm font-medium disabled:opacity-50"
-                    >
-                      + 추가
-                    </button>
-                  </div>
+                <pre className="mt-4 overflow-x-auto rounded bg-bt-surface-soft p-3 text-xs">
+                  {JSON.stringify(primary, null, 2)}
+                </pre>
+
+                <div className="mt-6 space-y-6">
+                  <MasterCountryMultiPicker
+                    continents={masterTree?.continents ?? []}
+                    primaryCountryKey={primary.countryKey}
+                    value={secondaryCountries}
+                    onChange={setSecondaryCountries}
+                  />
+                  <MasterCityMultiPicker
+                    continents={masterTree?.continents ?? []}
+                    primaryCityKey={primary.cityKey}
+                    value={secondaryCities}
+                    onChange={setSecondaryCities}
+                  />
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="mt-6 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    disabled={applyBusy || !pick}
+                    disabled={applyBusy || !primary.continentKey || !primary.countryKey || !masterTree}
                     onClick={() => void onApply()}
                     className="rounded-lg bg-bt-brand-blue px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                   >
