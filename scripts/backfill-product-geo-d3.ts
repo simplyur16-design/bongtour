@@ -76,6 +76,8 @@ async function main() {
       destinationRaw: r.destinationRaw,
       primaryDestination: r.primaryDestination,
       bodyText,
+      browseHintCountry: r.country,
+      browseHintCity: r.city,
     })
 
     const before: Record<string, unknown> = {}
