@@ -115,6 +115,8 @@ model Product {
   bongSpots                ProductBongSpot[]     @relation("ProductBongSpots")
   /// G-2: 다국가·트리 browse 보조 태그 (대표 geo는 Product 단일 필드 유지, 옵션 C)
   countryTags              ProductCountryTag[]
+  /// I-1: 다도시 태그 (cityKey → I-3에서 City FK)
+  cityTags                 ProductCityTag[]
   brand                    Brand?                @relation(fields: [brandId], references: [id])
   brandId                  String? // 여행사 구분 (하나투어/모두투어/추가 여행사)
 
@@ -848,10 +850,108 @@ model ProductCountryTag {
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  country    Country  @relation(fields: [countryKey], references: [countryKey], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([productId])
   @@index([countryKey, nodeKey])
   @@index([groupKey])
+}
+
+/// I-1: 다도시 태그 (cityKey는 I-3에서 City 테이블 FK로 연결)
+model ProductCityTag {
+  id        String   @id @default(cuid())
+  productId String
+  cityKey   String
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([cityKey])
+}
+
+// -----------------------------------------------------------------------------
+// I-1: 봉투어 지리 SSOT 마스터 (대륙·국가·도시 + 메가메뉴 그룹 카드)
+// -----------------------------------------------------------------------------
+
+model Continent {
+  continentKey String @id
+  koreanLabel  String
+  sortOrder    Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @default(now()) @updatedAt
+  countries    Country[]
+  megaMenuCards MegaMenuGroupCard[]
+}
+
+model Country {
+  countryKey   String         @id
+  continentKey String
+  continent    Continent      @relation(fields: [continentKey], references: [continentKey], onDelete: Restrict, onUpdate: Cascade)
+  koreanLabel  String
+  sortOrder    Int            @default(0)
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+  cities       City[]
+  productCountryTags ProductCountryTag[]
+  megaMenuCardCountries MegaMenuGroupCardCountry[]
+
+  @@index([continentKey])
+}
+
+model City {
+  cityKey     String   @id
+  countryKey  String
+  country     Country  @relation(fields: [countryKey], references: [countryKey], onDelete: Restrict, onUpdate: Cascade)
+  koreanLabel String
+  sortOrder   Int      @default(0)
+  isMajor     Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  megaMenuCardCities MegaMenuGroupCardCity[]
+
+  @@index([countryKey])
+}
+
+model MegaMenuGroupCard {
+  cardKey      String   @id
+  koreanLabel  String
+  continentKey String
+  continent    Continent @relation(fields: [continentKey], references: [continentKey], onDelete: Restrict, onUpdate: Cascade)
+  displayMode  String
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  countries    MegaMenuGroupCardCountry[]
+  cities       MegaMenuGroupCardCity[]
+
+  @@index([continentKey])
+}
+
+model MegaMenuGroupCardCountry {
+  id         String            @id @default(cuid())
+  cardKey    String
+  countryKey String
+  sortOrder  Int               @default(0)
+  card       MegaMenuGroupCard @relation(fields: [cardKey], references: [cardKey], onDelete: Cascade)
+  country    Country           @relation(fields: [countryKey], references: [countryKey], onDelete: Cascade)
+
+  @@unique([cardKey, countryKey])
+}
+
+model MegaMenuGroupCardCity {
+  id      String            @id @default(cuid())
+  cardKey String
+  cityKey String
+  sortOrder Int             @default(0)
+  card    MegaMenuGroupCard @relation(fields: [cardKey], references: [cardKey], onDelete: Cascade)
+  city    City              @relation(fields: [cityKey], references: [cityKey], onDelete: Cascade)
+
+  @@unique([cardKey, cityKey])
 }
 
 /// 가볼 곳 카드
