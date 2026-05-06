@@ -37,6 +37,7 @@
     "verify:travel-review-seed": "npx tsx scripts/verify-travel-review-seed.ts",
     "verify:public-leaks": "npx tsx scripts/verify-public-api-leak-guards.ts",
     "verify:prisma-runtime-policy": "npx tsx scripts/verify-prisma-runtime-policy.ts",
+    "backfill:product-geo:d3": "npx tsx scripts/backfill-product-geo-d3.ts",
     "verify:rate-limit-store": "npx tsx scripts/verify-rate-limit-store.ts",
     "verify:departure-price-collect-ui": "npx tsx tools/verify-departure-price-collect-ui.ts",
     "verify:hotel-meal-display": "npx tsx scripts/verify-hotel-meal-display.ts",

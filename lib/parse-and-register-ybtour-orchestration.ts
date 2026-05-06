@@ -6,7 +6,7 @@ import {
 } from '@/lib/assert-supplier-route-match'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { prisma } from '@/lib/prisma'
-import { deriveProductLocationKeyFieldsForPrisma } from '@/lib/product-location-key-match'
+import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
   buildBongtourProductTitleFieldsForRegisterPreview,
   productTitlePairForRegisterConfirm,
@@ -1509,7 +1509,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
           ? registerPublicImageHeroSeoLineSingle.slice(0, 128)
           : null,
       ...registerListingMeta,
-      ...deriveProductLocationKeyFieldsForPrisma({
+      ...normalizeProductGeoForPrisma({
         title: titlePair.prismaTitle,
         originSource: effectiveOriginSource,
         destination: parsed.destination,

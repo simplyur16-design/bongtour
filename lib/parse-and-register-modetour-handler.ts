@@ -5,7 +5,7 @@ import {
   SupplierRouteMismatchError,
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
-import { deriveProductLocationKeyFieldsForPrisma } from '@/lib/product-location-key-match'
+import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
   buildBongtourProductTitleFieldsForRegisterPreview,
   productTitlePairForRegisterConfirm,
@@ -1681,7 +1681,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
           ? registerPublicImageHeroSeoLineSingle.slice(0, 128)
           : null,
       ...registerListingMeta,
-      ...deriveProductLocationKeyFieldsForPrisma({
+      ...normalizeProductGeoForPrisma({
         title: titlePair.prismaTitle,
         originSource: effectiveOriginSource,
         destination: parsed.destination,

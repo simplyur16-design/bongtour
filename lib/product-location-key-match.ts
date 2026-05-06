@@ -25,8 +25,9 @@ export type ProductLocationKeyPrismaFields = {
   groupKey: string | null
   locationMatchConfidence: string | null
   locationMatchSource: string | null
-  /** browse URL·필터와 동일한 슬러그 (`inferBrowseGeoFromDestinationText`) */
+  /** 메가메뉴 탭 id 계열 (`inferBrowseGeoFromDestinationText`) */
   continent: string | null
+  /** 내부 추론값 — 저장 SSOT 한글은 `normalizeProductGeoForPrisma` 사용 */
   country: string | null
   city: string | null
 }

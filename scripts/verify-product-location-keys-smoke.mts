@@ -23,7 +23,7 @@ if (!process.env.DATABASE_URL && fs.existsSync(envPath)) {
 }
 
 import { prisma } from '../lib/prisma'
-import { deriveProductLocationKeyFieldsForPrisma } from '../lib/product-location-key-match.ts'
+import { normalizeProductGeoForPrisma } from '../lib/normalize-product-geo.ts'
 
 const VERYGOOD_ORIGIN = 'VERYGOODTOUR'
 
@@ -76,7 +76,7 @@ async function main() {
   const ids: string[] = []
   try {
     for (const c of cases) {
-      const loc = deriveProductLocationKeyFieldsForPrisma({
+      const loc = normalizeProductGeoForPrisma({
         title: c.title,
         originSource: c.originSource,
         destination: c.destination,

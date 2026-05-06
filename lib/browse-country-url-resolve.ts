@@ -809,6 +809,41 @@ export function resolveBrowseCountryParamToDbCountries(param: string | null | un
   return []
 }
 
+function hasHangulLocal(s: string): boolean {
+  return /[가-힣]/.test(s)
+}
+
+/**
+ * `Product.country` 저장 SSOT — browse 영문 슬러그·트리 슬러그 → 한글 국가 라벨(첫 토큰).
+ * 이미 `OVERSEAS_AND_DB_COUNTRY_LABELS` 한글이면 그대로 반환. 매핑 없으면 null.
+ */
+export function resolveProductCountryToKoreanDisplay(raw: string | null | undefined): string | null {
+  const t = (raw ?? '').trim()
+  if (!t) return null
+  if (OVERSEAS_AND_DB_COUNTRY_LABELS.has(t)) return t
+  if (hasHangulLocal(t)) {
+    const first = t.split(/[/／,，、·]/)[0]?.trim() ?? t
+    if (OVERSEAS_AND_DB_COUNTRY_LABELS.has(first)) return first
+    return t
+  }
+  const lower = t.toLowerCase()
+  const fromBrowse = resolveBrowseCountryParamToDbCountries(lower)
+  if (fromBrowse.length >= 1) return fromBrowse[0]!
+  return null
+}
+
+/**
+ * `Product.city` 저장 SSOT — browse 영문 슬러그 → 한글 도시 라벨(`resolveBrowseCityParamToDbCity`).
+ * 이미 `DB_CITY_LABELS` 한글이면 그대로. 매핑 없으면 null.
+ */
+export function resolveProductCityToKoreanDisplay(raw: string | null | undefined): string | null {
+  const t = (raw ?? '').trim()
+  if (!t) return null
+  if (DB_CITY_LABELS.has(t)) return t
+  if (hasHangulLocal(t)) return t
+  return resolveBrowseCityParamToDbCity(t)
+}
+
 /** 일본 권역(메가메뉴 `country` 슬러그) → DB `city`·목적지 부분문자열 매칭용 키워드 */
 const JP_KANTO = uniqueStrings([
   '도쿄',

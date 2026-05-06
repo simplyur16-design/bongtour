@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import {
-  deriveProductLocationKeyFieldsForPrisma,
-  itineraryDescriptionsBlob,
-} from '@/lib/product-location-key-match'
+import { itineraryDescriptionsBlob } from '@/lib/product-location-key-match'
+import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import { requireAdmin } from '@/lib/require-admin'
 import { mapToParsedProductForDB } from '@/lib/map-to-parsed-product'
 import type { ExtractedProduct } from '@/lib/extraction-schema'
@@ -121,7 +119,7 @@ function productToUpdateData(parsed: ParsedProductForDB) {
     criticalExclusions: parsed.criticalExclusions ?? null,
     schedule,
     registrationStatus: 'pending' as const,
-    ...deriveProductLocationKeyFieldsForPrisma({
+    ...normalizeProductGeoForPrisma({
       title: parsed.title?.trim() || '상품명 없음',
       originSource: parsed.originSource?.trim() || '직접입력',
       destination: parsed.destination?.trim() || undefined,
