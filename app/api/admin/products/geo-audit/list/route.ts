@@ -55,6 +55,16 @@ export async function GET(req: Request) {
       lastGeoAuditAt: true,
       lastGeoAuditedBy: true,
       geoAuditSkippedAt: true,
+      countryTags: {
+        select: {
+          countryKey: true,
+          nodeKey: true,
+          groupKey: true,
+          isPrimary: true,
+          sortOrder: true,
+        },
+        orderBy: { sortOrder: 'asc' },
+      },
     },
   })
 
@@ -123,6 +133,13 @@ export async function GET(req: Request) {
         lastGeoAuditAt: p.lastGeoAuditAt?.toISOString() ?? null,
         lastGeoAuditedBy: p.lastGeoAuditedBy,
         geoAuditSkippedAt: p.geoAuditSkippedAt?.toISOString() ?? null,
+        countryTags: (p.countryTags ?? []).map((t) => ({
+          countryKey: t.countryKey,
+          nodeKey: t.nodeKey,
+          groupKey: t.groupKey,
+          isPrimary: t.isPrimary,
+          sortOrder: t.sortOrder,
+        })),
       }
     }),
   )

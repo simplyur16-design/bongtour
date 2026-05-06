@@ -87,6 +87,16 @@ export function findGroupInTree(groupKey: string): OverseasRegionGroupNode | und
   return OVERSEAS_LOCATION_TREE_CLEAN.find((g) => g.groupKey === groupKey)
 }
 
+/** `countryKey`만 알 때 소속 `groupKey` (첫 매칭). 보조 태그 입력에서 groupKey 생략 시 사용. */
+export function findGroupKeyForCountryKey(countryKey: string): string | null {
+  const ck = countryKey.trim()
+  if (!ck) return null
+  for (const g of OVERSEAS_LOCATION_TREE_CLEAN) {
+    if (g.countries.some((c) => c.countryKey === ck)) return g.groupKey
+  }
+  return null
+}
+
 export function findCountryInTree(
   groupKey: string,
   countryKey: string

@@ -5,6 +5,24 @@ import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
 import { OVERSEAS_LOCATION_TREE_CLEAN } from '@/lib/overseas-location-tree'
 import type { OverseasRegionGroupNode } from '@/lib/overseas-location-tree.types'
 
+type CountryTagRow = {
+  countryKey: string
+  nodeKey: string | null
+  groupKey: string | null
+  isPrimary: boolean
+  sortOrder: number
+}
+
+/** 제목만으로 다국가 패키지 의심(운영자 확인용, 자동 판정 아님) */
+function titleSuggestsMultiCountry(title: string): boolean {
+  const t = title.trim()
+  if (!t) return false
+  if (/\d+\s*개국/.test(t)) return true
+  if (/\d+\s*국\b/.test(t) && /(일주|여행|투어|팩|패키지|일정)/.test(t)) return true
+  if (/(두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s*국|다국|복수|연계.*국|N국/i.test(t)) return true
+  return false
+}
+
 type GeoBlock = {
   country: string | null
   city: string | null
@@ -30,6 +48,7 @@ type ListItem = {
   lastGeoAuditAt: string | null
   lastGeoAuditedBy: string | null
   geoAuditSkippedAt: string | null
+  countryTags: CountryTagRow[]
 }
 
 type ListResponse = {
@@ -46,6 +65,10 @@ type FlatPick = {
   groupKey: string
   countryKey: string
   nodeKey: string | null
+}
+
+function flatPickKey(p: FlatPick) {
+  return `${p.groupKey}|${p.countryKey}|${p.nodeKey ?? ''}`
 }
 
 function flattenTree(tree: OverseasRegionGroupNode[]): FlatPick[] {
@@ -108,6 +131,9 @@ export default function GeoAuditPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [pick, setPick] = useState<FlatPick | null>(null)
+  /** G-4: 보조 태그(대표와 중복 불가) */
+  const [secondaryPicks, setSecondaryPicks] = useState<FlatPick[]>([])
+  const [secondaryDraftKey, setSecondaryDraftKey] = useState('')
   const [applyBusy, setApplyBusy] = useState(false)
   const [applyMsg, setApplyMsg] = useState<string | null>(null)
   const [normalizeWarn, setNormalizeWarn] = useState<string | null>(null)
@@ -147,11 +173,55 @@ export default function GeoAuditPage() {
 
   const selected = data?.items.find((x) => x.id === selectedId) ?? null
 
+  useEffect(() => {
+    if (!data || !selectedId) {
+      setSecondaryPicks([])
+      return
+    }
+    const row = data.items.find((x) => x.id === selectedId)
+    const tags = row?.countryTags ?? []
+    if (!tags.length) {
+      setSecondaryPicks([])
+      return
+    }
+    const picks: FlatPick[] = []
+    for (const t of tags) {
+      if (t.isPrimary) continue
+      const gk = (t.groupKey ?? '').trim()
+      if (!gk) continue
+      const fp = flatPicks.find(
+        (p) =>
+          p.groupKey === gk &&
+          p.countryKey === t.countryKey &&
+          (p.nodeKey ?? '') === (t.nodeKey ?? ''),
+      )
+      if (fp) picks.push(fp)
+    }
+    setSecondaryPicks(picks)
+  }, [selectedId, data, flatPicks])
+
   const filteredPicks = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return flatPicks
     return flatPicks.filter((p) => p.path.toLowerCase().includes(q) || p.groupKey.includes(q) || p.countryKey.includes(q))
   }, [flatPicks, search])
+
+  function addSecondaryDraft() {
+    if (!secondaryDraftKey || !pick) return
+    const [groupKey, countryKey, nodeKeyRaw] = secondaryDraftKey.split('|')
+    const nodeKey = nodeKeyRaw === '' ? null : nodeKeyRaw
+    const found = flatPicks.find(
+      (p) =>
+        p.groupKey === groupKey && p.countryKey === countryKey && (p.nodeKey ?? '') === (nodeKey ?? ''),
+    )
+    if (!found) return
+    if (flatPickKey(found) === flatPickKey(pick)) return
+    setSecondaryPicks((prev) => {
+      if (prev.some((p) => flatPickKey(p) === flatPickKey(found))) return prev
+      return [...prev, found]
+    })
+    setSecondaryDraftKey('')
+  }
 
   async function onApply() {
     if (!selected || !pick) return
@@ -165,9 +235,16 @@ export default function GeoAuditPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: selected.id,
-          groupKey: pick.groupKey,
-          countryKey: pick.countryKey,
-          nodeKey: pick.nodeKey,
+          primary: {
+            groupKey: pick.groupKey,
+            countryKey: pick.countryKey,
+            nodeKey: pick.nodeKey,
+          },
+          secondary: secondaryPicks.map((p) => ({
+            groupKey: p.groupKey,
+            countryKey: p.countryKey,
+            nodeKey: p.nodeKey,
+          })),
         }),
       })
       const j = await r.json().catch(() => ({}))
@@ -175,7 +252,13 @@ export default function GeoAuditPage() {
         setApplyMsg(typeof j.error === 'string' ? j.error : `적용 실패 (${r.status})`)
         return
       }
-      setApplyMsg('저장되었습니다.')
+      const sec = typeof j.secondaryTagsApplied === 'number' ? j.secondaryTagsApplied : 0
+      const pt = j.primaryCountryTagInserted === true
+      setApplyMsg(
+        sec > 0
+          ? `저장되었습니다. 보조 태그 ${sec}건${pt ? ' + 대표 태그(동기화)' : ''}.`
+          : '저장되었습니다. (보조 태그 없음 — 기존 보조 태그는 모두 제거됨)',
+      )
       if (j.normalizeWouldMatchApplied === false) {
         setNormalizeWarn(
           '참고: D-3-FIX 정규화(`normalizeProductGeoForPrisma`)로 재계산하면 키가 달라질 수 있습니다. 의도한 매핑인지 확인하세요.',
@@ -217,7 +300,7 @@ export default function GeoAuditPage() {
     <div className="mx-auto max-w-[1600px] space-y-6">
       <AdminPageHeader
         title="상품 지리 정규화 검수"
-        subtitle="등록 완료 해외 상품 중 키·표기가 비어 있거나 영문 슬러그인 행만 표시합니다. 메가메뉴 트리에서 노드를 고르고 적용하세요. 자동 추천은 참고용이며 자동 저장되지 않습니다."
+        subtitle="등록 완료 해외 상품 중 키·표기가 비어 있거나 영문 슬러그인 행만 표시합니다. 대표(primary)는 Product 단일 컬럼으로 저장하고, 실제 방문국이 여러 개이면 보조 태그로 추가하면 Browse·메가메뉴 OR에 반영됩니다. 자동 추천은 참고용이며 자동 저장되지 않습니다."
       />
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -258,12 +341,13 @@ export default function GeoAuditPage() {
                       setSelectedId(row.id)
                       setApplyMsg(null)
                       setNormalizeWarn(null)
+                      setSecondaryDraftKey('')
                     }}
                     className={`w-full rounded-lg border px-2 py-2 text-left text-sm transition-colors ${
                       row.id === selectedId
                         ? 'border-bt-brand-blue bg-bt-brand-blue-soft'
                         : 'border-transparent hover:bg-bt-surface-soft'
-                    }`}
+                    } ${titleSuggestsMultiCountry(row.title) ? 'border-l-4 border-l-amber-400 pl-1.5' : ''}`}
                   >
                     <div className="truncate font-medium text-bt-title">{row.title}</div>
                     <div className="truncate text-xs text-bt-muted">
@@ -272,6 +356,11 @@ export default function GeoAuditPage() {
                     {row.suggestionMatchesKeys && (
                       <span className="mt-1 inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-900">
                         추천 키 = 현재 키
+                      </span>
+                    )}
+                    {titleSuggestsMultiCountry(row.title) && (
+                      <span className="mt-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-950">
+                        다국가 문구 감지
                       </span>
                     )}
                   </button>
@@ -349,11 +438,26 @@ export default function GeoAuditPage() {
                 <GeoBlockView label="D-3-FIX 추천 (자동 적용 안 함)" g={selected.suggestion} />
               </div>
 
+              {titleSuggestsMultiCountry(selected.title) && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950 shadow-sm">
+                  <p className="font-semibold">다국가 문구가 제목에 포함된 것으로 보입니다.</p>
+                  <ul className="mt-2 list-inside list-disc space-y-1 text-xs leading-relaxed">
+                    <li>
+                      <strong>경유·환승·공항 트랜짓</strong>만 있는 국가는 다국가 태그에 넣지 않습니다. 실제 도착·관광·숙박하는 국가만
+                      보조 태그로 추가하세요.
+                    </li>
+                    <li>진짜 다국가 패키지면, 방문하는 모든 국가를 보조 태그에 넣어 메가메뉴·Browse OR 매칭에 반영합니다.</li>
+                    <li>최종 판단은 운영자가 행별로 적용합니다.</li>
+                  </ul>
+                </div>
+              )}
+
               <div className="rounded-xl border border-bt-border bg-white p-4 shadow-sm">
-                <h2 className="mb-2 text-sm font-semibold text-bt-title">메가메뉴 트리 선택</h2>
+                <h2 className="mb-2 text-sm font-semibold text-bt-title">대표(primary) — 메가메뉴 트리</h2>
                 <p className="mb-3 text-xs text-bt-muted">
                   권역 › 국가 › 리프 경로를 검색하거나 아래 목록에서 고릅니다. 「국가 단위」는 해당 browse 국가 노드만 지정합니다(nodeKey
-                  null).
+                  null). 적용 시 <code className="rounded bg-bt-surface-soft px-1">Product</code> 단일 컬럼(country, city,
+                  countryKey, nodeKey, groupKey, continent)이 이 선택으로 갱신됩니다.
                 </p>
                 <input
                   type="search"
@@ -398,6 +502,62 @@ export default function GeoAuditPage() {
                     )}
                   </pre>
                 )}
+
+                <div className="mb-6 rounded-lg border border-dashed border-bt-border bg-bt-surface-soft/50 p-4">
+                  <h3 className="text-sm font-semibold text-bt-title">보조 국가·도시 태그 (다국가)</h3>
+                  <p className="mt-1 text-xs text-bt-muted">
+                    실제 방문국을 트리에서 고른 뒤 「추가」합니다. 순서가 sortOrder가 됩니다. 대표와 동일한 노드는 서버에서 자동
+                    제외됩니다. 보조가 없으면 기존 <code className="rounded bg-white px-1">ProductCountryTag</code> 행은 전부
+                    삭제됩니다(단일 국가와 동일).
+                  </p>
+                  {secondaryPicks.length > 0 && (
+                    <ul className="mt-3 space-y-2">
+                      {secondaryPicks.map((p, idx) => (
+                        <li
+                          key={flatPickKey(p)}
+                          className="flex items-start justify-between gap-2 rounded border border-bt-border bg-white px-3 py-2 text-xs"
+                        >
+                          <span>
+                            <span className="text-bt-muted">{idx + 1}. </span>
+                            {flatPicks.find((x) => flatPickKey(x) === flatPickKey(p))?.path ?? flatPickKey(p)}
+                          </span>
+                          <button
+                            type="button"
+                            className="shrink-0 text-red-600 hover:underline"
+                            onClick={() => setSecondaryPicks((prev) => prev.filter((x) => flatPickKey(x) !== flatPickKey(p)))}
+                          >
+                            × 삭제
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <div className="min-w-0 flex-1">
+                      <label className="mb-1 block text-[11px] font-medium text-bt-muted">보조 노드 선택</label>
+                      <select
+                        className="w-full rounded border border-bt-border px-2 py-2 text-sm"
+                        value={secondaryDraftKey}
+                        onChange={(e) => setSecondaryDraftKey(e.target.value)}
+                      >
+                        <option value="">— 노드 선택 후 추가 —</option>
+                        {filteredPicks.map((p) => (
+                          <option key={`sec-${flatPickKey(p)}`} value={flatPickKey(p)}>
+                            {p.path}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!secondaryDraftKey || !pick}
+                      onClick={() => addSecondaryDraft()}
+                      className="rounded-lg border border-bt-border bg-white px-3 py-2 text-sm font-medium disabled:opacity-50"
+                    >
+                      + 추가
+                    </button>
+                  </div>
+                </div>
 
                 <div className="flex flex-wrap gap-2">
                   <button
