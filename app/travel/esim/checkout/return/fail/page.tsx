@@ -10,6 +10,8 @@ import { Suspense } from "react";
 function FailInner() {
   const sp = useSearchParams();
   const orderId = (sp?.get("orderId") ?? "").trim();
+  const orderNumber = (sp?.get("orderNumber") ?? "").trim();
+  const orderNoDisplay = orderNumber || "—";
   const optionApiId = (sp?.get("optionApiId") ?? "").trim();
   const reason = (sp?.get("reason") ?? "").trim();
 
@@ -31,7 +33,9 @@ function FailInner() {
             결제가 완료되지 않았습니다. 사유를 확인한 뒤 다시 시도하거나 장바구니로 돌아가 주세요.
           </p>
           {reason ? <p className="mt-2 text-xs font-mono text-slate-500">사유: {reason}</p> : null}
-          {orderId ? <p className="mt-2 text-xs font-mono text-slate-500">주문 ID: {orderId}</p> : null}
+          <p className="mt-2 text-xs text-slate-600">
+            주문번호: <span className="font-mono text-slate-700">{orderNoDisplay}</span>
+          </p>
           <Link
             href={retryHref}
             className="mt-6 inline-block rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white"

@@ -302,15 +302,17 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
           setSubmitError(cj.error === "validation" ? "입력값을 확인해 주세요." : "주문 생성에 실패했습니다.");
           return;
         }
-        if (cj.schema !== "bongsim.checkout_confirm.response.v1" || !cj.order?.order_id) {
+        if (cj.schema !== "bongsim.checkout_confirm.response.v1" || !cj.order?.order_id || !(cj.order.order_number ?? "").trim()) {
           setSubmitError("주문 응답이 올바르지 않습니다.");
           return;
         }
         const orderId = cj.order.order_id;
+        const orderNumber = cj.order.order_number.trim();
 
         const paymentKey = paymentIdempotencyRef.current ?? (paymentIdempotencyRef.current = crypto.randomUUID());
         const q = new URLSearchParams({
           orderId,
+          orderNumber,
           optionApiId,
         });
         const successUrl = `${originBase}${bongsimPath(`/checkout/return/success?${q.toString()}`)}`;

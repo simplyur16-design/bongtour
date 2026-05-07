@@ -17,6 +17,8 @@ function CloseRedirectInner() {
     q.set("status", "cancel");
     const orderId = (incoming.get("orderId") ?? "").trim();
     if (orderId) q.set("orderId", orderId);
+    const orderNumber = (incoming.get("orderNumber") ?? "").trim();
+    if (orderNumber) q.set("orderNumber", orderNumber);
     const message = (incoming.get("message") ?? "").trim();
     if (message) q.set("message", message);
     router.replace(`${bongsimPath("/checkout/payment/result")}?${q.toString()}`);

@@ -18,6 +18,7 @@ export type BongsimCheckoutConfirmRequestV1 = {
   coupon_discount_krw?: number | null;
 };
 
+/** `order.order_number` — 고객·CS용 BS- 접두 주문번호(표시). `order.order_id`는 내부 UUID. */
 export type BongsimCheckoutConfirmResponseV1 = {
   schema: "bongsim.checkout_confirm.response.v1";
   order: BongsimOrderV1["order"];

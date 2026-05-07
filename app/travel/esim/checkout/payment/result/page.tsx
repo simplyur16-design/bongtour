@@ -19,7 +19,9 @@ function formatAmountKrw(raw: string): string | null {
 function ResultInner() {
   const sp = useSearchParams();
   const statusRaw = (sp?.get("status") ?? "").trim().toLowerCase();
-  const orderId = (sp?.get("orderId") ?? "").trim();
+  const orderNumber = (sp?.get("orderNumber") ?? "").trim();
+  /** 고객·CS용 표기 — UUID(orderId 쿼리)는 노출하지 않음 */
+  const orderNoDisplay = orderNumber || "—";
   const message = (sp?.get("message") ?? "").trim();
   const amountRaw = (sp?.get("amount") ?? "").trim();
   const orderName = (sp?.get("orderName") ?? "").trim();
@@ -66,7 +68,7 @@ function ResultInner() {
                 <dl className="mt-4 space-y-3 text-sm sm:text-base">
                   <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
                     <dt className="text-slate-500">주문번호</dt>
-                    <dd className="break-all font-mono text-slate-900">{orderId || "—"}</dd>
+                    <dd className="break-all font-mono text-slate-900">{orderNoDisplay}</dd>
                   </div>
                   {amountDisplay ? (
                     <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
@@ -127,12 +129,10 @@ function ResultInner() {
               </p>
             </div>
             <div className="border-t border-slate-100 p-5 sm:p-6">
-              {orderId ? (
-                <p className="break-all text-xs font-mono text-slate-500 sm:text-sm">
-                  <span className="font-sans font-medium text-slate-600">주문번호 </span>
-                  {orderId}
-                </p>
-              ) : null}
+              <p className="break-all text-xs font-mono text-slate-500 sm:text-sm">
+                <span className="font-sans font-medium text-slate-600">주문번호 </span>
+                {orderNoDisplay}
+              </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href={checkoutRetryHref}
@@ -170,12 +170,10 @@ function ResultInner() {
                   {message}
                 </div>
               ) : null}
-              {orderId ? (
-                <p className={`break-all text-xs font-mono text-slate-500 sm:text-sm ${message ? "mt-4" : ""}`}>
-                  <span className="font-sans font-medium text-slate-600">주문번호 </span>
-                  {orderId}
-                </p>
-              ) : null}
+              <p className={`break-all text-xs font-mono text-slate-500 sm:text-sm ${message ? "mt-4" : ""}`}>
+                <span className="font-sans font-medium text-slate-600">주문번호 </span>
+                {orderNoDisplay}
+              </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href={checkoutRetryHref}

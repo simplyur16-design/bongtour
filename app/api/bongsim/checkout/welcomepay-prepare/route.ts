@@ -72,9 +72,10 @@ export async function POST(req: Request) {
 
   const pool = getPgPool()!;
   const client = await pool.connect();
+  let bongsimOrderNumber = "";
   try {
-    const o = await client.query<{ buyer_email: string; grand_total_krw: string; status: string }>(
-      `SELECT buyer_email, grand_total_krw, status FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
+    const o = await client.query<{ buyer_email: string; grand_total_krw: string; status: string; order_number: string }>(
+      `SELECT buyer_email, grand_total_krw, status, order_number FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
       [orderId],
     );
     const order = o.rows[0];
@@ -97,13 +98,18 @@ export async function POST(req: Request) {
     if (!att || att.provider !== WELCOMEPAY_PROVIDER_ID || att.provider_session_id !== orderNumber) {
       return NextResponse.json({ ok: false, error: "invalid_payment_attempt" }, { status: 400 });
     }
+    bongsimOrderNumber = order.order_number;
   } finally {
     client.release();
   }
 
   const origin = requestOrigin(req);
   const returnUrl = `${origin}/api/bongsim/checkout/welcomepay-return`;
-  const closeUrl = buildCheckoutPaymentResultRedirectUrl(origin, { status: "cancel", orderId });
+  const closeUrl = buildCheckoutPaymentResultRedirectUrl(origin, {
+    status: "cancel",
+    orderId,
+    orderNumber: bongsimOrderNumber,
+  });
   const popupUrl = closeUrl;
   const pNextUrl = `${origin}/api/bongsim/checkout/welcomepay-mobile-next`;
 

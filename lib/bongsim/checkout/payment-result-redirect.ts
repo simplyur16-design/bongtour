@@ -6,11 +6,13 @@ import { bongsimPath } from "@/lib/bongsim/constants";
  */
 export function buildCheckoutPaymentResultRedirectUrl(
   origin: string,
-  input: { status: "fail" | "cancel" | "success"; orderId: string; message?: string },
+  input: { status: "fail" | "cancel" | "success"; orderId: string; message?: string; orderNumber?: string },
 ): string {
   const q = new URLSearchParams();
   q.set("status", input.status);
   if (input.orderId.trim()) q.set("orderId", input.orderId.trim());
+  const on = input.orderNumber?.trim();
+  if (on) q.set("orderNumber", on);
   const msg = input.message?.trim();
   if (msg) q.set("message", msg);
   return `${origin}${bongsimPath(`/checkout/payment/result?${q.toString()}`)}`;

@@ -31,9 +31,16 @@ function requestOrigin(req: Request): string {
 
 export async function POST(req: Request) {
   const origin = requestOrigin(req);
-  const fail = (orderId: string, reason: string) =>
+  let orderId = "";
+  let orderNumber = "";
+  const fail = (reason: string) =>
     NextResponse.redirect(
-      buildCheckoutPaymentResultRedirectUrl(origin, { status: "fail", orderId, message: reason }),
+      buildCheckoutPaymentResultRedirectUrl(origin, {
+        status: "fail",
+        orderId,
+        orderNumber,
+        message: reason,
+      }),
       303,
     );
 
@@ -51,11 +58,15 @@ export async function POST(req: Request) {
   const pool = getPgPool()!;
   const c = await pool.connect();
   let paymentAttemptId = "";
-  let orderId = "";
   let grandTotalKrw = 0;
   try {
-    const r = await c.query<{ payment_attempt_id: string; order_id: string; grand_total_krw: string }>(
-      `SELECT pa.payment_attempt_id, pa.order_id, o.grand_total_krw
+    const r = await c.query<{
+      payment_attempt_id: string;
+      order_id: string;
+      grand_total_krw: string;
+      order_number: string;
+    }>(
+      `SELECT pa.payment_attempt_id, pa.order_id, o.grand_total_krw, o.order_number
        FROM bongsim_payment_attempt pa
        JOIN bongsim_order o ON o.order_id = pa.order_id
        WHERE pa.provider = $1 AND pa.provider_session_id = $2
@@ -68,6 +79,7 @@ export async function POST(req: Request) {
     }
     paymentAttemptId = row.payment_attempt_id;
     orderId = row.order_id;
+    orderNumber = row.order_number;
     grandTotalKrw = Number.parseInt(row.grand_total_krw, 10);
   } finally {
     c.release();
@@ -89,7 +101,7 @@ export async function POST(req: Request) {
     });
     authText = await authRes.text();
   } catch (e) {
-    return fail(orderId, e instanceof Error ? e.message : "approval_fetch_failed");
+    return fail(e instanceof Error ? e.message : "approval_fetch_failed");
   }
 
   const authMap = parseWelcomepayPayload(authText);
@@ -97,7 +109,7 @@ export async function POST(req: Request) {
   const rc = resultCodeOf(merged);
   if (rc !== "0000") {
     const msg = merged.resultMsg ?? merged.ResultMsg ?? `resultCode=${rc || "unknown"}`;
-    return fail(orderId, msg);
+    return fail(msg);
   }
 
   const tid = pickTid(merged);
@@ -116,9 +128,12 @@ export async function POST(req: Request) {
   });
 
   if (!fin.ok) {
-    return fail(orderId, fin.reason);
+    return fail(fin.reason);
   }
 
-  const okUrl = `${origin}${bongsimPath(`/checkout/return/success?orderId=${encodeURIComponent(orderId)}`)}`;
+  const okQ = new URLSearchParams();
+  okQ.set("orderId", orderId);
+  if (orderNumber.trim()) okQ.set("orderNumber", orderNumber.trim());
+  const okUrl = `${origin}${bongsimPath(`/checkout/return/success?${okQ.toString()}`)}`;
   return NextResponse.redirect(okUrl, 303);
 }

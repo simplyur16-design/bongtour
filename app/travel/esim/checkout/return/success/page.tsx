@@ -12,6 +12,8 @@ function SuccessInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const orderId = (sp?.get("orderId") ?? "").trim();
+  const orderNumber = (sp?.get("orderNumber") ?? "").trim();
+  const orderNoDisplay = orderNumber || "—";
   const readKey = (sp?.get("read_key") ?? "").trim();
   const readKeyQuery = readKey ? `?read_key=${encodeURIComponent(readKey)}` : "";
   const [status, setStatus] = useState<string | null>(null);
@@ -71,8 +73,8 @@ function SuccessInner() {
         {!orderId ? (
           <p className="mt-4 text-sm text-red-700">주문 정보(orderId)가 없습니다.</p>
         ) : (
-          <p className="mt-2 text-xs font-mono text-slate-500">
-            주문 ID: {orderId}
+          <p className="mt-2 text-xs text-slate-600">
+            주문번호: <span className="font-mono text-slate-700">{orderNoDisplay}</span>
             {status ? ` · 상태: ${status}` : ""}
           </p>
         )}

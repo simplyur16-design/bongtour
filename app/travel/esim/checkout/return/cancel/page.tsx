@@ -9,7 +9,8 @@ import { Suspense } from "react";
 
 function CancelInner() {
   const sp = useSearchParams();
-  const orderId = (sp?.get("orderId") ?? "").trim();
+  const orderNumber = (sp?.get("orderNumber") ?? "").trim();
+  const orderNoDisplay = orderNumber || "—";
   const optionApiId = (sp?.get("optionApiId") ?? "").trim();
   const retryHref = optionApiId
     ? bongsimPath(`/checkout?optionApiId=${encodeURIComponent(optionApiId)}`)
@@ -25,7 +26,9 @@ function CancelInner() {
           <p className="mt-3 text-sm text-slate-600">
             결제를 진행하지 않고 나왔습니다. 계속하시려면 아래에서 다시 시도해 주세요.
           </p>
-          {orderId ? <p className="mt-2 text-xs font-mono text-slate-500">주문 ID: {orderId}</p> : null}
+          <p className="mt-2 text-xs text-slate-600">
+            주문번호: <span className="font-mono text-slate-700">{orderNoDisplay}</span>
+          </p>
           <Link
             href={retryHref}
             className="mt-6 inline-block rounded-xl border border-transparent bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800"
