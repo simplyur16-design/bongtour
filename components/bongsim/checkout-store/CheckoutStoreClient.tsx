@@ -392,12 +392,6 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 </p>
               </section>
             ) : null}
-            {/* TODO: 오픈 시 제거 — PG 테스트 공지 배너 */}
-            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
-              <p className="text-sm font-medium text-amber-700">
-                <span aria-hidden>🔧</span> 현재 PG 결제 연결 테스트 중입니다. 실제 결제는 불가합니다.
-              </p>
-            </div>
             <section className="rounded-xl border border-teal-200 bg-teal-50 p-4 shadow-sm lg:p-5">
               {checkoutSummary ? (
                 <>
@@ -424,7 +418,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                       </p>
                       <p className="text-2xl font-bold text-teal-600 lg:text-3xl">{nf.format(final)}원</p>
                       <p className="text-sm font-semibold text-teal-700 lg:text-base">-{nf.format(disc)}원</p>
-                      <p className="text-sm font-normal text-slate-500 lg:text-base">
+                      <p className="text-sm font-normal text-slate-600 lg:text-base">
                         ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
                       </p>
                     </div>
@@ -433,7 +427,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 return (
                   <p className="mt-4 text-2xl font-bold text-slate-900 lg:mt-5 lg:text-3xl">
                     {nf.format(unit)}원
-                    <span className="ml-2 text-sm font-normal text-slate-500 lg:text-base">
+                    <span className="ml-2 text-sm font-normal text-slate-600 lg:text-base">
                       ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
                     </span>
                   </p>
@@ -520,11 +514,13 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 <button
                   type="button"
                   onClick={() => setCouponOpen((o) => !o)}
-                  className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:border-teal-600 focus:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 lg:px-4 lg:py-3 lg:text-base"
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 transition hover:border-teal-600 focus:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 lg:px-4 lg:py-3 lg:text-base"
                   aria-expanded={couponOpen}
                 >
                   쿠폰이 있으신가요?
-                  <span className="text-slate-400">{couponOpen ? "▲" : "▼"}</span>
+                  <span className="text-slate-600" aria-hidden>
+                    {couponOpen ? "▲" : "▼"}
+                  </span>
                 </button>
                 {couponOpen ? (
                   <div className="border-t border-slate-300 px-3 pb-3 pt-1 lg:px-4 lg:pb-4">
@@ -534,7 +530,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                         value={couponCode}
                         onChange={(ev) => setCouponCode(ev.target.value)}
                         placeholder="쿠폰 코드"
-                        className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-700 placeholder:text-slate-400 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-500 lg:px-4 lg:py-2.5 lg:text-lg"
+                        className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-700 placeholder:text-slate-500 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-500 lg:px-4 lg:py-2.5 lg:text-lg"
                         autoComplete="off"
                       />
                       <button
