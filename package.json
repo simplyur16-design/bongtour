@@ -70,7 +70,9 @@
     "cron:sync": "npx tsx scripts/sync-prices.ts",
     "cron:daemon": "npx tsx scripts/scheduler.ts",
     "calendar:daemon": "node -e \"require('child_process').spawn('python', ['-m', 'scripts.calendar_price_scheduler'], {stdio:'inherit', env:{...process.env, PYTHONPATH: process.cwd()}}).on('exit', process.exit)\"",
-    "calendar:once": "node -e \"var r=require('child_process').spawnSync('python', ['-m', 'scripts.calendar_price_scheduler', '--once'], {stdio:'inherit', env:Object.assign({}, process.env, {PYTHONPATH: process.cwd()})}); process.exit(r.status||0)\""
+    "calendar:once": "node -e \"var r=require('child_process').spawnSync('python', ['-m', 'scripts.calendar_price_scheduler', '--once'], {stdio:'inherit', env:Object.assign({}, process.env, {PYTHONPATH: process.cwd()})}); process.exit(r.status||0)\"",
+    "backfill:highlight-llm": "npx tsx scripts/backfill-highlight-llm.ts",
+    "smoke:highlight-llm": "npx tsx scripts/smoke-highlight-llm.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

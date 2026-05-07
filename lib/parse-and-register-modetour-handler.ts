@@ -6,6 +6,7 @@ import {
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
 import { extractHighlightFromModetour } from '@/lib/extract-highlight-modetour'
+import { extractHighlightFromModetourLLM } from '@/lib/llm-extract-highlight-modetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
@@ -1649,6 +1650,10 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
         : existing?.registrationStatus === 'registered'
           ? 'registered'
           : 'pending'
+    const highlightLlm = await extractHighlightFromModetourLLM(text).catch((e) => {
+      console.warn('[modetour] highlight LLM', e instanceof Error ? e.message : e)
+      return null
+    })
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1680,7 +1685,9 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       schedule: scheduleJson,
       registrationStatus: registrationStatusForSave,
       benefitSummary,
-      highlightPointsRaw: extractHighlightFromModetour(text),
+      highlightPointsRaw:
+        highlightLlm?.highlightPointsRaw ?? extractHighlightFromModetour(text) ?? null,
+      highlightPoints: highlightLlm?.highlightPoints ?? null,
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,

@@ -7,6 +7,7 @@ import {
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { prisma } from '@/lib/prisma'
 import { extractHighlightFromLottetour } from '@/lib/extract-highlight-lottetour'
+import { extractHighlightFromLottetourLLM } from '@/lib/llm-extract-highlight-lottetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
@@ -1626,6 +1627,10 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         : existing?.registrationStatus === 'registered'
           ? 'registered'
           : 'pending'
+    const highlightLlm = await extractHighlightFromLottetourLLM(text).catch((e) => {
+      console.warn('[lottetour] highlight LLM', e instanceof Error ? e.message : e)
+      return null
+    })
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1657,7 +1662,9 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       schedule: scheduleJson,
       registrationStatus: registrationStatusForSave,
       benefitSummary,
-      highlightPointsRaw: extractHighlightFromLottetour(text),
+      highlightPointsRaw:
+        highlightLlm?.highlightPointsRaw ?? extractHighlightFromLottetour(text) ?? null,
+      highlightPoints: highlightLlm?.highlightPoints ?? null,
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,

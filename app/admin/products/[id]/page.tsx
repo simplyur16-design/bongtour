@@ -373,6 +373,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
   const [highlightRawDraft, setHighlightRawDraft] = useState('')
   const [highlightCuratedDraft, setHighlightCuratedDraft] = useState('')
   const [savingHighlights, setSavingHighlights] = useState(false)
+  const [regeneratingHighlightLlm, setRegeneratingHighlightLlm] = useState(false)
   const [savingCounseling, setSavingCounseling] = useState(false)
   const [savingFlightAdmin, setSavingFlightAdmin] = useState(false)
   const [flightManualPanelOpen, setFlightManualPanelOpen] = useState(false)
@@ -1609,42 +1610,81 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
               ) : null}
             </div>
           </div>
-          <button
-            type="button"
-            disabled={
-              savingHighlights ||
-              !id ||
-              highlightRawDraft.length > ADMIN_HIGHLIGHT_POINTS_MAX ||
-              highlightCuratedDraft.length > ADMIN_HIGHLIGHT_POINTS_MAX
-            }
-            onClick={async () => {
-              if (!id) return
-              setSavingHighlights(true)
-              try {
-                const res = await fetch(`/api/admin/products/${id}`, {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    highlightPointsRaw: highlightRawDraft.trim() || null,
-                    highlightPoints: highlightCuratedDraft.trim() || null,
-                  }),
-                })
-                const text = await res.text()
-                let updated: Product | null = null
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button
+              type="button"
+              disabled={regeneratingHighlightLlm || savingHighlights || !id}
+              onClick={async () => {
+                if (!id) return
+                setRegeneratingHighlightLlm(true)
                 try {
-                  updated = text ? (JSON.parse(text) as Product) : null
-                } catch {
-                  // ignore
+                  const res = await fetch(`/api/admin/products/${id}/highlight-llm`, { method: 'POST' })
+                  const text = await res.text()
+                  type HighlightLlmPostBody = {
+                    highlightPointsRaw?: string | null
+                    highlightPoints?: string | null
+                    product?: Product
+                    error?: string
+                  }
+                  let body: HighlightLlmPostBody | null = null
+                  try {
+                    body = text ? (JSON.parse(text) as HighlightLlmPostBody) : null
+                  } catch {
+                    body = null
+                  }
+                  if (!res.ok) {
+                    window.alert(body?.error ?? `LLM 재생성 실패 (${res.status})`)
+                    return
+                  }
+                  if (body?.product) setProduct(body.product)
+                  if (body?.highlightPointsRaw != null) setHighlightRawDraft(body.highlightPointsRaw)
+                  if (body?.highlightPoints != null) setHighlightCuratedDraft(body.highlightPoints)
+                } finally {
+                  setRegeneratingHighlightLlm(false)
                 }
-                if (res.ok && updated) setProduct(updated)
-              } finally {
-                setSavingHighlights(false)
+              }}
+              className="rounded-lg border border-bt-border-strong bg-bt-title px-4 py-2 text-xs font-semibold text-bt-inverse disabled:opacity-50"
+            >
+              {regeneratingHighlightLlm ? 'Gemini 호출 중…' : 'LLM으로 재생성'}
+            </button>
+            <button
+              type="button"
+              disabled={
+                savingHighlights ||
+                regeneratingHighlightLlm ||
+                !id ||
+                highlightRawDraft.length > ADMIN_HIGHLIGHT_POINTS_MAX ||
+                highlightCuratedDraft.length > ADMIN_HIGHLIGHT_POINTS_MAX
               }
-            }}
-            className="mt-3 rounded-lg bg-bt-cta-primary px-4 py-2 text-xs font-semibold text-bt-cta-primary-fg disabled:opacity-50"
-          >
-            {savingHighlights ? '저장 중…' : '핵심 포인트 저장'}
-          </button>
+              onClick={async () => {
+                if (!id) return
+                setSavingHighlights(true)
+                try {
+                  const res = await fetch(`/api/admin/products/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      highlightPointsRaw: highlightRawDraft.trim() || null,
+                      highlightPoints: highlightCuratedDraft.trim() || null,
+                    }),
+                  })
+                  const text = await res.text()
+                  let updated: Product | null = null
+                  try {
+                    updated = text ? (JSON.parse(text) as Product) : null
+                  } catch {
+                    // ignore
+                  }
+                  if (res.ok && updated) setProduct(updated)
+                } finally {
+                  setSavingHighlights(false)
+                }
+              }}
+              className="rounded-lg bg-bt-cta-primary px-4 py-2 text-xs font-semibold text-bt-cta-primary-fg disabled:opacity-50"
+            >
+              {savingHighlights ? '저장 중…' : '핵심 포인트 저장'}
+            </button>
+          </div>
         </section>
 
         <section id="ops-flight" className="mb-6 rounded-xl border border-bt-border-strong bg-bt-title/50 p-4">
