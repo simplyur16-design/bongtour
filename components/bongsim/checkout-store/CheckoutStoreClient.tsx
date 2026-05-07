@@ -413,12 +413,18 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 if (disc > 0) {
                   return (
                     <div className="mt-4 space-y-1 lg:mt-5">
-                      <p className="text-lg font-medium text-slate-600 line-through lg:text-xl">
+                      <p
+                        className="text-lg font-medium text-slate-600 line-through lg:text-xl"
+                        style={{ color: "#64748b" }}
+                      >
                         {nf.format(subtotal)}원
                       </p>
                       <p className="text-2xl font-bold text-teal-600 lg:text-3xl">{nf.format(final)}원</p>
                       <p className="text-sm font-semibold text-teal-700 lg:text-base">-{nf.format(disc)}원</p>
-                      <p className="text-sm font-medium text-slate-700 lg:text-base">
+                      <p
+                        className="text-sm font-medium text-slate-700 lg:text-base"
+                        style={{ color: "#475569" }}
+                      >
                         ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
                       </p>
                     </div>
@@ -427,7 +433,10 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 return (
                   <p className="mt-4 text-2xl font-bold text-slate-900 lg:mt-5 lg:text-3xl">
                     {nf.format(unit)}원
-                    <span className="ml-2 text-sm font-medium text-slate-700 lg:text-base">
+                    <span
+                      className="ml-2 text-sm font-medium text-slate-700 lg:text-base"
+                      style={{ color: "#475569" }}
+                    >
                       ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
                     </span>
                   </p>
@@ -437,7 +446,12 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
 
             <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:space-y-5 lg:p-5">
               <label className="block">
-                <span className="text-[12px] font-medium text-slate-700 lg:text-sm">이메일</span>
+                <span
+                  className="text-[12px] font-medium text-slate-700 lg:text-sm"
+                  style={{ color: "#1e293b" }}
+                >
+                  이메일
+                </span>
                 <input
                   type="email"
                   value={email}
@@ -448,7 +462,12 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 />
               </label>
               <label className="block">
-                <span className="text-[12px] font-medium text-slate-700 lg:text-sm">수량</span>
+                <span
+                  className="text-[12px] font-medium text-slate-700 lg:text-sm"
+                  style={{ color: "#1e293b" }}
+                >
+                  수량
+                </span>
                 <input
                   type="number"
                   min={1}
@@ -460,7 +479,12 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 />
               </label>
               <label className="block">
-                <span className="text-[12px] font-medium text-slate-700 lg:text-sm">언어</span>
+                <span
+                  className="text-[12px] font-medium text-slate-700 lg:text-sm"
+                  style={{ color: "#1e293b" }}
+                >
+                  언어
+                </span>
                 <select
                   value={locale}
                   onChange={(ev) => setLocale(ev.target.value as "ko" | "en")}
@@ -483,7 +507,11 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   className="mt-0.5 accent-teal-700 lg:mt-1 lg:h-4 lg:w-4"
                 />
                 <div className="min-w-0 flex-1 space-y-1">
-                  <label htmlFor="bongsim-checkout-terms" className="block cursor-pointer leading-snug">
+                  <label
+                    htmlFor="bongsim-checkout-terms"
+                    className="block cursor-pointer leading-snug"
+                    style={{ color: "#1e293b" }}
+                  >
                     이용약관 및 eSIM 환불·서비스 정책을 확인하였으며 결제 진행에 동의합니다. (약관 버전{" "}
                     {BONGSIM_CHECKOUT_TERMS_VERSION})
                   </label>
@@ -513,14 +541,18 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   onClick={() => setCouponOpen((o) => !o)}
                   className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 transition hover:border-teal-600 focus:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 lg:px-4 lg:py-3 lg:text-base"
                   aria-expanded={couponOpen}
+                  style={{ color: "#1e293b" }}
                 >
                   쿠폰이 있으신가요?
-                  <span className="text-slate-700" aria-hidden>
+                  <span className="text-slate-700" aria-hidden style={{ color: "#475569" }}>
                     {couponOpen ? "▲" : "▼"}
                   </span>
                 </button>
                 {couponOpen ? (
-                  <div className="border-t border-slate-300 px-3 pb-3 pt-1 text-slate-700 lg:px-4 lg:pb-4">
+                  <div
+                    className="border-t border-slate-300 px-3 pb-3 pt-1 text-slate-700 lg:px-4 lg:pb-4"
+                    style={{ color: "#334155" }}
+                  >
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -529,6 +561,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                         placeholder="쿠폰 코드"
                         className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-800 placeholder:text-slate-500 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-500 lg:px-4 lg:py-2.5 lg:text-lg"
                         autoComplete="off"
+                        style={{ color: "#1e293b" }}
                       />
                       <button
                         type="button"
@@ -548,8 +581,14 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   role="alert"
                   aria-live="polite"
                   className="rounded-lg border border-red-200 bg-red-50 px-3 py-2"
+                  style={{ color: "#b91c1c" }}
                 >
-                  <p className="text-sm font-semibold text-red-700 lg:text-base">{submitError}</p>
+                  <p
+                    className="text-sm font-semibold text-red-700 lg:text-base"
+                    style={{ color: "#b91c1c" }}
+                  >
+                    {submitError}
+                  </p>
                 </div>
               ) : null}
               {/* TODO: 오픈 시 제거 — 점검 안내 */}
