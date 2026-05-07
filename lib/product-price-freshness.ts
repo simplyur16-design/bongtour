@@ -1,7 +1,10 @@
 /**
  * D-4: 공급사 가격 관측 시각·자동 비공개(180일)·freshness 라벨.
+ *
+ * SSOT: `ProductPrice`에는 동기 시각 컬럼 없음(`date`=출발일만). `ProductDeparture`는 `syncedAt`이 동기화 시각(`createdAt` 없음).
  */
 import type { PrismaClient } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 import { createSolapiAuthorizationHeader } from '@/lib/solapi-auth'
 import { resolveSolapiOperatorRecipient } from '@/lib/bong-marketing/publish-reminder'
@@ -83,9 +86,12 @@ export async function updateLastPriceObservedAt(prisma: PrismaClient, productId:
   })
 }
 
+/**
+ * @param productCreatedAtFallback `lastPriceObservedAt` 이 비었을 때만 라벨 폴백용 — **`Product.createdAt`** (자식 테이블 createdAt 아님).
+ */
 export function priceFreshnessLabel(
   lastPriceObservedAt: Date | null,
-  createdAt: Date,
+  productCreatedAtFallback: Date,
   now: Date = new Date()
 ): PriceFreshnessLabel {
   const ageMs = (from: Date) => Math.max(0, now.getTime() - from.getTime())
@@ -102,9 +108,40 @@ export function priceFreshnessLabel(
     return 'archive_pending'
   }
 
-  const createdAge = ageMs(createdAt)
+  const createdAge = ageMs(productCreatedAtFallback)
   if (createdAge <= d180) return 'unknown'
   return 'archive_pending'
+}
+
+/**
+ * 등록 상품 중 180일 가격 미관측(auto_unpublish) 후보 ID.
+ * `lastPriceObservedAt` 이 비었을 때는 `MAX(ProductDeparture.syncedAt)` (성인가 있는 행만) 후 `Product.createdAt` COALESCE.
+ */
+export async function findAutoUnpublishPriceStaleProductIds(
+  prisma: PrismaClient,
+  cutoff: Date = new Date(Date.now() - 180 * DAY_MS)
+): Promise<string[]> {
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT p.id
+    FROM "Product" p
+    WHERE p."registrationStatus" = 'registered'
+    AND (
+      (p."lastPriceObservedAt" IS NOT NULL AND p."lastPriceObservedAt" < ${cutoff})
+      OR (
+        p."lastPriceObservedAt" IS NULL
+        AND COALESCE(
+          (
+            SELECT MAX(d."syncedAt")
+            FROM "ProductDeparture" d
+            WHERE d."productId" = p.id
+              AND d."adultPrice" IS NOT NULL
+          ),
+          p."createdAt"
+        ) < ${cutoff}
+      )
+    )
+  `)
+  return rows.map((r) => r.id)
 }
 
 export type AutoUnpublishStaleProductsResult = {
@@ -126,14 +163,7 @@ export async function autoUnpublishStaleProducts(
   const dryRun = opts?.dryRun ?? isPriceFreshnessDryRun()
   const cutoff = new Date(Date.now() - 180 * DAY_MS)
 
-  const stale = await prisma.product.findMany({
-    where: {
-      registrationStatus: 'registered',
-      OR: [{ lastPriceObservedAt: null, createdAt: { lt: cutoff } }, { lastPriceObservedAt: { lt: cutoff } }],
-    },
-    select: { id: true },
-  })
-  const candidateIds = stale.map((r) => r.id)
+  const candidateIds = await findAutoUnpublishPriceStaleProductIds(prisma, cutoff)
 
   if (candidateIds.length === 0) {
     return { candidateIds: [], updatedCount: 0, dryRun, notifyAttempted: false, notifyOk: false }

@@ -4,6 +4,9 @@
  *   npx tsx scripts/run-price-freshness-once.ts [--skip-notify]
  *
  * --skip-notify: DB auto_unpublish 업데이트 및 Solapi 생략, 로그만.
+ *
+ * 자동 비공개 후보는 `findAutoUnpublishPriceStaleProductIds`와 동일(ProductDeparture.syncedAt·Product.createdAt 기준).
+ * 분포 라벨에서 `lastPriceObservedAt` 이 비었을 때 보조 인자는 Product.createdAt만 사용(자식 테이블 createdAt 없음).
  */
 import type { PriceFreshnessLabel } from '@/lib/product-price-freshness'
 
@@ -12,7 +15,11 @@ async function main() {
   loadEnvConfig(process.cwd())
 
   const { prisma } = await import('@/lib/prisma')
-  const { autoUnpublishStaleProducts, priceFreshnessLabel } = await import('@/lib/product-price-freshness')
+  const {
+    autoUnpublishStaleProducts,
+    findAutoUnpublishPriceStaleProductIds,
+    priceFreshnessLabel,
+  } = await import('@/lib/product-price-freshness')
 
   const skipNotify = process.argv.includes('--skip-notify')
 
@@ -32,22 +39,14 @@ async function main() {
     dist[priceFreshnessLabel(r.lastPriceObservedAt, r.createdAt)]++
   }
 
-  const staleAllRegistered = await prisma.product.findMany({
-    where: {
-      registrationStatus: 'registered',
-      OR: [
-        { lastPriceObservedAt: null, createdAt: { lt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) } },
-        { lastPriceObservedAt: { lt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) } },
-      ],
-    },
-    select: { id: true },
-  })
+  const cutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
+  const staleAllRegistered = await findAutoUnpublishPriceStaleProductIds(prisma, cutoff)
 
   console.log('[price-freshness-once] registered·overseas count:', overseasRegistered.length)
   console.log('[price-freshness-once] freshness distribution:', JSON.stringify(dist))
   console.log('[price-freshness-once] auto-unpublish candidates (all registered):', staleAllRegistered.length)
   if (staleAllRegistered.length > 0 && staleAllRegistered.length <= 50) {
-    console.log('[price-freshness-once] candidate ids:', staleAllRegistered.map((x) => x.id).join(','))
+    console.log('[price-freshness-once] candidate ids:', staleAllRegistered.join(','))
   }
 
   const r = await autoUnpublishStaleProducts(prisma, { dryRun: skipNotify })
