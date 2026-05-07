@@ -5,6 +5,8 @@
  * SSOT: 관리자 재수집·공개 상세 출발일/가격 표시는 ProductDeparture 우선이며, ProductPrice는 레거시·보조.
  */
 import type { PrismaClient } from '@prisma/client'
+
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeCalendarDate } from './date-normalize'
 import { deriveHanatourConfirmationFlags, parseStatusLabelsJson } from './hanatour-normalize'
 
@@ -396,6 +398,7 @@ export async function upsertProductDepartures(
       })
     }
   }
+  if (pairs.length > 0) await updateLastPriceObservedAt(prisma, productId)
   return pairs.length
 }
 

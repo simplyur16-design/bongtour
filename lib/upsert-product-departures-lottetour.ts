@@ -6,6 +6,8 @@
  * 날짜 정규화·raw 보존·파생은 보수적으로.
  */
 import type { PrismaClient } from '@prisma/client'
+
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeCalendarDate } from './date-normalize'
 import { deriveHanatourConfirmationFlags, parseStatusLabelsJson } from './hanatour-normalize'
 
@@ -465,6 +467,7 @@ export async function upsertProductDepartures(
       })
     }
   }
+  if (pairs.length > 0) await updateLastPriceObservedAt(prisma, productId)
   return pairs.length
 }
 

@@ -509,6 +509,7 @@ export default function AdminProductsPage() {
             <option value="pending">대기</option>
             <option value="on_hold">보류</option>
             <option value="rejected">반려</option>
+            <option value="auto_unpublished">자동 비공개</option>
           </select>
           <select
             value={airline}
@@ -743,12 +744,18 @@ export default function AdminProductsPage() {
                         <td className="max-w-[200px] p-3">
                           <div className="flex flex-wrap gap-1">
                             {p.registrationStatus === 'registered' && <AdminStatusBadge variant="registered" label="등록됨" />}
+                            {p.registrationStatus === 'auto_unpublished' && (
+                              <AdminStatusBadge variant="hidden" label="자동 비공개" />
+                            )}
                             {p.registrationStatus === 'on_hold' && <AdminStatusBadge variant="on_hold" />}
                             {p.registrationStatus === 'rejected' && <AdminStatusBadge variant="rejected" />}
                             {(!p.registrationStatus || p.registrationStatus === 'pending') && (
                               <AdminStatusBadge variant="pending" label="대기" />
                             )}
-                            {p.registrationStatus && !['registered', 'on_hold', 'rejected', 'pending'].includes(p.registrationStatus) && (
+                            {p.registrationStatus &&
+                              !['registered', 'on_hold', 'rejected', 'pending', 'auto_unpublished'].includes(
+                                p.registrationStatus
+                              ) && (
                               <AdminStatusBadge variant="pending" label={p.registrationStatus} />
                             )}
                             {p.hasError && <AdminStatusBadge variant="error" label="수집 에러" />}

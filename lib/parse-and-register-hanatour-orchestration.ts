@@ -5,6 +5,7 @@ import {
   SupplierRouteMismatchError,
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
   detectMultiCountryAutoPlan,
@@ -1624,6 +1625,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     }
     if (priceRows.length > 0) {
       await prisma.productPrice.createMany({ data: priceRows })
+      await updateLastPriceObservedAt(prisma, productId)
     }
     timing.mark('after-prices-save')
 

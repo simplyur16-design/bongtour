@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import {
   getGenAI,
   getModelName,
@@ -341,6 +342,7 @@ ${textInput}
     })
     if (priceRows.length > 0) {
       await prisma.productPrice.createMany({ data: priceRows })
+      await updateLastPriceObservedAt(prisma, product.id)
       const departureInputs = sortedPrices.map((row) => ({
         departureDate: row.date,
         adultPrice: row.adult || undefined,

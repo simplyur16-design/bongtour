@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     const where: Prisma.ProductWhereInput = {}
     if (airline) where.airline = airline
     if (destination) where.destination = destination
-    if (status && ['registered', 'on_hold', 'rejected', 'pending'].includes(status)) {
+    if (status && ['registered', 'on_hold', 'rejected', 'pending', 'auto_unpublished'].includes(status)) {
       if (status === 'pending') {
         where.OR = [
           { registrationStatus: null },

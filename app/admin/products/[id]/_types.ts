@@ -57,6 +57,9 @@ export type Product = {
   shoppingItems: string | null
   shoppingShopOptions?: string | null
   registrationStatus: string | null
+  lastPriceObservedAt?: string | null
+  autoUnpublishedAt?: string | null
+  autoUnpublishedReason?: string | null
   /** rawMeta.pricePromotion.merged — 사용자 취소선과 별개 */
   promotionReferencePrices?: PromotionReferencePrices | null
   bgImageUrl?: string | null

@@ -96,9 +96,14 @@ model Product {
   criticalExclusions       String? // 상담용 불포함 요약 (예: 가이드비 $30, 유류세 변동)
   shoppingCount            Int? // 쇼핑 방문 횟수 (0이면 노쇼핑)
   shoppingItems            String? // 쇼핑 품목 (쉼표 등으로 구분)
-  registrationStatus       String?               @default("pending") // pending=등록대기, on_hold=보류, rejected=반려, registered=검수 후 등록 완료
+  registrationStatus       String?               @default("pending") // pending=등록대기, on_hold=보류, rejected=반려, registered=검수 후 등록 완료, auto_unpublished=가격 미관측 자동 비공개
   rejectReason             String? // 반려 시 사유 (최대 200자, 운영 메모 성격)
   rejectedAt               DateTime? // 반려 처리 시각
+  /// 공급사 가격 동기화(ProductPrice/ProductDeparture)가 마지막으로 관측된 시각
+  lastPriceObservedAt      DateTime?
+  /// registrationStatus가 auto_unpublished로 바뀐 시각
+  autoUnpublishedAt        DateTime?
+  autoUnpublishedReason    String?
   needsImageReview         Boolean               @default(false) // 이미지 보강 검수 대상 (legacy 등)
   imageReviewRequestedAt   DateTime? // 보강 요청 시각
   // 2차 분류 (등록대기 검수 시 확정)
@@ -200,6 +205,7 @@ model Product {
 
   @@unique([originSource, originCode])
   @@index([registrationStatus, updatedAt])
+  @@index([registrationStatus, lastPriceObservedAt])
   @@index([continentKey])
   @@index([cityKey])
 }

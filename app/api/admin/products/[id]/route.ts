@@ -33,6 +33,7 @@ import { extractPexelsPhotoIdFromCdnUrl, rehostPexelsProductHeroIfNeeded } from 
 import { toHeroStorageSourceTypeSegment } from '@/lib/product-hero-image-source-type'
 import { rehostPexelsUrlsInScheduleEntries, type ScheduleEntryRecord } from '@/lib/schedule-day-image-rehost'
 import { internalizeProductCoverImageUrl } from '@/lib/travel-product-image-internalize'
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -158,6 +159,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
         shoppingItems: true,
         shoppingShopOptions: true,
         registrationStatus: true,
+        lastPriceObservedAt: true,
+        autoUnpublishedAt: true,
+        autoUnpublishedReason: true,
         primaryRegion: true,
         themeTags: true,
         displayCategory: true,
@@ -243,6 +247,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       listingKind?: string | null
       schedule?: string | null
       registrationStatus?: string | null
+      autoUnpublishedAt?: Date | null
+      autoUnpublishedReason?: string | null
       rejectReason?: string | null
       rejectedAt?: Date | null
       primaryRegion?: string | null
@@ -440,6 +446,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             { status: 400 }
           )
         }
+        data.autoUnpublishedAt = null
+        data.autoUnpublishedReason = null
       }
       if (data.registrationStatus === 'rejected') {
         data.rejectReason = strOrNull(body.rejectReason, MAX_REJECT_REASON)
@@ -737,6 +745,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             ...(row.priceInfant != null && { infant: Number(row.priceInfant) }),
           },
         })
+        await updateLastPriceObservedAt(prisma, id)
       }
     }
     const product = await prisma.product.findUnique({
@@ -789,6 +798,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         shoppingItems: true,
         shoppingShopOptions: true,
         registrationStatus: true,
+        lastPriceObservedAt: true,
+        autoUnpublishedAt: true,
+        autoUnpublishedReason: true,
         primaryRegion: true,
         themeTags: true,
         displayCategory: true,

@@ -877,6 +877,15 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
           등록 준비 완료 — 이미지가 준비되었습니다. 내용을 검증한 뒤 등록을 완료하세요.
         </div>
       )}
+      {product.registrationStatus === 'auto_unpublished' && (
+        <div className="border-b border-amber-500/35 bg-amber-950/40 px-4 py-2 text-center text-sm text-amber-50">
+          자동 비공개됨
+          {product.autoUnpublishedReason ? ` · 사유: ${product.autoUnpublishedReason}` : ''}
+          {product.autoUnpublishedAt
+            ? ` · 처리 시각: ${new Date(product.autoUnpublishedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`
+            : ''}
+        </div>
+      )}
       <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 border-b border-bt-border-strong bg-bt-title/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-4">
           <Link href="/admin/products" className="text-sm text-bt-meta hover:text-bt-inverse">
@@ -1039,7 +1048,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
               disabled={registering}
               className="rounded-lg bg-bt-cta-primary px-4 py-2 text-sm font-medium text-bt-cta-primary-fg hover:bg-bt-cta-primary-hover disabled:opacity-50"
             >
-              {registering ? '처리 중…' : '검수 후 등록'}
+              {registering ? '처리 중…' : product.registrationStatus === 'auto_unpublished' ? '재공개' : '검수 후 등록'}
             </button>
           )}
         </div>
