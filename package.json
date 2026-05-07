@@ -24,6 +24,7 @@
     "admin:bootstrap": "npx tsx scripts/bootstrap-admin.ts",
     "migrate:prisma-images-ncloud": "npx tsx scripts/migrate-prisma-images-to-ncloud.ts",
     "migrate:pexels": "npx tsx scripts/migrate-pexels-to-ncloud.ts",
+    "test:kakao-dispatch": "npx tsx scripts/test-kakao-dispatch.ts",
     "test:inquiry-smtp": "npx tsx scripts/test-inquiry-smtp.ts",
     "test:inquiry-smtp:587": "npx tsx scripts/test-inquiry-smtp.ts --try-587",
     "verify:inquiry:live": "npx tsx scripts/local-verify-inquiry-live.ts",
