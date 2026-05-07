@@ -15,6 +15,7 @@ import {
   type PackageBlogLlmPayload,
   type PackageBlogLlmV1,
 } from '@/lib/bong-marketing/blog-draft-prompt'
+import { parseGeminiJsonOutput } from '@/lib/bong-marketing/gemini-json-parse'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { absoluteUrl } from '@/lib/site-metadata'
 import { isValidYearMonth } from '@/lib/monthly-curation'
@@ -43,6 +44,8 @@ export type GenerateNaverBlogDraftOk = {
   inquiryPath: string
   persisted: boolean
   generationModel: string
+  /** 성공 시 적용된 Gemini JSON 추출 전략 (검증·모니터링용) */
+  geminiJsonParseStrategy?: 'raw' | 'fenced' | 'braces' | 'comma_clean'
 }
 
 export type GenerateNaverBlogDraftErr = {
@@ -57,6 +60,8 @@ export type GenerateNaverBlogDraftErr = {
     | 'PACKAGE_ONLY_SKIP'
   error: string
   existingDraftId?: string
+  /** PARSE_FAIL 시 디버깅용 원문 앞부분 */
+  geminiRawPreview?: string
 }
 
 export type GenerateNaverBlogDraftResult = GenerateNaverBlogDraftOk | GenerateNaverBlogDraftErr
@@ -77,17 +82,9 @@ export type GenerateMonthBlogDraftsReport = {
   blogPostIds: string[]
 }
 
-function stripJsonFence(s: string): string {
-  let t = s.trim()
-  if (t.startsWith('```')) {
-    t = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
-  }
-  return t
-}
-
-function parsePackageBlogV1(text: string): PackageBlogLlmV1 {
-  const raw = stripJsonFence(text)
-  const o = JSON.parse(raw) as Record<string, unknown>
+function packageBlogFromParsedJson(value: unknown): PackageBlogLlmV1 {
+  if (!value || typeof value !== 'object') throw new Error('JSON root must be object')
+  const o = value as Record<string, unknown>
   const title = typeof o.title === 'string' ? o.title.trim() : ''
   const body = typeof o.body === 'string' ? o.body.trim() : ''
   if (!title || !body) throw new Error('title/body 필수')
@@ -293,31 +290,63 @@ export async function generateNaverBlogDraftForPackage(
   const model = getGenAI().getGenerativeModel({ model: modelId })
   const userText = `${PACKAGE_BLOG_PROMPT_V1}\n\n## 입력(JSON)\n${buildPackageBlogUserJson(payload)}`
 
-  let text: string
-  try {
-    const result = await model.generateContent(
-      {
-        contents: [{ role: 'user', parts: [{ text: userText }] }],
-        generationConfig: {
-          temperature: 0.72,
-          maxOutputTokens: 8192,
-          ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
-        },
-      },
-      geminiTimeoutOpts(120_000),
-    )
-    text = result.response.text()
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    return { ok: false, code: 'GEMINI_FAIL', error: msg }
-  }
+  let parsed!: PackageBlogLlmV1
+  let geminiJsonParseStrategy!: NonNullable<GenerateNaverBlogDraftOk['geminiJsonParseStrategy']>
+  let lastRawText = ''
 
-  let parsed: PackageBlogLlmV1
-  try {
-    parsed = parsePackageBlogV1(text)
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    return { ok: false, code: 'PARSE_FAIL', error: msg }
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const temperature = attempt === 1 ? 0.72 : 0.68
+    let text: string
+    try {
+      const result = await model.generateContent(
+        {
+          contents: [{ role: 'user', parts: [{ text: userText }] }],
+          generationConfig: {
+            temperature,
+            maxOutputTokens: 8192,
+            ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
+          },
+        },
+        geminiTimeoutOpts(120_000),
+      )
+      text = result.response.text()
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      return { ok: false, code: 'GEMINI_FAIL', error: msg }
+    }
+
+    lastRawText = text
+    const pj = parseGeminiJsonOutput(text)
+
+    if (!pj.ok) {
+      console.warn(productId, attempt, pj.strategy, pj.errorReason)
+      if (attempt === 2) {
+        return {
+          ok: false,
+          code: 'PARSE_FAIL',
+          error: `gemini_parse_failed_after_retry: ${pj.error}`,
+          geminiRawPreview: lastRawText.slice(0, 500),
+        }
+      }
+      continue
+    }
+
+    try {
+      parsed = packageBlogFromParsedJson(pj.value)
+      geminiJsonParseStrategy = pj.strategy
+      break
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      console.warn(productId, attempt, pj.strategy, msg)
+      if (attempt === 2) {
+        return {
+          ok: false,
+          code: 'PARSE_FAIL',
+          error: `gemini_parse_failed_after_retry: ${msg}`,
+          geminiRawPreview: lastRawText.slice(0, 500),
+        }
+      }
+    }
   }
 
   const inquiryPath = geo.inquiryUrl.startsWith('/') ? geo.inquiryUrl : `/${geo.inquiryUrl}`
@@ -334,6 +363,7 @@ export async function generateNaverBlogDraftForPackage(
       inquiryPath,
       persisted: false,
       generationModel: modelId,
+      geminiJsonParseStrategy,
     }
   }
 
@@ -362,6 +392,7 @@ export async function generateNaverBlogDraftForPackage(
     inquiryPath,
     persisted: true,
     generationModel: modelId,
+    geminiJsonParseStrategy,
   }
 }
 
