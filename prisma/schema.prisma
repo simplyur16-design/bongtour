@@ -1151,12 +1151,15 @@ model BongBlogPost {
   reviewedAt              DateTime?
   reviewedBy              String?
   rejectedReason          String?           @db.Text
+  /// B-publish: 게시 30분 전 구간 Solapi LMS 발송 완료 시각 (중복 알림 방지)
+  publishReminderSentAt   DateTime?
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt
 
   @@index([publishedAt])
   @@index([scheduledAt])
   @@index([status])
+  @@index([status, scheduledAt])
   @@index([monthKey, status])
   @@index([linkedProductId])
   @@index([citySlug, monthKey])

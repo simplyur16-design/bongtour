@@ -21,6 +21,9 @@ type PostDetail = {
   rejectedReason: string | null
   scheduledAt: string | null
   publishedAt: string | null
+  url: string | null
+  naverPostKey: string | null
+  publishReminderSentAt: string | null
   createdAt: string
   inquiryAbsoluteUrl: string | null
   productTitle: string | null
@@ -46,6 +49,8 @@ export default function MarketingBlogDetailClient(props: {
   const [excerpt, setExcerpt] = useState('')
   const [body, setBody] = useState('')
   const [scheduleLocal, setScheduleLocal] = useState('')
+  const [publishUrl, setPublishUrl] = useState('')
+  const [publishNaverKey, setPublishNaverKey] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
@@ -63,6 +68,8 @@ export default function MarketingBlogDetailClient(props: {
       setExcerpt(p.excerpt ?? '')
       setBody(p.body ?? '')
       setScheduleLocal(toDatetimeLocalValue(p.scheduledAt))
+      setPublishUrl((p.url ?? '').trim())
+      setPublishNaverKey((p.naverPostKey ?? '').trim())
     } catch (e) {
       setErr(e instanceof Error ? e.message : '조회 실패')
       setPost(null)
@@ -311,43 +318,125 @@ export default function MarketingBlogDetailClient(props: {
         </button>
       </section>
 
-      <section className="flex flex-wrap items-end gap-3 rounded-lg border border-bt-border-strong bg-white p-4 shadow-sm">
-        <label className="text-xs text-bt-body/80">
-          게시 예약 시각
-          <input
-            type="datetime-local"
-            value={scheduleLocal}
-            onChange={(e) => setScheduleLocal(e.target.value)}
-            className="mt-1 block rounded border border-bt-border-strong px-2 py-1.5 text-sm"
-          />
-        </label>
-        <button
-          type="button"
-          disabled={busy || !scheduleLocal}
-          onClick={() => {
-            const d = new Date(scheduleLocal)
-            if (Number.isNaN(d.getTime())) {
-              setErr('예약 시각이 올바르지 않습니다.')
-              return
+      {post.status === 'approved' && (
+        <section className="flex flex-wrap items-end gap-3 rounded-lg border border-bt-border-strong bg-white p-4 shadow-sm">
+          <h2 className="w-full text-sm font-semibold text-bt-title">게시 예약</h2>
+          <p className="w-full text-xs text-bt-body/70">
+            승인된 글만 예약할 수 있습니다. 예약 후 cron이 예정 시각에 자동으로 published 로 올리며, 네이버 URL은 아래에서 입력합니다.
+          </p>
+          <label className="text-xs text-bt-body/80">
+            게시 예약 시각
+            <input
+              type="datetime-local"
+              value={scheduleLocal}
+              onChange={(e) => setScheduleLocal(e.target.value)}
+              className="mt-1 block rounded border border-bt-border-strong px-2 py-1.5 text-sm"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={busy || !scheduleLocal}
+            onClick={() => {
+              const d = new Date(scheduleLocal)
+              if (Number.isNaN(d.getTime())) {
+                setErr('예약 시각이 올바르지 않습니다.')
+                return
+              }
+              void patch({ action: 'schedule', scheduledAt: d.toISOString() })
+            }}
+            className="rounded-lg bg-bt-brand-blue px-3 py-2 text-sm text-white hover:opacity-90 disabled:opacity-50"
+          >
+            게시 예약 저장
+          </button>
+        </section>
+      )}
+
+      {(post.status === 'scheduled' || post.status === 'approved') && (
+        <section className="space-y-3 rounded-lg border border-bt-border-strong bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-bt-title">게시 완료 (네이버)</h2>
+          <p className="text-xs text-bt-body/70">
+            네이버에 직접 게시한 뒤 글 URL을 입력하고 저장합니다. 예약만 두고 URL은 나중에 넣을 수도 있습니다.
+          </p>
+          <label className="block text-xs text-bt-body/80">
+            네이버 글 URL (필수)
+            <input
+              value={publishUrl}
+              onChange={(e) => setPublishUrl(e.target.value)}
+              className="mt-1 w-full rounded border border-bt-border-strong px-2 py-1.5 text-sm"
+              placeholder="https://blog.naver.com/..."
+            />
+          </label>
+          <label className="block text-xs text-bt-body/80">
+            naverPostKey (선택)
+            <input
+              value={publishNaverKey}
+              onChange={(e) => setPublishNaverKey(e.target.value)}
+              className="mt-1 w-full rounded border border-bt-border-strong px-2 py-1.5 text-sm"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={busy || !publishUrl.trim()}
+            onClick={() => {
+              if (!window.confirm('게시 완료로 저장할까요? (published, URL 기록)')) return
+              void patch({
+                action: 'publish',
+                url: publishUrl.trim(),
+                naverPostKey: publishNaverKey.trim() || undefined,
+              })
+            }}
+            className="rounded-lg bg-violet-600 px-3 py-2 text-sm text-white hover:opacity-90 disabled:opacity-50"
+          >
+            게시 완료 저장
+          </button>
+        </section>
+      )}
+
+      {post.status === 'published' && (
+        <section className="space-y-3 rounded-lg border border-bt-border-strong bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-bt-title">네이버 URL 보완</h2>
+          {post.url ? (
+            <p className="text-sm">
+              현재 URL:{' '}
+              <a href={post.url} target="_blank" rel="noreferrer" className="text-bt-brand-blue underline">
+                {post.url}
+              </a>
+            </p>
+          ) : (
+            <p className="text-sm text-amber-800">자동 전환만 된 상태입니다. 네이버 글 URL을 아래에 입력하세요.</p>
+          )}
+          <label className="block text-xs text-bt-body/80">
+            네이버 글 URL
+            <input
+              value={publishUrl}
+              onChange={(e) => setPublishUrl(e.target.value)}
+              className="mt-1 w-full rounded border border-bt-border-strong px-2 py-1.5 text-sm"
+            />
+          </label>
+          <label className="block text-xs text-bt-body/80">
+            naverPostKey (선택)
+            <input
+              value={publishNaverKey}
+              onChange={(e) => setPublishNaverKey(e.target.value)}
+              className="mt-1 w-full rounded border border-bt-border-strong px-2 py-1.5 text-sm"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={busy || !publishUrl.trim()}
+            onClick={() =>
+              void patch({
+                action: 'publish',
+                url: publishUrl.trim(),
+                naverPostKey: publishNaverKey.trim() || undefined,
+              })
             }
-            void patch({ action: 'schedule', scheduledAt: d.toISOString() })
-          }}
-          className="rounded-lg bg-bt-brand-blue px-3 py-2 text-sm text-white hover:opacity-90 disabled:opacity-50"
-        >
-          게시 예약
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            if (!window.confirm('즉시 게시 완료 처리합니다 (내부 상태만). 계속할까요?')) return
-            void patch({ action: 'publish' })
-          }}
-          className="rounded-lg bg-violet-600 px-3 py-2 text-sm text-white hover:opacity-90 disabled:opacity-50"
-        >
-          게시 완료
-        </button>
-      </section>
+            className="rounded-lg border border-bt-border-strong bg-bt-surface-soft px-3 py-2 text-sm hover:bg-white disabled:opacity-50"
+          >
+            URL 저장
+          </button>
+        </section>
+      )}
 
       <section className="rounded-lg border border-bt-border-strong bg-bt-surface-soft p-4 text-xs text-bt-body/70">
         <p>생성: {new Date(post.createdAt).toLocaleString('ko-KR')}</p>
@@ -357,7 +446,10 @@ export default function MarketingBlogDetailClient(props: {
           </p>
         )}
         {post.scheduledAt && <p>예약: {new Date(post.scheduledAt).toLocaleString('ko-KR')}</p>}
-        {post.publishedAt && <p>게시: {new Date(post.publishedAt).toLocaleString('ko-KR')}</p>}
+        {post.publishedAt && <p>게시(publishedAt): {new Date(post.publishedAt).toLocaleString('ko-KR')}</p>}
+        {post.publishReminderSentAt && (
+          <p>Solapi 예약 알림 발송: {new Date(post.publishReminderSentAt).toLocaleString('ko-KR')}</p>
+        )}
         {post.rejectedReason && <p className="mt-1 text-red-700">거절 사유: {post.rejectedReason}</p>}
         <p className="mt-1">모델: {post.generationModel ?? '—'}</p>
         <p>프롬프트: {post.generationPromptVersion ?? '—'}</p>
