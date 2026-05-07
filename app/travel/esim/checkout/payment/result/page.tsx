@@ -130,15 +130,15 @@ function ResultInner() {
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href={checkoutRetryHref}
-                  className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-teal-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 sm:text-base"
+                  className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 sm:text-base"
                 >
                   다시 결제하기
                 </Link>
                 <Link
                   href={esimMainHref}
-                  className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-5 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 sm:text-base"
+                  className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-teal-600 hover:text-teal-700 sm:text-base"
                 >
-                  eSIM 메인으로
+                  eSIM 메인
                 </Link>
               </div>
               <div className="mt-6">
