@@ -144,6 +144,10 @@ model Product {
   airportTransferType      String? // NONE | PICKUP | SENDING | BOTH
   summary                  String? // 소개 요약
   benefitSummary           String? // 혜택 요약(상세 상단 등)
+  /// D-5: 공급사 상세 붙여넣기에서 추출한 핵심 포인트 원문(줄바꿈 보존)
+  highlightPointsRaw       String?
+  /// D-5: 운영 정리본 — 공개 시 이 값 우선(highlightPointsRaw 폴백)
+  highlightPoints          String?
   tripNights               Int?
   tripDays                 Int?
   shoppingVisitCountTotal  Int? // "총 n회 쇼핑" 파싱값 (shoppingCount와 병행; 수집기가 채움)

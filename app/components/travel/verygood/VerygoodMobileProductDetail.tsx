@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { TravelProduct, ProductPriceRow } from '@/app/components/travel/verygood/VerygoodTravelProductDetail'
 import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
 import TravelCoreInfoSection from '@/app/components/detail/TravelCoreInfoSection'
+import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
 import VerygoodProductExtraInfoTabs from '@/app/components/travel/verygood/VerygoodProductExtraInfoTabs'
 import { isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-hanatour'
 import {
@@ -673,6 +674,12 @@ export default function VerygoodMobileProductDetail({ product }: Props) {
           flightExposurePolicy={product.flightExposurePolicy ?? null}
         />
       </div>
+
+      <ProductHighlightPointsSection
+        compact
+        highlightPoints={product.highlightPoints ?? null}
+        highlightPointsRaw={product.highlightPointsRaw ?? null}
+      />
 
       <section className="border-b border-bt-border-soft p-4">
         <h2 className="mb-3 text-base font-semibold text-bt-card-title">일정 요약</h2>

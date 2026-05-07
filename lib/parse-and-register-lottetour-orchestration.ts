@@ -6,6 +6,7 @@ import {
 } from '@/lib/assert-supplier-route-match'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { prisma } from '@/lib/prisma'
+import { extractHighlightFromLottetour } from '@/lib/extract-highlight-lottetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
@@ -1656,6 +1657,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       schedule: scheduleJson,
       registrationStatus: registrationStatusForSave,
       benefitSummary,
+      highlightPointsRaw: extractHighlightFromLottetour(text),
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,

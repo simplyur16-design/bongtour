@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 import TravelCoreInfoSection from '@/app/components/detail/TravelCoreInfoSection'
+import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
 import VerygoodProductExtraInfoTabs from '@/app/components/travel/verygood/VerygoodProductExtraInfoTabs'
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
@@ -172,6 +173,8 @@ export type TravelProduct = {
   hasOptionalTours?: boolean | null
   pricePromotionView?: PublicPricePromotionView | null
   benefitSummary?: string | null
+  highlightPoints?: string | null
+  highlightPointsRaw?: string | null
   promotionLabelsRaw?: string | null
   priceFrom?: number | null
   priceCurrency?: string | null
@@ -853,6 +856,11 @@ export default function VerygoodTravelProductDetail({ product }: Props) {
               metaChips={productMetaChips}
               omitBriefRows={departurePickerOpen}
               flightExposurePolicy={product.flightExposurePolicy ?? null}
+            />
+
+            <ProductHighlightPointsSection
+              highlightPoints={product.highlightPoints ?? null}
+              highlightPointsRaw={product.highlightPointsRaw ?? null}
             />
 
             <section className="rounded-2xl border border-bt-border bg-bt-surface p-6">

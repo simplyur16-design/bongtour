@@ -5,6 +5,7 @@ import {
   SupplierRouteMismatchError,
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
+import { extractHighlightFromModetour } from '@/lib/extract-highlight-modetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
@@ -1679,6 +1680,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       schedule: scheduleJson,
       registrationStatus: registrationStatusForSave,
       benefitSummary,
+      highlightPointsRaw: extractHighlightFromModetour(text),
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,

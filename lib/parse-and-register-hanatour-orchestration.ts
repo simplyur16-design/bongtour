@@ -5,6 +5,7 @@ import {
   SupplierRouteMismatchError,
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
+import { extractHighlightFromHanatour } from '@/lib/extract-highlight-hanatour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
@@ -1503,6 +1504,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       schedule: scheduleJson,
       registrationStatus: registrationStatusForSave,
       benefitSummary,
+      highlightPointsRaw: extractHighlightFromHanatour(text),
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,
