@@ -20,7 +20,7 @@ export const BONGSIM_ESIM_USIM_SUPPORT_COPY =
 export const BONGSIM_ESIM_SUPPORT_CARD_BODY = 'Bong투어 카카오톡으로 문의하세요'
 
 /** 결제·가이드·기기·체크아웃 등 1차 문의 */
-export const BONGSIM_ESIM_SUPPORT_EMAIL_LINE = '고객지원 문의: bongtour@bongtour.com'
+export const BONGSIM_ESIM_SUPPORT_EMAIL_LINE = '고객지원 문의: bongtour24@naver.com'
 
 export function bongsimPath(sub: string = ""): string {
   if (!sub) return BONGSIM_BASE_PATH;

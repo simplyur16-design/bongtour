@@ -516,32 +516,32 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-slate-50/90">
+              <div className="rounded-xl border border-slate-300 bg-slate-50 transition hover:border-teal-600 focus-within:border-teal-600 focus-within:ring-1 focus-within:ring-teal-500">
                 <button
                   type="button"
                   onClick={() => setCouponOpen((o) => !o)}
-                  className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm font-medium text-slate-800 lg:px-4 lg:py-3 lg:text-base"
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:border-teal-600 focus:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 lg:px-4 lg:py-3 lg:text-base"
                   aria-expanded={couponOpen}
                 >
                   쿠폰이 있으신가요?
                   <span className="text-slate-400">{couponOpen ? "▲" : "▼"}</span>
                 </button>
                 {couponOpen ? (
-                  <div className="border-t border-slate-200 px-3 pb-3 pt-1 lg:px-4 lg:pb-4">
+                  <div className="border-t border-slate-300 px-3 pb-3 pt-1 lg:px-4 lg:pb-4">
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={couponCode}
                         onChange={(ev) => setCouponCode(ev.target.value)}
                         placeholder="쿠폰 코드"
-                        className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 lg:px-4 lg:py-2.5 lg:text-lg"
+                        className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-700 placeholder:text-slate-400 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-500 lg:px-4 lg:py-2.5 lg:text-lg"
                         autoComplete="off"
                       />
                       <button
                         type="button"
                         disabled={couponBusy}
                         onClick={() => void applyCoupon()}
-                        className="shrink-0 rounded-lg bg-teal-700 px-4 py-2 text-base font-semibold text-white hover:bg-teal-800 disabled:opacity-60 lg:px-5 lg:text-lg"
+                        className="shrink-0 rounded-xl bg-teal-700 px-4 py-2 text-base font-semibold text-white hover:bg-teal-800 disabled:opacity-60 lg:px-5 lg:text-lg"
                       >
                         {couponBusy ? "…" : "적용"}
                       </button>
@@ -573,7 +573,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                     ? "처리 중…"
                     : "다음: 결제 진행"}
               </button>
-              <EsimSupportFootnote className="mt-3 text-center text-xs" />
+              <EsimSupportFootnote useCheckoutOpenChat className="mt-3 text-center text-xs" />
             </form>
           </div>
         )}
