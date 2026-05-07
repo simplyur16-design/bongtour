@@ -1,4 +1,5 @@
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { isBongsimCheckoutTestMode } from "@/lib/bongsim/test-mode";
 
 /**
  * 결제 완료 → USIMSA 발급 → 웹훅으로 QR 수신 후 고객 전달(이메일·알림톡) 단계의 진입점.
@@ -86,9 +87,11 @@ export async function deliverEsimToCustomer(
     client.release();
   }
 
-  const notify = { buyerEmail, orderId, qrCodeUrl, downloadLink };
-  placeholderSendEsimEmail(notify);
-  placeholderSendEsimAlimtalk(notify);
+  if (!isBongsimCheckoutTestMode()) {
+    const notify = { buyerEmail, orderId, qrCodeUrl, downloadLink };
+    placeholderSendEsimEmail(notify);
+    placeholderSendEsimAlimtalk(notify);
+  }
 
   return { ok: true, status: "delivered" };
 }

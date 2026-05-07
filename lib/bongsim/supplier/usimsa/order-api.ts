@@ -5,10 +5,19 @@ import type {
   UsimsaOrderQueryResponse,
   UsimsaCancelResponse,
 } from "@/lib/bongsim/supplier/usimsa/types";
+import { isBongsimCheckoutTestMode } from "@/lib/bongsim/test-mode";
+
+export type SubmitUsimsaOrderResult =
+  | UsimsaSubmitResponse
+  | { ok: true; skipped: "test_mode" };
 
 export async function submitUsimsaOrder(
   body: UsimsaSubmitRequest,
-): Promise<UsimsaSubmitResponse> {
+): Promise<SubmitUsimsaOrderResult> {
+  if (isBongsimCheckoutTestMode()) {
+    console.log("[BONGSIM_TEST_MODE] USIMSA 발급 스킵 - orderId:", body.orderId);
+    return { ok: true, skipped: "test_mode" as const };
+  }
   return usimsaRequest<UsimsaSubmitResponse>({
     method: "POST",
     path: "/v2/order",
