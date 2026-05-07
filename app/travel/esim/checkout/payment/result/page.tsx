@@ -97,6 +97,7 @@ function ResultInner() {
                 <Link
                   href="/"
                   className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-5 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 sm:text-base"
+                  style={{ color: "#1e293b" }}
                 >
                   홈으로 돌아가기
                 </Link>
@@ -137,6 +138,7 @@ function ResultInner() {
                 <Link
                   href={esimMainHref}
                   className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-teal-600 hover:text-teal-700 sm:text-base"
+                  style={{ color: "#334155" }}
                 >
                   eSIM 메인
                 </Link>
@@ -179,6 +181,7 @@ function ResultInner() {
                 <Link
                   href={esimMainHref}
                   className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-5 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 sm:text-base"
+                  style={{ color: "#1e293b" }}
                 >
                   eSIM 메인으로
                 </Link>
