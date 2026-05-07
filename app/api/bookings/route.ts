@@ -12,6 +12,8 @@ import {
 import { buildAdminBookingAlertPayload } from '@/lib/booking-alert-payload'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError, publicMutationOriginJsonResponse } from '@/lib/public-mutation-origin'
+import { makeBookingNumber } from '@/lib/identifiers/make-booking-number'
+import { parsePublicAttributionFromBody } from '@/lib/public-attribution-body'
 
 const BOOKING_RATE_LIMIT_WINDOW_MS = 60_000
 const BOOKING_RATE_LIMIT_MAX = 10
@@ -44,6 +46,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
+    const bodyObj = (body ?? {}) as Record<string, unknown>
+    const attribution = parsePublicAttributionFromBody(bodyObj)
     const honeypot = typeof body?.website === 'string' ? body.website.trim() : ''
     if (honeypot) {
       return NextResponse.json({ error: '요청 형식이 올바르지 않습니다.' }, { status: 400 })
@@ -172,6 +176,7 @@ export async function POST(request: Request) {
 
     const booking = await prisma.booking.create({
       data: {
+        bookingNumber: makeBookingNumber(),
         productId: product.id,
         productTitle: product.title,
         selectedDate: new Date(dateKey + 'T00:00:00.000Z'),
@@ -193,6 +198,13 @@ export async function POST(request: Request) {
         childInfantBirthDatesJson: birthsJson,
         originSourceSnapshot: intake.originSource,
         originCodeSnapshot: intake.originCode,
+        utmSource: attribution.utmSource,
+        utmMedium: attribution.utmMedium,
+        utmCampaign: attribution.utmCampaign,
+        utmContent: attribution.utmContent,
+        utmTerm: attribution.utmTerm,
+        referrer: attribution.referrer,
+        landingPath: attribution.landingPath,
         status: '접수완료',
       },
       include: { product: true },
@@ -201,6 +213,7 @@ export async function POST(request: Request) {
     const adminPayload = buildAdminBookingAlertPayload(intake, {
       productTitle: booking.productTitle,
       adminLinkBase: process.env.NEXT_PUBLIC_APP_URL || process.env.BONGTOUR_API_BASE || '',
+      bookingNumber: booking.bookingNumber,
     })
 
     console.log('[booking]', JSON.stringify({ step: 'db_saved', bookingId: booking.id }))
@@ -253,11 +266,12 @@ export async function POST(request: Request) {
     const payload = {
       ok: true,
       bookingId: booking.id,
+      bookingNumber: booking.bookingNumber,
       message: buildCustomerBookingReceiptMessage({
         customerName: intake.customerName,
         productTitle: booking.productTitle,
         departureDateLabel: formatDepartureDate(booking.selectedDate),
-        bookingId: booking.id,
+        bookingNumber: booking.bookingNumber,
       }),
       pricingMode,
     }

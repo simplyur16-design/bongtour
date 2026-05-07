@@ -4,6 +4,7 @@ export type AdminBookingAlertPayload = {
   customerName: string
   customerPhone: string
   customerEmail: string
+  bookingNumber?: string
   productTitle?: string | null
   originSource: string
   /** 접수 시 선택한 출발 행 id(있으면) */
@@ -19,7 +20,7 @@ export type AdminBookingAlertPayload = {
 
 export function buildAdminBookingAlertPayload(
   intake: BookingIntakeDto,
-  opts: { productTitle?: string | null; adminLinkBase?: string }
+  opts: { productTitle?: string | null; adminLinkBase?: string; bookingNumber?: string }
 ): AdminBookingAlertPayload {
   const preferredOrSelectedDate = intake.selectedDepartureDate ?? intake.preferredDepartureDate ?? null
   const paxSummary = `총 ${intake.totalPax}명 (성인 ${intake.adultCount} / 아동 ${intake.childCount}[베드 ${intake.childWithBedCount}, 노베드 ${intake.childNoBedCount}] / 유아 ${intake.infantCount})`
@@ -30,6 +31,7 @@ export function buildAdminBookingAlertPayload(
     customerName: intake.customerName,
     customerPhone: intake.customerPhone,
     customerEmail: (intake.customerEmail ?? '').trim(),
+    ...(opts.bookingNumber ? { bookingNumber: opts.bookingNumber } : {}),
     productTitle: opts.productTitle ?? null,
     originSource: intake.originSource,
     departureRowId: intake.departureId ?? null,

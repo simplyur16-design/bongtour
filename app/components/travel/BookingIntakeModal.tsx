@@ -7,6 +7,7 @@ import type { DeparturePriceCollectUiPhase } from '@/lib/departure-price-collect
 import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
 import { formatKoreanTelInput } from '@/lib/korean-tel-format'
 import { OPTIONAL_EMAIL_FORMAT_ERROR, optionalEmailFormatError } from '@/lib/email-format'
+import { readUtmFromSession } from '@/lib/utm-capture'
 
 export type BookingPax = {
   adult: number
@@ -40,6 +41,7 @@ type Props = {
 type ApiSuccess = {
   ok: true
   bookingId: number
+  bookingNumber?: string
   message: string
   pricingMode?: 'schedule_price' | 'wish_date_only' | 'schedule_selected_pending_quote'
 }
@@ -226,6 +228,7 @@ export default function BookingIntakeModal({
       if (validated.value.preferredDepartureDate) {
         body.preferredDepartureDate = validated.value.preferredDepartureDate
       }
+      Object.assign(body, readUtmFromSession())
 
       const res = await fetch('/api/bookings', {
         method: 'POST',
@@ -242,6 +245,7 @@ export default function BookingIntakeModal({
         setSuccess({
           ok: true,
           bookingId: data.bookingId ?? 0,
+          bookingNumber: typeof data.bookingNumber === 'string' ? data.bookingNumber : undefined,
           message: data.message,
           pricingMode: data.pricingMode,
         })

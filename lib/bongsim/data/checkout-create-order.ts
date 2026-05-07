@@ -8,6 +8,7 @@ import type { BongsimProductOptionDbRow } from "@/lib/bongsim/data/bongsim-produ
 import { mapDbRowToProductOptionV1 } from "@/lib/bongsim/data/map-row-to-product-option-v1";
 import { parseFlagsJson, parsePriceBlockJson } from "@/lib/bongsim/data/parse-product-json";
 import { assertBongsimCouponForOrderInsert } from "@/lib/bongsim/data/bongsim-coupon";
+import { parsePublicAttributionFromBody } from "@/lib/public-attribution-body";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
 
@@ -299,6 +300,7 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
   if (Object.keys(details).length) return { ok: false, details };
   const locale = o.buyer_locale;
   const buyer_locale = locale === "ko" || locale === "en" ? locale : undefined;
+  const attr = parsePublicAttributionFromBody(o);
   const req: BongsimCheckoutConfirmRequestV1 = {
     schema: "bongsim.checkout_confirm.request.v1",
     option_api_id,
@@ -312,6 +314,13 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
         ? (o.consents as BongsimCheckoutConfirmRequestV1["consents"])
         : undefined,
     ...(hasCouponId && hasCouponDisc ? { coupon_id: coupon_id_raw, coupon_discount_krw: Math.trunc(coupon_discount_krw) } : {}),
+    ...(attr.utmSource ? { utmSource: attr.utmSource } : {}),
+    ...(attr.utmMedium ? { utmMedium: attr.utmMedium } : {}),
+    ...(attr.utmCampaign ? { utmCampaign: attr.utmCampaign } : {}),
+    ...(attr.utmContent ? { utmContent: attr.utmContent } : {}),
+    ...(attr.utmTerm ? { utmTerm: attr.utmTerm } : {}),
+    ...(attr.referrer ? { referrer: attr.referrer } : {}),
+    ...(attr.landingPath ? { landingPath: attr.landingPath } : {}),
   };
   return { ok: true, req };
 }
@@ -402,8 +411,10 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const ins = await client.query<OrderRow>(
       `INSERT INTO bongsim_order (
         order_number, status, checkout_channel, buyer_email, buyer_locale,
-        idempotency_key, consents, currency, subtotal_krw, discount_krw, tax_krw, grand_total_krw
-      ) VALUES ($1, 'awaiting_payment', $2, $3, $4, $5, $6::jsonb, 'KRW', $7, $8, 0, $9)
+        idempotency_key, consents, currency, subtotal_krw, discount_krw, tax_krw, grand_total_krw,
+        utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer, landing_path
+      ) VALUES ($1, 'awaiting_payment', $2, $3, $4, $5, $6::jsonb, 'KRW', $7, $8, 0, $9,
+        $10, $11, $12, $13, $14, $15, $16)
       RETURNING *`,
       [
         orderNumber,
@@ -415,6 +426,13 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
         line_total,
         discount_krw,
         grand_total,
+        req.utmSource ?? null,
+        req.utmMedium ?? null,
+        req.utmCampaign ?? null,
+        req.utmContent ?? null,
+        req.utmTerm ?? null,
+        req.referrer ?? null,
+        req.landingPath ?? null,
       ],
     );
     const orderRow = ins.rows[0];

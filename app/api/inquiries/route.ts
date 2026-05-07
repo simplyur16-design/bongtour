@@ -11,6 +11,8 @@ import { attemptSendCustomerInquiryAlimTalk } from '@/lib/solapi-alimtalk'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError } from '@/lib/public-mutation-origin'
+import { makeInquiryNumber } from '@/lib/identifiers/make-inquiry-number'
+import { parsePublicAttributionFromBody } from '@/lib/public-attribution-body'
 
 const INQUIRY_RATE_LIMIT_WINDOW_MS = 60_000
 const INQUIRY_RATE_LIMIT_MAX = 5
@@ -126,6 +128,7 @@ export async function POST(request: Request) {
     )
   }
   const v = validated.value
+  const attribution = parsePublicAttributionFromBody(obj)
 
   /** productId 있을 때 1회 조회 — 존재 검증 + 스냅샷(origin·제목) 채움 */
   let productForInquiry: {
@@ -196,6 +199,7 @@ export async function POST(request: Request) {
     /** DB 저장 — 알림과 분리. 이후 단계 실패해도 롤백하지 않음. */
     const row = await prisma.customerInquiry.create({
       data: {
+        inquiryNumber: makeInquiryNumber(),
         inquiryType: v.inquiryType,
         status: 'received',
         leadTimeRisk: v.leadTimeRisk,
@@ -211,6 +215,13 @@ export async function POST(request: Request) {
         snapshotOriginSource: snapshotOriginSourceForDb,
         snapshotOriginCode: snapshotOriginCodeForDb,
         sourcePagePath: v.sourcePagePath,
+        utmSource: attribution.utmSource,
+        utmMedium: attribution.utmMedium,
+        utmCampaign: attribution.utmCampaign,
+        utmContent: attribution.utmContent,
+        utmTerm: attribution.utmTerm,
+        referrer: attribution.referrer,
+        landingPath: attribution.landingPath,
         privacyAgreed: true,
         privacyNoticeConfirmedAt: v.privacyNoticeConfirmedAt,
         privacyNoticeVersion: v.privacyNoticeVersion,
@@ -221,6 +232,7 @@ export async function POST(request: Request) {
       },
       select: {
         id: true,
+        inquiryNumber: true,
         inquiryType: true,
         status: true,
         leadTimeRisk: true,
@@ -366,6 +378,7 @@ export async function POST(request: Request) {
       ok: true,
       inquiry: {
         id: row.id,
+        inquiryNumber: row.inquiryNumber,
         inquiryType: row.inquiryType,
         status: row.status,
         leadTimeRisk: row.leadTimeRisk,

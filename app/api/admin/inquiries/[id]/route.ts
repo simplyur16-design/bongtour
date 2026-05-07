@@ -31,6 +31,14 @@ export async function GET(_request: Request, context: RouteContext) {
     const isSuper = admin.user.role === 'SUPER_ADMIN'
     const inquiry = {
       id: row.id,
+      inquiryNumber: row.inquiryNumber,
+      utmSource: row.utmSource,
+      utmMedium: row.utmMedium,
+      utmCampaign: row.utmCampaign,
+      utmContent: row.utmContent,
+      utmTerm: row.utmTerm,
+      referrer: row.referrer,
+      landingPath: row.landingPath,
       inquiryType: row.inquiryType,
       status: row.status,
       leadTimeRisk: row.leadTimeRisk,

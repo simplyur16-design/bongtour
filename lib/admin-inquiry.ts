@@ -3,6 +3,7 @@ import { CUSTOMER_INQUIRY_TYPES, type CustomerInquiryType } from '@/lib/customer
 /** GET /api/admin/inquiries 목록 한 행 (마스킹 적용 후 응답) */
 export type AdminInquiryListItem = {
   id: string
+  inquiryNumber: string
   createdAt: string
   inquiryType: string
   status: string

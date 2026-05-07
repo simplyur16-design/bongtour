@@ -27,6 +27,7 @@ export type AdminBookingAlertMessagePayload = {
   customerName: string
   customerPhone: string
   customerEmail: string
+  bookingNumber?: string | null
   productTitle?: string | null
   originSource: string
   departureRowId?: string | null
@@ -107,5 +108,7 @@ export function buildAdminNotificationMessageFromPayload(p: AdminBookingAlertMes
   const rowId = (p.departureRowId ?? '').trim()
   const rowSuffix = rowId ? ` - 출발행:${rowId}` : ''
   const emailDisp = (p.customerEmail ?? '').trim() || '-'
-  return `[Bong투어예약접수] ${originLabel}/${title} - 고객:${p.customerName} (${p.customerPhone}) - 이메일:${emailDisp} - 출발:${date} - 인원:${p.paxSummary}${rowSuffix} - 연락선호:${p.preferredContactChannel} - ${singleRoom} - 아동/유아생년:${birth} - 요청:${note} - 링크:${p.adminLink}`
+  const acc = (p.bookingNumber ?? '').trim()
+  const accPrefix = acc ? `접수:${acc} - ` : ''
+  return `[Bong투어예약접수] ${accPrefix}${originLabel}/${title} - 고객:${p.customerName} (${p.customerPhone}) - 이메일:${emailDisp} - 출발:${date} - 인원:${p.paxSummary}${rowSuffix} - 연락선호:${p.preferredContactChannel} - ${singleRoom} - 아동/유아생년:${birth} - 요청:${note} - 링크:${p.adminLink}`
 }

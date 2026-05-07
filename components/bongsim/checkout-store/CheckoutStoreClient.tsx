@@ -15,6 +15,7 @@ import type { BongsimProductDetailV1 } from "@/lib/bongsim/contracts/product-det
 import { extractSingleCountryCode, getPlanCoveredCountries } from "@/lib/bongsim/plan-coverage-map";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/payment-session.v1";
+import { readUtmFromSession } from "@/lib/utm-capture";
 
 type Props = {
   optionApiIdInitial: string;
@@ -291,6 +292,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
           confirmBody.coupon_id = appliedCouponId;
           confirmBody.coupon_discount_krw = appliedOrderDiscountKrw;
         }
+        Object.assign(confirmBody, readUtmFromSession());
 
         const cr = await fetch("/api/bongsim/checkout/confirm", {
           method: "POST",

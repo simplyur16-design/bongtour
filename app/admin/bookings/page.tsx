@@ -11,6 +11,7 @@ import { getNextBookingStatuses } from '@/lib/booking-status-policy'
 
 type Booking = {
   id: number
+  bookingNumber: string
   productId: string
   productTitle: string
   selectedDate: string
@@ -148,9 +149,13 @@ export default function AdminBookingsPage() {
                     className="flex w-full items-center justify-between py-3 text-left hover:bg-gray-50"
                   >
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="rounded border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600">
-                        #{b.id}
+                      <span
+                        className="rounded border border-gray-200 px-2 py-0.5 font-mono text-xs font-medium text-gray-800"
+                        title={`내부 id ${b.id}`}
+                      >
+                        {b.bookingNumber}
                       </span>
+                      <span className="text-[11px] text-gray-400">#{b.id}</span>
                       <span className="font-medium text-[#0f172a]">{b.productTitle}</span>
                       <span className="text-sm text-gray-500">
                         {new Date(b.selectedDate).toLocaleDateString('ko-KR')} 출발
@@ -177,6 +182,11 @@ export default function AdminBookingsPage() {
               </div>
             ) : detail ? (
               <div className="space-y-6">
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-600">접수번호</h3>
+                  <p className="font-mono text-base font-semibold text-[#0f172a]">{detail.bookingNumber}</p>
+                  <p className="mt-1 text-xs text-gray-400">내부 id · {detail.id}</p>
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="border border-gray-200 bg-gray-50 p-4">
                     <h3 className="mb-2 border-l-4 border-[#0f172a] pl-2 text-sm font-semibold text-[#0f172a]">인원 구성</h3>

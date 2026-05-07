@@ -16,6 +16,7 @@ import type { FieldErrors } from '@/lib/customer-inquiry-intake'
 import { KAKAO_OPEN_CHAT_URL } from '@/lib/kakao-open-chat'
 import { formatKoreanTelInput } from '@/lib/korean-tel-format'
 import { optionalEmailFormatError } from '@/lib/email-format'
+import { readUtmFromSession } from '@/lib/utm-capture'
 
 type ApiErrorJson = {
   ok?: boolean
@@ -161,6 +162,7 @@ export default function InquiryFormShell({
       if (path) body.sourcePagePath = path
       if (Object.keys(extra).length > 0) body.payloadJson = extra
       if (preferredContactChannel) body.preferredContactChannel = preferredContactChannel
+      Object.assign(body, readUtmFromSession())
 
       if (!privacyAgreed) {
         setFieldErrors({ privacyAgreed: '개인정보 처리에 동의해 주세요.' })

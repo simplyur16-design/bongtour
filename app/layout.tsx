@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic'
 import { Noto_Sans_KR, Outfit } from 'next/font/google'
 import './globals.css'
 import SessionProvider from './components/providers/SessionProvider'
+import UtmCaptureProvider from '@/components/UtmCaptureProvider'
 import ChunkLoadRecovery from './components/ChunkLoadRecovery'
 import AntiCopyProtectionGate from './components/AntiCopyProtectionGate'
 import ConditionalSiteFooter from './components/ConditionalSiteFooter'
@@ -87,8 +88,10 @@ export default function RootLayout({
         <AntiCopyProtectionGate />
         <GoogleTagManager />
         <SessionProvider>
-          <div className="flex-1 flex flex-col">{children}</div>
-          <ConditionalSiteFooter />
+          <UtmCaptureProvider>
+            <div className="flex-1 flex flex-col">{children}</div>
+            <ConditionalSiteFooter />
+          </UtmCaptureProvider>
         </SessionProvider>
       </body>
     </html>

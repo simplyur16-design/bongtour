@@ -7,6 +7,7 @@ import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 /** `POST /api/bookings` 직후 `prisma.booking.create` 결과 + `include: { product: true }` */
 export type BookingRowForAdminEmail = {
   id: number
+  bookingNumber: string
   productId: string
   productTitle: string
   selectedDate: Date
@@ -103,6 +104,8 @@ export function buildBookingAdminEmailSubject(booking: BookingRowForAdminEmail):
   const title = normText(booking.productTitle) || '상품명 미확인'
   if (name && title) return `[예약요청접수] ${name} / ${title}`
   if (title) return `[예약요청접수] ${title}`
+  const acc = normText(booking.bookingNumber)
+  if (acc) return `[예약요청접수] ${acc}`
   return `[예약요청접수] 예약 #${booking.id}`
 }
 
@@ -160,7 +163,7 @@ export function buildBookingAdminEmailText(
     '━━━━━━━━━━━━━━━━',
     '■ 예약 요청 접수',
     '━━━━━━━━━━━━━━━━',
-    `접수번호: ${booking.id}`,
+    `접수번호: ${normText(booking.bookingNumber) || String(booking.id)}`,
     `접수시각: ${receivedAt}`,
     `공급사: ${supplierName}`,
     `상품번호: ${supplierProductNo}`,

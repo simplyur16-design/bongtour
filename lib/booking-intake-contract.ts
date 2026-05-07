@@ -169,7 +169,7 @@ export function buildCustomerBookingReceiptMessage(input: {
   customerName: string
   productTitle: string
   departureDateLabel: string
-  bookingId: number
+  bookingNumber: string
 }): string {
   const safeName = input.customerName.trim() || '고객님'
   const title = input.productTitle.trim() || '상품명 미확인'
@@ -179,7 +179,7 @@ export function buildCustomerBookingReceiptMessage(input: {
     '',
     `상품명: ${title}`,
     `출발일: ${depart}`,
-    `접수번호: ${input.bookingId}`,
+    `접수번호: ${input.bookingNumber}`,
     '',
     '담당자가 내용을 확인한 뒤 순차적으로 연락드립니다.',
     '실제 예약 가능 여부와 결제 안내는 확인 후 안내됩니다.',

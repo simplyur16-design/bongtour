@@ -16,6 +16,13 @@ export type BongsimCheckoutConfirmRequestV1 = {
   /** `/api/bongsim/coupon/validate` 응답의 `coupon_id` + 할인액(원). 둘 다 있을 때만 적용. */
   coupon_id?: string | null;
   coupon_discount_krw?: number | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  utmContent?: string | null;
+  utmTerm?: string | null;
+  referrer?: string | null;
+  landingPath?: string | null;
 };
 
 /** `order.order_number` — 고객·CS용 BS- 접두 주문번호(표시). `order.order_id`는 내부 UUID. */

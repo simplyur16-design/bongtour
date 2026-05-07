@@ -42,6 +42,7 @@ export async function GET(request: Request) {
       where,
       select: {
         id: true,
+        inquiryNumber: true,
         createdAt: true,
         inquiryType: true,
         status: true,
@@ -124,6 +125,7 @@ export async function GET(request: Request) {
         }
       })(),
       id: r.id,
+      inquiryNumber: r.inquiryNumber,
       createdAt: r.createdAt.toISOString(),
       inquiryType: r.inquiryType,
       status: r.status,

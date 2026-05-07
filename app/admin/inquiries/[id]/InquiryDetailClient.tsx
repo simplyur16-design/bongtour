@@ -9,6 +9,14 @@ import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 
 export type InquiryDetailDto = {
   id: string
+  inquiryNumber: string
+  utmSource: string | null
+  utmMedium: string | null
+  utmCampaign: string | null
+  utmContent: string | null
+  utmTerm: string | null
+  referrer: string | null
+  landingPath: string | null
   inquiryType: string
   status: string
   leadTimeRisk: string
@@ -112,7 +120,8 @@ export default function InquiryDetailClient({ inquiryId }: { inquiryId: string }
         </Link>
 
         <h1 className="mt-4 text-xl font-semibold text-gray-900">문의 상세</h1>
-        <p className="mt-1 font-mono text-xs text-gray-500">{row.id}</p>
+        <p className="mt-1 font-mono text-sm font-semibold text-gray-800">{row.inquiryNumber}</p>
+        <p className="mt-0.5 font-mono text-xs text-gray-500">내부 id · {row.id}</p>
 
         {patchError ? (
           <p className="mt-3 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-800">{patchError}</p>
@@ -246,6 +255,26 @@ export default function InquiryDetailClient({ inquiryId }: { inquiryId: string }
               <dt className="text-xs font-medium text-gray-500">유입 경로</dt>
               <dd className="break-all text-xs">{row.sourcePagePath ?? '—'}</dd>
             </div>
+            {(row.referrer?.trim() ||
+              row.landingPath?.trim() ||
+              row.utmSource?.trim() ||
+              row.utmMedium?.trim() ||
+              row.utmCampaign?.trim() ||
+              row.utmContent?.trim() ||
+              row.utmTerm?.trim()) && (
+              <div>
+                <dt className="text-xs font-medium text-gray-500">유입·UTM (첫 세션)</dt>
+                <dd className="mt-1 space-y-1 break-all text-xs text-gray-700">
+                  {row.referrer?.trim() ? <div>referrer: {row.referrer.trim()}</div> : null}
+                  {row.landingPath?.trim() ? <div>landingPath: {row.landingPath.trim()}</div> : null}
+                  {row.utmSource?.trim() ? <div>utm_source → utmSource: {row.utmSource.trim()}</div> : null}
+                  {row.utmMedium?.trim() ? <div>utm_medium → utmMedium: {row.utmMedium.trim()}</div> : null}
+                  {row.utmCampaign?.trim() ? <div>utm_campaign → utmCampaign: {row.utmCampaign.trim()}</div> : null}
+                  {row.utmContent?.trim() ? <div>utm_content → utmContent: {row.utmContent.trim()}</div> : null}
+                  {row.utmTerm?.trim() ? <div>utm_term → utmTerm: {row.utmTerm.trim()}</div> : null}
+                </dd>
+              </div>
+            )}
           </dl>
         </section>
 
