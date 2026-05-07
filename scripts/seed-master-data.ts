@@ -1038,6 +1038,194 @@ export function buildMasterSeedFromTree(tree: OverseasRegionGroupNode[]): Master
   }
 }
 
+// ---------------------------------------------------------------------------
+// I-2-PATCH: 트리 권역 1카드(= G 노드) + 리프에서 유도한 Country/City 매핑
+// ---------------------------------------------------------------------------
+
+const MEGA_MENU_REGION_CARD_DEF: Array<{
+  groupKey: string
+  koreanLabel: string
+  continentKey: string
+  displayMode: SeedCard['displayMode']
+}> = [
+  {
+    groupKey: 'sea-taiwan-south-asia',
+    koreanLabel: '동남아 · 대만 · 서남아',
+    continentKey: 'southeast-asia',
+    displayMode: 'mixed',
+  },
+  {
+    groupKey: 'japan',
+    koreanLabel: '일본',
+    continentKey: 'northeast-asia',
+    displayMode: 'cityGroup',
+  },
+  {
+    groupKey: 'europe-me-africa',
+    koreanLabel: '유럽 · 중동 · 아프리카',
+    continentKey: 'europe',
+    displayMode: 'countryGroup',
+  },
+  {
+    groupKey: 'china-circle',
+    koreanLabel: '중국권 · 홍콩 · 마카오 · 몽골 · 중앙아',
+    continentKey: 'northeast-asia',
+    displayMode: 'mixed',
+  },
+  {
+    groupKey: 'guam-au-nz',
+    koreanLabel: '괌/사이판/호주/뉴질랜드',
+    continentKey: 'oceania',
+    displayMode: 'countryGroup',
+  },
+  {
+    groupKey: 'americas',
+    koreanLabel: '미주 · 하와이 · 캐나다 · 중남미',
+    continentKey: 'north-america',
+    displayMode: 'countryGroup',
+  },
+]
+
+function collectMegaMenuRegionCoverage(tree: OverseasRegionGroupNode[]): Map<string, { countries: Set<string>; cities: Set<string> }> {
+  const byGroup = new Map<string, { countries: Set<string>; cities: Set<string> }>()
+  for (const def of MEGA_MENU_REGION_CARD_DEF) {
+    byGroup.set(def.groupKey, { countries: new Set(), cities: new Set() })
+  }
+
+  const add = (groupKey: string, resolved: ResolvedLeaf): void => {
+    const bucket = byGroup.get(groupKey)
+    if (!bucket) return
+    bucket.countries.add(resolved.countryKey)
+    for (const c of resolved.cities) {
+      bucket.cities.add(c.cityKey)
+    }
+  }
+
+  for (const group of tree) {
+    const gk = group.groupKey
+    if (!byGroup.has(gk)) continue
+
+    for (const country of group.countries) {
+      for (const leaf of country.children) {
+        if (leaf.nodeType === 'theme' || leaf.nodeType === 'route') continue
+
+        if (country.countryKey === 'balkans') {
+          add(gk, {
+            countryKey: 'croatia',
+            cities: [
+              { cityKey: 'dubrovnik', koreanLabel: '두브로브니크', isMajor: true },
+              { cityKey: 'zagreb', koreanLabel: '자그레브', isMajor: false },
+            ],
+          })
+          add(gk, {
+            countryKey: 'slovenia',
+            cities: [{ cityKey: 'ljubljana', koreanLabel: '류블랴나', isMajor: true }],
+          })
+          continue
+        }
+
+        if (country.countryKey === 'latin-caribbean' && leaf.nodeKey === 'cuba-mexico') {
+          add(gk, { countryKey: 'mexico', cities: CLUSTER_EXPANSIONS['cuba-mexico']! })
+          add(gk, {
+            countryKey: 'cuba',
+            cities: [{ cityKey: 'havana', koreanLabel: '아바나', isMajor: true }],
+          })
+          continue
+        }
+
+        if (country.countryKey === 'latin-caribbean' && leaf.nodeKey === 'south-america') {
+          const rows: ResolvedLeaf[] = [
+            { countryKey: 'peru', cities: [{ cityKey: 'lima', koreanLabel: '리마', isMajor: true }] },
+            { countryKey: 'peru', cities: [{ cityKey: 'cusco', koreanLabel: '쿠스코', isMajor: true }] },
+            { countryKey: 'brazil', cities: [{ cityKey: 'rio-de-janeiro', koreanLabel: '리우데자네이루', isMajor: true }] },
+            { countryKey: 'argentina', cities: [{ cityKey: 'buenos-aires', koreanLabel: '부에노스아이레스', isMajor: true }] },
+            { countryKey: 'chile', cities: [{ cityKey: 'santiago', koreanLabel: '산티아고', isMajor: true }] },
+            { countryKey: 'bolivia', cities: [{ cityKey: 'la-paz', koreanLabel: '라파스', isMajor: false }] },
+          ]
+          for (const r of rows) add(gk, r)
+          continue
+        }
+
+        const resolved = resolveLeafToCountryAndCities(group, country, leaf)
+        add(gk, resolved)
+      }
+    }
+  }
+
+  const japan = byGroup.get('japan')
+  if (japan) {
+    japan.countries.add('japan')
+    japan.cities.add('niseko')
+  }
+
+  return byGroup
+}
+
+/**
+ * 해외 트리 SSOT의 권역(G) 노드당 메가메뉴 카드 1개 + Country/City 링크 전체.
+ * (기존 클러스터 카드 16개와 cardKey가 겹치지 않음)
+ */
+export function buildMegaMenuRegionCardPayload(tree: OverseasRegionGroupNode[] = OVERSEAS_LOCATION_TREE_DATA): {
+  cards: SeedCard[]
+  cardCountryPairs: Array<{ cardKey: string; countryKey: string; sortOrder: number }>
+  cardCityPairs: Array<{ cardKey: string; cityKey: string; sortOrder: number }>
+  stats: {
+    groupCount: number
+    cardCount: number
+    countryLinkCount: number
+    cityLinkCount: number
+    countriesPerCard: Record<string, number>
+    citiesPerCard: Record<string, number>
+  }
+} {
+  const coverage = collectMegaMenuRegionCoverage(tree)
+  const cards: SeedCard[] = []
+  const cardCountryPairs: Array<{ cardKey: string; countryKey: string; sortOrder: number }> = []
+  const cardCityPairs: Array<{ cardKey: string; cityKey: string; sortOrder: number }> = []
+  const countriesPerCard: Record<string, number> = {}
+  const citiesPerCard: Record<string, number> = {}
+
+  for (let i = 0; i < MEGA_MENU_REGION_CARD_DEF.length; i++) {
+    const def = MEGA_MENU_REGION_CARD_DEF[i]!
+    const bucket = coverage.get(def.groupKey) ?? { countries: new Set<string>(), cities: new Set<string>() }
+    const card: SeedCard = {
+      cardKey: def.groupKey,
+      koreanLabel: def.koreanLabel,
+      continentKey: def.continentKey,
+      displayMode: def.displayMode,
+      sortOrder: i,
+      isActive: true,
+    }
+    cards.push(card)
+
+    const countryList = [...bucket.countries].sort((a, b) => a.localeCompare(b))
+    countriesPerCard[def.groupKey] = countryList.length
+    countryList.forEach((countryKey, j) => {
+      cardCountryPairs.push({ cardKey: def.groupKey, countryKey, sortOrder: j })
+    })
+
+    const cityList = [...bucket.cities].sort((a, b) => a.localeCompare(b))
+    citiesPerCard[def.groupKey] = cityList.length
+    cityList.forEach((cityKey, j) => {
+      cardCityPairs.push({ cardKey: def.groupKey, cityKey, sortOrder: j })
+    })
+  }
+
+  return {
+    cards,
+    cardCountryPairs,
+    cardCityPairs,
+    stats: {
+      groupCount: MEGA_MENU_REGION_CARD_DEF.length,
+      cardCount: cards.length,
+      countryLinkCount: cardCountryPairs.length,
+      cityLinkCount: cardCityPairs.length,
+      countriesPerCard,
+      citiesPerCard,
+    },
+  }
+}
+
 /** 패키지에서 re-export 용 */
 export let SEED_COUNTRIES: SeedCountry[] = []
 export let SEED_CITIES: SeedCity[] = []
@@ -1269,11 +1457,16 @@ async function main(): Promise<void> {
   console.log('[seed-master-data] APPLY completed.')
 }
 
-main()
-  .catch((e) => {
-    console.error(e)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+const isSeedMasterEntry =
+  /[\\/]seed-master-data\.(ts|js)$/.test((process.argv[1] ?? '').replace(/\\/g, '/'))
+
+if (isSeedMasterEntry) {
+  main()
+    .catch((e) => {
+      console.error(e)
+      process.exit(1)
+    })
+    .finally(async () => {
+      await prisma.$disconnect()
+    })
+}
