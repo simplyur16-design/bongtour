@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { createPaymentSessionFromRequest } from "@/lib/bongsim/data/create-payment-session";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 

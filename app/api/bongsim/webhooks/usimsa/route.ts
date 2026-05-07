@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { deliverEsimToCustomer } from "@/lib/bongsim/fulfillment/esim-delivery";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import {

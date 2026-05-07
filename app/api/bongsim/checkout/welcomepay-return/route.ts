@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import { getPgPool } from "@/lib/bongsim/db/pool";

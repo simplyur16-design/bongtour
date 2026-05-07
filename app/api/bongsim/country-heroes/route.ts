@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { prisma } from "@/lib/prisma";
 
 const ENTITY_TYPE = "bongsim_esim_country";

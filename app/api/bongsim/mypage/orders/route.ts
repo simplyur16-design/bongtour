@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { countryDisplayFromPlanNameKr } from "@/lib/bongsim/mypage-esim-display";

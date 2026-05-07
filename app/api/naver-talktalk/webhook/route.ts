@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 
 /**
  * 네이버 톡톡 파트너센터 Webhook URL 등록·이벤트 수신.

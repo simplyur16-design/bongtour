@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import { generatePageHeroMonthlyEditorialLinesWithGemini } from '@/lib/page-hero-monthly-gemini-server'
 import { dedupePageHeroMonthlyGeminiJobsPreservingOrder } from '@/lib/page-hero-monthly-shared'
 import type { PageHeroMonthlyGeminiJob } from '@/lib/page-hero-monthly-types'

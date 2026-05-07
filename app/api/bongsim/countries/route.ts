@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { extractSingleCountryCode, resolveMultiCoverage } from "@/lib/bongsim/plan-coverage-map";

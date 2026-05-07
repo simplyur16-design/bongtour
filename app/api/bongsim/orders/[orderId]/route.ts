@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { getOrderPublic } from "@/lib/bongsim/data/get-order-public";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { processMockPaymentWebhook } from "@/lib/bongsim/data/process-payment-webhook";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { parseMockWebhookBody } from "@/lib/bongsim/payments/webhook/mock-webhook-adapter";

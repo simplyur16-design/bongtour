@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 
 /**
  * 공개 헬스체크 — UptimeRobot 등 외부 모니터용. 인증 없음·가벼운 응답.

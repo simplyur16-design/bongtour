@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import {
   extractClientIp,
   getAllowedUsimsaWebhookIps,

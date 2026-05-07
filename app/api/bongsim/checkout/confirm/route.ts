@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import { checkoutCreateOrderFromRequest } from "@/lib/bongsim/data/checkout-create-order";
 import { getPgPool } from "@/lib/bongsim/db/pool";
