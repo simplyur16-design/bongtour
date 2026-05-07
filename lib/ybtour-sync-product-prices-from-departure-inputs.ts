@@ -6,6 +6,8 @@
  * 생성: 해당 날짜 중 `adultPrice > 0` 인 ProductDeparture 행만 → ProductPrice 행.
  */
 import type { PrismaClient } from '@prisma/client'
+
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeDepartureDate } from '@/lib/upsert-product-departures-ybtour'
 
 type MinimalDepartureInput = { departureDate: string | Date }
@@ -80,6 +82,7 @@ export async function syncYbtourProductPricesFromDepartureInputsDetailed(
     }
 
     const created = await prisma.productPrice.createMany({ data: rows })
+    await updateLastPriceObservedAt(prisma, productId)
     return {
       syncedCount: created.count,
       datesCleared: del.count,

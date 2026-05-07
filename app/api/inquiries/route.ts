@@ -127,12 +127,20 @@ export async function POST(request: Request) {
   }
   const v = validated.value
 
+  /** productId 있을 때 1회 조회 — 존재 검증 + 스냅샷(origin·제목) 채움 */
+  let productForInquiry: {
+    title: string
+    originUrl: string | null
+    originSource: string | null
+    originCode: string | null
+  } | null = null
+
   if (v.productId) {
-    const exists = await prisma.product.findUnique({
+    const p = await prisma.product.findUnique({
       where: { id: v.productId },
-      select: { id: true },
+      select: { title: true, originUrl: true, originSource: true, originCode: true },
     })
-    if (!exists) {
+    if (!p) {
       return NextResponse.json(
         {
           ok: false,
@@ -142,7 +150,20 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+    productForInquiry = {
+      title: p.title ?? '',
+      originUrl: p.originUrl,
+      originSource: p.originSource,
+      originCode: p.originCode,
+    }
   }
+
+  const snapshotProductTitleForDb = productForInquiry
+    ? v.snapshotProductTitle?.trim() || productForInquiry.title?.trim() || null
+    : v.snapshotProductTitle
+  const snapshotOriginUrlForDb = productForInquiry?.originUrl?.trim() || null
+  const snapshotOriginSourceForDb = productForInquiry?.originSource?.trim() || null
+  const snapshotOriginCodeForDb = productForInquiry?.originCode?.trim() || null
 
   if (v.monthlyCurationItemId) {
     const exists = await prisma.monthlyCurationItem.findUnique({
@@ -184,8 +205,11 @@ export async function POST(request: Request) {
         message: v.message,
         productId: v.productId,
         monthlyCurationItemId: v.monthlyCurationItemId,
-        snapshotProductTitle: v.snapshotProductTitle,
+        snapshotProductTitle: snapshotProductTitleForDb,
         snapshotCardLabel: v.snapshotCardLabel,
+        snapshotOriginUrl: snapshotOriginUrlForDb,
+        snapshotOriginSource: snapshotOriginSourceForDb,
+        snapshotOriginCode: snapshotOriginCodeForDb,
         sourcePagePath: v.sourcePagePath,
         privacyAgreed: true,
         privacyNoticeConfirmedAt: v.privacyNoticeConfirmedAt,
@@ -211,17 +235,19 @@ export async function POST(request: Request) {
         productId: true,
         snapshotProductTitle: true,
         snapshotCardLabel: true,
+        snapshotOriginUrl: true,
+        snapshotOriginSource: true,
+        snapshotOriginCode: true,
       },
     })
 
-    let productMeta: { title: string; originCode: string; originSource: string } | null = null
-    if (row.productId) {
-      const p = await prisma.product.findUnique({
-        where: { id: row.productId },
-        select: { title: true, originCode: true, originSource: true },
-      })
-      if (p) productMeta = p
-    }
+    const productMeta: { title: string; originCode: string; originSource: string } | null = productForInquiry
+      ? {
+          title: productForInquiry.title,
+          originCode: productForInquiry.originCode ?? '',
+          originSource: productForInquiry.originSource ?? '',
+        }
+      : null
 
     const notifyInput = {
       inquiryId: row.id,
@@ -236,6 +262,7 @@ export async function POST(request: Request) {
       productId: row.productId,
       snapshotProductTitle: row.snapshotProductTitle,
       snapshotCardLabel: row.snapshotCardLabel,
+      snapshotOriginUrl: row.snapshotOriginUrl,
       product: productMeta,
     }
 
@@ -321,6 +348,8 @@ export async function POST(request: Request) {
       preferredContactChannel: row.preferredContactChannel ?? null,
       message: row.message ?? null,
       payloadJson: row.payloadJson,
+      productId: row.productId,
+      snapshotOriginUrl: row.snapshotOriginUrl,
     })
     if (lmsAdmin.failed.length > 0) {
       console.error(

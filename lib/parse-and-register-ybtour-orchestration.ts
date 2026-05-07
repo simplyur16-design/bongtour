@@ -6,6 +6,9 @@ import {
 } from '@/lib/assert-supplier-route-match'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { prisma } from '@/lib/prisma'
+import { extractHighlightFromYbtour } from '@/lib/extract-highlight-ybtour'
+import { extractHighlightFromYbtourLLM } from '@/lib/llm-extract-highlight-ybtour'
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
   detectMultiCountryAutoPlan,
@@ -1475,6 +1478,10 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         : existing?.registrationStatus === 'registered'
           ? 'registered'
           : 'pending'
+    const highlightLlm = await extractHighlightFromYbtourLLM(text).catch((e) => {
+      console.warn('[ybtour] highlight LLM', e instanceof Error ? e.message : e)
+      return null
+    })
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1506,6 +1513,9 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       schedule: scheduleJson,
       registrationStatus: registrationStatusForSave,
       benefitSummary,
+      highlightPointsRaw:
+        highlightLlm?.highlightPointsRaw ?? extractHighlightFromYbtour(text) ?? null,
+      highlightPoints: highlightLlm?.highlightPoints ?? null,
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,
@@ -1639,6 +1649,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     }
     if (priceRows.length > 0) {
       await prisma.productPrice.createMany({ data: priceRows })
+      await updateLastPriceObservedAt(prisma, productId)
     }
     timing.mark('after-prices-save')
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import type { BongContentStatus } from '@prisma/client'
+import type { BongContentStatus, Prisma } from '@prisma/client'
 import { generateNaverBlogDraftForPackage } from '@/lib/bong-marketing/blog-draft-generator'
 import { PACKAGE_BLOG_PROMPT_VERSION } from '@/lib/bong-marketing/blog-draft-prompt'
 import { extractProductGeoMeta } from '@/lib/bong-marketing/product-extractor'
@@ -129,27 +129,69 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         return NextResponse.json({ ok: true, post: updated })
       }
       case 'schedule': {
+        if (existing.status !== 'approved') {
+          return NextResponse.json({ error: '승인(approved) 상태에서만 게시 예약할 수 있습니다.' }, { status: 400 })
+        }
         const raw = typeof body.scheduledAt === 'string' ? body.scheduledAt.trim() : ''
         const when = raw ? new Date(raw) : null
         if (!when || Number.isNaN(when.getTime())) {
           return NextResponse.json({ error: 'scheduledAt ISO 날짜 필수' }, { status: 400 })
+        }
+        if (when.getTime() <= now.getTime()) {
+          return NextResponse.json({ error: 'scheduledAt 은 현재 시각보다 미래여야 합니다.' }, { status: 400 })
         }
         const updated = await prisma.bongBlogPost.update({
           where: { id },
           data: {
             status: 'scheduled' satisfies BongContentStatus,
             scheduledAt: when,
+            publishReminderSentAt: null,
           },
         })
         return NextResponse.json({ ok: true, post: updated })
       }
       case 'publish': {
+        const urlRaw = typeof body.url === 'string' ? body.url.trim() : ''
+        const nkRaw = body.naverPostKey
+        const naverPostKey: string | null | undefined =
+          nkRaw === null
+            ? null
+            : typeof nkRaw === 'string'
+              ? nkRaw.trim() || null
+              : undefined
+
+        if (existing.status === 'published') {
+          const data: Prisma.BongBlogPostUpdateInput = {}
+          if (urlRaw) data.url = urlRaw
+          if (naverPostKey !== undefined) data.naverPostKey = naverPostKey
+          if (Object.keys(data).length === 0) {
+            return NextResponse.json(
+              { error: 'published 상태에서는 url 또는 naverPostKey 를 보내야 합니다.' },
+              { status: 400 },
+            )
+          }
+          const updated = await prisma.bongBlogPost.update({ where: { id }, data })
+          return NextResponse.json({ ok: true, post: updated })
+        }
+
+        if (existing.status !== 'scheduled' && existing.status !== 'approved') {
+          return NextResponse.json(
+            { error: 'scheduled 또는 approved 상태에서만 게시 완료 처리할 수 있습니다.' },
+            { status: 400 },
+          )
+        }
+        if (!urlRaw) {
+          return NextResponse.json({ error: 'url 필수 (네이버 글 URL)' }, { status: 400 })
+        }
+        const publishData: Prisma.BongBlogPostUpdateInput = {
+          status: 'published' satisfies BongContentStatus,
+          publishedAt: now,
+          url: urlRaw,
+        }
+        if (naverPostKey !== undefined) publishData.naverPostKey = naverPostKey
         const updated = await prisma.bongBlogPost.update({
           where: { id },
-          data: {
-            status: 'published' satisfies BongContentStatus,
-            publishedAt: now,
-          },
+          data: publishData,
         })
         return NextResponse.json({ ok: true, post: updated })
       }
@@ -158,6 +200,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
           title?: string
           excerpt?: string | null
           body?: string | null
+          url?: string | null
+          naverPostKey?: string | null
         } = {}
         if (typeof body.title === 'string') data.title = truncate(body.title.trim(), 200)
         if (body.excerpt === null || typeof body.excerpt === 'string') {
@@ -166,8 +210,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         if (body.body === null || typeof body.body === 'string') {
           data.body = body.body === null ? null : body.body
         }
+        if (typeof body.url === 'string') data.url = body.url.trim() || null
+        if (body.naverPostKey === null || typeof body.naverPostKey === 'string') {
+          data.naverPostKey =
+            body.naverPostKey === null ? null : body.naverPostKey.trim() || null
+        }
         if (Object.keys(data).length === 0) {
-          return NextResponse.json({ error: 'title | excerpt | body 중 하나 이상 필요' }, { status: 400 })
+          return NextResponse.json(
+            { error: 'title | excerpt | body | url | naverPostKey 중 하나 이상 필요' },
+            { status: 400 },
+          )
         }
         const updated = await prisma.bongBlogPost.update({
           where: { id },
@@ -213,6 +265,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             reviewedAt: null,
             reviewedBy: null,
             scheduledAt: null,
+            publishReminderSentAt: null,
           },
         })
         return NextResponse.json({ ok: true, post: updated })

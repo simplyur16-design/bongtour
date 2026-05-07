@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import type { AdminInquiryListItem } from '@/lib/admin-inquiry'
 import InquiryStatusSelect from '@/components/admin/InquiryStatusSelect'
 import {
@@ -46,6 +47,7 @@ export default function InquiryListTable({
   onPatchError,
   selectDisabled = false,
 }: Props) {
+  const router = useRouter()
   return (
     <div className="space-y-3">
       {patchError && (
@@ -58,6 +60,7 @@ export default function InquiryListTable({
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-600">
               <th className="whitespace-nowrap px-3 py-2.5">접수일시</th>
+              <th className="min-w-[100px] px-3 py-2.5">상품</th>
               <th className="whitespace-nowrap px-3 py-2.5">유형</th>
               <th className="min-w-[120px] px-3 py-2.5">기관/단체명</th>
               <th className="min-w-[140px] px-3 py-2.5">희망 여행지</th>
@@ -73,7 +76,6 @@ export default function InquiryListTable({
               <th className="whitespace-nowrap px-3 py-2.5">신청자</th>
               <th className="whitespace-nowrap px-3 py-2.5">연락처</th>
               <th className="whitespace-nowrap px-3 py-2.5">이메일</th>
-              <th className="min-w-[120px] px-3 py-2.5">상품 스냅샷</th>
               <th className="min-w-[100px] px-3 py-2.5">카드 스냅샷</th>
               <th className="min-w-[140px] px-3 py-2.5">유입 경로</th>
               <th className="whitespace-nowrap px-3 py-2.5">productId</th>
@@ -83,14 +85,31 @@ export default function InquiryListTable({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {rows.map((r) => {
-              const titleC = r.snapshotProductTitle ? clip(r.snapshotProductTitle, 40) : null
               const cardC = r.snapshotCardLabel ? clip(r.snapshotCardLabel, 28) : null
               const pathC = r.sourcePagePath ? clip(r.sourcePagePath, 48) : null
               const pidC = r.productId ? clip(r.productId, 16) : null
               const curC = r.monthlyCurationItemId ? clip(r.monthlyCurationItemId, 16) : null
+              const productLabel = r.snapshotProductTitle?.trim()
+                ? clip(r.snapshotProductTitle, 32).text
+                : '일반 상담'
               return (
-                <tr key={r.id} className="align-top hover:bg-gray-50/80">
+                <tr
+                  key={r.id}
+                  role="link"
+                  tabIndex={0}
+                  className="cursor-pointer align-top hover:bg-gray-50/80"
+                  onClick={() => router.push(`/admin/inquiries/${r.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      router.push(`/admin/inquiries/${r.id}`)
+                    }
+                  }}
+                >
                   <td className="whitespace-nowrap px-3 py-2 text-gray-700">{formatCreatedAt(r.createdAt)}</td>
+                  <td className="max-w-[140px] px-3 py-2 text-xs text-gray-800" title={r.snapshotProductTitle ?? ''}>
+                    {productLabel}
+                  </td>
                   <td className="px-3 py-2 text-gray-800">{inquiryTypeDisplayLabel(r.inquiryType, r.quoteKind)}</td>
                   <td className="max-w-[140px] px-3 py-2 text-xs text-gray-700" title={r.organizationName ?? ''}>
                     {dash(r.organizationName)}
@@ -142,9 +161,6 @@ export default function InquiryListTable({
                   <td className="max-w-[140px] truncate px-3 py-2 text-xs text-gray-600" title={r.applicantEmail ?? ''}>
                     {dash(r.applicantEmail)}
                   </td>
-                  <td className="max-w-[160px] px-3 py-2 text-xs text-gray-600" title={titleC?.full}>
-                    {titleC ? titleC.text : '—'}
-                  </td>
                   <td className="max-w-[120px] px-3 py-2 text-xs text-gray-600" title={cardC?.full}>
                     {cardC ? cardC.text : '—'}
                   </td>
@@ -157,7 +173,7 @@ export default function InquiryListTable({
                   <td className="max-w-[100px] px-3 py-2 font-mono text-[11px] text-gray-600" title={curC?.full}>
                     {curC ? curC.text : '—'}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                     <InquiryStatusSelect
                       inquiryId={r.id}
                       value={r.status}

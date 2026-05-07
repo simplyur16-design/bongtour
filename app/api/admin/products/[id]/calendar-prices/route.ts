@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { requireAdmin } from '@/lib/require-admin'
 import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour'
 import * as updDeparturesModetour from '@/lib/upsert-product-departures-modetour'
@@ -200,6 +201,7 @@ export async function POST(
         }
       }),
     })
+    if (created.count > 0) await updateLastPriceObservedAt(prisma, productId)
 
     await upsertDeparturesModuleForProduct(product).upsertProductDepartures(
       prisma,

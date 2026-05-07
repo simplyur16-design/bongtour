@@ -42,6 +42,7 @@ export function buildInquiryEmailAppendixLines(input: InquiryNotifyInput): strin
       inquiryPayloadField(payload, 'selectedPriceKrw') !== '-'
         ? inquiryPayloadField(payload, 'selectedPriceKrw')
         : inquiryPayloadField(payload, 'selectedPrice')
+    const originUrlLine = (input.snapshotOriginUrl ?? '').trim() || '(없음)'
     return [
       `[상품 문의 정보]`,
       `상품명: ${travelProductDisplayTitle(input)}`,
@@ -50,6 +51,7 @@ export function buildInquiryEmailAppendixLines(input: InquiryNotifyInput): strin
       `선택가: ${price !== '-' ? price : '-'}`,
       `상품번호(공급사코드): ${travelProductDisplayCode(input)}`,
       `상품 URL: ${publicProduct}`,
+      `공급사 원문 URL: ${originUrlLine}`,
       `유입 페이지: ${input.sourcePagePath ?? '-'}`,
       '',
     ]

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import { requireAdmin } from '@/lib/require-admin'
 import type { ParsedProductForDB } from '@/lib/parsed-product-types'
@@ -115,6 +116,7 @@ export async function POST(request: Request) {
           }
         }),
       })
+      await updateLastPriceObservedAt(prisma, product.id)
     }
 
     if (itineraries?.length) {

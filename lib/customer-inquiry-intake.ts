@@ -202,6 +202,7 @@ export function validateCustomerInquiryBody(
     fieldErrors.privacyNoticeVersion = '개인정보 안내 버전이 필요합니다.'
   }
 
+  /** travel_consult + productId 인 경우 — `snapshotOrigin*` 는 서버에서 Product 조회 후 채움(D-INQUIRY). */
   const pidR = optionalId(body.productId, 'productId')
   if (!pidR.ok) fieldErrors.productId = pidR.err
   const curR = optionalId(body.monthlyCurationItemId, 'monthlyCurationItemId')

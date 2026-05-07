@@ -34,6 +34,7 @@ async function main(): Promise<void> {
       productId: true,
       snapshotProductTitle: true,
       snapshotCardLabel: true,
+      snapshotOriginUrl: true,
     },
   })
   if (!row) {
@@ -61,6 +62,7 @@ async function main(): Promise<void> {
     productId: row.productId,
     snapshotProductTitle: row.snapshotProductTitle,
     snapshotCardLabel: row.snapshotCardLabel,
+    snapshotOriginUrl: row.snapshotOriginUrl,
     product,
   }
   const prefix = resolveInquiryAlertPrefix(input)

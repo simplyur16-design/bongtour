@@ -57,6 +57,9 @@ export type Product = {
   shoppingItems: string | null
   shoppingShopOptions?: string | null
   registrationStatus: string | null
+  lastPriceObservedAt?: string | null
+  autoUnpublishedAt?: string | null
+  autoUnpublishedReason?: string | null
   /** rawMeta.pricePromotion.merged — 사용자 취소선과 별개 */
   promotionReferencePrices?: PromotionReferencePrices | null
   bgImageUrl?: string | null
@@ -79,6 +82,9 @@ export type Product = {
   canonicalBrandKey?: CanonicalOverseasSupplierKey | null
   normalizedOriginSupplier?: OverseasSupplierKey
   benefitSummary?: string | null
+  /** D-5-3: 공개 상세 핵심 포인트 — 정리본 우선 */
+  highlightPoints?: string | null
+  highlightPointsRaw?: string | null
   updatedAt?: string
   /** domestic | overseas — 미설정 시 공개 browse는 기존 목적지/제목 트리아지 */
   travelScope?: string | null

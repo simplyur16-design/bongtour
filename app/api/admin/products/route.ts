@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { itineraryDescriptionsBlob } from '@/lib/product-location-key-match'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
@@ -291,6 +292,7 @@ export async function POST(request: Request) {
           }
         }),
       })
+      await updateLastPriceObservedAt(prisma, productId)
       const depMod = upsertDeparturesModuleForProduct(upsertModulePickerInput)
       const departureInputs = depMod.parsedPricesToDepartureInputs(parsed.prices!)
       await depMod.upsertProductDepartures(prisma, productId, departureInputs)

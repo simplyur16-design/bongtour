@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { requireAdmin } from '@/lib/require-admin'
 import {
   launchAgentBrowser,
@@ -399,6 +400,7 @@ export async function POST(request: Request) {
               log(`DB upsert 실패 ${r.date}: ${String(e)}`)
             }
           }
+          await updateLastPriceObservedAt(prisma, pid)
           log('DB 반영 완료. priceAdult, priceChildWithBed, priceChildNoBed, priceInfant, priceGap 매핑 저장.')
         }
 

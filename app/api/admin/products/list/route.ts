@@ -26,11 +26,12 @@ export async function GET(req: NextRequest) {
     const imageSource = searchParams.get('imageSource')?.trim() || null
     const legacyOnly = searchParams.get('legacyOnly') === '1'
     const needsImageReview = searchParams.get('needsImageReview') === '1'
+    const highlightEmptyOnly = searchParams.get('highlightEmpty') === '1'
 
     const where: Prisma.ProductWhereInput = {}
     if (airline) where.airline = airline
     if (destination) where.destination = destination
-    if (status && ['registered', 'on_hold', 'rejected', 'pending'].includes(status)) {
+    if (status && ['registered', 'on_hold', 'rejected', 'pending', 'auto_unpublished'].includes(status)) {
       if (status === 'pending') {
         where.OR = [
           { registrationStatus: null },
@@ -85,6 +86,16 @@ export async function GET(req: NextRequest) {
     if (needsImageReview) {
       appendAnd([{ needsImageReview: true }])
     }
+    if (highlightEmptyOnly) {
+      appendAnd([
+        {
+          AND: [
+            { OR: [{ highlightPoints: null }, { highlightPoints: '' }] },
+            { OR: [{ highlightPointsRaw: null }, { highlightPointsRaw: '' }] },
+          ],
+        },
+      ])
+    }
 
     const andBase = (Array.isArray(where.AND) ? [...where.AND] : where.AND ? [where.AND] : []) as object[]
     const [total, items, countWithImage, countLegacy, countPexels, countGemini, countNeedsImageReview] = await Promise.all([
@@ -121,6 +132,8 @@ export async function GET(req: NextRequest) {
           bgImageIsGenerated: true,
           needsImageReview: true,
           imageReviewRequestedAt: true,
+          highlightPoints: true,
+          highlightPointsRaw: true,
           brand: { select: { brandKey: true } },
         },
       }),
@@ -198,6 +211,13 @@ export async function GET(req: NextRequest) {
       bgImageIsGenerated: p.bgImageIsGenerated ?? false,
       needsImageReview: p.needsImageReview ?? false,
       imageReviewRequestedAt: p.imageReviewRequestedAt?.toISOString() ?? null,
+      highlightPointsStatus: (() => {
+        const c = (p.highlightPoints ?? '').trim()
+        const r = (p.highlightPointsRaw ?? '').trim()
+        if (c.length > 0) return 'curated' as const
+        if (r.length > 0) return 'raw_only' as const
+        return 'empty' as const
+      })(),
     }
     })
 

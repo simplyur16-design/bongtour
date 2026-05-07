@@ -643,6 +643,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
     pricePromotionView: pricePromoView,
     benefitSummary:
       normalizePromotionMarketingCopy(travelProduct.benefitSummary) ?? travelProduct.benefitSummary ?? null,
+    highlightPoints: travelProduct.highlightPoints ?? null,
+    highlightPointsRaw: travelProduct.highlightPointsRaw ?? null,
     promotionLabelsRaw:
       normalizePromotionMarketingCopy(travelProduct.promotionLabelsRaw) ??
       travelProduct.promotionLabelsRaw ??

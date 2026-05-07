@@ -33,8 +33,26 @@ import { extractPexelsPhotoIdFromCdnUrl, rehostPexelsProductHeroIfNeeded } from 
 import { toHeroStorageSourceTypeSegment } from '@/lib/product-hero-image-source-type'
 import { rehostPexelsUrlsInScheduleEntries, type ScheduleEntryRecord } from '@/lib/schedule-day-image-rehost'
 import { internalizeProductCoverImageUrl } from '@/lib/travel-product-image-internalize'
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 
 type RouteParams = { params: Promise<{ id: string }> }
+
+const MAX_HIGHLIGHT_POINTS_LEN = 5000
+
+function normalizeHighlightPointsPatchValue(
+  v: unknown
+): { ok: true; value: string | null } | { ok: false; message: string } {
+  if (v === null) return { ok: true, value: null }
+  const s = typeof v === 'string' ? v : String(v)
+  if (s.length > MAX_HIGHLIGHT_POINTS_LEN) {
+    return {
+      ok: false,
+      message: `핵심 포인트 필드는 ${MAX_HIGHLIGHT_POINTS_LEN}자 이하여야 합니다.`,
+    }
+  }
+  const t = s.trim()
+  return { ok: true, value: t.length > 0 ? t : null }
+}
 
 function originForFlightManualModulePick(
   deriv: ReturnType<typeof computeAdminProductSupplierDerivatives>,
@@ -158,6 +176,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
         shoppingItems: true,
         shoppingShopOptions: true,
         registrationStatus: true,
+        lastPriceObservedAt: true,
+        autoUnpublishedAt: true,
+        autoUnpublishedReason: true,
         primaryRegion: true,
         themeTags: true,
         displayCategory: true,
@@ -174,6 +195,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
         rawMeta: true,
         counselingNotes: true,
         benefitSummary: true,
+        highlightPointsRaw: true,
+        highlightPoints: true,
         travelScope: true,
         listingKind: true,
         localDepartureTag: true,
@@ -243,6 +266,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       listingKind?: string | null
       schedule?: string | null
       registrationStatus?: string | null
+      autoUnpublishedAt?: Date | null
+      autoUnpublishedReason?: string | null
       rejectReason?: string | null
       rejectedAt?: Date | null
       primaryRegion?: string | null
@@ -277,6 +302,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       imageReviewRequestedAt?: Date | null
       rawMeta?: string | null
       localDepartureTag?: string[]
+      highlightPointsRaw?: string | null
+      highlightPoints?: string | null
     } = {}
     if (body.flightAdminJson !== undefined || body.flightManualCorrection !== undefined) {
       const current = await prisma.product.findUnique({
@@ -342,6 +369,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
     if (body.benefitSummary !== undefined) {
       data.benefitSummary = strOrNull(body.benefitSummary, MAX_DETAIL)
+    }
+    if (body.highlightPointsRaw !== undefined) {
+      const parsed = normalizeHighlightPointsPatchValue(body.highlightPointsRaw)
+      if (!parsed.ok) return NextResponse.json({ error: parsed.message }, { status: 400 })
+      data.highlightPointsRaw = parsed.value
+    }
+    if (body.highlightPoints !== undefined) {
+      const parsed = normalizeHighlightPointsPatchValue(body.highlightPoints)
+      if (!parsed.ok) return NextResponse.json({ error: parsed.message }, { status: 400 })
+      data.highlightPoints = parsed.value
     }
     if (body.travelScope !== undefined) {
       const raw = body.travelScope
@@ -440,6 +477,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             { status: 400 }
           )
         }
+        data.autoUnpublishedAt = null
+        data.autoUnpublishedReason = null
       }
       if (data.registrationStatus === 'rejected') {
         data.rejectReason = strOrNull(body.rejectReason, MAX_REJECT_REASON)
@@ -737,6 +776,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             ...(row.priceInfant != null && { infant: Number(row.priceInfant) }),
           },
         })
+        await updateLastPriceObservedAt(prisma, id)
       }
     }
     const product = await prisma.product.findUnique({
@@ -789,6 +829,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         shoppingItems: true,
         shoppingShopOptions: true,
         registrationStatus: true,
+        lastPriceObservedAt: true,
+        autoUnpublishedAt: true,
+        autoUnpublishedReason: true,
         primaryRegion: true,
         themeTags: true,
         displayCategory: true,
@@ -805,6 +848,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         rawMeta: true,
         counselingNotes: true,
         benefitSummary: true,
+        highlightPointsRaw: true,
+        highlightPoints: true,
         travelScope: true,
         listingKind: true,
         localDepartureTag: true,

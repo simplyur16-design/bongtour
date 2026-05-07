@@ -5,6 +5,9 @@ import {
   SupplierRouteMismatchError,
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
+import { extractHighlightFromHanatour } from '@/lib/extract-highlight-hanatour'
+import { extractHighlightFromHanatourLLM } from '@/lib/llm-extract-highlight-hanatour'
+import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
   detectMultiCountryAutoPlan,
@@ -1471,6 +1474,10 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         : existing?.registrationStatus === 'registered'
           ? 'registered'
           : 'pending'
+    const highlightLlm = await extractHighlightFromHanatourLLM(text).catch((e) => {
+      console.warn('[hanatour] highlight LLM', e instanceof Error ? e.message : e)
+      return null
+    })
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1502,6 +1509,9 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       schedule: scheduleJson,
       registrationStatus: registrationStatusForSave,
       benefitSummary,
+      highlightPointsRaw:
+        highlightLlm?.highlightPointsRaw ?? extractHighlightFromHanatour(text) ?? null,
+      highlightPoints: highlightLlm?.highlightPoints ?? null,
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,
@@ -1624,6 +1634,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     }
     if (priceRows.length > 0) {
       await prisma.productPrice.createMany({ data: priceRows })
+      await updateLastPriceObservedAt(prisma, productId)
     }
     timing.mark('after-prices-save')
 
