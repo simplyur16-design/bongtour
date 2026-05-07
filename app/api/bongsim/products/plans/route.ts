@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
+import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { parseFlagsJson } from "@/lib/bongsim/data/parse-product-json";
 import { doesPlanCoverAllSelected, getPlanCoveredCountries } from "@/lib/bongsim/plan-coverage-map";
@@ -306,13 +306,17 @@ export async function GET(req: Request) {
   const codesRaw = (searchParams.get("codes") || "").trim();
 
   if (!country) {
-    return NextResponse.json({ error: "country required" }, { status: 400 });
+    return jsonWithLeakGuard({ error: "country required" }, "bongsim.products.plans", { status: 400 });
   }
   if (networkRaw && networkRaw !== "roaming" && networkRaw !== "local") {
-    return NextResponse.json({ error: "network must be roaming, local, or omitted" }, { status: 400 });
+    return jsonWithLeakGuard(
+      { error: "network must be roaming, local, or omitted" },
+      "bongsim.products.plans",
+      { status: 400 },
+    );
   }
   if (!Number.isFinite(days) || days < 1) {
-    return NextResponse.json({ error: "days must be a positive integer" }, { status: 400 });
+    return jsonWithLeakGuard({ error: "days must be a positive integer" }, "bongsim.products.plans", { status: 400 });
   }
 
   const fromCodes = codesRaw
@@ -325,7 +329,7 @@ export async function GET(req: Request) {
 
   const pool = getPgPool();
   if (!pool) {
-    return NextResponse.json({ error: "DB not configured" }, { status: 500 });
+    return jsonWithLeakGuard({ error: "DB not configured" }, "bongsim.products.plans", { status: 500 });
   }
 
   const networkParam: string | null = networkRaw ? networkRaw : null;
@@ -373,9 +377,9 @@ export async function GET(req: Request) {
     const tierPool = applyTierInputFilters(enriched);
     const recommended_tiers = buildRecommendedTiers(tierPool);
 
-    return NextResponse.json({ plans: enriched, recommended_tiers });
+    return jsonWithLeakGuard({ plans: enriched, recommended_tiers }, "bongsim.products.plans");
   } catch (e) {
     console.error("[plans]", e);
-    return NextResponse.json({ error: "query failed" }, { status: 500 });
+    return jsonWithLeakGuard({ error: "query failed" }, "bongsim.products.plans", { status: 500 });
   }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
+import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { planNameKrFromCountryCode } from "@/lib/bongsim/country-options";
 import {
@@ -63,15 +63,16 @@ export async function GET(req: Request) {
     .filter(Boolean);
 
   if (selectedCodes.length === 0) {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { error: "codes parameter required" },
+      "bongsim.products.by-country",
       { status: 400 },
     );
   }
 
   const pool = getPgPool();
   if (!pool) {
-    return NextResponse.json({ error: "DB not configured" }, { status: 500 });
+    return jsonWithLeakGuard({ error: "DB not configured" }, "bongsim.products.by-country", { status: 500 });
   }
 
   try {
@@ -153,11 +154,12 @@ export async function GET(req: Request) {
             return covered.length >= 2 && doesPlanCoverAllSelected(p.plan_name, selectedCodes);
           });
 
-    return NextResponse.json({ individual, multi });
+    return jsonWithLeakGuard({ individual, multi }, "bongsim.products.by-country");
   } catch (e) {
     console.error("[by-country]", e);
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { error: "query failed" },
+      "bongsim.products.by-country",
       { status: 500 },
     );
   }

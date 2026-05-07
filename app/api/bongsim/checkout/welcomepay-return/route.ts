@@ -132,5 +132,14 @@ export async function POST(req: Request) {
   okQ.set("orderId", orderId);
   if (orderNumber.trim()) okQ.set("orderNumber", orderNumber.trim());
   const okUrl = `${origin}${bongsimPath(`/checkout/return/success?${okQ.toString()}`)}`;
+  try {
+    assertNoInternalMetaLeak(
+      { orderId, orderNumber: orderNumber.trim() },
+      "bongsim.checkout.welcomepay-return.redirect_ok",
+    );
+  } catch (err) {
+    console.error("[leak-guard]", err);
+    return fail("internal_meta_leak_blocked");
+  }
   return NextResponse.redirect(okUrl, 303);
 }

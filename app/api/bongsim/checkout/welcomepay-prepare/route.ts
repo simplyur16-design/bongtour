@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
+import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
@@ -37,17 +37,19 @@ export async function POST(req: Request) {
   const mid = (process.env.WELCOMEPAY_MID ?? "").trim();
   const signKey = (process.env.WELCOMEPAY_SIGN_KEY ?? "").trim();
   if (!mid || !signKey) {
-    return NextResponse.json({ ok: false, error: "welcomepay_env_incomplete" }, { status: 503 });
+    return jsonWithLeakGuard({ ok: false, error: "welcomepay_env_incomplete" }, "bongsim.checkout.welcomepay-prepare", {
+      status: 503,
+    });
   }
   if (!getPgPool()) {
-    return NextResponse.json({ ok: false, error: "db_unconfigured" }, { status: 503 });
+    return jsonWithLeakGuard({ ok: false, error: "db_unconfigured" }, "bongsim.checkout.welcomepay-prepare", { status: 503 });
   }
 
   let body: PrepareBody;
   try {
     body = (await req.json()) as PrepareBody;
   } catch {
-    return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+    return jsonWithLeakGuard({ ok: false, error: "invalid_json" }, "bongsim.checkout.welcomepay-prepare", { status: 400 });
   }
 
   const orderId = typeof body.orderId === "string" ? body.orderId.trim() : "";
@@ -64,10 +66,10 @@ export async function POST(req: Request) {
         : NaN;
 
   if (!orderId || !orderNumber || !orderName || !customerEmail || !paymentAttemptId) {
-    return NextResponse.json({ ok: false, error: "missing_fields" }, { status: 400 });
+    return jsonWithLeakGuard({ ok: false, error: "missing_fields" }, "bongsim.checkout.welcomepay-prepare", { status: 400 });
   }
   if (!Number.isFinite(amount) || amount <= 0) {
-    return NextResponse.json({ ok: false, error: "invalid_amount" }, { status: 400 });
+    return jsonWithLeakGuard({ ok: false, error: "invalid_amount" }, "bongsim.checkout.welcomepay-prepare", { status: 400 });
   }
 
   const pool = getPgPool()!;
@@ -80,14 +82,16 @@ export async function POST(req: Request) {
     );
     const order = o.rows[0];
     if (!order || order.status !== "awaiting_payment") {
-      return NextResponse.json({ ok: false, error: "order_not_payable" }, { status: 400 });
+      return jsonWithLeakGuard({ ok: false, error: "order_not_payable" }, "bongsim.checkout.welcomepay-prepare", {
+        status: 400,
+      });
     }
     const grand = Number.parseInt(order.grand_total_krw, 10);
     if (!Number.isFinite(grand) || grand !== amount) {
-      return NextResponse.json({ ok: false, error: "amount_mismatch" }, { status: 400 });
+      return jsonWithLeakGuard({ ok: false, error: "amount_mismatch" }, "bongsim.checkout.welcomepay-prepare", { status: 400 });
     }
     if (order.buyer_email.trim().toLowerCase() !== customerEmail.trim().toLowerCase()) {
-      return NextResponse.json({ ok: false, error: "email_mismatch" }, { status: 400 });
+      return jsonWithLeakGuard({ ok: false, error: "email_mismatch" }, "bongsim.checkout.welcomepay-prepare", { status: 400 });
     }
 
     const a = await client.query<{ provider: string; provider_session_id: string | null }>(
@@ -96,7 +100,9 @@ export async function POST(req: Request) {
     );
     const att = a.rows[0];
     if (!att || att.provider !== WELCOMEPAY_PROVIDER_ID || att.provider_session_id !== orderNumber) {
-      return NextResponse.json({ ok: false, error: "invalid_payment_attempt" }, { status: 400 });
+      return jsonWithLeakGuard({ ok: false, error: "invalid_payment_attempt" }, "bongsim.checkout.welcomepay-prepare", {
+        status: 400,
+      });
     }
     bongsimOrderNumber = order.order_number;
   } finally {
@@ -131,31 +137,34 @@ export async function POST(req: Request) {
       : customerEmail.slice(0, 30) || "고객";
   const pGoods = orderName.length > 80 ? orderName.slice(0, 80) : orderName;
 
-  return NextResponse.json({
-    ok: true,
-    mid,
-    orderNumber,
-    price,
-    timestamp,
-    signature,
-    mKey,
-    returnUrl,
-    closeUrl,
-    popupUrl,
-    pcStdPayScriptUrl: welcomepayStdPayScriptUrl(),
-    mobile: {
-      submitUrl: welcomepayMobileWelpaySubmitUrl(),
-      pNextUrl,
-      pMid: mid,
-      pOid: orderNumber,
-      pAmt: price,
-      pTimestamp: mobilePTimestamp,
-      pChkfake: mobilePChkfake,
-      pGoods,
-      pUnam: buyerShort,
-      pEmail: customerEmail,
-      pMobile: "01000000000",
-      pIniPayment: "CARD",
+  return jsonWithLeakGuard(
+    {
+      ok: true,
+      mid,
+      orderNumber,
+      price,
+      timestamp,
+      signature,
+      mKey,
+      returnUrl,
+      closeUrl,
+      popupUrl,
+      pcStdPayScriptUrl: welcomepayStdPayScriptUrl(),
+      mobile: {
+        submitUrl: welcomepayMobileWelpaySubmitUrl(),
+        pNextUrl,
+        pMid: mid,
+        pOid: orderNumber,
+        pAmt: price,
+        pTimestamp: mobilePTimestamp,
+        pChkfake: mobilePChkfake,
+        pGoods,
+        pUnam: buyerShort,
+        pEmail: customerEmail,
+        pMobile: "01000000000",
+        pIniPayment: "CARD",
+      },
     },
-  });
+    "bongsim.checkout.welcomepay-prepare",
+  );
 }

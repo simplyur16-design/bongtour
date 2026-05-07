@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { getImageStorageBucket, isObjectStorageConfigured } from '@/lib/object-storage'
 
 /**
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json(
+  return jsonWithLeakGuard(
     {
       ok: true,
       objectStorage: ok ? 'configured' : 'missing_env',
@@ -67,6 +67,7 @@ export async function GET(request: Request) {
       },
       sharpProbe,
     },
+    'health.storage',
     { status: 200, headers: { 'Cache-Control': 'no-store, max-age=0' } },
   )
 }

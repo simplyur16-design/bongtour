@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { generatePageHeroMonthlyEditorialLinesWithGemini } from '@/lib/page-hero-monthly-gemini-server'
 import { dedupePageHeroMonthlyGeminiJobsPreservingOrder } from '@/lib/page-hero-monthly-shared'
 import type { PageHeroMonthlyGeminiJob } from '@/lib/page-hero-monthly-types'
@@ -41,16 +41,20 @@ export async function POST(request: Request) {
     const body = (await request.json().catch(() => ({}))) as Body
     const jobsRaw = parseJobs(body.jobs)
     if (!jobsRaw) {
-      return NextResponse.json({ ok: false, error: 'invalid_jobs' }, { status: 400 })
+      return jsonWithLeakGuard({ ok: false, error: 'invalid_jobs' }, 'public.page-hero-editorial-lines', { status: 400 })
     }
     const jobs = dedupePageHeroMonthlyGeminiJobsPreservingOrder(jobsRaw)
     const result = await generatePageHeroMonthlyEditorialLinesWithGemini(jobs)
     if (!result.ok) {
-      return NextResponse.json({ ok: false, error: result.error }, { status: result.error === 'no_api_key' ? 503 : 422 })
+      return jsonWithLeakGuard(
+        { ok: false, error: result.error },
+        'public.page-hero-editorial-lines',
+        { status: result.error === 'no_api_key' ? 503 : 422 },
+      )
     }
-    return NextResponse.json({ ok: true, lines: result.lines, jobs })
+    return jsonWithLeakGuard({ ok: true, lines: result.lines, jobs }, 'public.page-hero-editorial-lines')
   } catch (e) {
     console.error('[page-hero-editorial-lines]', e)
-    return NextResponse.json({ ok: false, error: 'server_error' }, { status: 500 })
+    return jsonWithLeakGuard({ ok: false, error: 'server_error' }, 'public.page-hero-editorial-lines', { status: 500 })
   }
 }

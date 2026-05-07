@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
+import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { parseAllowanceLabel } from "@/lib/bongsim/mypage-esim-display";
@@ -14,18 +14,18 @@ export async function GET(req: Request) {
   const email = session?.user?.email?.trim().toLowerCase() ?? "";
   const userId = ((session?.user as { id?: string } | undefined)?.id ?? "").trim();
   if (!email && !userId) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return jsonWithLeakGuard({ error: "unauthorized" }, "bongsim.mypage.usage.detail", { status: 401 });
   }
 
   const { searchParams } = new URL(req.url);
   const orderId = (searchParams.get("orderId") ?? "").trim();
   if (!orderId || !/^[0-9a-f-]{36}$/i.test(orderId)) {
-    return NextResponse.json({ error: "invalid_order_id" }, { status: 400 });
+    return jsonWithLeakGuard({ error: "invalid_order_id" }, "bongsim.mypage.usage.detail", { status: 400 });
   }
 
   const pool = getPgPool();
   if (!pool) {
-    return NextResponse.json({ error: "db_unconfigured" }, { status: 503 });
+    return jsonWithLeakGuard({ error: "db_unconfigured" }, "bongsim.mypage.usage.detail", { status: 503 });
   }
 
   try {
@@ -39,7 +39,7 @@ export async function GET(req: Request) {
       [orderId, email, userId],
     );
     if (Number.parseInt(own.rows[0]?.n ?? "0", 10) < 1) {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
+      return jsonWithLeakGuard({ error: "not_found" }, "bongsim.mypage.usage.detail", { status: 404 });
     }
 
     const line = await pool.query<{ allowance_label: string | null }>(
@@ -59,15 +59,16 @@ export async function GET(req: Request) {
     );
     const topupId = top.rows[0]?.topup_id?.trim();
     if (!topupId) {
-      return NextResponse.json(
+      return jsonWithLeakGuard(
         { error: "no_topup", allowance_label: allowanceLabel, unlimited: allowance.unlimited, cap_mb: allowance.capMb },
+        "bongsim.mypage.usage.detail",
         { status: 404 },
       );
     }
 
     const norm = await fetchUsimsaTopupDailyUsage(topupId);
     if (!isUsimsaSuccess(norm.code)) {
-      return NextResponse.json(
+      return jsonWithLeakGuard(
         {
           error: "usimsa_error",
           code: norm.code,
@@ -77,13 +78,14 @@ export async function GET(req: Request) {
           unlimited: allowance.unlimited,
           cap_mb: allowance.capMb,
         },
+        "bongsim.mypage.usage.detail",
         { status: 502 },
       );
     }
 
     const totalUsedMb = norm.history.reduce((s, h) => s + (Number.isFinite(h.usageMb) ? h.usageMb : 0), 0);
 
-    return NextResponse.json({
+    return jsonWithLeakGuard({
       order_id: orderId,
       topup_id: topupId,
       iccid: norm.iccid,
@@ -92,15 +94,16 @@ export async function GET(req: Request) {
       cap_mb: allowance.capMb,
       total_used_mb: totalUsedMb,
       history: norm.history,
-    });
+    }, "bongsim.mypage.usage.detail");
   } catch (e) {
     if (e instanceof UsimsaRequestError) {
-      return NextResponse.json(
+      return jsonWithLeakGuard(
         { error: "usimsa_http", status: e.status, message: e.message },
+        "bongsim.mypage.usage.detail",
         { status: 502 },
       );
     }
     console.error("[bongsim/mypage/usage]", e);
-    return NextResponse.json({ error: "server_error" }, { status: 500 });
+    return jsonWithLeakGuard({ error: "server_error" }, "bongsim.mypage.usage.detail", { status: 500 });
   }
 }

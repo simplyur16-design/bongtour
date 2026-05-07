@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
+import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import {
   extractClientIp,
   getAllowedUsimsaWebhookIps,
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
   if (!isAllowedUsimsaIp(clientIp, allowed)) {
     console.warn("[usimsa:webhook] ip blocked", { clientIp, allowed });
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    return jsonWithLeakGuard({ ok: false, error: "forbidden" }, "usimsa.webhook.legacy", { status: 403 });
   }
 
   let body: unknown;
@@ -24,18 +24,18 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch {
     console.warn("[usimsa:webhook] invalid json", { clientIp });
-    return NextResponse.json({ ok: true, note: "invalid_json_swallowed" }, { status: 200 });
+    return jsonWithLeakGuard({ ok: true, note: "invalid_json_swallowed" }, "usimsa.webhook.legacy", { status: 200 });
   }
 
   try {
     const result = await handleUsimsaWebhook(body);
     console.info("[usimsa:webhook]", { clientIp, outcome: result.outcome });
-    return NextResponse.json({ ok: true }, { status: 200 });
+    return jsonWithLeakGuard({ ok: true }, "usimsa.webhook.legacy", { status: 200 });
   } catch (e) {
     console.error("[usimsa:webhook] handler threw", {
       clientIp,
       error: e instanceof Error ? e.message : String(e),
     });
-    return NextResponse.json({ ok: true, note: "error_swallowed" }, { status: 200 });
+    return jsonWithLeakGuard({ ok: true, note: "error_swallowed" }, "usimsa.webhook.legacy", { status: 200 });
   }
 }

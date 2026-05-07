@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { handleNaverUnlinkNotificationFromBody } from '@/lib/naver-unlink-callback'
 
 /**
@@ -15,5 +15,5 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (status === 204) {
     return new NextResponse(null, { status: 204 })
   }
-  return NextResponse.json({ ok: false }, { status })
+  return jsonWithLeakGuard({ ok: false }, 'member.oauth20.unlink-callback', { status })
 }

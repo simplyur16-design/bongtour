@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server'
+
 /** 공개 직렬화 시 재귀 제거용 — assert와 동일 목록 */
 export const FORBIDDEN_PUBLIC_KEYS = new Set([
   'imageManualSelected',
@@ -44,4 +46,15 @@ export function assertNoInternalMetaLeak(payload: unknown, context: string) {
   if (found.length > 0) {
     throw new Error(`[public-response-guard] ${context}: forbidden keys leaked -> ${found.join(', ')}`)
   }
+}
+
+/** 공개 Route Handler: 직렬화 직전 누수 검사 후 JSON 응답. 차단 시 500. */
+export function jsonWithLeakGuard(payload: unknown, context: string, init?: ResponseInit): NextResponse {
+  try {
+    assertNoInternalMetaLeak(payload, context)
+  } catch (err) {
+    console.error('[leak-guard]', context, err)
+    return NextResponse.json({ error: 'internal_meta_leak_blocked' }, { status: 500 })
+  }
+  return NextResponse.json(payload as never, init)
 }

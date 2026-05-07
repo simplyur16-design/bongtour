@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
+import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { isInternalRequestAuthorized, resolveInternalRouteSecret } from "@/lib/bongsim/runtime/internal-route-guard";
 
@@ -17,15 +17,15 @@ type AuditRow = {
 export async function GET(req: Request) {
   const sec = resolveInternalRouteSecret(process.env.BONGSIM_INTERNAL_IMPORT_SECRET);
   if (!sec.ok) {
-    return NextResponse.json({ error: "import_secret_unconfigured" }, { status: 503 });
+    return jsonWithLeakGuard({ error: "import_secret_unconfigured" }, "bongsim.internal.import.status", { status: 503 });
   }
   if (!isInternalRequestAuthorized(req.headers.get("x-bongsim-internal-secret"), sec.secret)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return jsonWithLeakGuard({ error: "unauthorized" }, "bongsim.internal.import.status", { status: 401 });
   }
 
   const pool = getPgPool();
   if (!pool) {
-    return NextResponse.json({ error: "db_unconfigured" }, { status: 503 });
+    return jsonWithLeakGuard({ error: "db_unconfigured" }, "bongsim.internal.import.status", { status: 503 });
   }
 
   const u = new URL(req.url);
@@ -52,10 +52,10 @@ export async function GET(req: Request) {
 
     const row = r.rows[0];
     if (!row) {
-      return NextResponse.json({ schema: "bongsim.import.audit.v1", row: null });
+      return jsonWithLeakGuard({ schema: "bongsim.import.audit.v1", row: null }, "bongsim.internal.import.status");
     }
-    return NextResponse.json({ schema: "bongsim.import.audit.v1", row });
+    return jsonWithLeakGuard({ schema: "bongsim.import.audit.v1", row }, "bongsim.internal.import.status");
   } catch {
-    return NextResponse.json({ error: "db_error" }, { status: 500 });
+    return jsonWithLeakGuard({ error: "db_error" }, "bongsim.internal.import.status", { status: 500 });
   }
 }

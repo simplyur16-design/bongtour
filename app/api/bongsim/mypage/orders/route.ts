@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
+import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { countryDisplayFromPlanNameKr } from "@/lib/bongsim/mypage-esim-display";
@@ -13,12 +13,12 @@ export async function GET() {
   const email = session?.user?.email?.trim().toLowerCase() ?? "";
   const userId = ((session?.user as { id?: string } | undefined)?.id ?? "").trim();
   if (!email && !userId) {
-    return NextResponse.json({ error: "unauthorized", orders: [] }, { status: 401 });
+    return jsonWithLeakGuard({ error: "unauthorized", orders: [] }, "bongsim.mypage.orders.list", { status: 401 });
   }
 
   const pool = getPgPool();
   if (!pool) {
-    return NextResponse.json({ error: "db_unconfigured", orders: [] }, { status: 503 });
+    return jsonWithLeakGuard({ error: "db_unconfigured", orders: [] }, "bongsim.mypage.orders.list", { status: 503 });
   }
 
   try {
@@ -86,10 +86,29 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ orders });
+    if (orders.length > 0) {
+      const ids = orders.map((o) => o.order_id);
+      const vr = await pool.query<{ c: string }>(
+        `SELECT COUNT(*)::text AS c FROM bongsim_order o
+         WHERE o.order_id = ANY($1::uuid[])
+           AND (
+             ($2::text <> '' AND lower(trim(o.buyer_email)) = lower(trim($2)))
+             OR ($3::text <> '' AND (o.consents->>'bongtour_user_id') = $3)
+           )`,
+        [ids, email, userId],
+      );
+      if (Number.parseInt(vr.rows[0]?.c ?? "0", 10) !== orders.length) {
+        console.error("[bongsim/mypage/orders] scope verification failed");
+        return jsonWithLeakGuard({ error: "internal_scope_violation", orders: [] }, "bongsim.mypage.orders.list", {
+          status: 500,
+        });
+      }
+    }
+
+    return jsonWithLeakGuard({ orders }, "bongsim.mypage.orders.list");
   } catch (e) {
     console.error("[bongsim/mypage/orders]", e);
-    return NextResponse.json({ error: "db_error", orders: [] }, { status: 500 });
+    return jsonWithLeakGuard({ error: "db_error", orders: [] }, "bongsim.mypage.orders.list", { status: 500 });
   }
 }
 

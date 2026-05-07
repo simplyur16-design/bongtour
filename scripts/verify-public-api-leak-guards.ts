@@ -32,7 +32,8 @@ function verifyRouteCoverage() {
     if (rel.includes('/api/auth/')) continue
     const text = readFileSync(full, 'utf-8')
     const hasAdminGuard = text.includes('requireAdmin')
-    const hasPublicGuard = text.includes('assertNoInternalMetaLeak')
+    const hasPublicGuard =
+      text.includes('assertNoInternalMetaLeak') || text.includes('jsonWithLeakGuard')
     if (!hasAdminGuard && !hasPublicGuard) {
       violations.push(rel)
     }

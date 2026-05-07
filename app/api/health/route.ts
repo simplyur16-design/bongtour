@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 
 /**
  * 공개 헬스체크 — UptimeRobot 등 외부 모니터용. 인증 없음·가벼운 응답.
@@ -8,8 +8,9 @@ import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  return NextResponse.json(
+  return jsonWithLeakGuard(
     { ok: true, service: 'bongtour', ts: new Date().toISOString() },
+    'health.service',
     { status: 200, headers: { 'Cache-Control': 'no-store, max-age=0' } },
   )
 }

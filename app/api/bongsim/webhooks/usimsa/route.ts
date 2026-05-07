@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
+import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { deliverEsimToCustomer } from "@/lib/bongsim/fulfillment/esim-delivery";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import {
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
   if (!isAllowedUsimsaIp(clientIp, allowed)) {
     console.warn("[bongsim:webhooks:usimsa] ip blocked", { clientIp, allowed });
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    return jsonWithLeakGuard({ ok: false, error: "forbidden" }, "bongsim.webhooks.usimsa", { status: 403 });
   }
 
   let body: unknown;
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch {
     console.warn("[bongsim:webhooks:usimsa] invalid json", { clientIp });
-    return NextResponse.json({ ok: true, note: "invalid_json_swallowed" }, { status: 200 });
+    return jsonWithLeakGuard({ ok: true, note: "invalid_json_swallowed" }, "bongsim.webhooks.usimsa", { status: 200 });
   }
 
   const payload = normalizeUsimsaWebhookPayload(body);
@@ -50,16 +50,20 @@ export async function POST(req: Request) {
       clientIp,
       error: e instanceof Error ? e.message : String(e),
     });
-    return NextResponse.json({ ok: true, note: "error_swallowed" }, { status: 200 });
+    return jsonWithLeakGuard({ ok: true, note: "error_swallowed" }, "bongsim.webhooks.usimsa", { status: 200 });
   }
 
   if (handleResult.outcome !== "applied" || !payload) {
-    return NextResponse.json({ ok: true, handle: handleResult }, { status: 200 });
+    return jsonWithLeakGuard({ ok: true, handle: handleResult }, "bongsim.webhooks.usimsa", { status: 200 });
   }
 
   const pool = getPgPool();
   if (!pool) {
-    return NextResponse.json({ ok: true, handle: handleResult, delivery: "skipped_db_unconfigured" }, { status: 200 });
+    return jsonWithLeakGuard(
+      { ok: true, handle: handleResult, delivery: "skipped_db_unconfigured" },
+      "bongsim.webhooks.usimsa",
+      { status: 200 },
+    );
   }
 
   const tr = await pool.query<{
@@ -74,19 +78,24 @@ export async function POST(req: Request) {
   );
   const topup = tr.rows[0];
   if (!topup) {
-    return NextResponse.json({ ok: true, handle: handleResult, delivery: "missing_topup_row" }, { status: 200 });
+    return jsonWithLeakGuard(
+      { ok: true, handle: handleResult, delivery: "missing_topup_row" },
+      "bongsim.webhooks.usimsa",
+      { status: 200 },
+    );
   }
 
   const qr =
     normalizeUsimsaQrCodeImgUrl(payload) ?? (topup.qr_code_img_url?.trim() || "");
   const dl = (payload.downloadLink?.trim() || topup.download_link?.trim() || "");
   if (!qr || !dl) {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: true, handle: handleResult, delivery: "awaiting_qr_or_download_link" },
+      "bongsim.webhooks.usimsa",
       { status: 200 },
     );
   }
 
   const delivery = await deliverEsimToCustomer(topup.order_id, qr, dl);
-  return NextResponse.json({ ok: true, handle: handleResult, delivery }, { status: 200 });
+  return jsonWithLeakGuard({ ok: true, handle: handleResult, delivery }, "bongsim.webhooks.usimsa", { status: 200 });
 }

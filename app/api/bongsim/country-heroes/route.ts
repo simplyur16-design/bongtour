@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
+import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { prisma } from "@/lib/prisma";
 
 const ENTITY_TYPE = "bongsim_esim_country";
@@ -36,12 +36,12 @@ export async function GET() {
       heroes[code] = url;
     }
 
-    return NextResponse.json(heroes, {
+    return jsonWithLeakGuard(heroes, "bongsim.country-heroes.map", {
       headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "query failed";
     console.error("[api/bongsim/country-heroes]", e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return jsonWithLeakGuard({ error: msg }, "bongsim.country-heroes.map", { status: 500 });
   }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
+import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { extractSingleCountryCode, resolveMultiCoverage } from "@/lib/bongsim/plan-coverage-map";
@@ -21,7 +21,7 @@ export type BongsimCountryListItem = {
 export async function GET() {
   const pool = getPgPool();
   if (!pool) {
-    return NextResponse.json({ error: "DB not configured" }, { status: 500 });
+    return jsonWithLeakGuard({ error: "DB not configured" }, "bongsim.countries.list", { status: 500 });
   }
 
   try {
@@ -54,13 +54,14 @@ export async function GET() {
 
     countries.sort((a, b) => a.nameKr.localeCompare(b.nameKr, "ko"));
 
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { countries },
+      "bongsim.countries.list",
       { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } },
     );
   } catch (e) {
     const msg = e instanceof Error ? e.message : "query failed";
     console.error("[api/bongsim/countries]", e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return jsonWithLeakGuard({ error: msg }, "bongsim.countries.list", { status: 500 });
   }
 }

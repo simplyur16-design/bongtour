@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 
 /**
  * 네이버 톡톡 파트너센터 Webhook URL 등록·이벤트 수신.
@@ -20,7 +20,10 @@ function parseLooseJsonBody(text: string): unknown {
 }
 
 export async function GET(): Promise<NextResponse> {
-  return NextResponse.json({ ok: true }, { status: 200, headers: { 'Cache-Control': 'no-store' } })
+  return jsonWithLeakGuard({ ok: true }, 'naver-talktalk.webhook', {
+    status: 200,
+    headers: { 'Cache-Control': 'no-store' },
+  })
 }
 
 export async function HEAD(): Promise<NextResponse> {
@@ -38,14 +41,15 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   console.log('[naver-talktalk-webhook]', body)
 
-  return NextResponse.json(
+  return jsonWithLeakGuard(
     { ok: true },
+    'naver-talktalk.webhook',
     {
       status: 200,
       headers: {
         'Cache-Control': 'no-store, max-age=0',
         'Content-Type': 'application/json; charset=utf-8',
       },
-    }
+    },
   )
 }
