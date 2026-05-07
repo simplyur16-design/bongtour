@@ -40,6 +40,19 @@ export class BongsimUsimsaSupplierClient implements BongsimSupplierClient {
 
     const res = await submitUsimsaOrder(body);
 
+    if ("skipped" in res) {
+      const topups = products.flatMap((p) =>
+        Array.from({ length: p.qty }, (_, i) => ({
+          topup_id: `test_mode_${input.order_number}_${p.optionId}_${i}`,
+          option_api_id: p.optionId,
+        })),
+      );
+      return {
+        submission_id: `usimsa_test_skip_${input.order_number}`,
+        topups,
+      };
+    }
+
     if (!isUsimsaSuccess(res.code)) {
       throw new Error(
         `[usimsa] submit failed code=${res.code} message=${res.message || "<empty>"}`,

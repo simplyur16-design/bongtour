@@ -4,6 +4,7 @@ import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasT
 import { bongsimPath } from '@/lib/bongsim/constants'
 import { notFound } from "next/navigation";
 import { OrderCompleteRealView } from "@/components/bongsim/order-complete/OrderCompleteRealView";
+import { TestModeCompleteModal } from "@/components/bongsim/checkout-store/TestModeCompleteModal";
 import { getOrderPublic } from "@/lib/bongsim/data/get-order-public";
 
 type Props = { params: Promise<{ orderId: string }>; searchParams: Promise<{ read_key?: string }> };
@@ -51,6 +52,7 @@ export default async function OrderCompletePage({ params, searchParams }: Props)
         <div className="mt-4">
           <OrderCompleteRealView order={res.order} />
         </div>
+        <TestModeCompleteModal />
       </main>
       </div>
     </div>
