@@ -1,7 +1,7 @@
 /**
  * B-4-2: 패키지용 네이버 블로그 초안 — Gemini 시스템 프롬프트 + 사용자 JSON 페이로드.
  */
-import type { ProductGeoMeta } from '@/lib/bong-marketing/product-extractor'
+import type { AirtelBlogProductMeta, ProductGeoMeta } from '@/lib/bong-marketing/product-extractor'
 
 /** DB·감사 추적용 프롬프트 버전 문자열 */
 export const PACKAGE_BLOG_PROMPT_VERSION = 'PACKAGE_BLOG_PROMPT_V2' as const
@@ -101,5 +101,104 @@ export const PACKAGE_BLOG_PROMPT_V2 = `당신은 봉투어(Bong투어) 브랜드
 export const PACKAGE_BLOG_PROMPT_V1 = PACKAGE_BLOG_PROMPT_V2
 
 export function buildPackageBlogUserJson(payload: PackageBlogLlmPayload): string {
+  return JSON.stringify(payload, null, 2)
+}
+
+// ---------------------------------------------------------------------------
+// B-4-3: 자유여행(airtel/private) 네이버 블로그 초안
+// ---------------------------------------------------------------------------
+
+export const AIRTEL_BLOG_PROMPT_VERSION = 'AIRTEL_BLOG_PROMPT_V1' as const
+
+export type AirtelBlogLlmPayload = {
+  geo: ProductGeoMeta
+  campaignMonthKey: string
+  product: {
+    title: string
+    summary: string | null
+    benefitSummary: string | null
+    duration: string | null
+    tripDays: number | null
+    tripNights: number | null
+    productType: string | null
+    scheduleExcerpt: string | null
+  }
+  airtelMeta: AirtelBlogProductMeta
+  /** 승인된 봉 스팟 + 도시 매칭·상품 연결 (0건이면 일반 가이드) */
+  bongSpotsByCity: Array<{
+    title: string
+    summary: string | null
+    cityKey: string | null
+    countryKey: string | null
+  }>
+  bongFoodsByCity: Array<{ name: string; description: string | null; cityKey: string | null }>
+  bongTipsByCityOrCountry: Array<{ title: string; body: string | null }>
+  /** campaignMonthKey 의 달(1–12)과 일치하는 승인 시즌 노트 */
+  seasonalNotesForMonth: Array<{
+    spotTitle: string | null
+    month: number
+    title: string | null
+    body: string | null
+  }>
+}
+
+/** 모델 JSON 스키마 */
+export type AirtelBlogLlmV1 = {
+  title: string
+  body: string
+  excerpt: string
+  recommendedSpots: string[]
+  recommendedFoods: string[]
+}
+
+export const AIRTEL_BLOG_PROMPT_V1 = `당신은 봉투어(Bong투어) 브랜드 톤의 한국어 여행 카피라이터입니다.
+이번 작업은 **자유여행(에어텔·프라이빗)** 정보 중심 **네이버 블로그 초안**입니다. (단체 패키지 일정 나열형 홍보 글이 아닙니다.)
+
+## 기본 정책 (자유여행)
+- **항공+호텔** 중심으로 묶인 상품이라는 점을 자연스럽게 짚되, **관광·식사·현지 이동 일정은 여행자가 스스로 짜는 자유 비중**임을 정보성으로 안내합니다.
+- **도시 가이드**(교통·환전·통신·치안 등)를 충실히 씁니다.
+- 입력의 **bongSpotsByCity·bongFoodsByCity·bongTipsByCityOrCountry·seasonalNotesForMonth**가 비어 있으면, 해당 목적지에 맞는 **일반 가이드 수준**으로 보강합니다. 과장·허위 사실 금지.
+- 패키지용 **「여기 사진 꼭」** 같은 포토 스팟 강제 코너는 **두지 마세요.** 대신 **추천 스팟**은 여행자 스타일에 맞게 자연스럽게 제안합니다.
+- 본문 **안에** 상담 URL을 넣지 마세요. (후처리로 하단 CTA가 붙습니다.)
+
+## 출력
+오직 **유효한 JSON 한 덩어리**만 출력하세요. **시작은 반드시 \`{\`, 끝은 반드시 닫는 \`}\`** 입니다. 닫는 \`}\` 뒤에는 공백·개행·설명·추가 JSON을 **절대** 붙이지 마세요.
+마크다운 펜스(\`\`\`)·코드블록·주석 금지.
+키: title, body, excerpt, recommendedSpots (문자열 배열), recommendedFoods (문자열 배열)
+- title: 블로그 제목 한 줄. **30~50자** 권장
+- body: **마크다운** 본문. **본문(마크다운 포함) 2500자 이상** 목표.
+- excerpt: **80~120자**(공백 포함). **120자 초과 금지.** 독립 요약
+- recommendedSpots: 본문 **추천 스팟**에서 다룬 이름 **3~5개** (운영 데이터 활용 시 그 이름 우선)
+- recommendedFoods: 본문 **추천 푸드**에서 다룬 이름 **2~4개**
+
+## 본문 섹션 순서·분량 가이드
+각 블록은 짧은 두세 문장이 아니라 **문단·목록을 섞어** 정보 밀도 있게 씁니다.
+
+1. **인트로** (도시·국가 + 자유여행 매력) **약 200~300자**
+2. **도시·국가 핵심 정보** — 위치·시차·언어·통화·환전 팁 등 **약 300~400자**
+3. **공항·교통·이동** — 공항~시내, 시내 교통, 택시·라이드헤일링 실무 팁 등 **약 400~500자**
+4. **추천 스팟** — ## 소제목 권장. **bongSpotsByCity**가 있으면 2~3곳 이상 인라인 활용, 없으면 일반 가이드 **3~5곳** **약 500~700자**
+5. **추천 푸드** — **bongFoodsByCity** 활용 또는 일반 추천 **약 300~400자**
+6. **호텔 정보** — **airtelMeta**(호텔 요약·항공사 힌트 등)와 **product** 제목·요약만 근거로 **자연스럽게** 녹임 **약 200~300자**. 없는 등급·혜택은 지어내지 마세요.
+7. **출발 정보** — 아래 마크다운 블록을 본문에 **필수로** 넣습니다. (패키지 블로그와 동일 형식)
+
+## 출발 정보
+- 출발 가능 월: (입력 **geo.departureMonths**·**campaignMonthKey**·상품 문맥 반영)
+- 기간: **product.tripDays**일 (**product.tripNights**박**product.tripDays**일) — 비어 있으면 **product.duration**
+- 출발일 개수·요금 비교는 상품 상세 또는 상담에서 확인한다는 한 줄 안내 (입력에 없는 일정·금액 금지)
+
+8. **봉 시즌 노트** — **seasonalNotesForMonth**가 있으면 요약·각색, 없으면 해당 월·목적지 일반 계절 정보 **약 200~300자**
+9. **봉 팁** — ## 소제목 고정. **bongTipsByCityOrCountry**에서 **3~4개** 활용 또는 일반 팁으로 보강 **약 300~400자**
+10. **마무리** — 상담 CTA 직전 문단 끝에 **Simplyur-Bong투어**를 **정확히 1회** 넣습니다.
+
+## 톤
+- 친근하지만 **존댓말**. 광고 티보다 **정보성 + 자연스러운 추천**.
+- 상품·입력에 없는 가격·포함 범위·비자 규정을 단정하지 마세요.
+
+## 입력 활용
+- **geo**, **campaignMonthKey**, **product**, **airtelMeta**, 봉 라벨 배열 전부를 검토합니다.
+`
+
+export function buildAirtelBlogUserJson(payload: AirtelBlogLlmPayload): string {
   return JSON.stringify(payload, null, 2)
 }

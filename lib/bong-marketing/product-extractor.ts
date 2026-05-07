@@ -559,3 +559,79 @@ export async function listProductsForMarketingMonth(
 
   return picked
 }
+
+// ---------------------------------------------------------------------------
+// B-4-3: 자유여행(airtel/private) 블로그 초안용 상품 메타 (신규 export만 추가)
+// ---------------------------------------------------------------------------
+
+/** `extractAirtelBlogMeta` / `buildAirtelBlogProductMeta` 입력 — DB 일부 컬럼만 필요 */
+export type AirtelBlogProductRow = {
+  title: string
+  summary: string | null
+  benefitSummary: string | null
+  airline: string | null
+  airportTransferType: string | null
+  airtelHotelInfoJson: string | null
+}
+
+export type AirtelBlogProductMeta = {
+  airline: string | null
+  airportTransferType: string | null
+  /** 호텔 JSON·텍스트 요약(모델 입력용, 과장 금지) */
+  airtelHotelSummary: string | null
+  title: string
+  summary: string | null
+  benefitSummary: string | null
+  /** 직항·경유·항공사 등 입력 기반 힌트 (없으면 null) */
+  flightRouteHint: string | null
+}
+
+/**
+ * Product 행에서 에어텔/프라이빗 블로그용 보조 메타를 만듭니다. (LLM 페이로드 전용)
+ */
+export function buildAirtelBlogProductMeta(row: AirtelBlogProductRow): AirtelBlogProductMeta {
+  let airtelHotelSummary: string | null = null
+  const rawHotel = row.airtelHotelInfoJson?.trim()
+  if (rawHotel) {
+    try {
+      const j = JSON.parse(rawHotel) as unknown
+      airtelHotelSummary =
+        typeof j === 'object' && j !== null ? JSON.stringify(j).slice(0, 2500) : rawHotel.slice(0, 2500)
+    } catch {
+      airtelHotelSummary = rawHotel.slice(0, 2500)
+    }
+  }
+
+  const blob = `${row.title}\n${row.summary ?? ''}\n${row.benefitSummary ?? ''}`
+  let flightRouteHint: string | null = null
+  if (/직항/.test(blob)) flightRouteHint = '상품 문맥에 직항이 언급됩니다.'
+  else if (/경유/.test(blob)) flightRouteHint = '상품 문맥에 경유가 언급됩니다.'
+  else if (row.airline?.trim()) flightRouteHint = `등록 항공사 메타: ${row.airline.trim()}`
+
+  return {
+    airline: row.airline?.trim() ?? null,
+    airportTransferType: row.airportTransferType?.trim() ?? null,
+    airtelHotelSummary,
+    title: row.title,
+    summary: row.summary,
+    benefitSummary: row.benefitSummary,
+    flightRouteHint,
+  }
+}
+
+/** 상품 1건의 에어텔 특화 메타 (동기 read) */
+export async function extractAirtelBlogMeta(productId: string): Promise<AirtelBlogProductMeta | null> {
+  const row = await prisma.product.findUnique({
+    where: { id: productId },
+    select: {
+      title: true,
+      summary: true,
+      benefitSummary: true,
+      airline: true,
+      airportTransferType: true,
+      airtelHotelInfoJson: true,
+    },
+  })
+  if (!row) return null
+  return buildAirtelBlogProductMeta(row)
+}
