@@ -28,11 +28,11 @@ function CancelInner() {
           {orderId ? <p className="mt-2 text-xs font-mono text-slate-500">주문 ID: {orderId}</p> : null}
           <Link
             href={retryHref}
-            className="mt-6 inline-block rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800"
+            className="mt-6 inline-block rounded-xl border border-transparent bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800"
           >
             장바구니로 돌아가기
           </Link>
-          <Link href={bongsimPath()} className="mt-4 block text-sm text-teal-800 underline">
+          <Link href={bongsimPath()} className="mt-3 block text-sm text-teal-800 underline">
             eSIM 메인
           </Link>
         </main>

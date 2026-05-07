@@ -111,7 +111,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
   const [quantity, setQuantity] = useState(() => quantityInitial ?? 1);
   const [recommendQueue, setRecommendQueue] = useState<BongsimRecommendCheckoutLine[] | null>(null);
   const [terms, setTerms] = useState(false);
-  const [locale, setLocale] = useState<"ko" | "en" | "">("");
+  const [locale, setLocale] = useState<"ko" | "en">("ko");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -278,7 +278,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
           option_api_id: optionApiId,
           quantity,
           buyer_email: em,
-          buyer_locale: locale === "ko" || locale === "en" ? locale : undefined,
+          buyer_locale: locale,
           idempotency_key: checkoutKey,
           checkout_channel: "web",
           consents: {
@@ -413,12 +413,12 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 if (disc > 0) {
                   return (
                     <div className="mt-4 space-y-1 lg:mt-5">
-                      <p className="text-lg font-medium text-slate-500 line-through lg:text-xl">
+                      <p className="text-lg font-medium text-slate-600 line-through lg:text-xl">
                         {nf.format(subtotal)}원
                       </p>
                       <p className="text-2xl font-bold text-teal-600 lg:text-3xl">{nf.format(final)}원</p>
                       <p className="text-sm font-semibold text-teal-700 lg:text-base">-{nf.format(disc)}원</p>
-                      <p className="text-sm font-normal text-slate-600 lg:text-base">
+                      <p className="text-sm font-medium text-slate-700 lg:text-base">
                         ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
                       </p>
                     </div>
@@ -427,7 +427,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 return (
                   <p className="mt-4 text-2xl font-bold text-slate-900 lg:mt-5 lg:text-3xl">
                     {nf.format(unit)}원
-                    <span className="ml-2 text-sm font-normal text-slate-600 lg:text-base">
+                    <span className="ml-2 text-sm font-medium text-slate-700 lg:text-base">
                       ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
                     </span>
                   </p>
@@ -460,20 +460,17 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 />
               </label>
               <label className="block">
-                <span className="text-[12px] font-medium text-slate-700 lg:text-sm">언어 (선택)</span>
+                <span className="text-[12px] font-medium text-slate-700 lg:text-sm">언어</span>
                 <select
                   value={locale}
-                  onChange={(ev) => setLocale(ev.target.value as "ko" | "en" | "")}
+                  onChange={(ev) => setLocale(ev.target.value as "ko" | "en")}
                   className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
                 >
-                  <option value="" className="text-slate-900">
-                    기본
-                  </option>
                   <option value="ko" className="text-slate-900">
                     한국어
                   </option>
                   <option value="en" className="text-slate-900">
-                    English
+                    영어
                   </option>
                 </select>
               </label>
@@ -510,7 +507,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-300 bg-slate-50 transition hover:border-teal-600 focus-within:border-teal-600 focus-within:ring-1 focus-within:ring-teal-500">
+              <div className="rounded-xl border border-slate-300 bg-slate-50 transition hover:border-teal-600 focus-within:border-teal-600 focus-within:ring-2 focus-within:ring-teal-500">
                 <button
                   type="button"
                   onClick={() => setCouponOpen((o) => !o)}
@@ -518,7 +515,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   aria-expanded={couponOpen}
                 >
                   쿠폰이 있으신가요?
-                  <span className="text-slate-600" aria-hidden>
+                  <span className="text-slate-700" aria-hidden>
                     {couponOpen ? "▲" : "▼"}
                   </span>
                 </button>
@@ -546,7 +543,15 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                 ) : null}
               </div>
 
-              {submitError ? <p className="text-sm text-red-700 lg:text-base">{submitError}</p> : null}
+              {submitError ? (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2"
+                >
+                  <p className="text-sm font-semibold text-red-700 lg:text-base">{submitError}</p>
+                </div>
+              ) : null}
               {/* TODO: 오픈 시 제거 — 점검 안내 */}
               {BONGSIM_CHECKOUT_PAYMENT_PAUSED ? (
                 <p className="text-sm text-amber-600">
