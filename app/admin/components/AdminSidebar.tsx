@@ -23,10 +23,10 @@ import {
   Ticket,
   BarChart3,
   CreditCard,
-  MapPin,
-  UtensilsCrossed,
-  Lightbulb,
   ShieldCheck,
+  Megaphone,
+  Plane,
+  MapPin,
 } from 'lucide-react'
 
 type NavLink = { href: string; label: string; icon: LucideIcon }
@@ -43,9 +43,9 @@ const navEntries: NavEntry[] = [
     type: 'group',
     label: '마케팅',
     items: [
-      { href: '/admin/marketing/bong-spots', label: '봉 스팟', icon: MapPin },
-      { href: '/admin/marketing/bong-foods', label: '봉 푸드', icon: UtensilsCrossed },
-      { href: '/admin/marketing/bong-tips', label: '봉 팁', icon: Lightbulb },
+      { href: '/admin/marketing', label: '개요', icon: Megaphone },
+      { href: '/admin/marketing/packages', label: '패키지', icon: Package },
+      { href: '/admin/marketing/airtel', label: '자유여행', icon: Plane },
     ],
   },
   { type: 'link', href: '/admin/image-assets-upload', label: '이미지 업로드 · 출처(iStock)', icon: Images },
@@ -86,7 +86,12 @@ function NavItemLink({
   pathname: string
   collapsed: boolean
 }) {
-  const isActive = pathname === href || (href !== '/admin' && pathname?.startsWith(href))
+  const isActive =
+    pathname === href ||
+    (href !== '/admin' &&
+      href !== '/admin/marketing' &&
+      !!pathname &&
+      (pathname.startsWith(`${href}/`) || pathname.startsWith(`${href}?`)))
   return (
     <Link
       href={href}

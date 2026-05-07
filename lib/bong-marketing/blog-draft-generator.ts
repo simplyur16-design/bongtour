@@ -23,6 +23,20 @@ import { isValidYearMonth } from '@/lib/monthly-curation'
 const SCHEDULE_EXCERPT_MAX = 8000
 const EXCERPT_DB_MAX = 500
 
+export type BongBlogContentTrack = 'package' | 'airtel'
+
+function isAirtelPrivateProductType(productType: string | null | undefined): boolean {
+  const p = (productType ?? '').trim().toLowerCase()
+  return p === 'airtel' || p === 'private'
+}
+
+/** B-CRUD-1: travel/semi/기타 → package, airtel/private → airtel */
+export function blogPostContentTrackFromProductType(
+  productType: string | null | undefined,
+): BongBlogContentTrack {
+  return isAirtelPrivateProductType(productType) ? 'airtel' : 'package'
+}
+
 export type GenerateNaverBlogDraftForPackageOptions = {
   /** DB에 초안 저장 (기본 true). 로컴 검증 시 false 로 Gemini·파싱만 확인 */
   persist?: boolean
@@ -231,9 +245,30 @@ export async function generateNaverBlogDraftForPackage(
     options?.skipIfDraftExists !== undefined ? options.skipIfDraftExists : persist
   const packageOnly = options?.packageOnly !== false
 
+  const ctx = await loadProductBlogContext(prisma, productId)
+  if (!ctx) {
+    return { ok: false, code: 'NOT_FOUND', error: `Product not found: ${productId}` }
+  }
+
+  const pt = ctx.row.productType
+  if (
+    packageOnly &&
+    pt &&
+    (/자유/.test(pt) || isAirtelPrivateProductType(pt))
+  ) {
+    return {
+      ok: false,
+      code: 'PACKAGE_ONLY_SKIP',
+      error:
+        '패키지 전용 모드에서는 자유여행·에어텔/프라이빗 상품을 제외합니다. 자유여행 마케팅은 packageOnly=false 로 실행하세요.',
+    }
+  }
+
+  const contentTrack = blogPostContentTrackFromProductType(pt)
+
   if (skipIfDraftExists) {
     const dup = await prisma.bongBlogPost.findFirst({
-      where: { linkedProductId: productId, monthKey: mk, status: 'draft' },
+      where: { linkedProductId: productId, monthKey: mk, status: 'draft', contentTrack },
       select: { id: true },
     })
     if (dup) {
@@ -243,19 +278,6 @@ export async function generateNaverBlogDraftForPackage(
         error: `이미 draft 초안이 있습니다: ${dup.id}`,
         existingDraftId: dup.id,
       }
-    }
-  }
-
-  const ctx = await loadProductBlogContext(prisma, productId)
-  if (!ctx) {
-    return { ok: false, code: 'NOT_FOUND', error: `Product not found: ${productId}` }
-  }
-
-  if (packageOnly && ctx.row.productType && /자유/.test(ctx.row.productType)) {
-    return {
-      ok: false,
-      code: 'PACKAGE_ONLY_SKIP',
-      error: '자유여행 상품은 B-4-2 대상에서 제외됩니다.',
     }
   }
 
@@ -373,6 +395,7 @@ export async function generateNaverBlogDraftForPackage(
       excerpt: excerptDb,
       body: bodyWithCta,
       status: 'draft',
+      contentTrack,
       linkedProductId: productId,
       monthKey: mk,
       citySlug: ctx.row.city?.trim() || null,

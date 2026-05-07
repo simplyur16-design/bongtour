@@ -827,6 +827,10 @@ enum BongContentStatus {
   draft
   approved
   published
+  /// 게시 예약(예약 시각은 scheduledAt)
+  scheduled
+  /// 검수 거절
+  rejected
 }
 
 /// 자동 초안 검수 큐 전용 (본문 엔티티의 publish 플로우와 분리)
@@ -1130,6 +1134,8 @@ model BongBlogPost {
   publishedAt             DateTime?
   scheduledAt             DateTime?
   status                  BongContentStatus @default(draft)
+  /// 네이버 블로그 글 채널: 패키지(travel/semi) vs 자유여행(airtel/private) 마케팅
+  contentTrack            String            @default("package")
   /// B-4-2 패키지 초안 본문(마크다운)
   body                    String?           @db.Text
   linkedProductId         String?
@@ -1154,6 +1160,8 @@ model BongBlogPost {
   @@index([monthKey, status])
   @@index([linkedProductId])
   @@index([citySlug, monthKey])
+  @@index([contentTrack, status])
+  @@index([contentTrack, monthKey])
 }
 
 /// 페이스북 게시물 메타
