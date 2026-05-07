@@ -22,7 +22,7 @@ type Props = {
 };
 
 // TODO: 오픈 시 제거 — 결제 점검용 임시 비활성화(플래그·onSubmit 가드·안내 문구·버튼 분기 전부 삭제)
-const BONGSIM_CHECKOUT_PAYMENT_PAUSED = true;
+const BONGSIM_CHECKOUT_PAYMENT_PAUSED = false;
 
 function parseQtySearch(raw: string | null): number | undefined {
   if (raw == null || raw.trim() === "") return undefined;
