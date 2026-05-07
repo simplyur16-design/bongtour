@@ -520,14 +520,14 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   </span>
                 </button>
                 {couponOpen ? (
-                  <div className="border-t border-slate-300 px-3 pb-3 pt-1 lg:px-4 lg:pb-4">
+                  <div className="border-t border-slate-300 px-3 pb-3 pt-1 text-slate-700 lg:px-4 lg:pb-4">
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={couponCode}
                         onChange={(ev) => setCouponCode(ev.target.value)}
                         placeholder="쿠폰 코드"
-                        className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-700 placeholder:text-slate-500 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-500 lg:px-4 lg:py-2.5 lg:text-lg"
+                        className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-800 placeholder:text-slate-500 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-500 lg:px-4 lg:py-2.5 lg:text-lg"
                         autoComplete="off"
                       />
                       <button
