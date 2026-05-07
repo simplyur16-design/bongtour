@@ -46,6 +46,7 @@ type ProductRow = {
   bgImageIsGenerated: boolean
   needsImageReview: boolean
   imageReviewRequestedAt: string | null
+  highlightPointsStatus?: 'empty' | 'raw_only' | 'curated'
 }
 
 type ListResponse = {
@@ -113,6 +114,33 @@ function getClassificationSummary(p: ProductRow): { line: string; tooltip: strin
 
 /** 상품 상세의 「대표 이미지 · 출처」섹션 앵커 — 보강 보내기 후 바로 수정 화면으로 이동 */
 const ADMIN_PRODUCT_HERO_ANCHOR = '#admin-product-hero-image'
+const ADMIN_PRODUCT_HIGHLIGHT_ANCHOR = '#admin-product-highlight-points'
+
+function HighlightPointsStatusBadge({ status }: { status: ProductRow['highlightPointsStatus'] }) {
+  const s = status ?? 'empty'
+  if (s === 'curated') {
+    return (
+      <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-900">
+        정리됨
+      </span>
+    )
+  }
+  if (s === 'raw_only') {
+    return (
+      <span
+        className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900"
+        title="정리본 입력 권장"
+      >
+        raw 있음
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-700">
+      비어있음
+    </span>
+  )
+}
 
 export default function AdminProductsPage() {
   const router = useRouter()
@@ -130,6 +158,7 @@ export default function AdminProductsPage() {
   const [imageSourceFilter, setImageSourceFilter] = useState('')
   const [legacyOnly, setLegacyOnly] = useState(false)
   const [needsImageReviewFilter, setNeedsImageReviewFilter] = useState(false)
+  const [highlightEmptyOnly, setHighlightEmptyOnly] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [queueLoading, setQueueLoading] = useState(false)
   const [queueMessage, setQueueMessage] = useState<string | null>(null)
@@ -166,6 +195,7 @@ export default function AdminProductsPage() {
       if (imageSourceFilter) params.set('imageSource', imageSourceFilter)
       if (legacyOnly && !imageSourceFilter) params.set('legacyOnly', '1')
       if (needsImageReviewFilter) params.set('needsImageReview', '1')
+      if (highlightEmptyOnly) params.set('highlightEmpty', '1')
       const res = await fetch(`/api/admin/products/list?${params}`)
       if (res.ok) {
         const json = await res.json()
@@ -178,7 +208,20 @@ export default function AdminProductsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, airline, destination, statusFilter, primaryRegionFilter, displayCategoryFilter, themeTagsSearch, hasErrorOnly, imageSourceFilter, legacyOnly, needsImageReviewFilter])
+  }, [
+    page,
+    airline,
+    destination,
+    statusFilter,
+    primaryRegionFilter,
+    displayCategoryFilter,
+    themeTagsSearch,
+    hasErrorOnly,
+    imageSourceFilter,
+    legacyOnly,
+    needsImageReviewFilter,
+    highlightEmptyOnly,
+  ])
 
   useEffect(() => {
     fetchOptions()
@@ -632,6 +675,18 @@ export default function AdminProductsPage() {
             />
             이미지 보강 대상만
           </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              checked={highlightEmptyOnly}
+              onChange={(e) => {
+                setHighlightEmptyOnly(e.target.checked)
+                setPage(1)
+              }}
+              className="rounded border-gray-400 text-[#0f172a]"
+            />
+            핵심 포인트 미입력만
+          </label>
         </div>
 
         {/* 테이블 */}
@@ -650,7 +705,7 @@ export default function AdminProductsPage() {
           ) : (
             <>
               <div className="max-h-[min(72vh,calc(100dvh-18rem))] overflow-y-auto overflow-x-auto overscroll-y-contain [scrollbar-gutter:stable]">
-                <table className="w-full min-w-[800px] text-left text-sm">
+                <table className="w-full min-w-[900px] text-left text-sm">
                   <thead className="sticky top-0 z-10 border-b border-gray-200 bg-gray-50 shadow-[0_1px_0_0_rgb(229_231_235)]">
                     <tr>
                       <th className="w-12 p-3">
@@ -670,6 +725,7 @@ export default function AdminProductsPage() {
                       <th className="p-3 font-semibold text-gray-700">대표가격</th>
                       <th className="w-24 p-3 font-semibold text-gray-700">이미지</th>
                       <th className="p-3 font-semibold text-gray-700">분류</th>
+                      <th className="w-28 p-3 font-semibold text-gray-700">핵심 포인트</th>
                       <th className="p-3 font-semibold text-gray-700">상태</th>
                       <th className="p-3 font-semibold text-gray-700">수정일</th>
                       <th className="p-3 font-semibold text-gray-700">작업</th>
@@ -741,6 +797,9 @@ export default function AdminProductsPage() {
                         <td className="max-w-[160px] truncate p-3 text-xs text-gray-500" title={getClassificationSummary(p).tooltip}>
                           {getClassificationSummary(p).line}
                         </td>
+                        <td className="p-3 align-top">
+                          <HighlightPointsStatusBadge status={p.highlightPointsStatus} />
+                        </td>
                         <td className="max-w-[200px] p-3">
                           <div className="flex flex-wrap gap-1">
                             {p.registrationStatus === 'registered' && <AdminStatusBadge variant="registered" label="등록됨" />}
@@ -776,7 +835,9 @@ export default function AdminProductsPage() {
                               href={
                                 p.needsImageReview
                                   ? `/admin/products/${p.id}/edit${ADMIN_PRODUCT_HERO_ANCHOR}`
-                                  : `/admin/products/${p.id}/edit`
+                                  : p.highlightPointsStatus === 'empty' || p.highlightPointsStatus === 'raw_only'
+                                    ? `/admin/products/${p.id}/edit${ADMIN_PRODUCT_HIGHLIGHT_ANCHOR}`
+                                    : `/admin/products/${p.id}/edit`
                               }
                               className="rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
                             >

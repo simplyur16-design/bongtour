@@ -37,6 +37,23 @@ import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
+const MAX_HIGHLIGHT_POINTS_LEN = 5000
+
+function normalizeHighlightPointsPatchValue(
+  v: unknown
+): { ok: true; value: string | null } | { ok: false; message: string } {
+  if (v === null) return { ok: true, value: null }
+  const s = typeof v === 'string' ? v : String(v)
+  if (s.length > MAX_HIGHLIGHT_POINTS_LEN) {
+    return {
+      ok: false,
+      message: `핵심 포인트 필드는 ${MAX_HIGHLIGHT_POINTS_LEN}자 이하여야 합니다.`,
+    }
+  }
+  const t = s.trim()
+  return { ok: true, value: t.length > 0 ? t : null }
+}
+
 function originForFlightManualModulePick(
   deriv: ReturnType<typeof computeAdminProductSupplierDerivatives>,
   rawOrigin: string | null | undefined
@@ -178,6 +195,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
         rawMeta: true,
         counselingNotes: true,
         benefitSummary: true,
+        highlightPointsRaw: true,
+        highlightPoints: true,
         travelScope: true,
         listingKind: true,
         localDepartureTag: true,
@@ -283,6 +302,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       imageReviewRequestedAt?: Date | null
       rawMeta?: string | null
       localDepartureTag?: string[]
+      highlightPointsRaw?: string | null
+      highlightPoints?: string | null
     } = {}
     if (body.flightAdminJson !== undefined || body.flightManualCorrection !== undefined) {
       const current = await prisma.product.findUnique({
@@ -348,6 +369,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
     if (body.benefitSummary !== undefined) {
       data.benefitSummary = strOrNull(body.benefitSummary, MAX_DETAIL)
+    }
+    if (body.highlightPointsRaw !== undefined) {
+      const parsed = normalizeHighlightPointsPatchValue(body.highlightPointsRaw)
+      if (!parsed.ok) return NextResponse.json({ error: parsed.message }, { status: 400 })
+      data.highlightPointsRaw = parsed.value
+    }
+    if (body.highlightPoints !== undefined) {
+      const parsed = normalizeHighlightPointsPatchValue(body.highlightPoints)
+      if (!parsed.ok) return NextResponse.json({ error: parsed.message }, { status: 400 })
+      data.highlightPoints = parsed.value
     }
     if (body.travelScope !== undefined) {
       const raw = body.travelScope
@@ -817,6 +848,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         rawMeta: true,
         counselingNotes: true,
         benefitSummary: true,
+        highlightPointsRaw: true,
+        highlightPoints: true,
         travelScope: true,
         listingKind: true,
         localDepartureTag: true,

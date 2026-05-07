@@ -59,6 +59,9 @@ import {
 } from './_lib/utils'
 import ScheduleImage from './_components/ScheduleImage'
 import PrimaryImagePreview from './_components/PrimaryImagePreview'
+import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
+
+const ADMIN_HIGHLIGHT_POINTS_MAX = 5000
 
 function parseStructuredSignalsView(
   rawMeta: string | null | undefined,
@@ -367,6 +370,9 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
   const [flightAdminDraft, setFlightAdminDraft] = useState('')
   const [savingBasic, setSavingBasic] = useState(false)
   const [savingBenefit, setSavingBenefit] = useState(false)
+  const [highlightRawDraft, setHighlightRawDraft] = useState('')
+  const [highlightCuratedDraft, setHighlightCuratedDraft] = useState('')
+  const [savingHighlights, setSavingHighlights] = useState(false)
   const [savingCounseling, setSavingCounseling] = useState(false)
   const [savingFlightAdmin, setSavingFlightAdmin] = useState(false)
   const [flightManualPanelOpen, setFlightManualPanelOpen] = useState(false)
@@ -449,6 +455,8 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
       )
     )
     setBenefitDraft(product.benefitSummary ?? '')
+    setHighlightRawDraft(product.highlightPointsRaw ?? '')
+    setHighlightCuratedDraft(product.highlightPoints ?? '')
     setCounselingDraft(product.counselingNotes ?? '')
     setFlightAdminDraft(product.flightAdminJson ?? '')
   }, [
@@ -460,6 +468,8 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
     product?.listingKind,
     product?.localDepartureTag,
     product?.benefitSummary,
+    product?.highlightPointsRaw,
+    product?.highlightPoints,
     product?.counselingNotes,
     product?.flightAdminJson,
   ])
@@ -1537,6 +1547,103 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
             className="mt-3 rounded-lg bg-bt-cta-primary px-4 py-2 text-xs font-semibold text-bt-cta-primary-fg disabled:opacity-50"
           >
             {savingBenefit ? '저장 중…' : '혜택 요약 저장'}
+          </button>
+        </section>
+
+        <section
+          id="admin-product-highlight-points"
+          className="mb-6 rounded-xl border border-bt-border-strong bg-bt-title/50 p-4"
+        >
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-bt-meta">상품 핵심 포인트</h2>
+          <p className="mb-4 text-[11px] text-bt-subtle">
+            공개 상세에서는 정리본이 있으면 정리본을, 없으면 원문(raw)을 노출합니다. (
+            <code className="text-[10px]">ProductHighlightPointsSection</code> 동일 규칙 미리보기)
+          </p>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-bt-inverse">원문 (highlightPointsRaw)</label>
+              <textarea
+                value={highlightRawDraft}
+                onChange={(e) => setHighlightRawDraft(e.target.value)}
+                rows={8}
+                spellCheck={false}
+                maxLength={ADMIN_HIGHLIGHT_POINTS_MAX}
+                placeholder="공급사 사이트의 상품 핵심 포인트 영역을 그대로 복붙"
+                className="w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 font-mono text-xs leading-relaxed text-bt-inverse"
+              />
+              <p className="mt-1 text-[11px] text-bt-subtle">
+                {highlightRawDraft.length}/{ADMIN_HIGHLIGHT_POINTS_MAX}자
+                {highlightRawDraft.length >= ADMIN_HIGHLIGHT_POINTS_MAX ? (
+                  <span className="ml-2 font-semibold text-amber-300">한도 도달</span>
+                ) : null}
+              </p>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-bt-inverse">정리본 (highlightPoints, 노출 우선)</label>
+              <textarea
+                value={highlightCuratedDraft}
+                onChange={(e) => setHighlightCuratedDraft(e.target.value)}
+                rows={8}
+                spellCheck={false}
+                maxLength={ADMIN_HIGHLIGHT_POINTS_MAX}
+                placeholder="봉투어 톤으로 정리. 한 줄에 하나씩, 핵심 5~7개"
+                className="w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 text-sm leading-relaxed text-bt-inverse"
+              />
+              <p className="mt-1 text-[11px] text-bt-subtle">
+                {highlightCuratedDraft.length}/{ADMIN_HIGHLIGHT_POINTS_MAX}자
+                {highlightCuratedDraft.length >= ADMIN_HIGHLIGHT_POINTS_MAX ? (
+                  <span className="ml-2 font-semibold text-amber-300">한도 도달</span>
+                ) : null}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-semibold text-bt-meta">미리보기 (공개 상세와 동일)</p>
+            <div className="rounded-xl border border-dashed border-bt-border-strong bg-gray-100 p-4">
+              <ProductHighlightPointsSection
+                highlightPoints={highlightCuratedDraft.trim() ? highlightCuratedDraft : null}
+                highlightPointsRaw={highlightRawDraft.trim() ? highlightRawDraft : null}
+              />
+              {!highlightCuratedDraft.trim() && !highlightRawDraft.trim() ? (
+                <p className="text-center text-xs text-gray-500">비어 있음 — 저장 후 공개 상세에서도 섹션이 숨겨집니다.</p>
+              ) : null}
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={
+              savingHighlights ||
+              !id ||
+              highlightRawDraft.length > ADMIN_HIGHLIGHT_POINTS_MAX ||
+              highlightCuratedDraft.length > ADMIN_HIGHLIGHT_POINTS_MAX
+            }
+            onClick={async () => {
+              if (!id) return
+              setSavingHighlights(true)
+              try {
+                const res = await fetch(`/api/admin/products/${id}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    highlightPointsRaw: highlightRawDraft.trim() || null,
+                    highlightPoints: highlightCuratedDraft.trim() || null,
+                  }),
+                })
+                const text = await res.text()
+                let updated: Product | null = null
+                try {
+                  updated = text ? (JSON.parse(text) as Product) : null
+                } catch {
+                  // ignore
+                }
+                if (res.ok && updated) setProduct(updated)
+              } finally {
+                setSavingHighlights(false)
+              }
+            }}
+            className="mt-3 rounded-lg bg-bt-cta-primary px-4 py-2 text-xs font-semibold text-bt-cta-primary-fg disabled:opacity-50"
+          >
+            {savingHighlights ? '저장 중…' : '핵심 포인트 저장'}
           </button>
         </section>
 

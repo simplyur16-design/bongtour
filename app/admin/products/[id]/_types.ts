@@ -82,6 +82,9 @@ export type Product = {
   canonicalBrandKey?: CanonicalOverseasSupplierKey | null
   normalizedOriginSupplier?: OverseasSupplierKey
   benefitSummary?: string | null
+  /** D-5-3: 공개 상세 핵심 포인트 — 정리본 우선 */
+  highlightPoints?: string | null
+  highlightPointsRaw?: string | null
   updatedAt?: string
   /** domestic | overseas — 미설정 시 공개 browse는 기존 목적지/제목 트리아지 */
   travelScope?: string | null
