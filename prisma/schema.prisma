@@ -692,6 +692,13 @@ model CustomerInquiry {
   snapshotProductTitle String?
   snapshotCardLabel    String?
 
+  /// 접수 시점 공급사 상품 원문 URL 스냅샷 (Product.originUrl)
+  snapshotOriginUrl    String?
+  /// 접수 시점 공급사 출처 스냅샷 (Product.originSource)
+  snapshotOriginSource String?
+  /// 접수 시점 공급사 상품 코드 스냅샷 (Product.originCode)
+  snapshotOriginCode   String?
+
   routingReasonJson        String? // MVP: { "source": "form", "path": "/inquiry" } 등 JSON 문자열
   sourcePagePath           String?
   privacyAgreed            Boolean   @default(false)

@@ -1,9 +1,75 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
+import { maskEmail, maskPhone } from '@/lib/pii'
 import { INQUIRY_ADMIN_STATUSES, isInquiryAdminStatus } from '@/lib/admin-inquiry'
 
 type RouteContext = { params: Promise<{ id: string }> }
+
+/**
+ * GET /api/admin/inquiries/[id] — 단건 상세 (어드민 상세 페이지용)
+ */
+export async function GET(_request: Request, context: RouteContext) {
+  const admin = await requireAdmin()
+  if (!admin) {
+    return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+  }
+
+  const { id } = await context.params
+  if (!id || typeof id !== 'string') {
+    return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
+  }
+
+  try {
+    const row = await prisma.customerInquiry.findUnique({
+      where: { id },
+    })
+    if (!row) {
+      return NextResponse.json({ error: '문의를 찾을 수 없습니다.' }, { status: 404 })
+    }
+
+    const isSuper = admin.user.role === 'SUPER_ADMIN'
+    const inquiry = {
+      id: row.id,
+      inquiryType: row.inquiryType,
+      status: row.status,
+      leadTimeRisk: row.leadTimeRisk,
+      applicantName: row.applicantName,
+      applicantPhone: isSuper ? row.applicantPhone : maskPhone(row.applicantPhone),
+      applicantEmail:
+        row.applicantEmail == null ? null : isSuper ? row.applicantEmail : maskEmail(row.applicantEmail),
+      message: row.message,
+      productId: row.productId,
+      monthlyCurationItemId: row.monthlyCurationItemId,
+      snapshotProductTitle: row.snapshotProductTitle,
+      snapshotCardLabel: row.snapshotCardLabel,
+      snapshotOriginUrl: row.snapshotOriginUrl,
+      snapshotOriginSource: row.snapshotOriginSource,
+      snapshotOriginCode: row.snapshotOriginCode,
+      sourcePagePath: row.sourcePagePath,
+      privacyAgreed: row.privacyAgreed,
+      privacyNoticeConfirmedAt: row.privacyNoticeConfirmedAt?.toISOString() ?? null,
+      privacyNoticeVersion: row.privacyNoticeVersion,
+      preferredContactChannel: row.preferredContactChannel,
+      selectedServiceType: row.selectedServiceType,
+      payloadJson: row.payloadJson,
+      routingReasonJson: row.routingReasonJson,
+      emailSentAt: row.emailSentAt?.toISOString() ?? null,
+      emailSentStatus: row.emailSentStatus,
+      emailError: row.emailError,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    }
+
+    return NextResponse.json({ inquiry })
+  } catch (e) {
+    console.error('[GET /api/admin/inquiries/[id]]', e)
+    return NextResponse.json(
+      { error: '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
+      { status: 500 }
+    )
+  }
+}
 
 /**
  * PATCH /api/admin/inquiries/[id]

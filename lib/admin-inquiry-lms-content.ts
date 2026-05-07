@@ -4,6 +4,10 @@
  */
 
 import { parseInquiryPayloadJson } from '@/lib/inquiry-notification-format'
+import { getSiteOrigin } from '@/lib/site-metadata'
+
+/** Solapi LMS UTF-8 바이트 상한 (운영 가이드) */
+export const ADMIN_INQUIRY_LMS_MAX_BYTES = 2000
 
 export type AdminInquiryLmsBodyInput = {
   inquiryId: string
@@ -16,6 +20,10 @@ export type AdminInquiryLmsBodyInput = {
   message: string | null
   /** `CustomerInquiry.payloadJson` — 폼별 `buildPayloadJson()` 결과가 직렬화되어 저장됨 */
   payloadJson: string | null
+  /** 봉투어 상품 링크 라인 — 있을 때만 LMS에 포함 */
+  productId?: string | null
+  /** 공급사 원문 링크 라인 — trim 후 있을 때만 포함 */
+  snapshotOriginUrl?: string | null
 }
 
 export const ADMIN_INQUIRY_LMS_HEADER = '[봉투어 신규문의]'
@@ -31,6 +39,23 @@ function pickInt(payload: Record<string, unknown>, key: string): number | undefi
   const v = payload[key]
   if (typeof v === 'number' && Number.isFinite(v) && Number.isInteger(v)) return v
   return undefined
+}
+
+function utf8ByteLength(s: string): number {
+  return new TextEncoder().encode(s).length
+}
+
+function truncateUtf8BytesApprox(s: string, maxBytes: number): string {
+  if (utf8ByteLength(s) <= maxBytes) return s
+  let lo = 0
+  let hi = s.length
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2)
+    const sub = s.slice(0, mid)
+    if (utf8ByteLength(sub) <= maxBytes) lo = mid
+    else hi = mid - 1
+  }
+  return `${s.slice(0, lo)}…`
 }
 
 /** `lib/admin-inquiry.ts` inquiryTypeDisplayLabel 과 동일 분기(문자열). */
@@ -149,7 +174,7 @@ export function adminInquiryLmsPayloadContextLines(inquiryType: string, payload:
   return []
 }
 
-function truncateForAdminInquiryLms(s: string, max: number): string {
+export function truncateForAdminInquiryLms(s: string, max: number): string {
   const t = s.trim()
   if (t.length <= max) return t
   return `${t.slice(0, max - 1)}…`
@@ -163,20 +188,32 @@ export function summarizeAdminInquiryLmsMessageOneLine(message: string | null | 
   return `${oneLine.slice(0, max - 1)}…`
 }
 
-/** 관리자 LMS 본문 (줄바꿈 구분 블록). */
-export function buildAdminInquiryLmsBody(p: AdminInquiryLmsBodyInput): string {
+function summarizeMessageWithMax(message: string | null | undefined, maxChars: number): string {
+  if (!message?.trim()) return '-'
+  const oneLine = message.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim()
+  if (oneLine.length <= maxChars) return oneLine
+  return `${oneLine.slice(0, Math.max(0, maxChars - 1))}…`
+}
+
+type CoreBuildOpts = {
+  productLabelMax: number
+  messageMaxChars: number
+  includeExtras: boolean
+}
+
+function buildAdminInquiryLmsCore(p: AdminInquiryLmsBodyInput, opts: CoreBuildOpts): string {
   const payload = parseInquiryPayloadJson(p.payloadJson)
   const typeLabel = adminInquiryLmsTypeLabel(p.inquiryType, payload)
   const emailLine = p.applicantEmail?.trim() ? p.applicantEmail.trim() : '-'
   const channelLine = p.preferredContactChannel?.trim() ? p.preferredContactChannel.trim() : '-'
-  const messageLine = summarizeAdminInquiryLmsMessageOneLine(p.message)
+  const messageLine = summarizeMessageWithMax(p.message, opts.messageMaxChars)
   const headLine = adminInquiryLmsHeadcountLine(p.inquiryType, payload)
-  const extras = adminInquiryLmsPayloadContextLines(p.inquiryType, payload)
+  const extras = opts.includeExtras ? adminInquiryLmsPayloadContextLines(p.inquiryType, payload) : []
 
   const core = [
     ADMIN_INQUIRY_LMS_HEADER,
     `유형: ${typeLabel}`,
-    `상품: ${truncateForAdminInquiryLms(p.productLabel, 200)}`,
+    `상품: ${truncateForAdminInquiryLms(p.productLabel, opts.productLabelMax)}`,
     `인원: ${headLine}`,
     ...extras,
     `고객: ${truncateForAdminInquiryLms(p.applicantName, 80)}`,
@@ -189,6 +226,49 @@ export function buildAdminInquiryLmsBody(p: AdminInquiryLmsBodyInput): string {
   return core.join('\n')
 }
 
+function buildAdminInquiryLmsUrlFooter(p: AdminInquiryLmsBodyInput, origin: string): string {
+  const lines: string[] = ['───']
+  const pid = p.productId?.trim()
+  if (pid) {
+    lines.push(`봉투어 상품: ${origin}/products/${pid}`)
+  }
+  const ou = p.snapshotOriginUrl?.trim()
+  if (ou) {
+    const disp = utf8ByteLength(ou) > 400 ? truncateUtf8BytesApprox(ou, 400) : ou
+    lines.push(`공급사 원문: ${disp}`)
+  }
+  lines.push(`어드민 처리: ${origin}/admin/inquiries/${p.inquiryId}`)
+  return lines.join('\n')
+}
+
+/** 관리자 LMS 본문 (줄바꿈 구분). URL 푸터는 항상 포함하며, 본문은 2000byte 이내로 축약. */
+export function buildAdminInquiryLmsBody(p: AdminInquiryLmsBodyInput): string {
+  const origin = getSiteOrigin()
+  const footer = buildAdminInquiryLmsUrlFooter(p, origin)
+  const maxCoreBytes = Math.max(120, ADMIN_INQUIRY_LMS_MAX_BYTES - utf8ByteLength(footer) - 1)
+
+  const attempts: CoreBuildOpts[] = [
+    { productLabelMax: 200, messageMaxChars: 120, includeExtras: true },
+    { productLabelMax: 120, messageMaxChars: 80, includeExtras: true },
+    { productLabelMax: 80, messageMaxChars: 60, includeExtras: false },
+    { productLabelMax: 50, messageMaxChars: 40, includeExtras: false },
+    { productLabelMax: 36, messageMaxChars: 24, includeExtras: false },
+  ]
+
+  for (const o of attempts) {
+    const core = buildAdminInquiryLmsCore(p, o)
+    if (utf8ByteLength(core) <= maxCoreBytes) {
+      return `${core}\n${footer}`
+    }
+  }
+
+  let core = buildAdminInquiryLmsCore(p, attempts[attempts.length - 1])
+  if (utf8ByteLength(core) > maxCoreBytes) {
+    core = truncateUtf8BytesApprox(core, maxCoreBytes)
+  }
+  return `${core}\n${footer}`
+}
+
 /** `POST /api/admin/test-inquiry-lms` 실발송 검증용 고정 입력. */
 export const ADMIN_INQUIRY_LMS_TEST_FIXTURE = {
   inquiryType: 'travel_consult',
@@ -199,6 +279,8 @@ export const ADMIN_INQUIRY_LMS_TEST_FIXTURE = {
   preferredContactChannel: 'both',
   message: '관리자용 LMS 실발송 테스트',
   inquiryId: 'test-inquiry-lms',
+  productId: 'cm_test_product_snapshot',
+  snapshotOriginUrl: 'https://supplier.example.com/pkg/TEST-001',
   payloadJson: JSON.stringify({
     adultCount: 2,
     childCount: 1,

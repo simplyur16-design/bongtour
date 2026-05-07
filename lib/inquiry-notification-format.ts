@@ -16,6 +16,8 @@ export type InquiryNotifyInput = {
   productId: string | null
   snapshotProductTitle: string | null
   snapshotCardLabel: string | null
+  /** 접수 시 Product.originUrl 스냅샷 (DB 컬럼과 동일) */
+  snapshotOriginUrl?: string | null
   product: { title: string; originCode: string; originSource: string } | null
 }
 
