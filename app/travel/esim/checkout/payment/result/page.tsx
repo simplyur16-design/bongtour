@@ -7,7 +7,8 @@ import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
 import { Ban, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { resetAfterPgOverlay } from "@/lib/bongsim/checkout/reset-after-pg-overlay";
 
 function formatAmountKrw(raw: string): string | null {
   const n = Number.parseInt(raw.replace(/[^\d]/g, ""), 10);
@@ -22,6 +23,10 @@ function ResultInner() {
   const message = (sp?.get("message") ?? "").trim();
   const amountRaw = (sp?.get("amount") ?? "").trim();
   const orderName = (sp?.get("orderName") ?? "").trim();
+
+  useEffect(() => {
+    resetAfterPgOverlay();
+  }, []);
 
   const esimMainHref = bongsimPath();
   const checkoutRetryHref = bongsimPath("/checkout");

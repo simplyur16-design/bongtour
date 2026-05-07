@@ -166,6 +166,18 @@ export default function Header() {
           href="/"
           className="relative isolate z-10 inline-flex shrink-0 items-center overflow-hidden py-0.5"
           aria-label="Bong투어 홈"
+          onClick={(e) => {
+            try {
+              if (typeof window === 'undefined') return
+              // PG overlay·history 꼬임 시 주소창이 welcomepay에 남고 스크롤만 막히는 경우 → 전체 이동으로 복구
+              if (window.location.pathname.includes('/travel/esim/checkout/payment/welcomepay')) {
+                e.preventDefault()
+                window.location.assign('/')
+              }
+            } catch {
+              /* ignore */
+            }
+          }}
         >
           <SafeImage
             src="/images/bongtour-logo.webp"

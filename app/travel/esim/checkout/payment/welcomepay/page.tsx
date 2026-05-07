@@ -6,6 +6,7 @@ import Link from "next/link";
 import Header from "@/app/components/Header";
 import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
 import { bongsimPath } from "@/lib/bongsim/constants";
+import { removeWelcomepayIniScriptNodes, resetAfterPgOverlay } from "@/lib/bongsim/checkout/reset-after-pg-overlay";
 
 type PrepareMobile = {
   submitUrl: string;
@@ -164,6 +165,8 @@ function WelcomepayPaymentContent() {
         cancelled = true;
         window.clearInterval(poll);
         window.clearTimeout(giveUp);
+        removeWelcomepayIniScriptNodes();
+        resetAfterPgOverlay();
       };
     }
 
@@ -204,6 +207,13 @@ function WelcomepayPaymentContent() {
       }
       s.onload = null;
       s.onerror = null;
+      try {
+        if (s.parentNode) s.parentNode.removeChild(s);
+      } catch {
+        /* ignore */
+      }
+      removeWelcomepayIniScriptNodes();
+      resetAfterPgOverlay();
     };
   }, [prep, phase, uaMobile]);
 
