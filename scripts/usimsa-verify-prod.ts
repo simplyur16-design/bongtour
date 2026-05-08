@@ -5,16 +5,20 @@
  * 2) GET /v2/topup/test — 보조(업무 code 1001 등 기대 가능)
  *
  *   npx tsx --env-file=.env.local scripts/usimsa-verify-prod.ts
+ *   npx tsx --env-file=.env.local scripts/usimsa-verify-prod.ts --raw
  *
  * 해석:
  * - 두 호출 모두 HTTP 200이면 → 서명·키가 prod에서 받아들여진 것으로 보고 운영 연동 가능 후보.
  * - HTTP 400/401 이거나 본문 "Invalid accesskey." → USIMSA에 prod 키 활성화·권한 추가 문의.
  */
 
+import { createUsimsaTimestamp } from "../lib/usimsa/signature";
 import {
+  maskHeadersForLog,
   resolveUsimsaVerifyAccessKey,
   resolveUsimsaVerifyBaseUrl,
   requireSecretKey,
+  snapshotUsimsaSignedGetRequest,
   usimsaSignedGetJson,
 } from "./usimsa-verify-request";
 
@@ -62,7 +66,39 @@ function summarize(label: string, httpStatus: number, parsed: unknown): void {
   console.log("판정: 위 조합은 매뉴얼 확인 필요.");
 }
 
+function printRawCapture(
+  label: string,
+  baseUrl: string,
+  accessKey: string,
+  secretKey: string,
+  pathAndQuery: string,
+  timestampMs: string,
+): void {
+  const p = snapshotUsimsaSignedGetRequest({
+    baseUrl,
+    accessKey,
+    secretKey,
+    pathAndQuery,
+    timestampOverride: timestampMs,
+  });
+  console.log(`\n--- RAW ${label} ---`);
+  console.log("method: GET");
+  console.log("pathAndQuery (sign):", p.pathAndQueryForSign);
+  console.log("timestamp(ms):", p.timestampMs);
+  console.log("accessKey first5/last5 (masked):", `${p.accessKeyMasked.first5}***${p.accessKeyMasked.last5}`);
+  console.log("secretKey first5 (masked):", p.secretKeyFirst5Masked);
+  console.log("stringToSign (3rd line accessKey masked, JSON.stringify):", p.stringToSignJson);
+  console.log("signature:", p.signature);
+  console.log("headers masked:", JSON.stringify(maskHeadersForLog({
+    "x-gat-timestamp": p.timestampMs,
+    "x-gat-access-key": accessKey,
+    "x-gat-signature": p.signature,
+  }), null, 2));
+  console.log("request URL:", p.requestUrl);
+}
+
 async function main() {
+  const rawMode = process.argv.includes("--raw");
   process.env.USIMSA_ENV = "production";
 
   const baseUrl = resolveUsimsaVerifyBaseUrl("production");
@@ -79,25 +115,38 @@ async function main() {
   console.log("access_key_source:", source);
   console.log("access_key_length:", accessKey.length);
   console.log("secret_key_length:", secretKey.length);
+  if (rawMode) {
+    console.log("\n시계:", new Date().toISOString(), "Date.now():", Date.now());
+  }
 
   const orderPath = `/v2/order/${encodeURIComponent(FAKE_ORDER_ID)}`;
   const topupPath = `/v2/topup/${encodeURIComponent(FAKE_TOPUP_ID)}`;
 
   console.log("\n[primary] GET", orderPath);
+  const tsOrder = rawMode ? createUsimsaTimestamp() : undefined;
+  if (rawMode && tsOrder) {
+    printRawCapture("order", baseUrl, accessKey, secretKey, orderPath, tsOrder);
+  }
   const orderRes = await usimsaSignedGetJson({
     baseUrl,
     accessKey,
     secretKey,
     pathAndQuery: orderPath,
+    timestampOverride: tsOrder,
   });
   summarize("GET /v2/order/:orderId (fake)", orderRes.httpStatus, orderRes.parsed);
 
   console.log("\n[secondary] GET", topupPath);
+  const tsTopup = rawMode ? createUsimsaTimestamp() : undefined;
+  if (rawMode && tsTopup) {
+    printRawCapture("topup", baseUrl, accessKey, secretKey, topupPath, tsTopup);
+  }
   const topupRes = await usimsaSignedGetJson({
     baseUrl,
     accessKey,
     secretKey,
     pathAndQuery: topupPath,
+    timestampOverride: tsTopup,
   });
   summarize("GET /v2/topup/:topupId (fake)", topupRes.httpStatus, topupRes.parsed);
 
