@@ -60,25 +60,6 @@ function checkoutPlanSubtitle(detail: BongsimProductDetailV1, countryHeadlineNam
   return "—";
 }
 
-/** API `display_basis` 내부 키를 사용자용 문구로만 노출 */
-function displayBasisLabelKr(basis: string): string {
-  switch (basis) {
-    case "after.recommended_krw":
-    case "before.recommended_krw":
-      return "권장 판매가 기준";
-    case "after.consumer_krw":
-    case "before.consumer_krw":
-      return "소비자가 기준";
-    case "after.supply_krw":
-    case "before.supply_krw":
-      return "공급가 기준";
-    case "missing_all_price_cells":
-      return "가격 미확인";
-    default:
-      return "표시 가격 기준";
-  }
-}
-
 function readRecommendQueue(): BongsimRecommendCheckoutLine[] | null {
   if (typeof window === "undefined") return null;
   try {
@@ -548,24 +529,12 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                       </p>
                       <p className="text-2xl font-bold text-teal-600 lg:text-3xl">{nf.format(final)}원</p>
                       <p className="text-sm font-semibold text-teal-700 lg:text-base">-{nf.format(disc)}원</p>
-                      <p
-                        className="text-sm font-medium text-slate-700 lg:text-base"
-                        style={{ color: "#475569" }}
-                      >
-                        ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
-                      </p>
                     </div>
                   );
                 }
                 return (
                   <p className="mt-4 text-2xl font-bold text-slate-900 lg:mt-5 lg:text-3xl">
                     {nf.format(unit)}원
-                    <span
-                      className="ml-2 text-sm font-medium text-slate-700 lg:text-base"
-                      style={{ color: "#475569" }}
-                    >
-                      ({displayBasisLabelKr(detail.summary.pricing.display_basis)})
-                    </span>
                   </p>
                 );
               })()}

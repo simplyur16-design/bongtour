@@ -10,6 +10,7 @@ type ProductRow = {
   allowance_label: string;
   network_type: string;
   qos_raw: string | null;
+  consumer_krw: string | null;
   recommended_krw: string | null;
   supply_krw: string | null;
   is_active: boolean;
@@ -109,6 +110,7 @@ export default function BongsimProductsAdminClient() {
               <th className="px-2 py-2 sm:px-3 sm:py-3">plan_name</th>
               <th className="px-2 py-2 sm:px-3 sm:py-3">days</th>
               <th className="px-2 py-2 sm:px-3 sm:py-3">allowance</th>
+              <th className="px-2 py-2 sm:px-3 sm:py-3">소비자가</th>
               <th className="px-2 py-2 sm:px-3 sm:py-3">권장가</th>
               <th className="px-2 py-2 sm:px-3 sm:py-3">공급가</th>
               <th className="px-2 py-2 sm:px-3 sm:py-3">망</th>
@@ -129,6 +131,7 @@ export default function BongsimProductsAdminClient() {
                 <td className="max-w-[120px] truncate px-2 py-2 sm:px-3" title={r.allowance_label}>
                   {r.allowance_label}
                 </td>
+                <td className="whitespace-nowrap px-2 py-2 sm:px-3">{nfKrw(r.consumer_krw)}</td>
                 <td className="whitespace-nowrap px-2 py-2 sm:px-3">{nfKrw(r.recommended_krw)}</td>
                 <td className="whitespace-nowrap px-2 py-2 sm:px-3">{nfKrw(r.supply_krw)}</td>
                 <td className="px-2 py-2 sm:px-3">{r.network_type}</td>
@@ -151,7 +154,7 @@ export default function BongsimProductsAdminClient() {
             ))}
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-slate-500">
+                <td colSpan={10} className="px-3 py-8 text-center text-slate-500">
                   상품이 없습니다.
                 </td>
               </tr>

@@ -8,19 +8,15 @@ function txt(v: string | null | undefined): string {
 
 function pickDisplayPrice(pb: BongsimProductOptionV1["price_block"]): { amount: number; basis: string } {
   const candidates: Array<{ basis: string; value: number | null }> = [
-    { basis: "after.recommended_krw", value: pb.after.recommended_krw },
-    { basis: "before.recommended_krw", value: pb.before.recommended_krw },
     { basis: "after.consumer_krw", value: pb.after.consumer_krw },
     { basis: "before.consumer_krw", value: pb.before.consumer_krw },
-    { basis: "after.supply_krw", value: pb.after.supply_krw },
-    { basis: "before.supply_krw", value: pb.before.supply_krw },
   ];
   for (const c of candidates) {
     if (c.value != null && Number.isFinite(c.value)) {
       return { amount: Math.trunc(c.value), basis: c.basis };
     }
   }
-  return { amount: 0, basis: "missing_all_price_cells" };
+  return { amount: 0, basis: "none" };
 }
 
 function buyerSafeNote(opt: BongsimProductOptionV1): string | null {

@@ -99,7 +99,7 @@ function isTrueUnlimited1MbpsPlus(p: EnrichedPlan): boolean {
 }
 
 /**
- * 384kbps 상품: 같은 일수·같은 권장가의 무제한(1Mbps 이상)이 있으면 제외.
+ * 384kbps 상품: 같은 일수·같은 소비자가의 무제한(1Mbps 이상)이 있으면 제외.
  */
 function apply384RedundantFilter(plans: EnrichedPlan[]): EnrichedPlan[] {
   return plans.filter((p) => {
@@ -166,7 +166,7 @@ function capacityRank(bucket: AllowanceBucketId | null): number {
   return i >= 0 ? i : -1;
 }
 
-/** 로밍/로컬 동시 후보일 때: QOS 높은 것, 같으면 권장가 낮은 것 */
+/** 로밍/로컬 동시 후보일 때: QOS 높은 것, 같으면 소비자가 낮은 것 */
 function pickWinnerByQosThenPrice(candidates: EnrichedPlan[]): EnrichedPlan | null {
   if (candidates.length === 0) return null;
   const sorted = [...candidates].sort((a, b) => {
@@ -291,10 +291,10 @@ function matchesFilters(row: Row, ctx: { country: string; days: number; allSelec
  *
  * - `network` 생략 시 roaming + local 모두 조회 (지정 시 기존과 동일하게 roaming | local 만 허용)
  * - 단일국가 / 다국가 무제한 포함
- * - recommended_price = after.recommended_krw ?? before.recommended_krw (권장판매가)
+ * - recommended_price = after.consumer_krw ?? before.consumer_krw (소비자가; 응답 필드명은 호환용)
  * - is_true_unlimited: allowance_label 이 정확히 무제한/완전 무제한/unlimited 인 경우만 true (저속 무제한은 false)
  * - flags.request_shipment 가 O 가 아니거나 qos_raw 가 128kbps 인 행은 제외
- * - recommended_tiers: 필터 후 선정 4티어 premium/value/budget/cheapest (권장가 recommended_krw)
+ * - recommended_tiers: 필터 후 선정 4티어 premium/value/budget/cheapest (소비자가 기준)
  * - plans 배열: 필터 전 matched 목록 유지
  */
 export async function GET(req: Request) {
@@ -353,8 +353,8 @@ export async function GET(req: Request) {
         AND plan_type IS NOT NULL
         AND lower(plan_type) IN ('unlimited', 'daily')
       ORDER BY plan_name, days_raw, COALESCE(
-        (price_block->'after'->>'recommended_krw')::numeric,
-        (price_block->'before'->>'recommended_krw')::numeric
+        (price_block->'after'->>'consumer_krw')::numeric,
+        (price_block->'before'->>'consumer_krw')::numeric
       ) ASC NULLS LAST
       `,
       [networkParam],

@@ -49,7 +49,7 @@ function unitPriceKrw(p: ProductOption): number | null {
   return computeRecommendedPrice(p.price_block);
 }
 
-/** 로밍·로컬 구분 없이 해당 국가 패키지 전체 상품 중 권장가 최저 1개 */
+/** 로밍·로컬 구분 없이 해당 국가 패키지 전체 상품 중 소비자가 최저 1개 */
 function overallMinUnitPriceKrw(pack: CountryProductPack): number | null {
   let min: number | null = null;
   for (const p of pack.roaming.products) {

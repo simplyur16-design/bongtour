@@ -89,8 +89,8 @@ export async function GET(req: Request) {
         flags
       FROM bongsim_product_option
       ORDER BY plan_name, days_raw, COALESCE(
-        (price_block->'after'->>'recommended_krw')::numeric,
-        (price_block->'before'->>'recommended_krw')::numeric
+        (price_block->'after'->>'consumer_krw')::numeric,
+        (price_block->'before'->>'consumer_krw')::numeric
       ) ASC NULLS LAST
     `;
 

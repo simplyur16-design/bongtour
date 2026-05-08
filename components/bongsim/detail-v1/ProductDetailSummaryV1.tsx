@@ -47,8 +47,7 @@ export function ProductDetailSummaryV1({ summary }: { summary: BongsimProductDet
       </dl>
       <div className="mt-4 flex items-end justify-between gap-4 border-t border-slate-100 pt-4">
         <div>
-          <p className="text-[11px] text-slate-500">표시 가격 기준</p>
-          <p className="text-[11px] font-mono text-slate-600">{summary.pricing.display_basis}</p>
+          <p className="text-[11px] text-slate-500">소비자가</p>
         </div>
         <p className="text-[22px] font-semibold tracking-tight text-slate-900">{formatKrw(summary.pricing.display_amount_krw)}</p>
       </div>

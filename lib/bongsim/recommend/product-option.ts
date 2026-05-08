@@ -8,13 +8,13 @@ function numField(v: unknown): number | null {
 }
 
 /**
- * 권장판매가: after.recommended_krw(숫자) 우선, 없으면 before.recommended_krw.
- * 표시용 — supply_krw / consumer_krw 미사용.
+ * 스토어프론트·추천 API 정렬용 표시 단가: after.consumer_krw → before.consumer_krw 만 (권장가·공급가 폴백 없음).
+ * 함수명은 호환용으로 유지.
  */
 export function computeRecommendedPrice(price_block: ProductOption["price_block"]): number | null {
-  const after = numField(price_block?.after?.recommended_krw);
+  const after = numField(price_block?.after?.consumer_krw);
   if (after != null) return after;
-  return numField(price_block?.before?.recommended_krw);
+  return numField(price_block?.before?.consumer_krw);
 }
 
 /** API/클라이언트 공통 — `bongsim_product_option` 조회 결과 최소 필드 */
@@ -29,11 +29,11 @@ export interface ProductOption {
   /** DB `qos_raw` — plans API 등에서 노출 */
   qos_raw?: string | null;
   price_block: {
-    before?: { recommended_krw?: unknown };
-    after?: { recommended_krw?: unknown };
+    before?: { recommended_krw?: unknown; consumer_krw?: unknown };
+    after?: { recommended_krw?: unknown; consumer_krw?: unknown };
   };
   flags: Record<string, unknown>;
-  /** API가 붙이는 권장가(표시 전용) */
+  /** API가 붙이는 표시 단가(소비자가 계열; 필드명은 호환용). */
   recommended_price?: number;
 }
 
@@ -42,7 +42,7 @@ export function formatKrw(n: number): string {
   return `${Number(n).toLocaleString("ko-KR", { maximumFractionDigits: 0 })}원`;
 }
 
-/** 천 단위 콤마 + "원/일" (권장가÷상품 `days_raw` 일당 등) */
+/** 천 단위 콤마 + "원/일" (패키지 총액÷상품 `days_raw` 일당 등) */
 export function formatKrwPerDay(n: number): string {
   return `${Number(n).toLocaleString("ko-KR", { maximumFractionDigits: 0 })}원/일`;
 }

@@ -68,7 +68,7 @@ function displayPrice(p: ProductOption): number | null {
   return computeRecommendedPrice(p.price_block);
 }
 
-/** 버킷별 최저 권장가 상품 하나씩 (무제한은 권장가 없어도 첫 행 유지) */
+/** 버킷별 최저 소비자가 상품 하나씩 (무제한은 가격 없어도 첫 행 유지) */
 export function pickCheapestPerBucket(products: ProductOption[]): Partial<
   Record<AllowanceBucketId, ProductOption>
 > {

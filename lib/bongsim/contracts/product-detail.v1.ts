@@ -3,7 +3,7 @@ import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contr
 export type BongsimProductDetailPricingV1 = {
   currency: "KRW";
   display_amount_krw: number;
-  /** Which supplier field key was chosen for storefront display (not recomputed). */
+  /** Internal basis key (e.g. after.consumer_krw | before.consumer_krw | none) — not for end-user UI. */
   display_basis: string;
 };
 

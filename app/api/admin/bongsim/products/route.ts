@@ -60,6 +60,10 @@ export async function GET(req: Request) {
          network_family AS network_type,
          qos_raw,
          COALESCE(
+           (price_block->'after'->>'consumer_krw')::numeric,
+           (price_block->'before'->>'consumer_krw')::numeric
+         )::text AS consumer_krw,
+         COALESCE(
            (price_block->'after'->>'recommended_krw')::numeric,
            (price_block->'before'->>'recommended_krw')::numeric
          )::text AS recommended_krw,

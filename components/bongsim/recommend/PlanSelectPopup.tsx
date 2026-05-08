@@ -246,10 +246,15 @@ export function PlanSelectPopup({
                   )}
 
                   {totalShow != null && (
-                    <p className="mt-2 text-lg font-bold text-blue-600 lg:text-xl">{formatKrw(totalShow)}</p>
+                    <div className="mt-2">
+                      <p className="text-[11px] font-medium text-slate-500">소비자가</p>
+                      <p className="text-lg font-bold text-blue-600 lg:text-xl">{formatKrw(totalShow)}</p>
+                    </div>
                   )}
                   {dailyShow != null && (
-                    <p className="mt-0.5 text-xs font-medium text-slate-600 lg:text-sm">{formatKrwPerDay(dailyShow)}</p>
+                    <p className="mt-0.5 text-xs font-medium text-slate-600 lg:text-sm">
+                      일당 {formatKrwPerDay(dailyShow)}
+                    </p>
                   )}
 
                   {active && (

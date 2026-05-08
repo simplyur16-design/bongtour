@@ -24,7 +24,7 @@ function toInt(v: string | number | null | undefined): number {
   return typeof v === "string" ? Number.parseInt(v, 10) : Math.trunc(Number(v));
 }
 
-/** 권장가 기준 소계(라인 합계). */
+/** 소비자가 기준 소계(라인 합계). */
 export async function bongsimCheckoutSubtotalKrw(
   client: Pick<PoolClient, "query">,
   option_api_id: string,

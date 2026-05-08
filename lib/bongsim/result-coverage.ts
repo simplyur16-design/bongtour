@@ -44,8 +44,6 @@ const COMPARISON_GLOBAL_151_COUNTRY_CODES = new Set([
   "mo",
 ]);
 
-const COMPARISON_INTEGRATED_PRICE_FACTOR = 0.92;
-
 const GLOBAL_151_RM_BASE = 32000;
 const GLOBAL_151_RM_PER_DAY = 1200;
 const GLOBAL_151_LC_BASE = 36000;
@@ -133,10 +131,10 @@ function buildIntegratedDurationOptions(deps: ResultCoverageDeps, singles: strin
     if (baseOpts.length === 0) continue;
     const prices: number[] = [];
     if (baseOpts.some((o) => o.networkType === "roaming")) {
-      prices.push(Math.floor(bundleSumForTrip(deps, singles, d, "roaming") * COMPARISON_INTEGRATED_PRICE_FACTOR));
+      prices.push(Math.floor(bundleSumForTrip(deps, singles, d, "roaming")));
     }
     if (baseOpts.some((o) => o.networkType === "local")) {
-      prices.push(Math.floor(bundleSumForTrip(deps, singles, d, "local") * COMPARISON_INTEGRATED_PRICE_FACTOR));
+      prices.push(Math.floor(bundleSumForTrip(deps, singles, d, "local")));
     }
     if (prices.length === 0) continue;
     out.push({ days: d, price: Math.min(...prices) });
@@ -181,7 +179,7 @@ function availableNetworksAtDay(
         networkType: "roaming",
         label: "로밍형",
         helperText: "통합 상품으로 한 번에 관리해요.",
-        startingPrice: Math.floor(bundleSumForTrip(deps, singles, durationDays, "roaming") * COMPARISON_INTEGRATED_PRICE_FACTOR),
+        startingPrice: Math.floor(bundleSumForTrip(deps, singles, durationDays, "roaming")),
       });
     }
     if (base.some((o) => o.networkType === "local")) {
@@ -189,7 +187,7 @@ function availableNetworksAtDay(
         networkType: "local",
         label: "현지망형",
         helperText: "통합 상품으로 한 번에 관리해요.",
-        startingPrice: Math.floor(bundleSumForTrip(deps, singles, durationDays, "local") * COMPARISON_INTEGRATED_PRICE_FACTOR),
+        startingPrice: Math.floor(bundleSumForTrip(deps, singles, durationDays, "local")),
       });
     }
     return out;
@@ -208,7 +206,7 @@ export function priceForCoverageRow(
   if (opt?.startingPrice != null) return opt.startingPrice;
   if (row.id === "indiv") return bundleSumForTrip(deps, countryCodes, tripDays, network);
   if (row.id === "integr") {
-    return Math.floor(bundleSumForTrip(deps, countryCodes, tripDays, network) * COMPARISON_INTEGRATED_PRICE_FACTOR);
+    return Math.floor(bundleSumForTrip(deps, countryCodes, tripDays, network));
   }
   if (row.id === "glob151") {
     return network === "roaming"
