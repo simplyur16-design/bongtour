@@ -1,3 +1,8 @@
+/**
+ * USIMSA 가격 SSOT (2026-05-08): Partner API v2에는 가격·카탈로그 조회 엔드포인트가 없다.
+ * 가격·상품 목록은 USIMSA가 별도 제공하는 엑셀을 어드민에서 import 하며, 본 파이프라인이 가격 SSOT.
+ * API 자동 동기화 없음.
+ */
 import { createHash } from "node:crypto";
 import type { PoolClient } from "pg";
 import { BONGSIM_INGEST_SHEETS } from "@/lib/bongsim/ingest/excel-sheet-config";

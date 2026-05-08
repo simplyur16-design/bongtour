@@ -44,10 +44,11 @@ export async function usimsaRequest<T>(params: {
   body?: unknown;
 }): Promise<T> {
   const cfg = getUsimsaConfig();
+  /** 호출부는 `/v2/...` 형태를 넘긴다. URL은 `baseUrl`(이미 `/api`까지) + path → …/api/v2/… */
   const path = params.path.startsWith("/") ? params.path : `/${params.path}`;
   const queryString = buildQueryString(params.query);
   const pathAndQuery = `${path}${queryString}`;
-  /** 실제 요청 URL은 …/api + /v2/… → pathname /api/v2/… — USIMSA 서명 StringToSign도 이 path 기준. */
+  /** StringToSign용 path는 반드시 `/api` 접두 포함 (예: `/api/v2/order`). 문서 6.1·6.2와 동일. */
   const pathForSign = path.startsWith("/api") ? path : `/api${path}`;
   const pathAndQueryForSign = `${pathForSign}${queryString}`;
   const timestamp = createUsimsaTimestamp();
@@ -60,12 +61,14 @@ export async function usimsaRequest<T>(params: {
   });
 
   const url = `${cfg.baseUrl}${pathAndQuery}`;
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
+  const headers: Record<string, string> = {
     "x-gat-timestamp": timestamp,
     "x-gat-access-key": cfg.accessKey,
     "x-gat-signature": signature,
   };
+  if (params.method === "POST" || params.method === "PUT") {
+    headers["Content-Type"] = "application/json";
+  }
 
   const init: RequestInit = {
     method: params.method,

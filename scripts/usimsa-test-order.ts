@@ -24,8 +24,16 @@ function usimsaSignature(secretKeyBase64: string, stringToSign: string): string 
   return crypto.createHmac("sha256", key).update(stringToSign, "utf8").digest("base64");
 }
 
+function accessKeyForDevScript(): string {
+  const legacy = process.env.USIMSA_ACCESS_KEY?.trim();
+  if (legacy) return legacy;
+  const dev = process.env.USIMSA_DEV_ACCESS_KEY?.trim();
+  if (dev) return dev;
+  throw new Error("Missing USIMSA_ACCESS_KEY (legacy) or USIMSA_DEV_ACCESS_KEY");
+}
+
 async function main() {
-  const accessKey = requireEnv("USIMSA_ACCESS_KEY");
+  const accessKey = accessKeyForDevScript();
   const secretKey = requireEnv("USIMSA_SECRET_KEY");
 
   const timestamp = Date.now();

@@ -77,7 +77,10 @@ export default function BongsimProductsAdminClient() {
   return (
     <div className="text-slate-100">
       <h1 className="text-2xl font-bold text-slate-100">eSIM 상품 관리</h1>
-      <p className="mt-2 text-sm text-slate-400">가격은 엑셀 임포트로만 반영합니다. 노출 여부(is_active)만 여기서 변경합니다.</p>
+      <p className="mt-2 text-sm text-slate-400">
+        가격은 USIMSA에서 받은 엑셀 카탈로그를 어드민에서 import 합니다. USIMSA API에는 가격 조회 엔드포인트가 없습니다.
+        노출 여부(is_active)만 여기서 변경합니다.
+      </p>
 
       <div className="mt-6 flex flex-wrap items-end gap-3">
         <label className="block">

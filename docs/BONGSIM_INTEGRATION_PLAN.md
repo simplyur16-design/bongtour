@@ -27,31 +27,18 @@
 
 | 모듈 | 역할 |
 |------|------|
-| `config.ts` | `USIMSA_BASE_URL` 또는 `USIMSA_ENV`로 prod/dev 베이스 URL, `USIMSA_ACCESS_KEY` / `USIMSA_SECRET_KEY` 필수. `USIMSA_WEBHOOK_SECRET`, `USIMSA_WEBHOOK_URL`은 읽기만 하고 **웹훅 라우트에서 미사용**. |
+| `config.ts` | `USIMSA_BASE_URL`(선택) 또는 `USIMSA_ENV`로 prod/dev 베이스 URL. 액세스 키: `USIMSA_DEV_ACCESS_KEY` / `USIMSA_PROD_ACCESS_KEY`, 레거시 `USIMSA_ACCESS_KEY` 우선. `USIMSA_SECRET_KEY` 공통. |
 | `signature.ts` | `x-gat-*`용 StringToSign + HMAC-SHA256(Base64 secret) + Base64 서명. |
 | `client.ts` | `usimsaRequest` — 공통 헤더, `fetch`, 비 OK 시 `UsimsaRequestError`. |
-| `products.ts` | **`GET /v2/products`만** 호출·DTO 정규화(`fetchUsimsaProducts`). |
+| ~~`products.ts`~~ | **삭제** — Partner API v2 공식에 `/v2/products` 없음. 가격 SSOT는 USIMSA 엑셀 import. |
 
-**정리:** 봉투어 저장소에는 **USIMSA 상품 조회 + 웹훅 스텁 + 서명 클라이언트**까지 있으나, **발급 주문·취소·연장·조회 API는 미연결**, **프런트 `/travel/esim`과도 미연결**.
+**정리:** 봉투어 저장소에는 **서명 클라이언트 + 주문 API 연동(`lib/bongsim/supplier/usimsa`) + 웹훅**이 있으며, **상품·가격 목록은 API가 아니라 엑셀** 기준.
 
-### 1.4 Postman 문서 fetch (Usimsa Partner API v2)
+### 1.4 USIMSA Partner API v2 — 공식 사양 vs 구 Postman
 
-- **접근:** `https://documenter.gw.postman.com/api/collections/33332387/2sB3QDwt5F?segregateAuth=true&versionTag=latest` → **HTTP 200**, 약 184KB (curl 기준).
-- **엔드포인트(컬렉션 기준, 베이스 `…/api` + path):**
-
-| Method | Path | 설명(컬렉션 표기) |
-|--------|------|-------------------|
-| POST | `/v2/order` | eSIM 발급 요청 |
-| POST | `/v2/cancel/:topupId` | eSIM 취소 |
-| POST | `/v2/cancel/usim/:topupId` | USIM 취소 |
-| POST | `/v2/order/usim` | USIM 활성화 |
-| POST | `/v2/extend` | 연장 |
-| GET | `/v2/products` | 상품 조회 (**봉투어에서 유일 구현**) |
-| GET | `/v2/order/:orderId` | 주문 조회 |
-| GET | `/v2/topup/:topupId` | ICCID/topup 상태 |
-| GET | `/v2/topup/:topupId/usage/daily` | 일별 사용량 |
-
-상세 필드·웹훅 페이로드는 `docs/USIMSA_API_ANALYSIS_20260422.md` 참고.
+- **공식 v2(운영 기준 4종만):** `POST /v2/order`, `GET /v2/order/{orderId}`, `GET /v2/topup/{topupId}`, `GET /v2/topup/{topupId}/usage/daily`.
+- **가격·카탈로그:** API 아님 — USIMSA 엑셀 별도 제공 → 봉투어는 **import 단일 SSOT**.
+- 구 Postman 컬렉션에는 `/v2/products`, cancel, extend 등 추가 항목이 있었을 수 있으나 **공식 v2와 혼동 금지**. 상세·웹훅은 `docs/USIMSA_API_ANALYSIS_20260422.md` 참고.
 
 ### 1.5 `docs/BONGSIM_*.md` 네 편 요약
 
@@ -78,7 +65,7 @@
 6. **콜백 URL 등록 절차:** 환경별(dev/prod) URL, **Usimsa 측 반영 리드타임**.
 7. **`orderId`와 웹훅:** 웹후에 파트너 `orderId`가 오는지; 없으면 **`topupId`만으로 역매핑**하는 공식 권장안.
 8. **레이트 리밋·동시 주문** 제한 및 idempotency 키 지원 여부.
-9. **가격·재고:** `GET /v2/products` 외 **실시간 재고/가격 변동** 알림 여부.
+9. **가격·재고:** 공식 v2에 가격 API 없음 — 엑셀 배포 주기·변경 통지 방식 확인.
 10. **규제·영수증:** 국내 PG/세금계산서와 별도로 Usimsa 측에서 제공해야 하는 **정산 증빙** 범위.
 
 ---
@@ -91,7 +78,7 @@
 |-------|------|-------------|
 | **P0** | 사실 확인·계약 | 위 “추가 요청” 항목에 대한 Usimsa 답변, Bongtour↔Bongsim **도메인·링크** 확정 (`BONGTOUR_BONGSIM_INTEGRATION_BASE` 반영). |
 | **P1** | BONGSIM 스캐폴드 | 별도 앱/레포에서 카탈로그 UI(목 데이터), 정책 페이지, **서버 전용** env에 Access/Secret. |
-| **P2** | Usimsa 읽기 전용 | `GET /v2/products` 캐시·매핑(내부 SKU), (필요 시) **주문 조회/탑업 조회**로 상태 표시. |
+| **P2** | Usimsa 읽기 전용 | 엑셀 import SSOT + (필요 시) **주문 조회/탑업 조회**로 상태 표시. |
 | **P3** | 주문·발급 | `POST /v2/order`, 응답의 `topupId` 저장, **웹훅 수신**에서 LPA/QR 반영; 멱등·재시도 처리. |
 | **P4** | 운영 완성 | `cancel` / `extend` / `usim` 경로는 SKU 정책에 맞게 노출; `usage`는 마이페이지·디테일에 선택적 표시. |
 | **P5** | Bongtour 진입 | `/travel/esim`을 **봉심 URL로 리다이렉트** 또는 공식 위젯/iframe만 유지; 서브내비 `href` 변경은 북마크·SEO와 함께 릴리즈 노트. |

@@ -2,7 +2,8 @@
  * Supplier / fulfillment submission — 실 공급사 API 교체 지점.
  *
  * - Mock: `BONGSIM_SUPPLIER_CLIENT_ID` 미설정 또는 `bongsim_mock_supplier`.
- * - USIMSA: `BONGSIM_SUPPLIER_CLIENT_ID=usimsa` + `USIMSA_ACCESS_KEY` / `USIMSA_SECRET_KEY`.
+ * - USIMSA: `BONGSIM_SUPPLIER_CLIENT_ID=usimsa` + `USIMSA_SECRET_KEY` +
+ *   (`USIMSA_ACCESS_KEY` 레거시 또는 `USIMSA_DEV_ACCESS_KEY` / `USIMSA_PROD_ACCESS_KEY` + `USIMSA_ENV`).
  *
  * 새 공급사 추가 시:
  *   1) `BongsimSupplierClient` 구현체 작성
