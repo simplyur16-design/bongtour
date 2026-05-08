@@ -6,18 +6,11 @@
  */
 
 import crypto from "node:crypto";
+import { resolveSecretKey } from "../lib/usimsa/resolve-secret-key";
 
 const USIMSA_ORDER_URL = "https://open-api-dev.usimsa.com/api/v2/order";
 const OPTION_ID = "40FB98E5-12B6-EE11-B65E-6045BD45CB1E";
 const QTY = 4;
-
-function requireEnv(name: string): string {
-  const v = process.env[name]?.trim();
-  if (!v) {
-    throw new Error(`Missing env: ${name}`);
-  }
-  return v;
-}
 
 function usimsaSignature(secretKeyBase64: string, stringToSign: string): string {
   const key = Buffer.from(secretKeyBase64, "base64");
@@ -34,7 +27,7 @@ function accessKeyForDevScript(): string {
 
 async function main() {
   const accessKey = accessKeyForDevScript();
-  const secretKey = requireEnv("USIMSA_SECRET_KEY");
+  const secretKey = resolveSecretKey("development").secretKey;
 
   const timestamp = Date.now();
   const method = "POST";

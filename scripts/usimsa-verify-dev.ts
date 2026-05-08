@@ -8,7 +8,7 @@
 import {
   resolveUsimsaVerifyAccessKey,
   resolveUsimsaVerifyBaseUrl,
-  requireSecretKey,
+  resolveUsimsaVerifySecretKey,
   usimsaSignedGetJson,
 } from "./usimsa-verify-request";
 
@@ -19,7 +19,8 @@ async function main() {
 
   const baseUrl = resolveUsimsaVerifyBaseUrl("development");
   const { accessKey, source } = resolveUsimsaVerifyAccessKey("development");
-  const secretKey = requireSecretKey();
+  const secretMeta = resolveUsimsaVerifySecretKey("development");
+  const secretKey = secretMeta.secretKey;
 
   if (!accessKey) {
     console.error("Missing access key: set USIMSA_ACCESS_KEY (legacy) or USIMSA_DEV_ACCESS_KEY");
@@ -30,7 +31,9 @@ async function main() {
   console.log("baseUrl:", baseUrl);
   console.log("access_key_source:", source);
   console.log("access_key_length:", accessKey.length);
-  console.log("secret_key_length:", secretKey.length);
+  console.log("secret_key_source:", secretMeta.secret_key_source);
+  console.log("secret_key_env:", secretMeta.secret_key_env);
+  console.log("secret_key_length:", secretMeta.secret_key_length);
   console.log("GET path:", `/v2/topup/${TOPUP_ID}`);
 
   const { httpStatus, parsed } = await usimsaSignedGetJson({

@@ -1,10 +1,19 @@
 import "server-only";
 
+import { resolveSecretKey as resolveSecretKeyInner } from "@/lib/usimsa/resolve-secret-key";
+
 function trimOrEmpty(value: string | undefined): string {
   return (value ?? "").trim();
 }
 
 export type UsimsaRuntimeEnv = "development" | "production";
+
+export type { UsimsaSecretKeyResolution } from "@/lib/usimsa/resolve-secret-key";
+
+/** 시크릿 분기 — 구현은 `lib/usimsa/resolve-secret-key.ts`. */
+export function resolveSecretKey(runtimeEnv: UsimsaRuntimeEnv) {
+  return resolveSecretKeyInner(runtimeEnv);
+}
 
 function normalizeBaseUrl(url: string): string {
   return url.replace(/\/+$/, "");
@@ -56,13 +65,12 @@ export type UsimsaConfig = {
  * 키 분기:
  * - `USIMSA_ACCESS_KEY`가 비어 있지 않으면 **환경 무관**으로 그 키를 사용(레거시 호환).
  * - 비어 있으면 `USIMSA_ENV=production` → `USIMSA_PROD_ACCESS_KEY`, 아니면 `USIMSA_DEV_ACCESS_KEY`.
- * - 시크릿은 공통 `USIMSA_SECRET_KEY`.
+ * - 시크릿: `USIMSA_SECRET_KEY` 단일 값 우선(레거시). 없으면 `USIMSA_PROD_SECRET_KEY` / `USIMSA_DEV_SECRET_KEY`.
  */
 export function getUsimsaConfig(): UsimsaConfig {
   const env = resolveRuntimeEnv();
   const baseUrl = resolveBaseUrlFromEnv();
   const accessKey = resolveAccessKey(env);
-  const secretKey = trimOrEmpty(process.env.USIMSA_SECRET_KEY);
 
   if (!accessKey) {
     if (env === "production") {
@@ -75,11 +83,7 @@ export function getUsimsaConfig(): UsimsaConfig {
     );
   }
 
-  if (!secretKey) {
-    throw new Error(
-      "Usimsa: USIMSA_SECRET_KEY is missing. Add it in the server environment (e.g. .env.local).",
-    );
-  }
+  const { secretKey } = resolveSecretKeyInner(env);
 
   return {
     env,

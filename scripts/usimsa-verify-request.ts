@@ -4,6 +4,7 @@
  */
 
 import { createUsimsaSignature, createUsimsaTimestamp } from "../lib/usimsa/signature";
+import { resolveSecretKey } from "../lib/usimsa/resolve-secret-key";
 
 export type UsimsaVerifyMode = "development" | "production";
 
@@ -34,10 +35,19 @@ export function resolveUsimsaVerifyAccessKey(mode: UsimsaVerifyMode): {
   return { accessKey: k, source: "dev" };
 }
 
-export function requireSecretKey(): string {
-  const k = trim(process.env.USIMSA_SECRET_KEY);
-  if (!k) throw new Error("Missing USIMSA_SECRET_KEY");
-  return k;
+export function resolveUsimsaVerifySecretKey(mode: UsimsaVerifyMode): {
+  secretKey: string;
+  secret_key_source: "legacy_single" | "env_split";
+  secret_key_env: string;
+  secret_key_length: number;
+} {
+  const r = resolveSecretKey(mode);
+  return {
+    secretKey: r.secretKey,
+    secret_key_source: r.source,
+    secret_key_env: r.envVar,
+    secret_key_length: r.secretKey.length,
+  };
 }
 
 export type UsimsaSignedGetPrepared = {

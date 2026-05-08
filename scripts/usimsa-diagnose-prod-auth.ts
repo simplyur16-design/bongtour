@@ -8,6 +8,7 @@
 
 import { spawnSync } from "node:child_process";
 import { createUsimsaTimestamp } from "../lib/usimsa/signature";
+import { resolveSecretKey } from "../lib/usimsa/resolve-secret-key";
 import {
   maskHeadersForLog,
   snapshotUsimsaSignedGetRequest,
@@ -108,6 +109,8 @@ async function main(): Promise<void> {
   console.log("## 1. .env.local 키 무결성 (process.env, --env-file 로 주입 가정)\n");
   const rawProdAk = process.env.USIMSA_PROD_ACCESS_KEY;
   const rawSecret = process.env.USIMSA_SECRET_KEY;
+  const rawDevSk = process.env.USIMSA_DEV_SECRET_KEY;
+  const rawProdSk = process.env.USIMSA_PROD_SECRET_KEY;
   const rawDevAk = process.env.USIMSA_DEV_ACCESS_KEY;
   const rawLegacy = process.env.USIMSA_ACCESS_KEY;
 
@@ -115,6 +118,8 @@ async function main(): Promise<void> {
   console.log("|------|------------------|----------------|----------------|---------------|");
   printKeyTableRow("USIMSA_PROD_ACCESS_KEY", analyzeKeyValue("prod", rawProdAk));
   printKeyTableRow("USIMSA_SECRET_KEY", analyzeKeyValue("secret", rawSecret));
+  printKeyTableRow("USIMSA_DEV_SECRET_KEY", analyzeKeyValue("dev_sk", rawDevSk));
+  printKeyTableRow("USIMSA_PROD_SECRET_KEY", analyzeKeyValue("prod_sk", rawProdSk));
   printKeyTableRow("USIMSA_DEV_ACCESS_KEY", analyzeKeyValue("dev", rawDevAk));
   if (rawLegacy?.trim()) {
     console.log("\n(note) USIMSA_ACCESS_KEY 가 설정되어 있으면 verify-prod 스크립트는 레거시 키를 우선합니다. 매트릭스는 DEV/PROD 키만 사용합니다.");
@@ -122,7 +127,12 @@ async function main(): Promise<void> {
 
   console.log("\n## 2. raw 캡처 (prod 키 + prod URL, GET topup/test, 마스킹)\n");
   const prodAk = trim(rawProdAk);
-  const secret = trim(rawSecret);
+  let secret: string | null = null;
+  try {
+    secret = resolveSecretKey("production").secretKey;
+  } catch {
+    secret = trim(rawSecret) || null;
+  }
   if (prodAk && secret) {
     const ts = createUsimsaTimestamp();
     const p = snapshotUsimsaSignedGetRequest({
@@ -154,7 +164,7 @@ async function main(): Promise<void> {
     });
     console.log("→ 실제 응답 HTTP:", res.httpStatus);
   } else {
-    console.log("(skip: USIMSA_PROD_ACCESS_KEY 또는 USIMSA_SECRET_KEY 없음)");
+    console.log("(skip: USIMSA_PROD_ACCESS_KEY 없거나 prod 시크릿(USIMSA_PROD_SECRET_KEY / USIMSA_SECRET_KEY 레거시) 없음)");
   }
 
   console.log("\n## 문서 6.2 JS 샘플 대조 항목");
@@ -167,18 +177,29 @@ async function main(): Promise<void> {
   console.log("Date.now():", Date.now());
   console.log("(사용자) OS/NTP 시계가 실제 UTC와 크게 어긋나면 일부 API에서 거부될 수 있음 — 본 진단만으로는 USIMSA 정책 미확정.");
 
-  console.log("\n## 4. 키↔환경 4조합 (GET /v2/topup/test, 레거시 키 미사용)\n");
+  console.log("\n## 4. 키↔환경 4조합 (GET /v2/topup/test, 액세스 키 환경에 맞는 시크릿으로 서명)\n");
   const devAk = trim(rawDevAk);
-  const sk = trim(rawSecret);
+  let devSk: string | null = null;
+  let prodSkMatrix: string | null = null;
+  try {
+    devSk = resolveSecretKey("development").secretKey;
+  } catch {
+    devSk = trim(rawSecret) || null;
+  }
+  try {
+    prodSkMatrix = resolveSecretKey("production").secretKey;
+  } catch {
+    prodSkMatrix = trim(rawSecret) || null;
+  }
 
   const rows: Array<{ access: string; host: string; http: number; body: string }> = [];
-  const a = await runMatrixCell("dev+dev", DEV_BASE, devAk, sk);
+  const a = await runMatrixCell("dev+dev", DEV_BASE, devAk, devSk ?? "");
   rows.push({ access: "dev", host: "dev", ...a });
-  const b = await runMatrixCell("prod+prod", PROD_BASE, prodAk, sk);
+  const b = await runMatrixCell("prod+prod", PROD_BASE, prodAk, prodSkMatrix ?? "");
   rows.push({ access: "prod", host: "prod", ...b });
-  const c = await runMatrixCell("dev+prod", PROD_BASE, devAk, sk);
+  const c = await runMatrixCell("dev+prod", PROD_BASE, devAk, devSk ?? "");
   rows.push({ access: "dev", host: "prod", ...c });
-  const d = await runMatrixCell("prod+dev", DEV_BASE, prodAk, sk);
+  const d = await runMatrixCell("prod+dev", DEV_BASE, prodAk, prodSkMatrix ?? "");
   rows.push({ access: "prod", host: "dev", ...d });
 
   console.log("| access_key | host | HTTP | body (앞부분) |");
