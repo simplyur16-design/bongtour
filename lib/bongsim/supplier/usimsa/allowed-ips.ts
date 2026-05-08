@@ -11,8 +11,8 @@ export function getAllowedUsimsaWebhookIps(): string[] {
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
   }
-  const env = (process.env.USIMSA_ENV?.trim().toLowerCase() || "development");
-  const list = DEFAULT_IPS[env] ?? DEFAULT_IPS.development;
+  const env = process.env.USIMSA_ENV?.trim().toLowerCase() || "production";
+  const list = DEFAULT_IPS[env] ?? DEFAULT_IPS.production;
   return [...list];
 }
 

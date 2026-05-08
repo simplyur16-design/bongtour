@@ -1,5 +1,6 @@
 /**
- * USIMSA dev 호스트 인증·서명 스모크 (실주문 없음).
+ * USIMSA dev 호스트 인증·서명 스모크 (2순위·로컬 backward 호환). 실주문 없음.
+ * 운영 확정은 `scripts/usimsa-verify-prod.ts`를 우선 실행한다.
  *
  *   npx tsx --env-file=.env.local scripts/usimsa-verify-dev.ts
  */

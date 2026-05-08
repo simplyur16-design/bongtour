@@ -40,7 +40,7 @@ export function requireSecretKey(): string {
   return k;
 }
 
-/** 존재하지 않는 topupId로 조회 → 인증 통과 시 보통 HTTP 200 + code 1001 등 */
+/** 서명 GET (주문 조회·탑업 조회 등). 존재하지 않는 ID면 인증 통과 시 HTTP 200 + 업무 오류 code 가능. */
 export async function usimsaSignedGetJson(params: {
   baseUrl: string;
   accessKey: string;

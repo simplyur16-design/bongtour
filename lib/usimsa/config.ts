@@ -11,7 +11,7 @@ function normalizeBaseUrl(url: string): string {
 }
 
 function resolveRuntimeEnv(): UsimsaRuntimeEnv {
-  const e = trimOrEmpty(process.env.USIMSA_ENV).toLowerCase() || "development";
+  const e = trimOrEmpty(process.env.USIMSA_ENV).toLowerCase() || "production";
   return e === "production" ? "production" : "development";
 }
 
@@ -40,7 +40,7 @@ function resolveAccessKey(runtimeEnv: UsimsaRuntimeEnv): string {
 }
 
 export type UsimsaConfig = {
-  /** `USIMSA_ENV` 기준(기본 development). 베이스 URL 분기에 사용. */
+  /** `USIMSA_ENV` 기준(미설정 시 production). 베이스 URL·키 분기에 사용. */
   env: UsimsaRuntimeEnv;
   baseUrl: string;
   accessKey: string;
