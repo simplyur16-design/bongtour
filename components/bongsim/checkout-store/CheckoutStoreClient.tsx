@@ -23,9 +23,6 @@ type Props = {
   quantityInitial?: number;
 };
 
-// TODO: 오픈 시 제거 — 결제 점검용 임시 비활성화(플래그·onSubmit 가드·안내 문구·버튼 분기 전부 삭제)
-const BONGSIM_CHECKOUT_PAYMENT_PAUSED = false;
-
 function parseQtySearch(raw: string | null): number | undefined {
   if (raw == null || raw.trim() === "") return undefined;
   const n = Number.parseInt(raw.trim(), 10);
@@ -346,8 +343,6 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
   const onSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      // TODO: 오픈 시 제거
-      if (BONGSIM_CHECKOUT_PAYMENT_PAUSED) return;
       setSubmitError(null);
       if (!optionApiId || !detail) return;
       const originBase = typeof window !== "undefined" ? window.location.origin : "";
@@ -715,27 +710,12 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                   </p>
                 </div>
               ) : null}
-              {/* TODO: 오픈 시 제거 — 점검 안내 */}
-              {BONGSIM_CHECKOUT_PAYMENT_PAUSED ? (
-                <p className="text-sm text-amber-600">
-                  현재 결제 시스템 점검 중입니다. 곧 서비스가 오픈됩니다.
-                </p>
-              ) : null}
-              {/* TODO: 오픈 시 제거 — 비활성 결제 버튼 스타일·분기 */}
               <button
-                type={BONGSIM_CHECKOUT_PAYMENT_PAUSED ? "button" : "submit"}
-                disabled={BONGSIM_CHECKOUT_PAYMENT_PAUSED || submitting}
-                className={
-                  BONGSIM_CHECKOUT_PAYMENT_PAUSED
-                    ? "w-full cursor-not-allowed rounded-xl bg-gray-400 px-4 py-3 text-lg font-semibold text-white lg:py-4"
-                    : "w-full rounded-xl bg-teal-700 px-4 py-3 text-lg font-semibold text-white hover:bg-teal-800 disabled:opacity-60 lg:py-4"
-                }
+                type="submit"
+                disabled={submitting}
+                className="w-full rounded-xl bg-teal-700 px-4 py-3 text-lg font-semibold text-white hover:bg-teal-800 disabled:opacity-60 lg:py-4"
               >
-                {BONGSIM_CHECKOUT_PAYMENT_PAUSED
-                  ? "결제 준비 중 (곧 오픈 예정)"
-                  : submitting
-                    ? "처리 중…"
-                    : "다음: 결제 진행"}
+                {submitting ? "처리 중…" : "다음: 결제 진행"}
               </button>
               <EsimSupportFootnote useCheckoutOpenChat className="mt-3 text-center text-xs" />
             </form>

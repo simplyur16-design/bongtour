@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/bongsim/db/pool";
@@ -68,11 +67,17 @@ export async function GET(req: Request) {
 
     const norm = await fetchUsimsaTopupDailyUsage(topupId);
     if (!isUsimsaSuccess(norm.code)) {
+      console.error("[bongsim/mypage/usage] USIMSA upstream error", {
+        orderId,
+        topupId,
+        code: norm.code,
+        message: norm.message,
+      });
+      const userMsg = "사용량 조회에 실패했습니다. 잠시 후 다시 시도해주세요.";
       return jsonWithLeakGuard(
         {
           error: "usimsa_error",
-          code: norm.code,
-          message: norm.message,
+          user_message: userMsg,
           topup_id: topupId,
           allowance_label: allowanceLabel,
           unlimited: allowance.unlimited,
@@ -97,8 +102,15 @@ export async function GET(req: Request) {
     }, "bongsim.mypage.usage.detail");
   } catch (e) {
     if (e instanceof UsimsaRequestError) {
+      console.error("[bongsim/mypage/usage] UsimsaRequestError", {
+        message: e.message,
+        status: e.status,
+        path: e.pathAndQuery,
+        body: e.responseBody,
+      });
+      const userMsg = "사용량 조회에 실패했습니다. 잠시 후 다시 시도해주세요.";
       return jsonWithLeakGuard(
-        { error: "usimsa_http", status: e.status, message: e.message },
+        { error: "usimsa_http", user_message: userMsg },
         "bongsim.mypage.usage.detail",
         { status: 502 },
       );

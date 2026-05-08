@@ -15,23 +15,24 @@ type Body = {
 };
 
 export async function POST(req: Request) {
-  const pool = getPgPool();
-  if (!pool) {
-    return jsonWithLeakGuard({ ok: false, error: "데이터베이스가 설정되지 않았습니다." }, "bongsim.coupon.validate", {
-      status: 503,
-    });
-  }
-
-  let body: Body;
   try {
-    body = (await req.json()) as Body;
-  } catch {
-    return jsonWithLeakGuard({ ok: false, error: "요청 본문이 올바르지 않습니다." }, "bongsim.coupon.validate", {
-      status: 400,
-    });
-  }
+    const pool = getPgPool();
+    if (!pool) {
+      return jsonWithLeakGuard({ ok: false, error: "데이터베이스가 설정되지 않았습니다." }, "bongsim.coupon.validate", {
+        status: 503,
+      });
+    }
 
-  if (Array.isArray(body.code) || Array.isArray(body.user_coupon_id)) {
+    let body: Body;
+    try {
+      body = (await req.json()) as Body;
+    } catch {
+      return jsonWithLeakGuard({ ok: false, error: "요청 본문이 올바르지 않습니다." }, "bongsim.coupon.validate", {
+        status: 400,
+      });
+    }
+
+    if (Array.isArray(body.code) || Array.isArray(body.user_coupon_id)) {
     return jsonWithLeakGuard({ ok: false, error: "쿠폰은 하나만 적용할 수 있습니다." }, "bongsim.coupon.validate", {
       status: 400,
     });
@@ -120,5 +121,11 @@ export async function POST(req: Request) {
     );
   } finally {
     c.release();
+  }
+  } catch (err) {
+    console.error("[bongsim/coupon/validate]", err);
+    return jsonWithLeakGuard({ ok: false, error: "처리 중 오류가 발생했습니다." }, "bongsim.coupon.validate", {
+      status: 500,
+    });
   }
 }

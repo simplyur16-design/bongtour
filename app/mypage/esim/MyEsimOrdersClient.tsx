@@ -92,9 +92,11 @@ export default function MyEsimOrdersClient() {
       const res = await fetch(`/api/bongsim/mypage/usage?orderId=${encodeURIComponent(orderId)}`, {
         cache: "no-store",
       });
-      const j = (await res.json()) as UsageResponse & { error?: string; message?: string };
+      const j = (await res.json()) as UsageResponse & { error?: string; user_message?: string };
       if (!res.ok) {
-        throw new Error(j.error === "no_topup" ? "아직 발급 정보가 없습니다." : j.message ?? j.error ?? "조회 실패");
+        const generic = "사용량 조회에 실패했습니다. 잠시 후 다시 시도해주세요.";
+        const um = typeof j.user_message === "string" && j.user_message.trim() ? j.user_message.trim() : null;
+        throw new Error(j.error === "no_topup" ? "아직 발급 정보가 없습니다." : um ?? generic);
       }
       setUsage(j);
     } catch (e) {
