@@ -95,7 +95,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (Object.keys(patch).length > 0) {
         await prisma.user.update({ where: { id: user.id! }, data: patch })
       }
-      void runNewUserCouponBootstrap(user.id!).catch((e) => {
+      void runNewUserCouponBootstrap(user.id!).then((r) => {
+        if (!r.welcomeIssued && r.reason !== 'ok') {
+          console.warn('[auth:createUser] coupon_bootstrap', r.reason)
+        }
+      }).catch((e) => {
         console.warn('[auth:createUser] coupon_bootstrap', e)
       })
     },

@@ -87,8 +87,6 @@ export async function issueUserCoupon(
   const qargs: unknown[] = [userId, userEmail, sourceId, expiresAt, notes, period];
   if (params.slot === "welcome") {
     existsClause = `EXISTS (SELECT 1 FROM bongsim_user_coupon x WHERE x.user_id = $1::text AND x.issued_via = 'welcome')`;
-  } else if (params.slot === "referral_invitee") {
-    existsClause = `EXISTS (SELECT 1 FROM bongsim_user_coupon x WHERE x.user_id = $1::text AND x.issued_via = 'referral_invitee')`;
   } else if (params.slot === "review" && notes) {
     existsClause = `EXISTS (SELECT 1 FROM bongsim_user_coupon x WHERE x.user_id = $1::text AND x.issued_via = 'review' AND x.notes IS NOT DISTINCT FROM $5::text)`;
   }

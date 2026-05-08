@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -11,9 +11,6 @@ export default function EmailRegisterForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
-  const [referredByCode, setReferredByCode] = useState('')
-  const [refCheck, setRefCheck] = useState<'idle' | 'checking' | 'ok' | 'notfound' | 'badformat'>('idle')
-  const refDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [err, setErr] = useState('')
   const [passwordConfirmErr, setPasswordConfirmErr] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,46 +21,9 @@ export default function EmailRegisterForm() {
   const [hpWebsite, setHpWebsite] = useState('')
 
   useEffect(() => {
-    const fromUrl = searchParams?.get('ref')?.trim()
-    if (!fromUrl) return
-    setReferredByCode((prev) => (prev.trim() ? prev : fromUrl.toUpperCase()))
+    const mc = searchParams?.get('marketingConsent')?.trim().toLowerCase()
+    if (mc === '1' || mc === 'true') setMarketingConsent(true)
   }, [searchParams])
-
-  const checkReferral = useCallback(async (raw: string) => {
-    const c = raw.trim().toUpperCase()
-    if (!c) {
-      setRefCheck('idle')
-      return
-    }
-    if (!/^BONG-[0-9A-F]{6}$/.test(c)) {
-      setRefCheck('badformat')
-      return
-    }
-    setRefCheck('checking')
-    try {
-      const res = await fetch(`/api/public/referral/check?code=${encodeURIComponent(c)}`)
-      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; status?: string }
-      if (j.ok === true && j.status === 'ok') setRefCheck('ok')
-      else setRefCheck('notfound')
-    } catch {
-      setRefCheck('notfound')
-    }
-  }, [])
-
-  useEffect(() => {
-    if (refDebounceRef.current) clearTimeout(refDebounceRef.current)
-    const v = referredByCode.trim().toUpperCase()
-    if (!v) {
-      setRefCheck('idle')
-      return
-    }
-    refDebounceRef.current = setTimeout(() => {
-      void checkReferral(v)
-    }, 450)
-    return () => {
-      if (refDebounceRef.current) clearTimeout(refDebounceRef.current)
-    }
-  }, [referredByCode, checkReferral])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -95,7 +55,6 @@ export default function EmailRegisterForm() {
           email: email.trim().toLowerCase(),
           password,
           passwordConfirm,
-          referredByCode: referredByCode.trim() ? referredByCode.trim().toUpperCase() : undefined,
           website: hpWebsite,
           privacyNoticeConfirmed: privacyConfirmed,
           privacyNoticeVersion: 'member-privacy-v1',
@@ -203,29 +162,6 @@ export default function EmailRegisterForm() {
         />
         {passwordConfirmErr ? <p className="mt-1 text-sm text-bt-danger">{passwordConfirmErr}</p> : null}
       </div>
-      <div>
-        <label htmlFor="reg-ref" className="mb-1 block text-xs font-medium text-bt-body">
-          추천인 코드 <span className="text-slate-400">(선택)</span>
-        </label>
-        <input
-          id="reg-ref"
-          type="text"
-          value={referredByCode}
-          onChange={(e) => setReferredByCode(e.target.value.toUpperCase())}
-          placeholder="예: BONG-ABC123"
-          autoComplete="off"
-          className="w-full rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
-          maxLength={16}
-        />
-        {refCheck === 'checking' ? <p className="mt-1 text-xs text-slate-500">추천 코드 확인 중…</p> : null}
-        {refCheck === 'ok' ? <p className="mt-1 text-xs text-emerald-600">사용 가능한 추천 코드입니다.</p> : null}
-        {refCheck === 'notfound' ? (
-          <p className="mt-1 text-xs text-amber-700">등록되지 않은 코드입니다. 오타를 확인해 주세요.</p>
-        ) : null}
-        {refCheck === 'badformat' && referredByCode.trim() ? (
-          <p className="mt-1 text-xs text-slate-500">형식: BONG- 뒤에 영숫자 6자리 (예: BONG-A1B2C3)</p>
-        ) : null}
-      </div>
       <div className="rounded-lg border border-slate-200 bg-white p-3">
         <button
           type="button"
@@ -274,6 +210,9 @@ export default function EmailRegisterForm() {
             <p>2. 이용 목적: 서비스 소식/이벤트 안내, 혜택·프로모션·맞춤형 제안 제공, 뉴스레터 및 마케팅 정보 발송</p>
             <p>3. 보유 및 이용 기간: 동의일로부터 2년 또는 동의 철회 시까지</p>
             <p>4. 동의 거부 권리: 동의하지 않아도 회원가입 및 기본 서비스 이용에는 제한이 없습니다.</p>
+            <p className="font-medium text-slate-800">
+              가입 환영 쿠폰은 마케팅 수신 동의 시에만 발급됩니다.
+            </p>
           </div>
         ) : null}
         <label className="mt-3 flex items-start gap-2 text-sm text-slate-700">

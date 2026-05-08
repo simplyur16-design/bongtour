@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 type Tab = "active" | "used" | "expired";
@@ -125,13 +124,7 @@ export default function CouponsClient() {
       {!loading && !err && data && rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-teal-200 bg-teal-50/40 p-8 text-center text-sm text-slate-700">
           <p>아직 표시할 쿠폰이 없습니다.</p>
-          <p className="mt-3">
-            추천인 코드를 입력하면 즉시{" "}
-            <Link href="/mypage/referral" className="font-semibold text-teal-700 underline underline-offset-2">
-              5,000원
-            </Link>
-            <span className="whitespace-nowrap"> 혜택이 있을 수 있어요 →</span>
-          </p>
+          <p className="mt-3 text-slate-600">이벤트·프로모션을 통해 쿠폰이 발급되면 여기에 표시됩니다.</p>
         </div>
       ) : null}
 

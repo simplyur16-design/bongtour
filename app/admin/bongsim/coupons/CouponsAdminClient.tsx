@@ -26,8 +26,6 @@ type CouponRow = {
 const TEMPLATE_CODE_SLOT: Record<string, string> = {
   __TPL_WELCOME_BONUS: "welcome",
   __TPL_REVIEW_REWARD: "review",
-  __TPL_REFERRAL_INVITER: "referral_inviter",
-  __TPL_REFERRAL_INVITEE: "referral_invitee",
 };
 
 function slotIndicator(code: string): string | null {
@@ -76,9 +74,7 @@ export default function CouponsAdminClient() {
   const [issueEmail, setIssueEmail] = useState("");
   const [issueTemplateCode, setIssueTemplateCode] = useState("");
   const [issueNotes, setIssueNotes] = useState("");
-  const [issueIssuedVia, setIssueIssuedVia] = useState<
-    "admin_manual" | "welcome" | "review" | "referral_inviter" | "referral_invitee"
-  >("admin_manual");
+  const [issueIssuedVia, setIssueIssuedVia] = useState<"admin_manual" | "welcome" | "review">("admin_manual");
 
   const load = useCallback(async () => {
     setLoadErr(null);
@@ -737,7 +733,7 @@ export default function CouponsAdminClient() {
                 value={issueIssuedVia}
                 onChange={(e) =>
                   setIssueIssuedVia(
-                    e.target.value as "admin_manual" | "welcome" | "review" | "referral_inviter" | "referral_invitee",
+                    e.target.value as "admin_manual" | "welcome" | "review",
                   )
                 }
                 className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
@@ -745,8 +741,6 @@ export default function CouponsAdminClient() {
                 <option value="admin_manual">admin_manual — 템플릿 코드 지정</option>
                 <option value="welcome">welcome — 시스템 템플릿</option>
                 <option value="review">review — 시스템 템플릿</option>
-                <option value="referral_inviter">referral_inviter — 시스템 템플릿</option>
-                <option value="referral_invitee">referral_invitee — 시스템 템플릿</option>
               </select>
             </label>
             {issueIssuedVia === "admin_manual" ? (

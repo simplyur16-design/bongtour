@@ -3,12 +3,7 @@ import type { BongsimCouponDbRow } from "@/lib/bongsim/data/bongsim-coupon";
 
 export { isReservedTemplateCode } from "@/lib/coupon/reserved-template-code";
 
-export type IssuanceSlot =
-  | "welcome"
-  | "review"
-  | "referral_inviter"
-  | "referral_invitee"
-  | "admin_manual";
+export type IssuanceSlot = "welcome" | "review" | "admin_manual";
 
 export type IssuanceTemplateRow = BongsimCouponDbRow & {
   template_validity_days: number | null;
@@ -20,8 +15,6 @@ export const SLOT_TO_TEMPLATE_CODE: Omit<Record<IssuanceSlot, string>, "admin_ma
 } = {
   welcome: "__TPL_WELCOME_BONUS",
   review: "__TPL_REVIEW_REWARD",
-  referral_inviter: "__TPL_REFERRAL_INVITER",
-  referral_invitee: "__TPL_REFERRAL_INVITEE",
   admin_manual: "__RUNTIME__",
 };
 

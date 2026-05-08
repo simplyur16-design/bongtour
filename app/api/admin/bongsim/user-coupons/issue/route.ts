@@ -6,13 +6,12 @@ import { requireAdmin } from "@/lib/require-admin";
 
 export const dynamic = "force-dynamic";
 
-/** 어드민 발급 — birthday 슬롯 금지(정책). */
-const SLOT_ISSUE: readonly IssuanceSlot[] = ["welcome", "review", "referral_inviter", "referral_invitee"];
+/** 어드민 슬롯 발급 — birthday·referral 계열 금지(정책). */
+const SLOT_ISSUE: readonly IssuanceSlot[] = ["welcome", "review"];
 
 type IssueBody = {
   userEmail?: string;
   sourceCouponCode?: string;
-  /** welcome | review | referral_* | admin_manual — birthday 불가 */
   issuedVia?: string | null;
   notes?: string | null;
 };
@@ -35,6 +34,9 @@ export async function POST(req: Request) {
   const issuedViaRaw = typeof body.issuedVia === "string" ? body.issuedVia.trim() : "admin_manual";
   if (issuedViaRaw === "birthday") {
     return jsonWithLeakGuard({ error: "birthday_slot_disabled" }, "admin.bongsim.user-coupons.issue", { status: 400 });
+  }
+  if (issuedViaRaw === "referral_invitee" || issuedViaRaw === "referral_inviter") {
+    return jsonWithLeakGuard({ error: "referral_slot_disabled" }, "admin.bongsim.user-coupons.issue", { status: 400 });
   }
 
   const sourceCouponCode = typeof body.sourceCouponCode === "string" ? body.sourceCouponCode.trim() : "";

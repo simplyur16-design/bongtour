@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto'
 import { NextResponse } from 'next/server'
 import {
+  NAVER_OAUTH_MARKETING_CONSENT_COOKIE,
   NAVER_OAUTH_REDIRECT_COOKIE,
   NAVER_OAUTH_STATE_COOKIE,
   buildNaverOAuthStateCookieOptions,
@@ -26,6 +27,8 @@ export async function GET(request: Request) {
   const cb = searchParams.get('callbackUrl') ?? '/'
   const normalized = cb.startsWith('/') ? cb : `/${cb}`
   const encodedRedirect = encodeURIComponent(normalized)
+  const mcRaw = searchParams.get('marketingConsent') ?? ''
+  const marketingConsentFlag = mcRaw === '1' || mcRaw.toLowerCase() === 'true'
 
   const authorize = new URL('https://nid.naver.com/oauth2.0/authorize')
   authorize.searchParams.set('response_type', 'code')
@@ -47,5 +50,6 @@ export async function GET(request: Request) {
   const res = NextResponse.redirect(authorize.toString())
   res.cookies.set(NAVER_OAUTH_STATE_COOKIE, state, cookieOpts)
   res.cookies.set(NAVER_OAUTH_REDIRECT_COOKIE, encodedRedirect, cookieOpts)
+  res.cookies.set(NAVER_OAUTH_MARKETING_CONSENT_COOKIE, marketingConsentFlag ? '1' : '0', cookieOpts)
   return res
 }

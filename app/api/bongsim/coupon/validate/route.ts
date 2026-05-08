@@ -31,6 +31,12 @@ export async function POST(req: Request) {
     });
   }
 
+  if (Array.isArray(body.code) || Array.isArray(body.user_coupon_id)) {
+    return jsonWithLeakGuard({ ok: false, error: "쿠폰은 하나만 적용할 수 있습니다." }, "bongsim.coupon.validate", {
+      status: 400,
+    });
+  }
+
   const option_api_id = typeof body.option_api_id === "string" ? body.option_api_id.trim() : "";
   const qRaw = body.quantity;
   const quantity =

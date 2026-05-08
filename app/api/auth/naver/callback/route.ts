@@ -5,6 +5,7 @@ import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import { appendNaverSessionCookie, redirectAfterNaverLogin } from '@/lib/naver-auth-session'
 import type { NaverTokenResponse, NaverProfileResponse } from '@/lib/naver-oauth-types'
 import {
+  NAVER_OAUTH_MARKETING_CONSENT_COOKIE,
   NAVER_OAUTH_REDIRECT_COOKIE,
   NAVER_OAUTH_STATE_COOKIE,
   clearNaverOAuthStateCookies,
@@ -16,6 +17,7 @@ import {
 } from '@/lib/naver-oauth-public'
 import { readCookieFromRequestHeader } from '@/lib/parse-cookie-header'
 import { prisma } from '@/lib/prisma'
+import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
 
 export const dynamic = 'force-dynamic'
 
@@ -125,6 +127,16 @@ export async function GET(request: Request) {
     cookieStore.get(NAVER_OAUTH_REDIRECT_COOKIE)?.value ??
       readCookieFromRequestHeader(request, NAVER_OAUTH_REDIRECT_COOKIE)
   )
+
+  const marketingCookie =
+    cookieStore.get(NAVER_OAUTH_MARKETING_CONSENT_COOKIE)?.value ??
+    readCookieFromRequestHeader(request, NAVER_OAUTH_MARKETING_CONSENT_COOKIE)
+  const oauthMarketingConsent = marketingCookie === '1'
+  const oauthMarketingData = {
+    marketingConsent: oauthMarketingConsent,
+    marketingConsentAt: oauthMarketingConsent ? new Date() : null,
+    marketingConsentVersion: oauthMarketingConsent ? 'oauth-marketing-v1' : null,
+  } as const
 
   const clientId = process.env.NAVER_CLIENT_ID?.trim()
   const clientSecret = process.env.NAVER_CLIENT_SECRET?.trim()
@@ -279,6 +291,7 @@ export async function GET(request: Request) {
           socialProvider: 'naver',
           socialProviderUserId: naverId,
           lastLoginAt: new Date(),
+          ...oauthMarketingData,
           ...(role ? { role } : {}),
           accounts: {
             create: {
@@ -291,6 +304,13 @@ export async function GET(request: Request) {
         },
       })
       userId = created.id
+      void runNewUserCouponBootstrap(userId)
+        .then((r) => {
+          if (!r.welcomeIssued && r.reason !== 'ok') {
+            console.warn('[auth/naver] coupon_bootstrap', r.reason)
+          }
+        })
+        .catch((e) => console.warn('[auth/naver] coupon_bootstrap', e))
     }
   } else {
     const created = await prisma.user.create({
@@ -302,6 +322,7 @@ export async function GET(request: Request) {
         socialProvider: 'naver',
         socialProviderUserId: naverId,
         lastLoginAt: new Date(),
+        ...oauthMarketingData,
         accounts: {
           create: {
             type: 'oauth',
@@ -313,6 +334,13 @@ export async function GET(request: Request) {
       },
     })
     userId = created.id
+    void runNewUserCouponBootstrap(userId)
+      .then((r) => {
+        if (!r.welcomeIssued && r.reason !== 'ok') {
+          console.warn('[auth/naver] coupon_bootstrap', r.reason)
+        }
+      })
+      .catch((e) => console.warn('[auth/naver] coupon_bootstrap', e))
   }
 
   const full = await prisma.user.findUnique({

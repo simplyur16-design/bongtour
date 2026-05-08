@@ -79,12 +79,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '개인정보 안내 버전 정보가 누락되었습니다.' }, { status: 400 })
   }
 
-  let referredByCode: string | null =
-    typeof o.referredByCode === 'string' && o.referredByCode.trim() ? o.referredByCode.trim().toUpperCase() : null
-  if (referredByCode && !/^BONG-[0-9A-F]{6}$/.test(referredByCode)) {
-    return NextResponse.json({ error: '추천 코드 형식이 올바르지 않습니다.' }, { status: 400 })
-  }
-
   const exists = await prisma.user.findUnique({ where: { email }, select: { id: true } })
   if (exists) {
     return NextResponse.json({ error: '이미 가입된 이메일입니다.' }, { status: 409 })
@@ -106,13 +100,15 @@ export async function POST(req: Request) {
       marketingConsent,
       marketingConsentAt: marketingConsent ? new Date() : null,
       marketingConsentVersion: marketingConsent ? marketingConsentVersion || 'member-marketing-v1' : null,
-      referredByCode: referredByCode ?? undefined,
-      referredAt: referredByCode ? new Date() : undefined,
     },
     select: { id: true, email: true },
   })
 
-  void runNewUserCouponBootstrap(user.id).catch((e) => {
+  void runNewUserCouponBootstrap(user.id).then((r) => {
+    if (!r.welcomeIssued && r.reason !== 'ok') {
+      console.warn('[auth/register] coupon_bootstrap', r.reason)
+    }
+  }).catch((e) => {
     console.warn('[auth/register] coupon_bootstrap', e)
   })
 

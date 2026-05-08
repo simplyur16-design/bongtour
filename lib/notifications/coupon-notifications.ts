@@ -3,9 +3,9 @@
  *
  * 트리거 ↔ 헬퍼 연결 표 (기존 프롬프트의 LMS 발송 문구 대체):
  * - G-1 가입 보너스 → `notifyCouponWelcome`
- * - G-2 추천 가입자 → `notifyCouponReferralInvitee`
+ * - (deprecated 4차-A) 추천 → `notifyCouponReferralInvitee` — 호출 경로 제거됨
  * - G-3 리뷰 보상 → `notifyCouponReviewReward`
- * - D-5 추천인 지연 발급 → `notifyCouponReferralInviter`
+ * - (deprecated 4차-A) 추천인 보상 → `notifyCouponReferralInviter` — 호출 경로 제거됨
  * - H-2 만료 임박 cron → `notifyCouponExpiry`
  *
  * 저장소 내 해당 트리거 구현이 생기면 위 함수를 해당 지점에서 `await` 호출하면 된다.
@@ -113,6 +113,7 @@ export async function notifyCouponReviewReward(
   )
 }
 
+/** @deprecated 4차-A referral 폐기 — 레지스트리·타입 호환용, 신규 호출 금지. */
 export async function notifyCouponReferralInvitee(
   user: CouponNotifyUser,
   userCoupon: CouponNotifyGrant,
@@ -140,6 +141,7 @@ export async function notifyCouponReferralInvitee(
   )
 }
 
+/** @deprecated 4차-A referral 폐기 — 레지스트리·타입 호환용, 신규 호출 금지. */
 export async function notifyCouponReferralInviter(
   inviter: CouponNotifyUser,
   userCoupon: CouponNotifyGrant,

@@ -8,6 +8,8 @@ import { publicOriginIfLoopbackRequest } from '@/lib/oauth-loopback-public-origi
 
 export const NAVER_OAUTH_STATE_COOKIE = 'naver_oauth_state'
 export const NAVER_OAUTH_REDIRECT_COOKIE = 'naver_oauth_redirect'
+/** authorize 단계에서 설정, callback 에서 읽고 삭제. 값: '1' | '0' */
+export const NAVER_OAUTH_MARKETING_CONSENT_COOKIE = 'naver_oauth_marketing'
 const NAVER_CALLBACK_PATH = '/api/auth/naver/callback'
 const STATE_MAX_AGE_SEC = 60 * 10
 
@@ -153,6 +155,7 @@ export function clearNaverOAuthStateCookies(res: NextResponse, request: Request)
   const cleared: NaverOAuthStateCookieOptions = { ...o, maxAge: 0 }
   res.cookies.set(NAVER_OAUTH_STATE_COOKIE, '', cleared)
   res.cookies.set(NAVER_OAUTH_REDIRECT_COOKIE, '', cleared)
+  res.cookies.set(NAVER_OAUTH_MARKETING_CONSENT_COOKIE, '', cleared)
 }
 
 export function naverOAuthVerboseLog(): boolean {

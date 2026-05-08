@@ -31,6 +31,24 @@ export async function POST(req: Request) {
       ? { ...(body as Record<string, unknown>), ...(uid ? { bongtour_user_id: uid } : {}) }
       : body;
 
+  const raw = merged && typeof merged === "object" ? (merged as Record<string, unknown>) : {};
+  if (Array.isArray(raw.coupon_id) || Array.isArray(raw.user_coupon_id)) {
+    return jsonWithLeakGuard(
+      { schema: "bongsim.checkout_confirm.error.v1", error: "validation", details: { coupon: "must_be_scalar" } },
+      "bongsim.checkout.confirm",
+      { status: 400 },
+    );
+  }
+  const pubC = typeof raw.coupon_id === "string" ? raw.coupon_id.trim() : "";
+  const usrC = typeof raw.user_coupon_id === "string" ? raw.user_coupon_id.trim() : "";
+  if (pubC && usrC) {
+    return jsonWithLeakGuard(
+      { schema: "bongsim.checkout_confirm.error.v1", error: "validation", details: { coupon: "at_most_one_per_order" } },
+      "bongsim.checkout.confirm",
+      { status: 400 },
+    );
+  }
+
   const res = await checkoutCreateOrderFromRequest(merged);
   if (!res.ok) {
     if (res.reason === "validation") {

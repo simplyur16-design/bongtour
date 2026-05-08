@@ -11,6 +11,8 @@ import { publicOriginIfLoopbackRequest } from '@/lib/oauth-loopback-public-origi
 
 export const KAKAO_OAUTH_STATE_COOKIE = 'kakao_oauth_state'
 export const KAKAO_OAUTH_REDIRECT_COOKIE = 'kakao_oauth_redirect'
+/** authorize 단계에서 설정, callback 에서 읽고 삭제. 값: '1' | '0' */
+export const KAKAO_OAUTH_MARKETING_CONSENT_COOKIE = 'kakao_oauth_marketing'
 const KAKAO_CALLBACK_PATH = '/api/auth/kakao/callback'
 const STATE_MAX_AGE_SEC = 60 * 10
 
@@ -146,6 +148,7 @@ export function clearKakaoOAuthStateCookies(res: NextResponse, request: Request)
   const cleared: KakaoOAuthStateCookieOptions = { ...o, maxAge: 0 }
   res.cookies.set(KAKAO_OAUTH_STATE_COOKIE, '', cleared)
   res.cookies.set(KAKAO_OAUTH_REDIRECT_COOKIE, '', cleared)
+  res.cookies.set(KAKAO_OAUTH_MARKETING_CONSENT_COOKIE, '', cleared)
 }
 
 export function kakaoOAuthVerboseLog(): boolean {

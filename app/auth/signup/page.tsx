@@ -1,7 +1,6 @@
 import Link from 'next/link'
-import KakaoLoginButton from '@/app/components/auth/KakaoLoginButton'
-import NaverLoginLink from '@/app/components/auth/NaverLoginLink'
 import Header from '@/app/components/Header'
+import SignUpClient from './SignUpClient'
 
 type Props = {
   searchParams: Promise<{ callbackUrl?: string }>
@@ -9,6 +8,7 @@ type Props = {
 
 export default async function SignUpPage({ searchParams }: Props) {
   const { callbackUrl } = await searchParams
+  const cb = callbackUrl ?? '/'
   const kakaoOn = Boolean(process.env.KAKAO_CLIENT_ID?.trim() && process.env.KAKAO_CLIENT_SECRET?.trim())
   const naverOn = Boolean(process.env.NAVER_CLIENT_ID?.trim() && process.env.NAVER_CLIENT_SECRET?.trim())
 
@@ -21,43 +21,7 @@ export default async function SignUpPage({ searchParams }: Props) {
           이메일 또는 소셜 계정으로 시작할 수 있습니다. 상품 탐색은 로그인 없이도 이용할 수 있습니다.
         </p>
 
-        <div className="flex w-full flex-col gap-3">
-          <Link
-            href="/auth/signup/email"
-            className="flex w-full items-center justify-center rounded-lg border border-bt-cta-secondary-border bg-bt-cta-secondary px-5 py-3 text-[15px] font-medium text-bt-cta-secondary-text shadow-sm transition hover:border-bt-border-strong hover:bg-bt-surface-soft"
-          >
-            이메일로 시작하기
-          </Link>
-
-          {kakaoOn || naverOn ? (
-            <>
-              <div className="relative py-1 text-center text-xs text-bt-subtle">
-                <span className="relative z-10 bg-beige px-2">또는</span>
-                <span className="absolute inset-x-0 top-1/2 z-0 h-px -translate-y-1/2 bg-bt-border-soft" aria-hidden />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {naverOn ? (
-                  <NaverLoginLink callbackUrl={callbackUrl ?? '/'} className="w-full justify-center rounded-lg">
-                    네이버로 시작하기
-                  </NaverLoginLink>
-                ) : null}
-                {kakaoOn ? (
-                  <KakaoLoginButton callbackUrl={callbackUrl ?? '/'} className="w-full justify-center rounded-lg">
-                    카카오로 시작하기
-                  </KakaoLoginButton>
-                ) : null}
-              </div>
-              <p className="text-center text-[11px] leading-relaxed text-bt-meta">
-                소셜 가입은 카카오·네이버를 지원합니다.
-              </p>
-            </>
-          ) : (
-            <p className="text-center text-[11px] leading-relaxed text-bt-meta">
-              카카오·네이버 연동 시 서버에 각 CLIENT_ID / CLIENT_SECRET 을 설정하면 여기에서 소셜 가입이 열립니다.
-            </p>
-          )}
-        </div>
+        <SignUpClient callbackUrl={cb} kakaoOn={kakaoOn} naverOn={naverOn} />
 
         <p className="mt-8 text-center text-sm text-bt-body">
           이미 계정이 있으신가요?{' '}

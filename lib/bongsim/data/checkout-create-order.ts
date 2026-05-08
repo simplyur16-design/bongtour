@@ -261,6 +261,9 @@ function mapOrderRow(order: OrderRow, lines: BongsimOrderV1["order"]["lines"]): 
 function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirmRequestV1 } | { ok: false; details: Record<string, string> } {
   if (!body || typeof body !== "object") return { ok: false, details: { body: "invalid_json" } };
   const o = body as Record<string, unknown>;
+  if (Array.isArray(o.coupon_id) || Array.isArray(o.user_coupon_id)) {
+    return { ok: false, details: { coupon: "must_be_scalar" } };
+  }
   const option_api_id = typeof o.option_api_id === "string" ? o.option_api_id.trim() : "";
   const buyer_email = typeof o.buyer_email === "string" ? o.buyer_email.trim() : "";
   const idempotency_key = typeof o.idempotency_key === "string" ? o.idempotency_key.trim() : "";
@@ -412,6 +415,10 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const snapshot = buildLineSnapshot(opt, basis_key, unit_krw);
 
     let discount_krw = 0;
+    if (req.coupon_id && req.user_coupon_id) {
+      await client.query("ROLLBACK");
+      return { ok: false, reason: "validation", details: { coupon: "at_most_one_coupon_per_order" } };
+    }
     if (req.user_coupon_id && req.bongtour_user_id && req.coupon_discount_krw != null) {
       const uv = await validateUserCouponForOrderInsert(client, {
         user_coupon_id: req.user_coupon_id,

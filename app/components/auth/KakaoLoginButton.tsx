@@ -4,6 +4,8 @@ type Props = {
   children?: React.ReactNode
   /** primary: 공식 노란 버튼 · minimal: 헤더 등 보조 액션 */
   variant?: 'primary' | 'minimal'
+  /** OAuth 시작 시 HttpOnly 쿠키로 전달 → 가입 시 marketingConsent 저장 */
+  marketingConsent?: boolean
 }
 
 /**
@@ -15,10 +17,14 @@ export default function KakaoLoginButton({
   className = '',
   children,
   variant = 'primary',
+  marketingConsent = false,
 }: Props) {
   const isMinimal = variant === 'minimal'
-  const q = callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''
-  const href = `/api/auth/kakao${q}`
+  const q = new URLSearchParams()
+  if (callbackUrl) q.set('callbackUrl', callbackUrl)
+  if (marketingConsent) q.set('marketingConsent', '1')
+  const qs = q.toString()
+  const href = `/api/auth/kakao${qs ? `?${qs}` : ''}`
   return (
     <a
       href={href}

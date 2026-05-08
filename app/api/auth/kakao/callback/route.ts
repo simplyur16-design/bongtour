@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import {
+  KAKAO_OAUTH_MARKETING_CONSENT_COOKIE,
   KAKAO_OAUTH_REDIRECT_COOKIE,
   KAKAO_OAUTH_STATE_COOKIE,
   clearKakaoOAuthStateCookies,
@@ -16,6 +17,7 @@ import type { KakaoTokenResponse, KakaoUserMeResponse } from '@/lib/kakao-oauth-
 import { appendNaverSessionCookie, redirectAfterNaverLogin } from '@/lib/naver-auth-session'
 import { readCookieFromRequestHeader } from '@/lib/parse-cookie-header'
 import { prisma } from '@/lib/prisma'
+import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
 
 export const dynamic = 'force-dynamic'
 
@@ -120,6 +122,16 @@ export async function GET(request: Request) {
     cookieStore.get(KAKAO_OAUTH_REDIRECT_COOKIE)?.value ??
       readCookieFromRequestHeader(request, KAKAO_OAUTH_REDIRECT_COOKIE)
   )
+
+  const marketingCookie =
+    cookieStore.get(KAKAO_OAUTH_MARKETING_CONSENT_COOKIE)?.value ??
+    readCookieFromRequestHeader(request, KAKAO_OAUTH_MARKETING_CONSENT_COOKIE)
+  const oauthMarketingConsent = marketingCookie === '1'
+  const oauthMarketingData = {
+    marketingConsent: oauthMarketingConsent,
+    marketingConsentAt: oauthMarketingConsent ? new Date() : null,
+    marketingConsentVersion: oauthMarketingConsent ? 'oauth-marketing-v1' : null,
+  } as const
 
   const clientId = process.env.KAKAO_CLIENT_ID?.trim()
   const clientSecret = process.env.KAKAO_CLIENT_SECRET?.trim()
@@ -266,6 +278,7 @@ export async function GET(request: Request) {
           socialProvider: 'kakao',
           socialProviderUserId: kakaoId,
           lastLoginAt: new Date(),
+          ...oauthMarketingData,
           ...(role ? { role } : {}),
           accounts: {
             create: {
@@ -278,6 +291,13 @@ export async function GET(request: Request) {
         },
       })
       userId = created.id
+      void runNewUserCouponBootstrap(userId)
+        .then((r) => {
+          if (!r.welcomeIssued && r.reason !== 'ok') {
+            console.warn('[auth/kakao] coupon_bootstrap', r.reason)
+          }
+        })
+        .catch((e) => console.warn('[auth/kakao] coupon_bootstrap', e))
     }
   } else {
     const created = await prisma.user.create({
@@ -289,6 +309,7 @@ export async function GET(request: Request) {
         socialProvider: 'kakao',
         socialProviderUserId: kakaoId,
         lastLoginAt: new Date(),
+        ...oauthMarketingData,
         accounts: {
           create: {
             type: 'oauth',
@@ -300,6 +321,13 @@ export async function GET(request: Request) {
       },
     })
     userId = created.id
+    void runNewUserCouponBootstrap(userId)
+      .then((r) => {
+        if (!r.welcomeIssued && r.reason !== 'ok') {
+          console.warn('[auth/kakao] coupon_bootstrap', r.reason)
+        }
+      })
+      .catch((e) => console.warn('[auth/kakao] coupon_bootstrap', e))
   }
 
   const full = await prisma.user.findUnique({
