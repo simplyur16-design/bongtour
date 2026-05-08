@@ -45,6 +45,7 @@ export default function EsimCityHub({ activeSlug, entry }: Props) {
         {scriptSrcs.map((src) => (
           <Script key={src} src={src} strategy="lazyOnload" />
         ))}
+        {/* esimEmbedHtml: 운영 설정 소스(`lib/travel-esim-city-config` 정적 항목·내부 편집 경로)만 사용. 외부 사용자 입력 아님. */}
         <div
           className="esim-embed-root mt-4 min-h-[8rem] rounded-lg border border-dashed border-slate-200 bg-white p-4 text-left [&_iframe]:max-w-full"
           dangerouslySetInnerHTML={{ __html: entry.esimEmbedHtml }}

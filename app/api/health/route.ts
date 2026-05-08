@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
+import pkg from '../../../package.json'
 
 /**
  * 공개 헬스체크 — UptimeRobot 등 외부 모니터용. 인증 없음·가벼운 응답.
@@ -8,8 +9,16 @@ import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
+  const timestamp = new Date().toISOString()
   return jsonWithLeakGuard(
-    { ok: true, service: 'bongtour', ts: new Date().toISOString() },
+    {
+      ok: true,
+      status: 'ok',
+      service: 'bongtour',
+      version: pkg.version,
+      timestamp,
+      ts: timestamp,
+    },
     'health.service',
     { status: 200, headers: { 'Cache-Control': 'no-store, max-age=0' } },
   )
