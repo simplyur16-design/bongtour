@@ -13,7 +13,6 @@ process.env.SOLAPI_KAKAO_DRY_RUN = 'true'
 
 const keys: KakaoTemplateKey[] = [
   'coupon_welcome',
-  'coupon_birthday',
   'coupon_review_reward',
   'coupon_referral_invitee',
   'coupon_referral_inviter',

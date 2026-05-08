@@ -5,7 +5,6 @@ export { isReservedTemplateCode } from "@/lib/coupon/reserved-template-code";
 
 export type IssuanceSlot =
   | "welcome"
-  | "birthday"
   | "review"
   | "referral_inviter"
   | "referral_invitee"
@@ -20,7 +19,6 @@ export const SLOT_TO_TEMPLATE_CODE: Omit<Record<IssuanceSlot, string>, "admin_ma
   admin_manual: "__RUNTIME__";
 } = {
   welcome: "__TPL_WELCOME_BONUS",
-  birthday: "__TPL_BIRTHDAY",
   review: "__TPL_REVIEW_REWARD",
   referral_inviter: "__TPL_REFERRAL_INVITER",
   referral_invitee: "__TPL_REFERRAL_INVITEE",

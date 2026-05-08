@@ -5,12 +5,10 @@ ALTER TABLE bongsim_coupon ADD COLUMN IF NOT EXISTS coupon_kind text NOT NULL DE
 ALTER TABLE bongsim_coupon ADD COLUMN IF NOT EXISTS template_validity_days integer;
 ALTER TABLE bongsim_coupon ADD COLUMN IF NOT EXISTS template_label text;
 
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "birthDate" date;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "referredByCode" text;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "referredAt" timestamptz;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "inviterRewardedAt" timestamptz;
 
-CREATE INDEX IF NOT EXISTS "User_birthDate_idx" ON "User" ("birthDate");
 CREATE INDEX IF NOT EXISTS "User_referredByCode_idx" ON "User" ("referredByCode");
 
 CREATE TABLE IF NOT EXISTS bongsim_user_coupon (
@@ -72,9 +70,6 @@ SELECT * FROM (VALUES
   ('__TPL_WELCOME_BONUS', '가입 환영 보너스 발급 템플릿', 'fixed', 5000::numeric, NULL::bigint, 0::bigint,
    999999999, 0, timestamptz '2000-01-01', timestamptz '2099-12-31', true,
    'issuance_template', 90, '가입 환영 쿠폰'),
-  ('__TPL_BIRTHDAY', '생일 쿠폰 발급 템플릿', 'fixed', 10000::numeric, NULL::bigint, 0::bigint,
-   999999999, 0, timestamptz '2000-01-01', timestamptz '2099-12-31', true,
-   'issuance_template', 30, '생일 축하 쿠폰'),
   ('__TPL_REVIEW_REWARD', '리뷰 보상 발급 템플릿', 'fixed', 3000::numeric, NULL::bigint, 0::bigint,
    999999999, 0, timestamptz '2000-01-01', timestamptz '2099-12-31', true,
    'issuance_template', 60, '리뷰 감사 쿠폰'),

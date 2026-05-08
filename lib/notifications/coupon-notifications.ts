@@ -6,7 +6,6 @@
  * - G-2 추천 가입자 → `notifyCouponReferralInvitee`
  * - G-3 리뷰 보상 → `notifyCouponReviewReward`
  * - D-5 추천인 지연 발급 → `notifyCouponReferralInviter`
- * - H-1 생일 cron → `notifyCouponBirthday`
  * - H-2 만료 임박 cron → `notifyCouponExpiry`
  *
  * 저장소 내 해당 트리거 구현이 생기면 위 함수를 해당 지점에서 `await` 호출하면 된다.
@@ -79,30 +78,6 @@ export async function notifyCouponWelcome(
     sendKakaoNotification({
       to: phone,
       templateKey: 'coupon_welcome',
-      variables: {
-        name,
-        amount: formatAmountKrw(userCoupon.amountKrw),
-        expiresAt: formatExpiresAt(userCoupon.expiresAt),
-      },
-      userId: user.id ?? undefined,
-      userEmail: user.email ?? undefined,
-    }),
-  )
-}
-
-export async function notifyCouponBirthday(
-  user: CouponNotifyUser,
-  userCoupon: CouponNotifyGrant,
-): Promise<KakaoDispatchResult> {
-  const phone = recipientPhone(user)
-  if (!phone) {
-    return { ok: true, dryRun: true, error: 'no-phone' }
-  }
-  const name = displayName(user)
-  return guardNotify(() =>
-    sendKakaoNotification({
-      to: phone,
-      templateKey: 'coupon_birthday',
       variables: {
         name,
         amount: formatAmountKrw(userCoupon.amountKrw),

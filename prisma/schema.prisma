@@ -455,8 +455,6 @@ model User {
   marketingConsentAt       DateTime?
   marketingConsentVersion  String?
   lastLoginAt              DateTime?
-  /// 쿠폰·혜택용 생년월일(선택)
-  birthDate                DateTime? @db.Date
   /// 가입 시 입력한 추천 코드(원문, 대소문자 무시 조회는 앱 레이어)
   referredByCode           String?
   referredAt               DateTime?
@@ -466,7 +464,6 @@ model User {
   accounts                 Account[]
   sessions                 Session[]
 
-  @@index([birthDate])
   @@index([referredByCode])
 }
 

@@ -4,7 +4,6 @@
  */
 export type KakaoTemplateKey =
   | 'coupon_welcome'
-  | 'coupon_birthday'
   | 'coupon_review_reward'
   | 'coupon_referral_invitee'
   | 'coupon_referral_inviter'
@@ -24,13 +23,6 @@ export const KAKAO_TEMPLATES: Record<KakaoTemplateKey, KakaoTemplateSpec> = {
     requiredVars: ['name', 'amount', 'expiresAt'],
     sampleText:
       '#{name}님, 봉투어 가입을 환영해요!\n환영 쿠폰 #{amount}원이 도착했어요.\n사용 기한: #{expiresAt}\n쿠폰함에서 확인하기 →',
-  },
-  coupon_birthday: {
-    templateId: process.env.SOLAPI_KAKAO_TPL_COUPON_BIRTHDAY ?? '__TBD__COUPON_BIRTHDAY__',
-    description: '생일 축하 + 생일 쿠폰 발급',
-    requiredVars: ['name', 'amount', 'expiresAt'],
-    sampleText:
-      '#{name}님, 생일을 진심으로 축하드려요 🎂\n생일 쿠폰 #{amount}원이 쿠폰함에 도착했어요.\n사용 기한: #{expiresAt}',
   },
   coupon_review_reward: {
     templateId: process.env.SOLAPI_KAKAO_TPL_COUPON_REVIEW ?? '__TBD__COUPON_REVIEW__',

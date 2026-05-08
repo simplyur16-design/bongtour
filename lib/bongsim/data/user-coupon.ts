@@ -91,8 +91,6 @@ export async function issueUserCoupon(
     existsClause = `EXISTS (SELECT 1 FROM bongsim_user_coupon x WHERE x.user_id = $1::text AND x.issued_via = 'referral_invitee')`;
   } else if (params.slot === "review" && notes) {
     existsClause = `EXISTS (SELECT 1 FROM bongsim_user_coupon x WHERE x.user_id = $1::text AND x.issued_via = 'review' AND x.notes IS NOT DISTINCT FROM $5::text)`;
-  } else if (params.slot === "birthday" && period) {
-    existsClause = `EXISTS (SELECT 1 FROM bongsim_user_coupon x WHERE x.user_id = $1::text AND x.issued_via = 'birthday' AND x.issued_for_period IS NOT DISTINCT FROM $6::text)`;
   }
 
   const ins = await client.query<{ user_coupon_id: string; expires_at: Date | null }>(

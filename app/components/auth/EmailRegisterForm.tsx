@@ -11,7 +11,6 @@ export default function EmailRegisterForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
-  const [birthDate, setBirthDate] = useState('')
   const [referredByCode, setReferredByCode] = useState('')
   const [refCheck, setRefCheck] = useState<'idle' | 'checking' | 'ok' | 'notfound' | 'badformat'>('idle')
   const refDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -96,7 +95,6 @@ export default function EmailRegisterForm() {
           email: email.trim().toLowerCase(),
           password,
           passwordConfirm,
-          birthDate: birthDate.trim() || undefined,
           referredByCode: referredByCode.trim() ? referredByCode.trim().toUpperCase() : undefined,
           website: hpWebsite,
           privacyNoticeConfirmed: privacyConfirmed,
@@ -204,19 +202,6 @@ export default function EmailRegisterForm() {
           required
         />
         {passwordConfirmErr ? <p className="mt-1 text-sm text-bt-danger">{passwordConfirmErr}</p> : null}
-      </div>
-      <div>
-        <label htmlFor="reg-birth" className="mb-1 block text-xs font-medium text-bt-body">
-          생년월일 <span className="text-slate-400">(선택)</span>
-        </label>
-        <input
-          id="reg-birth"
-          type="date"
-          value={birthDate}
-          onChange={(e) => setBirthDate(e.target.value)}
-          className="w-full rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
-        />
-        <p className="mt-1 text-[11px] text-slate-500">생일 쿠폰 등 혜택 안내에만 활용됩니다.</p>
       </div>
       <div>
         <label htmlFor="reg-ref" className="mb-1 block text-xs font-medium text-bt-body">

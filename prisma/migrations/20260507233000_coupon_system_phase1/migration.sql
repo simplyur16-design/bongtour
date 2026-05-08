@@ -11,12 +11,10 @@ ALTER TABLE bongsim_coupon ADD COLUMN IF NOT EXISTS template_label text;
 -- -----------------------------------------------------------------------------
 -- User (Prisma @@map 없음 — 기본 테이블명 "User")
 -- -----------------------------------------------------------------------------
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "birthDate" date;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "referredByCode" text;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "referredAt" timestamptz;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "inviterRewardedAt" timestamptz;
 
-CREATE INDEX IF NOT EXISTS "User_birthDate_idx" ON "User" ("birthDate");
 CREATE INDEX IF NOT EXISTS "User_referredByCode_idx" ON "User" ("referredByCode");
 
 -- -----------------------------------------------------------------------------
@@ -77,7 +75,7 @@ CREATE TABLE IF NOT EXISTS bongsim_referral_code (
 CREATE INDEX IF NOT EXISTS bongsim_referral_code_code_lower_idx ON bongsim_referral_code (lower(trim(code)));
 
 -- -----------------------------------------------------------------------------
--- 시드: 발급용 템플릿 쿠폰 5종 (코드 유니크가 없을 수 있어 NOT EXISTS 로 멱등 처리)
+-- 시드: 발급용 템플릿 쿠폰 4종 (코드 유니크가 없을 수 있어 NOT EXISTS 로 멱등 처리)
 -- (유니크가 있으면 아래를 ON CONFLICT (code) DO NOTHING 으로 바꿔도 됨)
 -- -----------------------------------------------------------------------------
 INSERT INTO bongsim_coupon (
@@ -89,9 +87,6 @@ SELECT * FROM (VALUES
   ('__TPL_WELCOME_BONUS', '가입 환영 보너스 발급 템플릿', 'fixed', 5000::numeric, NULL::bigint, 0::bigint,
    999999999, 0, timestamptz '2000-01-01', timestamptz '2099-12-31', true,
    'issuance_template', 90, '가입 환영 쿠폰'),
-  ('__TPL_BIRTHDAY', '생일 쿠폰 발급 템플릿', 'fixed', 10000::numeric, NULL::bigint, 0::bigint,
-   999999999, 0, timestamptz '2000-01-01', timestamptz '2099-12-31', true,
-   'issuance_template', 30, '생일 축하 쿠폰'),
   ('__TPL_REVIEW_REWARD', '리뷰 보상 발급 템플릿', 'fixed', 3000::numeric, NULL::bigint, 0::bigint,
    999999999, 0, timestamptz '2000-01-01', timestamptz '2099-12-31', true,
    'issuance_template', 60, '리뷰 감사 쿠폰'),
