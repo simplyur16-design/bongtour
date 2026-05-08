@@ -29,7 +29,7 @@ function nfKrw(n: number): string {
 function discountLine(r: CouponRow): string {
   const dtype = String(r.discount_type).trim().toLowerCase();
   const dv = Number(r.discount_value);
-  if (dtype === "percent" && Number.isFinite(dv)) {
+  if ((dtype === "percent" || dtype === "percentage") && Number.isFinite(dv)) {
     return `${dv}% 할인`;
   }
   if (dtype === "fixed" && Number.isFinite(dv)) {

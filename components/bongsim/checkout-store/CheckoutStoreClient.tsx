@@ -96,7 +96,7 @@ function formatMyCouponOptionLabel(r: MyCouponApiRow): string {
   const dv = Number(r.discount_value);
   let discText = "할인";
   if (dtype === "fixed" && Number.isFinite(dv)) discText = `${nf.format(Math.trunc(dv))}원 할인`;
-  else if (dtype === "percent" && Number.isFinite(dv)) discText = `${dv}% 할인`;
+  else if ((dtype === "percent" || dtype === "percentage") && Number.isFinite(dv)) discText = `${dv}% 할인`;
   let dpart = "만료 없음";
   if (r.expires_at) {
     const ms = new Date(r.expires_at).getTime() - Date.now();

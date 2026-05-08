@@ -22,6 +22,27 @@ type CouponRow = {
   template_validity_days: number | null;
 };
 
+type TravelDetailBatch = {
+  batch_id: string;
+  trip_name: string;
+  departure_date: string;
+  adult_count: number;
+  issuer_name: string | null;
+  memo: string | null;
+  created_at: string;
+};
+
+type TravelDetailItem = {
+  item_id: string;
+  email: string;
+  name: string | null;
+  code: string;
+  used: boolean;
+  exhausted: boolean;
+  email_sent: boolean;
+  email_error: string | null;
+};
+
 /** 템플릿 코드 → 자동발급 슬롯 표시 — 서버 issuance-helpers 와 동기화 */
 const TEMPLATE_CODE_SLOT: Record<string, string> = {
   __TPL_WELCOME_BONUS: "welcome",
@@ -32,6 +53,14 @@ function slotIndicator(code: string): string | null {
   if (TEMPLATE_CODE_SLOT[code]) return TEMPLATE_CODE_SLOT[code];
   if (code.startsWith("__TPL_")) return "system";
   return null;
+}
+
+function formatCouponDiscountLabel(discount_type: string, discount_value: string): string {
+  const dt = String(discount_type).trim().toLowerCase();
+  const dv = Number(discount_value);
+  if ((dt === "percent" || dt === "percentage") && Number.isFinite(dv)) return `${dv}%`;
+  if (dt === "fixed" && Number.isFinite(dv)) return `${Math.trunc(dv).toLocaleString()}원`;
+  return String(discount_value);
 }
 
 export default function CouponsAdminClient() {
@@ -75,6 +104,69 @@ export default function CouponsAdminClient() {
   const [issueTemplateCode, setIssueTemplateCode] = useState("");
   const [issueNotes, setIssueNotes] = useState("");
   const [issueIssuedVia, setIssueIssuedVia] = useState<"admin_manual" | "welcome" | "review">("admin_manual");
+
+  const [travelTripName, setTravelTripName] = useState("");
+  const [travelDeparture, setTravelDeparture] = useState("");
+  const [travelAdultCount, setTravelAdultCount] = useState(1);
+  const [travelMemo, setTravelMemo] = useState("");
+  const [travelRecipients, setTravelRecipients] = useState<{ email: string; name: string }[]>([{ email: "", name: "" }]);
+  const [travelCsvOpen, setTravelCsvOpen] = useState(false);
+  const [travelCsvText, setTravelCsvText] = useState("");
+  const [travelConfirmOpen, setTravelConfirmOpen] = useState(false);
+  const [travelResult, setTravelResult] = useState<
+    | {
+        batch_id: string;
+        results: Array<{ item_id: string; email: string; code: string; email_sent: boolean; error?: string }>;
+      }
+    | null
+  >(null);
+  const [travelBatches, setTravelBatches] = useState<
+    Array<{
+      batch_id: string;
+      trip_name: string;
+      departure_date: string;
+      adult_count: number;
+      created_at: string;
+      issuer_name: string | null;
+    }>
+  >([]);
+  const [travelDetailOpen, setTravelDetailOpen] = useState(false);
+  const [travelDetailLoading, setTravelDetailLoading] = useState(false);
+  const [travelDetailBatchId, setTravelDetailBatchId] = useState<string | null>(null);
+  const [travelDetail, setTravelDetail] = useState<{ batch: TravelDetailBatch; items: TravelDetailItem[] } | null>(null);
+
+  const loadTravelBatches = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/bongsim/coupons/bulk", { cache: "no-store" });
+      const j = (await res.json()) as {
+        ok?: boolean;
+        batches?: Array<{
+          batch_id: string;
+          trip_name: string;
+          departure_date: string;
+          adult_count: number;
+          created_at: string;
+          issuer_name: string | null;
+        }>;
+      };
+      if (res.ok && j.batches) setTravelBatches(j.batches);
+    } catch {
+      /* noop */
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTravelBatches();
+  }, [loadTravelBatches]);
+
+  useEffect(() => {
+    const n = Math.max(1, Math.min(500, Math.trunc(travelAdultCount) || 1));
+    setTravelRecipients((prev) => {
+      const next = prev.slice(0, n);
+      while (next.length < n) next.push({ email: "", name: "" });
+      return next;
+    });
+  }, [travelAdultCount]);
 
   const load = useCallback(async () => {
     setLoadErr(null);
@@ -219,7 +311,7 @@ export default function CouponsAdminClient() {
     setLoadErr(null);
     setBulkCodes([]);
     try {
-      const res = await fetch("/api/admin/bongsim/coupons/bulk", {
+      const res = await fetch("/api/admin/bongsim/coupons/bulk-codes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -279,6 +371,139 @@ export default function CouponsAdminClient() {
       setIssueEmail("");
       setIssueTemplateCode("");
       setIssueNotes("");
+      await load();
+    } catch (e) {
+      setLoadErr(e instanceof Error ? e.message : "오류");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openTravelDetail = async (batchId: string) => {
+    setTravelDetailBatchId(batchId);
+    setTravelDetailOpen(true);
+    setTravelDetail(null);
+    setTravelDetailLoading(true);
+    try {
+      const res = await fetch(`/api/admin/bongsim/coupons/bulk/${encodeURIComponent(batchId)}`, { cache: "no-store" });
+      const j = (await res.json()) as {
+        ok?: boolean;
+        batch?: TravelDetailBatch;
+        items?: TravelDetailItem[];
+        error?: string;
+      };
+      if (!res.ok) throw new Error(j.error ?? "상세를 불러오지 못했습니다.");
+      if (j.batch && j.items) setTravelDetail({ batch: j.batch, items: j.items });
+    } catch (e) {
+      setLoadErr(e instanceof Error ? e.message : "오류");
+    } finally {
+      setTravelDetailLoading(false);
+    }
+  };
+
+  const resendTravelEmail = async (itemId: string) => {
+    if (!travelDetailBatchId) return;
+    setBusy(true);
+    setLoadErr(null);
+    try {
+      const res = await fetch(
+        `/api/admin/bongsim/coupons/bulk/${encodeURIComponent(travelDetailBatchId)}/resend-email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ item_id: itemId }),
+        },
+      );
+      const j = (await res.json()) as { email_sent?: boolean; error?: string };
+      if (!res.ok) throw new Error(j.error ?? "재발송 실패");
+      if (j.email_sent === false) setLoadErr(`이메일 발송 실패: ${j.error ?? ""}`);
+      await openTravelDetail(travelDetailBatchId);
+    } catch (e) {
+      setLoadErr(e instanceof Error ? e.message : "오류");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const applyTravelCsv = () => {
+    const lines = travelCsvText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const parsed: { email: string; name: string }[] = [];
+    for (const line of lines) {
+      const parts = line.split(",").map((s) => s.trim());
+      const email = parts[0] ?? "";
+      const name = parts[1] ?? "";
+      if (email) parsed.push({ email, name });
+    }
+    if (parsed.length === 0) {
+      setLoadErr("CSV에서 유효한 이메일 행을 찾지 못했습니다.");
+      return;
+    }
+    setTravelAdultCount(parsed.length);
+    setTravelRecipients(parsed);
+    setTravelCsvOpen(false);
+    setTravelCsvText("");
+    setLoadErr(null);
+  };
+
+  const tryOpenTravelConfirm = () => {
+    setLoadErr(null);
+    if (!travelTripName.trim()) {
+      setLoadErr("여행 상품명을 입력해 주세요.");
+      return;
+    }
+    if (!travelDeparture.trim()) {
+      setLoadErr("출발일을 선택해 주세요.");
+      return;
+    }
+    const n = Math.max(1, Math.min(500, Math.trunc(travelAdultCount) || 1));
+    if (travelRecipients.length !== n) {
+      setLoadErr("성인 인원수와 고객 행 수가 일치하지 않습니다.");
+      return;
+    }
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    for (const r of travelRecipients) {
+      if (!r.email.trim() || !emailRe.test(r.email.trim())) {
+        setLoadErr("모든 행에 유효한 이메일을 입력해 주세요.");
+        return;
+      }
+    }
+    setTravelConfirmOpen(true);
+  };
+
+  const executeTravelBulk = async () => {
+    setTravelConfirmOpen(false);
+    setBusy(true);
+    setLoadErr(null);
+    setTravelResult(null);
+    try {
+      const n = Math.max(1, Math.min(500, Math.trunc(travelAdultCount) || 1));
+      const recipients = travelRecipients.slice(0, n).map((r) => ({
+        email: r.email.trim().toLowerCase(),
+        ...(r.name.trim() ? { name: r.name.trim() } : {}),
+      }));
+      const res = await fetch("/api/admin/bongsim/coupons/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          trip_name: travelTripName.trim(),
+          departure_date: travelDeparture,
+          adult_count: n,
+          recipients,
+          memo: travelMemo.trim() || undefined,
+        }),
+      });
+      const j = (await res.json()) as {
+        ok?: boolean;
+        batch_id?: string;
+        results?: Array<{ item_id: string; email: string; code: string; email_sent: boolean; error?: string }>;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(j.error ?? "발급 실패");
+      setTravelResult({
+        batch_id: j.batch_id ?? "",
+        results: j.results ?? [],
+      });
+      await loadTravelBatches();
       await load();
     } catch (e) {
       setLoadErr(e instanceof Error ? e.message : "오류");
@@ -476,6 +701,174 @@ export default function CouponsAdminClient() {
         </button>
       </section>
 
+      <section className="rounded-xl border border-amber-600/40 bg-slate-900/60 p-5">
+        <h2 className="text-lg font-semibold text-amber-100">여행 감사 · eSIM 벌크 발급</h2>
+        <p className="mt-1 text-xs text-slate-400">
+          수동 입력만 사용합니다(상품 DB 연동 없음). 성인 인원수만큼 100% 할인 공개 코드가 생성되며, 출발일 당일까지 유효합니다. 발급 직후
+          고객 이메일로 안내 메일을 보냅니다.
+        </p>
+        <p className="mt-2 rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-300">
+          <span className="font-semibold text-teal-200">고정 정책</span>: eSIM 100% 할인(무료) · 유효기간 출발일까지 · eSIM 스토어 전용(공개 코드) · 주문당 쿠폰 1개(기존 가드)
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm sm:col-span-2">
+            <span className="text-slate-400">여행 상품명 (자유 입력)</span>
+            <input
+              value={travelTripName}
+              onChange={(e) => setTravelTripName(e.target.value)}
+              placeholder='예: 6/15 괌 단체'
+              className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-slate-400">출발일</span>
+            <input
+              type="date"
+              value={travelDeparture}
+              onChange={(e) => setTravelDeparture(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-slate-400">성인 인원수</span>
+            <input
+              type="number"
+              min={1}
+              max={500}
+              value={travelAdultCount}
+              onChange={(e) => setTravelAdultCount(Number.parseInt(e.target.value, 10) || 1)}
+              className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
+            />
+          </label>
+          <label className="block text-sm sm:col-span-2">
+            <span className="text-slate-400">메모 (선택)</span>
+            <input
+              value={travelMemo}
+              onChange={(e) => setTravelMemo(e.target.value)}
+              placeholder="예: OO여행사 계약건"
+              className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
+            />
+          </label>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setTravelCsvOpen(true)}
+            className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-200 hover:bg-slate-700"
+          >
+            CSV 붙여넣기 (email,name)
+          </button>
+        </div>
+        <div className="mt-4 space-y-2">
+          <p className="text-sm text-slate-400">고객 목록 ({travelRecipients.length}행)</p>
+          <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-slate-700 p-2">
+            {travelRecipients.map((r, idx) => (
+              <div key={idx} className="grid gap-2 sm:grid-cols-2">
+                <input
+                  placeholder="email"
+                  value={r.email}
+                  onChange={(e) => {
+                    const next = [...travelRecipients];
+                    next[idx] = { ...next[idx]!, email: e.target.value };
+                    setTravelRecipients(next);
+                  }}
+                  className="rounded border border-slate-600 bg-slate-950 px-2 py-1.5 text-sm text-slate-100"
+                />
+                <input
+                  placeholder="이름 (선택)"
+                  value={r.name}
+                  onChange={(e) => {
+                    const next = [...travelRecipients];
+                    next[idx] = { ...next[idx]!, name: e.target.value };
+                    setTravelRecipients(next);
+                  }}
+                  className="rounded border border-slate-600 bg-slate-950 px-2 py-1.5 text-sm text-slate-100"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => tryOpenTravelConfirm()}
+          className="mt-4 rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+        >
+          {`${Math.max(1, Math.min(500, Math.trunc(travelAdultCount) || 1))}명에게 쿠폰 발급 + 이메일 발송`}
+        </button>
+        {travelResult ? (
+          <div className="mt-4 overflow-x-auto rounded-lg border border-slate-700">
+            <p className="border-b border-slate-700 px-3 py-2 text-sm text-emerald-300">
+              발급 완료 · batch <span className="font-mono text-xs">{travelResult.batch_id}</span>
+            </p>
+            <table className="min-w-full text-left text-sm text-slate-200">
+              <thead>
+                <tr className="border-b border-slate-700 text-slate-400">
+                  <th className="py-2 px-3">이메일</th>
+                  <th className="py-2 px-3">코드</th>
+                  <th className="py-2 px-3">메일</th>
+                </tr>
+              </thead>
+              <tbody>
+                {travelResult.results.map((row) => (
+                  <tr key={row.item_id} className="border-b border-slate-800">
+                    <td className="py-2 px-3">{row.email}</td>
+                    <td className="py-2 px-3 font-mono text-teal-300">{row.code}</td>
+                    <td className="py-2 px-3 text-xs">
+                      {row.email_sent ? (
+                        <span className="text-emerald-400">성공</span>
+                      ) : (
+                        <span className="text-red-300">실패 {row.error ? `(${row.error})` : ""}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+        <div className="mt-8 border-t border-slate-700 pt-6">
+          <h3 className="text-md font-semibold text-slate-200">벌크 발급 이력</h3>
+          <div className="mt-3 overflow-x-auto">
+            <table className="min-w-full text-left text-sm text-slate-200">
+              <thead>
+                <tr className="border-b border-slate-700 text-slate-400">
+                  <th className="py-2 pr-3">여행명</th>
+                  <th className="py-2 pr-3">출발일</th>
+                  <th className="py-2 pr-3">인원</th>
+                  <th className="py-2 pr-3">발급일</th>
+                  <th className="py-2 pr-3">발급자</th>
+                  <th className="py-2">상세</th>
+                </tr>
+              </thead>
+              <tbody>
+                {travelBatches.map((b) => (
+                  <tr key={b.batch_id} className="border-b border-slate-800">
+                    <td className="py-2 pr-3">{b.trip_name}</td>
+                    <td className="py-2 pr-3">{b.departure_date}</td>
+                    <td className="py-2 pr-3">{b.adult_count}</td>
+                    <td className="py-2 pr-3 text-xs text-slate-400">
+                      {new Date(b.created_at).toLocaleString("ko-KR")}
+                    </td>
+                    <td className="py-2 pr-3 text-xs">{b.issuer_name ?? "—"}</td>
+                    <td className="py-2">
+                      <button
+                        type="button"
+                        onClick={() => void openTravelDetail(b.batch_id)}
+                        className="rounded-md bg-slate-700 px-2 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-600"
+                      >
+                        보기
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {travelBatches.length === 0 ? <p className="mt-2 text-sm text-slate-500">이력이 없습니다.</p> : null}
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-xl border border-slate-700 bg-slate-900/60 p-5">
         <h2 className="text-lg font-semibold text-slate-100">목록</h2>
         <div className="mt-4 overflow-x-auto">
@@ -522,9 +915,7 @@ export default function CouponsAdminClient() {
                       )}
                     </td>
                     <td className="max-w-[10rem] truncate py-2 pr-3">{r.description ?? "—"}</td>
-                    <td className="py-2 pr-3">
-                      {r.discount_type === "percent" ? `${r.discount_value}%` : `${Number(r.discount_value).toLocaleString()}원`}
-                    </td>
+                    <td className="py-2 pr-3">{formatCouponDiscountLabel(r.discount_type, r.discount_value)}</td>
                     <td className="py-2 pr-3">
                       {String(r.used_count)} / {r.usage_limit == null ? "∞" : String(r.usage_limit)}
                     </td>
@@ -592,7 +983,10 @@ export default function CouponsAdminClient() {
               />
             </label>
             <label className="mt-3 block text-sm">
-              <span className="text-slate-400">할인값 {editRow.discount_type === "percent" ? "(%)" : "(원)"}</span>
+              <span className="text-slate-400">
+                할인값{" "}
+                {editRow.discount_type === "percent" || editRow.discount_type === "percentage" ? "(%)" : "(원)"}
+              </span>
               <input
                 value={editDiscountValue}
                 onChange={(e) => setEditDiscountValue(e.target.value)}
@@ -652,6 +1046,146 @@ export default function CouponsAdminClient() {
                   저장
                 </button>
               ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {travelConfirmOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog">
+          <div className="w-full max-w-md rounded-xl border border-amber-600/50 bg-slate-900 p-5 shadow-xl">
+            <h3 className="text-lg font-semibold text-amber-100">발급 확인</h3>
+            <p className="mt-3 text-sm text-slate-300">
+              {`${Math.max(1, Math.min(500, Math.trunc(travelAdultCount) || 1))}명에게 eSIM 100% 할인 쿠폰을 발급하고 이메일을 발송합니다. 진행할까요?`}
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setTravelConfirmOpen(false)}
+                className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void executeTravelBulk()}
+                className="rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                진행
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {travelCsvOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-xl border border-slate-600 bg-slate-900 p-5 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-100">CSV 붙여넣기</h3>
+            <p className="mt-1 text-xs text-slate-400">한 줄에 하나: <span className="font-mono">email,name</span> (이름 생략 가능)</p>
+            <textarea
+              value={travelCsvText}
+              onChange={(e) => setTravelCsvText(e.target.value)}
+              rows={8}
+              className="mt-3 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setTravelCsvOpen(false);
+                  setTravelCsvText("");
+                }}
+                className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300"
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                onClick={() => applyTravelCsv()}
+                className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white"
+              >
+                반영
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {travelDetailOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-slate-600 bg-slate-900 p-5 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-100">벌크 배치 상세</h3>
+            {travelDetailLoading ? (
+              <p className="mt-4 text-sm text-slate-400">불러오는 중…</p>
+            ) : travelDetail ? (
+              <>
+                <p className="mt-2 text-sm text-slate-300">
+                  {travelDetail.batch.trip_name} · 출발 {travelDetail.batch.departure_date} · {travelDetail.batch.adult_count}명
+                </p>
+                <p className="text-xs text-slate-500">
+                  발급 {new Date(travelDetail.batch.created_at).toLocaleString("ko-KR")} ·{" "}
+                  {travelDetail.batch.issuer_name ?? travelDetail.batch.batch_id}
+                </p>
+                {travelDetail.batch.memo ? (
+                  <p className="mt-2 text-xs text-slate-400">메모: {travelDetail.batch.memo}</p>
+                ) : null}
+                <div className="mt-4 overflow-x-auto">
+                  <table className="min-w-full text-left text-sm text-slate-200">
+                    <thead>
+                      <tr className="border-b border-slate-700 text-slate-400">
+                        <th className="py-2 px-2">이메일</th>
+                        <th className="py-2 px-2">코드</th>
+                        <th className="py-2 px-2">사용</th>
+                        <th className="py-2 px-2">메일</th>
+                        <th className="py-2 px-2">재발송</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {travelDetail.items.map((it) => (
+                        <tr key={it.item_id} className="border-b border-slate-800">
+                          <td className="py-2 px-2">{it.email}</td>
+                          <td className="py-2 px-2 font-mono text-teal-300">{it.code}</td>
+                          <td className="py-2 px-2 text-xs">{it.used || it.exhausted ? "사용됨" : "미사용"}</td>
+                          <td className="py-2 px-2 text-xs">
+                            {it.email_sent ? (
+                              <span className="text-emerald-400">성공</span>
+                            ) : (
+                              <span className="text-red-300">{it.email_error ?? "실패"}</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-2">
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void resendTravelEmail(it.item_id)}
+                              className="rounded bg-slate-700 px-2 py-1 text-xs text-slate-100 hover:bg-slate-600 disabled:opacity-50"
+                            >
+                              재발송
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">표시할 데이터가 없습니다.</p>
+            )}
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setTravelDetailOpen(false);
+                  setTravelDetail(null);
+                  setTravelDetailBatchId(null);
+                }}
+                className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300"
+              >
+                닫기
+              </button>
             </div>
           </div>
         </div>

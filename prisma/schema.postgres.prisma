@@ -990,3 +990,29 @@ model BongsimReferralCode {
 
   @@map("bongsim_referral_code")
 }
+
+model BongsimCouponBatch {
+  batchId       String   @id @default(dbgenerated("gen_random_uuid()")) @map("batch_id") @db.Uuid
+  tripName      String   @map("trip_name")
+  departureDate DateTime @map("departure_date") @db.Date
+  adultCount    Int      @map("adult_count")
+  issuedBy      String   @map("issued_by")
+  memo          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("bongsim_coupon_batch")
+}
+
+model BongsimCouponBatchItem {
+  itemId         String    @id @default(dbgenerated("gen_random_uuid()")) @map("item_id") @db.Uuid
+  batchId        String    @map("batch_id") @db.Uuid
+  recipientEmail String    @map("recipient_email")
+  recipientName  String?   @map("recipient_name")
+  couponId       String    @map("coupon_id") @db.Uuid
+  emailSentAt    DateTime? @map("email_sent_at")
+  emailError     String?   @map("email_error")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([batchId])
+  @@map("bongsim_coupon_batch_item")
+}

@@ -50,7 +50,7 @@ export function computeBongsimCouponDiscountKrw(subtotalKrw: number, row: Bongsi
   let disc = 0;
   if (dtype === "fixed") {
     disc = Math.min(Math.floor(dv), sub);
-  } else if (dtype === "percent") {
+  } else if (dtype === "percent" || dtype === "percentage") {
     disc = Math.floor((sub * dv) / 100);
     const capRaw = row.max_discount_krw;
     if (capRaw != null && String(capRaw).trim() !== "") {
