@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
 import { extractProductFromText, extractPricingScheduleFromText } from '@/lib/gemini'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { requireAdmin } from '@/lib/require-admin'
 
 /**
@@ -10,12 +10,12 @@ import { requireAdmin } from '@/lib/require-admin'
  */
 export async function POST(request: Request) {
   const admin = await requireAdmin()
-  if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+  if (!admin) return jsonWithLeakGuard({ error: '인증이 필요합니다.' }, 'api.extract.auth', { status: 401 })
   try {
     const body = await request.json()
     const text = typeof body.text === 'string' ? body.text.trim() : ''
     if (!text) {
-      return NextResponse.json({ error: 'text is required' }, { status: 400 })
+      return jsonWithLeakGuard({ error: 'text is required' }, 'api.extract.validation', { status: 400 })
     }
     const [product, pricingResult] = await Promise.allSettled([
       extractProductFromText(text),
@@ -30,12 +30,9 @@ export async function POST(request: Request) {
     if (!extractedProduct) {
       throw product.status === 'rejected' ? product.reason : new Error('AI 분석 실패')
     }
-    return NextResponse.json({ product: extractedProduct, pricing })
+    return jsonWithLeakGuard({ product: extractedProduct, pricing }, 'api.extract.ok')
   } catch (e) {
     console.error(e)
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'AI 분석 실패' },
-      { status: 500 }
-    )
+    return jsonWithLeakGuard({ error: 'AI 분석 실패' }, 'api.extract.catch', { status: 500 })
   }
 }

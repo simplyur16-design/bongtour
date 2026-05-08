@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { MARKETING_VERSION_EMAIL, TERMS_VERSION } from '@/lib/consent/copies'
@@ -6,6 +5,7 @@ import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError, publicMutationOriginJsonResponse } from '@/lib/public-mutation-origin'
 import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const REGISTER_RATE_LIMIT_WINDOW_MS = 60_000
@@ -25,9 +25,10 @@ export async function POST(req: Request) {
   const store = getRateLimitStore()
   const bucket = await store.incr(`public:auth-register:${ip}`, REGISTER_RATE_LIMIT_WINDOW_MS)
   if (bucket.count > REGISTER_RATE_LIMIT_MAX) {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' },
-      { status: 429, headers: { 'Retry-After': String(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))) } }
+      'auth.register.rate-limit',
+      { status: 429, headers: { 'Retry-After': String(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))) } },
     )
   }
 
@@ -35,12 +36,12 @@ export async function POST(req: Request) {
   try {
     body = await req.json()
   } catch {
-    return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
+    return jsonWithLeakGuard({ error: '잘못된 요청입니다.' }, 'auth.register.invalid-json', { status: 400 })
   }
   const o = body as Record<string, unknown>
   const honeypot = typeof o.website === 'string' ? o.website.trim() : ''
   if (honeypot) {
-    return NextResponse.json({ error: '요청 형식이 올바르지 않습니다.' }, { status: 400 })
+    return jsonWithLeakGuard({ error: '요청 형식이 올바르지 않습니다.' }, 'auth.register.honeypot', { status: 400 })
   }
   const nameRaw = typeof o.name === 'string' ? o.name.trim() : ''
   const email = typeof o.email === 'string' ? o.email.trim().toLowerCase() : ''
@@ -55,36 +56,39 @@ export async function POST(req: Request) {
     typeof o.marketingConsentVersion === 'string' ? o.marketingConsentVersion.trim() : ''
 
   if (!nameRaw) {
-    return NextResponse.json({ error: '이름을 입력해 주세요.' }, { status: 400 })
+    return jsonWithLeakGuard({ error: '이름을 입력해 주세요.' }, 'auth.register.validation', { status: 400 })
   }
   if (nameRaw.length > 80) {
-    return NextResponse.json({ error: '이름은 80자 이내로 입력해 주세요.' }, { status: 400 })
+    return jsonWithLeakGuard({ error: '이름은 80자 이내로 입력해 주세요.' }, 'auth.register.validation', { status: 400 })
   }
   if (!email || !EMAIL_RE.test(email)) {
-    return NextResponse.json({ error: '유효한 이메일을 입력해 주세요.' }, { status: 400 })
+    return jsonWithLeakGuard({ error: '유효한 이메일을 입력해 주세요.' }, 'auth.register.validation', { status: 400 })
   }
   if (password.length < 8) {
-    return NextResponse.json({ error: '비밀번호는 8자 이상이어야 합니다.' }, { status: 400 })
+    return jsonWithLeakGuard({ error: '비밀번호는 8자 이상이어야 합니다.' }, 'auth.register.validation', { status: 400 })
   }
   if (!passwordConfirm) {
-    return NextResponse.json({ error: '비밀번호 확인을 입력해 주세요.' }, { status: 400 })
+    return jsonWithLeakGuard({ error: '비밀번호 확인을 입력해 주세요.' }, 'auth.register.validation', { status: 400 })
   }
   if (password !== passwordConfirm) {
-    return NextResponse.json({ error: '비밀번호가 일치하지 않습니다.' }, { status: 400 })
+    return jsonWithLeakGuard({ error: '비밀번호가 일치하지 않습니다.' }, 'auth.register.validation', { status: 400 })
   }
   if (!termsConsent || !ageConfirmed || !privacyNoticeConfirmed) {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { error: '이용약관·만 14세 확인·개인정보 수집·이용 안내에 모두 동의해 주세요.' },
-      { status: 400 }
+      'auth.register.validation',
+      { status: 400 },
     )
   }
   if (!privacyNoticeVersion) {
-    return NextResponse.json({ error: '개인정보 안내 버전 정보가 누락되었습니다.' }, { status: 400 })
+    return jsonWithLeakGuard({ error: '개인정보 안내 버전 정보가 누락되었습니다.' }, 'auth.register.validation', {
+      status: 400,
+    })
   }
 
   const exists = await prisma.user.findUnique({ where: { email }, select: { id: true } })
   if (exists) {
-    return NextResponse.json({ error: '이미 가입된 이메일입니다.' }, { status: 409 })
+    return jsonWithLeakGuard({ error: '이미 가입된 이메일입니다.' }, 'auth.register.duplicate', { status: 409 })
   }
 
   const passwordHash = await bcrypt.hash(password, 12)
@@ -119,5 +123,5 @@ export async function POST(req: Request) {
     console.warn('[auth/register] coupon_bootstrap', e)
   })
 
-  return NextResponse.json({ ok: true, user })
+  return jsonWithLeakGuard({ ok: true, user }, 'auth.register.ok')
 }

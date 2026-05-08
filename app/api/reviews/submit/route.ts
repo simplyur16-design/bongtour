@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { insertPendingMemberReview } from '@/lib/reviews-db'
 import { validateMemberReviewSubmit } from '@/lib/reviews-validate'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
@@ -22,9 +21,10 @@ function getClientIp(headers: Headers): string {
 export async function POST(request: Request) {
   const originErr = getPublicMutationOriginError(request)
   if (originErr) {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: false, error: originErr.message, code: 'origin' },
-      { status: originErr.status }
+      'api.reviews.submit.origin',
+      { status: originErr.status },
     )
   }
 
@@ -32,29 +32,30 @@ export async function POST(request: Request) {
   const store = getRateLimitStore()
   const bucket = await store.incr(`public:reviews-submit:${ip}`, REVIEW_SUBMIT_RATE_LIMIT_WINDOW_MS)
   if (bucket.count > REVIEW_SUBMIT_RATE_LIMIT_MAX) {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       {
         ok: false,
         error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
         code: 'rate_limit',
       },
-      { status: 429, headers: { 'Retry-After': String(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))) } }
+      'api.reviews.submit.rate-limit',
+      { status: 429, headers: { 'Retry-After': String(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))) } },
     )
   }
 
   const session = await auth()
   const userId = session?.user?.id
   if (!userId) {
-    return NextResponse.json(
-      { ok: false, error: '로그인이 필요합니다.', code: 'auth' },
-      { status: 401 }
-    )
+    return jsonWithLeakGuard({ ok: false, error: '로그인이 필요합니다.', code: 'auth' }, 'api.reviews.submit.auth', {
+      status: 401,
+    })
   }
   const accountStatus = (session.user as { accountStatus?: string | null }).accountStatus ?? 'active'
   if (accountStatus === 'suspended' || accountStatus === 'withdrawn') {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: false, error: '이용이 제한된 계정입니다.', code: 'auth' },
-      { status: 403 }
+      'api.reviews.submit.suspended',
+      { status: 403 },
     )
   }
 
@@ -63,9 +64,10 @@ export async function POST(request: Request) {
     select: { id: true, accountStatus: true },
   })
   if (!alive || alive.accountStatus !== 'active') {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: false, error: '유효한 회원만 후기를 제출할 수 있습니다.', code: 'auth' },
-      { status: 403 }
+      'api.reviews.submit.not-active',
+      { status: 403 },
     )
   }
 
@@ -73,25 +75,28 @@ export async function POST(request: Request) {
   try {
     json = await request.json()
   } catch {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: false, error: 'JSON 본문이 필요합니다.', code: 'validation' },
-      { status: 400 }
+      'api.reviews.submit.bad-json',
+      { status: 400 },
     )
   }
 
   const validated = validateMemberReviewSubmit(json)
   if (!validated.ok) {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: false, error: validated.error, code: validated.code ?? 'validation' },
-      { status: 400 }
+      'api.reviews.submit.validation',
+      { status: 400 },
     )
   }
 
   const result = await insertPendingMemberReview(userId, validated.value)
   if (!result.ok) {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: false, error: result.error, code: 'server' },
-      { status: 503 }
+      'api.reviews.submit.db',
+      { status: 503 },
     )
   }
 
@@ -100,6 +105,5 @@ export async function POST(request: Request) {
     id: result.id,
     message: '후기가 접수되었습니다. 관리자 검토 후 공개 여부가 결정됩니다.',
   }
-  assertNoInternalMetaLeak(payload, 'POST /api/reviews/submit')
-  return NextResponse.json(payload)
+  return jsonWithLeakGuard(payload, 'api.reviews.submit.ok')
 }

@@ -1,5 +1,6 @@
 import { randomBytes } from 'crypto'
 import { NextResponse } from 'next/server'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import {
   NAVER_OAUTH_REDIRECT_COOKIE,
   NAVER_OAUTH_STATE_COOKIE,
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   const clientId = process.env.NAVER_CLIENT_ID?.trim()
   if (!clientId) {
-    return NextResponse.json({ error: '네이버 OAuth 환경 변수가 누락되었습니다.' }, { status: 500 })
+    return jsonWithLeakGuard({ error: '네이버 OAuth 환경 변수가 누락되었습니다.' }, 'auth.naver.env', { status: 500 })
   }
 
   const publicOrigin = resolveNaverOAuthPublicOrigin(request)

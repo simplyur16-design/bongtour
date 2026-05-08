@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import {
   CUSTOMER_INQUIRY_TYPES,
@@ -8,7 +7,7 @@ import {
 import { sendInquiryReceivedEmail } from '@/lib/inquiry-email'
 import { sendAdminInquiryNotification, sendInquiryCustomerLmsFallback } from '@/lib/notification-service'
 import { attemptSendCustomerInquiryAlimTalk } from '@/lib/solapi-alimtalk'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError } from '@/lib/public-mutation-origin'
 import { makeInquiryNumber } from '@/lib/identifiers/make-inquiry-number'
@@ -62,9 +61,10 @@ function buildSilentInquiryAcceptPayload(body: Record<string, unknown>) {
 export async function POST(request: Request) {
   const originErr = getPublicMutationOriginError(request)
   if (originErr) {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: false, error: originErr.message, fieldErrors: {} as Record<string, string> },
-      { status: originErr.status }
+      'api.inquiries.origin',
+      { status: originErr.status },
     )
   }
 
@@ -72,13 +72,14 @@ export async function POST(request: Request) {
   const store = getRateLimitStore()
   const bucket = await store.incr(`public:inquiries:${ip}`, INQUIRY_RATE_LIMIT_WINDOW_MS)
   if (bucket.count > INQUIRY_RATE_LIMIT_MAX) {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       {
         ok: false,
         error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
         fieldErrors: {} as Record<string, string>,
       },
-      { status: 429, headers: { 'Retry-After': String(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))) } }
+      'api.inquiries.rate-limit',
+      { status: 429, headers: { 'Retry-After': String(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))) } },
     )
   }
 
@@ -86,9 +87,10 @@ export async function POST(request: Request) {
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: false, error: 'JSON 본문을 읽을 수 없습니다.', fieldErrors: {} as Record<string, string> },
-      { status: 400 }
+      'api.inquiries.bad-json',
+      { status: 400 },
     )
   }
   const obj = (body ?? {}) as Record<string, unknown>
@@ -96,8 +98,7 @@ export async function POST(request: Request) {
   const honeypotWebsiteUrl = typeof obj.website_url === 'string' ? obj.website_url.trim() : ''
   if (honeypotWebsite || honeypotWebsiteUrl) {
     const payload = buildSilentInquiryAcceptPayload(obj)
-    assertNoInternalMetaLeak(payload, '/api/inquiries')
-    return NextResponse.json(payload)
+    return jsonWithLeakGuard(payload, 'api.inquiries.silent-honeypot')
   }
 
   const productionInquiry = process.env.NODE_ENV === 'production'
@@ -110,21 +111,20 @@ export async function POST(request: Request) {
       !Number.isFinite(openedMs) || openedMs < minTs || openedMs > now || now - openedMs < 3000
     if (tooFast) {
       const payload = buildSilentInquiryAcceptPayload(obj)
-      assertNoInternalMetaLeak(payload, '/api/inquiries')
-      return NextResponse.json(payload)
+      return jsonWithLeakGuard(payload, 'api.inquiries.silent-too-fast')
     }
   }
 
   const validated = validateCustomerInquiryBody(body, { productionInquiryRules: productionInquiry })
   if (validated.ok === 'silent_bot') {
     const payload = buildSilentInquiryAcceptPayload(obj)
-    assertNoInternalMetaLeak(payload, '/api/inquiries')
-    return NextResponse.json(payload)
+    return jsonWithLeakGuard(payload, 'api.inquiries.silent-bot')
   }
   if (validated.ok === false) {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: false, error: validated.error, fieldErrors: validated.fieldErrors },
-      { status: 400 }
+      'api.inquiries.validation',
+      { status: 400 },
     )
   }
   const v = validated.value
@@ -144,13 +144,14 @@ export async function POST(request: Request) {
       select: { title: true, originUrl: true, originSource: true, originCode: true },
     })
     if (!p) {
-      return NextResponse.json(
+      return jsonWithLeakGuard(
         {
           ok: false,
           error: '요청한 상품을 찾을 수 없습니다.',
           fieldErrors: { productId: '존재하지 않는 productId입니다.' },
         },
-        { status: 400 }
+        'api.inquiries.bad-product',
+        { status: 400 },
       )
     }
     productForInquiry = {
@@ -174,13 +175,14 @@ export async function POST(request: Request) {
       select: { id: true },
     })
     if (!exists) {
-      return NextResponse.json(
+      return jsonWithLeakGuard(
         {
           ok: false,
           error: '요청한 큐레이션 항목을 찾을 수 없습니다.',
           fieldErrors: { monthlyCurationItemId: '존재하지 않는 monthlyCurationItemId입니다.' },
         },
-        { status: 400 }
+        'api.inquiries.monthly-curation-missing',
+        { status: 400 },
       )
     }
   }
@@ -392,17 +394,17 @@ export async function POST(request: Request) {
         },
       },
     }
-    assertNoInternalMetaLeak(payload, '/api/inquiries')
-    return NextResponse.json(payload)
+    return jsonWithLeakGuard(payload, 'api.inquiries.ok')
   } catch (e) {
     console.error('[POST /api/inquiries]', e)
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       {
         ok: false,
         error: '문의 접수에 실패했습니다. 잠시 후 다시 시도해 주세요.',
         fieldErrors: {} as Record<string, string>,
       },
-      { status: 500 }
+      'api.inquiries.catch',
+      { status: 500 },
     )
   }
 }

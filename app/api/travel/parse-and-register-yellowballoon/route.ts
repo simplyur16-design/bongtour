@@ -5,12 +5,12 @@
  * - 본 라우트는 동일 `handleParseAndRegisterYbtourRequest`만 호출하며, 신규 연동·문서·관리자 UI는 ybtour 경로만 사용한다.
  * - `originSource`는 ybtour 전용 라우트와 동일하게 canonical **`ybtour`만** 허용한다(레거시 `yellowballoon` 문자열은 `normalizeSupplierOrigin`에서 `ybtour`로만 해석).
  */
-import { NextResponse } from 'next/server'
 import {
   assertRegisterRouteSupplierMatch,
   SupplierRouteMismatchError,
 } from '@/lib/assert-supplier-route-match'
 import { handleParseAndRegisterYbtourRequest } from '@/lib/parse-and-register-ybtour-handler'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { requireAdmin } from '@/lib/require-admin'
 
 export const maxDuration = 300
@@ -20,7 +20,9 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: Request) {
   const admin = await requireAdmin()
   if (!admin) {
-    return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    return jsonWithLeakGuard({ error: '인증이 필요합니다.' }, 'travel.parse-and-register-yellowballoon.auth', {
+      status: 401,
+    })
   }
   console.log(
     '[ybtour] phase=register-api entry route=parse-and-register-yellowballoon-deprecated dedicated=ybtour-handler'
@@ -30,15 +32,17 @@ export async function POST(request: Request) {
     try {
       peek = await request.clone().json()
     } catch {
-      return NextResponse.json(
+      return jsonWithLeakGuard(
         { success: false, error: '요청 본문이 올바른 JSON이 아닙니다.' },
-        { status: 400 }
+        'travel.parse-and-register-yellowballoon.bad-json',
+        { status: 400 },
       )
     }
     if (!peek || typeof peek !== 'object' || Array.isArray(peek)) {
-      return NextResponse.json(
+      return jsonWithLeakGuard(
         { success: false, error: '요청 본문은 JSON 객체여야 합니다.' },
-        { status: 400 }
+        'travel.parse-and-register-yellowballoon.bad-shape',
+        { status: 400 },
       )
     }
     assertRegisterRouteSupplierMatch('ybtour', (peek as Record<string, unknown>).originSource, {
@@ -46,7 +50,7 @@ export async function POST(request: Request) {
     })
   } catch (e) {
     if (e instanceof SupplierRouteMismatchError) {
-      return NextResponse.json(
+      return jsonWithLeakGuard(
         {
           success: false,
           error: e.message,
@@ -55,7 +59,8 @@ export async function POST(request: Request) {
           normalizedSupplier: e.normalized,
           route: e.route,
         },
-        { status: 400 }
+        'travel.parse-and-register-yellowballoon.supplier-mismatch',
+        { status: 400 },
       )
     }
     throw e

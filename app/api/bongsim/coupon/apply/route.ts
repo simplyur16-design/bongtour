@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { applyBongsimCouponUsageTransaction } from "@/lib/bongsim/data/bongsim-coupon";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { requireAdmin } from "@/lib/require-admin";
 
 export const dynamic = "force-dynamic";
@@ -18,19 +18,25 @@ type Body = {
 export async function POST(req: Request) {
   const admin = await requireAdmin();
   if (!admin) {
-    return NextResponse.json({ ok: false, error: "관리자 로그인이 필요합니다." }, { status: 401 });
+    return jsonWithLeakGuard({ ok: false, error: "관리자 로그인이 필요합니다." }, "bongsim.coupon.apply.auth", {
+      status: 401,
+    });
   }
 
   const pool = getPgPool();
   if (!pool) {
-    return NextResponse.json({ ok: false, error: "데이터베이스가 설정되지 않았습니다." }, { status: 503 });
+    return jsonWithLeakGuard({ ok: false, error: "데이터베이스가 설정되지 않았습니다." }, "bongsim.coupon.apply.db", {
+      status: 503,
+    });
   }
 
   let body: Body;
   try {
     body = (await req.json()) as Body;
   } catch {
-    return NextResponse.json({ ok: false, error: "요청 본문이 올바르지 않습니다." }, { status: 400 });
+    return jsonWithLeakGuard({ ok: false, error: "요청 본문이 올바르지 않습니다." }, "bongsim.coupon.apply.json", {
+      status: 400,
+    });
   }
 
   const coupon_id = typeof body.coupon_id === "string" ? body.coupon_id.trim() : "";
@@ -65,7 +71,7 @@ export async function POST(req: Request) {
   });
 
   if (!r.ok) {
-    return NextResponse.json({ ok: false, error: r.error }, { status: 400 });
+    return jsonWithLeakGuard({ ok: false, error: r.error }, "bongsim.coupon.apply.validation", { status: 400 });
   }
-  return NextResponse.json({ ok: true });
+  return jsonWithLeakGuard({ ok: true }, "bongsim.coupon.apply.ok");
 }

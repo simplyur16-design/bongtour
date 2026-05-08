@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import type { PrismaClient } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { fetchPexelsPhotoObject, isPexelsFallbackUrl, type PexelsPhotoObject } from '@/lib/pexels-service'
@@ -22,6 +21,7 @@ import {
   internalizeProductCoverImageUrl,
   isExternalHttpProductImageUrl,
 } from '@/lib/travel-product-image-internalize'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -273,13 +273,18 @@ export const maxDuration = 60
  */
 export async function POST(req: Request) {
   const admin = await requireAdmin()
-  if (!admin) return NextResponse.json({ success: false, error: '인증이 필요합니다.' }, { status: 401 })
+  if (!admin)
+    return jsonWithLeakGuard({ success: false, error: '인증이 필요합니다.' }, 'travel.process-images.auth', {
+      status: 401,
+    })
   try {
     const body = await req.json().catch(() => ({}))
     const productId = body.productId ?? body.id
     const debugMode = body.debug === true
     if (productId == null) {
-      return NextResponse.json({ success: false, error: 'productId 필요' }, { status: 400 })
+      return jsonWithLeakGuard({ success: false, error: 'productId 필요' }, 'travel.process-images.no-id', {
+        status: 400,
+      })
     }
 
     const product = (await prisma.product.findUnique({
@@ -288,13 +293,17 @@ export async function POST(req: Request) {
     })) as ProductRow | null
 
     if (!product) {
-      return NextResponse.json({ success: false, error: '상품을 찾을 수 없습니다.' }, { status: 404 })
+      return jsonWithLeakGuard({ success: false, error: '상품을 찾을 수 없습니다.' }, 'travel.process-images.not-found', {
+        status: 404,
+      })
     }
 
     const destination = (product.destination ?? '').trim() || '미지정'
     const scheduleArr = parseSchedule(product.schedule)
     if (scheduleArr.length === 0) {
-      return NextResponse.json({ success: false, error: '일정 데이터 없음' }, { status: 400 })
+      return jsonWithLeakGuard({ success: false, error: '일정 데이터 없음' }, 'travel.process-images.no-schedule', {
+        status: 400,
+      })
     }
 
     const itineraryRows: ItineraryRowLite[] = await prisma.itineraryDay.findMany({
@@ -352,7 +361,7 @@ export async function POST(req: Request) {
           schedule: scheduleStr,
         },
       })
-      return NextResponse.json({ success: true, source: 'pool', cacheHit: 5, newFetch: 0 })
+      return jsonWithLeakGuard({ success: true, source: 'pool', cacheHit: 5, newFetch: 0 }, 'travel.process-images.pool')
     }
 
     const poolBySlot = new Map<number, PoolPhotoRecord>()
@@ -418,12 +427,15 @@ export async function POST(req: Request) {
           schedule: scheduleStrPre,
         },
       })
-      return NextResponse.json({
-        success: true,
-        source: 'pre-made',
-        cacheHit: 5,
-        newFetch: 0,
-      })
+      return jsonWithLeakGuard(
+        {
+          success: true,
+          source: 'pre-made',
+          cacheHit: 5,
+          newFetch: 0,
+        },
+        'travel.process-images.premade',
+      )
     }
 
     const cache = await buildImageCacheFromDb(prisma, destination)
@@ -734,7 +746,7 @@ export async function POST(req: Request) {
       newFetch: newFetchCount,
     }
     if (debugMode) {
-      response.debug = {
+      response.processImagesTrace = {
         productId: product.id,
         hero: {
           imageUrl: mainPhoto.url,
@@ -744,10 +756,10 @@ export async function POST(req: Request) {
         slots: slotDebug,
       }
     }
-    return NextResponse.json(response)
+    return jsonWithLeakGuard(response, 'travel.process-images.ok')
   } catch (error) {
     const message = error instanceof Error ? error.message : '이미지 처리 실패'
     console.error('[DEBUG] process-images 예외:', error instanceof Error ? (error as Error).stack : error)
-    return NextResponse.json({ success: false, error: message }, { status: 500 })
+    return jsonWithLeakGuard({ success: false, error: message }, 'travel.process-images.catch', { status: 500 })
   }
 }

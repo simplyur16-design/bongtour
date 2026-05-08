@@ -1,9 +1,8 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getPexelsImage } from '@/lib/pexels-service'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { LUXURY_FALLBACK_IMAGE_URL } from '@/lib/image-fallback'
 
@@ -186,16 +185,18 @@ export async function GET(request: Request) {
       limit,
       totalPages: Math.ceil(total / limit),
     }
-    assertNoInternalMetaLeak(payload, '/api/gallery')
-    return NextResponse.json(payload)
+    return jsonWithLeakGuard(payload, 'api.gallery')
   } catch (e) {
     console.error('[GET /api/gallery]', e)
-    return NextResponse.json({
-      items: [],
-      total: 0,
-      page: 1,
-      limit: 6,
-      totalPages: 0,
-    })
+    return jsonWithLeakGuard(
+      {
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 6,
+        totalPages: 0,
+      },
+      'api.gallery.fallback',
+    )
   }
 }

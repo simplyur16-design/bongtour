@@ -22,6 +22,15 @@ export class UsimsaRequestError extends Error {
   }
 }
 
+function readUsimsaFetchTimeoutMs(): number {
+  const raw = process.env.USIMSA_FETCH_TIMEOUT_MS?.trim();
+  if (raw) {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isFinite(n) && n >= 1000 && n <= 120_000) return n;
+  }
+  return 15_000;
+}
+
 function buildQueryString(query?: Record<string, string | number | boolean | undefined | null>): string {
   if (!query) {
     return "";
@@ -35,6 +44,12 @@ function buildQueryString(query?: Record<string, string | number | boolean | und
   }
   const s = params.toString();
   return s ? `?${s}` : "";
+}
+
+function isAbortError(e: unknown): boolean {
+  if (!e || typeof e !== "object") return false;
+  const name = "name" in e ? String((e as { name?: string }).name) : "";
+  return name === "AbortError" || e instanceof DOMException;
 }
 
 export async function usimsaRequest<T>(params: {
@@ -70,17 +85,34 @@ export async function usimsaRequest<T>(params: {
     headers["Content-Type"] = "application/json";
   }
 
+  const timeoutMs = readUsimsaFetchTimeoutMs();
   const init: RequestInit = {
     method: params.method,
     headers,
     cache: "no-store",
+    signal: AbortSignal.timeout(timeoutMs),
   };
 
   if (params.method !== "GET" && params.body !== undefined) {
     init.body = JSON.stringify(params.body);
   }
 
-  const res = await fetch(url, init);
+  let res: Response;
+  try {
+    res = await fetch(url, init);
+  } catch (e) {
+    if (isAbortError(e)) {
+      const sec = timeoutMs / 1000;
+      throw new UsimsaRequestError(`USIMSA API timeout after ${sec}s`, {
+        method: params.method,
+        pathAndQuery,
+        status: 408,
+        responseBody: null,
+      });
+    }
+    throw e;
+  }
+
   const text = await res.text();
 
   let parsed: unknown = text;

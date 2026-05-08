@@ -1,10 +1,9 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
 import { getPexelsImage } from '@/lib/pexels-service'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 
 /** Next 15 GET Route Handler 기본 비캐시 대응 — 메인 위젯·Pexels 폴백 호출 완화 */
@@ -26,13 +25,16 @@ export async function GET() {
 
     if (!product) {
       const defaultCover = await getPexelsImage('tropical beach travel')
-      return NextResponse.json({
-        title: null,
-        departureDate: null,
-        priceKrw: null,
-        counselingPoints: null,
-        coverImageUrl: defaultCover,
-      })
+      return jsonWithLeakGuard(
+        {
+          title: null,
+          departureDate: null,
+          priceKrw: null,
+          counselingPoints: null,
+          coverImageUrl: defaultCover,
+        },
+        'api.featured.empty',
+      )
     }
 
     const scheduleRows = getScheduleFromProduct({ schedule: product.schedule })
@@ -59,8 +61,7 @@ export async function GET() {
       })),
       coverImageUrl,
     }
-    assertNoInternalMetaLeak(payload, '/api/featured')
-    return NextResponse.json(payload)
+    return jsonWithLeakGuard(payload, 'api.featured')
   } catch (e) {
     console.error('[GET /api/featured] Prisma 또는 후처리 실패 — 빈 페이로드로 응답 (UI 유지)', e)
     try {
@@ -72,8 +73,7 @@ export async function GET() {
         counselingPoints: null,
         coverImageUrl: defaultCover,
       }
-      assertNoInternalMetaLeak(fallback, '/api/featured')
-      return NextResponse.json(fallback)
+      return jsonWithLeakGuard(fallback, 'api.featured.fallback')
     } catch {
       const fallback = {
         title: null,
@@ -82,7 +82,7 @@ export async function GET() {
         counselingPoints: null,
         coverImageUrl: '',
       }
-      return NextResponse.json(fallback)
+      return jsonWithLeakGuard(fallback, 'api.featured.fallback-minimal')
     }
   }
 }

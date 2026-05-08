@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { requireAdmin } from '@/lib/require-admin'
 import {
@@ -161,7 +162,7 @@ async function createPathDeviationReport(
 
 export async function POST(request: Request) {
   const admin = await requireAdmin()
-  if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+  if (!admin) return jsonWithLeakGuard({ error: '인증이 필요합니다.' }, 'api.agent.scrape.auth', { status: 401 })
   let body: {
     mainUrl?: string
     countryName?: string
@@ -171,7 +172,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: 'JSON body required' }, { status: 400 })
+    return jsonWithLeakGuard({ error: 'JSON body required' }, 'api.agent.scrape.body', { status: 400 })
   }
 
   const mainUrl = (body.mainUrl || '').trim() || 'https://www.hanatour.com'

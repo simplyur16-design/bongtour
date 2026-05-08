@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import type { NextResponse } from 'next/server'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 
 /**
  * 공개 POST API(예약·문의·가입·후기)용 출처 검증.
@@ -107,5 +108,5 @@ export function getPublicMutationOriginError(request: Request): PublicMutationOr
 }
 
 export function publicMutationOriginJsonResponse(err: PublicMutationOriginError): NextResponse {
-  return NextResponse.json({ error: err.message }, { status: err.status })
+  return jsonWithLeakGuard({ error: err.message }, 'public-mutation-origin', { status: err.status })
 }

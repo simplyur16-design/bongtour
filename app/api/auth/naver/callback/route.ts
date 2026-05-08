@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'crypto'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import { appendNaverSessionCookie, redirectAfterNaverLogin } from '@/lib/naver-auth-session'
 import type { NaverTokenResponse, NaverProfileResponse } from '@/lib/naver-oauth-types'
@@ -23,9 +24,10 @@ const TOKEN_URL = 'https://nid.naver.com/oauth2.0/token'
 const PROFILE_URL = 'https://openapi.naver.com/v1/nid/me'
 
 function jsonError(status: number, error: string, detail?: string) {
-  return NextResponse.json(
+  return jsonWithLeakGuard(
     { error, ...(detail !== undefined ? { detail } : {}) },
-    { status }
+    'auth.naver.callback',
+    { status },
   )
 }
 

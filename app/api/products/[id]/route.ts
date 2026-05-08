@@ -1,9 +1,8 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { executeRangeOnDemandDepartures } from '@/lib/admin-execute-departures-rescrape'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import * as priceRowsHanatour from '@/lib/product-departure-to-price-rows-hanatour'
@@ -17,7 +16,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const { id } = await params
     if (!id || typeof id !== 'string') {
-      return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+      return jsonWithLeakGuard({ error: 'Invalid id' }, 'api.products.detail.get.bad-id', { status: 400 })
     }
     const product = await prisma.product.findFirst({
       where: { id, registrationStatus: 'registered' },
@@ -30,7 +29,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       },
     })
     if (!product) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return jsonWithLeakGuard({ error: 'Not found' }, 'api.products.detail.get.not-found', { status: 404 })
     }
     const bk = String(product.brand?.brandKey ?? '').trim()
     const norm = normalizeSupplierOrigin(product.originSource ?? '')
@@ -100,13 +99,13 @@ export async function GET(_request: Request, { params }: RouteParams) {
       shoppingCount: product.shoppingCount ?? null,
       shoppingItems: product.shoppingItems ?? null,
     }
-    assertNoInternalMetaLeak(payload, '/api/products/[id]')
-    return NextResponse.json(payload)
+    return jsonWithLeakGuard(payload, 'api.products.detail.get')
   } catch (e) {
     console.error(e)
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { error: '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
-      { status: 500 }
+      'api.products.detail.get.catch',
+      { status: 500 },
     )
   }
 }
@@ -118,18 +117,18 @@ export async function POST(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params
     if (!id || typeof id !== 'string') {
-      return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+      return jsonWithLeakGuard({ error: 'Invalid id' }, 'api.products.detail.post.bad-id', { status: 400 })
     }
     let raw: unknown
     try {
       raw = await request.json()
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+      return jsonWithLeakGuard({ error: 'Invalid JSON' }, 'api.products.detail.post.bad-json', { status: 400 })
     }
     const o = raw as { mode?: string; departureDate?: string; windowDays?: number }
     const modesOk = o?.mode === 'range-on-demand' || o?.mode === 'single-date-on-demand'
     if (!modesOk || typeof o.departureDate !== 'string' || !o.departureDate.trim()) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return jsonWithLeakGuard({ error: 'Not found' }, 'api.products.detail.post.bad-body', { status: 404 })
     }
     /** 실브라우저·UI 검증 전용. 설정 시에만 지연(운영 미설정 권장). */
     if (o.mode === 'range-on-demand') {
@@ -149,7 +148,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       },
     })
     if (!product) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return jsonWithLeakGuard({ error: 'Not found' }, 'api.products.detail.post.not-found', { status: 404 })
     }
     const w =
       o.mode === 'single-date-on-demand'
@@ -158,13 +157,13 @@ export async function POST(request: Request, { params }: RouteParams) {
           ? o.windowDays
           : 14
     const { status, body } = await executeRangeOnDemandDepartures(prisma, product, o.departureDate.trim(), w)
-    assertNoInternalMetaLeak(body, '/api/products/[id]')
-    return NextResponse.json(body, { status })
+    return jsonWithLeakGuard(body, 'api.products.detail.post.on-demand', { status })
   } catch (e) {
     console.error(e)
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { error: '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
-      { status: 500 }
+      'api.products.detail.post.catch',
+      { status: 500 },
     )
   }
 }

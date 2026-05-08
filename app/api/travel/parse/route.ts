@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import {
   getGenAI,
@@ -92,12 +92,16 @@ function inferAirportTransferType(rawText: string): 'NONE' | 'PICKUP' | 'SENDING
 
 export async function POST(req: Request) {
   const admin = await requireAdmin()
-  if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+  if (!admin) return jsonWithLeakGuard({ error: '인증이 필요합니다.' }, 'travel.parse.auth', { status: 401 })
   const AUTH_SECRET = resolveParseRouteBodyAuthSecret()
   if (!AUTH_SECRET) {
-    return NextResponse.json(
-      { error: '서버에 ADMIN_SERVICE_BEARER_SECRET(또는 구 ADMIN_BYPASS_SECRET)이 설정되지 않아 이 엔드포인트의 2차 인증을 사용할 수 없습니다.' },
-      { status: 503 }
+    return jsonWithLeakGuard(
+      {
+        error:
+          '서버에 ADMIN_SERVICE_BEARER_SECRET(또는 구 ADMIN_BYPASS_SECRET)이 설정되지 않아 이 엔드포인트의 2차 인증을 사용할 수 없습니다.',
+      },
+      'travel.parse.secret-missing',
+      { status: 503 },
     )
   }
   try {
@@ -107,7 +111,7 @@ export async function POST(req: Request) {
     const auth = body?.auth
     if (auth !== AUTH_SECRET) {
       console.log(`${PARSE_STEP} 1. 인증 실패 (body.auth 불일치)`)
-      return NextResponse.json({ error: '인증이 필요합니다. (body.auth)' }, { status: 401 })
+      return jsonWithLeakGuard({ error: '인증이 필요합니다. (body.auth)' }, 'travel.parse.body-auth', { status: 401 })
     }
     console.log(`${PARSE_STEP} 1. 인증 체크 통과`)
     const rawText = typeof body.rawText === 'string' ? body.rawText.trim() : (body.text as string)?.trim?.()
@@ -118,7 +122,7 @@ export async function POST(req: Request) {
       ? normalizeParseRequestOriginSource(clientOriginSourceRaw, brandKeyForOrigin)
       : null
     if (!rawText) {
-      return NextResponse.json({ error: 'rawText 또는 text는 필수입니다.' }, { status: 400 })
+      return jsonWithLeakGuard({ error: 'rawText 또는 text는 필수입니다.' }, 'travel.parse.no-text', { status: 400 })
     }
     console.log(`${PARSE_STEP} 텍스트 길이: ${rawText.length}자`)
 
@@ -133,7 +137,7 @@ export async function POST(req: Request) {
       if (!connectionTest.ok) {
         const errMsg = `제미나이 연결 실패: 모델명을 확인하세요. (${connectionTest.error ?? 'unknown'})`
         console.error(`${PARSE_STEP} ${errMsg}`)
-        return NextResponse.json({ error: errMsg }, { status: 503 })
+        return jsonWithLeakGuard({ error: errMsg }, 'travel.parse.gemini-down', { status: 503 })
       }
     } else {
       console.log(`${PARSE_STEP} 2. 연결 이미 확정, 테스트 생략`)
@@ -175,7 +179,9 @@ ${textInput}
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       console.error(`${PARSE_STEP} LLM이 JSON을 반환하지 않음`)
-      return NextResponse.json({ error: 'LLM이 유효한 JSON을 반환하지 않았습니다.' }, { status: 500 })
+      return jsonWithLeakGuard({ error: 'LLM이 유효한 JSON을 반환하지 않았습니다.' }, 'travel.parse.llm-json', {
+        status: 500,
+      })
     }
     const data = JSON.parse(jsonMatch[0]) as ParsedPayload
     console.log(`${PARSE_STEP} 3. AI 분석 완료. originCode: ${(data.originCode ?? '').trim() || '(없음)'}`)
@@ -189,16 +195,19 @@ ${textInput}
     const destinationRaw = (data.destination ?? '').trim()
     const finalDestination = destinationRaw || extractDestinationFromTitle(title)
     if (!finalDestination || finalDestination === '미지정') {
-      return NextResponse.json(
+      return jsonWithLeakGuard(
         { error: 'destination을 추출할 수 없습니다. title에 여행지명이 포함되어 있는지 확인하세요.' },
-        { status: 400 }
+        'travel.parse.no-destination',
+        { status: 400 },
       )
     }
     const destination = finalDestination
     const duration = (data.duration ?? '').trim() || '미지정'
     const airline = (data.airline ?? '').trim() || null
     if (!originCode) {
-      return NextResponse.json({ error: '상품코드(originCode)를 추출할 수 없습니다.' }, { status: 400 })
+      return jsonWithLeakGuard({ error: '상품코드(originCode)를 추출할 수 없습니다.' }, 'travel.parse.no-origin', {
+        status: 400,
+      })
     }
 
     const scheduleRaw = Array.isArray(data.schedule) ? data.schedule : []
@@ -410,21 +419,24 @@ ${textInput}
     }
 
     console.log(`${PARSE_STEP} 5. 결과 반환 (productId: ${product.id}, parsed.prices: ${parsedForClient.prices?.length ?? 0}건)`)
-    return NextResponse.json({
-      success: true,
-      productId: product.id,
-      parsed: parsedForClient,
-      ...(debugSupplier && {
-        supplierInputDebug: buildParseSupplierInputDebug({
-          requestRaw: clientOriginSourceRaw,
-          coerced: originSourceCoerced,
-          effective: originSource,
+    return jsonWithLeakGuard(
+      {
+        success: true,
+        productId: product.id,
+        parsed: parsedForClient,
+        ...(debugSupplier && {
+          supplierInputDebug: buildParseSupplierInputDebug({
+            requestRaw: clientOriginSourceRaw,
+            coerced: originSourceCoerced,
+            effective: originSource,
+          }),
         }),
-      }),
-    })
+      },
+      'travel.parse.ok',
+    )
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : '파싱 실패'
     console.error(`${PARSE_STEP} 예외 (전체 스택):`, error instanceof Error ? (error as Error).stack : error)
-    return NextResponse.json({ success: false, error: errMsg }, { status: 500 })
+    return jsonWithLeakGuard({ success: false, error: errMsg }, 'travel.parse.catch', { status: 500 })
   }
 }

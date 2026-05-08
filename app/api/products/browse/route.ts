@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { PRODUCT_BROWSE_FULL_INCLUDE, type ProductBrowseIncludedRow } from '@/lib/product-browse-full-include'
@@ -24,7 +23,7 @@ import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { buildCaptionLookupMapFromPublicUrls, lookupCaptionFromMap } from '@/lib/image-asset-public-caption'
 import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import {
@@ -226,7 +225,11 @@ export async function GET(request: Request) {
     const budgetPerPersonMax =
       budgetRaw != null && budgetRaw !== '' ? Math.max(0, parseInt(budgetRaw, 10)) : null
     if (budgetPerPersonMax != null && Number.isNaN(budgetPerPersonMax)) {
-      return NextResponse.json({ ok: false, error: 'budgetPerPerson 형식이 올바르지 않습니다.' }, { status: 400 })
+      return jsonWithLeakGuard(
+        { ok: false, error: 'budgetPerPerson 형식이 올바르지 않습니다.' },
+        'api.products.browse.budget',
+        { status: 400 },
+      )
     }
 
     const regionPref = (searchParams.get('regionPref') ?? '').trim()
@@ -564,8 +567,7 @@ export async function GET(request: Request) {
         city,
       },
     }
-    assertNoInternalMetaLeak(payload, '/api/products/browse')
-    return NextResponse.json(payload)
+    return jsonWithLeakGuard(payload, 'api.products.browse.ok')
   } catch (e) {
     console.error('[GET /api/products/browse]', e)
     let q: ReturnType<typeof parseBrowseQuery>
@@ -573,7 +575,11 @@ export async function GET(request: Request) {
       const { searchParams } = new URL(request.url)
       q = parseBrowseQuery(searchParams)
     } catch {
-      return NextResponse.json({ ok: false, error: '요청 파라미터를 처리하지 못했습니다.' }, { status: 400 })
+      return jsonWithLeakGuard(
+        { ok: false, error: '요청 파라미터를 처리하지 못했습니다.' },
+        'api.products.browse.bad-query',
+        { status: 400 },
+      )
     }
     const sp = new URL(request.url).searchParams
     /**
@@ -601,7 +607,6 @@ export async function GET(request: Request) {
         city: sp.get('city'),
       },
     }
-    assertNoInternalMetaLeak(body, '/api/products/browse')
-    return NextResponse.json(body, { status: 500 })
+    return jsonWithLeakGuard(body, 'api.products.browse.error', { status: 500 })
   }
 }

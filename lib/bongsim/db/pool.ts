@@ -17,6 +17,9 @@ function setCachedPool(p: Pool | undefined): void {
   }
 }
 
+/** strict → 연결 실패 시 relaxed 로 한 번만 전환 (프로세스 전역 TLS 비활성화 금지) */
+let sslRejectUnauthorized: boolean = true;
+
 /** 세션 모드(5432) → 트랜잭션 풀러(6543). 비표준 URL은 `:@host:5432` 형태만 치환. */
 function rewriteSessionPort5432To6543(urlStr: string): string {
   try {
@@ -39,8 +42,17 @@ function isTransactionPoolerPort(urlStr: string): boolean {
   }
 }
 
+function isLikelyTlsHandshakeIssue(err: unknown): boolean {
+  const msg = String(err instanceof Error ? err.message : err);
+  const code = typeof err === "object" && err !== null && "code" in err ? String((err as { code?: string }).code) : "";
+  return (
+    /certificate|Certification|SSL|TLS|UNABLE_TO_VERIFY|SELF_SIGNED|wrong version number|ssl/i.test(msg) ||
+    code === "DEPTH_ZERO_SELF_SIGNED_CERT" ||
+    code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+  );
+}
+
 function buildPoolConfig(): PoolConfig | null {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
   let url = process.env.DATABASE_URL?.trim();
   if (!url) return null;
 
@@ -55,7 +67,7 @@ function buildPoolConfig(): PoolConfig | null {
     connectionString: url,
     max: 5,
     idleTimeoutMillis: 10_000,
-    ssl: { rejectUnauthorized: false },
+    ssl: sslRejectUnauthorized ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
   };
 
   // PgBouncer transaction pooling: 풀러가 prepared statement를 유지하기 어려울 때 대비(자동 prepare 비활성화)
@@ -76,6 +88,41 @@ export function getPgPool(): Pool | null {
   const next = new Pool(cfg);
   setCachedPool(next);
   return next;
+}
+
+/**
+ * Supabase 등: 우선 인증서 검증 ON. 체인 문제 등으로 실패 시 한 번만 검증 완화 후 재시도.
+ * instrumentation 등 서버 기동 시 호출 권장.
+ */
+export async function probePgPoolTlsOrFallback(): Promise<{ ok: boolean; sslStrict: boolean }> {
+  const pool = getPgPool();
+  if (!pool) return { ok: true, sslStrict: sslRejectUnauthorized };
+
+  try {
+    await pool.query("SELECT 1");
+    return { ok: true, sslStrict: sslRejectUnauthorized };
+  } catch (err) {
+    if (sslRejectUnauthorized && isLikelyTlsHandshakeIssue(err)) {
+      console.warn(
+        "[bongsim/db/pool] Strict TLS (rejectUnauthorized: true) failed; falling back to rejectUnauthorized: false.",
+        err instanceof Error ? err.message : err,
+      );
+      await pool.end().catch(() => {});
+      setCachedPool(undefined);
+      sslRejectUnauthorized = false;
+      const pool2 = getPgPool();
+      if (!pool2) return { ok: false, sslStrict: false };
+      try {
+        await pool2.query("SELECT 1");
+        return { ok: true, sslStrict: false };
+      } catch (e2) {
+        console.error("[bongsim/db/pool] Fallback pool SELECT 1 failed:", e2);
+        return { ok: false, sslStrict: false };
+      }
+    }
+    console.error("[bongsim/db/pool] SELECT 1 failed:", err);
+    return { ok: false, sslStrict: sslRejectUnauthorized };
+  }
 }
 
 export async function closePgPool(): Promise<void> {

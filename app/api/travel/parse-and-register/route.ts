@@ -6,8 +6,7 @@
  * - hanatour → `…-hanatour`
  * - kyowontour → `…-kyowontour`
  */
-import { NextResponse } from 'next/server'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -18,6 +17,5 @@ export async function POST() {
     error:
       '이 엔드포인트는 사용하지 않습니다. 전용 등록 API(parse-and-register-modetour|verygoodtour|ybtour|hanatour|kyowontour)를 호출하세요.',
   }
-  assertNoInternalMetaLeak(payload, 'POST /api/travel/parse-and-register (410)')
-  return NextResponse.json(payload, { status: 410 })
+  return jsonWithLeakGuard(payload, 'travel.parse-and-register.deprecated', { status: 410 })
 }

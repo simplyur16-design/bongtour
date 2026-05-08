@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { requireAdmin } from '@/lib/require-admin'
 
 /**
@@ -8,11 +8,11 @@ import { requireAdmin } from '@/lib/require-admin'
  */
 export async function GET() {
   const admin = await requireAdmin()
-  if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+  if (!admin) return jsonWithLeakGuard({ error: '인증이 필요합니다.' }, 'api.agent.reports.auth', { status: 401 })
   const list = await prisma.agentScrapeReport.findMany({
     where: { resolved: false },
     orderBy: { createdAt: 'desc' },
     take: 20,
   })
-  return NextResponse.json(list)
+  return jsonWithLeakGuard(list, 'api.agent.reports')
 }

@@ -16,6 +16,11 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { loadEnvConfig } = await import('@next/env')
     loadEnvConfig(process.cwd())
+    const dbUrl = (process.env.DATABASE_URL ?? '').trim()
+    if (dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://')) {
+      const { probePgPoolTlsOrFallback } = await import('@/lib/bongsim/db/pool')
+      await probePgPoolTlsOrFallback()
+    }
     const { bootstrapHomeHubActiveFromDb } = await import('@/lib/home-hub-active-bootstrap')
     await bootstrapHomeHubActiveFromDb()
     if (process.env.NODE_ENV === 'production') {

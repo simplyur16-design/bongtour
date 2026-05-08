@@ -1,10 +1,9 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { computeKRWQuotation, computeLocalFeeTotal, type PriceRowLike } from '@/lib/price-utils'
 import { formatDepartureDate } from '@/lib/message-service'
 import { sendBookingReceivedEmailToAdmin } from '@/lib/booking-email'
 import { parseSolapiReceiverPhones, sendAdminNotificationWithPayload } from '@/lib/notification-service'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import {
   buildCustomerBookingReceiptMessage,
   validateBookingIntake,
@@ -39,9 +38,10 @@ export async function POST(request: Request) {
     const store = getRateLimitStore()
     const bucket = await store.incr(`public:bookings:${ip}`, BOOKING_RATE_LIMIT_WINDOW_MS)
     if (bucket.count > BOOKING_RATE_LIMIT_MAX) {
-      return NextResponse.json(
+      return jsonWithLeakGuard(
         { error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' },
-        { status: 429, headers: { 'Retry-After': String(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))) } }
+        'api.bookings.rate-limit',
+        { status: 429, headers: { 'Retry-After': String(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))) } },
       )
     }
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const attribution = parsePublicAttributionFromBody(bodyObj)
     const honeypot = typeof body?.website === 'string' ? body.website.trim() : ''
     if (honeypot) {
-      return NextResponse.json({ error: '요청 형식이 올바르지 않습니다.' }, { status: 400 })
+      return jsonWithLeakGuard({ error: '요청 형식이 올바르지 않습니다.' }, 'api.bookings.honeypot', { status: 400 })
     }
     const rawProductId = String(body.productId ?? '').trim()
 
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       include: { prices: { orderBy: { date: 'asc' } } },
     })
     if (!product) {
-      return NextResponse.json({ error: '상품을 찾을 수 없습니다.' }, { status: 404 })
+      return jsonWithLeakGuard({ error: '상품을 찾을 수 없습니다.' }, 'api.bookings.not-found', { status: 404 })
     }
 
     const intakeCandidate = {
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
 
     const validated = validateBookingIntake(intakeCandidate)
     if (!validated.ok) {
-      return NextResponse.json({ error: validated.errors.join(' ') }, { status: 400 })
+      return jsonWithLeakGuard({ error: validated.errors.join(' ') }, 'api.bookings.validation', { status: 400 })
     }
     const intake = validated.value
 
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     const hasSelected = Boolean(intake.selectedDepartureDate)
     const primaryDate = intake.selectedDepartureDate ?? intake.preferredDepartureDate
     if (!primaryDate) {
-      return NextResponse.json({ error: '출발일 정보가 없습니다.' }, { status: 400 })
+      return jsonWithLeakGuard({ error: '출발일 정보가 없습니다.' }, 'api.bookings.no-date', { status: 400 })
     }
     const dateKey = primaryDate.slice(0, 10)
 
@@ -275,13 +275,13 @@ export async function POST(request: Request) {
       }),
       pricingMode,
     }
-    assertNoInternalMetaLeak(payload, '/api/bookings')
-    return NextResponse.json(payload)
+    return jsonWithLeakGuard(payload, 'api.bookings.success')
   } catch (e) {
     console.error(e)
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { error: '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
-      { status: 500 }
+      'api.bookings.catch',
+      { status: 500 },
     )
   }
 }

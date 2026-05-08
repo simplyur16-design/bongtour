@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { itineraryDescriptionsBlob } from '@/lib/product-location-key-match'
@@ -18,6 +17,7 @@ import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { normalizeOriginSource } from '@/lib/supplier-origin'
 import { buildParseSupplierInputDebug, normalizeParseRequestOriginSource } from '@/lib/parse-api-origin-source'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 
 /** POST …/parse-and-upsert — `?debugSupplier=1` 시 성공 JSON에 `supplierInputDebug`(body raw, coerce, upsert effective). */
 
@@ -64,7 +64,7 @@ function upsertItineraryModuleForProduct(p: {
 export async function POST(request: Request) {
   const admin = await requireAdmin()
   if (!admin) {
-    return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    return jsonWithLeakGuard({ error: '인증이 필요합니다.' }, 'travel.parse-and-upsert.auth', { status: 401 })
   }
   try {
     const debugSupplier = new URL(request.url).searchParams.get('debugSupplier') === '1'
@@ -98,13 +98,16 @@ export async function POST(request: Request) {
     } else if (text) {
       parsed = await extractTravelProductForDB(text, originSource)
     } else {
-      return NextResponse.json({ error: 'text 또는 parsed는 필수입니다.' }, { status: 400 })
+      return jsonWithLeakGuard({ error: 'text 또는 parsed는 필수입니다.' }, 'travel.parse-and-upsert.validation', {
+        status: 400,
+      })
     }
 
     if (!parsed.originCode || parsed.originCode === '미지정') {
-      return NextResponse.json(
+      return jsonWithLeakGuard(
         { error: '상품코드(originCode)를 추출할 수 없습니다. 텍스트에 상품코드를 포함해 주세요.' },
-        { status: 400 }
+        'travel.parse-and-upsert.no-origin-code',
+        { status: 400 },
       )
     }
 
@@ -221,27 +224,31 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({
-      ok: true,
-      isNew: !existing,
-      productId,
-      originCode: parsed.originCode,
-      detailPath: `/admin/products/${productId}`,
-      message: existing ? '기존 상품이 업데이트되었습니다.' : '새 상품이 저장되었습니다.',
-      parsed,
-      ...(debugSupplier && {
-        supplierInputDebug: buildParseSupplierInputDebug({
-          requestRaw: rawOriginFromBody,
-          coerced: originSourceCoerced,
-          effective: effectiveOriginSource,
+    return jsonWithLeakGuard(
+      {
+        ok: true,
+        isNew: !existing,
+        productId,
+        originCode: parsed.originCode,
+        detailPath: `/admin/products/${productId}`,
+        message: existing ? '기존 상품이 업데이트되었습니다.' : '새 상품이 저장되었습니다.',
+        parsed,
+        ...(debugSupplier && {
+          supplierInputDebug: buildParseSupplierInputDebug({
+            requestRaw: rawOriginFromBody,
+            coerced: originSourceCoerced,
+            effective: effectiveOriginSource,
+          }),
         }),
-      }),
-    })
+      },
+      'travel.parse-and-upsert.ok',
+    )
   } catch (e) {
     console.error(e)
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { error: e instanceof Error ? e.message : '파싱 또는 저장 실패' },
-      { status: 500 }
+      'travel.parse-and-upsert.catch',
+      { status: 500 },
     )
   }
 }

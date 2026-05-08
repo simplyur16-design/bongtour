@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'crypto'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import {
   KAKAO_OAUTH_REDIRECT_COOKIE,
@@ -23,9 +24,10 @@ const TOKEN_URL = 'https://kauth.kakao.com/oauth/token'
 const PROFILE_URL = 'https://kapi.kakao.com/v2/user/me'
 
 function jsonError(status: number, error: string, detail?: string) {
-  return NextResponse.json(
+  return jsonWithLeakGuard(
     { error, ...(detail !== undefined ? { detail } : {}) },
-    { status }
+    'auth.kakao.callback',
+    { status },
   )
 }
 

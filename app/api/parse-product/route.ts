@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
 import { extractProductFromText, extractPricingScheduleFromText } from '@/lib/gemini'
 import { mapToParsedProductForDB } from '@/lib/map-to-parsed-product'
-import { requireAdmin } from '@/lib/require-admin'
 import { buildParseSupplierInputDebug, normalizeParseRequestOriginSource } from '@/lib/parse-api-origin-source'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
+import { requireAdmin } from '@/lib/require-admin'
 
 /**
  * POST /api/parse-product
@@ -13,7 +13,7 @@ import { buildParseSupplierInputDebug, normalizeParseRequestOriginSource } from 
  */
 export async function POST(request: Request) {
   const admin = await requireAdmin()
-  if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+  if (!admin) return jsonWithLeakGuard({ error: '인증이 필요합니다.' }, 'api.parse-product.auth', { status: 401 })
   try {
     const debugSupplier = new URL(request.url).searchParams.get('debugSupplier') === '1'
     const body = await request.json()
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
         : null
     const originSource = normalizeParseRequestOriginSource(requestRaw ?? '직접입력', null)
     if (!text) {
-      return NextResponse.json({ error: 'text is required' }, { status: 400 })
+      return jsonWithLeakGuard({ error: 'text is required' }, 'api.parse-product.validation', { status: 400 })
     }
 
     const [productResult, pricingResult] = await Promise.allSettled([
@@ -42,18 +42,21 @@ export async function POST(request: Request) {
     }
 
     const parsed = mapToParsedProductForDB(product, pricing, originSource)
-    return NextResponse.json({
-      product,
-      pricing,
-      parsed,
-      ...(debugSupplier && {
-        supplierInputDebug: buildParseSupplierInputDebug({
-          requestRaw: requestRaw,
-          coerced: originSource,
-          effective: parsed.originSource,
+    return jsonWithLeakGuard(
+      {
+        product,
+        pricing,
+        parsed,
+        ...(debugSupplier && {
+          supplierInputDebug: buildParseSupplierInputDebug({
+            requestRaw: requestRaw,
+            coerced: originSource,
+            effective: parsed.originSource,
+          }),
         }),
-      }),
-    })
+      },
+      'api.parse-product.ok',
+    )
   } catch (e) {
     console.error(e)
     const showDetail = process.env.NODE_ENV === 'development'
@@ -61,6 +64,6 @@ export async function POST(request: Request) {
       showDetail && e instanceof Error
         ? e.message
         : '파싱 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return jsonWithLeakGuard({ error: msg }, 'api.parse-product.catch', { status: 500 })
   }
 }

@@ -1,11 +1,10 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import {
   parseScopeQuery,
   parseYearMonthQuery,
   toPublicCurationCard,
 } from '@/lib/monthly-curation'
-import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 
 /** Next 15 GET Route Handler 기본 비캐시 대응 — `fetch-curations-main`·메인 ISR과 동일 톤 */
 export const revalidate = 300
@@ -26,17 +25,19 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const scopeParsed = parseScopeQuery(searchParams.get('scope'))
   if (scopeParsed === 'INVALID') {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: false, error: 'scope는 domestic 또는 overseas 이어야 합니다.' },
-      { status: 400 }
+      'api.curations.monthly.scope',
+      { status: 400 },
     )
   }
 
   const ymParsed = parseYearMonthQuery(searchParams.get('yearMonth'))
   if (ymParsed === 'INVALID') {
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       { ok: false, error: 'yearMonth는 YYYY-MM 형식이어야 합니다.' },
-      { status: 400 }
+      'api.curations.monthly.yearMonth',
+      { status: 400 },
     )
   }
 
@@ -58,12 +59,13 @@ export async function GET(request: Request) {
       modelKeysSample: modelKeys.slice(0, 25),
       hint: 'Run `npx prisma generate`, ensure schema includes MonthlyCurationItem, restart `next dev`. If persist, verify next.config server alias `@prisma/client` -> prisma-gen-runtime.',
     })
-    return NextResponse.json(
+    return jsonWithLeakGuard(
       {
         ok: false,
         error: '큐레이션 서비스를 일시적으로 사용할 수 없습니다.',
       },
-      { status: 503 }
+      'api.curations.monthly.delegate-missing',
+      { status: 503 },
     )
   }
 
@@ -90,8 +92,7 @@ export async function GET(request: Request) {
     const items = rows.map((r) => toPublicCurationCard(r))
 
     const payload = { ok: true, items }
-    assertNoInternalMetaLeak(payload, '/api/curations/monthly')
-    return NextResponse.json(payload)
+    return jsonWithLeakGuard(payload, 'api.curations.monthly.ok')
   } catch (e) {
     const err = e instanceof Error ? e : new Error(String(e))
     console.error('[GET /api/curations/monthly] findMany failed — 빈 목록으로 응답 (호출측 fetch 유지)', {
@@ -100,7 +101,6 @@ export async function GET(request: Request) {
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     })
     const fallback = { ok: true, items: [] }
-    assertNoInternalMetaLeak(fallback, '/api/curations/monthly')
-    return NextResponse.json(fallback)
+    return jsonWithLeakGuard(fallback, 'api.curations.monthly.fallback')
   }
 }
