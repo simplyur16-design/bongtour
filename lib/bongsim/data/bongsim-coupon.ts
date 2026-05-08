@@ -1,4 +1,5 @@
 import type { PoolClient } from "pg";
+import { isReservedTemplateCode } from "@/lib/coupon/reserved-template-code";
 import type { BongsimProductOptionDbRow } from "@/lib/bongsim/data/bongsim-product-option-db-row";
 import { mapDbRowToProductOptionV1 } from "@/lib/bongsim/data/map-row-to-product-option-v1";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
@@ -99,6 +100,7 @@ export async function loadBongsimCouponByCode(
             usage_limit, used_count, valid_from, valid_until, is_active
      FROM bongsim_coupon
      WHERE lower(trim(code)) = lower(trim($1))
+       AND (coupon_kind IS DISTINCT FROM 'issuance_template')
      LIMIT 1`,
     [code],
   );
@@ -115,6 +117,7 @@ export async function loadBongsimCouponByIdForUpdate(
             usage_limit, used_count, valid_from, valid_until, is_active
      FROM bongsim_coupon
      WHERE coupon_id = $1::uuid
+       AND (coupon_kind IS DISTINCT FROM 'issuance_template')
      FOR UPDATE`,
     [couponId],
   );
@@ -137,6 +140,7 @@ export async function validateBongsimCouponForDisplay(
 > {
   const code = input.code.trim();
   if (!code) return { ok: false, error: "쿠폰 코드를 입력해 주세요." };
+  if (isReservedTemplateCode(code)) return { ok: false, error: "해당 코드는 사용할 수 없습니다." };
   const st = await bongsimCheckoutSubtotalKrw(client, input.option_api_id, input.quantity);
   if (!st.ok) return st;
   const row = await loadBongsimCouponByCode(client, code);
@@ -194,8 +198,9 @@ export async function assertBongsimCouponForOrderInsert(
 export function parseCouponMetaFromOrderConsents(raw: unknown): {
   coupon_id: string | null;
   coupon_discount_krw: number;
+  user_coupon_id: string | null;
 } {
-  if (!raw || typeof raw !== "object") return { coupon_id: null, coupon_discount_krw: 0 };
+  if (!raw || typeof raw !== "object") return { coupon_id: null, coupon_discount_krw: 0, user_coupon_id: null };
   const o = raw as Record<string, unknown>;
   const id = typeof o.coupon_id === "string" ? o.coupon_id.trim() : "";
   const dRaw = o.coupon_discount_krw;
@@ -205,7 +210,12 @@ export function parseCouponMetaFromOrderConsents(raw: unknown): {
       : typeof dRaw === "string"
         ? Number.parseInt(dRaw, 10)
         : 0;
-  return { coupon_id: id || null, coupon_discount_krw: Number.isFinite(d) && d > 0 ? d : 0 };
+  const uc = typeof o.user_coupon_id === "string" ? o.user_coupon_id.trim() : "";
+  return {
+    coupon_id: id || null,
+    coupon_discount_krw: Number.isFinite(d) && d > 0 ? d : 0,
+    user_coupon_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uc) ? uc : null,
+  };
 }
 
 /**
@@ -219,6 +229,7 @@ export async function recordBongsimCouponUsageAfterCapture(client: PoolClient, o
   const row = o.rows[0];
   if (!row) return;
   const meta = parseCouponMetaFromOrderConsents(row.consents);
+  if (meta.user_coupon_id) return;
   if (!meta.coupon_id || meta.coupon_discount_krw <= 0) return;
 
   const sub = toInt(row.subtotal_krw);
@@ -293,6 +304,10 @@ export async function applyBongsimCouponUsageTransaction(
       return { ok: false, error: "주문 금액과 일치하지 않습니다." };
     }
     const meta = parseCouponMetaFromOrderConsents(orow.consents);
+    if (meta.user_coupon_id) {
+      await c.query("ROLLBACK");
+      return { ok: false, error: "사용자 쿠폰 주문은 본 API로 기록할 수 없습니다." };
+    }
     if (meta.coupon_id !== couponId || meta.coupon_discount_krw !== da) {
       await c.query("ROLLBACK");
       return { ok: false, error: "주문에 적용된 쿠폰과 일치하지 않습니다." };

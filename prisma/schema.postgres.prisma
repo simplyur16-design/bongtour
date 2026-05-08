@@ -535,10 +535,17 @@ model User {
   marketingConsentAt   DateTime?
   marketingConsentVersion String?
   lastLoginAt          DateTime?
+  birthDate            DateTime? @db.Date
+  referredByCode       String?
+  referredAt           DateTime?
+  inviterRewardedAt      DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   accounts             Account[]
   sessions             Session[]
+
+  @@index([birthDate])
+  @@index([referredByCode])
 }
 
 model Account {
@@ -943,4 +950,42 @@ model RegisterAdminAnalysis {
 
   @@index([snapshotId, attemptNo])
   @@index([status])
+}
+
+model BongsimUserCoupon {
+  user_coupon_id       String    @id @db.Uuid
+  user_id              String
+  user_email           String
+  source_coupon_id     String    @db.Uuid
+  issued_via           String
+  issued_at            DateTime  @default(now())
+  expires_at           DateTime?
+  status               String    @default("active")
+  used_at              DateTime?
+  used_order_id        String?   @db.Uuid
+  used_amount_krw      BigInt?
+  issued_for_period    String?
+  notes                String?   @db.Text
+  expiry_reminder_sent_at DateTime?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  @@index([user_id])
+  @@index([status, expires_at])
+  @@map("bongsim_user_coupon")
+}
+
+model BongsimReferralCode {
+  referral_id                  String   @id @db.Uuid
+  inviter_user_id              String   @unique
+  code                         String   @unique
+  inviter_template_coupon_id   String?  @db.Uuid
+  invitee_template_coupon_id   String?  @db.Uuid
+  is_active                    Boolean  @default(true)
+  total_invited                Int      @default(0)
+  total_rewarded               Int      @default(0)
+  created_at                   DateTime @default(now())
+  updated_at                   DateTime @updatedAt
+
+  @@map("bongsim_referral_code")
 }

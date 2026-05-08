@@ -2,6 +2,7 @@ import type { PoolClient } from "pg";
 import type { PaymentAttemptStatus } from "@/lib/bongsim/contracts/public-enums";
 import { recordBongsimCouponUsageAfterCapture } from "@/lib/bongsim/data/bongsim-coupon";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { runBongsimOrderPaidSideEffects } from "@/lib/bongsim/data/bongsim-order-paid-side-effects";
 
 /**
  * 웰컴페이먼츠(표준결제) 승인 완료 후 DB 반영.
@@ -254,6 +255,11 @@ export async function processWelcomepayPaymentOutcome(
     }
 
     await client.query("COMMIT");
+
+    void runBongsimOrderPaidSideEffects(order.order_id).catch((err) => {
+      console.warn("[bongsim:welcomepay:paid-side-effects]", err);
+    });
+
     return { ok: true, duplicate: false };
   } catch {
     try {

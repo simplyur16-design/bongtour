@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
 import { adminApproveReview } from '@/lib/reviews-db'
+import { maybeIssueTravelReviewPublishedCoupon } from '@/lib/bongsim/data/review-publish-coupon-reward'
 
 function isUuid(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s)
@@ -34,5 +35,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 400 })
   }
+  void maybeIssueTravelReviewPublishedCoupon(id).catch((e) => {
+    console.warn('[admin/reviews/approve] review_coupon', e)
+  })
   return NextResponse.json({ ok: true })
 }

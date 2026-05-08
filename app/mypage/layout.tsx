@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { PenLine, Smartphone, UserRound } from "lucide-react";
+import { Gift, PenLine, Smartphone, UserPlus, UserRound } from "lucide-react";
 import Header from "@/app/components/Header";
 
 const nav = [
   { href: "/mypage", label: "마이페이지", icon: UserRound },
   { href: "/mypage/esim", label: "내 eSIM", icon: Smartphone },
+  { href: "/mypage/coupons", label: "내 쿠폰함", icon: Gift },
+  { href: "/mypage/referral", label: "친구 초대", icon: UserPlus },
   { href: "/mypage/reviews/write", label: "후기 작성", icon: PenLine },
 ] as const;
 

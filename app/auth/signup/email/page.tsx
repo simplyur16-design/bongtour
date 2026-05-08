@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import Header from '@/app/components/Header'
 import EmailRegisterForm from '@/app/components/auth/EmailRegisterForm'
 
@@ -11,7 +12,9 @@ export default function SignUpEmailPage() {
         <p className="mb-6 text-sm leading-relaxed text-bt-body">
           이름, 이메일, 비밀번호로 가입합니다. 상품 탐색은 로그인 없이도 이용할 수 있습니다.
         </p>
-        <EmailRegisterForm />
+        <Suspense fallback={<p className="text-sm text-bt-body">폼을 불러오는 중…</p>}>
+          <EmailRegisterForm />
+        </Suspense>
         <p className="mt-6 text-center text-sm text-bt-body">
           <Link href="/auth/signup" className="text-bt-link hover:text-bt-link-hover hover:underline">
             다른 가입 방식 보기

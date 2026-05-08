@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError, publicMutationOriginJsonResponse } from '@/lib/public-mutation-origin'
+import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const REGISTER_RATE_LIMIT_WINDOW_MS = 60_000
@@ -78,6 +79,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '개인정보 안내 버전 정보가 누락되었습니다.' }, { status: 400 })
   }
 
+  const birthDateRaw = typeof o.birthDate === 'string' ? o.birthDate.trim() : ''
+  let birthDate: Date | undefined
+  if (birthDateRaw) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDateRaw)) {
+      return NextResponse.json({ error: '생년월일 형식이 올바르지 않습니다. (YYYY-MM-DD)' }, { status: 400 })
+    }
+    birthDate = new Date(`${birthDateRaw}T12:00:00.000Z`)
+    if (Number.isNaN(birthDate.getTime())) {
+      return NextResponse.json({ error: '생년월일이 올바르지 않습니다.' }, { status: 400 })
+    }
+  }
+
+  let referredByCode: string | null =
+    typeof o.referredByCode === 'string' && o.referredByCode.trim() ? o.referredByCode.trim().toUpperCase() : null
+  if (referredByCode && !/^BONG-[0-9A-F]{6}$/.test(referredByCode)) {
+    return NextResponse.json({ error: '추천 코드 형식이 올바르지 않습니다.' }, { status: 400 })
+  }
+
   const exists = await prisma.user.findUnique({ where: { email }, select: { id: true } })
   if (exists) {
     return NextResponse.json({ error: '이미 가입된 이메일입니다.' }, { status: 409 })
@@ -99,8 +118,15 @@ export async function POST(req: Request) {
       marketingConsent,
       marketingConsentAt: marketingConsent ? new Date() : null,
       marketingConsentVersion: marketingConsent ? marketingConsentVersion || 'member-marketing-v1' : null,
+      birthDate: birthDate ?? undefined,
+      referredByCode: referredByCode ?? undefined,
+      referredAt: referredByCode ? new Date() : undefined,
     },
     select: { id: true, email: true },
+  })
+
+  void runNewUserCouponBootstrap(user.id).catch((e) => {
+    console.warn('[auth/register] coupon_bootstrap', e)
   })
 
   return NextResponse.json({ ok: true, user })

@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import { checkoutCreateOrderFromRequest } from "@/lib/bongsim/data/checkout-create-order";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { auth } from "@/auth";
 
 export async function POST(req: Request) {
   if (!getPgPool()) {
@@ -24,7 +24,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const res = await checkoutCreateOrderFromRequest(body);
+  const session = await auth();
+  const uid = ((session?.user as { id?: string } | undefined)?.id ?? "").trim();
+  const merged =
+    body && typeof body === "object"
+      ? { ...(body as Record<string, unknown>), ...(uid ? { bongtour_user_id: uid } : {}) }
+      : body;
+
+  const res = await checkoutCreateOrderFromRequest(merged);
   if (!res.ok) {
     if (res.reason === "validation") {
       return jsonWithLeakGuard(

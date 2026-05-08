@@ -455,10 +455,19 @@ model User {
   marketingConsentAt       DateTime?
   marketingConsentVersion  String?
   lastLoginAt              DateTime?
+  /// 쿠폰·혜택용 생년월일(선택)
+  birthDate                DateTime? @db.Date
+  /// 가입 시 입력한 추천 코드(원문, 대소문자 무시 조회는 앱 레이어)
+  referredByCode           String?
+  referredAt               DateTime?
+  inviterRewardedAt        DateTime?
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
   accounts                 Account[]
   sessions                 Session[]
+
+  @@index([birthDate])
+  @@index([referredByCode])
 }
 
 model Account {
@@ -1218,4 +1227,44 @@ model BongFacebookPost {
   @@index([publishedAt])
   @@index([scheduledAt])
   @@index([status])
+}
+
+/// 봉심 사용자 보유 쿠폰 (실제 쿼리는 raw SQL — Prisma는 스키마 문서화용)
+model BongsimUserCoupon {
+  user_coupon_id       String    @id @db.Uuid
+  user_id              String
+  user_email           String
+  source_coupon_id     String    @db.Uuid
+  issued_via           String
+  issued_at            DateTime  @default(now())
+  expires_at           DateTime?
+  status               String    @default("active")
+  used_at              DateTime?
+  used_order_id        String?   @db.Uuid
+  used_amount_krw      BigInt?
+  issued_for_period    String?
+  notes                String?   @db.Text
+  expiry_reminder_sent_at DateTime?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  @@index([user_id])
+  @@index([status, expires_at])
+  @@map("bongsim_user_coupon")
+}
+
+/// 봉심 추천인 코드 (raw SQL 조회 위주)
+model BongsimReferralCode {
+  referral_id                  String   @id @db.Uuid
+  inviter_user_id              String   @unique
+  code                         String   @unique
+  inviter_template_coupon_id   String?  @db.Uuid
+  invitee_template_coupon_id   String?  @db.Uuid
+  is_active                    Boolean  @default(true)
+  total_invited                Int      @default(0)
+  total_rewarded               Int      @default(0)
+  created_at                   DateTime @default(now())
+  updated_at                   DateTime @updatedAt
+
+  @@map("bongsim_referral_code")
 }

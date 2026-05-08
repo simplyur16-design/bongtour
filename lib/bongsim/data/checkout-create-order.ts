@@ -8,6 +8,7 @@ import type { BongsimProductOptionDbRow } from "@/lib/bongsim/data/bongsim-produ
 import { mapDbRowToProductOptionV1 } from "@/lib/bongsim/data/map-row-to-product-option-v1";
 import { parseFlagsJson, parsePriceBlockJson } from "@/lib/bongsim/data/parse-product-json";
 import { assertBongsimCouponForOrderInsert } from "@/lib/bongsim/data/bongsim-coupon";
+import { validateUserCouponForOrderInsert } from "@/lib/bongsim/data/user-coupon";
 import { parsePublicAttributionFromBody } from "@/lib/public-attribution-body";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
@@ -137,6 +138,7 @@ function parseConsents(raw: unknown): BongsimOrderV1["order"]["consents"] {
   const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const marketing = o.marketing && typeof o.marketing === "object" ? (o.marketing as Record<string, unknown>) : {};
   const cid = typeof o.coupon_id === "string" ? o.coupon_id.trim() : "";
+  const ucid = typeof o.user_coupon_id === "string" ? o.user_coupon_id.trim() : "";
   const cdRaw = o.coupon_discount_krw;
   const cd =
     typeof cdRaw === "number" && Number.isFinite(cdRaw)
@@ -152,6 +154,7 @@ function parseConsents(raw: unknown): BongsimOrderV1["order"]["consents"] {
       version: typeof marketing.version === "string" ? marketing.version : null,
     },
     ...(cid ? { coupon_id: cid } : {}),
+    ...(ucid && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ucid) ? { user_coupon_id: ucid } : {}),
     ...(cd != null && Number.isFinite(cd) && cd > 0 ? { coupon_discount_krw: cd } : {}),
   };
 }
@@ -282,6 +285,8 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
     details.quantity = "max_99";
   }
   const coupon_id_raw = typeof o.coupon_id === "string" ? o.coupon_id.trim() : "";
+  const user_coupon_id_raw = typeof o.user_coupon_id === "string" ? o.user_coupon_id.trim() : "";
+  const bongtour_user_id_raw = typeof o.bongtour_user_id === "string" ? o.bongtour_user_id.trim() : "";
   const cdiscRaw = o.coupon_discount_krw;
   const coupon_discount_krw =
     typeof cdiscRaw === "number"
@@ -289,13 +294,31 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
       : typeof cdiscRaw === "string"
         ? Number.parseInt(cdiscRaw, 10)
         : Number.NaN;
-  const hasCouponId = Boolean(coupon_id_raw);
   const hasCouponDisc = Number.isInteger(coupon_discount_krw) && coupon_discount_krw > 0;
-  if ((hasCouponId || hasCouponDisc) && (!hasCouponId || !hasCouponDisc)) {
-    details.coupon = "coupon_id_and_discount_required_together";
+  const hasPublicCoupon = Boolean(coupon_id_raw) && hasCouponDisc;
+  const hasUserCoupon = Boolean(user_coupon_id_raw) && hasCouponDisc;
+  if (hasPublicCoupon && hasUserCoupon) {
+    details.coupon = "coupon_and_user_coupon_mutually_exclusive";
   }
-  if (coupon_id_raw && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(coupon_id_raw)) {
-    details.coupon_id = "invalid_uuid";
+  if (coupon_id_raw && !hasCouponDisc) {
+    details.coupon_discount_krw = "required_with_coupon_id";
+  }
+  if (user_coupon_id_raw && !hasCouponDisc) {
+    details.coupon_discount_krw = "required_with_user_coupon";
+  }
+  if (hasPublicCoupon) {
+    if (!coupon_id_raw) details.coupon_id = "required";
+    if (coupon_id_raw && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(coupon_id_raw)) {
+      details.coupon_id = "invalid_uuid";
+    }
+  }
+  if (hasUserCoupon) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user_coupon_id_raw)) {
+      details.user_coupon_id = "invalid_uuid";
+    }
+    if (!bongtour_user_id_raw) {
+      details.bongtour_user_id = "login_required_for_user_coupon";
+    }
   }
   if (Object.keys(details).length) return { ok: false, details };
   const locale = o.buyer_locale;
@@ -313,7 +336,14 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
       o.consents && typeof o.consents === "object"
         ? (o.consents as BongsimCheckoutConfirmRequestV1["consents"])
         : undefined,
-    ...(hasCouponId && hasCouponDisc ? { coupon_id: coupon_id_raw, coupon_discount_krw: Math.trunc(coupon_discount_krw) } : {}),
+    ...(hasPublicCoupon ? { coupon_id: coupon_id_raw, coupon_discount_krw: Math.trunc(coupon_discount_krw) } : {}),
+    ...(hasUserCoupon
+      ? {
+          user_coupon_id: user_coupon_id_raw,
+          coupon_discount_krw: Math.trunc(coupon_discount_krw),
+          bongtour_user_id: bongtour_user_id_raw,
+        }
+      : {}),
     ...(attr.utmSource ? { utmSource: attr.utmSource } : {}),
     ...(attr.utmMedium ? { utmMedium: attr.utmMedium } : {}),
     ...(attr.utmCampaign ? { utmCampaign: attr.utmCampaign } : {}),
@@ -331,6 +361,9 @@ function assertIdempotentMatch(order: BongsimOrderV1["order"], req: BongsimCheck
   if (line.option_api_id !== req.option_api_id) return false;
   if (line.quantity !== req.quantity) return false;
   if (normEmail(order.buyer.email) !== req.buyer_email) return false;
+  const prevUc = (order.consents.user_coupon_id ?? "").trim();
+  const nextUc = (req.user_coupon_id ?? "").trim();
+  if (prevUc !== nextUc) return false;
   const prevC = (order.consents.coupon_id ?? "").trim();
   const nextC = (req.coupon_id ?? "").trim();
   if (prevC !== nextC) return false;
@@ -379,7 +412,20 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const snapshot = buildLineSnapshot(opt, basis_key, unit_krw);
 
     let discount_krw = 0;
-    if (req.coupon_id && req.coupon_discount_krw != null) {
+    if (req.user_coupon_id && req.bongtour_user_id && req.coupon_discount_krw != null) {
+      const uv = await validateUserCouponForOrderInsert(client, {
+        user_coupon_id: req.user_coupon_id,
+        user_id: req.bongtour_user_id,
+        client_discount_krw: req.coupon_discount_krw,
+        option_api_id: req.option_api_id,
+        quantity: req.quantity,
+      });
+      if (!uv.ok) {
+        await client.query("ROLLBACK");
+        return { ok: false, reason: "validation", details: { coupon: uv.error } };
+      }
+      discount_krw = uv.discount_krw;
+    } else if (req.coupon_id && req.coupon_discount_krw != null) {
       const cv = await assertBongsimCouponForOrderInsert(client, {
         coupon_id: req.coupon_id,
         client_discount_krw: req.coupon_discount_krw,
@@ -401,7 +447,13 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
         version: req.consents?.marketing?.version ?? null,
       },
     };
-    if (req.coupon_id && discount_krw > 0) {
+    if (req.bongtour_user_id?.trim()) {
+      consentsJson.bongtour_user_id = req.bongtour_user_id.trim();
+    }
+    if (req.user_coupon_id && discount_krw > 0) {
+      consentsJson.user_coupon_id = req.user_coupon_id;
+      consentsJson.coupon_discount_krw = discount_krw;
+    } else if (req.coupon_id && discount_krw > 0) {
       consentsJson.coupon_id = req.coupon_id;
       consentsJson.coupon_discount_krw = discount_krw;
     }

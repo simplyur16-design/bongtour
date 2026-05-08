@@ -71,6 +71,8 @@ export type BongsimOrderConsentsV1 = {
   /** 주문 생성 시 적용된 쿠폰(결제 캡처 후 `bongsim_coupon_usage` 기록용). */
   coupon_id?: string | null;
   coupon_discount_krw?: number;
+  /** 사용자 보유 쿠폰 적용 시(공개 코드와 동시 사용 불가). */
+  user_coupon_id?: string | null;
 };
 
 export type BongsimOrderPaymentV1 = {

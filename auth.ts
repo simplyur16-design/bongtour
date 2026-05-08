@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import authConfig from './auth.config'
 
+import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
@@ -93,6 +95,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (Object.keys(patch).length > 0) {
         await prisma.user.update({ where: { id: user.id! }, data: patch })
       }
+      void runNewUserCouponBootstrap(user.id!).catch((e) => {
+        console.warn('[auth:createUser] coupon_bootstrap', e)
+      })
     },
   },
 })

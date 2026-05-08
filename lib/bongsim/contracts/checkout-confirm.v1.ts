@@ -16,6 +16,10 @@ export type BongsimCheckoutConfirmRequestV1 = {
   /** `/api/bongsim/coupon/validate` 응답의 `coupon_id` + 할인액(원). 둘 다 있을 때만 적용. */
   coupon_id?: string | null;
   coupon_discount_krw?: number | null;
+  /** 로그인 사용자 보유 쿠폰 — `coupon_id` 와 동시 전송 불가. 할인액은 `coupon_discount_krw` 재사용. */
+  user_coupon_id?: string | null;
+  /** 세션 사용자 id(cuid) — 보유 쿠폰 검증·주문 consents 연결용 */
+  bongtour_user_id?: string | null;
   utmSource?: string | null;
   utmMedium?: string | null;
   utmCampaign?: string | null;

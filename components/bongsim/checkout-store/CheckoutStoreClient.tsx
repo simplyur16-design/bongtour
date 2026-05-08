@@ -16,6 +16,7 @@ import { extractSingleCountryCode, getPlanCoveredCountries } from "@/lib/bongsim
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/payment-session.v1";
 import { readUtmFromSession } from "@/lib/utm-capture";
+import { useSession } from "next-auth/react";
 
 type Props = {
   optionApiIdInitial: string;
@@ -100,9 +101,34 @@ function readRecommendQueue(): BongsimRecommendCheckoutLine[] | null {
   }
 }
 
+type MyCouponApiRow = {
+  user_coupon_id: string;
+  template_label: string;
+  discount_type: string;
+  discount_value: string;
+  expires_at: string | null;
+};
+
+function formatMyCouponOptionLabel(r: MyCouponApiRow): string {
+  const nf = new Intl.NumberFormat("ko-KR");
+  const dtype = String(r.discount_type).trim().toLowerCase();
+  const dv = Number(r.discount_value);
+  let discText = "할인";
+  if (dtype === "fixed" && Number.isFinite(dv)) discText = `${nf.format(Math.trunc(dv))}원 할인`;
+  else if (dtype === "percent" && Number.isFinite(dv)) discText = `${dv}% 할인`;
+  let dpart = "만료 없음";
+  if (r.expires_at) {
+    const ms = new Date(r.expires_at).getTime() - Date.now();
+    const days = Math.ceil(ms / 86_400_000);
+    dpart = days <= 0 ? "만료" : `D-${days} 만료`;
+  }
+  return `${r.template_label} ${discText} (${dpart})`;
+}
+
 export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
+  const { status: sessionStatus } = useSession();
   const optionApiId = (sp?.get("optionApiId") ?? optionApiIdInitial).trim();
   const qtyFromSearch = parseQtySearch(sp?.get("qty") ?? null);
 
@@ -124,6 +150,10 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
   const [appliedOrderDiscountKrw, setAppliedOrderDiscountKrw] = useState<number | null>(null);
   /** `/api/bongsim/coupon/validate` 응답의 coupon_id — 주문 생성 시 함께 전달. */
   const [appliedCouponId, setAppliedCouponId] = useState<string | null>(null);
+  const [appliedUserCouponId, setAppliedUserCouponId] = useState<string | null>(null);
+  const [myCoupons, setMyCoupons] = useState<MyCouponApiRow[]>([]);
+  const [myCouponsLoading, setMyCouponsLoading] = useState(false);
+  const [selectedMyCouponId, setSelectedMyCouponId] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const checkoutIdempotencyRef = useRef<string | null>(null);
@@ -139,7 +169,38 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
     setCouponOpen(false);
     setAppliedOrderDiscountKrw(null);
     setAppliedCouponId(null);
+    setAppliedUserCouponId(null);
+    setSelectedMyCouponId("");
   }, [optionApiId, quantity]);
+
+  useEffect(() => {
+    if (sessionStatus !== "authenticated") {
+      setMyCoupons([]);
+      setMyCouponsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setMyCouponsLoading(true);
+    (async () => {
+      try {
+        const res = await fetch("/api/bongsim/mypage/coupons", { method: "GET" });
+        const j = (await res.json().catch(() => ({}))) as { active?: MyCouponApiRow[] };
+        if (cancelled) return;
+        if (!res.ok) {
+          setMyCoupons([]);
+          return;
+        }
+        setMyCoupons(Array.isArray(j.active) ? j.active : []);
+      } catch {
+        if (!cancelled) setMyCoupons([]);
+      } finally {
+        if (!cancelled) setMyCouponsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionStatus]);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -201,6 +262,8 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
   const applyCoupon = useCallback(async () => {
     setCouponBusy(true);
     try {
+      setAppliedUserCouponId(null);
+      setSelectedMyCouponId("");
       const res = await fetch("/api/bongsim/coupon/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -242,6 +305,63 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
     }
   }, [couponCode, optionApiId, quantity]);
 
+  const applyMyUserCoupon = useCallback(
+    async (userCouponId: string) => {
+      if (!userCouponId.trim()) {
+        setAppliedOrderDiscountKrw(null);
+        setAppliedUserCouponId(null);
+        return;
+      }
+      setCouponBusy(true);
+      try {
+        const res = await fetch("/api/bongsim/coupon/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_coupon_id: userCouponId.trim(),
+            option_api_id: optionApiId,
+            quantity,
+          }),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          error?: string;
+          discount_krw?: number;
+          user_coupon_id?: string;
+        };
+        if (!res.ok || data.ok !== true) {
+          setAppliedOrderDiscountKrw(null);
+          setAppliedUserCouponId(null);
+          setSelectedMyCouponId("");
+          setToastMessage(typeof data.error === "string" ? data.error : "쿠폰을 적용할 수 없습니다.");
+          return;
+        }
+        const d =
+          typeof data.discount_krw === "number" && Number.isFinite(data.discount_krw) ? Math.trunc(data.discount_krw) : 0;
+        const ucid = typeof data.user_coupon_id === "string" ? data.user_coupon_id.trim() : "";
+        if (d > 0 && ucid) {
+          setAppliedCouponId(null);
+          setCouponCode("");
+          setAppliedOrderDiscountKrw(d);
+          setAppliedUserCouponId(ucid);
+          setToastMessage("내 쿠폰이 적용되었습니다.");
+          return;
+        }
+        setAppliedOrderDiscountKrw(null);
+        setAppliedUserCouponId(null);
+        setSelectedMyCouponId("");
+        setToastMessage("적용 가능한 할인이 없습니다.");
+      } catch {
+        setAppliedOrderDiscountKrw(null);
+        setAppliedUserCouponId(null);
+        setSelectedMyCouponId("");
+        setToastMessage("쿠폰 확인 중 오류가 발생했습니다.");
+      } finally {
+        setCouponBusy(false);
+      }
+    },
+    [optionApiId, quantity],
+  );
   const onSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -288,7 +408,10 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
             marketing: { accepted: false, version: null },
           },
         };
-        if (appliedCouponId && appliedOrderDiscountKrw != null && appliedOrderDiscountKrw > 0) {
+        if (appliedUserCouponId && appliedOrderDiscountKrw != null && appliedOrderDiscountKrw > 0) {
+          confirmBody.user_coupon_id = appliedUserCouponId;
+          confirmBody.coupon_discount_krw = appliedOrderDiscountKrw;
+        } else if (appliedCouponId && appliedOrderDiscountKrw != null && appliedOrderDiscountKrw > 0) {
           confirmBody.coupon_id = appliedCouponId;
           confirmBody.coupon_discount_krw = appliedOrderDiscountKrw;
         }
@@ -363,7 +486,7 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
         setSubmitting(false);
       }
     },
-    [appliedCouponId, appliedOrderDiscountKrw, detail, email, locale, optionApiId, quantity, router, terms],
+    [appliedCouponId, appliedOrderDiscountKrw, appliedUserCouponId, detail, email, locale, optionApiId, quantity, router, terms],
   );
 
   return (
@@ -557,19 +680,47 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
                     className="border-t border-slate-300 px-3 pb-3 pt-1 text-slate-700 lg:px-4 lg:pb-4"
                     style={{ color: "#334155" }}
                   >
+                    {sessionStatus === "authenticated" ? (
+                      <div className="mb-3 space-y-1.5">
+                        <span className="block text-xs font-medium text-slate-600">내 쿠폰함</span>
+                        <select
+                          disabled={Boolean(appliedCouponId) || couponBusy}
+                          value={selectedMyCouponId}
+                          onChange={(ev) => {
+                            const v = ev.target.value;
+                            setSelectedMyCouponId(v);
+                            void applyMyUserCoupon(v);
+                          }}
+                          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 disabled:opacity-50"
+                        >
+                          <option value="">선택 안 함</option>
+                          {myCouponsLoading ? (
+                            <option value="_loading" disabled>
+                              불러오는 중…
+                            </option>
+                          ) : null}
+                          {myCoupons.map((row) => (
+                            <option key={row.user_coupon_id} value={row.user_coupon_id}>
+                              {formatMyCouponOptionLabel(row)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : null}
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={couponCode}
                         onChange={(ev) => setCouponCode(ev.target.value)}
                         placeholder="쿠폰 코드"
-                        className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-800 placeholder:text-slate-500 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-500 lg:px-4 lg:py-2.5 lg:text-lg"
+                        disabled={Boolean(appliedUserCouponId)}
+                        className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-800 placeholder:text-slate-500 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-50 lg:px-4 lg:py-2.5 lg:text-lg"
                         autoComplete="off"
                         style={{ color: "#1e293b" }}
                       />
                       <button
                         type="button"
-                        disabled={couponBusy}
+                        disabled={couponBusy || Boolean(appliedUserCouponId)}
                         onClick={() => void applyCoupon()}
                         className="shrink-0 rounded-xl bg-teal-700 px-4 py-2 text-base font-semibold text-white hover:bg-teal-800 disabled:opacity-60 lg:px-5 lg:text-lg"
                       >
