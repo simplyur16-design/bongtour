@@ -8,6 +8,8 @@ export type KakaoTemplateKey =
   | 'coupon_referral_invitee'
   | 'coupon_referral_inviter'
   | 'coupon_expiry_reminder'
+  /** @deprecated 봉투어는 생일·기념일 미수집 정책 — 실발송·크론 경로 연결 금지. 향후 정책 변경 시 재검토. */
+  | 'coupon_birthday'
 
 export type KakaoTemplateSpec = {
   templateId: string
@@ -53,5 +55,12 @@ export const KAKAO_TEMPLATES: Record<KakaoTemplateKey, KakaoTemplateSpec> = {
     requiredVars: ['name', 'couponLabel', 'amount', 'expiresAt'],
     sampleText:
       '#{name}님, 보유하신 쿠폰이 곧 만료돼요.\n· #{couponLabel} #{amount}원\n· 만료일: #{expiresAt}\n쿠폰함에서 사용하기 →',
+  },
+  /** @deprecated 레지스트리 보존용 — 생일 미수집 정책으로 미사용. */
+  coupon_birthday: {
+    templateId: process.env.SOLAPI_KAKAO_TPL_COUPON_BIRTHDAY ?? '__TBD__COUPON_BIRTHDAY__',
+    description: '[deprecated] 생일 쿠폰 — 정책상 비활성',
+    requiredVars: ['name', 'amount', 'expiresAt'],
+    sampleText: '#{name}님 생일 쿠폰(미사용 템플릿)',
   },
 }
