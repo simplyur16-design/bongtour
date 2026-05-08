@@ -89,6 +89,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   events: {
     async createUser({ user }) {
+      const pending = await prisma.user.findUnique({
+        where: { id: user.id! },
+        select: { accountStatus: true },
+      })
+      if (pending?.accountStatus === 'consent_pending') return
+
       const role = bootstrapRoleForNewUserEmail(user.email ?? null)
       const patch: { role?: string } = {}
       if (role) patch.role = role

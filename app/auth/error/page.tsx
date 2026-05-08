@@ -20,6 +20,11 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
     description:
       '로그인을 완료하려면 카카오에서 이메일 제공에 동의해 주세요. 이메일은 관리자 권한 확인용으로만 사용됩니다.',
   },
+  OAuthEmailRequired: {
+    title: '이메일 정보 제공 동의가 필요합니다',
+    description:
+      '카카오·네이버 로그인 설정에서 이메일 제공에 동의한 뒤 다시 시도해 주세요.',
+  },
   OAuthAccountNotLinked: {
     title: '다른 계정으로 이미 가입됨',
     description: '이 이메일은 다른 로그인 방식으로 이미 사용 중입니다. 기존에 사용하신 방식으로 로그인해 주세요.',

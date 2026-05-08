@@ -3,7 +3,6 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import {
-  KAKAO_OAUTH_MARKETING_CONSENT_COOKIE,
   KAKAO_OAUTH_REDIRECT_COOKIE,
   KAKAO_OAUTH_STATE_COOKIE,
   clearKakaoOAuthStateCookies,
@@ -17,7 +16,6 @@ import type { KakaoTokenResponse, KakaoUserMeResponse } from '@/lib/kakao-oauth-
 import { appendNaverSessionCookie, redirectAfterNaverLogin } from '@/lib/naver-auth-session'
 import { readCookieFromRequestHeader } from '@/lib/parse-cookie-header'
 import { prisma } from '@/lib/prisma'
-import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,6 +61,13 @@ function expiresAtFromToken(t: KakaoTokenResponse): number | null {
   const n = typeof raw === 'string' ? Number.parseInt(raw, 10) : Number(raw)
   if (!Number.isFinite(n)) return null
   return Math.floor(Date.now() / 1000) + n
+}
+
+function oauthEmailRequiredRedirect(request: Request): NextResponse {
+  const target = redirectAfterNaverLogin(request, '/auth/error?error=OAuthEmailRequired')
+  const res = NextResponse.redirect(target)
+  clearKakaoOAuthStateCookies(res, request)
+  return res
 }
 
 export async function GET(request: Request) {
@@ -122,16 +127,6 @@ export async function GET(request: Request) {
     cookieStore.get(KAKAO_OAUTH_REDIRECT_COOKIE)?.value ??
       readCookieFromRequestHeader(request, KAKAO_OAUTH_REDIRECT_COOKIE)
   )
-
-  const marketingCookie =
-    cookieStore.get(KAKAO_OAUTH_MARKETING_CONSENT_COOKIE)?.value ??
-    readCookieFromRequestHeader(request, KAKAO_OAUTH_MARKETING_CONSENT_COOKIE)
-  const oauthMarketingConsent = marketingCookie === '1'
-  const oauthMarketingData = {
-    marketingConsent: oauthMarketingConsent,
-    marketingConsentAt: oauthMarketingConsent ? new Date() : null,
-    marketingConsentVersion: oauthMarketingConsent ? 'oauth-marketing-v1' : null,
-  } as const
 
   const clientId = process.env.KAKAO_CLIENT_ID?.trim()
   const clientSecret = process.env.KAKAO_CLIENT_SECRET?.trim()
@@ -277,8 +272,11 @@ export async function GET(request: Request) {
           signupMethod: 'kakao',
           socialProvider: 'kakao',
           socialProviderUserId: kakaoId,
+          accountStatus: 'consent_pending',
           lastLoginAt: new Date(),
-          ...oauthMarketingData,
+          marketingConsent: false,
+          marketingConsentAt: null,
+          marketingConsentVersion: null,
           ...(role ? { role } : {}),
           accounts: {
             create: {
@@ -291,43 +289,9 @@ export async function GET(request: Request) {
         },
       })
       userId = created.id
-      void runNewUserCouponBootstrap(userId)
-        .then((r) => {
-          if (!r.welcomeIssued && r.reason !== 'ok') {
-            console.warn('[auth/kakao] coupon_bootstrap', r.reason)
-          }
-        })
-        .catch((e) => console.warn('[auth/kakao] coupon_bootstrap', e))
     }
   } else {
-    const created = await prisma.user.create({
-      data: {
-        name,
-        email: null,
-        image,
-        signupMethod: 'kakao',
-        socialProvider: 'kakao',
-        socialProviderUserId: kakaoId,
-        lastLoginAt: new Date(),
-        ...oauthMarketingData,
-        accounts: {
-          create: {
-            type: 'oauth',
-            provider: 'kakao',
-            providerAccountId: kakaoId,
-            ...tokenPatch,
-          },
-        },
-      },
-    })
-    userId = created.id
-    void runNewUserCouponBootstrap(userId)
-      .then((r) => {
-        if (!r.welcomeIssued && r.reason !== 'ok') {
-          console.warn('[auth/kakao] coupon_bootstrap', r.reason)
-        }
-      })
-      .catch((e) => console.warn('[auth/kakao] coupon_bootstrap', e))
+    return oauthEmailRequiredRedirect(request)
   }
 
   const full = await prisma.user.findUnique({
@@ -341,7 +305,12 @@ export async function GET(request: Request) {
     return jsonErrorClearState(request, 403, '이용이 제한된 계정입니다.')
   }
 
-  const target = redirectAfterNaverLogin(request, redirectPath)
+  const dest =
+    full.accountStatus === 'consent_pending'
+      ? `/auth/signup/consent?callbackUrl=${encodeURIComponent(redirectPath)}`
+      : redirectPath
+
+  const target = redirectAfterNaverLogin(request, dest)
   const res = NextResponse.redirect(target)
   clearKakaoOAuthStateCookies(res, request)
 

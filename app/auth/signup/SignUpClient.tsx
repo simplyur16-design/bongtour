@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import KakaoLoginButton from '@/app/components/auth/KakaoLoginButton'
 import NaverLoginLink from '@/app/components/auth/NaverLoginLink'
@@ -12,25 +11,14 @@ type Props = {
 }
 
 export default function SignUpClient({ callbackUrl, kakaoOn, naverOn }: Props) {
-  const [marketingConsent, setMarketingConsent] = useState(false)
-  const emailHref = `/auth/signup/email${marketingConsent ? '?marketingConsent=1' : ''}`
-
   return (
     <div className="flex w-full flex-col gap-3">
-      <div className="rounded-lg border border-slate-200 bg-white/80 p-3">
-        <label className="flex items-start gap-2 text-sm text-bt-body">
-          <input
-            type="checkbox"
-            checked={marketingConsent}
-            onChange={(e) => setMarketingConsent(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-slate-300"
-          />
-          <span>[선택] 마케팅 정보 수신에 동의합니다. 동의 시 가입 환영 쿠폰이 발급될 수 있습니다.</span>
-        </label>
-      </div>
+      <p className="text-center text-xs leading-relaxed text-bt-meta">
+        가입 시 이용약관·개인정보 수집·이용에 동의가 필요합니다.
+      </p>
 
       <Link
-        href={emailHref}
+        href="/auth/signup/email"
         className="flex w-full items-center justify-center rounded-lg border border-bt-cta-secondary-border bg-bt-cta-secondary px-5 py-3 text-[15px] font-medium text-bt-cta-secondary-text shadow-sm transition hover:border-bt-border-strong hover:bg-bt-surface-soft"
       >
         이메일로 시작하기
@@ -45,16 +33,12 @@ export default function SignUpClient({ callbackUrl, kakaoOn, naverOn }: Props) {
 
           <div className="flex flex-col gap-2">
             {naverOn ? (
-              <NaverLoginLink
-                callbackUrl={callbackUrl}
-                marketingConsent={marketingConsent}
-                className="w-full justify-center rounded-lg"
-              >
+              <NaverLoginLink callbackUrl={callbackUrl} className="w-full justify-center rounded-lg">
                 네이버로 시작하기
               </NaverLoginLink>
             ) : null}
             {kakaoOn ? (
-              <KakaoLoginButton callbackUrl={callbackUrl} marketingConsent={marketingConsent} className="w-full justify-center rounded-lg">
+              <KakaoLoginButton callbackUrl={callbackUrl} className="w-full justify-center rounded-lg">
                 카카오로 시작하기
               </KakaoLoginButton>
             ) : null}

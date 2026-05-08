@@ -529,6 +529,9 @@ model User {
   socialProvider       String?
   socialProviderUserId String?
   accountStatus        String    @default("active")
+  termsConsentAt       DateTime?
+  termsConsentVersion  String?
+  ageConfirmedAt       DateTime?
   privacyNoticeConfirmedAt DateTime?
   privacyNoticeVersion String?
   marketingConsent     Boolean   @default(false)

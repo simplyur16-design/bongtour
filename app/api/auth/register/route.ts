@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { MARKETING_VERSION_EMAIL, TERMS_VERSION } from '@/lib/consent/copies'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError, publicMutationOriginJsonResponse } from '@/lib/public-mutation-origin'
@@ -45,6 +46,8 @@ export async function POST(req: Request) {
   const email = typeof o.email === 'string' ? o.email.trim().toLowerCase() : ''
   const password = typeof o.password === 'string' ? o.password : ''
   const passwordConfirm = typeof o.passwordConfirm === 'string' ? o.passwordConfirm : ''
+  const termsConsent = o.termsConsent === true
+  const ageConfirmed = o.ageConfirmed === true
   const privacyNoticeConfirmed = o.privacyNoticeConfirmed === true
   const privacyNoticeVersion = typeof o.privacyNoticeVersion === 'string' ? o.privacyNoticeVersion.trim() : ''
   const marketingConsent = o.marketingConsent === true
@@ -69,9 +72,9 @@ export async function POST(req: Request) {
   if (password !== passwordConfirm) {
     return NextResponse.json({ error: '비밀번호가 일치하지 않습니다.' }, { status: 400 })
   }
-  if (!privacyNoticeConfirmed) {
+  if (!termsConsent || !ageConfirmed || !privacyNoticeConfirmed) {
     return NextResponse.json(
-      { error: '회원가입을 위한 개인정보 수집·이용 안내 확인이 필요합니다.' },
+      { error: '이용약관·만 14세 확인·개인정보 수집·이용 안내에 모두 동의해 주세요.' },
       { status: 400 }
     )
   }
@@ -87,6 +90,7 @@ export async function POST(req: Request) {
   const passwordHash = await bcrypt.hash(password, 12)
   const role = bootstrapRoleForNewUserEmail(email)
 
+  const now = new Date()
   const user = await prisma.user.create({
     data: {
       name: nameRaw,
@@ -95,11 +99,14 @@ export async function POST(req: Request) {
       signupMethod: 'email',
       accountStatus: 'active',
       role: role ?? undefined,
-      privacyNoticeConfirmedAt: new Date(),
+      termsConsentAt: now,
+      termsConsentVersion: TERMS_VERSION,
+      ageConfirmedAt: now,
+      privacyNoticeConfirmedAt: now,
       privacyNoticeVersion,
       marketingConsent,
       marketingConsentAt: marketingConsent ? new Date() : null,
-      marketingConsentVersion: marketingConsent ? marketingConsentVersion || 'member-marketing-v1' : null,
+      marketingConsentVersion: marketingConsent ? marketingConsentVersion || MARKETING_VERSION_EMAIL : null,
     },
     select: { id: true, email: true },
   })

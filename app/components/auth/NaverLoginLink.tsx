@@ -2,17 +2,15 @@ type Props = {
   callbackUrl?: string
   className?: string
   children?: React.ReactNode
-  marketingConsent?: boolean
 }
 
 /**
  * OAuth 시작은 브라우저 전체 이동만 사용 (Link/RSC fetch 금지).
  * GET `/api/auth/naver` → `/api/auth/naver/callback` 에서 Account/세션 처리
  */
-export default function NaverLoginLink({ callbackUrl, className = '', children, marketingConsent = false }: Props) {
+export default function NaverLoginLink({ callbackUrl, className = '', children }: Props) {
   const q = new URLSearchParams()
   if (callbackUrl) q.set('callbackUrl', callbackUrl)
-  if (marketingConsent) q.set('marketingConsent', '1')
   const qs = q.toString()
   const href = `/api/auth/naver${qs ? `?${qs}` : ''}`
   return (

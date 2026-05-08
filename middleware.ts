@@ -54,6 +54,22 @@ export default auth(async (req) => {
     return NextResponse.next()
   }
 
+  const consentSession = req.auth
+  const consentStatus = (consentSession?.user as { accountStatus?: string } | undefined)?.accountStatus
+  if (consentSession?.user && consentStatus === 'consent_pending') {
+    const consentAllowed =
+      pathname === '/auth/signup/consent' ||
+      pathname.startsWith('/api/auth/signup/consent') ||
+      pathname.startsWith('/api/auth/session') ||
+      pathname.startsWith('/api/auth/csrf') ||
+      pathname === '/api/auth/signout'
+    if (!consentAllowed) {
+      const consentUrl = new URL('/auth/signup/consent', req.url)
+      consentUrl.searchParams.set('callbackUrl', pathname + req.nextUrl.search)
+      return NextResponse.redirect(consentUrl)
+    }
+  }
+
   const isAdminRoute = pathname.startsWith('/admin')
   const isAdminApiRoute = pathname.startsWith('/api/admin/')
   const bypassParam = searchParams.get('auth')
@@ -171,5 +187,10 @@ export default auth(async (req) => {
  * (CSS 경고 시: docs/SECURITY-POLICY.md §5 — 실패 URL 실측 후 분류.)
  */
 export const config = {
-  matcher: ['/admin', '/admin/:path*', '/api/admin/:path*'],
+  matcher: [
+    '/admin',
+    '/admin/:path*',
+    '/api/admin/:path*',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:ico|png|jpg|jpeg|gif|webp|svg|woff2?|txt|xml)$).*)',
+  ],
 }

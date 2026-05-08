@@ -1,7 +1,6 @@
 import { randomBytes } from 'crypto'
 import { NextResponse } from 'next/server'
 import {
-  KAKAO_OAUTH_MARKETING_CONSENT_COOKIE,
   KAKAO_OAUTH_REDIRECT_COOKIE,
   KAKAO_OAUTH_STATE_COOKIE,
   buildKakaoOAuthStateCookieOptions,
@@ -27,14 +26,13 @@ export async function GET(request: Request) {
   const cb = searchParams.get('callbackUrl') ?? '/'
   const normalized = cb.startsWith('/') ? cb : `/${cb}`
   const encodedRedirect = encodeURIComponent(normalized)
-  const mcRaw = searchParams.get('marketingConsent') ?? ''
-  const marketingConsentFlag = mcRaw === '1' || mcRaw.toLowerCase() === 'true'
 
   const authorize = new URL('https://kauth.kakao.com/oauth/authorize')
   authorize.searchParams.set('client_id', clientId)
   authorize.searchParams.set('redirect_uri', redirectUri)
   authorize.searchParams.set('response_type', 'code')
   authorize.searchParams.set('state', state)
+  authorize.searchParams.set('scope', 'profile_nickname account_email')
 
   const cookieOpts = buildKakaoOAuthStateCookieOptions(request)
   kakaoOAuthLog('authorize', {
@@ -50,6 +48,5 @@ export async function GET(request: Request) {
   const res = NextResponse.redirect(authorize.toString())
   res.cookies.set(KAKAO_OAUTH_STATE_COOKIE, state, cookieOpts)
   res.cookies.set(KAKAO_OAUTH_REDIRECT_COOKIE, encodedRedirect, cookieOpts)
-  res.cookies.set(KAKAO_OAUTH_MARKETING_CONSENT_COOKIE, marketingConsentFlag ? '1' : '0', cookieOpts)
   return res
 }
