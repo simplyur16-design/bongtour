@@ -703,11 +703,16 @@ class CalendarPriceScraper:
         poll = int(getattr(config, "YBTOUR_E2E_LIST_DIGEST_POLL_MS", 80) or 80)
         poll = max(40, min(poll, 250))
         steps = max(4, min(48, int(to / poll)))
+        # YBTOUR_E2E_KEEP_LEGACY_POSTWAIT=1 일 때만 digest 감지 직후 추가 0.12~0.28s 대기 유지 (롤백용). 기본 OFF — 감지 자체가 React 렌더 완료 신호라 무의미.
+        keep_legacy_postwait = (
+            os.environ.get("YBTOUR_E2E_KEEP_LEGACY_POSTWAIT") or ""
+        ).strip() == "1"
         for _ in range(steps):
             await self._page.wait_for_timeout(poll)
             cur = await self._ybtour_list_rows_digest()
             if cur != prev_digest:
-                await human_delay(0.12, 0.28)
+                if keep_legacy_postwait:
+                    await human_delay(0.12, 0.28)
                 return
         await human_delay(0.15, 0.35)
 
@@ -1354,7 +1359,18 @@ class CalendarPriceScraper:
                 pass
 
             await self._scroll_ybtour_popup_list_deep()
-            await human_delay(0.35, 0.75)
+            # 매월 시작 시 무조건 대기 — 데이터와 무관해서 0.35~0.75s → 0.15~0.3s 로 단축. YBTOUR_E2E_MONTH_START_DELAY_MS=NNN(ms) 양수면 그 값을 sleep, 미설정/0/비정수면 0.15~0.3 random 유지.
+            _month_start_raw = (
+                os.environ.get("YBTOUR_E2E_MONTH_START_DELAY_MS") or ""
+            ).strip()
+            try:
+                _month_start_ms = int(_month_start_raw) if _month_start_raw else 0
+            except ValueError:
+                _month_start_ms = 0
+            if _month_start_ms > 0:
+                await asyncio.sleep(_month_start_ms / 1000.0)
+            else:
+                await human_delay(0.15, 0.3)
             kst_floor = _kst_today_ymd()
             merged_month: List[Dict[str, Any]] = []
             if priced_days > 0 and yp and mp:
