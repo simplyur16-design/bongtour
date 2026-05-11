@@ -365,7 +365,21 @@ model ProductDeparture {
   transportSegmentRaw String? // 교통 구간 통합 원문 스니펫
   supplierPriceKey    String? // 공급사 가격표 행/키 식별자 (원문)
 
+  /// On-demand 라이브 스크래핑 시도 시각. G1 (per-departure 30분 쿨다운) 판정 SSOT.
+  /// 주기 수집(syncedAt) 과 의미 분리 — 사용자 액션으로 트리거된 시도만 기록.
+  lastScrapeAttemptAt DateTime?
+
   @@unique([productId, departureDate])
+}
+
+// ---- On-demand 가격 스크래퍼 — 공급사별 마지막 시도/완료 시각 (G2 사이트별 throttle SSOT) ----
+// 행 1개당 1 공급사 (총 5행 — hanatour/modetour/verygoodtour/ybtour/lottetour).
+// 멀티 인스턴스 안전 (Postgres upsert). cron 배치 완료 시각도 같은 컬럼에 기록해 on-demand 와 인터벌 정합 (Q2 정책).
+model ScraperSupplierState {
+  supplierKey    String    @id // 정규화 키 (normalizeBrandKeyToCanonicalSupplierKey 결과 또는 lottetour 등)
+  lastStartedAt  DateTime?
+  lastFinishedAt DateTime?
+  updatedAt      DateTime  @updatedAt
 }
 
 // ---- 하나투어 월별 카드사/제휴 혜택 (상품별 중복 저장 금지; 월 단위 SSOT) ----
