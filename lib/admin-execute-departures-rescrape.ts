@@ -40,6 +40,15 @@ import type {
   AdminDeparturesRescrapeResponseBody,
   AdminDeparturesRescrapeStage,
 } from '@/lib/admin-departures-rescrape-types'
+import {
+  acquireSupplierLock,
+  checkPerDepartureCooldown,
+  humanDelayBeforeScrape,
+  recordDepartureAttempt,
+  recordSupplierFinished,
+  recordSupplierStart,
+  waitForSupplierThrottle,
+} from '@/lib/scraper-on-demand-throttle'
 
 function upsertDeparturesModuleForProduct(p: {
   originSource: string | null
@@ -417,28 +426,34 @@ export async function executeRangeOnDemandDepartures(
 
   if (existing) {
     const ui = inferUiFromDepartureDb(existing)
-    if (ui === 'price_unavailable') {
-      return {
-        status: 200,
-        body: { ok: false, reason: 'departure_exists_price_unavailable', departureDate: ymd },
-      }
-    }
     if (ui === 'sold_out' || ui === 'closed') {
       return {
         status: 200,
         body: { ok: true, cached: true, departureDate: ymd, status: ui, price: null },
       }
     }
-    return {
-      status: 200,
-      body: {
-        ok: true,
-        cached: true,
-        departureDate: ymd,
-        status: 'open',
-        price: existing.adultPrice ?? null,
-      },
+    if (ui === 'open') {
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          cached: true,
+          departureDate: ymd,
+          status: 'open',
+          price: existing.adultPrice ?? null,
+        },
+      }
     }
+    // ui === 'price_unavailable' — G1 쿨다운 체크 후 라이브 스크래핑 fall-through.
+    // 30분 이내 시도 흔적이 있으면 cached 응답 (Q4 (a): 기존 reason 그대로 유지 — UI 메시지 변경 0).
+    const { cooldownActive } = await checkPerDepartureCooldown(prisma, product.id, ymd)
+    if (cooldownActive) {
+      return {
+        status: 200,
+        body: { ok: false, reason: 'departure_exists_price_unavailable', departureDate: ymd },
+      }
+    }
+    // fall-through: existing 가격 미노출 row 그대로 두고 아래 라이브 분기로 진입.
   }
 
   const detailUrl =
@@ -446,81 +461,123 @@ export async function executeRangeOnDemandDepartures(
   const bk = normalizeBrandKeyToCanonicalSupplierKey(product.brand?.brandKey ?? null)
   const norm = normalizeSupplierOrigin(product.originSource ?? '')
 
+  // G2/G3/G5 SSOT 키. 5개 공급사 분기 조건과 1:1 정합 — 알 수 없는 공급사면 null (가드 우회 → livesRange 빈 채로 통과).
+  const supplierKey: string | null =
+    bk === 'lottetour' || norm === 'lottetour'
+      ? 'lottetour'
+      : bk === 'hanatour' || norm === 'hanatour'
+        ? 'hanatour'
+        : bk === 'modetour' || norm === 'modetour'
+          ? 'modetour'
+          : bk === 'verygoodtour' || norm === 'verygoodtour'
+            ? 'verygoodtour'
+            : norm === 'ybtour' ||
+                bk === 'ybtour' ||
+                brandKeyResolvesToYbtour(product.brand?.brandKey ?? null)
+              ? 'ybtour'
+              : null
+
   let livesRange: DepartureInput[] = []
-  if (bk === 'lottetour' || norm === 'lottetour') {
-    const metaRow = await prisma.product.findUnique({
-      where: { id: product.id },
-      select: { rawMeta: true, originUrl: true },
-    })
-    const hints = parseLottetourEvtListCollectionHints({
-      rawMeta: metaRow?.rawMeta ?? null,
-      originUrl: (product.originUrl ?? '').trim() || metaRow?.originUrl || null,
-    })
-    if (!hints.godId || !hints.menuNos) {
+
+  if (supplierKey) {
+    // G2: 같은 공급사 직전 스크래핑(또는 cron 배치) 종료 후 random 5~12s 인터벌 보장.
+    await waitForSupplierThrottle(prisma, supplierKey)
+    // G3: 같은 공급사 동시 1개 락. 15s 까지 wait, 초과 시 cached price_unavailable (Q1 (c) 하이브리드).
+    const lock = await acquireSupplierLock(supplierKey, 15_000)
+    if (!lock.acquired) {
       return {
-        status: 422,
-        body: {
-          ok: false,
-          reason: 'lottetour_missing_god_or_menu',
-          departureDate: ymd,
-          fetchedRange,
-          warnings: hints.warnings,
-        },
+        status: 200,
+        body: { ok: false, reason: 'departure_exists_price_unavailable', departureDate: ymd },
       }
     }
-    const months = eachYmBetweenInclusive(fromYmd, toYmd)
-    const allRows = []
-    for (const ym of months) {
-      const { rows } = await collectLottetourCalendarRange(
-        { godId: hints.godId, menuNos: hints.menuNos },
-        {
-          monthCount: 1,
-          dateFrom: ym,
-          logLabel: `execute-range-on-demand:${product.id}`,
-          e2eTourCodeHint:
-            (hints.detailEvtCd ?? '').trim() || (product.originCode ?? '').trim() || null,
-        }
-      )
-      allRows.push(...rows)
-    }
-    const mapped = mapLottetourCalendarToDepartureInputs(allRows, product.id)
-    const lo = fromYmd <= toYmd ? fromYmd : toYmd
-    const hi = fromYmd <= toYmd ? toYmd : fromYmd
-    const filtered = mapped.filter((x) => {
-      const dk = departureInputToYmd(x.departureDate as unknown as string)
-      return dk != null && dk >= lo && dk <= hi
-    })
-    filtered.sort((a, b) => {
-      const da = departureInputToYmd(a.departureDate as unknown as string) ?? ''
-      const db = departureInputToYmd(b.departureDate as unknown as string) ?? ''
-      if (da !== db) return da.localeCompare(db)
-      return (a.supplierPriceKey ?? '').localeCompare(b.supplierPriceKey ?? '')
-    })
-    livesRange = filterDepartureInputsOnOrAfterCalendarToday(filtered as unknown as DepartureInput[])
-  } else if (bk === 'hanatour' || norm === 'hanatour') {
-    livesRange = await collectHanatourDepartureInputsForDateRange(detailUrl, fromYmd, toYmd)
-  } else if (bk === 'modetour' || norm === 'modetour') {
-    livesRange = await collectModetourDepartureInputsForDateRange(product.originUrl, fromYmd, toYmd)
-  } else if (bk === 'verygoodtour' || norm === 'verygoodtour') {
-    const lo = fromYmd <= toYmd ? fromYmd : toYmd
-    const hi = fromYmd <= toYmd ? toYmd : fromYmd
-    const statusByDate = new Map<string, { statusRaw: string | null; seatsStatusRaw: string | null }>()
     try {
-      const cal = await scrapeLiveCalendar(detailUrl, 'verygoodtour', {
-        VERYGOOD_DATE_FROM: lo,
-        VERYGOOD_DATE_TO: hi,
-      })
-      livesRange = filterDepartureInputsOnOrAfterCalendarToday(
-        mapScrapedRowsToInputs(cal.rows, statusByDate)
-      ).filter((x) => {
-        const dk = departureInputToYmd(x.departureDate)
-        return dk != null && dk >= lo && dk <= hi
-      })
-    } catch {
-      livesRange = []
+      // G5: 시작 시각 기록 (다음 G2 산정의 SSOT).
+      await recordSupplierStart(prisma, supplierKey)
+      // G1 timestamp: existing row 가 있을 때만 갱신 (신규 일자는 silent no-op).
+      await recordDepartureAttempt(prisma, product.id, ymd)
+      // G4: 사람처럼 보이는 1~3s 진입 지연.
+      await humanDelayBeforeScrape()
+
+      if (bk === 'lottetour' || norm === 'lottetour') {
+        const metaRow = await prisma.product.findUnique({
+          where: { id: product.id },
+          select: { rawMeta: true, originUrl: true },
+        })
+        const hints = parseLottetourEvtListCollectionHints({
+          rawMeta: metaRow?.rawMeta ?? null,
+          originUrl: (product.originUrl ?? '').trim() || metaRow?.originUrl || null,
+        })
+        if (!hints.godId || !hints.menuNos) {
+          return {
+            status: 422,
+            body: {
+              ok: false,
+              reason: 'lottetour_missing_god_or_menu',
+              departureDate: ymd,
+              fetchedRange,
+              warnings: hints.warnings,
+            },
+          }
+        }
+        const months = eachYmBetweenInclusive(fromYmd, toYmd)
+        const allRows = []
+        for (const ym of months) {
+          const { rows } = await collectLottetourCalendarRange(
+            { godId: hints.godId, menuNos: hints.menuNos },
+            {
+              monthCount: 1,
+              dateFrom: ym,
+              logLabel: `execute-range-on-demand:${product.id}`,
+              e2eTourCodeHint:
+                (hints.detailEvtCd ?? '').trim() || (product.originCode ?? '').trim() || null,
+            }
+          )
+          allRows.push(...rows)
+        }
+        const mapped = mapLottetourCalendarToDepartureInputs(allRows, product.id)
+        const lo = fromYmd <= toYmd ? fromYmd : toYmd
+        const hi = fromYmd <= toYmd ? toYmd : fromYmd
+        const filtered = mapped.filter((x) => {
+          const dk = departureInputToYmd(x.departureDate as unknown as string)
+          return dk != null && dk >= lo && dk <= hi
+        })
+        filtered.sort((a, b) => {
+          const da = departureInputToYmd(a.departureDate as unknown as string) ?? ''
+          const db = departureInputToYmd(b.departureDate as unknown as string) ?? ''
+          if (da !== db) return da.localeCompare(db)
+          return (a.supplierPriceKey ?? '').localeCompare(b.supplierPriceKey ?? '')
+        })
+        livesRange = filterDepartureInputsOnOrAfterCalendarToday(filtered as unknown as DepartureInput[])
+      } else if (bk === 'hanatour' || norm === 'hanatour') {
+        livesRange = await collectHanatourDepartureInputsForDateRange(detailUrl, fromYmd, toYmd)
+      } else if (bk === 'modetour' || norm === 'modetour') {
+        livesRange = await collectModetourDepartureInputsForDateRange(product.originUrl, fromYmd, toYmd)
+      } else if (bk === 'verygoodtour' || norm === 'verygoodtour') {
+        const lo = fromYmd <= toYmd ? fromYmd : toYmd
+        const hi = fromYmd <= toYmd ? toYmd : fromYmd
+        const statusByDate = new Map<string, { statusRaw: string | null; seatsStatusRaw: string | null }>()
+        try {
+          const cal = await scrapeLiveCalendar(detailUrl, 'verygoodtour', {
+            VERYGOOD_DATE_FROM: lo,
+            VERYGOOD_DATE_TO: hi,
+          })
+          livesRange = filterDepartureInputsOnOrAfterCalendarToday(
+            mapScrapedRowsToInputs(cal.rows, statusByDate)
+          ).filter((x) => {
+            const dk = departureInputToYmd(x.departureDate)
+            return dk != null && dk >= lo && dk <= hi
+          })
+        } catch {
+          livesRange = []
+        }
+      } else if (norm === 'ybtour' || bk === 'ybtour' || brandKeyResolvesToYbtour(product.brand?.brandKey ?? null)) {
+        livesRange = await collectYbtourDepartureInputsForDateRange(detailUrl, product.originCode, fromYmd, toYmd)
+      }
+    } finally {
+      // G5: 완료 시각 기록 (lottetour 422 / 라이브 fetch 예외 / 정상 완료 모두 동일하게 next-G2 인터벌 산정 SSOT 갱신).
+      await recordSupplierFinished(prisma, supplierKey)
+      lock.release()
     }
-  } else if (norm === 'ybtour' || bk === 'ybtour' || brandKeyResolvesToYbtour(product.brand?.brandKey ?? null)) {
-    livesRange = await collectYbtourDepartureInputsForDateRange(detailUrl, product.originCode, fromYmd, toYmd)
   }
 
   const scrapeByYmd = new Map<string, DepartureInput>()
