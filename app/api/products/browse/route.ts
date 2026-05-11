@@ -25,6 +25,7 @@ import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ss
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import {
   browseRegionToDbContinents,
@@ -267,7 +268,10 @@ export async function GET(request: Request) {
     const rows = await prisma.product.findMany({
       where: {
         registrationStatus: 'registered',
-        ...(overseasGeoAnd.length > 0 ? { AND: overseasGeoAnd } : {}),
+        AND: [
+          ...(overseasGeoAnd.length > 0 ? overseasGeoAnd : []),
+          publicProductWhereClause(),
+        ],
       },
       orderBy: { updatedAt: 'desc' },
       include: PRODUCT_BROWSE_FULL_INCLUDE,

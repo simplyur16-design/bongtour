@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { getHomeHubCoverImageUrl } from '@/lib/final-image-selection'
 import { homeHubCardImageSrc } from '@/lib/home-hub-images'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 
 export type HomeHubTravelCardCoverScope = 'overseas' | 'domestic'
 
@@ -56,6 +57,7 @@ export async function pickHomeHubTravelCardCover(
       where: {
         registrationStatus: 'registered',
         travelScope: scope,
+        AND: [publicProductWhereClause()],
       },
       orderBy: { updatedAt: 'desc' },
       take: CANDIDATE_LIMIT,

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { getSiteOrigin } from '@/lib/site-metadata'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600
@@ -48,6 +49,7 @@ export async function GET() {
     where: {
       registrationStatus: 'registered',
       bgImageUrl: { not: null },
+      AND: [publicProductWhereClause()],
     },
     select: {
       id: true,

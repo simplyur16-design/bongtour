@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getPexelsImage } from '@/lib/pexels-service'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
@@ -5,6 +6,7 @@ import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { LUXURY_FALLBACK_IMAGE_URL } from '@/lib/image-fallback'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 
 /** 갤러리 한 요청당 Pexels 검색 상한 — 초과 분은 로컬 럭셔리 폴백 URL과 동일 처리(getPexelsImage 실패 경로와 정합) */
 const GALLERY_PEXELS_MAX_FETCHES = 12
@@ -84,15 +86,19 @@ export async function GET(request: Request) {
     const limit = Math.min(48, Math.max(6, parseInt(searchParams.get('limit') ?? '6', 10)))
     const offset = (page - 1) * limit
 
+    const publicWhere: Prisma.ProductWhereInput = {
+      registrationStatus: 'registered',
+      AND: [publicProductWhereClause()],
+    }
     const [products, total] = await Promise.all([
       prisma.product.findMany({
-        where: { registrationStatus: 'registered' },
+        where: publicWhere,
         orderBy: { updatedAt: 'desc' },
         skip: offset,
         take: limit,
         select: galleryProductDbSelect,
       }),
-      prisma.product.count({ where: { registrationStatus: 'registered' } }),
+      prisma.product.count({ where: publicWhere }),
     ])
 
     const defaultKeyword = 'luxury travel panorama'

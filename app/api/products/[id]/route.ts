@@ -6,6 +6,7 @@ import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import * as priceRowsHanatour from '@/lib/product-departure-to-price-rows-hanatour'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -19,7 +20,11 @@ export async function GET(_request: Request, { params }: RouteParams) {
       return jsonWithLeakGuard({ error: 'Invalid id' }, 'api.products.detail.get.bad-id', { status: 400 })
     }
     const product = await prisma.product.findFirst({
-      where: { id, registrationStatus: 'registered' },
+      where: {
+        id,
+        registrationStatus: 'registered',
+        AND: [publicProductWhereClause()],
+      },
       include: {
         prices: { orderBy: { date: 'asc' } },
         departures: { orderBy: { departureDate: 'asc' } },
@@ -138,7 +143,11 @@ export async function POST(request: Request, { params }: RouteParams) {
       }
     }
     const product = await prisma.product.findFirst({
-      where: { id, registrationStatus: 'registered' },
+      where: {
+        id,
+        registrationStatus: 'registered',
+        AND: [publicProductWhereClause()],
+      },
       select: {
         id: true,
         originSource: true,

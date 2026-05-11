@@ -5,6 +5,7 @@ import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 
 /** Next 15 GET Route Handler 기본 비캐시 대응 — 메인 위젯·Pexels 폴백 호출 완화 */
 export const revalidate = 60
@@ -16,7 +17,10 @@ export const revalidate = 60
 export async function GET() {
   try {
     const product = await prisma.product.findFirst({
-      where: { registrationStatus: 'registered' },
+      where: {
+        registrationStatus: 'registered',
+        AND: [publicProductWhereClause()],
+      },
       orderBy: { updatedAt: 'desc' },
       include: {
         prices: { orderBy: { date: 'asc' }, take: 1 },

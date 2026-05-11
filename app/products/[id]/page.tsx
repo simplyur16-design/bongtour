@@ -14,6 +14,7 @@ import {
 import { requireAdmin } from '@/lib/require-admin'
 import { PRODUCT_DETAIL_PAGE_INCLUDE } from '@/lib/product-detail-page-include'
 import { ProductDetailView } from '@/app/products/[id]/product-detail-view'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,11 @@ const PRODUCT_METADATA_SELECT = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   let p = await prisma.product.findFirst({
-    where: { id, registrationStatus: 'registered' },
+    where: {
+      id,
+      registrationStatus: 'registered',
+      AND: [publicProductWhereClause()],
+    },
     select: PRODUCT_METADATA_SELECT,
   })
   if (!p) {
@@ -96,7 +101,11 @@ export default async function ProductDetailPage({ params }: Props) {
     notFound()
   }
   let travelProduct = await prisma.product.findFirst({
-    where: { id, registrationStatus: 'registered' },
+    where: {
+      id,
+      registrationStatus: 'registered',
+      AND: [publicProductWhereClause()],
+    },
     include: PRODUCT_DETAIL_PAGE_INCLUDE,
   })
   if (!travelProduct) {
