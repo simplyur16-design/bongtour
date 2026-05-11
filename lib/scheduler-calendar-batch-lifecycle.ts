@@ -8,6 +8,21 @@ import {
   releaseCalendarPriceBatchLock,
   tryAcquireCalendarPriceBatchLock,
 } from '@/lib/scraper-calendar-batch-lock'
+import { prisma } from '@/lib/prisma'
+import { recordSupplierFinished } from '@/lib/scraper-on-demand-throttle'
+
+/**
+ * cron 배치 종료 시 5개 공급사 모두 일률 mark — Q2 정합 (cron 직후 on-demand G2 5~12s 인터벌 적용).
+ * Python 측 결과 라인에 공급사별 정보가 없어 per-supplier 분리 불가 → 보수적으로 모두 mark.
+ * 어떤 공급사가 이번 cron 에서 통신 안 했더라도 다음 on-demand 호출이 인터벌만큼 wait 할 뿐 손실 없음.
+ */
+const SCRAPER_SUPPLIERS_FOR_BATCH_MARK = ['hanatour', 'modetour', 'verygoodtour', 'ybtour', 'lottetour'] as const
+
+async function markAllScrapersBatchFinished(): Promise<void> {
+  await Promise.all(
+    SCRAPER_SUPPLIERS_FOR_BATCH_MARK.map((s) => recordSupplierFinished(prisma, s).catch(() => {}))
+  )
+}
 
 const RESULT_PREFIX = 'BONGTOUR_BATCH_RESULT:'
 
@@ -68,6 +83,7 @@ export function attachCalendarBatchFinalizeOnExit(child: ChildProcess, strategy:
       } catch (e) {
         console.error('[calendar-batch] finalize:', e)
       } finally {
+        await markAllScrapersBatchFinished()
         releaseCalendarPriceBatchLock()
       }
     })()
@@ -91,6 +107,7 @@ export async function runCalendarPriceBatchInline(
     await finalizeCheckpointAfterBatch(strategy, r)
     return r
   } finally {
+    await markAllScrapersBatchFinished()
     releaseCalendarPriceBatchLock()
   }
 }
