@@ -657,10 +657,86 @@ class CalendarPriceScraper:
             pass
 
     async def _scroll_ybtour_popup_list_deep(self) -> None:
-        """우측 리스트 lazy-load — 여러 번 끝까지 스크롤."""
+        """우측 리스트 lazy-load — 여러 번 끝까지 스크롤. (3단계 도입 _scroll_until_list_stable 의 fallback / 롤백 경로용으로 보존)"""
         for _ in range(5):
             await self._scroll_ybtour_popup_list()
             await self._page.wait_for_timeout(220)
+
+    async def _scroll_ybtour_popup_list_no_wait(self) -> None:
+        """우측 리스트 끝까지 한 번 스크롤 — wait_for_timeout 없음. _scroll_until_list_stable 폴링 루프 전용."""
+        try:
+            await self._page.evaluate(
+                """() => {
+"""
+                + YBTOUR_MODAL_ROOT_JS
+                + """
+  const root = ybtourModalRoot();
+  const scrollables = root.querySelectorAll('.scroll_wrap, .list_wrap, [class*="scroll"], [class*="Scroll"], aside ul, .departure_list, [class*="departure"], [class*="list_area"], ul, .mCustomScrollBox, [style*="overflow-y"], .popup_content ul, [class*="popup_content"] ul');
+  for (const el of scrollables) {
+    try { el.scrollTop = el.scrollHeight; } catch (e) {}
+  }
+}"""
+            )
+        except Exception:
+            pass
+
+    async def _scroll_until_list_stable(
+        self,
+        max_iters: int = 5,
+        stable_streak: int = 2,
+        poll_ms: int = 150,
+    ) -> dict:
+        """우측 리스트 li/tr 행 수가 stable_streak번 연속 같으면 lazy-load 완료로 판정.
+
+        반환: {'iters_used': N, 'final_count': M, 'stabilized': bool}.
+        config.YBTOUR_E2E_SCROLL_* 가 정의돼 있으면 시그니처 기본값보다 우선 (Railway 등 운영 튜닝용).
+        max_iters 안에서 안정화 못 하면 마지막에 기존 _scroll_ybtour_popup_list 1회 호출(550ms 대기 포함)로 fallback.
+        phase 로그는 YBTOUR_E2E_TIMING_LOG=1 일 때만 출력 (기본 OFF — 운영 노이즈 0).
+        """
+        max_iters = int(getattr(config, "YBTOUR_E2E_SCROLL_MAX_ITERS", max_iters) or max_iters)
+        stable_streak = int(
+            getattr(config, "YBTOUR_E2E_SCROLL_STABLE_STREAK", stable_streak) or stable_streak
+        )
+        poll_ms = int(getattr(config, "YBTOUR_E2E_SCROLL_POLL_MS", poll_ms) or poll_ms)
+
+        timing_log = (os.environ.get("YBTOUR_E2E_TIMING_LOG") or "").strip() == "1"
+        t0 = time.monotonic() if timing_log else 0.0
+
+        last_count = -1
+        streak = 0
+        iters_used = 0
+        stabilized = False
+        for i in range(max_iters):
+            iters_used = i + 1
+            await self._scroll_ybtour_popup_list_no_wait()
+            await self._page.wait_for_timeout(poll_ms)
+            cnt = await self._ybtour_modal_list_node_count()
+            if cnt == last_count and cnt >= 0:
+                streak += 1
+                if streak >= stable_streak:
+                    stabilized = True
+                    break
+            else:
+                streak = 0
+                last_count = cnt
+        if not stabilized:
+            await self._scroll_ybtour_popup_list()
+            try:
+                last_count = await self._ybtour_modal_list_node_count()
+            except Exception:
+                pass
+
+        if timing_log:
+            elapsed_ms = int((time.monotonic() - t0) * 1000)
+            _ybtour_phase_always(
+                "scroll-stabilize",
+                f"iters={iters_used} stable={'true' if stabilized else 'false'} final_count={last_count} elapsed_ms={elapsed_ms}",
+            )
+        return {
+            "iters_used": iters_used,
+            "final_count": last_count,
+            "stabilized": stabilized,
+        }
 
     async def _ybtour_list_rows_digest(self) -> str:
         """우측 리스트 상단 몇 줄 요약 — 갱신 여부 감지용."""
@@ -1234,6 +1310,10 @@ class CalendarPriceScraper:
 
         # YBTOUR_E2E_TIMING_LOG=1 일 때만 일자 사이클 elapsed_ms phase 로그를 stderr에 추가 출력 (운영 노이즈 방지: 기본 OFF, 동작 변경 X)
         timing_log = (os.environ.get("YBTOUR_E2E_TIMING_LOG") or "").strip() == "1"
+        # 깊은 스크롤 → 행 수 안정화 폴링으로 교체 (3단계). YBTOUR_E2E_SCROLL_STABILIZE="0" 으로 설정 시 즉시 구동작(_scroll_ybtour_popup_list_deep) 복귀. 미설정/그 외 값은 신동작.
+        use_stabilize = (
+            os.environ.get("YBTOUR_E2E_SCROLL_STABILIZE", "1").strip() != "0"
+        )
 
         baseline = await self._ybtour_baseline_title_layers()
         raw_title = str(baseline.get("rawTitle") or "").strip()
@@ -1358,7 +1438,10 @@ class CalendarPriceScraper:
             except Exception:
                 pass
 
-            await self._scroll_ybtour_popup_list_deep()
+            if use_stabilize:
+                await self._scroll_until_list_stable()
+            else:
+                await self._scroll_ybtour_popup_list_deep()
             # 매월 시작 시 무조건 대기 — 데이터와 무관해서 0.35~0.75s → 0.15~0.3s 로 단축. YBTOUR_E2E_MONTH_START_DELAY_MS=NNN(ms) 양수면 그 값을 sleep, 미설정/0/비정수면 0.15~0.3 random 유지.
             _month_start_raw = (
                 os.environ.get("YBTOUR_E2E_MONTH_START_DELAY_MS") or ""
@@ -1414,7 +1497,10 @@ class CalendarPriceScraper:
                                 f"ms={int((time.monotonic() - digest_t0) * 1000)}",
                             )
                     scroll_t0 = time.monotonic() if timing_log else 0.0
-                    await self._scroll_ybtour_popup_list_deep()
+                    if use_stabilize:
+                        await self._scroll_until_list_stable()
+                    else:
+                        await self._scroll_ybtour_popup_list_deep()
                     if timing_log:
                         li_count = await self._ybtour_modal_list_node_count()
                         _ybtour_phase_always(
