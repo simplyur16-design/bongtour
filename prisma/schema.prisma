@@ -204,6 +204,15 @@ model Product {
   /// F-1: 최근 1건 JSON `{ action, before, after, at, by }`
   geoAuditLastPatchJson String?
 
+  /// 트랙 ⑥ 룰 A 마커 — `runOneSalesPolicyCheck`(lib/product-sales-policy.ts)가 향후 90일 미래 출발일 0건 확인 시 NOW() 기록.
+  /// 1건이라도 발견 시 NULL로 초기화. `registrationStatus` 자동 변경 X (어드민 SSOT 유지).
+  noFutureDepartureConfirmedAt DateTime?
+  /// 트랙 ⑥ — 마지막 라이브 검증 timestamp. `pickNextProductToCheck` 정렬 SSOT (NULL 우선 + ASC).
+  lastSalesPolicyCheckedAt     DateTime?
+  /// 트랙 ⑥ 룰 B cutoff SSOT — 라이브 fetch 결과 중 미래 출발일의 MAX. 향후 미래 출발일 없으면 NULL.
+  /// 인덱스는 운영 측정 후 추가 (현재 Product ~110건 규모, 메모리 #11 정합).
+  lastFutureDepartureDate      DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -212,6 +221,7 @@ model Product {
   @@index([registrationStatus, lastPriceObservedAt])
   @@index([continentKey])
   @@index([cityKey])
+  @@index([lastSalesPolicyCheckedAt])
 }
 
 model OptionalTour {
