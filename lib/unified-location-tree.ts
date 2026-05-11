@@ -36,6 +36,8 @@ export type MegaMenuRegion = {
   hint?: string
   countryGroups?: MegaMenuCountryGroup[]
   special?: MegaMenuSpecial
+  /** 지방출발 단일 링크 탭 마커 — 도시/국가 펼침 없이 `/travel/overseas?region={id}` 로 즉시 이동. SSOT: `lib/mega-menu-regions.data.ts` MEGA_MENU_TAB_DEFINITIONS. */
+  localDeparture?: 'busan' | 'cheongju' | 'daegu'
 }
 
 export type UnifiedLocationNode = {
@@ -93,13 +95,14 @@ function groupDefToGroup(d: MegaMenuCountryGroupDef): MegaMenuCountryGroup {
   }
 }
 
-/** 메가메뉴 10탭 — `lib/mega-menu-regions.data.ts` SSOT */
+/** 메가메뉴 9탭(일반 6 + 지방출발 3) — `lib/mega-menu-regions.data.ts` SSOT. tab.localDeparture 마커는 결과 region에 그대로 통과. */
 export function buildMegaMenuRegionsFromDefinitions(): MegaMenuRegion[] {
-  return MEGA_MENU_TAB_DEFINITIONS.map((tab) => ({
-    id: tab.id,
-    label: tab.label,
-    countryGroups: tab.groups.map(groupDefToGroup).filter((g) => g.cities.length > 0),
-  }))
+  return MEGA_MENU_TAB_DEFINITIONS.map((tab) => {
+    const groups = tab.groups.map(groupDefToGroup).filter((g) => g.cities.length > 0)
+    const region: MegaMenuRegion = { id: tab.id, label: tab.label, countryGroups: groups }
+    if (tab.localDeparture) region.localDeparture = tab.localDeparture
+    return region
+  })
 }
 
 const MEGA_MENU_SPECIAL_TAIL: MegaMenuRegion[] = [

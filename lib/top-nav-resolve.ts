@@ -6,9 +6,9 @@ import type { MegaMenuCountryGroup, MegaMenuLeaf, MegaMenuRegion } from '@/lib/t
 import { OVERSEAS_MEGA_MENU_REGIONS } from '@/lib/travel-landing-mega-menu-data'
 import { countrySlugFromLabel, citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
 
-/** 메가메뉴에서 일반 권역만 (추천/자유/공급사 특수 탭 제외) */
+/** 메가메뉴에서 일반 권역(도시 펼침) + 지방출발 단일 링크 탭만 (추천/자유/공급사 특수 탭 제외) */
 export const TOP_NAV_MEGA_REGIONS: MegaMenuRegion[] = OVERSEAS_MEGA_MENU_REGIONS.filter(
-  (r) => !r.special && r.countryGroups?.length,
+  (r) => !r.special && (r.countryGroups?.length || r.localDeparture),
 )
 
 export { countrySlugFromLabel }

@@ -86,21 +86,38 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
               '여행상품'}
           </div>
           <ul className="mt-2 space-y-0">
-            {TOP_NAV_MEGA_REGIONS.map((r) => (
-              <li key={r.id} className="border-b border-slate-100">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between py-3 text-left text-[15px] font-medium text-slate-900"
-                  onClick={() => {
-                    setRegionId(r.id)
-                    setStep('countries')
-                  }}
-                >
-                  {r.label}
-                  <ChevronRight className="h-5 w-5 text-slate-400" />
-                </button>
-              </li>
-            ))}
+            {TOP_NAV_MEGA_REGIONS.map((r) => {
+              // 지방출발 단일 링크 탭(부산/청주/대구) — drilldown 안 들어가고 즉시 페이지 이동. SSOT: lib/mega-menu-regions.data.ts (localDeparture 마커).
+              if (r.localDeparture) {
+                return (
+                  <li key={r.id} className="border-b border-slate-100">
+                    <Link
+                      href={`/travel/overseas?scope=overseas&region=${r.id}`}
+                      className="flex w-full items-center justify-between py-3 text-left text-[15px] font-medium text-slate-900"
+                      onClick={reset}
+                    >
+                      {r.label}
+                      <ChevronRight className="h-5 w-5 text-slate-400" />
+                    </Link>
+                  </li>
+                )
+              }
+              return (
+                <li key={r.id} className="border-b border-slate-100">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between py-3 text-left text-[15px] font-medium text-slate-900"
+                    onClick={() => {
+                      setRegionId(r.id)
+                      setStep('countries')
+                    }}
+                  >
+                    {r.label}
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         </div>
       )}

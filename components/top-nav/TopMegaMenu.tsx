@@ -55,6 +55,13 @@ export default function TopMegaMenu() {
     setActiveRegionId(id)
   }, [])
 
+  // 지방출발 단일 링크 탭(부산/청주/대구) 클릭 시 패널 깜빡임 방지를 위해 즉시 닫기.
+  const onPickLocalDepartureLink = useCallback(() => {
+    clearOpen()
+    clearClose()
+    setMegaMenuOpen(false)
+  }, [])
+
   useEffect(() => {
     return () => {
       clearOpen()
@@ -88,6 +95,7 @@ export default function TopMegaMenu() {
               regions={TOP_NAV_MEGA_REGIONS}
               activeRegionId={activeRegion.id}
               onHoverRegion={onHoverRegion}
+              onPickLocalDepartureLink={onPickLocalDepartureLink}
             />
             <CountryCityMegaPanel
               regionId={activeRegion.id}
