@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sys
+import time
 import traceback
 import urllib.parse
 from typing import Any, Dict, List, Optional
@@ -1226,6 +1227,9 @@ class CalendarPriceScraper:
         _ybtour_modal_log(f"phase=entry begin modal_scrape {summ}")
         _ybtour_log(f"[ybtour] phase=scraper-modal-path site=ybtour {summ}")
 
+        # YBTOUR_E2E_TIMING_LOG=1 일 때만 일자 사이클 elapsed_ms phase 로그를 stderr에 추가 출력 (운영 노이즈 방지: 기본 OFF, 동작 변경 X)
+        timing_log = (os.environ.get("YBTOUR_E2E_TIMING_LOG") or "").strip() == "1"
+
         baseline = await self._ybtour_baseline_title_layers()
         raw_title = str(baseline.get("rawTitle") or "").strip()
         base_ns = str(baseline.get("comparisonTitleNoSpace") or "").strip()
@@ -1377,13 +1381,37 @@ class CalendarPriceScraper:
                         continue
                     if _date_to and iso > _date_to:
                         continue
+                    cycle_start = time.monotonic() if timing_log else 0.0
+                    if timing_log:
+                        _ybtour_phase_always(
+                            "day-cycle-start",
+                            f"day={d_int} monthKey={ym!r}",
+                        )
                     prev_d = await self._ybtour_list_rows_digest()
                     clicked = await self._ybtour_click_calendar_day(d_int)
                     if clicked:
+                        digest_t0 = time.monotonic() if timing_log else 0.0
                         await self._ybtour_await_list_digest_change(prev_d)
+                        if timing_log:
+                            _ybtour_phase_always(
+                                "digest-wait-elapsed",
+                                f"ms={int((time.monotonic() - digest_t0) * 1000)}",
+                            )
+                    scroll_t0 = time.monotonic() if timing_log else 0.0
                     await self._scroll_ybtour_popup_list_deep()
+                    if timing_log:
+                        li_count = await self._ybtour_modal_list_node_count()
+                        _ybtour_phase_always(
+                            "scroll-deep-elapsed",
+                            f"ms={int((time.monotonic() - scroll_t0) * 1000)} li_count={li_count}",
+                        )
                     part = await self._ybtour_collect_popup_rows_filtered(baseline)
                     merged_month.extend(part)
+                    if timing_log:
+                        _ybtour_phase_always(
+                            "day-cycle-end",
+                            f"day={d_int} total_ms={int((time.monotonic() - cycle_start) * 1000)} rows_collected={len(part)}",
+                        )
                 batch = merged_month
             else:
                 batch = await self._ybtour_collect_popup_rows_filtered(baseline)
