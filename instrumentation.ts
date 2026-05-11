@@ -48,6 +48,10 @@ export async function register() {
         startInstrumentationPriceFreshnessCron()
         const { startInstrumentationCouponCron } = await import('@/lib/instrumentation-coupon-cron')
         startInstrumentationCouponCron()
+        const { startInstrumentationProductSalesPolicyCron } = await import(
+          '@/lib/instrumentation-product-sales-policy-cron'
+        )
+        startInstrumentationProductSalesPolicyCron()
       }
     }
   }
