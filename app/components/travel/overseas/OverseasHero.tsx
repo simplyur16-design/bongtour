@@ -232,11 +232,17 @@ type CountryBrowseHeroRow = {
 export type OverseasHeroProps = {
   /** `searchParams.country` — 나라 선택 시 상단 히어로 전환 */
   selectedCountrySlug?: string | null
+  /** 지방출발 3종(`busan_dep` 등)만 서버에서 전달 — 일반 권역 탭은 null */
+  selectedRegionSlug?: string | null
   /** 이번 달 해외 월간 큐레이션 전체(서버) */
   allMonthCurations?: HomeSeasonPickDTO[] | null
 }
 
-const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMonthCurations = null }) => {
+const OverseasHero: FC<OverseasHeroProps> = ({
+  selectedCountrySlug = null,
+  selectedRegionSlug = null,
+  allMonthCurations = null,
+}) => {
   const router = useRouter()
   const searchParams = useSearchParams() ?? new URLSearchParams()
   const departDateId = 'overseas-hero-depart-date'
@@ -285,6 +291,19 @@ const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMo
     return (searchParams.get('country') ?? '').trim() || null
   }, [selectedCountrySlug, searchParams])
 
+  const normalizedSelectedRegionSlug = (selectedRegionSlug ?? '').trim()
+
+  const localDepLabel =
+    normalizedSelectedRegionSlug === 'busan_dep'
+      ? '부산'
+      : normalizedSelectedRegionSlug === 'cheongju_dep'
+        ? '청주'
+        : normalizedSelectedRegionSlug === 'daegu_dep'
+          ? '대구'
+          : null
+  const isLocalDepartureMode = Boolean(localDepLabel)
+  const isSpotlightMode = Boolean(countrySlug) || isLocalDepartureMode
+
   const monthCurationsList = allMonthCurations ?? []
 
   const matchedCountryCuration = useMemo(
@@ -297,7 +316,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMo
     [countrySlug],
   )
 
-  const autoHeroFromCountryBrowse = useMemo((): {
+  const autoHeroFromBrowse = useMemo((): {
     imageUrl: string | null
     title: string
     subtitle: string
@@ -320,8 +339,16 @@ const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMo
     return { imageUrl: img, title: pick.title, subtitle }
   }, [matchedCountryCuration, countryBrowseData])
 
+  const spotlightBrowseFooterLine = useMemo(() => {
+    const t = countryBrowseData?.total ?? 0
+    const n = t.toLocaleString('ko-KR')
+    if (countrySlug) return `${countryHeroDisplayName} 여행상품 ${n}개`
+    if (localDepLabel) return `${localDepLabel}출발 여행상품 ${n}개`
+    return ''
+  }, [countryBrowseData?.total, countryHeroDisplayName, countrySlug, localDepLabel])
+
   useEffect(() => {
-    if (!countrySlug) {
+    if (!isSpotlightMode) {
       setCountryBrowseData(null)
       setCountryBrowseLoading(false)
       return
@@ -335,9 +362,13 @@ const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMo
           limit: '30',
           sort: 'popular',
         })
-        p.set('country', countrySlug)
-        const r = (searchParams.get('region') ?? '').trim()
-        if (r) p.set('region', r)
+        if (countrySlug) {
+          p.set('country', countrySlug)
+          const r = (searchParams.get('region') ?? '').trim()
+          if (r) p.set('region', r)
+        } else if (normalizedSelectedRegionSlug) {
+          p.set('region', normalizedSelectedRegionSlug)
+        }
         const res = await fetch(`/api/products/browse?${p.toString()}`, { cache: 'no-store' })
         const json = (await res.json()) as {
           ok?: boolean
@@ -367,7 +398,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMo
     return () => {
       cancelled = true
     }
-  }, [countrySlug, searchParams])
+  }, [countrySlug, isSpotlightMode, searchParams, selectedRegionSlug])
 
   useEffect(() => {
     const nextDepartRaw = searchParams.get('departDate') ?? ''
@@ -435,7 +466,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMo
   }, [])
 
   useEffect(() => {
-    if (countrySlug) {
+    if (isSpotlightMode) {
       setItems([])
       setLoading(false)
       return
@@ -464,7 +495,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMo
     return () => {
       off = true
     }
-  }, [browseUrl, countrySlug])
+  }, [browseUrl, isSpotlightMode])
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
@@ -716,12 +747,12 @@ const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMo
         >
           <div
             className={
-              countrySlug
+              isSpotlightMode
                 ? 'relative min-h-[240px] lg:min-h-[300px]'
                 : 'relative h-[150px] sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]'
             }
           >
-            {countrySlug ? (
+            {isSpotlightMode ? (
               matchedCountryCuration ? (
                 <OverseasCountryHeroBanner
                   imageUrl={matchedCountryCuration.imageUrl}
@@ -737,16 +768,25 @@ const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMo
                 />
               ) : countryBrowseLoading ? (
                 <div className="h-[240px] w-full animate-pulse rounded-xl bg-slate-200/70 lg:h-[300px]" />
-              ) : autoHeroFromCountryBrowse ? (
+              ) : autoHeroFromBrowse ? (
                 <OverseasCountryHeroBanner
-                  imageUrl={autoHeroFromCountryBrowse.imageUrl}
-                  title={autoHeroFromCountryBrowse.title}
-                  subtitle={autoHeroFromCountryBrowse.subtitle}
-                  footerLine={`${countryHeroDisplayName} 여행상품 ${(countryBrowseData?.total ?? 0).toLocaleString('ko-KR')}개`}
+                  imageUrl={autoHeroFromBrowse.imageUrl}
+                  title={autoHeroFromBrowse.title}
+                  subtitle={autoHeroFromBrowse.subtitle}
+                  footerLine={spotlightBrowseFooterLine}
                   showCta={false}
                   ctaHref=""
                 />
-              ) : (
+              ) : isLocalDepartureMode && !countrySlug && !countryBrowseLoading ? (
+                <OverseasCountryHeroBanner
+                  imageUrl={null}
+                  title={`${localDepLabel}출발 등록 상품 준비 중`}
+                  subtitle=""
+                  footerLine={`${localDepLabel}출발 여행상품 ${(countryBrowseData?.total ?? 0).toLocaleString('ko-KR')}개`}
+                  showCta={false}
+                  ctaHref=""
+                />
+              ) : countrySlug ? (
                 <OverseasCountryHeroBanner
                   imageUrl={null}
                   title={`${countryHeroDisplayName} 여행상품`}
@@ -755,7 +795,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMo
                   showCta={false}
                   ctaHref=""
                 />
-              )
+              ) : null
             ) : loading ? (
               <div className="h-full w-full animate-pulse bg-slate-200/60" />
             ) : !current ? (
@@ -824,7 +864,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({ selectedCountrySlug = null, allMo
               })()
             )}
           </div>
-          {!loading && current && !countrySlug ? (
+          {!loading && current && !isSpotlightMode ? (
             <div className="border-t border-bt-border-soft bg-white px-3 py-2">
               <p className="text-xs font-semibold text-bt-title sm:text-sm">{current.headline}</p>
               <p className="mt-0.5 line-clamp-1 text-[11px] text-bt-meta">{current.title}</p>

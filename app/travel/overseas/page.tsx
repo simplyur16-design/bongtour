@@ -17,6 +17,9 @@ import {
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
 
+/** 해외 허브 히어로 스포트라이트용 — 지방출발 3종만 서버에서 `OverseasHero`로 전달 */
+const LOCAL_DEPARTURE_REGIONS = ['busan_dep', 'cheongju_dep', 'daegu_dep'] as const
+
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -46,6 +49,8 @@ export default async function OverseasTravelPage({
   const sp = (await searchParams) ?? {}
   const region = typeof sp.region === 'string' ? sp.region : null
   const country = typeof sp.country === 'string' ? sp.country : null
+  const selectedRegionSlug =
+    region && (LOCAL_DEPARTURE_REGIONS as readonly string[]).includes(region) ? region : null
 
   const monthKey = getSeoulYearMonthNow()
   const [editorialAll, overseasSeasonCurationSlidesRaw, allMonthCurations] = await Promise.all([
@@ -71,7 +76,11 @@ export default async function OverseasTravelPage({
       <Header />
       <OverseasTravelSubMainNav />
       <main>
-        <OverseasHero selectedCountrySlug={country} allMonthCurations={allMonthCurations} />
+        <OverseasHero
+          selectedCountrySlug={country}
+          selectedRegionSlug={selectedRegionSlug}
+          allMonthCurations={allMonthCurations}
+        />
 
         <Suspense fallback={<p className="py-16 text-center text-sm text-slate-500">상품을 불러오는 중…</p>}>
           <ProductsBrowseClient
