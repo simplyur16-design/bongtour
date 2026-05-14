@@ -14,8 +14,8 @@ function fail(msg: string): never {
 
 function ensureBaseConfig() {
   const schema = read('prisma/schema.prisma')
-  if (!/provider\s*=\s*"sqlite"/.test(schema)) {
-    fail('schema datasource provider must stay sqlite')
+  if (!/provider\s*=\s*"(?:sqlite|postgresql)"/.test(schema)) {
+    fail('schema datasource provider must be sqlite or postgresql')
   }
   if (!/output\s*=\s*"\.\.\/prisma-gen-runtime"/.test(schema)) {
     fail('schema generator output must be ../prisma-gen-runtime')
