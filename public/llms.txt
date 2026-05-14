@@ -11,25 +11,25 @@
 
 ## 주요 페이지
 
-- 홈: https://www.bongtour.com/
-- 상품 목록: https://www.bongtour.com/products
-- 해외여행: https://www.bongtour.com/travel/overseas
-- 국내여행: https://www.bongtour.com/travel/domestic
-- 항공권: https://www.bongtour.com/air-ticketing
-- 단체 견적: https://www.bongtour.com/quote/private
-- 상담 문의: https://www.bongtour.com/inquiry
-- 고객지원: https://www.bongtour.com/support
-- eSIM: https://www.bongtour.com/travel/esim
+- 홈: https://bongtour.com/
+- 상품 목록: https://bongtour.com/products
+- 해외여행: https://bongtour.com/travel/overseas
+- 국내여행: https://bongtour.com/travel/domestic
+- 항공권: https://bongtour.com/air-ticketing
+- 단체 견적: https://bongtour.com/quote/private
+- 상담 문의: https://bongtour.com/inquiry
+- 고객지원: https://bongtour.com/support
+- eSIM: https://bongtour.com/travel/esim
 
 ## 사이트맵
 
-- 일반: https://www.bongtour.com/sitemap.xml
-- 이미지: https://www.bongtour.com/sitemap-images.xml
+- 일반: https://bongtour.com/sitemap.xml
+- 이미지: https://bongtour.com/sitemap-images.xml
 
 ## 정책
 
-- 개인정보처리방침: https://www.bongtour.com/privacy
-- 이용약관: https://www.bongtour.com/terms
+- 개인정보처리방침: https://bongtour.com/privacy
+- 이용약관: https://bongtour.com/terms
 
 ## 연락처
 
