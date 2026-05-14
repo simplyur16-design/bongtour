@@ -101,6 +101,22 @@ const nextConfig = {
       },
     ]
   },
+  /**
+   * www.bongtour.com → bongtour.com (apex) 301 정규화.
+   * - 운영 정식 origin = `https://bongtour.com` (sitemap.xml/robots.txt/metadataBase 일관, NEXT_PUBLIC_SITE_URL).
+   * - apex 는 Railway Custom Domain Fastly ICN POP 적중, www 는 Railway 원본(SG) 직결이어서 CDN 효과·SEO canonical 분산 발생.
+   * - host 기반 매칭이라 `www.bongtour.com` 으로 들어온 모든 경로(쿼리 포함)를 apex 로 영구 리다이렉트한다.
+   */
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.bongtour.com' }],
+        destination: 'https://bongtour.com/:path*',
+        permanent: true,
+      },
+    ]
+  },
   images: {
     minimumCacheTTL: 60 * 60 * 24 * 30,
     formats: ['image/avif', 'image/webp'],
