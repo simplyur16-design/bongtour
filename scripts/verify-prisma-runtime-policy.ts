@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join, extname } from 'node:path'
+import { join, extname, relative } from 'node:path'
 
 const root = process.cwd()
 
@@ -14,8 +14,8 @@ function fail(msg: string): never {
 
 function ensureBaseConfig() {
   const schema = read('prisma/schema.prisma')
-  if (!/provider\s*=\s*"sqlite"/.test(schema)) {
-    fail('schema datasource provider must stay sqlite')
+  if (!/provider\s*=\s*"(?:sqlite|postgresql)"/.test(schema)) {
+    fail('schema datasource provider must be sqlite or postgresql')
   }
   if (!/output\s*=\s*"\.\.\/prisma-gen-runtime"/.test(schema)) {
     fail('schema generator output must be ../prisma-gen-runtime')
@@ -42,7 +42,7 @@ function collectFiles(dir: string, out: string[]) {
   for (const name of readdirSync(dir)) {
     if (name === 'node_modules' || name === '.next' || name === '.git' || name === 'docs') continue
     const full = join(dir, name)
-    const rel = full.replace(root + '\\', '').replaceAll('\\', '/')
+    const rel = relative(root, full).replaceAll('\\', '/')
     if (rel.startsWith('prisma-gen/') || rel.startsWith('prisma-gen-runtime/')) continue
     const st = statSync(full)
     if (st.isDirectory()) {

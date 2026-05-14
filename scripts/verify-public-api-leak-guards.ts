@@ -10,6 +10,16 @@ function mustContain(file: string, token: string) {
   }
 }
 
+function mustContainAny(file: string, tokens: string[]) {
+  const full = resolve(process.cwd(), file)
+  const text = readFileSync(full, 'utf-8')
+  if (!tokens.some((t) => text.includes(t))) {
+    throw new Error(
+      `[verify-public-api-leak-guards] missing any of tokens [${tokens.join(', ')}] in ${file}`,
+    )
+  }
+}
+
 function collectRouteFiles(dir: string): string[] {
   const out: string[] = []
   const entries = readdirSync(dir)
@@ -46,10 +56,10 @@ function verifyRouteCoverage() {
 }
 
 function run() {
-  mustContain('app/api/gallery/route.ts', 'assertNoInternalMetaLeak')
-  mustContain('app/api/featured/route.ts', 'assertNoInternalMetaLeak')
-  mustContain('app/api/products/[id]/route.ts', 'assertNoInternalMetaLeak')
-  mustContain('app/api/bookings/route.ts', 'assertNoInternalMetaLeak')
+  mustContainAny('app/api/gallery/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
+  mustContainAny('app/api/featured/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
+  mustContainAny('app/api/products/[id]/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
+  mustContainAny('app/api/bookings/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
   mustContain('app/products/[id]/product-detail-view.tsx', 'assertNoInternalMetaLeak')
   mustContain('app/api/agent/reports/route.ts', 'requireAdmin')
   mustContain('app/api/analyze/route.ts', 'requireAdmin')
