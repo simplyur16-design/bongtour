@@ -1,6 +1,6 @@
 import type { BongsimProductOptionV1 } from "@/lib/bongsim/contracts/product-master.v1";
 import { computeRecommendedPrice } from "@/lib/bongsim/recommend/product-option";
-import { allowanceTierBucket, parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
+import { allowanceTierBucket, isParsedAllowanceMb, parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
 import type { NetworkGeneration } from "@/lib/bongsim/recommend/parse-speed";
 import { extractPlanFeatures, scorePlan } from "@/lib/bongsim/recommend/score-plan";
 
@@ -94,7 +94,10 @@ function pickRecommended(pool: BongsimProductOptionV1[]): BongsimProductOptionV1
 function pickSmallestMbLarge(pool: BongsimProductOptionV1[]): BongsimProductOptionV1 | null {
   const rows = pool
     .map((o) => ({ o, p: parseAllowance(o.allowance_label) }))
-    .filter(({ p }) => allowanceTierBucket(p) === "large" && p.kind === "mb");
+    .filter(
+      (r): r is { o: BongsimProductOptionV1; p: { kind: "mb"; mb: number } } =>
+        allowanceTierBucket(r.p) === "large" && isParsedAllowanceMb(r.p),
+    );
   if (rows.length === 0) return null;
   rows.sort((a, b) => {
     if (a.p.mb !== b.p.mb) return a.p.mb - b.p.mb;
@@ -121,8 +124,11 @@ function pickGentle2(pool: BongsimProductOptionV1[], gentle1: BongsimProductOpti
 
   const mediumRows = pool
     .map((o) => ({ o, p: parseAllowance(o.allowance_label) }))
-    .filter(({ p }) => allowanceTierBucket(p) === "medium" && p.kind === "mb")
-    .filter(({ o }) => !gentle1 || o.option_api_id !== gentle1.option_api_id)
+    .filter(
+      (r): r is { o: BongsimProductOptionV1; p: { kind: "mb"; mb: number } } =>
+        allowanceTierBucket(r.p) === "medium" && isParsedAllowanceMb(r.p),
+    )
+    .filter((r) => !gentle1 || r.o.option_api_id !== gentle1.option_api_id)
     .sort((a, b) => {
       if (a.p.mb !== b.p.mb) return a.p.mb - b.p.mb;
       return sortGentlePreferred(a.o, b.o);

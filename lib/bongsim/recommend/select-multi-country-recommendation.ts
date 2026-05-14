@@ -1,7 +1,7 @@
 import type { BongsimProductOptionV1 } from "@/lib/bongsim/contracts/product-master.v1";
 import { getPlanCoveredCountries } from "@/lib/bongsim/plan-coverage-map";
 import { computeRecommendedPrice } from "@/lib/bongsim/recommend/product-option";
-import { parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
+import { isParsedAllowanceMb, parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
 import { extractPlanFeatures, scorePlan } from "@/lib/bongsim/recommend/score-plan";
 import { isUnlimitedPlan } from "@/lib/bongsim/recommend/parse-speed";
 
@@ -103,7 +103,12 @@ function bestRank5DailyMb(pool: BongsimProductOptionV1[]): BongsimProductOptionV
         .trim()
         .toLowerCase(),
     }))
-    .filter((x) => x.pt === "daily" && x.p.kind === "mb");
+    .filter(
+      (
+        x,
+      ): x is { o: BongsimProductOptionV1; p: { kind: "mb"; mb: number }; pt: string } =>
+        x.pt === "daily" && isParsedAllowanceMb(x.p),
+    );
   if (rows.length === 0) return null;
   rows.sort((a, b) => {
     if (b.p.mb !== a.p.mb) return b.p.mb - a.p.mb;

@@ -35,6 +35,16 @@ export function parseAllowance(allowanceLabel: string | null | undefined): Parse
   return { kind: "unknown" };
 }
 
+/**
+ * `ParsedAllowance` 타입 가드. `kind === 'mb'`일 때 `.mb` 접근을 위한 narrow 보존용.
+ * `.filter` 안에서 destructure를 쓰면 TS narrowing이 풀리는 문제를 회피한다.
+ */
+export function isParsedAllowanceMb(
+  parsed: ParsedAllowance,
+): parsed is { kind: "mb"; mb: number } {
+  return parsed.kind === "mb";
+}
+
 /** 2GB 이하 용량(가벼운 사용 패턴 슬롯 후보). */
 export function isGentleAllowance(parsed: ParsedAllowance): boolean {
   return parsed.kind === "mb" && parsed.mb <= 2048;
