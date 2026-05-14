@@ -247,7 +247,6 @@ export function PlanSelectPopup({
 
                   {totalShow != null && (
                     <div className="mt-2">
-                      <p className="text-[11px] font-medium text-slate-500">소비자가</p>
                       <p className="text-lg font-bold text-blue-600 lg:text-xl">{formatKrw(totalShow)}</p>
                     </div>
                   )}
