@@ -66,7 +66,7 @@ import {
   modetourScheduleRowsSubstantive,
   modetourSyntheticDepartureInputsForPersistedParsed,
 } from '@/lib/register-modetour-price'
-import { MODETOUR_REGISTER_CONFIRM_MONTHS_FORWARD } from '@/lib/scrape-date-bounds'
+import { MODETOUR_REGISTER_CONFIRM_MONTHS_FORWARD, addCalendarDaysToYmd } from '@/lib/scrape-date-bounds'
 import {
   collectModetourDepartureInputs,
   modetourBaselineAcceptableForConfirm,
@@ -197,6 +197,51 @@ function enrichModetourPrefetchedDeparturesWithTable(
       infantPrice: linked.infantPrice > 0 ? linked.infantPrice : d.infantPrice,
     }
   })
+}
+
+/**
+ * confirm 단계 modetour B2C `GetOtherDepartureDates` 호출 윈도우를 본문/parsed에서 추출한 출발일
+ * 기준 ±7일로 좁힌다. 추출 실패 시 null 반환 → 호출부가 monthsForward 폴백을 그대로 쓴다.
+ *
+ * 우선순위:
+ *  1) `parsed.prices[*].date` (YYYY-MM-DD)
+ *  2) `parsed.detailBodyStructured.flightStructured.outbound.departureDate`
+ *  3) 본문 텍스트의 `YYYY[./-]M[./-]D` 정규식 (최대 12건)
+ */
+function pickModetourScrapeWindowFromParsedAndText(
+  parsed: RegisterParsed,
+  text: string
+): { from: string; to: string } | null {
+  const ymdRe = /^\d{4}-\d{2}-\d{2}$/
+  const isos = new Set<string>()
+  for (const p of parsed.prices ?? []) {
+    const d = (p as { date?: unknown })?.date
+    if (typeof d === 'string' && ymdRe.test(d.trim())) isos.add(d.trim())
+  }
+  const fsd = parsed.detailBodyStructured?.flightStructured?.outbound?.departureDate
+  if (typeof fsd === 'string' && ymdRe.test(fsd.trim())) isos.add(fsd.trim())
+  if (isos.size === 0 && text) {
+    const re = /(20\d{2})[./-](\d{1,2})[./-](\d{1,2})/g
+    let m: RegExpExecArray | null
+    while ((m = re.exec(text)) !== null) {
+      const yy = m[1]
+      const moNum = Number(m[2])
+      const daNum = Number(m[3])
+      if (moNum < 1 || moNum > 12 || daNum < 1 || daNum > 31) continue
+      const mm = String(moNum).padStart(2, '0')
+      const dd = String(daNum).padStart(2, '0')
+      isos.add(`${yy}-${mm}-${dd}`)
+      if (isos.size >= 12) break
+    }
+  }
+  if (isos.size === 0) return null
+  const sorted = Array.from(isos).sort()
+  const min = sorted[0]
+  const max = sorted[sorted.length - 1]
+  return {
+    from: addCalendarDaysToYmd(min, -7),
+    to: addCalendarDaysToYmd(max, 7),
+  }
 }
 
 function modetourParsedFlightStructuredHasLegCore(parsed: RegisterParsed): boolean {
@@ -904,10 +949,38 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
         departureFromParsed = []
         itineraryDayDrafts = []
       } else {
+        const scrapeWindow = pickModetourScrapeWindowFromParsedAndText(parsed, text)
+        const collectOpts = scrapeWindow
+          ? { dateRangeYmd: scrapeWindow }
+          : { monthsForward: MODETOUR_REGISTER_CONFIRM_MONTHS_FORWARD }
+        console.info('[parse-and-register-modetour][confirm-scrape-window]', {
+          picked: scrapeWindow ? 'date-range' : 'months-forward',
+          from: scrapeWindow?.from ?? null,
+          to: scrapeWindow?.to ?? null,
+          fallbackMonths: scrapeWindow ? null : MODETOUR_REGISTER_CONFIRM_MONTHS_FORWARD,
+        })
+        const collectFallback = (
+          err: unknown
+        ): Awaited<ReturnType<typeof collectModetourDepartureInputs>> => {
+          console.warn('[parse-and-register-modetour][confirm-scrape-failed]', {
+            message: err instanceof Error ? err.message : String(err),
+            from: scrapeWindow?.from ?? null,
+            to: scrapeWindow?.to ?? null,
+          })
+          return {
+            inputs: [],
+            meta: {
+              filledFields: [],
+              missingFields: [],
+              mappingStatus: 'detail-candidate-found-but-unmapped',
+              notes: ['confirm-scrape-failed-fallback'],
+            },
+            pricePromotionFromDom: null,
+            baselineTrace: null,
+          }
+        }
         const [depRes, itRes] = await Promise.all([
-          collectModetourDepartureInputs(originUrl.trim(), {
-            monthsForward: MODETOUR_REGISTER_CONFIRM_MONTHS_FORWARD,
-          }),
+          collectModetourDepartureInputs(originUrl.trim(), collectOpts).catch(collectFallback),
           collectModetourItineraryInputs({ detailUrl: originUrl.trim() }),
         ])
         modetourConfirmBaselineTrace = depRes.baselineTrace
