@@ -50,7 +50,7 @@ export async function POST(req: Request) {
 
   const rawBody = await req.text();
   const incoming = parseWelcomepayPayload(rawBody);
-  const oid = pickOid(incoming);
+  const oid = pickOid(incoming) || incoming.P_NOTI || incoming.p_noti || "";
   if (!oid) {
     return new NextResponse("missing_oid", { status: 400 });
   }
