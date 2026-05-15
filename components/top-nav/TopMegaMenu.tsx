@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ProductBrowseType } from '@/lib/products-browse-filter'
 import { TOP_NAV_MEGA_REGIONS } from '@/lib/top-nav-resolve'
-import OverseasSubNavHubRow from '@/components/top-nav/OverseasSubNavHubRow'
+import OverseasMegaMenuHoverTrigger from '@/components/top-nav/OverseasMegaMenuHoverTrigger'
 import RegionHoverTabs from '@/components/top-nav/RegionHoverTabs'
 import CountryCityMegaPanel from '@/components/top-nav/CountryCityMegaPanel'
 
@@ -78,11 +78,7 @@ export default function TopMegaMenu() {
         onMouseLeave={scheduleClose}
       >
         <div className="min-h-[3.1rem] w-full min-w-0 lg:min-h-[3.25rem]">
-          <OverseasSubNavHubRow
-            onHoverMegaEnter={onHoverMegaEnter}
-            onFocusMega={onFocusMega}
-            onHoverLinkEnter={scheduleClose}
-          />
+          <OverseasMegaMenuHoverTrigger onHoverMegaEnter={onHoverMegaEnter} onFocusMega={onFocusMega} />
         </div>
 
         {isMegaMenuOpen && activeRegion && activeRegion.countryGroups && (

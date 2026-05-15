@@ -28,6 +28,8 @@ import PersonaCuratedDestinations from './components/home/PersonaCuratedDestinat
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from '@/lib/home-page-metadata'
 import { DEFAULT_OG_IMAGE_PATH, SITE_NAME } from '@/lib/site-metadata'
+import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import MobileDestinationSearch from './components/home/MobileDestinationSearch'
 
 /** 5분 ISR — 허브 카드 풀·시즌 큐레이션은 최대 5분 지연 후 반영. */
 export const revalidate = 300
@@ -97,6 +99,9 @@ export default async function Home() {
           />
           <div className="block lg:hidden">
             <EsimCoralStrip />
+            <div className={SITE_CONTENT_CLASS}>
+              <MobileDestinationSearch />
+            </div>
             <HomeMobileHub seasonSlides={homeSeasonSlides} />
           </div>
           <div className="hidden lg:block">
