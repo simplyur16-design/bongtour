@@ -4,7 +4,7 @@
 
 import { homeHubCardImageSrc } from '@/lib/home-hub-images'
 
-// ─── 메인 Compact Hero (브랜드 인트로만; 상품·CTA 버튼 없음) ────────────────
+// ─── 메인 Compact Hero (v5: 패키지 페르소나 + CTA; eyebrow·브랜드 슬로건은 export만 유지) ─
 
 export const MAIN_HERO_EYEBROW = 'BONGTOUR'
 
@@ -12,25 +12,26 @@ export const MAIN_HERO_EYEBROW = 'BONGTOUR'
 export const MAIN_HERO_BRAND_SLOGAN = '여정의 시작부터 현장의 언어까지'
 
 /** 메인 카피 1문장 */
-export const MAIN_HERO_MAIN_COPY = '여행은 검증된 상품으로, 국외연수는 목적에 맞는 기획으로.'
+export const MAIN_HERO_MAIN_COPY = '검증된 여행상품으로 가족과 함께 안심하고 다녀오는 여행'
 
 /** 보조 설명 */
-export const MAIN_HERO_SUB_COPY =
-  '패키지·자유여행 상담부터 기관 섭외, 통역, 이동 운영까지 필요한 방식으로 여정을 연결합니다.'
+export const MAIN_HERO_SUB_COPY = '출발 확정 패키지 · 어린이 가격 명확 · 환불 정책 보장'
 
 /** 텍스트 링크형 보조 CTA */
 export const MAIN_HERO_AUX_LINK_LABEL = '4개 영역 살펴보기'
 export const MAIN_HERO_AUX_LINK_HREF = '#hub-four'
 
 /** 레거시 호환(다른 페이지·문서 참조 시) */
-export const MAIN_HERO_HEADLINE = MAIN_HERO_BRAND_SLOGAN
-export const MAIN_HERO_SUBLINE = MAIN_HERO_MAIN_COPY
+export const MAIN_HERO_HEADLINE = MAIN_HERO_MAIN_COPY
+export const MAIN_HERO_SUBLINE = MAIN_HERO_SUB_COPY
 
 export const MAIN_HERO_DISCLAIMER_LINE =
   '즉시 결제·자동 확정이 아닌 상담·접수 창구입니다. 세부 조건은 확인 과정에서 정리됩니다.'
 
-export const MAIN_HERO_CTA_PRIMARY_LABEL = '상담으로 시작하기'
-export const MAIN_HERO_CTA_SECONDARY_LABEL = '4개 영역 보기'
+export const MAIN_HERO_CTA_PRIMARY_LABEL = '패키지 둘러보기'
+export const MAIN_HERO_CTA_PRIMARY_HREF = '/travel/overseas' as const
+export const MAIN_HERO_CTA_SECONDARY_LABEL = '상담 받기'
+export const MAIN_HERO_CTA_SECONDARY_HREF = '/inquiry?type=travel' as const
 
 /** Hero 직하단 정보 바 — 역량 스캔용 짧은 라벨 */
 export const MAIN_HERO_INFO_STRIP = [
@@ -445,3 +446,7 @@ export const MAIN_MINIMAL_FOOTER_LINKS = [
   { label: '이용약관', href: '/terms' },
   { label: 'eSIM 환불정책', href: '/travel/esim/policy' },
 ] as const
+
+/** 헤더 직하단 등록 표지 한 줄 (운영 표기 SSOT) */
+export const MAIN_REGISTRATION_NOTICE =
+  '관광사업자등록 2024-0033호 · 통신판매업 2024-수원영통-1596호 · 사업자등록 255-81-03455 · 상담 평일 08:00–19:00'
