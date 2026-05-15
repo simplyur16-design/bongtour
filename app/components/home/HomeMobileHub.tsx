@@ -6,8 +6,6 @@ import MobileHomeClientErrorBoundary from '@/app/components/home/MobileHomeClien
 import HomeHubPhotoPlaceholder from '@/app/components/home/HomeHubPhotoPlaceholder'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
 import {
-  MAIN_HERO_CTA_PRIMARY_HREF,
-  MAIN_HERO_CTA_PRIMARY_LABEL,
   MAIN_HERO_CTA_SECONDARY_HREF,
   MAIN_HERO_CTA_SECONDARY_LABEL,
   MAIN_HERO_MAIN_COPY,
@@ -90,16 +88,10 @@ export default async function HomeMobileHub({ seasonSlides }: Props) {
         <p className="mt-2 text-center text-sm leading-relaxed text-bt-text-muted-lavender sm:text-[0.9375rem]">
           {MAIN_HERO_SUB_COPY}
         </p>
-        <div className="mx-auto mt-4 flex max-w-md flex-wrap items-center justify-center gap-2">
-          <Link
-            href={MAIN_HERO_CTA_PRIMARY_HREF}
-            className="inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-full bg-bt-text-navy px-4 py-2.5 text-center text-sm font-medium text-white transition hover:opacity-95 active:scale-[0.99] sm:flex-none sm:px-5"
-          >
-            {MAIN_HERO_CTA_PRIMARY_LABEL}
-          </Link>
+        <div className="mx-auto mt-4 flex max-w-md justify-center">
           <Link
             href={MAIN_HERO_CTA_SECONDARY_HREF}
-            className="inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-full border border-bt-bg-lavender bg-white px-4 py-2.5 text-center text-sm font-medium text-bt-text-navy shadow-sm transition hover:bg-bt-bg-lavender-soft active:scale-[0.99] sm:flex-none sm:px-5"
+            className="inline-flex min-h-[2.5rem] w-full max-w-xs items-center justify-center rounded-full bg-bt-text-navy px-5 py-2.5 text-center text-sm font-medium text-white shadow-sm transition hover:opacity-95 active:scale-[0.99] sm:max-w-sm sm:px-6"
           >
             {MAIN_HERO_CTA_SECONDARY_LABEL}
           </Link>

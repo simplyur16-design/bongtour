@@ -28,8 +28,7 @@ export const MAIN_HERO_SUBLINE = MAIN_HERO_SUB_COPY
 export const MAIN_HERO_DISCLAIMER_LINE =
   '즉시 결제·자동 확정이 아닌 상담·접수 창구입니다. 세부 조건은 확인 과정에서 정리됩니다.'
 
-export const MAIN_HERO_CTA_PRIMARY_LABEL = '패키지 둘러보기'
-export const MAIN_HERO_CTA_PRIMARY_HREF = '/travel/overseas' as const
+/** 메인 Hero·모바일 히어로 단일 CTA (헤더·4카드와 진입점 중복 방지) */
 export const MAIN_HERO_CTA_SECONDARY_LABEL = '상담 받기'
 export const MAIN_HERO_CTA_SECONDARY_HREF = '/inquiry?type=travel' as const
 
@@ -181,7 +180,7 @@ export const MAIN_HUB_FOUR_SR_HEADING = 'Bong투어 주요 서비스 영역'
 export type HubFourAccent = 'domestic' | 'overseas' | 'training' | 'esim'
 
 /** 헤더·4카드·모바일 첫 타일 공통 — 패키지(해외 패키지 허브) */
-export const MAIN_HOME_FIRST_HUB_TITLE = '패키지' as const
+export const MAIN_HOME_FIRST_HUB_TITLE = '해외여행상품' as const
 /** 모바일 첫 타일 한 줄 설명(PC 카드 headline과 동일 톤) */
 export const MAIN_HOME_FIRST_HUB_TILE_DESC = '검증된 여행상품 · 가족 안심' as const
 /** PC 메인 4카드 첫 칸 호버 본문(패키지) */
@@ -215,12 +214,12 @@ export const MAIN_HUB_FOUR_CARDS = [
     imageKey: 'overseas' as const,
     href: '/travel/overseas',
     accent: 'overseas' as const,
-    categoryLabel: '패키지',
+    categoryLabel: '해외여행상품',
     headline: '검증된 여행상품 · 가족 안심',
     titleEn: 'Package',
     description: MAIN_HOME_OVERSEAS_HUB_CARD_DESCRIPTION,
     hints: ['가족 여행', '상담 후 확정', '환불 규정 안내'] as const,
-    ctaLabel: '패키지 보기',
+    ctaLabel: '해외여행상품 보기',
     imageSrc: homeHubCardImageSrc('overseas', 'webp'),
     photoSource: { kind: 'product-category', categoryKey: 'overseas' } as const,
   },
@@ -464,7 +463,7 @@ export const MAIN_MINIMAL_FOOTER_NOTE =
   '상세 사업자 정보·고지는 각 서비스 페이지 하단에서 확인할 수 있습니다.'
 
 export const MAIN_MINIMAL_FOOTER_LINKS = [
-  { label: '패키지', href: '/travel/overseas' },
+  { label: '해외여행상품', href: '/travel/overseas' },
   { label: '자유여행', href: '/travel/air-hotel' },
   { label: '우리끼리', href: '/travel/overseas/private-trip' },
   { label: '공공·기업', href: '/training' },

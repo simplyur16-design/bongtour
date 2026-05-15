@@ -3,8 +3,6 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import {
-  MAIN_HERO_CTA_PRIMARY_HREF,
-  MAIN_HERO_CTA_PRIMARY_LABEL,
   MAIN_HERO_CTA_SECONDARY_HREF,
   MAIN_HERO_CTA_SECONDARY_LABEL,
   MAIN_HERO_MAIN_COPY,
@@ -122,16 +120,10 @@ export default function MainHero() {
           </div>
         )}
 
-        <div className="mx-auto mt-4 flex max-w-xl flex-wrap items-center justify-center gap-2 sm:mt-5 md:max-w-2xl">
-          <Link
-            href={MAIN_HERO_CTA_PRIMARY_HREF}
-            className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full bg-bt-text-navy px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-95 active:scale-[0.99]"
-          >
-            {MAIN_HERO_CTA_PRIMARY_LABEL}
-          </Link>
+        <div className="mx-auto mt-4 flex max-w-xl justify-center sm:mt-5 md:max-w-2xl">
           <Link
             href={MAIN_HERO_CTA_SECONDARY_HREF}
-            className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-bt-bg-lavender bg-white px-5 py-2.5 text-sm font-medium text-bt-text-navy shadow-sm transition hover:bg-bt-bg-lavender-soft active:scale-[0.99]"
+            className="inline-flex min-h-[2.5rem] min-w-[12rem] items-center justify-center rounded-full bg-bt-text-navy px-6 py-2.5 text-sm font-medium text-white shadow-sm transition hover:opacity-95 active:scale-[0.99] sm:min-w-[13rem]"
           >
             {MAIN_HERO_CTA_SECONDARY_LABEL}
           </Link>
