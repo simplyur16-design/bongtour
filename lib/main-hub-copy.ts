@@ -180,65 +180,76 @@ export const MAIN_HUB_FOUR_SR_HEADING = 'Bong투어 주요 서비스 영역'
 
 export type HubFourAccent = 'domestic' | 'overseas' | 'training' | 'esim'
 
-/** 메인 첫 허브(해외) — 큰 제목(모바일 타일 제목·PC 카드 categoryLabel 공통) */
-export const MAIN_HOME_FIRST_HUB_TITLE = '해외여행' as const
-/** 모바일 첫 타일 한 줄 설명(PC 호버 소제목 pill과 동일 문구, 짧게 유지) */
-export const MAIN_HOME_FIRST_HUB_TILE_DESC = '검증된 여행상품' as const
-/** PC 메인 4카드 해외 칸 호버 본문만(모바일 타일과 분리) */
+/** 헤더·4카드·모바일 첫 타일 공통 — 패키지(해외 패키지 허브) */
+export const MAIN_HOME_FIRST_HUB_TITLE = '패키지' as const
+/** 모바일 첫 타일 한 줄 설명(PC 카드 headline과 동일 톤) */
+export const MAIN_HOME_FIRST_HUB_TILE_DESC = '검증된 여행상품 · 가족 안심' as const
+/** PC 메인 4카드 첫 칸 호버 본문(패키지) */
 export const MAIN_HOME_OVERSEAS_HUB_CARD_DESCRIPTION =
-  '하나투어, 모두투어, 참좋은여행, 노랑풍선 등 주요 여행사 상품 중 검토된 상품만 모았습니다.' as const
+  '하나투어, 모두투어, 참좋은여행, ybtour 등 주요 여행사 상품 중 검토된 패키지만 모았습니다.' as const
 
 /** @deprecated `MAIN_HOME_FIRST_HUB_TILE_DESC` 사용 */
 export const MAIN_HOME_FIRST_HUB_DESCRIPTION = MAIN_HOME_FIRST_HUB_TILE_DESC
 
-/** 그리드 순서: 해외여행 → 국외연수 → 국내여행 → 여행 eSIM — 4번째 이미지 키는 `esim`(관리자·`home-hub-active.json`과 동일), 호버 카피는 `HomeHubFourClientCard` */
+/** 메인 4허브 카드 논리 키(앵커·모바일 타일 id) — 이미지는 `imageKey`로 `home-hub-active.json` 기존 키와 매핑 */
+export type HubFourCardKey = 'package' | 'free-travel' | 'private-trip' | 'business'
+
+/** 그리드 순서: 패키지 → 자유여행 → 우리끼리 → 공공·기업 (헤더 4메뉴와 동일). 국내·eSIM 슬롯 없음 — eSIM은 코랄 띠·sticky로 위임 */
 export const MAIN_HUB_FOUR_CARDS = [
   {
-    key: 'overseas',
+    key: 'package' as const satisfies HubFourCardKey,
+    imageKey: 'overseas' as const,
     href: '/travel/overseas',
     accent: 'overseas' as const,
-    categoryLabel: MAIN_HOME_FIRST_HUB_TITLE,
-    headline: MAIN_HOME_FIRST_HUB_TILE_DESC,
+    categoryLabel: '패키지',
+    headline: '검증된 여행상품 · 가족 안심',
+    titleEn: 'Package',
     description: MAIN_HOME_OVERSEAS_HUB_CARD_DESCRIPTION,
-    hints: ['패키지', '자유여행', '에어텔'] as const,
-    ctaLabel: '해외여행 보기',
+    hints: ['가족 여행', '상담 후 확정', '환불 규정 안내'] as const,
+    ctaLabel: '패키지 보기',
     imageSrc: homeHubCardImageSrc('overseas'),
   },
   {
-    key: 'training',
+    key: 'free-travel' as const satisfies HubFourCardKey,
+    imageKey: 'overseas' as const,
+    href: '/travel/air-hotel',
+    accent: 'overseas' as const,
+    categoryLabel: '자유여행',
+    headline: '항공+호텔 직접 구성',
+    titleEn: 'Free travel',
+    description:
+      '항공과 숙소를 원하는 조합으로 맞추는 자유·에어텔 성격 일정입니다. 세부는 상담에서 정리합니다.',
+    hints: ['항공+호텔', '맞춤 일정', '에어텔'] as const,
+    ctaLabel: '자유여행 보기',
+    imageSrc: homeHubCardImageSrc('overseas'),
+  },
+  {
+    key: 'private-trip' as const satisfies HubFourCardKey,
+    imageKey: 'overseas' as const,
+    href: '/travel/overseas/private-trip',
+    accent: 'overseas' as const,
+    categoryLabel: '우리끼리',
+    headline: '가족·소그룹 단독 진행',
+    titleEn: 'Private trip',
+    description:
+      '가족·지인·소규모 단체가 함께하는 단독 일정으로, 동선과 속도를 맞춰 제안합니다.',
+    hints: ['가족', '소그룹', '단독 일정'] as const,
+    ctaLabel: '우리끼리 보기',
+    imageSrc: homeHubCardImageSrc('overseas'),
+  },
+  {
+    key: 'business' as const satisfies HubFourCardKey,
+    imageKey: 'training' as const,
     href: '/training',
     accent: 'training' as const,
-    categoryLabel: '국외연수',
-    headline: '',
+    categoryLabel: '공공·기업',
+    headline: '연수·전세버스·발권',
+    titleEn: 'B2B & public',
     description:
       '정부·공공·기업 목적에 맞춰 기관 섭외와 통역, 이동 운영까지 처음부터 설계합니다.',
-    hints: ['정부·공공', '기업', '기관섭외'] as const,
-    ctaLabel: '국외연수 보기',
+    hints: ['정부·공공', '기업', '기관 섭외'] as const,
+    ctaLabel: '공공·기업 보기',
     imageSrc: homeHubCardImageSrc('training'),
-  },
-  {
-    key: 'domestic',
-    href: '/travel/domestic',
-    accent: 'domestic' as const,
-    categoryLabel: '국내여행',
-    headline: '대한민국의 재발견',
-    description:
-      '취향 스테이, 계절 여행, 단체·워크숍 일정까지 국내 여정을 더 정교하게 제안합니다.',
-    hints: ['추천여행', '지역별', '단체·워크숍'] as const,
-    ctaLabel: '국내여행 보기',
-    imageSrc: homeHubCardImageSrc('domestic'),
-  },
-  {
-    key: 'esim',
-    href: '/travel/esim',
-    accent: 'esim' as const,
-    categoryLabel: '여행 eSIM',
-    headline: '여행용 eSIM 간편 구매',
-    description:
-      '목적지에 맞는 여행용 eSIM 요금과 개통 흐름을 한곳에서 안내합니다.',
-    hints: ['데이터 전용', '국가별 요금', '출국 전 준비'] as const,
-    ctaLabel: 'eSIM 알아보기',
-    imageSrc: homeHubCardImageSrc('esim'),
   },
 ] as const
 
