@@ -2,90 +2,40 @@
 
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SITE_NAME } from '@/lib/site-metadata'
-import { devWarnMobileHome } from '@/lib/mobile-home-dev-log'
-import { useEffect, useId, useState } from 'react'
+import { useId } from 'react'
 import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Menu, X } from 'lucide-react'
+import { Phone, User } from 'lucide-react'
 
-/** GNB(16px semibold)보다 한 단 낮은 상단 유틸 전용 — 높이·굵기를 맞춰 ‘메뉴’처럼 보이지 않게 */
-const HEADER_UTIL_LINK_CLASS =
-  'inline-flex shrink-0 items-center rounded-md px-2 py-1 text-[13px] font-normal leading-none text-bt-muted transition hover:bg-bt-page hover:text-bt-link sm:px-2.5 sm:py-1.5 sm:text-[14px]'
+const HEADER_TEL_DISPLAY = '031-213-2558'
+const HEADER_TEL_HREF = 'tel:0312132558'
+const INQUIRY_HREF = '/inquiry?type=travel'
 
-function UtilDivider() {
-  return (
-    <span className="select-none text-[11px] font-light text-bt-border-soft" aria-hidden="true">
-      |
-    </span>
-  )
-}
-
-/** 전역 헤더 — 여행사형 메가메뉴는 `/travel/overseas` 서브메인(`OverseasTravelSubMainNav`)에만 둔다. */
+/**
+ * 메모리 #28 — 메인 IA 4메뉴.
+ * 해외 서브메가는 `OverseasTravelSubMainNav` 유지.
+ */
 const MAIN_NAV: { label: string; href: string }[] = [
-  { label: '해외여행', href: '/travel/overseas' },
-  { label: '국내여행', href: '/travel/domestic' },
-  { label: '국외연수', href: '/training' },
-  { label: '전세버스', href: '/charter-bus' },
-  { label: '항공권 예매 및 발권', href: '/air-ticketing' },
-  { label: '고객지원', href: '/support' },
+  { label: '패키지', href: '/travel/overseas' },
+  { label: '자유여행', href: '/travel/air-hotel' },
+  { label: '우리끼리', href: '/travel/overseas/private-trip' },
+  { label: '공공·기업', href: '/training' },
 ]
 
-/** `lg` 미만 햄버거 패널 전용 — 모바일 홈·푸터 등에 이미 있는 링크는 제외하고 상단 접근이 약한 핵심만. */
-const MOBILE_HAMBURGER_NAV: { label: string; href: string }[] = [
-  { label: '국내여행', href: '/travel/domestic' },
-  { label: '고객지원', href: '/support' },
-]
-
-function HeaderAuthRow({ className = '' }: { className?: string }) {
-  const { data: session, status } = useSession()
-
-  if (status === 'loading') {
-    return <div className={`h-7 w-32 animate-pulse rounded bg-bt-border/60 sm:h-8 ${className}`} aria-hidden />
+function isMainNavActive(pathname: string, href: string): boolean {
+  if (href === '/travel/overseas') {
+    if (pathname === '/travel/overseas') return true
+    if (pathname.startsWith('/travel/overseas/') && !pathname.startsWith('/travel/overseas/private-trip')) {
+      return true
+    }
+    return false
   }
-
-  if (session?.user) {
-    const label = session.user.name?.trim() || session.user.email?.split('@')[0] || '계정'
-    return (
-      <div className={`flex flex-wrap items-center justify-end gap-x-1.5 gap-y-1 sm:gap-x-2 ${className}`}>
-        <div className="hidden items-center gap-x-1.5 sm:flex sm:gap-x-2">
-          <span
-            className="max-w-[9rem] truncate text-[14px] font-normal text-bt-muted"
-            title={session.user.email ?? ''}
-          >
-            {label}
-          </span>
-          <UtilDivider />
-        </div>
-        <Link href="/mypage" className={HEADER_UTIL_LINK_CLASS}>
-          마이페이지
-        </Link>
-        <UtilDivider />
-        <button
-          type="button"
-          onClick={() => signOut({ callbackUrl: '/' })}
-          className={HEADER_UTIL_LINK_CLASS}
-        >
-          로그아웃
-        </button>
-      </div>
-    )
+  if (href === '/travel/overseas/private-trip') {
+    return pathname === href || pathname.startsWith(`${href}/`)
   }
-
-  return (
-    <div
-      className={`flex flex-nowrap items-center justify-end gap-x-1.5 sm:gap-x-2 ${className}`}
-      aria-label="계정 메뉴"
-    >
-      <Link href="/auth/signin" className={HEADER_UTIL_LINK_CLASS}>
-        로그인
-      </Link>
-      <UtilDivider />
-      <Link href="/auth/signup" className={HEADER_UTIL_LINK_CLASS}>
-        회원가입
-      </Link>
-    </div>
-  )
+  return pathname === href || pathname.startsWith(`${href}/`)
 }
 
 /** 운영 계정 — env 미설정 시에도 헤더에 표시 (NEXT_PUBLIC_INSTAGRAM_URL로 덮어쓰기 가능) */
@@ -93,21 +43,14 @@ const DEFAULT_INSTAGRAM_URL = 'https://www.instagram.com/bongtour103'
 
 const instagramHref = (() => {
   const fromEnv =
-    typeof process.env.NEXT_PUBLIC_INSTAGRAM_URL === 'string'
-      ? process.env.NEXT_PUBLIC_INSTAGRAM_URL.trim()
-      : ''
+    typeof process.env.NEXT_PUBLIC_INSTAGRAM_URL === 'string' ? process.env.NEXT_PUBLIC_INSTAGRAM_URL.trim() : ''
   return fromEnv || DEFAULT_INSTAGRAM_URL
 })()
 
 /** 인스타그램 공식 글리프에 가까운 그라데이션(브랜드 가이드 색상 근사) */
 function InstagramGlyphIcon({ gradientId }: { gradientId: string }) {
   return (
-    <svg
-      className="h-6 w-6 shrink-0"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
+    <svg className="h-6 w-6 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
       <defs>
         <radialGradient id={gradientId} cx="13.018%" cy="100%" r="149.888%">
           <stop offset="9%" stopColor="#FFC800" />
@@ -126,125 +69,168 @@ function InstagramGlyphIcon({ gradientId }: { gradientId: string }) {
 }
 
 export default function Header() {
-  const [open, setOpen] = useState(false)
+  const pathnameRaw = usePathname()
+  const pathname = pathnameRaw ?? ''
+  const { data: session, status } = useSession()
   const instagramGradientId = `ig-glyph-${useId().replace(/:/g, '')}`
-
-  useEffect(() => {
-    if (!open) return
-    if (typeof window === 'undefined') return
-    const onResize = () => {
-      try {
-        if (window.innerWidth >= 1024) setOpen(false)
-      } catch (e) {
-        devWarnMobileHome('header-resize', e)
-      }
-    }
-    try {
-      window.addEventListener('resize', onResize)
-    } catch (e) {
-      devWarnMobileHome('header-resize-listen', e)
-      return undefined
-    }
-    return () => {
-      try {
-        window.removeEventListener('resize', onResize)
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [open])
+  const authLoading = status === 'loading'
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-bt-border-soft bg-white shadow-sm">
-      <div className="border-b border-bt-border-soft/70 bg-white/95">
-        <div className="mx-auto flex min-h-0 max-w-6xl items-center justify-end px-4 py-1 sm:px-6">
-          <HeaderAuthRow className="max-w-full overflow-x-auto whitespace-nowrap sm:w-auto sm:max-w-none sm:overflow-visible" />
-        </div>
-      </div>
-      <div className={`flex min-h-[4.5rem] items-center gap-3 py-2 sm:min-h-[5rem] ${SITE_CONTENT_CLASS}`}>
-        <Link
-          href="/"
-          className="relative isolate z-10 inline-flex shrink-0 items-center overflow-hidden py-0.5"
-          aria-label="Bong투어 홈"
-          onClick={(e) => {
-            try {
-              if (typeof window === 'undefined') return
-              // PG overlay·history 꼬임 시 주소창이 welcomepay에 남고 스크롤만 막히는 경우 → 전체 이동으로 복구
-              if (window.location.pathname.includes('/travel/esim/checkout/payment/welcomepay')) {
-                e.preventDefault()
-                window.location.assign('/')
-              }
-            } catch {
-              /* ignore */
-            }
-          }}
-        >
-          <SafeImage
-            src="/images/bongtour-logo.webp"
-            alt={SITE_NAME}
-            width={274}
-            height={78}
-            className="relative z-0 block h-11 w-auto object-contain object-left sm:h-12 lg:h-[3.1rem]"
-            priority
-          />
-        </Link>
-
-        <nav
-          className="hidden min-w-0 flex-1 items-center justify-center gap-3 lg:flex xl:gap-5"
-          aria-label="주요 메뉴"
-        >
-          {MAIN_NAV.map((item) => (
+      <div className={SITE_CONTENT_CLASS}>
+        <div className="flex min-h-[4.5rem] items-center justify-between gap-3 py-2 sm:min-h-[5rem]">
+          <div className="flex min-w-0 shrink-0 flex-col items-start">
+            <span className="mb-0.5 pl-1 text-[9px] leading-none text-bt-text-muted-lavender">simply your</span>
             <Link
-              key={item.href}
-              href={item.href}
-              className="whitespace-nowrap rounded-md px-3.5 py-2.5 text-[16px] font-semibold leading-tight tracking-[-0.01em] text-slate-900 transition hover:bg-bt-surface-alt hover:text-bt-title xl:px-4 xl:text-[17px]"
+              href="/"
+              className="relative isolate z-10 inline-flex shrink-0 flex-col overflow-hidden py-0.5"
+              aria-label="Bong투어 홈"
+              onClick={(e) => {
+                try {
+                  if (typeof window === 'undefined') return
+                  if (window.location.pathname.includes('/travel/esim/checkout/payment/welcomepay')) {
+                    e.preventDefault()
+                    window.location.assign('/')
+                  }
+                } catch {
+                  /* ignore */
+                }
+              }}
             >
-              {item.label}
+              <SafeImage
+                src="/images/bongtour-logo.webp"
+                alt={SITE_NAME}
+                width={274}
+                height={78}
+                className="relative z-0 block h-11 w-auto object-contain object-left sm:h-12 lg:h-[3.1rem]"
+                priority
+              />
             </Link>
-          ))}
-        </nav>
+          </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 lg:ml-0">
-          <a
-            href={instagramHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`${HEADER_UTIL_LINK_CLASS} gap-1.5`}
-            title="인스타그램"
-            aria-label="Bong투어 인스타그램 (새 탭)"
-          >
-            <InstagramGlyphIcon gradientId={instagramGradientId} />
-            <span className="sr-only">인스타그램 (새 탭)</span>
-          </a>
-          <button
-            type="button"
-            className="shrink-0 rounded-md border border-bt-border-soft p-2.5 text-bt-title sm:p-3 lg:hidden"
-            aria-expanded={open}
-            aria-label={open ? '메뉴 닫기' : '메뉴 열기'}
-            onClick={() => setOpen((o) => !o)}
-          >
-            {open ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Menu className="h-5 w-5 sm:h-6 sm:w-6" />}
-          </button>
-        </div>
-      </div>
-
-      {open && (
-        <div className="border-t border-bt-border-soft bg-white lg:hidden">
-          <ul className={`py-2.5 ${SITE_CONTENT_CLASS}`}>
-            {MOBILE_HAMBURGER_NAV.map((item) => (
-              <li key={item.href} className="border-b border-slate-100 last:border-0">
+          <nav className="mx-auto hidden min-w-0 flex-1 items-center justify-center gap-6 lg:flex" aria-label="주요 메뉴">
+            {MAIN_NAV.map((item) => {
+              const active = isMainNavActive(pathname, item.href)
+              return (
                 <Link
+                  key={item.href}
                   href={item.href}
-                  className="block py-4 text-center text-[17px] font-semibold leading-snug text-bt-title"
-                  onClick={() => setOpen(false)}
+                  className={`whitespace-nowrap border-b-2 pb-1 text-sm font-medium text-bt-text-navy transition-colors ${
+                    active ? 'border-bt-brand-gold-strong' : 'border-transparent hover:border-bt-brand-gold-strong'
+                  }`}
                 >
                   {item.label}
                 </Link>
-              </li>
-            ))}
-          </ul>
+              )
+            })}
+          </nav>
+
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <a
+              href={instagramHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md p-2 text-bt-text-navy transition hover:bg-bt-surface-alt"
+              title="인스타그램"
+              aria-label="Bong투어 인스타그램 (새 탭)"
+            >
+              <InstagramGlyphIcon gradientId={instagramGradientId} />
+              <span className="sr-only">인스타그램 (새 탭)</span>
+            </a>
+
+            <div className="hidden items-center gap-3 lg:flex">
+              <a
+                href={HEADER_TEL_HREF}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-bt-brand-gold-strong hover:opacity-90"
+              >
+                <Phone className="h-4 w-4 shrink-0" aria-hidden />
+                {HEADER_TEL_DISPLAY}
+              </a>
+              <Link
+                href={INQUIRY_HREF}
+                className="rounded-full bg-bt-brand-gold-strong px-4 py-2 text-sm font-medium text-white transition hover:opacity-95"
+              >
+                상담 신청
+              </Link>
+              {authLoading ? (
+                <div className="h-9 w-24 shrink-0 animate-pulse rounded-full bg-bt-border-soft" aria-hidden />
+              ) : session?.user ? (
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/mypage"
+                    className="rounded-full border-[0.5px] border-bt-border-strong px-4 py-2 text-sm font-medium text-bt-text-muted-lavender transition hover:bg-bt-surface-soft"
+                  >
+                    마이페이지
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void signOut({ callbackUrl: '/' })}
+                    className="text-sm text-bt-text-muted-lavender underline-offset-2 hover:underline"
+                  >
+                    로그아웃
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/auth/signin"
+                  className="rounded-full border-[0.5px] border-bt-border-strong px-4 py-2 text-sm font-medium text-bt-text-muted-lavender transition hover:bg-bt-surface-soft"
+                >
+                  로그인
+                </Link>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1 lg:hidden">
+              <Link
+                href={INQUIRY_HREF}
+                className="shrink-0 rounded-full bg-bt-brand-gold-strong px-2.5 py-1 text-xs font-medium text-white"
+              >
+                상담
+              </Link>
+              <a
+                href={HEADER_TEL_HREF}
+                className="shrink-0 p-1.5 text-bt-brand-gold-strong"
+                aria-label={`전화 ${HEADER_TEL_DISPLAY}`}
+              >
+                <Phone className="h-5 w-5" aria-hidden />
+              </a>
+              {authLoading ? (
+                <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-bt-border-soft" aria-hidden />
+              ) : session?.user ? (
+                <Link href="/mypage" className="shrink-0 p-1.5 text-bt-text-navy" aria-label="마이페이지">
+                  <User className="h-5 w-5" aria-hidden />
+                </Link>
+              ) : (
+                <Link href="/auth/signin" className="shrink-0 p-1.5 text-bt-text-navy" aria-label="로그인">
+                  <User className="h-5 w-5" aria-hidden />
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
-      )}
+
+        <nav
+          className="-mx-4 flex gap-1 overflow-x-auto whitespace-nowrap border-t border-bt-border-soft/70 px-4 py-2 sm:-mx-6 sm:px-6 lg:hidden"
+          aria-label="주요 메뉴"
+        >
+          {MAIN_NAV.map((item) => {
+            const active = isMainNavActive(pathname, item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  active
+                    ? 'border-2 border-bt-brand-gold-strong bg-bt-surface-soft text-bt-text-navy'
+                    : 'border border-bt-border-soft bg-bt-surface-alt text-bt-text-navy hover:border-bt-brand-gold-strong/60'
+                }`}
+              >
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+      </div>
     </header>
   )
 }
