@@ -253,6 +253,60 @@ export const MAIN_HUB_FOUR_CARDS = [
   },
 ] as const
 
+/* === 페르소나 큐레이션 (PR-C2, Gemini는 PR-D) === */
+
+export const PERSONA_DESTINATIONS_TITLE = '추천 여행지' as const
+export const PERSONA_DESTINATIONS_SUB = '검증된 패키지 · 가족이 안심하고 떠나는 여행' as const
+
+export const PERSONA_TABS = [
+  { key: 'all', label: '전체' },
+  { key: 'with-parents', label: '부모님과 함께' },
+  { key: 'with-kids', label: '아이와 함께' },
+  { key: 'couple', label: '부부끼리' },
+] as const
+
+export type PersonaTabKey = (typeof PERSONA_TABS)[number]['key']
+
+export const PERSONA_DESTINATIONS = [
+  {
+    id: 'hokkaido',
+    city: '북해도',
+    english: 'Hokkaido',
+    personas: ['all', 'with-parents', 'with-kids'] as const,
+    href: '/travel/overseas?destination=hokkaido' as const,
+  },
+  {
+    id: 'danang',
+    city: '다낭',
+    english: 'Da Nang',
+    personas: ['all', 'with-kids', 'couple'] as const,
+    href: '/travel/overseas?destination=danang' as const,
+  },
+  {
+    id: 'prague',
+    city: '프라하',
+    english: 'Prague',
+    personas: ['all', 'couple'] as const,
+    href: '/travel/overseas?destination=prague' as const,
+  },
+  {
+    id: 'fukuoka',
+    city: '후쿠오카',
+    english: 'Fukuoka',
+    personas: ['all', 'with-parents', 'with-kids'] as const,
+    href: '/travel/overseas?destination=fukuoka' as const,
+  },
+  {
+    id: 'taipei',
+    city: '타이베이',
+    english: 'Taipei',
+    personas: ['all', 'with-kids'] as const,
+    href: '/travel/overseas?destination=taipei' as const,
+  },
+] as const
+
+export type PersonaDestinationId = (typeof PERSONA_DESTINATIONS)[number]['id']
+
 // ─── Quick Entry (레거시; 허브로 대체) ─────────────────────────────────────
 
 export const MAIN_QUICK_ENTRY_EYEBROW = '빠른 진입'

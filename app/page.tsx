@@ -21,6 +21,7 @@ import { pickHomeHubTravelCardCover } from '@/lib/home-hub-travel-card-cover'
 import { getHomeHubCardHybridResolutionDetail } from '@/lib/home-hub-card-hybrid-core'
 import { getHomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 import HomeMobileHub from './components/home/HomeMobileHub'
+import PersonaCuratedDestinations from './components/home/PersonaCuratedDestinations'
 import { getSeasonCurationSlidesForMobileHome } from '@/lib/home-season-pick'
 import { normalizeHomeSeasonSlidesForClient } from '@/lib/home-season-pick-shared'
 import PartnerOrganizationsSectionGate from './components/home/PartnerOrganizationsSectionGate'
@@ -97,6 +98,7 @@ export default async function Home() {
           <div className="block lg:hidden">
             <EsimCoralStrip />
             <HomeMobileHub seasonSlides={homeSeasonSlides} />
+            <PersonaCuratedDestinations />
           </div>
           <div className="hidden lg:block">
             <MainHero />
@@ -106,6 +108,7 @@ export default async function Home() {
                 overseasHubImageSrc={overseasCover?.imageSrc ?? null}
                 domesticHubImageSrc={domesticCover?.imageSrc ?? null}
               />
+              <PersonaCuratedDestinations />
               <HomeHubCardDebugServerPanel
                 overseasPick={overseasCover}
                 domesticPick={domesticCover}
