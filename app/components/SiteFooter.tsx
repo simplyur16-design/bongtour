@@ -75,36 +75,36 @@ export default function SiteFooter() {
         </div>
 
         {/* 회사 정보 — 라벨 110px · 값 1fr (모바일 stack), 5행 콤팩트 */}
-        <dl className="mt-3 space-y-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-3 text-xs leading-relaxed text-bt-bg-lavender sm:text-[12px]">
+        <dl className="mt-3 space-y-2.5 border-t-[0.5px] border-bt-bg-lavender/20 pt-3 text-xs text-bt-bg-lavender sm:text-[12px]">
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:items-center sm:gap-x-4">
-            <dt className="text-bt-text-muted-lavender sm:shrink-0">대표자</dt>
-            <dd className="text-bt-bg-lavender">
+            <dt className="font-medium leading-relaxed text-bt-trust-beige sm:shrink-0">대표자</dt>
+            <dd className="leading-relaxed text-bt-bg-lavender">
               <RepresentativeNameImage compact className="max-sm:mt-0.5" />
             </dd>
           </div>
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:items-start sm:gap-x-4">
-            <dt className="pt-px text-bt-text-muted-lavender sm:shrink-0">사업자등록</dt>
-            <dd className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-bt-bg-lavender/90">
-              <span className="font-medium text-bt-bg-lavender">{COMPANY_FOOTER.bizRegNo}</span>
-              <span className="text-bt-bg-lavender/25" aria-hidden="true">
+            <dt className="pt-px font-medium leading-relaxed text-bt-trust-beige sm:shrink-0">사업자등록</dt>
+            <dd className="flex flex-wrap items-center gap-x-1.5 gap-y-1 leading-relaxed text-bt-bg-lavender">
+              <span className="font-medium text-white/90">{COMPANY_FOOTER.bizRegNo}</span>
+              <span className="text-bt-bg-lavender/35" aria-hidden="true">
                 ·
               </span>
-              <span>
+              <span className="text-white/90">
                 통신판매업 {COMPANY_FOOTER.mailOrderReportNo}
               </span>
-              <span className="text-bt-bg-lavender/25" aria-hidden="true">
+              <span className="text-bt-bg-lavender/35" aria-hidden="true">
                 ·
               </span>
-              <span>관광사업자등록 제2024-0033호</span>
+              <span className="text-white/90">관광사업자등록 제2024-0033호</span>
             </dd>
           </div>
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:items-start sm:gap-x-4">
-            <dt className="pt-px text-bt-text-muted-lavender sm:shrink-0">주소</dt>
-            <dd className="text-bt-bg-lavender/70">{COMPANY_FOOTER.addressLine}</dd>
+            <dt className="pt-px font-medium leading-relaxed text-bt-trust-beige sm:shrink-0">주소</dt>
+            <dd className="leading-relaxed text-white/90">{COMPANY_FOOTER.addressLine}</dd>
           </div>
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:items-center sm:gap-x-4">
-            <dt className="text-bt-text-muted-lavender sm:shrink-0">연락처</dt>
-            <dd className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-bt-bg-lavender/90">
+            <dt className="font-medium leading-relaxed text-bt-trust-beige sm:shrink-0">연락처</dt>
+            <dd className="flex flex-wrap items-center gap-x-1.5 gap-y-1 leading-relaxed text-white/90">
               <span>
                 전화{' '}
                 <a
@@ -114,18 +114,18 @@ export default function SiteFooter() {
                   {COMPANY_FOOTER.phoneDisplay}
                 </a>
               </span>
-              <span className="text-bt-bg-lavender/25" aria-hidden="true">
+              <span className="text-bt-bg-lavender/35" aria-hidden="true">
                 ·
               </span>
-              <span className="text-bt-bg-lavender/70">팩스 {COMPANY_FOOTER.faxDisplay}</span>
+              <span>팩스 {COMPANY_FOOTER.faxDisplay}</span>
             </dd>
           </div>
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:items-center sm:gap-x-4">
-            <dt className="text-bt-text-muted-lavender sm:shrink-0">이메일</dt>
-            <dd>
+            <dt className="font-medium leading-relaxed text-bt-trust-beige sm:shrink-0">이메일</dt>
+            <dd className="leading-relaxed">
               <a
                 href={COMPANY_FOOTER.emailHref}
-                className="text-bt-bg-lavender underline-offset-2 hover:text-bt-brand-gold-strong hover:underline"
+                className="text-white/90 underline-offset-2 hover:text-bt-brand-gold-strong hover:underline"
               >
                 {COMPANY_FOOTER.emailDisplay}
               </a>
