@@ -216,6 +216,10 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  personaLabels    String[]  @default([])
+  personaScore     Json?
+  personaUpdatedAt DateTime?
+
   @@unique([originSource, originCode])
   @@index([registrationStatus, updatedAt])
   @@index([registrationStatus, lastPriceObservedAt])
