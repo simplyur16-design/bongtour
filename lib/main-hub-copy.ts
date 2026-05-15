@@ -434,11 +434,11 @@ export const MAIN_MINIMAL_FOOTER_NOTE =
   '상세 사업자 정보·고지는 각 서비스 페이지 하단에서 확인할 수 있습니다.'
 
 export const MAIN_MINIMAL_FOOTER_LINKS = [
-  { label: '해외여행', href: '/travel/overseas' },
-  { label: '국외연수', href: '/training' },
-  { label: '국내여행', href: '/travel/domestic' },
-  { label: '전세버스', href: '/charter-bus' },
-  { label: '항공권 예매 및 발권', href: '/air-ticketing' },
+  { label: '패키지', href: '/travel/overseas' },
+  { label: '자유여행', href: '/travel/air-hotel' },
+  { label: '우리끼리', href: '/travel/overseas/private-trip' },
+  { label: '공공·기업', href: '/training' },
+  { label: 'eSIM', href: '/travel/esim' },
   { label: '봉투어 소개', href: '/#site-about' },
   { label: '고객지원', href: '/support' },
   { label: '개인정보처리방침', href: '/privacy' },
