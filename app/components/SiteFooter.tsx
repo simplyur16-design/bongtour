@@ -7,8 +7,6 @@ import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 const FTC_BIZ_VERIFY_HREF =
   'https://www.ftc.go.kr/bizCommPop.do?wrkr_no=2558103455' as const
 
-const KAKAO_CHANNEL_HREF = 'https://pf.kakao.com/_xlxjrxlX' as const
-
 function BongtourBrandBadge() {
   return (
     <span
@@ -34,7 +32,7 @@ export default function SiteFooter() {
       id="site-about"
       className="mt-auto border-t-[0.5px] border-bt-bg-lavender/20 bg-bt-text-navy text-bt-bg-lavender"
     >
-      <div className={`${SITE_CONTENT_CLASS} py-4 sm:py-5`}>
+      <div className={`${SITE_CONTENT_CLASS} py-3 sm:py-4`}>
         {/* 회사명 + Bong투어 배지 */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span className="text-base font-medium tracking-tight text-bt-trust-beige">
@@ -44,7 +42,7 @@ export default function SiteFooter() {
         </div>
 
         <nav
-          className="mt-3 border-t-[0.5px] border-bt-bg-lavender/20 pt-3"
+          className="mt-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2"
           aria-label="하단 서비스 링크"
         >
           <ul className="flex flex-wrap gap-x-[14px] gap-y-2 text-[13px] leading-snug text-bt-bg-lavender/90">
@@ -61,21 +59,8 @@ export default function SiteFooter() {
           </ul>
         </nav>
 
-        {/* 카카오 채널 (오픈카톡과 별도) */}
-        <div className="mt-3 border-t-[0.5px] border-bt-bg-lavender/20 pt-3">
-          <p className="text-[13px] leading-snug text-bt-bg-lavender/90">봉투어 카카오 채널 추가하고 새 여행 소식 받기</p>
-          <a
-            href={KAKAO_CHANNEL_HREF}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-flex min-h-10 items-center justify-center rounded-md bg-[#FAE100] px-4 py-2 text-sm font-semibold text-[#3c1e1e] shadow-sm transition hover:brightness-95"
-          >
-            카카오 채널 바로가기
-          </a>
-        </div>
-
         {/* 회사 정보 — 라벨 110px · 값 1fr (모바일 stack), 5행 콤팩트 */}
-        <dl className="mt-3 space-y-2.5 border-t-[0.5px] border-bt-bg-lavender/20 pt-3 text-xs text-bt-bg-lavender sm:text-[12px]">
+        <dl className="mt-2 space-y-2.5 border-t-[0.5px] border-bt-bg-lavender/20 pt-2 text-xs text-bt-bg-lavender sm:text-[12px]">
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:items-center sm:gap-x-4">
             <dt className="font-medium leading-relaxed text-bt-trust-beige sm:shrink-0">대표자</dt>
             <dd className="leading-relaxed text-bt-bg-lavender">
@@ -135,7 +120,7 @@ export default function SiteFooter() {
 
         {/* 상담 가능 시간 */}
         <div
-          className="mt-3 rounded-r-md border-l-2 border-bt-brand-gold-strong border-t-[0.5px] border-bt-bg-lavender/20 px-3 py-2.5 pt-3"
+          className="mt-2 rounded-r-md border-l-2 border-bt-brand-gold-strong border-t-[0.5px] border-bt-bg-lavender/20 px-3 py-2.5 pt-3"
           style={{
             backgroundColor: 'color-mix(in srgb, var(--bt-brand-gold-strong) 12%, transparent)',
           }}
@@ -154,7 +139,7 @@ export default function SiteFooter() {
         </div>
 
         {/* 저작권 · 사업자정보확인 */}
-        <div className="mt-3 flex flex-col gap-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-3 text-xs sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
+        <div className="mt-2 flex flex-col gap-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2 text-xs sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
           <p className="text-bt-bg-lavender/50">
             © {year} {COMPANY_FOOTER.copyrightHolder}. All rights reserved.
           </p>
