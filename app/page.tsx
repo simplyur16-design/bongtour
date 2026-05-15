@@ -3,6 +3,7 @@ import nextDynamic from 'next/dynamic'
 import Header from './components/Header'
 import MainHero from './components/MainHero'
 import RegistrationNoticeStrip from './components/RegistrationNoticeStrip'
+import EsimCoralStrip from './components/EsimCoralStrip'
 
 const HomeHubFour = nextDynamic(() => import('./components/home/HomeHubFour'), {
   loading: () => (
@@ -93,10 +94,12 @@ export default async function Home() {
             aria-hidden
           />
           <div className="block lg:hidden">
+            <EsimCoralStrip />
             <HomeMobileHub seasonSlides={homeSeasonSlides} />
           </div>
           <div className="hidden lg:block">
             <MainHero />
+            <EsimCoralStrip />
             <div className="relative border-t border-bt-border-soft/80 bg-gradient-to-b from-bt-bg-lavender-soft/70 to-transparent pt-3 md:pt-4">
               <HomeHubFour
                 overseasHubImageSrc={overseasCover?.imageSrc ?? null}

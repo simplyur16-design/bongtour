@@ -450,3 +450,13 @@ export const MAIN_MINIMAL_FOOTER_LINKS = [
 /** 헤더 직하단 등록 표지 한 줄 (운영 표기 SSOT) */
 export const MAIN_REGISTRATION_NOTICE =
   '관광사업자등록 2024-0033호 · 통신판매업 2024-수원영통-1596호 · 사업자등록 255-81-03455 · 상담 평일 08:00–19:00'
+
+// ─── 메인 eSIM 코랄 띠 (매출 채널 전용 — 메모리 #28) ─────────────────────────
+
+export const ESIM_STRIP_TITLE = '해외여행 가신다면 eSIM이 필수예요'
+
+export const ESIM_STRIP_SUB = 'QR 스캔 1분 설치 · 봉투어에서 바로 구매'
+
+export const ESIM_STRIP_CTA_LABEL = 'eSIM 찾기'
+
+export const ESIM_STRIP_CTA_HREF = '/travel/esim' as const

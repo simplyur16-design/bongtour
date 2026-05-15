@@ -128,20 +128,6 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
         </div>
       </section>
 
-      <Link
-        href="/travel/esim"
-        className="flex w-full min-h-[3.25rem] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-700 via-teal-600 to-cyan-700 px-4 py-4 text-center text-base font-semibold text-white shadow-md ring-2 ring-cyan-400/35 transition hover:from-teal-600 hover:via-teal-500 hover:to-cyan-600 hover:ring-cyan-300/50 active:scale-[0.99]"
-        aria-label="나에게 맞는 eSIM 찾기 — 여행용 eSIM 안내로 이동"
-      >
-        <span className="text-xl leading-none sm:text-2xl" aria-hidden>
-          ✈️
-        </span>
-        <span className="text-center leading-tight">나에게 맞는 eSIM 찾기</span>
-        <span className="rounded-md border border-white/25 bg-white/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/95" aria-hidden>
-          eSIM
-        </span>
-      </Link>
-
       <section aria-label="주요 서비스">
         <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>주요 서비스</h2>
         <ul className="grid grid-cols-2 gap-3.5" role="list">
