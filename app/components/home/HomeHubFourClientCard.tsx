@@ -9,18 +9,19 @@ import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
 import { hubSectionFragmentId } from '@/lib/hub-section-anchor'
 
 export type HomeHubFourClientCardModel = {
-  key: HomeHubCardImageKey
+  key: string
+  imageKey: HomeHubCardImageKey
   href: string
   accent: HubFourAccent
   categoryLabel: string
   headline: string
+  titleEn: string
   description: string
   hints: readonly string[]
   ctaLabel: string
   imageSrc: string
 }
 
-const TRAINING_PRIMARY_TITLE = '국외연수'
 const TRAINING_HOVER_SUBTITLE = '목적형 연수 설계'
 
 function accentWash(accent: HubFourAccent): string {
@@ -51,25 +52,8 @@ function hubImagePosition(key: HomeHubCardImageKey): string {
   }
 }
 
-function hubPrimaryTitle(card: HomeHubFourClientCardModel): string {
-  if (card.key === 'training') return TRAINING_PRIMARY_TITLE
-  return card.categoryLabel.replace(/\s*\[[^\]]+\]\s*/g, '').trim() || card.categoryLabel
-}
-
-/** 허브 카드 큰 타이틀 한·영 (애니메이션 SSOT — `categoryLabel`과 별도로 키 기준 고정) */
 function hubCardTitlePair(card: HomeHubFourClientCardModel): { ko: string; en: string } {
-  switch (card.key) {
-    case 'overseas':
-      return { ko: '해외여행', en: 'Overseas' }
-    case 'training':
-      return { ko: '국외연수', en: 'Global Training' }
-    case 'domestic':
-      return { ko: '국내여행', en: 'Domestic' }
-    case 'esim':
-      return { ko: '여행 eSIM', en: 'Travel eSIM' }
-    default:
-      return { ko: hubPrimaryTitle(card), en: hubPrimaryTitle(card) }
-  }
+  return { ko: card.categoryLabel, en: card.titleEn }
 }
 
 const TITLE_HOLD_MS = 4200
@@ -168,9 +152,10 @@ function HubFourAnimatedHubTitle({
 }
 
 function hubHoverSubtitle(card: HomeHubFourClientCardModel): string | null {
-  if (card.key === 'training') return TRAINING_HOVER_SUBTITLE
   const h = card.headline?.trim()
-  return h || null
+  if (h) return h
+  if (card.imageKey === 'training') return TRAINING_HOVER_SUBTITLE
+  return null
 }
 
 function isDomesticOrEsimDense(key: HomeHubCardImageKey): boolean {
@@ -183,8 +168,8 @@ const HUB_FOUR_CARD_HEIGHT = 'h-[35rem] min-h-[35rem] max-h-[35rem]'
 type Props = { card: HomeHubFourClientCardModel; index: number }
 
 export default function HomeHubFourClientCard({ card, index }: Props) {
-  const key = card.key
-  const denseBg = isDomesticOrEsimDense(key)
+  const imageKey = card.imageKey
+  const denseBg = isDomesticOrEsimDense(imageKey)
   const titlePair = hubCardTitlePair(card)
   const subtitle = hubHoverSubtitle(card)
   const descFull = card.description?.trim() ?? ''
@@ -228,7 +213,7 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
           src={card.imageSrc}
           alt={`${titlePair.ko} 홈 허브 배경`}
           fill
-          className={`object-cover transition duration-500 ease-out ${hubImagePosition(key)} z-[1] ${detailOpen ? 'scale-[1.03] brightness-[1.04]' : 'scale-100 brightness-100'}`}
+          className={`object-cover transition duration-500 ease-out ${hubImagePosition(imageKey)} z-[1] ${detailOpen ? 'scale-[1.03] brightness-[1.04]' : 'scale-100 brightness-100'}`}
           sizes={
             index === 0
               ? '(max-width: 1280px) 50vw, 600px'

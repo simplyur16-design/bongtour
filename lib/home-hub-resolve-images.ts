@@ -18,8 +18,28 @@ export {
   type HomeHubCardHybridActiveSlice,
 } from '@/lib/home-hub-card-hybrid-core'
 import { upsertHomeHubActiveConfigRecord } from '@/lib/home-hub-active-db'
+import type { HubFourCardKey } from '@/lib/main-hub-copy'
 
 const CONFIG_REL = ['public', 'data', 'home-hub-active.json'] as const
+
+/**
+ * 메인 4허브 논리 키 → `home-hub-active.json` `images` / 하이브리드 키.
+ * PR-C1: 별도 이미지 자산 없이 패키지·자유·우리끼리는 `overseas`, 공공·기업은 `training` 풀을 공유.
+ */
+export function hubFourCardKeyToHybridImageKey(key: HubFourCardKey): HomeHubCardImageKey {
+  switch (key) {
+    case 'package':
+    case 'free-travel':
+    case 'private-trip':
+      return 'overseas'
+    case 'business':
+      return 'training'
+    default: {
+      const _exhaustive: never = key
+      return _exhaustive
+    }
+  }
+}
 
 export type HomeHubActiveSeasonUi = 'default' | 'spring' | 'summer' | 'autumn' | 'winter'
 

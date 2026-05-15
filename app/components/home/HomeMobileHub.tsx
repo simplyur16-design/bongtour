@@ -11,45 +11,33 @@ import {
   MAIN_HERO_CTA_SECONDARY_LABEL,
   MAIN_HERO_MAIN_COPY,
   MAIN_HERO_SUB_COPY,
-  MAIN_HOME_FIRST_HUB_TILE_DESC,
-  MAIN_HOME_FIRST_HUB_TITLE,
+  MAIN_HUB_FOUR_CARDS,
+  type HubFourCardKey,
 } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
-import { resolveMobileMainTileBgSrc, type MobileMainTileBgKey } from '@/lib/home-mobile-hub-tile-images'
+import type { MobileMainServiceTileKey } from '@/lib/home-hub-resolve-images'
+import { resolveMobileMainTileBgSrc } from '@/lib/home-mobile-hub-tile-images'
 import PartnerOrganizationsSectionGate from '@/app/components/home/PartnerOrganizationsSectionGate'
 
 const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
-/**
- * 카피·링크·하이브리드 매핑 키 — 실제 `bgSrc`는 `resolveMobileMainTileBgSrc`로 확정.
- * 배경 URL은 관리자 권장: 해외=유럽(영·프 등), 항공+호텔=이륙기, 우리끼리=가족, 국외연수=회의장.
- */
-const MAIN_TILES_SPEC = [
-  {
-    href: '/travel/overseas',
-    title: MAIN_HOME_FIRST_HUB_TITLE,
-    desc: MAIN_HOME_FIRST_HUB_TILE_DESC,
-    bgKey: 'overseas' as const satisfies MobileMainTileBgKey,
-  },
-  {
-    href: '/travel/air-hotel',
-    title: '항공+호텔',
-    desc: '자유여행 · 에어텔',
-    bgKey: 'airHotel' as const satisfies MobileMainTileBgKey,
-  },
-  {
-    href: '/travel/overseas/private-trip',
-    title: '우리끼리',
-    desc: '가족 · 소규모 맞춤여행',
-    bgKey: 'privateTrip' as const satisfies MobileMainTileBgKey,
-  },
-  {
-    href: '/training',
-    title: '국외연수',
-    desc: '학교 · 기업 · 공공기관',
-    bgKey: 'training' as const satisfies MobileMainTileBgKey,
-  },
-] as const
+/** `MAIN_HUB_FOUR_CARDS` 논리 키 → `home-hub-active.json` `mobileMainServiceTiles` 키 */
+function hubFourCardKeyToMobileTileKey(k: HubFourCardKey): MobileMainServiceTileKey {
+  switch (k) {
+    case 'package':
+      return 'overseas'
+    case 'free-travel':
+      return 'airHotel'
+    case 'private-trip':
+      return 'privateTrip'
+    case 'business':
+      return 'training'
+    default: {
+      const _exhaustive: never = k
+      return _exhaustive
+    }
+  }
+}
 
 const QUICK_ACTIONS = [
   { href: INQUIRY_TRAVEL, label: '상담접수', primary: true as const },
@@ -95,10 +83,16 @@ type Props = { seasonSlides: HomeSeasonPickDTO[] }
  * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 주요 서비스 / 시즌 추천(이미지·글) / 실무 요청 / 파트너.
  */
 export default function HomeMobileHub({ seasonSlides }: Props) {
-  const mainTiles = MAIN_TILES_SPEC.map((t) => ({
-    ...t,
-    bgSrc: resolveMobileMainTileBgSrc(t.bgKey),
-  }))
+  const mainTiles = MAIN_HUB_FOUR_CARDS.map((card) => {
+    const bgKey = hubFourCardKeyToMobileTileKey(card.key)
+    return {
+      href: card.href,
+      title: card.categoryLabel,
+      desc: card.headline,
+      bgKey,
+      bgSrc: resolveMobileMainTileBgSrc(bgKey),
+    }
+  })
 
   return (
     <div className={`space-y-7 pb-8 pt-3 ${SITE_CONTENT_CLASS}`}>

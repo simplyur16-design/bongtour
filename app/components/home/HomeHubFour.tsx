@@ -1,6 +1,5 @@
 import { MAIN_HUB_FOUR_CARDS, MAIN_HUB_FOUR_SR_HEADING } from '@/lib/main-hub-copy'
-import { resolveHomeHubCardHybridImageSrc } from '@/lib/home-hub-resolve-images'
-import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
+import { hubFourCardKeyToHybridImageKey, resolveHomeHubCardHybridImageSrc } from '@/lib/home-hub-resolve-images'
 import HomeHubFourClientCard, { type HomeHubFourClientCardModel } from '@/app/components/home/HomeHubFourClientCard'
 
 export type HomeHubFourProps = {
@@ -8,8 +7,9 @@ export type HomeHubFourProps = {
   domesticHubImageSrc?: string | null
 }
 
-function hubCardImageSrc(key: HomeHubCardImageKey, props: HomeHubFourProps): string {
-  return resolveHomeHubCardHybridImageSrc(key, {
+function hubCardImageSrc(card: (typeof MAIN_HUB_FOUR_CARDS)[number], props: HomeHubFourProps): string {
+  const hybridKey = hubFourCardKeyToHybridImageKey(card.key)
+  return resolveHomeHubCardHybridImageSrc(hybridKey, {
     productPoolOverseasUrl: props.overseasHubImageSrc,
     productPoolDomesticUrl: props.domesticHubImageSrc,
   })
@@ -20,11 +20,13 @@ function toClientModel(
   imageSrc: string,
 ): HomeHubFourClientCardModel {
   return {
-    key: card.key as HomeHubCardImageKey,
+    key: card.key,
+    imageKey: hubFourCardKeyToHybridImageKey(card.key),
     href: card.href,
     accent: card.accent,
     categoryLabel: card.categoryLabel,
     headline: card.headline,
+    titleEn: card.titleEn,
     description: card.description,
     hints: card.hints,
     ctaLabel: card.ctaLabel,
@@ -35,7 +37,7 @@ function toClientModel(
 export default function HomeHubFour(props: HomeHubFourProps = {}) {
   const cards = MAIN_HUB_FOUR_CARDS.map((card) => ({
     ...card,
-    imageSrc: hubCardImageSrc(card.key as HomeHubCardImageKey, props),
+    imageSrc: hubCardImageSrc(card, props),
   }))
 
   return (
