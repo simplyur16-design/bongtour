@@ -68,7 +68,12 @@ function InstagramGlyphIcon({ gradientId }: { gradientId: string }) {
   )
 }
 
-export default function Header() {
+type HeaderProps = {
+  /** 메인 등: 모바일 가로 메뉴(4메뉴 칩 행) 숨김 — 데스크톱 `lg:flex` 내비는 유지 */
+  hideMobileNav?: boolean
+}
+
+export default function Header({ hideMobileNav = false }: HeaderProps) {
   const pathnameRaw = usePathname()
   const pathname = pathnameRaw ?? ''
   const { data: session, status } = useSession()
@@ -209,27 +214,29 @@ export default function Header() {
           </div>
         </div>
 
-        <nav
-          className="-mx-4 flex gap-1 overflow-x-auto whitespace-nowrap border-t border-bt-border-soft/70 px-4 py-2.5 sm:-mx-6 sm:px-6 lg:hidden"
-          aria-label="주요 메뉴"
-        >
-          {MAIN_NAV.map((item) => {
-            const active = isMainNavActive(pathname, item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`shrink-0 rounded-full px-2.5 py-1.5 text-base font-medium transition-colors ${
-                  active
-                    ? 'border-2 border-bt-brand-gold-strong bg-bt-surface-soft text-bt-text-navy'
-                    : 'border border-bt-border-soft bg-bt-surface-alt text-bt-text-navy hover:border-bt-brand-gold-strong/60'
-                }`}
-              >
-                {item.label}
-              </Link>
-            )
-          })}
-        </nav>
+        {!hideMobileNav ? (
+          <nav
+            className="-mx-4 flex gap-1 overflow-x-auto whitespace-nowrap border-t border-bt-border-soft/70 px-4 py-2.5 sm:-mx-6 sm:px-6 lg:hidden"
+            aria-label="주요 메뉴"
+          >
+            {MAIN_NAV.map((item) => {
+              const active = isMainNavActive(pathname, item.href)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`shrink-0 rounded-full px-2.5 py-1.5 text-base font-medium transition-colors ${
+                    active
+                      ? 'border-2 border-bt-brand-gold-strong bg-bt-surface-soft text-bt-text-navy'
+                      : 'border border-bt-border-soft bg-bt-surface-alt text-bt-text-navy hover:border-bt-brand-gold-strong/60'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
+          </nav>
+        ) : null}
       </div>
     </header>
   )

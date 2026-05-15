@@ -1,5 +1,6 @@
 /**
  * 메인 시즌 추천 도시 사이클 — Gemini + Product 도시 분포 (PR-D3-A).
+ * 사이클 기간: KST 매달 1일 00:00 ~ 다음 달 1일 00:00(배타).
  * 메모리 #28 시즌 SSOT, #25 노출: registered + (lastFutureDepartureDate IS NULL OR > now).
  */
 import type { SeasonalDestinationCuration } from '@prisma/client'
@@ -34,6 +35,39 @@ export function buildSeasonContext(now = new Date()): string {
   else if (m >= 9 && m <= 11) seasonalHint = '가을 성수기, 단풍·온화한 유럽·동남아 건기 전환'
   else seasonalHint = '겨울·연말연시, 남반구·스키·온천 시즌'
   return `${wall} (${seasonalHint})`
+}
+
+function getKstYmdParts(d: Date): { y: number; m: number; day: number } {
+  const s = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d)
+  const [y, mo, day] = s.split('-').map((x) => parseInt(x, 10)) as [number, number, number]
+  return { y, m: mo, day }
+}
+
+/** 해당 월 1일 00:00 KST 시각(UTC 인스턴트). */
+function kstMonthStartInstant(y: number, month: number): Date {
+  return new Date(`${y}-${String(month).padStart(2, '0')}-01T00:00:00+09:00`)
+}
+
+function nextCalendarMonth(y: number, month: number): { y: number; m: number } {
+  if (month === 12) return { y: y + 1, m: 1 }
+  return { y, m: month + 1 }
+}
+
+/**
+ * 시즌 큐레이션 DB 사이클: 이번 달 1일 00:00 KST ≤ 시작 < 다음 달 1일 00:00 KST (= cycleEndDate, 배타).
+ * `getCurrentCycle` / `rotateCycleIfDue` 와 동일한 KST 달력 기준.
+ */
+export function getKstMonthlySeasonWindow(now: Date): { startDate: Date; endDate: Date } {
+  const { y, m } = getKstYmdParts(now)
+  const startDate = kstMonthStartInstant(y, m)
+  const next = nextCalendarMonth(y, m)
+  const endDate = kstMonthStartInstant(next.y, next.m)
+  return { startDate, endDate }
 }
 
 /**
@@ -308,9 +342,9 @@ export async function rotateCycleIfDue(
     })
   }
 
-  const endDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+  const { startDate, endDate } = getKstMonthlySeasonWindow(now)
   try {
-    const cycle = await generateNewCycle({ startDate: now, endDate, force })
+    const cycle = await generateNewCycle({ startDate, endDate, force })
     return { rotated: true, cycle }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)

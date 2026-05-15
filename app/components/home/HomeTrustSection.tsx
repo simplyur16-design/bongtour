@@ -1,14 +1,10 @@
-import {
-  MAIN_TRUST_B2G_ENTITY_CHIPS,
-  MAIN_TRUST_B2G_SUBTITLE,
-  MAIN_TRUST_B2G_TITLE,
-} from '@/lib/main-hub-copy'
+import { MAIN_TRUST_B2G_SUBTITLE, MAIN_TRUST_B2G_TITLE } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import PartnerOrganizationsRotator from '@/app/components/home/PartnerOrganizationsRotator'
 
 /**
  * B2G 신뢰 밴드 + 협력 기관 로고 마퀴 (한 섹션).
- * 라벤더 베이스 · 흰 칩 · 다크 네이비 텍스트 (메모리 #27).
+ * 라벤더 베이스 · 다크 네이비 텍스트 (메모리 #27).
  */
 export default function HomeTrustSection() {
   return (
@@ -27,18 +23,6 @@ export default function HomeTrustSection() {
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-bt-text-muted-lavender sm:mt-3.5 sm:text-[0.9375rem]">
           {MAIN_TRUST_B2G_SUBTITLE}
         </p>
-        <ul
-          className="mt-6 flex flex-wrap justify-center gap-2 sm:mt-8 sm:gap-2.5"
-          aria-label="협력·수행 기관 예시"
-        >
-          {MAIN_TRUST_B2G_ENTITY_CHIPS.map((label) => (
-            <li key={label}>
-              <span className="inline-flex min-h-[2.25rem] items-center rounded-full border border-bt-border-soft bg-white px-3.5 py-1.5 text-xs font-semibold text-bt-text-navy shadow-sm ring-1 ring-bt-border-soft/40 sm:px-4 sm:text-sm">
-                {label}
-              </span>
-            </li>
-          ))}
-        </ul>
 
         <div className="mt-8 sm:mt-10">
           <PartnerOrganizationsRotator tone="on-lavender" deferMount showRightsLine />
