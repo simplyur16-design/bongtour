@@ -13,6 +13,7 @@ type PrepareMobile = {
   pNextUrl: string;
   pMid: string;
   pOid: string;
+  pNoti: string;
   pAmt: string;
   pTimestamp: string;
   pChkfake: string;
@@ -298,6 +299,7 @@ function WelcomepayPaymentContent() {
                 >
                   <input type="hidden" name="P_MID" value={prep.mobile.pMid} />
                   <input type="hidden" name="P_OID" value={prep.mobile.pOid} />
+                  <input type="hidden" name="P_NOTI" value={prep.mobile.pNoti} />
                   <input type="hidden" name="P_AMT" value={prep.mobile.pAmt} />
                   <input type="hidden" name="P_TIMESTAMP" value={prep.mobile.pTimestamp} />
                   <input type="hidden" name="P_CHKFAKE" value={prep.mobile.pChkfake} />

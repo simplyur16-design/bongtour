@@ -155,6 +155,7 @@ export async function POST(req: Request) {
         pNextUrl,
         pMid: mid,
         pOid: orderNumber,
+        pNoti: orderNumber,
         pAmt: price,
         pTimestamp: mobilePTimestamp,
         pChkfake: mobilePChkfake,
