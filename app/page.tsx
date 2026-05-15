@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import nextDynamic from 'next/dynamic'
 import Header from './components/Header'
 import MainHero from './components/MainHero'
+import RegistrationNoticeStrip from './components/RegistrationNoticeStrip'
 
 const HomeHubFour = nextDynamic(() => import('./components/home/HomeHubFour'), {
   loading: () => (
@@ -73,17 +74,18 @@ export default async function Home() {
     <div className="flex min-h-screen flex-col bg-bt-page">
       <SiteJsonLd />
       <Header />
+      <RegistrationNoticeStrip />
       <main className="flex-1">
         <section
-          className="relative overflow-x-hidden bg-gradient-to-b from-white via-slate-50 to-slate-100/95"
+          className="relative overflow-x-hidden bg-gradient-to-b from-white via-bt-bg-lavender-soft to-bt-bg-lavender/80"
           aria-label="Bong투어 메인 소개 및 서비스 허브"
         >
           <div
-            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_90%_60%_at_15%_-10%,rgba(56,189,248,0.12),transparent_50%)]"
+            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_90%_60%_at_15%_-10%,rgba(143,122,200,0.11),transparent_50%)]"
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_70%_50%_at_90%_10%,rgba(15,118,110,0.08),transparent_45%)]"
+            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_70%_50%_at_90%_10%,rgba(167,139,200,0.09),transparent_45%)]"
             aria-hidden
           />
           <div
@@ -95,7 +97,7 @@ export default async function Home() {
           </div>
           <div className="hidden lg:block">
             <MainHero />
-            <div className="relative border-t border-slate-200/70 bg-gradient-to-b from-slate-50/50 to-transparent pt-3 md:pt-4">
+            <div className="relative border-t border-bt-border-soft/80 bg-gradient-to-b from-bt-bg-lavender-soft/70 to-transparent pt-3 md:pt-4">
               <HomeHubFour
                 overseasHubImageSrc={overseasCover?.imageSrc ?? null}
                 domesticHubImageSrc={domesticCover?.imageSrc ?? null}

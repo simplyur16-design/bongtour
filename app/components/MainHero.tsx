@@ -1,9 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import {
-  MAIN_HERO_BRAND_SLOGAN,
-  MAIN_HERO_EYEBROW,
+  MAIN_HERO_CTA_PRIMARY_HREF,
+  MAIN_HERO_CTA_PRIMARY_LABEL,
+  MAIN_HERO_CTA_SECONDARY_HREF,
+  MAIN_HERO_CTA_SECONDARY_LABEL,
   MAIN_HERO_MAIN_COPY,
   MAIN_HERO_SUB_COPY,
 } from '@/lib/main-hub-copy'
@@ -15,7 +18,7 @@ const HERO_LINE_COLORS = ['#475569', '#64748b'] as const
 const HOLD_MS = 5200
 const FADE_MS = 400
 
-/** 밝은 배경용 Compact 브랜드 인트로 — 로고는 Header 전용, Hero는 카피 중심 */
+/** 밝은 배경용 Compact Hero — 라벤더 톤 + 패키지 카피·CTA (로고는 Header 전용) */
 export default function MainHero() {
   const [reduceMotion, setReduceMotion] = useState(false)
   const [lineIndex, setLineIndex] = useState(0)
@@ -70,28 +73,25 @@ export default function MainHero() {
   return (
     <div className="relative z-[1] w-full overflow-x-hidden">
       <div
-        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_85%_70%_at_50%_0%,rgba(56,189,248,0.14),transparent_58%)]"
+        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_85%_70%_at_50%_0%,rgba(143,122,200,0.14),transparent_58%)]"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-y-8 left-0 z-0 w-[42%] max-w-xl bg-gradient-to-r from-sky-100/55 to-transparent sm:inset-y-10"
+        className="pointer-events-none absolute inset-y-8 left-0 z-0 w-[42%] max-w-xl bg-gradient-to-r from-bt-bg-lavender-soft/90 to-transparent sm:inset-y-10"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-y-8 right-0 z-0 w-[42%] max-w-xl bg-gradient-to-l from-teal-100/45 to-transparent sm:inset-y-10"
+        className="pointer-events-none absolute inset-y-8 right-0 z-0 w-[42%] max-w-xl bg-gradient-to-l from-bt-bg-lavender/95 to-transparent sm:inset-y-10"
         aria-hidden
       />
 
       <div className="relative z-[2] mx-auto max-w-3xl px-4 pb-3 pt-2 text-center sm:px-6 sm:pb-4 sm:pt-3 md:pb-4 md:pt-3 lg:max-w-4xl lg:pt-4 xl:max-w-5xl xl:pt-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-bt-card-title sm:text-xs sm:tracking-[0.3em] lg:text-[13px]">
-          {MAIN_HERO_EYEBROW}
-        </p>
-        <h1 className="mt-0.5 text-lg font-semibold leading-[1.2] tracking-tight text-slate-900 sm:text-xl md:text-[1.45rem] md:leading-[1.18] lg:text-[1.6rem] xl:text-[1.7rem]">
-          {MAIN_HERO_BRAND_SLOGAN}
+        <h1 className="sr-only">
+          {MAIN_HERO_MAIN_COPY} {MAIN_HERO_SUB_COPY}
         </h1>
 
         {reduceMotion ? (
-          <div className="mx-auto mt-1.5 max-w-xl space-y-2 md:mt-2 md:max-w-2xl">
+          <div className="mx-auto mt-1.5 max-w-xl space-y-2 md:mt-2 md:max-w-2xl" aria-hidden>
             <p
               className="text-[13px] font-normal leading-relaxed sm:text-sm md:text-[0.9375rem]"
               style={{ color: HERO_LINE_COLORS[0] }}
@@ -108,8 +108,7 @@ export default function MainHero() {
         ) : (
           <div
             className="mx-auto mt-1.5 flex min-h-[3.75rem] max-w-xl items-center justify-center sm:min-h-[3.5rem] md:mt-2 md:max-w-2xl md:min-h-[3.75rem]"
-            aria-live="polite"
-            aria-atomic="true"
+            aria-hidden
           >
             <p
               className="max-w-xl px-1 text-[13px] font-normal leading-relaxed tracking-tight transition-opacity ease-in-out motion-reduce:transition-none sm:max-w-2xl sm:text-sm sm:leading-relaxed md:max-w-2xl md:text-[0.9375rem]"
@@ -122,6 +121,21 @@ export default function MainHero() {
             </p>
           </div>
         )}
+
+        <div className="mx-auto mt-4 flex max-w-xl flex-wrap items-center justify-center gap-2 sm:mt-5 md:max-w-2xl">
+          <Link
+            href={MAIN_HERO_CTA_PRIMARY_HREF}
+            className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full bg-bt-text-navy px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-95 active:scale-[0.99]"
+          >
+            {MAIN_HERO_CTA_PRIMARY_LABEL}
+          </Link>
+          <Link
+            href={MAIN_HERO_CTA_SECONDARY_HREF}
+            className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-bt-bg-lavender bg-white px-5 py-2.5 text-sm font-medium text-bt-text-navy shadow-sm transition hover:bg-bt-bg-lavender-soft active:scale-[0.99]"
+          >
+            {MAIN_HERO_CTA_SECONDARY_LABEL}
+          </Link>
+        </div>
       </div>
     </div>
   )

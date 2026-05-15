@@ -4,7 +4,16 @@ import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 import MobileHomeClientErrorBoundary from '@/app/components/home/MobileHomeClientErrorBoundary'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
-import { MAIN_HOME_FIRST_HUB_TILE_DESC, MAIN_HOME_FIRST_HUB_TITLE } from '@/lib/main-hub-copy'
+import {
+  MAIN_HERO_CTA_PRIMARY_HREF,
+  MAIN_HERO_CTA_PRIMARY_LABEL,
+  MAIN_HERO_CTA_SECONDARY_HREF,
+  MAIN_HERO_CTA_SECONDARY_LABEL,
+  MAIN_HERO_MAIN_COPY,
+  MAIN_HERO_SUB_COPY,
+  MAIN_HOME_FIRST_HUB_TILE_DESC,
+  MAIN_HOME_FIRST_HUB_TITLE,
+} from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { resolveMobileMainTileBgSrc, type MobileMainTileBgKey } from '@/lib/home-mobile-hub-tile-images'
 import PartnerOrganizationsSectionGate from '@/app/components/home/PartnerOrganizationsSectionGate'
@@ -64,7 +73,7 @@ const TILE_BG_IMAGE_WRAP =
  * 실제 배경은 관리자에서 타일별 URL 지정 권장.
  */
 const TILE_BG_FALLBACK_GRADIENT =
-  'bg-gradient-to-br from-slate-600 via-blue-900 to-slate-800'
+  'bg-gradient-to-br from-slate-700 via-purple-950 to-bt-text-navy'
 
 /** 사진 있을 때: 기존 하단 스크림 */
 const TILE_BG_SCRIM =
@@ -72,13 +81,13 @@ const TILE_BG_SCRIM =
 
 /** 사진 없을 때: 스틸블루 베이스 위 가벼운 하단만 살짝 어둡게 */
 const TILE_BG_SCRIM_FALLBACK =
-  'pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-transparent via-blue-950/28 to-slate-900/55 max-lg:block lg:hidden'
+  'pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-transparent via-purple-950/35 to-slate-900/58 max-lg:block lg:hidden'
 
 const TILE_BG_VIGNETTE =
   'pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-black/25 via-transparent to-black/15 max-lg:block lg:hidden'
 
 const TILE_BG_VIGNETTE_FALLBACK =
-  'pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-slate-900/32 via-transparent to-slate-500/14 max-lg:block lg:hidden'
+  'pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-slate-900/30 via-transparent to-purple-200/12 max-lg:block lg:hidden'
 
 type Props = { seasonSlides: HomeSeasonPickDTO[] }
 
@@ -93,6 +102,32 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
 
   return (
     <div className={`space-y-7 pb-8 pt-3 ${SITE_CONTENT_CLASS}`}>
+      <section
+        aria-label="메인 소개"
+        className="rounded-2xl border border-bt-border-soft/80 bg-gradient-to-b from-bt-bg-lavender-soft via-white to-bt-bg-lavender/50 px-4 py-5 shadow-sm ring-1 ring-bt-bg-lavender/30"
+      >
+        <h1 className="text-center text-lg font-semibold leading-snug tracking-tight text-bt-text-navy sm:text-xl">
+          {MAIN_HERO_MAIN_COPY}
+        </h1>
+        <p className="mt-2 text-center text-sm leading-relaxed text-bt-text-muted-lavender sm:text-[0.9375rem]">
+          {MAIN_HERO_SUB_COPY}
+        </p>
+        <div className="mx-auto mt-4 flex max-w-md flex-wrap items-center justify-center gap-2">
+          <Link
+            href={MAIN_HERO_CTA_PRIMARY_HREF}
+            className="inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-full bg-bt-text-navy px-4 py-2.5 text-center text-sm font-medium text-white transition hover:opacity-95 active:scale-[0.99] sm:flex-none sm:px-5"
+          >
+            {MAIN_HERO_CTA_PRIMARY_LABEL}
+          </Link>
+          <Link
+            href={MAIN_HERO_CTA_SECONDARY_HREF}
+            className="inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-full border border-bt-bg-lavender bg-white px-4 py-2.5 text-center text-sm font-medium text-bt-text-navy shadow-sm transition hover:bg-bt-bg-lavender-soft active:scale-[0.99] sm:flex-none sm:px-5"
+          >
+            {MAIN_HERO_CTA_SECONDARY_LABEL}
+          </Link>
+        </div>
+      </section>
+
       <Link
         href="/travel/esim"
         className="flex w-full min-h-[3.25rem] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-700 via-teal-600 to-cyan-700 px-4 py-4 text-center text-base font-semibold text-white shadow-md ring-2 ring-cyan-400/35 transition hover:from-teal-600 hover:via-teal-500 hover:to-cyan-600 hover:ring-cyan-300/50 active:scale-[0.99]"
@@ -163,7 +198,7 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
               <Link
                 key={a.href}
                 href={a.href}
-                className="inline-flex w-full min-h-[3.25rem] shrink-0 items-center justify-center rounded-xl bg-teal-700 px-5 py-3.5 text-center text-base font-bold text-white shadow-md ring-2 ring-teal-800/25 transition hover:bg-teal-800 active:scale-[0.99] sm:w-auto sm:min-w-[10.5rem]"
+                className="inline-flex w-full min-h-[3.25rem] shrink-0 items-center justify-center rounded-xl bg-bt-text-navy px-5 py-3.5 text-center text-base font-bold text-white shadow-md ring-2 ring-bt-text-navy/20 transition hover:opacity-95 active:scale-[0.99] sm:w-auto sm:min-w-[10.5rem]"
               >
                 {a.label}
               </Link>
@@ -171,7 +206,7 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
               <Link
                 key={a.href}
                 href={a.href}
-                className="inline-flex w-full min-h-[3.25rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-400/90 bg-slate-50 px-5 py-3.5 text-center text-base font-bold text-slate-900 shadow-sm transition hover:border-teal-600 hover:bg-teal-50/90 active:scale-[0.99] sm:w-auto sm:min-w-[9.5rem]"
+                className="inline-flex w-full min-h-[3.25rem] shrink-0 items-center justify-center rounded-xl border-2 border-bt-bg-lavender bg-bt-bg-lavender-soft px-5 py-3.5 text-center text-base font-bold text-bt-text-navy shadow-sm transition hover:border-bt-text-navy/25 hover:bg-white active:scale-[0.99] sm:w-auto sm:min-w-[9.5rem]"
               >
                 {a.label}
               </Link>
@@ -180,7 +215,7 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
         </div>
       </section>
 
-      <div className="border-t border-slate-200/80 pt-7">
+      <div className="border-t border-bt-border-soft/90 pt-7">
         <PartnerOrganizationsSectionGate />
       </div>
     </div>
