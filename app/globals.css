@@ -122,6 +122,18 @@
   --bong-orange: var(--bt-brand-gold-strong);
   --bong-orange-bg: var(--bt-brand-blue-soft);
 
+  /* === 봉투어 v5 라벤더 톤 SSOT (2026-05-15) === */
+  --bt-bg-lavender: #efedf8; /* 페이지 베이스 */
+  --bt-bg-lavender-soft: #f8f6fc; /* 카드 보조 배경 */
+  --bt-text-navy: #1f1b2d; /* 텍스트·CTA·푸터 */
+  /* 기존 --bt-text-muted(#64748b)와 충돌 방지: v5 부가 설명용 별도 토큰 */
+  --bt-text-muted-lavender: #4a4458;
+  --bt-coral: #d85a30; /* eSIM 매출 채널 전용 */
+  --bt-coral-soft: #e8896f; /* eSIM 그라데이션 보조 */
+  --bt-rose: #d4537e; /* 우리끼리 카드 강조 */
+  --bt-rose-soft: #f5e0e2; /* 우리끼리 카드 배경 */
+  --bt-trust-beige: #faeed4; /* 신뢰 표지 줄 배경 */
+
   --primary: var(--bt-text-title);
   --accent: var(--bt-accent);
   --base: var(--bt-surface);
