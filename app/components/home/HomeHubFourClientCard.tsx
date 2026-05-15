@@ -39,9 +39,9 @@ function hubImagePosition(key: HomeHubCardImageKey): string {
 const CARD_ROUND = 'rounded-2xl'
 const CARD_MIN_H = 'min-h-[18rem] sm:min-h-[20rem] lg:min-h-[22rem]'
 
-/** 사진 레이어 — DEEP DARK: brightness 0.55 + contrast 1.05; 호버 시 0.7 (메모리 #27) */
+/** 사진 레이어 — 메모리 #27 SSOT: 밝은 베이스 + 하단 그라데이션만(전면 딤 제거) */
 const PHOTO_FILTER_BASE =
-  'transition-[filter] duration-200 ease-out [filter:brightness(0.55)_contrast(1.05)] group-hover:[filter:brightness(0.7)_contrast(1.05)]'
+  'transition-[filter] duration-200 ease-out [filter:brightness(0.92)_saturate(1.08)] group-hover:[filter:brightness(1.0)_saturate(1.15)]'
 
 type Props = { card: HomeHubFourClientCardModel; index: number }
 
@@ -85,7 +85,7 @@ export default function HomeHubFourClientCard({ card, index }: Props) {
               </div>
             </div>
             <div
-              className="pointer-events-none absolute inset-0 z-[2] bg-[rgba(0,0,0,0.35)]"
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-2/3 bg-gradient-to-t from-black/65 via-black/20 to-transparent"
               aria-hidden
             />
           </>

@@ -121,7 +121,9 @@ export default async function Home() {
             </div>
           </div>
         </section>
-        <PersonaCuratedDestinations />
+        <div className="hidden lg:block">
+          <PersonaCuratedDestinations />
+        </div>
         <HomeTrustSection />
       </main>
       <MobileStickyBar />

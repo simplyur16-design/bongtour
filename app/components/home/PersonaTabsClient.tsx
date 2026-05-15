@@ -13,7 +13,7 @@ import type { PersonaCityCard } from '@/lib/persona-curated-destinations'
 import { HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS } from '@/lib/home-hub-four-accent-classes'
 
 const PHOTO_FILTER_BASE =
-  'transition-[filter] duration-200 ease-out [filter:brightness(0.55)_contrast(1.05)] group-hover:[filter:brightness(0.7)_contrast(1.05)]'
+  'transition-[filter] duration-200 ease-out [filter:brightness(0.92)_saturate(1.08)] group-hover:[filter:brightness(1.0)_saturate(1.15)]'
 
 type Props = { cards: PersonaCityCard[] }
 
@@ -95,7 +95,7 @@ export default function PersonaTabsClient({ cards }: Props) {
                         </div>
                       </div>
                       <div
-                        className="pointer-events-none absolute inset-0 z-[2] bg-[rgba(0,0,0,0.35)]"
+                        className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-2/3 bg-gradient-to-t from-black/65 via-black/20 to-transparent"
                         aria-hidden
                       />
                     </>

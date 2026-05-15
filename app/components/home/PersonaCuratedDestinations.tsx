@@ -4,7 +4,7 @@ import { MAIN_PERSONA_SECTION_TITLE } from '@/lib/main-hub-copy'
 
 /**
  * 메인 영역 6 — 페르소나 큐레이션 추천 여행지 (서버 prefetch + 클라이언트 탭).
- * 위치: `HomeHubFour`(영역 5) 직후, `HomeTrustSection`(영역 8) 직전 — 데스크톱·모바일 공통.
+ * PC(`lg` 이상)만 노출 — 모바일은 `app/page.tsx`에서 `hidden lg:block` 래핑(4카드와 시각적 혼동 방지).
  */
 export default async function PersonaCuratedDestinations() {
   const data = await getPersonaCuratedDestinationsPayload()
