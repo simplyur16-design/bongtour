@@ -1323,3 +1323,20 @@ model BongsimCouponBatchItem {
   @@index([batchId])
   @@map("bongsim_coupon_batch_item")
 }
+
+/// 메인 시즌 추천 도시 사이클(약 2주) — Gemini가 primary 5 + fallback 10 cityKey 제안, PR-D3 검증 후 저장
+model SeasonalDestinationCuration {
+  id              String   @id @default(cuid())
+  cycleStartDate  DateTime @unique
+  cycleEndDate    DateTime
+  cityKeys        String[] @default([])
+  fallbackKeys    String[] @default([])
+  geminiPrompt    String?
+  geminiResponse  Json?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([cycleStartDate])
+  @@index([cycleEndDate])
+}
