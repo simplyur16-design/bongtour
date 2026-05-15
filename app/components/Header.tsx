@@ -100,8 +100,8 @@ export default function Header() {
               <SafeImage
                 src="/images/bongtour-logo.webp"
                 alt={SITE_NAME}
-                width={1024}
-                height={430}
+                width={3200}
+                height={1344}
                 className="relative z-0 block h-12 w-auto object-contain object-left sm:h-[3.25rem] lg:h-[3.35rem]"
                 priority
               />
