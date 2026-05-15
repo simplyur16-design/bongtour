@@ -78,9 +78,9 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-bt-border-soft bg-white shadow-sm">
       <div className={SITE_CONTENT_CLASS}>
-        <div className="flex min-h-[4.5rem] items-center justify-between gap-3 py-2 sm:min-h-[5rem]">
+        <div className="flex min-h-[4.5rem] items-center justify-between gap-3 py-3 sm:min-h-[5rem] sm:py-4">
           <div className="flex min-w-0 shrink-0 flex-col items-start">
-            <span className="mb-0.5 pl-1 text-[9px] leading-none text-bt-text-muted-lavender">simply your</span>
+            <span className="mb-0.5 pl-1 text-xs leading-none text-bt-text-muted-lavender">simply your</span>
             <Link
               href="/"
               className="relative isolate z-10 inline-flex shrink-0 flex-col overflow-hidden py-0.5"
@@ -100,9 +100,9 @@ export default function Header() {
               <SafeImage
                 src="/images/bongtour-logo.webp"
                 alt={SITE_NAME}
-                width={274}
-                height={78}
-                className="relative z-0 block h-11 w-auto object-contain object-left sm:h-12 lg:h-[3.1rem]"
+                width={3200}
+                height={1344}
+                className="relative z-0 block h-12 w-auto object-contain object-left sm:h-[3.25rem] lg:h-[3.35rem]"
                 priority
               />
             </Link>
@@ -115,7 +115,7 @@ export default function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`whitespace-nowrap border-b-2 pb-1 text-sm font-medium text-bt-text-navy transition-colors ${
+                  className={`whitespace-nowrap border-b-2 pb-1 text-base font-medium text-bt-text-navy transition-colors ${
                     active ? 'border-bt-brand-gold-strong' : 'border-transparent hover:border-bt-brand-gold-strong'
                   }`}
                 >
@@ -210,7 +210,7 @@ export default function Header() {
         </div>
 
         <nav
-          className="-mx-4 flex gap-1 overflow-x-auto whitespace-nowrap border-t border-bt-border-soft/70 px-4 py-2 sm:-mx-6 sm:px-6 lg:hidden"
+          className="-mx-4 flex gap-1 overflow-x-auto whitespace-nowrap border-t border-bt-border-soft/70 px-4 py-2.5 sm:-mx-6 sm:px-6 lg:hidden"
           aria-label="주요 메뉴"
         >
           {MAIN_NAV.map((item) => {
@@ -219,7 +219,7 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`shrink-0 rounded-full px-2.5 py-1.5 text-base font-medium transition-colors ${
                   active
                     ? 'border-2 border-bt-brand-gold-strong bg-bt-surface-soft text-bt-text-navy'
                     : 'border border-bt-border-soft bg-bt-surface-alt text-bt-text-navy hover:border-bt-brand-gold-strong/60'
