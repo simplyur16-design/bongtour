@@ -1,5 +1,7 @@
 import { MAIN_HUB_FOUR_CARDS, MAIN_HUB_FOUR_SR_HEADING } from '@/lib/main-hub-copy'
 import { hubFourCardKeyToHybridImageKey, resolveHomeHubCardHybridImageSrc } from '@/lib/home-hub-resolve-images'
+import { getHubFourPhotosBundle } from '@/lib/home-hub-four-photo-bundle'
+import { hubPhotoCardIsPending } from '@/lib/home-hub-photo-card-pending'
 import HomeHubFourClientCard, { type HomeHubFourClientCardModel } from '@/app/components/home/HomeHubFourClientCard'
 
 export type HomeHubFourProps = {
@@ -15,6 +17,16 @@ function hubCardImageSrc(card: (typeof MAIN_HUB_FOUR_CARDS)[number], props: Home
   })
 }
 
+function resolveCardImageSrc(
+  card: (typeof MAIN_HUB_FOUR_CARDS)[number],
+  bundleUrl: string | null | undefined,
+  props: HomeHubFourProps,
+): string {
+  const fromBundle = (bundleUrl ?? '').trim()
+  if (fromBundle) return fromBundle
+  return hubCardImageSrc(card, props)
+}
+
 function toClientModel(
   card: (typeof MAIN_HUB_FOUR_CARDS)[number],
   imageSrc: string,
@@ -23,7 +35,6 @@ function toClientModel(
     key: card.key,
     imageKey: hubFourCardKeyToHybridImageKey(card.key),
     href: card.href,
-    accent: card.accent,
     categoryLabel: card.categoryLabel,
     headline: card.headline,
     titleEn: card.titleEn,
@@ -31,13 +42,15 @@ function toClientModel(
     hints: card.hints,
     ctaLabel: card.ctaLabel,
     imageSrc,
+    imagePending: hubPhotoCardIsPending(imageSrc),
   }
 }
 
-export default function HomeHubFour(props: HomeHubFourProps = {}) {
+export default async function HomeHubFour(props: HomeHubFourProps = {}) {
+  const bundle = await getHubFourPhotosBundle()
   const cards = MAIN_HUB_FOUR_CARDS.map((card) => ({
     ...card,
-    imageSrc: hubCardImageSrc(card, props),
+    imageSrc: resolveCardImageSrc(card, bundle[card.key], props),
   }))
 
   return (
@@ -51,9 +64,13 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
       </h2>
 
       <div className="mx-auto max-w-6xl px-3 sm:px-5">
-        <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5" role="list">
+        <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:grid-cols-4" role="list">
           {cards.map((card, index) => (
-            <HomeHubFourClientCard key={card.key} card={toClientModel(card, card.imageSrc)} index={index} />
+            <HomeHubFourClientCard
+              key={card.key}
+              card={toClientModel(card, card.imageSrc)}
+              index={index}
+            />
           ))}
         </ul>
       </div>

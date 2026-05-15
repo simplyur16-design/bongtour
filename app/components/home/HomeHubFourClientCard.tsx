@@ -2,17 +2,15 @@
 
 import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
-import { ArrowUpRight } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState, type FocusEvent } from 'react'
-import type { HubFourAccent } from '@/lib/main-hub-copy'
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
 import { hubSectionFragmentId } from '@/lib/hub-section-anchor'
+import HomeHubPhotoPlaceholder from '@/app/components/home/HomeHubPhotoPlaceholder'
+import { HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS } from '@/lib/home-hub-four-accent-classes'
 
 export type HomeHubFourClientCardModel = {
   key: string
   imageKey: HomeHubCardImageKey
   href: string
-  accent: HubFourAccent
   categoryLabel: string
   headline: string
   titleEn: string
@@ -20,21 +18,7 @@ export type HomeHubFourClientCardModel = {
   hints: readonly string[]
   ctaLabel: string
   imageSrc: string
-}
-
-const TRAINING_HOVER_SUBTITLE = '목적형 연수 설계'
-
-function accentWash(accent: HubFourAccent): string {
-  switch (accent) {
-    case 'overseas':
-      return 'from-[color-mix(in_srgb,var(--bt-brand-blue)_22%,transparent)] via-transparent to-transparent'
-    case 'training':
-      return 'from-[color-mix(in_srgb,var(--bt-brand-gold)_18%,transparent)] via-transparent to-transparent'
-    case 'domestic':
-      return 'from-[color-mix(in_srgb,var(--bt-success)_14%,transparent)] via-transparent to-transparent'
-    case 'esim':
-      return 'from-[color-mix(in_srgb,var(--bt-brand-blue)_18%,transparent)] via-transparent to-transparent'
-  }
+  imagePending: boolean
 }
 
 function hubImagePosition(key: HomeHubCardImageKey): string {
@@ -52,225 +36,70 @@ function hubImagePosition(key: HomeHubCardImageKey): string {
   }
 }
 
-function hubCardTitlePair(card: HomeHubFourClientCardModel): { ko: string; en: string } {
-  return { ko: card.categoryLabel, en: card.titleEn }
-}
-
-const TITLE_HOLD_MS = 4200
-const TITLE_FADE_MS = 800
-const TITLE_STAGGER_MS = 720
-
-const TITLE_MOTION_TRANSITION = `transform ${TITLE_FADE_MS}ms ease-in-out, opacity ${TITLE_FADE_MS}ms ease-in-out`
-
-function HubFourAnimatedHubTitle({
-  pair,
-  index,
-  detailOpen,
-  denseBg,
-}: {
-  pair: { ko: string; en: string }
-  index: number
-  detailOpen: boolean
-  denseBg: boolean
-}) {
-  const [lang, setLang] = useState<'ko' | 'en'>('ko')
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    const between = TITLE_HOLD_MS + TITLE_FADE_MS
-    const stagger = index * TITLE_STAGGER_MS
-
-    const clearTimer = () => {
-      if (timerRef.current != null) {
-        clearTimeout(timerRef.current)
-        timerRef.current = null
-      }
-    }
-
-    const flip = () => setLang((l) => (l === 'ko' ? 'en' : 'ko'))
-
-    const scheduleNext = (delay: number) => {
-      clearTimer()
-      timerRef.current = setTimeout(() => {
-        if (cancelled) return
-        flip()
-        scheduleNext(between)
-      }, delay)
-    }
-
-    scheduleNext(stagger + TITLE_HOLD_MS)
-
-    return () => {
-      cancelled = true
-      clearTimer()
-    }
-  }, [index])
-
-  const positionClasses = detailOpen
-    ? 'top-12 translate-y-0 sm:top-14'
-    : 'top-1/2 -translate-y-1/2'
-  const shadowKo = denseBg
-    ? 'drop-shadow-[0_2px_0_rgba(0,0,0,0.4)] drop-shadow-[0_4px_18px_rgba(0,0,0,0.5)]'
-    : 'drop-shadow-[0_2px_14px_rgba(0,0,0,0.45)] drop-shadow-[0_0_16px_rgba(0,0,0,0.35)]'
-  const shadowEn = denseBg
-    ? 'drop-shadow-[0_2px_0_rgba(0,0,0,0.35)] drop-shadow-[0_4px_16px_rgba(0,0,0,0.45)]'
-    : 'drop-shadow-[0_2px_12px_rgba(0,0,0,0.4)] drop-shadow-[0_0_14px_rgba(0,0,0,0.3)]'
-
-  const sizeClass =
-    'text-[clamp(2.4rem,3.9vw+1rem,3.55rem)] leading-[1.05] tracking-tight lg:tracking-[-0.01em]'
-
-  return (
-    <div
-      className={`absolute left-4 right-4 z-[6] text-center transition-[top,transform] duration-300 ease-out sm:left-5 sm:right-5 ${positionClasses}`}
-    >
-      <span className="sr-only">
-        {pair.ko}, {pair.en}
-      </span>
-      <div className={`relative mx-auto grid w-full min-h-[1.15em] place-items-center ${sizeClass}`}>
-        <span
-          aria-hidden
-          className={`col-start-1 row-start-1 max-w-full text-center font-black text-white ${shadowKo} ${
-            lang === 'ko' ? 'translate-y-0 opacity-100' : '-translate-y-[20px] opacity-0'
-          }`}
-          style={{ transition: TITLE_MOTION_TRANSITION }}
-        >
-          {pair.ko}
-        </span>
-        <span
-          aria-hidden
-          className={`col-start-1 row-start-1 max-w-full text-center font-semibold tracking-wider text-white [font-family:var(--font-hub-outfit),ui-sans-serif,system-ui,sans-serif] ${shadowEn} ${
-            lang === 'en' ? 'translate-y-0 opacity-100' : 'translate-y-[20px] opacity-0'
-          }`}
-          style={{ transition: TITLE_MOTION_TRANSITION }}
-        >
-          {pair.en}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-function hubHoverSubtitle(card: HomeHubFourClientCardModel): string | null {
-  const h = card.headline?.trim()
-  if (h) return h
-  if (card.imageKey === 'training') return TRAINING_HOVER_SUBTITLE
-  return null
-}
-
-function isDomesticOrEsimDense(key: HomeHubCardImageKey): boolean {
-  return key === 'domestic' || key === 'esim'
-}
-
 const CARD_ROUND = 'rounded-2xl'
-const HUB_FOUR_CARD_HEIGHT = 'h-[35rem] min-h-[35rem] max-h-[35rem]'
+const CARD_MIN_H = 'min-h-[18rem] sm:min-h-[20rem] lg:min-h-[22rem]'
+
+/** 사진 레이어 — DEEP DARK: brightness 0.55 + contrast 1.05; 호버 시 0.7 (메모리 #27) */
+const PHOTO_FILTER_BASE =
+  'transition-[filter] duration-200 ease-out [filter:brightness(0.55)_contrast(1.05)] group-hover:[filter:brightness(0.7)_contrast(1.05)]'
 
 type Props = { card: HomeHubFourClientCardModel; index: number }
 
 export default function HomeHubFourClientCard({ card, index }: Props) {
-  const imageKey = card.imageKey
-  const denseBg = isDomesticOrEsimDense(imageKey)
-  const titlePair = hubCardTitlePair(card)
-  const subtitle = hubHoverSubtitle(card)
   const descFull = card.description?.trim() ?? ''
-  const [detailOpen, setDetailOpen] = useState(false)
-
-  const cardAriaLabel = [titlePair.ko, titlePair.en, subtitle, descFull, ...card.hints, card.ctaLabel]
+  const cardAriaLabel = [card.categoryLabel, card.titleEn, card.headline, descFull, ...card.hints, card.ctaLabel]
     .filter(Boolean)
     .join('. ')
-  /** 원격 https는 `SafeImage`에서 호스트별로 최적화·직접 `<img>` 분기 */
   const hubImageUnoptimized = /^https?:\/\//i.test(card.imageSrc)
-
-  const open = useCallback(() => setDetailOpen(true), [])
-  const close = useCallback(() => setDetailOpen(false), [])
-
-  const onBlurLink = useCallback((e: FocusEvent<HTMLAnchorElement>) => {
-    const next = e.relatedTarget as Node | null
-    if (next && e.currentTarget.contains(next)) return
-    setDetailOpen(false)
-  }, [])
-
-  /** 기본은 사진이 더 밝게 보이도록; 국내·버스만 살짝 더 스크림 */
-  const baseGradient = denseBg
-    ? 'from-black/[0.52] via-black/[0.22] to-black/[0.06]'
-    : 'from-black/[0.42] via-black/[0.14] to-transparent'
 
   return (
     <li id={hubSectionFragmentId(card.key)} className="relative min-w-0 scroll-mt-[5.5rem] sm:scroll-mt-24">
       <Link
         href={card.href}
         aria-label={cardAriaLabel}
-        onMouseEnter={open}
-        onMouseLeave={close}
-        onFocus={open}
-        onBlur={onBlurLink}
-        className={`relative flex w-full flex-col overflow-hidden border border-bt-border-soft shadow-md shadow-bt-border-soft/40 ring-1 ring-bt-border-soft transition duration-300 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-link/70 lg:hover:-translate-y-0.5 lg:hover:border-bt-border-strong lg:hover:shadow-xl lg:hover:shadow-bt-border-strong/20 lg:hover:ring-bt-border-strong/60 ${CARD_ROUND} ${HUB_FOUR_CARD_HEIGHT}`}
+        className={`group relative flex w-full flex-col overflow-hidden border border-bt-border-soft/80 shadow-md ${CARD_ROUND} ${CARD_MIN_H} ${HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS}`}
       >
-        <span className="pointer-events-none absolute inset-0 z-0 bg-slate-200" aria-hidden />
-
-        <SafeImage
-          key={card.imageSrc}
-          src={card.imageSrc}
-          alt={`${titlePair.ko} 홈 허브 배경`}
-          fill
-          className={`object-cover transition duration-500 ease-out ${hubImagePosition(imageKey)} z-[1] ${detailOpen ? 'scale-[1.03] brightness-[1.04]' : 'scale-100 brightness-100'}`}
-          sizes={
-            index === 0
-              ? '(max-width: 1280px) 50vw, 600px'
-              : '(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw'
-          }
-          quality={index === 0 ? 80 : 75}
-          priority={index === 0}
-          fetchPriority={index === 0 ? 'high' : 'low'}
-          loading={index === 0 ? undefined : 'lazy'}
-          unoptimized={hubImageUnoptimized}
-        />
-
-        <div className={`pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t ${baseGradient}`} aria-hidden />
-        <div
-          className={`pointer-events-none absolute inset-0 z-[2] transition-colors duration-300 ${detailOpen ? 'bg-black/[0.14]' : 'bg-transparent'}`}
-          aria-hidden
-        />
-        <div
-          className={`pointer-events-none absolute inset-0 z-[2] bg-gradient-to-br ${accentWash(card.accent)} transition-opacity duration-300 ${detailOpen ? 'opacity-[0.22]' : 'opacity-[0.09]'}`}
-          aria-hidden
-        />
-
-        <div className="relative z-[3] h-full min-h-0">
-          {detailOpen ? (
-            <div
-              className={`absolute inset-x-4 top-[30%] bottom-24 z-[4] flex max-h-none min-h-0 flex-col items-center gap-2.5 overflow-y-auto overscroll-contain px-2 py-2 text-center backdrop-blur-[2px] sm:inset-x-5 ${
-                denseBg ? 'bg-black/32' : 'bg-black/28'
-              }`}
-            >
-              {subtitle ? (
-                <p className="inline-block max-w-full rounded-md bg-black/45 px-3 py-1.5 text-base font-bold leading-snug text-white ring-1 ring-white/22 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)] sm:text-[1.0625rem]">
-                  {subtitle}
-                </p>
-              ) : null}
-              {descFull ? (
-                <p className="w-full rounded-lg bg-black/45 px-3 py-2.5 text-sm font-semibold leading-relaxed text-white ring-1 ring-white/18 drop-shadow-md sm:text-[0.9375rem]">
-                  {descFull}
-                </p>
-              ) : null}
-              <div className="flex w-full flex-wrap justify-center gap-2">
-                {card.hints.map((h) => (
-                  <span
-                    key={h}
-                    className="rounded-full border border-white/50 bg-white/14 px-3 py-2 text-sm font-semibold leading-none text-white shadow-md backdrop-blur-sm"
-                  >
-                    {h}
-                  </span>
-                ))}
+        {card.imagePending ? (
+          <HomeHubPhotoPlaceholder />
+        ) : (
+          <>
+            <div className={`absolute inset-0 z-[1] overflow-hidden ${CARD_ROUND}`}>
+              <div className={`absolute inset-0 z-0 ${PHOTO_FILTER_BASE}`}>
+                <SafeImage
+                  key={card.imageSrc}
+                  src={card.imageSrc}
+                  alt=""
+                  fill
+                  className={`object-cover ${hubImagePosition(card.imageKey)}`}
+                  sizes={
+                    index === 0
+                      ? '(max-width: 1280px) 50vw, 600px'
+                      : '(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw'
+                  }
+                  quality={index === 0 ? 80 : 75}
+                  priority={index === 0}
+                  fetchPriority={index === 0 ? 'high' : 'low'}
+                  loading={index === 0 ? undefined : 'lazy'}
+                  unoptimized={hubImageUnoptimized}
+                />
               </div>
-              <span className="inline-flex items-center justify-center gap-1.5 pt-0.5 text-sm font-bold tracking-tight text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">
-                {card.ctaLabel}
-                <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden />
-              </span>
             </div>
-          ) : null}
+            <div
+              className="pointer-events-none absolute inset-0 z-[2] bg-[rgba(0,0,0,0.35)]"
+              aria-hidden
+            />
+          </>
+        )}
 
-          <HubFourAnimatedHubTitle pair={titlePair} index={index} detailOpen={detailOpen} denseBg={denseBg} />
+        <div className="relative z-[3] flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-8 text-center sm:py-10">
+          <h3 className="text-2xl font-bold leading-tight tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] sm:text-[28px]">
+            {card.categoryLabel}
+          </h3>
+          {card.headline ? (
+            <p className="mt-2 max-w-[20ch] text-sm leading-snug text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)]">
+              {card.headline}
+            </p>
+          ) : null}
         </div>
       </Link>
     </li>

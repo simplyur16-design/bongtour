@@ -28,8 +28,7 @@ export const MAIN_HERO_SUBLINE = MAIN_HERO_SUB_COPY
 export const MAIN_HERO_DISCLAIMER_LINE =
   '즉시 결제·자동 확정이 아닌 상담·접수 창구입니다. 세부 조건은 확인 과정에서 정리됩니다.'
 
-export const MAIN_HERO_CTA_PRIMARY_LABEL = '패키지 둘러보기'
-export const MAIN_HERO_CTA_PRIMARY_HREF = '/travel/overseas' as const
+/** 메인 Hero·모바일 히어로 단일 CTA (헤더·4카드와 진입점 중복 방지) */
 export const MAIN_HERO_CTA_SECONDARY_LABEL = '상담 받기'
 export const MAIN_HERO_CTA_SECONDARY_HREF = '/inquiry?type=travel' as const
 
@@ -199,7 +198,7 @@ export const MAIN_HUB_FOUR_SR_HEADING = 'Bong투어 주요 서비스 영역'
 export type HubFourAccent = 'domestic' | 'overseas' | 'training' | 'esim'
 
 /** 헤더·4카드·모바일 첫 타일 공통 — 패키지(해외 패키지 허브) */
-export const MAIN_HOME_FIRST_HUB_TITLE = '패키지' as const
+export const MAIN_HOME_FIRST_HUB_TITLE = '해외여행상품' as const
 /** 모바일 첫 타일 한 줄 설명(PC 카드 headline과 동일 톤) */
 export const MAIN_HOME_FIRST_HUB_TILE_DESC = '검증된 여행상품 · 가족 안심' as const
 /** PC 메인 4카드 첫 칸 호버 본문(패키지) */
@@ -212,34 +211,50 @@ export const MAIN_HOME_FIRST_HUB_DESCRIPTION = MAIN_HOME_FIRST_HUB_TILE_DESC
 /** 메인 4허브 카드 논리 키(앵커·모바일 타일 id) — 이미지는 `imageKey`로 `home-hub-active.json` 기존 키와 매핑 */
 export type HubFourCardKey = 'package' | 'free-travel' | 'private-trip' | 'business'
 
-/** 그리드 순서: 패키지 → 자유여행 → 우리끼리 → 공공·기업 (헤더 4메뉴와 동일). 국내·eSIM 슬롯 없음 — eSIM은 코랄 띠·sticky로 위임 */
+/** Prisma 동적 픽 분기용 — `lib/home-hub-four-photo-bundle.ts` 와 동일 의미로 유지 */
+export type HubFourProductPhotoCategoryKey = 'overseas' | 'air-hotel'
+
+export type HubFourPhotoSource =
+  | { kind: 'product-category'; categoryKey: HubFourProductPhotoCategoryKey }
+  | { kind: 'static-asset'; path: string }
+  | { kind: 'private-trip-hero' }
+
+/**
+ * 메인 4허브 카드 — 그리드 순서: 패키지 → 자유여행 → 우리끼리 → 공공·기업.
+ * TODO(운영): 카드별 대표 사진은 `/admin/home-hub-card-images` 및
+ * `public/data/home-hub-active.json` 의 `images` / `mobileMainServiceTiles` 로 교체한다.
+ * 런타임 `resolveHomeHubCardHybridImageSrc` / `resolveMobileMainTileBgSrc` 가 우선하고,
+ * 아래 `imageSrc` 는 타입·문서용 정적 폴백(`base` 시즌 `.webp`)이다.
+ */
 export const MAIN_HUB_FOUR_CARDS = [
   {
     key: 'package' as const satisfies HubFourCardKey,
     imageKey: 'overseas' as const,
     href: '/travel/overseas',
     accent: 'overseas' as const,
-    categoryLabel: '패키지',
+    categoryLabel: '해외여행상품',
     headline: '검증된 여행상품 · 가족 안심',
     titleEn: 'Package',
     description: MAIN_HOME_OVERSEAS_HUB_CARD_DESCRIPTION,
     hints: ['가족 여행', '상담 후 확정', '환불 규정 안내'] as const,
-    ctaLabel: '패키지 보기',
-    imageSrc: homeHubCardImageSrc('overseas'),
+    ctaLabel: '해외여행상품 보기',
+    imageSrc: homeHubCardImageSrc('overseas', 'webp'),
+    photoSource: { kind: 'product-category', categoryKey: 'overseas' } as const,
   },
   {
     key: 'free-travel' as const satisfies HubFourCardKey,
     imageKey: 'overseas' as const,
     href: '/travel/air-hotel',
     accent: 'overseas' as const,
-    categoryLabel: '자유여행',
+    categoryLabel: '자유여행 (항공+호텔)',
     headline: '항공+호텔 직접 구성',
     titleEn: 'Free travel',
     description:
       '항공과 숙소를 원하는 조합으로 맞추는 자유·에어텔 성격 일정입니다. 세부는 상담에서 정리합니다.',
     hints: ['항공+호텔', '맞춤 일정', '에어텔'] as const,
     ctaLabel: '자유여행 보기',
-    imageSrc: homeHubCardImageSrc('overseas'),
+    imageSrc: homeHubCardImageSrc('overseas', 'webp'),
+    photoSource: { kind: 'product-category', categoryKey: 'air-hotel' } as const,
   },
   {
     key: 'private-trip' as const satisfies HubFourCardKey,
@@ -253,7 +268,8 @@ export const MAIN_HUB_FOUR_CARDS = [
       '가족·지인·소규모 단체가 함께하는 단독 일정으로, 동선과 속도를 맞춰 제안합니다.',
     hints: ['가족', '소그룹', '단독 일정'] as const,
     ctaLabel: '우리끼리 보기',
-    imageSrc: homeHubCardImageSrc('overseas'),
+    imageSrc: homeHubCardImageSrc('overseas', 'webp'),
+    photoSource: { kind: 'private-trip-hero' } as const,
   },
   {
     key: 'business' as const satisfies HubFourCardKey,
@@ -267,7 +283,8 @@ export const MAIN_HUB_FOUR_CARDS = [
       '정부·공공·기업 목적에 맞춰 기관 섭외와 통역, 이동 운영까지 처음부터 설계합니다.',
     hints: ['정부·공공', '기업', '기관 섭외'] as const,
     ctaLabel: '공공·기업 보기',
-    imageSrc: homeHubCardImageSrc('training'),
+    imageSrc: homeHubCardImageSrc('training', 'webp'),
+    photoSource: { kind: 'static-asset', path: '/images/home-hub/base/training.webp' } as const,
   },
 ] as const
 
@@ -464,7 +481,7 @@ export const MAIN_MINIMAL_FOOTER_NOTE =
   '상세 사업자 정보·고지는 각 서비스 페이지 하단에서 확인할 수 있습니다.'
 
 export const MAIN_MINIMAL_FOOTER_LINKS = [
-  { label: '패키지', href: '/travel/overseas' },
+  { label: '해외여행상품', href: '/travel/overseas' },
   { label: '자유여행', href: '/travel/air-hotel' },
   { label: '우리끼리', href: '/travel/overseas/private-trip' },
   { label: '공공·기업', href: '/training' },

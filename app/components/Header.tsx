@@ -18,7 +18,7 @@ const INQUIRY_HREF = '/inquiry?type=travel'
  * 해외 서브메가는 `OverseasTravelSubMainNav` 유지.
  */
 const MAIN_NAV: { label: string; href: string }[] = [
-  { label: '패키지', href: '/travel/overseas' },
+  { label: '해외여행상품', href: '/travel/overseas' },
   { label: '자유여행', href: '/travel/air-hotel' },
   { label: '우리끼리', href: '/travel/overseas/private-trip' },
   { label: '공공·기업', href: '/training' },
