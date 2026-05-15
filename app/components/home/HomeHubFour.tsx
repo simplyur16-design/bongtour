@@ -1,5 +1,6 @@
 import { MAIN_HUB_FOUR_CARDS, MAIN_HUB_FOUR_SR_HEADING } from '@/lib/main-hub-copy'
 import { hubFourCardKeyToHybridImageKey, resolveHomeHubCardHybridImageSrc } from '@/lib/home-hub-resolve-images'
+import { getHubFourPhotosBundle } from '@/lib/home-hub-four-photo-bundle'
 import { hubPhotoCardIsPending } from '@/lib/home-hub-photo-card-pending'
 import HomeHubFourClientCard, { type HomeHubFourClientCardModel } from '@/app/components/home/HomeHubFourClientCard'
 
@@ -14,6 +15,16 @@ function hubCardImageSrc(card: (typeof MAIN_HUB_FOUR_CARDS)[number], props: Home
     productPoolOverseasUrl: props.overseasHubImageSrc,
     productPoolDomesticUrl: props.domesticHubImageSrc,
   })
+}
+
+function resolveCardImageSrc(
+  card: (typeof MAIN_HUB_FOUR_CARDS)[number],
+  bundleUrl: string | null | undefined,
+  props: HomeHubFourProps,
+): string {
+  const fromBundle = (bundleUrl ?? '').trim()
+  if (fromBundle) return fromBundle
+  return hubCardImageSrc(card, props)
 }
 
 function toClientModel(
@@ -35,10 +46,11 @@ function toClientModel(
   }
 }
 
-export default function HomeHubFour(props: HomeHubFourProps = {}) {
+export default async function HomeHubFour(props: HomeHubFourProps = {}) {
+  const bundle = await getHubFourPhotosBundle()
   const cards = MAIN_HUB_FOUR_CARDS.map((card) => ({
     ...card,
-    imageSrc: hubCardImageSrc(card, props),
+    imageSrc: resolveCardImageSrc(card, bundle[card.key], props),
   }))
 
   return (

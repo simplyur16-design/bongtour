@@ -194,6 +194,14 @@ export const MAIN_HOME_FIRST_HUB_DESCRIPTION = MAIN_HOME_FIRST_HUB_TILE_DESC
 /** 메인 4허브 카드 논리 키(앵커·모바일 타일 id) — 이미지는 `imageKey`로 `home-hub-active.json` 기존 키와 매핑 */
 export type HubFourCardKey = 'package' | 'free-travel' | 'private-trip' | 'business'
 
+/** Prisma 동적 픽 분기용 — `lib/home-hub-four-photo-bundle.ts` 와 동일 의미로 유지 */
+export type HubFourProductPhotoCategoryKey = 'overseas' | 'air-hotel'
+
+export type HubFourPhotoSource =
+  | { kind: 'product-category'; categoryKey: HubFourProductPhotoCategoryKey }
+  | { kind: 'static-asset'; path: string }
+  | { kind: 'private-trip-hero' }
+
 /**
  * 메인 4허브 카드 — 그리드 순서: 패키지 → 자유여행 → 우리끼리 → 공공·기업.
  * TODO(운영): 카드별 대표 사진은 `/admin/home-hub-card-images` 및
@@ -214,13 +222,14 @@ export const MAIN_HUB_FOUR_CARDS = [
     hints: ['가족 여행', '상담 후 확정', '환불 규정 안내'] as const,
     ctaLabel: '패키지 보기',
     imageSrc: homeHubCardImageSrc('overseas', 'webp'),
+    photoSource: { kind: 'product-category', categoryKey: 'overseas' } as const,
   },
   {
     key: 'free-travel' as const satisfies HubFourCardKey,
     imageKey: 'overseas' as const,
     href: '/travel/air-hotel',
     accent: 'overseas' as const,
-    categoryLabel: '자유여행',
+    categoryLabel: '자유여행 (항공+호텔)',
     headline: '항공+호텔 직접 구성',
     titleEn: 'Free travel',
     description:
@@ -228,6 +237,7 @@ export const MAIN_HUB_FOUR_CARDS = [
     hints: ['항공+호텔', '맞춤 일정', '에어텔'] as const,
     ctaLabel: '자유여행 보기',
     imageSrc: homeHubCardImageSrc('overseas', 'webp'),
+    photoSource: { kind: 'product-category', categoryKey: 'air-hotel' } as const,
   },
   {
     key: 'private-trip' as const satisfies HubFourCardKey,
@@ -242,6 +252,7 @@ export const MAIN_HUB_FOUR_CARDS = [
     hints: ['가족', '소그룹', '단독 일정'] as const,
     ctaLabel: '우리끼리 보기',
     imageSrc: homeHubCardImageSrc('overseas', 'webp'),
+    photoSource: { kind: 'private-trip-hero' } as const,
   },
   {
     key: 'business' as const satisfies HubFourCardKey,
@@ -256,6 +267,7 @@ export const MAIN_HUB_FOUR_CARDS = [
     hints: ['정부·공공', '기업', '기관 섭외'] as const,
     ctaLabel: '공공·기업 보기',
     imageSrc: homeHubCardImageSrc('training', 'webp'),
+    photoSource: { kind: 'static-asset', path: '/images/home-hub/base/training.webp' } as const,
   },
 ] as const
 

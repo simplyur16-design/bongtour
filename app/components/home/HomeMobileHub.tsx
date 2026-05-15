@@ -19,6 +19,7 @@ import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import type { MobileMainServiceTileKey } from '@/lib/home-hub-resolve-images'
 import { resolveMobileMainTileBgSrc } from '@/lib/home-mobile-hub-tile-images'
 import { hubPhotoCardIsPending } from '@/lib/home-hub-photo-card-pending'
+import { getHubFourPhotosBundle } from '@/lib/home-hub-four-photo-bundle'
 import { HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS } from '@/lib/home-hub-four-accent-classes'
 import PartnerOrganizationsSectionGate from '@/app/components/home/PartnerOrganizationsSectionGate'
 
@@ -57,11 +58,17 @@ type Props = { seasonSlides: HomeSeasonPickDTO[] }
 /**
  * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 주요 서비스(사진 카드) / 시즌 추천 / 실무 요청 / 파트너.
  */
-export default function HomeMobileHub({ seasonSlides }: Props) {
+export default async function HomeMobileHub({ seasonSlides }: Props) {
+  const bundle = await getHubFourPhotosBundle()
   const mainTiles = MAIN_HUB_FOUR_CARDS.map((card) => {
     const bgKey = hubFourCardKeyToMobileTileKey(card.key)
-    const bgSrc = resolveMobileMainTileBgSrc(bgKey)
-    const imagePending = bgSrc == null || hubPhotoCardIsPending(bgSrc)
+    const fromBundle = (bundle[card.key] ?? '').trim()
+    const mobileDefault = resolveMobileMainTileBgSrc(bgKey)
+    const fallbackStatic = (card.imageSrc ?? '').trim()
+    const resolved =
+      fromBundle || (mobileDefault ?? '').trim() || fallbackStatic || ''
+    const bgSrc = resolved.length > 0 ? resolved : null
+    const imagePending = hubPhotoCardIsPending(bgSrc)
     return {
       href: card.href,
       title: card.categoryLabel,
