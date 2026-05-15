@@ -176,14 +176,22 @@ export const MAIN_INQUIRY_TYPES = [
 
 // ─── 메인 4축 허브 (2×2) — 실질적 메인 Hero; 짧은 헤드카피만(긴 슬로건은 서브로) ─
 
-export const MAIN_HUB_FOUR_SR_HEADING = 'Bong투어 주요 서비스 영역'
+/** @deprecated 시각 헤더는 `MAIN_HUB_FOUR_SECTION_TITLE` 사용 */
+export const MAIN_HUB_FOUR_SR_HEADING = '주요 카테고리'
 
-export type HubFourAccent = 'domestic' | 'overseas' | 'training' | 'esim'
+/** v5 시안 — 허브 4카드 섹션 제목 (PC·모바일 공통 SSOT) */
+export const MAIN_HUB_FOUR_SECTION_TITLE = '주요 카테고리' as const
+
+/** v5 시안 — 부제 없음 */
+export const MAIN_HUB_FOUR_SECTION_SUBTITLE: string | null = null
+
+/** 카드 면 색·호버 링 구분용 (시안 Image 1) */
+export type HubFourAccent = 'package' | 'air-hotel' | 'private' | 'biz'
 
 /** 헤더·4카드·모바일 첫 타일 공통 — 패키지(해외 패키지 허브) */
 export const MAIN_HOME_FIRST_HUB_TITLE = '패키지' as const
 /** 모바일 첫 타일 한 줄 설명(PC 카드 headline과 동일 톤) */
-export const MAIN_HOME_FIRST_HUB_TILE_DESC = '검증된 여행상품 · 가족 안심' as const
+export const MAIN_HOME_FIRST_HUB_TILE_DESC = '검증된 여행상품·메인' as const
 /** PC 메인 4카드 첫 칸 호버 본문(패키지) */
 export const MAIN_HOME_OVERSEAS_HUB_CARD_DESCRIPTION =
   '하나투어, 모두투어, 참좋은여행, ybtour 등 주요 여행사 상품 중 검토된 패키지만 모았습니다.' as const
@@ -200,9 +208,9 @@ export const MAIN_HUB_FOUR_CARDS = [
     key: 'package' as const satisfies HubFourCardKey,
     imageKey: 'overseas' as const,
     href: '/travel/overseas',
-    accent: 'overseas' as const,
+    accent: 'package' as const,
     categoryLabel: '패키지',
-    headline: '검증된 여행상품 · 가족 안심',
+    headline: '검증된 여행상품·메인',
     titleEn: 'Package',
     description: MAIN_HOME_OVERSEAS_HUB_CARD_DESCRIPTION,
     hints: ['가족 여행', '상담 후 확정', '환불 규정 안내'] as const,
@@ -213,7 +221,7 @@ export const MAIN_HUB_FOUR_CARDS = [
     key: 'free-travel' as const satisfies HubFourCardKey,
     imageKey: 'overseas' as const,
     href: '/travel/air-hotel',
-    accent: 'overseas' as const,
+    accent: 'air-hotel' as const,
     categoryLabel: '자유여행',
     headline: '항공+호텔 직접 구성',
     titleEn: 'Free travel',
@@ -227,7 +235,7 @@ export const MAIN_HUB_FOUR_CARDS = [
     key: 'private-trip' as const satisfies HubFourCardKey,
     imageKey: 'overseas' as const,
     href: '/travel/overseas/private-trip',
-    accent: 'overseas' as const,
+    accent: 'private' as const,
     categoryLabel: '우리끼리',
     headline: '가족·소그룹 단독 진행',
     titleEn: 'Private trip',
@@ -241,7 +249,7 @@ export const MAIN_HUB_FOUR_CARDS = [
     key: 'business' as const satisfies HubFourCardKey,
     imageKey: 'training' as const,
     href: '/training',
-    accent: 'training' as const,
+    accent: 'biz' as const,
     categoryLabel: '공공·기업',
     headline: '연수·전세버스·발권',
     titleEn: 'B2B & public',
