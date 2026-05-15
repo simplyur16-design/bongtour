@@ -45,6 +45,15 @@ export const MAIN_HERO_FEATURED_STRIP_LABEL = '상담 가능 일정 · 공급사
 
 // ─── 신뢰 밴드 (짧은 리드 + 3카드) ─────────────────────────────────────────
 
+/** 메인 영역 6 — 페르소나 큐레이션 추천 여행지 (PR-D3-B) */
+export const MAIN_PERSONA_SECTION_TITLE = '추천 여행지' as const
+
+export const PERSONA_TAB_LABELS = ['전체', '부모님과', '아이와', '부부끼리'] as const
+
+export const PERSONA_TAB_KEYS = ['all', 'with-parents', 'with-kids', 'couple'] as const
+
+export type PersonaTabKey = (typeof PERSONA_TAB_KEYS)[number]
+
 export const MAIN_TRUST_TITLE = 'Bong투어의 역할'
 
 export const MAIN_TRUST_LEAD =
