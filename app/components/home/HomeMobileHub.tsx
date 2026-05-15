@@ -19,8 +19,6 @@ import { resolveMobileMainTileBgSrc } from '@/lib/home-mobile-hub-tile-images'
 import { hubPhotoCardIsPending } from '@/lib/home-hub-photo-card-pending'
 import { getHubFourPhotosBundle } from '@/lib/home-hub-four-photo-bundle'
 import { HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS } from '@/lib/home-hub-four-accent-classes'
-import PartnerOrganizationsSectionGate from '@/app/components/home/PartnerOrganizationsSectionGate'
-
 const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
 /** `MAIN_HUB_FOUR_CARDS` 논리 키 → `home-hub-active.json` `mobileMainServiceTiles` 키 */
@@ -181,9 +179,6 @@ export default async function HomeMobileHub({ seasonSlides }: Props) {
         </div>
       </section>
 
-      <div className="border-t border-bt-border-soft/90 pt-7">
-        <PartnerOrganizationsSectionGate />
-      </div>
     </div>
   )
 }

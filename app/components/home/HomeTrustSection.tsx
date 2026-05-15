@@ -4,9 +4,11 @@ import {
   MAIN_TRUST_B2G_TITLE,
 } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import PartnerOrganizationsRotator from '@/app/components/home/PartnerOrganizationsRotator'
 
 /**
- * B2G 신뢰 밴드 (v5 시안) — 라벤더 베이스 · 흰 칩 · 다크 네이비 텍스트 (메모리 #27).
+ * B2G 신뢰 밴드 + 협력 기관 로고 마퀴 (한 섹션).
+ * 라벤더 베이스 · 흰 칩 · 다크 네이비 텍스트 (메모리 #27).
  */
 export default function HomeTrustSection() {
   return (
@@ -37,6 +39,10 @@ export default function HomeTrustSection() {
             </li>
           ))}
         </ul>
+
+        <div className="mt-8 sm:mt-10">
+          <PartnerOrganizationsRotator tone="on-lavender" deferMount showRightsLine />
+        </div>
       </div>
     </section>
   )
