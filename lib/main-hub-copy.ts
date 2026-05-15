@@ -82,16 +82,6 @@ export const MAIN_TRUST_B2G_TITLE = '지자체·공공기관이 신뢰한 봉투
 export const MAIN_TRUST_B2G_SUBTITLE =
   '실제 상담·진행·연수·행사 운영을 수행한 기관과 지자체' as const
 
-/** v5 시안 지자체·기관 칩 (표기 고정) */
-export const MAIN_TRUST_B2G_ENTITY_CHIPS = [
-  '경기도',
-  '하남시',
-  '파주시',
-  '시흥시',
-  '오산시',
-  'GBSA',
-] as const
-
 // ─── 월별 큐레이션 섹션 ─────────────────────────────────────────────────────
 
 export const MAIN_CURATION_EYEBROW = '시즌 추천'
@@ -255,8 +245,8 @@ export const MAIN_HUB_FOUR_CARDS = [
     imageKey: 'overseas' as const,
     href: '/travel/air-hotel',
     accent: 'overseas' as const,
-    categoryLabel: '자유여행 (항공+호텔)',
-    headline: '항공+호텔 직접 구성',
+    categoryLabel: '자유여행',
+    headline: '(항공+호텔)',
     titleEn: 'Free travel',
     description:
       '항공과 숙소를 원하는 조합으로 맞추는 자유·에어텔 성격 일정입니다. 세부는 상담에서 정리합니다.',

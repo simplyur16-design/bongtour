@@ -1324,7 +1324,7 @@ model BongsimCouponBatchItem {
   @@map("bongsim_coupon_batch_item")
 }
 
-/// 메인 시즌 추천 도시 사이클(약 2주) — Gemini가 primary 5 + fallback 10 cityKey 제안, PR-D3 검증 후 저장
+/// 메인 시즌 추천 도시 사이클(매달 KST 1일 기준) — Gemini가 primary 5 + fallback 10 cityKey 제안, PR-D3 검증 후 저장
 model SeasonalDestinationCuration {
   id              String   @id @default(cuid())
   cycleStartDate  DateTime @unique

@@ -76,7 +76,7 @@ export default async function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">
       <SiteJsonLd />
-      <Header />
+      <Header hideMobileNav />
       <RegistrationNoticeStrip />
       <main className="flex-1 pb-16 lg:pb-0">
         <section
