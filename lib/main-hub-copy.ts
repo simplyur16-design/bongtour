@@ -66,6 +66,24 @@ export const MAIN_TRUST_HIGHLIGHTS = [
   },
 ] as const
 
+// ─── B2G 신뢰 밴드 (v5 시안, HomeTrustSection) ───────────────────────────────
+
+/** 메인 신뢰 섹션 헤드라인 — 지자체·공공 B2G */
+export const MAIN_TRUST_B2G_TITLE = '지자체·공공기관이 신뢰한 봉투어' as const
+
+export const MAIN_TRUST_B2G_SUBTITLE =
+  '실제 상담·진행·연수·행사 운영을 수행한 기관과 지자체' as const
+
+/** v5 시안 지자체·기관 칩 (표기 고정) */
+export const MAIN_TRUST_B2G_ENTITY_CHIPS = [
+  '경기도',
+  '하남시',
+  '파주시',
+  '시흥시',
+  '오산시',
+  'GBSA',
+] as const
+
 // ─── 월별 큐레이션 섹션 ─────────────────────────────────────────────────────
 
 export const MAIN_CURATION_EYEBROW = '시즌 추천'
