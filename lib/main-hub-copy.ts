@@ -194,7 +194,13 @@ export const MAIN_HOME_FIRST_HUB_DESCRIPTION = MAIN_HOME_FIRST_HUB_TILE_DESC
 /** 메인 4허브 카드 논리 키(앵커·모바일 타일 id) — 이미지는 `imageKey`로 `home-hub-active.json` 기존 키와 매핑 */
 export type HubFourCardKey = 'package' | 'free-travel' | 'private-trip' | 'business'
 
-/** 그리드 순서: 패키지 → 자유여행 → 우리끼리 → 공공·기업 (헤더 4메뉴와 동일). 국내·eSIM 슬롯 없음 — eSIM은 코랄 띠·sticky로 위임 */
+/**
+ * 메인 4허브 카드 — 그리드 순서: 패키지 → 자유여행 → 우리끼리 → 공공·기업.
+ * TODO(운영): 카드별 대표 사진은 `/admin/home-hub-card-images` 및
+ * `public/data/home-hub-active.json` 의 `images` / `mobileMainServiceTiles` 로 교체한다.
+ * 런타임 `resolveHomeHubCardHybridImageSrc` / `resolveMobileMainTileBgSrc` 가 우선하고,
+ * 아래 `imageSrc` 는 타입·문서용 정적 폴백(`base` 시즌 `.webp`)이다.
+ */
 export const MAIN_HUB_FOUR_CARDS = [
   {
     key: 'package' as const satisfies HubFourCardKey,
@@ -207,7 +213,7 @@ export const MAIN_HUB_FOUR_CARDS = [
     description: MAIN_HOME_OVERSEAS_HUB_CARD_DESCRIPTION,
     hints: ['가족 여행', '상담 후 확정', '환불 규정 안내'] as const,
     ctaLabel: '패키지 보기',
-    imageSrc: homeHubCardImageSrc('overseas'),
+    imageSrc: homeHubCardImageSrc('overseas', 'webp'),
   },
   {
     key: 'free-travel' as const satisfies HubFourCardKey,
@@ -221,7 +227,7 @@ export const MAIN_HUB_FOUR_CARDS = [
       '항공과 숙소를 원하는 조합으로 맞추는 자유·에어텔 성격 일정입니다. 세부는 상담에서 정리합니다.',
     hints: ['항공+호텔', '맞춤 일정', '에어텔'] as const,
     ctaLabel: '자유여행 보기',
-    imageSrc: homeHubCardImageSrc('overseas'),
+    imageSrc: homeHubCardImageSrc('overseas', 'webp'),
   },
   {
     key: 'private-trip' as const satisfies HubFourCardKey,
@@ -235,7 +241,7 @@ export const MAIN_HUB_FOUR_CARDS = [
       '가족·지인·소규모 단체가 함께하는 단독 일정으로, 동선과 속도를 맞춰 제안합니다.',
     hints: ['가족', '소그룹', '단독 일정'] as const,
     ctaLabel: '우리끼리 보기',
-    imageSrc: homeHubCardImageSrc('overseas'),
+    imageSrc: homeHubCardImageSrc('overseas', 'webp'),
   },
   {
     key: 'business' as const satisfies HubFourCardKey,
@@ -249,7 +255,7 @@ export const MAIN_HUB_FOUR_CARDS = [
       '정부·공공·기업 목적에 맞춰 기관 섭외와 통역, 이동 운영까지 처음부터 설계합니다.',
     hints: ['정부·공공', '기업', '기관 섭외'] as const,
     ctaLabel: '공공·기업 보기',
-    imageSrc: homeHubCardImageSrc('training'),
+    imageSrc: homeHubCardImageSrc('training', 'webp'),
   },
 ] as const
 

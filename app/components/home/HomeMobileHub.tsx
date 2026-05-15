@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 import MobileHomeClientErrorBoundary from '@/app/components/home/MobileHomeClientErrorBoundary'
+import HomeHubPhotoPlaceholder from '@/app/components/home/HomeHubPhotoPlaceholder'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
 import {
   MAIN_HERO_CTA_PRIMARY_HREF,
@@ -17,6 +18,8 @@ import {
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import type { MobileMainServiceTileKey } from '@/lib/home-hub-resolve-images'
 import { resolveMobileMainTileBgSrc } from '@/lib/home-mobile-hub-tile-images'
+import { hubPhotoCardIsPending } from '@/lib/home-hub-photo-card-pending'
+import { HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS } from '@/lib/home-hub-four-accent-classes'
 import PartnerOrganizationsSectionGate from '@/app/components/home/PartnerOrganizationsSectionGate'
 
 const INQUIRY_TRAVEL = '/inquiry?type=travel'
@@ -45,52 +48,26 @@ const QUICK_ACTIONS = [
   { href: '/charter-bus', label: '전세버스', primary: false as const },
 ] as const
 
-/**
- * 카드 외곽·높이·라운드 공통.
- * `isolate` + 음수 z-index 제거: 배경 레이어가 `bg-slate-100` 뒤로 깔려 이미지가 안 보이던 문제 방지.
- */
-const TILE_CARD_CLASS =
-  'relative flex min-h-[8.75rem] flex-col items-center justify-center overflow-hidden rounded-2xl border border-bt-border-soft bg-[#4a5d72] px-4 py-5 text-center shadow-sm ring-1 ring-bt-border-soft/40 transition active:scale-[0.99] hover:border-bt-border-strong hover:ring-bt-border-strong/30'
-
-/** 배경 사진 또는 무이미지 시 대체 그라데이션 — 링크 배경 위 z-0 */
-const TILE_BG_IMAGE_WRAP =
-  'pointer-events-none absolute inset-0 z-0 block min-h-[8.75rem] w-full min-w-0'
-
-/**
- * `mobileMainServiceTiles` URL 미설정 시 — 쿨그레이보다 살짝만 채도 있는 스틸블루(형광 없이 여행사 톤).
- * 실제 배경은 관리자에서 타일별 URL 지정 권장.
- */
-const TILE_BG_FALLBACK_GRADIENT =
-  'bg-gradient-to-br from-slate-700 via-purple-950 to-bt-text-navy'
-
-/** 사진 있을 때: 기존 하단 스크림 */
-const TILE_BG_SCRIM =
-  'pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-transparent via-black/35 to-black/78 max-lg:block lg:hidden'
-
-/** 사진 없을 때: 스틸블루 베이스 위 가벼운 하단만 살짝 어둡게 */
-const TILE_BG_SCRIM_FALLBACK =
-  'pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-transparent via-purple-950/35 to-slate-900/58 max-lg:block lg:hidden'
-
-const TILE_BG_VIGNETTE =
-  'pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-black/25 via-transparent to-black/15 max-lg:block lg:hidden'
-
-const TILE_BG_VIGNETTE_FALLBACK =
-  'pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-slate-900/30 via-transparent to-purple-200/12 max-lg:block lg:hidden'
+/** PC `HomeHubFourClientCard` 와 동일 DEEP DARK 필터 (메모리 #27) */
+const MOBILE_HUB_PHOTO_FILTER =
+  'transition-[filter] duration-200 ease-out [filter:brightness(0.55)_contrast(1.05)] group-hover:[filter:brightness(0.7)_contrast(1.05)]'
 
 type Props = { seasonSlides: HomeSeasonPickDTO[] }
 
 /**
- * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 주요 서비스 / 시즌 추천(이미지·글) / 실무 요청 / 파트너.
+ * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 주요 서비스(사진 카드) / 시즌 추천 / 실무 요청 / 파트너.
  */
 export default function HomeMobileHub({ seasonSlides }: Props) {
   const mainTiles = MAIN_HUB_FOUR_CARDS.map((card) => {
     const bgKey = hubFourCardKeyToMobileTileKey(card.key)
+    const bgSrc = resolveMobileMainTileBgSrc(bgKey)
+    const imagePending = bgSrc == null || hubPhotoCardIsPending(bgSrc)
     return {
       href: card.href,
       title: card.categoryLabel,
       desc: card.headline,
-      bgKey,
-      bgSrc: resolveMobileMainTileBgSrc(bgKey),
+      bgSrc,
+      imagePending,
     }
   })
 
@@ -125,42 +102,52 @@ export default function HomeMobileHub({ seasonSlides }: Props) {
       <section aria-label="주요 서비스">
         <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>주요 서비스</h2>
         <ul className="grid grid-cols-2 gap-3.5" role="list">
-          {mainTiles.map((t, index) => (
-            <li key={t.href} className="min-w-0">
-              <Link
-                href={t.href}
-                prefetch={t.href !== '/travel/overseas/private-trip'}
-                className={TILE_CARD_CLASS}
-              >
-                {t.bgSrc ? (
-                  <span className={TILE_BG_IMAGE_WRAP}>
-                    <SafeImage
-                      src={t.bgSrc}
-                      alt={`${t.title} 주요 서비스 배경`}
-                      fill
-                      sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
-                      quality={index === 0 ? 80 : 75}
-                      className="object-cover saturate-[0.92] contrast-[1.02]"
-                      priority={index === 0}
-                      loading={index === 0 ? undefined : 'lazy'}
-                    />
-                  </span>
-                ) : (
-                  <span className={`${TILE_BG_IMAGE_WRAP} ${TILE_BG_FALLBACK_GRADIENT}`} aria-hidden />
-                )}
-                <span aria-hidden className={t.bgSrc ? TILE_BG_SCRIM : TILE_BG_SCRIM_FALLBACK} />
-                <span aria-hidden className={t.bgSrc ? TILE_BG_VIGNETTE : TILE_BG_VIGNETTE_FALLBACK} />
-                <span className="relative z-[3] flex flex-col items-center text-center">
-                  <p className="text-lg font-extrabold leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] sm:text-xl">
-                    {t.title}
-                  </p>
-                  <p className="mt-2.5 max-w-[13rem] text-sm font-semibold leading-snug text-white/95 drop-shadow-[0_1px_6px_rgba(0,0,0,0.75)]">
-                    {t.desc}
-                  </p>
-                </span>
-              </Link>
-            </li>
-          ))}
+          {mainTiles.map((t, index) => {
+            const aria = [t.title, t.desc, '바로가기'].filter(Boolean).join('. ')
+            return (
+              <li key={t.href} className="min-w-0">
+                <Link
+                  href={t.href}
+                  prefetch={t.href !== '/travel/overseas/private-trip'}
+                  aria-label={aria}
+                  className={`group relative flex min-h-[11.5rem] flex-col overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-sm active:scale-[0.99] ${HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS}`}
+                >
+                  {t.imagePending ? (
+                    <HomeHubPhotoPlaceholder />
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 z-[1] overflow-hidden rounded-2xl">
+                        <div className={`absolute inset-0 z-0 ${MOBILE_HUB_PHOTO_FILTER}`}>
+                          <SafeImage
+                            src={t.bgSrc!}
+                            alt=""
+                            fill
+                            sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
+                            quality={index === 0 ? 80 : 75}
+                            className="object-cover object-center"
+                            priority={index === 0}
+                            loading={index === 0 ? undefined : 'lazy'}
+                          />
+                        </div>
+                      </div>
+                      <div
+                        className="pointer-events-none absolute inset-0 z-[2] bg-[rgba(0,0,0,0.35)]"
+                        aria-hidden
+                      />
+                    </>
+                  )}
+                  <div className="relative z-[3] flex flex-1 flex-col items-center justify-center px-3 py-6 text-center">
+                    <p className="text-2xl font-bold leading-tight tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] sm:text-[28px]">
+                      {t.title}
+                    </p>
+                    <p className="mt-2 max-w-[18ch] text-sm leading-snug text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)]">
+                      {t.desc}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       </section>
 

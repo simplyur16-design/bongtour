@@ -1,5 +1,6 @@
 import { MAIN_HUB_FOUR_CARDS, MAIN_HUB_FOUR_SR_HEADING } from '@/lib/main-hub-copy'
 import { hubFourCardKeyToHybridImageKey, resolveHomeHubCardHybridImageSrc } from '@/lib/home-hub-resolve-images'
+import { hubPhotoCardIsPending } from '@/lib/home-hub-photo-card-pending'
 import HomeHubFourClientCard, { type HomeHubFourClientCardModel } from '@/app/components/home/HomeHubFourClientCard'
 
 export type HomeHubFourProps = {
@@ -23,7 +24,6 @@ function toClientModel(
     key: card.key,
     imageKey: hubFourCardKeyToHybridImageKey(card.key),
     href: card.href,
-    accent: card.accent,
     categoryLabel: card.categoryLabel,
     headline: card.headline,
     titleEn: card.titleEn,
@@ -31,6 +31,7 @@ function toClientModel(
     hints: card.hints,
     ctaLabel: card.ctaLabel,
     imageSrc,
+    imagePending: hubPhotoCardIsPending(imageSrc),
   }
 }
 
@@ -51,9 +52,13 @@ export default function HomeHubFour(props: HomeHubFourProps = {}) {
       </h2>
 
       <div className="mx-auto max-w-6xl px-3 sm:px-5">
-        <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5" role="list">
+        <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:grid-cols-4" role="list">
           {cards.map((card, index) => (
-            <HomeHubFourClientCard key={card.key} card={toClientModel(card, card.imageSrc)} index={index} />
+            <HomeHubFourClientCard
+              key={card.key}
+              card={toClientModel(card, card.imageSrc)}
+              index={index}
+            />
           ))}
         </ul>
       </div>
