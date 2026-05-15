@@ -24,6 +24,7 @@ import HomeMobileHub from './components/home/HomeMobileHub'
 import { getSeasonCurationSlidesForMobileHome } from '@/lib/home-season-pick'
 import { normalizeHomeSeasonSlidesForClient } from '@/lib/home-season-pick-shared'
 import PartnerOrganizationsSectionGate from './components/home/PartnerOrganizationsSectionGate'
+import HomeTrustSection from './components/home/HomeTrustSection'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from '@/lib/home-page-metadata'
 import { DEFAULT_OG_IMAGE_PATH, SITE_NAME } from '@/lib/site-metadata'
@@ -115,6 +116,7 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        <HomeTrustSection />
         <div className="hidden lg:block">
           <PartnerOrganizationsSectionGate />
         </div>
