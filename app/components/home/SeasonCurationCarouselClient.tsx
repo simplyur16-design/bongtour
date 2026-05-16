@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeHomeSeasonSlidesForClient, type HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
 import { MAIN_CURATION_EYEBROW, MAIN_CURATION_LEAD, MAIN_CURATION_TITLE } from '@/lib/main-hub-copy'
+import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
 const AUTO_MS = 5600
 const PAUSE_AFTER_MS = 12_000
@@ -162,7 +163,7 @@ export function SeasonCurationCardLink({
               className="object-cover object-center"
               sizes={
                 hero
-                  ? '(max-width:768px) 100vw, 80rem'
+                  ? '100vw'
                   : compact
                     ? '(max-width:768px) 85vw, 320px'
                     : '(max-width:1280px) 100vw, 1152px'
@@ -183,12 +184,13 @@ export function SeasonCurationCardLink({
         <div
           className={`relative z-[3] flex h-full flex-col ${
             hero
-              ? 'justify-end p-8 sm:p-12'
+              ? 'justify-end pb-8 pt-0 sm:pb-12'
               : compact
                 ? 'justify-end p-4'
                 : 'justify-end p-6 sm:p-8'
           }`}
         >
+          <div className={hero ? `${SITE_CONTENT_CLASS} w-full` : 'h-full w-full'}>
           {slide.monthKey ? (
             <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/85">{slide.monthKey}</p>
           ) : null}
@@ -229,13 +231,14 @@ export function SeasonCurationCardLink({
           >
             {cta}
           </span>
+          </div>
         </div>
       </div>
     </>
   )
 
   const cardClass = hero
-    ? 'group block w-full overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-lg outline-none ring-bt-text-navy/0 transition hover:ring-2 hover:ring-bt-text-navy/15 sm:rounded-3xl'
+    ? 'group block w-full overflow-hidden rounded-none border-y border-bt-border-soft/80 shadow-lg outline-none ring-bt-text-navy/0 transition hover:ring-2 hover:ring-bt-text-navy/15'
     : 'group block overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-sm outline-none ring-bt-text-navy/0 transition hover:ring-2 hover:ring-bt-text-navy/15'
 
   if (isExternal) {
