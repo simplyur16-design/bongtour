@@ -14,6 +14,7 @@ import {
   fetchPublishedOverseasEditorials,
   prioritizeEditorialsByRegionAndCountry,
 } from '@/lib/overseas-editorial-prioritize'
+import { resolveOverseasGeoFilterBanner } from '@/lib/overseas-destination-browse'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
 
@@ -49,6 +50,7 @@ export default async function OverseasTravelPage({
   const sp = (await searchParams) ?? {}
   const region = typeof sp.region === 'string' ? sp.region : null
   const country = typeof sp.country === 'string' ? sp.country : null
+  const overseasGeoFilterBanner = await resolveOverseasGeoFilterBanner(sp)
   const selectedRegionSlug =
     region && (LOCAL_DEPARTURE_REGIONS as readonly string[]).includes(region) ? region : null
 
@@ -86,6 +88,7 @@ export default async function OverseasTravelPage({
             pageTitle="해외여행 상품"
             hidePageHeading
             overseasEditorialBriefing={overseasEditorialBriefing}
+            overseasGeoFilterBanner={overseasGeoFilterBanner}
           />
         </Suspense>
 

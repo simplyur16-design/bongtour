@@ -17,6 +17,7 @@ import ProductFilterMobileDrawer from '@/components/products/filter/ProductFilte
 import ProductFilterChips, { buildFilterChips } from '@/components/products/ProductFilterChips'
 import ProductSortBar from '@/components/products/ProductSortBar'
 import ProductResultsList, { type ResultItem } from '@/components/products/ProductResultsList'
+import type { OverseasGeoFilterBanner } from '@/lib/overseas-destination-browse'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import { sortProductsBySeason } from '@/lib/product-sort'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
@@ -81,6 +82,8 @@ type Props = {
   hidePageHeading?: boolean
   /** 해외 허브: 서유럽 섹션용 목적지 브리핑(서버 선별) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
+  /** 추천 여행지·메가메뉴 도시/국가 필터 시 상단 제목·해제 */
+  overseasGeoFilterBanner?: OverseasGeoFilterBanner | null
 }
 
 function formatWon(n: number | null) {
@@ -123,6 +126,7 @@ export default function ProductsBrowseClient({
   pageTitle = '여행 상품',
   hidePageHeading = false,
   overseasEditorialBriefing = null,
+  overseasGeoFilterBanner = null,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname() ?? ''
@@ -184,6 +188,19 @@ export default function ProductsBrowseClient({
   useEffect(() => {
     if (drawerOpen) setDraft(parseBrowseQuery(new URLSearchParams(searchParams.toString())))
   }, [drawerOpen, searchParams])
+
+  /** Persona 카드 `?destination=` → browse API용 `city`로 정규화 */
+  useEffect(() => {
+    if (pathname !== '/travel/overseas' || defaultScope !== 'overseas') return
+    const dest = (searchParams.get('destination') ?? '').trim()
+    const city = (searchParams.get('city') ?? '').trim()
+    if (!dest || city) return
+    const sp = new URLSearchParams(searchParams.toString())
+    sp.set('city', dest)
+    sp.delete('destination')
+    if (defaultScope && !sp.get('scope')) sp.set('scope', defaultScope)
+    router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
+  }, [basePath, defaultScope, pathname, router, searchParams])
 
   useEffect(() => {
     let cancelled = false
@@ -313,6 +330,7 @@ export default function ProductsBrowseClient({
       'region',
       'country',
       'city',
+      'destination',
       'hubSeason',
     ].forEach((k) => sp.delete(k))
     if (defaultScope) sp.set('scope', defaultScope)
@@ -432,10 +450,11 @@ export default function ProductsBrowseClient({
   const isOverseasProductsHub = pathname === '/travel/overseas' && defaultScope === 'overseas'
   /** 메가메뉴 권역·나라 선택 — 시즌 허브 카드/시즌 추천 상품 숨김용 */
   const hasMegaGeo = Boolean((q.region ?? '').trim() || (q.country ?? '').trim())
+  const hasDestinationFilter = Boolean(
+    overseasGeoFilterBanner || (q.city ?? '').trim() || (searchParams.get('destination') ?? '').trim(),
+  )
   const hasGeoFilter = Boolean(
-    hasMegaGeo ||
-      (q.city ?? '').trim() ||
-      (searchParams.get('hubSeason') ?? '').trim(),
+    hasMegaGeo || hasDestinationFilter || (searchParams.get('hubSeason') ?? '').trim(),
   )
   const showOverseasSidebar = !isOverseasProductsHub || hasGeoFilter
   const overseasHubWideLayout = isOverseasProductsHub && !hasMegaGeo
@@ -576,12 +595,12 @@ export default function ProductsBrowseClient({
       {!loading && data && data.total === 0 && !budgetActive && hasNonBudgetFilters && (
         <div className="mt-10 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-6 text-sm text-slate-900">
           <p className="font-semibold">
-            {hasMegaGeo || Boolean((q.city ?? '').trim())
+            {hasMegaGeo || hasDestinationFilter
               ? '등록된 여행상품이 없습니다.'
               : '선택한 조건에 맞는 상품이 없습니다.'}
           </p>
           <p className="mt-2 text-slate-700">
-            {hasMegaGeo || Boolean((q.city ?? '').trim())
+            {hasMegaGeo || hasDestinationFilter
               ? '현재 이 목적지·지역으로 노출되는 상품이 없습니다. 다른 지역을 선택하거나 필터를 조정해 보세요.'
               : '필터를 조정하거나 초기화한 뒤 다시 찾아보세요.'}
           </p>
@@ -687,6 +706,23 @@ export default function ProductsBrowseClient({
     </>
   )
 
+  const overseasDestinationBanner =
+    isOverseasProductsHub && overseasGeoFilterBanner ? (
+      <div
+        className={`${SITE_CONTENT_CLASS} mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-bt-border-soft bg-white/95 px-4 py-3 shadow-sm`}
+      >
+        <h2 className="text-lg font-bold tracking-tight text-bt-text-navy sm:text-xl">
+          {overseasGeoFilterBanner.title}
+        </h2>
+        <Link
+          href="/travel/overseas"
+          className="inline-flex shrink-0 items-center rounded-full border border-bt-border-strong px-3.5 py-1.5 text-sm font-semibold text-bt-text-muted-lavender transition hover:bg-bt-surface-soft hover:text-bt-text-navy"
+        >
+          전체 상품 보기
+        </Link>
+      </div>
+    ) : null
+
   const mobileBar =
     showOverseasSidebar ? (
       <div
@@ -721,6 +757,7 @@ export default function ProductsBrowseClient({
 
   return (
     <>
+      {overseasDestinationBanner}
       <ProductsPageLayout
         summary={summary}
         chips={
