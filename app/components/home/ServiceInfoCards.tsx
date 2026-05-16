@@ -52,7 +52,7 @@ export default function ServiceInfoCards() {
           </Link>
 
           <Link
-            href="/training"
+            href="/business"
             className="group relative flex min-h-[14rem] flex-col overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-md transition hover:ring-2 hover:ring-bt-text-navy/15"
           >
             <div className="absolute inset-0 z-0">
