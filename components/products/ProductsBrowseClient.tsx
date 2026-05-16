@@ -16,12 +16,10 @@ import ProductFilterForm, { type BrowseFacets } from '@/components/products/filt
 import ProductFilterMobileDrawer from '@/components/products/filter/ProductFilterMobileDrawer'
 import ProductFilterChips, { buildFilterChips } from '@/components/products/ProductFilterChips'
 import ProductSortBar from '@/components/products/ProductSortBar'
-import ProductResultsList, { ProductResultCard, type ResultItem } from '@/components/products/ProductResultsList'
-import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
+import ProductResultsList, { type ResultItem } from '@/components/products/ProductResultsList'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import { sortProductsBySeason } from '@/lib/product-sort'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
-import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 
 type ApiOk = {
   ok: true
@@ -83,18 +81,12 @@ type Props = {
   hidePageHeading?: boolean
   /** 해외 허브: 서유럽 섹션용 목적지 브리핑(서버 선별) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
-  /** 해외 허브: 시즌 추천 순환 — 허브 기본 화면 상단 캐러셀(메가 지역 선택 시 목록 내 슬롯) */
-  overseasSeasonCurationSlides?: HomeSeasonPickDTO[] | null
 }
 
 function formatWon(n: number | null) {
   if (n == null) return '문의'
   return `${n.toLocaleString('ko-KR')}원~`
 }
-
-/** 해외 허브 시즌 추천 상품 행 — `ProductResultsList` 나라별 줄과 동일한 가로 스크롤 */
-const overseasHubSeasonProductRowClass =
-  'mt-4 flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible overscroll-x-contain pb-2 pt-0.5 snap-x snap-proximity [-ms-overflow-style:none] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]'
 
 function syncTypeWithCategories(q: BrowseQueryState): BrowseQueryState {
   if (q.categories.length !== 1) return q
@@ -131,7 +123,6 @@ export default function ProductsBrowseClient({
   pageTitle = '여행 상품',
   hidePageHeading = false,
   overseasEditorialBriefing = null,
-  overseasSeasonCurationSlides = null,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname() ?? ''
@@ -178,75 +169,6 @@ export default function ProductsBrowseClient({
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [draft, setDraft] = useState<BrowseQueryState>(q)
   const [airlineShowAll, setAirlineShowAll] = useState(false)
-  const [seasonHubItems, setSeasonHubItems] = useState<ResultItem[]>([])
-  const [seasonHubLoading, setSeasonHubLoading] = useState(false)
-
-  const hubSeasonSlug = (searchParams.get('hubSeason') ?? '').trim().toLowerCase() || null
-
-  const seasonHeading = useMemo(() => {
-    const now = new Date()
-    const currentMonth = now.getMonth() + 1
-    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1
-    return `${currentMonth}~${nextMonth}월 떠나기 좋은 여행지`
-  }, [])
-
-  const curatedCountrySlugs = useMemo(() => {
-    const list = overseasSeasonCurationSlides ?? []
-    const s = new Set<string>()
-    for (const c of list) {
-      const slug = (c.resolvedProductCountrySlug ?? '').trim().toLowerCase()
-      if (slug) s.add(slug)
-    }
-    return [...s]
-  }, [overseasSeasonCurationSlides])
-
-  const slugsForSeasonHubFetch = useMemo(() => {
-    if (curatedCountrySlugs.length === 0) return [] as string[]
-    if (hubSeasonSlug && curatedCountrySlugs.includes(hubSeasonSlug)) return [hubSeasonSlug]
-    return curatedCountrySlugs
-  }, [curatedCountrySlugs, hubSeasonSlug])
-
-  useEffect(() => {
-    const megaGeo =
-      Boolean((q.region ?? '').trim() || (q.country ?? '').trim()) &&
-      pathname === '/travel/overseas' &&
-      defaultScope === 'overseas'
-    if (
-      pathname !== '/travel/overseas' ||
-      defaultScope !== 'overseas' ||
-      megaGeo ||
-      slugsForSeasonHubFetch.length === 0
-    ) {
-      setSeasonHubItems([])
-      setSeasonHubLoading(false)
-      return
-    }
-    let cancelled = false
-    ;(async () => {
-      setSeasonHubLoading(true)
-      try {
-        const p = new URLSearchParams()
-        p.set('scope', 'overseas')
-        p.set('limit', '6')
-        p.set('seasonCountries', slugsForSeasonHubFetch.join(','))
-        const res = await fetch(`/api/products/browse?${p.toString()}`, { cache: 'no-store' })
-        const json = (await res.json()) as ApiOk | { ok?: false }
-        if (cancelled) return
-        if (res.ok && json && typeof json === 'object' && 'ok' in json && (json as ApiOk).ok === true) {
-          setSeasonHubItems((json as ApiOk).items ?? [])
-        } else {
-          setSeasonHubItems([])
-        }
-      } catch {
-        if (!cancelled) setSeasonHubItems([])
-      } finally {
-        if (!cancelled) setSeasonHubLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [pathname, defaultScope, q.country, q.region, slugsForSeasonHubFetch.join(',')])
 
   const setHubSeasonQuery = useCallback(
     (slug: string | null) => {
@@ -632,56 +554,6 @@ export default function ProductsBrowseClient({
           {error}
         </p>
       )}
-      {!loading &&
-        data &&
-        !hasMegaGeo &&
-        pathname === '/travel/overseas' &&
-        defaultScope === 'overseas' && (
-          <div className="mb-10 space-y-8">
-            {(overseasSeasonCurationSlides?.length ?? 0) > 0 ? (
-              <HomeMobileHubSeasonCarousel slides={overseasSeasonCurationSlides ?? []} hideHeading />
-            ) : null}
-            <section aria-labelledby="overseas-hub-season-products-heading">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 id="overseas-hub-season-products-heading" className="text-xl font-bold text-slate-900">
-                  {seasonHeading}
-                </h2>
-                {hubSeasonSlug ? (
-                  <button
-                    type="button"
-                    onClick={() => setHubSeasonQuery(null)}
-                    className="text-xs font-medium text-teal-700 underline-offset-2 hover:underline"
-                  >
-                    큐레이션 전체
-                  </button>
-                ) : null}
-              </div>
-              <div className={overseasHubSeasonProductRowClass}>
-                {slugsForSeasonHubFetch.length === 0 ? (
-                  <p className="shrink-0 py-6 text-sm text-slate-500">표시할 상품이 없습니다.</p>
-                ) : seasonHubLoading ? (
-                  <p className="shrink-0 py-6 text-sm text-slate-500">불러오는 중…</p>
-                ) : seasonHubItems.length === 0 ? (
-                  <p className="shrink-0 py-6 text-sm text-slate-500">표시할 상품이 없습니다.</p>
-                ) : (
-                  seasonHubItems.slice(0, 6).map((item) => (
-                    <div
-                      key={item.id}
-                      className={
-                        overseasHubWideLayout
-                          ? 'w-[min(300px,42vw)] shrink-0 snap-start sm:w-[min(280px,30vw)]'
-                          : 'w-[min(280px,78vw)] shrink-0 snap-start'
-                      }
-                    >
-                      <ProductResultCard item={item} formatWon={formatWon} />
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-            <h2 className="text-xl font-bold text-slate-900">전체 여행상품</h2>
-          </div>
-        )}
       {!loading && data && data.total === 0 && budgetActive && (
         <div className="mt-10 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-6 text-sm text-slate-900">
           <p className="font-semibold">입력한 1인당 예산 범위에 맞는 상품이 없습니다.</p>
@@ -778,9 +650,6 @@ export default function ProductsBrowseClient({
             groupAirHotelByCountry={pathname === '/travel/air-hotel'}
             groupDomesticByRegion={isDomesticHub}
             overseasEditorialBriefing={overseasEditorialBriefing}
-            overseasSeasonCurationSlides={
-              pathname === '/travel/overseas' && defaultScope === 'overseas' ? null : overseasSeasonCurationSlides
-            }
             seasonalPickIds={browsePresented.seasonalPickIds}
             overseasHubWideLayout={overseasHubWideLayout}
             overseasFlatByCountrySlug={q.country?.trim() || null}

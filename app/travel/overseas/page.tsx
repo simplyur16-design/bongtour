@@ -6,7 +6,7 @@ import OverseasInteractiveShell from '@/app/components/travel/overseas/OverseasI
 import OverseasManagedContent from '@/app/components/travel/overseas/OverseasManagedContent'
 import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
-import { getPublishedOverseasMonthlyCurationsForMonth, getSeasonCurationSlidesForOverseasProductHub } from '@/lib/home-season-pick'
+import { getPublishedOverseasMonthlyCurationsForMonth } from '@/lib/home-season-pick'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import {
@@ -53,15 +53,12 @@ export default async function OverseasTravelPage({
     region && (LOCAL_DEPARTURE_REGIONS as readonly string[]).includes(region) ? region : null
 
   const monthKey = getSeoulYearMonthNow()
-  const [editorialAll, overseasSeasonCurationSlidesRaw, allMonthCurations] = await Promise.all([
+  const [editorialAll, allMonthCurations] = await Promise.all([
     fetchPublishedOverseasEditorials().catch(
       (): Awaited<ReturnType<typeof fetchPublishedOverseasEditorials>> => [],
     ),
-    getSeasonCurationSlidesForOverseasProductHub(region, country),
     getPublishedOverseasMonthlyCurationsForMonth(monthKey),
   ])
-
-  const overseasSeasonCurationSlides = overseasSeasonCurationSlidesRaw
 
   let overseasEditorialBriefing: OverseasEditorialBriefingPayload | null = null
   try {
@@ -89,7 +86,6 @@ export default async function OverseasTravelPage({
             pageTitle="해외여행 상품"
             hidePageHeading
             overseasEditorialBriefing={overseasEditorialBriefing}
-            overseasSeasonCurationSlides={overseasSeasonCurationSlides}
           />
         </Suspense>
 
