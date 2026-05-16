@@ -2,7 +2,7 @@
  * 페이지 히어로(해외/국내 허브 상단 등) 전용 1줄 멘트 — 스텁·라벨·월 유틸.
  *
  * - 상품 대표이미지용 `buildPublicProductHeroSeoKeywordOverlay` / 출처 오버레이와 경로를 섞지 않는다.
- * - Gemini 생성: `lib/page-hero-monthly-gemini-server.ts` + `POST /api/public/page-hero-editorial-lines`.
+ * - 실시간 Gemini는 해외 히어로에서 비활성(스텁만). cron 사전 생성은 별도 PR.
  * - 실패·비키 호출 시 멘트는 `buildPublicPageHeroEditorialLineMonthlyStub` 로 폴백.
  */
 

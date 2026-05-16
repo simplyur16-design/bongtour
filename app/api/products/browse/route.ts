@@ -1,7 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { PRODUCT_BROWSE_SELECT, type ProductBrowseIncludedRow } from '@/lib/product-browse-full-include'
+import { PRODUCT_BROWSE_FULL_INCLUDE, type ProductBrowseIncludedRow } from '@/lib/product-browse-full-include'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
 import { filterProductsForDomesticDestinationTree } from '@/lib/active-domestic-location-tree'
@@ -275,7 +275,7 @@ async function productsBrowseGetUncached(queryKey: string): Promise<Response> {
         ],
       },
       orderBy: { updatedAt: 'desc' },
-      select: PRODUCT_BROWSE_SELECT,
+      include: PRODUCT_BROWSE_FULL_INCLUDE,
     })
     /**
      * 공개 목록용으로 "예약 가능 최소일(오늘+2일) 이후" 출발만 `departures`에 남긴다.
