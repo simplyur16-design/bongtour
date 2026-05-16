@@ -17,30 +17,7 @@ export default async function OverseasRegisteredProductsSection() {
   const rows = await prisma.product.findMany({
     where: { registrationStatus: 'registered' },
     orderBy: { updatedAt: 'desc' },
-    select: {
-      id: true,
-      originSource: true,
-      title: true,
-      productType: true,
-      listingKind: true,
-      primaryDestination: true,
-      destination: true,
-      destinationRaw: true,
-      primaryRegion: true,
-      continent: true,
-      country: true,
-      city: true,
-      countryKey: true,
-      continentKey: true,
-      cityKey: true,
-      updatedAt: true,
-      priceFrom: true,
-      bgImageUrl: true,
-      schedule: true,
-      duration: true,
-      departures: PRODUCT_PRICE_FOR_BROWSE_INCLUDE.departures,
-      prices: PRODUCT_PRICE_FOR_BROWSE_INCLUDE.prices,
-    },
+    include: PRODUCT_PRICE_FOR_BROWSE_INCLUDE,
   })
 
   const overseasRows = filterProductsForOverseasDestinationTree(rows)
