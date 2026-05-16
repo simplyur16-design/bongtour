@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeHomeSeasonSlidesForClient, type HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { MAIN_CURATION_EYEBROW, MAIN_CURATION_LEAD, MAIN_CURATION_TITLE } from '@/lib/main-hub-copy'
+import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SeasonCurationCardLink } from '@/app/components/home/SeasonCurationCarouselClient'
 
 const AUTO_MS = 5000
@@ -56,17 +57,21 @@ export default function SeasonCurationHeroClient({ slides, sectionId }: Props) {
         <p className="mx-auto mt-2 max-w-2xl text-sm text-bt-text-muted-lavender">{MAIN_CURATION_LEAD}</p>
       </div>
 
-      <div className="relative mx-auto mt-5 w-full max-w-[min(100%,80rem)] px-2 sm:px-4 lg:px-6" onPointerDown={bumpPause}>
+      <div className="relative mt-5 w-full" onPointerDown={bumpPause}>
         {n > 1 ? (
-          <div className="pointer-events-none absolute right-4 top-4 z-[5] rounded-full bg-slate-900/75 px-2.5 py-1 text-xs font-semibold text-white sm:right-6 sm:top-6">
-            {index + 1} / {n}
+          <div
+            className={`pointer-events-none absolute inset-x-0 top-4 z-[5] ${SITE_CONTENT_CLASS} flex justify-end sm:top-6`}
+          >
+            <span className="rounded-full bg-slate-900/75 px-2.5 py-1 text-xs font-semibold text-white">
+              {index + 1} / {n}
+            </span>
           </div>
         ) : null}
         <SeasonCurationCardLink slide={slide} compact={false} hero />
       </div>
 
       {n > 1 ? (
-        <div className="mx-auto mt-4 flex max-w-6xl justify-center gap-2 px-3">
+        <div className="mt-4 flex w-full justify-center gap-2 px-3">
           {safe.map((s, i) => (
             <button
               key={`hero-dot-${s.id}`}

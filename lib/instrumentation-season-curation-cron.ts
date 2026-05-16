@@ -14,10 +14,41 @@ function resolveInternalSiteBase(): string {
   return raw.replace(/\/$/, '')
 }
 
+/** 서버 기동 시 활성 사이클이 없으면 1회 시드(첫 배포·재시작). */
+async function seedSeasonCurationCycleOnStartup(): Promise<void> {
+  try {
+    if (process.env.NODE_ENV !== 'production') {
+      return
+    }
+    if (!(process.env.DATABASE_URL ?? '').trim()) {
+      console.warn('[season-curation-cron] startup seed skip: DATABASE_URL')
+      return
+    }
+    const { getCurrentCycle, rotateCycleIfDue } = await import('./season-curation')
+    const now = new Date()
+    const current = await getCurrentCycle(now)
+    if (current) {
+      console.log('[season-curation-cron] startup seed skip: active cycle exists')
+      return
+    }
+    const result = await rotateCycleIfDue(now, { force: true })
+    console.log('[season-curation-cron] startup seed', {
+      rotated: result.rotated,
+      cycleId: result.cycle?.id ?? null,
+      message: result.message,
+    })
+  } catch (e) {
+    console.error('[season-curation-cron] startup seed error', e)
+  }
+}
+
 export function startInstrumentationSeasonCurationCron(): void {
   if (process.env.DISABLE_INSTRUMENTATION_SEASON_CURATION_CRON === '1') {
     return
   }
+
+  void seedSeasonCurationCycleOnStartup()
+
   void import('node-cron')
     .then((m) => {
       const cron = m.default
