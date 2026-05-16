@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import Header from './components/Header'
-import RegistrationNoticeStrip from './components/RegistrationNoticeStrip'
 import EsimCoralStrip from './components/EsimCoralStrip'
 import MobileStickyBar from './components/MobileStickyBar'
 
@@ -71,8 +70,7 @@ export default async function Home() {
     <div className="flex min-h-screen flex-col bg-bt-page">
       <SiteJsonLd />
       <Header hideMobileNav />
-      <RegistrationNoticeStrip />
-      <main className="flex-1 pb-16 lg:pb-0">
+      <main className="flex-1 pb-20 lg:pb-0">
         <section
           className="relative overflow-x-hidden bg-gradient-to-b from-white via-bt-bg-lavender-soft to-bt-bg-lavender/80"
           aria-label="Bong투어 메인 소개 및 서비스 허브"

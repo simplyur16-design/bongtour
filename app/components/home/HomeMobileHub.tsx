@@ -5,14 +5,7 @@ import SeasonCurationCarouselClient from '@/app/components/home/SeasonCurationCa
 import MobileHomeClientErrorBoundary from '@/app/components/home/MobileHomeClientErrorBoundary'
 import HomeHubPhotoPlaceholder from '@/app/components/home/HomeHubPhotoPlaceholder'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
-import {
-  MAIN_HERO_CTA_SECONDARY_HREF,
-  MAIN_HERO_CTA_SECONDARY_LABEL,
-  MAIN_HERO_MAIN_COPY,
-  MAIN_HERO_SUB_COPY,
-  MAIN_HUB_FOUR_CARDS,
-  type HubFourCardKey,
-} from '@/lib/main-hub-copy'
+import { MAIN_HUB_FOUR_CARDS, type HubFourCardKey } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import type { MobileMainServiceTileKey } from '@/lib/home-hub-resolve-images'
 import { resolveMobileMainTileBgSrc } from '@/lib/home-mobile-hub-tile-images'
@@ -25,9 +18,9 @@ import { normalizeHomeSeasonSlidesForClient } from '@/lib/home-season-pick-share
 
 const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
-/** PC `HomeHubFourClientCard` 와 동일 DEEP DARK 필터 (모바일 4카드) */
+/** PC 시즌·4카드 — 메모리 #27 밝은 톤 */
 const MOBILE_HUB_PHOTO_FILTER =
-  'transition-[filter] duration-200 ease-out [filter:brightness(0.55)_contrast(1.05)] group-hover:[filter:brightness(0.7)_contrast(1.05)]'
+  'transition-[filter] duration-200 ease-out [filter:brightness(0.92)_saturate(1.08)] group-hover:[filter:brightness(1.0)_saturate(1.15)]'
 
 function hubFourCardKeyToMobileTileKey(k: HubFourCardKey): MobileMainServiceTileKey {
   switch (k) {
@@ -53,7 +46,7 @@ const QUICK_ACTIONS = [
 ] as const
 
 /**
- * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 주요 서비스(사진 카드) / 시즌 큐레이션(+1·+2월) / 연결 상품 / 실무 요청.
+ * 모바일 전용(`lg` 미만) 메인 홈 — 주요 서비스(사진 카드) / 시즌 큐레이션(+1·+2월) / 연결 상품 / 실무 요청.
  */
 export default async function HomeMobileHub() {
   const [seasonRaw, linkedItems] = await Promise.all([
@@ -83,26 +76,6 @@ export default async function HomeMobileHub() {
 
   return (
     <div className={`space-y-7 pb-8 pt-3 ${SITE_CONTENT_CLASS}`}>
-      <section
-        aria-label="메인 소개"
-        className="rounded-2xl border border-bt-border-soft/80 bg-gradient-to-b from-bt-bg-lavender-soft via-white to-bt-bg-lavender/50 px-4 py-5 shadow-sm ring-1 ring-bt-bg-lavender/30"
-      >
-        <h1 className="text-center text-lg font-semibold leading-snug tracking-tight text-bt-text-navy sm:text-xl">
-          {MAIN_HERO_MAIN_COPY}
-        </h1>
-        <p className="mt-2 text-center text-sm leading-relaxed text-bt-text-muted-lavender sm:text-[0.9375rem]">
-          {MAIN_HERO_SUB_COPY}
-        </p>
-        <div className="mx-auto mt-4 flex max-w-md justify-center">
-          <Link
-            href={MAIN_HERO_CTA_SECONDARY_HREF}
-            className="inline-flex min-h-[2.5rem] w-full max-w-xs items-center justify-center rounded-full bg-bt-text-navy px-5 py-2.5 text-center text-sm font-medium text-white shadow-sm transition hover:opacity-95 active:scale-[0.99] sm:max-w-sm sm:px-6"
-          >
-            {MAIN_HERO_CTA_SECONDARY_LABEL}
-          </Link>
-        </div>
-      </section>
-
       <section aria-label="주요 서비스">
         <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>주요 서비스</h2>
         <ul className="grid grid-cols-2 gap-3.5" role="list">
@@ -135,7 +108,7 @@ export default async function HomeMobileHub() {
                         </div>
                       </div>
                       <div
-                        className="pointer-events-none absolute inset-0 z-[2] bg-[rgba(0,0,0,0.35)]"
+                        className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-2/3 bg-gradient-to-t from-black/65 via-black/20 to-transparent"
                         aria-hidden
                       />
                     </>

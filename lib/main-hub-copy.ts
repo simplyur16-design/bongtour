@@ -502,6 +502,11 @@ export const ESIM_STRIP_TITLE = '해외여행 가신다면 eSIM이 필수예요'
 
 export const ESIM_STRIP_SUB = 'QR 스캔 1분 설치 · 봉투어에서 바로 구매'
 
+/** 모바일 메인 eSIM 카드 — 짧은 헤드라인·부제 */
+export const ESIM_STRIP_MOBILE_TITLE = '해외여행 eSIM' as const
+
+export const ESIM_STRIP_MOBILE_SUB = '로밍보다 90% 저렴 · 1분 설치' as const
+
 export const ESIM_STRIP_CTA_LABEL = 'eSIM 찾기'
 
 export const ESIM_STRIP_CTA_HREF = '/travel/esim' as const
