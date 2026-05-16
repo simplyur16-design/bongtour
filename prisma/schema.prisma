@@ -24,6 +24,7 @@ generator client {
   output        = "../prisma-gen-runtime"
 }
 
+// 프로덕션 DATABASE_URL: pgbouncer 권장. connection_limit은 lib/prisma.ts에서 기본 5로 보강(빌드 SSG 동시 연결 제한).
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
