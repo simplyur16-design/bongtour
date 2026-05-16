@@ -121,7 +121,8 @@ export async function GET(request: Request) {
     const sort = parseSort(searchParams.get('sort'))
     const region = searchParams.get('region')
     const country = searchParams.get('country')
-    const city = searchParams.get('city')
+    const destination = searchParams.get('destination')?.trim() || null
+    const city = searchParams.get('city')?.trim() || destination
     const scope = searchParams.get('scope')
     const hasOverseasUrlGeo =
       scope !== 'domestic' &&

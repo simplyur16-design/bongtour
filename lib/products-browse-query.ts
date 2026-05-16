@@ -101,12 +101,15 @@ export function parseBrowseQuery(searchParams: URLSearchParams): BrowseQueryStat
 
   const brands = [...new Set([...parseMulti(searchParams.get('brands')), ...repeatedBrand])]
 
+  const destination = searchParams.get('destination')?.trim() || null
+  const cityFromUrl = searchParams.get('city')?.trim() || null
+
   return {
     type: searchParams.get('type'),
     sort,
     region: searchParams.get('region'),
     country: searchParams.get('country'),
-    city: searchParams.get('city'),
+    city: cityFromUrl || destination,
     regionPref: searchParams.get('regionPref'),
     budgetPerPerson: parseIntSafe(searchParams.get('budgetPerPerson')),
     budgetMin: parseIntSafe(searchParams.get('budgetMin')),
