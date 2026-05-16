@@ -231,7 +231,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
 
         {!hideMobileNav ? (
           <nav
-            className="-mx-4 flex gap-1 overflow-x-auto whitespace-nowrap border-t border-bt-border-soft/70 px-4 py-2.5 sm:-mx-6 sm:px-6 lg:hidden"
+            className="-mx-4 grid w-full grid-cols-4 gap-1.5 border-t border-bt-border-soft/70 px-4 py-2.5 sm:-mx-6 sm:gap-2 sm:px-6 lg:hidden"
             aria-label="주요 메뉴"
           >
             {MAIN_NAV.map((item) => {
@@ -240,7 +240,8 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`shrink-0 rounded-full px-2.5 py-1.5 text-base font-medium transition-colors ${
+                  title={item.label}
+                  className={`min-w-0 truncate rounded-full px-1 py-1.5 text-center text-xs font-medium leading-tight transition-colors sm:px-2 sm:text-sm ${
                     active
                       ? 'border-2 border-bt-brand-gold-strong bg-bt-surface-soft text-bt-text-navy'
                       : 'border border-bt-border-soft bg-bt-surface-alt text-bt-text-navy hover:border-bt-brand-gold-strong/60'
