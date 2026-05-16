@@ -33,15 +33,11 @@ type ApiOk = {
   facets: BrowseFacets
 }
 
-/** 국내 허브 browse 1회 요청 상한 */
-const BROWSE_DOMESTIC_HUB_FETCH_LIMIT = '30'
-/**
- * 해외 허브(`/travel/overseas`) 기본 목록 — 지역별 섹션 전체를 한 번에 내려받기 위해 browse API 해외 상한과 동일.
- * (점진 렌더는 `ProductResultsList`의 Intersection Observer가 담당)
- */
-const BROWSE_OVERSEAS_HUB_FETCH_LIMIT = '120'
-/** 항공+호텔: 나라별 칩 집계·클라이언트 필터용으로 browse 상한까지 한 번에 로드 */
-const AIR_HOTEL_BROWSE_FETCH_LIMIT = '120'
+/** browse 1페이지 기본 크기 (4열×6행) — API 기본 limit과 동일 */
+const BROWSE_PAGE_SIZE = '24'
+const BROWSE_DOMESTIC_HUB_FETCH_LIMIT = BROWSE_PAGE_SIZE
+const BROWSE_OVERSEAS_HUB_FETCH_LIMIT = BROWSE_PAGE_SIZE
+const AIR_HOTEL_BROWSE_FETCH_LIMIT = BROWSE_PAGE_SIZE
 
 /** 국내 허브(`/travel/domestic`)에서 browse·URL 정리 시 제거(레거시 링크 무시) */
 const DOMESTIC_HUB_QUERY_STRIP_KEYS = [
@@ -168,7 +164,9 @@ export default function ProductsBrowseClient({
   }, [isDomesticHub, isAirHotelHub, airHotelBrowseFetchKey, qs, searchParams])
 
   const [data, setData] = useState<ApiOk | null>(null)
+  const [accumulatedItems, setAccumulatedItems] = useState<ResultItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [draft, setDraft] = useState<BrowseQueryState>(q)
@@ -226,14 +224,14 @@ export default function ProductsBrowseClient({
           p = new URLSearchParams(qs)
           if (defaultScope && !p.get('scope')) p.set('scope', defaultScope)
         }
+        if (!p.get('limit')) p.set('limit', BROWSE_PAGE_SIZE)
+        if (!p.get('page')) p.set('page', String(q.page))
         if (defaultScope === 'overseas' && pathname === '/travel/overseas') {
           p.delete('listingKind')
           p.set('limit', BROWSE_OVERSEAS_HUB_FETCH_LIMIT)
-          p.delete('page')
         }
         if (pathname === '/travel/air-hotel') {
           p.set('limit', AIR_HOTEL_BROWSE_FETCH_LIMIT)
-          p.delete('page')
           p.delete('country')
           p.delete('region')
           p.delete('city')
@@ -247,13 +245,16 @@ export default function ProductsBrowseClient({
         if (!res.ok || !('ok' in json) || json.ok === false) {
           setError(typeof (json as { error?: string }).error === 'string' ? (json as { error: string }).error : '목록을 불러오지 못했습니다.')
           setData(null)
+          setAccumulatedItems([])
           return
         }
         setData(json)
+        setAccumulatedItems(json.items)
       } catch {
         if (!cancelled) {
           setError('네트워크 오류가 발생했습니다.')
           setData(null)
+          setAccumulatedItems([])
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -408,12 +409,83 @@ export default function ProductsBrowseClient({
     (pathname === '/travel/overseas' && defaultScope === 'overseas') || scopeFromUrl === 'overseas'
 
   const itemsAfterAirHotelCountry = useMemo(() => {
-    if (!data?.items) return [] as ResultItem[]
-    if (!isAirHotelHub) return data.items
+    if (accumulatedItems.length === 0) return [] as ResultItem[]
+    if (!isAirHotelHub) return accumulatedItems
     const c = q.country?.trim()
-    if (!c) return data.items
-    return data.items.filter((it) => (it.browseCountry ?? '').trim() === c)
-  }, [data?.items, isAirHotelHub, q.country])
+    if (!c) return accumulatedItems
+    return accumulatedItems.filter((it) => (it.browseCountry ?? '').trim() === c)
+  }, [accumulatedItems, isAirHotelHub, q.country])
+
+  const canLoadMore = Boolean(data && data.page * data.limit < data.total)
+
+  const loadMore = useCallback(async () => {
+    if (!data || loadingMore || data.page * data.limit >= data.total) return
+    setLoadingMore(true)
+    try {
+      let p: URLSearchParams
+      if (isDomesticHub) {
+        p = new URLSearchParams()
+        p.set('scope', 'domestic')
+        p.set('limit', BROWSE_DOMESTIC_HUB_FETCH_LIMIT)
+        const sortRaw = searchParams.get('sort')
+        if (
+          sortRaw === 'budget_fit' ||
+          sortRaw === 'price_asc' ||
+          sortRaw === 'price_desc' ||
+          sortRaw === 'departure_asc'
+        ) {
+          p.set('sort', sortRaw)
+        }
+      } else {
+        p = new URLSearchParams(qs)
+        if (defaultScope && !p.get('scope')) p.set('scope', defaultScope)
+      }
+      if (!p.get('limit')) p.set('limit', BROWSE_PAGE_SIZE)
+      if (defaultScope === 'overseas' && pathname === '/travel/overseas') {
+        p.delete('listingKind')
+        p.set('limit', BROWSE_OVERSEAS_HUB_FETCH_LIMIT)
+      }
+      if (pathname === '/travel/air-hotel') {
+        p.set('limit', AIR_HOTEL_BROWSE_FETCH_LIMIT)
+        p.delete('country')
+        p.delete('region')
+        p.delete('city')
+      }
+      if ((q.budgetPerPerson != null || q.budgetMin != null) && !p.get('sort')) {
+        p.set('sort', 'budget_fit')
+      }
+      p.set('page', String(data.page + 1))
+      const res = await fetch(`/api/products/browse?${p.toString()}`)
+      const json = (await res.json()) as ApiOk | { ok: false; error?: string }
+      if (!res.ok || !('ok' in json) || json.ok === false) return
+      setAccumulatedItems((prev) => [...prev, ...json.items])
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              page: json.page,
+              total: json.total,
+              limit: json.limit,
+              facets: json.facets,
+            }
+          : json,
+      )
+    } catch {
+      // ignore — 기존 목록 유지
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [
+    data,
+    defaultScope,
+    isDomesticHub,
+    loadingMore,
+    pathname,
+    q.budgetMin,
+    q.budgetPerPerson,
+    qs,
+    searchParams,
+  ])
 
   const browsePresented = useMemo(() => {
     if (!data) return { items: [] as ResultItem[], seasonalPickIds: null as ReadonlySet<string> | null }
@@ -426,9 +498,9 @@ export default function ProductsBrowseClient({
   }, [data, isOverseasBrowse, budgetActive, sort, itemsAfterAirHotelCountry])
 
   const airHotelCountryChips = useMemo(() => {
-    if (!isAirHotelHub || !data?.items?.length) return []
+    if (!isAirHotelHub || accumulatedItems.length === 0) return []
     const acc = new Map<string, { slug: string; label: string; count: number }>()
-    for (const it of data.items) {
+    for (const it of accumulatedItems) {
       const slug = (it.browseCountry ?? '').trim()
       if (!slug) continue
       const fromSlug = koreanCountryLabelFromBrowseSlug(slug)
@@ -439,7 +511,7 @@ export default function ProductsBrowseClient({
       else acc.set(slug, { slug, label, count: 1 })
     }
     return [...acc.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'ko'))
-  }, [isAirHotelHub, data?.items])
+  }, [isAirHotelHub, accumulatedItems])
 
   const listedProductCount = useMemo(() => {
     if (!data) return null
@@ -674,31 +746,17 @@ export default function ProductsBrowseClient({
             overseasFlatByCountrySlug={q.country?.trim() || null}
             interleaveEsimNativeCards={basePath === '/travel/overseas' && defaultScope === 'overseas'}
           />
-          {data.total > data.limit &&
-            !(
-              (basePath === '/travel/overseas' && defaultScope === 'overseas') ||
-              (basePath === '/travel/domestic' && defaultScope === 'domestic') ||
-              basePath === '/travel/air-hotel'
-            ) && (
-            <div className="mt-10 flex items-center justify-center gap-3">
+          {canLoadMore && (
+            <div className="mt-10 flex flex-col items-center justify-center gap-2">
               <button
                 type="button"
-                disabled={data.page <= 1}
-                onClick={() => onPatch({ page: Math.max(1, data.page - 1) })}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-800 disabled:opacity-40"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+                className="rounded-lg border border-slate-200 bg-white px-6 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
               >
-                이전
-              </button>
-              <span className="text-sm text-slate-600">
-                {data.page} / {Math.ceil(data.total / data.limit)}
-              </span>
-              <button
-                type="button"
-                disabled={data.page * data.limit >= data.total}
-                onClick={() => onPatch({ page: data.page + 1 })}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-800 disabled:opacity-40"
-              >
-                다음
+                {loadingMore
+                  ? '불러오는 중…'
+                  : `더 보기 (${browsePresented.items.length.toLocaleString('ko-KR')} / ${data.total.toLocaleString('ko-KR')})`}
               </button>
             </div>
           )}
