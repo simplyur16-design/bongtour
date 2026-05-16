@@ -15,7 +15,7 @@ function starsFromLabel(label: string | null): number {
 
 type Props = { reviews: ReviewCardModel[] }
 
-function ReviewGridCard({ review: r }: { review: ReviewCardModel }) {
+export function HomeReviewGridCard({ review: r }: { review: ReviewCardModel }) {
   const stars = starsFromLabel(r.rating_label)
   const dest = [r.destination_city, r.destination_country].filter(Boolean).join(' · ')
 
@@ -59,7 +59,7 @@ export default function HomeReviewsGridClient({ reviews }: Props) {
     <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" role="list">
       {safe.map((r) => (
         <li key={r.id} className="min-h-0">
-          <ReviewGridCard review={r} />
+          <HomeReviewGridCard review={r} />
         </li>
       ))}
     </ul>

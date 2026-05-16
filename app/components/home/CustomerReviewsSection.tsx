@@ -1,17 +1,11 @@
+import HomeReviewsCarouselClient from '@/app/components/home/HomeReviewsCarouselClient'
 import HomeReviewsGridClient from '@/app/components/home/HomeReviewsGridClient'
-import { listOverseasPublishedReviewCards } from '@/lib/reviews-db'
+import { listOverseasHomeReviewSections } from '@/lib/reviews-db'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
-/** 메인 고객 후기 — DB 조회 상한 */
-const HOME_CUSTOMER_REVIEWS_FETCH_LIMIT = 16
-/** 그리드 동시 노출 장수 (2열×4행 ~ 3열×4행) */
-const HOME_CUSTOMER_REVIEWS_DISPLAY_LIMIT = 12
-
 export default async function CustomerReviewsSection() {
-  const reviews = await listOverseasPublishedReviewCards(HOME_CUSTOMER_REVIEWS_FETCH_LIMIT)
-  if (reviews.length === 0) return null
-
-  const grid = reviews.slice(0, HOME_CUSTOMER_REVIEWS_DISPLAY_LIMIT)
+  const { packageReviews, groupReviews } = await listOverseasHomeReviewSections()
+  if (packageReviews.length === 0 && groupReviews.length === 0) return null
 
   return (
     <section
@@ -28,9 +22,30 @@ export default async function CustomerReviewsSection() {
         <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-bt-text-muted-lavender">
           해외 여행을 다녀오신 고객님의 의견입니다.
         </p>
-        <div className="mt-8">
-          <HomeReviewsGridClient reviews={grid} />
-        </div>
+
+        {packageReviews.length > 0 ? (
+          <div className="mt-10">
+            <h3 className="text-center text-base font-semibold text-bt-text-navy sm:text-lg">패키지 여행 후기</h3>
+            <p className="mt-1 text-center text-xs text-bt-text-muted-lavender sm:text-sm">
+              가족·부부·혼자·친구·부모님 동반 여행
+            </p>
+            <div className="mt-6">
+              <HomeReviewsGridClient reviews={packageReviews} />
+            </div>
+          </div>
+        ) : null}
+
+        {groupReviews.length > 0 ? (
+          <div className={packageReviews.length > 0 ? 'mt-12 border-t border-bt-border-soft/50 pt-10' : 'mt-10'}>
+            <h3 className="text-center text-base font-semibold text-bt-text-navy sm:text-lg">모임여행 후기</h3>
+            <p className="mt-1 text-center text-xs text-bt-text-muted-lavender sm:text-sm">
+              단체·협회·산악회·시니어·동문 모임 등
+            </p>
+            <div className="mt-6">
+              <HomeReviewsCarouselClient reviews={groupReviews} />
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   )
