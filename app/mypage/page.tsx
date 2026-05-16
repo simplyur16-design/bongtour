@@ -1,6 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import Header from '@/app/components/Header'
+import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import { SUBPAGE_PAGE_SHELL_CLASS } from '@/lib/subpage-design-system'
 import { useSession, signOut } from 'next-auth/react'
 
 /** 로그인 사용자용 보조 허브. 찜·문의 이력 등은 추후 확장. */
@@ -8,8 +11,10 @@ export default function MyPage() {
   const { data: session, status } = useSession()
 
   return (
-    <main className="mx-auto max-w-md py-4">
-        <h1 className="text-xl font-bold text-slate-900">마이페이지</h1>
+    <div className={SUBPAGE_PAGE_SHELL_CLASS}>
+      <Header />
+      <main className={`${SITE_CONTENT_CLASS} max-w-md py-8`}>
+        <h1 className="text-xl font-bold text-bt-text-navy">마이페이지</h1>
         {status === 'loading' ? (
           <p className="mt-4 text-sm text-slate-500">불러오는 중…</p>
         ) : session?.user ? (
@@ -53,9 +58,10 @@ export default function MyPage() {
             </Link>
           </div>
         )}
-        <Link href="/" className="mt-8 inline-block text-sm text-slate-500 hover:text-teal-800">
+        <Link href="/" className="mt-8 inline-block text-sm text-bt-text-muted-lavender hover:text-bt-link">
           ← 홈으로
         </Link>
       </main>
+    </div>
   )
 }

@@ -3,6 +3,8 @@ import KakaoLoginButton from '@/app/components/auth/KakaoLoginButton'
 import NaverLoginLink from '@/app/components/auth/NaverLoginLink'
 import EmailSignInForm from '@/app/components/auth/EmailSignInForm'
 import Header from '@/app/components/Header'
+import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import { SUBPAGE_PAGE_SHELL_CLASS } from '@/lib/subpage-design-system'
 
 type Props = {
   searchParams: Promise<{ callbackUrl?: string; registered?: string }>
@@ -15,9 +17,9 @@ export default async function SignInPage({ searchParams }: Props) {
   const naverOn = Boolean(process.env.NAVER_CLIENT_ID?.trim() && process.env.NAVER_CLIENT_SECRET?.trim())
 
   return (
-    <div className="min-h-screen bg-beige">
+    <div className={SUBPAGE_PAGE_SHELL_CLASS}>
       <Header />
-      <main className="mx-auto flex max-w-md flex-col items-center justify-center px-4 py-16">
+      <main className={`${SITE_CONTENT_CLASS} flex max-w-md flex-col items-center justify-center py-16`}>
         <h1 className="mb-2 text-xl font-bold text-bt-strong">로그인</h1>
         <p className="mb-6 text-center text-sm leading-relaxed text-bt-body">
           찜·문의 이력 등 일부 기능에 활용됩니다. 여행·연수 상품 탐색은 로그인 없이 가능합니다.
