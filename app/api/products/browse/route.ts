@@ -263,7 +263,7 @@ async function productsBrowseGetUncached(queryKey: string): Promise<Response> {
       limitParam != null && limitParam !== '' ? parseInt(limitParam, 10) : Number.NaN
     const rawLimit = Number.isFinite(parsedLimit) ? parsedLimit : null
     /** 클라이언트가 큰 limit을 요청해도 상한 — 응답 크기·빌드 DB 부하 제한 */
-    const limitCap = 48
+    const limitCap = 120
     const limit = Math.min(limitCap, Math.max(1, rawLimit ?? 24))
 
     const rows = await prisma.product.findMany({
@@ -621,7 +621,7 @@ export async function GET(request: Request) {
   const queryKey = new URL(request.url).searchParams.toString()
   return unstable_cache(
     () => productsBrowseGetUncached(queryKey),
-    ['products-browse-v4', queryKey],
+    ['products-browse-v5', queryKey],
     { revalidate: 300 },
   )()
 }
