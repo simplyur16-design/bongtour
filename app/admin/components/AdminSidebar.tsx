@@ -5,6 +5,12 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
+  ADMIN_NAV_ACTIVE_CLASS,
+  ADMIN_NAV_IDLE_CLASS,
+  ADMIN_SIDEBAR_CLASS,
+  ADMIN_SIDEBAR_HEADER_CLASS,
+} from '@/lib/admin-design-system'
+import {
   LayoutDashboard,
   Package,
   List,
@@ -95,10 +101,8 @@ function NavItemLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-        isActive
-          ? 'bg-bt-brand-blue-soft text-bt-title'
-          : 'text-bt-inverse/65 hover:bg-white/10 hover:text-bt-inverse'
+      className={`flex items-center gap-3 rounded-lg py-2.5 pr-3 text-sm transition-colors ${
+        isActive ? ADMIN_NAV_ACTIVE_CLASS : ADMIN_NAV_IDLE_CLASS
       }`}
       title={collapsed ? label : undefined}
     >
@@ -113,19 +117,15 @@ export default function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <aside
-      className={`flex shrink-0 flex-col border-r border-bt-border-strong bg-bt-title text-bt-inverse transition-[width] duration-200 ${
-        collapsed ? 'w-[56px]' : 'w-56'
-      }`}
-    >
-      <div className="flex h-14 items-center justify-between border-b border-white/10 px-3">
+    <aside className={`${ADMIN_SIDEBAR_CLASS} ${collapsed ? 'w-[56px]' : 'w-56'}`}>
+      <div className={ADMIN_SIDEBAR_HEADER_CLASS}>
         {!collapsed && (
-          <span className="truncate text-sm font-semibold text-bt-inverse">Bong투어 관리</span>
+          <span className="truncate text-sm font-semibold text-white">Bong투어 관리</span>
         )}
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
-          className="rounded p-1.5 text-bt-inverse/60 hover:bg-white/10 hover:text-bt-inverse"
+          className="rounded p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
           aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
         >
           {collapsed ? (
@@ -152,7 +152,7 @@ export default function AdminSidebar() {
           return (
             <div key={`group-${entry.label}-${idx}`} className="mt-2 flex flex-col gap-0.5 first:mt-0">
               {!collapsed && (
-                <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-bt-inverse/40">
+                <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-white/40">
                   {entry.label}
                 </div>
               )}
