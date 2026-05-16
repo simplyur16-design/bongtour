@@ -11,11 +11,6 @@ import {
   publicPageHeroMonthPlus,
   type PublicPageHeroTravelScope,
 } from '@/lib/public-page-hero-editorial-line'
-import {
-  dedupePageHeroMonthlyGeminiJobsPreservingOrder,
-  pageHeroMonthlyGeminiJobKey,
-} from '@/lib/page-hero-monthly-shared'
-import type { PageHeroMonthlyGeminiJob } from '@/lib/page-hero-monthly-types'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import {
   countryDisplayNameFromBrowseParam,
@@ -156,22 +151,6 @@ type HeroRow = BrowseHeroItem & {
   travelScope: PublicPageHeroTravelScope
 }
 
-function heroRowHasDestinationContext(item: BrowseHeroItem): boolean {
-  return Boolean((item.primaryDestination ?? '').trim() || (item.title ?? '').trim())
-}
-
-/** 목적지 메타가 없으면 Gemini 호출 대상에서 제외(스텁만). */
-function geminiJobFromHeroRow(row: HeroRow): PageHeroMonthlyGeminiJob | null {
-  if (!heroRowHasDestinationContext(row)) return null
-  const destinationDisplay = browseDestinationDisplayLabelFromBrowseHero(row).trim()
-  if (!destinationDisplay) return null
-  return {
-    targetMonth1To12: row.slotMonth,
-    destinationDisplay: destinationDisplay.slice(0, 80),
-    travelScope: row.travelScope,
-  }
-}
-
 function buildMonthlyHero(items: BrowseHeroItem[]): HeroRow[] {
   const now = new Date()
   const current = now.getMonth() + 1
@@ -269,8 +248,6 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   const [lastManualAt, setLastManualAt] = useState(0)
   const [reduceMotion, setReduceMotion] = useState(false)
   const heroSlideCountRef = useRef(0)
-  /** 월·목적지·scope 키별 Gemini 1줄(실패·로딩 중에는 스텁 headline 유지) */
-  const [headlineByKey, setHeadlineByKey] = useState<Record<string, string>>({})
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [countryBrowseData, setCountryBrowseData] = useState<{
     total: number
@@ -506,70 +483,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     return () => mq.removeEventListener('change', apply)
   }, [])
 
-  const heroRowsStub = useMemo(() => buildMonthlyHero(items), [items])
-
-  useEffect(() => {
-    if (loading) {
-      setHeadlineByKey({})
-      return
-    }
-    const rows = heroRowsStub
-    setHeadlineByKey({})
-    if (rows.length === 0) return
-    const jobsRaw: PageHeroMonthlyGeminiJob[] = []
-    for (const row of rows) {
-      const j = geminiJobFromHeroRow(row)
-      if (j) jobsRaw.push(j)
-    }
-    const jobs = dedupePageHeroMonthlyGeminiJobsPreservingOrder(jobsRaw)
-    if (jobs.length === 0) return
-
-    const ac = new AbortController()
-    void (async () => {
-      try {
-        const res = await fetch('/api/public/page-hero-editorial-lines', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobs }),
-          signal: ac.signal,
-        })
-        const data = (await res.json()) as {
-          ok?: boolean
-          jobs?: PageHeroMonthlyGeminiJob[]
-          lines?: unknown
-        }
-        if (ac.signal.aborted) return
-        const lineList = data.lines
-        const jobList = data.jobs
-        if (!data.ok || !Array.isArray(lineList) || !Array.isArray(jobList)) return
-        if (lineList.length !== jobList.length) return
-        const next: Record<string, string> = {}
-        jobList.forEach((j: PageHeroMonthlyGeminiJob, i: number) => {
-          const raw = lineList[i]
-          const line = typeof raw === 'string' ? raw.trim() : ''
-          if (line) next[pageHeroMonthlyGeminiJobKey(j)] = line
-        })
-        setHeadlineByKey(next)
-      } catch (e) {
-        if (e instanceof DOMException && e.name === 'AbortError') return
-        if (e instanceof Error && e.name === 'AbortError') return
-      }
-    })()
-
-    return () => ac.abort()
-  }, [loading, heroRowsStub])
-
-  const heroRows = useMemo(() => {
-    return heroRowsStub.map((row) => {
-      const key = pageHeroMonthlyGeminiJobKey({
-        targetMonth1To12: row.slotMonth,
-        destinationDisplay: browseDestinationDisplayLabelFromBrowseHero(row).trim(),
-        travelScope: row.travelScope,
-      })
-      const gem = headlineByKey[key]
-      return gem ? { ...row, headline: gem } : row
-    })
-  }, [headlineByKey, heroRowsStub])
+  const heroRows = useMemo(() => buildMonthlyHero(items), [items])
 
   useEffect(() => {
     setIdx((prev) => {
