@@ -1,7 +1,7 @@
 import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
-import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
-import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
+import ProductResultCardsClient from '@/app/components/home/ProductResultCardsClient'
+import SeasonCurationCarouselClient from '@/app/components/home/SeasonCurationCarouselClient'
 import MobileHomeClientErrorBoundary from '@/app/components/home/MobileHomeClientErrorBoundary'
 import HomeHubPhotoPlaceholder from '@/app/components/home/HomeHubPhotoPlaceholder'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
@@ -19,9 +19,16 @@ import { resolveMobileMainTileBgSrc } from '@/lib/home-mobile-hub-tile-images'
 import { hubPhotoCardIsPending } from '@/lib/home-hub-photo-card-pending'
 import { getHubFourPhotosBundle } from '@/lib/home-hub-four-photo-bundle'
 import { HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS } from '@/lib/home-hub-four-accent-classes'
+import { getCachedSeasonCurationNextTwoMonthsSlides } from '@/lib/season-curation-content'
+import { getCachedSeasonLinkedProductItemsForMobile } from '@/lib/season-linked-products-mobile-data'
+import { normalizeHomeSeasonSlidesForClient } from '@/lib/home-season-pick-shared'
+
 const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
-/** `MAIN_HUB_FOUR_CARDS` 논리 키 → `home-hub-active.json` `mobileMainServiceTiles` 키 */
+/** PC `HomeHubFourClientCard` 와 동일 DEEP DARK 필터 (모바일 4카드) */
+const MOBILE_HUB_PHOTO_FILTER =
+  'transition-[filter] duration-200 ease-out [filter:brightness(0.55)_contrast(1.05)] group-hover:[filter:brightness(0.7)_contrast(1.05)]'
+
 function hubFourCardKeyToMobileTileKey(k: HubFourCardKey): MobileMainServiceTileKey {
   switch (k) {
     case 'package':
@@ -45,16 +52,16 @@ const QUICK_ACTIONS = [
   { href: '/charter-bus', label: '전세버스', primary: false as const },
 ] as const
 
-/** PC `HomeHubFourClientCard` 와 동일 필터 톤 (메모리 #27 SSOT) */
-const MOBILE_HUB_PHOTO_FILTER =
-  'transition-[filter] duration-200 ease-out [filter:brightness(0.92)_saturate(1.08)] group-hover:[filter:brightness(1.0)_saturate(1.15)]'
-
-type Props = { seasonSlides: HomeSeasonPickDTO[] }
-
 /**
- * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 주요 서비스(사진 카드) / 시즌 추천 / 실무 요청 / 파트너.
+ * 모바일 전용(`lg` 미만) 메인 홈 — 상담 CTA / 주요 서비스(사진 카드) / 시즌 큐레이션(+1·+2월) / 연결 상품 / 실무 요청.
  */
-export default async function HomeMobileHub({ seasonSlides }: Props) {
+export default async function HomeMobileHub() {
+  const [seasonRaw, linkedItems] = await Promise.all([
+    getCachedSeasonCurationNextTwoMonthsSlides(),
+    getCachedSeasonLinkedProductItemsForMobile(),
+  ])
+  const seasonSlides = normalizeHomeSeasonSlidesForClient(seasonRaw)
+
   const bundle = await getHubFourPhotosBundle()
   const mainTiles = MAIN_HUB_FOUR_CARDS.map((card) => {
     const bgKey = hubFourCardKeyToMobileTileKey(card.key)
@@ -128,7 +135,7 @@ export default async function HomeMobileHub({ seasonSlides }: Props) {
                         </div>
                       </div>
                       <div
-                        className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-2/3 bg-gradient-to-t from-black/65 via-black/20 to-transparent"
+                        className="pointer-events-none absolute inset-0 z-[2] bg-[rgba(0,0,0,0.35)]"
                         aria-hidden
                       />
                     </>
@@ -149,9 +156,16 @@ export default async function HomeMobileHub({ seasonSlides }: Props) {
       </section>
 
       {seasonSlides.length > 0 ? (
-        <MobileHomeClientErrorBoundary section="season-carousel">
-          <HomeMobileHubSeasonCarousel slides={seasonSlides} hideManualNav />
+        <MobileHomeClientErrorBoundary section="season-curation">
+          <SeasonCurationCarouselClient slides={seasonSlides} variant="mobile" />
         </MobileHomeClientErrorBoundary>
+      ) : null}
+
+      {linkedItems.length > 0 ? (
+        <section aria-label="시즌 연결 상품">
+          <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>시즌에서 이어지는 일정</h2>
+          <ProductResultCardsClient items={linkedItems} layout="scroll" />
+        </section>
       ) : null}
 
       <section aria-label="실무 요청">
@@ -174,11 +188,10 @@ export default async function HomeMobileHub({ seasonSlides }: Props) {
               >
                 {a.label}
               </Link>
-            )
+            ),
           )}
         </div>
       </section>
-
     </div>
   )
 }
