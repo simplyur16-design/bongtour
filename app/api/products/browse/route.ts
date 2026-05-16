@@ -627,8 +627,8 @@ export async function GET(request: Request) {
   try {
     const payload = await unstable_cache(
       () => productsBrowseBuildPayload(queryKey),
-      ['products-browse-v6', queryKey],
-      { revalidate: 300 },
+      ['products-browse-v7', queryKey],
+      { revalidate: 3600 },
     )()
     return jsonWithLeakGuard(payload, 'api.products.browse.ok')
   } catch (e) {
