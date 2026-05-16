@@ -3,6 +3,7 @@
  */
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { classifyHomeReview } from '@/lib/home-reviews-split'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import type {
   ReviewCardModel,
@@ -51,6 +52,10 @@ function hasTravelReviewsPublicReadConfig(): boolean {
 const cardSelect =
   'id,title,excerpt,review_type,customer_type,destination_country,destination_city,rating_label,tags,travel_month,displayed_date,thumbnail_url'
 
+const cardSelectWithOrder = `${cardSelect},display_order`
+
+type ReviewCardWithOrder = ReviewCardModel & { display_order: number }
+
 function mapToCard(row: Record<string, unknown>): ReviewCardModel {
   const tags = Array.isArray(row.tags) ? (row.tags as string[]).filter((t) => typeof t === 'string' && t.trim()) : []
   return {
@@ -67,6 +72,18 @@ function mapToCard(row: Record<string, unknown>): ReviewCardModel {
     displayed_date: row.displayed_date != null ? String(row.displayed_date).slice(0, 10) : null,
     thumbnail_url: row.thumbnail_url != null ? String(row.thumbnail_url) : null,
   }
+}
+
+function mapToCardWithOrder(row: Record<string, unknown>): ReviewCardWithOrder {
+  return {
+    ...mapToCard(row),
+    display_order: Number(row.display_order ?? 0),
+  }
+}
+
+function stripDisplayOrder(row: ReviewCardWithOrder): ReviewCardModel {
+  const { display_order: _order, ...card } = row
+  return card
 }
 
 function derivedDisplayedDateOnSubmit(travelMonth: string | null | undefined): string | null {
@@ -137,6 +154,61 @@ export async function listOverseasPublishedReviewCards(limit = 21): Promise<Revi
   } catch (e) {
     console.error('[reviews] listOverseasPublishedReviewCards', e)
     return []
+  }
+}
+
+/** 메인 홈 후기 풀 — display_order 포함(분류용, 응답에는 제외) */
+async function listOverseasPublishedReviewCardsWithOrder(limit = 80): Promise<ReviewCardWithOrder[]> {
+  const lim = Math.min(80, Math.max(1, limit))
+  if (!hasTravelReviewsPublicReadConfig()) return []
+  try {
+    const supabase = getSupabaseForTravelReviewsPublicRead()
+    if (!supabase) return []
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select(cardSelectWithOrder)
+      .eq('category', 'overseas' satisfies ReviewCategory)
+      .eq('status', 'published')
+      .order('display_order', { ascending: false })
+      .order('displayed_date', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(lim)
+
+    if (error) {
+      console.error('[reviews] listOverseasPublishedReviewCardsWithOrder', error.message)
+      return []
+    }
+    return ((data ?? []) as Record<string, unknown>[])
+      .map(mapToCardWithOrder)
+      .filter((r) => r.id && r.title && r.excerpt)
+  } catch (e) {
+    console.error('[reviews] listOverseasPublishedReviewCardsWithOrder', e)
+    return []
+  }
+}
+
+/**
+ * 메인 홈 — 패키지(그리드) vs 모임여행(carousel) 후기 분리.
+ * 패키지: customer_type 가족·부부·혼자·친구·부모님 또는 display_order 51~150.
+ * 모임: customer_type 모임·산악회·시니어 등 또는 display_order 1~50.
+ */
+export async function listOverseasHomeReviewSections(): Promise<{
+  packageReviews: ReviewCardModel[]
+  groupReviews: ReviewCardModel[]
+}> {
+  const pool = await listOverseasPublishedReviewCardsWithOrder(80)
+  const packages: ReviewCardWithOrder[] = []
+  const groups: ReviewCardWithOrder[] = []
+  for (const row of pool) {
+    const kind = classifyHomeReview(row)
+    if (kind === 'package') packages.push(row)
+    else if (kind === 'group') groups.push(row)
+  }
+  packages.sort((a, b) => b.display_order - a.display_order)
+  groups.sort((a, b) => a.display_order - b.display_order)
+  return {
+    packageReviews: packages.slice(0, 12).map(stripDisplayOrder),
+    groupReviews: groups.slice(0, 21).map(stripDisplayOrder),
   }
 }
 
