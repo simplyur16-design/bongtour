@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import Header from '@/app/components/Header'
+import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import { SUBPAGE_PAGE_SHELL_CLASS } from '@/lib/subpage-design-system'
 import SignUpClient from './SignUpClient'
 
 type Props = {
@@ -13,9 +15,9 @@ export default async function SignUpPage({ searchParams }: Props) {
   const naverOn = Boolean(process.env.NAVER_CLIENT_ID?.trim() && process.env.NAVER_CLIENT_SECRET?.trim())
 
   return (
-    <div className="min-h-screen bg-beige">
+    <div className={SUBPAGE_PAGE_SHELL_CLASS}>
       <Header />
-      <main className="mx-auto flex max-w-md flex-col items-center px-4 py-14">
+      <main className={`${SITE_CONTENT_CLASS} flex max-w-md flex-col items-center py-14`}>
         <h1 className="mb-1 text-xl font-bold text-bt-strong">회원가입</h1>
         <p className="mb-8 text-center text-sm leading-relaxed text-bt-body">
           이메일 또는 소셜 계정으로 시작할 수 있습니다. 상품 탐색은 로그인 없이도 이용할 수 있습니다.

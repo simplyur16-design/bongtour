@@ -37,7 +37,9 @@ import { parseRangeOnDemandResponse, postRangeOnDemandDepartures } from '@/lib/d
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
 import { resolveHeroTripDates } from '@/lib/product-hero-dates'
-import ProductHeroCarousel from '@/app/components/detail/ProductHeroCarousel'
+import ProductDetailHeroOasis from '@/app/components/detail/ProductDetailHeroOasis'
+import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import { SUBPAGE_PAGE_SHELL_CLASS } from '@/lib/subpage-design-system'
 import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
 import ProductLiveQuoteCard from '@/app/components/detail/ProductLiveQuoteCard'
 import DeparturePriceCollectOverlay from '@/app/components/detail/DeparturePriceCollectOverlay'
@@ -713,128 +715,93 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
     product.pricePromotionView?.couponText?.trim() ||
     product.pricePromotionView?.benefitTitle?.trim() ||
     null
+
+  const scrollToLiveQuote = useCallback(() => {
+    document.getElementById('product-live-quote-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
   return (
-    <div className="min-h-screen bg-beige">
+    <div className={SUBPAGE_PAGE_SHELL_CLASS}>
       <Header />
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <main>
+        <ProductDetailHeroOasis
+          heroUrl={heroUrl}
+          daySlides={daySlides}
+          productTitle={product.title}
+          heroImageSourceType={product.bgImageSource ?? null}
+          heroImageIsGenerated={product.bgImageIsGenerated ?? null}
+          heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
+          primaryDestination={product.primaryDestination ?? null}
+          destination={product.destination ?? null}
+          onPrimaryCta={scrollToLiveQuote}
+        >
+          <div className="inline-flex items-center rounded-lg border border-white/25 bg-white/10 px-2.5 py-1 text-xs font-medium text-white/90 backdrop-blur-sm">
+            데이터 출처: {formatOriginSourceForDisplay(product.originSource)}
+          </div>
+          <ProductDetailTitle
+            title={product.title}
+            className="bt-wrap mt-3 text-2xl font-black leading-[1.2] tracking-[0.02em] text-white sm:text-3xl"
+          />
+          <p className="bt-wrap mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm leading-relaxed text-white/85">
+            <span className="bt-code-wrap font-mono text-xs font-semibold text-white/70">{product.originCode}</span>
+            <span className="text-white/40">·</span>
+            <span className="font-medium text-white">{product.destination}</span>
+            <span className="text-white/40">·</span>
+            <span>{product.duration}</span>
+            {product.airline ? (
+              <>
+                <span className="text-white/40">·</span>
+                <span className="text-white/75">{product.airline}</span>
+              </>
+            ) : null}
+          </p>
+          {(heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText) && (
+            <div className="mt-4 rounded-xl border border-white/20 bg-black/35 p-4 backdrop-blur-sm">
+              <div className="space-y-1 text-xs">
+                <p className="flex items-center justify-between gap-3">
+                  <span className="text-white/70">출발일</span>
+                  <span className="font-semibold text-white">
+                    {heroDepartureDisplay ?? '선택 가능 출발일 자동 선택'}
+                  </span>
+                </p>
+                <p className="flex items-center justify-between gap-3">
+                  <span className="text-white/70">귀국일</span>
+                  <span className="font-semibold text-white">{heroReturnDisplay ?? '상담 시 안내'}</span>
+                </p>
+              </div>
+              {heroPriceSsot.selectedDeparturePrice != null ? (
+                <>
+                  <div className="mt-3 flex flex-col gap-2">
+                    {heroPriceSsot.couponDiscountAmount > 0 && heroPriceSsot.displayPriceBeforeCoupon != null ? (
+                      <ComparePriceRow amount={heroPriceSsot.displayPriceBeforeCoupon} variant="inverse" />
+                    ) : null}
+                    <CurrentPriceRow amount={heroPriceSsot.selectedDeparturePrice} variant="inverse" />
+                  </div>
+                  {heroDiscountSavingsLine ? (
+                    <p className="bt-wrap mt-2 text-sm font-semibold text-bt-coral-soft">{heroDiscountSavingsLine}</p>
+                  ) : null}
+                </>
+              ) : null}
+              {heroBenefitWhenNoDiscount ? (
+                <p className="bt-wrap mt-2 text-xs text-white/80">{heroBenefitWhenNoDiscount}</p>
+              ) : null}
+              {heroCouponText ? <p className="bt-wrap mt-1 text-xs text-white/75">{heroCouponText}</p> : null}
+            </div>
+          )}
+          {productMetaChips.length > 0 ? (
+            <div className="mt-3">
+              <ProductMetaChips chips={productMetaChips} variant="dark" className="w-full" />
+            </div>
+          ) : null}
+        </ProductDetailHeroOasis>
+
+        <div className={`${SITE_CONTENT_CLASS} py-6 sm:py-8`}>
         <Link
           href="/"
           className="inline-flex items-center text-sm font-medium text-bt-link hover:text-bt-link-hover hover:underline"
         >
           ← 상품 목록
         </Link>
-
-        <section className="mt-4 overflow-hidden bt-card-strong">
-          <div className="grid gap-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-center">
-            <div className="min-w-0 lg:flex lg:items-center">
-              <ProductHeroCarousel
-                heroUrl={heroUrl}
-                daySlides={daySlides}
-                productTitle={product.title}
-                className="w-full rounded-none border-0"
-                heroImageSourceType={product.bgImageSource ?? null}
-                heroImageIsGenerated={product.bgImageIsGenerated ?? null}
-                heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
-                primaryDestination={product.primaryDestination ?? null}
-                destination={product.destination ?? null}
-              />
-            </div>
-            <div className="p-5 sm:p-6">
-              <div className="inline-flex items-center rounded-lg border border-bt-border bg-bt-disclosure px-2.5 py-1 text-xs font-medium text-bt-meta">
-                데이터 출처: {formatOriginSourceForDisplay(product.originSource)}
-              </div>
-              <ProductDetailTitle
-                title={product.title}
-                className="bt-wrap mt-4 text-2xl font-black leading-[1.2] tracking-[0.02em] text-bt-title sm:text-3xl"
-              />
-              <p className="bt-wrap mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm leading-relaxed text-bt-body">
-                <span className="bt-code-wrap font-mono text-xs font-semibold text-bt-meta">{product.originCode}</span>
-                <span className="text-bt-disabled">·</span>
-                <span className="font-medium text-bt-title">{product.destination}</span>
-                <span className="text-bt-disabled">·</span>
-                <span>{product.duration}</span>
-                {product.airline ? (
-                  <>
-                    <span className="text-bt-disabled">·</span>
-                    <span className="text-bt-muted">{product.airline}</span>
-                  </>
-                ) : null}
-              </p>
-
-              {(heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText) && (
-                <div className="mt-4 rounded-xl border border-bt-card-accent-border bg-bt-card-accent-soft p-4">
-                  <div className="space-y-1 text-xs">
-                    <p className="flex items-center justify-between gap-3">
-                      <span className={HERO_DATE_LABEL_CLASS}>출발일</span>
-                      <span className={HERO_DATE_VALUE_CLASS}>
-                        {heroDepartureDisplay ?? '선택 가능 출발일 자동 선택'}
-                      </span>
-                    </p>
-                    <p className="flex items-center justify-between gap-3">
-                      <span className={HERO_DATE_LABEL_CLASS}>귀국일</span>
-                      <span className={HERO_DATE_VALUE_CLASS}>
-                        {heroReturnDisplay ?? '상담 시 안내'}
-                      </span>
-                    </p>
-                  </div>
-                  {heroPriceSsot.selectedDeparturePrice != null ? (
-                    <>
-                      <div className="mt-3 flex flex-col gap-2">
-                        {heroPriceSsot.couponDiscountAmount > 0 && heroPriceSsot.displayPriceBeforeCoupon != null ? (
-                          <ComparePriceRow amount={heroPriceSsot.displayPriceBeforeCoupon} />
-                        ) : null}
-                        <CurrentPriceRow amount={heroPriceSsot.selectedDeparturePrice} />
-                        {heroPriceSsot.selectedDeparturePrice != null ? (
-                          <p className="text-[11px] text-bt-meta">{PRICE_MAIN_AMOUNT_HINT}</p>
-                        ) : null}
-                      </div>
-                      {heroDiscountSavingsLine ? (
-                        <p className="bt-wrap mt-2 text-center text-sm font-semibold text-bt-card-accent-strong">
-                          {heroDiscountSavingsLine}
-                        </p>
-                      ) : null}
-                    </>
-                  ) : null}
-                  {heroBenefitWhenNoDiscount ? (
-                    <p className="bt-wrap mt-2 text-center text-xs text-bt-meta">{heroBenefitWhenNoDiscount}</p>
-                  ) : null}
-                  {heroCouponText ? (
-                    <p className="bt-wrap mt-1 text-center text-xs text-bt-muted">{heroCouponText}</p>
-                  ) : null}
-                  <div className="mt-3 border-t border-bt-card-accent-border/40 pt-3 text-center">
-                    <p className="text-xs font-bold text-bt-card-accent-strong">{CARD_INSTALLMENT_SUMMARY}</p>
-                    <p className="bt-wrap mt-1 text-[11px] leading-relaxed text-bt-meta">{CARD_INSTALLMENT_DISCLAIMER}</p>
-                  </div>
-                </div>
-              )}
-
-              {departureConditionLine?.trim() ? (
-                <p className="mt-3 text-center text-[11px] font-semibold leading-snug text-bt-card-accent-strong">
-                  {departureConditionLine.trim()}
-                </p>
-              ) : null}
-
-              {productMetaChips.length > 0 && (
-                <div className="mt-3 border-t border-bt-border-soft pt-3">
-                  <ProductMetaChips chips={productMetaChips} variant="light" className="w-full" />
-                </div>
-              )}
-              {isAirHotelFreeListingForUi(product.listingKind) && (
-                <div className="mt-2">
-                  <span className="inline-flex rounded-full border border-bt-card-accent-border bg-bt-card-accent-soft px-2.5 py-1 text-xs font-semibold text-bt-card-title">
-                    {product.airportTransferType === 'BOTH'
-                      ? '픽업·샌딩 포함'
-                      : product.airportTransferType === 'PICKUP'
-                        ? '공항 픽업 포함'
-                        : product.airportTransferType === 'SENDING'
-                          ? '공항 샌딩 포함'
-                          : '공항 이동 불포함'}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
 
         <div className="mt-6 lg:hidden">
           {onDemandNotice ? (
@@ -978,7 +945,7 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
             </section>
           </div>
 
-          <aside className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
+          <aside id="product-live-quote-anchor" className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
             <div className="max-h-[calc(100vh-7rem)] overflow-y-auto pr-1">
               {onDemandNotice ? (
                 <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
@@ -1047,6 +1014,7 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
             onContinueBooking={() => setBookingOpen(true)}
           />
         ) : null}
+        </div>
       </main>
     </div>
   )

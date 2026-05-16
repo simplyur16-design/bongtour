@@ -39,6 +39,8 @@ type Props = {
   /** DAY 슬라이드 좌측 문구 fallback용 — 상품 SEO와 분리 */
   primaryDestination?: string | null
   destination?: string | null
+  /** 풀폭 히어로: 부모 높이를 채움 (aspect 비율 대신) */
+  fillParent?: boolean
 }
 
 export default function ProductHeroCarousel({
@@ -51,6 +53,7 @@ export default function ProductHeroCarousel({
   heroImageSeoKeywordOverlay,
   primaryDestination,
   destination,
+  fillParent = false,
 }: Props) {
   const heroSeoLeft = (heroImageSeoKeywordOverlay ?? '').trim() || null
 
@@ -146,8 +149,10 @@ export default function ProductHeroCarousel({
   const current = slides[index]!
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl border border-bt-border-strong bg-bt-title shadow-lg ${className}`}>
-      <div className="relative aspect-[16/10] w-full">
+    <div
+      className={`relative overflow-hidden ${fillParent ? 'bg-bt-title' : 'rounded-2xl border border-bt-border-strong bg-bt-title shadow-lg'} ${className}`}
+    >
+      <div className={fillParent ? 'relative h-full min-h-[280px] w-full' : 'relative aspect-[16/10] w-full'}>
         {slides.map((s, i) => (
           <SafeImage
             key={s.src + i}

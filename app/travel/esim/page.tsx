@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
 import Header from '@/app/components/Header'
+import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import { SUBPAGE_PAGE_SHELL_CLASS } from '@/lib/subpage-design-system'
 import { bongsimPath } from '@/lib/bongsim/constants'
 
 const EsimLandingBelowFold = nextDynamic(() => import('./EsimLandingBelowFold'), {
@@ -19,13 +21,13 @@ export const metadata: Metadata = {
 
 export default function EsimPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className={SUBPAGE_PAGE_SHELL_CLASS}>
       <Header />
       <section
-        className="w-full bg-gradient-to-br from-sky-50 to-teal-50 px-4 py-16 text-center lg:py-24"
+        className="w-full border-b border-bt-border-soft/60 bg-gradient-to-br from-bt-bg-lavender-soft via-white to-bt-bg-lavender/40 py-16 text-center lg:py-24"
         aria-labelledby="esim-hero-heading"
       >
-        <div className="mx-auto max-w-4xl lg:max-w-5xl">
+        <div className={SITE_CONTENT_CLASS}>
           <h1
             id="esim-hero-heading"
             className="text-balance text-3xl font-bold leading-tight tracking-tight text-slate-900 lg:text-5xl"
