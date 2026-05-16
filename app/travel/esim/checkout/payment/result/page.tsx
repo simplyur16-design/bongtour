@@ -1,7 +1,6 @@
 "use client";
 
 import Header from "@/app/components/Header";
-import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
 import { Ban, CheckCircle2, XCircle } from "lucide-react";
@@ -45,8 +44,6 @@ function ResultInner() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
-      <OverseasTravelSubMainNav variant="links" />
-
       {isSuccess ? (
         <main>
           <section className="bg-gradient-to-br from-emerald-50 to-teal-50 px-4 pb-10 pt-10 text-center sm:pb-12 sm:pt-12">

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import Header from '@/app/components/Header'
-import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
 import OurTravelHero from '@/app/travel/overseas/private-trip/_components/OurTravelHero'
 import PrivateTripLanding from '@/app/travel/overseas/private-trip/_components/PrivateTripLanding'
 import { loadGroupMeetingReviewsFromDb } from '@/lib/group-meeting-reviews-db'
@@ -110,7 +109,6 @@ export default async function PrivateTripPage() {
       ) : null}
       <div className="min-h-screen bg-bt-page">
         <Header />
-        <OverseasTravelSubMainNav variant="links" />
         <main>
           <OurTravelHero
             imageUrls={heroImageUrls}

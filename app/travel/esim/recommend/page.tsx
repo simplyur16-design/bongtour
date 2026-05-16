@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Header from "@/app/components/Header";
-import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
 import { CountrySelectStep } from "@/components/bongsim/recommend/CountrySelectStep";
 import { ProductCombinationStep } from "@/components/bongsim/recommend/ProductCombinationStep";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
@@ -133,7 +132,6 @@ export default function RecommendPage() {
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
-      <OverseasTravelSubMainNav variant="links" />
       <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-6 sm:px-6 sm:pt-8 lg:pb-28 lg:pt-10">
         {currentStep === 1 ? (
           <CountrySelectStep

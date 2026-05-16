@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { FileText, RefreshCw, Scale, ShieldAlert } from "lucide-react";
 import Header from "@/app/components/Header";
-import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { SITE_NAME } from "@/lib/site-metadata";
 
@@ -90,8 +89,6 @@ export default function EsimPolicyPage() {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <OverseasTravelSubMainNav variant="links" />
-
       <section
         className="w-full bg-gradient-to-br from-sky-50 to-teal-50 px-4 py-12 lg:py-16"
         aria-labelledby="esim-policy-hero"
