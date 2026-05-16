@@ -328,3 +328,20 @@ a:not([class]):hover {
   -moz-user-select: none;
   -webkit-touch-callout: none;
 }
+
+/* PR-G: 어드민 공통 테이블 (layout `.admin-shell` 하위) */
+.admin-shell .admin-main table {
+  @apply w-full text-left text-sm;
+}
+.admin-shell .admin-main thead th {
+  @apply border-b border-bt-border-soft bg-bt-bg-lavender-soft px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bt-text-navy;
+}
+.admin-shell .admin-main tbody tr {
+  @apply border-b border-bt-border-soft transition-colors;
+}
+.admin-shell .admin-main tbody tr:hover {
+  @apply bg-bt-bg-lavender-soft;
+}
+.admin-shell .admin-main tbody td {
+  @apply px-3 py-2.5 text-bt-body;
+}

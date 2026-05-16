@@ -1,3 +1,8 @@
+import {
+  ADMIN_PAGE_SUBTITLE_CLASS,
+  ADMIN_PAGE_TITLE_CLASS,
+} from '@/lib/admin-design-system'
+
 type Props = {
   title: string
   subtitle?: string
@@ -9,11 +14,11 @@ type Props = {
  */
 export default function AdminPageHeader({ title, subtitle, actions }: Props) {
   return (
-    <header className="mb-8 border-b-2 border-[#0f172a] pb-4">
+    <header className="mb-8 border-b-2 border-bt-brand-gold-strong/40 pb-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#0f172a]">{title}</h1>
-          {subtitle && <p className="bt-wrap mt-2 text-sm tracking-wide text-gray-600">{subtitle}</p>}
+          <h1 className={ADMIN_PAGE_TITLE_CLASS}>{title}</h1>
+          {subtitle && <p className={ADMIN_PAGE_SUBTITLE_CLASS}>{subtitle}</p>}
         </div>
         {actions != null && <div className="shrink-0">{actions}</div>}
       </div>
