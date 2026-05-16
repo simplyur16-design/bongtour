@@ -1,7 +1,6 @@
 "use client";
 
 import Header from "@/app/components/Header";
-import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -25,7 +24,6 @@ function FailInner() {
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
-      <OverseasTravelSubMainNav variant="links" />
       <div className="min-h-full bg-slate-50">
         <main className="mx-auto max-w-lg px-4 py-8">
           <h1 className="text-lg font-semibold text-slate-900">결제 실패</h1>
@@ -57,7 +55,6 @@ export default function CheckoutReturnFailPage() {
       fallback={
         <div className="min-h-screen bg-bt-page">
           <Header />
-          <OverseasTravelSubMainNav variant="links" />
           <div className="min-h-full bg-slate-50 p-6 text-sm">불러오는 중…</div>
         </div>
       }

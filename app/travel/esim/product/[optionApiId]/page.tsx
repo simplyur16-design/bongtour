@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Header from '@/app/components/Header'
-import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
 import { bongsimPath } from '@/lib/bongsim/constants'
 import { notFound } from "next/navigation";
 import { ProductDetailV1View } from "@/components/bongsim/detail-v1/ProductDetailV1View";
@@ -16,7 +15,6 @@ export default async function ProductDetailV1Page({ params }: Props) {
     return (
       <div className="min-h-screen bg-bt-page">
         <Header />
-        <OverseasTravelSubMainNav variant="links" />
         <div className="min-h-full bg-slate-50">
         <main className="mx-auto max-w-lg px-4 py-10 sm:max-w-2xl lg:max-w-3xl">
           <p className="text-sm text-slate-700">
@@ -36,7 +34,6 @@ export default async function ProductDetailV1Page({ params }: Props) {
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
-      <OverseasTravelSubMainNav variant="links" />
       <div className="min-h-full bg-slate-50 pb-28">
       <main className="mx-auto max-w-lg px-4 pt-3 sm:max-w-2xl sm:px-6 sm:pt-4 lg:max-w-3xl lg:px-8 lg:pt-6">
         <nav className="text-[12px] text-slate-500 lg:text-[13px]">

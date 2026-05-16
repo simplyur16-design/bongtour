@@ -1,7 +1,8 @@
 import Link from 'next/link'
+import { Wifi } from 'lucide-react'
 import RepresentativeNameImage from '@/app/components/common/RepresentativeNameImage'
 import { COMPANY_FOOTER } from '@/lib/company-footer'
-import { MAIN_MINIMAL_FOOTER_LINKS } from '@/lib/main-hub-copy'
+import { ESIM_STRIP_CTA_HREF, MAIN_MINIMAL_FOOTER_LINKS } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
 const FTC_BIZ_VERIFY_HREF =
@@ -40,6 +41,19 @@ export default function SiteFooter() {
           </span>
           <BongtourBrandBadge />
         </div>
+
+        <Link
+          href={ESIM_STRIP_CTA_HREF}
+          className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-bt-coral/35 bg-gradient-to-r from-bt-coral/25 to-bt-coral-soft/20 px-3 py-2.5 text-sm font-semibold text-bt-trust-beige transition hover:from-bt-coral/35 hover:to-bt-coral-soft/30"
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            <Wifi className="h-4 w-4 shrink-0 text-bt-coral" strokeWidth={2.25} aria-hidden />
+            <span className="truncate">해외여행 eSIM — 봉투어에서 바로 구매</span>
+          </span>
+          <span className="shrink-0 text-bt-coral" aria-hidden>
+            →
+          </span>
+        </Link>
 
         <nav
           className="mt-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2"

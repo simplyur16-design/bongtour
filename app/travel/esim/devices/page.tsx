@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import Header from "@/app/components/Header";
-import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
 
@@ -25,8 +24,6 @@ export default function EsimDevicesPage() {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <OverseasTravelSubMainNav variant="links" />
-
       <section
         className="w-full bg-gradient-to-br from-sky-50 to-teal-50 px-4 py-12 lg:py-16"
         aria-labelledby="esim-devices-hero"

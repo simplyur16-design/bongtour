@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import Header from '@/app/components/Header'
-import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
 import { SITE_NAME } from '@/lib/site-metadata'
 
@@ -40,7 +39,6 @@ export default async function AirHotelPage({
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
-      <OverseasTravelSubMainNav variant="links" />
       <main>
         <section className="border-b border-bt-border bg-gradient-to-b from-slate-50 to-white">
           <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">

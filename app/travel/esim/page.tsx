@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
 import Header from '@/app/components/Header'
-import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
 import { bongsimPath } from '@/lib/bongsim/constants'
 
 const EsimLandingBelowFold = nextDynamic(() => import('./EsimLandingBelowFold'), {
@@ -22,8 +21,6 @@ export default function EsimPage() {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <OverseasTravelSubMainNav variant="links" />
-
       <section
         className="w-full bg-gradient-to-br from-sky-50 to-teal-50 px-4 py-16 text-center lg:py-24"
         aria-labelledby="esim-hero-heading"
