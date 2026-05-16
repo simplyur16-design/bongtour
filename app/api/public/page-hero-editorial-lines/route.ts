@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
-import { generatePageHeroMonthlyEditorialLinesWithGemini } from '@/lib/page-hero-monthly-gemini-server'
+import { getCachedPageHeroMonthlyEditorialLinesWithGemini } from '@/lib/page-hero-monthly-gemini-server'
 import { dedupePageHeroMonthlyGeminiJobsPreservingOrder } from '@/lib/page-hero-monthly-shared'
 import type { PageHeroMonthlyGeminiJob } from '@/lib/page-hero-monthly-types'
 
@@ -35,7 +35,10 @@ function parseJobs(raw: unknown): PageHeroMonthlyGeminiJob[] | null {
 /**
  * POST /api/public/page-hero-editorial-lines
  * 페이지 히어로 전용. 본문: { jobs: PageHeroMonthlyGeminiJob[] } — 최대 12건, 1회 Gemini로 lines[] 반환.
+ * Gemini 응답은 jobs 조합 기준 1시간 unstable_cache.
  */
+export const revalidate = 3600
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as Body
@@ -44,7 +47,7 @@ export async function POST(request: Request) {
       return jsonWithLeakGuard({ ok: false, error: 'invalid_jobs' }, 'public.page-hero-editorial-lines', { status: 400 })
     }
     const jobs = dedupePageHeroMonthlyGeminiJobsPreservingOrder(jobsRaw)
-    const result = await generatePageHeroMonthlyEditorialLinesWithGemini(jobs)
+    const result = await getCachedPageHeroMonthlyEditorialLinesWithGemini(jobs)
     if (!result.ok) {
       return jsonWithLeakGuard(
         { ok: false, error: result.error },
