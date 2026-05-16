@@ -1,12 +1,17 @@
-import HomeReviewsCarouselClient from '@/app/components/home/HomeReviewsCarouselClient'
+import HomeReviewsGridClient from '@/app/components/home/HomeReviewsGridClient'
 import { listOverseasPublishedReviewCards } from '@/lib/reviews-db'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
+/** 메인 고객 후기 — DB 조회 상한 */
+const HOME_CUSTOMER_REVIEWS_FETCH_LIMIT = 16
+/** 그리드 동시 노출 장수 (2열×4행 ~ 3열×4행) */
+const HOME_CUSTOMER_REVIEWS_DISPLAY_LIMIT = 12
+
 export default async function CustomerReviewsSection() {
-  const reviews = await listOverseasPublishedReviewCards(50)
+  const reviews = await listOverseasPublishedReviewCards(HOME_CUSTOMER_REVIEWS_FETCH_LIMIT)
   if (reviews.length === 0) return null
 
-  const carousel = reviews.slice(0, 12)
+  const grid = reviews.slice(0, HOME_CUSTOMER_REVIEWS_DISPLAY_LIMIT)
 
   return (
     <section
@@ -24,7 +29,7 @@ export default async function CustomerReviewsSection() {
           해외 여행을 다녀오신 고객님의 의견입니다.
         </p>
         <div className="mt-8">
-          <HomeReviewsCarouselClient reviews={carousel} />
+          <HomeReviewsGridClient reviews={grid} />
         </div>
       </div>
     </section>
