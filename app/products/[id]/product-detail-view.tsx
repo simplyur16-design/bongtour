@@ -754,22 +754,24 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
       ? { ...viewProduct, ybtourFlightStructuredForHero: ybtourFlightStructuredForHeroPublic }
       : null
 
+  const showEsimCrossSell = travelProduct.travelScope === 'overseas'
+
   const detailMobile =
     publicConsumptionModuleKey === 'verygoodtour' ? (
-      <VerygoodMobileProductDetail product={viewProduct} />
+      <VerygoodMobileProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
     ) : publicConsumptionModuleKey === 'ybtour' && ybtourDetailProduct ? (
-      <YbtourMobileProductDetail product={ybtourDetailProduct} />
+      <YbtourMobileProductDetail product={ybtourDetailProduct} showEsimCrossSell={showEsimCrossSell} />
     ) : (
-      <MobileProductDetail product={serialized} />
+      <MobileProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
     )
 
   const detailDesktop =
     publicConsumptionModuleKey === 'verygoodtour' ? (
-      <VerygoodTravelProductDetail product={viewProduct} />
+      <VerygoodTravelProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
     ) : publicConsumptionModuleKey === 'ybtour' && ybtourDetailProduct ? (
-      <YbtourTravelProductDetail product={ybtourDetailProduct} />
+      <YbtourTravelProductDetail product={ybtourDetailProduct} showEsimCrossSell={showEsimCrossSell} />
     ) : (
-      <TravelProductDetail product={serialized} />
+      <TravelProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
     )
 
   const pricedDepartures = departures.filter((d) => d.adultPrice != null && d.adultPrice > 0)

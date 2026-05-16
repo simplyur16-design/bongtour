@@ -1,8 +1,7 @@
 import Link from 'next/link'
-import { Wifi } from 'lucide-react'
 import RepresentativeNameImage from '@/app/components/common/RepresentativeNameImage'
 import { COMPANY_FOOTER } from '@/lib/company-footer'
-import { ESIM_STRIP_CTA_HREF, MAIN_MINIMAL_FOOTER_LINKS } from '@/lib/main-hub-copy'
+import { FOOTER_POLICY_LINKS } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
 const FTC_BIZ_VERIFY_HREF =
@@ -23,7 +22,6 @@ function BongtourBrandBadge() {
 
 /**
  * 전역 공통 푸터 — 하단 회사·안내 영역 (가독성·정보 위계)
- * 메모리 #28 다크 네이비 톤 + 헤더 IA 정렬 사이트맵.
  */
 export default function SiteFooter() {
   const year = new Date().getFullYear()
@@ -34,7 +32,6 @@ export default function SiteFooter() {
       className="mt-auto border-t-[0.5px] border-bt-bg-lavender/20 bg-bt-text-navy text-bt-bg-lavender"
     >
       <div className={`${SITE_CONTENT_CLASS} py-3 sm:py-4`}>
-        {/* 회사명 + Bong투어 배지 */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span className="text-base font-medium tracking-tight text-bt-trust-beige">
             {COMPANY_FOOTER.legalName}
@@ -42,25 +39,12 @@ export default function SiteFooter() {
           <BongtourBrandBadge />
         </div>
 
-        <Link
-          href={ESIM_STRIP_CTA_HREF}
-          className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-bt-coral/35 bg-gradient-to-r from-bt-coral/25 to-bt-coral-soft/20 px-3 py-2.5 text-sm font-semibold text-bt-trust-beige transition hover:from-bt-coral/35 hover:to-bt-coral-soft/30"
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <Wifi className="h-4 w-4 shrink-0 text-bt-coral" strokeWidth={2.25} aria-hidden />
-            <span className="truncate">해외여행 eSIM — 봉투어에서 바로 구매</span>
-          </span>
-          <span className="shrink-0 text-bt-coral" aria-hidden>
-            →
-          </span>
-        </Link>
-
         <nav
           className="mt-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2"
-          aria-label="하단 서비스 링크"
+          aria-label="정책 및 약관"
         >
           <ul className="flex flex-wrap gap-x-[14px] gap-y-2 text-[13px] leading-snug text-bt-bg-lavender/90">
-            {MAIN_MINIMAL_FOOTER_LINKS.map((item) => (
+            {FOOTER_POLICY_LINKS.map((item) => (
               <li key={`${item.href}-${item.label}`}>
                 <Link
                   href={item.href}
@@ -73,7 +57,6 @@ export default function SiteFooter() {
           </ul>
         </nav>
 
-        {/* 회사 정보 — 라벨 110px · 값 1fr (모바일 stack), 5행 콤팩트 */}
         <dl className="mt-2 space-y-2.5 border-t-[0.5px] border-bt-bg-lavender/20 pt-2 text-xs text-bt-bg-lavender sm:text-[12px]">
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:items-center sm:gap-x-4">
             <dt className="font-medium leading-relaxed text-bt-trust-beige sm:shrink-0">대표자</dt>
@@ -132,7 +115,6 @@ export default function SiteFooter() {
           </div>
         </dl>
 
-        {/* 상담 가능 시간 */}
         <div
           className="mt-2 rounded-r-md border-l-2 border-bt-brand-gold-strong border-t-[0.5px] border-bt-bg-lavender/20 px-3 py-2.5 pt-3"
           style={{
@@ -152,7 +134,6 @@ export default function SiteFooter() {
           </p>
         </div>
 
-        {/* 저작권 · 사업자정보확인 */}
         <div className="mt-2 flex flex-col gap-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2 text-xs sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
           <p className="text-bt-bg-lavender/50">
             © {year} {COMPANY_FOOTER.copyrightHolder}. All rights reserved.

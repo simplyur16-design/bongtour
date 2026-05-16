@@ -9,6 +9,7 @@ import ProductHighlightPointsSection from '@/app/components/detail/ProductHighli
 import ProductExtraInfoTabs from '@/app/components/detail/ProductExtraInfoTabs'
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
+import EsimProductDetailCrossSell from '@/app/components/travel/EsimProductDetailCrossSell'
 import type { PublicPricePromotionView, ShoppingStopRow } from '@/lib/public-product-extras'
 import {
   buildPublicOptionalDisplayInputFromProductFields,
@@ -234,7 +235,7 @@ function toDateKey(d: string): string {
   return d.startsWith('20') && d.length >= 10 ? d.slice(0, 10) : d
 }
 
-type Props = { product: TravelProduct }
+type Props = { product: TravelProduct; showEsimCrossSell?: boolean }
 
 function applyFlightManualCorrectionForPublicOrigin(
   facts: DepartureKeyFacts | null,
@@ -246,7 +247,7 @@ function applyFlightManualCorrectionForPublicOrigin(
   return apply(facts, correction)
 }
 
-export default function TravelProductDetail({ product }: Props) {
+export default function TravelProductDetail({ product, showEsimCrossSell = false }: Props) {
   const router = useRouter()
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
   const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(null)
@@ -966,6 +967,8 @@ export default function TravelProductDetail({ product }: Props) {
             />
 
             <MustKnowEssentialsSection items={mustKnowFiltered} layout="desktop" originSource={product.originSource} />
+
+            {showEsimCrossSell ? <EsimProductDetailCrossSell /> : null}
 
             <section className="rounded-2xl border border-bt-border-soft bg-bt-surface p-6 text-center">
               <h2 className="text-base font-semibold text-bt-card-title">안내</h2>
