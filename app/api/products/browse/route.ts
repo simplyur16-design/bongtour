@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client'
+import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { PRODUCT_BROWSE_FULL_INCLUDE, type ProductBrowseIncludedRow } from '@/lib/product-browse-full-include'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
@@ -112,9 +113,9 @@ function appendSubregionCityOrDestinationOr(
  * 예산 필터는 등록된 상품의 실제 금액을 확인하여 예산 범위 내 상품만 노출한다.
  * (priceFrom / 출발별 adultPrice / 레거시 adult 중 최소 = 인당 유효가)
  */
-export async function GET(request: Request) {
+async function productsBrowseGetUncached(queryKey: string): Promise<Response> {
   try {
-    const { searchParams } = new URL(request.url)
+    const searchParams = new URLSearchParams(queryKey)
     const q = parseBrowseQuery(searchParams)
 
     const typeParam = searchParams.get('type')
@@ -577,8 +578,7 @@ export async function GET(request: Request) {
     console.error('[GET /api/products/browse]', e)
     let q: ReturnType<typeof parseBrowseQuery>
     try {
-      const { searchParams } = new URL(request.url)
-      q = parseBrowseQuery(searchParams)
+      q = parseBrowseQuery(new URLSearchParams(queryKey))
     } catch {
       return jsonWithLeakGuard(
         { ok: false, error: '요청 파라미터를 처리하지 못했습니다.' },
@@ -586,7 +586,7 @@ export async function GET(request: Request) {
         { status: 400 },
       )
     }
-    const sp = new URL(request.url).searchParams
+    const sp = new URLSearchParams(queryKey)
     /**
      * 예전에는 여기서 ok:true, total:0 을 반환해 DB/Prisma 오류가 "상품 없음"처럼 보였다.
      * 운영에서 원인 파악이 가능하도록 실패 응답으로 통일한다.
@@ -614,4 +614,13 @@ export async function GET(request: Request) {
     }
     return jsonWithLeakGuard(body, 'api.products.browse.error', { status: 500 })
   }
+}
+
+export async function GET(request: Request) {
+  const queryKey = new URL(request.url).searchParams.toString()
+  return unstable_cache(
+    () => productsBrowseGetUncached(queryKey),
+    ['products-browse-v5', queryKey],
+    { revalidate: 300 },
+  )()
 }
