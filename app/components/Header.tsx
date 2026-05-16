@@ -22,7 +22,7 @@ const MAIN_NAV: { label: string; href: string }[] = [
   { label: '해외여행상품', href: '/travel/overseas' },
   { label: '자유여행', href: '/travel/air-hotel' },
   { label: '우리끼리', href: '/travel/overseas/private-trip' },
-  { label: '공공·기업', href: '/training' },
+  { label: '공공·기업', href: '/business' },
 ]
 
 function isMainNavActive(pathname: string, href: string): boolean {

@@ -115,6 +115,16 @@ const nextConfig = {
         destination: 'https://bongtour.com/:path*',
         permanent: true,
       },
+      {
+        source: '/training',
+        destination: '/business',
+        permanent: true,
+      },
+      {
+        source: '/training/:path*',
+        destination: '/business/:path*',
+        permanent: true,
+      },
     ]
   },
   images: {

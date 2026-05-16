@@ -273,7 +273,7 @@ export const MAIN_HUB_FOUR_CARDS = [
   {
     key: 'business' as const satisfies HubFourCardKey,
     imageKey: 'training' as const,
-    href: '/training',
+    href: '/business',
     accent: 'training' as const,
     categoryLabel: '공공·기업',
     headline: '연수·전세버스·발권',
@@ -483,7 +483,7 @@ export const MAIN_MINIMAL_FOOTER_LINKS = [
   { label: '해외여행상품', href: '/travel/overseas' },
   { label: '자유여행', href: '/travel/air-hotel' },
   { label: '우리끼리', href: '/travel/overseas/private-trip' },
-  { label: '공공·기업', href: '/training' },
+  { label: '공공·기업', href: '/business' },
   { label: 'eSIM', href: '/travel/esim' },
   { label: '봉투어 소개', href: '/#site-about' },
   { label: '고객지원', href: '/support' },
