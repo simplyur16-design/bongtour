@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import EsimProductListNativeCard from '@/app/components/travel/EsimProductListNativeCard'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 import OverseasDestinationBriefingMid from '@/components/products/OverseasDestinationBriefingMid'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
@@ -51,6 +52,8 @@ export type ResultItem = {
 }
 
 const PRODUCT_CARD_LOAD_STEP = 4
+/** 해외 목록: 상품 카드 N개마다 eSIM 네이티브 카드 1개 */
+const ESIM_NATIVE_INSERT_EVERY = 4
 const PRODUCT_LIST_INITIAL_MOBILE = 4
 const PRODUCT_LIST_INITIAL_DESKTOP = 8
 
@@ -132,6 +135,31 @@ type Props = {
    * `region`만 있으면 null 유지 → 권역(버킷) 그룹 유지.
    */
   overseasFlatByCountrySlug?: string | null
+  /** 해외 여행상품 목록만 — 상품 카드 사이 eSIM 네이티브 카드 삽입 */
+  interleaveEsimNativeCards?: boolean
+}
+
+function mapFlatListWithEsimCards(
+  items: ResultItem[],
+  renderProduct: (item: ResultItem) => ReactNode,
+  liClassName?: string,
+): ReactNode[] {
+  const nodes: ReactNode[] = []
+  let sinceEsim = 0
+  let esimKey = 0
+  for (let i = 0; i < items.length; i++) {
+    nodes.push(renderProduct(items[i]))
+    sinceEsim++
+    if (sinceEsim >= ESIM_NATIVE_INSERT_EVERY && i < items.length - 1) {
+      nodes.push(
+        <li key={`esim-native-${esimKey++}`} className={liClassName}>
+          <EsimProductListNativeCard />
+        </li>,
+      )
+      sinceEsim = 0
+    }
+  }
+  return nodes
 }
 
 const AIR_HOTEL_MISC_SECTION = '기타'
@@ -821,6 +849,7 @@ function OverseasRegionGroupedList({
   seasonCurationSlides,
   seasonalPickIds,
   wideLayout,
+  interleaveEsimNativeCards = false,
 }: {
   items: ResultItem[]
   formatWon: (n: number | null) => string
@@ -828,6 +857,7 @@ function OverseasRegionGroupedList({
   seasonCurationSlides: HomeSeasonPickDTO[] | null | undefined
   seasonalPickIds?: ReadonlySet<string> | null
   wideLayout: boolean
+  interleaveEsimNativeCards?: boolean
 }) {
   const bucketRowLiClass = wideLayout ? overseasBucketRowLiClassWide : overseasBucketRowLiClassDefault
   const bucketToCountries = useMemo(() => {
@@ -909,15 +939,29 @@ function OverseasRegionGroupedList({
               ) : null}
               {visibleInBucket.length > 0 ? (
                 <ul className={countryProductRowClass} role="list">
-                  {visibleInBucket.map((item) => (
-                    <li key={item.id} className={bucketRowLiClass}>
-                      <ProductResultCard
-                        item={item}
-                        formatWon={formatWon}
-                        seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
-                      />
-                    </li>
-                  ))}
+                  {interleaveEsimNativeCards
+                    ? mapFlatListWithEsimCards(
+                        visibleInBucket,
+                        (item) => (
+                          <li key={item.id} className={bucketRowLiClass}>
+                            <ProductResultCard
+                              item={item}
+                              formatWon={formatWon}
+                              seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                            />
+                          </li>
+                        ),
+                        bucketRowLiClass,
+                      )
+                    : visibleInBucket.map((item) => (
+                        <li key={item.id} className={bucketRowLiClass}>
+                          <ProductResultCard
+                            item={item}
+                            formatWon={formatWon}
+                            seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                          />
+                        </li>
+                      ))}
                 </ul>
               ) : flatList.length === 0 && showEuropeBriefing ? (
                 <p className="mt-4 text-sm text-slate-500">
@@ -964,11 +1008,13 @@ function FlatProductResultsList({
   formatWon,
   seasonalPickIds,
   cardGridClass,
+  interleaveEsimNativeCards = false,
 }: {
   items: ResultItem[]
   formatWon: (n: number | null) => string
   seasonalPickIds?: ReadonlySet<string> | null
   cardGridClass: string
+  interleaveEsimNativeCards?: boolean
 }) {
   const listResetKey = useMemo(
     () =>
@@ -983,15 +1029,25 @@ function FlatProductResultsList({
   return (
     <>
       <ul className={cardGridClass}>
-        {visibleItems.map((item) => (
-          <li key={item.id}>
-            <ProductResultCard
-              item={item}
-              formatWon={formatWon}
-              seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
-            />
-          </li>
-        ))}
+        {interleaveEsimNativeCards
+          ? mapFlatListWithEsimCards(visibleItems, (item) => (
+              <li key={item.id}>
+                <ProductResultCard
+                  item={item}
+                  formatWon={formatWon}
+                  seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                />
+              </li>
+            ))
+          : visibleItems.map((item) => (
+              <li key={item.id}>
+                <ProductResultCard
+                  item={item}
+                  formatWon={formatWon}
+                  seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                />
+              </li>
+            ))}
       </ul>
       {visibleCount < items.length ? (
         <div ref={sentinelRef} className="mt-2 h-10 w-full shrink-0" aria-hidden />
@@ -1011,6 +1067,7 @@ export default function ProductResultsList({
   seasonalPickIds = null,
   overseasHubWideLayout = false,
   overseasFlatByCountrySlug = null,
+  interleaveEsimNativeCards = false,
 }: Props) {
   if (groupDomesticByRegion && items.length > 0) {
     return <DomesticRegionGroupedList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
@@ -1038,6 +1095,7 @@ export default function ProductResultsList({
           formatWon={formatWon}
           seasonalPickIds={seasonalPickIds}
           cardGridClass={flatGridClass}
+          interleaveEsimNativeCards={interleaveEsimNativeCards}
         />
       </section>
     )
@@ -1059,6 +1117,7 @@ export default function ProductResultsList({
         seasonCurationSlides={overseasSeasonCurationSlides}
         seasonalPickIds={seasonalPickIds}
         wideLayout={overseasHubWideLayout}
+        interleaveEsimNativeCards={interleaveEsimNativeCards}
       />
     )
   }
@@ -1070,6 +1129,7 @@ export default function ProductResultsList({
       formatWon={formatWon}
       seasonalPickIds={seasonalPickIds}
       cardGridClass={flatGridClass}
+      interleaveEsimNativeCards={interleaveEsimNativeCards}
     />
   )
 }

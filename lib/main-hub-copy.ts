@@ -492,6 +492,13 @@ export const MAIN_MINIMAL_FOOTER_LINKS = [
   { label: 'eSIM 환불정책', href: '/travel/esim/policy' },
 ] as const
 
+/** 전역 푸터 — 법적·정책 링크만 (헤더 IA와 중복되는 허브 링크 제외) */
+export const FOOTER_POLICY_LINKS = [
+  { label: '개인정보처리방침', href: '/privacy' },
+  { label: '이용약관', href: '/terms' },
+  { label: 'eSIM 환불정책', href: '/travel/esim/policy' },
+] as const
+
 /** 헤더 직하단 등록 표지 한 줄 (운영 표기 SSOT) */
 export const MAIN_REGISTRATION_NOTICE =
   '관광사업자등록 2024-0033호 · 통신판매업 2024-수원영통-1596호 · 사업자등록 255-81-03455 · 상담 평일 08:00–19:00'

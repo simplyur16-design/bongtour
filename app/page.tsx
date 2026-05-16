@@ -1,7 +1,5 @@
 import type { Metadata } from 'next'
 import Header from './components/Header'
-import EsimCoralStrip from './components/EsimCoralStrip'
-
 import { HomeHubCardDebugServerPanel } from './components/home/HomeHubCardDebugServerPanel'
 import { pickHomeHubTravelCardCover } from '@/lib/home-hub-travel-card-cover'
 import { getHomeHubCardHybridResolutionDetail } from '@/lib/home-hub-card-hybrid-core'
@@ -96,7 +94,6 @@ export default async function Home() {
           </div>
           <div className="hidden lg:block">
             <SeasonCurationHero sectionId="season-curation-main" />
-            <EsimCoralStrip />
             <SeasonProductGrid />
             <div className="relative border-t border-bt-border-soft/80 bg-gradient-to-b from-bt-bg-lavender-soft/70 to-transparent pt-3 md:pt-4">
               <HomeHubCardDebugServerPanel

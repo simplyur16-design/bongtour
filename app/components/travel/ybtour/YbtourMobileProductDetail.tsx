@@ -69,6 +69,7 @@ import {
 import { applyHanatourFlightRoutingChipOverride } from '@/lib/hanatour-product-meta-chips-patch'
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
+import EsimProductDetailCrossSell from '@/app/components/travel/EsimProductDetailCrossSell'
 import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/public-schedule-display'
 import {
   buildPublicOptionalDisplayInputFromProductFields,
@@ -83,7 +84,7 @@ type YbtourTravelProductDetailProps = TravelProduct & {
   ybtourFlightStructuredForHero?: PublicPersistedFlightStructuredDto | null
 }
 
-type Props = { product: YbtourTravelProductDetailProps }
+type Props = { product: YbtourTravelProductDetailProps; showEsimCrossSell?: boolean }
 
 function toDateKey(d: string): string {
   return d.startsWith('20') && d.length >= 10 ? d.slice(0, 10) : d
@@ -100,7 +101,7 @@ function applyFlightManualCorrectionForPublicOrigin(
   return apply(facts, correction)
 }
 
-export default function YbtourMobileProductDetail({ product }: Props) {
+export default function YbtourMobileProductDetail({ product, showEsimCrossSell = false }: Props) {
   const router = useRouter()
   const schedule = product.schedule && product.schedule.length > 0 ? (product.schedule as ScheduleDayWithMeta[]) : []
   const heroUrl = useMemo(() => coverImageUrlForTravelProductClient({ ...product, schedule }), [product, schedule])
@@ -756,6 +757,12 @@ export default function YbtourMobileProductDetail({ product }: Props) {
       </div>
 
       <MustKnowEssentialsSection items={mustKnowFiltered} layout="mobile" originSource={product.originSource} />
+
+      {showEsimCrossSell ? (
+        <div className="px-4 pb-4">
+          <EsimProductDetailCrossSell />
+        </div>
+      ) : null}
 
       <section className="p-4 pb-10 text-center">
         <h2 className="text-base font-semibold text-bt-card-title">안내</h2>

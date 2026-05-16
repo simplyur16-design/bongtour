@@ -672,6 +672,7 @@ export default function ProductsBrowseClient({
             seasonalPickIds={browsePresented.seasonalPickIds}
             overseasHubWideLayout={overseasHubWideLayout}
             overseasFlatByCountrySlug={q.country?.trim() || null}
+            interleaveEsimNativeCards={basePath === '/travel/overseas' && defaultScope === 'overseas'}
           />
           {data.total > data.limit &&
             !(
