@@ -136,7 +136,6 @@ export default async function HomeMobileHub() {
 
       {linkedItems.length > 0 ? (
         <section aria-label="시즌 연결 상품">
-          <h2 className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>시즌에서 이어지는 일정</h2>
           <ProductResultCardsClient items={linkedItems} layout="scroll" />
         </section>
       ) : null}
