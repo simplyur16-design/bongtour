@@ -11,14 +11,14 @@ import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 const AUTO_MS = 5600
 const PAUSE_AFTER_MS = 12_000
 
-/** PC 시즌 카드 — HomeHubFourClientCard 와 동일 톤(메모리 #27) */
+/** PC ??? ?? ??HomeHubFourClientCard ?? ??? ??????#27) */
 export const SEASON_CURATION_PHOTO_FILTER =
   'transition-[filter] duration-200 ease-out [filter:brightness(0.92)_saturate(1.08)] group-hover:[filter:brightness(1.0)_saturate(1.15)]'
 
 type Props = {
   slides: HomeSeasonPickDTO[]
   variant: 'desktop' | 'mobile'
-  /** PC: `app/page.tsx` 앵커용 */
+  /** PC: `app/page.tsx` ?????*/
   sectionId?: string
 }
 
@@ -51,7 +51,7 @@ export default function SeasonCurationCarouselClient({ slides, variant, sectionI
     return (
       <section
         id={sectionId}
-        aria-label="다가오는 달 시즌 추천"
+        aria-label="??????? ????? ??"
         className="rounded-2xl border border-bt-border-soft/80 bg-white/90 p-4 shadow-sm ring-1 ring-bt-bg-lavender/25"
       >
         <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-bt-text-muted-lavender">
@@ -77,7 +77,7 @@ export default function SeasonCurationCarouselClient({ slides, variant, sectionI
   return (
     <section
       id={sectionId}
-      aria-label="다가오는 달 시즌 추천"
+      aria-label="??????? ????? ??"
       aria-roledescription="carousel"
       className="mx-auto max-w-6xl px-3 pb-8 pt-2 sm:px-5"
     >
@@ -107,7 +107,7 @@ export default function SeasonCurationCarouselClient({ slides, variant, sectionI
             <button
               key={`dot-${s.id}`}
               type="button"
-              aria-label={`${i + 1}번째`}
+              aria-label={`${i + 1}??`}
               aria-current={i === index}
               className={
                 i === index
@@ -140,7 +140,7 @@ export function SeasonCurationCardLink({
   const subtitle = (slide.subtitle ?? '').trim()
   const excerpt = (slide.excerpt ?? '').trim()
   const img = (slide.imageUrl ?? '').trim()
-  const cta = (slide.ctaLabel ?? '자세히 보기').trim() || '자세히 보기'
+  const cta = (slide.ctaLabel ?? '???????').trim() || '???????'
   const isExternal = /^https?:\/\//i.test(href)
 
   const inner = (
@@ -184,13 +184,19 @@ export function SeasonCurationCardLink({
         <div
           className={`relative z-[3] flex h-full flex-col ${
             hero
-              ? 'justify-end pb-8 pt-0 sm:pb-12'
+              ? 'items-end justify-end pb-8 pt-0 sm:pb-12'
               : compact
                 ? 'justify-end p-4'
                 : 'justify-end p-6 sm:p-8'
           }`}
         >
-          <div className={hero ? `${SITE_CONTENT_CLASS} w-full` : 'h-full w-full'}>
+          <div
+            className={
+              hero
+                ? `${SITE_CONTENT_CLASS} flex w-full flex-col items-end text-right`
+                : 'h-full w-full'
+            }
+          >
           {slide.monthKey ? (
             <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/85">{slide.monthKey}</p>
           ) : null}
