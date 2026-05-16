@@ -6,7 +6,6 @@ import DomesticResultsShell from '@/app/components/travel/domestic/DomesticResul
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
 
-export const dynamic = 'force-dynamic'
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
