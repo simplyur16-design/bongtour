@@ -1,5 +1,6 @@
 'use client'
 
+import { ESIM_STRIP_CTA_HREF } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SITE_NAME } from '@/lib/site-metadata'
 import { useId } from 'react'
@@ -7,7 +8,7 @@ import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Phone, User } from 'lucide-react'
+import { Phone, User, Wifi } from 'lucide-react'
 
 const HEADER_TEL_DISPLAY = '031-213-2558'
 const HEADER_TEL_HREF = 'tel:0312132558'
@@ -15,7 +16,7 @@ const INQUIRY_HREF = '/inquiry?type=travel'
 
 /**
  * 메모리 #28 — 메인 IA 4메뉴.
- * 해외 서브메가는 `OverseasTravelSubMainNav` 유지.
+ * 해외 권역 메가메뉴는 `/travel/overseas` 페이지 `OverseasRegionMegaNav` 전용.
  */
 const MAIN_NAV: { label: string; href: string }[] = [
   { label: '해외여행상품', href: '/travel/overseas' },
@@ -144,6 +145,13 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
             </a>
 
             <div className="hidden items-center gap-3 lg:flex">
+              <Link
+                href={ESIM_STRIP_CTA_HREF}
+                className="inline-flex items-center gap-1.5 rounded-full border border-bt-coral/40 bg-bt-coral/10 px-3 py-1.5 text-sm font-semibold text-bt-coral transition hover:bg-bt-coral/15"
+              >
+                <Wifi className="h-4 w-4 shrink-0" aria-hidden />
+                eSIM
+              </Link>
               <a
                 href={HEADER_TEL_HREF}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-bt-brand-gold-strong hover:opacity-90"
@@ -191,6 +199,13 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
                 className="shrink-0 rounded-full bg-bt-brand-gold-strong px-2.5 py-1 text-xs font-medium text-white"
               >
                 상담
+              </Link>
+              <Link
+                href={ESIM_STRIP_CTA_HREF}
+                className="shrink-0 rounded-full border border-bt-coral/50 bg-bt-coral/15 p-1.5 text-bt-coral"
+                aria-label="eSIM"
+              >
+                <Wifi className="h-4 w-4" aria-hidden />
               </Link>
               <a
                 href={HEADER_TEL_HREF}

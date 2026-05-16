@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
-import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
 import { bongsimPath } from '@/lib/bongsim/constants'
 
 export const metadata: Metadata = {
@@ -66,7 +65,6 @@ export default function EsimSetupGuidePage() {
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
-      <OverseasTravelSubMainNav variant="links" />
       <main>
         <div className="mx-auto w-full max-w-4xl px-4 pb-20 pt-6 sm:px-6 sm:pt-8 lg:px-10 lg:pb-28 lg:pt-10">
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-teal-700">

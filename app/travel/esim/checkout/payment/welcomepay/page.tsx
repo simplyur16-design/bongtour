@@ -4,7 +4,6 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/app/components/Header";
-import OverseasTravelSubMainNav from "@/app/components/travel/overseas/OverseasTravelSubMainNav";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { removeWelcomepayIniScriptNodes, resetAfterPgOverlay } from "@/lib/bongsim/checkout/reset-after-pg-overlay";
 
@@ -259,7 +258,6 @@ function WelcomepayPaymentContent() {
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
-      <OverseasTravelSubMainNav variant="links" />
       <main>
         <div className="mx-auto w-full max-w-2xl px-4 pb-20 pt-6 sm:px-6 sm:pt-8 lg:max-w-3xl lg:px-8 lg:pb-28 lg:pt-10">
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-teal-700 lg:text-sm">결제</p>

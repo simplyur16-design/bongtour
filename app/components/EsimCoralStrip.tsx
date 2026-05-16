@@ -10,10 +10,16 @@ import {
 } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
-/** 메인 전용 eSIM 코랄 띠 — 모바일: 풀폭 카드·중앙 정렬 / PC: 좌 카피 + 우 CTA 한 줄 */
-export default function EsimCoralStrip() {
+type EsimCoralStripProps = {
+  showMobile?: boolean
+  showDesktop?: boolean
+}
+
+/** eSIM 코랄 띠 — 모바일: 풀폭 카드 / PC: 좌 카피 + 우 CTA (섹션별 표시 제어 가능) */
+export default function EsimCoralStrip({ showMobile = true, showDesktop = true }: EsimCoralStripProps) {
   return (
     <>
+      {showMobile ? (
       <section
         aria-label="여행용 eSIM 안내"
         className="mb-4 w-full bg-gradient-to-br from-bt-coral via-bt-coral to-bt-coral-soft px-4 py-6 text-center text-white shadow-md ring-1 ring-white/20 sm:px-5 sm:py-7 lg:hidden"
@@ -31,7 +37,9 @@ export default function EsimCoralStrip() {
           </span>
         </Link>
       </section>
+      ) : null}
 
+      {showDesktop ? (
       <section
         aria-label="여행용 eSIM 안내"
         className="mb-3 hidden w-full bg-gradient-to-r from-bt-coral to-bt-coral-soft py-3 text-white shadow-md ring-1 ring-white/20 sm:mb-4 sm:py-3.5 lg:mb-5 lg:block lg:py-4"
@@ -57,6 +65,7 @@ export default function EsimCoralStrip() {
           </Link>
         </div>
       </section>
+      ) : null}
     </>
   )
 }

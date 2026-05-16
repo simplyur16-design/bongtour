@@ -4,7 +4,7 @@ import Header from '@/app/components/Header'
 import OverseasHero from '@/app/components/travel/overseas/OverseasHero'
 import OverseasInteractiveShell from '@/app/components/travel/overseas/OverseasInteractiveShell'
 import OverseasManagedContent from '@/app/components/travel/overseas/OverseasManagedContent'
-import OverseasTravelSubMainNav from '@/app/components/travel/overseas/OverseasTravelSubMainNav'
+import OverseasRegionMegaNav from '@/app/components/travel/overseas/OverseasRegionMegaNav'
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
 import { getPublishedOverseasMonthlyCurationsForMonth } from '@/lib/home-season-pick'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
@@ -71,7 +71,7 @@ export default async function OverseasTravelPage({
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
-      <OverseasTravelSubMainNav />
+      <OverseasRegionMegaNav />
       <main>
         <OverseasHero
           selectedCountrySlug={country}

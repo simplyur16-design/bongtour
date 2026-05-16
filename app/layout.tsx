@@ -8,6 +8,7 @@ import ChunkLoadRecovery from './components/ChunkLoadRecovery'
 import AntiCopyProtectionGate from './components/AntiCopyProtectionGate'
 import ConditionalSiteFooter from './components/ConditionalSiteFooter'
 import GoogleTagManager from './components/GoogleTagManager'
+import MobileStickyBar from './components/MobileStickyBar'
 
 const BongtourSplash = dynamic(() =>
   import('@/components/bongtour/BongtourSplash').then((m) => ({ default: m.BongtourSplash })),
@@ -82,7 +83,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" className={`${notoSansKr.variable} ${hubOutfit.variable}`} suppressHydrationWarning>
-      <body className="min-h-screen bg-beige antialiased font-sans flex flex-col">
+      <body className="min-h-screen bg-beige antialiased font-sans flex flex-col pb-20 lg:pb-0">
         <BongtourSplash />
         <ChunkLoadRecovery />
         <AntiCopyProtectionGate />
@@ -91,6 +92,7 @@ export default function RootLayout({
           <UtmCaptureProvider>
             <div className="flex-1 flex flex-col">{children}</div>
             <ConditionalSiteFooter />
+            <MobileStickyBar />
           </UtmCaptureProvider>
         </SessionProvider>
       </body>

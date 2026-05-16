@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import Header from './components/Header'
 import EsimCoralStrip from './components/EsimCoralStrip'
-import MobileStickyBar from './components/MobileStickyBar'
 
 import { HomeHubCardDebugServerPanel } from './components/home/HomeHubCardDebugServerPanel'
 import { pickHomeHubTravelCardCover } from '@/lib/home-hub-travel-card-cover'
@@ -70,7 +69,7 @@ export default async function Home() {
     <div className="flex min-h-screen flex-col bg-bt-page">
       <SiteJsonLd />
       <Header hideMobileNav />
-      <main className="flex-1 pb-20 lg:pb-0">
+      <main className="flex-1">
         <section
           className="relative overflow-x-hidden bg-gradient-to-b from-white via-bt-bg-lavender-soft to-bt-bg-lavender/80"
           aria-label="Bong투어 메인 소개 및 서비스 허브"
@@ -88,7 +87,6 @@ export default async function Home() {
             aria-hidden
           />
           <div className="block lg:hidden">
-            <EsimCoralStrip />
             <div className={SITE_CONTENT_CLASS}>
               <MobileDestinationSearch />
             </div>
@@ -118,7 +116,6 @@ export default async function Home() {
           <CustomerReviewsSection />
         </div>
       </main>
-      <MobileStickyBar />
     </div>
   )
 }
