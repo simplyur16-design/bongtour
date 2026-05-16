@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
+import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { PRODUCT_BROWSE_FULL_INCLUDE, type ProductBrowseIncludedRow } from '@/lib/product-browse-full-include'
+import { PRODUCT_BROWSE_SELECT, type ProductBrowseIncludedRow } from '@/lib/product-browse-full-include'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
 import { filterProductsForDomesticDestinationTree } from '@/lib/active-domestic-location-tree'
@@ -9,7 +10,6 @@ import {
   computeFacetFlags,
   productRowPassesExtendedFilters,
   type ExtendedBrowseFilters,
-  type ProductBrowseFullRow,
 } from '@/lib/products-browse-extended-filter'
 import { parseBrowseQuery } from '@/lib/products-browse-query'
 import {
@@ -51,7 +51,7 @@ import {
   domesticProductMatchesTrain,
 } from '@/lib/domestic-public-browse-match'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 /** 메가메뉴 탭 id → `Product.localDepartureTag` 배열 원소 (Prisma `has`) */
 function localDepartureTagForBrowseRegion(region: string | null | undefined): 'busan' | 'cheongju' | 'daegu' | null {
@@ -112,9 +112,9 @@ function appendSubregionCityOrDestinationOr(
  * 예산 필터는 등록된 상품의 실제 금액을 확인하여 예산 범위 내 상품만 노출한다.
  * (priceFrom / 출발별 adultPrice / 레거시 adult 중 최소 = 인당 유효가)
  */
-export async function GET(request: Request) {
+async function productsBrowseGetUncached(queryKey: string): Promise<Response> {
   try {
-    const { searchParams } = new URL(request.url)
+    const searchParams = new URLSearchParams(queryKey)
     const q = parseBrowseQuery(searchParams)
 
     const typeParam = searchParams.get('type')
@@ -262,8 +262,8 @@ export async function GET(request: Request) {
     const parsedLimit =
       limitParam != null && limitParam !== '' ? parseInt(limitParam, 10) : Number.NaN
     const rawLimit = Number.isFinite(parsedLimit) ? parsedLimit : null
-    /** 클라이언트가 큰 limit을 요청해도 상한 — 응답 크기 제한 */
-    const limitCap = scopeForLimit === 'overseas' || scopeForLimit === 'domestic' ? 120 : 60
+    /** 클라이언트가 큰 limit을 요청해도 상한 — 응답 크기·빌드 DB 부하 제한 */
+    const limitCap = 48
     const limit = Math.min(limitCap, Math.max(1, rawLimit ?? 24))
 
     const rows = await prisma.product.findMany({
@@ -275,7 +275,7 @@ export async function GET(request: Request) {
         ],
       },
       orderBy: { updatedAt: 'desc' },
-      include: PRODUCT_BROWSE_FULL_INCLUDE,
+      select: PRODUCT_BROWSE_SELECT,
     })
     /**
      * 공개 목록용으로 "예약 가능 최소일(오늘+2일) 이후" 출발만 `departures`에 남긴다.
@@ -390,7 +390,7 @@ export async function GET(request: Request) {
       urlGeo,
     })
 
-    const facetRows = scoredForFacets.map((s) => s.product as ProductBrowseFullRow)
+    const facetRows = scoredForFacets.map((s) => s.product as ProductBrowseIncludedRow)
     const brandFacets = aggregateBrandFacets(facetRows)
     const airlineFacets = aggregateAirlineFacets(facetRows)
     const facetFlags = computeFacetFlags(facetRows)
@@ -433,12 +433,15 @@ export async function GET(request: Request) {
       budgetMax: null,
     }
 
-    scored = scored.filter((s) => productRowPassesExtendedFilters(s.product as ProductBrowseFullRow, ext))
+    scored = scored.filter((s) =>
+      productRowPassesExtendedFilters(s.product as ProductBrowseIncludedRow, ext),
+    )
 
     const total = scored.length
     const slice = scored.slice((page - 1) * limit, page * limit)
 
-    const metaRows = slice.map(({ product: p, effectivePricePerPerson }) => {
+    const metaRows = slice.map(({ product: pRaw, effectivePricePerPerson }) => {
+      const p = pRaw as ProductBrowseIncludedRow
       const scheduleRows = getScheduleFromProduct(p)
       const coverUrl = getFinalCoverImageUrl({
         bgImageUrl: p.bgImageUrl,
@@ -454,8 +457,7 @@ export async function GET(request: Request) {
       .map((m) => m.coverUrl as string)
     const captionMap = await buildCaptionLookupMapFromPublicUrls(urlsForCaptionBatch)
 
-    const items = metaRows.map(({ p: pRaw, effectivePricePerPerson, coverUrl, firstScheduleName }) => {
-      const p = pRaw as ProductBrowseIncludedRow
+    const items = metaRows.map(({ p, effectivePricePerPerson, coverUrl, firstScheduleName }) => {
       const seoAssetHint = lookupCaptionFromMap(captionMap, coverUrl)
       const coverImageSeoKeyword = resolvePublicProductHeroSeoKeywordOverlay({
         storedRegisterSeoKeywordsJson: p.publicImageHeroSeoKeywordsJson,
@@ -577,8 +579,7 @@ export async function GET(request: Request) {
     console.error('[GET /api/products/browse]', e)
     let q: ReturnType<typeof parseBrowseQuery>
     try {
-      const { searchParams } = new URL(request.url)
-      q = parseBrowseQuery(searchParams)
+      q = parseBrowseQuery(new URLSearchParams(queryKey))
     } catch {
       return jsonWithLeakGuard(
         { ok: false, error: '요청 파라미터를 처리하지 못했습니다.' },
@@ -586,7 +587,7 @@ export async function GET(request: Request) {
         { status: 400 },
       )
     }
-    const sp = new URL(request.url).searchParams
+    const sp = new URLSearchParams(queryKey)
     /**
      * 예전에는 여기서 ok:true, total:0 을 반환해 DB/Prisma 오류가 "상품 없음"처럼 보였다.
      * 운영에서 원인 파악이 가능하도록 실패 응답으로 통일한다.
@@ -614,4 +615,13 @@ export async function GET(request: Request) {
     }
     return jsonWithLeakGuard(body, 'api.products.browse.error', { status: 500 })
   }
+}
+
+export async function GET(request: Request) {
+  const queryKey = new URL(request.url).searchParams.toString()
+  return unstable_cache(
+    () => productsBrowseGetUncached(queryKey),
+    ['products-browse-v4', queryKey],
+    { revalidate: 300 },
+  )()
 }

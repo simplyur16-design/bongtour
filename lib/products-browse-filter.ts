@@ -3,7 +3,6 @@
  * 예산: computeEffectivePricePerPersonKrwFromRow 로 산정한 값이 입력 예산 이하인 것만 포함.
  * (등록된 상품의 실제 금액을 확인하여 예산 범위 내 상품만 노출)
  */
-import type { Product } from '@prisma/client'
 import { computeEffectivePricePerPersonKrwFromRow, type ProductPriceSelect } from '@/lib/product-price-per-person'
 import { productMatchesOverseasDestinationTerms, type OverseasProductMatchInput } from '@/lib/match-overseas-product'
 import { parseListingKind, type ListingKind } from '@/lib/product-listing-kind'
@@ -89,8 +88,33 @@ export function toOverseasMatchInput(p: {
 
 export type BrowseSort = 'budget_fit' | 'price_asc' | 'price_desc' | 'popular' | 'departure_asc'
 
-export type BrowseScoredProduct = {
-  product: Product & ProductPriceSelect
+/** browse scoring에 필요한 최소 Product 필드 (전체 Product·browse select 공통) */
+export type ProductBrowseScoreRow = ProductPriceSelect & {
+  id: string
+  originSource: string
+  title: string
+  productType: string | null
+  listingKind?: string | null
+  primaryDestination: string | null
+  destinationRaw: string | null
+  destination: string | null
+  primaryRegion: string | null
+  continent?: string | null
+  country?: string | null
+  city?: string | null
+  countryKey?: string | null
+  continentKey?: string | null
+  cityKey?: string | null
+  countryTags?: OverseasProductMatchInput['countryTags']
+  cityTags?: OverseasProductMatchInput['cityTags']
+  updatedAt: Date
+  bgImageUrl?: string | null
+  schedule?: string | null
+  duration?: string | null
+}
+
+export type BrowseScoredProduct<T extends ProductBrowseScoreRow = ProductBrowseScoreRow> = {
+  product: T
   effectivePricePerPerson: number | null
   distanceToBudget: number
   earliestDeparture: Date | null
@@ -106,8 +130,8 @@ function earliestDepartureDate(departures: { departureDate: Date }[]): Date | nu
   return new Date(min)
 }
 
-export function scoreAndFilterProducts(
-  rows: Array<Product & ProductPriceSelect>,
+export function scoreAndFilterProducts<T extends ProductBrowseScoreRow>(
+  rows: T[],
   opts: {
     type: ProductBrowseType | null
     destinationTerms: string[]
@@ -115,9 +139,9 @@ export function scoreAndFilterProducts(
     sort: BrowseSort
     /** URL `region`·`country`·`city` — DB continent/country/city 슬러그와 직접 비교 */
     urlGeo?: { region: string | null; country: string | null; city: string | null }
-  }
-): BrowseScoredProduct[] {
-  const list: BrowseScoredProduct[] = []
+  },
+): BrowseScoredProduct<T>[] {
+  const list: BrowseScoredProduct<T>[] = []
   for (const p of rows) {
     if (!productMatchesBrowseType(p, opts.type)) continue
     if (!productMatchesOverseasDestinationTerms(toOverseasMatchInput(p), opts.destinationTerms, opts.urlGeo)) continue
