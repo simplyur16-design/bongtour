@@ -54,6 +54,18 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+/** 4xx 등 클라이언트 오류 — unstable_cache 밖에서 Response 생성 (캐시하지 않음) */
+class BrowseRouteClientError extends Error {
+  constructor(
+    public readonly guardContext: string,
+    public readonly body: unknown,
+    public readonly status: number,
+  ) {
+    super(guardContext)
+    this.name = 'BrowseRouteClientError'
+  }
+}
+
 /** 메가메뉴 탭 id → `Product.localDepartureTag` 배열 원소 (Prisma `has`) */
 function localDepartureTagForBrowseRegion(region: string | null | undefined): 'busan' | 'cheongju' | 'daegu' | null {
   const t = (region ?? '').trim().toLowerCase()
@@ -113,9 +125,9 @@ function appendSubregionCityOrDestinationOr(
  * 예산 필터는 등록된 상품의 실제 금액을 확인하여 예산 범위 내 상품만 노출한다.
  * (priceFrom / 출발별 adultPrice / 레거시 adult 중 최소 = 인당 유효가)
  */
-async function productsBrowseGetUncached(queryKey: string): Promise<Response> {
-  try {
-    const searchParams = new URLSearchParams(queryKey)
+/** 성공 JSON 본문만 반환 — 실패는 throw (unstable_cache가 500 Response를 캐시하지 않도록). */
+async function productsBrowseBuildPayload(queryKey: string) {
+  const searchParams = new URLSearchParams(queryKey)
     const q = parseBrowseQuery(searchParams)
 
     const typeParam = searchParams.get('type')
@@ -228,10 +240,10 @@ async function productsBrowseGetUncached(queryKey: string): Promise<Response> {
     const budgetPerPersonMax =
       budgetRaw != null && budgetRaw !== '' ? Math.max(0, parseInt(budgetRaw, 10)) : null
     if (budgetPerPersonMax != null && Number.isNaN(budgetPerPersonMax)) {
-      return jsonWithLeakGuard(
-        { ok: false, error: 'budgetPerPerson 형식이 올바르지 않습니다.' },
+      throw new BrowseRouteClientError(
         'api.products.browse.budget',
-        { status: 400 },
+        { ok: false, error: 'budgetPerPerson 형식이 올바르지 않습니다.' },
+        400,
       )
     }
 
@@ -551,8 +563,8 @@ async function productsBrowseGetUncached(queryKey: string): Promise<Response> {
       }
     }
 
-    const payload = {
-      ok: true,
+    return {
+      ok: true as const,
       total,
       page,
       limit,
@@ -573,54 +585,65 @@ async function productsBrowseGetUncached(queryKey: string): Promise<Response> {
         city,
       },
     }
-    return jsonWithLeakGuard(payload, 'api.products.browse.ok')
-  } catch (e) {
-    console.error('[GET /api/products/browse]', e)
-    let q: ReturnType<typeof parseBrowseQuery>
-    try {
-      q = parseBrowseQuery(new URLSearchParams(queryKey))
-    } catch {
-      return jsonWithLeakGuard(
-        { ok: false, error: '요청 파라미터를 처리하지 못했습니다.' },
-        'api.products.browse.bad-query',
-        { status: 400 },
-      )
-    }
-    const sp = new URLSearchParams(queryKey)
-    /**
-     * 예전에는 여기서 ok:true, total:0 을 반환해 DB/Prisma 오류가 "상품 없음"처럼 보였다.
-     * 운영에서 원인 파악이 가능하도록 실패 응답으로 통일한다.
-     */
-    const body = {
-      ok: false as const,
-      error: '상품 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
-      page: q.page,
-      limit: q.limit,
-      destinationTerms: [] as string[],
-      suggestedBudgetMax: null as number | null,
-      facets: {
-        brands: [] as { key: string; label: string; count: number }[],
-        airlines: [] as { code: string; label: string; count: number }[],
-        hasDepartureTimeData: false,
-        hasWeekdayData: false,
-      },
-      queryEcho: {
-        type: sp.get('type'),
-        categories: q.categories,
-        region: sp.get('region'),
-        country: sp.get('country'),
-        city: sp.get('city'),
-      },
-    }
-    return jsonWithLeakGuard(body, 'api.products.browse.error', { status: 500 })
+}
+
+function browseErrorBodyFromQueryKey(queryKey: string) {
+  let q: ReturnType<typeof parseBrowseQuery>
+  try {
+    q = parseBrowseQuery(new URLSearchParams(queryKey))
+  } catch {
+    throw new BrowseRouteClientError(
+      'api.products.browse.bad-query',
+      { ok: false, error: '요청 파라미터를 처리하지 못했습니다.' },
+      400,
+    )
+  }
+  const sp = new URLSearchParams(queryKey)
+  return {
+    ok: false as const,
+    error: '상품 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    page: q.page,
+    limit: q.limit,
+    destinationTerms: [] as string[],
+    suggestedBudgetMax: null as number | null,
+    facets: {
+      brands: [] as { key: string; label: string; count: number }[],
+      airlines: [] as { code: string; label: string; count: number }[],
+      hasDepartureTimeData: false,
+      hasWeekdayData: false,
+    },
+    queryEcho: {
+      type: sp.get('type'),
+      categories: q.categories,
+      region: sp.get('region'),
+      country: sp.get('country'),
+      city: sp.get('city'),
+    },
   }
 }
 
 export async function GET(request: Request) {
   const queryKey = new URL(request.url).searchParams.toString()
-  return unstable_cache(
-    () => productsBrowseGetUncached(queryKey),
-    ['products-browse-v5', queryKey],
-    { revalidate: 300 },
-  )()
+  try {
+    const payload = await unstable_cache(
+      () => productsBrowseBuildPayload(queryKey),
+      ['products-browse-v6', queryKey],
+      { revalidate: 300 },
+    )()
+    return jsonWithLeakGuard(payload, 'api.products.browse.ok')
+  } catch (e) {
+    if (e instanceof BrowseRouteClientError) {
+      return jsonWithLeakGuard(e.body, e.guardContext, { status: e.status })
+    }
+    console.error('[GET /api/products/browse]', e)
+    try {
+      const body = browseErrorBodyFromQueryKey(queryKey)
+      return jsonWithLeakGuard(body, 'api.products.browse.error', { status: 500 })
+    } catch (inner) {
+      if (inner instanceof BrowseRouteClientError) {
+        return jsonWithLeakGuard(inner.body, inner.guardContext, { status: inner.status })
+      }
+      throw inner
+    }
+  }
 }
