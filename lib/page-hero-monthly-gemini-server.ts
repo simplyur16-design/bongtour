@@ -1,9 +1,18 @@
 import 'server-only'
 
+import { unstable_cache } from 'next/cache'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
+import { pageHeroMonthlyGeminiJobKey } from '@/lib/page-hero-monthly-shared'
 import type { PageHeroMonthlyGeminiJob } from '@/lib/page-hero-monthly-types'
 
 const GEMINI_TEXT_TIMEOUT_MS = Math.min(30_000, 25_000)
+
+/** 월·목적지 슬롯 조합 — 시즌 단위로 충분히 안정적 */
+export const PAGE_HERO_EDITORIAL_LINES_CACHE_SECONDS = 3600
+
+export function buildPageHeroEditorialLinesCacheKey(jobs: PageHeroMonthlyGeminiJob[]): string {
+  return jobs.map((j) => pageHeroMonthlyGeminiJobKey(j)).join('|')
+}
 
 export function sanitizePageHeroEditorialGeminiLine(raw: string): string {
   let t = String(raw ?? '')
@@ -75,4 +84,19 @@ export async function generatePageHeroMonthlyEditorialLinesWithGemini(
     }
     return { ok: false, error: msg }
   }
+}
+
+/**
+ * Gemini 1회 호출 결과를 1시간 캐시 — 동일 jobs(월·목적지·scope)면 즉시 응답.
+ */
+export async function getCachedPageHeroMonthlyEditorialLinesWithGemini(
+  jobs: PageHeroMonthlyGeminiJob[],
+): Promise<{ ok: true; lines: string[] } | { ok: false; error: string }> {
+  if (jobs.length === 0) return { ok: false, error: 'empty_jobs' }
+  const cacheKey = buildPageHeroEditorialLinesCacheKey(jobs)
+  return unstable_cache(
+    () => generatePageHeroMonthlyEditorialLinesWithGemini(jobs),
+    ['page-hero-editorial-lines-v1', cacheKey],
+    { revalidate: PAGE_HERO_EDITORIAL_LINES_CACHE_SECONDS },
+  )()
 }
