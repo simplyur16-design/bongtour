@@ -104,7 +104,7 @@ export async function countOverseasPublishedReviews(): Promise<number> {
 
 /**
  * 해외 랜딩 하단 그리드: category=overseas · published 전체.
- * 정렬: 대표(is_featured) 먼저 → display_order → 노출일 내림차순.
+ * 정렬: display_order 내림차순(패키지 상위) → 노출일 → 생성일.
  * 첫 화면 6장만 쓸 때는 `getFeaturedOverseasReviews`; 전체 목록·더보기·별도 페이지는 본 함수로 분리 연결.
  * (쿼리에 `.eq('status', 'published')` 고정 — pending/rejected 미포함.)
  */
@@ -122,8 +122,7 @@ export async function listOverseasPublishedReviewCards(limit = 21): Promise<Revi
       .select(cardSelect)
       .eq('category', 'overseas' satisfies ReviewCategory)
       .eq('status', 'published')
-      .order('is_featured', { ascending: false })
-      .order('display_order', { ascending: true })
+      .order('display_order', { ascending: false })
       .order('displayed_date', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(lim)

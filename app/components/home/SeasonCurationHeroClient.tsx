@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeHomeSeasonSlidesForClient, type HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
-import { MAIN_CURATION_EYEBROW, MAIN_CURATION_LEAD, MAIN_CURATION_TITLE } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SeasonCurationCardLink } from '@/app/components/home/SeasonCurationCarouselClient'
 
@@ -47,17 +46,9 @@ export default function SeasonCurationHeroClient({ slides, sectionId }: Props) {
       id={sectionId}
       aria-label="시즌 큐레이션 히어로"
       aria-roledescription="carousel"
-      className="w-full pb-2 pt-1 sm:pb-3 sm:pt-2"
+      className="w-full pb-2 pt-0 sm:pb-3"
     >
-      <div className="mx-auto max-w-6xl px-3 text-center sm:px-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-bt-text-muted-lavender">
-          {MAIN_CURATION_EYEBROW}
-        </p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-bt-text-navy sm:text-[28px]">{MAIN_CURATION_TITLE}</h1>
-        <p className="mx-auto mt-2 max-w-2xl text-sm text-bt-text-muted-lavender">{MAIN_CURATION_LEAD}</p>
-      </div>
-
-      <div className="relative mt-5 w-full" onPointerDown={bumpPause}>
+      <div className="relative w-full" onPointerDown={bumpPause}>
         {n > 1 ? (
           <div
             className={`pointer-events-none absolute inset-x-0 top-4 z-[5] ${SITE_CONTENT_CLASS} flex justify-end sm:top-6`}
