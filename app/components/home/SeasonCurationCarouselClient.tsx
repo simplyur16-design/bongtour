@@ -182,9 +182,9 @@ export function SeasonCurationCardLink({
           aria-hidden
         />
         <div
-          className={`relative z-[3] flex h-full flex-col ${
+          className={`absolute inset-0 z-[3] flex flex-col ${
             hero
-              ? 'items-end justify-end pb-8 pt-0 sm:pb-12'
+              ? 'items-end justify-end pb-8 pr-4 pt-0 sm:pb-12 sm:pr-6'
               : compact
                 ? 'justify-end p-4'
                 : 'justify-end p-6 sm:p-8'
@@ -193,7 +193,7 @@ export function SeasonCurationCardLink({
           <div
             className={
               hero
-                ? `${SITE_CONTENT_CLASS} flex w-full flex-col items-end text-right`
+                ? `${SITE_CONTENT_CLASS} flex w-full flex-col items-end justify-end text-right`
                 : 'h-full w-full'
             }
           >
