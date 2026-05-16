@@ -2,7 +2,6 @@ import { prisma } from '@/lib/prisma'
 import { getSiteOrigin } from '@/lib/site-metadata'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 
-export const dynamic = 'force-dynamic'
 export const revalidate = 3600
 
 function escapeXml(s: string): string {

@@ -21,9 +21,6 @@ import MobileDestinationSearch from './components/home/MobileDestinationSearch'
 /** 5분 ISR — 허브 카드 풀·시즌 큐레이션은 최대 5분 지연 후 반영. */
 export const revalidate = 300
 
-/** 홈은 DB·캐시 조합이 많아 정적 프리렌더 시 커넥션 풀 고갈을 피하기 위해 매 요청 렌더링. */
-export const dynamic = 'force-dynamic'
-
 export const metadata: Metadata = {
   title: { absolute: HOME_PAGE_TITLE },
   description: HOME_PAGE_DESCRIPTION,

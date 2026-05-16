@@ -5,8 +5,6 @@ import { resolveTrainingPageSectionImages } from '@/lib/home-hub-resolve-images'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
 
-/** `home-hub-active.json` 갱신이 곧바로 반영되도록 */
-export const dynamic = 'force-dynamic'
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
