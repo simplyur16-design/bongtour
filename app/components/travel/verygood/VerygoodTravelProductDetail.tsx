@@ -150,6 +150,7 @@ export type TravelProduct = {
   bgImageUrl?: string | null
   /** 대표 이미지 출처 타입(Product.bgImageSource) — 히어로 배지 */
   bgImageSource?: string | null
+  bgImagePhotographer?: string | null
   /** AI 생성 표기(Product.bgImageIsGenerated) */
   bgImageIsGenerated?: boolean | null
   /** 일정 표시명 없을 때 image_assets 메타로 히어로 첫 슬라이드 캡션 보강 */
@@ -713,7 +714,7 @@ export default function VerygoodTravelProductDetail({ product, showEsimCrossSell
           durationLabel: rowDurationLabel?.trim() || product.duration || '',
           airline: selectedDepartureFacts?.airline?.trim() ?? product.airline,
           heroDepartureDisplay,
-          heroReturnDisplay,
+          duration: product.duration ?? '',
           heroPriceSsot,
           heroDiscountSavingsLine,
           heroBenefitWhenNoDiscount,

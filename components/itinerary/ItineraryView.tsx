@@ -117,6 +117,7 @@ interface ItineraryViewProps {
     airtelHotelInfoJson?: string | null
     reservationNoticeRaw?: string | null
     duration?: string | null
+    mustKnowItems?: Array<{ category: string; title: string; body: string; raw?: string }> | null
     flightAdminJson?: string | null
     travelScope?: 'domestic' | 'overseas' | null
   }

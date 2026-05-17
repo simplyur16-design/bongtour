@@ -555,7 +555,7 @@ export default function YbtourMobileProductDetail({ product, showEsimCrossSell =
           durationLabel: product.duration ?? '',
           airline: selectedDepartureFacts?.airline?.trim() ?? product.airline,
           heroDepartureDisplay,
-          heroReturnDisplay,
+          duration: product.duration ?? '',
           heroPriceSsot,
           heroDiscountSavingsLine,
           heroBenefitWhenNoDiscount,

@@ -556,7 +556,7 @@ export default function VerygoodMobileProductDetail({ product, showEsimCrossSell
           durationLabel: rowDurationLabel?.trim() || product.duration || '',
           airline: selectedDepartureFacts?.airline?.trim() ?? product.airline,
           heroDepartureDisplay,
-          heroReturnDisplay,
+          duration: product.duration ?? '',
           heroPriceSsot,
           heroDiscountSavingsLine,
           heroBenefitWhenNoDiscount,

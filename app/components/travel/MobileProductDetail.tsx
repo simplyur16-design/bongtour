@@ -570,7 +570,7 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
           durationLabel: product.duration ?? '',
           airline: product.airline,
           heroDepartureDisplay,
-          heroReturnDisplay,
+          duration: product.duration ?? '',
           heroPriceSsot,
           heroDiscountSavingsLine,
           heroBenefitWhenNoDiscount,
