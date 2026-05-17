@@ -31,6 +31,7 @@ import { extractDestinationFromTitle } from './destination-from-title'
 import { normalizeOriginSource } from './supplier-origin'
 import { extractStructuredTourSignals } from './structured-tour-signals-modetour'
 import type { StructuredOptionalTourRow, StructuredShoppingStopRow } from './structured-tour-signals-modetour'
+import { normalizeDetailRawText } from '@/lib/detail-body-parser-utils-modetour'
 import {
   buildRegisterLlmInputBlocks,
   buildRegisterPreviewMinimalLlmInputBlocks,
@@ -1364,7 +1365,9 @@ export async function parseForRegisterLlmModetour(
     detailBody = { ...detailBody, geminiRepairLog: repairLog }
   }
   options?.onTiming?.('after-section-repairs')
-  const blockB = rawText.trim() ? rawText.slice(0, REGISTER_PASTE_MAX_CHARS) : EMPTY_PASTE_PLACEHOLDER
+  const blockB = rawText.trim()
+    ? normalizeDetailRawText(rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
+    : EMPTY_PASTE_PLACEHOLDER
   const pb = options?.pastedBlocks ?? {}
   const manualPasteAxes = readManualPasteAxesFromBlocks(pb)
   const forPreview = Boolean(options?.forPreview)

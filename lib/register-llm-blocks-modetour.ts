@@ -3,6 +3,7 @@
  * LLM 등록 파싱 입력 합성 — 추출 SSOT용 블록 라벨 고정.
  * 공통 등록 본류: 관리자 복붙 텍스트만. URL·HTML fetch·어댑터 요약 없음.
  */
+import { normalizeDetailRawText } from '@/lib/detail-body-parser-utils-modetour'
 
 export type RegisterPasteSections = {
   priceTable: string
@@ -141,13 +142,14 @@ export function buildRegisterLlmInputBlocks(
   opts: RegisterPastedBlocksInput,
   buildOpts?: BuildRegisterLlmInputOptions
 ): string {
-  const seg = segmentSupplierPasteForLlm(opts.pastedBody)
+  const pastedBodyNorm = normalizeDetailRawText(opts.pastedBody)
+  const seg = segmentSupplierPasteForLlm(pastedBodyNorm)
   const empty = '(해당 블록: 본문에서 자동 분리 미검출 — [PASTED SUPPLIER BODY] 참고)'
   const preview = buildOpts?.forPreview === true
   const bodyMax = preview ? PREVIEW_BODY_MAX : FULL_BODY_MAX
   const blockMax = preview ? PREVIEW_BLOCK_MAX : FULL_BLOCK_MAX
 
-  const body = opts.pastedBody.trim().slice(0, bodyMax)
+  const body = pastedBodyNorm.trim().slice(0, bodyMax)
 
   const pick = (explicit: string | null | undefined, segmented: string, blockLabel: string) => {
     const e = explicit?.trim()
@@ -226,8 +228,9 @@ const PREVIEW_MINIMAL_CHECKS_MAX = 12000
  * mustKnow·요약·프로모·서술형은 출력하지 않음 — 확정 파싱에서 채움.
  */
 export function buildRegisterPreviewMinimalLlmInputBlocks(opts: RegisterPastedBlocksInput): string {
-  const body = opts.pastedBody.trim().slice(0, PREVIEW_MINIMAL_BODY_MAX)
-  const seg = segmentSupplierPasteForLlm(opts.pastedBody)
+  const pastedBodyNorm = normalizeDetailRawText(opts.pastedBody)
+  const body = pastedBodyNorm.trim().slice(0, PREVIEW_MINIMAL_BODY_MAX)
+  const seg = segmentSupplierPasteForLlm(pastedBodyNorm)
   const empty = '(해당 블록: 없음)'
   const checksExplicit = opts.requiredChecks?.trim()
   const checks = (checksExplicit || seg.requiredChecks.trim()).slice(0, PREVIEW_MINIMAL_CHECKS_MAX)

@@ -217,22 +217,55 @@ function cleanLine(line: string): string {
   return line.replace(/\s+/g, ' ').trim()
 }
 
-function isModetourPasteArtifactLine(line: string): boolean {
+/** UI·이미지·로고 등 정보 손실 없이 제거 가능한 단독 줄 (모두투어 붙여넣기 1차) */
+function isModetourSafeNoiseStandaloneLine(line: string): boolean {
   const t = line.replace(/\s+/g, ' ').trim()
-  if (/^Image$/i.test(t)) return true
-  if (/^logo$/i.test(t)) return true
+  if (!t) return true
+  if (/^더보기$/i.test(t)) return true
+  if (/^크게\s*보기$/i.test(t)) return true
+  if (/^이미지설명$/i.test(t)) return true
+  if (/Pexels\s*스톡\s*이미지/i.test(t)) return true
+  if (/^행사인원에\s*따라\s*행사차량이\s*변경될\s*수\s*있습니다\.?$/i.test(t)) return true
   if (/^logo-koreanair$/i.test(t)) return true
+  if (/^logo$/i.test(t)) return true
   return false
 }
 
+/** 단독 줄이 아닌 UI 잡음(리뷰·배너 등) — 줄 전체가 해당 패턴일 때만 제거 */
+function isModetourBroadUiNoiseLine(line: string): boolean {
+  return /(후기|리뷰|좋아요|공유|배너|이벤트|버튼|^[-_=]{3,}$|모두투어\s*예약|상담\s*문의|고객\s*만족)/i.test(line)
+}
+
+/** 단독 'Image' 줄이 3회 이상 연속일 때만 제거(1~2줄은 유지) */
+function dropConsecutiveStandaloneImageRuns(lines: string[]): string[] {
+  const out: string[] = []
+  let i = 0
+  while (i < lines.length) {
+    if (/^image$/i.test(lines[i]!.trim())) {
+      let j = i
+      while (j < lines.length && /^image$/i.test(lines[j]!.trim())) j++
+      if (j - i >= 3) {
+        i = j
+        continue
+      }
+      for (let k = i; k < j; k++) out.push(lines[k]!)
+      i = j
+      continue
+    }
+    out.push(lines[i]!)
+    i++
+  }
+  return out
+}
+
 export function normalizeDetailRawText(raw: string): string {
-  const drop =
-    /(더보기|크게보기|후기|리뷰|좋아요|공유|배너|이벤트|버튼|^[-_=]{3,}$|모두투어\s*예약|상담\s*문의|고객\s*만족)/i
-  return raw
+  const lines = raw
     .replace(/\r/g, '\n')
     .split('\n')
     .map((l) => l.replace(/\t/g, ' ').trim())
-    .filter((l) => l && !drop.test(l) && !isModetourPasteArtifactLine(l))
+    .filter((l) => l.length > 0)
+    .filter((l) => !isModetourBroadUiNoiseLine(l) && !isModetourSafeNoiseStandaloneLine(l))
+  return dropConsecutiveStandaloneImageRuns(lines)
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
 }
