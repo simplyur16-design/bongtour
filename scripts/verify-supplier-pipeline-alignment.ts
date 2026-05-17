@@ -260,7 +260,7 @@ function sectionSyntheticFmcAndKeys() {
     { brandKey: 'modetour', origin: null, expectModuleKey: 'modetour' },
     { brandKey: 'ybtour', origin: null, expectModuleKey: 'ybtour' },
     { brandKey: 'yellowballoon', origin: null, expectModuleKey: 'ybtour' },
-    { brandKey: null, origin: '참좋은여행사', expectModuleKey: 'verygoodtour' },
+    { brandKey: null, origin: '참좋은여행', expectModuleKey: 'verygoodtour' },
   ]
   const snap: Record<string, unknown> = { syntheticFmc: {} as Record<string, unknown> }
   for (const r of rows) {

@@ -5,10 +5,10 @@
 
 import { normalizeSupplierOrigin, OVERSEAS_SUPPLIER_LABEL } from '@/lib/normalize-supplier-origin'
 
-export const VERYGOODTOUR_SOURCE = 'VERYGOODTOUR'
+export const VERYGOODTOUR_SOURCE = 'verygoodtour'
 
 /**
- * DB·복합키는 `modetour`·`VERYGOODTOUR` 등 내부 식별자를 유지하고,
+ * DB·복합키는 `modetour`·`verygoodtour` 등 내부 식별자를 유지하고,
  * 화면·고객 메시지에는 `OVERSEAS_SUPPLIER_LABEL` 기준 한글 상호로 표시한다.
  */
 /**
@@ -28,7 +28,7 @@ function norm(s: string | null | undefined): string {
 }
 
 /**
- * 참좋은여행은 내부 식별 originSource를 VERYGOODTOUR로 통일한다.
+ * 참좋은여행은 내부 식별 originSource를 verygoodtour로 통일한다.
  * (표시명은 UI/브랜드 레이어에서 별도 처리)
  */
 export function normalizeOriginSource(input: string | null | undefined, brandKey?: string | null): string {
@@ -41,7 +41,7 @@ export function normalizeOriginSource(input: string | null | undefined, brandKey
 }
 
 /**
- * VERYGOODTOUR URL에서 ProCode 추출.
+ * verygoodtour URL에서 ProCode 추출.
  * 예: ...PackageDetail?ProCode=JPP423-260329TW&PriceSeq=1
  */
 export function extractVerygoodProCode(originUrl: string | null | undefined): string | null {

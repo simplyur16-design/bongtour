@@ -415,7 +415,7 @@ function parseRegisterApiPath(brandKey: AdminRegisterSupplierKey): string {
  */
 const REGISTER_SUPPLIER_OPTIONS: Brand[] = [
   { id: '', brandKey: 'modetour', displayName: '모두투어', sortOrder: 1 },
-  { id: '', brandKey: 'verygoodtour', displayName: '참좋은여행사', sortOrder: 2 },
+  { id: '', brandKey: 'verygoodtour', displayName: '참좋은여행', sortOrder: 2 },
   { id: '', brandKey: 'ybtour', displayName: '노랑풍선', sortOrder: 3 },
   { id: '', brandKey: 'hanatour', displayName: '하나투어', sortOrder: 4 },
   { id: '', brandKey: 'kyowontour', displayName: '교원이지', sortOrder: 5 },

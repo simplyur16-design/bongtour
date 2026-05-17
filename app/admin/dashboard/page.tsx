@@ -69,7 +69,7 @@ export default function AdminDashboardPage() {
     { brandKey: 'hanatour', displayName: '하나투어' },
     { brandKey: 'modetour', displayName: '모두투어' },
     { brandKey: 'ybtour', displayName: '노랑풍선' },
-    { brandKey: 'verygoodtour', displayName: '참좋은여행사' },
+    { brandKey: 'verygoodtour', displayName: '참좋은여행' },
     { brandKey: 'kyowontour', displayName: '교원이지' },
     { brandKey: 'lottetour', displayName: '롯데관광' },
     { brandKey: 'other', displayName: '기타' },

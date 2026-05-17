@@ -11,7 +11,7 @@ export const TRAVEL_LANDING_SUPPLIER_CHIPS: {
   { id: 'all', label: '전체 공급사', key: null },
   { id: 'hana', label: '하나투어', key: 'hanatour' },
   { id: 'modu', label: '모두투어', key: 'modetour' },
-  { id: 'johan', label: '참좋은여행사', key: 'verygoodtour' },
+  { id: 'johan', label: '참좋은여행', key: 'verygoodtour' },
   { id: 'yellow', label: '노랑풍선', key: 'ybtour' },
   { id: 'etc', label: '기타', key: 'etc' },
 ]

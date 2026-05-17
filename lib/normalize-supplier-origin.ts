@@ -12,7 +12,7 @@ export type OverseasSupplierKey = CanonicalOverseasSupplierKey | 'etc'
 export const OVERSEAS_SUPPLIER_LABEL: Record<OverseasSupplierKey, string> = {
   hanatour: '하나투어',
   modetour: '모두투어',
-  verygoodtour: '참좋은여행사',
+  verygoodtour: '참좋은여행',
   ybtour: '노랑풍선',
   kyowontour: '교원이지',
   lottetour: '롯데관광',
@@ -39,7 +39,7 @@ const PATTERN_RULES: { key: CanonicalOverseasSupplierKey; patterns: RegExp[] }[]
   },
   {
     key: 'verygoodtour',
-    patterns: [/참좋은여행사/i, /참좋은여행/i, /\bvery\s*good/i, /\bverygood\b/i],
+    patterns: [/참좋은여행/i, /\bvery\s*good/i, /\bverygood\b/i],
   },
   {
     key: 'ybtour',

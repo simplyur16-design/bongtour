@@ -34,7 +34,7 @@ export const HQ_BRANDS = [
   { value: 'hanatour', label: '하나투어' },
   { value: 'modetour', label: '모두투어' },
   { value: 'ybtour', label: '노랑풍선' },
-  { value: 'verygoodtour', label: '참좋은여행사' },
+  { value: 'verygoodtour', label: '참좋은여행' },
   { value: 'gyowontour', label: '교원투어' },
   { value: 'other', label: '기타' },
 ] as const
@@ -44,7 +44,7 @@ export type HqBrandKey = (typeof HQ_BRANDS)[number]['value']
 export function getBrandLabel(key: string | null | undefined): string {
   if (!key) return ''
   const k = key.trim().toLowerCase()
-  if (k === 'verygoodtour') return '참좋은여행사'
+  if (k === 'verygoodtour') return '참좋은여행'
   if (k === 'yellowballoon' || k === 'ybtour') return '노랑풍선'
   const found = HQ_BRANDS.find((b) => b.value === key || (k === 'yellowballoon' && b.value === 'ybtour'))
   return found ? found.label : key
@@ -70,7 +70,6 @@ const ORGANIZER_NAME_TO_LOGO_FALLBACK: Record<string, string> = {
   모두투어: '/logos/modetour.png',
   노랑풍선: '/logos/yellowballoon.png',
   참좋은여행: '/logos/verygoodtour.png',
-  참좋은여행사: '/logos/verygoodtour.png',
   교원투어: '/logos/gyowontour.png',
 }
 
@@ -98,8 +97,8 @@ export function getBrandPromptHint(brandKey: string | null | undefined): string 
 - 일정표·현지옵션(공급사는 '선택관광' 등으로 표기할 수 있음) 표기가 모두투어 형식이므로 그에 맞춰 추출하세요.`,
     ybtour: ybtourBrandHint,
     yellowballoon: ybtourBrandHint,
-    verygoodtour: `[브랜드: 참좋은여행사]
-- 참좋은여행사 상품 상세 양식(가이드경비, 쇼핑, 현지옵션 표기)에 맞춰 필드를 채우세요.`,
+    verygoodtour: `[브랜드: 참좋은여행]
+- 참좋은여행 상품 상세 양식(가이드경비, 쇼핑, 현지옵션 표기)에 맞춰 필드를 채우세요.`,
     gyowontour: `[브랜드: 교원투어]
 - 교원투어의 상품 페이지 말투와 일정표·가격표 양식을 참고하여 가이드경비, 쇼핑, 현지옵션, 일정을 추출하세요.`,
     other: `[브랜드: 기타]

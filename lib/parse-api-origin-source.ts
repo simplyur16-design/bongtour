@@ -2,7 +2,7 @@
  * `/api/parse-product`, `/api/travel/parse*`, `/api/travel/parse-and-upsert` 요청 본문용.
  *
  * 키·붙여넣기 본문·레거시 표기 요약: [register-supplier-extraction-spec.md](../docs/register-supplier-extraction-spec.md) 「표기·키 SSOT (요약)」.
- * 이 파일: `normalizeParseRequestOriginSource` — 참좋은은 DB 관례상 `normalizeOriginSource`(VERYGOODTOUR)로 수렴(파서 본문 변경 없음).
+ * 이 파일: `normalizeParseRequestOriginSource` — 참좋은은 DB 관례상 `normalizeOriginSource`(verygoodtour)로 수렴(파서 본문 변경 없음).
  *
  * HTTP JSON 복붙 예: 동 문서 부록-2 · [register_schedule_expression_ssot.md](../docs/register_schedule_expression_ssot.md) §15 · [ADMIN-REGISTER-SINGLE-UX.md](../docs/ADMIN-REGISTER-SINGLE-UX.md) §6.1.1.
  */

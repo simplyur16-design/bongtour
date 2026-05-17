@@ -118,7 +118,7 @@ const MODETOUR: SupplierInputFrameSpec = {
 }
 
 const VERYGOOD: SupplierInputFrameSpec = {
-  displayName: '참좋은여행사',
+  displayName: '참좋은여행',
   axes: [
     {
       axis: '본문(LLM)',

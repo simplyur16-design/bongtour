@@ -133,7 +133,7 @@ export async function collectVerygoodProductCore(detailUrl: string): Promise<{ p
   const noTipFlag = /노팁|NO\s*팁/i.test(text) ? true : null
   const optionalTourSummaryRaw = text.match(/(선택관광[\s\S]{0,240})/i)?.[1]?.trim() ?? null
   const product: VerygoodProductCore = {
-    originSource: 'VERYGOODTOUR',
+    originSource: 'verygoodtour',
     originCode: parsed.proCode,
     originUrl: detailUrl,
     supplierGroupId: parsed.masterCode,

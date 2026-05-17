@@ -7,7 +7,7 @@ const BRANDS = [
   { brandKey: 'hanatour', displayName: '하나투어', sortOrder: 1 },
   { brandKey: 'modetour', displayName: '모두투어', sortOrder: 2 },
   { brandKey: 'ybtour', displayName: '노랑풍선', sortOrder: 3 },
-  { brandKey: 'verygoodtour', displayName: '참좋은여행사', sortOrder: 4 },
+  { brandKey: 'verygoodtour', displayName: '참좋은여행', sortOrder: 4 },
   { brandKey: 'gyowontour', displayName: '교원투어', sortOrder: 5 },
   { brandKey: 'other', displayName: '기타', sortOrder: 99 },
 ]
