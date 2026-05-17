@@ -7,7 +7,7 @@ import type { PublicPersistedFlightStructuredDto } from '@/lib/public-flight-str
 import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
 import TravelCoreInfoSection from '@/app/components/detail/TravelCoreInfoSection'
 import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
-import { formatDirectedFlightBodyLine } from '@/lib/flight-user-display'
+import { formatFlightLegTwoLines } from '@/lib/flight-user-display'
 import YbtourProductExtraInfoTabs from '@/app/components/travel/ybtour/YbtourProductExtraInfoTabs'
 import { isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-hanatour'
 import { parseLegacyStructuredOptionalTours, toLegacyBookingTypeLabel } from '@/lib/optional-tours-ui-model'
@@ -565,8 +565,8 @@ export default function YbtourMobileProductDetail({ product, showEsimCrossSell =
           productMetaChips,
           listingKind: product.listingKind,
           airportTransferType: product.airportTransferType,
-          outboundFlightLine: formatDirectedFlightBodyLine(selectedDepartureFacts?.outbound ?? null),
-          inboundFlightLine: formatDirectedFlightBodyLine(selectedDepartureFacts?.inbound ?? null),
+          outboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.outbound ?? null),
+          inboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.inbound ?? null),
         }}
         onChangeDepartureDate={handleChangeDepartureDate}
         showChangeDepartureCta={mergedPrices.length > 0}

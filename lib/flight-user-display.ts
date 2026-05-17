@@ -146,6 +146,28 @@ export function formatDirectedFlightBodyLine(leg: DirectedFlightLegInput | null 
   return body || null
 }
 
+export type FlightLegTwoLineDisplay = {
+  departureAirport: string
+  departureAtText: string
+  flightNo: string | null
+  arrivalAirport: string
+  arrivalAtText: string
+}
+
+/** 패키지 hero — 출발·도착 2줄(공항·일시 열 정렬). 결정 필드 하나라도 없으면 null */
+export function formatFlightLegTwoLines(
+  leg: DirectedFlightLegInput | null | undefined
+): FlightLegTwoLineDisplay | null {
+  if (!leg || legHasGarbageFlightFields(leg)) return null
+  const departureAirport = leg.departureAirport?.replace(/\s+/g, ' ').trim() || ''
+  const departureAtText = leg.departureAtText?.replace(/\s+/g, ' ').trim() || ''
+  const arrivalAirport = leg.arrivalAirport?.replace(/\s+/g, ' ').trim() || ''
+  const arrivalAtText = leg.arrivalAtText?.replace(/\s+/g, ' ').trim() || ''
+  const flightNo = leg.flightNo?.replace(/\s+/g, ' ').trim() || null
+  if (!departureAirport || !departureAtText || !arrivalAirport || !arrivalAtText) return null
+  return { departureAirport, departureAtText, flightNo, arrivalAirport, arrivalAtText }
+}
+
 /** 항공여정 행 — `가는편: 인천 … → 연길 … / CZ6074` (편명은 본문에 없을 때만 힌트 줄 사용) */
 export function formatDirectedFlightRow(
   directionLabel: '가는편' | '오는편',

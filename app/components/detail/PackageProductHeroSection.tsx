@@ -104,7 +104,7 @@ export default function PackageProductHeroSection({
           </h1>
         </div>
 
-        <aside className="absolute right-6 top-1/2 z-[30] hidden max-h-[calc(70vh-40px)] w-[420px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl lg:block xl:right-12 xl:w-[460px]">
+        <aside className="absolute right-6 top-1/2 z-[30] hidden max-h-[min(760px,calc(100vh-96px))] w-[420px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl lg:block xl:right-12 xl:w-[460px]">
           <PackageProductHeroInfoPanel {...infoPanelWithCta} showTitle={false} />
         </aside>
       </div>
