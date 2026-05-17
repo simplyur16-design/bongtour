@@ -3,11 +3,7 @@
  * 풀 등록 JSON과 동시에 거대 schedule을 출력하면 MAX_TOKENS·일차 누락이 나기 쉬워 분리한다.
  * (공급사 독립화: `register-schedule-extract-common`과 동일 로직·프롬프트 보존.)
  */
-import { getGenAI, getModelName } from '@/lib/gemini-client'
-import {
-  geminiGenerateContentWithModetourLog,
-  modetourOriginCodeForGeminiLog,
-} from '@/lib/register-gemini-timing-modetour'
+import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { buildScheduleExtractToneBlock } from '@/lib/bongtour-tone-manner-llm-ssot'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import { extractRelevantSections } from '@/lib/paste-relevant-sections'
@@ -331,25 +327,16 @@ export type ScheduleExtractLlmResult = {
   expectedDays: number
 }
 
-type ScheduleExtractLlmOpts = {
-  logLabel: string
-  originCode?: string
-  hintScheduleJson?: string | null
-  scheduleExtractAddendum?: string | null
-}
-
 async function runScheduleExtractLlmMonolithic(
   model: ReturnType<ReturnType<typeof getGenAI>['getGenerativeModel']>,
   pastedBody: string,
   expectedDays: number,
-  opts: ScheduleExtractLlmOpts
+  opts: { logLabel: string; hintScheduleJson?: string | null; scheduleExtractAddendum?: string | null }
 ): Promise<ScheduleExtractLlmResult> {
   const hint = opts.hintScheduleJson ?? null
   const addendum = opts.scheduleExtractAddendum ?? null
-  const originCode = opts.originCode ?? modetourOriginCodeForGeminiLog(pastedBody)
   const prompt = buildScheduleOnlyPrompt(expectedDays, pastedBody, hint, addendum)
-  const result = await geminiGenerateContentWithModetourLog(
-    model,
+  const result = await model.generateContent(
     {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
@@ -358,7 +345,7 @@ async function runScheduleExtractLlmMonolithic(
         ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
       },
     },
-    { originCode, promptType: 'schedule-extract' }
+    geminiTimeoutOpts()
   )
   const fr = result.response.candidates?.[0]?.finishReason ?? null
   const text = result.response.text()
@@ -382,11 +369,10 @@ async function runScheduleExtractLlmChunkedByDay(
   pastedBody: string,
   expectedDays: number,
   dayMap: Map<number, string>,
-  opts: ScheduleExtractLlmOpts
+  opts: { logLabel: string; hintScheduleJson?: string | null; scheduleExtractAddendum?: string | null }
 ): Promise<ScheduleExtractLlmResult> {
   const hint = opts.hintScheduleJson ?? null
   const addendum = opts.scheduleExtractAddendum ?? null
-  const originCode = opts.originCode ?? modetourOriginCodeForGeminiLog(pastedBody)
   const allRows: CommonScheduleDayRow[] = []
   let worstFinish: string | null = null
   const days = Array.from({ length: expectedDays }, (_, i) => i + 1)
@@ -396,8 +382,7 @@ async function runScheduleExtractLlmChunkedByDay(
       batch.map(async (day) => {
         const blob = (dayMap.get(day) ?? '').trim()
         const prompt = buildScheduleOnlyPromptForSingleDay(day, blob, hint, addendum)
-        const result = await geminiGenerateContentWithModetourLog(
-          model,
+        const result = await model.generateContent(
           {
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             generationConfig: {
@@ -406,7 +391,7 @@ async function runScheduleExtractLlmChunkedByDay(
               ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
             },
           },
-          { originCode, promptType: `schedule-extract-day-${day}` }
+          geminiTimeoutOpts()
         )
         const fr = result.response.candidates?.[0]?.finishReason ?? null
         const text = result.response.text()
@@ -446,7 +431,7 @@ export async function runScheduleExtractLlm(
   model: ReturnType<ReturnType<typeof getGenAI>['getGenerativeModel']>,
   pastedBody: string,
   expectedDays: number,
-  opts: ScheduleExtractLlmOpts
+  opts: { logLabel: string; hintScheduleJson?: string | null; scheduleExtractAddendum?: string | null }
 ): Promise<ScheduleExtractLlmResult> {
   if (expectedDays >= SCHEDULE_CHUNK_DAY_THRESHOLD) {
     const dayMap = splitPastedBodyByDayHeaders(pastedBody)

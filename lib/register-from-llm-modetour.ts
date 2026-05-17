@@ -1,11 +1,7 @@
 /**
  * 모두투어 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-modetour`만 호출.
  */
-import { getGenAI, getModelName } from '@/lib/gemini-client'
-import {
-  geminiGenerateContentWithModetourLog,
-  modetourOriginCodeForGeminiLog,
-} from '@/lib/register-gemini-timing-modetour'
+import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -1372,7 +1368,6 @@ export async function parseForRegisterLlmModetour(
   const blockB = rawText.trim()
     ? normalizeDetailRawText(rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
     : EMPTY_PASTE_PLACEHOLDER
-  const originCodeForLog = modetourOriginCodeForGeminiLog(blockB)
   const pb = options?.pastedBlocks ?? {}
   const manualPasteAxes = readManualPasteAxesFromBlocks(pb)
   const forPreview = Boolean(options?.forPreview)
@@ -1417,7 +1412,6 @@ export async function parseForRegisterLlmModetour(
       logLabel: forPreview
         ? 'parseForRegisterLlmModetour-schedule-first-preview'
         : 'parseForRegisterLlmModetour-schedule-first',
-      originCode: originCodeForLog,
     })
     console.info(
       `[modetour][timing] schedule-extract-llm +${Date.now() - tScheduleExtract}ms forPreview=${forPreview} expectedDays=${expectedDaysForSchedule} gotRows=${sr.rows.length}`
@@ -1439,8 +1433,7 @@ export async function parseForRegisterLlmModetour(
 
   options?.onTiming?.('llm-start')
   if (options?.llmCallMetrics) options.llmCallMetrics.mainLlm += 1
-  const result = await geminiGenerateContentWithModetourLog(
-    model,
+  const result = await model.generateContent(
     {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
@@ -1450,10 +1443,7 @@ export async function parseForRegisterLlmModetour(
         ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
       },
     },
-    {
-      originCode: originCodeForLog,
-      promptType: forPreview ? 'register-preview-minimal' : 'register-full',
-    }
+    geminiTimeoutOpts()
   )
   options?.onTiming?.('llm-end')
   const finishReason = result.response.candidates?.[0]?.finishReason
@@ -1539,8 +1529,7 @@ export async function parseForRegisterLlmModetour(
 ${text.slice(0, 16000)}`
     options?.onTiming?.('repair-start')
     if (options?.llmCallMetrics) options.llmCallMetrics.repairLlm += 1
-    const repairResult = await geminiGenerateContentWithModetourLog(
-      model,
+    const repairResult = await model.generateContent(
       {
         contents: [{ role: 'user', parts: [{ text: repairPrompt }] }],
         generationConfig: {
@@ -1549,7 +1538,7 @@ ${text.slice(0, 16000)}`
           ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
         },
       },
-      { originCode: originCodeForLog, promptType: 'json-repair' }
+      geminiTimeoutOpts()
     )
     options?.onTiming?.('repair-end')
     repairFinishReason = repairResult.response.candidates?.[0]?.finishReason ?? null
