@@ -18,7 +18,7 @@ import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 
 const PAX_STEP_BUTTON_CLASS =
-  'inline-flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-lg border border-[#1F1B2D] bg-white text-base font-semibold leading-none text-[#1F1B2D] transition-colors hover:bg-[#EFEDF8] active:bg-[#FAFAFC] disabled:pointer-events-none disabled:opacity-40'
+  'inline-flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-lg border border-[#C7BFA1] bg-white text-lg font-semibold leading-none fit-tx-primary shadow-sm transition-colors hover:bg-[#F1EFE8] active:bg-[#FAFAFC] disabled:pointer-events-none disabled:opacity-40'
 
 const STICKY_PAX_ROWS = [
   { key: 'adult' as const, label: '성인', ageLine: '만 12세 이상', minVal: 1 },
@@ -184,12 +184,12 @@ export default function ProductLiveQuoteCard({
                     </div>
                   ) : null}
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="grid h-9 w-[7rem] grid-cols-[2rem_1fr_2rem] items-center gap-1">
                   <button
                     type="button"
                     onClick={onDecrease}
                     disabled={atMin}
-                    className={PAX_STEP_BUTTON_CLASS}
+                    className={PAX_STEP_BUTTON_CLASS + ' h-9 w-9 text-base'}
                     aria-label={`${row.label} 감소`}
                   >
                     −
@@ -200,7 +200,7 @@ export default function ProductLiveQuoteCard({
                   <button
                     type="button"
                     onClick={onIncrease}
-                    className={PAX_STEP_BUTTON_CLASS}
+                    className={PAX_STEP_BUTTON_CLASS + ' h-9 w-9 text-base'}
                     aria-label={`${row.label} 증가`}
                   >
                     +
