@@ -1,7 +1,5 @@
 'use client'
 
-import { useMemo } from 'react'
-import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 import {
   ComparePriceRow,
   CurrentPriceRow,
@@ -32,6 +30,8 @@ export type PackageProductHeroInfoPanelProps = {
   masterTotalDays?: number | null
   selectedDepartureIso?: string | null
   departureDateFrom?: string | null
+  outboundFlightLine?: string | null
+  inboundFlightLine?: string | null
   heroPriceSsot: PriceDisplaySsot
   heroDiscountSavingsLine: string | null
   heroBenefitWhenNoDiscount: string | null
@@ -55,11 +55,13 @@ export default function PackageProductHeroInfoPanel({
   destination,
   durationLabel,
   airline,
-  heroDepartureDisplay,
-  duration,
-  masterTotalDays,
-  selectedDepartureIso,
-  departureDateFrom,
+  heroDepartureDisplay: _heroDepartureDisplay,
+  duration: _duration,
+  masterTotalDays: _masterTotalDays,
+  selectedDepartureIso: _selectedDepartureIso,
+  departureDateFrom: _departureDateFrom,
+  outboundFlightLine,
+  inboundFlightLine,
   heroPriceSsot,
   heroDiscountSavingsLine,
   heroBenefitWhenNoDiscount,
@@ -72,12 +74,6 @@ export default function PackageProductHeroInfoPanel({
   showChangeDepartureCta = true,
   modetourStickyLocalPayLine,
 }: PackageProductHeroInfoPanelProps) {
-  const totalDays = getProductTotalDays({ duration }, masterTotalDays)
-  const computedReturnDate = useMemo(() => {
-    const dep = selectedDepartureIso ?? departureDateFrom ?? null
-    return computeReturnDate(dep, totalDays)
-  }, [selectedDepartureIso, departureDateFrom, totalDays])
-
   const showPriceBlock =
     heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText
 
@@ -107,16 +103,16 @@ export default function PackageProductHeroInfoPanel({
       {showPriceBlock ? (
         <div className="mt-4 rounded-xl border border-bt-card-accent-border bg-bt-card-accent-soft p-4">
           <div className="space-y-1 text-xs">
-            <p className="flex items-center justify-between gap-3">
-              <span className={HERO_DATE_LABEL_CLASS}>출발일</span>
-              <span className={HERO_DATE_VALUE_CLASS}>
-                {heroDepartureDisplay ?? '선택 가능 출발일 자동 선택'}
+            <p className="flex items-start justify-between gap-3">
+              <span className={HERO_DATE_LABEL_CLASS}>가는편</span>
+              <span className={`${HERO_DATE_VALUE_CLASS} bt-wrap text-right leading-relaxed`}>
+                {outboundFlightLine ?? '상담 시 안내'}
               </span>
             </p>
-            <p className="flex items-center justify-between gap-3">
-              <span className={HERO_DATE_LABEL_CLASS}>귀국일</span>
-              <span className={HERO_DATE_VALUE_CLASS}>
-                {computedReturnDate ? computedReturnDate : '상담 시 안내'}
+            <p className="flex items-start justify-between gap-3">
+              <span className={HERO_DATE_LABEL_CLASS}>오는편</span>
+              <span className={`${HERO_DATE_VALUE_CLASS} bt-wrap text-right leading-relaxed`}>
+                {inboundFlightLine ?? '상담 시 안내'}
               </span>
             </p>
           </div>

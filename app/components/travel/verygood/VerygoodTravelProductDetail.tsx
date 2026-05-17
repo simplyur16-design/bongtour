@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Header from '@/app/components/Header'
 import TravelCoreInfoSection from '@/app/components/detail/TravelCoreInfoSection'
 import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
+import { formatDirectedFlightRow } from '@/lib/flight-user-display'
 import VerygoodProductExtraInfoTabs from '@/app/components/travel/verygood/VerygoodProductExtraInfoTabs'
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
@@ -723,6 +724,10 @@ export default function VerygoodTravelProductDetail({ product, showEsimCrossSell
           productMetaChips,
           listingKind: product.listingKind,
           airportTransferType: product.airportTransferType,
+          outboundFlightLine:
+            formatDirectedFlightRow('가는편', selectedDepartureFacts?.outbound ?? null).line ?? null,
+          inboundFlightLine:
+            formatDirectedFlightRow('오는편', selectedDepartureFacts?.inbound ?? null).line ?? null,
         }}
         onChangeDepartureDate={handleChangeDepartureDate}
         showChangeDepartureCta={mergedPrices.length > 0}

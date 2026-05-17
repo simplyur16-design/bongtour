@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ProductPriceRow, TravelProduct } from './TravelProductDetail'
 import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
-import TravelCoreInfoSection from '@/app/components/detail/TravelCoreInfoSection'
+import { formatDirectedFlightRow } from '@/lib/flight-user-display'
 import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
 import ProductExtraInfoTabs from '@/app/components/detail/ProductExtraInfoTabs'
 import { isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-hanatour'
@@ -579,6 +579,10 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
           productMetaChips,
           listingKind: product.listingKind,
           airportTransferType: product.airportTransferType,
+          outboundFlightLine:
+            formatDirectedFlightRow('가는편', selectedDepartureFacts?.outbound ?? null).line ?? null,
+          inboundFlightLine:
+            formatDirectedFlightRow('오는편', selectedDepartureFacts?.inbound ?? null).line ?? null,
         }}
         onChangeDepartureDate={handleChangeDepartureDate}
         showChangeDepartureCta={mergedPrices.length > 0}

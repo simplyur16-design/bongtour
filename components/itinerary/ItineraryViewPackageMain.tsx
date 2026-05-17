@@ -5,7 +5,6 @@ import Link from 'next/link'
 import type { TravelProduct, ScheduleDay } from '@/app/components/travel/TravelProductDetail'
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
 import type { ProductMetaChip } from '@/lib/product-meta-chips'
-import TravelCoreInfoSection from '@/app/components/detail/TravelCoreInfoSection'
 import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
 import EsimProductDetailCrossSell from '@/app/components/travel/EsimProductDetailCrossSell'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
@@ -76,13 +75,6 @@ type Props = {
 
 export function ItineraryViewPackageMain({
   product,
-  selectedDepartureFacts,
-  periodContent,
-  travelCitiesLine,
-  reservationLine,
-  meetingDefault,
-  productMetaChips,
-  omitBriefRows,
   showEsimCrossSell = false,
 }: Props) {
   const schedule = product.schedule ?? []
@@ -132,21 +124,6 @@ export function ItineraryViewPackageMain({
 
   return (
     <div className="space-y-10 min-w-0">
-      <div className="rounded-2xl border border-[#DAD4EE] bg-white px-2 py-2 sm:px-4">
-        <TravelCoreInfoSection
-          facts={selectedDepartureFacts}
-          productAirline={product.airline ?? null}
-          periodContent={periodContent}
-          travelCitiesLine={travelCitiesLine}
-          reservationLine={reservationLine}
-          meetingDefault={meetingDefault}
-          meetingExtra={null}
-          metaChips={productMetaChips}
-          omitBriefRows={omitBriefRows}
-          flightExposurePolicy={product.flightExposurePolicy ?? null}
-        />
-      </div>
-
       <ItineraryExtraInfoBoxes product={extraProduct} section="top" />
 
       {totalDays > 0 ? (
