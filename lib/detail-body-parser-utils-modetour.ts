@@ -258,16 +258,252 @@ function dropConsecutiveStandaloneImageRuns(lines: string[]): string[] {
   return out
 }
 
-export function normalizeDetailRawText(raw: string): string {
-  const lines = raw
+function splitModetourRawLines(raw: string): string[] {
+  return raw
     .replace(/\r/g, '\n')
     .split('\n')
     .map((l) => l.replace(/\t/g, ' ').trim())
     .filter((l) => l.length > 0)
-    .filter((l) => !isModetourBroadUiNoiseLine(l) && !isModetourSafeNoiseStandaloneLine(l))
-  return dropConsecutiveStandaloneImageRuns(lines)
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
+}
+
+/** 1차: UI·Image 잡음 제거 (진단·2차 전 단계) */
+function applyModetourNormalizePhase1Lines(raw: string): string[] {
+  return dropConsecutiveStandaloneImageRuns(
+    splitModetourRawLines(raw).filter(
+      (l) => !isModetourBroadUiNoiseLine(l) && !isModetourSafeNoiseStandaloneLine(l)
+    )
+  )
+}
+
+function isModetourHotelBoxStopLine(line: string): boolean {
+  const t = line.trim()
+  if (!t) return true
+  if (/^식사\b/i.test(t)) return true
+  if (/^현지교통\b/i.test(t)) return true
+  if (/^\d{1,2}\s*일차\b/i.test(t)) return true
+  return false
+}
+
+/** 단독 `예정호텔` 줄 + 직후 호텔명·등급(최대 2줄). 식사·교통·일차 헤더에서 중단 */
+function dropModetourHotelBoxLines(lines: string[]): string[] {
+  const out: string[] = []
+  let i = 0
+  while (i < lines.length) {
+    if (/^예정호텔$/i.test(lines[i]!.trim())) {
+      i++
+      let skipped = 0
+      while (i < lines.length && skipped < 2 && !isModetourHotelBoxStopLine(lines[i]!)) {
+        i++
+        skipped++
+      }
+      continue
+    }
+    out.push(lines[i]!)
+    i++
+  }
+  return out
+}
+
+const MODETOUR_ATTRACTION_DESC_MIN_LEN = 75
+
+function isModetourClassificationTagOnlyLine(line: string): boolean {
+  return /^\[(?:외부관람|조망|내부관람|내부|차창|차창관광)\]\s*$/i.test(line.trim())
+}
+
+function shouldPreserveModetourAttractionLine(line: string): boolean {
+  const t = line.trim()
+  if (!t) return true
+  if (isModetourClassificationTagOnlyLine(t)) return true
+  if (/^\[?(?:조식|중식|석식)\]?/i.test(t)) return true
+  if (/^(?:조식|중식|석식)\s*[-–:：]/i.test(t)) return true
+  if (/^식사\b/i.test(t)) return true
+  if (/^현지교통\b/i.test(t)) return true
+  if (/약\s*\d+\s*(?:시간|분|hr|h)\s*소요/i.test(t)) return true
+  if (/→/.test(t) && /이동/.test(t)) return true
+  if (/^\d{1,2}\s*일차\b/i.test(t)) return true
+  if (/^예정호텔$/i.test(t)) return true
+  if (/^■\s*/.test(t) || /^※/.test(t)) return true
+  if (/^<.+>$/.test(t)) return true
+  return false
+}
+
+/** 관광지명(≤50자, `[조망]` 등 분류 접미 포함 가능) */
+function looksLikeModetourAttractionTitleLine(line: string): boolean {
+  const t = line.trim()
+  if (!t || t.length > 50) return false
+  if (/^\d{1,2}\s*일차\b/i.test(t)) return false
+  if (/^식사\b/i.test(t)) return false
+  if (/^현지교통\b/i.test(t)) return false
+  if (/^예정호텔$/i.test(t)) return false
+  if (/^■\s*/.test(t) || /^※/.test(t)) return false
+  if (/^<.+>$/.test(t)) return false
+  if (/약\s*\d+\s*(?:시간|분|hr|h)\s*소요/i.test(t) && !/\[(?:외부관람|조망|내부)\]/i.test(t)) return false
+  if (/→/.test(t) && /이동/.test(t) && !/\[(?:외부관람|조망|내부)\]/i.test(t)) return false
+  if (isModetourBroadUiNoiseLine(t) || isModetourSafeNoiseStandaloneLine(t)) return false
+  if (/^image$/i.test(t)) return false
+  return true
+}
+
+function isModetourAttractionCardMetaLine(line: string): boolean {
+  return /^(?:가는방법|관람소요시간)\s*[:：]/i.test(line.trim())
+}
+
+/** 관광지명(짧은 줄) 다음 긴 설명(100자+)만 앞 50자로 축약 */
+function truncateModetourAttractionDescriptions(lines: string[]): string[] {
+  const out: string[] = []
+  let i = 0
+  while (i < lines.length) {
+    const cur = lines[i]!
+    if (!looksLikeModetourAttractionTitleLine(cur)) {
+      out.push(cur)
+      i++
+      continue
+    }
+    out.push(cur)
+    let j = i + 1
+    while (j < lines.length) {
+      const t = lines[j]!.trim()
+      if (looksLikeModetourAttractionTitleLine(lines[j]!)) break
+      if (t.length > 0 && t.length <= 50 && !shouldPreserveModetourAttractionLine(lines[j]!)) {
+        out.push(lines[j]!)
+        j++
+        continue
+      }
+      if (shouldPreserveModetourAttractionLine(lines[j]!) && t.length < 100) {
+        out.push(lines[j]!)
+        j++
+        continue
+      }
+      break
+    }
+    while (j < lines.length) {
+      const para = lines[j]!.trim()
+      if (looksLikeModetourAttractionTitleLine(lines[j]!)) break
+      if (shouldPreserveModetourAttractionLine(lines[j]!)) break
+      if (para.length > 51) {
+        out.push(`${para.slice(0, 50)}…`)
+        j++
+        continue
+      }
+      break
+    }
+    i = j
+  }
+  return out
+}
+
+function dropModetourAttractionCardMetaLines(lines: string[]): string[] {
+  return lines.filter((l) => !isModetourAttractionCardMetaLine(l))
+}
+
+/** 관광 카드 '개요 :' 장문(다음 설명과 중복) 제거 */
+function dropModetourAttractionOverviewLines(lines: string[]): string[] {
+  return lines.filter((l) => !/^개요\s*[:：]/i.test(l.trim()))
+}
+
+/** 긴 ■ 유의 문구는 앞 50자만 유지(일정 핵심·식사·이동은 그대로) */
+function truncateModetourLongBulletNotices(lines: string[]): string[] {
+  return lines.map((l) => {
+    const t = l.trim()
+    if (/^■\s*/.test(t) && t.length > 51) return `${t.slice(0, 50)}…`
+    return l
+  })
+}
+
+/** 긴 ※ 참고 줄(유의사항 박스 마커 제외) 축약 */
+function truncateModetourLongFootnoteLines(lines: string[]): string[] {
+  return lines.map((l) => {
+    const t = l.trim()
+    if (isModetourNoticeBlockStart(t)) return l
+    if (/^※/.test(t) && t.length > 51) return `${t.slice(0, 50)}…`
+    return l
+  })
+}
+
+/** 관광지명 체인 밖 남은 긴 산문(50자+) — 항공·미팅·이동·분류 태그 줄 제외 */
+function truncateModetourStandaloneLongProse(lines: string[]): string[] {
+  return lines.map((l) => {
+    const t = l.trim()
+    if (t.length <= 51) return l
+    if (/^<.+>$/.test(t)) return `${t.slice(0, 50)}…`
+    if (shouldPreserveModetourAttractionLine(l)) return l
+    if (looksLikeModetourAttractionTitleLine(l)) return l
+    if (/^(?:출발|도착)\s*:/i.test(t)) return l
+    if (/인천국제공항|여행사\s*카운터|인솔자\s*배정/i.test(t)) return l
+    return `${t.slice(0, 50)}…`
+  })
+}
+
+function dropModetourConsecutiveDuplicateLines(lines: string[]): string[] {
+  const out: string[] = []
+  for (const l of lines) {
+    if (out.length > 0 && out[out.length - 1] === l) continue
+    out.push(l)
+  }
+  return out
+}
+
+function isModetourNoticeBlockStart(line: string): boolean {
+  const t = line.trim()
+  return (
+    /^유의\s*[ㅣ|]\s*안내사항/i.test(t) ||
+    /^※\s*참고사항/i.test(t) ||
+    /^※\s*유의사항/i.test(t)
+  )
+}
+
+function isModetourNoticeBlockStop(line: string): boolean {
+  return /^\d{1,2}\s*일차\b/i.test(line.trim())
+}
+
+/** 유의·참고 박스 — 다음 일차 헤더까지 제거 */
+function dropModetourNoticeBlocks(lines: string[]): string[] {
+  const out: string[] = []
+  let i = 0
+  while (i < lines.length) {
+    if (isModetourNoticeBlockStart(lines[i]!)) {
+      i++
+      while (i < lines.length && !isModetourNoticeBlockStop(lines[i]!)) {
+        i++
+      }
+      continue
+    }
+    out.push(lines[i]!)
+    i++
+  }
+  return out
+}
+
+function applyModetourNormalizePhase2Lines(lines: string[]): string[] {
+  return dropModetourConsecutiveDuplicateLines(
+    dropModetourNoticeBlocks(
+      truncateModetourStandaloneLongProse(
+        truncateModetourLongFootnoteLines(
+          truncateModetourLongBulletNotices(
+            dropModetourAttractionOverviewLines(
+              dropModetourAttractionCardMetaLines(
+                truncateModetourAttractionDescriptions(dropModetourHotelBoxLines(lines))
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+}
+
+function joinModetourNormalizedLines(lines: string[]): string {
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
+/** 1차 전처리만 (진단 비교용) */
+export function normalizeDetailRawTextPhase1(raw: string): string {
+  return joinModetourNormalizedLines(applyModetourNormalizePhase1Lines(raw))
+}
+
+export function normalizeDetailRawText(raw: string): string {
+  const phase1 = applyModetourNormalizePhase1Lines(raw)
+  return joinModetourNormalizedLines(applyModetourNormalizePhase2Lines(phase1))
 }
 
 export function splitDetailSections(normalized: string): Array<{ type: DetailSectionType; text: string }> {
