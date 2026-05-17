@@ -9,23 +9,22 @@ import {
   getStickyDisplayPerPaxKrw,
 } from '@/lib/public-sticky-pax-display'
 import {
-  extractPaxAgeHintsFromSupplierText,
-  paxAgeLineForSlot,
-} from '@/lib/pax-age-hints'
-import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
-import {
   advisoryForDepartureRow,
   findPriceRowForDateKey,
   quotePriceRowStrictForSelectedDate,
 } from '@/lib/booking-departure-ssot'
 import type { DeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
 import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
-import { buildStickyPaxRows } from '@/lib/public-sticky-quote-display'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 
-/** 인원 스테퍼 − / + (원형, 숫자와 겹치지 않도록 간격 확보) */
-const PAX_STEP_ROUND_CLASS =
-  'inline-flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full bg-gray-100 text-base font-medium text-bt-title transition-colors hover:bg-gray-200 active:bg-gray-300 disabled:pointer-events-none disabled:opacity-40'
+const PAX_STEP_BUTTON_CLASS =
+  'inline-flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-lg border border-[#C7BFA1] bg-white text-lg font-semibold leading-none text-[#1F1B2D] shadow-sm transition-colors hover:bg-[#F1EFE8] active:bg-[#FAFAFC] disabled:pointer-events-none disabled:opacity-40'
+
+const STICKY_PAX_ROWS = [
+  { key: 'adult' as const, label: '성인', ageLine: '만 12세 이상', minVal: 1 },
+  { key: 'child' as const, label: '아동', ageLine: '만 2~11세', minVal: 0 },
+  { key: 'infant' as const, label: '유아', ageLine: '만 2세 미만', minVal: 0 },
+] as const
 
 type Pax = { adult: number; childBed: number; childNoBed: number; infant: number }
 
@@ -35,27 +34,27 @@ type Props = {
   selectedDate: string | null
   pax: Pax
   updatePax: (key: keyof Pax, delta: number) => void
-  /** 하나투어·참좋은·ybtour 스티키 「아동」 통합 행용(침대·노베드 카운트 조절) */
+  /** ????�???�ybtour ??? ???? ?? ??(??�??? ??? ??) */
   updateChildCombined: (delta: number) => void
   highRiskAlerts: string[]
   onBookingOpen: () => void
   onOpenDeparturePicker: () => void
   variant?: 'desktop' | 'mobile'
   fromScreen: 'product_detail_desktop' | 'product_detail_mobile'
-  /** 최소출발·현재예약·출발확정 한 줄 (등록 본문 추출) */
+  /** ????�????�???? ? ? (?? ?? ??) */
   departureConditionLine?: string | null
-  /** 히어로·여행핵심정보와 동일 출발·귀국 표시 (`formatHeroDateKorean` 등) */
+  /** ???�??????? ?? ??�?? ?? (`formatHeroDateKorean` ?) */
   heroTripDepartureDisplay?: string | null
   heroTripReturnDisplay?: string | null
-  /** 동일 일자에 여러 출발 행이 있을 때 `selectedDate`만으로는 부족할 때 — 이 행을 견적 SSOT로 사용 */
+  /** ?? ??? ?? ?? ?? ?? ? `selectedDate`???? ??? ? ? ? ?? ?? SSOT? ?? */
   explicitPriceRow?: ProductPriceRow | null
-  /** 모두투어 전용: 출발일 변경 버튼 바로 아래 현지 지불경비(인당) */
+  /** ???? ??: ??? ?? ?? ?? ?? ?? ????(??) */
   modetourStickyLocalPayLine?: string | null
-  /** 전후 범위 on-demand 수집 중(선택일 SSOT 유지, 견적은 참고만) */
+  /** ?? ?? on-demand ?? ?(??? SSOT ??, ??? ???) */
   isCollectingPrices?: boolean
-  /** 상세에서 계산한 수집·지연·pending_quote UI 단계 */
+  /** ???? ??? ??�??�pending_quote UI ?? */
   priceCollectUiPhase?: DeparturePriceCollectUiPhase
-  /** 일정 N일 — `product.schedule.length` 또는 fit master */
+  /** ?? N? ? `product.schedule.length` ?? fit master */
   masterTotalDays?: number | null
   departureDateFrom?: string | null
 }
@@ -96,7 +95,7 @@ export default function ProductLiveQuoteCard({
     [rowForAdvisory, isCollectingPrices]
   )
 
-  /** 상담 요약 참고용 — `pricingMode` 문자열과 동일하게 맞춤 */
+  /** ?? ?? ??? ? `pricingMode` ???? ???? ?? */
   const counselPricingMode = useMemo(() => {
     const d = selectedDate?.trim()
     if (!d) return null
@@ -114,37 +113,10 @@ export default function ProductLiveQuoteCard({
     const dep = selectedDate ?? departureDateFrom ?? null
     return computeReturnDate(dep, totalDays)
   }, [selectedDate, departureDateFrom, totalDays])
-  const shareSummary = `${product.originCode} · ${product.destination} · ${product.duration}${product.airline ? ` · ${product.airline}` : ''} · 출발 ${selectedDate ?? '미선택'}${computedReturnDate ? ` · 귀국 ${computedReturnDate}` : ''}`
-
-  const paxAgeHaystack = useMemo(
-    () =>
-      [
-        product.priceTableRawText,
-        product.includedText,
-        product.excludedText,
-        product.infantAgeRuleText,
-        product.childAgeRuleText,
-      ]
-        .filter((x): x is string => Boolean(x?.trim()))
-        .join('\n'),
-    [
-      product.priceTableRawText,
-      product.includedText,
-      product.excludedText,
-      product.infantAgeRuleText,
-      product.childAgeRuleText,
-    ]
-  )
-  const paxAgeExtracted = useMemo(() => extractPaxAgeHintsFromSupplierText(paxAgeHaystack), [paxAgeHaystack])
+  const shareSummary = `${product.originCode} � ${product.destination} � ${product.duration}${product.airline ? ` � ${product.airline}` : ''} � ?? ${selectedDate ?? '???'}${computedReturnDate ? ` � ?? ${computedReturnDate}` : ''}`
 
   const isMobile = variant === 'mobile'
   const pad = isMobile ? 'p-4' : 'p-6'
-  const isModetourProduct = normalizeSupplierOrigin(product.originSource) === 'modetour'
-
-  const stickyPaxRows = useMemo(
-    () => buildStickyPaxRows(product.originSource, priceRow),
-    [product.originSource, priceRow]
-  )
 
   const showCollectingBanner =
     isCollectingPrices &&
@@ -170,7 +142,7 @@ export default function ProductLiveQuoteCard({
             <p className="mt-1 text-[11px] text-bt-meta">{departurePriceCollectUiCopy.overlayBodyPrimary}</p>
           )}
           <p className="mt-2 text-[11px] text-bt-subtle">
-            예약 확정이 아닙니다. 요금 확인이 지연되어도 예약 요청 접수는 가능합니다.
+            ?? ??? ????. ?? ??? ????? ?? ?? ??? ?????.
           </p>
         </div>
       ) : null}
@@ -184,140 +156,59 @@ export default function ProductLiveQuoteCard({
       ) : null}
 
       <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-bt-card-title">인원</p>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-          {stickyPaxRows.map((rowDef) => {
-            if (rowDef.kind === 'childCombined') {
-              const unit =
-                priceRow != null ? getStickyDisplayPerPaxKrw(priceRow, 'childBed', product.originSource) : null
-              const count = pax.childBed + pax.childNoBed
-              const atMin = count <= 0
-              const ageLine = paxAgeLineForSlot('childBed', paxAgeExtracted)
-              const label = rowDef.label
-              return (
-                <div
-                  key="child-combined"
-                  className="flex flex-col items-center text-center rounded-xl border border-bt-border-soft bg-bt-surface-soft px-3 py-3"
-                >
-                  <div className="flex w-full min-h-[2.75rem] flex-col items-center justify-center gap-0.5">
-                    <span className="text-sm font-semibold leading-snug text-bt-title">{label}</span>
-                    {ageLine ? (
-                      <p className="text-[11px] font-medium leading-snug text-bt-meta">{ageLine}</p>
-                    ) : null}
-                  </div>
-                  <div className="mt-1 flex min-h-[2.75rem] w-full flex-col items-center justify-center">
-                    {unit != null && priceRow != null ? (
-                      <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-1 gap-y-0 tabular-nums leading-none">
-                        <span className="text-[0.72em] font-bold text-bt-muted">₩</span>
-                        <span className="text-xl font-extrabold tracking-tight text-bt-price sm:text-[1.35rem]">
-                          {unit.toLocaleString('ko-KR')}
-                        </span>
-                        <span className="text-[11px] font-medium text-bt-meta">/인</span>
-                      </span>
-                    ) : (
-                      <span className="text-sm font-medium leading-none text-bt-meta">상담 시 확인</span>
-                    )}
-                  </div>
-                  <div className="mt-auto pt-2 flex w-full justify-center">
-                    <div className="mt-3 flex w-full items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={() => updateChildCombined(-1)}
-                        disabled={atMin}
-                        className={PAX_STEP_ROUND_CLASS}
-                        aria-label={`${label} 감소`}
-                      >
-                        −
-                      </button>
-                      <span className="flex-1 text-center text-lg font-bold tabular-nums text-bt-title">{count}</span>
-                      <button
-                        type="button"
-                        onClick={() => updateChildCombined(1)}
-                        className={PAX_STEP_ROUND_CLASS}
-                        aria-label={`${label} 증가`}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )
-            }
-
-            const key = rowDef.paxKey
-            const label = rowDef.label
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#1F1B2D]">??</p>
+        <div className="space-y-2.5">
+          {STICKY_PAX_ROWS.map((row) => {
+            const isChildRow = row.key === 'child'
+            const priceSlot = isChildRow ? 'childBed' : row.key
             const unit =
-              priceRow != null ? getStickyDisplayPerPaxKrw(priceRow, key, product.originSource) : null
-            const count = pax[key]
-            const atMin = key === 'adult' ? count <= 1 : count <= 0
-            const ageLine = paxAgeLineForSlot(key, paxAgeExtracted)
-            const noBedCounselCopy =
-              isModetourProduct && key === 'childNoBed' && priceRow != null && unit == null
+              priceRow != null ? getStickyDisplayPerPaxKrw(priceRow, priceSlot, product.originSource) : null
+            const count = isChildRow ? pax.childBed + pax.childNoBed : pax[row.key]
+            const atMin = count <= row.minVal
+            const onDecrease = () => (isChildRow ? updateChildCombined(-1) : updatePax(row.key, -1))
+            const onIncrease = () => (isChildRow ? updateChildCombined(1) : updatePax(row.key, 1))
             return (
               <div
-                key={key}
-                className="flex flex-col items-center text-center rounded-xl border border-bt-border-soft bg-bt-surface-soft px-3 py-3"
+                key={row.key}
+                className="flex items-center justify-between gap-3 rounded-xl border border-[#DAD4EE] bg-[#FAFAFC] px-3 py-2.5"
               >
-                <div className="flex w-full min-h-[2.75rem] flex-col items-center justify-center gap-0.5">
-                  <span
-                    className={`text-sm font-semibold leading-snug text-bt-title ${
-                      key === 'adult' ? 'tracking-[0.18em]' : ''
-                    }`}
-                  >
-                    {label}
-                  </span>
-                  {ageLine ? (
-                    <p className="text-[11px] font-medium leading-snug text-bt-meta">{ageLine}</p>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-[#1F1B2D]">{row.label}</div>
+                  <div className="text-[10px] text-bt-meta">{row.ageLine}</div>
+                  {unit != null && unit > 0 && priceRow != null ? (
+                    <div className="mt-0.5 text-xs font-semibold tabular-nums text-[#85510B]">
+                      ?{unit.toLocaleString('ko-KR')} /?
+                    </div>
                   ) : null}
                 </div>
-                <div className="mt-1 flex min-h-[2.75rem] w-full flex-col items-center justify-center">
-                  {unit != null && priceRow != null ? (
-                    <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-1 gap-y-0 tabular-nums leading-none">
-                      <span className="text-[0.72em] font-bold text-bt-muted">₩</span>
-                      <span className="text-xl font-extrabold tracking-tight text-bt-price sm:text-[1.35rem]">
-                        {unit.toLocaleString('ko-KR')}
-                      </span>
-                      <span className="text-[11px] font-medium text-bt-meta">/인</span>
-                    </span>
-                  ) : noBedCounselCopy ? (
-                    <span className="text-sm font-medium leading-none text-bt-meta">상담 후 안내</span>
-                  ) : (
-                    <span className="text-sm font-medium leading-none text-bt-meta">상담 시 확인</span>
-                  )}
-                </div>
-                <div className="mt-auto pt-2 flex w-full justify-center">
-                  <div className="mt-3 flex w-full items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={() => updatePax(key, -1)}
-                      disabled={atMin}
-                      className={PAX_STEP_ROUND_CLASS}
-                      aria-label={`${label} 감소`}
-                    >
-                      −
-                    </button>
-                    <span className="flex-1 text-center text-lg font-bold tabular-nums text-bt-title">{count}</span>
-                    <button
-                      type="button"
-                      onClick={() => updatePax(key, 1)}
-                      className={PAX_STEP_ROUND_CLASS}
-                      aria-label={`${label} 증가`}
-                    >
-                      +
-                    </button>
-                  </div>
+                <div className="grid h-9 w-[7rem] shrink-0 grid-cols-[2rem_1fr_2rem] items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={onDecrease}
+                    disabled={atMin}
+                    className={`${PAX_STEP_BUTTON_CLASS} h-9 w-9 text-base`}
+                    aria-label={`${row.label} ??`}
+                  >
+                    ?
+                  </button>
+                  <span className="text-center text-base font-bold tabular-nums text-[#1F1B2D]">{count}</span>
+                  <button
+                    type="button"
+                    onClick={onIncrease}
+                    className={`${PAX_STEP_BUTTON_CLASS} h-9 w-9 text-base`}
+                    aria-label={`${row.label} ??`}
+                  >
+                    +
+                  </button>
                 </div>
               </div>
             )
           })}
         </div>
-        {isModetourProduct && pax.childNoBed > 0 && (
-          <p className="mt-2 text-center text-[11px] text-bt-meta">
-            아동(NO BED)은 관리자가 설정한 할인 요금이 적용됩니다.
-          </p>
-        )}
+        <p className="mt-2 text-[10px] leading-relaxed text-bt-meta">
+          ※ 아동 요금은 성인과 동일. 유아는 좌석 미배정 별도 요금.
+        </p>
       </div>
-
       <div className="mt-3 space-y-2">
         <KakaoCounselCta
           variant="kakaoSoft"
@@ -347,10 +238,10 @@ export default function ProductLiveQuoteCard({
           </p>
         ) : null}
         <p className="mt-1.5 text-center text-[11px] leading-relaxed text-bt-meta">
-          상품·출발일·인원 요약은 상담 채널로 전달됩니다. 전화번호(권장)·문의 내용을 보완해 주세요.
+          ??�???�?? ??? ?? ??? ?????. ????(??)�?? ??? ??? ???.
         </p>
         <p className="mt-0.5 text-center text-[11px] text-bt-subtle">
-          입력창이 비어 있으면 복사된 요약을 붙여넣어 주세요.
+          ???? ?? ??? ??? ??? ???? ???.
         </p>
       </div>
       <ShareActions title={product.title} summaryLine={shareSummary} className="mt-2" />
@@ -359,7 +250,7 @@ export default function ProductLiveQuoteCard({
         onClick={onBookingOpen}
         className="mt-3 w-full bt-btn-secondary"
       >
-        예약 요청 접수
+        ?? ?? ??
       </button>
     </div>
   )
