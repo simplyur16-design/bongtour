@@ -32,8 +32,6 @@ import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
 import { resolveHeroTripDates } from '@/lib/product-hero-dates'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import PackageProductHeroSection from '@/app/components/detail/PackageProductHeroSection'
-import ProductLiveQuoteCard from '@/app/components/detail/ProductLiveQuoteCard'
-import { getProductTotalDays } from '@/lib/package-rules'
 import { ItineraryViewPackageMain } from '@/components/itinerary/ItineraryViewPackageMain'
 import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
 import DeparturePriceCollectOverlay from '@/app/components/detail/DeparturePriceCollectOverlay'
@@ -591,31 +589,6 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
         <p className="mx-4 mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
           {onDemandNotice}
         </p>
-      ) : null}
-
-      {isAirHotelFreeListingForUi(product.listingKind) ? (
-        <div className="mx-4 mt-4">
-          <ProductLiveQuoteCard
-            product={product}
-            prices={mergedPrices}
-            selectedDate={selectedDate}
-            explicitPriceRow={priceRow}
-            pax={pax}
-            updatePax={updatePax}
-            updateChildCombined={updateChildCombined}
-            highRiskAlerts={[]}
-            onBookingOpen={openBookingIntake}
-            onOpenDeparturePicker={handleChangeDepartureDate}
-            variant="mobile"
-            fromScreen="product_detail_mobile"
-            departureConditionLine={departureConditionLine}
-            modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
-            isCollectingPrices={departureCollectOpen}
-            priceCollectUiPhase={priceCollectUiPhase}
-            masterTotalDays={getProductTotalDays(product, product.schedule?.length ?? null) || null}
-            departureDateFrom={mergedPrices[0]?.date ?? null}
-          />
-        </div>
       ) : null}
 
       <div className="bg-[#FAFAFC] px-4 pb-8">

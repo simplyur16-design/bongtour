@@ -1,16 +1,14 @@
 ﻿'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Car, Bed, UtensilsCrossed, Mountain, ShoppingBag, Coffee, Lightbulb,
   Clock, MapPin, Route,
 } from 'lucide-react'
+import KakaoCounselCta from '@/app/components/travel/KakaoCounselCta'
+import ShareActions from '@/app/components/detail/ShareActions'
 import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
-import ProductLiveQuoteCard from '@/app/components/detail/ProductLiveQuoteCard'
-import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
-import type { TravelProduct } from '@/app/components/travel/TravelProductDetail'
-import { advisoryForDepartureRow, findPriceRowForDateKey } from '@/lib/booking-departure-ssot'
 import ProductHeroCarousel from '@/app/components/detail/ProductHeroCarousel'
 import type { ProductPriceRow, ScheduleDay } from '@/app/components/travel/TravelProductDetail'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
@@ -167,6 +165,9 @@ function applyFlightManualCorrectionForPublicOrigin(
   return apply(facts, correction)
 }
 
+const PAX_STEP_BUTTON_CLASS =
+  'inline-flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-lg border border-[#C7BFA1] bg-white text-lg font-semibold leading-none fit-tx-primary shadow-sm transition-colors hover:bg-[#F1EFE8] active:bg-[#FAFAFC] disabled:pointer-events-none disabled:opacity-40'
+
 const CATEGORY = {
   transport: { color: '#1F1B2D', icon: Car, chipBg: 'rgba(31,27,45,0.08)', chipText: '#1F1B2D', iconColor: 'white', label: '교통' },
   hotel: { color: '#C9C2E3', icon: Bed, chipBg: '#EFEDF8', chipText: '#534AB7', iconColor: '#534AB7', label: '숙소' },
@@ -222,9 +223,8 @@ export function ItineraryView({
   travelCoreInfo,
 }: ItineraryViewProps) {
   const [activePage, setActivePage] = useState<number | 'all'>(1)
-  const [pax, setPax] = useState({ adult: 1, childBed: 0, childNoBed: 0, infant: 0 })
+  const [pax, setPax] = useState({ adult: 1, childBed: 0, infant: 0 })
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [bookingOpen, setBookingOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(priceInfo?.departureDateFrom ?? null)
   const dayRefs = useRef<Map<number, HTMLElement>>(new Map())
   const mainContentRef = useRef<HTMLDivElement>(null)
@@ -235,59 +235,10 @@ export function ItineraryView({
 
   const updatePax = (key: keyof typeof pax, delta: number) => {
     setPax((prev) => {
-      const next = { ...prev, [key]: key === 'adult' ? Math.max(1, prev.adult + delta) : Math.max(0, prev[key] + delta) }
-      if (next.adult === 0 && next.childBed === 0 && next.childNoBed === 0) next.adult = 1
-      return next
+      if (key === 'adult') return { ...prev, adult: Math.max(1, prev.adult + delta) }
+      return { ...prev, [key]: Math.max(0, prev[key] + delta) }
     })
   }
-
-  const updateChildCombined = useCallback((delta: number) => {
-    setPax((prev) => {
-      if (delta > 0) {
-        const next = { ...prev, childBed: prev.childBed + delta }
-        if (next.adult === 0 && next.childBed === 0 && next.childNoBed === 0) next.adult = 1
-        return next
-      }
-      const { childBed, childNoBed } = prev
-      if (childBed > 0) {
-        const next = { ...prev, childBed: Math.max(0, childBed + delta) }
-        if (next.adult === 0 && next.childBed === 0 && next.childNoBed === 0) next.adult = 1
-        return next
-      }
-      const next = { ...prev, childNoBed: Math.max(0, childNoBed + delta) }
-      if (next.adult === 0 && next.childBed === 0 && next.childNoBed === 0) next.adult = 1
-      return next
-    })
-  }, [])
-
-  const quoteProduct = useMemo((): TravelProduct => {
-    const priceList = prices ?? []
-    return {
-      id: product.id,
-      originSource: product.originSource,
-      originCode: product.originCode,
-      title: product.title,
-      destination: product.primaryDestination ?? heroCityLabel,
-      duration: travelCoreInfo?.duration ?? product.duration ?? '',
-      airline: travelCoreInfo?.productAirline ?? null,
-      mandatoryLocalFee: null,
-      mandatoryCurrency: null,
-      includedText: product.includedText ?? null,
-      excludedText: product.excludedText ?? null,
-      prices: priceList,
-      itineraries: [],
-      schedule: product.schedule ?? null,
-      infantAgeRuleText: null,
-      childAgeRuleText: null,
-      priceTableRawText: null,
-      listingKind: 'airtel',
-    }
-  }, [product, prices, travelCoreInfo, heroCityLabel])
-
-  const intakeDepartureAdvisory = useMemo(
-    () => advisoryForDepartureRow(findPriceRowForDateKey(prices ?? [], selectedDate), false),
-    [prices, selectedDate]
-  )
 
   const adultPriceUnit = priceInfo?.lowestAdultPrice ?? 0
   const infantPriceUnit = priceInfo?.infantPrice ?? 0
@@ -551,25 +502,6 @@ export function ItineraryView({
           <ItineraryExtraInfoBoxes product={product} section="top" />
         </div>
       ) : null}
-
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 pb-6 lg:hidden">
-        <ProductLiveQuoteCard
-          product={quoteProduct}
-          prices={prices ?? []}
-          selectedDate={selectedDate}
-          explicitPriceRow={selectedPriceRow}
-          pax={pax}
-          updatePax={updatePax}
-          updateChildCombined={updateChildCombined}
-          highRiskAlerts={[]}
-          onBookingOpen={() => setBookingOpen(true)}
-          onOpenDeparturePicker={() => setPickerOpen(true)}
-          variant="mobile"
-          fromScreen="product_detail_mobile"
-          masterTotalDays={totalDays > 0 ? totalDays : null}
-          departureDateFrom={priceInfo?.departureDateFrom ?? null}
-        />
-      </div>
 
       {/* Day 탭 sticky */}
       {master && (
@@ -912,23 +844,151 @@ export function ItineraryView({
         </div>
 
         <aside className="hidden lg:block lg:sticky lg:top-[100px] lg:self-start">
-          <div className="max-h-[calc(100vh-7rem)] overflow-y-auto pr-1">
-            <ProductLiveQuoteCard
-              product={quoteProduct}
-              prices={prices ?? []}
-              selectedDate={selectedDate}
-              explicitPriceRow={selectedPriceRow}
-              pax={pax}
-              updatePax={updatePax}
-              updateChildCombined={updateChildCombined}
-              highRiskAlerts={[]}
-              onBookingOpen={() => setBookingOpen(true)}
-              onOpenDeparturePicker={() => setPickerOpen(true)}
-              variant="desktop"
-              fromScreen="product_detail_desktop"
-              masterTotalDays={totalDays > 0 ? totalDays : null}
-              departureDateFrom={priceInfo?.departureDateFrom ?? null}
+          <div className="bg-white border-2 border-[#DAD4EE] shadow-md rounded-xl p-6">
+            <h2 className="mb-1 border-l-4 border-[#1F1B2D] pl-3 text-base font-black tracking-tight fit-tx-primary">
+              실시간 견적
+            </h2>
+
+            {priceInfo && (
+              <div className="mt-3 rounded-xl border border-[#DAD4EE] bg-[#FAFAFC] px-3 py-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wide fit-tx-meta">선택 일정</p>
+                <div className="mt-2 space-y-1">
+                  <p className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="fit-tx-meta">출발일</span>
+                    <span className="font-semibold tabular-nums fit-tx-primary">{selectedDate ?? priceInfo.departureDateFrom} ~</span>
+                  </p>
+                  <p className="text-center text-[11px] font-semibold fit-tx-gold">일정 상태: 예약 가능</p>
+                  <p className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="fit-tx-meta">귀국일</span>
+                    <span className="font-semibold tabular-nums fit-tx-primary">
+                      {computedReturnDate ? computedReturnDate : '상담 시 안내'}
+                    </span>
+                  </p>
+                </div>
+                {product.minimumDepartureCount != null && product.minimumDepartureCount > 1 && (
+                  <p className="mt-1 text-[11px] fit-tx-meta">
+                    최소 출발 {product.minimumDepartureCount}명
+                  </p>
+                )}
+                <p className="mt-1 text-[10px] fit-tx-meta">참고 최저가 ₩{priceInfo.lowestAdultPrice.toLocaleString()}</p>
+              </div>
+            )}
+
+            {priceInfo && (
+              <div className="mt-3 rounded-xl border border-[#DAD4EE] bg-[#FAFAFC] px-3 py-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wide fit-tx-meta">가격</p>
+                <div className="mt-2 flex flex-col gap-2">
+                  <span className="inline-flex items-baseline gap-1 tabular-nums">
+                    <span className="text-[0.85em] font-bold fit-tx-meta">₩</span>
+                    <span className="text-3xl font-extrabold tracking-tight fit-tx-price">
+                      {priceInfo.lowestAdultPrice.toLocaleString('ko-KR')}
+                    </span>
+                  </span>
+                  <p className="text-[11px] fit-tx-meta">1인 기준 표시 가격입니다.</p>
+                </div>
+                {totalQuote != null && totalQuote > 0 && (
+                  <p className="mt-1.5 flex flex-wrap items-baseline gap-1 text-[11px] fit-tx-meta">
+                    <span>선택 인원 견적 합계</span>
+                    <span className="inline-flex items-baseline gap-0.5 font-semibold tabular-nums fit-tx-primary">
+                      <span className="text-[0.85em]">₩</span>
+                      <span>{totalQuote.toLocaleString('ko-KR')}</span>
+                    </span>
+                  </p>
+                )}
+              </div>
+            )}
+
+            <p className="mt-3 rounded-xl border border-[#DAD4EE] bg-white px-3 py-2 text-[11px] leading-relaxed fit-tx-meta">
+              <span className="font-semibold fit-tx-primary">카드사별 무이자 혜택 가능</span> · 카드사별 무이자 혜택은 결제 시점 기준으로 적용됩니다.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="mt-3 w-full px-4 py-3 rounded-xl bg-[#1F1B2D] text-white text-sm font-semibold hover:bg-[#2C2840] transition"
+            >
+              출발일 변경
+            </button>
+
+            <div className="mt-4 border-t border-[#DAD4EE] pt-3">
+              <p className="text-xs fit-tx-meta">인원·옵션: 상담 시 안내</p>
+            </div>
+
+            <div className="mt-4 border-t border-[#DAD4EE] pt-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide fit-tx-primary">인원</p>
+              <div className="space-y-2.5">
+                {[
+                  { key: 'adult' as const, label: '성인', ageLine: '만 12세 이상', minVal: 1 },
+                  { key: 'childBed' as const, label: '아동', ageLine: '만 2~11세', minVal: 0 },
+                  { key: 'infant' as const, label: '유아', ageLine: '만 2세 미만', minVal: 0 },
+                ].map((row) => {
+                  const unit = row.key === 'infant' ? infantPriceUnit : adultPriceUnit
+                  const count = pax[row.key]
+                  const atMin = count <= row.minVal
+                  return (
+                    <div key={row.key} className="flex items-center justify-between rounded-xl border border-[#DAD4EE] bg-[#FAFAFC] px-3 py-2.5">
+                      <div>
+                        <div className="text-sm font-semibold fit-tx-primary">{row.label}</div>
+                        <div className="text-[10px] fit-tx-meta">{row.ageLine}</div>
+                        {unit > 0 && (
+                          <div className="mt-0.5 text-xs font-semibold fit-tx-price tabular-nums">₩{unit.toLocaleString()} /인</div>
+                        )}
+                      </div>
+                      <div className="grid h-9 w-[7rem] grid-cols-[2rem_1fr_2rem] items-center gap-1">
+                        <button type="button" onClick={() => updatePax(row.key, -1)} disabled={atMin} className={PAX_STEP_BUTTON_CLASS + ' h-9 w-9 text-base'}>−</button>
+                        <span className="text-center text-base font-bold tabular-nums fit-tx-primary">{count}</span>
+                        <button type="button" onClick={() => updatePax(row.key, 1)} className={PAX_STEP_BUTTON_CLASS + ' h-9 w-9 text-base'}>+</button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="mt-2 text-[10px] fit-tx-meta leading-relaxed">
+                ※ 아동 요금은 성인과 동일. 유아는 좌석 미배정 별도 요금.
+              </p>
+            </div>
+
+            <KakaoCounselCta
+              variant="kakaoSoft"
+              intent="departure"
+              fromScreen="fit-itinerary"
+              productId={String(product.id)}
+              listingProductNumber={product.originCode}
+              productTitle={product.title}
+              originSource={product.originSource}
+              originCode={product.originCode}
+              selectedDepartureDate={selectedDate}
+              selectedDepartureId={null}
+              preferredDepartureDate={null}
+              pax={{ adult: pax.adult, childBed: pax.childBed, childNoBed: 0, infant: pax.infant }}
+              quotationKrwTotal={totalQuote}
+              localFeePerPerson={null}
+              localFeeCurrency={null}
+              advisoryLabel={null}
+              pricingMode="lowest"
+              isCollectingPrices={false}
+              className="mt-4 w-full"
             />
+            <p className="mt-1.5 text-center text-[10px] fit-tx-meta">
+              상품·인원·출발일 요약을 카카오톡 채널로 전달합니다.
+            </p>
+
+            <ShareActions
+              title={master?.title ?? product.title}
+              summaryLine={`${product.title} · ${selectedDate ?? priceInfo?.departureDateFrom ?? ''} 출발 · ₩{(priceInfo?.lowestAdultPrice ?? 0).toLocaleString()}부터`}
+              className="mt-3"
+            />
+
+            <Link
+              href={ctaHref}
+              className="mt-3 block w-full text-center bg-[#d9a81e] fit-tx-primary px-4 py-4 rounded-xl text-base font-bold hover:bg-[#c79a1c] transition"
+            >
+              {ctaLabel} →
+            </Link>
+
+            <p className="mt-3 text-[10px] leading-relaxed fit-tx-meta text-center">
+              ※ 표시 가격은 출발일·시즌별 최저가 기준.<br />실제 결제 가격은 상담 시 확정됩니다.
+            </p>
           </div>
         </aside>
       </main>
@@ -951,22 +1011,6 @@ export function ItineraryView({
           </a>
         </div>
       </div>
-
-      <BookingIntakeModal
-        open={bookingOpen}
-        onClose={() => setBookingOpen(false)}
-        productId={String(product.id)}
-        productTitle={product.title}
-        originSource={product.originSource}
-        originCode={product.originCode}
-        selectedDateFromCalendar={selectedDate}
-        departureRowId={selectedPriceRow?.id ?? null}
-        departureAdvisoryLabel={intakeDepartureAdvisory}
-        pax={pax}
-        hasPriceSchedule={(prices?.length ?? 0) > 0}
-        isCollectingPrices={false}
-        priceCollectUiPhase="idle"
-      />
 
       <DepartureDatePickerModal
         open={pickerOpen}
