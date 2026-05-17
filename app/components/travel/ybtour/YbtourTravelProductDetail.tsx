@@ -42,7 +42,7 @@ import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
 import { resolveDeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
 import { useDeparturePriceCollectPhase } from '@/lib/hooks/use-departure-price-collect-phase'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
-import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
+import { pickDepartureKeyFactsForSelection, type DepartureKeyFacts } from '@/lib/departure-key-facts'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcYbtour } from '@/lib/flight-manual-correction-ybtour'
@@ -78,6 +78,8 @@ import {
 import { applyHanatourFlightRoutingChipOverride } from '@/lib/hanatour-product-meta-chips-patch'
 import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/public-schedule-display'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
+import TravelProductDetail from '@/app/components/travel/TravelProductDetail'
+import type { TravelProduct as PackageTravelProduct } from '@/app/components/travel/TravelProductDetail'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
 
 /** Prisma ProductPrice + 견적용 price* (lib/price-utils PriceRowLike 호환) */
@@ -180,6 +182,7 @@ export type TravelProduct = {
   priceCurrency?: string | null
   /** 출발일별 항공·미팅 요약 (YYYY-MM-DD) */
   departureKeyFactsByDate?: Record<string, DepartureKeyFacts>
+  departureKeyFactsByDepartureId?: Record<string, DepartureKeyFacts>
   /** rawMeta 항공 본문 — 출발행 비어 있을 때 항공 카드 보강 */
   flightStructured?: FlightStructuredBody | null
   /** 노랑풍선 히어로 출발·귀국 시각 — 서버에서 rawMeta leg만 전달 */
@@ -242,7 +245,7 @@ function applyFlightManualCorrectionForPublicOrigin(
   return apply(facts, correction)
 }
 
-export default function YbtourTravelProductDetail({ product, showEsimCrossSell = false }: Props) {
+function YbtourTravelProductDetailView({ product, showEsimCrossSell = false }: Props) {
   const router = useRouter()
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
   const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(null)
@@ -546,15 +549,23 @@ export default function YbtourTravelProductDetail({ product, showEsimCrossSell =
   const labels = getHotelMealLabels(detailScope)
 
   const selectedDepartureFacts = useMemo(() => {
-    if (!selectedDate) return null
-    const row = product.departureKeyFactsByDate?.[selectedDate] ?? null
+    const row = pickDepartureKeyFactsForSelection({
+      selectedDate,
+      selectedDepartureRowId,
+      selectedPriceRowId: selectedPriceRow?.id ?? null,
+      departureKeyFactsByDate: product.departureKeyFactsByDate ?? null,
+      departureKeyFactsByDepartureId: product.departureKeyFactsByDepartureId ?? null,
+    })
     if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection) {
       return applyFlightManualCorrectionForPublicOrigin(row, product.flightManualCorrection, product.originSource)
     }
     return row
   }, [
     selectedDate,
+    selectedDepartureRowId,
+    selectedPriceRow?.id,
     product.departureKeyFactsByDate,
+    product.departureKeyFactsByDepartureId,
     product.applyFlightManualCorrectionOverlay,
     product.flightManualCorrection,
     product.originSource,
@@ -754,6 +765,7 @@ export default function YbtourTravelProductDetail({ product, showEsimCrossSell =
         ) : null}
 
         <div className="mt-6 space-y-8">
+            {!isAirHotelFreeListingForUi(product.listingKind) ? (
             <TravelCoreInfoSection
               facts={selectedDepartureFacts}
               productAirline={selectedDepartureFacts?.airline?.trim() ?? null}
@@ -766,6 +778,7 @@ export default function YbtourTravelProductDetail({ product, showEsimCrossSell =
               omitBriefRows={departurePickerOpen}
               flightExposurePolicy={product.flightExposurePolicy ?? null}
             />
+            ) : null}
 
             <ProductHighlightPointsSection
               highlightPoints={product.highlightPoints ?? null}
@@ -905,4 +918,16 @@ export default function YbtourTravelProductDetail({ product, showEsimCrossSell =
       </main>
     </div>
   )
+}
+
+export default function YbtourTravelProductDetail(props: Props) {
+  if (isAirHotelFreeListingForUi(props.product.listingKind)) {
+    return (
+      <TravelProductDetail
+        product={props.product as unknown as PackageTravelProduct}
+        showEsimCrossSell={props.showEsimCrossSell}
+      />
+    )
+  }
+  return <YbtourTravelProductDetailView {...props} />
 }

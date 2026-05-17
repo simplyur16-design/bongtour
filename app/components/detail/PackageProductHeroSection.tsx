@@ -4,6 +4,7 @@ import ProductHeroCarousel from '@/app/components/detail/ProductHeroCarousel'
 import PackageProductHeroInfoPanel, {
   type PackageProductHeroInfoPanelProps,
 } from '@/app/components/detail/PackageProductHeroInfoPanel'
+import { ProductHeroTitleLines } from '@/app/components/detail/product-detail-visual'
 
 type CarouselProps = {
   heroUrl: string | null
@@ -96,12 +97,10 @@ export default function PackageProductHeroSection({
         ) : null}
 
         <div className="absolute bottom-16 left-8 z-[20] hidden max-w-xl pr-8 lg:block lg:bottom-24 lg:left-16">
-          <h1
-            className="text-3xl font-bold leading-[1.45] text-white lg:text-5xl"
+          <ProductHeroTitleLines
+            title={productTitle}
             style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
-          >
-            {productTitle}
-          </h1>
+          />
         </div>
 
         <aside className="absolute right-6 top-1/2 z-[30] hidden max-h-[min(760px,calc(100vh-96px))] w-[420px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl lg:block xl:right-12 xl:w-[460px]">

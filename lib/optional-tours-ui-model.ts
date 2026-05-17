@@ -158,118 +158,138 @@ function repairOptionalTourFromTabRaw(row: Record<string, unknown>): {
   }
 }
 
-export function parseOptionalToursForUi(raw: string | null | undefined): UiOptionalTourRow[] {
+function parseOptionalToursStructuredJsonArray(raw: string | null | undefined): unknown[] {
   if (!raw?.trim()) return []
   try {
     const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed
-      .map((x, i) => {
-        const row = x as Record<string, unknown>
-        const name =
-          (typeof row.name === 'string' ? row.name.trim() : '') ||
-          (typeof row.tourName === 'string' ? row.tourName.trim() : '')
-        if (!name) return null
-        const supplierTags = Array.isArray(row.supplierTags)
-          ? row.supplierTags.map((t) => String(t).trim()).filter(Boolean)
-          : []
-        const includedNoExtraCharge = row.includedNoExtraCharge === true
-        const altFromJson =
-          typeof row.alternateScheduleText === 'string' && row.alternateScheduleText.trim()
-            ? String(row.alternateScheduleText).trim()
-            : null
-        const noteFromRow =
-          typeof row.noteText === 'string' && row.noteText.trim() ? String(row.noteText).trim() : null
-        const rawDescription =
-          (typeof row.description === 'string' && row.description.trim()) ||
-          (typeof row.descriptionText === 'string' && row.descriptionText.trim()) ||
-          null
-        const repaired = repairOptionalTourFromTabRaw(row)
-        const adultPrice =
-          num(row.adultPrice) ?? num(row.priceValue) ?? num(row.priceUsd) ?? repaired.adultPrice
-        const childPrice = num(row.childPrice) ?? repaired.childPrice
-        const currency =
-          typeof row.currency === 'string' && row.currency.trim() ? row.currency.trim() : null
-        let durationText = (typeof row.durationText === 'string' && row.durationText.trim()) || null
-        const descForDuration =
-          rawDescription && rawDescription.length < 100 && /(?:약\s*)?\d+\s*(?:시간|분)|소요/i.test(rawDescription)
-            ? rawDescription
-            : null
-        const descLooksLikeAlternateOnly =
-          !!rawDescription &&
-          /대체\s*일정|미참가|대기|기상|변경|불가|별도/i.test(rawDescription) &&
-          !/(?:약\s*)?\d{1,2}\s*(?:시간|분)/.test(rawDescription)
-        if (!durationText && descForDuration && !descLooksLikeAlternateOnly) durationText = descForDuration
-        if (repaired.durationText) {
-          const dt = durationText?.trim() ?? ''
-          if (!dt || /^\d{1,6}$/.test(dt)) durationText = repaired.durationText
-        }
-        let minPaxText = typeof row.minPaxText === 'string' ? row.minPaxText.trim() : null
-        if (typeof row.minPeopleText === 'string' && row.minPeopleText.trim()) {
-          minPaxText = minPaxText ?? row.minPeopleText.trim()
-        }
-        if (repaired.minPaxText && !minPaxText?.trim()) minPaxText = repaired.minPaxText
-        const durNorm = durationText?.replace(/\s+/g, ' ').trim() ?? ''
-        let alternateScheduleText = altFromJson
-        if (!alternateScheduleText && noteFromRow) {
-          const nn = noteFromRow.replace(/\s+/g, ' ').trim()
-          if (nn && nn !== durNorm && !(durNorm && nn === durNorm)) alternateScheduleText = nn
-        }
-        const guideText =
-          (typeof row.guide同行Text === 'string' && row.guide同行Text.trim()) ||
-          (typeof (row as { guideText?: string }).guideText === 'string'
-            ? (row as { guideText?: string }).guideText?.trim()
-            : null) ||
-          null
-        const waitingText =
-          (typeof row.waitingPlaceText === 'string' && row.waitingPlaceText.trim()) ||
-          (typeof row.waitPlaceIfNotJoined === 'string' ? row.waitPlaceIfNotJoined.trim() : null) ||
-          null
-        let priceDisplay = ''
-        if (typeof row.priceDisplay === 'string' && row.priceDisplay.trim()) priceDisplay = row.priceDisplay.trim()
-        else if (adultPrice != null || childPrice != null) {
-          const parts: string[] = []
-          if (adultPrice != null) parts.push(formatOptionalTourFeePart('성인', adultPrice, currency))
-          if (childPrice != null) parts.push(formatOptionalTourFeePart('아동', childPrice, currency))
-          priceDisplay = parts.join(' · ')
-        } else if (includedNoExtraCharge || supplierTags.some((t) => /스페셜/i.test(t))) {
-          priceDisplay = '포함'
-        } else if (typeof row.raw === 'string' && row.raw.trim()) priceDisplay = row.raw.trim().slice(0, 80)
-        const bookingType =
-          row.bookingType === 'onsite' || row.bookingType === 'pre' || row.bookingType === 'inquire' || row.bookingType === 'unknown'
-            ? row.bookingType
-            : 'unknown'
-        const descriptionBody = pruneOptionalTourUiDescription(rawDescription, row)
-        const showDesc =
-          descriptionBody &&
-          descriptionBody.replace(/\s+/g, ' ').trim() !==
-            [durationText, alternateScheduleText, guideText, waitingText, minPaxText]
-              .filter(Boolean)
-              .join(' ')
-              .replace(/\s+/g, ' ')
-              .trim()
+    if (Array.isArray(parsed)) return parsed
+    if (parsed && typeof parsed === 'object' && Array.isArray((parsed as { rows?: unknown[] }).rows)) {
+      return (parsed as { rows: unknown[] }).rows
+    }
+  } catch {
+    /* ignore */
+  }
+  return []
+}
 
-        return {
-          id: typeof row.id === 'string' ? row.id : `opt-${i}`,
-          name,
-          currency,
-          adultPrice,
-          childPrice,
-          durationText,
-          minPaxText,
-          guideText,
-          waitingText,
-          priceDisplay:
-            priceDisplay ||
-            (includedNoExtraCharge || supplierTags.some((t) => /스페셜/i.test(t)) ? '포함' : '문의'),
-          bookingType,
-          raw: typeof row.raw === 'string' ? row.raw : typeof row.rawText === 'string' ? row.rawText : undefined,
-          supplierTags: supplierTags.length ? supplierTags : undefined,
-          includedNoExtraCharge: includedNoExtraCharge || undefined,
-          alternateScheduleText,
-          descriptionBody: showDesc && descriptionBody && descriptionBody.length > 1 ? descriptionBody : undefined,
-        } as UiOptionalTourRow
-      })
+function mapOptionalTourRecordToUiRow(row: Record<string, unknown>, i: number): UiOptionalTourRow | null {
+  const name =
+    (typeof row.name === 'string' ? row.name.trim() : '') ||
+    (typeof row.tourName === 'string' ? row.tourName.trim() : '')
+  if (!name) return null
+  const supplierTags = Array.isArray(row.supplierTags)
+    ? row.supplierTags.map((t) => String(t).trim()).filter(Boolean)
+    : []
+  const includedNoExtraCharge = row.includedNoExtraCharge === true
+  const altFromJson =
+    typeof row.alternateScheduleText === 'string' && row.alternateScheduleText.trim()
+      ? String(row.alternateScheduleText).trim()
+      : null
+  const noteFromRow = typeof row.noteText === 'string' && row.noteText.trim() ? String(row.noteText).trim() : null
+  const rawDescription =
+    (typeof row.description === 'string' && row.description.trim()) ||
+    (typeof row.descriptionText === 'string' && row.descriptionText.trim()) ||
+    null
+  const repaired = repairOptionalTourFromTabRaw(row)
+  const adultPrice = num(row.adultPrice) ?? num(row.priceValue) ?? num(row.priceUsd) ?? repaired.adultPrice
+  const childPrice = num(row.childPrice) ?? repaired.childPrice
+  const currency = typeof row.currency === 'string' && row.currency.trim() ? row.currency.trim() : null
+  let durationText = (typeof row.durationText === 'string' && row.durationText.trim()) || null
+  const descForDuration =
+    rawDescription && rawDescription.length < 100 && /(?:약\s*)?\d+\s*(?:시간|분)|소요/i.test(rawDescription)
+      ? rawDescription
+      : null
+  const descLooksLikeAlternateOnly =
+    !!rawDescription &&
+    /대체\s*일정|미참가|대기|기상|변경|불가|별도/i.test(rawDescription) &&
+    !/(?:약\s*)?\d{1,2}\s*(?:시간|분)/.test(rawDescription)
+  if (!durationText && descForDuration && !descLooksLikeAlternateOnly) durationText = descForDuration
+  if (repaired.durationText) {
+    const dt = durationText?.trim() ?? ''
+    if (!dt || /^\d{1,6}$/.test(dt)) durationText = repaired.durationText
+  }
+  let minPaxText = typeof row.minPaxText === 'string' ? row.minPaxText.trim() : null
+  if (typeof row.minPeopleText === 'string' && row.minPeopleText.trim()) {
+    minPaxText = minPaxText ?? row.minPeopleText.trim()
+  }
+  if (repaired.minPaxText && !minPaxText?.trim()) minPaxText = repaired.minPaxText
+  const durNorm = durationText?.replace(/\s+/g, ' ').trim() ?? ''
+  let alternateScheduleText = altFromJson
+  if (!alternateScheduleText && noteFromRow) {
+    const nn = noteFromRow.replace(/\s+/g, ' ').trim()
+    if (nn && nn !== durNorm && !(durNorm && nn === durNorm)) alternateScheduleText = nn
+  }
+  const guideText =
+    (typeof row.guide同行Text === 'string' && row.guide同行Text.trim()) ||
+    (typeof (row as { guideText?: string }).guideText === 'string'
+      ? (row as { guideText?: string }).guideText?.trim()
+      : null) ||
+    null
+  const waitingText =
+    (typeof row.waitingPlaceText === 'string' && row.waitingPlaceText.trim()) ||
+    (typeof row.waitPlaceIfNotJoined === 'string' ? row.waitPlaceIfNotJoined.trim() : null) ||
+    null
+  let priceDisplay = ''
+  if (typeof row.priceDisplay === 'string' && row.priceDisplay.trim()) priceDisplay = row.priceDisplay.trim()
+  else if (typeof row.priceText === 'string' && row.priceText.trim()) priceDisplay = row.priceText.trim()
+  else if (adultPrice != null || childPrice != null) {
+    const parts: string[] = []
+    if (adultPrice != null) parts.push(formatOptionalTourFeePart('성인', adultPrice, currency))
+    if (childPrice != null) parts.push(formatOptionalTourFeePart('아동', childPrice, currency))
+    priceDisplay = parts.join(' · ')
+  } else if (includedNoExtraCharge || supplierTags.some((t) => /스페셜/i.test(t))) {
+    priceDisplay = '포함'
+  } else if (typeof row.raw === 'string' && row.raw.trim()) priceDisplay = row.raw.trim().slice(0, 80)
+  const bookingType =
+    row.bookingType === 'onsite' || row.bookingType === 'pre' || row.bookingType === 'inquire' || row.bookingType === 'unknown'
+      ? row.bookingType
+      : 'unknown'
+  const descriptionBody = pruneOptionalTourUiDescription(rawDescription, row)
+  const showDesc =
+    descriptionBody &&
+    descriptionBody.replace(/\s+/g, ' ').trim() !==
+      [durationText, alternateScheduleText, guideText, waitingText, minPaxText]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+
+  return {
+    id: typeof row.id === 'string' ? row.id : `opt-${i}`,
+    name,
+    currency,
+    adultPrice,
+    childPrice,
+    durationText,
+    minPaxText,
+    guideText,
+    waitingText,
+    priceDisplay:
+      priceDisplay || (includedNoExtraCharge || supplierTags.some((t) => /스페셜/i.test(t)) ? '포함' : '문의'),
+    bookingType,
+    raw: typeof row.raw === 'string' ? row.raw : typeof row.rawText === 'string' ? row.rawText : undefined,
+    supplierTags: supplierTags.length ? supplierTags : undefined,
+    includedNoExtraCharge: includedNoExtraCharge || undefined,
+    alternateScheduleText,
+    descriptionBody: showDesc && descriptionBody && descriptionBody.length > 1 ? descriptionBody : undefined,
+  }
+}
+
+/** 패키지 상세 표 — 금지명만 제외(공급사별 strict gate 미적용) */
+export function parseOptionalToursForPackagePublicTable(raw: string | null | undefined): UiOptionalTourRow[] {
+  const arr = parseOptionalToursStructuredJsonArray(raw)
+  if (!arr.length) return []
+  return arr
+    .map((x, i) => mapOptionalTourRecordToUiRow(x as Record<string, unknown>, i))
+    .filter((x): x is UiOptionalTourRow => x != null && !isBannedOptionalTourName(x.name))
+}
+
+export function parseOptionalToursForUi(raw: string | null | undefined): UiOptionalTourRow[] {
+  const arr = parseOptionalToursStructuredJsonArray(raw)
+  if (!arr.length) return []
+  try {
+    return arr
+      .map((x, i) => mapOptionalTourRecordToUiRow(x as Record<string, unknown>, i))
       .filter((x): x is UiOptionalTourRow => {
         if (x == null) return false
         return optionalTourRowPassesStrictGate({
@@ -449,6 +469,45 @@ export function getPublicOptionalTourRowsFromProduct(
   const fromJson = parseOptionalToursForUi(optionalToursStructured)
   if (fromJson.length) return fromJson
   return optionalPasteRawToUiRows(optionalToursPasteRaw)
+}
+
+/** 패키지·자유여행 상세 옵션관광 표 */
+export function getPackageOptionalTourRowsFromProduct(
+  optionalToursStructured: string | null | undefined,
+  optionalToursPasteRaw: string | null | undefined
+): UiOptionalTourRow[] {
+  const fromPackageJson = parseOptionalToursForPackagePublicTable(optionalToursStructured)
+  if (fromPackageJson.length) return fromPackageJson
+  const fromStrict = parseOptionalToursForUi(optionalToursStructured)
+  if (fromStrict.length) return fromStrict
+  const legacy = parseLegacyStructuredOptionalTours(optionalToursStructured)
+  if (legacy.length) {
+    return legacy.map((t, i) => ({
+      id: t.id ?? `legacy-${i}`,
+      name: t.name,
+      currency: t.currency ?? null,
+      adultPrice: t.priceValue ?? null,
+      childPrice: null,
+      durationText: t.description?.trim() || null,
+      minPaxText: null,
+      guideText: null,
+      waitingText: null,
+      priceDisplay: t.priceText?.trim() || (t.priceValue != null ? `₩${t.priceValue.toLocaleString('ko-KR')}` : '문의'),
+      bookingType: t.bookingType ?? 'unknown',
+    }))
+  }
+  return optionalPasteRawToUiRowsForPackage(optionalToursPasteRaw)
+}
+
+function optionalPasteRawToUiRowsForPackage(raw: string | null | undefined): UiOptionalTourRow[] {
+  const rows = optionalPasteRawToUiRows(raw)
+  if (rows.length) return rows
+  if (!raw?.trim()) return []
+  const lines = raw.replace(/\r\n/g, '\n').split('\n').map((l) => l.trim()).filter(Boolean)
+  const tsvLines = lines.filter((l) => l.includes('\t') && l.split('\t').length >= 2)
+  return tsvLines
+    .map((l, i) => optionalTourRowFromTsvLine(l, i))
+    .filter((x): x is UiOptionalTourRow => x != null && !isBannedOptionalTourName(x.name))
 }
 
 /** 리스트 표 — 이용요금 칸(성인·아동 동시 표시 우선) */

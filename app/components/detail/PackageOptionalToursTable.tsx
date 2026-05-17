@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { getPublicOptionalTourRowsFromProduct } from '@/lib/optional-tours-ui-model'
+import { getPackageOptionalTourRowsFromProduct } from '@/lib/optional-tours-ui-model'
 
 const CARD_CLASS = 'rounded-2xl border border-[#DAD4EE] bg-white px-4 py-4 sm:px-5'
 const TABLE_HEAD = 'bg-[#EFEDF8] text-[11px] font-bold uppercase tracking-wide text-[#534AB7]'
@@ -33,7 +33,7 @@ export default function PackageOptionalToursTable({
   optionalToursPasteRaw,
 }: Props) {
   const rows = useMemo(
-    () => getPublicOptionalTourRowsFromProduct(optionalToursStructured, optionalToursPasteRaw),
+    () => getPackageOptionalTourRowsFromProduct(optionalToursStructured, optionalToursPasteRaw),
     [optionalToursStructured, optionalToursPasteRaw]
   )
 

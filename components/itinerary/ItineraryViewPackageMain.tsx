@@ -10,6 +10,7 @@ import EsimProductDetailCrossSell from '@/app/components/travel/EsimProductDetai
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { formatScheduleDayHotelLine, formatMealDisplay } from '@/lib/hotel-meal-display'
 import { ItineraryExtraInfoBoxes } from '@/components/itinerary/ItineraryExtraInfoBoxes'
 import { Bed, UtensilsCrossed } from 'lucide-react'
@@ -98,14 +99,17 @@ export function ItineraryViewPackageMain({
     [product.flightStructured]
   )
 
+  const isAirHotelFree = isAirHotelFreeListingForUi(product.listingKind)
+
   const extraProduct = useMemo(
     () => ({
       productType: product.productType,
+      listingKind: product.listingKind ?? null,
       includedText: product.includedText,
       excludedText: product.excludedText,
       optionalToursStructured: product.optionalToursStructured,
       optionalToursPasteRaw: product.optionalToursPasteRaw ?? null,
-      shoppingCount: product.shoppingCount,
+      shoppingCount: product.shoppingCount ?? product.shoppingVisitCountTotal ?? null,
       shoppingItems: product.shoppingItems,
       shoppingCautionNoticeRaw: product.shoppingNoticeRaw,
       shoppingStopsStructured: product.shoppingStopsStructured ?? null,
@@ -176,6 +180,11 @@ export function ItineraryViewPackageMain({
           <h2 className="border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
             일정
           </h2>
+          {isAirHotelFree ? (
+            <p className="bt-wrap rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-center text-sm font-semibold text-amber-950">
+              아래보시는 일정은 예시 일정입니다.
+            </p>
+          ) : null}
           {visibleSchedule.map((day, idx) => {
             const sd = day as ScheduleDay
             const hotelLine = formatScheduleDayHotelLine({

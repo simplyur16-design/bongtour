@@ -21,6 +21,55 @@ const LINE_BELONGS_EXCLUDED_NOT_INCLUDED =
 const LINE_GUIDE_DRIVER_FEE_EXCLUDED =
   /(?:가이드|기사|드라이버)\s*(?:비용|경비|팁|tip|gratuity|수고비|사례비).*(?:불포함|별도|제외|미포함)|현지\s*(?:가이드|기사)\s*(?:비용|경비)\s*(?:불포함|별도)|가이드\s*(?:비|비용)\s*(?:불포함|별도|미포함)/i
 
+/** 포함란에 있어도 인당·통화·금액이 있으면 불포함(등록 LLM SSOT와 동일) */
+const LINE_GUIDE_DRIVER_FEE_WITH_LISTED_COST =
+  /(?:가이드|기사|드라이버|인솔\s*자?).{0,40}(?:경비|비용|팁|gratuity|수고비)/i
+
+const LINE_GUIDE_DRIVER_FEE_AMOUNT =
+  /인당\s*[\d,]+|인당\s*[A-Z]{3}|[\d,]+\s*원|(?:USD|EUR|JPY|CNY|KRW)\s*[\d,]+|\$\s*[\d,]|€\s*[\d,]|¥\s*[\d,]|[\d,]+\s*(?:유로|달러|엔|원)/i
+
+/** 개인경비·매너팁 — 불포함 고정 */
+const LINE_PERSONAL_EXPENSE_OR_TIP =
+  /(?:기타\s*)?개인\s*(?:여행\s*)?경비|매너\s*팁|테이블\s*팁|객실\s*팁|식사\s*시\s*별도\s*(?:구매|지불)/i
+
+/** 포함 목록에 섞이면 안 되는 선택·쇼핑·비자·현지합류 */
+const LINE_NOT_FOR_INCLUDED_LIST =
+  /(?:선택\s*관광|선택\s*경비|쇼핑\s*\d+\s*회|비자\s*발급|현지\s*합류|항공\s*리턴\s*변경|E-?비자|갈라\s*디너)/i
+
+function normDedupKey(line: string): string {
+  return line.replace(/\s+/g, ' ').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+}
+
+function lineIsGuideDriverFeeWithListedCost(line: string): boolean {
+  const t = line.replace(/\s+/g, ' ').trim()
+  if (!LINE_GUIDE_DRIVER_FEE_WITH_LISTED_COST.test(t)) return false
+  return LINE_GUIDE_DRIVER_FEE_AMOUNT.test(t)
+}
+
+function shouldMovePackageIncludedLineToExcluded(line: string): boolean {
+  const t = line.replace(/\s+/g, ' ').trim()
+  if (!t) return false
+  if (LINE_BELONGS_EXCLUDED_NOT_INCLUDED.test(t) || LINE_GUIDE_DRIVER_FEE_EXCLUDED.test(t)) return true
+  if (lineIsGuideDriverFeeWithListedCost(t)) return true
+  if (LINE_PERSONAL_EXPENSE_OR_TIP.test(t)) return true
+  if (isSingleRoomDuplicateNoiseLine(t)) return true
+  if (LINE_NOT_FOR_INCLUDED_LIST.test(t)) return true
+  return false
+}
+
+function shouldMovePackageIncludedLineToFootnote(line: string): boolean {
+  const t = line.replace(/\s+/g, ' ').trim()
+  if (t.length < 72) return false
+  return /(?:유류할증료|제세공과금).*(?:변동|인상|인하|추가\s*징수)|※\s*매너팁|자율\s*선택/i.test(t)
+}
+
+function pushUniqueLine(lines: string[], line: string) {
+  const key = normDedupKey(line)
+  if (!key) return
+  if (lines.some((x) => normDedupKey(x) === key)) return
+  lines.push(line)
+}
+
 function splitLines(text: string | null | undefined): string[] {
   if (!text?.trim()) return []
   return text
@@ -202,6 +251,38 @@ const PACKAGE_INCLUDED_CATEGORY_HEADER =
   /^(?:[-*•◇◆\s·]*)(?:기본\s*핵심\s*관광|예약자\s*특별\s*혜택)\s*$/i
 
 const PACKAGE_INCLUDED_SUBITEM_LINE = /^[·•\u00b7\-*]\s*/
+
+/**
+ * 패키지 공개 상세 — LLM·등록 본문 기준으로 포함/불포함 줄 재분류(표시 전용, DB 미변경).
+ * 가이드/기사(금액 명시)·개인경비·매너팁·1인실·선택관광 등은 포함에서 제외한다.
+ */
+export function organizePackageIncludedExcludedForPublicDisplay(
+  split: PublicIncludedExcludedSplit
+): PublicIncludedExcludedSplit {
+  const includedLines: string[] = []
+  const excludedLines = [...split.excludedLines]
+  const includedFootnotes = [...split.includedFootnotes]
+
+  for (const raw of split.includedLines) {
+    const t = raw.replace(/\s+/g, ' ').trim()
+    if (!t) continue
+    if (shouldMovePackageIncludedLineToFootnote(t)) {
+      pushUniqueLine(includedFootnotes, t)
+      continue
+    }
+    if (shouldMovePackageIncludedLineToExcluded(t)) {
+      pushUniqueLine(excludedLines, t)
+      continue
+    }
+    pushUniqueLine(includedLines, t)
+  }
+
+  return {
+    includedLines,
+    excludedLines: dedupeSingleRoomSurchargeLines(excludedLines),
+    includedFootnotes,
+  }
+}
 
 /** `기본 핵심 관광`·`예약자 특별혜택` 헤더와 `·` 하위 줄만 제거 */
 export function filterPackagePublicIncludedExcludedLines(lines: string[]): string[] {

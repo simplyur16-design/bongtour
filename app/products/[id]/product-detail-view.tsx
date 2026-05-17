@@ -46,6 +46,7 @@ import {
   buildModetourDirectedDisplayFromStructuredBody,
 } from '@/lib/flight-modetour-parser'
 import { getProductTotalDays } from '@/lib/package-rules'
+import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import {
   buildDepartureKeyFactsByDepartureId,
   buildDepartureKeyFactsMap,
@@ -840,7 +841,9 @@ export async function ProductDetailView({
   /** 자유여행(airtel) — Fit 예시 일정 ItineraryView */
   const isAirtelItineraryView = productType === 'airtel'
   /** 일반 패키지(travel/private/semi) — TravelProductDetail + ItineraryViewPackageMain 본문 */
-  const isPackageItineraryBody = ['travel', 'private', 'semi'].includes(productType)
+  const isAirHotelFreeProduct = isAirHotelFreeListingForUi(travelProduct.listingKind)
+  const isPackageItineraryBody =
+    ['travel', 'private', 'semi'].includes(productType) || isAirHotelFreeProduct
   const isPrivateOrSemi = productType === 'private' || productType === 'semi'
 
   if (isAirtelItineraryView) {
@@ -919,6 +922,7 @@ export async function ProductDetailView({
             productMetaChips: buildProductMetaChips(product, { departureFactsOverride: airtelDefaultFacts }),
             flightExposurePolicy: product.flightExposurePolicy ?? null,
             departureKeyFactsByDate: product.departureKeyFactsByDate,
+            departureKeyFactsByDepartureId: product.departureKeyFactsByDepartureId,
             departureConditionLine: formatDepartureConditionForProduct(product),
             duration: product.duration,
             originSource: product.originSource,

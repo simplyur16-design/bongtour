@@ -16,15 +16,12 @@ import {
 import type { DeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
 import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
-
-const PAX_STEP_BUTTON_CLASS =
-  'inline-flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-lg border border-[#C7BFA1] bg-white text-lg font-semibold leading-none fit-tx-primary shadow-sm transition-colors hover:bg-[#F1EFE8] active:bg-[#FAFAFC] disabled:pointer-events-none disabled:opacity-40'
-
-const STICKY_PAX_ROWS = [
-  { key: 'adult' as const, label: '성인', ageLine: '만 12세 이상', minVal: 1 },
-  { key: 'child' as const, label: '아동', ageLine: '만 2~11세', minVal: 0 },
-  { key: 'infant' as const, label: '유아', ageLine: '만 2세 미만', minVal: 0 },
-] as const
+import {
+  PAX_STEP_BUTTON_CLASS,
+  PAX_STEP_DECREMENT_GLYPH,
+  PAX_STEP_INCREMENT_GLYPH,
+  STICKY_PAX_ROWS,
+} from '@/lib/product-live-quote-pax-ui'
 
 type Pax = { adult: number; childBed: number; childNoBed: number; infant: number }
 
@@ -34,27 +31,19 @@ type Props = {
   selectedDate: string | null
   pax: Pax
   updatePax: (key: keyof Pax, delta: number) => void
-  /** 하나투어·참좋은·ybtour 스티키 「아동」 통합 행용(침대·노베드 카운트 조절) */
   updateChildCombined: (delta: number) => void
   highRiskAlerts: string[]
   onBookingOpen: () => void
   onOpenDeparturePicker: () => void
   variant?: 'desktop' | 'mobile'
   fromScreen: 'product_detail_desktop' | 'product_detail_mobile'
-  /** 최소출발·현재예약·출발확정 한 줄 (등록 본문 추출) */
   departureConditionLine?: string | null
-  /** 히어로·여행핵심정보와 동일 출발·귀국 표시 (`formatHeroDateKorean` 등) */
   heroTripDepartureDisplay?: string | null
   heroTripReturnDisplay?: string | null
-  /** 동일 일자에 여러 출발 행이 있을 때 `selectedDate`만으로는 부족할 때 — 이 행을 견적 SSOT로 사용 */
   explicitPriceRow?: ProductPriceRow | null
-  /** 모두투어 전용: 출발일 변경 버튼 바로 아래 현지 지불경비(인당) */
   modetourStickyLocalPayLine?: string | null
-  /** 전후 범위 on-demand 수집 중(선택일 SSOT 유지, 견적은 참고만) */
   isCollectingPrices?: boolean
-  /** 상세에서 계산한 수집·지연·pending_quote UI 단계 */
   priceCollectUiPhase?: DeparturePriceCollectUiPhase
-  /** 일정 N일 — `product.schedule.length` 또는 fit master */
   masterTotalDays?: number | null
   departureDateFrom?: string | null
 }
@@ -95,7 +84,6 @@ export default function ProductLiveQuoteCard({
     [rowForAdvisory, isCollectingPrices]
   )
 
-  /** 상담 요약 참고용 — `pricingMode` 문자열과 동일하게 맞춤 */
   const counselPricingMode = useMemo(() => {
     const d = selectedDate?.trim()
     if (!d) return null
@@ -115,10 +103,8 @@ export default function ProductLiveQuoteCard({
   }, [selectedDate, departureDateFrom, totalDays])
   const shareSummary = `${product.originCode} · ${product.destination} · ${product.duration}${product.airline ? ` · ${product.airline}` : ''} · 출발 ${selectedDate ?? '미선택'}${computedReturnDate ? ` · 귀국 ${computedReturnDate}` : ''}`
 
-
   const isMobile = variant === 'mobile'
   const pad = isMobile ? 'p-4' : 'p-6'
-
 
   const showCollectingBanner =
     isCollectingPrices &&
@@ -157,7 +143,6 @@ export default function ProductLiveQuoteCard({
         </div>
       ) : null}
 
-
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#1F1B2D]">인원</p>
         <div className="space-y-2.5">
@@ -184,26 +169,26 @@ export default function ProductLiveQuoteCard({
                     </div>
                   ) : null}
                 </div>
-                <div className="grid h-9 w-[7rem] grid-cols-[2rem_1fr_2rem] items-center gap-1">
+                <div className="grid h-9 w-[7rem] shrink-0 grid-cols-[2rem_1fr_2rem] items-center gap-1">
                   <button
                     type="button"
                     onClick={onDecrease}
                     disabled={atMin}
-                    className={PAX_STEP_BUTTON_CLASS + ' h-9 w-9 text-base'}
+                    className={PAX_STEP_BUTTON_CLASS}
                     aria-label={`${row.label} 감소`}
                   >
-                    −
+                    {PAX_STEP_DECREMENT_GLYPH}
                   </button>
-                  <span className="min-w-[24px] text-center text-base font-bold tabular-nums text-[#1F1B2D]">
+                  <span className="min-w-[28px] text-center text-lg font-bold tabular-nums text-[#1F1B2D]">
                     {count}
                   </span>
                   <button
                     type="button"
                     onClick={onIncrease}
-                    className={PAX_STEP_BUTTON_CLASS + ' h-9 w-9 text-base'}
+                    className={PAX_STEP_BUTTON_CLASS}
                     aria-label={`${row.label} 증가`}
                   >
-                    +
+                    {PAX_STEP_INCREMENT_GLYPH}
                   </button>
                 </div>
               </div>

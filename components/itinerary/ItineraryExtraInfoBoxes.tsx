@@ -5,11 +5,14 @@ import PackageShoppingTable from '@/app/components/detail/PackageShoppingTable'
 import type { ShoppingStopRow } from '@/lib/public-product-extras-types'
 import {
   filterPackagePublicIncludedExcludedLines,
+  organizePackageIncludedExcludedForPublicDisplay,
   splitIncludedExcludedForPublicDisplay,
 } from '@/lib/product-included-excluded-public'
+import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 
 export type ItineraryExtraInfoProduct = {
   productType?: string | null
+  listingKind?: string | null
   includedText?: string | null
   excludedText?: string | null
   optionalToursStructured?: string | null
@@ -48,13 +51,18 @@ export function ItineraryExtraInfoBoxes({
   const showTop = section === 'top' || section === 'all'
   const showBottom = section === 'bottom' || section === 'all'
   const isPackage = isPackageProductType(product.productType)
+  const isAirHotelFree = isAirHotelFreeListingForUi(product.listingKind)
 
   let includedItems: string[]
   let excludedItems: string[]
+  let includedFootnotes: string[] = []
   if (isPackage) {
-    const split = splitIncludedExcludedForPublicDisplay(product.includedText, product.excludedText)
+    const split = organizePackageIncludedExcludedForPublicDisplay(
+      splitIncludedExcludedForPublicDisplay(product.includedText, product.excludedText)
+    )
     includedItems = filterPackagePublicIncludedExcludedLines(split.includedLines)
     excludedItems = split.excludedLines
+    includedFootnotes = split.includedFootnotes
   } else {
     includedItems = (product.includedText ?? '')
       .split(/\r?\n/)
@@ -107,6 +115,15 @@ export function ItineraryExtraInfoBoxes({
               </li>
             ))}
           </ul>
+          {isPackage && includedFootnotes.length > 0 ? (
+            <div className="mt-2 space-y-1 px-1">
+              {includedFootnotes.map((line, i) => (
+                <p key={i} className="text-xs leading-relaxed text-bt-meta bt-wrap">
+                  {line}
+                </p>
+              ))}
+            </div>
+          ) : null}
         </section>
       )}
 
@@ -137,10 +154,12 @@ export function ItineraryExtraInfoBoxes({
             optionalToursStructured={product.optionalToursStructured}
             optionalToursPasteRaw={product.optionalToursPasteRaw ?? null}
           />
-          <PackageShoppingTable
-            stops={product.shoppingStopsStructured}
-            shoppingCount={product.shoppingCount}
-          />
+          {!isAirHotelFree ? (
+            <PackageShoppingTable
+              stops={product.shoppingStopsStructured}
+              shoppingCount={product.shoppingCount}
+            />
+          ) : null}
         </div>
       ) : null}
 

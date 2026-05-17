@@ -175,6 +175,25 @@ export function parseTitleBracketSegments(title: string): { kind: 'tag' | 'plain
   return out
 }
 
+/** 히어로 제목 — `[]` 구간마다 줄바꿈, 괄호 밖 본문은 마지막 줄 */
+export function splitProductHeroTitleLines(title: string): string[] {
+  const t = title.trim()
+  if (!t) return []
+  const lines: string[] = []
+  const re = /\[([^\]]+)\]/g
+  let last = 0
+  let m: RegExpExecArray | null
+  while ((m = re.exec(t)) !== null) {
+    const gap = t.slice(last, m.index).trim()
+    if (gap) lines.push(gap)
+    lines.push(`[${m[1]!}]`)
+    last = m.index + m[0].length
+  }
+  const tail = t.slice(last).trim()
+  if (tail) lines.push(tail)
+  return lines.length > 0 ? lines : [t]
+}
+
 type TitleProps = {
   title: string
   className?: string
@@ -183,25 +202,44 @@ type TitleProps = {
   tone?: 'light' | 'dark'
 }
 
-/** 상품명: 약간 자간 + `[]` 구간만 보조 강조색 */
+/** 상품명: `[]` 구간 줄 단위 + 보조 강조색 */
 export function ProductDetailTitle({ title, className, style, tone = 'light' }: TitleProps) {
-  const segments = parseTitleBracketSegments(title)
+  const lines = splitProductHeroTitleLines(title)
   const tagCls = tone === 'dark' ? 'font-extrabold text-teal-200' : 'font-extrabold text-bt-card-accent-strong'
   const defaultCls =
     tone === 'dark'
-      ? 'bt-wrap mb-3 text-[1.35rem] font-black leading-[1.42] tracking-[0.02em] text-white sm:text-2xl'
-      : 'bt-wrap text-2xl font-black leading-[1.2] tracking-[0.02em] text-bt-title sm:text-3xl'
+      ? 'bt-wrap mb-3 text-[1.35rem] font-black leading-[1.52] tracking-[0.02em] text-white sm:text-2xl'
+      : 'bt-wrap text-2xl font-black leading-[1.48] tracking-[0.02em] text-bt-title sm:text-3xl'
   return (
     <h1 className={className ?? defaultCls} style={style}>
-      {segments.map((s, i) =>
-        s.kind === 'tag' ? (
-          <span key={i} className={tagCls}>
-            {s.text}
+      {lines.map((line, i) => {
+        const isTag = line.startsWith('[') && line.endsWith(']')
+        return (
+          <span key={i} className={isTag ? tagCls : undefined} style={{ display: 'block' }}>
+            {line}
           </span>
-        ) : (
-          <span key={i}>{s.text}</span>
         )
-      )}
+      })}
+    </h1>
+  )
+}
+
+/** 데스크톱 히어로(어두운 배경) — ProductDetailTitle과 동일 줄 나눔 */
+export function ProductHeroTitleLines({ title, className, style }: Omit<TitleProps, 'tone'>) {
+  const lines = splitProductHeroTitleLines(title)
+  return (
+    <h1
+      className={
+        className ??
+        'text-3xl font-bold leading-[1.52] tracking-[0.02em] text-white lg:text-5xl lg:leading-[1.5]'
+      }
+      style={style}
+    >
+      {lines.map((line, i) => (
+        <span key={i} className="block">
+          {line}
+        </span>
+      ))}
     </h1>
   )
 }

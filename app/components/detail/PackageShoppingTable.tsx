@@ -25,9 +25,7 @@ function itemName(stop: ShoppingStopRow): string {
 
 function costTime(stop: ShoppingStopRow): string {
   const dur = stop.durationText?.trim() || ''
-  const note = stop.refundPolicyText?.trim() || stop.noteText?.trim() || ''
-  if (dur && note) return `${dur} · ${note}`
-  return dur || note || '—'
+  return dur || '—'
 }
 
 export default function PackageShoppingTable({ stops, shoppingCount }: Props) {

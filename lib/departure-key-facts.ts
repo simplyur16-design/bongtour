@@ -488,6 +488,25 @@ export function buildDepartureKeyFactsByDepartureId(
   return out
 }
 
+/** 공개 상세 — 선택 출발행(ProductPriceRow.id) 우선, 없으면 캘린더일 키 */
+export function pickDepartureKeyFactsForSelection(args: {
+  selectedDate?: string | null
+  selectedDepartureRowId?: string | null
+  selectedPriceRowId?: string | null
+  departureKeyFactsByDate?: Record<string, DepartureKeyFacts> | null
+  departureKeyFactsByDepartureId?: Record<string, DepartureKeyFacts> | null
+}): DepartureKeyFacts | null {
+  const rowId = (args.selectedDepartureRowId ?? args.selectedPriceRowId ?? '').trim()
+  if (rowId && args.departureKeyFactsByDepartureId?.[rowId]) {
+    return args.departureKeyFactsByDepartureId[rowId]!
+  }
+  const dateKey = args.selectedDate?.trim()
+  if (dateKey && args.departureKeyFactsByDate?.[dateKey]) {
+    return args.departureKeyFactsByDate[dateKey]!
+  }
+  return null
+}
+
 /**
  * 관리자 flightAdminJson(admin_only)과 등록 시 본문·항공 입력에서 나온 parsed facts를 합친다.
  * 관리자가 채운 필드가 우선이고, 비어 있는 leg/시간/공항은 parsed로 보강한다.

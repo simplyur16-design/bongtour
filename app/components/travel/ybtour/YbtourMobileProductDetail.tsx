@@ -44,7 +44,7 @@ import {
   formatHeroDepartureSavingsLine,
   PRICE_MAIN_AMOUNT_HINT,
 } from '@/lib/promotion-copy-normalize'
-import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
+import { pickDepartureKeyFactsForSelection, type DepartureKeyFacts } from '@/lib/departure-key-facts'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcYbtour } from '@/lib/flight-manual-correction-ybtour'
@@ -59,6 +59,8 @@ import {
   ProductMetaChips,
 } from '@/app/components/detail/product-detail-visual'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
+import MobileProductDetail from '@/app/components/travel/MobileProductDetail'
+import type { TravelProduct as PackageTravelProduct } from '@/app/components/travel/TravelProductDetail'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import {
@@ -101,7 +103,7 @@ function applyFlightManualCorrectionForPublicOrigin(
   return apply(facts, correction)
 }
 
-export default function YbtourMobileProductDetail({ product, showEsimCrossSell = false }: Props) {
+function YbtourMobileProductDetailView({ product, showEsimCrossSell = false }: Props) {
   const router = useRouter()
   const schedule = product.schedule && product.schedule.length > 0 ? (product.schedule as ScheduleDayWithMeta[]) : []
   const heroUrl = useMemo(() => coverImageUrlForTravelProductClient({ ...product, schedule }), [product, schedule])
@@ -399,15 +401,23 @@ export default function YbtourMobileProductDetail({ product, showEsimCrossSell =
   }, [product.mandatoryLocalFee, product.mandatoryCurrency, product.counselingNotes])
 
   const selectedDepartureFacts = useMemo(() => {
-    if (!selectedDate) return null
-    const row = product.departureKeyFactsByDate?.[selectedDate] ?? null
+    const row = pickDepartureKeyFactsForSelection({
+      selectedDate,
+      selectedDepartureRowId,
+      selectedPriceRowId: priceRow?.id ?? null,
+      departureKeyFactsByDate: product.departureKeyFactsByDate ?? null,
+      departureKeyFactsByDepartureId: product.departureKeyFactsByDepartureId ?? null,
+    })
     if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection) {
       return applyFlightManualCorrectionForPublicOrigin(row, product.flightManualCorrection, product.originSource)
     }
     return row
   }, [
     selectedDate,
+    selectedDepartureRowId,
+    priceRow?.id,
     product.departureKeyFactsByDate,
+    product.departureKeyFactsByDepartureId,
     product.applyFlightManualCorrectionOverlay,
     product.flightManualCorrection,
     product.originSource,
@@ -579,6 +589,7 @@ export default function YbtourMobileProductDetail({ product, showEsimCrossSell =
         </p>
       ) : null}
 
+      {!isAirHotelFreeListingForUi(product.listingKind) ? (
       <div className="border-b border-bt-border-soft p-4">
         <TravelCoreInfoSection
           facts={selectedDepartureFacts}
@@ -593,6 +604,7 @@ export default function YbtourMobileProductDetail({ product, showEsimCrossSell =
           flightExposurePolicy={product.flightExposurePolicy ?? null}
         />
       </div>
+      ) : null}
 
       <ProductHighlightPointsSection
         compact
@@ -732,4 +744,16 @@ export default function YbtourMobileProductDetail({ product, showEsimCrossSell =
       ) : null}
     </div>
   )
+}
+
+export default function YbtourMobileProductDetail(props: Props) {
+  if (isAirHotelFreeListingForUi(props.product.listingKind)) {
+    return (
+      <MobileProductDetail
+        product={props.product as unknown as PackageTravelProduct}
+        showEsimCrossSell={props.showEsimCrossSell}
+      />
+    )
+  }
+  return <YbtourMobileProductDetailView {...props} />
 }

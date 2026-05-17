@@ -71,6 +71,23 @@ export const LLM_JSON_OUTPUT_DISCIPLINE_BLOCK = `# 출력 형식(기술)
 - 공급사 원문에 없는 [MUST/TIP/PLUS] 등 주관적 등급·가공 표현은 추출하지 말고 배제한다.
 `
 
+/** 등록 LLM — 포함·불포함 분류 SSOT (공개 상세·`organizePackageIncludedExcludedForPublicDisplay`와 동일 원칙) */
+export const PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK = `# [포함·불포함 분류 SSOT]
+포함사항(includedItems / includedText)에 둘 항목 예:
+- 왕복 항공료, 숙박비, 관광지 입장료, 전용 차량비
+- 인천공항세, 현지공항세, 전쟁보험료, 관광진흥개발기금, 유류할증료(포함 시)
+- 여행자 보험(예: 1억원·3억원 보장 등, 원문 금액·한도 유지)
+
+불포함사항(excludedItems / excludedText)에 둘 항목 예:
+- 기타 개인경비 및 매너팁(식사 시 음료·주류·테이블팁·객실팁 등)
+- 1인실 이용비용(싱글차지·객실 1인 사용료) — 금액이 있으면 항목명과 같은 줄에
+
+가이드/기사 경비:
+- 본문에 「포함」으로 적혀 있어도 **인당·통화·금액**이 명시되면 반드시 불포함으로 분류한다.
+- 금액·인당 표기 없이 포함 경비로만 적힌 경우에만 포함사항에 둔다.
+
+포함·불포함 목록에 넣지 말 것: 선택관광 표 행, 쇼핑 회차 표, 비자·입국 장문, 유류할증료 변동·약관 전문, 예약 유의사항 전문.`
+
 /** 풀 등록 Role 두 줄 + 서술 필드와 §9 연결 */
 export const REGISTER_LLM_ROLE_DATA_AUDITOR_INTRO = `# Role: 데이터 감사관 (Data Auditor)
 너는 여행 상품의 팩트만을 골라내는 '데이터 감사관'이다. 주관적인 감정·마케팅 문구를 발견하는 즉시 삭제하고, 구조화 필드는 숫자·명사·원문 팩트를 우선한다. 고객에게 노출될 한국어 필드(title·안내 문구 등)를 새로 쓰거나 요약할 때는 아래 톤앤매너(SSOT)를 따른다. **schedule[].title·description 은 공급사 일정표만 근거로 쓰며 §9 브랜드·상담 톤을 적용하지 않는다**(이 프롬프트의 schedule 전용 블록 우선). 공급사 원문 인용은 팩트 보존을 우선한다.

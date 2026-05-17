@@ -3,6 +3,7 @@
  */
 
 import { legHasGarbageFlightFields } from '@/lib/flight-leg-garbage'
+import { parseKoreanDateTimeLineToDate } from '@/lib/flight-korean-datetime'
 
 const BANNED_USER_SUBSTRINGS =
   /추출\s*필요|확인중|미입력|출발지\s*확인중|도착지\s*확인중|도착시간\s*미입력|출발시간\s*미입력|편명\s*상담\s*시\s*확인\s*가능|항공\s*예정|예정\s*항공|항공일정\s*미정|편명\s*미정|항공\s*미정/i
@@ -149,9 +150,66 @@ export function formatDirectedFlightBodyLine(leg: DirectedFlightLegInput | null 
 export type FlightLegTwoLineDisplay = {
   departureAirport: string
   departureAtText: string
+  /** 익일·일자 넘김 — 일시 문자열 앞에 `+N` 배지 */
+  departureDayOffset?: number | null
   flightNo: string | null
   arrivalAirport: string
   arrivalAtText: string
+  arrivalDayOffset?: number | null
+}
+
+const EMBEDDED_DAY_OFFSET_TAIL_RE = /\s*[(（]?\s*[+＋]\s*(\d{1,2})\s*[)）]?\s*$/
+const EMBEDDED_DAY_OFFSET_HEAD_RE = /^\s*[(（]?\s*[+＋]\s*(\d{1,2})\s*[)）]?\s+/
+
+/** 본문에 붙은 `+1` 등은 분리해 일시 앞 배지로만 쓴다 */
+export function splitFlightAtTextDayOffset(raw: string | null | undefined): {
+  text: string
+  dayOffset: number | null
+} {
+  const t = raw?.replace(/\s+/g, ' ').trim() || ''
+  if (!t) return { text: '', dayOffset: null }
+  const tail = t.match(EMBEDDED_DAY_OFFSET_TAIL_RE)
+  if (tail) {
+    const n = parseInt(tail[1], 10)
+    return {
+      text: t.replace(EMBEDDED_DAY_OFFSET_TAIL_RE, '').trim(),
+      dayOffset: Number.isFinite(n) && n > 0 ? n : null,
+    }
+  }
+  const head = t.match(EMBEDDED_DAY_OFFSET_HEAD_RE)
+  if (head) {
+    const n = parseInt(head[1], 10)
+    return {
+      text: t.replace(EMBEDDED_DAY_OFFSET_HEAD_RE, '').trim(),
+      dayOffset: Number.isFinite(n) && n > 0 ? n : null,
+    }
+  }
+  return { text: t, dayOffset: null }
+}
+
+function parseFlightAtTextToLocalDate(s: string | null | undefined): Date | null {
+  const t = s?.replace(/\s+/g, ' ').trim()
+  if (!t) return null
+  return parseKoreanDateTimeLineToDate(t) ?? parseKoreanDateTimeLineToDate(t.replace(/-/g, '.'))
+}
+
+/** 출발·도착 일시 날짜 차이(일) — 도착이 다음날이면 1 이상 */
+export function computeFlightLegArrivalDayOffset(
+  departureAtText: string | null | undefined,
+  arrivalAtText: string | null | undefined
+): number | null {
+  const dep = parseFlightAtTextToLocalDate(departureAtText)
+  const arr = parseFlightAtTextToLocalDate(arrivalAtText)
+  if (!dep || !arr) return null
+  const depDay = Date.UTC(dep.getFullYear(), dep.getMonth(), dep.getDate())
+  const arrDay = Date.UTC(arr.getFullYear(), arr.getMonth(), arr.getDate())
+  const diff = Math.round((arrDay - depDay) / 86_400_000)
+  return diff > 0 ? diff : null
+}
+
+function resolveDayOffset(embedded: number | null, computed: number | null): number | null {
+  const n = embedded ?? computed
+  return n != null && n > 0 ? n : null
 }
 
 /** 패키지 hero — 출발·도착 2줄(공항·일시 열 정렬). 결정 필드 하나라도 없으면 null */
@@ -160,12 +218,23 @@ export function formatFlightLegTwoLines(
 ): FlightLegTwoLineDisplay | null {
   if (!leg || legHasGarbageFlightFields(leg)) return null
   const departureAirport = leg.departureAirport?.replace(/\s+/g, ' ').trim() || ''
-  const departureAtText = leg.departureAtText?.replace(/\s+/g, ' ').trim() || ''
   const arrivalAirport = leg.arrivalAirport?.replace(/\s+/g, ' ').trim() || ''
-  const arrivalAtText = leg.arrivalAtText?.replace(/\s+/g, ' ').trim() || ''
   const flightNo = leg.flightNo?.replace(/\s+/g, ' ').trim() || null
+  const depParts = splitFlightAtTextDayOffset(leg.departureAtText)
+  const arrParts = splitFlightAtTextDayOffset(leg.arrivalAtText)
+  const departureAtText = depParts.text
+  const arrivalAtText = arrParts.text
   if (!departureAirport || !departureAtText || !arrivalAirport || !arrivalAtText) return null
-  return { departureAirport, departureAtText, flightNo, arrivalAirport, arrivalAtText }
+  const computedArrOffset = computeFlightLegArrivalDayOffset(departureAtText, arrivalAtText)
+  return {
+    departureAirport,
+    departureAtText,
+    departureDayOffset: resolveDayOffset(depParts.dayOffset, null),
+    flightNo,
+    arrivalAirport,
+    arrivalAtText,
+    arrivalDayOffset: resolveDayOffset(arrParts.dayOffset, computedArrOffset),
+  }
 }
 
 /** 항공여정 행 — `가는편: 인천 … → 연길 … / CZ6074` (편명은 본문에 없을 때만 힌트 줄 사용) */

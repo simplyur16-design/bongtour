@@ -49,7 +49,7 @@ import {
   formatHeroDepartureSavingsLine,
   PRICE_MAIN_AMOUNT_HINT,
 } from '@/lib/promotion-copy-normalize'
-import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
+import { pickDepartureKeyFactsForSelection, type DepartureKeyFacts } from '@/lib/departure-key-facts'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
 import type { FlightManualCorrectionPayload } from '@/lib/flight-manual-correction-hanatour'
@@ -382,15 +382,23 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
   }, [])
 
   const selectedDepartureFacts = useMemo(() => {
-    if (!selectedDate) return null
-    const row = product.departureKeyFactsByDate?.[selectedDate] ?? null
+    const row = pickDepartureKeyFactsForSelection({
+      selectedDate,
+      selectedDepartureRowId,
+      selectedPriceRowId: priceRow?.id ?? null,
+      departureKeyFactsByDate: product.departureKeyFactsByDate ?? null,
+      departureKeyFactsByDepartureId: product.departureKeyFactsByDepartureId ?? null,
+    })
     if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection) {
       return applyFlightManualCorrectionForPublicOrigin(row, product.flightManualCorrection, product.originSource)
     }
     return row
   }, [
     selectedDate,
+    selectedDepartureRowId,
+    priceRow?.id,
     product.departureKeyFactsByDate,
+    product.departureKeyFactsByDepartureId,
     product.applyFlightManualCorrectionOverlay,
     product.flightManualCorrection,
     product.originSource,

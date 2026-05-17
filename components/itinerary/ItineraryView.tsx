@@ -19,7 +19,13 @@ import TravelCoreInfoSection from '@/app/components/detail/TravelCoreInfoSection
 import { HERO_DATE_INLINE_VALUE_CLASS } from '@/app/components/detail/product-detail-visual'
 import { ItineraryExtraInfoBoxes } from '@/components/itinerary/ItineraryExtraInfoBoxes'
 import EsimProductDetailCrossSell from '@/app/components/travel/EsimProductDetailCrossSell'
-import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
+import {
+  pickDepartureKeyFactsForSelection,
+  type DepartureKeyFacts,
+  type DepartureLegCard,
+} from '@/lib/departure-key-facts'
+import { pickBookableRowForDateKey } from '@/lib/public-default-departure-selection'
+import { ProductHeroTitleLines } from '@/app/components/detail/product-detail-visual'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import type { FlightManualCorrectionPayload } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
@@ -147,6 +153,7 @@ interface ItineraryViewProps {
     productMetaChips: ProductMetaChip[]
     flightExposurePolicy?: 'public_full' | 'public_limited' | 'admin_only' | null
     departureKeyFactsByDate?: Record<string, DepartureKeyFacts>
+    departureKeyFactsByDepartureId?: Record<string, DepartureKeyFacts>
     departureConditionLine?: string | null
     duration?: string | null
     originSource?: string
@@ -210,6 +217,16 @@ function resolveFlightDisplay(flightStructured: FlightStructuredBody | null | un
   const inbound = legToDisplay(persisted.inbound)
   if (!outbound && !inbound) return null
   return { outbound, inbound }
+}
+
+function departureLegCardToDisplay(leg: DepartureLegCard | null | undefined): ItineraryFlightLegDisplay | null {
+  if (!leg) return null
+  const from = leg.departureAirport?.trim() || ''
+  const to = leg.arrivalAirport?.trim() || ''
+  const departureAt = leg.departureAtText?.trim() || ''
+  const arrivalAt = leg.arrivalAtText?.trim() || ''
+  if (!from && !to && !departureAt && !arrivalAt) return null
+  return { from, to, departureAt, arrivalAt }
 }
 
 export function ItineraryView({
@@ -331,14 +348,19 @@ export function ItineraryView({
 
   const selectedPriceRow = useMemo(() => {
     if (!prices?.length || !selectedDate) return null
-    return prices.find((p) => String(p.date).slice(0, 10) === selectedDate) ?? null
+    return pickBookableRowForDateKey(prices, selectedDate) ?? prices.find((p) => String(p.date).slice(0, 10) === selectedDate) ?? null
   }, [prices, selectedDate])
 
   const selectedDepartureFacts = useMemo(() => {
     if (!travelCoreInfo) return null
     const dateKey = selectedDate ?? priceInfo?.departureDateFrom ?? null
     if (!dateKey) return null
-    const row = travelCoreInfo.departureKeyFactsByDate?.[dateKey] ?? null
+    const row = pickDepartureKeyFactsForSelection({
+      selectedDate: dateKey,
+      selectedPriceRowId: selectedPriceRow?.id ?? null,
+      departureKeyFactsByDate: travelCoreInfo.departureKeyFactsByDate ?? null,
+      departureKeyFactsByDepartureId: travelCoreInfo.departureKeyFactsByDepartureId ?? null,
+    })
     if (travelCoreInfo.applyFlightManualCorrectionOverlay && travelCoreInfo.flightManualCorrection) {
       return applyFlightManualCorrectionForPublicOrigin(
         row,
@@ -347,7 +369,14 @@ export function ItineraryView({
       )
     }
     return row
-  }, [travelCoreInfo, selectedDate, priceInfo?.departureDateFrom, product.originSource])
+  }, [travelCoreInfo, selectedDate, selectedPriceRow?.id, priceInfo?.departureDateFrom, product.originSource])
+
+  const heroFlightDisplay = useMemo(() => {
+    const ob = departureLegCardToDisplay(selectedDepartureFacts?.outbound ?? null)
+    const ib = departureLegCardToDisplay(selectedDepartureFacts?.inbound ?? null)
+    if (ob || ib) return { outbound: ob, inbound: ib }
+    return flightDisplay
+  }, [selectedDepartureFacts, flightDisplay])
 
   const reservationLine = useMemo(() => {
     if (!travelCoreInfo) return null
@@ -466,12 +495,11 @@ export function ItineraryView({
                 자유여행 · 에어텔 · {heroCityLabel}
               </div>
             </div>
-            <h1
-              className="text-2xl md:text-4xl lg:text-5xl font-black text-white mb-6 leading-[1.45]"
+            <ProductHeroTitleLines
+              title={product.title}
+              className="mb-6 text-2xl font-black leading-[1.52] text-white md:text-4xl md:leading-[1.5] lg:text-5xl"
               style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
-            >
-              {product.title}
-            </h1>
+            />
             <Link
               href={ctaHref}
               className="pointer-events-auto inline-flex items-center gap-2 bg-[#d9a81e] hover:bg-[#c89619] text-[#1F1B2D] font-bold px-6 py-3 rounded-full text-sm transition shadow-lg"
@@ -791,45 +819,45 @@ export function ItineraryView({
           </>
           )}
 
-          {flightDisplay ? (
+          {heroFlightDisplay ? (
             <div className="mb-6">
               <h2 className="mb-3 border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
                 항공편 정보
               </h2>
               <div className="rounded-2xl bg-white border border-[#DAD4EE] px-6 py-5 space-y-3">
-                {flightDisplay.outbound ? (
+                {heroFlightDisplay.outbound ? (
                   <div className="flex flex-wrap items-center gap-3 text-sm fit-tx-primary">
                     <span className="rounded-full bg-[#1F1B2D] text-white px-2.5 py-1 text-xs font-bold">출국</span>
-                    {flightDisplay.outbound.from ? (
-                      <span className="font-semibold">{flightDisplay.outbound.from}</span>
+                    {heroFlightDisplay.outbound.from ? (
+                      <span className="font-semibold">{heroFlightDisplay.outbound.from}</span>
                     ) : null}
-                    {flightDisplay.outbound.departureAt ? (
-                      <span className="tabular-nums">{flightDisplay.outbound.departureAt}</span>
+                    {heroFlightDisplay.outbound.departureAt ? (
+                      <span className="tabular-nums">{heroFlightDisplay.outbound.departureAt}</span>
                     ) : null}
                     <span className="text-[#DAD4EE]">→</span>
-                    {flightDisplay.outbound.to ? (
-                      <span className="font-semibold">{flightDisplay.outbound.to}</span>
+                    {heroFlightDisplay.outbound.to ? (
+                      <span className="font-semibold">{heroFlightDisplay.outbound.to}</span>
                     ) : null}
-                    {flightDisplay.outbound.arrivalAt ? (
-                      <span className="tabular-nums">{flightDisplay.outbound.arrivalAt}</span>
+                    {heroFlightDisplay.outbound.arrivalAt ? (
+                      <span className="tabular-nums">{heroFlightDisplay.outbound.arrivalAt}</span>
                     ) : null}
                   </div>
                 ) : null}
-                {flightDisplay.inbound ? (
+                {heroFlightDisplay.inbound ? (
                   <div className="flex flex-wrap items-center gap-3 text-sm fit-tx-primary">
                     <span className="rounded-full bg-[#1F1B2D] text-white px-2.5 py-1 text-xs font-bold">귀국</span>
-                    {flightDisplay.inbound.from ? (
-                      <span className="font-semibold">{flightDisplay.inbound.from}</span>
+                    {heroFlightDisplay.inbound.from ? (
+                      <span className="font-semibold">{heroFlightDisplay.inbound.from}</span>
                     ) : null}
-                    {flightDisplay.inbound.departureAt ? (
-                      <span className="tabular-nums">{flightDisplay.inbound.departureAt}</span>
+                    {heroFlightDisplay.inbound.departureAt ? (
+                      <span className="tabular-nums">{heroFlightDisplay.inbound.departureAt}</span>
                     ) : null}
                     <span className="text-[#DAD4EE]">→</span>
-                    {flightDisplay.inbound.to ? (
-                      <span className="font-semibold">{flightDisplay.inbound.to}</span>
+                    {heroFlightDisplay.inbound.to ? (
+                      <span className="font-semibold">{heroFlightDisplay.inbound.to}</span>
                     ) : null}
-                    {flightDisplay.inbound.arrivalAt ? (
-                      <span className="tabular-nums">{flightDisplay.inbound.arrivalAt}</span>
+                    {heroFlightDisplay.inbound.arrivalAt ? (
+                      <span className="tabular-nums">{heroFlightDisplay.inbound.arrivalAt}</span>
                     ) : null}
                   </div>
                 ) : null}

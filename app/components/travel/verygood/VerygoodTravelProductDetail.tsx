@@ -44,7 +44,7 @@ import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
 import { resolveDeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
 import { useDeparturePriceCollectPhase } from '@/lib/hooks/use-departure-price-collect-phase'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
-import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
+import { pickDepartureKeyFactsForSelection, type DepartureKeyFacts } from '@/lib/departure-key-facts'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcVerygood } from '@/lib/flight-manual-correction-verygoodtour'
@@ -80,6 +80,8 @@ import {
 import { applyHanatourFlightRoutingChipOverride } from '@/lib/hanatour-product-meta-chips-patch'
 import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/public-schedule-display'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
+import TravelProductDetail from '@/app/components/travel/TravelProductDetail'
+import type { TravelProduct as PackageTravelProduct } from '@/app/components/travel/TravelProductDetail'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
 
 /** Prisma ProductPrice + 견적용 price* (lib/price-utils PriceRowLike 호환) */
@@ -244,7 +246,7 @@ function applyFlightManualCorrectionForPublicOrigin(
   return apply(facts, correction)
 }
 
-export default function VerygoodTravelProductDetail({ product, showEsimCrossSell = false }: Props) {
+function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }: Props) {
   const router = useRouter()
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
   const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(null)
@@ -543,10 +545,13 @@ export default function VerygoodTravelProductDetail({ product, showEsimCrossSell
   )
 
   const selectedDepartureFacts = useMemo(() => {
-    const raw =
-      selectedPriceRow && product.departureKeyFactsByDepartureId?.[selectedPriceRow.id]
-        ? product.departureKeyFactsByDepartureId[selectedPriceRow.id]
-        : null
+    const raw = pickDepartureKeyFactsForSelection({
+      selectedDate,
+      selectedDepartureRowId,
+      selectedPriceRowId: selectedPriceRow?.id ?? null,
+      departureKeyFactsByDate: product.departureKeyFactsByDate ?? null,
+      departureKeyFactsByDepartureId: product.departureKeyFactsByDepartureId ?? null,
+    })
     /** 출발행(ProductDeparture) SSOT — 본문·구조화 flightManualCorrection 이 leg/항공사를 덮어쓰면 11월가격+7월항공 같은 섞임 발생 */
     if (normalizeSupplierOrigin(product.originSource) === 'verygoodtour') return raw
     if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection) {
@@ -554,7 +559,10 @@ export default function VerygoodTravelProductDetail({ product, showEsimCrossSell
     }
     return raw
   }, [
-    selectedPriceRow,
+    selectedDate,
+    selectedDepartureRowId,
+    selectedPriceRow?.id,
+    product.departureKeyFactsByDate,
     product.departureKeyFactsByDepartureId,
     product.applyFlightManualCorrectionOverlay,
     product.flightManualCorrection,
@@ -894,4 +902,16 @@ export default function VerygoodTravelProductDetail({ product, showEsimCrossSell
       </main>
     </div>
   )
+}
+
+export default function VerygoodTravelProductDetail(props: Props) {
+  if (isAirHotelFreeListingForUi(props.product.listingKind)) {
+    return (
+      <TravelProductDetail
+        product={props.product as unknown as PackageTravelProduct}
+        showEsimCrossSell={props.showEsimCrossSell}
+      />
+    )
+  }
+  return <VerygoodTravelProductDetailView {...props} />
 }

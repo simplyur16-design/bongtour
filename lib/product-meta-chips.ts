@@ -156,7 +156,7 @@ export function buildProductMetaChips(
   }
 
   if (product.listingKind === 'air_hotel_free') {
-    return chips.filter((c) => c.kind !== 'freeTime')
+    return chips.filter((c) => c.kind !== 'shopping' && c.kind !== 'freeTime')
   }
   return chips
 }

@@ -48,7 +48,7 @@ import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
 import { resolveDeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
 import { useDeparturePriceCollectPhase } from '@/lib/hooks/use-departure-price-collect-phase'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
-import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
+import { pickDepartureKeyFactsForSelection, type DepartureKeyFacts } from '@/lib/departure-key-facts'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
 import type { FlightManualCorrectionPayload } from '@/lib/flight-manual-correction-hanatour'
@@ -546,15 +546,23 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
   )
 
   const selectedDepartureFacts = useMemo(() => {
-    if (!selectedDate) return null
-    const row = product.departureKeyFactsByDate?.[selectedDate] ?? null
+    const row = pickDepartureKeyFactsForSelection({
+      selectedDate,
+      selectedDepartureRowId,
+      selectedPriceRowId: selectedPriceRow?.id ?? null,
+      departureKeyFactsByDate: product.departureKeyFactsByDate ?? null,
+      departureKeyFactsByDepartureId: product.departureKeyFactsByDepartureId ?? null,
+    })
     if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection) {
       return applyFlightManualCorrectionForPublicOrigin(row, product.flightManualCorrection, product.originSource)
     }
     return row
   }, [
     selectedDate,
+    selectedDepartureRowId,
+    selectedPriceRow?.id,
     product.departureKeyFactsByDate,
+    product.departureKeyFactsByDepartureId,
     product.applyFlightManualCorrectionOverlay,
     product.flightManualCorrection,
     product.originSource,

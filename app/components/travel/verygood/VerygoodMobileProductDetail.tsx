@@ -44,7 +44,7 @@ import {
   formatHeroDepartureSavingsLine,
   PRICE_MAIN_AMOUNT_HINT,
 } from '@/lib/promotion-copy-normalize'
-import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
+import { pickDepartureKeyFactsForSelection, type DepartureKeyFacts } from '@/lib/departure-key-facts'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcVerygood } from '@/lib/flight-manual-correction-verygoodtour'
@@ -59,6 +59,8 @@ import {
   ProductMetaChips,
 } from '@/app/components/detail/product-detail-visual'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
+import MobileProductDetail from '@/app/components/travel/MobileProductDetail'
+import type { TravelProduct as PackageTravelProduct } from '@/app/components/travel/TravelProductDetail'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import {
@@ -97,7 +99,7 @@ function applyFlightManualCorrectionForPublicOrigin(
   return apply(facts, correction)
 }
 
-export default function VerygoodMobileProductDetail({ product, showEsimCrossSell = false }: Props) {
+function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }: Props) {
   const router = useRouter()
   const schedule = product.schedule && product.schedule.length > 0 ? (product.schedule as ScheduleDayWithMeta[]) : []
   const heroUrl = useMemo(() => coverImageUrlForTravelProductClient({ ...product, schedule }), [product, schedule])
@@ -387,17 +389,23 @@ export default function VerygoodMobileProductDetail({ product, showEsimCrossSell
   }, [product.mandatoryLocalFee, product.mandatoryCurrency, product.counselingNotes])
 
   const selectedDepartureFacts = useMemo(() => {
-    const raw =
-      priceRow && product.departureKeyFactsByDepartureId?.[priceRow.id]
-        ? product.departureKeyFactsByDepartureId[priceRow.id]
-        : null
+    const raw = pickDepartureKeyFactsForSelection({
+      selectedDate,
+      selectedDepartureRowId,
+      selectedPriceRowId: priceRow?.id ?? null,
+      departureKeyFactsByDate: product.departureKeyFactsByDate ?? null,
+      departureKeyFactsByDepartureId: product.departureKeyFactsByDepartureId ?? null,
+    })
     if (normalizeSupplierOrigin(product.originSource) === 'verygoodtour') return raw
     if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection) {
       return applyFlightManualCorrectionForPublicOrigin(raw, product.flightManualCorrection, product.originSource)
     }
     return raw
   }, [
-    priceRow,
+    selectedDate,
+    selectedDepartureRowId,
+    priceRow?.id,
+    product.departureKeyFactsByDate,
     product.departureKeyFactsByDepartureId,
     product.applyFlightManualCorrectionOverlay,
     product.flightManualCorrection,
@@ -730,4 +738,16 @@ export default function VerygoodMobileProductDetail({ product, showEsimCrossSell
       ) : null}
     </div>
   )
+}
+
+export default function VerygoodMobileProductDetail(props: Props) {
+  if (isAirHotelFreeListingForUi(props.product.listingKind)) {
+    return (
+      <MobileProductDetail
+        product={props.product as unknown as PackageTravelProduct}
+        showEsimCrossSell={props.showEsimCrossSell}
+      />
+    )
+  }
+  return <VerygoodMobileProductDetailView {...props} />
 }

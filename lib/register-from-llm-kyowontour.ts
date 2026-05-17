@@ -15,6 +15,7 @@ import {
   REGISTER_LLM_ROLE_DATA_AUDITOR_INTRO,
   REGISTER_PREVIEW_MINIMAL_TONE_BLOCK,
   REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK,
+  PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK,
 } from '@/lib/bongtour-tone-manner-llm-ssot'
 
 /**
@@ -897,6 +898,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - 선택관광: optionalTourNoticeRaw / optionalTourNoticeItems 는 안내문만. optionalTours[] 는 표 행만(안내문 번호 문장을 행에 넣지 말 것). "진행 여부 확인" 같은 문구를 모든 행에 기계적으로 복제하지 말 것.
 - 쇼핑: shoppingNoticeRaw + shoppingStops[] 표 행 분리.
 - 포함/불포함: includedItems[]·excludedItems[] 구분. 전체 덤프는 includedRaw·excludedRaw·includedExcludedRaw에 보존 가능.
+${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - 1인실 추가요금(싱글차지/독실사용료)은 반드시 불포함사항으로 처리한다. singleRoomSurcharge* 필드에 구조화하고, excludedItems[]에 반영한다. singleRoomSurchargeDisplayText는 **한 줄만**(항목명과 금액을 같은 줄에, 줄바꿈으로 금액 분리 금지). 금액이 있으면 예: 「1인실 객실 추가요금 200,000원」 형태를 우선한다.
 - 미팅: meetingPlaceRaw·meetingNoticeRaw·meetingFallbackText. 상세 없으면 meetingFallbackText는 "미팅장소는 상담 시 확인하여 안내드리겠습니다."를 사용.
 - 꼭 확인하세요: mustKnowItems[]/mustKnowRaw 는 **공급사 원문([PASTED REQUIRED CHECKS]·본문 해당 구간) 우선** 구조화. 상담 키워드/불포함/보험/유류/현지경비 반복 금지.

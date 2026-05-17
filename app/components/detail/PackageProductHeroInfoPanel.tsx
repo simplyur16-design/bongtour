@@ -1,15 +1,18 @@
 'use client'
 
 import {
-  ComparePriceRow,
-  CurrentPriceRow,
+  KrwAmountDisplay,
   ProductDetailTitle,
   ProductMetaChips,
 } from '@/app/components/detail/product-detail-visual'
 import type { ProductMetaChip } from '@/lib/product-meta-chips'
 import type { PriceDisplaySsot } from '@/lib/price-display-ssot'
 import type { FlightLegTwoLineDisplay } from '@/lib/flight-user-display'
-import { CARD_INSTALLMENT_DISCLAIMER, CARD_INSTALLMENT_SUMMARY } from '@/lib/promotion-copy-normalize'
+import {
+  CARD_INSTALLMENT_DISCLAIMER,
+  CARD_INSTALLMENT_SUMMARY,
+  COMPARE_PRICE_ROW_HINT,
+} from '@/lib/promotion-copy-normalize'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 
 export type PackageProductHeroInfoPanelProps = {
@@ -40,6 +43,19 @@ export type PackageProductHeroInfoPanelProps = {
   modetourStickyLocalPayLine?: string | null
 }
 
+function FlightAtTextCell({ atText, dayOffset }: { atText: string; dayOffset?: number | null }) {
+  return (
+    <span className="inline-flex items-baseline justify-end gap-1">
+      {dayOffset != null && dayOffset > 0 ? (
+        <span className="shrink-0 text-[11px] font-bold leading-none text-[#D85A30]" aria-label={`${dayOffset}일 후`}>
+          +{dayOffset}
+        </span>
+      ) : null}
+      <span className="tabular-nums">{atText}</span>
+    </span>
+  )
+}
+
 function FlightLegTwoLineBlock({
   label,
   leg,
@@ -47,25 +63,39 @@ function FlightLegTwoLineBlock({
   label: string
   leg: FlightLegTwoLineDisplay | null | undefined
 }) {
+  const rowClass = 'bt-wrap text-sm leading-snug text-[#1F1B2D]'
+
   return (
-    <div className="flex gap-2.5 border-t border-[#DAD4EE]/30 py-1.5 first:border-t-0 first:pt-0">
-      <span className="w-11 shrink-0 pt-0.5 text-[11px] font-medium text-bt-meta">{label}</span>
+    <div className="border-t border-[#DAD4EE]/30 py-1.5 first:border-t-0 first:pt-0">
       {leg ? (
-        <div className="min-w-0 flex-1">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 text-sm font-semibold text-[#1F1B2D]">
-            <span className="bt-wrap">{leg.departureAirport}</span>
-            <span className="bt-wrap tabular-nums text-right">{leg.departureAtText}</span>
-          </div>
-          <p className="bt-wrap mt-0.5 text-sm leading-relaxed text-[#1F1B2D]/85">
-            {leg.flightNo ? `(${leg.flightNo}) ` : ''}
-            <span className="inline-grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-3 align-top">
-              <span>{leg.arrivalAirport}</span>
-              <span className="tabular-nums text-right">{leg.arrivalAtText}</span>
-            </span>
-          </p>
+        <div
+          className="grid items-center gap-x-2 gap-y-0.5"
+          style={{ gridTemplateColumns: '3.25rem 1.125rem minmax(0, 1fr) auto' }}
+        >
+          <span className={`${rowClass} col-start-1 row-start-1`}>{label}</span>
+          <span className={`${rowClass} col-start-1 row-start-2`}>
+            {leg.flightNo ? `(${leg.flightNo})` : '\u00a0'}
+          </span>
+          <span
+            className={`${rowClass} col-start-2 row-start-2 text-center text-[#1F1B2D]/55`}
+            aria-hidden
+          >
+            →
+          </span>
+          <span className={`${rowClass} col-start-3 row-start-1 min-w-0`}>{leg.departureAirport}</span>
+          <span className={`${rowClass} col-start-3 row-start-2 min-w-0`}>{leg.arrivalAirport}</span>
+          <span className={`${rowClass} col-start-4 row-start-1 text-right`}>
+            <FlightAtTextCell atText={leg.departureAtText} dayOffset={leg.departureDayOffset} />
+          </span>
+          <span className={`${rowClass} col-start-4 row-start-2 text-right`}>
+            <FlightAtTextCell atText={leg.arrivalAtText} dayOffset={leg.arrivalDayOffset} />
+          </span>
         </div>
       ) : (
-        <p className="text-sm text-[#1F1B2D]/80">상담 시 안내</p>
+        <div className="grid grid-cols-[3.25rem_1fr] items-start gap-x-2.5">
+          <span className={rowClass}>{label}</span>
+          <p className={rowClass}>상담 시 안내</p>
+        </div>
       )}
     </div>
   )
@@ -99,6 +129,11 @@ export default function PackageProductHeroInfoPanel({
   showChangeDepartureCta = true,
   modetourStickyLocalPayLine,
 }: PackageProductHeroInfoPanelProps) {
+  const isAirHotelFree = isAirHotelFreeListingForUi(listingKind)
+  const heroMetaChips = isAirHotelFree
+    ? productMetaChips.filter((c) => c.kind !== 'shopping' && c.kind !== 'freeTime')
+    : productMetaChips
+
   const showPriceBlock =
     heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText
 
@@ -131,11 +166,22 @@ export default function PackageProductHeroInfoPanel({
           <FlightLegTwoLineBlock label="오는편" leg={inboundFlight} />
           {heroPriceSsot.selectedDeparturePrice != null ? (
             <>
-              <div className="mt-2 flex flex-col gap-1.5">
+              <div className="mt-2 flex w-full flex-col items-center gap-1.5 text-center">
                 {heroPriceSsot.couponDiscountAmount > 0 && heroPriceSsot.displayPriceBeforeCoupon != null ? (
-                  <ComparePriceRow amount={heroPriceSsot.displayPriceBeforeCoupon} />
+                  <div className="flex w-full flex-col items-center gap-0.5 text-xs">
+                    <p className="font-semibold text-bt-meta">쿠폰 적용 전 금액</p>
+                    <p className="text-[10px] leading-snug text-bt-body">{COMPARE_PRICE_ROW_HINT}</p>
+                    <span className="inline-flex items-baseline gap-0.5 tabular-nums text-slate-900 line-through">
+                      <span className="text-[0.65em] font-semibold text-slate-500">₩</span>
+                      <span className="font-bold">
+                        {heroPriceSsot.displayPriceBeforeCoupon.toLocaleString('ko-KR')}
+                      </span>
+                    </span>
+                  </div>
                 ) : null}
-                <CurrentPriceRow amount={heroPriceSsot.selectedDeparturePrice} />
+                <div className="flex justify-center">
+                  <KrwAmountDisplay amount={heroPriceSsot.selectedDeparturePrice} size="2xl" />
+                </div>
               </div>
               {heroDiscountSavingsLine ? (
                 <p className="bt-wrap mt-1.5 text-center text-sm font-semibold text-bt-card-accent-strong">
@@ -163,9 +209,9 @@ export default function PackageProductHeroInfoPanel({
         </p>
       ) : null}
 
-      {productMetaChips.length > 0 ? (
+      {heroMetaChips.length > 0 ? (
         <div className="mt-2 border-t border-bt-border-soft pt-2">
-          <ProductMetaChips chips={productMetaChips} variant="light" className="w-full gap-1.5" />
+          <ProductMetaChips chips={heroMetaChips} variant="light" className="w-full gap-1.5" />
         </div>
       ) : null}
 
