@@ -24,6 +24,7 @@ export type PackageProductHeroInfoPanelProps = {
   durationLabel: string
   airline?: string | null
   heroDepartureDisplay: string | null
+  heroReturnDisplay?: string | null
   duration: string
   masterTotalDays?: number | null
   selectedDepartureIso?: string | null
@@ -110,7 +111,8 @@ export default function PackageProductHeroInfoPanel({
   destination,
   durationLabel,
   airline,
-  heroDepartureDisplay: _heroDepartureDisplay,
+  heroDepartureDisplay,
+  heroReturnDisplay,
   duration: _duration,
   masterTotalDays: _masterTotalDays,
   selectedDepartureIso: _selectedDepartureIso,
@@ -159,6 +161,16 @@ export default function PackageProductHeroInfoPanel({
           </>
         ) : null}
       </p>
+
+      {heroDepartureDisplay || heroReturnDisplay ? (
+        <div className="mt-3 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 rounded-xl border border-[#DAD4EE]/60 bg-[#FAFAFC] px-3 py-2.5 text-center text-sm">
+          <span className="text-bt-meta">출발</span>
+          <span className="font-semibold tabular-nums text-bt-title">{heroDepartureDisplay ?? '—'}</span>
+          <span className="text-bt-meta">~</span>
+          <span className="text-bt-meta">귀국</span>
+          <span className="font-semibold tabular-nums text-bt-title">{heroReturnDisplay ?? '상담 시 안내'}</span>
+        </div>
+      ) : null}
 
       {showPriceBlock ? (
         <div className="mt-3 rounded-xl border border-bt-card-accent-border bg-bt-card-accent-soft p-2.5">

@@ -36,7 +36,8 @@ import {
 import { parseRangeOnDemandResponse, postRangeOnDemandDepartures } from '@/lib/departure-range-on-demand-client'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
-import { resolveHeroTripDates } from '@/lib/product-hero-dates'
+import { alignDepartureKeyFactsToSelectedCalendarDate } from '@/lib/departure-facts-calendar-align'
+import { buildCalendarSsotHeroTripDisplays, resolveHeroTripDates } from '@/lib/product-hero-dates'
 import PackageProductHeroSection from '@/app/components/detail/PackageProductHeroSection'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SUBPAGE_PAGE_SHELL_CLASS } from '@/lib/subpage-design-system'
@@ -65,7 +66,6 @@ import {
   PRICE_MAIN_AMOUNT_HINT,
 } from '@/lib/promotion-copy-normalize'
 import type { DayHotelPlan } from '@/lib/day-hotel-plans-hanatour'
-import { formatHeroDateKorean } from '@/lib/hero-date-utils'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import {
@@ -631,6 +631,19 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
     product.flightStructured,
   ])
 
+  const packageTotalDays = getProductTotalDays(
+    product,
+    product.schedule?.length ? product.schedule.length : null
+  )
+
+  const calendarAlignedDepartureFacts = useMemo(
+    () =>
+      alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
+        packageTotalDays,
+      }),
+    [selectedDepartureFacts, selectedDate, packageTotalDays]
+  )
+
   const heroResolved = useMemo(
     () =>
       resolveHeroTripDates({
@@ -638,7 +651,7 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
         selectedDate,
         fallbackPriceRowDate: selectedPriceRow ? toDateKey(selectedPriceRow.date) : null,
         duration: product.duration,
-        departureFacts: selectedDepartureFacts,
+        departureFacts: calendarAlignedDepartureFacts,
         modetourBodyHaystack,
       }),
     [
@@ -646,17 +659,9 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
       selectedDate,
       selectedPriceRow,
       product.duration,
-      selectedDepartureFacts,
+      calendarAlignedDepartureFacts,
       modetourBodyHaystack,
     ]
-  )
-  const heroDepartureDisplay =
-    heroResolved.departureDisplayOverride ??
-    (formatHeroDateKorean(heroResolved.departureIso) ?? heroResolved.departureIso ?? null)
-
-  const packageTotalDays = getProductTotalDays(
-    product,
-    product.schedule?.length ? product.schedule.length : null
   )
   const departureDateFrom = mergedPrices[0] ? toDateKey(mergedPrices[0].date) : null
   const computedReturnDate = useMemo(() => {
@@ -664,6 +669,17 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
       selectedDate ?? (selectedPriceRow ? toDateKey(selectedPriceRow.date) : departureDateFrom)
     return computeReturnDate(dep, packageTotalDays)
   }, [selectedDate, selectedPriceRow, departureDateFrom, packageTotalDays])
+
+  const { departureDisplay: heroDepartureDisplay, returnDisplay: heroReturnDisplay } = useMemo(
+    () =>
+      buildCalendarSsotHeroTripDisplays({
+        selectedDate,
+        packageTotalDays,
+        heroResolved,
+        computedReturnDate,
+      }),
+    [selectedDate, packageTotalDays, heroResolved, computedReturnDate]
+  )
 
   const travelCitiesLine = useMemo(() => {
     const raw = [product.primaryDestination, product.destination]
@@ -709,7 +725,7 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
         <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroDepartureDisplay ?? '—'}</span>
         <span className="text-bt-disabled"> ~ </span>
         <span className={HERO_DATE_INLINE_VALUE_CLASS}>
-          {computedReturnDate ? computedReturnDate : '상담 시 안내'}
+          {heroReturnDisplay ?? '상담 시 안내'}
         </span>
         {product.duration?.trim() ? (
           <>
@@ -719,7 +735,7 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
         ) : null}
       </>
     ),
-    [heroDepartureDisplay, computedReturnDate, product.duration]
+    [heroDepartureDisplay, heroReturnDisplay, product.duration]
   )
   const heroPriceSsot = buildPriceDisplaySsot(selectedDepartureCurrentPrice, product.pricePromotionView)
   const heroDiscountSavingsLine =
@@ -757,6 +773,7 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
             durationLabel: product.duration ?? '',
             airline: product.airline,
             heroDepartureDisplay,
+            heroReturnDisplay,
             duration: product.duration ?? '',
             masterTotalDays: packageTotalDays > 0 ? packageTotalDays : null,
             selectedDepartureIso: selectedDate,
@@ -769,8 +786,8 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
             productMetaChips,
             listingKind: product.listingKind,
             airportTransferType: product.airportTransferType,
-            outboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.outbound ?? null),
-            inboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.inbound ?? null),
+            outboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.outbound ?? null),
+            inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
           }}
           onChangeDepartureDate={handleChangeDepartureDate}
           showChangeDepartureCta={mergedPrices.length > 0}
@@ -811,7 +828,7 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
             fromScreen="product_detail_mobile"
             departureConditionLine={departureConditionLine}
             heroTripDepartureDisplay={heroDepartureDisplay}
-            heroTripReturnDisplay={computedReturnDate}
+            heroTripReturnDisplay={heroReturnDisplay}
             modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
             isCollectingPrices={departureCollectOpen}
             priceCollectUiPhase={priceCollectUiPhase}

@@ -13,12 +13,14 @@ import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 export type ItineraryExtraInfoProduct = {
   productType?: string | null
   listingKind?: string | null
+  originSource?: string | null
   includedText?: string | null
   excludedText?: string | null
   optionalToursStructured?: string | null
   optionalToursPasteRaw?: string | null
   shoppingCount?: number | null
   shoppingItems?: string | null
+  shoppingPasteRaw?: string | null
   shoppingCautionNoticeRaw?: string | null
   reservationNoticeRaw?: string | null
   shoppingStopsStructured?: ShoppingStopRow[] | null
@@ -52,11 +54,12 @@ export function ItineraryExtraInfoBoxes({
   const showBottom = section === 'bottom' || section === 'all'
   const isPackage = isPackageProductType(product.productType)
   const isAirHotelFree = isAirHotelFreeListingForUi(product.listingKind)
+  const usePackageIncludedExcludedRules = isPackage || isAirHotelFree
 
   let includedItems: string[]
   let excludedItems: string[]
   let includedFootnotes: string[] = []
-  if (isPackage) {
+  if (usePackageIncludedExcludedRules) {
     const split = organizePackageIncludedExcludedForPublicDisplay(
       splitIncludedExcludedForPublicDisplay(product.includedText, product.excludedText)
     )
@@ -104,7 +107,7 @@ export function ItineraryExtraInfoBoxes({
           </div>
           <ul
             className={
-              isPackage
+              usePackageIncludedExcludedRules
                 ? 'rounded-2xl border border-[#DAD4EE] bg-white p-4 space-y-2'
                 : 'bg-green-50 rounded-2xl p-4 space-y-2'
             }
@@ -115,7 +118,7 @@ export function ItineraryExtraInfoBoxes({
               </li>
             ))}
           </ul>
-          {isPackage && includedFootnotes.length > 0 ? (
+          {usePackageIncludedExcludedRules && includedFootnotes.length > 0 ? (
             <div className="mt-2 space-y-1 px-1">
               {includedFootnotes.map((line, i) => (
                 <p key={i} className="text-xs leading-relaxed text-bt-meta bt-wrap">
@@ -134,7 +137,7 @@ export function ItineraryExtraInfoBoxes({
           </div>
           <ul
             className={
-              isPackage
+              usePackageIncludedExcludedRules
                 ? 'rounded-2xl border border-[#DAD4EE] bg-white p-4 space-y-2'
                 : 'bg-orange-50 rounded-2xl p-4 space-y-2'
             }
@@ -148,7 +151,7 @@ export function ItineraryExtraInfoBoxes({
         </section>
       )}
 
-      {showTop && isPackage && !isAirtel ? (
+      {showTop && usePackageIncludedExcludedRules && !isAirtel ? (
         <div className="space-y-4">
           <PackageOptionalToursTable
             optionalToursStructured={product.optionalToursStructured}
@@ -158,12 +161,15 @@ export function ItineraryExtraInfoBoxes({
             <PackageShoppingTable
               stops={product.shoppingStopsStructured}
               shoppingCount={product.shoppingCount}
+              shoppingPasteRaw={product.shoppingPasteRaw ?? null}
+              shoppingItems={product.shoppingItems}
+              shoppingNoticeRaw={product.shoppingCautionNoticeRaw}
             />
           ) : null}
         </div>
       ) : null}
 
-      {showBottom && !isAirtel && !isPackage && optionalTours.length > 0 && (
+      {showBottom && !isAirtel && !usePackageIncludedExcludedRules && optionalTours.length > 0 && (
         <section className="mb-6">
           <div className="border-l-4 border-[#1F1B2D] pl-3 mb-2">
             <h3 className="text-base font-bold fit-tx-primary">현지 옵션</h3>
@@ -202,7 +208,7 @@ export function ItineraryExtraInfoBoxes({
         </section>
       )}
 
-      {showBottom && !isAirtel && !isPackage && Boolean(product.shoppingCount) && shoppingItems.length > 0 && (
+      {showBottom && !isAirtel && !usePackageIncludedExcludedRules && Boolean(product.shoppingCount) && shoppingItems.length > 0 && (
         <section className="mb-6">
           <div className="border-l-4 border-[#E89571] pl-3 mb-2">
             <h3 className="text-base font-bold fit-tx-primary">

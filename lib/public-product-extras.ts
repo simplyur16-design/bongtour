@@ -3,7 +3,11 @@ import type { DayHotelPlan } from '@/lib/day-hotel-plans-hanatour'
 import type { FlightStructured, HanatourReservationStatusParsed } from '@/lib/detail-body-parser-types'
 import type { ShoppingStopRow } from '@/lib/public-product-extras-types'
 import { isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-hanatour'
-import { getPublicOptionalTourRowsFromProduct, parseLegacyStructuredOptionalTours } from '@/lib/optional-tours-ui-model'
+import {
+  getPackageOptionalTourRowsFromProduct,
+  getPublicOptionalTourRowsFromProduct,
+  parseLegacyStructuredOptionalTours,
+} from '@/lib/optional-tours-ui-model'
 
 /** 등록 파싱 본문 상품가격표(연령별). ProductDeparture·레거시 ProductPrice와 별도로 rawMeta에 보관됨 */
 export type BodyProductPriceTable = {
@@ -299,7 +303,10 @@ export function buildPublicOptionalDisplayInputFromProductFields(p: {
   optionalToursPasteRaw?: string | null
   optionalTours?: Array<{ id: string }> | null
 }): PublicOptionalDisplayInput {
-  const uiRows = getPublicOptionalTourRowsFromProduct(p.optionalToursStructured, p.optionalToursPasteRaw)
+  const uiRows = getPackageOptionalTourRowsFromProduct(
+    p.optionalToursStructured,
+    p.optionalToursPasteRaw
+  )
   const structuredLegacy = parseLegacyStructuredOptionalTours(p.optionalToursStructured)
   const legacyOptionalSheetTourCount = structuredLegacy.length
     ? structuredLegacy.filter((t) => !isBannedOptionalTourName(t.name)).length

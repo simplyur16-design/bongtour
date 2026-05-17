@@ -28,6 +28,27 @@ export function parseKoreanDateTimeLineToDate(s: string | null | undefined): Dat
   return Number.isNaN(dt.getTime()) ? null : dt
 }
 
+/** `2026-04-18 06:30` / `2026.04.18 06:30` 등 ISO·점 혼합 → Date */
+function parseIsoLikeDateTimeLineToDate(s: string | null | undefined): Date | null {
+  if (!s?.trim()) return null
+  const m = s.trim().match(
+    /(20\d{2})[-.](\d{1,2})[-.](\d{1,2})(?:\([^)]*\))?(?:\s+|T)(\d{1,2}):(\d{2})/
+  )
+  if (!m) return null
+  const y = parseInt(m[1], 10)
+  const mo = parseInt(m[2], 10) - 1
+  const d = parseInt(m[3], 10)
+  const hh = parseInt(m[4], 10)
+  const mm = parseInt(m[5], 10)
+  const dt = new Date(y, mo, d, hh, mm, 0, 0)
+  return Number.isNaN(dt.getTime()) ? null : dt
+}
+
+/** 상세·달력 정렬 공통 — 한국어 점 표기·ISO 하이픈·점 혼합 */
+export function parseFlexibleDateTimeLineToDate(s: string | null | undefined): Date | null {
+  return parseKoreanDateTimeLineToDate(s) ?? parseIsoLikeDateTimeLineToDate(s)
+}
+
 /** fmtKoreanDateTime과 동일 규칙 */
 export function formatKoreanDateTimeLine(d: Date | null | undefined): string | null {
   if (!d || !(d instanceof Date) || Number.isNaN(d.getTime())) return null

@@ -838,10 +838,11 @@ export async function ProductDetailView({
 
   const productType = travelProduct.productType ?? ''
   const isAirtel = productType === 'airtel'
-  /** 자유여행(airtel) — Fit 예시 일정 ItineraryView */
-  const isAirtelItineraryView = productType === 'airtel'
-  /** 일반 패키지(travel/private/semi) — TravelProductDetail + ItineraryViewPackageMain 본문 */
+  /** 항공+호텔 자유여행 — 패키지형 상세(히어로 우측 카드·스티키 견적) */
   const isAirHotelFreeProduct = isAirHotelFreeListingForUi(travelProduct.listingKind)
+  /** Fit 예시 일정 ItineraryView — `air_hotel_free`는 패키지 상세와 동일 UI */
+  const isAirtelItineraryView = productType === 'airtel' && !isAirHotelFreeProduct
+  /** 일반 패키지(travel/private/semi) + air_hotel_free — TravelProductDetail + ItineraryViewPackageMain */
   const isPackageItineraryBody =
     ['travel', 'private', 'semi'].includes(productType) || isAirHotelFreeProduct
   const isPrivateOrSemi = productType === 'private' || productType === 'semi'

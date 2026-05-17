@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { useState, useEffect, useRef, useMemo } from 'react'
@@ -32,6 +32,7 @@ import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } fr
 import { formatHeroDateKorean } from '@/lib/hero-date-utils'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
+import { computeKRWQuotation } from '@/lib/price-utils'
 import type { ProductMetaChip } from '@/lib/product-meta-chips'
 
 type Persona = 'mixed' | 'couple' | 'with-parents' | 'with-kids'
@@ -257,17 +258,52 @@ export function ItineraryView({
     })
   }
 
-  const adultPriceUnit = priceInfo?.lowestAdultPrice ?? 0
-  const infantPriceUnit = priceInfo?.infantPrice ?? 0
+  const selectedPriceRow = useMemo(() => {
+    if (!prices?.length || !selectedDate) return null
+    return (
+      pickBookableRowForDateKey(prices, selectedDate) ??
+      prices.find((p) => String(p.date).slice(0, 10) === selectedDate) ??
+      null
+    )
+  }, [prices, selectedDate])
+
+  const adultPriceUnit = useMemo(() => {
+    if (selectedPriceRow?.priceAdult != null && selectedPriceRow.priceAdult > 0) {
+      return selectedPriceRow.priceAdult
+    }
+    return priceInfo?.lowestAdultPrice ?? 0
+  }, [selectedPriceRow, priceInfo])
+
+  const childBedPriceUnit = useMemo(() => {
+    if (selectedPriceRow?.priceChildWithBed != null && selectedPriceRow.priceChildWithBed > 0) {
+      return selectedPriceRow.priceChildWithBed
+    }
+    return priceInfo?.childBedPrice ?? adultPriceUnit
+  }, [selectedPriceRow, priceInfo, adultPriceUnit])
+
+  const infantPriceUnit = useMemo(() => {
+    if (selectedPriceRow?.priceInfant != null && selectedPriceRow.priceInfant > 0) {
+      return selectedPriceRow.priceInfant
+    }
+    return priceInfo?.infantPrice ?? 0
+  }, [selectedPriceRow, priceInfo])
 
   const totalQuote = useMemo(() => {
     if (!priceInfo) return null
+    if (selectedPriceRow) {
+      return computeKRWQuotation(selectedPriceRow, {
+        adult: pax.adult,
+        childBed: pax.childBed,
+        childNoBed: 0,
+        infant: pax.infant,
+      }).total
+    }
     return (
       pax.adult * adultPriceUnit +
-      pax.childBed * adultPriceUnit +
+      pax.childBed * childBedPriceUnit +
       pax.infant * infantPriceUnit
     )
-  }, [pax, priceInfo, adultPriceUnit, infantPriceUnit])
+  }, [pax, priceInfo, selectedPriceRow, adultPriceUnit, childBedPriceUnit, infantPriceUnit])
 
   const totalDays = getProductTotalDays(product, master?.totalDays ?? priceInfo?.totalDays ?? null)
 
@@ -345,11 +381,6 @@ export function ItineraryView({
     () => resolveFlightDisplay(product.flightStructured),
     [product.flightStructured]
   )
-
-  const selectedPriceRow = useMemo(() => {
-    if (!prices?.length || !selectedDate) return null
-    return pickBookableRowForDateKey(prices, selectedDate) ?? prices.find((p) => String(p.date).slice(0, 10) === selectedDate) ?? null
-  }, [prices, selectedDate])
 
   const selectedDepartureFacts = useMemo(() => {
     if (!travelCoreInfo) return null
@@ -497,7 +528,7 @@ export function ItineraryView({
             </div>
             <ProductHeroTitleLines
               title={product.title}
-              className="mb-6 text-2xl font-black leading-[1.52] text-white md:text-4xl md:leading-[1.5] lg:text-5xl"
+              className="mb-6 text-2xl font-black leading-[1.8] text-white md:text-4xl md:leading-[1.8] lg:text-5xl"
               style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
             />
             <Link
@@ -898,7 +929,11 @@ export function ItineraryView({
                     최소 출발 {product.minimumDepartureCount}명
                   </p>
                 )}
-                <p className="mt-1 text-[10px] fit-tx-meta">참고 최저가 ₩{priceInfo.lowestAdultPrice.toLocaleString()}</p>
+                <p className="mt-1 text-[10px] fit-tx-meta">
+                  {selectedPriceRow
+                    ? `선택 출발일 1인 ₩${adultPriceUnit.toLocaleString('ko-KR')}`
+                    : `참고 최저가 ₩${priceInfo.lowestAdultPrice.toLocaleString('ko-KR')}`}
+                </p>
               </div>
             )}
 
@@ -909,7 +944,7 @@ export function ItineraryView({
                   <span className="inline-flex items-baseline gap-1 tabular-nums">
                     <span className="text-[0.85em] font-bold fit-tx-meta">₩</span>
                     <span className="text-3xl font-extrabold tracking-tight fit-tx-price">
-                      {priceInfo.lowestAdultPrice.toLocaleString('ko-KR')}
+                      {adultPriceUnit.toLocaleString('ko-KR')}
                     </span>
                   </span>
                   <p className="text-[11px] fit-tx-meta">1인 기준 표시 가격입니다.</p>
@@ -950,7 +985,12 @@ export function ItineraryView({
                   { key: 'childBed' as const, label: '아동', ageLine: '만 2~11세', minVal: 0 },
                   { key: 'infant' as const, label: '유아', ageLine: '만 2세 미만', minVal: 0 },
                 ].map((row) => {
-                  const unit = row.key === 'infant' ? infantPriceUnit : adultPriceUnit
+                  const unit =
+                    row.key === 'infant'
+                      ? infantPriceUnit
+                      : row.key === 'childBed'
+                        ? childBedPriceUnit
+                        : adultPriceUnit
                   const count = pax[row.key]
                   const atMin = count <= row.minVal
                   return (
@@ -1026,7 +1066,7 @@ export function ItineraryView({
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm">
             <div className="font-bold fit-tx-primary">
-              {priceInfo ? `₩{priceInfo.lowestAdultPrice.toLocaleString()}~` : product.title}
+              {priceInfo ? `₩${adultPriceUnit.toLocaleString('ko-KR')}~` : product.title}
             </div>
             <div className="text-xs fit-tx-meta">
               {master

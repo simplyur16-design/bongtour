@@ -36,6 +36,11 @@ const LINE_PERSONAL_EXPENSE_OR_TIP =
 const LINE_NOT_FOR_INCLUDED_LIST =
   /(?:선택\s*관광|선택\s*경비|쇼핑\s*\d+\s*회|비자\s*발급|현지\s*합류|항공\s*리턴\s*변경|E-?비자|갈라\s*디너)/i
 
+/** 포함란에 있어도 불포함·미제공 문구가 섞인 식사 줄 */
+const LINE_INCLUDED_MEAL_EXCLUDED_CLAUSE = /(?:식사|조식|중식|석식).*(?:불포함|미포함|별도|제외)|(?:불포함|미포함).*(?:식사|조식|중식|석식)/i
+
+const PACKAGE_CATEGORY_HEADER_ONLY = /^\[[^\]]+\]$/
+
 function normDedupKey(line: string): string {
   return line.replace(/\s+/g, ' ').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
 }
@@ -54,6 +59,7 @@ function shouldMovePackageIncludedLineToExcluded(line: string): boolean {
   if (LINE_PERSONAL_EXPENSE_OR_TIP.test(t)) return true
   if (isSingleRoomDuplicateNoiseLine(t)) return true
   if (LINE_NOT_FOR_INCLUDED_LIST.test(t)) return true
+  if (LINE_INCLUDED_MEAL_EXCLUDED_CLAUSE.test(t)) return true
   return false
 }
 
@@ -181,7 +187,7 @@ export function splitIncludedExcludedForPublicDisplay(
     const excOut = stripLitePublicIeNoise(excLines)
     return {
       includedLines: incOut,
-      excludedLines: dedupeSingleRoomSurchargeLines(excOut),
+      excludedLines: finalizePublicExcludedLines(excOut),
       includedFootnotes: [],
     }
   }
@@ -241,7 +247,7 @@ export function splitIncludedExcludedForPublicDisplay(
 
   return {
     includedLines: dropStandaloneNoiseFromIeLines(cleanedInc),
-    excludedLines: dedupeSingleRoomSurchargeLines(dropStandaloneNoiseFromIeLines(outExc)),
+    excludedLines: finalizePublicExcludedLines(outExc),
     includedFootnotes,
   }
 }
@@ -278,13 +284,34 @@ export function organizePackageIncludedExcludedForPublicDisplay(
   }
 
   return {
-    includedLines,
-    excludedLines: dedupeSingleRoomSurchargeLines(excludedLines),
+    includedLines: groupPackageIncludedCategoryHeaders(includedLines),
+    excludedLines: finalizePublicExcludedLines(excludedLines),
     includedFootnotes,
   }
 }
 
 /** `기본 핵심 관광`·`예약자 특별혜택` 헤더와 `·` 하위 줄만 제거 */
+/**
+ * `[교통]` + 다음 줄 `왕복항공권` → `[교통] 왕복항공권` 한 줄.
+ * 내용 없는 `[가이드/기사]` 등 단독 헤더는 제거.
+ */
+export function groupPackageIncludedCategoryHeaders(lines: string[]): string[] {
+  const out: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i]!.replace(/\s+/g, ' ').trim()
+    if (!t) continue
+    if (PACKAGE_CATEGORY_HEADER_ONLY.test(t)) {
+      const next = lines[i + 1]?.replace(/\s+/g, ' ').trim() ?? ''
+      if (!next || PACKAGE_CATEGORY_HEADER_ONLY.test(next)) continue
+      out.push(`${t} ${next}`)
+      i++
+      continue
+    }
+    out.push(t)
+  }
+  return out
+}
+
 export function filterPackagePublicIncludedExcludedLines(lines: string[]): string[] {
   const out: string[] = []
   let skipping = false
@@ -307,5 +334,52 @@ export function filterPackagePublicIncludedExcludedLines(lines: string[]): strin
 /** mergeExcluded 이후 문자열에 대해 1인실 줄만 정리 */
 export function formatPublicExcludedTextAfterMerge(mergedExcluded: string): string {
   const lines = splitLines(mergedExcluded)
-  return dedupeSingleRoomSurchargeLines(lines).join('\n')
+  return formatPublicExcludedLinesForDisplay(dedupeSingleRoomSurchargeLines(lines)).join('\n')
+}
+
+const HOTEL_BREAKFAST_PREFIX = /^호텔\s*조식\s+/i
+const PER_PERSON_NIGHT_AMOUNT =
+  /^(?:1\s*인\s*1\s*박|1인\s*1박|1인1박)\s*[\d,]+\s*(?:엔|원|¥|JPY|USD|EUR)\b/i
+const LOCAL_TAX_LABEL = /도시세|관광세|숙박세|city\s*tax|tourism\s*tax/i
+
+/** `1인1박 N엔` 등 현지 징수 세금 줄 — 조식 요금이 아님을 드러내기 위한 라벨 */
+function clarifyLocalTourismTaxLine(line: string): string {
+  const t = line.replace(/\s+/g, ' ').trim()
+  if (!t || LOCAL_TAX_LABEL.test(t)) return t
+  if (!PER_PERSON_NIGHT_AMOUNT.test(t) && !/(?:1\s*인\s*1\s*박|1인1박)/i.test(t)) return t
+  const m = t.match(
+    /^((?:1\s*인\s*1\s*박|1인\s*1박|1인1박)\s*[\d,]+\s*(?:엔|원|¥|JPY|USD|EUR))(?:\s*(.*))?$/i
+  )
+  if (!m) return t
+  const rest = (m[2] ?? '').trim()
+  return rest ? `${m[1]} 도시세·관광세 ${rest}` : `${m[1]} 도시세·관광세`
+}
+
+/** `호텔조식 1인1박 200엔 현지…` — 조식 라벨과 도시세·관광세 줄 분리 */
+function splitHotelBreakfastAndLocalTaxLine(line: string): string[] | null {
+  const t = line.replace(/\s+/g, ' ').trim()
+  if (!HOTEL_BREAKFAST_PREFIX.test(t)) return null
+  const tail = t.replace(HOTEL_BREAKFAST_PREFIX, '').trim()
+  if (!tail || !/(?:1\s*인\s*1\s*박|1인1박)/i.test(tail)) return null
+  return ['호텔조식', clarifyLocalTourismTaxLine(tail)]
+}
+
+/**
+ * 불포함 목록 표시 전용 — 호텔조식+현지세 한 줄을 나누고, 1인1박 징수는 도시세·관광세로 표기.
+ */
+export function formatPublicExcludedLinesForDisplay(lines: string[]): string[] {
+  const out: string[] = []
+  for (const raw of lines) {
+    const split = splitHotelBreakfastAndLocalTaxLine(raw)
+    if (split) {
+      for (const part of split) pushUniqueLine(out, part)
+      continue
+    }
+    pushUniqueLine(out, clarifyLocalTourismTaxLine(raw))
+  }
+  return out
+}
+
+function finalizePublicExcludedLines(lines: string[]): string[] {
+  return formatPublicExcludedLinesForDisplay(dedupeSingleRoomSurchargeLines(dropStandaloneNoiseFromIeLines(lines)))
 }

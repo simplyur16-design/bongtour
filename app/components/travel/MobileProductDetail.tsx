@@ -31,7 +31,8 @@ import {
 import { parseRangeOnDemandResponse, postRangeOnDemandDepartures } from '@/lib/departure-range-on-demand-client'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
-import { resolveHeroTripDates } from '@/lib/product-hero-dates'
+import { alignDepartureKeyFactsToSelectedCalendarDate } from '@/lib/departure-facts-calendar-align'
+import { buildCalendarSsotHeroTripDisplays, resolveHeroTripDates } from '@/lib/product-hero-dates'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import PackageProductHeroSection from '@/app/components/detail/PackageProductHeroSection'
 import { ItineraryViewPackageMain } from '@/components/itinerary/ItineraryViewPackageMain'
@@ -72,7 +73,6 @@ import { applyHanatourFlightRoutingChipOverride } from '@/lib/hanatour-product-m
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
 import EsimProductDetailCrossSell from '@/app/components/travel/EsimProductDetailCrossSell'
-import { formatHeroDateKorean } from '@/lib/hero-date-utils'
 import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/public-schedule-display'
 import {
   buildPublicOptionalDisplayInputFromProductFields,
@@ -501,6 +501,14 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
     product.flightStructured,
   ])
 
+  const calendarAlignedDepartureFacts = useMemo(
+    () =>
+      alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
+        packageTotalDays,
+      }),
+    [selectedDepartureFacts, selectedDate, packageTotalDays]
+  )
+
   const heroResolved = useMemo(
     () =>
       resolveHeroTripDates({
@@ -508,7 +516,7 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
         selectedDate,
         fallbackPriceRowDate: priceRow ? toDateKey(priceRow.date) : null,
         duration: product.duration,
-        departureFacts: selectedDepartureFacts,
+        departureFacts: calendarAlignedDepartureFacts,
         modetourBodyHaystack,
       }),
     [
@@ -516,16 +524,20 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
       selectedDate,
       priceRow,
       product.duration,
-      selectedDepartureFacts,
+      calendarAlignedDepartureFacts,
       modetourBodyHaystack,
     ]
   )
-  const heroDepartureDisplay =
-    heroResolved.departureDisplayOverride ??
-    (formatHeroDateKorean(heroResolved.departureIso) ?? heroResolved.departureIso ?? null)
-  const heroReturnDisplay =
-    heroResolved.returnDisplayOverride ??
-    (formatHeroDateKorean(heroResolved.returnIso) ?? heroResolved.returnIso ?? null)
+  const { departureDisplay: heroDepartureDisplay, returnDisplay: heroReturnDisplay } = useMemo(
+    () =>
+      buildCalendarSsotHeroTripDisplays({
+        selectedDate,
+        packageTotalDays,
+        heroResolved,
+        computedReturnDate,
+      }),
+    [selectedDate, packageTotalDays, heroResolved, computedReturnDate]
+  )
 
   const travelCitiesLine = useMemo(() => {
     const raw = [product.primaryDestination, product.destination]
@@ -602,6 +614,7 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
           durationLabel: product.duration ?? '',
           airline: product.airline,
           heroDepartureDisplay,
+          heroReturnDisplay,
           duration: product.duration ?? '',
           heroPriceSsot,
           heroDiscountSavingsLine,
@@ -611,8 +624,8 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
           productMetaChips,
           listingKind: product.listingKind,
           airportTransferType: product.airportTransferType,
-          outboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.outbound ?? null),
-          inboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.inbound ?? null),
+          outboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.outbound ?? null),
+          inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
         }}
         onChangeDepartureDate={handleChangeDepartureDate}
         showChangeDepartureCta={mergedPrices.length > 0}
@@ -645,7 +658,7 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
           fromScreen="product_detail_mobile"
           departureConditionLine={departureConditionLine}
           heroTripDepartureDisplay={heroDepartureDisplay}
-          heroTripReturnDisplay={computedReturnDate}
+          heroTripReturnDisplay={heroReturnDisplay}
           modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
           isCollectingPrices={departureCollectOpen}
           priceCollectUiPhase={priceCollectUiPhase}

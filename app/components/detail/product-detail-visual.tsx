@@ -208,8 +208,8 @@ export function ProductDetailTitle({ title, className, style, tone = 'light' }: 
   const tagCls = tone === 'dark' ? 'font-extrabold text-teal-200' : 'font-extrabold text-bt-card-accent-strong'
   const defaultCls =
     tone === 'dark'
-      ? 'bt-wrap mb-3 text-[1.35rem] font-black leading-[1.52] tracking-[0.02em] text-white sm:text-2xl'
-      : 'bt-wrap text-2xl font-black leading-[1.48] tracking-[0.02em] text-bt-title sm:text-3xl'
+      ? 'bt-wrap mb-3 text-[1.35rem] font-black leading-[1.8] tracking-[0.02em] text-white sm:text-2xl'
+      : 'bt-wrap text-2xl font-black leading-[1.8] tracking-[0.02em] text-bt-title sm:text-3xl'
   return (
     <h1 className={className ?? defaultCls} style={style}>
       {lines.map((line, i) => {
@@ -231,7 +231,7 @@ export function ProductHeroTitleLines({ title, className, style }: Omit<TitlePro
     <h1
       className={
         className ??
-        'text-3xl font-bold leading-[1.52] tracking-[0.02em] text-white lg:text-5xl lg:leading-[1.5]'
+        'text-3xl font-bold leading-[1.6] tracking-[0.02em] text-white lg:text-5xl lg:leading-[1.6]'
       }
       style={style}
     >

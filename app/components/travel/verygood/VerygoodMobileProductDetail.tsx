@@ -45,6 +45,8 @@ import {
   PRICE_MAIN_AMOUNT_HINT,
 } from '@/lib/promotion-copy-normalize'
 import { pickDepartureKeyFactsForSelection, type DepartureKeyFacts } from '@/lib/departure-key-facts'
+import { alignDepartureKeyFactsToSelectedCalendarDate } from '@/lib/departure-facts-calendar-align'
+import { getProductTotalDays } from '@/lib/package-rules'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcVerygood } from '@/lib/flight-manual-correction-verygoodtour'
@@ -412,6 +414,18 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
     product.originSource,
   ])
 
+  const packageTotalDays = getProductTotalDays(
+    product,
+    product.schedule?.length ? product.schedule.length : null
+  )
+  const calendarAlignedDepartureFacts = useMemo(
+    () =>
+      alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
+        packageTotalDays,
+      }),
+    [selectedDepartureFacts, selectedDate, packageTotalDays]
+  )
+
   const productForMetaChips = useMemo(() => {
     const air = selectedDepartureFacts?.airline?.trim()
     if (normalizeSupplierOrigin(product.originSource) !== 'verygoodtour' || !air) return product
@@ -482,10 +496,10 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
     useMemo(
       () =>
         buildVerygoodTripDateDisplaysForSelectedRow({
-          calendarDep: priceRow ? toDateKey(priceRow.date) : null,
-          facts: selectedDepartureFacts,
+          calendarDep: selectedDate,
+          facts: calendarAlignedDepartureFacts,
         }),
-      [priceRow, selectedDepartureFacts]
+      [selectedDate, calendarAlignedDepartureFacts]
     )
 
   const travelCitiesLine = useMemo(() => {
@@ -574,8 +588,8 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
           productMetaChips,
           listingKind: product.listingKind,
           airportTransferType: product.airportTransferType,
-          outboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.outbound ?? null),
-          inboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.inbound ?? null),
+          outboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.outbound ?? null),
+          inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
         }}
         onChangeDepartureDate={handleChangeDepartureDate}
         showChangeDepartureCta={mergedPrices.length > 0}

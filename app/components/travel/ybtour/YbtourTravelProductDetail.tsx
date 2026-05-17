@@ -43,6 +43,8 @@ import { resolveDeparturePriceCollectUiPhase } from '@/lib/departure-price-colle
 import { useDeparturePriceCollectPhase } from '@/lib/hooks/use-departure-price-collect-phase'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { pickDepartureKeyFactsForSelection, type DepartureKeyFacts } from '@/lib/departure-key-facts'
+import { alignDepartureKeyFactsToSelectedCalendarDate } from '@/lib/departure-facts-calendar-align'
+import { getProductTotalDays } from '@/lib/package-rules'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcYbtour } from '@/lib/flight-manual-correction-ybtour'
@@ -571,6 +573,18 @@ function YbtourTravelProductDetailView({ product, showEsimCrossSell = false }: P
     product.originSource,
   ])
 
+  const packageTotalDays = getProductTotalDays(
+    product,
+    product.schedule?.length ? product.schedule.length : null
+  )
+  const calendarAlignedDepartureFacts = useMemo(
+    () =>
+      alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
+        packageTotalDays,
+      }),
+    [selectedDepartureFacts, selectedDate, packageTotalDays]
+  )
+
   /** 꼭 알아야 할 사항: `mustKnowItems`만(공급사 공통). 비면 기본 안내 문구. */
   const mustKnowFiltered = useMemo(
     () =>
@@ -637,11 +651,11 @@ function YbtourTravelProductDetailView({ product, showEsimCrossSell = false }: P
   const { departureDisplay: heroDepartureDisplay, returnDisplay: heroReturnDisplay } = useMemo(
     () =>
       buildYbtourTripDateDisplaysForSelectedRow({
-        calendarDep: selectedPriceRow ? toDateKey(selectedPriceRow.date) : null,
-        facts: selectedDepartureFacts,
+        calendarDep: selectedDate,
+        facts: calendarAlignedDepartureFacts,
         duration: product.duration,
       }),
-    [selectedPriceRow, selectedDepartureFacts, product.duration]
+    [selectedDate, calendarAlignedDepartureFacts, product.duration]
   )
 
   const travelCitiesLine = useMemo(() => {
@@ -743,8 +757,8 @@ function YbtourTravelProductDetailView({ product, showEsimCrossSell = false }: P
           productMetaChips,
           listingKind: product.listingKind,
           airportTransferType: product.airportTransferType,
-          outboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.outbound ?? null),
-          inboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.inbound ?? null),
+          outboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.outbound ?? null),
+          inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
         }}
         onChangeDepartureDate={handleChangeDepartureDate}
         showChangeDepartureCta={mergedPrices.length > 0}

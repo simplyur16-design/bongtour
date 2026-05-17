@@ -45,6 +45,8 @@ import {
   PRICE_MAIN_AMOUNT_HINT,
 } from '@/lib/promotion-copy-normalize'
 import { pickDepartureKeyFactsForSelection, type DepartureKeyFacts } from '@/lib/departure-key-facts'
+import { alignDepartureKeyFactsToSelectedCalendarDate } from '@/lib/departure-facts-calendar-align'
+import { getProductTotalDays } from '@/lib/package-rules'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcYbtour } from '@/lib/flight-manual-correction-ybtour'
@@ -423,6 +425,18 @@ function YbtourMobileProductDetailView({ product, showEsimCrossSell = false }: P
     product.originSource,
   ])
 
+  const packageTotalDays = getProductTotalDays(
+    product,
+    product.schedule?.length ? product.schedule.length : null
+  )
+  const calendarAlignedDepartureFacts = useMemo(
+    () =>
+      alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
+        packageTotalDays,
+      }),
+    [selectedDepartureFacts, selectedDate, packageTotalDays]
+  )
+
   const productMetaChips = useMemo(() => {
     const base = buildProductMetaChips(product, { departureFactsOverride: selectedDepartureFacts })
     if (normalizeSupplierOrigin(product.originSource) !== 'hanatour') return base
@@ -482,11 +496,11 @@ function YbtourMobileProductDetailView({ product, showEsimCrossSell = false }: P
   const { departureDisplay: heroDepartureDisplay, returnDisplay: heroReturnDisplay } = useMemo(
     () =>
       buildYbtourTripDateDisplaysForSelectedRow({
-        calendarDep: priceRow ? toDateKey(priceRow.date) : null,
-        facts: selectedDepartureFacts,
+        calendarDep: selectedDate,
+        facts: calendarAlignedDepartureFacts,
         duration: product.duration,
       }),
-    [priceRow, selectedDepartureFacts, product.duration]
+    [selectedDate, calendarAlignedDepartureFacts, product.duration]
   )
 
   const travelCitiesLine = useMemo(() => {
@@ -575,8 +589,8 @@ function YbtourMobileProductDetailView({ product, showEsimCrossSell = false }: P
           productMetaChips,
           listingKind: product.listingKind,
           airportTransferType: product.airportTransferType,
-          outboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.outbound ?? null),
-          inboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.inbound ?? null),
+          outboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.outbound ?? null),
+          inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
         }}
         onChangeDepartureDate={handleChangeDepartureDate}
         showChangeDepartureCta={mergedPrices.length > 0}

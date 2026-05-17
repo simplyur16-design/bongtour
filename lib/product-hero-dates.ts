@@ -1,6 +1,13 @@
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
 import type { DeparturePreviewRow } from '@/lib/departure-preview'
-import { addDaysIso, diffCalendarDaysIso, extractIsoDate, inferHeroReturnDayOffset } from '@/lib/hero-date-utils'
+import {
+  addDaysIso,
+  diffCalendarDaysIso,
+  extractIsoDate,
+  formatHeroDateKorean,
+  inferHeroReturnDayOffset,
+} from '@/lib/hero-date-utils'
+import { computeReturnDate } from '@/lib/package-rules'
 import { extractModetourBodyDepartureArrival } from '@/lib/modetour-body-dates'
 import { normalizeSupplierOrigin, type OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
 
@@ -89,8 +96,23 @@ export function resolveHeroTripDates(opts: {
     }
   }
 
+  const obIso = extractIsoDate(opts.departureFacts?.outbound?.departureAtText)
   const list = returnFromListFacts(opts.departureFacts)
   if (list.iso) {
+    if (dep && obIso && dep !== obIso) {
+      const delta = diffCalendarDaysIso(obIso, dep)
+      if (delta != null && delta !== 0) {
+        const shiftedReturn = addDaysIso(list.iso, delta)
+        if (shiftedReturn) {
+          return {
+            departureIso: dep,
+            returnIso: shiftedReturn,
+            departureSource: dep ? 'calendar' : 'none',
+            returnSource: 'departure_list_inbound_shifted',
+          }
+        }
+      }
+    }
     return {
       departureIso: dep,
       returnIso: list.iso,
@@ -106,6 +128,38 @@ export function resolveHeroTripDates(opts: {
     departureSource: dep ? 'calendar' : 'none',
     returnSource: fb.iso ? 'duration_fallback' : 'none',
   }
+}
+
+/**
+ * 달력 선택 출발일을 히어로·스티키 출발/귀국 표시 SSOT로 고정.
+ * facts·본문에 다른 날짜가 있어도 요약 줄은 선택한 출발일·일정 일수 기준.
+ */
+export function buildCalendarSsotHeroTripDisplays(opts: {
+  selectedDate: string | null
+  packageTotalDays: number
+  heroResolved: HeroTripResolved
+  computedReturnDate: string | null
+}): { departureDisplay: string | null; returnDisplay: string | null } {
+  const cal = opts.selectedDate?.trim()
+  const calendarDep = cal && /^\d{4}-\d{2}-\d{2}$/.test(cal) ? cal : null
+
+  if (calendarDep) {
+    const departureDisplay = formatHeroDateKorean(calendarDep) ?? calendarDep
+    const retFromDuration =
+      opts.packageTotalDays > 0 ? computeReturnDate(calendarDep, opts.packageTotalDays) : null
+    const retIso = retFromDuration ?? opts.heroResolved.returnIso ?? opts.computedReturnDate ?? null
+    const returnDisplay =
+      opts.heroResolved.returnDisplayOverride ?? (retIso ? formatHeroDateKorean(retIso) ?? retIso : null)
+    return { departureDisplay, returnDisplay }
+  }
+
+  const departureDisplay =
+    opts.heroResolved.departureDisplayOverride ??
+    (formatHeroDateKorean(opts.heroResolved.departureIso) ?? opts.heroResolved.departureIso ?? null)
+  const retIso = opts.heroResolved.returnIso ?? opts.computedReturnDate ?? null
+  const returnDisplay =
+    opts.heroResolved.returnDisplayOverride ?? (retIso ? formatHeroDateKorean(retIso) ?? retIso : null)
+  return { departureDisplay, returnDisplay }
 }
 
 /** 등록 미리보기 행 → 상세 `DepartureKeyFacts`와 동일 형태(항공 줄형 UI·날짜 resolver 공용) */

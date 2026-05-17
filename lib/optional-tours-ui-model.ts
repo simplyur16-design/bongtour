@@ -275,13 +275,79 @@ function mapOptionalTourRecordToUiRow(row: Record<string, unknown>, i: number): 
   }
 }
 
+function isOptionalTourMetaOnlyUiName(name: string): boolean {
+  const t = name.replace(/\s+/g, ' ').trim()
+  return (
+    /^소요시간\b/i.test(t) ||
+    /^미선택시\s*가이드/i.test(t) ||
+    /^대체일정\b/i.test(t)
+  )
+}
+
+function normalizeOptionalTourPriceDisplay(row: UiOptionalTourRow): UiOptionalTourRow {
+  const name = row.name.replace(/\s+/g, ' ').trim()
+  const pd = row.priceDisplay?.replace(/\s+/g, ' ').trim() ?? ''
+  if (!pd || pd === name) {
+    if (row.includedNoExtraCharge || row.supplierTags?.some((t) => /스페셜/i.test(t))) {
+      return { ...row, priceDisplay: '포함' }
+    }
+    if (/^소요시간\b/i.test(pd) && row.durationText) {
+      return { ...row, priceDisplay: '포함' }
+    }
+  }
+  if (/^소요시간\b/i.test(pd) && row.durationText && pd.replace(/^소요시간\s*/i, '').trim() === row.durationText.trim()) {
+    return { ...row, priceDisplay: row.includedNoExtraCharge ? '포함' : '문의' }
+  }
+  return row
+}
+
+/** 소요시간·미선택시·대체일정 단독 행을 직전 옵션에 병합(등록 시 누락·구 JSON 보정) */
+export function collapseOptionalTourMetaRowsForPackageTable(rows: UiOptionalTourRow[]): UiOptionalTourRow[] {
+  const out: UiOptionalTourRow[] = []
+  for (const raw of rows) {
+    const row = normalizeOptionalTourPriceDisplay(raw)
+    const name = row.name.replace(/\s+/g, ' ').trim()
+    if (isOptionalTourMetaOnlyUiName(name)) {
+      if (!out.length) continue
+      const prev = out[out.length - 1]!
+      if (/^소요시간\b/i.test(name)) {
+        const chunk = name.replace(/^소요시간\s*/i, '').trim() || row.durationText?.trim() || ''
+        if (chunk) prev.durationText = [prev.durationText, chunk].filter(Boolean).join(' ').trim()
+      } else if (/^미선택시/i.test(name)) {
+        prev.guideText = [prev.guideText, name.replace(/^미선택시\s*가이드동행\s*/i, '').trim() || name]
+          .filter(Boolean)
+          .join(' ')
+          .trim()
+      } else if (/^대체일정/i.test(name)) {
+        const chunk = name.replace(/^대체일정\s*/i, '').trim()
+        prev.alternateScheduleText = [prev.alternateScheduleText, chunk].filter(Boolean).join(' | ').trim()
+      }
+      continue
+    }
+    out.push(row)
+  }
+  return out.map(normalizeOptionalTourPriceDisplay)
+}
+
+/** 패키지 표 fallback — hanatour strict gate 없이 JSON만 매핑(공급사 공통) */
+function parseOptionalToursForPackageFallback(raw: string | null | undefined): UiOptionalTourRow[] {
+  const arr = parseOptionalToursStructuredJsonArray(raw)
+  if (!arr.length) return []
+  return collapseOptionalTourMetaRowsForPackageTable(
+    arr
+      .map((x, i) => mapOptionalTourRecordToUiRow(x as Record<string, unknown>, i))
+      .filter((x): x is UiOptionalTourRow => x != null && !isBannedOptionalTourName(x.name))
+  )
+}
+
 /** 패키지 상세 표 — 금지명만 제외(공급사별 strict gate 미적용) */
 export function parseOptionalToursForPackagePublicTable(raw: string | null | undefined): UiOptionalTourRow[] {
   const arr = parseOptionalToursStructuredJsonArray(raw)
   if (!arr.length) return []
-  return arr
+  const mapped = arr
     .map((x, i) => mapOptionalTourRecordToUiRow(x as Record<string, unknown>, i))
     .filter((x): x is UiOptionalTourRow => x != null && !isBannedOptionalTourName(x.name))
+  return collapseOptionalTourMetaRowsForPackageTable(mapped)
 }
 
 export function parseOptionalToursForUi(raw: string | null | undefined): UiOptionalTourRow[] {
@@ -478,25 +544,27 @@ export function getPackageOptionalTourRowsFromProduct(
 ): UiOptionalTourRow[] {
   const fromPackageJson = parseOptionalToursForPackagePublicTable(optionalToursStructured)
   if (fromPackageJson.length) return fromPackageJson
-  const fromStrict = parseOptionalToursForUi(optionalToursStructured)
-  if (fromStrict.length) return fromStrict
+  const fromFallback = parseOptionalToursForPackageFallback(optionalToursStructured)
+  if (fromFallback.length) return fromFallback
   const legacy = parseLegacyStructuredOptionalTours(optionalToursStructured)
   if (legacy.length) {
-    return legacy.map((t, i) => ({
-      id: t.id ?? `legacy-${i}`,
-      name: t.name,
-      currency: t.currency ?? null,
-      adultPrice: t.priceValue ?? null,
-      childPrice: null,
-      durationText: t.description?.trim() || null,
-      minPaxText: null,
-      guideText: null,
-      waitingText: null,
-      priceDisplay: t.priceText?.trim() || (t.priceValue != null ? `₩${t.priceValue.toLocaleString('ko-KR')}` : '문의'),
-      bookingType: t.bookingType ?? 'unknown',
-    }))
+    return collapseOptionalTourMetaRowsForPackageTable(
+      legacy.map((t, i) => ({
+        id: t.id ?? `legacy-${i}`,
+        name: t.name,
+        currency: t.currency ?? null,
+        adultPrice: t.priceValue ?? null,
+        childPrice: null,
+        durationText: t.description?.trim() || null,
+        minPaxText: null,
+        guideText: null,
+        waitingText: null,
+        priceDisplay: t.priceText?.trim() || (t.priceValue != null ? `₩${t.priceValue.toLocaleString('ko-KR')}` : '문의'),
+        bookingType: t.bookingType ?? 'unknown',
+      }))
+    )
   }
-  return optionalPasteRawToUiRowsForPackage(optionalToursPasteRaw)
+  return collapseOptionalTourMetaRowsForPackageTable(optionalPasteRawToUiRowsForPackage(optionalToursPasteRaw))
 }
 
 function optionalPasteRawToUiRowsForPackage(raw: string | null | undefined): UiOptionalTourRow[] {
