@@ -327,13 +327,15 @@ function verygoodExtraPriceBlobFromDetailBody(parsed: RegisterParsed): string {
 }
 
 function verygoodPriceBlobFromParsed(parsed: RegisterParsed): string {
+  const inputText = (parsed.priceTableRawText ?? '').trim()
+  const inputHtml = stripHtmlLoose(parsed.priceTableRawHtml ?? null)
+  /** 가격 입력란이 있으면 그것만 SSOT — 본문 추출 영역 섞지 않음 (입력란 덮어쓰기 차단) */
+  if (inputText.length > 0 || inputHtml.length > 0) {
+    return [inputText, inputHtml].filter((x) => x.length > 0).join('\n\n')
+  }
+  /** 입력란 비면 본문 fallback */
   const fromNorm = sliceVerygoodPriceBlockFromNormalizedRaw(parsed.detailBodyStructured?.normalizedRaw ?? null)
-  return [
-    (parsed.priceTableRawText ?? '').trim(),
-    stripHtmlLoose(parsed.priceTableRawHtml ?? null),
-    verygoodExtraPriceBlobFromDetailBody(parsed),
-    fromNorm,
-  ]
+  return [verygoodExtraPriceBlobFromDetailBody(parsed), fromNorm]
     .filter((x) => x.length > 0)
     .join('\n\n')
 }
@@ -396,8 +398,14 @@ export function finalizeVerygoodProductPriceTable(
 }
 
 export function finalizeVerygoodRegisterParsedPricing(parsed: RegisterParsed): RegisterParsed {
+  const hasManualPriceInput = !!(
+    (parsed.priceTableRawText ?? '').trim() ||
+    stripHtmlLoose(parsed.priceTableRawHtml ?? null)
+  )
   const blob = verygoodPriceBlobFromParsed(parsed)
-  const next = finalizeVerygoodProductPriceTable(parsed.productPriceTable ?? null, blob)
+  /** 입력란 SSOT: 입력란 있으면 LLM 본문 추출(productPriceTable) 무시 */
+  const llmTable = hasManualPriceInput ? null : (parsed.productPriceTable ?? null)
+  const next = finalizeVerygoodProductPriceTable(llmTable, blob)
   if (next === null) return parsed
   return { ...parsed, productPriceTable: next }
 }

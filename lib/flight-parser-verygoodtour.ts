@@ -18,9 +18,9 @@ export function normalizeVerygoodFlightSectionDecorators(section: string): strin
   )
 }
 
-/** `2026.05.15 (금) 10:50 인천 출발` */
+/** `2026.05.15 (금) 10:50 인천 출발` — 요일 괄호는 있어도 없어도 매치 (입력란 변형 흡수) */
 const VERYGOOD_FLIGHT_LINE =
-  /^(\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2})\s+\(([^)]*)\)\s+([0-2]?\d:[0-5]\d)\s+(.+?)\s+(출발|도착)\s*$/i
+  /^(\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2})\s+(?:\(([^)]*)\)\s+)?([0-2]?\d:[0-5]\d)\s+(.+?)\s+(출발|도착)\s*$/i
 
 function stripVerygoodRegisterFlightNoise(raw: string): string {
   let t = raw.replace(/\r/g, '\n')
