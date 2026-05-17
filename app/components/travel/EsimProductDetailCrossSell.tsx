@@ -1,34 +1,42 @@
 import Link from 'next/link'
 import { Wifi } from 'lucide-react'
-import { ESIM_STRIP_CTA_HREF, ESIM_STRIP_CTA_LABEL, ESIM_STRIP_MOBILE_SUB } from '@/lib/main-hub-copy'
+import { ESIM_STRIP_CTA_HREF } from '@/lib/main-hub-copy'
 
-/** 해외 상품 상세 하단 — 상담 CTA 근처 eSIM 크로스셀. */
-export default function EsimProductDetailCrossSell() {
+type EsimProductDetailCrossSellProps = {
+  /** 있으면 추천 퍼널로 destination 쿼리 전달 */
+  primaryDestination?: string | null
+  className?: string
+}
+
+/** 해외 상품·일정 상세 — eSIM 크로스셀 배너 (단일 SSOT) */
+export default function EsimProductDetailCrossSell({
+  primaryDestination,
+  className = '',
+}: EsimProductDetailCrossSellProps) {
+  const dest = (primaryDestination ?? '').trim()
+  const href = dest
+    ? `/travel/esim/recommend?destination=${encodeURIComponent(dest)}`
+    : ESIM_STRIP_CTA_HREF
+
   return (
-    <section
-      className="rounded-2xl border border-bt-coral/30 bg-gradient-to-br from-bt-coral/8 via-white to-white p-5 sm:p-6"
-      aria-labelledby="esim-detail-cross-sell-heading"
+    <aside
+      className={`flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3 sm:gap-4 sm:p-4 ${className}`.trim()}
+      aria-label="eSIM 안내"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-bt-coral text-white">
-            <Wifi className="h-6 w-6" strokeWidth={2.25} aria-hidden />
-          </div>
-          <div>
-            <h2 id="esim-detail-cross-sell-heading" className="text-base font-bold text-slate-900">
-              이 여행에 eSIM이 필요하세요?
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">{ESIM_STRIP_MOBILE_SUB}</p>
-            <p className="mt-0.5 text-xs text-slate-500">QR 스캔 1분 설치 · 출발 전 미리 준비</p>
-          </div>
-        </div>
-        <Link
-          href={ESIM_STRIP_CTA_HREF}
-          className="inline-flex shrink-0 items-center justify-center rounded-full bg-bt-coral px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-bt-coral/90"
-        >
-          {ESIM_STRIP_CTA_LABEL}
-        </Link>
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#D85A30]">
+        <Wifi className="h-6 w-6 text-white" strokeWidth={2.25} aria-hidden />
       </div>
-    </section>
+      <div className="min-w-0 flex-1">
+        <p className="font-bold fit-tx-primary">이 여행에 eSIM이 필요하세요?</p>
+        <p className="mt-0.5 text-sm text-gray-600">로밍보다 90% 저렴 · 1분 설치</p>
+        <p className="mt-0.5 hidden text-xs text-gray-500 sm:block">QR 스캔 1분 설치 · 출발 전 미리 준비</p>
+      </div>
+      <Link
+        href={href}
+        className="shrink-0 rounded-full bg-[#D85A30] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#C24E2A] sm:px-6 sm:py-3"
+      >
+        eSIM 찾기
+      </Link>
+    </aside>
   )
 }

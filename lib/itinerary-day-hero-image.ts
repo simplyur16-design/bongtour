@@ -449,8 +449,9 @@ function poolToHeroPhoto(rec: PoolPhotoRecord): DayHeroPhotoResult {
   return {
     url: rec.filePath,
     source: rec.source,
-    photographer: rec.source,
-    originalLink: '',
+    photographer: rec.photographer?.trim() || rec.source,
+    originalLink: rec.sourceUrl?.trim() || '',
+    externalId: rec.sourcePhotoId ?? undefined,
   }
 }
 
@@ -534,13 +535,13 @@ export async function resolveDayHeroWithFallback(
   let bundle: DayHeroImageBundle
 
   if (picked) {
-    const saved = await savePhotoFromUrlWithRetry(
-      prisma,
-      picked.candidate.imageUrl,
-      input.destination,
-      place.pexelsQueryStem,
-      'Pexels'
-    )
+    const saved = await savePhotoFromUrlWithRetry(prisma, picked.candidate.imageUrl, input.destination, place.pexelsQueryStem, 'Pexels', {
+      attribution: {
+        photographer: picked.candidate.photographer,
+        sourceUrl: picked.candidate.originalLink,
+        sourcePhotoId: String(picked.candidate.pexelsId),
+      },
+    })
     photo = saved
       ? poolToHeroPhoto(saved)
       : {
@@ -609,7 +610,13 @@ export async function resolveDayHeroWithFallback(
   const pex = await fetchPexelsPhotoObject(queries.primaryQuery)
   heroFallbackUsed = true
   if (!isPexelsFallbackUrl(pex.url)) {
-    const saved = await savePhotoFromUrlWithRetry(prisma, pex.url, input.destination, place.pexelsQueryStem, 'Pexels')
+    const saved = await savePhotoFromUrlWithRetry(prisma, pex.url, input.destination, place.pexelsQueryStem, 'Pexels', {
+      attribution: {
+        photographer: pex.photographer,
+        sourceUrl: pex.originalLink,
+        sourcePhotoId: pex.externalId ?? null,
+      },
+    })
     photo = saved
       ? poolToHeroPhoto(saved)
       : {

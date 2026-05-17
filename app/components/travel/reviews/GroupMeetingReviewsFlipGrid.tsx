@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import type { GroupMeetingReviewCardModel } from '@/lib/group-meeting-reviews-csv'
+import { groupMeetingReviewDisplayText } from '@/lib/group-meeting-review-display-text'
 
 type Props = {
   reviews: GroupMeetingReviewCardModel[]
@@ -237,8 +238,7 @@ function FlipCard({ review, flipped, isHovered, onMouseEnter, onMouseLeave }: Fl
         >
           <div className="mb-3 flex shrink-0 items-center justify-between">
             <div className="flex items-center gap-1">
-              <span className="text-yellow-500">⭐</span>
-              <span className="text-sm font-semibold">{review.ratingLabel || '5.0'}</span>
+              <span className="text-sm font-bold text-[#d9a81e]">{review.ratingLabel ?? ''}</span>
             </div>
             <span className={`rounded-full px-2 py-1 text-xs font-medium ${style.badge}`}>{review.purposeLabel}</span>
           </div>
@@ -247,10 +247,10 @@ function FlipCard({ review, flipped, isHovered, onMouseEnter, onMouseLeave }: Fl
 
           <p
             className={`flex-1 text-sm leading-relaxed text-gray-600 ${
-              isHovered ? '' : 'line-clamp-3 min-h-0'
+              isHovered ? '' : 'line-clamp-4 min-h-0'
             }`}
           >
-            {review.bodyLines}
+            {groupMeetingReviewDisplayText(review)}
           </p>
 
           <div className="mt-auto shrink-0 border-t border-gray-100 pt-3">

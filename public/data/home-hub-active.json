@@ -4,10 +4,10 @@
     "esim": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/DAY3_manual-upload__4dd2fabeeccd006d.webp",
     "domestic": "/images/home-hub/candidates/domestic-spring-1774163272667-lqevr0-1.webp",
     "overseas": "",
-    "training": "/images/home-hub/candidates/training-spring-1774163629867-mejktl-1.webp"
+    "training": "/images/home-hub/candidates/training-spring-1774163629867-mejktl-3.webp"
   },
   "activeSeason": "spring",
-  "lastUpdatedAt": "2026-05-02T07:04:38.314Z",
+  "lastUpdatedAt": "2026-05-14T20:03:52.647Z",
   "lastUpdatedBy": "simplyur@naver.com",
   "imageSourceModes": {
     "esim": "manual",
@@ -21,5 +21,5 @@
     "training": "https://kr.object.ncloudstorage.com/bongtour/home-hub/candidates/training-spring-1776136505480-sd9f0a-3.webp",
     "privateTrip": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/Phu_Quoc_Pepper_Farm_pexels__c6780f67e46cbf0c.webp"
   },
-  "trainingPageSecondaryImage": "https://kr.object.ncloudstorage.com/bongtour/home-hub/candidates/training-spring-1776136505480-sd9f0a-3.webp"
+  "trainingPageSecondaryImage": "/images/home-hub/candidates/training-spring-1774163629867-mejktl-1.webp"
 }

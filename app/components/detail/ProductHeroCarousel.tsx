@@ -14,6 +14,8 @@ type DaySlide = {
   title?: string | null
   imageKeyword?: string | null
   city?: string | null
+  imagePhotographer?: string | null
+  imageSource?: string | null
 }
 
 type Slide = {
@@ -32,6 +34,8 @@ type Props = {
   className?: string
   /** Product.bgImageSource — 히어로 첫 슬라이드 출처 우선 */
   heroImageSourceType?: string | null
+  /** Product.bgImagePhotographer */
+  heroImagePhotographer?: string | null
   /** Product.bgImageIsGenerated */
   heroImageIsGenerated?: boolean | null
   /** 대표 슬라이드 전용: 상품 SEO 한 줄(등록 저장값·휴리스틱 resolve 결과) */
@@ -49,6 +53,7 @@ export default function ProductHeroCarousel({
   productTitle,
   className = '',
   heroImageSourceType,
+  heroImagePhotographer,
   heroImageIsGenerated,
   heroImageSeoKeywordOverlay,
   primaryDestination,
@@ -65,16 +70,27 @@ export default function ProductHeroCarousel({
 
     if (heroTrim) {
       slideIdx += 1
-      const right = resolvePublicImageSourceUserLabel({
-        dbSource: heroImageSourceType,
-        dbIsGenerated: heroImageIsGenerated,
-        imageUrl: heroTrim,
-      })
+      const rightLabel = (() => {
+        const heroPhotographer = heroImagePhotographer?.trim()
+        const src = (heroImageSourceType ?? '').trim().toLowerCase()
+        if (heroPhotographer && src) {
+          const sourceLabel = src === 'pexels' ? 'Pexels' : src === 'unsplash' ? 'Unsplash' : src
+          return `Photo by ${heroPhotographer} on ${sourceLabel}`
+        }
+        if (heroImageIsGenerated || src === 'gemini') return 'AI 생성 이미지'
+        if (src === 'pexels') return 'Pexels 스톡이미지'
+        if (src === 'unsplash') return 'Unsplash 스톡이미지'
+        return resolvePublicImageSourceUserLabel({
+          dbSource: heroImageSourceType,
+          dbIsGenerated: heroImageIsGenerated,
+          imageUrl: heroTrim,
+        })
+      })()
       out.push({
         src: heroTrim,
         alt: titleBase ? `${titleBase} 대표 이미지` : '여행 상품 대표 이미지',
         leftLabel: heroSeoLeft,
-        rightLabel: right,
+        rightLabel,
       })
     }
     const seen = new Set<string>(heroTrim ? [heroTrim] : [])
@@ -96,7 +112,17 @@ export default function ProductHeroCarousel({
         src: s,
         alt: titleBase ? `${titleBase} 일정 이미지 ${slideIdx}` : `여행 상품 일정 이미지 ${slideIdx}`,
         leftLabel: dayLeft,
-        rightLabel: resolvePublicImageSourceUserLabel({ imageUrl: s }),
+        rightLabel: (() => {
+          const photographer = d.imagePhotographer?.trim()
+          const dSrc = (d.imageSource ?? '').trim().toLowerCase()
+          if (photographer && dSrc) {
+            const sourceLabel = dSrc === 'pexels' ? 'Pexels' : dSrc === 'unsplash' ? 'Unsplash' : dSrc
+            return `Photo by ${photographer} on ${sourceLabel}`
+          }
+          if (dSrc === 'pexels') return 'Pexels 스톡이미지'
+          if (dSrc === 'unsplash') return 'Unsplash 스톡이미지'
+          return resolvePublicImageSourceUserLabel({ imageUrl: s })
+        })(),
       })
     }
     return out
@@ -106,6 +132,7 @@ export default function ProductHeroCarousel({
     productTitle,
     heroSeoLeft,
     heroImageSourceType,
+    heroImagePhotographer,
     heroImageIsGenerated,
     primaryDestination,
     destination,
@@ -162,12 +189,17 @@ export default function ProductHeroCarousel({
             className={`object-cover transition-opacity duration-500 ${
               i === index ? 'opacity-100' : 'opacity-0'
             }`}
+            style={{ filter: 'brightness(1.10) contrast(1.05) saturate(1.18)' }}
             sizes="(max-width: 1024px) 100vw, min(896px, 100vw)"
             loading={i === 0 ? 'eager' : 'lazy'}
             priority={i === 0}
           />
         ))}
-        <PublicImageBottomOverlay leftLabel={current.leftLabel} rightLabel={current.rightLabel} />
+        <PublicImageBottomOverlay
+          leftLabel={current.leftLabel}
+          rightLabel={current.rightLabel}
+          className={fillParent ? 'z-[40]' : undefined}
+        />
       </div>
       {len > 1 && (
         <>
@@ -175,7 +207,7 @@ export default function ProductHeroCarousel({
             type="button"
             aria-label="이전 이미지"
             onClick={() => go(-1)}
-            className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-black/35 text-lg text-white backdrop-blur-sm transition hover:bg-black/50"
+            className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/50 bg-white/20 text-lg text-white backdrop-blur-sm transition hover:bg-white/30"
           >
             ‹
           </button>
@@ -183,7 +215,7 @@ export default function ProductHeroCarousel({
             type="button"
             aria-label="다음 이미지"
             onClick={() => go(1)}
-            className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-black/35 text-lg text-white backdrop-blur-sm transition hover:bg-black/50"
+            className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/50 bg-white/20 text-lg text-white backdrop-blur-sm transition hover:bg-white/30"
           >
             ›
           </button>

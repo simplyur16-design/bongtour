@@ -15,7 +15,7 @@ export function formatReviewWhen(r: ReviewCardModel): string | null {
   if (r.travel_month) {
     const ym = r.travel_month.slice(0, 7)
     const [y, m] = ym.split('-')
-    if (y && m) return `${y}년 ${Number(m)}월 여행`
+    if (y && m) return `${y.slice(-2)}년 ${m.padStart(2, '0')}월`
   }
   return null
 }

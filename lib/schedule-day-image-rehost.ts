@@ -212,9 +212,18 @@ async function finalizeOneScheduleRowImageUrl(
   const srcObj = readImageSource(row)
   const sourceLabelRaw = typeof srcObj.source === 'string' ? srcObj.source.trim() : ''
   const sourceLabel = sourceLabelRaw || 'ingest'
-  const pageUrl = typeof srcObj.originalLink === 'string' ? srcObj.originalLink.trim() || null : null
+  const pageUrl =
+    (typeof row.imageSourcePageUrl === 'string' ? row.imageSourcePageUrl.trim() : '') ||
+    (typeof srcObj.originalLink === 'string' ? srcObj.originalLink.trim() : '') ||
+    null
   const photographer =
-    typeof srcObj.photographer === 'string' ? srcObj.photographer.trim() || null : null
+    (typeof row.imagePhotographer === 'string' ? row.imagePhotographer.trim() : '') ||
+    (typeof srcObj.photographer === 'string' ? srcObj.photographer.trim() : '') ||
+    null
+  const sourcePhotoId =
+    (typeof srcObj.externalId === 'string' ? srcObj.externalId.trim() : '') ||
+    (srcObj.externalId != null ? String(srcObj.externalId).trim() : '') ||
+    null
 
   const cityForPool = meta.cityName?.trim() || 'unknown'
   const attractionForPool =
@@ -223,20 +232,33 @@ async function finalizeOneScheduleRowImageUrl(
       (typeof row.imageKeyword === 'string' ? row.imageKeyword.trim() : '') ||
       `schedule_day_${day}`).slice(0, 80) || `schedule_day_${day}`
 
-  const poolRec = await savePhotoFromUrlWithRetry(prisma, urlRaw, cityForPool, attractionForPool, sourceLabel)
+  const poolRec = await savePhotoFromUrlWithRetry(prisma, urlRaw, cityForPool, attractionForPool, sourceLabel, {
+    attribution: {
+      photographer,
+      sourceUrl: pageUrl,
+      sourcePhotoId,
+    },
+  })
   if (poolRec) {
     const key = tryParseObjectKeyFromPublicUrl(poolRec.filePath)
+    const resolvedPhotographer = poolRec.photographer?.trim() || photographer || sourceLabel
+    const resolvedPageUrl = poolRec.sourceUrl?.trim() || pageUrl || ''
     const nextSource: Record<string, unknown> = {
       ...srcObj,
       source: sourceLabel,
       sourceType: toHeroStorageSourceTypeSegment(sourceLabel),
-      photographer: photographer ?? sourceLabel,
-      originalLink: pageUrl ?? '',
+      photographer: resolvedPhotographer,
+      originalLink: resolvedPageUrl,
       sourceImageUrl: urlRaw,
+      ...(poolRec.sourcePhotoId || sourcePhotoId
+        ? { externalId: poolRec.sourcePhotoId ?? sourcePhotoId }
+        : {}),
     }
     return {
       ...row,
       imageUrl: poolRec.filePath,
+      imagePhotographer: resolvedPhotographer,
+      imageSourcePageUrl: resolvedPageUrl || null,
       imageSource: nextSource,
       imageStoragePath: key,
       imageStorageBucket: key ? getImageStorageBucket() : null,

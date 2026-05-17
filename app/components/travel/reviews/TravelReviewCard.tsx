@@ -38,7 +38,10 @@ export default function TravelReviewCard({ review }: Props) {
           {when ? <span className="text-bt-subtle">{when}</span> : null}
         </div>
         {review.rating_label ? (
-          <p className="mt-2 text-[11px] font-medium text-bt-accent">{review.rating_label}</p>
+          <p className="mt-2 inline-flex items-baseline gap-1 text-sm font-bold text-[#d9a81e]">
+            <span>{review.rating_label}</span>
+            <span className="text-[10px] font-medium text-bt-text-muted-lavender">/ 5.0</span>
+          </p>
         ) : null}
         <h3 className="mt-2 text-base font-semibold leading-snug tracking-tight text-bt-ink">{review.title}</h3>
         <p className="mt-3 flex-1 text-sm leading-relaxed text-bt-muted">{review.excerpt}</p>

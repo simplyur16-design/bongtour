@@ -345,3 +345,9 @@ a:not([class]):hover {
 .admin-shell .admin-main tbody td {
   @apply px-3 py-2.5 text-bt-body;
 }
+
+/* ===== 자유여행 ItineraryView 색 강제 (Tailwind arbitrary value 우회) ===== */
+.fit-tx-primary { color: #1F1B2D !important; }
+.fit-tx-meta    { color: #5F5E5A !important; }
+.fit-tx-gold    { color: #d9a81e !important; }
+.fit-tx-price   { color: #85510B !important; }

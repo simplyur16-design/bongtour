@@ -14,6 +14,8 @@ export type GroupMeetingReviewCardModel = {
   ratingLabel: string | null
   ratingValue: number | null
   title: string
+  body: string | null
+  excerpt: string | null
   bodyLines: string
   displayTags: string[]
   thumbnail_url: string | null
@@ -51,7 +53,7 @@ function formatTravelMonth(travelMonth: string | null | undefined): string | nul
   const ym = travelMonth.trim().slice(0, 7)
   const [y, m] = ym.split('-')
   if (!y || !m) return null
-  return `${y}.${m.padStart(2, '0')}`
+  return `${y.slice(-2)}년 ${m.padStart(2, '0')}월`
 }
 
 function parseRating(ratingLabel: string | null | undefined): number | null {
@@ -122,7 +124,9 @@ export async function loadGroupMeetingReviewsFromCsv(): Promise<GroupMeetingRevi
     const dateLabel = formatDotDate(row[displayedI]) ?? formatTravelMonth(row[travelMonthI])
     const ratingLabel = row[ratingI]?.trim() || null
     const ratingValue = parseRating(ratingLabel)
-    const bodyLines = clipBody(row[excerptI] ?? '', row[bodyI] ?? null)
+    const bodyRaw = row[bodyI]?.trim() || null
+    const excerptRaw = row[excerptI]?.trim() || null
+    const bodyLines = clipBody(excerptRaw ?? '', bodyRaw)
     const displayTags = selectGroupMeetingDisplayTags({
       tags,
       customer_type,
@@ -140,6 +144,8 @@ export async function loadGroupMeetingReviewsFromCsv(): Promise<GroupMeetingRevi
       ratingLabel,
       ratingValue,
       title,
+      body: bodyRaw,
+      excerpt: excerptRaw,
       bodyLines,
       displayTags,
       thumbnail_url: row[thumbI]?.trim() || null,

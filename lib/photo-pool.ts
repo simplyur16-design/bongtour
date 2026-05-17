@@ -28,8 +28,25 @@ export type PoolPhotoRecord = {
   attractionName: string
   source: string
   filePath: string
+  photographer: string | null
+  sourceUrl: string | null
+  sourcePhotoId: string | null
   sortOrder: number
   createdAt: Date
+}
+
+/** Pexels 등 외부 출처 메타 — PhotoPool INSERT/UPDATE 시 함께 저장 */
+export type PhotoPoolAttribution = {
+  photographer?: string | null
+  sourceUrl?: string | null
+  sourcePhotoId?: string | null
+}
+
+function normalizeAttribution(attribution?: PhotoPoolAttribution) {
+  const photographer = attribution?.photographer?.trim() || null
+  const sourceUrl = attribution?.sourceUrl?.trim() || null
+  const sourcePhotoId = attribution?.sourcePhotoId?.trim() || null
+  return { photographer, sourceUrl, sourcePhotoId }
 }
 
 /**
@@ -59,7 +76,12 @@ export async function savePhotoToPool(
   cityName: string,
   attractionName: string,
   source: string,
-  options?: { convertToWebpFirst?: boolean; maxWidth?: number; quality?: number }
+  options?: {
+    convertToWebpFirst?: boolean
+    maxWidth?: number
+    quality?: number
+    attribution?: PhotoPoolAttribution
+  }
 ): Promise<PoolPhotoRecord> {
   if (!isObjectStorageConfigured()) {
     throw new Error(
@@ -87,6 +109,7 @@ export async function savePhotoToPool(
 
   const legacyPath = LEGACY_WEB_PATH_PREFIX + filename
   const city = cityName.trim()
+  const attribution = normalizeAttribution(options?.attribution)
 
   const existing = await prisma.photoPool.findFirst({
     where: {
@@ -127,6 +150,9 @@ export async function savePhotoToPool(
         attractionName: attractionName.trim(),
         source: (source || 'Upload').trim(),
         filePath: publicUrl,
+        photographer: attribution.photographer,
+        sourceUrl: attribution.sourceUrl,
+        sourcePhotoId: attribution.sourcePhotoId,
       },
     }) as Promise<PoolPhotoRecord>
   }
@@ -143,6 +169,9 @@ export async function savePhotoToPool(
       attractionName: attractionName.trim(),
       source: (source || 'Upload').trim(),
       filePath: publicUrl,
+      photographer: attribution.photographer,
+      sourceUrl: attribution.sourceUrl,
+      sourcePhotoId: attribution.sourcePhotoId,
       sortOrder: nextOrder,
     },
   }) as Promise<PoolPhotoRecord>
@@ -161,7 +190,8 @@ export async function savePhotoFromUrl(
   imageUrl: string,
   cityName: string,
   attractionName: string,
-  source: string
+  source: string,
+  attribution?: PhotoPoolAttribution
 ): Promise<PoolPhotoRecord | null> {
   try {
     const res = await fetch(imageUrl, {
@@ -176,6 +206,7 @@ export async function savePhotoFromUrl(
       convertToWebpFirst: true,
       maxWidth: 1600,
       quality: 82,
+      attribution,
     })
   } catch {
     return null
@@ -195,12 +226,13 @@ export async function savePhotoFromUrlWithRetry(
   cityName: string,
   attractionName: string,
   source: string,
-  options?: { retries?: number; baseDelayMs?: number }
+  options?: { retries?: number; baseDelayMs?: number; attribution?: PhotoPoolAttribution }
 ): Promise<PoolPhotoRecord | null> {
   const retries = Math.max(1, Math.min(6, options?.retries ?? 3))
   const baseDelayMs = options?.baseDelayMs ?? 450
+  const attribution = options?.attribution
   for (let attempt = 1; attempt <= retries; attempt++) {
-    const got = await savePhotoFromUrl(prisma, imageUrl, cityName, attractionName, source)
+    const got = await savePhotoFromUrl(prisma, imageUrl, cityName, attractionName, source, attribution)
     if (got) return got
     if (attempt < retries) await sleep(baseDelayMs * attempt)
   }

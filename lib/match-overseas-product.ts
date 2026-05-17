@@ -18,7 +18,7 @@ import {
   resolveBrowseCityParamToCountryTagNodeKeys,
   resolveBrowseCountryParamToCountryKeySlugs,
 } from '@/lib/browse-country-url-resolve'
-import { masterContinentKeysFromBrowseDbContinents } from '@/lib/browse-master-geo'
+import { masterContinentKeysFromBrowseDbContinents } from '@/lib/browse-master-geo-continents'
 import type { OverseasCountryNode, OverseasLeafNode } from '@/lib/overseas-location-tree.types'
 
 /** G-3 / I-4: browse·트리 OR 매칭용 (Prisma select 최소 필드) */

@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react'
 import type { GroupMeetingReviewCardModel } from '@/lib/group-meeting-reviews-csv'
+import { groupMeetingReviewDisplayText } from '@/lib/group-meeting-review-display-text'
 
 type Props = {
   review: GroupMeetingReviewCardModel
@@ -41,8 +42,8 @@ export default function GroupMeetingReviewCard({ review }: Props) {
       <h3 className="mt-2 line-clamp-2 min-h-[2.75rem] text-[15px] font-semibold leading-snug tracking-tight text-slate-900">
         {review.title}
       </h3>
-      <p className="mt-2 line-clamp-3 min-h-[3.75rem] flex-1 text-[13px] leading-relaxed text-slate-600">
-        {review.bodyLines}
+      <p className="mt-2 line-clamp-4 min-h-[3.75rem] flex-1 text-[13px] leading-relaxed text-slate-600">
+        {groupMeetingReviewDisplayText(review)}
       </p>
       <div className="mt-2 flex h-7 w-full min-w-0 items-center gap-1.5">
         {review.displayTags.slice(0, 3).map((tag) => (

@@ -9,7 +9,7 @@ export const SUBPAGE_MAIN_CLASS = `${SITE_CONTENT_CLASS} py-6 sm:py-8`
 
 /** PR-G: 카드 이미지 하단 그라데이션 (메모리 #27 SSOT) */
 export const SUBPAGE_CARD_IMAGE_GRADIENT_CLASS =
-  'pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-2/3 bg-gradient-to-t from-black/65 via-black/20 to-transparent'
+  'pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-2/3 bg-gradient-to-t from-[#1F1B2D]/50 via-[#1F1B2D]/10 to-transparent'
 
 /** PR-G: 카드 이미지 밝은 톤 워시 */
 export const SUBPAGE_CARD_IMAGE_WASH_CLASS =

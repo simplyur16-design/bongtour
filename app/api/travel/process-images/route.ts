@@ -6,7 +6,13 @@ import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { buildImageCacheFromDb, getCachedPhoto, type CachedPhotoObject } from '@/lib/image-cache'
 import { PEXELS_REALISTIC_KEYWORDS } from '@/lib/image-style'
 import { getPreMadeImageSet } from '@/lib/destination-image-set'
-import { getPoolPhotosForDestination, savePhotoFromUrl, savePhotoToPool, type PoolPhotoRecord } from '@/lib/photo-pool'
+import {
+  getPoolPhotosForDestination,
+  savePhotoFromUrl,
+  savePhotoToPool,
+  type PhotoPoolAttribution,
+  type PoolPhotoRecord,
+} from '@/lib/photo-pool'
 import { resolveDayHeroWithFallback, saveDayHeroResult } from '@/lib/itinerary-day-hero-image'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import { recordAssetUsage } from '@/lib/asset-usage-log'
@@ -39,6 +45,8 @@ type ScheduleEntry = {
   imageKeyword?: string
   imageUrl?: string | null
   imageSource?: { source: string; photographer: string; originalLink: string; externalId?: string }
+  imagePhotographer?: string | null
+  imageSourcePageUrl?: string | null
   imageManualSelected?: boolean
   imageSelectionMode?: string | null
   imageCandidateOrigin?: string | null
@@ -66,6 +74,14 @@ type ItineraryRowLite = {
   poiNamesRaw: string | null
   summaryTextRaw: string | null
   rawBlock: string | null
+}
+
+function pexelsPoolAttribution(p: PexelsPhotoObject): PhotoPoolAttribution {
+  return {
+    photographer: p.photographer,
+    sourceUrl: p.originalLink,
+    sourcePhotoId: p.externalId ?? null,
+  }
 }
 
 function normAssetUrl(u: string): string {
@@ -160,6 +176,14 @@ function parseSchedule(schedule: string | null): ScheduleEntry[] {
                 : {}),
             }
           : undefined,
+      imagePhotographer:
+        typeof item.imagePhotographer === 'string'
+          ? item.imagePhotographer
+          : (item.imagePhotographer as null) ?? null,
+      imageSourcePageUrl:
+        typeof item.imageSourcePageUrl === 'string'
+          ? item.imageSourcePageUrl
+          : (item.imageSourcePageUrl as null) ?? null,
       imageManualSelected: item.imageManualSelected === true,
       imageSelectionMode: typeof item.imageSelectionMode === 'string' ? item.imageSelectionMode : null,
       imageCandidateOrigin: typeof item.imageCandidateOrigin === 'string' ? item.imageCandidateOrigin : null,
@@ -173,8 +197,9 @@ function toPoolResult(rec: PoolPhotoRecord): PhotoResult {
   return {
     url: rec.filePath,
     source: rec.source,
-    photographer: rec.source,
-    originalLink: '',
+    photographer: rec.photographer?.trim() || rec.source,
+    originalLink: rec.sourceUrl?.trim() || '',
+    externalId: rec.sourcePhotoId ?? undefined,
   }
 }
 
@@ -481,7 +506,14 @@ export async function POST(req: Request) {
             mainPhoto = pexelsToResult(pexelsMain)
           }
         } else {
-          const saved = await savePhotoFromUrl(prisma, pexelsMain.url, destination, 'Landmark', 'Pexels')
+          const saved = await savePhotoFromUrl(
+            prisma,
+            pexelsMain.url,
+            destination,
+            'Landmark',
+            'Pexels',
+            pexelsPoolAttribution(pexelsMain)
+          )
           mainPhoto = saved ? toPoolResult(saved) : pexelsToResult(pexelsMain)
           console.log(`[POOL] 메인 Pexels → 풀 저장`)
         }
@@ -598,7 +630,14 @@ export async function POST(req: Request) {
         const fallbackUrl = isPexelsFallbackUrl(pexelsPhoto.url)
         if (!fallbackUrl && !sameAsHero && !alreadyUsed) {
           newFetchCount++
-          const saved = await savePhotoFromUrl(prisma, pexelsPhoto.url, destination, attractionLabel, 'Pexels')
+          const saved = await savePhotoFromUrl(
+            prisma,
+            pexelsPhoto.url,
+            destination,
+            attractionLabel,
+            'Pexels',
+            pexelsPoolAttribution(pexelsPhoto)
+          )
           photo = saved ? toPoolResult(saved) : pexelsToResult(pexelsPhoto)
           fallbackReason = 'fallback-pexels'
         } else {
@@ -663,6 +702,8 @@ export async function POST(req: Request) {
         description: item.description,
         imageKeyword: slot?.imageKeyword ?? `day_${item.day ?? i + 1}`,
         imageUrl: photo?.url ?? item.imageUrl ?? null,
+        imagePhotographer: photo?.photographer ?? item.imagePhotographer ?? null,
+        imageSourcePageUrl: photo?.originalLink ?? item.imageSourcePageUrl ?? null,
         imageSource: photo
           ? {
               source: photo.source,

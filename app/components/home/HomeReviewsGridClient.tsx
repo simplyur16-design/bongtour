@@ -4,19 +4,9 @@ import SafeImage from '@/app/components/SafeImage'
 import { useMemo } from 'react'
 import type { ReviewCardModel } from '@/lib/reviews-types'
 
-function starsFromLabel(label: string | null): number {
-  if (!label) return 0
-  const m = label.match(/(\d+(?:\.\d+)?)/)
-  if (!m) return 0
-  const n = Number(m[1])
-  if (!Number.isFinite(n)) return 0
-  return Math.min(5, Math.max(0, Math.round(n)))
-}
-
 type Props = { reviews: ReviewCardModel[] }
 
 export function HomeReviewGridCard({ review: r }: { review: ReviewCardModel }) {
-  const stars = starsFromLabel(r.rating_label)
   const dest = [r.destination_city, r.destination_country].filter(Boolean).join(' · ')
 
   return (
@@ -33,13 +23,11 @@ export function HomeReviewGridCard({ review: r }: { review: ReviewCardModel }) {
         </div>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
-        {stars > 0 ? (
-          <p className="text-sm text-amber-500" aria-label={`별점 ${stars}점`}>
-            {'★'.repeat(stars)}
-            <span className="sr-only">{stars}점</span>
+        {r.rating_label ? (
+          <p className="inline-flex items-baseline gap-1 text-sm font-bold text-[#d9a81e]" aria-label={`평점 ${r.rating_label}`}>
+            <span>{r.rating_label}</span>
+            <span className="text-[10px] font-medium text-bt-text-muted-lavender">/ 5.0</span>
           </p>
-        ) : r.rating_label ? (
-          <span className="text-xs font-medium text-bt-text-muted-lavender">{r.rating_label}</span>
         ) : null}
       </div>
       <h3 className="mt-1 line-clamp-2 text-sm font-bold text-bt-text-navy">{r.title}</h3>

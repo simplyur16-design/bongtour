@@ -1,7 +1,7 @@
 'use client'
 
 import { COMPARE_PRICE_ROW_HINT } from '@/lib/promotion-copy-normalize'
-import { Ticket, ShoppingBag, Clock3, Plane, Route } from 'lucide-react'
+import { Ticket, ShoppingBag, Clock3, Plane, Route, Building2 } from 'lucide-react'
 import type { ProductMetaChip, ProductMetaChipKind } from '@/lib/product-meta-chips'
 
 /**
@@ -18,6 +18,7 @@ const META_KIND_LABEL: Record<ProductMetaChipKind, string> = {
   freeTime: '자유시간',
   airline: '항공',
   flightRouting: '경로',
+  supplier: '공급사',
 }
 
 const META_ICONS: Record<ProductMetaChipKind, typeof Ticket> = {
@@ -26,6 +27,7 @@ const META_ICONS: Record<ProductMetaChipKind, typeof Ticket> = {
   freeTime: Clock3,
   airline: Plane,
   flightRouting: Route,
+  supplier: Building2,
 }
 
 const metaShellLight: Record<ProductMetaChipKind, string> = {
@@ -34,6 +36,7 @@ const metaShellLight: Record<ProductMetaChipKind, string> = {
   freeTime: 'border-bt-card-accent-border/60 bg-bt-card-accent-soft',
   airline: 'border-slate-200/90 bg-slate-50',
   flightRouting: 'border-sky-200/90 bg-sky-50',
+  supplier: 'border-slate-200/90 bg-slate-50',
 }
 
 const metaShellDark: Record<ProductMetaChipKind, string> = {
@@ -42,6 +45,7 @@ const metaShellDark: Record<ProductMetaChipKind, string> = {
   freeTime: 'border-teal-200/25 bg-teal-300/10',
   airline: 'border-white/15 bg-white/[0.07]',
   flightRouting: 'border-sky-300/25 bg-sky-400/10',
+  supplier: 'border-white/15 bg-white/[0.07]',
 }
 
 const metaLabelLight: Record<ProductMetaChipKind, string> = {
@@ -50,6 +54,7 @@ const metaLabelLight: Record<ProductMetaChipKind, string> = {
   freeTime: 'text-bt-card-title',
   airline: 'text-slate-600',
   flightRouting: 'text-sky-800',
+  supplier: 'text-slate-600',
 }
 
 const metaLabelDark: Record<ProductMetaChipKind, string> = {
@@ -58,6 +63,7 @@ const metaLabelDark: Record<ProductMetaChipKind, string> = {
   freeTime: 'text-teal-100',
   airline: 'text-slate-200/90',
   flightRouting: 'text-sky-100',
+  supplier: 'text-slate-200/90',
 }
 
 const metaIconLight: Record<ProductMetaChipKind, string> = {
@@ -66,6 +72,7 @@ const metaIconLight: Record<ProductMetaChipKind, string> = {
   freeTime: 'text-bt-icon-accent',
   airline: 'text-slate-500',
   flightRouting: 'text-sky-600',
+  supplier: 'text-slate-500',
 }
 
 const metaIconDark: Record<ProductMetaChipKind, string> = {
@@ -74,6 +81,7 @@ const metaIconDark: Record<ProductMetaChipKind, string> = {
   freeTime: 'text-teal-200/90',
   airline: 'text-slate-300/80',
   flightRouting: 'text-sky-200/90',
+  supplier: 'text-slate-300/80',
 }
 
 const metaValueLight = 'text-bt-text-secondary'
@@ -170,20 +178,21 @@ export function parseTitleBracketSegments(title: string): { kind: 'tag' | 'plain
 type TitleProps = {
   title: string
   className?: string
+  style?: React.CSSProperties
   /** 모바일 히어로 등 어두운 배경 */
   tone?: 'light' | 'dark'
 }
 
 /** 상품명: 약간 자간 + `[]` 구간만 보조 강조색 */
-export function ProductDetailTitle({ title, className, tone = 'light' }: TitleProps) {
+export function ProductDetailTitle({ title, className, style, tone = 'light' }: TitleProps) {
   const segments = parseTitleBracketSegments(title)
   const tagCls = tone === 'dark' ? 'font-extrabold text-teal-200' : 'font-extrabold text-bt-card-accent-strong'
   const defaultCls =
     tone === 'dark'
-      ? 'bt-wrap mb-3 text-[1.35rem] font-black leading-snug tracking-[0.02em] text-white sm:text-2xl'
+      ? 'bt-wrap mb-3 text-[1.35rem] font-black leading-[1.42] tracking-[0.02em] text-white sm:text-2xl'
       : 'bt-wrap text-2xl font-black leading-[1.2] tracking-[0.02em] text-bt-title sm:text-3xl'
   return (
-    <h1 className={className ?? defaultCls}>
+    <h1 className={className ?? defaultCls} style={style}>
       {segments.map((s, i) =>
         s.kind === 'tag' ? (
           <span key={i} className={tagCls}>

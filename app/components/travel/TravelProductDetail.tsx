@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -37,11 +37,12 @@ import { parseRangeOnDemandResponse, postRangeOnDemandDepartures } from '@/lib/d
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
 import { resolveHeroTripDates } from '@/lib/product-hero-dates'
-import ProductDetailHeroOasis from '@/app/components/detail/ProductDetailHeroOasis'
+import PackageProductHeroSection from '@/app/components/detail/PackageProductHeroSection'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SUBPAGE_PAGE_SHELL_CLASS } from '@/lib/subpage-design-system'
-import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
 import ProductLiveQuoteCard from '@/app/components/detail/ProductLiveQuoteCard'
+import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
+import { ItineraryViewPackageMain } from '@/components/itinerary/ItineraryViewPackageMain'
 import DeparturePriceCollectOverlay from '@/app/components/detail/DeparturePriceCollectOverlay'
 import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
 import { resolveDeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
@@ -54,15 +55,7 @@ import type { FlightManualCorrectionPayload } from '@/lib/flight-manual-correcti
 import type { FlightStructuredBody } from '@/lib/public-product-extras'
 import { buildPriceDisplaySsot } from '@/lib/price-display-ssot'
 import ScheduleDayHotelMealCard from '@/app/components/detail/ScheduleDayHotelMealCard'
-import {
-  ComparePriceRow,
-  CurrentPriceRow,
-  HERO_DATE_INLINE_VALUE_CLASS,
-  HERO_DATE_LABEL_CLASS,
-  HERO_DATE_VALUE_CLASS,
-  ProductDetailTitle,
-  ProductMetaChips,
-} from '@/app/components/detail/product-detail-visual'
+import { HERO_DATE_INLINE_VALUE_CLASS } from '@/app/components/detail/product-detail-visual'
 import { buildProductMetaChips } from '@/lib/product-meta-chips'
 import { formatScheduleDayHotelLine, formatMealDisplay, getHotelMealLabels } from '@/lib/hotel-meal-display'
 import {
@@ -73,6 +66,7 @@ import {
 } from '@/lib/promotion-copy-normalize'
 import type { DayHotelPlan } from '@/lib/day-hotel-plans-hanatour'
 import { formatHeroDateKorean } from '@/lib/hero-date-utils'
+import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import {
   buildHanatourDepartureEvidenceHaystack,
@@ -84,7 +78,7 @@ import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
 
-/** Prisma ProductPrice + 견적용 price* (lib/price-utils PriceRowLike 호환) */
+/** Prisma ProductPrice + quote price* fields (lib/price-utils PriceRowLike compatible) */
 export type ProductPriceRow = {
   id: string
   productId: string
@@ -100,9 +94,9 @@ export type ProductPriceRow = {
   priceChildNoBed: number | null
   priceInfant: number | null
   status?: string
-  /** 달력 행 잔여석 등 — 있으면 예약인원 행에 보조 표기 */
+  /** Calendar row remaining seats — optional hint on booking pax row */
   availableSeats?: number
-  /** ProductDeparture.seatsStatusRaw — 숫자 좌석과 별도의 예약/잔여 문구 */
+  /** ProductDeparture.seatsStatusRaw — seat count vs separate booking/remaining copy */
   seatsStatusRaw?: string
 }
 
@@ -121,14 +115,14 @@ export type ScheduleDay = {
   imageDisplayName?: string | null
   title?: string
   imageKeyword?: string | null
-  /** ItineraryDay.city — 캐러셀 DAY 라벨 보조 */
+  /** ItineraryDay.city — carousel DAY label fallback */
   city?: string | null
   hotelText?: string | null
   breakfastText?: string | null
   lunchText?: string | null
   dinnerText?: string | null
   mealSummaryText?: string | null
-  /** 상세 페이지 병합 시 ItineraryDay.meals — 조·중·석 필드가 비었을 때 식사 카드 한 줄 */
+  /** Detail merge: ItineraryDay.meals when meal fields empty — one meal card line */
   meals?: string | null
 }
 
@@ -153,13 +147,14 @@ export type TravelProduct = {
   itineraries: ProductItinerary[]
   schedule?: ScheduleDay[] | null
   bgImageUrl?: string | null
-  /** 대표 이미지 출처 타입(Product.bgImageSource) — 히어로 배지 */
+  /** Hero image source type (Product.bgImageSource) — hero badge */
   bgImageSource?: string | null
-  /** AI 생성 표기(Product.bgImageIsGenerated) */
+  /** AI-generated flag (Product.bgImageIsGenerated) */
   bgImageIsGenerated?: boolean | null
-  /** 일정 표시명 없을 때 image_assets 메타로 히어로 첫 슬라이드 캡션 보강 */
+  bgImagePhotographer?: string | null
+  /** When no schedule display name — image_assets meta for hero caption */
   heroCoverCaptionFromAsset?: string | null
-  /** 히어로 이미지 내부 좌측 SEO 키워드(캡션과 분리) */
+  /** Hero image left SEO keyword overlay (separate from caption) */
   heroImageSeoKeywordOverlay?: string | null
   optionalTours?: Array<{ id: string; name: string; priceUsd: number; duration: string; waitPlaceIfNotJoined: string }>
   shoppingCount?: number | null
@@ -167,11 +162,11 @@ export type TravelProduct = {
   optionalTourNoticeRaw?: string | null
   optionalTourNoticeItems?: string[]
   optionalTourDisplayNoticeFinal?: string | null
-  /** structuredSignals.optionalToursPasteRaw — 구조화 0행 시 현지옵션 탭 SSOT 원문 */
+  /** structuredSignals.optionalToursPasteRaw — tab SSOT when structured rows empty */
   optionalToursPasteRaw?: string | null
   shoppingVisitCountTotal?: number | null
   shoppingNoticeRaw?: string | null
-  /** structuredSignals.shoppingPasteRaw — 구조화 0행 시 쇼핑 탭 SSOT 원문 */
+  /** structuredSignals.shoppingPasteRaw — tab SSOT when structured rows empty */
   shoppingPasteRaw?: string | null
   shoppingStopsStructured?: ShoppingStopRow[] | null
   freeTimeSummaryText?: string | null
@@ -179,25 +174,25 @@ export type TravelProduct = {
   hasOptionalTours?: boolean | null
   pricePromotionView?: PublicPricePromotionView | null
   benefitSummary?: string | null
-  /** D-5: 운영 정리본 — 공개 시 우선 */
+  /** D-5: highlight points for public display priority */
   highlightPoints?: string | null
-  /** D-5: 공급사 추출 raw */
+  /** D-5: supplier-extracted highlight raw */
   highlightPointsRaw?: string | null
   promotionLabelsRaw?: string | null
   priceFrom?: number | null
   priceCurrency?: string | null
-  /** 출발일별 항공·미팅 요약 (YYYY-MM-DD) */
+  /** Per-departure flight/meeting summary (YYYY-MM-DD) */
   departureKeyFactsByDate?: Record<string, DepartureKeyFacts>
-  /** 출발 행 id별 항공 facts — 동일 캘린더일 다행·가격행 SSOT용 */
+  /** Per departure id — same calendar row execution/price SSOT */
   departureKeyFactsByDepartureId?: Record<string, DepartureKeyFacts>
-  /** rawMeta 항공 본문 — 출발행 비어 있을 때 항공 카드 보강 */
+  /** rawMeta flight body — enriches flight card when departure row empty */
   flightStructured?: FlightStructuredBody | null
-  /** 본문 가격표 원문 — 인원 카드 연령 기준 추출 */
+  /** Body price table raw — age bracket extraction for pax card */
   priceTableRawText?: string | null
   hotelSummaryRaw?: string | null
   hotelSummaryText?: string | null
   hotelNames?: string[] | null
-  /** 일차별 예정호텔(서버에서 structured·일정·본문 파서 병합) */
+  /** Per-day planned hotels (structured + schedule + body parser merge on server) */
   dayHotelPlans?: DayHotelPlan[] | null
   hotelInfoRaw?: string | null
   hotelStatusText?: string | null
@@ -209,7 +204,7 @@ export type TravelProduct = {
   childAgeRuleText?: string | null
   reservationNoticeRaw?: string | null
   mustKnowItems?: Array<{ category: string; title: string; body: string; raw?: string }>
-  /** rawMeta structured — 불포함 카드 병합용 */
+  /** rawMeta structured — single-room surcharge card merge */
   singleRoomSurchargeDisplayText?: string | null
   singleRoomSurchargeAmount?: number | null
   singleRoomSurchargeCurrency?: string | null
@@ -223,14 +218,16 @@ export type TravelProduct = {
   meetingPlaceRaw?: string | null
   meetingFallbackText?: string | null
   flightExposurePolicy?: 'public_full' | 'public_limited' | 'admin_only' | null
-  /** structuredSignals.flightManualCorrection — legacy_parsed 표시 시 편명/시간만 */
+  /** structuredSignals.flightManualCorrection — legacy_parsed display (flight no/time only) */
   flightManualCorrection?: FlightManualCorrectionPayload | null
-  /** 본문 파싱 항공만 노출될 때 수동 보정 적용 */
+  /** Apply manual flight correction when only parsed body flight is shown */
   applyFlightManualCorrectionOverlay?: boolean
-  /** 모두투어: 출발일 변경 CTA 바로 아래 현지 지불경비(인당) 한 줄 */
+  /** Modetour: local pay line below departure-change CTA */
   modetourStickyLocalPayLine?: string | null
-  /** travel | private_trip | air_hotel_free — 항공권+호텔(자유여행) UI 분기 */
+  /** travel | private_trip | air_hotel_free — listing kind UI branch */
   listingKind?: string | null
+  /** rawMeta structuredSignals.flightAdminJson — ItineraryExtraInfoBoxes 항공 SSOT */
+  flightAdminJson?: string | null
 }
 
 function toDateKey(d: string): string {
@@ -259,7 +256,7 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
   const [pricePatches, setPricePatches] = useState<ProductPriceRow[]>([])
   const [onDemandNotice, setOnDemandNotice] = useState<string | null>(null)
   const [departureCollectOpen, setDepartureCollectOpen] = useState(false)
-  /** 캘린더에서 마지막으로 고른 YYYY-MM-DD — 예약가능 여부와 무관하게 유지 */
+  /** Last calendar-picked YYYY-MM-DD — keep pinned date through remounts */
   const [calendarDateKey, setCalendarDateKey] = useState<string | null>(null)
 
   const mergedPrices = useMemo(() => {
@@ -370,6 +367,10 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
     },
     [mergedPrices, departureCollectOpen, runRangeOnDemandCollect]
   )
+
+  const handleChangeDepartureDate = useCallback(() => {
+    setDeparturePickerOpen(true)
+  }, [])
 
   const openBookingIntake = useCallback(() => {
     const dk = resolvePublicDetailDateKey({
@@ -507,7 +508,7 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
     [product.schedule]
   )
 
-  const detailScope = product.primaryRegion === '국내' ? 'domestic' : 'overseas'
+  const detailScope = product.primaryRegion === '援?궡' ? 'domestic' : 'overseas'
   const labels = getHotelMealLabels(detailScope)
 
   const selectedDate = useMemo(
@@ -559,7 +560,7 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
     product.originSource,
   ])
 
-  /** 꼭 알아야 할 사항: `mustKnowItems`만(공급사 공통). 비면 기본 안내 문구. */
+  /** mustKnowItems filter — shared with travel/private/semi. Empty falls back to default trip-readiness items. */
   const mustKnowFiltered = useMemo(
     () =>
       filterPublicMustKnowItemsForTripReadiness(
@@ -644,9 +645,17 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
   const heroDepartureDisplay =
     heroResolved.departureDisplayOverride ??
     (formatHeroDateKorean(heroResolved.departureIso) ?? heroResolved.departureIso ?? null)
-  const heroReturnDisplay =
-    heroResolved.returnDisplayOverride ??
-    (formatHeroDateKorean(heroResolved.returnIso) ?? heroResolved.returnIso ?? null)
+
+  const packageTotalDays = getProductTotalDays(
+    product,
+    product.schedule?.length ? product.schedule.length : null
+  )
+  const departureDateFrom = mergedPrices[0] ? toDateKey(mergedPrices[0].date) : null
+  const computedReturnDate = useMemo(() => {
+    const dep =
+      selectedDate ?? (selectedPriceRow ? toDateKey(selectedPriceRow.date) : departureDateFrom)
+    return computeReturnDate(dep, packageTotalDays)
+  }, [selectedDate, selectedPriceRow, departureDateFrom, packageTotalDays])
 
   const travelCitiesLine = useMemo(() => {
     const raw = [product.primaryDestination, product.destination]
@@ -691,7 +700,9 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
       <>
         <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroDepartureDisplay ?? '—'}</span>
         <span className="text-bt-disabled"> ~ </span>
-        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroReturnDisplay ?? '상담 시 안내'}</span>
+        <span className={HERO_DATE_INLINE_VALUE_CLASS}>
+          {computedReturnDate ? computedReturnDate : '상담 시 안내'}
+        </span>
         {product.duration?.trim() ? (
           <>
             {' '}
@@ -700,7 +711,7 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
         ) : null}
       </>
     ),
-    [heroDepartureDisplay, heroReturnDisplay, product.duration]
+    [heroDepartureDisplay, computedReturnDate, product.duration]
   )
   const heroPriceSsot = buildPriceDisplaySsot(selectedDepartureCurrentPrice, product.pricePromotionView)
   const heroDiscountSavingsLine =
@@ -716,86 +727,47 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
     product.pricePromotionView?.benefitTitle?.trim() ||
     null
 
-  const scrollToLiveQuote = useCallback(() => {
-    document.getElementById('product-live-quote-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
-
   return (
     <div className={SUBPAGE_PAGE_SHELL_CLASS}>
       <Header />
       <main>
-        <ProductDetailHeroOasis
+        <PackageProductHeroSection
           heroUrl={heroUrl}
           daySlides={daySlides}
           productTitle={product.title}
           heroImageSourceType={product.bgImageSource ?? null}
+          heroImagePhotographer={product.bgImagePhotographer ?? null}
           heroImageIsGenerated={product.bgImageIsGenerated ?? null}
           heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
           primaryDestination={product.primaryDestination ?? null}
           destination={product.destination ?? null}
-          onPrimaryCta={scrollToLiveQuote}
-        >
-          <div className="inline-flex items-center rounded-lg border border-white/25 bg-white/10 px-2.5 py-1 text-xs font-medium text-white/90 backdrop-blur-sm">
-            데이터 출처: {formatOriginSourceForDisplay(product.originSource)}
-          </div>
-          <ProductDetailTitle
-            title={product.title}
-            className="bt-wrap mt-3 text-2xl font-black leading-[1.2] tracking-[0.02em] text-white sm:text-3xl"
-          />
-          <p className="bt-wrap mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm leading-relaxed text-white/85">
-            <span className="bt-code-wrap font-mono text-xs font-semibold text-white/70">{product.originCode}</span>
-            <span className="text-white/40">·</span>
-            <span className="font-medium text-white">{product.destination}</span>
-            <span className="text-white/40">·</span>
-            <span>{product.duration}</span>
-            {product.airline ? (
-              <>
-                <span className="text-white/40">·</span>
-                <span className="text-white/75">{product.airline}</span>
-              </>
-            ) : null}
-          </p>
-          {(heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText) && (
-            <div className="mt-4 rounded-xl border border-white/20 bg-black/35 p-4 backdrop-blur-sm">
-              <div className="space-y-1 text-xs">
-                <p className="flex items-center justify-between gap-3">
-                  <span className="text-white/70">출발일</span>
-                  <span className="font-semibold text-white">
-                    {heroDepartureDisplay ?? '선택 가능 출발일 자동 선택'}
-                  </span>
-                </p>
-                <p className="flex items-center justify-between gap-3">
-                  <span className="text-white/70">귀국일</span>
-                  <span className="font-semibold text-white">{heroReturnDisplay ?? '상담 시 안내'}</span>
-                </p>
-              </div>
-              {heroPriceSsot.selectedDeparturePrice != null ? (
-                <>
-                  <div className="mt-3 flex flex-col gap-2">
-                    {heroPriceSsot.couponDiscountAmount > 0 && heroPriceSsot.displayPriceBeforeCoupon != null ? (
-                      <ComparePriceRow amount={heroPriceSsot.displayPriceBeforeCoupon} variant="inverse" />
-                    ) : null}
-                    <CurrentPriceRow amount={heroPriceSsot.selectedDeparturePrice} variant="inverse" />
-                  </div>
-                  {heroDiscountSavingsLine ? (
-                    <p className="bt-wrap mt-2 text-sm font-semibold text-bt-coral-soft">{heroDiscountSavingsLine}</p>
-                  ) : null}
-                </>
-              ) : null}
-              {heroBenefitWhenNoDiscount ? (
-                <p className="bt-wrap mt-2 text-xs text-white/80">{heroBenefitWhenNoDiscount}</p>
-              ) : null}
-              {heroCouponText ? <p className="bt-wrap mt-1 text-xs text-white/75">{heroCouponText}</p> : null}
-            </div>
-          )}
-          {productMetaChips.length > 0 ? (
-            <div className="mt-3">
-              <ProductMetaChips chips={productMetaChips} variant="dark" className="w-full" />
-            </div>
-          ) : null}
-        </ProductDetailHeroOasis>
+          infoPanel={{
+            dataSourceLabel: formatOriginSourceForDisplay(product.originSource),
+            title: product.title,
+            originCode: product.originCode,
+            destination: product.destination,
+            durationLabel: product.duration ?? '',
+            airline: product.airline,
+            heroDepartureDisplay,
+            duration: product.duration ?? '',
+            masterTotalDays: packageTotalDays > 0 ? packageTotalDays : null,
+            selectedDepartureIso: selectedDate,
+            departureDateFrom,
+            heroPriceSsot,
+            heroDiscountSavingsLine,
+            heroBenefitWhenNoDiscount,
+            heroCouponText,
+            departureConditionLine,
+            productMetaChips,
+            listingKind: product.listingKind,
+            airportTransferType: product.airportTransferType,
+          }}
+          onChangeDepartureDate={handleChangeDepartureDate}
+          showChangeDepartureCta={mergedPrices.length > 0}
+          modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
+        />
 
-        <div className={`${SITE_CONTENT_CLASS} py-6 sm:py-8`}>
+        <div className={`${SITE_CONTENT_CLASS} bg-[#FAFAFC] pt-4 py-6 sm:py-8 lg:pt-8`}>
         <Link
           href="/"
           className="inline-flex items-center text-sm font-medium text-bt-link hover:text-bt-link-hover hover:underline"
@@ -803,12 +775,13 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
           ← 상품 목록
         </Link>
 
+        {onDemandNotice ? (
+          <p className="mt-6 mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
+            {onDemandNotice}
+          </p>
+        ) : null}
+
         <div className="mt-6 lg:hidden">
-          {onDemandNotice ? (
-            <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
-              {onDemandNotice}
-            </p>
-          ) : null}
           <ProductLiveQuoteCard
             product={product}
             prices={mergedPrices}
@@ -823,135 +796,35 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
             updateChildCombined={updateChildCombined}
             highRiskAlerts={highRiskAlerts}
             onBookingOpen={openBookingIntake}
-            onOpenDeparturePicker={() => setDeparturePickerOpen(true)}
-            variant="desktop"
-            fromScreen="product_detail_desktop"
+            onOpenDeparturePicker={handleChangeDepartureDate}
+            variant="mobile"
+            fromScreen="product_detail_mobile"
             departureConditionLine={departureConditionLine}
             heroTripDepartureDisplay={heroDepartureDisplay}
-            heroTripReturnDisplay={heroReturnDisplay}
+            heroTripReturnDisplay={computedReturnDate}
             modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
             isCollectingPrices={departureCollectOpen}
             priceCollectUiPhase={priceCollectUiPhase}
+            masterTotalDays={packageTotalDays > 0 ? packageTotalDays : null}
+            departureDateFrom={departureDateFrom}
           />
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-          <div className="space-y-8">
-            <TravelCoreInfoSection
-              facts={selectedDepartureFacts}
-              productAirline={product.airline ?? null}
-              periodContent={periodContent}
-              travelCitiesLine={travelCitiesLine}
-              reservationLine={reservationDisplayLine}
-              meetingDefault={meetingDefault}
-              meetingExtra={null}
-              metaChips={productMetaChips}
-              omitBriefRows={departurePickerOpen}
-              flightExposurePolicy={product.flightExposurePolicy ?? null}
-            />
+        <div className="mt-6 lg:grid lg:grid-cols-[1fr_300px] lg:gap-10 lg:items-start">
+          <ItineraryViewPackageMain
+            product={product}
+            selectedDepartureFacts={selectedDepartureFacts}
+            periodContent={periodContent}
+            travelCitiesLine={travelCitiesLine}
+            reservationLine={reservationDisplayLine}
+            meetingDefault={meetingDefault}
+            productMetaChips={productMetaChips}
+            omitBriefRows={departurePickerOpen}
+            showEsimCrossSell={showEsimCrossSell}
+          />
 
-            <ProductHighlightPointsSection
-              highlightPoints={product.highlightPoints ?? null}
-              highlightPointsRaw={product.highlightPointsRaw ?? null}
-            />
-
-            <section className="rounded-2xl border border-bt-border bg-bt-surface p-6">
-              <h2 className="mb-4 border-l-4 border-bt-card-title pl-3 text-lg font-semibold text-bt-card-title">일정 요약</h2>
-              {product.listingKind === 'air_hotel_free' ? (
-                <p className="bt-wrap mb-6 rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-center text-sm font-semibold text-amber-950">
-                  아래보시는 일정은 예시 일정입니다.
-                </p>
-              ) : null}
-              {product.listingKind !== 'air_hotel_free' &&
-              product.freeTimeSummaryText?.trim() &&
-              !isScheduleUserPlaceholder(product.freeTimeSummaryText) ? (
-                <p className="bt-wrap mb-6 rounded-xl border border-bt-card-accent-border bg-bt-card-accent-soft px-4 py-3 text-center text-sm font-medium text-bt-body">
-                  {product.freeTimeSummaryText.trim()}
-                </p>
-              ) : null}
-              {product.schedule && product.schedule.length > 0 ? (
-                <div className="space-y-6">
-                  {product.schedule.map((day) => {
-                    const rawTitle =
-                      typeof day === 'object' && day && 'title' in day && typeof (day as { title?: unknown }).title === 'string'
-                        ? String((day as { title: string }).title)
-                        : ''
-                    const sd = day as ScheduleDay
-                    const title = resolvePublicScheduleDayTitle(rawTitle, sd.description)
-                    const hotelLine = formatScheduleDayHotelLine({
-                      hotelNames: product.hotelNames ?? null,
-                      hotelSummaryText: product.hotelSummaryText ?? null,
-                      dayHotelText: sd.hotelText ?? null,
-                    })
-                    const mealLines = formatMealDisplay({
-                      breakfastText: sd.breakfastText,
-                      lunchText: sd.lunchText,
-                      dinnerText: sd.dinnerText,
-                      mealSummaryText: sd.mealSummaryText,
-                      mealsLegacy: sd.meals ?? null,
-                    })
-                    return (
-                      <div key={day.day} className="border-b border-bt-border-soft pb-6 last:border-0 last:pb-0">
-                        <p className="text-xs font-bold tracking-widest text-bt-card-accent-strong">
-                          DAY {String(day.day).padStart(2, '0')}
-                        </p>
-                        {title ? (
-                          <h3 className="mt-1 text-base font-bold text-bt-card-title">{title}</h3>
-                        ) : null}
-                        {(() => {
-                          const scheduleBody = String(sd.description ?? '')
-                            .replace(/\r/g, '\n')
-                            .trim()
-                          if (!scheduleBody || isScheduleUserPlaceholder(scheduleBody)) return null
-                          return (
-                            <p className="mt-2 whitespace-pre-wrap text-sm font-normal leading-relaxed text-bt-body">
-                              {scheduleBody}
-                            </p>
-                          )
-                        })()}
-                        <ScheduleDayHotelMealCard hotelLine={hotelLine} mealLines={mealLines} labels={labels} />
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-bt-meta">등록된 일정 요약이 없습니다.</p>
-              )}
-            </section>
-
-            <ProductExtraInfoTabs
-              key={String(product.id)}
-              product={product}
-              uiOptionalRows={uiOptionalRows}
-              optionalDisplayInput={optionalDisplayInput}
-              shoppingDisplayInput={shoppingDisplayInput}
-              optionalToursForSheet={optionalToursForSheet}
-              shoppingCount={product.shoppingCount ?? 0}
-              shoppingItems={product.shoppingItems ?? null}
-              shoppingVisitCountTotal={product.shoppingVisitCountTotal ?? null}
-              shoppingNoticeRaw={product.shoppingNoticeRaw ?? null}
-              shoppingStopsStructured={product.shoppingStopsStructured ?? null}
-            />
-
-            <MustKnowEssentialsSection items={mustKnowFiltered} layout="desktop" originSource={product.originSource} />
-
-            {showEsimCrossSell ? <EsimProductDetailCrossSell /> : null}
-
-            <section className="rounded-2xl border border-bt-border-soft bg-bt-surface p-6 text-center">
-              <h2 className="text-base font-semibold text-bt-card-title">안내</h2>
-              <p className="bt-wrap mt-2 text-sm font-medium leading-relaxed text-bt-muted">
-                문의·접수는 우측 <strong className="font-semibold text-bt-card-title">실시간 견적</strong> 카드에서 진행해 주세요. 본문은 정보 확인용입니다.
-              </p>
-            </section>
-          </div>
-
-          <aside id="product-live-quote-anchor" className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
+          <aside className="hidden lg:block lg:sticky lg:top-[100px] lg:self-start">
             <div className="max-h-[calc(100vh-7rem)] overflow-y-auto pr-1">
-              {onDemandNotice ? (
-                <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
-                  {onDemandNotice}
-                </p>
-              ) : null}
               <ProductLiveQuoteCard
                 product={product}
                 prices={mergedPrices}
@@ -966,15 +839,17 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
                 updateChildCombined={updateChildCombined}
                 highRiskAlerts={highRiskAlerts}
                 onBookingOpen={openBookingIntake}
-                onOpenDeparturePicker={() => setDeparturePickerOpen(true)}
+                onOpenDeparturePicker={handleChangeDepartureDate}
                 variant="desktop"
                 fromScreen="product_detail_desktop"
                 departureConditionLine={departureConditionLine}
                 heroTripDepartureDisplay={heroDepartureDisplay}
-                heroTripReturnDisplay={heroReturnDisplay}
+                heroTripReturnDisplay={computedReturnDate}
                 modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
                 isCollectingPrices={departureCollectOpen}
                 priceCollectUiPhase={priceCollectUiPhase}
+                masterTotalDays={packageTotalDays > 0 ? packageTotalDays : null}
+                departureDateFrom={departureDateFrom}
               />
             </div>
           </aside>

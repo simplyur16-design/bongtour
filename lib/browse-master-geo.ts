@@ -5,40 +5,19 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import {
-  browseRegionToDbContinents,
   dbContinentsToProductCountryTagGroupKeys,
   resolveBrowseCityParamToCountryTagNodeKeys,
   resolveBrowseCountryParamToCountryKeySlugs,
   resolveBrowseCountryParamToDbCountries,
   resolveBrowseCityParamToDbCity,
 } from '@/lib/browse-country-url-resolve'
+import {
+  masterContinentKeysFromBrowseDbContinents,
+  masterContinentKeysFromBrowseRegion,
+} from '@/lib/browse-master-geo-continents'
 import { countrySlugFromLabel } from '@/lib/location-url-slugs'
 
-/** DB `Product.continent` 슬러그 → `Continent.continentKey` (1:N 가능) */
-const DB_BROWSE_CONTINENT_TO_MASTER: Record<string, string[]> = {
-  japan: ['northeast-asia'],
-  'southeast-asia': ['southeast-asia'],
-  'china-mongolia-ca': ['northeast-asia'],
-  'hongkong-macau': ['northeast-asia'],
-  europe: ['europe'],
-  'me-africa': ['middle-east', 'africa'],
-  oceania: ['oceania'],
-  americas: ['north-america', 'south-america'],
-}
-
-export function masterContinentKeysFromBrowseDbContinents(dbContinents: string[]): string[] {
-  const out = new Set<string>()
-  for (const raw of dbContinents) {
-    const k = raw.trim().toLowerCase()
-    const hit = DB_BROWSE_CONTINENT_TO_MASTER[k]
-    if (hit) hit.forEach((x) => out.add(x))
-  }
-  return [...out]
-}
-
-export function masterContinentKeysFromBrowseRegion(region: string | null | undefined): string[] {
-  return masterContinentKeysFromBrowseDbContinents(browseRegionToDbContinents(region))
-}
+export { masterContinentKeysFromBrowseDbContinents, masterContinentKeysFromBrowseRegion }
 
 /** G-3 continent OR 태그 groupKey (라우트와 동일 로직) */
 export function prismaContinentOrTagGroupKeysG3(continentList: string[]): Prisma.ProductWhereInput {

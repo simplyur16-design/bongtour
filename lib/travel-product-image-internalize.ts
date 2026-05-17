@@ -5,7 +5,7 @@
 
 import type { PrismaClient } from '@prisma/client'
 import { tryParseObjectKeyFromPublicUrl, isObjectStorageConfigured } from '@/lib/object-storage'
-import { savePhotoFromUrlWithRetry } from '@/lib/photo-pool'
+import { savePhotoFromUrlWithRetry, type PhotoPoolAttribution } from '@/lib/photo-pool'
 
 /** 최종 상품/일정/히어로에 남기면 안 되는 `http(s)` 외부 URL (우리 Storage 공개 URL 제외) */
 export function isExternalHttpProductImageUrl(url: string): boolean {
@@ -44,7 +44,12 @@ export async function internalizeProductCoverImageUrl(
   const attraction = (input.poolAttractionLabel ?? '').trim().slice(0, 80) || 'Landmark'
   const poolSrc = (input.poolSource ?? 'Pexels').trim() || 'Pexels'
 
-  const pooled = await savePhotoFromUrlWithRetry(prisma, u, city, attraction, poolSrc)
+  const attribution: PhotoPoolAttribution = {
+    photographer: input.photographer,
+    sourceUrl: input.pexelsPageUrl,
+    sourcePhotoId: input.pexelsPhotoId != null ? String(input.pexelsPhotoId) : null,
+  }
+  const pooled = await savePhotoFromUrlWithRetry(prisma, u, city, attraction, poolSrc, { attribution })
   if (pooled) return pooled.filePath
 
   throw new Error(
@@ -79,7 +84,12 @@ export async function internalizeHeroDisplayUrl(
   const city = (input.destination ?? '').trim() || 'unknown'
   const stem = (input.attractionStem ?? '').trim().slice(0, 80) || 'hero'
 
-  const pooled = await savePhotoFromUrlWithRetry(prisma, u, city, stem, 'Pexels')
+  const attribution: PhotoPoolAttribution = {
+    photographer: input.photographer,
+    sourceUrl: input.pexelsPageUrl,
+    sourcePhotoId: input.pexelsPhotoId != null ? String(input.pexelsPhotoId) : null,
+  }
+  const pooled = await savePhotoFromUrlWithRetry(prisma, u, city, stem, 'Pexels', { attribution })
   if (pooled) return pooled.filePath
 
   throw new Error(

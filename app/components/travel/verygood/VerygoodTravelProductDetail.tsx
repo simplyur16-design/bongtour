@@ -36,9 +36,8 @@ import { parseRangeOnDemandResponse, postRangeOnDemandDepartures } from '@/lib/d
 import { pickVerygoodPublicDefaultDepartureRow } from '@/lib/verygood/verygood-public-default-departure'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { buildVerygoodTripDateDisplaysForSelectedRow } from '@/lib/verygood/verygood-selected-row-trip-display'
-import ProductHeroCarousel from '@/app/components/detail/ProductHeroCarousel'
+import PackageProductHeroSection from '@/app/components/detail/PackageProductHeroSection'
 import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
-import ProductLiveQuoteCard from '@/app/components/detail/ProductLiveQuoteCard'
 import DeparturePriceCollectOverlay from '@/app/components/detail/DeparturePriceCollectOverlay'
 import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
 import { resolveDeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
@@ -363,6 +362,10 @@ export default function VerygoodTravelProductDetail({ product, showEsimCrossSell
     },
     [mergedPrices, departureCollectOpen, runRangeOnDemandCollect]
   )
+
+  const handleChangeDepartureDate = useCallback(() => {
+    setDeparturePickerOpen(true)
+  }, [])
 
   const openBookingIntake = useCallback(() => {
     const dk = resolvePublicDetailDateKey({
@@ -692,7 +695,39 @@ export default function VerygoodTravelProductDetail({ product, showEsimCrossSell
   return (
     <div className="min-h-screen bg-beige">
       <Header />
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <PackageProductHeroSection
+        heroUrl={heroUrl}
+        daySlides={daySlides}
+        productTitle={product.title}
+        heroImageSourceType={product.bgImageSource ?? null}
+        heroImagePhotographer={product.bgImagePhotographer ?? null}
+        heroImageIsGenerated={product.bgImageIsGenerated ?? null}
+        heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
+        primaryDestination={product.primaryDestination ?? null}
+        destination={product.destination ?? null}
+        infoPanel={{
+          dataSourceLabel: formatOriginSourceForDisplay(product.originSource),
+          title: product.title,
+          originCode: product.originCode,
+          destination: product.destination,
+          durationLabel: rowDurationLabel?.trim() || product.duration || '',
+          airline: selectedDepartureFacts?.airline?.trim() ?? product.airline,
+          heroDepartureDisplay,
+          heroReturnDisplay,
+          heroPriceSsot,
+          heroDiscountSavingsLine,
+          heroBenefitWhenNoDiscount,
+          heroCouponText,
+          departureConditionLine,
+          productMetaChips,
+          listingKind: product.listingKind,
+          airportTransferType: product.airportTransferType,
+        }}
+        onChangeDepartureDate={handleChangeDepartureDate}
+        showChangeDepartureCta={mergedPrices.length > 0}
+        modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
+      />
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <Link
           href="/"
           className="inline-flex items-center text-sm font-medium text-bt-link hover:text-bt-link-hover hover:underline"
@@ -700,152 +735,13 @@ export default function VerygoodTravelProductDetail({ product, showEsimCrossSell
           ← 상품 목록
         </Link>
 
-        <section className="mt-4 overflow-hidden bt-card-strong">
-          <div className="grid gap-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-center">
-            <div className="min-w-0 lg:flex lg:items-center">
-              <ProductHeroCarousel
-                heroUrl={heroUrl}
-                daySlides={daySlides}
-                productTitle={product.title}
-                className="w-full rounded-none border-0"
-                heroImageSourceType={product.bgImageSource ?? null}
-                heroImageIsGenerated={product.bgImageIsGenerated ?? null}
-                heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
-                primaryDestination={product.primaryDestination ?? null}
-                destination={product.destination ?? null}
-              />
-            </div>
-            <div className="p-5 sm:p-6">
-              <div className="inline-flex items-center rounded-lg border border-bt-border bg-bt-disclosure px-2.5 py-1 text-xs font-medium text-bt-meta">
-                데이터 출처: {formatOriginSourceForDisplay(product.originSource)}
-              </div>
-              <ProductDetailTitle
-                title={product.title}
-                className="bt-wrap mt-4 text-2xl font-black leading-[1.2] tracking-[0.02em] text-bt-title sm:text-3xl"
-              />
-              <p className="bt-wrap mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm leading-relaxed text-bt-body">
-                <span className="bt-code-wrap font-mono text-xs font-semibold text-bt-meta">{product.originCode}</span>
-                <span className="text-bt-disabled">·</span>
-                <span className="font-medium text-bt-title">{product.destination}</span>
-                <span className="text-bt-disabled">·</span>
-                <span>{rowDurationLabel?.trim() || '—'}</span>
-                {selectedDepartureFacts?.airline?.trim() ? (
-                  <>
-                    <span className="text-bt-disabled">·</span>
-                    <span className="text-bt-muted">{selectedDepartureFacts.airline.trim()}</span>
-                  </>
-                ) : null}
-              </p>
+        {onDemandNotice ? (
+          <p className="mt-6 mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
+            {onDemandNotice}
+          </p>
+        ) : null}
 
-              {(heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText) && (
-                <div className="mt-4 rounded-xl border border-bt-card-accent-border bg-bt-card-accent-soft p-4">
-                  <div className="space-y-1 text-xs">
-                    <p className="flex items-center justify-between gap-3">
-                      <span className={HERO_DATE_LABEL_CLASS}>출발일</span>
-                      <span className={HERO_DATE_VALUE_CLASS}>
-                        {heroDepartureDisplay ?? '선택 가능 출발일 자동 선택'}
-                      </span>
-                    </p>
-                    <p className="flex items-center justify-between gap-3">
-                      <span className={HERO_DATE_LABEL_CLASS}>귀국일</span>
-                      <span className={HERO_DATE_VALUE_CLASS}>
-                        {heroReturnDisplay ?? '—'}
-                      </span>
-                    </p>
-                  </div>
-                  {heroPriceSsot.selectedDeparturePrice != null ? (
-                    <>
-                      <div className="mt-3 flex flex-col gap-2">
-                        {heroPriceSsot.couponDiscountAmount > 0 && heroPriceSsot.displayPriceBeforeCoupon != null ? (
-                          <ComparePriceRow amount={heroPriceSsot.displayPriceBeforeCoupon} />
-                        ) : null}
-                        <CurrentPriceRow amount={heroPriceSsot.selectedDeparturePrice} />
-                        {heroPriceSsot.selectedDeparturePrice != null ? (
-                          <p className="text-[11px] text-bt-meta">{PRICE_MAIN_AMOUNT_HINT}</p>
-                        ) : null}
-                      </div>
-                      {heroDiscountSavingsLine ? (
-                        <p className="bt-wrap mt-2 text-center text-sm font-semibold text-bt-card-accent-strong">
-                          {heroDiscountSavingsLine}
-                        </p>
-                      ) : null}
-                    </>
-                  ) : null}
-                  {heroBenefitWhenNoDiscount ? (
-                    <p className="bt-wrap mt-2 text-center text-xs text-bt-meta">{heroBenefitWhenNoDiscount}</p>
-                  ) : null}
-                  {heroCouponText ? (
-                    <p className="bt-wrap mt-1 text-center text-xs text-bt-muted">{heroCouponText}</p>
-                  ) : null}
-                  <div className="mt-3 border-t border-bt-card-accent-border/40 pt-3 text-center">
-                    <p className="text-xs font-bold text-bt-card-accent-strong">{CARD_INSTALLMENT_SUMMARY}</p>
-                    <p className="bt-wrap mt-1 text-[11px] leading-relaxed text-bt-meta">{CARD_INSTALLMENT_DISCLAIMER}</p>
-                  </div>
-                </div>
-              )}
-
-              {departureConditionLine?.trim() ? (
-                <p className="mt-3 text-center text-[11px] font-semibold leading-snug text-bt-card-accent-strong">
-                  {departureConditionLine.trim()}
-                </p>
-              ) : null}
-
-              {productMetaChips.length > 0 && (
-                <div className="mt-3 border-t border-bt-border-soft pt-3">
-                  <ProductMetaChips chips={productMetaChips} variant="light" className="w-full" />
-                </div>
-              )}
-              {isAirHotelFreeListingForUi(product.listingKind) && (
-                <div className="mt-2">
-                  <span className="inline-flex rounded-full border border-bt-card-accent-border bg-bt-card-accent-soft px-2.5 py-1 text-xs font-semibold text-bt-card-title">
-                    {product.airportTransferType === 'BOTH'
-                      ? '픽업·샌딩 포함'
-                      : product.airportTransferType === 'PICKUP'
-                        ? '공항 픽업 포함'
-                        : product.airportTransferType === 'SENDING'
-                          ? '공항 샌딩 포함'
-                          : '공항 이동 불포함'}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <div className="mt-6 lg:hidden">
-          {onDemandNotice ? (
-            <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
-              {onDemandNotice}
-            </p>
-          ) : null}
-          <ProductLiveQuoteCard
-            product={product}
-            prices={mergedPrices}
-            selectedDate={selectedDate}
-            explicitPriceRow={
-              selectedDepartureRowId
-                ? (mergedPrices.find((p) => p.id === selectedDepartureRowId) ?? null)
-                : null
-            }
-            pax={pax}
-            updatePax={updatePax}
-            updateChildCombined={updateChildCombined}
-            highRiskAlerts={highRiskAlerts}
-            onBookingOpen={openBookingIntake}
-            onOpenDeparturePicker={() => setDeparturePickerOpen(true)}
-            variant="desktop"
-            fromScreen="product_detail_desktop"
-            departureConditionLine={departureConditionLine}
-            heroTripDepartureDisplay={heroDepartureDisplay}
-            heroTripReturnDisplay={heroReturnDisplay}
-            modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
-            isCollectingPrices={departureCollectOpen}
-            priceCollectUiPhase={priceCollectUiPhase}
-          />
-        </div>
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-          <div className="space-y-8">
+        <div className="mt-6 space-y-8">
             <TravelCoreInfoSection
               facts={selectedDepartureFacts}
               productAirline={selectedDepartureFacts?.airline?.trim() ?? null}
@@ -952,44 +848,9 @@ export default function VerygoodTravelProductDetail({ product, showEsimCrossSell
             <section className="rounded-2xl border border-bt-border-soft bg-bt-surface p-6 text-center">
               <h2 className="text-base font-semibold text-bt-card-title">안내</h2>
               <p className="bt-wrap mt-2 text-sm font-medium leading-relaxed text-bt-muted">
-                문의·접수는 우측 <strong className="font-semibold text-bt-card-title">실시간 견적</strong> 카드에서 진행해 주세요. 본문은 정보 확인용입니다.
+                문의·접수는 상단 상품 정보 또는 상담 채널을 이용해 주세요. 본문은 정보 확인용입니다.
               </p>
             </section>
-          </div>
-
-          <aside className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
-            <div className="max-h-[calc(100vh-7rem)] overflow-y-auto pr-1">
-              {onDemandNotice ? (
-                <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
-                  {onDemandNotice}
-                </p>
-              ) : null}
-              <ProductLiveQuoteCard
-                product={product}
-                prices={mergedPrices}
-                selectedDate={selectedDate}
-                explicitPriceRow={
-                  selectedDepartureRowId
-                    ? (mergedPrices.find((p) => p.id === selectedDepartureRowId) ?? null)
-                    : null
-                }
-                pax={pax}
-                updatePax={updatePax}
-                updateChildCombined={updateChildCombined}
-                highRiskAlerts={highRiskAlerts}
-                onBookingOpen={openBookingIntake}
-                onOpenDeparturePicker={() => setDeparturePickerOpen(true)}
-                variant="desktop"
-                fromScreen="product_detail_desktop"
-                departureConditionLine={departureConditionLine}
-                heroTripDepartureDisplay={heroDepartureDisplay}
-                heroTripReturnDisplay={heroReturnDisplay}
-                modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
-                isCollectingPrices={departureCollectOpen}
-                priceCollectUiPhase={priceCollectUiPhase}
-              />
-            </div>
-          </aside>
         </div>
 
         <DepartureDatePickerModal

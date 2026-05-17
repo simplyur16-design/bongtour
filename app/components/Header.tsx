@@ -1,6 +1,5 @@
 'use client'
 
-import { ESIM_STRIP_CTA_HREF } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SITE_NAME } from '@/lib/site-metadata'
 import { useId } from 'react'
@@ -8,19 +7,18 @@ import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Phone, User, Wifi } from 'lucide-react'
+import { User } from 'lucide-react'
 
-const HEADER_TEL_DISPLAY = '031-213-2558'
-const HEADER_TEL_HREF = 'tel:0312132558'
 const INQUIRY_HREF = '/inquiry?type=travel'
 
 /**
- * 메모리 #28 — 메인 IA 4메뉴.
+ * 메모리 #28 — 메인 IA 5메뉴.
  * 해외 권역 메가메뉴는 `/travel/overseas` 페이지 `OverseasRegionMegaNav` 전용.
  */
-const MAIN_NAV: { label: string; href: string }[] = [
+export const MAIN_NAV: { label: string; href: string }[] = [
   { label: '해외여행상품', href: '/travel/overseas' },
   { label: '자유여행', href: '/travel/air-hotel' },
+  { label: 'eSIM', href: '/travel/esim' },
   { label: '우리끼리', href: '/travel/overseas/private-trip' },
   { label: '공공·기업', href: '/business' },
 ]
@@ -34,6 +32,9 @@ function isMainNavActive(pathname: string, href: string): boolean {
     return false
   }
   if (href === '/travel/overseas/private-trip') {
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
+  if (href === '/travel/esim') {
     return pathname === href || pathname.startsWith(`${href}/`)
   }
   return pathname === href || pathname.startsWith(`${href}/`)
@@ -70,7 +71,7 @@ function InstagramGlyphIcon({ gradientId }: { gradientId: string }) {
 }
 
 type HeaderProps = {
-  /** 메인 등: 모바일 가로 메뉴(4메뉴 칩 행) 숨김 — 데스크톱 `lg:flex` 내비는 유지 */
+  /** 메인 등: 모바일 가로 메뉴(5메뉴 칩 행) 숨김 — 데스크톱 `lg:flex` 내비는 유지 */
   hideMobileNav?: boolean
 }
 
@@ -114,7 +115,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
             </Link>
           </div>
 
-          <nav className="mx-auto hidden min-w-0 flex-1 items-center justify-center gap-6 lg:flex" aria-label="주요 메뉴">
+          <nav className="mx-auto hidden min-w-0 flex-1 items-center justify-center gap-5 xl:gap-6 lg:flex" aria-label="주요 메뉴">
             {MAIN_NAV.map((item) => {
               const active = isMainNavActive(pathname, item.href)
               return (
@@ -145,20 +146,6 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
             </a>
 
             <div className="hidden items-center gap-3 lg:flex">
-              <Link
-                href={ESIM_STRIP_CTA_HREF}
-                className="inline-flex items-center gap-1.5 rounded-full border border-bt-coral/40 bg-bt-coral/10 px-3 py-1.5 text-sm font-semibold text-bt-coral transition hover:bg-bt-coral/15"
-              >
-                <Wifi className="h-4 w-4 shrink-0" aria-hidden />
-                eSIM
-              </Link>
-              <a
-                href={HEADER_TEL_HREF}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-bt-brand-gold-strong hover:opacity-90"
-              >
-                <Phone className="h-4 w-4 shrink-0" aria-hidden />
-                {HEADER_TEL_DISPLAY}
-              </a>
               <Link
                 href={INQUIRY_HREF}
                 className="rounded-full bg-bt-brand-gold-strong px-4 py-2 text-sm font-medium text-white transition hover:opacity-95"
@@ -200,20 +187,6 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
               >
                 상담
               </Link>
-              <Link
-                href={ESIM_STRIP_CTA_HREF}
-                className="shrink-0 rounded-full border border-bt-coral/50 bg-bt-coral/15 p-1.5 text-bt-coral"
-                aria-label="eSIM"
-              >
-                <Wifi className="h-4 w-4" aria-hidden />
-              </Link>
-              <a
-                href={HEADER_TEL_HREF}
-                className="shrink-0 p-1.5 text-bt-brand-gold-strong"
-                aria-label={`전화 ${HEADER_TEL_DISPLAY}`}
-              >
-                <Phone className="h-5 w-5" aria-hidden />
-              </a>
               {authLoading ? (
                 <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-bt-border-soft" aria-hidden />
               ) : session?.user ? (
@@ -231,7 +204,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
 
         {!hideMobileNav ? (
           <nav
-            className="-mx-4 grid w-full grid-cols-4 gap-1.5 border-t border-bt-border-soft/70 px-4 py-2.5 sm:-mx-6 sm:gap-2 sm:px-6 lg:hidden"
+            className="-mx-4 grid w-full grid-cols-5 gap-1 border-t border-bt-border-soft/70 px-3 py-2.5 sm:-mx-6 sm:gap-1.5 sm:px-6 lg:hidden"
             aria-label="주요 메뉴"
           >
             {MAIN_NAV.map((item) => {
@@ -241,7 +214,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
                   key={item.href}
                   href={item.href}
                   title={item.label}
-                  className={`min-w-0 truncate rounded-full px-1 py-1.5 text-center text-xs font-medium leading-tight transition-colors sm:px-2 sm:text-sm ${
+                  className={`min-w-0 truncate rounded-full px-0.5 py-1.5 text-center text-[10px] font-medium leading-tight transition-colors sm:px-1.5 sm:text-xs ${
                     active
                       ? 'border-2 border-bt-brand-gold-strong bg-bt-surface-soft text-bt-text-navy'
                       : 'border border-bt-border-soft bg-bt-surface-alt text-bt-text-navy hover:border-bt-brand-gold-strong/60'

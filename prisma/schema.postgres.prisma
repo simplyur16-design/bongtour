@@ -618,6 +618,9 @@ model PhotoPool {
   attractionName String   // 명소명
   source         String   // 출처 (Pexels, Gemini 등)
   filePath       String   @unique // 스토리지 URL (동일 도시·파일명 로직이면 덮어쓰기)
+  photographer   String?  // Pexels 작가명 등
+  sourceUrl      String?  // 출처 페이지 URL (Pexels photo.url)
+  sourcePhotoId  String?  // 외부 사진 id (Pexels photo.id 등)
   sortOrder      Int      @default(0)  // 도시 내 순서 (0=메인, 1~4=일정)
   createdAt      DateTime @default(now())
 }

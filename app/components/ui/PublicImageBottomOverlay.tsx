@@ -18,7 +18,7 @@ export default function PublicImageBottomOverlay({ leftLabel, rightLabel, classN
 
   return (
     <div
-      className={`pointer-events-none absolute inset-x-0 bottom-0 z-[15] flex flex-row items-end justify-between gap-2 bg-gradient-to-t from-black/70 via-black/20 to-transparent px-2.5 pb-2 pt-10 sm:px-3 sm:pb-2.5 sm:pt-12 ${className}`.trim()}
+      className={`pointer-events-none absolute inset-x-0 bottom-0 z-[15] flex flex-row items-end justify-between gap-2 bg-gradient-to-t from-black/70 via-black/20 to-transparent px-2.5 pb-2 pt-10 sm:px-3 sm:pb-2.5 sm:pt-12 ${className ?? ''}`.trim()}
     >
       {left ? (
         <p className="line-clamp-1 min-w-0 flex-1 text-left text-[11px] font-semibold leading-tight text-white drop-shadow sm:text-xs">

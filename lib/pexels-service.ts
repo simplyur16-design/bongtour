@@ -37,6 +37,7 @@ type PexelsApiPhoto = {
   height?: number
   src?: { large2x?: string; large?: string; medium?: string }
   photographer?: string
+  photographer_url?: string
   url?: string
 }
 
@@ -77,10 +78,10 @@ export async function searchPexelsHeroCandidates(
       out.push({
         pexelsId: p.id,
         imageUrl: url,
-        photographer: p.photographer ?? 'Pexels',
+        photographer: p.photographer?.trim() || 'Pexels',
         width: typeof p.width === 'number' ? p.width : 0,
         height: typeof p.height === 'number' ? p.height : 0,
-        originalLink: p.url ?? 'https://www.pexels.com',
+        originalLink: p.url?.trim() || 'https://www.pexels.com',
         queryUsed,
       })
     }
@@ -93,11 +94,12 @@ export async function searchPexelsHeroCandidates(
 
 function photoToObject(photo: PexelsApiPhoto): PexelsPhotoObject {
   const url = photo.src?.large2x ?? photo.src?.large ?? photo.src?.medium ?? null
+  const pageUrl = photo.url?.trim() || 'https://www.pexels.com'
   return {
     url: withFallback(url),
     source: 'Pexels',
-    photographer: photo.photographer ?? 'Pexels',
-    originalLink: photo.url ?? 'https://www.pexels.com',
+    photographer: photo.photographer?.trim() || 'Pexels',
+    originalLink: pageUrl,
     externalId: String(photo.id),
   }
 }

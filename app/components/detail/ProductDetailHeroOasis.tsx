@@ -2,11 +2,6 @@
 
 import type { ReactNode } from 'react'
 import ProductHeroCarousel from '@/app/components/detail/ProductHeroCarousel'
-import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
-import {
-  SUBPAGE_CARD_IMAGE_GRADIENT_CLASS,
-  SUBPAGE_CARD_IMAGE_WASH_CLASS,
-} from '@/lib/subpage-design-system'
 
 type CarouselProps = {
   heroUrl: string | null
@@ -17,6 +12,7 @@ type CarouselProps = {
   heroImageSeoKeywordOverlay?: string | null
   primaryDestination?: string | null
   destination?: string | null
+  bgImagePhotographer?: string | null
 }
 
 type Props = CarouselProps & {
@@ -25,44 +21,57 @@ type Props = CarouselProps & {
   primaryCtaLabel?: string
 }
 
-/** 상품 상세 데스크톱 — 풀폭 히어로 + 좌측 카피·CTA (오아시스 패턴) */
+/** 상품 상세 데스크톱 — ItineraryView hero SSOT (components/itinerary/ItineraryView.tsx L169–214) */
 export default function ProductDetailHeroOasis({
   children,
   onPrimaryCta,
   primaryCtaLabel = '실시간 견적 · 문의',
+  bgImagePhotographer,
   ...carousel
 }: Props) {
+  const photographer = bgImagePhotographer?.trim() || null
+
   return (
-    <section className="relative w-full overflow-hidden bg-bt-text-navy" aria-label="상품 소개">
-      <div className="relative min-h-[min(52vw,420px)] w-full lg:min-h-[460px]">
-        <ProductHeroCarousel
-          {...carousel}
-          fillParent
-          className="absolute inset-0 h-full w-full rounded-none border-0 shadow-none"
-        />
-        <div className={SUBPAGE_CARD_IMAGE_WASH_CLASS} aria-hidden />
-        <div
-          className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-r from-black/85 via-black/50 to-black/15 lg:via-black/40 lg:to-transparent"
-          aria-hidden
-        />
-        <div className={SUBPAGE_CARD_IMAGE_GRADIENT_CLASS} aria-hidden />
-        <div
-          className={`${SITE_CONTENT_CLASS} relative z-10 flex min-h-[min(52vw,420px)] flex-col justify-end pb-8 pt-20 lg:min-h-[460px] lg:justify-center lg:pb-12 lg:pt-24`}
-        >
-          <div className="max-w-xl text-white">{children}</div>
+    <section
+      className="relative w-full overflow-hidden"
+      aria-label="상품 소개"
+      style={{ height: '70vh', minHeight: '520px', maxHeight: '720px' }}
+    >
+      <ProductHeroCarousel
+        {...carousel}
+        heroImagePhotographer={bgImagePhotographer ?? null}
+        fillParent
+        className="absolute inset-0 h-full w-full rounded-none border-0 shadow-none"
+      />
+      <div
+        className="pointer-events-none absolute inset-0 z-[2]"
+        style={{
+          background:
+            'linear-gradient(to top, rgba(31,27,45,0.75) 0%, rgba(31,27,45,0.30) 35%, rgba(31,27,45,0.10) 60%, transparent 80%)',
+        }}
+        aria-hidden
+      />
+      <div className="relative z-[3] flex h-full items-end">
+        <div className="mx-auto w-full max-w-7xl px-6 pb-12 text-white lg:px-8 lg:pb-16">
+          {children}
           {onPrimaryCta ? (
-            <div className="mt-6 max-w-xl">
+            <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={onPrimaryCta}
-                className="inline-flex w-full items-center justify-center rounded-full bg-bt-coral px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-bt-coral/90 sm:w-auto"
+                className="inline-flex items-center rounded-full bg-[#d9a81e] px-8 py-4 text-base font-semibold text-[#1F1B2D] transition hover:bg-[#c79a1c] md:text-lg"
               >
-                {primaryCtaLabel}
+                {primaryCtaLabel} ↗
               </button>
             </div>
           ) : null}
         </div>
       </div>
+      {photographer ? (
+        <div className="absolute bottom-3 right-4 z-[4] text-[10px] text-white/60">
+          Photo by {photographer} on Pexels
+        </div>
+      ) : null}
     </section>
   )
 }

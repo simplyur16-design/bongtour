@@ -1,5 +1,6 @@
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
 import { buildPublicProductBadges, inferFreeTimeFromSchedule, type ProductBadgeInput } from '@/lib/product-detail-badges'
+import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { inferFlightRoutingMeta, productHasFlightMetaContext } from '@/lib/flight-routing-meta'
 import {
   buildPublicShoppingDisplayInputFromProductFields,
@@ -9,7 +10,7 @@ import {
 } from '@/lib/public-product-extras'
 
 /** 상품 상세 히어로·여행요약 메타칩 (아이콘+라벨+값) */
-export type ProductMetaChipKind = 'optional' | 'shopping' | 'freeTime' | 'airline' | 'flightRouting'
+export type ProductMetaChipKind = 'optional' | 'shopping' | 'freeTime' | 'airline' | 'flightRouting' | 'supplier'
 
 export type ProductMetaChip = {
   kind: ProductMetaChipKind
@@ -18,6 +19,7 @@ export type ProductMetaChip = {
 }
 
 export type ProductMetaChipInput = ProductBadgeInput & {
+  originSource?: string | null
   airline?: string | null
   hasOptionalTours?: boolean | null
   title?: string | null
@@ -148,6 +150,11 @@ export function buildProductMetaChips(
   ) {
     chips.push({ kind: 'flightRouting', value: routing.flightRoutingLabel })
   }
+  const supplierLabel = formatOriginSourceForDisplay(product.originSource)
+  if (supplierLabel) {
+    chips.push({ kind: 'supplier', value: supplierLabel })
+  }
+
   if (product.listingKind === 'air_hotel_free') {
     return chips.filter((c) => c.kind !== 'freeTime')
   }

@@ -131,6 +131,7 @@ model Product {
   cityTags                 ProductCityTag[]
   continentMaster          Continent?            @relation("ProductContinentMaster", fields: [continentKey], references: [continentKey], onDelete: Restrict, onUpdate: Cascade)
   masterCity               City?                 @relation("ProductMasterCity", fields: [cityKey], references: [cityKey], onDelete: Restrict, onUpdate: Cascade)
+  fitMaster                FitItineraryMaster?
   brand                    Brand?                @relation(fields: [brandId], references: [id])
   brandId                  String? // 여행사 구분 (하나투어/모두투어/추가 여행사)
 
@@ -568,6 +569,9 @@ model PhotoPool {
   attractionName String // 명소명
   source         String // 출처 (Pexels, Gemini 등)
   filePath       String   @unique // 스토리지 URL (동일 도시·파일명 로직이면 덮어쓰기)
+  photographer   String? // Pexels 작가명 등
+  sourceUrl      String? // 출처 페이지 URL (Pexels photo.url)
+  sourcePhotoId  String? // 외부 사진 id (Pexels photo.id 등)
   sortOrder      Int      @default(0) // 도시 내 순서 (0=메인, 1~4=일정)
   createdAt      DateTime @default(now())
 }
@@ -729,6 +733,7 @@ model CustomerInquiry {
   applicantName  String
   applicantPhone String
   applicantEmail String?
+  userId         String?
   message        String?
 
   productId             String?
@@ -777,6 +782,7 @@ model CustomerInquiry {
   @@index([createdAt])
   @@index([productId])
   @@index([monthlyCurationItemId])
+  @@index([userId], map: "CustomerInquiry_userId_idx")
 }
 
 /// 이미지 메타데이터 SSOT (SQLite). 파일은 Supabase Storage (lib/object-storage.ts, lib/image-assets-db.ts).
@@ -1340,4 +1346,89 @@ model SeasonalDestinationCuration {
 
   @@index([cycleStartDate])
   @@index([cycleEndDate])
+}
+
+model FitItineraryMaster {
+  id          String    @id @default(cuid())
+  productId   String    @unique
+  cityKey     String
+  cityNameKo  String
+  countryCode String
+  persona     String
+  totalDays   Int
+  title       String
+  summary     String?
+  generatedBy String
+  status      String    @default("draft")
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  product Product           @relation(fields: [productId], references: [id], onDelete: Cascade, map: "FitItineraryMaster_productId_fkey")
+  days    FitItineraryDay[]
+
+  @@index([countryCode, persona], map: "FitItineraryMaster_country_persona_idx")
+  @@index([status, publishedAt], map: "FitItineraryMaster_status_publishedAt_idx")
+}
+
+model FitItineraryDay {
+  id          String  @id @default(cuid())
+  masterId    String
+  dayNumber   Int
+  title       String
+  summary     String?
+  dayCityKey  String?
+
+  master     FitItineraryMaster     @relation(fields: [masterId], references: [id], onDelete: Cascade, map: "FitItineraryDay_masterId_fkey")
+  activities FitItineraryActivity[]
+
+  @@unique([masterId, dayNumber], map: "FitItineraryDay_master_day_key")
+}
+
+model FitItineraryActivity {
+  id                String  @id @default(cuid())
+  dayId             String
+  order             Int
+  category          String
+  title             String
+  description       String?
+  location          String?
+  locationLat       Float?
+  locationLng       Float?
+  locationUrl       String?
+  startTime         String?
+  durationMinutes   Int?
+  estimatedCostKrw  Int?
+  estimatedCostNote String?
+  transportMode     String?
+  transportDuration String?
+  transportCostKrw  Int?
+
+  day FitItineraryDay @relation(fields: [dayId], references: [id], onDelete: Cascade, map: "FitItineraryActivity_dayId_fkey")
+  validation FitItineraryActivityValidation?
+
+  @@index([dayId, order], map: "FitItineraryActivity_day_order_idx")
+}
+
+model FitItineraryActivityValidation {
+  id                        String   @id @default(cuid())
+  activityId                String   @unique
+  status                    String
+  placeId                   String?
+  placeName                 String?
+  validatedLat              Float?
+  validatedLng              Float?
+  validatedAddress          String?
+  validatedRating           Float?
+  openingHoursJson          String?
+  permanentlyClosed         Boolean  @default(false)
+  transportDurationApi      String?
+  transportDurationDeltaPct Float?
+  searchQuery               String?
+  errorMessage              String?
+  checkedAt                 DateTime
+
+  activity FitItineraryActivity @relation(fields: [activityId], references: [id], onDelete: Cascade, map: "FitItineraryActivityValidation_activityId_fkey")
+
+  @@index([status, checkedAt], map: "FitItineraryActivityValidation_status_checkedAt_idx")
 }

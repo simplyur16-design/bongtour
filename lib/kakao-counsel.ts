@@ -18,6 +18,7 @@ export type CounselFromScreen =
   | 'product_detail_benefit_section'
   /** 일정·쇼핑·현지옵션 등 진입 UI 연결 시 동일 CTA에 `intent="schedule"`과 함께 사용 */
   | 'product_detail_schedule_section'
+  | 'fit-itinerary'
 
 export type CounselPax = {
   adult: number

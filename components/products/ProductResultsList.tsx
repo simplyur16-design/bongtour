@@ -773,8 +773,6 @@ export function ProductResultCard({
               src={cardSrc}
               alt=""
               fill
-              width={400}
-              height={300}
               className="object-cover"
               sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
               quality={60}

@@ -40,7 +40,7 @@ export default async function AdminProductCustomerViewPage({ params }: Props) {
           Back to product admin
         </a>
       </div>
-      <ProductDetailView travelProduct={travelProduct} />
+      <ProductDetailView travelProduct={travelProduct} fitMaster={null} />
     </div>
   )
 }

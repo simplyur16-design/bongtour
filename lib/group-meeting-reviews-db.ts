@@ -12,7 +12,7 @@ export async function loadGroupMeetingReviewsFromDb(): Promise<GroupMeetingRevie
     const { data, error } = await supabase
       .from('travel_reviews')
       .select(
-        'id, customer_type, review_type, destination_country, destination_city, travel_month, displayed_date, rating_label, title, body, tags, thumbnail_url, status'
+        'id, customer_type, review_type, destination_country, destination_city, travel_month, displayed_date, rating_label, title, body, excerpt, tags, thumbnail_url, status'
       )
       .eq('status', 'published')
       .order('displayed_date', { ascending: false, nullsFirst: false })
@@ -51,13 +51,17 @@ export async function loadGroupMeetingReviewsFromDb(): Promise<GroupMeetingRevie
         purposeLabel,
         destination_country: row.destination_country != null ? String(row.destination_country) : null,
         destination_city: row.destination_city != null ? String(row.destination_city) : null,
-        dateLabel: formatDateLabel(
-          (row.displayed_date as string | null | undefined) || (row.travel_month as string | null | undefined) || null
-        ),
+        dateLabel:
+          formatDateLabel(row.displayed_date as string | null | undefined) ??
+          formatTravelMonthLabel(row.travel_month as string | null | undefined),
         ratingLabel: row.rating_label != null ? String(row.rating_label) : null,
         ratingValue,
         title: row.title != null ? String(row.title) : '',
-        bodyLines: row.body != null ? String(row.body) : '',
+        body: row.body != null ? String(row.body) : null,
+        excerpt: row.excerpt != null ? String(row.excerpt) : null,
+        bodyLines:
+          (row.body != null ? String(row.body).trim() : '') ||
+          (row.excerpt != null ? String(row.excerpt).trim() : ''),
         displayTags,
         thumbnail_url: row.thumbnail_url != null ? String(row.thumbnail_url) : null,
       }
@@ -77,11 +81,19 @@ function tryParseJsonArray(str: string): string[] {
   }
 }
 
-function formatDateLabel(date: string | Date | null): string | null {
+function formatDateLabel(date: string | Date | null | undefined): string | null {
   if (!date) return null
   const d = new Date(date)
   if (Number.isNaN(d.getTime())) return null
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function formatTravelMonthLabel(travelMonth: string | null | undefined): string | null {
+  if (!travelMonth?.trim()) return null
+  const ym = travelMonth.trim().slice(0, 7)
+  const [y, m] = ym.split('-')
+  if (!y || !m) return null
+  return `${y.slice(-2)}년 ${m.padStart(2, '0')}월`
 }
 
 function parseRatingFromLabel(ratingLabel: string | null): number | null {

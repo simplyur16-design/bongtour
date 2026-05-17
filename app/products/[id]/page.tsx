@@ -122,5 +122,23 @@ export default async function ProductDetailPage({ params }: Props) {
     notFound()
   }
 
-  return <ProductDetailView travelProduct={travelProduct} />
+  const fitMaster =
+    travelProduct.productType === 'airtel'
+      ? await prisma.fitItineraryMaster.findUnique({
+          where: { productId: travelProduct.id },
+          include: {
+            days: {
+              orderBy: { dayNumber: 'asc' },
+              include: {
+                activities: {
+                  orderBy: { order: 'asc' },
+                  include: { validation: true },
+                },
+              },
+            },
+          },
+        })
+      : null
+
+  return <ProductDetailView travelProduct={travelProduct} fitMaster={fitMaster} />
 }

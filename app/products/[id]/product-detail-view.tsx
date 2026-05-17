@@ -8,6 +8,7 @@ import {
 } from '@/lib/public-flight-structured-sanitize'
 import Header from '@/app/components/Header'
 import TravelProductDetail from '@/app/components/travel/TravelProductDetail'
+import PrivateTravelProductDetail from '@/app/components/travel/PrivateTravelProductDetail'
 import MobileProductDetail from '@/app/components/travel/MobileProductDetail'
 import VerygoodTravelProductDetail from '@/app/components/travel/verygood/VerygoodTravelProductDetail'
 import VerygoodMobileProductDetail from '@/app/components/travel/verygood/VerygoodMobileProductDetail'
@@ -44,6 +45,7 @@ import {
   buildModetourDirectedDisplayFromFlightStructured,
   buildModetourDirectedDisplayFromStructuredBody,
 } from '@/lib/flight-modetour-parser'
+import { getProductTotalDays } from '@/lib/package-rules'
 import {
   buildDepartureKeyFactsByDepartureId,
   buildDepartureKeyFactsMap,
@@ -105,10 +107,68 @@ import {
   sanitizeLottetourPublicDepartureKeyFacts,
   sanitizeLottetourPublicProductAirlineLine,
 } from '@/lib/lottetour-product-public-display'
+import { deriveIncludedExcludedFromRaw } from '@/lib/derive-included-excluded-from-raw'
+import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
+import { buildProductMetaChips } from '@/lib/product-meta-chips'
 import { PRODUCT_DETAIL_PAGE_INCLUDE } from '@/lib/product-detail-page-include'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
+import { ItineraryView } from '@/components/itinerary/ItineraryView'
+import type {
+  FitItineraryMaster,
+  FitItineraryDay,
+  FitItineraryActivity,
+  FitItineraryActivityValidation,
+} from '@prisma/client'
 
 export type ProductDetailViewRow = Prisma.ProductGetPayload<{ include: typeof PRODUCT_DETAIL_PAGE_INCLUDE }>
+
+type FitMasterWithDays = FitItineraryMaster & {
+  days: (FitItineraryDay & {
+    activities: (FitItineraryActivity & {
+      validation: FitItineraryActivityValidation | null
+    })[]
+  })[]
+}
+
+function mapFitMasterForItinerary(fitMaster: FitMasterWithDays) {
+  return {
+    id: fitMaster.id,
+    title: fitMaster.title,
+    summary: fitMaster.summary ?? '',
+    totalDays: fitMaster.totalDays,
+    persona: fitMaster.persona as 'mixed' | 'couple' | 'with-parents' | 'with-kids',
+    cityNameKo: fitMaster.cityNameKo,
+    productId: fitMaster.productId,
+    days: fitMaster.days.map((d) => ({
+      id: d.id,
+      dayNumber: d.dayNumber,
+      title: d.title,
+      summary: d.summary ?? '',
+      activities: d.activities.map((act) => ({
+        id: act.id,
+        order: act.order,
+        category: act.category as
+          | 'transport'
+          | 'hotel'
+          | 'meal'
+          | 'attraction'
+          | 'shopping'
+          | 'tip'
+          | 'leisure',
+        title: act.title,
+        description: act.description ?? '',
+        location: act.location,
+        startTime: act.startTime ?? '',
+        durationMinutes: act.durationMinutes ?? 0,
+        estimatedCostKrw: act.estimatedCostKrw ?? 0,
+        estimatedCostNote: act.estimatedCostNote,
+        transportMode: act.transportMode,
+        transportDuration: act.transportDuration,
+        transportCostKrw: act.transportCostKrw,
+      })),
+    })),
+  }
+}
 
 type ProductDetailItineraryDayRow = NonNullable<ProductDetailViewRow['itineraryDays']>[number]
 
@@ -131,7 +191,13 @@ function coalesceItineraryOrScheduleText(
   return b || null
 }
 
-export async function ProductDetailView({ travelProduct }: { travelProduct: ProductDetailViewRow }) {
+export async function ProductDetailView({
+  travelProduct,
+  fitMaster,
+}: {
+  travelProduct: ProductDetailViewRow
+  fitMaster: FitMasterWithDays | null
+}) {
   const isAdminDraftPreview = travelProduct.registrationStatus !== 'registered'
 
   const {
@@ -200,6 +266,22 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
 
   const rawParsed = parseProductRawMetaPublic(travelProduct.rawMeta ?? null)
   const structured = rawParsed?.structuredSignals
+
+  const derivedIncludedExcluded = deriveIncludedExcludedFromRaw(
+    structured?.detailBodyNormalizedRaw ?? null
+  )
+  const finalIncludedText =
+    travelProduct.includedText && travelProduct.includedText.trim().length > 0
+      ? travelProduct.includedText
+      : derivedIncludedExcluded.includedItems.length > 0
+        ? derivedIncludedExcluded.includedItems.join('\n')
+        : null
+  const finalExcludedText =
+    travelProduct.excludedText && travelProduct.excludedText.trim().length > 0
+      ? travelProduct.excludedText
+      : derivedIncludedExcluded.excludedItems.length > 0
+        ? derivedIncludedExcluded.excludedItems.join('\n')
+        : null
 
   const itineraryDaysList = travelProduct.itineraryDays ?? []
   const scheduleArr = getScheduleFromProduct(travelProduct)
@@ -598,6 +680,8 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
 
   const serialized: TravelProduct = {
     ...productForDetail,
+    includedText: finalIncludedText,
+    excludedText: finalExcludedText,
     airline: (() => {
       const vgPublic =
         verygoodtourPublicRowFactsOnly &&
@@ -675,6 +759,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
     priceTableRawText: structured?.priceTableRawText ?? null,
     primaryRegion: travelProduct.primaryRegion ?? null,
     airtelHotelInfoJson: travelProduct.airtelHotelInfoJson ?? null,
+    flightAdminJson: adminFlightRaw,
     schedule,
     // 출발일/가격 행: ProductDeparture가 있으면 SSOT(스케줄러·재수집은 출발행 기준). 없을 때만 ProductPrice 레거시 fallback.
     prices: priceRowsForPublic,
@@ -718,6 +803,7 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
     childAgeRuleText: structured?.childAgeRuleText ?? null,
     bgImageSource: travelProduct.bgImageSource ?? null,
     bgImageIsGenerated: travelProduct.bgImageIsGenerated ?? false,
+    bgImagePhotographer: travelProduct.bgImagePhotographer ?? null,
     /** schedule 캡션 없을 때 image_assets(public_url 일치) seo_title/title/alt 로 히어로 보강 */
     heroCoverCaptionFromAsset,
     /** 히어로 이미지 내부 좌측 SEO 키워드 전용(캡션 파이프라인과 분리) */
@@ -747,6 +833,148 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
   }
   assertNoInternalMetaLeak(serialized, '/products/[id]')
 
+  const product = serialized
+
+  const productType = travelProduct.productType ?? ''
+  const isAirtel = productType === 'airtel'
+  /** 자유여행(airtel) — Fit 예시 일정 ItineraryView */
+  const isAirtelItineraryView = productType === 'airtel'
+  /** 일반 패키지(travel/private/semi) — TravelProductDetail + ItineraryViewPackageMain 본문 */
+  const isPackageItineraryBody = ['travel', 'private', 'semi'].includes(productType)
+  const isPrivateOrSemi = productType === 'private' || productType === 'semi'
+
+  if (isAirtelItineraryView) {
+    const bookableRows = priceRowsForPublic.filter((r) => r.priceAdult > 0)
+    const lowestAdultPrice = bookableRows.length > 0
+      ? Math.min(...bookableRows.map((r) => r.priceAdult))
+      : 0
+    const highestAdultPrice = bookableRows.length > 0
+      ? Math.max(...bookableRows.map((r) => r.priceAdult))
+      : 0
+    const sortedByDate = [...priceRowsForPublic].sort((a, b) => a.date.localeCompare(b.date))
+    const departureDateFrom = sortedByDate[0]?.date ?? ''
+    const departureDateTo = sortedByDate[sortedByDate.length - 1]?.date ?? ''
+    const firstBookable = bookableRows[0]
+    const minPaxFromDepartures = (() => {
+      let min: number | null = null
+      for (const d of departures) {
+        const p = d.minPax
+        if (p != null && p > 0) min = min == null ? p : Math.min(min, p)
+      }
+      return min
+    })()
+    const masterArg =
+      isAirtel && fitMaster && fitMaster.status === 'published'
+        ? mapFitMasterForItinerary(fitMaster)
+        : null
+    const computedTotalDays = getProductTotalDays(travelProduct, masterArg?.totalDays)
+    const priceInfo = {
+      departureDateFrom,
+      departureDateTo,
+      lowestAdultPrice,
+      highestAdultPrice,
+      infantPrice: firstBookable?.priceInfant ?? 150000,
+      childBedPrice: firstBookable?.priceChildWithBed ?? lowestAdultPrice,
+      minPaxPerDeparture:
+        minPaxFromDepartures ??
+        travelProduct.minimumDepartureCount ??
+        structured?.minimumDepartureCount ??
+        null,
+      totalDays: computedTotalDays,
+    }
+
+    const airtelDefaultDate = priceInfo.departureDateFrom
+    const airtelDefaultFacts = departureKeyFactsByDate?.[airtelDefaultDate] ?? null
+    const airtelTravelCitiesLine = (() => {
+      const raw = [product.primaryDestination, product.destination]
+        .filter((x): x is string => Boolean(x?.trim()))
+        .join(',')
+      const parts = raw
+        .split(/[,，]/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+      const uniq = [...new Set(parts)]
+      return uniq.length ? uniq.join(', ') : product.destination?.trim() || '—'
+    })()
+    const airtelMeetingDefault = (() => {
+      const merged = [product.meetingInfoRaw, product.meetingPlaceRaw]
+        .filter((x): x is string => Boolean(x?.trim()))
+        .join(' · ')
+      if (merged.trim()) return merged.trim()
+      const fb = product.meetingFallbackText?.trim()
+      if (fb) return fb
+      return '미팅장소는 상담 시 확인하여 안내드리겠습니다.'
+    })()
+
+    return (
+      <>
+        <Header />
+        <ItineraryView
+          mode="example"
+          master={masterArg}
+          travelCoreInfo={{
+            productAirline: product.airline ?? null,
+            travelCitiesLine: airtelTravelCitiesLine,
+            meetingDefault: airtelMeetingDefault,
+            productMetaChips: buildProductMetaChips(product, { departureFactsOverride: airtelDefaultFacts }),
+            flightExposurePolicy: product.flightExposurePolicy ?? null,
+            departureKeyFactsByDate: product.departureKeyFactsByDate,
+            departureConditionLine: formatDepartureConditionForProduct(product),
+            duration: product.duration,
+            originSource: product.originSource,
+            applyFlightManualCorrectionOverlay: product.applyFlightManualCorrectionOverlay,
+            flightManualCorrection: product.flightManualCorrection ?? null,
+          }}
+          product={{
+            id: String(product.id),
+            title: product.title,
+            productType,
+            originSource: travelProduct.originSource ?? '',
+            originCode: travelProduct.originCode ?? '',
+            bgImageUrl: travelProduct.bgImageUrl ?? null,
+            bgImagePhotographer: travelProduct.bgImagePhotographer ?? null,
+            primaryDestination: product.primaryDestination ?? travelProduct.primaryDestination ?? null,
+            schedule: product.schedule ?? null,
+            bgImageSource: product.bgImageSource ?? null,
+            bgImageIsGenerated: product.bgImageIsGenerated ?? null,
+            bgImagePlaceName: product.bgImagePlaceName ?? null,
+            bgImageRehostSearchLabel: product.bgImageRehostSearchLabel ?? null,
+            heroImageSeoKeywordOverlay,
+            flightStructured: product.flightStructured ?? null,
+            minimumDepartureCount: product.minimumDepartureCount ?? null,
+            minimumDepartureText: product.minimumDepartureText ?? null,
+            hotelSummaryText: product.hotelSummaryText ?? null,
+            hotelNames: product.hotelNames ?? null,
+            includedText: product.includedText ?? null,
+            excludedText: product.excludedText ?? null,
+            optionalToursStructured: product.optionalToursStructured ?? null,
+            optionalToursPasteRaw: product.optionalToursPasteRaw ?? null,
+            optionalTourSummaryRaw:
+              product.optionalToursPasteRaw?.trim() ||
+              product.optionalTourDisplayNoticeFinal?.trim() ||
+              product.optionalTourNoticeRaw?.trim() ||
+              null,
+            shoppingCount: product.shoppingCount ?? null,
+            shoppingItems: product.shoppingItems ?? null,
+            shoppingCautionNoticeRaw: product.shoppingNoticeRaw ?? null,
+            airtelHotelInfoJson: travelProduct.airtelHotelInfoJson ?? null,
+            flightAdminJson: adminFlightRaw,
+            duration: travelProduct.duration ?? null,
+            reservationNoticeRaw: product.reservationNoticeRaw ?? null,
+            mustKnowItems: product.mustKnowItems ?? null,
+            travelScope: travelProduct.travelScope === 'domestic' ? 'domestic' : 'overseas',
+          }}
+          prices={priceRowsForPublic}
+          priceInfo={priceInfo}
+        />
+      </>
+    )
+  }
+
+  if (isPackageItineraryBody) {
+    assertNoInternalMetaLeak(serialized, '/products/[id] package-itinerary')
+  }
+
   const viewProduct = tryApplyVerygoodPublicProductSerializedPatch(publicConsumptionModuleKey, serialized)
 
   const ybtourDetailProduct =
@@ -756,23 +984,34 @@ export async function ProductDetailView({ travelProduct }: { travelProduct: Prod
 
   const showEsimCrossSell = travelProduct.travelScope === 'overseas'
 
-  const detailMobile =
-    publicConsumptionModuleKey === 'verygoodtour' ? (
-      <VerygoodMobileProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
-    ) : publicConsumptionModuleKey === 'ybtour' && ybtourDetailProduct ? (
-      <YbtourMobileProductDetail product={ybtourDetailProduct} showEsimCrossSell={showEsimCrossSell} />
-    ) : (
-      <MobileProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
-    )
+  const packageDetailMobile = (
+    <MobileProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
+  )
+  const packageDetailDesktop = isPrivateOrSemi ? (
+    <PrivateTravelProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
+  ) : (
+    <TravelProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
+  )
 
-  const detailDesktop =
-    publicConsumptionModuleKey === 'verygoodtour' ? (
-      <VerygoodTravelProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
-    ) : publicConsumptionModuleKey === 'ybtour' && ybtourDetailProduct ? (
-      <YbtourTravelProductDetail product={ybtourDetailProduct} showEsimCrossSell={showEsimCrossSell} />
-    ) : (
-      <TravelProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
-    )
+  const detailMobile = isPackageItineraryBody
+    ? packageDetailMobile
+    : publicConsumptionModuleKey === 'verygoodtour' ? (
+        <VerygoodMobileProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
+      ) : publicConsumptionModuleKey === 'ybtour' && ybtourDetailProduct ? (
+        <YbtourMobileProductDetail product={ybtourDetailProduct} showEsimCrossSell={showEsimCrossSell} />
+      ) : (
+        packageDetailMobile
+      )
+
+  const detailDesktop = isPackageItineraryBody
+    ? packageDetailDesktop
+    : publicConsumptionModuleKey === 'verygoodtour' ? (
+        <VerygoodTravelProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
+      ) : publicConsumptionModuleKey === 'ybtour' && ybtourDetailProduct ? (
+        <YbtourTravelProductDetail product={ybtourDetailProduct} showEsimCrossSell={showEsimCrossSell} />
+      ) : (
+        packageDetailDesktop
+      )
 
   const pricedDepartures = departures.filter((d) => d.adultPrice != null && d.adultPrice > 0)
   const isUnavailable = (d: (typeof departures)[number]) => {
