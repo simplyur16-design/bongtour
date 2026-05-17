@@ -197,6 +197,32 @@ export function splitIncludedExcludedForPublicDisplay(
   }
 }
 
+/** 패키지 공개 상세 — 포함 목록에서만 숨기는 카테고리(저장 데이터는 그대로) */
+const PACKAGE_INCLUDED_CATEGORY_HEADER =
+  /^(?:[-*•◇◆\s·]*)(?:기본\s*핵심\s*관광|예약자\s*특별\s*혜택)\s*$/i
+
+const PACKAGE_INCLUDED_SUBITEM_LINE = /^[·•\u00b7\-*]\s*/
+
+/** `기본 핵심 관광`·`예약자 특별혜택` 헤더와 `·` 하위 줄만 제거 */
+export function filterPackagePublicIncludedExcludedLines(lines: string[]): string[] {
+  const out: string[] = []
+  let skipping = false
+  for (const raw of lines) {
+    const t = raw.replace(/\s+/g, ' ').trim()
+    if (!t) continue
+    if (PACKAGE_INCLUDED_CATEGORY_HEADER.test(t)) {
+      skipping = true
+      continue
+    }
+    if (skipping) {
+      if (PACKAGE_INCLUDED_SUBITEM_LINE.test(t)) continue
+      skipping = false
+    }
+    out.push(t)
+  }
+  return out
+}
+
 /** mergeExcluded 이후 문자열에 대해 1인실 줄만 정리 */
 export function formatPublicExcludedTextAfterMerge(mergedExcluded: string): string {
   const lines = splitLines(mergedExcluded)

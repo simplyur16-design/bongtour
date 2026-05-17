@@ -104,9 +104,11 @@ export function ItineraryViewPackageMain({
       includedText: product.includedText,
       excludedText: product.excludedText,
       optionalToursStructured: product.optionalToursStructured,
+      optionalToursPasteRaw: product.optionalToursPasteRaw ?? null,
       shoppingCount: product.shoppingCount,
       shoppingItems: product.shoppingItems,
       shoppingCautionNoticeRaw: product.shoppingNoticeRaw,
+      shoppingStopsStructured: product.shoppingStopsStructured ?? null,
       reservationNoticeRaw: product.reservationNoticeRaw,
     }),
     [product]

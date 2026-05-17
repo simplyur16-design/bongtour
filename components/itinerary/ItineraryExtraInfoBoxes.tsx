@@ -1,12 +1,24 @@
+'use client'
+
+import PackageOptionalToursTable from '@/app/components/detail/PackageOptionalToursTable'
+import PackageShoppingTable from '@/app/components/detail/PackageShoppingTable'
+import type { ShoppingStopRow } from '@/lib/public-product-extras-types'
+import {
+  filterPackagePublicIncludedExcludedLines,
+  splitIncludedExcludedForPublicDisplay,
+} from '@/lib/product-included-excluded-public'
+
 export type ItineraryExtraInfoProduct = {
   productType?: string | null
   includedText?: string | null
   excludedText?: string | null
   optionalToursStructured?: string | null
+  optionalToursPasteRaw?: string | null
   shoppingCount?: number | null
   shoppingItems?: string | null
   shoppingCautionNoticeRaw?: string | null
   reservationNoticeRaw?: string | null
+  shoppingStopsStructured?: ShoppingStopRow[] | null
 }
 
 type OptionalTourRow = {
@@ -21,6 +33,11 @@ type OptionalTourRow = {
 
 type ItineraryExtraInfoSection = 'top' | 'bottom' | 'all'
 
+function isPackageProductType(productType: string | null | undefined): boolean {
+  const t = (productType ?? '').toLowerCase()
+  return t === 'travel' || t === 'private' || t === 'semi'
+}
+
 export function ItineraryExtraInfoBoxes({
   product,
   section = 'all',
@@ -30,15 +47,24 @@ export function ItineraryExtraInfoBoxes({
 }) {
   const showTop = section === 'top' || section === 'all'
   const showBottom = section === 'bottom' || section === 'all'
-  const includedItems = (product.includedText ?? '')
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean)
+  const isPackage = isPackageProductType(product.productType)
 
-  const excludedItems = (product.excludedText ?? '')
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean)
+  let includedItems: string[]
+  let excludedItems: string[]
+  if (isPackage) {
+    const split = splitIncludedExcludedForPublicDisplay(product.includedText, product.excludedText)
+    includedItems = filterPackagePublicIncludedExcludedLines(split.includedLines)
+    excludedItems = split.excludedLines
+  } else {
+    includedItems = (product.includedText ?? '')
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+    excludedItems = (product.excludedText ?? '')
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }
 
   const reservationNotices = (product.reservationNoticeRaw ?? '')
     .split(/\r?\n/)
@@ -68,9 +94,15 @@ export function ItineraryExtraInfoBoxes({
           <div className="border-l-4 border-[#6B8E5C] pl-3 mb-2">
             <h3 className="text-base font-bold fit-tx-primary">포함 사항</h3>
           </div>
-          <ul className="bg-green-50 rounded-2xl p-4 space-y-2">
+          <ul
+            className={
+              isPackage
+                ? 'rounded-2xl border border-[#DAD4EE] bg-white p-4 space-y-2'
+                : 'bg-green-50 rounded-2xl p-4 space-y-2'
+            }
+          >
             {includedItems.map((item, i) => (
-              <li key={i} className="text-sm fit-tx-primary">
+              <li key={i} className="text-sm fit-tx-primary bt-wrap">
                 {item}
               </li>
             ))}
@@ -83,9 +115,15 @@ export function ItineraryExtraInfoBoxes({
           <div className="border-l-4 border-[#D85A30] pl-3 mb-2">
             <h3 className="text-base font-bold fit-tx-primary">불포함 사항</h3>
           </div>
-          <ul className="bg-orange-50 rounded-2xl p-4 space-y-2">
+          <ul
+            className={
+              isPackage
+                ? 'rounded-2xl border border-[#DAD4EE] bg-white p-4 space-y-2'
+                : 'bg-orange-50 rounded-2xl p-4 space-y-2'
+            }
+          >
             {excludedItems.map((item, i) => (
-              <li key={i} className="text-sm fit-tx-primary">
+              <li key={i} className="text-sm fit-tx-primary bt-wrap whitespace-pre-wrap">
                 {item}
               </li>
             ))}
@@ -93,7 +131,20 @@ export function ItineraryExtraInfoBoxes({
         </section>
       )}
 
-      {showBottom && !isAirtel && optionalTours.length > 0 && (
+      {showTop && isPackage && !isAirtel ? (
+        <div className="space-y-4">
+          <PackageOptionalToursTable
+            optionalToursStructured={product.optionalToursStructured}
+            optionalToursPasteRaw={product.optionalToursPasteRaw ?? null}
+          />
+          <PackageShoppingTable
+            stops={product.shoppingStopsStructured}
+            shoppingCount={product.shoppingCount}
+          />
+        </div>
+      ) : null}
+
+      {showBottom && !isAirtel && !isPackage && optionalTours.length > 0 && (
         <section className="mb-6">
           <div className="border-l-4 border-[#1F1B2D] pl-3 mb-2">
             <h3 className="text-base font-bold fit-tx-primary">현지 옵션</h3>
@@ -132,7 +183,7 @@ export function ItineraryExtraInfoBoxes({
         </section>
       )}
 
-      {showBottom && !isAirtel && Boolean(product.shoppingCount) && shoppingItems.length > 0 && (
+      {showBottom && !isAirtel && !isPackage && Boolean(product.shoppingCount) && shoppingItems.length > 0 && (
         <section className="mb-6">
           <div className="border-l-4 border-[#E89571] pl-3 mb-2">
             <h3 className="text-base font-bold fit-tx-primary">
