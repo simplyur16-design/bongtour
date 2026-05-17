@@ -4,7 +4,9 @@ import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ProductPriceRow, TravelProduct } from './TravelProductDetail'
 import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
-import { formatDirectedFlightBodyLine } from '@/lib/flight-user-display'
+import { formatFlightLegTwoLines } from '@/lib/flight-user-display'
+import ProductLiveQuoteCard from '@/app/components/detail/ProductLiveQuoteCard'
+import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
 import ProductExtraInfoTabs from '@/app/components/detail/ProductExtraInfoTabs'
 import { isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-hanatour'
@@ -415,6 +417,28 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
     return formatHanatourDepartureConditionForProduct(product)
   }, [product])
 
+  const highRiskAlerts = useMemo(() => {
+    const lines: string[] = []
+    if (product.mandatoryLocalFee != null && product.mandatoryCurrency) {
+      lines.push(`현지에서 ${product.mandatoryCurrency} ${product.mandatoryLocalFee}(인당) 별도 지불이 필요한 상품입니다`)
+    }
+    const points = product.counselingNotes?.counseling_points ?? []
+    points.forEach((p) => {
+      if (p.title && !lines.some((l) => l.includes(p.title))) lines.push(p.title)
+    })
+    return lines
+  }, [product.mandatoryLocalFee, product.mandatoryCurrency, product.counselingNotes])
+
+  const packageTotalDays = getProductTotalDays(
+    product,
+    product.schedule?.length ? product.schedule.length : null
+  )
+  const departureDateFrom = mergedPrices[0] ? toDateKey(mergedPrices[0].date) : null
+  const computedReturnDate = useMemo(() => {
+    const dep = selectedDate ?? (priceRow ? toDateKey(priceRow.date) : departureDateFrom)
+    return computeReturnDate(dep, packageTotalDays)
+  }, [selectedDate, priceRow, departureDateFrom, packageTotalDays])
+
   /** 꼭 알아야 할 사항: `mustKnowItems`만(공급사 공통). 비면 기본 안내 문구. */
   const mustKnowFiltered = useMemo(
     () =>
@@ -579,8 +603,8 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
           productMetaChips,
           listingKind: product.listingKind,
           airportTransferType: product.airportTransferType,
-          outboundFlightLine: formatDirectedFlightBodyLine(selectedDepartureFacts?.outbound ?? null),
-          inboundFlightLine: formatDirectedFlightBodyLine(selectedDepartureFacts?.inbound ?? null),
+          outboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.outbound ?? null),
+          inboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.inbound ?? null),
         }}
         onChangeDepartureDate={handleChangeDepartureDate}
         showChangeDepartureCta={mergedPrices.length > 0}
@@ -592,6 +616,35 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
           {onDemandNotice}
         </p>
       ) : null}
+
+      <div className="mx-4 mt-4">
+        <ProductLiveQuoteCard
+          product={product}
+          prices={mergedPrices}
+          selectedDate={selectedDate}
+          explicitPriceRow={
+            selectedDepartureRowId
+              ? (mergedPrices.find((p) => p.id === selectedDepartureRowId) ?? null)
+              : null
+          }
+          pax={pax}
+          updatePax={updatePax}
+          updateChildCombined={updateChildCombined}
+          highRiskAlerts={highRiskAlerts}
+          onBookingOpen={openBookingIntake}
+          onOpenDeparturePicker={handleChangeDepartureDate}
+          variant="mobile"
+          fromScreen="product_detail_mobile"
+          departureConditionLine={departureConditionLine}
+          heroTripDepartureDisplay={heroDepartureDisplay}
+          heroTripReturnDisplay={computedReturnDate}
+          modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
+          isCollectingPrices={departureCollectOpen}
+          priceCollectUiPhase={priceCollectUiPhase}
+          masterTotalDays={packageTotalDays > 0 ? packageTotalDays : null}
+          departureDateFrom={departureDateFrom}
+        />
+      </div>
 
       <div className="bg-[#FAFAFC] px-4 pb-8">
         <ItineraryViewPackageMain
