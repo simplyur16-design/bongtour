@@ -18,7 +18,7 @@ import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 
 const PAX_STEP_BUTTON_CLASS =
-  'inline-flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-lg border border-[#C7BFA1] bg-white text-lg font-semibold leading-none text-[#1F1B2D] shadow-sm transition-colors hover:bg-[#F1EFE8] active:bg-[#FAFAFC] disabled:pointer-events-none disabled:opacity-40'
+  'inline-flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-lg border border-[#1F1B2D] bg-white text-base font-semibold leading-none text-[#1F1B2D] transition-colors hover:bg-[#EFEDF8] active:bg-[#FAFAFC] disabled:pointer-events-none disabled:opacity-40'
 
 const STICKY_PAX_ROWS = [
   { key: 'adult' as const, label: '성인', ageLine: '만 12세 이상', minVal: 1 },
@@ -34,27 +34,27 @@ type Props = {
   selectedDate: string | null
   pax: Pax
   updatePax: (key: keyof Pax, delta: number) => void
-  /** ????�???�ybtour ??? ???? ?? ??(??�??? ??? ??) */
+  /** 하나투어·참좋은·ybtour 스티키 「아동」 통합 행용(침대·노베드 카운트 조절) */
   updateChildCombined: (delta: number) => void
   highRiskAlerts: string[]
   onBookingOpen: () => void
   onOpenDeparturePicker: () => void
   variant?: 'desktop' | 'mobile'
   fromScreen: 'product_detail_desktop' | 'product_detail_mobile'
-  /** ????�????�???? ? ? (?? ?? ??) */
+  /** 최소출발·현재예약·출발확정 한 줄 (등록 본문 추출) */
   departureConditionLine?: string | null
-  /** ???�??????? ?? ??�?? ?? (`formatHeroDateKorean` ?) */
+  /** 히어로·여행핵심정보와 동일 출발·귀국 표시 (`formatHeroDateKorean` 등) */
   heroTripDepartureDisplay?: string | null
   heroTripReturnDisplay?: string | null
-  /** ?? ??? ?? ?? ?? ?? ? `selectedDate`???? ??? ? ? ? ?? ?? SSOT? ?? */
+  /** 동일 일자에 여러 출발 행이 있을 때 `selectedDate`만으로는 부족할 때 — 이 행을 견적 SSOT로 사용 */
   explicitPriceRow?: ProductPriceRow | null
-  /** ???? ??: ??? ?? ?? ?? ?? ?? ????(??) */
+  /** 모두투어 전용: 출발일 변경 버튼 바로 아래 현지 지불경비(인당) */
   modetourStickyLocalPayLine?: string | null
-  /** ?? ?? on-demand ?? ?(??? SSOT ??, ??? ???) */
+  /** 전후 범위 on-demand 수집 중(선택일 SSOT 유지, 견적은 참고만) */
   isCollectingPrices?: boolean
-  /** ???? ??? ??�??�pending_quote UI ?? */
+  /** 상세에서 계산한 수집·지연·pending_quote UI 단계 */
   priceCollectUiPhase?: DeparturePriceCollectUiPhase
-  /** ?? N? ? `product.schedule.length` ?? fit master */
+  /** 일정 N일 — `product.schedule.length` 또는 fit master */
   masterTotalDays?: number | null
   departureDateFrom?: string | null
 }
@@ -95,7 +95,7 @@ export default function ProductLiveQuoteCard({
     [rowForAdvisory, isCollectingPrices]
   )
 
-  /** ?? ?? ??? ? `pricingMode` ???? ???? ?? */
+  /** 상담 요약 참고용 — `pricingMode` 문자열과 동일하게 맞춤 */
   const counselPricingMode = useMemo(() => {
     const d = selectedDate?.trim()
     if (!d) return null
@@ -113,10 +113,12 @@ export default function ProductLiveQuoteCard({
     const dep = selectedDate ?? departureDateFrom ?? null
     return computeReturnDate(dep, totalDays)
   }, [selectedDate, departureDateFrom, totalDays])
-  const shareSummary = `${product.originCode} � ${product.destination} � ${product.duration}${product.airline ? ` � ${product.airline}` : ''} � ?? ${selectedDate ?? '???'}${computedReturnDate ? ` � ?? ${computedReturnDate}` : ''}`
+  const shareSummary = `${product.originCode} · ${product.destination} · ${product.duration}${product.airline ? ` · ${product.airline}` : ''} · 출발 ${selectedDate ?? '미선택'}${computedReturnDate ? ` · 귀국 ${computedReturnDate}` : ''}`
+
 
   const isMobile = variant === 'mobile'
   const pad = isMobile ? 'p-4' : 'p-6'
+
 
   const showCollectingBanner =
     isCollectingPrices &&
@@ -142,7 +144,7 @@ export default function ProductLiveQuoteCard({
             <p className="mt-1 text-[11px] text-bt-meta">{departurePriceCollectUiCopy.overlayBodyPrimary}</p>
           )}
           <p className="mt-2 text-[11px] text-bt-subtle">
-            ?? ??? ????. ?? ??? ????? ?? ?? ??? ?????.
+            예약 확정이 아닙니다. 요금 확인이 지연되어도 예약 요청 접수는 가능합니다.
           </p>
         </div>
       ) : null}
@@ -155,8 +157,9 @@ export default function ProductLiveQuoteCard({
         </div>
       ) : null}
 
+
       <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#1F1B2D]">??</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#1F1B2D]">인원</p>
         <div className="space-y-2.5">
           {STICKY_PAX_ROWS.map((row) => {
             const isChildRow = row.key === 'child'
@@ -177,26 +180,28 @@ export default function ProductLiveQuoteCard({
                   <div className="text-[10px] text-bt-meta">{row.ageLine}</div>
                   {unit != null && unit > 0 && priceRow != null ? (
                     <div className="mt-0.5 text-xs font-semibold tabular-nums text-[#85510B]">
-                      ?{unit.toLocaleString('ko-KR')} /?
+                      ₩{unit.toLocaleString('ko-KR')} /인
                     </div>
                   ) : null}
                 </div>
-                <div className="grid h-9 w-[7rem] shrink-0 grid-cols-[2rem_1fr_2rem] items-center gap-1">
+                <div className="flex shrink-0 items-center gap-2">
                   <button
                     type="button"
                     onClick={onDecrease}
                     disabled={atMin}
-                    className={`${PAX_STEP_BUTTON_CLASS} h-9 w-9 text-base`}
-                    aria-label={`${row.label} ??`}
+                    className={PAX_STEP_BUTTON_CLASS}
+                    aria-label={`${row.label} 감소`}
                   >
-                    ?
+                    −
                   </button>
-                  <span className="text-center text-base font-bold tabular-nums text-[#1F1B2D]">{count}</span>
+                  <span className="min-w-[24px] text-center text-base font-bold tabular-nums text-[#1F1B2D]">
+                    {count}
+                  </span>
                   <button
                     type="button"
                     onClick={onIncrease}
-                    className={`${PAX_STEP_BUTTON_CLASS} h-9 w-9 text-base`}
-                    aria-label={`${row.label} ??`}
+                    className={PAX_STEP_BUTTON_CLASS}
+                    aria-label={`${row.label} 증가`}
                   >
                     +
                   </button>
@@ -238,10 +243,10 @@ export default function ProductLiveQuoteCard({
           </p>
         ) : null}
         <p className="mt-1.5 text-center text-[11px] leading-relaxed text-bt-meta">
-          ??�???�?? ??? ?? ??? ?????. ????(??)�?? ??? ??? ???.
+          상품·출발일·인원 요약은 상담 채널로 전달됩니다. 전화번호(권장)·문의 내용을 보완해 주세요.
         </p>
         <p className="mt-0.5 text-center text-[11px] text-bt-subtle">
-          ???? ?? ??? ??? ??? ???? ???.
+          입력창이 비어 있으면 복사된 요약을 붙여넣어 주세요.
         </p>
       </div>
       <ShareActions title={product.title} summaryLine={shareSummary} className="mt-2" />
@@ -250,7 +255,7 @@ export default function ProductLiveQuoteCard({
         onClick={onBookingOpen}
         className="mt-3 w-full bt-btn-secondary"
       >
-        ?? ?? ??
+        예약 요청 접수
       </button>
     </div>
   )

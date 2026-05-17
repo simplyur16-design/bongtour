@@ -115,21 +115,20 @@ export function publicDepartureLegCardIsPresentable(leg: {
   return Boolean((flow && flow.trim()) || fn)
 }
 
-/** 항공여정 행 — `가는편: 인천 … → 연길 … / CZ6074` (편명은 본문에 없을 때만 힌트 줄 사용) */
-export function formatDirectedFlightRow(
-  directionLabel: '가는편' | '오는편',
-  leg: {
-    departureAirport?: string | null
-    arrivalAirport?: string | null
-    departureAtText?: string | null
-    arrivalAtText?: string | null
-    flightNo?: string | null
-    /** 예: `총 13시간 15분 소요` — 하나투어 정형 항공칸 등 */
-    durationText?: string | null
-  } | null | undefined
-): { line: string | null; showFlightHint: boolean } {
-  if (!leg) return { line: null, showFlightHint: false }
-  if (legHasGarbageFlightFields(leg)) return { line: null, showFlightHint: false }
+export type DirectedFlightLegInput = {
+  departureAirport?: string | null
+  arrivalAirport?: string | null
+  departureAtText?: string | null
+  arrivalAtText?: string | null
+  flightNo?: string | null
+  /** 예: `총 13시간 15분 소요` — 하나투어 정형 항공칸 등 */
+  durationText?: string | null
+}
+
+/** 방향 라벨 없이 본문만 — hero 등 라벨을 따로 두는 UI용 */
+export function formatDirectedFlightBodyLine(leg: DirectedFlightLegInput | null | undefined): string | null {
+  if (!leg) return null
+  if (legHasGarbageFlightFields(leg)) return null
   const flow = formatFlightLegFlowLine(
     leg.departureAirport,
     leg.arrivalAirport,
@@ -137,14 +136,26 @@ export function formatDirectedFlightRow(
     leg.arrivalAtText
   )
   const fn = leg.flightNo?.replace(/\s+/g, ' ').trim() || ''
-  const { showFlightFinalConfirmHint } = formatFlightMetaLine(null, fn || null)
-  if (!flow && !fn) return { line: null, showFlightHint: false }
+  if (!flow && !fn) return null
   let body = flow || ''
   if (fn && body && !body.includes(fn)) body = `${body} / ${fn}`.trim()
   else if (!body && fn) body = fn
   const dur = leg.durationText?.replace(/\s+/g, ' ').trim()
   if (dur && body && !body.includes(dur)) body = `${body} · ${dur}`.trim()
   else if (dur && !body) body = dur
+  return body || null
+}
+
+/** 항공여정 행 — `가는편: 인천 … → 연길 … / CZ6074` (편명은 본문에 없을 때만 힌트 줄 사용) */
+export function formatDirectedFlightRow(
+  directionLabel: '가는편' | '오는편',
+  leg: DirectedFlightLegInput | null | undefined
+): { line: string | null; showFlightHint: boolean } {
+  if (!leg) return { line: null, showFlightHint: false }
+  if (legHasGarbageFlightFields(leg)) return { line: null, showFlightHint: false }
+  const fn = leg.flightNo?.replace(/\s+/g, ' ').trim() || ''
+  const { showFlightFinalConfirmHint } = formatFlightMetaLine(null, fn || null)
+  const body = formatDirectedFlightBodyLine(leg)
   return {
     line: body ? `${directionLabel}: ${body}` : null,
     showFlightHint: showFlightFinalConfirmHint && !fn,

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
-import { formatDirectedFlightRow } from '@/lib/flight-user-display'
+import { formatDirectedFlightBodyLine } from '@/lib/flight-user-display'
 import ProductExtraInfoTabs from '@/app/components/detail/ProductExtraInfoTabs'
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
@@ -761,10 +761,8 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
             productMetaChips,
             listingKind: product.listingKind,
             airportTransferType: product.airportTransferType,
-            outboundFlightLine:
-              formatDirectedFlightRow('가는편', selectedDepartureFacts?.outbound ?? null).line ?? null,
-            inboundFlightLine:
-              formatDirectedFlightRow('오는편', selectedDepartureFacts?.inbound ?? null).line ?? null,
+            outboundFlightLine: formatDirectedFlightBodyLine(selectedDepartureFacts?.outbound ?? null),
+            inboundFlightLine: formatDirectedFlightBodyLine(selectedDepartureFacts?.inbound ?? null),
           }}
           onChangeDepartureDate={handleChangeDepartureDate}
           showChangeDepartureCta={mergedPrices.length > 0}

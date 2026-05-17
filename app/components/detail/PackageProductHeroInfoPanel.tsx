@@ -3,18 +3,12 @@
 import {
   ComparePriceRow,
   CurrentPriceRow,
-  HERO_DATE_LABEL_CLASS,
-  HERO_DATE_VALUE_CLASS,
   ProductDetailTitle,
   ProductMetaChips,
 } from '@/app/components/detail/product-detail-visual'
 import type { ProductMetaChip } from '@/lib/product-meta-chips'
 import type { PriceDisplaySsot } from '@/lib/price-display-ssot'
-import {
-  CARD_INSTALLMENT_DISCLAIMER,
-  CARD_INSTALLMENT_SUMMARY,
-  PRICE_MAIN_AMOUNT_HINT,
-} from '@/lib/promotion-copy-normalize'
+import { CARD_INSTALLMENT_DISCLAIMER, CARD_INSTALLMENT_SUMMARY } from '@/lib/promotion-copy-normalize'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 
 export type PackageProductHeroInfoPanelProps = {
@@ -102,19 +96,19 @@ export default function PackageProductHeroInfoPanel({
 
       {showPriceBlock ? (
         <div className="mt-4 rounded-xl border border-bt-card-accent-border bg-bt-card-accent-soft p-4">
-          <div className="space-y-1 text-xs">
-            <p className="flex items-start justify-between gap-3">
-              <span className={HERO_DATE_LABEL_CLASS}>가는편</span>
-              <span className={`${HERO_DATE_VALUE_CLASS} bt-wrap text-right leading-relaxed`}>
+          <div className="space-y-0 text-xs">
+            <div className="py-2.5">
+              <p className="text-[11px] font-medium text-bt-meta">가는편</p>
+              <p className="bt-wrap mt-1 text-sm font-semibold leading-relaxed text-[#1F1B2D]">
                 {outboundFlightLine ?? '상담 시 안내'}
-              </span>
-            </p>
-            <p className="flex items-start justify-between gap-3">
-              <span className={HERO_DATE_LABEL_CLASS}>오는편</span>
-              <span className={`${HERO_DATE_VALUE_CLASS} bt-wrap text-right leading-relaxed`}>
+              </p>
+            </div>
+            <div className="border-t border-[#DAD4EE]/30 py-2.5">
+              <p className="text-[11px] font-medium text-bt-meta">오는편</p>
+              <p className="bt-wrap mt-1 text-sm font-semibold leading-relaxed text-[#1F1B2D]">
                 {inboundFlightLine ?? '상담 시 안내'}
-              </span>
-            </p>
+              </p>
+            </div>
           </div>
           {heroPriceSsot.selectedDeparturePrice != null ? (
             <>
@@ -123,7 +117,6 @@ export default function PackageProductHeroInfoPanel({
                   <ComparePriceRow amount={heroPriceSsot.displayPriceBeforeCoupon} />
                 ) : null}
                 <CurrentPriceRow amount={heroPriceSsot.selectedDeparturePrice} />
-                <p className="text-[11px] text-bt-meta">{PRICE_MAIN_AMOUNT_HINT}</p>
               </div>
               {heroDiscountSavingsLine ? (
                 <p className="bt-wrap mt-2 text-center text-sm font-semibold text-bt-card-accent-strong">
