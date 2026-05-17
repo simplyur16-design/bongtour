@@ -3,6 +3,7 @@
  * LLM 등록 파싱 입력 합성 — 추출 SSOT용 블록 라벨 고정.
  * 공통 등록 본류: 관리자 복붙 텍스트만. URL·HTML fetch·어댑터 요약 없음.
  */
+import { stripYbtourReviewSection } from '@/lib/detail-body-parser-utils-ybtour'
 
 export type RegisterPasteSections = {
   priceTable: string
@@ -147,7 +148,7 @@ export function buildRegisterLlmInputBlocks(
   const bodyMax = preview ? PREVIEW_BODY_MAX : FULL_BODY_MAX
   const blockMax = preview ? PREVIEW_BLOCK_MAX : FULL_BLOCK_MAX
 
-  const body = opts.pastedBody.trim().slice(0, bodyMax)
+  const body = stripYbtourReviewSection(opts.pastedBody).trim().slice(0, bodyMax)
 
   const pick = (explicit: string | null | undefined, segmented: string, blockLabel: string) => {
     const e = explicit?.trim()

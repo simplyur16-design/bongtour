@@ -247,3 +247,28 @@ export function parseIncludedExcludedSection(section: string): IncludedExcludedS
       includedItems.length === 0 && excludedItems.length === 0 && section.trim().length > 0 ? ['포함/불포함 분리 실패'] : [],
   }
 }
+
+/** 노랑풍선 본문 — 여행 후기 영역 슬라이스 제거 (LLM 입력 축소 전용). normalize 와 분리 운용. */
+export function stripYbtourReviewSection(raw: string): string {
+  const lines = raw.replace(/\r/g, '\n').split('\n')
+  const out: string[] = []
+  let inReview = false
+  for (const line of lines) {
+    const t = line.replace(/\s+/g, ' ').trim()
+    if (!inReview && /^\d+(?:\.\d+)?실제 여행객 \d+명의 리뷰 보기$/.test(t)) {
+      inReview = true
+      continue
+    }
+    if (inReview) {
+      /** 후기 영역 끝 마커 (본문 진짜 영역 시작) */
+      if (/^여행\s*주요일정$/.test(t) || /^여행상품\s*핵심정보$/.test(t)) {
+        inReview = false
+        out.push(line)
+        continue
+      }
+      continue
+    }
+    out.push(line)
+  }
+  return out.join('\n')
+}
