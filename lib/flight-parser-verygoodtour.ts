@@ -35,10 +35,20 @@ function stripVerygoodRegisterFlightNoise(raw: string): string {
 
 function extractVerygoodAirlineName(blob: string): string | null {
   const flat = blob.replace(/\s+/g, ' ').trim().slice(0, 220)
-  const hits = [...flat.matchAll(/([가-힣]{2,10}항공)/g)].map((x) => x[1]!)
-  if (!hits.length) return null
-  const uniq = [...new Set(hits)]
-  return uniq[0] ?? null
+  /** 한글 항공사 — 동사 어미 + 항공 결합은 본문 안내 문구 오탐 ("있습니다항공", "합니다항공" 등) */
+  const koHits = [...flat.matchAll(/([가-힣]{2,10}항공)/g)]
+    .map((x) => x[1]!)
+    .filter((name) => {
+      const stem = name.slice(0, -2)
+      return !/(습니다|합니다|입니다|됩니다|있다|있는|있을|있어|있음|없다|없는|없을|있고|있으)$/.test(stem)
+    })
+  if (koHits.length > 0) return [...new Set(koHits)][0] ?? null
+  /** 영문 항공사 fallback (Airlines/Airways/Air) — 입력란 영문 표기 흡수 */
+  const enHits = [
+    ...flat.matchAll(/\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2}\s+(?:Airlines?|Airways?|Air))\b/g),
+  ].map((x) => x[1]!.trim())
+  if (enHits.length > 0) return [...new Set(enHits)][0] ?? null
+  return null
 }
 
 function lineIndexOfAnchor(lines: string[], re: RegExp): number {
