@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { spawn } from 'child_process'
-import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
+import { getCalendarBatchSpawnEnv, resolveBongtourApiBase } from '@/lib/calendar-batch-env'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 import * as logStream from '@/lib/admin-log-stream'
-import { getSchedulerEnvOverrides } from '@/lib/scheduler-config'
 import { tryBeginStreamRun } from '@/lib/scheduler-run-once-gate'
 import { attachCalendarBatchFinalizeOnExit } from '@/lib/scheduler-calendar-batch-lifecycle'
 import { requireAdmin } from '@/lib/require-admin'
@@ -67,18 +66,22 @@ export async function POST(req: NextRequest) {
 
     const cwd = process.cwd()
     const py = resolvePythonExecutable()
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      PYTHONPATH: cwd,
-      ...getSchedulerEnvOverrides(),
+    const apiBase = resolveBongtourApiBase()
+    if (!apiBase) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'BONGTOUR_API_BASE(또는 NEXT_PUBLIC_SITE_URL / NEXTAUTH_URL)이 없습니다. Python이 저장 API를 호출할 수 없습니다.',
+        },
+        { status: 400 },
+      )
+    }
+    const env = getCalendarBatchSpawnEnv({
       SCRAPER_CALENDAR_RANGE_START: strategy.dateRangeStartYmd,
       SCRAPER_CALENDAR_RANGE_END: strategy.dateRangeEndYmd,
       SCRAPER_BATCH_MODE: strategy.mode,
-    }
-    const bearer = getAdminServiceBearerSecret()
-    if (bearer && !(env.ADMIN_BYPASS_SECRET ?? '').trim()) {
-      env.ADMIN_BYPASS_SECRET = bearer
-    }
+    })
 
     if (!tryAcquireCalendarPriceBatchLock()) {
       return NextResponse.json({ ok: false, error: '가격 동기화가 이미 실행 중입니다.' }, { status: 409 })

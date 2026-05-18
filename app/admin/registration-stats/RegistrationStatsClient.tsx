@@ -29,7 +29,13 @@ type Payload = {
 
 type CalendarAudit = {
   ok: boolean
-  environment: { nodeEnv: string; cronRegistered: boolean; bearerConfigured: boolean }
+  environment: {
+    nodeEnv: string
+    cronRegistered: boolean
+    bearerConfigured: boolean
+    apiBasePreview?: string | null
+    pythonExecutable?: string
+  }
   strategy: {
     shouldRunToday: boolean
     mode: string
@@ -42,6 +48,7 @@ type CalendarAudit = {
     departuresUpdatedLast7Days: number
   }
   scheduleNote: string
+  setupSteps?: string[]
   issues: string[]
 }
 
@@ -50,6 +57,8 @@ export default function RegistrationStatsClient() {
   const [audit, setAudit] = useState<CalendarAudit | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [runBusy, setRunBusy] = useState(false)
+  const [runMsg, setRunMsg] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -75,6 +84,26 @@ export default function RegistrationStatsClient() {
   useEffect(() => {
     void load()
   }, [load])
+
+  async function runCalendarBatchOnce() {
+    setRunBusy(true)
+    setRunMsg(null)
+    try {
+      const res = await fetch('/api/admin/scheduler/run-once', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      const j = (await res.json()) as { ok?: boolean; message?: string; error?: string }
+      if (!res.ok || !j.ok) throw new Error(j.error ?? j.message ?? `실행 실패 (${res.status})`)
+      setRunMsg(j.message ?? '배치를 시작했습니다. 스케줄러 설정에서 로그를 확인하세요.')
+    } catch (e) {
+      setRunMsg(e instanceof Error ? e.message : '오류')
+    } finally {
+      setRunBusy(false)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-[1200px] space-y-6">
@@ -105,6 +134,27 @@ export default function RegistrationStatsClient() {
         <section className={ADMIN_CARD_CLASS}>
           <h2 className="text-lg font-semibold text-bt-text-navy">날짜별 요금 자동 수집</h2>
           <p className="mt-2 text-sm text-bt-text-muted-lavender">{audit.scheduleNote}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={runBusy || !audit.environment.bearerConfigured}
+              onClick={() => void runCalendarBatchOnce()}
+              className="rounded-lg bg-bt-text-navy px-3 py-2 text-sm font-semibold text-white hover:bg-bt-text-navy/90 disabled:opacity-50"
+            >
+              {runBusy ? '시작 중…' : '지금 1회 실행'}
+            </button>
+          </div>
+          {runMsg ? <p className="mt-2 text-sm text-bt-text-navy">{runMsg}</p> : null}
+          {audit.setupSteps && audit.setupSteps.length > 0 ? (
+            <div className="mt-4 rounded-lg border border-bt-border-soft bg-bt-bg-lavender/40 p-3">
+              <p className="text-xs font-semibold text-bt-text-navy">운영 서버 설정 체크리스트</p>
+              <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-bt-text-muted-lavender">
+                {audit.setupSteps.map((s) => (
+                  <li key={s}>{s}</li>
+                ))}
+              </ol>
+            </div>
+          ) : null}
           <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-bt-text-muted-lavender">환경</dt>
@@ -112,7 +162,15 @@ export default function RegistrationStatsClient() {
             </div>
             <div>
               <dt className="text-bt-text-muted-lavender">자동 크론 등록</dt>
-              <dd className="font-medium">{audit.environment.cronRegistered ? '예 (운영)' : '아니오'}</dd>
+              <dd className="font-medium">{audit.environment.cronRegistered ? '예' : '아니오'}</dd>
+            </div>
+            <div>
+              <dt className="text-bt-text-muted-lavender">API base</dt>
+              <dd className="font-medium font-mono text-xs">{audit.environment.apiBasePreview ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-bt-text-muted-lavender">Python</dt>
+              <dd className="font-medium font-mono text-xs">{audit.environment.pythonExecutable ?? '—'}</dd>
             </div>
             <div>
               <dt className="text-bt-text-muted-lavender">오늘 배치 실행</dt>

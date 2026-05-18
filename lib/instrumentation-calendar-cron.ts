@@ -1,22 +1,31 @@
 /**
  * Next instrumentation: 매일 21:00 (Asia/Seoul) 달력 가격 배치.
- * `ADMIN_SERVICE_BEARER_SECRET` 또는 `ADMIN_BYPASS_SECRET`, `DATABASE_URL` 필요.
+ * 등록 조건: `lib/calendar-batch-env` `canRegisterCalendarCron()` (운영 또는 ENABLE_INSTRUMENTATION_CALENDAR_CRON=1).
  */
 export function startInstrumentationCalendarCron(): void {
-  if (process.env.DISABLE_INSTRUMENTATION_CALENDAR_CRON === '1') {
-    return
-  }
   void import('node-cron')
-    .then((m) => {
+    .then(async (m) => {
+      const { getCalendarBatchReadiness, resolveBongtourApiBase } = await import('@/lib/calendar-batch-env')
+      const readiness = getCalendarBatchReadiness()
       const cron = m.default
       cron.schedule(
         '0 21 * * *',
         () => {
           void tickCalendarCron()
         },
-        { timezone: 'Asia/Seoul' }
+        { timezone: 'Asia/Seoul' },
       )
-      console.log('[calendar-cron] registered: 0 21 * * * (Asia/Seoul)')
+      console.log('[calendar-cron] registered: 0 21 * * * (Asia/Seoul)', {
+        apiBase: resolveBongtourApiBase() || '(unset)',
+        python: readiness.pythonExecutable,
+        nodeEnv: readiness.nodeEnv,
+      })
+      if (process.env.CALENDAR_CRON_RUN_ON_STARTUP === '1') {
+        setTimeout(() => {
+          void tickCalendarCron()
+        }, 15_000)
+        console.log('[calendar-cron] startup tick scheduled (+15s, CALENDAR_CRON_RUN_ON_STARTUP=1)')
+      }
     })
     .catch((e) => {
       console.error('[calendar-cron] failed to load node-cron', e)

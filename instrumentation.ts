@@ -29,14 +29,14 @@ export async function register() {
       )
       startInstrumentationSeasonCurationCron()
     }
-    if (process.env.NODE_ENV === 'production') {
-      const { getAdminServiceBearerSecret } = await import('@/lib/admin-secrets')
-      const hasBearer =
-        Boolean(getAdminServiceBearerSecret().trim()) || Boolean((process.env.ADMIN_BYPASS_SECRET ?? '').trim())
-      if (hasBearer && (process.env.DATABASE_URL ?? '').trim()) {
+    {
+      const { canRegisterCalendarCron } = await import('@/lib/calendar-batch-env')
+      if (canRegisterCalendarCron()) {
         const { startInstrumentationCalendarCron } = await import('@/lib/instrumentation-calendar-cron')
         startInstrumentationCalendarCron()
       }
+    }
+    if (process.env.NODE_ENV === 'production') {
       if ((process.env.DATABASE_URL ?? '').trim()) {
         const { startInstrumentationCurationCron } = await import('@/lib/instrumentation-curation-cron')
         startInstrumentationCurationCron()

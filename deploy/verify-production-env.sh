@@ -139,6 +139,30 @@ else
 fi
 echo ""
 
+echo "[권장 — 날짜별 요금 자동 수집 (calendar_price_scheduler)]"
+cal_ok=0
+[[ -n "$(val_of "$(merged_line ADMIN_SERVICE_BEARER_SECRET)")" ]] || [[ -n "$(val_of "$(merged_line ADMIN_BYPASS_SECRET)")" ]] && \
+[[ -n "$(val_of "$(merged_line BONGTOUR_API_BASE)")" ]] || [[ -n "$(val_of "$(merged_line NEXTAUTH_URL)")" ]] || \
+[[ -n "$(val_of "$(merged_line NEXT_PUBLIC_SITE_URL)")" ]] && cal_ok=1
+if [[ "$cal_ok" -eq 1 ]]; then
+  echo "  [OK] Bearer + API base (ADMIN_SERVICE_BEARER_SECRET·BONGTOUR_API_BASE 등)"
+else
+  echo "  [미설정] ADMIN_SERVICE_BEARER_SECRET + BONGTOUR_API_BASE(또는 NEXTAUTH_URL) — 미설정 시 21:00 자동 수집 미등록"
+fi
+py_bin="$(val_of "$(merged_line PYTHON)")"
+[[ -z "$py_bin" ]] && py_bin="$(val_of "$(merged_line PYTHON_EXECUTABLE)")"
+if [[ -n "$py_bin" ]] && [[ -x "$py_bin" ]]; then
+  echo "  [OK] PYTHON=$py_bin"
+elif command -v python3 >/dev/null 2>&1; then
+  echo "  [참고] PYTHON 미설정 — 시스템 python3 사용 (venv 권장: deploy/README.md)"
+else
+  echo "  [경고] python3 없음 — Playwright 달력 수집 불가"
+fi
+if [[ "$(val_of "$(merged_line DISABLE_INSTRUMENTATION_CALENDAR_CRON)")" == "1" ]]; then
+  echo "  [꺼짐] DISABLE_INSTRUMENTATION_CALENDAR_CRON=1"
+fi
+echo ""
+
 echo "[권장 — 로컬과 동일한 이미지·키워드·생성 파이프라인]"
 # 파서 코드는 동일하나, Pexels/Gemini 키가 없으면 API가 빈 결과·fallback만 나와 검색어·대표이미지 결과가 로컬과 달라짐
 if [[ -n "$(val_of "$(merged_line PEXELS_API_KEY)")" ]]; then

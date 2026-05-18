@@ -50,6 +50,10 @@ export async function GET() {
         select: { productId: true },
       }),
       prisma.product.findMany({
+        where: {
+          registrationStatus: 'registered',
+          originCode: { not: '' },
+        },
         orderBy: { updatedAt: 'asc' },
         select: { id: true, originCode: true, originSource: true },
       }),

@@ -1,7 +1,6 @@
 import { spawn } from 'child_process'
-import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
+import { getCalendarBatchSpawnEnv } from '@/lib/calendar-batch-env'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
-import { getSchedulerEnvOverrides } from '@/lib/scheduler-config'
 
 const RESULT_PREFIX = 'BONGTOUR_BATCH_RESULT:'
 
@@ -58,18 +57,11 @@ function parseBatchResultLine(text: string): CalendarPriceBatchResult | null {
 export function runCalendarPriceBatchOnce(envOverlay: CalendarPriceBatchEnv): Promise<CalendarPriceBatchResult> {
   const py = resolvePythonExecutable()
   const cwd = process.cwd()
-  const bearer = getAdminServiceBearerSecret()
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    PYTHONPATH: cwd,
-    ...getSchedulerEnvOverrides(),
+  const env = getCalendarBatchSpawnEnv({
     SCRAPER_CALENDAR_RANGE_START: envOverlay.dateRangeStartYmd,
     SCRAPER_CALENDAR_RANGE_END: envOverlay.dateRangeEndYmd,
     SCRAPER_BATCH_MODE: envOverlay.mode,
-  }
-  if (bearer && !(env.ADMIN_BYPASS_SECRET ?? '').trim()) {
-    env.ADMIN_BYPASS_SECRET = bearer
-  }
+  })
 
   return new Promise((resolve) => {
     let out = ''
