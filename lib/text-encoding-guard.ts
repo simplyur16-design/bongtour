@@ -1,5 +1,5 @@
 /**
- * UTF-8 한글을 Latin-1(바이트)로 잘몼 읽은 문자열 복구 — 등록·표시 공통 (Node/브라우저, Buffer 불사용).
+ * UTF-8 한글을 Latin-1(바이트)로 잘못 읽은 문자열 복구 — 등록·표시 공통 (Node/브라우저, Buffer 불사용).
  */
 
 function hangulCount(s: string): number {
