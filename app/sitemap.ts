@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 import { getSiteOrigin } from '@/lib/site-metadata'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
+import { publicProductPath } from '@/lib/product-public-path'
 
 export const revalidate = 3600
 
@@ -34,13 +35,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       registrationStatus: 'registered',
       AND: [publicProductWhereClause()],
     },
-    select: { id: true, updatedAt: true },
+    select: { id: true, slug: true, updatedAt: true },
     take: 5000,
     orderBy: { updatedAt: 'desc' },
   })
 
   const productEntries: MetadataRoute.Sitemap = registered.map((p) => ({
-    url: `${origin}/products/${p.id}`,
+    url: `${origin}${publicProductPath(p)}`,
     lastModified: p.updatedAt,
     changeFrequency: 'weekly' as const,
     priority: 0.7,

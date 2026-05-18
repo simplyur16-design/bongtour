@@ -48,6 +48,7 @@ import { MAX_OPTIONAL_TOURS, OPTIONAL_TOUR_UI_MAX_ROWS } from '@/lib/optional-to
 import { filterOptionalTourRows, optionalTourRowPassesStrictGate, type OptionalTourRowFields } from '@/lib/optional-tour-row-gate-modetour'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 import { isMustKnowInsufficient, supplementMustKnowWithWebSearch } from './must-know-web-supplement'
+import { normalizeModetourOptionalTourDisplayName } from '@/lib/modetour-optional-tour-name'
 import { polishModetourImageKeyword } from '@/lib/modetour-schedule-image-keyword'
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { parseLlmJsonObject } from './llm-json-extract'
@@ -326,12 +327,7 @@ function extractOptionalToursStructured(rawText: string): string | null {
     const price = line.match(/(?:\$|USD|usd)\s*([0-9][0-9,]*)|([0-9][0-9,]*)\s*(?:USD|usd|달러)/)
     const priceNumRaw = price?.[1] ?? price?.[2] ?? null
     const priceValue = priceNumRaw ? Number(String(priceNumRaw).replace(/,/g, '')) : null
-    const name = line
-      .replace(/\[(선택관광|옵션투어|옵셔널)\]/gi, '')
-      .replace(/(선택관광|옵션투어|옵셔널)/gi, '')
-      .replace(/[:：-]\s*/g, ' ')
-      .trim()
-      .slice(0, 120)
+    const name = normalizeModetourOptionalTourDisplayName(line, '').slice(0, 120)
     // 가격도 없고 실질 제목도 없으면 스킵(남는 게 '선택관광' 뿐인 행)
     const strippedLabel = name.replace(/선택관광|옵션투어|옵셔널|\s/gi, '')
     if (!priceNumRaw && (!name || name === '현지옵션' || strippedLabel.length < 3)) continue

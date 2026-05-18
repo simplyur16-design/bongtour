@@ -3,6 +3,7 @@
  * 정형 붙여넣기: `이름<TAB>통화(3자)<TAB>성인<TAB>아동<TAB>소요<TAB>최소<TAB>동행<TAB>미참여·대기`
  */
 import type { OptionalToursStructured } from '@/lib/detail-body-parser-types'
+import { normalizeModetourOptionalTourDisplayName } from '@/lib/modetour-optional-tour-name'
 
 const MODETOUR_OPTIONAL_SINGLE_OR_ROOM_CHARGE_RE =
   /1인\s*객실\s*사용\s*요금|1인\s*객실\s*이용|1인\s*객실|1인실|1인\s*룸|싱글\s*차지|싱글차지|싱글룸|싱글\s*룸\s*추가\s*요금|싱글룸\s*추가\s*요금|독실\s*사용|룸\s*차지|객실\s*차지|1인\s*사용료|패널티|single\s*supplement|객실\s*추가\s*요금|room\s*charge/i
@@ -44,7 +45,7 @@ export function parseModetourOptionalTourPasteSection(section: string): Optional
     const adult = Number(String(cols[2] ?? '').replace(/,/g, ''))
     const child = Number(String(cols[3] ?? '').replace(/,/g, ''))
     if (!Number.isFinite(adult)) continue
-    const optionName = c0.replace(/^#\s*/, '').trim()
+    const optionName = normalizeModetourOptionalTourDisplayName(c0)
     const durationText = (cols[4] ?? '').slice(0, 120)
     const minPeopleText = (cols[5] ?? '').slice(0, 120)
     const guide同行Text = (cols[6] ?? '').slice(0, 120)
@@ -52,7 +53,7 @@ export function parseModetourOptionalTourPasteSection(section: string): Optional
     const childPart = Number.isFinite(child) ? ` / 아동 ${c1} ${child}` : ''
     const priceText = `성인 ${c1} ${adult}${childPart}`
     rows.push({
-      tourName: optionName || '옵션',
+      tourName: optionName,
       currency: c1,
       adultPrice: adult,
       childPrice: Number.isFinite(child) ? child : null,
@@ -100,24 +101,37 @@ export function filterModetourOptionalToursStructuredJson(raw: string | null | u
   try {
     const parsed = JSON.parse(t) as unknown
     if (!Array.isArray(parsed)) return raw
-    const filtered = parsed.filter((item) => {
-      if (!item || typeof item !== 'object' || Array.isArray(item)) return true
-      const o = item as Record<string, unknown>
-      const tourName =
-        typeof o.tourName === 'string'
-          ? o.tourName
-          : typeof o.name === 'string'
-            ? o.name
-            : ''
-      const descriptionText =
-        typeof o.descriptionText === 'string'
-          ? o.descriptionText
-          : typeof o.raw === 'string'
-            ? o.raw
-            : ''
-      const noteText = typeof o.noteText === 'string' ? o.noteText : ''
-      return !isModetourSingleSupplementLikeOptionalRow({ tourName, descriptionText, noteText })
-    })
+    const filtered = parsed
+      .map((item) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return item
+        const o = { ...(item as Record<string, unknown>) }
+        const rawName =
+          typeof o.tourName === 'string' ? o.tourName : typeof o.name === 'string' ? o.name : ''
+        const tourName = normalizeModetourOptionalTourDisplayName(rawName, '')
+        if (tourName) {
+          if (typeof o.tourName === 'string') o.tourName = tourName
+          if (typeof o.name === 'string') o.name = tourName
+        }
+        return o
+      })
+      .filter((item) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return true
+        const o = item as Record<string, unknown>
+        const tourName =
+          typeof o.tourName === 'string'
+            ? o.tourName
+            : typeof o.name === 'string'
+              ? o.name
+              : ''
+        const descriptionText =
+          typeof o.descriptionText === 'string'
+            ? o.descriptionText
+            : typeof o.raw === 'string'
+              ? o.raw
+              : ''
+        const noteText = typeof o.noteText === 'string' ? o.noteText : ''
+        return !isModetourSingleSupplementLikeOptionalRow({ tourName, descriptionText, noteText })
+      })
     return JSON.stringify(filtered)
   } catch {
     return raw

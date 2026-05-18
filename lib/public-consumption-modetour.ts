@@ -6,6 +6,7 @@
  * - 타 공급사 모듈과 구현이 같아 보여도 합치거나 `public-product-extras`에 라우팅하지 않는다. 정책이 한 파일에 섞이면 회귀 시 원인 추적이 어렵다.
  */
 import { splitHotelNamesLine, type DayHotelPlan } from '@/lib/day-hotel-plans-modetour'
+import { normalizeModetourOptionalTourDisplayName } from '@/lib/modetour-optional-tour-name'
 import type { ShoppingStopRow } from '@/lib/public-product-extras'
 import { filterShoppingStopsForPublicDisplay } from '@/lib/shopping-public-row-filter'
 
@@ -52,7 +53,7 @@ export function buildOptionalToursStructuredJsonFromCanonical(
   const rows = Array.isArray(canonical?.rows) ? canonical.rows : []
   const mapped = rows
     .map((row, idx) => {
-      const name = String(row?.tourName ?? '').trim()
+      const name = normalizeModetourOptionalTourDisplayName(String(row?.tourName ?? ''), '')
       if (!name) return null
       const description = String(row?.descriptionText ?? '').trim() || undefined
       const alternateScheduleText = String(row?.noteText ?? '').trim() || undefined

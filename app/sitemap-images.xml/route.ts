@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getSiteOrigin } from '@/lib/site-metadata'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
+import { publicProductPath } from '@/lib/product-public-path'
 
 export const revalidate = 3600
 
@@ -52,6 +53,7 @@ export async function GET() {
     },
     select: {
       id: true,
+      slug: true,
       title: true,
       bgImageUrl: true,
       bgImageRehostSearchLabel: true,
@@ -72,7 +74,7 @@ export async function GET() {
     const imgUrl = (p.bgImageUrl ?? '').trim()
     if (!imgUrl) continue
 
-    const loc = `${origin}/products/${p.id}`
+    const loc = `${origin}${publicProductPath(p)}`
     const title = (p.title ?? '').trim() || '상품'
     const caption = pickImageCaption(p)
 

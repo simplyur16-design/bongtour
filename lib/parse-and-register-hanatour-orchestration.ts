@@ -5,6 +5,7 @@ import {
   SupplierRouteMismatchError,
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
+import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
 import { extractHighlightFromHanatour } from '@/lib/extract-highlight-hanatour'
 import { extractHighlightFromHanatourLLM } from '@/lib/llm-extract-highlight-hanatour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
@@ -1571,6 +1572,11 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       })
       productId = created.id
     }
+    await persistProductSlugAfterRegister(productId, {
+      listingKind: productData.listingKind,
+      productType: productData.productType,
+      originSource: productData.originSource,
+    })
     timing.mark('after-pending-save')
 
     await syncAutoMultiCountryTags(prisma, productId, geo, {

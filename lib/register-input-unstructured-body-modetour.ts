@@ -37,6 +37,7 @@ const SHOPPING_HEADER_ALIASES = {
     '모두투어 쇼핑',
   ],
 } as const
+import { normalizeModetourOptionalTourDisplayName } from '@/lib/modetour-optional-tour-name'
 import { parseOptionalTourTableRowsFromRawText, parseShoppingStopsFromLines } from '@/lib/structured-tour-signals-modetour'
 
 const OPTIONAL_BANNED = /(선택경비|마일리지|적립|안내|유의사항|본\s*상품은|진행되며|합류|조인|참고|환불규정)/i
@@ -64,7 +65,7 @@ export function parseUnstructuredOptionalTourBodyForRegister(section: string): O
     const tableRows = parseOptionalTourTableRowsFromRawText(section)
     if (tableRows.length > 0) {
       const rows = tableRows.map((r) => ({
-        tourName: r.name,
+        tourName: normalizeModetourOptionalTourDisplayName(r.name),
         currency: r.currency ?? '',
         adultPrice: r.adultPrice,
         childPrice: r.childPrice,
@@ -106,7 +107,9 @@ export function parseUnstructuredOptionalTourBodyForRegister(section: string): O
         /(.*?)(?:\s+|\(|\[)?([0-9][0-9,]*)\s*달러(?:\s*\/\s*인)?/i.exec(numbered) ||
         /(.*?)(?:\s+|\(|\[)?1인\s*([0-9][0-9,]*)\s*달러/i.exec(numbered) ||
         /(.*?)(?:\s+|\(|\[)?([0-9][0-9,]*)\s*원/i.exec(numbered)
-      const tourName = oneLinePrice?.[1]?.trim() || numbered.replace(/(선택관광|현지옵션|옵션)/gi, '').trim() || numbered
+      const tourName = normalizeModetourOptionalTourDisplayName(
+        oneLinePrice?.[1]?.trim() || numbered.replace(/(선택관광|현지옵션|옵션)/gi, '').trim() || numbered
+      )
       const priceFromOneLine = oneLinePrice?.[2] ? Number(oneLinePrice[2].replace(/,/g, '')) : null
       return {
         tourName,

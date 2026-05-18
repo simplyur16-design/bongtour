@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { PRODUCT_DETAIL_PAGE_INCLUDE } from '@/lib/product-detail-page-include'
-import { ProductDetailView } from '@/app/products/[id]/product-detail-view'
+import { ProductDetailView } from '@/app/products/[idOrSlug]/product-detail-view'
 
 export const dynamic = 'force-dynamic'
 

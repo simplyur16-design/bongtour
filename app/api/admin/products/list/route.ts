@@ -27,7 +27,10 @@ export async function GET(req: NextRequest) {
     const legacyOnly = searchParams.get('legacyOnly') === '1'
     const needsImageReview = searchParams.get('needsImageReview') === '1'
     const highlightEmptyOnly = searchParams.get('highlightEmpty') === '1'
+    const productSearch = searchParams.get('productSearch')?.trim() || null
+    /** @deprecated productSearch 사용 권장 */
     const originCode = searchParams.get('originCode')?.trim() || null
+    /** @deprecated productSearch 사용 권장 */
     const supplierGroupId = searchParams.get('supplierGroupId')?.trim() || null
 
     const where: Prisma.ProductWhereInput = {}
@@ -53,7 +56,18 @@ export async function GET(req: NextRequest) {
     if (primaryRegion) where.primaryRegion = { contains: primaryRegion }
     if (displayCategory) where.displayCategory = { contains: displayCategory }
     if (themeTags) where.themeTags = { contains: themeTags }
-    if (originCode || supplierGroupId) {
+    if (productSearch) {
+      appendAnd([
+        {
+          OR: [
+            { slug: productSearch },
+            { id: productSearch },
+            { originCode: { contains: productSearch } },
+            { supplierGroupId: { contains: productSearch } },
+          ],
+        },
+      ])
+    } else if (originCode || supplierGroupId) {
       const codeClauses: Prisma.ProductWhereInput[] = []
       if (originCode) {
         codeClauses.push(

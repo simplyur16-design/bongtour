@@ -30,6 +30,7 @@ datasource db {
 // ---- 봉투어 실시간 동기화용 (상품코드 기반) ----
 model Product {
   id                    String         @id @default(cuid())
+  slug                  String?        @unique
   originSource          String         // 여행사 표시명 (하나투어, 모두투어 등)
   originCode            String         // 공급사 상품코드. 유니크: @@unique([originSource, originCode])
   originUrl             String?        // 원본 상세페이지 URL (추적/중복체크, 유니크 아님)

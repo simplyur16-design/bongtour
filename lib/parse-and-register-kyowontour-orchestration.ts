@@ -6,6 +6,7 @@ import {
 } from '@/lib/assert-supplier-route-match'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { prisma } from '@/lib/prisma'
+import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
@@ -1711,6 +1712,11 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       })
       productId = created.id
     }
+    await persistProductSlugAfterRegister(productId, {
+      listingKind: productData.listingKind,
+      productType: productData.productType,
+      originSource: productData.originSource,
+    })
     timing.mark('after-pending-save')
 
     await syncAutoMultiCountryTags(prisma, productId, geo, {

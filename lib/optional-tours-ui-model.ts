@@ -1,4 +1,5 @@
 import { parseOptionalPasteForPublicDisplay } from '@/lib/paste-block-display'
+import { normalizeModetourOptionalTourDisplayName } from '@/lib/modetour-optional-tour-name'
 import { isBannedOptionalTourName, optionalTourRowPassesStrictGate } from '@/lib/optional-tour-row-gate-hanatour'
 
 /** Gemini/레거시 JSON (name, priceValue, rawText …) */
@@ -21,7 +22,10 @@ export function parseLegacyStructuredOptionalTours(raw: string | null | undefine
     return parsed
       .map((x, i) => {
         const row = x as Record<string, unknown>
-        const name = typeof row.name === 'string' ? row.name.trim() : ''
+        const name = normalizeModetourOptionalTourDisplayName(
+          typeof row.name === 'string' ? row.name.trim() : '',
+          ''
+        )
         if (!name) return null
         const priceValueRaw =
           typeof row.priceValue === 'number'
@@ -173,9 +177,10 @@ function parseOptionalToursStructuredJsonArray(raw: string | null | undefined): 
 }
 
 function mapOptionalTourRecordToUiRow(row: Record<string, unknown>, i: number): UiOptionalTourRow | null {
-  const name =
+  const rawName =
     (typeof row.name === 'string' ? row.name.trim() : '') ||
     (typeof row.tourName === 'string' ? row.tourName.trim() : '')
+  const name = normalizeModetourOptionalTourDisplayName(rawName, '')
   if (!name) return null
   const supplierTags = Array.isArray(row.supplierTags)
     ? row.supplierTags.map((t) => String(t).trim()).filter(Boolean)
@@ -413,7 +418,7 @@ function extractMinAltGuideFromText(blob: string): {
 function optionalTourRowFromTsvLine(line: string, i: number): UiOptionalTourRow | null {
   const cols = line.split('\t').map((c) => c.replace(/\s+/g, ' ').trim())
   if (cols.length < 2) return null
-  const name = cols[0] ?? ''
+  const name = normalizeModetourOptionalTourDisplayName(cols[0] ?? '', '')
   if (!name || isBannedOptionalTourName(name)) return null
   let idx = 1
   let currency: string | null = null
@@ -492,7 +497,7 @@ export function optionalPasteRawToUiRows(raw: string | null | undefined): UiOpti
         parts.join(' / ') || (b.price?.trim() ? b.price.trim() : b.duration?.trim() ? b.duration.trim() : '문의')
       const row: UiOptionalTourRow = {
         id: `paste-blk-${i}`,
-        name: b.title || `옵션 ${i + 1}`,
+        name: normalizeModetourOptionalTourDisplayName(b.title || `옵션 ${i + 1}`),
         currency:
           hasForeignInPrice && (adultPrice != null || childPrice != null)
             ? null

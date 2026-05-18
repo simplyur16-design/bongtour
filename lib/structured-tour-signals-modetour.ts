@@ -6,6 +6,7 @@
  * - gate 분리와 무관한 대규모 리팩터는 여기서 하지 않는다. `guide同行Text` 키는 TS 식별자 제약으로 `guide\u540c\u884cText` 리터럴 타입을 쓴다.
  */
 import { MAX_OPTIONAL_TOURS } from '@/lib/optional-tour-limits'
+import { normalizeModetourOptionalTourDisplayName } from '@/lib/modetour-optional-tour-name'
 import { filterOptionalTourRows, isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-modetour'
 import { isShoppingPublicJunkRow } from '@/lib/shopping-public-row-filter'
 
@@ -333,7 +334,7 @@ function parseOptionalTourRows(lines: string[], startHint: number): StructuredOp
     if (cols.length === 1 && ln.length > 72 && !/\$|USD|KRW|\uC6D0|EUR|JPY|\d{2,}/i.test(ln)) continue
     if (cols.length < 2 && !/(USD|\uC6D0|\uB2EC\uB7EC|\uC544\uB3D9|\uC131\uC778|\uBE44\uC6A9)/i.test(ln)) continue
     const nameOffset = cols.length >= 2 && /^\d+$/.test((cols[0] ?? '').trim()) ? 1 : 0
-    const name = (cols[nameOffset] || '').trim()
+    const name = normalizeModetourOptionalTourDisplayName((cols[nameOffset] || '').trim(), '')
     if (!name || /^(\uC131\uC778|\uC544\uB3D9|\uD1B5\uD654|\uC18C\uC694\uC2DC\uAC04|\uC2DC\uAC04)$/i.test(name)) continue
     if (isBannedOptionalTourName(name)) continue
     const currency =
