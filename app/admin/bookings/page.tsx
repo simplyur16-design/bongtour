@@ -25,8 +25,13 @@ type Booking = {
   totalLocalAmount: number
   localCurrency: string
   customerName: string
+  customerNameKo?: string | null
+  customerNameEn?: string | null
+  customerBirthDate?: string | null
   customerPhone: string
   customerEmail: string | null
+  privacyAgreed?: boolean | null
+  privacyAgreedAt?: string | null
   requestNotes?: string | null
   preferredContactChannel?: string | null
   singleRoomRequested?: boolean
@@ -274,12 +279,51 @@ export default function AdminBookingsPage() {
                 </div>
 
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4">
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-emerald-800">연락처 정보</h3>
-                  <p className="text-sm text-gray-700">{detail.customerName}</p>
-                  <p className="mt-1 text-sm text-gray-600">{detail.customerPhone}</p>
-                  {detail.customerEmail && (
-                    <p className="mt-1 text-sm text-gray-600">{detail.customerEmail}</p>
-                  )}
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-emerald-800">신청자 정보</h3>
+                  <dl className="space-y-1 text-sm text-gray-700">
+                    <div className="flex gap-2">
+                      <dt className="shrink-0 text-gray-500">한글 이름</dt>
+                      <dd>{detail.customerNameKo ?? detail.customerName}</dd>
+                    </div>
+                    {detail.customerNameEn ? (
+                      <div className="flex gap-2">
+                        <dt className="shrink-0 text-gray-500">영문 이름</dt>
+                        <dd>{detail.customerNameEn}</dd>
+                      </div>
+                    ) : null}
+                    {detail.customerBirthDate ? (
+                      <div className="flex gap-2">
+                        <dt className="shrink-0 text-gray-500">생년월일</dt>
+                        <dd>
+                          {new Date(detail.customerBirthDate).toLocaleDateString('ko-KR', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                          })}
+                        </dd>
+                      </div>
+                    ) : null}
+                    <div className="flex gap-2">
+                      <dt className="shrink-0 text-gray-500">휴대폰</dt>
+                      <dd>{detail.customerPhone}</dd>
+                    </div>
+                    {detail.customerEmail ? (
+                      <div className="flex gap-2">
+                        <dt className="shrink-0 text-gray-500">이메일</dt>
+                        <dd>{detail.customerEmail}</dd>
+                      </div>
+                    ) : null}
+                    <div className="flex gap-2">
+                      <dt className="shrink-0 text-gray-500">개인정보 동의</dt>
+                      <dd>{detail.privacyAgreed ? '동의함' : '미기록'}</dd>
+                    </div>
+                    {detail.privacyAgreedAt ? (
+                      <div className="flex gap-2">
+                        <dt className="shrink-0 text-gray-500">동의 시각</dt>
+                        <dd>{new Date(detail.privacyAgreedAt).toLocaleString('ko-KR')}</dd>
+                      </div>
+                    ) : null}
+                  </dl>
                 </div>
 
                 <div className="border-l-4 border-[#0f172a] bg-white py-2 pl-3">

@@ -2,17 +2,9 @@
 
 import { useMemo } from 'react'
 import type { TravelProduct, ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
-import KakaoCounselCta from '@/app/components/travel/KakaoCounselCta'
 import ShareActions from '@/app/components/detail/ShareActions'
-import {
-  computeStickyDisplayQuotationTotal,
-  getStickyDisplayPerPaxKrw,
-} from '@/lib/public-sticky-pax-display'
-import {
-  advisoryForDepartureRow,
-  findPriceRowForDateKey,
-  quotePriceRowStrictForSelectedDate,
-} from '@/lib/booking-departure-ssot'
+import { getStickyDisplayPerPaxKrw } from '@/lib/public-sticky-pax-display'
+import { quotePriceRowStrictForSelectedDate } from '@/lib/booking-departure-ssot'
 import type { DeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
 import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
@@ -40,7 +32,8 @@ type Props = {
   onBookingOpen: () => void
   onOpenDeparturePicker: () => void
   variant?: 'desktop' | 'mobile'
-  fromScreen: 'product_detail_desktop' | 'product_detail_mobile'
+  /** @deprecated 카카오 CTA 제거 후 미사용 — 호출부 호환용 */
+  fromScreen?: 'product_detail_desktop' | 'product_detail_mobile'
   departureConditionLine?: string | null
   heroTripDepartureDisplay?: string | null
   heroTripReturnDisplay?: string | null
@@ -62,7 +55,7 @@ export default function ProductLiveQuoteCard({
   onBookingOpen,
   onOpenDeparturePicker: _onOpenDeparturePicker,
   variant = 'desktop',
-  fromScreen,
+  fromScreen: _fromScreen,
   departureConditionLine: _departureConditionLine,
   heroTripDepartureDisplay,
   heroTripReturnDisplay,
@@ -79,27 +72,6 @@ export default function ProductLiveQuoteCard({
     [prices, selectedDate, explicitPriceRow]
   )
 
-  const rowForAdvisory = useMemo(
-    () => findPriceRowForDateKey(prices, selectedDate),
-    [prices, selectedDate]
-  )
-  const departureAdvisoryLabel = useMemo(
-    () => advisoryForDepartureRow(rowForAdvisory, isCollectingPrices),
-    [rowForAdvisory, isCollectingPrices]
-  )
-
-  const counselPricingMode = useMemo(() => {
-    const d = selectedDate?.trim()
-    if (!d) return null
-    if (priceRow) return 'schedule_price'
-    return 'schedule_selected_pending_quote'
-  }, [selectedDate, priceRow])
-
-  const quotationTotal = useMemo(() => {
-    if (!priceRow) return null
-    return computeStickyDisplayQuotationTotal(priceRow, pax, product.originSource)
-  }, [priceRow, pax, product.originSource])
-  const localFeePerPerson = product.mandatoryLocalFee ?? null
   const totalDays = getProductTotalDays(product, masterTotalDays)
   const computedReturnDate = useMemo(() => {
     const dep = selectedDate ?? departureDateFrom ?? null
@@ -219,38 +191,14 @@ export default function ProductLiveQuoteCard({
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-bt-meta">{copy.paxFootnote}</p>
       </div>
-      <div className="mt-3 space-y-2">
-        <KakaoCounselCta
-          variant="kakaoSoft"
-          intent="departure"
-          fromScreen={fromScreen}
-          productId={String(product.id)}
-          listingProductNumber={product.originCode}
-          productTitle={product.title}
-          originSource={product.originSource}
-          originCode={product.originCode}
-          selectedDepartureDate={selectedDate}
-          selectedDepartureId={priceRow?.id ? String(priceRow.id) : null}
-          preferredDepartureDate={null}
-          pax={pax}
-          quotationKrwTotal={quotationTotal}
-          localFeePerPerson={localFeePerPerson}
-          localFeeCurrency={product.mandatoryCurrency ?? null}
-          advisoryLabel={departureAdvisoryLabel}
-          pricingMode={counselPricingMode}
-          isCollectingPrices={isCollectingPrices}
-        />
-        {showCollectingBanner || showPendingQuoteBanner ? (
-          <p className="text-center text-[11px] leading-relaxed text-bt-subtle">
-            {showCollectingBanner
-              ? departurePriceCollectUiCopy.ctaHintWhileCollecting
-              : departurePriceCollectUiCopy.ctaHintPendingQuote}
-          </p>
-        ) : null}
-        <p className="mt-1.5 text-center text-[11px] leading-relaxed text-bt-meta">{copy.counselSummaryHint}</p>
-        <p className="mt-0.5 text-center text-[11px] text-bt-subtle">{copy.counselPasteHint}</p>
-      </div>
-      <ShareActions title={product.title} summaryLine={shareSummary} className="mt-2" />
+      {showCollectingBanner || showPendingQuoteBanner ? (
+        <p className="mt-3 text-center text-[11px] leading-relaxed text-bt-subtle">
+          {showCollectingBanner
+            ? departurePriceCollectUiCopy.ctaHintWhileCollecting
+            : departurePriceCollectUiCopy.ctaHintPendingQuote}
+        </p>
+      ) : null}
+      <ShareActions title={product.title} summaryLine={shareSummary} className="mt-3" />
       <button
         type="button"
         onClick={onBookingOpen}

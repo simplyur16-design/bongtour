@@ -4,7 +4,10 @@
  */
 
 import { digitsOnlyTel } from '@/lib/korean-tel-format'
-import { optionalEmailFormatError } from '@/lib/email-format'
+import { OPTIONAL_EMAIL_FORMAT_ERROR, optionalEmailFormatError } from '@/lib/email-format'
+import { BOOKING_PRIVACY_NOTICE_VERSION } from '@/lib/booking-consent'
+
+export const BOOKING_CUSTOMER_NAME_EN_REGEX = /^[A-Za-z\s]+$/
 
 export type PassengerBirth = {
   type: 'child' | 'infant'
@@ -21,9 +24,15 @@ export type BookingIntakeDto = {
   preferredDepartureDate?: string | null
   /** 선택적: ProductDeparture.id 등 (향후 연계) */
   departureId?: string | null
+  /** 레거시 호환 — customerNameKo와 동일 값으로 채움 */
   customerName: string
+  customerNameKo: string
+  customerNameEn: string
+  customerBirthDate: string
   customerPhone: string
   customerEmail: string
+  privacyAgreed: boolean
+  privacyNoticeVersion: string
   /** 서버에서 adult+child+infant 로 계산해 고정 */
   totalPax: number
   adultCount: number
@@ -48,9 +57,18 @@ function isYmd(s: string): boolean {
 export function validateBookingIntake(input: unknown): BookingValidationResult {
   const b = (input ?? {}) as Record<string, unknown>
   const errors: string[] = []
-  const customerName = String(b.customerName ?? '').trim()
+
+  const customerNameKo = String(b.customerNameKo ?? b.customerName ?? '').trim()
+  const customerNameEn = String(b.customerNameEn ?? '').trim()
+  const customerBirthDate = String(b.customerBirthDate ?? '').trim()
   const customerPhone = String(b.customerPhone ?? '').trim()
   const customerEmail = String(b.customerEmail ?? '').trim()
+  const privacyAgreed = b.privacyAgreed === true
+  const privacyNoticeVersion =
+    typeof b.privacyNoticeVersion === 'string' && b.privacyNoticeVersion.trim()
+      ? b.privacyNoticeVersion.trim()
+      : BOOKING_PRIVACY_NOTICE_VERSION
+
   const productId = String(b.productId ?? '').trim()
   const originSource = String(b.originSource ?? '').trim()
   const originCode = String(b.originCode ?? '').trim()
@@ -93,14 +111,28 @@ export function validateBookingIntake(input: unknown): BookingValidationResult {
     })
     .filter((x) => x.birthDate.length > 0)
 
-  if (!customerName) errors.push('고객 이름을 입력해 주세요.')
+  if (!customerNameKo) errors.push('한글 이름을 입력해 주세요.')
+  if (!customerNameEn) errors.push('영문 이름을 입력해 주세요.')
+  else if (!BOOKING_CUSTOMER_NAME_EN_REGEX.test(customerNameEn)) {
+    errors.push('영문 이름은 영문·공백만 입력할 수 있습니다.')
+  }
+  if (!customerBirthDate) errors.push('생년월일을 입력해 주세요.')
+  else if (!isYmd(customerBirthDate)) errors.push('생년월일은 YYYY-MM-DD 형식이어야 합니다.')
+
   if (!customerPhone) errors.push('휴대폰 번호를 입력해 주세요.')
   else {
     const phoneDigits = digitsOnlyTel(customerPhone)
     if (phoneDigits.length < 8) errors.push('연락처를 확인해 주세요. (숫자 8자리 이상)')
   }
-  const emailErr = optionalEmailFormatError(customerEmail)
-  if (emailErr) errors.push(emailErr)
+
+  if (!customerEmail) errors.push('이메일을 입력해 주세요.')
+  else {
+    const emailErr = optionalEmailFormatError(customerEmail)
+    if (emailErr) errors.push(emailErr)
+  }
+
+  if (!privacyAgreed) errors.push('개인정보 수집·이용에 동의해 주세요.')
+
   if (!productId) errors.push('productId가 필요합니다.')
   if (!originSource) errors.push('originSource가 필요합니다.')
   if (!originCode) errors.push('originCode가 필요합니다.')
@@ -148,9 +180,14 @@ export function validateBookingIntake(input: unknown): BookingValidationResult {
       selectedDepartureDate,
       preferredDepartureDate,
       departureId,
-      customerName,
+      customerName: customerNameKo,
+      customerNameKo,
+      customerNameEn,
+      customerBirthDate,
       customerPhone,
       customerEmail: customerEmail.trim(),
+      privacyAgreed: true,
+      privacyNoticeVersion,
       totalPax: computedTotalPax,
       adultCount,
       childCount,
@@ -175,7 +212,7 @@ export function buildCustomerBookingReceiptMessage(input: {
   const title = input.productTitle.trim() || '상품명 미확인'
   const depart = input.departureDateLabel.trim() || '출발일 미확인'
   return [
-    `${safeName}님, 예약 요청이 접수되었습니다.`,
+    `${safeName}님, 예약 신청이 접수되었습니다.`,
     '',
     `상품명: ${title}`,
     `출발일: ${depart}`,
@@ -184,4 +221,17 @@ export function buildCustomerBookingReceiptMessage(input: {
     '담당자가 내용을 확인한 뒤 순차적으로 연락드립니다.',
     '실제 예약 가능 여부와 결제 안내는 확인 후 안내됩니다.',
   ].join('\n')
+}
+
+export function formatBookingPaxSummary(pax: {
+  adult: number
+  childBed: number
+  childNoBed: number
+  infant: number
+}): string {
+  const parts: string[] = [`성인 ${pax.adult}`]
+  const childTotal = pax.childBed + pax.childNoBed
+  if (childTotal > 0) parts.push(`아동 ${childTotal}`)
+  if (pax.infant > 0) parts.push(`유아 ${pax.infant}`)
+  return parts.join(' · ')
 }

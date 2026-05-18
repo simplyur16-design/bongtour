@@ -1,12 +1,21 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { validateBookingIntake } from '@/lib/booking-intake-contract'
+import { useEffect, useId, useMemo, useState } from 'react'
+import {
+  BOOKING_CUSTOMER_NAME_EN_REGEX,
+  validateBookingIntake,
+} from '@/lib/booking-intake-contract'
+import {
+  BOOKING_PRIVACY_CONSENT_LABEL,
+  BOOKING_PRIVACY_NOTICE_BODY,
+  BOOKING_PRIVACY_NOTICE_TITLE,
+  BOOKING_PRIVACY_NOTICE_VERSION,
+} from '@/lib/booking-consent'
 import KakaoCounselCta from '@/app/components/travel/KakaoCounselCta'
 import type { DeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
 import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
 import { formatKoreanTelInput } from '@/lib/korean-tel-format'
-import { OPTIONAL_EMAIL_FORMAT_ERROR, optionalEmailFormatError } from '@/lib/email-format'
+import { optionalEmailFormatError } from '@/lib/email-format'
 import { readUtmFromSession } from '@/lib/utm-capture'
 
 export type BookingPax = {
@@ -64,9 +73,13 @@ export default function BookingIntakeModal({
   const childCount = pax.childBed + pax.childNoBed
   const infantCount = pax.infant
 
-  const [customerName, setCustomerName] = useState('')
+  const [customerNameKo, setCustomerNameKo] = useState('')
+  const [customerNameEn, setCustomerNameEn] = useState('')
+  const [customerBirthDate, setCustomerBirthDate] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
+  const [privacyAgreed, setPrivacyAgreed] = useState(false)
+  const [privacyOpen, setPrivacyOpen] = useState(false)
   const [singleRoomRequested, setSingleRoomRequested] = useState(false)
   const [preferredContactChannel, setPreferredContactChannel] = useState<'phone' | 'kakao' | 'email'>('phone')
   const [requestNotes, setRequestNotes] = useState('')
@@ -86,6 +99,9 @@ export default function BookingIntakeModal({
   const [success, setSuccess] = useState<ApiSuccess | null>(null)
   /** 접수 직전 폼의 상담 메모 — 제출 후 필드 초기화해도 CTA 요약에 유지 */
   const [successMemoSnapshot, setSuccessMemoSnapshot] = useState<string | null>(null)
+
+  const baseId = useId()
+  const privacyCheckboxId = `${baseId}-privacy`
 
   useEffect(() => {
     if (!open) return
@@ -138,9 +154,14 @@ export default function BookingIntakeModal({
       departureId: departureRowId?.trim() || null,
       selectedDepartureDate: selectedDepartureDate,
       preferredDepartureDate,
-      customerName: customerName.trim(),
+      customerName: customerNameKo.trim(),
+      customerNameKo: customerNameKo.trim(),
+      customerNameEn: customerNameEn.trim(),
+      customerBirthDate: customerBirthDate.trim(),
       customerPhone: customerPhone.trim(),
       customerEmail: customerEmail.trim(),
+      privacyAgreed,
+      privacyNoticeVersion: BOOKING_PRIVACY_NOTICE_VERSION,
       adultCount: pax.adult,
       childCount,
       childWithBedCount: pax.childBed,
@@ -153,9 +174,18 @@ export default function BookingIntakeModal({
     }
   }
 
-  const hasValidEmailFormat = (value: string): boolean => !optionalEmailFormatError(value)
-
   const runClientChecks = (): string | null => {
+    if (!customerNameKo.trim()) return '한글 이름을 입력해 주세요.'
+    if (!customerNameEn.trim()) return '영문 이름을 입력해 주세요.'
+    if (!BOOKING_CUSTOMER_NAME_EN_REGEX.test(customerNameEn.trim())) {
+      return '영문 이름은 영문·공백만 입력할 수 있습니다.'
+    }
+    if (!customerBirthDate.trim()) return '생년월일을 입력해 주세요.'
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(customerBirthDate.trim())) {
+      return '생년월일은 YYYY-MM-DD 형식이어야 합니다.'
+    }
+    if (!customerEmail.trim()) return '이메일을 입력해 주세요.'
+    if (!privacyAgreed) return '개인정보 수집·이용에 동의해 주세요.'
     if (departureMode === 'schedule' && !selectedDateFromCalendar) {
       return '상단에서 출발일을 선택하거나, 아래에서 “희망 출발일만”으로 접수해 주세요.'
     }
@@ -205,8 +235,13 @@ export default function BookingIntakeModal({
         originCode: validated.value.originCode,
         website: '',
         customerName: validated.value.customerName,
+        customerNameKo: validated.value.customerNameKo,
+        customerNameEn: validated.value.customerNameEn,
+        customerBirthDate: validated.value.customerBirthDate,
         customerPhone: validated.value.customerPhone,
         customerEmail: validated.value.customerEmail,
+        privacyAgreed: validated.value.privacyAgreed,
+        privacyNoticeVersion: validated.value.privacyNoticeVersion,
         adultCount: validated.value.adultCount,
         childCount: validated.value.childCount,
         childWithBedCount: validated.value.childWithBedCount,
@@ -250,9 +285,12 @@ export default function BookingIntakeModal({
           pricingMode: data.pricingMode,
         })
         setSuccessMemoSnapshot(memoSnap)
-        setCustomerName('')
+        setCustomerNameKo('')
+        setCustomerNameEn('')
+        setCustomerBirthDate('')
         setCustomerPhone('')
         setCustomerEmail('')
+        setPrivacyAgreed(false)
         setRequestNotes('')
         setBirthDates([])
       } else {
@@ -272,7 +310,7 @@ export default function BookingIntakeModal({
       <div className="max-h-[95vh] w-full overflow-y-auto border border-bt-border-soft bg-bt-surface p-5 shadow-lg sm:max-w-lg sm:rounded-lg">
         <div className="mb-4 flex items-start justify-between gap-2">
           <div>
-            <h3 className="text-lg font-semibold tracking-tight text-bt-title">예약 요청 접수</h3>
+            <h3 className="text-lg font-semibold tracking-tight text-bt-title">예약 신청</h3>
             <p className="mt-1 text-xs leading-relaxed text-bt-meta">
               자동 예약이 아닙니다. 정보를 남기시면 담당자가 확인 후 연락드립니다. 실제 예약·결제·혜택은 확인 후 안내됩니다.
             </p>
@@ -478,16 +516,46 @@ export default function BookingIntakeModal({
             )}
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label htmlFor="bin-name" className="mb-1 block text-xs font-medium text-bt-muted">
-                  이름 <span className="text-bt-danger">*</span>
+              <div>
+                <label htmlFor="bin-name-ko" className="mb-1 block text-xs font-medium text-bt-muted">
+                  한글 이름 <span className="text-bt-danger">*</span>
                 </label>
                 <input
-                  id="bin-name"
-                  name="customerName"
+                  id="bin-name-ko"
+                  name="customerNameKo"
                   autoComplete="name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
+                  value={customerNameKo}
+                  onChange={(e) => setCustomerNameKo(e.target.value)}
+                  className="w-full rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="bin-name-en" className="mb-1 block text-xs font-medium text-bt-muted">
+                  영문 이름 <span className="text-bt-danger">*</span>
+                </label>
+                <input
+                  id="bin-name-en"
+                  name="customerNameEn"
+                  autoComplete="off"
+                  value={customerNameEn}
+                  onChange={(e) => setCustomerNameEn(e.target.value)}
+                  placeholder="HONG GILDONG"
+                  className="w-full rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
+                  required
+                />
+                <p className="mt-1 text-[11px] text-bt-subtle">여권 표기와 동일하게 영문·공백만 입력해 주세요.</p>
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="bin-birth" className="mb-1 block text-xs font-medium text-bt-muted">
+                  생년월일 (성인 대표) <span className="text-bt-danger">*</span>
+                </label>
+                <input
+                  id="bin-birth"
+                  name="customerBirthDate"
+                  type="date"
+                  value={customerBirthDate}
+                  onChange={(e) => setCustomerBirthDate(e.target.value)}
                   className="w-full rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
                   required
                 />
@@ -509,7 +577,7 @@ export default function BookingIntakeModal({
               </div>
               <div>
                 <label htmlFor="bin-email" className="mb-1 block text-xs font-medium text-bt-muted">
-                  이메일 <span className="text-bt-subtle">(선택)</span>
+                  이메일 <span className="text-bt-danger">*</span>
                 </label>
                 <input
                   id="bin-email"
@@ -517,22 +585,16 @@ export default function BookingIntakeModal({
                   type="email"
                   autoComplete="email"
                   value={customerEmail}
-                  onChange={(e) => {
-                    const next = e.target.value
-                    setCustomerEmail(next)
-                    if (clientError === OPTIONAL_EMAIL_FORMAT_ERROR && hasValidEmailFormat(next)) {
-                      setClientError('')
-                    }
-                  }}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
                   onBlur={() => {
                     const err = optionalEmailFormatError(customerEmail)
                     if (err) setClientError(err)
                   }}
                   className="w-full rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
+                  required
                 />
               </div>
             </div>
-
             <div className="rounded border border-bt-border-soft bg-bt-surface-alt p-2 text-xs text-bt-muted">
               인원: 성인 {pax.adult} · 아동(베드) {pax.childBed} · 아동(노베드) {pax.childNoBed} · 유아 {pax.infant}{' '}
               <span className="text-bt-subtle">(상단 인원 선택과 동일하게 접수됩니다)</span>
@@ -620,6 +682,40 @@ export default function BookingIntakeModal({
               />
             </div>
 
+            <div className="rounded-lg border border-bt-border-soft bg-bt-surface px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setPrivacyOpen((v) => !v)}
+                className="mb-3 inline-flex items-center text-xs font-medium text-bt-body underline decoration-bt-border-strong underline-offset-2 hover:text-bt-title"
+              >
+                개인정보 수집·이용 안내 보기
+              </button>
+              {privacyOpen ? (
+                <div className="mb-3 rounded-md border border-bt-border-soft bg-bt-surface-alt p-3 text-xs leading-relaxed text-bt-body whitespace-pre-wrap">
+                  <p className="font-semibold text-bt-title">{BOOKING_PRIVACY_NOTICE_TITLE}</p>
+                  <p className="mt-2">{BOOKING_PRIVACY_NOTICE_BODY}</p>
+                </div>
+              ) : null}
+              <div className="flex gap-3">
+                <input
+                  id={privacyCheckboxId}
+                  name="privacyAgreed"
+                  type="checkbox"
+                  checked={privacyAgreed}
+                  onChange={(e) => setPrivacyAgreed(e.target.checked)}
+                  className="mt-1 h-4 w-4 shrink-0 rounded border-bt-border-strong text-bt-brand-blue-strong focus:ring-bt-brand-blue-soft"
+                />
+                <div>
+                  <label htmlFor={privacyCheckboxId} className="text-sm font-medium text-bt-body">
+                    {BOOKING_PRIVACY_CONSENT_LABEL} <span className="text-bt-danger">*</span>
+                  </label>
+                  <p className="mt-1 text-xs leading-relaxed text-bt-subtle">
+                    안내문 확인 후 체크해 주세요. 동의하지 않으면 예약 신청이 어렵습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {(clientError || serverError) && (
               <p className="whitespace-pre-wrap text-sm text-bt-danger">{clientError || serverError}</p>
             )}
@@ -634,10 +730,10 @@ export default function BookingIntakeModal({
               </button>
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || !privacyAgreed}
                 className="flex-1 border border-bt-cta-primary bg-bt-cta-primary py-2.5 text-sm font-medium text-bt-cta-primary-fg hover:bg-bt-cta-primary-hover disabled:opacity-50"
               >
-                {submitting ? '접수 중…' : '요청 접수하기'}
+                {submitting ? '접수 중…' : '예약 신청'}
               </button>
             </div>
           </form>

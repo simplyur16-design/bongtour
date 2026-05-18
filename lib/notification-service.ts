@@ -338,6 +338,65 @@ export async function sendInquiryCustomerLmsFallback(p: {
   return r
 }
 
+/** 패키지 예약 신청 접수 — 고객 LMS 폴백 (알림톡 실패·미설정 시). */
+export async function sendBookingRequestReceivedLmsFallback(p: {
+  bookingId: number
+  customerPhone: string
+  productTitle: string
+  selectedDate: string
+  paxSummary: string
+}): Promise<SendAdminNotificationResult> {
+  const apiKey = process.env.SOLAPI_API_KEY?.trim()
+  const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
+  const senderPhone = process.env.SOLAPI_FROM_PHONE?.trim()
+
+  if (!apiKey || !apiSecret || !senderPhone) {
+    console.error(
+      '[sendBookingRequestReceivedLmsFallback] skipped_missing_env',
+      JSON.stringify({ bookingId: p.bookingId })
+    )
+    return { ok: true }
+  }
+
+  const toDigits = digitsOnlyPhone(p.customerPhone)
+  if (toDigits.length < 10) {
+    console.error(
+      '[sendBookingRequestReceivedLmsFallback] skipped_invalid_phone',
+      JSON.stringify({ bookingId: p.bookingId })
+    )
+    return { ok: false, message: 'invalid_phone' }
+  }
+
+  const from = digitsOnlyPhone(senderPhone)
+  if (!from || !isPlausibleKrSmsTo(from)) {
+    console.error(
+      '[sendBookingRequestReceivedLmsFallback] skipped_invalid_from_phone',
+      JSON.stringify({ bookingId: p.bookingId })
+    )
+    return { ok: true }
+  }
+
+  const text = [
+    '[봉투어] 예약 신청이 접수되었습니다.',
+    '',
+    p.productTitle.trim() || '상품명 미확인',
+    `출발일: ${p.selectedDate.trim() || '출발일 미확인'}`,
+    `인원: ${p.paxSummary.trim() || '인원 미확인'}`,
+    '',
+    '좌석 확인 후 24시간 내 카톡·전화로 확정 안내드립니다.',
+    '문의: bongtour.com',
+  ].join('\n')
+
+  const r = await sendSolapiMessage(apiKey, apiSecret, from, toDigits, truncateForSms(text, 2000))
+  if (!r.ok) {
+    console.error(
+      '[sendBookingRequestReceivedLmsFallback] failed',
+      JSON.stringify({ bookingId: p.bookingId, code: r.code ?? null, message: r.message })
+    )
+  }
+  return r
+}
+
 /**
  * I-7: 예약·문의 외 운영 알림(Solapi LMS). `MASTER_INTEGRITY_ALERT_DRY_RUN=1|true` 이면 발송 생략·로그만.
  */

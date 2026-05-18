@@ -6,8 +6,12 @@ import { parseSolapiReceiverPhones, sendAdminNotificationWithPayload } from '@/l
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import {
   buildCustomerBookingReceiptMessage,
+  formatBookingPaxSummary,
   validateBookingIntake,
 } from '@/lib/booking-intake-contract'
+import { BOOKING_PRIVACY_NOTICE_VERSION } from '@/lib/booking-consent'
+import { sendBookingRequestReceivedAlimTalk } from '@/lib/solapi-alimtalk'
+import { sendBookingRequestReceivedLmsFallback } from '@/lib/notification-service'
 import { buildAdminBookingAlertPayload } from '@/lib/booking-alert-payload'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError, publicMutationOriginJsonResponse } from '@/lib/public-mutation-origin'
@@ -87,8 +91,22 @@ export async function POST(request: Request) {
             ? String(body.sourceRowId).trim()
             : null,
       customerName: typeof body.customerName === 'string' ? body.customerName.trim() : '',
+      customerNameKo:
+        typeof body.customerNameKo === 'string'
+          ? body.customerNameKo.trim()
+          : typeof body.customerName === 'string'
+            ? body.customerName.trim()
+            : '',
+      customerNameEn: typeof body.customerNameEn === 'string' ? body.customerNameEn.trim() : '',
+      customerBirthDate:
+        typeof body.customerBirthDate === 'string' ? body.customerBirthDate.trim() : '',
       customerPhone: typeof body.customerPhone === 'string' ? body.customerPhone.trim() : '',
       customerEmail: typeof body.customerEmail === 'string' ? body.customerEmail.trim() : '',
+      privacyAgreed: body.privacyAgreed === true,
+      privacyNoticeVersion:
+        typeof body.privacyNoticeVersion === 'string' && body.privacyNoticeVersion.trim()
+          ? body.privacyNoticeVersion.trim()
+          : BOOKING_PRIVACY_NOTICE_VERSION,
       totalPax: body.totalPax,
       adultCount: Math.max(0, parseInt(String(body.adultCount ?? body.adult ?? 0), 10) || 0),
       childCount: Math.max(0, parseInt(String(body.childCount ?? 0), 10) || 0),
@@ -174,6 +192,9 @@ export async function POST(request: Request) {
         ? new Date(intake.preferredDepartureDate + 'T00:00:00.000Z')
         : null
 
+    const privacyAgreedAt = new Date()
+    const customerBirthDate = new Date(intake.customerBirthDate + 'T00:00:00.000Z')
+
     const booking = await prisma.booking.create({
       data: {
         bookingNumber: makeBookingNumber(),
@@ -190,8 +211,14 @@ export async function POST(request: Request) {
         totalLocalAmount,
         localCurrency,
         customerName: intake.customerName,
+        customerNameKo: intake.customerNameKo,
+        customerNameEn: intake.customerNameEn,
+        customerBirthDate,
         customerPhone: intake.customerPhone,
-        customerEmail: intake.customerEmail.trim() ? intake.customerEmail.trim() : null,
+        customerEmail: intake.customerEmail.trim(),
+        privacyAgreed: true,
+        privacyNoticeVersion: intake.privacyNoticeVersion,
+        privacyAgreedAt,
         requestNotes: intake.requestNotes ?? null,
         preferredContactChannel: intake.preferredContactChannel,
         singleRoomRequested: intake.singleRoomRequested,
@@ -217,6 +244,32 @@ export async function POST(request: Request) {
     })
 
     console.log('[booking]', JSON.stringify({ step: 'db_saved', bookingId: booking.id }))
+
+    const paxSummary = formatBookingPaxSummary(pax)
+    const selectedDateLabel = formatDepartureDate(booking.selectedDate)
+    void (async () => {
+      const alim = await sendBookingRequestReceivedAlimTalk(booking.id, {
+        customerPhone: intake.customerPhone,
+        productTitle: booking.productTitle,
+        selectedDate: selectedDateLabel,
+        paxSummary,
+      })
+      if (!alim.ok && alim.shouldSendLmsFallback) {
+        const lms = await sendBookingRequestReceivedLmsFallback({
+          bookingId: booking.id,
+          customerPhone: intake.customerPhone,
+          productTitle: booking.productTitle,
+          selectedDate: selectedDateLabel,
+          paxSummary,
+        })
+        if (!lms.ok) {
+          console.error(
+            '[booking] customer_lms_failed',
+            JSON.stringify({ bookingId: booking.id, message: lms.message })
+          )
+        }
+      }
+    })().catch((e) => console.error('[booking] customer_notification_exception', e))
 
     const hasSolapiKey = Boolean(process.env.SOLAPI_API_KEY?.trim())
     const hasSolapiSecret = Boolean(process.env.SOLAPI_API_SECRET?.trim())

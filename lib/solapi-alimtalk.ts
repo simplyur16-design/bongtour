@@ -100,6 +100,92 @@ export async function attemptSendCustomerInquiryAlimTalk(
   }
 }
 
+export type BookingRequestReceivedAlimtalkPayload = {
+  customerPhone: string
+  productTitle: string
+  selectedDate: string
+  paxSummary: string
+}
+
+export type BookingRequestReceivedAlimtalkResult =
+  | { ok: true }
+  | { ok: false; shouldSendLmsFallback: true; detail: string }
+
+/**
+ * 패키지 예약 신청 접수 고객 알림톡 — `SOLAPI_TPL_BOOKING_REQUEST_RECEIVED` env.
+ * 미설정·발송 실패 시 LMS 폴백(`sendBookingRequestReceivedLmsFallback`).
+ */
+export async function sendBookingRequestReceivedAlimTalk(
+  bookingId: number,
+  payload: BookingRequestReceivedAlimtalkPayload
+): Promise<BookingRequestReceivedAlimtalkResult> {
+  const apiKey = process.env.SOLAPI_API_KEY?.trim()
+  const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
+  const pfId = process.env.SOLAPI_PFID?.trim()
+  const senderRaw = process.env.SOLAPI_FROM_PHONE?.trim()
+  const templateId = process.env.SOLAPI_TPL_BOOKING_REQUEST_RECEIVED?.trim()
+
+  if (!apiKey || !apiSecret || !pfId || !senderRaw) {
+    console.error(
+      '[solapi-alimtalk] booking_request_alimtalk_skipped_env',
+      JSON.stringify({
+        bookingId,
+        hasKey: Boolean(apiKey),
+        hasSecret: Boolean(apiSecret),
+        hasPfId: Boolean(pfId),
+        hasFromPhone: Boolean(senderRaw),
+      })
+    )
+    return { ok: false, shouldSendLmsFallback: true, detail: 'booking_request_alimtalk_missing_env' }
+  }
+
+  if (!templateId) {
+    console.error(
+      '[solapi-alimtalk] booking_request_alimtalk_missing_template',
+      JSON.stringify({ bookingId })
+    )
+    return { ok: false, shouldSendLmsFallback: true, detail: 'booking_request_alimtalk_missing_template_env' }
+  }
+
+  const to = payload.customerPhone.replace(/\D/g, '')
+  if (to.length < 10) {
+    return { ok: false, shouldSendLmsFallback: true, detail: 'booking_request_alimtalk_invalid_phone' }
+  }
+
+  const from = senderRaw.replace(/\D/g, '')
+  if (!from) {
+    return { ok: false, shouldSendLmsFallback: true, detail: 'booking_request_alimtalk_invalid_sender' }
+  }
+
+  const variables: Record<string, string> = {
+    productTitle: payload.productTitle.trim() || '상품명 미확인',
+    selectedDate: payload.selectedDate.trim() || '출발일 미확인',
+    paxSummary: payload.paxSummary.trim() || '인원 미확인',
+  }
+
+  try {
+    const one = new SolapiMessageService(apiKey, apiSecret)
+    await one.send({
+      to,
+      from,
+      type: 'ATA',
+      kakaoOptions: {
+        pfId,
+        templateId,
+        variables,
+      },
+    })
+    return { ok: true }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error(
+      '[solapi-alimtalk] booking_request_alimtalk_send_failed',
+      JSON.stringify({ bookingId, templateId, error: msg })
+    )
+    return { ok: false, shouldSendLmsFallback: true, detail: 'booking_request_alimtalk_send_error' }
+  }
+}
+
 export async function sendAlimtalkWithDetail(customerData: AlimtalkCustomerData) {
   const {
     phone,

@@ -484,8 +484,14 @@ model Booking {
   localCurrency     String   // 화폐 단위 (예: USD)
 
   customerName      String
+  customerNameKo            String? // 한글이름
+  customerNameEn            String? // 영문이름
+  customerBirthDate         DateTime? // 성인 대표자 생년월일
   customerPhone     String
   customerEmail     String?
+  privacyAgreed             Boolean? // 개인정보 수집·이용 동의
+  privacyNoticeVersion      String? // 동의 시점 약관 버전
+  privacyAgreedAt           DateTime? // 동의 시각
   requestNotes              String?
   preferredContactChannel   String? // phone | kakao | email
   singleRoomRequested       Boolean @default(false)
