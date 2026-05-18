@@ -73,12 +73,12 @@ export default function OurTravelHero({ imageUrls, privateQuoteHref, travelConsu
           className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/15"
           aria-hidden
         />
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-start px-4 pt-8 sm:px-6 sm:pt-10">
-          <div className="max-w-xl space-y-2">
-            <h2 className="text-left text-xl font-bold leading-snug tracking-tight text-white drop-shadow-md sm:text-2xl">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 pt-8 sm:px-6 sm:pt-10">
+          <div className="mx-auto max-w-xl space-y-2 text-center">
+            <h2 className="text-xl font-bold leading-snug tracking-tight text-white drop-shadow-md sm:text-2xl">
               {OUR_TRAVEL_HERO_OVERLAY_TITLE}
             </h2>
-            <p className="text-left text-sm font-medium leading-snug text-white/90 drop-shadow sm:text-base">
+            <p className="text-sm font-medium leading-snug text-white/90 drop-shadow sm:text-base">
               {OUR_TRAVEL_HERO_OVERLAY_DESCRIPTION}
             </p>
           </div>
@@ -96,16 +96,16 @@ export default function OurTravelHero({ imageUrls, privateQuoteHref, travelConsu
         ) : null}
 
         <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-5 pt-20 sm:px-6 sm:pb-6">
-          <div className="mx-auto flex w-full max-w-6xl flex-wrap justify-center gap-2 sm:justify-start sm:gap-3">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-2 sm:gap-3">
             <Link
               href={privateQuoteHref}
-              className="inline-flex min-h-[44px] min-w-[10rem] flex-1 items-center justify-center rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-colors duration-75 hover:bg-teal-800 sm:flex-none"
+              className="inline-flex min-h-[44px] min-w-[10rem] items-center justify-center rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-colors duration-75 hover:bg-teal-800"
             >
               {OUR_TRAVEL_HERO_CTA_PRIVATE_INQUIRY}
             </Link>
             <Link
               href={customTopicHref}
-              className="inline-flex min-h-[44px] min-w-[10rem] flex-1 items-center justify-center rounded-xl border border-white/30 bg-white/95 px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-lg backdrop-blur-sm transition-colors duration-75 hover:border-teal-200 hover:bg-white sm:flex-none"
+              className="inline-flex min-h-[44px] min-w-[10rem] items-center justify-center rounded-xl border border-white/30 bg-white/95 px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-lg backdrop-blur-sm transition-colors duration-75 hover:border-teal-200 hover:bg-white"
             >
               {OUR_TRAVEL_HERO_CTA_CUSTOM_CONSULT}
             </Link>
