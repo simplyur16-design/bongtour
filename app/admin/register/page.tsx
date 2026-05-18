@@ -29,6 +29,13 @@ import type { RegisterPreviewPayload as RegisterPreviewPayloadKw } from '@/lib/r
 import type { RegisterPreviewPayload as RegisterPreviewPayloadLt } from '@/lib/register-preview-payload-lottetour'
 import type { BongtourProductTitlePreviewFields } from '@/lib/bongtour-product-title-register-bridge'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
+import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+import {
+  finalizeRegisterScheduleImageKeywords,
+  ScheduleImageKeywordPersistError,
+  tryPersistScheduleImageKeyword,
+} from '@/lib/schedule-image-keyword-persist'
+import { formatImageKeywordError } from '@/lib/image-keyword-error-messages'
 import {
   CONTINENT_ID_TO_PRIMARY_REGION_KR,
   inferBrowseGeoFromDestinationText,
@@ -225,7 +232,7 @@ function badgeTone(kind: 'required' | 'warning' | 'info'): string {
 }
 
 /**
- * `Product.schedule[].imageKeyword` — 대표관광지·배경·시점을 담은 저장값(SSOT). Pexels·Gemini가 동일 필드를 우선 사용한다.
+ * `Product.schedule[].imageKeyword` — Pexels 검색용 영문 관광지·랜드마크 고유명 1개(SSOT).
  * 수동 입력은 파싱 자동값을 덮어쓴다. confirm 시 `Product.schedule`에 반영된다.
  */
 function applyManualPexelsKeywordsToParsedSchedule(
@@ -239,7 +246,8 @@ function applyManualPexelsKeywordsToParsedSchedule(
     if (!Number.isFinite(day) || day < 1) return row
     const manual = overrides[day]
     if (manual != null && manual.trim() !== '') {
-      return { ...row, imageKeyword: manual.trim() }
+      const r = tryPersistScheduleImageKeyword(manual.trim())
+      return { ...row, imageKeyword: r.ok ? r.value : '' }
     }
     return row
   })
@@ -269,11 +277,12 @@ function buildRegisterPexelsUiRows(
   if (validFromParsed.length > 0) {
     return validFromParsed.map((row) => {
       const day = Number(row.day)
+      const kw = tryPersistScheduleImageKeyword(String(row.imageKeyword ?? '').trim())
       return {
         day,
         title: String(row.title ?? ''),
         description: String(row.description ?? ''),
-        imageKeyword: String(row.imageKeyword ?? '').trim(),
+        imageKeyword: kw.ok ? kw.value : '',
       }
     })
   }
@@ -282,7 +291,7 @@ function buildRegisterPexelsUiRows(
   const d = preview.productDraft
   return it.map((raw) => {
     const day = typeof raw.day === 'number' && raw.day > 0 ? raw.day : 1
-    const autoKw =
+    const autoKwRaw =
       buildPexelsKeyword({
         destination: d.primaryDestination ?? d.destinationRaw ?? null,
         primaryRegion: draftPrimaryRegionKr(d),
@@ -290,12 +299,13 @@ function buildRegisterPexelsUiRows(
         title: d.title ?? null,
         poiNamesRaw: raw.poiNamesRaw ?? null,
         scheduleJson: null,
-      }) || `Day ${day} travel`
+      }) || ''
+    const autoKw = tryPersistScheduleImageKeyword(autoKwRaw)
     return {
       day,
       title: (raw.city ?? `Day ${day}`).trim() || `Day ${day}`,
       description: (raw.summaryTextRaw ?? '').slice(0, 400),
-      imageKeyword: autoKw,
+      imageKeyword: autoKw.ok ? autoKw.value : '',
     }
   })
 }
@@ -312,17 +322,28 @@ function mergeRegisterParsedScheduleWithManualPexels(
     return Number.isFinite(day) && day >= 1
   })
   if (validSchedule.length > 0) {
-    return applyManualPexelsKeywordsToParsedSchedule(parsed, manualByDay)
+    const withManual = applyManualPexelsKeywordsToParsedSchedule(parsed, manualByDay)
+    return {
+      ...withManual,
+      schedule: finalizeRegisterScheduleImageKeywords(withManual.schedule ?? []),
+    }
   }
   if (uiRows.length === 0) {
-    return applyManualPexelsKeywordsToParsedSchedule(parsed, manualByDay)
+    const withManual = applyManualPexelsKeywordsToParsedSchedule(parsed, manualByDay)
+    return {
+      ...withManual,
+      schedule: finalizeRegisterScheduleImageKeywords(withManual.schedule ?? []),
+    }
   }
   const withManual: RegisterScheduleDay[] = uiRows.map((row) => {
     const manual = manualByDay[row.day]?.trim()
-    if (manual) return { ...row, imageKeyword: manual }
+    if (manual) {
+      const r = tryPersistScheduleImageKeyword(manual)
+      return { ...row, imageKeyword: r.ok ? r.value : '' }
+    }
     return row
   })
-  return { ...parsed, schedule: withManual }
+  return { ...parsed, schedule: finalizeRegisterScheduleImageKeywords(withManual) }
 }
 
 /** 교원이지(kyowontour) 등록 경로는 단일 bodyText만 수신 — 정형칸을 본문 뒤에 덧붙여 site-parser·LLM 입력으로 쓴다. */
@@ -920,7 +941,9 @@ export default function AdminRegisterPage() {
       setLastAdminTracePath(typeof data.adminTracePath === 'string' ? data.adminTracePath : null)
       setStatusText('3축(Product/ProductDeparture/ItineraryDay) 저장 완료. 등록대기에서 최종 승인해 주세요.')
     } catch (e) {
-      if (isAbortError(e)) {
+      if (e instanceof ScheduleImageKeywordPersistError) {
+        setError(formatImageKeywordError(e))
+      } else if (isAbortError(e)) {
         setError(
           `저장 요청이 ${Math.round(REGISTER_CONFIRM_FETCH_TIMEOUT_MS / 60000)}분 안에 끝나지 않아 중단했습니다. 네트워크·서버 상태를 확인한 뒤 다시 시도하세요.`
         )
@@ -1928,9 +1951,8 @@ export default function AdminRegisterPage() {
                     fallback으로 쓰입니다.
                   </li>
                   <li className="list-none pl-0 pt-1 text-[11px] text-slate-700">
-                    <span className="font-medium">권장 형식:</span>{' '}
-                    <code className="rounded bg-white/70 px-1 text-[10px]">{'{장소명} / {대표 배경 요소} / {대표 시점}'}</code> · 예: 후시미 이나리 신사 / 천본도리
-                    붉은 도리이 길 / 눈높이 정면 · 루브르 박물관 / 유리 피라미드 광장 / 정면 시점 · 도톤보리 / 글리코 사인 인근 강변 거리 / 눈높이 시점
+                    <span className="font-medium">권장 형식:</span> 영문 관광지·랜드마크 고유명 1개 (예: Osaka Castle, Dotonbori, The Bund).
+                    외곽·시점·시간·도시·국가 보조어는 넣지 않습니다.
                   </li>
                 </ul>
                 {registerPexelsUiRows.length === 0 ? (
@@ -1947,7 +1969,7 @@ export default function AdminRegisterPage() {
                         id="register_pexels_fallback_kw"
                         type="text"
                         className="min-w-[12rem] flex-1 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder:text-slate-400"
-                        placeholder="장소명 / 대표 배경 / 대표 시점 — 예: 루브르 박물관 / 유리 피라미드 광장 / 정면 시점"
+                        placeholder="Osaka Castle"
                         value={registerPexelsFallbackKeyword}
                         onChange={(e) => setRegisterPexelsFallbackKeyword(e.target.value)}
                         disabled={confirming || loading}
@@ -1974,7 +1996,9 @@ export default function AdminRegisterPage() {
                         manualPexelsKeywordsByDay[day] !== undefined
                           ? manualPexelsKeywordsByDay[day]
                           : savedRowKw
-                      const effectiveKw = overrideVal.trim() !== '' ? overrideVal.trim() : autoKw
+                      const effectiveRaw = overrideVal.trim() !== '' ? overrideVal.trim() : autoKw
+                      const persistedPreview = tryPersistScheduleImageKeyword(effectiveRaw)
+                      const effectiveKw = persistedPreview.ok ? persistedPreview.value : effectiveRaw
                       return (
                         <div
                           key={`pexels_kw_${day}`}
@@ -2002,9 +2026,7 @@ export default function AdminRegisterPage() {
                               type="text"
                               className="min-w-[12rem] flex-1 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder:text-slate-400"
                               placeholder={
-                                autoKw
-                                  ? `비우면 자동 추천: ${autoKw}`
-                                  : '장소명 / 대표 배경 / 대표 시점 — 예: 도톤보리 / 글리코 사인 인근 강변 거리 / 눈높이 시점'
+                                autoKw ? `비우면 자동 추천: ${autoKw}` : 'Osaka Castle'
                               }
                               value={overrideVal}
                               onChange={(e) =>
@@ -2016,7 +2038,11 @@ export default function AdminRegisterPage() {
                             <button
                               type="button"
                               disabled={confirming || loading || registerPexelsLoading || !effectiveKw.trim()}
-                              onClick={() => void runRegisterPexelsSearch(effectiveKw)}
+                              onClick={() =>
+                                void runRegisterPexelsSearch(
+                                  normalizeToPlaceName(effectiveKw) || effectiveKw,
+                                )
+                              }
                               className="shrink-0 rounded border border-indigo-400 bg-indigo-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
                               title="Pexels 검색(미리보기 전용, 저장과 별개)"
                             >

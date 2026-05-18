@@ -8,7 +8,11 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { isObjectStorageConfigured } from '@/lib/object-storage'
-import { buildPexelsKeyword } from '@/lib/pexels-keyword'
+import { mapDestination } from '@/lib/pexels-keyword'
+import {
+  buildHeroKeywordInputsFromSchedule,
+  selectProductHeroPlaceKeyword,
+} from '@/lib/product-hero-image-keyword'
 import { rehostPexelsProductHeroIfNeeded } from '@/lib/product-pexels-image-rehost'
 
 function pexelsCdnUrlFromPhotoId(photoId: number): string {
@@ -75,13 +79,13 @@ export async function POST(request: Request) {
       errors.push({ id: p.id, message: 'invalid bgImageExternalId' })
       continue
     }
-    const searchKeyword = buildPexelsKeyword({
-      destination: p.destination ?? null,
-      primaryRegion: p.primaryRegion ?? null,
-      themeTags: p.themeTags ?? null,
-      title: p.title ?? null,
-      scheduleJson: p.schedule ?? null,
-    }).trim() || 'travel'
+    const heroPick = await selectProductHeroPlaceKeyword({
+      productId: p.id,
+      itineraryDays: buildHeroKeywordInputsFromSchedule(p.schedule ?? null),
+      destinationKr: p.destination ?? undefined,
+      cityEn: mapDestination(p.primaryDestination ?? p.destination ?? null),
+    })
+    const searchKeyword = heroPick.keyword.trim() || mapDestination(p.primaryDestination ?? p.destination ?? null) || 'travel'
     const cityName = firstCityKo(p.destination, p.primaryDestination)
     const placeName: string | null = null
     const downloadUrl = pexelsCdnUrlFromPhotoId(pid)

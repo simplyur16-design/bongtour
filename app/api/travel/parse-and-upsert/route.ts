@@ -262,7 +262,7 @@ async function productToUpdateData(parsed: ParsedProductForDB, travelScope: stri
             day: i.day,
             title: '',
             description: i.description ?? '',
-            imageKeyword: `day ${i.day} travel`,
+            imageKeyword: '',
             imageUrl: null,
           }))
         )

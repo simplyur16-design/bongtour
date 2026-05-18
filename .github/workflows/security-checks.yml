@@ -33,3 +33,6 @@ jobs:
 
       - name: Verify Prisma runtime policy
         run: npm run verify:prisma-runtime-policy
+
+      - name: Verify schedule imageKeyword (strict after merge date)
+        run: npm run verify:image-keywords-by-supplier:ci

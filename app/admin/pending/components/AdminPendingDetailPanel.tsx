@@ -4,6 +4,8 @@ import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
+import { tryPersistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
+import { formatImageKeywordError } from '@/lib/image-keyword-error-messages'
 import AdminEmptyState from '../../components/AdminEmptyState'
 import AdminStatusBadge from '../../components/AdminStatusBadge'
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
@@ -592,7 +594,7 @@ export default function AdminPendingDetailPanel({
             day: d,
             title: '',
             description: '',
-            imageKeyword: `Day ${d} travel`,
+            imageKeyword: '',
           }
         )
       }
@@ -1075,6 +1077,13 @@ export default function AdminPendingDetailPanel({
   const handleSaveDayImageKeyword = async (day: number) => {
     if (!detail) return
     const kw = (dayImageKeywordDraft[day] ?? '').trim()
+    const precheck = tryPersistScheduleImageKeyword(kw)
+    if (!precheck.ok) {
+      setDayImageMessage(
+        `DAY${day} 대표관광지 저장 실패: ${formatImageKeywordError(new Error(precheck.error))}`,
+      )
+      return
+    }
     setDayImageSaving((prev) => ({ ...prev, [day]: true }))
     setDayImageMessage(null)
     try {

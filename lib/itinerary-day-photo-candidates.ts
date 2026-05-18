@@ -11,6 +11,7 @@ import {
   normalizeSemanticPoiKey,
   sanitizeAttractionPhrase,
 } from '@/lib/pexels-keyword'
+import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 export type DayPhotoCandidateOrigin =
   | 'poi_raw'
@@ -121,7 +122,8 @@ function pushCandidate(
   origin: DayPhotoCandidateOrigin,
   excludeKeys: Set<string>
 ): void {
-  const part = sanitizeAttractionPhrase(attractionPart)
+  const place = normalizeToPlaceName(attractionPart)
+  const part = place || sanitizeAttractionPhrase(attractionPart)
   if (!part) return
   const sk = normalizeSemanticPoiKey(part)
   if (excludeKeys.has(sk)) return
@@ -167,12 +169,8 @@ export function buildItineraryDayPhotoCandidates(opts: {
     pushCandidate(out, rawPoi, 'raw_block', excludeKeys)
   }
 
-  const kw = (scheduleImageKeyword ?? '').trim()
-  if (kw) {
-    const mapped = mapKoreanPoiSegment(kw)
-    const part = mapped ? sanitizeAttractionPhrase(mapped) : sanitizeAttractionPhrase(kw)
-    if (part) pushCandidate(out, part, 'schedule_image_keyword', excludeKeys)
-  }
+  const kw = normalizeToPlaceName((scheduleImageKeyword ?? '').trim())
+  if (kw) pushCandidate(out, kw, 'schedule_image_keyword', excludeKeys)
 
   const titleLatin = extractLatinPhraseFromTitle((scheduleTitle ?? '').trim() || null)
   if (titleLatin) pushCandidate(out, titleLatin, 'schedule_title', excludeKeys)
@@ -182,16 +180,10 @@ export function buildItineraryDayPhotoCandidates(opts: {
 
   const destEn = mapDestination(destination)
   const cityEn = mapDestination(city) || ''
-  const cityLandmark = cityEn ? `${cityEn} landmark` : ''
-  const destLandmark = destEn ? `${destEn} landmark` : ''
-
-  if (cityLandmark) pushCandidate(out, cityLandmark, 'city_landmark', excludeKeys)
-  if (destLandmark) {
-    if (!cityLandmark || normalizeSemanticPoiKey(cityLandmark) !== normalizeSemanticPoiKey(destLandmark)) {
-      pushCandidate(out, destLandmark, 'destination_landmark', excludeKeys)
-    }
+  if (cityEn) pushCandidate(out, cityEn, 'city_landmark', excludeKeys)
+  if (destEn && destEn.toLowerCase() !== cityEn.toLowerCase()) {
+    pushCandidate(out, destEn, 'destination_landmark', excludeKeys)
   }
-  if (destEn) pushCandidate(out, `${destEn} attraction`, 'destination_attraction', excludeKeys)
 
   return out
 }

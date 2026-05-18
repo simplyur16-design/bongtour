@@ -17,6 +17,7 @@ import { normalizeOriginSource } from '@/lib/supplier-origin'
 import { buildParseSupplierInputDebug, normalizeParseRequestOriginSource } from '@/lib/parse-api-origin-source'
 import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 import { requireAdmin } from '@/lib/require-admin'
+import { persistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
 // [일정 정책] Product.schedule = 렌더용; ItineraryDay = 원문 정본. 이 경로는 레거시 Itinerary 미사용(허용).
 
 /** 분석 속도 개선: 26k자로 제한 (약 7k 토큰). 긴 붙여넣기는 앞부분만 사용 */
@@ -221,12 +222,12 @@ ${textInput}
     // 이미지는 별도 API(process-images)에서 처리. 제미나이 분석만 빠르게 반영.
     const scheduleWithImages = scheduleRaw.map((s) => {
       const day = Number(s?.day) ?? 0
-      const keyword = keywordsMap.get(day)?.trim() || `day ${s?.day ?? 0} travel`
+      const imageKeyword = persistScheduleImageKeyword(keywordsMap.get(day)?.trim() ?? '')
       return {
         day,
         title: String(s?.title ?? '').trim(),
         description: String((s?.description ?? s?.content) ?? '').trim(),
-        imageKeyword: keyword,
+        imageKeyword,
         imageUrl: null as string | null,
       }
     })

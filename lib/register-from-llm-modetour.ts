@@ -48,6 +48,8 @@ import { MAX_OPTIONAL_TOURS, OPTIONAL_TOUR_UI_MAX_ROWS } from '@/lib/optional-to
 import { filterOptionalTourRows, optionalTourRowPassesStrictGate, type OptionalTourRowFields } from '@/lib/optional-tour-row-gate-modetour'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 import { isMustKnowInsufficient, supplementMustKnowWithWebSearch } from './must-know-web-supplement'
+import { polishModetourImageKeyword } from '@/lib/modetour-schedule-image-keyword'
+import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { parseLlmJsonObject } from './llm-json-extract'
 import {
   mergeDayHotelPlansForRegister,
@@ -1608,7 +1610,13 @@ ${text.slice(0, 16000)}`
         title: String(s?.title ?? '').trim(),
         description: String(s?.description ?? '').trim(),
         routeText: strOrNull(rec.routeText),
-        imageKeyword: String(s?.imageKeyword ?? '').trim() || `Day ${dayNum} travel`,
+        imageKeyword: (() => {
+          const title = String(s?.title ?? '').trim()
+          const description = String(s?.description ?? '').trim()
+          const rawKw = String(s?.imageKeyword ?? '').trim()
+          const polished = polishModetourImageKeyword(rawKw, { day: dayNum, title, description })
+          return finalizeScheduleImageKeyword(polished) || finalizeScheduleImageKeyword(rawKw) || ''
+        })(),
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),
         lunchText: strOrNull(rec.lunchText),

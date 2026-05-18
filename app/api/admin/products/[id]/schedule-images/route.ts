@@ -7,6 +7,11 @@ import { getImageStorageBucket, isObjectStorageConfigured, tryParseObjectKeyFrom
 import { isPexelsCdnUrl } from '@/lib/product-pexels-image-rehost'
 import { savePhotoFromUrlWithRetry } from '@/lib/photo-pool'
 import { toHeroStorageSourceTypeSegment } from '@/lib/product-hero-image-source-type'
+import {
+  persistScheduleImageFields,
+  persistScheduleImageKeyword,
+  ScheduleImageKeywordPersistError,
+} from '@/lib/schedule-image-keyword-persist'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -79,7 +84,16 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     /** 일정별 Pexels/Gemini 검색어 SSOT — 이미지 URL 없이 키워드만 저장 */
     if ('imageKeyword' in body && !imageUrl) {
-      const kw = body.imageKeyword == null ? '' : String(body.imageKeyword).trim().slice(0, 500)
+      let persistedKw: string
+      try {
+        persistedKw = persistScheduleImageKeyword(body.imageKeyword)
+      } catch (e) {
+        const msg =
+          e instanceof ScheduleImageKeywordPersistError
+            ? e.message
+            : 'imageKeyword 형식이 올바르지 않습니다.'
+        return NextResponse.json({ error: msg }, { status: 400 })
+      }
       let schedule: ScheduleEntry[] = []
       try {
         const parsed = JSON.parse(product.schedule ?? '[]') as unknown
@@ -91,22 +105,30 @@ export async function POST(request: Request, { params }: RouteParams) {
       const next = schedule.map((item) => {
         if (Number(item.day) !== day) return item
         updated = true
-        return { ...item, imageKeyword: kw || `day_${day}` }
+        return persistScheduleImageFields({ ...item, imageKeyword: persistedKw })
       })
       if (!updated) {
-        next.push({
-          day,
-          title: `DAY ${day}`,
-          description: '',
-          imageKeyword: kw || `day_${day}`,
-        })
+        next.push(
+          persistScheduleImageFields({
+            day,
+            title: `DAY ${day}`,
+            description: '',
+            imageKeyword: persistedKw,
+          }),
+        )
       }
       next.sort((a, b) => Number(a.day ?? 0) - Number(b.day ?? 0))
       await prisma.product.update({
         where: { id },
         data: { schedule: JSON.stringify(next) },
       })
-      return NextResponse.json({ ok: true, productId: id, day, imageKeyword: kw, imageUrl: null })
+      return NextResponse.json({
+        ok: true,
+        productId: id,
+        day,
+        imageKeyword: persistedKw,
+        imageUrl: null,
+      })
     }
     let schedule: ScheduleEntry[] = []
     try {
@@ -169,17 +191,28 @@ export async function POST(request: Request, { params }: RouteParams) {
             prodMeta?.destinationRaw?.trim() ||
             prodMeta?.destination?.trim() ||
             null
-      const placeName = placeFromBody != null ? placeFromBody : placeFromKw
+      let persistedMeta: ReturnType<typeof persistScheduleImageFields>
+      try {
+        persistedMeta = persistScheduleImageFields({
+          imageKeyword: scheduleKw || null,
+          imagePlaceName: placeFromBody ?? placeFromKw,
+          imageRehostSearchLabel:
+            searchFromBody != null
+              ? searchFromBody
+              : placeFromBody != null
+                ? placeFromBody
+                : (placeFromKw ?? cityFallback ?? scheduleKw) || null,
+        })
+      } catch (e) {
+        const msg =
+          e instanceof ScheduleImageKeywordPersistError
+            ? e.message
+            : 'imagePlaceName·검색 라벨 형식이 올바르지 않습니다.'
+        return NextResponse.json({ error: msg }, { status: 400 })
+      }
+      const placeName = persistedMeta.imagePlaceName
       const cityName = cityFallback
-      const searchLabelCore =
-        searchFromBody != null
-          ? searchFromBody
-          : placeName != null
-            ? placeName
-            : cityName != null
-              ? cityName
-              : scheduleKw
-      const searchLabel = searchLabelCore || null
+      const searchLabel = persistedMeta.imageRehostSearchLabel
       const poolCity = (cityName ?? 'unknown').trim() || 'unknown'
       const poolAttraction = (placeName ?? searchLabel ?? scheduleKw ?? `day_${day}`).slice(0, 80) || `day_${day}`
       originalCdnUrlForMeta = imageUrl
@@ -242,7 +275,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       delete itemRest.imageSeoTitleKr
       delete itemRest.imageAttractionName
       delete itemRest.imageDisplayNameManual
-      return {
+      return persistScheduleImageFields({
         ...itemRest,
         ...rehostExtra,
         imageUrl: persistedImageUrl,
@@ -260,34 +293,36 @@ export async function POST(request: Request, { params }: RouteParams) {
         ...(resolvedSeoKr ? { imageSeoTitleKr: resolvedSeoKr } : {}),
         ...(resolvedAttraction ? { imageAttractionName: resolvedAttraction } : {}),
         ...(resolvedDisplayManual ? { imageDisplayNameManual: resolvedDisplayManual } : {}),
-      }
+      })
     })
     if (!updated && !clearManualOnly) {
       nextImageUrl = persistedImageUrl
       nextSourceType = source
       nextSelectionMode = selectionMode
-      next.push({
-        day,
-        title: `DAY ${day}`,
-        description: '',
-        imageKeyword: `day_${day}`,
-        ...rehostExtra,
-        imageUrl: persistedImageUrl,
-        imageSource: {
-          source,
-          sourceType: rehostedSourceType ?? undefined,
-          photographer: photographer ?? source,
-          originalLink: originalLink ?? '',
-          externalId: externalIdResolved,
-          ...(originalCdnUrlForMeta ? { sourceImageUrl: originalCdnUrlForMeta } : {}),
-        },
-        imageManualSelected: manualSelected,
-        imageSelectionMode: selectionMode,
-        imageCandidateOrigin: manualSelected ? 'manual' : null,
-        ...(resolvedSeoKr ? { imageSeoTitleKr: resolvedSeoKr } : {}),
-        ...(resolvedAttraction ? { imageAttractionName: resolvedAttraction } : {}),
-        ...(resolvedDisplayManual ? { imageDisplayNameManual: resolvedDisplayManual } : {}),
-      })
+      next.push(
+        persistScheduleImageFields({
+          day,
+          title: `DAY ${day}`,
+          description: '',
+          imageKeyword: scheduleKw ? persistScheduleImageKeyword(scheduleKw) : '',
+          ...rehostExtra,
+          imageUrl: persistedImageUrl,
+          imageSource: {
+            source,
+            sourceType: rehostedSourceType ?? undefined,
+            photographer: photographer ?? source,
+            originalLink: originalLink ?? '',
+            externalId: externalIdResolved,
+            ...(originalCdnUrlForMeta ? { sourceImageUrl: originalCdnUrlForMeta } : {}),
+          },
+          imageManualSelected: manualSelected,
+          imageSelectionMode: selectionMode,
+          imageCandidateOrigin: manualSelected ? 'manual' : null,
+          ...(resolvedSeoKr ? { imageSeoTitleKr: resolvedSeoKr } : {}),
+          ...(resolvedAttraction ? { imageAttractionName: resolvedAttraction } : {}),
+          ...(resolvedDisplayManual ? { imageDisplayNameManual: resolvedDisplayManual } : {}),
+        }),
+      )
     }
     next.sort((a, b) => Number(a.day ?? 0) - Number(b.day ?? 0))
 

@@ -17,6 +17,7 @@ import {
   deriveLottetourScheduleDayHeaderTitle,
   shouldReplaceLottetourScheduleDayTitle,
 } from '@/lib/lottetour-schedule-day-header-title'
+import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { buildEnglishPlaceTripartiteImageKeyword } from '@/lib/register-schedule-english-place-image-keyword'
 import { polishLottetourImageKeyword } from '@/lib/lottetour-schedule-image-keyword'
 
@@ -167,11 +168,13 @@ function extractMealsFromLottetourBlock(block: string): Partial<RegisterSchedule
 
 /** 일차 표현층·붙여넣기 병합에서 imageKeyword 보강 시 사용 (롯데관광 SSOT). */
 export function keywordFromTitleDescription(title: string, description: string): string {
-  return buildEnglishPlaceTripartiteImageKeyword({
-    title,
-    description,
-    rawDayBody: '',
-  }).slice(0, 180)
+  return finalizeScheduleImageKeyword(
+    buildEnglishPlaceTripartiteImageKeyword({
+      title,
+      description,
+      rawDayBody: '',
+    }),
+  ).slice(0, 180)
 }
 
 function extractLottetourDayDateIso(block: string): string | null {
@@ -296,8 +299,7 @@ export function sanitizeLottetourScheduleRowExpression(row: RegisterScheduleDay)
   if (!DAY_N_TRAVEL_RE.test(kw)) return row
   const fromTitle = String(row.title ?? '').trim().slice(0, 120)
   const fromDesc = String(row.description ?? '').trim().slice(0, 120)
-  const nextKw = fromTitle || fromDesc ? (fromTitle || fromDesc).slice(0, 120) : ''
-  return { ...row, imageKeyword: nextKw }
+  return { ...row, imageKeyword: '' }
 }
 
 export function augmentLottetourScheduleExpressionParsed(

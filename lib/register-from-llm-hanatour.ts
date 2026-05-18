@@ -2,6 +2,7 @@
  * 하나투어 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-hanatour`만 호출.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
+import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -1866,7 +1867,7 @@ ${text.slice(0, 16000)}`
       const day = Number(s?.day) || 0
       const title = String(s?.title ?? '').trim()
       const description = String(s?.description ?? '').trim()
-      const imageKeyword = String(s?.imageKeyword ?? '').trim() || `Day ${day} travel`
+      const imageKeyword = finalizeScheduleImageKeyword(String(s?.imageKeyword ?? '').trim())
       return {
         day,
         title,

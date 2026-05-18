@@ -4,7 +4,12 @@ import { fetchPexelsPhotoObject, isPexelsFallbackUrl, type PexelsPhotoObject } f
 import { extractPexelsPhotoIdFromCdnUrl } from '@/lib/product-pexels-image-rehost'
 import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { buildImageCacheFromDb, getCachedPhoto, type CachedPhotoObject } from '@/lib/image-cache'
-import { PEXELS_REALISTIC_KEYWORDS } from '@/lib/image-style'
+import { mapDestination } from '@/lib/pexels-keyword'
+import {
+  buildHeroKeywordInputsFromSchedule,
+  selectProductHeroPlaceKeyword,
+} from '@/lib/product-hero-image-keyword'
+import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 import { getPreMadeImageSet } from '@/lib/destination-image-set'
 import {
   getPoolPhotosForDestination,
@@ -314,7 +319,14 @@ export async function POST(req: Request) {
 
     const product = (await prisma.product.findUnique({
       where: { id: productId as string },
-      select: { id: true, destination: true, title: true, schedule: true },
+      select: {
+        id: true,
+        destination: true,
+        primaryDestination: true,
+        title: true,
+        schedule: true,
+        bgImageRehostSearchLabel: true,
+      },
     })) as ProductRow | null
 
     if (!product) {
@@ -479,6 +491,20 @@ export async function POST(req: Request) {
       fallbackReason?: string
     }> = []
 
+    const heroPick = await selectProductHeroPlaceKeyword({
+      productId: String(product.id),
+      itineraryDays: buildHeroKeywordInputsFromSchedule(product.schedule, itineraryRows),
+      destinationKr: destination,
+      cityEn: mapDestination((product as { primaryDestination?: string | null }).primaryDestination ?? destination),
+      cachedHeroPlaceKeyword: (product as { bgImageRehostSearchLabel?: string | null }).bgImageRehostSearchLabel,
+    })
+    const mainQuery =
+      heroPick.keyword ||
+      normalizeToPlaceName(
+        mapDestination((product as { primaryDestination?: string | null }).primaryDestination ?? destination),
+      ) ||
+      destination
+
     let mainPhoto: PhotoResult
     const poolMain = poolBySlot.get(-1)
     if (poolMain) {
@@ -486,8 +512,7 @@ export async function POST(req: Request) {
       cacheHitCount++
       console.log(`[POOL] 메인 사진 사용`)
     } else {
-      const mainQuery = `${destination} Landmark${PEXELS_REALISTIC_KEYWORDS}`.trim()
-      const cachedMain = await getCachedPhoto(cache, destination, 'Landmark', true)
+      const cachedMain = await getCachedPhoto(cache, destination, mainQuery, true)
       if (cachedMain) {
         mainPhoto = cachedToResult(cachedMain)
         cacheHitCount++
@@ -495,9 +520,9 @@ export async function POST(req: Request) {
         const pexelsMain = await fetchPexelsPhotoObject(mainQuery)
         newFetchCount++
         if (isPexelsFallbackUrl(pexelsMain.url)) {
-          const geminiBuffer = await generateImageWithGemini({ prompt: `${destination} Landmark` })
+          const geminiBuffer = await generateImageWithGemini({ prompt: mainQuery })
           if (geminiBuffer) {
-            const saved = await savePhotoToPool(prisma, geminiBuffer, destination, 'Landmark', 'Gemini', {
+            const saved = await savePhotoToPool(prisma, geminiBuffer, destination, mainQuery, 'Gemini', {
               convertToWebpFirst: true,
             })
             mainPhoto = saved ? toPoolResult(saved) : pexelsToResult(pexelsMain)
@@ -510,7 +535,7 @@ export async function POST(req: Request) {
             prisma,
             pexelsMain.url,
             destination,
-            'Landmark',
+            mainQuery,
             'Pexels',
             pexelsPoolAttribution(pexelsMain)
           )
@@ -519,7 +544,7 @@ export async function POST(req: Request) {
         }
       }
     }
-    mainPhoto = await sealProductCoverPhoto(prisma, destination, mainPhoto, 'Landmark', mainPhoto.source)
+    mainPhoto = await sealProductCoverPhoto(prisma, destination, mainPhoto, mainQuery, mainPhoto.source)
     usage.mark(mainPhoto)
 
     const maxItineraryDay =
@@ -601,6 +626,7 @@ export async function POST(req: Request) {
             rawBlock: itRow?.rawBlock ?? null,
             scheduleTitle: sched?.title ?? null,
             scheduleDescription: sched?.description ?? null,
+            scheduleImageKeyword: sched?.imageKeyword ?? null,
             usedHeroPlaceKeys,
           },
           prisma,
@@ -621,7 +647,10 @@ export async function POST(req: Request) {
       }
 
       if (!photo) {
-        const fallbackKw = `${destination} ${keywordUsed}${PEXELS_REALISTIC_KEYWORDS}`.trim()
+        const fallbackKw =
+          normalizeToPlaceName(keywordUsed) ||
+          normalizeToPlaceName(sched?.imageKeyword ?? '') ||
+          mainQuery
         const pexelsPhoto = await fetchPexelsPhotoObject(fallbackKw)
         const attractionLabel = `${destination}_${dayNum}`
         const pexelsResult = pexelsToResult(pexelsPhoto)
@@ -755,6 +784,7 @@ export async function POST(req: Request) {
       where: { id: product.id as string },
       data: {
         bgImageUrl: bgPhoto.url,
+        bgImageRehostSearchLabel: mainQuery.slice(0, 120),
         schedule: scheduleStrFinal,
       },
     })
@@ -792,7 +822,8 @@ export async function POST(req: Request) {
         hero: {
           imageUrl: mainPhoto.url,
           imageSource: mainPhoto.source,
-          semanticKey: normalizeSemanticPoiKey(`${destination} landmark`),
+          semanticKey: normalizeSemanticPoiKey(mainQuery),
+          heroKeywordSource: heroPick.source,
         },
         slots: slotDebug,
       }

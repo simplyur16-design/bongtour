@@ -231,7 +231,7 @@ export function ProductHeroTitleLines({ title, className, style }: Omit<TitlePro
     <h1
       className={
         className ??
-        'text-3xl font-bold leading-[1.6] tracking-[0.02em] text-white lg:text-5xl lg:leading-[1.6]'
+        'text-3xl font-bold leading-[1.38] tracking-[0.02em] text-white lg:text-5xl lg:leading-[1.38]'
       }
       style={style}
     >

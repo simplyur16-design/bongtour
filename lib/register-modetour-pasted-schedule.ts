@@ -4,8 +4,8 @@
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
 import { isModetourPlaceholderImageKeyword } from '@/lib/modetour-schedule-image-keyword'
 
-function modetourScheduleImageKeywordFallback(day: number): string {
-  return `Day ${day} travel`
+function modetourScheduleImageKeywordFallback(_day: number): string {
+  return ''
 }
 
 const NOISE_LINE =

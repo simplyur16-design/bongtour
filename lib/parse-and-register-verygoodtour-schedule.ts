@@ -24,8 +24,7 @@ export function sanitizeVerygoodtourScheduleRowExpression(row: RegisterScheduleD
   if (!DAY_N_TRAVEL_RE.test(kw)) return row
   const fromTitle = String(row.title ?? '').trim().slice(0, 120)
   const fromDesc = String(row.description ?? '').trim().slice(0, 120)
-  const nextKw = fromTitle || fromDesc ? (fromTitle || fromDesc).slice(0, 120) : ''
-  return { ...row, imageKeyword: nextKw }
+  return { ...row, imageKeyword: '' }
 }
 
 export function augmentVerygoodtourScheduleExpressionParsed(parsed: RegisterParsed): RegisterParsed {

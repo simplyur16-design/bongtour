@@ -3,6 +3,8 @@
  * 한국어 상품 메타를 Pexels에서 의미 있는 영어 검색어로 변환.
  */
 
+import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+
 /** 도시·지역명 → Pexels 검색용 영어 (소규모 매핑) */
 const DESTINATION_MAP: Record<string, string> = {
   다낭: 'Da Nang',
@@ -358,8 +360,11 @@ export function extractAttractionFromScheduleJson(scheduleJson: string | null | 
             ? String((o as { image_keyword?: string }).image_keyword).trim()
             : ''
       if (kw && !isLikelyJsonOrWebApiDump(kw)) {
-        const q = sanitizeAttractionPhrase(kw)
-        if (q) return q
+        const segment = kw.split(' / ')[0]?.trim() ?? kw
+        const place = normalizeToPlaceName(segment)
+        if (place) return place
+        const q = sanitizeAttractionPhrase(segment)
+        if (q) return normalizeToPlaceName(q) || q
       }
     }
     for (const item of arr) {
@@ -412,29 +417,27 @@ export function resolveTravelSubjectEnForMedia(options: TravelSubjectEnMediaOpti
   const themeEn = mapFirstThemeTag(themeIn)
   const regionEn = mapRegion(regionIn)
 
-  const explicit = sanitizeAttractionPhrase(attrIn)
+  const explicit = normalizeToPlaceName(attrIn ?? '')
   if (explicit) return explicit
 
   const fromPoi = firstPoiFromRaw(poiNamesRaw)
-  if (fromPoi) return fromPoi
+  if (fromPoi) {
+    const n = normalizeToPlaceName(fromPoi)
+    if (n) return n
+  }
 
   const fromSchedule = extractAttractionFromScheduleJson(scheduleJson ?? null)
   if (fromSchedule) return fromSchedule
 
   const fromTitleLatin = extractLatinPhraseFromTitle(titleIn)
-  if (fromTitleLatin) return fromTitleLatin
+  if (fromTitleLatin) {
+    const n = normalizeToPlaceName(fromTitleLatin)
+    if (n) return n
+  }
 
   if (destEn) {
-    const landmark = sanitizeAttractionPhrase(`${destEn} landmark`)
-    if (landmark.length <= MAX_LENGTH) return landmark
-  }
-  if (destEn) {
-    const attr = sanitizeAttractionPhrase(`${destEn} attraction`)
-    if (attr.length <= MAX_LENGTH) return attr
-  }
-  if (destEn) {
-    const tl = sanitizeAttractionPhrase(`${destEn} travel landmark`)
-    if (tl.length <= MAX_LENGTH) return tl
+    const cityOnly = normalizeToPlaceName(destEn)
+    if (cityOnly) return cityOnly
   }
 
   const parts: string[] = []
@@ -445,12 +448,16 @@ export function resolveTravelSubjectEnForMedia(options: TravelSubjectEnMediaOpti
 
   let query = parts.slice(0, MAX_TERMS).join(' ')
   if (query.length > MAX_LENGTH) query = query.slice(0, MAX_LENGTH).trim()
-  if (query) return query
+  if (query) {
+    const n = normalizeToPlaceName(query)
+    return n || query
+  }
 
   const titleWords = (titleIn ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 2)
   query = titleWords.join(' ')
   if (query.length > MAX_LENGTH) query = query.slice(0, MAX_LENGTH).trim()
-  return query || 'travel'
+  const n = normalizeToPlaceName(query)
+  return n || query || destEn || ''
 }
 
 export function buildPexelsKeyword(options: TravelSubjectEnMediaOptions): string {

@@ -17,6 +17,7 @@ import {
   deriveYbtourScheduleDayHeaderTitle,
   shouldReplaceYbtourScheduleDayTitle,
 } from '@/lib/ybtour-schedule-day-header-title'
+import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { buildEnglishPlaceTripartiteImageKeyword } from '@/lib/register-schedule-english-place-image-keyword'
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
@@ -160,13 +161,15 @@ function extractMealsFromYbtourBlock(block: string): Partial<RegisterScheduleDay
   return out
 }
 
-/** 일차 표현층·붙여넣기 병합에서 imageKeyword 보강 시 사용 (노랑풍선 SSOT). */
+/** 일차 표현층·붙여넣기 병합에서 imageKeyword 보강 시 사용 (ybtour SSOT). */
 export function keywordFromTitleDescription(title: string, description: string): string {
-  return buildEnglishPlaceTripartiteImageKeyword({
-    title,
-    description,
-    rawDayBody: '',
-  }).slice(0, 180)
+  return finalizeScheduleImageKeyword(
+    buildEnglishPlaceTripartiteImageKeyword({
+      title,
+      description,
+      rawDayBody: '',
+    }),
+  ).slice(0, 180)
 }
 
 function extractYbtourDayDateIso(block: string): string | null {
@@ -291,7 +294,9 @@ export function sanitizeYbtourScheduleRowExpression(row: RegisterScheduleDay): R
   if (!DAY_N_TRAVEL_RE.test(kw)) return row
   const fromTitle = String(row.title ?? '').trim().slice(0, 120)
   const fromDesc = String(row.description ?? '').trim().slice(0, 120)
-  const nextKw = fromTitle || fromDesc ? (fromTitle || fromDesc).slice(0, 120) : ''
+  const nextKw = finalizeScheduleImageKeyword(
+    keywordFromTitleDescription(fromTitle, fromDesc),
+  ).slice(0, 180)
   return { ...row, imageKeyword: nextKw }
 }
 
@@ -306,20 +311,34 @@ export function augmentYbtourScheduleExpressionParsed(
   const sched = next.schedule
   if (!sched?.length) return next
   const cleaned = sched.map((r) => sanitizeYbtourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r)))
+  const titled = cleaned.map((r) => {
+    const title = String(r.title ?? '').trim()
+    const description = String(r.description ?? '').trim()
+    if (!shouldReplaceYbtourScheduleDayTitle(title, description)) return r
+    const nextTitle = deriveYbtourScheduleDayHeaderTitle({
+      day: r.day,
+      title,
+      description,
+      dateText: r.dateText ?? undefined,
+    }).trim()
+    if (!nextTitle) return r
+    return { ...r, title: nextTitle.slice(0, 200) }
+  })
+  const pasteBlob = pastedBodyText?.trim() ? pastedBodyText.trim().slice(0, 24_000) : undefined
   return {
     ...next,
-    schedule: cleaned.map((r) => {
+    schedule: titled.map((r) => {
       const title = String(r.title ?? '').trim()
       const description = String(r.description ?? '').trim()
-      if (!shouldReplaceYbtourScheduleDayTitle(title, description)) return r
-      const nextTitle = deriveYbtourScheduleDayHeaderTitle({
-        day: r.day,
-        title,
-        description,
-        dateText: r.dateText ?? undefined,
-      }).trim()
-      if (!nextTitle) return r
-      return { ...r, title: nextTitle.slice(0, 200) }
+      const kw = finalizeScheduleImageKeyword(
+        buildEnglishPlaceTripartiteImageKeyword({
+          title,
+          description,
+          rawDayBody: pasteBlob ?? '',
+          currentKeyword: String(r.imageKeyword ?? '').trim(),
+        }),
+      ).slice(0, 180)
+      return { ...r, imageKeyword: kw }
     }),
   }
 }

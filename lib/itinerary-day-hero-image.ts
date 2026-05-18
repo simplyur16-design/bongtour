@@ -35,6 +35,7 @@ import {
   normalizeSemanticPoiKey,
   sanitizeAttractionPhrase,
 } from '@/lib/pexels-keyword'
+import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 export type { PexelsQuerySet } from '@/lib/pexels-hero-query'
 
@@ -99,6 +100,7 @@ export type DayHeroResolveInput = {
   rawBlock: string | null
   scheduleTitle: string | null
   scheduleDescription: string | null
+  scheduleImageKeyword?: string | null
   usedHeroPlaceKeys: Set<string>
 }
 
@@ -125,6 +127,7 @@ export function extractDayPoiCandidates(input: {
   productTitle?: string | null
   scheduleTitle?: string | null
   scheduleDescription?: string | null
+  scheduleImageKeyword?: string | null
 }): ExtractedPoi[] {
   const out: ExtractedPoi[] = []
   const seen = new Set<string>()
@@ -136,6 +139,9 @@ export function extractDayPoiCandidates(input: {
     seen.add(k)
     out.push({ raw: t, source })
   }
+
+  const schedKw = normalizeToPlaceName(input.scheduleImageKeyword ?? '')
+  if (schedKw) push(schedKw, 'schedule')
 
   if (input.poiNamesRaw?.trim()) {
     for (const p of input.poiNamesRaw.split(/[,，]/).map((s) => s.trim()).filter(Boolean)) {
@@ -203,7 +209,9 @@ export function normalizePlaceCandidates(
     t = stripActivitySuffix(t)
     if (t.length < 2) continue
     const mappedEn = mapKoreanPoiSegment(t)
-    const stemRaw = mappedEn ? sanitizeAttractionPhrase(mappedEn) : sanitizeAttractionPhrase(t)
+    const stemRaw =
+      normalizeToPlaceName(mappedEn || t) ||
+      (mappedEn ? sanitizeAttractionPhrase(mappedEn) : sanitizeAttractionPhrase(t))
     if (!stemRaw) continue
     const semanticKey = normalizeSemanticPoiKey(stemRaw)
     if (!map.has(semanticKey)) {
@@ -292,7 +300,7 @@ export function chooseSyntheticLandmarkPlace(
   usedHeroPlaceKeys: Set<string>
 ): DayHeroPlaceChoice {
   const cityEn = mapDestination(city || destination) || sanitizeAttractionPhrase(destination) || destination
-  const stem = `${cityEn} landmark`.trim()
+  const stem = normalizeToPlaceName(cityEn) || cityEn.trim()
   let semanticKey = normalizeSemanticPoiKey(stem)
   if (usedHeroPlaceKeys.has(semanticKey)) {
     semanticKey = normalizeSemanticPoiKey(`${stem} alt`)
@@ -505,6 +513,7 @@ export async function resolveDayHeroWithFallback(
     productTitle: input.productTitle,
     scheduleTitle: input.scheduleTitle,
     scheduleDescription: input.scheduleDescription,
+    scheduleImageKeyword: input.scheduleImageKeyword,
   })
   const normalized = normalizePlaceCandidates(extracted, input.city, null)
   let place = chooseDayHeroPlace(normalized, { usedHeroPlaceKeys: input.usedHeroPlaceKeys }, input.city, input.destination)

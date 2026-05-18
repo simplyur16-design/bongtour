@@ -1,8 +1,9 @@
 /**
- * 참좋은여행(verygoodtour): 일차 `imageKeyword` — 영문 + 실존 랜드마크 우선, 삼단 포맷
- * (`register-schedule-english-place-image-keyword` — 노랑풍선 `keywordFromTitleDescription`과 동일 엔진)
+ * 참좋은여행(verygoodtour): 일차 `imageKeyword` — Pexels용 영문 관광지 고유명 1개
+ * (`register-schedule-english-place-image-keyword` — ybtour `keywordFromTitleDescription`과 동일 엔진)
  */
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
+import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { buildEnglishPlaceTripartiteImageKeyword } from '@/lib/register-schedule-english-place-image-keyword'
 
 /**
@@ -24,12 +25,14 @@ export function polishVerygoodRegisterScheduleImageKeywords(
     const rawDayBody = String(det?.description ?? '').trim()
     const title = String(row.title ?? '').trim()
     const description = String(row.description ?? '').trim()
-    const kw = buildEnglishPlaceTripartiteImageKeyword({
-      title,
-      description,
-      rawDayBody,
-      currentKeyword: String(row.imageKeyword ?? '').trim(),
-    }).slice(0, 180)
+    const kw = finalizeScheduleImageKeyword(
+      buildEnglishPlaceTripartiteImageKeyword({
+        title,
+        description,
+        rawDayBody,
+        currentKeyword: String(row.imageKeyword ?? '').trim(),
+      }),
+    ).slice(0, 180)
     return { ...row, imageKeyword: kw }
   })
 }

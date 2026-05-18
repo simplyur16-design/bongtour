@@ -343,7 +343,7 @@ function buildScheduleJsonThin(
       day: day.day,
       title: day.title,
       description: day.description,
-      imageKeyword: String(day.imageKeyword ?? '').trim() || `Day ${day.day} travel`,
+      imageKeyword: String(day.imageKeyword ?? '').trim(),
       routeText: nullIfEmptyTrim(day.routeText),
       imageUrl: null,
     }))
@@ -372,7 +372,7 @@ function buildModetourProductScheduleJson(
       const description =
         (s && typeof s.description === 'string' ? s.description : '') || (d.summaryTextRaw ?? '').trim()
       const rawKw = s && typeof s.imageKeyword === 'string' ? s.imageKeyword : ''
-      const imageKeyword = String(rawKw ?? '').trim() || `Day ${d.day} travel`
+      const imageKeyword = String(rawKw ?? '').trim()
       const routeText = s ? nullIfEmptyTrim((s as { routeText?: string | null }).routeText) : null
       return {
         day: d.day,

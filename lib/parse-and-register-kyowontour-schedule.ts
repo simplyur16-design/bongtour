@@ -17,6 +17,7 @@ import {
   deriveKyowontourScheduleDayHeaderTitle,
   shouldReplaceKyowontourScheduleDayTitle,
 } from '@/lib/kyowontour-schedule-day-header-title'
+import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { buildEnglishPlaceTripartiteImageKeyword } from '@/lib/register-schedule-english-place-image-keyword'
 import { polishKyowontourImageKeyword } from '@/lib/kyowontour-schedule-image-keyword'
 
@@ -163,11 +164,13 @@ function extractMealsFromKyowontourBlock(block: string): Partial<RegisterSchedul
 
 /** 일차 표현층·붙여넣기 병합에서 imageKeyword 보강 시 사용 (교원이지 SSOT). */
 export function keywordFromTitleDescription(title: string, description: string): string {
-  return buildEnglishPlaceTripartiteImageKeyword({
-    title,
-    description,
-    rawDayBody: '',
-  }).slice(0, 180)
+  return finalizeScheduleImageKeyword(
+    buildEnglishPlaceTripartiteImageKeyword({
+      title,
+      description,
+      rawDayBody: '',
+    }),
+  ).slice(0, 180)
 }
 
 function extractKyowontourDayDateIso(block: string): string | null {
@@ -292,8 +295,7 @@ export function sanitizeKyowontourScheduleRowExpression(row: RegisterScheduleDay
   if (!DAY_N_TRAVEL_RE.test(kw)) return row
   const fromTitle = String(row.title ?? '').trim().slice(0, 120)
   const fromDesc = String(row.description ?? '').trim().slice(0, 120)
-  const nextKw = fromTitle || fromDesc ? (fromTitle || fromDesc).slice(0, 120) : ''
-  return { ...row, imageKeyword: nextKw }
+  return { ...row, imageKeyword: '' }
 }
 
 export function augmentKyowontourScheduleExpressionParsed(

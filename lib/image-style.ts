@@ -7,11 +7,9 @@
 /** Pexels 검색어에 붙일 보조 키워드 (실사·풍경·도심 랜드마크 유도) */
 export const PEXELS_REALISTIC_KEYWORDS = ' travel landscape photorealistic'
 
-/** 단일 단어일 때만 Pexels 쿼리에 실사 키워드 추가 (복합어는 분석 결과 신뢰) */
+/** Pexels 검색어 — 장소 고유명만 사용(보조어 미부착). 빈 값은 그대로 반환. */
 export function withPexelsRealisticQuery(keyword: string): string {
-  const k = (keyword ?? '').trim()
-  if (!k) return 'travel landscape photorealistic'
-  return k.includes(' ') ? k : `${k}${PEXELS_REALISTIC_KEYWORDS}`
+  return (keyword ?? '').trim()
 }
 
 /**

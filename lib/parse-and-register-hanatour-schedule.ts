@@ -11,6 +11,10 @@ import {
   registerScheduleToDayInputs,
   type ItineraryDayInput,
 } from '@/lib/upsert-itinerary-days-hanatour'
+import {
+  extractPlaceNameKeyword,
+  finalizeScheduleImageKeyword,
+} from '@/lib/pexels-place-name-keyword'
 
 export const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
@@ -1176,9 +1180,8 @@ function composeHanatourScheduleDescriptionSentence(
   return hanatourTrimOneSentenceMax(desc, HANATOUR_CARD_DESCRIPTION_MAX)
 }
 
-function inferHanatourImageKeyword(day: number, _maxDay: number, _rawBlob: string): string {
-  const d = Math.max(1, day)
-  return `Day ${d} travel`
+function inferHanatourImageKeyword(_day: number, _maxDay: number, _rawBlob: string): string {
+  return ''
 }
 
 function hanatourTitleLooksLikePlaceRoute(t: string): boolean {
@@ -1299,9 +1302,17 @@ export function polishHanatourScheduleDayForItinerary(
     )
   }
   const description = descriptionRaw.slice(0, HANATOUR_CARD_DESCRIPTION_MAX).trim()
-  const imageKeyword = hanatourImageKeywordNeedsReplace(row.imageKeyword)
-    ? rebuilt.imageKeyword
+  const rawKw = hanatourImageKeywordNeedsReplace(row.imageKeyword)
+    ? ''
     : row.imageKeyword.trim().slice(0, 120)
+  const imageKeyword = finalizeScheduleImageKeyword(
+    extractPlaceNameKeyword({
+      llmImageKeyword: rawKw,
+      title,
+      description,
+      rawBody: rawBlob,
+    }),
+  ).slice(0, 120)
   return {
     ...row,
     title: title.slice(0, 200).trim(),
@@ -1415,8 +1426,9 @@ export function polishHanatourScheduleRowsPreferDetailBody(
       // LLM imageKeyword가 유효(비어 있지 않고 "Day N travel" 폴백이 아님)하면 보존, 아니면 polished 추론값
       const llmKw = (row.imageKeyword ?? '').trim()
       const llmKwIsFallback = DAY_N_TRAVEL_RE.test(llmKw)
-      const preservedImageKeyword =
-        llmKw && !llmKwIsFallback ? llmKw.slice(0, 120) : polished.imageKeyword
+      const preservedImageKeyword = finalizeScheduleImageKeyword(
+        llmKw && !llmKwIsFallback ? llmKw : polished.imageKeyword,
+      ).slice(0, 120)
       // LLM description이 충분히 의미 있으면(30자 이상) 보존, 아니면 polished 사용
       // polished.description은 본문 청크에서 단순 추출한 값이라 단편적이기 쉬움
       const llmDescRaw = (row.description ?? '').trim()

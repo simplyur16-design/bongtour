@@ -6,6 +6,7 @@
  * 풀 등록 JSON과 동시에 거대 schedule을 출력하면 MAX_TOKENS·일차 누락이 나기 쉬워 분리한다.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
+import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { buildScheduleExtractToneBlock } from '@/lib/bongtour-tone-manner-llm-ssot'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import { extractRelevantSections } from '@/lib/paste-relevant-sections'
@@ -186,7 +187,7 @@ function parseScheduleRowsFromLlmJson(
       day,
       title: String(rec.title ?? '').trim(),
       description: clampScheduleDescriptionText(String(rec.description ?? '')),
-      imageKeyword: String(rec.imageKeyword ?? '').trim() || `Day ${day} travel`,
+      imageKeyword: finalizeScheduleImageKeyword(String(rec.imageKeyword ?? '').trim()),
       routeText: strOrNull(rec.routeText),
       hotelText: strOrNull(rec.hotelText),
       breakfastText: strOrNull(rec.breakfastText),
@@ -482,7 +483,7 @@ export function mergeScheduleWithFirstPassPreferExtractRows(
         title: fp.title.trim() || String(main.title ?? '').trim(),
         description: fp.description.trim() || String(main.description ?? '').trim(),
         imageKeyword:
-          fp.imageKeyword.trim() || String(main.imageKeyword ?? '').trim() || `Day ${d} travel`,
+          finalizeScheduleImageKeyword(fp.imageKeyword.trim() || String(main.imageKeyword ?? "").trim()),
         hotelText: fp.hotelText ?? main.hotelText ?? null,
         breakfastText: fp.breakfastText ?? main.breakfastText ?? null,
         lunchText: fp.lunchText ?? main.lunchText ?? null,
@@ -495,7 +496,7 @@ export function mergeScheduleWithFirstPassPreferExtractRows(
         day: fp.day,
         title: fp.title,
         description: fp.description,
-        imageKeyword: fp.imageKeyword,
+        imageKeyword: finalizeScheduleImageKeyword(String(fp.imageKeyword ?? '').trim()),
         routeText: strOrNull(fp.routeText),
         hotelText: fp.hotelText,
         breakfastText: fp.breakfastText,

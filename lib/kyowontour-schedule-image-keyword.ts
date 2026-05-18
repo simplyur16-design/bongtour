@@ -1,7 +1,9 @@
 /**
- * 교원이지(kyowontour) 전용: `Product.schedule[].imageKeyword`만 Pexels/이미지 검색용 영문 noun phrase로 정리.
+ * 교원이지(kyowontour) 전용: `Product.schedule[].imageKeyword`만 Pexels 검색용 영문 관광지 고유명으로 정리.
  * title/description/일정 분리 로직은 건드리지 않는다.
  */
+
+import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 
 export type KyowontourImageKeywordContext = {
   day: number
@@ -409,12 +411,16 @@ export function deriveKyowontourImageKeyword(ctx: KyowontourImageKeywordContext)
   return kyowontourAirtelFreeTravelRegionalFallbackLocal(h)
 }
 
+function finishKyowontourImageKeyword(s: string): string {
+  const t = clampWords(normalizeSlashSpacing(s), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
+  return finalizeScheduleImageKeyword(t) || ''
+}
+
 export function polishKyowontourImageKeyword(raw: string, ctx: KyowontourImageKeywordContext): string {
   const cleaned = stripDatesAndNoise(String(raw ?? '').trim())
   if (ctx.airtelFreeTravelImageKw === 'force-city') {
     const kw = kyowontourResolveAirtelFreeTravelImageKeywordLocal(ctx)
-    if (kw.trim())
-      return clampWords(normalizeSlashSpacing(kw), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
+    if (kw.trim()) return finishKyowontourImageKeyword(kw)
   }
   if (cleaned && isAcceptableEnglishKeyword(cleaned)) {
     let chosen = cleaned
@@ -422,17 +428,17 @@ export function polishKyowontourImageKeyword(raw: string, ctx: KyowontourImageKe
       const d = deriveKyowontourImageKeyword(ctx)
       if (d.trim()) chosen = d
     }
-    return clampWords(normalizeSlashSpacing(chosen), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
+    return finishKyowontourImageKeyword(chosen)
   }
   if (cleaned && !hasHangul(cleaned) && !isKyowontourPlaceholderImageKeyword(cleaned) && !hasBadSubstrings(cleaned)) {
     const t2 = clampWords(cleaned.replace(/[,，]+/g, ' '), IMAGE_KEYWORD_MAX_WORDS)
     if (t2.length >= 4 && /[a-z]{3,}/i.test(t2)) {
       if (isKyowontourPexelsTooGeneric(t2)) {
         const d = deriveKyowontourImageKeyword(ctx)
-        if (d.trim()) return clampWords(normalizeSlashSpacing(d), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
+        if (d.trim()) return finishKyowontourImageKeyword(d)
       }
-      return clampWords(normalizeSlashSpacing(t2), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
+      return finishKyowontourImageKeyword(t2)
     }
   }
-  return clampWords(normalizeSlashSpacing(deriveKyowontourImageKeyword(ctx)), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
+  return finishKyowontourImageKeyword(deriveKyowontourImageKeyword(ctx))
 }

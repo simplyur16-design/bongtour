@@ -1,7 +1,9 @@
 /**
- * 모두투어 전용: `Product.schedule[].imageKeyword`만 Pexels/이미지 검색용 영문 noun phrase로 정리.
+ * 모두투어 전용: `Product.schedule[].imageKeyword`만 Pexels 검색용 영문 관광지 고유명으로 정리.
  * title/description/일정 분리 로직은 건드리지 않는다.
  */
+
+import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 export type ModetourImageKeywordContext = {
   day: number
@@ -365,14 +367,17 @@ export function deriveModetourImageKeyword(ctx: ModetourImageKeywordContext): st
 
 export function polishModetourImageKeyword(raw: string, ctx: ModetourImageKeywordContext): string {
   const cleaned = stripDatesAndNoise(String(raw ?? '').trim())
+  let chosen = ''
   if (ctx.airtelFreeTravelImageKw === 'force-city') {
     const kw = modetourResolveAirtelFreeTravelImageKeywordLocal(ctx)
-    if (kw.trim()) return clampWords(kw, 8)
-  }
-  if (cleaned && isAcceptableEnglishKeyword(cleaned)) return clampWords(cleaned, 8)
-  if (cleaned && !hasHangul(cleaned) && !isModetourPlaceholderImageKeyword(cleaned) && !hasBadSubstrings(cleaned)) {
+    if (kw.trim()) chosen = clampWords(kw, 8)
+  } else if (cleaned && isAcceptableEnglishKeyword(cleaned)) {
+    chosen = clampWords(cleaned, 8)
+  } else if (cleaned && !hasHangul(cleaned) && !isModetourPlaceholderImageKeyword(cleaned) && !hasBadSubstrings(cleaned)) {
     const t2 = clampWords(cleaned.replace(/[,，]+/g, ' '), 8)
-    if (t2.length >= 4 && /[a-z]{3,}/i.test(t2)) return t2
+    if (t2.length >= 4 && /[a-z]{3,}/i.test(t2)) chosen = t2
+  } else {
+    chosen = clampWords(deriveModetourImageKeyword(ctx), 8)
   }
-  return clampWords(deriveModetourImageKeyword(ctx), 8)
+  return finalizeScheduleImageKeyword(chosen) || normalizeToPlaceName(chosen) || ''
 }

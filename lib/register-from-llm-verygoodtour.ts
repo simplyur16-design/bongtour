@@ -2,6 +2,7 @@
  * 참좋은여행 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-verygoodtour`만 호출.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
+import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -1683,7 +1684,7 @@ ${text.slice(0, 16000)}`
         dateText: strOrNull(rec.dateText),
         title: String(s?.title ?? '').trim(),
         description: String(s?.description ?? '').trim(),
-        imageKeyword: String(s?.imageKeyword ?? '').trim() || `Day ${s?.day ?? 0} travel`,
+        imageKeyword: finalizeScheduleImageKeyword(String(s?.imageKeyword ?? '').trim()),
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),
         lunchText: strOrNull(rec.lunchText),

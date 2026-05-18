@@ -132,8 +132,13 @@ export function buildHeroPexelsQuerySet(opts: {
   stem: string
   city: string | null
   destination: string
+  /** true일 때만 도시·국가를 검색어에 붙인다. 기본은 장소명(stem)만. */
+  attachCityCountry?: boolean
 }): PexelsQuerySet {
   const base = opts.stem.trim()
+  if (!opts.attachCityCountry) {
+    return { primaryQuery: base, secondaryQueries: [] }
+  }
   const destRaw = (opts.destination ?? '').trim()
   const cityRaw = (opts.city ?? '').trim()
 
