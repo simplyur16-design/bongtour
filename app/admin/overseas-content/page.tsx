@@ -1,6 +1,6 @@
-import OverseasContentAdminClient from './OverseasContentAdminClient'
+import { redirect } from 'next/navigation'
 
-export default function AdminOverseasContentPage() {
-  return <OverseasContentAdminClient />
+/** 통합됨 — 시즌 추천 여행지·월별 큐레이션으로 이전 */
+export default function AdminOverseasContentRedirectPage() {
+  redirect('/admin/season-curation')
 }
-

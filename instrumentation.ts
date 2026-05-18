@@ -23,6 +23,12 @@ export async function register() {
     }
     const { bootstrapHomeHubActiveFromDb } = await import('@/lib/home-hub-active-bootstrap')
     await bootstrapHomeHubActiveFromDb()
+    if (dbUrl) {
+      const { startInstrumentationSeasonCurationCron } = await import(
+        '@/lib/instrumentation-season-curation-cron'
+      )
+      startInstrumentationSeasonCurationCron()
+    }
     if (process.env.NODE_ENV === 'production') {
       const { getAdminServiceBearerSecret } = await import('@/lib/admin-secrets')
       const hasBearer =
@@ -48,10 +54,6 @@ export async function register() {
         startInstrumentationPriceFreshnessCron()
         const { startInstrumentationCouponCron } = await import('@/lib/instrumentation-coupon-cron')
         startInstrumentationCouponCron()
-        const { startInstrumentationSeasonCurationCron } = await import(
-          '@/lib/instrumentation-season-curation-cron'
-        )
-        startInstrumentationSeasonCurationCron()
         const { startInstrumentationMonthlyCurationCron } = await import(
           '@/lib/instrumentation-monthly-curation-cron'
         )

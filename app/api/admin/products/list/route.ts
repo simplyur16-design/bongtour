@@ -27,8 +27,16 @@ export async function GET(req: NextRequest) {
     const legacyOnly = searchParams.get('legacyOnly') === '1'
     const needsImageReview = searchParams.get('needsImageReview') === '1'
     const highlightEmptyOnly = searchParams.get('highlightEmpty') === '1'
+    const originCode = searchParams.get('originCode')?.trim() || null
+    const supplierGroupId = searchParams.get('supplierGroupId')?.trim() || null
 
     const where: Prisma.ProductWhereInput = {}
+    const appendAnd = (clauses: Prisma.ProductWhereInput[]) => {
+      const cur = where.AND
+      const arr: Prisma.ProductWhereInput[] = Array.isArray(cur) ? [...cur] : cur ? [cur] : []
+      arr.push(...clauses)
+      where.AND = arr
+    }
     if (airline) where.airline = airline
     if (destination) where.destination = destination
     if (status && ['registered', 'on_hold', 'rejected', 'pending', 'auto_unpublished'].includes(status)) {
@@ -45,6 +53,19 @@ export async function GET(req: NextRequest) {
     if (primaryRegion) where.primaryRegion = { contains: primaryRegion }
     if (displayCategory) where.displayCategory = { contains: displayCategory }
     if (themeTags) where.themeTags = { contains: themeTags }
+    if (originCode || supplierGroupId) {
+      const codeClauses: Prisma.ProductWhereInput[] = []
+      if (originCode) {
+        codeClauses.push(
+          { originCode: { contains: originCode } },
+          { supplierGroupId: { contains: originCode } },
+        )
+      }
+      if (supplierGroupId) {
+        codeClauses.push({ supplierGroupId: { contains: supplierGroupId } })
+      }
+      appendAnd([{ OR: codeClauses }])
+    }
     if (hasErrorOnly) {
       const reports = await prisma.agentScrapeReport.findMany({
         where: { productId: { not: null } },
@@ -66,12 +87,6 @@ export async function GET(req: NextRequest) {
     }
 
     // 이미지 출처 필터: legacy = 대표 이미지 있음 + source 없음/빈값
-    const appendAnd = (clauses: Prisma.ProductWhereInput[]) => {
-      const cur = where.AND
-      const arr: Prisma.ProductWhereInput[] = Array.isArray(cur) ? [...cur] : cur ? [cur] : []
-      arr.push(...clauses)
-      where.AND = arr
-    }
     const applyLegacyImageWhere = () => {
       appendAnd([
         { bgImageUrl: { not: null } },

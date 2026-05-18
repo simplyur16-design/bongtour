@@ -140,7 +140,11 @@ function adminClientFetchErrorMessage(e: unknown): string {
   return '요청 중 오류가 발생했습니다.'
 }
 
-export default function OverseasContentAdminClient() {
+export type OverseasContentAdminView = 'all' | 'editorial' | 'monthly'
+
+export default function OverseasContentAdminClient({ view = 'all' }: { view?: OverseasContentAdminView }) {
+  const showEditorial = view === 'all' || view === 'editorial'
+  const showMonthly = view === 'all' || view === 'monthly'
   const [editorials, setEditorials] = useState<EditorialItem[]>([])
   const [monthlies, setMonthlies] = useState<MonthlyItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -547,17 +551,37 @@ export default function OverseasContentAdminClient() {
         </Link>
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h1 className="text-2xl font-semibold text-gray-900">목적지 브리핑 관리</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          해외 허브·우리여행 등에 쓰이는 브리핑입니다. 권역/국가 미지정 항목은 기본 허브에 노출되며, 아래「우리여행 히어로 슬롯」을 켜면 /travel/overseas/private-trip 우측 운영 카드에 우선
-          노출됩니다. 이미지·CTA·칩 문구는 여기서 바꾸면 공개 화면에 반영됩니다.
-        </p>
-      </section>
+      {view === 'all' ? (
+        <section className="rounded-xl border border-indigo-200 bg-indigo-50/80 p-5">
+          <p className="text-sm text-indigo-900">
+            <strong>시즌 추천 여행지 5도시</strong>는{' '}
+            <Link href="/admin/season-curation" className="font-semibold underline">
+              시즌 추천 여행지 관리
+            </Link>
+            , 월별 시즌 카드는{' '}
+            <Link href="/admin/bongsim/monthly-curation" className="font-semibold underline">
+              월별 큐레이션
+            </Link>
+            에서 관리합니다.
+          </p>
+        </section>
+      ) : null}
+
+      {showEditorial ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <h1 className="text-2xl font-semibold text-gray-900">목적지 브리핑</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            해외 허브·우리여행 등에 쓰입니다. 권역/국가 미지정 항목은 기본 허브에 노출되며, 「우리여행 히어로 슬롯」을 켜면
+            /travel/overseas/private-trip 우측 운영 카드에 우선 노출됩니다.
+          </p>
+        </section>
+      ) : null}
 
       {message && <div className="mt-4 rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{message}</div>}
       {error && <div className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>}
 
+      {showEditorial ? (
+      <>
       <section className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
         <h2 className="text-lg font-semibold text-slate-900">{editingEditorialId ? '목적지 브리핑 수정' : '새 목적지 브리핑 등록'}</h2>
         <div className="mt-4 space-y-6">
@@ -925,11 +949,19 @@ export default function OverseasContentAdminClient() {
           </div>
         )}
       </section>
+      </>
+      ) : null}
 
+      {showMonthly ? (
+      <>
       <section className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
-        <h1 className="text-2xl font-semibold text-gray-900">시즌 추천 관리</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">월별 시즌 큐레이션 카드</h1>
         <p className="mt-2 text-sm text-gray-600">
-          해외 허브·모바일 홈 시즌 추천 카드에 올라갈 1건을 등록합니다. 아래 핵심 입력만으로도 저장할 수 있고, 출처·SEO 등은 필요할 때만 펼쳐 주세요.
+          메인·모바일 시즌 카드. Gemini 자동 생성은{' '}
+          <Link href="/admin/bongsim/monthly-curation" className="font-semibold underline">
+            월별 큐레이션
+          </Link>
+          상단에서 실행합니다.
         </p>
       </section>
 
@@ -1378,6 +1410,8 @@ export default function OverseasContentAdminClient() {
           </div>
         )}
       </section>
+      </>
+      ) : null}
     </div>
   )
 }

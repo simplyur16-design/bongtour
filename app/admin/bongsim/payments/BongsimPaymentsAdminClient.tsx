@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import AdminPageHeader from "@/app/admin/components/AdminPageHeader";
+import { ADMIN_CARD_CLASS } from "@/lib/admin-design-system";
+
+const PURGE_CONFIRM = "PURGE_BONGSIM_ORDERS";
 
 type OrderRow = {
   order_id: string;
@@ -73,6 +77,9 @@ export default function BongsimPaymentsAdminClient() {
   const [refundReason, setRefundReason] = useState("고객 요청 환불");
   const [refundBusy, setRefundBusy] = useState(false);
   const [refundErr, setRefundErr] = useState<string | null>(null);
+  const [purgeBusy, setPurgeBusy] = useState(false);
+  const [purgeMsg, setPurgeMsg] = useState<string | null>(null);
+  const [purgeErr, setPurgeErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoadErr(null);
@@ -114,6 +121,41 @@ export default function BongsimPaymentsAdminClient() {
     }
   };
 
+  const purgeOrders = async (mode: "unfinished" | "all") => {
+    const label =
+      mode === "all"
+        ? "모든 주문을 DB에서 삭제합니다. 복구할 수 없습니다."
+        : "미완료 주문(대기·결제대기·실패·취소)만 삭제합니다.";
+    if (!window.confirm(`${label}\n\n계속할까요?`)) return;
+    setPurgeBusy(true);
+    setPurgeMsg(null);
+    setPurgeErr(null);
+    try {
+      const res = await fetch("/api/admin/bongsim/payments/purge", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: PURGE_CONFIRM, mode }),
+      });
+      const j = (await res.json()) as {
+        ok?: boolean;
+        deletedCount?: number;
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok || !j.ok) {
+        throw new Error(j.message ?? j.error ?? `삭제 실패 (${res.status})`);
+      }
+      setPurgeMsg(`${j.deletedCount ?? 0}건 삭제했습니다. (mode=${mode})`);
+      setPage(1);
+      await load();
+    } catch (e) {
+      setPurgeErr(e instanceof Error ? e.message : "오류");
+    } finally {
+      setPurgeBusy(false);
+    }
+  };
+
   const submitRefund = async () => {
     if (!detail?.order) return;
     const oid = String(detail.order.order_id ?? "").trim();
@@ -139,12 +181,43 @@ export default function BongsimPaymentsAdminClient() {
   };
 
   return (
-    <div className="text-slate-100">
-      <h1 className="text-2xl font-bold text-slate-100">결제 내역</h1>
-      <p className="mt-2 text-sm text-slate-400">bongsim_order 최근 주문 (페이지당 50건)</p>
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="eSIM 결제 내역"
+        subtitle="bongsim_order 최근 주문 (페이지당 50건). 환불은 결제완료·전달완료 주문만 가능합니다."
+      />
 
+      <section className={`${ADMIN_CARD_CLASS} border-amber-200/80 bg-amber-50/40`}>
+        <h2 className="text-sm font-semibold text-amber-950">결제 내역 DB 초기화 (테스트·운영 정리)</h2>
+        <p className="mt-2 text-xs text-amber-900/90">
+          기존 「초기화」는 검색만 비웁니다. 아래 버튼은 DB에서 주문을 삭제합니다. 결제완료·전달완료·환불 건은 「미완료만
+          삭제」에서 제외됩니다. 로컬·스테이징 권장.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={purgeBusy}
+            onClick={() => void purgeOrders("unfinished")}
+            className="rounded-lg border border-amber-600 bg-white px-3 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100 disabled:opacity-50"
+          >
+            {purgeBusy ? "처리 중…" : "미완료 주문 삭제"}
+          </button>
+          <button
+            type="button"
+            disabled={purgeBusy}
+            onClick={() => void purgeOrders("all")}
+            className="rounded-lg bg-red-700 px-3 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50"
+          >
+            전체 주문 삭제 (로컬만)
+          </button>
+        </div>
+        {purgeMsg ? <p className="mt-2 text-sm text-emerald-800">{purgeMsg}</p> : null}
+        {purgeErr ? <p className="mt-2 text-sm text-red-700">{purgeErr}</p> : null}
+      </section>
+
+      <section className={ADMIN_CARD_CLASS}>
       <form
-        className="mt-6 flex flex-wrap items-end gap-3"
+        className="flex flex-wrap items-end gap-3"
         onSubmit={(e) => {
           e.preventDefault();
           setPage(1);
@@ -152,11 +225,11 @@ export default function BongsimPaymentsAdminClient() {
         }}
       >
         <label className="block min-w-[200px] flex-1">
-          <span className="text-xs font-medium text-slate-400">주문번호 또는 이메일</span>
+          <span className="text-xs font-medium text-bt-text-muted-lavender">주문번호 또는 이메일</span>
           <input
             value={searchInput}
             onChange={(ev) => setSearchInput(ev.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+            className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 text-sm text-bt-text-navy placeholder:text-bt-text-muted-lavender"
             placeholder="검색…"
           />
         </label>
@@ -168,23 +241,23 @@ export default function BongsimPaymentsAdminClient() {
         </button>
         <button
           type="button"
-          className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+          className="rounded-lg border border-bt-border-soft px-4 py-2 text-sm text-bt-text-navy hover:bg-bt-bg-lavender/80"
           onClick={() => {
             setSearchInput("");
             setSearch("");
             setPage(1);
           }}
         >
-          초기화
+          검색 초기화
         </button>
       </form>
 
-      {loadErr ? <p className="mt-4 text-sm text-red-400">{loadErr}</p> : null}
+      {loadErr ? <p className="mt-4 text-sm text-red-600">{loadErr}</p> : null}
 
-      <div className="mt-6 overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/50">
-        <table className="min-w-full text-left text-sm">
+      <div className="mt-6 overflow-x-auto rounded-xl border border-bt-border-soft">
+        <table className="min-w-full text-left text-sm text-bt-text-navy">
           <thead>
-            <tr className="border-b border-slate-700 text-xs uppercase text-slate-400">
+            <tr className="border-b border-bt-border-soft bg-bt-bg-lavender/50 text-xs uppercase text-bt-text-muted-lavender">
               <th className="px-3 py-3">주문번호</th>
               <th className="px-3 py-3">상태</th>
               <th className="px-3 py-3">결제금액</th>
@@ -197,20 +270,20 @@ export default function BongsimPaymentsAdminClient() {
             {rows.map((r) => (
               <tr
                 key={r.order_id}
-                className="cursor-pointer border-b border-slate-800 hover:bg-slate-800/60"
+                className="cursor-pointer border-b border-bt-border-soft/80 hover:bg-bt-bg-lavender/40"
                 onClick={() => void openDetail(r.order_id)}
               >
-                <td className="px-3 py-2.5 font-mono text-xs text-teal-200">{r.order_number}</td>
+                <td className="px-3 py-2.5 font-mono text-xs text-teal-800">{r.order_number}</td>
                 <td className="px-3 py-2.5">
                   <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusBadgeClass(r.status)}`}>
                     {statusLabel(r.status)}
                   </span>
                 </td>
-                <td className="px-3 py-2.5 text-slate-200">{nfKrw(r.grand_total_krw)}</td>
-                <td className="max-w-[220px] truncate px-3 py-2.5 text-slate-300" title={r.buyer_email}>
+                <td className="px-3 py-2.5">{nfKrw(r.grand_total_krw)}</td>
+                <td className="max-w-[220px] truncate px-3 py-2.5" title={r.buyer_email}>
                   {r.buyer_email}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-slate-400">
+                <td className="whitespace-nowrap px-3 py-2.5 text-bt-text-muted-lavender">
                   {new Date(r.created_at).toLocaleString("ko-KR")}
                 </td>
                 <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
@@ -223,14 +296,14 @@ export default function BongsimPaymentsAdminClient() {
                       환불
                     </button>
                   ) : (
-                    <span className="text-slate-600">—</span>
+                    <span className="text-bt-text-muted-lavender">—</span>
                   )}
                 </td>
               </tr>
             ))}
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
+                <td colSpan={6} className="px-3 py-8 text-center text-bt-text-muted-lavender">
                   주문이 없습니다.
                 </td>
               </tr>
@@ -239,11 +312,11 @@ export default function BongsimPaymentsAdminClient() {
         </table>
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3 text-sm text-slate-400">
+      <div className="mt-4 flex items-center justify-between gap-3 text-sm text-bt-text-muted-lavender">
         <button
           type="button"
           disabled={page <= 1}
-          className="rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40"
+          className="rounded-lg border border-bt-border-soft px-3 py-1.5 disabled:opacity-40"
           onClick={() => setPage((p) => Math.max(1, p - 1))}
         >
           이전
@@ -254,12 +327,13 @@ export default function BongsimPaymentsAdminClient() {
         <button
           type="button"
           disabled={page >= totalPages}
-          className="rounded-lg border border-slate-600 px-3 py-1.5 disabled:opacity-40"
+          className="rounded-lg border border-bt-border-soft px-3 py-1.5 disabled:opacity-40"
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
         >
           다음
         </button>
       </div>
+      </section>
 
       {detailId ? (
         <div

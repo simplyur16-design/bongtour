@@ -5,11 +5,11 @@ import SafeImage from '@/app/components/SafeImage'
 import { type FC, type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
-import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
+import { countryDisplayNameFromBrowseParam } from '@/lib/overseas-browse-country-hero'
 import {
-  countryDisplayNameFromBrowseParam,
-  findMonthlyCurationForBrowseCountrySlug,
-} from '@/lib/overseas-browse-country-hero'
+  findSeasonDestinationSlideForBrowseCountry,
+  type OverseasHubDestinationHeroSlide,
+} from '@/lib/overseas-hub-season-destination-hero-shared'
 import OverseasCountryHeroBanner from '@/components/travel/overseas/OverseasCountryHeroBanner'
 
 const WEEKDAYS_KR = ['일', '월', '화', '수', '목', '금', '토'] as const
@@ -61,25 +61,9 @@ function buildCalendarCells(viewYear: number, viewMonth1to12: number): { date: D
 const HERO_FALLBACK =
   'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221280%22 height=%22480%22 viewBox=%220 0 1280 480%22%3E%3Crect width=%221280%22 height=%22480%22 fill=%22%23e2e8f0%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%2294a3b8%22 font-size=%2230%22%3EOverseas%20Hero%3C/text%3E%3C/svg%3E'
 
-type SeasonHeroSlide = {
-  id: string
-  imageUrl: string | null
-  headline: string
-  subline: string
-  href: string
-}
-
-function seasonCurationToHeroSlides(curations: HomeSeasonPickDTO[] | null | undefined): SeasonHeroSlide[] {
-  return (curations ?? [])
-    .filter((s) => (s.title ?? '').trim() || (s.imageUrl ?? '').trim())
-    .map((s) => ({
-      id: s.id,
-      imageUrl: (s.imageUrl ?? '').trim() || null,
-      headline: (s.title ?? '').trim(),
-      subline: ((s.subtitle ?? s.excerpt) ?? '').trim(),
-      href: (s.ctaHref ?? '/travel/overseas').trim() || '/travel/overseas',
-    }))
-}
+/** 해외 허브 시즌 히어로 자동 전환 간격 */
+const HERO_SEASON_AUTO_MS = 10_000
+const HERO_SEASON_MANUAL_COOLDOWN_MS = 10_000
 
 function HeroCurationLink({
   href,
@@ -120,14 +104,14 @@ export type OverseasHeroProps = {
   selectedCountrySlug?: string | null
   /** 지방출발 3종(`busan_dep` 등)만 서버에서 전달 — 일반 권역 탭은 null */
   selectedRegionSlug?: string | null
-  /** 해외 허브 히어로 — 서울 기준 +1·+2월 발행 시즌 큐레이션(서버) */
-  seasonCurationSlides?: HomeSeasonPickDTO[] | null
+  /** 해외 허브 히어로 — 시즌 추천 여행지 5도시(서버, `SeasonalDestinationCuration`) */
+  seasonDestinationHeroSlides?: OverseasHubDestinationHeroSlide[] | null
 }
 
 const OverseasHero: FC<OverseasHeroProps> = ({
   selectedCountrySlug = null,
   selectedRegionSlug = null,
-  seasonCurationSlides = null,
+  seasonDestinationHeroSlides = null,
 }) => {
   const router = useRouter()
   const searchParams = useSearchParams() ?? new URLSearchParams()
@@ -186,11 +170,17 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   const isLocalDepartureMode = Boolean(localDepLabel)
   const isSpotlightMode = Boolean(countrySlug) || isLocalDepartureMode
 
-  const seasonSlides = useMemo(() => seasonCurationToHeroSlides(seasonCurationSlides), [seasonCurationSlides])
+  const seasonSlides = useMemo(
+    () =>
+      (seasonDestinationHeroSlides ?? []).filter(
+        (s) => s.headline.trim() || (s.imageUrl ?? '').trim(),
+      ),
+    [seasonDestinationHeroSlides],
+  )
 
-  const matchedCountryCuration = useMemo(
-    () => (countrySlug ? findMonthlyCurationForBrowseCountrySlug(seasonCurationSlides, countrySlug) : null),
-    [countrySlug, seasonCurationSlides],
+  const matchedCountrySlide = useMemo(
+    () => (countrySlug ? findSeasonDestinationSlideForBrowseCountry(seasonDestinationHeroSlides, countrySlug) : null),
+    [countrySlug, seasonDestinationHeroSlides],
   )
 
   const countryHeroDisplayName = useMemo(
@@ -203,7 +193,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     title: string
     subtitle: string
   } | null => {
-    if (matchedCountryCuration || !countryBrowseData?.items?.length) return null
+    if (matchedCountrySlide || !countryBrowseData?.items?.length) return null
     const items = countryBrowseData.items
     let pick = items[0]!
     let img: string | null = null
@@ -219,7 +209,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     const dur = (pick.duration ?? '').trim()
     const subtitle = [dest, dur].filter(Boolean).join(' · ')
     return { imageUrl: img, title: pick.title, subtitle }
-  }, [matchedCountryCuration, countryBrowseData])
+  }, [matchedCountrySlide, countryBrowseData])
 
   const spotlightBrowseFooterLine = useMemo(() => {
     const t = countryBrowseData?.total ?? 0
@@ -357,18 +347,26 @@ const OverseasHero: FC<OverseasHeroProps> = ({
 
   const current = seasonSlides[idx % Math.max(seasonSlides.length, 1)] ?? null
 
+  const shiftSeasonSlide = (delta: number) => {
+    setLastManualAt(Date.now())
+    setIdx((v) => {
+      const n = seasonSlides.length
+      if (n <= 1) return v
+      return (v + delta + n) % n
+    })
+  }
+
   useEffect(() => {
     heroSlideCountRef.current = seasonSlides.length
     if (seasonSlides.length <= 1 || isPaused || reduceMotion) return
     const t = setInterval(() => {
-      // 수동 이동 직후 즉시 자동 전환되는 현상 완화
-      if (Date.now() - lastManualAt < 3600) return
+      if (Date.now() - lastManualAt < HERO_SEASON_MANUAL_COOLDOWN_MS) return
       setIdx((v) => {
         const n = heroSlideCountRef.current
         if (n <= 1) return v
         return (v + 1) % n
       })
-    }, 5500)
+    }, HERO_SEASON_AUTO_MS)
     return () => clearInterval(t)
   }, [seasonSlides.length, isPaused, reduceMotion, lastManualAt])
 
@@ -526,18 +524,18 @@ const OverseasHero: FC<OverseasHeroProps> = ({
       >
         <div className="absolute inset-0">
             {isSpotlightMode ? (
-              matchedCountryCuration ? (
+              matchedCountrySlide ? (
                 <OverseasCountryHeroBanner
-                  imageUrl={matchedCountryCuration.imageUrl}
-                  title={matchedCountryCuration.title}
-                  subtitle={(matchedCountryCuration.subtitle ?? matchedCountryCuration.excerpt ?? '').trim()}
+                  imageUrl={matchedCountrySlide.imageUrl}
+                  title={matchedCountrySlide.headline}
+                  subtitle={matchedCountrySlide.subline}
                   footerLine={
                     countryBrowseData != null
                       ? `${countryHeroDisplayName} 여행상품 ${countryBrowseData.total.toLocaleString('ko-KR')}개`
                       : `${countryHeroDisplayName} 여행상품`
                   }
                   showCta
-                  ctaHref={matchedCountryCuration.ctaHref}
+                  ctaHref={matchedCountrySlide.href}
                 />
               ) : countryBrowseLoading ? (
                 <div className="h-[240px] w-full animate-pulse rounded-xl bg-slate-200/70 lg:h-[300px]" />
@@ -571,7 +569,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
               ) : null
             ) : !current ? (
               <div className="flex h-full flex-col items-center justify-center gap-1 text-sm text-bt-subtle">
-                <p>다음 달·다다음 달 시즌 추천을 준비 중입니다.</p>
+                <p>다가오는 3개월 추천 여행지를 준비 중입니다.</p>
                 <p className="text-xs">잠시 후 다시 확인해 주세요.</p>
               </div>
             ) : (
@@ -623,13 +621,43 @@ const OverseasHero: FC<OverseasHeroProps> = ({
                   </>
                 )
                 return (
-                  <HeroCurationLink
-                    href={current.href}
-                    className="group relative block h-full w-full"
-                    ariaLabel={`${current.headline} 자세히 보기`}
-                  >
-                    {inner}
-                  </HeroCurationLink>
+                  <div className="relative h-full w-full">
+                    {seasonSlides.length > 1 ? (
+                      <>
+                        <button
+                          type="button"
+                          className="absolute left-2 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/45 text-2xl font-light text-white shadow-lg backdrop-blur-sm transition hover:bg-black/60 sm:left-4"
+                          aria-label="이전 추천 여행지"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            shiftSeasonSlide(-1)
+                          }}
+                        >
+                          ‹
+                        </button>
+                        <button
+                          type="button"
+                          className="absolute right-2 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/45 text-2xl font-light text-white shadow-lg backdrop-blur-sm transition hover:bg-black/60 sm:right-4"
+                          aria-label="다음 추천 여행지"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            shiftSeasonSlide(1)
+                          }}
+                        >
+                          ›
+                        </button>
+                      </>
+                    ) : null}
+                    <HeroCurationLink
+                      href={current.href}
+                      className="group relative block h-full w-full"
+                      ariaLabel={`${current.headline} 자세히 보기`}
+                    >
+                      {inner}
+                    </HeroCurationLink>
+                  </div>
                 )
               })()
             )}

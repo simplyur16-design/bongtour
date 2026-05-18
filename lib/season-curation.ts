@@ -74,12 +74,27 @@ export function getKstMonthlySeasonWindow(now: Date): { startDate: Date; endDate
  * Gemini 프롬프트 본문 — 변수만 치환하고 문구는 스펙 그대로 유지.
  * (distributionTop30: 상위 도시 cityKey + 건수 + 한글 라벨 요약 문자열)
  */
-export function buildSeasonCurationGeminiPrompt(context: string, distributionTop30: string): string {
-  return `한국 출발 패키지 여행사의 메인 페이지 '이번 시즌 추천 여행지' 5개 도시를 골라줘.
-현재 시기: ${context}
-조건: 
+export function buildSeasonCurationGeminiPrompt(
+  context: string,
+  distributionTop30: string,
+  primaryTargetMonths1To12?: number[],
+): string {
+  const monthLine =
+    primaryTargetMonths1To12 && primaryTargetMonths1To12.length >= 5
+      ? `이번 큐레이션 생성 달 기준, 5개 도시는 각각 아래 **여행 출발·방문 목표 월**에 맞게 고릅니다(현재 달·과거 달 추천 금지).
+primary 5도시 순서대로 목표 월(서울): ${primaryTargetMonths1To12
+          .slice(0, 5)
+          .map((m) => `${m}월`)
+          .join(', ')}.
+- reasoning.{cityKey}는 반드시 해당 도시에 배정된 월 숫자로 시작(예: "7월 …")하고, 그 월에 떠나기 좋은 시즌·기후·이벤트만 언급. 생성 달·지난달 기준 문구 금지.
+`
+      : ''
+  return `한국 출발 패키지 여행사의 메인 페이지 '시즌 추천 여행지' 5개 도시를 골라줘.
+현재 시기(큐레이션 생성 시점): ${context}
+${monthLine}조건: 
+- **현재 달에 여행하기 위한 추천이 아님** — 반드시 위에 배정된 +1~+3개월 목표 월에 맞는 도시만
 - 우리 카탈로그에 registered 상품이 있는 도시만 (아래 분포 참고)
-- 시기 적합성(기후·이벤트·계절) 우선
+- 시기 적합성(기후·이벤트·계절) 우선 — 배정 월과 맞출 것
 - 다양성 (같은 국가 중복 최소화, 권역 분산)
 - 가족 패키지(40대 후반 부모님과 가족) 친화
 도시 분포(상품 수): ${distributionTop30}
@@ -100,6 +115,52 @@ type GeminiCityPick = {
   primary: string[]
   fallback: string[]
   reasoning?: Record<string, string>
+}
+
+/** KST 기준 `monthOffset`달 뒤(음수 가능)의 시즌 사이클 창. */
+export function getKstMonthlySeasonWindowForOffset(
+  now: Date,
+  monthOffset: number,
+): { startDate: Date; endDate: Date } {
+  const { y, m } = getKstYmdParts(now)
+  let targetY = y
+  let targetM = m + monthOffset
+  while (targetM > 12) {
+    targetM -= 12
+    targetY += 1
+  }
+  while (targetM < 1) {
+    targetM += 12
+    targetY -= 1
+  }
+  const startDate = kstMonthStartInstant(targetY, targetM)
+  const next = nextCalendarMonth(targetY, targetM)
+  const endDate = kstMonthStartInstant(next.y, next.m)
+  return { startDate, endDate }
+}
+
+/**
+ * 서울 기준 +1·+2·+3월 등 미래 사이클이 없으면 Gemini로 생성(추천 여행지 선행 준비).
+ * 실패한 offset은 로그만 남기고 다음 offset을 시도한다.
+ */
+export async function ensureSeasonDestinationCyclesForMonthOffsets(
+  offsets: number[],
+  now = new Date(),
+): Promise<void> {
+  const uniq = [...new Set(offsets.filter((n) => Number.isFinite(n) && n > 0))].sort((a, b) => a - b)
+  for (const offset of uniq) {
+    const { startDate, endDate } = getKstMonthlySeasonWindowForOffset(now, offset)
+    const existing = await prisma.seasonalDestinationCuration.findUnique({
+      where: { cycleStartDate: startDate },
+    })
+    if (existing) continue
+    try {
+      await generateNewCycle({ startDate, endDate })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      console.error(`[season-curation] ahead seed offset=+${offset}`, msg)
+    }
+  }
 }
 
 export async function getCurrentCycle(now = new Date()): Promise<SeasonalDestinationCuration | null> {
@@ -228,7 +289,10 @@ export async function generateNewCycle(input: GenerateNewCycleInput): Promise<Se
 
   const context = buildSeasonContext(now)
   const distributionTop30 = formatDistributionTop30(dist)
-  const prompt = buildSeasonCurationGeminiPrompt(context, distributionTop30)
+  const cycleBaseMonth = getKstYmdParts(startDate).m
+  const { seasonHeroTargetMonthsForBase } = await import('@/lib/season-hero-target-months')
+  const primaryTargetMonths = seasonHeroTargetMonthsForBase(cycleBaseMonth)
+  const prompt = buildSeasonCurationGeminiPrompt(context, distributionTop30, primaryTargetMonths)
 
   const apiKey = (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
   if (!apiKey) {

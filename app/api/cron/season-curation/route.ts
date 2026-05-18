@@ -1,6 +1,6 @@
 import { getBongtourCronSecret, isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
-import { rotateCycleIfDue } from '@/lib/season-curation'
+import { runSeasonCurationJob } from '@/lib/season-curation-job'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,9 +20,16 @@ export async function POST(req: Request) {
   }
   const force = body.force === true
 
-  const result = await rotateCycleIfDue(new Date(), { force })
-  if (result.message && !result.cycle) {
-    return jsonWithLeakGuard({ ok: false, ...result }, 'cron-season-curation', { status: 500 })
+  const result = await runSeasonCurationJob(new Date(), { force })
+  if (!result.ok) {
+    return jsonWithLeakGuard(
+      { ok: false, rotated: result.rotated, cycle: result.cycle, message: result.message },
+      'cron-season-curation',
+      { status: 500 },
+    )
   }
-  return jsonWithLeakGuard({ ok: true, ...result }, 'cron-season-curation.response')
+  return jsonWithLeakGuard(
+    { ok: true, rotated: result.rotated, cycle: result.cycle, message: result.message },
+    'cron-season-curation.response',
+  )
 }

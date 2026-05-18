@@ -1,42 +1,37 @@
 /**
- * SeasonalDestinationCuration — 매달 1일 00:00 KST `POST /api/cron/season-curation`.
- * `BONGTOUR_CRON_SECRET`, 내부 베이스 URL(`NEXT_PUBLIC_SITE_URL` 등), `DATABASE_URL` 필요.
- * (메모리 #30 — `getBongtourCronSecret` + `x-bongtour-cron-secret` SSOT)
+ * SeasonalDestinationCuration — 서버 기동 1회 시드 + 매월 15일 00:00 KST 갱신.
+ * dev(`npm run dev`)·production 공통. `DATABASE_URL`·`GEMINI_API_KEY` 필요.
  */
-function resolveInternalSiteBase(): string {
-  const raw =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    process.env.SITE_URL?.trim() ||
-    process.env.BONGTOUR_API_BASE?.trim() ||
-    process.env.NEXTAUTH_URL?.trim() ||
-    ''
-  return raw.replace(/\/$/, '')
-}
+import { runSeasonCurationJob } from '@/lib/season-curation-job'
 
-/** 서버 기동 시 활성 사이클이 없으면 1회 시드(첫 배포·재시작). */
+/** KST 매월 15일 00:00 */
+const SEASON_CRON_EXPR = '0 0 15 * *'
+
+/** 서버 기동 시 활성 사이클·+1/+2/+3 선행 사이클 확인(첫 dev·배포). */
 async function seedSeasonCurationCycleOnStartup(): Promise<void> {
   try {
-    if (process.env.NODE_ENV !== 'production') {
-      return
-    }
     if (!(process.env.DATABASE_URL ?? '').trim()) {
       console.warn('[season-curation-cron] startup seed skip: DATABASE_URL')
       return
     }
-    const { getCurrentCycle, rotateCycleIfDue } = await import('./season-curation')
+    const { getCurrentCycle } = await import('./season-curation')
     const now = new Date()
     const current = await getCurrentCycle(now)
     if (current) {
-      console.log('[season-curation-cron] startup seed skip: active cycle exists')
-      return
+      console.log('[season-curation-cron] startup seed skip: active cycle exists', current.id)
+    } else {
+      const result = await runSeasonCurationJob(now, { force: true })
+      console.log('[season-curation-cron] startup seed', {
+        ok: result.ok,
+        rotated: result.rotated,
+        cycleId: result.cycle?.id ?? null,
+        message: result.message ?? null,
+      })
+      if (!result.ok) return
     }
-    const result = await rotateCycleIfDue(now, { force: true })
-    console.log('[season-curation-cron] startup seed', {
-      rotated: result.rotated,
-      cycleId: result.cycle?.id ?? null,
-      message: result.message,
-    })
+    const { ensureSeasonDestinationCyclesForMonthOffsets } = await import('./season-curation')
+    await ensureSeasonDestinationCyclesForMonthOffsets([1, 2, 3], now)
+    console.log('[season-curation-cron] startup ahead cycles ensured (+1/+2/+3)')
   } catch (e) {
     console.error('[season-curation-cron] startup seed error', e)
   }
@@ -53,50 +48,34 @@ export function startInstrumentationSeasonCurationCron(): void {
     .then((m) => {
       const cron = m.default
       cron.schedule(
-        '0 0 1 * *',
+        SEASON_CRON_EXPR,
         () => {
           void tickSeasonCurationCron()
         },
         { timezone: 'Asia/Seoul' },
       )
-      console.log('[season-curation-cron] registered: 0 0 1 * * (Asia/Seoul)')
+      console.log(`[season-curation-cron] registered: ${SEASON_CRON_EXPR} (Asia/Seoul, 매월 15일)`)
     })
     .catch((e) => {
       console.error('[season-curation-cron] failed to load node-cron', e)
     })
 }
 
-async function tickSeasonCurationCron() {
+async function tickSeasonCurationCron(): Promise<void> {
   try {
-    if (process.env.NODE_ENV !== 'production') {
-      return
-    }
     if (!(process.env.DATABASE_URL ?? '').trim()) {
-      console.warn('[season-curation-cron] skip: DATABASE_URL')
+      console.warn('[season-curation-cron] monthly tick skip: DATABASE_URL')
       return
     }
-    const { getBongtourCronSecret } = await import('@/lib/cron-auth')
-    const secret = getBongtourCronSecret()
-    if (!secret) {
-      console.warn('[season-curation-cron] skip: BONGTOUR_CRON_SECRET')
-      return
-    }
-    const base = resolveInternalSiteBase()
-    if (!base) {
-      console.warn('[season-curation-cron] skip: no NEXT_PUBLIC_SITE_URL / SITE_URL / NEXTAUTH_URL')
-      return
-    }
-    const res = await fetch(`${base}/api/cron/season-curation`, {
-      method: 'POST',
-      headers: {
-        'x-bongtour-cron-secret': secret,
-        'content-type': 'application/json',
-      },
-      body: '{}',
+    const now = new Date()
+    const result = await runSeasonCurationJob(now)
+    console.log('[season-curation-cron] monthly tick (15일)', {
+      ok: result.ok,
+      rotated: result.rotated,
+      cycleId: result.cycle?.id ?? null,
+      message: result.message ?? null,
     })
-    const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; rotated?: boolean }
-    console.log('[season-curation-cron]', res.status, j)
   } catch (e) {
-    console.error('[season-curation-cron] error', e)
+    console.error('[season-curation-cron] monthly tick error', e)
   }
 }

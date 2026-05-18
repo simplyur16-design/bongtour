@@ -7,7 +7,7 @@ export default async function AdminBongsimPaymentsPage() {
   if (!session) redirect("/auth/signin?callbackUrl=/admin/bongsim/payments");
 
   return (
-    <div className="mx-auto max-w-6xl pb-16 text-slate-100">
+    <div className="mx-auto max-w-6xl pb-16">
       <BongsimPaymentsAdminClient />
     </div>
   );

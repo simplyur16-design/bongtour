@@ -154,6 +154,7 @@ export default function AdminProductsPage() {
   const [primaryRegionFilter, setPrimaryRegionFilter] = useState('')
   const [displayCategoryFilter, setDisplayCategoryFilter] = useState('')
   const [themeTagsSearch, setThemeTagsSearch] = useState('')
+  const [originCodeSearch, setOriginCodeSearch] = useState('')
   const [hasErrorOnly, setHasErrorOnly] = useState(false)
   const [imageSourceFilter, setImageSourceFilter] = useState('')
   const [legacyOnly, setLegacyOnly] = useState(false)
@@ -191,6 +192,7 @@ export default function AdminProductsPage() {
       if (primaryRegionFilter) params.set('primaryRegion', primaryRegionFilter)
       if (displayCategoryFilter) params.set('displayCategory', displayCategoryFilter)
       if (themeTagsSearch) params.set('themeTags', themeTagsSearch)
+      if (originCodeSearch.trim()) params.set('originCode', originCodeSearch.trim())
       if (hasErrorOnly) params.set('hasError', '1')
       if (imageSourceFilter) params.set('imageSource', imageSourceFilter)
       if (legacyOnly && !imageSourceFilter) params.set('legacyOnly', '1')
@@ -216,6 +218,7 @@ export default function AdminProductsPage() {
     primaryRegionFilter,
     displayCategoryFilter,
     themeTagsSearch,
+    originCodeSearch,
     hasErrorOnly,
     imageSourceFilter,
     legacyOnly,
@@ -606,6 +609,17 @@ export default function AdminProductsPage() {
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
+          <input
+            type="text"
+            value={originCodeSearch}
+            onChange={(e) => {
+              setOriginCodeSearch(e.target.value)
+              setPage(1)
+            }}
+            placeholder="상품코드·단체번호"
+            className="w-40 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#0f172a] placeholder:text-gray-400"
+            aria-label="상품코드 또는 단체번호 검색"
+          />
           <input
             type="text"
             value={themeTagsSearch}

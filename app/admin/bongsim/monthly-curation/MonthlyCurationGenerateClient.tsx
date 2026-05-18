@@ -143,13 +143,7 @@ export default function MonthlyCurationGenerateClient() {
           다음 달·지정 월 출발 상품을 바탕으로 초안 카드를 생성합니다. 생성 직후에는{' '}
           <strong className="font-medium">미발행</strong>이며, 검토 후 발행을 켜 주세요.
         </p>
-        <p className="mt-2 text-sm text-bt-body">
-          수동 편집·이미지 업로드는{' '}
-          <Link href="/admin/overseas-content" className="text-bt-brand-blue underline">
-            해외 콘텐츠 CMS
-          </Link>
-          에서 할 수 있습니다.
-        </p>
+        <p className="mt-2 text-sm text-bt-body">수동 편집·이미지·발행은 아래 「월별 시즌 큐레이션 카드」 섹션에서 할 수 있습니다.</p>
       </div>
 
       <section className="rounded-xl border border-bt-border bg-white p-5 shadow-sm">

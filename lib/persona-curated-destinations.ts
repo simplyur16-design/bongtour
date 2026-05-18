@@ -15,6 +15,8 @@ export type PersonaCityCard = {
   cityKey: string
   titleEn: string
   koreanSubtitle: string
+  countryKey: string | null
+  countryKoreanLabel: string | null
   imageUrl: string | null
   withParents: boolean
   withKids: boolean
@@ -193,6 +195,8 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
       cityKey,
       titleEn: cityKeyToEnglishTitle(cityKey),
       koreanSubtitle,
+      countryKey: meta?.countryKey ?? null,
+      countryKoreanLabel: meta?.country?.koreanLabel ?? null,
       imageUrl,
       withParents,
       withKids,
