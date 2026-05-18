@@ -8,3 +8,6 @@ export const OUR_TRAVEL_HERO_OVERLAY_TITLE = '우리 모임 성격에 딱 맞춘
 /** 이미지 위 보조 설명(고정, 한 덩어리) */
 export const OUR_TRAVEL_HERO_OVERLAY_DESCRIPTION =
   '코스 짜기부터 숙소 예약까지, 모임의 특성을 반영해 기획합니다.'
+
+export const OUR_TRAVEL_HERO_CTA_PRIVATE_INQUIRY = '우리끼리 문의하기'
+export const OUR_TRAVEL_HERO_CTA_CUSTOM_CONSULT = '맞춤여행 상담 받기'

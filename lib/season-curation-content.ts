@@ -20,6 +20,11 @@ export function shiftSeoulYearMonth(yearMonth: string, deltaMonths: number): str
   return `${y}-${String(m + 1).padStart(2, '0')}`
 }
 
+/** 해외 허브 히어로 — 서울 기준 +1·+2월 발행 큐레이션(월별 비면 발행 풀 보출) */
+export async function getPublishedOverseasHubHeroSeasonSlides(): Promise<HomeSeasonPickDTO[]> {
+  return loadNextTwoMonthsSlidesUncached()
+}
+
 async function loadNextTwoMonthsSlidesUncached(): Promise<HomeSeasonPickDTO[]> {
   const base = getSeoulYearMonthNow()
   const m1 = shiftSeoulYearMonth(base, 1)

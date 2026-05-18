@@ -2,15 +2,9 @@
 
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
-import { type FC, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { type FC, type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
-import {
-  browseDestinationDisplayLabelFromBrowseHero,
-  buildPublicPageHeroEditorialLineMonthlyStub,
-  publicPageHeroMonthPlus,
-  type PublicPageHeroTravelScope,
-} from '@/lib/public-page-hero-editorial-line'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import {
   countryDisplayNameFromBrowseParam,
@@ -64,140 +58,53 @@ function buildCalendarCells(viewYear: number, viewMonth1to12: number): { date: D
   return cells
 }
 
-type BrowseHeroItem = {
-  id: string
-  title: string
-  originSource: string | null
-  primaryDestination: string | null
-  bgImageUrl: string | null
-  coverImageUrl: string | null
-  earliestDeparture: string | null
-  /** API/목업에서 누락될 수 있음 — 정렬 시 방어 */
-  updatedAt?: string | null
-  duration?: string | null
-  bgImageSource?: string | null
-  bgImageIsGenerated?: boolean | null
-}
-
-type ApiOk = {
-  ok: true
-  items: BrowseHeroItem[]
-}
-
 const HERO_FALLBACK =
   'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221280%22 height=%22480%22 viewBox=%220 0 1280 480%22%3E%3Crect width=%221280%22 height=%22480%22 fill=%22%23e2e8f0%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%2294a3b8%22 font-size=%2230%22%3EOverseas%20Hero%3C/text%3E%3C/svg%3E'
 
-function monthKeywordBoost(targetMonth: number, text: string): number {
-  const t = text.toLowerCase()
-  const spring = /(도쿄|오사카|교토|후쿠오카|벚꽃|대만|홍콩)/
-  const summer = /(방콕|다낭|나트랑|보라카이|세부|발리|하와이|괌|사이판)/
-  const autumn = /(스위스|프라하|비엔나|파리|로마|런던|유럽)/
-  const winter = /(삿포로|홋카이도|북해도|온천|오로라|핀란드|노르웨이)/
-  const m = targetMonth
-  if ((m >= 3 && m <= 5 && spring.test(t)) || (m >= 6 && m <= 8 && summer.test(t)) || (m >= 9 && m <= 11 && autumn.test(t)) || ((m === 12 || m <= 2) && winter.test(t))) return 24
-  return 0
-}
-
-function scoreForMonth(item: BrowseHeroItem, targetMonth: number): number {
-  let score = 0
-  if (item.earliestDeparture) {
-    const d = new Date(item.earliestDeparture)
-    if (!Number.isNaN(d.getTime())) {
-      const m = d.getMonth() + 1
-      if (m === targetMonth) score += 70
-      else if (m === publicPageHeroMonthPlus(targetMonth, 1) || m === publicPageHeroMonthPlus(targetMonth, -1))
-        score += 35
-    }
-  }
-  score += monthKeywordBoost(targetMonth, `${item.primaryDestination ?? ''} ${item.title ?? ''}`)
-  return score
-}
-
-function pickByBucket(
-  items: BrowseHeroItem[],
-  month: number,
-  need: number,
-  usedIds: Set<string>,
-  usedRegionCounts: Map<string, number>
-): BrowseHeroItem[] {
-  const scored = items
-    .filter((x) => !usedIds.has(x.id))
-    .map((x) => ({ x, s: scoreForMonth(x, month) }))
-    .sort((a, b) => {
-      const byScore = b.s - a.s
-      if (byScore !== 0) return byScore
-      const ua = String(a.x.updatedAt ?? '')
-      const ub = String(b.x.updatedAt ?? '')
-      return ub.localeCompare(ua)
-    })
-
-  const picked: BrowseHeroItem[] = []
-  for (const row of scored) {
-    if (picked.length >= need) break
-    const regionKey = browseDestinationDisplayLabelFromBrowseHero(row.x).toLowerCase()
-    const used = usedRegionCounts.get(regionKey) ?? 0
-    // 같은 도시/국가 최대 2개 hard cap
-    if (used >= 2) continue
-    picked.push(row.x)
-    usedIds.add(row.x.id)
-    usedRegionCounts.set(regionKey, used + 1)
-  }
-  return picked
-}
-
-type HeroRow = BrowseHeroItem & {
-  slotMonth: number
+type SeasonHeroSlide = {
+  id: string
+  imageUrl: string | null
   headline: string
-  travelScope: PublicPageHeroTravelScope
+  subline: string
+  href: string
 }
 
-function buildMonthlyHero(items: BrowseHeroItem[]): HeroRow[] {
-  const now = new Date()
-  const current = now.getMonth() + 1
-  const m0 = current
-  const m1 = publicPageHeroMonthPlus(current, 1)
-  const m2 = publicPageHeroMonthPlus(current, 2)
-  const m3 = publicPageHeroMonthPlus(current, 3)
+function seasonCurationToHeroSlides(curations: HomeSeasonPickDTO[] | null | undefined): SeasonHeroSlide[] {
+  return (curations ?? [])
+    .filter((s) => (s.title ?? '').trim() || (s.imageUrl ?? '').trim())
+    .map((s) => ({
+      id: s.id,
+      imageUrl: (s.imageUrl ?? '').trim() || null,
+      headline: (s.title ?? '').trim(),
+      subline: ((s.subtitle ?? s.excerpt) ?? '').trim(),
+      href: (s.ctaHref ?? '/travel/overseas').trim() || '/travel/overseas',
+    }))
+}
 
-  const usedIds = new Set<string>()
-  const usedRegionCounts = new Map<string, number>()
-  const out: BrowseHeroItem[] = []
-
-  // 현재달·+1·+2·+3개월 버킷 (합계 10)
-  out.push(...pickByBucket(items, m0, 2, usedIds, usedRegionCounts))
-  out.push(...pickByBucket(items, m1, 3, usedIds, usedRegionCounts))
-  out.push(...pickByBucket(items, m2, 3, usedIds, usedRegionCounts))
-  out.push(...pickByBucket(items, m3, 2, usedIds, usedRegionCounts))
-
-  // fallback: 월 버킷이 비면 전체에서 채움
-  if (out.length < 10) {
-    for (const item of items) {
-      if (out.length >= 10) break
-      if (usedIds.has(item.id)) continue
-      const regionKey = browseDestinationDisplayLabelFromBrowseHero(item).toLowerCase()
-      const used = usedRegionCounts.get(regionKey) ?? 0
-      if (used >= 2) continue
-      out.push(item)
-      usedIds.add(item.id)
-      usedRegionCounts.set(regionKey, used + 1)
-    }
+function HeroCurationLink({
+  href,
+  className,
+  ariaLabel,
+  children,
+}: {
+  href: string
+  className?: string
+  ariaLabel: string
+  children: ReactNode
+}) {
+  const safe = href.trim() || '/travel/overseas'
+  if (/^https?:\/\//i.test(safe)) {
+    return (
+      <a href={safe} className={className} rel="noopener noreferrer" aria-label={ariaLabel}>
+        {children}
+      </a>
+    )
   }
-
-  return out.slice(0, 10).map((item, idx) => {
-    const slotMonth = idx < 2 ? m0 : idx < 5 ? m1 : idx < 8 ? m2 : m3
-    const dest = browseDestinationDisplayLabelFromBrowseHero(item)
-    return {
-      ...item,
-      slotMonth,
-      travelScope: 'overseas' satisfies PublicPageHeroTravelScope,
-      headline: buildPublicPageHeroEditorialLineMonthlyStub({
-        targetMonth1To12: slotMonth,
-        destinationDisplay: dest,
-        verbSlotIndex: idx,
-        travelScope: 'overseas',
-      }),
-    }
-  })
+  return (
+    <Link href={safe} className={className} aria-label={ariaLabel}>
+      {children}
+    </Link>
+  )
 }
 
 type CountryBrowseHeroRow = {
@@ -213,14 +120,14 @@ export type OverseasHeroProps = {
   selectedCountrySlug?: string | null
   /** 지방출발 3종(`busan_dep` 등)만 서버에서 전달 — 일반 권역 탭은 null */
   selectedRegionSlug?: string | null
-  /** 이번 달 해외 월간 큐레이션 전체(서버) */
-  allMonthCurations?: HomeSeasonPickDTO[] | null
+  /** 해외 허브 히어로 — 서울 기준 +1·+2월 발행 시즌 큐레이션(서버) */
+  seasonCurationSlides?: HomeSeasonPickDTO[] | null
 }
 
 const OverseasHero: FC<OverseasHeroProps> = ({
   selectedCountrySlug = null,
   selectedRegionSlug = null,
-  allMonthCurations = null,
+  seasonCurationSlides = null,
 }) => {
   const router = useRouter()
   const searchParams = useSearchParams() ?? new URLSearchParams()
@@ -240,9 +147,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   const [departDate, setDepartDate] = useState(sanitizeDepartDate(searchParams.get('departDate')))
   const [adultCount, setAdultCount] = useState(searchParams.get('adult') ?? '1')
   const [childCount, setChildCount] = useState(searchParams.get('child') ?? '0')
-  const [items, setItems] = useState<BrowseHeroItem[]>([])
   const [idx, setIdx] = useState(0)
-  const [loading, setLoading] = useState(true)
   const [broken, setBroken] = useState<Record<string, boolean>>({})
   const [isPaused, setIsPaused] = useState(false)
   const [lastManualAt, setLastManualAt] = useState(0)
@@ -281,11 +186,11 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   const isLocalDepartureMode = Boolean(localDepLabel)
   const isSpotlightMode = Boolean(countrySlug) || isLocalDepartureMode
 
-  const monthCurationsList = allMonthCurations ?? []
+  const seasonSlides = useMemo(() => seasonCurationToHeroSlides(seasonCurationSlides), [seasonCurationSlides])
 
   const matchedCountryCuration = useMemo(
-    () => (countrySlug ? findMonthlyCurationForBrowseCountrySlug(monthCurationsList, countrySlug) : null),
-    [countrySlug, monthCurationsList],
+    () => (countrySlug ? findMonthlyCurationForBrowseCountrySlug(seasonCurationSlides, countrySlug) : null),
+    [countrySlug, seasonCurationSlides],
   )
 
   const countryHeroDisplayName = useMemo(
@@ -433,47 +338,6 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     router.replace(`${hubPath}?${p.toString()}`)
   }
 
-  const browseUrl = useMemo(() => {
-    const q = new URLSearchParams({
-      scope: 'overseas',
-      limit: '100',
-      sort: 'popular',
-    })
-    return `/api/products/browse?${q.toString()}`
-  }, [])
-
-  useEffect(() => {
-    if (isSpotlightMode) {
-      setItems([])
-      setLoading(false)
-      return
-    }
-    let off = false
-    const withImage = (rows: BrowseHeroItem[]) =>
-      rows.filter((x) => Boolean((x.coverImageUrl ?? x.bgImageUrl ?? '').trim()))
-    ;(async () => {
-      setLoading(true)
-      try {
-        const res = await fetch(browseUrl, { cache: 'no-store' })
-        const json = (await res.json()) as ApiOk | { ok: false }
-        if (!off && res.ok && 'ok' in json && json.ok) {
-          setItems(withImage(json.items ?? []))
-        } else if (!off) {
-          setItems([])
-        }
-      } catch {
-        if (!off) {
-          setItems([])
-        }
-      } finally {
-        if (!off) setLoading(false)
-      }
-    })()
-    return () => {
-      off = true
-    }
-  }, [browseUrl, isSpotlightMode])
-
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -483,21 +347,19 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     return () => mq.removeEventListener('change', apply)
   }, [])
 
-  const heroRows = useMemo(() => buildMonthlyHero(items), [items])
-
   useEffect(() => {
     setIdx((prev) => {
-      const n = heroRows.length
+      const n = seasonSlides.length
       if (n <= 0) return 0
       return prev % n
     })
-  }, [heroRows.length])
+  }, [seasonSlides.length])
 
-  const current = heroRows[idx % Math.max(heroRows.length, 1)] ?? null
+  const current = seasonSlides[idx % Math.max(seasonSlides.length, 1)] ?? null
 
   useEffect(() => {
-    heroSlideCountRef.current = heroRows.length
-    if (heroRows.length <= 1 || isPaused || reduceMotion) return
+    heroSlideCountRef.current = seasonSlides.length
+    if (seasonSlides.length <= 1 || isPaused || reduceMotion) return
     const t = setInterval(() => {
       // 수동 이동 직후 즉시 자동 전환되는 현상 완화
       if (Date.now() - lastManualAt < 3600) return
@@ -508,7 +370,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
       })
     }, 5500)
     return () => clearInterval(t)
-  }, [heroRows.length, isPaused, reduceMotion, lastManualAt])
+  }, [seasonSlides.length, isPaused, reduceMotion, lastManualAt])
 
   const todayYmd = useMemo(() => formatYmd(new Date()), [])
   const calendarCells = useMemo(
@@ -651,21 +513,18 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   )
 
   return (
-    <section className="border-b border-bt-border bg-gradient-to-b from-white to-bt-surface">
-      <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 sm:py-4">
-        <div
-          className="relative overflow-hidden rounded-xl border border-bt-border bg-bt-surface"
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-          aria-live={reduceMotion ? 'polite' : 'off'}
-        >
-          <div
-            className={
-              isSpotlightMode
-                ? 'relative min-h-[240px] lg:min-h-[300px]'
-                : 'relative h-[150px] sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]'
-            }
-          >
+    <section className="border-b border-bt-border bg-bt-surface">
+      <div
+        className={`relative w-full overflow-hidden ${
+          isSpotlightMode
+            ? 'min-h-[min(320px,52vh)] lg:min-h-[min(380px,56vh)]'
+            : 'min-h-[min(440px,62vh)] sm:min-h-[min(480px,65vh)]'
+        }`}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        aria-live={reduceMotion ? 'polite' : 'off'}
+      >
+        <div className="absolute inset-0">
             {isSpotlightMode ? (
               matchedCountryCuration ? (
                 <OverseasCountryHeroBanner
@@ -710,22 +569,19 @@ const OverseasHero: FC<OverseasHeroProps> = ({
                   ctaHref=""
                 />
               ) : null
-            ) : loading ? (
-              <div className="h-full w-full animate-pulse bg-slate-200/60" />
             ) : !current ? (
               <div className="flex h-full flex-col items-center justify-center gap-1 text-sm text-bt-subtle">
-                <p>이번 달 추천 상품을 준비 중입니다.</p>
+                <p>다음 달·다다음 달 시즌 추천을 준비 중입니다.</p>
                 <p className="text-xs">잠시 후 다시 확인해 주세요.</p>
               </div>
             ) : (
               (() => {
-                const src =
-                  broken[current.id] ? HERO_FALLBACK : current.coverImageUrl ?? current.bgImageUrl ?? HERO_FALLBACK
+                const src = broken[current.id] ? HERO_FALLBACK : current.imageUrl ?? HERO_FALLBACK
                 const dots =
-                  heroRows.length > 1 ? (
-                    heroRows.length <= 16 ? (
+                  seasonSlides.length > 1 ? (
+                    seasonSlides.length <= 16 ? (
                       <div className="pointer-events-none absolute right-2 top-2 z-20 flex max-w-[min(100%,20rem)] flex-wrap items-center justify-end gap-1.5">
-                        {heroRows.map((_, i) => (
+                        {seasonSlides.map((_, i) => (
                           <button
                             key={`hero-dot-${i}`}
                             type="button"
@@ -736,17 +592,17 @@ const OverseasHero: FC<OverseasHeroProps> = ({
                               setLastManualAt(Date.now())
                             }}
                             className={`pointer-events-auto h-1.5 rounded-full transition-all ${
-                              i === idx % heroRows.length ? 'w-4 bg-white' : 'w-1.5 bg-white/60'
+                              i === idx % seasonSlides.length ? 'w-4 bg-white' : 'w-1.5 bg-white/60'
                             }`}
-                            aria-label={`추천 슬라이드 ${i + 1}${i === idx % heroRows.length ? ' (현재)' : ''}`}
-                            aria-current={i === idx % heroRows.length ? 'true' : undefined}
-                            aria-pressed={i === idx % heroRows.length}
+                            aria-label={`추천 슬라이드 ${i + 1}${i === idx % seasonSlides.length ? ' (현재)' : ''}`}
+                            aria-current={i === idx % seasonSlides.length ? 'true' : undefined}
+                            aria-pressed={i === idx % seasonSlides.length}
                           />
                         ))}
                       </div>
                     ) : (
                       <div className="pointer-events-none absolute right-2 top-2 z-20 rounded-md bg-black/50 px-2 py-1 text-[11px] font-medium tabular-nums text-white/95">
-                        {(idx % heroRows.length) + 1} / {heroRows.length}
+                        {(idx % seasonSlides.length) + 1} / {seasonSlides.length}
                       </div>
                     )
                   ) : null
@@ -757,7 +613,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
                       alt=""
                       fill
                       className="object-cover"
-                      sizes="(max-width: 1024px) 100vw, min(1152px, 100vw)"
+                      sizes="100vw"
                       loading={idx === 0 ? 'eager' : 'lazy'}
                       priority={idx === 0}
                       decoding="async"
@@ -767,33 +623,46 @@ const OverseasHero: FC<OverseasHeroProps> = ({
                   </>
                 )
                 return (
-                  <Link
-                    href={`/products/${current.id}`}
+                  <HeroCurationLink
+                    href={current.href}
                     className="group relative block h-full w-full"
-                    aria-label={`${browseDestinationDisplayLabelFromBrowseHero(current)} ${current.title} 상세 보기`}
+                    ariaLabel={`${current.headline} 자세히 보기`}
                   >
                     {inner}
-                  </Link>
+                  </HeroCurationLink>
                 )
               })()
             )}
-          </div>
-          {!loading && current && !isSpotlightMode ? (
-            <div className="border-t border-bt-border-soft bg-white px-3 py-2">
-              <p className="text-xs font-semibold text-bt-title sm:text-sm">{current.headline}</p>
-              <p className="mt-0.5 line-clamp-1 text-[11px] text-bt-meta">{current.title}</p>
-            </div>
+          {!isSpotlightMode && current ? (
+            <div
+              className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/80 via-black/35 to-transparent"
+              aria-hidden
+            />
+          ) : null}
+          {isSpotlightMode ? (
+            <div
+              className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/55 via-transparent to-transparent"
+              aria-hidden
+            />
           ) : null}
         </div>
-      </div>
 
-      <div className="mx-auto max-w-6xl px-4 pb-4 sm:px-6 sm:pb-5">
+        <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col gap-3 px-4 pb-4 pt-16 sm:px-6 sm:pb-6">
+          {!isSpotlightMode && current ? (
+            <div className="mx-auto w-full max-w-6xl px-0.5">
+              <p className="text-base font-bold text-white drop-shadow sm:text-lg">{current.headline}</p>
+              {current.subline ? (
+                <p className="mt-0.5 line-clamp-2 text-sm text-white/90 drop-shadow">{current.subline}</p>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="mx-auto w-full max-w-6xl">
         <form
           onSubmit={(e) => {
             e.preventDefault()
             applySearch({ departDate, adult: adultCount, child: childCount })
           }}
-          className="rounded-xl border border-bt-border bg-white p-3 sm:p-4"
+          className="rounded-xl border border-white/25 bg-white/95 p-3 shadow-lg backdrop-blur-sm sm:p-4"
           role="search"
           aria-label="출발일과 성인 아동 인원으로 해외여행 검색"
         >
@@ -863,6 +732,8 @@ const OverseasHero: FC<OverseasHeroProps> = ({
             </div>
           </div>
         </form>
+          </div>
+        </div>
       </div>
     </section>
   )

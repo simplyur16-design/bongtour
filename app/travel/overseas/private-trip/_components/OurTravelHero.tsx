@@ -4,6 +4,8 @@ import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
 import { useEffect, useMemo, useState } from 'react'
 import {
+  OUR_TRAVEL_HERO_CTA_CUSTOM_CONSULT,
+  OUR_TRAVEL_HERO_CTA_PRIVATE_INQUIRY,
   OUR_TRAVEL_HERO_OVERLAY_DESCRIPTION,
   OUR_TRAVEL_HERO_OVERLAY_TITLE,
 } from '@/app/travel/overseas/private-trip/_components/our-travel-hero-copy'
@@ -39,7 +41,6 @@ export default function OurTravelHero({ imageUrls, privateQuoteHref, travelConsu
     setBroken({})
   }, [imageSetKey])
 
-  /** 슬라이드는 CSS 트랜지션 없이 즉시 교체만 함 — OS「애니메이션 줄이기」로 인터벌을 꺼 두면 한 장에 고정되는 문제가 있어 인터벌은 항상 둠 */
   useEffect(() => {
     if (slides.length <= 1) return
     const t = setInterval(() => {
@@ -49,70 +50,65 @@ export default function OurTravelHero({ imageUrls, privateQuoteHref, travelConsu
   }, [slides.length])
 
   const imgIdx = rotationIndex % slides.length
-
   const safeImg = (i: number) => (broken[i] ? STATIC_FALLBACK_IMAGE : slides[i]!)
   const src = safeImg(imgIdx)
-
   const customTopicHref = `${travelConsultHref}${travelConsultHref.includes('?') ? '&' : '?'}topic=custom`
 
   return (
-    <section className="border-b border-bt-border bg-gradient-to-b from-white to-bt-surface">
-      <div className="mx-auto min-w-0 max-w-6xl px-4 py-3 sm:px-6 sm:py-4">
-        <div className="relative min-w-0 overflow-hidden rounded-xl border border-bt-border bg-bt-surface">
-          <div className="relative h-[150px] bg-slate-900 sm:h-[175px] md:h-[200px] lg:h-[22vh] lg:min-h-[180px] lg:max-h-[260px]">
-            <SafeImage
-              key={`our-travel-hero-${imgIdx}-${src}`}
-              src={src}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, min(1152px, 100vw)"
-              priority={imgIdx === 0}
-              decoding={imgIdx === 0 ? 'sync' : 'async'}
-              unoptimized={src.startsWith('data:')}
-              onError={() => setBroken((prev) => ({ ...prev, [imgIdx]: true }))}
-            />
-            <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-transparent sm:from-black/75 sm:via-black/35 sm:to-transparent"
-              aria-hidden
-            />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-start">
-              <div className="max-w-[min(100%,22rem)] space-y-1.5 px-3 sm:max-w-xl sm:space-y-2 sm:px-5">
-                <h2 className="text-left text-lg font-bold leading-snug tracking-tight text-white drop-shadow-md sm:text-xl">
-                  {OUR_TRAVEL_HERO_OVERLAY_TITLE}
-                </h2>
-                <p className="text-left text-sm font-medium leading-snug text-white/90 drop-shadow sm:text-[15px] sm:leading-snug">
-                  {OUR_TRAVEL_HERO_OVERLAY_DESCRIPTION}
-                </p>
-              </div>
-            </div>
-            {slides.length > 1 ? (
-              <div className="pointer-events-none absolute right-2 top-2 z-10 flex gap-1.5">
-                {slides.map((_, i) => (
-                  <span
-                    key={i}
-                    className={`h-1.5 rounded-full transition-all ${i === imgIdx ? 'w-4 bg-white' : 'w-1.5 bg-white/60'}`}
-                    aria-hidden
-                  />
-                ))}
-              </div>
-            ) : null}
+    <section className="border-b border-bt-border bg-bt-surface">
+      <div className="relative w-full overflow-hidden min-h-[min(440px,62vh)] sm:min-h-[min(480px,65vh)]">
+        <SafeImage
+          key={`our-travel-hero-${imgIdx}-${src}`}
+          src={src}
+          alt=""
+          fill
+          className="object-cover"
+          sizes="100vw"
+          priority={imgIdx === 0}
+          decoding={imgIdx === 0 ? 'sync' : 'async'}
+          unoptimized={src.startsWith('data:')}
+          onError={() => setBroken((prev) => ({ ...prev, [imgIdx]: true }))}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/15"
+          aria-hidden
+        />
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-start px-4 pt-8 sm:px-6 sm:pt-10">
+          <div className="max-w-xl space-y-2">
+            <h2 className="text-left text-xl font-bold leading-snug tracking-tight text-white drop-shadow-md sm:text-2xl">
+              {OUR_TRAVEL_HERO_OVERLAY_TITLE}
+            </h2>
+            <p className="text-left text-sm font-medium leading-snug text-white/90 drop-shadow sm:text-base">
+              {OUR_TRAVEL_HERO_OVERLAY_DESCRIPTION}
+            </p>
           </div>
-          <div className="border-t border-bt-border-soft bg-white px-3 py-3 sm:px-4 sm:py-4">
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-              <Link
-                href={privateQuoteHref}
-                className="inline-flex min-h-[44px] min-w-[10rem] items-center justify-center rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors duration-75 hover:bg-teal-800"
-              >
-                우리견적 문의하기
-              </Link>
-              <Link
-                href={customTopicHref}
-                className="inline-flex min-h-[44px] min-w-[10rem] items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition-colors duration-75 hover:border-teal-300 hover:bg-teal-50/60 hover:text-teal-900"
-              >
-                맞춤여행 상담 받기
-              </Link>
-            </div>
+        </div>
+        {slides.length > 1 ? (
+          <div className="pointer-events-none absolute right-3 top-3 z-10 flex gap-1.5 sm:right-4 sm:top-4">
+            {slides.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${i === imgIdx ? 'w-4 bg-white' : 'w-1.5 bg-white/60'}`}
+                aria-hidden
+              />
+            ))}
+          </div>
+        ) : null}
+
+        <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-5 pt-20 sm:px-6 sm:pb-6">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap justify-center gap-2 sm:justify-start sm:gap-3">
+            <Link
+              href={privateQuoteHref}
+              className="inline-flex min-h-[44px] min-w-[10rem] flex-1 items-center justify-center rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-colors duration-75 hover:bg-teal-800 sm:flex-none"
+            >
+              {OUR_TRAVEL_HERO_CTA_PRIVATE_INQUIRY}
+            </Link>
+            <Link
+              href={customTopicHref}
+              className="inline-flex min-h-[44px] min-w-[10rem] flex-1 items-center justify-center rounded-xl border border-white/30 bg-white/95 px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-lg backdrop-blur-sm transition-colors duration-75 hover:border-teal-200 hover:bg-white sm:flex-none"
+            >
+              {OUR_TRAVEL_HERO_CTA_CUSTOM_CONSULT}
+            </Link>
           </div>
         </div>
       </div>

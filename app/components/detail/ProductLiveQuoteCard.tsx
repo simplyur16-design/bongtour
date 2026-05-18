@@ -17,6 +17,10 @@ import type { DeparturePriceCollectUiPhase } from '@/lib/departure-price-collect
 import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 import {
+  buildProductLiveQuoteShareSummary,
+  PRODUCT_LIVE_QUOTE_CARD_COPY,
+} from '@/lib/product-live-quote-card-copy'
+import {
   PAX_STEP_BUTTON_CLASS,
   PAX_STEP_DECREMENT_GLYPH,
   PAX_STEP_INCREMENT_GLYPH,
@@ -101,7 +105,15 @@ export default function ProductLiveQuoteCard({
     const dep = selectedDate ?? departureDateFrom ?? null
     return computeReturnDate(dep, totalDays)
   }, [selectedDate, departureDateFrom, totalDays])
-  const shareSummary = `${product.originCode} ? ${product.destination} ? ${product.duration}${product.airline ? ` ? ${product.airline}` : ''} ? ?? ${selectedDate ?? '???'}${computedReturnDate ? ` ? ?? ${computedReturnDate}` : ''}`
+  const shareSummary = buildProductLiveQuoteShareSummary({
+    originCode: product.originCode,
+    destination: product.destination,
+    duration: product.duration,
+    airline: product.airline,
+    selectedDate,
+    returnDate: computedReturnDate,
+  })
+  const copy = PRODUCT_LIVE_QUOTE_CARD_COPY
 
   const isMobile = variant === 'mobile'
   const pad = isMobile ? 'p-4' : 'p-6'
@@ -140,9 +152,7 @@ export default function ProductLiveQuoteCard({
           ) : (
             <p className="mt-1 text-[11px] text-bt-meta">{departurePriceCollectUiCopy.overlayBodyPrimary}</p>
           )}
-          <p className="mt-2 text-[11px] text-bt-subtle">
-            ?? ??? ????. ?? ??? ????? ?? ?? ??? ?????.
-          </p>
+          <p className="mt-2 text-[11px] text-bt-subtle">{copy.collectingBookingHint}</p>
         </div>
       ) : null}
       {showPendingQuoteBanner ? (
@@ -155,7 +165,7 @@ export default function ProductLiveQuoteCard({
       ) : null}
 
       <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#1F1B2D]">??</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#1F1B2D]">{copy.paxSectionTitle}</p>
         <div className="space-y-2.5">
           {STICKY_PAX_ROWS.map((row) => {
             const isChildRow = row.key === 'child'
@@ -176,7 +186,8 @@ export default function ProductLiveQuoteCard({
                   <div className="text-[10px] text-bt-meta">{row.ageLine}</div>
                   {unit != null && unit > 0 && priceRow != null ? (
                     <div className="mt-0.5 text-xs font-semibold tabular-nums text-[#85510B]">
-                      ?{unit.toLocaleString('ko-KR')} /?
+                      {unit.toLocaleString('ko-KR')}
+                      {copy.perPersonSuffix}
                     </div>
                   ) : null}
                 </div>
@@ -186,7 +197,7 @@ export default function ProductLiveQuoteCard({
                     onClick={onDecrease}
                     disabled={atMin}
                     className={PAX_STEP_BUTTON_CLASS}
-                    aria-label={`${row.label} ??`}
+                    aria-label={copy.paxDecreaseAria(row.label)}
                   >
                     {PAX_STEP_DECREMENT_GLYPH}
                   </button>
@@ -197,7 +208,7 @@ export default function ProductLiveQuoteCard({
                     type="button"
                     onClick={onIncrease}
                     className={PAX_STEP_BUTTON_CLASS}
-                    aria-label={`${row.label} ??`}
+                    aria-label={copy.paxIncreaseAria(row.label)}
                   >
                     {PAX_STEP_INCREMENT_GLYPH}
                   </button>
@@ -206,9 +217,7 @@ export default function ProductLiveQuoteCard({
             )
           })}
         </div>
-        <p className="mt-2 text-[10px] leading-relaxed text-bt-meta">
-          ? ?? ??? ??? ??. ??? ?? ??? ?? ??.
-        </p>
+        <p className="mt-2 text-[10px] leading-relaxed text-bt-meta">{copy.paxFootnote}</p>
       </div>
       <div className="mt-3 space-y-2">
         <KakaoCounselCta
@@ -238,12 +247,8 @@ export default function ProductLiveQuoteCard({
               : departurePriceCollectUiCopy.ctaHintPendingQuote}
           </p>
         ) : null}
-        <p className="mt-1.5 text-center text-[11px] leading-relaxed text-bt-meta">
-          ????????? ??? ?? ??? ?????. ????(??)??? ??? ??? ???.
-        </p>
-        <p className="mt-0.5 text-center text-[11px] text-bt-subtle">
-          ???? ?? ??? ??? ??? ???? ???.
-        </p>
+        <p className="mt-1.5 text-center text-[11px] leading-relaxed text-bt-meta">{copy.counselSummaryHint}</p>
+        <p className="mt-0.5 text-center text-[11px] text-bt-subtle">{copy.counselPasteHint}</p>
       </div>
       <ShareActions title={product.title} summaryLine={shareSummary} className="mt-2" />
       <button
@@ -251,7 +256,7 @@ export default function ProductLiveQuoteCard({
         onClick={onBookingOpen}
         className="mt-3 w-full bt-btn-secondary"
       >
-        ?? ?? ??
+        {copy.bookingCta}
       </button>
     </div>
   )

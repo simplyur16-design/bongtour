@@ -6,8 +6,7 @@ import OverseasInteractiveShell from '@/app/components/travel/overseas/OverseasI
 import OverseasManagedContent from '@/app/components/travel/overseas/OverseasManagedContent'
 import OverseasRegionMegaNav from '@/app/components/travel/overseas/OverseasRegionMegaNav'
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
-import { getPublishedOverseasMonthlyCurationsForMonth } from '@/lib/home-season-pick'
-import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
+import { getPublishedOverseasHubHeroSeasonSlides } from '@/lib/season-curation-content'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import {
   editorialRowToBriefingPayload,
@@ -54,12 +53,11 @@ export default async function OverseasTravelPage({
   const selectedRegionSlug =
     region && (LOCAL_DEPARTURE_REGIONS as readonly string[]).includes(region) ? region : null
 
-  const monthKey = getSeoulYearMonthNow()
-  const [editorialAll, allMonthCurations] = await Promise.all([
+  const [editorialAll, seasonCurationSlides] = await Promise.all([
     fetchPublishedOverseasEditorials().catch(
       (): Awaited<ReturnType<typeof fetchPublishedOverseasEditorials>> => [],
     ),
-    getPublishedOverseasMonthlyCurationsForMonth(monthKey),
+    getPublishedOverseasHubHeroSeasonSlides(),
   ])
 
   let overseasEditorialBriefing: OverseasEditorialBriefingPayload | null = null
@@ -78,7 +76,7 @@ export default async function OverseasTravelPage({
         <OverseasHero
           selectedCountrySlug={country}
           selectedRegionSlug={selectedRegionSlug}
-          allMonthCurations={allMonthCurations}
+          seasonCurationSlides={seasonCurationSlides}
         />
 
         <Suspense fallback={<p className="py-16 text-center text-sm text-slate-500">상품을 불러오는 중…</p>}>

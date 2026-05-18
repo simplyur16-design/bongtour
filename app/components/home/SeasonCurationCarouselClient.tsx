@@ -11,14 +11,14 @@ import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 const AUTO_MS = 5600
 const PAUSE_AFTER_MS = 12_000
 
-/** PC ??? ?? ??HomeHubFourClientCard ?? ??? ??????#27) */
+/** PC 히어로 — HomeHubFourClientCard와 동일 사진 톤(#27) */
 export const SEASON_CURATION_PHOTO_FILTER =
   'transition-[filter] duration-200 ease-out [filter:brightness(0.92)_saturate(1.08)] group-hover:[filter:brightness(1.0)_saturate(1.15)]'
 
 type Props = {
   slides: HomeSeasonPickDTO[]
   variant: 'desktop' | 'mobile'
-  /** PC: `app/page.tsx` ?????*/
+  /** PC: `app/page.tsx` 앵커용 */
   sectionId?: string
 }
 
@@ -51,7 +51,7 @@ export default function SeasonCurationCarouselClient({ slides, variant, sectionI
     return (
       <section
         id={sectionId}
-        aria-label="??????? ????? ??"
+        aria-label="시즌 추천 여행 캐러셀"
         className="rounded-2xl border border-bt-border-soft/80 bg-white/90 p-4 shadow-sm ring-1 ring-bt-bg-lavender/25"
       >
         <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-bt-text-muted-lavender">
@@ -77,7 +77,7 @@ export default function SeasonCurationCarouselClient({ slides, variant, sectionI
   return (
     <section
       id={sectionId}
-      aria-label="??????? ????? ??"
+      aria-label="시즌 추천 여행 캐러셀"
       aria-roledescription="carousel"
       className="mx-auto max-w-6xl px-3 pb-8 pt-2 sm:px-5"
     >
@@ -107,7 +107,7 @@ export default function SeasonCurationCarouselClient({ slides, variant, sectionI
             <button
               key={`dot-${s.id}`}
               type="button"
-              aria-label={`${i + 1}??`}
+              aria-label={`${i + 1}번째 슬라이드`}
               aria-current={i === index}
               className={
                 i === index
@@ -140,7 +140,7 @@ export function SeasonCurationCardLink({
   const subtitle = (slide.subtitle ?? '').trim()
   const excerpt = (slide.excerpt ?? '').trim()
   const img = (slide.imageUrl ?? '').trim()
-  const cta = (slide.ctaLabel ?? '???????').trim() || '???????'
+  const cta = (slide.ctaLabel ?? '\uC790\uC138\uD788 \uBCF4\uAE30').trim() || '\uC790\uC138\uD788 \uBCF4\uAE30'
   const isExternal = /^https?:\/\//i.test(href)
 
   const inner = (
