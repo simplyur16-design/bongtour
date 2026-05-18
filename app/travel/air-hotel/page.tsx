@@ -25,6 +25,8 @@ export default async function AirHotelPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
+  const perfPage = process.env.BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
+  const tPage0 = perfPage ? performance.now() : 0 // PERF-LOG: 측정 후 제거
   const sp = (await searchParams) ?? {}
   const scope = typeof sp.scope === 'string' ? sp.scope : null
   const type = typeof sp.type === 'string' ? sp.type : null
@@ -34,6 +36,13 @@ export default async function AirHotelPage({
   if (scope !== 'overseas' && scope !== 'domestic') {
     const t = type === 'airtel' || type === 'free' ? type : 'airtel'
     redirect(`/travel/air-hotel?scope=overseas&type=${encodeURIComponent(t)}`)
+  }
+
+  if (perfPage) {
+    console.log(
+      '[page-rsc-perf]',
+      JSON.stringify({ route: '/travel/air-hotel', rscRenderMs: Math.round(performance.now() - tPage0) }),
+    ) // PERF-LOG: 측정 후 제거
   }
 
   return (

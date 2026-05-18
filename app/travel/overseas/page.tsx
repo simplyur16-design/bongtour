@@ -46,6 +46,8 @@ export default async function OverseasTravelPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
+  const perfPage = process.env.BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
+  const tPage0 = perfPage ? performance.now() : 0 // PERF-LOG: 측정 후 제거
   const sp = (await searchParams) ?? {}
   const region = typeof sp.region === 'string' ? sp.region : null
   const country = typeof sp.country === 'string' ? sp.country : null
@@ -66,6 +68,13 @@ export default async function OverseasTravelPage({
     overseasEditorialBriefing = editorialRowToBriefingPayload(prioritized[0], 220)
   } catch {
     // 목록은 브리핑 없이 표시
+  }
+
+  if (perfPage) {
+    console.log(
+      '[page-rsc-perf]',
+      JSON.stringify({ route: '/travel/overseas', rscRenderMs: Math.round(performance.now() - tPage0) }),
+    ) // PERF-LOG: 측정 후 제거
   }
 
   return (

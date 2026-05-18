@@ -125,8 +125,21 @@ function appendSubregionCityOrDestinationOr(
  * 예산 필터는 등록된 상품의 실제 금액을 확인하여 예산 범위 내 상품만 노출한다.
  * (priceFrom / 출발별 adultPrice / 레거시 adult 중 최소 = 인당 유효가)
  */
+/** PERF-LOG: 측정 후 제거 — GET Server-Timing용 (응답 본문 변경 없음) */
+let browsePerfLastPhases: {
+  parseMs: number
+  dbMs: number
+  filterMs: number
+  scoreMs: number
+  mapMs: number
+  rowCount: number
+  finalCount: number
+  cacheKey: string
+} | null = null
+
 /** 성공 JSON 본문만 반환 — 실패는 throw (unstable_cache가 500 Response를 캐시하지 않도록). */
 async function productsBrowseBuildPayload(queryKey: string) {
+  const perf = process.env.BONGTOUR_PERF_LOG === '1' ? { t0: performance.now(), parse: 0, db: 0, filter: 0, score: 0, map: 0, rowCount: 0, finalCount: 0 } : null // PERF-LOG: 측정 후 제거
   const searchParams = new URLSearchParams(queryKey)
     const q = parseBrowseQuery(searchParams)
 
@@ -279,6 +292,8 @@ async function productsBrowseBuildPayload(queryKey: string) {
     const limitCap = scopeForLimit === 'overseas' || scopeForLimit === 'domestic' ? 120 : 60
     const limit = Math.min(limitCap, Math.max(1, rawLimit ?? 24))
 
+    if (perf) perf.parse = performance.now() // PERF-LOG: 측정 후 제거
+
     const rows = await prisma.product.findMany({
       where: {
         registrationStatus: 'registered',
@@ -290,6 +305,10 @@ async function productsBrowseBuildPayload(queryKey: string) {
       orderBy: { updatedAt: 'desc' },
       include: PRODUCT_BROWSE_FULL_INCLUDE,
     })
+    if (perf) {
+      perf.db = performance.now() // PERF-LOG: 측정 후 제거
+      perf.rowCount = rows.length // PERF-LOG: 측정 후 제거
+    }
     /**
      * 공개 목록용으로 "예약 가능 최소일(오늘+2일) 이후" 출발만 `departures`에 남긴다.
      * 예전에는 DB에 출발 행이 하나라도 있으면서 전부 과거인 경우 상품 전체를 빼서,
@@ -382,6 +401,8 @@ async function productsBrowseBuildPayload(queryKey: string) {
       }
     }
 
+    if (perf) perf.filter = performance.now() // PERF-LOG: 측정 후 제거
+
     /** 사이드바 상품유형이 있으면 1차 유형은 카테고리 필터에 맡기고 목적지만 좁힌다 */
     const browseTypeForScore: ProductBrowseType | null =
       q.categories.length > 0 ? null : parseBrowseType(typeParam)
@@ -448,8 +469,11 @@ async function productsBrowseBuildPayload(queryKey: string) {
 
     scored = scored.filter((s) => productRowPassesExtendedFilters(s.product as ProductBrowseFullRow, ext))
 
+    if (perf) perf.score = performance.now() // PERF-LOG: 측정 후 제거
+
     const total = scored.length
     const slice = scored.slice((page - 1) * limit, page * limit)
+    if (perf) perf.finalCount = slice.length // PERF-LOG: 측정 후 제거
 
     const metaRows = slice.map(({ product: p, effectivePricePerPerson }) => {
       const scheduleRows = getScheduleFromProduct(p)
@@ -563,6 +587,23 @@ async function productsBrowseBuildPayload(queryKey: string) {
       }
     }
 
+    if (perf) {
+      perf.map = performance.now() // PERF-LOG: 측정 후 제거
+      const { t0, parse, db, filter, score, map, rowCount, finalCount } = perf
+      const phases = {
+        parseMs: Math.round(parse - t0),
+        dbMs: Math.round(db - parse),
+        filterMs: Math.round(filter - db),
+        scoreMs: Math.round(score - filter),
+        mapMs: Math.round(map - score),
+        rowCount,
+        finalCount,
+        cacheKey: `products-browse-v7|${queryKey}`,
+      }
+      browsePerfLastPhases = phases // PERF-LOG: 측정 후 제거
+      console.log('[browse-perf]', JSON.stringify({ cacheHit: false, ...phases })) // PERF-LOG: 측정 후 제거
+    }
+
     return {
       ok: true as const,
       total,
@@ -624,13 +665,49 @@ function browseErrorBodyFromQueryKey(queryKey: string) {
 
 export async function GET(request: Request) {
   const queryKey = new URL(request.url).searchParams.toString()
+  const perfGet = process.env.BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
+  const tGet0 = perfGet ? performance.now() : 0 // PERF-LOG: 측정 후 제거
+  const cacheKey = `products-browse-v7|${queryKey}` // PERF-LOG: 측정 후 제거
   try {
+    let cacheMissRan = false // PERF-LOG: 측정 후 제거
     const payload = await unstable_cache(
-      () => productsBrowseBuildPayload(queryKey),
+      async () => {
+        cacheMissRan = true // PERF-LOG: 측정 후 제거
+        return productsBrowseBuildPayload(queryKey)
+      },
       ['products-browse-v7', queryKey],
       { revalidate: 3600 },
     )()
-    return jsonWithLeakGuard(payload, 'api.products.browse.ok')
+    const cacheHit = !cacheMissRan // PERF-LOG: 측정 후 제거
+    const res = jsonWithLeakGuard(payload, 'api.products.browse.ok') // PERF-LOG: 측정 후 제거
+    if (perfGet) {
+      const totalMs = Math.round(performance.now() - tGet0) // PERF-LOG: 측정 후 제거
+      if (cacheHit) {
+        res.headers.set('Server-Timing', `total;dur=${totalMs}, cacheHit;desc="1"`) // PERF-LOG: 측정 후 제거
+        console.log(
+          '[browse-perf]',
+          JSON.stringify({
+            cacheKey,
+            cacheHit: true,
+            totalMs,
+            parseMs: null,
+            dbMs: null,
+            filterMs: null,
+            scoreMs: null,
+            mapMs: null,
+            rowCount: null,
+            finalCount: null,
+          }),
+        ) // PERF-LOG: 측정 후 제거
+      } else if (browsePerfLastPhases) {
+        const p = browsePerfLastPhases // PERF-LOG: 측정 후 제거
+        res.headers.set(
+          'Server-Timing',
+          `parse;dur=${p.parseMs}, db;dur=${p.dbMs}, filter;dur=${p.filterMs}, score;dur=${p.scoreMs}, map;dur=${p.mapMs}, total;dur=${totalMs}`,
+        ) // PERF-LOG: 측정 후 제거
+      }
+    }
+    return res
   } catch (e) {
     if (e instanceof BrowseRouteClientError) {
       return jsonWithLeakGuard(e.body, e.guardContext, { status: e.status })

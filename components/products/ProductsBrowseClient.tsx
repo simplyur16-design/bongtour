@@ -241,8 +241,17 @@ export default function ProductsBrowseClient({
         if ((q.budgetPerPerson != null || q.budgetMin != null) && !p.get('sort')) {
           p.set('sort', 'budget_fit')
         }
-        const res = await fetch(`/api/products/browse?${p.toString()}`, { cache: 'no-store' })
+        const urlKey = p.toString() // PERF-LOG: 측정 후 제거
+        const perfClient = process.env.NEXT_PUBLIC_BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
+        const tFetch0 = perfClient ? performance.now() : 0 // PERF-LOG: 측정 후 제거
+        const res = await fetch(`/api/products/browse?${urlKey}`, { cache: 'no-store' })
         const json = (await res.json()) as ApiOk | { ok: false; error?: string }
+        if (perfClient) {
+          console.log(
+            '[browse-client-perf]',
+            JSON.stringify({ urlKey, clientFetchMs: Math.round(performance.now() - tFetch0) }),
+          ) // PERF-LOG: 측정 후 제거
+        }
         if (cancelled) return
         if (!res.ok || !('ok' in json) || json.ok === false) {
           setError(typeof (json as { error?: string }).error === 'string' ? (json as { error: string }).error : '목록을 불러오지 못했습니다.')
