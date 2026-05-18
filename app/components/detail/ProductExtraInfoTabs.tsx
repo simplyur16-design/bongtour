@@ -5,6 +5,7 @@ import type { TravelProduct } from '@/app/components/travel/TravelProductDetail'
 import StructuredLocalOptionsSection from '@/app/components/detail/StructuredLocalOptionsSection'
 import OptionalToursFactSheet from '@/app/components/detail/OptionalToursFactSheet'
 import ShoppingFactSheet from '@/app/components/detail/ShoppingFactSheet'
+import ModetourShoppingTable from '@/app/components/detail/ModetourShoppingTable'
 import type { UiOptionalTourRow } from '@/lib/optional-tours-ui-model'
 import {
   type PublicOptionalDisplayInput,
@@ -333,16 +334,28 @@ export default function ProductExtraInfoTabs({
         {tab === 'shopping' && (
           <div>
             {hasShoppingPanel ? (
-              <ShoppingFactSheet
-                embedded
-                originSource={product.originSource ?? null}
-                shoppingCount={shoppingCount}
-                shoppingItems={shoppingItems ?? null}
-                visitCountTotal={shoppingVisitCountTotal ?? null}
-                shoppingNoticeRaw={shoppingNoticeRaw ?? null}
-                shoppingPasteRaw={product.shoppingPasteRaw ?? null}
-                structuredStops={shoppingStopsStructured ?? undefined}
-              />
+              normalizeSupplierOrigin(product.originSource) === 'modetour' ? (
+                <ModetourShoppingTable
+                  embedded
+                  stops={shoppingStopsStructured ?? undefined}
+                  shoppingCount={shoppingCount}
+                  shoppingItems={shoppingItems ?? null}
+                  visitCountTotal={shoppingVisitCountTotal ?? null}
+                  shoppingNoticeRaw={shoppingNoticeRaw ?? null}
+                  shoppingPasteRaw={product.shoppingPasteRaw ?? null}
+                />
+              ) : (
+                <ShoppingFactSheet
+                  embedded
+                  originSource={product.originSource ?? null}
+                  shoppingCount={shoppingCount}
+                  shoppingItems={shoppingItems ?? null}
+                  visitCountTotal={shoppingVisitCountTotal ?? null}
+                  shoppingNoticeRaw={shoppingNoticeRaw ?? null}
+                  shoppingPasteRaw={product.shoppingPasteRaw ?? null}
+                  structuredStops={shoppingStopsStructured ?? undefined}
+                />
+              )
             ) : (
               <p className="bt-wrap text-center text-sm text-bt-meta">등록된 쇼핑 정보가 없습니다.</p>
             )}

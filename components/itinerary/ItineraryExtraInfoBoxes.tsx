@@ -2,7 +2,9 @@
 
 import PackageOptionalToursTable from '@/app/components/detail/PackageOptionalToursTable'
 import PackageShoppingTable from '@/app/components/detail/PackageShoppingTable'
+import ModetourShoppingTable from '@/app/components/detail/ModetourShoppingTable'
 import type { ShoppingStopRow } from '@/lib/public-product-extras-types'
+import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import {
   filterPackagePublicIncludedExcludedLines,
   organizePackageIncludedExcludedForPublicDisplay,
@@ -97,6 +99,7 @@ export function ItineraryExtraInfoBoxes({
     .filter(Boolean)
 
   const isAirtel = product.productType === 'airtel'
+  const isModetour = normalizeSupplierOrigin(product.originSource) === 'modetour'
 
   return (
     <div className="space-y-2">
@@ -158,13 +161,23 @@ export function ItineraryExtraInfoBoxes({
             optionalToursPasteRaw={product.optionalToursPasteRaw ?? null}
           />
           {!isAirHotelFree ? (
-            <PackageShoppingTable
-              stops={product.shoppingStopsStructured}
-              shoppingCount={product.shoppingCount}
-              shoppingPasteRaw={product.shoppingPasteRaw ?? null}
-              shoppingItems={product.shoppingItems}
-              shoppingNoticeRaw={product.shoppingCautionNoticeRaw}
-            />
+            isModetour ? (
+              <ModetourShoppingTable
+                stops={product.shoppingStopsStructured}
+                shoppingCount={product.shoppingCount}
+                shoppingPasteRaw={product.shoppingPasteRaw ?? null}
+                shoppingItems={product.shoppingItems}
+                shoppingNoticeRaw={product.shoppingCautionNoticeRaw}
+              />
+            ) : (
+              <PackageShoppingTable
+                stops={product.shoppingStopsStructured}
+                shoppingCount={product.shoppingCount}
+                shoppingPasteRaw={product.shoppingPasteRaw ?? null}
+                shoppingItems={product.shoppingItems}
+                shoppingNoticeRaw={product.shoppingCautionNoticeRaw}
+              />
+            )
           ) : null}
         </div>
       ) : null}
