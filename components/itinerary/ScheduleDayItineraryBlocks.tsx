@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import SafeImage from '@/app/components/SafeImage'
 import { formatMealDisplay, formatScheduleDayHotelLine } from '@/lib/hotel-meal-display'
+import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
 import { Bed, UtensilsCrossed, X } from 'lucide-react'
 
 const CATEGORY = {
@@ -10,10 +11,15 @@ const CATEGORY = {
   meal: { color: '#d9a81e', icon: UtensilsCrossed, chipBg: '#FAEEDA', chipText: '#85510B', iconColor: 'white', label: '식사' },
 } as const
 
+/** 숙소·식사 카드(min-h 5.5rem)×2 + gap-3 — 썸네일 열 높이 */
+const HOTEL_MEAL_STACK_H = 'h-[calc(5.5rem*2+0.75rem)]'
+
 export type ScheduleDayItineraryBlocksDay = {
   day: number
   title?: string | null
   description?: string | null
+  imageKeyword?: string | null
+  imageKeyword2?: string | null
   imageUrl?: string | null
   imageUrl2?: string | null
   imageDisplayName?: string | null
@@ -85,22 +91,22 @@ function ScheduleDayImageLightbox({
 function DayThumb({
   src,
   alt,
+  caption,
   onOpen,
 }: {
   src: string
   alt: string
+  caption?: string | null
   onOpen: () => void
 }) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-[#DAD4EE] bg-[#F5F2EA] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#85510B]"
+      title={caption ?? alt}
+      className="group relative h-full min-h-0 w-full overflow-hidden rounded-lg border border-[#DAD4EE] bg-[#F5F2EA] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#85510B]"
     >
-      <SafeImage src={src} alt={alt} fill className="object-cover transition group-hover:scale-[1.02]" sizes="160px" />
-      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-2 py-1.5 text-left text-[10px] font-medium text-white line-clamp-2">
-        {alt}
-      </span>
+      <SafeImage src={src} alt={alt} fill className="object-cover transition group-hover:scale-[1.02]" sizes="120px" />
     </button>
   )
 }
@@ -131,10 +137,28 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
 
   const url1 = day.imageUrl?.trim() || null
   const url2 = day.imageUrl2?.trim() || null
-  const thumbs: { src: string; alt: string }[] = []
-  if (url1) thumbs.push({ src: url1, alt: day.imageDisplayName?.trim() || `Day ${day.day} photo 1` })
+  const caption1 = resolveScheduleThumbCaption({
+    imageKeyword: day.imageKeyword,
+    imageDisplayNameManual: day.imageDisplayName,
+  })
+  const caption2 = resolveScheduleThumbCaption({
+    imageKeyword: day.imageKeyword2,
+    imageDisplayNameManual: day.imageDisplayName2,
+  })
+  const thumbs: { src: string; alt: string; caption: string | null }[] = []
+  if (url1) {
+    thumbs.push({
+      src: url1,
+      alt: caption1 || `Day ${day.day} itinerary photo`,
+      caption: caption1,
+    })
+  }
   if (url2 && url2 !== url1) {
-    thumbs.push({ src: url2, alt: day.imageDisplayName2?.trim() || `Day ${day.day} photo 2` })
+    thumbs.push({
+      src: url2,
+      alt: caption2 || `Day ${day.day} itinerary photo 2`,
+      caption: caption2,
+    })
   }
 
   return (
@@ -197,9 +221,19 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
             ) : null}
             </div>
             {thumbs.length > 0 ? (
-              <div className={`grid gap-3 h-full ${thumbs.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              <div
+                className={`grid gap-2 ${HOTEL_MEAL_STACK_H} w-full min-w-0 ${
+                  thumbs.length === 1 ? 'grid-cols-1 max-w-[50%] justify-self-end' : 'grid-cols-2'
+                }`}
+              >
                 {thumbs.map((t) => (
-                  <DayThumb key={t.src} src={t.src} alt={t.alt} onOpen={() => setLightbox(t)} />
+                  <DayThumb
+                    key={t.src}
+                    src={t.src}
+                    alt={t.alt}
+                    caption={t.caption}
+                    onOpen={() => setLightbox(t)}
+                  />
                 ))}
               </div>
             ) : (

@@ -1,4 +1,5 @@
 import { getFinalScheduleDayImageUrl } from '@/lib/final-image-selection'
+import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
 import { stripTrailingSourceTokenFromFilenameStem } from '@/lib/webp-filename'
 
 /**
@@ -52,7 +53,12 @@ type ProductLike = {
 function deriveDisplayNameFromFileName(fileName: string | null | undefined): string | null {
   const raw = (fileName ?? '').trim()
   if (!raw) return null
-  const base = raw.split(/[\\/]/).pop() ?? raw
+  let base = raw.split(/[\\/]/).pop() ?? raw
+  try {
+    if (/%[0-9A-Fa-f]{2}/.test(base)) base = decodeURIComponent(base.replace(/\+/g, ' '))
+  } catch {
+    /* keep base */
+  }
   const noExt = base.replace(/\.[a-z0-9]{2,5}$/i, '')
   const withoutSourceStem = stripTrailingSourceTokenFromFilenameStem(noExt)
   const cleaned = withoutSourceStem
@@ -126,25 +132,27 @@ export function getScheduleFromProduct(
             typeof row?.imageSourceFileName === 'string' ? row.imageSourceFileName.trim() : ''
           const imageDisplayNameManual =
             typeof row?.imageDisplayNameManual === 'string' ? row.imageDisplayNameManual.trim() : ''
-          /** 공개 캡션·alt: SSOT image_assets SEO 제목 → 명소/도시 라벨 → 파일명·URL 유도 */
-          const imageDisplayName =
-            imageSeoTitleKr ||
-            imageAttractionName ||
-            deriveDisplayNameFromFileName(imageSourceFileName) ||
-            imageDisplayNameManual ||
-            deriveDisplayNameFromImageUrl(imageUrl) ||
-            null
+          /** 공개 캡션·alt: 키워드·SEO 제목 우선 — URL 파일명 인코딩(%…)은 썸네일에 쓰지 않음 */
+          const imageDisplayName = resolveScheduleThumbCaption({
+            imageKeyword: typeof row?.imageKeyword === 'string' ? row.imageKeyword : null,
+            imageSeoTitleKr,
+            imageAttractionName,
+            imageDisplayNameManual,
+            imageSourceFileName,
+            derivedFromUrl: deriveDisplayNameFromImageUrl(imageUrl),
+          })
           const rawImageUrl2 = row?.imageUrl2 != null ? (row.imageUrl2 as string | null) : null
           const imageUrl2 = getFinalScheduleDayImageUrl({
             imageUrl: rawImageUrl2,
             imageManualSelected,
             imageSelectionMode,
           })
-          const imageDisplayName2 =
-            (typeof row?.imageDisplayName2 === 'string' ? row.imageDisplayName2.trim() : '') ||
-            (typeof row?.imageKeyword2 === 'string' ? row.imageKeyword2.trim() : '') ||
-            deriveDisplayNameFromImageUrl(imageUrl2) ||
-            null
+          const imageDisplayName2 = resolveScheduleThumbCaption({
+            imageKeyword: typeof row?.imageKeyword2 === 'string' ? row.imageKeyword2 : null,
+            imageDisplayNameManual:
+              typeof row?.imageDisplayName2 === 'string' ? row.imageDisplayName2.trim() : null,
+            derivedFromUrl: deriveDisplayNameFromImageUrl(imageUrl2),
+          })
           const base: ScheduleDayDisplay = {
             day,
             description,
