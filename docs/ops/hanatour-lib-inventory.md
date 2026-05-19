@@ -1,6 +1,6 @@
 # 하나투어 `lib/*hanatour*` 인벤토리 (정리 SSOT)
 
-**갱신:** 2026-05 · **파일 수:** 58 (`lib/` 직하위 `*hanatour*` 패턴)
+**갱신:** 2026-05 · **파일 수:** 58 (`lib/` 직하위 `*hanatour*` 패턴) · 잔여: `docs/ops/hanatour-remaining.md`
 
 E2E(`scripts/calendar_e2e_scraper_*`)는 범위 밖.
 
@@ -27,7 +27,7 @@ E2E(`scripts/calendar_e2e_scraper_*`)는 범위 밖.
 | 항목 | modetour | hanatour |
 |------|----------|----------|
 | 등록 HTTP | handler 비대 → P3 후 digest SSOT | handler 얇음, **orchestration**에 흐름 집중 |
-| LLM 본체 | ~2313줄 (P1b 완료) | ~2616줄 — COMPACT/풀 프롬프트·LLM 가격/옵션 추출 **잔존** |
+| LLM 본체 | ~2313줄 (P1b 완료) | ~2435줄 (P1b trim·COMPACT 제거) |
 | schedule extract | 507줄 | 509줄 — 거의 동일 복사본, diff만 유지 |
 | 항공 | `flight-modetour-parser` + directed | `flight-parser-hanatour` + `register-flight-hanatour` (**P2 계약** `hanatour-parse-contract.md`) |
 | admin P3 | `register-admin-core-modetour` | `register-admin-core-hanatour` ✅ |
@@ -44,7 +44,9 @@ E2E(`scripts/calendar_e2e_scraper_*`)는 범위 밖.
 | P1b | `resolveDirectedFlightLines` 필수화 (default null 제거) | ✅ |
 | P1b | `npm run verify:hanatour-atp207` (ATP207260601TWJ fixture) | ✅ |
 | P2 | 항공 9파일 경계 주석 + `docs/ops/hanatour-parse-contract.md` | ✅ |
-| 공개 | 출발일 변경 시 hero↔일정 항공 동기화 (modetour와 동일 버그 여부 점검) | ⬜ |
+| 공개 | 출발일 변경 시 hero↔일정 — 공용 `TravelProductDetail` SSOT 적용됨, ATP207 **운영 스모크**만 | ⬜ 운영 |
+| 잡파일 | `.tmp-paste-verify` · `register-gemini-timing-hanatour`(미연결) | ✅ 삭제 |
+| audit | `npm run audit:hanatour-lib` | ✅ |
 | verify | `npm run verify:hanatour-lib` | ✅ 스크립트 추가 |
 
 ---
@@ -76,7 +78,9 @@ E2E(`scripts/calendar_e2e_scraper_*`)는 범위 밖.
 ## 참고 verify
 
 ```bash
+npm run audit:hanatour-lib
 npm run verify:hanatour-lib
+npm run verify:hanatour-atp207
 npm run verify:manual-flight-hanatour
 npm run verify:supplier-pipeline   # brand=hanatour 샘플
 ```

@@ -61,6 +61,7 @@
     "verify:hanatour-atp207": "npx tsx scripts/verify-hanatour-fixture-atp207.ts",
     "verify:modetour-avp603": "npx tsx scripts/verify-modetour-fixture-avp603.ts",
     "audit:modetour-lib": "npx tsx scripts/audit-modetour-lib-inventory.ts",
+    "audit:hanatour-lib": "npx tsx scripts/audit-hanatour-lib-inventory.ts",
     "seed:master": "npx tsx scripts/seed-master-data.ts",
     "seed:master:apply": "npx tsx scripts/seed-master-data.ts --apply",
     "backfill:product-master": "npx tsx scripts/backfill-product-master.ts",
