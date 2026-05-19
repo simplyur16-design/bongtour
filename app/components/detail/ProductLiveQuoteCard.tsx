@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import type { TravelProduct, ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
 import ShareActions from '@/app/components/detail/ShareActions'
-import { getStickyDisplayPerPaxKrw } from '@/lib/public-sticky-pax-display'
+import { getStickyDisplayPerPaxKrw, getStickyQuotationSummary } from '@/lib/public-sticky-pax-display'
 import { quotePriceRowStrictForSelectedDate } from '@/lib/booking-departure-ssot'
 import type { DeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
 import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
@@ -94,6 +94,17 @@ export default function ProductLiveQuoteCard({
     isCollectingPrices &&
     (priceCollectUiPhase === 'collecting' || priceCollectUiPhase === 'delayed_collecting')
   const showPendingQuoteBanner = !isCollectingPrices && priceCollectUiPhase === 'pending_quote'
+
+  const quotationSummary = useMemo(
+    () =>
+      priceRow != null
+        ? getStickyQuotationSummary(priceRow, pax, product.originSource)
+        : { totalKrw: null, hasIncompletePricedPax: true },
+    [priceRow, pax, product.originSource]
+  )
+  const totalPaxCount = pax.adult + pax.childBed + pax.childNoBed + pax.infant
+  const showQuotationTotal =
+    !showCollectingBanner && !showPendingQuoteBanner && totalPaxCount >= 1
 
   return (
     <div className={`bt-card-strong border-2 border-bt-border-soft ${pad}`}>
@@ -193,6 +204,31 @@ export default function ProductLiveQuoteCard({
           })}
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-bt-meta">{copy.paxFootnote}</p>
+        {showQuotationTotal ? (
+          <div
+            className="mt-3 rounded-xl border border-[#DAD4EE] bg-white px-3 py-3 text-center"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-bt-meta">
+              {copy.quotationTotalLabel}
+            </p>
+            {quotationSummary.totalKrw != null && !quotationSummary.hasIncompletePricedPax ? (
+              <p className="mt-1 text-2xl font-black tabular-nums tracking-tight text-[#85510B]">
+                {quotationSummary.totalKrw.toLocaleString('ko-KR')}
+                <span className="ml-0.5 text-base font-bold">원</span>
+              </p>
+            ) : priceRow != null ? (
+              <p className="mt-1 text-sm font-medium leading-relaxed text-bt-body">{copy.quotationIncomplete}</p>
+            ) : (
+              <p className="mt-1 text-sm font-medium leading-relaxed text-bt-body">{copy.quotationNeedDeparture}</p>
+            )}
+            {quotationSummary.totalKrw != null && !quotationSummary.hasIncompletePricedPax ? (
+              <p className="mt-2 text-[10px] leading-relaxed text-bt-meta">{copy.quotationTotalHint}</p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       {showCollectingBanner || showPendingQuoteBanner ? (
         <p className="mt-3 text-center text-[11px] leading-relaxed text-bt-subtle">

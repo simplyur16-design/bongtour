@@ -29,6 +29,8 @@ export function extractDestinationFromTitle(title: string): string {
       if (/오사카/.test(word)) return '오사카'
       if (/오키나와/.test(word)) return '오키나와'
       if (/도쿄/.test(word)) return '도쿄'
+      if (/치앙마이/.test(word)) return '치앙마이'
+      if (/치앙라이/.test(word)) return '치앙라이'
       if (/방콕|태국/.test(word)) return '방콕'
       if (/세부|필리핀/.test(word)) return '세부'
       if (/싱가포르/.test(word)) return '싱가포르'

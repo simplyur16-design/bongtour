@@ -604,6 +604,17 @@ export async function ProductDetailView({
       ? structuredAny.shoppingPasteRaw.trim()
       : null
 
+  /** 참좋은: 출발일별 성인가는 행 SSOT — 본문 표로 성인·아동 덮어쓰지 않되, 유아 단가는 본문 표로 빈 칸만 채운다 */
+  const verygoodPriceTableForStickyMerge =
+    verygoodtourPublicRowFactsOnly && structured?.productPriceTable
+      ? {
+          adultPrice: null,
+          childExtraBedPrice: null,
+          childNoBedPrice: null,
+          infantPrice: structured.productPriceTable.infantPrice ?? null,
+        }
+      : productPriceTableForMerge
+
   const mergedPriceRows = publicPriceRowsModule.mergeProductPriceRowsWithBodyPriceTable(
     departures.length > 0
       ? publicPriceRowsModule.productDeparturesToProductPriceRows(departures)
@@ -630,7 +641,7 @@ export async function ProductDetailView({
             priceInfant: infantPx,
           }
         }),
-    verygoodtourPublicRowFactsOnly ? null : productPriceTableForMerge,
+    verygoodPriceTableForStickyMerge,
     useModetourPriceMergeContext
       ? { modetourVaryingAdultChildLinkage: true }
       : useYbtourPriceMergeContext

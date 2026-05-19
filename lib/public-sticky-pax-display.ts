@@ -106,3 +106,31 @@ export function computeStickyDisplayQuotationTotal(
   }
   return sum
 }
+
+export type StickyQuotationSummary = {
+  totalKrw: number | null
+  hasIncompletePricedPax: boolean
+}
+
+/** 스티키 카드 합계 줄 — `getStickyDisplayPerPaxKrw`와 동일 규칙 */
+export function getStickyQuotationSummary(
+  row: PublicProductPriceRow | null,
+  pax: { adult: number; childBed: number; childNoBed: number; infant: number },
+  originSource: string | null | undefined
+): StickyQuotationSummary {
+  if (!row) return { totalKrw: null, hasIncompletePricedPax: true }
+  const slots: Array<{ slot: 'adult' | 'childBed' | 'childNoBed' | 'infant'; count: number }> = [
+    { slot: 'adult', count: pax.adult },
+    { slot: 'childBed', count: pax.childBed },
+    { slot: 'childNoBed', count: pax.childNoBed },
+    { slot: 'infant', count: pax.infant },
+  ]
+  let hasIncompletePricedPax = false
+  for (const { slot, count } of slots) {
+    if (count <= 0) continue
+    const u = getStickyDisplayPerPaxKrw(row, slot, originSource)
+    if (u == null || u <= 0) hasIncompletePricedPax = true
+  }
+  const totalKrw = computeStickyDisplayQuotationTotal(row, pax, originSource)
+  return { totalKrw, hasIncompletePricedPax }
+}

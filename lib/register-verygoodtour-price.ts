@@ -204,29 +204,58 @@ function trimVerygoodPriceBlobBeforeTotals(blob: string): string {
   return out.join('\n')
 }
 
+const VERYGOOD_GUIDE_FEE_HEADER_RE =
+  /^(?:\d+[.)]\s*)?(?:가이드\s*경비|가이드경비|기사\s*경비|인솔\s*경비|가이드\s*\/\s*기사\s*경비|가이드\/\s*기사\s*경비|기사\s*\/\s*가이드\s*경비)(?:\s*[:：]|\s|$)/i
+
+const VERYGOOD_GUIDE_FEE_INLINE_RE =
+  /(?:^|\s)(?:\d+[.)]\s*)?(?:기사\s*\/\s*가이드|가이드\s*\/\s*기사)\s*경비[^\n]{0,160}/gim
+
+function mergeVerygoodGuideFeeContinuation(lines: string[], index: number): string {
+  let line = lines[index]!.trim()
+  if (!VERYGOOD_GUIDE_FEE_HEADER_RE.test(line)) return line
+  if (/[:：]\s*$/.test(line) && index + 1 < lines.length) {
+    const next = lines[index + 1]!.trim()
+    if (
+      next &&
+      !VERYGOOD_GUIDE_FEE_HEADER_RE.test(next) &&
+      /(?:USD|\$|€|EUR|원|현지|지불|달러|유로|엔|JPY|THB|바트)/i.test(next)
+    ) {
+      line = `${line} ${next}`.replace(/\s+/g, ' ').trim()
+    }
+  }
+  return line
+}
+
+function pushVerygoodGuideFeeLine(out: string[], seen: Set<string>, rawLine: string): void {
+  const norm = rawLine.replace(/\s+/g, ' ').trim()
+  if (norm.length < 4 || norm.length > 240) return
+  if (/^가이드\s*경비\s*0\s*원?$/i.test(norm) || /^가이드경비\s*0\s*원?$/i.test(norm)) return
+  const key = norm.toLowerCase()
+  if (seen.has(key)) return
+  seen.add(key)
+  out.push(norm)
+}
+
 /**
  * 가격 블록·본문에서 현지 가이드/기사 경비 줄을 그대로 뽑아 불포함 항목에 넣는다(통화·문구 유지).
+ * `가이드경비 :` 다음 줄 `50 USD …` 병합, `1. 기사/가이드 경비 $50` 인라인도 수집.
  */
 export function extractVerygoodGuideFeeLinesFromPriceBlob(blob: string | null | undefined): string[] {
   if (!blob?.trim()) return []
   const out: string[] = []
   const seen = new Set<string>()
-  for (const raw of blob.replace(/\r/g, '\n').split('\n')) {
-    const line = raw.trim()
+  const lines = blob.replace(/\r/g, '\n').split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!.trim()
     if (!line) continue
-    if (
-      !/^가이드\s*경비\b|^기사\s*경비\b|^인솔\s*경비\b|^가이드\s*\/\s*기사\s*경비\b|^가이드\/\s*기사\s*경비\b/i.test(
-        line
-      )
-    ) {
+    if (VERYGOOD_GUIDE_FEE_HEADER_RE.test(line)) {
+      pushVerygoodGuideFeeLine(out, seen, mergeVerygoodGuideFeeContinuation(lines, i))
       continue
     }
-    const norm = line.replace(/\s+/g, ' ').trim()
-    if (norm.length < 4 || norm.length > 240) continue
-    const key = norm.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    out.push(norm)
+    for (const m of line.matchAll(VERYGOOD_GUIDE_FEE_INLINE_RE)) {
+      const hit = m[0]?.trim()
+      if (hit) pushVerygoodGuideFeeLine(out, seen, hit)
+    }
   }
   return out
 }
@@ -281,7 +310,8 @@ export function extractVerygoodThreeSlotPricesFromBlob(blob: string): VerygoodTh
  * detailBody normalizedRaw 에서 상품가격~총금액/가이드경비 직전까지 잘라 3슬롯 추출 입력을 보강한다.
  * (priceTableRawText 가 비었을 때 finalize 단계에서만 본문이 빠지는 문제 방지)
  */
-function sliceVerygoodPriceBlockFromNormalizedRaw(normalizedRaw: string | null | undefined): string {
+/** 상품가격~가이드경비 직전 구간 — 1인1실·가이드경비 추출 haystack용 */
+export function sliceVerygoodPriceBlockFromNormalizedRaw(normalizedRaw: string | null | undefined): string {
   const raw = String(normalizedRaw ?? '').replace(/\r/g, '\n')
   if (!raw.trim()) return ''
   let start = 0
@@ -407,5 +437,15 @@ export function finalizeVerygoodRegisterParsedPricing(parsed: RegisterParsed): R
   const llmTable = hasManualPriceInput ? null : (parsed.productPriceTable ?? null)
   const next = finalizeVerygoodProductPriceTable(llmTable, blob)
   if (next === null) return parsed
-  return { ...parsed, productPriceTable: next }
+  const adult =
+    next.adultPrice != null && next.adultPrice > 0
+      ? next.adultPrice
+      : parsed.priceFrom != null && parsed.priceFrom > 0
+        ? parsed.priceFrom
+        : null
+  return {
+    ...parsed,
+    productPriceTable: next,
+    ...(adult != null ? { priceFrom: adult, priceCurrency: parsed.priceCurrency?.trim() || 'KRW' } : {}),
+  }
 }

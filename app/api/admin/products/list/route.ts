@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { computeAdminProductSupplierDerivatives } from '@/lib/admin-product-supplier-derivatives'
 import { countScheduleDays } from '@/lib/schedule-days'
+import { resolveAdminListPriceFrom } from '@/lib/admin-product-list-price-from'
 
 const LIMIT = 50
 
@@ -191,6 +192,31 @@ export async function GET(req: NextRequest) {
     ])
 
     const productIds = items.map((p) => p.id)
+    const idsMissingPriceFrom = items.filter((p) => p.priceFrom == null || p.priceFrom <= 0).map((p) => p.id)
+    const minAdultByProductId = new Map<string, number>()
+    if (idsMissingPriceFrom.length > 0) {
+      const depMins = await prisma.productDeparture.groupBy({
+        by: ['productId'],
+        where: { productId: { in: idsMissingPriceFrom }, adultPrice: { gt: 0 } },
+        _min: { adultPrice: true },
+      })
+      for (const row of depMins) {
+        const v = row._min.adultPrice
+        if (v != null && v > 0) minAdultByProductId.set(row.productId, v)
+      }
+      const stillMissing = idsMissingPriceFrom.filter((id) => !minAdultByProductId.has(id))
+      if (stillMissing.length > 0) {
+        const priceMins = await prisma.productPrice.groupBy({
+          by: ['productId'],
+          where: { productId: { in: stillMissing }, adult: { gt: 0 } },
+          _min: { adult: true },
+        })
+        for (const row of priceMins) {
+          const v = row._min.adult
+          if (v != null && v > 0) minAdultByProductId.set(row.productId, v)
+        }
+      }
+    }
     const errorProductIds = new Set(
       (
         await prisma.agentScrapeReport.findMany({
@@ -219,7 +245,7 @@ export async function GET(req: NextRequest) {
       destinationRaw: p.destinationRaw ?? null,
       primaryDestination: p.primaryDestination ?? null,
       supplierGroupId: p.supplierGroupId ?? null,
-      priceFrom: p.priceFrom ?? null,
+      priceFrom: resolveAdminListPriceFrom(p.priceFrom, minAdultByProductId.get(p.id)),
       priceCurrency: p.priceCurrency ?? null,
       duration: p.duration,
       airline: p.airline,

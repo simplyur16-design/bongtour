@@ -14,6 +14,35 @@ function combineDateTime(d: string | null | undefined, t: string | null | undefi
   return dt ? dt.toISOString() : null
 }
 
+/** 출발 행에 빠진 연령 단가를 본문 `productPriceTable`로 보강(유아·아동 누락 방지) */
+export function enrichVerygoodDepartureInputsFromProductPriceTable(
+  inputs: DepartureInput[],
+  table: RegisterParsed['productPriceTable'] | null | undefined
+): DepartureInput[] {
+  if (!inputs.length || !table) return inputs
+  const adult =
+    table.adultPrice != null && Number.isFinite(Number(table.adultPrice)) && Number(table.adultPrice) > 0
+      ? Math.round(Number(table.adultPrice))
+      : null
+  const child =
+    table.childExtraBedPrice != null &&
+    Number.isFinite(Number(table.childExtraBedPrice)) &&
+    Number(table.childExtraBedPrice) > 0
+      ? Math.round(Number(table.childExtraBedPrice))
+      : null
+  const infant =
+    table.infantPrice != null && Number.isFinite(Number(table.infantPrice)) && Number(table.infantPrice) > 0
+      ? Math.round(Number(table.infantPrice))
+      : null
+  if (adult == null && child == null && infant == null) return inputs
+  return inputs.map((d) => ({
+    ...d,
+    ...(d.adultPrice == null && adult != null ? { adultPrice: adult } : {}),
+    ...(d.childBedPrice == null && child != null ? { childBedPrice: child } : {}),
+    ...(d.infantPrice == null && infant != null ? { infantPrice: infant } : {}),
+  }))
+}
+
 export function verygoodBuildMinimalDepartureInputs(
   tripStartIso: string,
   parsed: RegisterParsed

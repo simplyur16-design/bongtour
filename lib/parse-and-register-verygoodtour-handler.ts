@@ -102,7 +102,10 @@ import {
 } from '@/lib/register-public-image-hero-seo-line-candidate'
 import { clipVerygoodMarketingTailFromPaste } from '@/lib/verygoodtour-schedule-recovery-clip'
 import { extractVerygoodTripAnchorDatesFromPasteBlob } from '@/lib/verygoodtour-paste-normalize-for-register-verygoodtour'
-import { verygoodBuildMinimalDepartureInputs } from '@/lib/verygoodtour-synthetic-departure-verygoodtour'
+import {
+  enrichVerygoodDepartureInputsFromProductPriceTable,
+  verygoodBuildMinimalDepartureInputs,
+} from '@/lib/verygoodtour-synthetic-departure-verygoodtour'
 import {
   extractVerygoodScheduleRowsFromPasteBody,
   mergeVerygoodGeminiScheduleWithDeterministicBlocks,
@@ -736,6 +739,10 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
         verygoodBuildMinimalDepartureInputs(tripAnchors.tripStartIso, parsed)
       )
     }
+    departureInputs = enrichVerygoodDepartureInputsFromProductPriceTable(
+      departureInputs,
+      parsed.productPriceTable
+    )
     if (isDev && process.env.DEV_REGISTER_PERF_LOG === '1') {
       console.info('[register-verygoodtour]', {
         supplier: 'verygoodtour',
@@ -763,7 +770,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     const representativeCurrentSellingPrice =
       departureInputs.find((r) => typeof r.adultPrice === 'number' && r.adultPrice > 0)?.adultPrice ??
       parsed.productPriceTable?.adultPrice ??
-      null
+      (parsed.priceFrom != null && parsed.priceFrom > 0 ? parsed.priceFrom : null)
 
     const reconciledPromo = reconcilePromotionSalePriceWithAuthoritative(
       mergedPromotion,
@@ -921,7 +928,11 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       })
     }
     timing.mark('after-extraction-issues')
-    const representativePrice = priceDisplaySsot.selectedDeparturePrice ?? parsed.priceFrom ?? null
+    const representativePrice =
+      priceDisplaySsot.selectedDeparturePrice ??
+      parsed.priceFrom ??
+      parsed.productPriceTable?.adultPrice ??
+      null
     const optionalTourDisplayNoticeFinal =
       optionalTourDisplayNoticeManual ??
       parsed.optionalTourDisplayNoticeFinal?.trim() ??
