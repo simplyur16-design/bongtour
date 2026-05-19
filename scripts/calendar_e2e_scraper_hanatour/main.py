@@ -8,8 +8,12 @@ JSON + 사람이 읽는 E2E 보고:
 
   python -m scripts.calendar_e2e_scraper_hanatour.main --report
   python -m scripts.calendar_e2e_scraper_hanatour.main --report <detail_url> [max_months]
+  python -m scripts.calendar_e2e_scraper_hanatour.main --batch <url> [url...]
+  python -m scripts.calendar_e2e_scraper_hanatour.main --explore <detail_url>
 
 기본 테스트 URL: ``config.DEFAULT_E2E_TEST_URL`` (--report 만 줄 때)
+
+**SSOT:** 이 패키지 외 하나투어 달력 스크래퍼·*DEV* 복제본 추가 금지. `README.md` · `docs/ops/hanatour-e2e-ssot.md` 참고.
 
 환경 변수 (디버그·속도):
 - ``HANATOUR_E2E_PROGRESS=0`` — stderr 진행 로그 끔 (기본 1)
@@ -36,6 +40,7 @@ from .calendar_price_scraper import (
     collect_hanatour_departure_inputs,
     format_e2e_report,
     run_e2e_with_report,
+    run_validation_batch,
 )
 from .scraper import _e2e_timing_phase
 
@@ -107,8 +112,39 @@ async def _amain(
     return 0
 
 
+async def _amain_batch(urls: list[str]) -> int:
+    if not urls:
+        sys.stderr.write(
+            "usage: python -m scripts.calendar_e2e_scraper_hanatour.main --batch <url> [url...]\n"
+            "Or: HANATOUR_E2E_VALIDATION_URLS=url1,url2,...\n"
+        )
+        return 1
+    mo = 1
+    if os.environ.get("HANATOUR_E2E_VALIDATION_MAX_MONTHS"):
+        try:
+            mo = max(1, int(os.environ["HANATOUR_E2E_VALIDATION_MAX_MONTHS"]))
+        except ValueError:
+            mo = 1
+    out = await run_validation_batch(urls, max_months=mo, headless=True)
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return 0
+
+
+async def _amain_explore(url: str) -> int:
+    from .verify_exploration_range import _run as explore_run
+
+    os.environ.setdefault("HANATOUR_E2E_PROGRESS", "0")
+    rep = await explore_run(url, max_months=2, june_clicks=3)
+    print(json.dumps(rep, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _parse_args() -> tuple[bool, str, int, str | None] | None:
     argv = [a for a in sys.argv[1:] if a.strip()]
+    if "--batch" in argv:
+        return None
+    if "--explore" in argv:
+        return None
     want_report = "--report" in argv
     argv = [a for a in argv if a != "--report"]
     argv, target_month_ym = _strip_month_flag(argv)
@@ -153,6 +189,20 @@ def main() -> int:
                 sys.stderr.reconfigure(encoding="utf-8")
         except Exception:
             pass
+    argv = [a for a in sys.argv[1:] if a.strip()]
+    if "--batch" in argv:
+        rest = [a for a in argv if a != "--batch"]
+        urls = [u.strip() for u in rest if "http" in (u or "")]
+        if not urls:
+            raw = (os.environ.get("HANATOUR_E2E_VALIDATION_URLS") or "").strip()
+            urls = [u.strip() for u in raw.split(",") if "http" in (u or "")]
+        return asyncio.run(_amain_batch(urls))
+    if "--explore" in argv:
+        rest = [a for a in argv if a != "--explore"]
+        url = next((u.strip() for u in rest if u.strip().lower().startswith("http")), "")
+        if not url:
+            url = config.DEFAULT_E2E_TEST_URL
+        return asyncio.run(_amain_explore(url))
     parsed = _parse_args()
     if parsed is None:
         sys.stderr.write(

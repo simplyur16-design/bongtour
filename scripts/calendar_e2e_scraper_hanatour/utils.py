@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-인간 모사·UA·가격·동일상품 키·브라우저 기동 — 실전 복제본; 정본은 calendar_e2e_scraper_hanatourDEV/utilsDEV.py.
+인간 모사·UA·가격·동일상품 키·브라우저 기동 — calendar_e2e_scraper_hanatour SSOT.
 """
 from __future__ import annotations
 
@@ -234,12 +234,98 @@ async def close_hanatour_browser(pw: object | None, browser: Browser | None) -> 
 
 # --- 상세 HTML에서 baseline 제목 (product_core 의 h1/title 최소 추출) ---
 def extract_hanatour_detail_raw_title(html: str) -> str:
-    m = re.search(r"<h1[^>]*>([\s\S]*?)</h1>", html, re.I)
-    if m:
-        t = re.sub(r"<[^>]+>", " ", m.group(1))
-        return unescape(re.sub(r"\s+", " ", t).strip())
+    m_og = re.search(
+        r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)',
+        html,
+        re.I,
+    )
+    if m_og:
+        t = unescape(m_og.group(1).strip())
+        t = re.sub(r"\s*[|\-–]\s*하나투어.*$", "", t, flags=re.I).strip()
+        if len(t) >= 8:
+            return t
+    for pat in (
+        r'class="[^"]*(?:prod(?:uct)?_title|goods_title|tit_product)[^"]*"[^>]*>([\s\S]*?)</',
+        r"<h1[^>]*>([\s\S]*?)</h1>",
+    ):
+        m = re.search(pat, html, re.I)
+        if m:
+            t = re.sub(r"<[^>]+>", " ", m.group(1))
+            t = unescape(re.sub(r"\s+", " ", t).strip())
+            if len(t) >= 8:
+                return t
     m2 = re.search(r"<title>([^<]+)</title>", html, re.I)
-    return (m2.group(1).strip() if m2 else "") or ""
+    if m2:
+        t = m2.group(1).strip()
+        t = re.sub(r"\s*[|\-–]\s*하나투어.*$", "", t, flags=re.I).strip()
+        return t
+    return ""
+
+
+_HANATOUR_LIST_CHROME_PREFIX = re.compile(
+    r"^(?:"
+    r"총\s*\d+\s*개\s*"
+    r"|현지\s*합류\s*"
+    r"|출발시간\s*빠른순\s*"
+    r"|가격\s*낮은순\s*"
+    r"|가격\s*높은순\s*"
+    r"|인기\s*순\s*"
+    r")+",
+    re.I,
+)
+
+
+def hanatour_strip_modal_list_chrome(s: str) -> str:
+    """모달 우측 리스트 정렬·집계 문구 제거."""
+    t = (s or "").replace("\u00a0", " ").strip()
+    if not t:
+        return ""
+    for _ in range(10):
+        old = t
+        t = _HANATOUR_LIST_CHROME_PREFIX.sub("", t).strip()
+        if t == old:
+            break
+    return " ".join(t.split())
+
+
+def hanatour_split_concatenated_list_text(text: str) -> list[str]:
+    """우측 리스트가 한 DOM 노드에 합쳐진 경우 패키지 단위로 분할."""
+    t = (text or "").replace("\u00a0", " ").strip()
+    if not t:
+        return []
+    if not re.search(r"총\s*\d+\s*개", t) and len(t) < 900:
+        return [t]
+    t = hanatour_strip_modal_list_chrome(t)
+    parts = re.split(
+        r"(?=(?:\[스마트초이스\]\s*)?(?:\[한정특가\]\s*)?패키지\s+(?:스탠다드|세이브|이코노미|프리미엄|\[))",
+        t,
+    )
+    out = [p.strip() for p in parts if len(p.strip()) > 24 and re.search(r"\d+\s*일", p)]
+    return out if len(out) > 1 else [t]
+
+
+def hanatour_pick_product_row_baseline_text(rows_raw: Any) -> str | None:
+    """리스트에서 출발 상품 행( N일 포함) 첫 건 — 헤더·정렬 문구 제외."""
+    if not isinstance(rows_raw, list):
+        return None
+    for r in rows_raw:
+        if not isinstance(r, dict):
+            continue
+        tx = (r.get("text") or "").replace("\u00a0", " ").strip()
+        if len(tx) < 16:
+            continue
+        if re.match(
+            r"^(?:총\s*\d+\s*개|출발일|다른\s*출발|상품\s*안내|이용\s*안내)",
+            tx[:48],
+            re.I,
+        ):
+            continue
+        if not re.search(r"\b\d+\s*일\b", tx):
+            continue
+        line = tx.split("\n")[0].strip()
+        picked = line if len(line) >= 12 else tx[:800]
+        return hanatour_strip_modal_list_chrome(picked)
+    return None
 
 
 def parse_hanatour_product_identifiers(detail_url: str) -> dict[str, str | None]:
@@ -284,6 +370,45 @@ def hanatour_variant_inner_is_status_only(inner: str) -> bool:
 
 
 _NDAY_IN_PRE = re.compile(r"([^#\[\]]+?/)*[^#\[\]]+?\s+\d+\s*일")
+_GEO_NDAY_ANCHOR = re.compile(
+    r"([가-힣]{2,24}(?:\s*/\s*[가-힣]{2,24})*(?:\s+\d+\s*박)?)\s+(\d+)\s*일",
+)
+_HANATOUR_LEADING_NON_TITLE = re.compile(
+    r"^(?:"
+    r"스마트\s*초이스|스마트초이스|"
+    r"한정\s*특가|한정특가|"
+    r"최저가|"
+    r"출발\s*확정|출발확정|"
+    r"출발\s*예정|출발예정|"
+    r"가격\s*예정|일정\s*예정|"
+    r"특가|초특가|마감\s*임박|"
+    r"패키지\s*(?:스탠다드|세이브|이코노미|프리미엄|골드|실버)|"
+    r"패키지|"
+    r"이코노미|프리미엄|"
+    r")\s*",
+    re.I,
+)
+_HANATOUR_ROW_META_TAIL = re.compile(
+    r"\s+(?:"
+    r"\d+\s*박\s*\d+\s*일\s*호텔.*"
+    r"|호텔\s*\d+\s*성급.*"
+    r"|쇼핑\s*\d+.*"
+    r")$",
+    re.I,
+)
+_HANATOUR_ANCHOR_OP_SUFFIX = re.compile(
+    r"(?:"
+    r",\s*잔여[\s\S]*$"
+    r"|\s+잔여\s*\d+[\s\S]*$"
+    r"|\s+(?:"
+    r"[가-힣A-Za-z0-9·&]{2,22}항공"
+    r"|이스타항공|진에어|에어서울|에어부산|제주항공|티웨이항공|에어프레미아"
+    r"|[가-힣]{2,12}에어[가-힣]{0,8}"
+    r")[\s\S]*$"
+    r"|\s+\d{1,2}/\d{1,2}\s*\([^)]*\)[\s\S]*$"
+    r")",
+    re.I,
+)
 
 
 def hanatour_pre_hash_title(raw_title: str) -> str:
@@ -433,22 +558,82 @@ def _strip_volatile_for_anchor_compare(s: str) -> str:
     return u.strip()
 
 
-def hanatour_prepare_for_anchor_compare(s: str) -> str:
-    """동일상품 anchor 비교용 문자열: `[...]`·장식·volatile 제거 후 공백 정규화."""
-    if not s:
-        return ""
-    t = str(s).replace("\u00a0", " ").replace("\u3000", " ")
+def hanatour_strip_leading_non_title_badge(s: str) -> str:
+    """스마트초이스·최저가·출발확정·패키지 티어·리스트 크롬 등 상품명 앞 배지만 제거."""
+    t = (s or "").replace("\u00a0", " ").replace("\u3000", " ")
     t = " ".join(t.split())
-    hi = t.find("#")
-    if hi >= 0:
-        t = t[:hi].strip()
-    t = _strip_all_square_brackets(t)
+    if not t:
+        return ""
+    t = hanatour_strip_modal_list_chrome(t)
+    t = hanatour_pre_hash_title(t)
+    for _ in range(24):
+        old = t
+        t = _HANATOUR_LEADING_NON_TITLE.sub("", t).strip()
+        if t == old:
+            break
+    return " ".join(t.split())
+
+
+def hanatour_row_title_from_text(text: str) -> str:
+    """모달 행 전체 텍스트에서 상품명(지역+N일+#옵션)만 추출 — 항공·잔여석·출발일시 제외."""
+    t = hanatour_strip_leading_non_title_badge(text or "")
+    if not t:
+        return ""
     t = _DECORATIVE_CHARS.sub("", t)
     t = hanatour_raw_title_exact_match_key(t)
-    t = _strip_volatile_for_anchor_compare(t)
-    t = _hanatour_glue_hangul_before_nday(t)
+    t = _HANATOUR_ANCHOR_OP_SUFFIX.sub("", t).strip()
+    t = _HANATOUR_ROW_META_TAIL.sub("", t).strip()
+    return " ".join(t.split())
+
+
+def hanatour_anchor_tail_comparison_key(tail: str) -> str:
+    """공백·# 앞뒤 간격 차이 허용(벳부 온천 vs 벳부온천)."""
+    t = (tail or "").replace("\u00a0", " ")
     t = " ".join(t.split())
-    return t.strip()
+    t = re.sub(r"\s+#", "#", t)
+    return re.sub(r"\s+", "", t)
+
+
+def hanatour_anchor_tails_compatible(registered_raw: str, row_raw: str) -> bool:
+    """등록명 꼬리와 행 꼬리 — 완전 일치 또는 행에만 추가 #태그(운영 문구)."""
+    dec = hanatour_same_product_anchor_decision(registered_raw, row_raw)
+    if dec.get("sameProductMatch"):
+        return True
+    k1 = hanatour_anchor_tail_comparison_key(hanatour_extract_anchor_tail(registered_raw))
+    k2 = hanatour_anchor_tail_comparison_key(hanatour_extract_anchor_tail(row_raw))
+    if not k1 or not k2 or len(k1) < 6:
+        return False
+    if k2 == k1:
+        return True
+    if k2.startswith(k1) and k2[len(k1) :].startswith("#"):
+        return True
+    return False
+
+
+def hanatour_extract_anchor_tail(s: str) -> str:
+    """
+    동일상품 비교 꼬리: (지역/국가 + N일)부터 #옵션·변형 태그까지 포함.
+    앞쪽 배지·뒤쪽 항공/날짜/잔여석만 제거.
+    """
+    base = hanatour_strip_leading_non_title_badge(s)
+    if not base:
+        return ""
+    base = _strip_all_square_brackets(base)
+    base = _DECORATIVE_CHARS.sub("", base)
+    base = _hanatour_glue_hangul_before_nday(base)
+    matches = list(_GEO_NDAY_ANCHOR.finditer(base))
+    if not matches:
+        return ""
+    tail = base[matches[-1].start() :].strip()
+    tail = hanatour_raw_title_exact_match_key(tail)
+    tail = _HANATOUR_ANCHOR_OP_SUFFIX.sub("", tail).strip()
+    tail = _HANATOUR_ROW_META_TAIL.sub("", tail).strip()
+    return " ".join(tail.split())
+
+
+def hanatour_prepare_for_anchor_compare(s: str) -> str:
+    """디버그·로그용 준비 문자열(anchor tail)."""
+    return hanatour_extract_anchor_tail(s)
 
 
 def hanatour_same_product_anchor_decision(
@@ -456,42 +641,37 @@ def hanatour_same_product_anchor_decision(
     row_raw: str,
 ) -> dict[str, Any]:
     """
-    `도시/대륙 + N일` anchor부터 끝까지 문자열이 **완전히 동일**할 때만 sameProductMatch.
-    추론·fuzzy 없음.
+    지역/국가+N일부터 #변형 태그까지 동일할 때 sameProductMatch.
+    앞 배지(스마트초이스·최저가·패키지 티어 등)만 제거, fuzzy 없음.
     """
-    pr = hanatour_prepare_for_anchor_compare(registered_raw)
-    rw = hanatour_prepare_for_anchor_compare(row_raw)
+    tail1 = hanatour_extract_anchor_tail(registered_raw)
+    tail2 = hanatour_extract_anchor_tail(row_raw)
     out: dict[str, Any] = {
         "sameProductMatch": False,
         "mismatchReason": "empty_after_prepare",
-        "registeredAnchorText": "",
-        "rowAnchorText": "",
-        "registeredPrepared": pr,
-        "rowPrepared": rw,
+        "registeredAnchorText": tail1,
+        "rowAnchorText": tail2,
+        "registeredPrepared": tail1,
+        "rowPrepared": tail2,
     }
-    if not pr or not rw:
+    if not tail1 or not tail2:
         out["mismatchReason"] = "empty_after_prepare"
         return out
-    m1 = _NDAY_IN_PRE.search(pr)
-    m2 = _NDAY_IN_PRE.search(rw)
-    if not m1:
-        out["mismatchReason"] = "no_anchor_registered"
-        out["rowAnchorText"] = rw[m2.start() :].strip() if m2 else ""
-        return out
-    if not m2:
-        out["mismatchReason"] = "no_anchor_row"
-        out["registeredAnchorText"] = pr[m1.start() :].strip()
-        return out
-    tail1 = pr[m1.start() :].strip()
-    tail2 = rw[m2.start() :].strip()
-    out["registeredAnchorText"] = tail1
-    out["rowAnchorText"] = tail2
-    if tail1 == tail2:
+    k1 = hanatour_anchor_tail_comparison_key(tail1)
+    k2 = hanatour_anchor_tail_comparison_key(tail2)
+    if k1 == k2:
         out["sameProductMatch"] = True
         out["mismatchReason"] = "none"
     else:
         out["mismatchReason"] = "anchor_tail_mismatch"
     return out
+
+
+def hanatour_pkg_cd_from_row_html(html: str | None) -> str | None:
+    if not html:
+        return None
+    m = re.search(r"pkgCd=([A-Za-z0-9]+)", html, re.I)
+    return m.group(1) if m else None
 
 
 def hanatour_raw_title_core_match_key(s: Any) -> str:
@@ -776,10 +956,25 @@ def hanatour_partial_success_primary_reason(
 def filter_hanatour_same_product_rows(
     candidate_rows: list[dict[str, Any]],
     current_raw_title: str,
+    *,
+    supplier_pkg_cd: str | None = None,
 ) -> list[dict[str, Any]]:
     if not candidate_rows:
         return []
-    cur = (current_raw_title or "").strip()
+    pkg = (supplier_pkg_cd or "").strip()
+    if pkg:
+        by_pkg: list[dict[str, Any]] = []
+        for r in candidate_rows:
+            row_pkg = (
+                (r.get("rowPkgCd") or r.get("pkg_cd") or r.get("pkgCd") or "").strip()
+            )
+            if not row_pkg:
+                row_pkg = (hanatour_pkg_cd_from_row_html(r.get("rowHtml")) or "").strip()
+            if row_pkg and row_pkg.upper() == pkg.upper():
+                by_pkg.append({**r, "_match": "hanatour_pkg_cd", "rowPkgCd": row_pkg})
+        if by_pkg:
+            return by_pkg
+    cur = hanatour_strip_leading_non_title_badge((current_raw_title or "").strip())
     if not cur:
         return []
     out: list[dict[str, Any]] = []
@@ -787,7 +982,7 @@ def filter_hanatour_same_product_rows(
         raw_c = (
             r.get("candidateRawTitle")
             or r.get("candidate_raw_title")
-            or r.get("candidatePreHashTitle")
+            or r.get("rowText")
             or r.get("raw")
             or ""
         )

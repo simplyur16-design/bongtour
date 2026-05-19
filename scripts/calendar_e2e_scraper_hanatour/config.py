@@ -83,6 +83,8 @@ OPEN_MODAL_TRIGGERS = [
     "[role='button']:has-text('다른 출발일 보기')",
     "button:has-text('다른출발일보기')",
     "a:has-text('다른출발일보기')",
+    "button:has-text('다른 출발일 상품')",
+    "a:has-text('다른 출발일 상품')",
     "button:has-text('다른 출발일 선택')",
     "a:has-text('다른 출발일 선택')",
     "[role='button']:has-text('다른 출발일 선택')",
@@ -100,6 +102,9 @@ OPEN_MODAL_TRIGGERS = [
     "button:has-text('출발일 선택')",
     "a:has-text('출발일 선택')",
     "[role='button']:has-text('출발일 선택')",
+    "button:has-text('최저가로')",
+    "a:has-text('최저가로')",
+    "[role='button']:has-text('최저가로')",
 ]
 
 DIALOG_SELECTOR_PARTS = [
@@ -147,5 +152,5 @@ def get_output_path(pkg_cd: str) -> Path:
 # 스모크/E2E 보고용 고정 URL (요청 시 main --report)
 DEFAULT_E2E_TEST_URL = (
     "https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200"
-    "?pkgCd=PNP101260501KE1&prePage=major-products"
+    "?pkgCd=ATP300260601BX2&prePage=major-products"
 )

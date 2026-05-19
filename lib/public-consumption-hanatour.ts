@@ -6,6 +6,7 @@
  * - 타 공급사 모듈과 구현이 같아 보여도 합치거나 `public-product-extras`에 라우팅하지 않는다. 정책이 한 파일에 섞이면 회귀 시 원인 추적이 어렵다.
  */
 import { splitHotelNamesLine, type DayHotelPlan } from '@/lib/day-hotel-plans-hanatour'
+import { parseHanatourTabShoppingPaste } from '@/lib/register-hanatour-shopping'
 import type { ShoppingStopRow } from '@/lib/public-product-extras'
 import { filterShoppingStopsForPublicDisplay } from '@/lib/shopping-public-row-filter'
 
@@ -179,6 +180,16 @@ export function buildShoppingStopsFromCanonical(
     .filter((x): x is ShoppingStopRow => x != null)
 }
 
+function buildShoppingStopsFromHanatourPaste(pasteRaw: string | null | undefined): ShoppingStopRow[] {
+  const paste = String(pasteRaw ?? '').trim()
+  if (!paste) return []
+  const parsed = parseHanatourTabShoppingPaste(paste)
+  if (!parsed?.length) return []
+  return filterShoppingStopsForPublicDisplay(
+    buildShoppingStopsFromCanonical({ rows: parsed })
+  )
+}
+
 export function resolveShoppingConsumption(input: {
   canonical: {
     rows?: Array<{
@@ -198,10 +209,16 @@ export function resolveShoppingConsumption(input: {
   } | null | undefined
   legacyDbRows: ShoppingStopRow[]
   legacyMetaRows: ShoppingStopRow[]
+  /** structured rows 없을 때 TSV 쇼핑표 재파싱(등록 전·구형 rawMeta 보완) */
+  shoppingPasteRaw?: string | null
 }): ConsumptionDecision<ShoppingStopRow[]> {
   const canonicalRows = filterShoppingStopsForPublicDisplay(buildShoppingStopsFromCanonical(input.canonical))
   if (canonicalRows.length > 0) {
     return { value: canonicalRows, source: 'canonical_shopping', usedFallback: false }
+  }
+  const fromPaste = buildShoppingStopsFromHanatourPaste(input.shoppingPasteRaw)
+  if (fromPaste.length > 0) {
+    return { value: fromPaste, source: 'hanatour_shopping_paste_parse', usedFallback: true }
   }
   const dbRows = filterShoppingStopsForPublicDisplay(input.legacyDbRows)
   if (dbRows.length > 0) {

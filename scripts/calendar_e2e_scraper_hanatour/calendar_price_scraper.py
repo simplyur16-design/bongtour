@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-하나투어 달력 E2E 엔트리 — 실전 복제본; 정본은 calendar_e2e_scraper_hanatourDEV/calendar_price_scraperDEV.py.
+하나투어 달력 E2E 엔트리 — scheduler·수동 실행 공통 (`calendar_e2e_scraper_hanatour` SSOT).
 
 반환: ``collect_hanatour_departure_inputs`` →
 ``{ "departures": [...], "notes": [...], "log": {...}, "collectorStatus": str, "validation": {...} }``
@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+import os
 import urllib.parse
 from typing import Any
 
@@ -19,6 +20,30 @@ from .scraper import HanatourCalendarE2EScraper
 from .utils import DEFAULT_MAX_MONTHS
 
 HANATOUR_TRP_PKG_DETAIL_PATH = "/trp/pkg/CHPC0PKG0200M200"
+
+
+def apply_hanatour_scheduler_e2e_env() -> None:
+    """배치 scheduler·run_calendar_price_from_url — 1건 확보 후 종료, 대기 단축."""
+    defaults = {
+        "HANATOUR_E2E_FAST": "1",
+        "HANATOUR_E2E_LIGHT_OPS": "1",
+        "HANATOUR_E2E_STOP_AFTER_FIRST_DEPARTURE": "1",
+        "HANATOUR_E2E_ALLOW_COLLECT_WITHOUT_LIST_REFRESH": "1",
+        "HANATOUR_E2E_NETWORK_IDLE_MS": "3500",
+        "HANATOUR_E2E_LIST_REFRESH_MS": "4500",
+        "HANATOUR_E2E_POST_CLICK_SETTLE_MS": "220",
+        "HANATOUR_E2E_MAX_DAY_ATTEMPTS": "5",
+    }
+    for key, val in defaults.items():
+        os.environ.setdefault(key, val)
+
+
+def _scheduler_max_months() -> int:
+    raw = (os.environ.get("HANATOUR_E2E_SCHEDULER_MAX_MONTHS") or "2").strip()
+    try:
+        return max(1, min(6, int(raw)))
+    except ValueError:
+        return 2
 
 
 def normalize_hanatour_detail_url_to_trp(detail_url: str) -> str:
@@ -97,11 +122,13 @@ async def collect_hanatour_departure_inputs(
 async def run_calendar_price_from_url(
     detail_url: str,
     *,
-    max_months: int = DEFAULT_MAX_MONTHS,
+    max_months: int | None = None,
     headless: bool = True,
 ) -> dict[str, Any]:
+    apply_hanatour_scheduler_e2e_env()
+    eff_months = max_months if max_months is not None else _scheduler_max_months()
     return await collect_hanatour_departure_inputs(
-        detail_url, max_months=max_months, headless=headless
+        detail_url, max_months=eff_months, headless=headless
     )
 
 
@@ -183,6 +210,61 @@ def format_e2e_report(result: dict[str, Any]) -> str:
             f"countsByTier={val.get('countsByTier')!r}"
         )
     return "\n".join(lines)
+
+
+async def run_validation_batch(
+    urls: list[str],
+    *,
+    max_months: int = 1,
+    headless: bool = True,
+) -> dict[str, Any]:
+    """다중 URL E2E 검증 JSON — DB 러너·`main --batch` 전용."""
+    os.environ.setdefault("HANATOUR_E2E_NO_STDOUT_EMIT", "1")
+    mo = max(1, max_months)
+    max_urls = 64
+    if os.environ.get("HANATOUR_E2E_VALIDATION_MAX_URLS"):
+        try:
+            max_urls = max(1, int(os.environ["HANATOUR_E2E_VALIDATION_MAX_URLS"]))
+        except ValueError:
+            max_urls = 64
+    out: dict[str, Any] = {"runs": []}
+    partial_reason_counts: dict[str, int] = {}
+    for url in urls[:max_urls]:
+        u = (url or "").strip()
+        if "http" not in u:
+            continue
+        r = await collect_hanatour_departure_inputs(u, max_months=mo, headless=headless)
+        val = r.get("validation") if isinstance(r.get("validation"), dict) else {}
+        summaries = val.get("departureSummaries") or []
+        if isinstance(summaries, list):
+            for s in summaries:
+                if not isinstance(s, dict):
+                    continue
+                if str(s.get("verificationTier") or "") != "partial_success":
+                    continue
+                reason = s.get("partialSuccessReason")
+                key = str(reason) if reason is not None else "(null)"
+                partial_reason_counts[key] = partial_reason_counts.get(key, 0) + 1
+        out["runs"].append(
+            {
+                "detailUrl": u,
+                "collectorStatus": r.get("collectorStatus"),
+                "validation": r.get("validation"),
+                "departureCount": len(r.get("departures") or []),
+                "firstVerificationTier": (
+                    (r.get("departures") or [{}])[0].get("verificationTier")
+                    if (r.get("departures") or [])
+                    else None
+                ),
+                "notes": r.get("notes"),
+            }
+        )
+    top_partial_reason: str | None = None
+    if partial_reason_counts:
+        top_partial_reason = max(partial_reason_counts.items(), key=lambda x: x[1])[0]
+    out["partialSuccessReasonCounts"] = partial_reason_counts
+    out["topPartialSuccessReason"] = top_partial_reason
+    return out
 
 
 async def run_e2e_with_report(

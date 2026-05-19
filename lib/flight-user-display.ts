@@ -218,14 +218,19 @@ export function formatFlightLegTwoLines(
   leg: DirectedFlightLegInput | null | undefined
 ): FlightLegTwoLineDisplay | null {
   if (!leg || legHasGarbageFlightFields(leg)) return null
-  const departureAirport = leg.departureAirport?.replace(/\s+/g, ' ').trim() || ''
-  const arrivalAirport = leg.arrivalAirport?.replace(/\s+/g, ' ').trim() || ''
-  const flightNo = leg.flightNo?.replace(/\s+/g, ' ').trim() || null
   const depParts = splitFlightAtTextDayOffset(leg.departureAtText)
   const arrParts = splitFlightAtTextDayOffset(leg.arrivalAtText)
   const departureAtText = depParts.text
   const arrivalAtText = arrParts.text
-  if (!departureAirport || !departureAtText || !arrivalAirport || !arrivalAtText) return null
+  if (!departureAtText || !arrivalAtText) return null
+  const departureAirport =
+    leg.departureAirport?.replace(/\s+/g, ' ').trim() ||
+    (departureAtText && arrivalAtText ? '—' : '')
+  const arrivalAirport =
+    leg.arrivalAirport?.replace(/\s+/g, ' ').trim() ||
+    (departureAtText && arrivalAtText ? '—' : '')
+  const flightNo = leg.flightNo?.replace(/\s+/g, ' ').trim() || null
+  if (!departureAirport || !arrivalAirport) return null
   const computedArrOffset = computeFlightLegArrivalDayOffset(departureAtText, arrivalAtText)
   return {
     departureAirport,

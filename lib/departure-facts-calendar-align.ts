@@ -45,7 +45,10 @@ function alignAtTextToCalendarDate(
     }
   }
   if (parsed && anchorIso === dateKey) return formatKoreanDateTimeLine(parsed)
-  return atText.trim()
+  const trimmed = atText.trim()
+  const reparsed = parseFlexibleDateTimeLineToDate(trimmed)
+  if (reparsed) return formatKoreanDateTimeLine(reparsed) ?? trimmed
+  return trimmed
 }
 
 function alignLegToCalendarDate(leg: DepartureLegCard | null, depDateKey: string, arrDateKey: string): DepartureLegCard | null {

@@ -1,6 +1,6 @@
 # 하나투어 수집기 스펙·구현 보고
 
-**정책:** E2E 스크립트의 `*DEV*` 분리(`calendar_e2e_scraper_hanatourDEV` 등)는 **하나투어에만** 적용한다. 다른 공급사는 실전 원본 디렉터리만 유지하고 동일한 DEV 복제본을 추가하지 않는다.
+**정책:** 하나투어 달력 E2E SSOT·봉인 → [hanatour-e2e-ssot.md](ops/hanatour-e2e-ssot.md) · `scripts/calendar_e2e_scraper_hanatour/README.md` · `npm run verify:hanatour-e2e-seal`
 
 ## 1. 수정/추가한 파일 목록
 
@@ -57,7 +57,7 @@
 
 ## 8. 출발일 모달 수집 방식 요약
 
-Node가 `python -m scripts.calendar_e2e_scraper_hanatour.main <url> <max_months>` 호출 → JSON `departures`를 `DepartureInput`으로 매핑. `collectHanatourDepartureInputs`는 위 모듈을 사용한다. 모달·달력·row 파싱은 `scripts/calendar_e2e_scraper_hanatour/scraper.py` 정본.
+달력 E2E 실행·UI 계약·금지 경로: **`docs/ops/hanatour-e2e-ssot.md`**. Node → `main` / `main --batch`; 구현은 `scraper.py` 한 곳.
 
 ## 9. 쇼핑정보 파싱 방식 요약
 
@@ -81,7 +81,7 @@ HTML 수집(`monthly_benefit.py`) → 레코드 조립 → Node `upsertHanatourM
 
 ## 14. 테스트한 대표 케이스
 
-- `python -m scripts.calendar_e2e_scraper_hanatour.main <url> 3` — JSON 출력 확인
+- `python -m scripts.calendar_e2e_scraper_hanatour.main <url> 3` · `npm run verify:hanatour-e2e-seal`
 - `npx prisma db push` — 스키마·클라이언트 생성 성공
 
 ## 15. 남은 리스크 1~7

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""하나투어 TRP 달력·출발 E2E (실전 복제본; 정본은 calendar_e2e_scraper_hanatourDEV)."""
+"""하나투어 TRP 달력·출발 E2E (`scripts/calendar_e2e_scraper_hanatour/` SSOT)."""
 
 from .calendar_price_scraper import (
     collect_hanatour_departure_inputs,

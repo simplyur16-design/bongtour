@@ -1,0 +1,20 @@
+{
+  "ssotPackage": "scripts/calendar_e2e_scraper_hanatour",
+  "cliModule": "scripts.calendar_e2e_scraper_hanatour.main",
+  "forbiddenPaths": [
+    "scripts/calendar_e2e_scraper_hanatourDEV",
+    "scripts/calendar_e2e_scraper_hanatourDEV/",
+    "scripts/validate_hanatour_e2e_validation_set.py"
+  ],
+  "forbiddenGlob": [
+    "**/calendar_e2e_scraper_hanatourDEV/**",
+    "**/*hanatour*DEV*.py"
+  ],
+  "allowedEntrypoints": [
+    "scripts/calendar_e2e_scraper_hanatour/main.py",
+    "scripts/calendar_e2e_scraper_hanatour/calendar_price_scraper.py",
+    "scripts/run-hanatour-e2e-from-db.ts",
+    "lib/hanatour-departures.ts",
+    "scripts/calendar_price_scheduler.py"
+  ]
+}

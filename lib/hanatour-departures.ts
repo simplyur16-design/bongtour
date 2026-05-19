@@ -15,7 +15,11 @@ import {
   SCRAPE_DEFAULT_MONTHS_FORWARD,
 } from '@/lib/scrape-date-bounds'
 import { applyDepartureTerminalMeetingInfo } from '@/lib/meeting-terminal-rules'
-import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
+import {
+  resolvePythonExecutable,
+  resolvePythonRepoRoot,
+  resolvePythonResolution,
+} from '@/lib/resolve-python-executable'
 
 /**
  * 월별 subprocess `execFile` timeout(ms).
@@ -619,10 +623,14 @@ async function hanatourPythonCliSingleInvocation(params: {
   envForPython: NodeJS.ProcessEnv
   targetMonthYm?: string
 }): Promise<HanatourDepartureCollectResult> {
-  const { argv, cwd, timeoutMs, envForPython, targetMonthYm } = params
-  const pythonExe = resolvePythonExecutable()
-  const notes: string[] = []
-  const log: Record<string, unknown> = {}
+  const { argv, timeoutMs, envForPython, targetMonthYm } = params
+  const pyRes = resolvePythonResolution()
+  const pythonExe = pyRes.executable
+  const cwd = pyRes.repoRoot
+  const notes: string[] = [
+    `hanatour_python: exe=${pythonExe} source=${pyRes.source}${pyRes.envConfigured ? ` env=${pyRes.envConfigured}` : ''}`,
+  ]
+  const log: Record<string, unknown> = { hanatour_python_resolution: pyRes }
   const monthLabel = targetMonthYm ?? 'single'
   const startedAt = new Date().toISOString()
   console.log(`[hanatour] phase=month_start month=${monthLabel} at=${startedAt}`)
@@ -940,21 +948,41 @@ export async function collectHanatourDepartureInputs(
     stopAfterFirstDeparture?: boolean
     /** 관리자 하나투어: 이번 실행만 대상 월(2개월 등). 지정 시 maxMonths로 목록을 만들지 않음 */
     monthYmsOverride?: string[]
+    /** DB 등록 상품명 — 모달 동일상품 매칭 기준(우선). originalTitle ?? title */
+    registeredRawTitle?: string | null
   }
 ): Promise<HanatourDepartureCollectResult> {
   const maxMonths = options?.maxMonths ?? SCRAPE_DEFAULT_MONTHS_FORWARD
   const stopAfterFirst = options?.stopAfterFirstDeparture === true
   const resolvedDetailUrl = normalizeHanatourDetailUrlForModalScraper(detailUrl)
-  const cwd = process.cwd()
+  const cwd = resolvePythonRepoRoot()
   const perMonthTimeout = resolveHanatourPythonTimeoutMsPerMonth()
+  const pyBoot = resolvePythonResolution()
+  console.log(
+    `[hanatour] phase=collect_boot python=${pyBoot.executable} source=${pyBoot.source} cwd=${cwd}`
+  )
 
   const childEnv = { ...process.env }
   delete childEnv.HANATOUR_E2E_PRINT_REPORT
 
+  const registeredTitle = (options?.registeredRawTitle ?? '').trim()
+
   const buildEnv = (withStopAfterFirst: boolean): NodeJS.ProcessEnv => {
+    const repoRoot = cwd
     const envForPython: NodeJS.ProcessEnv = {
       ...childEnv,
+      PYTHONPATH: repoRoot,
       HANATOUR_E2E_FAST: '1',
+    }
+    if (registeredTitle.length >= 8) {
+      envForPython.HANATOUR_REGISTERED_RAW_TITLE = registeredTitle
+    } else {
+      delete envForPython.HANATOUR_REGISTERED_RAW_TITLE
+    }
+    if (pyBoot.source !== 'env') {
+      delete envForPython.PYTHON
+      delete envForPython.PYTHON_EXECUTABLE
+      delete envForPython.HANATOUR_PYTHON
     }
     if (withStopAfterFirst) {
       envForPython.HANATOUR_E2E_STOP_AFTER_FIRST_DEPARTURE = '1'

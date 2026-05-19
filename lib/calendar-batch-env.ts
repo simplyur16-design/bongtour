@@ -2,6 +2,7 @@
  * Python calendar_price_scheduler spawn — BONGTOUR_API_BASE·Bearer SSOT.
  */
 import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
+import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 import { getSchedulerEnvOverrides } from '@/lib/scheduler-config'
 
 /** Python·내부 배치가 호출할 Next 앱 URL (끝 슬래시 없음) */
@@ -54,7 +55,7 @@ export function getCalendarBatchReadiness(): CalendarBatchReadiness {
     bearerConfigured: hasCalendarBatchCredentials(),
     apiBase,
     apiBaseConfigured: Boolean(apiBase),
-    pythonExecutable: (process.env.PYTHON ?? process.env.PYTHON_EXECUTABLE ?? '').trim() || (process.platform === 'win32' ? 'python' : 'python3'),
+    pythonExecutable: resolvePythonExecutable(),
     disabledByFlag: isCalendarCronDisabled(),
     devOptIn: process.env.ENABLE_INSTRUMENTATION_CALENDAR_CRON === '1',
     nodeEnv: process.env.NODE_ENV ?? 'unknown',

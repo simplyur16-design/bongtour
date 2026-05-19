@@ -125,7 +125,11 @@ export function ItineraryViewPackageMain({
       originSource: product.originSource,
       optionalToursStructured: product.optionalToursStructured,
       optionalToursPasteRaw: product.optionalToursPasteRaw ?? null,
-      shoppingCount: product.shoppingCount ?? product.shoppingVisitCountTotal ?? null,
+      shoppingCount:
+        normalizeSupplierOrigin(product.originSource) === 'hanatour'
+          ? (product.shoppingVisitCountTotal ?? null)
+          : (product.shoppingCount ?? product.shoppingVisitCountTotal ?? null),
+      shoppingVisitCountTotal: product.shoppingVisitCountTotal ?? null,
       shoppingItems: product.shoppingItems,
       shoppingPasteRaw: product.shoppingPasteRaw ?? null,
       shoppingCautionNoticeRaw: product.shoppingNoticeRaw,

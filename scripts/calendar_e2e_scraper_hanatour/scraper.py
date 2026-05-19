@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 하나투어 TRP — 모달 달력 E2E (화면 동작).
-실전 복제본 — 수집 로직 정본은 `scripts/calendar_e2e_scraper_hanatourDEV/scraperDEV.py` (동기화 시 복사).
+하나투어 TRP 「다른 출발일」 모달 E2E SSOT — 금액(만) 있는 달력 일자만 클릭,
+동일 상품명 row 매칭, 달력·우측 리스트 각각 스크롤, 헤더 화살표로 월 이동(←이전 · →다음).
 
 리스트 갱신·미검증 수집 (matchingTraceRaw)
   - ``listRefreshUnverified`` / ``listRefreshUnverifiedSource`` 로 수집 경로 추적.
@@ -60,6 +61,14 @@ def _e2e_timer_reset() -> None:
 def _e2e_light_ops() -> bool:
     """운영 재수집 경량 모드 — 강제 리스트 재시도·동일일 nudge 생략, phase 로그 축소."""
     return (os.environ.get("HANATOUR_E2E_LIGHT_OPS") or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+
+def _e2e_fast() -> bool:
+    return (os.environ.get("HANATOUR_E2E_FAST") or "").strip().lower() in (
         "1",
         "true",
         "yes",
@@ -237,6 +246,11 @@ from .utils import (
     dedupe_departures_by_date,
     extract_hanatour_detail_raw_title,
     filter_hanatour_same_product_rows,
+    hanatour_pick_product_row_baseline_text,
+    hanatour_row_title_from_text,
+    hanatour_split_concatenated_list_text,
+    hanatour_strip_leading_non_title_badge,
+    hanatour_strip_modal_list_chrome,
     fix_airline_name_str,
     hanatour_e2e_verification_tier,
     hanatour_partial_success_primary_reason,
@@ -274,6 +288,44 @@ function __hanatourPickDialog(){
 }
 """
 
+# 달력: 일자 + "N만" 가격 표시 셀(최저가 low 클래스만이 아님 — 일반 가격일도 클릭).
+_HANATOUR_CALENDAR_HELPERS = """
+function __hanatourDayCellText(li) {
+  return (li && (li.innerText || li.textContent) || '').replace(/\\s+/g,' ').trim();
+}
+function __hanatourPricedDayCell(li) {
+  if (!li) return false;
+  const cls = li.className || '';
+  if (/\\boff\\b|disabled|block/i.test(cls)) return false;
+  if (li.getAttribute('aria-disabled') === 'true') return false;
+  const s = __hanatourDayCellText(li);
+  if (!/^\\d{1,2}\\b/.test(s)) return false;
+  if (/\\d+(?:\\.\\d+)?만/.test(s)) return true;
+  if (/[\\d,]{2,}\\s*원/.test(s)) return true;
+  if (/\\b(?:select|low)\\b/i.test(cls) && /^\\d{1,2}\\b/.test(s)) return true;
+  return false;
+}
+function __hanatourPkgCdFromLi(li) {
+  if (!li) return null;
+  for (const attr of ['data-pkgcd', 'data-pkg-cd', 'data-goodscd', 'data-goods-cd']) {
+    try {
+      const v = li.getAttribute(attr);
+      if (v && String(v).trim()) return String(v).trim();
+    } catch (e) {}
+  }
+  const a = li.querySelector('a[href*="pkgCd="], a[href*="goodsCd="]');
+  const href = (a && a.getAttribute('href')) || '';
+  let m = String(href).match(/pkgCd=([A-Za-z0-9]+)/i);
+  if (m) return m[1];
+  m = String(href).match(/goodsCd=([A-Za-z0-9]+)/i);
+  if (m) return m[1];
+  const blob = (li.innerHTML || '') + String(li.getAttribute('onclick') || '');
+  m = blob.match(/pkgCd['"\\s:=]+([A-Za-z0-9]+)/i);
+  if (m) return m[1];
+  return null;
+}
+"""
+
 
 def _inject_dialog_selector(js: str) -> str:
     """최상위에 function + ()=> 를 이어 붙이면 Playwright eval에서 SyntaxError 날 수 있어, 화살표 본문 안에 삽입."""
@@ -286,7 +338,7 @@ def _inject_dialog_selector(js: str) -> str:
     brace = js.find("{", idx)
     if brace < 0:
         return pick + "\n" + js
-    return js[: brace + 1] + "\n" + pick + "\n" + js[brace + 1 :]
+    return js[: brace + 1] + "\n" + pick + "\n" + _HANATOUR_CALENDAR_HELPERS + "\n" + js[brace + 1 :]
 
 
 _LIST_LI_QUERY = (
@@ -316,10 +368,7 @@ _SCROLL_CLICK_JS = _inject_dialog_selector("""
     return /\bbefore\b/i.test(li.className||'') && d >= 8;
   }
   function pricedLowCell(li){
-    const cls = li.className || '';
-    if (!/\\blow\\b/i.test(cls)) return false;
-    const s = txt(li);
-    return /^\\d{1,2}\\s+.+만\\s*최저가/i.test(s);
+    return __hanatourPricedDayCell(li);
   }
   const dialog = __hanatourPickDialog();
   const wrap = dialog.querySelector('.calendar_wrap, [class*="calendar_wrap"]') || dialog;
@@ -476,10 +525,7 @@ _CALENDAR_DAY_PREPARE_AND_POINT_JS = _inject_dialog_selector("""
     return /\bbefore\b/i.test(li.className||'') && d >= 8;
   }
   function pricedLowCell(li){
-    const cls = li.className || '';
-    if (!/\\blow\\b/i.test(cls)) return false;
-    const s = txt(li);
-    return /^\\d{1,2}\\s+.+만\\s*최저가/i.test(s);
+    return __hanatourPricedDayCell(li);
   }
   const dialog = __hanatourPickDialog();
   const wrap = dialog.querySelector('.calendar_wrap, [class*="calendar_wrap"]') || dialog;
@@ -614,10 +660,7 @@ _CALENDAR_DAY_STATE_JS = _inject_dialog_selector("""
     return m ? parseInt(m[1],10) : 0;
   }
   function pricedLowCell(li){
-    const cls = li.className || '';
-    if (!/\\blow\\b/i.test(cls)) return false;
-    const s = txt(li);
-    return /^\\d{1,2}\\s+.+만\\s*최저가/i.test(s);
+    return __hanatourPricedDayCell(li);
   }
   let best = null;
   let bestArea = -1;
@@ -964,21 +1007,41 @@ _COLLECT_ROWS_FULL_JS = _inject_list_li_query(
     } catch (e) {}
     return '';
   }
+  function rowElementsFromNode(li){
+    if (!li) return [];
+    const inner = li.querySelectorAll(
+      ':scope > .cont_unit, :scope .cont_unit, :scope > ul > li, .list_item, [class*="prod_item"]'
+    );
+    const kids = [];
+    for (const x of inner) {
+      if (!x || x === li) continue;
+      const t = (x.innerText || '').replace(/\\s+/g,' ').trim();
+      if (t.length < 16) continue;
+      kids.push(x);
+    }
+    if (kids.length > 1) return kids;
+    return [li];
+  }
   function grab(){
     const nodes = collectRowNodes(listRootForRows, dialog, cal);
     for (const li of nodes){
-      const tx = (li.innerText || '').replace(/\\s+/g,' ').trim();
-      if (tx.length < 16) continue;
-      if (/^(?:출발일|다른\\s*출발|상품\\s*안내|이용\\s*안내)/.test(tx.slice(0,40))) continue;
-      const key = tx.slice(0, 4000);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      const ph = priceHintFrom(li);
-      out.push({
-        text: tx.slice(0, 5000),
-        html: (li.outerHTML||'').slice(0, 1800),
-        priceHint: ph || null,
-      });
+      const rowEls = rowElementsFromNode(li);
+      for (const el of rowEls){
+        const tx = (el.innerText || '').replace(/\\s+/g,' ').trim();
+        if (tx.length < 16) continue;
+        if (/^(?:출발일|다른\\s*출발|상품\\s*안내|이용\\s*안내|총\\s*\\d+\\s*개\\s*$)/.test(tx.slice(0,40))) continue;
+        if (/^총\\s*\\d+\\s*개/.test(tx) && !/패키지\\s/.test(tx)) continue;
+        const key = tx.slice(0, 4000);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const ph = priceHintFrom(el);
+        out.push({
+          text: tx.slice(0, 5000),
+          html: (el.outerHTML||'').slice(0, 1800),
+          priceHint: ph || null,
+          pkgCd: __hanatourPkgCdFromLi(el),
+        });
+      }
     }
   }
   grab();
@@ -1339,11 +1402,7 @@ _ENUM_DAYS_JS = _inject_dialog_selector("""
   const grid = wrap.querySelector('.calendar_area') || wrap;
   const out = [];
   function isPricedDayLi(li) {
-    const cls = li.className || '';
-    if (!/\\blow\\b/i.test(cls)) return false;
-    const s = (li.innerText||'').replace(/\\s+/g,' ').trim();
-    if (!/^\\d{1,2}\\s+.+만\\s*최저가/i.test(s)) return false;
-    return true;
+    return __hanatourPricedDayCell(li);
   }
   for (const ul of grid.querySelectorAll('ul.day, ul[class*="day"]')){
     for (const li of ul.querySelectorAll(':scope > li')){
@@ -1362,6 +1421,81 @@ _ENUM_DAYS_JS = _inject_dialog_selector("""
     }
   }
   return out;
+}
+""")
+
+_ENUM_DAYS_WITH_SCROLL_JS = _inject_dialog_selector("""
+(args) => {
+  const wy = args && args[0];
+  const wm = args && args[1];
+  const dialog = __hanatourPickDialog();
+  const wrap = dialog.querySelector('.calendar_wrap, [class*="calendar_wrap"]') || dialog;
+  const calArea = wrap.querySelector('.calendar_area') || wrap;
+  function enumOnce() {
+    const out = [];
+    for (const ul of calArea.querySelectorAll('ul.day, ul[class*="day"]')){
+      for (const li of ul.querySelectorAll(':scope > li')){
+        const r = li.getBoundingClientRect();
+        if (r.width * r.height < 40) continue;
+        if (!__hanatourPricedDayCell(li)) continue;
+        const s = __hanatourDayCellText(li);
+        const m = s.match(/^(\\d{1,2})\\b/);
+        if (!m) continue;
+        const dd = parseInt(m[1], 10);
+        if (dd < 1 || dd > 31) continue;
+        let dis = li.className && /off|disabled|block/i.test(li.className);
+        if (li.getAttribute('aria-disabled') === 'true') dis = true;
+        if (!dis && wy && wm)
+          out.push({ day: dd, iso: wy + '-' + String(wm).padStart(2,'0') + '-' + String(dd).padStart(2,'0') });
+      }
+    }
+    return out;
+  }
+  function isScrollableY(el){
+    try {
+      const st = getComputedStyle(el);
+      const oy = st.overflowY;
+      if (!(oy==='auto'||oy==='scroll'||oy==='overlay')) return false;
+      if (el.scrollHeight <= el.clientHeight+2) return false;
+      const r = el.getBoundingClientRect();
+      return r.width>32 && r.height>32;
+    } catch(e){ return false; }
+  }
+  function findScroller(){
+    let best = null;
+    let bestH = 0;
+    const roots = [calArea, wrap];
+    function walk(el){
+      if (!el) return;
+      if (isScrollableY(el)) {
+        const h = el.scrollHeight - el.clientHeight;
+        if (h > bestH) { bestH = h; best = el; }
+      }
+      for (const ch of el.children || []) walk(ch);
+    }
+    for (const r of roots) walk(r);
+    return best;
+  }
+  const sc = findScroller();
+  const byIso = {};
+  if (sc) { try { sc.scrollTop = 0; } catch(e){} }
+  let stagnant = 0;
+  for (let pass = 0; pass < 18; pass++) {
+    const batch = enumOnce();
+    let added = 0;
+    for (const x of batch) {
+      if (x && x.iso && !byIso[x.iso]) { byIso[x.iso] = x; added++; }
+    }
+    if (!sc) break;
+    const prev = sc.scrollTop;
+    const step = Math.max(72, Math.floor(sc.clientHeight * 0.72));
+    sc.scrollTop = Math.min(sc.scrollTop + step, Math.max(0, sc.scrollHeight - sc.clientHeight));
+    if (sc.scrollTop === prev && added === 0) stagnant++;
+    else stagnant = 0;
+    if (stagnant >= 2) break;
+  }
+  if (sc) { try { sc.scrollTop = 0; } catch(e){} }
+  return Object.values(byIso).sort((a,b) => String(a.iso).localeCompare(String(b.iso)));
 }
 """)
 
@@ -1505,10 +1639,7 @@ async (args) => {
     return false;
   }
   function pricedLowCell(li){
-    const cls = li.className || '';
-    if (!/\blow\b/i.test(cls)) return false;
-    const s = txt(li);
-    return /^\d{1,2}\s+.+만\s*최저가/i.test(s);
+    return __hanatourPricedDayCell(li);
   }
   function area(el){
     try { const r = el.getBoundingClientRect(); return r.width * r.height; } catch(e){ return 0; }
@@ -1694,6 +1825,127 @@ def _hint_departure_isos_for_month(raw_title: str, wy: int, wm: int) -> list[str
         if iso not in out:
             out.append(iso)
     return out
+
+
+def _earliest_hint_year_month(raw_title: str, reference_ymd: str) -> tuple[int, int] | None:
+    """제목 첫 'MM/DD (요일)' → reference 기준 연도(연말→다음해 1월 보정)."""
+    t = (raw_title or "").replace("\u00a0", " ")
+    m = re.search(r"\b(\d{1,2})/(\d{1,2})\s*\(", t)
+    if not m:
+        return None
+    try:
+        mm = int(m.group(1))
+        dd = int(m.group(2))
+        ref_y = int(str(reference_ymd or "")[:4])
+        ref_m = int(str(reference_ymd or "")[5:7])
+    except (ValueError, IndexError):
+        return None
+    if mm < 1 or mm > 12 or dd < 1 or dd > 31:
+        return None
+    year = ref_y
+    if mm < ref_m - 1:
+        year += 1
+    return year, mm
+
+
+async def _navigate_calendar_to_year_month(
+    page: Page,
+    ty: int,
+    tm: int,
+    *,
+    notes: list[str],
+    max_steps: int = 24,
+) -> bool:
+    for _ in range(max(1, max_steps)):
+        ym = await _month_label_tuple(page)
+        if not ym:
+            return False
+        wy0, wm0 = ym
+        if wy0 == ty and wm0 == tm:
+            return True
+        if (wy0 < ty) or (wy0 == ty and wm0 < tm):
+            ok = await _next_month(page)
+        else:
+            ok = await _prev_month(page)
+        if not ok:
+            notes.append(f"calendar_nav_failed:want={ty:04d}-{tm:02d}")
+            return False
+        lo, hi = (0.08, 0.18) if _e2e_light_ops() or _e2e_fast() else (0.15, 0.35)
+        await human_delay(lo, hi)
+    notes.append(f"calendar_nav_exhausted:want={ty:04d}-{tm:02d}")
+    return False
+
+
+async def _enumerate_priced_days_for_month(
+    page: Page, wy: int, wm: int
+) -> list[dict[str, Any]]:
+    """금액(만) 있는 일자만 — 달력 스크롤러 안에서 전부 스캔."""
+    raw = await page.evaluate(_ENUM_DAYS_WITH_SCROLL_JS, [wy, wm])
+    if not isinstance(raw, list):
+        raw = await page.evaluate(_ENUM_DAYS_JS, [wy, wm])
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for slot in raw:
+        iiso = str((slot or {}).get("iso") or "")
+        if len(iiso) < 10 or iiso in seen:
+            continue
+        seen.add(iiso)
+        out.append(slot)
+    return out
+
+
+async def _future_day_slots_for_month(
+    page: Page, wy: int, wm: int, kst_min_iso: str
+) -> list[dict[str, Any]]:
+    days = await _enumerate_priced_days_for_month(page, wy, wm)
+    if not isinstance(days, list):
+        days = []
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for slot in days:
+        iiso = str((slot or {}).get("iso") or "")
+        if len(iiso) < 10 or iiso in seen or iiso < kst_min_iso:
+            continue
+        seen.add(iiso)
+        out.append(slot)
+    return out
+
+
+async def _bootstrap_calendar_month_for_collection(
+    page: Page,
+    *,
+    raw_title: str,
+    kst_today: str,
+    notes: list[str],
+    max_scan_months: int = 8,
+) -> None:
+    """모달 직후 — 제목 힌트 월 또는 미래 일자가 있는 첫 달로 이동."""
+    hint = _earliest_hint_year_month(raw_title, kst_today)
+    if hint:
+        ty, tm = hint
+        if await _navigate_calendar_to_year_month(page, ty, tm, notes=notes):
+            notes.append(f"calendar_bootstrapped_hint:{ty:04d}-{tm:02d}")
+            return
+    scan_cap = min(max_scan_months, 4) if (_e2e_light_ops() or _e2e_fast()) else max_scan_months
+    for _ in range(max(1, scan_cap)):
+        ym = await _month_label_tuple(page)
+        if not ym:
+            break
+        wy, wm = ym
+        slots = await _future_day_slots_for_month(page, wy, wm, kst_today)
+        if slots:
+            notes.append(
+                f"calendar_bootstrapped_slots:{wy:04d}-{wm:02d} count={len(slots)}"
+            )
+            return
+        if not await _next_month(page):
+            notes.append("calendar_bootstrap_next_month_failed")
+            break
+        lo, hi = (0.08, 0.18) if _e2e_light_ops() or _e2e_fast() else (0.15, 0.35)
+        await human_delay(lo, hi)
+    notes.append("calendar_bootstrap_no_slots_found")
 
 
 def _sort_day_slots_by_hints(slots: list[dict[str, Any]], hints: list[str]) -> list[dict[str, Any]]:
@@ -1929,10 +2181,14 @@ def _row_to_candidate(raw: dict[str, str]) -> dict[str, Any]:
     text = raw.get("text") or ""
     price_hint = str(raw.get("priceHint") or "").strip()
     parse_blob = text if not price_hint else f"{text}\n{price_hint}"
-    lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
-    title_line = _find_title_line(lines) or (lines[0] if lines else text[:200])
+    title_line = hanatour_row_title_from_text(text)
+    if not title_line:
+        lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
+        title_line = _find_title_line(lines) or (lines[0] if lines else text[:200])
     layers = hanatour_title_layers(title_line)
     merged = _parse_row_times_and_airline(parse_blob)
+    row_html = raw.get("html") or ""
+    row_pkg = (raw.get("pkgCd") or "").strip() or None
     return {
         "candidateRawTitle": title_line,
         "candidatePreHashTitle": layers.get("preHashTitle"),
@@ -1940,6 +2196,8 @@ def _row_to_candidate(raw: dict[str, str]) -> dict[str, Any]:
         "candidateComparisonTitleNoSpace": layers.get("comparisonTitleNoSpace"),
         "candidateVariantLabelKey": layers.get("variantLabelKey"),
         "rowText": text[:4000],
+        "rowHtml": row_html[:1800] if row_html else None,
+        "rowPkgCd": row_pkg,
         **merged,
     }
 
@@ -2012,6 +2270,37 @@ def _finalize_hanatour_e2e_validation_log(
     }
 
 
+def _registered_raw_title_from_env() -> str:
+    t = (os.environ.get("HANATOUR_REGISTERED_RAW_TITLE") or "").strip()
+    if len(t) >= 8 and t.lower() not in ("hanatour", "하나투어"):
+        return hanatour_strip_modal_list_chrome(t)
+    return ""
+
+
+async def _resolve_raw_title_for_matching(
+    page: Page,
+    detail_raw_title: str,
+    notes: list[str],
+) -> str:
+    """동일상품 매칭 기준 제목 — DB 등록명 > 상세 > (대상 월 정렬 후) 모달 상품 행."""
+    env_t = _registered_raw_title_from_env()
+    if env_t:
+        notes.append("baseline_title_from_registered_env")
+        return hanatour_strip_leading_non_title_badge(env_t)
+    rt = hanatour_strip_leading_non_title_badge((detail_raw_title or "").strip())
+    if len(rt) >= 8 and rt.lower() not in ("hanatour", "하나투어"):
+        return rt
+    try:
+        rows_probe = await page.evaluate(_COLLECT_ROWS_FULL_JS)
+        picked = hanatour_pick_product_row_baseline_text(rows_probe)
+        if picked and len(picked) >= 12:
+            notes.append("baseline_title_from_modal_product_row")
+            return picked
+    except Exception:
+        pass
+    return rt
+
+
 async def _collect_rows_match_same_product(
     page: Page,
     raw_title: str,
@@ -2019,6 +2308,7 @@ async def _collect_rows_match_same_product(
     notes: list[str],
     *,
     deadline: float | None = None,
+    supplier_pkg_cd: str | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any] | None, int, list[dict[str, Any]]]:
     """우측 리스트에서 동일 상품명 row — 스크롤 보정 후 재수집."""
     last_cands: list[dict[str, Any]] = []
@@ -2027,7 +2317,7 @@ async def _collect_rows_match_same_product(
         "true",
         "yes",
     )
-    _max_attempts = 2 if _admin_sess else 5
+    _max_attempts = 4 if _admin_sess else 5
     for attempt in range(1, _max_attempts + 1):
         if deadline is not None and _time.perf_counter() >= deadline:
             notes.append(f"same_product_deadline:{iso}")
@@ -2047,12 +2337,28 @@ async def _collect_rows_match_same_product(
         rows_raw = await page.evaluate(_COLLECT_ROWS_FULL_JS)
         if not isinstance(rows_raw, list):
             rows_raw = []
-        cands = [_row_to_candidate(r) for r in rows_raw]
+        expanded_raw: list[dict[str, Any]] = []
+        for r in rows_raw:
+            if not isinstance(r, dict):
+                continue
+            tx = str(r.get("text") or "")
+            parts = hanatour_split_concatenated_list_text(tx)
+            if len(parts) <= 1:
+                expanded_raw.append(r)
+            else:
+                for p in parts:
+                    expanded_raw.append({**r, "text": p})
+        cands = [_row_to_candidate(r) for r in expanded_raw]
         last_cands = cands
-        same = filter_hanatour_same_product_rows(cands, raw_title)
+        same = filter_hanatour_same_product_rows(
+            cands, raw_title, supplier_pkg_cd=supplier_pkg_cd
+        )
         if same:
             if attempt > 1:
                 notes.append(f"same_product_matched_after_list_scroll:{iso}:attempt={attempt}")
+            match_kind = (same[0].get("_match") or "anchor") if same else ""
+            if match_kind == "hanatour_pkg_cd":
+                notes.append(f"same_product_by_pkg_cd:{iso}")
             return same, same[0], attempt, cands
     return [], None, _max_attempts, last_cands
 
@@ -2268,6 +2574,8 @@ async def _open_modal(page: Page) -> bool:
             continue
 
     role_patterns = (
+        re.compile(r"다른\s*출발일\s*상품"),
+        re.compile(r"최저가로\s*떠날\s*수\s*있는\s*날|최저가로"),
         re.compile(r"다른\s*출발일\s*선택|다른출발일선택"),
         re.compile(r"다른\s*출발일\s*보기|다른출발일보기"),
         re.compile(r"출발일\s*선택"),
@@ -2870,7 +3178,8 @@ class HanatourCalendarE2EScraper:
             raw_title = extract_hanatour_detail_raw_title(html)
             log["raw_title"] = raw_title[:400]
             ident = parse_hanatour_product_identifiers(detail_url)
-            log["supplier_product_code"] = ident.get("pkg_cd")
+            supplier_pkg_cd = str(ident.get("pkg_cd") or "").strip() or None
+            log["supplier_product_code"] = supplier_pkg_cd
             opened = await _open_modal(page)
             log["modal_opened"] = opened
             if opened:
@@ -2886,19 +3195,6 @@ class HanatourCalendarE2EScraper:
                     own,
                     phase_month=phase_month,
                 )
-
-            rt = (raw_title or "").strip()
-            if len(rt) < 8 or rt in ("하나투어", "HANATOUR", "hanatour"):
-                try:
-                    rows_probe = await page.evaluate(_COLLECT_ROWS_FULL_JS)
-                    if isinstance(rows_probe, list) and rows_probe:
-                        t0 = (rows_probe[0].get("text") or "").split("\n")[0].strip()
-                        if len(t0) > 12:
-                            raw_title = t0
-                            log["raw_title"] = raw_title[:400]
-                            notes.append("baseline_title_from_modal_first_row")
-                except Exception:
-                    pass
 
             lay_modal = await _ensure_departure_list_visible(page)
             log["e2e_list_layout"] = lay_modal
@@ -3033,6 +3329,27 @@ class HanatourCalendarE2EScraper:
                     except ValueError:
                         pass
 
+            if (
+                not target_month_ym
+                and not skip_target_month_body
+                and not (mfmo and (os.getenv("HANATOUR_E2E_FIRST_VERIFY_YM") or "").strip())
+            ):
+                await _bootstrap_calendar_month_for_collection(
+                    page,
+                    raw_title=raw_title,
+                    kst_today=kst_today,
+                    notes=notes,
+                )
+                boot_ym = await _month_label_tuple(page)
+                boot_label = (
+                    f"{boot_ym[0]:04d}-{boot_ym[1]:02d}" if boot_ym else "unknown"
+                )
+                _e2e_hanatour_phase(
+                    "calendar_bootstrap_done",
+                    month=boot_label,
+                    current_calendar_label=boot_label,
+                )
+
             t_e2e_month_loop0 = _time.perf_counter()
             _e2e_timing_phase("month_loop_start")
             for mi in range(max_months_eff):
@@ -3044,21 +3361,17 @@ class HanatourCalendarE2EScraper:
                 wm = int((ym or {}).get("month") or 0)
                 phase_month = f"{wy:04d}-{wm:02d}"
                 month_appended = 0
+                if opened and not _registered_raw_title_from_env():
+                    refreshed = await _resolve_raw_title_for_matching(
+                        page, raw_title, notes
+                    )
+                    if refreshed and len(refreshed.strip()) >= 8:
+                        raw_title = refreshed
+                        log["raw_title"] = raw_title[:400]
                 if not wy or not wm:
                     notes.append(f"month_label_unreadable_month_index={mi}")
                     break
-                days = await page.evaluate(_ENUM_DAYS_JS, [wy, wm])
-                if not isinstance(days, list):
-                    days = []
-                uniq_slots: list[dict[str, Any]] = []
-                seen_iso: set[str] = set()
-                for slot in days:
-                    iiso = str((slot or {}).get("iso") or "")
-                    if len(iiso) < 10 or iiso in seen_iso:
-                        continue
-                    seen_iso.add(iiso)
-                    uniq_slots.append(slot)
-                days = uniq_slots
+                days = await _enumerate_priced_days_for_month(page, wy, wm)
                 day_hints = _hint_departure_isos_for_month(raw_title, wy, wm)
                 if day_hints:
                     notes.append(f"e2e_departure_day_hints:{','.join(day_hints[:12])}")
@@ -3257,6 +3570,8 @@ class HanatourCalendarE2EScraper:
                         await asyncio.sleep(
                             max(0.02, config.POST_CLICK_BEFORE_LIST_MS / 1000.0)
                         )
+                    elif _e2e_light_ops() or _e2e_fast():
+                        await human_delay(0.28, 0.55)
                     else:
                         # 날짜(일자) 클릭 직후 — 사람이 다음 UI를 읽는 시간
                         await human_delay(2.0, 3.0)
@@ -3422,6 +3737,7 @@ class HanatourCalendarE2EScraper:
                             iso,
                             notes,
                             deadline=day_deadline,
+                            supplier_pkg_cd=supplier_pkg_cd,
                         )
                     )
                     match_ms = (_time.perf_counter() - t_match0) * 1000
@@ -3705,9 +4021,13 @@ class HanatourCalendarE2EScraper:
                     break
                 if mi >= max_months_eff - 1:
                     break
-                if month_appended == 0:
+                if month_appended == 0 and len(days) == 0:
+                    notes.append(f"empty_calendar_month:{phase_month}")
+                elif month_appended == 0 and not stop_after_first:
                     notes.append(f"season_end_detected:{phase_month}")
                     break
+                elif month_appended == 0:
+                    notes.append(f"no_collection_month:{phase_month}")
                 t_nm0 = _time.perf_counter()
                 nm_ok = await _next_month(page)
                 nms = (_time.perf_counter() - t_nm0) * 1000.0

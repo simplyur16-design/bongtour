@@ -11,7 +11,7 @@ from . import config
 from . import scraper as _han_scraper
 from .scraper import (
     _CALENDAR_SELECTED_ISO_JS,
-    _ENUM_DAYS_JS,
+    _enumerate_priced_days_for_month,
     _LIST_SNAPSHOT_JS,
     _MONTH_LABEL_JS,
     _click_day,
@@ -74,8 +74,8 @@ async def _run(url: str, *, max_months: int = 2, june_clicks: int = 3) -> dict:
                 }
                 break
 
-            raw_days = await page.evaluate(_ENUM_DAYS_JS, [wy, wm])
-            days = _uniq_enum_days(raw_days if isinstance(raw_days, list) else [])
+            raw_days = await _enumerate_priced_days_for_month(page, wy, wm)
+            days = _uniq_enum_days(raw_days)
             month_entry = {
                 "month_index": mi,
                 "y": wy,
@@ -183,6 +183,9 @@ async def _run(url: str, *, max_months: int = 2, june_clicks: int = 3) -> dict:
 
 
 def main() -> int:
+    sys.stderr.write(
+        "[deprecated] use: python -m scripts.calendar_e2e_scraper_hanatour.main --explore <url>\n"
+    )
     url = (
         sys.argv[1]
         if len(sys.argv) > 1

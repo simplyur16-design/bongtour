@@ -844,9 +844,17 @@ export async function collectDepartureInputsForAdminRescrape(
         monthYmsOverride = chunk.chunkYms
       }
 
+      const titleRow = await prisma.product.findUnique({
+        where: { id: product.id },
+        select: { title: true, originalTitle: true },
+      })
+      const registeredRawTitle =
+        (titleRow?.originalTitle ?? '').trim() || (titleRow?.title ?? '').trim() || null
+
       const hanatour = await collectHanatourDepartureInputs(detailUrl, {
         monthYmsOverride,
         stopAfterFirstDeparture: false,
+        registeredRawTitle,
       })
       if (hanatour.inputs.length > 0) {
         const fillMeta = deriveFillMeta(hanatour.inputs)

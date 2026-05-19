@@ -402,6 +402,10 @@ export async function ProductDetailView({
       canonical: structured?.shoppingStructured,
       legacyDbRows: shoppingStopsFromDb,
       legacyMetaRows: shoppingStopsFromMeta,
+      shoppingPasteRaw:
+        publicConsumptionModuleKey === 'hanatour'
+          ? (structured?.shoppingPasteRaw ?? travelProduct.shoppingPasteRaw ?? null)
+          : undefined,
     }
     switch (publicConsumptionModuleKey) {
       case 'modetour':

@@ -10,6 +10,8 @@ import { resolveDirectedFlightLinesHanatour } from '../lib/register-flight-hanat
 import { extractProductPriceTableByLabels } from '../lib/product-price-table-extract'
 import { extractStructuredTourSignals } from '../lib/structured-tour-signals-hanatour'
 import { parseHanatourShoppingInput } from '../lib/register-input-parse-hanatour'
+import { formatFlightLegTwoLines } from '../lib/flight-user-display'
+import { resolveShoppingConsumption } from '../lib/public-consumption-hanatour'
 import {
   HANATOUR_ATP207_FLIGHT_PASTE,
   HANATOUR_ATP207_HEADER_SNIPPET,
@@ -55,6 +57,26 @@ function main() {
 
   const shop = parseHanatourShoppingInput(HANATOUR_ATP207_SHOPPING_TABLE_PASTE, HANATOUR_ATP207_SHOPPING_TABLE_PASTE)
   assert.equal(shop.rows.length, 3, 'shopping table rows (visit count SSOT is not row count for hanatour LLM path)')
+
+  const pubShop = resolveShoppingConsumption({
+    canonical: null,
+    legacyDbRows: [],
+    legacyMetaRows: [],
+    shoppingPasteRaw: HANATOUR_ATP207_SHOPPING_TABLE_PASTE,
+  })
+  assert.equal(pubShop.value.length, 3, 'public paste fallback rows')
+  assert.ok(pubShop.value[0]!.city === '타이베이' && pubShop.value[0]!.shopName?.includes('모공주'))
+
+  const obLeg = {
+    departureAirport: flight.outbound.departureAirport,
+    arrivalAirport: flight.outbound.arrivalAirport,
+    departureAtText: `${flight.outbound.departureDate} ${flight.outbound.departureTime}`,
+    arrivalAtText: `${flight.outbound.arrivalDate} ${flight.outbound.arrivalTime}`,
+    flightNo: flight.outbound.flightNo,
+  }
+  const heroOb = formatFlightLegTwoLines(obLeg)
+  assert.ok(heroOb, 'hero two-line flight without airports')
+  assert.ok(heroOb!.departureAtText.includes('(월)'), 'weekday on outbound hero')
 
   console.log('[ok] hanatour fixture', HANATOUR_ATP207_ORIGIN_CODE)
   console.log('  flight:', flight.outbound.flightNo, '→', flight.inbound.flightNo)

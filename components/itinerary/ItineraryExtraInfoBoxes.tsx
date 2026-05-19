@@ -3,6 +3,7 @@
 import PackageOptionalToursTable from '@/app/components/detail/PackageOptionalToursTable'
 import PackageShoppingTable from '@/app/components/detail/PackageShoppingTable'
 import ModetourShoppingTable from '@/app/components/detail/ModetourShoppingTable'
+import ShoppingFactSheet from '@/app/components/detail/ShoppingFactSheet'
 import type { ShoppingStopRow } from '@/lib/public-product-extras-types'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import {
@@ -21,6 +22,7 @@ export type ItineraryExtraInfoProduct = {
   optionalToursStructured?: string | null
   optionalToursPasteRaw?: string | null
   shoppingCount?: number | null
+  shoppingVisitCountTotal?: number | null
   shoppingItems?: string | null
   shoppingPasteRaw?: string | null
   shoppingCautionNoticeRaw?: string | null
@@ -100,6 +102,10 @@ export function ItineraryExtraInfoBoxes({
 
   const isAirtel = product.productType === 'airtel'
   const isModetour = normalizeSupplierOrigin(product.originSource) === 'modetour'
+  const isHanatour = normalizeSupplierOrigin(product.originSource) === 'hanatour'
+  const shoppingVisitCountForUi = isHanatour
+    ? (product.shoppingVisitCountTotal ?? null)
+    : (product.shoppingCount ?? product.shoppingVisitCountTotal ?? null)
 
   return (
     <div className="space-y-2">
@@ -164,15 +170,26 @@ export function ItineraryExtraInfoBoxes({
             isModetour ? (
               <ModetourShoppingTable
                 stops={product.shoppingStopsStructured}
-                shoppingCount={product.shoppingCount}
+                shoppingCount={shoppingVisitCountForUi}
                 shoppingPasteRaw={product.shoppingPasteRaw ?? null}
                 shoppingItems={product.shoppingItems}
                 shoppingNoticeRaw={product.shoppingCautionNoticeRaw}
               />
+            ) : isHanatour ? (
+              <ShoppingFactSheet
+                embedded
+                originSource={product.originSource ?? null}
+                shoppingCount={shoppingVisitCountForUi ?? 0}
+                visitCountTotal={product.shoppingVisitCountTotal ?? null}
+                shoppingItems={product.shoppingItems ?? null}
+                shoppingNoticeRaw={product.shoppingCautionNoticeRaw ?? null}
+                shoppingPasteRaw={product.shoppingPasteRaw ?? null}
+                structuredStops={product.shoppingStopsStructured ?? undefined}
+              />
             ) : (
               <PackageShoppingTable
                 stops={product.shoppingStopsStructured}
-                shoppingCount={product.shoppingCount}
+                shoppingCount={shoppingVisitCountForUi}
                 shoppingPasteRaw={product.shoppingPasteRaw ?? null}
                 shoppingItems={product.shoppingItems}
                 shoppingNoticeRaw={product.shoppingCautionNoticeRaw}
