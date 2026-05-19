@@ -4,7 +4,7 @@
  *
  *   npx tsx scripts/verify-mega-menu-browse-urls.ts
  */
-import { TOP_NAV_MEGA_REGIONS, buildProductsHref, buildProductsHrefCountryOnly } from '@/lib/top-nav-resolve'
+import { TOP_NAV_MEGA_REGIONS, buildMegaMenuLeafHref, buildProductsHrefCountryOnly } from '@/lib/top-nav-resolve'
 import {
   BROWSE_COUNTRY_SLUGS_WITH_INTENTIONAL_EMPTY_RESOLVE,
   resolveBrowseCountryParamToDbCountries,
@@ -38,12 +38,20 @@ function main() {
       }
 
       for (const leaf of g.cities) {
-        const leafHref = buildProductsHref({
+        const leafHref = buildMegaMenuLeafHref({
           type: BROWSE_TYPE,
           regionId: region.id,
           countryLabel: g.countryLabel,
           leaf,
         })
+        if (leaf.kind === 'country') {
+          const leafUrl = new URL(leafHref, 'http://localhost')
+          if (leafUrl.searchParams.get('city')) {
+            issues.push(
+              `[leaf] region=${region.id} country-kind leaf=${JSON.stringify(leaf.label)} must not set city (got ${leafHref})`,
+            )
+          }
+        }
         const leafSlug = countrySlugFromBrowseHref(leafHref)
         const leafResolved = resolveBrowseCountryParamToDbCountries(leafSlug)
         if (leafResolved.length === 0) {

@@ -94,16 +94,35 @@ export function formatMealDisplay(params: FormatMealDisplayParams): string[] {
   return ['식사 - 불포함']
 }
 
+/** 귀국·도착일(일차별 숙소 없음)에 상품 대표 호텔명을 끼워 넣지 않는다. */
+export function isLikelyReturnArrivalDayWithoutHotel(description: string | null | undefined): boolean {
+  const t = (description ?? '').replace(/\r/g, '\n')
+  if (!/도착/.test(t)) return false
+  if (/호텔\s*투숙|숙박/.test(t)) return false
+  if (/\bOZ\d+편\s*인천\s*출발|인천\s*출발|\[.*\]\s*.*인천\s*출발/.test(t)) return false
+  if (/(인천국제공항|인천\s*국제\s*공항|제\s*\d+\s*터미널|\(T2\)|\bT2\b)/i.test(t) && /도착/.test(t)) return true
+  return false
+}
+
 /**
  * 일정 day 카드용: dayHotelText 우선, 없으면 상품 호텔만 formatHotelDisplay(day 제외).
+ * 마지막 일차가 귀국 도착인데 dayHotelText가 비었으면 상품 hotelNames 폴백을 쓰지 않는다.
  */
 export function formatScheduleDayHotelLine(params: {
   hotelNames?: string[] | null
   hotelSummaryText?: string | null
   dayHotelText?: string | null
+  isLastScheduleRow?: boolean
+  dayDescription?: string | null
 }): string | null {
   const day = trimOrNull(params.dayHotelText)
   if (day) return day
+  if (
+    params.isLastScheduleRow &&
+    isLikelyReturnArrivalDayWithoutHotel(params.dayDescription)
+  ) {
+    return null
+  }
   return formatHotelDisplay({
     hotelNames: params.hotelNames,
     hotelSummaryText: params.hotelSummaryText,

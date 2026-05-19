@@ -68,6 +68,25 @@ export function buildProductsHrefCountryOnly(opts: {
   return `${browseBasePath(scope)}?${params.toString()}`
 }
 
+/** 메가메뉴 leaf — `kind: 'country'`면 country-only URL, 아니면 city 포함 */
+export function buildMegaMenuLeafHref(opts: {
+  type: string
+  regionId: string
+  countryLabel: string
+  leaf: MegaMenuLeaf
+  scope?: BrowseHrefScope
+}): string {
+  if (opts.leaf.kind === 'country') {
+    return buildProductsHrefCountryOnly({
+      type: opts.type,
+      regionId: opts.regionId,
+      countryLabel: opts.leaf.browseCountryLabel ?? opts.leaf.label,
+      scope: opts.scope,
+    })
+  }
+  return buildProductsHref(opts)
+}
+
 /**
  * URL 쿼리(region/country/city)로부터 상품 목적지 매칭용 terms.
  * city가 없으면 해당 국가 블록의 모든 도시 terms를 합친다.

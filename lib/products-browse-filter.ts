@@ -5,7 +5,11 @@
  */
 import type { Product } from '@prisma/client'
 import { computeEffectivePricePerPersonKrwFromRow, type ProductPriceSelect } from '@/lib/product-price-per-person'
-import { productMatchesOverseasDestinationTerms, type OverseasProductMatchInput } from '@/lib/match-overseas-product'
+import {
+  productMatchesOverseasDestinationTerms,
+  type BrowseUrlGeo,
+  type OverseasProductMatchInput,
+} from '@/lib/match-overseas-product'
 import { parseListingKind, type ListingKind } from '@/lib/product-listing-kind'
 
 export type ProductBrowseType = 'travel' | 'free' | 'semi' | 'private' | 'airtel'
@@ -60,7 +64,6 @@ export function toOverseasMatchInput(p: {
   destinationRaw: string | null
   destination: string | null
   primaryRegion: string | null
-  continent?: string | null
   country?: string | null
   city?: string | null
   countryKey?: string | null
@@ -76,7 +79,6 @@ export function toOverseasMatchInput(p: {
     destinationRaw: p.destinationRaw,
     destination: p.destination,
     primaryRegion: p.primaryRegion,
-    continent: p.continent ?? null,
     country: p.country ?? null,
     city: p.city ?? null,
     countryKey: p.countryKey ?? null,
@@ -113,8 +115,8 @@ export function scoreAndFilterProducts(
     destinationTerms: string[]
     budgetPerPersonMax: number | null
     sort: BrowseSort
-    /** URL `region`·`country`·`city` — DB continent/country/city 슬러그와 직접 비교 */
-    urlGeo?: { region: string | null; country: string | null; city: string | null }
+    /** URL geo — ProductCountryTag / ProductCityTag (`regionCountryKeys`는 browse API에서 주입) */
+    urlGeo?: BrowseUrlGeo
   }
 ): BrowseScoredProduct[] {
   const list: BrowseScoredProduct[] = []

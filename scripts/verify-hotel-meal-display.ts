@@ -6,6 +6,7 @@ import {
   formatHotelDisplay,
   formatMealDisplay,
   formatScheduleDayHotelLine,
+  isLikelyReturnArrivalDayWithoutHotel,
 } from '../lib/hotel-meal-display'
 import {
   expandVerygoodScheduleDescriptionForPublicDetail,
@@ -91,6 +92,22 @@ assert.equal(
     dayHotelText: null,
   }),
   'A 외 1'
+)
+
+// 마지막 귀국 도착일: dayHotelText 없을 때 상품 hotelNames 폴백 금지 (모두투어 pkg-mt-0054 유형)
+assert.equal(
+  isLikelyReturnArrivalDayWithoutHotel('인천 국제공항에 안전하게 도착합니다.'),
+  true
+)
+assert.equal(
+  formatScheduleDayHotelLine({
+    hotelNames: ['VIKING LINE'],
+    hotelSummaryText: null,
+    dayHotelText: null,
+    isLastScheduleRow: true,
+    dayDescription: '인천 국제공항에 안전하게 도착합니다.',
+  }),
+  null
 )
 
 // verygood 공개 전달: 마지막 행 + 인천 공항 도착 본문 → product 폴백 숨김 (page에서 omitHotelLine)

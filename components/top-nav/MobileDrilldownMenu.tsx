@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { ProductBrowseType } from '@/lib/products-browse-filter'
 import { TOP_NAV_MEGA_REGIONS } from '@/lib/top-nav-resolve'
-import { buildProductsHref, buildProductsHrefCountryOnly } from '@/lib/top-nav-resolve'
+import { buildMegaMenuLeafHref, buildProductsHrefCountryOnly } from '@/lib/top-nav-resolve'
 import { OVERSEAS_SUB_NAV_ITEMS } from '@/components/top-nav/overseas-sub-nav-items'
 
 type Step = 'types' | 'regions' | 'countries' | 'cities'
@@ -185,7 +185,7 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
               ?.cities.map((c) => (
                 <li key={c.label}>
                   <Link
-                    href={buildProductsHref({
+                    href={buildMegaMenuLeafHref({
                       type: productType,
                       regionId: region.id,
                       countryLabel,

@@ -641,10 +641,19 @@ export function ItineraryView({
             mode === 'package' && product.schedule && product.schedule.length > 0 ? (
               <div className="space-y-10">
                 {product.schedule.map((day, idx) => {
+                  const lastDay =
+                    product.schedule?.length ?
+                      Math.max(
+                        ...product.schedule.map((d) => Math.floor(Number(d.day))).filter((n) => Number.isFinite(n) && n >= 1)
+                      )
+                    : 0
+                  const dayNum = Math.floor(Number(day.day))
                   const hotelLine = formatScheduleDayHotelLine({
                     hotelNames: product.hotelNames ?? null,
                     hotelSummaryText: product.hotelSummaryText ?? null,
                     dayHotelText: day.hotelText ?? null,
+                    isLastScheduleRow: lastDay > 0 && dayNum === lastDay,
+                    dayDescription: day.description ?? null,
                   })
                   const mealLines = formatMealDisplay({
                     breakfastText: day.breakfastText,

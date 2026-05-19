@@ -19,6 +19,8 @@ export type MegaMenuLeaf = {
   terms: string[]
   /** browse URL `country` 슬러그 — 트리 국가 라벨과 다를 때 */
   browseCountryLabel?: string
+  /** `country` = 국가 단위 링크(city 쿼리 없음). 기본 `city` */
+  kind?: 'country' | 'city'
   sublabel?: string
 }
 
@@ -90,6 +92,7 @@ function groupDefToGroup(d: MegaMenuCountryGroupDef): MegaMenuCountryGroup {
         label: c.label,
         terms: c.terms,
         browseCountryLabel: c.browseCountryLabel,
+        kind: c.kind ?? 'city',
       }),
     ),
   }

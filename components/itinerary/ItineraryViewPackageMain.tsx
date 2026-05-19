@@ -130,6 +130,15 @@ export function ItineraryViewPackageMain({
     })
   }, [schedule, activePage, pageCount, pageSize, totalDays])
 
+  const lastScheduleDay = useMemo(() => {
+    let max = 0
+    for (const d of schedule) {
+      const n = Math.floor(Number(d.day))
+      if (Number.isFinite(n) && n >= 1 && n > max) max = n
+    }
+    return max
+  }, [schedule])
+
   return (
     <div className="space-y-10 min-w-0">
       <ProductHighlightPointsSection
@@ -189,10 +198,13 @@ export function ItineraryViewPackageMain({
           ) : null}
           {visibleSchedule.map((day, idx) => {
             const sd = day as ScheduleDay
+            const dayNum = Math.floor(Number(sd.day))
             const hotelLine = formatScheduleDayHotelLine({
               hotelNames: product.hotelNames ?? null,
               hotelSummaryText: product.hotelSummaryText ?? null,
               dayHotelText: sd.hotelText ?? null,
+              isLastScheduleRow: lastScheduleDay > 0 && dayNum === lastScheduleDay,
+              dayDescription: sd.description ?? null,
             })
             const mealLines = formatMealDisplay({
               breakfastText: sd.breakfastText,

@@ -1056,6 +1056,18 @@ export function resolveChinaSubregionDbCityKeywords(
 }
 
 /** DB에 저장된 `country`가 browse URL의 country 슬러그와 맞는지 */
+/** browse city URL → `ProductCityTag.cityKey` 후보 */
+export function resolveBrowseCityKeysForFilter(cityParam: string | null | undefined): string[] {
+  const keys = new Set<string>()
+  for (const nk of resolveBrowseCityParamToCountryTagNodeKeys(cityParam)) {
+    if (nk) keys.add(nk)
+  }
+  const ct = (cityParam ?? '').trim().toLowerCase()
+  if (ct && /^[a-z0-9-]+$/.test(ct)) keys.add(ct)
+  return [...keys]
+}
+
+/** DB에 저장된 `country`가 browse URL의 country 슬러그와 맞는지 */
 export function dbCountryMatchesBrowseCountryParam(dbCountryRaw: string | null | undefined, urlCountryParam: string | null | undefined): boolean {
   const url = (urlCountryParam ?? '').trim()
   if (!url) return true

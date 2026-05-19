@@ -11,14 +11,10 @@ import {
   type OverseasRegionGroupNode,
 } from '@/lib/overseas-location-tree'
 import {
-  browseRegionToDbContinents,
-  dbCityMatchesBrowseCityParam,
-  dbCountryMatchesBrowseCountryParam,
-  dbContinentsToProductCountryTagGroupKeys,
   resolveBrowseCityParamToCountryTagNodeKeys,
   resolveBrowseCountryParamToCountryKeySlugs,
 } from '@/lib/browse-country-url-resolve'
-import { masterContinentKeysFromBrowseDbContinents } from '@/lib/browse-master-geo-continents'
+import { resolveBrowseCityKeysForFilter } from '@/lib/browse-country-url-resolve'
 import type { OverseasCountryNode, OverseasLeafNode } from '@/lib/overseas-location-tree.types'
 
 /** G-3 / I-4: browse·트리 OR 매칭용 (Prisma select 최소 필드) */
@@ -43,8 +39,6 @@ export type OverseasProductMatchInput = {
   destination?: string | null
   /** 동남아·유럽 등 1차 권역 메타 */
   primaryRegion?: string | null
-  /** browse URL·메가메뉴와 동일 슬러그 — 있으면 지역 필터에서 텍스트보다 우선 */
-  continent?: string | null
   country?: string | null
   city?: string | null
   /** 트리·마스터와 동일 스펙의 국가 슬러그 (`Product.countryKey`) */
@@ -73,24 +67,86 @@ export function buildOverseasProductMatchHaystack(p: OverseasProductMatchInput):
   return parts.join(' \n ').toLowerCase()
 }
 
+export type BrowseUrlGeo = {
+  region: string | null
+  country: string | null
+  city: string | null
+  /** `buildOverseasBrowseGeoResolution` — MegaMenuGroupCardCountry 기준 */
+  regionCountryKeys?: readonly string[]
+}
+
+/** ProductCountryTag / ProductCityTag만으로 browse URL geo 일치 여부 */
+export function productMatchesBrowseUrlGeo(
+  product: OverseasProductMatchInput,
+  geo: BrowseUrlGeo,
+): boolean {
+  const regionKeys = (geo.regionCountryKeys ?? []).map((k) => k.trim().toLowerCase()).filter(Boolean)
+  const cRaw = (geo.country ?? '').trim()
+  const ctRaw = (geo.city ?? '').trim()
+  const rRaw = (geo.region ?? '').trim()
+
+  const hasRegion = regionKeys.length > 0 || Boolean(rRaw)
+  const hasCountry = Boolean(cRaw)
+  const hasCity = Boolean(ctRaw)
+  if (!hasRegion && !hasCountry && !hasCity) return true
+
+  const tags = product.countryTags ?? []
+  const cityTags = product.cityTags ?? []
+
+  if (regionKeys.length > 0) {
+    const wantR = new Set(regionKeys)
+    const regionOk = tags.some((t) => wantR.has((t.countryKey ?? '').trim().toLowerCase()))
+    if (!regionOk) return false
+  } else if (rRaw) {
+    return false
+  }
+
+  if (hasCountry) {
+    let wantC = resolveBrowseCountryParamToCountryKeySlugs(cRaw).map((x) => x.toLowerCase())
+    if (regionKeys.length > 0) {
+      const rSet = new Set(regionKeys)
+      wantC = wantC.filter((k) => rSet.has(k))
+    }
+    if (wantC.length === 0) return false
+    const wantSet = new Set(wantC)
+    const countryOk = tags.some((t) => wantSet.has((t.countryKey ?? '').trim().toLowerCase()))
+    if (!countryOk) return false
+  }
+
+  if (hasCity) {
+    const wantCity = new Set(resolveBrowseCityKeysForFilter(ctRaw).map((x) => x.toLowerCase()))
+    if (wantCity.size === 0) return false
+    const cityTagOk = cityTags.some((t) => wantCity.has((t.cityKey ?? '').trim().toLowerCase()))
+    let countryScope = regionKeys
+    if (hasCountry) {
+      const wantC = resolveBrowseCountryParamToCountryKeySlugs(cRaw).map((x) => x.toLowerCase())
+      const rSet = new Set(regionKeys)
+      countryScope =
+        regionKeys.length > 0 ? wantC.filter((k) => rSet.has(k)) : wantC
+    }
+    const scopeSet = new Set(countryScope)
+    const nodeOk =
+      scopeSet.size > 0
+        ? tags.some((t) => {
+            const ck = (t.countryKey ?? '').trim().toLowerCase()
+            const nk = (t.nodeKey ?? '').trim().toLowerCase()
+            return scopeSet.has(ck) && Boolean(nk) && wantCity.has(nk)
+          })
+        : tags.some((t) => {
+            const nk = (t.nodeKey ?? '').trim().toLowerCase()
+            return Boolean(nk) && wantCity.has(nk)
+          })
+    if (!cityTagOk && !nodeOk) return false
+  }
+
+  return true
+}
+
 export function productMatchesOverseasDestinationTerms(
   product: OverseasProductMatchInput,
   terms: string[],
-  urlGeo?: { region: string | null; country: string | null; city: string | null }
+  urlGeo?: BrowseUrlGeo,
 ): boolean {
-  const rRaw = (urlGeo?.region ?? '').trim()
-  const rDbConts = browseRegionToDbContinents(rRaw).map((x) => x.toLowerCase())
-  const cRaw = (urlGeo?.country ?? '').trim()
-  const c = cRaw.toLowerCase()
-  const ctRaw = (urlGeo?.city ?? '').trim()
-  const hasUrlGeo = Boolean(rRaw || c || ctRaw)
-
-  const dbCont = (product.continent ?? '').trim().toLowerCase()
-  const dbCountry = (product.country ?? '').trim().toLowerCase()
-  const dbCountryRaw = (product.country ?? '').trim()
-  const dbCityRaw = (product.city ?? '').trim()
-  const hasDbBrowseGeo = Boolean(dbCont || dbCountry || dbCityRaw)
-
   const haystack = buildOverseasProductMatchHaystack(product)
   const termsMatch = (): boolean => {
     if (terms.length === 0) return true
@@ -100,109 +156,15 @@ export function productMatchesOverseasDestinationTerms(
     })
   }
 
+  if (!urlGeo) return termsMatch()
+
+  const cRaw = (urlGeo.country ?? '').trim()
+  const ctRaw = (urlGeo.city ?? '').trim()
+  const rRaw = (urlGeo.region ?? '').trim()
+  const hasUrlGeo = Boolean(rRaw || cRaw || ctRaw)
   if (!hasUrlGeo) return termsMatch()
 
-  const tags = product.countryTags
-
-  const tagMatchesRegionContinent = (): boolean => {
-    if (!tags?.length || !rDbConts.length) return false
-    const wantGroup = new Set(dbContinentsToProductCountryTagGroupKeys(rDbConts))
-    const wantMaster = new Set(masterContinentKeysFromBrowseDbContinents(rDbConts))
-    return tags.some((t) => {
-      const g = (t.groupKey ?? '').trim().toLowerCase()
-      if (g && wantGroup.has(g)) return true
-      const mc = t.country?.continentKey
-      return Boolean(mc && wantMaster.has(mc))
-    })
-  }
-
-  const masterProductContinentMatchesRegion = (): boolean => {
-    if (!rDbConts.length || !product.continentKey?.trim()) return false
-    const want = new Set(masterContinentKeysFromBrowseDbContinents(rDbConts))
-    return want.has(product.continentKey.trim())
-  }
-
-  const tagMatchesCountryParam = (): boolean => {
-    if (!tags?.length || !cRaw) return false
-    const want = new Set(resolveBrowseCountryParamToCountryKeySlugs(cRaw).map((x) => x.toLowerCase()))
-    if (want.size === 0) return false
-    return tags.some((t) => want.has((t.countryKey ?? '').trim().toLowerCase()))
-  }
-
-  const tagMatchesCityParam = (): boolean => {
-    if (!tags?.length || !ctRaw) return false
-    const want = new Set(resolveBrowseCityParamToCountryTagNodeKeys(ctRaw).map((x) => x.toLowerCase()))
-    if (want.size === 0) return false
-    return tags.some((t) => {
-      const nk = (t.nodeKey ?? '').trim().toLowerCase()
-      return Boolean(nk) && want.has(nk)
-    })
-  }
-
-  const wantMasterCityKeysForUrl = (): Set<string> => {
-    const want = new Set<string>()
-    if (ctRaw) {
-      for (const nk of resolveBrowseCityParamToCountryTagNodeKeys(ctRaw)) {
-        if (nk) want.add(nk.toLowerCase())
-      }
-      const low = ctRaw.trim().toLowerCase()
-      if (/^[a-z0-9-]+$/.test(low)) want.add(low)
-    }
-    return want
-  }
-
-  const masterProductCityMatchesUrl = (): boolean => {
-    if (!ctRaw) return false
-    const want = wantMasterCityKeysForUrl()
-    if (want.size === 0) return false
-    const pk = (product.cityKey ?? '').trim().toLowerCase()
-    if (pk && want.has(pk)) return true
-    const ctags = product.cityTags
-    if (!ctags?.length) return false
-    return ctags.some((t) => want.has((t.cityKey ?? '').trim().toLowerCase()))
-  }
-
-  const masterProductCountryKeyMatchesUrl = (): boolean => {
-    if (!cRaw) return false
-    const want = new Set(resolveBrowseCountryParamToCountryKeySlugs(cRaw).map((x) => x.toLowerCase()))
-    if (want.size === 0) return false
-    const pk = (product.countryKey ?? '').trim().toLowerCase()
-    return Boolean(pk && want.has(pk))
-  }
-
-  if (hasDbBrowseGeo) {
-    if (rRaw && rDbConts.length > 0) {
-      const urlCountryMatchesDb =
-        Boolean(c) && dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw)
-      if (!urlCountryMatchesDb) {
-        const contOk = rDbConts.includes(dbCont)
-        const countryAsTab = rDbConts.includes(dbCountry)
-        if (
-          !contOk &&
-          !countryAsTab &&
-          !tagMatchesRegionContinent() &&
-          !masterProductContinentMatchesRegion()
-        )
-          return false
-      }
-    }
-    if (
-      cRaw &&
-      !dbCountryMatchesBrowseCountryParam(dbCountryRaw, cRaw) &&
-      !tagMatchesCountryParam() &&
-      !masterProductCountryKeyMatchesUrl()
-    )
-      return false
-    if (
-      ctRaw &&
-      !dbCityMatchesBrowseCityParam(dbCityRaw, ctRaw) &&
-      !tagMatchesCityParam() &&
-      !masterProductCityMatchesUrl()
-    )
-      return false
-    return termsMatch()
-  }
-
+  if (!productMatchesBrowseUrlGeo(product, urlGeo)) return false
   return termsMatch()
 }
 

@@ -3,11 +3,15 @@
  * browse `country`/`city` 슬러그는 `browseCountryLabel`·`label` 기준으로 `location-url-slugs`와 맞춘다.
  */
 
+export type MegaMenuLeafKind = 'country' | 'city'
+
 export type MegaMenuLeafDef = {
   label: string
   terms: string[]
   /** browse URL `country` — 기본은 `label`과 동일 */
   browseCountryLabel?: string
+  /** `country` = 국가 단위 링크(city 쿼리 없음). 기본 `city` */
+  kind?: MegaMenuLeafKind
 }
 
 export type MegaMenuCountryGroupDef = {
@@ -26,7 +30,13 @@ export type MegaMenuTabDef = {
 
 function L(label: string, terms: string[], browseCountryLabel?: string): MegaMenuLeafDef {
   const t = [...new Set(terms.map((x) => x.trim()).filter(Boolean))]
-  return { label, terms: t.length ? t : [label], browseCountryLabel: browseCountryLabel ?? label }
+  return { label, terms: t.length ? t : [label], browseCountryLabel: browseCountryLabel ?? label, kind: 'city' }
+}
+
+/** 국가 단위 leaf — `buildProductsHrefCountryOnly` (city 쿼리 없음) */
+function LC(label: string, terms: string[], browseCountryLabel?: string): MegaMenuLeafDef {
+  const t = [...new Set(terms.map((x) => x.trim()).filter(Boolean))]
+  return { label, terms: t.length ? t : [label], browseCountryLabel: browseCountryLabel ?? label, kind: 'country' }
 }
 
 function G(countryLabel: string, cities: MegaMenuLeafDef[], nonLinkHeader?: boolean): MegaMenuCountryGroupDef {
@@ -38,40 +48,44 @@ const EU: MegaMenuCountryGroupDef[] = [
   G(
     '서유럽',
     [
-      L('이탈리아', ['이탈리아', 'italy', '로마', '밀라노', '베네치아']),
-      L('프랑스', ['프랑스', 'france', '파리', '니스']),
-      L('스위스', ['스위스', 'switzerland', '취리히', '인터라켄']),
-      L('영국', ['영국', 'UK', '런던', 'london']),
-      L('독일', ['독일', 'germany', '베를린', '뮌헨']),
-      L('네덜란드', ['네덜란드', 'netherlands', '암스테르담']),
-      L('벨기에', ['벨기에', 'belgium', '브뤼셀']),
-      L('오스트리아', ['오스트리아', 'austria', '비엔나', '잘츠부르크']),
+      LC('이탈리아', ['이탈리아', 'italy', '로마', '밀라노', '베네치아']),
+      LC('프랑스', ['프랑스', 'france', '파리', '니스']),
+      LC('스위스', ['스위스', 'switzerland', '취리히', '인터라켄']),
+      LC('영국', ['영국', 'UK', '런던', 'london']),
+      LC('독일', ['독일', 'germany', '베를린', '뮌헨']),
+      LC('네덜란드', ['네덜란드', 'netherlands', '암스테르담']),
+      LC('벨기에', ['벨기에', 'belgium', '브뤼셀']),
+      LC('오스트리아', ['오스트리아', 'austria', '비엔나', '잘츠부르크']),
     ],
     true,
   ),
   G(
     '동유럽',
     [
-      L('체코', ['체코', 'czech', '프라하', 'prague']),
-      L('헝가리', ['헝가리', 'hungary', '부다페스트']),
-      L('폴란드', ['폴란드', 'poland', '바르샤바', 'warsaw']),
-      L('크로아티아', ['크로아티아', 'croatia', '두브로브니크']),
-      L('슬로베니아', ['슬로베니아', 'slovenia', '류블랴나']),
+      LC('체코', ['체코', 'czech', '프라하', 'prague']),
+      LC('헝가리', ['헝가리', 'hungary', '부다페스트']),
+      LC('폴란드', ['폴란드', 'poland', '바르샤바', 'warsaw']),
+      LC('크로아티아', ['크로아티아', 'croatia', '두브로브니크']),
+      LC('슬로베니아', ['슬로베니아', 'slovenia', '류블랴나']),
     ],
     true,
   ),
   G(
     '북유럽',
     [
-      L('덴마크', ['덴마크', 'denmark', '코펜하겐']),
-      L('노르웨이', ['노르웨이', 'norway', '오슬로', '피오르']),
-      L('스웨덴', ['스웨덴', 'sweden', '스톡홀름']),
-      L('핀란드', ['핀란드', 'finland', '헬싱키']),
-      L('아이슬란드', ['아이슬란드', 'iceland', '레이캬비크']),
+      LC('덴마크', ['덴마크', 'denmark', '코펜하겐']),
+      LC('노르웨이', ['노르웨이', 'norway', '오슬로', '피오르']),
+      LC('스웨덴', ['스웨덴', 'sweden', '스톡홀름']),
+      LC('핀란드', ['핀란드', 'finland', '헬싱키']),
+      LC('아이슬란드', ['아이슬란드', 'iceland', '레이캬비크']),
     ],
     true,
   ),
-  G('스페인/포르투갈', [L('스페인', ['스페인', 'spain', '마드리드', '바르셀로나']), L('포르투갈', ['포르투갈', 'portugal', '리스본'])], true),
+  G(
+    '스페인/포르투갈',
+    [LC('스페인', ['스페인', 'spain', '마드리드', '바르셀로나']), LC('포르투갈', ['포르투갈', 'portugal', '리스본'])],
+    true,
+  ),
   G(
     '그리스',
     [
@@ -96,20 +110,20 @@ const EU: MegaMenuCountryGroupDef[] = [
     [
       L('두바이', ['두바이', 'dubai', 'DXB']),
       L('아부다비', ['아부다비', 'abu dhabi']),
-      L('오만', ['오만', 'oman', '무스카트']),
-      L('요르단', ['요르단', 'jordan', '페트라']),
-      L('이스라엘', ['이스라엘', 'israel', '텔아비브', '예루살렘']),
+      LC('오만', ['오만', 'oman', '무스카트']),
+      LC('요르단', ['요르단', 'jordan', '페트라']),
+      LC('이스라엘', ['이스라엘', 'israel', '텔아비브', '예루살렘']),
     ],
     true,
   ),
   G(
     '아프리카',
     [
-      L('모로코', ['모로코', 'morocco', '마라케시']),
-      L('남아공', ['남아공', 'south africa', '케이프타운', '요하네스버그']),
-      L('탄자니아', ['탄자니아', 'tanzania', '세렝게티', '킬리만자로']),
-      L('케냐', ['케냐', 'kenya', '나이로비', '마사이마라']),
-      L('에티오피아', ['에티오피아', 'ethiopia', '아디스아바바']),
+      LC('모로코', ['모로코', 'morocco', '마라케시']),
+      LC('남아공', ['남아공', 'south africa', '케이프타운', '요하네스버그']),
+      LC('탄자니아', ['탄자니아', 'tanzania', '세렝게티', '킬리만자로']),
+      LC('케냐', ['케냐', 'kenya', '나이로비', '마사이마라']),
+      LC('에티오피아', ['에티오피아', 'ethiopia', '아디스아바바']),
     ],
     true,
   ),
@@ -131,7 +145,7 @@ const SEA: MegaMenuCountryGroupDef[] = [
     L('파타야', ['파타야', 'pattaya', '태국']),
     L('끄라비', ['끄라비', 'krabi', '태국']),
   ]),
-  G('싱가포르', [L('싱가포르', ['싱가포르', 'singapore', 'SIN'])]),
+  G('싱가포르', [LC('싱가포르', ['싱가포르', 'singapore', 'SIN'])]),
   G('인도네시아', [
     L('발리', ['발리', 'bali', '인도네시아', 'DPS']),
     L('마나도', ['마나도', 'manado', '인도네시아']),
@@ -178,7 +192,7 @@ const SEA: MegaMenuCountryGroupDef[] = [
     L('시기리야', ['시기리야', 'sigiriya', '스리랑카']),
   ]),
   G('네팔', [L('카트만두', ['카트만두', 'kathmandu', '네팔']), L('포카라', ['포카라', 'pokhara', '네팔'])]),
-  G('몰디브', [L('몰디브', ['몰디브', 'maldives', 'male'])]),
+  G('몰디브', [LC('몰디브', ['몰디브', 'maldives', 'male'])]),
 ]
 
 const JP: MegaMenuCountryGroupDef[] = [
@@ -275,8 +289,8 @@ const CN: MegaMenuCountryGroupDef[] = [
     L('곤명', ['곤명', 'kunming', '중국']),
     L('여강', ['여강', 'lijiang', '리장', '중국']),
   ]),
-  G('홍콩', [L('홍콩', ['홍콩', 'hong kong', 'HKG'])]),
-  G('마카오', [L('마카오', ['마카오', 'macau', 'macao'])]),
+  G('홍콩', [LC('홍콩', ['홍콩', 'hong kong', 'HKG'])]),
+  G('마카오', [LC('마카오', ['마카오', 'macau', 'macao'])]),
   G('몽골', [
     L('울란바타르', ['울란바타르', 'ulaanbaatar', '울란바토르', '몽골']),
     L('테를지', ['테를지', 'terelj', '몽골']),
@@ -284,8 +298,8 @@ const CN: MegaMenuCountryGroupDef[] = [
 ]
 
 const OC: MegaMenuCountryGroupDef[] = [
-  G('괌', [L('괌', ['괌', 'guam'])]),
-  G('사이판', [L('사이판', ['사이판', 'saipan'])]),
+  G('괌', [LC('괌', ['괌', 'guam'])]),
+  G('사이판', [LC('사이판', ['사이판', 'saipan'])]),
   G('호주', [
     L('시드니', ['시드니', 'sydney', '호주', 'SYD']),
     L('멜버른', ['멜버른', 'melbourne', '호주']),
@@ -331,15 +345,15 @@ const AM: MegaMenuCountryGroupDef[] = [
     '중남미·멕시코',
     [
       L('칸쿤', ['칸쿤', 'cancun', '멕시코', 'mexico']),
-      L('멕시코', ['멕시코', 'mexico city', '멕시코시티']),
-      L('브라질', ['브라질', 'brazil', '리우', '상파울루']),
-      L('칠레', ['칠레', 'chile', '산티아고']),
-      L('아르헨티나', ['아르헨티나', 'argentina', '부에노스아이레스']),
-      L('페루', ['페루', 'peru', '리마', '마추픽추']),
+      LC('멕시코', ['멕시코', 'mexico city', '멕시코시티']),
+      LC('브라질', ['브라질', 'brazil', '리우', '상파울루']),
+      LC('칠레', ['칠레', 'chile', '산티아고']),
+      LC('아르헨티나', ['아르헨티나', 'argentina', '부에노스아이레스']),
+      LC('페루', ['페루', 'peru', '리마', '마추픽추']),
     ],
     true,
   ),
-  G('알래스카', [L('알래스카', ['알래스카', 'alaska', '앵커리지', '미국'])]),
+  G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지', '미국'])]),
   G('스포츠 테마 투어', [L('경기 직관 여행', ['경기 직관', '스포츠 테마', '직관 여행', '미국', '일본'])]),
 ]
 

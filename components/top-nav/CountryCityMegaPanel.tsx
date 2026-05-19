@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import type { MegaMenuCountryGroup } from '@/lib/travel-landing-mega-menu-data'
-import { buildProductsHref, buildProductsHrefCountryOnly } from '@/lib/top-nav-resolve'
+import { buildMegaMenuLeafHref, buildProductsHrefCountryOnly } from '@/lib/top-nav-resolve'
 import type { ProductBrowseType } from '@/lib/products-browse-filter'
 
 type Props = {
@@ -38,7 +38,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
               {g.cities.map((c, ci) => (
                 <li key={`${g.countryLabel}-${c.label}-${ci}`} className="min-w-0">
                   <Link
-                    href={buildProductsHref({
+                    href={buildMegaMenuLeafHref({
                       type: activeProductType,
                       regionId,
                       countryLabel: g.countryLabel,

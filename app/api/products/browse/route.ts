@@ -35,11 +35,7 @@ import {
   resolveChinaSubregionDbCityKeywords,
   resolveJapanSubregionDbCityKeywords,
 } from '@/lib/browse-country-url-resolve'
-import {
-  prismaWhereCityMasterOrTagWithLegacyNull,
-  prismaWhereContinentMasterOrTagWithLegacyNull,
-  prismaWhereCountryTreeKeyOrTagWithLegacyNull,
-} from '@/lib/browse-master-geo'
+import { buildOverseasBrowseGeoResolution, prismaWhereProductCountryTagKeysIn } from '@/lib/browse-master-geo'
 import { resolveOverseasDisplayBucketForBrowse } from '@/lib/overseas-display-buckets'
 import { filterPoolByStoredTravelScope } from '@/lib/travel-scope-pool-filter'
 import { parseListingKind } from '@/lib/product-listing-kind'
@@ -154,6 +150,7 @@ async function productsBrowseBuildPayload(queryKey: string) {
       scope !== 'domestic' &&
       Boolean((region ?? '').trim() || (country ?? '').trim() || (city ?? '').trim())
     const overseasGeoAnd: Prisma.ProductWhereInput[] = []
+    let browseRegionCountryKeys: string[] = []
     if (hasOverseasUrlGeo) {
       const r = (region ?? '').trim()
       const c = (country ?? '').trim()
@@ -161,25 +158,10 @@ async function productsBrowseBuildPayload(queryKey: string) {
       const localDepTag = localDepartureTagForBrowseRegion(r)
       if (localDepTag) {
         overseasGeoAnd.push({ localDepartureTag: { has: localDepTag } })
-      }
-      const continentList = browseRegionToDbContinents(r)
-
-      if (r && !c) {
-        if (continentList.length === 1)
-          overseasGeoAnd.push(prismaWhereContinentMasterOrTagWithLegacyNull([continentList[0]!]))
-        else if (continentList.length > 1)
-          overseasGeoAnd.push(prismaWhereContinentMasterOrTagWithLegacyNull(continentList))
-      } else if (r && c) {
-        if (continentList.length === 1)
-          overseasGeoAnd.push(prismaWhereContinentMasterOrTagWithLegacyNull([continentList[0]!]))
-        else if (continentList.length > 1)
-          overseasGeoAnd.push(prismaWhereContinentMasterOrTagWithLegacyNull(continentList))
-        overseasGeoAnd.push(prismaWhereCountryTreeKeyOrTagWithLegacyNull(c))
-      } else if (!r && c) {
-        overseasGeoAnd.push(prismaWhereCountryTreeKeyOrTagWithLegacyNull(c))
-      }
-      if (ct) {
-        overseasGeoAnd.push(await prismaWhereCityMasterOrTagWithLegacyNull(c, ct))
+      } else {
+        const geo = await buildOverseasBrowseGeoResolution({ region, country, city: ct })
+        browseRegionCountryKeys = geo.regionCountryKeys
+        overseasGeoAnd.push(...geo.whereClauses)
       }
     }
 
@@ -218,35 +200,11 @@ async function productsBrowseBuildPayload(queryKey: string) {
       const seasonKeySlugs = [
         ...new Set(seasonCountrySlugs.flatMap((s) => resolveBrowseCountryParamToCountryKeySlugs(s))),
       ]
-      if (seasonDbCountries.length === 0) {
-        overseasGeoAnd.push({ country: { in: [] } })
-      } else if (seasonDbCountries.length === 1) {
-        const primary = { country: seasonDbCountries[0]! }
-        if (seasonKeySlugs.length > 0) {
-          overseasGeoAnd.push({
-            OR: [
-              primary,
-              { countryTags: { some: { countryKey: { in: seasonKeySlugs } } } },
-              { countryKey: { in: seasonKeySlugs } },
-            ],
-          })
-        } else {
-          overseasGeoAnd.push(primary)
-        }
-      } else {
-        const primary = { country: { in: seasonDbCountries } }
-        if (seasonKeySlugs.length > 0) {
-          overseasGeoAnd.push({
-            OR: [
-              primary,
-              { countryTags: { some: { countryKey: { in: seasonKeySlugs } } } },
-              { countryKey: { in: seasonKeySlugs } },
-            ],
-          })
-        } else {
-          overseasGeoAnd.push(primary)
-        }
-      }
+      const seasonKeys =
+        seasonKeySlugs.length > 0
+          ? seasonKeySlugs
+          : seasonDbCountries.flatMap((lab) => resolveBrowseCountryParamToCountryKeySlugs(lab))
+      overseasGeoAnd.push(prismaWhereProductCountryTagKeysIn(seasonKeys))
     }
 
     const budgetRaw = searchParams.get('budgetPerPerson')
@@ -414,7 +372,7 @@ async function productsBrowseBuildPayload(queryKey: string) {
           ? 'popular'
           : sort
 
-    const urlGeo = { region, country, city }
+    const urlGeo = { region, country, city, regionCountryKeys: browseRegionCountryKeys }
 
     const scoredForFacets = scoreAndFilterProducts(filteredRows, {
       type: browseTypeForScore,
@@ -555,7 +513,6 @@ async function productsBrowseBuildPayload(queryKey: string) {
               destinationRaw: p.destinationRaw,
               destination: p.destination,
               primaryRegion: p.primaryRegion,
-              continent: p.continent ?? null,
               country: p.country ?? null,
               city: p.city ?? null,
               countryKey: p.countryKey ?? null,
@@ -598,7 +555,7 @@ async function productsBrowseBuildPayload(queryKey: string) {
         mapMs: Math.round(map - score),
         rowCount,
         finalCount,
-        cacheKey: `products-browse-v7|${queryKey}`,
+        cacheKey: `products-browse-v8|${queryKey}`,
       }
       browsePerfLastPhases = phases // PERF-LOG: 측정 후 제거
       console.log('[browse-perf]', JSON.stringify({ cacheHit: false, ...phases })) // PERF-LOG: 측정 후 제거
@@ -675,7 +632,7 @@ export async function GET(request: Request) {
         cacheMissRan = true // PERF-LOG: 측정 후 제거
         return productsBrowseBuildPayload(queryKey)
       },
-      ['products-browse-v7', queryKey],
+      ['products-browse-v8', queryKey],
       { revalidate: 3600 },
     )()
     const cacheHit = !cacheMissRan // PERF-LOG: 측정 후 제거
