@@ -12,52 +12,21 @@ import {
   toAbsoluteImageUrl,
 } from '@/lib/site-metadata'
 import { requireAdmin } from '@/lib/require-admin'
-import { PRODUCT_DETAIL_PAGE_INCLUDE } from '@/lib/product-detail-page-include'
 import { ProductDetailView } from '@/app/products/[idOrSlug]/product-detail-view'
-import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { publicProductPath } from '@/lib/product-public-path'
-import { resolveProductByPathSegment } from '@/lib/resolve-product-by-path-segment'
+import {
+  loadProductDetailRowCached,
+  loadProductForMetadataCached,
+  resolveProductByPathSegmentCached,
+} from '@/lib/product-detail-page-cache'
 
 export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ idOrSlug: string }> }
 
-const PRODUCT_METADATA_SELECT = {
-  id: true,
-  slug: true,
-  title: true,
-  primaryDestination: true,
-  destination: true,
-  bgImageUrl: true,
-  schedule: true,
-  registrationStatus: true,
-  itineraries: { orderBy: { day: 'asc' as const }, select: { day: true, description: true } },
-} as const
-
-async function loadProductForMetadata(productId: string) {
-  let p = await prisma.product.findFirst({
-    where: {
-      id: productId,
-      registrationStatus: 'registered',
-      AND: [publicProductWhereClause()],
-    },
-    select: PRODUCT_METADATA_SELECT,
-  })
-  if (!p) {
-    const admin = await requireAdmin()
-    if (admin) {
-      p = await prisma.product.findFirst({
-        where: { id: productId },
-        select: PRODUCT_METADATA_SELECT,
-      })
-    }
-  }
-  return p
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { idOrSlug } = await params
-  const resolved = await resolveProductByPathSegment(idOrSlug, { allowAdminDraft: true })
+  const resolved = await resolveProductByPathSegmentCached(idOrSlug, true)
   if (resolved.kind === 'redirect') {
     return { title: '상품' }
   }
@@ -65,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: '상품' }
   }
 
-  const p = await loadProductForMetadata(resolved.productId)
+  const p = await loadProductForMetadataCached(resolved.productId)
   if (!p) {
     return { title: '상품' }
   }
@@ -118,7 +87,7 @@ export default async function ProductDetailPage({ params }: Props) {
   }
 
   const admin = await requireAdmin()
-  const resolved = await resolveProductByPathSegment(idOrSlug, { allowAdminDraft: Boolean(admin) })
+  const resolved = await resolveProductByPathSegmentCached(idOrSlug, Boolean(admin))
 
   if (resolved.kind === 'redirect') {
     permanentRedirect(`/products/${resolved.slug}`)
@@ -128,21 +97,9 @@ export default async function ProductDetailPage({ params }: Props) {
   }
 
   const productId = resolved.productId
+  const allowAdminDraft = Boolean(admin)
 
-  let travelProduct = await prisma.product.findFirst({
-    where: {
-      id: productId,
-      registrationStatus: 'registered',
-      AND: [publicProductWhereClause()],
-    },
-    include: PRODUCT_DETAIL_PAGE_INCLUDE,
-  })
-  if (!travelProduct && admin) {
-    travelProduct = await prisma.product.findFirst({
-      where: { id: productId },
-      include: PRODUCT_DETAIL_PAGE_INCLUDE,
-    })
-  }
+  const travelProduct = await loadProductDetailRowCached(productId, allowAdminDraft)
 
   if (!travelProduct) {
     notFound()

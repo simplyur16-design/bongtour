@@ -92,6 +92,24 @@ const nextConfig = {
         source: '/:path*',
         headers: base,
       },
+      /** Next 정적 청크·이미지 — 재방문 전환 가속 (immutable) */
+      {
+        source: '/_next/static/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=604800, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        source: '/icons/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=2592000, immutable' }],
+      },
       /** 관리자 셸이 오래 캐시되면 배포 직후 ChunkLoadError(구 HTML → 신규 청크)가 난다. */
       {
         source: '/admin/:path*',

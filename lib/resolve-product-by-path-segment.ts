@@ -47,32 +47,28 @@ export async function resolveProductByPathSegment(
   const segment = extractProductPathIdentifier(rawSegment)
   if (!segment) return { kind: 'not_found' }
 
-  const bySlug = await findRegisteredProduct({ slug: segment })
-  if (bySlug) {
-    return { kind: 'render', productId: bySlug.id, slug: bySlug.slug }
-  }
-
-  const byId = await findRegisteredProduct({ id: segment })
-  if (byId) {
-    const slug = byId.slug?.trim()
-    if (slug && slug !== segment) {
+  /** slug·id 순차 조회(2 RTT) 대신 OR 1회 — 전환 속도 */
+  const registered = await findRegisteredProduct({
+    OR: [{ slug: segment }, { id: segment }],
+  })
+  if (registered) {
+    const slug = registered.slug?.trim()
+    if (registered.id === segment && slug && slug !== segment) {
       return { kind: 'redirect', slug }
     }
-    return { kind: 'render', productId: byId.id, slug: byId.slug }
+    return { kind: 'render', productId: registered.id, slug: registered.slug }
   }
 
   if (opts?.allowAdminDraft) {
-    const draftBySlug = await findAdminPreviewProduct({ slug: segment })
-    if (draftBySlug) {
-      return { kind: 'render', productId: draftBySlug.id, slug: draftBySlug.slug }
-    }
-    const draftById = await findAdminPreviewProduct({ id: segment })
-    if (draftById) {
-      const slug = draftById.slug?.trim()
-      if (slug && slug !== segment) {
+    const draft = await findAdminPreviewProduct({
+      OR: [{ slug: segment }, { id: segment }],
+    })
+    if (draft) {
+      const slug = draft.slug?.trim()
+      if (draft.id === segment && slug && slug !== segment) {
         return { kind: 'redirect', slug }
       }
-      return { kind: 'render', productId: draftById.id, slug: draftById.slug }
+      return { kind: 'render', productId: draft.id, slug: draft.slug }
     }
   }
 

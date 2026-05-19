@@ -113,7 +113,7 @@ import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extr
 import { buildProductMetaChips } from '@/lib/product-meta-chips'
 import { PRODUCT_DETAIL_PAGE_INCLUDE } from '@/lib/product-detail-page-include'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
-import { ItineraryView } from '@/components/itinerary/ItineraryView'
+import { ItineraryViewLazy } from '@/components/itinerary/ItineraryViewLazy'
 import type {
   FitItineraryMaster,
   FitItineraryDay,
@@ -928,7 +928,7 @@ export async function ProductDetailView({
     return (
       <>
         <Header />
-        <ItineraryView
+        <ItineraryViewLazy
           mode="example"
           master={masterArg}
           travelCoreInfo={{

@@ -6,6 +6,7 @@ import OverseasInteractiveShell from '@/app/components/travel/overseas/OverseasI
 import OverseasManagedContent from '@/app/components/travel/overseas/OverseasManagedContent'
 import OverseasRegionMegaNav from '@/app/components/travel/overseas/OverseasRegionMegaNav'
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
+import ProductsBrowseResultsLoading from '@/components/route-loading/ProductsBrowseResultsLoading'
 import { getCachedOverseasHubSeasonDestinationHeroSlides } from '@/lib/overseas-hub-season-destination-hero'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import {
@@ -88,7 +89,7 @@ export default async function OverseasTravelPage({
           seasonDestinationHeroSlides={seasonDestinationHeroSlides}
         />
 
-        <Suspense fallback={<p className="py-16 text-center text-sm text-slate-500">상품을 불러오는 중…</p>}>
+        <Suspense fallback={<ProductsBrowseResultsLoading />}>
           <ProductsBrowseClient
             basePath="/travel/overseas"
             defaultScope="overseas"
