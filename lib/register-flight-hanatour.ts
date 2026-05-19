@@ -1,8 +1,12 @@
 /**
- * 하나투어 등록: structured 항공으로 가는/오는 편 한 줄 생성.
- * 공용 `resolveDirectedFlightLinesDeterministicOnly`는 modetour trace에 묶여 항상 null이므로 사용하지 않는다.
+ * [하나투어 항공 스택 P2] 등록·미리보기 — structured → directed segment 한 줄.
  *
- * `도착 :` 라벨 줄은 inbound(오는편)로만 쓴다(`flight-parser-hanatour`와 동일 계약).
+ * 역할: `resolveDirectedFlightLinesHanatour` — `register-from-llm-hanatour`에 필수 주입(P1b).
+ * `도착 :` → inbound only (`flight-parser-hanatour`와 동일).
+ * 하지 않음: leg 1차 파싱, ProductDeparture 행 enrich, 공개 달력 정렬, FMC.
+ * modetour `resolveDirectedFlightLinesDeterministicOnly` / `flight-modetour-parser` 사용 금지.
+ *
+ * 계약: `docs/ops/hanatour-parse-contract.md`
  */
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import { formatDirectedFlightRow } from '@/lib/flight-user-display'

@@ -1,3 +1,13 @@
+/**
+ * [하나투어 항공 스택 P2] 결정적 본문 파서 — `출발 :` / `도착 :` leg·`FlightStructured` 1차 SSOT.
+ *
+ * 역할: 편명·소요시간·날짜(요일)시각 쌍 분리. `도착 :` 라벨은 inbound(오는편) 전용.
+ * 호출: `parseHanatourFlightInput` → `register-parse-hanatour` (항공칸·본문 flightRaw).
+ * 하지 않음: directed 한 줄, FMC, 등록 evidence, 출발일 달력·가격, LLM 항공 추출.
+ * 금지: modetour `flight-modetour-parser` 로직 승격·공통화.
+ *
+ * 계약: `docs/ops/hanatour-parse-contract.md`
+ */
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import { createEmptyFlightLeg, stripLogoNoise } from '@/lib/flight-parser-generic'
 

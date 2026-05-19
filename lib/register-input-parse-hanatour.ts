@@ -1,5 +1,8 @@
 /**
  * 하나투어(hanatour) 관리자 등록 — 옵션관광·쇼핑·항공 **입력 해석** 전용 진입점.
+ *
+ * 항공(P2): `parseHanatourFlightInput` → `flight-parser-hanatour`만. directed·LLM·달력은 다른 모듈.
+ * 계약: `docs/ops/hanatour-parse-contract.md`
  */
 import type { FlightStructured, OptionalToursStructured, ShoppingStructured } from '@/lib/detail-body-parser-types'
 import { parseFlightSectionHanatour } from '@/lib/flight-parser-hanatour'

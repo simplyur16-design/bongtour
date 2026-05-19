@@ -1,5 +1,8 @@
 /**
- * 하나투어 전용: 항공 성격(직항/경유) — `duration` 등 핵심정보 한 줄의 `경유있음`을 반영하고, 기본 `직항` 금지.
+ * [하나투어 항공 스택 P2] 직항/경유 메타·상품 칩 — 핵심정보 `경유있음` 반영, 기본 `직항` 추측 금지.
+ *
+ * 하지 않음: `출발 :`/`도착 :` leg, 시각·편명 파싱.
+ * 계약: `docs/ops/hanatour-parse-contract.md`
  */
 import {
   buildFlightRoutingHaystack,

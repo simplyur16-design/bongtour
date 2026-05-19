@@ -120,7 +120,9 @@
 
 **P1b 완료 (2026-05):** LLM trim · `requireDirectedFlightLineResolver` · `verify:hanatour-atp207` · 쇼핑 횟수 규칙 `docs/ops/supplier-shopping-visit-count.md`
 
-**상태:** 🔄 P2(항공 스택 문서)·공개 항공 동기화 점검 잔여
+**P2 완료 (2026-05):** `docs/ops/hanatour-parse-contract.md` · 항공 9파일 P2 경계 주석
+
+**상태:** 🔄 공개 상세 출발일 변경 시 hero↔일정 항공 동기화 점검 잔여
 
 ---
 

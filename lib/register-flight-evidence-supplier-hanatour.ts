@@ -1,7 +1,9 @@
-/** [hanatour] register-flight-evidence-supplier */
 /**
- * 등록 미리보기 correctionPreview — 항공 계열 evidence만.
- * 공급사 분기는 관리자 선택 brandKey만 사용(본문 항공사명으로 추정 금지).
+ * [하나투어 항공 스택 P2] 등록 미리보기·검수 — 항공 evidence 스니펫만.
+ *
+ * 역할: correctionPreview용 출발/도착/편명 근거 줄. brandKey `hanatour` 확정 경로만.
+ * 하지 않음: leg 구조화, directed 줄, 공개 상세 표시 — `flight-parser-hanatour`·`register-flight-hanatour`.
+ * 계약: `docs/ops/hanatour-parse-contract.md`
  */
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'

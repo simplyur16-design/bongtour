@@ -1,5 +1,9 @@
 /**
- * 하나투어 전용: 출발확정·예약현황 표시 — 본문 근거 없는 `출발확정`·달력 status 오탐 차단.
+ * [하나투어 항공 스택 P2] 출발확정·예약현황·출발일 필드 sanitize.
+ *
+ * 역할: 본문 근거 없는 `출발확정`·좌석 blob 오탐 차단. `sanitizeHanatourRegisterParsedDepartureFields`.
+ * 하지 않음: leg 파싱, directed 줄, FMC 구조화.
+ * 계약: `docs/ops/hanatour-parse-contract.md`
  */
 import { buildDepartureStatusDisplay } from '@/lib/minimum-departure-extract'
 import type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'

@@ -1,3 +1,10 @@
+/**
+ * [하나투어 항공 스택 P2] structuredSignals.flightManualCorrection — 관리자 수동 leg 오버레이.
+ *
+ * 역할: final/auto → 공개·등록 key facts·leg 카드. `originSource === 'hanatour'` 분기에서만 적용.
+ * 하지 않음: 본문 `출발 :`/`도착 :` 파싱, LLM 항공, evidence 스니펫.
+ * 계약: `docs/ops/hanatour-parse-contract.md`
+ */
 import type { FlightStructured } from '@/lib/detail-body-parser'
 import type { DepartureKeyFacts, DepartureLegCard } from '@/lib/departure-key-facts'
 

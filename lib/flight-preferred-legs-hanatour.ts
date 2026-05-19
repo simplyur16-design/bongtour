@@ -1,3 +1,9 @@
+/**
+ * [하나투어 항공 스택 P2] 출발/도착 2줄 힌트 — 한 줄에 `출발 :`·`도착 :` 붙은 복붙 분리.
+ *
+ * 하지 않음: `FlightStructured` SSOT 대체 — `flight-parser-hanatour` 우선.
+ * 계약: `docs/ops/hanatour-parse-contract.md`
+ */
 import type { PreferredFlightLegs } from '@/lib/flight-preferred-legs-types'
 import { splitFlightSectionLinesForPreferredLegs } from '@/lib/flight-preferred-legs-lines'
 

@@ -4,7 +4,10 @@
  * **책임 분리:** `parseDetailBodyStructuredHanatour`는 본문 슬라이스·호텔·포함불포함·예약 한 줄 추출 등만 한다.
  * 항공·옵션·쇼핑 **구조화**는 `register-input-parse-hanatour`로, **정형 입력란**만 기준으로 한다.
  *
- * @see docs/body-parser-hanatour-ssot.md
+ * [P2 항공 허브] 항공칸 있으면 입력란만 flightStructured · 없으면 본문 flightRaw → `parseHanatourFlightInput`.
+ * LLM에는 `resolveDirectedFlightLinesHanatour` 필수 주입. modetour `register-modetour-flight`에 해당하는 별도 파일 없음 — 이 모듈이 병합 허브.
+ *
+ * @see docs/body-parser-hanatour-ssot.md · `docs/ops/hanatour-parse-contract.md`
  *
  * 상위 입력 규약: `docs/admin-register-supplier-precise-spec.md` §3. 일정 표현: `docs/register_schedule_expression_ssot.md`.
  */

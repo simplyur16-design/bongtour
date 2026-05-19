@@ -39,4 +39,4 @@ parse-and-register-hanatour-handler (얇은 래퍼)
 ## 관련
 
 - `docs/ops/hanatour-lib-inventory.md`
-- `docs/body-parser-hanatour-ssot.md`, `docs/PARSING_MANUAL_HANATOUR.md`
+- `docs/body-parser-hanatour-ssot.md`, `docs/ops/hanatour-parse-contract.md`, `docs/PARSING_MANUAL_HANATOUR.md`

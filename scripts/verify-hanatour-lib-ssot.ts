@@ -74,6 +74,13 @@ assert(llm.includes('requireDirectedFlightLineResolver'), 'P1b: require directed
 assert(!llm.includes('REGISTER_PROMPT_HANATOUR_COMPACT'), 'P1b: remove compact duplicate prompt')
 assert(fs.existsSync(path.join(root, 'docs/ops/supplier-shopping-visit-count.md')), 'missing supplier-shopping-visit-count.md')
 
+// 8) P2 flight stack contract + 경계 주석
+assert(fs.existsSync(path.join(root, 'docs/ops/hanatour-parse-contract.md')), 'missing hanatour-parse-contract.md')
+const flightParser = read('lib/flight-parser-hanatour.ts')
+assert(flightParser.includes('[하나투어 항공 스택 P2]'), 'flight-parser-hanatour missing P2 header')
+assert(flightParser.includes('hanatour-parse-contract.md'), 'flight-parser-hanatour should cite contract')
+assert(read('lib/register-flight-hanatour.ts').includes('[하나투어 항공 스택 P2]'), 'register-flight-hanatour missing P2 header')
+
 if (failures.length) {
   console.error('[FAIL] verify-hanatour-lib-ssot')
   for (const f of failures) console.error(`  ${f}`)
