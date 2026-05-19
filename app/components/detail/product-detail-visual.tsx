@@ -194,6 +194,39 @@ export function splitProductHeroTitleLines(title: string): string[] {
   return lines.length > 0 ? lines : [t]
 }
 
+export const PRODUCT_HERO_TITLE_MAX_LINES = 3
+
+/** 공급사 원제목은 유지하고, 히어로·어두운 배경에는 짧게만 노출 */
+export function compactProductHeroDisplayTitle(title: string): string {
+  const t = title.replace(/\s+/g, ' ').trim()
+  if (!t) return t
+
+  const hashTags = t.match(/#[^#]+/g)
+  if (hashTags && hashTags.length >= 2) {
+    const prefix = t.split('#')[0]?.trim() ?? ''
+    const firstTag = hashTags[0]!.replace(/^#+\s*/, '').replace(/\s*#+\s*$/, '').trim()
+    const parts = [prefix, firstTag].filter(Boolean)
+    return parts.join(' · ') || t
+  }
+
+  if (t.length > 52) {
+    const cut = t.slice(0, 52)
+    const breakAt = Math.max(cut.lastIndexOf(' '), cut.lastIndexOf('·'), cut.lastIndexOf(','))
+    const end = breakAt > 20 ? breakAt : 52
+    return `${t.slice(0, end).trimEnd()}…`
+  }
+  return t
+}
+
+export function productHeroTitleLinesForDisplay(
+  title: string,
+  maxLines: number = PRODUCT_HERO_TITLE_MAX_LINES
+): string[] {
+  const lines = splitProductHeroTitleLines(compactProductHeroDisplayTitle(title))
+  if (lines.length <= maxLines) return lines
+  return lines.slice(0, maxLines)
+}
+
 type TitleProps = {
   title: string
   className?: string
@@ -224,16 +257,17 @@ export function ProductDetailTitle({ title, className, style, tone = 'light' }: 
   )
 }
 
-/** 데스크톱 히어로(어두운 배경) — ProductDetailTitle과 동일 줄 나눔 */
+/** 데스크톱 히어로(어두운 배경) — 짧은 표시 제목 + 최대 3줄 */
 export function ProductHeroTitleLines({ title, className, style }: Omit<TitleProps, 'tone'>) {
-  const lines = splitProductHeroTitleLines(title)
+  const lines = productHeroTitleLinesForDisplay(title)
   return (
     <h1
       className={
         className ??
-        'text-3xl font-bold leading-[1.38] tracking-[0.02em] text-white lg:text-5xl lg:leading-[1.38]'
+        'text-2xl font-bold leading-[1.35] tracking-[0.02em] text-white sm:text-3xl lg:text-4xl lg:leading-[1.35]'
       }
       style={style}
+      title={title.trim() || undefined}
     >
       {lines.map((line, i) => (
         <span key={i} className="block">
