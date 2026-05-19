@@ -32,4 +32,4 @@ npm run verify:hanatour-atp207
 
 ## 다음 공급사
 
-`ybtour` → `verygoodtour` (각자 P3·P1b·P2)
+`ybtour` · `verygoodtour` — P3·P1b·P2 코드 정리 완료 (`verify:ybtour-lib`, `verify:verygoodtour-lib`). 달력 E2E·운영 회귀는 별도 지시.

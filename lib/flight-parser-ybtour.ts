@@ -1,3 +1,7 @@
+/**
+ * [P2] ybtour 항공 leg SSOT — `출발`/`도착` 블록 → `FlightStructured`.
+ * 계약: `docs/ops/ybtour-parse-contract.md` (통합·modetour 이식 금지)
+ */
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import { createEmptyFlightLeg, stripLogoNoise } from '@/lib/flight-parser-generic'
 import {

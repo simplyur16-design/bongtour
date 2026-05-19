@@ -58,6 +58,8 @@
     "verify:supplier-pipeline": "npx tsx scripts/verify-supplier-pipeline-alignment.ts",
     "verify:modetour-lib": "npx tsx scripts/verify-modetour-lib-ssot.ts",
     "verify:hanatour-lib": "npx tsx scripts/verify-hanatour-lib-ssot.ts",
+    "verify:ybtour-lib": "npx tsx scripts/verify-ybtour-lib-ssot.ts",
+    "verify:verygoodtour-lib": "npx tsx scripts/verify-verygoodtour-lib-ssot.ts",
     "verify:hanatour-atp207": "npx tsx scripts/verify-hanatour-fixture-atp207.ts",
     "verify:hanatour-e2e-db": "npx tsx scripts/run-hanatour-e2e-from-db.ts",
     "verify:hanatour-e2e-seal": "npx tsx scripts/verify-hanatour-e2e-seal.ts",

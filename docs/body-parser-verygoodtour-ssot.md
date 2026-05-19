@@ -7,7 +7,8 @@
 
 **우선순위:** 본 문서 > 공통 등록 정책. 상위 정책 → `docs/admin-register-supplier-precise-spec.md` §2, `docs/register-supplier-extraction-spec.md`.
 
-**일정 표현 SSOT:** `docs/register_schedule_expression_ssot.md` — 본 문서는 **본문 섹션 분리**만 다룬다.
+**일정 표현 SSOT:** `docs/register_schedule_expression_ssot.md` — 본 문서는 **본문 섹션 분리**만 다룬다.  
+**항공·가격·달력 계약:** `docs/ops/verygoodtour-parse-contract.md` · 관리자 스택 P3: `docs/ops/verygoodtour-admin-register-stack.md`
 
 ### HTTP supplier 키 vs 붙여넣기 본문
 

@@ -1,3 +1,7 @@
+/**
+ * [P2] verygoodtour 항공 leg SSOT — `출국`/`입국`·편명·일시.
+ * 계약: `docs/ops/verygoodtour-parse-contract.md`
+ */
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import { createEmptyFlightLeg, stripLogoNoise } from '@/lib/flight-parser-generic'
 

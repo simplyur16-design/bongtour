@@ -140,7 +140,13 @@
 | orchestration | `parse-and-register-ybtour-orchestration` ~1685 lines — handler 분리 구조는 hanatour와 유사 |
 | schedule extract | 483 lines — 타 공급사와 동일 패턴 복사 의심 |
 
-**상태:** ⬜ 점검 대기
+**P3 완료 (2026-05):** `register-admin-core-ybtour` · orchestration digest 중복 제거 · `docs/ops/ybtour-lib-inventory.md` · `npm run verify:ybtour-lib`
+
+**P1b 완료 (2026-05):** LLM trim · `requireDirectedFlightLineResolver` · `docs/ops/supplier-shopping-visit-count.md` (ybtour 횟수=시그널)
+
+**P2 완료 (2026-05):** `docs/ops/ybtour-parse-contract.md` · 항공 P2 경계 주석
+
+**상태:** 🔄 운영 회귀·달력 E2E는 별도 지시 시만
 
 ---
 
@@ -157,7 +163,13 @@
 | handler 형태 | modetour/hanatour는 handler + orchestration 분리, verygoodtour는 handler 비대 — 책임 분리가 1차 과제일 수 있음 |
 | LLM | `register-from-llm-verygoodtour` ~2427 lines |
 
-**상태:** ⬜ 점검 대기
+**P3 완료 (2026-05):** `register-admin-core-verygoodtour` · handler digest 중복 제거 · `docs/ops/verygoodtour-lib-inventory.md` · `npm run verify:verygoodtour-lib`
+
+**P1b 완료 (2026-05):** LLM trim · `requireDirectedFlightLineResolver` · ybtour 교차 문단 제거
+
+**P2 완료 (2026-05):** `docs/ops/verygoodtour-parse-contract.md` · 항공 P2 경계 주석
+
+**상태:** 🔄 handler 분리·운영 회귀는 별도 라운드
 
 ---
 

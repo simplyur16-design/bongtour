@@ -1,30 +1,13 @@
-/** [verygoodtour] register-admin-input-digest */
+/** [verygoodtour] register-admin-input-digest — preview↔confirm 입력 지문 */
 import { createHash } from 'crypto'
 import { buildRegisterPreviewCanonicalString } from '@/lib/register-preview-content-fingerprint-verygoodtour'
-import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-verygoodtour'
+import {
+  normalizeVerygoodtourRegisterOriginUrl,
+  parseVerygoodtourRegisterPastedBlocksFromBody,
+} from '@/lib/register-admin-core-verygoodtour'
 
-/** 핸들러의 parsePastedBlocksFromBody와 동일 키만 digest에 반영 */
-export function parseRegisterPastedBlocksPayload(
-  body: Record<string, unknown>
-): Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping' | 'hotel' | 'airlineTransport'>> | null {
-  const b = body.pastedBlocks
-  if (!b || typeof b !== 'object' || Array.isArray(b)) return null
-  const o = b as Record<string, unknown>
-  const pick = (key: string) => {
-    const v = o[key]
-    return typeof v === 'string' && v.trim() ? v.trim().slice(0, 32000) : undefined
-  }
-  const out: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping' | 'hotel' | 'airlineTransport'>> = {}
-  const ot = pick('optionalTour')
-  if (ot) out.optionalTour = ot
-  const sh = pick('shopping')
-  if (sh) out.shopping = sh
-  const ho = pick('hotel')
-  if (ho) out.hotel = ho
-  const air = pick('airlineTransport')
-  if (air) out.airlineTransport = air
-  return Object.keys(out).length > 0 ? out : null
-}
+/** @deprecated 이름 호환 — `parseVerygoodtourRegisterPastedBlocksFromBody` */
+export const parseRegisterPastedBlocksPayload = parseVerygoodtourRegisterPastedBlocksFromBody
 
 export function computeRegisterInputDigestFromBody(
   body: Record<string, unknown>,
@@ -37,11 +20,11 @@ export function computeRegisterInputDigestFromBody(
       : typeof body.brandKey === 'string'
         ? body.brandKey.trim() || null
         : null
-  let originUrl: string | null = typeof body.originUrl === 'string' ? body.originUrl.trim() : null
-  if (originUrl === '') originUrl = null
-  if (originUrl && originUrl.length > 2000) originUrl = originUrl.slice(0, 2000)
+  const originUrlRaw = typeof body.originUrl === 'string' ? body.originUrl.trim() : null
+  const originUrl =
+    originUrlRaw && originUrlRaw !== '' ? normalizeVerygoodtourRegisterOriginUrl(originUrlRaw) : null
   const travelScope = typeof body.travelScope === 'string' ? body.travelScope.trim() : ''
-  const pb = parseRegisterPastedBlocksPayload(body)
+  const pb = parseVerygoodtourRegisterPastedBlocksFromBody(body)
   const pastedBlocksForFp = pb
     ? {
         airlineTransport: pb.airlineTransport ?? undefined,

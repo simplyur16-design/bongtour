@@ -44,7 +44,7 @@ function assertCanonicalKey(name) {
 }
 
 const cookie = `admin_bypass=${process.env.ADMIN_BYPASS_SECRET ?? ''}`
-const text = fs.readFileSync(path.join(__dirname, '_paste-verygood-JPP455.txt'), 'utf8')
+const text = fs.readFileSync(path.join(__dirname, 'fixtures', 'verygood-jpp455-paste.txt'), 'utf8')
 const baseUrl = 'http://localhost:3000'
 
 const previewBody = {

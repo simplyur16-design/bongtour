@@ -404,7 +404,7 @@ export async function ProductDetailView({
       legacyMetaRows: shoppingStopsFromMeta,
       shoppingPasteRaw:
         publicConsumptionModuleKey === 'hanatour'
-          ? (structured?.shoppingPasteRaw ?? travelProduct.shoppingPasteRaw ?? null)
+          ? (structured?.shoppingPasteRaw ?? null)
           : undefined,
     }
     switch (publicConsumptionModuleKey) {

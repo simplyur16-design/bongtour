@@ -9,7 +9,8 @@
 
 붙여넣기 **본문**의 한글·원문은 **파서 입력**이다. 요청 JSON의 `originSource` / `brandKey`는 canonical **`ybtour`**.
 
-**일정 표현 SSOT:** `docs/register_schedule_expression_ssot.md` — 본 문서는 **본문 섹션 분리**만.
+**일정 표현 SSOT:** `docs/register_schedule_expression_ssot.md` — 본 문서는 **본문 섹션 분리**만.  
+**항공·가격·달력 계약:** `docs/ops/ybtour-parse-contract.md` · 관리자 스택 P3: `docs/ops/ybtour-admin-register-stack.md`
 
 ### 본문 파서 비책임 축 (입력 파서 SSOT)
 
