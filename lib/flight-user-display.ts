@@ -2,6 +2,7 @@
  * 상품 상세 항공정보 — 사용자 화면 전용(부분확인형). 내부 검수 문구는 여기서 걸러낸다.
  */
 
+import type { DepartureKeyFacts, DepartureLegCard } from '@/lib/departure-key-facts'
 import { legHasGarbageFlightFields } from '@/lib/flight-leg-garbage'
 import { parseKoreanDateTimeLineToDate } from '@/lib/flight-korean-datetime'
 
@@ -251,4 +252,61 @@ export function formatDirectedFlightRow(
     line: body ? `${directionLabel}: ${body}` : null,
     showFlightHint: showFlightFinalConfirmHint && !fn,
   }
+}
+
+/** 일정 하단 항공편 블록 — 출국·귀국 행 (공항·일시 분리) */
+export type ItineraryFlightLegDisplay = {
+  from: string
+  to: string
+  departureAt: string
+  arrivalAt: string
+}
+
+export function departureLegCardToItineraryFlightDisplay(
+  leg: DepartureLegCard | null | undefined
+): ItineraryFlightLegDisplay | null {
+  if (!leg) return null
+  const from = leg.departureAirport?.trim() || ''
+  const to = leg.arrivalAirport?.trim() || ''
+  const departureAt = leg.departureAtText?.trim() || ''
+  const arrivalAt = leg.arrivalAtText?.trim() || ''
+  if (!from && !to && !departureAt && !arrivalAt) return null
+  return { from, to, departureAt, arrivalAt }
+}
+
+export function departureKeyFactsToItineraryFlightDisplay(
+  facts: DepartureKeyFacts | null | undefined
+): { outbound: ItineraryFlightLegDisplay | null; inbound: ItineraryFlightLegDisplay | null } | null {
+  if (!facts) return null
+  const outbound = departureLegCardToItineraryFlightDisplay(facts.outbound)
+  const inbound = departureLegCardToItineraryFlightDisplay(facts.inbound)
+  if (!outbound && !inbound) return null
+  return { outbound, inbound }
+}
+
+/** `FlightLegTwoLineDisplay` → 일정 하단 항공편 행 */
+export function flightLegTwoLineToItineraryLegDisplay(
+  leg: FlightLegTwoLineDisplay | null | undefined
+): ItineraryFlightLegDisplay | null {
+  if (!leg) return null
+  return {
+    from: leg.departureAirport,
+    to: leg.arrivalAirport,
+    departureAt: leg.departureAtText,
+    arrivalAt: leg.arrivalAtText,
+  }
+}
+
+/**
+ * 히어로 우측 카드(`formatFlightLegTwoLines`)와 동일 SSOT — 달력 정렬 facts 기준.
+ * leg 카드 직접 매핑보다 엄격해, 상세 하단·여행 핵심정보와 히어로가 같이 움직인다.
+ */
+export function departureKeyFactsToHeroSsotItineraryFlightDisplay(
+  facts: DepartureKeyFacts | null | undefined
+): { outbound: ItineraryFlightLegDisplay | null; inbound: ItineraryFlightLegDisplay | null } | null {
+  if (!facts) return null
+  const outbound = flightLegTwoLineToItineraryLegDisplay(formatFlightLegTwoLines(facts.outbound))
+  const inbound = flightLegTwoLineToItineraryLegDisplay(formatFlightLegTwoLines(facts.inbound))
+  if (!outbound && !inbound) return null
+  return { outbound, inbound }
 }

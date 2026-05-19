@@ -3,6 +3,14 @@
  * (통합 트리·top-nav-resolve에서 공유)
  */
 
+/** browse 한글 표기 — 트리 라벨 우선(라틴·알래스카 등) */
+export const BROWSE_SLUG_PREFER_TREE_KR_LABEL = new Set([
+  'latin-caribbean',
+  'latin-america',
+  'latin-mexico',
+  'alaska-caribbean-cruise',
+])
+
 /** 영문 slug (URL에 사용) — 국가(또는 공급사식 권역) 라벨 */
 const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
   서유럽: 'western-europe',
@@ -21,6 +29,24 @@ const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
   몰디브: 'maldives',
   '인도/네팔/스리랑카': 'india-nepal-sri-lanka',
   일본: 'japan',
+  홋카이도: 'hokkaido',
+  도호쿠: 'tohoku',
+  간토: 'kanto',
+  추부: 'chubu',
+  간사이: 'kansai',
+  '주고쿠-시코쿠': 'chugoku-shikoku',
+  규슈: 'kyushu',
+  오키나와: 'okinawa',
+  산동: 'shandong',
+  화동: 'huadong',
+  화북: 'huabei',
+  동북: 'dongbei',
+  화남: 'huanan',
+  홍콩: 'hong-kong',
+  마카오: 'macau',
+  '중남미·멕시코': 'latin-mexico',
+  알래스카: 'alaska',
+  '스포츠 테마 투어': 'sports-theme-tour',
   이탈리아: 'italy',
   스페인: 'spain',
   스위스: 'switzerland',

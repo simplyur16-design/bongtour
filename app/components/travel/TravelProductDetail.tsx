@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -677,8 +677,9 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
         packageTotalDays,
         heroResolved,
         computedReturnDate,
+        departureFacts: calendarAlignedDepartureFacts,
       }),
-    [selectedDate, packageTotalDays, heroResolved, computedReturnDate]
+    [selectedDate, packageTotalDays, heroResolved, computedReturnDate, calendarAlignedDepartureFacts]
   )
 
   const travelCitiesLine = useMemo(() => {
@@ -840,6 +841,8 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
         <div className="mt-6 lg:grid lg:grid-cols-[1fr_300px] lg:gap-10 lg:items-start">
           <ItineraryViewPackageMain
             product={product}
+            calendarAlignedDepartureFacts={calendarAlignedDepartureFacts}
+            selectedDepartureIso={selectedDate}
             selectedDepartureFacts={selectedDepartureFacts}
             periodContent={periodContent}
             travelCitiesLine={travelCitiesLine}

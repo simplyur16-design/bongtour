@@ -6,7 +6,7 @@
  */
 import type { Prisma } from '@prisma/client'
 import { resolveProductCityToKoreanDisplay, resolveProductCountryToKoreanDisplay } from '@/lib/browse-country-url-resolve'
-import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
+import { BROWSE_SLUG_PREFER_TREE_KR_LABEL, koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import { enrichPrismaGeoWithMasterLabels, masterGeoMeetsRegistrationBar } from '@/lib/normalize-product-geo-master'
 import {
   deriveProductLocationKeyFieldsForPrisma,
@@ -14,14 +14,6 @@ import {
   type ProductLocationKeyPrismaFields,
 } from '@/lib/product-location-key-match'
 export type { ProductLocationKeyMatchInput, ProductLocationKeyPrismaFields } from '@/lib/product-location-key-match'
-
-/** D-3-FIX browse 헬퍼 — 트리 미리보기·geo-audit 목록(트리 추천 패널)용, DB 조회 없음 */
-const BROWSE_SLUG_PREFER_TREE_KR_LABEL = new Set([
-  'latin-caribbean',
-  'latin-america',
-  'latin-mexico',
-  'alaska-caribbean-cruise',
-])
 
 function applyBrowseDisplayLabelsToDerived(d: ProductLocationKeyPrismaFields): ProductLocationKeyPrismaFields {
   const slugForKr = (d.countryKey ?? d.country ?? '').trim().toLowerCase()

@@ -12,6 +12,10 @@ import {
   browseTabIdToMegaMenuCardKeys,
   masterContinentKeysFromBrowseRegion,
 } from '@/lib/browse-master-geo-continents'
+import {
+  resolveMegaMenuGroupCityKeys,
+  resolveMegaMenuGroupCountryKeySlugs,
+} from '@/lib/mega-menu-browse-group'
 
 export {
   browseTabIdToMegaMenuCardKeys,
@@ -183,22 +187,38 @@ export async function buildOverseasBrowseGeoResolution(input: {
   region: string | null
   country: string | null
   city: string | null
+  /** 메가메뉴 열(홋카이도·미서부 등) — `country`가 일본/중국일 때 좁히기 */
+  menuGroup?: string | null
 }): Promise<OverseasBrowseGeoResolution> {
   const r = (input.region ?? '').trim()
   const c = (input.country ?? '').trim()
   const ct = (input.city ?? '').trim()
+  const mg = (input.menuGroup ?? '').trim().toLowerCase()
   const whereClauses: Prisma.ProductWhereInput[] = []
   let regionCountryKeys: string[] = []
 
   if (r) {
     regionCountryKeys = await resolveBrowseRegionToCountryKeys(r)
-    const countryKeys = c ? intersectBrowseCountryKeys(regionCountryKeys, c) : regionCountryKeys
+    let countryKeys = c ? intersectBrowseCountryKeys(regionCountryKeys, c) : regionCountryKeys
+    /** 열 전용 슬러그(스포츠 테마 등)는 countryKey에 없음 — 권역만 걸고 menuGroup·terms로 좁힘 */
+    if (countryKeys.length === 0 && mg && regionCountryKeys.length > 0) {
+      countryKeys = regionCountryKeys
+    }
     whereClauses.push(prismaWhereProductCountryTagKeysIn(countryKeys))
   } else if (c) {
     whereClauses.push(
       prismaWhereProductCountryTagKeysIn(resolveBrowseCountryParamToCountryKeySlugs(c)),
     )
   }
+
+  const countryScopeForCity = (): string[] =>
+    regionCountryKeys.length > 0
+      ? c
+        ? intersectBrowseCountryKeys(regionCountryKeys, c)
+        : regionCountryKeys
+      : c
+        ? resolveBrowseCountryParamToCountryKeySlugs(c)
+        : []
 
   if (ct) {
     let cityKeys = resolveBrowseCityKeysForFilter(ct)
@@ -212,16 +232,36 @@ export async function buildOverseasBrowseGeoResolution(input: {
         cityKeys = cityKeys.filter((k) => allowed.has(k))
       }
     }
-
-    const countryScope =
-      regionCountryKeys.length > 0
-        ? c
-          ? intersectBrowseCountryKeys(regionCountryKeys, c)
-          : regionCountryKeys
-        : c
-          ? resolveBrowseCountryParamToCountryKeySlugs(c)
-          : []
-    whereClauses.push(prismaWhereBrowseCityKeys(cityKeys, countryScope))
+    if (mg && r) {
+      const groupCityKeys = resolveMegaMenuGroupCityKeys(r, mg)
+      if (groupCityKeys.length > 0) {
+        const allowed = new Set(groupCityKeys)
+        cityKeys = cityKeys.filter((k) => allowed.has(k))
+      }
+    }
+    whereClauses.push(prismaWhereBrowseCityKeys(cityKeys, countryScopeForCity()))
+  } else if (mg && r) {
+    const groupCityKeys = resolveMegaMenuGroupCityKeys(r, mg)
+    if (groupCityKeys.length > 0) {
+      whereClauses.push(prismaWhereBrowseCityKeys(groupCityKeys, countryScopeForCity()))
+    } else {
+      const groupCountryKeys = resolveMegaMenuGroupCountryKeySlugs(r, mg)
+      if (groupCountryKeys.length > 0) {
+        const scoped =
+          regionCountryKeys.length > 0
+            ? groupCountryKeys.filter((k) => regionCountryKeys.includes(k))
+            : groupCountryKeys
+        if (c) {
+          const fromUrl = intersectBrowseCountryKeys(
+            regionCountryKeys.length > 0 ? regionCountryKeys : groupCountryKeys,
+            c,
+          )
+          whereClauses.push(prismaWhereProductCountryTagKeysIn(fromUrl.length > 0 ? fromUrl : scoped))
+        } else {
+          whereClauses.push(prismaWhereProductCountryTagKeysIn(scoped))
+        }
+      }
+    }
   }
 
   return { whereClauses, regionCountryKeys }

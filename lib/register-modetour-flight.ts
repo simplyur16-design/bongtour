@@ -1,5 +1,13 @@
 /**
- * 모두투어 등록 전용: flightRaw 확장 + directed raw 줄 + 결정적 structured 보강.
+ * [모두투어 항공 스택 P2] 등록 파이프라인 — flightRaw·directed·출발행 항공 필드 병합.
+ *
+ * 역할: `register-from-llm-modetour` / `register-parse-modetour` 이후 flightRaw 확장, directed 한 줄,
+ *       `resolveDirectedFlightLinesDeterministicOnly`(LLM resolver 보조), ProductDeparture 항공 컬럼.
+ * 호출: `register-parse-modetour`, handler 확정 저장.
+ * 하지 않음: 본문 첫 파싱(`flight-parser-modetour`), 공개 상세 leg 카드·달력 일자 보정, FMC 오버레이.
+ * 금지: 타 공급사 register-flight에 로직 복사·공통화.
+ *
+ * 상위 SSOT: `flight-modetour-parser.ts` · 계약: `docs/ops/modetour-parse-contract.md`
  */
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import type { RegisterParsed } from '@/lib/register-llm-schema-modetour'

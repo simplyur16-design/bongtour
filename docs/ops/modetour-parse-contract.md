@@ -10,6 +10,17 @@
 - **Directed / flightRaw·normalized 폴백**: `buildModetourDirectedDisplayFromStructuredBody` 등. 호출은 `brandKey === 'modetour'` 또는 `flightStructured.debug.supplierBrandKey === 'modetour'`로 확정된 경로만 (공개 상세 `page.tsx`, 등록 파이프라인의 modetour 분기).
 - **출발일별 leg 카드 enrich**: `departure-key-facts`에서 `tryModetourDepartureLegCardsFromStructuredBody`는 **`FlightStructuredBody.useModetourStructuredFlightLegs === true`일 때만** 호출. 플래그는 공개 `page.tsx`가 위 modetour 조건일 때만 설정.
 
+### 항공 파일 경계 (P2 — 통합 금지)
+
+| 파일 | 책임 | 하지 않음 |
+|------|------|-----------|
+| `flight-modetour-parser.ts` | 결정적 leg·directed 줄 | FMC, evidence, 달력 |
+| `flight-parser-modetour.ts` | 관리자 항공 칸 → `FlightStructured` | LLM, 출발행 DB |
+| `register-modetour-flight.ts` | 등록 flightRaw·directed·출발행 병합 | 본문 1차 파싱, 공개 달력 정렬 |
+| `flight-manual-correction-modetour.ts` | FMC final/auto 오버레이 | 자동 파싱 |
+| `register-flight-evidence-supplier-modetour.ts` | 미리보기 evidence 스니펫 | leg 구조화 |
+| `flight-preferred-legs-kr-out-in.ts` | **공용** 출발/도착 2줄 힌트 (ybtour 등) | modetour SSOT 대체 불가 |
+
 ## 가격
 
 - **본문 라벨 추출 보강**: `extractProductPriceTableByLabels` + `mergeProductPriceTableWithLabelExtract`는 유틸로 공급사 비특정이나, **공개 상세에서 병합 결과를 merge에 넘기는 것**은 `page.tsx`의 modetour 분기에서만.
@@ -23,3 +34,8 @@
 ## 참좋은여행 등 타 공급사
 
 별도 본문 규칙·분기로 추가한다. 이 계약에 맞춘 로직을 공통 레이어에 합치지 않는다.
+
+## P1 운영 SSOT
+
+- **전용 플래그·분기 목록:** `docs/ops/modetour-only-flags.md` (공통화 금지)
+- **회귀 URL·스크린 체크리스트:** `docs/ops/modetour-regression-baseline.md`

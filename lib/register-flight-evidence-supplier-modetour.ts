@@ -1,7 +1,10 @@
-/** [modetour] register-flight-evidence-supplier */
 /**
- * 등록 미리보기 correctionPreview — 항공 계열 evidence만.
- * 공급사 분기는 관리자 선택 brandKey만 사용(본문 항공사명으로 추정 금지).
+ * [모두투어 항공 스택 P2] 등록 미리보기·검수 — 항공 evidence 스니펫만.
+ *
+ * 역할: `RegisterParsed` + 붙여넣기 블록에서 correctionPreview용 항공 근거 줄 수집(편명·공항·carrier).
+ * 호출: `parse-and-register-modetour-handler` 미리보기/검증 메타.
+ * 하지 않음: leg 구조화, directed 줄 생성, 공개 상세 표시 — `flight-modetour-parser`·`departure-key-facts`.
+ * 금지: brandKey 없이 본문 항공사명으로 modetour 추정.
  */
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import type { RegisterParsed } from '@/lib/register-llm-schema-modetour'

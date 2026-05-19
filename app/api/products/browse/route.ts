@@ -29,11 +29,8 @@ import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import {
-  browseRegionToDbContinents,
   resolveBrowseCountryParamToCountryKeySlugs,
   resolveBrowseCountryParamToDbCountries,
-  resolveChinaSubregionDbCityKeywords,
-  resolveJapanSubregionDbCityKeywords,
 } from '@/lib/browse-country-url-resolve'
 import { buildOverseasBrowseGeoResolution, prismaWhereProductCountryTagKeysIn } from '@/lib/browse-master-geo'
 import { localDepartureTagForBrowseRegion } from '@/lib/browse-master-geo-continents'
@@ -94,19 +91,6 @@ function parseSort(raw: string | null): BrowseSort {
   return 'popular'
 }
 
-function appendSubregionCityOrDestinationOr(
-  overseasGeoAnd: Prisma.ProductWhereInput[],
-  keywords: string[],
-) {
-  const orParts: Prisma.ProductWhereInput[] = [{ city: { in: keywords } }]
-  for (const lab of keywords) {
-    orParts.push({ destination: { contains: lab } })
-    orParts.push({ destinationRaw: { contains: lab } })
-    orParts.push({ primaryDestination: { contains: lab } })
-  }
-  overseasGeoAnd.push({ OR: orParts })
-}
-
 /**
  * GET /api/products/browse
  *
@@ -135,6 +119,7 @@ async function productsBrowseBuildPayload(queryKey: string) {
     const sort = parseSort(searchParams.get('sort'))
     const region = searchParams.get('region')
     const country = searchParams.get('country')
+    const menuGroup = searchParams.get('menuGroup')?.trim() || null
     const destination = searchParams.get('destination')?.trim() || null
     const city = searchParams.get('city')?.trim() || destination
     const scope = searchParams.get('scope')
@@ -151,30 +136,14 @@ async function productsBrowseBuildPayload(queryKey: string) {
       if (localDepTag) {
         overseasGeoAnd.push({ localDepartureTag: { has: localDepTag } })
       } else {
-        const geo = await buildOverseasBrowseGeoResolution({ region, country, city: ct })
+        const geo = await buildOverseasBrowseGeoResolution({
+          region,
+          country,
+          city: ct,
+          menuGroup,
+        })
         browseRegionCountryKeys = geo.regionCountryKeys
         overseasGeoAnd.push(...geo.whereClauses)
-      }
-    }
-
-    const regionTrim = (region ?? '').trim()
-    const countryTrim = (country ?? '').trim()
-    const continentListForSubfilters = browseRegionToDbContinents(regionTrim)
-
-    if (continentListForSubfilters.includes('japan') && countryTrim) {
-      const jpKw = resolveJapanSubregionDbCityKeywords(countryTrim)
-      if (jpKw?.length) appendSubregionCityOrDestinationOr(overseasGeoAnd, jpKw)
-    }
-
-    if (
-      (continentListForSubfilters.includes('china-mongolia-ca') ||
-        continentListForSubfilters.includes('hongkong-macau')) &&
-      countryTrim
-    ) {
-      const dbs = resolveBrowseCountryParamToDbCountries(countryTrim)
-      if (dbs.length === 1 && dbs[0] === '중국') {
-        const cnKw = resolveChinaSubregionDbCityKeywords(countryTrim)
-        if (cnKw?.length) appendSubregionCityOrDestinationOr(overseasGeoAnd, cnKw)
       }
     }
 
@@ -217,7 +186,7 @@ async function productsBrowseBuildPayload(queryKey: string) {
           .map((s) => s.trim())
           .filter(Boolean)
       : []
-    const baseTerms = destinationTermsFromQuery(region, country, city)
+    const baseTerms = destinationTermsFromQuery(region, country, city, menuGroup)
     const destinationTerms = [...baseTerms, ...extraTerms]
 
     const dmPillar = (searchParams.get('dmPillar') ?? '').trim()
@@ -321,7 +290,8 @@ async function productsBrowseBuildPayload(queryKey: string) {
 
     let scoringDestinationTerms = destinationTerms
     if (hasOverseasUrlGeo) {
-      scoringDestinationTerms = extraTerms.length > 0 ? [...extraTerms] : []
+      scoringDestinationTerms =
+        menuGroup || extraTerms.length > 0 ? [...baseTerms, ...extraTerms] : []
     }
     if (domesticLike) {
       if (domesticSpecialTheme) {
@@ -364,14 +334,17 @@ async function productsBrowseBuildPayload(queryKey: string) {
           ? 'popular'
           : sort
 
-    const urlGeo = { region, country, city, regionCountryKeys: browseRegionCountryKeys }
+    /** 해외 URL geo: 1차 Prisma `ProductCountryTag`/`ProductCityTag` where만 적용. 메모리 재필터는 하지 않는다. */
+    const urlGeoForScore = hasOverseasUrlGeo
+      ? undefined
+      : { region, country, city, regionCountryKeys: browseRegionCountryKeys }
 
     const scoredForFacets = scoreAndFilterProducts(filteredRows, {
       type: browseTypeForScore,
       destinationTerms: scoringDestinationTerms,
       budgetPerPersonMax: null,
       sort: 'popular',
-      urlGeo,
+      urlGeo: urlGeoForScore,
     })
 
     const facetRows = scoredForFacets.map((s) => s.product as ProductBrowseFullRow)
@@ -384,7 +357,7 @@ async function productsBrowseBuildPayload(queryKey: string) {
       destinationTerms: scoringDestinationTerms,
       budgetPerPersonMax,
       sort: effectiveSort,
-      urlGeo,
+      urlGeo: urlGeoForScore,
     })
 
     if (departMonth && /^\d{4}-\d{2}$/.test(departMonth)) {

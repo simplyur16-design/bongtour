@@ -14,7 +14,8 @@
 | `lib/overseas-location-tree.types.ts` | `OverseasLeafNode`, `OverseasCountryNode`, `OverseasRegionGroupNode` |
 | `lib/overseas-location-tree.data.ts` | `OVERSEAS_LOCATION_TREE_DATA` 본문 |
 | `lib/overseas-location-tree.ts` | export, `matchTokensForLeaf` / `Country` / `Group`, **shallow** 토큰(leaf 제외 국가·권역만) |
-| `lib/travel/overseas-location-tree.ts` | 위 모듈 재수출 |
+| `lib/unified-location-tree.ts` | 메가메뉴 빌드·`continentTabIdForMatch` |
+| `lib/mega-menu-regions.data.ts` | 9탭 UI + `BROWSE_TAB_ID_TO_CARD_KEYS` |
 
 - **국가 노드**는 엄밀한 국가만이 아니라, 일본 **간토·간사이** 등 공급사 메뉴의 **세부 권역**도 포함한다.
 - **UI 라벨**은 봉투어 표준, **공급사식 표기**는 `aliases` / `supplierKeywords` / `supplierOnlyLabels` 로 매칭에 흡수한다.

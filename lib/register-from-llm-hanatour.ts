@@ -2,7 +2,7 @@
  * 하나투어 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-hanatour`만 호출.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
-import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -971,7 +971,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - **title**: 그날 핵심 도시 또는 활동 한 줄(간결·한글). 호텔명·항공편명만으로 끝내지 말 것.
 - **description**: 본문만 근거로 **한국어 문어체 3~4문장**(방문·체험·식사·이동 흐름). 콤마로 이어진 관광지 리스트를 그대로 붙여넣지 말고 자연스럽게 풀 것. **본문에 없는 정보·추측·항공편 번호(BX0182 등)·항공 브랜드 나열은 넣지 말 것**(항공은 별도 필드). 패키지는 관광 흐름과 식사를 풍부하게, 자유여행은 자유일정과 본문에 적힌 추천 활동·먹거리 등을 풍부하게.
 - **routeText**: 그날 방문 도시·장소를 본문 순서대로 **' - '**(공백-하이픈-공백)로 잇는 한 줄. 한글 지명 우선. 없으면 null.
-- **imageKeyword**: 그날 대표 관광지 **영문** 키워드(짧게). 실제 장소명 위주.
+- **imageKeyword**: 위 [schedule[].imageKeyword] 규칙 준수
 - **[조망], [차창관광]** 등은 본문에 있을 때 **(조망), (차창)** 으로만 바꿔 표기하고 의미는 유지.
 - **hotelText / breakfastText / lunchText / dinnerText / mealSummaryText**: 본문·일정표에 있을 때만. 없으면 null. 식사·숙소 원문은 가능하면 이 필드에 두고 description은 서술 흐름 위주.
 
@@ -1107,7 +1107,7 @@ date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel,
       "title": "마츠야마 도착",
       "description": "부산에서 출발하여 마츠야마 공항에 도착합니다. 호텔에 체크인 후 자유롭게 시간을 보냅니다. REF 마츠야마 시티 스테이션 호텔은 마츠야마역 도보 1분 거리에 위치하며 대욕장과 사우나를 무료로 이용할 수 있습니다.",
       "routeText": "부산 - 마츠야마",
-      "imageKeyword": "Matsuyama",
+      "imageKeyword": "Matsuyama Castle",
       "hotelText": "REF 마츠야마 시티 스테이션 바이 베셀 호텔",
       "breakfastText": null,
       "lunchText": null,
@@ -1143,7 +1143,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - originSource, originCode, title, destination, duration
 - airlineName, departureSegmentText, returnSegmentText, outboundFlightNo, inboundFlightNo, departureDateTimeRaw, arrivalDateTimeRaw, routeRaw (없으면 null)
 - priceTableRawText, productPriceTable(성인·아동·유아 슬롯), **prices[]** 달력 행(날짜·금액·상태)
-- **schedule[]** : 본문 일차 헤더마다 day, title, description(한국어 3~4문장·본문만·항공편 번호 금지), routeText(' - ' 연결 한 줄·한글 우선), imageKeyword(영문), hotelText·meal*·mealSummaryText(본문 있을 때만, 각 200자 이내 또는 null). [조망]/[차창관광] → (조망)/(차창). 패키지·자유여행 모두 일차 서술 풍부하게.
+- **schedule[]** : 본문 일차 헤더마다 day, title, description(한국어 3~4문장·본문만·항공편 번호 금지), routeText(' - ' 연결 한 줄·한글 우선), imageKeyword(해당 일 가장 유명한 관광명소 영문 고유명 1개), hotelText·meal*·mealSummaryText(본문 있을 때만, 각 200자 이내 또는 null). [조망]/[차창관광] → (조망)/(차창). 패키지·자유여행 모두 일차 서술 풍부하게.
 - 포함/불포함: includedItems[], excludedItems[] 짧은 줄만. **includedRaw, excludedRaw, includedExcludedRaw 는 null 우선** (장문 금지)
 - 선택관광·쇼핑 **메타만** 짧게: optionalTourNoticeRaw(200자 이내 또는 null), optionalTourNoticeItems(최대 5줄), hasOptionalTour, optionalTourCount, optionalTourSummaryText(120자 이내)
 - 쇼핑: hasShopping, shoppingVisitCount, shoppingNoticeRaw(200자 이내), shoppingSummaryText(120자 이내)
@@ -1245,7 +1245,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
       "title": "마츠야마 도착",
       "description": "부산에서 출발하여 마츠야마 공항에 도착합니다. 호텔에 체크인 후 자유롭게 시간을 보냅니다. REF 마츠야마 시티 스테이션 호텔은 마츠야마역 도보 1분 거리에 위치하며 대욕장과 사우나를 무료로 이용할 수 있습니다.",
       "routeText": "부산 - 마츠야마",
-      "imageKeyword": "Matsuyama",
+      "imageKeyword": "Matsuyama Castle",
       "hotelText": "REF 마츠야마 시티 스테이션 바이 베셀 호텔",
       "breakfastText": null,
       "lunchText": null,
@@ -1284,7 +1284,7 @@ const REGISTER_PREVIEW_MINIMAL_PROMPT = `${REGISTER_PREVIEW_MINIMAL_TONE_BLOCK}
 - hasShopping (bool), shoppingSummaryText: 짧은 쇼핑 요약만 또는 null
 - hotelSummaryText: 없으면 null, 있으면 80자 이내
 - fieldIssues: { field, reason, source:"llm", severity:"info"|"warn" } **최대 3건**. reason 각 120자 이내. 목적지·일정 힌트만.
-- **schedule[]** (필수): 본문 **1일차~N일차**마다 1객체. day, title(간결 한글), description(본문만·한국어 3~4문장·항공편 번호·항공사 홍보 문구 금지), routeText(' - ' 한 줄·한글 우선 또는 null), imageKeyword(영문), hotelText·breakfastText·lunchText·dinnerText·mealSummaryText(본문에 있을 때만, 없으면 null). [조망]/[차창관광] → (조망)/(차창). 창작 금지.
+- **schedule[]** (필수): 본문 **1일차~N일차**마다 1객체. day, title(간결 한글), description(본문만·한국어 3~4문장·항공편 번호·항공사 홍보 문구 금지), routeText(' - ' 한 줄·한글 우선 또는 null), imageKeyword(해당 일 가장 유명한 관광명소 영문 고유명 1개), hotelText·breakfastText·lunchText·dinnerText·mealSummaryText(본문에 있을 때만, 없으면 null). [조망]/[차창관광] → (조망)/(차창). 창작 금지.
 
 {
   "originSource": "string",
@@ -1305,7 +1305,7 @@ const REGISTER_PREVIEW_MINIMAL_PROMPT = `${REGISTER_PREVIEW_MINIMAL_TONE_BLOCK}
       "title": "마츠야마 도착",
       "description": "부산에서 출발하여 마츠야마 공항에 도착합니다. 호텔에 체크인 후 자유롭게 시간을 보냅니다. REF 마츠야마 시티 스테이션 호텔은 마츠야마역 도보 1분 거리에 위치하며 대욕장과 사우나를 무료로 이용할 수 있습니다.",
       "routeText": "부산 - 마츠야마",
-      "imageKeyword": "Matsuyama",
+      "imageKeyword": "Matsuyama Castle",
       "hotelText": "REF 마츠야마 시티 스테이션 바이 베셀 호텔",
       "breakfastText": null,
       "lunchText": null,
@@ -1867,13 +1867,12 @@ ${text.slice(0, 16000)}`
       const day = Number(s?.day) || 0
       const title = String(s?.title ?? '').trim()
       const description = String(s?.description ?? '').trim()
-      const imageKeyword = finalizeScheduleImageKeyword(String(s?.imageKeyword ?? '').trim())
       return {
         day,
         title,
         description,
         routeText: strOrNull(rec.routeText),
-        imageKeyword,
+        imageKeyword: String(s?.imageKeyword ?? '').trim(),
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),
         lunchText: strOrNull(rec.lunchText),
@@ -1889,6 +1888,7 @@ ${text.slice(0, 16000)}`
   schedule = await polishHanatourScheduleRowsGeminiCardTextIfNeeded(schedule, detailBody, {
     onTiming: options?.onTiming,
   })
+  schedule = applyScheduleImageKeywordsToRows(schedule)
 
   const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
   const supplierListingTitleRaw = extractHanatourVerbatimListingTitleRawFromPasteLocal(pastedBlobForTitle)

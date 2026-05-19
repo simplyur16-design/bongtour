@@ -17,7 +17,7 @@ import {
   REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK,
   PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK,
 } from '@/lib/bongtour-tone-manner-llm-ssot'
-import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
 
 /**
  * 풀 등록(`forPreview: false`) JSON 출력 상한. kyowontour 전용 우선순위:
@@ -943,7 +943,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 # [schedule] 일차별 (필수)
 - day, title, description, imageKeyword
 - description: 해당 일차 블록 전체를 근거로 관광·이동·식사·숙박을 **빠짐없이** 반영한 문어체 존댓말 요약. **3~6문장·450자 이내**를 목표로 하며, 한 줄·한두 문장만 쓰지 말 것. 복수 관광지가 있으면 모두 짧게라도 언급.
-- imageKeyword: Pexels 검색용 **영문 관광지·랜드마크 고유명 1개만** (예: Osaka Castle, Hoi An Ancient Town, Golden Bridge). 외곽·시점·시간·도시·국가 보조어 금지. 해당 일차 description에서 **가장 대표적인 관광지** 하나. **피할 것**: 단순 도시명만(Da Nang, Hoi An 단독), 한글만, Day N travel placeholder. 불확실하면 빈 문자열.
+- imageKeyword: 위 [schedule[].imageKeyword] 규칙 준수
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
 # [prices] 출발일별 요금 (달력과 동일한 날짜만)
@@ -1749,7 +1749,7 @@ ${text.slice(0, 16000)}`
         day: Number(s?.day) || 0,
         title: String(s?.title ?? '').trim(),
         description: String(s?.description ?? '').trim(),
-        imageKeyword: finalizeScheduleImageKeyword(String(s?.imageKeyword ?? '').trim()),
+        imageKeyword: String(s?.imageKeyword ?? '').trim(),
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),
         lunchText: strOrNull(rec.lunchText),
@@ -1758,7 +1758,9 @@ ${text.slice(0, 16000)}`
       }
     })
     .filter((s) => s.day > 0)
-  const schedule: RegisterScheduleDay[] = scheduleBase.map(supplementScheduleDayFromDescription)
+  const schedule: RegisterScheduleDay[] = applyScheduleImageKeywordsToRows(
+    scheduleBase.map(supplementScheduleDayFromDescription),
+  )
 
   /** 선추출이 최종 일정에 들어갔을 때만 true — 이후 본문 보강이 요약 문장을 정규식 결과로 되돌리지 않게 함 */
   const kyowontourScheduleExtractFilled = Boolean(

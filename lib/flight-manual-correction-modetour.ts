@@ -1,3 +1,12 @@
+/**
+ * [모두투어 항공 스택 P2] structuredSignals.flightManualCorrection — 관리자 수동 leg 오버레이.
+ *
+ * 역할: rawMeta `flightManualCorrection.{outbound|inbound}.{auto|final}` 읽기·정규화·
+ *       `DepartureKeyFacts` / 공개 상세에 final 우선 적용.
+ * 호출: `parse-and-register-modetour-handler`, 공개 상세(modetour origin + overlay 플래그).
+ * 하지 않음: 본문 파싱, LLM 항공, 등록 시 자동 추출 evidence — 각 전용 모듈.
+ * 금지: hanatour/ybtour FMC와 파일 통합. 본문만 보고 modetour 판별.
+ */
 import type { FlightStructured } from '@/lib/detail-body-parser'
 import type { DepartureKeyFacts, DepartureLegCard } from '@/lib/departure-key-facts'
 

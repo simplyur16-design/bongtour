@@ -2,7 +2,7 @@
  * 참좋은여행 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-verygoodtour`만 호출.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
-import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -921,7 +921,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 # [schedule] 일차별 (필수) — 노랑풍선(ybtour) 등록 REGISTER_PROMPT와 동일 규칙
 - day, title, description, imageKeyword
 - description: 해당 일차 블록 전체를 근거로 관광·이동·식사·숙박을 **빠짐없이** 반영한 문어체 존댓말 요약. **3~6문장·450자 이내**를 목표로 하며, 한 줄·한두 문장만 쓰지 말 것. 복수 관광지가 있으면 모두 짧게라도 언급.
-- imageKeyword: 해당 일차의 실존하는 장소 이름만 사용 (창조·추상 금지). 영문 명사 (예: Osaka Castle, Taipei 101)
+- imageKeyword: 위 [schedule[].imageKeyword] 규칙 준수
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
 # [prices] 출발일별 요금 (달력과 동일한 날짜만)
@@ -1055,7 +1055,7 @@ date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel,
       "day": 1,
       "title": "",
       "description": "",
-      "imageKeyword": "Real place name in English",
+      "imageKeyword": "Osaka Castle",
       "hotelText": null,
       "breakfastText": null,
       "lunchText": null,
@@ -1684,7 +1684,7 @@ ${text.slice(0, 16000)}`
         dateText: strOrNull(rec.dateText),
         title: String(s?.title ?? '').trim(),
         description: String(s?.description ?? '').trim(),
-        imageKeyword: finalizeScheduleImageKeyword(String(s?.imageKeyword ?? '').trim()),
+        imageKeyword: String(s?.imageKeyword ?? '').trim(),
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),
         lunchText: strOrNull(rec.lunchText),
@@ -1731,6 +1731,7 @@ ${text.slice(0, 16000)}`
   schedule = polishVerygoodRegisterScheduleDescriptions(schedule)
   traceVerygoodScheduleDesc('register-llm-D-after-polishVerygoodRegisterScheduleDescriptions', schedule)
   schedule = polishVerygoodRegisterScheduleImageKeywords(schedule, detRows)
+  schedule = applyScheduleImageKeywordsToRows(schedule)
   traceVerygoodScheduleDesc('register-llm-E-after-polishVerygoodRegisterScheduleImageKeywords', schedule)
 
   const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)

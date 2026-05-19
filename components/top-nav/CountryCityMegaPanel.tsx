@@ -28,6 +28,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                   type: activeProductType,
                   regionId,
                   countryLabel: g.countryLabel,
+                  headerBrowseCountryLabel: g.headerBrowseCountryLabel,
                 })}
                 className="mb-3 block text-left text-[15px] font-bold text-slate-800 transition hover:text-orange-500"
               >
@@ -42,6 +43,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                       type: activeProductType,
                       regionId,
                       countryLabel: g.countryLabel,
+                      headerBrowseCountryLabel: g.headerBrowseCountryLabel,
                       leaf: c,
                     })}
                     className="block text-left text-[13px] leading-7 text-slate-600 transition hover:text-orange-500"

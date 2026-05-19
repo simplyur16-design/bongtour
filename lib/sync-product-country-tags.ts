@@ -112,3 +112,58 @@ export async function syncProductCountryTags(
 
   return { plan, tagCount: rows?.length ?? 0 }
 }
+
+/**
+ * 도시 태그에 묶인 국가를 ProductCountryTag에 보조 연결 (다국가 클러스터·메가메뉴 다도시).
+ * 기존 primary/다국 태그는 유지하고, 아직 없는 countryKey만 추가한다.
+ */
+export async function syncSupplementalCountryTagsFromCityKeys(
+  db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
+  productId: string,
+  cityKeys: readonly string[],
+): Promise<number> {
+  const keys = [...new Set(cityKeys.map((k) => k.trim()).filter(Boolean))]
+  if (keys.length === 0) return 0
+
+  const existing = await db.productCountryTag.findMany({
+    where: { productId },
+    select: { countryKey: true, sortOrder: true },
+  })
+  const haveCountry = new Set(existing.map((t) => t.countryKey))
+  let nextSort =
+    existing.length > 0 ? Math.max(...existing.map((t) => t.sortOrder)) + 1 : 1
+
+  const cities = await db.city.findMany({
+    where: { cityKey: { in: keys } },
+    select: { cityKey: true, countryKey: true },
+  })
+
+  const rows: Array<{
+    productId: string
+    countryKey: string
+    nodeKey: string | null
+    groupKey: string
+    isPrimary: boolean
+    sortOrder: number
+  }> = []
+
+  for (const c of cities) {
+    if (haveCountry.has(c.countryKey)) continue
+    const groupKey = findGroupKeyForCountryKey(c.countryKey)?.trim()
+    if (!groupKey) continue
+    rows.push({
+      productId,
+      countryKey: c.countryKey,
+      nodeKey: c.cityKey,
+      groupKey,
+      isPrimary: false,
+      sortOrder: nextSort++,
+    })
+    haveCountry.add(c.countryKey)
+  }
+
+  if (rows.length > 0) {
+    await db.productCountryTag.createMany({ data: rows })
+  }
+  return rows.length
+}

@@ -1,6 +1,8 @@
 /**
- * 메가메뉴 SSOT ↔ browse 탭 매핑 검증 (A–I).
+ * 메가메뉴·browse SSOT 통합 검증 (탭/leaf 카운트 + 정적 URL + 태그 일치).
  * npx tsx scripts/verify-mega-menu-ssot-browse.ts
+ *
+ * (구) verify-mega-menu-browse-urls.ts · verify-browse-country-tag-geo.ts 기능 포함.
  */
 import { config as loadEnv } from 'dotenv'
 import path from 'path'
@@ -14,15 +16,22 @@ type BrowseDeps = {
     region: string | null
     country: string | null
     city: string | null
+    menuGroup?: string | null
   }) => Promise<import('@/lib/browse-master-geo').OverseasBrowseGeoResolution>
   scoreAndFilterProducts: typeof import('@/lib/products-browse-filter').scoreAndFilterProducts
   publicProductWhereClause: typeof import('@/lib/product-sales-policy').publicProductWhereClause
   filterProductsForOverseasDestinationTree: typeof import('@/lib/active-overseas-location-tree').filterProductsForOverseasDestinationTree
 }
 
+/** browse API와 동일: Prisma 태그 where + travelScope 풀만 (메모리 geo 재필터 없음) */
 async function countBrowse(
   deps: BrowseDeps,
-  q: { region: string | null; country: string | null; city: string | null },
+  q: {
+    region: string | null
+    country: string | null
+    city: string | null
+    menuGroup?: string | null
+  },
 ) {
   const geo = await deps.buildOverseasBrowseGeoResolution(q)
   const rows = await deps.prisma.product.findMany({
@@ -38,23 +47,273 @@ async function countBrowse(
     destinationTerms: [],
     budgetPerPersonMax: null,
     sort: 'popular',
-    urlGeo: { ...q, regionCountryKeys: geo.regionCountryKeys },
+    urlGeo: undefined,
   })
   return { n: scored.length, geo }
 }
 
+function parseBrowseHref(href: string) {
+  const u = new URL(href, 'http://localhost')
+  return {
+    region: u.searchParams.get('region'),
+    country: u.searchParams.get('country'),
+    city: u.searchParams.get('city'),
+    menuGroup: u.searchParams.get('menuGroup'),
+  }
+}
+
+async function verifyMegaMenuBrowseUrls(
+  intersectBrowseCountryKeys: (
+    cardCountryKeys: string[],
+    countryParam: string | null | undefined,
+  ) => string[],
+  resolveBrowseRegionToCountryKeys: (region: string | null | undefined) => Promise<string[]>,
+): Promise<void> {
+  const {
+    TOP_NAV_MEGA_REGIONS,
+    buildMegaMenuLeafHref,
+    buildProductsHrefCountryOnly,
+    countrySlugForMegaMenuCityHref,
+    countrySlugFromLabel,
+  } = await import('@/lib/top-nav-resolve')
+  const {
+    BROWSE_COUNTRY_SLUGS_WITH_INTENTIONAL_EMPTY_RESOLVE,
+    resolveBrowseCityKeysForFilter,
+    resolveBrowseCountryParamToCountryKeySlugs,
+    resolveBrowseCountryParamToDbCountries,
+  } = await import('@/lib/browse-country-url-resolve')
+
+  const BROWSE_TYPE = 'travel' as const
+  const issues: string[] = []
+
+  /** href country 버그 회귀 — 핵심 슬러그만 탭 카드 countryKey 교집합 검사 */
+  const REGRESSION_INTERSECT_COUNTRY_SLUGS = new Set([
+    'japan',
+    'vietnam',
+    'thailand',
+    'china',
+    'denmark',
+    'italy',
+    'france',
+    'spain',
+    'switzerland',
+    'germany',
+    'netherlands',
+    'belgium',
+    'austria',
+    'greece',
+    'turkey',
+    'egypt',
+    'morocco',
+    'singapore',
+    'malaysia',
+    'indonesia',
+    'philippines',
+    'taiwan',
+    'guam',
+    'saipan',
+    'australia',
+    'new-zealand',
+    'maldives',
+    'mongolia',
+    'macau',
+    'hong-kong',
+  ])
+
+  async function assertRegressionCountrySlugIntersectsRegion(
+    regionId: string,
+    countrySlug: string,
+    ctx: string,
+  ) {
+    if (!REGRESSION_INTERSECT_COUNTRY_SLUGS.has(countrySlug)) return
+    if (BROWSE_COUNTRY_SLUGS_WITH_INTENTIONAL_EMPTY_RESOLVE.has(countrySlug)) return
+    const regionKeys = await resolveBrowseRegionToCountryKeys(regionId)
+    const hit = intersectBrowseCountryKeys(regionKeys, countrySlug)
+    if (hit.length === 0) {
+      issues.push(`${ctx} region=${regionId} country=${countrySlug} ∩ tab keys = ∅`)
+    }
+  }
+
+  for (const region of TOP_NAV_MEGA_REGIONS) {
+    for (const g of region.countryGroups ?? []) {
+      if (!g.nonLinkHeader) {
+        const headerHref = buildProductsHrefCountryOnly({
+          type: BROWSE_TYPE,
+          regionId: region.id,
+          countryLabel: g.countryLabel,
+          headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+        })
+        const headerParsed = parseBrowseHref(headerHref)
+        const headerSlug = headerParsed.country?.trim().toLowerCase() ?? ''
+        const expectedHeaderSlug = countrySlugFromLabel(g.headerBrowseCountryLabel ?? g.countryLabel)
+        const expectedMenuGroup = countrySlugFromLabel(g.countryLabel)
+        if (headerSlug !== expectedHeaderSlug) {
+          issues.push(
+            `[header-slug] region=${region.id} group=${g.countryLabel} got=${headerSlug} want=${expectedHeaderSlug}`,
+          )
+        }
+        const menuGroupSlug = headerParsed.menuGroup?.trim().toLowerCase() ?? ''
+        if (menuGroupSlug !== expectedMenuGroup) {
+          issues.push(
+            `[header-menuGroup] region=${region.id} group=${g.countryLabel} got=${menuGroupSlug} want=${expectedMenuGroup}`,
+          )
+        }
+        const headerOk =
+          resolveBrowseCountryParamToCountryKeySlugs(headerSlug).length > 0 ||
+          resolveBrowseCountryParamToDbCountries(headerSlug).length > 0
+        if (!headerOk && !BROWSE_COUNTRY_SLUGS_WITH_INTENTIONAL_EMPTY_RESOLVE.has(headerSlug)) {
+          issues.push(`[header-resolve] region=${region.id} country=${headerSlug}`)
+        }
+        if (!headerParsed.menuGroup) {
+          await assertRegressionCountrySlugIntersectsRegion(region.id, headerSlug, '[header]')
+        }
+      }
+      for (const leaf of g.cities) {
+        const leafHref = buildMegaMenuLeafHref({
+          type: BROWSE_TYPE,
+          regionId: region.id,
+          countryLabel: g.countryLabel,
+          headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+          leaf,
+        })
+        const parsed = parseBrowseHref(leafHref)
+        if (leaf.kind === 'country') {
+          if (parsed.city) {
+            issues.push(`[leaf] country-kind must not set city: ${leafHref}`)
+          }
+          const leafSlug = parsed.country?.trim().toLowerCase() ?? ''
+          const countryOk =
+            resolveBrowseCountryParamToCountryKeySlugs(leafSlug).length > 0 ||
+            resolveBrowseCountryParamToDbCountries(leafSlug).length > 0
+          if (!countryOk && !BROWSE_COUNTRY_SLUGS_WITH_INTENTIONAL_EMPTY_RESOLVE.has(leafSlug)) {
+            issues.push(`[leaf] region=${region.id} country=${leafSlug}`)
+          }
+          await assertRegressionCountrySlugIntersectsRegion(region.id, leafSlug, '[leaf-country]')
+        } else {
+          const city = (parsed.city ?? '').trim()
+          if (!city) {
+            issues.push(`[leaf] city-kind missing city: ${leafHref}`)
+            continue
+          }
+          const countrySlug = parsed.country?.trim().toLowerCase() ?? ''
+          const expectedCountrySlug = countrySlugForMegaMenuCityHref({
+            leaf,
+            countryLabel: g.countryLabel,
+            headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+          })
+          if (countrySlug !== expectedCountrySlug) {
+            issues.push(
+              `[leaf-slug] region=${region.id} city=${city} got country=${countrySlug} want=${expectedCountrySlug} (${leafHref})`,
+            )
+          }
+          const cityAsCountrySlug = countrySlugFromLabel(leaf.label)
+          if (
+            countrySlug === cityAsCountrySlug &&
+            !g.headerBrowseCountryLabel &&
+            countrySlugFromLabel(g.countryLabel) !== cityAsCountrySlug
+          ) {
+            issues.push(
+              `[leaf-city-as-country] region=${region.id} leaf=${leaf.label} country=${countrySlug} (${leafHref})`,
+            )
+          }
+          if (resolveBrowseCityKeysForFilter(city).length === 0) {
+            issues.push(`[leaf] region=${region.id} city=${city} (no cityKey)`)
+          }
+          await assertRegressionCountrySlugIntersectsRegion(
+            region.id,
+            countrySlug,
+            `[leaf-city] ${city}`,
+          )
+        }
+      }
+    }
+  }
+
+  const fr = resolveBrowseCountryParamToDbCountries('france')
+  if (fr.length !== 1 || fr[0] !== '프랑스') {
+    issues.push(`[check] france → ${JSON.stringify(fr)}`)
+  }
+
+  if (issues.length) {
+    console.error('[FAIL] static mega-menu URL resolve:', issues.length)
+    for (const x of issues) console.error(`  ${x}`)
+    process.exit(1)
+  }
+  console.log('[ok] static mega-menu country slugs resolve (+ region ∩ country)')
+}
+
+async function verifyTagGeoConsistency(prisma: import('@prisma/client').PrismaClient): Promise<void> {
+  const { buildOverseasBrowseGeoResolution, resolveBrowseCardKeyToCountryKeys } = await import(
+    '@/lib/browse-master-geo'
+  )
+  const { productMatchesBrowseUrlGeo } = await import('@/lib/match-overseas-product')
+  const { publicProductWhereClause } = await import('@/lib/product-sales-policy')
+
+  async function assertPrismaMatchesMemory(query: {
+    region?: string
+    country?: string
+    city?: string
+  }) {
+    const geo = await buildOverseasBrowseGeoResolution({
+      region: query.region ?? null,
+      country: query.country ?? null,
+      city: query.city ?? null,
+    })
+    const rows = await prisma.product.findMany({
+      where: {
+        registrationStatus: 'registered',
+        AND: [...geo.whereClauses, publicProductWhereClause()],
+      },
+      select: { slug: true, originCode: true, countryTags: true, cityTags: true },
+    })
+    const drift = rows.filter(
+      (p) =>
+        !productMatchesBrowseUrlGeo(
+          { title: '', originSource: '', countryTags: p.countryTags, cityTags: p.cityTags },
+          {
+            region: query.region ?? null,
+            country: query.country ?? null,
+            city: query.city ?? null,
+            regionCountryKeys: geo.regionCountryKeys,
+          },
+        ),
+    )
+    if (drift.length > 0) {
+      throw new Error(
+        `Prisma/memory drift ${JSON.stringify(query)}: ${drift
+          .slice(0, 3)
+          .map((p) => p.slug ?? p.originCode)
+          .join(', ')}`,
+      )
+    }
+    return rows.length
+  }
+
+  const c1 = await assertPrismaMatchesMemory({ region: 'nordic-baltic-cluster', country: 'denmark' })
+  console.log(`[ok] tag drift check nordic+denmark: ${c1}건`)
+
+  const c2 = await assertPrismaMatchesMemory({ region: 'japan', city: 'tokyo' })
+  if (c2 < 3) throw new Error(`japan+tokyo expected >=3, got ${c2}`)
+  console.log(`[ok] tag drift check japan+tokyo: ${c2}건`)
+
+  const denmarkKeys = await resolveBrowseCardKeyToCountryKeys('nordic-baltic-cluster')
+  if (!denmarkKeys.includes('denmark')) {
+    throw new Error('nordic-baltic-cluster card missing denmark')
+  }
+  console.log('[ok] nordic-baltic-cluster card includes denmark')
+}
+
 async function main() {
   const { PrismaClient } = await import('@prisma/client')
-  const { MEGA_MENU_TAB_DEFINITIONS } = await import('@/lib/mega-menu-regions.data')
-  const { BROWSE_TAB_ID_TO_CARD_KEYS, browseTabIdToMegaMenuCardKeys } = await import(
-    '@/lib/browse-master-geo-continents'
+  const { MEGA_MENU_TAB_DEFINITIONS, BROWSE_TAB_ID_TO_CARD_KEYS } = await import(
+    '@/lib/mega-menu-regions.data'
   )
+  const { browseTabIdToMegaMenuCardKeys } = await import('@/lib/browse-master-geo-continents')
   const geoMod = await import('@/lib/browse-master-geo')
   const buildOverseasBrowseGeoResolution = geoMod.buildOverseasBrowseGeoResolution
-  if (typeof buildOverseasBrowseGeoResolution !== 'function') {
-    throw new Error(`buildOverseasBrowseGeoResolution missing (keys: ${Object.keys(geoMod).join(',')})`)
-  }
-  const { buildMegaMenuLeafHref } = await import('@/lib/top-nav-resolve')
+  const intersectBrowseCountryKeys = geoMod.intersectBrowseCountryKeys
+  const resolveBrowseRegionToCountryKeys = geoMod.resolveBrowseRegionToCountryKeys
+  const { buildMegaMenuLeafHref, buildProductsHrefCountryOnly } = await import('@/lib/top-nav-resolve')
   const { OVERSEAS_MEGA_MENU_REGIONS } = await import('@/lib/travel-landing-mega-menu-data')
   const { scoreAndFilterProducts } = await import('@/lib/products-browse-filter')
   const { publicProductWhereClause } = await import('@/lib/product-sales-policy')
@@ -64,7 +323,7 @@ async function main() {
     datasourceUrl: process.env.DIRECT_URL || process.env.DATABASE_URL,
   })
 
-  const deps = {
+  const deps: BrowseDeps = {
     prisma,
     buildOverseasBrowseGeoResolution,
     scoreAndFilterProducts,
@@ -74,18 +333,22 @@ async function main() {
 
   let failed = false
   try {
+    await verifyMegaMenuBrowseUrls(intersectBrowseCountryKeys, resolveBrowseRegionToCountryKeys)
+    await verifyTagGeoConsistency(prisma)
+
     console.log('[SSOT tabs]', MEGA_MENU_TAB_DEFINITIONS.map((t) => `${t.id} (${t.label})`).join(' | '))
     console.log('[card map]', JSON.stringify(BROWSE_TAB_ID_TO_CARD_KEYS, null, 0))
 
     const tabCases = [
-      { id: 'A', region: 'japan', min: 29 },
-      { id: 'B', region: 'china-hk-mo', min: 1 },
-      { id: 'C', region: 'americas', min: 1 },
-      { id: 'D', region: 'europe-me', min: 1 },
-      { id: 'E', region: 'southeast-asia', min: 1 },
-      { id: 'F', region: 'busan_dep', min: 5, local: 'busan' },
-      { id: 'G', region: 'cheongju_dep', min: 12, local: 'cheongju' },
-      { id: 'H', region: 'daegu_dep', min: 15, local: 'daegu' },
+      { id: 'A-japan', region: 'japan', min: 28 },
+      { id: 'B-china', region: 'china-hk-mo', min: 26 },
+      { id: 'C-americas', region: 'americas', min: 11 },
+      { id: 'D-europe', region: 'europe-me', min: 25 },
+      { id: 'E-sea', region: 'southeast-asia', min: 43 },
+      { id: 'F-oceania', region: 'oceania', min: 5 },
+      { id: 'G-busan', region: 'busan_dep', min: 5, local: 'busan' as const },
+      { id: 'H-cheongju', region: 'cheongju_dep', min: 12, local: 'cheongju' as const },
+      { id: 'I-daegu', region: 'daegu_dep', min: 15, local: 'daegu' as const },
     ]
 
     for (const c of tabCases) {
@@ -103,11 +366,7 @@ async function main() {
         } else console.log(`[ok] ${c.id} ${c.region}: ${n}`)
         continue
       }
-      const { n } = await countBrowse(deps, {
-        region: c.region,
-        country: null,
-        city: null,
-      })
+      const { n } = await countBrowse(deps, { region: c.region, country: null, city: null })
       if (n < c.min) {
         console.error(`[FAIL] ${c.id} tab ${c.region}: ${n} < ${c.min}`)
         failed = true
@@ -123,71 +382,73 @@ async function main() {
         type: 'travel',
         regionId,
         countryLabel: groupLabel,
+        headerBrowseCountryLabel: g.headerBrowseCountryLabel,
         leaf,
       })
     }
 
-    function parseHref(href: string) {
-      const u = new URL(href, 'http://localhost')
-      return {
-        region: u.searchParams.get('region'),
-        country: u.searchParams.get('country'),
-        city: u.searchParams.get('city'),
-      }
+    function headerHref(regionId: string, groupLabel: string): string {
+      const region = OVERSEAS_MEGA_MENU_REGIONS.find((r) => r.id === regionId)
+      const g = region?.countryGroups?.find((x) => x.countryLabel === groupLabel)
+      if (!g) throw new Error(`group ${regionId}/${groupLabel}`)
+      return buildProductsHrefCountryOnly({
+        type: 'travel',
+        regionId,
+        countryLabel: g.countryLabel,
+        headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+      })
     }
 
-    const leafCases = [
-      { id: 'I-tokyo', q: { region: 'japan', country: 'japan', city: 'tokyo' }, min: 3 },
-      {
-        id: 'I-danang',
-        q: { region: 'southeast-asia', country: 'vietnam', city: 'danang' },
-        min: 6,
-      },
-      {
-        id: 'I-bangkok',
-        q: { region: 'southeast-asia', country: 'thailand', city: 'bangkok' },
-        min: 1,
-      },
-      {
-        id: 'I-shanghai',
-        q: { region: 'china-hk-mo', country: 'china', city: 'shanghai' },
-        min: 3,
-      },
-      {
-        id: 'I-denmark',
-        href: leafHref('europe-me', '북유럽', '덴마크'),
-        min: 4,
-      },
+    const hrefCases = [
+      { id: 'I-tokyo', href: leafHref('japan', '간토', '도쿄'), min: 5 },
+      { id: 'I-danang', href: leafHref('southeast-asia', '베트남', '다낭'), min: 7 },
+      { id: 'I-bangkok', href: leafHref('southeast-asia', '태국', '방콕'), min: 3 },
+      { id: 'I-shanghai', href: leafHref('china-hk-mo', '화동', '상해'), min: 3 },
+      { id: 'I-denmark', href: leafHref('europe-me', '북유럽', '덴마크'), min: 3 },
+      { id: 'C-hokkaido-header', href: headerHref('japan', '홋카이도'), min: 1 },
+      { id: 'C-shandong-header', href: headerHref('china-hk-mo', '산동'), min: 1 },
+      { id: 'C-us-west-header', href: headerHref('americas', '미서부'), min: 1 },
+      { id: 'C-vietnam-header', href: headerHref('southeast-asia', '베트남'), min: 1 },
     ]
 
-    for (const c of leafCases) {
-      const q = 'q' in c ? c.q! : parseHref(c.href!)
+    for (const c of hrefCases) {
+      const q = parseBrowseHref(c.href)
       const { n } = await countBrowse(deps, q)
       if (n < c.min) {
-        console.error(`[FAIL] ${c.id}: ${n} < ${c.min}`, q)
+        console.error(`[FAIL] ${c.id}: ${n} < ${c.min}`, q, c.href)
         failed = true
       } else console.log(`[ok] ${c.id}: ${n}`, q)
     }
 
-    const jpGroups = OVERSEAS_MEGA_MENU_REGIONS.find((r) => r.id === 'japan')?.countryGroups ?? []
-    const jpGroupLabels = jpGroups.map((g) => g.countryLabel)
-    const dbCards = await prisma.megaMenuGroupCard.findMany({
-      where: { isActive: true, continentKey: 'northeast-asia' },
-      select: { cardKey: true, koreanLabel: true },
-    })
-    const japanSubCards = dbCards.filter((c) => c.cardKey.startsWith('japan-'))
-    console.log('\n[audit] JP SSOT groups:', jpGroupLabels.join(', '))
-    console.log('[audit] JP DB sub-cards:', japanSubCards.map((c) => c.cardKey).join(', '))
-    const unmapped = jpGroupLabels.filter(
-      (label) =>
-        !japanSubCards.some((c) => c.koreanLabel.includes(label) || c.cardKey.includes(label.replace(/-/g, ''))),
-    )
-    if (unmapped.length) {
-      console.log('[audit] JP groups without dedicated DB card (SSOT-only headers):', unmapped.join(', '))
+    const japanAll = await countBrowse(deps, { region: 'japan', country: 'japan', city: null, menuGroup: null })
+    const hokkaidoOnly = await countBrowse(deps, parseBrowseHref(headerHref('japan', '홋카이도')))
+    if (hokkaidoOnly.n >= japanAll.n && japanAll.n > 0) {
+      console.error(
+        `[FAIL] hokkaido menuGroup should narrow japan tab: hokkaido=${hokkaidoOnly.n} japan=${japanAll.n}`,
+      )
+      failed = true
+    } else {
+      console.log(`[ok] hokkaido ⊂ japan: ${hokkaidoOnly.n} / ${japanAll.n}`)
     }
 
-    const cnGroups = OVERSEAS_MEGA_MENU_REGIONS.find((r) => r.id === 'china-hk-mo')?.countryGroups ?? []
-    console.log('[audit] CN SSOT groups:', cnGroups.map((g) => g.countryLabel).join(', '))
+    const missingCityTag = await prisma.product.count({
+      where: {
+        registrationStatus: 'registered',
+        cityKey: { not: null },
+        cityTags: { none: {} },
+      },
+    })
+    if (missingCityTag > 0) {
+      console.error(
+        `[FAIL] registered+cityKey but no ProductCityTag: ${missingCityTag} — run npm run backfill:product-city-tag`,
+      )
+      failed = true
+    } else {
+      console.log('[ok] registered products with cityKey all have ProductCityTag')
+    }
+
+    const jpGroups = OVERSEAS_MEGA_MENU_REGIONS.find((r) => r.id === 'japan')?.countryGroups ?? []
+    console.log('\n[audit] JP SSOT groups:', jpGroups.map((g) => g.countryLabel).join(', '))
     console.log('[audit] CN tab cards:', browseTabIdToMegaMenuCardKeys('china-hk-mo').join(', '))
   } finally {
     await prisma.$disconnect()

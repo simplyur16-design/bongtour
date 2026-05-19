@@ -139,15 +139,25 @@ export function buildCalendarSsotHeroTripDisplays(opts: {
   packageTotalDays: number
   heroResolved: HeroTripResolved
   computedReturnDate: string | null
+  /** 달력 정렬된 출발일별 항공 facts — 귀국 요약일은 가는편·오는편 일시와 동일 SSOT */
+  departureFacts?: DepartureKeyFacts | null
 }): { departureDisplay: string | null; returnDisplay: string | null } {
   const cal = opts.selectedDate?.trim()
   const calendarDep = cal && /^\d{4}-\d{2}-\d{2}$/.test(cal) ? cal : null
+  const factsReturn = returnFromListFacts(opts.departureFacts ?? null)
+  const retFromDuration =
+    calendarDep && opts.packageTotalDays > 0
+      ? computeReturnDate(calendarDep, opts.packageTotalDays)
+      : null
+  const retIso =
+    factsReturn.iso ??
+    opts.heroResolved.returnIso ??
+    retFromDuration ??
+    opts.computedReturnDate ??
+    null
 
   if (calendarDep) {
     const departureDisplay = formatHeroDateKorean(calendarDep) ?? calendarDep
-    const retFromDuration =
-      opts.packageTotalDays > 0 ? computeReturnDate(calendarDep, opts.packageTotalDays) : null
-    const retIso = retFromDuration ?? opts.heroResolved.returnIso ?? opts.computedReturnDate ?? null
     const returnDisplay =
       opts.heroResolved.returnDisplayOverride ?? (retIso ? formatHeroDateKorean(retIso) ?? retIso : null)
     return { departureDisplay, returnDisplay }
@@ -156,7 +166,6 @@ export function buildCalendarSsotHeroTripDisplays(opts: {
   const departureDisplay =
     opts.heroResolved.departureDisplayOverride ??
     (formatHeroDateKorean(opts.heroResolved.departureIso) ?? opts.heroResolved.departureIso ?? null)
-  const retIso = opts.heroResolved.returnIso ?? opts.computedReturnDate ?? null
   const returnDisplay =
     opts.heroResolved.returnDisplayOverride ?? (retIso ? formatHeroDateKorean(retIso) ?? retIso : null)
   return { departureDisplay, returnDisplay }

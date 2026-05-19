@@ -6,7 +6,10 @@
  * 풀 등록 JSON과 동시에 거대 schedule을 출력하면 MAX_TOKENS·일차 누락이 나기 쉬워 분리한다.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
-import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import {
+  applyScheduleImageKeywordsToRows,
+  REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE,
+} from '@/lib/register-schedule-image-keyword-ssot'
 import { buildScheduleExtractToneBlock } from '@/lib/bongtour-tone-manner-llm-ssot'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import { extractRelevantSections } from '@/lib/paste-relevant-sections'
@@ -187,7 +190,7 @@ function parseScheduleRowsFromLlmJson(
       day,
       title: String(rec.title ?? '').trim(),
       description: clampScheduleDescriptionText(String(rec.description ?? '')),
-      imageKeyword: finalizeScheduleImageKeyword(String(rec.imageKeyword ?? '').trim()),
+      imageKeyword: String(rec.imageKeyword ?? '').trim(),
       routeText: strOrNull(rec.routeText),
       hotelText: strOrNull(rec.hotelText),
       breakfastText: strOrNull(rec.breakfastText),
@@ -202,7 +205,7 @@ function parseScheduleRowsFromLlmJson(
     if (!row && byDay.size === 1) {
       row = [...byDay.values()][0]!
     }
-    if (row) return [{ ...row, day: want }]
+    if (row) return applyScheduleImageKeywordsToRows([{ ...row, day: want }])
     return []
   }
   const out: CommonScheduleDayRow[] = []
@@ -210,7 +213,7 @@ function parseScheduleRowsFromLlmJson(
     const row = byDay.get(d)
     if (row) out.push(row)
   }
-  return out
+  return applyScheduleImageKeywordsToRows(out)
 }
 
 /** 풀 등록 프롬프트 JSON 예시의 schedule 배열을 []로 바꿔 출력 토큰·모델 복사를 줄인다. */
@@ -280,7 +283,7 @@ function buildScheduleOnlyPrompt(
     `- **schedule 배열 길이 = 정확히 ${expectedDays}개.**\n` +
     `- **day는 1부터 ${expectedDays}까지 각각 1개씩, 중복·누락 금지.**\n` +
     `- 마지막 일차(귀국·출국·기내박·숙박 없음)까지 반드시 포함.\n` +
-    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), imageKeyword(영문 장소명 짧게), routeText, ` +
+    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), ${REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE} routeText, ` +
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
     `- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 한국어로 작성. 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
     `- description: 해당 일차의 이동·관광·식사·숙박 흐름을 **짧은 문어체**로 요약. 원문 장문·HTML을 **통째로 복사**하지 말 것.\n` +
@@ -318,7 +321,7 @@ function buildScheduleOnlyPromptForSingleDay(
     `- 아래 본문은 **제${day}일차** 구간만 포함한다.\n` +
     `- **schedule 배열 길이 = 정확히 1개.** day=${day} 인 항목만.\n` +
     `- **day 필드는 반드시 정수 ${day}**\n` +
-    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), imageKeyword(영문 장소명 짧게), routeText, ` +
+    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), ${REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE} routeText, ` +
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
     `- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 한국어로 작성. 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
     `- description: 해당 일차를 **짧게** 요약. 원문 복붙·장황한 나열 금지.\n\n` +
@@ -482,8 +485,7 @@ export function mergeScheduleWithFirstPassPreferExtractRows(
         day: fp.day,
         title: fp.title.trim() || String(main.title ?? '').trim(),
         description: fp.description.trim() || String(main.description ?? '').trim(),
-        imageKeyword:
-          finalizeScheduleImageKeyword(fp.imageKeyword.trim() || String(main.imageKeyword ?? "").trim()),
+        imageKeyword: fp.imageKeyword.trim() || String(main.imageKeyword ?? '').trim(),
         hotelText: fp.hotelText ?? main.hotelText ?? null,
         breakfastText: fp.breakfastText ?? main.breakfastText ?? null,
         lunchText: fp.lunchText ?? main.lunchText ?? null,
@@ -496,7 +498,7 @@ export function mergeScheduleWithFirstPassPreferExtractRows(
         day: fp.day,
         title: fp.title,
         description: fp.description,
-        imageKeyword: finalizeScheduleImageKeyword(String(fp.imageKeyword ?? '').trim()),
+        imageKeyword: String(fp.imageKeyword ?? '').trim(),
         routeText: strOrNull(fp.routeText),
         hotelText: fp.hotelText,
         breakfastText: fp.breakfastText,

@@ -1,7 +1,6 @@
 /** [modetour] register-admin-input-persist */
 /**
- * 관리자 등록 요청의 원문 스냅샷·분석 행 저장, 주입된 parseFn 호출 시 DB 반영만 담당.
- * 공급사별 분기·캘린더 정책은 호출하는 핸들러에 둔다.
+ * 관리자 등록 — 스냅샷·parseFn·정규화 저장. 스택: docs/ops/modetour-admin-register-stack.md
  */
 import { prisma } from '@/lib/prisma'
 import {

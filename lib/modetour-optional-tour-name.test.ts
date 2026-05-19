@@ -6,6 +6,11 @@ describe('stripModetourOptionalTourNamePrefix', () => {
     expect(stripModetourOptionalTourNamePrefix('#(선택관광) 달랏 와인농장')).toBe('달랏 와인농장')
   })
 
+  it('strips [선택관광] bracket prefix and # characters', () => {
+    expect(stripModetourOptionalTourNamePrefix('[선택관광] 달랏 와인농장')).toBe('달랏 와인농장')
+    expect(stripModetourOptionalTourNamePrefix('# 황산 케이블카')).toBe('황산 케이블카')
+  })
+
   it('strips #선택관광- and #선택관광 - variants', () => {
     expect(stripModetourOptionalTourNamePrefix('#선택관광-십리화랑($20)')).toBe('십리화랑($20)')
     expect(stripModetourOptionalTourNamePrefix('#선택관광 - 황산 발마사지 ($30/인)')).toBe('황산 발마사지 ($30/인)')

@@ -2,10 +2,49 @@
  * 모두투어: 붙여넣은 본문 텍스트만으로 일차 블록 분리 → RegisterParsed.schedule 보강 (HTML/DOM 미사용).
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
-import { isModetourPlaceholderImageKeyword } from '@/lib/modetour-schedule-image-keyword'
+import {
+  deriveModetourImageKeyword,
+  isModetourPlaceholderImageKeyword,
+  polishModetourImageKeyword,
+} from '@/lib/modetour-schedule-image-keyword'
+import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
+import type { ModetourImageKeywordContext } from '@/lib/modetour-schedule-image-keyword'
 
-function modetourScheduleImageKeywordFallback(_day: number): string {
-  return ''
+function modetourScheduleImageKeywordFallback(ctx: ModetourImageKeywordContext): string {
+  return deriveModetourImageKeyword(ctx)
+}
+
+function kwFallbackFromScheduleRow(row: RegisterScheduleDay, blob?: string): string {
+  return modetourScheduleImageKeywordFallback({
+    day: row.day,
+    title: String(row.title ?? ''),
+    description: String(row.description ?? ''),
+    routeText: row.routeText ?? null,
+    blob,
+  })
+}
+
+function finalizeModetourScheduleImageKeywords(
+  schedule: RegisterScheduleDay[],
+  parsed: RegisterParsed,
+  pastedRaw: string
+): RegisterScheduleDay[] {
+  if (!schedule.length) return schedule
+  const blob = pastedRaw.slice(0, 32_000)
+  const rows = schedule.map((r) => ({ ...r }))
+  return applyScheduleImageKeywordsToRows(rows, (kw, ctx) =>
+    polishModetourImageKeyword(kw, {
+      day: ctx.day,
+      title: String(ctx.title ?? ''),
+      description: String(ctx.description ?? ''),
+      routeText: ctx.routeText ?? null,
+      blob,
+      scheduleRows: rows,
+      productTitle: parsed.title,
+      productPrimaryDestination: parsed.destination ?? null,
+      productDestination: parsed.destination ?? null,
+    })
+  )
 }
 
 const NOISE_LINE =
@@ -548,7 +587,7 @@ function blockToScheduleDay(day: number, lines: string[]): RegisterScheduleDay {
   const blob = useful.join('\n')
   const meal = extractMealHotelFromBlock(blob)
   const { title, description } = finalizeModetourTitleAndDescription(useful)
-  const imageKeyword = modetourScheduleImageKeywordFallback(day)
+  const imageKeyword = modetourScheduleImageKeywordFallback({ day, title, description, blob })
   return {
     day,
     title,
@@ -612,7 +651,7 @@ function applyModetourScheduleRowBlobFinale(
   if (!next.imageKeyword?.trim()) {
     next = {
       ...next,
-      imageKeyword: modetourScheduleImageKeywordFallback(next.day),
+      imageKeyword: kwFallbackFromScheduleRow(next, blob),
     }
   }
   return next
@@ -664,7 +703,7 @@ function mergeWeakWithBody(
   if (!next.imageKeyword?.trim()) {
     next = {
       ...next,
-      imageKeyword: modetourScheduleImageKeywordFallback(next.day),
+      imageKeyword: kwFallbackFromScheduleRow(next, dayBlob),
     }
   }
   return next
@@ -721,13 +760,13 @@ export function supplementModetourScheduleFromPastedBody(
         if (needKeywordFix && isDayNTravelKeyword(next.imageKeyword)) {
           next = {
             ...next,
-            imageKeyword: modetourScheduleImageKeywordFallback(r.day),
+            imageKeyword: kwFallbackFromScheduleRow(next, blob),
           }
         }
       }
       return applyModetourScheduleRowBlobFinale(next, blob, b)
     })
-    return { ...parsed, schedule }
+    return withModetourScheduleImageKeywordsFinalized(parsed, schedule, trimmed)
   }
 
   const fromBody = buildModetourScheduleFromPastedText(trimmed)
@@ -745,14 +784,14 @@ export function supplementModetourScheduleFromPastedBody(
       }
       return applyModetourScheduleRowBlobFinale(next, blob, undefined)
     })
-    return { ...parsed, schedule }
+    return withModetourScheduleImageKeywordsFinalized(parsed, schedule, trimmed)
   }
 
   if (!schedule.length) {
     const out = fromBody.map((r) =>
       applyModetourScheduleRowBlobFinale(r, blobByDay.get(r.day) ?? '', r)
     )
-    return { ...parsed, schedule: out }
+    return withModetourScheduleImageKeywordsFinalized(parsed, out, trimmed)
   }
 
   const llmByDay = new Map(schedule.map((r) => [r.day, r]))
@@ -789,7 +828,7 @@ export function supplementModetourScheduleFromPastedBody(
             imageKeyword:
               body.imageKeyword && !isDayNTravelKeyword(body.imageKeyword)
                 ? body.imageKeyword
-                : modetourScheduleImageKeywordFallback(day),
+                : kwFallbackFromScheduleRow(row, blob),
           }
         }
         if (blob.trim()) {
@@ -806,5 +845,16 @@ export function supplementModetourScheduleFromPastedBody(
     }
   }
 
-  return { ...parsed, schedule: merged }
+  return withModetourScheduleImageKeywordsFinalized(parsed, merged, trimmed)
+}
+
+function withModetourScheduleImageKeywordsFinalized(
+  parsed: RegisterParsed,
+  schedule: RegisterScheduleDay[],
+  pastedRaw: string
+): RegisterParsed {
+  return {
+    ...parsed,
+    schedule: finalizeModetourScheduleImageKeywords(schedule, parsed, pastedRaw),
+  }
 }

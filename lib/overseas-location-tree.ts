@@ -1,17 +1,14 @@
 /**
- * 해외 목적지 매칭 트리 — 본문 데이터는 `lib/unified-location-tree` 경유로
- * `overseas-location-tree.data` 한 곳에서 로드한다.
+ * 해외 목적지 매칭 트리 — 본문 데이터 SSOT: `lib/overseas-location-tree.data.ts`.
  */
 import type {
   OverseasCountryNode,
   OverseasLeafNode,
   OverseasRegionGroupNode,
 } from '@/lib/overseas-location-tree.types'
-import { OVERSEAS_LOCATION_TREE_SOURCE } from '@/lib/unified-location-tree'
+import { OVERSEAS_LOCATION_TREE_DATA } from '@/lib/overseas-location-tree.data'
 
 export type { OverseasCountryNode, OverseasLeafNode, OverseasRegionGroupNode } from '@/lib/overseas-location-tree.types'
-
-const OVERSEAS_LOCATION_TREE_DATA = OVERSEAS_LOCATION_TREE_SOURCE
 
 export const OVERSEAS_LOCATION_TREE: OverseasRegionGroupNode[] = OVERSEAS_LOCATION_TREE_DATA
 

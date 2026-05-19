@@ -1,5 +1,5 @@
 import type { PreferredFlightLegs } from '@/lib/flight-preferred-legs-types'
-import { tryPreferredFlightLegsModetourLines } from '@/lib/flight-preferred-legs-modetour'
+import { tryPreferredFlightLegsKrOutInLines } from '@/lib/flight-preferred-legs-kr-out-in'
 import {
   tryParseYbtourFlightBlocks,
   ybtourSynthesizePreferredRaw,
@@ -44,5 +44,5 @@ export function tryPreferredFlightLegsYbtourFromSection(section: string): Prefer
 export function tryPreferredFlightLegsYbtourLines(lines: string[]): PreferredFlightLegs | null {
   const fromBlocks = tryPreferredFlightLegsYbtourFromSection(lines.join('\n'))
   if (fromBlocks) return fromBlocks
-  return tryYbtourWindowBlocks(lines) ?? tryPreferredFlightLegsModetourLines(lines)
+  return tryYbtourWindowBlocks(lines) ?? tryPreferredFlightLegsKrOutInLines(lines)
 }

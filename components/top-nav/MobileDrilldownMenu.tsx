@@ -171,6 +171,7 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
                   type: productType,
                   regionId: region.id,
                   countryLabel,
+                  headerBrowseCountryLabel: grp?.headerBrowseCountryLabel,
                 })}
                 className="mb-3 block text-sm font-semibold text-teal-700 underline"
                 onClick={reset}
@@ -189,6 +190,9 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
                       type: productType,
                       regionId: region.id,
                       countryLabel,
+                      headerBrowseCountryLabel: region.countryGroups.find(
+                        (g) => g.countryLabel === countryLabel,
+                      )?.headerBrowseCountryLabel,
                       leaf: c,
                     })}
                     className="block rounded-lg px-2 py-2 text-[15px] text-slate-800 hover:bg-slate-50"

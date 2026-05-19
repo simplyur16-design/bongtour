@@ -769,8 +769,8 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
 
         <div className="mt-6 space-y-8">
             <TravelCoreInfoSection
-              facts={selectedDepartureFacts}
-              productAirline={selectedDepartureFacts?.airline?.trim() ?? null}
+              facts={calendarAlignedDepartureFacts}
+              productAirline={calendarAlignedDepartureFacts?.airline?.trim() ?? null}
               periodContent={periodContent}
               travelCitiesLine={travelCitiesLine}
               reservationLine={reservationDisplayLine}

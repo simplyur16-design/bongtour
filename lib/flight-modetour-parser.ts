@@ -2,10 +2,14 @@ import { formatDirectedFlightRow } from '@/lib/flight-user-display'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 
 /**
- * 모두투어 본문 항공 블록 전용 결정적 파서.
+ * [모두투어 항공 스택 P2] 결정적 본문 파서 — 이 파일이 leg·directed 줄의 1차 SSOT.
  *
- * [고정] 모두투어(modetour) 본문 구조에만 맞춘 규칙이다. 다른 공급사 공통 로직으로 승격·재사용하지 말 것.
- * 호출부는 관리자 brandKey·등록 파서 debug 등으로 modetour로 확정된 경우에만 둔다. (본문만으로 공급사 추정 금지)
+ * 역할: `출발 :` / `도착 :` 한 줄, 항공사 라벨, ModetourFlightLeg, directed 표시 줄, structuredBody enrich.
+ * 호출: `flight-parser-modetour`, `register-modetour-flight`, `departure-key-facts`(플래그 시), 공개 page modetour 분기.
+ * 하지 않음: 관리자 수동 교정(FMC), 등록 evidence, 붙여넣기 블록 조립, E2E 달력 가격 — 각 전용 모듈.
+ * 금지: 타 공급사 승격·공통 flight-parser로 합치기. 본문만으로 brand 추정 후 호출.
+ *
+ * 계약: `docs/ops/modetour-parse-contract.md`
  *
  * 예:
  * 항공사: 중국남방항공

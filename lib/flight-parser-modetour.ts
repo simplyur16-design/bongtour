@@ -1,3 +1,13 @@
+/**
+ * [모두투어 항공 스택 P2] 관리자 항공 섹션 붙여넣기 → `FlightStructured`.
+ *
+ * 역할: `detail-body-parser` / `register-input-parse-modetour` 항공 칸 입력을 `tryParseModetourFlightLines`로만 파싱.
+ * 호출: 본문 파서·등록 입력 파서(modetour 확정 경로).
+ * 하지 않음: LLM 항공 추출, 출발일별 ProductDeparture 행, 공개 달력 정렬 — `register-modetour-flight`·`departure-key-facts`.
+ * 금지: `parseFlightSectionGeneric` 등 공용 폴백. 실패 시 admin_only structured 반환(조용한 성공 금지).
+ *
+ * 하위 SSOT: `flight-modetour-parser.ts`
+ */
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import { createEmptyFlightLeg, stripLogoNoise } from '@/lib/flight-parser-generic'
 import {

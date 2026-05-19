@@ -15,6 +15,10 @@ import { formatScheduleDayHotelLine, formatMealDisplay } from '@/lib/hotel-meal-
 import { ItineraryExtraInfoBoxes } from '@/components/itinerary/ItineraryExtraInfoBoxes'
 import { Bed, UtensilsCrossed } from 'lucide-react'
 import type { FlightStructuredBody } from '@/lib/public-product-extras'
+import {
+  departureKeyFactsToHeroSsotItineraryFlightDisplay,
+  type ItineraryFlightLegDisplay,
+} from '@/lib/flight-user-display'
 
 function airportLabel(airport: string | null | undefined, code: string | null | undefined) {
   return airport?.trim() || code?.trim() || ''
@@ -64,6 +68,10 @@ const CATEGORY = {
 
 type Props = {
   product: TravelProduct
+  /** 달력 선택 출발일에 맞춘 항공 facts — 히어로 카드·일정 하단 항공편 SSOT */
+  calendarAlignedDepartureFacts?: DepartureKeyFacts | null
+  /** 출발일 선택 시 등록 템플릿 항공으로 되돌리지 않기 위함 */
+  selectedDepartureIso?: string | null
   selectedDepartureFacts: DepartureKeyFacts | null
   periodContent: React.ReactNode
   travelCitiesLine: string
@@ -76,6 +84,8 @@ type Props = {
 
 export function ItineraryViewPackageMain({
   product,
+  calendarAlignedDepartureFacts = null,
+  selectedDepartureIso = null,
   showEsimCrossSell = false,
 }: Props) {
   const schedule = product.schedule ?? []
@@ -94,10 +104,15 @@ export function ItineraryViewPackageMain({
     [product.mustKnowItems, product.originSource]
   )
 
-  const flightDisplay = useMemo(
-    () => resolvePackageFlightDisplay(product.flightStructured),
-    [product.flightStructured]
-  )
+  const flightDisplay = useMemo((): {
+    outbound: ItineraryFlightLegDisplay | null
+    inbound: ItineraryFlightLegDisplay | null
+  } | null => {
+    const fromHeroSsot = departureKeyFactsToHeroSsotItineraryFlightDisplay(calendarAlignedDepartureFacts)
+    if (fromHeroSsot) return fromHeroSsot
+    if (selectedDepartureIso?.trim()) return null
+    return resolvePackageFlightDisplay(product.flightStructured)
+  }, [calendarAlignedDepartureFacts, selectedDepartureIso, product.flightStructured])
 
   const isAirHotelFree = isAirHotelFreeListingForUi(product.listingKind)
 

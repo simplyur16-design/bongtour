@@ -4,13 +4,21 @@
  */
 
 import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+import {
+  buildScheduleImageKeywordPlan,
+  resolveScheduleHubImageKeyword,
+  type ScheduleImageKeywordDayInput,
+} from '@/lib/register-schedule-image-keyword-ssot'
 
 export type ModetourImageKeywordContext = {
   day: number
   title: string
   description: string
+  routeText?: string | null
   /** 일차 원문 블록(붙여넣기 파이프라인) */
   blob?: string
+  /** 동일 상품 일정 전체 — 출발일=첫 해외 도시, 귀국일=마지막 해외 도시(SSOT) */
+  scheduleRows?: ReadonlyArray<ScheduleImageKeywordDayInput>
   /** 에어텔(항공+호텔) + 일정 빈약 시 도시 기반 키워드(모두투어 전용) */
   airtelFreeTravelImageKw?: 'off' | 'force-city'
   productTitle?: string
@@ -82,11 +90,18 @@ const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /뉴욕/u, en: 'New York Manhattan skyline' },
   { re: /연길/u, en: 'Yanji Korean quarter winter street' },
   { re: /제주/u, en: 'Jeju coast view' },
-  { re: /서울|인천/u, en: 'Seoul city skyline night' },
+  { re: /서울/u, en: 'Seoul city skyline night' },
   { re: /부산/u, en: 'Busan Gamcheon village' },
   { re: /방콕/u, en: 'Bangkok Wat Arun temple' },
   { re: /치앙마이/u, en: 'Chiang Mai old city temple' },
   { re: /파타야/u, en: 'Pattaya beach sunset' },
+  { re: /바나힐|바나\s*힐|Ba\s*Na\s*Hills/i, en: 'Ba Na Hills Golden Bridge Da Nang' },
+  { re: /호이안|회안|Hoi\s*An/i, en: 'Hoi An ancient town lanterns Vietnam' },
+  { re: /미케\s*비치|Mỹ\s*Khê|My\s*Khe/i, en: 'My Khe Beach Da Nang' },
+  { re: /마블\s*마운틴|오행산|Marble\s*Mountain/i, en: 'Marble Mountains Da Nang caves' },
+  { re: /다낭\s*대성당|수탉\s*성당/i, en: 'Da Nang Cathedral pink church' },
+  { re: /영흥사|손짜|Linh\s*Ung/i, en: 'Linh Ung Pagoda Son Tra Da Nang' },
+  { re: /투본강/i, en: 'Thu Bon River Hoi An boat' },
   { re: /다낭/u, en: 'Da Nang Marble Mountains view' },
   { re: /하노이/u, en: 'Hanoi Old Quarter street' },
   { re: /호치민/u, en: 'Ho Chi Minh city skyline' },
@@ -103,28 +118,45 @@ const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /사이판|Saipan/i, en: 'Saipan Managaha lagoon' },
 ]
 
-const IATA_IMAGE: Readonly<Record<string, string>> = {
-  ICN: 'Seoul Incheon airport departure hall',
-  GMP: 'Seoul Gimpo airport',
-  PVG: 'Shanghai Pudong airport to city',
-  SHA: 'Shanghai Hongqiao airport',
-  NRT: 'Narita airport Tokyo approach',
-  HND: 'Haneda airport Tokyo skyline',
-  KIX: 'Kansai airport Osaka bay',
-  NGO: 'Chubu airport Nagoya',
-  FUK: 'Fukuoka airport city view',
-  CTS: 'New Chitose airport Hokkaido',
-  CDG: 'Paris Charles de Gaulle to skyline',
-  FCO: 'Rome Fiumicino airport approach',
-  LHR: 'London Heathrow approach',
-  JFK: 'New York JFK airport approach',
-  LGA: 'New York LaGuardia skyline',
-  EWR: 'New York Newark skyline',
-  YNJ: 'Yanji arrival city winter',
-}
+const AIRPORT_KEYWORD_RE =
+  /\bairport\b|international\s+flight|departure\s+hall|heathrow|narita|haneda|gimpo|incheon\s+airport|terminal\b/i
 
 function hay(ctx: ModetourImageKeywordContext): string {
-  return `${ctx.title}\n${ctx.description}\n${ctx.blob ?? ''}`.replace(/\s+/g, ' ')
+  return `${ctx.title}\n${ctx.description}\n${ctx.routeText ?? ''}\n${ctx.blob ?? ''}`.replace(/\s+/g, ' ')
+}
+
+function modetourRowInput(ctx: ModetourImageKeywordContext): ScheduleImageKeywordDayInput {
+  return {
+    day: ctx.day,
+    title: ctx.title,
+    description: ctx.description,
+    routeText: ctx.routeText ?? null,
+  }
+}
+
+function resolveModetourHubImageKeyword(ctx: ModetourImageKeywordContext): string | null {
+  if (ctx.scheduleRows?.length) {
+    const plan = buildScheduleImageKeywordPlan([...ctx.scheduleRows])
+    return resolveScheduleHubImageKeyword(modetourRowInput(ctx), plan)
+  }
+  const productHay = [ctx.productTitle, ctx.productPrimaryDestination, ctx.productDestination, ctx.blob]
+    .filter((x): x is string => Boolean(x?.trim()))
+    .join('\n')
+  const cities: string[] = []
+  const seen = new Set<string>()
+  for (const { re, en } of CITY_RULES) {
+    if (re.test(productHay) && !seen.has(en)) {
+      seen.add(en)
+      cities.push(en)
+    }
+  }
+  if (!cities.length) return null
+  const plan = {
+    firstDestinationEn: cities[0]!,
+    lastDestinationEn: cities[cities.length - 1]!,
+    totalDays: ctx.day,
+  }
+  return resolveScheduleHubImageKeyword(modetourRowInput(ctx), plan)
 }
 
 function stripDatesAndNoise(s: string): string {
@@ -156,6 +188,7 @@ function hasBadSubstrings(s: string): boolean {
   if (GENERIC_EN.test(s.trim())) return true
   if (TRAVEL_STANDALONE_KO.test(s.trim())) return true
   if (/\b(?:hotel\s*only|breakfast|lunch|dinner|meals?\s*at)\b/i.test(s)) return true
+  if (AIRPORT_KEYWORD_RE.test(s)) return true
   return false
 }
 
@@ -169,29 +202,6 @@ function isAcceptableEnglishKeyword(s: string): boolean {
   if (!/[a-z]{4,}/i.test(t)) return false
   if (countWords(t) > 10) return false
   return true
-}
-
-function arrivalCityFromHay(h: string): string | null {
-  const m = h.match(/([^\s()（）]{2,12}?)\s*[\(（]\s*([A-Z]{3})\s*[\)）]\s*도착/u)
-  if (m?.[2]) {
-    const iata = m[2]
-    return IATA_IMAGE[iata] ?? null
-  }
-  return null
-}
-
-function iataHintsFromHay(h: string): string | null {
-  const pairs = [...h.matchAll(/\(\s*([A-Z]{3})\s*\)\s*(출발|도착)/gu)]
-  if (pairs.length >= 2) {
-    const last = pairs[pairs.length - 1]
-    const code = last?.[1]
-    if (code && IATA_IMAGE[code]) return IATA_IMAGE[code]
-  }
-  if (pairs.length === 1) {
-    const code = pairs[0]?.[1]
-    if (code && IATA_IMAGE[code]) return IATA_IMAGE[code]
-  }
-  return null
 }
 
 function firstMatchingEn(rules: ReadonlyArray<{ re: RegExp; en: string }>, h: string): string | null {
@@ -343,24 +353,17 @@ function modetourResolveAirtelFreeTravelImageKeywordLocal(ctx: ModetourImageKeyw
   return modetourAirtelFreeTravelRegionalFallbackLocal(h)
 }
 
-/** 붙여넣기/LLM 후처리 공통: 본문·제목에서 영문 검색어 유도 */
+/** 붙여넣기/LLM 후처리 공통: 본문·제목에서 영문 검색어 유도 (공항·IATA 금지) */
 export function deriveModetourImageKeyword(ctx: ModetourImageKeywordContext): string {
+  const hubKw = resolveModetourHubImageKeyword(ctx)
+  if (hubKw) return hubKw
+
   const h = hay(ctx)
   const spot = firstMatchingEn(SPOT_RULES, h)
   if (spot) return spot
 
-  const arrival = arrivalCityFromHay(h)
-  if (arrival) return arrival
-
-  const iata = iataHintsFromHay(h)
-  if (iata) return iata
-
   const cityHit = firstMatchingEn(CITY_RULES, h)
   if (cityHit) return cityHit
-
-  if (/(?:공항|출발|도착|항공|귀국|입국|출국)/u.test(h)) {
-    return 'International flight airport window'
-  }
 
   return modetourAirtelFreeTravelRegionalFallbackLocal(h)
 }

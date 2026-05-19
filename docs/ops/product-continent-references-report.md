@@ -38,13 +38,12 @@
 | `lib/parse-and-register-kyowontour-orchestration.ts` | 1609, 1688 | 동일 | kyowontour |
 | `lib/parse-and-register-lottetour-orchestration.ts` | 1615, 1701 | 동일 | lottetour |
 | `lib/geo-audit-tree-from-master.ts` | 11–24 | `deriveTreeGeoFromMasterPrimary` → browse 탭 id `continent` | geo-audit 보조 |
-| `lib/browse-country-url-resolve.ts` | 2, 198–246 | 주석·`browseRegionToDbContinents` 등 — DB `Product.continent` 슬러그 매핑 | 메뉴·browse |
-| `lib/browse-master-geo.ts` | 23–33 | `prismaContinentOrTagGroupKeysG3`: `{ continent: continentList[i] }` Prisma where | browse |
-| `lib/browse-master-geo.ts` | 39–55 | `prismaWhereContinentMasterOrTagWithLegacyNull` — `continentKey` null 시 G-3 `continent` 폴백 | browse |
-| `lib/match-overseas-product.ts` | 47, 88, 178 | `OverseasProductMatchInput.continent`; `product.continent` read; `rDbConts.includes(dbCont)` | browse·필터 |
-| `lib/products-browse-filter.ts` | 63, 79, 116 | `toOverseasMatchInput`에 `p.continent` 전달 | browse |
-| `app/api/products/browse/route.ts` | 165–176 | `prismaWhereContinentMasterOrTagWithLegacyNull`로 region 필터 | browse |
-| `app/api/products/browse/route.ts` | 558 | `p.continent` → `matchProductToOverseasNode` 입력 | browse |
+| `lib/browse-country-url-resolve.ts` | — | `browseRegionToDbContinents` 등 슬러그·트리 매핑(클라이언트 안전). browse Prisma where에는 미사용 | 메뉴·URL |
+| `lib/browse-master-geo.ts` | — | `ProductCountryTag` / `ProductCityTag` 단일 SSOT (`buildOverseasBrowseGeoResolution`) | browse |
+| `lib/match-overseas-product.ts` | 47 | `OverseasProductMatchInput.continentKey` 등(레거시 `continent` 스칼라는 browse where 미사용) | browse·필터 |
+| `lib/products-browse-filter.ts` | 63, 79 | `toOverseasMatchInput` — 태그·키 필드 | browse |
+| `app/api/products/browse/route.ts` | — | `buildOverseasBrowseGeoResolution` 태그 where만; JP/CN `Product.city` 레거시 OR 제거됨 | browse |
+| `app/api/products/browse/route.ts` | — | 응답 매핑 시 `matchProductToOverseasNode`(표시 버킷) | browse |
 | `lib/product-browse-full-include.ts` | 7–46 | include만 정의; Product 스칼라 `continent`는 findMany 시 자동 로드 | browse |
 | `app/api/admin/products/geo-audit/list/route.ts` | 52, 158, 164, 196, 208 | `select: { continent: true }`; API 응답·suggestion | 어드민 |
 | `app/api/admin/products/geo-audit/apply/route.ts` | 205, 225, 269, 279, 398, 404, 422, 470, 503, 523, 536, 618, 624, 643 | select·patch·`product.update` data에 `continent` | 어드민 |

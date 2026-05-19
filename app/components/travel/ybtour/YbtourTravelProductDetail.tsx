@@ -781,8 +781,8 @@ function YbtourTravelProductDetailView({ product, showEsimCrossSell = false }: P
         <div className="mt-6 space-y-8">
             {!isAirHotelFreeListingForUi(product.listingKind) ? (
             <TravelCoreInfoSection
-              facts={selectedDepartureFacts}
-              productAirline={selectedDepartureFacts?.airline?.trim() ?? null}
+              facts={calendarAlignedDepartureFacts}
+              productAirline={calendarAlignedDepartureFacts?.airline?.trim() ?? null}
               periodContent={periodContent}
               travelCitiesLine={travelCitiesLine}
               reservationLine={reservationDisplayLine}

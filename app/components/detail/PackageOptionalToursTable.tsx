@@ -62,8 +62,8 @@ export default function PackageOptionalToursTable({
   if (rows.length === 0 && !showPasteOnly) return null
 
   return (
-    <section className={CARD_CLASS} aria-label="옵션관광">
-      <h3 className="text-base font-bold text-[#1F1B2D]">옵션관광</h3>
+    <section className={CARD_CLASS} aria-label="현지옵션">
+      <h3 className="text-base font-bold text-[#1F1B2D]">현지옵션</h3>
       {rows.length > 0 ? (
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[320px] border-collapse text-left">

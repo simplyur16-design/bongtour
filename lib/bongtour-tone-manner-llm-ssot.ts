@@ -2,6 +2,7 @@
  * LLM 프롬프트용 톤앤매너 — 문서 SSOT 발췌.
  * @see docs/BONGTOUR-MASTER-PLATFORM-DESIGN.md §9 톤앤매너 가이드 (원문·우선순위는 항상 해당 문서)
  */
+import { REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK } from '@/lib/register-schedule-image-keyword-ssot'
 
 export const BONGTOUR_TONE_MANNER_DOCUMENT_SEE = 'docs/BONGTOUR-MASTER-PLATFORM-DESIGN.md §9 톤앤매너 가이드'
 
@@ -110,7 +111,8 @@ export function buildScheduleExtractToneBlock(): string {
     `- 방문지·구간이 많으면 **이름 위주로 한두 문장에 묶어** 압축하고, 식사·호텔 세부는 가능하면 breakfast/lunch/dinner·hotelText에 둔다.\n` +
     `- 여행사 플랫폼 이름, 상담·예약·문의 유도, 마케팅 슬로건·감성 과장 금지. 공급사 원문에 있는 명소·도시·항공·호텔 명칭은 살린다.\n` +
     `- 담백하지만 기계적 나열만 하지 말고, 읽을 수 있는 여행 일정 문장으로 쓴다. 원문에 없는 사실은 추가하지 않는다.\n` +
-    `- 한국어는 **문어체 존댓말**로 통일한다(예: ~합니다, ~됩니다, ~입니다). 반말·해요체를 섞지 않는다.\n`
+    `- 한국어는 **문어체 존댓말**로 통일한다(예: ~합니다, ~됩니다, ~입니다). 반말·해요체를 섞지 않는다.\n` +
+    `\n${REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK}\n`
   )
 }
 
@@ -122,6 +124,8 @@ export const REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK = `# [schedule[
 - 같은 일차에 여러 관광·이동이 있으면 **이름 위주로 압축**해 포함한다(나열 남발·장문 복사 금지).
 - 자연스러운 한국어 서술. 원문에 없는 창작·외부 지식 추가 금지.
 - 한국어 schedule[].title·description 은 **문어체 존댓말**로 통일한다(예: ~합니다, ~됩니다, ~입니다). 반말·해요체를 섞지 않는다.
+
+${REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK}
 `
 
 /** B2B 상세 텍스트 추출 — §9 금지·고지와 정합 */

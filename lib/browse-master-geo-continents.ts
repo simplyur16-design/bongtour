@@ -1,30 +1,7 @@
 import { browseRegionToDbContinents } from '@/lib/browse-country-url-resolve'
+import { BROWSE_TAB_ID_TO_CARD_KEYS } from '@/lib/mega-menu-regions.data'
 
-/**
- * SSOT `MEGA_MENU_TAB_DEFINITIONS[].id` → 활성 `MegaMenuGroupCard.cardKey` 합집합.
- * (`lib/mega-menu-regions.data.ts` 6개 해외 탭 — 지방출발 3탭 제외)
- */
-export const BROWSE_TAB_ID_TO_CARD_KEYS: Record<string, readonly string[]> = {
-  'europe-me': [
-    'europe-me-africa',
-    'nordic-baltic-cluster',
-    'europe-benelux-uk',
-    'central-asia-stan',
-    'europe-balkans',
-    'caucasus-3',
-    'middle-east-gulf',
-  ],
-  'southeast-asia': [
-    'sea-taiwan-south-asia',
-    'malaysia-brunei-cluster',
-    'sea-multi-routes',
-    'south-asia-india-cluster',
-  ],
-  japan: ['japan', 'japan-hokkaido', 'japan-kansai', 'japan-kanto'],
-  'china-hk-mo': ['china-circle', 'china-major-cities', 'china-shandong-cluster', 'hk-mo-sz-cluster'],
-  oceania: ['guam-au-nz'],
-  americas: ['americas', 'latin-caribbean-cluster'],
-}
+export { BROWSE_TAB_ID_TO_CARD_KEYS } from '@/lib/mega-menu-regions.data'
 
 /** SSOT 메가메뉴 탭 id → DB 카드 키 (없으면 빈 배열) */
 export function browseTabIdToMegaMenuCardKeys(regionId: string | null | undefined): string[] {

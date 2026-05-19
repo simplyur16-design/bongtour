@@ -7,42 +7,7 @@ import {
   findLeafInTree,
 } from '@/lib/overseas-location-tree'
 
-/** 시드 `CLUSTER_EXPANSIONS`와 동일 — 2개 이상 도시로 펼쳐지는 트리 nodeKey */
-const MULTI_CITY_CLUSTER_NODE_KEYS = new Set<string>([
-  'shandong',
-  'phuket-krabi-khaolak',
-  'chiangmai-chiangrai',
-  'hanoi-halong',
-  'hue-donghoi',
-  'shizuoka-izu',
-  'hakone-fuji',
-  'yokohama-kamakura',
-  'beppu-yufuin',
-  'kumamoto-nagasaki',
-  'kagoshima-miyazaki',
-  'kitakyushu-yamaguchi',
-  'furano-biei',
-  'toya-jozankei',
-  'wakayama-shirahama',
-  'takamatsu-naoshima',
-  'akita-sendai',
-  'beijing-tianjin',
-  'sichuan',
-  'yunnan',
-  'dalian-harbin',
-  'xian-urumqi',
-  'wuhan-yichang',
-  'changbai',
-  'dallas-houston',
-  'orlando-miami',
-  'cuba-mexico',
-  'quebec',
-  'kanazawa-komatsu',
-  'toyama-alpen',
-])
-
-/** 발트 3국 등 — 시드 전용 다도시 리프 */
-const MULTI_CITY_SPECIAL_NODE_KEYS = new Set(['baltic3'])
+import { isClusterExpansionNode } from '@/lib/cluster-city-expansions'
 
 /** 단일 Product 행에 접기 어려운 다국가·연계 리프 */
 const AMBIGUOUS_MULTI_COUNTRY_NODE_KEYS = new Set([
@@ -126,9 +91,7 @@ export function continentForGroupAndTreeCountry(
 }
 
 export function isMultiCityClusterNode(nodeKey: string | null | undefined): boolean {
-  if (!nodeKey?.trim()) return false
-  const k = nodeKey.trim()
-  return MULTI_CITY_CLUSTER_NODE_KEYS.has(k) || MULTI_CITY_SPECIAL_NODE_KEYS.has(k)
+  return isClusterExpansionNode(nodeKey)
 }
 
 export function titleSuggestsMultiCountryPackage(title: string | null | undefined): boolean {

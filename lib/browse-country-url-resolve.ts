@@ -1,6 +1,6 @@
 /**
  * 메가메뉴·browse URL의 `country` / `region` / `city` → DB `Product.country`·`Product.continent`·`Product.city`.
- * 클라이언트 안전(Prisma 없음). DB 카드 키 조회는 `browse-country-url-resolve.server.ts`.
+ * 클라이언트 안전(Prisma 없음). DB 카드 키 조회는 `browse-master-geo.ts`.
  */
 import { citySlugFromTermsAndLabel, countrySlugFromLabel, koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import { OVERSEAS_LOCATION_TREE_DATA } from '@/lib/overseas-location-tree.data'
@@ -230,31 +230,6 @@ export function browseRegionToDbContinents(region: string | null | undefined): s
   return one ? [one] : []
 }
 
-/**
- * DB `Product.continent` 값 → 메가메뉴 트리 최상위 `groupKey` (`ProductCountryTag.groupKey`와 동일 스펙).
- * G-3 browse 권역 필터에서 primary continent OR 보조 태그 매칭에 사용.
- */
-const DB_CONTINENT_TO_TREE_GROUP_KEYS: Record<string, readonly string[]> = {
-  'southeast-asia': ['sea-taiwan-south-asia'],
-  japan: ['japan'],
-  'china-mongolia-ca': ['china-circle'],
-  'hongkong-macau': ['china-circle'],
-  europe: ['europe-me-africa'],
-  'me-africa': ['europe-me-africa'],
-  oceania: ['guam-au-nz'],
-  americas: ['americas'],
-}
-
-export function dbContinentsToProductCountryTagGroupKeys(continents: string[]): string[] {
-  const out = new Set<string>()
-  for (const raw of continents) {
-    const c = raw.trim().toLowerCase()
-    const keys = DB_CONTINENT_TO_TREE_GROUP_KEYS[c]
-    if (keys) keys.forEach((k) => out.add(k))
-  }
-  return [...out]
-}
-
 function uniqueStrings(xs: string[]): string[] {
   const out: string[] = []
   const seen = new Set<string>()
@@ -452,17 +427,6 @@ export function resolveBrowseCityParamToCountryTagNodeKeys(param: string | null 
     }
   }
   return [...out].filter(Boolean)
-}
-
-/** DB `city`가 browse URL의 city 슬러그와 맞는지 */
-export function dbCityMatchesBrowseCityParam(dbCityRaw: string | null | undefined, urlCityParam: string | null | undefined): boolean {
-  const url = (urlCityParam ?? '').trim()
-  if (!url) return true
-  const db = (dbCityRaw ?? '').trim()
-  if (!db) return false
-  const expected = resolveBrowseCityParamToDbCity(url)
-  if (expected) return db === expected
-  return db.toLowerCase() === url.toLowerCase()
 }
 
 /**
@@ -1055,7 +1019,6 @@ export function resolveChinaSubregionDbCityKeywords(
   return uniqueStrings(hit)
 }
 
-/** DB에 저장된 `country`가 browse URL의 country 슬러그와 맞는지 */
 /** browse city URL → `ProductCityTag.cityKey` 후보 */
 export function resolveBrowseCityKeysForFilter(cityParam: string | null | undefined): string[] {
   const keys = new Set<string>()
@@ -1065,17 +1028,4 @@ export function resolveBrowseCityKeysForFilter(cityParam: string | null | undefi
   const ct = (cityParam ?? '').trim().toLowerCase()
   if (ct && /^[a-z0-9-]+$/.test(ct)) keys.add(ct)
   return [...keys]
-}
-
-/** DB에 저장된 `country`가 browse URL의 country 슬러그와 맞는지 */
-export function dbCountryMatchesBrowseCountryParam(dbCountryRaw: string | null | undefined, urlCountryParam: string | null | undefined): boolean {
-  const url = (urlCountryParam ?? '').trim()
-  if (!url) return true
-  const db = (dbCountryRaw ?? '').trim()
-  if (!db) return false
-  const accepted = resolveBrowseCountryParamToDbCountries(url)
-  if (accepted.length === 0) {
-    return db.toLowerCase() === url.toLowerCase()
-  }
-  return accepted.includes(db)
 }

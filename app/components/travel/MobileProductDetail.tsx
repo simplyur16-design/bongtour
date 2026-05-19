@@ -535,8 +535,9 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
         packageTotalDays,
         heroResolved,
         computedReturnDate,
+        departureFacts: calendarAlignedDepartureFacts,
       }),
-    [selectedDate, packageTotalDays, heroResolved, computedReturnDate]
+    [selectedDate, packageTotalDays, heroResolved, computedReturnDate, calendarAlignedDepartureFacts]
   )
 
   const travelCitiesLine = useMemo(() => {
@@ -670,6 +671,8 @@ export default function MobileProductDetail({ product, showEsimCrossSell = false
       <div className="bg-[#FAFAFC] px-4 pb-8">
         <ItineraryViewPackageMain
           product={product}
+          calendarAlignedDepartureFacts={calendarAlignedDepartureFacts}
+          selectedDepartureIso={selectedDate}
           selectedDepartureFacts={selectedDepartureFacts}
           periodContent={periodContent}
           travelCitiesLine={travelCitiesLine}

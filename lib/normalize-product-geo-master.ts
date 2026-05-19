@@ -3,7 +3,7 @@
  */
 import type { Prisma } from '@prisma/client'
 import { resolveProductCityToKoreanDisplay, resolveProductCountryToKoreanDisplay } from '@/lib/browse-country-url-resolve'
-import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
+import { BROWSE_SLUG_PREFER_TREE_KR_LABEL, koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import { findGroupKeyForCountryKey } from '@/lib/overseas-location-tree'
 import {
   isMultiCityClusterNode,
@@ -18,13 +18,6 @@ import { continentTabIdForMatch } from '@/lib/unified-location-tree'
 export function mapTreeKeysToMaster(input: MapTreeKeysInput): MapTreeKeysResult {
   return mapTreeKeysToMasterKeys(input)
 }
-
-const BROWSE_SLUG_PREFER_TREE_KR_LABEL = new Set([
-  'latin-caribbean',
-  'latin-america',
-  'latin-mexico',
-  'alaska-caribbean-cruise',
-])
 
 function fallbackBrowseKoreanLabels(d: ProductLocationKeyPrismaFields): {
   country: string | null
@@ -200,8 +193,8 @@ export async function syncAutoMultiCountryTags(
   geo: ProductLocationKeyPrismaFields,
   opts: { title: string; primaryDestination: string | null; destinationRaw: string | null },
 ): Promise<void> {
-  const { syncProductCountryTags } = await import('@/lib/sync-product-country-tags')
-  await syncProductCountryTags(db, productId, geo, opts)
+  const { syncProductGeoTags } = await import('@/lib/sync-product-geo-tags')
+  await syncProductGeoTags(db, productId, geo, opts)
 }
 
 /**

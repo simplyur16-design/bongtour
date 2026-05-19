@@ -13,7 +13,7 @@ import {
   detectMultiCountryAutoPlan,
   multiCountryNeedsOperatorReview,
 } from '@/lib/normalize-product-geo-master'
-import { syncProductCountryTags } from '@/lib/sync-product-country-tags'
+import { syncProductGeoTags } from '@/lib/sync-product-geo-tags'
 import {
   buildBongtourProductTitleFieldsForRegisterPreview,
   productTitlePairForRegisterConfirm,
@@ -1719,7 +1719,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     })
     timing.mark('after-pending-save')
 
-    await syncProductCountryTags(prisma, productId, geo, {
+    await syncProductGeoTags(prisma, productId, geo, {
       title: titlePair.prismaTitle,
       primaryDestination: geoInput.primaryDestination,
       destinationRaw: geoInput.destinationRaw,

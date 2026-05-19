@@ -22,6 +22,8 @@ export type MegaMenuCountryGroupDef = {
   countryLabel: string
   cities: MegaMenuLeafDef[]
   nonLinkHeader?: boolean
+  /** 그룹 헤더·소속 city URL의 browse `country` — 현·도 그룹(일본·중국)에만 */
+  headerBrowseCountryLabel?: string
 }
 
 export type MegaMenuTabDef = {
@@ -58,8 +60,23 @@ export function LC(label: string, terms: string[], browseCountryLabel?: string):
   return makeMegaMenuLeaf('country', label, terms, browseCountryLabel)
 }
 
-function G(countryLabel: string, cities: MegaMenuLeafDef[], nonLinkHeader?: boolean): MegaMenuCountryGroupDef {
-  return { countryLabel, cities, nonLinkHeader }
+function G(
+  countryLabel: string,
+  cities: MegaMenuLeafDef[],
+  nonLinkHeader?: boolean,
+  headerBrowseCountryLabel?: string,
+): MegaMenuCountryGroupDef {
+  return { countryLabel, cities, nonLinkHeader, headerBrowseCountryLabel }
+}
+
+/** 일본 탭 — 그룹 헤더·도시 링크 browse country = 일본 */
+function GJp(countryLabel: string, cities: MegaMenuLeafDef[]): MegaMenuCountryGroupDef {
+  return G(countryLabel, cities, undefined, '일본')
+}
+
+/** 중국 본토 성·도 그룹 — browse country = 중국 */
+function GCn(countryLabel: string, cities: MegaMenuLeafDef[]): MegaMenuCountryGroupDef {
+  return G(countryLabel, cities, undefined, '중국')
 }
 
 /** 유럽·중동·아프리카 — 서유럽 행은 국가 단위 링크 */
@@ -215,7 +232,7 @@ const SEA: MegaMenuCountryGroupDef[] = [
 ]
 
 const JP: MegaMenuCountryGroupDef[] = [
-  G('홋카이도', [
+  GJp('홋카이도', [
     city('삿포로', ['삿포로', 'sapporo', '일본', '홋카이도']),
     city('오타루', ['오타루', 'otaru', '일본', '홋카이도']),
     city('후라노', ['후라노', 'furano', '일본', '홋카이도']),
@@ -224,33 +241,33 @@ const JP: MegaMenuCountryGroupDef[] = [
     city('아사히카와', ['아사히카와', 'asahikawa', '일본', '홋카이도']),
     city('노보리베츠', ['노보리베츠', 'noboribetsu', '일본', '홋카이도']),
   ]),
-  G('도호쿠', [
+  GJp('도호쿠', [
     city('센다이', ['센다이', 'sendai', '일본', '도호쿠']),
     city('아오모리', ['아오모리', 'aomori', '일본', '도호쿠']),
     city('아키타', ['아키타', 'akita', '일본', '도호쿠']),
   ]),
-  G('간토', [
+  GJp('간토', [
     city('도쿄', ['도쿄', 'tokyo', '일본', '간토']),
     city('요코하마', ['요코하마', 'yokohama', '일본', '간토']),
     city('닛코', ['닛코', 'nikko', '일본', '간토']),
     city('하코네', ['하코네', 'hakone', '일본', '간토']),
     city('가마쿠라', ['가마쿠라', 'kamakura', '일본', '간토']),
   ]),
-  G('추부', [
+  GJp('추부', [
     city('나고야', ['나고야', 'nagoya', '일본', '추부']),
     city('가나자와', ['가나자와', 'kanazawa', '일본', '추부']),
     city('다카야마', ['다카야마', 'takayama', '일본', '추부']),
     city('시라카와고', ['시라카와고', 'shirakawago', '일본', '추부']),
     city('마츠모토', ['마츠모토', 'matsumoto', '일본', '추부']),
   ]),
-  G('간사이', [
+  GJp('간사이', [
     city('오사카', ['오사카', 'osaka', '일본', '간사이']),
     city('교토', ['교토', 'kyoto', '일본', '간사이']),
     city('고베', ['고베', 'kobe', '일본', '간사이']),
     city('나라', ['나라', 'nara', '일본', '간사이']),
     city('와카야마', ['와카야마', 'wakayama', '일본', '간사이']),
   ]),
-  G('주고쿠-시코쿠', [
+  GJp('주고쿠-시코쿠', [
     city('히로시마', ['히로시마', 'hiroshima', '일본']),
     city('요나고', ['요나고', 'yonago', '일본']),
     city('돗토리', ['돗토리', 'tottori', '일본']),
@@ -258,7 +275,7 @@ const JP: MegaMenuCountryGroupDef[] = [
     city('다카마쓰', ['다카마쓰', 'takamatsu', '일본', '시코쿠']),
     city('시마네', ['시마네', 'shimane', '일본', '주고쿠']),
   ]),
-  G('규슈', [
+  GJp('규슈', [
     city('후쿠오카', ['후쿠오카', 'fukuoka', '일본', '규슈']),
     city('나가사키', ['나가사키', 'nagasaki', '일본', '규슈']),
     city('벳부', ['벳부', 'beppu', '일본', '규슈']),
@@ -267,7 +284,7 @@ const JP: MegaMenuCountryGroupDef[] = [
     city('구마모토', ['구마모토', 'kumamoto', '일본', '규슈']),
     city('미야자키', ['미야자키', 'miyazaki', '일본', '규슈']),
   ]),
-  G('오키나와', [
+  GJp('오키나와', [
     city('오키나와', ['오키나와', 'okinawa', '일본']),
     city('나하', ['나하', 'naha', '일본', '오키나와']),
     city('미야코지마', ['미야코지마', 'miyakojima', '일본']),
@@ -276,30 +293,30 @@ const JP: MegaMenuCountryGroupDef[] = [
 ]
 
 const CN: MegaMenuCountryGroupDef[] = [
-  G('산동', [
+  GCn('산동', [
     city('청도', ['청도', 'qingdao', '중국']),
     city('위해', ['위해', 'weihai', '중국']),
     city('연태', ['연태', 'yantai', '중국']),
   ]),
-  G('화동', [
+  GCn('화동', [
     city('상해', ['상해', 'shanghai', '중국']),
     city('소주', ['소주', 'suzhou', '중국', '苏州']),
     city('항주', ['항주', 'hangzhou', '중국', '杭州']),
     city('남경', ['남경', 'nanjing', '중국', '南京']),
   ]),
-  G('화북', [
+  GCn('화북', [
     city('북경', ['북경', 'beijing', '중국']),
     city('천진', ['천진', 'tianjin', '중국']),
     city('대동', ['대동', 'datong', '중국']),
   ]),
-  G('동북', [
+  GCn('동북', [
     city('대련', ['대련', 'dalian', '중국']),
     city('하얼빈', ['하얼빈', 'harbin', '중국']),
     city('연길', ['연길', 'yanji', '중국']),
     city('심양', ['심양', 'shenyang', '중국']),
     city('장백산', ['장백산', 'changbai', '백두산', '중국']),
   ]),
-  G('화남', [
+  GCn('화남', [
     city('광주', ['광주', 'guangzhou', '广州', '중국']),
     city('구이린', ['구이린', 'guilin', '계림', '중국']),
     city('장가계', ['장가계', 'zhangjiajie', '중국']),
@@ -373,7 +390,20 @@ const AM: MegaMenuCountryGroupDef[] = [
     true,
   ),
   G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지', '미국'])]),
-  G('스포츠 테마 투어', [city('경기 직관 여행', ['경기 직관', '스포츠 테마', '직관 여행', '미국', '일본'])]),
+  G('스포츠 테마 투어', [
+    city('경기 직관 여행', [
+      '경기 직관',
+      '스포츠 테마',
+      '직관 여행',
+      '런트립',
+      '런닝',
+      '직관',
+      'MLB',
+      'NBA',
+      '미국',
+      '일본',
+    ]),
+  ]),
 ]
 
 /**
@@ -392,3 +422,29 @@ export const MEGA_MENU_TAB_DEFINITIONS: MegaMenuTabDef[] = [
   { id: 'cheongju_dep', label: '청주출발', groups: [], localDeparture: 'cheongju' },
   { id: 'daegu_dep', label: '대구출발', groups: [], localDeparture: 'daegu' },
 ]
+
+/**
+ * browse `region` 탭 id → `MegaMenuGroupCard.cardKey` (DB seed·Prisma browse SSOT).
+ * UI 그룹은 `MEGA_MENU_TAB_DEFINITIONS`; 카드 키 매핑은 이 표만 유지한다.
+ */
+export const BROWSE_TAB_ID_TO_CARD_KEYS: Record<string, readonly string[]> = {
+  'europe-me': [
+    'europe-me-africa',
+    'nordic-baltic-cluster',
+    'europe-benelux-uk',
+    'central-asia-stan',
+    'europe-balkans',
+    'caucasus-3',
+    'middle-east-gulf',
+  ],
+  'southeast-asia': [
+    'sea-taiwan-south-asia',
+    'malaysia-brunei-cluster',
+    'sea-multi-routes',
+    'south-asia-india-cluster',
+  ],
+  japan: ['japan', 'japan-hokkaido', 'japan-kansai', 'japan-kanto'],
+  'china-hk-mo': ['china-circle', 'china-major-cities', 'china-shandong-cluster', 'hk-mo-sz-cluster'],
+  oceania: ['guam-au-nz'],
+  americas: ['americas', 'latin-caribbean-cluster'],
+}

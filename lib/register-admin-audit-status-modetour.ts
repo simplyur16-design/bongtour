@@ -1,4 +1,4 @@
-/** [modetour] register-admin-audit-status */
+/** [modetour] register-admin-audit-status — 스택: docs/ops/modetour-admin-register-stack.md */
 /** 관리자 등록 입력 스냅샷(RegisterAdminInputSnapshot.status) */
 export const REGISTER_ADMIN_SNAPSHOT_STATUS = {
   raw_saved: 'raw_saved',

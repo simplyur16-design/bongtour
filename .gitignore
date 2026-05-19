@@ -70,6 +70,10 @@ __pycache__/
 *.pyc
 scripts/__pycache__/
 scripts/.tmp-paste-verify/
+.tmp-paste-verify/
+gemini-poc-output/
+audit-public-display.json
+scripts.zip
 scripts/_test-*.mjs
 
 # 로컬 임시·메모

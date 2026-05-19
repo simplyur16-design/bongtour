@@ -28,6 +28,7 @@ export type MegaMenuCountryGroup = {
   countryLabel: string
   cities: MegaMenuLeaf[]
   nonLinkHeader?: boolean
+  headerBrowseCountryLabel?: string
 }
 
 export type MegaMenuSpecial = 'free' | 'supplier' | 'curation'
@@ -53,8 +54,6 @@ export type UnifiedLocationNode = {
   matchCountryKey?: string
   matchNodeKey?: string
 }
-
-export const OVERSEAS_LOCATION_TREE_SOURCE: OverseasRegionGroupNode[] = OVERSEAS_LOCATION_TREE_DATA
 
 function addTerm(set: Set<string>, s?: string | null) {
   if (s?.trim()) set.add(s.trim())
@@ -87,6 +86,7 @@ function groupDefToGroup(d: MegaMenuCountryGroupDef): MegaMenuCountryGroup {
   return {
     countryLabel: d.countryLabel,
     nonLinkHeader: d.nonLinkHeader,
+    headerBrowseCountryLabel: d.headerBrowseCountryLabel,
     cities: d.cities.map(
       (c): MegaMenuLeaf => ({
         label: c.label,

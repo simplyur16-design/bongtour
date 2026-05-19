@@ -1,5 +1,5 @@
 /**
- * registered 상품 ProductCountryTag 백필 (태그 없는 상품 → syncProductCountryTags).
+ * registered 상품 ProductCountryTag·ProductCityTag 백필 (태그 없는 상품 → syncProductGeoTags).
  * 실행: npx tsx scripts/backfill-product-country-tag.ts
  */
 import { config as loadEnv } from 'dotenv'
@@ -13,7 +13,7 @@ if (!process.env.DIRECT_URL && !process.env.DATABASE_URL) {
 
 import { PrismaClient } from '@prisma/client'
 import type { ProductLocationKeyPrismaFields } from '@/lib/product-location-key-match'
-import { syncProductCountryTags } from '@/lib/sync-product-country-tags'
+import { syncProductGeoTags } from '@/lib/sync-product-geo-tags'
 
 const dbUrl = process.env.DATABASE_URL
 const directUrl = process.env.DIRECT_URL
@@ -106,12 +106,12 @@ async function backfillMissingTags(): Promise<void> {
           continue
         }
         const geo = toGeo(row)
-        const { tagCount } = await syncProductCountryTags(tx, row.id, geo, {
+        const { country, cityTagCount } = await syncProductGeoTags(tx, row.id, geo, {
           title: row.title,
           primaryDestination: row.primaryDestination,
           destinationRaw: row.destinationRaw,
         })
-        if (tagCount > 0) taggedCount += 1
+        if (country.tagCount > 0 || cityTagCount > 0) taggedCount += 1
         processed += 1
       }
     })

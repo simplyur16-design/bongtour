@@ -1,4 +1,3 @@
-import { createHash } from 'crypto'
 import { NextResponse } from 'next/server'
 import {
   assertRegisterRouteSupplierMatch,
@@ -14,7 +13,7 @@ import {
   detectMultiCountryAutoPlan,
   multiCountryNeedsOperatorReview,
 } from '@/lib/normalize-product-geo-master'
-import { syncProductCountryTags } from '@/lib/sync-product-country-tags'
+import { syncProductGeoTags } from '@/lib/sync-product-geo-tags'
 import {
   buildBongtourProductTitleFieldsForRegisterPreview,
   productTitlePairForRegisterConfirm,
@@ -104,7 +103,10 @@ import {
   mergeFlightManualCorrectionOnReparse,
   type FlightManualCorrectionPayload,
 } from '@/lib/flight-manual-correction-modetour'
-import { buildRegisterPreviewCanonicalString } from '@/lib/register-preview-content-fingerprint-modetour'
+import {
+  computeRegisterInputDigestFromBody,
+  parseRegisterPastedBlocksPayload,
+} from '@/lib/register-admin-input-digest-modetour'
 import { buildRegisterVerificationBundle } from '@/lib/admin-register-verification-meta-modetour'
 import {
   modetourHeroBodyHaystack,
@@ -507,63 +509,6 @@ function mergeRawMetaWithStructuredSignals(
   })
 }
 
-/** 관리자 분리 붙여넣기 블록(선택) */
-function parsePastedBlocksFromBody(body: Record<string, unknown>): Partial<
-  Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping' | 'hotel' | 'airlineTransport'>
-> | null {
-  const b = body.pastedBlocks
-  if (!b || typeof b !== 'object' || Array.isArray(b)) return null
-  const o = b as Record<string, unknown>
-  const pick = (key: string) => {
-    const v = o[key]
-    return typeof v === 'string' && v.trim() ? v.trim().slice(0, 32000) : undefined
-  }
-  const out: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping' | 'hotel' | 'airlineTransport'>> = {}
-  const ot = pick('optionalTour')
-  if (ot) out.optionalTour = ot
-  const sh = pick('shopping')
-  if (sh) out.shopping = sh
-  const ho = pick('hotel')
-  if (ho) out.hotel = ho
-  const air = pick('airlineTransport')
-  if (air) out.airlineTransport = air
-  return Object.keys(out).length > 0 ? out : null
-}
-
-function computePreviewContentDigestForBody(
-  body: Record<string, unknown>,
-  forcedBrandKey: string | null | undefined
-): string {
-  const text = typeof body.text === 'string' ? body.text.trim() : ''
-  const brandKey =
-    forcedBrandKey != null && forcedBrandKey !== ''
-      ? forcedBrandKey
-      : typeof body.brandKey === 'string'
-        ? body.brandKey.trim() || null
-        : null
-  let originUrl: string | null = typeof body.originUrl === 'string' ? body.originUrl.trim() : null
-  if (originUrl === '') originUrl = null
-  if (originUrl && originUrl.length > 2000) originUrl = originUrl.slice(0, 2000)
-  const travelScope = typeof body.travelScope === 'string' ? body.travelScope.trim() : ''
-  const pb = parsePastedBlocksFromBody(body)
-  const pastedBlocksForFp = pb
-    ? {
-        airlineTransport: pb.airlineTransport ?? undefined,
-        hotel: pb.hotel ?? undefined,
-        optionalTour: pb.optionalTour ?? undefined,
-        shopping: pb.shopping ?? undefined,
-      }
-    : undefined
-  const canonical = buildRegisterPreviewCanonicalString({
-    text,
-    brandKey,
-    originUrl,
-    travelScope,
-    pastedBlocks: pastedBlocksForFp,
-  })
-  return createHash('sha256').update(canonical, 'utf8').digest('base64url')
-}
-
 function parseOptionalTourDisplayNoticeManualFromBody(body: Record<string, unknown>): string | null {
   const t = body.optionalTourDisplayNoticeManual
   if (typeof t !== 'string') return null
@@ -657,7 +602,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       )
     }
 
-    const pastedBlocks = parsePastedBlocksFromBody(body)
+    const pastedBlocks = parseRegisterPastedBlocksPayload(body)
     const optionalTourDisplayNoticeManual = parseOptionalTourDisplayNoticeManualFromBody(body)
     timing.mark('after-raw-input-normalize')
 
@@ -866,7 +811,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
             { status: 400 }
           )
         }
-        const expected = computePreviewContentDigestForBody(body, forcedBrandKey)
+        const expected = computeRegisterInputDigestFromBody(body, forcedBrandKey)
         if (sent !== expected) {
           return NextResponse.json(
             {
@@ -1550,7 +1495,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       stage = 'previewResponse'
       ctx.stage = stage
       const previewToken = issuePreviewToken(effectiveOriginSource, parsed.originCode)
-      const previewContentDigest = computePreviewContentDigestForBody(body, forcedBrandKey)
+      const previewContentDigest = computeRegisterInputDigestFromBody(body, forcedBrandKey)
       const { buildRegisterCorrectionPreview } = await import('@/lib/register-correction-preview-modetour')
       const parsedForPreview = stripRegisterInternalArtifacts(parsedWithFinalNotice)
       const correctionPreview = buildRegisterCorrectionPreview({
@@ -1828,7 +1773,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
     })
     timing.mark('after-pending-save')
 
-    await syncProductCountryTags(prisma, productId, geo, {
+    await syncProductGeoTags(prisma, productId, geo, {
       title: titlePair.prismaTitle,
       primaryDestination: geoInput.primaryDestination,
       destinationRaw: geoInput.destinationRaw,
