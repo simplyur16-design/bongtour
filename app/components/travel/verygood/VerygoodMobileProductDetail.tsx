@@ -623,6 +623,22 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
         highlightPointsRaw={product.highlightPointsRaw ?? null}
       />
 
+      <div className="border-b border-bt-border-soft p-4">
+        <VerygoodProductExtraInfoTabs
+          key={String(product.id)}
+          product={product}
+          uiOptionalRows={uiOptionalRows}
+          optionalDisplayInput={optionalDisplayInput}
+          shoppingDisplayInput={shoppingDisplayInput}
+          optionalToursForSheet={optionalToursMerged}
+          shoppingCount={product.shoppingCount ?? 0}
+          shoppingItems={product.shoppingItems ?? null}
+          shoppingVisitCountTotal={product.shoppingVisitCountTotal ?? null}
+          shoppingNoticeRaw={product.shoppingNoticeRaw ?? null}
+          shoppingStopsStructured={product.shoppingStopsStructured ?? null}
+        />
+      </div>
+
       <section className="border-b border-bt-border-soft p-4">
         <h2 className="mb-3 text-base font-semibold text-bt-card-title">일정 요약</h2>
         {product.listingKind === 'air_hotel_free' ? (
@@ -684,22 +700,6 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
           <p className="text-sm text-bt-meta">등록된 일정 요약이 없습니다.</p>
         )}
       </section>
-
-      <div className="border-b border-bt-border-soft p-4">
-        <VerygoodProductExtraInfoTabs
-          key={String(product.id)}
-          product={product}
-          uiOptionalRows={uiOptionalRows}
-          optionalDisplayInput={optionalDisplayInput}
-          shoppingDisplayInput={shoppingDisplayInput}
-          optionalToursForSheet={optionalToursMerged}
-          shoppingCount={product.shoppingCount ?? 0}
-          shoppingItems={product.shoppingItems ?? null}
-          shoppingVisitCountTotal={product.shoppingVisitCountTotal ?? null}
-          shoppingNoticeRaw={product.shoppingNoticeRaw ?? null}
-          shoppingStopsStructured={product.shoppingStopsStructured ?? null}
-        />
-      </div>
 
       <MustKnowEssentialsSection items={mustKnowFiltered} layout="mobile" originSource={product.originSource} />
 

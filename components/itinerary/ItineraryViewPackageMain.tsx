@@ -132,6 +132,11 @@ export function ItineraryViewPackageMain({
 
   return (
     <div className="space-y-10 min-w-0">
+      <ProductHighlightPointsSection
+        highlightPoints={product.highlightPoints ?? null}
+        highlightPointsRaw={product.highlightPointsRaw ?? null}
+      />
+
       <ItineraryExtraInfoBoxes product={extraProduct} section="top" />
 
       {totalDays > 0 ? (
@@ -171,11 +176,6 @@ export function ItineraryViewPackageMain({
           </div>
         </div>
       ) : null}
-
-      <ProductHighlightPointsSection
-        highlightPoints={product.highlightPoints ?? null}
-        highlightPointsRaw={product.highlightPointsRaw ?? null}
-      />
 
       {schedule.length > 0 ? (
         <section className="space-y-8">

@@ -192,7 +192,7 @@ export function multiCountryNeedsOperatorReview(plan: MultiCountryAutoPlan): boo
 }
 
 /**
- * high일 때만 ProductCountryTag 자동 삽입. 그 외에는 기존 자동 태그 제거(단일국가 정리).
+ * @deprecated `syncProductCountryTags` 사용. 하위 호환 re-export.
  */
 export async function syncAutoMultiCountryTags(
   db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
@@ -200,30 +200,8 @@ export async function syncAutoMultiCountryTags(
   geo: ProductLocationKeyPrismaFields,
   opts: { title: string; primaryDestination: string | null; destinationRaw: string | null },
 ): Promise<void> {
-  const plan = await detectMultiCountryAutoPlan(db, opts, geo.countryKey)
-  await db.productCountryTag.deleteMany({ where: { productId } })
-  if (plan.kind !== 'multi' || plan.confidence !== 'high' || plan.countryKeys.length < 2) return
-
-  const primary = geo.countryKey
-  if (!primary || !plan.countryKeys.includes(primary)) return
-
-  const ordered = [primary, ...plan.countryKeys.filter((k) => k !== primary)]
-  if (ordered.length !== plan.countryKeys.length) return
-
-  const rows = ordered.map((countryKey, i) => {
-    const groupKey = findGroupKeyForCountryKey(countryKey)
-    return {
-      productId,
-      countryKey,
-      nodeKey: i === 0 ? geo.nodeKey ?? null : null,
-      groupKey: groupKey ?? null,
-      isPrimary: i === 0,
-      sortOrder: i,
-    }
-  })
-  if (rows.some((r) => !r.groupKey)) return
-
-  await db.productCountryTag.createMany({ data: rows })
+  const { syncProductCountryTags } = await import('@/lib/sync-product-country-tags')
+  await syncProductCountryTags(db, productId, geo, opts)
 }
 
 /**

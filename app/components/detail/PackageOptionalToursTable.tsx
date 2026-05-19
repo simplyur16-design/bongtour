@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import PasteBlocksReaderView from '@/app/components/detail/PasteBlocksReaderView'
 import { parseOptionalPasteForPublicDisplay } from '@/lib/paste-block-display'
 import { getPackageOptionalTourRowsFromProduct } from '@/lib/optional-tours-ui-model'
+import { OPTIONAL_TOUR_UI_INITIAL_ROWS, OPTIONAL_TOUR_UI_MAX_ROWS } from '@/lib/optional-tour-limits'
 
 const CARD_CLASS = 'rounded-2xl border border-[#DAD4EE] bg-white px-4 py-4 sm:px-5'
 const TABLE_HEAD = 'bg-[#EFEDF8] text-[11px] font-bold uppercase tracking-wide text-[#534AB7]'
@@ -44,10 +45,12 @@ export default function PackageOptionalToursTable({
   optionalToursStructured,
   optionalToursPasteRaw,
 }: Props) {
+  const [showAllRows, setShowAllRows] = useState(false)
   const rows = useMemo(
     () => getPackageOptionalTourRowsFromProduct(optionalToursStructured, optionalToursPasteRaw),
     [optionalToursStructured, optionalToursPasteRaw]
   )
+  const visibleRows = showAllRows ? rows.slice(0, OPTIONAL_TOUR_UI_MAX_ROWS) : rows.slice(0, OPTIONAL_TOUR_UI_INITIAL_ROWS)
 
   const pasteTrim = optionalToursPasteRaw?.trim() ?? ''
   const optionalPasteBlocks = useMemo(
@@ -72,7 +75,7 @@ export default function PackageOptionalToursTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
+            {visibleRows.map((row, i) => (
               <tr key={row.id} className="border-t border-[#DAD4EE]/60">
                 <td className={`${TABLE_CELL} text-center tabular-nums font-semibold`}>{i + 1}</td>
                 <td className={`${TABLE_CELL} font-medium bt-wrap`}>{row.name}</td>
@@ -83,6 +86,19 @@ export default function PackageOptionalToursTable({
             ))}
           </tbody>
         </table>
+        {rows.length > OPTIONAL_TOUR_UI_INITIAL_ROWS ? (
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setShowAllRows((v) => !v)}
+              className="text-xs font-semibold text-[#534AB7] hover:underline"
+            >
+              {showAllRows
+                ? '옵션관광 접기'
+                : `옵션관광 더보기 (전체 ${Math.min(rows.length, OPTIONAL_TOUR_UI_MAX_ROWS)}개)`}
+            </button>
+          </div>
+        ) : null}
       </div>
       ) : (
         <div className="mt-3">

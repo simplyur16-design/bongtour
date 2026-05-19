@@ -786,6 +786,20 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
               highlightPointsRaw={product.highlightPointsRaw ?? null}
             />
 
+            <VerygoodProductExtraInfoTabs
+              key={String(product.id)}
+              product={product}
+              uiOptionalRows={uiOptionalRows}
+              optionalDisplayInput={optionalDisplayInput}
+              shoppingDisplayInput={shoppingDisplayInput}
+              optionalToursForSheet={optionalToursForSheet}
+              shoppingCount={product.shoppingCount ?? 0}
+              shoppingItems={product.shoppingItems ?? null}
+              shoppingVisitCountTotal={product.shoppingVisitCountTotal ?? null}
+              shoppingNoticeRaw={product.shoppingNoticeRaw ?? null}
+              shoppingStopsStructured={product.shoppingStopsStructured ?? null}
+            />
+
             <section className="rounded-2xl border border-bt-border bg-bt-surface p-6">
               <h2 className="mb-4 border-l-4 border-bt-card-title pl-3 text-lg font-semibold text-bt-card-title">일정 요약</h2>
               {product.listingKind === 'air_hotel_free' ? (
@@ -852,20 +866,6 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
                 <p className="text-sm text-bt-meta">등록된 일정 요약이 없습니다.</p>
               )}
             </section>
-
-            <VerygoodProductExtraInfoTabs
-              key={String(product.id)}
-              product={product}
-              uiOptionalRows={uiOptionalRows}
-              optionalDisplayInput={optionalDisplayInput}
-              shoppingDisplayInput={shoppingDisplayInput}
-              optionalToursForSheet={optionalToursForSheet}
-              shoppingCount={product.shoppingCount ?? 0}
-              shoppingItems={product.shoppingItems ?? null}
-              shoppingVisitCountTotal={product.shoppingVisitCountTotal ?? null}
-              shoppingNoticeRaw={product.shoppingNoticeRaw ?? null}
-              shoppingStopsStructured={product.shoppingStopsStructured ?? null}
-            />
 
             <MustKnowEssentialsSection items={mustKnowFiltered} layout="desktop" originSource={product.originSource} />
 

@@ -99,13 +99,16 @@ export default function ProductLiveQuoteCard({
     <div className={`bt-card-strong border-2 border-bt-border-soft ${pad}`}>
       {heroTripDepartureDisplay || heroTripReturnDisplay ? (
         <div className="mb-4 rounded-xl border border-bt-border-soft bg-bt-surface-alt px-3 py-2.5 text-center text-sm">
-          <p className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1">
-            <span className="text-bt-meta">출발</span>
-            <span className="font-semibold tabular-nums text-bt-title">{heroTripDepartureDisplay ?? '—'}</span>
-            <span className="text-bt-meta">~</span>
-            <span className="text-bt-meta">귀국</span>
-            <span className="font-semibold tabular-nums text-bt-title">{heroTripReturnDisplay ?? '상담 시 안내'}</span>
-          </p>
+          <div className="flex flex-col items-center gap-2">
+            <p className="flex flex-col items-center gap-0.5">
+              <span className="text-bt-meta">출발</span>
+              <span className="font-semibold tabular-nums text-bt-title">{heroTripDepartureDisplay ?? '—'}</span>
+            </p>
+            <p className="flex flex-col items-center gap-0.5">
+              <span className="text-bt-meta">귀국</span>
+              <span className="font-semibold tabular-nums text-bt-title">{heroTripReturnDisplay ?? '상담 시 안내'}</span>
+            </p>
+          </div>
         </div>
       ) : null}
       {showCollectingBanner ? (

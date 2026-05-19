@@ -2,8 +2,27 @@
  * 기존 Product.slug 백필 — createdAt ASC, 배치 50.
  * 실행: npx tsx scripts/backfill-product-slug.ts
  */
-import { prisma } from '@/lib/prisma'
+import { config as loadEnv } from 'dotenv'
+import path from 'path'
+loadEnv({ path: path.resolve(process.cwd(), '.env.local') })
+
+if (!process.env.DIRECT_URL && !process.env.DATABASE_URL) {
+  console.error('[backfill-product-slug] DIRECT_URL/DATABASE_URL 둘 다 미로드')
+  process.exit(1)
+}
+
+import { PrismaClient } from '@prisma/client'
 import { ensureProductSlug } from '@/lib/product-slug'
+
+const dbUrl = process.env.DATABASE_URL
+const directUrl = process.env.DIRECT_URL
+console.log('[diag] DATABASE_URL prefix:', dbUrl?.substring(0, 15))
+console.log('[diag] DIRECT_URL prefix:', directUrl?.substring(0, 15))
+console.log('[diag] using:', directUrl ? 'DIRECT_URL' : 'DATABASE_URL')
+
+const prisma = new PrismaClient({
+  datasourceUrl: process.env.DIRECT_URL || process.env.DATABASE_URL,
+})
 
 const BATCH_SIZE = 50
 
