@@ -23,6 +23,32 @@ export const MAIN_NAV: { label: string; href: string }[] = [
   { label: '공공·기업', href: '/business' },
 ]
 
+function mainNavDesktopClass(active: boolean): string {
+  const base =
+    'group relative flex flex-col items-center justify-center rounded-2xl px-3 py-2 transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bt-brand-gold-strong/50'
+  if (active) {
+    return `${base} bg-gradient-to-b from-[#FBF6E6] via-white to-white shadow-[0_3px_14px_rgba(217,168,30,0.18)] ring-1 ring-bt-brand-gold-strong/40`
+  }
+  return `${base} hover:bg-bt-surface-soft/90`
+}
+
+function mainNavDesktopLabelClass(active: boolean): string {
+  const base = 'whitespace-nowrap transition-all duration-200 ease-out'
+  if (active) {
+    return `${base} text-lg font-bold tracking-tight text-bt-text-navy sm:text-[1.125rem]`
+  }
+  return `${base} text-[15px] font-semibold text-bt-text-navy/65 group-hover:text-base group-hover:font-bold group-hover:text-bt-text-navy`
+}
+
+function mainNavMobileClass(active: boolean): string {
+  const base =
+    'min-w-0 truncate rounded-full px-1 py-2 text-center leading-tight transition-all duration-200 ease-out sm:px-2'
+  if (active) {
+    return `${base} border-2 border-bt-brand-gold-strong bg-gradient-to-b from-[#FBF6E6] to-white text-xs font-bold text-bt-text-navy shadow-[0_2px_8px_rgba(217,168,30,0.2)] sm:text-sm`
+  }
+  return `${base} border border-bt-border-soft bg-bt-surface-alt text-[10px] font-medium text-bt-text-navy/75 hover:border-bt-brand-gold-strong/50 hover:bg-bt-surface-soft hover:text-bt-text-navy sm:text-xs`
+}
+
 function isMainNavActive(pathname: string, href: string): boolean {
   if (href === '/travel/overseas') {
     if (pathname === '/travel/overseas') return true
@@ -115,18 +141,31 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
             </Link>
           </div>
 
-          <nav className="mx-auto hidden min-w-0 flex-1 items-center justify-center gap-5 xl:gap-6 lg:flex" aria-label="주요 메뉴">
+          <nav className="mx-auto hidden min-w-0 flex-1 items-center justify-center gap-1 xl:gap-2 lg:flex" aria-label="주요 메뉴">
             {MAIN_NAV.map((item) => {
               const active = isMainNavActive(pathname, item.href)
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`whitespace-nowrap border-b-2 pb-1 text-base font-medium text-bt-text-navy transition-colors ${
-                    active ? 'border-bt-brand-gold-strong' : 'border-transparent hover:border-bt-brand-gold-strong'
-                  }`}
+                  aria-current={active ? 'page' : undefined}
+                  className={mainNavDesktopClass(active)}
                 >
-                  {item.label}
+                  {active ? (
+                    <span
+                      className="absolute -top-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-bt-brand-gold-strong"
+                      aria-hidden
+                    />
+                  ) : null}
+                  <span className={mainNavDesktopLabelClass(active)}>{item.label}</span>
+                  <span
+                    className={`mt-1 h-[3px] rounded-full transition-all duration-200 ease-out ${
+                      active
+                        ? 'w-[85%] bg-bt-brand-gold-strong'
+                        : 'w-0 bg-bt-brand-gold-strong/0 group-hover:w-[55%] group-hover:bg-bt-brand-gold-strong/45'
+                    }`}
+                    aria-hidden
+                  />
                 </Link>
               )
             })}
@@ -214,11 +253,8 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
                   key={item.href}
                   href={item.href}
                   title={item.label}
-                  className={`min-w-0 truncate rounded-full px-0.5 py-1.5 text-center text-[10px] font-medium leading-tight transition-colors sm:px-1.5 sm:text-xs ${
-                    active
-                      ? 'border-2 border-bt-brand-gold-strong bg-bt-surface-soft text-bt-text-navy'
-                      : 'border border-bt-border-soft bg-bt-surface-alt text-bt-text-navy hover:border-bt-brand-gold-strong/60'
-                  }`}
+                  aria-current={active ? 'page' : undefined}
+                  className={mainNavMobileClass(active)}
                 >
                   {item.label}
                 </Link>
