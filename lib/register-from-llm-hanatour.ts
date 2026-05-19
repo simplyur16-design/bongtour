@@ -13,7 +13,6 @@ import {
 import {
   BONGTOUR_TONE_MANNER_LLM_BLOCK,
   LLM_JSON_OUTPUT_DISCIPLINE_BLOCK,
-  REGISTER_LLM_ROLE_DATA_AUDITOR_HANATOUR_COMPACT_INTRO,
   REGISTER_LLM_ROLE_DATA_AUDITOR_INTRO,
   REGISTER_PREVIEW_MINIMAL_TONE_BLOCK,
   REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK,
@@ -87,13 +86,16 @@ import {
 } from '@/lib/register-llm-schema-hanatour'
 
 
-/** preset 없을 때 비표시 — 하나투어는 `resolveDirectedFlightLinesHanatour` 주입 전제 */
-function resolveDirectedFlightLinesDefault(_detailBody: DetailBodyParseSnapshot): {
-  departureSegmentFromStructured: string | null
-  returnSegmentFromStructured: string | null
-} {
-  return { departureSegmentFromStructured: null, returnSegmentFromStructured: null }
+function requireDirectedFlightLineResolver(options?: RegisterLlmParseOptionsCommon): DirectedFlightLineResolver {
+  const fn = options?.resolveDirectedFlightLines
+  if (!fn) {
+    throw new Error(
+      'parseForRegisterLlmHanatour: resolveDirectedFlightLines가 필요합니다. register-parse-hanatour 경로만 사용하세요.',
+    )
+  }
+  return fn
 }
+
 import { buildOptionalToursStructuredForRegisterJson } from '@/lib/register-optional-tours-detail-final-merge'
 import { readManualPasteAxesFromBlocks } from '@/lib/register-manual-paste-ssot'
 import {
@@ -923,8 +925,9 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - 입력은 오직 관리자가 붙여넣은 블록뿐이다: [PASTED SUPPLIER BODY], [PASTED PRICE TABLE], [PASTED AIRLINE OR TRANSPORT INFO], [PASTED OPTIONAL TOUR], [PASTED SHOPPING INFO], [PASTED INCLUDED / EXCLUDED], [PASTED HOTEL INFO], [PASTED REQUIRED CHECKS], [IMAGE FILE NAMES AND SPOT LABELS]. URL·외부 HTML·어댑터 수집은 없다.
 - 우선순위: (1) [PASTED PRICE TABLE] > 본문 가격표 (2) 표/리스트 > 산문 (3) [PASTED AIRLINE OR TRANSPORT INFO] (4) 선택관광·쇼핑 표 (5) 충돌 시 fieldIssues에 남기고 raw는 보존.
 - 상품 본문 가격표(연령별 단가)와 우측 견적 카드 총액·상단 프로모를 혼동하지 말 것. priceTableRawText·productPriceTable은 본문 표 SSOT.
-- 선택관광: optionalTourNoticeRaw / optionalTourNoticeItems 는 안내문만. optionalTours[] 는 표 행만(안내문 번호 문장을 행에 넣지 말 것). "진행 여부 확인" 같은 문구를 모든 행에 기계적으로 복제하지 말 것.
-- 쇼핑: shoppingNoticeRaw + shoppingStops[] 표 행 분리.
+- 선택관광·쇼핑 **표 행**: pastedBlocks 정형 입력란·결정적 파서 SSOT — optionalTours[]·shoppingStops[] LLM 추출 금지.
+- 선택관광 안내문만: optionalTourNoticeRaw / optionalTourNoticeItems (행 데이터 X).
+- 쇼핑: hasShopping, **shoppingVisitCount**(본문·헤더 「N회」·「쇼핑없음」), shoppingSummaryText. shoppingStops[] LLM 추출 금지.
 - 포함/불포함: includedItems[]·excludedItems[] 구분. 전체 덤프는 includedRaw·excludedRaw·includedExcludedRaw에 보존 가능.
 ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - 1인실 추가요금(싱글차지/독실사용료)은 반드시 불포함사항으로 처리한다. singleRoomSurcharge* 필드에 구조화하고, excludedItems[]에 반영한다. singleRoomSurchargeDisplayText는 **한 줄만**(항목명과 금액을 같은 줄에, 줄바꿈으로 금액 분리 금지). 금액이 있으면 예: 「1인실 객실 추가요금 200,000원」 형태를 우선한다.
@@ -947,12 +950,12 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - 본문에 이미지 URL/이미지 파일명/캡션/IMG 태그가 있어도 이미지 source로 사용하지 말고 무시한다. 대표/목록/히어로 이미지는 이 파싱 결과로 생성하지 않는다.
 
 # [추출 필드 - 강제]
-- originCode, title, destination, duration, schedule[], prices[] (달력 행)
+- originCode, title, destination, duration, schedule[]
 - 상품가격표 원문: priceTableRawText, priceTableRawHtml(있을 때), productPriceTable: adultPrice, childExtraBedPrice, childNoBedPrice, infantPrice (본문 표에서만; 없으면 null). **infantPrice**: "유아/소아(만 2세 미만)/INFANT/유아 요금" 등과 같은 줄·인접 줄의 원 단위 숫자를 반드시 구조화한다.
-- 항공(상품/구간 요약): airlineName, departureSegmentText, returnSegmentText, outboundFlightNo, inboundFlightNo, departureDateTimeRaw, arrivalDateTimeRaw, routeRaw — 항공사를 태그 한 줄에만 묻지 말고 필드로 분리.
 - 미팅(상품 단위): meetingInfoRaw, meetingPlaceRaw, meetingNoticeRaw, meetingFallbackText
-- 선택관광: optionalTourNoticeRaw, optionalTourNoticeItems[], optionalTours[], hasOptionalTour, optionalTourCount, optionalTourSummaryText
-- 쇼핑: hasShopping, shoppingVisitCount, shoppingSummaryText, shoppingNoticeRaw, shoppingStops[]
+- 선택관광(메타만): optionalTourNoticeRaw, optionalTourNoticeItems[], hasOptionalTour, optionalTourCount, optionalTourSummaryText — **optionalTours[] 행 LLM 추출 금지**
+- 쇼핑(횟수·요약): hasShopping, shoppingVisitCount, shoppingSummaryText, shoppingNoticeRaw — **shoppingStops[] LLM 추출 금지**. 방문 횟수는 본문 「쇼핑 N회」·「쇼핑없음」·헤더 칩 우선(표 행 개수와 동일 의미 아님).
+- 항공·옵션·쇼핑 행·출발일 달력: [PASTED AIRLINE]·정형칸·E2E SSOT — LLM 추출 금지
 - 자유시간: hasFreeTime, freeTimeRawMentions, freeTimeSummaryText
 - 포함/불포함: includedItems[], excludedItems[], includedRaw, excludedRaw, includedExcludedRaw, includedText, excludedText
 - 호텔(상품): hotelInfoRaw, hotelNames[], hotelSummaryText(전체 요약 한 줄, 예: 대표호텔명 외 1), hotelStatusText, hotelNoticeRaw — 원문·[PASTED HOTEL INFO] 근거만. 없으면 null.
@@ -960,11 +963,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - 일정 일차별 숙소·식사: schedule[] 각 항목에 hotelText(해당 일 예정 호텔/숙소 한 줄), breakfastText, lunchText, dinnerText, mealSummaryText(원문 식사 줄 전체 보존). 상품 전체 호텔과 일차 호텔은 구분. 식사를 조·중·석으로 나눌 수 없으면 mealSummaryText만 채우고 나머지 null. 창작·추론 금지.
 - 꼭 확인하세요: mustKnowItems[{category,title,body}], mustKnowRaw (3–6개, 1–2줄씩), mustKnowSource ("supplier"), mustKnowNoticeRaw (null)
 
-# [달력 데이터 정밀 추출]
-- 패턴 인식: 텍스트에서 [날짜/요일/가격/상태]가 반복되는 구간을 '달력 그리드'로 인식하라.
-- 날짜 정규화: '26.04.17(금)', '26-04-17' 등은 반드시 '2026-04-17' 표준 포맷으로 변환하라.
-- 가격 매핑: 성인 가격(adultPrice 또는 adultBase+adultFuel)을 숫자로 추출하고, 해당 날짜의 예약 상태(status)를 1:1로 매핑하여 prices 배열에 넣어라.
-- 주관 배제: 텍스트에 없는 날짜를 생성하지 말고, 오직 로그에 존재하는 데이터만 팩트대로 추출하라.
+// [prices]·출발일별 달력·출발일별 항공: E2E·확정 파싱 SSOT — LLM 추출 금지
 
 # [schedule] 일차별 (필수) — 본문 일차 헤더(1일차/2일차/…)마다 1행
 - 각 항목: day, title, description, routeText, imageKeyword, hotelText, breakfastText, lunchText, dinnerText, mealSummaryText
@@ -974,14 +973,6 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - **imageKeyword**: 위 [schedule[].imageKeyword] 규칙 준수
 - **[조망], [차창관광]** 등은 본문에 있을 때 **(조망), (차창)** 으로만 바꿔 표기하고 의미는 유지.
 - **hotelText / breakfastText / lunchText / dinnerText / mealSummaryText**: 본문·일정표에 있을 때만. 없으면 null. 식사·숙소 원문은 가능하면 이 필드에 두고 description은 서술 흐름 위주.
-
-# [prices] 출발일별 요금 (달력과 동일한 날짜만)
-date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel, infantBase, infantFuel, status, availableSeats
-# [선택] 출발일별 항공·미팅 — prices[] 각 행에 넣을 때 (필드명은 DB와 동일: *Airport 키이나 값은 도시명·공항명 모두 허용. outboundDeparturePlace 등과 동일 의미)
-- 가는편·오는편 각각 **하나의 항공 블록**으로 취급한다. 항공사명이 있고 출발/도착 시각이 잡히면, **같은 블록·인접 줄**에서 출발지·도착지(도시 또는 공항)를 반드시 outboundDepartureAirport, outboundArrivalAirport, inboundDepartureAirport, inboundArrivalAirport에 구조화한다.
-- [PASTED AIRLINE OR TRANSPORT INFO]·본문의 "가는편/오는편"·"출국/입국" 구간을 우선한다. **시각(날짜+시각) 쌍이 있으면 그 줄의 앞뒤 2–3줄·동일 줄에서 도시/공항명을 재탐색**한다. 시간만 추출하고 장소가 비면 fieldIssues에 { field, reason, severity:"warn", source:"llm" }로 남긴다.
-- 원문에 장소가 없을 때만 해당 필드를 null로 둔다(빈 문자열 금지). "확인중" 같은 placeholder 출력 금지.
-- carrierName, outboundFlightNo, outboundDepartureAirport, outboundDepartureAt, outboundArrivalAirport, outboundArrivalAt, inboundFlightNo, inboundDepartureAirport, inboundDepartureAt, inboundArrivalAirport, inboundArrivalAt, meetingInfoRaw, meetingPointRaw, meetingTerminalRaw, meetingGuideNoticeRaw (시각은 ISO 또는 YYYY-MM-DD HH:mm)
 
 # [pricePromotion] 상단 요금·할인·혜택·쿠폰 블록 (선택, 반드시 채울 것)
 - 본문·수동 보조 블록에 기준가/할인가/절약/쿠폰/혜택 문구가 있으면 객체 pricePromotion으로 분리해 출력한다.
@@ -998,15 +989,6 @@ date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel,
   "title": "string",
   "destination": "string",
   "duration": "string",
-  "airline": "string or null",
-  "airlineName": "string or null",
-  "departureSegmentText": "string or null",
-  "returnSegmentText": "string or null",
-  "outboundFlightNo": "string or null",
-  "inboundFlightNo": "string or null",
-  "departureDateTimeRaw": "string or null",
-  "arrivalDateTimeRaw": "string or null",
-  "routeRaw": "string or null",
   "isFuelIncluded": true,
   "isGuideFeeIncluded": false,
   "mandatoryLocalFee": null,
@@ -1050,32 +1032,10 @@ date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel,
   "hasOptionalTour": false,
   "optionalTourCount": 0,
   "optionalTourSummaryText": "string",
-  "optionalTours": [
-    {
-      "name": "string",
-      "currency": "string or null",
-      "adultPrice": 0,
-      "childPrice": 0,
-      "durationText": "string or null",
-      "minPaxText": "string or null",
-      "guide同行Text": "string or null",
-      "waitingPlaceText": "string or null",
-      "raw": "string"
-    }
-  ],
   "hasShopping": false,
-  "shoppingNoticeRaw": "string or null",
   "shoppingVisitCount": 0,
   "shoppingSummaryText": "string",
-  "shoppingStops": [
-    {
-      "itemType": "string",
-      "placeName": "string",
-      "durationText": "string or null",
-      "refundPolicyText": "string or null",
-      "raw": "string"
-    }
-  ],
+  "shoppingNoticeRaw": "string or null",
   "hasFreeTime": false,
   "freeTimeRawMentions": ["string"],
   "freeTimeSummaryText": "string",
@@ -1114,147 +1074,6 @@ date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel,
       "dinnerText": null,
       "mealSummaryText": null
     }
-  ],
-  "prices": [
-    { "date": "YYYY-MM-DD", "adultBase": 0, "adultFuel": 0, "childBedBase": null, "childNoBedBase": null, "childFuel": 0, "infantBase": null, "infantFuel": 0, "status": "예약가능", "availableSeats": 0 }
-  ]
-}`
-
-/**
- * 하나투어 전용 풀 등록: MAX_TOKENS·JSON 잘림 방지.
- * - presetDetailBody(정형 파서)가 선택관광·쇼핑·호텔 표를 이미 구조화 → LLM은 해당 배열을 비우고 서버 병합에 맡김.
- * - 장문 raw·행별 raw·긴 mustKnow·장황한 pricePromotion 을 요구하지 않음.
- */
-const REGISTER_PROMPT_HANATOUR_COMPACT = `${REGISTER_LLM_ROLE_DATA_AUDITOR_HANATOUR_COMPACT_INTRO}
-
-${REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK}
-
-${BONGTOUR_TONE_MANNER_LLM_BLOCK}
-
-${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
-
-# [하나투어 — 서버가 이미 한 일]
-- 서버 정형 파서가 **선택관광 표·쇼핑 표·호텔 표·항공 정형칸**을 구조화했다.
-- **optionalTours 배열은 반드시 빈 배열 []** (행을 넣지 말 것). **shoppingStops 도 반드시 []**.
-- **dayHotelPlans 는 반드시 []** (일차별 호텔은 서버가 본문·블록에서 병합).
-- 위 배열에 표 행을 채우면 MAX_TOKENS로 잘리므로 **절대 채우지 말 것**.
-
-# [반드시 채울 것 — 달력·일정·가격표·상품 메타]
-- originSource, originCode, title, destination, duration
-- airlineName, departureSegmentText, returnSegmentText, outboundFlightNo, inboundFlightNo, departureDateTimeRaw, arrivalDateTimeRaw, routeRaw (없으면 null)
-- priceTableRawText, productPriceTable(성인·아동·유아 슬롯), **prices[]** 달력 행(날짜·금액·상태)
-- **schedule[]** : 본문 일차 헤더마다 day, title, description(한국어 3~4문장·본문만·항공편 번호 금지), routeText(' - ' 연결 한 줄·한글 우선), imageKeyword(해당 일 가장 유명한 관광명소 영문 고유명 1개), hotelText·meal*·mealSummaryText(본문 있을 때만, 각 200자 이내 또는 null). [조망]/[차창관광] → (조망)/(차창). 패키지·자유여행 모두 일차 서술 풍부하게.
-- 포함/불포함: includedItems[], excludedItems[] 짧은 줄만. **includedRaw, excludedRaw, includedExcludedRaw 는 null 우선** (장문 금지)
-- 선택관광·쇼핑 **메타만** 짧게: optionalTourNoticeRaw(200자 이내 또는 null), optionalTourNoticeItems(최대 5줄), hasOptionalTour, optionalTourCount, optionalTourSummaryText(120자 이내)
-- 쇼핑: hasShopping, shoppingVisitCount, shoppingNoticeRaw(200자 이내), shoppingSummaryText(120자 이내)
-- 호텔: hotelInfoRaw·hotelNames·hotelSummaryText 등은 **짧게**; 행 단위 표는 서버가 처리
-- mustKnowItems **최대 2개**. category, title, body 만. **body·title 각 100자 이내. raw 키 출력 금지.** 없으면 []
-- mustKnowRaw 는 null 또는 한 줄 200자 이내
-- fieldIssues **최대 8건**, reason 각 150자 이내
-- pricePromotion: 가능하면 basePrice, salePrice, strikeThroughDetected, savingsText(80자), couponText(80자) 만. benefitRawText·benefitRawHtml·priceDisplayRaw 는 null 우선
-- meeting*, isFuelIncluded, singleRoom*, criticalExclusions 등은 표준 키 유지하되 **값은 짧게**
-
-# [절대 금지]
-- optionalTours / shoppingStops / dayHotelPlans 에 객체 나열
-- 각 행의 "raw" 전체 원문 복사
-- mustKnowItems 3개 초과
-
-응답은 아래 JSON 키를 모두 포함하되, 위 제한을 따른다. 설명·마크다운 없이 JSON만.
-
-{
-  "originSource": "string",
-  "originCode": "string",
-  "title": "string",
-  "destination": "string",
-  "duration": "string",
-  "airline": null,
-  "airlineName": null,
-  "departureSegmentText": null,
-  "returnSegmentText": null,
-  "outboundFlightNo": null,
-  "inboundFlightNo": null,
-  "departureDateTimeRaw": null,
-  "arrivalDateTimeRaw": null,
-  "routeRaw": null,
-  "isFuelIncluded": true,
-  "isGuideFeeIncluded": false,
-  "mandatoryLocalFee": null,
-  "mandatoryCurrency": null,
-  "priceTableRawText": null,
-  "priceTableRawHtml": null,
-  "productPriceTable": { "adultPrice": null, "childExtraBedPrice": null, "childNoBedPrice": null, "infantPrice": null },
-  "includedItems": [],
-  "excludedItems": [],
-  "includedRaw": null,
-  "excludedRaw": null,
-  "includedExcludedRaw": null,
-  "includedText": null,
-  "excludedText": null,
-  "singleRoomSurchargeAmount": null,
-  "singleRoomSurchargeCurrency": null,
-  "singleRoomSurchargeRaw": null,
-  "singleRoomSurchargeDisplayText": null,
-  "hasSingleRoomSurcharge": false,
-  "criticalExclusions": null,
-  "hotelInfoRaw": null,
-  "hotelNames": [],
-  "dayHotelPlans": [],
-  "hotelSummaryText": null,
-  "hotelStatusText": null,
-  "hotelNoticeRaw": null,
-  "meetingInfoRaw": null,
-  "meetingPlaceRaw": null,
-  "meetingNoticeRaw": null,
-  "meetingFallbackText": null,
-  "optionalTourNoticeRaw": null,
-  "optionalTourNoticeItems": [],
-  "optionalTourDisplayNoticeFinal": null,
-  "hasOptionalTour": false,
-  "optionalTourCount": 0,
-  "optionalTourSummaryText": "",
-  "optionalTours": [],
-  "hasShopping": false,
-  "shoppingNoticeRaw": null,
-  "shoppingVisitCount": 0,
-  "shoppingSummaryText": "",
-  "shoppingStops": [],
-  "hasFreeTime": false,
-  "freeTimeRawMentions": [],
-  "freeTimeSummaryText": "",
-  "fieldIssues": [],
-  "mustKnowRaw": null,
-  "mustKnowSource": "supplier",
-  "mustKnowNoticeRaw": null,
-  "mustKnowItems": [],
-  "pricePromotion": {
-    "basePrice": null,
-    "salePrice": null,
-    "savingsText": null,
-    "benefitTitle": null,
-    "couponAvailable": null,
-    "couponText": null,
-    "couponCtaText": null,
-    "priceDisplayRaw": null,
-    "benefitRawText": null,
-    "benefitRawHtml": null,
-    "strikeThroughDetected": null
-  },
-  "schedule": [
-    {
-      "day": 1,
-      "title": "마츠야마 도착",
-      "description": "부산에서 출발하여 마츠야마 공항에 도착합니다. 호텔에 체크인 후 자유롭게 시간을 보냅니다. REF 마츠야마 시티 스테이션 호텔은 마츠야마역 도보 1분 거리에 위치하며 대욕장과 사우나를 무료로 이용할 수 있습니다.",
-      "routeText": "부산 - 마츠야마",
-      "imageKeyword": "Matsuyama Castle",
-      "hotelText": "REF 마츠야마 시티 스테이션 바이 베셀 호텔",
-      "breakfastText": null,
-      "lunchText": null,
-      "dinnerText": null,
-      "mealSummaryText": null
-    }
-  ],
-  "prices": [
-    { "date": "YYYY-MM-DD", "adultBase": 0, "adultFuel": 0, "childBedBase": null, "childNoBedBase": null, "childFuel": 0, "infantBase": null, "infantFuel": 0, "status": "예약가능", "availableSeats": 0 }
   ]
 }`
 
@@ -1281,7 +1100,7 @@ const REGISTER_PREVIEW_MINIMAL_PROMPT = `${REGISTER_PREVIEW_MINIMAL_TONE_BLOCK}
 - originSource, originCode, title, destination, duration(예: 3박 4일, 없으면 null)
 - airlineName: 한 줄 또는 null
 - hasOptionalTour (bool), optionalTourCount (숫자 또는 null)
-- hasShopping (bool), shoppingSummaryText: 짧은 쇼핑 요약만 또는 null
+- hasShopping (bool), shoppingVisitCount (숫자 또는 null), shoppingSummaryText: 짧은 쇼핑 요약만 또는 null
 - hotelSummaryText: 없으면 null, 있으면 80자 이내
 - fieldIssues: { field, reason, source:"llm", severity:"info"|"warn" } **최대 3건**. reason 각 120자 이내. 목적지·일정 힌트만.
 - **schedule[]** (필수): 본문 **1일차~N일차**마다 1객체. day, title(간결 한글), description(본문만·한국어 3~4문장·항공편 번호·항공사 홍보 문구 금지), routeText(' - ' 한 줄·한글 우선 또는 null), imageKeyword(해당 일 가장 유명한 관광명소 영문 고유명 1개), hotelText·breakfastText·lunchText·dinnerText·mealSummaryText(본문에 있을 때만, 없으면 null). [조망]/[차창관광] → (조망)/(차창). 창작 금지.
@@ -1296,6 +1115,7 @@ const REGISTER_PREVIEW_MINIMAL_PROMPT = `${REGISTER_PREVIEW_MINIMAL_TONE_BLOCK}
   "hasOptionalTour": false,
   "optionalTourCount": null,
   "hasShopping": false,
+  "shoppingVisitCount": null,
   "shoppingSummaryText": null,
   "hotelSummaryText": null,
   "fieldIssues": [],
@@ -1488,8 +1308,7 @@ export async function parseForRegisterLlmHanatour(
   originSource: string = '직접입력',
   options?: RegisterLlmParseOptionsCommon
 ): Promise<RegisterParsed> {
-  const resolveLines: DirectedFlightLineResolver =
-    options?.resolveDirectedFlightLines ?? resolveDirectedFlightLinesDefault
+  const resolveLines = requireDirectedFlightLineResolver(options)
 
   if (!options?.presetDetailBody) {
     throw new Error(
@@ -1642,7 +1461,6 @@ export async function parseForRegisterLlmHanatour(
         },
         { forPreview: false }
       )
-  const useCompactRegisterSchema = !forPreview
   let scheduleFirstPassRows: CommonScheduleDayRow[] | null = null
   let useScheduleEmptyMainPrompt = false
   const expectedDaysForSchedule = !forPreview ? inferExpectedScheduleDayCountFromPaste(blockB, '') : null
@@ -1662,21 +1480,20 @@ export async function parseForRegisterLlmHanatour(
       scheduleFirstPassRows = sr.rows
     }
   }
-  const baseRegisterPrompt = useCompactRegisterSchema ? REGISTER_PROMPT_HANATOUR_COMPACT : REGISTER_PROMPT
   const registerPromptBody = useScheduleEmptyMainPrompt
-    ? registerPromptWithScheduleEmptyForConfirm(baseRegisterPrompt)
-    : baseRegisterPrompt
+    ? registerPromptWithScheduleEmptyForConfirm(REGISTER_PROMPT)
+    : REGISTER_PROMPT
   const prompt = forPreview
     ? `${REGISTER_PREVIEW_MINIMAL_PROMPT}\n\n${labeledInput}`.trim()
     : `${registerPromptBody}\n\n${labeledInput}`.trim()
 
-  if (useCompactRegisterSchema) {
-    console.info('[hanatour-llm] compact-register schema', {
+  if (!forPreview) {
+    console.info('[hanatour-llm] register schema (P1b)', {
       promptChars: prompt.length,
       labeledInputChars: labeledInput.length,
       registerPromptChars: registerPromptBody.length,
       skipDetailRepairs: Boolean(options?.skipDetailSectionGeminiRepairs),
-      suppressedLlmArrays: ['optionalTours', 'shoppingStops', 'dayHotelPlans'],
+      suppressedLlmArrays: ['optionalTours', 'shoppingStops', 'prices'],
     })
   }
 
@@ -1711,31 +1528,29 @@ export async function parseForRegisterLlmHanatour(
       minimalPrompt: true,
     })
   }
-  if (useCompactRegisterSchema) {
+  if (!forPreview) {
     const te = text.trimEnd()
-    let sectionsInRaw = { optionalTourNonEmpty: false, shoppingNonEmpty: false, dayHotelNonEmpty: false }
+    let sectionsInRaw = { optionalTourNonEmpty: false, shoppingNonEmpty: false, pricesNonEmpty: false }
     try {
       const probe = text.slice(0, Math.min(text.length, 120000))
       sectionsInRaw = {
         optionalTourNonEmpty: /"optionalTours"\s*:\s*\[\s*\{/.test(probe),
         shoppingNonEmpty: /"shoppingStops"\s*:\s*\[\s*\{/.test(probe),
-        dayHotelNonEmpty: /"dayHotelPlans"\s*:\s*\[\s*\{/.test(probe),
+        pricesNonEmpty: /"prices"\s*:\s*\[\s*\{/.test(probe),
       }
     } catch {
       /* ignore */
     }
-    console.info('[hanatour-llm] compact-schema gemini first pass', {
+    console.info('[hanatour-llm] confirm gemini first pass', {
       finishReason: finishReason ?? null,
       rawLength: text.length,
       endsWithClosingBrace: te.endsWith('}'),
-      compactPrompt: true,
       largeArrayObjectsDetected: sectionsInRaw,
     })
   }
   if (finishReason === 'MAX_TOKENS') {
     console.error('[hanatour-llm] Gemini finishReason=MAX_TOKENS (출력 상한 도달·JSON 잘림 가능)', {
       forPreview,
-      compactSchema: useCompactRegisterSchema,
       endsWithClosingBrace: text.trimEnd().endsWith('}'),
       rawLength: text.length,
     })

@@ -152,20 +152,20 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
         </div>
       )}
 
-      {step === 'cities' && region?.countryGroups && countryLabel && (
-        <div>
-          <button
-            type="button"
-            className="mb-2 flex items-center gap-1 text-sm font-medium text-sky-800"
-            onClick={() => setStep('countries')}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            국가
-          </button>
-          {(() => {
-            const grp = region.countryGroups.find((g) => g.countryLabel === countryLabel)
-            if (grp?.nonLinkHeader) return null
-            return (
+      {step === 'cities' && region?.countryGroups && countryLabel && (() => {
+        const countryGroups = region.countryGroups
+        const grp = countryGroups.find((g) => g.countryLabel === countryLabel)
+        return (
+          <div>
+            <button
+              type="button"
+              className="mb-2 flex items-center gap-1 text-sm font-medium text-sky-800"
+              onClick={() => setStep('countries')}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              국가
+            </button>
+            {!grp?.nonLinkHeader && (
               <Link
                 href={buildProductsHrefCountryOnly({
                   type: productType,
@@ -178,21 +178,16 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
               >
                 {countryLabel} 전체 상품 보기
               </Link>
-            )
-          })()}
-          <ul className="space-y-1">
-            {region.countryGroups
-              .find((g) => g.countryLabel === countryLabel)
-              ?.cities.map((c) => (
+            )}
+            <ul className="space-y-1">
+              {grp?.cities.map((c) => (
                 <li key={c.label}>
                   <Link
                     href={buildMegaMenuLeafHref({
                       type: productType,
                       regionId: region.id,
                       countryLabel,
-                      headerBrowseCountryLabel: region.countryGroups.find(
-                        (g) => g.countryLabel === countryLabel,
-                      )?.headerBrowseCountryLabel,
+                      headerBrowseCountryLabel: grp?.headerBrowseCountryLabel,
                       leaf: c,
                     })}
                     className="block rounded-lg px-2 py-2 text-[15px] text-slate-800 hover:bg-slate-50"
@@ -202,9 +197,10 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
                   </Link>
                 </li>
               ))}
-          </ul>
-        </div>
-      )}
+            </ul>
+          </div>
+        )
+      })()}
     </div>
   )
 }

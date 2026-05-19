@@ -57,6 +57,8 @@
     "verify:mega-menu-browse": "npx tsx scripts/verify-mega-menu-ssot-browse.ts",
     "verify:supplier-pipeline": "npx tsx scripts/verify-supplier-pipeline-alignment.ts",
     "verify:modetour-lib": "npx tsx scripts/verify-modetour-lib-ssot.ts",
+    "verify:hanatour-lib": "npx tsx scripts/verify-hanatour-lib-ssot.ts",
+    "verify:hanatour-atp207": "npx tsx scripts/verify-hanatour-fixture-atp207.ts",
     "verify:modetour-avp603": "npx tsx scripts/verify-modetour-fixture-avp603.ts",
     "audit:modetour-lib": "npx tsx scripts/audit-modetour-lib-inventory.ts",
     "seed:master": "npx tsx scripts/seed-master-data.ts",

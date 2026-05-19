@@ -42,7 +42,7 @@
 
 ---
 
-## Phase 1 — 모두투어 (진행 중)
+## Phase 1 — 모두투어 (코드 정리 완료 · 운영 회귀만 잔여)
 
 **역할:** “정답 화면” 레퍼런스 + **lib 쓰레기 더미부터** 정리.
 
@@ -81,15 +81,15 @@
 
 | # | 점검 | 모두투어 | 대상 공급사 |
 |---|------|----------|-------------|
-| A | `register-from-llm-*.ts` 줄 수·구조 diff (복붙 덩어리·죽은 분기) | ✓ | |
-| B | `register-schedule-extract-*.ts`가 modetour와 동일 복사본인지 | — | |
-| C | `register-llm-schema` / `register-llm-blocks` 필드·프롬프트 블록 차이 | ✓ | |
-| D | `register-parse-*` 단계 순서 (정형칸 우선·일정 보강·가격 finalize) | ✓ | |
-| E | `detail-body-parser-*` 앵커·섹션 SSOT 문서 ↔ 코드 일치 | ✓ | |
-| F | `public-consumption-*` API가 modetour와 같은 `resolve*` 패턴인지 | ✓ | |
-| G | 공개 `product-detail-view` 분기·FMC·가격 merge 동작 샘플 1건 | ✓ | |
-| H | `parse-and-register` → `syncProductGeoTags` 호출 여부 | ✓ | |
-| I | 패턴 혼재: hanatour 전용 로직이 ybtour 파일에 섞임 등 `rg` 스캔 | — | |
+| A | `register-from-llm-*.ts` 줄 수·구조 diff (복붙 덩어리·죽은 분기) | ✓ | hanatour 2616줄 — P1b 대기 |
+| B | `register-schedule-extract-*.ts`가 modetour와 동일 복사본인지 | 507 | 509 — 거의 동일, supplier 유지 |
+| C | `register-llm-schema` / `register-llm-blocks` 필드·프롬프트 블록 차이 | ✓ | diff 필요 |
+| D | `register-parse-*` 단계 순서 (정형칸 우선·일정 보강·가격 finalize) | ✓ | ✓ 181줄, flight directed 주입 |
+| E | `detail-body-parser-*` 앵커·섹션 SSOT 문서 ↔ 코드 일치 | ✓ | `body-parser-hanatour-ssot.md` |
+| F | `public-consumption-*` API가 modetour와 같은 `resolve*` 패턴인지 | ✓ | ✓ ~289줄, 대조 잔여 |
+| G | 공개 `product-detail-view` 분기·FMC·가격 merge 동작 샘플 1건 | ✓ | 샘플 1건 운영 |
+| H | `parse-and-register` → `syncProductGeoTags` 호출 여부 | ✓ | ✓ orchestration |
+| I | 패턴 혼재: hanatour 전용 로직이 ybtour 파일에 섞임 등 `rg` 스캔 | — | 1차 이상 없음 |
 
 **교정 원칙**
 
@@ -116,7 +116,11 @@
 | 하나투어 전용 | 쇼핑 횟수 추출 `register-hanatour-shopping`, 예약상태 본문 파싱 등 — 유지·문서화 |
 | 공개 소비 | `public-consumption-hanatour` 존재 — modetour와 API 대조 필요 |
 
-**상태:** ⬜ 점검 대기 → ⬜ 교정 대기
+**P3 완료 (2026-05):** `register-admin-core-hanatour` · orchestration digest 중복 제거 · `docs/ops/hanatour-lib-inventory.md` · `npm run verify:hanatour-lib`
+
+**P1b 완료 (2026-05):** LLM trim · `requireDirectedFlightLineResolver` · `verify:hanatour-atp207` · 쇼핑 횟수 규칙 `docs/ops/supplier-shopping-visit-count.md`
+
+**상태:** 🔄 P2(항공 스택 문서)·공개 항공 동기화 점검 잔여
 
 ---
 
@@ -169,10 +173,10 @@
 
 ## 다음 세션에서 할 일 (에이전트·운영)
 
-1. 사용자가 **첫 교정 대상 공급사** 지정 (기본 권장: `hanatour`).
-2. 해당 공급사만 `register-from-llm` / `register-parse` / `public-consumption` **전체 읽기 점검** → 위 표 A~I 채움.
-3. modetour 대비 **차이 목록** + “화면 맞추기” 작업 목록 합의.
-4. 합의된 항목만 코드 수정 (E2E 무터치).
+1. ~~첫 교정 대상: `hanatour`~~ — P3 완료.
+2. **다음:** hanatour P2·공개 상세 항공 동기화. 쇼핑 횟수: `docs/ops/supplier-shopping-visit-count.md` (modetour·hanatour=LLM, ybtour·verygoodtour=목록/시그널).
+3. 공개 상세 출발일 변경 시 항공 표시 hero↔일정 동기화 여부 샘플 1건.
+4. E2E 스크래퍼 무터치.
 
 ---
 
