@@ -46,6 +46,10 @@ assert(
   'missing hanatour-admin-register-stack.md',
 )
 assert(fs.existsSync(path.join(root, 'docs/ops/hanatour-lib-inventory.md')), 'missing hanatour-lib-inventory.md')
+assert(
+  fs.existsSync(path.join(root, 'docs/ops/hanatour-regression-baseline.md')),
+  'missing hanatour-regression-baseline.md',
+)
 
 // 4) orchestration — digest 중복 제거
 assert(

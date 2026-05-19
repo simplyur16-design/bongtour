@@ -18,7 +18,7 @@ E2E(`scripts/calendar_e2e_scraper_*`)는 범위 밖.
 | 공개 | `public-consumption-hanatour.ts` | 289 | 상세 탭·쇼핑·옵션 resolution |
 | geo | `sync-product-geo-tags.ts` (공통) | orchestration에서 호출 |
 
-문서: `docs/body-parser-hanatour-ssot.md`, `docs/ops/hanatour-parse-contract.md`, `docs/PARSING_MANUAL_HANATOUR.md`
+문서: `docs/body-parser-hanatour-ssot.md`, `docs/ops/hanatour-parse-contract.md`, `docs/ops/hanatour-regression-baseline.md`
 
 ---
 
@@ -44,7 +44,8 @@ E2E(`scripts/calendar_e2e_scraper_*`)는 범위 밖.
 | P1b | `resolveDirectedFlightLines` 필수화 (default null 제거) | ✅ |
 | P1b | `npm run verify:hanatour-atp207` (ATP207260601TWJ fixture) | ✅ |
 | P2 | 항공 9파일 경계 주석 + `docs/ops/hanatour-parse-contract.md` | ✅ |
-| 공개 | 출발일 변경 시 hero↔일정 — 공용 `TravelProductDetail` SSOT 적용됨, ATP207 **운영 스모크**만 | ⬜ 운영 |
+| 회귀 | `hanatour-regression-baseline.md` + 스크린 경로 | ✅ 문서 |
+| 공개 | ATP207 출발일 A/B 스크린 — baseline §3 | ⬜ 운영자 캡처 |
 | 잡파일 | `.tmp-paste-verify` · `register-gemini-timing-hanatour`(미연결) | ✅ 삭제 |
 | audit | `npm run audit:hanatour-lib` | ✅ |
 | verify | `npm run verify:hanatour-lib` | ✅ 스크립트 추가 |

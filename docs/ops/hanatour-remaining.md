@@ -12,10 +12,10 @@ P0·P1b·P2·P3 **코드 단계는 완료**. 아래만 잔여.
 
 ## 운영·문서
 
-| 항목 | 설명 |
-|------|------|
-| 회귀 스크린 | modetour처럼 `docs/ops/screenshots/` + ATP207 URL — `hanatour-regression-baseline.md`는 필요 시 추가 |
-| `docs/PARSING_MANUAL_HANATOUR.md` | 본문 파서 SSOT와 중복 문단 있으면 **링크만** 정리 (삭제는 보류) |
+| 항목 | 설명 | 상태 |
+|------|------|------|
+| 회귀 스크린 | [`hanatour-regression-baseline.md`](./hanatour-regression-baseline.md) — ATP207 체크리스트·`docs/ops/screenshots/hanatour-*` 경로 | ✅ 문서 (캡처는 운영자) |
+| `PARSING_MANUAL_HANATOUR.md` | SSOT 링크·짧은 체크리스트만 유지, 중복 본문 삭제 | ✅ |
 
 ## 삭제 완료 (이번 정리)
 

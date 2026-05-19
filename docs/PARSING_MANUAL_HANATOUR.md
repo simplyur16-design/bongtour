@@ -1,64 +1,34 @@
-# 하나투어 상품 데이터 판독 매뉴얼 (Prisma 등록용)
+# 하나투어 상품 데이터 판독 — 운영 요약 (SSOT 링크)
 
-하나투어 특유의 상품 구조를 분석하여 DB(Prisma) `Product` 모델에 **즉시 등록 가능한** 데이터를 추출할 때 AI/파서가 반드시 체크할 항목입니다.
+> **유지보수 1급 SSOT는 아래 문서입니다.** 이 파일은 예전 “Prisma 등록용 매뉴얼”을 **짧은 체크리스트 + 링크**로만 남긴 것입니다.  
+> 섹션 앵커·항공·옵션·쇼핑 구조화·등록 파이프 상세는 **중복 서술하지 않습니다.**
 
----
-
-## 1. 소스 및 코드 (Source & Code)
-
-| 필드 | 규칙 | 예시 |
-|------|------|------|
-| **originSource** | API·스크립트 body에는 canonical **`"hanatour"`** 고정(한글 표기는 UI만) | `"hanatour"` |
-| **originCode** | '상품코드' 옆의 **[ATP...]** 로 시작하는 코드를 정확히 추출 | `"ATP12345678"` |
-
-> HTTP `parse-and-register*` 요청 JSON 전체 예시: [register_schedule_expression_ssot.md](./register_schedule_expression_ssot.md) §15 · [register-supplier-extraction-spec.md](./register-supplier-extraction-spec.md) 부록-2.
-
----
-
-## 2. 핵심 설정값 (Admin Checkbox 판독)
-
-| 항목 | 판독 방법 | Prisma/비고 |
-|------|-----------|-------------|
-| **브랜드 등급** | '하나팩 2.0' 옆 **[스탠다드 / 세이브 / 프리미엄]** 식별 | `counselingNotes` 또는 메모 필드에 기록 권장 |
-| **쇼핑 유무** | '쇼핑없음' 문구 → `isNoShopping = true` / '쇼핑 N회' → `false` | 필요 시 확장 필드 또는 `includedText`에 반영 |
-| **가이드비** | '가이드경비없음'이 상단 핵심정보 또는 포함사항에 있으면 `isNoGuideFeeIncluded = true` | **isGuideFeeIncluded**: true = 포함, false = 불포함 |
-| **선택관광** | '선택관광없음' 또는 '노옵션' 확인 시 `isNoOption = true` | 필요 시 확장 필드 또는 `includedText`에 반영 |
+| 주제 | 1급 SSOT |
+|------|----------|
+| 본문 섹션·앵커·슬라이스 | [`docs/body-parser-hanatour-ssot.md`](./body-parser-hanatour-ssot.md) |
+| 항공 `출발 :`/`도착 :`·directed·LLM 금지 | [`docs/ops/hanatour-parse-contract.md`](./ops/hanatour-parse-contract.md) |
+| 등록 입력·정형칸 우선 | [`docs/admin-register-supplier-precise-spec.md`](./admin-register-supplier-precise-spec.md) §3, [`docs/register-supplier-extraction-spec.md`](./register-supplier-extraction-spec.md) |
+| 일정 표현·`schedule` 저장 | [`docs/register_schedule_expression_ssot.md`](./register_schedule_expression_ssot.md) |
+| 화면 회귀·스크린 경로 | [`docs/ops/hanatour-regression-baseline.md`](./ops/hanatour-regression-baseline.md) |
+| 결정론 fixture | `scripts/fixtures/hanatour-atp207260601twj.fixture.ts` · `npm run verify:hanatour-atp207` |
 
 ---
 
-## 3. 호텔 성급 (Hotel Star Rating)
+## 빠른 체크리스트 (붙여넣기 본문에서)
 
-- **위치**: '호텔 & 관광지' 섹션 또는 예정 호텔 리스트 옆
-- **추출**: **[4성급], [5성급], [특급]** 등 키워드 반드시 추출
-- **적재**: `title` 보강 또는 `includedText` / 별도 메모 필드에 반영
-
----
-
-## 4. 일정표 분석 (Schedule)
-
-- **섹션**: '여행일정'을 **일차별(Day)** 로 쪼개기
-- **형식**: JSON 배열 문자열 (Product.schedule 필드)
-- **필드**:
-  ```json
-  [
-    {
-      "day": 1,
-      "title": "...",
-      "description": "...",
-      "imageKeyword": "...",
-      "imageUrl": "..."
-    }
-  ]
-  ```
-- **참고:** 위 블록은 `Product.schedule`용 **일차 JSON** 예시이며 `originSource` / `brandKey` 같은 HTTP·등록 body 필드는 없다. 공급사 식별은 §1의 canonical **`hanatour`** 등만 쓴다.
-- **이미지 매핑**: 한 도시(예: 타이베이)당 이미지는 **1장만**, 가장 고화질로 선택
+| 필드 | 규칙 |
+|------|------|
+| **originSource** | canonical `"hanatour"` (API·등록 body) |
+| **originCode** | `상품코드` 옆 **ATP…** 코드 |
+| **쇼핑** | 「쇼핑없음」/「쇼핑 N회」→ `shoppingVisitCount` (**LLM**). 쇼핑 **목록 행 수**와 동일 의미 아님 → [`supplier-shopping-visit-count.md`](./ops/supplier-shopping-visit-count.md) |
+| **가이드비** | `가이드경비` USD 등 → 불포함·`isGuideFeeIncluded` 판단에 반영 |
+| **선택관광** | 표·전용 칸 SSOT; LLM `optionalTours[]` 행 추출 없음 |
+| **항공** | 전용 칸 또는 `출발 :`/`도착 :` 줄; LLM 항공 필드 없음 |
+| **호텔 성급** | 「N성급」 등은 제목·`includedText` 보강용 메모 |
 
 ---
 
-## 5. Prisma 적재 시 에러 방지 (가용 필드만 사용)
+## 레거시 Prisma 필드 메모
 
-- **절대 포함하지 말 것**: `bgImageUrl` (DB 등록 시 제외)
-- **사용 가능 필드**  
-  `originSource`, `originCode`, `title`, `destination`, `duration`, `airline`, `schedule`, `isFuelIncluded`, `isGuideFeeIncluded`, `includedText`, `excludedText`
-
-등록 시 위 필드만으로 `Product` create/update payload를 구성하세요.
+등록 payload는 `RegisterParsed` / `register-llm-schema-hanatour` 기준으로 조립됩니다.  
+과거 `Product` 직접 create 예시(`bgImageUrl` 등)는 **사용하지 않습니다.**
