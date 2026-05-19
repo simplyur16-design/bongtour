@@ -115,6 +115,9 @@ export type ScheduleDay = {
   imageDisplayName?: string | null
   title?: string
   imageKeyword?: string | null
+  imageKeyword2?: string | null
+  imageUrl2?: string | null
+  imageDisplayName2?: string | null
   /** ItineraryDay.city — carousel DAY label fallback */
   city?: string | null
   hotelText?: string | null

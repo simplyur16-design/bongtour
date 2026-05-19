@@ -568,6 +568,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
       const next = [...prev]
       const entry = { ...next[index] }
       if (field === 'imageKeyword') entry.imageKeyword = value as string
+      if (field === 'imageKeyword2') entry.imageKeyword2 = value as string
       if (field === 'title') entry.title = value as string
       if (field === 'description') entry.description = value as string
       next[index] = entry
@@ -2562,12 +2563,22 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                     </div>
                     <div className="space-y-3">
                       <div>
-                        <label className="mb-1 block text-xs text-bt-subtle">imageKeyword</label>
+                        <label className="mb-1 block text-xs text-bt-subtle">imageKeyword (1)</label>
                         <input
                           type="text"
                           value={entry.imageKeyword ?? ''}
                           onChange={(e) => updateScheduleEntry(index, 'imageKeyword', e.target.value)}
-                          placeholder="검색 키워드"
+                          placeholder="Pexels 1순위"
+                          className="w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 text-sm text-bt-inverse placeholder:text-bt-subtle"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-bt-subtle">imageKeyword2 (2)</label>
+                        <input
+                          type="text"
+                          value={entry.imageKeyword2 ?? ''}
+                          onChange={(e) => updateScheduleEntry(index, 'imageKeyword2', e.target.value)}
+                          placeholder="Pexels 2순위 · 비행일은 도시명"
                           className="w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 text-sm text-bt-inverse placeholder:text-bt-subtle"
                         />
                       </div>

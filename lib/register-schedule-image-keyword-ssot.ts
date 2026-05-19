@@ -1,19 +1,20 @@
 /**
- * 일정 schedule[].imageKeyword — 전 공급사 LLM·선추출 공통 SSOT.
- * - 일반 일차: 해당 일 가장 유명한 관광명소 1개(영문 고유명)
+ * 일정 schedule[].imageKeyword / imageKeyword2 — 전 공급사 LLM·선추출 공통 SSOT.
+ * - 관광 일차: 그날 주요 관광지·관광명소 1순위·2순위(영문 고유명)
  * - 출발·귀국 일차에 국내 허브(인천·김포·부산·대구·청주 등): 첫·마지막 해외 도시 영문명
  */
+import { applyDualScheduleImageKeywordsToRows } from '@/lib/schedule-dual-image-keyword'
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { mapKoreanPoiSegment } from '@/lib/pexels-keyword'
 
 /** REGISTER_PROMPT·schedule 선추출 프롬프트에 삽입 */
-export const REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK = `# [schedule[].imageKeyword — Pexels 검색용]
-- **관광 일차:** 그날 일정(description·routeText·title)에서 **가장 유명한 관광명소·랜드마크 1개만** 영문 고유명으로 (예: Osaka Castle, Eiffel Tower, Halong Bay). 단순 도시명만(Paris, Da Nang 단독)·국가명·Day N travel·한글·공항·호텔·식사 키워드 금지.
-- **출발·귀국 일차:** 본문에 인천·김포·부산·대구·청주·김해 등 **국내 출발/도착 허브**가 나오면 imageKeyword는 도시명이 아니라 **일정 전체의 첫 해외 도시 / 마지막 해외 도시 영문명**만 쓴다(예: 출발일→Tokyo, 귀국일→Osaka). 허브·공항 사진 키워드 금지.
-- 불확실하면 빈 문자열.`
+export const REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK = `# [schedule[].imageKeyword / imageKeyword2 — Pexels 검색용]
+- **관광 일차:** 그날 일정에 나오는 **주요 관광지·관광명소**를 중요도 순으로 2개만. imageKeyword = **1순위** 영문 고유명, imageKeyword2 = **2순위** 영문 고유명(1순위와 다른 명소). 단순 도시명만·국가명·Day N travel·한글·공항·호텔·식사 키워드 금지.
+- **출발·귀국(비행) 일차:** imageKeyword·imageKeyword2 모두 **일정 첫·마지막 해외 도시 영문명**만(동일 도시 가능). 국내 허브·공항 키워드 금지.
+- 불확실한 슬롯은 빈 문자열.`
 
 export const REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE =
-  'imageKeyword(해당 일 **가장 유명한 관광명소** 영문 고유명 1개; 출발·귀국 허브 일차는 일정 첫·마지막 해외 **도시** 영문명),'
+  'imageKeyword(1순위 관광지·명소), imageKeyword2(2순위 관광지·명소 또는 비행일 도시명),'
 
 const KOREAN_HUB_RE =
   /인천|김포|부산|대구|청주|김해|서울|제주|ICN|GMP|PUS|TAE|CJJ|CJU|인천국제공항|김포국제공항|김해국제공항/u
@@ -207,23 +208,8 @@ export function polishRegisterScheduleImageKeywordFromLlm(
   return kw
 }
 
-export function applyScheduleImageKeywordsToRows<T extends ScheduleImageKeywordDayInput & { imageKeyword: string }>(
-  rows: T[],
-  supplierFinalize?: (normalized: string, ctx: ScheduleImageKeywordDayInput) => string,
-): T[] {
-  const plan = buildScheduleImageKeywordPlan(rows)
-  return rows.map((row) => ({
-    ...row,
-    imageKeyword: polishRegisterScheduleImageKeywordFromLlm(
-      row.imageKeyword,
-      {
-        day: row.day,
-        title: row.title,
-        description: row.description,
-        routeText: row.routeText,
-      },
-      plan,
-      supplierFinalize,
-    ),
-  }))
+export function applyScheduleImageKeywordsToRows<
+  T extends ScheduleImageKeywordDayInput & { imageKeyword: string; imageKeyword2?: string | null },
+>(rows: T[], supplierFinalize?: (normalized: string, ctx: ScheduleImageKeywordDayInput) => string): T[] {
+  return applyDualScheduleImageKeywordsToRows(rows, supplierFinalize)
 }

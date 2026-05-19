@@ -18,6 +18,7 @@ import { formatScheduleDayHotelLine, formatMealDisplay } from '@/lib/hotel-meal-
 import TravelCoreInfoSection from '@/app/components/detail/TravelCoreInfoSection'
 import { HERO_DATE_INLINE_VALUE_CLASS } from '@/app/components/detail/product-detail-visual'
 import { ItineraryExtraInfoBoxes } from '@/components/itinerary/ItineraryExtraInfoBoxes'
+import { ScheduleDayItineraryBlocks } from '@/components/itinerary/ScheduleDayItineraryBlocks'
 import EsimProductDetailCrossSell from '@/app/components/travel/EsimProductDetailCrossSell'
 import {
   pickDepartureKeyFactsForSelection,
@@ -648,25 +649,6 @@ export function ItineraryView({
                       )
                     : 0
                   const dayNum = Math.floor(Number(day.day))
-                  const hotelLine = formatScheduleDayHotelLine({
-                    hotelNames: product.hotelNames ?? null,
-                    hotelSummaryText: product.hotelSummaryText ?? null,
-                    dayHotelText: day.hotelText ?? null,
-                    isLastScheduleRow: lastDay > 0 && dayNum === lastDay,
-                    dayDescription: day.description ?? null,
-                  })
-                  const mealLines = formatMealDisplay({
-                    breakfastText: day.breakfastText,
-                    lunchText: day.lunchText,
-                    dinnerText: day.dinnerText,
-                    mealSummaryText: day.mealSummaryText,
-                    mealsLegacy: day.meals ?? null,
-                  })
-                  const mealLine = mealLines.length > 0 ? mealLines.join(', ') : null
-                  const hotelCat = CATEGORY.hotel
-                  const mealCat = CATEGORY.meal
-                  const HotelIcon = hotelCat.icon
-                  const MealIcon = mealCat.icon
                   const summaryLead = day.description
                     ? `${day.description.split(/[.\n]/)[0]?.trim() ?? ''}.`
                     : null
@@ -682,61 +664,12 @@ export function ItineraryView({
                           <p className="text-sm fit-tx-meta line-clamp-2">{summaryLead}</p>
                         ) : null}
                       </div>
-                      <div className="space-y-3">
-                        {day.description ? (
-                          <article className="flex gap-3 rounded-2xl bg-white border border-[#DAD4EE] p-4">
-                            <div className="rounded-xl bg-[#1F1B2D] text-white w-12 h-12 flex items-center justify-center text-xl shrink-0">
-                              📋
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span className="inline-block rounded-full bg-[#EFEDF8] px-2.5 py-0.5 text-xs font-semibold fit-tx-primary mb-2">
-                                일정 요약
-                              </span>
-                              <p className="text-sm fit-tx-primary whitespace-pre-line leading-relaxed">
-                                {day.description}
-                              </p>
-                            </div>
-                          </article>
-                        ) : null}
-                        {hotelLine ? (
-                          <article className="flex gap-3 rounded-2xl bg-white border border-[#DAD4EE] p-4">
-                            <div
-                              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                              style={{ backgroundColor: hotelCat.color }}
-                            >
-                              <HotelIcon size={20} color={hotelCat.iconColor} strokeWidth={1.8} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span
-                                className="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium mb-2 tracking-wide"
-                                style={{ background: hotelCat.chipBg, color: hotelCat.chipText }}
-                              >
-                                {hotelCat.label}
-                              </span>
-                              <p className="text-sm fit-tx-primary leading-relaxed">{hotelLine}</p>
-                            </div>
-                          </article>
-                        ) : null}
-                        {mealLine ? (
-                          <article className="flex gap-3 rounded-2xl bg-white border border-[#DAD4EE] p-4">
-                            <div
-                              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                              style={{ backgroundColor: mealCat.color }}
-                            >
-                              <MealIcon size={20} color={mealCat.iconColor} strokeWidth={1.8} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span
-                                className="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium mb-2 tracking-wide"
-                                style={{ background: mealCat.chipBg, color: mealCat.chipText }}
-                              >
-                                {mealCat.label}
-                              </span>
-                              <p className="text-sm fit-tx-primary leading-relaxed">{mealLine}</p>
-                            </div>
-                          </article>
-                        ) : null}
-                      </div>
+                      <ScheduleDayItineraryBlocks
+                        day={day}
+                        hotelNames={product.hotelNames ?? null}
+                        hotelSummaryText={product.hotelSummaryText ?? null}
+                        isLastScheduleRow={lastDay > 0 && dayNum === lastDay}
+                      />
                     </section>
                   )
                 })}

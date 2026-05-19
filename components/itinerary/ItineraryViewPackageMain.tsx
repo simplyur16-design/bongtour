@@ -11,9 +11,8 @@ import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssential
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
-import { formatScheduleDayHotelLine, formatMealDisplay } from '@/lib/hotel-meal-display'
 import { ItineraryExtraInfoBoxes } from '@/components/itinerary/ItineraryExtraInfoBoxes'
-import { Bed, UtensilsCrossed } from 'lucide-react'
+import { ScheduleDayItineraryBlocks } from '@/components/itinerary/ScheduleDayItineraryBlocks'
 import type { FlightStructuredBody } from '@/lib/public-product-extras'
 import {
   departureKeyFactsToHeroSsotItineraryFlightDisplay,
@@ -60,11 +59,6 @@ function resolvePackageFlightDisplay(flightStructured: FlightStructuredBody | nu
   if (!out && !inn) return null
   return { outbound: out, inbound: inn }
 }
-
-const CATEGORY = {
-  hotel: { color: '#C9C2E3', icon: Bed, chipBg: '#EFEDF8', chipText: '#534AB7', iconColor: '#534AB7', label: '숙소' },
-  meal: { color: '#d9a81e', icon: UtensilsCrossed, chipBg: '#FAEEDA', chipText: '#85510B', iconColor: 'white', label: '식사' },
-} as const
 
 type Props = {
   product: TravelProduct
@@ -218,25 +212,6 @@ export function ItineraryViewPackageMain({
           {visibleSchedule.map((day, idx) => {
             const sd = day as ScheduleDay
             const dayNum = Math.floor(Number(sd.day))
-            const hotelLine = formatScheduleDayHotelLine({
-              hotelNames: product.hotelNames ?? null,
-              hotelSummaryText: product.hotelSummaryText ?? null,
-              dayHotelText: sd.hotelText ?? null,
-              isLastScheduleRow: lastScheduleDay > 0 && dayNum === lastScheduleDay,
-              dayDescription: sd.description ?? null,
-            })
-            const mealLines = formatMealDisplay({
-              breakfastText: sd.breakfastText,
-              lunchText: sd.lunchText,
-              dinnerText: sd.dinnerText,
-              mealSummaryText: sd.mealSummaryText,
-              mealsLegacy: sd.meals ?? null,
-            })
-            const mealLine = mealLines.length > 0 ? mealLines.join(', ') : null
-            const hotelCat = CATEGORY.hotel
-            const mealCat = CATEGORY.meal
-            const HotelIcon = hotelCat.icon
-            const MealIcon = mealCat.icon
 
             return (
               <section key={`${day.day}-${idx}`} className="space-y-4 scroll-mt-28">
@@ -246,59 +221,12 @@ export function ItineraryViewPackageMain({
                     {sd.title || `Day ${day.day}`}
                   </h3>
                 </div>
-                <div className="space-y-3">
-                  {sd.description ? (
-                    <article className="flex gap-3 rounded-2xl bg-white border border-[#DAD4EE] p-4">
-                      <div className="rounded-xl bg-[#1F1B2D] text-white w-12 h-12 flex items-center justify-center text-xl shrink-0">
-                        📋
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="inline-block rounded-full bg-[#EFEDF8] px-2.5 py-0.5 text-xs font-semibold fit-tx-primary mb-2">
-                          일정 요약
-                        </span>
-                        <p className="text-sm fit-tx-primary whitespace-pre-line leading-relaxed">{sd.description}</p>
-                      </div>
-                    </article>
-                  ) : null}
-                  {hotelLine ? (
-                    <article className="flex gap-3 rounded-2xl bg-white border border-[#DAD4EE] p-4">
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: hotelCat.color }}
-                      >
-                        <HotelIcon size={20} color={hotelCat.iconColor} strokeWidth={1.8} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span
-                          className="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium mb-2"
-                          style={{ background: hotelCat.chipBg, color: hotelCat.chipText }}
-                        >
-                          {hotelCat.label}
-                        </span>
-                        <p className="text-sm fit-tx-primary leading-relaxed">{hotelLine}</p>
-                      </div>
-                    </article>
-                  ) : null}
-                  {mealLine ? (
-                    <article className="flex gap-3 rounded-2xl bg-white border border-[#DAD4EE] p-4">
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: mealCat.color }}
-                      >
-                        <MealIcon size={20} color={mealCat.iconColor} strokeWidth={1.8} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span
-                          className="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium mb-2"
-                          style={{ background: mealCat.chipBg, color: mealCat.chipText }}
-                        >
-                          {mealCat.label}
-                        </span>
-                        <p className="text-sm fit-tx-primary leading-relaxed">{mealLine}</p>
-                      </div>
-                    </article>
-                  ) : null}
-                </div>
+                <ScheduleDayItineraryBlocks
+                  day={sd}
+                  hotelNames={product.hotelNames ?? null}
+                  hotelSummaryText={product.hotelSummaryText ?? null}
+                  isLastScheduleRow={lastScheduleDay > 0 && dayNum === lastScheduleDay}
+                />
               </section>
             )
           })}

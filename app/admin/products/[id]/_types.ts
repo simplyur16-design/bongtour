@@ -17,7 +17,9 @@ export type ScheduleEntry = {
   title?: string
   description?: string
   imageKeyword?: string
+  imageKeyword2?: string
   imageUrl?: string | null
+  imageUrl2?: string | null
   imageSource?: { source?: string; photographer?: string; originalLink?: string }
 }
 

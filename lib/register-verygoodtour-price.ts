@@ -436,7 +436,7 @@ export function finalizeVerygoodRegisterParsedPricing(parsed: RegisterParsed): R
   /** 입력란 SSOT: 입력란 있으면 LLM 본문 추출(productPriceTable) 무시 */
   const llmTable = hasManualPriceInput ? null : (parsed.productPriceTable ?? null)
   const next = finalizeVerygoodProductPriceTable(llmTable, blob)
-  if (next === null) return parsed
+  if (next == null) return parsed
   const adult =
     next.adultPrice != null && next.adultPrice > 0
       ? next.adultPrice

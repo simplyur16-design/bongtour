@@ -103,7 +103,9 @@ export function parseSchedule(schedule: string | null): ScheduleEntry[] {
       title: typeof item.title === 'string' ? item.title : undefined,
       description: typeof item.description === 'string' ? item.description : undefined,
       imageKeyword: typeof item.imageKeyword === 'string' ? item.imageKeyword : undefined,
+      imageKeyword2: typeof item.imageKeyword2 === 'string' ? item.imageKeyword2 : undefined,
       imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : (item.imageUrl as string | null) ?? null,
+      imageUrl2: typeof item.imageUrl2 === 'string' ? item.imageUrl2 : (item.imageUrl2 as string | null) ?? null,
       imageSource:
         item.imageSource && typeof item.imageSource === 'object'
           ? (item.imageSource as ScheduleEntry['imageSource'])

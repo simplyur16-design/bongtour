@@ -17,8 +17,11 @@ export type ScheduleDayDisplay = {
   description: string
   title?: string
   imageKeyword?: string
+  imageKeyword2?: string
   imageUrl?: string | null
+  imageUrl2?: string | null
   imageDisplayName?: string | null
+  imageDisplayName2?: string | null
   /** confirm 시 itineraryDayDrafts와 함께 직렬화(모두투어 등) — 공개 상세는 ItineraryDay와 병합 */
   hotelText?: string | null
   breakfastText?: string | null
@@ -131,13 +134,27 @@ export function getScheduleFromProduct(
             imageDisplayNameManual ||
             deriveDisplayNameFromImageUrl(imageUrl) ||
             null
+          const rawImageUrl2 = row?.imageUrl2 != null ? (row.imageUrl2 as string | null) : null
+          const imageUrl2 = getFinalScheduleDayImageUrl({
+            imageUrl: rawImageUrl2,
+            imageManualSelected,
+            imageSelectionMode,
+          })
+          const imageDisplayName2 =
+            (typeof row?.imageDisplayName2 === 'string' ? row.imageDisplayName2.trim() : '') ||
+            (typeof row?.imageKeyword2 === 'string' ? row.imageKeyword2.trim() : '') ||
+            deriveDisplayNameFromImageUrl(imageUrl2) ||
+            null
           const base: ScheduleDayDisplay = {
             day,
             description,
             title: typeof row?.title === 'string' ? row.title : undefined,
             imageKeyword: typeof row?.imageKeyword === 'string' ? row.imageKeyword : undefined,
+            imageKeyword2: typeof row?.imageKeyword2 === 'string' ? row.imageKeyword2 : undefined,
             imageUrl,
+            imageUrl2,
             imageDisplayName,
+            imageDisplayName2,
             hotelText: optionalScheduleMealCol(row, 'hotelText'),
             breakfastText: optionalScheduleMealCol(row, 'breakfastText'),
             lunchText: optionalScheduleMealCol(row, 'lunchText'),

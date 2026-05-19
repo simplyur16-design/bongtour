@@ -55,6 +55,7 @@ export function tryPersistScheduleImageKeyword(
 
 export type ScheduleImageFieldsInput = {
   imageKeyword?: string | null
+  imageKeyword2?: string | null
   imagePlaceName?: string | null
   imageRehostSearchLabel?: string | null
 }
@@ -65,6 +66,10 @@ export function persistScheduleImageFields<T extends ScheduleImageFieldsInput>(
   maxLen = 500,
 ): T {
   const kw = persistScheduleImageKeyword(row.imageKeyword, maxLen)
+  const kw2 =
+    row.imageKeyword2 != null && String(row.imageKeyword2).trim()
+      ? persistScheduleImageKeyword(row.imageKeyword2, maxLen)
+      : ''
   let place =
     row.imagePlaceName != null && String(row.imagePlaceName).trim()
       ? persistScheduleImageKeyword(row.imagePlaceName, maxLen)
@@ -80,6 +85,7 @@ export function persistScheduleImageFields<T extends ScheduleImageFieldsInput>(
   return {
     ...row,
     imageKeyword: kw,
+    imageKeyword2: kw2 || null,
     imagePlaceName: place || null,
     imageRehostSearchLabel: label || null,
   }

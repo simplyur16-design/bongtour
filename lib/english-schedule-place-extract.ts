@@ -131,6 +131,39 @@ function extractBestMultiwordTitleCase(
   return null
 }
 
+function collectEnglishPlaceCandidates(hayOneLine: string): string[] {
+  const seen = new Set<string>()
+  const scored: Array<{ cand: string; score: number }> = []
+
+  const push = (cand: string) => {
+    const t = squash(cand)
+    if (!t || isBlacklistedPlaceCandidate(t)) return
+    const key = t.toLowerCase()
+    if (seen.has(key)) return
+    seen.add(key)
+    scored.push({ cand: t.slice(0, 100), score: scoreEnglishPlaceImageKeywordCandidate(t) })
+  }
+
+  for (const re of LANDMARK_ORDERED_PATTERNS) {
+    const reG = new RegExp(re.source, re.flags.includes('g') ? re.flags : `${re.flags}g`)
+    let m: RegExpExecArray | null
+    while ((m = reG.exec(hayOneLine)) !== null) {
+      push((m[1] ?? m[0]).trim())
+    }
+  }
+
+  const runRe = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,8})\b/g
+  let rm: RegExpExecArray | null
+  while ((rm = runRe.exec(hayOneLine)) !== null) {
+    const cand = rm[1]!.trim()
+    if (isAirportNamedPlace(cand)) continue
+    push(cand)
+  }
+
+  scored.sort((a, b) => b.score - a.score)
+  return scored.map((x) => x.cand)
+}
+
 export function extractPrimaryEnglishPlaceName(
   rawDayBody: string,
   description: string,
@@ -140,11 +173,8 @@ export function extractPrimaryEnglishPlaceName(
   if (!hay) return null
   const hayOneLine = hay.replace(/\n+/g, ' ')
 
-  const fromLandmarks = extractFromPatterns(hayOneLine, LANDMARK_ORDERED_PATTERNS)
-  if (fromLandmarks) return fromLandmarks
-
-  const fromRuns = extractBestMultiwordTitleCase(hayOneLine, { minParts: 2, maxParts: 8, avoidAirport: true })
-  if (fromRuns) return fromRuns
+  const candidates = collectEnglishPlaceCandidates(hayOneLine)
+  if (candidates[0]) return candidates[0]
 
   const fromAirportPat = extractFromPatterns(hayOneLine, AIRPORT_ORDERED_PATTERNS)
   if (fromAirportPat) return fromAirportPat
@@ -152,5 +182,26 @@ export function extractPrimaryEnglishPlaceName(
   const fromRunsAny = extractBestMultiwordTitleCase(hayOneLine, { minParts: 2, maxParts: 8, avoidAirport: false })
   if (fromRunsAny) return fromRunsAny
 
+  return null
+}
+
+/** 1순위 명소와 다른 두 번째 영문 고유명(없으면 null). */
+export function extractSecondaryEnglishPlaceName(
+  rawDayBody: string,
+  description: string,
+  title: string,
+  primaryNormalized?: string | null,
+): string | null {
+  const hay = squash([rawDayBody, description, title].filter(Boolean).join('\n'))
+  if (!hay) return null
+  const hayOneLine = hay.replace(/\n+/g, ' ')
+  const primaryKey = primaryNormalized?.replace(/\s+/g, ' ').trim().toLowerCase() ?? ''
+
+  for (const cand of collectEnglishPlaceCandidates(hayOneLine)) {
+    if (primaryKey && cand.toLowerCase() === primaryKey) continue
+    if (primaryKey && primaryKey.includes(cand.toLowerCase())) continue
+    if (cand.toLowerCase().includes(primaryKey) && primaryKey.length > 6) continue
+    return cand
+  }
   return null
 }

@@ -48,8 +48,11 @@ type ScheduleEntry = {
   title?: string
   description?: string
   imageKeyword?: string
+  imageKeyword2?: string
   imageUrl?: string | null
+  imageUrl2?: string | null
   imageSource?: { source: string; photographer: string; originalLink: string; externalId?: string }
+  imageSource2?: { source: string; photographer: string; originalLink: string; externalId?: string }
   imagePhotographer?: string | null
   imageSourcePageUrl?: string | null
   imageManualSelected?: boolean
@@ -168,7 +171,9 @@ function parseSchedule(schedule: string | null): ScheduleEntry[] {
       title: typeof item.title === 'string' ? item.title : undefined,
       description: typeof item.description === 'string' ? item.description : undefined,
       imageKeyword: typeof item.imageKeyword === 'string' ? item.imageKeyword : undefined,
+      imageKeyword2: typeof item.imageKeyword2 === 'string' ? item.imageKeyword2 : undefined,
       imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : (item.imageUrl as null) ?? null,
+      imageUrl2: typeof item.imageUrl2 === 'string' ? item.imageUrl2 : (item.imageUrl2 as null) ?? null,
       imageSource:
         item.imageSource && typeof item.imageSource === 'object'
           ? {
@@ -718,6 +723,40 @@ export async function POST(req: Request) {
       })
     }
 
+    const scheduleSecondaryPhotos: ({ photo: PhotoResult; imageKeyword: string } | null)[] = new Array(
+      workingSchedule.length,
+    ).fill(null)
+    for (let n = 0; n < workingSchedule.length; n++) {
+      const sched = workingSchedule[n]
+      const kw2 = typeof sched?.imageKeyword2 === 'string' ? sched.imageKeyword2.trim() : ''
+      if (!kw2) continue
+      const existing2 = sched?.imageUrl2 ? String(sched.imageUrl2).trim() : ''
+      if (existing2) continue
+      const primaryUrl = schedulePhotos[n]?.photo?.url ?? sched?.imageUrl ?? null
+      const query = normalizeToPlaceName(kw2) || kw2
+      const pexelsPhoto = await fetchPexelsPhotoObject(query)
+      const pexelsResult = pexelsToResult(pexelsPhoto)
+      const sameAsPrimary =
+        primaryUrl != null && normAssetUrl(pexelsResult.url) === normAssetUrl(String(primaryUrl))
+      const alreadyUsed = usage.isUsed(pexelsResult)
+      if (isPexelsFallbackUrl(pexelsPhoto.url) || sameAsPrimary || alreadyUsed) continue
+      newFetchCount++
+      const dayNum = typeof sched?.day === 'number' && sched.day > 0 ? sched.day : n + 1
+      const attractionLabel = `${destination}_${dayNum}_slot2`
+      const saved = await savePhotoFromUrl(
+        prisma,
+        pexelsPhoto.url,
+        destination,
+        attractionLabel,
+        'Pexels',
+        pexelsPoolAttribution(pexelsPhoto)
+      )
+      let photo: PhotoResult = saved ? toPoolResult(saved) : pexelsToResult(pexelsPhoto)
+      usage.mark(photo)
+      photo = await sealProductCoverPhoto(prisma, destination, photo, kw2, photo.source)
+      scheduleSecondaryPhotos[n] = { photo, imageKeyword: kw2 }
+    }
+
     console.log(`${LOG_PREFIX} 최종 5장: 재사용 ${cacheHitCount} / 신규 ${newFetchCount}`)
 
     const prevByDay = new Map<number, ScheduleEntry>()
@@ -725,12 +764,16 @@ export async function POST(req: Request) {
     const updatedSchedule: ScheduleEntry[] = workingSchedule.map((item, i) => {
       const slot = schedulePhotos[i]
       const photo = slot?.photo
+      const secondary = scheduleSecondaryPhotos[i]
+      const photo2 = secondary?.photo
       return {
         day: item.day,
         title: item.title,
         description: item.description,
         imageKeyword: slot?.imageKeyword ?? `day_${item.day ?? i + 1}`,
+        imageKeyword2: item.imageKeyword2,
         imageUrl: photo?.url ?? item.imageUrl ?? null,
+        imageUrl2: photo2?.url ?? item.imageUrl2 ?? null,
         imagePhotographer: photo?.photographer ?? item.imagePhotographer ?? null,
         imageSourcePageUrl: photo?.originalLink ?? item.imageSourcePageUrl ?? null,
         imageSource: photo
@@ -741,6 +784,14 @@ export async function POST(req: Request) {
               ...(photo.externalId ? { externalId: photo.externalId } : {}),
             }
           : item.imageSource,
+        imageSource2: photo2
+          ? {
+              source: photo2.source,
+              photographer: photo2.photographer,
+              originalLink: photo2.originalLink,
+              ...(photo2.externalId ? { externalId: photo2.externalId } : {}),
+            }
+          : item.imageSource2,
         imageManualSelected: item.imageManualSelected === true,
         imageSelectionMode: item.imageSelectionMode ?? null,
         imageCandidateOrigin: slotDebug[i]?.candidateOrigin ?? item.imageCandidateOrigin ?? null,
