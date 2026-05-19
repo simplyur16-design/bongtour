@@ -8,9 +8,17 @@ import {
   resolveBrowseCityKeysForFilter,
   resolveBrowseCountryParamToCountryKeySlugs,
 } from '@/lib/browse-country-url-resolve'
-import { masterContinentKeysFromBrowseRegion } from '@/lib/browse-master-geo-continents'
+import {
+  browseTabIdToMegaMenuCardKeys,
+  masterContinentKeysFromBrowseRegion,
+} from '@/lib/browse-master-geo-continents'
 
-export { masterContinentKeysFromBrowseDbContinents, masterContinentKeysFromBrowseRegion } from '@/lib/browse-master-geo-continents'
+export {
+  browseTabIdToMegaMenuCardKeys,
+  localDepartureTagForBrowseRegion,
+  masterContinentKeysFromBrowseDbContinents,
+  masterContinentKeysFromBrowseRegion,
+} from '@/lib/browse-master-geo-continents'
 
 const BROWSE_NONE_COUNTRY_KEY = '__browse_none__'
 const BROWSE_NONE_CITY_KEY = '__browse_none_city__'
@@ -43,12 +51,42 @@ export async function resolveBrowseCardKeyToCountryKeys(cardKey: string | null |
  * browse `region` → MegaMenuGroupCardCountry.countryKey 목록.
  * cardKey 직접 매칭 우선, 레거시 탭 id는 마스터 continentKey로 활성 카드 국가 합집합.
  */
+async function countryKeysFromMegaMenuCardKeys(cardKeys: string[]): Promise<string[]> {
+  const keys = uniqueNonEmpty(cardKeys)
+  if (keys.length === 0) return []
+  const rows = await prisma.megaMenuGroupCardCountry.findMany({
+    where: { cardKey: { in: keys }, card: { isActive: true } },
+    select: { countryKey: true },
+    distinct: ['countryKey'],
+    orderBy: { countryKey: 'asc' },
+  })
+  return rows.map((r) => r.countryKey)
+}
+
+/** SSOT 탭 id → 해당 탭에 묶인 모든 카드의 cityKey */
+export async function resolveBrowseTabIdToCityKeys(regionId: string | null | undefined): Promise<string[]> {
+  const cardKeys = browseTabIdToMegaMenuCardKeys(regionId)
+  if (cardKeys.length === 0) return []
+  const rows = await prisma.megaMenuGroupCardCity.findMany({
+    where: { cardKey: { in: cardKeys }, card: { isActive: true } },
+    select: { cityKey: true },
+    distinct: ['cityKey'],
+    orderBy: { cityKey: 'asc' },
+  })
+  return rows.map((r) => r.cityKey)
+}
+
 export async function resolveBrowseRegionToCountryKeys(region: string | null | undefined): Promise<string[]> {
   const k = (region ?? '').trim()
   if (!k) return []
 
   const direct = await resolveBrowseCardKeyToCountryKeys(k)
   if (direct.length > 0) return uniqueNonEmpty(direct)
+
+  const tabCardKeys = browseTabIdToMegaMenuCardKeys(k)
+  if (tabCardKeys.length > 0) {
+    return countryKeysFromMegaMenuCardKeys(tabCardKeys)
+  }
 
   const masterContinentKeys = masterContinentKeysFromBrowseRegion(k)
   if (masterContinentKeys.length === 0) return []
@@ -165,7 +203,10 @@ export async function buildOverseasBrowseGeoResolution(input: {
   if (ct) {
     let cityKeys = resolveBrowseCityKeysForFilter(ct)
     if (r) {
-      const cardCityKeys = await resolveBrowseCardKeyToCityKeys(r)
+      let cardCityKeys = await resolveBrowseCardKeyToCityKeys(r)
+      if (cardCityKeys.length === 0) {
+        cardCityKeys = await resolveBrowseTabIdToCityKeys(r)
+      }
       if (cardCityKeys.length > 0) {
         const allowed = new Set(cardCityKeys)
         cityKeys = cityKeys.filter((k) => allowed.has(k))

@@ -36,6 +36,7 @@ import {
   resolveJapanSubregionDbCityKeywords,
 } from '@/lib/browse-country-url-resolve'
 import { buildOverseasBrowseGeoResolution, prismaWhereProductCountryTagKeysIn } from '@/lib/browse-master-geo'
+import { localDepartureTagForBrowseRegion } from '@/lib/browse-master-geo-continents'
 import { resolveOverseasDisplayBucketForBrowse } from '@/lib/overseas-display-buckets'
 import { filterPoolByStoredTravelScope } from '@/lib/travel-scope-pool-filter'
 import { parseListingKind } from '@/lib/product-listing-kind'
@@ -60,15 +61,6 @@ class BrowseRouteClientError extends Error {
     super(guardContext)
     this.name = 'BrowseRouteClientError'
   }
-}
-
-/** 메가메뉴 탭 id → `Product.localDepartureTag` 배열 원소 (Prisma `has`) */
-function localDepartureTagForBrowseRegion(region: string | null | undefined): 'busan' | 'cheongju' | 'daegu' | null {
-  const t = (region ?? '').trim().toLowerCase()
-  if (t === 'busan_dep') return 'busan'
-  if (t === 'cheongju_dep') return 'cheongju'
-  if (t === 'daegu_dep') return 'daegu'
-  return null
 }
 
 function displayNameFromImageUrl(url: string | null | undefined): string | null {

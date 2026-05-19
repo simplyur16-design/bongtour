@@ -5,13 +5,17 @@
 
 export type MegaMenuLeafKind = 'country' | 'city'
 
+/** `LC()` / `city()` 로만 생성 — raw 리터럴 금지(내부 brand 필수) */
+const MEGA_MENU_LEAF_DEF_BRAND = '__megaMenuLeafDef' as const
+
 export type MegaMenuLeafDef = {
+  readonly __megaMenuLeafDefBrand: typeof MEGA_MENU_LEAF_DEF_BRAND
   label: string
   terms: string[]
   /** browse URL `country` — 기본은 `label`과 동일 */
   browseCountryLabel?: string
-  /** `country` = 국가 단위 링크(city 쿼리 없음). 기본 `city` */
-  kind?: MegaMenuLeafKind
+  /** `country` = 국가 단위 링크(city 쿼리 없음) */
+  kind: MegaMenuLeafKind
 }
 
 export type MegaMenuCountryGroupDef = {
@@ -28,15 +32,30 @@ export type MegaMenuTabDef = {
   localDeparture?: 'busan' | 'cheongju' | 'daegu'
 }
 
-function L(label: string, terms: string[], browseCountryLabel?: string): MegaMenuLeafDef {
+function makeMegaMenuLeaf(
+  kind: MegaMenuLeafKind,
+  label: string,
+  terms: string[],
+  browseCountryLabel?: string,
+): MegaMenuLeafDef {
   const t = [...new Set(terms.map((x) => x.trim()).filter(Boolean))]
-  return { label, terms: t.length ? t : [label], browseCountryLabel: browseCountryLabel ?? label, kind: 'city' }
+  return {
+    __megaMenuLeafDefBrand: MEGA_MENU_LEAF_DEF_BRAND,
+    label,
+    terms: t.length ? t : [label],
+    browseCountryLabel: browseCountryLabel ?? label,
+    kind,
+  }
 }
 
-/** 국가 단위 leaf — `buildProductsHrefCountryOnly` (city 쿼리 없음) */
-function LC(label: string, terms: string[], browseCountryLabel?: string): MegaMenuLeafDef {
-  const t = [...new Set(terms.map((x) => x.trim()).filter(Boolean))]
-  return { label, terms: t.length ? t : [label], browseCountryLabel: browseCountryLabel ?? label, kind: 'country' }
+/** 도시 leaf — browse URL에 `city` 포함 */
+export function city(label: string, terms: string[], browseCountryLabel?: string): MegaMenuLeafDef {
+  return makeMegaMenuLeaf('city', label, terms, browseCountryLabel)
+}
+
+/** 국가 leaf — `buildProductsHrefCountryOnly` (city 쿼리 없음) */
+export function LC(label: string, terms: string[], browseCountryLabel?: string): MegaMenuLeafDef {
+  return makeMegaMenuLeaf('country', label, terms, browseCountryLabel)
 }
 
 function G(countryLabel: string, cities: MegaMenuLeafDef[], nonLinkHeader?: boolean): MegaMenuCountryGroupDef {
@@ -89,27 +108,27 @@ const EU: MegaMenuCountryGroupDef[] = [
   G(
     '그리스',
     [
-      L('아테네', ['아테네', 'athens', '그리스']),
-      L('산토리니', ['산토리니', 'santorini', '그리스']),
-      L('미코노스', ['미코노스', 'mykonos', '그리스']),
+      city('아테네', ['아테네', 'athens', '그리스']),
+      city('산토리니', ['산토리니', 'santorini', '그리스']),
+      city('미코노스', ['미코노스', 'mykonos', '그리스']),
     ],
     true,
   ),
   G(
     '튀르키예',
-    [L('이스탄불', ['이스탄불', 'istanbul', '튀르키예']), L('카파도키아', ['카파도키아', 'cappadocia', '튀르키예'])],
+    [city('이스탄불', ['이스탄불', 'istanbul', '튀르키예']), city('카파도키아', ['카파도키아', 'cappadocia', '튀르키예'])],
     true,
   ),
   G(
     '이집트',
-    [L('카이로', ['카이로', 'cairo', '이집트']), L('룩소르', ['룩소르', 'luxor', '이집트'])],
+    [city('카이로', ['카이로', 'cairo', '이집트']), city('룩소르', ['룩소르', 'luxor', '이집트'])],
     true,
   ),
   G(
     '중동',
     [
-      L('두바이', ['두바이', 'dubai', 'DXB']),
-      L('아부다비', ['아부다비', 'abu dhabi']),
+      city('두바이', ['두바이', 'dubai', 'DXB']),
+      city('아부다비', ['아부다비', 'abu dhabi']),
       LC('오만', ['오만', 'oman', '무스카트']),
       LC('요르단', ['요르단', 'jordan', '페트라']),
       LC('이스라엘', ['이스라엘', 'israel', '텔아비브', '예루살렘']),
@@ -131,169 +150,169 @@ const EU: MegaMenuCountryGroupDef[] = [
 
 const SEA: MegaMenuCountryGroupDef[] = [
   G('베트남', [
-    L('다낭', ['다낭', 'danang', '베트남']),
-    L('나트랑', ['나트랑', 'nha trang', '베트남']),
-    L('호치민', ['호치민', 'hcm', 'saigon', '베트남']),
-    L('하노이', ['하노이', 'hanoi', '베트남']),
-    L('푸꾸옥', ['푸꾸옥', 'phu quoc', '베트남']),
-    L('달랏', ['달랏', 'dalat', '베트남']),
+    city('다낭', ['다낭', 'danang', '베트남']),
+    city('나트랑', ['나트랑', 'nha trang', '베트남']),
+    city('호치민', ['호치민', 'hcm', 'saigon', '베트남']),
+    city('하노이', ['하노이', 'hanoi', '베트남']),
+    city('푸꾸옥', ['푸꾸옥', 'phu quoc', '베트남']),
+    city('달랏', ['달랏', 'dalat', '베트남']),
   ]),
   G('태국', [
-    L('방콕', ['방콕', 'bangkok', '태국', 'BKK']),
-    L('푸켓', ['푸켓', 'phuket', '태국']),
-    L('치앙마이', ['치앙마이', 'chiang mai', '태국']),
-    L('파타야', ['파타야', 'pattaya', '태국']),
-    L('끄라비', ['끄라비', 'krabi', '태국']),
+    city('방콕', ['방콕', 'bangkok', '태국', 'BKK']),
+    city('푸켓', ['푸켓', 'phuket', '태국']),
+    city('치앙마이', ['치앙마이', 'chiang mai', '태국']),
+    city('파타야', ['파타야', 'pattaya', '태국']),
+    city('끄라비', ['끄라비', 'krabi', '태국']),
   ]),
   G('싱가포르', [LC('싱가포르', ['싱가포르', 'singapore', 'SIN'])]),
   G('인도네시아', [
-    L('발리', ['발리', 'bali', '인도네시아', 'DPS']),
-    L('마나도', ['마나도', 'manado', '인도네시아']),
-    L('자카르타', ['자카르타', 'jakarta', '인도네시아']),
-    L('족자카르타', ['족자카르타', 'yogyakarta', '인도네시아']),
+    city('발리', ['발리', 'bali', '인도네시아', 'DPS']),
+    city('마나도', ['마나도', 'manado', '인도네시아']),
+    city('자카르타', ['자카르타', 'jakarta', '인도네시아']),
+    city('족자카르타', ['족자카르타', 'yogyakarta', '인도네시아']),
   ]),
   G('필리핀', [
-    L('세부', ['세부', 'cebu', '필리핀', 'CEB']),
-    L('보라카이', ['보라카이', 'boracay', '필리핀']),
-    L('보홀', ['보홀', 'bohol', '필리핀']),
-    L('클락', ['클락', 'clark', '필리핀']),
-    L('마닐라', ['마닐라', 'manila', '필리핀', 'MNL']),
+    city('세부', ['세부', 'cebu', '필리핀', 'CEB']),
+    city('보라카이', ['보라카이', 'boracay', '필리핀']),
+    city('보홀', ['보홀', 'bohol', '필리핀']),
+    city('클락', ['클락', 'clark', '필리핀']),
+    city('마닐라', ['마닐라', 'manila', '필리핀', 'MNL']),
   ]),
   G('대만', [
-    L('타이베이', ['타이베이', 'taipei', '대만']),
-    L('가오슝', ['가오슝', 'kaohsiung', '대만']),
-    L('타이중', ['타이중', 'taichung', '대만']),
-    L('화롄', ['화롄', 'hualien', '대만', '타로코']),
+    city('타이베이', ['타이베이', 'taipei', '대만']),
+    city('가오슝', ['가오슝', 'kaohsiung', '대만']),
+    city('타이중', ['타이중', 'taichung', '대만']),
+    city('화롄', ['화롄', 'hualien', '대만', '타로코']),
   ]),
   G('말레이시아', [
-    L('코타키나발루', ['코타키나발루', 'kota kinabalu', '말레이시아']),
-    L('쿠알라룸푸르', ['쿠알라룸푸르', 'kuala lumpur', '말레이시아', 'KL']),
-    L('랑카위', ['랑카위', 'langkawi', '말레이시아']),
-    L('페낭', ['페낭', 'penang', '말레이시아']),
+    city('코타키나발루', ['코타키나발루', 'kota kinabalu', '말레이시아']),
+    city('쿠알라룸푸르', ['쿠알라룸푸르', 'kuala lumpur', '말레이시아', 'KL']),
+    city('랑카위', ['랑카위', 'langkawi', '말레이시아']),
+    city('페낭', ['페낭', 'penang', '말레이시아']),
   ]),
   G('캄보디아', [
-    L('씨엠립', ['씨엠립', 'siem reap', '앙코르', '캄보디아']),
-    L('프놈펜', ['프놈펜', 'phnom penh', '캄보디아']),
+    city('씨엠립', ['씨엠립', 'siem reap', '앙코르', '캄보디아']),
+    city('프놈펜', ['프놈펜', 'phnom penh', '캄보디아']),
   ]),
   G('라오스', [
-    L('루앙프라방', ['루앙프라방', 'luang prabang', '라오스']),
-    L('비엔티안', ['비엔티안', 'vientiane', '라오스']),
+    city('루앙프라방', ['루앙프라방', 'luang prabang', '라오스']),
+    city('비엔티안', ['비엔티안', 'vientiane', '라오스']),
   ]),
-  G('미얀마', [L('양곤', ['양곤', 'yangon', '미얀마']), L('바간', ['바간', 'bagan', '미얀마'])]),
+  G('미얀마', [city('양곤', ['양곤', 'yangon', '미얀마']), city('바간', ['바간', 'bagan', '미얀마'])]),
   G('인도', [
-    L('델리', ['델리', 'delhi', '인도']),
-    L('자이푸르', ['자이푸르', 'jaipur', '인도']),
-    L('아그라', ['아그라', 'agra', '인도', '타지마할']),
-    L('바라나시', ['바라나시', 'varanasi', '인도']),
+    city('델리', ['델리', 'delhi', '인도']),
+    city('자이푸르', ['자이푸르', 'jaipur', '인도']),
+    city('아그라', ['아그라', 'agra', '인도', '타지마할']),
+    city('바라나시', ['바라나시', 'varanasi', '인도']),
   ]),
   G('스리랑카', [
-    L('콜롬보', ['콜롬보', 'colombo', '스리랑카']),
-    L('캔디', ['캔디', 'kandy', '스리랑카']),
-    L('시기리야', ['시기리야', 'sigiriya', '스리랑카']),
+    city('콜롬보', ['콜롬보', 'colombo', '스리랑카']),
+    city('캔디', ['캔디', 'kandy', '스리랑카']),
+    city('시기리야', ['시기리야', 'sigiriya', '스리랑카']),
   ]),
-  G('네팔', [L('카트만두', ['카트만두', 'kathmandu', '네팔']), L('포카라', ['포카라', 'pokhara', '네팔'])]),
+  G('네팔', [city('카트만두', ['카트만두', 'kathmandu', '네팔']), city('포카라', ['포카라', 'pokhara', '네팔'])]),
   G('몰디브', [LC('몰디브', ['몰디브', 'maldives', 'male'])]),
 ]
 
 const JP: MegaMenuCountryGroupDef[] = [
   G('홋카이도', [
-    L('삿포로', ['삿포로', 'sapporo', '일본', '홋카이도']),
-    L('오타루', ['오타루', 'otaru', '일본', '홋카이도']),
-    L('후라노', ['후라노', 'furano', '일본', '홋카이도']),
-    L('하코다테', ['하코다테', 'hakodate', '일본', '홋카이도']),
-    L('니세코', ['니세코', 'niseko', '일본', '홋카이도']),
-    L('아사히카와', ['아사히카와', 'asahikawa', '일본', '홋카이도']),
-    L('노보리베츠', ['노보리베츠', 'noboribetsu', '일본', '홋카이도']),
+    city('삿포로', ['삿포로', 'sapporo', '일본', '홋카이도']),
+    city('오타루', ['오타루', 'otaru', '일본', '홋카이도']),
+    city('후라노', ['후라노', 'furano', '일본', '홋카이도']),
+    city('하코다테', ['하코다테', 'hakodate', '일본', '홋카이도']),
+    city('니세코', ['니세코', 'niseko', '일본', '홋카이도']),
+    city('아사히카와', ['아사히카와', 'asahikawa', '일본', '홋카이도']),
+    city('노보리베츠', ['노보리베츠', 'noboribetsu', '일본', '홋카이도']),
   ]),
   G('도호쿠', [
-    L('센다이', ['센다이', 'sendai', '일본', '도호쿠']),
-    L('아오모리', ['아오모리', 'aomori', '일본', '도호쿠']),
-    L('아키타', ['아키타', 'akita', '일본', '도호쿠']),
+    city('센다이', ['센다이', 'sendai', '일본', '도호쿠']),
+    city('아오모리', ['아오모리', 'aomori', '일본', '도호쿠']),
+    city('아키타', ['아키타', 'akita', '일본', '도호쿠']),
   ]),
   G('간토', [
-    L('도쿄', ['도쿄', 'tokyo', '일본', '간토']),
-    L('요코하마', ['요코하마', 'yokohama', '일본', '간토']),
-    L('닛코', ['닛코', 'nikko', '일본', '간토']),
-    L('하코네', ['하코네', 'hakone', '일본', '간토']),
-    L('가마쿠라', ['가마쿠라', 'kamakura', '일본', '간토']),
+    city('도쿄', ['도쿄', 'tokyo', '일본', '간토']),
+    city('요코하마', ['요코하마', 'yokohama', '일본', '간토']),
+    city('닛코', ['닛코', 'nikko', '일본', '간토']),
+    city('하코네', ['하코네', 'hakone', '일본', '간토']),
+    city('가마쿠라', ['가마쿠라', 'kamakura', '일본', '간토']),
   ]),
   G('추부', [
-    L('나고야', ['나고야', 'nagoya', '일본', '추부']),
-    L('가나자와', ['가나자와', 'kanazawa', '일본', '추부']),
-    L('다카야마', ['다카야마', 'takayama', '일본', '추부']),
-    L('시라카와고', ['시라카와고', 'shirakawago', '일본', '추부']),
-    L('마츠모토', ['마츠모토', 'matsumoto', '일본', '추부']),
+    city('나고야', ['나고야', 'nagoya', '일본', '추부']),
+    city('가나자와', ['가나자와', 'kanazawa', '일본', '추부']),
+    city('다카야마', ['다카야마', 'takayama', '일본', '추부']),
+    city('시라카와고', ['시라카와고', 'shirakawago', '일본', '추부']),
+    city('마츠모토', ['마츠모토', 'matsumoto', '일본', '추부']),
   ]),
   G('간사이', [
-    L('오사카', ['오사카', 'osaka', '일본', '간사이']),
-    L('교토', ['교토', 'kyoto', '일본', '간사이']),
-    L('고베', ['고베', 'kobe', '일본', '간사이']),
-    L('나라', ['나라', 'nara', '일본', '간사이']),
-    L('와카야마', ['와카야마', 'wakayama', '일본', '간사이']),
+    city('오사카', ['오사카', 'osaka', '일본', '간사이']),
+    city('교토', ['교토', 'kyoto', '일본', '간사이']),
+    city('고베', ['고베', 'kobe', '일본', '간사이']),
+    city('나라', ['나라', 'nara', '일본', '간사이']),
+    city('와카야마', ['와카야마', 'wakayama', '일본', '간사이']),
   ]),
   G('주고쿠-시코쿠', [
-    L('히로시마', ['히로시마', 'hiroshima', '일본']),
-    L('요나고', ['요나고', 'yonago', '일본']),
-    L('돗토리', ['돗토리', 'tottori', '일본']),
-    L('마츠야마', ['마츠야마', 'matsuyama', '일본', '시코쿠']),
-    L('다카마쓰', ['다카마쓰', 'takamatsu', '일본', '시코쿠']),
-    L('시마네', ['시마네', 'shimane', '일본', '주고쿠']),
+    city('히로시마', ['히로시마', 'hiroshima', '일본']),
+    city('요나고', ['요나고', 'yonago', '일본']),
+    city('돗토리', ['돗토리', 'tottori', '일본']),
+    city('마츠야마', ['마츠야마', 'matsuyama', '일본', '시코쿠']),
+    city('다카마쓰', ['다카마쓰', 'takamatsu', '일본', '시코쿠']),
+    city('시마네', ['시마네', 'shimane', '일본', '주고쿠']),
   ]),
   G('규슈', [
-    L('후쿠오카', ['후쿠오카', 'fukuoka', '일본', '규슈']),
-    L('나가사키', ['나가사키', 'nagasaki', '일본', '규슈']),
-    L('벳부', ['벳부', 'beppu', '일본', '규슈']),
-    L('유후인', ['유후인', 'yufuin', '일본', '규슈']),
-    L('가고시마', ['가고시마', 'kagoshima', '일본', '규슈']),
-    L('구마모토', ['구마모토', 'kumamoto', '일본', '규슈']),
-    L('미야자키', ['미야자키', 'miyazaki', '일본', '규슈']),
+    city('후쿠오카', ['후쿠오카', 'fukuoka', '일본', '규슈']),
+    city('나가사키', ['나가사키', 'nagasaki', '일본', '규슈']),
+    city('벳부', ['벳부', 'beppu', '일본', '규슈']),
+    city('유후인', ['유후인', 'yufuin', '일본', '규슈']),
+    city('가고시마', ['가고시마', 'kagoshima', '일본', '규슈']),
+    city('구마모토', ['구마모토', 'kumamoto', '일본', '규슈']),
+    city('미야자키', ['미야자키', 'miyazaki', '일본', '규슈']),
   ]),
   G('오키나와', [
-    L('오키나와', ['오키나와', 'okinawa', '일본']),
-    L('나하', ['나하', 'naha', '일본', '오키나와']),
-    L('미야코지마', ['미야코지마', 'miyakojima', '일본']),
-    L('이시가키', ['이시가키', 'ishigaki', '일본']),
+    city('오키나와', ['오키나와', 'okinawa', '일본']),
+    city('나하', ['나하', 'naha', '일본', '오키나와']),
+    city('미야코지마', ['미야코지마', 'miyakojima', '일본']),
+    city('이시가키', ['이시가키', 'ishigaki', '일본']),
   ]),
 ]
 
 const CN: MegaMenuCountryGroupDef[] = [
   G('산동', [
-    L('청도', ['청도', 'qingdao', '중국']),
-    L('위해', ['위해', 'weihai', '중국']),
-    L('연태', ['연태', 'yantai', '중국']),
+    city('청도', ['청도', 'qingdao', '중국']),
+    city('위해', ['위해', 'weihai', '중국']),
+    city('연태', ['연태', 'yantai', '중국']),
   ]),
   G('화동', [
-    L('상해', ['상해', 'shanghai', '중국']),
-    L('소주', ['소주', 'suzhou', '중국', '苏州']),
-    L('항주', ['항주', 'hangzhou', '중국', '杭州']),
-    L('남경', ['남경', 'nanjing', '중국', '南京']),
+    city('상해', ['상해', 'shanghai', '중국']),
+    city('소주', ['소주', 'suzhou', '중국', '苏州']),
+    city('항주', ['항주', 'hangzhou', '중국', '杭州']),
+    city('남경', ['남경', 'nanjing', '중국', '南京']),
   ]),
   G('화북', [
-    L('북경', ['북경', 'beijing', '중국']),
-    L('천진', ['천진', 'tianjin', '중국']),
-    L('대동', ['대동', 'datong', '중국']),
+    city('북경', ['북경', 'beijing', '중국']),
+    city('천진', ['천진', 'tianjin', '중국']),
+    city('대동', ['대동', 'datong', '중국']),
   ]),
   G('동북', [
-    L('대련', ['대련', 'dalian', '중국']),
-    L('하얼빈', ['하얼빈', 'harbin', '중국']),
-    L('연길', ['연길', 'yanji', '중국']),
-    L('심양', ['심양', 'shenyang', '중국']),
-    L('장백산', ['장백산', 'changbai', '백두산', '중국']),
+    city('대련', ['대련', 'dalian', '중국']),
+    city('하얼빈', ['하얼빈', 'harbin', '중국']),
+    city('연길', ['연길', 'yanji', '중국']),
+    city('심양', ['심양', 'shenyang', '중국']),
+    city('장백산', ['장백산', 'changbai', '백두산', '중국']),
   ]),
   G('화남', [
-    L('광주', ['광주', 'guangzhou', '广州', '중국']),
-    L('구이린', ['구이린', 'guilin', '계림', '중국']),
-    L('장가계', ['장가계', 'zhangjiajie', '중국']),
-    L('성도', ['성도', 'chengdu', '중국', '사천']),
-    L('중경', ['중경', 'chongqing', '충칭', '중국']),
-    L('곤명', ['곤명', 'kunming', '중국']),
-    L('여강', ['여강', 'lijiang', '리장', '중국']),
+    city('광주', ['광주', 'guangzhou', '广州', '중국']),
+    city('구이린', ['구이린', 'guilin', '계림', '중국']),
+    city('장가계', ['장가계', 'zhangjiajie', '중국']),
+    city('성도', ['성도', 'chengdu', '중국', '사천']),
+    city('중경', ['중경', 'chongqing', '충칭', '중국']),
+    city('곤명', ['곤명', 'kunming', '중국']),
+    city('여강', ['여강', 'lijiang', '리장', '중국']),
   ]),
   G('홍콩', [LC('홍콩', ['홍콩', 'hong kong', 'HKG'])]),
   G('마카오', [LC('마카오', ['마카오', 'macau', 'macao'])]),
   G('몽골', [
-    L('울란바타르', ['울란바타르', 'ulaanbaatar', '울란바토르', '몽골']),
-    L('테를지', ['테를지', 'terelj', '몽골']),
+    city('울란바타르', ['울란바타르', 'ulaanbaatar', '울란바토르', '몽골']),
+    city('테를지', ['테를지', 'terelj', '몽골']),
   ]),
 ]
 
@@ -301,50 +320,50 @@ const OC: MegaMenuCountryGroupDef[] = [
   G('괌', [LC('괌', ['괌', 'guam'])]),
   G('사이판', [LC('사이판', ['사이판', 'saipan'])]),
   G('호주', [
-    L('시드니', ['시드니', 'sydney', '호주', 'SYD']),
-    L('멜버른', ['멜버른', 'melbourne', '호주']),
-    L('브리즈번', ['브리즈번', 'brisbane', '호주']),
-    L('골드코스트', ['골드코스트', 'gold coast', '호주']),
-    L('케언즈', ['케언즈', 'cairns', '케인즈', '호주']),
-    L('울루루', ['울루루', 'uluru', '호주']),
+    city('시드니', ['시드니', 'sydney', '호주', 'SYD']),
+    city('멜버른', ['멜버른', 'melbourne', '호주']),
+    city('브리즈번', ['브리즈번', 'brisbane', '호주']),
+    city('골드코스트', ['골드코스트', 'gold coast', '호주']),
+    city('케언즈', ['케언즈', 'cairns', '케인즈', '호주']),
+    city('울루루', ['울루루', 'uluru', '호주']),
   ]),
   G('뉴질랜드', [
-    L('오클랜드', ['오클랜드', 'auckland', '뉴질랜드']),
-    L('퀸스타운', ['퀸스타운', 'queenstown', '뉴질랜드']),
-    L('로토루아', ['로토루아', 'rotorua', '뉴질랜드']),
-    L('크라이스트처치', ['크라이스트처치', 'christchurch', '뉴질랜드']),
+    city('오클랜드', ['오클랜드', 'auckland', '뉴질랜드']),
+    city('퀸스타운', ['퀸스타운', 'queenstown', '뉴질랜드']),
+    city('로토루아', ['로토루아', 'rotorua', '뉴질랜드']),
+    city('크라이스트처치', ['크라이스트처치', 'christchurch', '뉴질랜드']),
   ]),
 ]
 
 const AM: MegaMenuCountryGroupDef[] = [
   G('하와이', [
-    L('호놀룰루', ['호놀룰루', 'honolulu', '하와이', '오아후']),
-    L('마우이', ['마우이', 'maui', '하와이']),
-    L('빅아일랜드', ['빅아일랜드', 'big island', 'hilo', 'kona', '하와이']),
-    L('카우아이', ['카우아이', 'kauai', '하와이']),
+    city('호놀룰루', ['호놀룰루', 'honolulu', '하와이', '오아후']),
+    city('마우이', ['마우이', 'maui', '하와이']),
+    city('빅아일랜드', ['빅아일랜드', 'big island', 'hilo', 'kona', '하와이']),
+    city('카우아이', ['카우아이', 'kauai', '하와이']),
   ]),
   G('미서부', [
-    L('로스앤젤레스', ['로스앤젤레스', 'los angeles', 'LA', '미국']),
-    L('라스베가스', ['라스베가스', 'las vegas', 'vegas', '미국']),
-    L('샌프란시스코', ['샌프란시스코', 'san francisco', 'SFO', '미국']),
+    city('로스앤젤레스', ['로스앤젤레스', 'los angeles', 'LA', '미국']),
+    city('라스베가스', ['라스베가스', 'las vegas', 'vegas', '미국']),
+    city('샌프란시스코', ['샌프란시스코', 'san francisco', 'SFO', '미국']),
   ]),
   G('미동부', [
-    L('뉴욕', ['뉴욕', 'new york', 'NYC', '미국']),
-    L('워싱턴', ['워싱턴', 'washington', 'dc', '미국']),
+    city('뉴욕', ['뉴욕', 'new york', 'NYC', '미국']),
+    city('워싱턴', ['워싱턴', 'washington', 'dc', '미국']),
   ]),
   G('캐나다', [
-    L('밴쿠버', ['밴쿠버', 'vancouver', '캐나다', 'YVR']),
-    L('토론토', ['토론토', 'toronto', '캐나다']),
-    L('캘거리', ['캘거리', 'calgary', '캐나다']),
-    L('퀘벡', ['퀘벡', 'quebec', 'montreal', '캐나다']),
-    L('밴프', ['밴프', 'banff', '캐나다', '로키']),
-    L('나이아가라', ['나이아가라', 'niagara', '캐나다']),
-    L('옐로우나이프', ['옐로우나이프', 'yellowknife', '캐나다']),
+    city('밴쿠버', ['밴쿠버', 'vancouver', '캐나다', 'YVR']),
+    city('토론토', ['토론토', 'toronto', '캐나다']),
+    city('캘거리', ['캘거리', 'calgary', '캐나다']),
+    city('퀘벡', ['퀘벡', 'quebec', 'montreal', '캐나다']),
+    city('밴프', ['밴프', 'banff', '캐나다', '로키']),
+    city('나이아가라', ['나이아가라', 'niagara', '캐나다']),
+    city('옐로우나이프', ['옐로우나이프', 'yellowknife', '캐나다']),
   ]),
   G(
     '중남미·멕시코',
     [
-      L('칸쿤', ['칸쿤', 'cancun', '멕시코', 'mexico']),
+      city('칸쿤', ['칸쿤', 'cancun', '멕시코', 'mexico']),
       LC('멕시코', ['멕시코', 'mexico city', '멕시코시티']),
       LC('브라질', ['브라질', 'brazil', '리우', '상파울루']),
       LC('칠레', ['칠레', 'chile', '산티아고']),
@@ -354,7 +373,7 @@ const AM: MegaMenuCountryGroupDef[] = [
     true,
   ),
   G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지', '미국'])]),
-  G('스포츠 테마 투어', [L('경기 직관 여행', ['경기 직관', '스포츠 테마', '직관 여행', '미국', '일본'])]),
+  G('스포츠 테마 투어', [city('경기 직관 여행', ['경기 직관', '스포츠 테마', '직관 여행', '미국', '일본'])]),
 ]
 
 /**
