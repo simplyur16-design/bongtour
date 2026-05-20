@@ -232,24 +232,33 @@ function badgeTone(kind: 'required' | 'warning' | 'info'): string {
 }
 
 /**
- * `Product.schedule[].imageKeyword` — Pexels 검색용 영문 관광지·랜드마크 고유명 1개(SSOT).
+ * `Product.schedule[].imageKeyword` / `imageKeyword2` — Pexels 검색용 영문 고유명(SSOT).
  * 수동 입력은 파싱 자동값을 덮어쓴다. confirm 시 `Product.schedule`에 반영된다.
  */
 function applyManualPexelsKeywordsToParsedSchedule(
   parsed: RegisterParsed,
-  overrides: Record<number, string>
+  overrides: Record<number, string>,
+  overrides2: Record<number, string> = {}
 ): RegisterParsed {
   const sched = parsed.schedule
   if (!sched?.length) return parsed
   const next = sched.map((row) => {
     const day = Number(row.day)
     if (!Number.isFinite(day) || day < 1) return row
+    let out = row
     const manual = overrides[day]
     if (manual != null && manual.trim() !== '') {
       const r = tryPersistScheduleImageKeyword(manual.trim())
-      return { ...row, imageKeyword: r.ok ? r.value : '' }
+      out = { ...out, imageKeyword: r.ok ? r.value : '' }
     }
-    return row
+    const manual2 = overrides2[day]
+    if (manual2 != null && manual2.trim() !== '') {
+      const r2 = tryPersistScheduleImageKeyword(manual2.trim())
+      out = { ...out, imageKeyword2: r2.ok ? r2.value : null }
+    } else if (manual2 != null && manual2.trim() === '' && overrides2[day] !== undefined) {
+      out = { ...out, imageKeyword2: null }
+    }
+    return out
   })
   return { ...parsed, schedule: next }
 }
@@ -278,11 +287,13 @@ function buildRegisterPexelsUiRows(
     return validFromParsed.map((row) => {
       const day = Number(row.day)
       const kw = tryPersistScheduleImageKeyword(String(row.imageKeyword ?? '').trim())
+      const kw2 = tryPersistScheduleImageKeyword(String(row.imageKeyword2 ?? '').trim())
       return {
         day,
         title: String(row.title ?? ''),
         description: String(row.description ?? ''),
         imageKeyword: kw.ok ? kw.value : '',
+        imageKeyword2: kw2.ok ? kw2.value : '',
       }
     })
   }
@@ -306,6 +317,7 @@ function buildRegisterPexelsUiRows(
       title: (raw.city ?? `Day ${day}`).trim() || `Day ${day}`,
       description: (raw.summaryTextRaw ?? '').slice(0, 400),
       imageKeyword: autoKw.ok ? autoKw.value : '',
+      imageKeyword2: '',
     }
   })
 }
@@ -314,7 +326,8 @@ function buildRegisterPexelsUiRows(
 function mergeRegisterParsedScheduleWithManualPexels(
   parsed: RegisterParsed,
   preview: AdminRegisterPreviewPayload,
-  manualByDay: Record<number, string>
+  manualByDay: Record<number, string>,
+  manualByDay2: Record<number, string> = {}
 ): RegisterParsed {
   const uiRows = buildRegisterPexelsUiRows(parsed, preview)
   const validSchedule = (parsed.schedule ?? []).filter((row) => {
@@ -322,26 +335,34 @@ function mergeRegisterParsedScheduleWithManualPexels(
     return Number.isFinite(day) && day >= 1
   })
   if (validSchedule.length > 0) {
-    const withManual = applyManualPexelsKeywordsToParsedSchedule(parsed, manualByDay)
+    const withManual = applyManualPexelsKeywordsToParsedSchedule(parsed, manualByDay, manualByDay2)
     return {
       ...withManual,
       schedule: finalizeRegisterScheduleImageKeywords(withManual.schedule ?? []),
     }
   }
   if (uiRows.length === 0) {
-    const withManual = applyManualPexelsKeywordsToParsedSchedule(parsed, manualByDay)
+    const withManual = applyManualPexelsKeywordsToParsedSchedule(parsed, manualByDay, manualByDay2)
     return {
       ...withManual,
       schedule: finalizeRegisterScheduleImageKeywords(withManual.schedule ?? []),
     }
   }
   const withManual: RegisterScheduleDay[] = uiRows.map((row) => {
+    let next: RegisterScheduleDay = { ...row }
     const manual = manualByDay[row.day]?.trim()
     if (manual) {
       const r = tryPersistScheduleImageKeyword(manual)
-      return { ...row, imageKeyword: r.ok ? r.value : '' }
+      next = { ...next, imageKeyword: r.ok ? r.value : '' }
     }
-    return row
+    const manual2 = manualByDay2[row.day]
+    if (manual2 != null && manual2.trim() !== '') {
+      const r2 = tryPersistScheduleImageKeyword(manual2.trim())
+      next = { ...next, imageKeyword2: r2.ok ? r2.value : null }
+    } else if (manual2 !== undefined && manual2.trim() === '') {
+      next = { ...next, imageKeyword2: null }
+    }
+    return next
   })
   return { ...parsed, schedule: finalizeRegisterScheduleImageKeywords(withManual) }
 }
@@ -500,8 +521,9 @@ export default function AdminRegisterPage() {
     () => getRegisterPastePlaceholders(selectedBrandKey, travelScope),
     [selectedBrandKey, travelScope]
   )
-  /** 일차별 대표관광지 수동 입력 — confirm 시 `schedule[].imageKeyword` (비우면 자동 추출값 유지) */
+  /** 일차별 Pexels 키워드 — confirm 시 `schedule[].imageKeyword` / `imageKeyword2` */
   const [manualPexelsKeywordsByDay, setManualPexelsKeywordsByDay] = useState<Record<number, string>>({})
+  const [manualPexelsKeywords2ByDay, setManualPexelsKeywords2ByDay] = useState<Record<number, string>>({})
   const [registerPexelsPhotos, setRegisterPexelsPhotos] = useState<RegisterPexelsSearchPhoto[]>([])
   const [registerPexelsLoading, setRegisterPexelsLoading] = useState(false)
   const [registerPexelsError, setRegisterPexelsError] = useState<string | null>(null)
@@ -863,7 +885,8 @@ export default function AdminRegisterPage() {
         mergeRegisterParsedScheduleWithManualPexels(
           parsedForConfirm as RegisterParsed,
           preview,
-          manualPexelsKeywordsByDay
+          manualPexelsKeywordsByDay,
+          manualPexelsKeywords2ByDay
         ),
         correctionOverlay
       )
@@ -1931,7 +1954,9 @@ export default function AdminRegisterPage() {
               <div className="rounded border border-indigo-200 bg-indigo-50/50 p-3 text-xs">
                 <p className="text-sm font-semibold text-indigo-950">대표관광지 저장</p>
                 <p className="mt-0.5 text-[10px] font-medium text-indigo-900/90">
-                  Pexels·Gemini 공통 기준 · 저장 SSOT: <code className="rounded bg-white/80 px-1">Product.schedule[].imageKeyword</code>
+                  Pexels·Gemini 공통 기준 · 저장 SSOT:{' '}
+                  <code className="rounded bg-white/80 px-1">Product.schedule[].imageKeyword</code> ·{' '}
+                  <code className="rounded bg-white/80 px-1">imageKeyword2</code> (일차당 2장)
                 </p>
                 <ul className="mt-2 list-inside list-disc space-y-0.5 text-[11px] text-slate-600">
                   <li>
@@ -1991,14 +2016,22 @@ export default function AdminRegisterPage() {
                     {registerPexelsUiRows.map((row) => {
                       const day = row.day
                       const autoKw = String(row.imageKeyword ?? '').trim()
+                      const autoKw2 = String(row.imageKeyword2 ?? '').trim()
                       const savedRowKw = autoKw
                       const overrideVal =
                         manualPexelsKeywordsByDay[day] !== undefined
                           ? manualPexelsKeywordsByDay[day]
                           : savedRowKw
+                      const overrideVal2 =
+                        manualPexelsKeywords2ByDay[day] !== undefined
+                          ? manualPexelsKeywords2ByDay[day]
+                          : autoKw2
                       const effectiveRaw = overrideVal.trim() !== '' ? overrideVal.trim() : autoKw
+                      const effectiveRaw2 = overrideVal2.trim() !== '' ? overrideVal2.trim() : autoKw2
                       const persistedPreview = tryPersistScheduleImageKeyword(effectiveRaw)
+                      const persistedPreview2 = tryPersistScheduleImageKeyword(effectiveRaw2)
                       const effectiveKw = persistedPreview.ok ? persistedPreview.value : effectiveRaw
+                      const effectiveKw2 = persistedPreview2.ok ? persistedPreview2.value : effectiveRaw2
                       return (
                         <div
                           key={`pexels_kw_${day}`}
@@ -2011,14 +2044,20 @@ export default function AdminRegisterPage() {
                             </span>
                           </div>
                           <p className="mt-1 text-[10px] text-slate-500">
-                            자동 추천 fallback(칸을 비우면 confirm 시 이 문자열이 우선 후보):{' '}
+                            자동 추천 1·2순위 (칸을 비우면 confirm 시 fallback):{' '}
                             <span className="font-mono text-slate-800">{autoKw || '—'}</span>
+                            {autoKw2 ? (
+                              <span className="ml-2 font-mono text-slate-800">/ {autoKw2}</span>
+                            ) : null}
                             {effectiveKw && effectiveKw !== autoKw ? (
-                              <span className="ml-2 text-indigo-800">→ confirm 시 저장값: {effectiveKw}</span>
+                              <span className="ml-2 text-indigo-800">→ 1순위 저장: {effectiveKw}</span>
+                            ) : null}
+                            {effectiveKw2 && effectiveKw2 !== autoKw2 ? (
+                              <span className="ml-2 text-indigo-800">→ 2순위 저장: {effectiveKw2}</span>
                             ) : null}
                           </p>
                           <label htmlFor={`pexels_schedule_kw_${day}`} className="mt-1 block text-[11px] font-medium text-slate-700">
-                            Day {day} 대표관광지 저장
+                            Day {day} imageKeyword (1순위)
                           </label>
                           <div className="mt-1.5 flex max-w-3xl flex-wrap items-center gap-2">
                             <input
@@ -2047,6 +2086,36 @@ export default function AdminRegisterPage() {
                               title="Pexels 검색(미리보기 전용, 저장과 별개)"
                             >
                               후보 미리보기
+                            </button>
+                          </div>
+                          <label htmlFor={`pexels_schedule_kw2_${day}`} className="mt-2 block text-[11px] font-medium text-slate-700">
+                            Day {day} imageKeyword2 (2순위)
+                          </label>
+                          <div className="mt-1 flex max-w-3xl flex-wrap items-center gap-2">
+                            <input
+                              id={`pexels_schedule_kw2_${day}`}
+                              type="text"
+                              className="min-w-[12rem] flex-1 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder:text-slate-400"
+                              placeholder={autoKw2 ? `비우면 자동: ${autoKw2}` : 'Forbidden City'}
+                              value={overrideVal2}
+                              onChange={(e) =>
+                                setManualPexelsKeywords2ByDay((prev) => ({ ...prev, [day]: e.target.value }))
+                              }
+                              disabled={confirming || loading}
+                              autoComplete="off"
+                            />
+                            <button
+                              type="button"
+                              disabled={confirming || loading || registerPexelsLoading || !effectiveKw2.trim()}
+                              onClick={() =>
+                                void runRegisterPexelsSearch(
+                                  normalizeToPlaceName(effectiveKw2) || effectiveKw2,
+                                )
+                              }
+                              className="shrink-0 rounded border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+                              title="2순위 Pexels 미리보기"
+                            >
+                              2순위 미리보기
                             </button>
                           </div>
                         </div>

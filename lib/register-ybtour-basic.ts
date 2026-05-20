@@ -67,7 +67,8 @@ function normLine(s: string): string {
 
 function isYbtourIncExcBulletLine(s: string): boolean {
   return (
-    /^[\s·•‧∙‣⁃*\-･・\u00B7\u2022\u2023\u30FB\uFF65]+\s*\S/.test(s) ||
+    /^[\s·•‧∙‣⁃*\-･・\u00B7\u2022\u2023\u30FB\uFF65■▪]+\s*\S/.test(s) ||
+    /^\s*■\s*\S/.test(s) ||
     /^\s*ㄴ\s/.test(s) ||
     /^ㄴ\s/.test(s)
   )
@@ -371,57 +372,128 @@ export function logYbtourBasicDetailBody(detail: DetailBodyParseSnapshot, rawLen
   }
 }
 
+/** LLM이 포함·불포함을 한 덩어리로 넣었을 때 `불포함사항` 헤더 기준 분리 */
+export function repairYbtourMergedIncludedExcluded(parsed: RegisterParsed): RegisterParsed {
+  const blob = (parsed.includedText ?? '').trim()
+  if (!blob || !/불포함\s*사항|불포함사항/i.test(blob)) return parsed
+  const m = blob.match(/(?:^|\n)\s*불포함\s*사항\s*\n?/i)
+  if (!m || m.index == null) return parsed
+  const includedPart = blob.slice(0, m.index).replace(/(?:^|\n)\s*포함\s*사항\s*\n?/i, '').trim()
+  const excludedPart = blob
+    .slice(m.index + m[0].length)
+    .replace(/^(?:포함|불포함)\s*사항\s*\n?/gim, '')
+    .trim()
+  if (!excludedPart) return parsed
+  const ie = parsed.detailBodyStructured?.includedExcludedStructured
+  const excLines = excludedPart
+    .split(/\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && isYbtourIncExcBulletLine(l))
+    .map((l) => l.replace(/^[\s·•‧∙‣⁃*\-･・\u00B7\u2022\u2023\u30FB\uFF65■▪]+\s*/, '').trim())
+    .filter(Boolean)
+  const incLines = includedPart
+    .split(/\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && isYbtourIncExcBulletLine(l))
+    .map((l) => l.replace(/^[\s·•‧∙‣⁃*\-･・\u00B7\u2022\u2023\u30FB\uFF65■▪]+\s*/, '').trim())
+    .filter(Boolean)
+  const excludedItems =
+    excLines.length > 0 ? excLines : ie?.excludedItems?.length ? ie.excludedItems : parsed.excludedItems
+  const includedItems =
+    incLines.length > 0 ? incLines : ie?.includedItems?.length ? ie.includedItems : parsed.includedItems
+  return {
+    ...parsed,
+    includedText: includedItems?.length ? includedItems.join('\n') : includedPart || parsed.includedText,
+    excludedText: excludedItems?.length ? excludedItems.join('\n') : excludedPart,
+    includedItems: includedItems ?? parsed.includedItems,
+    excludedItems: excludedItems ?? parsed.excludedItems,
+  }
+}
+
+/** 상단 메타 `싱글차지` + 다음 줄 금액 */
+export function extractYbtourMetaSingleRoomFromBody(blob: string): {
+  amount: number | null
+  currency: string | null
+  raw: string | null
+} {
+  const lines = blob.replace(/\r/g, '\n').split('\n').map((l) => l.trim())
+  for (let i = 0; i < lines.length; i++) {
+    const ln = lines[i]!
+    if (!/싱글\s*차지|싱글차지/i.test(ln)) continue
+    const next = lines[i + 1] ?? ''
+    const joined =
+      /^[\d,]{2,}\s*원?\s*$/i.test(next) || /^[\d,]{2,}$/.test(next) ? `${ln} ${next}` : ln
+    const m = joined.match(/([\d,]{2,})\s*원/i) ?? joined.match(/([\d,]{2,})/)
+    const amount = m ? Number(m[1]!.replace(/,/g, '')) : null
+    if (amount != null && Number.isFinite(amount) && amount > 0) {
+      return { amount, currency: 'KRW', raw: joined.slice(0, 200) }
+    }
+  }
+  return { amount: null, currency: null, raw: null }
+}
+
 /** 공용 merge는 `departureDateTimeRaw`/`arrivalDateTimeRaw`를 flightStructured에서 안 채우는 경우가 있어 preview 표시용으로만 보강 */
 export function applyYbtourStructuredPreviewFields(parsed: RegisterParsed): RegisterParsed {
-  const snap = parsed.detailBodyStructured
+  let next = repairYbtourMergedIncludedExcluded(parsed)
+  const snap = next.detailBodyStructured
   const fs = snap?.flightStructured
-  if (!fs) return parsed
+  if (!fs) return next
   const ob = fs.outbound
   const ib = fs.inbound
   const ie = snap.includedExcludedStructured
-  let next: RegisterParsed = { ...parsed }
+  let out: RegisterParsed = { ...next }
 
   const obDep =
     ob.departureDate && ob.departureTime ? `${String(ob.departureDate).trim()} ${String(ob.departureTime).trim()}`.trim() : null
   const ibArr =
     ib.arrivalDate && ib.arrivalTime ? `${String(ib.arrivalDate).trim()} ${String(ib.arrivalTime).trim()}`.trim() : null
-  if (!(parsed.departureDateTimeRaw ?? '').trim() && obDep) {
-    next = { ...next, departureDateTimeRaw: obDep }
+  if (!(out.departureDateTimeRaw ?? '').trim() && obDep) {
+    out = { ...out, departureDateTimeRaw: obDep }
   }
-  if (!(parsed.arrivalDateTimeRaw ?? '').trim() && ibArr) {
-    next = { ...next, arrivalDateTimeRaw: ibArr }
+  if (!(out.arrivalDateTimeRaw ?? '').trim() && ibArr) {
+    out = { ...out, arrivalDateTimeRaw: ibArr }
   }
 
   const airNm = (fs.airlineName ?? '').trim()
-  if (!(parsed.airline ?? '').trim() && airNm) {
-    next = { ...next, airline: airNm }
+  if (!(out.airline ?? '').trim() && airNm) {
+    out = { ...out, airline: airNm }
   }
-  if (!(parsed.airlineName ?? '').trim() && airNm) {
-    next = { ...next, airlineName: airNm }
+  if (!(out.airlineName ?? '').trim() && airNm) {
+    out = { ...out, airlineName: airNm }
   }
 
-  if (!(parsed.includedText ?? '').trim()) {
-    const src = parsed.includedItems?.length ? parsed.includedItems : ie?.includedItems
+  const ieExc = ie?.excludedItems?.length ? ie.excludedItems : []
+  const ieInc = ie?.includedItems?.length ? ie.includedItems : []
+
+  if (!(out.includedText ?? '').trim()) {
+    const src = out.includedItems?.length ? out.includedItems : ieInc
     if (src?.length) {
       const lines = src.map((x) => String(x).trim()).filter(Boolean)
-      next = { ...next, includedText: lines.join('\n'), includedItems: lines }
+      out = { ...out, includedText: lines.join('\n'), includedItems: lines }
     }
+  } else if (ieInc.length > 0 && /불포함\s*사항|불포함사항/i.test(out.includedText ?? '')) {
+    const lines = ieInc.map((x) => String(x).trim()).filter(Boolean)
+    if (lines.length) out = { ...out, includedText: lines.join('\n'), includedItems: lines }
   }
-  if (!(parsed.excludedText ?? '').trim()) {
-    const fromItems = parsed.excludedItems?.length ? parsed.excludedItems : ie?.excludedItems
+
+  if (!(out.excludedText ?? '').trim()) {
+    const fromItems = out.excludedItems?.length ? out.excludedItems : ieExc
     const note = (ie?.noteText ?? '').trim()
     const lines = (fromItems ?? []).map((x) => String(x).trim()).filter(Boolean)
     const merged = [lines.join('\n'), note].filter(Boolean).join('\n\n').trim()
     if (merged) {
-      next = {
-        ...next,
+      out = {
+        ...out,
         excludedText: merged,
-        excludedItems: lines.length ? lines : parsed.excludedItems,
+        excludedItems: lines.length ? lines : out.excludedItems,
       }
     }
+  } else if (ieExc.length > 0 && !(out.excludedItems?.length ?? 0)) {
+    const lines = ieExc.map((x) => String(x).trim()).filter(Boolean)
+    if (lines.length) out = { ...out, excludedItems: lines }
   }
 
-  return next
+  return out
 }
 
 export function logYbtourBasicRegisterFinal(parsed: RegisterParsed, rawTextLen: number) {

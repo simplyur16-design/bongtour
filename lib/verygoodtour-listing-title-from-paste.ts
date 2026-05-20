@@ -3,6 +3,8 @@
  * LLM·항공 안내(출도착/현지시각/출발일변경) 오염 방지 SSOT.
  */
 
+import { extractDestinationFromTitle } from '@/lib/destination-from-title'
+
 const SKIP_LINE_RE =
   /^(상품(?:코드|번호)|담당자|문의|예약|인쇄|공유|https?:|▼|▶|■|※\s*유의|포함사항|불포함|여행\s*일정|상품\s*개요|HOME|고위험|여행\s*주요)/i
 
@@ -87,16 +89,60 @@ export function isVerygoodtourAirlineOrPriceChromeTitle(line: string): boolean {
   return TITLE_JUNK_RE.test(t) || DURATION_ONLY_OR_CHROME_RE.test(t)
 }
 
-export function extractVerygoodDestinationFromBracketTitle(title: string): string | null {
-  const m = String(title ?? '').match(/^\[([^\]]+)\]/)
-  if (!m?.[1]) return null
-  const inner = m[1].replace(/\s+/g, ' ').trim()
-  if (!inner) return null
-  const parts = inner
-    .split(/[/／·]/)
+const POLICY_BRACKET_TOKEN_RE =
+  /^(?:노\s*)?(?:쇼핑|옵션|업션|팁)|NO\s*(?:쇼핑|옵션|팁)|인솔자\s*동행|노옵션|노업션|노쇼핑|노팁/i
+
+/** `[노쇼핑, 노업션, 노팁]` 등 정책 뱃지 — 지역·목적지로 쓰지 않음 */
+export function isVerygoodtourPolicyBracketDestination(inner: string): boolean {
+  const raw = String(inner ?? '').trim()
+  if (!raw) return true
+  const parts = raw
+    .split(/[,，·/／\s]+/)
     .map((p) => p.trim())
     .filter(Boolean)
-  if (parts.length === 0) return null
-  if (parts.length === 1) return parts[0]!
-  return parts.join(' · ')
+  if (parts.length === 0) return true
+  return parts.every((p) => POLICY_BRACKET_TOKEN_RE.test(p.replace(/\s+/g, '')))
+}
+
+export function extractVerygoodDestinationFromBracketTitle(title: string): string | null {
+  const t = String(title ?? '').trim()
+  if (!t) return null
+  const re = /\[([^\]]+)\]/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(t)) !== null) {
+    const inner = m[1]!.replace(/\s+/g, ' ').trim()
+    if (!inner || isVerygoodtourPolicyBracketDestination(inner)) continue
+    const parts = inner
+      .split(/[/／·]/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+    if (parts.length === 0) continue
+    if (parts.length === 1) return parts[0]!
+    return parts.join(' · ')
+  }
+  return null
+}
+
+/** 관리자 목록·카드 — 정책 뱃지가 destination에 들어간 기등록 상품 폴백 */
+export function resolveProductListDestinationLabel(input: {
+  primaryDestination?: string | null
+  destination?: string | null
+  destinationRaw?: string | null
+  primaryRegion?: string | null
+  title?: string | null
+}): string {
+  const candidates = [
+    input.primaryDestination,
+    input.destination,
+    input.destinationRaw,
+    input.primaryRegion,
+  ]
+    .map((s) => (s ?? '').trim())
+    .filter(Boolean)
+  for (const c of candidates) {
+    if (!isVerygoodtourPolicyBracketDestination(c)) return c
+  }
+  const fromTitle = extractDestinationFromTitle(input.title ?? '')
+  if (fromTitle !== '미지정') return fromTitle
+  return '—'
 }

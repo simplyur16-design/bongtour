@@ -5,6 +5,7 @@
 import {
   extractVerygoodDestinationFromBracketTitle,
   extractVerygoodtourVerbatimListingTitleFromPaste,
+  isVerygoodtourPolicyBracketDestination,
 } from '../lib/verygoodtour-listing-title-from-paste'
 
 const GOOD_TITLE =
@@ -34,6 +35,14 @@ function main() {
 
   if (extractVerygoodtourVerbatimListingTitleFromPaste(BAD_CHROME)) {
     errors.push('chrome-only line must not win as title')
+  }
+
+  const policyTitle = '[노쇼핑, 노업션, 노팁] 규슈 4일 #온천의 진수'
+  if (!isVerygoodtourPolicyBracketDestination('노쇼핑, 노업션, 노팁')) {
+    errors.push('policy bracket must be detected')
+  }
+  if (extractVerygoodDestinationFromBracketTitle(policyTitle) != null) {
+    errors.push('policy-only bracket must not become destination')
   }
 
   if (errors.length) {

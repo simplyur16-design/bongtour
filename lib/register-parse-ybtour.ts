@@ -10,6 +10,7 @@
  * 상위 규약: `docs/admin-register-supplier-precise-spec.md` §4. 일정 표현: `docs/register_schedule_expression_ssot.md`.
  */
 import { parseDetailBodyStructuredYbtour } from '@/lib/detail-body-parser-ybtour'
+import { sliceDetailBodySections } from '@/lib/detail-body-parser-utils-ybtour'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import { parseForRegisterLlmYbtour } from '@/lib/register-from-llm-ybtour'
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
@@ -110,10 +111,15 @@ export async function parseForRegisterYbtour(
   }
   const optPaste = options?.pastedBlocks?.optionalTour?.trim() ?? ''
   const shopPaste = options?.pastedBlocks?.shopping?.trim() || null
+  const { shoppingSection } = sliceDetailBodySections(detailBody.normalizedRaw, detailBody.sections, {
+    hotelRaw: options?.pastedBlocks?.hotel ?? null,
+    optionalRaw: options?.pastedBlocks?.optionalTour ?? null,
+    shoppingRaw: shopPaste,
+  })
   detailBody = refreshYbtourDetailBodyPolicy({
     ...detailBody,
     optionalToursStructured: parseYbtourOptionalInput(optPaste),
-    shoppingStructured: parseYbtourShoppingInput('', shopPaste),
+    shoppingStructured: parseYbtourShoppingInput(shoppingSection, shopPaste),
   })
   logYbtourBasicDetailBody(detailBody, rawText?.length ?? 0)
 

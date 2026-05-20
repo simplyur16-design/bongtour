@@ -35,6 +35,7 @@ import {
   extractVerygoodDestinationFromBracketTitle,
   extractVerygoodtourVerbatimListingTitleFromPaste,
   isVerygoodtourAirlineOrPriceChromeTitle,
+  isVerygoodtourPolicyBracketDestination,
 } from '@/lib/verygoodtour-listing-title-from-paste'
 import { clipVerygoodMarketingTailFromPaste } from '@/lib/verygoodtour-schedule-recovery-clip'
 import { normalizeVerygoodRegisterPasteLineEndings } from '@/lib/verygoodtour-paste-normalize-for-register-verygoodtour'
@@ -1697,10 +1698,14 @@ ${text.slice(0, 16000)}`
     supplierListingTitleRaw ?? titleTrimmed
   )
   const fromTitleDest = extractDestinationFromTitle(titleTrimmed)
+  const llmDestination = (raw.destination ?? '').trim()
+  const llmDestinationUsable =
+    llmDestination.length > 0 && !isVerygoodtourPolicyBracketDestination(llmDestination)
   const finalDestination =
     fromBracketDest ||
     (fromTitleDest !== '미지정' ? fromTitleDest : '') ||
-    (raw.destination ?? '').trim() ||
+    (llmDestinationUsable ? llmDestination : '') ||
+    extractDestinationFromTitle(titleTrimmed) ||
     extractDestinationFromTitle(String(raw.title ?? ''))
 
   const mustKnowFromLlm = forPreview
@@ -2462,7 +2467,7 @@ ${text.slice(0, 16000)}`
     schedule,
     prices,
     pricePromotion,
-    priceTableRawText: strOrNull(raw.priceTableRawText),
+    priceTableRawText: strOrNull(raw.priceTableRawText) || strOrNull(pb.priceTable) || null,
     priceTableRawHtml: strOrNull(raw.priceTableRawHtml),
     productPriceTable,
     airlineName: manualPasteAxes.hasManualFlightInput

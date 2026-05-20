@@ -173,6 +173,7 @@ type ScheduleDayImage = {
   title?: string
   description?: string
   imageKeyword?: string
+  imageKeyword2?: string | null
   imageUrl?: string | null
   imageSource?: { source?: string; photographer?: string; originalLink?: string }
   imageManualSelected?: boolean
@@ -409,8 +410,9 @@ export default function AdminPendingDetailPanel({
   const [dayImageSaving, setDayImageSaving] = useState<Record<number, boolean>>({})
   const [dayImageMessage, setDayImageMessage] = useState<string | null>(null)
   const [dayImageThumbError, setDayImageThumbError] = useState<Record<number, string | null>>({})
-  /** 일차별 대표관광지 키워드 — 저장 전 편집 (저장 시 schedule.imageKeyword SSOT) */
+  /** 일차별 Pexels 키워드 — 저장 전 편집 (schedule.imageKeyword / imageKeyword2) */
   const [dayImageKeywordDraft, setDayImageKeywordDraft] = useState<Record<number, string>>({})
+  const [dayImageKeyword2Draft, setDayImageKeyword2Draft] = useState<Record<number, string>>({})
   /** 2차 분류: 수동 편집 시 자동 초안 재주입 금지 */
   const primaryRegionDirtyRef = useRef(false)
   const themeTagsDirtyRef = useRef(false)
@@ -565,6 +567,7 @@ export default function AdminPendingDetailPanel({
     setDayLibraryMap({})
     setDayImageMessage(null)
     setDayImageKeywordDraft({})
+    setDayImageKeyword2Draft({})
     setDayImageThumbError({})
   }, [detail?.id])
 
@@ -595,6 +598,7 @@ export default function AdminPendingDetailPanel({
             title: '',
             description: '',
             imageKeyword: '',
+            imageKeyword2: '',
           }
         )
       }
@@ -1077,12 +1081,23 @@ export default function AdminPendingDetailPanel({
   const handleSaveDayImageKeyword = async (day: number) => {
     if (!detail) return
     const kw = (dayImageKeywordDraft[day] ?? '').trim()
+    const kw2Raw = dayImageKeyword2Draft[day]
+    const kw2 = kw2Raw !== undefined ? kw2Raw.trim() : undefined
     const precheck = tryPersistScheduleImageKeyword(kw)
     if (!precheck.ok) {
       setDayImageMessage(
-        `DAY${day} 대표관광지 저장 실패: ${formatImageKeywordError(new Error(precheck.error))}`,
+        `DAY${day} imageKeyword 저장 실패: ${formatImageKeywordError(new Error(precheck.error))}`,
       )
       return
+    }
+    if (kw2 !== undefined && kw2 !== '') {
+      const precheck2 = tryPersistScheduleImageKeyword(kw2)
+      if (!precheck2.ok) {
+        setDayImageMessage(
+          `DAY${day} imageKeyword2 저장 실패: ${formatImageKeywordError(new Error(precheck2.error))}`,
+        )
+        return
+      }
     }
     setDayImageSaving((prev) => ({ ...prev, [day]: true }))
     setDayImageMessage(null)
@@ -1090,14 +1105,18 @@ export default function AdminPendingDetailPanel({
       const res = await fetch(`/api/admin/products/${detail.id}/schedule-images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ day, imageKeyword: kw }),
+        body: JSON.stringify({
+          day,
+          imageKeyword: kw,
+          ...(kw2 !== undefined ? { imageKeyword2: kw2 || null } : {}),
+        }),
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
-        setDayImageMessage(`DAY${day} 대표관광지 저장 실패: ${data.error ?? `HTTP ${res.status}`}`)
+        setDayImageMessage(`DAY${day} 키워드 저장 실패: ${data.error ?? `HTTP ${res.status}`}`)
         return
       }
-      setDayImageMessage(`DAY${day} 대표관광지 키워드가 저장되었습니다.`)
+      setDayImageMessage(`DAY${day} imageKeyword${kw2 !== undefined ? '·imageKeyword2' : ''} 저장됨.`)
       const refreshed = await fetchAdminProductDetail(detail.id)
       if (refreshed) setDetail(refreshed)
     } finally {
@@ -1605,7 +1624,8 @@ export default function AdminPendingDetailPanel({
       <section className="border-b border-bt-border-soft p-5">
         <h3 className="mb-0.5 text-sm font-semibold text-bt-body">일정 DAY 이미지 — 대표관광지 저장</h3>
         <p className="mb-3 text-[10px] text-bt-meta">
-          저장 SSOT: <code className="rounded bg-bt-surface-alt px-1">Product.schedule[].imageKeyword</code> · Pexels·Gemini는 위
+          저장 SSOT: <code className="rounded bg-bt-surface-alt px-1">Product.schedule[].imageKeyword</code> ·{' '}
+          <code className="rounded bg-bt-surface-alt px-1">imageKeyword2</code> (일차 2장) · Pexels·Gemini는 위
           저장값 우선(보조)
         </p>
         {dayImageMessage && <p className="mb-2 text-xs text-bt-body">{dayImageMessage}</p>}
@@ -1659,30 +1679,49 @@ export default function AdminPendingDetailPanel({
                     <p className="text-[10px] text-bt-meta">
                       즉시 DB 반영 · 권장: {'{장소명} / {대표 배경} / {대표 시점}'} · 예: 루브르 박물관 / 유리 피라미드 광장 / 정면 시점
                     </p>
-                    <div className="flex max-w-xl flex-wrap items-center gap-2">
-                      <input
-                        id={`day_kw_${row.day}`}
-                        type="text"
-                        className="min-w-[10rem] flex-1 rounded border border-bt-border-soft bg-bt-surface px-2 py-1 text-xs text-bt-body"
-                        placeholder={
-                          row.imageKeyword
-                            ? `비우면 자동 추천: ${row.imageKeyword}`
-                            : '장소명 / 대표 배경 / 대표 시점 — 예: 후시미 이나리 신사 / 천본도리 붉은 도리이 길 / 눈높이 정면 시점'
-                        }
-                        value={dayImageKeywordDraft[row.day] ?? row.imageKeyword ?? ''}
-                        onChange={(e) =>
-                          setDayImageKeywordDraft((prev) => ({ ...prev, [row.day]: e.target.value }))
-                        }
-                        autoComplete="off"
-                      />
-                      <button
-                        type="button"
-                        disabled={dayImageSaving[row.day] === true}
-                        onClick={() => void handleSaveDayImageKeyword(row.day)}
-                        className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs font-medium text-bt-title hover:bg-bt-surface-soft disabled:opacity-50"
-                      >
-                        대표관광지 저장
-                      </button>
+                    <div className="flex max-w-xl flex-col gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          id={`day_kw_${row.day}`}
+                          type="text"
+                          className="min-w-[10rem] flex-1 rounded border border-bt-border-soft bg-bt-surface px-2 py-1 text-xs text-bt-body"
+                          placeholder={
+                            row.imageKeyword
+                              ? `1순위 · 비우면: ${row.imageKeyword}`
+                              : 'imageKeyword 1순위'
+                          }
+                          value={dayImageKeywordDraft[row.day] ?? row.imageKeyword ?? ''}
+                          onChange={(e) =>
+                            setDayImageKeywordDraft((prev) => ({ ...prev, [row.day]: e.target.value }))
+                          }
+                          autoComplete="off"
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          id={`day_kw2_${row.day}`}
+                          type="text"
+                          className="min-w-[10rem] flex-1 rounded border border-bt-border-soft bg-bt-surface px-2 py-1 text-xs text-bt-body"
+                          placeholder={
+                            row.imageKeyword2
+                              ? `2순위 · 비우면: ${row.imageKeyword2}`
+                              : 'imageKeyword2 2순위'
+                          }
+                          value={dayImageKeyword2Draft[row.day] ?? row.imageKeyword2 ?? ''}
+                          onChange={(e) =>
+                            setDayImageKeyword2Draft((prev) => ({ ...prev, [row.day]: e.target.value }))
+                          }
+                          autoComplete="off"
+                        />
+                        <button
+                          type="button"
+                          disabled={dayImageSaving[row.day] === true}
+                          onClick={() => void handleSaveDayImageKeyword(row.day)}
+                          className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs font-medium text-bt-title hover:bg-bt-surface-soft disabled:opacity-50"
+                        >
+                          키워드 저장
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="mt-2 flex items-start gap-3">

@@ -122,12 +122,32 @@ export function sanitizeYbtourShoppingStructured(
   }
 }
 
+/** 본문 상단 메타(`쇼핑 3회` 등) — 노랑풍선은 쇼핑 횟수가 본문에 있는 경우가 많음 */
+export function extractYbtourMetaShoppingVisitCountFromBody(normalizedRaw: string | null | undefined): number | null {
+  if (!normalizedRaw?.trim()) return null
+  const head = normalizedRaw.slice(0, 6000)
+  return parseYbtourShoppingVisitCount(head)
+}
+
 export function finalizeYbtourRegisterParsedShopping(parsed: RegisterParsed): RegisterParsed {
   const st = parsed.detailBodyStructured?.shoppingStructured
-  if (!st) return parsed
+  const bodyMetaCount = extractYbtourMetaShoppingVisitCountFromBody(parsed.detailBodyStructured?.normalizedRaw)
+  if (!st) {
+    if (bodyMetaCount != null && bodyMetaCount > 0) {
+      return {
+        ...parsed,
+        shoppingVisitCount: bodyMetaCount,
+        hasShopping: true,
+        shoppingSummaryText: parsed.shoppingSummaryText?.trim() || `쇼핑 ${bodyMetaCount}회`,
+      }
+    }
+    return parsed
+  }
   const plausible = st.rows.filter(ybtourShoppingRowLooksPlausible)
-  const n = parseYbtourShoppingVisitCount(st.shoppingCountText ?? '') ??
-    parseYbtourShoppingVisitCount(parsed.shoppingSummaryText ?? '')
+  const n =
+    parseYbtourShoppingVisitCount(st.shoppingCountText ?? '') ??
+    parseYbtourShoppingVisitCount(parsed.shoppingSummaryText ?? '') ??
+    bodyMetaCount
   const visitFromRows = (() => {
     const nums = plausible.map((r) => r.visitNo).filter((x): x is number => x != null && Number.isFinite(x))
     const mx = nums.length > 0 ? Math.max(...nums) : 0

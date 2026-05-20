@@ -94,18 +94,17 @@ export function persistScheduleImageFields<T extends ScheduleImageFieldsInput>(
 /** @deprecated `persistScheduleImageFields` 사용 */
 export const finalizeScheduleImageSeoFields = persistScheduleImageFields
 
-/** confirm 일괄 처리 — 첫 실패 일차와 함께 throw */
-export function finalizeRegisterScheduleImageKeywords<T extends { day: number; imageKeyword?: string }>(
-  schedule: T[],
-): T[] {
+/** confirm 일괄 처리 — imageKeyword·imageKeyword2 persist */
+export function finalizeRegisterScheduleImageKeywords<
+  T extends ScheduleImageFieldsInput & { day: number },
+>(schedule: T[]): T[] {
   return schedule.map((row) => {
     const day = Number(row.day)
-    const r = tryPersistScheduleImageKeyword(row.imageKeyword)
-    if (!r.ok) {
-      throw new ScheduleImageKeywordPersistError(
-        `Day ${day}: ${r.error}`,
-      )
+    try {
+      return persistScheduleImageFields(row)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      throw new ScheduleImageKeywordPersistError(`Day ${day}: ${msg}`)
     }
-    return { ...row, imageKeyword: r.value }
   })
 }

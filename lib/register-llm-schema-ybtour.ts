@@ -135,6 +135,8 @@ export type RegisterScheduleDay = {
   description: string
   /** 실존하는 장소 명칭만 (Pexels 검색용 영문, 예: Osaka Castle) */
   imageKeyword: string
+  /** 일차 썸네일 2번째 — Pexels 검색용 영문 고유명 */
+  imageKeyword2?: string | null
   hotelText?: string | null
   breakfastText?: string | null
   lunchText?: string | null

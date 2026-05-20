@@ -20,6 +20,7 @@ type ScheduleEntry = {
   title?: string
   description?: string
   imageKeyword?: string
+  imageKeyword2?: string | null
   imageUrl?: string | null
   imageSource?: {
     source?: string
@@ -61,6 +62,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       day?: number
       imageUrl?: string
       imageKeyword?: string | null
+      imageKeyword2?: string | null
       source?: string
       photographer?: string | null
       originalLink?: string | null
@@ -83,17 +85,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     /** 일정별 Pexels/Gemini 검색어 SSOT — 이미지 URL 없이 키워드만 저장 */
-    if ('imageKeyword' in body && !imageUrl) {
-      let persistedKw: string
-      try {
-        persistedKw = persistScheduleImageKeyword(body.imageKeyword)
-      } catch (e) {
-        const msg =
-          e instanceof ScheduleImageKeywordPersistError
-            ? e.message
-            : 'imageKeyword 형식이 올바르지 않습니다.'
-        return NextResponse.json({ error: msg }, { status: 400 })
-      }
+    if (('imageKeyword' in body || 'imageKeyword2' in body) && !imageUrl) {
       let schedule: ScheduleEntry[] = []
       try {
         const parsed = JSON.parse(product.schedule ?? '[]') as unknown
@@ -101,11 +93,34 @@ export async function POST(request: Request, { params }: RouteParams) {
       } catch {
         schedule = []
       }
+      let persistedKw: string | undefined
+      let persistedKw2: string | null | undefined
+      try {
+        if ('imageKeyword' in body) {
+          persistedKw = persistScheduleImageKeyword(body.imageKeyword)
+        }
+        if ('imageKeyword2' in body) {
+          const raw2 = body.imageKeyword2
+          persistedKw2 =
+            raw2 == null || String(raw2).trim() === ''
+              ? null
+              : persistScheduleImageKeyword(raw2)
+        }
+      } catch (e) {
+        const msg =
+          e instanceof ScheduleImageKeywordPersistError
+            ? e.message
+            : 'imageKeyword 형식이 올바르지 않습니다.'
+        return NextResponse.json({ error: msg }, { status: 400 })
+      }
       let updated = false
       const next = schedule.map((item) => {
         if (Number(item.day) !== day) return item
         updated = true
-        return persistScheduleImageFields({ ...item, imageKeyword: persistedKw })
+        const patch: ScheduleEntry = { ...item }
+        if (persistedKw !== undefined) patch.imageKeyword = persistedKw
+        if (persistedKw2 !== undefined) patch.imageKeyword2 = persistedKw2
+        return persistScheduleImageFields(patch)
       })
       if (!updated) {
         next.push(
@@ -113,7 +128,8 @@ export async function POST(request: Request, { params }: RouteParams) {
             day,
             title: `DAY ${day}`,
             description: '',
-            imageKeyword: persistedKw,
+            imageKeyword: persistedKw ?? '',
+            imageKeyword2: persistedKw2 ?? null,
           }),
         )
       }
@@ -122,11 +138,13 @@ export async function POST(request: Request, { params }: RouteParams) {
         where: { id },
         data: { schedule: JSON.stringify(next) },
       })
+      const savedRow = next.find((x) => Number(x.day) === day)
       return NextResponse.json({
         ok: true,
         productId: id,
         day,
-        imageKeyword: persistedKw,
+        imageKeyword: savedRow?.imageKeyword ?? persistedKw ?? null,
+        imageKeyword2: savedRow?.imageKeyword2 ?? persistedKw2 ?? null,
         imageUrl: null,
       })
     }

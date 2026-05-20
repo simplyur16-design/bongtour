@@ -10,6 +10,7 @@ import AdminStatusBadge from '../components/AdminStatusBadge'
 import SafeImage from '@/app/components/SafeImage'
 import { adminProductBgImageAttributionLine, adminProductBgImageSourceTypeLabel } from '@/lib/product-bg-image-attribution'
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
+import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import type { OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
 
@@ -764,8 +765,17 @@ export default function AdminProductsPage() {
                           {p.title}
                         </td>
                         <td className="p-3 text-gray-500">{p.airline ?? '—'}</td>
-                        <td className="p-3 text-gray-500" title={p.destinationRaw ?? undefined}>
-                          {p.primaryDestination ?? p.destination ?? '—'}
+                        <td
+                          className="p-3 text-gray-500"
+                          title={[p.destinationRaw, p.primaryRegion].filter(Boolean).join(' · ') || undefined}
+                        >
+                          {resolveProductListDestinationLabel({
+                            primaryDestination: p.primaryDestination,
+                            destination: p.destination,
+                            destinationRaw: p.destinationRaw,
+                            primaryRegion: p.primaryRegion,
+                            title: p.title,
+                          })}
                         </td>
                         <td className="p-3 font-mono text-xs text-gray-500">{p.supplierGroupId ?? '—'}</td>
                         <td className="p-3 text-gray-600 whitespace-nowrap">

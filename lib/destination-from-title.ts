@@ -5,7 +5,7 @@
 const CITY_PATTERNS = [
   /타이베이|대만/i,
   /다낭|베트남/i,
-  /오사카|오키나와|도쿄|후쿠오카|삿포로|교토|일본/i,
+  /규슈|큐슈|오사카|오키나와|도쿄|후쿠오카|벳부|나가사키|유후인|구마모토|삿포로|교토|일본/i,
   /방콕|치앙마이|태국|파타야/i,
   /세부|마닐라|보라카이|필리핀/i,
   /싱가포르|말레이시아|쿠알라룸푸르/i,
@@ -26,9 +26,13 @@ export function extractDestinationFromTitle(title: string): string {
       const word = m[0]
       if (/타이베이|대만/.test(word)) return '타이베이'
       if (/다낭|베트남/.test(word)) return '다낭'
+      if (/규슈|큐슈/.test(word)) return '규슈'
       if (/오사카/.test(word)) return '오사카'
       if (/오키나와/.test(word)) return '오키나와'
       if (/도쿄/.test(word)) return '도쿄'
+      if (/후쿠오카/.test(word)) return '후쿠오카'
+      if (/벳부/.test(word)) return '벳부'
+      if (/나가사키/.test(word)) return '나가사키'
       if (/치앙마이/.test(word)) return '치앙마이'
       if (/치앙라이/.test(word)) return '치앙라이'
       if (/방콕|태국/.test(word)) return '방콕'

@@ -106,7 +106,11 @@ import { filterOptionalTourRows, optionalTourRowPassesStrictGate, type OptionalT
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 import { isMustKnowInsufficient, supplementMustKnowWithWebSearch } from './must-know-web-supplement'
 import { parseLlmJsonObject } from './llm-json-extract'
-import { extractYbtourVerbatimListingTitle } from '@/lib/register-ybtour-basic'
+import {
+  extractYbtourMetaSingleRoomFromBody,
+  extractYbtourVerbatimListingTitle,
+} from '@/lib/register-ybtour-basic'
+import { parseYbtourShoppingVisitCount } from '@/lib/register-ybtour-shopping'
 import {
   mergeDayHotelPlansForRegister,
   parseDayHotelPlansFromSupplierText,
@@ -232,6 +236,9 @@ function ybtourBlankSignalsWhenDedicatedPasteEmpty(
   signals: ReturnType<typeof extractStructuredTourSignals>,
   pb: Partial<RegisterPastedBlocksInput> | undefined
 ): ReturnType<typeof extractStructuredTourSignals> {
+  const preservedShoppingCount = signals.shoppingVisitCount
+  const preservedShoppingSummary = signals.shoppingSummaryText
+  const preservedHasShopping = signals.hasShopping
   const o = { ...(signals as unknown as Record<string, unknown>) }
   if (!String(pb?.optionalTour ?? '').trim()) {
     o.optionalToursStructuredJson = null
@@ -250,10 +257,17 @@ function ybtourBlankSignalsWhenDedicatedPasteEmpty(
     o.shoppingStopsJson = null
     o.shoppingNoticeRaw = null
     o.shoppingStops = []
-    o.hasShopping = false
-    o.shoppingVisitCount = null
     o.shoppingSourceCount = 0
-    o.shoppingSummaryText = ''
+    if (preservedShoppingCount != null && preservedShoppingCount > 0) {
+      o.hasShopping = true
+      o.shoppingVisitCount = preservedShoppingCount
+      o.shoppingSummaryText =
+        (preservedShoppingSummary ?? '').trim() || `쇼핑 ${preservedShoppingCount}회`
+    } else {
+      o.hasShopping = preservedHasShopping
+      o.shoppingVisitCount = null
+      o.shoppingSummaryText = ''
+    }
   }
   return o as unknown as ReturnType<typeof extractStructuredTourSignals>
 }
@@ -893,7 +907,7 @@ ${LLM_JSON_OUTPUT_DISCIPLINE_BLOCK}
 - 상품 본문 가격표(연령별 단가)와 우측 견적 카드 총액·상단 프로모를 혼동하지 말 것. priceTableRawText·productPriceTable은 본문 표 SSOT.
 - 선택관광·쇼핑 **표 행**: pastedBlocks 정형 입력란·결정적 파서 SSOT — optionalTours[]·shoppingStops[] LLM 추출 금지.
 - 선택관광 안내문만: optionalTourNoticeRaw / optionalTourNoticeItems (행 데이터 X).
-- 쇼핑: hasShopping, shoppingSummaryText, shoppingNoticeRaw — **shoppingStops[]·shoppingVisitCount LLM 추출 금지**(횟수·목록은 서버 시그널·정형칸 SSOT).
+- 쇼핑: hasShopping, shoppingSummaryText, shoppingNoticeRaw — **shoppingStops[]·shoppingVisitCount LLM 추출 금지**(횟수·목록은 본문 상단 「쇼핑 N회」·쇼핑 섹션·정형 입력란 SSOT).
 - 포함/불포함: includedItems[]·excludedItems[] 구분. 전체 덤프는 includedRaw·excludedRaw·includedExcludedRaw에 보존 가능.
 ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - 1인실 추가요금(싱글차지/독실사용료)은 반드시 불포함사항으로 처리한다. singleRoomSurcharge* 필드에 구조화하고, excludedItems[]에 반영한다. singleRoomSurchargeDisplayText는 **한 줄만**(항목명과 금액을 같은 줄에, 줄바꿈으로 금액 분리 금지). 금액이 있으면 예: 「1인실 객실 추가요금 200,000원」 형태를 우선한다.
@@ -921,7 +935,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - 상품가격표 원문: priceTableRawText, priceTableRawHtml(있을 때), productPriceTable: adultPrice, childExtraBedPrice, childNoBedPrice, infantPrice (본문 표에서만; 없으면 null).
 - 미팅(상품 단위): meetingInfoRaw, meetingPlaceRaw, meetingNoticeRaw, meetingFallbackText
 - 선택관광(메타만): optionalTourNoticeRaw, optionalTourNoticeItems[], hasOptionalTour, optionalTourCount, optionalTourSummaryText — **optionalTours[] 행 LLM 추출 금지**
-- 쇼핑(요약만): hasShopping, shoppingSummaryText, shoppingNoticeRaw — **shoppingStops[]·shoppingVisitCount LLM 추출 금지**
+- 쇼핑(요약만): hasShopping, shoppingSummaryText, shoppingNoticeRaw — **shoppingStops[]·shoppingVisitCount LLM 추출 금지**(본문 「쇼핑 N회」는 서버가 읽음)
 - 항공·옵션·쇼핑 행·출발일 달력: [PASTED AIRLINE]·정형칸·E2E SSOT — LLM 추출 금지
 - 자유시간: hasFreeTime, freeTimeRawMentions, freeTimeSummaryText
 - 포함/불포함: includedItems[], excludedItems[], includedRaw, excludedRaw, includedExcludedRaw, includedText, excludedText
@@ -2064,6 +2078,7 @@ ${text.slice(0, 16000)}`
       ? null
       : signals.shoppingVisitCount != null
         ? signals.shoppingVisitCount
+        : parseYbtourShoppingVisitCount(detailBody.shoppingStructured.shoppingCountText ?? '')
         : raw.shoppingVisitCount != null
           ? Number(raw.shoppingVisitCount)
           : null
@@ -2109,6 +2124,9 @@ ${text.slice(0, 16000)}`
   const llmSingleRoomCurrency = strOrNull(raw.singleRoomSurchargeCurrency)
   const llmSingleRoomRaw = strOrNull(raw.singleRoomSurchargeRaw)
   const llmSingleRoomDisplay = strOrNull(raw.singleRoomSurchargeDisplayText)
+  const metaSingleRoom = extractYbtourMetaSingleRoomFromBody(
+    [blockB, detailBody.normalizedRaw ?? ''].filter(Boolean).join('\n')
+  )
   const inferredSingleRoom = extractSingleRoomSurcharge(
     [
       strOrNull(raw.excludedRaw),
@@ -2116,14 +2134,16 @@ ${text.slice(0, 16000)}`
       strOrNull(raw.includedExcludedRaw),
       options?.pastedBlocks?.includedExcluded ?? null,
       options?.pastedBodyForInference ?? rawText,
+      metaSingleRoom.raw,
     ]
       .filter((x): x is string => Boolean(x?.trim()))
       .join('\n')
   )
-  const singleRoomSurchargeAmount = llmSingleRoomAmount ?? inferredSingleRoom.amount
+  const singleRoomSurchargeAmount =
+    llmSingleRoomAmount ?? metaSingleRoom.amount ?? inferredSingleRoom.amount
   const singleRoomSurchargeCurrency =
     llmSingleRoomCurrency ?? inferredSingleRoom.currency ?? (singleRoomSurchargeAmount != null ? 'KRW' : null)
-  const singleRoomSurchargeRaw = llmSingleRoomRaw ?? inferredSingleRoom.raw
+  const singleRoomSurchargeRaw = llmSingleRoomRaw ?? metaSingleRoom.raw ?? inferredSingleRoom.raw
   const hasSingleRoomSurcharge =
     Boolean(raw.hasSingleRoomSurcharge) ||
     singleRoomSurchargeAmount != null ||
