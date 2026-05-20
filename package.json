@@ -15,6 +15,8 @@
     "build:clean": "npm run clean:next && npm run build",
     "build": "prisma generate && next build",
     "start": "next start -p ${PORT:-3000}",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "next lint",
     "check:register-supplier-imports": "node scripts/check-register-supplier-cross-imports.mjs",
     "check": "npm run check:register-supplier-imports && npm run lint",
@@ -157,7 +159,8 @@
     "dotenv": "^17.4.2",
     "eslint-config-next": "^15.5.15",
     "prisma": "^5.22.0",
-    "tsx": "^4.19.0"
+    "tsx": "^4.19.0",
+    "vitest": "^4.1.7"
   },
   "overrides": {
     "react": "18.2.0",
