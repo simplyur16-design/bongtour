@@ -1,5 +1,10 @@
 import { INQUIRY_MAIL_PREFIX } from '@/lib/inquiry-routing-metadata'
 import { CUSTOMER_INQUIRY_TYPES } from '@/lib/customer-inquiry-intake'
+import { formatInquiryTimestampKst } from '@/lib/inquiry-datetime-kst'
+import {
+  resolveTrainingDisplayFields,
+  trainingDisplaySummaryLines,
+} from '@/lib/inquiry-training-display'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 
 /** POST /api/inquiries 이후 운영자 이메일 알림 공통 입력 */
@@ -170,9 +175,11 @@ export function buildInquiryEmailSubject(input: InquiryNotifyInput, prefix: stri
     return `${prefix} ${org}${city !== '-' ? ` / ${city}` : ''} / ${name}`
   }
   if (prefix === INQUIRY_MAIL_PREFIX.TRAINING) {
-    const org = inquiryPayloadField(payload, 'organizationName').slice(0, 28)
-    const dest = inquiryPayloadField(payload, 'destinationSummary').slice(0, 24)
-    return `${prefix} ${org} / ${dest} / ${name}`
+    const fields = resolveTrainingDisplayFields(input.payloadJson, input.message)
+    const org = (fields.organizationName ?? '기관미입력').slice(0, 28)
+    const dest = (fields.destinationSummary ?? '지역미입력').slice(0, 24)
+    const svc = (fields.serviceScope ?? '').slice(0, 20)
+    return svc ? `${prefix} ${svc} / ${dest} / ${name}` : `${prefix} ${org} / ${dest} / ${name}`
   }
   if (prefix === INQUIRY_MAIL_PREFIX.FLIGHT) {
     const region = inquiryPayloadField(payload, 'preferredRegion').slice(0, 28)
@@ -193,7 +200,7 @@ export function buildInquiryEmailSummaryBlock(input: InquiryNotifyInput, prefix:
     `문의유형: ${prefix.replace(/^\[|\]$/g, '')}`,
     `접수번호: ${input.inquiryId}`,
     `신청자: ${input.applicantName} / ${input.applicantPhone} / ${input.applicantEmail ?? '-'}`,
-    `접수시각: ${input.createdAtIso}`,
+    `접수시각: ${formatInquiryTimestampKst(input.createdAtIso)}`,
     `관리 목록: ${adminInquiries}`,
   ]
 
@@ -243,14 +250,18 @@ export function buildInquiryEmailSummaryBlock(input: InquiryNotifyInput, prefix:
       `유입 페이지: ${input.sourcePagePath ?? '-'}`
     )
   } else if (prefix === INQUIRY_MAIL_PREFIX.TRAINING) {
-    lines.push(
-      `기관명: ${inquiryPayloadField(payload, 'organizationName')}`,
-      `목적지: ${inquiryPayloadField(payload, 'destinationSummary')}`,
-      `일정: ${travelDepartureOrSchedule(payload)}`,
-      `인원: ${inquiryPayloadField(payload, 'headcount')}`,
-      `서비스범위: ${inquiryPayloadField(payload, 'serviceScope')}`,
-      `연수목적: ${inquiryPayloadField(payload, 'trainingPurpose')}`
-    )
+    const fields = resolveTrainingDisplayFields(input.payloadJson, input.message)
+    const detailLines = trainingDisplaySummaryLines(fields)
+    if (detailLines.length > 0) {
+      lines.push(...detailLines)
+    } else {
+      lines.push('구조화 필드 없음 — 아래 「문의 내용」을 확인하세요.')
+    }
+    const msg = input.message?.trim()
+    if (msg && detailLines.length < 3) {
+      const excerpt = msg.length > 200 ? `${msg.slice(0, 200)}…` : msg
+      lines.push(`문의 요약: ${excerpt}`)
+    }
   } else if (prefix === INQUIRY_MAIL_PREFIX.FLIGHT) {
     lines.push(
       `희망지역: ${inquiryPayloadField(payload, 'preferredRegion')}`,

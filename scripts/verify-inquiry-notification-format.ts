@@ -9,7 +9,8 @@ import {
   resolveInquiryAlertPrefix,
   type InquiryNotifyInput,
 } from '@/lib/inquiry-notification-format'
-import { buildInquiryEmailAppendixLines } from '@/lib/inquiry-email'
+import { buildInquiryEmailAppendixLines, buildInquiryOperatorEmailBody } from '@/lib/inquiry-email'
+import { formatInquiryTimestampKst } from '@/lib/inquiry-datetime-kst'
 
 process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
 
@@ -299,9 +300,37 @@ runCase('institution 통역', sampleInterpreter(), ({ prefix, appendix }) => {
 
 runCase('training', sampleTraining(), ({ prefix, appendix }) => {
   assert(prefix === INQUIRY_MAIL_PREFIX.TRAINING, 'training prefix')
-  assert(appendixHead(appendix) === '[국외연수 폼 필드 보조]', 'training appendix')
-  assert(!appendixBlob(appendix).includes('[기관/단체 문의 보조]'), 'training에 기관 appendix 금지')
-  assert(!appendixBlob(appendix).includes('[상품 문의 정보]'), 'training에 상품 appendix 금지')
+  assert(appendix.length === 0, 'training appendix 없음(요약에만 표시)')
+  const body = buildInquiryOperatorEmailBody(sampleTraining())
+  assert(body.includes('필요 서비스:'), 'training 요약에 서비스')
+  assert(!body.includes('[payloadJson]'), 'operator body에 payloadJson 없음')
+  assert(body.includes('KST'), '접수시각 KST')
+})
+
+function sampleTrainingQuickMessageOnly(): InquiryNotifyInput {
+  return {
+    inquiryId: 'inq_train_quick',
+    inquiryType: 'overseas_training_quote',
+    applicantName: '박준용',
+    applicantPhone: '010-1234-5678',
+    applicantEmail: 'p@x.com',
+    message: '기관명: OO대학교\n희망 국가: 독일\n인원: 15명\n순차통역 견적 부탁드립니다.',
+    sourcePagePath: '/inquiry?type=training',
+    createdAtIso: '2026-05-20T05:35:33.295Z',
+    payloadJson: JSON.stringify({ inquiryDetailMode: 'quick', serviceScope: '순차통역만' }),
+    productId: null,
+    snapshotProductTitle: null,
+    snapshotCardLabel: null,
+    product: null,
+  }
+}
+
+runCase('training 간편(본문만)', sampleTrainingQuickMessageOnly(), ({ prefix, appendix }) => {
+  assert(prefix === INQUIRY_MAIL_PREFIX.TRAINING, 'training quick prefix')
+  assert(appendix.length === 0, 'training quick appendix 없음')
+  const block = buildInquiryEmailSummaryBlock(sampleTrainingQuickMessageOnly(), prefix)
+  assert(block.includes('순차통역만'), '서비스 요약')
+  assert(block.includes('독일') || block.includes('문의 요약'), '목적지 또는 본문 요약')
 })
 
 runCase('bus', sampleBus(), ({ prefix, appendix }) => {

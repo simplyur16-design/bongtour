@@ -269,6 +269,39 @@ export function buildAdminInquiryLmsBody(p: AdminInquiryLmsBodyInput): string {
   return `${core}\n${footer}`
 }
 
+/**
+ * 관리자 접수 알림 — 짧은 한 줄 (Solapi LMS/SMS).
+ * 카카오 알림톡이 아니라 등록된 휴대폰으로 문자가 발송된다.
+ */
+export function buildAdminInquiryShortAlertLine(p: AdminInquiryLmsBodyInput): string {
+  const payload = parseInquiryPayloadJson(p.payloadJson)
+  const typeLabel = adminInquiryLmsTypeLabel(p.inquiryType, payload)
+  const name = truncateForAdminInquiryLms(p.applicantName.trim() || '고객', 16)
+
+  if (p.inquiryType === 'overseas_training_quote') {
+    const svc =
+      typeof payload.serviceScope === 'string' && payload.serviceScope.trim()
+        ? truncateForAdminInquiryLms(payload.serviceScope.trim(), 28)
+        : typeLabel
+    return `[봉투어] ${svc} 문의가 접수되었습니다. (${name})`
+  }
+
+  if (p.inquiryType === 'travel_consult' && payload.quoteKind === 'private_custom') {
+    const dest =
+      typeof payload.destinationSummary === 'string' && payload.destinationSummary.trim()
+        ? truncateForAdminInquiryLms(payload.destinationSummary.trim(), 20)
+        : '맞춤견적'
+    return `[봉투어] ${dest} 문의가 접수되었습니다. (${name})`
+  }
+
+  const product = truncateForAdminInquiryLms(p.productLabel, 24)
+  if (p.inquiryType === 'travel_consult' && product && product !== '상담문의') {
+    return `[봉투어] ${product} 문의가 접수되었습니다. (${name})`
+  }
+
+  return `[봉투어] ${typeLabel} 문의가 접수되었습니다. (${name})`
+}
+
 /** `POST /api/admin/test-inquiry-lms` 실발송 검증용 고정 입력. */
 export const ADMIN_INQUIRY_LMS_TEST_FIXTURE = {
   inquiryType: 'travel_consult',

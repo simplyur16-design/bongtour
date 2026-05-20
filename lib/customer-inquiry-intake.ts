@@ -274,6 +274,36 @@ export function validateCustomerInquiryBody(
       fieldErrors.serviceScope = '필요한 서비스를 선택해 주세요.'
     }
 
+    const detailMode =
+      payloadObject?.inquiryDetailMode === 'quote' || payloadObject?.inquiryDetailMode === 'quick'
+        ? payloadObject.inquiryDetailMode
+        : 'quick'
+
+    if (detailMode === 'quote') {
+      const dest =
+        typeof payloadObject?.destinationSummary === 'string' ? payloadObject.destinationSummary.trim() : ''
+      if (!dest) {
+        fieldErrors.destinationSummary = '희망 국가 또는 도시를 입력해 주세요.'
+      }
+
+      const departureDate =
+        typeof payloadObject?.preferredDepartureDate === 'string'
+          ? payloadObject.preferredDepartureDate.trim()
+          : ''
+      const departureMonth =
+        typeof payloadObject?.preferredDepartureMonth === 'string'
+          ? payloadObject.preferredDepartureMonth.trim()
+          : ''
+      if (!departureDate && !departureMonth) {
+        fieldErrors.departureDateOrMonth = '출발 희망일 또는 출발 희망월 중 하나를 입력해 주세요.'
+      }
+
+      const hc = payloadObject?.headcount
+      if (typeof hc !== 'number' || !Number.isInteger(hc) || hc < 1) {
+        fieldErrors.headcount = '예상 인원은 1명 이상의 숫자로 입력해 주세요.'
+      }
+    }
+
     if (!emailR.ok) {
       fieldErrors.applicantEmail = emailR.err
     } else if (!emailR.value) {

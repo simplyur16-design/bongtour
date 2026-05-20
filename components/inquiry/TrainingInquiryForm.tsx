@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useState } from 'react'
 import InquiryFormShell from '@/components/inquiry/InquiryFormShell'
 import type { FieldErrors } from '@/lib/customer-inquiry-intake'
+import type { TrainingInquiryDetailMode } from '@/lib/inquiry-training-display'
 import type { InquiryPageQuery } from '@/lib/inquiry-page'
 
 export const TRAINING_SERVICE_OPTIONS = [
@@ -45,6 +46,7 @@ export default function TrainingInquiryForm({
     return TRAINING_SERVICE_OPTIONS.includes(raw as TrainingServiceOption) ? (raw as TrainingServiceOption) : ''
   })()
   const [serviceScope, setServiceScope] = useState<TrainingServiceOption | ''>(initialServiceScope)
+  const [inquiryDetailMode, setInquiryDetailMode] = useState<TrainingInquiryDetailMode>('quick')
   const [requestedVisitTypes, setRequestedVisitTypes] = useState('')
   const [participantType, setParticipantType] = useState('')
   const [preferredContactChannel, setPreferredContactChannel] = useState<PreferredContactChannel>('both')
@@ -67,11 +69,32 @@ export default function TrainingInquiryForm({
   const validateBeforeSubmit = useCallback((): { fieldErrors?: FieldErrors; formError?: string } => {
     const fieldErrors: FieldErrors = {}
     if (!serviceScope) fieldErrors.serviceScope = '필요한 서비스 범위를 선택해 주세요.'
+
+    if (inquiryDetailMode === 'quote') {
+      if (!destinationSummary.trim()) {
+        fieldErrors.destinationSummary = '희망 국가 또는 도시를 입력해 주세요.'
+      }
+      if (!preferredDepartureDate.trim() && !preferredDepartureMonth.trim()) {
+        fieldErrors.departureDateOrMonth = '출발 희망일 또는 출발 희망월 중 하나를 입력해 주세요.'
+      }
+      const head = parseInt(headcount.replace(/[^\d]/g, ''), 10)
+      if (!Number.isFinite(head) || head < 1) {
+        fieldErrors.headcount = '예상 인원은 1명 이상의 숫자로 입력해 주세요.'
+      }
+    }
+
     if (Object.keys(fieldErrors).length > 0) {
       return { fieldErrors, formError: '필수 입력값을 확인해 주세요.' }
     }
     return {}
-  }, [serviceScope])
+  }, [
+    destinationSummary,
+    headcount,
+    inquiryDetailMode,
+    preferredDepartureDate,
+    preferredDepartureMonth,
+    serviceScope,
+  ])
 
   const buildPayloadJson = useCallback(() => {
     const head = parseInt(headcount.replace(/[^\d]/g, ''), 10)
@@ -80,6 +103,7 @@ export default function TrainingInquiryForm({
       consultType: 'OVERSEAS_TRAINING',
       quoteKind: 'overseas_training_consult',
       serviceDomain: 'overseas_training',
+      inquiryDetailMode,
       ...(organizationName.trim() ? { organizationName: organizationName.trim() } : {}),
       ...(organizationType.trim() ? { organizationType: organizationType.trim() } : {}),
       ...(serviceScope ? { serviceScope } : {}),
@@ -112,6 +136,7 @@ export default function TrainingInquiryForm({
     extraRequest,
     headcount,
     includeFlight,
+    inquiryDetailMode,
     institutionVisitNeeded,
     interpreterNeeded,
     organizationName,
@@ -186,6 +211,37 @@ export default function TrainingInquiryForm({
         ) : null}
         <section className="space-y-3 rounded-lg border border-slate-200 bg-white px-3 py-3">
           <h3 className="text-sm font-semibold text-slate-800">문의 조건</h3>
+          <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
+            <p className="text-xs font-medium text-slate-600">접수 방식</p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:gap-4">
+              <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-800">
+                <input
+                  type="radio"
+                  name={`${id}-detail-mode`}
+                  checked={inquiryDetailMode === 'quick'}
+                  onChange={() => setInquiryDetailMode('quick')}
+                  className="mt-1 h-4 w-4 border-slate-300 text-emerald-700 focus:ring-emerald-600"
+                />
+                <span>
+                  <span className="font-medium">간편 문의</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">연락처·필요 서비스·문의 내용만으로 접수</span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-800">
+                <input
+                  type="radio"
+                  name={`${id}-detail-mode`}
+                  checked={inquiryDetailMode === 'quote'}
+                  onChange={() => setInquiryDetailMode('quote')}
+                  className="mt-1 h-4 w-4 border-slate-300 text-emerald-700 focus:ring-emerald-600"
+                />
+                <span>
+                  <span className="font-medium">견적 문의</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">목적지·출발 시기·인원을 함께 받습니다</span>
+                </span>
+              </label>
+            </div>
+          </div>
           <div>
             <label htmlFor={`${id}-service-scope`} className="block text-sm font-medium text-slate-700">
               필요한 서비스 <span className="text-rose-600">*</span>
@@ -247,13 +303,18 @@ export default function TrainingInquiryForm({
           </div>
         </section>
 
-        <details className="rounded-lg border border-slate-200 bg-white [&_summary::-webkit-details-marker]:hidden">
+        <details
+          className="rounded-lg border border-slate-200 bg-white [&_summary::-webkit-details-marker]:hidden"
+          open={inquiryDetailMode === 'quote'}
+        >
           <summary className="cursor-pointer list-none px-3 py-3 text-sm font-semibold text-slate-800 outline-none ring-emerald-600 focus-visible:ring-2">
-            추가정보 입력(선택)
+            {inquiryDetailMode === 'quote' ? '견적 문의 필수 정보' : '추가정보 입력(선택)'}
           </summary>
           <div className="space-y-4 border-t border-slate-100 px-3 pb-4 pt-3">
             <p className="text-xs leading-relaxed text-slate-600">
-              아래 정보는 미정이어도 접수 가능합니다. 자세한 내용은 상담하면서 함께 정리해드립니다.
+              {inquiryDetailMode === 'quote'
+                ? '견적 문의는 목적지·출발 시기·인원이 필요합니다. 기관명 등은 선택으로 입력하실 수 있습니다.'
+                : '아래 정보는 미정이어도 접수 가능합니다. 자세한 내용은 상담하면서 함께 정리해드립니다.'}
             </p>
             <div>
               <label htmlFor={`${id}-org`} className="block text-sm font-medium text-slate-700">
@@ -271,7 +332,12 @@ export default function TrainingInquiryForm({
               <div className="mt-2 space-y-3">
           <div>
             <label htmlFor={`${id}-dest`} className="block text-sm font-medium text-slate-700">
-              희망 국가 또는 도시 <span className="text-slate-400">(선택)</span>
+              희망 국가 또는 도시{' '}
+              {inquiryDetailMode === 'quote' ? (
+                <span className="text-rose-600">*</span>
+              ) : (
+                <span className="text-slate-400">(선택)</span>
+              )}
             </label>
             <input
               id={`${id}-dest`}
@@ -283,7 +349,12 @@ export default function TrainingInquiryForm({
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label htmlFor={`${id}-dep-date`} className="block text-sm font-medium text-slate-700">
-                출발 희망일 <span className="text-slate-400">(선택)</span>
+                출발 희망일{' '}
+                {inquiryDetailMode === 'quote' ? (
+                  <span className="text-xs font-normal text-slate-500">(일 또는 월 중 하나 필수)</span>
+                ) : (
+                  <span className="text-slate-400">(선택)</span>
+                )}
               </label>
               <input
                 id={`${id}-dep-date`}
@@ -295,7 +366,12 @@ export default function TrainingInquiryForm({
             </div>
             <div>
               <label htmlFor={`${id}-dep-month`} className="block text-sm font-medium text-slate-700">
-                출발 희망월 <span className="text-slate-400">(선택)</span>
+                출발 희망월{' '}
+                {inquiryDetailMode === 'quote' ? (
+                  <span className="text-xs font-normal text-slate-500">(일 또는 월 중 하나 필수)</span>
+                ) : (
+                  <span className="text-slate-400">(선택)</span>
+                )}
               </label>
               <input
                 id={`${id}-dep-month`}
@@ -322,7 +398,12 @@ export default function TrainingInquiryForm({
             </div>
             <div>
               <label htmlFor={`${id}-headcount`} className="block text-sm font-medium text-slate-700">
-                예상 인원 <span className="text-slate-400">(선택)</span>
+                예상 인원{' '}
+                {inquiryDetailMode === 'quote' ? (
+                  <span className="text-rose-600">*</span>
+                ) : (
+                  <span className="text-slate-400">(선택)</span>
+                )}
               </label>
               <input
                 id={`${id}-headcount`}

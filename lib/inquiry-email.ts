@@ -16,6 +16,18 @@ import {
 } from '@/lib/inquiry-notification-format'
 import { formatInquiryTypeForAdminEmailLine } from '@/lib/inquiry-routing-metadata'
 
+function appendixFieldLine(label: string, value: string): string | null {
+  const v = value.trim()
+  if (!v || v === '-') return null
+  return `${label}: ${v}`
+}
+
+function appendixSection(header: string, lines: Array<string | null>): string[] {
+  const body = lines.filter((l): l is string => Boolean(l))
+  if (body.length === 0) return []
+  return [header, ...body, '']
+}
+
 export type { InquiryNotifyInput }
 
 function hasTravelProductMailContext(input: InquiryNotifyInput): boolean {
@@ -59,49 +71,70 @@ export function buildInquiryEmailAppendixLines(input: InquiryNotifyInput): strin
 
   switch (input.inquiryType) {
     case 'overseas_training_quote':
-      return [
-        `[국외연수 폼 필드 보조]`,
-        `필요한 서비스: ${inquiryPayloadField(payload, 'serviceScope')}`,
-        `기관명: ${inquiryPayloadField(payload, 'organizationName')}`,
-        `희망 국가/도시: ${inquiryPayloadField(payload, 'destinationSummary')}`,
-        `희망 일정/출발 시기: ${
-          inquiryPayloadField(payload, 'preferredDepartureDate') !== '-'
-            ? inquiryPayloadField(payload, 'preferredDepartureDate')
-            : inquiryPayloadField(payload, 'preferredDepartureMonth')
-        }`,
-        `예상 인원: ${inquiryPayloadField(payload, 'headcount')}`,
-        `연수 목적: ${inquiryPayloadField(payload, 'trainingPurpose')}`,
-        '',
-      ]
+      /** 국외연수는 상단 요약(`buildInquiryEmailSummaryBlock`)에만 표시 — appendix 중복 없음 */
+      return []
     case 'institution_request':
-      return [
-        `[기관/단체 문의 보조]`,
-        `기관명: ${inquiryPayloadField(payload, 'organizationName')}`,
-        `희망 국가/도시: ${inquiryPayloadField(payload, 'preferredCountryCity')}`,
-        `희망 일정/시기: ${inquiryPayloadField(payload, 'preferredTiming')}`,
-        `예상 인원: ${inquiryPayloadField(payload, 'estimatedHeadcount')}`,
-        `방문 분야: ${inquiryPayloadField(payload, 'visitField')}`,
-        `필요 서비스: ${inquiryPayloadField(payload, 'serviceScope')}`,
-        `연수 목적: ${inquiryPayloadField(payload, 'trainingPurpose')}`,
-        `통역·코디 희망: ${payload.interpreterNeeded === true ? '예' : '아니오'}`,
-        `기준 희망 월: ${inquiryPayloadField(payload, 'targetYearMonth')}`,
-        '',
-      ]
+      return appendixSection(`[기관/단체 문의 보조]`, [
+        appendixFieldLine('기관명', inquiryPayloadField(payload, 'organizationName')),
+        appendixFieldLine('희망 국가/도시', inquiryPayloadField(payload, 'preferredCountryCity')),
+        appendixFieldLine('희망 일정/시기', inquiryPayloadField(payload, 'preferredTiming')),
+        appendixFieldLine('예상 인원', inquiryPayloadField(payload, 'estimatedHeadcount')),
+        appendixFieldLine('방문 분야', inquiryPayloadField(payload, 'visitField')),
+        appendixFieldLine('필요 서비스', inquiryPayloadField(payload, 'serviceScope')),
+        appendixFieldLine('연수 목적', inquiryPayloadField(payload, 'trainingPurpose')),
+        appendixFieldLine('기준 희망 월', inquiryPayloadField(payload, 'targetYearMonth')),
+        payload.interpreterNeeded === true ? '통역·코디 희망: 예' : null,
+      ])
     case 'bus_quote':
-      return [
-        `[전세버스 문의 보조]`,
-        `이용목적: ${inquiryPayloadField(payload, 'usageType')}`,
-        `이용일: ${inquiryPayloadField(payload, 'useDate')}`,
-        `출발지: ${inquiryPayloadField(payload, 'departurePlace')}`,
-        `도착지: ${inquiryPayloadField(payload, 'arrivalPlace')}`,
-        `경유: ${inquiryPayloadField(payload, 'viaPoints')}`,
-        `예상 인원: ${inquiryPayloadField(payload, 'estimatedHeadcount')}`,
-        `차량 희망: ${inquiryPayloadField(payload, 'vehicleClassPreference')}`,
-        '',
-      ]
+      return appendixSection(`[전세버스 문의 보조]`, [
+        appendixFieldLine('이용목적', inquiryPayloadField(payload, 'usageType')),
+        appendixFieldLine(
+          '이용일',
+          inquiryPayloadField(payload, 'useDate') !== '-'
+            ? inquiryPayloadField(payload, 'useDate')
+            : inquiryPayloadField(payload, 'targetYearMonth')
+        ),
+        appendixFieldLine('출발지', inquiryPayloadField(payload, 'departurePlace')),
+        appendixFieldLine('도착지', inquiryPayloadField(payload, 'arrivalPlace')),
+        appendixFieldLine('경유', inquiryPayloadField(payload, 'viaPoints')),
+        appendixFieldLine('예상 인원', inquiryPayloadField(payload, 'estimatedHeadcount')),
+        appendixFieldLine('차량 희망', inquiryPayloadField(payload, 'vehicleClassPreference')),
+      ])
     default:
       return []
   }
+}
+
+/** 운영자 SMTP 본문 (스크립트 검증·단일 조립). raw payloadJson 은 포함하지 않음. */
+export function buildInquiryOperatorEmailBody(input: InquiryNotifyInput): string {
+  const prefix = resolveInquiryAlertPrefix(input)
+  const summary = buildInquiryEmailSummaryBlock(input, prefix)
+  const typeLine = formatInquiryTypeForAdminEmailLine(input.inquiryType, input.payloadJson)
+  const appendix = buildInquiryEmailAppendixLines(input)
+  const customerReply = input.applicantEmail?.trim() ?? ''
+  const replyTo = looksLikeEmail(customerReply) ? customerReply : undefined
+
+  return [
+    summary,
+    '■ 회신 안내',
+    replyTo
+      ? '이 메일에 "회신"하면 고객 이메일(Reply-To)로 전달됩니다.'
+      : '고객 이메일이 없어 Reply-To 가 설정되지 않았습니다. 아래 연락처로만 회신하세요.',
+    '',
+    '■ 문의 메타',
+    `문의 유형: ${typeLine}`,
+    `고객명: ${input.applicantName.trim() || '-'}`,
+    `고객 연락처: ${input.applicantPhone.trim() || '-'}`,
+    `고객 이메일: ${input.applicantEmail?.trim() || '(없음)'}`,
+    '',
+    `[문의 내용]`,
+    input.message?.trim() || '-',
+    '',
+    `[유입 페이지]`,
+    input.sourcePagePath ?? '-',
+    '',
+    ...appendix,
+  ].join('\n')
 }
 
 type InquirySendResult = Awaited<ReturnType<ReturnType<typeof nodemailer.createTransport>['sendMail']>>
@@ -172,36 +205,8 @@ export async function sendInquiryReceivedEmail(input: InquiryNotifyInput): Promi
   const replyTo = looksLikeEmail(customerReply) ? customerReply : undefined
 
   const prefix = resolveInquiryAlertPrefix(input)
-
   const subject = buildInquiryEmailSubject(input, prefix)
-  const summary = buildInquiryEmailSummaryBlock(input, prefix)
-  const typeLine = formatInquiryTypeForAdminEmailLine(input.inquiryType, input.payloadJson)
-  const appendix = buildInquiryEmailAppendixLines(input)
-
-  const text = [
-    summary,
-    '■ 회신 안내',
-    replyTo
-      ? '이 메일에 "회신"하면 고객 이메일(Reply-To)로 전달됩니다.'
-      : '고객 이메일이 없어 Reply-To 가 설정되지 않았습니다. 아래 연락처로만 회신하세요.',
-    '',
-    '■ 문의 메타',
-    `문의 유형(API): ${typeLine}`,
-    `접수 시각: ${input.createdAtIso}`,
-    `고객명: ${input.applicantName.trim() || '-'}`,
-    `고객 연락처: ${input.applicantPhone.trim() || '-'}`,
-    `고객 이메일: ${input.applicantEmail?.trim() || '(없음)'}`,
-    '',
-    `[문의 내용]`,
-    input.message?.trim() || '-',
-    '',
-    `[유입 페이지]`,
-    input.sourcePagePath ?? '-',
-    '',
-    ...appendix,
-    '[payloadJson]',
-    input.payloadJson ?? '-',
-  ].join('\n')
+  const text = buildInquiryOperatorEmailBody(input)
 
   const html = `<pre style="font-family:system-ui,Segoe UI,sans-serif;font-size:14px;line-height:1.45;white-space:pre-wrap">${escapeHtml(text)}</pre>`
 

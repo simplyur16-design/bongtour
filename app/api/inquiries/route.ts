@@ -391,6 +391,12 @@ export async function POST(request: Request) {
         delayed: !emailOk,
         channels: {
           email: { ok: emailOk },
+          adminLms: {
+            skipped: lmsAdmin.skipped,
+            ok: !lmsAdmin.skipped && lmsAdmin.failed.length === 0 && lmsAdmin.succeeded.length > 0,
+            succeededCount: lmsAdmin.succeeded.length,
+            failedCount: lmsAdmin.failed.length,
+          },
         },
       },
     }

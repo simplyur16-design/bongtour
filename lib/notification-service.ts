@@ -3,7 +3,10 @@ import { prisma } from '@/lib/prisma'
 import { createSolapiAuthorizationHeader } from '@/lib/solapi-auth'
 import { buildAdminNotificationMessage, buildAdminNotificationMessageFromPayload } from '@/lib/message-service'
 import type { AdminBookingAlertPayload } from '@/lib/booking-alert-payload'
-import { buildAdminInquiryLmsBody, type AdminInquiryLmsBodyInput } from '@/lib/admin-inquiry-lms-content'
+import {
+  buildAdminInquiryShortAlertLine,
+  type AdminInquiryLmsBodyInput,
+} from '@/lib/admin-inquiry-lms-content'
 
 const SOLAPI_SEND_URL = 'https://api.solapi.com/messages/v4/send'
 
@@ -259,7 +262,7 @@ export async function sendAdminInquiryNotification(p: AdminInquiryNotificationPa
     return { skipped: true, succeeded: [], failed: [] }
   }
 
-  const text = buildAdminInquiryLmsBody(p)
+  const text = buildAdminInquiryShortAlertLine(p)
   const succeeded: string[] = []
   const failed: { to: string; code?: string; message: string }[] = []
 
