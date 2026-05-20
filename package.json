@@ -17,6 +17,7 @@
     "start": "next start -p ${PORT:-3000}",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:node": "node --import tsx --test tests/**/*.test.ts",
     "lint": "next lint",
     "check:register-supplier-imports": "node scripts/check-register-supplier-cross-imports.mjs",
     "check": "npm run check:register-supplier-imports && npm run lint",
