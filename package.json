@@ -155,6 +155,8 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@emnapi/core": "^1.10.0",
+    "@emnapi/runtime": "^1.10.0",
     "@next/bundle-analyzer": "^15.5.15",
     "better-sqlite3": "^12.9.0",
     "dotenv": "^17.4.2",
