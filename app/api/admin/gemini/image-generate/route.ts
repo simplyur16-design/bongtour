@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
 import {
   buildGeminiImagePromptForSlot,
+  buildTrainingGeminiImagePromptForSlot,
   GEMINI_IMAGE_SLOT_ORDER,
+  TRAINING_GEMINI_IMAGE_SLOT_ORDER,
   type GeminiImageSlotType,
+  type TrainingGeminiImageSlotType,
 } from '@/lib/gemini-image-prompt'
 import { generateImageWithGemini, IMAGEN_MODEL } from '@/lib/gemini-image-generate'
 import { convertToWebp } from '@/lib/image-to-webp'
@@ -17,7 +20,7 @@ const PROMPT_OVERRIDE_MAX = 500
 
 export type GeminiImageCandidate = {
   imageUrl: string | null
-  slot: GeminiImageSlotType
+  slot: GeminiImageSlotType | TrainingGeminiImageSlotType
   error?: string | null
 }
 
@@ -26,7 +29,7 @@ export type GeminiImageGenerateResponse =
       ok: true
       /** 하위 호환: 슬롯 프롬프트를 줄바꿈으로 이은 요약 */
       promptUsed: string
-      promptsBySlot: { slot: GeminiImageSlotType; text: string }[]
+      promptsBySlot: { slot: GeminiImageSlotType | TrainingGeminiImageSlotType; text: string }[]
       images: GeminiImageCandidate[]
     }
   | { ok: false; error: string }
@@ -79,6 +82,11 @@ export async function POST(request: Request) {
       typeof body.attractionName === 'string' ? body.attractionName.trim() : null
     const poiNamesRaw = typeof body.poiNamesRaw === 'string' ? body.poiNamesRaw.trim() : null
     const scheduleJson = typeof body.scheduleJson === 'string' ? body.scheduleJson.trim() : null
+    const profile = typeof body.profile === 'string' ? body.profile.trim() : 'travel'
+    const trainingDescription =
+      typeof body.trainingDescription === 'string' ? body.trainingDescription.trim() : null
+    const trainingCategory =
+      typeof body.trainingCategory === 'string' ? body.trainingCategory.trim() : null
 
     const promptOptions = {
       destination,
@@ -91,15 +99,31 @@ export async function POST(request: Request) {
       scheduleJson: scheduleJson || null,
     }
 
-    const promptsBySlot: { slot: GeminiImageSlotType; text: string }[] = []
+    const isTraining = profile === 'overseas_training'
+    const promptsBySlot: { slot: GeminiImageSlotType | TrainingGeminiImageSlotType; text: string }[] = []
     const images: GeminiImageCandidate[] = []
 
     const now = new Date()
     const baseId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-    for (let i = 0; i < GEMINI_IMAGE_SLOT_ORDER.length; i++) {
-      const slot = GEMINI_IMAGE_SLOT_ORDER[i]!
-      const slotPrompt = buildGeminiImagePromptForSlot(promptOptions, promptOverride, slot)
+    const slotList: Array<GeminiImageSlotType | TrainingGeminiImageSlotType> = isTraining
+      ? [...TRAINING_GEMINI_IMAGE_SLOT_ORDER]
+      : [...GEMINI_IMAGE_SLOT_ORDER]
+
+    for (let i = 0; i < slotList.length; i++) {
+      const slot = slotList[i]!
+      const slotPrompt = isTraining
+        ? buildTrainingGeminiImagePromptForSlot(
+            {
+              title,
+              destination: destination || primaryRegion,
+              trainingCategory,
+              trainingDescription,
+            },
+            promptOverride,
+            slot as TrainingGeminiImageSlotType
+          )
+        : buildGeminiImagePromptForSlot(promptOptions, promptOverride, slot as GeminiImageSlotType)
       promptsBySlot.push({ slot, text: slotPrompt })
 
       try {
@@ -134,7 +158,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: `4슬롯 모두 실패했습니다. Imagen 모델: ${IMAGEN_MODEL}. 키·쿼터·프롬프트를 확인하세요.`,
+          error: `${slotList.length}슬롯 모두 실패했습니다. Imagen 모델: ${IMAGEN_MODEL}. 키·쿼터·프롬프트를 확인하세요.`,
         } satisfies GeminiImageGenerateResponse,
         { status: 500 }
       )

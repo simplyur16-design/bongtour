@@ -48,6 +48,9 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
         <section className="mb-8">
           <h2 className={ADMIN_SECTION_TITLE_CLASS}>빠른 액션</h2>
           <div className="flex flex-wrap gap-3">
+            <Link href={`/admin/training-programs/new${query}`} className={ADMIN_BTN_SECONDARY_CLASS}>
+              국외연수 프로그램 등록
+            </Link>
             <Link href={`/admin/register${query}`} className={ADMIN_BTN_PRIMARY_CLASS}>
               상품 등록
             </Link>

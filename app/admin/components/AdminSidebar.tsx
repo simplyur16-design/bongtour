@@ -67,6 +67,15 @@ const navEntries: NavEntry[] = [
       { href: '/admin/bongsim/monthly-curation', label: '월별 큐레이션(Gemini)', icon: CalendarDays },
     ],
   },
+  {
+    type: 'group',
+    label: '국외연수 프로그램',
+    items: [
+      { href: '/admin/training-programs', label: '프로그램 목록', icon: List },
+      { href: '/admin/training-programs/new', label: '프로그램 등록', icon: Package },
+      { href: '/admin/training-programs/guide', label: '운영 가이드', icon: ClipboardList },
+    ],
+  },
   { type: 'link', href: '/admin/register', label: '상품 등록', icon: Package },
   { type: 'link', href: '/admin/pending', label: '등록대기', icon: ClipboardList },
   { type: 'link', href: '/admin/products', label: '상품 목록', icon: List },

@@ -18,6 +18,8 @@ import { readAdminProductSupplierDerivatives } from '@/lib/admin-product-supplie
 import {
   LISTING_KIND_LABELS,
   LISTING_KIND_VALUES,
+  parseListingKind,
+  type ListingKind,
   LOCAL_DEPARTURE_TAG_LABELS,
   LOCAL_DEPARTURE_TAG_VALUES,
   type LocalDepartureTag,
@@ -362,7 +364,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
     duration: '',
     airline: '',
     travelScope: '' as '' | 'domestic' | 'overseas',
-    listingKind: '' as '' | 'travel' | 'private_trip' | 'air_hotel_free',
+    listingKind: '' as '' | ListingKind,
   })
   const [localDepartureTagDraft, setLocalDepartureTagDraft] = useState<LocalDepartureTag[]>([])
   const [benefitDraft, setBenefitDraft] = useState('')
@@ -443,12 +445,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
       airline: product.airline ?? '',
       travelScope:
         product.travelScope === 'domestic' || product.travelScope === 'overseas' ? product.travelScope : '',
-      listingKind:
-        product.listingKind === 'travel' ||
-        product.listingKind === 'private_trip' ||
-        product.listingKind === 'air_hotel_free'
-          ? product.listingKind
-          : '',
+      listingKind: parseListingKind(product.listingKind) ?? '',
     })
     setLocalDepartureTagDraft(
       LOCAL_DEPARTURE_TAG_VALUES.filter(
@@ -898,6 +895,15 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
             : ''}
         </div>
       )}
+      {product.listingKind === 'overseas_training' ? (
+        <div className="border-b border-emerald-500/40 bg-emerald-950/50 px-4 py-2 text-center text-sm text-emerald-100">
+          국외연수 프로그램 —{' '}
+          <Link href={`/admin/training-programs/${product.id}`} className="font-semibold underline">
+            전용 편집 화면에서 수정
+          </Link>
+          하세요. (패키지 상품 편집기와 분리)
+        </div>
+      ) : null}
       <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 border-b border-bt-border-strong bg-bt-title/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-4">
           <Link href="/admin/products" className="text-sm text-bt-meta hover:text-bt-inverse">

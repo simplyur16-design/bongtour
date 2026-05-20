@@ -403,7 +403,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         const v = String(raw).trim()
         if (!(LISTING_KIND_VALUES as readonly string[]).includes(v)) {
           return NextResponse.json(
-            { error: 'listingKind는 travel, private_trip, air_hotel_free 중 하나여야 합니다.' },
+            { error: 'listingKind는 travel, private_trip, air_hotel_free, overseas_training 중 하나여야 합니다.' },
             { status: 400 }
           )
         }
