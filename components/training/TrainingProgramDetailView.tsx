@@ -4,18 +4,23 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
 import Header from '@/app/components/Header'
-import { ScheduleDayItineraryBlocks } from '@/components/itinerary/ScheduleDayItineraryBlocks'
 import TrainingDepartureYearCalendar from '@/components/training/TrainingDepartureYearCalendar'
 import TrainingInquiryForm from '@/components/inquiry/TrainingInquiryForm'
+import TrainingPrepSections from '@/components/training/TrainingPrepSections'
+import TrainingScheduleTable from '@/components/training/TrainingScheduleTable'
+import TrainingWindsorTabs, { type TrainingWindsorTabId } from '@/components/training/TrainingWindsorTabs'
 import type { TrainingProgramPublicRow } from '@/lib/overseas-training-program-query'
-import { parsePrepChecklistJson } from '@/lib/overseas-training-program-query'
+import { resolveTrainingPrepForDisplay } from '@/lib/overseas-training-europe-prep-default'
 import {
   defaultTrainingDepartureCalendarRange,
   formatTrainingCalendarDayLabel,
   pickDefaultTrainingDepartureYmd,
-  trainingScheduleDayYmd,
 } from '@/lib/overseas-training-departure-calendar'
-import { getScheduleFromProduct } from '@/lib/schedule-from-product'
+import {
+  parseTrainingScheduleFromProduct,
+  scheduleDaysToTableRows,
+  scheduleTextToTableRows,
+} from '@/lib/overseas-training-schedule-ssot'
 import {
   TRAINING_AUDIENCE_LABELS,
   TRAINING_CATEGORY_LABELS,
@@ -28,16 +33,8 @@ type Props = {
   program: TrainingProgramPublicRow
 }
 
-const TABS = [
-  { id: 'description', label: '상품설명' },
-  { id: 'schedule', label: '상세일정' },
-  { id: 'prep', label: '여행준비·체크' },
-] as const
-
-type TabId = (typeof TABS)[number]['id']
-
 export default function TrainingProgramDetailView({ program }: Props) {
-  const [tab, setTab] = useState<TabId>('description')
+  const [tab, setTab] = useState<TrainingWindsorTabId>('description')
   const [inquiryOpen, setInquiryOpen] = useState(false)
   const calendarRange = useMemo(() => defaultTrainingDepartureCalendarRange(), [])
   const [selectedDepartureYmd, setSelectedDepartureYmd] = useState<string | null>(null)
@@ -55,12 +52,22 @@ export default function TrainingProgramDetailView({ program }: Props) {
   const meta = formatTrainingProgramMetaLine(program.durationDays, program.fixedDepartureWeekday)
   const category = parseTrainingCategory(program.trainingCategory)
   const audience = parseTrainingAudience(program.trainingAudience)
-  const prep = parsePrepChecklistJson(program.prepChecklistJson)
-  const scheduleDays = useMemo(
-    () => getScheduleFromProduct({ schedule: program.schedule, itineraries: [] }),
+
+  const scheduleStorage = useMemo(
+    () => parseTrainingScheduleFromProduct(program.schedule),
     [program.schedule]
   )
+  const scheduleTableRows = useMemo(() => {
+    if (scheduleStorage.mode === 'raw') {
+      return scheduleTextToTableRows(scheduleStorage.text)
+    }
+    return scheduleDaysToTableRows(scheduleStorage.days)
+  }, [scheduleStorage])
 
+  const prepSections = useMemo(
+    () => resolveTrainingPrepForDisplay(program.prepChecklistJson),
+    [program.prepChecklistJson]
+  )
   const description =
     program.trainingDescription?.trim() || program.summary?.trim() || '상품 설명을 준비 중입니다.'
 
@@ -96,103 +103,37 @@ export default function TrainingProgramDetailView({ program }: Props) {
           </div>
         </section>
 
-        <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-          <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 sm:px-6">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTab(t.id)}
-                className={`shrink-0 border-b-2 px-4 py-3 text-sm font-semibold ${
-                  tab === t.id
-                    ? 'border-slate-900 text-slate-900'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-          {tab === 'description' ? (
-            <div className="prose prose-slate max-w-none whitespace-pre-wrap text-[17px] leading-relaxed text-slate-800">
-              {description}
-            </div>
-          ) : null}
+          <TrainingWindsorTabs active={tab} onChange={setTab}>
+            {tab === 'description' ? (
+              <div className="whitespace-pre-wrap text-[17px] leading-relaxed text-slate-800">{description}</div>
+            ) : null}
 
-          {tab === 'schedule' ? (
-            <div className="space-y-8">
-              <TrainingDepartureYearCalendar
-                fixedDepartureWeekday={program.fixedDepartureWeekday}
-                selectedYmd={selectedDepartureYmd}
-                onSelectYmd={setSelectedDepartureYmd}
-                range={calendarRange}
-              />
+            {tab === 'schedule' ? (
+              <div className="space-y-6">
+                {program.fixedDepartureWeekday != null && scheduleStorage.mode === 'days' ? (
+                  <>
+                    <TrainingDepartureYearCalendar
+                      fixedDepartureWeekday={program.fixedDepartureWeekday}
+                      selectedYmd={selectedDepartureYmd}
+                      onSelectYmd={setSelectedDepartureYmd}
+                      range={calendarRange}
+                    />
+                    {selectedDepartureYmd ? (
+                      <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-center text-sm font-semibold text-amber-950">
+                        아래 일정은 {formatTrainingCalendarDayLabel(selectedDepartureYmd)} 출발 기준 예시입니다.
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+                <TrainingScheduleTable rows={scheduleTableRows} />
+              </div>
+            ) : null}
 
-              {scheduleDays.length === 0 ? (
-                <p className="text-slate-600">상세 일정을 준비 중입니다.</p>
-              ) : (
-                <>
-                  {selectedDepartureYmd ? (
-                    <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-center text-sm font-semibold text-amber-950">
-                      아래 일정은 {formatTrainingCalendarDayLabel(selectedDepartureYmd)} 출발 기준 예시입니다.
-                    </p>
-                  ) : null}
-                  <div className="space-y-8">
-                    {scheduleDays.map((day, idx) => {
-                      const dayNum = Math.floor(Number(day.day))
-                      const dayYmd =
-                        selectedDepartureYmd != null
-                          ? trainingScheduleDayYmd(selectedDepartureYmd, dayNum)
-                          : null
-                      return (
-                        <section key={`${day.day}-${idx}`} className="space-y-4 scroll-mt-28">
-                          <div className="border-b border-[#DAD4EE] pb-4">
-                            <p className="text-xs font-bold tracking-widest text-amber-800 mb-1">
-                              DAY {day.day}
-                              {dayYmd ? (
-                                <span className="ml-2 font-semibold text-slate-700">
-                                  · {formatTrainingCalendarDayLabel(dayYmd)}
-                                </span>
-                              ) : null}
-                            </p>
-                            {day.title ? (
-                              <h3 className="text-xl font-black text-slate-900 sm:text-2xl">{day.title}</h3>
-                            ) : null}
-                          </div>
-                          <ScheduleDayItineraryBlocks
-                            day={day}
-                            isLastScheduleRow={idx === scheduleDays.length - 1}
-                          />
-                        </section>
-                      )
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          ) : null}
-
-          {tab === 'prep' ? (
-            <div className="space-y-6">
-              {prep.length === 0 ? (
-                <p className="text-slate-600">여행 준비·체크 사항을 준비 중입니다.</p>
-              ) : (
-                prep.map((section) => (
-                  <section key={section.title} className="rounded-xl border border-slate-200 bg-white p-5">
-                    <h3 className="text-lg font-semibold text-slate-900">{section.title}</h3>
-                    <ul className="mt-3 list-disc space-y-2 pl-5 text-[16px] text-slate-700">
-                      {section.items.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </section>
-                ))
-              )}
-            </div>
-          ) : null}
+            {tab === 'prep' ? (
+              <TrainingPrepSections sections={prepSections} />
+            ) : null}
+          </TrainingWindsorTabs>
         </div>
       </main>
 

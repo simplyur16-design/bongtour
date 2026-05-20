@@ -11,6 +11,16 @@ import {
 } from '@/lib/overseas-training-taxonomy'
 import type { TrainingProgramAdminRow } from '@/lib/overseas-training-admin'
 import { trainingProgramPublicPath } from '@/lib/overseas-training-program-query'
+import {
+  EUROPE_PREP_DEFAULT_MARKER,
+  prepChecklistForSave,
+  usesEuropePrepDefault,
+} from '@/lib/overseas-training-europe-prep-default'
+import {
+  parseTrainingScheduleFromProduct,
+  serializeTrainingScheduleRaw,
+  trainingScheduleToAdminText,
+} from '@/lib/overseas-training-schedule-ssot'
 import { ADMIN_BTN_PRIMARY_CLASS, ADMIN_BTN_SECONDARY_CLASS } from '@/lib/admin-design-system'
 
 const WEEKDAY_OPTIONS = [
@@ -42,8 +52,17 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
   const [originalTitle, setOriginalTitle] = useState(initial?.originalTitle ?? '')
   const [registrationStatus, setRegistrationStatus] = useState(initial?.registrationStatus ?? 'pending')
   const [trainingDescription, setTrainingDescription] = useState(initial?.trainingDescription ?? '')
-  const [prepChecklistJson, setPrepChecklistJson] = useState(initial?.prepChecklistJson ?? '[]')
-  const [schedule, setSchedule] = useState(initial?.schedule ?? '[]')
+  const [useEuropePrepDefault, setUseEuropePrepDefault] = useState(
+    initial ? usesEuropePrepDefault(initial.prepChecklistJson) : true
+  )
+  const [prepChecklistJson, setPrepChecklistJson] = useState(
+    initial?.prepChecklistJson && !usesEuropePrepDefault(initial.prepChecklistJson)
+      ? initial.prepChecklistJson
+      : '[]'
+  )
+  const [scheduleText, setScheduleText] = useState(() =>
+    trainingScheduleToAdminText(parseTrainingScheduleFromProduct(initial?.schedule))
+  )
   const [fixedDepartureWeekday, setFixedDepartureWeekday] = useState(
     initial?.fixedDepartureWeekday != null ? String(initial.fixedDepartureWeekday) : ''
   )
@@ -56,8 +75,12 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
     initial?.primaryDestination ?? initial?.destinationRaw ?? ''
   )
   const [bgImageUrl, setBgImageUrl] = useState(initial?.bgImageUrl ?? '')
+  const [bgImageIsGenerated, setBgImageIsGenerated] = useState(initial?.bgImageIsGenerated ?? false)
   const [promptOverride, setPromptOverride] = useState('')
   const [imageBusy, setImageBusy] = useState(false)
+  const [uploadBusy, setUploadBusy] = useState(false)
+  const [promptPreview, setPromptPreview] = useState<{ slot: string; text: string }[] | null>(null)
+  const [promptPreviewBusy, setPromptPreviewBusy] = useState(false)
 
   const publicPath =
     initial?.slug || initial?.id
@@ -71,15 +94,15 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       originUrl: originUrl || null,
       registrationStatus,
       trainingDescription,
-      prepChecklistJson,
-      schedule,
+      prepChecklistJson: prepChecklistForSave(useEuropePrepDefault, prepChecklistJson),
+      schedule: serializeTrainingScheduleRaw(scheduleText),
       fixedDepartureWeekday: fixedDepartureWeekday === '' ? null : Number(fixedDepartureWeekday),
       durationDays: durationDays === '' ? null : Number(durationDays),
       trainingCategory: trainingCategory || null,
       trainingAudience: trainingAudience || null,
       destinationSummary: destinationSummary || null,
       bgImageUrl: bgImageUrl || null,
-      bgImageIsGenerated: Boolean(bgImageUrl),
+      bgImageIsGenerated,
     }),
     [
       title,
@@ -87,14 +110,16 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       originUrl,
       registrationStatus,
       trainingDescription,
+      useEuropePrepDefault,
       prepChecklistJson,
-      schedule,
+      scheduleText,
       fixedDepartureWeekday,
       durationDays,
       trainingCategory,
       trainingAudience,
       destinationSummary,
       bgImageUrl,
+      bgImageIsGenerated,
     ]
   )
 
@@ -158,8 +183,15 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       const d = data.draft
       if (d.originalTitle) setOriginalTitle(d.originalTitle)
       if (d.trainingDescription) setTrainingDescription(d.trainingDescription)
-      if (d.scheduleJson) setSchedule(d.scheduleJson)
-      if (d.prepChecklistJson) setPrepChecklistJson(d.prepChecklistJson)
+      if (d.scheduleJson) {
+        setScheduleText(
+          trainingScheduleToAdminText(parseTrainingScheduleFromProduct(d.scheduleJson))
+        )
+      }
+      if (d.prepChecklistJson) {
+        setUseEuropePrepDefault(false)
+        setPrepChecklistJson(d.prepChecklistJson)
+      }
       if (d.fixedDepartureWeekday != null) setFixedDepartureWeekday(String(d.fixedDepartureWeekday))
       if (d.durationDays != null) setDurationDays(String(d.durationDays))
       if (d.trainingCategory) setTrainingCategory(d.trainingCategory)
@@ -194,6 +226,39 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
     }
   }
 
+  const previewImagePrompts = async () => {
+    setPromptPreviewBusy(true)
+    setMsg(null)
+    try {
+      const res = await fetch('/api/admin/training-programs/preview-image-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          destination: destinationSummary,
+          trainingCategory,
+          trainingDescription: trainingDescription.slice(0, 2000),
+          promptOverride: promptOverride || undefined,
+        }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        promptsBySlot?: { slot: string; text: string }[]
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.promptsBySlot) {
+        setMsg(data.error ?? '프롬프트 미리보기 실패')
+        return
+      }
+      setPromptPreview(data.promptsBySlot)
+      setMsg('슬롯별 프롬프트를 표시했습니다. 외부 Gemini·Imagen에 복사해 쓸 수 있습니다.')
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : '프롬프트 미리보기 오류')
+    } finally {
+      setPromptPreviewBusy(false)
+    }
+  }
+
   const generateImage = async () => {
     setImageBusy(true)
     setMsg(null)
@@ -213,21 +278,47 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       const data = (await res.json()) as {
         ok?: boolean
         images?: { slot: string; imageUrl: string | null }[]
+        promptsBySlot?: { slot: string; text: string }[]
         error?: string
       }
       if (!res.ok || !data.ok) {
         setMsg(data.error ?? '이미지 생성 실패')
         return
       }
+      if (data.promptsBySlot?.length) setPromptPreview(data.promptsBySlot)
       const first = data.images?.find((x) => x.imageUrl)?.imageUrl
       if (first) {
         setBgImageUrl(first)
+        setBgImageIsGenerated(true)
         setMsg('대표 이미지를 적용했습니다. 저장을 눌러 반영하세요.')
       }
     } catch (e) {
       setMsg(e instanceof Error ? e.message : '이미지 오류')
     } finally {
       setImageBusy(false)
+    }
+  }
+
+  const uploadImage = async (file: File) => {
+    setUploadBusy(true)
+    setMsg(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('cardKey', 'training')
+      const res = await fetch('/api/admin/upload-image', { method: 'POST', body: fd })
+      const data = (await res.json()) as { ok?: boolean; path?: string; error?: string }
+      if (!res.ok || !data.ok || !data.path) {
+        setMsg(data.error ?? '업로드 실패')
+        return
+      }
+      setBgImageUrl(data.path)
+      setBgImageIsGenerated(false)
+      setMsg('업로드한 이미지를 적용했습니다. 저장을 눌러 반영하세요.')
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : '업로드 오류')
+    } finally {
+      setUploadBusy(false)
     }
   }
 
@@ -261,6 +352,11 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
 
       <section className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 space-y-3">
         <h2 className="font-semibold text-slate-900">1. 윈저·협력사 본문 붙여넣기</h2>
+        <p className="text-sm text-slate-700 leading-relaxed">
+          한 번에 붙여넣으면 <strong>상품설명</strong>·<strong>상세일정 JSON</strong>·<strong>여행준비 JSON</strong>으로
+          나뉩니다. 유럽 상품은 하단 「해외여행 안전정보」「예약시 유의사항」 등 <strong>공통 안내문</strong>이
+          프로그램마다 같을 수 있습니다 — 연수 고유 소개·일차 일정은 각 섹션에서 따로 검수·수정하세요.
+        </p>
         <input
           type="url"
           value={originUrl}
@@ -387,38 +483,78 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
 
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
         <h2 className="font-semibold text-slate-900">3. 상품설명</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          공개 페이지 「상품설명」 탭에 그대로 표시됩니다 (약 1,000자 권장). 봉투어 톤은 「제목 제안」처럼
+          직접 다듬거나 그대로 두셔도 됩니다. 약관·여행준비 문구는 여기 넣지 마세요.
+        </p>
         <textarea
           value={trainingDescription}
           onChange={(e) => setTrainingDescription(e.target.value)}
-          rows={12}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          rows={14}
+          maxLength={12000}
+          placeholder="연수 목적·대상·특징 등 프로그램 소개"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed"
         />
+        <p className="text-xs text-slate-500">{trainingDescription.length} / 12000자</p>
       </section>
 
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-900">4. 상세일정 (JSON)</h2>
-        <p className="text-xs text-slate-500">[{`{ "day": 1, "description": "..." }`}, …]</p>
+        <h2 className="font-semibold text-slate-900">4. 상세일정</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          붙여넣은 내용을 <strong>축약 없이</strong> 공개 「상세일정」 탭 표로 보여 줍니다.{' '}
+          <code className="text-[11px]">1일차</code>, <code className="text-[11px]">2일차</code>처럼
+          줄을 나누면 일차별 표 행이 됩니다.
+        </p>
         <textarea
-          value={schedule}
-          onChange={(e) => setSchedule(e.target.value)}
-          rows={10}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs"
+          value={scheduleText}
+          onChange={(e) => setScheduleText(e.target.value)}
+          rows={16}
+          placeholder={'1일차\n인천 출발 · …\n\n2일차\n…'}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono leading-relaxed"
         />
       </section>
 
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-900">5. 여행준비·체크 (JSON)</h2>
-        <p className="text-xs text-slate-500">[{`{ "title": "출발 전", "items": ["…"] }`}, …]</p>
-        <textarea
-          value={prepChecklistJson}
-          onChange={(e) => setPrepChecklistJson(e.target.value)}
-          rows={8}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs"
-        />
+        <h2 className="font-semibold text-slate-900">5. 여행준비/체크사항</h2>
+        <label className="flex items-start gap-2 text-sm text-slate-800">
+          <input
+            type="checkbox"
+            checked={useEuropePrepDefault}
+            onChange={(e) => {
+              setUseEuropePrepDefault(e.target.checked)
+              if (e.target.checked) setPrepChecklistJson('[]')
+            }}
+            className="mt-1"
+          />
+          <span>
+            유럽 연수 공통 안내문 사용 (기본) — 공개 「여행준비/체크사항」 탭에 동일 내용이 표시됩니다.
+          </span>
+        </label>
+        {!useEuropePrepDefault ? (
+          <>
+            <p className="text-xs text-slate-500">
+              [{`{ "title": "예약시 유의사항", "items": ["♠ …"] }`}, …] JSON
+            </p>
+            <textarea
+              value={prepChecklistJson}
+              onChange={(e) => setPrepChecklistJson(e.target.value)}
+              rows={8}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs"
+            />
+          </>
+        ) : (
+          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            저장 시 공통 안내문 마커({EUROPE_PREP_DEFAULT_MARKER.slice(0, 40)}…)가 기록됩니다.
+          </p>
+        )}
       </section>
 
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-900">6. 대표 이미지 (Gemini)</h2>
+        <h2 className="font-semibold text-slate-900">6. 대표 이미지</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          「프롬프트 미리보기」로 슬롯별 영문 프롬프트를 확인한 뒤, 사이트 내 생성·외부 Gemini·직접 업로드 중
+          선택하세요.
+        </p>
         <textarea
           value={promptOverride}
           onChange={(e) => setPromptOverride(e.target.value)}
@@ -426,17 +562,59 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
           placeholder="프롬프트 직접 입력 (선택, 영문 권장)"
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
-        <button type="button" disabled={imageBusy} onClick={() => void generateImage()} className={ADMIN_BTN_SECONDARY_CLASS}>
-          {imageBusy ? '생성 중…' : 'AI 이미지 생성 (2장 중 1번 적용)'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={promptPreviewBusy}
+            onClick={() => void previewImagePrompts()}
+            className={ADMIN_BTN_SECONDARY_CLASS}
+          >
+            {promptPreviewBusy ? '불러오는 중…' : '프롬프트 미리보기'}
+          </button>
+          <button
+            type="button"
+            disabled={imageBusy}
+            onClick={() => void generateImage()}
+            className={ADMIN_BTN_SECONDARY_CLASS}
+          >
+            {imageBusy ? '생성 중…' : '사이트에서 AI 생성'}
+          </button>
+          <label className={`${ADMIN_BTN_SECONDARY_CLASS} cursor-pointer ${uploadBusy ? 'opacity-60' : ''}`}>
+            {uploadBusy ? '업로드 중…' : '파일 업로드'}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              disabled={uploadBusy}
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) void uploadImage(f)
+                e.target.value = ''
+              }}
+            />
+          </label>
+        </div>
+        {promptPreview?.length ? (
+          <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
+            {promptPreview.map((p) => (
+              <div key={p.slot}>
+                <p className="font-semibold text-slate-800">{p.slot}</p>
+                <p className="mt-1 whitespace-pre-wrap text-slate-700">{p.text}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
         {bgImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={bgImageUrl} alt="" className="max-h-48 rounded-lg border object-cover" />
         ) : null}
         <input
           value={bgImageUrl}
-          onChange={(e) => setBgImageUrl(e.target.value)}
-          placeholder="이미지 URL (수동 붙여넣기 가능)"
+          onChange={(e) => {
+            setBgImageUrl(e.target.value)
+            if (e.target.value.trim()) setBgImageIsGenerated(false)
+          }}
+          placeholder="이미지 URL (외부 생성·CDN 주소 붙여넣기)"
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
       </section>
