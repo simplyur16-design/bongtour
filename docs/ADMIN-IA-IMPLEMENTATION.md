@@ -303,7 +303,7 @@
 
 | 파일 | 조치 | 비고 |
 |------|------|------|
-| `app/admin/components/AdminSidebar.tsx` | **수정** | nav: 대시보드=/admin, 홈 제거, 상품 등록=/admin/register, 상담·예약=/admin/bookings 추가, 등록대기·상품 목록·스케줄러·보안 유지. |
+| `app/admin/components/AdminSidebar.tsx` | **수정** | nav: 대시보드=/admin, 홈 제거, 상품 등록=/admin/register, 상담·예약=/admin/bookings 추가, 등록대기·상품 목록·스케줄러·보안 유지. **국외연수 프로그램** 그룹: `/admin/training-programs`, `/new`, `/guide` — SSOT: `docs/ops/overseas-training-admin-stack.md`. |
 
 ### 컴포넌트 이동·신규
 
