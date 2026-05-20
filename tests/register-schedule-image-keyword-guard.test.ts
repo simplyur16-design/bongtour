@@ -7,7 +7,7 @@ import { sanitizeVerygoodtourScheduleRowExpression } from '../lib/parse-and-regi
 import type { RegisterScheduleDay } from '../lib/register-llm-schema-verygoodtour'
 
 describe('mergeScheduleWithFirstPassPreferExtractRows fp-only', () => {
-  it('삼단 imageKeyword를 finalize하여 장소명만 남긴다', () => {
+  it('정규화된 imageKeyword를 그대로 보존한다 (1차 finalize는 applyScheduleImageKeywordsToRows에서 책임)', () => {
     const merged = mergeScheduleWithFirstPassPreferExtractRows(
       [],
       [
@@ -15,7 +15,7 @@ describe('mergeScheduleWithFirstPassPreferExtractRows fp-only', () => {
           day: 1,
           title: 'Osaka',
           description: 'Dotonbori',
-          imageKeyword: 'Osaka Castle / landmark exterior / street-level view',
+          imageKeyword: 'Osaka Castle', // 1차 finalize 거친 형태
           hotelText: null,
           breakfastText: null,
           lunchText: null,
