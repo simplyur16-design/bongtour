@@ -188,8 +188,21 @@ model Product {
 
   /// 여행 범위(국내/해외). 상품 노출 유형(listingKind)과 별개 — 공개 browse `scope`와 정렬 시 우선.
   travelScope String? // domestic | overseas
-  /// 상품 카테고리·노출 유형. 공개 허브/목록 분기 시 제목 추론보다 우선(travel | private_trip | air_hotel_free).
+  /// 상품 카테고리·노출 유형. 공개 허브/목록 분기 시 제목 추론보다 우선(travel | private_trip | air_hotel_free | overseas_training).
   listingKind String?
+
+  /// 국외연수 — 고정 출발 요일 (0=일 … 6=토). 공개: 「화요일 출발」
+  fixedDepartureWeekday Int?
+  /// 국외연수 — 연수 일수 (공개: 「9일 프로그램」)
+  durationDays          Int?
+  /// 국외연수 분야 taxonomy key (education, policy, …)
+  trainingCategory      String?
+  /// 국외연수 대상: public | corporate | both
+  trainingAudience      String?
+  /// 국외연수 상품설명 본문
+  trainingDescription   String? @db.Text
+  /// 국외연수 여행준비·체크 JSON [{ title, items[] }]
+  prepChecklistJson     String? @db.Text
 
   /// 관리자 수동: 지방 출발 허브 태그 (예: busan, cheongju, daegu). 인천·김포 등 기본 출발은 빈 배열.
   localDepartureTag String[] @default([])

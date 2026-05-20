@@ -163,6 +163,12 @@ model Product {
   travelScope              String?      // domestic | overseas
   /// 상품 카테고리·노출 유형. 공개 허브/목록 분기 시 제목 추론보다 우선(travel | private_trip | air_hotel_free).
   listingKind              String?
+  fixedDepartureWeekday    Int?
+  durationDays             Int?
+  trainingCategory         String?
+  trainingAudience         String?
+  trainingDescription      String?
+  prepChecklistJson        String?
 
   /// 대표 이미지 좌측 SEO 한 줄 — 등록 확정 시 붙여넣기 본문·파싱 필드로 생성해 저장. 없으면 공개 휴리스틱.
   publicImageHeroSeoLine   String?
