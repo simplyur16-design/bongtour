@@ -18,8 +18,8 @@ type Props = {
 
 export default function TrainingWindsorTabs({ active, onChange, children }: Props) {
   return (
-    <div className="overflow-hidden rounded-lg border border-[#d4c4a8] bg-white shadow-sm">
-      <div className="flex flex-wrap border-b border-[#d4c4a8]">
+    <div className="overflow-hidden rounded-2xl border border-[#DAD4EE] bg-white shadow-sm">
+      <div className="flex flex-wrap border-b border-[#DAD4EE]">
         {TABS.map((t) => {
           const isActive = active === t.id
           return (
@@ -27,10 +27,10 @@ export default function TrainingWindsorTabs({ active, onChange, children }: Prop
               key={t.id}
               type="button"
               onClick={() => onChange(t.id)}
-              className={`min-w-[120px] flex-1 border-r border-[#d4c4a8] px-4 py-3 text-center text-sm font-bold transition-colors last:border-r-0 sm:text-base ${
+              className={`min-w-[120px] flex-1 border-r border-[#DAD4EE] px-4 py-3 text-center text-sm font-bold transition-colors last:border-r-0 sm:text-base ${
                 isActive
-                  ? 'bg-white text-slate-900'
-                  : 'bg-[#f3e4b8] text-slate-800 hover:bg-[#edd9a8]'
+                  ? 'bg-white text-[#1F1B2D]'
+                  : 'bg-[#EFEDF8] text-[#534AB7] hover:bg-[#E8E4F4]'
               }`}
             >
               {t.label}
@@ -38,7 +38,7 @@ export default function TrainingWindsorTabs({ active, onChange, children }: Prop
           )
         })}
       </div>
-      <div className="bg-white px-4 py-6 sm:px-8 sm:py-8">{children}</div>
+      <div className="bg-white px-4 py-6 text-[#1F1B2D] sm:px-8 sm:py-8">{children}</div>
     </div>
   )
 }

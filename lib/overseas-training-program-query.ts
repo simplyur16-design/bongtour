@@ -20,8 +20,10 @@ export const trainingProgramPublicSelect = {
   duration: true,
   bgImageUrl: true,
   bgImageIsGenerated: true,
-  schedule: true,
+  bgImageSource: true,
+  bgImagePhotographer: true,
   summary: true,
+  schedule: true,
   trainingDescription: true,
   prepChecklistJson: true,
   fixedDepartureWeekday: true,
@@ -42,8 +44,10 @@ export type TrainingProgramPublicRow = {
   duration: string | null
   bgImageUrl: string | null
   bgImageIsGenerated: boolean
-  schedule: string | null
+  bgImageSource: string | null
+  bgImagePhotographer: string | null
   summary: string | null
+  schedule: string | null
   trainingDescription: string | null
   prepChecklistJson: string | null
   fixedDepartureWeekday: number | null

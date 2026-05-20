@@ -7,8 +7,13 @@ import Header from '@/app/components/Header'
 import TrainingDepartureYearCalendar from '@/components/training/TrainingDepartureYearCalendar'
 import TrainingInquiryForm from '@/components/inquiry/TrainingInquiryForm'
 import TrainingPrepSections from '@/components/training/TrainingPrepSections'
-import TrainingScheduleTable from '@/components/training/TrainingScheduleTable'
+import TrainingHeroGallery from '@/components/training/TrainingHeroGallery'
+import TrainingScheduleSections from '@/components/training/TrainingScheduleSections'
 import TrainingWindsorTabs, { type TrainingWindsorTabId } from '@/components/training/TrainingWindsorTabs'
+import {
+  mergeTrainingHeroWithLegacy,
+  parseTrainingProgramMetaJson,
+} from '@/lib/overseas-training-meta-json'
 import type { TrainingProgramPublicRow } from '@/lib/overseas-training-program-query'
 import { resolveTrainingPrepForDisplay } from '@/lib/overseas-training-europe-prep-default'
 import {
@@ -68,8 +73,22 @@ export default function TrainingProgramDetailView({ program }: Props) {
     () => resolveTrainingPrepForDisplay(program.prepChecklistJson),
     [program.prepChecklistJson]
   )
-  const description =
-    program.trainingDescription?.trim() || program.summary?.trim() || '상품 설명을 준비 중입니다.'
+  const metaJson = useMemo(
+    () => parseTrainingProgramMetaJson(program.summary),
+    [program.summary]
+  )
+  const heroSlides = useMemo(
+    () =>
+      mergeTrainingHeroWithLegacy(metaJson, {
+        bgImageUrl: program.bgImageUrl,
+        bgImageIsGenerated: program.bgImageIsGenerated,
+        bgImageSource: program.bgImageSource,
+        bgImagePhotographer: program.bgImagePhotographer,
+      }),
+    [metaJson, program]
+  )
+  const airline = metaJson.airline?.trim() || null
+  const description = program.trainingDescription?.trim() || '상품 설명을 준비 중입니다.'
 
   return (
     <div className="min-h-screen bg-bt-page">
@@ -77,23 +96,19 @@ export default function TrainingProgramDetailView({ program }: Props) {
       <main className="pb-24">
         <section className="border-b border-bt-border bg-white">
           <div className="relative mx-auto max-w-6xl">
-            <div className="relative aspect-[21/9] max-h-[420px] w-full bg-slate-100 sm:aspect-[2.4/1]">
-              {program.bgImageUrl ? (
-                <SafeImage src={program.bgImageUrl} alt="" fill sizes="100vw" className="object-cover" priority />
-              ) : null}
-            </div>
-            {program.bgImageIsGenerated ? (
-              <p className="px-4 py-1 text-right text-xs text-slate-500 sm:px-6">
-                사진은 AI 생성 참고 이미지입니다.
-              </p>
-            ) : null}
+            <TrainingHeroGallery slides={heroSlides} title={program.title} />
           </div>
           <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
             {category ? (
-              <p className="text-sm font-semibold text-emerald-800">{TRAINING_CATEGORY_LABELS[category]}</p>
+              <p className="text-sm font-semibold text-[#534AB7]">{TRAINING_CATEGORY_LABELS[category]}</p>
             ) : null}
-            <h1 className="mt-2 text-2xl font-semibold leading-snug text-slate-900 sm:text-4xl">{program.title}</h1>
-            {meta ? <p className="mt-3 text-lg font-medium text-slate-700">{meta}</p> : null}
+            <h1 className="mt-2 text-2xl font-semibold leading-snug text-[#1F1B2D] sm:text-4xl">{program.title}</h1>
+            {meta ? <p className="mt-3 text-lg font-medium text-[#1F1B2D]/90">{meta}</p> : null}
+            {airline ? (
+              <p className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#DAD4EE] bg-[#EFEDF8] px-3 py-1.5 text-sm font-semibold text-[#534AB7]">
+                <span className="text-[#85510B]">✈</span> {airline}
+              </p>
+            ) : null}
             {audience ? (
               <p className="mt-1 text-sm text-slate-600">{TRAINING_AUDIENCE_LABELS[audience]} 대상</p>
             ) : null}
@@ -106,7 +121,7 @@ export default function TrainingProgramDetailView({ program }: Props) {
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
           <TrainingWindsorTabs active={tab} onChange={setTab}>
             {tab === 'description' ? (
-              <div className="whitespace-pre-wrap text-[17px] leading-relaxed text-slate-800">{description}</div>
+              <div className="whitespace-pre-wrap text-[17px] leading-relaxed text-[#1F1B2D]">{description}</div>
             ) : null}
 
             {tab === 'schedule' ? (
@@ -126,7 +141,7 @@ export default function TrainingProgramDetailView({ program }: Props) {
                     ) : null}
                   </>
                 ) : null}
-                <TrainingScheduleTable rows={scheduleTableRows} />
+                <TrainingScheduleSections rows={scheduleTableRows} />
               </div>
             ) : null}
 

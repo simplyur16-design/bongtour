@@ -21,7 +21,26 @@ import {
   serializeTrainingScheduleRaw,
   trainingScheduleToAdminText,
 } from '@/lib/overseas-training-schedule-ssot'
+import {
+  mergeTrainingHeroWithLegacy,
+  parseTrainingProgramMetaJson,
+  serializeTrainingProgramMetaJson,
+  type TrainingHeroImageSlot,
+} from '@/lib/overseas-training-meta-json'
 import { ADMIN_BTN_PRIMARY_CLASS, ADMIN_BTN_SECONDARY_CLASS } from '@/lib/admin-design-system'
+
+function initialHeroGallery(initial: TrainingProgramAdminRow | null): TrainingHeroImageSlot[] {
+  const meta = parseTrainingProgramMetaJson(initial?.summary ?? null)
+  const merged = mergeTrainingHeroWithLegacy(meta, {
+    bgImageUrl: initial?.bgImageUrl ?? null,
+    bgImageIsGenerated: initial?.bgImageIsGenerated,
+    bgImageSource: initial?.bgImageSource ?? null,
+    bgImagePhotographer: initial?.bgImagePhotographer ?? null,
+  })
+  const slots = [...merged]
+  while (slots.length < 4) slots.push({ url: '', credit: '' })
+  return slots.slice(0, 4)
+}
 
 const WEEKDAY_OPTIONS = [
   { v: '', label: '미정' },
@@ -44,9 +63,15 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
+  const [registrationPaste, setRegistrationPaste] = useState('')
+  const [registrationParsing, setRegistrationParsing] = useState(false)
   const [windsorPaste, setWindsorPaste] = useState('')
   const [originUrl, setOriginUrl] = useState(initial?.originUrl ?? '')
   const [parsing, setParsing] = useState(false)
+  const initialMeta = parseTrainingProgramMetaJson(initial?.summary ?? null)
+  const [airline, setAirline] = useState(initialMeta.airline ?? '')
+  const [heroGallery, setHeroGallery] = useState<TrainingHeroImageSlot[]>(() => initialHeroGallery(initial))
+  const [imagePromptDraft, setImagePromptDraft] = useState(initialMeta.imagePromptDraft ?? '')
 
   const [title, setTitle] = useState(initial?.title ?? '')
   const [originalTitle, setOriginalTitle] = useState(initial?.originalTitle ?? '')
@@ -87,8 +112,10 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       ? trainingProgramPublicPath({ id: initial?.id ?? productId ?? '', slug: initial?.slug ?? null })
       : null
 
-  const buildPayload = useCallback(
-    () => ({
+  const buildPayload = useCallback(() => {
+    const gallery = heroGallery.filter((g) => g.url?.trim()).slice(0, 4)
+    const firstUrl = gallery[0]?.url?.trim() || bgImageUrl?.trim() || null
+    return {
       title,
       originalTitle: originalTitle || null,
       originUrl: originUrl || null,
@@ -101,27 +128,35 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       trainingCategory: trainingCategory || null,
       trainingAudience: trainingAudience || null,
       destinationSummary: destinationSummary || null,
-      bgImageUrl: bgImageUrl || null,
+      summary: serializeTrainingProgramMetaJson({
+        airline: airline || null,
+        heroGallery: gallery,
+        imagePromptDraft: imagePromptDraft || promptOverride || null,
+      }),
+      bgImageUrl: firstUrl,
       bgImageIsGenerated,
-    }),
-    [
-      title,
-      originalTitle,
-      originUrl,
-      registrationStatus,
-      trainingDescription,
-      useEuropePrepDefault,
-      prepChecklistJson,
-      scheduleText,
-      fixedDepartureWeekday,
-      durationDays,
-      trainingCategory,
-      trainingAudience,
-      destinationSummary,
-      bgImageUrl,
-      bgImageIsGenerated,
-    ]
-  )
+    }
+  }, [
+    title,
+    originalTitle,
+    originUrl,
+    registrationStatus,
+    trainingDescription,
+    useEuropePrepDefault,
+    prepChecklistJson,
+    scheduleText,
+    fixedDepartureWeekday,
+    durationDays,
+    trainingCategory,
+    trainingAudience,
+    destinationSummary,
+    airline,
+    heroGallery,
+    imagePromptDraft,
+    promptOverride,
+    bgImageUrl,
+    bgImageIsGenerated,
+  ])
 
   const save = async () => {
     setSaving(true)
@@ -148,6 +183,58 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       setMsg(e instanceof Error ? e.message : '저장 오류')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const parseRegistration = async () => {
+    setRegistrationParsing(true)
+    setMsg(null)
+    try {
+      const res = await fetch('/api/admin/training-programs/parse-registration-paste', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pastedText: registrationPaste }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        draft?: {
+          trainingCategory?: string | null
+          title?: string | null
+          originalTitle?: string | null
+          fixedDepartureWeekday?: number | null
+          durationDays?: number | null
+          airline?: string | null
+          destinationSummary?: string | null
+          imagePromptDraft?: string | null
+          warnings?: string[]
+        }
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.draft) {
+        setMsg(data.error ?? '등록 정보 분석 실패')
+        return
+      }
+      const d = data.draft
+      if (d.trainingCategory) setTrainingCategory(d.trainingCategory)
+      if (d.title) setTitle(d.title)
+      if (d.originalTitle) setOriginalTitle(d.originalTitle)
+      if (d.fixedDepartureWeekday != null) setFixedDepartureWeekday(String(d.fixedDepartureWeekday))
+      if (d.durationDays != null) setDurationDays(String(d.durationDays))
+      if (d.airline) setAirline(d.airline)
+      if (d.destinationSummary) setDestinationSummary(d.destinationSummary)
+      if (d.imagePromptDraft) {
+        setImagePromptDraft(d.imagePromptDraft)
+        setPromptOverride(d.imagePromptDraft)
+      }
+      setMsg(
+        d.warnings?.length
+          ? `등록 정보 반영 완료 — ${d.warnings.join(' ')}`
+          : '등록 정보 반영 완료. 상품설명·상세일정은 2·3번에 각각 붙여넣으세요.'
+      )
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : '등록 정보 분석 오류')
+    } finally {
+      setRegistrationParsing(false)
     }
   }
 
@@ -290,12 +377,48 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       if (first) {
         setBgImageUrl(first)
         setBgImageIsGenerated(true)
+        setHeroGallery((prev) => {
+          const next = [...prev]
+          next[0] = { url: first, credit: 'AI 생성 참고 이미지', isGenerated: true }
+          return next
+        })
         setMsg('대표 이미지를 적용했습니다. 저장을 눌러 반영하세요.')
       }
     } catch (e) {
       setMsg(e instanceof Error ? e.message : '이미지 오류')
     } finally {
       setImageBusy(false)
+    }
+  }
+
+  const uploadImageToSlot = async (file: File, slotIndex: number) => {
+    setUploadBusy(true)
+    setMsg(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('cardKey', 'training')
+      const res = await fetch('/api/admin/upload-image', { method: 'POST', body: fd })
+      const data = (await res.json()) as { ok?: boolean; path?: string; error?: string }
+      if (!res.ok || !data.ok || !data.path) {
+        setMsg(data.error ?? '업로드 실패')
+        return
+      }
+      setHeroGallery((prev) => {
+        const next = [...prev]
+        while (next.length < 4) next.push({ url: '', credit: '' })
+        next[slotIndex] = { url: data.path!, credit: next[slotIndex]?.credit || '업로드 이미지' }
+        return next
+      })
+      if (slotIndex === 0) {
+        setBgImageUrl(data.path!)
+        setBgImageIsGenerated(false)
+      }
+      setMsg(`사진 ${slotIndex + 1} 업로드 완료. 출처 문구를 입력한 뒤 저장하세요.`)
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : '업로드 오류')
+    } finally {
+      setUploadBusy(false)
     }
   }
 
@@ -314,6 +437,11 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       }
       setBgImageUrl(data.path)
       setBgImageIsGenerated(false)
+      setHeroGallery((prev) => {
+        const next = [...prev]
+        next[0] = { url: data.path!, credit: next[0]?.credit || '업로드 이미지' }
+        return next
+      })
       setMsg('업로드한 이미지를 적용했습니다. 저장을 눌러 반영하세요.')
     } catch (e) {
       setMsg(e instanceof Error ? e.message : '업로드 오류')
@@ -350,21 +478,48 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
         <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-800">{msg}</p>
       ) : null}
 
-      <p className="rounded-lg border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm leading-relaxed text-emerald-950">
-        윈저·협력사 페이지에서 <strong>상품설명</strong>과 <strong>상세일정</strong>을 각각 복사해 아래{' '}
-        <strong>2·3번 칸</strong>에 따로 붙여넣으세요. 한 번에 통째로 넣는 칸은 없습니다. 여행준비·약관은 4번(유럽
-        공통 기본) 또는 선택 통합 분할을 쓰세요.
-      </p>
+      <section className="space-y-3 rounded-xl border border-[#DAD4EE] bg-[#EFEDF8]/50 p-4">
+        <h2 className="font-semibold text-[#1F1B2D]">1. 등록 정보 붙여넣기 (윈저 상단 요약)</h2>
+        <p className="text-sm text-[#534AB7] leading-relaxed">
+          분야·상품명·출발 요일·<strong>항공사</strong>·이미지 프롬프트를 한 번에 채웁니다. 상품설명·상세일정은 아래{' '}
+          <strong>3·4번</strong>에 각각 붙여넣으세요. 원문 URL은 스크래퍼가 아니라{' '}
+          <strong>협력사 페이지 링크(원문 보기)</strong>용입니다.
+        </p>
+        <textarea
+          value={registrationPaste}
+          onChange={(e) => setRegistrationPaste(e.target.value)}
+          rows={10}
+          placeholder={'복지.행정.경제.노사 정책연수\n\n[복지연수-…] … 8일(대한항공)\n여행기간 …\n이용항공 대한항공'}
+          className="w-full rounded-lg border border-[#DAD4EE] bg-white px-3 py-2 text-sm font-mono"
+        />
+        <button
+          type="button"
+          disabled={registrationParsing}
+          onClick={() => void parseRegistration()}
+          className={ADMIN_BTN_PRIMARY_CLASS}
+        >
+          {registrationParsing ? '분석 중…' : '등록 정보 자동 채우기'}
+        </button>
+      </section>
 
       <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-900">1. 기본 정보</h2>
+        <h2 className="font-semibold text-slate-900">2. 기본 정보</h2>
         <label className="block text-sm font-medium text-slate-700">
-          원문 URL (윈저·협력사, 선택)
+          협력사 원문 URL (선택 — 공개 페이지 「원문 보기」)
           <input
             type="url"
             value={originUrl}
             onChange={(e) => setOriginUrl(e.target.value)}
             placeholder="https://…"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="block text-sm font-medium text-slate-700">
+          이용 항공사
+          <input
+            value={airline}
+            onChange={(e) => setAirline(e.target.value)}
+            placeholder="대한항공 / 아시아나항공"
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
         </label>
@@ -467,11 +622,11 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       </section>
 
       <section className="space-y-3 rounded-xl border border-amber-100 bg-amber-50/40 p-4">
-        <h2 className="font-semibold text-slate-900">2. 상품설명 (윈저 「상품설명」만)</h2>
+        <h2 className="font-semibold text-slate-900">3. 상품설명 (윈저 「상품설명」만)</h2>
         <p className="text-sm text-slate-700 leading-relaxed">
           협력사 상세 페이지 <strong>「상품설명」</strong> 탭·블록 내용만 복사해 아래에 붙여넣으세요. 공개 페이지
           「상품설명」 탭에 <strong>그대로</strong> 나갑니다 (약 1,000자 권장, 최대 12,000자). 일차별 일정·해외여행
-          안전정보·예약 유의사항은 <strong>넣지 마세요</strong> — 3번·4번에 해당합니다.
+          안전정보·예약 유의사항은 <strong>넣지 마세요</strong> — 4·5번에 해당합니다.
         </p>
         <textarea
           value={trainingDescription}
@@ -485,7 +640,7 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       </section>
 
       <section className="space-y-3 rounded-xl border border-amber-100 bg-amber-50/40 p-4">
-        <h2 className="font-semibold text-slate-900">3. 상세일정 (윈저 「상세일정」만)</h2>
+        <h2 className="font-semibold text-slate-900">4. 상세일정 (윈저 「상세일정」만)</h2>
         <p className="text-sm text-slate-700 leading-relaxed">
           협력사 <strong>「상세일정」</strong> 탭·표 내용만 복사해 붙여넣으세요. <strong>축약·JSON 변환 없이</strong>{' '}
           공개 「상세일정」 탭 표로 표시됩니다.{' '}
@@ -502,7 +657,7 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       </section>
 
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-900">4. 여행준비/체크사항</h2>
+        <h2 className="font-semibold text-slate-900">5. 여행준비/체크사항</h2>
         <label className="flex items-start gap-2 text-sm text-slate-800">
           <input
             type="checkbox"
@@ -537,18 +692,78 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       </section>
 
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-900">5. 대표 이미지</h2>
+        <h2 className="font-semibold text-slate-900">6. 사진 (최대 4장) · 이미지 생성</h2>
         <p className="text-xs text-slate-500 leading-relaxed">
-          「프롬프트 미리보기」로 슬롯별 영문 프롬프트를 확인한 뒤, 사이트 내 생성·외부 Gemini·직접 업로드 중
-          선택하세요.
+          공개 페이지 히어로에서 좌우 화살표로 넘깁니다. <strong>출처</strong>는 사진 우하단에 항상 표시됩니다.
         </p>
-        <textarea
-          value={promptOverride}
-          onChange={(e) => setPromptOverride(e.target.value)}
-          rows={3}
-          placeholder="프롬프트 직접 입력 (선택, 영문 권장)"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          {heroGallery.map((slot, i) => (
+            <div key={i} className="rounded-lg border border-[#DAD4EE] p-3 space-y-2">
+              <p className="text-xs font-bold text-[#534AB7]">사진 {i + 1}{i === 0 ? ' (대표)' : ''}</p>
+              {slot.url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={slot.url} alt="" className="h-28 w-full rounded object-cover" />
+              ) : (
+                <div className="flex h-28 items-center justify-center rounded bg-[#F5F2EA] text-xs text-[#534AB7]">
+                  비어 있음
+                </div>
+              )}
+              <input
+                value={slot.url}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setHeroGallery((prev) => {
+                    const next = [...prev]
+                    next[i] = { ...next[i]!, url: v }
+                    return next
+                  })
+                  if (i === 0) setBgImageUrl(v)
+                }}
+                placeholder="이미지 URL"
+                className="w-full rounded border border-slate-300 px-2 py-1 text-xs"
+              />
+              <input
+                value={slot.credit}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setHeroGallery((prev) => {
+                    const next = [...prev]
+                    next[i] = { ...next[i]!, credit: v }
+                    return next
+                  })
+                }}
+                placeholder="출처 (예: 대한항공 제공, Pexels · 작가명)"
+                className="w-full rounded border border-slate-300 px-2 py-1 text-xs"
+              />
+              <label className={`${ADMIN_BTN_SECONDARY_CLASS} cursor-pointer text-center text-xs ${uploadBusy ? 'opacity-60' : ''}`}>
+                파일 업로드
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  disabled={uploadBusy}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) void uploadImageToSlot(f, i)
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+            </div>
+          ))}
+        </div>
+        <label className="block text-sm font-medium text-slate-700">
+          이미지 생성 프롬프트 (자동 채움·수정 가능)
+          <textarea
+            value={promptOverride || imagePromptDraft}
+            onChange={(e) => {
+              setPromptOverride(e.target.value)
+              setImagePromptDraft(e.target.value)
+            }}
+            rows={4}
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono"
+          />
+        </label>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"

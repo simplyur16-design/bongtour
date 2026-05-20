@@ -57,6 +57,8 @@ export type TrainingProgramWriteBody = {
   destinationSummary?: string | null
   bgImageUrl?: string | null
   bgImageIsGenerated?: boolean
+  /** JSON: airline, heroGallery[], imagePromptDraft (국외연수 전용) */
+  summary?: string | null
 }
 
 export function parseTrainingProgramWriteBody(body: Record<string, unknown>): {
@@ -145,6 +147,10 @@ export function parseTrainingProgramWriteBody(body: Record<string, unknown>): {
   if (body.bgImageIsGenerated !== undefined) {
     out.bgImageIsGenerated = Boolean(body.bgImageIsGenerated)
   }
+  if (body.summary !== undefined) {
+    out.summary =
+      body.summary == null || body.summary === '' ? null : String(body.summary)
+  }
 
   return { data: out, errors }
 }
@@ -177,6 +183,7 @@ export function prismaDataFromTrainingWrite(
     }
   }
   if (write.bgImageIsGenerated !== undefined) data.bgImageIsGenerated = write.bgImageIsGenerated
+  if (write.summary !== undefined) data.summary = write.summary
   return data
 }
 
