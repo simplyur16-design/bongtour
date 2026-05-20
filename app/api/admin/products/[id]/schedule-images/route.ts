@@ -22,6 +22,7 @@ type ScheduleEntry = {
   imageKeyword?: string
   imageKeyword2?: string | null
   imageUrl?: string | null
+  imageUrl2?: string | null
   imageSource?: {
     source?: string
     photographer?: string
@@ -46,6 +47,15 @@ type ScheduleEntry = {
   imageCityName?: string | null
   imageWidth?: number | null
   imageHeight?: number | null
+  imageSource2?: {
+    source?: string
+    photographer?: string
+    originalLink?: string
+    externalId?: string | null
+    sourceType?: string
+    sourceImageUrl?: string | null
+  }
+  imageDisplayName2?: string | null
 }
 
 /**
@@ -75,8 +85,11 @@ export async function POST(request: Request, { params }: RouteParams) {
       imagePlaceName?: string | null
       imageCityName?: string | null
       imageSearchKeyword?: string | null
+      /** 1 = imageUrl(기본), 2 = imageUrl2(2순위) */
+      imageSlot?: number
     }
     const day = Number(body.day)
+    const imageSlot = body.imageSlot === 2 ? 2 : 1
     if (!Number.isInteger(day) || day < 1) {
       return NextResponse.json({ error: '유효한 day가 필요합니다.' }, { status: 400 })
     }
@@ -179,7 +192,14 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     const currentRow = schedule.find((x) => Number(x.day) === day)
-    const scheduleKw = typeof currentRow?.imageKeyword === 'string' ? currentRow.imageKeyword.trim() : ''
+    const scheduleKw =
+      imageSlot === 2
+        ? typeof currentRow?.imageKeyword2 === 'string'
+          ? currentRow.imageKeyword2.trim()
+          : ''
+        : typeof currentRow?.imageKeyword === 'string'
+          ? currentRow.imageKeyword.trim()
+          : ''
     let persistedImageUrl = imageUrl
     let rehostExtra: Partial<ScheduleEntry> = {}
     let rehostedSourceType: string | null = null
@@ -278,8 +298,21 @@ export async function POST(request: Request, { params }: RouteParams) {
     const next = schedule.map((item) => {
       if (Number(item.day) !== day) return item
       updated = true
-      prevImageUrl = typeof item.imageUrl === 'string' ? item.imageUrl : null
+      prevImageUrl =
+        imageSlot === 2
+          ? typeof item.imageUrl2 === 'string'
+            ? item.imageUrl2
+            : null
+          : typeof item.imageUrl === 'string'
+            ? item.imageUrl
+            : null
       if (clearManualOnly) {
+        if (imageSlot === 2) {
+          const cleared: ScheduleEntry = { ...item, imageUrl2: null }
+          delete cleared.imageSource2
+          delete cleared.imageDisplayName2
+          return cleared
+        }
         return {
           ...item,
           imageManualSelected: false,
@@ -293,6 +326,21 @@ export async function POST(request: Request, { params }: RouteParams) {
       delete itemRest.imageSeoTitleKr
       delete itemRest.imageAttractionName
       delete itemRest.imageDisplayNameManual
+      if (imageSlot === 2) {
+        return persistScheduleImageFields({
+          ...itemRest,
+          imageUrl2: persistedImageUrl,
+          imageSource2: {
+            source,
+            sourceType: rehostedSourceType ?? undefined,
+            photographer: photographer ?? source,
+            originalLink: originalLink ?? '',
+            externalId: externalIdResolved,
+            ...(originalCdnUrlForMeta ? { sourceImageUrl: originalCdnUrlForMeta } : {}),
+          },
+          ...(resolvedDisplayManual ? { imageDisplayName2: resolvedDisplayManual } : {}),
+        })
+      }
       return persistScheduleImageFields({
         ...itemRest,
         ...rehostExtra,
@@ -317,30 +365,51 @@ export async function POST(request: Request, { params }: RouteParams) {
       nextImageUrl = persistedImageUrl
       nextSourceType = source
       nextSelectionMode = selectionMode
-      next.push(
-        persistScheduleImageFields({
-          day,
-          title: `DAY ${day}`,
-          description: '',
-          imageKeyword: scheduleKw ? persistScheduleImageKeyword(scheduleKw) : '',
-          ...rehostExtra,
-          imageUrl: persistedImageUrl,
-          imageSource: {
-            source,
-            sourceType: rehostedSourceType ?? undefined,
-            photographer: photographer ?? source,
-            originalLink: originalLink ?? '',
-            externalId: externalIdResolved,
-            ...(originalCdnUrlForMeta ? { sourceImageUrl: originalCdnUrlForMeta } : {}),
-          },
-          imageManualSelected: manualSelected,
-          imageSelectionMode: selectionMode,
-          imageCandidateOrigin: manualSelected ? 'manual' : null,
-          ...(resolvedSeoKr ? { imageSeoTitleKr: resolvedSeoKr } : {}),
-          ...(resolvedAttraction ? { imageAttractionName: resolvedAttraction } : {}),
-          ...(resolvedDisplayManual ? { imageDisplayNameManual: resolvedDisplayManual } : {}),
-        }),
-      )
+      if (imageSlot === 2) {
+        next.push(
+          persistScheduleImageFields({
+            day,
+            title: `DAY ${day}`,
+            description: '',
+            imageKeyword2: scheduleKw ? persistScheduleImageKeyword(scheduleKw) : '',
+            imageUrl2: persistedImageUrl,
+            imageSource2: {
+              source,
+              sourceType: rehostedSourceType ?? undefined,
+              photographer: photographer ?? source,
+              originalLink: originalLink ?? '',
+              externalId: externalIdResolved,
+              ...(originalCdnUrlForMeta ? { sourceImageUrl: originalCdnUrlForMeta } : {}),
+            },
+            ...(resolvedDisplayManual ? { imageDisplayName2: resolvedDisplayManual } : {}),
+          }),
+        )
+      } else {
+        next.push(
+          persistScheduleImageFields({
+            day,
+            title: `DAY ${day}`,
+            description: '',
+            imageKeyword: scheduleKw ? persistScheduleImageKeyword(scheduleKw) : '',
+            ...rehostExtra,
+            imageUrl: persistedImageUrl,
+            imageSource: {
+              source,
+              sourceType: rehostedSourceType ?? undefined,
+              photographer: photographer ?? source,
+              originalLink: originalLink ?? '',
+              externalId: externalIdResolved,
+              ...(originalCdnUrlForMeta ? { sourceImageUrl: originalCdnUrlForMeta } : {}),
+            },
+            imageManualSelected: manualSelected,
+            imageSelectionMode: selectionMode,
+            imageCandidateOrigin: manualSelected ? 'manual' : null,
+            ...(resolvedSeoKr ? { imageSeoTitleKr: resolvedSeoKr } : {}),
+            ...(resolvedAttraction ? { imageAttractionName: resolvedAttraction } : {}),
+            ...(resolvedDisplayManual ? { imageDisplayNameManual: resolvedDisplayManual } : {}),
+          }),
+        )
+      }
     }
     next.sort((a, b) => Number(a.day ?? 0) - Number(b.day ?? 0))
 
@@ -378,6 +447,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       ok: true,
       productId: id,
       day,
+      imageSlot,
       imageUrl: clearManualOnly ? null : persistedImageUrl || null,
       source,
       manualSelected,

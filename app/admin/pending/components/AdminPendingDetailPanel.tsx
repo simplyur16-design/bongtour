@@ -168,6 +168,12 @@ type ItineraryDayPreview = {
   rawBlock: string | null
 }
 
+type ScheduleImageSlot = 1 | 2
+
+function scheduleImageSavingKey(day: number, slot: ScheduleImageSlot = 1): string {
+  return `${day}:${slot}`
+}
+
 type ScheduleDayImage = {
   day: number
   title?: string
@@ -175,6 +181,7 @@ type ScheduleDayImage = {
   imageKeyword?: string
   imageKeyword2?: string | null
   imageUrl?: string | null
+  imageUrl2?: string | null
   imageSource?: { source?: string; photographer?: string; originalLink?: string }
   imageManualSelected?: boolean
   imageSelectionMode?: string | null
@@ -391,11 +398,18 @@ export default function AdminPendingDetailPanel({
   const [departureMappingNotes, setDepartureMappingNotes] = useState<string[]>([])
   const [dayCandidateMap, setDayCandidateMap] = useState<Record<number, PexelsSearchPhoto[]>>({})
   const [dayCandidateLoading, setDayCandidateLoading] = useState<Record<number, boolean>>({})
+  const [day2CandidateMap, setDay2CandidateMap] = useState<Record<number, PexelsSearchPhoto[]>>({})
+  const [day2CandidateLoading, setDay2CandidateLoading] = useState<Record<number, boolean>>({})
   const [dayGeminiMap, setDayGeminiMap] = useState<
     Record<number, { imageUrl: string | null; slot: string; error?: string | null }[]>
   >({})
+  const [day2GeminiMap, setDay2GeminiMap] = useState<
+    Record<number, { imageUrl: string | null; slot: string; error?: string | null }[]>
+  >({})
   const [dayGeminiError, setDayGeminiError] = useState<Record<number, string | null>>({})
+  const [day2GeminiError, setDay2GeminiError] = useState<Record<number, string | null>>({})
   const [dayGeminiLoading, setDayGeminiLoading] = useState<Record<number, boolean>>({})
+  const [day2GeminiLoading, setDay2GeminiLoading] = useState<Record<number, boolean>>({})
   const [dayLibraryMap, setDayLibraryMap] = useState<Record<number, ImageAssetCandidate[]>>({})
   const [dayLibraryLoading, setDayLibraryLoading] = useState<Record<number, boolean>>({})
   const [librarySourceType, setLibrarySourceType] = useState('all')
@@ -406,10 +420,12 @@ export default function AdminPendingDetailPanel({
   const [libraryFrequentAssets, setLibraryFrequentAssets] = useState<ImageAssetCandidate[]>([])
   const [libraryModalOpen, setLibraryModalOpen] = useState(false)
   const [libraryModalDay, setLibraryModalDay] = useState<number | null>(null)
+  const [libraryModalSlot, setLibraryModalSlot] = useState<ScheduleImageSlot>(1)
   const [libraryHistoryOpenMap, setLibraryHistoryOpenMap] = useState<Record<string, boolean>>({})
-  const [dayImageSaving, setDayImageSaving] = useState<Record<number, boolean>>({})
+  const [dayImageSaving, setDayImageSaving] = useState<Record<string, boolean>>({})
   const [dayImageMessage, setDayImageMessage] = useState<string | null>(null)
   const [dayImageThumbError, setDayImageThumbError] = useState<Record<number, string | null>>({})
+  const [day2ImageThumbError, setDay2ImageThumbError] = useState<Record<number, string | null>>({})
   /** 일차별 Pexels 키워드 — 저장 전 편집 (schedule.imageKeyword / imageKeyword2) */
   const [dayImageKeywordDraft, setDayImageKeywordDraft] = useState<Record<number, string>>({})
   const [dayImageKeyword2Draft, setDayImageKeyword2Draft] = useState<Record<number, string>>({})
@@ -562,13 +578,17 @@ export default function AdminPendingDetailPanel({
     setDepartureMappingStatus(null)
     setDepartureMappingNotes([])
     setDayCandidateMap({})
+    setDay2CandidateMap({})
     setDayGeminiMap({})
+    setDay2GeminiMap({})
     setDayGeminiError({})
+    setDay2GeminiError({})
     setDayLibraryMap({})
     setDayImageMessage(null)
     setDayImageKeywordDraft({})
     setDayImageKeyword2Draft({})
     setDayImageThumbError({})
+    setDay2ImageThumbError({})
   }, [detail?.id])
 
   const scheduleDayRows: ScheduleDayImage[] = (() => {
@@ -1099,7 +1119,7 @@ export default function AdminPendingDetailPanel({
         return
       }
     }
-    setDayImageSaving((prev) => ({ ...prev, [day]: true }))
+    setDayImageSaving((prev) => ({ ...prev, [scheduleImageSavingKey(day, 1)]: true }))
     setDayImageMessage(null)
     try {
       const res = await fetch(`/api/admin/products/${detail.id}/schedule-images`, {
@@ -1120,31 +1140,37 @@ export default function AdminPendingDetailPanel({
       const refreshed = await fetchAdminProductDetail(detail.id)
       if (refreshed) setDetail(refreshed)
     } finally {
-      setDayImageSaving((prev) => ({ ...prev, [day]: false }))
+      setDayImageSaving((prev) => ({ ...prev, [scheduleImageSavingKey(day, 1)]: false }))
     }
   }
 
-  const handleLoadDayCandidates = async (row: ScheduleDayImage) => {
+  const handleLoadDayCandidates = async (row: ScheduleDayImage, slot: ScheduleImageSlot = 1) => {
     if (!detail) return
     const day = row.day
     const it = itineraryByDay.get(day)
-    const savedKw = (dayImageKeywordDraft[day] ?? row.imageKeyword ?? '').trim()
+    const savedKw =
+      slot === 2
+        ? (dayImageKeyword2Draft[day] ?? row.imageKeyword2 ?? '').trim()
+        : (dayImageKeywordDraft[day] ?? row.imageKeyword ?? '').trim()
     const query =
       savedKw ||
       `${detail.destination ?? ''} ${it?.poiNamesRaw ?? it?.summaryTextRaw ?? it?.city ?? row.title ?? `day ${day}`}`.trim()
-    setDayCandidateLoading((prev) => ({ ...prev, [day]: true }))
+    const setLoading = slot === 2 ? setDay2CandidateLoading : setDayCandidateLoading
+    const setMap = slot === 2 ? setDay2CandidateMap : setDayCandidateMap
+    setLoading((prev) => ({ ...prev, [day]: true }))
     try {
       const res = await fetch(`/api/admin/pexels/search?q=${encodeURIComponent(query)}`)
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; photos?: PexelsSearchPhoto[] }
       const photos = data.ok && Array.isArray(data.photos) ? data.photos : []
-      setDayCandidateMap((prev) => ({ ...prev, [day]: photos.slice(0, 8) }))
+      setMap((prev) => ({ ...prev, [day]: photos.slice(0, 8) }))
     } finally {
-      setDayCandidateLoading((prev) => ({ ...prev, [day]: false }))
+      setLoading((prev) => ({ ...prev, [day]: false }))
     }
   }
 
   const saveDayImageSelection = async (
     day: number,
+    slot: ScheduleImageSlot,
     payload: {
       imageUrl: string
       source: string
@@ -1158,7 +1184,8 @@ export default function AdminPendingDetailPanel({
     }
   ) => {
     if (!detail) return
-    setDayImageSaving((prev) => ({ ...prev, [day]: true }))
+    const sk = scheduleImageSavingKey(day, slot)
+    setDayImageSaving((prev) => ({ ...prev, [sk]: true }))
     setDayImageMessage(null)
     try {
       const res = await fetch(`/api/admin/products/${detail.id}/schedule-images`, {
@@ -1166,6 +1193,7 @@ export default function AdminPendingDetailPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           day,
+          imageSlot: slot,
           imageUrl: payload.imageUrl,
           source: payload.source,
           photographer: payload.photographer ?? null,
@@ -1182,20 +1210,25 @@ export default function AdminPendingDetailPanel({
             detail.destinationRaw?.trim() ||
             detail.destination?.trim() ||
             null,
-          imageSearchKeyword: (dayImageKeywordDraft[day] ?? '').trim() || null,
+          imageSearchKeyword:
+            (slot === 2 ? dayImageKeyword2Draft[day] : dayImageKeywordDraft[day])?.trim() || null,
         }),
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
-        setDayImageMessage(`DAY${day} 저장 실패: ${data.error ?? `HTTP ${res.status}`}`)
+        setDayImageMessage(`DAY${day} ${slot}순위 저장 실패: ${data.error ?? `HTTP ${res.status}`}`)
         return
       }
-      setDayImageThumbError((prev) => ({ ...prev, [day]: null }))
-      setDayImageMessage(`DAY${day} 이미지 수동 선택 저장 완료`)
+      if (slot === 2) {
+        setDay2ImageThumbError((prev) => ({ ...prev, [day]: null }))
+      } else {
+        setDayImageThumbError((prev) => ({ ...prev, [day]: null }))
+      }
+      setDayImageMessage(`DAY${day} ${slot}순위 이미지 저장 완료`)
       const refreshed = await fetchAdminProductDetail(detail.id)
       if (refreshed) setDetail(refreshed)
     } finally {
-      setDayImageSaving((prev) => ({ ...prev, [day]: false }))
+      setDayImageSaving((prev) => ({ ...prev, [sk]: false }))
     }
   }
 
@@ -1260,11 +1293,16 @@ export default function AdminPendingDetailPanel({
     }
   }
 
-  const handleUploadDayImage = async (day: number, file: File | null) => {
+  const handleUploadDayImage = async (day: number, slot: ScheduleImageSlot, file: File | null) => {
     if (!detail || !file) return
-    setDayImageSaving((prev) => ({ ...prev, [day]: true }))
+    const sk = scheduleImageSavingKey(day, slot)
+    setDayImageSaving((prev) => ({ ...prev, [sk]: true }))
     setDayImageMessage(null)
-    setDayImageThumbError((prev) => ({ ...prev, [day]: null }))
+    if (slot === 2) {
+      setDay2ImageThumbError((prev) => ({ ...prev, [day]: null }))
+    } else {
+      setDayImageThumbError((prev) => ({ ...prev, [day]: null }))
+    }
     try {
       const toSend = await resizeImageFileForUpload(file)
       const form = new FormData()
@@ -1286,7 +1324,7 @@ export default function AdminPendingDetailPanel({
         return
       }
       const item = upload.items[0]
-      await saveDayImageSelection(day, {
+      await saveDayImageSelection(day, slot, {
         imageUrl: item.filePath,
         source: 'manual-upload',
         photographer: null,
@@ -1296,25 +1334,30 @@ export default function AdminPendingDetailPanel({
       })
     } catch (e) {
       setDayImageMessage(
-        `DAY${day} 업로드 중 오류: ${e instanceof Error ? e.message : String(e)}`
+        `DAY${day} ${slot}순위 업로드 중 오류: ${e instanceof Error ? e.message : String(e)}`
       )
     } finally {
-      setDayImageSaving((prev) => ({ ...prev, [day]: false }))
+      setDayImageSaving((prev) => ({ ...prev, [sk]: false }))
     }
   }
 
-  const openLibraryModal = async (day: number) => {
+  const openLibraryModal = async (day: number, slot: ScheduleImageSlot = 1) => {
     setLibraryModalDay(day)
+    setLibraryModalSlot(slot)
     setLibraryModalOpen(true)
     setLibraryPage(1)
     setLibraryHistoryOpenMap({})
     await handleLoadDayLibrary(day, 1)
   }
 
-  const selectLibraryAssetForDay = async (day: number, item: ImageAssetCandidate) => {
+  const selectLibraryAssetForDay = async (
+    day: number,
+    slot: ScheduleImageSlot,
+    item: ImageAssetCandidate,
+  ) => {
     const attraction =
       [item.cityName, item.attractionName].filter((s) => (s ?? '').trim().length > 0).join(' · ') || null
-    await saveDayImageSelection(day, {
+    await saveDayImageSelection(day, slot, {
       imageUrl: item.imageUrl,
       source: item.source || 'library-reuse',
       photographer: item.photographer ?? null,
@@ -1326,39 +1369,48 @@ export default function AdminPendingDetailPanel({
     closeLibraryModal()
   }
 
-  const clearDayManualSelection = async (day: number) => {
+  const clearDayManualSelection = async (day: number, slot: ScheduleImageSlot = 1) => {
     if (!detail) return
-    setDayImageSaving((prev) => ({ ...prev, [day]: true }))
+    const sk = scheduleImageSavingKey(day, slot)
+    setDayImageSaving((prev) => ({ ...prev, [sk]: true }))
     setDayImageMessage(null)
     try {
       const res = await fetch(`/api/admin/products/${detail.id}/schedule-images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ day, manualSelected: false }),
+        body: JSON.stringify({ day, imageSlot: slot, manualSelected: false }),
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
-        setDayImageMessage(`DAY${day} 자동 복귀 실패: ${data.error ?? `HTTP ${res.status}`}`)
+        setDayImageMessage(`DAY${day} ${slot}순위 자동 복귀 실패: ${data.error ?? `HTTP ${res.status}`}`)
         return
       }
-      setDayImageMessage(`DAY${day} 자동 후보 사용으로 복귀`)
+      setDayImageMessage(
+        slot === 2 ? `DAY${day} 2순위 이미지 초기화` : `DAY${day} 자동 후보 사용으로 복귀`,
+      )
       const refreshed = await fetchAdminProductDetail(detail.id)
       if (refreshed) setDetail(refreshed)
     } finally {
-      setDayImageSaving((prev) => ({ ...prev, [day]: false }))
+      setDayImageSaving((prev) => ({ ...prev, [sk]: false }))
     }
   }
 
-  const handleGenerateDayGemini = async (row: ScheduleDayImage) => {
+  const handleGenerateDayGemini = async (row: ScheduleDayImage, slot: ScheduleImageSlot = 1) => {
     if (!detail) return
     const day = row.day
     const it = itineraryByDay.get(day)
-    const savedKw = (dayImageKeywordDraft[day] ?? row.imageKeyword ?? '').trim()
+    const savedKw =
+      slot === 2
+        ? (dayImageKeyword2Draft[day] ?? row.imageKeyword2 ?? '').trim()
+        : (dayImageKeywordDraft[day] ?? row.imageKeyword ?? '').trim()
     const dayPrompt =
       savedKw ||
       `${detail.destination ?? ''} day ${day} ${it?.poiNamesRaw ?? it?.summaryTextRaw ?? row.title ?? ''}`.trim()
-    setDayGeminiLoading((prev) => ({ ...prev, [day]: true }))
-    setDayGeminiError((prev) => ({ ...prev, [day]: null }))
+    const setGeminiLoading = slot === 2 ? setDay2GeminiLoading : setDayGeminiLoading
+    const setGeminiError = slot === 2 ? setDay2GeminiError : setDayGeminiError
+    const setGeminiMap = slot === 2 ? setDay2GeminiMap : setDayGeminiMap
+    setGeminiLoading((prev) => ({ ...prev, [day]: true }))
+    setGeminiError((prev) => ({ ...prev, [day]: null }))
     try {
       const body: Record<string, unknown> = {
         title: detail.title ?? null,
@@ -1380,8 +1432,8 @@ export default function AdminPendingDetailPanel({
         images?: { imageUrl: string | null; slot?: string; error?: string | null }[]
       }
       if (!data.ok || !Array.isArray(data.images) || data.images.length === 0) {
-        setDayGeminiMap((prev) => ({ ...prev, [day]: [] }))
-        setDayGeminiError((prev) => ({
+        setGeminiMap((prev) => ({ ...prev, [day]: [] }))
+        setGeminiError((prev) => ({
           ...prev,
           [day]:
             data.error?.trim() ||
@@ -1394,16 +1446,16 @@ export default function AdminPendingDetailPanel({
         slot: im.slot ?? 'unknown',
         error: im.error ?? null,
       }))
-      setDayGeminiMap((prev) => ({ ...prev, [day]: images.slice(0, 4) }))
-      setDayGeminiError((prev) => ({ ...prev, [day]: null }))
+      setGeminiMap((prev) => ({ ...prev, [day]: images.slice(0, 4) }))
+      setGeminiError((prev) => ({ ...prev, [day]: null }))
     } catch (e) {
-      setDayGeminiMap((prev) => ({ ...prev, [day]: [] }))
-      setDayGeminiError((prev) => ({
+      setGeminiMap((prev) => ({ ...prev, [day]: [] }))
+      setGeminiError((prev) => ({
         ...prev,
         [day]: e instanceof Error ? e.message : '네트워크 오류',
       }))
     } finally {
-      setDayGeminiLoading((prev) => ({ ...prev, [day]: false }))
+      setGeminiLoading((prev) => ({ ...prev, [day]: false }))
     }
   }
 
@@ -1658,7 +1710,8 @@ export default function AdminPendingDetailPanel({
                     {it?.dateText ?? '-'} · {it?.city ?? '-'} · {it?.poiNamesRaw ?? it?.summaryTextRaw ?? row.imageKeyword ?? '-'}
                   </p>
                   <p className="mt-1 text-[11px] text-bt-meta">
-                    자동 선정 근거: {normalizeOriginTag(row.imageCandidateOrigin)} / {row.imageKeyword ?? row.title ?? 'fallback'}
+                    자동 선정 근거: {normalizeOriginTag(row.imageCandidateOrigin)} /{' '}
+                    {[row.imageKeyword, row.imageKeyword2].filter(Boolean).join(' · ') || row.title || 'fallback'}
                   </p>
                   <p className="mt-0.5 text-[11px] text-bt-meta">
                     source type: {sourceType}
@@ -1715,7 +1768,7 @@ export default function AdminPendingDetailPanel({
                         />
                         <button
                           type="button"
-                          disabled={dayImageSaving[row.day] === true}
+                          disabled={dayImageSaving[scheduleImageSavingKey(row.day, 1)] === true}
                           onClick={() => void handleSaveDayImageKeyword(row.day)}
                           className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs font-medium text-bt-title hover:bg-bt-surface-soft disabled:opacity-50"
                         >
@@ -1724,7 +1777,8 @@ export default function AdminPendingDetailPanel({
                       </div>
                     </div>
                   </div>
-                  <div className="mt-2 flex items-start gap-3">
+                  <p className="mt-2 text-[11px] font-semibold text-bt-body">1순위 이미지</p>
+                  <div className="mt-1 flex items-start gap-3">
                     <div className="relative h-16 w-24 overflow-hidden rounded border border-bt-border-soft bg-bt-surface-alt">
                       {row.imageUrl ? (
                         <SafeImage
@@ -1756,7 +1810,7 @@ export default function AdminPendingDetailPanel({
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => void handleLoadDayCandidates(row)}
+                        onClick={() => void handleLoadDayCandidates(row, 1)}
                         disabled={dayCandidateLoading[row.day] === true}
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
                         title="저장된 대표관광지 값으로 Pexels 검색(미리보기 전용)"
@@ -1765,7 +1819,7 @@ export default function AdminPendingDetailPanel({
                       </button>
                       <button
                         type="button"
-                        onClick={() => void handleGenerateDayGemini(row)}
+                        onClick={() => void handleGenerateDayGemini(row, 1)}
                         disabled={dayGeminiLoading[row.day] === true}
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft"
                         title="저장값(promptOverride) 기준 4슬롯 생성 · 미저장 시 자동 추천 문자열이 fallback"
@@ -1775,14 +1829,14 @@ export default function AdminPendingDetailPanel({
                       <button
                         type="button"
                         onClick={() => void clearDayManualSelection(row.day)}
-                        disabled={dayImageSaving[row.day] === true}
+                        disabled={dayImageSaving[scheduleImageSavingKey(row.day, 1)] === true}
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
                       >
                         자동 복귀
                       </button>
                       <button
                         type="button"
-                        onClick={() => void openLibraryModal(row.day)}
+                        onClick={() => void openLibraryModal(row.day, 1)}
                         disabled={dayLibraryLoading[row.day] === true}
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
                       >
@@ -1796,7 +1850,7 @@ export default function AdminPendingDetailPanel({
                           className="hidden"
                           onChange={(e) => {
                             const f = e.currentTarget.files?.[0] ?? null
-                            void handleUploadDayImage(row.day, f)
+                            void handleUploadDayImage(row.day, 1, f)
                             e.currentTarget.value = ''
                           }}
                         />
@@ -1804,6 +1858,164 @@ export default function AdminPendingDetailPanel({
                       <span className="self-center text-[10px] text-bt-meta">업로드 최대 30MB / WEBP 정규화</span>
                     </div>
                   </div>
+                  <p className="mt-4 text-[11px] font-semibold text-bt-body">2순위 이미지</p>
+                  {day2ImageThumbError[row.day] ? (
+                    <p className="mt-1 break-words text-[11px] text-bt-warning">{day2ImageThumbError[row.day]}</p>
+                  ) : null}
+                  <div className="mt-1 flex items-start gap-3">
+                    <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded border border-bt-border-soft bg-bt-surface-alt">
+                      {row.imageUrl2 ? (
+                        <SafeImage
+                          src={adminPreviewImgSrc(row.imageUrl2) ?? row.imageUrl2}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          sizes="96px"
+                          onLoad={() => setDay2ImageThumbError((prev) => ({ ...prev, [row.day]: null }))}
+                          onError={() =>
+                            setDay2ImageThumbError((prev) => ({
+                              ...prev,
+                              [row.day]: '2순위 이미지를 불러올 수 없습니다.',
+                            }))
+                          }
+                        />
+                      ) : (
+                        <span className="flex h-full items-center justify-center px-1 text-center text-[9px] text-bt-meta">
+                          미등록
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleLoadDayCandidates(row, 2)}
+                        disabled={day2CandidateLoading[row.day] === true}
+                        className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
+                      >
+                        {day2CandidateLoading[row.day] ? '후보 불러오는 중…' : '후보 미리보기'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleGenerateDayGemini(row, 2)}
+                        disabled={day2GeminiLoading[row.day] === true}
+                        className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft"
+                      >
+                        {day2GeminiLoading[row.day] ? 'Gemini 생성 중…' : 'Gemini 생성'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void clearDayManualSelection(row.day, 2)}
+                        disabled={dayImageSaving[scheduleImageSavingKey(row.day, 2)] === true}
+                        className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
+                      >
+                        2순위 초기화
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void openLibraryModal(row.day, 2)}
+                        disabled={dayLibraryLoading[row.day] === true}
+                        className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
+                      >
+                        라이브러리
+                      </button>
+                      <label className="cursor-pointer rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft">
+                        수동 업로드
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.currentTarget.files?.[0] ?? null
+                            void handleUploadDayImage(row.day, 2, f)
+                            e.currentTarget.value = ''
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  {day2GeminiError[row.day] ? (
+                    <p className="mt-1 break-words text-xs text-bt-warning">{day2GeminiError[row.day]}</p>
+                  ) : null}
+                  {(day2CandidateMap[row.day] ?? []).length > 0 ? (
+                    <div className="mt-2">
+                      <p className="mb-1 text-[10px] font-medium text-bt-muted">2순위 Pexels 후보</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {(day2CandidateMap[row.day] ?? []).map((photo) => (
+                          <button
+                            key={`${row.day}_2_${photo.id}`}
+                            type="button"
+                            onClick={() =>
+                              void saveDayImageSelection(row.day, 2, {
+                                imageUrl: photo.large || photo.medium,
+                                source: 'pexels',
+                                photographer: photo.photographer,
+                                originalLink: photo.sourceUrl,
+                                externalId: String(photo.id),
+                                selectionMode: 'manual-pick',
+                              })
+                            }
+                            disabled={dayImageSaving[scheduleImageSavingKey(row.day, 2)] === true}
+                            className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left disabled:opacity-50"
+                          >
+                            <span className="relative block aspect-video w-full">
+                              <SafeImage
+                                src={adminPreviewImgSrc(photo.thumbnail) ?? photo.thumbnail}
+                                alt=""
+                                fill
+                                className="object-cover"
+                                sizes="120px"
+                                loading="lazy"
+                              />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {(day2GeminiMap[row.day] ?? []).length > 0 ? (
+                    <div className="mt-2">
+                      <p className="mb-1 text-[10px] font-medium text-bt-muted">2순위 Gemini 후보</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {(day2GeminiMap[row.day] ?? []).map((item, gIdx) => (
+                          <button
+                            key={`${row.day}_2_${item.slot}_${gIdx}`}
+                            type="button"
+                            onClick={() =>
+                              item.imageUrl
+                                ? void saveDayImageSelection(row.day, 2, {
+                                    imageUrl: item.imageUrl,
+                                    source: 'gemini',
+                                    photographer: null,
+                                    originalLink: null,
+                                    externalId: null,
+                                    selectionMode: 'manual-pick',
+                                  })
+                                : undefined
+                            }
+                            disabled={
+                              dayImageSaving[scheduleImageSavingKey(row.day, 2)] === true || !item.imageUrl
+                            }
+                            className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left disabled:opacity-50"
+                          >
+                            {item.imageUrl ? (
+                              <span className="relative block aspect-video w-full">
+                                <SafeImage
+                                  src={adminPreviewImgSrc(item.imageUrl) ?? item.imageUrl ?? ''}
+                                  alt=""
+                                  fill
+                                  className="object-cover"
+                                  sizes="120px"
+                                  loading="lazy"
+                                />
+                              </span>
+                            ) : (
+                              <span className="block p-1 text-[9px] text-bt-warning">실패</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   {dayGeminiError[row.day] ? (
                     <p className="mt-1 break-words text-xs text-bt-warning">{dayGeminiError[row.day]}</p>
                   ) : null}
@@ -1816,7 +2028,7 @@ export default function AdminPendingDetailPanel({
                             key={`${row.day}_${photo.id}`}
                             type="button"
                             onClick={() =>
-                              void saveDayImageSelection(row.day, {
+                              void saveDayImageSelection(row.day, 1, {
                                 imageUrl: photo.large || photo.medium,
                                 source: 'pexels',
                                 photographer: photo.photographer,
@@ -1825,7 +2037,7 @@ export default function AdminPendingDetailPanel({
                                 selectionMode: 'manual-pick',
                               })
                             }
-                            disabled={dayImageSaving[row.day] === true}
+                            disabled={dayImageSaving[scheduleImageSavingKey(row.day, 1)] === true}
                             title="이 사진을 일정 이미지로 적용"
                             className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left disabled:opacity-50"
                           >
@@ -1858,7 +2070,7 @@ export default function AdminPendingDetailPanel({
                             type="button"
                             onClick={() =>
                               item.imageUrl
-                                ? void saveDayImageSelection(row.day, {
+                                ? void saveDayImageSelection(row.day, 1, {
                                     imageUrl: item.imageUrl,
                                     source: 'gemini',
                                     photographer: null,
@@ -1868,7 +2080,7 @@ export default function AdminPendingDetailPanel({
                                   })
                                 : undefined
                             }
-                            disabled={dayImageSaving[row.day] === true || !item.imageUrl}
+                            disabled={dayImageSaving[scheduleImageSavingKey(row.day, 1)] === true || !item.imageUrl}
                             title={
                               item.imageUrl
                                 ? `${geminiSlotLabelKr(item.slot)} — 일정 이미지로 적용`
@@ -1916,7 +2128,7 @@ export default function AdminPendingDetailPanel({
                           key={`${row.day}_${item.imageUrl}_${item.externalId ?? ''}`}
                           type="button"
                           onClick={() =>
-                            void saveDayImageSelection(row.day, {
+                            void saveDayImageSelection(row.day, 1, {
                               imageUrl: item.imageUrl,
                               source: item.source || 'library-reuse',
                               photographer: item.photographer ?? null,
@@ -1925,7 +2137,7 @@ export default function AdminPendingDetailPanel({
                               selectionMode: 'library-reuse',
                             })
                           }
-                          disabled={dayImageSaving[row.day] === true}
+                          disabled={dayImageSaving[scheduleImageSavingKey(row.day, 1)] === true}
                           className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left disabled:opacity-50"
                         >
                           <span className="relative block aspect-video w-full">
@@ -1958,7 +2170,9 @@ export default function AdminPendingDetailPanel({
           <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
             <div className="flex max-h-[85vh] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-bt-border-strong bg-bt-surface shadow-xl">
               <div className="flex shrink-0 items-center justify-between border-b border-bt-border-soft px-4 py-3">
-                <h4 className="text-sm font-semibold text-bt-strong">DAY {libraryModalDay} 전용 라이브러리 선택</h4>
+                <h4 className="text-sm font-semibold text-bt-strong">
+                  DAY {libraryModalDay} · {libraryModalSlot}순위 라이브러리
+                </h4>
                 <button
                   type="button"
                   onClick={closeLibraryModal}
@@ -2013,7 +2227,7 @@ export default function AdminPendingDetailPanel({
                         <button
                           key={`frequent_${item.externalId ?? ''}_${item.imageUrl}`}
                           type="button"
-                          onClick={() => void selectLibraryAssetForDay(libraryModalDay, item)}
+                          onClick={() => void selectLibraryAssetForDay(libraryModalDay, libraryModalSlot, item)}
                           className="overflow-hidden rounded border border-bt-border-soft bg-bt-surface text-left"
                         >
                           <span className="relative block aspect-video w-full">
@@ -2065,7 +2279,7 @@ export default function AdminPendingDetailPanel({
                           </p>
                           <button
                             type="button"
-                            onClick={() => void selectLibraryAssetForDay(libraryModalDay, item)}
+                            onClick={() => void selectLibraryAssetForDay(libraryModalDay, libraryModalSlot, item)}
                             className="w-full rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-[10px] text-bt-body hover:bg-bt-surface-soft"
                           >
                             일정 이미지로 적용

@@ -38,4 +38,10 @@ describe('finalizeScheduleImageKeyword', () => {
   it('normalizeToPlaceName 단독 동작 유지', () => {
     assert.equal(normalizeToPlaceName('Shibuya crossing Tokyo night'), 'Shibuya Crossing')
   })
+
+  it('Universal Studios 등 복합 관광지명은 잘리지 않음', () => {
+    assert.equal(finalizeScheduleImageKeyword('Universal Studios'), 'Universal Studios')
+    assert.equal(finalizeScheduleImageKeyword('Universal Studios Japan'), 'Universal Studios Japan')
+    assert.equal(finalizeScheduleImageKeyword('Henderson Waves Bridge'), 'Henderson Waves Bridge')
+  })
 })

@@ -24,7 +24,21 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'taipei 101 tower night': 'Taipei 101',
   'jiufen old street taiwan night': 'Jiufen',
   'universal studios japan osaka': 'Universal Studios Japan',
+  'universal studios japan': 'Universal Studios Japan',
+  'universal studios': 'Universal Studios',
+  'warner bros movie world': 'Warner Bros Movie World',
   'tokyo disneyland castle': 'Tokyo Disneyland',
+  'tokyo disneyland': 'Tokyo Disneyland',
+  'hong kong disneyland': 'Hong Kong Disneyland',
+  'shanghai disneyland': 'Shanghai Disneyland',
+  'legoland malaysia': 'Legoland Malaysia',
+  'gardaland': 'Gardaland',
+  'ocean park hong kong': 'Ocean Park Hong Kong',
+  'henderson waves bridge': 'Henderson Waves Bridge',
+  'marina bay sands': 'Marina Bay Sands',
+  'gardens by the bay': 'Gardens by the Bay',
+  'merlion park': 'Merlion Park',
+  'sentosa island': 'Sentosa',
   'fushimi inari shrine / thousand vermilion torii gates / eye-level front view': 'Fushimi Inari',
   'kinkakuji golden pavilion kyoto': 'Kinkaku-ji',
   'ginkakuji temple kyoto': 'Ginkaku-ji',
@@ -126,11 +140,6 @@ const TRAILING_MODIFIER_WORDS = [
   'heritage',
   'cultural',
   'theme',
-  'studios',
-  'studio',
-  'disneyland',
-  'disney',
-  'universal',
   'japan',
   'tokyo',
   'osaka',
@@ -368,6 +377,40 @@ function isMeaninglessKeyword(s: string): boolean {
   return false
 }
 
+/** stripTrailingModifiers 전에 보존 — 복합 관광지 고유명 */
+const COMPOUND_LANDMARK_PHRASES: Record<string, string> = {
+  'universal studios japan': 'Universal Studios Japan',
+  'universal studios': 'Universal Studios',
+  'warner bros movie world': 'Warner Bros Movie World',
+  'tokyo disneyland': 'Tokyo Disneyland',
+  'hong kong disneyland': 'Hong Kong Disneyland',
+  'shanghai disneyland': 'Shanghai Disneyland',
+  'legoland malaysia': 'Legoland Malaysia',
+  'ocean park hong kong': 'Ocean Park Hong Kong',
+  'henderson waves bridge': 'Henderson Waves Bridge',
+  'marina bay sands': 'Marina Bay Sands',
+  'gardens by the bay': 'Gardens by the Bay',
+  'merlion park': 'Merlion Park',
+  'sentosa island': 'Sentosa',
+  'phi phi islands': 'Phi Phi Islands',
+  'ha long bay': 'Halong Bay',
+  'lake ashi': 'Lake Ashi',
+  'ba na hills': 'Ba Na Hills',
+  'ho chi minh city': 'Ho Chi Minh City',
+  'chiang mai': 'Chiang Mai',
+  'new york': 'New York',
+  'hong kong': 'Hong Kong',
+  'los angeles': 'Los Angeles',
+  'san francisco': 'San Francisco',
+  'las vegas': 'Las Vegas',
+}
+
+function resolveCompoundLandmarkPhrase(s: string): string | null {
+  const key = squash(s).toLowerCase()
+  if (!key) return null
+  return COMPOUND_LANDMARK_PHRASES[key] ?? CANONICAL_BY_LOWER[key] ?? null
+}
+
 function stripTripartiteSegments(s: string): string {
   let t = squash(s)
   if (!t) return ''
@@ -379,6 +422,9 @@ function stripTripartiteSegments(s: string): string {
 }
 
 function stripTrailingModifiers(s: string): string {
+  const compound = resolveCompoundLandmarkPhrase(s)
+  if (compound) return compound
+
   let words = squash(s).split(' ').filter(Boolean)
   if (words.length <= 1) return squash(s)
 
@@ -389,6 +435,9 @@ function stripTrailingModifiers(s: string): string {
   let changed = true
   while (changed && words.length > minKeep) {
     changed = false
+    const candidate = squash(words.join(' '))
+    const compoundMid = resolveCompoundLandmarkPhrase(candidate)
+    if (compoundMid) return compoundMid
     const last = words[words.length - 1]!.toLowerCase()
     if (PROTECTED_TRAILING.has(last)) break
     if (TRAILING_MODIFIER_WORDS.includes(last)) {
@@ -397,7 +446,8 @@ function stripTrailingModifiers(s: string): string {
     }
   }
 
-  return squash(words.join(' '))
+  const out = squash(words.join(' '))
+  return resolveCompoundLandmarkPhrase(out) ?? out
 }
 
 /** 끝에 붙은 도시·국가 보조어 제거 (New York·Hong Kong 등 복합 지명은 유지) */
@@ -435,6 +485,9 @@ function stripTrailingGeoTokens(s: string): string {
 export function normalizeToPlaceName(rawKeyword: string): string {
   let t = squash(String(rawKeyword ?? ''))
   if (!t) return ''
+
+  const compoundEarly = resolveCompoundLandmarkPhrase(t)
+  if (compoundEarly) return compoundEarly
 
   const canonFull = canonicalLookup(t)
   if (canonFull) return canonFull

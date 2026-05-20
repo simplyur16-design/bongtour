@@ -58,7 +58,7 @@ const OPTION_AXIS =
 const META_ONLY =
   /^(?:※|▶|\*|•|-)?\s*(?:가이드\s*경비|싱글\s*차지|인솔|상품\s*소개|여행\s*안내)\s*$/i
 
-function parseYbtourShoppingVisitCount(hay: string): number | null {
+export function parseYbtourShoppingVisitCount(hay: string): number | null {
   const t = hay.replace(/\s+/g, ' ')
   const patterns = [/쇼핑\s*총\s*횟수\s*[:\s]*(\d+)/i, /쇼핑\s*(\d+)\s*회/i, /총\s*(\d+)\s*회\s*\(?\s*쇼핑/i]
   for (const re of patterns) {

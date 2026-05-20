@@ -2073,15 +2073,19 @@ ${text.slice(0, 16000)}`
     (manualPasteAxes.hasManualShoppingInput && Boolean(String(pb.shopping ?? '').trim())) ||
     (raw.shoppingVisitCount != null && Number(raw.shoppingVisitCount) > 0)
   /** 요약 문구(정규 추출) 우선 — 표 row 수와 동일 의미가 아님 */
+  const shoppingVisitCountFromBody = parseYbtourShoppingVisitCount(
+    detailBody.shoppingStructured.shoppingCountText ?? '',
+  )
   const shoppingVisitCountFinal =
     manualPasteAxes.hasManualShoppingInput && Boolean(String(pb.shopping ?? '').trim()) && shopRows <= 0
       ? null
       : signals.shoppingVisitCount != null
         ? signals.shoppingVisitCount
-        : parseYbtourShoppingVisitCount(detailBody.shoppingStructured.shoppingCountText ?? '')
-        : raw.shoppingVisitCount != null
-          ? Number(raw.shoppingVisitCount)
-          : null
+        : shoppingVisitCountFromBody != null
+          ? shoppingVisitCountFromBody
+          : raw.shoppingVisitCount != null
+            ? Number(raw.shoppingVisitCount)
+            : null
   const shoppingSummaryFinal =
     (raw.shoppingSummaryText ?? '').trim() ||
     (manualPasteAxes.hasManualShoppingInput &&

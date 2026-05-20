@@ -114,7 +114,7 @@ function koSegmentToEnCity(segment: string): string | null {
     if (first && /^[A-Z]/.test(first)) return first
   }
   if (/^[A-Za-z][A-Za-z\s-]{2,}$/.test(t)) {
-    const w = t.split(/\s+/).slice(0, 2).join(' ')
+    const w = t.split(/\s+/).slice(0, 5).join(' ')
     return w
   }
   return null
