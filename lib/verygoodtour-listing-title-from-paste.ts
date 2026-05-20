@@ -92,16 +92,44 @@ export function isVerygoodtourAirlineOrPriceChromeTitle(line: string): boolean {
 const POLICY_BRACKET_TOKEN_RE =
   /^(?:노\s*)?(?:쇼핑|옵션|업션|팁)|NO\s*(?:쇼핑|옵션|팁)|인솔자\s*동행|노옵션|노업션|노쇼핑|노팁/i
 
+function stripOuterBracketWrapper(s: string): string {
+  const t = String(s ?? '').trim()
+  const m = /^\[([^\]]+)\]$/.exec(t)
+  return m ? m[1]!.replace(/\s+/g, ' ').trim() : t
+}
+
+function stripBracketCharsFromToken(s: string): string {
+  return String(s ?? '')
+    .trim()
+    .replace(/^[\[\(【「『]+/, '')
+    .replace(/[\]\)】」』]+$/, '')
+    .trim()
+}
+
 /** `[노쇼핑, 노업션, 노팁]` 등 정책 뱃지 — 지역·목적지로 쓰지 않음 */
 export function isVerygoodtourPolicyBracketDestination(inner: string): boolean {
-  const raw = String(inner ?? '').trim()
+  const raw = stripOuterBracketWrapper(String(inner ?? '').trim())
   if (!raw) return true
   const parts = raw
     .split(/[,，·/／\s]+/)
-    .map((p) => p.trim())
+    .map((p) => stripBracketCharsFromToken(p))
     .filter(Boolean)
   if (parts.length === 0) return true
   return parts.every((p) => POLICY_BRACKET_TOKEN_RE.test(p.replace(/\s+/g, '')))
+}
+
+/** DB destination 필드에서 정책 토큰을 제외한 첫 실제 지명 조각 */
+export function extractNonPolicyDestinationFragment(raw: string): string | null {
+  const probe = stripOuterBracketWrapper(String(raw ?? '').trim())
+  if (!probe) return null
+  if (isVerygoodtourPolicyBracketDestination(probe)) return null
+  const parts = probe
+    .split(/[,，·/／]+/)
+    .map((p) => stripBracketCharsFromToken(p.trim()))
+    .filter(Boolean)
+  const good = parts.filter((p) => !isVerygoodtourPolicyBracketDestination(p))
+  if (good.length > 0) return good.length === 1 ? good[0]! : good.join(' · ')
+  return probe
 }
 
 export function extractVerygoodDestinationFromBracketTitle(title: string): string | null {
@@ -140,8 +168,11 @@ export function resolveProductListDestinationLabel(input: {
     .map((s) => (s ?? '').trim())
     .filter(Boolean)
   for (const c of candidates) {
-    if (!isVerygoodtourPolicyBracketDestination(c)) return c
+    const usable = extractNonPolicyDestinationFragment(c)
+    if (usable) return usable
   }
+  const fromBracketTitle = extractVerygoodDestinationFromBracketTitle(input.title ?? '')
+  if (fromBracketTitle) return fromBracketTitle
   const fromTitle = extractDestinationFromTitle(input.title ?? '')
   if (fromTitle !== '미지정') return fromTitle
   return '—'

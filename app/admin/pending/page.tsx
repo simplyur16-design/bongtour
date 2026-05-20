@@ -8,6 +8,7 @@ import AdminPageHeader from '../components/AdminPageHeader'
 import AdminStatusBadge from '../components/AdminStatusBadge'
 import AdminPendingDetailPanel from './components/AdminPendingDetailPanel'
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
+import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import type { OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
 
@@ -332,7 +333,13 @@ export default function AdminPendingPage() {
                       <p className="truncate font-medium text-bt-title">{item.title}</p>
                       <p className="mt-0.5 text-xs text-bt-meta">
                         {item.originCode} · {adminSupplierPrimaryDisplayLabel(item)}
-                        {item.destination && ` · ${item.destination}`}
+                        {(() => {
+                          const destLabel = resolveProductListDestinationLabel({
+                            destination: item.destination,
+                            title: item.title,
+                          })
+                          return destLabel !== '—' ? ` · ${destLabel}` : null
+                        })()}
                       </p>
                       {(item.primaryRegion ?? item.displayCategory) && (
                         <p className="mt-1 text-xs text-bt-meta">

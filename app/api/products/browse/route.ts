@@ -28,6 +28,7 @@ import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
+import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 import {
   resolveBrowseCountryParamToCountryKeySlugs,
   resolveBrowseCountryParamToDbCountries,
@@ -461,7 +462,16 @@ async function productsBrowseBuildPayload(queryKey: string) {
       productType: p.productType,
       listingKind: p.listingKind ?? null,
       airportTransferType: p.airportTransferType,
-      primaryDestination: p.primaryDestination,
+      primaryDestination: (() => {
+        const label = resolveProductListDestinationLabel({
+          primaryDestination: p.primaryDestination,
+          destination: p.destination,
+          destinationRaw: p.destinationRaw,
+          primaryRegion: p.primaryRegion,
+          title: p.title,
+        })
+        return label !== '—' ? label : p.primaryDestination
+      })(),
       primaryRegion: p.primaryRegion,
       duration: p.duration,
       bgImageUrl: p.bgImageUrl,

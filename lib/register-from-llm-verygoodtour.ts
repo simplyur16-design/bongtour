@@ -32,6 +32,7 @@ import {
   PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK,
 } from '@/lib/bongtour-tone-manner-llm-ssot'
 import {
+  extractNonPolicyDestinationFragment,
   extractVerygoodDestinationFromBracketTitle,
   extractVerygoodtourVerbatimListingTitleFromPaste,
   isVerygoodtourAirlineOrPriceChromeTitle,
@@ -1701,12 +1702,15 @@ ${text.slice(0, 16000)}`
   const llmDestination = (raw.destination ?? '').trim()
   const llmDestinationUsable =
     llmDestination.length > 0 && !isVerygoodtourPolicyBracketDestination(llmDestination)
-  const finalDestination =
+  const finalDestinationRaw =
     fromBracketDest ||
     (fromTitleDest !== '미지정' ? fromTitleDest : '') ||
     (llmDestinationUsable ? llmDestination : '') ||
     extractDestinationFromTitle(titleTrimmed) ||
     extractDestinationFromTitle(String(raw.title ?? ''))
+  const finalDestination =
+    extractNonPolicyDestinationFragment(finalDestinationRaw) ||
+    (isVerygoodtourPolicyBracketDestination(finalDestinationRaw) ? '' : finalDestinationRaw)
 
   const mustKnowFromLlm = forPreview
     ? []

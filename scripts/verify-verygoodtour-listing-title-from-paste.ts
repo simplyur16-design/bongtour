@@ -6,6 +6,7 @@ import {
   extractVerygoodDestinationFromBracketTitle,
   extractVerygoodtourVerbatimListingTitleFromPaste,
   isVerygoodtourPolicyBracketDestination,
+  resolveProductListDestinationLabel,
 } from '../lib/verygoodtour-listing-title-from-paste'
 
 const GOOD_TITLE =
@@ -43,6 +44,17 @@ function main() {
   }
   if (extractVerygoodDestinationFromBracketTitle(policyTitle) != null) {
     errors.push('policy-only bracket must not become destination')
+  }
+
+  if (!isVerygoodtourPolicyBracketDestination('[노쇼핑, 노옵션, 노팁]')) {
+    errors.push('bracket-wrapped policy must be detected')
+  }
+  const listLabel = resolveProductListDestinationLabel({
+    destination: '[노쇼핑, 노옵션, 노팁]',
+    title: policyTitle,
+  })
+  if (listLabel !== '규슈') {
+    errors.push(`list label from policy DB dest: expected 규슈, got ${JSON.stringify(listLabel)}`)
   }
 
   if (errors.length) {

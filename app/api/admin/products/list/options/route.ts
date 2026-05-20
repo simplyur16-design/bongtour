@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
+import { isVerygoodtourPolicyBracketDestination } from '@/lib/verygoodtour-listing-title-from-paste'
 
 /**
  * GET /api/admin/products/list/options — 필터 옵션. 인증: 관리자.
@@ -37,7 +38,9 @@ export async function GET() {
     ])
     return NextResponse.json({
       airlines: airlines.map((a) => a.airline).filter((a): a is string => a != null),
-      destinations: destinations.map((d) => d.destination).filter((d): d is string => d != null),
+      destinations: destinations
+        .map((d) => d.destination)
+        .filter((d): d is string => d != null && !isVerygoodtourPolicyBracketDestination(d)),
       primaryRegions: primaryRegions.map((r) => r.primaryRegion).filter((r): r is string => r != null),
       displayCategories: displayCategories.map((c) => c.displayCategory).filter((c): c is string => c != null),
     })
