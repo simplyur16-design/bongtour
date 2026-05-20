@@ -3,13 +3,14 @@
  * 공급사 파이프라인과 무관한 운영 메타.
  */
 
-export const LISTING_KIND_VALUES = ['travel', 'private_trip', 'air_hotel_free'] as const
+export const LISTING_KIND_VALUES = ['travel', 'private_trip', 'air_hotel_free', 'overseas_training'] as const
 export type ListingKind = (typeof LISTING_KIND_VALUES)[number]
 
 export const LISTING_KIND_LABELS: Record<ListingKind, string> = {
   travel: '여행상품',
   private_trip: '우리여행',
   air_hotel_free: '항공권+호텔(자유여행)',
+  overseas_training: '국외연수 프로그램',
 }
 
 export const TRAVEL_SCOPE_VALUES = ['domestic', 'overseas'] as const

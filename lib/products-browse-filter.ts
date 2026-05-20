@@ -18,12 +18,13 @@ export type ProductBrowseType = 'travel' | 'free' | 'semi' | 'private' | 'airtel
 export function browseTypeFromListingKind(kind: string | null | undefined): ProductBrowseType | null {
   const k = parseListingKind(kind ?? undefined)
   if (k == null) return null
-  const map: Record<ListingKind, ProductBrowseType> = {
+  if (k === 'overseas_training') return null
+  const map: Record<Exclude<ListingKind, 'overseas_training'>, ProductBrowseType> = {
     travel: 'travel',
     private_trip: 'private',
     air_hotel_free: 'airtel',
   }
-  return map[k] ?? null
+  return map[k]
 }
 
 export function inferBrowseType(p: { productType: string | null; title: string }): ProductBrowseType {

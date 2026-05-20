@@ -91,3 +91,55 @@ export function buildGeminiImagePrompt(options: GeminiImagePromptOptions): strin
   }
   return `${base}, ${GEMINI_IMAGE_SCENE_SUFFIX}`
 }
+
+/** 국외연수 프로그램 — 2슬롯 (관광 여행 슬롯과 분리) */
+export type TrainingGeminiImageSlotType = 'institution_wide' | 'briefing_room'
+
+export const TRAINING_GEMINI_IMAGE_SLOT_ORDER: TrainingGeminiImageSlotType[] = [
+  'institution_wide',
+  'briefing_room',
+]
+
+const TRAINING_SLOT_INSTRUCTIONS_EN: Record<TrainingGeminiImageSlotType, string> = {
+  institution_wide:
+    'No text or watermarks. Wide establishing photograph of a real university campus, public institution, or research facility exterior in Europe or the stated region. Documentary style, morning natural light, institutional architecture clearly visible. No tourism poster look.',
+  briefing_room:
+    'No text or watermarks. Professional study tour scene: small group of adults in business-casual clothing in a meeting room or institution visit briefing. People secondary; institutional setting primary. Documentary photograph, realistic, not staged stock photo.',
+}
+
+const TRAINING_NEGATIVE_EN =
+  'No leisure female travel models. No package tour marketing style. No invented landmark names. Single continuous photograph.'
+
+export type TrainingGeminiPromptOptions = {
+  title: string | null
+  destination: string | null
+  trainingCategory: string | null
+  trainingDescription: string | null
+}
+
+export function buildAutoTrainingImageSceneHint(options: TrainingGeminiPromptOptions): string {
+  const dest = (options.destination ?? '').trim() || 'international destination'
+  const title = (options.title ?? '').trim()
+  const cat = (options.trainingCategory ?? '').trim()
+  const desc = (options.trainingDescription ?? '').trim().slice(0, 400)
+  return [
+    'Photorealistic overseas professional study tour',
+    dest,
+    cat ? `theme: ${cat}` : '',
+    title ? `program: ${title}` : '',
+    desc ? `context: ${desc}` : '',
+  ]
+    .filter(Boolean)
+    .join('. ')
+}
+
+export function buildTrainingGeminiImagePromptForSlot(
+  options: TrainingGeminiPromptOptions,
+  promptOverride: string | null,
+  slot: TrainingGeminiImageSlotType
+): string {
+  const base = promptOverride?.trim()
+    ? promptOverride.trim().slice(0, 500)
+    : buildAutoTrainingImageSceneHint(options)
+  return `${base}. ${TRAINING_SLOT_INSTRUCTIONS_EN[slot]} ${TRAINING_NEGATIVE_EN}`.trim()
+}

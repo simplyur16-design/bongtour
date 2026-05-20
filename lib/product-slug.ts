@@ -2,9 +2,9 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 
-export type ProductSlugCategory = 'pkg' | 'fit' | 'fim'
+export type ProductSlugCategory = 'pkg' | 'fit' | 'fim' | 'otr'
 
-const SLUG_CATEGORY_VALUES: ProductSlugCategory[] = ['pkg', 'fit', 'fim']
+const SLUG_CATEGORY_VALUES: ProductSlugCategory[] = ['pkg', 'fit', 'fim', 'otr']
 
 const SUPPLIER_TO_SLUG: Record<string, string> = {
   modetour: 'mt',
@@ -13,9 +13,11 @@ const SUPPLIER_TO_SLUG: Record<string, string> = {
   verygoodtour: 'vg',
   lottetour: 'lt',
   kyowontour: 'ky',
+  windsor: 'wn',
+  overseas_training: 'bt',
 }
 
-const SLUG_PATTERN = /^(pkg|fit|fim)-(mt|hn|yb|vg|lt|ky)-(\d{4})$/
+const SLUG_PATTERN = /^(pkg|fit|fim|otr)-(mt|hn|yb|vg|lt|ky|wn|bt)-(\d{4})$/
 
 export type ProductSlugInput = {
   listingKind?: string | null
@@ -28,6 +30,9 @@ type DbClient = Prisma.TransactionClient | typeof prisma
 export function inferProductSlugCategory(input: ProductSlugInput): ProductSlugCategory {
   const listingKind = (input.listingKind ?? '').trim()
   const productType = (input.productType ?? '').trim().toLowerCase()
+  if (listingKind === 'overseas_training') {
+    return 'otr'
+  }
   if (listingKind === 'private_trip' || productType === 'private' || productType === 'semi') {
     return 'fim'
   }
@@ -37,7 +42,11 @@ export function inferProductSlugCategory(input: ProductSlugInput): ProductSlugCa
   return 'pkg'
 }
 
-export function supplierSlugCodeFromOrigin(originSource: string | null | undefined): string {
+export function supplierSlugCodeFromOrigin(
+  originSource: string | null | undefined,
+  listingKind?: string | null
+): string {
+  if ((listingKind ?? '').trim() === 'overseas_training') return 'bt'
   const key = normalizeSupplierOrigin(originSource)
   return SUPPLIER_TO_SLUG[key] ?? 'xx'
 }
@@ -87,7 +96,7 @@ export async function generateProductSlug(
   db: DbClient = prisma
 ): Promise<string> {
   const category = inferProductSlugCategory(product)
-  const supplierCode = supplierSlugCodeFromOrigin(product.originSource)
+  const supplierCode = supplierSlugCodeFromOrigin(product.originSource, product.listingKind)
   const prefix = buildProductSlugPrefix(category, supplierCode)
   const maxSeq = await getMaxSlugSeqForPrefix(db, prefix)
   return `${prefix}${formatSlugSeq(maxSeq + 1)}`
