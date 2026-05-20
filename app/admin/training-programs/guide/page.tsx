@@ -9,7 +9,7 @@ import {
 import { ADMIN_BTN_SECONDARY_CLASS } from '@/lib/admin-design-system'
 
 const CHECKLIST = [
-  '윈저 URL·본문 paste → 3블록 분할 검수',
+  '윈저 「상품설명」「상세일정」 각각 복사 → 전용 편집 2·3번 칸에 따로 붙여넣기',
   '봉투어 노출 제목 제안·수동 확정 (축약 금지)',
   '출발 요일·일수·분야·대상 입력',
   'Gemini 대표 이미지 생성 또는 URL 입력',
@@ -50,10 +50,10 @@ export default function TrainingProgramsGuidePage() {
           <h2 className="text-xl font-semibold">등록 절차</h2>
           <ol className="list-decimal pl-5 text-slate-700 space-y-2">
             <li>
-              <Link href="/admin/training-programs/new">프로그램 등록</Link>에서 윈저 본문 붙여넣기 → 「3블록으로
-              분할」
+              <Link href="/admin/training-programs/new">프로그램 등록</Link>에서 윈저 <strong>상품설명</strong>·
+              <strong>상세일정</strong>을 각각 2·3번 칸에 붙여넣기 (통합 분할은 선택)
             </li>
-            <li>상품설명·상세일정 JSON·여행준비 JSON 검수</li>
+            <li>여행준비는 유럽 공통 기본 또는 JSON 검수</li>
             <li>「제목 제안」으로 봉투어 스타일 제목 적용 (항공사·판촉 문구 제거)</li>
             <li>출발 요일만 공개 메타에 사용 (예: 화요일 출발). 매주/매월/매년 문구 사용 금지</li>
             <li>Gemini 이미지 — profile overseas_training, promptOverride 선택 입력</li>
@@ -71,7 +71,7 @@ export default function TrainingProgramsGuidePage() {
             <dt className="font-semibold">trainingDescription</dt>
             <dd>상품설명 탭</dd>
             <dt className="font-semibold">schedule</dt>
-            <dd>상세일정 JSON</dd>
+            <dd>상세일정 본문 (raw 텍스트, 공개 탭 표)</dd>
             <dt className="font-semibold">prepChecklistJson</dt>
             <dd>여행준비·체크 JSON</dd>
             <dt className="font-semibold">fixedDepartureWeekday / durationDays</dt>

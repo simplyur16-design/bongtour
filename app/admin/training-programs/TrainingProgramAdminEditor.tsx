@@ -350,39 +350,24 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
         <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-800">{msg}</p>
       ) : null}
 
-      <section className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 space-y-3">
-        <h2 className="font-semibold text-slate-900">1. 윈저·협력사 본문 붙여넣기</h2>
-        <p className="text-sm text-slate-700 leading-relaxed">
-          한 번에 붙여넣으면 <strong>상품설명</strong>·<strong>상세일정 JSON</strong>·<strong>여행준비 JSON</strong>으로
-          나뉩니다. 유럽 상품은 하단 「해외여행 안전정보」「예약시 유의사항」 등 <strong>공통 안내문</strong>이
-          프로그램마다 같을 수 있습니다 — 연수 고유 소개·일차 일정은 각 섹션에서 따로 검수·수정하세요.
-        </p>
-        <input
-          type="url"
-          value={originUrl}
-          onChange={(e) => setOriginUrl(e.target.value)}
-          placeholder="원문 URL (선택)"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
-        <textarea
-          value={windsorPaste}
-          onChange={(e) => setWindsorPaste(e.target.value)}
-          rows={8}
-          placeholder="상품 페이지 HTML/텍스트를 붙여넣으세요"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono"
-        />
-        <button
-          type="button"
-          disabled={parsing}
-          onClick={() => void parseWindsor()}
-          className={ADMIN_BTN_SECONDARY_CLASS}
-        >
-          {parsing ? '분할 중…' : '3블록으로 분할 (Gemini)'}
-        </button>
-      </section>
+      <p className="rounded-lg border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm leading-relaxed text-emerald-950">
+        윈저·협력사 페이지에서 <strong>상품설명</strong>과 <strong>상세일정</strong>을 각각 복사해 아래{' '}
+        <strong>2·3번 칸</strong>에 따로 붙여넣으세요. 한 번에 통째로 넣는 칸은 없습니다. 여행준비·약관은 4번(유럽
+        공통 기본) 또는 선택 통합 분할을 쓰세요.
+      </p>
 
       <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-900">2. 기본 정보</h2>
+        <h2 className="font-semibold text-slate-900">1. 기본 정보</h2>
+        <label className="block text-sm font-medium text-slate-700">
+          원문 URL (윈저·협력사, 선택)
+          <input
+            type="url"
+            value={originUrl}
+            onChange={(e) => setOriginUrl(e.target.value)}
+            placeholder="https://…"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+        </label>
         <label className="block text-sm font-medium text-slate-700">
           원문 제목 (윈저)
           <input
@@ -481,41 +466,43 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
         </div>
       </section>
 
-      <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-900">3. 상품설명</h2>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          공개 페이지 「상품설명」 탭에 그대로 표시됩니다 (약 1,000자 권장). 봉투어 톤은 「제목 제안」처럼
-          직접 다듬거나 그대로 두셔도 됩니다. 약관·여행준비 문구는 여기 넣지 마세요.
+      <section className="space-y-3 rounded-xl border border-amber-100 bg-amber-50/40 p-4">
+        <h2 className="font-semibold text-slate-900">2. 상품설명 (윈저 「상품설명」만)</h2>
+        <p className="text-sm text-slate-700 leading-relaxed">
+          협력사 상세 페이지 <strong>「상품설명」</strong> 탭·블록 내용만 복사해 아래에 붙여넣으세요. 공개 페이지
+          「상품설명」 탭에 <strong>그대로</strong> 나갑니다 (약 1,000자 권장, 최대 12,000자). 일차별 일정·해외여행
+          안전정보·예약 유의사항은 <strong>넣지 마세요</strong> — 3번·4번에 해당합니다.
         </p>
         <textarea
           value={trainingDescription}
           onChange={(e) => setTrainingDescription(e.target.value)}
           rows={14}
           maxLength={12000}
-          placeholder="연수 목적·대상·특징 등 프로그램 소개"
+          placeholder="윈저 상품설명 탭에서 복사한 연수 소개·기관·특징 등"
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed"
         />
         <p className="text-xs text-slate-500">{trainingDescription.length} / 12000자</p>
       </section>
 
-      <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-900">4. 상세일정</h2>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          붙여넣은 내용을 <strong>축약 없이</strong> 공개 「상세일정」 탭 표로 보여 줍니다.{' '}
-          <code className="text-[11px]">1일차</code>, <code className="text-[11px]">2일차</code>처럼
-          줄을 나누면 일차별 표 행이 됩니다.
+      <section className="space-y-3 rounded-xl border border-amber-100 bg-amber-50/40 p-4">
+        <h2 className="font-semibold text-slate-900">3. 상세일정 (윈저 「상세일정」만)</h2>
+        <p className="text-sm text-slate-700 leading-relaxed">
+          협력사 <strong>「상세일정」</strong> 탭·표 내용만 복사해 붙여넣으세요. <strong>축약·JSON 변환 없이</strong>{' '}
+          공개 「상세일정」 탭 표로 표시됩니다.{' '}
+          <code className="text-[11px]">1일차</code>, <code className="text-[11px]">2일차</code> 줄마다 표 행이
+          나뉩니다.
         </p>
         <textarea
           value={scheduleText}
           onChange={(e) => setScheduleText(e.target.value)}
           rows={16}
-          placeholder={'1일차\n인천 출발 · …\n\n2일차\n…'}
+          placeholder={'윈저 상세일정 탭에서 복사\n\n1일차\n…\n\n2일차\n…'}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono leading-relaxed"
         />
       </section>
 
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-900">5. 여행준비/체크사항</h2>
+        <h2 className="font-semibold text-slate-900">4. 여행준비/체크사항</h2>
         <label className="flex items-start gap-2 text-sm text-slate-800">
           <input
             type="checkbox"
@@ -550,7 +537,7 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       </section>
 
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-900">6. 대표 이미지</h2>
+        <h2 className="font-semibold text-slate-900">5. 대표 이미지</h2>
         <p className="text-xs text-slate-500 leading-relaxed">
           「프롬프트 미리보기」로 슬롯별 영문 프롬프트를 확인한 뒤, 사이트 내 생성·외부 Gemini·직접 업로드 중
           선택하세요.
@@ -618,6 +605,33 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
       </section>
+
+      <details className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+          선택: 통합 본문 자동 분할 (Gemini) — 상품설명·상세일정을 따로 넣는 대신 쓸 때만
+        </summary>
+        <div className="mt-3 space-y-3">
+          <p className="text-xs text-slate-600 leading-relaxed">
+            페이지 전체를 한 번에 붙여넣으면 Gemini가 상품설명·일정·여행준비로 나눕니다. 평소에는 2·3번에 각각
+            붙여넣는 방식을 권장합니다.
+          </p>
+          <textarea
+            value={windsorPaste}
+            onChange={(e) => setWindsorPaste(e.target.value)}
+            rows={8}
+            placeholder="통합 HTML/텍스트 (선택)"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono"
+          />
+          <button
+            type="button"
+            disabled={parsing}
+            onClick={() => void parseWindsor()}
+            className={ADMIN_BTN_SECONDARY_CLASS}
+          >
+            {parsing ? '분할 중…' : '3블록으로 분할 (Gemini)'}
+          </button>
+        </div>
+      </details>
 
       <div className="flex flex-wrap gap-3">
         <button type="button" disabled={saving} onClick={() => void save()} className={ADMIN_BTN_PRIMARY_CLASS}>
