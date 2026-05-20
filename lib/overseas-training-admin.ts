@@ -21,6 +21,7 @@ export const trainingProgramAdminSelect = {
   bgImageUrl: true,
   bgImageIsGenerated: true,
   bgImageSource: true,
+  bgImagePhotographer: true,
   schedule: true,
   summary: true,
   trainingDescription: true,
