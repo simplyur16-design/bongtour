@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
 import Header from '@/app/components/Header'
@@ -50,8 +50,8 @@ const FLOW_DETAILS = [
 type TrainingHubProps = {
   /** 메인 허브 `training`과 동일 하이브리드 해석 URL */
   heroImageUrl: string
-  /** 통역 블록 — 관리자 `trainingPageSecondaryImage` 없으면 hero와 동일 */
-  interpretImageUrl: string
+  /** 발권·증빙 다음 — 연수 프로그램 미리보기 (RSC) */
+  programsSlot?: ReactNode
 }
 
 const TRUST_CASES = [
@@ -79,7 +79,7 @@ const SERVICE_MODAL_HINT: Record<ServiceType, { hint: string }> = {
   },
 }
 
-export default function TrainingHub({ heroImageUrl, interpretImageUrl }: TrainingHubProps) {
+export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubProps) {
   const [presetService, setPresetService] = useState<ServiceType | null>(null)
   const [inquiryOpen, setInquiryOpen] = useState(false)
 
@@ -167,6 +167,8 @@ export default function TrainingHub({ heroImageUrl, interpretImageUrl }: Trainin
             </Link>
           </div>
         </section>
+
+        {programsSlot}
 
         <section id="training-service-scope" className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
           <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[38px]">필요한 범위에 맞춰 문의하실 수 있습니다.</h2>
@@ -260,59 +262,6 @@ export default function TrainingHub({ heroImageUrl, interpretImageUrl }: Trainin
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-          <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[38px]">현장에서는 통역 방식과 운영 이해가 중요합니다.</h2>
-          <p className="mt-3 text-[18px] leading-relaxed text-slate-700">현장 성격에 따라 통역 방식과 운영 준비가 달라집니다. Bong투어는 사전질의서와 고객사 의도를 기준으로 현장 흐름에 맞춰 준비합니다.</p>
-          <div className="mt-6 grid gap-5 lg:grid-cols-2">
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <div className="relative h-[280px] sm:h-[340px]">
-                <SafeImage
-                  src={interpretImageUrl}
-                  alt="국외연수 회의·브리핑 장면"
-                  fill
-                  sizes="(max-width: 1023px) 100vw, (max-width: 1279px) 46vw, 544px"
-                  className="object-cover"
-                />
-              </div>
-              <p className="px-4 py-2 text-right text-xs text-slate-500">사진은 기존 사진을 AI로 변형한 내용입니다.</p>
-            </div>
-            <div className="grid gap-4">
-              <article className="rounded-xl border border-bt-border bg-white p-5">
-                <h3 className="text-[26px] font-semibold leading-[1.34] tracking-[-0.005em] text-slate-900">동시통역</h3>
-                <p className="mt-2 text-[17px] leading-[1.62] text-slate-700">사전 의제가 정리된 발표·행사에서 실시간 전달이 필요한 경우에 사용됩니다.</p>
-              </article>
-              <article className="rounded-xl border border-bt-border bg-white p-5">
-                <h3 className="text-[26px] font-semibold leading-[1.34] tracking-[-0.005em] text-slate-900">순차통역</h3>
-                <p className="mt-2 text-[17px] leading-[1.62] text-slate-700">기관 방문·회의·연구시찰처럼 현장 커뮤니케이션이 중요한 상황에서 주로 사용됩니다.</p>
-              </article>
-            </div>
-          </div>
-          <p className="mt-4 rounded-lg border border-blue-200 bg-blue-50/70 px-4 py-3 text-[18px] font-semibold leading-[1.48] text-slate-800">국외연수 현장에서는 순차통역 경험이 실제 운영 품질을 좌우합니다.</p>
-          <details className="mt-3">
-            <summary className="cursor-pointer text-sm font-medium text-slate-600 hover:text-slate-800">통역 운영 상세 보기</summary>
-            <div className="mt-3 space-y-4 rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-4 text-[16px] leading-[1.68] text-slate-700 sm:px-5 [word-break:keep-all]">
-              <div className="[text-wrap:pretty]">
-                <p className="text-[13px] font-semibold tracking-wide text-slate-800">사전 준비</p>
-                <p className="mt-1.5">
-                  Bong투어는 고객사의 방문 목적과 사전질의서 내용을 바탕으로 필요한 용어와 표현을 미리 정리한 뒤 현장에 참여합니다.
-                </p>
-              </div>
-              <div className="border-t border-slate-200 pt-4 [text-wrap:pretty]">
-                <p className="text-[13px] font-semibold tracking-wide text-slate-800">현장 통역</p>
-                <p className="mt-1.5">
-                  기관 방문, 회의, 연구시찰 등 실제 상황에 맞춰 순차통역을 진행합니다.
-                </p>
-              </div>
-              <div className="border-t border-slate-200 pt-4 [text-wrap:pretty]">
-                <p className="text-[13px] font-semibold tracking-wide text-slate-800">운영 지원</p>
-                <p className="mt-1.5">
-                  고객사의 의도와 현장 흐름이 자연스럽게 이어질 수 있도록 운영 전반을 안정적으로 지원합니다.
-                </p>
-              </div>
-            </div>
-          </details>
-        </section>
-
         <section className="border-y border-bt-border bg-bt-surface px-4 py-10 sm:px-6">
           <div className="mx-auto max-w-6xl">
             <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[38px]">실제 수행기관명을 기준으로 신뢰를 쌓아왔습니다.</h2>
@@ -326,25 +275,6 @@ export default function TrainingHub({ heroImageUrl, interpretImageUrl }: Trainin
               ))}
             </div>
             <p className="mt-4 text-[17px] leading-relaxed text-slate-700">경기도의회 미래과학협력위원회의 싱가포르·항저우 공무국외출장은 언론에서 ‘국외 출장의 정석’으로 소개된 사례로, 목적 중심의 기관 방문 구성과 운영 경험을 보여줍니다. Bong투어는 실제 기관 수행 경험을 바탕으로, 형식적인 일정이 아니라 목적에 맞는 방문 구성과 현장 운영을 지원합니다.</p>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-          <div className="rounded-xl border border-sky-200 bg-sky-50/60 p-5">
-            <div className="mx-auto max-w-3xl text-center">
-              <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[38px]">아직 모두 정해지지 않아도 문의하실 수 있습니다.</h2>
-              <ul className="mt-3 space-y-2 text-[18px] text-slate-700">
-                <li>일정이나 예산이 아직 확정되지 않아도 괜찮습니다.</li>
-                <li>전체 연수 운영뿐 아니라 필요한 범위만 선택해 문의할 수 있습니다.</li>
-                <li>연수 목적에 따라 어떤 구성이 필요한지부터 함께 검토할 수 있습니다.</li>
-              </ul>
-              <p className="mx-auto mt-3 max-w-2xl text-[17px] text-slate-700">처음부터 모든 조건을 정리해 오실 필요는 없습니다. 현재 준비된 범위 안에서 남겨주시면 목적에 맞는 방향부터 함께 확인해드립니다.</p>
-              <div className="mt-5 flex justify-center">
-                <button type="button" onClick={() => moveToInquiry(presetService)} className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-7 py-3.5 text-[17px] font-semibold text-white hover:bg-slate-800">
-                문의하기
-                </button>
-              </div>
-            </div>
           </div>
         </section>
 

@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import TrainingHub from '@/app/components/training/TrainingHub'
+import TrainingProgramsPreview from '@/components/training/TrainingProgramsPreview'
 import PartnerOrganizationsSectionGate from '@/app/components/home/PartnerOrganizationsSectionGate'
 import { resolveTrainingPageSectionImages } from '@/lib/home-hub-resolve-images'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
   const images = await ogImagesForMetadata('training', `공공·기업 연수·단체 | ${SITE_NAME}`)
@@ -27,10 +28,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** 공공·기업·연수·전세버스·발권 — `/training`과 동일 허브 UI (`TrainingHub`). */
 export default function BusinessPage() {
-  const { hero, interpret } = resolveTrainingPageSectionImages()
+  const { hero } = resolveTrainingPageSectionImages()
   return (
     <>
-      <TrainingHub heroImageUrl={hero} interpretImageUrl={interpret} />
+      <TrainingHub heroImageUrl={hero} programsSlot={<TrainingProgramsPreview />} />
       <PartnerOrganizationsSectionGate />
     </>
   )

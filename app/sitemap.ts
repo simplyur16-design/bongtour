@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSiteOrigin } from '@/lib/site-metadata'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { publicProductPath } from '@/lib/product-public-path'
+import { OVERSEAS_TRAINING_LISTING_KIND, trainingProgramPublicPath } from '@/lib/overseas-training-program-query'
 
 export const revalidate = 3600
 
@@ -21,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/support', priority: 0.75 },
     { path: '/charter-bus', priority: 0.7 },
     { path: '/business', priority: 0.65 },
+    { path: '/business/programs', priority: 0.65 },
   ]
 
   const staticEntries: MetadataRoute.Sitemap = staticPaths.map(({ path, priority }) => ({
@@ -34,9 +36,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     where: {
       registrationStatus: 'registered',
       AND: [publicProductWhereClause()],
+      NOT: { listingKind: OVERSEAS_TRAINING_LISTING_KIND },
     },
     select: { id: true, slug: true, updatedAt: true },
     take: 5000,
+    orderBy: { updatedAt: 'desc' },
+  })
+
+  const trainingPrograms = await prisma.product.findMany({
+    where: {
+      registrationStatus: 'registered',
+      listingKind: OVERSEAS_TRAINING_LISTING_KIND,
+    },
+    select: { id: true, slug: true, updatedAt: true },
+    take: 500,
     orderBy: { updatedAt: 'desc' },
   })
 
@@ -47,5 +60,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }))
 
-  return [...staticEntries, ...productEntries]
+  const trainingEntries: MetadataRoute.Sitemap = trainingPrograms.map((p) => ({
+    url: `${origin}${trainingProgramPublicPath(p)}`,
+    lastModified: p.updatedAt,
+    changeFrequency: 'weekly' as const,
+    priority: 0.65,
+  }))
+
+  return [...staticEntries, ...productEntries, ...trainingEntries]
 }
