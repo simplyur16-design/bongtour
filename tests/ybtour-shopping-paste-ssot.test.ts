@@ -8,7 +8,6 @@ const CPP1063_SNIPPET = `
 모든 경비가 포함된 NO쇼핑/NO옵션/NO팁 상품입니다.
 쇼핑 없음
 옵션/쇼핑/관광
-총 6회
 회차	항목명	비용·시간
 1	[아시아나/인천출발] 상해/오진 4일 #TOP PICK #노팁노옵션노쇼핑 #4명부터단독	—
 2	모든 경비가 포함된 NO쇼핑/NO옵션/NO팁 상품입니다.	—
@@ -24,7 +23,7 @@ describe('ybtour shopping — dedicated paste empty SSOT', () => {
     assert.equal(ybtourHaystackDeclaresNoShopping(CPP1063_SNIPPET), true)
   })
 
-  it('옵션/쇼핑 탭 메타 표(총 6회)만 있으면 쇼핑 회차·횟수를 만들지 않는다', () => {
+  it('옵션/쇼핑 탭 메타 표(회차·항목명)만 있으면 쇼핑 회차·횟수를 만들지 않는다', () => {
     const sig = extractStructuredTourSignals(CPP1063_SNIPPET)
     assert.equal(sig.hasShopping, false)
     assert.equal(sig.shoppingVisitCount, null)

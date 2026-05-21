@@ -190,6 +190,7 @@ export function ItineraryExtraInfoBoxes({
               <PackageShoppingTable
                 stops={product.shoppingStopsStructured}
                 shoppingCount={shoppingVisitCountForUi}
+                visitCountTotal={product.shoppingVisitCountTotal ?? null}
                 shoppingPasteRaw={product.shoppingPasteRaw ?? null}
                 shoppingItems={product.shoppingItems}
                 shoppingNoticeRaw={product.shoppingCautionNoticeRaw}

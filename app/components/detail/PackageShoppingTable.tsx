@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import type { ShoppingStopRow } from '@/lib/public-product-extras'
+import { isShoppingPublicJunkRow } from '@/lib/shopping-public-row-filter'
 import { parseShoppingPasteForPublicDisplay } from '@/lib/paste-block-display'
 import PasteBlocksReaderView from '@/app/components/detail/PasteBlocksReaderView'
 
@@ -12,6 +13,8 @@ const TABLE_CELL = 'px-3 py-2.5 text-sm text-[#1F1B2D] align-top'
 type Props = {
   stops: ShoppingStopRow[] | null | undefined
   shoppingCount?: number | null
+  /** DB·등록 SSOT 방문 횟수(행 수와 다를 수 있음) */
+  visitCountTotal?: number | null
   shoppingPasteRaw?: string | null
   shoppingItems?: string | null
   shoppingNoticeRaw?: string | null
@@ -37,12 +40,16 @@ function costTime(stop: ShoppingStopRow): string {
 export default function PackageShoppingTable({
   stops,
   shoppingCount,
+  visitCountTotal,
   shoppingPasteRaw,
   shoppingItems,
   shoppingNoticeRaw,
 }: Props) {
   const structuredRows = (stops ?? []).filter(
-    (s) => !s.candidateOnly && (s.itemType?.trim() || s.placeName?.trim() || s.shopName?.trim())
+    (s) =>
+      !s.candidateOnly &&
+      !isShoppingPublicJunkRow(s) &&
+      (s.itemType?.trim() || s.placeName?.trim() || s.shopName?.trim()),
   )
 
   const itemsList = useMemo(() => {
@@ -70,9 +77,21 @@ export default function PackageShoppingTable({
 
   if (structuredRows.length === 0 && !showPaste && !showItems && !showNotice) return null
 
+  /** 행 수만큼 숫자가 잡힌 경우(옵션/쇼핑 탭 메타 표 오탐) — 「총 N회」로 보이지 않게 함 */
+  const visitCountForLabel =
+    visitCountTotal != null && visitCountTotal > 0
+      ? visitCountTotal
+      : shoppingCount != null &&
+          shoppingCount > 0 &&
+          structuredRows.length > 0 &&
+          shoppingCount !== structuredRows.length
+        ? shoppingCount
+        : shoppingCount != null && shoppingCount > 0 && structuredRows.length === 0
+          ? shoppingCount
+          : null
   const countLabel =
-    shoppingCount != null && shoppingCount > 0 ? (
-      <span className="ml-2 text-sm font-medium text-[#888780]">총 {shoppingCount}회</span>
+    visitCountForLabel != null ? (
+      <span className="ml-2 text-sm font-medium text-[#888780]">총 {visitCountForLabel}회</span>
     ) : null
 
   return (
