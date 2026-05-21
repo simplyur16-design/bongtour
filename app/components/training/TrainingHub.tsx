@@ -212,7 +212,7 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
                   const selected = activeFlowStep === idx
                   const emphasized = idx === 1 || idx === 3 || idx === 4
                   return (
-                    <li key={label} className="min-w-[108px] shrink-0 md:min-w-0">
+                    <li key={label} className="min-w-[124px] shrink-0 md:min-w-0">
                       <button
                         type="button"
                         role="tab"
@@ -220,7 +220,7 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
                         aria-controls="training-flow-panel"
                         id={`training-flow-tab-${idx}`}
                         onClick={() => setActiveFlowStep(idx)}
-                        className={`flex w-full flex-col items-start rounded-xl border px-3 py-3 text-left transition ${
+                        className={`flex w-full flex-col items-center rounded-xl border px-4 py-4 text-center transition ${
                           selected
                             ? emphasized
                               ? 'border-blue-500 bg-blue-50 shadow-sm ring-2 ring-blue-200'
@@ -231,7 +231,7 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
                         }`}
                       >
                         <span
-                          className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-bold ${
+                          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold ${
                             selected
                               ? emphasized
                                 ? 'bg-blue-600 text-white'
@@ -244,7 +244,7 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
                           {idx + 1}
                         </span>
                         <span
-                          className={`mt-2 text-[13px] font-semibold leading-snug ${
+                          className={`mt-2.5 text-[15px] font-semibold leading-snug sm:text-base ${
                             selected && !emphasized ? 'text-white' : emphasized ? 'text-blue-950' : 'text-slate-900'
                           }`}
                         >
