@@ -16,8 +16,15 @@ import { firstPoiSearchTermExcluding, mapKoreanPoiSegment, normalizeSemanticPoiK
 /** REGISTER_PROMPT·schedule 선추출 프롬프트에 삽입 */
 export const REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK = `# [schedule[].imageKeyword / imageKeyword2 — Pexels 검색용]
 - **관광 일차:** 그날 일정·여행지에 맞는 **관광명소·어트랙션**만(예: Merlion Park, Universal Studios Singapore, Marina Bay Sands). **호텔·숙소명·도시·국가 단독·다른 나라 명소**(Forbidden City 등) 금지. imageKeyword = 1순위, imageKeyword2 = 다른 명소. Day N travel·한글·공항·식사 키워드 금지.
+- **routeText가 있으면(필수에 가깝게):** imageKeyword·imageKeyword2는 **routeText의 이동 순서(A - B - C)** 에서 **앞쪽·다음 관광명소**를 우선한다. description만 짧아도 routeText 순서를 따른다.
 - **출발·귀국(비행) 일차:** imageKeyword·imageKeyword2 모두 **일정 첫·마지막 해외 도시 영문명**만(동일 도시 가능). 국내 허브·공항 키워드 금지.
 - 불확실한 슬롯은 빈 문자열.`
+
+/** Product.schedule[]·LLM JSON에서 routeText 추출 */
+export function scheduleRouteTextFromRow(row: { routeText?: unknown } | Record<string, unknown>): string | null {
+  const v = (row as { routeText?: unknown }).routeText
+  return typeof v === 'string' && v.trim() ? v.trim() : null
+}
 
 export const REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE =
   'imageKeyword(1순위 관광지·명소), imageKeyword2(2순위 관광지·명소 또는 비행일 도시명),'
@@ -111,7 +118,37 @@ const KO_LANDMARK_RULES: ReadonlyArray<KoLandmarkRule> = [
   { re: /도톤보리|道頓堀/u, en: 'Dotonbori' },
   { re: /바나힐|골든브릿지/u, en: 'Ba Na Hills' },
   { re: /호이안/u, en: 'Hoi An Ancient Town' },
+  { re: /하버\s*시티|하버플라자|Harbour\s*City/i, en: 'Harbour City Hong Kong' },
+  { re: /타이쿤|Tai\s*Kwun|大館/u, en: 'Tai Kwun' },
+  { re: /소호\s*거리|SOHO|SoHo/i, en: 'SoHo Hong Kong', when: /홍콩|Hong\s*Kong|香港/i },
+  { re: /미드레벨|Mid-?Levels/i, en: 'Mid-Levels Escalator' },
+  { re: /웡타이신|黄大仙|Wong\s*Tai\s*Sin/i, en: 'Wong Tai Sin Temple' },
+  { re: /1881\s*헤리티지|1881\s*Heritage/i, en: '1881 Heritage Hong Kong' },
+  { re: /낭만의\s*거리|Avenue\s*of\s*Stars/i, en: 'Avenue of Stars Hong Kong' },
+  { re: /스타\s*페리|Star\s*Ferry/i, en: 'Star Ferry Hong Kong' },
+  { re: /오션\s*파크|Ocean\s*Park/i, en: 'Ocean Park Hong Kong', when: /홍콩|Hong\s*Kong/i },
+  { re: /마카오\s*타워|Macau\s*Tower/i, en: 'Macau Tower' },
+  { re: /윈\s*팰리스|Wynn\s*Palace/i, en: 'Wynn Palace Macau' },
 ]
+
+/** 여행지와 무관한 타권역 랜드마크(홍콩·마카오·싱가포르 등에서 LLM 오염 차단) */
+const MAINLAND_CHINA_LANDMARK_KEYS = new Set(
+  [
+    'Forbidden City',
+    'Tiananmen Square',
+    'Yu Garden',
+    'The Bund',
+    'Nanjing Road',
+    'Xintiandi',
+    'Oriental Pearl Tower',
+    'West Lake',
+    'Songcheng Park',
+    'City God Temple of Shanghai',
+  ].map((s) => s.toLowerCase()),
+)
+
+const ROUTE_META_SEGMENT_RE =
+  /^(?:호텔|숙박|식사|자유|선택|미팅|공항|출발|도착|이동|휴식|체크인|체크아웃|조인|가이드|조식|중식|석식|차량|버스)/u
 
 /** 본문에 명소가 없고 도시만 언급될 때 최후 폴백(도시명 단독 대신 대표 명소) */
 const CITY_ICONIC_LANDMARK: Record<string, string> = {
@@ -132,10 +169,20 @@ const CITY_ICONIC_LANDMARK: Record<string, string> = {
   london: 'Tower Bridge',
   barcelona: 'Sagrada Familia',
   singapore: 'Marina Bay Sands',
+  macau: 'Senado Square',
 }
 
 /** 일정 본문에 명소가 없을 때 2순위·희박 일차 보강용(여행지별 대표 어트랙션) */
 const TRIP_ICONIC_LANDMARKS: Record<string, readonly string[]> = {
+  'hong kong': [
+    'Harbour City Hong Kong',
+    'SoHo Hong Kong',
+    'Tai Kwun',
+    'Victoria Peak',
+    '1881 Heritage Hong Kong',
+    'Avenue of Stars Hong Kong',
+  ],
+  macau: ['Senado Square', 'Ruins of St Paul Macau', 'The Venetian Macao'],
   singapore: [
     'Marina Bay Sands',
     'Merlion Park',
@@ -263,6 +310,85 @@ function splitDescriptionParts(description: string): string[] {
     .filter(Boolean)
 }
 
+/** schedule[].routeText — 본문 이동 순서 A - B - C (일정 선추출·풀 파싱 공통) */
+export function parseRouteTextSegments(routeText: string | null | undefined): string[] {
+  const raw = (routeText ?? '').trim()
+  if (!raw) return []
+  return raw
+    .split(/\s*-\s*/)
+    .map((s) => s.replace(/^[★☆●◆■▶\s]+/u, '').trim())
+    .filter(Boolean)
+}
+
+function destinationKeysForPlan(plan: ScheduleImageKeywordPlan): Set<string> {
+  const keys = new Set<string>()
+  for (const en of [plan.firstDestinationEn, plan.lastDestinationEn]) {
+    const k = normKey(en)
+    if (k) keys.add(k)
+  }
+  return keys
+}
+
+function isOffRegionLandmarkForPlan(keyword: string, plan: ScheduleImageKeywordPlan): boolean {
+  const key = normKey(finalizeScheduleImageKeyword(keyword))
+  if (!key || !MAINLAND_CHINA_LANDMARK_KEYS.has(key)) return false
+  const dest = destinationKeysForPlan(plan)
+  if (dest.has('hong kong') || dest.has('macau')) return true
+  if (dest.has('singapore') && !dest.has('hong kong') && !dest.has('macau')) return true
+  return false
+}
+
+function landmarkFromRouteSegment(segment: string, excludePrimary?: string): string | null {
+  const seg = segment.trim()
+  if (!seg || seg.length < 2 || ROUTE_META_SEGMENT_RE.test(seg)) return null
+  if (KOREAN_HUB_RE.test(seg) && seg.length <= 12) return null
+
+  const excludeKey = excludePrimary ? normKey(finalizeScheduleImageKeyword(excludePrimary)) : ''
+
+  for (const { re, en, when } of KO_LANDMARK_RULES) {
+    if (when && !when.test(seg)) continue
+    if (re.test(seg)) {
+      const fin = finalizeScheduleImageKeyword(en)
+      if (fin && (!excludeKey || normKey(fin) !== excludeKey)) return fin
+    }
+  }
+
+  const mapped = mapKoreanPoiSegment(seg)
+  if (mapped) {
+    const fin = finalizeScheduleImageKeyword(mapped)
+    if (
+      fin &&
+      !isBareCityOrCountryKeyword(fin) &&
+      !isHotelLodgingImageKeyword(fin) &&
+      (!excludeKey || normKey(fin) !== excludeKey)
+    ) {
+      return fin
+    }
+  }
+
+  if (koSegmentToEnCity(seg)) return null
+  return null
+}
+
+/** routeText 순서대로 관광 명소(도시·메타 구간 제외) */
+export function orderedLandmarksFromRouteText(
+  ctx: ScheduleImageKeywordDayInput,
+  excludePrimary?: string,
+): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  const excludeKey = excludePrimary ? normKey(finalizeScheduleImageKeyword(excludePrimary)) : ''
+  for (const seg of parseRouteTextSegments(ctx.routeText)) {
+    const fin = landmarkFromRouteSegment(seg, excludePrimary)
+    if (!fin) continue
+    const key = normKey(fin)
+    if (seen.has(key) || (excludeKey && key === excludeKey)) continue
+    seen.add(key)
+    out.push(fin)
+  }
+  return out
+}
+
 /** 그날 본문·제목에 키워드가 실제로 등장하는지(다른 도시 명소 오염 방지) */
 export function landmarkMentionedInDayContext(keyword: string, ctx: ScheduleImageKeywordDayInput): boolean {
   const fin = finalizeScheduleImageKeyword(keyword)
@@ -292,6 +418,9 @@ export function landmarkMentionedInDayContext(keyword: string, ctx: ScheduleImag
 
 /** 관광 일차 — 도시명이 아닌 명소 영문 고유명 */
 export function extractScheduleLandmarkFromDayContext(ctx: ScheduleImageKeywordDayInput): string {
+  const routeOrdered = orderedLandmarksFromRouteText(ctx)
+  if (routeOrdered[0]) return routeOrdered[0]
+
   const h = hay(ctx)
   for (const { re, en } of KO_LANDMARK_RULES) {
     if (re.test(h)) {
@@ -362,7 +491,9 @@ export function isMentionedScheduleTourismKeyword(
 ): boolean {
   const fin = finalizeScheduleImageKeyword(keyword)
   if (!fin || isBareCityOrCountryKeyword(fin) || isHotelLodgingImageKeyword(fin)) return false
+  if (plan && isOffRegionLandmarkForPlan(fin, plan)) return false
   if (plan && isKnownTripLandmarkForDestination(fin, plan)) return true
+  if (orderedLandmarksFromRouteText(ctx).some((lm) => normKey(lm) === normKey(fin))) return true
   return landmarkMentionedInDayContext(fin, ctx)
 }
 
@@ -390,6 +521,11 @@ export function collectScheduleLandmarksFromDayContext(
   const excludePrimaryKey = excludePrimary ? normKey(finalizeScheduleImageKeyword(excludePrimary)) : ''
   const hits: Array<{ fin: string; pos: number }> = []
   const seen = new Set<string>()
+
+  let routePos = 0
+  for (const fin of orderedLandmarksFromRouteText(ctx, excludePrimary)) {
+    pushLandmarkCandidate(hits, seen, fin, routePos++, excludePrimaryKey)
+  }
 
   for (const { re, en, when } of KO_LANDMARK_RULES) {
     if (when && !when.test(h)) continue
@@ -453,19 +589,33 @@ export function resolveTripIconicLandmarkSecondary(
   return ''
 }
 
+function hasScheduleTextContext(ctx: ScheduleImageKeywordDayInput): boolean {
+  return Boolean((ctx.title ?? '').trim() || (ctx.description ?? '').trim() || (ctx.routeText ?? '').trim())
+}
+
 function coerceTourismLandmarkKeyword(
   raw: string,
   ctx: ScheduleImageKeywordDayInput,
   plan: ScheduleImageKeywordPlan,
 ): string {
+  if ((ctx.routeText ?? '').trim()) {
+    const routeLandmarks = orderedLandmarksFromRouteText(ctx)
+    if (routeLandmarks[0]) return routeLandmarks[0]
+  }
+
   let kw = finalizeScheduleImageKeyword(String(raw ?? '').trim())
   const fromCtx = extractScheduleLandmarkFromDayContext(ctx)
+  const hasBody = hasScheduleTextContext(ctx)
 
   if (isBareCityOrCountryKeyword(kw)) {
     return fromCtx || CITY_ICONIC_LANDMARK[normKey(kw)] || resolveTripIconicLandmarkSecondary('', plan) || ''
   }
 
-  if (kw && (isHotelLodgingImageKeyword(kw) || !isMentionedScheduleTourismKeyword(kw, ctx, plan))) {
+  if (
+    kw &&
+    hasBody &&
+    (isHotelLodgingImageKeyword(kw) || !isMentionedScheduleTourismKeyword(kw, ctx, plan))
+  ) {
     if (fromCtx) return fromCtx
     const trip = resolveTripIconicLandmarkSecondary(fromCtx || kw, plan)
     if (trip) return trip

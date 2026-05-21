@@ -4,6 +4,7 @@ import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
+import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-ssot'
 import {
   finalizeRegisterScheduleImageKeywords,
   tryPersistScheduleImageKeyword,
@@ -181,6 +182,7 @@ type ScheduleDayImage = {
   day: number
   title?: string
   description?: string
+  routeText?: string | null
   imageKeyword?: string
   imageKeyword2?: string | null
   imageUrl?: string | null
@@ -630,13 +632,14 @@ export default function AdminPendingDetailPanel({
           day: row.day,
           title: row.title ?? '',
           description: row.description ?? '',
-          routeText: null,
+          routeText: scheduleRouteTextFromRow(row),
           imageKeyword: row.imageKeyword ?? '',
           imageKeyword2: row.imageKeyword2 ?? null,
         })),
       )
       return out.map((row, idx) => ({
         ...row,
+        routeText: finalized[idx]?.routeText ?? row.routeText ?? null,
         imageKeyword: finalized[idx]?.imageKeyword ?? row.imageKeyword,
         imageKeyword2: finalized[idx]?.imageKeyword2 ?? row.imageKeyword2,
       }))
@@ -1726,6 +1729,13 @@ export default function AdminPendingDetailPanel({
                   <p className="text-[11px] text-bt-muted">
                     {it?.dateText ?? '-'} · {it?.city ?? '-'} · {it?.poiNamesRaw ?? it?.summaryTextRaw ?? row.imageKeyword ?? '-'}
                   </p>
+                  {row.routeText ? (
+                    <p className="mt-1 text-[11px] text-bt-body" title="키워드·이미지 후보는 이 순서를 우선합니다">
+                      이동 경로: <span className="font-mono text-[10px]">{row.routeText}</span>
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[11px] text-amber-800">routeText 없음 — 재등록·재파싱 시 키워드 품질이 떨어질 수 있습니다.</p>
+                  )}
                   <p className="mt-1 text-[11px] text-bt-meta">
                     자동 선정 근거: {normalizeOriginTag(row.imageCandidateOrigin)} /{' '}
                     {[row.imageKeyword, row.imageKeyword2].filter(Boolean).join(' · ') || row.title || 'fallback'}

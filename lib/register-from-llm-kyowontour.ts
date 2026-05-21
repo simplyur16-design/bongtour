@@ -942,9 +942,10 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - 주관 배제: 텍스트에 없는 날짜를 생성하지 말고, 오직 로그에 존재하는 데이터만 팩트대로 추출하라.
 
 # [schedule] 일차별 (필수)
-- day, title, description, imageKeyword
+- day, title, description, routeText, imageKeyword, imageKeyword2
 - description: 해당 일차 블록 전체를 근거로 관광·이동·식사·숙박을 **빠짐없이** 반영한 문어체 존댓말 요약. **3~6문장·450자 이내**를 목표로 하며, 한 줄·한두 문장만 쓰지 말 것. 복수 관광지가 있으면 모두 짧게라도 언급.
-- imageKeyword: 위 [schedule[].imageKeyword] 규칙 준수
+- routeText: 그날 방문 도시·관광지를 본문 **이동 순서 그대로** ' - '로 연결(관광 2곳 이상이면 필수). 예: "홍콩 - 하버 시티 - 소호 거리 - 타이쿤 - 빅토리아 피크"
+- imageKeyword·imageKeyword2: 위 [schedule[].imageKeyword] 규칙 준수
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
 # [prices] 출발일별 요금 (달력과 동일한 날짜만)
@@ -1078,7 +1079,9 @@ date(YYYY-MM-DD), adultBase, adultFuel, childBedBase, childNoBedBase, childFuel,
       "day": 1,
       "title": "",
       "description": "",
+      "routeText": "인천 - 오사카",
       "imageKeyword": "Landmark place name in English only (e.g. Osaka Castle)",
+      "imageKeyword2": "Osaka Castle",
       "hotelText": null,
       "breakfastText": null,
       "lunchText": null,
@@ -1750,6 +1753,7 @@ ${text.slice(0, 16000)}`
         day: Number(s?.day) || 0,
         title: String(s?.title ?? '').trim(),
         description: String(s?.description ?? '').trim(),
+        routeText: strOrNull(rec.routeText),
         imageKeyword: String(s?.imageKeyword ?? '').trim(),
         imageKeyword2: String(s?.imageKeyword2 ?? '').trim() || null,
         hotelText: strOrNull(rec.hotelText),

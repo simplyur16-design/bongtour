@@ -139,6 +139,8 @@ export type RegisterScheduleDay = {
   dateText?: string | null
   title: string
   description: string
+  /** 그날 방문 도시·장소를 본문 순서대로 ' - '로 연결한 한 줄 경로 */
+  routeText?: string | null
   /** 실존하는 장소 명칭만 (Pexels 검색용 영문, 예: Osaka Castle) */
   imageKeyword: string
   /** 일차 썸네일 2번째 — Pexels 검색용 영문 고유명 */

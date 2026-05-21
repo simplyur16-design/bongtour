@@ -106,6 +106,25 @@ describe('buildDualScheduleImageKeywords — 관광 일차 명소', () => {
     assert.notEqual(dual.imageKeyword2, 'Shanghai')
   })
 
+  it('홍콩 routeText 순서로 1·2순위 명소를 고르고 Forbidden City·Victoria Peak 반복을 막는다', () => {
+    const rows = [
+      {
+        day: 2,
+        title: '홍콩 시내',
+        description: '홍콩 시내 핵심 관광',
+        routeText: '홍콩 - 하버 시티 - 소호 거리 - 타이쿤 - 빅토리아 피크',
+        imageKeyword: 'Victoria Peak',
+        imageKeyword2: 'Forbidden City',
+      },
+    ]
+    const plan = buildScheduleImageKeywordPlan(rows)
+    const dual = buildDualScheduleImageKeywords(rows[0]!, plan)
+    assert.equal(dual.imageKeyword, 'Harbour City Hong Kong')
+    assert.equal(dual.imageKeyword2, 'SoHo Hong Kong')
+    assert.notEqual(dual.imageKeyword2, 'Forbidden City')
+    assert.notEqual(dual.imageKeyword, 'Victoria Peak')
+  })
+
   it('항주 일차는 West Lake·Songcheng 계열로', () => {
     const rows = [
       {

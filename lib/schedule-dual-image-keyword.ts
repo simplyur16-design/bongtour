@@ -13,6 +13,7 @@ import {
   buildScheduleImageKeywordPlan,
   collectScheduleLandmarksFromDayContext,
   extractScheduleSecondaryLandmarkFromDayContext,
+  orderedLandmarksFromRouteText,
   isMentionedScheduleTourismKeyword,
   polishRegisterScheduleImageKeywordFromLlm,
   resolveScheduleHubImageKeyword,
@@ -59,6 +60,9 @@ export function resolveScheduleSecondaryImageKeyword(
     return hubSecond || ''
   }
 
+  const routeSecond = orderedLandmarksFromRouteText(ctx, primaryFin)[0]
+  if (routeSecond) return routeSecond
+
   const orderedLandmarks = collectScheduleLandmarksFromDayContext(ctx, primaryFin)
   if (orderedLandmarks[0]) {
     return orderedLandmarks[0]
@@ -85,21 +89,6 @@ export function resolveScheduleSecondaryImageKeyword(
 
   const exclude = new Set<string>()
   if (primaryFin) exclude.add(normalizeSemanticPoiKey(primaryFin))
-
-  const routeText = (ctx.routeText ?? '').trim()
-  if (routeText) {
-    for (const seg of routeText.split(/\s*-\s*/)) {
-      const t = seg.trim()
-      if (!t) continue
-      const mapped = mapKoreanPoiSegment(t)
-      if (mapped) {
-        const fin = finalizeScheduleImageKeyword(mapped)
-        if (fin && normKey(fin) !== normKey(primaryFin) && !exclude.has(normalizeSemanticPoiKey(fin))) {
-          if (isMentionedScheduleTourismKeyword(fin, ctx, plan)) return fin
-        }
-      }
-    }
-  }
 
   for (const source of [ctx.description, ctx.title]) {
     const fromKorean = firstPoiSearchTermExcluding(source ?? '', exclude)

@@ -37,6 +37,7 @@ import {
   finalizeRegisterScheduleImageKeywords,
   resolveScheduleImageKeywordForDb,
 } from '@/lib/schedule-image-keyword-persist'
+import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-ssot'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -51,6 +52,7 @@ type ScheduleEntry = {
   day: number
   title?: string
   description?: string
+  routeText?: string | null
   imageKeyword?: string
   imageKeyword2?: string
   imageUrl?: string | null
@@ -174,6 +176,7 @@ function parseSchedule(schedule: string | null): ScheduleEntry[] {
       day: Number(item.day) ?? 0,
       title: typeof item.title === 'string' ? item.title : undefined,
       description: typeof item.description === 'string' ? item.description : undefined,
+      routeText: scheduleRouteTextFromRow(item),
       imageKeyword: typeof item.imageKeyword === 'string' ? item.imageKeyword : undefined,
       imageKeyword2: typeof item.imageKeyword2 === 'string' ? item.imageKeyword2 : undefined,
       imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : (item.imageUrl as null) ?? null,
@@ -351,7 +354,7 @@ export async function POST(req: Request) {
         day: item.day,
         title: item.title ?? '',
         description: item.description ?? '',
-        routeText: null,
+        routeText: item.routeText ?? null,
         imageKeyword: item.imageKeyword ?? '',
         imageKeyword2: item.imageKeyword2 ?? null,
         imageUrl: item.imageUrl ?? null,
@@ -359,6 +362,7 @@ export async function POST(req: Request) {
       })),
     ).map((row, i) => ({
       ...scheduleArrRaw[i]!,
+      routeText: row.routeText ?? scheduleArrRaw[i]?.routeText ?? null,
       imageKeyword: row.imageKeyword,
       imageKeyword2: row.imageKeyword2 ?? scheduleArrRaw[i]?.imageKeyword2,
     }))
@@ -654,6 +658,7 @@ export async function POST(req: Request) {
             rawBlock: itRow?.rawBlock ?? null,
             scheduleTitle: sched?.title ?? null,
             scheduleDescription: sched?.description ?? null,
+            scheduleRouteText: sched?.routeText ?? null,
             scheduleImageKeyword: sched?.imageKeyword ?? null,
             usedHeroPlaceKeys,
           },

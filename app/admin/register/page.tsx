@@ -300,6 +300,7 @@ function buildRegisterPexelsUiRows(
         day: row.day,
         title: String(row.title ?? ''),
         description: String(row.description ?? ''),
+        routeText: row.routeText ?? null,
         imageKeyword: String(row.imageKeyword ?? '').trim(),
         imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
       }))
@@ -308,6 +309,7 @@ function buildRegisterPexelsUiRows(
         day: row.day,
         title: row.title,
         description: row.description,
+        routeText: row.routeText ?? null,
         imageKeyword: row.imageKeyword,
         imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
       }))
@@ -1991,6 +1993,10 @@ export default function AdminRegisterPage() {
                     <strong className="font-medium text-slate-800">비움:</strong> 본문·일정에서 만든 <strong className="text-slate-800">자동 추천 문자열</strong>이
                     fallback으로 쓰입니다.
                   </li>
+                  <li>
+                    <strong className="font-medium text-slate-800">routeText:</strong> 그날 이동 경로(
+                    <code className="text-[10px]">A - B - C</code>) — 키워드 1·2순위는 이 순서를 우선합니다.
+                  </li>
                   <li className="list-none pl-0 pt-1 text-[11px] text-slate-700">
                     <span className="font-medium">권장 형식:</span> 영문 관광지·랜드마크 고유명 1개 (예: Osaka Castle, Dotonbori, The Bund).
                     외곽·시점·시간·도시·국가 보조어는 넣지 않습니다.
@@ -2059,6 +2065,16 @@ export default function AdminRegisterPage() {
                               참고 일정: {clipPreviewText(row.title || row.description, 56)}
                             </span>
                           </div>
+                          {(row as { routeText?: string | null }).routeText ? (
+                            <p className="mt-1 text-[10px] text-slate-700" title="키워드 1·2순위는 이 경로 순서를 우선합니다">
+                              이동 경로(routeText):{' '}
+                              <span className="font-mono">{(row as { routeText?: string | null }).routeText}</span>
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-[10px] text-amber-800">
+                              routeText 없음 — 관광지가 여러 곳인 날이면 재파싱·선추출 후 키워드가 대표 랜드마크로 떨어질 수 있습니다.
+                            </p>
+                          )}
                           <p className="mt-1 text-[10px] text-slate-500">
                             자동 추천 1·2순위 (칸을 비우면 confirm 시 fallback):{' '}
                             <span className="font-mono text-slate-800">{autoKw || '—'}</span>

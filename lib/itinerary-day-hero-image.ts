@@ -104,6 +104,7 @@ export type DayHeroResolveInput = {
   rawBlock: string | null
   scheduleTitle: string | null
   scheduleDescription: string | null
+  scheduleRouteText?: string | null
   scheduleImageKeyword?: string | null
   usedHeroPlaceKeys: Set<string>
 }
@@ -131,6 +132,7 @@ export function extractDayPoiCandidates(input: {
   productTitle?: string | null
   scheduleTitle?: string | null
   scheduleDescription?: string | null
+  scheduleRouteText?: string | null
   scheduleImageKeyword?: string | null
 }): ExtractedPoi[] {
   const out: ExtractedPoi[] = []
@@ -168,6 +170,17 @@ export function extractDayPoiCandidates(input: {
     }
   }
   if (input.scheduleTitle?.trim()) push(input.scheduleTitle.trim(), 'schedule')
+  const routeText = input.scheduleRouteText?.trim() || null
+  if (routeText) {
+    for (const lm of collectScheduleLandmarksFromDayContext({
+      day: 0,
+      title: input.scheduleTitle ?? '',
+      description: input.scheduleDescription ?? '',
+      routeText,
+    })) {
+      push(lm, 'schedule')
+    }
+  }
   const desc = input.scheduleDescription?.trim()
   if (desc && desc.length < 120) push(desc, 'schedule')
   if (desc && desc.length >= 120) {
@@ -175,7 +188,7 @@ export function extractDayPoiCandidates(input: {
       day: 0,
       title: input.scheduleTitle ?? '',
       description: desc,
-      routeText: null,
+      routeText,
     })) {
       push(lm, 'schedule')
     }
@@ -528,6 +541,7 @@ export async function resolveDayHeroWithFallback(
     productTitle: input.productTitle,
     scheduleTitle: input.scheduleTitle,
     scheduleDescription: input.scheduleDescription,
+    scheduleRouteText: input.scheduleRouteText,
     scheduleImageKeyword: input.scheduleImageKeyword,
   })
   const normalized = normalizePlaceCandidates(extracted, input.city, null)
