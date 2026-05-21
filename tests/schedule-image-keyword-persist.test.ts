@@ -68,4 +68,20 @@ describe('finalizeRegisterScheduleImageKeywords', () => {
     assert.equal(out[0]!.imageKeyword, 'Osaka Castle')
     assert.equal(out[1]!.imageKeyword, 'Taipei Night Market')
   })
+
+  it('한글 일정에서 imageKeyword2 2순위 명소를 보강한다', () => {
+    const out = finalizeRegisterScheduleImageKeywords([
+      {
+        day: 1,
+        title: '오사카',
+        description: '오사카성 관람 후 도톤보리 산책',
+        routeText: '오사카 - 도톤보리',
+        imageKeyword: 'Osaka Castle',
+        imageKeyword2: null,
+      },
+    ])
+    assert.equal(out[0]!.imageKeyword, 'Osaka Castle')
+    assert.ok(out[0]!.imageKeyword2 && out[0]!.imageKeyword2.length > 0)
+    assert.notEqual(out[0]!.imageKeyword2, out[0]!.imageKeyword)
+  })
 })

@@ -4,6 +4,7 @@
  */
 import { extractPrimaryEnglishPlaceName, extractSecondaryEnglishPlaceName } from '@/lib/english-schedule-place-extract'
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { firstPoiSearchTermExcluding, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import {
   buildScheduleImageKeywordPlan,
   polishRegisterScheduleImageKeywordFromLlm,
@@ -55,6 +56,45 @@ export function resolveScheduleSecondaryImageKeyword(
   const secondary = extractSecondaryEnglishPlaceName(h, h, ctx.title ?? '', primaryFin)
   if (secondary && normKey(secondary) !== normKey(primaryFin)) {
     return finalizeScheduleImageKeyword(secondary)
+  }
+
+  const exclude = new Set<string>()
+  if (primaryFin) exclude.add(normalizeSemanticPoiKey(primaryFin))
+
+  const routeText = (ctx.routeText ?? '').trim()
+  if (routeText) {
+    for (const seg of routeText.split(/\s*-\s*/)) {
+      const t = seg.trim()
+      if (!t) continue
+      const mapped = mapKoreanPoiSegment(t)
+      if (mapped) {
+        const fin = finalizeScheduleImageKeyword(mapped)
+        if (fin && normKey(fin) !== normKey(primaryFin) && !exclude.has(normalizeSemanticPoiKey(fin))) {
+          return fin
+        }
+      }
+    }
+  }
+
+  for (const source of [ctx.description, ctx.title]) {
+    const fromKorean = firstPoiSearchTermExcluding(source ?? '', exclude)
+    if (fromKorean) {
+      const fin = finalizeScheduleImageKeyword(fromKorean)
+      if (fin && normKey(fin) !== normKey(primaryFin)) return fin
+    }
+  }
+
+  const desc = (ctx.description ?? '').trim()
+  if (desc) {
+    const parts = desc.split(/[,，、·\n]|(?:\s+및\s+)|(?:\s+그리고\s+)/).map((s) => s.trim()).filter(Boolean)
+    for (const part of parts) {
+      const mapped = mapKoreanPoiSegment(part)
+      if (!mapped) continue
+      const fin = finalizeScheduleImageKeyword(mapped)
+      if (fin && normKey(fin) !== normKey(primaryFin) && !exclude.has(normalizeSemanticPoiKey(fin))) {
+        return fin
+      }
+    }
   }
 
   return ''

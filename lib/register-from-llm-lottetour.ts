@@ -1773,6 +1773,7 @@ ${text.slice(0, 16000)}`
         title: String(s?.title ?? '').trim(),
         description: String(s?.description ?? '').trim(),
         imageKeyword: String(s?.imageKeyword ?? '').trim(),
+        imageKeyword2: String(s?.imageKeyword2 ?? '').trim() || null,
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),
         lunchText: strOrNull(rec.lunchText),

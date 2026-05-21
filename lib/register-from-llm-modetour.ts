@@ -1546,6 +1546,7 @@ ${text.slice(0, 16000)}`
         description: String(s?.description ?? '').trim(),
         routeText: strOrNull(rec.routeText),
         imageKeyword: String(s?.imageKeyword ?? '').trim(),
+        imageKeyword2: String(s?.imageKeyword2 ?? '').trim() || null,
         hotelText: strOrNull(rec.hotelText),
         breakfastText: strOrNull(rec.breakfastText),
         lunchText: strOrNull(rec.lunchText),

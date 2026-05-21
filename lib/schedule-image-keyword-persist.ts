@@ -2,6 +2,7 @@
  * Product.schedule[].imageKeyword — 관리자·API 저장 경로 SSOT.
  * 등록 파이프라인은 `finalizeScheduleImageKeyword` 직접 사용.
  */
+import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 
 /** process-images 추적용 — Pexels 장소명 가드 대상 아님 */
@@ -94,11 +95,18 @@ export function persistScheduleImageFields<T extends ScheduleImageFieldsInput>(
 /** @deprecated `persistScheduleImageFields` 사용 */
 export const finalizeScheduleImageSeoFields = persistScheduleImageFields
 
-/** confirm 일괄 처리 — imageKeyword·imageKeyword2 persist */
+/** confirm 일괄 처리 — 2순위 보강 후 imageKeyword·imageKeyword2 persist */
 export function finalizeRegisterScheduleImageKeywords<
-  T extends ScheduleImageFieldsInput & { day: number },
+  T extends ScheduleImageFieldsInput & { day: number; title?: string; description?: string; routeText?: string | null },
 >(schedule: T[]): T[] {
-  return schedule.map((row) => {
+  const withDual = applyScheduleImageKeywordsToRows(
+    schedule.map((row) => ({
+      ...row,
+      imageKeyword: String(row.imageKeyword ?? '').trim(),
+      imageKeyword2: row.imageKeyword2 ?? null,
+    }))
+  )
+  return withDual.map((row) => {
     const day = Number(row.day)
     try {
       return persistScheduleImageFields(row)
