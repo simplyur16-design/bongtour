@@ -359,3 +359,17 @@ a:not([class]):hover {
 .bt-training-windsor-tabs .bt-training-windsor-tab-label:focus {
   color: var(--bt-text-navy) !important;
 }
+
+/* 공공·기업 — 문의 흐름 5단계 탭: 선택/비선택 동일 규칙, 라벨은 항상 진한색 */
+.bt-training-flow-tabs .bt-training-flow-tab-label {
+  color: #0f172a !important;
+}
+.bt-training-flow-tabs button[aria-selected='true'] .bt-training-flow-tab-label {
+  color: #020617 !important;
+}
+.bt-training-flow-tabs .bt-training-flow-tab-badge {
+  color: #1e293b !important;
+}
+.bt-training-flow-tabs button[aria-selected='true'] .bt-training-flow-tab-badge {
+  color: #fff !important;
+}

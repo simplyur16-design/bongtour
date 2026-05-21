@@ -1,6 +1,14 @@
 'use client'
 
-import { useMemo, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type TouchEvent,
+} from 'react'
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
 import Header from '@/app/components/Header'
@@ -73,11 +81,22 @@ const SERVICE_MODAL_HINT: Record<ServiceType, { hint: string }> = {
   },
 }
 
+function flowStepTabButtonClass(selected: boolean): string {
+  return `flex w-full flex-col items-center rounded-xl border-2 bg-white px-4 py-4 text-center transition ${
+    selected
+      ? 'border-slate-900 bg-slate-50 shadow-md ring-2 ring-slate-900/20'
+      : 'border-slate-200 hover:border-slate-400 hover:bg-slate-50'
+  }`
+}
+
 export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubProps) {
   const [presetService, setPresetService] = useState<ServiceType | null>(null)
   const [inquiryOpen, setInquiryOpen] = useState(false)
   const [activeFlowStep, setActiveFlowStep] = useState(0)
   const [flowTimelineOpen, setFlowTimelineOpen] = useState(false)
+  const flowCarouselRef = useRef<HTMLOListElement>(null)
+  const flowScrollRafRef = useRef<number | null>(null)
+  const flowTouchStartXRef = useRef(0)
 
   const inquiryQuery = useMemo(() => {
     const params = new URLSearchParams()
@@ -89,6 +108,50 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
   const moveToInquiry = (service: ServiceType | null) => {
     setPresetService(service)
     setInquiryOpen(true)
+  }
+
+  const scrollFlowStepIntoView = useCallback((idx: number, behavior: ScrollBehavior = 'smooth') => {
+    const root = flowCarouselRef.current
+    const el = root?.children[idx] as HTMLElement | undefined
+    el?.scrollIntoView({ behavior, inline: 'center', block: 'nearest' })
+  }, [])
+
+  const onFlowCarouselScroll = useCallback(() => {
+    const root = flowCarouselRef.current
+    if (!root) return
+    if (flowScrollRafRef.current != null) cancelAnimationFrame(flowScrollRafRef.current)
+    flowScrollRafRef.current = requestAnimationFrame(() => {
+      const center = root.scrollLeft + root.clientWidth / 2
+      let bestIdx = 0
+      let bestDist = Infinity
+      Array.from(root.children).forEach((child, idx) => {
+        const el = child as HTMLElement
+        const mid = el.offsetLeft + el.offsetWidth / 2
+        const dist = Math.abs(mid - center)
+        if (dist < bestDist) {
+          bestDist = dist
+          bestIdx = idx
+        }
+      })
+      setActiveFlowStep((prev) => (prev === bestIdx ? prev : bestIdx))
+    })
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(min-width: 768px)')
+    if (mq.matches) return
+    scrollFlowStepIntoView(activeFlowStep, 'smooth')
+  }, [activeFlowStep, scrollFlowStepIntoView])
+
+  const onFlowPanelTouchStart = (e: TouchEvent<HTMLElement>) => {
+    flowTouchStartXRef.current = e.touches[0]?.clientX ?? 0
+  }
+
+  const onFlowPanelTouchEnd = (e: TouchEvent<HTMLElement>) => {
+    const dx = (e.changedTouches[0]?.clientX ?? 0) - flowTouchStartXRef.current
+    if (dx < -48) setActiveFlowStep((s) => Math.min(FLOW_TITLES.length - 1, s + 1))
+    else if (dx > 48) setActiveFlowStep((s) => Math.max(0, s - 1))
   }
 
   const modalMeta = presetService
@@ -203,49 +266,98 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
           <div className="mx-auto max-w-6xl">
             <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[38px]">문의 후 이런 흐름으로 진행됩니다.</h2>
             <p className="mt-3 text-[18px] leading-relaxed text-slate-700">
-              국외연수는 단순 문의 접수로 끝나지 않습니다. 아래 단계를 눌러 순서와 내용을 확인하세요.
+              국외연수는 단순 문의 접수로 끝나지 않습니다.{' '}
+              <span className="md:hidden">단계 카드를 좌우로 밀어 순서와 내용을 확인하세요.</span>
+              <span className="hidden md:inline">아래 단계를 눌러 순서와 내용을 확인하세요.</span>
             </p>
 
             <div className="mt-6" role="region" aria-label="문의 후 진행 순서">
-              <ol className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:grid md:grid-cols-5 md:gap-3 md:overflow-visible [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="진행 단계">
+              {/* 모바일·태블릿: 5탭 그리드 대신 스와이프 캐러셀 (폰 1장 / sm~md 3장 노출) */}
+              <div className="md:hidden">
+                <p className="mb-2 text-center text-sm text-slate-600">좌우로 밀어 1~5단계를 넘겨 보세요</p>
+                <ol
+                  ref={flowCarouselRef}
+                  onScroll={onFlowCarouselScroll}
+                  className="bt-training-flow-tabs -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-4 pb-2 touch-pan-x [scrollbar-width:thin]"
+                  role="tablist"
+                  aria-label="진행 단계"
+                >
+                  {FLOW_STEP_SHORT_LABELS.map((label, idx) => {
+                    const selected = activeFlowStep === idx
+                    return (
+                      <li
+                        key={label}
+                        className="w-[88%] shrink-0 snap-center sm:w-[calc((100%-1.5rem)/3)]"
+                      >
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={selected}
+                          aria-controls="training-flow-panel"
+                          id={`training-flow-tab-${idx}`}
+                          onClick={() => setActiveFlowStep(idx)}
+                          className={flowStepTabButtonClass(selected)}
+                        >
+                          <span
+                            className={`bt-training-flow-tab-badge inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold ${
+                              selected ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-800'
+                            }`}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span
+                            className={`bt-training-flow-tab-label mt-2.5 text-[15px] leading-snug sm:text-base ${
+                              selected ? 'font-bold text-slate-950' : 'font-semibold text-slate-800'
+                            }`}
+                          >
+                            {label}
+                          </span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ol>
+                <div className="mt-3 flex justify-center gap-2" aria-hidden>
+                  {FLOW_STEP_SHORT_LABELS.map((_, idx) => (
+                    <span
+                      key={idx}
+                      className={`h-2 rounded-full transition-all ${
+                        activeFlowStep === idx ? 'w-6 bg-slate-900' : 'w-2 bg-slate-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* 데스크톱: 5탭 한 줄 */}
+              <ol
+                className="bt-training-flow-tabs hidden gap-3 md:grid md:grid-cols-5"
+                role="tablist"
+                aria-label="진행 단계"
+              >
                 {FLOW_STEP_SHORT_LABELS.map((label, idx) => {
                   const selected = activeFlowStep === idx
-                  const emphasized = idx === 1 || idx === 3 || idx === 4
                   return (
-                    <li key={label} className="min-w-[124px] shrink-0 md:min-w-0">
+                    <li key={label}>
                       <button
                         type="button"
                         role="tab"
                         aria-selected={selected}
                         aria-controls="training-flow-panel"
-                        id={`training-flow-tab-${idx}`}
+                        id={`training-flow-tab-desktop-${idx}`}
                         onClick={() => setActiveFlowStep(idx)}
-                        className={`flex w-full flex-col items-center rounded-xl border px-4 py-4 text-center transition ${
-                          selected
-                            ? emphasized
-                              ? 'border-blue-500 bg-blue-50 shadow-sm ring-2 ring-blue-200'
-                              : 'border-slate-900 bg-slate-900 text-white shadow-sm'
-                            : emphasized
-                              ? 'border-blue-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
-                              : 'border-bt-border bg-white hover:border-slate-300 hover:bg-slate-50'
-                        }`}
+                        className={flowStepTabButtonClass(selected)}
                       >
                         <span
-                          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold ${
-                            selected
-                              ? emphasized
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-slate-900'
-                              : emphasized
-                                ? 'bg-blue-100 text-blue-900'
-                                : 'bg-slate-200 text-slate-700'
+                          className={`bt-training-flow-tab-badge inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold ${
+                            selected ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-800'
                           }`}
                         >
                           {idx + 1}
                         </span>
                         <span
-                          className={`mt-2.5 text-[15px] font-semibold leading-snug sm:text-base ${
-                            selected && !emphasized ? 'text-white' : emphasized ? 'text-blue-950' : 'text-slate-900'
+                          className={`bt-training-flow-tab-label mt-2.5 text-[15px] leading-snug sm:text-base ${
+                            selected ? 'font-bold text-slate-950' : 'font-semibold text-slate-800'
                           }`}
                         >
                           {label}
@@ -259,14 +371,12 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
               <article
                 id="training-flow-panel"
                 role="tabpanel"
-                aria-labelledby={`training-flow-tab-${activeFlowStep}`}
-                className={`mt-4 rounded-2xl border bg-white p-5 text-center sm:p-6 ${
-                  activeFlowStep === 1 || activeFlowStep === 3 || activeFlowStep === 4
-                    ? 'border-blue-300 bg-blue-50/40'
-                    : 'border-bt-border'
-                }`}
+                aria-label={`${activeFlowStep + 1}단계: ${FLOW_TITLES[activeFlowStep]}`}
+                className="mt-4 rounded-2xl border-2 border-slate-900 bg-white p-5 text-center shadow-sm ring-2 ring-slate-900/10 sm:p-6 max-md:touch-pan-y"
+                onTouchStart={onFlowPanelTouchStart}
+                onTouchEnd={onFlowPanelTouchEnd}
               >
-                <p className="text-xs font-semibold tracking-wide text-slate-500">
+                <p className="text-xs font-semibold tracking-wide text-slate-600">
                   {activeFlowStep + 1}단계 / 총 {FLOW_TITLES.length}단계
                 </p>
                 <h3 className="mt-2 text-[22px] font-semibold leading-[1.35] text-slate-900 sm:text-2xl">
