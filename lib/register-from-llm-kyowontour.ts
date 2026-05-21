@@ -18,6 +18,7 @@ import {
   PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK,
 } from '@/lib/bongtour-tone-manner-llm-ssot'
 import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
+import { polishKyowontourImageKeyword } from '@/lib/kyowontour-schedule-image-keyword'
 
 /**
  * 풀 등록(`forPreview: false`) JSON 출력 상한. kyowontour 전용 우선순위:
@@ -1759,8 +1760,20 @@ ${text.slice(0, 16000)}`
       }
     })
     .filter((s) => s.day > 0)
+  const scheduleRowsForKw = scheduleBase.map(supplementScheduleDayFromDescription)
+  const kyowonDestEarly = (raw.destination ?? '').trim()
+  const kyowonTitleEarly = String(raw.title ?? '').trim()
   const schedule: RegisterScheduleDay[] = applyScheduleImageKeywordsToRows(
-    scheduleBase.map(supplementScheduleDayFromDescription),
+    scheduleRowsForKw,
+    (kw, ctx) =>
+      polishKyowontourImageKeyword(kw, {
+        day: ctx.day,
+        title: String(ctx.title ?? ''),
+        description: String(ctx.description ?? ''),
+        productTitle: kyowonTitleEarly || undefined,
+        productDestination: kyowonDestEarly || undefined,
+        productPrimaryDestination: kyowonDestEarly || undefined,
+      }),
   )
 
   /** 선추출이 최종 일정에 들어갔을 때만 true — 이후 본문 보강이 요약 문장을 정규식 결과로 되돌리지 않게 함 */

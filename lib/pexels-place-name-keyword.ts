@@ -44,6 +44,12 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'ginkakuji temple kyoto': 'Ginkaku-ji',
   'osaka dotonbori night': 'Dotonbori',
   'beijing forbidden city view': 'Forbidden City',
+  'shanghai skyline night': 'The Bund',
+  'shanghai skyline': 'The Bund',
+  'yu garden shanghai': 'Yu Garden',
+  'west lake hangzhou': 'West Lake',
+  'songcheng park': 'Songcheng Park',
+  'city god temple of shanghai': 'City God Temple of Shanghai',
   'barcelona sagrada familia exterior': 'Sagrada Familia',
   'rome colosseum view': 'Colosseum',
   'paris city skyline': 'Paris',
@@ -269,7 +275,7 @@ const PROTECTED_TRAILING = new Set([
 ])
 
 /** 도시·국가명 단독(관광지 고유명이 아닌 경우만 폴백 허용) */
-const CITY_COUNTRY_ONLY = new Set(
+export const CITY_COUNTRY_ONLY = new Set(
   [
     'tokyo',
     'osaka',
@@ -512,6 +518,24 @@ export function normalizeToPlaceName(rawKeyword: string): string {
   return t.slice(0, 90)
 }
 
+/** 단순 도시·국가명만인 키워드(관광 일차 Pexels 1·2순위에 쓰이면 안 됨) */
+export function isBareCityOrCountryKeyword(keyword: string): boolean {
+  const n = normalizeToPlaceName(keyword)
+  if (!n) return false
+  return CITY_COUNTRY_ONLY.has(n.toLowerCase())
+}
+
+const LANDMARK_HINT_RE =
+  /\b(garden|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|fort|square|market|bund|lake|tower|peak|disney|studios|old\s+town|ancient|waterfall|fjord|beach|pagoda|quarter|village|terrace|bridge|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|pagoda|inn|garden|yu\s+garden|forbidden|west\s+lake|oriental\s+pearl)\b/i
+
+/** 2단어 이상 또는 랜드마크 성격 단어가 포함된 고유명 */
+export function isLikelyTourismLandmarkKeyword(keyword: string): boolean {
+  const n = normalizeToPlaceName(keyword)
+  if (!n || isBareCityOrCountryKeyword(n)) return false
+  if (n.split(/\s+/).length >= 2) return true
+  return LANDMARK_HINT_RE.test(n)
+}
+
 export type ExtractPlaceNameKeywordInput = {
   llmImageKeyword?: string
   title?: string
@@ -526,7 +550,8 @@ export type ExtractPlaceNameKeywordInput = {
  */
 export function extractPlaceNameKeyword(input: ExtractPlaceNameKeywordInput): string {
   const fromLlm = normalizeToPlaceName(input.llmImageKeyword ?? '')
-  if (fromLlm) return fromLlm
+  const fromLlmOk = fromLlm && !isBareCityOrCountryKeyword(fromLlm) && isLikelyTourismLandmarkKeyword(fromLlm)
+  if (fromLlmOk) return fromLlm
 
   const hay = [input.rawBody, input.description, input.title].filter(Boolean).join('\n')
   const mappedKo = mapKoreanPoiSegment(hay)
@@ -542,14 +567,10 @@ export function extractPlaceNameKeyword(input: ExtractPlaceNameKeywordInput): st
   )
   if (place) {
     const n = normalizeToPlaceName(place)
-    if (n) return n
+    if (n && !isBareCityOrCountryKeyword(n)) return n
   }
 
-  const city = normalizeToPlaceName(input.cityEn ?? '')
-  if (city && CITY_COUNTRY_ONLY.has(city.toLowerCase())) return city
-
-  const country = normalizeToPlaceName(input.countryEn ?? '')
-  if (country && CITY_COUNTRY_ONLY.has(country.toLowerCase())) return country
+  if (fromLlm && !isBareCityOrCountryKeyword(fromLlm)) return fromLlm
 
   return ''
 }

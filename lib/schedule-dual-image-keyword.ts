@@ -3,10 +3,16 @@
  * 관광 일차: 그날 주요 관광지·관광명소 1순위(imageKeyword)·2순위(imageKeyword2). 비행일은 해외 도시명.
  */
 import { extractPrimaryEnglishPlaceName, extractSecondaryEnglishPlaceName } from '@/lib/english-schedule-place-extract'
-import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import {
+  finalizeScheduleImageKeyword,
+  isBareCityOrCountryKeyword,
+  isLikelyTourismLandmarkKeyword,
+} from '@/lib/pexels-place-name-keyword'
 import { firstPoiSearchTermExcluding, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import {
   buildScheduleImageKeywordPlan,
+  extractScheduleLandmarkFromDayContext,
+  landmarkMentionedInDayContext,
   polishRegisterScheduleImageKeywordFromLlm,
   resolveScheduleHubImageKeyword,
   type ScheduleImageKeywordDayInput,
@@ -48,13 +54,23 @@ export function resolveScheduleSecondaryImageKeyword(
   }
 
   const fromLlm = finalizeScheduleImageKeyword(String(llmSecondary ?? '').trim())
-  if (fromLlm && normKey(fromLlm) !== normKey(primaryFin)) {
+  const fromLlmOk =
+    fromLlm &&
+    normKey(fromLlm) !== normKey(primaryFin) &&
+    !isBareCityOrCountryKeyword(fromLlm) &&
+    (landmarkMentionedInDayContext(fromLlm, ctx) || isLikelyTourismLandmarkKeyword(fromLlm))
+  if (fromLlmOk) {
     return fromLlm
   }
 
   const h = hay(ctx)
   const secondary = extractSecondaryEnglishPlaceName(h, h, ctx.title ?? '', primaryFin)
-  if (secondary && normKey(secondary) !== normKey(primaryFin)) {
+  if (
+    secondary &&
+    normKey(secondary) !== normKey(primaryFin) &&
+    !isBareCityOrCountryKeyword(secondary) &&
+    landmarkMentionedInDayContext(secondary, ctx)
+  ) {
     return finalizeScheduleImageKeyword(secondary)
   }
 
@@ -69,7 +85,12 @@ export function resolveScheduleSecondaryImageKeyword(
       const mapped = mapKoreanPoiSegment(t)
       if (mapped) {
         const fin = finalizeScheduleImageKeyword(mapped)
-        if (fin && normKey(fin) !== normKey(primaryFin) && !exclude.has(normalizeSemanticPoiKey(fin))) {
+        if (
+          fin &&
+          normKey(fin) !== normKey(primaryFin) &&
+          !exclude.has(normalizeSemanticPoiKey(fin)) &&
+          !isBareCityOrCountryKeyword(fin)
+        ) {
           return fin
         }
       }
@@ -91,10 +112,20 @@ export function resolveScheduleSecondaryImageKeyword(
       const mapped = mapKoreanPoiSegment(part)
       if (!mapped) continue
       const fin = finalizeScheduleImageKeyword(mapped)
-      if (fin && normKey(fin) !== normKey(primaryFin) && !exclude.has(normalizeSemanticPoiKey(fin))) {
+      if (
+        fin &&
+        normKey(fin) !== normKey(primaryFin) &&
+        !exclude.has(normalizeSemanticPoiKey(fin)) &&
+        !isBareCityOrCountryKeyword(fin)
+      ) {
         return fin
       }
     }
+  }
+
+  const alt = extractScheduleLandmarkFromDayContext(ctx)
+  if (alt && normKey(alt) !== normKey(primaryFin) && !exclude.has(normalizeSemanticPoiKey(alt))) {
+    return alt
   }
 
   return ''

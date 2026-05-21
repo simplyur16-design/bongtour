@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Header from '@/app/components/Header'
+import { LEGAL_ENTITY, LEGAL_POLICY_LINKS } from '@/lib/legal-site-disclosures'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SITE_NAME } from '@/lib/site-metadata'
 
@@ -31,13 +32,15 @@ export default function PrivacyPolicyPage() {
 
           <div className="prose-privacy mt-8 space-y-6 text-[15px] leading-[1.75] text-slate-800 sm:text-[15px]">
             <p>
-              봉투어(이하 &quot;회사&quot;)는 「개인정보 보호법」 등 관련 법령에 따라 정보주체의 개인정보를 보호하고, 이와
-              관련한 고충을 신속하고 원활하게 처리할 수 있도록 다음과 같이 개인정보처리방침을 수립·공개합니다.
+              {LEGAL_ENTITY.legalName}(이하 &quot;회사&quot;, 서비스명 {LEGAL_ENTITY.serviceName})는 「개인정보 보호법」 등
+              관련 법령에 따라 정보주체의 개인정보를 보호하고, 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록
+              다음과 같이 개인정보처리방침을 수립·공개합니다.
             </p>
             <p>
-              본 개인정보처리방침은 회사가 운영하는 웹사이트 및 이를 통해 제공되는 여행상품 상담, 견적 문의, 예약 신청
-              접수, 행사 및 연수 관련 문의 서비스에 적용됩니다. 회사는 실제 업무 흐름과 개인정보 처리 특성에 맞추어 처리
-              목적, 수집 항목, 보유 기간, 제3자 제공, 국외 이전, 권리행사 절차 등을 구체적으로 안내합니다.
+              본 방침은 회사가 운영하는 웹사이트 및 이를 통해 제공되는 <strong>여행상품 상담·견적·예약 접수</strong>,{' '}
+              <strong>국외연수·우리끼리(맞춤) 여행</strong>, <strong>회원가입·계정 관리</strong>,{' '}
+              <strong>eSIM 구매·발급·고객지원</strong>, 행사·기업 연수 문의 등 전 서비스에 적용됩니다. 회원가입 시 별도
+              동의 화면에서 안내하는 항목이 있는 경우, 해당 동의와 본 방침을 함께 적용합니다.
             </p>
 
             <section className="scroll-mt-24 space-y-3 pt-2">
@@ -76,6 +79,24 @@ export default function PrivacyPolicyPage() {
                 <li>브라우저 및 기기 정보</li>
                 <li>방문 페이지 및 클릭 기록 등 웹사이트 이용 로그</li>
               </ul>
+              <p className="font-medium text-slate-900">4. 회원가입 및 계정 이용 시</p>
+              <ul className="ml-4 list-disc space-y-1 pl-1 text-slate-800">
+                <li>이메일, 비밀번호(암호화 저장), 이름·연락처(입력 시)</li>
+                <li>소셜 로그인 연동 식별자(네이버·카카오 등 이용 시)</li>
+                <li>회원 식별·찜·문의·후기·마이페이지 이용 기록</li>
+                <li>접속 로그, IP, 기기·브라우저 정보</li>
+              </ul>
+              <p className="font-medium text-slate-900">5. eSIM 구매·이용 시</p>
+              <ul className="ml-4 list-disc space-y-1 pl-1 text-slate-800">
+                <li>주문자·수신자 이메일, 연락처, 결제 관련 정보</li>
+                <li>기기 호환 확인·주문·QR 발송·활성화·환불 처리에 필요한 정보</li>
+                <li>결제 대행(PG) 처리 과정에서 생성되는 거래 식별 정보</li>
+              </ul>
+              <p className="font-medium text-slate-900">6. 마케팅 정보 수신에 동의한 경우</p>
+              <ul className="ml-4 list-disc space-y-1 pl-1 text-slate-800">
+                <li>이름, 이메일, 연락처</li>
+                <li>이벤트·혜택·서비스 안내 발송 및 수신 이력</li>
+              </ul>
             </section>
 
             <section className="scroll-mt-24 space-y-3 pt-4">
@@ -92,11 +113,10 @@ export default function PrivacyPolicyPage() {
                 <li>고객 요청사항 처리 및 민원 응대</li>
                 <li>서비스 개선, 접속 통계 분석, 부정 이용 방지</li>
                 <li>법령상 의무 이행 및 분쟁 대응</li>
+                <li>회원가입·본인 확인·계정·찜·후기 등 회원 서비스 제공</li>
+                <li>eSIM 상품 주문·결제·발급·고객지원 및 환불 처리</li>
+                <li>마케팅·이벤트·혜택 안내(별도 동의한 경우에 한함)</li>
               </ul>
-              <p>
-                개인정보 처리 목적은 정보주체가 자신의 정보가 왜 수집·이용되는지 명확히 이해할 수 있도록 구체적으로
-                작성하는 것이 요구됩니다.
-              </p>
             </section>
 
             <section className="scroll-mt-24 space-y-3 pt-4">
@@ -118,11 +138,34 @@ export default function PrivacyPolicyPage() {
                   <span className="font-medium text-slate-900">접속기록 및 서비스 이용기록</span> — 관련 법령 및 보안
                   운영상 필요한 기간 동안 보관
                 </li>
+                <li>
+                  <span className="font-medium text-slate-900">회원 정보</span> — 회원 탈퇴 시까지. 탈퇴 후에는 아래
+                  「회원 탈퇴 시 파기」에 따름
+                </li>
+                <li>
+                  <span className="font-medium text-slate-900">마케팅 수신 동의 정보</span> — 동의일로부터 2년 또는 동의
+                  철회·탈퇴 시까지
+                </li>
+                <li>
+                  <span className="font-medium text-slate-900">eSIM 주문·결제 기록</span> — 전자상거래 등 관련 법령에 따른
+                  보관 기간
+                </li>
               </ol>
+              <p className="font-medium text-slate-900">회원 탈퇴 시 파기</p>
+              <p>
+                이용자가 회원 탈퇴를 요청하거나 회사가 탈퇴 절차를 완료한 경우, 회사는 지체 없이 해당 회원의 식별·인증
+                정보, 소셜 연동 정보, 찜·후기 등 회원 전용 서비스 데이터를 삭제·파기합니다. 다만 다음은 관련 법령·분쟁
+                대응·이전 상담·예약·결제 이력과 분리 보관이 필요한 범위에서 최소한으로 보관할 수 있으며, 보관 시
+                개인정보와 분리하거나 가명·암호화 등 안전조치를 적용합니다.
+              </p>
+              <ul className="ml-4 list-disc space-y-1 pl-1 text-slate-800">
+                <li>전자상거래법 등에 따른 계약·결제·환불 기록</li>
+                <li>이미 접수된 여행 상담·예약 진행 건에 필요한 연락 정보</li>
+                <li>법령상 의무 보존 대상 로그·거래 기록</li>
+              </ul>
               <p>
                 회사는 보유기간 경과, 처리 목적 달성 등 개인정보가 불필요하게 된 경우 지체 없이 해당 개인정보를
-                파기합니다. 개인정보 처리방침은 보유기간을 실제 처리 목적과 법령상 의무에 맞게 정해야 하며, 불필요하게
-                장기 보관하는 방식은 지양하는 것이 원칙입니다.
+                파기합니다.
               </p>
             </section>
 
@@ -162,21 +205,33 @@ export default function PrivacyPolicyPage() {
 
             <section className="scroll-mt-24 space-y-3 pt-4">
               <h2 className="text-lg font-bold text-slate-900">제5조 (개인정보 처리의 위탁)</h2>
-              <p>회사는 원활한 서비스 제공을 위하여 일부 업무를 외부 업체에 위탁할 수 있습니다.</p>
-              <p className="font-medium text-slate-900">현재 또는 향후 위탁·연계될 수 있는 업무 예시</p>
-              <ul className="ml-4 list-disc space-y-1 pl-1 text-slate-800">
-                <li>이메일 발송</li>
-                <li>카카오톡 발송</li>
-                <li>문자 발송</li>
-                <li>시스템 운영 및 유지관리</li>
-                <li>고객 문의 관리 및 안내 발송</li>
-                <li>웹사이트 운영, 로그 분석 및 보안 관리</li>
-              </ul>
               <p>
-                회사는 위탁계약 체결 시 관련 법령에 따라 개인정보가 안전하게 처리되도록 필요한 사항을 계약서 등에
-                명시하고, 수탁자에 대한 관리·감독을 수행합니다. 위탁 업체가 확정되는 경우 수탁자 명칭·위탁 업무 범위
-                등을 본 방침에 반영하거나 별도로 안내할 수 있습니다.
+                회사는 원활한 서비스 제공을 위하여 다음과 같이 개인정보 처리 업무를 외부에 위탁할 수 있습니다. 위탁
+                시 관련 법령에 따라 계약서 등에 안전조치·재위탁 제한·파기 등 필요한 사항을 명시하고 관리·감독합니다.
               </p>
+              <ul className="ml-4 list-disc space-y-2 pl-1 text-slate-800">
+                <li>
+                  <span className="font-medium text-slate-900">클라우드·DB 호스팅</span> — 웹사이트·데이터베이스 운영·
+                  백업(개인정보 저장·처리)
+                </li>
+                <li>
+                  <span className="font-medium text-slate-900">이메일·알림 발송</span> — 상담·예약·eSIM·마케팅 등 안내
+                  메일 발송(SMTP 등)
+                </li>
+                <li>
+                  <span className="font-medium text-slate-900">소셜 로그인</span> — 네이버·카카오 등 OAuth 연동 시 해당
+                  사업자의 인증 처리
+                </li>
+                <li>
+                  <span className="font-medium text-slate-900">전자결제 대행(PG)</span> — eSIM 등 온라인 결제 처리(결제
+                  승인·취소 등)
+                </li>
+                <li>
+                  <span className="font-medium text-slate-900">eSIM 발급·운영 연계</span> — 디지털 상품 주문·QR 발송·
+                  고객지원 연계
+                </li>
+              </ul>
+              <p>수탁자·위탁 범위가 변경되는 경우 본 방침을 개정하여 공지합니다.</p>
             </section>
 
             <section className="scroll-mt-24 space-y-3 pt-4">
@@ -187,8 +242,11 @@ export default function PrivacyPolicyPage() {
                 국외 이전이 발생할 가능성이 높아, 여행사 표준안에서도 해당 항목을 실제 처리 현황에 맞게 구체적으로 기재하도록
                 안내하고 있습니다.
               </p>
-              <p className="font-medium text-slate-900">1. 국외 이전 대상</p>
-              <p>실제로 이용되는 해외 항공사</p>
+              <p className="font-medium text-slate-900">1. 국외 이전이 발생할 수 있는 경우</p>
+              <p>
+                해외 항공사, 숙박업체, 국외 랜드사, 해외 예약·발권 시스템, eSIM 현지 통신·플랫폼 연계 등 여행·eSIM 서비스
+                제공 과정에서 국외로 이전될 수 있습니다.
+              </p>
               <p className="font-medium text-slate-900">2. 국외 이전 항목</p>
               <ul className="ml-4 list-disc space-y-1 pl-1 text-slate-800">
                 <li>성명</li>
@@ -266,7 +324,28 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="scroll-mt-24 space-y-3 pt-4">
-              <h2 className="text-lg font-bold text-slate-900">제10조 (쿠키의 설치·운영 및 거부)</h2>
+              <h2 className="text-lg font-bold text-slate-900">제10조 (만 14세 미만 아동)</h2>
+              <p>
+                회사는 원칙적으로 만 14세 미만 아동의 회원가입을 제한합니다. 만 14세 미만 아동의 개인정보를 법정대리인
+                동의 없이 수집한 사실을 인지한 경우 지체 없이 삭제 등 필요한 조치를 합니다.
+              </p>
+            </section>
+
+            <section className="scroll-mt-24 space-y-3 pt-4">
+              <h2 className="text-lg font-bold text-slate-900">제11조 (마케팅 정보 수신 동의)</h2>
+              <p>
+                이메일·문자·카카오 등 마케팅 안내는 <strong>별도 동의</strong>를 받은 경우에만 발송합니다. 동의하지
+                않아도 회원가입·여행 상담·eSIM 구매 등 필수 서비스 이용에는 제한이 없습니다(가입 환영 혜택 등 일부
+                프로모션은 동의 조건이 있을 수 있으며, 해당 화면에서 안내합니다).
+              </p>
+              <p>
+                마케팅 동의 철회·탈퇴 시 관련 발송을 중단하고, 보유 기간(동의일로부터 2년 또는 철회·탈퇴 시까지) 경과
+                후 파기합니다.
+              </p>
+            </section>
+
+            <section className="scroll-mt-24 space-y-3 pt-4">
+              <h2 className="text-lg font-bold text-slate-900">제12조 (쿠키의 설치·운영 및 거부)</h2>
               <p>회사는 이용자에게 보다 편리한 서비스 제공을 위하여 쿠키를 사용할 수 있습니다.</p>
               <p className="font-medium text-slate-900">1. 쿠키 사용 목적</p>
               <ul className="ml-4 list-disc space-y-1 pl-1 text-slate-800">
@@ -283,25 +362,25 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="scroll-mt-24 space-y-3 pt-4">
-              <h2 className="text-lg font-bold text-slate-900">제11조 (개인정보 보호책임자)</h2>
+              <h2 className="text-lg font-bold text-slate-900">제13조 (개인정보 보호책임자)</h2>
               <p>
                 회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 정보주체의 불만처리 및
                 피해구제를 위하여 아래와 같이 개인정보 보호책임자를 지정합니다.
               </p>
               <ul className="ml-4 list-none space-y-1 pl-0 text-slate-800">
                 <li>
-                  <span className="font-medium text-slate-900">성명:</span> 황일연
+                  <span className="font-medium text-slate-900">성명:</span> {LEGAL_ENTITY.representativeName}
                 </li>
                 <li>
                   <span className="font-medium text-slate-900">이메일:</span>{' '}
-                  <a href="mailto:bongtour24@naver.com" className="text-bt-link underline underline-offset-2 hover:text-bt-link-hover">
-                    bongtour24@naver.com
+                  <a href={LEGAL_ENTITY.emailHref} className="text-bt-link underline underline-offset-2 hover:text-bt-link-hover">
+                    {LEGAL_ENTITY.email}
                   </a>
                 </li>
                 <li>
                   <span className="font-medium text-slate-900">전화번호:</span>{' '}
-                  <a href="tel:0312132558" className="text-bt-link underline underline-offset-2 hover:text-bt-link-hover">
-                    031-213-2558
+                  <a href={LEGAL_ENTITY.phoneTel} className="text-bt-link underline underline-offset-2 hover:text-bt-link-hover">
+                    {LEGAL_ENTITY.phone}
                   </a>
                 </li>
               </ul>
@@ -312,7 +391,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="scroll-mt-24 space-y-3 pt-4">
-              <h2 className="text-lg font-bold text-slate-900">제12조 (권익침해 구제방법)</h2>
+              <h2 className="text-lg font-bold text-slate-900">제14조 (권익침해 구제방법)</h2>
               <p>정보주체는 개인정보 침해에 대한 신고나 상담이 필요한 경우 아래 기관에 문의할 수 있습니다.</p>
               <ul className="ml-4 list-disc space-y-1 pl-1 text-slate-800">
                 <li>개인정보침해신고센터: 국번없이 118</li>
@@ -326,11 +405,15 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="scroll-mt-24 space-y-3 border-t border-bt-border pt-4">
-              <h2 className="text-lg font-bold text-slate-900">제13조 (개인정보처리방침의 변경)</h2>
-              <p>이 개인정보처리방침은 2026년 4월 8일부터 적용됩니다.</p>
+              <h2 className="text-lg font-bold text-slate-900">제15조 (개인정보처리방침의 변경)</h2>
+              <p>이 개인정보처리방침은 {LEGAL_ENTITY.policyEffectiveDate}부터 적용되며, {LEGAL_ENTITY.policyRevisedDate}에 일부 개정되었습니다.</p>
               <p>
-                회사는 법령, 서비스 내용 또는 내부 운영정책의 변경에 따라 개인정보처리방침을 수정할 수 있으며, 변경 시
-                웹사이트를 통하여 공지하겠습니다.
+                회사는 법령, 서비스(여행·eSIM·회원 등) 또는 내부 운영정책 변경에 따라 본 방침을 수정할 수 있으며, 중요
+                변경 시 시행일·개정 사유를 웹사이트에 공지합니다. eSIM 환불·이용 조건은{' '}
+                <a href={LEGAL_POLICY_LINKS.esimPolicy} className="text-bt-link underline underline-offset-2">
+                  eSIM 환불·서비스 정책
+                </a>
+                을 함께 확인해 주세요.
               </p>
             </section>
           </div>

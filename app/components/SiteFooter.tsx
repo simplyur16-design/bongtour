@@ -202,11 +202,7 @@ export default function SiteFooter() {
             </div>
           </dl>
 
-          <div className="mt-2 space-y-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2 md:hidden">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="text-xs font-medium text-bt-trust-beige">대표자</span>
-              <RepresentativeNameImage compact className="max-sm:mt-0" />
-            </div>
+          <div className="mt-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2 md:hidden">
             <button
               type="button"
               onClick={() => setBizOpen(true)}

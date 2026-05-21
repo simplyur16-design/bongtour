@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Header from '@/app/components/Header'
+import { LEGAL_ENTITY, LEGAL_POLICY_LINKS } from '@/lib/legal-site-disclosures'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SITE_NAME } from '@/lib/site-metadata'
 
@@ -33,9 +34,10 @@ export default function TermsOfServicePage() {
             <section className="scroll-mt-24 space-y-3">
               <h2 className="text-lg font-bold text-slate-900">제1조 (목적)</h2>
               <p>
-                이 약관은 봉투어(이하 &quot;회사&quot;)가 운영하는 웹사이트 및 관련 서비스에서 제공하는 여행상품 정보
-                제공, 상담 신청, 예약 연계, 국외연수 운영, 우리여행 관련 서비스의 이용과 관련하여 회사와 이용자 간의 권리,
-                의무 및 책임사항을 정함을 목적으로 합니다.
+                이 약관은 {LEGAL_ENTITY.legalName}(이하 &quot;회사&quot;, 서비스명 {LEGAL_ENTITY.serviceName})가 운영하는
+                웹사이트 및 관련 서비스에서 제공하는 여행상품 정보·상담·예약 연계, 국외연수·우리끼리(맞춤) 여행, 회원
+                서비스, eSIM 판매·발급 등의 이용과 관련하여 회사와 이용자 간의 권리, 의무 및 책임사항을 정함을 목적으로
+                합니다.
               </p>
             </section>
 
@@ -76,25 +78,23 @@ export default function TermsOfServicePage() {
               <h2 className="text-lg font-bold text-slate-900">제3조 (회사 정보의 표시)</h2>
               <p>회사는 관련 법령에 따라 다음 정보를 사이트에 표시합니다.</p>
               <ul className="ml-4 list-none space-y-1 pl-0 text-slate-800">
-                <li>상호: 봉투어</li>
-                <li>대표자: 황일연</li>
-                <li>사업자등록번호: 255-81-03455</li>
-                <li>통신판매업 신고번호: 제 2024-수원영통-1596호</li>
-                <li>주소: 경기도 수원시 영통구 에듀타운로 101 에듀하임 103동 110호</li>
+                <li>상호: {LEGAL_ENTITY.legalName}</li>
+                <li>대표자: {LEGAL_ENTITY.representativeName}</li>
+                <li>사업자등록번호: {LEGAL_ENTITY.bizRegNo}</li>
+                <li>통신판매업 신고번호: {LEGAL_ENTITY.mailOrderReportNo}</li>
+                <li>관광사업자등록: {LEGAL_ENTITY.tourismRegNo}</li>
+                <li>주소: {LEGAL_ENTITY.address}</li>
                 <li>
                   전화:{' '}
-                  <a href="tel:0312132558" className="text-bt-link underline underline-offset-2 hover:text-bt-link-hover">
-                    031-213-2558
+                  <a href={LEGAL_ENTITY.phoneTel} className="text-bt-link underline underline-offset-2 hover:text-bt-link-hover">
+                    {LEGAL_ENTITY.phone}
                   </a>
                 </li>
-                <li>팩스: 031-215-2558</li>
+                <li>팩스: {LEGAL_ENTITY.fax}</li>
                 <li>
                   이메일:{' '}
-                  <a
-                    href="mailto:bongtour24@naver.com"
-                    className="text-bt-link underline underline-offset-2 hover:text-bt-link-hover"
-                  >
-                    bongtour24@naver.com
+                  <a href={LEGAL_ENTITY.emailHref} className="text-bt-link underline underline-offset-2 hover:text-bt-link-hover">
+                    {LEGAL_ENTITY.email}
                   </a>
                 </li>
               </ul>
@@ -130,10 +130,17 @@ export default function TermsOfServicePage() {
                 <li>여행상품 예약 상담 및 공급사 연계</li>
                 <li>우리여행 관련 맞춤 상담 및 예약 진행 보조</li>
                 <li>국외연수, 행사, 기관 연계 프로그램 운영</li>
+                <li>회원가입·찜·후기·마이페이지 등 부가 서비스</li>
+                <li>eSIM 상품 안내·주문·결제·발급·고객지원(디지털 상품)</li>
                 <li>기타 회사가 정하는 부가 서비스</li>
               </ul>
               <p>
                 회사가 제공하는 개별 서비스는 그 성격에 따라 상담연결형, 직접운영형, 또는 혼합형으로 운영될 수 있습니다.
+                eSIM의 환불·교환·이용 조건은{' '}
+                <a href={LEGAL_POLICY_LINKS.esimPolicy} className="text-bt-link underline underline-offset-2">
+                  eSIM 환불·서비스 정책
+                </a>
+                에서 정한 바에 따릅니다.
               </p>
             </section>
 
@@ -183,14 +190,23 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="scroll-mt-24 space-y-3 pt-2">
-              <h2 className="text-lg font-bold text-slate-900">제8조 (회원가입 및 계정)</h2>
+              <h2 className="text-lg font-bold text-slate-900">제8조 (회원가입, 계정 및 탈퇴)</h2>
               <ol className="list-none space-y-2 pl-0">
                 <li>
-                  ① 사이트는 찜·문의 이력 등 일부 기능을 위해 회원가입(이메일·소셜 등)을 제공할 수 있으며, 여행·연수 상품
-                  탐색 등 일부 이용은 로그인 없이도 가능합니다.
+                  ① 사이트는 찜·문의 이력·후기 등 일부 기능을 위해 회원가입(이메일·소셜 등)을 제공할 수 있으며, 여행·연수
+                  상품 탐색 등 일부 이용은 로그인 없이도 가능합니다. 만 14세 미만은 회원가입이 제한될 수 있습니다.
                 </li>
-                <li>② 회원제 운영 정책·절차는 서비스 화면 및 별도 안내에 따릅니다.</li>
-                <li>③ 관리자 계정 및 내부 운영 계정은 회사의 별도 관리 기준에 따릅니다.</li>
+                <li>② 회원제 운영·동의(이용약관·개인정보·마케팅 등) 절차는 서비스 화면 및 별도 안내에 따릅니다.</li>
+                <li>
+                  ③ 이용자는 마이페이지 또는 회사가 안내하는 방법으로 <strong>회원 탈퇴</strong>를 요청할 수 있습니다.
+                  탈퇴가 완료되면 회사는 관련 법령상 보관 의무가 없는 범위에서 해당 회원의 계정·식별·연동 정보 및 회원
+                  전용 서비스 데이터를 <strong>삭제</strong>합니다. 상담·예약·결제·분쟁 대응에 필요한 기록은{' '}
+                  <a href={LEGAL_POLICY_LINKS.privacy} className="text-bt-link underline underline-offset-2">
+                    개인정보처리방침
+                  </a>
+                  에 따른 기간·범위 내에서 보관할 수 있습니다.
+                </li>
+                <li>④ 관리자 계정 및 내부 운영 계정은 회사의 별도 관리 기준에 따릅니다.</li>
               </ol>
             </section>
 
@@ -247,6 +263,13 @@ export default function TermsOfServicePage() {
                 </li>
                 <li>
                   ④ 상담연결형 서비스에서 실제 결제는 외부 공급사 또는 실제 계약 당사자를 통해 진행될 수 있습니다.
+                </li>
+                <li>
+                  ⑤ eSIM 등 디지털 상품의 결제·청약철회·환불은 전자상거래법 등 관련 법령, 본 약관 및{' '}
+                  <a href={LEGAL_POLICY_LINKS.esimPolicy} className="text-bt-link underline underline-offset-2">
+                    eSIM 환불·서비스 정책
+                  </a>
+                  에 따릅니다. QR 발송·활성화 여부 등에 따라 환불 가능 여부가 달라질 수 있습니다.
                 </li>
               </ol>
             </section>
@@ -305,7 +328,7 @@ export default function TermsOfServicePage() {
               <h2 className="text-lg font-bold text-slate-900">제14조 (개인정보 보호)</h2>
               <p>
                 회사는 이용자의 개인정보를 관련 법령 및 회사의{' '}
-                <a href="/privacy" className="text-bt-link underline underline-offset-2 hover:text-bt-link-hover">
+                <a href={LEGAL_POLICY_LINKS.privacy} className="text-bt-link underline underline-offset-2 hover:text-bt-link-hover">
                   개인정보처리방침
                 </a>
                 에 따라 보호합니다. 개인정보의 수집, 이용, 보관, 제3자 제공, 국외 이전 등에 관한 사항은 해당 방침에 따릅니다.
@@ -349,7 +372,11 @@ export default function TermsOfServicePage() {
                 <li>① 회사는 이용자의 정당한 의견이나 불만을 반영하고 피해를 구제하기 위해 노력합니다.</li>
                 <li>② 회사와 이용자 간 분쟁이 발생한 경우, 당사자는 상호 협의하여 해결하도록 노력합니다.</li>
                 <li>③ 이 약관과 관련한 분쟁에는 대한민국 법을 적용합니다.</li>
-                <li>④ 관할법원은 관련 법령에 따릅니다.</li>
+                <li>
+                  ④ 회사와 이용자 간 본 약관에 따른 소송의 관할법원은 <strong>{LEGAL_ENTITY.jurisdictionCourt}</strong>으로
+                  합니다. 다만 「소비자기본법」 등 관련 법령에 따라 소비자가 자신의 주소지 등 관할법원을 선택할 수 있는
+                  경우에는 그 법령이 우선합니다.
+                </li>
               </ol>
             </section>
 
@@ -364,7 +391,10 @@ export default function TermsOfServicePage() {
 
             <section className="scroll-mt-24 space-y-3 border-t border-bt-border pt-4">
               <h2 className="text-lg font-bold text-slate-900">부칙</h2>
-              <p>이 약관은 2026년 4월 8일부터 적용합니다.</p>
+              <p>
+                이 약관은 {LEGAL_ENTITY.policyEffectiveDate}부터 적용되며, {LEGAL_ENTITY.policyRevisedDate}에 일부
+                개정되었습니다.
+              </p>
             </section>
           </div>
         </article>

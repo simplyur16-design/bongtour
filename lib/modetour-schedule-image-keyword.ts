@@ -3,7 +3,11 @@
  * title/description/일정 분리 로직은 건드리지 않는다.
  */
 
-import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+import {
+  finalizeScheduleImageKeyword,
+  isBareCityOrCountryKeyword,
+  normalizeToPlaceName,
+} from '@/lib/pexels-place-name-keyword'
 import {
   buildScheduleImageKeywordPlan,
   resolveScheduleHubImageKeyword,
@@ -49,7 +53,12 @@ const GENERIC_EN = /^(?:travel|tour|city\s*tour|day\s*\d+\s*travel)$/i
 
 /** 최소 한글→영문 관광지 (모두투어 일정 본문에서 자주 쓰이는 표기만) */
 const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
-  { re: /외탄|外灘|外滩/u, en: 'Shanghai Bund skyline' },
+  { re: /(?:유|우)원|豫园|예원/u, en: 'Yu Garden Shanghai' },
+  { re: /외탄|外灘|外滩|와탄/u, en: 'Shanghai Bund skyline' },
+  { re: /항주|杭州|서호|西湖/u, en: 'West Lake Hangzhou' },
+  { re: /송성|宋城|송가무|가무쇼/u, en: 'Songcheng Park Hangzhou' },
+  { re: /청황|城隍/u, en: 'City God Temple of Shanghai' },
+  { re: /동방명주|东方明珠/u, en: 'Oriental Pearl Tower Shanghai' },
   { re: /주가각|朱家角/u, en: 'Zhujiajiao water town canal bridge' },
   { re: /우캉\s*루|武康路/u, en: 'Wukang Road Shanghai' },
   { re: /남경\s*로|南京路/u, en: 'Nanjing Road Shanghai' },
@@ -382,5 +391,10 @@ export function polishModetourImageKeyword(raw: string, ctx: ModetourImageKeywor
   } else {
     chosen = clampWords(deriveModetourImageKeyword(ctx), 8)
   }
-  return finalizeScheduleImageKeyword(chosen) || normalizeToPlaceName(chosen) || ''
+  let out = finalizeScheduleImageKeyword(chosen) || normalizeToPlaceName(chosen) || ''
+  if (isBareCityOrCountryKeyword(out)) {
+    const d = deriveModetourImageKeyword(ctx)
+    out = finalizeScheduleImageKeyword(d) || out
+  }
+  return out
 }

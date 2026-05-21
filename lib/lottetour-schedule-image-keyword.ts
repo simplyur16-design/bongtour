@@ -3,7 +3,7 @@
  * title/description/일정 분리 로직은 건드리지 않는다.
  */
 
-import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { finalizeScheduleImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 
 export type LottetourImageKeywordContext = {
   day: number
@@ -41,7 +41,12 @@ const GENERIC_EN = /^(?:travel|tour|city\s*tour|day\s*\d+\s*travel)$/i
 
 /** 최소 한글→영문 관광지 (롯데관광 일정 본문에서 자주 쓰이는 표기만) */
 const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
-  { re: /외탄|外灘|外滩/u, en: 'Shanghai Bund skyline' },
+  { re: /(?:유|우)원|豫园|예원/u, en: 'Yu Garden Shanghai' },
+  { re: /외탄|外灘|外滩|와탄/u, en: 'Shanghai Bund skyline' },
+  { re: /항주|杭州|서호|西湖/u, en: 'West Lake Hangzhou' },
+  { re: /송성|宋城|송가무|가무쇼/u, en: 'Songcheng Park Hangzhou' },
+  { re: /청황|城隍/u, en: 'City God Temple of Shanghai' },
+  { re: /동방명주|东方明珠/u, en: 'Oriental Pearl Tower Shanghai' },
   { re: /주가각|朱家角/u, en: 'Zhujiajiao water town canal bridge' },
   { re: /우캉\s*루|武康路/u, en: 'Wukang Road Shanghai' },
   { re: /남경\s*로|南京路/u, en: 'Nanjing Road Shanghai' },
@@ -234,6 +239,7 @@ const PEXELS_GENERIC_CITY_EN =
 export function isLottetourPexelsTooGeneric(s: string): boolean {
   const t = stripDatesAndNoise(String(s ?? '').trim())
   if (!t) return true
+  if (isBareCityOrCountryKeyword(t)) return true
   if (t.includes('/')) return false
   if (PEXELS_GENERIC_CITY_EN.test(t)) return true
   if (countWords(t) <= 2 && t.length <= 22) return true
@@ -416,11 +422,19 @@ function finishLottetourImageKeyword(s: string): string {
   return finalizeScheduleImageKeyword(t) || ''
 }
 
+function exitLottetourLandmark(chosen: string, ctx: LottetourImageKeywordContext): string {
+  let out = finishLottetourImageKeyword(chosen)
+  if (isBareCityOrCountryKeyword(out)) {
+    out = finishLottetourImageKeyword(deriveLottetourImageKeyword(ctx))
+  }
+  return out
+}
+
 export function polishLottetourImageKeyword(raw: string, ctx: LottetourImageKeywordContext): string {
   const cleaned = stripDatesAndNoise(String(raw ?? '').trim())
   if (ctx.airtelFreeTravelImageKw === 'force-city') {
     const kw = lottetourResolveAirtelFreeTravelImageKeywordLocal(ctx)
-    if (kw.trim()) return finishLottetourImageKeyword(kw)
+    if (kw.trim()) return exitLottetourLandmark(kw, ctx)
   }
   if (cleaned && isAcceptableEnglishKeyword(cleaned)) {
     let chosen = cleaned
@@ -428,17 +442,17 @@ export function polishLottetourImageKeyword(raw: string, ctx: LottetourImageKeyw
       const d = deriveLottetourImageKeyword(ctx)
       if (d.trim()) chosen = d
     }
-    return finishLottetourImageKeyword(chosen)
+    return exitLottetourLandmark(chosen, ctx)
   }
   if (cleaned && !hasHangul(cleaned) && !isLottetourPlaceholderImageKeyword(cleaned) && !hasBadSubstrings(cleaned)) {
     const t2 = clampWords(cleaned.replace(/[,，]+/g, ' '), IMAGE_KEYWORD_MAX_WORDS)
     if (t2.length >= 4 && /[a-z]{3,}/i.test(t2)) {
       if (isLottetourPexelsTooGeneric(t2)) {
         const d = deriveLottetourImageKeyword(ctx)
-        if (d.trim()) return finishLottetourImageKeyword(d)
+        if (d.trim()) return exitLottetourLandmark(d, ctx)
       }
-      return finishLottetourImageKeyword(t2)
+      return exitLottetourLandmark(t2, ctx)
     }
   }
-  return finishLottetourImageKeyword(deriveLottetourImageKeyword(ctx))
+  return exitLottetourLandmark(deriveLottetourImageKeyword(ctx), ctx)
 }

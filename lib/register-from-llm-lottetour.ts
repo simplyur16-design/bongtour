@@ -3,6 +3,7 @@
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
+import { polishLottetourImageKeyword } from '@/lib/lottetour-schedule-image-keyword'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -1782,8 +1783,20 @@ ${text.slice(0, 16000)}`
       }
     })
     .filter((s) => s.day > 0)
+  const scheduleRowsForKw = scheduleBase.map(supplementScheduleDayFromDescription)
+  const lottetourDestEarly = (raw.destination ?? '').trim()
+  const lottetourTitleEarly = String(raw.title ?? '').trim()
   const schedule: RegisterScheduleDay[] = applyScheduleImageKeywordsToRows(
-    scheduleBase.map(supplementScheduleDayFromDescription),
+    scheduleRowsForKw,
+    (kw, ctx) =>
+      polishLottetourImageKeyword(kw, {
+        day: ctx.day,
+        title: String(ctx.title ?? ''),
+        description: String(ctx.description ?? ''),
+        productTitle: lottetourTitleEarly || undefined,
+        productDestination: lottetourDestEarly || undefined,
+        productPrimaryDestination: lottetourDestEarly || undefined,
+      }),
   )
 
   const pasteForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)

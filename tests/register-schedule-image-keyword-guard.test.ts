@@ -4,6 +4,9 @@ import { mergeScheduleWithFirstPassPreferExtractRows } from '../lib/register-sch
 import { polishVerygoodRegisterScheduleImageKeywords } from '../lib/verygoodtour-schedule-image-keyword'
 import { keywordFromTitleDescription } from '../lib/parse-and-register-ybtour-schedule'
 import { sanitizeVerygoodtourScheduleRowExpression } from '../lib/parse-and-register-verygoodtour-schedule'
+import { buildDualScheduleImageKeywords } from '../lib/schedule-dual-image-keyword'
+import { buildScheduleImageKeywordPlan } from '../lib/register-schedule-image-keyword-ssot'
+import { isBareCityOrCountryKeyword } from '../lib/pexels-place-name-keyword'
 import type { RegisterScheduleDay } from '../lib/register-llm-schema-verygoodtour'
 
 describe('mergeScheduleWithFirstPassPreferExtractRows fp-only', () => {
@@ -52,6 +55,42 @@ describe('keywordFromTitleDescription (ybtour)', () => {
       'Osaka Castle / landmark exterior / street-level view',
     )
     assert.equal(kw, 'Osaka Castle')
+  })
+})
+
+describe('buildDualScheduleImageKeywords — 관광 일차 명소', () => {
+  it('Shanghai 단독 LLM 키워드를 본문 기반 명소로 바꾼다', () => {
+    const rows = [
+      {
+        day: 3,
+        title: '상해 시티투어',
+        description: '상해의 과거와 현재를 잇는 시티 투어 — 유원·외탄 관람',
+        imageKeyword: 'Shanghai',
+        imageKeyword2: 'Forbidden City',
+      },
+    ]
+    const plan = buildScheduleImageKeywordPlan(rows)
+    const dual = buildDualScheduleImageKeywords(rows[0]!, plan)
+    assert.ok(!isBareCityOrCountryKeyword(dual.imageKeyword))
+    assert.equal(dual.imageKeyword, 'Yu Garden')
+    assert.notEqual(dual.imageKeyword2, 'Forbidden City')
+    assert.ok(!isBareCityOrCountryKeyword(dual.imageKeyword2))
+  })
+
+  it('항주 일차는 West Lake·Songcheng 계열로', () => {
+    const rows = [
+      {
+        day: 2,
+        title: '항주',
+        description: '항주의 역사와 화려한 송성가무쇼 관람',
+        imageKeyword: 'Chenghuang',
+        imageKeyword2: 'Forbidden City',
+      },
+    ]
+    const plan = buildScheduleImageKeywordPlan(rows)
+    const dual = buildDualScheduleImageKeywords(rows[0]!, plan)
+    assert.equal(dual.imageKeyword, 'West Lake')
+    assert.notEqual(dual.imageKeyword2, 'Forbidden City')
   })
 })
 

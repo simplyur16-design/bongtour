@@ -121,6 +121,22 @@ const POI_KO_TO_EN: Record<string, string> = {
   침사추이: 'Tsim Sha Tsui',
   연인의거리: 'Avenue of Stars Hong Kong',
   헤리티지1881: '1881 Heritage Hong Kong',
+  유원: 'Yu Garden',
+  예원: 'Yu Garden',
+  외탄: 'The Bund',
+  와탄: 'The Bund',
+  난징로: 'Nanjing Road',
+  신천지: 'Xintiandi',
+  동방명주: 'Oriental Pearl Tower',
+  주가각: 'Zhujiajiao',
+  우캉루: 'Wukang Road',
+  송성: 'Songcheng Park',
+  송가무: 'Songcheng Park',
+  항주: 'West Lake',
+  서호: 'West Lake',
+  청황: 'City God Temple of Shanghai',
+  청황묘: 'City God Temple of Shanghai',
+  자금성: 'Forbidden City',
 }
 
 /** 테마 태그(themeTags) 한국어/혼용 → Pexels 검색용 영어 (후순위 fallback) */
