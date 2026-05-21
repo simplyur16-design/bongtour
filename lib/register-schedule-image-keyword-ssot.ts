@@ -308,6 +308,68 @@ export function extractScheduleLandmarkFromDayContext(ctx: ScheduleImageKeywordD
   return ''
 }
 
+function pushLandmarkCandidate(
+  out: Array<{ fin: string; pos: number }>,
+  seen: Set<string>,
+  fin: string,
+  pos: number,
+  excludePrimaryKey: string,
+): void {
+  if (!fin || isBareCityOrCountryKeyword(fin)) return
+  const key = normKey(fin)
+  if (!key || seen.has(key)) return
+  if (excludePrimaryKey && key === excludePrimaryKey) return
+  seen.add(key)
+  out.push({ fin, pos })
+}
+
+/** 본문 등장 순서대로 관광 명소 후보(도시명 제외) */
+export function collectScheduleLandmarksFromDayContext(
+  ctx: ScheduleImageKeywordDayInput,
+  excludePrimary?: string,
+): string[] {
+  const h = hay(ctx)
+  const excludePrimaryKey = excludePrimary ? normKey(finalizeScheduleImageKeyword(excludePrimary)) : ''
+  const hits: Array<{ fin: string; pos: number }> = []
+  const seen = new Set<string>()
+
+  for (const { re, en } of KO_LANDMARK_RULES) {
+    const m = re.exec(h)
+    if (!m || m.index == null) continue
+    pushLandmarkCandidate(hits, seen, finalizeScheduleImageKeyword(en), m.index, excludePrimaryKey)
+  }
+
+  for (const part of splitDescriptionParts(ctx.description ?? '')) {
+    const idx = h.indexOf(part)
+    const mapped = mapKoreanPoiSegment(part)
+    if (!mapped) continue
+    pushLandmarkCandidate(
+      hits,
+      seen,
+      finalizeScheduleImageKeyword(mapped),
+      idx >= 0 ? idx : h.length,
+      excludePrimaryKey,
+    )
+  }
+
+  const mappedHay = mapKoreanPoiSegment(h)
+  if (mappedHay) {
+    pushLandmarkCandidate(hits, seen, finalizeScheduleImageKeyword(mappedHay), 0, excludePrimaryKey)
+  }
+
+  hits.sort((a, b) => a.pos - b.pos)
+  return hits.map((x) => x.fin)
+}
+
+/** 2순위 — 1순위와 다른 그날 본문의 다음 관광 명소 */
+export function extractScheduleSecondaryLandmarkFromDayContext(
+  ctx: ScheduleImageKeywordDayInput,
+  primary: string,
+): string {
+  const landmarks = collectScheduleLandmarksFromDayContext(ctx, primary)
+  return landmarks[0] ?? ''
+}
+
 function coerceTourismLandmarkKeyword(
   raw: string,
   ctx: ScheduleImageKeywordDayInput,

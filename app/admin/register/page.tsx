@@ -284,18 +284,34 @@ function buildRegisterPexelsUiRows(
     return Number.isFinite(day) && day >= 1
   })
   if (validFromParsed.length > 0) {
-    return validFromParsed.map((row) => {
+    const rawRows = validFromParsed.map((row) => {
       const day = Number(row.day)
-      const kw = tryPersistScheduleImageKeyword(String(row.imageKeyword ?? '').trim())
-      const kw2 = tryPersistScheduleImageKeyword(String(row.imageKeyword2 ?? '').trim())
       return {
         day,
         title: String(row.title ?? ''),
         description: String(row.description ?? ''),
-        imageKeyword: kw.ok ? kw.value : '',
-        imageKeyword2: kw2.ok ? kw2.value : '',
+        routeText: String((row as { routeText?: string | null }).routeText ?? '').trim() || null,
+        imageKeyword: String(row.imageKeyword ?? '').trim(),
+        imageKeyword2: String(row.imageKeyword2 ?? '').trim() || null,
       }
     })
+    try {
+      return finalizeRegisterScheduleImageKeywords(rawRows).map((row) => ({
+        day: row.day,
+        title: String(row.title ?? ''),
+        description: String(row.description ?? ''),
+        imageKeyword: String(row.imageKeyword ?? '').trim(),
+        imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
+      }))
+    } catch {
+      return rawRows.map((row) => ({
+        day: row.day,
+        title: row.title,
+        description: row.description,
+        imageKeyword: row.imageKeyword,
+        imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
+      }))
+    }
   }
   const it = preview.itineraryDayDrafts ?? []
   if (it.length === 0) return []

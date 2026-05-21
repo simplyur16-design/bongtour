@@ -77,6 +77,34 @@ describe('buildDualScheduleImageKeywords — 관광 일차 명소', () => {
     assert.ok(!isBareCityOrCountryKeyword(dual.imageKeyword2))
   })
 
+  it('유원·외탄 일차 2순위는 The Bund 등 다른 명소', () => {
+    const rows = [
+      {
+        day: 3,
+        title: '상해',
+        description: '유원·외탄 관람 후 자유시간',
+        imageKeyword: 'Shanghai',
+        imageKeyword2: 'Shanghai',
+      },
+    ]
+    const plan = buildScheduleImageKeywordPlan(rows)
+    const dual = buildDualScheduleImageKeywords(rows[0]!, plan)
+    assert.equal(dual.imageKeyword, 'Yu Garden')
+    assert.equal(dual.imageKeyword2, 'The Bund')
+    assert.ok(!isBareCityOrCountryKeyword(dual.imageKeyword2))
+  })
+
+  it('귀국 일차 2순위에 도시명 중복(Shanghai/Shanghai)을 넣지 않는다', () => {
+    const rows = [
+      { day: 1, title: '인천 출발', description: '인천국제공항 출발 · 상해 도착', imageKeyword: '', imageKeyword2: null },
+      { day: 4, title: '귀국', description: '상해 출발 및 인천 귀국', imageKeyword: 'Shanghai', imageKeyword2: 'Shanghai' },
+    ]
+    const plan = buildScheduleImageKeywordPlan(rows)
+    const dual = buildDualScheduleImageKeywords(rows[1]!, plan)
+    assert.equal(dual.imageKeyword, 'Shanghai')
+    assert.notEqual(dual.imageKeyword2, 'Shanghai')
+  })
+
   it('항주 일차는 West Lake·Songcheng 계열로', () => {
     const rows = [
       {
@@ -91,6 +119,7 @@ describe('buildDualScheduleImageKeywords — 관광 일차 명소', () => {
     const dual = buildDualScheduleImageKeywords(rows[0]!, plan)
     assert.equal(dual.imageKeyword, 'West Lake')
     assert.notEqual(dual.imageKeyword2, 'Forbidden City')
+    assert.ok(dual.imageKeyword2 === 'Songcheng Park' || dual.imageKeyword2.length > 0)
   })
 })
 

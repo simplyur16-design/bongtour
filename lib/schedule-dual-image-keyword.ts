@@ -11,7 +11,8 @@ import {
 import { firstPoiSearchTermExcluding, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import {
   buildScheduleImageKeywordPlan,
-  extractScheduleLandmarkFromDayContext,
+  collectScheduleLandmarksFromDayContext,
+  extractScheduleSecondaryLandmarkFromDayContext,
   landmarkMentionedInDayContext,
   polishRegisterScheduleImageKeywordFromLlm,
   resolveScheduleHubImageKeyword,
@@ -50,7 +51,16 @@ export function resolveScheduleSecondaryImageKeyword(
   const primaryFin = finalizeScheduleImageKeyword(primary)
   const hubCity = resolveHubCityKeyword(ctx, plan)
   if (hubCity) {
-    return hubCity
+    if (normKey(hubCity) !== normKey(primaryFin)) {
+      return hubCity
+    }
+    const hubSecond = extractScheduleSecondaryLandmarkFromDayContext(ctx, primaryFin)
+    return hubSecond || ''
+  }
+
+  const orderedLandmarks = collectScheduleLandmarksFromDayContext(ctx, primaryFin)
+  if (orderedLandmarks[0]) {
+    return orderedLandmarks[0]
   }
 
   const fromLlm = finalizeScheduleImageKeyword(String(llmSecondary ?? '').trim())
@@ -101,7 +111,14 @@ export function resolveScheduleSecondaryImageKeyword(
     const fromKorean = firstPoiSearchTermExcluding(source ?? '', exclude)
     if (fromKorean) {
       const fin = finalizeScheduleImageKeyword(fromKorean)
-      if (fin && normKey(fin) !== normKey(primaryFin)) return fin
+      if (
+        fin &&
+        normKey(fin) !== normKey(primaryFin) &&
+        !isBareCityOrCountryKeyword(fin) &&
+        landmarkMentionedInDayContext(fin, ctx)
+      ) {
+        return fin
+      }
     }
   }
 
@@ -121,11 +138,6 @@ export function resolveScheduleSecondaryImageKeyword(
         return fin
       }
     }
-  }
-
-  const alt = extractScheduleLandmarkFromDayContext(ctx)
-  if (alt && normKey(alt) !== normKey(primaryFin) && !exclude.has(normalizeSemanticPoiKey(alt))) {
-    return alt
   }
 
   return ''
