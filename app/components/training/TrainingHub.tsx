@@ -171,7 +171,7 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
           <p className="mt-3 text-[18px] leading-relaxed text-slate-700">전체 연수를 처음부터 함께 준비하는 경우뿐 아니라, 연수기관 섭외만·연수기획·진행만처럼 필요한 범위에 맞춰 문의하실 수 있습니다. 현재 준비 상태와 목적에 맞는 유형을 선택해 주세요.</p>
           <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {SERVICE_CARDS.map((card) => (
-              <article key={card.title} className="rounded-xl border border-bt-border bg-white p-5 shadow-sm">
+              <article key={card.title} className="flex flex-col items-center rounded-xl border border-bt-border bg-white p-5 text-center shadow-sm">
                 <p className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
                   {card.title === '연수기관 섭외만'
                     ? '기관 연결 중심'
@@ -184,8 +184,10 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
                 <button type="button" onClick={() => moveToInquiry(card.title)} className="mt-4 inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-[16px] font-semibold text-slate-800 hover:bg-slate-50">
                   문의하기
                 </button>
-                <details className="mt-3">
-                  <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700">추가 정보 보기</summary>
+                <details className="mt-3 w-full">
+                  <summary className="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-slate-700 [&::-webkit-details-marker]:hidden">
+                    추가 정보 보기
+                  </summary>
                   <ul className="mt-2 space-y-1 text-sm text-slate-600">
                     {card.fitCases.map((c) => (
                       <li key={c}>- {c}</li>
@@ -258,7 +260,7 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
                 id="training-flow-panel"
                 role="tabpanel"
                 aria-labelledby={`training-flow-tab-${activeFlowStep}`}
-                className={`mt-4 rounded-2xl border bg-white p-5 sm:p-6 ${
+                className={`mt-4 rounded-2xl border bg-white p-5 text-center sm:p-6 ${
                   activeFlowStep === 1 || activeFlowStep === 3 || activeFlowStep === 4
                     ? 'border-blue-300 bg-blue-50/40'
                     : 'border-bt-border'
@@ -272,7 +274,7 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
                 </h3>
                 <p className="mt-3 text-[16px] leading-[1.65] text-slate-700">{FLOW_SUMMARIES[activeFlowStep]}</p>
                 <p className="mt-3 text-[15px] leading-relaxed text-slate-600">{FLOW_DETAILS[activeFlowStep]}</p>
-                <div className="mt-5 flex flex-wrap gap-2">
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
                   <button
                     type="button"
                     disabled={activeFlowStep === 0}
@@ -333,10 +335,12 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
           <div className="mx-auto max-w-6xl">
             <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[38px]">실제 수행기관명을 기준으로 신뢰를 쌓아왔습니다.</h2>
             <p className="mt-3 text-[18px] leading-relaxed text-slate-700">Bong투어는 기관명을 흐리게 감추는 방식보다 실제 수행 경험을 정확하게 드러내는 방식을 택합니다. 국외연수는 추상적인 소개보다 누가, 어떤 목적으로, 어떤 방식의 수행을 맡았는지가 더 중요하기 때문입니다.</p>
-            <p className="mt-4 inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">2025 수행기관</p>
+            <p className="mt-4 flex justify-center">
+              <span className="inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">2025 수행기관</span>
+            </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {TRUST_CASES.map((t) => (
-                <div key={t} className="rounded-lg border border-bt-border bg-white px-4 py-3 text-base text-slate-800">
+                <div key={t} className="rounded-lg border border-bt-border bg-white px-4 py-3 text-center text-base text-slate-800">
                   {t}
                 </div>
               ))}
