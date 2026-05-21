@@ -68,11 +68,22 @@ function overseasFlatGridClassAfterHeading(wideLayout: boolean): string {
   return base.replace(/^mt-\d+\s+/, 'mt-4 ')
 }
 
-/** 권역별 가로 스크롤 줄: 카드 폭 (좁은 메인 / 넓은 메인) */
+/** 모바일: 카드 1장 스냅 · md+: 그리드/다열 가로줄 */
+const productListLiMobileSnap =
+  'w-[90%] max-w-md shrink-0 snap-center md:w-auto md:max-w-none md:shrink md:snap-align-none'
+
+function productListUlResponsive(gridClass: string): string {
+  const tail = gridClass
+    .replace(/^mt-\d+\s+/, '')
+    .replace(/^grid\s+/, '')
+  return `mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 pt-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:overflow-visible md:snap-none md:grid ${tail}`
+}
+
+/** 권역별 가로 스크롤 줄: 모바일 1장 중심 · md+ 줄에서 다열 노출 */
 const overseasBucketRowLiClassDefault =
-  'w-[min(17.5rem,calc(100vw-2.75rem))] shrink-0 snap-start sm:w-[min(19rem,calc((100vw-3rem)/2))] lg:w-[calc((100%-2rem)/3)] lg:min-w-0 lg:max-w-none'
+  'w-[90%] max-w-sm shrink-0 snap-center md:w-[min(17.5rem,calc(100vw-2.75rem))] md:max-w-none lg:w-[calc((100%-2rem)/3)] lg:min-w-0'
 const overseasBucketRowLiClassWide =
-  'w-[min(16.25rem,calc(100vw-2.5rem))] shrink-0 snap-start sm:w-[min(17rem,calc((100vw-2.5rem)/2))] lg:w-[calc((100%-3rem)/4)] lg:min-w-0 lg:max-w-none'
+  'w-[90%] max-w-sm shrink-0 snap-center md:w-[min(16.25rem,calc(100vw-2.5rem))] md:max-w-none lg:w-[calc((100%-3rem)/4)] lg:min-w-0'
 
 function useProductListInitialVisible() {
   const [initialLimit, setInitialLimit] = useState(PRODUCT_LIST_INITIAL_MOBILE)
@@ -615,9 +626,9 @@ function AirHotelCountryGroupedList({
             >
               {countryKey}
             </h2>
-            <ul className={productCardGridClassDefault} role="list">
+            <ul className={productListUlResponsive(productCardGridClassDefault)} role="list">
               {rowVisible.map((item) => (
-                <li key={item.id}>
+                <li key={item.id} className={productListLiMobileSnap}>
                   <ProductResultCard
                     item={item}
                     formatWon={formatWon}
@@ -746,9 +757,9 @@ function DomesticRegionGroupedList({
   )
 }
 
-/** 해외 여행상품: 권역(버킷)당 한 줄 — 약 3장 노출, 나머지는 가로 스크롤(데스크톱에서도 줄바꿈 없음) */
+/** 해외 여행상품: 권역(버킷)당 한 줄 — 모바일 1장 스냅, md+ 가로 스크롤 다열 */
 const countryProductRowClass =
-  'mt-6 flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible overscroll-x-contain pb-2 pt-0.5 snap-x snap-proximity [-ms-overflow-style:none] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]'
+  'mt-6 flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible overscroll-x-contain px-0 pb-2 pt-0.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch] max-md:-mx-1'
 
 export function ProductResultCard({
   item,
@@ -1034,21 +1045,27 @@ function FlatProductResultsList({
   const { visibleCount, sentinelRef } = useProgressiveProductCount(items.length, listResetKey)
   const visibleItems = useMemo(() => items.slice(0, visibleCount), [items, visibleCount])
 
+  const listUlClass = productListUlResponsive(cardGridClass)
+
   return (
     <>
-      <ul className={cardGridClass}>
+      <ul className={listUlClass}>
         {interleaveEsimNativeCards
-          ? mapFlatListWithEsimCards(visibleItems, (item) => (
-              <li key={item.id}>
-                <ProductResultCard
-                  item={item}
-                  formatWon={formatWon}
-                  seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
-                />
-              </li>
-            ))
+          ? mapFlatListWithEsimCards(
+              visibleItems,
+              (item) => (
+                <li key={item.id} className={productListLiMobileSnap}>
+                  <ProductResultCard
+                    item={item}
+                    formatWon={formatWon}
+                    seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                  />
+                </li>
+              ),
+              productListLiMobileSnap,
+            )
           : visibleItems.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className={productListLiMobileSnap}>
                 <ProductResultCard
                   item={item}
                   formatWon={formatWon}

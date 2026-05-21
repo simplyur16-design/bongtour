@@ -62,13 +62,13 @@ export default async function OverseasRegisteredProductsSection() {
                     · {section.items.length}건
                   </span>
                 </div>
-                {/* 한 줄에 약 3장 노출, 초과분은 가로 스크롤 */}
+                {/* 모바일 1장 스냅 · md+ 가로줄 다열 */}
                 <div className="mt-5 -mx-4 overflow-x-auto overflow-y-visible overscroll-x-contain px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable] sm:mx-0 sm:px-0">
                   <ul className="flex snap-x snap-mandatory gap-4 pb-2 pt-0.5">
                   {section.items.map(({ product: item, effectivePricePerPerson }) => (
                     <li
                       key={item.id}
-                      className="snap-start shrink-0 w-[min(22rem,calc(100vw-2.75rem))] sm:w-[min(24rem,calc((100vw-3rem)/2))] lg:w-[calc((min(72rem,100vw)-4.5rem)/3)]"
+                      className="w-[90%] max-w-sm shrink-0 snap-center md:w-[min(22rem,calc(100vw-2.75rem))] md:max-w-none lg:w-[calc((min(72rem,100vw)-4.5rem)/3)]"
                     >
                       <Link
                         href={`/products/${item.id}`}

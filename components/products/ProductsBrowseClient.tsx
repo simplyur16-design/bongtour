@@ -671,6 +671,11 @@ export default function ProductsBrowseClient({
       )}
       {!loading && data && browsePresented.items.length > 0 && (
         <>
+          {(basePath === '/travel/overseas' && defaultScope === 'overseas') || pathname === '/travel/air-hotel' ? (
+            <p className="mb-3 text-center text-sm text-slate-600 md:hidden">
+              상품 카드를 좌우로 밀어 다른 일정을 확인하세요
+            </p>
+          ) : null}
           <ProductResultsList
             items={browsePresented.items}
             formatWon={formatWon}

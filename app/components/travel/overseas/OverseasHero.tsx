@@ -2,10 +2,13 @@
 
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
-import { type FC, type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { type FC, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import OverseasDestinationAutocomplete from '@/components/travel/overseas/OverseasDestinationAutocomplete'
 import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
 import { countryDisplayNameFromBrowseParam } from '@/lib/overseas-browse-country-hero'
+import { overseasBrowseLabelFromParams } from '@/lib/overseas-mega-menu-location-suggestions'
+import type { OverseasLocationSuggestion } from '@/lib/overseas-mega-menu-location-suggestions'
 import {
   findSeasonDestinationSlideForBrowseCountry,
   type OverseasHubDestinationHeroSlide,
@@ -116,8 +119,6 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   const router = useRouter()
   const searchParams = useSearchParams() ?? new URLSearchParams()
   const departDateId = 'overseas-hero-depart-date'
-  const adultId = 'overseas-hero-adult'
-  const childId = 'overseas-hero-child'
   const calendarTitleId = useId()
   const calendarPanelId = useId()
   const publicMinYmd = useMemo(() => getPublicBookableMinYmd(), [])
@@ -127,7 +128,6 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     return v >= publicMinYmd ? v : ''
   }
   const dateWrapRef = useRef<HTMLDivElement>(null)
-  const skipFocusOpenRef = useRef(false)
   const [departDate, setDepartDate] = useState(sanitizeDepartDate(searchParams.get('departDate')))
   const [adultCount, setAdultCount] = useState(searchParams.get('adult') ?? '1')
   const [childCount, setChildCount] = useState(searchParams.get('child') ?? '0')
@@ -305,28 +305,68 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     }
   }, [calendarOpen])
 
+  const mergeDepartPax = useCallback(
+    (p: URLSearchParams, next: { departDate: string; adult: string; child: string }) => {
+      if (next.departDate.trim()) {
+        p.set('departDate', next.departDate.trim())
+        p.set('departMonth', next.departDate.slice(0, 7))
+      } else {
+        p.delete('departDate')
+        p.delete('departMonth')
+      }
+      const adultNum = Math.max(1, Number.parseInt(next.adult || '1', 10) || 1)
+      const childNum = Math.max(0, Number.parseInt(next.child || '0', 10) || 0)
+      p.set('adult', String(adultNum))
+      p.set('child', String(childNum))
+      p.set('pax', String(adultNum + childNum))
+    },
+    [],
+  )
+
   const applySearch = (next: { departDate: string; adult: string; child: string }) => {
     const p = new URLSearchParams(searchParams.toString())
     p.set('scope', 'overseas')
     p.delete('page')
-    if (next.departDate.trim()) {
-      p.set('departDate', next.departDate.trim())
-      // 기존 browse 흐름 재사용: 월 기준 필터로 연결
-      p.set('departMonth', next.departDate.slice(0, 7))
-    } else {
-      p.delete('departDate')
-      p.delete('departMonth')
-    }
-    const adultNum = Math.max(1, Number.parseInt(next.adult || '1', 10) || 1)
-    const childNum = Math.max(0, Number.parseInt(next.child || '0', 10) || 0)
-    p.set('adult', String(adultNum))
-    p.set('child', String(childNum))
-    // 기존 browse API의 pax 필터 경로 재사용
-    p.set('pax', String(adultNum + childNum))
+    mergeDepartPax(p, next)
     p.delete('listingKind')
     p.delete('type')
     router.replace(`${hubPath}?${p.toString()}`)
   }
+
+  const applyDestination = useCallback(
+    (item: OverseasLocationSuggestion | null) => {
+      const p = new URLSearchParams(searchParams.toString())
+      p.set('scope', 'overseas')
+      p.delete('page')
+      mergeDepartPax(p, { departDate, adult: adultCount, child: childCount })
+      if (!item) {
+        p.delete('region')
+        p.delete('country')
+        p.delete('city')
+        p.delete('menuGroup')
+        p.delete('destination')
+      } else {
+        const parsed = new URL(item.href, 'https://bongtour.local')
+        for (const key of ['region', 'country', 'city', 'menuGroup'] as const) {
+          const v = parsed.searchParams.get(key)
+          if (v) p.set(key, v)
+          else p.delete(key)
+        }
+        p.delete('destination')
+      }
+      router.replace(`${hubPath}?${p.toString()}`)
+    },
+    [searchParams, router, departDate, adultCount, childCount, mergeDepartPax],
+  )
+
+  const destinationLabel = useMemo(
+    () =>
+      overseasBrowseLabelFromParams(
+        countrySlug,
+        (searchParams.get('city') ?? '').trim() || null,
+      ),
+    [countrySlug, searchParams],
+  )
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
@@ -382,6 +422,12 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     applySearch({ departDate: ymd, adult: adultCount, child: childCount })
   }
 
+  const clearDepartDate = () => {
+    setDepartDate('')
+    applySearch({ departDate: '', adult: adultCount, child: childCount })
+    setCalendarOpen(true)
+  }
+
   const shiftViewMonth = (delta: number) => {
     setViewMonth((prev) => {
       let { y, m } = prev
@@ -399,40 +445,42 @@ const OverseasHero: FC<OverseasHeroProps> = ({
 
   const dateField = (
     <div className="relative min-w-0" ref={dateWrapRef}>
-      <button
-        type="button"
-        id={departDateId}
-        aria-haspopup="dialog"
-        aria-expanded={calendarOpen}
-        aria-controls={calendarPanelId}
-        aria-label={departDate ? `출발일 ${formatDepartBarLabel(departDate)}` : '출발일 선택'}
-        onPointerDown={() => {
-          skipFocusOpenRef.current = true
-        }}
-        onFocus={() => {
-          if (skipFocusOpenRef.current) {
-            skipFocusOpenRef.current = false
-            return
-          }
-          setCalendarOpen(true)
-        }}
-        onClick={() => setCalendarOpen((o) => !o)}
-        className={`relative flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-bt-ui-accent/25 ${
-          calendarOpen
-            ? 'border-bt-ui-accent bg-bt-surface-soft ring-2 ring-bt-ui-accent/25'
-            : 'border-bt-border bg-white hover:border-bt-accent/35 hover:bg-bt-surface-soft/80'
-        }`}
-      >
-        <span className={`min-w-0 flex-1 truncate ${departDate ? 'font-medium text-bt-ink' : 'text-bt-subtle'}`}>
-          {departDate ? formatDepartBarLabel(departDate) : '날짜를 선택해 주세요'}
-        </span>
-        <span className="shrink-0 text-bt-subtle" aria-hidden>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="opacity-85" aria-hidden>
-            <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </span>
-      </button>
+      <div className="relative flex w-full min-w-0 items-stretch gap-1">
+        <button
+          type="button"
+          id={departDateId}
+          aria-haspopup="dialog"
+          aria-expanded={calendarOpen}
+          aria-controls={calendarPanelId}
+          aria-label={departDate ? `출발일 ${formatDepartBarLabel(departDate)}, 다시 선택` : '출발일 선택'}
+          onClick={() => setCalendarOpen(true)}
+          className={`relative flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-bt-ui-accent/25 ${
+            calendarOpen
+              ? 'border-bt-ui-accent bg-bt-surface-soft ring-2 ring-bt-ui-accent/25'
+              : 'border-bt-border bg-white hover:border-bt-accent/35 hover:bg-bt-surface-soft/80'
+          }`}
+        >
+          <span className={`min-w-0 flex-1 truncate ${departDate ? 'font-medium text-bt-ink' : 'text-bt-subtle'}`}>
+            {departDate ? formatDepartBarLabel(departDate) : '날짜를 선택해 주세요'}
+          </span>
+          <span className="shrink-0 text-bt-subtle" aria-hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="opacity-85" aria-hidden>
+              <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </span>
+        </button>
+        {departDate ? (
+          <button
+            type="button"
+            onClick={clearDepartDate}
+            className="shrink-0 rounded-lg border border-bt-border px-2.5 text-xs text-bt-muted hover:border-bt-accent/35 hover:text-bt-ink"
+            aria-label="출발일 지우기"
+          >
+            ✕
+          </button>
+        ) : null}
+      </div>
 
       {calendarOpen ? (
         <div
@@ -510,19 +558,49 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     </div>
   )
 
+  const heroSearchForm = (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        applySearch({ departDate, adult: adultCount, child: childCount })
+      }}
+      className="-mt-10 rounded-2xl border border-bt-border bg-white p-4 shadow-lg sm:-mt-12 sm:p-5"
+      role="search"
+      aria-label="목적지와 출발일로 해외여행 검색"
+    >
+      <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
+        <OverseasDestinationAutocomplete
+          valueLabel={destinationLabel}
+          onSelect={(item) => applyDestination(item)}
+          onClear={() => applyDestination(null)}
+          label="어디로"
+          showMenuHint={false}
+          placeholder="나라·도시 (예: 다낭, 도쿄)"
+          inputClassName="w-full rounded-lg border border-bt-border bg-white px-3 py-2.5 pr-9 text-sm text-bt-ink outline-none placeholder:text-bt-subtle focus:border-bt-ui-accent focus:ring-2 focus:ring-bt-ui-accent/25"
+        />
+        <div className="min-w-0">
+          <label htmlFor={departDateId} className="text-sm font-medium text-bt-ink">
+            언제
+          </label>
+          <div className="mt-1.5">{dateField}</div>
+        </div>
+      </div>
+    </form>
+  )
+
   return (
-    <section className="border-b border-bt-border bg-bt-surface">
+    <section className="relative border-b border-bt-border bg-bt-surface pb-3">
       <div
         className={`relative w-full overflow-hidden ${
           isSpotlightMode
-            ? 'min-h-[min(320px,52vh)] lg:min-h-[min(380px,56vh)]'
-            : 'min-h-[min(440px,62vh)] sm:min-h-[min(480px,65vh)]'
+            ? 'min-h-[min(260px,44vh)] sm:min-h-[min(300px,48vh)]'
+            : 'min-h-[min(280px,46vh)] sm:min-h-[min(340px,50vh)]'
         }`}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
         aria-live={reduceMotion ? 'polite' : 'off'}
       >
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 bottom-14 sm:bottom-16">
             {isSpotlightMode ? (
               matchedCountrySlide ? (
                 <OverseasCountryHeroBanner
@@ -663,106 +741,33 @@ const OverseasHero: FC<OverseasHeroProps> = ({
             )}
           {!isSpotlightMode && current ? (
             <div
-              className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/80 via-black/35 to-transparent"
+              className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-black/75 via-black/25 to-transparent"
               aria-hidden
             />
           ) : null}
           {isSpotlightMode ? (
             <div
-              className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/55 via-transparent to-transparent"
+              className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-black/50 via-transparent to-transparent"
               aria-hidden
             />
           ) : null}
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col gap-3 px-4 pb-4 pt-16 sm:px-6 sm:pb-6">
-          {!isSpotlightMode && current ? (
-            <div className="mx-auto w-full max-w-6xl px-0.5">
-              <p className="text-base font-bold text-white drop-shadow sm:text-lg">{current.headline}</p>
+        {!isSpotlightMode && current ? (
+          <div className="absolute inset-x-0 top-0 z-10 px-4 pt-3 sm:px-6 sm:pt-4">
+            <div className="mx-auto max-w-6xl">
+              <p className="text-lg font-bold leading-snug text-white drop-shadow-md sm:text-xl">{current.headline}</p>
               {current.subline ? (
-                <p className="mt-0.5 line-clamp-2 text-sm text-white/90 drop-shadow">{current.subline}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-white/95 drop-shadow">{current.subline}</p>
               ) : null}
             </div>
-          ) : null}
-          <div className="mx-auto w-full max-w-6xl">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            applySearch({ departDate, adult: adultCount, child: childCount })
-          }}
-          className="rounded-xl border border-white/25 bg-white/95 p-3 shadow-lg backdrop-blur-sm sm:p-4"
-          role="search"
-          aria-label="출발일과 성인 아동 인원으로 해외여행 검색"
-        >
-          <p className="mb-2 text-xs text-bt-subtle">떠나고 싶은 날짜와 인원을 선택해보세요</p>
-          {/* 데스크톱: 출발일(라벨+날짜바)을 한 그리드 셀에서 flex 정렬 → 라벨만 아래로 떨어지는 회귀 방지 */}
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr),auto,112px,auto,112px,auto] sm:items-center sm:gap-x-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <label htmlFor={departDateId} className="shrink-0 text-sm font-medium text-bt-ink">
-                출발일
-              </label>
-              <div className="min-w-0 flex-1">{dateField}</div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:contents">
-              <label htmlFor={adultId} className="shrink-0 self-center text-sm font-medium text-bt-ink">
-                성인
-              </label>
-              <div className="self-center">
-                <select
-                  id={adultId}
-                  value={adultCount}
-                  aria-label="성인 인원 선택"
-                  onChange={(e) => {
-                    const v = e.target.value
-                    setAdultCount(v)
-                    applySearch({ departDate, adult: v, child: childCount })
-                  }}
-                  className="w-full rounded-lg border border-bt-border bg-white px-3 py-2 text-sm text-bt-ink focus:border-bt-ui-accent focus:outline-none focus:ring-2 focus:ring-bt-ui-accent/25"
-                >
-                  {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
-                    <option key={`adult-${n}`} value={String(n)}>
-                      {n}명
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <label htmlFor={childId} className="shrink-0 self-center text-sm font-medium text-bt-ink">
-                아동
-              </label>
-              <div className="self-center">
-                <select
-                  id={childId}
-                  value={childCount}
-                  aria-label="아동 인원 선택"
-                  onChange={(e) => {
-                    const v = e.target.value
-                    setChildCount(v)
-                    applySearch({ departDate, adult: adultCount, child: v })
-                  }}
-                  className="w-full rounded-lg border border-bt-border bg-white px-3 py-2 text-sm text-bt-ink focus:border-bt-ui-accent focus:outline-none focus:ring-2 focus:ring-bt-ui-accent/25"
-                >
-                  {Array.from({ length: 10 }, (_, i) => i).map((n) => (
-                    <option key={`child-${n}`} value={String(n)}>
-                      {n}명
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="col-span-2 w-full sm:col-span-1 sm:w-auto sm:self-center">
-              <button
-                type="submit"
-                aria-label="출발 가능한 상품 보기"
-                className="inline-flex w-full items-center justify-center rounded-lg border border-bt-border bg-bt-surface px-4 py-2 text-sm font-semibold text-bt-ink hover:border-bt-accent/45 sm:w-auto"
-              >
-                출발 가능한 상품 보기
-              </button>
-            </div>
           </div>
-        </form>
-          </div>
-        </div>
+        ) : null}
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-24 bg-gradient-to-t from-black/65 to-transparent sm:h-28" aria-hidden />
       </div>
+
+      <div className="relative z-20 mx-auto w-full max-w-6xl px-4 sm:px-6">{heroSearchForm}</div>
     </section>
   )
 }

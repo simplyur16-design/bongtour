@@ -5,6 +5,7 @@ import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
 import Header from '@/app/components/Header'
 import TrainingInquiryForm, { TRAINING_SERVICE_OPTIONS } from '@/components/inquiry/TrainingInquiryForm'
+import TrainingServiceScopeCarousel from '@/components/training/TrainingServiceScopeCarousel'
 
 type ServiceType = (typeof TRAINING_SERVICE_OPTIONS)[number]
 
@@ -188,33 +189,8 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
         <section id="training-service-scope" className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
           <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[38px]">필요한 범위에 맞춰 문의하실 수 있습니다.</h2>
           <p className="mt-3 text-[18px] leading-relaxed text-slate-700">전체 연수를 처음부터 함께 준비하는 경우뿐 아니라, 연수기관 섭외만·연수기획·진행만처럼 필요한 범위에 맞춰 문의하실 수 있습니다. 현재 준비 상태와 목적에 맞는 유형을 선택해 주세요.</p>
-          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {SERVICE_CARDS.map((card) => (
-              <article key={card.title} className="flex flex-col items-center rounded-xl border border-bt-border bg-white p-5 text-center shadow-sm">
-                <p className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                  {card.title === '연수기관 섭외만'
-                    ? '기관 연결 중심'
-                    : card.title === '연수기획·진행 및 연수기관 섭외'
-                      ? '전체 운영형'
-                      : '기획·진행 중심'}
-                </p>
-                <h3 className="mt-3 text-[26px] font-semibold leading-[1.34] tracking-[-0.005em] text-slate-900">{card.title}</h3>
-                <p className="mt-3 text-[17px] leading-[1.6] text-slate-700">{card.summary}</p>
-                <button type="button" onClick={() => moveToInquiry(card.title)} className="mt-4 inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-[16px] font-semibold text-slate-800 hover:bg-slate-50">
-                  문의하기
-                </button>
-                <details className="mt-3 w-full">
-                  <summary className="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-slate-700 [&::-webkit-details-marker]:hidden">
-                    추가 정보 보기
-                  </summary>
-                  <ul className="mt-2 space-y-1 text-sm text-slate-600">
-                    {card.fitCases.map((c) => (
-                      <li key={c}>- {c}</li>
-                    ))}
-                  </ul>
-                </details>
-              </article>
-            ))}
+          <div className="mt-6">
+            <TrainingServiceScopeCarousel cards={SERVICE_CARDS} onInquiry={moveToInquiry} />
           </div>
         </section>
 

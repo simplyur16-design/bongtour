@@ -1,30 +1,7 @@
 import Link from 'next/link'
-import { ClipboardList, Heart, Package, UserRound, Users } from 'lucide-react'
+import { UserRound } from 'lucide-react'
 import GroupMeetingReviewsSection from '@/app/components/travel/reviews/GroupMeetingReviewsSection'
 import type { GroupMeetingReviewCardModel } from '@/lib/group-meeting-reviews-csv'
-
-const recommend = [
-  {
-    icon: Users,
-    title: '가족여행으로 편하게 떠나고 싶은 분',
-    body: '식사와 이동까지 가족의 리듬에 맞춰, 우리끼리 편하게 여행할 수 있도록 상담해드립니다.',
-  },
-  {
-    icon: Heart,
-    title: '친구·커플·소규모 모임으로 떠나고 싶은 분',
-    body: '일행 분위기에 맞는 일정과 동선으로, 더 편안한 맞춤여행 방향을 안내해드립니다.',
-  },
-  {
-    icon: Package,
-    title: '기존 패키지를 우리끼리만 이용하고 싶은 분',
-    body: '등록된 여행상품을 바탕으로 인원과 일정에 맞는 모임여행 형태로 진행 가능 여부를 상담해드립니다.',
-  },
-  {
-    icon: ClipboardList,
-    title: '모임 총무 부담을 줄이고 싶은 분',
-    body: '견적과 일정 정리 부담을 덜어드리고, 동호회 여행이나 해외탐방 성격의 일정도 함께 검토해드립니다.',
-  },
-] as const
 
 const benefits = [
   {
@@ -58,30 +35,7 @@ export default function PrivateTripLanding({
 }: Props) {
   return (
     <>
-      <section className="bg-white py-16 sm:py-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">이런 분들께 추천합니다</h2>
-          <p className="mt-3 max-w-2xl text-sm text-slate-600 sm:text-[15px]">
-            가족여행·모임여행·소규모 단체여행까지, 스타일만 알려 주시면 방향을 함께 맞춥니다.
-          </p>
-          <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-            {recommend.map(({ icon: Icon, title, body }) => (
-                <li
-                  key={title}
-                  className="rounded-2xl border border-slate-100 bg-slate-50/50 p-6 transition-[border-color,background-color] duration-75 hover:border-teal-200/80 hover:bg-teal-50/30"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-700/10 text-teal-800">
-                    <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
-                  </div>
-                  <h3 className="mt-4 text-[15px] font-semibold leading-snug text-slate-900">{title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{body}</p>
-                </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      <section className="border-y border-slate-100 bg-slate-50/70 py-16 sm:py-20">
+      <section className="border-b border-slate-100 bg-slate-50/70 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">우리 일행만의 여행이 좋은 이유</h2>
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:gap-10">
