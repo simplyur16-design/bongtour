@@ -7,6 +7,7 @@ import type { GalleryProduct } from '@/app/api/gallery/route'
 import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
+import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
 
 function formatDate(iso: string | null): string {
   if (!iso) return '일정 협의'
@@ -42,6 +43,15 @@ export default function OverseasCompareCard({ product, priority = false, product
       <div className="flex flex-col sm:flex-row">
         <Link href={`/products/${product.id}`} className="relative block shrink-0 sm:w-[200px] lg:w-[240px]">
           <div className="relative aspect-[16/10] w-full sm:aspect-auto sm:h-full sm:min-h-[168px]">
+            <div className="absolute right-2 top-2 z-10">
+              <WishlistToggleButton
+                kind="product"
+                id={product.id}
+                title={product.title}
+                slug={null}
+                destination={product.primaryDestination ?? product.destination ?? null}
+              />
+            </div>
             <SafeImage
               src={url}
               alt=""

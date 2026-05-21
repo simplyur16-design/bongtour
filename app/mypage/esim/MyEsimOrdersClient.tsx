@@ -48,6 +48,8 @@ function badgeClass(display: string): string {
   return "bg-slate-400 text-white";
 }
 
+import MypagePageHeading from '@/components/mypage/MypagePageHeading'
+
 export default function MyEsimOrdersClient() {
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -107,11 +109,13 @@ export default function MyEsimOrdersClient() {
   };
 
   return (
-    <div className="text-slate-800">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">내 eSIM</h1>
-      <p className="mt-2 text-sm text-slate-600">로그인 계정 이메일과 동일한 구매자 이메일로 결제한 주문만 표시됩니다.</p>
+    <div className="text-[#1F1B2D]">
+      <MypagePageHeading
+        title="내 eSIM 주문내역"
+        description="로그인 계정 이메일과 동일한 구매자 이메일로 결제한 주문만 표시됩니다."
+      />
 
-      {err ? <p className="mt-4 text-sm text-red-600">{err}</p> : null}
+      {err ? <p className="text-sm text-red-600">{err}</p> : null}
 
       <div className="mt-8 space-y-4">
         {rows.map((o) => (

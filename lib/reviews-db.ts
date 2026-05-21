@@ -255,6 +255,112 @@ export async function listFeaturedOverseasReviewCards(limit = 6): Promise<Review
   return getFeaturedOverseasReviews(limit)
 }
 
+export type MemberReviewListRow = Pick<
+  ReviewRow,
+  | 'id'
+  | 'category'
+  | 'review_type'
+  | 'title'
+  | 'excerpt'
+  | 'status'
+  | 'tags'
+  | 'rejection_reason'
+  | 'created_at'
+  | 'updated_at'
+>
+
+export async function listMemberReviews(userId: string): Promise<MemberReviewListRow[]> {
+  if (!hasSupabaseConfig() || !userId.trim()) return []
+  try {
+    const supabase = getSupabaseAdmin()
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select(
+        'id,category,review_type,title,excerpt,status,tags,rejection_reason,created_at,updated_at'
+      )
+      .eq('user_id', userId.trim())
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (error) {
+      console.error('[reviews] listMember', error.message)
+      return []
+    }
+    return (data ?? []) as MemberReviewListRow[]
+  } catch (e) {
+    console.error('[reviews] listMember', e)
+    return []
+  }
+}
+
+export async function getMemberReviewById(
+  userId: string,
+  id: string
+): Promise<ReviewRow | null> {
+  if (!hasSupabaseConfig() || !userId.trim() || !id.trim()) return null
+  try {
+    const supabase = getSupabaseAdmin()
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', userId.trim())
+      .maybeSingle()
+    if (error || !data) return null
+    return data as ReviewRow
+  } catch {
+    return null
+  }
+}
+
+const MEMBER_EDITABLE_STATUSES = new Set<ReviewStatus>(['pending', 'rejected'])
+
+export async function updateMemberReview(
+  userId: string,
+  id: string,
+  input: ReviewMemberSubmitInput
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!hasSupabaseConfig()) return { ok: false, error: '후기 저장소가 설정되지 않았습니다.' }
+  const row = await getMemberReviewById(userId, id)
+  if (!row) return { ok: false, error: '후기를 찾을 수 없습니다.' }
+  if (!MEMBER_EDITABLE_STATUSES.has(row.status)) {
+    return { ok: false, error: '검토 중이거나 게시된 후기는 수정할 수 없습니다.' }
+  }
+
+  const tags = input.tags ?? []
+  const travelMonth = input.travel_month?.trim() || null
+  const displayed_date = derivedDisplayedDateOnSubmit(travelMonth)
+
+  try {
+    const supabase = getSupabaseAdmin()
+    const { error } = await supabase
+      .from(TABLE)
+      .update({
+        category: input.category,
+        review_type: input.review_type,
+        title: input.title.trim(),
+        excerpt: input.excerpt.trim(),
+        body: input.body?.trim() || null,
+        customer_type: input.customer_type?.trim() || null,
+        destination_country: input.destination_country?.trim() || null,
+        destination_city: input.destination_city?.trim() || null,
+        tags,
+        travel_month: travelMonth,
+        rating_label: input.rating_label?.trim() || null,
+        thumbnail_url: input.thumbnail_url?.trim() || null,
+        status: 'pending',
+        rejection_reason: null,
+        displayed_date,
+      })
+      .eq('id', id)
+      .eq('user_id', userId.trim())
+    if (error) return { ok: false, error: '후기 수정에 실패했습니다.' }
+    return { ok: true }
+  } catch (e) {
+    console.error('[reviews] updateMember', e)
+    return { ok: false, error: '후기 수정 중 오류가 발생했습니다.' }
+  }
+}
+
 export async function insertPendingMemberReview(
   userId: string,
   input: ReviewMemberSubmitInput

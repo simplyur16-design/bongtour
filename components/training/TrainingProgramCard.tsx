@@ -8,6 +8,7 @@ import {
 import type { TrainingProgramPublicRow } from '@/lib/overseas-training-program-query'
 import { trainingProgramPublicPath } from '@/lib/overseas-training-program-query'
 import { formatTrainingProgramMetaLine } from '@/lib/overseas-training-weekday'
+import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
 
 type Props = {
   program: TrainingProgramPublicRow
@@ -27,6 +28,15 @@ export default function TrainingProgramCard({ program }: Props) {
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-xl border border-bt-border bg-white shadow-sm transition hover:border-slate-300">
       <Link href={href} className="relative block aspect-[16/10] bg-slate-100">
+        <div className="absolute right-2 top-2 z-10">
+          <WishlistToggleButton
+            kind="training"
+            id={program.id}
+            title={program.title}
+            slug={program.slug}
+            destination={dest}
+          />
+        </div>
         {program.bgImageUrl ? (
           <SafeImage
             src={program.bgImageUrl}

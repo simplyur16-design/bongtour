@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import MypagePageHeading from "@/components/mypage/MypagePageHeading";
 
 type Tab = "active" | "used" | "expired";
 
@@ -92,12 +93,12 @@ export default function CouponsClient() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">내 쿠폰함</h1>
-        <p className="mt-1 text-sm text-slate-600">사용 가능한 할인권을 확인하고 결제 시 적용할 수 있습니다.</p>
-      </div>
+      <MypagePageHeading
+        title="내 쿠폰함"
+        description="사용 가능한 할인권을 확인하고 eSIM 결제 시 적용할 수 있습니다."
+      />
 
-      <div className="flex gap-1 rounded-xl border border-teal-100 bg-white/80 p-1 shadow-sm">
+      <div className="flex gap-1 rounded-xl border border-[#DAD4EE] bg-white p-1 shadow-sm">
         {(
           [
             ["active", "사용가능"],
@@ -110,7 +111,7 @@ export default function CouponsClient() {
             type="button"
             onClick={() => setTab(k)}
             className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
-              tab === k ? "bg-teal-600 text-white shadow-sm" : "text-slate-600 hover:bg-teal-50"
+              tab === k ? "bg-[#534AB7] text-white shadow-sm" : "text-[#534AB7] hover:bg-[#EFEDF8]"
             }`}
           >
             {label}
@@ -118,11 +119,11 @@ export default function CouponsClient() {
         ))}
       </div>
 
-      {loading ? <p className="text-sm text-slate-600">불러오는 중…</p> : null}
+      {loading ? <p className="text-sm text-[#534AB7]">불러오는 중…</p> : null}
       {err ? <p className="text-sm text-red-600">{err}</p> : null}
 
       {!loading && !err && data && rows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-teal-200 bg-teal-50/40 p-8 text-center text-sm text-slate-700">
+        <div className="rounded-2xl border border-dashed border-[#DAD4EE] bg-[#EFEDF8]/50 p-8 text-center text-sm text-[#534AB7]">
           <p>아직 표시할 쿠폰이 없습니다.</p>
           <p className="mt-3 text-slate-600">이벤트·프로모션을 통해 쿠폰이 발급되면 여기에 표시됩니다.</p>
         </div>
@@ -135,17 +136,17 @@ export default function CouponsClient() {
           return (
             <li
               key={r.user_coupon_id}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="rounded-2xl border border-[#DAD4EE] bg-white p-4 shadow-sm"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="font-semibold text-slate-900">{r.template_label}</p>
+                <p className="font-semibold text-[#1F1B2D]">{r.template_label}</p>
                 {r.expires_at ? (
                   <span className={`text-xs font-semibold ${dd.urgent ? "text-red-600" : "text-slate-500"}`}>
                     {dd.text}
                   </span>
                 ) : null}
               </div>
-              <p className="mt-2 text-lg font-bold text-teal-700">{discountLine(r)}</p>
+              <p className="mt-2 text-lg font-bold text-[#534AB7]">{discountLine(r)}</p>
               {minL ? <p className="mt-1 text-xs text-slate-500">{minL}</p> : null}
               {r.used_at ? (
                 <p className="mt-2 text-xs text-slate-400">사용일 {new Date(r.used_at).toLocaleString("ko-KR")}</p>

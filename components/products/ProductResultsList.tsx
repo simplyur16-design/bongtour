@@ -24,6 +24,7 @@ import {
   matchProductToDomesticNode,
   type DomesticProductMatchInput,
 } from '@/lib/match-domestic-product'
+import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
 
 export type ResultItem = {
   id: string
@@ -767,6 +768,15 @@ export function ProductResultCard({
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md"
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
+        <div className="absolute right-2 top-2 z-10">
+          <WishlistToggleButton
+            kind="product"
+            id={item.id}
+            title={item.title}
+            slug={null}
+            destination={item.primaryDestination ?? null}
+          />
+        </div>
         {cardSrc ? (
           <>
             <SafeImage

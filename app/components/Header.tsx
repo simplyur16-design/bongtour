@@ -50,9 +50,9 @@ const instagramHref = (() => {
 })()
 
 /** 인스타그램 공식 글리프에 가까운 그라데이션(브랜드 가이드 색상 근사) */
-function InstagramGlyphIcon({ gradientId }: { gradientId: string }) {
+function InstagramGlyphIcon({ gradientId, className = 'h-7 w-7 sm:h-6 sm:w-6' }: { gradientId: string; className?: string }) {
   return (
-    <svg className="h-6 w-6 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+    <svg className={`shrink-0 ${className}`} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
       <defs>
         <radialGradient id={gradientId} cx="13.018%" cy="100%" r="149.888%">
           <stop offset="9%" stopColor="#FFC800" />
@@ -183,22 +183,32 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
               )}
             </div>
 
-            <div className="flex items-center gap-1 lg:hidden">
+            <div className="flex items-center gap-2 lg:hidden">
               <Link
                 href={INQUIRY_HREF}
-                className="shrink-0 rounded-full bg-bt-brand-gold-strong px-2.5 py-1 text-xs font-medium text-white"
+                className="shrink-0 rounded-full bg-bt-brand-gold-strong px-3.5 py-2 text-sm font-semibold text-white"
               >
                 상담
               </Link>
               {authLoading ? (
-                <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-bt-border-soft" aria-hidden />
+                <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-bt-border-soft" aria-hidden />
               ) : session?.user ? (
-                <Link href="/mypage" className="shrink-0 p-1.5 text-bt-text-navy" aria-label="마이페이지">
-                  <User className="h-5 w-5" aria-hidden />
+                <Link
+                  href="/mypage"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-bt-border-soft px-2.5 py-1.5 text-sm font-semibold text-bt-text-navy"
+                  aria-label="마이페이지"
+                >
+                  <User className="h-6 w-6" aria-hidden />
+                  <span className="max-[380px]:hidden">마이</span>
                 </Link>
               ) : (
-                <Link href="/auth/signin" className="shrink-0 p-1.5 text-bt-text-navy" aria-label="로그인">
-                  <User className="h-5 w-5" aria-hidden />
+                <Link
+                  href="/auth/signin"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-bt-border-soft px-2.5 py-1.5 text-sm font-semibold text-bt-text-navy"
+                  aria-label="로그인"
+                >
+                  <User className="h-6 w-6" aria-hidden />
+                  <span className="max-[380px]:hidden">로그인</span>
                 </Link>
               )}
             </div>
@@ -207,7 +217,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
 
         {!hideMobileNav ? (
           <nav
-            className="-mx-4 grid w-full grid-cols-5 gap-1 border-t border-bt-border-soft/70 px-3 py-2.5 sm:-mx-6 sm:gap-1.5 sm:px-6 lg:hidden"
+            className="-mx-4 grid w-full grid-cols-5 gap-1 border-t border-bt-border-soft/70 px-2 py-3 sm:-mx-6 sm:gap-2 sm:px-4 lg:hidden"
             aria-label="주요 메뉴"
           >
             {MAIN_NAV.map((item) => {
@@ -218,10 +228,10 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
                   href={item.href}
                   title={item.label}
                   aria-current={active ? 'page' : undefined}
-                  className={`min-w-0 truncate rounded-full px-0.5 py-1.5 text-center leading-tight sm:px-1.5 ${
+                  className={`min-w-0 truncate rounded-lg px-1 py-2 text-center text-[15px] leading-snug ${
                     active
-                      ? 'text-xs font-bold text-bt-text-navy sm:text-sm'
-                      : 'text-[10px] font-medium text-bt-text-navy sm:text-xs'
+                      ? 'font-bold text-bt-text-navy'
+                      : 'font-medium text-bt-text-navy'
                   }`}
                 >
                   {item.label}

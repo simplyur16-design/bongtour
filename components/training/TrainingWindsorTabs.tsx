@@ -27,10 +27,10 @@ export default function TrainingWindsorTabs({ active, onChange, children }: Prop
               key={t.id}
               type="button"
               onClick={() => onChange(t.id)}
-              className={`min-w-[120px] flex-1 border-r border-[#DAD4EE] px-4 py-3 text-center text-sm font-bold transition-colors last:border-r-0 sm:text-base ${
+              className={`min-w-[120px] flex-1 border-r border-[#DAD4EE] px-4 py-3.5 text-center text-sm font-bold transition-colors last:border-r-0 sm:text-base ${
                 isActive
-                  ? 'bg-white text-[#1F1B2D]'
-                  : 'bg-[#EFEDF8] text-[#534AB7] hover:bg-[#E8E4F4]'
+                  ? 'bg-[#534AB7] text-white shadow-inner'
+                  : 'bg-[#EFEDF8] text-[#1F1B2D] hover:bg-[#E8E4F4]'
               }`}
             >
               {t.label}
