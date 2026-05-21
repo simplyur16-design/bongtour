@@ -11,10 +11,11 @@ export default async function TrainingProgramsPreview() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[34px]">
-              이런 연수 프로그램이 있습니다
+              연수프로그램
             </h2>
             <p className="mt-2 max-w-2xl text-[17px] leading-relaxed text-slate-700">
-              공무·기업 목적의 국외연수 프로그램을 소개합니다. 가격은 공개하지 않으며, 맞춤 견적은 문의 후 안내드립니다.
+              공무·기업 목적의 국외출장연수 프로그램을 소개합니다. 가장 일반적인 프로그램들이며 연수프로그램은 목적에 맞도록
+              매번 새롭게 만들어집니다.
             </p>
           </div>
           <Link

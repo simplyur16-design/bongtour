@@ -10,10 +10,10 @@ export function classifyTrainingScheduleLine(line: string): TrainingScheduleLine
 }
 
 const LINE_CLASS: Record<TrainingScheduleLineKind, string> = {
-  official_visit: 'font-semibold text-[#B42318]',
-  bullet: 'font-medium text-[#1D4ED8]',
-  meeting: 'font-semibold text-[#0F766E]',
-  plain: 'text-[#1F1B2D]',
+  official_visit: 'font-semibold text-red-800',
+  bullet: 'font-semibold text-blue-800',
+  meeting: 'font-semibold text-teal-900',
+  plain: 'text-slate-800',
 }
 
 export function trainingScheduleLineClassName(kind: TrainingScheduleLineKind): string {

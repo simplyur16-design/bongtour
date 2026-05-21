@@ -6,6 +6,7 @@ import {
   type TrainingAudience,
   type TrainingCategory,
 } from '@/lib/overseas-training-taxonomy'
+import { shuffleTrainingProgramsByPeriod } from '@/lib/training-program-list-shuffle'
 
 export const OVERSEAS_TRAINING_LISTING_KIND = 'overseas_training' as const
 
@@ -68,17 +69,18 @@ export async function listPublishedTrainingPrograms(args?: {
   category?: TrainingCategory | null
 }): Promise<TrainingProgramPublicRow[]> {
   const limit = args?.limit ?? 50
+  const poolCap = 100
   const rows = await prisma.product.findMany({
     where: {
       listingKind: OVERSEAS_TRAINING_LISTING_KIND,
       registrationStatus: 'registered',
     },
     select: trainingProgramPublicSelect,
-    orderBy: [{ updatedAt: 'desc' }, { title: 'asc' }],
-    take: Math.min(limit, 100),
+    orderBy: [{ id: 'asc' }],
+    take: poolCap,
   })
 
-  return rows.filter((r) => {
+  const filtered = rows.filter((r) => {
     if (args?.category) {
       const c = parseTrainingCategory(r.trainingCategory)
       if (c !== args.category) return false
@@ -88,6 +90,9 @@ export async function listPublishedTrainingPrograms(args?: {
     }
     return true
   }) as TrainingProgramPublicRow[]
+
+  const shuffled = shuffleTrainingProgramsByPeriod(filtered)
+  return shuffled.slice(0, Math.min(limit, poolCap))
 }
 
 export async function getPublishedTrainingProgramBySlugOrId(

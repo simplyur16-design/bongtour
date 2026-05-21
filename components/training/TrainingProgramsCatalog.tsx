@@ -63,7 +63,8 @@ export default function TrainingProgramsCatalog({
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Overseas Training Programs</p>
         <h1 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">국외연수 프로그램</h1>
         <p className="mt-3 max-w-2xl text-[17px] leading-relaxed text-slate-700">
-          공무·기업 연수 목적의 프로그램 카탈로그입니다. 가격은 공개하지 않으며, 맞춤 견적은 문의 후 안내드립니다.
+          공무·기업 목적의 국외출장연수 프로그램을 소개합니다. 가장 일반적인 프로그램들이며 연수프로그램은 목적에 맞도록
+          매번 새롭게 만들어집니다.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-2 border-b border-slate-200 pb-4">
