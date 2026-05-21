@@ -123,6 +123,72 @@ describe('buildDualScheduleImageKeywords — 관광 일차 명소', () => {
   })
 })
 
+describe('buildDualScheduleImageKeywords — 싱가포르', () => {
+  const sgRows = [
+    {
+      day: 1,
+      title: '출발',
+      description: '인천 출발 및 싱가포르 도착',
+      imageKeyword: 'Mercure Singapore on Stevens',
+      imageKeyword2: 'Singapore',
+    },
+    {
+      day: 2,
+      title: '시내',
+      description: '싱가포르 시내 관광 및 야경 감상',
+      imageKeyword: 'Henderson Waves Bridge',
+      imageKeyword2: 'Forbidden City',
+    },
+    {
+      day: 3,
+      title: '자유',
+      description: '싱가포르 전일 자유 일정',
+      imageKeyword: 'Universal Studios',
+      imageKeyword2: 'Forbidden City',
+    },
+    {
+      day: 4,
+      title: '센토사',
+      description: '센토사 섬 체험 및 리버보트 탑승',
+      imageKeyword: 'Merlion Park',
+      imageKeyword2: 'Forbidden City',
+    },
+    {
+      day: 5,
+      title: '귀국',
+      description: '인천 국제공항 도착',
+      imageKeyword: 'Mercure Singapore on Stevens',
+      imageKeyword2: 'Singapore',
+    },
+  ]
+  const sgPlan = buildScheduleImageKeywordPlan(sgRows)
+
+  it('출발·귀국 일 1순위는 호텔이 아닌 Singapore', () => {
+    const d1 = buildDualScheduleImageKeywords(sgRows[0]!, sgPlan)
+    assert.equal(d1.imageKeyword, 'Singapore')
+    assert.notEqual(d1.imageKeyword2, 'Singapore')
+    const d5 = buildDualScheduleImageKeywords(sgRows[4]!, sgPlan)
+    assert.equal(d5.imageKeyword, 'Singapore')
+  })
+
+  it('관광 일 2순위에 Forbidden City·Singapore 도시명이 안 붙는다', () => {
+    for (const row of sgRows.slice(1, 4)) {
+      const dual = buildDualScheduleImageKeywords(row, sgPlan)
+      assert.notEqual(dual.imageKeyword2, 'Forbidden City')
+      assert.ok(!isBareCityOrCountryKeyword(dual.imageKeyword2) || dual.imageKeyword2 === '')
+      if (dual.imageKeyword2) {
+        assert.ok(dual.imageKeyword2.length > 0)
+      }
+    }
+  })
+
+  it('센토사 일차 2순위는 Sentosa 등 싱가포르 어트랙션', () => {
+    const dual = buildDualScheduleImageKeywords(sgRows[3]!, sgPlan)
+    assert.equal(dual.imageKeyword, 'Merlion Park')
+    assert.ok(['Sentosa', 'Singapore River', 'Marina Bay Sands', 'Gardens by the Bay'].includes(dual.imageKeyword2))
+  })
+})
+
 describe('sanitizeVerygoodtourScheduleRowExpression', () => {
   it('Day N travel placeholder는 빈 문자열로', () => {
     const row: RegisterScheduleDay = {

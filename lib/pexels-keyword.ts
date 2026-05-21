@@ -67,9 +67,23 @@ const REGION_MAP: Record<string, string> = {
  * 긴 키를 먼저 매칭하도록 호출부에서 길이 내림차순 순회.
  */
 const POI_KO_TO_EN: Record<string, string> = {
+  유니버설스튜디오싱가포르: 'Universal Studios Singapore',
   유니버설스튜디오재팬: 'Universal Studios Japan',
   유니버설스튜디오: 'Universal Studios Japan',
   유니버설: 'Universal Studios Japan',
+  센토사: 'Sentosa',
+  센토사섬: 'Sentosa',
+  머를라이언: 'Merlion Park',
+  머라이언: 'Merlion Park',
+  가든스바이더베이: 'Gardens by the Bay',
+  마리나베이샌즈: 'Marina Bay Sands',
+  마리나베이: 'Marina Bay Sands',
+  헨더슨웨이브: 'Henderson Waves Bridge',
+  클라우드포레스트: 'Gardens by the Bay',
+  오차드로드: 'Orchard Road',
+  차이나타운: 'Chinatown Singapore',
+  리버보트: 'Singapore River',
+  리버보트크루즈: 'Singapore River',
   오사카성: 'Osaka Castle',
   도톤보리: 'Dotonbori',
   도톤: 'Dotonbori',

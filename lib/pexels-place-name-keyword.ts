@@ -23,6 +23,7 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'eiffel tower paris': 'Eiffel Tower',
   'taipei 101 tower night': 'Taipei 101',
   'jiufen old street taiwan night': 'Jiufen',
+  'universal studios singapore': 'Universal Studios Singapore',
   'universal studios japan osaka': 'Universal Studios Japan',
   'universal studios japan': 'Universal Studios Japan',
   'universal studios': 'Universal Studios',
@@ -518,6 +519,18 @@ export function normalizeToPlaceName(rawKeyword: string): string {
   return t.slice(0, 90)
 }
 
+/** 호텔·숙박 시설명 — Pexels 관광지 키워드로 부적합 */
+export function isHotelLodgingImageKeyword(keyword: string): boolean {
+  const raw = String(keyword ?? '').trim()
+  if (!raw) return false
+  if (/호텔|숙박|리조트|펜션|모텔|게스트하우스|체크인/u.test(raw)) return true
+  const n = normalizeToPlaceName(raw).toLowerCase()
+  if (!n) return false
+  return /\b(hotel|resort|hostel|inn|lodging|suites|mercure|marriott|hilton|hyatt|sheraton|intercontinental|novotel|ibis|radisson|sofitel|fairmont|pan\s*pacific|mandarin\s*oriental|shangri-la|ritz|four\s*seasons|crowne\s*plaza|holiday\s*inn|best\s*western|motel)\b/i.test(
+    n,
+  )
+}
+
 /** 단순 도시·국가명만인 키워드(관광 일차 Pexels 1·2순위에 쓰이면 안 됨) */
 export function isBareCityOrCountryKeyword(keyword: string): boolean {
   const n = normalizeToPlaceName(keyword)
@@ -526,12 +539,12 @@ export function isBareCityOrCountryKeyword(keyword: string): boolean {
 }
 
 const LANDMARK_HINT_RE =
-  /\b(garden|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|fort|square|market|bund|lake|tower|peak|disney|studios|old\s+town|ancient|waterfall|fjord|beach|pagoda|quarter|village|terrace|bridge|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|pagoda|inn|garden|yu\s+garden|forbidden|west\s+lake|oriental\s+pearl)\b/i
+  /\b(garden|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|fort|square|market|bund|lake|tower|peak|disney|studios|old\s+town|ancient|waterfall|fjord|beach|quarter|village|terrace|bridge|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|yu\s+garden|west\s+lake|oriental\s+pearl|merlion|sentosa|marina)\b/i
 
 /** 2단어 이상 또는 랜드마크 성격 단어가 포함된 고유명 */
 export function isLikelyTourismLandmarkKeyword(keyword: string): boolean {
   const n = normalizeToPlaceName(keyword)
-  if (!n || isBareCityOrCountryKeyword(n)) return false
+  if (!n || isBareCityOrCountryKeyword(n) || isHotelLodgingImageKeyword(n)) return false
   if (n.split(/\s+/).length >= 2) return true
   return LANDMARK_HINT_RE.test(n)
 }
