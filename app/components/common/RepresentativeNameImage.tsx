@@ -4,16 +4,26 @@ type Props = {
   className?: string
   /** 푸터 등 압축 레이아웃용 */
   compact?: boolean
+  /** navy 푸터(on-dark) vs 밝은 배경 모달·카드(on-light) */
+  tone?: 'on-dark' | 'on-light'
 }
 
 // 푸터 대표자명: 시각적으로는 이미지 처리(개인정보 노출 방지),
 // 접근성과 SEO를 위해 alt 속성에만 한글 실명 부여.
 // 절대 이미지를 텍스트로 대체하지 말 것.
 
-export default function RepresentativeNameImage({ className = '', compact = false }: Props) {
+export default function RepresentativeNameImage({
+  className = '',
+  compact = false,
+  tone = 'on-dark',
+}: Props) {
+  const toneClass =
+    tone === 'on-dark'
+      ? '[filter:brightness(0)_invert(1)]'
+      : 'opacity-95 [filter:none]'
   const imgClass = compact
-    ? 'h-3.5 w-auto max-w-[5.25rem] object-contain object-left opacity-90 sm:h-4 sm:max-w-[6rem] [filter:brightness(0)_invert(1)]'
-    : 'h-5 w-auto max-w-[7rem] object-contain object-left opacity-90 sm:h-6 sm:max-w-[7.5rem] [filter:brightness(0)_invert(1)]'
+    ? `h-3.5 w-auto max-w-[5.25rem] object-contain object-left sm:h-4 sm:max-w-[6rem] ${toneClass}`
+    : `h-5 w-auto max-w-[7rem] object-contain object-left sm:h-6 sm:max-w-[7.5rem] ${toneClass}`
 
   return (
     <span className={`inline-flex items-center align-middle ${className}`}>

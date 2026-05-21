@@ -57,7 +57,7 @@ function BusinessInfoModal({ open, onClose }: { open: boolean; onClose: () => vo
           <div>
             <dt className="font-medium text-slate-900">대표자</dt>
             <dd>
-              <RepresentativeNameImage />
+              <RepresentativeNameImage tone="on-light" />
             </dd>
           </div>
           <div>
@@ -202,7 +202,11 @@ export default function SiteFooter() {
             </div>
           </dl>
 
-          <div className="mt-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2 md:hidden">
+          <div className="mt-2 space-y-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2 md:hidden">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-xs font-medium text-bt-trust-beige">대표자</span>
+              <RepresentativeNameImage compact className="max-sm:mt-0" />
+            </div>
             <button
               type="button"
               onClick={() => setBizOpen(true)}
