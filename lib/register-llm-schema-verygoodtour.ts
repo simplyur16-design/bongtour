@@ -106,7 +106,13 @@ export type RegisterGeminiLlmJson = Record<string, unknown> & {
   meetingNoticeRaw?: string | null
   meetingFallbackText?: string | null
   counselingNotes?: unknown
-  schedule?: Array<{ day?: number; title?: string; description?: string; imageKeyword?: string }>
+  schedule?: Array<{
+    day?: number
+    title?: string
+    description?: string
+    imageKeyword?: string
+    imageKeyword2?: string | null
+  }>
   prices?: Array<Record<string, unknown>>
   optionalTourNoticeRaw?: string | null
   optionalTourNoticeItems?: string[]

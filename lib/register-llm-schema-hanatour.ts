@@ -112,6 +112,7 @@ export type RegisterGeminiLlmJson = Record<string, unknown> & {
     description?: string
     routeText?: string | null
     imageKeyword?: string
+    imageKeyword2?: string | null
   }>
   prices?: Array<Record<string, unknown>>
   optionalTourNoticeRaw?: string | null
