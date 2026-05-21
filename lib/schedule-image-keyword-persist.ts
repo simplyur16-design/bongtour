@@ -10,6 +10,26 @@ const OPERATIONAL_SCHEDULE_KEY_RE = /^(?:day_\d+|premade_\d+)$/i
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
+/** process-images·DB 저장 시 hero가 덮어쓰면 안 되는 운영용 키 */
+export function isOperationalScheduleImageKeyword(kw: string | null | undefined): boolean {
+  const t = String(kw ?? '').trim()
+  if (!t) return false
+  return OPERATIONAL_SCHEDULE_KEY_RE.test(t) || DAY_N_TRAVEL_RE.test(t)
+}
+
+/** 일정 SSOT 키워드 우선 — hero 검색 라벨은 보조 */
+export function resolveScheduleImageKeywordForDb(
+  stored: string | null | undefined,
+  heroUsed: string | null | undefined,
+  dayFallback: string,
+): string {
+  const storedTrim = String(stored ?? '').trim()
+  if (storedTrim && !isOperationalScheduleImageKeyword(storedTrim)) return storedTrim
+  const heroTrim = String(heroUsed ?? '').trim()
+  if (heroTrim && !isOperationalScheduleImageKeyword(heroTrim)) return heroTrim
+  return storedTrim || heroTrim || dayFallback
+}
+
 export class ScheduleImageKeywordPersistError extends Error {
   constructor(message: string) {
     super(message)
@@ -94,6 +114,42 @@ export function persistScheduleImageFields<T extends ScheduleImageFieldsInput>(
 
 /** @deprecated `persistScheduleImageFields` 사용 */
 export const finalizeScheduleImageSeoFields = persistScheduleImageFields
+
+export type ProductScheduleJsonRow = ScheduleImageFieldsInput & {
+  day: number
+  title?: string | null
+  description?: string | null
+  routeText?: string | null
+  imageUrl?: string | null
+  imageUrl2?: string | null
+}
+
+/**
+ * Product.schedule JSON — 등록 확정·동기화 공통.
+ * `finalizeRegisterScheduleImageKeywords` 적용 후 imageKeyword·imageKeyword2 포함.
+ */
+export function buildProductScheduleJsonForDb<T extends ProductScheduleJsonRow>(
+  schedule: T[],
+  mapExtra?: (row: T) => Record<string, unknown>,
+): string {
+  const finalized = finalizeRegisterScheduleImageKeywords(schedule)
+  return JSON.stringify(
+    finalized.map((row) => {
+      const extra = mapExtra?.(row) ?? {}
+      return {
+        day: row.day,
+        title: String(row.title ?? '').trim(),
+        description: String(row.description ?? '').trim(),
+        routeText: row.routeText ?? null,
+        imageKeyword: row.imageKeyword,
+        imageKeyword2: row.imageKeyword2 ?? null,
+        imageUrl: row.imageUrl ?? null,
+        imageUrl2: row.imageUrl2 ?? null,
+        ...extra,
+      }
+    }),
+  )
+}
 
 /** confirm 일괄 처리 — 2순위 보강 후 imageKeyword·imageKeyword2 persist */
 export function finalizeRegisterScheduleImageKeywords<

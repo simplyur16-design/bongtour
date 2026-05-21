@@ -35,7 +35,11 @@ import {
   normalizeSemanticPoiKey,
   sanitizeAttractionPhrase,
 } from '@/lib/pexels-keyword'
-import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+import {
+  isLikelyTourismLandmarkKeyword,
+  normalizeToPlaceName,
+} from '@/lib/pexels-place-name-keyword'
+import { collectScheduleLandmarksFromDayContext } from '@/lib/register-schedule-image-keyword-ssot'
 
 export type { PexelsQuerySet } from '@/lib/pexels-hero-query'
 
@@ -166,6 +170,17 @@ export function extractDayPoiCandidates(input: {
   if (input.scheduleTitle?.trim()) push(input.scheduleTitle.trim(), 'schedule')
   const desc = input.scheduleDescription?.trim()
   if (desc && desc.length < 120) push(desc, 'schedule')
+  if (desc && desc.length >= 120) {
+    for (const lm of collectScheduleLandmarksFromDayContext({
+      day: 0,
+      title: input.scheduleTitle ?? '',
+      description: desc,
+      routeText: null,
+      imageKeyword: input.scheduleImageKeyword ?? '',
+    })) {
+      push(lm, 'schedule')
+    }
+  }
   if (input.destination?.trim()) push(input.destination.trim(), 'product')
   if (input.productTitle?.trim()) {
     const latin = extractLatinPhraseFromTitle(input.productTitle)
@@ -505,6 +520,7 @@ export async function resolveDayHeroWithFallback(
   prisma: PrismaClient,
   usage: PhotoUsage
 ): Promise<{ photo: DayHeroPhotoResult; bundle: DayHeroImageBundle; semanticKey: string }> {
+  const ssotScheduleKw = normalizeToPlaceName(input.scheduleImageKeyword ?? '')
   const extracted = extractDayPoiCandidates({
     poiNamesRaw: input.poiNamesRaw,
     rawBlock: input.rawBlock,
@@ -518,6 +534,19 @@ export async function resolveDayHeroWithFallback(
   const normalized = normalizePlaceCandidates(extracted, input.city, null)
   let place = chooseDayHeroPlace(normalized, { usedHeroPlaceKeys: input.usedHeroPlaceKeys }, input.city, input.destination)
   let heroFallbackUsed = false
+  if (!place && ssotScheduleKw && isLikelyTourismLandmarkKeyword(ssotScheduleKw)) {
+    const semanticKey = normalizeSemanticPoiKey(ssotScheduleKw)
+    if (!input.usedHeroPlaceKeys.has(semanticKey)) {
+      place = {
+        chosenPlaceName: ssotScheduleKw,
+        chosenPlaceReason: '일정에 저장된 대표 관광지 키워드(imageKeyword)를 우선 사용했습니다.',
+        backupPlaceName: null,
+        semanticKey,
+        pexelsQueryStem: ssotScheduleKw,
+        placeSearchAliases: buildStemAliases(ssotScheduleKw, input.city, input.destination),
+      }
+    }
+  }
   if (!place) {
     place = chooseSyntheticLandmarkPlace(input.city, input.destination, input.usedHeroPlaceKeys)
     heroFallbackUsed = true

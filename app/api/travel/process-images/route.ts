@@ -33,6 +33,10 @@ import {
   isExternalHttpProductImageUrl,
 } from '@/lib/travel-product-image-internalize'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
+import {
+  finalizeRegisterScheduleImageKeywords,
+  resolveScheduleImageKeywordForDb,
+} from '@/lib/schedule-image-keyword-persist'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -341,7 +345,23 @@ export async function POST(req: Request) {
     }
 
     const destination = (product.destination ?? '').trim() || '미지정'
-    const scheduleArr = parseSchedule(product.schedule)
+    const scheduleArrRaw = parseSchedule(product.schedule)
+    const scheduleArr = finalizeRegisterScheduleImageKeywords(
+      scheduleArrRaw.map((item) => ({
+        day: item.day,
+        title: item.title ?? '',
+        description: item.description ?? '',
+        routeText: null,
+        imageKeyword: item.imageKeyword ?? '',
+        imageKeyword2: item.imageKeyword2 ?? null,
+        imageUrl: item.imageUrl ?? null,
+        imageUrl2: item.imageUrl2 ?? null,
+      })),
+    ).map((row, i) => ({
+      ...scheduleArrRaw[i]!,
+      imageKeyword: row.imageKeyword,
+      imageKeyword2: row.imageKeyword2 ?? scheduleArrRaw[i]?.imageKeyword2,
+    }))
     if (scheduleArr.length === 0) {
       return jsonWithLeakGuard({ success: false, error: '일정 데이터 없음' }, 'travel.process-images.no-schedule', {
         status: 400,
@@ -378,12 +398,13 @@ export async function POST(req: Request) {
 
       const updatedSchedule: ScheduleEntry[] = scheduleArr.map((item, i) => {
         const rec = picked[i]
-        const kw = rec?.attractionName?.trim() || `day_${item.day ?? i + 1}`
+        const poolKw = rec?.attractionName?.trim() || `day_${item.day ?? i + 1}`
         return {
           day: item.day,
           title: item.title,
           description: item.description,
-          imageKeyword: kw,
+          imageKeyword: resolveScheduleImageKeywordForDb(item.imageKeyword, poolKw, `day_${item.day ?? i + 1}`),
+          imageKeyword2: item.imageKeyword2,
           imageUrl: rec?.filePath ?? item.imageUrl ?? null,
           imageSource: rec
             ? { source: rec.source, photographer: rec.source, originalLink: '' }
@@ -445,11 +466,13 @@ export async function POST(req: Request) {
       }
       const updatedSchedule: ScheduleEntry[] = scheduleArr.map((item, i) => {
         const photo = schedSealed[i] ?? null
+        const premadeKw = photo ? `premade_${i + 1}` : `day_${item.day ?? i + 1}`
         return {
           day: item.day,
           title: item.title,
           description: item.description,
-          imageKeyword: photo ? `premade_${i + 1}` : `day_${item.day ?? i + 1}`,
+          imageKeyword: resolveScheduleImageKeywordForDb(item.imageKeyword, premadeKw, `day_${item.day ?? i + 1}`),
+          imageKeyword2: item.imageKeyword2,
           imageUrl: photo?.url ?? item.imageUrl ?? null,
           imageSource: photo
             ? { source: photo.source, photographer: photo.photographer, originalLink: photo.originalLink }
@@ -770,7 +793,11 @@ export async function POST(req: Request) {
         day: item.day,
         title: item.title,
         description: item.description,
-        imageKeyword: slot?.imageKeyword ?? `day_${item.day ?? i + 1}`,
+        imageKeyword: resolveScheduleImageKeywordForDb(
+          item.imageKeyword,
+          slot?.imageKeyword,
+          `day_${item.day ?? i + 1}`,
+        ),
         imageKeyword2: item.imageKeyword2,
         imageUrl: photo?.url ?? item.imageUrl ?? null,
         imageUrl2: photo2?.url ?? item.imageUrl2 ?? null,

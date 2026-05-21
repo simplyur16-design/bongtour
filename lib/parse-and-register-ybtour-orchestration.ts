@@ -27,6 +27,7 @@ import {
   type RegisterParsed,
   type RegisterScheduleDay,
 } from '@/lib/register-llm-schema-ybtour'
+import { buildRegisterProductScheduleJson } from '@/lib/build-register-product-schedule-json'
 
 /** hanatour/ybtour/잔여 공용 save 게이트: 달력 행만이 아니라 표·항공 구조화·일정 초안을 함께 본다. */
 function registerPersistedHasCalendarDraftSignals(
@@ -273,16 +274,17 @@ function assertJsonSerializable(ctx: ParseRegisterLogCtx, label: string, payload
   }
 }
 
-function buildScheduleJson(parsedSchedule: Array<{ day: number; title: string; description: string; imageKeyword: string }>) {
-  return JSON.stringify(
-    parsedSchedule.map((day) => ({
-      day: day.day,
-      title: day.title,
-      description: day.description,
-      imageKeyword: day.imageKeyword,
-      imageUrl: null,
-    }))
-  )
+function buildScheduleJson(
+  parsedSchedule: Array<{
+    day: number
+    title: string
+    description: string
+    imageKeyword: string
+    imageKeyword2?: string | null
+    routeText?: string | null
+  }>,
+) {
+  return buildRegisterProductScheduleJson(parsedSchedule)
 }
 
 function mergeRawMetaWithStructuredSignals(

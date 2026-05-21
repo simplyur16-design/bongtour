@@ -4,7 +4,10 @@ import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
-import { tryPersistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
+import {
+  finalizeRegisterScheduleImageKeywords,
+  tryPersistScheduleImageKeyword,
+} from '@/lib/schedule-image-keyword-persist'
 import { formatImageKeywordError } from '@/lib/image-keyword-error-messages'
 import AdminEmptyState from '../../components/AdminEmptyState'
 import AdminStatusBadge from '../../components/AdminStatusBadge'
@@ -622,7 +625,21 @@ export default function AdminPendingDetailPanel({
           }
         )
       }
-      return out
+      const finalized = finalizeRegisterScheduleImageKeywords(
+        out.map((row) => ({
+          day: row.day,
+          title: row.title ?? '',
+          description: row.description ?? '',
+          routeText: null,
+          imageKeyword: row.imageKeyword ?? '',
+          imageKeyword2: row.imageKeyword2 ?? null,
+        })),
+      )
+      return out.map((row, idx) => ({
+        ...row,
+        imageKeyword: finalized[idx]?.imageKeyword ?? row.imageKeyword,
+        imageKeyword2: finalized[idx]?.imageKeyword2 ?? row.imageKeyword2,
+      }))
     } catch {
       return []
     }

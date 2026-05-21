@@ -89,6 +89,7 @@ import {
   resolveOrCreateRegisterAdminInputSnapshot,
 } from '@/lib/register-admin-input-persist-verygoodtour'
 import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confirm-reuse-verygoodtour'
+import { buildRegisterProductScheduleJson } from '@/lib/build-register-product-schedule-json'
 import {
   augmentVerygoodtourScheduleExpressionParsed,
   finalizeVerygoodtourItineraryDayDraftsFromSchedule,
@@ -187,7 +188,16 @@ function assertJsonSerializable(ctx: ParseRegisterLogCtx, label: string, payload
   }
 }
 
-function buildScheduleJson(parsedSchedule: Array<{ day: number; title: string; description: string; imageKeyword: string }>) {
+function buildScheduleJson(
+  parsedSchedule: Array<{
+    day: number
+    title: string
+    description: string
+    imageKeyword: string
+    imageKeyword2?: string | null
+    routeText?: string | null
+  }>,
+) {
   const rows = parsedSchedule
     .map((day) => {
       const d = coerceScheduleDayToOneBased(day.day) ?? normalizeDay(day.day)
@@ -197,11 +207,13 @@ function buildScheduleJson(parsedSchedule: Array<{ day: number; title: string; d
         title: day.title,
         description: day.description,
         imageKeyword: day.imageKeyword,
-        imageUrl: null,
+        imageKeyword2: day.imageKeyword2 ?? null,
+        routeText: day.routeText ?? null,
+        imageUrl: null as string | null,
       }
     })
     .filter((x): x is NonNullable<typeof x> => x != null)
-  return JSON.stringify(rows)
+  return buildRegisterProductScheduleJson(rows)
 }
 
 /** 참좋은여행 save 게이트: prices[]·departureInputs만이 아니라 표·항공·일정 초안 포함 */

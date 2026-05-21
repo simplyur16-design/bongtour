@@ -133,6 +133,7 @@ import {
   resolveOrCreateRegisterAdminInputSnapshot,
 } from '@/lib/register-admin-input-persist-modetour'
 import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confirm-reuse-modetour'
+import { buildRegisterProductScheduleJson } from '@/lib/build-register-product-schedule-json'
 import { parseLocalDepartureTagArrayFromAdminBody } from '@/lib/product-listing-kind'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import {
@@ -338,18 +339,20 @@ function buildScheduleJsonThin(
     title: string
     description: string
     imageKeyword: string
+    imageKeyword2?: string | null
     routeText?: string | null
-  }>
+  }>,
 ) {
-  return JSON.stringify(
+  return buildRegisterProductScheduleJson(
     parsedSchedule.map((day) => ({
       day: day.day,
       title: day.title,
       description: day.description,
       imageKeyword: String(day.imageKeyword ?? '').trim(),
+      imageKeyword2: day.imageKeyword2 ?? null,
       routeText: nullIfEmptyTrim(day.routeText),
       imageUrl: null,
-    }))
+    })),
   )
 }
 
@@ -368,31 +371,39 @@ function buildModetourProductScheduleJson(
       .filter(([d]) => Number.isInteger(d) && d >= 1)
   )
   const sortedDrafts = [...drafts].sort((a, b) => a.day - b.day)
-  return JSON.stringify(
-    sortedDrafts.map((d) => {
-      const s = schedByDay.get(d.day)
-      const title = s && typeof s.title === 'string' ? s.title : ''
-      const description =
-        (s && typeof s.description === 'string' ? s.description : '') || (d.summaryTextRaw ?? '').trim()
-      const rawKw = s && typeof s.imageKeyword === 'string' ? s.imageKeyword : ''
-      const imageKeyword = String(rawKw ?? '').trim()
-      const routeText = s ? nullIfEmptyTrim((s as { routeText?: string | null }).routeText) : null
-      return {
-        day: d.day,
-        title,
-        description,
-        imageKeyword,
-        routeText,
-        imageUrl: null,
-        hotelText: d.hotelText ?? null,
-        breakfastText: d.breakfastText ?? null,
-        lunchText: d.lunchText ?? null,
-        dinnerText: d.dinnerText ?? null,
-        mealSummaryText: d.mealSummaryText ?? null,
-        meals: d.meals ?? null,
-      }
-    })
-  )
+  const draftByDay = new Map(sortedDrafts.map((d) => [d.day, d] as const))
+  const rows = sortedDrafts.map((d) => {
+    const s = schedByDay.get(d.day)
+    const title = s && typeof s.title === 'string' ? s.title : ''
+    const description =
+      (s && typeof s.description === 'string' ? s.description : '') || (d.summaryTextRaw ?? '').trim()
+    const rawKw = s && typeof s.imageKeyword === 'string' ? s.imageKeyword : ''
+    const rawKw2 = s && typeof (s as { imageKeyword2?: string | null }).imageKeyword2 === 'string'
+      ? (s as { imageKeyword2: string }).imageKeyword2
+      : null
+    const routeText = s ? nullIfEmptyTrim((s as { routeText?: string | null }).routeText) : null
+    return {
+      day: d.day,
+      title,
+      description,
+      imageKeyword: String(rawKw ?? '').trim(),
+      imageKeyword2: rawKw2,
+      routeText,
+      imageUrl: null as string | null,
+    }
+  })
+  return buildRegisterProductScheduleJson(rows, (row) => {
+    const d = draftByDay.get(row.day)
+    if (!d) return {}
+    return {
+      hotelText: d.hotelText ?? null,
+      breakfastText: d.breakfastText ?? null,
+      lunchText: d.lunchText ?? null,
+      dinnerText: d.dinnerText ?? null,
+      mealSummaryText: d.mealSummaryText ?? null,
+      meals: d.meals ?? null,
+    }
+  })
 }
 
 function mergeRawMetaWithStructuredSignals(

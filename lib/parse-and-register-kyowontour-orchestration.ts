@@ -122,6 +122,7 @@ import {
   resolveOrCreateRegisterAdminInputSnapshot,
 } from '@/lib/register-admin-input-persist-kyowontour'
 import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confirm-reuse-kyowontour'
+import { buildRegisterProductScheduleJson } from '@/lib/build-register-product-schedule-json'
 import { buildRegisterVerificationBundle } from '@/lib/admin-register-verification-meta-kyowontour'
 import type { RegisterPreviewProductDraft } from '@/lib/register-preview-payload-kyowontour'
 import type {
@@ -391,16 +392,17 @@ function assertJsonSerializable(ctx: ParseRegisterLogCtx, label: string, payload
   }
 }
 
-function buildScheduleJson(parsedSchedule: Array<{ day: number; title: string; description: string; imageKeyword: string }>) {
-  return JSON.stringify(
-    parsedSchedule.map((day) => ({
-      day: day.day,
-      title: day.title,
-      description: day.description,
-      imageKeyword: day.imageKeyword,
-      imageUrl: null,
-    }))
-  )
+function buildScheduleJson(
+  parsedSchedule: Array<{
+    day: number
+    title: string
+    description: string
+    imageKeyword: string
+    imageKeyword2?: string | null
+    routeText?: string | null
+  }>,
+) {
+  return buildRegisterProductScheduleJson(parsedSchedule)
 }
 
 function mergeRawMetaWithStructuredSignals(
