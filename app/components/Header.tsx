@@ -15,8 +15,8 @@ const INQUIRY_HREF = '/inquiry?type=travel'
  * 메모리 #28 — 메인 IA 5메뉴.
  * 해외 권역 메가메뉴는 `/travel/overseas` 페이지 `OverseasRegionMegaNav` 전용.
  */
-export const MAIN_NAV: { label: string; href: string }[] = [
-  { label: '해외여행상품', href: '/travel/overseas' },
+export const MAIN_NAV: { label: string; mobileLabel?: string; href: string }[] = [
+  { label: '해외여행상품', mobileLabel: '해외여행', href: '/travel/overseas' },
   { label: '자유여행', href: '/travel/air-hotel' },
   { label: 'eSIM', href: '/travel/esim' },
   { label: '우리끼리', href: '/travel/overseas/private-trip' },
@@ -84,7 +84,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-bt-border-soft bg-white shadow-sm">
-      <div className={SITE_CONTENT_CLASS}>
+      <div className={`${SITE_CONTENT_CLASS} pb-0`}>
         <div className="flex min-h-[4.5rem] items-center justify-between gap-3 py-3 sm:min-h-[5rem] sm:py-4">
           <div className="flex min-w-0 shrink-0 flex-col items-start">
             <span className="mb-0.5 pl-1 text-xs leading-none text-bt-text-muted-lavender">simply your</span>
@@ -214,33 +214,36 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
             </div>
           </div>
         </div>
+      </div>
 
-        {!hideMobileNav ? (
+      {!hideMobileNav ? (
+        <div className="w-full border-t border-bt-border-soft/70 lg:hidden">
           <nav
-            className="-mx-4 grid w-full grid-cols-5 gap-1 border-t border-bt-border-soft/70 px-2 py-3 sm:-mx-6 sm:gap-2 sm:px-4 lg:hidden"
+            className={`${SITE_CONTENT_CLASS} grid w-full grid-cols-5 py-2.5 sm:py-3`}
             aria-label="주요 메뉴"
           >
             {MAIN_NAV.map((item) => {
               const active = isMainNavActive(pathname, item.href)
+              const mobileText = item.mobileLabel ?? item.label
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   title={item.label}
                   aria-current={active ? 'page' : undefined}
-                  className={`min-w-0 truncate rounded-lg px-1 py-2 text-center text-[15px] leading-snug ${
+                  className={`flex w-full items-center justify-center whitespace-nowrap px-0.5 py-2 text-center text-[12px] leading-tight min-[380px]:text-[13px] sm:text-[14px] ${
                     active
                       ? 'font-bold text-bt-text-navy'
                       : 'font-medium text-bt-text-navy'
                   }`}
                 >
-                  {item.label}
+                  {mobileText}
                 </Link>
               )
             })}
           </nav>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </header>
   )
 }
