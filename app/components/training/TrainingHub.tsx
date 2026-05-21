@@ -24,12 +24,9 @@ const SERVICE_CARDS: Array<{ title: ServiceType; summary: string; fitCases: stri
     summary: '일부 조건이 있어도 연수 흐름과 운영 방향을 목적 중심으로 다시 설계합니다.',
     fitCases: ['기관이나 일정의 일부는 이미 정해져 있습니다.', '전체 연수 흐름과 진행 방향만 다시 잡고 싶습니다.', '목적에 맞는 연수 구성을 재정리할 필요가 있습니다.'],
   },
-  {
-    title: '순차통역만',
-    summary: '기관방문·회의·연구시찰·취재 동행 등 현장 순차통역 중심으로 지원합니다.',
-    fitCases: ['일정과 기관은 이미 확정되어 있습니다.', '현장 통역만 별도로 필요합니다.', '회의·방문·취재 상황에서 정확한 전달이 중요합니다.'],
-  },
 ]
+
+const FLOW_STEP_SHORT_LABELS = ['문의 접수', '목적·기관 조사', '방문 구성 제안', '통역·현장 계획', '사전·사후 지원'] as const
 
 const FLOW_TITLES = ['문의 접수', '목적 확인 및 유관기관 조사', '연수 방향 및 기관방문 구성 제안', '통역 및 현장 운영 계획 안내', '사전 준비 및 방문 후 커뮤니케이션 지원'] as const
 const FLOW_SUMMARIES = [
@@ -74,14 +71,13 @@ const SERVICE_MODAL_HINT: Record<ServiceType, { hint: string }> = {
   '연수기획·진행만': {
     hint: '연수 목적에 맞는 전체 흐름과 진행 방향을 다시 설계할 수 있도록 상담해드립니다.',
   },
-  '순차통역만': {
-    hint: '기관방문, 회의, 연구시찰, 특별취재 동행 등 현장에서 필요한 순차통역 중심으로 상담해드립니다.',
-  },
 }
 
 export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubProps) {
   const [presetService, setPresetService] = useState<ServiceType | null>(null)
   const [inquiryOpen, setInquiryOpen] = useState(false)
+  const [activeFlowStep, setActiveFlowStep] = useState(0)
+  const [flowTimelineOpen, setFlowTimelineOpen] = useState(false)
 
   const inquiryQuery = useMemo(() => {
     const params = new URLSearchParams()
@@ -172,8 +168,8 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
 
         <section id="training-service-scope" className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
           <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[38px]">필요한 범위에 맞춰 문의하실 수 있습니다.</h2>
-          <p className="mt-3 text-[18px] leading-relaxed text-slate-700">전체 연수를 처음부터 함께 준비하는 경우뿐 아니라, 연수기관 섭외만, 연수기획·진행만, 순차통역만처럼 필요한 범위에 맞춰 문의하실 수 있습니다. 현재 준비 상태와 목적에 맞는 유형을 선택해 주세요.</p>
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <p className="mt-3 text-[18px] leading-relaxed text-slate-700">전체 연수를 처음부터 함께 준비하는 경우뿐 아니라, 연수기관 섭외만·연수기획·진행만처럼 필요한 범위에 맞춰 문의하실 수 있습니다. 현재 준비 상태와 목적에 맞는 유형을 선택해 주세요.</p>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {SERVICE_CARDS.map((card) => (
               <article key={card.title} className="rounded-xl border border-bt-border bg-white p-5 shadow-sm">
                 <p className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
@@ -181,9 +177,7 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
                     ? '기관 연결 중심'
                     : card.title === '연수기획·진행 및 연수기관 섭외'
                       ? '전체 운영형'
-                      : card.title === '연수기획·진행만'
-                        ? '기획·진행 중심'
-                        : '현장 통역형'}
+                      : '기획·진행 중심'}
                 </p>
                 <h3 className="mt-3 text-[26px] font-semibold leading-[1.34] tracking-[-0.005em] text-slate-900">{card.title}</h3>
                 <p className="mt-3 text-[17px] leading-[1.6] text-slate-700">{card.summary}</p>
@@ -206,58 +200,131 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
         <section className="border-y border-bt-border bg-bt-surface px-4 py-10 sm:px-6">
           <div className="mx-auto max-w-6xl">
             <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[38px]">문의 후 이런 흐름으로 진행됩니다.</h2>
-            <p className="mt-3 text-[18px] leading-relaxed text-slate-700">국외연수는 단순 문의 접수로 끝나지 않습니다. 목적을 확인하고, 필요한 기관을 조사하고, 현장 운영과 이후 커뮤니케이션까지 이어질 수 있도록 단계별로 함께 준비합니다.</p>
-            <div className="mt-6 grid gap-4 md:grid-cols-5 md:gap-5">
-              {FLOW_SUMMARIES.map((summary, idx) => (
-                <article
-                  key={FLOW_TITLES[idx]}
-                  className={`relative flex min-h-[320px] flex-col rounded-2xl border bg-white p-4 pt-6 md:min-h-[360px] ${
-                    idx === 1 || idx === 3 || idx === 4
-                      ? 'border-blue-300 bg-blue-50/55 shadow-[0_8px_24px_rgba(37,99,235,0.08)]'
-                      : 'border-bt-border'
-                  }`}
+            <p className="mt-3 text-[18px] leading-relaxed text-slate-700">
+              국외연수는 단순 문의 접수로 끝나지 않습니다. 아래 단계를 눌러 순서와 내용을 확인하세요.
+            </p>
+
+            <div className="mt-6" role="region" aria-label="문의 후 진행 순서">
+              <ol className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:grid md:grid-cols-5 md:gap-3 md:overflow-visible [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="진행 단계">
+                {FLOW_STEP_SHORT_LABELS.map((label, idx) => {
+                  const selected = activeFlowStep === idx
+                  const emphasized = idx === 1 || idx === 3 || idx === 4
+                  return (
+                    <li key={label} className="min-w-[108px] shrink-0 md:min-w-0">
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={selected}
+                        aria-controls="training-flow-panel"
+                        id={`training-flow-tab-${idx}`}
+                        onClick={() => setActiveFlowStep(idx)}
+                        className={`flex w-full flex-col items-start rounded-xl border px-3 py-3 text-left transition ${
+                          selected
+                            ? emphasized
+                              ? 'border-blue-500 bg-blue-50 shadow-sm ring-2 ring-blue-200'
+                              : 'border-slate-900 bg-slate-900 text-white shadow-sm'
+                            : emphasized
+                              ? 'border-blue-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
+                              : 'border-bt-border bg-white hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span
+                          className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-bold ${
+                            selected
+                              ? emphasized
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white text-slate-900'
+                              : emphasized
+                                ? 'bg-blue-100 text-blue-900'
+                                : 'bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {idx + 1}
+                        </span>
+                        <span
+                          className={`mt-2 text-[13px] font-semibold leading-snug ${
+                            selected && !emphasized ? 'text-white' : emphasized ? 'text-blue-950' : 'text-slate-900'
+                          }`}
+                        >
+                          {label}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ol>
+
+              <article
+                id="training-flow-panel"
+                role="tabpanel"
+                aria-labelledby={`training-flow-tab-${activeFlowStep}`}
+                className={`mt-4 rounded-2xl border bg-white p-5 sm:p-6 ${
+                  activeFlowStep === 1 || activeFlowStep === 3 || activeFlowStep === 4
+                    ? 'border-blue-300 bg-blue-50/40'
+                    : 'border-bt-border'
+                }`}
+              >
+                <p className="text-xs font-semibold tracking-wide text-slate-500">
+                  {activeFlowStep + 1}단계 / 총 {FLOW_TITLES.length}단계
+                </p>
+                <h3 className="mt-2 text-[22px] font-semibold leading-[1.35] text-slate-900 sm:text-2xl">
+                  {FLOW_TITLES[activeFlowStep]}
+                </h3>
+                <p className="mt-3 text-[16px] leading-[1.65] text-slate-700">{FLOW_SUMMARIES[activeFlowStep]}</p>
+                <p className="mt-3 text-[15px] leading-relaxed text-slate-600">{FLOW_DETAILS[activeFlowStep]}</p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={activeFlowStep === 0}
+                    onClick={() => setActiveFlowStep((s) => Math.max(0, s - 1))}
+                    className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 enabled:hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    이전 단계
+                  </button>
+                  <button
+                    type="button"
+                    disabled={activeFlowStep >= FLOW_TITLES.length - 1}
+                    onClick={() => setActiveFlowStep((s) => Math.min(FLOW_TITLES.length - 1, s + 1))}
+                    className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 enabled:hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    다음 단계
+                  </button>
+                </div>
+              </article>
+
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setFlowTimelineOpen((open) => !open)}
+                  aria-expanded={flowTimelineOpen}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-bt-link hover:text-bt-link-hover"
                 >
-                  <span
-                    className={`absolute inset-x-0 top-0 h-1 rounded-t-2xl ${
-                      idx === 1 || idx === 3 || idx === 4 ? 'bg-blue-500' : 'bg-slate-200'
-                    }`}
-                    aria-hidden
-                  />
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-bold ${
-                        idx === 1 || idx === 3 || idx === 4
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-200 text-slate-700'
-                      }`}
-                    >
-                      {idx + 1}
-                    </span>
-                    <p
-                      className={`text-xs font-semibold tracking-wide ${
-                        idx === 1 || idx === 3 || idx === 4 ? 'text-blue-900' : 'text-slate-600'
-                      }`}
-                    >
-                      STEP
-                    </p>
-                  </div>
-                  <h3 className="mt-2 min-h-[56px] text-[19px] font-semibold leading-[1.36] tracking-[-0.003em] text-slate-900">
-                    {FLOW_TITLES[idx]}
-                  </h3>
-                  <p className="mt-2 text-[15px] leading-[1.6] text-slate-700">{summary}</p>
-                  <details className="mt-2">
-                    <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700">자세히 보기</summary>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-600">{FLOW_DETAILS[idx]}</p>
-                  </details>
-                  {idx < FLOW_SUMMARIES.length - 1 ? (
-                    <span className="absolute -right-5 top-8 hidden items-center md:flex" aria-hidden>
-                      <span className="h-2 w-2 rounded-full bg-blue-400" />
-                      <span className="mx-1 h-0.5 w-5 bg-blue-300" />
-                      <span className="text-sm text-blue-500">➜</span>
-                    </span>
-                  ) : null}
-                </article>
-              ))}
+                  <span aria-hidden>{flowTimelineOpen ? '▾' : '▸'}</span>
+                  전체 순서 한눈에 보기
+                </button>
+                {flowTimelineOpen ? (
+                  <ol className="mt-3 space-y-3 border-l-2 border-blue-200 pl-4">
+                    {FLOW_TITLES.map((title, idx) => (
+                      <li key={title}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveFlowStep(idx)
+                            setFlowTimelineOpen(false)
+                          }}
+                          className="text-left text-[15px] font-semibold text-slate-900 hover:text-blue-800"
+                        >
+                          <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                            {idx + 1}
+                          </span>
+                          {title}
+                        </button>
+                        <p className="mt-1 pl-7 text-sm text-slate-600">{FLOW_SUMMARIES[idx]}</p>
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+              </div>
             </div>
           </div>
         </section>

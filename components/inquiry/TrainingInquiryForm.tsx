@@ -10,7 +10,6 @@ export const TRAINING_SERVICE_OPTIONS = [
   '연수기관 섭외만',
   '연수기획·진행 및 연수기관 섭외',
   '연수기획·진행만',
-  '순차통역만',
 ] as const
 const TRAINING_PRIVACY_NOTICE_VERSION = 'training-inquiry-v1'
 

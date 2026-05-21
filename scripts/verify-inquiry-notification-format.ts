@@ -317,7 +317,7 @@ function sampleTrainingQuickMessageOnly(): InquiryNotifyInput {
     message: '기관명: OO대학교\n희망 국가: 독일\n인원: 15명\n순차통역 견적 부탁드립니다.',
     sourcePagePath: '/inquiry?type=training',
     createdAtIso: '2026-05-20T05:35:33.295Z',
-    payloadJson: JSON.stringify({ inquiryDetailMode: 'quick', serviceScope: '순차통역만' }),
+    payloadJson: JSON.stringify({ inquiryDetailMode: 'quick', serviceScope: '연수기관 섭외만' }),
     productId: null,
     snapshotProductTitle: null,
     snapshotCardLabel: null,
@@ -329,7 +329,7 @@ runCase('training 간편(본문만)', sampleTrainingQuickMessageOnly(), ({ prefi
   assert(prefix === INQUIRY_MAIL_PREFIX.TRAINING, 'training quick prefix')
   assert(appendix.length === 0, 'training quick appendix 없음')
   const block = buildInquiryEmailSummaryBlock(sampleTrainingQuickMessageOnly(), prefix)
-  assert(block.includes('순차통역만'), '서비스 요약')
+  assert(block.includes('연수기관 섭외만'), '서비스 요약')
   assert(block.includes('독일') || block.includes('문의 요약'), '목적지 또는 본문 요약')
 })
 
