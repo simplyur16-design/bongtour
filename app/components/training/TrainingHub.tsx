@@ -1,14 +1,6 @@
 'use client'
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-  type TouchEvent,
-} from 'react'
+import { useMemo, useRef, useState, type ReactNode, type TouchEvent } from 'react'
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
 import Header from '@/app/components/Header'
@@ -94,8 +86,6 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
   const [inquiryOpen, setInquiryOpen] = useState(false)
   const [activeFlowStep, setActiveFlowStep] = useState(0)
   const [flowTimelineOpen, setFlowTimelineOpen] = useState(false)
-  const flowCarouselRef = useRef<HTMLOListElement>(null)
-  const flowScrollRafRef = useRef<number | null>(null)
   const flowTouchStartXRef = useRef(0)
 
   const inquiryQuery = useMemo(() => {
@@ -109,40 +99,6 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
     setPresetService(service)
     setInquiryOpen(true)
   }
-
-  const scrollFlowStepIntoView = useCallback((idx: number, behavior: ScrollBehavior = 'smooth') => {
-    const root = flowCarouselRef.current
-    const el = root?.children[idx] as HTMLElement | undefined
-    el?.scrollIntoView({ behavior, inline: 'center', block: 'nearest' })
-  }, [])
-
-  const onFlowCarouselScroll = useCallback(() => {
-    const root = flowCarouselRef.current
-    if (!root) return
-    if (flowScrollRafRef.current != null) cancelAnimationFrame(flowScrollRafRef.current)
-    flowScrollRafRef.current = requestAnimationFrame(() => {
-      const center = root.scrollLeft + root.clientWidth / 2
-      let bestIdx = 0
-      let bestDist = Infinity
-      Array.from(root.children).forEach((child, idx) => {
-        const el = child as HTMLElement
-        const mid = el.offsetLeft + el.offsetWidth / 2
-        const dist = Math.abs(mid - center)
-        if (dist < bestDist) {
-          bestDist = dist
-          bestIdx = idx
-        }
-      })
-      setActiveFlowStep((prev) => (prev === bestIdx ? prev : bestIdx))
-    })
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const mq = window.matchMedia('(min-width: 768px)')
-    if (mq.matches) return
-    scrollFlowStepIntoView(activeFlowStep, 'smooth')
-  }, [activeFlowStep, scrollFlowStepIntoView])
 
   const onFlowPanelTouchStart = (e: TouchEvent<HTMLElement>) => {
     flowTouchStartXRef.current = e.touches[0]?.clientX ?? 0
@@ -267,69 +223,12 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
             <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[38px]">문의 후 이런 흐름으로 진행됩니다.</h2>
             <p className="mt-3 text-[18px] leading-relaxed text-slate-700">
               국외연수는 단순 문의 접수로 끝나지 않습니다.{' '}
-              <span className="md:hidden">단계 카드를 좌우로 밀어 순서와 내용을 확인하세요.</span>
+              <span className="md:hidden">아래 내용을 좌우로 밀거나 버튼으로 단계를 넘겨 보세요.</span>
               <span className="hidden md:inline">아래 단계를 눌러 순서와 내용을 확인하세요.</span>
             </p>
 
             <div className="mt-6" role="region" aria-label="문의 후 진행 순서">
-              {/* 모바일·태블릿: 5탭 그리드 대신 스와이프 캐러셀 (폰 1장 / sm~md 3장 노출) */}
-              <div className="md:hidden">
-                <p className="mb-2 text-center text-sm text-slate-600">좌우로 밀어 1~5단계를 넘겨 보세요</p>
-                <ol
-                  ref={flowCarouselRef}
-                  onScroll={onFlowCarouselScroll}
-                  className="bt-training-flow-tabs -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-4 pb-2 touch-pan-x [scrollbar-width:thin]"
-                  role="tablist"
-                  aria-label="진행 단계"
-                >
-                  {FLOW_STEP_SHORT_LABELS.map((label, idx) => {
-                    const selected = activeFlowStep === idx
-                    return (
-                      <li
-                        key={label}
-                        className="w-[88%] shrink-0 snap-center sm:w-[calc((100%-1.5rem)/3)]"
-                      >
-                        <button
-                          type="button"
-                          role="tab"
-                          aria-selected={selected}
-                          aria-controls="training-flow-panel"
-                          id={`training-flow-tab-${idx}`}
-                          onClick={() => setActiveFlowStep(idx)}
-                          className={flowStepTabButtonClass(selected)}
-                        >
-                          <span
-                            className={`bt-training-flow-tab-badge inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold ${
-                              selected ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-800'
-                            }`}
-                          >
-                            {idx + 1}
-                          </span>
-                          <span
-                            className={`bt-training-flow-tab-label mt-2.5 text-[15px] leading-snug sm:text-base ${
-                              selected ? 'font-bold text-slate-950' : 'font-semibold text-slate-800'
-                            }`}
-                          >
-                            {label}
-                          </span>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ol>
-                <div className="mt-3 flex justify-center gap-2" aria-hidden>
-                  {FLOW_STEP_SHORT_LABELS.map((_, idx) => (
-                    <span
-                      key={idx}
-                      className={`h-2 rounded-full transition-all ${
-                        activeFlowStep === idx ? 'w-6 bg-slate-900' : 'w-2 bg-slate-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* 데스크톱: 5탭 한 줄 */}
+              {/* 데스크톱만 5단계 탭 — 모바일은 상세 패널 스와이프·이전/다음 */}
               <ol
                 className="bt-training-flow-tabs hidden gap-3 md:grid md:grid-cols-5"
                 role="tablist"
@@ -372,7 +271,7 @@ export default function TrainingHub({ heroImageUrl, programsSlot }: TrainingHubP
                 id="training-flow-panel"
                 role="tabpanel"
                 aria-label={`${activeFlowStep + 1}단계: ${FLOW_TITLES[activeFlowStep]}`}
-                className="mt-4 rounded-2xl border-2 border-slate-900 bg-white p-5 text-center shadow-sm ring-2 ring-slate-900/10 sm:p-6 max-md:touch-pan-y"
+                className="rounded-2xl border-2 border-slate-900 bg-white p-5 text-center shadow-sm ring-2 ring-slate-900/10 sm:p-6 md:mt-4 max-md:touch-pan-y"
                 onTouchStart={onFlowPanelTouchStart}
                 onTouchEnd={onFlowPanelTouchEnd}
               >

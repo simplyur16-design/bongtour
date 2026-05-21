@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { listPublishedTrainingPrograms } from '@/lib/overseas-training-program-query'
-import TrainingProgramCard from '@/components/training/TrainingProgramCard'
+import TrainingProgramsPreviewCarousel from '@/components/training/TrainingProgramsPreviewCarousel'
 
 export default async function TrainingProgramsPreview() {
   const programs = await listPublishedTrainingPrograms({ limit: 8 })
@@ -34,10 +34,8 @@ export default async function TrainingProgramsPreview() {
             </p>
           </div>
         ) : (
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {programs.map((p) => (
-              <TrainingProgramCard key={p.id} program={p} />
-            ))}
+          <div className="mt-8">
+            <TrainingProgramsPreviewCarousel programs={programs} />
           </div>
         )}
       </div>
