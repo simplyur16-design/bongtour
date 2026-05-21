@@ -236,9 +236,6 @@ function ybtourBlankSignalsWhenDedicatedPasteEmpty(
   signals: ReturnType<typeof extractStructuredTourSignals>,
   pb: Partial<RegisterPastedBlocksInput> | undefined
 ): ReturnType<typeof extractStructuredTourSignals> {
-  const preservedShoppingCount = signals.shoppingVisitCount
-  const preservedShoppingSummary = signals.shoppingSummaryText
-  const preservedHasShopping = signals.hasShopping
   const o = { ...(signals as unknown as Record<string, unknown>) }
   if (!String(pb?.optionalTour ?? '').trim()) {
     o.optionalToursStructuredJson = null
@@ -257,16 +254,12 @@ function ybtourBlankSignalsWhenDedicatedPasteEmpty(
     o.shoppingStopsJson = null
     o.shoppingNoticeRaw = null
     o.shoppingStops = []
+    o.hasShopping = false
+    o.shoppingVisitCount = null
     o.shoppingSourceCount = 0
-    if (preservedShoppingCount != null && preservedShoppingCount > 0) {
-      o.hasShopping = true
-      o.shoppingVisitCount = preservedShoppingCount
-      o.shoppingSummaryText =
-        (preservedShoppingSummary ?? '').trim() || `쇼핑 ${preservedShoppingCount}회`
-    } else {
-      o.hasShopping = preservedHasShopping
-      o.shoppingVisitCount = null
-      o.shoppingSummaryText = ''
+    o.shoppingSummaryText = ''
+    if (o.headerBadges && typeof o.headerBadges === 'object') {
+      o.headerBadges = { ...(o.headerBadges as Record<string, unknown>), shopping: '쇼핑 없음' }
     }
   }
   return o as unknown as ReturnType<typeof extractStructuredTourSignals>

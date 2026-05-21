@@ -52,6 +52,24 @@ export function parseYbtourShoppingPasteTab(raw: string): ShoppingStructured | n
   }
 }
 
+/** 본문·헤더에 노쇼핑·쇼핑 없음이 명시된 상품 */
+export function ybtourHaystackDeclaresNoShopping(hay: string | null | undefined): boolean {
+  const h = String(hay ?? '').replace(/\s+/g, ' ')
+  if (!h) return false
+  if (/노\s*쇼핑|NO\s*쇼핑|무료\s*쇼핑\s*없음/i.test(h)) return true
+  if (/쇼핑\s*없음|쇼핑\s*무|쇼핑\s*미포함|노쇼핑\s*일정|쇼핑센터\s*[:：]\s*노쇼핑/i.test(h)) return true
+  if (/노팁\s*노옵션\s*노쇼핑|노옵션\s*노쇼핑|NO\s*쇼핑\s*\/\s*NO\s*옵션/i.test(h)) return true
+  return false
+}
+
+export function ybtourHaystackDeclaresNoOptional(hay: string | null | undefined): boolean {
+  const h = String(hay ?? '').replace(/\s+/g, ' ')
+  if (!h) return false
+  if (/노\s*옵션|NO\s*옵션|선택관광\s*없음|옵션\s*없음|노옵션\s*노쇼핑/i.test(h)) return true
+  if (/노팁\s*노옵션\s*노쇼핑/i.test(h)) return true
+  return false
+}
+
 const OPTION_AXIS =
   /(선택관광\s*안내|현지\s*옵션|옵션\s*투어|미참여\s*시|미참가\s*시|동행\s*여부|동행여부|가이드\s*동행|인솔자\s*동행|1인\s*당\s*\$|USD\s*\d)/i
 
@@ -130,10 +148,22 @@ export function extractYbtourMetaShoppingVisitCountFromBody(normalizedRaw: strin
 }
 
 export function finalizeYbtourRegisterParsedShopping(parsed: RegisterParsed): RegisterParsed {
+  const paste = parsed.detailBodyStructured?.raw?.shoppingPasteRaw?.trim()
+  const hay = parsed.detailBodyStructured?.normalizedRaw ?? ''
+  if (!paste && ybtourHaystackDeclaresNoShopping(hay)) {
+    return {
+      ...parsed,
+      shoppingStops: undefined,
+      shoppingVisitCount: null,
+      hasShopping: false,
+      shoppingSummaryText: undefined,
+      shoppingNoticeRaw: undefined,
+    }
+  }
   const st = parsed.detailBodyStructured?.shoppingStructured
   const bodyMetaCount = extractYbtourMetaShoppingVisitCountFromBody(parsed.detailBodyStructured?.normalizedRaw)
   if (!st) {
-    if (bodyMetaCount != null && bodyMetaCount > 0) {
+    if (bodyMetaCount != null && bodyMetaCount > 0 && !ybtourHaystackDeclaresNoShopping(hay)) {
       return {
         ...parsed,
         shoppingVisitCount: bodyMetaCount,

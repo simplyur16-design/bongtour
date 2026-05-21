@@ -8,6 +8,10 @@
 import { MAX_OPTIONAL_TOURS } from '@/lib/optional-tour-limits'
 import { filterOptionalTourRows, isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-ybtour'
 import { isShoppingPublicJunkRow } from '@/lib/shopping-public-row-filter'
+import {
+  ybtourHaystackDeclaresNoOptional,
+  ybtourHaystackDeclaresNoShopping,
+} from '@/lib/register-ybtour-shopping'
 
 type GuideFieldKey = 'guide\u540c\u884cText'
 
@@ -394,14 +398,44 @@ function parseOptionalTourRows(lines: string[], startHint: number): StructuredOp
   return filterOptionalTourRows(out.filter((r) => !/^(\uC120\uD0DD\uAD00\uAD11\uBA85)$/.test(r.name)))
 }
 
+/** 「옵션/쇼핑/관광」 탭의 회차·항목명 표 — 쇼핑 회차 표가 아님 */
+function isYbtourMetaAxisTableHeaderLine(line: string): boolean {
+  const h = line.replace(/\s+/g, ' ')
+  return (
+    /회차/.test(h) &&
+    /항목명/.test(h) &&
+    /(비용|시간)/.test(h) &&
+    !/쇼핑\s*(품목|항목|장소)/.test(h)
+  )
+}
+
+function parseYbtourShoppingVisitCountFromLines(lines: string[]): number | null {
+  for (const l of lines) {
+    if (ybtourHaystackDeclaresNoShopping(l)) continue
+    if (!/쇼핑/i.test(l)) continue
+    if (!/\d+\s*회/.test(l)) continue
+    if (/^총\s*\d+\s*회$/i.test(l.trim()) && !/쇼핑\s*\d+\s*회/i.test(l)) continue
+    const n = parseIntLoose(l)
+    if (n != null && n > 0 && n < 100) return n
+  }
+  return null
+}
+
 function parseShopping(lines: string[]): {
   shoppingNoticeRaw: string | null
   shoppingStops: StructuredShoppingStopRow[]
   shoppingVisitCount: number | null
 } {
-  const shoppingVisitCount = parseIntLoose(
-    lines.find((l) => /\uC1FC\uD551\s*\d+\s*\uD68C|\uCD1D\s*\d+\s*\uD68C/i.test(l)) ?? undefined
-  )
+  const hay = lines.join('\n')
+  if (ybtourHaystackDeclaresNoShopping(hay)) {
+    return { shoppingNoticeRaw: null, shoppingStops: [], shoppingVisitCount: null }
+  }
+  for (const ln of lines) {
+    if (isYbtourMetaAxisTableHeaderLine(ln)) {
+      return { shoppingNoticeRaw: null, shoppingStops: [], shoppingVisitCount: null }
+    }
+  }
+  const shoppingVisitCount = parseYbtourShoppingVisitCountFromLines(lines)
   const noticeIdx = lines.findIndex((l) =>
     /\uC1FC\uD551\s*\uC815\uBCF4\s*\uC548\uB0B4|\uC1FC\uD551\s*\uC548\uB0B4|\uC1FC\uD551\s*\uC815\uBCF4/i.test(l)
   )
@@ -549,7 +583,10 @@ export function parseOptionalTourTableRowsFromRawText(raw: string): StructuredOp
 export function extractStructuredTourSignals(rawText: string): StructuredTourSignals {
   const lines = toLines(rawText)
   const notice = parseOptionalTourNotice(lines)
-  const optionalToursAll = parseOptionalTourRows(lines, notice.endIdx)
+  let optionalToursAll = parseOptionalTourRows(lines, notice.endIdx)
+  if (ybtourHaystackDeclaresNoOptional(rawText)) {
+    optionalToursAll = []
+  }
   const optionalTours = optionalToursAll.slice(0, MAX_OPTIONAL_TOURS)
   const shopping = parseShopping(lines)
   const freeTime = parseFreeTime(lines)

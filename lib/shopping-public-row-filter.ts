@@ -39,6 +39,9 @@ export function isShoppingPublicJunkRow(row: ShoppingStopRow): boolean {
   if (/소요\s*시간.*환불|환불\s*여부.*소요/i.test(fused) && fused.length > 25) return true
   if (/쇼핑장소\s+소요시간|소요시간\s+현지|쇼핑항목\s+쇼핑장소|현지\s*\/\s*귀국\s*후\s*환불/i.test(fused)) return true
   if (/^총\s*\d+\s*회/.test(item) || /^총\s*\d+\s*회/.test(place)) return true
+  if (/노\s*쇼핑|NO\s*쇼핑|쇼핑\s*없음|노쇼핑\s*일정|노팁\s*노옵션/i.test(fused)) return true
+  if (/^옵션\s*[/／|｜]\s*쇼핑/i.test(item) || /^옵션\s*[/／|｜]\s*쇼핑/i.test(place)) return true
+  if (/#TOP\s*PICK|#\d+명부터|노팁노옵션/i.test(fused)) return true
   const ni = norm(item)
   const np = norm(place)
   if (HEADER_TOKENS.has(ni) && (HEADER_TOKENS.has(np) || fused.length > 35)) return true
