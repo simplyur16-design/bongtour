@@ -1,3 +1,5 @@
+'use client'
+
 import SafeImage from '@/app/components/SafeImage'
 
 type Props = {
@@ -12,18 +14,25 @@ type Props = {
 // 접근성과 SEO를 위해 alt 속성에만 한글 실명 부여.
 // 절대 이미지를 텍스트로 대체하지 말 것.
 
+/** SSR/CSR 동일 문자열 — 템플릿 결합·구버전 opacity-90 혼입 방지 */
+const IMG_CLASS = {
+  'compact:on-dark':
+    'h-3.5 w-auto max-w-[5.25rem] object-contain object-left sm:h-4 sm:max-w-[6rem] [filter:brightness(0)_invert(1)]',
+  'compact:on-light':
+    'h-3.5 w-auto max-w-[5.25rem] object-contain object-left opacity-95 sm:h-4 sm:max-w-[6rem] [filter:none]',
+  'default:on-dark':
+    'h-5 w-auto max-w-[7rem] object-contain object-left sm:h-6 sm:max-w-[7.5rem] [filter:brightness(0)_invert(1)]',
+  'default:on-light':
+    'h-5 w-auto max-w-[7rem] object-contain object-left opacity-95 sm:h-6 sm:max-w-[7.5rem] [filter:none]',
+} as const
+
 export default function RepresentativeNameImage({
   className = '',
   compact = false,
   tone = 'on-dark',
 }: Props) {
-  const toneClass =
-    tone === 'on-dark'
-      ? '[filter:brightness(0)_invert(1)]'
-      : 'opacity-95 [filter:none]'
-  const imgClass = compact
-    ? `h-3.5 w-auto max-w-[5.25rem] object-contain object-left sm:h-4 sm:max-w-[6rem] ${toneClass}`
-    : `h-5 w-auto max-w-[7rem] object-contain object-left sm:h-6 sm:max-w-[7.5rem] ${toneClass}`
+  const key = `${compact ? 'compact' : 'default'}:${tone}` as keyof typeof IMG_CLASS
+  const imgClass = IMG_CLASS[key]
 
   return (
     <span className={`inline-flex items-center align-middle ${className}`}>

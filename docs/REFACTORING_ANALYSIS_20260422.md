@@ -144,7 +144,7 @@
 3. `lib/register-from-llm-verygoodtour.ts`  
 4. `lib/register-from-llm-ybtour.ts`  
 
-**참고:** `DEV/lib/register-from-llm-hanjintour.ts`가 glob 상 추가로 존재하나, 본 리포트의 “4개”는 운영 `lib/` 4종을 의미함.
+**참고:** 본 리포트의 “4개”는 운영 `lib/` 4종(공급사별 register-from-llm)을 의미함.
 
 ### 2.1 각 파일 줄 수
 

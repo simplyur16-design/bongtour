@@ -11,9 +11,9 @@ import './load-env-for-scripts'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma'
 
-const EMAIL = (process.env.ADMIN_BOOTSTRAP_EMAIL ?? 'simplyur@naver.com').trim().toLowerCase()
-const NAME = (process.env.ADMIN_BOOTSTRAP_NAME ?? '황일연').trim()
-const PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD ?? 'Simplyur!2026'
+const EMAIL = (process.env.ADMIN_BOOTSTRAP_EMAIL ?? '').trim().toLowerCase()
+const NAME = (process.env.ADMIN_BOOTSTRAP_NAME ?? '').trim()
+const PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD ?? ''
 const PRIVACY_VERSION = 'member-privacy-v1'
 
 function logDatabaseTarget(): void {
@@ -31,10 +31,12 @@ function logDatabaseTarget(): void {
 
 async function main() {
   logDatabaseTarget()
-  console.log('[bootstrap-admin] target email:', EMAIL, '(set ADMIN_BOOTSTRAP_EMAIL to override)')
   if (!EMAIL || !PASSWORD) {
-    throw new Error('[bootstrap-admin] email and password are required')
+    throw new Error(
+      '[bootstrap-admin] Set ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD in .env.local (scripts/load-env-for-scripts.ts loads it).',
+    )
   }
+  console.log('[bootstrap-admin] target email:', EMAIL)
 
   const passwordHash = await bcrypt.hash(PASSWORD, 12)
 
@@ -44,7 +46,7 @@ async function main() {
   })
 
   const common = {
-    name: NAME,
+    name: NAME || EMAIL.split('@')[0] || 'Admin',
     passwordHash,
     role: 'ADMIN',
     signupMethod: 'email',
