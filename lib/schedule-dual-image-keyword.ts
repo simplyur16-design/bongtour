@@ -11,8 +11,10 @@ import {
 import { firstPoiSearchTermExcluding, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import {
   buildScheduleImageKeywordPlan,
+  isOffRegionLandmarkForPlan,
   collectScheduleLandmarksFromDayContext,
   extractScheduleSecondaryLandmarkFromDayContext,
+  orderedLandmarksFromInferredRouteText,
   orderedLandmarksFromRouteText,
   isMentionedScheduleTourismKeyword,
   polishRegisterScheduleImageKeywordFromLlm,
@@ -20,6 +22,7 @@ import {
   resolveTripIconicLandmarkSecondary,
   type ScheduleImageKeywordDayInput,
   type ScheduleImageKeywordPlan,
+  type ScheduleImageKeywordPlanOptions,
 } from '@/lib/register-schedule-image-keyword-ssot'
 
 export type DualScheduleImageKeywords = {
@@ -33,6 +36,18 @@ function hay(ctx: ScheduleImageKeywordDayInput): string {
 
 function normKey(s: string): string {
   return s.replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+function isUsableScheduleSecondaryKeyword(
+  fin: string,
+  primaryFin: string,
+  ctx: ScheduleImageKeywordDayInput,
+  plan: ScheduleImageKeywordPlan,
+): boolean {
+  if (!fin || normKey(fin) === normKey(primaryFin)) return false
+  if (isBareCityOrCountryKeyword(fin) || isHotelLodgingImageKeyword(fin)) return false
+  if (isOffRegionLandmarkForPlan(fin, plan)) return false
+  return isMentionedScheduleTourismKeyword(fin, ctx, plan)
 }
 
 function resolveHubCityKeyword(ctx: ScheduleImageKeywordDayInput, plan: ScheduleImageKeywordPlan): string {
@@ -60,31 +75,26 @@ export function resolveScheduleSecondaryImageKeyword(
     return hubSecond || ''
   }
 
-  const routeSecond = orderedLandmarksFromRouteText(ctx, primaryFin)[0]
-  if (routeSecond) return routeSecond
+  const routeSecond =
+    orderedLandmarksFromRouteText(ctx, primaryFin)[0] ??
+    orderedLandmarksFromInferredRouteText(ctx, primaryFin)[0]
+  if (routeSecond && isUsableScheduleSecondaryKeyword(routeSecond, primaryFin, ctx, plan)) return routeSecond
 
   const orderedLandmarks = collectScheduleLandmarksFromDayContext(ctx, primaryFin)
-  if (orderedLandmarks[0]) {
+  if (orderedLandmarks[0] && isUsableScheduleSecondaryKeyword(orderedLandmarks[0], primaryFin, ctx, plan)) {
     return orderedLandmarks[0]
   }
 
   const fromLlm = finalizeScheduleImageKeyword(String(llmSecondary ?? '').trim())
-  if (
-    fromLlm &&
-    normKey(fromLlm) !== normKey(primaryFin) &&
-    isMentionedScheduleTourismKeyword(fromLlm, ctx, plan)
-  ) {
+  if (fromLlm && isUsableScheduleSecondaryKeyword(fromLlm, primaryFin, ctx, plan)) {
     return fromLlm
   }
 
   const h = hay(ctx)
   const secondary = extractSecondaryEnglishPlaceName(h, h, ctx.title ?? '', primaryFin)
-  if (
-    secondary &&
-    normKey(secondary) !== normKey(primaryFin) &&
-    isMentionedScheduleTourismKeyword(secondary, ctx, plan)
-  ) {
-    return finalizeScheduleImageKeyword(secondary)
+  if (secondary) {
+    const fin = finalizeScheduleImageKeyword(secondary)
+    if (isUsableScheduleSecondaryKeyword(fin, primaryFin, ctx, plan)) return fin
   }
 
   const exclude = new Set<string>()
@@ -94,9 +104,7 @@ export function resolveScheduleSecondaryImageKeyword(
     const fromKorean = firstPoiSearchTermExcluding(source ?? '', exclude)
     if (fromKorean) {
       const fin = finalizeScheduleImageKeyword(fromKorean)
-      if (fin && normKey(fin) !== normKey(primaryFin) && isMentionedScheduleTourismKeyword(fin, ctx, plan)) {
-        return fin
-      }
+      if (isUsableScheduleSecondaryKeyword(fin, primaryFin, ctx, plan)) return fin
     }
   }
 
@@ -107,12 +115,7 @@ export function resolveScheduleSecondaryImageKeyword(
       const mapped = mapKoreanPoiSegment(part)
       if (!mapped) continue
       const fin = finalizeScheduleImageKeyword(mapped)
-      if (
-        fin &&
-        normKey(fin) !== normKey(primaryFin) &&
-        !exclude.has(normalizeSemanticPoiKey(fin)) &&
-        isMentionedScheduleTourismKeyword(fin, ctx, plan)
-      ) {
+      if (!exclude.has(normalizeSemanticPoiKey(fin)) && isUsableScheduleSecondaryKeyword(fin, primaryFin, ctx, plan)) {
         return fin
       }
     }
@@ -147,8 +150,12 @@ export function buildDualScheduleImageKeywords(
 
 export function applyDualScheduleImageKeywordsToRows<
   T extends ScheduleImageKeywordDayInput & { imageKeyword: string; imageKeyword2?: string | null },
->(rows: T[], supplierFinalize?: (normalized: string, ctx: ScheduleImageKeywordDayInput) => string): T[] {
-  const plan = buildScheduleImageKeywordPlan(rows)
+>(
+  rows: T[],
+  supplierFinalize?: (normalized: string, ctx: ScheduleImageKeywordDayInput) => string,
+  opts?: ScheduleImageKeywordPlanOptions,
+): T[] {
+  const plan = buildScheduleImageKeywordPlan(rows, opts)
   return rows.map((row) => {
     const dual = buildDualScheduleImageKeywords(row, plan, supplierFinalize)
     return { ...row, imageKeyword: dual.imageKeyword, imageKeyword2: dual.imageKeyword2 }

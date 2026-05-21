@@ -11,7 +11,7 @@ import {
   isHotelLodgingImageKeyword,
 } from '@/lib/pexels-place-name-keyword'
 import { extractPrimaryEnglishPlaceName } from '@/lib/english-schedule-place-extract'
-import { firstPoiSearchTermExcluding, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
+import { firstPoiSearchTermExcluding, mapDestination, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 
 /** REGISTER_PROMPT·schedule 선추출 프롬프트에 삽입 */
 export const REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK = `# [schedule[].imageKeyword / imageKeyword2 — Pexels 검색용]
@@ -123,6 +123,7 @@ const KO_LANDMARK_RULES: ReadonlyArray<KoLandmarkRule> = [
   { re: /소호\s*거리|SOHO|SoHo/i, en: 'SoHo Hong Kong', when: /홍콩|Hong\s*Kong|香港/i },
   { re: /미드레벨|Mid-?Levels/i, en: 'Mid-Levels Escalator' },
   { re: /웡타이신|黄大仙|Wong\s*Tai\s*Sin/i, en: 'Wong Tai Sin Temple' },
+  { re: /사원\s*방문|황대선\s*사원/u, en: 'Wong Tai Sin Temple', when: /홍콩|Hong\s*Kong|香港|웡타이신|사원/u },
   { re: /1881\s*헤리티지|1881\s*Heritage/i, en: '1881 Heritage Hong Kong' },
   { re: /낭만의\s*거리|Avenue\s*of\s*Stars/i, en: 'Avenue of Stars Hong Kong' },
   { re: /스타\s*페리|Star\s*Ferry/i, en: 'Star Ferry Hong Kong' },
@@ -273,16 +274,87 @@ function collectDestinationCitiesEn(rows: ScheduleImageKeywordDayInput[]): strin
   return out
 }
 
-export function buildScheduleImageKeywordPlan(rows: ScheduleImageKeywordDayInput[]): ScheduleImageKeywordPlan {
+export type ScheduleImageKeywordPlanOptions = {
+  /** Product.destination 등 — 일차 본문에 도시명이 없어도 HK·싱가포르 오염 차단 */
+  productDestination?: string | null
+}
+
+export function buildScheduleImageKeywordPlan(
+  rows: ScheduleImageKeywordDayInput[],
+  opts?: ScheduleImageKeywordPlanOptions,
+): ScheduleImageKeywordPlan {
   const days = rows.filter((r) => r.day > 0).sort((a, b) => a.day - b.day)
   const cities = collectDestinationCitiesEn(days)
-  const first = cities[0] ?? ''
-  const last = cities[cities.length - 1] ?? first
+  let first = cities[0] ?? ''
+  let last = cities[cities.length - 1] ?? first
+  if (!first && opts?.productDestination?.trim()) {
+    const mapped = mapDestination(opts.productDestination.trim())
+    const en = mapped || opts.productDestination.trim()
+    if (en) first = last = en
+  }
   return {
     firstDestinationEn: first,
     lastDestinationEn: last,
     totalDays: days.length > 0 ? days[days.length - 1]!.day : 0,
   }
+}
+
+/** routeText 없을 때 title·description에서 방문지 나열 추론(한글, ' - ' 연결) */
+export function inferRouteTextFromDayContext(ctx: ScheduleImageKeywordDayInput): string | null {
+  const h = hay(ctx)
+  if (!h.trim()) return null
+  const segments: Array<{ seg: string; pos: number }> = []
+
+  for (const { re } of KO_CITY_TO_EN) {
+    const m = re.exec(h)
+    if (m?.[0] && m.index != null) {
+      segments.push({ seg: m[0].trim(), pos: m.index })
+      break
+    }
+  }
+
+  for (const { re, when } of KO_LANDMARK_RULES) {
+    if (when && !when.test(h)) continue
+    const flags = re.flags.includes('g') ? re.flags : `${re.flags}g`
+    const reG = new RegExp(re.source, flags)
+    let m: RegExpExecArray | null
+    while ((m = reG.exec(h)) !== null) {
+      if (m[0]?.trim()) segments.push({ seg: m[0].trim(), pos: m.index })
+    }
+  }
+
+  for (const part of splitDescriptionParts(ctx.description ?? '')) {
+    const idx = h.indexOf(part)
+    if (idx < 0 || part.length < 2) continue
+    if (ROUTE_META_SEGMENT_RE.test(part)) continue
+    segments.push({ seg: part, pos: idx })
+  }
+
+  segments.sort((a, b) => a.pos - b.pos)
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const { seg } of segments) {
+    const key = seg.replace(/\s+/g, ' ').toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(seg)
+  }
+  return out.length >= 2 ? out.join(' - ') : null
+}
+
+function effectiveRouteTextForCtx(ctx: ScheduleImageKeywordDayInput): string | null {
+  const rt = (ctx.routeText ?? '').trim()
+  if (rt) return rt
+  return inferRouteTextFromDayContext(ctx)
+}
+
+export function isOffRegionLandmarkForPlan(keyword: string, plan: ScheduleImageKeywordPlan): boolean {
+  const key = normKey(finalizeScheduleImageKeyword(keyword))
+  if (!key || !MAINLAND_CHINA_LANDMARK_KEYS.has(key)) return false
+  const dest = destinationKeysForPlan(plan)
+  if (dest.has('hong kong') || dest.has('macau')) return true
+  if (dest.has('singapore') && !dest.has('hong kong') && !dest.has('macau')) return true
+  return false
 }
 
 function isHubDepartureDay(ctx: ScheduleImageKeywordDayInput, plan: ScheduleImageKeywordPlan): boolean {
@@ -329,15 +401,6 @@ function destinationKeysForPlan(plan: ScheduleImageKeywordPlan): Set<string> {
   return keys
 }
 
-function isOffRegionLandmarkForPlan(keyword: string, plan: ScheduleImageKeywordPlan): boolean {
-  const key = normKey(finalizeScheduleImageKeyword(keyword))
-  if (!key || !MAINLAND_CHINA_LANDMARK_KEYS.has(key)) return false
-  const dest = destinationKeysForPlan(plan)
-  if (dest.has('hong kong') || dest.has('macau')) return true
-  if (dest.has('singapore') && !dest.has('hong kong') && !dest.has('macau')) return true
-  return false
-}
-
 function landmarkFromRouteSegment(segment: string, excludePrimary?: string): string | null {
   const seg = segment.trim()
   if (!seg || seg.length < 2 || ROUTE_META_SEGMENT_RE.test(seg)) return null
@@ -370,15 +433,33 @@ function landmarkFromRouteSegment(segment: string, excludePrimary?: string): str
   return null
 }
 
-/** routeText 순서대로 관광 명소(도시·메타 구간 제외) */
+/** routeText 순서대로 관광 명소(도시·메타 구간 제외) — LLM·선추출이 채운 routeText만 */
 export function orderedLandmarksFromRouteText(
+  ctx: ScheduleImageKeywordDayInput,
+  excludePrimary?: string,
+): string[] {
+  return orderedLandmarksFromRouteRaw((ctx.routeText ?? '').trim(), ctx, excludePrimary)
+}
+
+/** routeText 없을 때 본문에서 추론한 경로(키워드 보강용) */
+export function orderedLandmarksFromInferredRouteText(
+  ctx: ScheduleImageKeywordDayInput,
+  excludePrimary?: string,
+): string[] {
+  const inferred = inferRouteTextFromDayContext(ctx)
+  if (!inferred) return []
+  return orderedLandmarksFromRouteRaw(inferred, ctx, excludePrimary)
+}
+
+function orderedLandmarksFromRouteRaw(
+  routeRaw: string,
   ctx: ScheduleImageKeywordDayInput,
   excludePrimary?: string,
 ): string[] {
   const out: string[] = []
   const seen = new Set<string>()
   const excludeKey = excludePrimary ? normKey(finalizeScheduleImageKeyword(excludePrimary)) : ''
-  for (const seg of parseRouteTextSegments(ctx.routeText)) {
+  for (const seg of parseRouteTextSegments(routeRaw)) {
     const fin = landmarkFromRouteSegment(seg, excludePrimary)
     if (!fin) continue
     const key = normKey(fin)
@@ -418,8 +499,10 @@ export function landmarkMentionedInDayContext(keyword: string, ctx: ScheduleImag
 
 /** 관광 일차 — 도시명이 아닌 명소 영문 고유명 */
 export function extractScheduleLandmarkFromDayContext(ctx: ScheduleImageKeywordDayInput): string {
-  const routeOrdered = orderedLandmarksFromRouteText(ctx)
-  if (routeOrdered[0]) return routeOrdered[0]
+  if ((ctx.routeText ?? '').trim()) {
+    const routeOrdered = orderedLandmarksFromRouteText(ctx)
+    if (routeOrdered[0]) return routeOrdered[0]
+  }
 
   const h = hay(ctx)
   for (const { re, en } of KO_LANDMARK_RULES) {
@@ -492,7 +575,6 @@ export function isMentionedScheduleTourismKeyword(
   const fin = finalizeScheduleImageKeyword(keyword)
   if (!fin || isBareCityOrCountryKeyword(fin) || isHotelLodgingImageKeyword(fin)) return false
   if (plan && isOffRegionLandmarkForPlan(fin, plan)) return false
-  if (plan && isKnownTripLandmarkForDestination(fin, plan)) return true
   if (orderedLandmarksFromRouteText(ctx).some((lm) => normKey(lm) === normKey(fin))) return true
   return landmarkMentionedInDayContext(fin, ctx)
 }
@@ -598,14 +680,18 @@ function coerceTourismLandmarkKeyword(
   ctx: ScheduleImageKeywordDayInput,
   plan: ScheduleImageKeywordPlan,
 ): string {
-  if ((ctx.routeText ?? '').trim()) {
-    const routeLandmarks = orderedLandmarksFromRouteText(ctx)
-    if (routeLandmarks[0]) return routeLandmarks[0]
-  }
-
+  const explicitRoute = (ctx.routeText ?? '').trim()
   let kw = finalizeScheduleImageKeyword(String(raw ?? '').trim())
   const fromCtx = extractScheduleLandmarkFromDayContext(ctx)
   const hasBody = hasScheduleTextContext(ctx)
+
+  if (explicitRoute) {
+    const routeLandmarks = orderedLandmarksFromRouteText(ctx)
+    if (routeLandmarks[0]) return routeLandmarks[0]
+  } else if (!kw || !hasBody || !landmarkMentionedInDayContext(kw, ctx)) {
+    const routeLandmarks = orderedLandmarksFromInferredRouteText(ctx)
+    if (routeLandmarks[0]) return routeLandmarks[0]
+  }
 
   if (isBareCityOrCountryKeyword(kw)) {
     return fromCtx || CITY_ICONIC_LANDMARK[normKey(kw)] || resolveTripIconicLandmarkSecondary('', plan) || ''
@@ -669,6 +755,10 @@ export function polishRegisterScheduleImageKeywordFromLlm(
 
 export function applyScheduleImageKeywordsToRows<
   T extends ScheduleImageKeywordDayInput & { imageKeyword: string; imageKeyword2?: string | null },
->(rows: T[], supplierFinalize?: (normalized: string, ctx: ScheduleImageKeywordDayInput) => string): T[] {
-  return applyDualScheduleImageKeywordsToRows(rows, supplierFinalize)
+>(
+  rows: T[],
+  supplierFinalize?: (normalized: string, ctx: ScheduleImageKeywordDayInput) => string,
+  opts?: ScheduleImageKeywordPlanOptions,
+): T[] {
+  return applyDualScheduleImageKeywordsToRows(rows, supplierFinalize, opts)
 }

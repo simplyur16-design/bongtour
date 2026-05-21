@@ -296,7 +296,11 @@ function buildRegisterPexelsUiRows(
       }
     })
     try {
-      return finalizeRegisterScheduleImageKeywords(rawRows).map((row) => ({
+      const destHint =
+        (parsed?.destination ?? '').trim() ||
+        (preview?.productDraft?.primaryDestination ?? preview?.productDraft?.destinationRaw ?? '').trim() ||
+        null
+      return finalizeRegisterScheduleImageKeywords(rawRows, { productDestination: destHint }).map((row) => ({
         day: row.day,
         title: String(row.title ?? ''),
         description: String(row.description ?? ''),
@@ -356,14 +360,14 @@ function mergeRegisterParsedScheduleWithManualPexels(
     const withManual = applyManualPexelsKeywordsToParsedSchedule(parsed, manualByDay, manualByDay2)
     return {
       ...withManual,
-      schedule: finalizeRegisterScheduleImageKeywords(withManual.schedule ?? []),
+      schedule: finalizeRegisterScheduleImageKeywords(withManual.schedule ?? [], scheduleKeywordOpts(parsed, preview)),
     }
   }
   if (uiRows.length === 0) {
     const withManual = applyManualPexelsKeywordsToParsedSchedule(parsed, manualByDay, manualByDay2)
     return {
       ...withManual,
-      schedule: finalizeRegisterScheduleImageKeywords(withManual.schedule ?? []),
+      schedule: finalizeRegisterScheduleImageKeywords(withManual.schedule ?? [], scheduleKeywordOpts(parsed, preview)),
     }
   }
   const withManual: RegisterScheduleDay[] = uiRows.map((row) => {
@@ -382,7 +386,18 @@ function mergeRegisterParsedScheduleWithManualPexels(
     }
     return next
   })
-  return { ...parsed, schedule: finalizeRegisterScheduleImageKeywords(withManual) }
+  return { ...parsed, schedule: finalizeRegisterScheduleImageKeywords(withManual, scheduleKeywordOpts(parsed, preview)) }
+}
+
+function scheduleKeywordOpts(
+  parsed: RegisterParsed,
+  preview: AdminRegisterPreviewPayload,
+): { productDestination: string | null } {
+  const d =
+    (parsed.destination ?? '').trim() ||
+    (preview.productDraft?.primaryDestination ?? preview.productDraft?.destinationRaw ?? '').trim() ||
+    ''
+  return { productDestination: d || null }
 }
 
 /** 교원이지(kyowontour) 등록 경로는 단일 bodyText만 수신 — 정형칸을 본문 뒤에 덧붙여 site-parser·LLM 입력으로 쓴다. */

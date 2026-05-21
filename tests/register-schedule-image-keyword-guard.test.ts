@@ -106,6 +106,24 @@ describe('buildDualScheduleImageKeywords — 관광 일차 명소', () => {
     assert.notEqual(dual.imageKeyword2, 'Shanghai')
   })
 
+  it('홍콩 LLM 오염(Forbidden City·무근거 Victoria Peak) — productDestination만으로 차단', () => {
+    const rows = [
+      { day: 1, title: '출발', description: '인천 출발 홍콩 도착', imageKeyword: 'Hong Kong', imageKeyword2: 'Forbidden City' },
+      { day: 2, title: '홍콩', description: '홍콩 도심의 매력을 만끽하는 하루', imageKeyword: 'Tai Kwun', imageKeyword2: 'Forbidden City' },
+      { day: 3, title: '사원', description: '사원 방문과 여유로운 자유 시간', imageKeyword: 'Victoria Peak', imageKeyword2: 'Forbidden City' },
+      { day: 4, title: '귀국', description: '여행의 마무리 및 인천 도착', imageKeyword: 'Hong Kong', imageKeyword2: 'Forbidden City' },
+    ]
+    const plan = buildScheduleImageKeywordPlan(rows, { productDestination: 'Hong Kong' })
+    for (const row of rows.slice(0, 3)) {
+      const dual = buildDualScheduleImageKeywords(row, plan)
+      assert.notEqual(dual.imageKeyword2, 'Forbidden City')
+      assert.notEqual(dual.imageKeyword, 'Forbidden City')
+    }
+    const d3 = buildDualScheduleImageKeywords(rows[2]!, plan)
+    assert.notEqual(d3.imageKeyword, 'Victoria Peak')
+    assert.equal(d3.imageKeyword, 'Wong Tai Sin Temple')
+  })
+
   it('홍콩 routeText 순서로 1·2순위 명소를 고르고 Forbidden City·Victoria Peak 반복을 막는다', () => {
     const rows = [
       {
@@ -169,7 +187,7 @@ describe('buildDualScheduleImageKeywords — 싱가포르', () => {
     {
       day: 4,
       title: '센토사',
-      description: '센토사 섬 체험 및 리버보트 탑승',
+      description: '머라이언 공원 관광 후 센토사 섬 체험 및 리버보트 탑승',
       imageKeyword: 'Merlion Park',
       imageKeyword2: 'Forbidden City',
     },
