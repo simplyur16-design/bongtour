@@ -8,6 +8,9 @@ const config: Config = {
   ],
   safelist: [
     'text-[#1F1B2D]',
+    'text-bt-text-navy',
+    'bg-bt-bg-lavender',
+    'bg-bt-bg-lavender-soft',
     'text-[#5F5E5A]',
     'text-[#d9a81e]',
     'text-[#85510B]',

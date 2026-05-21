@@ -351,3 +351,11 @@ a:not([class]):hover {
 .fit-tx-meta    { color: #5F5E5A !important; }
 .fit-tx-gold    { color: #d9a81e !important; }
 .fit-tx-price   { color: #85510B !important; }
+
+/* 공공·기업 연수 — 윈저 탭: 라벤더 배경 유지, 글씨는 항상 네이비(검은에 가깝게) */
+.bt-training-windsor-tabs button,
+.bt-training-windsor-tabs .bt-training-windsor-tab-label,
+.bt-training-windsor-tabs .bt-training-windsor-tab-label:hover,
+.bt-training-windsor-tabs .bt-training-windsor-tab-label:focus {
+  color: var(--bt-text-navy) !important;
+}

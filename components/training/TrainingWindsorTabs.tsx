@@ -1,6 +1,14 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import {
+  TRAINING_PUBLIC_ACCENT,
+  TRAINING_PUBLIC_BG,
+  TRAINING_PUBLIC_BG_HOVER,
+  TRAINING_PUBLIC_BORDER,
+  TRAINING_PUBLIC_TEXT,
+  TRAINING_WINDSOR_TABS_ROOT,
+} from '@/components/training/training-public-theme'
 
 export type TrainingWindsorTabId = 'description' | 'schedule' | 'prep'
 
@@ -18,8 +26,10 @@ type Props = {
 
 export default function TrainingWindsorTabs({ active, onChange, children }: Props) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#DAD4EE] bg-white shadow-sm">
-      <div className="flex flex-wrap border-b border-[#DAD4EE]">
+    <div
+      className={`${TRAINING_WINDSOR_TABS_ROOT} overflow-hidden rounded-2xl border ${TRAINING_PUBLIC_BORDER} ${TRAINING_PUBLIC_BG} shadow-sm`}
+    >
+      <div className={`flex flex-wrap border-b ${TRAINING_PUBLIC_BORDER} ${TRAINING_PUBLIC_BG}`}>
         {TABS.map((t) => {
           const isActive = active === t.id
           return (
@@ -27,18 +37,18 @@ export default function TrainingWindsorTabs({ active, onChange, children }: Prop
               key={t.id}
               type="button"
               onClick={() => onChange(t.id)}
-              className={`min-w-[120px] flex-1 border-r border-[#DAD4EE] px-4 py-3.5 text-center text-sm font-bold transition-colors last:border-r-0 sm:text-base ${
+              className={`min-w-[120px] flex-1 border-r ${TRAINING_PUBLIC_BORDER} px-4 py-3.5 text-center text-sm font-bold transition-colors last:border-r-0 sm:text-base ${
                 isActive
-                  ? 'border-b-2 border-b-slate-900 bg-[#f3e4b8] text-slate-900'
-                  : 'bg-white text-slate-700 hover:bg-[#faf8f3]'
+                  ? `-mb-px border-b-2 ${TRAINING_PUBLIC_ACCENT} ${TRAINING_PUBLIC_BG_HOVER}`
+                  : `${TRAINING_PUBLIC_BG} hover:bg-[#E8E4F4]`
               }`}
             >
-              {t.label}
+              <span className={`bt-training-windsor-tab-label ${TRAINING_PUBLIC_TEXT}`}>{t.label}</span>
             </button>
           )
         })}
       </div>
-      <div className="bg-white px-4 py-6 text-[#1F1B2D] sm:px-8 sm:py-8">{children}</div>
+      <div className={`${TRAINING_PUBLIC_BG} px-4 py-6 sm:px-8 sm:py-8 ${TRAINING_PUBLIC_TEXT}`}>{children}</div>
     </div>
   )
 }

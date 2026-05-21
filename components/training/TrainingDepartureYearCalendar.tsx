@@ -49,14 +49,14 @@ export default function TrainingDepartureYearCalendar({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-950">
+      <div className="rounded-lg border border-[#DAD4EE] bg-[#EFEDF8] px-4 py-3 text-sm text-black">
         <p className="font-semibold">예시 출발일 선택</p>
-        <p className="mt-1 text-emerald-900/90">
+        <p className="mt-1">
           {WEEK_KR[fixedDepartureWeekday]}요일 출발 기준으로 1년간 선택할 수 있습니다. 날짜를 누르면 해당 주기의
           예시 일정이 아래에 표시됩니다.
         </p>
         {selectedYmd ? (
-          <p className="mt-2 font-medium text-emerald-950">
+          <p className="mt-2 font-medium">
             선택: {formatTrainingCalendarDayLabel(selectedYmd)} 출발
           </p>
         ) : null}
@@ -66,10 +66,10 @@ export default function TrainingDepartureYearCalendar({
         {months.map((month) => (
           <div
             key={`${month.year}-${month.monthIndex}`}
-            className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+            className="rounded-xl border border-[#DAD4EE] bg-[#EFEDF8] p-3 shadow-sm"
           >
-            <p className="text-center text-sm font-bold text-slate-900">{month.label}</p>
-            <div className="mt-2 grid grid-cols-7 gap-0.5 text-center text-[10px] font-semibold text-slate-500">
+            <p className="text-center text-sm font-bold text-black">{month.label}</p>
+            <div className="mt-2 grid grid-cols-7 gap-0.5 text-center text-[10px] font-semibold text-black/70">
               {WEEK_KR.map((w) => (
                 <div key={w} className="py-0.5">
                   {w}
@@ -115,8 +115,8 @@ export default function TrainingDepartureYearCalendar({
                     onClick={() => onSelectYmd(cell.ymd)}
                     className={`${base} ${
                       isSelected
-                        ? 'bg-slate-900 text-white ring-2 ring-slate-400'
-                        : 'bg-emerald-100 text-emerald-950 hover:bg-emerald-200'
+                        ? 'bg-[#534AB7] text-white ring-2 ring-[#DAD4EE]'
+                        : 'bg-[#EFEDF8] text-black hover:bg-[#E8E4F4]'
                     }`}
                     aria-pressed={isSelected}
                     aria-label={`${formatTrainingCalendarDayLabel(cell.ymd)} 출발`}

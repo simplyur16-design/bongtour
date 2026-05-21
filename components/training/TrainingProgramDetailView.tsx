@@ -121,7 +121,7 @@ export default function TrainingProgramDetailView({ program }: Props) {
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
           <TrainingWindsorTabs active={tab} onChange={setTab}>
             {tab === 'description' ? (
-              <div className="whitespace-pre-wrap text-[17px] leading-relaxed text-[#1F1B2D]">{description}</div>
+              <div className="whitespace-pre-wrap text-[17px] leading-relaxed text-black">{description}</div>
             ) : null}
 
             {tab === 'schedule' ? (
@@ -135,7 +135,7 @@ export default function TrainingProgramDetailView({ program }: Props) {
                       range={calendarRange}
                     />
                     {selectedDepartureYmd ? (
-                      <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-center text-sm font-semibold text-amber-950">
+                      <p className="rounded-lg border border-[#DAD4EE] bg-[#EFEDF8] px-4 py-3 text-center text-sm font-semibold text-black">
                         아래 일정은 {formatTrainingCalendarDayLabel(selectedDepartureYmd)} 출발 기준 예시입니다.
                       </p>
                     ) : null}
