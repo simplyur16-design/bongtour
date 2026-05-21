@@ -124,27 +124,46 @@ export type ProductScheduleJsonRow = ScheduleImageFieldsInput & {
   imageUrl2?: string | null
 }
 
+type ProductScheduleFinalizeInput = ScheduleImageFieldsInput & {
+  day: number
+  title: string
+  description: string
+  routeText: string | null
+  imageUrl: string | null
+  imageUrl2: string | null
+}
+
 /**
  * Product.schedule JSON — 등록 확정·동기화 공통.
  * `finalizeRegisterScheduleImageKeywords` 적용 후 imageKeyword·imageKeyword2 포함.
  */
-export function buildProductScheduleJsonForDb<T extends ProductScheduleJsonRow>(
-  schedule: T[],
-  mapExtra?: (row: T) => Record<string, unknown>,
+export function buildProductScheduleJsonForDb(
+  schedule: ProductScheduleJsonRow[],
+  mapExtra?: (row: ProductScheduleJsonRow) => Record<string, unknown>,
 ): string {
-  const finalized = finalizeRegisterScheduleImageKeywords(schedule)
+  const inputs: ProductScheduleFinalizeInput[] = schedule.map((row) => ({
+    day: row.day,
+    title: String(row.title ?? '').trim(),
+    description: String(row.description ?? '').trim(),
+    routeText: row.routeText ?? null,
+    imageKeyword: String(row.imageKeyword ?? '').trim(),
+    imageKeyword2: row.imageKeyword2 ?? null,
+    imageUrl: row.imageUrl ?? null,
+    imageUrl2: row.imageUrl2 ?? null,
+  }))
+  const finalized = finalizeRegisterScheduleImageKeywords(inputs)
   return JSON.stringify(
-    finalized.map((row) => {
-      const extra = mapExtra?.(row) ?? {}
+    finalized.map((row, i) => {
+      const extra = mapExtra?.(schedule[i]!) ?? {}
       return {
         day: row.day,
-        title: String(row.title ?? '').trim(),
-        description: String(row.description ?? '').trim(),
+        title: row.title,
+        description: row.description,
         routeText: row.routeText ?? null,
         imageKeyword: row.imageKeyword,
         imageKeyword2: row.imageKeyword2 ?? null,
-        imageUrl: row.imageUrl ?? null,
-        imageUrl2: row.imageUrl2 ?? null,
+        imageUrl: inputs[i]!.imageUrl,
+        imageUrl2: inputs[i]!.imageUrl2,
         ...extra,
       }
     }),

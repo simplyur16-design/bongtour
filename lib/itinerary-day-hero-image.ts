@@ -176,7 +176,6 @@ export function extractDayPoiCandidates(input: {
       title: input.scheduleTitle ?? '',
       description: desc,
       routeText: null,
-      imageKeyword: input.scheduleImageKeyword ?? '',
     })) {
       push(lm, 'schedule')
     }
