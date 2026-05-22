@@ -34,8 +34,18 @@ export function resultCodeOf(m: Record<string, string>): string {
   return String(v).trim();
 }
 
+/** 인증 콜백 주문번호 — PC는 `orderNumber`, 모바일은 `P_OID`·`P_NOTI`(라우트 폴백). 승인 응답 MOID는 여기서 쓰지 않음. */
 export function pickOid(m: Record<string, string>): string {
-  return (m.oid ?? m.OID ?? m.MOID ?? m.P_OID ?? m.p_oid ?? "").trim();
+  return (
+    m.oid ??
+    m.OID ??
+    m.orderNumber ??
+    m.OrderNumber ??
+    m.ordernumber ??
+    m.P_OID ??
+    m.p_oid ??
+    ""
+  ).trim();
 }
 
 export function pickTid(m: Record<string, string>): string {

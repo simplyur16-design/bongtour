@@ -80,16 +80,6 @@ export async function POST(req: Request) {
     c.release();
   }
 
-  const callbackAmt = pickAmountKrw(incoming);
-  if (
-    callbackAmt != null &&
-    Number.isFinite(grandTotalKrw) &&
-    grandTotalKrw > 0 &&
-    callbackAmt !== grandTotalKrw
-  ) {
-    return fail("amount_mismatch");
-  }
-
   const authUrl = incoming.authUrl?.trim();
   const target =
     authUrl && (isPaywelcomeHttpsUrl(authUrl) || authUrl.startsWith("http://localhost"))
@@ -121,6 +111,14 @@ export async function POST(req: Request) {
 
   const tid = pickTid(merged);
   const amt = pickAmountKrw(merged);
+  if (
+    amt != null &&
+    Number.isFinite(grandTotalKrw) &&
+    grandTotalKrw > 0 &&
+    amt !== grandTotalKrw
+  ) {
+    return fail("amount_mismatch");
+  }
   const providerEventId = `welcomepay_auth_${tid}`;
   const amountForCapture =
     amt != null && Number.isFinite(amt) && amt > 0 ? amt : Number.isFinite(grandTotalKrw) ? grandTotalKrw : undefined;
