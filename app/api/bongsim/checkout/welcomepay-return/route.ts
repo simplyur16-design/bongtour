@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
-import { getPgPool } from "@/lib/bongsim/db/pool";
+import { getPgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
 import {
   parseWelcomepayPayload,
   pickAmountKrw,
@@ -13,6 +13,12 @@ import {
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
 import { welcomepayCheckoutFailMessage } from "@/lib/bongsim/checkout/welcomepay-fail-message";
 import { isPaywelcomeHttpsUrl, welcomepayPayAuthUrl } from "@/lib/bongsim/welcomepay";
+import {
+  buildPcPayAuthFormBody,
+  pickAuthToken,
+  pickMid,
+  verifyWelcomepayAuthSignature,
+} from "@/lib/bongsim/welcomepay-payauth";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +49,7 @@ export async function POST(req: Request) {
   if (!getPgPool()) {
     return new NextResponse("db_unconfigured", { status: 503 });
   }
+  await probePgPoolTlsOrFallback();
 
   const rawBody = await req.text();
   const incoming = parseWelcomepayPayload(rawBody);
@@ -81,6 +88,25 @@ export async function POST(req: Request) {
     c.release();
   }
 
+  const authRc = resultCodeOf(incoming);
+  if (authRc && authRc !== "0000") {
+    const msg = incoming.resultMsg ?? incoming.ResultMsg ?? `resultCode=${authRc}`;
+    return fail(msg);
+  }
+
+  const authToken = pickAuthToken(incoming);
+  if (!authToken) {
+    return fail("missing_auth_token");
+  }
+
+  const payMid = pickMid(incoming) || (process.env.WELCOMEPAY_MID ?? "").trim();
+  if (!payMid) {
+    return fail("missing_mid");
+  }
+
+  const payAuthBody = buildPcPayAuthFormBody({ mid: payMid, authToken });
+  const payAuthTimestamp = payAuthBody.get("timestamp") ?? "";
+
   const authUrl = incoming.authUrl?.trim();
   const target =
     authUrl && (isPaywelcomeHttpsUrl(authUrl) || authUrl.startsWith("http://localhost"))
@@ -95,7 +121,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         Accept: "application/json, text/plain, */*",
       },
-      body: rawBody,
+      body: payAuthBody.toString(),
     });
     authText = await authRes.text();
   } catch (e) {
@@ -108,6 +134,24 @@ export async function POST(req: Request) {
   if (rc !== "0000") {
     const msg = merged.resultMsg ?? merged.ResultMsg ?? `resultCode=${rc || "unknown"}`;
     return fail(msg);
+  }
+
+  const authSig = (merged.authSignature ?? merged.AuthSignature ?? "").trim();
+  if (authSig) {
+    const moid = (merged.MOID ?? merged.moid ?? pickOid(merged)).trim();
+    const totRaw = merged.TotPrice ?? merged.totPrice ?? merged.price ?? "";
+    const totPrice = String(totRaw).trim() || String(grandTotalKrw);
+    if (
+      !verifyWelcomepayAuthSignature({
+        mid: payMid,
+        authTimestamp: payAuthTimestamp,
+        moid,
+        totPrice,
+        authSignature: authSig,
+      })
+    ) {
+      return fail("auth_signature_mismatch");
+    }
   }
 
   const tid = pickTid(merged);

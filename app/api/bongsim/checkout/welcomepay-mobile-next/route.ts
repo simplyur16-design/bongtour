@@ -4,7 +4,7 @@ import { bongsimPath } from "@/lib/bongsim/constants";
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
 import { welcomepayCheckoutFailMessage } from "@/lib/bongsim/checkout/welcomepay-fail-message";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
-import { getPgPool } from "@/lib/bongsim/db/pool";
+import { getPgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
 import {
   parseWelcomepayPayload,
   pickAmountKrw,
@@ -13,6 +13,13 @@ import {
   resultCodeOf,
 } from "@/lib/bongsim/welcomepay-callback-parse";
 import { isPaywelcomeHttpsUrl, welcomepayPayAuthUrl } from "@/lib/bongsim/welcomepay";
+import {
+  buildMobilePayApprovalFormBody,
+  buildPcPayAuthFormBody,
+  pickAuthToken,
+  pickMid,
+  pickMobileTid,
+} from "@/lib/bongsim/welcomepay-payauth";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +55,7 @@ export async function POST(req: Request) {
   if (!getPgPool()) {
     return new NextResponse("db_unconfigured", { status: 503 });
   }
+  await probePgPoolTlsOrFallback();
 
   const rawBody = await req.text();
   const incoming = parseWelcomepayPayload(rawBody);
@@ -96,9 +104,31 @@ export async function POST(req: Request) {
     return fail("amount_mismatch");
   }
 
+  const authRc = resultCodeOf(incoming);
+  if (authRc && authRc !== "0000" && authRc !== "00") {
+    const msg = incoming.P_RMESG1 ?? incoming.resultMsg ?? `resultCode=${authRc}`;
+    return fail(msg);
+  }
+
   const preq = incoming.P_REQ_URL?.trim() ?? incoming.p_req_url?.trim();
-  const target =
-    preq && (isPaywelcomeHttpsUrl(preq) || preq.startsWith("http://localhost")) ? preq : welcomepayPayAuthUrl();
+  const pMid = pickMid(incoming) || (process.env.WELCOMEPAY_MID ?? "").trim();
+  const pTid = pickMobileTid(incoming);
+  const authToken = pickAuthToken(incoming);
+
+  let target: string;
+  let approvalBody: string;
+  if (preq && (isPaywelcomeHttpsUrl(preq) || preq.startsWith("http://localhost"))) {
+    target = preq;
+    if (!pMid || !pTid) {
+      return fail("missing_mobile_approval_ids");
+    }
+    approvalBody = buildMobilePayApprovalFormBody({ pMid, pTid }).toString();
+  } else if (authToken && pMid) {
+    target = welcomepayPayAuthUrl();
+    approvalBody = buildPcPayAuthFormBody({ mid: pMid, authToken }).toString();
+  } else {
+    return fail("missing_approval_target");
+  }
 
   let authText: string;
   try {
@@ -108,7 +138,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         Accept: "application/json, text/plain, */*",
       },
-      body: rawBody,
+      body: approvalBody,
     });
     authText = await authRes.text();
   } catch (e) {

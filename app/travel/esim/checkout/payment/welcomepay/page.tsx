@@ -307,6 +307,7 @@ function WelcomepayPaymentContent() {
                   <input type="hidden" name="P_EMAIL" value={prep.mobile.pEmail} />
                   <input type="hidden" name="P_MOBILE" value={prep.mobile.pMobile} />
                   <input type="hidden" name="P_INI_PAYMENT" value={prep.mobile.pIniPayment} />
+                  <input type="hidden" name="P_CHARSET" value="utf8" />
                 </form>
               ) : null}
 
@@ -329,6 +330,7 @@ function WelcomepayPaymentContent() {
                   <input type="hidden" name="popupUrl" value={prep.popupUrl} />
                   <input type="hidden" name="payViewType" value="overlay" />
                   <input type="hidden" name="version" value="1.0" />
+                  <input type="hidden" name="charset" value="UTF-8" />
                 </form>
               ) : null}
 
