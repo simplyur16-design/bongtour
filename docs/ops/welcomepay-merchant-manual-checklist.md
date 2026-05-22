@@ -53,7 +53,10 @@ PG 가맹점 관리자에 등록할 URL (apex 기준):
 ## 배포 후 검증
 
 1. `https://bongtour.com` 에서 소액 실결제 1건
-2. DB: `bongsim_order.status = paid`, `bongsim_payment_attempt.status = captured`
-3. 서버 로그: `[bongsim:welcomepay:process]` 없이 성공
+2. DB: `bongsim_order.status = paid` → 발급 후 `delivered`, `bongsim_fulfillment_job.status = delivered`
+3. 고객 이메일: `SMTP_*` 설정 시 QR·설치 링크 메일 발송
+4. 결제 직후 `OrderPaid` outbox 자동 처리 (`drainOrderPaidOutboxBestEffort`)
+
+이미 결제만 된 주문 복구: `npx tsx scripts/reprocess-bongsim-order-fulfillment.ts <order_id>`
 
 진단: `npx tsx scripts/diagnose-bongsim-payment.ts`

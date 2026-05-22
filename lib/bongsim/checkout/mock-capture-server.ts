@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { processMockPaymentWebhook } from "@/lib/bongsim/data/process-payment-webhook";
-import { processNextOrderPaidOutbox } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
+import { drainOrderPaidOutboxBestEffort } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import type { BongsimMockPaymentWebhookBodyV1 } from "@/lib/bongsim/contracts/payment-webhook.v1";
 import { isMockPaymentCaptureAllowed } from "@/lib/bongsim/runtime/mock-payment-allowance";
@@ -53,7 +53,7 @@ export async function submitMockCapturePayment(paymentAttemptId: string): Promis
       return { ok: false, error: "webhook_rejected" };
     }
 
-    await processNextOrderPaidOutbox().catch(() => undefined);
+    await drainOrderPaidOutboxBestEffort().catch(() => undefined);
 
     return { ok: true, order_id: orderId };
   } catch {

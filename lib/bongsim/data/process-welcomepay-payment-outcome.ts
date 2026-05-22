@@ -269,6 +269,12 @@ export async function processWelcomepayPaymentOutcome(
       console.warn("[bongsim:welcomepay:paid-side-effects]", err);
     });
 
+    void import("@/lib/bongsim/fulfillment/process-order-paid-outbox").then(({ drainOrderPaidOutboxBestEffort }) =>
+      drainOrderPaidOutboxBestEffort().catch((err) => {
+        console.warn("[bongsim:welcomepay:outbox-drain]", err);
+      }),
+    );
+
     return { ok: true, duplicate: false };
   } catch (e) {
     console.error("[bongsim:welcomepay:process]", e);

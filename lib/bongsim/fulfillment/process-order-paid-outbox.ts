@@ -24,6 +24,22 @@ function parseOrderId(payload: unknown): string | null {
 /**
  * Locks one pending `OrderPaid` outbox row, runs mock fulfillment advancement, marks processed after commit.
  */
+/** 결제 확정 직후 best-effort — mock 캡처와 동일하게 outbox를 비운다. */
+export async function drainOrderPaidOutboxBestEffort(maxRounds = 8): Promise<void> {
+  for (let i = 0; i < maxRounds; i += 1) {
+    const r = await processNextOrderPaidOutbox();
+    if (r.outcome === "empty" || r.outcome === "error") break;
+    if (r.outcome === "processed") {
+      const { maybeDeliverEsimAfterFulfillment } = await import(
+        "@/lib/bongsim/fulfillment/esim-delivery"
+      );
+      await maybeDeliverEsimAfterFulfillment(r.order_id).catch((e) => {
+        console.warn("[bongsim:outbox:deliver]", e);
+      });
+    }
+  }
+}
+
 export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutboxResult> {
   const pool = getPgPool();
   if (!pool) return { outcome: "error" };

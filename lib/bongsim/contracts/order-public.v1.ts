@@ -31,5 +31,5 @@ export type BongsimOrderPublicV1 = {
   payment_provider: string | null;
   lines: BongsimOrderPublicLineV1[];
   fulfillment: BongsimOrderPublicFulfillmentV1 | null;
-  install_stub: { kind: "placeholder"; label: string; href: string | null };
+  install_stub: { kind: "placeholder" | "link"; label: string; href: string | null };
 };

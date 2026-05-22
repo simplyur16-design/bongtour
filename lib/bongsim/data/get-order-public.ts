@@ -125,6 +125,24 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
         }
       : null;
 
+    const topupLink = await pool.query<{ qr_code_img_url: string | null; download_link: string | null }>(
+      `SELECT qr_code_img_url, download_link
+         FROM bongsim_fulfillment_topup
+        WHERE order_id = $1
+          AND (COALESCE(qr_code_img_url, '') <> '' OR COALESCE(download_link, '') <> '')
+        ORDER BY updated_at DESC NULLS LAST
+        LIMIT 1`,
+      [id],
+    );
+    const tl = topupLink.rows[0];
+    const installHref = (tl?.download_link?.trim() || tl?.qr_code_img_url?.trim() || null) as string | null;
+    const installLabel =
+      installHref && row.status === "delivered"
+        ? "eSIM 설치 링크"
+        : installHref
+          ? "eSIM 설치 링크 (발급 완료 처리 중)"
+          : "eSIM 설치 링크는 준비 중입니다.";
+
     const order: BongsimOrderPublicV1 = {
       schema: "bongsim.order_public.v1",
       order_id: row.order_id,
@@ -140,9 +158,9 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
       lines,
       fulfillment,
       install_stub: {
-        kind: "placeholder",
-        label: "eSIM 설치 링크는 준비 중입니다.",
-        href: null,
+        kind: installHref ? "link" : "placeholder",
+        label: installLabel,
+        href: installHref,
       },
     };
 

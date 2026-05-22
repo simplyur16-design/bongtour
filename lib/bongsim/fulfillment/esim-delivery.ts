@@ -1,9 +1,9 @@
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { sendTravelEsimOrderQrMail } from "@/lib/bongsim/email/travel-esim-order-qr-mail";
 import { isBongsimCheckoutTestMode } from "@/lib/bongsim/test-mode";
 
 /**
- * 결제 완료 → USIMSA 발급 → 웹훅으로 QR 수신 후 고객 전달(이메일·알림톡) 단계의 진입점.
- * 현재는 DB 상태만 반영하고, 메일·알림톡은 placeholder.
+ * 결제 완료 → 공급사 발급 → QR 확보 후 고객 전달(이메일·알림톡).
  */
 
 export type DeliverEsimToCustomerResult =
@@ -15,14 +15,21 @@ export type DeliverEsimToCustomerResult =
     }
   | { ok: false; reason: "db_unconfigured" | "db_error" };
 
-/** 추후 nodemailer 등으로 교체. */
-function placeholderSendEsimEmail(params: {
+async function sendEsimQrEmailBestEffort(params: {
   buyerEmail: string;
-  orderId: string;
+  orderNumber: string;
   qrCodeUrl: string;
   downloadLink: string;
-}): void {
-  console.info("[bongsim:email:placeholder] eSIM QR 메일 발송 예정", params);
+}): Promise<void> {
+  const send = await sendTravelEsimOrderQrMail({
+    to: params.buyerEmail,
+    orderNumber: params.orderNumber,
+    qrCodeUrl: params.qrCodeUrl,
+    downloadLink: params.downloadLink,
+  });
+  if (!send.ok) {
+    console.warn("[bongsim:email:esim-qr]", send.error, { orderNumber: params.orderNumber });
+  }
 }
 
 /** 추후 Solapi 알림톡 등으로 교체. */
@@ -50,10 +57,11 @@ export async function deliverEsimToCustomer(
 
   const client = await pool.connect();
   let buyerEmail = "";
+  let orderNumber = "";
   try {
     await client.query("BEGIN");
-    const r = await client.query<{ status: string; buyer_email: string }>(
-      `SELECT status, buyer_email FROM bongsim_order WHERE order_id = $1::uuid FOR UPDATE`,
+    const r = await client.query<{ status: string; buyer_email: string; order_number: string }>(
+      `SELECT status, buyer_email, order_number FROM bongsim_order WHERE order_id = $1::uuid FOR UPDATE`,
       [orderId],
     );
     const row = r.rows[0];
@@ -62,6 +70,7 @@ export async function deliverEsimToCustomer(
       return { ok: true, status: "skipped", reason: "order_not_found" };
     }
     buyerEmail = row.buyer_email;
+    orderNumber = row.order_number;
     if (row.status === "delivered") {
       await client.query("ROLLBACK");
       return { ok: true, status: "skipped", reason: "already_delivered" };
@@ -88,10 +97,63 @@ export async function deliverEsimToCustomer(
   }
 
   if (!isBongsimCheckoutTestMode()) {
-    const notify = { buyerEmail, orderId, qrCodeUrl, downloadLink };
-    placeholderSendEsimEmail(notify);
-    placeholderSendEsimAlimtalk(notify);
+    await sendEsimQrEmailBestEffort({
+      buyerEmail,
+      orderNumber,
+      qrCodeUrl,
+      downloadLink,
+    });
+    placeholderSendEsimAlimtalk({ buyerEmail, orderId, qrCodeUrl, downloadLink });
   }
 
   return { ok: true, status: "delivered" };
+}
+
+/**
+ * mock 공급사 등 웹훅 없이 job만 `delivered` 된 경우, topup/ job에서 QR·링크를 모아 고객 전달을 시도한다.
+ */
+export async function maybeDeliverEsimAfterFulfillment(orderId: string): Promise<void> {
+  const pool = getPgPool();
+  if (!pool) return;
+
+  const o = await pool.query<{ status: string; order_number: string }>(
+    `SELECT status, order_number FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
+    [orderId],
+  );
+  const order = o.rows[0];
+  if (!order || order.status !== "paid") return;
+
+  const j = await pool.query<{ status: string; supplier_id: string | null; supplier_iccid: string | null }>(
+    `SELECT status, supplier_id, supplier_iccid
+       FROM bongsim_fulfillment_job
+      WHERE order_id = $1
+      ORDER BY updated_at DESC NULLS LAST
+      LIMIT 1`,
+    [orderId],
+  );
+  const job = j.rows[0];
+  if (!job || job.status !== "delivered") return;
+
+  const t = await pool.query<{ qr_code_img_url: string | null; download_link: string | null }>(
+    `SELECT qr_code_img_url, download_link
+       FROM bongsim_fulfillment_topup
+      WHERE order_id = $1
+        AND (COALESCE(qr_code_img_url, '') <> '' OR COALESCE(download_link, '') <> '')
+      ORDER BY updated_at DESC NULLS LAST
+      LIMIT 1`,
+    [orderId],
+  );
+  const topup = t.rows[0];
+  let qr = topup?.qr_code_img_url?.trim() ?? "";
+  let dl = topup?.download_link?.trim() ?? "";
+
+  if ((!qr || !dl) && job.supplier_id === "bongsim_mock_supplier") {
+    const iccid = job.supplier_iccid?.trim() || "mock";
+    qr = qr || `https://bongtour.com/travel/esim/mock-qr?order=${encodeURIComponent(order.order_number)}`;
+    dl = dl || `LPA:1$mock.bongtour$${iccid}`;
+  }
+
+  if (!qr || !dl) return;
+
+  await deliverEsimToCustomer(orderId, qr, dl);
 }
