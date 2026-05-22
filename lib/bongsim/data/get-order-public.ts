@@ -118,9 +118,9 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
       ? {
           job_id: fr.job_id,
           status: fr.status,
-          supplier_submission_id: fr.supplier_submission_id,
-          supplier_profile_ref: fr.supplier_profile_ref ?? null,
-          supplier_iccid: fr.supplier_iccid ?? null,
+          supplier_submission_id: null,
+          supplier_profile_ref: null,
+          supplier_iccid: null,
           delivered_at: fr.delivered_at ? fr.delivered_at.toISOString() : null,
           attempt_count: fr.attempt_count,
         }
@@ -157,9 +157,9 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
       grand_total_krw: toInt(row.grand_total_krw),
       buyer_email_masked: maskEmail(row.buyer_email),
       paid_at: row.paid_at ? row.paid_at.toISOString() : null,
-      payment_reference: row.payment_reference,
+      payment_reference: null,
       paid_amount_krw: row.paid_amount_krw != null ? toInt(row.paid_amount_krw) : null,
-      payment_provider: row.payment_provider,
+      payment_provider: null,
       lines,
       fulfillment,
       install_stub: {

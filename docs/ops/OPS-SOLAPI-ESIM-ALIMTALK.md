@@ -15,7 +15,7 @@
 | 변수 | 내용 |
 |------|------|
 | `orderNumber` | 주문번호 (예: BS-20260522-…) |
-| `installLink` | USIMSA 설치/다운로드 URL |
+| `installLink` | eSIM 설치/다운로드 URL |
 | `qrLink` | QR 이미지 URL (없으면 installLink와 동일) |
 
 ## 예시 문구 (심사용 참고)

@@ -7,6 +7,38 @@ function formatKrw(n: number): string {
   return new Intl.NumberFormat("ko-KR").format(n) + "원";
 }
 
+function orderStatusLabel(status: string): string {
+  switch (status) {
+    case "paid":
+      return "결제 완료";
+    case "delivered":
+      return "발급 완료";
+    case "refunded":
+      return "환불 완료";
+    case "awaiting_payment":
+      return "결제 대기";
+    default:
+      return "처리 중";
+  }
+}
+
+function fulfillmentStatusLabel(status: string): string {
+  switch (status) {
+    case "delivered":
+      return "발급 완료";
+    case "failed":
+      return "발급 실패";
+    case "submitted":
+    case "acknowledged":
+    case "profile_issued":
+    case "in_progress":
+    case "queued":
+      return "발급 준비 중";
+    default:
+      return "처리 중";
+  }
+}
+
 function nextStepMessage(o: BongsimOrderPublicV1): string {
   if (o.status === "awaiting_payment") return "결제가 완료되면 이 페이지를 새로고침해 주세요.";
   if (o.status === "refunded") return "주문이 취소(환불)되었습니다.";
@@ -32,18 +64,12 @@ export function OrderCompleteRealView({ order }: { order: BongsimOrderPublicV1 }
         <dl className="mt-2 space-y-2 text-[13px] text-slate-700">
           <div className="flex justify-between gap-4">
             <dt>상태</dt>
-            <dd className="font-medium">{order.status}</dd>
+            <dd className="font-medium">{orderStatusLabel(order.status)}</dd>
           </div>
           {order.paid_at ? (
             <div className="flex justify-between gap-4">
               <dt>결제일시</dt>
               <dd>{order.paid_at}</dd>
-            </div>
-          ) : null}
-          {order.payment_reference ? (
-            <div className="flex justify-between gap-4">
-              <dt>결제 참조</dt>
-              <dd className="break-all font-mono text-[12px]">{order.payment_reference}</dd>
             </div>
           ) : null}
         </dl>
@@ -75,14 +101,8 @@ export function OrderCompleteRealView({ order }: { order: BongsimOrderPublicV1 }
           <dl className="mt-2 space-y-2 text-[13px] text-slate-700">
             <div className="flex justify-between gap-4">
               <dt>진행</dt>
-              <dd className="font-medium">{order.fulfillment.status}</dd>
+              <dd className="font-medium">{fulfillmentStatusLabel(order.fulfillment.status)}</dd>
             </div>
-            {order.fulfillment.supplier_submission_id ? (
-              <div className="flex flex-col gap-0.5">
-                <dt className="text-slate-500">공급 접수 ID</dt>
-                <dd className="break-all font-mono text-[12px]">{order.fulfillment.supplier_submission_id}</dd>
-              </div>
-            ) : null}
             {order.fulfillment.delivered_at ? (
               <div className="flex justify-between gap-4">
                 <dt>발급 완료</dt>

@@ -76,7 +76,7 @@ export async function GET(req: Request) {
       const userMsg = "사용량 조회에 실패했습니다. 잠시 후 다시 시도해주세요.";
       return jsonWithLeakGuard(
         {
-          error: "usimsa_error",
+          error: "usage_unavailable",
           user_message: userMsg,
           topup_id: topupId,
           allowance_label: allowanceLabel,
@@ -110,7 +110,7 @@ export async function GET(req: Request) {
       });
       const userMsg = "사용량 조회에 실패했습니다. 잠시 후 다시 시도해주세요.";
       return jsonWithLeakGuard(
-        { error: "usimsa_http", user_message: userMsg },
+        { error: "usage_unavailable", user_message: userMsg },
         "bongsim.mypage.usage.detail",
         { status: 502 },
       );

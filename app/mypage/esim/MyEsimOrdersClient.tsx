@@ -218,7 +218,7 @@ export default function MyEsimOrdersClient() {
               </button>
             </div>
             <div className="mt-4 flex justify-center rounded-xl bg-white p-4">
-              {/* eslint-disable-next-line @next/next/no-img-element -- 외부 USIMSA QR URL 동적 도메인 */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- 외부 eSIM QR URL 동적 도메인 */}
               <img
                 src={qrUrl}
                 alt="eSIM QR 코드"

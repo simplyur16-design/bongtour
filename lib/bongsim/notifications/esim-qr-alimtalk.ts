@@ -3,7 +3,7 @@ import { SolapiMessageService } from "solapi";
 export type EsimQrAlimtalkPayload = {
   customerPhone: string;
   orderNumber: string;
-  /** 카카오 템플릿 변수 `installLink` — USIMSA 다운로드/설치 URL */
+  /** 카카오 템플릿 변수 `installLink` — eSIM 설치/다운로드 URL */
   installLink: string;
   /** 카카오 템플릿 변수 `qrLink` — QR 이미지 URL (선택) */
   qrLink?: string;
