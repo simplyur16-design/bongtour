@@ -15,7 +15,12 @@ export type WelcomepayOutcome = "authorized" | "captured" | "failed" | "cancelle
 
 export type ProcessWelcomepayPaymentResult =
   | { ok: true; duplicate: boolean }
-  | { ok: false; reason: "db_unconfigured" | "db_error" | "unknown_attempt" | "amount_mismatch" | "not_payable" };
+  | {
+      ok: false;
+      reason: "db_unconfigured" | "db_error" | "unknown_attempt" | "amount_mismatch" | "not_payable";
+      /** 개발 모드 결제 실패 화면·로그용 (운영 URL에는 노출하지 않음) */
+      devDetail?: string;
+    };
 
 export type ProcessWelcomepayPaymentInput = {
   providerEventId: string;
@@ -232,26 +237,30 @@ export async function processWelcomepayPaymentOutcome(
     );
 
     const dedupeKey = `bongsim:order_paid:${order.order_id}`;
-    await client.query(
-      `INSERT INTO bongsim_outbox (topic, payload, dedupe_key)
-       VALUES ($1, $2::jsonb, $3)
-       ON CONFLICT (dedupe_key) DO NOTHING`,
-      [
-        "OrderPaid",
-        JSON.stringify({ order_id: order.order_id, payment_attempt_id: attempt.payment_attempt_id }),
-        dedupeKey,
-      ],
-    );
+    try {
+      await client.query(
+        `INSERT INTO bongsim_outbox (topic, payload, dedupe_key)
+         VALUES ($1, $2::jsonb, $3)
+         ON CONFLICT (dedupe_key) DO NOTHING`,
+        [
+          "OrderPaid",
+          JSON.stringify({ order_id: order.order_id, payment_attempt_id: attempt.payment_attempt_id }),
+          dedupeKey,
+        ],
+      );
+    } catch (e) {
+      const er = e as { code?: string; message?: string };
+      if (er.code === "42P01" || er.code === "42703") {
+        console.warn("[bongsim:outbox] skipped (schema):", er.message);
+      } else {
+        throw e;
+      }
+    }
 
     try {
       await recordBongsimCouponUsageAfterCapture(client, order.order_id);
     } catch (e) {
-      const er = e as { code?: string; message?: string };
-      if (er.code === "42P01" || er.code === "42703") {
-        console.warn("[bongsim_coupon_usage] skipped (schema):", er.message);
-      } else {
-        throw e;
-      }
+      console.warn("[bongsim_coupon_usage] skipped:", e);
     }
 
     await client.query("COMMIT");
@@ -261,13 +270,22 @@ export async function processWelcomepayPaymentOutcome(
     });
 
     return { ok: true, duplicate: false };
-  } catch {
+  } catch (e) {
+    console.error("[bongsim:welcomepay:process]", e);
     try {
       await client.query("ROLLBACK");
     } catch {
       /* ignore */
     }
-    return { ok: false, reason: "db_error" };
+    const er = e as { code?: string; message?: string };
+    const msg = er.message?.trim() || (e instanceof Error ? e.message : String(e));
+    const devDetail =
+      process.env.NODE_ENV === "development"
+        ? er.code === "42703"
+          ? `${msg} — db/bongsim-migrations/*.sql 적용 여부 확인`
+          : msg
+        : undefined;
+    return { ok: false, reason: "db_error", devDetail };
   } finally {
     client.release();
   }

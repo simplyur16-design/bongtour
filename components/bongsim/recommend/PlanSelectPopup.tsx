@@ -306,7 +306,8 @@ export function PlanSelectPopup({
           <button
             type="button"
             onClick={onBack}
-            className="min-h-[3rem] flex-1 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 lg:text-base"
+            className="min-h-[3rem] flex-1 rounded-xl border-2 border-slate-200 bg-white text-sm font-semibold !text-black transition hover:bg-slate-50 lg:text-base"
+            style={{ color: "#000" }}
           >
             이전
           </button>
@@ -314,11 +315,12 @@ export function PlanSelectPopup({
             type="button"
             disabled={!canComplete}
             onClick={() => selectedProduct && onComplete(selectedProduct, quantity)}
-            className={`min-h-[3rem] flex-1 rounded-xl text-sm font-bold transition lg:text-base ${
+            className={`min-h-[3rem] flex-1 rounded-xl text-sm font-bold !text-black transition lg:text-base ${
               canComplete
-                ? "bg-blue-500 text-white hover:bg-blue-600"
-                : "cursor-not-allowed bg-slate-300 text-slate-500"
+                ? "bg-blue-100 hover:bg-blue-200"
+                : "cursor-not-allowed bg-slate-200"
             }`}
+            style={{ color: "#000" }}
           >
             선택완료
           </button>

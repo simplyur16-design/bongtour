@@ -2,6 +2,7 @@
 
 import Header from "@/app/components/Header";
 import { bongsimPath } from "@/lib/bongsim/constants";
+import { buildCheckoutRetryHref } from "@/lib/bongsim/checkout/build-checkout-retry-href";
 import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
 import { Ban, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
@@ -18,6 +19,7 @@ function formatAmountKrw(raw: string): string | null {
 function ResultInner() {
   const sp = useSearchParams();
   const statusRaw = (sp?.get("status") ?? "").trim().toLowerCase();
+  const orderId = (sp?.get("orderId") ?? "").trim();
   const orderNumber = (sp?.get("orderNumber") ?? "").trim();
   /** 고객·CS용 표기 — UUID(orderId 쿼리)는 노출하지 않음 */
   const orderNoDisplay = orderNumber || "—";
@@ -30,7 +32,7 @@ function ResultInner() {
   }, []);
 
   const esimMainHref = bongsimPath();
-  const checkoutRetryHref = bongsimPath("/checkout");
+  const checkoutRetryHref = buildCheckoutRetryHref({ orderId });
   const guideHref = "/travel/esim/guide";
 
   const isCancel = statusRaw === "cancel";

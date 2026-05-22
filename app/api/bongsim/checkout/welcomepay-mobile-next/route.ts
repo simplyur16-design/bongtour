@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
+import { welcomepayCheckoutFailMessage } from "@/lib/bongsim/checkout/welcomepay-fail-message";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import {
@@ -138,7 +139,7 @@ export async function POST(req: Request) {
   });
 
   if (!fin.ok) {
-    return fail(fin.reason);
+    return fail(welcomepayCheckoutFailMessage(fin));
   }
 
   const okQ = new URLSearchParams();

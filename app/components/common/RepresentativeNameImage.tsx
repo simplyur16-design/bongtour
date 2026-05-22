@@ -43,6 +43,8 @@ export default function RepresentativeNameImage({
         height={36}
         sizes={compact ? '96px' : '140px'}
         className={imgClass}
+        unoptimized
+        suppressHydrationWarning
       />
     </span>
   )

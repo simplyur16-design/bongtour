@@ -11,6 +11,7 @@ import {
   resultCodeOf,
 } from "@/lib/bongsim/welcomepay-callback-parse";
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
+import { welcomepayCheckoutFailMessage } from "@/lib/bongsim/checkout/welcomepay-fail-message";
 import { isPaywelcomeHttpsUrl, welcomepayPayAuthUrl } from "@/lib/bongsim/welcomepay";
 
 export const dynamic = "force-dynamic";
@@ -133,7 +134,7 @@ export async function POST(req: Request) {
   });
 
   if (!fin.ok) {
-    return fail(fin.reason);
+    return fail(welcomepayCheckoutFailMessage(fin));
   }
 
   const okQ = new URLSearchParams();

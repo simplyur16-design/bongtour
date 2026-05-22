@@ -18,9 +18,22 @@ import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/pa
 import { readUtmFromSession } from "@/lib/utm-capture";
 import { useSession } from "next-auth/react";
 
+type CheckoutRetryContextResponse = {
+  ok?: boolean;
+  error?: string;
+  schema?: string;
+  order_id?: string;
+  order_number?: string;
+  option_api_id?: string;
+  quantity?: number;
+  buyer_email?: string;
+};
+
 type Props = {
   optionApiIdInitial: string;
   quantityInitial?: number;
+  /** 결제 실패 후 복귀 — 기존 주문에서 상품·수량·이메일 복원 */
+  orderIdInitial?: string;
 };
 
 function parseQtySearch(raw: string | null): number | undefined {
@@ -103,11 +116,21 @@ function formatMyCouponOptionLabel(r: MyCouponApiRow): string {
   return `${r.template_label} ${discText} (${dpart})`;
 }
 
-export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Props) {
+export function CheckoutStoreClient({
+  optionApiIdInitial,
+  quantityInitial,
+  orderIdInitial = "",
+}: Props) {
   const router = useRouter();
   const sp = useSearchParams();
   const { status: sessionStatus } = useSession();
-  const optionApiId = (sp?.get("optionApiId") ?? optionApiIdInitial).trim();
+  const orderIdFromUrl = (sp?.get("orderId") ?? orderIdInitial).trim();
+  const [resumeOrderId, setResumeOrderId] = useState("");
+  const [resumeOrderNumber, setResumeOrderNumber] = useState("");
+  const [resumeLoading, setResumeLoading] = useState(Boolean(orderIdFromUrl && !optionApiIdInitial.trim()));
+  const [resumeError, setResumeError] = useState<string | null>(null);
+  const [resolvedOptionApiId, setResolvedOptionApiId] = useState(optionApiIdInitial);
+  const optionApiId = (sp?.get("optionApiId") ?? resolvedOptionApiId).trim();
   const qtyFromSearch = parseQtySearch(sp?.get("qty") ?? null);
 
   const [detail, setDetail] = useState<BongsimProductDetailV1 | null>(null);
@@ -138,9 +161,67 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
   const paymentIdempotencyRef = useRef<string | null>(null);
 
   useEffect(() => {
+    setResolvedOptionApiId(optionApiIdInitial);
+  }, [optionApiIdInitial]);
+
+  useEffect(() => {
+    const oid = orderIdFromUrl;
+    if (!oid) {
+      setResumeLoading(false);
+      setResumeOrderId("");
+      setResumeOrderNumber("");
+      return;
+    }
+    if ((sp?.get("optionApiId") ?? "").trim()) {
+      setResumeLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setResumeLoading(true);
+    setResumeError(null);
+    (async () => {
+      try {
+        const res = await fetch(`/api/bongsim/checkout/retry-context?orderId=${encodeURIComponent(oid)}`, {
+          method: "GET",
+        });
+        const j = (await res.json().catch(() => ({}))) as CheckoutRetryContextResponse;
+        if (cancelled) return;
+        if (!res.ok || j.ok !== true || !j.option_api_id?.trim() || !j.order_id?.trim()) {
+          setResumeError(
+            j.error === "not_payable"
+              ? "이미 처리된 주문입니다. eSIM 메인에서 새로 주문해 주세요."
+              : "이전 주문 정보를 불러오지 못했습니다.",
+          );
+          setResumeOrderId("");
+          return;
+        }
+        const optId = j.option_api_id.trim();
+        const qty =
+          typeof j.quantity === "number" && Number.isFinite(j.quantity) ? Math.trunc(j.quantity) : 1;
+        setResolvedOptionApiId(optId);
+        setQuantity(Math.max(1, Math.min(99, qty)));
+        if (typeof j.buyer_email === "string" && j.buyer_email.trim()) {
+          setEmail(j.buyer_email.trim());
+        }
+        setResumeOrderId(j.order_id.trim());
+        setResumeOrderNumber((j.order_number ?? "").trim());
+        const q = new URLSearchParams({ orderId: oid, optionApiId: optId, qty: String(qty) });
+        router.replace(`${bongsimPath("/checkout")}?${q.toString()}`, { scroll: false });
+      } catch {
+        if (!cancelled) setResumeError("이전 주문 정보를 불러오지 못했습니다.");
+      } finally {
+        if (!cancelled) setResumeLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [orderIdFromUrl, router, sp]);
+
+  useEffect(() => {
     checkoutIdempotencyRef.current = null;
     paymentIdempotencyRef.current = null;
-  }, [optionApiId]);
+  }, [optionApiId, resumeOrderId]);
 
   useEffect(() => {
     setCouponCode("");
@@ -370,6 +451,13 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
       const checkoutKey = checkoutIdempotencyRef.current ?? (checkoutIdempotencyRef.current = crypto.randomUUID());
 
       try {
+        let orderId: string;
+        let orderNumber: string;
+
+        if (resumeOrderId) {
+          orderId = resumeOrderId;
+          orderNumber = resumeOrderNumber;
+        } else {
         const confirmBody: Record<string, unknown> = {
           schema: "bongsim.checkout_confirm.request.v1",
           option_api_id: optionApiId,
@@ -407,8 +495,9 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
           setSubmitError("주문 응답이 올바르지 않습니다.");
           return;
         }
-        const orderId = cj.order.order_id;
-        const orderNumber = cj.order.order_number.trim();
+        orderId = cj.order.order_id;
+        orderNumber = cj.order.order_number.trim();
+        }
 
         const paymentKey = paymentIdempotencyRef.current ?? (paymentIdempotencyRef.current = crypto.randomUUID());
         const q = new URLSearchParams({
@@ -462,7 +551,20 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
         setSubmitting(false);
       }
     },
-    [appliedCouponId, appliedOrderDiscountKrw, appliedUserCouponId, detail, email, locale, optionApiId, quantity, router, terms],
+    [
+      appliedCouponId,
+      appliedOrderDiscountKrw,
+      appliedUserCouponId,
+      detail,
+      email,
+      locale,
+      optionApiId,
+      quantity,
+      resumeOrderId,
+      resumeOrderNumber,
+      router,
+      terms,
+    ],
   );
 
   return (
@@ -477,14 +579,32 @@ export function CheckoutStoreClient({ optionApiIdInitial, quantityInitial }: Pro
         </nav>
         <h1 className="mt-3 text-[20px] font-semibold text-slate-900 lg:mt-4 lg:text-2xl">주문·결제</h1>
 
-        {!optionApiId ? (
-          <p className="mt-4 text-sm text-slate-600 lg:mt-5 lg:text-base">상품을 선택한 뒤 다시 시도해 주세요.</p>
+        {resumeLoading ? (
+          <p className="mt-4 text-sm text-slate-600 lg:mt-5 lg:text-base">이전 주문 정보를 불러오는 중…</p>
+        ) : resumeError ? (
+          <p className="mt-4 text-sm text-red-700 lg:mt-5 lg:text-base">{resumeError}</p>
+        ) : !optionApiId ? (
+          <p className="mt-4 text-sm text-slate-600 lg:mt-5 lg:text-base">
+            상품을 선택한 뒤 다시 시도해 주세요.{" "}
+            <Link href={bongsimPath()} className="font-medium text-teal-800 underline">
+              eSIM 메인으로
+            </Link>
+          </p>
         ) : loadError ? (
           <p className="mt-4 text-sm text-red-700 lg:mt-5 lg:text-base">{loadError}</p>
         ) : !detail ? (
           <p className="mt-4 text-sm text-slate-600 lg:mt-5 lg:text-base">불러오는 중…</p>
         ) : (
           <div className="mt-4 space-y-4 lg:mt-5 lg:space-y-5">
+            {resumeOrderId ? (
+              <section className="rounded-xl border border-teal-200 bg-teal-50/90 px-4 py-3 text-sm text-teal-950">
+                <p className="font-semibold">결제를 이어서 진행합니다</p>
+                <p className="mt-1 text-teal-900/90">
+                  주문번호 <span className="font-mono">{resumeOrderNumber || "—"}</span> · 내용 확인 후 아래{" "}
+                  <strong>결제하기</strong>를 눌러 주세요.
+                </p>
+              </section>
+            ) : null}
             {recommendQueue && recommendQueue.length > 1 ? (
               <section className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-[13px] leading-snug text-amber-950 lg:p-5 lg:text-[15px]">
                 <p className="font-semibold">추천에서 여러 국가 상품을 담았어요</p>

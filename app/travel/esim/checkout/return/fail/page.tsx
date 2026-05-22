@@ -2,6 +2,7 @@
 
 import Header from "@/app/components/Header";
 import { bongsimPath } from "@/lib/bongsim/constants";
+import { buildCheckoutRetryHref } from "@/lib/bongsim/checkout/build-checkout-retry-href";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -14,12 +15,10 @@ function FailInner() {
   const optionApiId = (sp?.get("optionApiId") ?? "").trim();
   const reason = (sp?.get("reason") ?? "").trim();
 
-  const retryHref =
-    optionApiId && orderId
-      ? bongsimPath(`/checkout?optionApiId=${encodeURIComponent(optionApiId)}`)
-      : optionApiId
-        ? bongsimPath(`/checkout?optionApiId=${encodeURIComponent(optionApiId)}`)
-        : bongsimPath("/checkout");
+  const retryHref = buildCheckoutRetryHref({
+    orderId: orderId || undefined,
+    optionApiId: optionApiId || undefined,
+  });
 
   return (
     <div className="min-h-screen bg-bt-page">
