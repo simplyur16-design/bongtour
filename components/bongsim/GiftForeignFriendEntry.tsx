@@ -20,7 +20,9 @@ export function GiftForeignFriendEntry({ className = "", onClick }: Props) {
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-wide text-violet-700/90">대한민국 출발 · 선물 전용</p>
           <p className="mt-1 text-[15px] font-bold leading-snug text-violet-950 sm:text-[16px]">외국인 친구에게 eSIM 선물하기</p>
-          <p className="mt-1 text-[12px] leading-relaxed text-slate-600">여행 목적지 선택과는 따로 준비 중인 메뉴예요.</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-slate-600">
+            상품을 고른 뒤 결제 화면에서 「선물하기」를 켜고 받는 분 연락처를 입력하세요.
+          </p>
         </div>
       </div>
     </button>

@@ -5,10 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BONGSIM_CHECKOUT_TERMS_VERSION } from "@/lib/bongsim/checkout/terms";
 import {
+  BONGSIM_GIFT_CHECKOUT_FLAG_KEY,
   BONGSIM_RECOMMEND_CHECKOUT_QUEUE_KEY,
   bongsimPath,
   type BongsimRecommendCheckoutLine,
 } from "@/lib/bongsim/constants";
+import { formatKoreanTelInput } from "@/lib/korean-tel-format";
+import { formatBuyerPhoneDisplay } from "@/lib/bongsim/phone/normalize-buyer-phone";
 import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import type { BongsimProductDetailV1 } from "@/lib/bongsim/contracts/product-detail.v1";
@@ -35,6 +38,8 @@ type Props = {
   quantityInitial?: number;
   /** 결제 실패 후 복귀 — 기존 주문에서 상품·수량·이메일 복원 */
   orderIdInitial?: string;
+  /** URL `?gift=1` — 선물하기 기본 선택 */
+  giftInitial?: boolean;
 };
 
 function parseQtySearch(raw: string | null): number | undefined {
@@ -121,6 +126,7 @@ export function CheckoutStoreClient({
   optionApiIdInitial,
   quantityInitial,
   orderIdInitial = "",
+  giftInitial = false,
 }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -138,6 +144,10 @@ export function CheckoutStoreClient({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [isGift, setIsGift] = useState(giftInitial);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
+  const [recipientName, setRecipientName] = useState("");
   const [quantity, setQuantity] = useState(() => quantityInitial ?? 1);
   const [recommendQueue, setRecommendQueue] = useState<BongsimRecommendCheckoutLine[] | null>(null);
   const [terms, setTerms] = useState(false);
@@ -163,10 +173,20 @@ export function CheckoutStoreClient({
   const paymentIdempotencyRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (giftInitial) {
+      setIsGift(true);
+      sessionStorage.setItem(BONGSIM_GIFT_CHECKOUT_FLAG_KEY, "1");
+      return;
+    }
+    if (sessionStorage.getItem(BONGSIM_GIFT_CHECKOUT_FLAG_KEY) === "1") setIsGift(true);
+  }, [giftInitial]);
+
+  useEffect(() => {
     if (sessionStatus !== "authenticated" || phone.trim()) return;
     const u = sessionData?.user as { phone?: string } | undefined;
     const p = (u?.phone ?? "").trim();
-    if (p) setPhone(p);
+    if (p) setPhone(formatBuyerPhoneDisplay(p));
   }, [sessionStatus, sessionData, phone]);
 
   useEffect(() => {
@@ -213,7 +233,7 @@ export function CheckoutStoreClient({
           setEmail(j.buyer_email.trim());
         }
         if (typeof j.buyer_phone === "string" && j.buyer_phone.trim()) {
-          setPhone(j.buyer_phone.trim());
+          setPhone(formatBuyerPhoneDisplay(j.buyer_phone.trim()));
         }
         setResumeOrderId(j.order_id.trim());
         setResumeOrderNumber((j.order_number ?? "").trim());
@@ -453,9 +473,25 @@ export function CheckoutStoreClient({
         return;
       }
       const ph = phone.replace(/\D/g, "");
-      if (ph.length < 10 || ph.length > 11 || !ph.startsWith("01")) {
-        setSubmitError("알림톡 수신용 휴대폰 번호(010…)를 입력해 주세요.");
+      if (!ph || ph.length < 10 || ph.length > 11 || !ph.startsWith("01")) {
+        setSubmitError(
+          isGift
+            ? "구매자(결제자) 휴대폰 번호를 010-0000-0000 형식으로 입력해 주세요."
+            : "휴대폰 번호를 010-0000-0000 형식으로 입력해 주세요. (필수)",
+        );
         return;
+      }
+      if (isGift) {
+        const rem = recipientEmail.trim();
+        if (!rem || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rem)) {
+          setSubmitError("받는 분 이메일을 입력해 주세요.");
+          return;
+        }
+        const rph = recipientPhone.replace(/\D/g, "");
+        if (!rph || rph.length < 10 || rph.length > 11 || !rph.startsWith("01")) {
+          setSubmitError("받는 분 휴대폰 번호를 010-0000-0000 형식으로 입력해 주세요. (필수)");
+          return;
+        }
       }
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
         setSubmitError("수량은 1~99 사이 정수여야 합니다.");
@@ -488,6 +524,14 @@ export function CheckoutStoreClient({
             terms_version: BONGSIM_CHECKOUT_TERMS_VERSION,
             terms_accepted: true,
             marketing: { accepted: false, version: null },
+            gift: isGift
+              ? {
+                  is_gift: true,
+                  recipient_email: recipientEmail.trim(),
+                  recipient_phone: recipientPhone.replace(/\D/g, ""),
+                  recipient_name: recipientName.trim() || null,
+                }
+              : { is_gift: false },
           },
         };
         if (appliedUserCouponId && appliedOrderDiscountKrw != null && appliedOrderDiscountKrw > 0) {
@@ -576,6 +620,10 @@ export function CheckoutStoreClient({
       detail,
       email,
       phone,
+      isGift,
+      recipientEmail,
+      recipientPhone,
+      recipientName,
       locale,
       optionApiId,
       quantity,
@@ -675,42 +723,114 @@ export function CheckoutStoreClient({
             </section>
 
             <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:space-y-5 lg:p-5">
-              <label className="block">
-                <span
-                  className="text-[12px] font-medium text-slate-700 lg:text-sm"
-                  style={{ color: "#1e293b" }}
-                >
-                  휴대폰 (카카오 알림톡)
-                </span>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  value={phone}
-                  onChange={(ev) => setPhone(ev.target.value)}
-                  placeholder="01012345678"
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[15px] text-slate-900 lg:py-3"
-                  required
-                />
-                <p className="mt-1 text-[11px] text-slate-500">eSIM QR·설치 안내를 카카오톡으로 보내드려요.</p>
-              </label>
+              <div className="rounded-xl border border-violet-200 bg-violet-50/60 px-3 py-3">
+                <label className="flex cursor-pointer items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={isGift}
+                    onChange={(ev) => setIsGift(ev.target.checked)}
+                    className="mt-0.5 accent-violet-700"
+                  />
+                  <span className="min-w-0">
+                    <span className="text-[14px] font-semibold text-violet-950">선물하기</span>
+                    <span className="mt-0.5 block text-[12px] leading-relaxed text-violet-900/90">
+                      QR·설치 안내는 받는 분 연락처로 보내드려요. 결제·주문 확인은 아래 구매자 정보를 사용합니다.
+                    </span>
+                  </span>
+                </label>
+              </div>
 
-              <label className="block">
-                <span
-                  className="text-[12px] font-medium text-slate-700 lg:text-sm"
-                  style={{ color: "#1e293b" }}
-                >
-                  이메일
-                </span>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(ev) => setEmail(ev.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
-                  autoComplete="email"
-                  required
-                />
-              </label>
+              {isGift ? (
+                <fieldset className="space-y-3 rounded-xl border border-violet-100 bg-white p-3">
+                  <legend className="px-1 text-[13px] font-semibold text-violet-950">받는 분</legend>
+                  <label className="block">
+                    <span className="text-[12px] font-medium text-slate-700 lg:text-sm">
+                      받는 분 이름 <span className="font-normal text-slate-500">(선택)</span>
+                    </span>
+                    <input
+                      type="text"
+                      value={recipientName}
+                      onChange={(ev) => setRecipientName(ev.target.value)}
+                      placeholder="친구 이름"
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[15px] text-slate-900"
+                      autoComplete="name"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[12px] font-medium text-slate-700 lg:text-sm">
+                      받는 분 휴대폰 <span className="text-red-600">*</span>
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={recipientPhone}
+                      onChange={(ev) => setRecipientPhone(formatKoreanTelInput(ev.target.value))}
+                      placeholder="010-0000-0000"
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[15px] text-slate-900 lg:py-3"
+                      required={isGift}
+                    />
+                    <p className="mt-1 text-[11px] text-slate-500">eSIM QR·설치 안내 카카오 알림톡 수신 번호</p>
+                  </label>
+                  <label className="block">
+                    <span className="text-[12px] font-medium text-slate-700 lg:text-sm">
+                      받는 분 이메일 <span className="text-red-600">*</span>
+                    </span>
+                    <input
+                      type="email"
+                      value={recipientEmail}
+                      onChange={(ev) => setRecipientEmail(ev.target.value)}
+                      placeholder="friend@example.com"
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[15px] text-slate-900"
+                      autoComplete="off"
+                      required={isGift}
+                    />
+                    <p className="mt-1 text-[11px] text-slate-500">QR·설치 링크 메일 수신</p>
+                  </label>
+                </fieldset>
+              ) : null}
+
+              <fieldset className={isGift ? "space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3" : "space-y-3"}>
+                {isGift ? (
+                  <legend className="px-1 text-[13px] font-semibold text-slate-800">구매자 (결제자)</legend>
+                ) : null}
+                <label className="block">
+                  <span className="text-[12px] font-medium text-slate-700 lg:text-sm">
+                    {isGift ? "구매자 휴대폰" : "휴대폰 번호"}{" "}
+                    <span className="text-red-600">*</span>
+                  </span>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={phone}
+                    onChange={(ev) => setPhone(formatKoreanTelInput(ev.target.value))}
+                    placeholder="010-0000-0000"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[15px] text-slate-900 lg:py-3"
+                    required
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    {isGift
+                      ? "결제·주문 문의용 연락처입니다."
+                      : "eSIM QR·설치 안내를 카카오톡·이메일로 보내드려요."}
+                  </p>
+                </label>
+
+                <label className="block">
+                  <span className="text-[12px] font-medium text-slate-700 lg:text-sm">
+                    {isGift ? "구매자 이메일" : "이메일"}{" "}
+                    {!isGift ? null : <span className="text-red-600">*</span>}
+                  </span>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(ev) => setEmail(ev.target.value)}
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
+                    autoComplete="email"
+                    required
+                  />
+                </label>
+              </fieldset>
               <label className="block">
                 <span
                   className="text-[12px] font-medium text-slate-700 lg:text-sm"

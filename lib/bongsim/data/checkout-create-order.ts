@@ -10,6 +10,11 @@ import { parseFlagsJson, parsePriceBlockJson } from "@/lib/bongsim/data/parse-pr
 import { assertBongsimCouponForOrderInsert } from "@/lib/bongsim/data/bongsim-coupon";
 import { validateUserCouponForOrderInsert } from "@/lib/bongsim/data/user-coupon";
 import { parsePublicAttributionFromBody } from "@/lib/public-attribution-body";
+import {
+  buildGiftConsentsJson,
+  parseGiftFromCheckoutBody,
+  validateGiftConsents,
+} from "@/lib/bongsim/checkout/gift-order";
 import { isValidBuyerPhoneInput, normalizeBuyerPhone } from "@/lib/bongsim/phone/normalize-buyer-phone";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
@@ -330,6 +335,8 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
       details.bongtour_user_id = "login_required_for_user_coupon";
     }
   }
+  const gift = parseGiftFromCheckoutBody(o.consents);
+  Object.assign(details, validateGiftConsents(gift));
   if (Object.keys(details).length) return { ok: false, details };
   const locale = o.buyer_locale;
   const buyer_locale = locale === "ko" || locale === "en" ? locale : undefined;
@@ -473,6 +480,8 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
       consentsJson.coupon_id = req.coupon_id;
       consentsJson.coupon_discount_krw = discount_krw;
     }
+    const giftJson = buildGiftConsentsJson(parseGiftFromCheckoutBody(req.consents));
+    if (giftJson) consentsJson.gift = giftJson;
 
     const grand_total = Math.max(0, line_total - discount_krw);
     const orderNumber = makeOrderNumber();

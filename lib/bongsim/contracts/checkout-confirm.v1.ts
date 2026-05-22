@@ -14,6 +14,13 @@ export type BongsimCheckoutConfirmRequestV1 = {
     terms_version?: string;
     terms_accepted?: boolean;
     marketing?: { accepted?: boolean; version?: string | null };
+    /** 선물하기 — QR·알림톡은 받는 분 연락처로 발송 */
+    gift?: {
+      is_gift: boolean;
+      recipient_email?: string;
+      recipient_phone?: string;
+      recipient_name?: string | null;
+    };
   };
   /** `/api/bongsim/coupon/validate` 응답의 `coupon_id` + 할인액(원). 둘 다 있을 때만 적용. */
   coupon_id?: string | null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { bongsimPath } from '@/lib/bongsim/constants'
+import { BONGSIM_GIFT_CHECKOUT_FLAG_KEY, bongsimPath } from "@/lib/bongsim/constants";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GiftForeignFriendEntry } from "@/components/bongsim/GiftForeignFriendEntry";
@@ -134,7 +134,16 @@ export function BongsimHomeMobile() {
               </button>
             </div>
 
-            <GiftForeignFriendEntry className="mt-5 lg:mt-0" />
+            <GiftForeignFriendEntry
+              className="mt-5 lg:mt-0"
+              onClick={() => {
+                try {
+                  sessionStorage.setItem(BONGSIM_GIFT_CHECKOUT_FLAG_KEY, "1");
+                } catch {
+                  /* ignore */
+                }
+              }}
+            />
           </div>
 
           <div className="mt-5 min-h-[12rem] lg:mt-0 lg:min-h-[14rem] lg:border-l lg:border-slate-100 lg:pl-10 xl:pl-12">

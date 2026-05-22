@@ -35,6 +35,9 @@ export const ORDERS_STORAGE_KEY = "bongsim:orders:v1";
 /** 추천 퍼널 → 체크아웃: 국가별 `{ optionApiId, quantity }[]` (JSON, sessionStorage) */
 export const BONGSIM_RECOMMEND_CHECKOUT_QUEUE_KEY = "bongsim:recommend_checkout_queue:v1";
 
+/** eSIM 홈 「선물하기」 → 체크아웃에서 선물 모드 기본 켜기 */
+export const BONGSIM_GIFT_CHECKOUT_FLAG_KEY = "bongsim:gift_checkout:v1";
+
 export type BongsimRecommendCheckoutLine = { optionApiId: string; quantity: number };
 
 export const EMPTY_FUNNEL: FunnelState = {

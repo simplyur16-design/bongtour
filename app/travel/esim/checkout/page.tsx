@@ -2,7 +2,9 @@ import { Suspense } from "react";
 import Header from '@/app/components/Header'
 import { CheckoutStoreClient } from "@/components/bongsim/checkout-store/CheckoutStoreClient";
 
-type Props = { searchParams: Promise<{ optionApiId?: string; qty?: string; orderId?: string }> };
+type Props = {
+  searchParams: Promise<{ optionApiId?: string; qty?: string; orderId?: string; gift?: string }>;
+};
 
 function parseQtyInitial(raw: string | undefined): number | undefined {
   const n = Number.parseInt(String(raw ?? "").trim(), 10);
@@ -17,6 +19,7 @@ async function CheckoutInner({ searchParams }: Props) {
       optionApiIdInitial={(q.optionApiId ?? "").trim()}
       quantityInitial={parseQtyInitial(q.qty)}
       orderIdInitial={(q.orderId ?? "").trim()}
+      giftInitial={q.gift === "1"}
     />
   );
 }

@@ -1,4 +1,5 @@
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { resolveEsimDeliveryContact } from "@/lib/bongsim/checkout/gift-order";
 import { resolveBuyerPhoneForOrder } from "@/lib/bongsim/data/resolve-buyer-phone";
 import { sendTravelEsimOrderQrMail } from "@/lib/bongsim/email/travel-esim-order-qr-mail";
 import { sendEsimQrDeliveredAlimTalk } from "@/lib/bongsim/notifications/esim-qr-alimtalk";
@@ -38,11 +39,12 @@ async function sendEsimQrEmailBestEffort(params: {
 async function notifyEsimQrToCustomer(params: {
   orderId: string;
   orderNumber: string;
-  buyerEmail: string;
+  deliveryEmail: string;
+  deliveryPhone: string | null;
   qrCodeUrl: string;
   downloadLink: string;
 }): Promise<void> {
-  const phone = await resolveBuyerPhoneForOrder(params.orderId);
+  const phone = params.deliveryPhone ?? (await resolveBuyerPhoneForOrder(params.orderId));
   if (phone) {
     const alim = await sendEsimQrDeliveredAlimTalk(params.orderId, {
       customerPhone: phone,
@@ -64,7 +66,7 @@ async function notifyEsimQrToCustomer(params: {
   }
 
   await sendEsimQrEmailBestEffort({
-    buyerEmail: params.buyerEmail,
+    buyerEmail: params.deliveryEmail,
     orderNumber: params.orderNumber,
     qrCodeUrl: params.qrCodeUrl,
     downloadLink: params.downloadLink,
@@ -85,12 +87,20 @@ export async function deliverEsimToCustomer(
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 
   const client = await pool.connect();
-  let buyerEmail = "";
+  let deliveryEmail = "";
+  let deliveryPhone: string | null = null;
   let orderNumber = "";
   try {
     await client.query("BEGIN");
-    const r = await client.query<{ status: string; buyer_email: string; order_number: string }>(
-      `SELECT status, buyer_email, order_number FROM bongsim_order WHERE order_id = $1::uuid FOR UPDATE`,
+    const r = await client.query<{
+      status: string;
+      buyer_email: string;
+      buyer_phone: string | null;
+      order_number: string;
+      consents: unknown;
+    }>(
+      `SELECT status, buyer_email, buyer_phone, order_number, consents
+         FROM bongsim_order WHERE order_id = $1::uuid FOR UPDATE`,
       [orderId],
     );
     const row = r.rows[0];
@@ -98,7 +108,13 @@ export async function deliverEsimToCustomer(
       await client.query("ROLLBACK");
       return { ok: true, status: "skipped", reason: "order_not_found" };
     }
-    buyerEmail = row.buyer_email;
+    const contact = resolveEsimDeliveryContact({
+      buyer_email: row.buyer_email,
+      buyer_phone: row.buyer_phone,
+      consents: row.consents,
+    });
+    deliveryEmail = contact.email;
+    deliveryPhone = contact.phone;
     orderNumber = row.order_number;
     if (row.status === "delivered") {
       await client.query("ROLLBACK");
@@ -129,7 +145,8 @@ export async function deliverEsimToCustomer(
     await notifyEsimQrToCustomer({
       orderId,
       orderNumber,
-      buyerEmail,
+      deliveryEmail,
+      deliveryPhone,
       qrCodeUrl,
       downloadLink,
     });

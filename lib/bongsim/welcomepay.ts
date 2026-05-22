@@ -24,11 +24,11 @@ export function welcomepayStdPayOrigin(): string {
     : "https://tstdpay.paywelcome.co.kr";
 }
 
-/** PAYAPI(취소·조회) — stdpay가 아닌 iniapi 호스트 (이니시스 V1/V2 매뉴얼). */
+/** PAYAPI(취소·조회) — 이니시스 INIAPI 호스트 (paywelcome `iniapi.*` DNS 미제공). */
 export function welcomepayIniapiOrigin(): string {
   return resolveWelcomepayEnv() === "production"
-    ? "https://iniapi.paywelcome.co.kr"
-    : "https://stginiapi.paywelcome.co.kr";
+    ? "https://iniapi.inicis.com"
+    : "https://stginiapi.inicis.com";
 }
 
 export function welcomepayStdPayScriptUrl(): string {
