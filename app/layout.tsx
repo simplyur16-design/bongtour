@@ -13,6 +13,11 @@ import MobileStickyBar from './components/MobileStickyBar'
 const BongtourSplash = dynamic(() =>
   import('@/components/bongtour/BongtourSplash').then((m) => ({ default: m.BongtourSplash })),
 )
+const TrialOperationNoticeModal = dynamic(() =>
+  import('@/components/bongtour/TrialOperationNoticeModal').then((m) => ({
+    default: m.TrialOperationNoticeModal,
+  })),
+)
 import { DEFAULT_OG_IMAGE_PATH, getSiteOrigin, SITE_NAME } from '@/lib/site-metadata'
 
 const siteOrigin = getSiteOrigin()
@@ -85,6 +90,7 @@ export default function RootLayout({
     <html lang="ko" className={`${notoSansKr.variable} ${hubOutfit.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-beige antialiased font-sans flex flex-col pb-20 lg:pb-0">
         <BongtourSplash />
+        <TrialOperationNoticeModal />
         <ChunkLoadRecovery />
         <AntiCopyProtectionGate />
         <GoogleTagManager />

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { extractSingleCountryCode, resolveMultiCoverage } from "@/lib/bongsim/plan-coverage-map";
 
 /** Next 15 GET Route Handler 기본 비캐시 대응 — 플랜 메타 반영 지연 허용 */
@@ -28,7 +29,7 @@ export async function GET() {
     const { rows } = await pool.query<{ plan_name: string }>(
       `SELECT DISTINCT TRIM(plan_name) AS plan_name
        FROM bongsim_product_option
-       WHERE is_active = true
+       WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
          AND plan_name IS NOT NULL AND TRIM(plan_name) <> ''`,
     );
 

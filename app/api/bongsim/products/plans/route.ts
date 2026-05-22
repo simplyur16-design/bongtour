@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
+import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { parseFlagsJson } from "@/lib/bongsim/data/parse-product-json";
 import { doesPlanCoverAllSelected, getPlanCoveredCountries } from "@/lib/bongsim/plan-coverage-map";
@@ -349,7 +350,7 @@ export async function GET(req: Request) {
         flags,
         qos_raw
       FROM bongsim_product_option
-      WHERE is_active = true
+      WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
         AND ($1::text IS NULL OR lower(network_family) = lower($1::text))
         AND plan_type IS NOT NULL
         AND lower(plan_type) IN ('unlimited', 'daily')

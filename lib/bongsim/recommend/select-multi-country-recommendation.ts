@@ -1,3 +1,4 @@
+import { isEsimCapableSimKind } from "@/lib/bongsim/catalog/active-product-sql";
 import type { BongsimProductOptionV1 } from "@/lib/bongsim/contracts/product-master.v1";
 import { getPlanCoveredCountries } from "@/lib/bongsim/plan-coverage-map";
 import { computeRecommendedPrice } from "@/lib/bongsim/recommend/product-option";
@@ -48,6 +49,7 @@ function filterMultiEligible(
   return candidates.filter((o) => {
     const row = o as OptionWithActive;
     if (row.is_active === false) return false;
+    if (!isEsimCapableSimKind(o.sim_kind)) return false;
     const covered = getPlanCoveredCountries(o.plan_name).map((c) => c.toLowerCase());
     if (covered.length < 2) return false;
     return selectedNorm.every((code) => covered.includes(code));

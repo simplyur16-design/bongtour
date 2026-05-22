@@ -16,6 +16,7 @@ import {
   validateGiftConsents,
 } from "@/lib/bongsim/checkout/gift-order";
 import { isValidBuyerPhoneInput, normalizeBuyerPhone } from "@/lib/bongsim/phone/normalize-buyer-phone";
+import { BONGSIM_CATALOG_ACTIVE_WHERE, isEsimCapableSimKind } from "@/lib/bongsim/catalog/active-product-sql";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
 
@@ -433,7 +434,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     }
 
     const pr = await client.query<BongsimProductOptionDbRow>(
-      `SELECT * FROM bongsim_product_option WHERE option_api_id = $1 AND is_active = true FOR SHARE`,
+      `SELECT * FROM bongsim_product_option WHERE option_api_id = $1 AND ${BONGSIM_CATALOG_ACTIVE_WHERE} FOR SHARE`,
       [req.option_api_id],
     );
     if (!pr.rows[0]) {
@@ -441,6 +442,17 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
       return { ok: false, reason: "product_not_found" };
     }
     const opt = mapDbRowToProductOptionV1(pr.rows[0]);
+    if (!isEsimCapableSimKind(opt.sim_kind)) {
+      await client.query("ROLLBACK");
+      return {
+        ok: false,
+        reason: "validation",
+        details: {
+          product:
+            "이 상품은 eSIM 발급이 지원되지 않습니다. uSIM 전용 상품은 eSIM 주문으로 구매할 수 없습니다.",
+        },
+      };
+    }
 
     const { basis_key, unit_krw } = selectChargedUnitPriceKrw(opt.price_block);
     const line_total = unit_krw * req.quantity;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
+import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { planNameKrFromCountryCode } from "@/lib/bongsim/country-options";
 import {
@@ -88,7 +89,7 @@ export async function GET(req: Request) {
         price_block,
         flags
       FROM bongsim_product_option
-      WHERE is_active = true
+      WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
       ORDER BY plan_name, days_raw, COALESCE(
         (price_block->'after'->>'consumer_krw')::numeric,
         (price_block->'before'->>'consumer_krw')::numeric

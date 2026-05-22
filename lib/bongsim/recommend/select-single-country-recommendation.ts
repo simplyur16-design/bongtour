@@ -1,3 +1,4 @@
+import { isEsimCapableSimKind } from "@/lib/bongsim/catalog/active-product-sql";
 import type { BongsimProductOptionV1 } from "@/lib/bongsim/contracts/product-master.v1";
 import { computeRecommendedPrice } from "@/lib/bongsim/recommend/product-option";
 import { allowanceTierBucket, isParsedAllowanceMb, parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
@@ -40,6 +41,7 @@ function preFilterCandidates(candidates: BongsimProductOptionV1[]): BongsimProdu
   return candidates.filter((o) => {
     const row = o as OptionWithActive;
     if (row.is_active === false) return false;
+    if (!isEsimCapableSimKind(o.sim_kind)) return false;
     const pa = parseAllowance(o.allowance_label);
     if (pa.kind === "unknown" && o.plan_type !== "unlimited") return false;
     return true;
