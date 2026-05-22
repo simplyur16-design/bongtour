@@ -1,3 +1,4 @@
+import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 
 export type CatalogProductListRow = {
@@ -45,7 +46,8 @@ export async function listCatalogProducts(params: ListCatalogProductsParams): Pr
          days_raw,
          price_block
        FROM bongsim_product_option
-       WHERE ($1::text IS NULL OR network_family = $1)
+       WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
+         AND ($1::text IS NULL OR network_family = $1)
          AND ($2::text IS NULL OR plan_type IS NOT DISTINCT FROM $2)
          AND (
            $3::text IS NULL

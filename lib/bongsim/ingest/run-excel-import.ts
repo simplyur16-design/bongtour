@@ -11,6 +11,7 @@ import { hashExcelRowStable } from "@/lib/bongsim/ingest/excel-hash-row";
 import { parseIngestSheet, readWorkbookFromBuffer, sheetRowsAsRecords } from "@/lib/bongsim/ingest/excel-parse-workbook";
 import type { BongsimProductOptionV1 } from "@/lib/bongsim/contracts/product-master.v1";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { isActiveFromExcelUpdateType } from "@/lib/bongsim/ingest/excel-update-type-active";
 
 export type RunExcelImportResult =
   | {
@@ -33,21 +34,23 @@ function workbookIdFromBuffer(buf: Buffer): string {
 }
 
 async function upsertProductOption(client: PoolClient, opt: BongsimProductOptionV1): Promise<void> {
+  const is_active = isActiveFromExcelUpdateType(opt.excel_update_type);
   await client.query(
     `INSERT INTO bongsim_product_option (
       option_api_id, vendor_code, sim_kind, excel_update_type, excel_sheet, excel_sheet_language,
       plan_line_excel, network_family, plan_type, plan_name, days_raw, allowance_label, option_label,
       carrier_raw, data_class_raw, network_raw, internet_raw, qos_raw, validity_raw, apn_raw,
       install_benchmark_raw, activation_policy_raw, mcc_raw, mnc_raw, flags, price_block, raw_row,
-      classification_conflict, classification_notes, created_at, updated_at
+      classification_conflict, classification_notes, is_active, created_at, updated_at
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,
-      $25::jsonb,$26::jsonb,$27::jsonb,$28,$29,$30::timestamptz,$31::timestamptz
+      $25::jsonb,$26::jsonb,$27::jsonb,$28,$29,$30,$31::timestamptz,$32::timestamptz
     )
     ON CONFLICT (option_api_id) DO UPDATE SET
       vendor_code = EXCLUDED.vendor_code,
       sim_kind = EXCLUDED.sim_kind,
       excel_update_type = EXCLUDED.excel_update_type,
+      is_active = EXCLUDED.is_active,
       excel_sheet = EXCLUDED.excel_sheet,
       excel_sheet_language = EXCLUDED.excel_sheet_language,
       plan_line_excel = EXCLUDED.plan_line_excel,
@@ -104,6 +107,7 @@ async function upsertProductOption(client: PoolClient, opt: BongsimProductOption
       JSON.stringify(opt.raw_row),
       opt.classification_conflict,
       opt.classification_notes,
+      is_active,
       opt.created_at,
       opt.updated_at,
     ],

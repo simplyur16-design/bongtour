@@ -349,7 +349,8 @@ export async function GET(req: Request) {
         flags,
         qos_raw
       FROM bongsim_product_option
-      WHERE ($1::text IS NULL OR lower(network_family) = lower($1::text))
+      WHERE is_active = true
+        AND ($1::text IS NULL OR lower(network_family) = lower($1::text))
         AND plan_type IS NOT NULL
         AND lower(plan_type) IN ('unlimited', 'daily')
       ORDER BY plan_name, days_raw, COALESCE(

@@ -1,3 +1,4 @@
+import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import type { BongsimProductDetailV1 } from "@/lib/bongsim/contracts/product-detail.v1";
 import type { BongsimProductOptionDbRow } from "@/lib/bongsim/data/bongsim-product-option-db-row";
@@ -20,6 +21,7 @@ export async function getProductDetailByOptionApiId(optionApiId: string): Promis
       `SELECT *
        FROM bongsim_product_option
        WHERE option_api_id = $1
+         AND ${BONGSIM_CATALOG_ACTIVE_WHERE}
        LIMIT 1`,
       [id],
     );

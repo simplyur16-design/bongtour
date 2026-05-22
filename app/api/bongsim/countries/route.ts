@@ -28,7 +28,8 @@ export async function GET() {
     const { rows } = await pool.query<{ plan_name: string }>(
       `SELECT DISTINCT TRIM(plan_name) AS plan_name
        FROM bongsim_product_option
-       WHERE plan_name IS NOT NULL AND TRIM(plan_name) <> ''`,
+       WHERE is_active = true
+         AND plan_name IS NOT NULL AND TRIM(plan_name) <> ''`,
     );
 
     const codes = new Set<string>();

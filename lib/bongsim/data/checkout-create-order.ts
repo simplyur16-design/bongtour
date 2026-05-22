@@ -433,7 +433,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     }
 
     const pr = await client.query<BongsimProductOptionDbRow>(
-      `SELECT * FROM bongsim_product_option WHERE option_api_id = $1 FOR SHARE`,
+      `SELECT * FROM bongsim_product_option WHERE option_api_id = $1 AND is_active = true FOR SHARE`,
       [req.option_api_id],
     );
     if (!pr.rows[0]) {

@@ -88,6 +88,7 @@ export async function GET(req: Request) {
         price_block,
         flags
       FROM bongsim_product_option
+      WHERE is_active = true
       ORDER BY plan_name, days_raw, COALESCE(
         (price_block->'after'->>'consumer_krw')::numeric,
         (price_block->'before'->>'consumer_krw')::numeric
