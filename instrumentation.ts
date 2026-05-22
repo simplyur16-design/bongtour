@@ -62,6 +62,10 @@ export async function register() {
           '@/lib/instrumentation-product-sales-policy-cron'
         )
         startInstrumentationProductSalesPolicyCron()
+        const { startInstrumentationBongsimOrderPaidOutboxCron } = await import(
+          '@/lib/instrumentation-bongsim-order-paid-outbox-cron'
+        )
+        startInstrumentationBongsimOrderPaidOutboxCron()
       }
     }
   }

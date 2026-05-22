@@ -21,6 +21,27 @@ function parseOrderId(payload: unknown): string | null {
   return typeof id === "string" && id.trim() ? id.trim() : null;
 }
 
+function logOutboxProcessError(err: unknown): void {
+  if (err instanceof Error) {
+    console.error("[bongsim:outbox:process]", err.message, err.stack);
+    return;
+  }
+  const er = err as {
+    code?: string;
+    message?: string;
+    detail?: string;
+    constraint?: string;
+    column?: string;
+  };
+  console.error("[bongsim:outbox:process]", {
+    message: er.message ?? String(err),
+    code: er.code,
+    detail: er.detail,
+    constraint: er.constraint,
+    column: er.column,
+  });
+}
+
 /**
  * Locks one pending `OrderPaid` outbox row, runs mock fulfillment advancement, marks processed after commit.
  */
@@ -79,6 +100,11 @@ export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutb
     );
     const st = ord.rows[0]?.status;
     if (st !== "paid") {
+      console.warn("[bongsim:outbox:skipped_not_paid]", {
+        outbox_id: row.id,
+        order_id: orderId,
+        order_status: st ?? null,
+      });
       await client.query("ROLLBACK");
       return { outcome: "skipped_not_paid", outbox_id: row.id, order_id: orderId };
     }
@@ -89,7 +115,8 @@ export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutb
 
     await client.query("COMMIT");
     return { outcome: "processed", outbox_id: row.id, order_id: orderId };
-  } catch {
+  } catch (err) {
+    logOutboxProcessError(err);
     try {
       await client.query("ROLLBACK");
     } catch {

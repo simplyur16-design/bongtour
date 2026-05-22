@@ -1,5 +1,6 @@
 "use client";
 
+import { refundErrorMessage } from "@/lib/bongsim/refund/refund-error-message";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -57,7 +58,7 @@ export function OrderCompleteRefundActions({
       });
       const j = (await res.json()) as { ok?: boolean; error?: string; message?: string };
       if (!res.ok || !j.ok) {
-        setErr(j.message ?? j.error ?? "취소에 실패했어요.");
+        setErr(refundErrorMessage(j));
         return;
       }
       setDone(true);

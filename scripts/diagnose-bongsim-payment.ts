@@ -136,35 +136,50 @@ async function main() {
       const tls = await probePgPoolTlsOrFallback();
       console.log("\n[pg pool TLS probe]", tls);
 
-      const grand = Number.parseInt(sample.grand_total_krw, 10);
-      console.log("\n[processWelcomepayPaymentOutcome 테스트 캡처]", sample.order_number);
-      const fin = await processWelcomepayPaymentOutcome({
-        providerEventId: `diag_${Date.now()}`,
-        paymentAttemptId: row.payment_attempt_id,
-        outcome: "captured",
-        amountKrw: grand,
-        paymentReference: "diag_test",
-        rawPayload: { diag: true },
-      });
-      console.log("  결과:", JSON.stringify(fin));
-      const after = await c.query<{ status: string }>(
+      const beforePaid = await c.query<{ status: string }>(
         `SELECT status FROM bongsim_order WHERE order_number = $1`,
         [sample.order_number],
       );
-      console.log("  주문 상태:", after.rows[0]?.status ?? "—");
-      if (fin.ok) {
-        await c.query(
-          `UPDATE bongsim_order SET status = 'awaiting_payment', paid_at = NULL,
-           payment_reference = NULL, paid_amount_krw = NULL, payment_provider = NULL
-           WHERE order_number = $1`,
+      const statusBefore = beforePaid.rows[0]?.status ?? "";
+      if (statusBefore === "paid" || statusBefore === "delivered" || statusBefore === "refunded") {
+        console.log(
+          "\n[processWelcomepayPaymentOutcome 테스트 캡처]",
+          sample.order_number,
+          "— 스킵 (이미",
+          statusBefore,
+          ", 되돌리기 방지)",
+        );
+      } else {
+        const grand = Number.parseInt(sample.grand_total_krw, 10);
+        console.log("\n[processWelcomepayPaymentOutcome 테스트 캡처]", sample.order_number);
+        const fin = await processWelcomepayPaymentOutcome({
+          providerEventId: `diag_${Date.now()}`,
+          paymentAttemptId: row.payment_attempt_id,
+          outcome: "captured",
+          amountKrw: grand,
+          paymentReference: "diag_test",
+          rawPayload: { diag: true },
+        });
+        console.log("  결과:", JSON.stringify(fin));
+        const after = await c.query<{ status: string }>(
+          `SELECT status FROM bongsim_order WHERE order_number = $1`,
           [sample.order_number],
         );
-        await c.query(
-          `UPDATE bongsim_payment_attempt SET status = 'redirected', last_error = NULL
-           WHERE payment_attempt_id = $1`,
-          [row.payment_attempt_id],
-        );
-        console.log("  (진단 후 awaiting_payment 로 되돌림)");
+        console.log("  주문 상태:", after.rows[0]?.status ?? "—");
+        if (fin.ok && statusBefore === "awaiting_payment") {
+          await c.query(
+            `UPDATE bongsim_order SET status = 'awaiting_payment', paid_at = NULL,
+             payment_reference = NULL, paid_amount_krw = NULL, payment_provider = NULL
+             WHERE order_number = $1`,
+            [sample.order_number],
+          );
+          await c.query(
+            `UPDATE bongsim_payment_attempt SET status = 'redirected', last_error = NULL
+             WHERE payment_attempt_id = $1`,
+            [row.payment_attempt_id],
+          );
+          console.log("  (진단 후 awaiting_payment 로 되돌림)");
+        }
       }
     }
   }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import AdminPageHeader from "@/app/admin/components/AdminPageHeader";
 import { ADMIN_CARD_CLASS } from "@/lib/admin-design-system";
+import { refundErrorMessage } from "@/lib/bongsim/refund/refund-error-message";
 
 const PURGE_CONFIRM = "PURGE_BONGSIM_ORDERS";
 
@@ -169,7 +170,7 @@ export default function BongsimPaymentsAdminClient() {
         body: JSON.stringify({ orderId: oid, reason: refundReason.trim() || "고객 요청 환불" }),
       });
       const j = (await res.json()) as { error?: string; message?: string };
-      if (!res.ok) throw new Error(j.message ?? j.error ?? "환불 실패");
+      if (!res.ok) throw new Error(refundErrorMessage(j));
       setDetailId(null);
       setDetail(null);
       await load();
