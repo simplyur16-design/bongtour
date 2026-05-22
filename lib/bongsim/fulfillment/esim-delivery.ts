@@ -1,6 +1,9 @@
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { resolveBuyerPhoneForOrder } from "@/lib/bongsim/data/resolve-buyer-phone";
 import { sendTravelEsimOrderQrMail } from "@/lib/bongsim/email/travel-esim-order-qr-mail";
+import { sendEsimQrDeliveredAlimTalk } from "@/lib/bongsim/notifications/esim-qr-alimtalk";
 import { isBongsimCheckoutTestMode } from "@/lib/bongsim/test-mode";
+import { sendEsimQrDeliveredLmsFallback } from "@/lib/notification-service";
 
 /**
  * 결제 완료 → 공급사 발급 → QR 확보 후 고객 전달(이메일·알림톡).
@@ -32,14 +35,40 @@ async function sendEsimQrEmailBestEffort(params: {
   }
 }
 
-/** 추후 Solapi 알림톡 등으로 교체. */
-function placeholderSendEsimAlimtalk(params: {
-  buyerEmail: string;
+async function notifyEsimQrToCustomer(params: {
   orderId: string;
+  orderNumber: string;
+  buyerEmail: string;
   qrCodeUrl: string;
   downloadLink: string;
-}): void {
-  console.info("[bongsim:alimtalk:placeholder] eSIM QR 카카오 알림톡 발송 예정", params);
+}): Promise<void> {
+  const phone = await resolveBuyerPhoneForOrder(params.orderId);
+  if (phone) {
+    const alim = await sendEsimQrDeliveredAlimTalk(params.orderId, {
+      customerPhone: phone,
+      orderNumber: params.orderNumber,
+      installLink: params.downloadLink,
+      qrLink: params.qrCodeUrl,
+    });
+    if (!alim.ok && alim.shouldSendLmsFallback) {
+      await sendEsimQrDeliveredLmsFallback({
+        orderId: params.orderId,
+        customerPhone: phone,
+        orderNumber: params.orderNumber,
+        installLink: params.downloadLink,
+        qrLink: params.qrCodeUrl,
+      });
+    }
+  } else {
+    console.warn("[bongsim:alimtalk:esim-qr] no_phone", { orderId: params.orderId });
+  }
+
+  await sendEsimQrEmailBestEffort({
+    buyerEmail: params.buyerEmail,
+    orderNumber: params.orderNumber,
+    qrCodeUrl: params.qrCodeUrl,
+    downloadLink: params.downloadLink,
+  });
 }
 
 /**
@@ -97,13 +126,13 @@ export async function deliverEsimToCustomer(
   }
 
   if (!isBongsimCheckoutTestMode()) {
-    await sendEsimQrEmailBestEffort({
-      buyerEmail,
+    await notifyEsimQrToCustomer({
+      orderId,
       orderNumber,
+      buyerEmail,
       qrCodeUrl,
       downloadLink,
     });
-    placeholderSendEsimAlimtalk({ buyerEmail, orderId, qrCodeUrl, downloadLink });
   }
 
   return { ok: true, status: "delivered" };

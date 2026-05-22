@@ -32,4 +32,7 @@ export type BongsimOrderPublicV1 = {
   lines: BongsimOrderPublicLineV1[];
   fulfillment: BongsimOrderPublicFulfillmentV1 | null;
   install_stub: { kind: "placeholder" | "link"; label: string; href: string | null };
+  /** 고객 전액 취소(웰컴페이 환불) 가능 여부 */
+  cancel_eligible: boolean;
+  cancel_block_reason: string | null;
 };

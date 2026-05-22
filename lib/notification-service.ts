@@ -400,6 +400,56 @@ export async function sendBookingRequestReceivedLmsFallback(p: {
   return r
 }
 
+/** eSIM QR·설치 안내 — 알림톡 실패·미설정 시 LMS 폴백 */
+export async function sendEsimQrDeliveredLmsFallback(p: {
+  orderId: string
+  customerPhone: string
+  orderNumber: string
+  installLink: string
+  qrLink?: string
+}): Promise<SendAdminNotificationResult> {
+  const apiKey = process.env.SOLAPI_API_KEY?.trim()
+  const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
+  const senderPhone = process.env.SOLAPI_FROM_PHONE?.trim()
+
+  if (!apiKey || !apiSecret || !senderPhone) {
+    console.error('[sendEsimQrDeliveredLmsFallback] skipped_missing_env', JSON.stringify({ orderId: p.orderId }))
+    return { ok: true }
+  }
+
+  const toDigits = digitsOnlyPhone(p.customerPhone)
+  if (toDigits.length < 10) {
+    console.error('[sendEsimQrDeliveredLmsFallback] skipped_invalid_phone', JSON.stringify({ orderId: p.orderId }))
+    return { ok: false, message: 'invalid_phone' }
+  }
+
+  const from = digitsOnlyPhone(senderPhone)
+  if (!from || !isPlausibleKrSmsTo(from)) {
+    return { ok: true }
+  }
+
+  const text = [
+    '[Bong투어] eSIM 설치 안내',
+    '',
+    `주문번호: ${p.orderNumber.trim()}`,
+    `설치: ${p.installLink.trim()}`,
+    p.qrLink?.trim() ? `QR: ${p.qrLink.trim()}` : '',
+    '',
+    '문의: bongtour.com',
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  const r = await sendSolapiMessage(apiKey, apiSecret, from, toDigits, truncateForSms(text, 2000))
+  if (!r.ok) {
+    console.error(
+      '[sendEsimQrDeliveredLmsFallback] failed',
+      JSON.stringify({ orderId: p.orderId, message: r.message }),
+    )
+  }
+  return r
+}
+
 /**
  * I-7: 예약·문의 외 운영 알림(Solapi LMS). `MASTER_INTEGRITY_ALERT_DRY_RUN=1|true` 이면 발송 생략·로그만.
  */

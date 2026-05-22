@@ -2,11 +2,14 @@ import { randomBytes } from "node:crypto";
 import type { PoolClient } from "pg";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
+import { cancelUsimsaTopup } from "@/lib/bongsim/supplier/usimsa/order-api";
 import {
   buildWelcomepayCancelFormBody,
   encodeWelcomepayCancelNvp,
   welcomepayPayapiCancelUrl,
 } from "@/lib/bongsim/welcomepay-payapi-cancel";
+
+export type RefundRequestedBy = { kind: "admin"; id: string } | { kind: "customer" };
 
 export type ProcessRefundResult =
   | { ok: true }
@@ -25,6 +28,23 @@ export type ProcessRefundResult =
         | "db_error";
       message?: string;
     };
+
+async function cancelUsimsaTopupsWithoutIccid(client: PoolClient, orderId: string): Promise<void> {
+  const rows = await client.query<{ topup_id: string }>(
+    `SELECT topup_id FROM bongsim_fulfillment_topup
+      WHERE order_id = $1::uuid AND supplier_id = 'usimsa'
+        AND (iccid IS NULL OR trim(iccid) = '')
+        AND status NOT IN ('canceled', 'failed')`,
+    [orderId],
+  );
+  for (const row of rows.rows) {
+    try {
+      await cancelUsimsaTopup(row.topup_id, "esim");
+    } catch (e) {
+      console.warn("[processRefund] usimsa_topup_cancel_failed", row.topup_id, e);
+    }
+  }
+}
 
 async function orderHasUsimsaIccid(client: PoolClient, orderId: string): Promise<boolean> {
   const r = await client.query<{ ok: boolean }>(
@@ -60,7 +80,11 @@ async function insertRefundProviderEvent(
  * - 주문 `paid` / `delivered` 만 허용.
  * - USIMSA topup에 ICCID가 채워진 경우(프로파일 발급 이후) 환불 거절.
  */
-export async function processRefund(orderId: string, reason: string, adminId: string): Promise<ProcessRefundResult> {
+export async function processRefund(
+  orderId: string,
+  reason: string,
+  requestedBy: RefundRequestedBy,
+): Promise<ProcessRefundResult> {
   const id = orderId.trim();
   const msg = reason.trim() || "고객 요청 환불";
   const pool = getPgPool();
@@ -118,6 +142,8 @@ export async function processRefund(orderId: string, reason: string, adminId: st
       return { ok: false, reason: "esim_activated_no_refund" };
     }
 
+    await cancelUsimsaTopupsWithoutIccid(client, id);
+
     const priceKrw = Number.parseInt(order.grand_total_krw, 10);
     if (!Number.isFinite(priceKrw) || priceKrw <= 0) {
       await client.query("ROLLBACK");
@@ -164,7 +190,7 @@ export async function processRefund(orderId: string, reason: string, adminId: st
 
     await insertRefundProviderEvent(client, providerEventId, paymentAttemptId, id, {
       direction: "outbound_refund",
-      admin_id: adminId,
+      requested_by: requestedBy,
       reason: msg,
       request: cancelBody,
       http_status: res.status,

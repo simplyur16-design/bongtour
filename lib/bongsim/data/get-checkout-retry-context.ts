@@ -9,6 +9,7 @@ export type CheckoutRetryContext = {
   option_api_id: string;
   quantity: number;
   buyer_email: string;
+  buyer_phone: string | null;
   grand_total_krw: number;
 };
 
@@ -30,9 +31,11 @@ export async function getCheckoutRetryContext(orderIdRaw: string): Promise<GetCh
       order_number: string;
       status: string;
       buyer_email: string;
+      buyer_phone: string | null;
+      consents: unknown;
       grand_total_krw: string;
     }>(
-      `SELECT order_id, order_number, status, buyer_email, grand_total_krw::text AS grand_total_krw
+      `SELECT order_id, order_number, status, buyer_email, buyer_phone, consents, grand_total_krw::text AS grand_total_krw
        FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
       [orderId],
     );
@@ -57,6 +60,10 @@ export async function getCheckoutRetryContext(orderIdRaw: string): Promise<GetCh
     }
 
     const grand = Number.parseInt(order.grand_total_krw, 10);
+    let buyerPhone = (order.buyer_phone ?? "").trim();
+    if (!buyerPhone && order.consents && typeof order.consents === "object") {
+      buyerPhone = String((order.consents as Record<string, unknown>).buyer_phone ?? "").trim();
+    }
     return {
       ok: true,
       context: {
@@ -65,6 +72,7 @@ export async function getCheckoutRetryContext(orderIdRaw: string): Promise<GetCh
         option_api_id: row.option_api_id.trim(),
         quantity,
         buyer_email: order.buyer_email.trim(),
+        buyer_phone: buyerPhone || null,
         grand_total_krw: Number.isFinite(grand) ? grand : 0,
       },
     };

@@ -10,6 +10,7 @@ import { parseFlagsJson, parsePriceBlockJson } from "@/lib/bongsim/data/parse-pr
 import { assertBongsimCouponForOrderInsert } from "@/lib/bongsim/data/bongsim-coupon";
 import { validateUserCouponForOrderInsert } from "@/lib/bongsim/data/user-coupon";
 import { parsePublicAttributionFromBody } from "@/lib/public-attribution-body";
+import { isValidBuyerPhoneInput, normalizeBuyerPhone } from "@/lib/bongsim/phone/normalize-buyer-phone";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
 
@@ -266,6 +267,7 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
   }
   const option_api_id = typeof o.option_api_id === "string" ? o.option_api_id.trim() : "";
   const buyer_email = typeof o.buyer_email === "string" ? o.buyer_email.trim() : "";
+  const buyer_phone_raw = typeof o.buyer_phone === "string" ? o.buyer_phone.trim() : "";
   const idempotency_key = typeof o.idempotency_key === "string" ? o.idempotency_key.trim() : "";
   const qRaw = o.quantity;
   const quantity =
@@ -280,6 +282,11 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
     details.buyer_email = "required";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyer_email)) {
     details.buyer_email = "invalid_email";
+  }
+  if (!buyer_phone_raw) {
+    details.buyer_phone = "required";
+  } else if (!isValidBuyerPhoneInput(buyer_phone_raw)) {
+    details.buyer_phone = "invalid_phone";
   }
   if (!idempotency_key) details.idempotency_key = "required";
   if (!Number.isInteger(quantity) || quantity < 1) {
@@ -332,6 +339,7 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
     option_api_id,
     quantity,
     buyer_email: normEmail(buyer_email),
+    buyer_phone: normalizeBuyerPhone(buyer_phone_raw)!,
     buyer_locale,
     idempotency_key,
     checkout_channel: typeof o.checkout_channel === "string" ? o.checkout_channel : undefined,
@@ -449,6 +457,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const consentsJson: Record<string, unknown> = {
       terms_version: req.consents?.terms_version ?? "",
       terms_accepted: req.consents?.terms_accepted !== false,
+      buyer_phone: req.buyer_phone,
       marketing: {
         accepted: Boolean(req.consents?.marketing?.accepted),
         version: req.consents?.marketing?.version ?? null,
@@ -469,16 +478,17 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const orderNumber = makeOrderNumber();
     const ins = await client.query<OrderRow>(
       `INSERT INTO bongsim_order (
-        order_number, status, checkout_channel, buyer_email, buyer_locale,
+        order_number, status, checkout_channel, buyer_email, buyer_phone, buyer_locale,
         idempotency_key, consents, currency, subtotal_krw, discount_krw, tax_krw, grand_total_krw,
         utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer, landing_path
-      ) VALUES ($1, 'awaiting_payment', $2, $3, $4, $5, $6::jsonb, 'KRW', $7, $8, 0, $9,
-        $10, $11, $12, $13, $14, $15, $16)
+      ) VALUES ($1, 'awaiting_payment', $2, $3, $4, $5, $6, $7::jsonb, 'KRW', $8, $9, 0, $10,
+        $11, $12, $13, $14, $15, $16, $17)
       RETURNING *`,
       [
         orderNumber,
         req.checkout_channel ?? "web",
         req.buyer_email,
+        req.buyer_phone,
         req.buyer_locale ?? null,
         req.idempotency_key,
         JSON.stringify(consentsJson),

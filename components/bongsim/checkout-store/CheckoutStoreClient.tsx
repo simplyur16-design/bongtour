@@ -27,6 +27,7 @@ type CheckoutRetryContextResponse = {
   option_api_id?: string;
   quantity?: number;
   buyer_email?: string;
+  buyer_phone?: string;
 };
 
 type Props = {
@@ -123,7 +124,7 @@ export function CheckoutStoreClient({
 }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
-  const { status: sessionStatus } = useSession();
+  const { data: sessionData, status: sessionStatus } = useSession();
   const orderIdFromUrl = (sp?.get("orderId") ?? orderIdInitial).trim();
   const [resumeOrderId, setResumeOrderId] = useState("");
   const [resumeOrderNumber, setResumeOrderNumber] = useState("");
@@ -136,6 +137,7 @@ export function CheckoutStoreClient({
   const [detail, setDetail] = useState<BongsimProductDetailV1 | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [quantity, setQuantity] = useState(() => quantityInitial ?? 1);
   const [recommendQueue, setRecommendQueue] = useState<BongsimRecommendCheckoutLine[] | null>(null);
   const [terms, setTerms] = useState(false);
@@ -159,6 +161,13 @@ export function CheckoutStoreClient({
 
   const checkoutIdempotencyRef = useRef<string | null>(null);
   const paymentIdempotencyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (sessionStatus !== "authenticated" || phone.trim()) return;
+    const u = sessionData?.user as { phone?: string } | undefined;
+    const p = (u?.phone ?? "").trim();
+    if (p) setPhone(p);
+  }, [sessionStatus, sessionData, phone]);
 
   useEffect(() => {
     setResolvedOptionApiId(optionApiIdInitial);
@@ -202,6 +211,9 @@ export function CheckoutStoreClient({
         setQuantity(Math.max(1, Math.min(99, qty)));
         if (typeof j.buyer_email === "string" && j.buyer_email.trim()) {
           setEmail(j.buyer_email.trim());
+        }
+        if (typeof j.buyer_phone === "string" && j.buyer_phone.trim()) {
+          setPhone(j.buyer_phone.trim());
         }
         setResumeOrderId(j.order_id.trim());
         setResumeOrderNumber((j.order_number ?? "").trim());
@@ -440,6 +452,11 @@ export function CheckoutStoreClient({
         setSubmitError("유효한 이메일을 입력해 주세요.");
         return;
       }
+      const ph = phone.replace(/\D/g, "");
+      if (ph.length < 10 || ph.length > 11 || !ph.startsWith("01")) {
+        setSubmitError("알림톡 수신용 휴대폰 번호(010…)를 입력해 주세요.");
+        return;
+      }
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
         setSubmitError("수량은 1~99 사이 정수여야 합니다.");
         return;
@@ -463,6 +480,7 @@ export function CheckoutStoreClient({
           option_api_id: optionApiId,
           quantity,
           buyer_email: em,
+          buyer_phone: ph,
           buyer_locale: locale,
           idempotency_key: checkoutKey,
           checkout_channel: "web",
@@ -557,6 +575,7 @@ export function CheckoutStoreClient({
       appliedUserCouponId,
       detail,
       email,
+      phone,
       locale,
       optionApiId,
       quantity,
@@ -656,6 +675,26 @@ export function CheckoutStoreClient({
             </section>
 
             <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:space-y-5 lg:p-5">
+              <label className="block">
+                <span
+                  className="text-[12px] font-medium text-slate-700 lg:text-sm"
+                  style={{ color: "#1e293b" }}
+                >
+                  휴대폰 (카카오 알림톡)
+                </span>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(ev) => setPhone(ev.target.value)}
+                  placeholder="01012345678"
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[15px] text-slate-900 lg:py-3"
+                  required
+                />
+                <p className="mt-1 text-[11px] text-slate-500">eSIM QR·설치 안내를 카카오톡으로 보내드려요.</p>
+              </label>
+
               <label className="block">
                 <span
                   className="text-[12px] font-medium text-slate-700 lg:text-sm"

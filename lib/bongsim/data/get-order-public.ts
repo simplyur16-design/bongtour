@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import type { BongsimOrderPublicV1 } from "@/lib/bongsim/contracts/order-public.v1";
+import { getRefundEligibility } from "@/lib/bongsim/refund/refund-eligibility";
 
 export type GetOrderPublicResult =
   | { ok: true; order: BongsimOrderPublicV1 }
@@ -143,6 +144,10 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
           ? "eSIM 설치 링크 (발급 완료 처리 중)"
           : "eSIM 설치 링크는 준비 중입니다.";
 
+    const refundElig = await getRefundEligibility(id);
+    const cancelEligible = refundElig.eligible;
+    const cancelBlockReason = refundElig.eligible ? null : refundElig.message;
+
     const order: BongsimOrderPublicV1 = {
       schema: "bongsim.order_public.v1",
       order_id: row.order_id,
@@ -162,6 +167,8 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
         label: installLabel,
         href: installHref,
       },
+      cancel_eligible: cancelEligible,
+      cancel_block_reason: cancelBlockReason,
     };
 
     return { ok: true, order };

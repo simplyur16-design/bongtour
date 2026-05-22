@@ -67,9 +67,18 @@ export async function POST(req: Request) {
   const pool = getPgPool()!;
   const client = await pool.connect();
   let bongsimOrderNumber = "";
+  let pMobile = "01000000000";
   try {
-    const o = await client.query<{ buyer_email: string; grand_total_krw: string; status: string; order_number: string }>(
-      `SELECT buyer_email, grand_total_krw, status, order_number FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
+    const o = await client.query<{
+      buyer_email: string;
+      buyer_phone: string | null;
+      grand_total_krw: string;
+      status: string;
+      order_number: string;
+      consents: unknown;
+    }>(
+      `SELECT buyer_email, buyer_phone, grand_total_krw, status, order_number, consents
+       FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
       [orderId],
     );
     const order = o.rows[0];
@@ -97,6 +106,14 @@ export async function POST(req: Request) {
       });
     }
     bongsimOrderNumber = order.order_number;
+    const fromCol = (order.buyer_phone ?? "").replace(/\D/g, "");
+    if (fromCol.length >= 10) {
+      pMobile = fromCol;
+    } else if (order.consents && typeof order.consents === "object") {
+      const c = order.consents as Record<string, unknown>;
+      const fromC = String(c.buyer_phone ?? "").replace(/\D/g, "");
+      if (fromC.length >= 10) pMobile = fromC;
+    }
   } finally {
     client.release();
   }
@@ -154,7 +171,7 @@ export async function POST(req: Request) {
         pGoods,
         pUnam: buyerShort,
         pEmail: customerEmail,
-        pMobile: "01000000000",
+        pMobile,
         pIniPayment: "CARD",
       },
     },

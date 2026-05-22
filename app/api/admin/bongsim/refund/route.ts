@@ -22,7 +22,10 @@ export async function POST(req: Request) {
   if (!orderId) return NextResponse.json({ error: "missing_order_id" }, { status: 400 });
 
   const adminId = (admin.user as { id?: string }).id?.trim() || admin.user.role || "admin";
-  const result = await processRefund(orderId, reason || "고객 요청 환불", String(adminId));
+  const result = await processRefund(orderId, reason || "고객 요청 환불", {
+    kind: "admin",
+    id: String(adminId),
+  });
 
   if (result.ok) return NextResponse.json({ ok: true });
 

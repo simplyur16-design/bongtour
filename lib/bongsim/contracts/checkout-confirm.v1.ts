@@ -5,6 +5,8 @@ export type BongsimCheckoutConfirmRequestV1 = {
   option_api_id: string;
   quantity: number;
   buyer_email: string;
+  /** 알림톡·PG 모바일 결제용 (010…) */
+  buyer_phone: string;
   buyer_locale?: "ko" | "en" | null;
   idempotency_key: string;
   checkout_channel?: string;

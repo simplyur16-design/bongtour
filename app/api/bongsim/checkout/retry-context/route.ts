@@ -27,6 +27,7 @@ export async function GET(req: Request) {
       option_api_id: r.context.option_api_id,
       quantity: r.context.quantity,
       buyer_email: r.context.buyer_email,
+      buyer_phone: r.context.buyer_phone,
       grand_total_krw: r.context.grand_total_krw,
     },
     "bongsim.checkout.retry-context",

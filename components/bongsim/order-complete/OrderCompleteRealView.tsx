@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { bongsimPath } from '@/lib/bongsim/constants'
 import type { BongsimOrderPublicV1 } from "@/lib/bongsim/contracts/order-public.v1";
+import { OrderCompleteRefundActions } from "@/components/bongsim/order-complete/OrderCompleteRefundActions";
 
 function formatKrw(n: number): string {
   return new Intl.NumberFormat("ko-KR").format(n) + "원";
@@ -8,7 +9,8 @@ function formatKrw(n: number): string {
 
 function nextStepMessage(o: BongsimOrderPublicV1): string {
   if (o.status === "awaiting_payment") return "결제가 완료되면 이 페이지를 새로고침해 주세요.";
-  if (o.status !== "paid") return "주문 상태를 확인해 주세요.";
+  if (o.status === "refunded") return "주문이 취소(환불)되었습니다.";
+  if (o.status !== "paid" && o.status !== "delivered") return "주문 상태를 확인해 주세요.";
   if (!o.fulfillment) return "배송 준비 중입니다.";
   if (o.fulfillment.status === "delivered") return "eSIM이 발급되었습니다. 이메일 또는 설치 안내를 확인해 주세요.";
   if (o.fulfillment.status === "failed") return "발급에 문제가 발생했습니다. 고객센터로 문의해 주세요.";
@@ -90,6 +92,13 @@ export function OrderCompleteRealView({ order }: { order: BongsimOrderPublicV1 }
           </dl>
         </section>
       ) : null}
+
+      <OrderCompleteRefundActions
+        orderId={order.order_id}
+        cancelEligible={order.cancel_eligible}
+        cancelBlockReason={order.cancel_block_reason}
+        orderStatus={order.status}
+      />
 
       <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
         <h2 className="text-[13px] font-semibold text-slate-800">{order.install_stub.label}</h2>
