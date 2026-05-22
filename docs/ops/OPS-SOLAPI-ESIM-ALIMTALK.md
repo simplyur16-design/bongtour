@@ -33,7 +33,7 @@ QR 이미지: #{qrLink}
 
 ## 수신 번호
 
-- 체크아웃 **휴대폰** 필드 → `bongsim_order.buyer_phone`
+- 체크아웃 **휴대폰** 필드 → `bongsim_order.buyer_tel` (선물 주문은 `consents.gift.recipient_phone`)
 - 미입력 주문: 회원 `User.phone`(이메일 일치) 폴백
 - 알림톡 실패 시 **LMS**로 동일 내용 발송
 

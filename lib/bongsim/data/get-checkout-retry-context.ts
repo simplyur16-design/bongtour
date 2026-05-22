@@ -1,4 +1,5 @@
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { normalizeBuyerPhone } from "@/lib/bongsim/phone/normalize-buyer-phone";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -31,11 +32,11 @@ export async function getCheckoutRetryContext(orderIdRaw: string): Promise<GetCh
       order_number: string;
       status: string;
       buyer_email: string;
-      buyer_phone: string | null;
+      buyer_tel: string | null;
       consents: unknown;
       grand_total_krw: string;
     }>(
-      `SELECT order_id, order_number, status, buyer_email, buyer_phone, consents, grand_total_krw::text AS grand_total_krw
+      `SELECT order_id, order_number, status, buyer_email, buyer_tel, consents, grand_total_krw::text AS grand_total_krw
        FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
       [orderId],
     );
@@ -60,9 +61,9 @@ export async function getCheckoutRetryContext(orderIdRaw: string): Promise<GetCh
     }
 
     const grand = Number.parseInt(order.grand_total_krw, 10);
-    let buyerPhone = (order.buyer_phone ?? "").trim();
+    let buyerPhone = normalizeBuyerPhone(order.buyer_tel ?? "");
     if (!buyerPhone && order.consents && typeof order.consents === "object") {
-      buyerPhone = String((order.consents as Record<string, unknown>).buyer_phone ?? "").trim();
+      buyerPhone = normalizeBuyerPhone(String((order.consents as Record<string, unknown>).buyer_phone ?? ""));
     }
     return {
       ok: true,

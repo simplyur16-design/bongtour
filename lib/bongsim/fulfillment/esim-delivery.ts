@@ -95,11 +95,11 @@ export async function deliverEsimToCustomer(
     const r = await client.query<{
       status: string;
       buyer_email: string;
-      buyer_phone: string | null;
+      buyer_tel: string | null;
       order_number: string;
       consents: unknown;
     }>(
-      `SELECT status, buyer_email, buyer_phone, order_number, consents
+      `SELECT status, buyer_email, buyer_tel, order_number, consents
          FROM bongsim_order WHERE order_id = $1::uuid FOR UPDATE`,
       [orderId],
     );
@@ -110,7 +110,7 @@ export async function deliverEsimToCustomer(
     }
     const contact = resolveEsimDeliveryContact({
       buyer_email: row.buyer_email,
-      buyer_phone: row.buyer_phone,
+      buyer_tel: row.buyer_tel,
       consents: row.consents,
     });
     deliveryEmail = contact.email;

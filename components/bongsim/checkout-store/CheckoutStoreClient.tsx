@@ -10,6 +10,7 @@ import {
   bongsimPath,
   type BongsimRecommendCheckoutLine,
 } from "@/lib/bongsim/constants";
+import { checkoutConfirmErrorMessage } from "@/lib/bongsim/checkout/checkout-confirm-error-message";
 import { formatKoreanTelInput } from "@/lib/korean-tel-format";
 import { formatBuyerPhoneDisplay } from "@/lib/bongsim/phone/normalize-buyer-phone";
 import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
@@ -548,9 +549,12 @@ export function CheckoutStoreClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(confirmBody),
         });
-        const cj = (await cr.json()) as BongsimCheckoutConfirmResponseV1 & { error?: string; details?: Record<string, string> };
+        const cj = (await cr.json()) as BongsimCheckoutConfirmResponseV1 & {
+          error?: string;
+          details?: Record<string, string>;
+        };
         if (!cr.ok) {
-          setSubmitError(cj.error === "validation" ? "입력값을 확인해 주세요." : "주문 생성에 실패했습니다.");
+          setSubmitError(checkoutConfirmErrorMessage(cj));
           return;
         }
         if (cj.schema !== "bongsim.checkout_confirm.response.v1" || !cj.order?.order_id || !(cj.order.order_number ?? "").trim()) {

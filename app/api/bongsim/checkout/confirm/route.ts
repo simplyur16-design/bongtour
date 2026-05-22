@@ -85,7 +85,11 @@ export async function POST(req: Request) {
         );
       }
       return jsonWithLeakGuard(
-        { schema: "bongsim.checkout_confirm.error.v1", error: "db_error" },
+        {
+          schema: "bongsim.checkout_confirm.error.v1",
+          error: "db_error",
+          ...(res.details ? { details: res.details } : {}),
+        },
         "bongsim.checkout.confirm",
         { status: 500 },
       );

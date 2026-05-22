@@ -72,6 +72,23 @@ function makeOrderNumber(): string {
   return `BS-${day}-${rnd}`;
 }
 
+function logCheckoutPgError(label: string, err: unknown): void {
+  const e = err as {
+    code?: string;
+    message?: string;
+    detail?: string;
+    constraint?: string;
+    column?: string;
+  };
+  console.error(`[checkout-create-order] ${label}`, {
+    code: e.code,
+    message: e.message,
+    detail: e.detail,
+    constraint: e.constraint,
+    column: e.column,
+  });
+}
+
 function toInt(n: string | number): number {
   return typeof n === "string" ? Number.parseInt(n, 10) : Math.trunc(Number(n));
 }
@@ -464,7 +481,6 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const consentsJson: Record<string, unknown> = {
       terms_version: req.consents?.terms_version ?? "",
       terms_accepted: req.consents?.terms_accepted !== false,
-      buyer_phone: req.buyer_phone,
       marketing: {
         accepted: Boolean(req.consents?.marketing?.accepted),
         version: req.consents?.marketing?.version ?? null,
@@ -487,7 +503,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const orderNumber = makeOrderNumber();
     const ins = await client.query<OrderRow>(
       `INSERT INTO bongsim_order (
-        order_number, status, checkout_channel, buyer_email, buyer_phone, buyer_locale,
+        order_number, status, checkout_channel, buyer_email, buyer_tel, buyer_locale,
         idempotency_key, consents, currency, subtotal_krw, discount_krw, tax_krw, grand_total_krw,
         utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer, landing_path
       ) VALUES ($1, 'awaiting_payment', $2, $3, $4, $5, $6, $7::jsonb, 'KRW', $8, $9, 0, $10,
@@ -563,6 +579,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
         c2.release();
       }
     }
+    logCheckoutPgError("transaction failed", e);
     return { ok: false, reason: "db_error" };
   } finally {
     client.release();

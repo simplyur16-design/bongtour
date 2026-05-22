@@ -80,7 +80,7 @@ export function buildGiftConsentsJson(gift: BongsimGiftOrderConsents): Record<st
 /** eSIM QR·알림톡·메일 수신자 (선물 주문이면 받는 분) */
 export function resolveEsimDeliveryContact(row: {
   buyer_email: string;
-  buyer_phone: string | null;
+  buyer_tel: string | null;
   consents: unknown;
 }): EsimDeliveryContact {
   const gift = parseGiftFromOrderConsents(row.consents);
@@ -91,10 +91,7 @@ export function resolveEsimDeliveryContact(row: {
       is_gift: true,
     };
   }
-  const phone =
-    normalizeBuyerPhone(row.buyer_phone ?? "") ??
-    parseGiftFromOrderConsents(row.consents).recipient_phone ??
-    null;
+  const phone = normalizeBuyerPhone(row.buyer_tel ?? "") ?? null;
   return {
     email: normEmail(row.buyer_email),
     phone,

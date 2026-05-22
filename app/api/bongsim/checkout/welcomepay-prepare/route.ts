@@ -71,13 +71,13 @@ export async function POST(req: Request) {
   try {
     const o = await client.query<{
       buyer_email: string;
-      buyer_phone: string | null;
+      buyer_tel: string | null;
       grand_total_krw: string;
       status: string;
       order_number: string;
       consents: unknown;
     }>(
-      `SELECT buyer_email, buyer_phone, grand_total_krw, status, order_number, consents
+      `SELECT buyer_email, buyer_tel, grand_total_krw, status, order_number, consents
        FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
       [orderId],
     );
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
       });
     }
     bongsimOrderNumber = order.order_number;
-    const fromCol = (order.buyer_phone ?? "").replace(/\D/g, "");
+    const fromCol = (order.buyer_tel ?? "").replace(/\D/g, "");
     if (fromCol.length >= 10) {
       pMobile = fromCol;
     } else if (order.consents && typeof order.consents === "object") {
