@@ -9,7 +9,7 @@ import {
   parseWelcomepayPayload,
   pickAmountKrw,
   pickOid,
-  pickTid,
+  pickCaptureTid,
   resultCodeOf,
 } from "@/lib/bongsim/welcomepay-callback-parse";
 import { isPaywelcomeHttpsUrl, welcomepayPayAuthUrl } from "@/lib/bongsim/welcomepay";
@@ -153,7 +153,8 @@ export async function POST(req: Request) {
     return fail(msg);
   }
 
-  const tid = pickTid(merged);
+  const tid = pickCaptureTid(merged);
+  if (!tid) return fail("missing_capture_tid");
   const amt = pickAmountKrw(merged);
   const providerEventId = `welcomepay_mobile_${tid}`;
   const amountForCapture =

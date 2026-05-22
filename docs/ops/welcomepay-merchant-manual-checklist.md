@@ -8,7 +8,7 @@
 | 변수 | 운영 예시 | 비고 |
 |------|-----------|------|
 | `WELCOMEPAY_MID` | 가맹점 발급 MID | |
-| `WELCOMEPAY_SIGN_KEY` | 웹표준 signKey | |
+| `WELCOMEPAY_SIGN_KEY` | 웹표준 signKey · **INIAPI 전체취소 hash** 동일 키 | 취소 404 시 iniapi 호스트·키 확인 |
 | `WELCOMEPAY_ENV` | `production` | 실결제 |
 | `NEXT_PUBLIC_SITE_URL` | `https://bongtour.com` | **returnUrl·P_NEXT_URL SSOT** — `NEXTAUTH_URL`만 두지 말 것 |
 
@@ -47,7 +47,7 @@ PG 가맹점 관리자에 등록할 URL (apex 기준):
 - 가상계좌·계좌이체·휴대폰·문화상품권 (`smart/bank`, `smart/mobile` 등)
 - `P_NOTI_URL` 비동기 입금통보
 - `netCancel` 망취소 자동 호출
-- PAYAPI 부분취소·에스크로 (전체취소 유틸만 `welcomepay-payapi-cancel.ts`)
+- PAYAPI 부분취소·에스크로 (전체취소: `welcomepay-payapi-cancel.ts` → **iniapi** `api/v1/refund`, 실패 시 `v2/pg/refund` — stdpay `/v1/payapi/cancel` 사용 금지)
 - PC `WelStdPayRelay` (popup crossDomain — overlay 사용)
 
 ## 배포 후 검증

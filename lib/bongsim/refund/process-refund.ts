@@ -5,9 +5,10 @@ import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-pa
 import { cancelUsimsaTopup } from "@/lib/bongsim/supplier/usimsa/order-api";
 import {
   buildWelcomepayCancelFormBody,
-  encodeWelcomepayCancelNvp,
-  welcomepayPayapiCancelUrl,
+  requestWelcomepayFullCancel,
+  welcomepayCancelFailMessage,
 } from "@/lib/bongsim/welcomepay-payapi-cancel";
+import { resolveWelcomepayCaptureTid } from "@/lib/bongsim/refund/resolve-welcomepay-capture-tid";
 
 export type RefundRequestedBy = { kind: "admin"; id: string } | { kind: "customer" };
 
@@ -130,10 +131,14 @@ export async function processRefund(
       return { ok: false, reason: "unsupported_provider", message: order.payment_provider ?? "" };
     }
 
-    const tid = (order.payment_reference ?? "").trim();
+    const tid = await resolveWelcomepayCaptureTid(client, id, order.payment_reference);
     if (!tid) {
       await client.query("ROLLBACK");
-      return { ok: false, reason: "missing_payment_reference" };
+      return {
+        ok: false,
+        reason: "missing_payment_reference",
+        message: "승인 TID를 찾을 수 없습니다. PG 승인 이벤트 또는 payment_reference를 확인해 주세요.",
+      };
     }
 
     const activated = await orderHasUsimsaIccid(client, id);
@@ -168,23 +173,13 @@ export async function processRefund(
       priceKrw,
     });
 
-    const url = welcomepayPayapiCancelUrl();
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
-      body: encodeWelcomepayCancelNvp(cancelBody),
+    const pg = await requestWelcomepayFullCancel({
+      signKey,
+      mid,
+      tid,
+      msg,
+      priceKrw,
     });
-    const text = await res.text();
-    let parsed: Record<string, unknown> = {};
-    try {
-      parsed = JSON.parse(text) as Record<string, unknown>;
-    } catch {
-      parsed = { raw: text };
-    }
-
-    const resultCode = String(parsed.resultCode ?? parsed.ResultCode ?? "").trim();
-    const resultMsg = String(parsed.resultMsg ?? parsed.ResultMsg ?? "").trim();
-    const okPg = resultCode === "00" || resultCode === "0000";
 
     const providerEventId = `welcomepay_refund_${tid}_${cancelBody.timestamp}_${randomBytes(4).toString("hex")}`;
 
@@ -193,16 +188,18 @@ export async function processRefund(
       requested_by: requestedBy,
       reason: msg,
       request: cancelBody,
-      http_status: res.status,
-      response: parsed,
+      http_status: pg.httpStatus,
+      api: pg.api,
+      response: pg.parsed,
+      raw: pg.raw.slice(0, 4000),
     });
 
-    if (!res.ok || !okPg) {
+    if (!pg.ok) {
       await client.query("ROLLBACK");
       return {
         ok: false,
         reason: "pg_cancel_failed",
-        message: resultMsg || text.slice(0, 500) || `http_${res.status}`,
+        message: welcomepayCancelFailMessage(pg),
       };
     }
 

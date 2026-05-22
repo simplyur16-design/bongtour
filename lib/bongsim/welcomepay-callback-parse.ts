@@ -1,5 +1,7 @@
 /** PG 인증/승인 콜백 본문 파싱 (PC returnUrl · 모바일 P_NEXT_URL 공통). */
 
+import { pickCaptureTidFromMap } from "@/lib/bongsim/refund/resolve-welcomepay-capture-tid";
+
 export function parseWelcomepayPayload(text: string): Record<string, string> {
   const t = text.trim();
   const out: Record<string, string> = {};
@@ -48,8 +50,14 @@ export function pickOid(m: Record<string, string>): string {
   ).trim();
 }
 
+/** 승인·취소용 TID — `authToken`·`oid_` 폴백 제외 */
+export function pickCaptureTid(m: Record<string, string>): string {
+  return pickCaptureTidFromMap(m);
+}
+
+/** @deprecated `pickCaptureTid` 사용 */
 export function pickTid(m: Record<string, string>): string {
-  return (m.TID ?? m.tid ?? m.authToken ?? m.P_TID ?? m.P_REQ_TOKEN ?? `oid_${pickOid(m)}`).trim();
+  return pickCaptureTid(m) || (m.P_TID ?? m.p_tid ?? "").trim();
 }
 
 export function pickAmountKrw(m: Record<string, string>): number | null {

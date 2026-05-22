@@ -7,7 +7,7 @@ import {
   parseWelcomepayPayload,
   pickAmountKrw,
   pickOid,
-  pickTid,
+  pickCaptureTid,
   resultCodeOf,
 } from "@/lib/bongsim/welcomepay-callback-parse";
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
@@ -154,7 +154,8 @@ export async function POST(req: Request) {
     }
   }
 
-  const tid = pickTid(merged);
+  const tid = pickCaptureTid(merged);
+  if (!tid) return fail("missing_capture_tid");
   const amt = pickAmountKrw(merged);
   if (
     amt != null &&
