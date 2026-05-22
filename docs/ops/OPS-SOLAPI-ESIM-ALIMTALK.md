@@ -15,8 +15,11 @@
 | 변수 | 내용 |
 |------|------|
 | `orderNumber` | 주문번호 (예: BS-20260522-…) |
-| `installLink` | eSIM 설치/다운로드 URL |
-| `qrLink` | QR 이미지 URL (없으면 installLink와 동일) |
+| `installPath` | **주문 완료 경로** (도메인 제외, 예: `/travel/esim/order/{uuid}/complete?read_key=…`) |
+| `installLink` | (선택) 절대 URL — 구 템플릿 호환용, 코드에서 함께 전송 |
+| `qrLink` | (선택) 절대 URL — 구 템플릿 호환용 |
+
+승인 템플릿이 `https://bongtour.com#{installPath}` 형태이면 **`installPath`만** 치환된다. `installLink`만 등록된 템플릿이면 비즈센터 변수명을 맞출 것.
 
 ## 예시 문구 (심사용 참고)
 
@@ -25,10 +28,8 @@
 
 주문번호 #{orderNumber}
 
-아래 링크에서 eSIM을 설치해 주세요.
-#{installLink}
-
-QR 이미지: #{qrLink}
+아래 링크에서 QR 코드를 스캔해 eSIM을 설치해 주세요.
+https://bongtour.com#{installPath}
 ```
 
 ## 수신 번호

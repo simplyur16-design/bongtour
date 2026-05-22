@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import type { BongsimOrderPublicV1 } from "@/lib/bongsim/contracts/order-public.v1";
+import { buildEsimInstallFromTopup } from "@/lib/bongsim/esim-install-presentation";
 import { getRefundEligibility } from "@/lib/bongsim/refund/refund-eligibility";
 
 export type GetOrderPublicResult =
@@ -136,13 +137,11 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
       [id],
     );
     const tl = topupLink.rows[0];
-    const installHref = (tl?.download_link?.trim() || tl?.qr_code_img_url?.trim() || null) as string | null;
-    const installLabel =
-      installHref && row.status === "delivered"
-        ? "eSIM 설치 링크"
-        : installHref
-          ? "eSIM 설치 링크 (발급 완료 처리 중)"
-          : "eSIM 설치 링크는 준비 중입니다.";
+    const esim_install = buildEsimInstallFromTopup({
+      orderStatus: row.status,
+      qr_code_img_url: tl?.qr_code_img_url ?? null,
+      download_link: tl?.download_link ?? null,
+    });
 
     const refundElig = await getRefundEligibility(id);
     const cancelEligible = refundElig.eligible;
@@ -162,11 +161,7 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
       payment_provider: null,
       lines,
       fulfillment,
-      install_stub: {
-        kind: installHref ? "link" : "placeholder",
-        label: installLabel,
-        href: installHref,
-      },
+      esim_install,
       cancel_eligible: cancelEligible,
       cancel_block_reason: cancelBlockReason,
     };

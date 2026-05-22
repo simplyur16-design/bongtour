@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { bongsimPath } from '@/lib/bongsim/constants'
+import { bongsimPath } from "@/lib/bongsim/constants";
 import type { BongsimOrderPublicV1 } from "@/lib/bongsim/contracts/order-public.v1";
+import { EsimInstallSection } from "@/components/bongsim/order-complete/EsimInstallSection";
 import { OrderCompleteRefundActions } from "@/components/bongsim/order-complete/OrderCompleteRefundActions";
 
 function formatKrw(n: number): string {
@@ -120,16 +121,7 @@ export function OrderCompleteRealView({ order }: { order: BongsimOrderPublicV1 }
         orderStatus={order.status}
       />
 
-      <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
-        <h2 className="text-[13px] font-semibold text-slate-800">{order.install_stub.label}</h2>
-        {order.install_stub.href ? (
-          <Link href={order.install_stub.href} className="mt-2 inline-block text-[13px] text-teal-800 underline">
-            열기
-          </Link>
-        ) : (
-          <p className="mt-2 text-[12px] text-slate-500">설치 URL은 추후 연결됩니다.</p>
-        )}
-      </section>
+      <EsimInstallSection install={order.esim_install} />
 
       <Link href={bongsimPath()} className="inline-block text-[13px] text-teal-800 underline">
         홈으로

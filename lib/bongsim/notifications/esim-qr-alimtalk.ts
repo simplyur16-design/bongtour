@@ -3,11 +3,22 @@ import { SolapiMessageService } from "solapi";
 export type EsimQrAlimtalkPayload = {
   customerPhone: string;
   orderNumber: string;
-  /** 카카오 템플릿 변수 `installLink` — eSIM 설치/다운로드 URL */
-  installLink: string;
-  /** 카카오 템플릿 변수 `qrLink` — QR 이미지 URL (선택) */
-  qrLink?: string;
+  /** 주문 완료 페이지 절대 URL */
+  orderPageUrl: string;
 };
+
+/** 카카오 템플릿 `https://bongtour.com#{installPath}` — path+query(+hash)만 */
+function orderPageInstallPath(orderPageUrl: string): string {
+  const raw = orderPageUrl.trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw);
+    const path = `${u.pathname}${u.search}${u.hash}`;
+    return path || raw;
+  } catch {
+    return raw.startsWith("/") ? raw : `/${raw}`;
+  }
+}
 
 export type EsimQrAlimtalkResult =
   | { ok: true }
@@ -15,7 +26,8 @@ export type EsimQrAlimtalkResult =
 
 /**
  * eSIM QR·설치 안내 카카오 알림톡.
- * 템플릿: `SOLAPI_TPL_ESIM_QR_DELIVERED` (변수: orderNumber, installLink, qrLink)
+ * 동적 QR 이미지는 불가 → 주문 페이지에서 QR 렌더 유도.
+ * 템플릿: `SOLAPI_TPL_ESIM_QR_DELIVERED` (변수: orderNumber, installPath — 승인본 기준)
  * @see docs/ops/OPS-SOLAPI-ESIM-ALIMTALK.md
  */
 export async function sendEsimQrDeliveredAlimTalk(
@@ -51,15 +63,23 @@ export async function sendEsimQrDeliveredAlimTalk(
     return { ok: false, shouldSendLmsFallback: true, detail: "esim_qr_invalid_sender" };
   }
 
+  const orderPageUrl = payload.orderPageUrl.trim();
+  if (!orderPageUrl) {
+    return { ok: false, shouldSendLmsFallback: true, detail: "esim_qr_missing_order_page_url" };
+  }
+
+  const installPath = orderPageInstallPath(orderPageUrl);
+  if (!installPath) {
+    return { ok: false, shouldSendLmsFallback: true, detail: "esim_qr_missing_install_path" };
+  }
+
   const variables: Record<string, string> = {
     orderNumber: payload.orderNumber.trim() || "—",
-    installLink: payload.installLink.trim(),
-    qrLink: (payload.qrLink ?? payload.installLink).trim(),
+    installPath,
+    /** 레거시·다른 템플릿 버전 호환 */
+    installLink: orderPageUrl,
+    qrLink: orderPageUrl,
   };
-
-  if (!variables.installLink) {
-    return { ok: false, shouldSendLmsFallback: true, detail: "esim_qr_missing_install_link" };
-  }
 
   try {
     const svc = new SolapiMessageService(apiKey, apiSecret);

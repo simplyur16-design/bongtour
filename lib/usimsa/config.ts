@@ -37,15 +37,14 @@ function resolveBaseUrlFromEnv(): string {
   return "https://open-api-dev.usimsa.com/api";
 }
 
+/** x-gat-access-key — 주문·취소·조회 공통 (`USIMSA_ACCESS_KEY` 단일 SSOT) */
 function resolveAccessKey(runtimeEnv: UsimsaRuntimeEnv): string {
   const legacy = trimOrEmpty(process.env.USIMSA_ACCESS_KEY);
-  if (legacy) {
-    return legacy;
+  if (legacy) return legacy;
+  if (runtimeEnv === "development") {
+    return trimOrEmpty(process.env.USIMSA_DEV_ACCESS_KEY);
   }
-  if (runtimeEnv === "production") {
-    return trimOrEmpty(process.env.USIMSA_PROD_ACCESS_KEY);
-  }
-  return trimOrEmpty(process.env.USIMSA_DEV_ACCESS_KEY);
+  return "";
 }
 
 export type UsimsaConfig = {
@@ -58,14 +57,15 @@ export type UsimsaConfig = {
   webhookUrl: string;
 };
 
+/** 운영 Partner API 호스트 (취소 등 dev URL 금지 경로용) */
+export const USIMSA_PRODUCTION_API_BASE = "https://open-api.usimsa.com/api";
+
 /**
  * Validated Usimsa configuration for server-side API calls.
  * Throws if required credentials are missing.
  *
- * 키 분기:
- * - `USIMSA_ACCESS_KEY`가 비어 있지 않으면 **환경 무관**으로 그 키를 사용(레거시 호환).
- * - 비어 있으면 `USIMSA_ENV=production` → `USIMSA_PROD_ACCESS_KEY`, 아니면 `USIMSA_DEV_ACCESS_KEY`.
- * - 시크릿: `USIMSA_SECRET_KEY` 단일 값 우선(레거시). 없으면 `USIMSA_PROD_SECRET_KEY` / `USIMSA_DEV_SECRET_KEY`.
+ * - 액세스 키: `USIMSA_ACCESS_KEY` (없으면 development만 `USIMSA_DEV_ACCESS_KEY`)
+ * - 시크릿: `USIMSA_SECRET_KEY` 우선 → 없을 때만 `USIMSA_PROD_SECRET_KEY` / `USIMSA_DEV_SECRET_KEY`
  */
 export function getUsimsaConfig(): UsimsaConfig {
   const env = resolveRuntimeEnv();
@@ -73,13 +73,8 @@ export function getUsimsaConfig(): UsimsaConfig {
   const accessKey = resolveAccessKey(env);
 
   if (!accessKey) {
-    if (env === "production") {
-      throw new Error(
-        "Usimsa: USIMSA_PROD_ACCESS_KEY is missing (or set USIMSA_ACCESS_KEY for legacy). Add it in the server environment (e.g. Railway / .env.local).",
-      );
-    }
     throw new Error(
-      "Usimsa: USIMSA_DEV_ACCESS_KEY is missing (or set USIMSA_ACCESS_KEY for legacy). Add it in the server environment (e.g. .env.local).",
+      "Usimsa: USIMSA_ACCESS_KEY is missing (development may use USIMSA_DEV_ACCESS_KEY). Add it in the server environment (e.g. Railway / .env.local).",
     );
   }
 
@@ -93,4 +88,12 @@ export function getUsimsaConfig(): UsimsaConfig {
     webhookSecret: trimOrEmpty(process.env.USIMSA_WEBHOOK_SECRET),
     webhookUrl: trimOrEmpty(process.env.USIMSA_WEBHOOK_URL),
   };
+}
+
+/**
+ * `getUsimsaConfig()`와 동일 access·secret; 호스트만 운영 API로 고정 (취소 POST /v2/cancel/…).
+ */
+export function getUsimsaConfigWithProductionHost(): UsimsaConfig {
+  const cfg = getUsimsaConfig();
+  return { ...cfg, baseUrl: USIMSA_PRODUCTION_API_BASE, env: "production" };
 }

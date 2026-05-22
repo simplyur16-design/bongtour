@@ -405,8 +405,7 @@ export async function sendEsimQrDeliveredLmsFallback(p: {
   orderId: string
   customerPhone: string
   orderNumber: string
-  installLink: string
-  qrLink?: string
+  orderPageUrl: string
 }): Promise<SendAdminNotificationResult> {
   const apiKey = process.env.SOLAPI_API_KEY?.trim()
   const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
@@ -432,8 +431,8 @@ export async function sendEsimQrDeliveredLmsFallback(p: {
     '[Bong투어] eSIM 설치 안내',
     '',
     `주문번호: ${p.orderNumber.trim()}`,
-    `설치: ${p.installLink.trim()}`,
-    p.qrLink?.trim() ? `QR: ${p.qrLink.trim()}` : '',
+    '아래 주문 페이지에서 QR 코드를 스캔해 주세요.',
+    p.orderPageUrl.trim(),
     '',
     '문의: bongtour.com',
   ]

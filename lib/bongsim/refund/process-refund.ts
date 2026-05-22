@@ -39,11 +39,7 @@ async function cancelUsimsaTopupsWithoutIccid(client: PoolClient, orderId: strin
     [orderId],
   );
   for (const row of rows.rows) {
-    try {
-      await cancelUsimsaTopup(row.topup_id, "esim");
-    } catch (e) {
-      console.warn("[processRefund] usimsa_topup_cancel_failed", row.topup_id, e);
-    }
+    await cancelUsimsaTopup(row.topup_id);
   }
 }
 

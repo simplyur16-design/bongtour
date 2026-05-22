@@ -1,4 +1,4 @@
-import { getUsimsaConfig } from "@/lib/usimsa/config";
+import { getUsimsaConfig, type UsimsaConfig } from "@/lib/usimsa/config";
 import { createUsimsaSignature, createUsimsaTimestamp } from "@/lib/usimsa/signature";
 
 export type UsimsaHttpMethod = "GET" | "POST" | "PUT" | "DELETE";
@@ -57,8 +57,10 @@ export async function usimsaRequest<T>(params: {
   path: string;
   query?: Record<string, string | number | boolean | undefined | null>;
   body?: unknown;
+  /** 미지정 시 `getUsimsaConfig()` — 취소는 `getUsimsaConfigWithProductionHost()` */
+  config?: UsimsaConfig;
 }): Promise<T> {
-  const cfg = getUsimsaConfig();
+  const cfg = params.config ?? getUsimsaConfig();
   /** 호출부는 `/v2/...` 형태를 넘긴다. URL은 `baseUrl`(이미 `/api`까지) + path → …/api/v2/… */
   const path = params.path.startsWith("/") ? params.path : `/${params.path}`;
   const queryString = buildQueryString(params.query);

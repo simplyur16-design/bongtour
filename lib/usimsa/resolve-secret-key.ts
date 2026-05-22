@@ -15,8 +15,9 @@ function trimOrEmpty(value: string | undefined): string {
 }
 
 /**
- * - `USIMSA_SECRET_KEY`가 비어 있지 않으면 **환경 무관**으로 우선 사용(4차-E backward-compat).
- * - 비어 있으면 `USIMSA_ENV` 분기와 동일하게 development → `USIMSA_DEV_SECRET_KEY`, production → `USIMSA_PROD_SECRET_KEY`.
+ * SSOT: `USIMSA_SECRET_KEY` (주문·취소·조회 공통).
+ * - 값이 있으면 **환경 무관** 우선 — `USIMSA_PROD_SECRET_KEY`는 무시.
+ * - 비어 있을 때만 `USIMSA_ENV`에 따라 `USIMSA_PROD_SECRET_KEY` / `USIMSA_DEV_SECRET_KEY`.
  */
 export function resolveSecretKey(runtimeEnv: UsimsaRuntimeEnv): UsimsaSecretKeyResolution {
   const legacy = trimOrEmpty(process.env.USIMSA_SECRET_KEY);

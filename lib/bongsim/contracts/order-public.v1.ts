@@ -17,6 +17,14 @@ export type BongsimOrderPublicFulfillmentV1 = {
   attempt_count: number;
 };
 
+/** QR 이미지 URL + LPA 수동 코드 (클릭 URL 아님) */
+export type BongsimOrderPublicEsimInstallV1 = {
+  ready: boolean;
+  qr_image_url: string | null;
+  manual_install_code: string | null;
+  apple_quick_install_url: string | null;
+};
+
 export type BongsimOrderPublicV1 = {
   schema: "bongsim.order_public.v1";
   order_id: string;
@@ -31,7 +39,7 @@ export type BongsimOrderPublicV1 = {
   payment_provider: string | null;
   lines: BongsimOrderPublicLineV1[];
   fulfillment: BongsimOrderPublicFulfillmentV1 | null;
-  install_stub: { kind: "placeholder" | "link"; label: string; href: string | null };
+  esim_install: BongsimOrderPublicEsimInstallV1;
   /** 고객 전액 취소(웰컴페이 환불) 가능 여부 */
   cancel_eligible: boolean;
   cancel_block_reason: string | null;

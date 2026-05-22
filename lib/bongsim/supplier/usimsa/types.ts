@@ -61,6 +61,19 @@ export const USIMSA_CODE = {
   SERVER_ERROR: "9999",
 } as const;
 
+/** POST /v2/cancel/{topupId} 비즈니스 코드 (운영 매뉴얼) */
+export const USIMSA_CANCEL_CODE = {
+  SUCCESS: "0000",
+  ALREADY_CANCELED: "9002",
+  REFUND_NOT_ALLOWED: "9003",
+  CANCEL_NOT_ALLOWED_STATE: "9006",
+} as const;
+
+export function isUsimsaCancelSuccess(code: string): boolean {
+  const c = code.trim();
+  return c === USIMSA_CANCEL_CODE.SUCCESS || c === USIMSA_CANCEL_CODE.ALREADY_CANCELED;
+}
+
 export function isRetriableUsimsaCode(code: string): boolean {
   return code === USIMSA_CODE.SERVER_ERROR;
 }

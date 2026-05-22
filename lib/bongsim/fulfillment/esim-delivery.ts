@@ -1,6 +1,7 @@
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { resolveEsimDeliveryContact } from "@/lib/bongsim/checkout/gift-order";
 import { resolveBuyerPhoneForOrder } from "@/lib/bongsim/data/resolve-buyer-phone";
+import { buildBongsimOrderCompleteUrl } from "@/lib/bongsim/esim-install-presentation";
 import { sendTravelEsimOrderQrMail } from "@/lib/bongsim/email/travel-esim-order-qr-mail";
 import { sendEsimQrDeliveredAlimTalk } from "@/lib/bongsim/notifications/esim-qr-alimtalk";
 import { isBongsimCheckoutTestMode } from "@/lib/bongsim/test-mode";
@@ -22,12 +23,14 @@ export type DeliverEsimToCustomerResult =
 async function sendEsimQrEmailBestEffort(params: {
   buyerEmail: string;
   orderNumber: string;
+  orderPageUrl: string;
   qrCodeUrl: string;
   downloadLink: string;
 }): Promise<void> {
   const send = await sendTravelEsimOrderQrMail({
     to: params.buyerEmail,
     orderNumber: params.orderNumber,
+    orderPageUrl: params.orderPageUrl,
     qrCodeUrl: params.qrCodeUrl,
     downloadLink: params.downloadLink,
   });
@@ -44,21 +47,20 @@ async function notifyEsimQrToCustomer(params: {
   qrCodeUrl: string;
   downloadLink: string;
 }): Promise<void> {
+  const orderPageUrl = buildBongsimOrderCompleteUrl(params.orderId);
   const phone = params.deliveryPhone ?? (await resolveBuyerPhoneForOrder(params.orderId));
   if (phone) {
     const alim = await sendEsimQrDeliveredAlimTalk(params.orderId, {
       customerPhone: phone,
       orderNumber: params.orderNumber,
-      installLink: params.downloadLink,
-      qrLink: params.qrCodeUrl,
+      orderPageUrl,
     });
     if (!alim.ok && alim.shouldSendLmsFallback) {
       await sendEsimQrDeliveredLmsFallback({
         orderId: params.orderId,
         customerPhone: phone,
         orderNumber: params.orderNumber,
-        installLink: params.downloadLink,
-        qrLink: params.qrCodeUrl,
+        orderPageUrl,
       });
     }
   } else {
@@ -68,6 +70,7 @@ async function notifyEsimQrToCustomer(params: {
   await sendEsimQrEmailBestEffort({
     buyerEmail: params.deliveryEmail,
     orderNumber: params.orderNumber,
+    orderPageUrl,
     qrCodeUrl: params.qrCodeUrl,
     downloadLink: params.downloadLink,
   });
