@@ -1,5 +1,6 @@
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { advanceFulfillmentForPaidOrder } from "@/lib/bongsim/fulfillment/process-fulfillment-job";
+import { deferOrTerminalOutboxAfterFailure } from "@/lib/bongsim/fulfillment/outbox-defer";
 
 type OutboxRow = {
   id: string;
@@ -11,8 +12,8 @@ type OutboxRow = {
 export type ProcessOrderPaidOutboxResult =
   | { outcome: "processed"; outbox_id: string; order_id: string }
   | { outcome: "empty" }
-  | { outcome: "skipped_not_paid"; outbox_id: string; order_id: string }
-  | { outcome: "error" };
+  | { outcome: "skipped_not_paid"; outbox_id: string; order_id: string; order_status: string | null }
+  | { outcome: "error"; outbox_id?: string; order_id?: string };
 
 function parseOrderId(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
@@ -21,9 +22,10 @@ function parseOrderId(payload: unknown): string | null {
   return typeof id === "string" && id.trim() ? id.trim() : null;
 }
 
-function logOutboxProcessError(err: unknown): void {
+function logOutboxProcessError(err: unknown, ctx?: { outbox_id?: string; order_id?: string }): void {
+  const prefix = { ...ctx };
   if (err instanceof Error) {
-    console.error("[bongsim:outbox:process]", err.message, err.stack);
+    console.error("[bongsim:outbox:process]", prefix, err.message, err.stack);
     return;
   }
   const er = err as {
@@ -33,7 +35,7 @@ function logOutboxProcessError(err: unknown): void {
     constraint?: string;
     column?: string;
   };
-  console.error("[bongsim:outbox:process]", {
+  console.error("[bongsim:outbox:process]", prefix, {
     message: er.message ?? String(err),
     code: er.code,
     detail: er.detail,
@@ -49,7 +51,7 @@ function logOutboxProcessError(err: unknown): void {
 export async function drainOrderPaidOutboxBestEffort(maxRounds = 8): Promise<void> {
   for (let i = 0; i < maxRounds; i += 1) {
     const r = await processNextOrderPaidOutbox();
-    if (r.outcome === "empty" || r.outcome === "error") break;
+    if (r.outcome === "empty") break;
     if (r.outcome === "processed") {
       const { maybeDeliverEsimAfterFulfillment } = await import(
         "@/lib/bongsim/fulfillment/esim-delivery"
@@ -57,15 +59,23 @@ export async function drainOrderPaidOutboxBestEffort(maxRounds = 8): Promise<voi
       await maybeDeliverEsimAfterFulfillment(r.order_id).catch((e) => {
         console.warn("[bongsim:outbox:deliver]", e);
       });
+      continue;
     }
+    /* error / skipped_not_paid — 해당 행은 defer·terminal 처리됨, 다음 outbox 계속 */
   }
 }
 
 export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutboxResult> {
   const pool = getPgPool();
-  if (!pool) return { outcome: "error" };
+  if (!pool) {
+    console.error("[bongsim:outbox:process] db_unconfigured (no pool)");
+    return { outcome: "error" };
+  }
 
   const client = await pool.connect();
+  let picked: OutboxRow | null = null;
+  let orderId: string | null = null;
+
   try {
     await client.query("BEGIN");
 
@@ -83,15 +93,19 @@ export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutb
       await client.query("COMMIT");
       return { outcome: "empty" };
     }
+    picked = row;
 
-    const orderId = parseOrderId(row.payload);
+    orderId = parseOrderId(row.payload);
     if (!orderId) {
+      console.error("[bongsim:outbox:process] invalid_payload_missing_order_id", {
+        outbox_id: row.id,
+      });
       await client.query(
         `UPDATE bongsim_outbox SET processed_at = now(), locked_at = now() WHERE id = $1`,
         [row.id],
       );
       await client.query("COMMIT");
-      return { outcome: "error" };
+      return { outcome: "error", outbox_id: row.id };
     }
 
     const ord = await client.query<{ status: string }>(
@@ -100,13 +114,24 @@ export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutb
     );
     const st = ord.rows[0]?.status;
     if (st !== "paid") {
-      console.warn("[bongsim:outbox:skipped_not_paid]", {
+      console.error("[bongsim:outbox:skipped_not_paid]", {
         outbox_id: row.id,
         order_id: orderId,
         order_status: st ?? null,
       });
       await client.query("ROLLBACK");
-      return { outcome: "skipped_not_paid", outbox_id: row.id, order_id: orderId };
+      await deferOrTerminalOutboxAfterFailure(client, {
+        outbox_id: row.id,
+        payload: row.payload,
+        reason: "skipped_not_paid",
+        order_status: st ?? null,
+      });
+      return {
+        outcome: "skipped_not_paid",
+        outbox_id: row.id,
+        order_id: orderId,
+        order_status: st ?? null,
+      };
     }
 
     await advanceFulfillmentForPaidOrder(client, orderId);
@@ -116,13 +141,22 @@ export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutb
     await client.query("COMMIT");
     return { outcome: "processed", outbox_id: row.id, order_id: orderId };
   } catch (err) {
-    logOutboxProcessError(err);
+    logOutboxProcessError(err, { outbox_id: picked?.id, order_id: orderId ?? undefined });
     try {
       await client.query("ROLLBACK");
     } catch {
       /* ignore */
     }
-    return { outcome: "error" };
+    if (picked) {
+      await deferOrTerminalOutboxAfterFailure(client, {
+        outbox_id: picked.id,
+        payload: picked.payload,
+        reason: "fulfillment_error",
+        order_status: null,
+        err,
+      });
+    }
+    return { outcome: "error", outbox_id: picked?.id, order_id: orderId ?? undefined };
   } finally {
     client.release();
   }

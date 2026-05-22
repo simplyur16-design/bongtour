@@ -28,6 +28,10 @@ export async function register() {
         '@/lib/instrumentation-season-curation-cron'
       )
       startInstrumentationSeasonCurationCron()
+      const { startInstrumentationBongsimOrderPaidOutboxCron } = await import(
+        '@/lib/instrumentation-bongsim-order-paid-outbox-cron'
+      )
+      startInstrumentationBongsimOrderPaidOutboxCron()
     }
     {
       const { canRegisterCalendarCron } = await import('@/lib/calendar-batch-env')
@@ -62,10 +66,6 @@ export async function register() {
           '@/lib/instrumentation-product-sales-policy-cron'
         )
         startInstrumentationProductSalesPolicyCron()
-        const { startInstrumentationBongsimOrderPaidOutboxCron } = await import(
-          '@/lib/instrumentation-bongsim-order-paid-outbox-cron'
-        )
-        startInstrumentationBongsimOrderPaidOutboxCron()
       }
     }
   }
