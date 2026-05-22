@@ -1727,10 +1727,6 @@ ${text.slice(0, 16000)}`
       }
     })
     .filter((s) => s.day > 0)
-  const schedule: RegisterScheduleDay[] = applyScheduleImageKeywordsToRows(
-    scheduleBase.map(supplementScheduleDayFromDescription),
-  )
-
   const pasteForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
   const supplierListingTitleRaw = extractYbtourVerbatimListingTitle(pasteForTitle)
   const llmTitleRaw = String(raw.title ?? '').trim()
@@ -1739,6 +1735,12 @@ ${text.slice(0, 16000)}`
       ? normalizeYbtourRegisterTitleMinimalLocal(supplierListingTitleRaw)
       : normalizeYbtourRegisterTitleMinimalLocal(llmTitleRaw) || llmTitleRaw || '상품명 없음'
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
+  const scheduleDestHint = finalDestination || null
+  const schedule: RegisterScheduleDay[] = applyScheduleImageKeywordsToRows(
+    scheduleBase.map(supplementScheduleDayFromDescription),
+    undefined,
+    { productDestination: scheduleDestHint },
+  )
 
   const mustKnowFromLlm = forPreview
     ? []

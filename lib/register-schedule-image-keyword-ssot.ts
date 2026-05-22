@@ -130,6 +130,16 @@ const KO_LANDMARK_RULES: ReadonlyArray<KoLandmarkRule> = [
   { re: /오션\s*파크|Ocean\s*Park/i, en: 'Ocean Park Hong Kong', when: /홍콩|Hong\s*Kong/i },
   { re: /마카오\s*타워|Macau\s*Tower/i, en: 'Macau Tower' },
   { re: /윈\s*팰리스|Wynn\s*Palace/i, en: 'Wynn Palace Macau' },
+  { re: /사랑의\s*절벽|Lovers\s*Point|Two\s*Lovers/i, en: 'Two Lovers Point', when: /괌|Guam|사이판|Saipan/i },
+  { re: /스페인\s*광장|Spanish\s*Plaza/i, en: 'Plaza de Espana Guam', when: /괌|Guam/i },
+  { re: /아가나|Hagåtña|Hagatna/i, en: 'Hagatna Cathedral', when: /괌|Guam/i },
+  { re: /투몬|Tumon/i, en: 'Tumon Bay', when: /괌|Guam/i },
+  { re: /피시\s*아이|Fish\s*Eye/i, en: 'Fish Eye Marine Park Guam', when: /괌|Guam/i },
+  {
+    re: /PIC|퍼시픽\s*아일랜드|오세아나|워터\s*파크|워터파크/i,
+    en: 'Tumon Bay',
+    when: /괌|Guam|PIC|투몬|Tumon/i,
+  },
 ]
 
 /** 여행지와 무관한 타권역 랜드마크(홍콩·마카오·싱가포르 등에서 LLM 오염 차단) */
@@ -171,6 +181,8 @@ const CITY_ICONIC_LANDMARK: Record<string, string> = {
   barcelona: 'Sagrada Familia',
   singapore: 'Marina Bay Sands',
   macau: 'Senado Square',
+  guam: 'Two Lovers Point',
+  saipan: 'Micro Beach Saipan',
 }
 
 /** 일정 본문에 명소가 없을 때 2순위·희박 일차 보강용(여행지별 대표 어트랙션) */
@@ -195,6 +207,20 @@ const TRIP_ICONIC_LANDMARKS: Record<string, readonly string[]> = {
   ],
   japan: ['Sensoji Temple', 'Shibuya Crossing', 'Fushimi Inari', 'Osaka Castle'],
   'south korea': ['Gyeongbokgung Palace', 'N Seoul Tower', 'Bukchon Hanok Village'],
+  guam: [
+    'Two Lovers Point',
+    'Tumon Bay',
+    'Fish Eye Marine Park Guam',
+    'Plaza de Espana Guam',
+    'Hagatna Cathedral',
+    'War in the Pacific National Historical Park',
+  ],
+  saipan: [
+    'Micro Beach Saipan',
+    'Managaha Island',
+    'Suicide Cliff Saipan',
+    'Garapan Saipan',
+  ],
 }
 
 const KO_HUB_EN = new Set([

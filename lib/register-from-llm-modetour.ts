@@ -1576,6 +1576,7 @@ ${text.slice(0, 16000)}`
         productDestination: kwDestEarly || undefined,
         scheduleRows: scheduleRowsForKw,
       }),
+    { productDestination: kwDestEarly || null },
   )
 
   /** 선추출이 최종 일정에 들어갔을 때만 true — 이후 본문 보강이 요약 문장을 정규식 결과로 되돌리지 않게 함 */

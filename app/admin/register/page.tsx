@@ -322,7 +322,11 @@ function buildRegisterPexelsUiRows(
   const it = preview.itineraryDayDrafts ?? []
   if (it.length === 0) return []
   const d = preview.productDraft
-  return it.map((raw) => {
+  const destHint =
+    (parsed?.destination ?? '').trim() ||
+    (d.primaryDestination ?? d.destinationRaw ?? '').trim() ||
+    null
+  const draftRows = it.map((raw) => {
     const day = typeof raw.day === 'number' && raw.day > 0 ? raw.day : 1
     const autoKwRaw =
       buildPexelsKeyword({
@@ -338,10 +342,30 @@ function buildRegisterPexelsUiRows(
       day,
       title: (raw.city ?? `Day ${day}`).trim() || `Day ${day}`,
       description: (raw.summaryTextRaw ?? '').slice(0, 400),
+      routeText: null as string | null,
       imageKeyword: autoKw.ok ? autoKw.value : '',
-      imageKeyword2: '',
+      imageKeyword2: null as string | null,
     }
   })
+  try {
+    return finalizeRegisterScheduleImageKeywords(draftRows, { productDestination: destHint }).map((row) => ({
+      day: row.day,
+      title: String(row.title ?? ''),
+      description: String(row.description ?? ''),
+      routeText: row.routeText ?? null,
+      imageKeyword: String(row.imageKeyword ?? '').trim(),
+      imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
+    }))
+  } catch {
+    return draftRows.map((row) => ({
+      day: row.day,
+      title: row.title,
+      description: row.description,
+      routeText: row.routeText,
+      imageKeyword: row.imageKeyword,
+      imageKeyword2: '',
+    }))
+  }
 }
 
 /** confirm 시: schedule이 비었거나 비정상이면 UI와 동일한 일정 행으로 채운 뒤 수동 대표관광지 키워드를 반영 */
@@ -1954,7 +1978,8 @@ export default function AdminRegisterPage() {
                 <p className="font-semibold text-slate-900">일정 요약 (ItineraryDay)</p>
                 <p className="text-[10px] leading-snug text-slate-500">
                   저장용 일차 초안입니다. 요약 문장은 <code className="rounded bg-slate-100 px-0.5">parsed.schedule[]</code>의
-                  description과 같은 줄로 올라옵니다. 짧게만 보이면 LLM·본문 단서(일차·박일)를 확인하세요.
+                  description과 같은 줄로 올라옵니다. <strong className="font-medium text-slate-700">imageKeyword·imageKeyword2는 이 블록에 없습니다</strong> — 아래
+                  「대표관광지 저장」패널이 Pexels 1·2순위 SSOT입니다.
                 </p>
                 <p className="mt-1 text-slate-600">
                   {preview.itineraryDayDrafts.length > 0

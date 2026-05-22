@@ -9,20 +9,12 @@ import {
   generateMobileWelpayTimestamp,
   generatePcStdPaySignature,
   generateTimestamp,
+  welcomepayCheckoutCallbackOrigin,
   welcomepayMobileWelpaySubmitUrl,
   welcomepayStdPayScriptUrl,
 } from "@/lib/bongsim/welcomepay";
 
 export const dynamic = "force-dynamic";
-
-function requestOrigin(req: Request): string {
-  const u = new URL(req.url);
-  const protoRaw = req.headers.get("x-forwarded-proto") ?? u.protocol.replace(":", "");
-  const proto = protoRaw.split(",")[0]?.trim() || "https";
-  const hostRaw = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? u.host;
-  const host = hostRaw.split(",")[0]?.trim() || u.host;
-  return `${proto}://${host}`;
-}
 
 type PrepareBody = {
   orderId?: unknown;
@@ -109,7 +101,7 @@ export async function POST(req: Request) {
     client.release();
   }
 
-  const origin = requestOrigin(req);
+  const origin = welcomepayCheckoutCallbackOrigin();
   const returnUrl = `${origin}/api/bongsim/checkout/welcomepay-return`;
   const closeUrl = buildCheckoutPaymentResultRedirectUrl(origin, {
     status: "cancel",

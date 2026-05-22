@@ -534,6 +534,8 @@ export function isHotelLodgingImageKeyword(keyword: string): boolean {
   if (/호텔|숙박|리조트|펜션|모텔|게스트하우스|체크인/u.test(raw)) return true
   const n = normalizeToPlaceName(raw).toLowerCase()
   if (!n) return false
+  /** 괌 PIC(Pacific Island Club) 등 리조트 브랜드 — Pexels 관광지명이 아님 */
+  if (n === 'pic' || /\bpic\s*resort\b/i.test(n)) return true
   return /\b(hotel|resort|hostel|inn|lodging|suites|mercure|marriott|hilton|hyatt|sheraton|intercontinental|novotel|ibis|radisson|sofitel|fairmont|pan\s*pacific|mandarin\s*oriental|shangri-la|ritz|four\s*seasons|crowne\s*plaza|holiday\s*inn|best\s*western|motel)\b/i.test(
     n,
   )

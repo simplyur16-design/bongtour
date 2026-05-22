@@ -1788,8 +1788,9 @@ ${text.slice(0, 16000)}`
     })
     .filter((s) => s.day > 0)
   const scheduleRowsForKw = scheduleBase.map(supplementScheduleDayFromDescription)
-  const lottetourDestEarly = (raw.destination ?? '').trim()
   const lottetourTitleEarly = String(raw.title ?? '').trim()
+  const lottetourDestEarly =
+    (raw.destination ?? '').trim() || extractDestinationFromTitle(lottetourTitleEarly)
   const schedule: RegisterScheduleDay[] = applyScheduleImageKeywordsToRows(
     scheduleRowsForKw,
     (kw, ctx) =>
@@ -1801,6 +1802,7 @@ ${text.slice(0, 16000)}`
         productDestination: lottetourDestEarly || undefined,
         productPrimaryDestination: lottetourDestEarly || undefined,
       }),
+    { productDestination: lottetourDestEarly || null },
   )
 
   const pasteForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)

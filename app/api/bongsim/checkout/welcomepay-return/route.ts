@@ -80,6 +80,16 @@ export async function POST(req: Request) {
     c.release();
   }
 
+  const callbackAmt = pickAmountKrw(incoming);
+  if (
+    callbackAmt != null &&
+    Number.isFinite(grandTotalKrw) &&
+    grandTotalKrw > 0 &&
+    callbackAmt !== grandTotalKrw
+  ) {
+    return fail("amount_mismatch");
+  }
+
   const authUrl = incoming.authUrl?.trim();
   const target =
     authUrl && (isPaywelcomeHttpsUrl(authUrl) || authUrl.startsWith("http://localhost"))

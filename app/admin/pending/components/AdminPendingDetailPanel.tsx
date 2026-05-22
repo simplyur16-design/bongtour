@@ -627,6 +627,10 @@ export default function AdminPendingDetailPanel({
           }
         )
       }
+      const productDestHint =
+        (detail.destination ?? '').trim() ||
+        (detail.primaryDestination ?? '').trim() ||
+        null
       const finalized = finalizeRegisterScheduleImageKeywords(
         out.map((row) => ({
           day: row.day,
@@ -636,6 +640,7 @@ export default function AdminPendingDetailPanel({
           imageKeyword: row.imageKeyword ?? '',
           imageKeyword2: row.imageKeyword2 ?? null,
         })),
+        { productDestination: productDestHint },
       )
       return out.map((row, idx) => ({
         ...row,

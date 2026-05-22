@@ -85,6 +85,16 @@ export async function POST(req: Request) {
     c.release();
   }
 
+  const callbackAmt = pickAmountKrw(incoming);
+  if (
+    callbackAmt != null &&
+    Number.isFinite(grandTotalKrw) &&
+    grandTotalKrw > 0 &&
+    callbackAmt !== grandTotalKrw
+  ) {
+    return fail("amount_mismatch");
+  }
+
   const preq = incoming.P_REQ_URL?.trim() ?? incoming.p_req_url?.trim();
   const target =
     preq && (isPaywelcomeHttpsUrl(preq) || preq.startsWith("http://localhost")) ? preq : welcomepayPayAuthUrl();

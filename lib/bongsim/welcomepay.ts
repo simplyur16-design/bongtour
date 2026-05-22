@@ -2,9 +2,15 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { getSiteOrigin } from "@/lib/site-metadata";
 
 /** test | production (default test) */
 export type WelcomepayEnvKind = "test" | "production";
+
+/** PG `returnUrl` / `P_NEXT_URL` / `closeUrl` — `NEXT_PUBLIC_SITE_URL` 등 사이트 SSOT (요청 Host·www 무관). */
+export function welcomepayCheckoutCallbackOrigin(): string {
+  return getSiteOrigin();
+}
 
 export function resolveWelcomepayEnv(): WelcomepayEnvKind {
   const raw = (process.env.WELCOMEPAY_ENV ?? "test").trim().toLowerCase();

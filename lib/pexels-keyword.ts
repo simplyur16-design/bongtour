@@ -159,6 +159,15 @@ const POI_KO_TO_EN: Record<string, string> = {
   청황: 'City God Temple of Shanghai',
   청황묘: 'City God Temple of Shanghai',
   자금성: 'Forbidden City',
+  사랑의절벽: 'Two Lovers Point',
+  '사랑의 절벽': 'Two Lovers Point',
+  스페인광장: 'Plaza de Espana Guam',
+  '스페인 광장': 'Plaza de Espana Guam',
+  아가나: 'Hagatna Cathedral',
+  투몬: 'Tumon Bay',
+  투몬베이: 'Tumon Bay',
+  피시아이: 'Fish Eye Marine Park Guam',
+  '피시 아이': 'Fish Eye Marine Park Guam',
 }
 
 /** 테마 태그(themeTags) 한국어/혼용 → Pexels 검색용 영어 (후순위 fallback) */

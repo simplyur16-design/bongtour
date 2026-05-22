@@ -161,6 +161,59 @@ describe('buildDualScheduleImageKeywords — 관광 일차 명소', () => {
   })
 })
 
+describe('buildDualScheduleImageKeywords — 괌 PIC 패키지', () => {
+  it('관광·리조트 일차에 Guam 도시명만 비지 않고 명소 키워드를 채운다', () => {
+    const rows = [
+      {
+        day: 1,
+        title: '인천/괌',
+        description: '인천 출발 · 괌 도착 · PIC 체크인',
+        imageKeyword: 'Guam',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        title: '괌 아일랜드',
+        description: '스페인광장 · 사랑의절벽 · 아가나 방문 후 자유일정',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        title: 'PIC',
+        description: 'PIC 워터파크 및 액티비티 · 호텔 식사',
+        imageKeyword: 'PIC Resort',
+        imageKeyword2: null,
+      },
+      {
+        day: 4,
+        title: '괌',
+        description: '호텔 조식 후 자유일정',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 5,
+        title: '괌/인천',
+        description: '괌 출발 · 인천 도착',
+        imageKeyword: 'Guam',
+        imageKeyword2: null,
+      },
+    ]
+    const plan = buildScheduleImageKeywordPlan(rows, { productDestination: '괌' })
+    const d2 = buildDualScheduleImageKeywords(rows[1]!, plan)
+    assert.equal(d2.imageKeyword, 'Plaza de Espana')
+    assert.ok(d2.imageKeyword2.length > 0)
+    assert.notEqual(d2.imageKeyword2, d2.imageKeyword)
+    const d3 = buildDualScheduleImageKeywords(rows[2]!, plan)
+    assert.equal(d3.imageKeyword, 'Tumon Bay')
+    assert.ok(!isBareCityOrCountryKeyword(d3.imageKeyword))
+    const d4 = buildDualScheduleImageKeywords(rows[3]!, plan)
+    assert.equal(d4.imageKeyword, 'Two Lovers Point')
+    assert.ok(d4.imageKeyword2.length > 0)
+  })
+})
+
 describe('buildDualScheduleImageKeywords — 싱가포르', () => {
   const sgRows = [
     {

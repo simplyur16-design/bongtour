@@ -1686,7 +1686,13 @@ ${text.slice(0, 16000)}`
   schedule = polishVerygoodRegisterScheduleDescriptions(schedule)
   traceVerygoodScheduleDesc('register-llm-D-after-polishVerygoodRegisterScheduleDescriptions', schedule)
   schedule = polishVerygoodRegisterScheduleImageKeywords(schedule, detRows)
-  schedule = applyScheduleImageKeywordsToRows(schedule)
+  const scheduleDestHintEarly =
+    (raw.destination ?? '').trim() ||
+    extractDestinationFromTitle(String(raw.title ?? '').trim()) ||
+    null
+  schedule = applyScheduleImageKeywordsToRows(schedule, undefined, {
+    productDestination: scheduleDestHintEarly,
+  })
   traceVerygoodScheduleDesc('register-llm-E-after-polishVerygoodRegisterScheduleImageKeywords', schedule)
 
   const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)

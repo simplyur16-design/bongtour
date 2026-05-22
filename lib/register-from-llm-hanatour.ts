@@ -1704,8 +1704,6 @@ ${text.slice(0, 16000)}`
   schedule = await polishHanatourScheduleRowsGeminiCardTextIfNeeded(schedule, detailBody, {
     onTiming: options?.onTiming,
   })
-  schedule = applyScheduleImageKeywordsToRows(schedule)
-
   const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
   const supplierListingTitleRaw = extractHanatourVerbatimListingTitleRawFromPasteLocal(pastedBlobForTitle)
   const llmTitleNormalized = normalizeHanatourRegisterTitleMinimalLocal(String(raw.title ?? '').trim())
@@ -1714,6 +1712,9 @@ ${text.slice(0, 16000)}`
       ? normalizeHanatourRegisterTitleMinimalLocal(supplierListingTitleRaw)
       : llmTitleNormalized || '상품명 없음'
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
+  schedule = applyScheduleImageKeywordsToRows(schedule, undefined, {
+    productDestination: finalDestination || null,
+  })
 
   const mustKnowFromLlm = forPreview
     ? []
