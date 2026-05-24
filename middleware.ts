@@ -16,11 +16,6 @@ import {
 } from '@/lib/admin-api-security'
 import { isAdminPanelRole, isMembersViewerRole } from '@/lib/user-role'
 import {
-  AUTH_SESSION_COOKIE_PLAIN,
-  AUTH_SESSION_COOKIE_SECURE,
-  CONSENT_PENDING_MARKER_COOKIE,
-} from '@/lib/auth-session-cookie'
-import {
   consentPendingFromMarkerCookie,
   isConsentAllowedPath,
   redirectToConsentSignup,
@@ -29,10 +24,6 @@ import {
 const BYPASS_COOKIE_MAX_AGE = 60 * 60 // 1시간
 
 const isDev = process.env.NODE_ENV === 'development'
-
-/** 정적·public 파일 — matcher 와 동일 제외 패턴 */
-const PUBLIC_PAGE_MATCHER_SOURCE =
-  '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:ico|png|jpg|jpeg|gif|webp|svg|woff2?|txt|xml)$).*)'
 
 type MiddlewareToken = {
   id?: string
@@ -209,7 +200,10 @@ export async function middleware(req: NextRequest) {
 
 /**
  * 익명 공개 페이지는 matcher 미실행 → Edge JWT 비용 없음.
- * 로그인·consent_pending(`bt-consent-pending` 또는 세션 쿠키)만 넓은 패턴에 매칭.
+ * 로그인·consent_pending(세션 쿠키·`bt-consent-pending`)만 넓은 패턴에 매칭.
+ *
+ * `source`·`key`는 반드시 문자열 리터럴 — Next 빌드가 config를 정적으로 분석함.
+ * 값 SSOT: `lib/auth-session-cookie.ts` (`AUTH_SESSION_COOKIE_*`, `CONSENT_PENDING_MARKER_COOKIE`)
  */
 export const config = {
   matcher: [
@@ -217,16 +211,19 @@ export const config = {
     '/admin/:path*',
     '/api/admin/:path*',
     {
-      source: PUBLIC_PAGE_MATCHER_SOURCE,
-      has: [{ type: 'cookie', key: AUTH_SESSION_COOKIE_PLAIN }],
+      source:
+        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:ico|png|jpg|jpeg|gif|webp|svg|woff2?|txt|xml)$).*)',
+      has: [{ type: 'cookie', key: 'authjs.session-token' }],
     },
     {
-      source: PUBLIC_PAGE_MATCHER_SOURCE,
-      has: [{ type: 'cookie', key: AUTH_SESSION_COOKIE_SECURE }],
+      source:
+        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:ico|png|jpg|jpeg|gif|webp|svg|woff2?|txt|xml)$).*)',
+      has: [{ type: 'cookie', key: '__Secure-authjs.session-token' }],
     },
     {
-      source: PUBLIC_PAGE_MATCHER_SOURCE,
-      has: [{ type: 'cookie', key: CONSENT_PENDING_MARKER_COOKIE }],
+      source:
+        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:ico|png|jpg|jpeg|gif|webp|svg|woff2?|txt|xml)$).*)',
+      has: [{ type: 'cookie', key: 'bt-consent-pending' }],
     },
   ],
 }
