@@ -10,7 +10,7 @@ export default async function AdminLayout({
 }) {
   const session = await getAdminSession()
   if (!session?.user && process.env.NODE_ENV === 'production') {
-    redirect('/auth/signin')
+    redirect('/auth/signin?callbackUrl=%2Fadmin')
   }
   const isDevMock =
     process.env.NODE_ENV === 'development' && (session?.user as { id?: string })?.id === MOCK_ADMIN_SESSION_ID

@@ -4,6 +4,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
+import { ensureUserBootstrapRole } from '@/lib/ensure-user-bootstrap-role'
 import authConfig from './auth.config'
 
 import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
@@ -37,6 +38,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.callbacks,
     async signIn({ user, account }) {
       if (!user?.id) return true
+      await ensureUserBootstrapRole(user.id, user.email ?? null)
       const row = await prisma.user.findUnique({
         where: { id: user.id },
         select: { accountStatus: true, signupMethod: true },
@@ -63,10 +65,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true
     },
     async jwt({ token, user, trigger, session }) {
-      if (user) {
+      if (user?.id) {
         token.id = user.id
+      }
+      const userId = (token.id as string | undefined) ?? (token.sub as string | undefined)
+      if (userId) {
+        token.id = userId
+        const email = (user?.email as string | undefined) ?? (token.email as string | undefined)
+        await ensureUserBootstrapRole(userId, email ?? null)
         const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
+          where: { id: userId },
           select: { role: true, accountStatus: true },
         })
         token.role = dbUser?.role ?? null

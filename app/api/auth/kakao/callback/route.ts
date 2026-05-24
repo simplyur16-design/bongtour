@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
+import { ensureUserBootstrapRole } from '@/lib/ensure-user-bootstrap-role'
 import {
   KAKAO_OAUTH_REDIRECT_COOKIE,
   KAKAO_OAUTH_STATE_COOKIE,
@@ -316,6 +317,7 @@ export async function GET(request: Request) {
   const res = NextResponse.redirect(target)
   clearKakaoOAuthStateCookies(res, request)
 
+  const sessionRole = await ensureUserBootstrapRole(full.id, full.email)
   const sessionOk = await appendNaverSessionCookie({
     request,
     response: res,
@@ -324,7 +326,7 @@ export async function GET(request: Request) {
       name: full.name,
       email: full.email,
       image: full.image,
-      role: full.role,
+      role: sessionRole ?? full.role,
       accountStatus: full.accountStatus ?? 'active',
     },
   })
