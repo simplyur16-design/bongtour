@@ -58,10 +58,22 @@ function isStaticOrPublicAsset(pathname: string): boolean {
   )
 }
 
+/** nginx 뒤 HTTPS — Auth.js 는 `__Secure-authjs.session-token` 사용, getToken 은 secureCookie 필수 */
+function isSecureAuthCookieRequest(req: NextRequest): boolean {
+  const proto = (req.headers.get('x-forwarded-proto') ?? '').split(',')[0]?.trim()
+  if (proto === 'https') return true
+  if (proto === 'http') return false
+  return req.nextUrl.protocol === 'https:'
+}
+
 async function readSessionToken(req: NextRequest): Promise<MiddlewareToken | null> {
   if (!resolvedAuthSecret) return null
   try {
-    const token = await getToken({ req, secret: resolvedAuthSecret })
+    const token = await getToken({
+      req,
+      secret: resolvedAuthSecret,
+      secureCookie: isSecureAuthCookieRequest(req),
+    })
     return (token as MiddlewareToken | null) ?? null
   } catch (e) {
     console.warn('[middleware] getToken failed', e)
