@@ -11,6 +11,7 @@ import {
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import {
   clearRecommendCheckoutDispatched,
+  clearRecommendFunnelSnapshot,
   loadRecommendFunnelSnapshot,
   saveRecommendFunnelSnapshot,
 } from "@/lib/bongsim/recommend/funnel-storage";
@@ -57,10 +58,17 @@ export default function RecommendPageClient() {
       setFunnelHydrated(true);
       return;
     }
-    setSelectedCodes(snap.selectedCodes);
-    setStoredCompleted(snap.completed ?? {});
-    if (fromCheckout || snap.step === 2) {
+    // 결제 화면에서만 2단계 복원. eSIM 찾기 메인 진입은 항상 국가 선택(1단계)부터.
+    if (fromCheckout) {
+      setSelectedCodes(snap.selectedCodes);
+      setStoredCompleted(snap.completed ?? {});
       setCurrentStep(2);
+    } else {
+      clearRecommendFunnelSnapshot();
+      setSelectedCodes([]);
+      setStoredCompleted({});
+      setCurrentStep(1);
+      clearRecommendCheckoutDispatched();
     }
     setFunnelHydrated(true);
   }, [fromCheckout]);

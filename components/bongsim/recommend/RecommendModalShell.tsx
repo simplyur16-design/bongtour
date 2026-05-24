@@ -41,7 +41,7 @@ export function RecommendModalShell({
       <div
         role="dialog"
         aria-modal="true"
-        className={`max-h-[92vh] w-full ${maxWidthClassName} overflow-hidden rounded-t-2xl bg-white shadow-2xl transition-all duration-300 ease-out sm:rounded-2xl ${
+        className={`bt-bongsim-readable max-h-[92vh] w-full ${maxWidthClassName} overflow-hidden rounded-t-2xl bg-white text-slate-900 shadow-2xl transition-all duration-300 ease-out sm:rounded-2xl ${
           entered ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
         }`}
         onClick={(e) => e.stopPropagation()}

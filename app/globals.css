@@ -373,3 +373,21 @@ a:not([class]):hover {
 .bt-training-flow-tabs button[aria-selected='true'] .bt-training-flow-tab-badge {
   color: #fff !important;
 }
+
+/* eSIM 추천 — 플랜 카드·가격: 밝은 배경 위 본문은 항상 진한색 (text-white 상속·덮어쓰기 방지) */
+.bt-bongsim-readable .bt-bongsim-plan-card,
+.bt-bongsim-readable .bt-bongsim-plan-card p,
+.bt-bongsim-readable .bt-bongsim-plan-card span:not(.bt-bongsim-on-dark),
+.bt-bongsim-readable .bt-bongsim-plan-price {
+  color: #0f172a !important;
+}
+.bt-bongsim-readable .bt-bongsim-on-dark {
+  color: #ffffff !important;
+}
+.bt-bongsim-readable .bt-bongsim-footer-lowest,
+.bt-bongsim-readable .bt-bongsim-footer-lowest-price {
+  color: #1e293b !important;
+}
+.bt-bongsim-readable .bt-bongsim-footer-lowest-price {
+  color: #0f172a !important;
+}

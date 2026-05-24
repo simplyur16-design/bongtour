@@ -28,7 +28,7 @@ import {
 } from "@/lib/bongsim/recommend/multi-country-suggest";
 import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-ranges";
 
-const HERO_IMAGE_SIZES = "(max-width:768px) 100vw, (max-width:1024px) 70vw, 896px";
+const HERO_IMAGE_SIZES = "(max-width:1023px) 100vw, 55vw";
 
 export type CountryProductPack = {
   roaming: { min_price: number; products: ProductOption[] };
@@ -440,7 +440,7 @@ export function ProductCombinationStep({
   ]);
 
   const shell = (inner: ReactNode) => (
-    <div className="mx-auto w-full max-w-none px-0 sm:max-w-lg sm:px-4 lg:max-w-md lg:px-0">{inner}</div>
+    <div className="mx-auto w-full max-w-none px-0 sm:px-4 lg:max-w-5xl lg:px-6">{inner}</div>
   );
 
   if (loading) {
@@ -459,7 +459,8 @@ export function ProductCombinationStep({
         <button
           type="button"
           onClick={onBack}
-          className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 shadow-sm hover:border-teal-300 hover:bg-teal-50"
+          className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold !text-black shadow-sm hover:border-teal-300 hover:bg-teal-50"
+          style={{ color: "#000000" }}
         >
           ← 국가 선택으로 돌아가기
         </button>
@@ -468,17 +469,24 @@ export function ProductCombinationStep({
   }
 
   return (
-    <div className="mx-auto w-full max-w-none pb-8 sm:max-w-lg sm:px-4 lg:mx-auto lg:max-w-md lg:px-0 lg:pb-10">
+    <div className="bt-bongsim-readable mx-auto w-full max-w-none pb-8 sm:px-4 lg:mx-auto lg:max-w-5xl lg:px-6 lg:pb-12">
       <div className="px-4 sm:px-0">
         <button
           type="button"
           onClick={onBack}
-          className="mb-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 shadow-sm transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-900 sm:text-base"
+          className="mb-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold !text-black shadow-sm transition hover:border-teal-300 hover:bg-teal-50 sm:text-base"
+          style={{ color: "#000000" }}
         >
-          <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <svg
+            className="h-5 w-5 shrink-0 text-black"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          국가 선택으로 돌아가기
+          <span className="text-black">국가 선택으로 돌아가기</span>
         </button>
 
         <h1 className="text-center text-xl font-bold text-gray-900 sm:text-2xl lg:text-[1.65rem]">
@@ -517,7 +525,7 @@ export function ProductCombinationStep({
                 </div>
               ) : null}
               <div
-                className="w-full cursor-pointer overflow-hidden shadow-lg transition hover:ring-2 hover:ring-blue-300/60 sm:rounded-2xl"
+                className="w-full cursor-pointer overflow-hidden shadow-lg transition hover:ring-2 hover:ring-blue-300/60 sm:rounded-2xl lg:flex lg:min-h-[280px] lg:rounded-2xl"
                 role="button"
                 tabIndex={0}
                 onClick={() => startDuration(code)}
@@ -528,7 +536,8 @@ export function ProductCombinationStep({
                   }
                 }}
               >
-                <div className="relative aspect-[3/4] w-full max-h-[min(72vh,520px)] overflow-hidden bg-gray-900 sm:aspect-[4/5] sm:max-h-none lg:aspect-[3/4] lg:max-h-[560px]">
+                {/* 모바일: 세로형 히어로 / PC(lg+): 가로형 왼쪽 히어로 */}
+                <div className="relative aspect-[3/4] w-full max-h-[min(72vh,520px)] overflow-hidden bg-gray-900 sm:aspect-[4/5] sm:max-h-none lg:aspect-auto lg:h-auto lg:max-h-none lg:min-h-[280px] lg:w-[52%] lg:shrink-0">
                   {hero ? (
                     <SafeImage
                       src={hero}
@@ -555,12 +564,13 @@ export function ProductCombinationStep({
                     </div>
                   )}
                   <div
-                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent lg:bg-gradient-to-r lg:from-black/70 lg:via-black/25 lg:to-transparent"
                     aria-hidden
                   />
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col justify-end px-5 pb-5 pt-16 sm:px-6 sm:pb-6">
-                    <div className="flex flex-col items-center gap-3 text-center sm:gap-4">
-                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full shadow-lg ring-2 ring-white/80 sm:h-16 sm:w-16">
+                  {/* 모바일: 하단 중앙 */}
+                  <div className="absolute inset-x-0 bottom-0 flex flex-col justify-end px-5 pb-5 pt-16 sm:px-6 sm:pb-6 lg:hidden">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full shadow-lg ring-2 ring-white/80">
                         <SafeImage
                           src={flagCdnUrl(code)}
                           alt=""
@@ -573,7 +583,28 @@ export function ProductCombinationStep({
                           referrerPolicy="no-referrer"
                         />
                       </div>
-                      <p className="text-2xl font-bold text-white drop-shadow-md sm:text-3xl">
+                      <p className="text-2xl font-bold text-white drop-shadow-md">
+                        {country?.nameKr ?? code.toUpperCase()}
+                      </p>
+                    </div>
+                  </div>
+                  {/* PC: 왼쪽 하단 가로 배치 */}
+                  <div className="absolute inset-x-0 bottom-0 hidden px-8 pb-8 pt-20 lg:flex lg:items-end lg:justify-start">
+                    <div className="flex items-center gap-4">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full shadow-lg ring-2 ring-white/80">
+                        <SafeImage
+                          src={flagCdnUrl(code)}
+                          alt=""
+                          width={64}
+                          height={64}
+                          quality={90}
+                          className="h-full w-full object-cover"
+                          sizes="64px"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                      <p className="text-3xl font-bold text-white drop-shadow-md xl:text-4xl">
                         {country?.nameKr ?? code.toUpperCase()}
                       </p>
                     </div>
@@ -581,22 +612,22 @@ export function ProductCombinationStep({
                 </div>
 
                 {!done ? (
-                  <div className="border-t border-slate-100 bg-white">
+                  <div className="border-t border-slate-100 bg-white lg:flex lg:flex-1 lg:flex-col lg:border-t-0 lg:border-l lg:border-slate-100">
                     <TravelerAvgDailyProgressBar
                       code={code}
                       countryNameKr={country?.nameKr ?? code.toUpperCase()}
                     />
-                    <p className="border-t border-slate-100 px-4 py-3 text-center text-sm font-medium text-slate-600 sm:py-4 sm:text-base">
-                      탭하여 여행 기간 선택
+                    <p className="border-t border-slate-100 px-4 py-3 text-center text-sm font-medium text-slate-600 sm:py-4 sm:text-base lg:mt-auto lg:border-t lg:px-6 lg:py-5 lg:text-lg">
+                      카드를 눌러 여행 기간을 선택하세요
                     </p>
                   </div>
                 ) : null}
 
                 {done ? (
-                  <div className="bg-white px-4 py-4 sm:px-5 sm:py-5">
-                    <div className="flex items-start gap-2.5 rounded-xl bg-blue-50 px-4 py-3.5 sm:px-5 sm:py-4">
+                  <div className="bg-white px-4 py-4 sm:px-5 sm:py-5 lg:flex lg:flex-1 lg:items-center lg:border-l lg:border-slate-100 lg:px-8 lg:py-6">
+                    <div className="flex w-full items-start gap-2.5 rounded-xl bg-blue-50 px-4 py-3.5 sm:px-5 sm:py-4 lg:px-6 lg:py-5">
                       <svg
-                        className="mt-0.5 h-5 w-5 shrink-0 text-blue-500 lg:mt-1 lg:h-6 lg:w-6"
+                        className="mt-0.5 h-5 w-5 shrink-0 text-blue-500 lg:h-6 lg:w-6"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                         aria-hidden
@@ -607,7 +638,7 @@ export function ProductCombinationStep({
                           clipRule="evenodd"
                         />
                       </svg>
-                      <span className="text-sm font-medium text-blue-700 sm:text-base" title={summaryLine}>
+                      <span className="text-sm font-medium text-blue-700 sm:text-base lg:text-lg" title={summaryLine}>
                         {summaryLine}
                       </span>
                     </div>
@@ -690,7 +721,9 @@ export function ProductCombinationStep({
                       {multiTotal != null ? (
                         <span className="text-sm text-gray-600">
                           {estimateTripDays}일 합계{" "}
-                          <span className="text-lg font-semibold text-blue-600 lg:text-xl">{formatKrw(multiTotal)}</span>
+                          <span className="bt-bongsim-plan-price text-lg font-semibold !text-slate-900 lg:text-xl">
+                            {formatKrw(multiTotal)}
+                          </span>
                         </span>
                       ) : null}
                     </div>

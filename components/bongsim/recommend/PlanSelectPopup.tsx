@@ -210,7 +210,7 @@ export function PlanSelectPopup({
                 <div
                   key={`${key}-${product.option_api_id}`}
                   onClick={() => setSelectedId(product.option_api_id)}
-                  className={`w-full cursor-pointer rounded-xl border-2 p-4 text-left transition lg:p-5 ${
+                  className={`bt-bongsim-plan-card w-full cursor-pointer rounded-xl border-2 p-4 text-left transition lg:p-5 ${
                     isPremium
                       ? active
                         ? "border-violet-400 bg-gradient-to-br from-violet-50 via-white to-blue-50 shadow-md ring-1 ring-violet-200/60"
@@ -222,7 +222,7 @@ export function PlanSelectPopup({
                 >
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     {isPremium ? (
-                      <div className="inline-flex items-center rounded-full bg-gradient-to-r from-violet-600 to-blue-600 px-3 py-1.5 text-[11px] font-extrabold tracking-wide text-white shadow-md ring-2 ring-violet-300/80 lg:px-4 lg:py-2 lg:text-xs">
+                      <div className="bt-bongsim-on-dark inline-flex items-center rounded-full bg-gradient-to-r from-violet-600 to-blue-600 px-3 py-1.5 text-[11px] font-extrabold tracking-wide text-white shadow-md ring-2 ring-violet-300/80 lg:px-4 lg:py-2 lg:text-xs">
                         {product.tier_label}
                       </div>
                     ) : (
@@ -237,19 +237,19 @@ export function PlanSelectPopup({
 
                   {isPremium ? (
                     <>
-                      <p className="text-sm font-semibold text-slate-700 lg:text-base">마음껏 자유롭게 쓰고 싶다면</p>
-                      <p className="mt-1 text-xl font-bold text-slate-900 lg:text-2xl">
+                      <p className="text-sm font-semibold !text-slate-800 lg:text-base">마음껏 자유롭게 쓰고 싶다면</p>
+                      <p className="mt-1 text-xl font-bold !text-slate-900 lg:text-2xl">
                         {(product.allowance_label || "").trim() || "무제한"}
                       </p>
-                      <p className="mt-1 text-sm text-blue-500 lg:text-base">데이터 걱정 끝~~!!</p>
+                      <p className="mt-1 text-sm !text-slate-600 lg:text-base">데이터 걱정 끝~~!!</p>
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-semibold text-slate-700 lg:text-base">{product.plan_name.trim()}</p>
-                      <p className="mt-1 text-lg font-bold text-slate-900 lg:text-xl">
+                      <p className="text-sm font-semibold !text-slate-800 lg:text-base">{product.plan_name.trim()}</p>
+                      <p className="mt-1 text-lg font-bold !text-slate-900 lg:text-xl">
                         {(product.allowance_label || "").trim() || "—"}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500 lg:text-sm">
+                      <p className="mt-0.5 text-xs !text-slate-600 lg:text-sm">
                         {networkFamilyLabelKr(product.network_family)}
                       </p>
                     </>
@@ -257,11 +257,13 @@ export function PlanSelectPopup({
 
                   {totalShow != null && (
                     <div className="mt-2">
-                      <p className="text-lg font-bold text-blue-600 lg:text-xl">{formatKrw(totalShow)}</p>
+                      <p className="bt-bongsim-plan-price text-lg font-bold !text-slate-900 lg:text-xl">
+                        {formatKrw(totalShow)}
+                      </p>
                     </div>
                   )}
                   {dailyShow != null && (
-                    <p className="mt-0.5 text-xs font-medium text-slate-600 lg:text-sm">
+                    <p className="mt-0.5 text-xs font-medium !text-slate-700 lg:text-sm">
                       일당 {formatKrwPerDay(dailyShow)}
                     </p>
                   )}
@@ -301,7 +303,7 @@ export function PlanSelectPopup({
                         </div>
                       </div>
                       {totalKrw != null && (
-                        <p className="mt-2 text-right text-lg font-bold text-blue-600 lg:text-xl">
+                        <p className="bt-bongsim-plan-price mt-2 text-right text-lg font-bold !text-slate-900 lg:text-xl">
                           총 {formatKrw(totalKrw)}
                         </p>
                       )}
@@ -314,9 +316,11 @@ export function PlanSelectPopup({
 
         <div className="border-t border-slate-100 px-5 py-4 lg:px-6">
           {!loading && !err && lowestPackageKrw != null ? (
-            <p className="mb-3 text-center text-sm text-slate-600 lg:text-base">
-              {billableDays}일 기준 최저가{" "}
-              <span className="text-lg font-bold text-blue-600 lg:text-xl">{formatKrw(lowestPackageKrw)}</span>
+            <p className="bt-bongsim-footer-lowest mb-3 text-center text-sm !text-slate-800 lg:text-base">
+              <span className="font-medium">{billableDays}일 기준 최저가</span>{" "}
+              <span className="bt-bongsim-footer-lowest-price text-lg font-bold !text-slate-900 lg:text-xl">
+                {formatKrw(lowestPackageKrw)}
+              </span>
             </p>
           ) : null}
           <div className="flex gap-3">
