@@ -14,6 +14,12 @@ export function refundErrorMessage(payload: {
   if (err === "esim_activated_no_refund") {
     return msg || "eSIM이 이미 발급되어 자동 취소할 수 없습니다. 고객센터로 문의해 주세요.";
   }
+  if (err === "refund_in_progress") {
+    return msg || "환불이 처리 중입니다. 잠시 후 새로고침해 주세요.";
+  }
+  if (err === "supplier_refund_failed") {
+    return msg || "공급사 취소에 실패했습니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.";
+  }
   if (err === "pg_cancel_failed") {
     if (/API\s*키|API\s*Key|api\s*key|INIAPI/i.test(msg)) {
       return "PG 취소 API 키가 맞지 않습니다. WELCOMEPAY_SIGN_KEY에 웰컴페이먼츠 INIAPI Key(가맹점관리자)를 넣었는지 확인해 주세요.";

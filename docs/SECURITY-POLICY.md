@@ -13,7 +13,7 @@
 
 ## 2. 기준 일치 여부
 
-- **middleware**: req.auth (NextAuth) 기준. role 불일치 시 /auth/error.
+- **middleware**: Edge `getToken`(JWT) 기준. role 불일치 시 /auth/error. `consent_pending` 은 세션·`bt-consent-pending` 쿠키가 있을 때만 전역 리다이렉트.
 - **layout**: getAdminSession() (auth() 또는 mock) 기준. production 에서 null 이면 redirect.
 - **API**: requireAdmin() / requireMembersEditor() 등 (auth() 또는 개발 시 mock·바이패스 쿠키) 기준.
 

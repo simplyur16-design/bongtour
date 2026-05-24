@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { connection } from 'next/server'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
@@ -11,22 +12,23 @@ import {
   SITE_NAME,
   toAbsoluteImageUrl,
 } from '@/lib/site-metadata'
-import { requireAdmin } from '@/lib/require-admin'
 import { ProductDetailView } from '@/app/products/[idOrSlug]/product-detail-view'
 import { publicProductPath } from '@/lib/product-public-path'
 import {
   loadProductDetailRowCached,
   loadProductForMetadataCached,
-  resolveProductByPathSegmentCached,
 } from '@/lib/product-detail-page-cache'
+import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
 
-export const dynamic = 'force-dynamic'
+/** 공개 등록 상품 — 5분 ISR. draft 미리보기는 요청 시 `connection()`으로 동적 렌더 */
+export const revalidate = 300
 
 type Props = { params: Promise<{ idOrSlug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { idOrSlug } = await params
-  const resolved = await resolveProductByPathSegmentCached(idOrSlug, true)
+  const { resolved, allowAdminDraft } = await resolveProductPageAccess(idOrSlug)
+  if (allowAdminDraft) await connection()
   if (resolved.kind === 'redirect') {
     return { title: '상품' }
   }
@@ -86,8 +88,8 @@ export default async function ProductDetailPage({ params }: Props) {
     notFound()
   }
 
-  const admin = await requireAdmin()
-  const resolved = await resolveProductByPathSegmentCached(idOrSlug, Boolean(admin))
+  const { resolved, allowAdminDraft } = await resolveProductPageAccess(idOrSlug)
+  if (allowAdminDraft) await connection()
 
   if (resolved.kind === 'redirect') {
     permanentRedirect(`/products/${resolved.slug}`)
@@ -97,7 +99,6 @@ export default async function ProductDetailPage({ params }: Props) {
   }
 
   const productId = resolved.productId
-  const allowAdminDraft = Boolean(admin)
 
   const travelProduct = await loadProductDetailRowCached(productId, allowAdminDraft)
 

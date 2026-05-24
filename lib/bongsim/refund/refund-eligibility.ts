@@ -43,6 +43,14 @@ export async function getRefundEligibility(orderId: string): Promise<RefundEligi
       return { eligible: false, code: "already_refunded", message: "이미 환불된 주문입니다." };
     }
 
+    if (order.status === "refund_requested") {
+      return {
+        eligible: false,
+        code: "refund_in_progress",
+        message: "환불이 처리 중입니다. 잠시 후 새로고침해 주세요. 계속되면 고객센터로 문의해 주세요.",
+      };
+    }
+
     if (order.status !== "paid" && order.status !== "delivered") {
       return {
         eligible: false,

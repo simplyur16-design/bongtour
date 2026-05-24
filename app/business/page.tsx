@@ -6,7 +6,7 @@ import { resolveTrainingPageSectionImages } from '@/lib/home-hub-resolve-images'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
   const images = await ogImagesForMetadata('training', `공공·기업 연수·단체 | ${SITE_NAME}`)

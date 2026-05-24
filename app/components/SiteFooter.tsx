@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import RepresentativeNameImage from '@/app/components/common/RepresentativeNameImage'
 import { COMPANY_FOOTER } from '@/lib/company-footer'
 import { FOOTER_POLICY_LINKS } from '@/lib/main-hub-copy'
@@ -24,10 +25,31 @@ function BongtourBrandBadge() {
 }
 
 function BusinessInfoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  if (!open) return null
-  return (
+  const [portalReady, setPortalReady] = useState(false)
+
+  useEffect(() => {
+    setPortalReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [open, onClose])
+
+  if (!portalReady || !open) return null
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
+      className="fixed inset-0 z-[10100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="footer-biz-modal-title"
@@ -105,7 +127,8 @@ function BusinessInfoModal({ open, onClose }: { open: boolean; onClose: () => vo
           공정거래위원회 사업자정보확인
         </a>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -115,6 +138,8 @@ function BusinessInfoModal({ open, onClose }: { open: boolean; onClose: () => vo
 export default function SiteFooter() {
   const year = new Date().getFullYear()
   const [bizOpen, setBizOpen] = useState(false)
+  const openBiz = useCallback(() => setBizOpen(true), [])
+  const closeBiz = useCallback(() => setBizOpen(false), [])
 
   return (
     <>
@@ -202,11 +227,15 @@ export default function SiteFooter() {
             </div>
           </dl>
 
-          <div className="mt-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2 md:hidden">
+          {/* 모바일 전용 — SSR/CSR 동일 마크업 (hydration 시 DOM 순서 유지) */}
+          <div
+            className="mt-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2 sm:hidden"
+            suppressHydrationWarning
+          >
             <button
               type="button"
-              onClick={() => setBizOpen(true)}
-              className="w-full rounded-lg border border-bt-bg-lavender/30 bg-white/5 px-3 py-2 text-left text-sm font-semibold text-bt-trust-beige hover:bg-white/10"
+              onClick={openBiz}
+              className="w-full rounded-lg border border-bt-bg-lavender/30 bg-white/5 px-3 py-2.5 text-left text-sm font-semibold text-bt-trust-beige hover:bg-white/10 active:bg-white/15"
             >
               사업자 정보 확인
             </button>
@@ -246,7 +275,7 @@ export default function SiteFooter() {
           </div>
         </div>
       </footer>
-      <BusinessInfoModal open={bizOpen} onClose={() => setBizOpen(false)} />
+      <BusinessInfoModal open={bizOpen} onClose={closeBiz} />
     </>
   )
 }

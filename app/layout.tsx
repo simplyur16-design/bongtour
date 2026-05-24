@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import dynamic from 'next/dynamic'
 import { Noto_Sans_KR, Outfit } from 'next/font/google'
 import './globals.css'
 import SessionProvider from './components/providers/SessionProvider'
@@ -9,15 +8,6 @@ import AntiCopyProtectionGate from './components/AntiCopyProtectionGate'
 import ConditionalSiteFooter from './components/ConditionalSiteFooter'
 import GoogleTagManager from './components/GoogleTagManager'
 import MobileStickyBar from './components/MobileStickyBar'
-
-const BongtourSplash = dynamic(() =>
-  import('@/components/bongtour/BongtourSplash').then((m) => ({ default: m.BongtourSplash })),
-)
-const TrialOperationNoticeModal = dynamic(() =>
-  import('@/components/bongtour/TrialOperationNoticeModal').then((m) => ({
-    default: m.TrialOperationNoticeModal,
-  })),
-)
 import { DEFAULT_OG_IMAGE_PATH, getSiteOrigin, SITE_NAME } from '@/lib/site-metadata'
 
 const siteOrigin = getSiteOrigin()
@@ -87,10 +77,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ko" className={`${notoSansKr.variable} ${hubOutfit.variable}`} suppressHydrationWarning>
+    <html
+      lang="ko"
+      className={`${notoSansKr.variable} ${hubOutfit.variable}`}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <body className="min-h-screen bg-beige antialiased font-sans flex flex-col pb-20 lg:pb-0">
-        <BongtourSplash />
-        <TrialOperationNoticeModal />
         <ChunkLoadRecovery />
         <AntiCopyProtectionGate />
         <GoogleTagManager />

@@ -4,6 +4,32 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { welcomepayIniapiOrigin } from "@/lib/bongsim/welcomepay";
 
+/**
+ * INIAPI 전체취소 hash용 키.
+ * - `WELCOMEPAY_INIAPI_KEY` 우선
+ * - `WELCOMEPAY_SIGN_KEY`가 base64로 한 번 더 감싼 값이면 디코드(웹표준 signKey는 결제용 그대로 둠)
+ */
+export function resolveWelcomepayIniapiSignKey(): string {
+  const iniapi = (process.env.WELCOMEPAY_INIAPI_KEY ?? "").trim();
+  if (iniapi) return iniapi;
+  const raw = (process.env.WELCOMEPAY_SIGN_KEY ?? "").trim();
+  if (!raw) return "";
+  try {
+    const decoded = Buffer.from(raw, "base64").toString("utf8").trim();
+    if (
+      decoded &&
+      decoded !== raw &&
+      decoded.length >= 8 &&
+      /^[\x20-\x7e]+$/.test(decoded)
+    ) {
+      return decoded;
+    }
+  } catch {
+    /* not base64 */
+  }
+  return raw;
+}
+
 /** Asia/Seoul 기준 `YYYYMMDDHHmmss` */
 export function welcomepayCancelTimestampKst(): string {
   return new Intl.DateTimeFormat("sv-SE", {

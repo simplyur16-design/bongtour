@@ -1,10 +1,10 @@
 import HomeReviewsCarouselClient from '@/app/components/home/HomeReviewsCarouselClient'
 import HomeReviewsGridClient from '@/app/components/home/HomeReviewsGridClient'
-import { listOverseasHomeReviewSections } from '@/lib/reviews-db'
+import { getCachedOverseasHomeReviewSections } from '@/lib/home-page-data-cached'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
 export default async function CustomerReviewsSection() {
-  const { packageReviews, groupReviews } = await listOverseasHomeReviewSections()
+  const { packageReviews, groupReviews } = await getCachedOverseasHomeReviewSections()
   if (packageReviews.length === 0 && groupReviews.length === 0) return null
 
   return (

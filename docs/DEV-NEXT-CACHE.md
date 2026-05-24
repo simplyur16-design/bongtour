@@ -19,6 +19,7 @@
 
 ### middleware / `?auth=` / admin bypass 와의 관계
 
+- **익명 공개 페이지**(`/travel/overseas`, `/products` 등)는 matcher가 **세션·`bt-consent-pending` 쿠키가 있을 때만** 실행된다. 관리자 경로(`/admin`, `/api/admin`)는 예외 없이 항상 실행.
 - **`/_next/static/*`·CSS 요청은** `middleware` **matcher 밖**이라 바이패스·인증과 **직접 연관되지 않는다.**
 - DevTools 소스가 `admin?auth=...:1`처럼 보이는 것은 **열려 있는 페이지 URL** 표시일 뿐, stylesheet `href`가 쿼리 기준으로 해석되는 것이 아니다.
 - **dev bypass** 설정은 그대로 두며, 이 문서는 **산출물 복구 절차**만 다룬다.

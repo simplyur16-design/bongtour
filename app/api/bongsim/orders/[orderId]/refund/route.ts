@@ -69,7 +69,7 @@ export async function POST(req: Request, ctx: Ctx) {
           result.reason === "already_refunded" ||
           result.reason === "invalid_status"
         ? 400
-        : result.reason === "pg_cancel_failed"
+        : result.reason === "pg_cancel_failed" || result.reason === "supplier_refund_failed"
           ? 502
           : 500;
 

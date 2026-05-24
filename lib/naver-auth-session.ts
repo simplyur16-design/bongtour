@@ -1,5 +1,6 @@
 import { encode } from 'next-auth/jwt'
 import { NextResponse } from 'next/server'
+import { applyConsentPendingMarkerCookie } from '@/lib/middleware-consent'
 
 const SESSION_MAX_AGE_SEC = 30 * 24 * 60 * 60
 
@@ -86,6 +87,7 @@ export async function appendNaverSessionCookie(params: {
     secure,
     expires,
   })
+  applyConsentPendingMarkerCookie(response, user.accountStatus, secure)
   return true
 }
 

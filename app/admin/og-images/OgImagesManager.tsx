@@ -3,9 +3,9 @@
 import SafeImage from '@/app/components/SafeImage'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-type OgPageKey = 'default' | 'overseas' | 'private-trip' | 'domestic' | 'training' | 'esim'
+type OgPageKey = 'default' | 'overseas' | 'private-trip' | 'training' | 'esim'
 
-const PAGE_ORDER: OgPageKey[] = ['default', 'overseas', 'private-trip', 'domestic', 'training', 'esim']
+const PAGE_ORDER: OgPageKey[] = ['default', 'overseas', 'private-trip', 'training', 'esim']
 
 const PAGE_LABELS: Record<
   OgPageKey,
@@ -25,11 +25,6 @@ const PAGE_LABELS: Record<
     label: '우리끼리 (단체/모임)',
     url: '/travel/overseas/private-trip',
     description: '/travel/overseas/private-trip',
-  },
-  domestic: {
-    label: '국내여행',
-    url: '/travel/domestic',
-    description: '/travel/domestic',
   },
   training: {
     label: '국외연수',

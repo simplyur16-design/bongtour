@@ -14,6 +14,8 @@ function orderStatusLabel(status: string): string {
       return "결제 완료";
     case "delivered":
       return "발급 완료";
+    case "refund_requested":
+      return "환불 처리 중";
     case "refunded":
       return "환불 완료";
     case "awaiting_payment":
@@ -42,6 +44,9 @@ function fulfillmentStatusLabel(status: string): string {
 
 function nextStepMessage(o: BongsimOrderPublicV1): string {
   if (o.status === "awaiting_payment") return "결제가 완료되면 이 페이지를 새로고침해 주세요.";
+  if (o.status === "refund_requested") {
+    return "카드 취소·환불을 처리하고 있습니다. 완료되면 이 페이지에 반영됩니다.";
+  }
   if (o.status === "refunded") return "주문이 취소(환불)되었습니다.";
   if (o.status !== "paid" && o.status !== "delivered") return "주문 상태를 확인해 주세요.";
   if (!o.fulfillment) return "배송 준비 중입니다.";

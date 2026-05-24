@@ -1,5 +1,5 @@
 /**
- * 국내 공개 `/travel/domestic` · browse API 전용 매칭.
+ * browse API `scope=domestic` 전용 매칭 (공개 `/travel/domestic` 허브는 폐지).
  * (공급사 파이프라인·파서와 분리)
  */
 import { DOMESTIC_NAV_PILLARS } from '@/lib/domestic-landing-nav-data'

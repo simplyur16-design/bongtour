@@ -295,13 +295,6 @@ export const MAIN_QUICK_ENTRY_LEAD = '목적에 맞는 영역으로 바로 이�
 
 export const MAIN_QUICK_ENTRIES = [
   {
-    key: 'domestic',
-    title: '국내여행',
-    blurb: '단기·근거리 일정',
-    hint: '월별 추천 · 상품 예시',
-    href: '/#pick-domestic',
-  },
-  {
     key: 'package',
     title: '해외 패키지',
     blurb: '일정·가이드 중심',

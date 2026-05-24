@@ -21,6 +21,18 @@ export function OrderCompleteRefundActions({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState(orderStatus === "refunded");
+  const inProgress = orderStatus === "refund_requested";
+
+  if (inProgress) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p className="text-[14px] font-semibold text-slate-900">환불 처리 중</p>
+        <p className="mt-2 text-[13px] text-slate-600">
+          카드 취소·환불을 진행하고 있습니다. 완료되면 이 페이지에 반영됩니다.
+        </p>
+      </section>
+    );
+  }
 
   if (done) {
     return (

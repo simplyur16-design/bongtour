@@ -10,7 +10,6 @@ export const VALID_PAGE_KEYS = [
   'default',
   'overseas',
   'private-trip',
-  'domestic',
   'training',
   'esim',
 ] as const

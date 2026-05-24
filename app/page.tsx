@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Header from './components/Header'
 import { HomeHubCardDebugServerPanel } from './components/home/HomeHubCardDebugServerPanel'
-import { pickHomeHubTravelCardCover } from '@/lib/home-hub-travel-card-cover'
+import { getCachedHomeHubTravelCardCover } from '@/lib/home-page-data-cached'
 import { getHomeHubCardHybridResolutionDetail } from '@/lib/home-hub-card-hybrid-core'
 import { getHomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 import HomeMobileHub from './components/home/HomeMobileHub'
@@ -42,22 +42,14 @@ export const metadata: Metadata = {
 
 /** 메인: 밝은 헤더 + 시즌 히어로(PC) / 모바일 허브 + 추천·B2G·후기 */
 export default async function Home() {
-  const [overseasCover, domesticCover] = await Promise.all([
-    pickHomeHubTravelCardCover('overseas'),
-    pickHomeHubTravelCardCover('domestic'),
-  ])
+  const overseasCover = await getCachedHomeHubTravelCardCover('overseas')
 
   const hubActive = getHomeHubActiveFile()
   const hubSnap = hubActive ? { images: hubActive.images, imageSourceModes: hubActive.imageSourceModes } : null
   const overseasDetail = getHomeHubCardHybridResolutionDetail('overseas', {
     activeSnapshot: hubSnap,
     productPoolOverseasUrl: overseasCover?.imageSrc ?? null,
-    productPoolDomesticUrl: domesticCover?.imageSrc ?? null,
-  })
-  const domesticDetail = getHomeHubCardHybridResolutionDetail('domestic', {
-    activeSnapshot: hubSnap,
-    productPoolOverseasUrl: overseasCover?.imageSrc ?? null,
-    productPoolDomesticUrl: domesticCover?.imageSrc ?? null,
+    productPoolDomesticUrl: null,
   })
 
   return (
@@ -93,12 +85,7 @@ export default async function Home() {
             <SeasonCurationHero sectionId="season-curation-main" />
             <SeasonProductGrid />
             <div className="relative border-t border-bt-border-soft/80 bg-gradient-to-b from-bt-bg-lavender-soft/70 to-transparent pt-3 md:pt-4">
-              <HomeHubCardDebugServerPanel
-                overseasPick={overseasCover}
-                domesticPick={domesticCover}
-                overseasDetail={overseasDetail}
-                domesticDetail={domesticDetail}
-              />
+              <HomeHubCardDebugServerPanel overseasPick={overseasCover} overseasDetail={overseasDetail} />
             </div>
           </div>
         </section>

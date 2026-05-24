@@ -2,7 +2,6 @@
 
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SITE_NAME } from '@/lib/site-metadata'
-import { useId } from 'react'
 import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -10,6 +9,15 @@ import { useSession, signOut } from 'next-auth/react'
 import { User } from 'lucide-react'
 
 const INQUIRY_HREF = '/inquiry?type=travel'
+
+/** 무거운 RSC·browse API 라우트 — viewport prefetch로 전환 지연 유발 방지 */
+const HEAVY_NAV_PREFETCH_OFF = new Set([
+  '/travel/overseas',
+  '/travel/air-hotel',
+  '/travel/esim',
+  '/travel/overseas/private-trip',
+  '/business',
+])
 
 /**
  * 메모리 #28 — 메인 IA 5메뉴.
@@ -49,8 +57,12 @@ const instagramHref = (() => {
   return fromEnv || DEFAULT_INSTAGRAM_URL
 })()
 
+/** 문서 내 고정 id — `useId`는 오버레이·스트리밍 시 SSR/CSR 순서가 어긋날 수 있음 */
+const INSTAGRAM_GLYPH_GRADIENT_ID = 'bongtour-header-ig-glyph'
+
 /** 인스타그램 공식 글리프에 가까운 그라데이션(브랜드 가이드 색상 근사) */
-function InstagramGlyphIcon({ gradientId, className = 'h-7 w-7 sm:h-6 sm:w-6' }: { gradientId: string; className?: string }) {
+function InstagramGlyphIcon({ className = 'h-7 w-7 sm:h-6 sm:w-6' }: { className?: string }) {
+  const gradientId = INSTAGRAM_GLYPH_GRADIENT_ID
   return (
     <svg className={`shrink-0 ${className}`} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
       <defs>
@@ -79,7 +91,6 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
   const pathnameRaw = usePathname()
   const pathname = pathnameRaw ?? ''
   const { data: session, status } = useSession()
-  const instagramGradientId = `ig-glyph-${useId().replace(/:/g, '')}`
   const authLoading = status === 'loading'
 
   return (
@@ -107,9 +118,9 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
               <SafeImage
                 src="/images/bongtour-logo.webp"
                 alt={SITE_NAME}
-                width={3200}
-                height={1344}
-                className="relative z-0 block h-12 w-auto object-contain object-left sm:h-[3.25rem] lg:h-[3.35rem]"
+                width={274}
+                height={78}
+                className="relative z-0 block h-12 w-auto max-h-12 object-contain object-left sm:h-[3.25rem] sm:max-h-[3.25rem] lg:h-[3.35rem] lg:max-h-[3.35rem]"
                 priority
               />
             </Link>
@@ -118,10 +129,12 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
           <nav className="mx-auto hidden min-w-0 flex-1 items-center justify-center gap-5 xl:gap-6 lg:flex" aria-label="주요 메뉴">
             {MAIN_NAV.map((item) => {
               const active = isMainNavActive(pathname, item.href)
+              const prefetch = !HEAVY_NAV_PREFETCH_OFF.has(item.href)
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={prefetch}
                   aria-current={active ? 'page' : undefined}
                   className={`whitespace-nowrap pb-1 text-bt-text-navy ${
                     active
@@ -144,7 +157,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
               title="인스타그램"
               aria-label="Bong투어 인스타그램 (새 탭)"
             >
-              <InstagramGlyphIcon gradientId={instagramGradientId} />
+              <InstagramGlyphIcon />
               <span className="sr-only">인스타그램 (새 탭)</span>
             </a>
 
@@ -161,6 +174,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
                 <div className="flex items-center gap-2">
                   <Link
                     href="/mypage"
+                    prefetch={false}
                     className="rounded-full border-[0.5px] border-bt-border-strong px-4 py-2 text-sm font-medium text-bt-text-muted-lavender transition hover:bg-bt-surface-soft"
                   >
                     마이페이지
@@ -195,6 +209,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
               ) : session?.user ? (
                 <Link
                   href="/mypage"
+                  prefetch={false}
                   className="inline-flex shrink-0 items-center gap-1 rounded-full border border-bt-border-soft px-2.5 py-1.5 text-sm font-semibold text-bt-text-navy"
                   aria-label="마이페이지"
                 >
@@ -225,10 +240,12 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
             {MAIN_NAV.map((item) => {
               const active = isMainNavActive(pathname, item.href)
               const mobileText = item.mobileLabel ?? item.label
+              const prefetch = !HEAVY_NAV_PREFETCH_OFF.has(item.href)
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={prefetch}
                   title={item.label}
                   aria-current={active ? 'page' : undefined}
                   className={`flex w-full items-center justify-center whitespace-nowrap px-0.5 py-2 text-center text-[12px] leading-tight min-[380px]:text-[13px] sm:text-[14px] ${

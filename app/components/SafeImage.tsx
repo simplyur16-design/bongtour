@@ -9,6 +9,9 @@ function isNcloudHostUrl(src: string): boolean {
   return lower.includes('ncloudstorage.com') || lower.includes('ncloud.com')
 }
 
+/** dev 콘솔 스팸 방지 — URL당 1회만 non-webp 경고 */
+const warnedNonWebpNcloud = new Set<string>()
+
 /** Ncloud 객체 URL의 경로가 `.webp`로 끝나는지(대소문자 무시). */
 function urlPathEndsWithWebp(src: string): boolean {
   try {
@@ -42,9 +45,13 @@ export default function SafeImage({
     if (typeof src !== 'string' || error) return
     if (!isNcloudHostUrl(src)) return
     if (urlPathEndsWithWebp(src)) return
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`[SafeImage] non-webp ncloud image: ${src}`)
-    }
+    if (process.env.NODE_ENV !== 'development') return
+    if (warnedNonWebpNcloud.has(src)) return
+    warnedNonWebpNcloud.add(src)
+    console.warn(
+      `[SafeImage] Ncloud JPG/PNG(레거시) — 표시는 정상. WebP·Supabase 이전은 DB bgImageUrl/일정 이미지 마이그레이션 대상:`,
+      src,
+    )
   }, [src, error])
 
   const handleError = () => {
@@ -58,10 +65,9 @@ export default function SafeImage({
       <div
         className={className}
         style={{
-          width: typeof width === 'number' ? width : 120,
-          height: typeof height === 'number' ? height : 120,
-          minWidth: typeof width === 'number' ? width : 120,
-          minHeight: typeof height === 'number' ? height : 120,
+          width: 48,
+          height: 48,
+          maxWidth: '100%',
           backgroundColor: 'rgba(255, 140, 0, 0.15)',
           borderRadius: 8,
           display: 'flex',
@@ -75,29 +81,45 @@ export default function SafeImage({
     )
   }
 
-  if (typeof src === 'string' && isNcloudHostUrl(src)) {
+  const resolvedUnoptimized =
+    unoptimizedProp !== undefined ? unoptimizedProp : !isSrcOptimizableByNextImage(src)
+
+  const useNativeImg =
+    typeof src === 'string' &&
+    (src.startsWith('/') || isNcloudHostUrl(src) || resolvedUnoptimized)
+
+  if (useNativeImg) {
     const loading = priority ? 'eager' : 'lazy'
     const imgClassName = [fill ? 'absolute inset-0 block h-full w-full' : '', className].filter(Boolean).join(' ') || undefined
+    const sizesAttr = typeof rest.sizes === 'string' ? rest.sizes : undefined
+    /** HTML width/height가 크면 `height:auto` 인라인이 Tailwind 높이를 깨뜨려 로고가 화면을 채움 */
+    const layoutW =
+      !fill && typeof width === 'number' && width > 0 && width <= 640 ? width : undefined
+    const layoutH =
+      !fill && typeof height === 'number' && height > 0 && height <= 640 ? height : undefined
     return (
-      // eslint-disable-next-line @next/next/no-img-element -- Ncloud는 원본 URL 직접 로드(최적화 프록시 미사용)
+      // eslint-disable-next-line @next/next/no-img-element -- 로컬·Ncloud·unoptimized: SSR/CSR 동일 (next/image hydration 불일치 방지)
       <img
         src={src}
         alt={alt}
-        width={fill ? undefined : typeof width === 'number' ? width : undefined}
-        height={fill ? undefined : typeof height === 'number' ? height : undefined}
+        width={layoutW}
+        height={layoutH}
         loading={loading}
         decoding="async"
+        {...(sizesAttr ? { sizes: sizesAttr } : {})}
         className={imgClassName}
-        style={fill ? { objectFit: 'cover', width: '100%', height: '100%' } : { objectFit: 'cover', maxWidth: '100%', height: 'auto' }}
+        style={
+          fill
+            ? { objectFit: 'cover', width: '100%', height: '100%' }
+            : { objectFit: 'contain', maxWidth: '100%' }
+        }
         onError={handleError}
         draggable={false}
         onDragStart={(e) => e.preventDefault()}
+        suppressHydrationWarning
       />
     )
   }
-
-  const resolvedUnoptimized =
-    unoptimizedProp !== undefined ? unoptimizedProp : !isSrcOptimizableByNextImage(src)
 
   return (
     <Image

@@ -1,5 +1,3 @@
-export const dynamic = 'force-dynamic'
-
 import type { Metadata } from 'next'
 import TrainingProgramsCatalog from '@/components/training/TrainingProgramsCatalog'
 import { listPublishedTrainingPrograms } from '@/lib/overseas-training-program-query'

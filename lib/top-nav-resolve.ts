@@ -43,7 +43,7 @@ function appendBrowseTypeParamIfNarrowing(params: URLSearchParams, type: string)
 export type BrowseHrefScope = 'overseas' | 'domestic'
 
 function browseBasePath(scope: BrowseHrefScope): string {
-  return scope === 'domestic' ? '/travel/domestic' : '/travel/overseas'
+  return '/travel/overseas'
 }
 
 export function buildProductsHref(opts: {

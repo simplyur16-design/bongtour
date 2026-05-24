@@ -1077,11 +1077,7 @@ export async function ProductDetailView({
         ? '국내여행'
         : null
   const travelScopeHref =
-    travelProduct.travelScope === 'overseas'
-      ? '/travel/overseas'
-      : travelProduct.travelScope === 'domestic'
-        ? '/travel/domestic'
-        : '/products'
+    travelProduct.travelScope === 'overseas' ? '/travel/overseas' : '/products'
 
   const seoBreadcrumbItems = [
     { position: 1, name: '홈', item: absoluteUrl('/') },

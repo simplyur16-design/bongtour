@@ -40,7 +40,7 @@ export async function POST(req: Request) {
         ? 400
         : result.reason === "welcomepay_env_incomplete" || result.reason === "db_unconfigured"
           ? 503
-          : result.reason === "pg_cancel_failed"
+          : result.reason === "pg_cancel_failed" || result.reason === "supplier_refund_failed"
             ? 502
             : 500;
 

@@ -7,7 +7,6 @@ const OG_REVALIDATE_PATHS: Record<OgPageKey, string[]> = {
   default: ['/'],
   overseas: ['/travel/overseas'],
   'private-trip': ['/travel/overseas/private-trip'],
-  domestic: ['/travel/domestic'],
   training: ['/training'],
   esim: ['/travel/esim'],
 }

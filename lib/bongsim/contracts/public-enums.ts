@@ -20,6 +20,7 @@ export type OrderStatus =
   | "fulfilled"
   | "fulfillment_failed"
   | "cancelled"
+  | "refund_requested"
   | "refunded"
   | "partially_refunded";
 
