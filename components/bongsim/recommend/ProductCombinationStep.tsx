@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import SafeImage from "@/app/components/SafeImage";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
