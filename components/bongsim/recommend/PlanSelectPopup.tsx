@@ -157,6 +157,16 @@ export function PlanSelectPopup({
 
   const totalKrw = unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
 
+  const lowestPackageKrw = useMemo(() => {
+    let min: number | null = null;
+    for (const { product } of tierRows) {
+      const total = displayRecommended(product);
+      if (total == null || !Number.isFinite(total) || total <= 0) continue;
+      if (min == null || total < min) min = total;
+    }
+    return min;
+  }, [tierRows]);
+
   const canComplete = Boolean(selectedId && selectedProduct && quantity >= 1);
 
   return (
@@ -302,7 +312,14 @@ export function PlanSelectPopup({
             })}
         </div>
 
-        <div className="flex gap-3 border-t border-slate-100 px-5 py-4 lg:px-6">
+        <div className="border-t border-slate-100 px-5 py-4 lg:px-6">
+          {!loading && !err && lowestPackageKrw != null ? (
+            <p className="mb-3 text-center text-sm text-slate-600 lg:text-base">
+              {billableDays}일 기준 최저가{" "}
+              <span className="text-lg font-bold text-blue-600 lg:text-xl">{formatKrw(lowestPackageKrw)}</span>
+            </p>
+          ) : null}
+          <div className="flex gap-3">
           <button
             type="button"
             onClick={onBack}
@@ -324,6 +341,7 @@ export function PlanSelectPopup({
           >
             선택완료
           </button>
+          </div>
         </div>
       </div>
     </RecommendModalShell>

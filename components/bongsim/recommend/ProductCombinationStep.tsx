@@ -7,7 +7,14 @@ import { useSession } from "next-auth/react";
 import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
-import { BONGSIM_RECOMMEND_CHECKOUT_QUEUE_KEY, bongsimPath } from "@/lib/bongsim/constants";
+import { bongsimPath, type BongsimRecommendCheckoutLine } from "@/lib/bongsim/constants";
+import {
+  clearRecommendCheckoutDispatched,
+  markRecommendCheckoutDispatched,
+  wasRecommendCheckoutDispatched,
+  writeRecommendCheckoutQueue,
+} from "@/lib/bongsim/recommend/funnel-storage";
+import type { RecommendFunnelSnapshot } from "@/lib/bongsim/recommend/funnel-storage";
 import {
   computeRecommendedPrice,
   extractDaysFromDaysRaw,
@@ -137,18 +144,37 @@ type FlowState =
 
 export type CountryPlanSelection = { product: ProductOption; quantity: number };
 
+export type StoredCountryPlanSelection = RecommendFunnelSnapshot["completed"][string];
+
 interface ProductCombinationStepProps {
   selectedCodes: string[];
   /** GET /api/bongsim/country-heroes — 없는 코드는 국기 blur 폴백 */
   heroMap: Record<string, string>;
+  /** sessionStorage 복원 — product 없이 요약만 */
+  initialStoredCompleted?: Record<string, StoredCountryPlanSelection>;
+  onStoredCompletedChange?: (completed: Record<string, StoredCountryPlanSelection>) => void;
   onBack: () => void;
   onNext?: (selection: Record<string, CountryPlanSelection>) => void;
 }
 
-function cardPriceCaption(pack: CountryProductPack): string | null {
-  const min = overallMinUnitPriceKrw(pack);
-  if (min != null && min > 0) return `1일 ${formatKrw(min)}~`;
-  return null;
+function buildQueueFromSelections(
+  selectedCodes: string[],
+  completed: Record<string, CountryPlanSelection>,
+  storedDone: Record<string, StoredCountryPlanSelection>,
+): BongsimRecommendCheckoutLine[] {
+  const out: BongsimRecommendCheckoutLine[] = [];
+  for (const code of selectedCodes) {
+    const live = completed[code];
+    if (live?.product?.option_api_id) {
+      out.push({ optionApiId: live.product.option_api_id, quantity: live.quantity });
+      continue;
+    }
+    const stored = storedDone[code];
+    if (stored?.optionApiId) {
+      out.push({ optionApiId: stored.optionApiId, quantity: stored.quantity });
+    }
+  }
+  return out;
 }
 
 /** 국가별 평균 일일 데이터 (GB). 미등록 국가는 1.3GB. */
@@ -176,39 +202,39 @@ function TravelerAvgDailyProgressBar({ countryNameKr, code }: TravelerAvgDailyPr
   const markerLeftPct = Math.min(95, Math.max(5, (avgGb / 5) * 100));
 
   return (
-    <div className="mt-3 px-3 pb-3">
-      <p className="mb-2 text-xs font-semibold text-slate-700">
+    <div className="mt-4 px-4 pb-4 sm:px-5 sm:pb-5">
+      <p className="mb-3 text-sm font-semibold text-slate-800 sm:text-base">
         {countryNameKr} 여행자 평균 하루 {formatAvgDailyGbLabel(avgGb)} 사용
       </p>
 
       <div className="relative w-full">
-        <div className="flex w-full overflow-hidden rounded-full border border-slate-200 h-7">
+        <div className="flex h-9 w-full overflow-hidden rounded-full border border-slate-200 sm:h-10">
           <div className="flex flex-[0_0_20%] items-center justify-center bg-emerald-100">
-            <span className="text-[9px] font-medium text-emerald-700">알뜰</span>
+            <span className="text-[11px] font-semibold text-emerald-800 sm:text-xs">알뜰</span>
           </div>
           <div className="flex flex-[0_0_20%] items-center justify-center border-x border-white/50 bg-teal-100">
-            <span className="text-[9px] font-medium text-teal-700">스마트</span>
+            <span className="text-[11px] font-semibold text-teal-800 sm:text-xs">스마트</span>
           </div>
           <div className="flex flex-[0_0_60%] items-center justify-center bg-sky-100">
-            <span className="text-[9px] font-medium text-sky-700">자유</span>
+            <span className="text-[11px] font-semibold text-sky-800 sm:text-xs">자유</span>
           </div>
         </div>
 
-        <div className="relative mt-0.5 flex justify-between px-0.5">
-          <span className="text-[8px] text-slate-400">0</span>
+        <div className="relative mt-1 flex justify-between px-0.5">
+          <span className="text-[11px] text-slate-500">0</span>
           <span
-            className="absolute text-[8px] text-slate-400"
+            className="absolute text-[11px] text-slate-500"
             style={{ left: "20%", transform: "translateX(-50%)" }}
           >
             1GB
           </span>
           <span
-            className="absolute text-[8px] text-slate-400"
+            className="absolute text-[11px] text-slate-500"
             style={{ left: "40%", transform: "translateX(-50%)" }}
           >
             2GB
           </span>
-          <span className="absolute text-[8px] text-slate-400" style={{ right: 0 }}>
+          <span className="absolute text-[11px] text-slate-500" style={{ right: 0 }}>
             5GB+
           </span>
         </div>
@@ -218,23 +244,23 @@ function TravelerAvgDailyProgressBar({ countryNameKr, code }: TravelerAvgDailyPr
           style={{ left: `${markerLeftPct}%`, transform: "translateX(-50%)" }}
         >
           <div className="flex flex-col items-center">
-            <span className="rounded border border-teal-200 bg-white px-1 text-[9px] font-bold text-teal-600 shadow-sm">
+            <span className="rounded-md border border-teal-200 bg-white px-2 py-0.5 text-xs font-bold text-teal-700 shadow-sm sm:text-sm">
               평균 {formatAvgDailyGbLabel(avgGb)}
             </span>
-            <span className="text-[10px] leading-none text-teal-500" aria-hidden>
+            <span className="text-xs leading-none text-teal-500" aria-hidden>
               ▼
             </span>
           </div>
         </div>
       </div>
 
-      <div className="mt-2 space-y-0.5">
-        <p className="text-[9px] text-slate-500">알뜰: 지도, 메시지, 기본 검색</p>
-        <p className="text-[9px] text-slate-500">스마트: SNS, 맛집검색, 번역앱 💡사진은 호텔 Wi-Fi로!</p>
-        <p className="text-[9px] text-slate-500">자유: 실시간 스트리밍, 영상통화</p>
+      <div className="mt-3 space-y-1">
+        <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">알뜰: 지도, 메시지, 기본 검색</p>
+        <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">스마트: SNS, 맛집검색, 번역앱 · 사진은 호텔 Wi-Fi 권장</p>
+        <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">자유: 실시간 스트리밍, 영상통화</p>
       </div>
 
-      <p className="mt-1 text-[8px] text-slate-400">* 2025 해외여행 데이터 사용량 분석 기준</p>
+      <p className="mt-2 text-[11px] text-slate-500 sm:text-xs">* 2025 해외여행 데이터 사용량 분석 기준</p>
     </div>
   );
 }
@@ -242,6 +268,8 @@ function TravelerAvgDailyProgressBar({ countryNameKr, code }: TravelerAvgDailyPr
 export function ProductCombinationStep({
   selectedCodes,
   heroMap,
+  initialStoredCompleted,
+  onStoredCompletedChange,
   onBack,
   onNext,
 }: ProductCombinationStepProps) {
@@ -250,10 +278,24 @@ export function ProductCombinationStep({
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ProductCombinationData | null>(null);
   const [completed, setCompleted] = useState<Record<string, CountryPlanSelection>>({});
+  const [storedDone, setStoredDone] = useState<Record<string, StoredCountryPlanSelection>>(
+    () => initialStoredCompleted ?? {},
+  );
   const [countryDateRanges, setCountryDateRanges] = useState<CountryDateRange[]>([]);
   const [flow, setFlow] = useState<FlowState | null>(null);
   const [tripResume, setTripResume] = useState<{ start: Date; end: Date } | null>(null);
   const redirectRef = useRef(false);
+  const [checkoutPaused, setCheckoutPaused] = useState(
+    () => Object.keys(initialStoredCompleted ?? {}).length > 0,
+  );
+
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setCheckoutPaused(true);
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -281,8 +323,7 @@ export function ProductCombinationStep({
 
   const headerTitle = useMemo(() => {
     const names = selectedCodes.map((c) => countryByCode[c]?.nameKr ?? c.toUpperCase());
-    const joined = names.join(", ");
-    return `${joined}의 하루 최저가격은?`;
+    return names.join(", ");
   }, [selectedCodes, countryByCode]);
 
   const suggestedPlanHints = useMemo(() => suggestMultiPlanNamesForSelection(selectedCodes), [selectedCodes]);
@@ -320,8 +361,22 @@ export function ProductCombinationStep({
     return sum;
   }, [data, selectedCodes, estimateTripDays]);
 
+  const isCountryDone = (code: string) => Boolean(completed[code] || storedDone[code]);
+
   const startDuration = (code: string) => {
-    if (completed[code]) return;
+    setCheckoutPaused(false);
+    clearRecommendCheckoutDispatched();
+    setCompleted((prev) => {
+      const next = { ...prev };
+      delete next[code];
+      return next;
+    });
+    setStoredDone((prev) => {
+      const next = { ...prev };
+      delete next[code];
+      onStoredCompletedChange?.(next);
+      return next;
+    });
     setTripResume(null);
     setFlow({ kind: "duration", code });
   };
@@ -335,7 +390,34 @@ export function ProductCombinationStep({
   const flowCountryName = flowCode ? (countryByCode[flowCode]?.nameKr ?? flowCode) : "";
 
   const allDone =
-    selectedCodes.length > 0 && selectedCodes.every((c) => Boolean(completed[c]));
+    selectedCodes.length > 0 && selectedCodes.every((c) => isCountryDone(c));
+
+  const checkoutQueue = useMemo(
+    () => buildQueueFromSelections(selectedCodes, completed, storedDone),
+    [selectedCodes, completed, storedDone],
+  );
+
+  const checkoutAlreadyDispatched = useMemo(
+    () => checkoutQueue.length > 0 && wasRecommendCheckoutDispatched(checkoutQueue),
+    [checkoutQueue],
+  );
+
+  const goToCheckout = useCallback(() => {
+    if (checkoutQueue.length === 0) return;
+    const payload = { ...completed };
+    onNext?.(payload);
+    writeRecommendCheckoutQueue(checkoutQueue);
+    markRecommendCheckoutDispatched(checkoutQueue);
+    const first = checkoutQueue[0]!;
+    const checkoutPath = `${bongsimPath("/checkout")}?optionApiId=${encodeURIComponent(first.optionApiId)}&qty=${encodeURIComponent(String(first.quantity))}`;
+    redirectRef.current = true;
+    setCheckoutPaused(false);
+    if (sessionStatus === "unauthenticated") {
+      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(checkoutPath)}`);
+      return;
+    }
+    router.push(checkoutPath);
+  }, [checkoutQueue, completed, onNext, router, sessionStatus]);
 
   useEffect(() => {
     if (!allDone) {
@@ -343,41 +425,22 @@ export function ProductCombinationStep({
       return;
     }
     if (redirectRef.current) return;
+    if (checkoutPaused) return;
+    if (checkoutAlreadyDispatched) return;
     if (sessionStatus === "loading") return;
-
-    const payload = { ...completed };
-    onNext?.(payload);
-
-    const queue = selectedCodes
-      .map((code) => {
-        const sel = completed[code];
-        if (!sel) return null;
-        return { optionApiId: sel.product.option_api_id, quantity: sel.quantity };
-      })
-      .filter((row): row is { optionApiId: string; quantity: number } => row != null);
-    if (queue.length === 0) return;
-
-    try {
-      sessionStorage.setItem(BONGSIM_RECOMMEND_CHECKOUT_QUEUE_KEY, JSON.stringify(queue));
-    } catch {
-      /* quota / private mode */
-    }
-
-    const first = queue[0]!;
-    const checkoutPath = `${bongsimPath("/checkout")}?optionApiId=${encodeURIComponent(first.optionApiId)}&qty=${encodeURIComponent(String(first.quantity))}`;
-
-    redirectRef.current = true;
-
-    if (sessionStatus === "unauthenticated") {
-      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(checkoutPath)}`);
-      return;
-    }
-
-    router.push(checkoutPath);
-  }, [allDone, completed, onNext, router, selectedCodes, sessionStatus]);
+    if (checkoutQueue.length === 0) return;
+    goToCheckout();
+  }, [
+    allDone,
+    checkoutAlreadyDispatched,
+    checkoutPaused,
+    checkoutQueue.length,
+    goToCheckout,
+    sessionStatus,
+  ]);
 
   const shell = (inner: ReactNode) => (
-    <div className="mx-auto w-full max-w-lg px-4 lg:max-w-3xl lg:px-6">{inner}</div>
+    <div className="mx-auto w-full max-w-none px-0 sm:max-w-lg sm:px-4 lg:max-w-md lg:px-0">{inner}</div>
   );
 
   if (loading) {
@@ -396,7 +459,7 @@ export function ProductCombinationStep({
         <button
           type="button"
           onClick={onBack}
-          className="mt-4 text-sm font-semibold text-teal-700 underline lg:mt-5 lg:text-base"
+          className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 shadow-sm hover:border-teal-300 hover:bg-teal-50"
         >
           ← 국가 선택으로 돌아가기
         </button>
@@ -405,37 +468,44 @@ export function ProductCombinationStep({
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 pb-8 lg:max-w-3xl lg:px-6 lg:pb-10">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-gray-600 transition hover:text-teal-700 lg:mb-5 lg:gap-1.5 lg:text-base"
-      >
-        <svg className="h-4 w-4 lg:h-5 lg:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        국가 선택으로 돌아가기
-      </button>
+    <div className="mx-auto w-full max-w-none pb-8 sm:max-w-lg sm:px-4 lg:mx-auto lg:max-w-md lg:px-0 lg:pb-10">
+      <div className="px-4 sm:px-0">
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 shadow-sm transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-900 sm:text-base"
+        >
+          <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          국가 선택으로 돌아가기
+        </button>
 
-      <h1 className="text-center text-lg font-bold text-gray-900 lg:text-2xl">{headerTitle}</h1>
+        <h1 className="text-center text-xl font-bold text-gray-900 sm:text-2xl lg:text-[1.65rem]">
+          {headerTitle} eSIM
+        </h1>
+        <p className="mt-2 text-center text-sm leading-relaxed text-slate-600 sm:text-base">
+          카드를 눌러 여행 기간을 고른 뒤, 요금제 선택 단계에서 가격을 확인하세요.
+        </p>
+      </div>
 
-      <div className="mt-8 lg:mt-10">
+      <div className="mt-6 space-y-4 sm:mt-8 lg:mt-10">
         {selectedCodes.map((code, idx) => {
           const country = countryByCode[code];
           const pack = data.individual[code];
-          const done = Boolean(completed[code]);
+          const done = isCountryDone(code);
           const hero = countryHeroUrl(code, heroMap);
           const selection = completed[code];
+          const stored = storedDone[code];
           const range = countryDateRanges.find((r) => r.code === code);
-          const priceLine = pack ? cardPriceCaption(pack) : null;
-
-          const summaryParts: string[] = [];
+          let summaryLine = stored?.summaryLine ?? "";
           if (selection) {
+            const summaryParts: string[] = [];
             summaryParts.push(networkFamilyLabelKr(selection.product.network_family));
             if (range) summaryParts.push(formatShortRange(range.start, range.end));
             summaryParts.push(`${allowanceLabelForSummary(selection.product)} ×${selection.quantity}`);
+            summaryLine = summaryParts.join(" · ");
           }
-          const summaryLine = summaryParts.join(" · ");
 
           return (
             <Fragment key={code}>
@@ -447,23 +517,18 @@ export function ProductCombinationStep({
                 </div>
               ) : null}
               <div
-                className={`w-full overflow-hidden rounded-2xl shadow-lg ${
-                  !done ? "cursor-pointer transition hover:ring-2 hover:ring-blue-300/60" : ""
-                }`}
-                role={!done ? "button" : undefined}
-                tabIndex={!done ? 0 : undefined}
-                onClick={() => {
-                  if (!done) startDuration(code);
-                }}
+                className="w-full cursor-pointer overflow-hidden shadow-lg transition hover:ring-2 hover:ring-blue-300/60 sm:rounded-2xl"
+                role="button"
+                tabIndex={0}
+                onClick={() => startDuration(code)}
                 onKeyDown={(e) => {
-                  if (done) return;
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     startDuration(code);
                   }
                 }}
               >
-                <div className="relative h-44 w-full overflow-hidden bg-gray-900 lg:h-52">
+                <div className="relative aspect-[3/4] w-full max-h-[min(72vh,520px)] overflow-hidden bg-gray-900 sm:aspect-[4/5] sm:max-h-none lg:aspect-[3/4] lg:max-h-[560px]">
                   {hero ? (
                     <SafeImage
                       src={hero}
@@ -490,59 +555,46 @@ export function ProductCombinationStep({
                     </div>
                   )}
                   <div
-                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"
                     aria-hidden
                   />
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col justify-end">
-                    <div
-                      className={
-                        done
-                          ? "px-4 pb-4 pt-12 lg:px-5 lg:pb-5 lg:pt-14"
-                          : "px-4 pb-2 pt-10 lg:px-5 lg:pb-3 lg:pt-11"
-                      }
-                    >
-                      <div className="flex items-end gap-3 lg:gap-4">
-                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full shadow-lg ring-1 ring-gray-200 lg:h-14 lg:w-14">
-                          <SafeImage
-                            src={flagCdnUrl(code)}
-                            alt=""
-                            width={48}
-                            height={48}
-                            quality={90}
-                            className="h-full w-full object-cover"
-                            sizes="(max-width:1024px) 48px, 56px"
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xl font-bold text-white drop-shadow-md lg:text-2xl">
-                            {country?.nameKr ?? code.toUpperCase()}
-                          </p>
-                          {priceLine ? (
-                            <p className="mt-0.5 text-sm text-white/80 drop-shadow-md lg:text-base">{priceLine}</p>
-                          ) : null}
-                        </div>
+                  <div className="absolute inset-x-0 bottom-0 flex flex-col justify-end px-5 pb-5 pt-16 sm:px-6 sm:pb-6">
+                    <div className="flex flex-col items-center gap-3 text-center sm:gap-4">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full shadow-lg ring-2 ring-white/80 sm:h-16 sm:w-16">
+                        <SafeImage
+                          src={flagCdnUrl(code)}
+                          alt=""
+                          width={64}
+                          height={64}
+                          quality={90}
+                          className="h-full w-full object-cover"
+                          sizes="64px"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
                       </div>
+                      <p className="text-2xl font-bold text-white drop-shadow-md sm:text-3xl">
+                        {country?.nameKr ?? code.toUpperCase()}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {!done ? (
-                  <div className="border-t border-slate-100 bg-white px-3 py-2.5 lg:px-4 lg:py-3">
+                  <div className="border-t border-slate-100 bg-white">
                     <TravelerAvgDailyProgressBar
                       code={code}
                       countryNameKr={country?.nameKr ?? code.toUpperCase()}
                     />
-                    <p className="mt-2 border-t border-slate-100 pt-2 text-center text-sm text-slate-500 lg:text-base">
-                      카드를 눌러 여행 기간을 선택하세요
+                    <p className="border-t border-slate-100 px-4 py-3 text-center text-sm font-medium text-slate-600 sm:py-4 sm:text-base">
+                      탭하여 여행 기간 선택
                     </p>
                   </div>
                 ) : null}
 
                 {done ? (
-                  <div className="bg-white px-4 py-3 lg:px-5 lg:py-4">
-                    <div className="flex items-start gap-2 rounded-xl bg-blue-50 px-4 py-3 lg:gap-2.5 lg:px-5 lg:py-3.5">
+                  <div className="bg-white px-4 py-4 sm:px-5 sm:py-5">
+                    <div className="flex items-start gap-2.5 rounded-xl bg-blue-50 px-4 py-3.5 sm:px-5 sm:py-4">
                       <svg
                         className="mt-0.5 h-5 w-5 shrink-0 text-blue-500 lg:mt-1 lg:h-6 lg:w-6"
                         fill="currentColor"
@@ -555,7 +607,7 @@ export function ProductCombinationStep({
                           clipRule="evenodd"
                         />
                       </svg>
-                      <span className="text-sm font-medium text-blue-600 lg:text-base" title={summaryLine}>
+                      <span className="text-sm font-medium text-blue-700 sm:text-base" title={summaryLine}>
                         {summaryLine}
                       </span>
                     </div>
@@ -567,8 +619,26 @@ export function ProductCombinationStep({
         })}
       </div>
 
+      {allDone && (checkoutPaused || checkoutAlreadyDispatched) ? (
+        <div className="mt-6 px-4 sm:px-0">
+          <div className="rounded-2xl border border-teal-200 bg-teal-50/90 p-4 text-center shadow-sm sm:p-5">
+            <p className="text-sm font-semibold text-teal-950 sm:text-base">선택이 완료되었습니다</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-teal-900/90 sm:text-sm">
+              주문·결제 화면으로 이동하거나, 카드를 눌러 플랜을 다시 고를 수 있어요.
+            </p>
+            <button
+              type="button"
+              onClick={() => goToCheckout()}
+              className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-teal-700 px-6 text-base font-bold text-white shadow-md transition hover:bg-teal-800"
+            >
+              주문·결제로 이동
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {selectedCodes.length >= 2 ? (
-        <section className="mt-10 border-t border-gray-200 pt-8 lg:mt-12 lg:pt-10">
+        <section className="mt-10 border-t border-gray-200 px-4 pt-8 sm:px-0 lg:mt-12 lg:pt-10">
           <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 lg:px-5 lg:py-4 lg:text-base">
             <span className="font-semibold">💡 다국가 플랜이 더 저렴할 수 있어요!</span>
             <p className="mt-1 text-xs leading-relaxed text-blue-800/90 lg:text-sm">
@@ -585,9 +655,9 @@ export function ProductCombinationStep({
               <span className="font-mono text-teal-700">{estimateTripDays}일</span>
             </p>
             <p className="mt-2">
-              <span className="font-medium text-slate-900">개별 국가 최저가 합계(추정)</span>{" "}
+              <span className="font-medium text-slate-900">개별 선택 합계(추정)</span>{" "}
               <span className="font-semibold text-slate-900">{formatKrw(individualEstimateTotalKrw)}</span>
-              <span className="text-xs text-slate-500"> · 국가별 카드에 표시된 1일 최저가 × 일수</span>
+              <span className="text-xs text-slate-500"> · 각 국가 요금제 확정 후 비교용 참고치</span>
             </p>
           </div>
 
@@ -684,7 +754,25 @@ export function ProductCombinationStep({
             });
           }}
           onComplete={(product, quantity) => {
+            const range = countryDateRanges.find((r) => r.code === flow.code);
+            const summaryParts: string[] = [];
+            summaryParts.push(networkFamilyLabelKr(product.network_family));
+            if (range) summaryParts.push(formatShortRange(range.start, range.end));
+            summaryParts.push(`${allowanceLabelForSummary(product)} ×${quantity}`);
+            const summaryLine = summaryParts.join(" · ");
             setCompleted((prev) => ({ ...prev, [flow.code]: { product, quantity } }));
+            setStoredDone((prev) => {
+              const next = {
+                ...prev,
+                [flow.code]: {
+                  optionApiId: product.option_api_id,
+                  quantity,
+                  summaryLine,
+                },
+              };
+              onStoredCompletedChange?.(next);
+              return next;
+            });
             closeFlow();
           }}
         />

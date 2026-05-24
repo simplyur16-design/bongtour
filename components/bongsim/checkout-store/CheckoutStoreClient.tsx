@@ -641,13 +641,26 @@ export function CheckoutStoreClient({
   return (
     <div className="min-h-full bg-slate-50 pb-24">
       <main className="mx-auto w-full max-w-lg px-4 pt-3 sm:max-w-xl sm:px-6 sm:pt-4 lg:max-w-2xl lg:px-8 lg:pt-6">
-        <nav className="text-[12px] text-slate-500 lg:text-sm">
+        <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-[12px] text-slate-500 lg:text-sm">
           <Link href={bongsimPath()} className="hover:text-teal-800">
             홈
           </Link>
-          <span className="mx-1.5 text-slate-300">/</span>
-          <span className="text-slate-800">결제</span>
+          <span className="text-slate-300">/</span>
+          <Link href={bongsimPath("/recommend?fromCheckout=1")} className="hover:text-teal-800">
+            eSIM 선택
+          </Link>
+          <span className="text-slate-300">/</span>
+          <span className="text-slate-800">주문·결제</span>
         </nav>
+        {optionApiId ? (
+          <Link
+            href={bongsimPath("/recommend?fromCheckout=1")}
+            className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-900"
+          >
+            <span aria-hidden>←</span>
+            eSIM 선택으로 돌아가기
+          </Link>
+        ) : null}
         <h1 className="mt-3 text-[20px] font-semibold text-slate-900 lg:mt-4 lg:text-2xl">주문·결제</h1>
 
         {resumeLoading ? (

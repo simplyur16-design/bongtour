@@ -2,6 +2,7 @@ import Link from "next/link";
 import Header from '@/app/components/Header'
 import { bongsimPath } from '@/lib/bongsim/constants'
 import { notFound } from "next/navigation";
+import { ClearRecommendFunnelOnMount } from "@/components/bongsim/ClearRecommendFunnelOnMount";
 import { OrderCompleteRealView } from "@/components/bongsim/order-complete/OrderCompleteRealView";
 import { TestModeCompleteModal } from "@/components/bongsim/checkout-store/TestModeCompleteModal";
 import { getOrderPublic } from "@/lib/bongsim/data/get-order-public";
@@ -35,6 +36,7 @@ export default async function OrderCompletePage({ params, searchParams }: Props)
 
   return (
     <div className="min-h-screen bg-bt-page">
+      <ClearRecommendFunnelOnMount />
       <Header />
       <div className="min-h-full bg-slate-50">
       <main className="mx-auto max-w-lg px-4 pt-3 pb-10 sm:max-w-xl sm:px-6 sm:pt-4">

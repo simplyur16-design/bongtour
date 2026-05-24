@@ -372,6 +372,16 @@ function WelcomepayPaymentContent() {
               <p className="text-center text-[11.5px] leading-relaxed text-slate-500 lg:text-sm">
                 결제 진행은 웰컴페이먼츠가 안전하게 처리해요. 결제 완료 후 이메일로 QR코드를 보내드려요.
               </p>
+              <Link
+                href={
+                  orderId
+                    ? `${bongsimPath("/checkout")}?orderId=${encodeURIComponent(orderId)}`
+                    : bongsimPath("/checkout")
+                }
+                className="mt-4 flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              >
+                ← 주문·결제 화면으로
+              </Link>
             </div>
           ) : null}
         </div>
