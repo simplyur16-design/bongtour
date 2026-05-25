@@ -4,6 +4,10 @@ import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "
 import SafeImage from "@/app/components/SafeImage";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import {
+  ComparePlansPopup,
+  type CompareChoice,
+} from "@/components/bongsim/recommend/ComparePlansPopup";
 import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
@@ -245,6 +249,9 @@ export function ProductCombinationStep({
   const [checkoutPaused, setCheckoutPaused] = useState(
     () => Object.keys(initialStoredCompleted ?? {}).length > 0,
   );
+  const [comparePopupOpen, setComparePopupOpen] = useState(false);
+  const [comparePopupDismissed, setComparePopupDismissed] = useState(false);
+  const [compareChoice, setCompareChoice] = useState<CompareChoice>("individual");
 
   useEffect(() => {
     if (!onStoredCompletedChange) return;
@@ -403,6 +410,42 @@ export function ProductCombinationStep({
 
   const allDone =
     selectedCodes.length > 0 && selectedCodes.every((c) => isCountryDone(c));
+
+  const compareReady = allDone && selectedCodes.length >= 2;
+
+  useEffect(() => {
+    if (!compareReady) {
+      setComparePopupDismissed(false);
+      return;
+    }
+    if (!comparePopupDismissed) {
+      setComparePopupOpen(true);
+    }
+  }, [compareReady, comparePopupDismissed]);
+
+  const closeComparePopup = () => {
+    setComparePopupOpen(false);
+    setComparePopupDismissed(true);
+  };
+
+  const changeCountryPlanFromCompare = (code: string) => {
+    setComparePopupOpen(false);
+    const range = countryDateRanges.find((r) => r.code === code);
+    if (!range) {
+      startDuration(code);
+      return;
+    }
+    const ms = range.end.getTime() - range.start.getTime();
+    const tripDays = Math.max(1, Math.ceil(ms / 86400000) + 1);
+    setOpenPlanByCode((prev) => ({
+      ...prev,
+      [code]: {
+        tripDays,
+        start: range.start,
+        end: range.end,
+      },
+    }));
+  };
 
   const checkoutQueue = useMemo(
     () => buildQueueFromSelections(selectedCodes, completed, storedDone),
@@ -789,6 +832,19 @@ export function ProductCombinationStep({
           </p>
         )}
       </div>
+
+      <ComparePlansPopup
+        open={comparePopupOpen && compareReady}
+        onClose={closeComparePopup}
+        selectedCodes={selectedCodes}
+        countryNameByCode={Object.fromEntries(
+          selectedCodes.map((c) => [c, countryByCode[c]?.nameKr]),
+        )}
+        completed={completed}
+        compareChoice={compareChoice}
+        onCompareChoiceChange={setCompareChoice}
+        onChangeCountryPlan={changeCountryPlanFromCompare}
+      />
 
       <DurationPopup
         open={flow?.kind === "duration"}
