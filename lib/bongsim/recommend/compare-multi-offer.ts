@@ -28,6 +28,8 @@ export type CompareMultiJudgment =
 
 const FASTER_MAX_RATIO = 1.2;
 const ALT_MAX_RATIO = 0.8;
+/** (b) 다운그레이드: allowance_label 용량 GB 환산 기준 최소 (500MB=0.5 제외) */
+const ALT_MIN_CAPACITY_GB = 3;
 
 function unitPrice(product: ProductOption): number | null {
   if (typeof product.recommended_price === "number" && Number.isFinite(product.recommended_price)) {
@@ -100,8 +102,60 @@ function pickCheapest(offers: MultiTierCheapest[]): MultiTierCheapest | null {
   return offers.reduce((a, b) => (a.priceKrw <= b.priceKrw ? a : b));
 }
 
+const RE_ALLOWANCE_GB = /(\d+(?:\.\d+)?)\s*gb\b/i;
+const RE_ALLOWANCE_MB = /(\d+(?:\.\d+)?)\s*mb\b/i;
+
+/** allowance_label → GB (500MB=0.5, 3GB=3 …). 파싱 불가 시 null. */
+export function allowanceCapacityGb(product: ProductOption): number | null {
+  const s = String(product.allowance_label ?? "").trim();
+  if (!s) return null;
+  const gb = s.match(RE_ALLOWANCE_GB);
+  if (gb) {
+    const n = parseFloat(gb[1]!);
+    return Number.isFinite(n) ? n : null;
+  }
+  const mb = s.match(RE_ALLOWANCE_MB);
+  if (mb) {
+    const n = parseFloat(mb[1]!);
+    return Number.isFinite(n) ? n / 1000 : null;
+  }
+  return null;
+}
+
 /**
- * (a) 후보(등급·가격 통과) 중 최저가 우선 → 없으면 (b) 1단계 아래 최저가.
+ * (b) 1단계 아래: gb>=3 중 최대 용량(동률이면 최저가). 없거나 가격>합계×0.8 → null.
+ * 등급별 최저가(500MB)는 사용하지 않음.
+ */
+function pickAlternativeDowngradeOffer(
+  plans: ProductOption[],
+  individualMax: PlanSpeedTier,
+  individualTotal: number,
+): MultiTierCheapest | null {
+  const oneBelow = (individualMax - 1) as PlanSpeedTier;
+  if (oneBelow < 1) return null;
+
+  const eligible: MultiTierCheapest[] = [];
+  for (const product of plans) {
+    const tier = classifyPlanSpeedTier(product);
+    if (tier !== oneBelow) continue;
+    const gb = allowanceCapacityGb(product);
+    if (gb == null || gb < ALT_MIN_CAPACITY_GB) continue;
+    const priceKrw = unitPrice(product);
+    if (priceKrw == null) continue;
+    eligible.push({ tier, product, priceKrw });
+  }
+  if (eligible.length === 0) return null;
+
+  const maxGb = Math.max(...eligible.map((o) => allowanceCapacityGb(o.product)!));
+  const atMaxGb = eligible.filter((o) => allowanceCapacityGb(o.product)! === maxGb);
+  const picked = atMaxGb.reduce((a, b) => (a.priceKrw <= b.priceKrw ? a : b));
+
+  if (picked.priceKrw > individualTotal * ALT_MAX_RATIO) return null;
+  return picked;
+}
+
+/**
+ * (a) 후보(등급·가격 통과) 중 최저가 → 없으면 (b) 1단계 아래 gb>=3 최대 용량.
  */
 export function judgeCompareMultiOffer(
   individualMaxTier: PlanSpeedTier | null,
@@ -116,18 +170,20 @@ export function judgeCompareMultiOffer(
   if (byTier.length === 0) return { kind: "hidden" };
 
   const aCandidates: MultiTierCheapest[] = [];
-  const bCandidates: MultiTierCheapest[] = [];
 
   for (const offer of byTier) {
     const slot = classifyOfferSlot(offer, individualMaxTier, individualTotalKrw);
     if (slot === "a") aCandidates.push(offer);
-    else if (slot === "b") bCandidates.push(offer);
   }
 
   const recommend = pickCheapest(aCandidates);
   if (recommend) return { kind: "recommend", offer: recommend };
 
-  const alternative = pickCheapest(bCandidates);
+  const alternative = pickAlternativeDowngradeOffer(
+    multiPlans,
+    individualMaxTier,
+    individualTotalKrw,
+  );
   if (alternative) return { kind: "alternative", offer: alternative };
 
   return { kind: "hidden" };
