@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { RecommendModalShell } from "@/components/bongsim/recommend/RecommendModalShell";
 import {
   startOfDay,
-  isDayBlockedByOtherInteriors,
   isOtherCountryBoundaryDay,
   isRangeAllowedWithOthers,
   type CountryDateRange,
@@ -32,8 +31,8 @@ function isInOtherCountryRange(
 
 const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
-const RANGE_OVERLAP_OTHER_COUNTRIES_MSG =
-  "다른 국가에 이미 정한 일정과 하루 이상 겹칩니다. 같은 날짜가 한쪽은 종료일·다른 쪽은 시작일이 되게만 맞춰 주세요.";
+const RANGE_OVERLAP_INFO_MSG =
+  "다른 국가 일정과 겹치는 날이 있어요. eSIM은 기간만큼 사용하는 거라 그대로 구매하셔도 괜찮아요.";
 
 function formatKrDate(d: Date): string {
   return `${d.getFullYear()}년 ${String(d.getMonth() + 1).padStart(2, "0")}월 ${String(d.getDate()).padStart(2, "0")}일`;
@@ -60,7 +59,7 @@ type Props = {
   countryName: string;
   /** 플랜 단계에서 돌아올 때 기간 유지 */
   resumeApplied?: { start: Date; end: Date } | null | undefined;
-  /** 현재 국가를 제외한 다른 국가들의 확정 기간 — 내부일 비활성·경계 점 표시 */
+  /** 현재 국가를 제외한 다른 국가들의 확정 기간 — 옅은 파랑·경계 골드 표시 */
   otherCountryRanges?: CountryDateRange[];
   currentCountryCode?: string;
   onClose: () => void;
@@ -135,26 +134,31 @@ export function DurationPopup({
     setRangeOverlapNotice(null);
   };
 
+  const setOverlapNoticeForRange = (start: Date, end: Date) => {
+    if (others.length > 0 && !isRangeAllowedWithOthers(start, end, others, exclude)) {
+      setRangeOverlapNotice(RANGE_OVERLAP_INFO_MSG);
+    } else {
+      setRangeOverlapNotice(null);
+    }
+  };
+
+  const setRangeStartWithNotice = (d: Date) => {
+    setRangeStart(d);
+    setRangeEnd(null);
+    setPickingHint("종료일");
+    setOverlapNoticeForRange(d, d);
+  };
+
   const onDayClick = (d: Date) => {
     if (d < today) return;
     if (!rangeStart || (rangeStart && rangeEnd)) {
-      setRangeStart(d);
-      setRangeEnd(null);
-      setPickingHint("종료일");
-      setRangeOverlapNotice(null);
+      setRangeStartWithNotice(d);
     } else {
       if (d < rangeStart) {
-        setRangeStart(d);
-        setRangeEnd(null);
-        setPickingHint("종료일");
-        setRangeOverlapNotice(null);
+        setRangeStartWithNotice(d);
       } else {
-        if (!isRangeAllowedWithOthers(rangeStart, d, others, exclude)) {
-          if (others.length > 0) setRangeOverlapNotice(RANGE_OVERLAP_OTHER_COUNTRIES_MSG);
-          return;
-        }
-        setRangeOverlapNotice(null);
         setRangeEnd(d);
+        setOverlapNoticeForRange(rangeStart, d);
       }
     }
   };
@@ -168,7 +172,7 @@ export function DurationPopup({
 
   const applyRange = () => {
     if (!rangeStart || !rangeEnd) return;
-    if (!isRangeAllowedWithOthers(rangeStart, rangeEnd, others, exclude)) return;
+    setOverlapNoticeForRange(rangeStart, rangeEnd);
     setCalendarOpen(false);
     setApplied(true);
   };
@@ -201,14 +205,10 @@ export function DurationPopup({
   const isRangeStart = (d: Date) =>
     rangeStart && startOfDay(d).getTime() === startOfDay(rangeStart).getTime();
 
-  const rangeValid = useMemo(() => {
-    if (!rangeStart || !rangeEnd) return false;
-    return isRangeAllowedWithOthers(rangeStart, rangeEnd, others, exclude);
-  }, [rangeStart, rangeEnd, others, exclude]);
-
-  const canApply = rangeValid;
+  const hasCompleteRange = Boolean(rangeStart && rangeEnd);
+  const canApply = hasCompleteRange;
   const canWizardNext = Boolean(
-    applied && nightsAndDays != null && nightsAndDays.days >= 1 && rangeValid,
+    applied && nightsAndDays != null && nightsAndDays.days >= 1 && hasCompleteRange,
   );
 
   return (
@@ -267,7 +267,7 @@ export function DurationPopup({
               </p>
               {others.length > 0 ? (
                 <p className="mb-2 text-center text-[12px] leading-snug text-slate-500">
-                  다른 나라 일정과는 하루만 맞닿게(한쪽 종료·다른 쪽 시작) 선택할 수 있어요.
+                  다른 나라 일정이 옅은 파랑으로 표시돼요. 날짜가 겹쳐도 eSIM 구매에는 문제 없어요.
                 </p>
               ) : null}
               {rangeOverlapNotice ? (
@@ -303,12 +303,7 @@ export function DurationPopup({
                         return cells.map((cell, idx) => {
                           if (!cell) return <div key={idx} className="h-10" />;
                           const pastDisabled = cell < today;
-                          const otherInteriorBlocked = isDayBlockedByOtherInteriors(
-                            cell,
-                            others,
-                            exclude,
-                          );
-                          const disabled = pastDisabled || otherInteriorBlocked;
+                          const disabled = pastDisabled;
                           const inOtherRange = isInOtherCountryRange(cell, others, exclude);
                           const otherBoundary =
                             inOtherRange &&
@@ -342,7 +337,7 @@ export function DurationPopup({
                             if (otherBoundary) {
                               cellClass += "z-[1] ";
                             }
-                            if (disabled) {
+                            if (pastDisabled) {
                               cellClass += "cursor-not-allowed ";
                             } else {
                               cellClass += "hover:bg-blue-200 ";
