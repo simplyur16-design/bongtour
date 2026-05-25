@@ -662,9 +662,11 @@ export function ProductCombinationStep({
 
       {selectedCodes.length >= 2 ? (
         <section className="mt-10 border-t border-gray-200 px-4 pt-8 sm:px-0 lg:mt-12 lg:pt-10">
-          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 lg:px-5 lg:py-4 lg:text-base">
-            <span className="font-semibold">💡 다국가 플랜이 더 저렴할 수 있어요!</span>
-            <p className="mt-1 text-xs leading-relaxed text-blue-800/90 lg:text-sm">
+          <div className="bt-bongsim-info-callout rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm !text-blue-950 lg:px-5 lg:py-4 lg:text-base">
+            <span className="font-semibold !text-blue-950" style={{ color: "#1e3a8a" }}>
+              💡 다국가 플랜이 더 저렴할 수 있어요!
+            </span>
+            <p className="mt-1 text-xs leading-relaxed !text-blue-900 lg:text-sm">
               각 국가 카드에서 여행 기간을 모두 선택하면, 아래 다국가 카드에서 합산 일수에 맞는 요금제를 고를 수 있어요.
             </p>
           </div>

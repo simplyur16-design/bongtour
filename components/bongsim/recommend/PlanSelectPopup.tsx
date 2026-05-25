@@ -8,6 +8,7 @@ import {
   formatKrwPerDay,
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
+import { parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
 type PlanTab = "unlimited" | "daily" | "fixed";
 
 type RecommendedPlan = ProductOption & { rec_source: PlanTab };
@@ -23,6 +24,8 @@ const TAB_LABELS: Record<PlanTab, string> = {
   daily: "데일리",
   fixed: "종량제",
 };
+
+const ALL_PLAN_TABS: PlanTab[] = ["unlimited", "daily", "fixed"];
 
 const PLAN_TYPE_HELP = `무제한: 데이터 양은 무제한, 속도는 일정하게 유지돼요(영상은 화질 제한될 수 있어요).
 데일리: 매일 정해진 용량까지 고속, 소진 후 다음날까지 느려졌다가 매일 초기화돼요.
@@ -94,6 +97,26 @@ function networkFamilyLabelKr(family: string | undefined): string {
     default:
       return family?.trim() || "—";
   }
+}
+
+/** allowance_label → GB 비교키 (500MB=0.5, 1GB=1 …). 문자열 정렬 금지. */
+function allowanceCapacityGbKey(label: string | null | undefined): number {
+  const parsed = parseAllowance(label);
+  if (parsed.kind === "mb") return parsed.mb / 1024;
+  if (parsed.kind === "unlimited") return Number.POSITIVE_INFINITY;
+  return -1;
+}
+
+/** 다국가(allSelectedCodes≥2) 데일리만 용량 내림차순. 단일국은 API(오름차순) 순서 유지. */
+function sortDailyGroupDescByCapacity(plans: ProductOption[]): ProductOption[] {
+  return [...plans].sort((a, b) => {
+    const ka = allowanceCapacityGbKey(a.allowance_label);
+    const kb = allowanceCapacityGbKey(b.allowance_label);
+    if (ka !== kb) return kb - ka;
+    const pa = displayRecommended(a) ?? Number.POSITIVE_INFINITY;
+    const pb = displayRecommended(b) ?? Number.POSITIVE_INFINITY;
+    return pa - pb;
+  });
 }
 
 type Props = {
@@ -170,16 +193,24 @@ export function PlanSelectPopup({
             ? Math.trunc(mdRaw)
             : tripDaysFloored;
         setMatchedDays(md);
+        const rawDaily = json.groups?.daily ?? [];
         const nextGroups: PlanGroups = {
           unlimited: json.groups?.unlimited ?? [],
-          daily: json.groups?.daily ?? [],
+          daily:
+            allSelectedCodes.length >= 2
+              ? sortDailyGroupDescByCapacity(rawDaily)
+              : rawDaily,
           fixed: json.groups?.fixed ?? [],
         };
         const nextRecommended =
           json.recommended && json.recommended.option_api_id ? json.recommended : null;
         setGroups(nextGroups);
         setRecommended(nextRecommended);
-        setActiveTab(nextRecommended?.rec_source ?? "unlimited");
+        const visibleAfterLoad = ALL_PLAN_TABS.filter((t) => (nextGroups[t]?.length ?? 0) > 0);
+        const recTab = nextRecommended?.rec_source;
+        const nextTab =
+          recTab && visibleAfterLoad.includes(recTab) ? recTab : (visibleAfterLoad[0] ?? "unlimited");
+        setActiveTab(nextTab);
       } catch {
         if (!cancelled) {
           setErr("플랜을 불러오지 못했습니다.");
@@ -249,6 +280,19 @@ export function PlanSelectPopup({
   const hasAnyPlans =
     groups.unlimited.length > 0 || groups.daily.length > 0 || groups.fixed.length > 0;
 
+  const visibleTabs = useMemo(
+    () => ALL_PLAN_TABS.filter((tab) => groups[tab].length > 0),
+    [groups],
+  );
+
+  useEffect(() => {
+    if (!open || loading) return;
+    if (visibleTabs.length === 0) return;
+    if (!visibleTabs.includes(activeTab)) {
+      setActiveTab(visibleTabs[0]!);
+    }
+  }, [open, loading, visibleTabs, activeTab]);
+
   if (!open) return null;
 
   const panel = (
@@ -272,25 +316,25 @@ export function PlanSelectPopup({
         </div>
 
         <div className="border-b border-slate-100 px-5">
-          <div className="flex gap-1 py-3" role="tablist" aria-label="플랜 유형">
-            {(["unlimited", "daily", "fixed"] as const).map((tab) => {
-              const selected = activeTab === tab;
-              const count = groups[tab].length;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  onClick={() => setActiveTab(tab)}
-                  className={`min-h-10 flex-1 rounded-lg px-2 text-sm font-bold transition lg:text-base ${
-                    selected
-                      ? "bg-teal-700 text-white shadow-sm"
-                      : "bg-slate-100 !text-slate-700 hover:bg-slate-200"
-                  }`}
-                >
-                  {TAB_LABELS[tab]}
-                  {count > 0 ? (
+          {visibleTabs.length > 0 ? (
+            <div className="flex gap-1 py-3" role="tablist" aria-label="플랜 유형">
+              {visibleTabs.map((tab) => {
+                const selected = activeTab === tab;
+                const count = groups[tab].length;
+                return (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setActiveTab(tab)}
+                    className={`min-h-10 flex-1 rounded-lg px-2 text-sm font-bold transition lg:text-base ${
+                      selected
+                        ? "bg-teal-700 text-white shadow-sm"
+                        : "bg-slate-100 !text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {TAB_LABELS[tab]}
                     <span
                       className={`ml-1 text-xs font-semibold ${
                         selected ? "text-white/90" : "!text-slate-700"
@@ -298,11 +342,11 @@ export function PlanSelectPopup({
                     >
                       ({count})
                     </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           <div className="pb-3">
             <button
               type="button"

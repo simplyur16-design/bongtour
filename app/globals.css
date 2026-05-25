@@ -379,6 +379,13 @@ a:not([class]):hover {
   color: #1f1b2d;
 }
 
+/* 연파랑 안내 박스 — plan-card 규칙 밖, 명시 진한색 */
+.bt-bongsim-readable .bt-bongsim-info-callout,
+.bt-bongsim-readable .bt-bongsim-info-callout p,
+.bt-bongsim-readable .bt-bongsim-info-callout span {
+  color: #1e3a8a !important;
+}
+
 /* eSIM 추천 — 플랜 카드·가격: 밝은 배경 위 본문은 항상 진한색 (text-white 상속·덮어쓰기 방지) */
 .bt-bongsim-readable .bt-bongsim-plan-card,
 .bt-bongsim-readable .bt-bongsim-plan-card p,
