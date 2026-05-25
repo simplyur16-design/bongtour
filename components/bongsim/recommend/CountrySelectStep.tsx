@@ -60,11 +60,11 @@ export function CountrySelectStep({
                   key={code}
                   type="button"
                   onClick={() => onRemoveChip(code)}
-                  className="group inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-3 py-1.5 text-[12px] font-bold text-teal-900 ring-1 ring-teal-200 transition hover:bg-teal-200"
+                  className="group inline-flex items-center gap-1.5 rounded-full bg-teal-500 px-3 py-1.5 text-[13px] font-bold text-white ring-2 ring-teal-700 transition hover:bg-teal-600"
                 >
                   <span>{country.nameKr}</span>
                   <svg
-                    className="h-3.5 w-3.5 opacity-60 transition group-hover:opacity-100"
+                    className="h-3.5 w-3.5 text-white/80 transition group-hover:text-white"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >

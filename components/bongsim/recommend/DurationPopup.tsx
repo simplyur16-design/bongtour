@@ -12,6 +12,23 @@ import {
 
 const BLUE = "#3B82F6";
 const DISABLED = "#D1D5DB";
+/** 경계 맞닿음 일 — --bong-orange 계열 */
+const GOLD = "#d9a81e";
+
+function isInOtherCountryRange(
+  d: Date,
+  ranges: CountryDateRange[],
+  excludeCode: string,
+): boolean {
+  const D = startOfDay(d).getTime();
+  for (const r of ranges) {
+    if (r.code === excludeCode) continue;
+    const a = startOfDay(r.start).getTime();
+    const b = startOfDay(r.end).getTime();
+    if (D >= a && D <= b) return true;
+  }
+  return false;
+}
 
 const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
@@ -265,7 +282,7 @@ export function DurationPopup({
                 {months.map(({ y, m, label }) => (
                   <div key={`${y}-${m}`}>
                     <p className="mb-2 text-[14px] font-bold text-slate-800">{label}</p>
-                    <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold">
+                    <div className="grid grid-cols-7 gap-1 text-center text-[13px] font-semibold">
                       {WEEKDAY_LABELS.map((w, wi) => (
                         <div
                           key={w}
@@ -284,10 +301,18 @@ export function DurationPopup({
                         for (let day = 1; day <= dim; day++) cells.push(new Date(y, m, day));
                         while (cells.length % 7 !== 0) cells.push(null);
                         return cells.map((cell, idx) => {
-                          if (!cell) return <div key={idx} className="h-9" />;
-                          const disabled =
-                            cell < today ||
-                            isDayBlockedByOtherInteriors(cell, others, exclude);
+                          if (!cell) return <div key={idx} className="h-10" />;
+                          const pastDisabled = cell < today;
+                          const otherInteriorBlocked = isDayBlockedByOtherInteriors(
+                            cell,
+                            others,
+                            exclude,
+                          );
+                          const disabled = pastDisabled || otherInteriorBlocked;
+                          const inOtherRange = isInOtherCountryRange(cell, others, exclude);
+                          const otherBoundary =
+                            inOtherRange &&
+                            isOtherCountryBoundaryDay(cell, others, exclude);
                           const sel = inRange(cell);
                           const edge = isRangeStart(cell) || isRangeEnd(cell);
                           const jsDay = cell.getDay();
@@ -295,41 +320,53 @@ export function DurationPopup({
                           const isSat = colFromMon === 5;
                           const isSun = colFromMon === 6;
                           const weekendToneActive = isSat
-                            ? "text-blue-500"
+                            ? "text-blue-600"
                             : isSun
-                              ? "text-red-500"
+                              ? "text-red-600"
                               : "text-slate-800";
-                          const weekendToneDisabled = isSat
+                          const weekendTonePast = isSat
                             ? "text-blue-500/40"
                             : isSun
                               ? "text-red-500/40"
                               : "text-slate-300";
-                          const boundaryDot =
-                            !disabled &&
-                            isOtherCountryBoundaryDay(cell, others, exclude);
+
+                          let cellClass =
+                            "relative h-10 rounded-lg text-[15px] font-medium transition ";
+                          if (sel) {
+                            cellClass += edge
+                              ? "bg-[#3B82F6] text-white"
+                              : "bg-blue-400 text-white";
+                          } else if (inOtherRange) {
+                            cellClass +=
+                              "bg-slate-200 font-semibold text-slate-700 ";
+                            if (otherBoundary) {
+                              cellClass += "z-[1] ";
+                            }
+                            if (disabled) {
+                              cellClass += "cursor-not-allowed ";
+                            } else {
+                              cellClass += "hover:bg-slate-300 ";
+                            }
+                          } else if (pastDisabled) {
+                            cellClass += `cursor-not-allowed ${weekendTonePast}`;
+                          } else {
+                            cellClass += `${weekendToneActive} hover:bg-slate-100`;
+                          }
+
                           return (
                             <button
                               key={idx}
                               type="button"
                               disabled={disabled}
                               onClick={() => onDayClick(cell)}
-                              className={`relative h-9 rounded-lg text-[13px] font-medium transition ${
-                                disabled
-                                  ? `cursor-not-allowed ${weekendToneDisabled}`
-                                  : sel
-                                    ? edge
-                                      ? "bg-[#3B82F6] text-white"
-                                      : "bg-blue-400 text-white"
-                                    : `${weekendToneActive} hover:bg-slate-100`
-                              }`}
+                              className={cellClass.trim()}
+                              style={
+                                !sel && inOtherRange && otherBoundary
+                                  ? { boxShadow: `inset 0 0 0 2px ${GOLD}` }
+                                  : undefined
+                              }
                             >
                               {cell.getDate()}
-                              {boundaryDot ? (
-                                <span
-                                  className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-slate-400"
-                                  aria-hidden
-                                />
-                              ) : null}
                             </button>
                           );
                         });
