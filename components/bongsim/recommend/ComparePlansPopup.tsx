@@ -1,7 +1,19 @@
 "use client";
 
+import { useEffect, useMemo, useRef, useState } from "react";
 import SafeImage from "@/app/components/SafeImage";
 import { RecommendModalShell } from "@/components/bongsim/recommend/RecommendModalShell";
+import {
+  judgeCompareMultiOffer,
+  maxIndividualSpeedTier,
+  pickDefaultCompareChoice,
+  recommendPriceMessage,
+  type CompareMultiJudgment,
+} from "@/lib/bongsim/recommend/compare-multi-offer";
+import {
+  PLAN_SPEED_TIER_LABEL,
+  type PlanSpeedTier,
+} from "@/lib/bongsim/recommend/plan-speed-tier";
 import {
   computeRecommendedPrice,
   extractDaysFromDaysRaw,
@@ -23,6 +35,10 @@ type Props = {
   compareChoice: CompareChoice;
   onCompareChoiceChange: (choice: CompareChoice) => void;
   onChangeCountryPlan: (code: string) => void;
+  /** 합산 여행 일수 — 다국가 plans API `days` */
+  combinedTripDays: number;
+  /** plans API `country` (보통 selectedCodes[0]) */
+  multiFetchCountryCode: string;
 };
 
 function flagCdnUrl(code: string): string {
@@ -110,6 +126,61 @@ export function sumCompareIndividualTotal(lines: CompareIndividualLine[]): numbe
   return sum;
 }
 
+function MultiOfferBody({
+  judgment,
+  individualTotal,
+  individualMaxTier,
+}: {
+  judgment: CompareMultiJudgment;
+  individualTotal: number | null;
+  individualMaxTier: PlanSpeedTier | null;
+}) {
+  if (judgment.kind === "hidden") {
+    return (
+      <p className="mt-2 text-sm text-slate-500">조건에 맞는 다국가 플랜이 없습니다.</p>
+    );
+  }
+
+  const { offer } = judgment;
+  const tierLabel = PLAN_SPEED_TIER_LABEL[offer.tier];
+  const priceMsg =
+    judgment.kind === "recommend" &&
+    individualTotal != null &&
+    individualMaxTier != null
+      ? recommendPriceMessage(individualTotal, offer.priceKrw, offer.tier, individualMaxTier)
+      : judgment.kind === "alternative" && individualTotal != null && offer.priceKrw < individualTotal
+        ? `${formatKrw(individualTotal - offer.priceKrw)} 저렴`
+        : null;
+
+  return (
+    <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {judgment.kind === "recommend" ? (
+          <span className="inline-flex rounded-full bg-teal-600 px-2.5 py-0.5 text-xs font-bold text-white">
+            추천
+          </span>
+        ) : (
+          <span className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-900">
+            더 저렴한 대안
+          </span>
+        )}
+        <span className="text-xs font-semibold text-slate-600">{tierLabel}</span>
+      </div>
+      <p className="mt-2 text-sm font-medium text-slate-800">
+        {offer.product.plan_name.trim() || "다국가 플랜"}
+      </p>
+      <p className="mt-0.5 text-xs text-slate-600">
+        {buildPlanSummaryForCompare(offer.product, 1)}
+      </p>
+      <p className="mt-2 text-base font-bold text-teal-800">{formatKrw(offer.priceKrw)}</p>
+      {judgment.kind === "alternative" ? (
+        <p className="mt-1 text-xs font-medium text-amber-800">사양 다름</p>
+      ) : null}
+      {priceMsg ? <p className="mt-1 text-sm font-semibold text-teal-700">{priceMsg}</p> : null}
+    </div>
+  );
+}
+
 export function ComparePlansPopup({
   open,
   onClose,
@@ -119,11 +190,90 @@ export function ComparePlansPopup({
   compareChoice,
   onCompareChoiceChange,
   onChangeCountryPlan,
+  combinedTripDays,
+  multiFetchCountryCode,
 }: Props) {
+  const [multiLoading, setMultiLoading] = useState(false);
+  const [multiErr, setMultiErr] = useState<string | null>(null);
+  const [multiPlans, setMultiPlans] = useState<ProductOption[]>([]);
+  const defaultChoiceAppliedRef = useRef(false);
+
   const individualLines = buildCompareIndividualLines(selectedCodes, completed, countryNameByCode);
   const individualTotal = sumCompareIndividualTotal(individualLines);
+  const individualMaxTier = maxIndividualSpeedTier(selectedCodes, completed);
+
+  const judgment = useMemo(
+    () => judgeCompareMultiOffer(individualMaxTier, individualTotal, multiPlans),
+    [individualMaxTier, individualTotal, multiPlans],
+  );
+
+  const multiVisible = judgment.kind !== "hidden";
+  const multiPrice =
+    judgment.kind === "hidden" ? null : judgment.offer.priceKrw;
+
+  useEffect(() => {
+    if (!open) {
+      setMultiPlans([]);
+      setMultiErr(null);
+      setMultiLoading(false);
+      defaultChoiceAppliedRef.current = false;
+      return;
+    }
+    let cancelled = false;
+    const days = Math.max(1, Math.floor(combinedTripDays));
+    (async () => {
+      setMultiLoading(true);
+      setMultiErr(null);
+      try {
+        const q = new URLSearchParams({
+          country: multiFetchCountryCode.toLowerCase(),
+          days: String(days),
+          codes: selectedCodes.map((c) => c.toLowerCase()).join(","),
+        });
+        const res = await fetch(`/api/bongsim/products/plans?${q.toString()}`);
+        if (!res.ok) throw new Error("fetch failed");
+        const json = (await res.json()) as { plans?: ProductOption[] };
+        if (cancelled) return;
+        setMultiPlans(Array.isArray(json.plans) ? json.plans : []);
+      } catch {
+        if (!cancelled) {
+          setMultiErr("다국가 플랜을 불러오지 못했습니다.");
+          setMultiPlans([]);
+        }
+      } finally {
+        if (!cancelled) setMultiLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, combinedTripDays, multiFetchCountryCode, selectedCodes.join(",")]);
+
+  useEffect(() => {
+    if (!open || multiLoading) return;
+    if (!multiVisible) {
+      if (compareChoice !== "individual") onCompareChoiceChange("individual");
+      return;
+    }
+    if (defaultChoiceAppliedRef.current) return;
+    defaultChoiceAppliedRef.current = true;
+    onCompareChoiceChange(pickDefaultCompareChoice(judgment, individualTotal));
+  }, [
+    open,
+    multiLoading,
+    multiVisible,
+    judgment,
+    individualTotal,
+    compareChoice,
+    onCompareChoiceChange,
+  ]);
+
   const checkoutAmount =
-    compareChoice === "individual" ? individualTotal : null;
+    compareChoice === "individual"
+      ? individualTotal
+      : multiVisible && multiPrice != null
+        ? multiPrice
+        : individualTotal;
 
   return (
     <RecommendModalShell
@@ -164,22 +314,24 @@ export function ComparePlansPopup({
               />
               내 선택
             </label>
-            <label
-              className={`flex flex-1 cursor-pointer items-center justify-center rounded-lg px-3 py-2.5 text-sm font-bold transition ${
-                compareChoice === "multi"
-                  ? "bg-white text-teal-800 shadow-sm ring-1 ring-teal-200"
-                  : "text-slate-600"
-              }`}
-            >
-              <input
-                type="radio"
-                name="compare-choice"
-                className="sr-only"
-                checked={compareChoice === "multi"}
-                onChange={() => onCompareChoiceChange("multi")}
-              />
-              다국가
-            </label>
+            {multiVisible ? (
+              <label
+                className={`flex flex-1 cursor-pointer items-center justify-center rounded-lg px-3 py-2.5 text-sm font-bold transition ${
+                  compareChoice === "multi"
+                    ? "bg-white text-teal-800 shadow-sm ring-1 ring-teal-200"
+                    : "text-slate-600"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="compare-choice"
+                  className="sr-only"
+                  checked={compareChoice === "multi"}
+                  onChange={() => onCompareChoiceChange("multi")}
+                />
+                다국가
+              </label>
+            ) : null}
           </fieldset>
 
           <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -247,9 +399,25 @@ export function ComparePlansPopup({
             </div>
           </section>
 
-          <section className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
+          <section
+            className={`mt-4 rounded-xl border p-4 ${
+              multiVisible
+                ? "border-slate-200 bg-slate-50/80"
+                : "border-dashed border-slate-200 bg-slate-50/50"
+            }`}
+          >
             <h3 className="text-sm font-bold text-slate-900">다국가 플랜</h3>
-            <p className="mt-2 text-sm text-slate-500">다국가 플랜 불러오는 중 (4-2에서 연결 예정)</p>
+            {multiLoading ? (
+              <p className="mt-2 text-sm text-slate-500">다국가 플랜 불러오는 중…</p>
+            ) : multiErr ? (
+              <p className="mt-2 text-sm text-red-600">{multiErr}</p>
+            ) : (
+              <MultiOfferBody
+                judgment={judgment}
+                individualTotal={individualTotal}
+                individualMaxTier={individualMaxTier}
+              />
+            )}
           </section>
         </div>
 
@@ -259,7 +427,7 @@ export function ComparePlansPopup({
             disabled
             className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-xl bg-slate-300 px-6 text-base font-bold text-white opacity-90"
             aria-disabled
-            title="4-2 / 3-1b에서 결제 연결 예정"
+            title="3-1b에서 결제 연결 예정"
           >
             결제하기
             {checkoutAmount != null ? ` · ${formatKrw(checkoutAmount)}` : ""}

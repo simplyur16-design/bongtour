@@ -844,6 +844,8 @@ export function ProductCombinationStep({
         compareChoice={compareChoice}
         onCompareChoiceChange={setCompareChoice}
         onChangeCountryPlan={changeCountryPlanFromCompare}
+        combinedTripDays={combinedTripSpan?.combinedTripDays ?? 1}
+        multiFetchCountryCode={selectedCodes[0]!}
       />
 
       <DurationPopup
