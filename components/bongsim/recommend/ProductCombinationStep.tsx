@@ -132,15 +132,13 @@ interface ProductCombinationData {
   multi: ProductOption[];
 }
 
-type FlowState =
-  | { kind: "duration"; code: string }
-  | {
-      kind: "plan";
-      code: string;
-      tripDays: number;
-      start: Date;
-      end: Date;
-    };
+type FlowState = { kind: "duration"; code: string };
+
+/** 기간 확정 후 해당 국가 카드 밑 인라인 플랜 선택 */
+type OpenPlanByCode = Record<
+  string,
+  { tripDays: number; start: Date; end: Date }
+>;
 
 export type CountryPlanSelection = { product: ProductOption; quantity: number };
 
@@ -283,6 +281,7 @@ export function ProductCombinationStep({
   );
   const [countryDateRanges, setCountryDateRanges] = useState<CountryDateRange[]>([]);
   const [flow, setFlow] = useState<FlowState | null>(null);
+  const [openPlanByCode, setOpenPlanByCode] = useState<OpenPlanByCode>({});
   const [tripResume, setTripResume] = useState<{ start: Date; end: Date } | null>(null);
   const redirectRef = useRef(false);
   const storedDoneParentSyncReady = useRef(false);
@@ -373,6 +372,29 @@ export function ProductCombinationStep({
 
   const isCountryDone = (code: string) => Boolean(completed[code] || storedDone[code]);
 
+  const completeCountryPlan = (code: string, product: ProductOption, quantity: number) => {
+    const range = countryDateRanges.find((r) => r.code === code);
+    const summaryParts: string[] = [];
+    summaryParts.push(networkFamilyLabelKr(product.network_family));
+    if (range) summaryParts.push(formatShortRange(range.start, range.end));
+    summaryParts.push(`${allowanceLabelForSummary(product)} ×${quantity}`);
+    const summaryLine = summaryParts.join(" · ");
+    setCompleted((prev) => ({ ...prev, [code]: { product, quantity } }));
+    setStoredDone((prev) => ({
+      ...prev,
+      [code]: {
+        optionApiId: product.option_api_id,
+        quantity,
+        summaryLine,
+      },
+    }));
+    setOpenPlanByCode((prev) => {
+      const next = { ...prev };
+      delete next[code];
+      return next;
+    });
+  };
+
   const startDuration = (code: string) => {
     setCheckoutPaused(false);
     clearRecommendCheckoutDispatched();
@@ -386,6 +408,11 @@ export function ProductCombinationStep({
       delete next[code];
       return next;
     });
+    setOpenPlanByCode((prev) => {
+      const next = { ...prev };
+      delete next[code];
+      return next;
+    });
     setTripResume(null);
     setFlow({ kind: "duration", code });
   };
@@ -393,6 +420,17 @@ export function ProductCombinationStep({
   const closeFlow = () => {
     setFlow(null);
     setTripResume(null);
+  };
+
+  const reopenDurationForPlan = (code: string) => {
+    const ctx = openPlanByCode[code];
+    setOpenPlanByCode((prev) => {
+      const next = { ...prev };
+      delete next[code];
+      return next;
+    });
+    if (ctx) setTripResume({ start: ctx.start, end: ctx.end });
+    setFlow({ kind: "duration", code });
   };
 
   const flowCode = flow?.code;
@@ -516,6 +554,8 @@ export function ProductCombinationStep({
           const hero = countryHeroUrl(code, heroMap);
           const selection = completed[code];
           const stored = storedDone[code];
+          const planCtx = openPlanByCode[code];
+          const planOpen = Boolean(planCtx);
           const range = countryDateRanges.find((r) => r.code === code);
           let summaryLine = stored?.summaryLine ?? "";
           if (selection) {
@@ -536,7 +576,11 @@ export function ProductCombinationStep({
                 </div>
               ) : null}
               <div
-                className="w-full cursor-pointer overflow-hidden shadow-lg transition hover:ring-2 hover:ring-blue-300/60 sm:rounded-2xl lg:flex lg:min-h-[280px] lg:rounded-2xl"
+                className={`w-full cursor-pointer overflow-hidden shadow-lg transition hover:ring-2 hover:ring-blue-300/60 lg:flex lg:min-h-[280px] ${
+                  planOpen
+                    ? "rounded-t-2xl sm:rounded-t-2xl lg:rounded-t-2xl"
+                    : "sm:rounded-2xl lg:rounded-2xl"
+                }`}
                 role="button"
                 tabIndex={0}
                 onClick={() => startDuration(code)}
@@ -656,6 +700,19 @@ export function ProductCombinationStep({
                   </div>
                 ) : null}
               </div>
+
+              {planCtx ? (
+                <PlanSelectPopup
+                  inline
+                  open
+                  countryName={country?.nameKr ?? code.toUpperCase()}
+                  countryCode={code}
+                  allSelectedCodes={selectedCodes}
+                  tripDays={planCtx.tripDays}
+                  onBack={() => reopenDurationForPlan(code)}
+                  onComplete={(product, quantity) => completeCountryPlan(code, product, quantity)}
+                />
+              ) : null}
             </Fragment>
           );
         })}
@@ -769,54 +826,23 @@ export function ProductCombinationStep({
         onBack={closeFlow}
         onNext={(payload) => {
           if (flow?.kind !== "duration") return;
+          const code = flow.code;
           setTripResume({ start: payload.start, end: payload.end });
           setCountryDateRanges((prev) => [
-            ...prev.filter((r) => r.code !== flow.code),
-            { code: flow.code, start: payload.start, end: payload.end },
+            ...prev.filter((r) => r.code !== code),
+            { code, start: payload.start, end: payload.end },
           ]);
-          setFlow({
-            kind: "plan",
-            code: flow.code,
-            tripDays: payload.tripDays,
-            start: payload.start,
-            end: payload.end,
-          });
+          setOpenPlanByCode((prev) => ({
+            ...prev,
+            [code]: {
+              tripDays: payload.tripDays,
+              start: payload.start,
+              end: payload.end,
+            },
+          }));
+          setFlow(null);
         }}
       />
-
-      {flow?.kind === "plan" ? (
-        <PlanSelectPopup
-          open
-          countryName={flowCountryName}
-          countryCode={flow.code}
-          allSelectedCodes={selectedCodes}
-          tripDays={flow.tripDays}
-          onBack={() => {
-            setFlow({
-              kind: "duration",
-              code: flow.code,
-            });
-          }}
-          onComplete={(product, quantity) => {
-            const range = countryDateRanges.find((r) => r.code === flow.code);
-            const summaryParts: string[] = [];
-            summaryParts.push(networkFamilyLabelKr(product.network_family));
-            if (range) summaryParts.push(formatShortRange(range.start, range.end));
-            summaryParts.push(`${allowanceLabelForSummary(product)} ×${quantity}`);
-            const summaryLine = summaryParts.join(" · ");
-            setCompleted((prev) => ({ ...prev, [flow.code]: { product, quantity } }));
-            setStoredDone((prev) => ({
-              ...prev,
-              [flow.code]: {
-                optionApiId: product.option_api_id,
-                quantity,
-                summaryLine,
-              },
-            }));
-            closeFlow();
-          }}
-        />
-      ) : null}
     </div>
   );
 }

@@ -100,6 +100,8 @@ function networkFamilyLabelKr(family: string | undefined): string {
 
 type Props = {
   open: boolean;
+  /** true: RecommendModalShell 없이 국가 카드 밑 인라인 패널 */
+  inline?: boolean;
   countryName: string;
   countryCode: string;
   allSelectedCodes: string[];
@@ -110,6 +112,7 @@ type Props = {
 
 export function PlanSelectPopup({
   open,
+  inline = false,
   countryName,
   countryCode,
   allSelectedCodes,
@@ -238,9 +241,14 @@ export function PlanSelectPopup({
   const hasAnyPlans =
     groups.unlimited.length > 0 || groups.daily.length > 0 || groups.fixed.length > 0;
 
-  return (
-    <RecommendModalShell open={open} onClose={onBack} maxWidthClassName="max-w-md lg:max-w-xl">
-      <div className="flex max-h-[92vh] flex-col">
+  if (!open) return null;
+
+  const panel = (
+      <div
+        className={
+          inline ? "flex flex-col text-slate-900" : "flex max-h-[92vh] flex-col"
+        }
+      >
         <div className="border-b border-slate-100 px-5 pb-4 pt-5">
           <p className="text-xs text-slate-500 lg:text-sm">
             {countryName} · {tripDaysFloored}일
@@ -307,7 +315,13 @@ export function PlanSelectPopup({
           </div>
         </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+        <div
+          className={
+            inline
+              ? "max-h-[min(55vh,520px)] space-y-3 overflow-y-auto px-5 py-4"
+              : "flex-1 space-y-3 overflow-y-auto px-5 py-4"
+          }
+        >
           {loading && (
             <div className="py-10 text-center text-sm text-slate-600 lg:text-base">불러오는 중…</div>
           )}
@@ -477,6 +491,19 @@ export function PlanSelectPopup({
           </div>
         </div>
       </div>
+  );
+
+  if (inline) {
+    return (
+      <div className="bt-bongsim-readable w-full overflow-hidden rounded-b-2xl border border-t-0 border-slate-200 bg-white text-slate-900 shadow-sm sm:-mt-px">
+        {panel}
+      </div>
+    );
+  }
+
+  return (
+    <RecommendModalShell open={open} onClose={onBack} maxWidthClassName="max-w-md lg:max-w-xl">
+      {panel}
     </RecommendModalShell>
   );
 }
