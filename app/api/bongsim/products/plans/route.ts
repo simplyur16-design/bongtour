@@ -9,7 +9,6 @@ import {
   type AllowanceBucketId,
 } from "@/lib/bongsim/recommend/allowance-buckets";
 import {
-  computeRecommendedPrice,
   extractDaysFromDaysRaw,
   isTrueUnlimited,
 } from "@/lib/bongsim/recommend/product-option";
@@ -30,9 +29,27 @@ type Row = {
 
 type EnrichedPlan = ReturnType<typeof enrich>;
 
+type RecSource = "unlimited" | "daily" | "fixed";
+
+type RecommendedPlan = EnrichedPlan & { rec_source: RecSource };
+
+function numField(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim() !== "" && v.trim().toLowerCase() !== "null") {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/** plans API 전용: after.consumer_krw 만 (before 폴백 없음) */
+function plansConsumerKrw(price_block: ProductOption["price_block"]): number | null {
+  return numField(price_block?.after?.consumer_krw);
+}
+
 function enrich(row: Row) {
   const price_block = row.price_block as ProductOption["price_block"];
-  const recommended_price = computeRecommendedPrice(price_block);
+  const recommended_price = plansConsumerKrw(price_block);
   const is_true_unlimited = isTrueUnlimited(row);
   return { ...row, price_block, recommended_price, is_true_unlimited };
 }
@@ -164,7 +181,76 @@ const CAPACITY_RANK: AllowanceBucketId[] = ["500mb", "1gb", "2gb", "3gb", "4gb",
 function capacityRank(bucket: AllowanceBucketId | null): number {
   if (!bucket || bucket === "unlimited") return -1;
   const i = CAPACITY_RANK.indexOf(bucket);
-  return i >= 0 ? i : -1;
+  return i >= 0 ? i : 999;
+}
+
+function comparePriceAsc(a: EnrichedPlan, b: EnrichedPlan): number {
+  const pa = a.recommended_price ?? Number.POSITIVE_INFINITY;
+  const pb = b.recommended_price ?? Number.POSITIVE_INFINITY;
+  return pa - pb;
+}
+
+/** unlimited: 5Mbps 묶음 먼저 → 그 외, 각 묶음 내 recommended_price 오름차순 */
+function sortUnlimitedGroup(plans: EnrichedPlan[]): EnrichedPlan[] {
+  const five = plans.filter((p) => isQos5MbpsForPremium(p.qos_raw)).sort(comparePriceAsc);
+  const rest = plans.filter((p) => !isQos5MbpsForPremium(p.qos_raw)).sort(comparePriceAsc);
+  return [...five, ...rest];
+}
+
+/** daily: allowance(용량) 오름차순, 동일 시 가격 오름차순 */
+function sortByAllowanceAsc(plans: EnrichedPlan[]): EnrichedPlan[] {
+  return [...plans].sort((a, b) => {
+    const ra = capacityRank(detectAllowanceBucket(a as ProductOption));
+    const rb = capacityRank(detectAllowanceBucket(b as ProductOption));
+    if (ra !== rb) return ra - rb;
+    return comparePriceAsc(a, b);
+  });
+}
+
+function normalizeAllowanceKey(label: string): string {
+  return label.trim().toLowerCase().replace(/\s+/g, "");
+}
+
+/** 종량제 정렬용 — allowance_label 에서 MB/GB 숫자 추출 */
+function allowanceLabelSortKey(label: string): number {
+  const compact = label.trim().toLowerCase().replace(/\s/g, "");
+  const gb = compact.match(/(\d+(?:\.\d+)?)gb/);
+  if (gb) return parseFloat(gb[1]) * 1024;
+  const mb = compact.match(/(\d+(?:\.\d+)?)mb/);
+  if (mb) return parseFloat(mb[1]);
+  return 99999;
+}
+
+/**
+ * fixed: 동일 allowance_label 중 tripDays 이상 valid_days 가장 작은 SKU 1장만 유지.
+ * (예: 2일 여행 1GB → 7일권, 10일 여행 1GB → 30일권)
+ */
+function dedupeFixedByAllowance(plans: EnrichedPlan[], tripDays: number): EnrichedPlan[] {
+  const best = new Map<string, EnrichedPlan>();
+  for (const p of plans) {
+    const key = normalizeAllowanceKey(p.allowance_label || "");
+    if (!key) continue;
+    const d = extractDaysFromDaysRaw(p.days_raw);
+    if (d == null || d < tripDays) continue;
+    const prev = best.get(key);
+    if (!prev) {
+      best.set(key, p);
+      continue;
+    }
+    const prevD = extractDaysFromDaysRaw(prev.days_raw);
+    if (prevD == null || d < prevD) best.set(key, p);
+  }
+  return [...best.values()];
+}
+
+/** fixed 전용: 용량 오름차순 → 가격 오름차순 */
+function sortFixedByAllowanceAsc(plans: EnrichedPlan[]): EnrichedPlan[] {
+  return [...plans].sort((a, b) => {
+    const ka = allowanceLabelSortKey(a.allowance_label || "");
+    const kb = allowanceLabelSortKey(b.allowance_label || "");
+    if (ka !== kb) return ka - kb;
+    return comparePriceAsc(a, b);
+  });
 }
 
 /** 로밍/로컬 동시 후보일 때: QOS 높은 것, 같으면 소비자가 낮은 것 */
@@ -174,56 +260,15 @@ function pickWinnerByQosThenPrice(candidates: EnrichedPlan[]): EnrichedPlan | nu
     const qa = qosSortScoreMbps(a.qos_raw);
     const qb = qosSortScoreMbps(b.qos_raw);
     if (qb !== qa) return qb - qa;
-    const pa = a.recommended_price ?? Number.POSITIVE_INFINITY;
-    const pb = b.recommended_price ?? Number.POSITIVE_INFINITY;
-    return pa - pb;
+    return comparePriceAsc(a, b);
   });
   return sorted[0] ?? null;
 }
 
-function withTierLabel(tier_label: string, plan: EnrichedPlan | null) {
-  if (!plan) return null;
-  return { tier_label, ...plan };
-}
-
-function pickBudgetTier(pool: EnrichedPlan[]): EnrichedPlan | null {
-  const minUnlPrice = (() => {
-    const prices = pool.filter(isTrueUnlimited1MbpsPlus).map((p) => p.recommended_price);
-    const finite = prices.filter((x): x is number => x != null && Number.isFinite(x));
-    if (!finite.length) return null;
-    return Math.min(...finite);
-  })();
-
-  const capped = pool.filter((p) => {
-    if (p.is_true_unlimited) return false;
-    const bucket = detectAllowanceBucket(p as ProductOption);
-    if (bucket == null || bucket === "unlimited") return false;
-    const price = p.recommended_price;
-    if (minUnlPrice != null) {
-      if (price == null || price >= minUnlPrice) return false;
-    }
-    return true;
-  });
-  if (!capped.length) return null;
-
-  capped.sort((a, b) => {
-    const ba = detectAllowanceBucket(a as ProductOption);
-    const bb = detectAllowanceBucket(b as ProductOption);
-    const ra = capacityRank(ba);
-    const rb = capacityRank(bb);
-    if (rb !== ra) return rb - ra;
-    const pa = a.recommended_price ?? Number.POSITIVE_INFINITY;
-    const pb = b.recommended_price ?? Number.POSITIVE_INFINITY;
-    if (pa !== pb) return pa - pb;
-    return qosSortScoreMbps(b.qos_raw) - qosSortScoreMbps(a.qos_raw);
-  });
-  return capped[0] ?? null;
-}
-
-function pickCheapestInPool(pool: EnrichedPlan[]): EnrichedPlan | null {
+function pickCheapestInList(list: EnrichedPlan[]): EnrichedPlan | null {
   let best: EnrichedPlan | null = null;
   let bestPrice = Number.POSITIVE_INFINITY;
-  for (const p of pool) {
+  for (const p of list) {
     const pr = p.recommended_price;
     if (pr == null || !Number.isFinite(pr)) continue;
     if (pr < bestPrice) {
@@ -234,42 +279,60 @@ function pickCheapestInPool(pool: EnrichedPlan[]): EnrichedPlan | null {
   return best;
 }
 
-function buildRecommendedTiers(pool: EnrichedPlan[]) {
-  const premiumCandidates = pool.filter((p) => p.is_true_unlimited && isQos5MbpsForPremium(p.qos_raw));
-  const valueCandidates = pool.filter((p) => {
-    if (!p.is_true_unlimited) return false;
-    if (isQos5MbpsForPremium(p.qos_raw)) return false;
-    const m = parseMbpsFromQos(p.qos_raw);
-    return m != null && m >= 1;
-  });
-
-  const premium = withTierLabel("추천", pickWinnerByQosThenPrice(premiumCandidates));
-  const value = withTierLabel("실속", pickWinnerByQosThenPrice(valueCandidates));
-
-  const budgetPlan = pickBudgetTier(pool);
-  const budget = budgetPlan ? withTierLabel("알뜰", budgetPlan) : null;
-
-  let cheapestPlan = pickCheapestInPool(pool);
-  if (
-    budgetPlan &&
-    cheapestPlan &&
-    budgetPlan.option_api_id === cheapestPlan.option_api_id
-  ) {
-    cheapestPlan = null;
+function buildPlanGroups(pool: EnrichedPlan[], tripDays: number) {
+  const unlimited: EnrichedPlan[] = [];
+  const daily: EnrichedPlan[] = [];
+  const fixed: EnrichedPlan[] = [];
+  for (const p of pool) {
+    const pt = (p.plan_type || "").trim().toLowerCase();
+    if (pt === "unlimited") unlimited.push(p);
+    else if (pt === "daily") daily.push(p);
+    else if (pt === "fixed") fixed.push(p);
   }
-  const cheapest = cheapestPlan ? withTierLabel("최저가", cheapestPlan) : null;
+  return {
+    unlimited: sortUnlimitedGroup(unlimited),
+    daily: sortByAllowanceAsc(daily),
+    fixed: sortFixedByAllowanceAsc(dedupeFixedByAllowance(fixed, tripDays)),
+  };
+}
 
-  return { premium, value, budget, cheapest };
+function buildRecommended(
+  pool: EnrichedPlan[],
+  groups: ReturnType<typeof buildPlanGroups>,
+): RecommendedPlan | null {
+  const premiumCandidates = pool.filter(
+    (p) => p.is_true_unlimited && isQos5MbpsForPremium(p.qos_raw),
+  );
+  const unlimitedPick = pickWinnerByQosThenPrice(premiumCandidates);
+  if (unlimitedPick) {
+    return { ...unlimitedPick, rec_source: "unlimited" };
+  }
+
+  const dailyPick = pickCheapestInList(groups.daily);
+  if (dailyPick) {
+    return { ...dailyPick, rec_source: "daily" };
+  }
+
+  const fixedPick = pickCheapestInList(groups.fixed);
+  if (fixedPick) {
+    return { ...fixedPick, rec_source: "fixed" };
+  }
+
+  return null;
 }
 
 function matchesFilters(row: Row, ctx: { country: string; days: number; allSelected: string[] }) {
-  const d = extractDaysFromDaysRaw(row.days_raw);
-  if (d !== ctx.days) return false;
-
   const covered = getPlanCoveredCountries(row.plan_name);
   const pt = (row.plan_type || "").trim().toLowerCase();
 
-  if (pt !== "unlimited" && pt !== "daily") return false;
+  if (pt !== "unlimited" && pt !== "daily" && pt !== "fixed") return false;
+
+  const d = extractDaysFromDaysRaw(row.days_raw);
+  if (pt === "fixed") {
+    if (d == null || d < ctx.days) return false;
+  } else {
+    if (d !== ctx.days) return false;
+  }
 
   const multiUnlimitedOk =
     ctx.allSelected.length >= 2 &&
@@ -278,11 +341,10 @@ function matchesFilters(row: Row, ctx: { country: string; days: number; allSelec
     covered.length >= 2 &&
     doesPlanCoverAllSelected(row.plan_name, ctx.allSelected);
 
-  /** 저속 무제한(plan_type unlimited + allowance 500MB 등)도 플랜 선택·용량 버킷용으로 포함, `is_true_unlimited`로 구분 */
   const singleOk =
     covered.length === 1 &&
     covered[0] === ctx.country &&
-    (pt === "daily" || pt === "unlimited");
+    (pt === "daily" || pt === "unlimited" || pt === "fixed");
 
   return multiUnlimitedOk || singleOk;
 }
@@ -290,13 +352,13 @@ function matchesFilters(row: Row, ctx: { country: string; days: number; allSelec
 /**
  * GET /api/bongsim/products/plans?country=jp&network=roaming&days=4&codes=jp,vn
  *
- * - `network` 생략 시 roaming + local 모두 조회 (지정 시 기존과 동일하게 roaming | local 만 허용)
- * - 단일국가 / 다국가 무제한 포함
- * - recommended_price = after.consumer_krw ?? before.consumer_krw (소비자가; 응답 필드명은 호환용)
- * - is_true_unlimited: allowance_label 이 정확히 무제한/완전 무제한/unlimited 인 경우만 true (저속 무제한은 false)
- * - flags.request_shipment 가 O 가 아니거나 qos_raw 가 128kbps 인 행은 제외
- * - recommended_tiers: 필터 후 선정 4티어 premium/value/budget/cheapest (소비자가 기준)
- * - plans 배열: 필터 전 matched 목록 유지
+ * - `network` 생략 시 roaming + local 모두 조회 (roaming | local 지정 가능)
+ * - recommended_price = price_block.after.consumer_krw 만 (before 폴백 없음)
+ * - is_true_unlimited: allowance_label 이 무제한/완전 무제한/unlimited 인 경우만 true
+ * - flags.request_shipment = O, qos_raw 128kbps 제외 후 tierPool
+ * - groups: tierPool 을 plan_type(unlimited|daily|fixed) 별 분류·정렬
+ * - recommended: 5Mbps 무제한 → daily 최저가 → fixed 최저가 폴백, rec_source 부착
+ * - plans: 국가·일수 matched + 발송/QOS 필터 통과 목록(가격 오름차순)
  */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -353,11 +415,8 @@ export async function GET(req: Request) {
       WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
         AND ($1::text IS NULL OR lower(network_family) = lower($1::text))
         AND plan_type IS NOT NULL
-        AND lower(plan_type) IN ('unlimited', 'daily')
-      ORDER BY plan_name, days_raw, COALESCE(
-        (price_block->'after'->>'consumer_krw')::numeric,
-        (price_block->'before'->>'consumer_krw')::numeric
-      ) ASC NULLS LAST
+        AND lower(plan_type) IN ('unlimited', 'daily', 'fixed')
+      ORDER BY plan_name, days_raw, (price_block->'after'->>'consumer_krw')::numeric ASC NULLS LAST
       `,
       [networkParam],
     );
@@ -367,19 +426,13 @@ export async function GET(req: Request) {
       .filter((row) => matchesFilters(row, ctx))
       .filter((row) => passesShipmentAndQosFilter(row));
 
-    const enriched = matched.map(enrich).sort((a, b) => {
-      const pa = a.recommended_price;
-      const pb = b.recommended_price;
-      if (pa != null && pb != null) return pa - pb;
-      if (pa != null) return -1;
-      if (pb != null) return 1;
-      return 0;
-    });
+    const enriched = matched.map(enrich).sort(comparePriceAsc);
 
     const tierPool = applyTierInputFilters(enriched);
-    const recommended_tiers = buildRecommendedTiers(tierPool);
+    const groups = buildPlanGroups(tierPool, days);
+    const recommended = buildRecommended(tierPool, groups);
 
-    return jsonWithLeakGuard({ plans: enriched, recommended_tiers }, "bongsim.products.plans");
+    return jsonWithLeakGuard({ plans: enriched, recommended, groups }, "bongsim.products.plans");
   } catch (e) {
     console.error("[plans]", e);
     return jsonWithLeakGuard({ error: "query failed" }, "bongsim.products.plans", { status: 500 });

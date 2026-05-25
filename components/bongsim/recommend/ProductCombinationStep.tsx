@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import SafeImage from "@/app/components/SafeImage";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -285,9 +285,19 @@ export function ProductCombinationStep({
   const [flow, setFlow] = useState<FlowState | null>(null);
   const [tripResume, setTripResume] = useState<{ start: Date; end: Date } | null>(null);
   const redirectRef = useRef(false);
+  const storedDoneParentSyncReady = useRef(false);
   const [checkoutPaused, setCheckoutPaused] = useState(
     () => Object.keys(initialStoredCompleted ?? {}).length > 0,
   );
+
+  useEffect(() => {
+    if (!onStoredCompletedChange) return;
+    if (!storedDoneParentSyncReady.current) {
+      storedDoneParentSyncReady.current = true;
+      return;
+    }
+    onStoredCompletedChange(storedDone);
+  }, [storedDone, onStoredCompletedChange]);
 
   useEffect(() => {
     const onPageShow = (e: PageTransitionEvent) => {
@@ -374,7 +384,6 @@ export function ProductCombinationStep({
     setStoredDone((prev) => {
       const next = { ...prev };
       delete next[code];
-      onStoredCompletedChange?.(next);
       return next;
     });
     setTripResume(null);
@@ -402,7 +411,7 @@ export function ProductCombinationStep({
     [checkoutQueue],
   );
 
-  const goToCheckout = useCallback(() => {
+  const goToCheckout = () => {
     if (checkoutQueue.length === 0) return;
     const payload = { ...completed };
     onNext?.(payload);
@@ -417,7 +426,7 @@ export function ProductCombinationStep({
       return;
     }
     router.push(checkoutPath);
-  }, [checkoutQueue, completed, onNext, router, sessionStatus]);
+  };
 
   useEffect(() => {
     if (!allDone) {
@@ -434,8 +443,10 @@ export function ProductCombinationStep({
     allDone,
     checkoutAlreadyDispatched,
     checkoutPaused,
-    checkoutQueue.length,
-    goToCheckout,
+    checkoutQueue,
+    completed,
+    onNext,
+    router,
     sessionStatus,
   ]);
 
@@ -794,18 +805,14 @@ export function ProductCombinationStep({
             summaryParts.push(`${allowanceLabelForSummary(product)} ×${quantity}`);
             const summaryLine = summaryParts.join(" · ");
             setCompleted((prev) => ({ ...prev, [flow.code]: { product, quantity } }));
-            setStoredDone((prev) => {
-              const next = {
-                ...prev,
-                [flow.code]: {
-                  optionApiId: product.option_api_id,
-                  quantity,
-                  summaryLine,
-                },
-              };
-              onStoredCompletedChange?.(next);
-              return next;
-            });
+            setStoredDone((prev) => ({
+              ...prev,
+              [flow.code]: {
+                optionApiId: product.option_api_id,
+                quantity,
+                summaryLine,
+              },
+            }));
             closeFlow();
           }}
         />
