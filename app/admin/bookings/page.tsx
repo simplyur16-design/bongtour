@@ -15,7 +15,6 @@ type Booking = {
   productId: string
   productTitle: string
   selectedDate: string
-  preferredDepartureDate?: string | null
   pricingMode?: string | null
   adultCount: number
   childBedCount: number

@@ -435,9 +435,8 @@ model Booking {
   id                     Int       @id @default(autoincrement())
   productId              String
   productTitle           String // 예약 당시의 상품명 백업
-  selectedDate           DateTime // 기준 출발일(선택 일정 또는 희망일-only 접수 시 희망일)
-  preferredDepartureDate DateTime? // 선택 일정이 있을 때 추가 희망일 메모
-  pricingMode            String? // schedule_price | wish_date_only (견적 산정 방식)
+  selectedDate DateTime // 기준 출발일(캘린더 선택)
+  pricingMode  String? // schedule_price | schedule_selected_pending_quote
 
   adultCount      Int
   childBedCount   Int
