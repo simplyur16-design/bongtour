@@ -91,7 +91,7 @@ export function buildAdminNotificationMessage(booking: BookingForMessage): strin
     booking.totalLocalAmount,
     booking.localCurrency
   )
-  return `[Bong투어] ${originSource}/${originCode}/${title} - 날짜: ${formattedDate} - 인원: ${paxSummary} - 견적: ${totalQuotation}`
+  return `[Bong투어] ${originSource}/${originCode}/${title} - 날짜: ${formattedDate} - 인원: ${paxSummary} - 예상가: ${totalQuotation}`
 }
 
 /**

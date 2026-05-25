@@ -18,10 +18,8 @@ export type BookingIntakeDto = {
   productId: string
   originSource: string
   originCode: string
-  /** 상품 캘린더에서 고른 확정 일정(있으면 견적 산정에 사용). 없으면 null */
-  selectedDepartureDate?: string | null
-  /** 희망 출발일(텍스트/날짜). 선택 일정이 없을 때만 필수로 쓰일 수 있음 */
-  preferredDepartureDate?: string | null
+  /** 상품 캘린더에서 고른 출발일(YYYY-MM-DD). 필수 */
+  selectedDepartureDate: string
   /** 선택적: ProductDeparture.id 등 (향후 연계) */
   departureId?: string | null
   /** 레거시 호환 — customerNameKo와 동일 값으로 채움 */
@@ -72,9 +70,7 @@ export function validateBookingIntake(input: unknown): BookingValidationResult {
   const productId = String(b.productId ?? '').trim()
   const originSource = String(b.originSource ?? '').trim()
   const originCode = String(b.originCode ?? '').trim()
-  const selectedDepartureDate = b.selectedDepartureDate == null ? null : String(b.selectedDepartureDate).trim() || null
-  const preferredDepartureDate =
-    b.preferredDepartureDate == null ? null : String(b.preferredDepartureDate).trim() || null
+  const selectedDepartureDate = String(b.selectedDepartureDate ?? '').trim()
   const departureId = b.departureId == null ? null : String(b.departureId).trim() || null
 
   const adultCount = Number(b.adultCount ?? 0) || 0
@@ -147,11 +143,8 @@ export function validateBookingIntake(input: unknown): BookingValidationResult {
     errors.push('아동(베드)+아동(노베드) 합이 아동 수와 같아야 합니다.')
   }
 
-  if (!selectedDepartureDate && !preferredDepartureDate) {
-    errors.push('선택 출발일 또는 희망 출발일 중 하나는 필수입니다.')
-  }
-  if (selectedDepartureDate && !isYmd(selectedDepartureDate)) errors.push('선택 출발일은 YYYY-MM-DD 형식이어야 합니다.')
-  if (preferredDepartureDate && !isYmd(preferredDepartureDate)) errors.push('희망 출발일은 YYYY-MM-DD 형식이어야 합니다.')
+  if (!selectedDepartureDate) errors.push('출발일을 선택해 주세요.')
+  else if (!isYmd(selectedDepartureDate)) errors.push('선택 출발일은 YYYY-MM-DD 형식이어야 합니다.')
 
   for (const row of childInfantBirthDates) {
     if (!isYmd(row.birthDate)) errors.push('생년월일은 YYYY-MM-DD 형식이어야 합니다.')
@@ -178,7 +171,6 @@ export function validateBookingIntake(input: unknown): BookingValidationResult {
       originSource,
       originCode,
       selectedDepartureDate,
-      preferredDepartureDate,
       departureId,
       customerName: customerNameKo,
       customerNameKo,

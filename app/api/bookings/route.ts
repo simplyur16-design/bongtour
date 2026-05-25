@@ -17,6 +17,29 @@ import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError, publicMutationOriginJsonResponse } from '@/lib/public-mutation-origin'
 import { makeBookingNumber } from '@/lib/identifiers/make-booking-number'
 import { parsePublicAttributionFromBody } from '@/lib/public-attribution-body'
+import { CALENDAR_PRICES_MIN_ADULT_PRICE_KRW } from '@/lib/calendar-prices-adult-floor'
+
+function departureDateYmd(raw: Date | string): string {
+  return raw instanceof Date ? raw.toISOString().slice(0, 10) : String(raw).slice(0, 10)
+}
+
+function productDepartureToPriceRowLike(dep: {
+  adultPrice: number | null
+  childBedPrice: number | null
+  childNoBedPrice: number | null
+  infantPrice: number | null
+}): PriceRowLike {
+  return {
+    priceAdult: dep.adultPrice ?? 0,
+    priceChildWithBed: dep.childBedPrice,
+    priceChildNoBed: dep.childNoBedPrice,
+    priceInfant: dep.infantPrice,
+  }
+}
+
+function isBookableDepartureAdultPrice(adultPrice: number | null | undefined): boolean {
+  return adultPrice != null && adultPrice >= CALENDAR_PRICES_MIN_ADULT_PRICE_KRW
+}
 
 const BOOKING_RATE_LIMIT_WINDOW_MS = 60_000
 const BOOKING_RATE_LIMIT_MAX = 10
@@ -30,8 +53,8 @@ function getClientIp(headers: Headers): string {
 /**
  * POST /api/bookings
  * - 입력: BookingIntakeDto (lib/booking-intake-contract.ts)
- * - 선택 출발일이 있으면 해당 일자 가격으로 견적 산정(schedule_price)
- * - 희망 출발일만 있으면 접수만 하고 견적 0·wish_date_only (운영자가 이후 확정)
+ * - 선택 출발일이 있으면 ProductDeparture 해당 일자 가격으로 예상가 산정(schedule_price)
+ * - 선택 출발일 필수. 해당 일자 ProductDeparture 없거나 adultPrice<10,000이면 pending_quote·0원
  */
 export async function POST(request: Request) {
   try {
@@ -64,14 +87,10 @@ export async function POST(request: Request) {
         : typeof body.selectedDate === 'string'
           ? body.selectedDate.trim().slice(0, 10) || null
           : null
-    const preferredDepartureDate =
-      typeof body.preferredDepartureDate === 'string'
-        ? body.preferredDepartureDate.trim().slice(0, 10) || null
-        : null
 
     const product = await prisma.product.findFirst({
       where: { id: rawProductId, registrationStatus: 'registered' },
-      include: { prices: { orderBy: { date: 'asc' } } },
+      include: { departures: { orderBy: { departureDate: 'asc' } } },
     })
     if (!product) {
       return jsonWithLeakGuard({ error: '상품을 찾을 수 없습니다.' }, 'api.bookings.not-found', { status: 404 })
@@ -83,7 +102,6 @@ export async function POST(request: Request) {
         typeof body.originSource === 'string' ? body.originSource.trim() : (product.originSource ?? ''),
       originCode: typeof body.originCode === 'string' ? body.originCode.trim() : (product.originCode ?? ''),
       selectedDepartureDate,
-      preferredDepartureDate,
       departureId:
         body.departureId != null && String(body.departureId).trim()
           ? String(body.departureId).trim()
@@ -140,57 +158,42 @@ export async function POST(request: Request) {
       infant: intake.infantCount,
     }
 
-    const hasSelected = Boolean(intake.selectedDepartureDate)
-    const primaryDate = intake.selectedDepartureDate ?? intake.preferredDepartureDate
-    if (!primaryDate) {
-      return jsonWithLeakGuard({ error: '출발일 정보가 없습니다.' }, 'api.bookings.no-date', { status: 400 })
+    if (!intake.selectedDepartureDate) {
+      return jsonWithLeakGuard({ error: '출발일을 선택해 주세요.' }, 'api.bookings.no-date', { status: 400 })
     }
-    const dateKey = primaryDate.slice(0, 10)
+    const dateKey = intake.selectedDepartureDate.slice(0, 10)
 
     let totalKrwAmount = 0
     let totalLocalAmount = 0
     const localCurrency = product.mandatoryCurrency ?? 'USD'
 
-    let pricingMode: 'schedule_price' | 'wish_date_only' | 'schedule_selected_pending_quote'
-    if (hasSelected) {
-      const priceRow = product.prices.find((p) => {
-        const raw = p.date
-        const d =
-          raw instanceof Date ? raw.toISOString().slice(0, 10) : String(raw).slice(0, 10)
-        return d === dateKey
-      })
-      if (!priceRow) {
-        pricingMode = 'schedule_selected_pending_quote'
-        totalKrwAmount = 0
-        totalLocalAmount = 0
-      } else {
-        pricingMode = 'schedule_price'
-        const paxForKrw = {
-          adult: pax.adult,
-          childBed: pax.childBed,
-          childNoBed: pax.childNoBed,
-          infant: pax.infant,
-        }
-        const { total } = computeKRWQuotation(priceRow as PriceRowLike, paxForKrw)
-        totalKrwAmount = total
-        totalLocalAmount = computeLocalFeeTotal(product.mandatoryLocalFee, {
-          adult: pax.adult,
-          childBed: pax.childBed,
-          childNoBed: pax.childNoBed,
-        }) ?? 0
-      }
+    let pricingMode: 'schedule_price' | 'schedule_selected_pending_quote'
+    const departure = product.departures.find((d) => departureDateYmd(d.departureDate) === dateKey)
+    if (!departure || !isBookableDepartureAdultPrice(departure.adultPrice)) {
+      pricingMode = 'schedule_selected_pending_quote'
+      totalKrwAmount = 0
+      totalLocalAmount = 0
     } else {
-      pricingMode = 'wish_date_only'
+      pricingMode = 'schedule_price'
+      const priceRow = productDepartureToPriceRowLike(departure)
+      const paxForKrw = {
+        adult: pax.adult,
+        childBed: pax.childBed,
+        childNoBed: pax.childNoBed,
+        infant: pax.infant,
+      }
+      const { total } = computeKRWQuotation(priceRow, paxForKrw)
+      totalKrwAmount = total
+      totalLocalAmount = computeLocalFeeTotal(product.mandatoryLocalFee, {
+        adult: pax.adult,
+        childBed: pax.childBed,
+        childNoBed: pax.childNoBed,
+      }) ?? 0
     }
 
     const birthsJson = JSON.stringify(
       intake.childInfantBirthDates.map((x) => ({ type: x.type, birthDate: x.birthDate }))
     )
-
-    const preferredExtra =
-      intake.selectedDepartureDate && intake.preferredDepartureDate
-        ? new Date(intake.preferredDepartureDate + 'T00:00:00.000Z')
-        : null
 
     const privacyAgreedAt = new Date()
     const customerBirthDate = new Date(intake.customerBirthDate + 'T00:00:00.000Z')
@@ -201,7 +204,6 @@ export async function POST(request: Request) {
         productId: product.id,
         productTitle: product.title,
         selectedDate: new Date(dateKey + 'T00:00:00.000Z'),
-        preferredDepartureDate: preferredExtra,
         pricingMode,
         adultCount: pax.adult,
         childBedCount: pax.childBed,

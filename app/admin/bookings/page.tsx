@@ -209,12 +209,6 @@ export default function AdminBookingsPage() {
                         day: 'numeric',
                       })}
                     </p>
-                    {detail.preferredDepartureDate && (
-                      <p className="mt-2 text-xs text-gray-500">
-                        희망일 병기:{' '}
-                        {new Date(detail.preferredDepartureDate).toLocaleDateString('ko-KR')}
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -261,7 +255,7 @@ export default function AdminBookingsPage() {
                 )}
 
                 <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4">
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-600">참고 금액 (원화 + 현지 외화)</h3>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-600">예상가/참고가(변동 가능) (원화 + 현지 외화)</h3>
                   <div className="space-y-1 text-sm">
                     <p>
                       <span className="text-gray-600">한국 지불 예정액:</span>{' '}

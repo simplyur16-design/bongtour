@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import {
   BOOKING_CUSTOMER_NAME_EN_REGEX,
   validateBookingIntake,
@@ -52,7 +52,7 @@ type ApiSuccess = {
   bookingId: number
   bookingNumber?: string
   message: string
-  pricingMode?: 'schedule_price' | 'wish_date_only' | 'schedule_selected_pending_quote'
+  pricingMode?: 'schedule_price' | 'schedule_selected_pending_quote'
 }
 
 export default function BookingIntakeModal({
@@ -84,13 +84,6 @@ export default function BookingIntakeModal({
   const [preferredContactChannel, setPreferredContactChannel] = useState<'phone' | 'kakao' | 'email'>('phone')
   const [requestNotes, setRequestNotes] = useState('')
 
-  /** schedule: 캘린더 선택일 + 선택적 추가 희망일 / wish: 희망일만 (일정 없으면 wish만) */
-  const [departureMode, setDepartureMode] = useState<'schedule' | 'wish'>(() =>
-    hasPriceSchedule ? 'schedule' : 'wish'
-  )
-  const [preferredDateOnly, setPreferredDateOnly] = useState('')
-  const [additionalPreferredWhenSchedule, setAdditionalPreferredWhenSchedule] = useState('')
-
   const [birthDates, setBirthDates] = useState<string[]>([])
 
   const [submitting, setSubmitting] = useState(false)
@@ -109,14 +102,7 @@ export default function BookingIntakeModal({
     setServerError('')
     setSuccess(null)
     setSuccessMemoSnapshot(null)
-    if (selectedDateFromCalendar) {
-      setDepartureMode('schedule')
-    } else if (!hasPriceSchedule) {
-      setDepartureMode('wish')
-    } else {
-      setDepartureMode('schedule')
-    }
-  }, [open, hasPriceSchedule, selectedDateFromCalendar])
+  }, [open])
 
   useEffect(() => {
     const n = childCount + infantCount
@@ -127,17 +113,7 @@ export default function BookingIntakeModal({
     })
   }, [childCount, infantCount])
 
-  const selectedDepartureDate = useMemo(() => {
-    if (departureMode !== 'schedule') return null
-    return selectedDateFromCalendar
-  }, [departureMode, selectedDateFromCalendar])
-
-  const preferredDepartureDate = useMemo(() => {
-    if (departureMode === 'wish') {
-      return preferredDateOnly.trim() || null
-    }
-    return additionalPreferredWhenSchedule.trim() || null
-  }, [departureMode, preferredDateOnly, additionalPreferredWhenSchedule])
+  const selectedDepartureDate = selectedDateFromCalendar
 
   const buildPayload = () => {
     const rows: { type: 'child' | 'infant'; birthDate: string }[] = []
@@ -152,8 +128,7 @@ export default function BookingIntakeModal({
       originSource,
       originCode,
       departureId: departureRowId?.trim() || null,
-      selectedDepartureDate: selectedDepartureDate,
-      preferredDepartureDate,
+      selectedDepartureDate: selectedDepartureDate ?? '',
       customerName: customerNameKo.trim(),
       customerNameKo: customerNameKo.trim(),
       customerNameEn: customerNameEn.trim(),
@@ -186,19 +161,8 @@ export default function BookingIntakeModal({
     }
     if (!customerEmail.trim()) return '이메일을 입력해 주세요.'
     if (!privacyAgreed) return '개인정보 수집·이용에 동의해 주세요.'
-    if (departureMode === 'schedule' && !selectedDateFromCalendar) {
-      return '상단에서 출발일을 선택하거나, 아래에서 “희망 출발일만”으로 접수해 주세요.'
-    }
-    if (departureMode === 'wish' && !preferredDateOnly.trim()) {
-      return '희망 출발일을 입력해 주세요.'
-    }
-    if (departureMode === 'schedule' && selectedDateFromCalendar) {
-      if (additionalPreferredWhenSchedule.trim() && !/^\d{4}-\d{2}-\d{2}$/.test(additionalPreferredWhenSchedule.trim())) {
-        return '추가 희망일은 YYYY-MM-DD 형식이어야 합니다.'
-      }
-    }
-    if (departureMode === 'wish' && preferredDateOnly.trim() && !/^\d{4}-\d{2}-\d{2}$/.test(preferredDateOnly.trim())) {
-      return '희망 출발일은 YYYY-MM-DD 형식이어야 합니다.'
+    if (!selectedDateFromCalendar) {
+      return '상단에서 출발일을 선택해 주세요. 원하는 날짜가 없으면 카카오 상담으로 문의해 주세요.'
     }
     const emErr = optionalEmailFormatError(customerEmail)
     if (emErr) return emErr
@@ -252,16 +216,11 @@ export default function BookingIntakeModal({
         childInfantBirthDates: validated.value.childInfantBirthDates,
         requestNotes: validated.value.requestNotes,
       }
-      if (validated.value.selectedDepartureDate) {
-        body.selectedDate = validated.value.selectedDepartureDate
-        body.selectedDepartureDate = validated.value.selectedDepartureDate
-      }
+      body.selectedDate = validated.value.selectedDepartureDate
+      body.selectedDepartureDate = validated.value.selectedDepartureDate
       if (validated.value.departureId) {
         body.departureId = validated.value.departureId
         body.sourceRowId = validated.value.departureId
-      }
-      if (validated.value.preferredDepartureDate) {
-        body.preferredDepartureDate = validated.value.preferredDepartureDate
       }
       Object.assign(body, readUtmFromSession())
 
@@ -329,11 +288,6 @@ export default function BookingIntakeModal({
             <div className="rounded-lg border border-bt-success bg-bt-badge-domestic p-4">
               <p className="text-sm font-medium text-bt-badge-domestic-text">요청이 접수되었습니다</p>
               <p className="mt-2 whitespace-pre-wrap text-sm text-bt-body">{success.message}</p>
-              {success.pricingMode === 'wish_date_only' && (
-                <p className="mt-3 rounded border border-bt-border-soft bg-bt-badge-freeform px-3 py-2 text-sm text-bt-badge-freeform-text">
-                  희망 출발일 기준으로 접수되었습니다. 금액·좌석은 담당자 확인 후 안내됩니다.
-                </p>
-              )}
               {(success.pricingMode === 'schedule_price' ||
                 success.pricingMode === 'schedule_selected_pending_quote') && (
                 <p className="mt-2 text-xs text-bt-meta">
@@ -365,9 +319,8 @@ export default function BookingIntakeModal({
                   productTitle={productTitle}
                   originSource={originSource}
                   originCode={originCode}
-                  selectedDepartureDate={selectedDepartureDate ?? selectedDateFromCalendar}
+                  selectedDepartureDate={selectedDateFromCalendar}
                   selectedDepartureId={departureRowId}
-                  preferredDepartureDate={preferredDepartureDate}
                   pax={pax}
                   bookingId={success.bookingId}
                   customerMemo={successMemoSnapshot}
@@ -436,82 +389,31 @@ export default function BookingIntakeModal({
                 </p>
               </div>
             ) : null}
-            {hasPriceSchedule && (
-              <div className="space-y-2 rounded-lg border border-bt-border-soft bg-bt-surface-alt p-3">
-                <p className="text-xs font-medium text-bt-body">출발일</p>
-                <label className="flex items-start gap-2 text-sm">
-                  <input
-                    type="radio"
-                    name="depMode"
-                    checked={departureMode === 'schedule'}
-                    onChange={() => setDepartureMode('schedule')}
-                    className="mt-1"
+            {!selectedDateFromCalendar && (
+              <div className="rounded-lg border border-bt-border-soft bg-bt-surface-alt p-3">
+                <p className="text-sm leading-relaxed text-bt-body">
+                  원하는 출발일이 캘린더에 없으면, 상단 일정에서 날짜를 선택하거나 카카오 상담으로 문의해 주세요.
+                </p>
+                <div className="mt-3">
+                  <KakaoCounselCta
+                    variant="kakaoSoft"
+                    showHelper
+                    intent="booking"
+                    fromScreen="product_detail_desktop"
+                    productId={productId}
+                    listingProductNumber={originCode}
+                    productTitle={productTitle}
+                    originSource={originSource}
+                    originCode={originCode}
+                    selectedDepartureDate={null}
+                    selectedDepartureId={departureRowId}
+                    pax={pax}
+                    customerMemo={requestNotes.trim() || null}
+                    advisoryLabel={departureAdvisoryLabel}
+                    pricingMode={null}
+                    isCollectingPrices={isCollectingPrices}
                   />
-                  <span>
-                    상품 일정에서 선택한 날짜로 접수
-                    {selectedDateFromCalendar ? (
-                      <span className="ml-1 font-medium text-bt-title">({selectedDateFromCalendar})</span>
-                    ) : (
-                      <span className="ml-1 text-bt-warning"> — 상단에서 출발일을 먼저 선택해 주세요.</span>
-                    )}
-                  </span>
-                </label>
-                {departureMode === 'schedule' && selectedDateFromCalendar && (
-                  <div className="pl-6">
-                    <label htmlFor="booking-add-pref" className="text-xs text-bt-muted">
-                      추가 희망일 (선택, YYYY-MM-DD)
-                    </label>
-                    <input
-                      id="booking-add-pref"
-                      type="date"
-                      value={additionalPreferredWhenSchedule}
-                      onChange={(e) => setAdditionalPreferredWhenSchedule(e.target.value)}
-                      className="mt-1 w-full rounded border border-bt-border-strong bg-bt-surface px-2 py-1.5 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
-                    />
-                  </div>
-                )}
-                <label className="flex items-start gap-2 text-sm">
-                  <input
-                    type="radio"
-                    name="depMode"
-                    checked={departureMode === 'wish'}
-                    onChange={() => setDepartureMode('wish')}
-                    className="mt-1"
-                  />
-                  <span>일정 없이 희망 출발일만으로 접수 (가격·좌석은 확인 후 안내)</span>
-                </label>
-                {departureMode === 'wish' && (
-                  <div className="pl-6">
-                    <label htmlFor="booking-pref-only" className="text-xs text-bt-muted">
-                      희망 출발일 <span className="text-bt-danger">*</span>
-                    </label>
-                    <input
-                      id="booking-pref-only"
-                      type="date"
-                      required
-                      value={preferredDateOnly}
-                      onChange={(e) => setPreferredDateOnly(e.target.value)}
-                      className="mt-1 w-full rounded border border-bt-border-strong bg-bt-surface px-2 py-1.5 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {!hasPriceSchedule && (
-              <div>
-                <label htmlFor="booking-pref-no-schedule" className="mb-1 block text-xs font-medium text-bt-muted">
-                  희망 출발일 <span className="text-bt-danger">*</span>
-                </label>
-                <input
-                  id="booking-pref-no-schedule"
-                  type="date"
-                  required
-                  value={preferredDateOnly}
-                  onChange={(e) => setPreferredDateOnly(e.target.value)}
-                  className="w-full rounded border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
-                />
-                <p className="mt-1 text-xs text-bt-meta">등록된 상품 일정이 없어 희망일만 접수합니다.</p>
+                </div>
               </div>
             )}
 
@@ -730,7 +632,7 @@ export default function BookingIntakeModal({
               </button>
               <button
                 type="submit"
-                disabled={submitting || !privacyAgreed}
+                disabled={submitting || !privacyAgreed || !selectedDateFromCalendar}
                 className="flex-1 border border-bt-cta-primary bg-bt-cta-primary py-2.5 text-sm font-medium text-bt-cta-primary-fg hover:bg-bt-cta-primary-hover disabled:opacity-50"
               >
                 {submitting ? '접수 중…' : '예약 신청'}

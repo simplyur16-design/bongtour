@@ -63,9 +63,9 @@ function buildVolatileAppendixLines(v: OperatorCounselVolatileAppendix): string[
     lines.push(`pricingMode(참고): ${v.pricingMode.trim()}`)
   }
   if (v.quotationKrwTotal != null && Number.isFinite(v.quotationKrwTotal)) {
-    lines.push(`견적 합계(참고·변동): ₩${v.quotationKrwTotal.toLocaleString('ko-KR')}`)
+    lines.push(`예상가/참고가(변동 가능): ₩${v.quotationKrwTotal.toLocaleString('ko-KR')}`)
   } else {
-    lines.push('견적 합계(참고·변동): (미산정 또는 상담 후 확정)')
+    lines.push('예상가/참고가(변동 가능): (미산정 또는 상담 후 확정)')
   }
   if (v.localFeePerPerson != null && v.localFeeCurrency?.trim()) {
     lines.push(
