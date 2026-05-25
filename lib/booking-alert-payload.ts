@@ -1,3 +1,4 @@
+import { truncateForAdminInquiryLms } from '@/lib/admin-inquiry-lms-content'
 import type { BookingIntakeDto } from '@/lib/booking-intake-contract'
 
 export type AdminBookingAlertPayload = {
@@ -43,4 +44,14 @@ export function buildAdminBookingAlertPayload(
     requestNotes: intake.requestNotes ?? null,
     adminLink,
   }
+}
+
+/** 예약 접수 관리자 문자 — 문의 접수와 동일하게 짧은 한 줄(Solapi). 상세는 이메일. */
+export function buildAdminBookingShortAlertLine(p: AdminBookingAlertPayload): string {
+  const title = truncateForAdminInquiryLms((p.productTitle ?? '상품').trim(), 24)
+  const name = truncateForAdminInquiryLms(p.customerName.trim() || '고객', 16)
+  const acc = (p.bookingNumber ?? '').trim()
+  return acc
+    ? `[봉투어] ${title} 예약 접수 ${acc} (${name})`
+    : `[봉투어] ${title} 예약 접수 (${name})`
 }

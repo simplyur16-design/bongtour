@@ -247,30 +247,6 @@ export async function POST(request: Request) {
 
     const paxSummary = formatBookingPaxSummary(pax)
     const selectedDateLabel = formatDepartureDate(booking.selectedDate)
-    void (async () => {
-      const alim = await sendBookingRequestReceivedAlimTalk(booking.id, {
-        customerPhone: intake.customerPhone,
-        productTitle: booking.productTitle,
-        selectedDate: selectedDateLabel,
-        paxSummary,
-      })
-      if (!alim.ok && alim.shouldSendLmsFallback) {
-        const lms = await sendBookingRequestReceivedLmsFallback({
-          bookingId: booking.id,
-          customerPhone: intake.customerPhone,
-          productTitle: booking.productTitle,
-          selectedDate: selectedDateLabel,
-          paxSummary,
-        })
-        if (!lms.ok) {
-          console.error(
-            '[booking] customer_lms_failed',
-            JSON.stringify({ bookingId: booking.id, message: lms.message })
-          )
-        }
-      }
-    })().catch((e) => console.error('[booking] customer_notification_exception', e))
-
     const hasSolapiKey = Boolean(process.env.SOLAPI_API_KEY?.trim())
     const hasSolapiSecret = Boolean(process.env.SOLAPI_API_SECRET?.trim())
     const adminRecipients = parseSolapiReceiverPhones()
@@ -295,9 +271,35 @@ export async function POST(request: Request) {
       )
     }
 
-    void sendAdminNotificationWithPayload(booking, adminPayload)
-      .then((r) => {
-        if (!smsEnvOk) return
+    try {
+      const alim = await sendBookingRequestReceivedAlimTalk(booking.id, {
+        customerPhone: intake.customerPhone,
+        productTitle: booking.productTitle,
+        selectedDate: selectedDateLabel,
+        paxSummary,
+      })
+      if (!alim.ok && alim.shouldSendLmsFallback) {
+        const lms = await sendBookingRequestReceivedLmsFallback({
+          bookingId: booking.id,
+          customerPhone: intake.customerPhone,
+          productTitle: booking.productTitle,
+          selectedDate: selectedDateLabel,
+          paxSummary,
+        })
+        if (!lms.ok) {
+          console.error(
+            '[booking] customer_lms_failed',
+            JSON.stringify({ bookingId: booking.id, message: lms.message, detail: alim.detail })
+          )
+        }
+      }
+    } catch (e) {
+      console.error('[booking] customer_notification_exception', e, JSON.stringify({ bookingId: booking.id }))
+    }
+
+    if (smsEnvOk) {
+      try {
+        const r = await sendAdminNotificationWithPayload(booking, adminPayload)
         if (r.ok) {
           console.log('[booking sms] sent', JSON.stringify({ bookingId: booking.id }))
         } else {
@@ -307,14 +309,17 @@ export async function POST(request: Request) {
             JSON.stringify({ bookingId: booking.id })
           )
         }
-      })
-      .catch((e) => console.error('[booking sms] exception:', e, JSON.stringify({ bookingId: booking.id })))
+      } catch (e) {
+        console.error('[booking sms] exception:', e, JSON.stringify({ bookingId: booking.id }))
+      }
+    }
 
-    void sendBookingReceivedEmailToAdmin(booking, adminPayload)
-      .then((sent) => {
-        if (sent) console.log('[booking email] sent', JSON.stringify({ bookingId: booking.id }))
-      })
-      .catch((e) => console.error('[booking email] failed:', e))
+    try {
+      const sent = await sendBookingReceivedEmailToAdmin(booking, adminPayload)
+      if (sent) console.log('[booking email] sent', JSON.stringify({ bookingId: booking.id }))
+    } catch (e) {
+      console.error('[booking email] failed:', e, JSON.stringify({ bookingId: booking.id }))
+    }
 
     const payload = {
       ok: true,

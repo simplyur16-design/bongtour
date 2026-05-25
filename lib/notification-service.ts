@@ -1,14 +1,15 @@
+import { SolapiMessageService } from 'solapi'
 import { inquiryTypeLabel } from '@/lib/admin-inquiry'
 import { prisma } from '@/lib/prisma'
-import { createSolapiAuthorizationHeader } from '@/lib/solapi-auth'
-import { buildAdminNotificationMessage, buildAdminNotificationMessageFromPayload } from '@/lib/message-service'
-import type { AdminBookingAlertPayload } from '@/lib/booking-alert-payload'
+import { buildAdminNotificationMessage } from '@/lib/message-service'
+import {
+  buildAdminBookingShortAlertLine,
+  type AdminBookingAlertPayload,
+} from '@/lib/booking-alert-payload'
 import {
   buildAdminInquiryShortAlertLine,
   type AdminInquiryLmsBodyInput,
 } from '@/lib/admin-inquiry-lms-content'
-
-const SOLAPI_SEND_URL = 'https://api.solapi.com/messages/v4/send'
 
 const MAX_RETRIES = 2
 
@@ -51,6 +52,33 @@ async function updateBookingNotificationFailed(bookingId: number, errorMessage: 
   }
 }
 
+function formatSolapiSendError(e: unknown): { code?: string; message: string } {
+  if (e && typeof e === 'object') {
+    const o = e as {
+      errorCode?: string
+      httpStatus?: number
+      message?: string
+      statusMessage?: string
+      statusCode?: string
+    }
+    const code = o.errorCode ?? o.statusCode ?? (o.httpStatus != null ? String(o.httpStatus) : undefined)
+    const message = (o.message ?? o.statusMessage ?? '').trim()
+    if (message) return { code, message }
+    if (o.httpStatus === 403) {
+      return {
+        code: code ?? '403',
+        message:
+          'Solapi Forbidden — API 키 IP 접속 제한, 발신번호 미승인, 또는 메시지 발송 권한을 솔라피 콘솔에서 확인하세요.',
+      }
+    }
+  }
+  if (e instanceof Error && e.message.trim()) {
+    return { message: e.message.trim() }
+  }
+  return { message: 'Solapi send failed' }
+}
+
+/** 문자/LMS — 알림톡과 동일하게 공식 SDK(`messages/v4` send) 사용 */
 async function sendSolapiMessage(
   apiKey: string,
   apiSecret: string,
@@ -58,35 +86,27 @@ async function sendSolapiMessage(
   to: string,
   text: string
 ): Promise<{ ok: true } | { ok: false; code?: string; message: string }> {
-  const authHeader = createSolapiAuthorizationHeader(apiKey, apiSecret)
-  const res = await fetch(SOLAPI_SEND_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      Authorization: authHeader,
-    },
-    body: JSON.stringify({
-      message: {
-        from,
+  try {
+    const svc = new SolapiMessageService(apiKey, apiSecret)
+    await svc.send({
+      from,
+      to,
+      text,
+    })
+    return { ok: true }
+  } catch (e) {
+    const { code, message } = formatSolapiSendError(e)
+    console.error(
+      '[sendSolapiMessage] failed',
+      JSON.stringify({
         to,
-        text,
-      },
-    }),
-  })
-
-  const data = (await res.json().catch(() => ({}))) as {
-    statusCode?: string
-    errorCode?: string
-    statusMessage?: string
-    message?: string
-  }
-
-  if (!res.ok) {
-    const code = data.statusCode ?? data.errorCode ?? String(res.status)
-    const message = data.statusMessage ?? data.message ?? res.statusText
+        code: code ?? null,
+        message,
+        errTag: e && typeof e === 'object' && '_tag' in e ? (e as { _tag: string })._tag : null,
+      })
+    )
     return { ok: false, code, message }
   }
-  return { ok: true }
 }
 
 /**
@@ -130,7 +150,9 @@ export async function sendAdminNotificationWithPayload(
     return { ok: true }
   }
 
-  const text = payload ? buildAdminNotificationMessageFromPayload(payload) : buildAdminNotificationMessage(booking)
+  const text = payload
+    ? buildAdminBookingShortAlertLine(payload)
+    : truncateForSms(buildAdminNotificationMessage(booking), 2000)
 
   const failed: { to: string; code?: string; message: string }[] = []
 
