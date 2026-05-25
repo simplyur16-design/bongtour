@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SafeImage from "@/app/components/SafeImage";
 import { RecommendModalShell } from "@/components/bongsim/recommend/RecommendModalShell";
+import type { BongsimRecommendCheckoutLine } from "@/lib/bongsim/constants";
 import {
   judgeCompareMultiOffer,
   maxIndividualSpeedTier,
-  pickDefaultCompareChoice,
   recommendPriceMessage,
   type CompareMultiJudgment,
 } from "@/lib/bongsim/recommend/compare-multi-offer";
@@ -32,8 +32,9 @@ type Props = {
   selectedCodes: string[];
   countryNameByCode: Record<string, string | undefined>;
   completed: Record<string, CompareCountryPlanSelection>;
-  compareChoice: CompareChoice;
-  onCompareChoiceChange: (choice: CompareChoice) => void;
+  /** 개별 국가별 lines[] — `buildQueueFromSelections` 결과 */
+  individualCheckoutQueue: BongsimRecommendCheckoutLine[];
+  onCheckout: (queue: BongsimRecommendCheckoutLine[]) => void;
   onChangeCountryPlan: (code: string) => void;
   /** 합산 여행 일수 — 다국가 plans API `days` */
   combinedTripDays: number;
@@ -187,8 +188,8 @@ export function ComparePlansPopup({
   selectedCodes,
   countryNameByCode,
   completed,
-  compareChoice,
-  onCompareChoiceChange,
+  individualCheckoutQueue,
+  onCheckout,
   onChangeCountryPlan,
   combinedTripDays,
   multiFetchCountryCode,
@@ -196,7 +197,8 @@ export function ComparePlansPopup({
   const [multiLoading, setMultiLoading] = useState(false);
   const [multiErr, setMultiErr] = useState<string | null>(null);
   const [multiPlans, setMultiPlans] = useState<ProductOption[]>([]);
-  const defaultChoiceAppliedRef = useRef(false);
+  /** 박스 선택 — 기본 없음(고객이 직접 택1) */
+  const [boxChoice, setBoxChoice] = useState<CompareChoice | null>(null);
 
   const individualLines = buildCompareIndividualLines(selectedCodes, completed, countryNameByCode);
   const individualTotal = sumCompareIndividualTotal(individualLines);
@@ -216,7 +218,7 @@ export function ComparePlansPopup({
       setMultiPlans([]);
       setMultiErr(null);
       setMultiLoading(false);
-      defaultChoiceAppliedRef.current = false;
+      setBoxChoice(null);
       return;
     }
     let cancelled = false;
@@ -249,31 +251,31 @@ export function ComparePlansPopup({
     };
   }, [open, combinedTripDays, multiFetchCountryCode, selectedCodes.join(",")]);
 
-  useEffect(() => {
-    if (!open || multiLoading) return;
-    if (!multiVisible) {
-      if (compareChoice !== "individual") onCompareChoiceChange("individual");
-      return;
-    }
-    if (defaultChoiceAppliedRef.current) return;
-    defaultChoiceAppliedRef.current = true;
-    onCompareChoiceChange(pickDefaultCompareChoice(judgment, individualTotal));
-  }, [
-    open,
-    multiLoading,
-    multiVisible,
-    judgment,
-    individualTotal,
-    compareChoice,
-    onCompareChoiceChange,
-  ]);
+  const multiCheckoutQueue: BongsimRecommendCheckoutLine[] = useMemo(() => {
+    if (judgment.kind === "hidden") return [];
+    const id = judgment.offer.product.option_api_id?.trim();
+    if (!id) return [];
+    return [{ optionApiId: id, quantity: 1 }];
+  }, [judgment]);
+
+  const payReady =
+    boxChoice === "individual"
+      ? individualCheckoutQueue.length > 0 && individualTotal != null
+      : boxChoice === "multi"
+        ? multiCheckoutQueue.length > 0 && multiPrice != null
+        : false;
 
   const checkoutAmount =
-    compareChoice === "individual"
+    boxChoice === "individual"
       ? individualTotal
-      : multiVisible && multiPrice != null
+      : boxChoice === "multi"
         ? multiPrice
-        : individualTotal;
+        : null;
+
+  const boxRing = (selected: boolean) =>
+    selected
+      ? "border-teal-500 ring-2 ring-teal-400/80 shadow-sm"
+      : "border-slate-200 hover:border-teal-200";
 
   return (
     <RecommendModalShell
@@ -296,46 +298,34 @@ export function ComparePlansPopup({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          <fieldset className="mb-4 flex gap-2 rounded-xl border border-slate-200 bg-slate-50 p-1">
-            <legend className="sr-only">결제할 플랜 선택</legend>
-            <label
-              className={`flex flex-1 cursor-pointer items-center justify-center rounded-lg px-3 py-2.5 text-sm font-bold transition ${
-                compareChoice === "individual"
-                  ? "bg-white text-teal-800 shadow-sm ring-1 ring-teal-200"
-                  : "text-slate-600"
-              }`}
-            >
-              <input
-                type="radio"
-                name="compare-choice"
-                className="sr-only"
-                checked={compareChoice === "individual"}
-                onChange={() => onCompareChoiceChange("individual")}
-              />
-              내 선택
-            </label>
-            {multiVisible ? (
-              <label
-                className={`flex flex-1 cursor-pointer items-center justify-center rounded-lg px-3 py-2.5 text-sm font-bold transition ${
-                  compareChoice === "multi"
-                    ? "bg-white text-teal-800 shadow-sm ring-1 ring-teal-200"
-                    : "text-slate-600"
+          <section
+            role="button"
+            tabIndex={0}
+            onClick={() => setBoxChoice("individual")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setBoxChoice("individual");
+              }
+            }}
+            className={`cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition ${boxRing(boxChoice === "individual")}`}
+            aria-pressed={boxChoice === "individual"}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
+                  boxChoice === "individual"
+                    ? "border-teal-600 bg-teal-600"
+                    : "border-slate-300 bg-white"
                 }`}
+                aria-hidden
               >
-                <input
-                  type="radio"
-                  name="compare-choice"
-                  className="sr-only"
-                  checked={compareChoice === "multi"}
-                  onChange={() => onCompareChoiceChange("multi")}
-                />
-                다국가
-              </label>
-            ) : null}
-          </fieldset>
-
-          <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-900">내가 선택한 플랜</h3>
+                {boxChoice === "individual" ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                ) : null}
+              </span>
+              <h3 className="text-sm font-bold text-slate-900">내가 선택한 플랜</h3>
+            </div>
             {individualLines.length === 0 ? (
               <p className="mt-3 text-sm text-slate-600">
                 국가별 선택 정보가 없습니다. 각 국가에서 플랜을 다시 선택해 주세요.
@@ -365,7 +355,10 @@ export function ComparePlansPopup({
                         <p className="text-sm font-bold text-slate-900">{line.nameKr}</p>
                         <button
                           type="button"
-                          onClick={() => onChangeCountryPlan(line.code)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onChangeCountryPlan(line.code);
+                          }}
                           className="shrink-0 rounded-md border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-teal-300 hover:bg-teal-50"
                         >
                           변경
@@ -399,39 +392,68 @@ export function ComparePlansPopup({
             </div>
           </section>
 
-          <section
-            className={`mt-4 rounded-xl border p-4 ${
-              multiVisible
-                ? "border-slate-200 bg-slate-50/80"
-                : "border-dashed border-slate-200 bg-slate-50/50"
-            }`}
-          >
-            <h3 className="text-sm font-bold text-slate-900">다국가 플랜</h3>
-            {multiLoading ? (
-              <p className="mt-2 text-sm text-slate-500">다국가 플랜 불러오는 중…</p>
-            ) : multiErr ? (
-              <p className="mt-2 text-sm text-red-600">{multiErr}</p>
-            ) : (
-              <MultiOfferBody
-                judgment={judgment}
-                individualTotal={individualTotal}
-                individualMaxTier={individualMaxTier}
-              />
-            )}
-          </section>
+          {multiVisible ? (
+            <section
+              role="button"
+              tabIndex={0}
+              onClick={() => setBoxChoice("multi")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setBoxChoice("multi");
+                }
+              }}
+              className={`mt-4 cursor-pointer rounded-xl border bg-slate-50/80 p-4 transition ${boxRing(boxChoice === "multi")}`}
+              aria-pressed={boxChoice === "multi"}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
+                    boxChoice === "multi"
+                      ? "border-teal-600 bg-teal-600"
+                      : "border-slate-300 bg-white"
+                  }`}
+                  aria-hidden
+                >
+                  {boxChoice === "multi" ? (
+                    <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                  ) : null}
+                </span>
+                <h3 className="text-sm font-bold text-slate-900">다국가 플랜</h3>
+              </div>
+              {multiLoading ? (
+                <p className="mt-2 text-sm text-slate-500">다국가 플랜 불러오는 중…</p>
+              ) : multiErr ? (
+                <p className="mt-2 text-sm text-red-600">{multiErr}</p>
+              ) : (
+                <MultiOfferBody
+                  judgment={judgment}
+                  individualTotal={individualTotal}
+                  individualMaxTier={individualMaxTier}
+                />
+              )}
+            </section>
+          ) : null}
         </div>
 
         <div className="border-t border-slate-100 px-5 py-4">
           <button
             type="button"
-            disabled
-            className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-xl bg-slate-300 px-6 text-base font-bold text-white opacity-90"
-            aria-disabled
-            title="3-1b에서 결제 연결 예정"
+            disabled={!payReady}
+            onClick={() => {
+              if (!payReady) return;
+              if (boxChoice === "individual") onCheckout(individualCheckoutQueue);
+              else if (boxChoice === "multi") onCheckout(multiCheckoutQueue);
+            }}
+            className={`inline-flex min-h-12 w-full items-center justify-center rounded-xl px-6 text-base font-bold text-white ${
+              payReady
+                ? "bg-teal-700 shadow-md transition hover:bg-teal-800"
+                : "cursor-not-allowed bg-slate-300 opacity-90"
+            }`}
           >
-            결제하기
-            {checkoutAmount != null ? ` · ${formatKrw(checkoutAmount)}` : ""}
-            <span className="ml-1 text-sm font-medium opacity-90">(준비 중)</span>
+            {payReady && checkoutAmount != null
+              ? `결제하기 · ${formatKrw(checkoutAmount)}`
+              : "플랜을 선택하세요"}
           </button>
         </div>
       </div>

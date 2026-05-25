@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   ComparePlansPopup,
-  type CompareChoice,
 } from "@/components/bongsim/recommend/ComparePlansPopup";
 import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
@@ -251,7 +250,6 @@ export function ProductCombinationStep({
   );
   const [comparePopupOpen, setComparePopupOpen] = useState(false);
   const [comparePopupDismissed, setComparePopupDismissed] = useState(false);
-  const [compareChoice, setCompareChoice] = useState<CompareChoice>("individual");
 
   useEffect(() => {
     if (!onStoredCompletedChange) return;
@@ -452,13 +450,13 @@ export function ProductCombinationStep({
     [selectedCodes, completed, storedDone],
   );
 
-  const goToCheckout = () => {
-    if (checkoutQueue.length === 0) return;
+  const goToCheckout = (queue: BongsimRecommendCheckoutLine[] = checkoutQueue) => {
+    if (queue.length === 0) return;
     const payload = { ...completed };
     onNext?.(payload);
-    writeRecommendCheckoutQueue(checkoutQueue);
-    markRecommendCheckoutDispatched(checkoutQueue);
-    const first = checkoutQueue[0]!;
+    writeRecommendCheckoutQueue(queue);
+    markRecommendCheckoutDispatched(queue);
+    const first = queue[0]!;
     const checkoutPath = `${bongsimPath("/checkout")}?optionApiId=${encodeURIComponent(first.optionApiId)}&qty=${encodeURIComponent(String(first.quantity))}`;
     redirectRef.current = true;
     setCheckoutPaused(false);
@@ -841,8 +839,11 @@ export function ProductCombinationStep({
           selectedCodes.map((c) => [c, countryByCode[c]?.nameKr]),
         )}
         completed={completed}
-        compareChoice={compareChoice}
-        onCompareChoiceChange={setCompareChoice}
+        individualCheckoutQueue={checkoutQueue}
+        onCheckout={(queue) => {
+          setComparePopupOpen(false);
+          goToCheckout(queue);
+        }}
         onChangeCountryPlan={changeCountryPlanFromCompare}
         combinedTripDays={combinedTripSpan?.combinedTripDays ?? 1}
         multiFetchCountryCode={selectedCodes[0]!}
