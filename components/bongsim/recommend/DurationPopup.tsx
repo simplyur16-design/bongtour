@@ -338,14 +338,14 @@ export function DurationPopup({
                               : "bg-blue-400 text-white";
                           } else if (inOtherRange) {
                             cellClass +=
-                              "bg-slate-200 font-semibold text-slate-700 ";
+                              "bg-blue-100 font-semibold text-blue-900 ";
                             if (otherBoundary) {
                               cellClass += "z-[1] ";
                             }
                             if (disabled) {
                               cellClass += "cursor-not-allowed ";
                             } else {
-                              cellClass += "hover:bg-slate-300 ";
+                              cellClass += "hover:bg-blue-200 ";
                             }
                           } else if (pastDisabled) {
                             cellClass += `cursor-not-allowed ${weekendTonePast}`;
