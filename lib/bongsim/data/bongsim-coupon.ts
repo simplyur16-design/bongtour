@@ -159,8 +159,11 @@ export async function loadBongsimCouponByIdForUpdate(
 
 export type ValidateCouponInput = {
   code: string;
-  option_api_id: string;
-  quantity: number;
+  /** 다상품 — 있으면 이 배열만 사용 */
+  lines?: BongsimCheckoutSubtotalLine[];
+  /** 하위호환 단일 SKU */
+  option_api_id?: string;
+  quantity?: number;
 };
 
 export async function validateBongsimCouponForDisplay(
@@ -174,7 +177,14 @@ export async function validateBongsimCouponForDisplay(
   const code = input.code.trim();
   if (!code) return { ok: false, error: "쿠폰 코드를 입력해 주세요." };
   if (isReservedTemplateCode(code)) return { ok: false, error: "해당 코드는 사용할 수 없습니다." };
-  const st = await bongsimCheckoutSubtotalKrw(client, input.option_api_id, input.quantity);
+  const st =
+    input.lines && input.lines.length > 0
+      ? await bongsimCheckoutSubtotalKrw(client, input.lines)
+      : await bongsimCheckoutSubtotalKrw(
+          client,
+          (input.option_api_id ?? "").trim(),
+          Math.trunc(input.quantity ?? 1),
+        );
   if (!st.ok) return st;
   const row = await loadBongsimCouponByCode(client, code);
   if (!row) return { ok: false, error: "쿠폰을 찾을 수 없습니다." };

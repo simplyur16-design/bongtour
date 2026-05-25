@@ -141,7 +141,10 @@ export function CheckoutStoreClient({
   const optionApiId = (sp?.get("optionApiId") ?? resolvedOptionApiId).trim();
   const qtyFromSearch = parseQtySearch(sp?.get("qty") ?? null);
 
-  const [detail, setDetail] = useState<BongsimProductDetailV1 | null>(null);
+  const [lineRows, setLineRows] = useState<
+    { line: BongsimRecommendCheckoutLine; detail: BongsimProductDetailV1 | null; loadError: string | null }[]
+  >([]);
+  const [linesLoading, setLinesLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -172,6 +175,49 @@ export function CheckoutStoreClient({
 
   const checkoutIdempotencyRef = useRef<string | null>(null);
   const paymentIdempotencyRef = useRef<string | null>(null);
+
+  const activeLines = useMemo((): BongsimRecommendCheckoutLine[] => {
+    if (recommendQueue && recommendQueue.length > 0) {
+      if (recommendQueue.length === 1) {
+        return [{ optionApiId: recommendQueue[0]!.optionApiId, quantity }];
+      }
+      return recommendQueue;
+    }
+    if (optionApiId) {
+      return [{ optionApiId, quantity }];
+    }
+    return [];
+  }, [recommendQueue, optionApiId, quantity]);
+
+  const activeLinesKey = useMemo(
+    () => activeLines.map((l) => `${l.optionApiId}:${l.quantity}`).join("|"),
+    [activeLines],
+  );
+
+  const confirmApiLines = useMemo(
+    () => activeLines.map((l) => ({ option_api_id: l.optionApiId, quantity: l.quantity })),
+    [activeLines],
+  );
+
+  const couponValidateBodyLines = confirmApiLines;
+
+  const allLinesReady = useMemo(
+    () =>
+      activeLines.length > 0 &&
+      lineRows.length === activeLines.length &&
+      lineRows.every((r) => r.detail != null && r.detail.schema === "bongsim.product_detail.v1"),
+    [activeLines.length, lineRows],
+  );
+
+  const previewSubtotalKrw = useMemo(() => {
+    if (!allLinesReady) return null;
+    let sum = 0;
+    for (const row of lineRows) {
+      const unit = row.detail!.summary.pricing.display_amount_krw;
+      sum += unit * row.line.quantity;
+    }
+    return sum;
+  }, [allLinesReady, lineRows]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -254,7 +300,7 @@ export function CheckoutStoreClient({
   useEffect(() => {
     checkoutIdempotencyRef.current = null;
     paymentIdempotencyRef.current = null;
-  }, [optionApiId, resumeOrderId]);
+  }, [activeLinesKey, resumeOrderId]);
 
   useEffect(() => {
     setCouponCode("");
@@ -263,7 +309,7 @@ export function CheckoutStoreClient({
     setAppliedCouponId(null);
     setAppliedUserCouponId(null);
     setSelectedMyCouponId("");
-  }, [optionApiId, quantity]);
+  }, [activeLinesKey]);
 
   useEffect(() => {
     if (sessionStatus !== "authenticated") {
@@ -315,41 +361,51 @@ export function CheckoutStoreClient({
   }, [optionApiId, qtyFromSearch, quantityInitial]);
 
   useEffect(() => {
-    if (!optionApiId) {
+    if (activeLines.length === 0) {
       queueMicrotask(() => {
-        setDetail(null);
-        setLoadError("optionApiId가 필요합니다.");
+        setLineRows([]);
+        setLoadError("주문할 상품이 없습니다.");
       });
       return;
     }
     let cancelled = false;
     (async () => {
-      queueMicrotask(() => setLoadError(null));
-      const res = await fetch(`/api/bongsim/products/${encodeURIComponent(optionApiId)}`, { method: "GET" });
+      setLinesLoading(true);
+      setLoadError(null);
+      const fetched = await Promise.all(
+        activeLines.map(async (line) => {
+          try {
+            const res = await fetch(`/api/bongsim/products/${encodeURIComponent(line.optionApiId)}`, {
+              method: "GET",
+            });
+            if (!res.ok) {
+              return {
+                line,
+                detail: null,
+                loadError:
+                  res.status === 404 ? "상품을 찾을 수 없습니다." : "상품을 불러오지 못했습니다.",
+              };
+            }
+            const json = (await res.json()) as BongsimProductDetailV1;
+            if (json.schema !== "bongsim.product_detail.v1") {
+              return { line, detail: null, loadError: "잘못된 응답입니다." };
+            }
+            return { line, detail: json, loadError: null };
+          } catch {
+            return { line, detail: null, loadError: "상품을 불러오지 못했습니다." };
+          }
+        }),
+      );
       if (cancelled) return;
-      if (!res.ok) {
-        setDetail(null);
-        setLoadError(res.status === 404 ? "상품을 찾을 수 없습니다." : "상품을 불러오지 못했습니다.");
-        return;
-      }
-      const json = (await res.json()) as BongsimProductDetailV1;
-      if (json.schema !== "bongsim.product_detail.v1") {
-        setLoadError("잘못된 응답입니다.");
-        setDetail(null);
-        return;
-      }
-      setDetail(json);
+      setLineRows(fetched);
+      const firstErr = fetched.find((r) => r.loadError)?.loadError;
+      if (firstErr) setLoadError(firstErr);
+      setLinesLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [optionApiId]);
-
-  const checkoutSummary = useMemo(() => {
-    if (!detail) return null;
-    const head = checkoutCountryHeadline(detail.summary.plan_name);
-    return { head, planSubtitle: checkoutPlanSubtitle(detail, head.name) };
-  }, [detail]);
+  }, [activeLinesKey]);
 
   const applyCoupon = useCallback(async () => {
     setCouponBusy(true);
@@ -361,8 +417,7 @@ export function CheckoutStoreClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code: couponCode.trim(),
-          option_api_id: optionApiId,
-          quantity,
+          lines: couponValidateBodyLines,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
@@ -395,7 +450,7 @@ export function CheckoutStoreClient({
     } finally {
       setCouponBusy(false);
     }
-  }, [couponCode, optionApiId, quantity]);
+  }, [couponCode, couponValidateBodyLines]);
 
   const applyMyUserCoupon = useCallback(
     async (userCouponId: string) => {
@@ -411,8 +466,7 @@ export function CheckoutStoreClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             user_coupon_id: userCouponId.trim(),
-            option_api_id: optionApiId,
-            quantity,
+            lines: couponValidateBodyLines,
           }),
         });
         const data = (await res.json().catch(() => ({}))) as {
@@ -452,13 +506,13 @@ export function CheckoutStoreClient({
         setCouponBusy(false);
       }
     },
-    [optionApiId, quantity],
+    [couponValidateBodyLines],
   );
   const onSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       setSubmitError(null);
-      if (!optionApiId || !detail) return;
+      if (activeLines.length === 0 || !allLinesReady || previewSubtotalKrw == null) return;
       const originBase = typeof window !== "undefined" ? window.location.origin : "";
       if (!originBase) {
         setSubmitError("브라우저 환경에서만 결제를 진행할 수 있습니다.");
@@ -494,9 +548,12 @@ export function CheckoutStoreClient({
           return;
         }
       }
-      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
-        setSubmitError("수량은 1~99 사이 정수여야 합니다.");
-        return;
+      if (activeLines.length === 1) {
+        const q = activeLines[0]!.quantity;
+        if (!Number.isInteger(q) || q < 1 || q > 99) {
+          setSubmitError("수량은 1~99 사이 정수여야 합니다.");
+          return;
+        }
       }
       if (submittingRef.current) return;
       submittingRef.current = true;
@@ -514,8 +571,7 @@ export function CheckoutStoreClient({
         } else {
         const confirmBody: Record<string, unknown> = {
           schema: "bongsim.checkout_confirm.request.v1",
-          option_api_id: optionApiId,
-          quantity,
+          lines: confirmApiLines,
           buyer_email: em,
           buyer_phone: ph,
           buyer_locale: locale,
@@ -566,10 +622,11 @@ export function CheckoutStoreClient({
         }
 
         const paymentKey = paymentIdempotencyRef.current ?? (paymentIdempotencyRef.current = crypto.randomUUID());
+        const returnOptionApiId = activeLines[0]!.optionApiId;
         const q = new URLSearchParams({
           orderId,
           orderNumber,
-          optionApiId,
+          optionApiId: returnOptionApiId,
         });
         const successUrl = `${originBase}${bongsimPath(`/checkout/return/success?${q.toString()}`)}`;
         const failUrl = `${originBase}${bongsimPath(`/checkout/return/fail?${q.toString()}`)}`;
@@ -621,7 +678,10 @@ export function CheckoutStoreClient({
       appliedCouponId,
       appliedOrderDiscountKrw,
       appliedUserCouponId,
-      detail,
+      activeLines,
+      allLinesReady,
+      confirmApiLines,
+      previewSubtotalKrw,
       email,
       phone,
       isGift,
@@ -629,14 +689,14 @@ export function CheckoutStoreClient({
       recipientPhone,
       recipientName,
       locale,
-      optionApiId,
-      quantity,
       resumeOrderId,
       resumeOrderNumber,
       router,
       terms,
     ],
   );
+
+  const primaryOptionApiId = activeLines[0]?.optionApiId ?? optionApiId;
 
   return (
     <div className="min-h-full bg-slate-50 pb-24">
@@ -652,7 +712,7 @@ export function CheckoutStoreClient({
           <span className="text-slate-300">/</span>
           <span className="text-slate-800">주문·결제</span>
         </nav>
-        {optionApiId ? (
+        {primaryOptionApiId ? (
           <Link
             href={bongsimPath("/recommend?fromCheckout=1")}
             className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-900"
@@ -667,16 +727,16 @@ export function CheckoutStoreClient({
           <p className="mt-4 text-sm text-slate-600 lg:mt-5 lg:text-base">이전 주문 정보를 불러오는 중…</p>
         ) : resumeError ? (
           <p className="mt-4 text-sm text-red-700 lg:mt-5 lg:text-base">{resumeError}</p>
-        ) : !optionApiId ? (
+        ) : activeLines.length === 0 ? (
           <p className="mt-4 text-sm text-slate-600 lg:mt-5 lg:text-base">
             상품을 선택한 뒤 다시 시도해 주세요.{" "}
             <Link href={bongsimPath()} className="font-medium text-teal-800 underline">
               eSIM 메인으로
             </Link>
           </p>
-        ) : loadError ? (
+        ) : loadError && !allLinesReady ? (
           <p className="mt-4 text-sm text-red-700 lg:mt-5 lg:text-base">{loadError}</p>
-        ) : !detail ? (
+        ) : linesLoading || !allLinesReady ? (
           <p className="mt-4 text-sm text-slate-600 lg:mt-5 lg:text-base">불러오는 중…</p>
         ) : (
           <div className="mt-4 space-y-4 lg:mt-5 lg:space-y-5">
@@ -689,52 +749,63 @@ export function CheckoutStoreClient({
                 </p>
               </section>
             ) : null}
-            {recommendQueue && recommendQueue.length > 1 ? (
-              <section className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-[13px] leading-snug text-amber-950 lg:p-5 lg:text-[15px]">
-                <p className="font-semibold">추천에서 여러 국가 상품을 담았어요</p>
-                <p className="mt-1.5 text-amber-900/90 lg:mt-2">
-                  현재 주문은 <strong>이 상품 1건</strong>만 포함합니다. 결제를 마친 뒤, 같은 방식으로 나머지{" "}
-                  <strong>{recommendQueue.length - 1}건</strong>을 각각 주문해 주세요. (체크아웃 API는 국가당 1상품
-                  주문만 지원합니다.)
-                </p>
-              </section>
-            ) : null}
             <section className="rounded-xl border border-teal-200 bg-teal-50 p-4 shadow-sm lg:p-5">
-              {checkoutSummary ? (
-                <>
-                  <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
-                    <span className="text-2xl leading-none" aria-hidden>
-                      {checkoutSummary.head.flag}
-                    </span>
-                    <span>{checkoutSummary.head.name}</span>
-                  </p>
-                  <p className="mt-2 text-base leading-snug text-slate-800">{checkoutSummary.planSubtitle}</p>
-                </>
-              ) : null}
+              <h2 className="text-sm font-bold text-slate-900">
+                주문 상품 {lineRows.length > 1 ? `(${lineRows.length}건)` : ""}
+              </h2>
+              <ul className="mt-3 space-y-3">
+                {lineRows.map((row) => {
+                  if (!row.detail) return null;
+                  const head = checkoutCountryHeadline(row.detail.summary.plan_name);
+                  const unit = row.detail.summary.pricing.display_amount_krw;
+                  const lineTotal = unit * row.line.quantity;
+                  const nf = new Intl.NumberFormat("ko-KR");
+                  return (
+                    <li
+                      key={row.line.optionApiId}
+                      className="rounded-lg border border-teal-100/80 bg-white px-3 py-3 lg:px-4 lg:py-3.5"
+                    >
+                      <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-slate-900">
+                        <span className="text-xl leading-none" aria-hidden>
+                          {head.flag}
+                        </span>
+                        <span>{head.name}</span>
+                      </p>
+                      <p className="mt-1 text-sm leading-snug text-slate-700">
+                        {checkoutPlanSubtitle(row.detail, head.name)}
+                      </p>
+                      <p className="mt-2 text-sm text-slate-800">
+                        {nf.format(unit)}원 × {row.line.quantity} ={" "}
+                        <span className="font-bold text-slate-900">{nf.format(lineTotal)}원</span>
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
               {(() => {
-                const unit = detail.summary.pricing.display_amount_krw;
-                const subtotal = unit * Math.max(1, quantity);
+                const subtotal = previewSubtotalKrw ?? 0;
                 const disc = appliedOrderDiscountKrw ?? 0;
                 const final = Math.max(0, subtotal - disc);
                 const nf = new Intl.NumberFormat("ko-KR");
-                if (disc > 0) {
-                  return (
-                    <div className="mt-4 space-y-1 lg:mt-5">
-                      <p
-                        className="text-lg font-medium text-slate-600 line-through lg:text-xl"
-                        style={{ color: "#64748b" }}
-                      >
-                        {nf.format(subtotal)}원
-                      </p>
-                      <p className="text-2xl font-bold text-teal-600 lg:text-3xl">{nf.format(final)}원</p>
-                      <p className="text-sm font-semibold text-teal-700 lg:text-base">-{nf.format(disc)}원</p>
-                    </div>
-                  );
-                }
                 return (
-                  <p className="mt-4 text-2xl font-bold text-slate-900 lg:mt-5 lg:text-3xl">
-                    {nf.format(unit)}원
-                  </p>
+                  <div className="mt-4 border-t border-teal-200/80 pt-4 lg:mt-5">
+                    {lineRows.length > 1 ? (
+                      <p className="text-sm font-medium text-slate-700">
+                        소계 <span className="font-bold text-slate-900">{nf.format(subtotal)}원</span>
+                      </p>
+                    ) : null}
+                    {disc > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-lg font-medium text-slate-600 line-through lg:text-xl">
+                          {nf.format(subtotal)}원
+                        </p>
+                        <p className="text-2xl font-bold text-teal-600 lg:text-3xl">{nf.format(final)}원</p>
+                        <p className="text-sm font-semibold text-teal-700 lg:text-base">-{nf.format(disc)}원</p>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-2xl font-bold text-slate-900 lg:text-3xl">{nf.format(subtotal)}원</p>
+                    )}
+                  </div>
                 );
               })()}
             </section>
@@ -848,23 +919,25 @@ export function CheckoutStoreClient({
                   />
                 </label>
               </fieldset>
-              <label className="block">
-                <span
-                  className="text-[12px] font-medium text-slate-700 lg:text-sm"
-                  style={{ color: "#1e293b" }}
-                >
-                  수량
-                </span>
-                <input
-                  type="number"
-                  min={1}
-                  max={99}
-                  value={quantity}
-                  onChange={(ev) => setQuantity(Number.parseInt(ev.target.value, 10) || 1)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
-                  required
-                />
-              </label>
+              {activeLines.length === 1 ? (
+                <label className="block">
+                  <span
+                    className="text-[12px] font-medium text-slate-700 lg:text-sm"
+                    style={{ color: "#1e293b" }}
+                  >
+                    수량
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={quantity}
+                    onChange={(ev) => setQuantity(Number.parseInt(ev.target.value, 10) || 1)}
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 lg:mt-1.5 lg:px-4 lg:py-3 lg:text-lg"
+                    required
+                  />
+                </label>
+              ) : null}
               <label className="block">
                 <span
                   className="text-[12px] font-medium text-slate-700 lg:text-sm"
