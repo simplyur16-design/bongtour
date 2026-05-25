@@ -374,6 +374,11 @@ a:not([class]):hover {
   color: #fff !important;
 }
 
+/* eSIM 추천 — 기본 본문색: 색 미지정 텍스트의 흰색 상속 차단 */
+.bt-bongsim-readable {
+  color: #1f1b2d;
+}
+
 /* eSIM 추천 — 플랜 카드·가격: 밝은 배경 위 본문은 항상 진한색 (text-white 상속·덮어쓰기 방지) */
 .bt-bongsim-readable .bt-bongsim-plan-card,
 .bt-bongsim-readable .bt-bongsim-plan-card p,
