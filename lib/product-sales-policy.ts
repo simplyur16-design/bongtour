@@ -6,14 +6,14 @@
  *  - 8 노출 경로 (browse / featured / sitemap / sitemap-images / gallery / product detail × 2 / home-hub) — 2-E
  *
  * 정책 SSOT:
- *  - 룰 A — 향후 90일 이내 미래 출발일 0건 확인 시 `Product.noFutureDepartureConfirmedAt = NOW()` 기록.
+ *  - 룰 A — 향후 180일(6개월) 이내 미래 출발일 0건 확인 시 `Product.noFutureDepartureConfirmedAt = NOW()` 기록.
  *           1건이라도 발견 시 NULL 로 초기화. `registrationStatus` 자동 변경 X (어드민 SSOT 유지).
  *  - 룰 B — 마커 부착 AND `lastFutureDepartureDate < NOW() + 7d` 면 사용자 노출 제외.
  *
  * 봇 차단 회피 — 트랙 ⑤ B' 가드(`waitForSupplierThrottle`/`acquireSupplierLock`/
  *   `humanDelayBeforeScrape`/`recordSupplierStart`/`recordSupplierFinished`)를 import 재사용.
  *   `executeRangeOnDemandDepartures`(`windowDays` cap 31) 는 우회 — 1.7 결정에 따라 5공급사 분기 함수를
- *   본 모듈에서 직접 호출(라이브 fetch 90일 1회).
+ *   본 모듈에서 직접 호출(라이브 fetch 180일(6개월) 1회).
  *
  * 본 모듈은 ProductDeparture upsert 를 하지 않는다.
  *  - 라이브 fetch 결과는 `lastFutureDepartureDate` 캐시 + 룰 A 마커 갱신에만 사용.
@@ -54,7 +54,7 @@ import {
 // ---------------------------------------------------------------------------
 
 /** 룰 A — 미래 출발일 탐색 범위 (today ~ today + N일). */
-const RULE_A_WINDOW_DAYS = 90
+const RULE_A_WINDOW_DAYS = 180
 /** 룰 B — 마지막 미래 출발일 cutoff (today + N일 미만이면 노출 제외). */
 const RULE_B_CUTOFF_DAYS = 7
 /** G3 동시 락 wait cap — 5공급사 동시 검증 충돌 시 기다릴 한계 (ms). */
@@ -81,7 +81,7 @@ function eachYmBetweenInclusive(fromYmd: string, toYmd: string): string[] {
   let y = parseInt(sm.slice(0, 4), 10)
   let mo = parseInt(sm.slice(5, 7), 10)
   const out: string[] = []
-  // safety: 12개월 (= 약 1년 = 룰 A 90일을 충분히 cover) 상한
+  // safety: 12개월 (= 약 1년 = 룰 A 180일(6개월)을 충분히 cover) 상한
   for (let i = 0; i < 12; i++) {
     const ym = `${y.toString().padStart(4, '0')}-${mo.toString().padStart(2, '0')}`
     out.push(ym)
@@ -154,7 +154,7 @@ export async function pickNextProductToCheck(
 export type SalesPolicyCheckResult = {
   /** `true` 면 라이브 fetch 시도가 끝났음 (skip 포함). `false` 는 발생하지 않음 — 항상 checkedAt 은 갱신. */
   checked: boolean
-  /** 룰 A 마커가 부착된 상태인지. `true` = 향후 90일 미래 출발일 0건. */
+  /** 룰 A 마커가 부착된 상태인지. `true` = 향후 180일(6개월) 미래 출발일 0건. */
   marked: boolean
   /** 라이브 fetch 결과 중 미래 출발일의 MAX. 0건이면 `null`. */
   lastFutureDate: Date | null
@@ -165,7 +165,7 @@ export type SalesPolicyCheckResult = {
 }
 
 /**
- * 1 상품에 대해 라이브 fetch (90일 1회) 수행 + Product 마커 3종 갱신.
+ * 1 상품에 대해 라이브 fetch (180일(6개월) 1회) 수행 + Product 마커 3종 갱신.
  *
  * skip 케이스 (라이브 fetch 안 함, `lastSalesPolicyCheckedAt` 만 갱신):
  *  - 5공급사 외 (kyowontour, 알 수 없음 등)
