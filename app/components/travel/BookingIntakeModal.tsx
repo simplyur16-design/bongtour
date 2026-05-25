@@ -17,6 +17,8 @@ import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
 import { formatKoreanTelInput } from '@/lib/korean-tel-format'
 import { optionalEmailFormatError } from '@/lib/email-format'
 import { readUtmFromSession } from '@/lib/utm-capture'
+import { parseBirthDateDigitsToYmd } from '@/lib/booking-birth-date-input'
+import { BookingBirthDateField, BookingBirthDateFieldCompact } from '@/app/components/travel/BookingBirthDateField'
 
 export type BookingPax = {
   adult: number
@@ -75,7 +77,7 @@ export default function BookingIntakeModal({
 
   const [customerNameKo, setCustomerNameKo] = useState('')
   const [customerNameEn, setCustomerNameEn] = useState('')
-  const [customerBirthDate, setCustomerBirthDate] = useState('')
+  const [customerBirthDateDigits, setCustomerBirthDateDigits] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [privacyAgreed, setPrivacyAgreed] = useState(false)
@@ -123,6 +125,12 @@ export default function BookingIntakeModal({
     for (let j = 0; j < infantCount; j++) {
       rows.push({ type: 'infant', birthDate: birthDates[childCount + j]?.trim() ?? '' })
     }
+    const adultBirth = parseBirthDateDigitsToYmd(customerBirthDateDigits)
+    const adultYmd = adultBirth.ok ? adultBirth.ymd : ''
+    const childInfantBirthDates = rows.map((row, idx) => {
+      const parsed = parseBirthDateDigitsToYmd(birthDates[idx] ?? '')
+      return { type: row.type, birthDate: parsed.ok ? parsed.ymd : row.birthDate }
+    })
     return {
       productId: String(productId),
       originSource,
@@ -132,7 +140,7 @@ export default function BookingIntakeModal({
       customerName: customerNameKo.trim(),
       customerNameKo: customerNameKo.trim(),
       customerNameEn: customerNameEn.trim(),
-      customerBirthDate: customerBirthDate.trim(),
+      customerBirthDate: adultYmd,
       customerPhone: customerPhone.trim(),
       customerEmail: customerEmail.trim(),
       privacyAgreed,
@@ -144,7 +152,7 @@ export default function BookingIntakeModal({
       infantCount,
       singleRoomRequested,
       preferredContactChannel,
-      childInfantBirthDates: rows,
+      childInfantBirthDates,
       requestNotes: requestNotes.trim() || null,
     }
   }
@@ -155,10 +163,8 @@ export default function BookingIntakeModal({
     if (!BOOKING_CUSTOMER_NAME_EN_REGEX.test(customerNameEn.trim())) {
       return '영문 이름은 영문·공백만 입력할 수 있습니다.'
     }
-    if (!customerBirthDate.trim()) return '생년월일을 입력해 주세요.'
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(customerBirthDate.trim())) {
-      return '생년월일은 YYYY-MM-DD 형식이어야 합니다.'
-    }
+    const adultBirthCheck = parseBirthDateDigitsToYmd(customerBirthDateDigits)
+    if (!adultBirthCheck.ok) return adultBirthCheck.message
     if (!customerEmail.trim()) return '이메일을 입력해 주세요.'
     if (!privacyAgreed) return '개인정보 수집·이용에 동의해 주세요.'
     if (!selectedDateFromCalendar) {
@@ -167,9 +173,8 @@ export default function BookingIntakeModal({
     const emErr = optionalEmailFormatError(customerEmail)
     if (emErr) return emErr
     for (let i = 0; i < childCount + infantCount; i++) {
-      const v = birthDates[i]?.trim() ?? ''
-      if (!v) return '아동·유아 생년월일을 모두 입력해 주세요.'
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return '생년월일은 YYYY-MM-DD 형식이어야 합니다.'
+      const parsed = parseBirthDateDigitsToYmd(birthDates[i] ?? '')
+      if (!parsed.ok) return parsed.message
     }
     const v = validateBookingIntake(buildPayload())
     if (!v.ok) return v.errors.join(' ')
@@ -246,7 +251,7 @@ export default function BookingIntakeModal({
         setSuccessMemoSnapshot(memoSnap)
         setCustomerNameKo('')
         setCustomerNameEn('')
-        setCustomerBirthDate('')
+        setCustomerBirthDateDigits('')
         setCustomerPhone('')
         setCustomerEmail('')
         setPrivacyAgreed(false)
@@ -448,20 +453,17 @@ export default function BookingIntakeModal({
                 />
                 <p className="mt-1 text-[11px] text-bt-subtle">여권 표기와 동일하게 영문·공백만 입력해 주세요.</p>
               </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="bin-birth" className="mb-1 block text-xs font-medium text-bt-muted">
-                  생년월일 (성인 대표) <span className="text-bt-danger">*</span>
-                </label>
-                <input
-                  id="bin-birth"
-                  name="customerBirthDate"
-                  type="date"
-                  value={customerBirthDate}
-                  onChange={(e) => setCustomerBirthDate(e.target.value)}
-                  className="w-full rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
-                  required
-                />
-              </div>
+              <BookingBirthDateField
+                id="bin-birth"
+                className="sm:col-span-2"
+                digits={customerBirthDateDigits}
+                onDigitsChange={setCustomerBirthDateDigits}
+                label={
+                  <label htmlFor="bin-birth" className="mb-1 block text-sm font-medium text-bt-muted">
+                    생년월일 (성인 대표) <span className="text-bt-danger">*</span>
+                  </label>
+                }
+              />
               <div>
                 <label htmlFor="bin-phone" className="mb-1 block text-xs font-medium text-bt-muted">
                   휴대폰 <span className="text-bt-danger">*</span>
@@ -507,38 +509,33 @@ export default function BookingIntakeModal({
 
             {childCount + infantCount > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-bt-body">아동·유아 생년월일 (YYYY-MM-DD)</p>
+                <p className="text-sm font-medium text-bt-body">아동·유아 생년월일</p>
+                <p className="text-[11px] text-bt-subtle">숫자 8자리 (예: 20150315)</p>
                 {Array.from({ length: childCount }).map((_, i) => (
-                  <div key={`c-${i}`}>
-                    <label className="text-xs text-bt-meta">아동 {i + 1}</label>
-                    <input
-                      type="date"
-                      value={birthDates[i] ?? ''}
-                      onChange={(e) => {
-                        const next = [...birthDates]
-                        next[i] = e.target.value
-                        setBirthDates(next)
-                      }}
-                      className="mt-0.5 w-full rounded border border-bt-border-strong bg-bt-surface px-2 py-1.5 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
-                      required
-                    />
-                  </div>
+                  <BookingBirthDateFieldCompact
+                    key={`c-${i}`}
+                    id={`booking-child-birth-${i}`}
+                    digits={birthDates[i] ?? ''}
+                    onDigitsChange={(digits) => {
+                      const next = [...birthDates]
+                      next[i] = digits
+                      setBirthDates(next)
+                    }}
+                    label={<label className="text-sm text-bt-meta">아동 {i + 1}</label>}
+                  />
                 ))}
                 {Array.from({ length: infantCount }).map((_, j) => (
-                  <div key={`i-${j}`}>
-                    <label className="text-xs text-bt-meta">유아 {j + 1}</label>
-                    <input
-                      type="date"
-                      value={birthDates[childCount + j] ?? ''}
-                      onChange={(e) => {
-                        const next = [...birthDates]
-                        next[childCount + j] = e.target.value
-                        setBirthDates(next)
-                      }}
-                      className="mt-0.5 w-full rounded border border-bt-border-strong bg-bt-surface px-2 py-1.5 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"
-                      required
-                    />
-                  </div>
+                  <BookingBirthDateFieldCompact
+                    key={`i-${j}`}
+                    id={`booking-infant-birth-${j}`}
+                    digits={birthDates[childCount + j] ?? ''}
+                    onDigitsChange={(digits) => {
+                      const next = [...birthDates]
+                      next[childCount + j] = digits
+                      setBirthDates(next)
+                    }}
+                    label={<label className="text-sm text-bt-meta">유아 {j + 1}</label>}
+                  />
                 ))}
               </div>
             )}
