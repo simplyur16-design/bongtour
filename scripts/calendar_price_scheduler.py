@@ -6,8 +6,8 @@
 환경변수(선택):
   SCRAPER_CALENDAR_RANGE_START, SCRAPER_CALENDAR_RANGE_END — YYYY-MM-DD 닫힌 구간 필터
   SCRAPER_BATCH_MODE — initial | maintenance (로그용)
-  SCRAPER_MAX_PRODUCTS_PER_RUN — 기본 30 (한 실행당 상품 수 상한)
-  SCRAPER_DAY_ROTATION_SLOTS — 기본 3 (KST 일자 기준 로테이션, API 목록 순서대로 3일에 나눠 처리)
+  SCRAPER_DAY_ROTATION_SLOTS — 기본 7 (KST 일자 기준 7일 로테이션, ceil(n/7) 동적 + 공급사 인터리브)
+  SCRAPER_MAX_PRODUCTS_PER_RUN — (레거시, 선택 로직 미사용)
 완료 시 stdout 마지막에 `BONGTOUR_BATCH_RESULT:{json}` 1줄 출력.
 """
 from __future__ import annotations
@@ -39,8 +39,7 @@ ADMIN_SECRET = os.getenv("ADMIN_BYPASS_SECRET", "")
 SCHEDULER_HOUR = int(os.getenv("SCHEDULER_HOUR", "12"))
 SCHEDULER_MINUTE = int(os.getenv("SCHEDULER_MINUTE", "30"))
 RANGE_START = (os.getenv("SCRAPER_CALENDAR_RANGE_START") or "").strip()[:10]
-MAX_PRODUCTS_PER_RUN = int(os.getenv("SCRAPER_MAX_PRODUCTS_PER_RUN", "30"))
-DAY_ROTATION_SLOTS = int(os.getenv("SCRAPER_DAY_ROTATION_SLOTS", "3"))
+DAY_ROTATION_SLOTS = int(os.getenv("SCRAPER_DAY_ROTATION_SLOTS", "7"))
 MAX_RETRIES_PER_PRODUCT = 3
 RANGE_END = (os.getenv("SCRAPER_CALENDAR_RANGE_END") or "").strip()[:10]
 BATCH_MODE = (os.getenv("SCRAPER_BATCH_MODE") or "").strip() or "daemon"
@@ -274,19 +273,54 @@ def _ordinal_kst_date() -> int:
     return datetime.now(kst).date().toordinal()
 
 
+_INTERLEAVE_SITE_ORDER: Tuple[str, ...] = (
+    "modetour",
+    "ybtour",
+    "hanatour",
+    "verygoodtour",
+    "lottetour",
+    "kyowontour",
+)
+
+
+def _interleave_products_by_site(products: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """site별 큐를 라운드로빈으로 합친다 (한 공급사 연속 집중 방지)."""
+    queues: Dict[str, List[Dict[str, Any]]] = {s: [] for s in _INTERLEAVE_SITE_ORDER}
+    other: List[Dict[str, Any]] = []
+    for p in products:
+        site = str(p.get("site") or "hanatour").strip().lower()
+        if site in queues:
+            queues[site].append(p)
+        else:
+            other.append(p)
+    merged: List[Dict[str, Any]] = []
+    idx = {s: 0 for s in _INTERLEAVE_SITE_ORDER}
+    while True:
+        advanced = False
+        for s in _INTERLEAVE_SITE_ORDER:
+            q = queues[s]
+            i = idx[s]
+            if i < len(q):
+                merged.append(q[i])
+                idx[s] = i + 1
+                advanced = True
+        if not advanced:
+            break
+    return merged + other
+
+
+def _kst_rotation_slot() -> int:
+    return _ordinal_kst_date() % DAY_ROTATION_SLOTS
+
+
 def _select_products_for_run(products: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """ScraperQueue 우선 순서 유지한 채, KST 기준 3일 로테이션으로 최대 30건만."""
-    n = len(products)
-    if n == 0:
+    """API 목록 → 전역 인터리브 → slot=i%7 당일 선정(고정) → 당일분만 재인터리브(실행 순서)."""
+    if not products:
         return []
-    if n <= MAX_PRODUCTS_PER_RUN:
-        return list(products)
-    slot = _ordinal_kst_date() % DAY_ROTATION_SLOTS
-    start = slot * MAX_PRODUCTS_PER_RUN
-    if start >= n:
-        start = 0
-    end = min(start + MAX_PRODUCTS_PER_RUN, n)
-    return products[start:end]
+    interleaved = _interleave_products_by_site(products)
+    slot = _kst_rotation_slot()
+    day_batch = [p for i, p in enumerate(interleaved) if i % DAY_ROTATION_SLOTS == slot]
+    return _interleave_products_by_site(day_batch)
 
 
 def _emit_batch_result(payload: Dict[str, Any]) -> None:
@@ -408,12 +442,16 @@ def run_batch() -> Dict[str, Any]:
         return out
 
     products = _select_products_for_run(all_products)
+    n_total = len(all_products)
+    daily_quota = (n_total + DAY_ROTATION_SLOTS - 1) // DAY_ROTATION_SLOTS if n_total else 0
+    slot = _kst_rotation_slot()
     logger.info(
-        "Batch slice: %d / %d total (max %d, KST day_slot=%s)",
+        "Batch slice: %d / %d total (ceil(n/7)≈%d, KST day_slot=%d/%d, interleave)",
         len(products),
-        len(all_products),
-        MAX_PRODUCTS_PER_RUN,
-        _ordinal_kst_date() % DAY_ROTATION_SLOTS,
+        n_total,
+        daily_quota,
+        slot,
+        DAY_ROTATION_SLOTS,
     )
 
     max_saved_ymd: List[str] = [""]
