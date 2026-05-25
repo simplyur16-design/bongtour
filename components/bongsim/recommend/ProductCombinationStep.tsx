@@ -11,21 +11,10 @@ import { bongsimPath, type BongsimRecommendCheckoutLine } from "@/lib/bongsim/co
 import {
   clearRecommendCheckoutDispatched,
   markRecommendCheckoutDispatched,
-  wasRecommendCheckoutDispatched,
   writeRecommendCheckoutQueue,
 } from "@/lib/bongsim/recommend/funnel-storage";
 import type { RecommendFunnelSnapshot } from "@/lib/bongsim/recommend/funnel-storage";
-import {
-  computeRecommendedPrice,
-  extractDaysFromDaysRaw,
-  formatKrw,
-  isTrueUnlimited,
-  type ProductOption,
-} from "@/lib/bongsim/recommend/product-option";
-import {
-  planNameMatchesSuggestion,
-  suggestMultiPlanNamesForSelection,
-} from "@/lib/bongsim/recommend/multi-country-suggest";
+import { isTrueUnlimited, type ProductOption } from "@/lib/bongsim/recommend/product-option";
 import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-ranges";
 
 const HERO_IMAGE_SIZES = "(max-width:1023px) 100vw, 55vw";
@@ -47,45 +36,6 @@ function flagCdnUrl(code: string): string {
 
 function flagCdnBlurBg(code: string): string {
   return flagCdnUrl(code);
-}
-
-function unitPriceKrw(p: ProductOption): number | null {
-  if (typeof p.recommended_price === "number" && Number.isFinite(p.recommended_price)) {
-    return p.recommended_price;
-  }
-  return computeRecommendedPrice(p.price_block);
-}
-
-/** 로밍·로컬 구분 없이 해당 국가 패키지 전체 상품 중 소비자가 최저 1개 */
-function overallMinUnitPriceKrw(pack: CountryProductPack): number | null {
-  let min: number | null = null;
-  for (const p of pack.roaming.products) {
-    const u = unitPriceKrw(p);
-    if (u != null && u > 0 && Number.isFinite(u)) {
-      if (min == null || u < min) min = u;
-    }
-  }
-  if (pack.local) {
-    for (const p of pack.local.products) {
-      const u = unitPriceKrw(p);
-      if (u != null && u > 0 && Number.isFinite(u)) {
-        if (min == null || u < min) min = u;
-      }
-    }
-  }
-  return min;
-}
-
-function multiPlanDisplayNameKr(planName: string): string {
-  return planName.trim();
-}
-
-function formatDaysRawKr(daysRaw: string): string {
-  const n = extractDaysFromDaysRaw(daysRaw);
-  if (n != null) return `${n}일`;
-  const m = String(daysRaw).match(/(\d+)\s*days?/i);
-  if (m) return `${m[1]}일`;
-  return daysRaw.trim() || "—";
 }
 
 function planTypeLabelKr(planType: string | null | undefined): string {
@@ -139,6 +89,8 @@ type OpenPlanByCode = Record<
   string,
   { tripDays: number; start: Date; end: Date }
 >;
+
+const MULTI_PLAN_KEY = "__multi__";
 
 export type CountryPlanSelection = { product: ProductOption; quantity: number };
 
@@ -282,6 +234,11 @@ export function ProductCombinationStep({
   const [countryDateRanges, setCountryDateRanges] = useState<CountryDateRange[]>([]);
   const [flow, setFlow] = useState<FlowState | null>(null);
   const [openPlanByCode, setOpenPlanByCode] = useState<OpenPlanByCode>({});
+  /** 2-2a 임시 — 체크아웃·completed 미연동 */
+  const [multiPlanDraft, setMultiPlanDraft] = useState<{
+    product: ProductOption;
+    quantity: number;
+  } | null>(null);
   const [tripResume, setTripResume] = useState<{ start: Date; end: Date } | null>(null);
   const redirectRef = useRef(false);
   const storedDoneParentSyncReady = useRef(false);
@@ -335,40 +292,28 @@ export function ProductCombinationStep({
     return names.join(", ");
   }, [selectedCodes, countryByCode]);
 
-  const suggestedPlanHints = useMemo(() => suggestMultiPlanNamesForSelection(selectedCodes), [selectedCodes]);
+  const allRangesComplete = useMemo(
+    () =>
+      selectedCodes.length >= 2 &&
+      selectedCodes.every((c) => countryDateRanges.some((r) => r.code === c)),
+    [selectedCodes, countryDateRanges],
+  );
 
-  const suggestedMultiProducts = useMemo(() => {
-    if (selectedCodes.length < 2) return [];
-    const multi = data?.multi ?? [];
-    const hinted = suggestedPlanHints.length
-      ? multi.filter((p) => planNameMatchesSuggestion(p.plan_name, suggestedPlanHints))
-      : [];
-    const list = hinted.length > 0 ? hinted : multi;
-    return [...list].sort((a, b) => (unitPriceKrw(a) ?? 1e15) - (unitPriceKrw(b) ?? 1e15));
-  }, [data, selectedCodes, suggestedPlanHints]);
-
-  const estimateTripDays = useMemo(() => {
-    let m = 7;
-    for (const r of countryDateRanges) {
-      const ms = r.end.getTime() - r.start.getTime();
-      const days = Math.max(1, Math.ceil(ms / 86400000) + 1);
-      m = Math.max(m, days);
-    }
-    return m;
-  }, [countryDateRanges]);
-
-  const individualEstimateTotalKrw = useMemo(() => {
-    if (!data || selectedCodes.length < 2) return 0;
-    let sum = 0;
+  const combinedTripSpan = useMemo(() => {
+    if (!allRangesComplete) return null;
+    let minStart: Date | null = null;
+    let maxEnd: Date | null = null;
     for (const code of selectedCodes) {
-      const pack = data.individual[code];
-      if (!pack) continue;
-      const u = overallMinUnitPriceKrw(pack);
-      if (u == null || u <= 0) continue;
-      sum += u * estimateTripDays;
+      const r = countryDateRanges.find((x) => x.code === code);
+      if (!r) return null;
+      if (minStart == null || r.start.getTime() < minStart.getTime()) minStart = r.start;
+      if (maxEnd == null || r.end.getTime() > maxEnd.getTime()) maxEnd = r.end;
     }
-    return sum;
-  }, [data, selectedCodes, estimateTripDays]);
+    if (!minStart || !maxEnd) return null;
+    const ms = maxEnd.getTime() - minStart.getTime();
+    const combinedTripDays = Math.max(1, Math.ceil(ms / 86400000) + 1);
+    return { minStart, maxEnd, combinedTripDays };
+  }, [allRangesComplete, selectedCodes, countryDateRanges]);
 
   const isCountryDone = (code: string) => Boolean(completed[code] || storedDone[code]);
 
@@ -422,6 +367,26 @@ export function ProductCombinationStep({
     setTripResume(null);
   };
 
+  const openMultiPlan = () => {
+    if (!combinedTripSpan) return;
+    setOpenPlanByCode((prev) => ({
+      ...prev,
+      [MULTI_PLAN_KEY]: {
+        tripDays: combinedTripSpan.combinedTripDays,
+        start: combinedTripSpan.minStart,
+        end: combinedTripSpan.maxEnd,
+      },
+    }));
+  };
+
+  const closeMultiPlan = () => {
+    setOpenPlanByCode((prev) => {
+      const next = { ...prev };
+      delete next[MULTI_PLAN_KEY];
+      return next;
+    });
+  };
+
   const reopenDurationForPlan = (code: string) => {
     const ctx = openPlanByCode[code];
     setOpenPlanByCode((prev) => {
@@ -444,11 +409,6 @@ export function ProductCombinationStep({
     [selectedCodes, completed, storedDone],
   );
 
-  const checkoutAlreadyDispatched = useMemo(
-    () => checkoutQueue.length > 0 && wasRecommendCheckoutDispatched(checkoutQueue),
-    [checkoutQueue],
-  );
-
   const goToCheckout = () => {
     if (checkoutQueue.length === 0) return;
     const payload = { ...completed };
@@ -465,28 +425,6 @@ export function ProductCombinationStep({
     }
     router.push(checkoutPath);
   };
-
-  useEffect(() => {
-    if (!allDone) {
-      redirectRef.current = false;
-      return;
-    }
-    if (redirectRef.current) return;
-    if (checkoutPaused) return;
-    if (checkoutAlreadyDispatched) return;
-    if (sessionStatus === "loading") return;
-    if (checkoutQueue.length === 0) return;
-    goToCheckout();
-  }, [
-    allDone,
-    checkoutAlreadyDispatched,
-    checkoutPaused,
-    checkoutQueue,
-    completed,
-    onNext,
-    router,
-    sessionStatus,
-  ]);
 
   const shell = (inner: ReactNode) => (
     <div className="mx-auto w-full max-w-none px-0 sm:px-4 lg:max-w-5xl lg:px-6">{inner}</div>
@@ -679,7 +617,7 @@ export function ProductCombinationStep({
                 ) : null}
 
                 {done ? (
-                  <div className="bg-white px-4 py-4 sm:px-5 sm:py-5 lg:flex lg:flex-1 lg:items-center lg:border-l lg:border-slate-100 lg:px-8 lg:py-6">
+                  <div className="bg-white px-4 py-4 text-slate-900 sm:px-5 sm:py-5 lg:flex lg:flex-1 lg:items-center lg:border-l lg:border-slate-100 lg:px-8 lg:py-6">
                     <div className="flex w-full items-start gap-2.5 rounded-xl bg-blue-50 px-4 py-3.5 sm:px-5 sm:py-4 lg:px-6 lg:py-5">
                       <svg
                         className="mt-0.5 h-5 w-5 shrink-0 text-blue-500 lg:h-6 lg:w-6"
@@ -693,7 +631,11 @@ export function ProductCombinationStep({
                           clipRule="evenodd"
                         />
                       </svg>
-                      <span className="text-sm font-medium text-blue-700 sm:text-base lg:text-lg" title={summaryLine}>
+                      <span
+                        className="text-sm font-medium !text-slate-900 sm:text-base lg:text-lg"
+                        style={{ color: "#1F1B2D" }}
+                        title={summaryLine}
+                      >
                         {summaryLine}
                       </span>
                     </div>
@@ -707,7 +649,7 @@ export function ProductCombinationStep({
                   open
                   countryName={country?.nameKr ?? code.toUpperCase()}
                   countryCode={code}
-                  allSelectedCodes={selectedCodes}
+                  allSelectedCodes={[code]}
                   tripDays={planCtx.tripDays}
                   onBack={() => reopenDurationForPlan(code)}
                   onComplete={(product, quantity) => completeCountryPlan(code, product, quantity)}
@@ -718,99 +660,133 @@ export function ProductCombinationStep({
         })}
       </div>
 
-      {allDone && (checkoutPaused || checkoutAlreadyDispatched) ? (
-        <div className="mt-6 px-4 sm:px-0">
-          <div className="rounded-2xl border border-teal-200 bg-teal-50/90 p-4 text-center shadow-sm sm:p-5">
-            <p className="text-sm font-semibold text-teal-950 sm:text-base">선택이 완료되었습니다</p>
-            <p className="mt-1.5 text-xs leading-relaxed text-teal-900/90 sm:text-sm">
-              주문·결제 화면으로 이동하거나, 카드를 눌러 플랜을 다시 고를 수 있어요.
-            </p>
-            <button
-              type="button"
-              onClick={() => goToCheckout()}
-              className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-teal-700 px-6 text-base font-bold text-white shadow-md transition hover:bg-teal-800"
-            >
-              주문·결제로 이동
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {selectedCodes.length >= 2 ? (
         <section className="mt-10 border-t border-gray-200 px-4 pt-8 sm:px-0 lg:mt-12 lg:pt-10">
           <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 lg:px-5 lg:py-4 lg:text-base">
             <span className="font-semibold">💡 다국가 플랜이 더 저렴할 수 있어요!</span>
             <p className="mt-1 text-xs leading-relaxed text-blue-800/90 lg:text-sm">
-              선택하신 국가 조합에 맞는 다국가 요금제를 함께 비교해 보세요. (여행 일수는 아래 추정치로 합산합니다 — 기간을
-              입력하면 자동 반영됩니다.)
+              각 국가 카드에서 여행 기간을 모두 선택하면, 아래 다국가 카드에서 합산 일수에 맞는 요금제를 고를 수 있어요.
             </p>
           </div>
 
-          <h3 className="mb-3 mt-6 text-base font-bold text-gray-800 lg:mb-4 lg:mt-8 lg:text-lg">다국가 플랜 비교</h3>
+          <h3 className="mb-3 mt-6 text-base font-bold text-gray-800 lg:mb-4 lg:mt-8 lg:text-lg">다국가 플랜</h3>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm lg:p-5 lg:text-base">
-            <p>
-              <span className="font-medium text-slate-900">추정 여행 일수</span>{" "}
-              <span className="font-mono text-teal-700">{estimateTripDays}일</span>
-            </p>
-            <p className="mt-2">
-              <span className="font-medium text-slate-900">개별 선택 합계(추정)</span>{" "}
-              <span className="font-semibold text-slate-900">{formatKrw(individualEstimateTotalKrw)}</span>
-              <span className="text-xs text-slate-500"> · 각 국가 요금제 확정 후 비교용 참고치</span>
-            </p>
-          </div>
-
-          {suggestedMultiProducts.length === 0 ? (
-            <p className="mt-4 text-sm text-gray-500">이 조합을 모두 커버하는 다국가 상품이 없습니다.</p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {suggestedMultiProducts.map((p) => {
-                const unit = unitPriceKrw(p);
-                const multiTotal = unit != null && unit > 0 ? unit * estimateTripDays : null;
-                const diff =
-                  multiTotal != null && individualEstimateTotalKrw > 0
-                    ? individualEstimateTotalKrw - multiTotal
-                    : null;
-                return (
-                  <li
-                    key={p.option_api_id}
-                    className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm lg:p-5"
-                  >
-                    <p className="text-base font-bold text-gray-900 lg:text-lg">{multiPlanDisplayNameKr(p.plan_name)}</p>
-                    <p className="mt-1 text-sm text-gray-500 lg:text-base">
-                      {formatDaysRawKr(p.days_raw)} / {planTypeLabelKr(p.plan_type)} · {networkFamilyLabelKr(p.network_family)}
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      {unit != null ? (
-                        <span className="text-sm text-gray-600">
-                          1일 <span className="font-semibold text-gray-900">{formatKrw(unit)}</span>
-                        </span>
-                      ) : null}
-                      {multiTotal != null ? (
-                        <span className="text-sm text-gray-600">
-                          {estimateTripDays}일 합계{" "}
-                          <span className="bt-bongsim-plan-price text-lg font-semibold !text-slate-900 lg:text-xl">
-                            {formatKrw(multiTotal)}
+          {(() => {
+            const multiPlanCtx = openPlanByCode[MULTI_PLAN_KEY];
+            const multiPlanOpen = Boolean(multiPlanCtx);
+            return (
+              <>
+                <div
+                  className={`w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg transition ${
+                    allRangesComplete
+                      ? multiPlanOpen
+                        ? "cursor-pointer rounded-b-none border-b-0 hover:ring-2 hover:ring-teal-300/60"
+                        : "cursor-pointer hover:ring-2 hover:ring-teal-300/60"
+                      : "cursor-not-allowed opacity-75"
+                  }`}
+                  role={allRangesComplete ? "button" : undefined}
+                  tabIndex={allRangesComplete ? 0 : -1}
+                  aria-disabled={!allRangesComplete}
+                  onClick={allRangesComplete ? openMultiPlan : undefined}
+                  onKeyDown={
+                    allRangesComplete
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            openMultiPlan();
+                          }
+                        }
+                      : undefined
+                  }
+                >
+                  <div className="flex flex-wrap items-center gap-3 px-4 py-4 sm:gap-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
+                    {selectedCodes.map((code) => {
+                      const country = countryByCode[code];
+                      return (
+                        <div key={code} className="flex items-center gap-2">
+                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-slate-100">
+                            <SafeImage
+                              src={flagCdnUrl(code)}
+                              alt=""
+                              width={40}
+                              height={40}
+                              quality={90}
+                              className="h-full w-full object-cover"
+                              sizes="40px"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+                          <span className="text-sm font-semibold text-slate-900 sm:text-base">
+                            {country?.nameKr ?? code.toUpperCase()}
                           </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="border-t border-slate-100 px-4 py-3 sm:px-5 sm:py-4 lg:px-6">
+                    {!allRangesComplete ? (
+                      <p className="text-center text-sm font-medium text-slate-600 sm:text-base">
+                        각 국가의 기간을 먼저 선택해 주세요
+                      </p>
+                    ) : combinedTripSpan ? (
+                      <p className="text-center text-sm text-slate-700 sm:text-base">
+                        <span className="font-medium text-slate-900">합산 여행</span>{" "}
+                        <span className="font-mono font-semibold text-teal-700">
+                          {formatShortRange(combinedTripSpan.minStart, combinedTripSpan.maxEnd)}
                         </span>
-                      ) : null}
-                    </div>
-                    {diff != null && multiTotal != null ? (
-                      <p className={`mt-2 text-xs font-medium lg:text-sm ${diff > 0 ? "text-teal-700" : "text-amber-700"}`}>
-                        {diff > 0
-                          ? `개별 합계 대비 약 ${formatKrw(diff)} 절감(추정)`
-                          : diff < 0
-                            ? `개별 합계보다 약 ${formatKrw(-diff)} 높음(추정)`
-                            : "개별 합계와 유사(추정)"}
+                        <span className="text-slate-500"> · </span>
+                        <span className="font-semibold text-slate-900">{combinedTripSpan.combinedTripDays}일</span>
+                        <span className="mt-1 block text-xs text-slate-500 sm:text-sm">
+                          카드를 눌러 다국가 요금제를 선택하세요
+                        </span>
                       </p>
                     ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                    {multiPlanDraft ? (
+                      <p className="mt-2 text-center text-xs font-medium text-teal-800 sm:text-sm">
+                        선택(임시): {multiPlanDraft.product.plan_name.trim()} ·{" "}
+                        {allowanceLabelForSummary(multiPlanDraft.product)} ×{multiPlanDraft.quantity}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                {multiPlanCtx ? (
+                  <PlanSelectPopup
+                    inline
+                    open
+                    countryName="다국가 플랜"
+                    countryCode={selectedCodes[0]!}
+                    allSelectedCodes={selectedCodes}
+                    tripDays={multiPlanCtx.tripDays}
+                    onBack={closeMultiPlan}
+                    onComplete={(product, quantity) => {
+                      setMultiPlanDraft({ product, quantity });
+                      closeMultiPlan();
+                    }}
+                  />
+                ) : null}
+              </>
+            );
+          })()}
         </section>
       ) : null}
+
+      <div className="mt-8 px-4 sm:mt-10 sm:px-0">
+        {allDone && checkoutQueue.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => goToCheckout()}
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-teal-700 px-6 text-base font-bold text-white shadow-md transition hover:bg-teal-800"
+          >
+            결제하기
+          </button>
+        ) : (
+          <p className="text-center text-sm font-medium text-slate-600 sm:text-base">
+            모든 국가의 플랜을 선택해 주세요
+          </p>
+        )}
+      </div>
 
       <DurationPopup
         open={flow?.kind === "duration"}
