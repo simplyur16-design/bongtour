@@ -1,9 +1,20 @@
 import type { BongsimOrderV1 } from "@/lib/bongsim/contracts/order.v1";
 
-export type BongsimCheckoutConfirmRequestV1 = {
-  schema: "bongsim.checkout_confirm.request.v1";
+export type BongsimCheckoutConfirmLineV1 = {
   option_api_id: string;
   quantity: number;
+};
+
+export type BongsimCheckoutConfirmRequestV1 = {
+  schema: "bongsim.checkout_confirm.request.v1";
+  /**
+   * 하위호환 단일 SKU. `lines`가 없을 때만 사용.
+   * 서버 정규화: `lines`가 있으면 `lines`만 사용(단일 필드 무시). 없으면 `[{ option_api_id, quantity }]`로 변환.
+   */
+  option_api_id?: string;
+  quantity?: number;
+  /** 다상품 라인. 있으면 이 배열만 사용. */
+  lines?: BongsimCheckoutConfirmLineV1[];
   buyer_email: string;
   /** 알림톡·PG 모바일 결제용 (010…) */
   buyer_phone: string;

@@ -1,6 +1,10 @@
 import type { PoolClient } from "pg";
 import type { BongsimCouponDbRow } from "@/lib/bongsim/data/bongsim-coupon";
-import { bongsimCheckoutSubtotalKrw, computeBongsimCouponDiscountKrw } from "@/lib/bongsim/data/bongsim-coupon";
+import {
+  bongsimCheckoutSubtotalKrw,
+  computeBongsimCouponDiscountKrw,
+  type BongsimCheckoutSubtotalLine,
+} from "@/lib/bongsim/data/bongsim-coupon";
 import { computeExpiresAt, getTemplateBySlot, type IssuanceSlot } from "@/lib/coupon/issuance-helpers";
 
 export type IssueUserCouponParams = {
@@ -236,10 +240,15 @@ export async function validateUserCoupon(
 
 export async function validateUserCouponForOrderInsert(
   client: Pick<PoolClient, "query">,
-  input: { user_coupon_id: string; user_id: string; client_discount_krw: number; option_api_id: string; quantity: number },
+  input: {
+    user_coupon_id: string;
+    user_id: string;
+    client_discount_krw: number;
+    lines: BongsimCheckoutSubtotalLine[];
+  },
   now = new Date(),
 ): Promise<{ ok: true; discount_krw: number } | { ok: false; error: string }> {
-  const st = await bongsimCheckoutSubtotalKrw(client, input.option_api_id, input.quantity);
+  const st = await bongsimCheckoutSubtotalKrw(client, input.lines);
   if (!st.ok) return st;
   const v = await validateUserCoupon(client, input.user_coupon_id, input.user_id, st.subtotal_krw, now);
   if (!v.ok) return v;

@@ -1,8 +1,11 @@
 import type { PoolClient } from "pg";
 import { isReservedTemplateCode } from "@/lib/coupon/reserved-template-code";
+import type { BongsimCheckoutConfirmLineV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import type { BongsimProductOptionDbRow } from "@/lib/bongsim/data/bongsim-product-option-db-row";
 import { mapDbRowToProductOptionV1 } from "@/lib/bongsim/data/map-row-to-product-option-v1";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
+
+export type BongsimCheckoutSubtotalLine = BongsimCheckoutConfirmLineV1;
 
 export type BongsimCouponDbRow = {
   coupon_id: string;
@@ -24,22 +27,52 @@ function toInt(v: string | number | null | undefined): number {
   return typeof v === "string" ? Number.parseInt(v, 10) : Math.trunc(Number(v));
 }
 
-/** 소비자가 기준 소계(라인 합계). */
+type CheckoutSubtotalResult = { ok: true; subtotal_krw: number } | { ok: false; error: string };
+
+/** 소비자가 기준 소계 — 주문 라인 전체 합(Σ unit×qty). */
+export async function bongsimCheckoutSubtotalKrw(
+  client: Pick<PoolClient, "query">,
+  lines: BongsimCheckoutSubtotalLine[],
+): Promise<CheckoutSubtotalResult>;
+/** 하위호환: 단일 SKU → 1건 라인과 동일. */
 export async function bongsimCheckoutSubtotalKrw(
   client: Pick<PoolClient, "query">,
   option_api_id: string,
   quantity: number,
-): Promise<{ ok: true; subtotal_krw: number } | { ok: false; error: string }> {
+): Promise<CheckoutSubtotalResult>;
+export async function bongsimCheckoutSubtotalKrw(
+  client: Pick<PoolClient, "query">,
+  linesOrOptionId: BongsimCheckoutSubtotalLine[] | string,
+  quantity?: number,
+): Promise<CheckoutSubtotalResult> {
+  const lines: BongsimCheckoutSubtotalLine[] =
+    typeof linesOrOptionId === "string"
+      ? [{ option_api_id: linesOrOptionId.trim(), quantity: Math.trunc(quantity ?? 1) }]
+      : linesOrOptionId;
+  if (!lines.length) return { ok: false, error: "주문 상품이 없습니다." };
+
+  const ids = lines.map((l) => l.option_api_id.trim()).filter(Boolean);
+  if (ids.length !== lines.length) return { ok: false, error: "상품을 찾을 수 없습니다." };
+
   const pr = await client.query<BongsimProductOptionDbRow>(
-    `SELECT * FROM bongsim_product_option WHERE option_api_id = $1 LIMIT 1`,
-    [option_api_id],
+    `SELECT * FROM bongsim_product_option WHERE option_api_id = ANY($1::text[])`,
+    [ids],
   );
-  if (!pr.rows[0]) return { ok: false, error: "상품을 찾을 수 없습니다." };
-  const opt = mapDbRowToProductOptionV1(pr.rows[0]);
-  const { unit_krw } = selectChargedUnitPriceKrw(opt.price_block);
-  if (!Number.isFinite(unit_krw) || unit_krw <= 0) return { ok: false, error: "상품 가격을 확인할 수 없습니다." };
-  const q = Math.trunc(quantity);
-  return { ok: true, subtotal_krw: unit_krw * q };
+  const byId = new Map<string, BongsimProductOptionDbRow>();
+  for (const row of pr.rows) byId.set(row.option_api_id, row);
+
+  let subtotal = 0;
+  for (const line of lines) {
+    const row = byId.get(line.option_api_id.trim());
+    if (!row) return { ok: false, error: "상품을 찾을 수 없습니다." };
+    const opt = mapDbRowToProductOptionV1(row);
+    const { unit_krw } = selectChargedUnitPriceKrw(opt.price_block);
+    if (!Number.isFinite(unit_krw) || unit_krw <= 0) return { ok: false, error: "상품 가격을 확인할 수 없습니다." };
+    const q = Math.trunc(line.quantity);
+    if (!Number.isInteger(q) || q < 1) return { ok: false, error: "수량이 올바르지 않습니다." };
+    subtotal += unit_krw * q;
+  }
+  return { ok: true, subtotal_krw: subtotal };
 }
 
 export function computeBongsimCouponDiscountKrw(subtotalKrw: number, row: BongsimCouponDbRow): number {
@@ -168,8 +201,7 @@ export async function assertBongsimCouponForOrderInsert(
   input: {
     coupon_id: string;
     client_discount_krw: number;
-    option_api_id: string;
-    quantity: number;
+    lines: BongsimCheckoutSubtotalLine[];
   },
   now = new Date(),
 ): Promise<
@@ -183,7 +215,7 @@ export async function assertBongsimCouponForOrderInsert(
   if (!t.ok) return t;
   const u = usageOk(row);
   if (!u.ok) return u;
-  const st = await bongsimCheckoutSubtotalKrw(client, input.option_api_id, input.quantity);
+  const st = await bongsimCheckoutSubtotalKrw(client, input.lines);
   if (!st.ok) return st;
   const m = minOrderOk(st.subtotal_krw, row);
   if (!m.ok) return m;

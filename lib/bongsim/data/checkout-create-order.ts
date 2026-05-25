@@ -1,6 +1,9 @@
 import { randomBytes } from "node:crypto";
 import type { PoolClient } from "pg";
-import type { BongsimCheckoutConfirmRequestV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
+import type {
+  BongsimCheckoutConfirmLineV1,
+  BongsimCheckoutConfirmRequestV1,
+} from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import type { BongsimOrderLineSnapshotV1, BongsimOrderV1 } from "@/lib/bongsim/contracts/order.v1";
 import type { BongsimProductOptionV1 } from "@/lib/bongsim/contracts/product-master.v1";
 import { getPgPool } from "@/lib/bongsim/db/pool";
@@ -19,6 +22,23 @@ import { isValidBuyerPhoneInput, normalizeBuyerPhone } from "@/lib/bongsim/phone
 import { BONGSIM_CATALOG_ACTIVE_WHERE, isEsimCapableSimKind } from "@/lib/bongsim/catalog/active-product-sql";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
+
+/** 체크아웃 confirm 다상품 라인 상한. */
+const MAX_CHECKOUT_LINES = 10;
+
+/** validateRequest 이후 항상 `lines`가 채워진 요청. */
+type NormalizedCheckoutConfirmRequest = BongsimCheckoutConfirmRequestV1 & {
+  lines: BongsimCheckoutConfirmLineV1[];
+};
+
+type PreparedCheckoutLine = {
+  option_api_id: string;
+  quantity: number;
+  unit_krw: number;
+  line_total: number;
+  basis_key: string;
+  snapshot: BongsimOrderLineSnapshotV1;
+};
 
 export type CheckoutCreateOrderResult =
   | { ok: true; order: BongsimOrderV1["order"]; reused: boolean }
@@ -282,25 +302,161 @@ function mapOrderRow(order: OrderRow, lines: BongsimOrderV1["order"]["lines"]): 
   };
 }
 
-function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirmRequestV1 } | { ok: false; details: Record<string, string> } {
+function parseLineQuantity(raw: unknown): number {
+  if (typeof raw === "number") return raw;
+  if (typeof raw === "string") return Number.parseInt(raw, 10);
+  return Number.NaN;
+}
+
+/** `lines` 우선, 없으면 단일 `option_api_id`+`quantity` → 1건 배열. */
+function normalizeCheckoutLines(
+  o: Record<string, unknown>,
+  details: Record<string, string>,
+): BongsimCheckoutConfirmLineV1[] | null {
+  const rawLines = o.lines;
+  if (rawLines !== undefined && rawLines !== null) {
+    if (!Array.isArray(rawLines)) {
+      details.lines = "must_be_array";
+      return null;
+    }
+    if (rawLines.length === 0) {
+      details.lines = "must_not_be_empty";
+      return null;
+    }
+    if (rawLines.length > MAX_CHECKOUT_LINES) {
+      details.lines = `max_${MAX_CHECKOUT_LINES}`;
+      return null;
+    }
+    const out: BongsimCheckoutConfirmLineV1[] = [];
+    const seen = new Set<string>();
+    for (let i = 0; i < rawLines.length; i++) {
+      const row = rawLines[i];
+      if (!row || typeof row !== "object") {
+        details[`lines[${i}]`] = "invalid_line";
+        return null;
+      }
+      const line = row as Record<string, unknown>;
+      const option_api_id = typeof line.option_api_id === "string" ? line.option_api_id.trim() : "";
+      const quantity = parseLineQuantity(line.quantity);
+      if (!option_api_id) {
+        details[`lines[${i}].option_api_id`] = "required";
+        return null;
+      }
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        details[`lines[${i}].quantity`] = "must_be_integer_gte_1";
+        return null;
+      }
+      if (quantity > 99) {
+        details[`lines[${i}].quantity`] = "max_99";
+        return null;
+      }
+      if (seen.has(option_api_id)) {
+        details.lines = "duplicate_option_api_id";
+        return null;
+      }
+      seen.add(option_api_id);
+      out.push({ option_api_id, quantity });
+    }
+    return out;
+  }
+
+  const option_api_id = typeof o.option_api_id === "string" ? o.option_api_id.trim() : "";
+  const quantity = parseLineQuantity(o.quantity);
+  if (!option_api_id) {
+    details.lines = "required";
+    details.option_api_id = "required";
+    return null;
+  }
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    details.quantity = "must_be_integer_gte_1";
+    return null;
+  }
+  if (quantity > 99) {
+    details.quantity = "max_99";
+    return null;
+  }
+  return [{ option_api_id, quantity }];
+}
+
+function sortLinesForMatch(lines: BongsimCheckoutConfirmLineV1[]): BongsimCheckoutConfirmLineV1[] {
+  return [...lines].sort((a, b) => a.option_api_id.localeCompare(b.option_api_id));
+}
+
+function orderLinesMatchRequest(
+  orderLines: BongsimOrderV1["order"]["lines"],
+  reqLines: BongsimCheckoutConfirmLineV1[],
+): boolean {
+  if (orderLines.length !== reqLines.length) return false;
+  const sortedReq = sortLinesForMatch(reqLines);
+  const sortedOrder = [...orderLines].sort((a, b) => a.option_api_id.localeCompare(b.option_api_id));
+  for (let i = 0; i < sortedReq.length; i++) {
+    if (sortedReq[i]!.option_api_id !== sortedOrder[i]!.option_api_id) return false;
+    if (sortedReq[i]!.quantity !== sortedOrder[i]!.quantity) return false;
+  }
+  return true;
+}
+
+async function prepareCheckoutLines(
+  client: PoolClient,
+  lines: BongsimCheckoutConfirmLineV1[],
+): Promise<
+  | { ok: true; prepared: PreparedCheckoutLine[] }
+  | { ok: false; reason: "product_not_found" | "validation"; details?: Record<string, string> }
+> {
+  const ids = lines.map((l) => l.option_api_id);
+  const pr = await client.query<BongsimProductOptionDbRow>(
+    `SELECT * FROM bongsim_product_option WHERE option_api_id = ANY($1::text[]) AND ${BONGSIM_CATALOG_ACTIVE_WHERE} FOR SHARE`,
+    [ids],
+  );
+  const byId = new Map<string, BongsimProductOptionDbRow>();
+  for (const row of pr.rows) byId.set(row.option_api_id, row);
+
+  const prepared: PreparedCheckoutLine[] = [];
+  for (const line of lines) {
+    const row = byId.get(line.option_api_id);
+    if (!row) return { ok: false, reason: "product_not_found" };
+    const opt = mapDbRowToProductOptionV1(row);
+    if (!isEsimCapableSimKind(opt.sim_kind)) {
+      return {
+        ok: false,
+        reason: "validation",
+        details: {
+          product:
+            "이 상품은 eSIM 발급이 지원되지 않습니다. uSIM 전용 상품은 eSIM 주문으로 구매할 수 없습니다.",
+        },
+      };
+    }
+    const { basis_key, unit_krw } = selectChargedUnitPriceKrw(opt.price_block);
+    const line_total = unit_krw * line.quantity;
+    prepared.push({
+      option_api_id: line.option_api_id,
+      quantity: line.quantity,
+      unit_krw,
+      line_total,
+      basis_key,
+      snapshot: buildLineSnapshot(opt, basis_key, unit_krw),
+    });
+  }
+  return { ok: true, prepared };
+}
+
+function validateRequest(
+  body: unknown,
+): { ok: true; req: NormalizedCheckoutConfirmRequest } | { ok: false; details: Record<string, string> } {
   if (!body || typeof body !== "object") return { ok: false, details: { body: "invalid_json" } };
   const o = body as Record<string, unknown>;
   if (Array.isArray(o.coupon_id) || Array.isArray(o.user_coupon_id)) {
     return { ok: false, details: { coupon: "must_be_scalar" } };
   }
-  const option_api_id = typeof o.option_api_id === "string" ? o.option_api_id.trim() : "";
   const buyer_email = typeof o.buyer_email === "string" ? o.buyer_email.trim() : "";
   const buyer_phone_raw = typeof o.buyer_phone === "string" ? o.buyer_phone.trim() : "";
   const idempotency_key = typeof o.idempotency_key === "string" ? o.idempotency_key.trim() : "";
-  const qRaw = o.quantity;
-  const quantity =
-    typeof qRaw === "number"
-      ? qRaw
-      : typeof qRaw === "string"
-        ? Number.parseInt(qRaw, 10)
-        : Number.NaN;
   const details: Record<string, string> = {};
-  if (!option_api_id) details.option_api_id = "required";
+  const normalizedLines = normalizeCheckoutLines(o, details);
+  if (!normalizedLines) {
+    if (!Object.keys(details).length) details.lines = "required";
+    return { ok: false, details };
+  }
   if (!buyer_email) {
     details.buyer_email = "required";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyer_email)) {
@@ -312,11 +468,6 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
     details.buyer_phone = "invalid_phone";
   }
   if (!idempotency_key) details.idempotency_key = "required";
-  if (!Number.isInteger(quantity) || quantity < 1) {
-    details.quantity = "must_be_integer_gte_1";
-  } else if (quantity > 99) {
-    details.quantity = "max_99";
-  }
   const coupon_id_raw = typeof o.coupon_id === "string" ? o.coupon_id.trim() : "";
   const user_coupon_id_raw = typeof o.user_coupon_id === "string" ? o.user_coupon_id.trim() : "";
   const bongtour_user_id_raw = typeof o.bongtour_user_id === "string" ? o.bongtour_user_id.trim() : "";
@@ -359,10 +510,12 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
   const locale = o.buyer_locale;
   const buyer_locale = locale === "ko" || locale === "en" ? locale : undefined;
   const attr = parsePublicAttributionFromBody(o);
-  const req: BongsimCheckoutConfirmRequestV1 = {
+  const first = normalizedLines[0]!;
+  const req: NormalizedCheckoutConfirmRequest = {
     schema: "bongsim.checkout_confirm.request.v1",
-    option_api_id,
-    quantity,
+    lines: normalizedLines,
+    option_api_id: first.option_api_id,
+    quantity: first.quantity,
     buyer_email: normEmail(buyer_email),
     buyer_phone: normalizeBuyerPhone(buyer_phone_raw)!,
     buyer_locale,
@@ -391,11 +544,8 @@ function validateRequest(body: unknown): { ok: true; req: BongsimCheckoutConfirm
   return { ok: true, req };
 }
 
-function assertIdempotentMatch(order: BongsimOrderV1["order"], req: BongsimCheckoutConfirmRequestV1): boolean {
-  const line = order.lines[0];
-  if (!line) return false;
-  if (line.option_api_id !== req.option_api_id) return false;
-  if (line.quantity !== req.quantity) return false;
+function assertIdempotentMatch(order: BongsimOrderV1["order"], req: NormalizedCheckoutConfirmRequest): boolean {
+  if (!orderLinesMatchRequest(order.lines, req.lines)) return false;
   if (normEmail(order.buyer.email) !== req.buyer_email) return false;
   const prevUc = (order.consents.user_coupon_id ?? "").trim();
   const nextUc = (req.user_coupon_id ?? "").trim();
@@ -433,30 +583,14 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
       return { ok: true, order: full, reused: true };
     }
 
-    const pr = await client.query<BongsimProductOptionDbRow>(
-      `SELECT * FROM bongsim_product_option WHERE option_api_id = $1 AND ${BONGSIM_CATALOG_ACTIVE_WHERE} FOR SHARE`,
-      [req.option_api_id],
-    );
-    if (!pr.rows[0]) {
+    const linePrep = await prepareCheckoutLines(client, req.lines);
+    if (!linePrep.ok) {
       await client.query("ROLLBACK");
-      return { ok: false, reason: "product_not_found" };
+      if (linePrep.reason === "product_not_found") return { ok: false, reason: "product_not_found" };
+      return { ok: false, reason: "validation", details: linePrep.details };
     }
-    const opt = mapDbRowToProductOptionV1(pr.rows[0]);
-    if (!isEsimCapableSimKind(opt.sim_kind)) {
-      await client.query("ROLLBACK");
-      return {
-        ok: false,
-        reason: "validation",
-        details: {
-          product:
-            "이 상품은 eSIM 발급이 지원되지 않습니다. uSIM 전용 상품은 eSIM 주문으로 구매할 수 없습니다.",
-        },
-      };
-    }
-
-    const { basis_key, unit_krw } = selectChargedUnitPriceKrw(opt.price_block);
-    const line_total = unit_krw * req.quantity;
-    const snapshot = buildLineSnapshot(opt, basis_key, unit_krw);
+    const prepared = linePrep.prepared;
+    const subtotal_krw = prepared.reduce((sum, p) => sum + p.line_total, 0);
 
     let discount_krw = 0;
     if (req.coupon_id && req.user_coupon_id) {
@@ -468,8 +602,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
         user_coupon_id: req.user_coupon_id,
         user_id: req.bongtour_user_id,
         client_discount_krw: req.coupon_discount_krw,
-        option_api_id: req.option_api_id,
-        quantity: req.quantity,
+        lines: req.lines,
       });
       if (!uv.ok) {
         await client.query("ROLLBACK");
@@ -480,8 +613,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
       const cv = await assertBongsimCouponForOrderInsert(client, {
         coupon_id: req.coupon_id,
         client_discount_krw: req.coupon_discount_krw,
-        option_api_id: req.option_api_id,
-        quantity: req.quantity,
+        lines: req.lines,
       });
       if (!cv.ok) {
         await client.query("ROLLBACK");
@@ -511,7 +643,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const giftJson = buildGiftConsentsJson(parseGiftFromCheckoutBody(req.consents));
     if (giftJson) consentsJson.gift = giftJson;
 
-    const grand_total = Math.max(0, line_total - discount_krw);
+    const grand_total = Math.max(0, subtotal_krw - discount_krw);
     const orderNumber = makeOrderNumber();
     const ins = await client.query<OrderRow>(
       `INSERT INTO bongsim_order (
@@ -529,7 +661,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
         req.buyer_locale ?? null,
         req.idempotency_key,
         JSON.stringify(consentsJson),
-        line_total,
+        subtotal_krw,
         discount_krw,
         grand_total,
         req.utmSource ?? null,
@@ -547,20 +679,22 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
       return { ok: false, reason: "db_error" };
     }
 
-    await client.query(
-      `INSERT INTO bongsim_order_line (
-        order_id, option_api_id, quantity, charged_unit_price_krw, line_total_krw, charged_basis_key, snapshot
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
-      [
-        orderRow.order_id,
-        req.option_api_id,
-        req.quantity,
-        unit_krw,
-        line_total,
-        basis_key,
-        JSON.stringify(snapshot),
-      ],
-    );
+    for (const p of prepared) {
+      await client.query(
+        `INSERT INTO bongsim_order_line (
+          order_id, option_api_id, quantity, charged_unit_price_krw, line_total_krw, charged_basis_key, snapshot
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
+        [
+          orderRow.order_id,
+          p.option_api_id,
+          p.quantity,
+          p.unit_krw,
+          p.line_total,
+          p.basis_key,
+          JSON.stringify(p.snapshot),
+        ],
+      );
+    }
 
     await client.query("COMMIT");
 
