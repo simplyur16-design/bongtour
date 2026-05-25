@@ -240,6 +240,16 @@ def _is_price_absent(price_text: Optional[str]) -> bool:
     return False
 
 
+def _token_looks_like_price_text(t: str) -> bool:
+    """원/만/천단위 콤마가 있는 토큰만 가격 후보(일자 1~31 숫자만 제외)."""
+    if _is_price_absent(t):
+        return False
+    s = str(t).strip()
+    if "만" in s or "원" in s or "," in s:
+        return True
+    return False
+
+
 class CalendarPriceScraper:
     """
     modetour 상세 달력: 출발일 모달·td 셀·우측 패널을 순회해 출발일별 row를 수집한다.
@@ -924,21 +934,20 @@ class CalendarPriceScraper:
                 if date_str < _kst_today_ymd():
                     continue
 
-                # 가격 추출 — 없으면 Skip (규칙: 선택 불가 = 추출 안 함)
+                # 가격 추출 — 원/만/콤마 표기만 인정(일자 숫자 토큰은 가격으로 쓰지 않음)
                 price_el = await cell.query_selector(config.SELECTOR_CELL_PRICE)
                 price_text = (
                     (await price_el.text_content() or "").strip() if price_el else ""
                 )
-                if not price_text:
+                if not _token_looks_like_price_text(price_text):
                     full_cell = (await cell.text_content() or "").strip()
+                    price_text = ""
                     for token in full_cell.replace("\n", " ").split():
                         t = token.strip()
-                        if _is_price_absent(t):
-                            continue
-                        if "만" in t or "," in t or re.search(r"\d", t):
+                        if _token_looks_like_price_text(t):
                             price_text = t
                             break
-                if _is_price_absent(price_text):
+                if not _token_looks_like_price_text(price_text):
                     continue
                 price_int = clean_price_to_int(price_text)
                 if price_int <= 0:

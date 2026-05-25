@@ -8,6 +8,10 @@ import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-very
 import * as updDeparturesYbtour from '@/lib/upsert-product-departures-ybtour'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import {
+  calendarPricesRejectReason,
+  resolveCalendarPricesAdultKrw,
+} from '@/lib/calendar-prices-adult-floor'
 
 function upsertDeparturesModuleForProduct(p: {
   originSource: string | null
@@ -93,19 +97,39 @@ export async function POST(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
 
+    let rejectedInvalidPrice = 0
+    let rejectedBelowMinPrice = 0
+    let rejectedMissingDate = 0
+
     const normalized = items
       .map((i) => {
-        const d = i?.date?.trim()
-        const p = Number(i?.price ?? i?.adultPrice)
-        if (!d || Number.isNaN(p) || p < 0) return null
+        const adultKrw = resolveCalendarPricesAdultKrw(i)
+        const reject = calendarPricesRejectReason(i, adultKrw)
+        if (reject === 'missing_date') {
+          rejectedMissingDate += 1
+          return null
+        }
+        if (reject === 'invalid_price') {
+          rejectedInvalidPrice += 1
+          return null
+        }
+        if (reject === 'below_min_price') {
+          rejectedBelowMinPrice += 1
+          return null
+        }
+        const d = i.date!.trim()
         const date = new Date(d)
-        if (Number.isNaN(date.getTime())) return null
+        if (Number.isNaN(date.getTime())) {
+          rejectedInvalidPrice += 1
+          return null
+        }
+        const p = adultKrw!
         return {
           date,
-          adult: Math.round(p),
+          adult: p,
           statusRaw: i.statusRaw?.trim() || i.status?.trim() || null,
           seatsStatusRaw: i.seatsStatusRaw?.trim() || null,
-          adultPrice: i.adultPrice != null ? Number(i.adultPrice) : Math.round(p),
+          adultPrice: p,
           childBedPrice: i.childBedPrice != null ? Number(i.childBedPrice) : null,
           childNoBedPrice: i.childNoBedPrice != null ? Number(i.childNoBedPrice) : null,
           infantPrice: i.infantPrice != null ? Number(i.infantPrice) : null,
@@ -159,6 +183,28 @@ export async function POST(
           meetingGuideNoticeRaw: string | null
         } => x !== null
       )
+
+    const rejectedTotal = rejectedMissingDate + rejectedInvalidPrice + rejectedBelowMinPrice
+    if (rejectedTotal > 0) {
+      console.warn(
+        `[calendar-prices] productId=${productId} received=${items.length} accepted=${normalized.length} ` +
+          `rejected_below_min=${rejectedBelowMinPrice} rejected_invalid=${rejectedInvalidPrice} ` +
+          `rejected_missing_date=${rejectedMissingDate}`
+      )
+    }
+
+    if (normalized.length === 0) {
+      return NextResponse.json({
+        updated: 0,
+        created: 0,
+        received: items.length,
+        accepted: 0,
+        rejectedBelowMinPrice,
+        rejectedInvalidPrice,
+        rejectedMissingDate,
+        rejectedTotal,
+      })
+    }
 
     const dates = normalized.map((n) => n.date)
     const existingDepartures = await prisma.productDeparture.findMany({
@@ -239,7 +285,16 @@ export async function POST(
 
     await prisma.scraperQueue.deleteMany({ where: { productId } }).catch(() => {})
 
-    return NextResponse.json({ updated: normalized.length, created: created.count })
+    return NextResponse.json({
+      updated: normalized.length,
+      created: created.count,
+      received: items.length,
+      accepted: normalized.length,
+      rejectedBelowMinPrice,
+      rejectedInvalidPrice,
+      rejectedMissingDate,
+      rejectedTotal,
+    })
   } catch (e) {
     console.error(e)
     return NextResponse.json(
