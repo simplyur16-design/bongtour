@@ -216,7 +216,7 @@ export function DurationPopup({
       <div className="flex max-h-[92vh] flex-col">
         <div className="border-b border-slate-100 px-5 pb-4 pt-5">
           <h2 className="text-[1.05rem] font-bold leading-snug text-slate-900">
-            {countryName}에 얼마 동안 머무시나요?
+            {countryName} 여행일정이 어떻게 되세요?
           </h2>
         </div>
 
