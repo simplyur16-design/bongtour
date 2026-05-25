@@ -334,19 +334,18 @@ function matchesFilters(row: Row, ctx: { country: string; days: number; allSelec
     if (d !== ctx.days) return false;
   }
 
-  const multiUnlimitedOk =
-    ctx.allSelected.length >= 2 &&
-    pt === "unlimited" &&
-    isTrueUnlimited(row) &&
-    covered.length >= 2 &&
-    doesPlanCoverAllSelected(row.plan_name, ctx.allSelected);
+  if (ctx.allSelected.length >= 2) {
+    return (
+      covered.length >= 2 && doesPlanCoverAllSelected(row.plan_name, ctx.allSelected)
+    );
+  }
 
   const singleOk =
     covered.length === 1 &&
     covered[0] === ctx.country &&
     (pt === "daily" || pt === "unlimited" || pt === "fixed");
 
-  return multiUnlimitedOk || singleOk;
+  return singleOk;
 }
 
 /**
@@ -430,7 +429,8 @@ export async function GET(req: Request) {
 
     const tierPool = applyTierInputFilters(enriched);
     const groups = buildPlanGroups(tierPool, days);
-    const recommended = buildRecommended(tierPool, groups);
+    const recommended =
+      allSelected.length >= 2 ? null : buildRecommended(tierPool, groups);
 
     return jsonWithLeakGuard({ plans: enriched, recommended, groups }, "bongsim.products.plans");
   } catch (e) {
