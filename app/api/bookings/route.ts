@@ -276,6 +276,7 @@ export async function POST(request: Request) {
     try {
       const alim = await sendBookingRequestReceivedAlimTalk(booking.id, {
         customerPhone: intake.customerPhone,
+        bookingNumber: booking.bookingNumber,
         productTitle: booking.productTitle,
         selectedDate: selectedDateLabel,
         paxSummary,

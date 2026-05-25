@@ -102,6 +102,7 @@ export async function attemptSendCustomerInquiryAlimTalk(
 
 export type BookingRequestReceivedAlimtalkPayload = {
   customerPhone: string
+  bookingNumber: string
   productTitle: string
   selectedDate: string
   paxSummary: string
@@ -158,6 +159,7 @@ export async function sendBookingRequestReceivedAlimTalk(
   }
 
   const variables: Record<string, string> = {
+    bookingNumber: payload.bookingNumber.trim() || '신청번호 미확인',
     productTitle: payload.productTitle.trim() || '상품명 미확인',
     selectedDate: payload.selectedDate.trim() || '출발일 미확인',
     paxSummary: payload.paxSummary.trim() || '인원 미확인',
