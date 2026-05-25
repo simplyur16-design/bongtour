@@ -8,8 +8,6 @@ import {
   formatKrwPerDay,
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
-import { matchBillableTripDays } from "@/lib/bongsim/recommend/allowance-buckets";
-
 type PlanTab = "unlimited" | "daily" | "fixed";
 
 type RecommendedPlan = ProductOption & { rec_source: PlanTab };
@@ -128,10 +126,11 @@ export function PlanSelectPopup({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [err, setErr] = useState<string | null>(null);
+  const [matchedDays, setMatchedDays] = useState<number | null>(null);
 
-  const billableDays = useMemo(() => matchBillableTripDays(tripDays), [tripDays]);
   const tripDaysFloored = Math.max(1, Math.floor(tripDays));
-  const showDayMatchNotice = tripDaysFloored !== billableDays;
+  const displayMatchedDays = matchedDays ?? tripDaysFloored;
+  const showDayMatchNotice = matchedDays != null && tripDaysFloored !== matchedDays;
 
   useEffect(() => {
     if (!open) {
@@ -142,6 +141,7 @@ export function PlanSelectPopup({
       setSelectedId(null);
       setQuantity(1);
       setErr(null);
+      setMatchedDays(null);
       return;
     }
     let cancelled = false;
@@ -151,7 +151,7 @@ export function PlanSelectPopup({
       try {
         const q = new URLSearchParams({
           country: countryCode,
-          days: String(billableDays),
+          days: String(tripDaysFloored),
         });
         if (allSelectedCodes.length > 0) {
           q.set("codes", allSelectedCodes.map((c) => c.toLowerCase()).join(","));
@@ -161,8 +161,15 @@ export function PlanSelectPopup({
         const json = (await res.json()) as {
           recommended?: RecommendedPlan | null;
           groups?: Partial<PlanGroups>;
+          matched_days?: number;
         };
         if (cancelled) return;
+        const mdRaw = json.matched_days;
+        const md =
+          typeof mdRaw === "number" && Number.isFinite(mdRaw) && mdRaw >= 1
+            ? Math.trunc(mdRaw)
+            : tripDaysFloored;
+        setMatchedDays(md);
         const nextGroups: PlanGroups = {
           unlimited: json.groups?.unlimited ?? [],
           daily: json.groups?.daily ?? [],
@@ -178,6 +185,7 @@ export function PlanSelectPopup({
           setErr("플랜을 불러오지 못했습니다.");
           setRecommended(null);
           setGroups({ unlimited: [], daily: [], fixed: [] });
+          setMatchedDays(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -186,7 +194,7 @@ export function PlanSelectPopup({
     return () => {
       cancelled = true;
     };
-  }, [open, countryCode, billableDays, allSelectedCodes.join(",")]);
+  }, [open, countryCode, tripDaysFloored, allSelectedCodes.join(",")]);
 
   const tabCards = useMemo(() => {
     const list = groups[activeTab] ?? [];
@@ -255,7 +263,7 @@ export function PlanSelectPopup({
           </p>
           {showDayMatchNotice ? (
             <p className="mt-1.5 rounded-lg border border-blue-100 bg-blue-50/90 px-3 py-2 text-xs font-medium leading-snug text-blue-900 lg:text-sm">
-              {tripDaysFloored}일 여정에 맞는 {billableDays}일 플랜입니다
+              {tripDaysFloored}일 여정에 맞는 {displayMatchedDays}일 플랜입니다
             </p>
           ) : null}
           <h2 className="mt-1 text-[1.05rem] font-bold leading-snug text-slate-900 lg:text-xl">
@@ -341,7 +349,7 @@ export function PlanSelectPopup({
             tabCards.map(({ product, isPinned }) => {
               const active = selectedId === product.option_api_id;
               const packageTotal = displayRecommended(product);
-              const dailyRate = dailyRateFromProduct(product, billableDays);
+              const dailyRate = dailyRateFromProduct(product, displayMatchedDays);
               const totalShow = packageTotal != null && Number.isFinite(packageTotal) ? packageTotal : null;
               const dailyShow = dailyRate != null && Number.isFinite(dailyRate) ? dailyRate : null;
               const badge = structureBadgeText(activeTab, product);
@@ -460,7 +468,7 @@ export function PlanSelectPopup({
         <div className="border-t border-slate-100 px-5 py-4 lg:px-6">
           {!loading && !err && lowestPackageKrw != null ? (
             <p className="bt-bongsim-footer-lowest mb-3 text-center text-sm !text-slate-800 lg:text-base">
-              <span className="font-medium">{TAB_LABELS[activeTab]} · {billableDays}일 기준 최저가</span>{" "}
+              <span className="font-medium">{TAB_LABELS[activeTab]} · {displayMatchedDays}일 기준 최저가</span>{" "}
               <span className="bt-bongsim-footer-lowest-price text-lg font-bold !text-slate-900 lg:text-xl">
                 {formatKrw(lowestPackageKrw)}
               </span>

@@ -222,13 +222,16 @@ function allowanceLabelSortKey(label: string): number {
 }
 
 /**
- * fixed: 동일 allowance_label 중 tripDays 이상 valid_days 가장 작은 SKU 1장만 유지.
- * (예: 2일 여행 1GB → 7일권, 10일 여행 1GB → 30일권)
+ * tripDays 이상 valid_days 중 그룹별 최소 d SKU 1장만 유지 (가장 가까운 상위 일수).
  */
-function dedupeFixedByAllowance(plans: EnrichedPlan[], tripDays: number): EnrichedPlan[] {
+function dedupeMinDaysAtOrAbove(
+  plans: EnrichedPlan[],
+  tripDays: number,
+  groupKey: (p: EnrichedPlan) => string | null,
+): EnrichedPlan[] {
   const best = new Map<string, EnrichedPlan>();
   for (const p of plans) {
-    const key = normalizeAllowanceKey(p.allowance_label || "");
+    const key = groupKey(p);
     if (!key) continue;
     const d = extractDaysFromDaysRaw(p.days_raw);
     if (d == null || d < tripDays) continue;
@@ -241,6 +244,34 @@ function dedupeFixedByAllowance(plans: EnrichedPlan[], tripDays: number): Enrich
     if (prevD == null || d < prevD) best.set(key, p);
   }
   return [...best.values()];
+}
+
+function fixedGroupKey(p: EnrichedPlan): string | null {
+  const key = normalizeAllowanceKey(p.allowance_label || "");
+  return key || null;
+}
+
+function dailyGroupKey(p: EnrichedPlan): string | null {
+  const bucket = detectAllowanceBucket(p as ProductOption);
+  if (bucket && bucket !== "unlimited") return bucket;
+  const key = normalizeAllowanceKey(p.allowance_label || "");
+  return key || null;
+}
+
+function unlimitedGroupKey(p: EnrichedPlan): string | null {
+  const qos = (p.qos_raw || "").trim().toLowerCase().replace(/\s+/g, "");
+  return qos ? `unlimited:${qos}` : "unlimited:unknown";
+}
+
+/** 매칭 풀에서 tripDays 이상인 최소 catalog 일수 (동적, tier 하드코딩 없음). */
+function computeMatchedBillableDays(plans: EnrichedPlan[], tripDays: number): number {
+  let min: number | null = null;
+  for (const p of plans) {
+    const d = extractDaysFromDaysRaw(p.days_raw);
+    if (d == null || d < tripDays) continue;
+    if (min == null || d < min) min = d;
+  }
+  return min ?? tripDays;
 }
 
 /** fixed 전용: 용량 오름차순 → 가격 오름차순 */
@@ -290,9 +321,9 @@ function buildPlanGroups(pool: EnrichedPlan[], tripDays: number) {
     else if (pt === "fixed") fixed.push(p);
   }
   return {
-    unlimited: sortUnlimitedGroup(unlimited),
-    daily: sortByAllowanceAsc(daily),
-    fixed: sortFixedByAllowanceAsc(dedupeFixedByAllowance(fixed, tripDays)),
+    unlimited: sortUnlimitedGroup(dedupeMinDaysAtOrAbove(unlimited, tripDays, unlimitedGroupKey)),
+    daily: sortByAllowanceAsc(dedupeMinDaysAtOrAbove(daily, tripDays, dailyGroupKey)),
+    fixed: sortFixedByAllowanceAsc(dedupeMinDaysAtOrAbove(fixed, tripDays, fixedGroupKey)),
   };
 }
 
@@ -328,11 +359,7 @@ function matchesFilters(row: Row, ctx: { country: string; days: number; allSelec
   if (pt !== "unlimited" && pt !== "daily" && pt !== "fixed") return false;
 
   const d = extractDaysFromDaysRaw(row.days_raw);
-  if (pt === "fixed") {
-    if (d == null || d < ctx.days) return false;
-  } else {
-    if (d !== ctx.days) return false;
-  }
+  if (d == null || d < ctx.days) return false;
 
   if (ctx.allSelected.length >= 2) {
     return (
@@ -351,6 +378,8 @@ function matchesFilters(row: Row, ctx: { country: string; days: number; allSelec
 /**
  * GET /api/bongsim/products/plans?country=jp&network=roaming&days=4&codes=jp,vn
  *
+ * - `days` = 여정 일수(원본). daily/unlimited/fixed 모두 d>=days 후 그룹별 최소 d 1SKU.
+ * - `matched_days` = 매칭 풀에서 d>=days 인 최소 catalog 일수 (안내 문구 M값).
  * - `network` 생략 시 roaming + local 모두 조회 (roaming | local 지정 가능)
  * - recommended_price = price_block.after.consumer_krw 만 (before 폴백 없음)
  * - is_true_unlimited: allowance_label 이 무제한/완전 무제한/unlimited 인 경우만 true
@@ -431,8 +460,12 @@ export async function GET(req: Request) {
     const groups = buildPlanGroups(tierPool, days);
     const recommended =
       allSelected.length >= 2 ? null : buildRecommended(tierPool, groups);
+    const matched_days = computeMatchedBillableDays(enriched, days);
 
-    return jsonWithLeakGuard({ plans: enriched, recommended, groups }, "bongsim.products.plans");
+    return jsonWithLeakGuard(
+      { plans: enriched, recommended, groups, trip_days: days, matched_days },
+      "bongsim.products.plans",
+    );
   } catch (e) {
     console.error("[plans]", e);
     return jsonWithLeakGuard({ error: "query failed" }, "bongsim.products.plans", { status: 500 });
