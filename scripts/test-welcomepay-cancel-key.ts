@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+/** PAYAPI 전체취소 스모크 — `server-only` 모듈 import 없이 스크립트 단독 실행 */
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { config } from "dotenv";
@@ -6,7 +7,21 @@ import { getPgPool, probePgPoolTlsOrFallback } from "../lib/bongsim/db/pool";
 
 if (existsSync(".env.local")) config({ path: ".env.local", override: true });
 
-const ORDER_ID = "bf2efd5d-d0ad-49a7-9e58-7ed2e79e6fbe";
+const ORDER_ID = process.env.WELCOMEPAY_CANCEL_TEST_ORDER_ID?.trim() || "bf2efd5d-d0ad-49a7-9e58-7ed2e79e6fbe";
+
+function resolveEnv(): "production" | "test" {
+  const raw = (process.env.WELCOMEPAY_ENV ?? "test").trim().toLowerCase();
+  if (raw === "production" || raw === "prod" || raw === "live") return "production";
+  return "test";
+}
+
+function cancelUrl(): string {
+  const base =
+    resolveEnv() === "production"
+      ? "https://payapi.paywelcome.co.kr"
+      : "https://tpayapi.paywelcome.co.kr";
+  return `${base}/cancel/cancel`;
+}
 
 function tsKst(): string {
   return new Intl.DateTimeFormat("sv-SE", {
@@ -23,36 +38,13 @@ function tsKst(): string {
     .replace(/[-\s:]/g, "");
 }
 
-async function tryCancelV1(
-  base: string,
-  signKey: string,
-  mid: string,
-  tid: string,
-  priceKrw: number,
-  clientIp: string,
-) {
-  const timestamp = tsKst();
-  const type = "Refund";
-  const paymethod = "Card";
-  const plain = signKey + type + paymethod + timestamp + clientIp + mid + tid;
-  const hashData = createHash("sha512").update(plain, "utf8").digest("hex");
-  const body = new URLSearchParams({
-    type,
-    paymethod,
-    clientIp,
-    mid,
-    tid,
-    msg: "cancel test",
-    price: String(priceKrw),
-    timestamp,
-    hashData,
-  });
-  const res = await fetch(`${base}/api/v1/refund`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
-    body,
-  });
-  return { http: res.status, raw: (await res.text()).slice(0, 240) };
+function mkey(signKey: string): string {
+  return createHash("sha256").update(signKey, "utf8").digest("hex");
+}
+
+function signature(mid: string, mk: string, timestamp: string): string {
+  const plain = `mid=${mid.trim()}&mkey=${mk}&timestamp=${timestamp}`;
+  return createHash("sha256").update(plain, "utf8").digest("hex");
 }
 
 async function main() {
@@ -64,19 +56,44 @@ async function main() {
   );
   const row = o.rows[0];
   const mid = (process.env.WELCOMEPAY_MID ?? "").trim();
-  const signKey = (process.env.WELCOMEPAY_INIAPI_KEY ?? "").trim();
+  const signKey = (process.env.WELCOMEPAY_SIGN_KEY ?? "").trim();
   const tid = (row?.payment_reference ?? "").trim();
   const price = Number.parseInt(row?.grand_total_krw ?? "0", 10);
-  const clientIp = (process.env.WELCOMEPAY_CANCEL_CLIENT_IP ?? "0.0.0.0").trim() || "0.0.0.0";
 
-  console.log({ mid, tid: tid.slice(0, 24) + "…", price, signKeyLen: signKey.length, iv: (process.env.WELCOMEPAY_FIELD_ENCRYPT_IV ?? "").trim() });
+  console.log({
+    url: cancelUrl(),
+    mid,
+    tid: tid ? `${tid.slice(0, 24)}…` : "(empty)",
+    price,
+    signKeyLen: signKey.length,
+    env: process.env.WELCOMEPAY_ENV ?? "test",
+  });
 
-  for (const [label, base] of [
-    ["production", "https://iniapi.inicis.com"],
-    ["staging", "https://stginiapi.inicis.com"],
-  ] as const) {
-    console.log(`\n[${label}]`, await tryCancelV1(base, signKey, mid, tid, price, clientIp));
+  if (!mid || !signKey || !tid || price <= 0) {
+    console.error("missing mid, WELCOMEPAY_SIGN_KEY, tid, or price");
+    process.exit(1);
   }
+
+  const timestamp = tsKst();
+  const mk = mkey(signKey);
+  const sig = signature(mid, mk, timestamp);
+  const body = new URLSearchParams({
+    payType: "card",
+    mid,
+    tid,
+    price: String(price),
+    currency: "WON",
+    timestamp,
+    signature: sig,
+  });
+
+  const res = await fetch(cancelUrl(), {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+    body,
+  });
+  const raw = await res.text();
+  console.log({ http: res.status, raw: raw.slice(0, 400) });
 }
 
 main();

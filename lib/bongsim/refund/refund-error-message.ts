@@ -21,8 +21,8 @@ export function refundErrorMessage(payload: {
     return msg || "공급사 취소에 실패했습니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.";
   }
   if (err === "pg_cancel_failed") {
-    if (/API\s*키|API\s*Key|api\s*key|INIAPI/i.test(msg)) {
-      return "PG 취소 API 키가 맞지 않습니다. WELCOMEPAY_SIGN_KEY에 웰컴페이먼츠 INIAPI Key(가맹점관리자)를 넣었는지 확인해 주세요.";
+    if (/SIGNATURE|서명|signkey|sign\s*key/i.test(msg)) {
+      return "PG 취소 서명이 맞지 않습니다. WELCOMEPAY_SIGN_KEY(웹결제 signKey)를 가맹점 관리자에서 다시 확인해 주세요.";
     }
     if (msg) return msg;
     return "카드사 취소 요청이 거절되었습니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.";

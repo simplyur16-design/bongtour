@@ -1,36 +1,20 @@
-/** 서버 전용 — 웰컴페이먼츠 INIAPI 전체취소 (V1 NVP + V2 JSON 폴백) */
+/** 서버 전용 — 웰컴페이먼츠 PAYAPI 전체취소 (연동가이드 v5.1.8 §3.2.1 `cancel/cancel`) */
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { welcomepayIniapiOrigin } from "@/lib/bongsim/welcomepay";
+import { generateMKey, welcomepayFullCancelUrl } from "@/lib/bongsim/welcomepay";
 
-/**
- * INIAPI 전체취소 hash용 키.
- * - `WELCOMEPAY_INIAPI_KEY` 우선
- * - `WELCOMEPAY_SIGN_KEY`가 base64로 한 번 더 감싼 값이면 디코드(웹표준 signKey는 결제용 그대로 둠)
- */
-export function resolveWelcomepayIniapiSignKey(): string {
-  const iniapi = (process.env.WELCOMEPAY_INIAPI_KEY ?? "").trim();
-  if (iniapi) return iniapi;
-  const raw = (process.env.WELCOMEPAY_SIGN_KEY ?? "").trim();
-  if (!raw) return "";
-  try {
-    const decoded = Buffer.from(raw, "base64").toString("utf8").trim();
-    if (
-      decoded &&
-      decoded !== raw &&
-      decoded.length >= 8 &&
-      /^[\x20-\x7e]+$/.test(decoded)
-    ) {
-      return decoded;
-    }
-  } catch {
-    /* not base64 */
-  }
-  return raw;
+/** 웹결제 signKey — `WELCOMEPAY_SIGN_KEY` (관리자: 상점정보 > 계약정보 > 부가정보) */
+export function resolveWelcomepaySignKey(): string {
+  return (process.env.WELCOMEPAY_SIGN_KEY ?? "").trim();
 }
 
-/** Asia/Seoul 기준 `YYYYMMDDHHmmss` */
+/** @deprecated `resolveWelcomepaySignKey` — INIAPI Key 미사용 */
+export function resolveWelcomepayIniapiSignKey(): string {
+  return resolveWelcomepaySignKey();
+}
+
+/** Asia/Seoul 기준 `YYYYMMDDHHmmss` (14자) */
 export function welcomepayCancelTimestampKst(): string {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Seoul",
@@ -46,103 +30,82 @@ export function welcomepayCancelTimestampKst(): string {
     .replace(/[-\s:]/g, "");
 }
 
-/** V1 NVP — INIAPIKey + type + paymethod + timestamp + clientIp + mid + tid */
-export function welcomepayV1FullCancelHashData(input: {
-  signKey: string;
+/**
+ * PAYAPI 전체취소 signature — SHA256(`mid={mid}&mkey={mkey}&timestamp={timestamp}`)
+ * 필드 순서·값은 요청 폼과 동일 (§2.2, §3.2.1). mkey = SHA256(signKey).
+ */
+export function welcomepayPayapiFullCancelSignature(input: {
   mid: string;
-  tid: string;
+  mkey: string;
   timestamp: string;
-  paymethod?: string;
-  clientIp?: string;
 }): string {
-  const type = "Refund";
-  const paymethod = (input.paymethod ?? "Card").trim();
-  const clientIp = (input.clientIp ?? "0.0.0.0").trim();
-  const plain =
-    input.signKey + type + paymethod + input.timestamp + clientIp + input.mid.trim() + input.tid.trim();
-  return createHash("sha512").update(plain, "utf8").digest("hex");
+  const plain = `mid=${input.mid.trim()}&mkey=${input.mkey}&timestamp=${input.timestamp}`;
+  return createHash("sha256").update(plain, "utf8").digest("hex");
 }
 
-/** V1 — `https://iniapi.paywelcome.co.kr/api/v1/refund` (form-urlencoded) */
-export function welcomepayV1RefundUrl(): string {
-  return `${welcomepayIniapiOrigin()}/api/v1/refund`;
-}
-
-/** V2 — `https://iniapi.paywelcome.co.kr/v2/pg/refund` (JSON) */
-export function welcomepayV2RefundUrl(): string {
-  return `${welcomepayIniapiOrigin()}/v2/pg/refund`;
-}
-
-export type WelcomepayCancelNvpBody = {
+export type WelcomepayCancelFormBody = {
+  payType: string;
   mid: string;
   tid: string;
-  msg: string;
   price: string;
+  currency: string;
   timestamp: string;
-  hashData: string;
-  type?: string;
-  paymethod?: string;
-  clientIp?: string;
+  signature: string;
+  /** 모바일 망취소 시 `C` */
+  cancelType?: string;
 };
 
 export function buildWelcomepayCancelFormBody(input: {
   signKey: string;
   mid: string;
   tid: string;
-  msg: string;
   priceKrw: number;
   timestamp?: string;
-  paymethod?: string;
-  clientIp?: string;
-}): WelcomepayCancelNvpBody {
+  payType?: string;
+  currency?: string;
+  cancelType?: string;
+}): WelcomepayCancelFormBody {
   const timestamp = input.timestamp ?? welcomepayCancelTimestampKst();
-  const paymethod = input.paymethod ?? "Card";
-  const clientIp =
-    input.clientIp ?? ((process.env.WELCOMEPAY_CANCEL_CLIENT_IP ?? "").trim() || "0.0.0.0");
-  const hashData = welcomepayV1FullCancelHashData({
-    signKey: input.signKey,
+  const mkey = generateMKey(input.signKey);
+  const signature = welcomepayPayapiFullCancelSignature({
     mid: input.mid,
-    tid: input.tid,
+    mkey,
     timestamp,
-    paymethod,
-    clientIp,
   });
-  return {
-    type: "Refund",
-    paymethod,
-    clientIp,
+  const body: WelcomepayCancelFormBody = {
+    payType: (input.payType ?? "card").trim(),
     mid: input.mid.trim(),
     tid: input.tid.trim(),
-    msg: input.msg,
     price: String(Math.trunc(input.priceKrw)),
+    currency: (input.currency ?? "WON").trim(),
     timestamp,
-    hashData,
+    signature,
   };
+  if (input.cancelType?.trim()) {
+    body.cancelType = input.cancelType.trim();
+  }
+  return body;
 }
 
-export function encodeWelcomepayCancelNvp(body: WelcomepayCancelNvpBody): string {
+export function encodeWelcomepayCancelForm(body: WelcomepayCancelFormBody): string {
   const entries: [string, string][] = [
-    ["type", body.type ?? "Refund"],
-    ["paymethod", body.paymethod ?? "Card"],
-    ["clientIp", body.clientIp ?? "0.0.0.0"],
+    ["payType", body.payType],
     ["mid", body.mid],
     ["tid", body.tid],
-    ["msg", body.msg],
     ["price", body.price],
+    ["currency", body.currency],
     ["timestamp", body.timestamp],
-    ["hashData", body.hashData],
+    ["signature", body.signature],
   ];
+  if (body.cancelType) {
+    entries.push(["cancelType", body.cancelType]);
+  }
   return entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
-}
-
-/** @deprecated `welcomepayV1RefundUrl` 사용 — stdpay `/v1/payapi/cancel` 는 404 */
-export function welcomepayPayapiCancelUrl(): string {
-  return welcomepayV1RefundUrl();
 }
 
 export type WelcomepayCancelApiResult = {
   httpStatus: number;
-  api: "v1_nvp" | "v2_json";
+  api: "payapi_cancel";
   parsed: Record<string, unknown>;
   raw: string;
   ok: boolean;
@@ -167,7 +130,6 @@ function parsePgJson(text: string): Record<string, unknown> {
 
 function outcomeFromResponse(
   httpStatus: number,
-  api: "v1_nvp" | "v2_json",
   parsed: Record<string, unknown>,
   raw: string,
 ): WelcomepayCancelApiResult {
@@ -175,105 +137,40 @@ function outcomeFromResponse(
   const resultMsg = String(parsed.resultMsg ?? parsed.ResultMsg ?? "").trim();
   const okPg = resultCode === "00" || resultCode === "0000";
   const ok = httpStatus >= 200 && httpStatus < 300 && okPg;
-  return { httpStatus, api, parsed, raw, ok, resultCode, resultMsg };
+  return { httpStatus, api: "payapi_cancel", parsed, raw, ok, resultCode, resultMsg };
 }
 
-function buildV2RefundBody(input: {
-  signKey: string;
-  mid: string;
-  tid: string;
-  msg: string;
-  timestamp: string;
-  clientIp: string;
-}): Record<string, unknown> {
-  const type = "refund";
-  const data = { tid: input.tid.trim(), msg: input.msg };
-  const dataStr = JSON.stringify(data);
-  const hashPlain = input.signKey + input.mid.trim() + type + input.timestamp + dataStr;
-  const hashData = createHash("sha512").update(hashPlain, "utf8").digest("hex");
-  return {
-    mid: input.mid.trim(),
-    type,
-    timestamp: input.timestamp,
-    clientIp: input.clientIp,
-    hashData,
-    data,
-  };
-}
-
-/** INIAPI V1 전체취소 요청 */
-export async function requestWelcomepayV1FullCancel(input: {
-  signKey: string;
-  mid: string;
-  tid: string;
-  msg: string;
-  priceKrw: number;
-  clientIp?: string;
-}): Promise<WelcomepayCancelApiResult> {
-  const cancelBody = buildWelcomepayCancelFormBody(input);
-  const res = await fetch(welcomepayV1RefundUrl(), {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
-    body: encodeWelcomepayCancelNvp(cancelBody),
-  });
-  const raw = await res.text();
-  const parsed = parsePgJson(raw);
-  return outcomeFromResponse(res.status, "v1_nvp", parsed, raw);
-}
-
-/** INIAPI V2 전체취소 (V1 실패 시 폴백) */
-export async function requestWelcomepayV2FullCancel(input: {
-  signKey: string;
-  mid: string;
-  tid: string;
-  msg: string;
-  clientIp?: string;
-}): Promise<WelcomepayCancelApiResult> {
-  const timestamp = welcomepayCancelTimestampKst();
-  const clientIp = (input.clientIp ?? process.env.WELCOMEPAY_CANCEL_CLIENT_IP ?? "0.0.0.0").trim();
-  const body = buildV2RefundBody({
-    signKey: input.signKey,
-    mid: input.mid,
-    tid: input.tid,
-    msg: input.msg,
-    timestamp,
-    clientIp,
-  });
-  const res = await fetch(welcomepayV2RefundUrl(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json; charset=UTF-8" },
-    body: JSON.stringify(body),
-  });
-  const raw = await res.text();
-  const parsed = parsePgJson(raw);
-  return outcomeFromResponse(res.status, "v2_json", parsed, raw);
-}
-
-/** V1 우선, HTTP 404·실패 시 V2 재시도 */
+/** PAYAPI 3.2.1 전체취소 — `POST {payapi}/cancel/cancel` */
 export async function requestWelcomepayFullCancel(input: {
   signKey: string;
   mid: string;
   tid: string;
-  msg: string;
   priceKrw: number;
-  clientIp?: string;
+  cancelType?: string;
 }): Promise<WelcomepayCancelApiResult> {
-  const v1 = await requestWelcomepayV1FullCancel(input);
-  if (v1.ok) return v1;
-  if (v1.httpStatus === 404 || v1.resultCode === "ERR205") {
-    const v2 = await requestWelcomepayV2FullCancel(input);
-    if (v2.ok) return v2;
-    return v2.httpStatus >= v1.httpStatus ? v2 : v1;
-  }
-  return v1;
+  const cancelBody = buildWelcomepayCancelFormBody({
+    signKey: input.signKey,
+    mid: input.mid,
+    tid: input.tid,
+    priceKrw: input.priceKrw,
+    cancelType: input.cancelType,
+  });
+  const res = await fetch(welcomepayFullCancelUrl(), {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+    body: encodeWelcomepayCancelForm(cancelBody),
+  });
+  const raw = await res.text();
+  const parsed = parsePgJson(raw);
+  return outcomeFromResponse(res.status, parsed, raw);
 }
 
 export function welcomepayCancelFailMessage(r: WelcomepayCancelApiResult): string {
   if (r.httpStatus === 404) {
-    return "PG 취소 API에 연결하지 못했습니다(404). iniapi 호스트·MID 환경(테스트/운영)을 확인해 주세요.";
+    return "PG 취소 API에 연결하지 못했습니다(404). payapi 호스트·MID 환경(테스트/운영)을 확인해 주세요.";
   }
-  if (r.resultCode === "ERR205") {
-    return "PG 취소 서명(hashData)이 맞지 않습니다. WELCOMEPAY_SIGN_KEY(INIAPI Key)를 확인해 주세요.";
+  if (r.resultCode === "ERR206") {
+    return "PG 취소 서명(signature)이 맞지 않습니다. WELCOMEPAY_SIGN_KEY(웹결제 signKey)를 확인해 주세요.";
   }
   if (r.resultMsg) return r.resultMsg;
   if (r.raw) return r.raw.slice(0, 300);

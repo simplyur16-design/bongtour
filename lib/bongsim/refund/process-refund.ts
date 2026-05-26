@@ -9,7 +9,7 @@ import {
 import {
   buildWelcomepayCancelFormBody,
   requestWelcomepayFullCancel,
-  resolveWelcomepayIniapiSignKey,
+  resolveWelcomepaySignKey,
   welcomepayCancelFailMessage,
 } from "@/lib/bongsim/welcomepay-payapi-cancel";
 import { notifyRefundCompletedBestEffort } from "@/lib/bongsim/refund/notify-refund-completed";
@@ -293,8 +293,8 @@ async function callWelcomepayCardCancel(
     return { ok: false, reason: "db_error", message: "invalid_grand_total" };
   }
 
-  const cancelBody = buildWelcomepayCancelFormBody({ signKey, mid, tid, msg, priceKrw });
-  const pg = await requestWelcomepayFullCancel({ signKey, mid, tid, msg, priceKrw });
+  const cancelBody = buildWelcomepayCancelFormBody({ signKey, mid, tid, priceKrw });
+  const pg = await requestWelcomepayFullCancel({ signKey, mid, tid, priceKrw });
   return { ok: true, tid, priceKrw, cancelBody, pg };
 }
 
@@ -359,7 +359,7 @@ export async function processRefund(
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 
   const mid = (process.env.WELCOMEPAY_MID ?? "").trim();
-  const signKey = resolveWelcomepayIniapiSignKey();
+  const signKey = resolveWelcomepaySignKey();
   if (!mid || !signKey) return { ok: false, reason: "welcomepay_env_incomplete" };
 
   const client = await pool.connect();

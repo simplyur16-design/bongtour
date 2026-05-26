@@ -24,11 +24,16 @@ export function welcomepayStdPayOrigin(): string {
     : "https://tstdpay.paywelcome.co.kr";
 }
 
-/** PAYAPI(취소·조회) — 이니시스 INIAPI 호스트 (paywelcome `iniapi.*` DNS 미제공). */
-export function welcomepayIniapiOrigin(): string {
+/** PAYAPI 호스트 — 취소·조회 등 (연동가이드 v5.1.8) */
+export function welcomepayPayapiOrigin(): string {
   return resolveWelcomepayEnv() === "production"
-    ? "https://iniapi.inicis.com"
-    : "https://stginiapi.inicis.com";
+    ? "https://payapi.paywelcome.co.kr"
+    : "https://tpayapi.paywelcome.co.kr";
+}
+
+/** PAYAPI 3.2.1 전체취소 */
+export function welcomepayFullCancelUrl(): string {
+  return `${welcomepayPayapiOrigin()}/cancel/cancel`;
 }
 
 export function welcomepayStdPayScriptUrl(): string {

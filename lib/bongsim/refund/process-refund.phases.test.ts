@@ -26,7 +26,7 @@ const requestWelcomepayFullCancel = vi.fn();
 vi.mock("@/lib/bongsim/welcomepay-payapi-cancel", () => ({
   buildWelcomepayCancelFormBody: () => ({ timestamp: "1234567890", mid: "mid", tid: "tid" }),
   requestWelcomepayFullCancel: (...args: unknown[]) => requestWelcomepayFullCancel(...args),
-  resolveWelcomepayIniapiSignKey: () => "test_sign_key",
+  resolveWelcomepaySignKey: () => "test_sign_key",
   welcomepayCancelFailMessage: () => "PG mock fail",
 }));
 
@@ -74,9 +74,11 @@ describe("processRefund 3-phase order", () => {
     requestWelcomepayFullCancel.mockResolvedValue({
       ok: true,
       httpStatus: 200,
-      api: {},
-      parsed: { resultCode: "00" },
+      api: "payapi_cancel",
+      parsed: { ResultCode: "00" },
       raw: "ok",
+      resultCode: "00",
+      resultMsg: "",
     });
   });
 
@@ -90,7 +92,15 @@ describe("processRefund 3-phase order", () => {
     });
     requestWelcomepayFullCancel.mockImplementation(async () => {
       callOrder.push("pg");
-      return { ok: true, httpStatus: 200, api: {}, parsed: {}, raw: "ok" };
+      return {
+        ok: true,
+        httpStatus: 200,
+        api: "payapi_cancel",
+        parsed: {},
+        raw: "ok",
+        resultCode: "00",
+        resultMsg: "",
+      };
     });
 
     queueQueries([
