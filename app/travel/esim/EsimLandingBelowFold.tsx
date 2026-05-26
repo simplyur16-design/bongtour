@@ -45,11 +45,11 @@ export default function EsimLandingBelowFold() {
             여행 준비부터 현지 체류까지, 데이터 걱정을 덜어 드립니다.
           </p>
 
-          <div className="mx-auto mt-8 grid grid-cols-1 gap-4 text-left sm:mt-10 sm:grid-cols-2 lg:mt-12">
+          <div className="mx-auto mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 lg:mt-12">
             {WHY_ITEMS.map((item, idx) => {
               const { icon: Icon, title, body, circleClass } = item
               const cardClass =
-                'flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-teal-200 hover:shadow-md'
+                'flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm transition hover:border-teal-200 hover:shadow-md'
               const kakaoUrl = BONGSIM_KAKAO_CHANNEL_URL.trim()
               const inner = (
                 <>
@@ -59,7 +59,7 @@ export default function EsimLandingBelowFold() {
                   >
                     <Icon className="h-6 w-6" strokeWidth={2} />
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="w-full min-w-0">
                     <h3 className="font-semibold text-slate-900">{title}</h3>
                     <p className="mt-1 text-sm leading-relaxed text-slate-500">{body}</p>
                     {idx === 0 ? (
