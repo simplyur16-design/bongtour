@@ -219,7 +219,7 @@ export function resolveProductPage(id: string): ProductPageModel | null {
   }
 
   const countryOnly = getCountryById(id);
-  if (!countryOnly || countryOnly.code === "kr") return null;
+  if (!countryOnly) return null;
   const detail = getEsimCountryDetailOrFallback(countryOnly);
   const d0 = detail.durations.includes(4) ? 4 : (detail.durations[0] ?? 5);
   const plans = getEsimPlansForDuration(detail, d0);
@@ -352,11 +352,11 @@ export function loadFunnel(): FunnelState {
     let countryIds: string[] = [];
     if (Array.isArray(parsed.countryIds)) {
       countryIds = (parsed.countryIds as unknown[]).filter(
-        (c): c is string => typeof c === "string" && c !== "kr" && !!getCountryById(c),
+        (c): c is string => typeof c === "string" && !!getCountryById(c),
       );
     }
     const legacy = parsed.countryId;
-    if (countryIds.length === 0 && typeof legacy === "string" && legacy !== "kr" && getCountryById(legacy)) {
+    if (countryIds.length === 0 && typeof legacy === "string" && getCountryById(legacy)) {
       countryIds = [legacy];
     }
 

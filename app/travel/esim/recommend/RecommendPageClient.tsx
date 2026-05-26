@@ -126,26 +126,23 @@ export default function RecommendPageClient() {
     };
   }, []);
 
-  const allCountriesExceptKorea = useMemo(() => {
-    if (!standaloneCountries) return [];
-    return standaloneCountries.filter((c) => c.code !== "kr");
-  }, [standaloneCountries]);
+  const countryChoices = useMemo(() => standaloneCountries ?? [], [standaloneCountries]);
 
   const popularCountries = useMemo(
     () =>
       POPULAR_COUNTRY_CODES.map((code) =>
-        allCountriesExceptKorea.find((c) => c.code === code),
+        countryChoices.find((c) => c.code === code),
       ).filter(Boolean) as CountryOption[],
-    [allCountriesExceptKorea],
+    [countryChoices],
   );
 
   const filteredCountries = useMemo(() => {
-    if (!searchQuery.trim()) return allCountriesExceptKorea;
+    if (!searchQuery.trim()) return countryChoices;
     const q = searchQuery.toLowerCase();
-    return allCountriesExceptKorea.filter(
+    return countryChoices.filter(
       (c) => c.nameKr.toLowerCase().includes(q) || c.code.toLowerCase().includes(q),
     );
-  }, [searchQuery, allCountriesExceptKorea]);
+  }, [searchQuery, countryChoices]);
 
   const handleCountryToggle = (code: string) => {
     clearRecommendCheckoutDispatched();
@@ -177,7 +174,7 @@ export default function RecommendPageClient() {
   };
 
   const resolveCountry = (code: string) =>
-    allCountriesExceptKorea.find((c) => c.code === code) ??
+    countryChoices.find((c) => c.code === code) ??
     COUNTRY_OPTIONS.find((c) => c.code === code);
 
   if (!funnelHydrated) {

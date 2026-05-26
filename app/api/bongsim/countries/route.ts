@@ -47,7 +47,6 @@ export async function GET() {
     const countries: BongsimCountryListItem[] = [];
 
     for (const code of codes) {
-      if (code === "kr") continue;
       const opt = byCode.get(code);
       if (opt) {
         countries.push({ code: opt.code, nameKr: opt.nameKr });

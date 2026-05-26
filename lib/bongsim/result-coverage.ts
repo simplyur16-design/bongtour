@@ -223,7 +223,7 @@ export function computeEsimCoverageResults(
   deps: ResultCoverageDeps,
   input: EsimCoverageComputeInput,
 ): EsimCoverageProduct[] {
-  const ids = [...new Set(input.selectedCountryCodes)].filter((c) => c && c !== "kr");
+  const ids = [...new Set(input.selectedCountryCodes)].filter((c) => c);
   const durationDays = input.durationDays;
   if (ids.length === 0 || durationDays < 1) return [];
 

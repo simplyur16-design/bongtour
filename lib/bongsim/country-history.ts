@@ -26,8 +26,8 @@ function readSearches(): string[] {
 }
 
 export function pushRecentCountry(code: string): void {
-  if (typeof window === "undefined" || code === "kr") return;
-  const cur = readCodes().filter((c) => c !== "kr");
+  if (typeof window === "undefined") return;
+  const cur = readCodes();
   const next = [code, ...cur.filter((c) => c !== code)].slice(0, 12);
   window.localStorage.setItem(COUNTRIES_KEY, JSON.stringify(next));
 }
@@ -41,7 +41,7 @@ export function pushRecentSearch(query: string): void {
   window.localStorage.setItem(SEARCHES_KEY, JSON.stringify(next));
 }
 
-/** 최근 선택·조회 기준 상위 코드 (대한민국 제외, 최대 5). */
+/** 최근 선택·조회 기준 상위 코드 (최대 5). */
 export function getRecentCountryCodes(max = 5): string[] {
-  return readCodes().filter((c) => c !== "kr").slice(0, max);
+  return readCodes().slice(0, max);
 }

@@ -44,7 +44,7 @@ export function BongsimHomeMobile() {
     if (!storageReady) return [];
     return getRecentCountryCodes(5)
       .map((code) => getCountryById(code))
-      .filter((x): x is NonNullable<typeof x> => !!x && x.code !== "kr");
+      .filter((x): x is NonNullable<typeof x> => !!x);
   }, [histTick, storageReady]);
 
   const recentSet = useMemo(() => {

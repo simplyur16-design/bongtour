@@ -69,7 +69,6 @@ export function CountrySearchModal({ open, onClose, onSelect }: Props) {
               countries={filtered}
               selectedCode={null}
               onSelect={(code) => {
-                if (code === "kr") return;
                 onSelect(code);
                 setQ("");
               }}

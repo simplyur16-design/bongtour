@@ -37,6 +37,7 @@ const ROWS: Row[] = [
   ["il", "이스라엘", "🇮🇱", "israel tel aviv"],
   ["it", "이탈리아", "🇮🇹", "italy rome milan"],
   ["jp", "일본", "🇯🇵", "japan tokyo osaka"],
+  ["kr", "대한민국", "🇰🇷", "korea seoul busan"],
   ["jo", "요르단", "🇯🇴", "jordan petra"],
   ["kz", "카자흐스탄", "🇰🇿", "kazakhstan"],
   ["kw", "쿠웨이트", "🇰🇼", "kuwait"],
@@ -159,10 +160,9 @@ export function planNameKrFromCountryCode(code: string): string | null {
 }
 
 export function filterCountryOptions(list: CountryOption[], query: string): CountryOption[] {
-  const noKr = list.filter((c) => c.code !== "kr");
   const t = query.trim().toLowerCase();
-  if (!t) return noKr;
-  return noKr.filter((c) => {
+  if (!t) return list;
+  return list.filter((c) => {
     if (c.nameKr.toLowerCase().includes(t)) return true;
     if (c.code.toLowerCase().includes(t)) return true;
     return false;
