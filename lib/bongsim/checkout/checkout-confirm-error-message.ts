@@ -13,6 +13,9 @@ export function checkoutConfirmErrorMessage(payload: {
     if (d.buyer_email === "required" || d.buyer_email === "invalid_email") {
       return "이메일을 확인해 주세요.";
     }
+    if (d.gift_recipient_contact === "required_one") {
+      return "받는 분 휴대폰 또는 이메일 중 하나는 입력해 주세요.";
+    }
     if (d.gift_recipient_email) return "받는 분 이메일을 확인해 주세요.";
     if (d.gift_recipient_phone) return "받는 분 휴대폰 번호를 010-0000-0000 형식으로 입력해 주세요.";
     if (d.option_api_id === "required") return "상품을 다시 선택해 주세요.";

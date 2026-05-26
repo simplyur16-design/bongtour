@@ -538,13 +538,17 @@ export function CheckoutStoreClient({
       }
       if (isGift) {
         const rem = recipientEmail.trim();
-        if (!rem || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rem)) {
-          setSubmitError("받는 분 이메일을 입력해 주세요.");
+        const rph = recipientPhone.replace(/\D/g, "");
+        if (!rem && !rph) {
+          setSubmitError("받는 분 휴대폰 또는 이메일 중 하나는 입력해 주세요.");
           return;
         }
-        const rph = recipientPhone.replace(/\D/g, "");
-        if (!rph || rph.length < 10 || rph.length > 11 || !rph.startsWith("01")) {
-          setSubmitError("받는 분 휴대폰 번호를 010-0000-0000 형식으로 입력해 주세요. (필수)");
+        if (rem && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rem)) {
+          setSubmitError("받는 분 이메일 형식을 확인해 주세요.");
+          return;
+        }
+        if (rph && (rph.length < 10 || rph.length > 11 || !rph.startsWith("01"))) {
+          setSubmitError("받는 분 휴대폰 번호를 010-0000-0000 형식으로 입력해 주세요.");
           return;
         }
       }
@@ -831,6 +835,10 @@ export function CheckoutStoreClient({
               {isGift ? (
                 <fieldset className="space-y-3 rounded-xl border border-violet-100 bg-white p-3">
                   <legend className="px-1 text-[13px] font-semibold text-violet-950">받는 분</legend>
+                  <p className="text-[12px] leading-relaxed text-violet-900/90">
+                    휴대폰·이메일 중 <span className="font-semibold">하나 이상</span> 입력해 주세요. QR·설치 안내는
+                    입력하신 연락처로 보내드립니다.
+                  </p>
                   <label className="block">
                     <span className="text-[12px] font-medium text-slate-700 lg:text-sm">
                       받는 분 이름 <span className="font-normal text-slate-500">(선택)</span>
@@ -846,7 +854,7 @@ export function CheckoutStoreClient({
                   </label>
                   <label className="block">
                     <span className="text-[12px] font-medium text-slate-700 lg:text-sm">
-                      받는 분 휴대폰 <span className="text-red-600">*</span>
+                      받는 분 휴대폰 <span className="font-normal text-slate-500">(선택)</span>
                     </span>
                     <input
                       type="tel"
@@ -856,13 +864,12 @@ export function CheckoutStoreClient({
                       onChange={(ev) => setRecipientPhone(formatKoreanTelInput(ev.target.value))}
                       placeholder="010-0000-0000"
                       className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[15px] text-slate-900 lg:py-3"
-                      required={isGift}
                     />
                     <p className="mt-1 text-[11px] text-slate-500">eSIM QR·설치 안내 카카오 알림톡 수신 번호</p>
                   </label>
                   <label className="block">
                     <span className="text-[12px] font-medium text-slate-700 lg:text-sm">
-                      받는 분 이메일 <span className="text-red-600">*</span>
+                      받는 분 이메일 <span className="font-normal text-slate-500">(선택)</span>
                     </span>
                     <input
                       type="email"
@@ -871,7 +878,6 @@ export function CheckoutStoreClient({
                       placeholder="friend@example.com"
                       className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[15px] text-slate-900"
                       autoComplete="off"
-                      required={isGift}
                     />
                     <p className="mt-1 text-[11px] text-slate-500">QR·설치 링크 메일 수신</p>
                   </label>
@@ -1064,6 +1070,17 @@ export function CheckoutStoreClient({
                 ) : null}
               </div>
 
+              {isGift && (recipientPhone.trim() || recipientEmail.trim()) ? (
+                <div className="rounded-xl border border-violet-200 bg-violet-50/90 px-3 py-3 text-[13px] text-violet-950 lg:text-[14px]">
+                  <p className="font-semibold">이 연락처로 발송됩니다</p>
+                  <ul className="mt-1.5 space-y-0.5 font-medium">
+                    {recipientPhone.trim() ? (
+                      <li>휴대폰: {formatKoreanTelInput(recipientPhone)}</li>
+                    ) : null}
+                    {recipientEmail.trim() ? <li>이메일: {recipientEmail.trim()}</li> : null}
+                  </ul>
+                </div>
+              ) : null}
               {submitError ? (
                 <div
                   role="alert"

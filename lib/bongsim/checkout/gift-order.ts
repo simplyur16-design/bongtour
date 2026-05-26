@@ -28,9 +28,13 @@ export function parseGiftFromOrderConsents(consents: unknown): BongsimGiftOrderC
   return {
     is_gift: true,
     recipient_email:
-      typeof o.recipient_email === "string" ? normEmail(o.recipient_email) : undefined,
+      typeof o.recipient_email === "string" && o.recipient_email.trim()
+        ? normEmail(o.recipient_email)
+        : undefined,
     recipient_phone:
-      typeof o.recipient_phone === "string" ? normalizeBuyerPhone(o.recipient_phone) ?? undefined : undefined,
+      typeof o.recipient_phone === "string" && o.recipient_phone.trim()
+        ? normalizeBuyerPhone(o.recipient_phone) ?? undefined
+        : undefined,
     recipient_name:
       typeof o.recipient_name === "string" && o.recipient_name.trim()
         ? o.recipient_name.trim()
@@ -51,16 +55,18 @@ export function validateGiftConsents(gift: BongsimGiftOrderConsents): Record<str
   if (!gift.is_gift) return details;
 
   const em = (gift.recipient_email ?? "").trim();
-  if (!em) {
-    details.gift_recipient_email = "required";
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+  const phRaw = (gift.recipient_phone ?? "").trim();
+
+  if (!em && !phRaw) {
+    details.gift_recipient_contact = "required_one";
+    return details;
+  }
+
+  if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
     details.gift_recipient_email = "invalid_email";
   }
 
-  const phRaw = gift.recipient_phone ?? "";
-  if (!phRaw) {
-    details.gift_recipient_phone = "required";
-  } else if (!isValidBuyerPhoneInput(phRaw)) {
+  if (phRaw && !isValidBuyerPhoneInput(phRaw)) {
     details.gift_recipient_phone = "invalid_phone";
   }
 
@@ -69,10 +75,12 @@ export function validateGiftConsents(gift: BongsimGiftOrderConsents): Record<str
 
 export function buildGiftConsentsJson(gift: BongsimGiftOrderConsents): Record<string, unknown> | undefined {
   if (!gift.is_gift) return undefined;
+  const emailRaw = (gift.recipient_email ?? "").trim();
+  const phoneNorm = normalizeBuyerPhone(gift.recipient_phone ?? "");
   return {
     is_gift: true,
-    recipient_email: normEmail(gift.recipient_email ?? ""),
-    recipient_phone: normalizeBuyerPhone(gift.recipient_phone ?? "") ?? "",
+    recipient_email: emailRaw ? normEmail(emailRaw) : null,
+    recipient_phone: phoneNorm ?? null,
     recipient_name: gift.recipient_name ?? null,
   };
 }
@@ -84,12 +92,16 @@ export function resolveEsimDeliveryContact(row: {
   consents: unknown;
 }): EsimDeliveryContact {
   const gift = parseGiftFromOrderConsents(row.consents);
-  if (gift.is_gift && gift.recipient_email) {
-    return {
-      email: gift.recipient_email,
-      phone: gift.recipient_phone ?? null,
-      is_gift: true,
-    };
+  if (gift.is_gift) {
+    const email = gift.recipient_email ?? "";
+    const phone = gift.recipient_phone ?? null;
+    if (email || phone) {
+      return {
+        email,
+        phone,
+        is_gift: true,
+      };
+    }
   }
   const phone = normalizeBuyerPhone(row.buyer_tel ?? "") ?? null;
   return {
