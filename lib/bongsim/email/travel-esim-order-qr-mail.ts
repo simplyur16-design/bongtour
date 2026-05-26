@@ -35,11 +35,26 @@ async function fetchQrInlineAttachment(
   }
 }
 
-export function buildTravelEsimOrderQrMailContent(input: TravelEsimOrderQrMailInput): {
+const QR_IMG_ATTRS =
+  'alt="eSIM 설치 QR 코드" width="240" height="240" style="display:block;max-width:240px;height:auto;margin:0 auto;border:1px solid #e2e8f0;border-radius:8px;"';
+
+function buildQrImgHtml(safeQrUrl: string, imgSrc: string): string {
+  return `<img src="${imgSrc}" ${QR_IMG_ATTRS} />
+       <p style="margin:8px 0 0;font-size:12px;color:#64748b;text-align:center;">이미지가 보이지 않으면 <a href="${safeQrUrl}" style="color:#0f766e;">QR 열기</a> 또는 주문 페이지를 이용해 주세요.</p>`;
+}
+
+export type TravelEsimOrderQrMailBuildOptions = {
+  /** `cid:esimqr` (인라인 첨부) 또는 이스케이프된 https QR URL (직접 로드) */
+  qrImgSrc?: string;
+};
+
+export function buildTravelEsimOrderQrMailContent(
+  input: TravelEsimOrderQrMailInput,
+  options?: TravelEsimOrderQrMailBuildOptions,
+): {
   subject: string;
   text: string;
   html: string;
-  qrInlineCid: string | null;
 } {
   const orderNumber = input.orderNumber.trim();
   const subject = `[Bong투어] eSIM 설치 안내 (주문 ${orderNumber})`;
@@ -77,10 +92,8 @@ export function buildTravelEsimOrderQrMailContent(input: TravelEsimOrderQrMailIn
     ? `<p style="margin:12px 0 0;font-size:14px;color:#334155;">카카오: <a href="${escapeHtml(BONGSIM_KAKAO_CHANNEL_URL.trim())}" style="color:#0f766e;">채널 바로가기</a></p>`
     : "";
 
-  const qrImgHtml = qr
-    ? `<img src="cid:esimqr" alt="eSIM 설치 QR 코드" width="240" height="240" style="display:block;max-width:240px;height:auto;margin:0 auto;border:1px solid #e2e8f0;border-radius:8px;" />
-       <p style="margin:8px 0 0;font-size:12px;color:#64748b;text-align:center;">이미지가 보이지 않으면 <a href="${safeQr}" style="color:#0f766e;">QR 열기</a> 또는 주문 페이지를 이용해 주세요.</p>`
-    : "";
+  const qrImgSrc = options?.qrImgSrc?.trim() ?? "";
+  const qrImgHtml = qr && qrImgSrc ? buildQrImgHtml(safeQr, qrImgSrc) : "";
 
   const appleBtn = appleUrl
     ? `<p style="margin:16px 0 0;text-align:center;"><a href="${escapeHtml(appleUrl)}" style="display:inline-block;padding:12px 20px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">iPhone에서 바로 설치</a></p>`
@@ -107,7 +120,7 @@ export function buildTravelEsimOrderQrMailContent(input: TravelEsimOrderQrMailIn
   </div>
 </body></html>`;
 
-  return { subject, text, html, qrInlineCid: qr ? "esimqr" : null };
+  return { subject, text, html };
 }
 
 export async function sendTravelEsimOrderQrMail(
@@ -134,8 +147,12 @@ export async function sendTravelEsimOrderQrMail(
     return { ok: false, error: "invalid_recipient" };
   }
 
-  const { subject, text, html, qrInlineCid } = buildTravelEsimOrderQrMailContent(input);
-  const inline = qrInlineCid ? await fetchQrInlineAttachment(input.qrCodeUrl.trim()) : null;
+  const qrUrl = input.qrCodeUrl.trim();
+  const inline = qrUrl ? await fetchQrInlineAttachment(qrUrl) : null;
+  const qrImgSrc = qrUrl ? (inline ? "cid:esimqr" : escapeHtml(qrUrl)) : "";
+  const { subject, text, html } = buildTravelEsimOrderQrMailContent(input, {
+    qrImgSrc: qrImgSrc || undefined,
+  });
 
   try {
     const transporter = nodemailer.createTransport({
@@ -157,7 +174,7 @@ export async function sendTravelEsimOrderQrMail(
               filename: "esim-qr.png",
               content: inline.content,
               contentType: inline.contentType,
-              cid: qrInlineCid!,
+              cid: "esimqr",
             },
           ]
         : undefined,
