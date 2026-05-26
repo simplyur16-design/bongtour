@@ -1,4 +1,4 @@
-/** Display order for 인기국가(비즈니스 노출, 가나다순 아님, kr 없음). */
+/** Display order for 인기국가(비즈니스 노출, 가나다순 아님, kr 포함(외국인 선물용)). */
 export const HOME_POPULAR_CODES: string[] = [
   "jp",
   "cn",
@@ -23,6 +23,7 @@ export const HOME_POPULAR_CODES: string[] = [
   "ch",
   "mo",
   "ae",
+  "kr",
 ];
 
 /** 인기국가 탭 첫 화면에 고정 노출(필수 포함 국가). */

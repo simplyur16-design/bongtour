@@ -24,7 +24,7 @@ import type { CountryOption } from "@/lib/bongsim/types";
  * Step 2: 상품 조합 선택 (개별 vs 다국가)
  */
 
-const POPULAR_COUNTRY_CODES = ["jp", "tw", "vn", "th", "hk", "sg", "us", "cn"];
+const POPULAR_COUNTRY_CODES = ["jp", "tw", "vn", "th", "hk", "sg", "us", "cn", "kr"];
 
 type ApiCountriesPayload = { countries: { code: string; nameKr: string }[] };
 

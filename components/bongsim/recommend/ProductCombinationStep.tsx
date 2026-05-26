@@ -601,6 +601,11 @@ export function ProductCombinationStep({
                     className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent lg:bg-gradient-to-r lg:from-black/70 lg:via-black/25 lg:to-transparent"
                     aria-hidden
                   />
+                  {code === "kr" ? (
+                    <span className="pointer-events-none absolute left-3 top-3 z-10 rounded-md bg-[#D85A30] px-2 py-1 text-[10px] font-bold leading-none text-white shadow-sm sm:left-4 sm:top-4 sm:text-[11px]">
+                      외국인 선물용
+                    </span>
+                  ) : null}
                   {/* 모바일: 하단 중앙 */}
                   <div className="absolute inset-x-0 bottom-0 flex flex-col justify-end px-5 pb-5 pt-16 sm:px-6 sm:pb-6 lg:hidden">
                     <div className="flex flex-col items-center gap-3 text-center">
