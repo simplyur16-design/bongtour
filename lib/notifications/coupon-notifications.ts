@@ -22,6 +22,11 @@ export type CouponNotifyUser = {
 export type CouponNotifyGrant = {
   amountKrw: number | string
   expiresAt: Date | string | number
+  /** `coupon_welcome` 템플릿용 — 발급 쿠폰명(템플릿 description 등) */
+  couponName?: string | null
+  /** `coupon_welcome` 템플릿용 — 할인 금액/율 표시(미지정 시 amountKrw·discountType으로 생성) */
+  discountText?: string | null
+  discountType?: string | null
   /** `coupon_expiry_reminder` 템플릿용 */
   couponLabel?: string | null
 }
@@ -35,6 +40,27 @@ function formatAmountKrw(v: number | string): string {
   if (typeof v === 'number' && Number.isFinite(v)) return String(Math.trunc(v))
   const s = String(v).trim()
   return s.length > 0 ? s : '0'
+}
+
+function nfKrw(n: number): string {
+  return new Intl.NumberFormat('ko-KR').format(Math.max(0, Math.trunc(n)))
+}
+
+/** 쿠폰 템플릿 할인 표시 — 마이페이지 `CouponsClient.discountLine`과 동일 규칙 */
+export function formatCouponDiscountText(
+  discountType: string | null | undefined,
+  discountValue: number | string,
+): string {
+  const dtype = (discountType ?? '').trim().toLowerCase()
+  const dv = Number(discountValue)
+  if ((dtype === 'percent' || dtype === 'percentage') && Number.isFinite(dv)) {
+    return `${dv}% 할인`
+  }
+  if (dtype === 'fixed' && Number.isFinite(dv)) {
+    return `${nfKrw(dv)}원 할인`
+  }
+  const n = Number(formatAmountKrw(discountValue))
+  return n > 0 ? `${nfKrw(n)}원 할인` : '할인'
 }
 
 function formatExpiresAt(v: Date | string | number): string {
@@ -73,14 +99,19 @@ export async function notifyCouponWelcome(
   if (!phone) {
     return { ok: true, dryRun: true, error: 'no-phone' }
   }
-  const name = displayName(user)
+  const userName = displayName(user)
+  const couponName = userCoupon.couponName?.trim() || '환영 쿠폰'
+  const discountText =
+    userCoupon.discountText?.trim() ||
+    formatCouponDiscountText(userCoupon.discountType, userCoupon.amountKrw)
   return guardNotify(() =>
     sendKakaoNotification({
       to: phone,
       templateKey: 'coupon_welcome',
       variables: {
-        name,
-        amount: formatAmountKrw(userCoupon.amountKrw),
+        userName,
+        couponName,
+        discountText,
         expiresAt: formatExpiresAt(userCoupon.expiresAt),
       },
       userId: user.id ?? undefined,

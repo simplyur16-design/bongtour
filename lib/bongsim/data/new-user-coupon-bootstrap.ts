@@ -47,7 +47,12 @@ export async function runNewUserCouponBootstrap(userId: string): Promise<NewUser
     const amt = tpl ? Math.trunc(Number(tpl.discount_value)) || 0 : 0;
     await notifyCouponWelcome(
       { id: u.id, email: u.email, name: u.name, phone: u.phone },
-      { amountKrw: amt, expiresAt: welcome.expiresAt ?? new Date() },
+      {
+        amountKrw: amt,
+        expiresAt: welcome.expiresAt ?? new Date(),
+        couponName: tpl?.description?.trim() || "환영 쿠폰",
+        discountType: tpl?.discount_type ?? null,
+      },
     );
     return { welcomeIssued: true, reason: "ok" };
   } catch (e) {

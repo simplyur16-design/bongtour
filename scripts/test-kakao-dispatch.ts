@@ -20,20 +20,27 @@ const keys: KakaoTemplateKey[] = [
 ]
 
 function varsFor(key: KakaoTemplateKey): Record<string, string> {
-  const base = {
+  const legacy = {
     name: '테스트',
     amount: '5000',
     expiresAt: '2030. 1. 1.',
   }
   switch (key) {
+    case 'coupon_welcome':
+      return {
+        userName: '테스트',
+        couponName: '환영 쿠폰',
+        discountText: '5,000원 할인',
+        expiresAt: '2030. 1. 1.',
+      }
     case 'coupon_referral_invitee':
-      return { ...base, inviterName: '추천인' }
+      return { ...legacy, inviterName: '추천인' }
     case 'coupon_referral_inviter':
-      return { ...base, inviteeName: '친구' }
+      return { ...legacy, inviteeName: '친구' }
     case 'coupon_expiry_reminder':
-      return { ...base, couponLabel: '환영 쿠폰' }
+      return { ...legacy, couponLabel: '환영 쿠폰' }
     default:
-      return base
+      return legacy
   }
 }
 

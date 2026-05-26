@@ -24,9 +24,9 @@ export const KAKAO_TEMPLATES: Record<KakaoTemplateKey, KakaoTemplateSpec> = {
   coupon_welcome: {
     templateId: process.env.SOLAPI_KAKAO_TPL_COUPON_WELCOME ?? '__TBD__COUPON_WELCOME__',
     description: '가입 환영 + 가입 보너스 쿠폰 발급 안내',
-    requiredVars: ['name', 'amount', 'expiresAt'],
+    requiredVars: ['userName', 'couponName', 'discountText', 'expiresAt'],
     sampleText:
-      '#{name}님, 봉투어 가입을 환영해요!\n환영 쿠폰 #{amount}원이 도착했어요.\n사용 기한: #{expiresAt}\n쿠폰함에서 확인하기 →',
+      '#{userName}님, 봉투어 가입을 환영해요!\n#{couponName} #{discountText}\n사용 기한: #{expiresAt}\n쿠폰함에서 확인하기 →',
   },
   coupon_review_reward: {
     templateId: process.env.SOLAPI_KAKAO_TPL_COUPON_REVIEW ?? '__TBD__COUPON_REVIEW__',
