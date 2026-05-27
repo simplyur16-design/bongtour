@@ -52,6 +52,10 @@ const HANATOUR_BODY_GROUNDED_KO_TO_EN: ReadonlyArray<{ ko: RegExp; en: string }>
   { ko: /파리|Paris/i, en: 'Paris' },
   { ko: /싱가포르|Singapore/i, en: 'Singapore' },
   { ko: /홍콩|香港|Hong\s*Kong/i, en: 'Hong Kong' },
+  { ko: /후쿠오카|福岡|Fukuoka/i, en: 'Fukuoka' },
+  { ko: /나고야|名古屋|Nagoya/i, en: 'Nagoya' },
+  { ko: /유후인|Yufuin/i, en: 'Yufuin' },
+  { ko: /다자이후|太宰府|Dazaifu(?:\s*Tenmangu)?/i, en: 'Dazaifu Tenmangu' },
 ]
 
 function normKey(s: string): string {
@@ -240,7 +244,82 @@ function pickOverseasCityForMovementDay(
   return cities[0] ?? rowCandidates.find((c) => !isHanatourDomesticHubToken(c)) ?? ''
 }
 
-/** LLM 영문 키워드가 haystack·본문 매핑 후보와 대응하는지 */
+function pushUniqueEnglishGroundedCandidate(out: string[], seen: Set<string>, fin: string): void {
+  if (!fin) return
+  const key = normKey(fin)
+  if (!key || seen.has(key)) return
+  seen.add(key)
+  out.push(fin)
+}
+
+/** 한글 haystack → 영문 후보집합(LLM grounded 판정용). 본문·routeText·known POI를 mapHanatourFragmentToEnglish로 영문화 */
+function buildEnglishGroundedCandidateSet(haystack: string, mappedCandidates: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+
+  for (const cand of mappedCandidates) {
+    pushUniqueEnglishGroundedCandidate(out, seen, cand)
+  }
+
+  for (const { ko, en } of HANATOUR_BODY_GROUNDED_KO_TO_EN) {
+    if (!ko.test(haystack)) continue
+    try {
+      pushUniqueEnglishGroundedCandidate(out, seen, finalizeScheduleImageKeyword(en))
+    } catch {
+      /* skip */
+    }
+  }
+
+  const segments = new Set<string>()
+  for (const line of haystack.split(/\r?\n/)) {
+    for (const seg of line.split(/\s*-\s*/)) {
+      const s = stripRouteSegmentNoise(seg)
+      if (s.length >= 2) segments.add(s)
+    }
+  }
+  for (const ko of extractOrderedKnownPoiFromJoined(haystack)) {
+    segments.add(ko)
+  }
+
+  for (const seg of segments) {
+    pushUniqueEnglishGroundedCandidate(out, seen, mapHanatourFragmentToEnglish(seg, haystack))
+  }
+
+  const poiFromHay = mapKoreanPoiSegment(haystack)
+  if (poiFromHay) {
+    try {
+      pushUniqueEnglishGroundedCandidate(out, seen, finalizeScheduleImageKeyword(poiFromHay))
+    } catch {
+      /* skip */
+    }
+  }
+
+  return out
+}
+
+function hanatourEnglishKeywordMatchesGroundedCandidate(llmFin: string, candidate: string): boolean {
+  const finLower = normalizeToPlaceName(llmFin).toLowerCase()
+  const candLower = normalizeToPlaceName(candidate).toLowerCase()
+  if (!finLower || !candLower) return false
+
+  const finKey = normKey(finLower)
+  const candKey = normKey(candLower)
+  if (finKey && candKey && finKey === candKey) return true
+  if (finLower === candLower) return true
+
+  if (finLower.length >= 4 && candLower.includes(finLower)) return true
+  if (candLower.length >= 4 && finLower.includes(candLower)) return true
+
+  const finWords = finLower.split(/\s+/).filter((w) => w.length >= 4)
+  if (finWords.length && finWords.every((w) => candLower.includes(w))) return true
+
+  const candWords = candLower.split(/\s+/).filter((w) => w.length >= 4)
+  if (candWords.length && candWords.every((w) => finLower.includes(w))) return true
+
+  return false
+}
+
+/** LLM 영문 키워드가 한글 haystack에서 영문화한 후보집합과 대응하는지(영문 literal includes 아님) */
 export function isHanatourLlmImageKeywordGroundedInHaystack(
   llmKeyword: string,
   haystack: string,
@@ -253,30 +332,9 @@ export function isHanatourLlmImageKeywordGroundedInHaystack(
 
   if (isHanatourDomesticHubToken(fin)) return false
 
-  const hayLower = haystack.toLowerCase()
-  const finLower = fin.toLowerCase()
-  if (hayLower.includes(finLower)) return true
-
-  const finWords = finLower.split(/\s+/).filter((w) => w.length >= 4)
-  if (finWords.length && finWords.every((w) => hayLower.includes(w))) return true
-
-  for (const cand of mappedCandidates) {
-    if (normKey(cand) === key) return true
-    const candNorm = normalizeToPlaceName(cand).toLowerCase()
-    if (candNorm === finLower) return true
-    if (candNorm.includes(finLower) || finLower.includes(candNorm)) {
-      if (finLower.length >= 4 && candNorm.length >= 4) return true
-    }
-  }
-
-  for (const { ko, en } of HANATOUR_BODY_GROUNDED_KO_TO_EN) {
-    if (normKey(en) !== key) continue
-    if (ko.test(haystack)) return true
-  }
-
-  for (const ko of extractOrderedKnownPoiFromJoined(haystack)) {
-    const mapped = mapHanatourFragmentToEnglish(ko, haystack)
-    if (mapped && normKey(mapped) === key) return true
+  const groundedCandidates = buildEnglishGroundedCandidateSet(haystack, mappedCandidates)
+  for (const cand of groundedCandidates) {
+    if (hanatourEnglishKeywordMatchesGroundedCandidate(fin, cand)) return true
   }
 
   return false

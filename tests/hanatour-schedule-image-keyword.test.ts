@@ -28,8 +28,77 @@ describe('isHanatourLlmImageKeywordGroundedInHaystack', () => {
 
   it('본문 델리·타지마할과 대응하는 LLM은 true', () => {
     const hay = '델리 도착 후 타지마할 관람'
-    assert.equal(isHanatourLlmImageKeywordGroundedInHaystack('Taj Mahal', hay, ['Taj Mahal']), true)
-    assert.equal(isHanatourLlmImageKeywordGroundedInHaystack('Delhi', hay, ['Delhi']), true)
+    assert.equal(isHanatourLlmImageKeywordGroundedInHaystack('Taj Mahal', hay, []), true)
+    assert.equal(isHanatourLlmImageKeywordGroundedInHaystack('Delhi', hay, []), true)
+  })
+
+  it('한글 후쿠오카 본문 + LLM Fukuoka — mappedCandidates 없어도 grounded', () => {
+    const hay = '규슈\n후쿠오카 시내 관광\n후쿠오카 타워 전망'
+    assert.equal(isHanatourLlmImageKeywordGroundedInHaystack('Fukuoka', hay, []), true)
+  })
+
+  it('한글 나고야 본문 + LLM Nagoya — grounded', () => {
+    const hay = '일본알프스\n나고야 - 다카야마 - 북알프스'
+    assert.equal(isHanatourLlmImageKeywordGroundedInHaystack('Nagoya', hay, []), true)
+  })
+})
+
+describe('applyHanatourScheduleImageKeywordsToRows — LLM 영문 키워드 보존', () => {
+  it('규슈(후쿠오카 본문 + LLM Fukuoka) → imageKeyword=Fukuoka', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows([
+      {
+        day: 2,
+        title: '후쿠오카',
+        description: '후쿠오카 시내와 근교 관광',
+        routeText: '후쿠오카 - 유후인',
+        imageKeyword: 'Fukuoka',
+        imageKeyword2: null,
+      },
+    ])
+    assert.equal(out[0]!.imageKeyword, 'Fukuoka')
+  })
+
+  it('일본알프스(나고야 본문 + LLM Nagoya) → imageKeyword=Nagoya', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows([
+      {
+        day: 2,
+        title: '나고야',
+        description: '나고야 시내 관광 후 다카야마 이동',
+        routeText: '나고야 - 다카야마',
+        imageKeyword: 'Nagoya',
+        imageKeyword2: null,
+      },
+    ])
+    assert.equal(out[0]!.imageKeyword, 'Nagoya')
+  })
+
+  it('인도(델리 본문 + LLM Paris 환각) → Paris 버림, 본문 델리', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows([
+      {
+        day: 1,
+        title: '인천 출발',
+        description: '인천국제공항 출발 후 델리 국제공항 도착',
+        routeText: '인천 - 델리',
+        imageKeyword: 'Paris',
+        imageKeyword2: null,
+      },
+    ])
+    assert.equal(out[0]!.imageKeyword, 'Delhi')
+    assert.notEqual(out[0]!.imageKeyword, 'Paris')
+  })
+
+  it('인도(타지마할 본문 + LLM Taj Mahal) → imageKeyword=Taj Mahal', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows([
+      {
+        day: 2,
+        title: '아그라',
+        description: '타지마할 외부 관람',
+        routeText: '델리 - 타지마할',
+        imageKeyword: 'Taj Mahal',
+        imageKeyword2: null,
+      },
+    ])
+    assert.equal(out[0]!.imageKeyword, 'Taj Mahal')
   })
 })
 
