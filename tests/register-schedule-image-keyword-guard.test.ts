@@ -2,16 +2,14 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { mergeScheduleWithFirstPassPreferExtractRows } from '../lib/register-schedule-extract-verygoodtour'
 import { polishVerygoodRegisterScheduleImageKeywords } from '../lib/verygoodtour-schedule-image-keyword'
+import { applyHanatourScheduleImageKeywordsToRows } from '../lib/hanatour-schedule-image-keyword'
 import { keywordFromTitleDescription } from '../lib/parse-and-register-ybtour-schedule'
 import { sanitizeVerygoodtourScheduleRowExpression } from '../lib/parse-and-register-verygoodtour-schedule'
-import { buildDualScheduleImageKeywords } from '../lib/schedule-dual-image-keyword'
-import { buildScheduleImageKeywordPlan } from '../lib/register-schedule-image-keyword-ssot'
-import { isBareCityOrCountryKeyword } from '../lib/pexels-place-name-keyword'
 import { buildProductScheduleJsonForDb } from '../lib/schedule-image-keyword-persist'
 import type { RegisterScheduleDay } from '../lib/register-llm-schema-verygoodtour'
 
 describe('mergeScheduleWithFirstPassPreferExtractRows fp-only', () => {
-  it('정규화된 imageKeyword를 그대로 보존한다 (1차 finalize는 applyScheduleImageKeywordsToRows에서 책임)', () => {
+  it('imageKeyword를 trim만 하고 그대로 보존한다', () => {
     const merged = mergeScheduleWithFirstPassPreferExtractRows(
       [],
       [
@@ -19,7 +17,7 @@ describe('mergeScheduleWithFirstPassPreferExtractRows fp-only', () => {
           day: 1,
           title: 'Osaka',
           description: 'Dotonbori',
-          imageKeyword: 'Osaka Castle', // 1차 finalize 거친 형태
+          imageKeyword: 'Osaka Castle',
           hotelText: null,
           breakfastText: null,
           lunchText: null,
@@ -59,229 +57,25 @@ describe('keywordFromTitleDescription (ybtour)', () => {
   })
 })
 
-describe('buildDualScheduleImageKeywords — 관광 일차 명소', () => {
-  it('Shanghai 단독 LLM 키워드를 본문 기반 명소로 바꾼다', () => {
-    const rows = [
-      {
-        day: 3,
-        title: '상해 시티투어',
-        description: '상해의 과거와 현재를 잇는 시티 투어 — 유원·외탄 관람',
-        imageKeyword: 'Shanghai',
-        imageKeyword2: 'Forbidden City',
-      },
-    ]
-    const plan = buildScheduleImageKeywordPlan(rows)
-    const dual = buildDualScheduleImageKeywords(rows[0]!, plan)
-    assert.ok(!isBareCityOrCountryKeyword(dual.imageKeyword))
-    assert.equal(dual.imageKeyword, 'Yu Garden')
-    assert.notEqual(dual.imageKeyword2, 'Forbidden City')
-    assert.ok(!isBareCityOrCountryKeyword(dual.imageKeyword2))
-  })
-
-  it('유원·외탄 일차 2순위는 The Bund 등 다른 명소', () => {
-    const rows = [
-      {
-        day: 3,
-        title: '상해',
-        description: '유원·외탄 관람 후 자유시간',
-        imageKeyword: 'Shanghai',
-        imageKeyword2: 'Shanghai',
-      },
-    ]
-    const plan = buildScheduleImageKeywordPlan(rows)
-    const dual = buildDualScheduleImageKeywords(rows[0]!, plan)
-    assert.equal(dual.imageKeyword, 'Yu Garden')
-    assert.equal(dual.imageKeyword2, 'The Bund')
-    assert.ok(!isBareCityOrCountryKeyword(dual.imageKeyword2))
-  })
-
-  it('귀국 일차 2순위에 도시명 중복(Shanghai/Shanghai)을 넣지 않는다', () => {
-    const rows = [
-      { day: 1, title: '인천 출발', description: '인천국제공항 출발 · 상해 도착', imageKeyword: '', imageKeyword2: null },
-      { day: 4, title: '귀국', description: '상해 출발 및 인천 귀국', imageKeyword: 'Shanghai', imageKeyword2: 'Shanghai' },
-    ]
-    const plan = buildScheduleImageKeywordPlan(rows)
-    const dual = buildDualScheduleImageKeywords(rows[1]!, plan)
-    assert.equal(dual.imageKeyword, 'Shanghai')
-    assert.notEqual(dual.imageKeyword2, 'Shanghai')
-  })
-
-  it('홍콩 LLM 오염(Forbidden City·무근거 Victoria Peak) — productDestination만으로 차단', () => {
-    const rows = [
-      { day: 1, title: '출발', description: '인천 출발 홍콩 도착', imageKeyword: 'Hong Kong', imageKeyword2: 'Forbidden City' },
-      { day: 2, title: '홍콩', description: '홍콩 도심의 매력을 만끽하는 하루', imageKeyword: 'Tai Kwun', imageKeyword2: 'Forbidden City' },
-      { day: 3, title: '사원', description: '사원 방문과 여유로운 자유 시간', imageKeyword: 'Victoria Peak', imageKeyword2: 'Forbidden City' },
-      { day: 4, title: '귀국', description: '여행의 마무리 및 인천 도착', imageKeyword: 'Hong Kong', imageKeyword2: 'Forbidden City' },
-    ]
-    const plan = buildScheduleImageKeywordPlan(rows, { productDestination: 'Hong Kong' })
-    for (const row of rows.slice(0, 3)) {
-      const dual = buildDualScheduleImageKeywords(row, plan)
-      assert.notEqual(dual.imageKeyword2, 'Forbidden City')
-      assert.notEqual(dual.imageKeyword, 'Forbidden City')
-    }
-    const d3 = buildDualScheduleImageKeywords(rows[2]!, plan)
-    assert.notEqual(d3.imageKeyword, 'Victoria Peak')
-    assert.equal(d3.imageKeyword, 'Wong Tai Sin Temple')
-  })
-
-  it('홍콩 routeText 순서로 1·2순위 명소를 고르고 Forbidden City·Victoria Peak 반복을 막는다', () => {
-    const rows = [
+describe('applyHanatourScheduleImageKeywordsToRows', () => {
+  it('본문 근거 LLM 키워드를 유지하고 환각은 제거한다', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows([
       {
         day: 2,
-        title: '홍콩 시내',
-        description: '홍콩 시내 핵심 관광',
-        routeText: '홍콩 - 하버 시티 - 소호 거리 - 타이쿤 - 빅토리아 피크',
-        imageKeyword: 'Victoria Peak',
-        imageKeyword2: 'Forbidden City',
+        title: '델리',
+        description: '타지마할 관람',
+        routeText: '델리 - 타지마할',
+        imageKeyword: '  Taj Mahal  ',
+        imageKeyword2: 'Paris Eiffel Tower',
       },
-    ]
-    const plan = buildScheduleImageKeywordPlan(rows)
-    const dual = buildDualScheduleImageKeywords(rows[0]!, plan)
-    assert.equal(dual.imageKeyword, 'Harbour City Hong Kong')
-    assert.equal(dual.imageKeyword2, 'SoHo Hong Kong')
-    assert.notEqual(dual.imageKeyword2, 'Forbidden City')
-    assert.notEqual(dual.imageKeyword, 'Victoria Peak')
-  })
-
-  it('항주 일차는 West Lake·Songcheng 계열로', () => {
-    const rows = [
-      {
-        day: 2,
-        title: '항주',
-        description: '항주의 역사와 화려한 송성가무쇼 관람',
-        imageKeyword: 'Chenghuang',
-        imageKeyword2: 'Forbidden City',
-      },
-    ]
-    const plan = buildScheduleImageKeywordPlan(rows)
-    const dual = buildDualScheduleImageKeywords(rows[0]!, plan)
-    assert.equal(dual.imageKeyword, 'West Lake')
-    assert.notEqual(dual.imageKeyword2, 'Forbidden City')
-    assert.ok(dual.imageKeyword2 === 'Songcheng Park' || dual.imageKeyword2.length > 0)
-  })
-})
-
-describe('buildDualScheduleImageKeywords — 괌 PIC 패키지', () => {
-  it('관광·리조트 일차에 Guam 도시명만 비지 않고 명소 키워드를 채운다', () => {
-    const rows = [
-      {
-        day: 1,
-        title: '인천/괌',
-        description: '인천 출발 · 괌 도착 · PIC 체크인',
-        imageKeyword: 'Guam',
-        imageKeyword2: null,
-      },
-      {
-        day: 2,
-        title: '괌 아일랜드',
-        description: '스페인광장 · 사랑의절벽 · 아가나 방문 후 자유일정',
-        imageKeyword: '',
-        imageKeyword2: null,
-      },
-      {
-        day: 3,
-        title: 'PIC',
-        description: 'PIC 워터파크 및 액티비티 · 호텔 식사',
-        imageKeyword: 'PIC Resort',
-        imageKeyword2: null,
-      },
-      {
-        day: 4,
-        title: '괌',
-        description: '호텔 조식 후 자유일정',
-        imageKeyword: '',
-        imageKeyword2: null,
-      },
-      {
-        day: 5,
-        title: '괌/인천',
-        description: '괌 출발 · 인천 도착',
-        imageKeyword: 'Guam',
-        imageKeyword2: null,
-      },
-    ]
-    const plan = buildScheduleImageKeywordPlan(rows, { productDestination: '괌' })
-    const d2 = buildDualScheduleImageKeywords(rows[1]!, plan)
-    assert.equal(d2.imageKeyword, 'Plaza de Espana')
-    assert.ok(d2.imageKeyword2.length > 0)
-    assert.notEqual(d2.imageKeyword2, d2.imageKeyword)
-    const d3 = buildDualScheduleImageKeywords(rows[2]!, plan)
-    assert.equal(d3.imageKeyword, 'Tumon Bay')
-    assert.ok(!isBareCityOrCountryKeyword(d3.imageKeyword))
-    const d4 = buildDualScheduleImageKeywords(rows[3]!, plan)
-    assert.equal(d4.imageKeyword, 'Two Lovers Point')
-    assert.ok(d4.imageKeyword2.length > 0)
-  })
-})
-
-describe('buildDualScheduleImageKeywords — 싱가포르', () => {
-  const sgRows = [
-    {
-      day: 1,
-      title: '출발',
-      description: '인천 출발 및 싱가포르 도착',
-      imageKeyword: 'Mercure Singapore on Stevens',
-      imageKeyword2: 'Singapore',
-    },
-    {
-      day: 2,
-      title: '시내',
-      description: '싱가포르 시내 관광 및 야경 감상',
-      imageKeyword: 'Henderson Waves Bridge',
-      imageKeyword2: 'Forbidden City',
-    },
-    {
-      day: 3,
-      title: '자유',
-      description: '싱가포르 전일 자유 일정',
-      imageKeyword: 'Universal Studios',
-      imageKeyword2: 'Forbidden City',
-    },
-    {
-      day: 4,
-      title: '센토사',
-      description: '머라이언 공원 관광 후 센토사 섬 체험 및 리버보트 탑승',
-      imageKeyword: 'Merlion Park',
-      imageKeyword2: 'Forbidden City',
-    },
-    {
-      day: 5,
-      title: '귀국',
-      description: '인천 국제공항 도착',
-      imageKeyword: 'Mercure Singapore on Stevens',
-      imageKeyword2: 'Singapore',
-    },
-  ]
-  const sgPlan = buildScheduleImageKeywordPlan(sgRows)
-
-  it('출발·귀국 일 1순위는 호텔이 아닌 Singapore', () => {
-    const d1 = buildDualScheduleImageKeywords(sgRows[0]!, sgPlan)
-    assert.equal(d1.imageKeyword, 'Singapore')
-    assert.notEqual(d1.imageKeyword2, 'Singapore')
-    const d5 = buildDualScheduleImageKeywords(sgRows[4]!, sgPlan)
-    assert.equal(d5.imageKeyword, 'Singapore')
-  })
-
-  it('관광 일 2순위에 Forbidden City·Singapore 도시명이 안 붙는다', () => {
-    for (const row of sgRows.slice(1, 4)) {
-      const dual = buildDualScheduleImageKeywords(row, sgPlan)
-      assert.notEqual(dual.imageKeyword2, 'Forbidden City')
-      assert.ok(!isBareCityOrCountryKeyword(dual.imageKeyword2) || dual.imageKeyword2 === '')
-      if (dual.imageKeyword2) {
-        assert.ok(dual.imageKeyword2.length > 0)
-      }
-    }
-  })
-
-  it('센토사 일차 2순위는 Sentosa 등 싱가포르 어트랙션', () => {
-    const dual = buildDualScheduleImageKeywords(sgRows[3]!, sgPlan)
-    assert.equal(dual.imageKeyword, 'Merlion Park')
-    assert.ok(['Sentosa', 'Singapore River', 'Marina Bay Sands', 'Gardens by the Bay'].includes(dual.imageKeyword2))
+    ])
+    assert.equal(out[0]!.imageKeyword, 'Taj Mahal')
+    assert.notEqual(out[0]!.imageKeyword2, 'Paris')
   })
 })
 
 describe('buildProductScheduleJsonForDb — process-images·등록대기 SSOT', () => {
-  it('Marina Bay Sands fallback 키워드를 본문 기반 명소로 교체하고 imageKeyword2를 포함한다', () => {
+  it('입력 imageKeyword·imageKeyword2를 persist만 하고 변환하지 않는다', () => {
     const rows = [
       {
         day: 1,
@@ -297,24 +91,14 @@ describe('buildProductScheduleJsonForDb — process-images·등록대기 SSOT', 
         description:
           '핸더슨 웨이브 브릿지와 하지 레인을 방문합니다. 리버원더스를 관람하고, 저녁에는 가든스 바이 더 베이에서 슈퍼트리 랩소디 쇼를 감상합니다.',
         imageKeyword: 'Gardens by the Bay',
-        imageKeyword2: null,
-      },
-      {
-        day: 4,
-        title: '센토사섬 체험 및 리버보트 야경 투어',
-        description: '머라이언 공원을 관광합니다. 센토사섬에서 루지와 케이블카를 체험한 뒤, 리버보트에 탑승하여 야경을 감상합니다.',
-        imageKeyword: 'Merlion Park',
-        imageKeyword2: null,
+        imageKeyword2: 'Henderson Waves Bridge',
       },
     ]
     const json = buildProductScheduleJsonForDb(rows)
     const saved = JSON.parse(json) as Array<{ day: number; imageKeyword: string; imageKeyword2: string | null }>
-    assert.equal(saved[0]!.imageKeyword, 'Singapore')
-    assert.notEqual(saved[0]!.imageKeyword, 'Marina Bay Sands')
-    assert.ok(['Henderson Waves Bridge', 'Gardens by the Bay'].includes(saved[1]!.imageKeyword))
-    assert.ok(saved[1]!.imageKeyword2 && saved[1]!.imageKeyword2.length > 0)
-    assert.equal(saved[2]!.imageKeyword, 'Merlion Park')
-    assert.ok(saved[2]!.imageKeyword2)
+    assert.equal(saved[0]!.imageKeyword, 'Marina Bay Sands')
+    assert.equal(saved[1]!.imageKeyword, 'Gardens by the Bay')
+    assert.equal(saved[1]!.imageKeyword2, 'Henderson Waves Bridge')
   })
 })
 

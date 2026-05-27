@@ -69,23 +69,23 @@ describe('finalizeRegisterScheduleImageKeywords', () => {
     assert.equal(out[1]!.imageKeyword, 'Taipei Night Market')
   })
 
-  it('routeText를 유지하고 경로 순서로 2순위를 보강한다', () => {
+  it('routeText·imageKeyword2를 유지하고 SSOT 변환 없이 persist만 한다', () => {
     const out = finalizeRegisterScheduleImageKeywords([
       {
         day: 2,
         title: '홍콩',
         description: '홍콩 시내 관광',
         routeText: '홍콩 - 하버 시티 - 소호 거리',
-        imageKeyword: 'Victoria Peak',
-        imageKeyword2: 'Forbidden City',
+        imageKeyword: 'Merlion Park',
+        imageKeyword2: 'Sentosa',
       },
     ])
     assert.equal(out[0]!.routeText, '홍콩 - 하버 시티 - 소호 거리')
-    assert.equal(out[0]!.imageKeyword, 'Harbour City Hong Kong')
-    assert.equal(out[0]!.imageKeyword2, 'SoHo Hong Kong')
+    assert.equal(out[0]!.imageKeyword, 'Merlion Park')
+    assert.equal(out[0]!.imageKeyword2, 'Sentosa')
   })
 
-  it('한글 일정에서 imageKeyword2 2순위 명소를 보강한다', () => {
+  it('한글 일정에서도 imageKeyword·imageKeyword2를 보강하지 않는다', () => {
     const out = finalizeRegisterScheduleImageKeywords([
       {
         day: 1,
@@ -96,8 +96,7 @@ describe('finalizeRegisterScheduleImageKeywords', () => {
         imageKeyword2: null,
       },
     ])
-    assert.equal(out[0]!.imageKeyword, 'Dotonbori')
-    assert.ok(out[0]!.imageKeyword2 && out[0]!.imageKeyword2.length > 0)
-    assert.notEqual(out[0]!.imageKeyword2, out[0]!.imageKeyword)
+    assert.equal(out[0]!.imageKeyword, 'Osaka Castle')
+    assert.equal(out[0]!.imageKeyword2, null)
   })
 })

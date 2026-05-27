@@ -71,7 +71,7 @@ export function extractDayPoiCandidatesHanatour(blob: string): string[] {
 }
 
 /** 한글 관광지/도시 조각 → Pexels용 영문 구(매핑 없으면 null) */
-function mapKoreanSightFragmentToEnglishPexels(fragment: string, blobCtx: string): string | null {
+export function mapHanatourKoreanSightFragmentToEnglishPexels(fragment: string, blobCtx: string): string | null {
   const f = fragment.replace(/\s+/g, ' ').trim()
   if (!f) return null
   const j = blobCtx
@@ -131,11 +131,11 @@ export function pickPrimarySightEnglishForHanatourDay(blob: string): string | nu
   const head = findHanatourItineraryHeadline(lines)
   const joined = lines.join('\n')
   for (const seg of headlineTourismSegments(head)) {
-    const hit = mapKoreanSightFragmentToEnglishPexels(seg, joined)
+    const hit = mapHanatourKoreanSightFragmentToEnglishPexels(seg, joined)
     if (hit) return hit
   }
   for (const c of extractDayPoiCandidatesHanatour(blob)) {
-    const hit = mapKoreanSightFragmentToEnglishPexels(c, joined)
+    const hit = mapHanatourKoreanSightFragmentToEnglishPexels(c, joined)
     if (hit) return hit
   }
   return null
@@ -152,7 +152,7 @@ export function buildSafeHanatourImageFallbackKeyword(blob: string, day: number,
       .filter(Boolean)
     const pick = parts[Math.min(Math.max(0, day - 1), parts.length - 1)] ?? parts[0]
     if (pick) {
-      const mapped = mapKoreanSightFragmentToEnglishPexels(pick, j) ?? mapKoreanTravelCityTokenToEnglish(pick)
+      const mapped = mapHanatourKoreanSightFragmentToEnglishPexels(pick, j) ?? mapKoreanTravelCityTokenToEnglish(pick)
       if (mapped) return mapped.slice(0, 120)
     }
   }
@@ -559,7 +559,7 @@ function findHanatourItineraryHeadline(lines: string[]): string | null {
   return null
 }
 
-function extractOrderedKnownPoiFromJoined(joined: string): string[] {
+export function extractOrderedKnownPoiFromJoined(joined: string): string[] {
   const j = joined.slice(0, 14_000)
   const known = [...HANATOUR_KNOWN_POI_SUBSTRINGS].sort((a, b) => b.length - a.length)
   type Hit = { start: number; end: number; s: string }
@@ -1316,7 +1316,7 @@ function hanatourDescriptionNeedsReplace(desc: string, title?: string): boolean 
   return false
 }
 
-function hanatourImageKeywordNeedsReplace(kw: string): boolean {
+export function hanatourImageKeywordNeedsReplace(kw: string): boolean {
   const k = kw.trim()
   if (!k) return true
   if (HANATOUR_TOXIC_IMAGE_KEYWORD_RES.test(k)) return true
@@ -1750,7 +1750,7 @@ function isHanatourScheduleCardGeminiPolishGloballyEnabled(): boolean {
   return Boolean((process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim())
 }
 
-function classifyHanatourScheduleCardDayKind(
+export function classifyHanatourScheduleCardDayKind(
   day: number,
   maxDay: number,
   joined: string
