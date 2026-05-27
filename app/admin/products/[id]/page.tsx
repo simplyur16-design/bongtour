@@ -29,6 +29,7 @@ import {
   TRAVEL_SCOPE_LABELS,
   TRAVEL_SCOPE_VALUES,
 } from '@/lib/product-listing-kind'
+import SportsThemeTagMultiSelect from '@/app/admin/components/SportsThemeTagMultiSelect'
 import { adminProductBgImageAttributionLine } from '@/lib/product-bg-image-attribution'
 import {
   ADMIN_MANUAL_PRIMARY_HERO_UPLOAD_OPTIONS,
@@ -1490,26 +1491,12 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
             </div>
             <div className="mt-3 rounded border border-bt-border-strong bg-bt-title/30 px-3 py-2">
               <p className="text-[11px] font-semibold text-bt-inverse">스포츠 테마 (수동 지정)</p>
-              <p className="mt-1 text-[10px] text-bt-subtle">
-                스포츠 테마 메가 메뉴·browse용입니다. 해당 없으면 모두 해제하세요.
-              </p>
-              <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-bt-inverse">
-                {SPORTS_THEME_TAG_VALUES.map((tag) => (
-                  <label key={tag} className="inline-flex cursor-pointer items-center gap-1.5">
-                    <input
-                      type="checkbox"
-                      className="h-3.5 w-3.5 rounded border-bt-border-strong"
-                      checked={sportsThemeTagDraft.includes(tag)}
-                      onChange={() =>
-                        setSportsThemeTagDraft((prev) =>
-                          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-                        )
-                      }
-                    />
-                    <span>{SPORTS_THEME_TAG_LABELS[tag]}</span>
-                  </label>
-                ))}
-              </div>
+              <p className="mt-1 text-[10px] text-bt-subtle">메가 메뉴·browse용. 없으면 선택 안 함.</p>
+              <SportsThemeTagMultiSelect
+                value={sportsThemeTagDraft}
+                onChange={setSportsThemeTagDraft}
+                tone="dark"
+              />
             </div>
           </div>
           <button

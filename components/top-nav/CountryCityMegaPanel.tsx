@@ -15,7 +15,9 @@ type Props = {
  * 해외 메가메뉴 공통 패널 — 전 탭 동일: 4열 그리드·타이포·호버 색.
  */
 export default function CountryCityMegaPanel({ regionId, countryGroups, activeProductType }: Props) {
-  const isSouthAmericaFlatGrid = regionId === 'south-america'
+  const flatGridLeafCols =
+    regionId === 'south-america' ? 4 : regionId === 'sports_theme' ? 3 : null
+  const isFlatGrid = flatGridLeafCols != null
 
   return (
     <div className="min-h-[280px] max-h-[min(78vh,560px)] overflow-y-auto p-6">
@@ -23,9 +25,9 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
         {countryGroups.map((g, idx) => (
           <div
             key={`${regionId}-${g.countryLabel}-${idx}`}
-            className={`mb-6 min-w-0${isSouthAmericaFlatGrid ? ' col-span-4' : ''}`}
+            className={`mb-6 min-w-0${isFlatGrid ? ' col-span-4' : ''}`}
           >
-            {!isSouthAmericaFlatGrid &&
+            {!isFlatGrid &&
               (g.nonLinkHeader ? (
                 <span className="mb-3 block text-left text-[15px] font-bold text-slate-800">{g.countryLabel}</span>
               ) : (
@@ -43,8 +45,8 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
               ))}
             <ul
               className={
-                isSouthAmericaFlatGrid
-                  ? 'm-0 grid list-none grid-cols-4 gap-x-8 gap-y-2 p-0 text-left'
+                isFlatGrid
+                  ? `m-0 grid list-none ${flatGridLeafCols === 3 ? 'grid-cols-3' : 'grid-cols-4'} gap-x-8 gap-y-2 p-0 text-left`
                   : 'm-0 list-none p-0 text-left'
               }
             >

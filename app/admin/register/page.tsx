@@ -42,6 +42,7 @@ import {
 } from '@/lib/register-infer-browse-geo'
 import SafeImage from '@/app/components/SafeImage'
 import AdminPageHeader from '../components/AdminPageHeader'
+import SportsThemeTagMultiSelect from '../components/SportsThemeTagMultiSelect'
 import RegisterCorrectionDrawer from './components/RegisterCorrectionDrawer'
 import RegisterVerificationPanel from './components/RegisterVerificationPanel'
 import RegisterAdminFinalParsedSummaryCard from './components/RegisterAdminFinalParsedSummaryCard'
@@ -700,11 +701,6 @@ export default function AdminRegisterPage() {
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     )
   }, [])
-  const toggleSportsThemeTag = useCallback((tag: SportsThemeTag) => {
-    setSportsThemeTag((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    )
-  }, [])
   const currentRegisterPreviewFingerprint = () =>
     buildRegisterCanonForSupplier(selectedBrandKey, {
       text: rawText.trim(),
@@ -1231,24 +1227,15 @@ export default function AdminRegisterPage() {
         <div className="mt-6 border-l-4 border-[#0f172a] pl-6">
           <p className="text-sm font-semibold text-slate-800">스포츠 테마 (수동 지정)</p>
           <p className="mt-1 text-xs text-slate-500">
-            스포츠 테마 메가 메뉴·browse용입니다. 해당 없으면 모두 해제하세요. 체크한 값은 확정 저장 시 DB{' '}
-            <code className="text-[11px]">sportsThemeTag</code>에만 반영되며, 미리보기 본문 지문과는 무관합니다.
+            메가 메뉴·browse용. 없으면 선택 안 함. 확정 시 DB{' '}
+            <code className="text-[11px]">sportsThemeTag</code>만 반영.
           </p>
-          <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-800">
-            {SPORTS_THEME_TAG_VALUES.map((tag) => (
-              <label key={tag} className="inline-flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-slate-400 text-[#0f172a] focus:ring-[#0f172a]"
-                  checked={sportsThemeTag.includes(tag)}
-                  onChange={() => toggleSportsThemeTag(tag)}
-                  disabled={loading || confirming}
-                />
-                <span>{SPORTS_THEME_TAG_LABELS[tag]}</span>
-                <span className="font-mono text-[11px] text-slate-500">({tag})</span>
-              </label>
-            ))}
-          </div>
+          <SportsThemeTagMultiSelect
+            value={sportsThemeTag}
+            onChange={setSportsThemeTag}
+            disabled={loading || confirming}
+            tone="light"
+          />
         </div>
 
         {/* A-3. 본문 전체 원문 */}
