@@ -507,6 +507,10 @@ model User {
   marketingConsent         Boolean   @default(false)
   marketingConsentAt       DateTime?
   marketingConsentVersion  String?
+  pressVerified            Boolean   @default(false)
+  pressVerifiedAt          DateTime? @db.Timestamp(6)
+  pressVerifiedDomain      String?
+  pressVerifiedEmail       String?
   lastLoginAt              DateTime?
   /// 가입 시 입력한 추천 코드(원문, 대소문자 무시 조회는 앱 레이어)
   referredByCode           String?
@@ -1349,6 +1353,23 @@ model BongsimCouponBatchItem {
 
   @@index([batchId])
   @@map("bongsim_coupon_batch_item")
+}
+
+/// 직군(언론사) 직장 이메일 OTP 인증 (raw SQL 위주)
+model BongsimPressVerification {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String    @map("user_id")
+  workEmail    String    @map("work_email")
+  domain       String
+  codeHash     String    @map("code_hash")
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(6)
+  attemptCount Int       @default(0) @map("attempt_count")
+  consumedAt   DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, workEmail, createdAt(sort: Desc)], map: "idx_press_verif_user_email")
+  @@index([expiresAt], map: "idx_press_verif_expires")
+  @@map("bongsim_press_verification")
 }
 
 /// 메인 시즌 추천 도시 사이클(매달 KST 1일 기준) — Gemini가 primary 5 + fallback 10 cityKey 제안, PR-D3 검증 후 저장
