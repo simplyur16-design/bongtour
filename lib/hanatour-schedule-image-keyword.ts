@@ -144,6 +144,66 @@ export function isHanatourCrossContinentHallucinationKeyword(
   return CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))
 }
 
+/** routeText 세그먼트에서 괄호·라틴 영문만 추출(매핑 없음) */
+function extractLatinEnglishFromRouteSegment(seg: string): string {
+  const t = stripRouteSegmentNoise(seg)
+  if (!t || isHanatourDomesticHubToken(t)) return ''
+  const paren = t.match(/\(\s*([A-Za-z][A-Za-z0-9\s,.'-]{2,62})\s*\)/)
+  if (paren?.[1]) {
+    try {
+      return finalizeScheduleImageKeyword(paren[1])
+    } catch {
+      return ''
+    }
+  }
+  if (isLatinRoutePlaceSegment(t)) {
+    try {
+      return finalizeScheduleImageKeyword(t)
+    } catch {
+      return ''
+    }
+  }
+  return ''
+}
+
+/** 한글 routeText 세그먼트 — 본문 같은 줄 괄호·라틴 영문만(매핑 없음) */
+function findEnglishForKoreanRouteSegmentInHaystack(seg: string, haystack: string): string {
+  const t = stripRouteSegmentNoise(seg)
+  if (!t || !/[가-힣]/.test(t)) return ''
+  for (const line of haystack.split(/\r?\n/)) {
+    if (!line.includes(t)) continue
+    const fromLine = extractLatinEnglishFromRouteSegment(line)
+    if (fromLine) return fromLine
+    const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const parenNear = new RegExp(
+      `${escaped}\\s*[([\\uFF08\\[]\\s*([A-Za-z][A-Za-z0-9\\s,.'-]{2,62})\\s*[)\\]\\uFF09\\]]`,
+    )
+    const m = line.match(parenNear)
+    if (m?.[1]) {
+      try {
+        return finalizeScheduleImageKeyword(m[1])
+      } catch {
+        return ''
+      }
+    }
+  }
+  return ''
+}
+
+/** routeText 2번째 세그먼트 → 영문 명소(매핑 없음) */
+function resolveRouteTextSecondPlaceEnglish(
+  routeText: string | null | undefined,
+  haystack: string,
+): string {
+  const segs = routeTextSegments(routeText)
+  if (segs.length < 2) return ''
+  const second = segs[1]!
+  if (isHanatourDomesticHubToken(second)) return ''
+  const fromSeg = extractLatinEnglishFromRouteSegment(second)
+  if (fromSeg) return fromSeg
+  return findEnglishForKoreanRouteSegmentInHaystack(second, haystack)
+}
+
 function tryAcceptHanatourLlmImageKeyword(
   raw: string | null | undefined,
   productDestination: string | null | undefined,
@@ -180,13 +240,30 @@ function resolveHanatourPrimaryKeyword(
 function resolveHanatourSecondaryKeyword(
   row: HanatourScheduleImageKeywordRow,
   primary: string,
+  dayKind: HanatourScheduleCardDayKind,
   productDestination: string | null | undefined,
 ): string | null {
   if (!primary) return null
-  const accepted = tryAcceptHanatourLlmImageKeyword(row.imageKeyword2, productDestination)
-  if (!accepted) return null
-  if (normKey(accepted) === normKey(primary)) return null
-  return accepted
+  if (dayKind === 'movement' || dayKind === 'return_home') return null
+
+  const segs = routeTextSegments(row.routeText)
+  if (segs.length < 2) return null
+
+  const haystack = buildHanatourDayHaystack(row)
+  const fromRouteRaw = resolveRouteTextSecondPlaceEnglish(row.routeText, haystack)
+  const fromRoute = fromRouteRaw
+    ? tryAcceptHanatourLlmImageKeyword(fromRouteRaw, productDestination)
+    : ''
+
+  if (fromRoute) {
+    if (normKey(fromRoute) === normKey(primary)) return null
+    return fromRoute
+  }
+
+  // routeText 둘째 세그먼트가 한글-only — LLM imageKeyword2를 영문 라벨 보조 후보로
+  const fromLlm = tryAcceptHanatourLlmImageKeyword(row.imageKeyword2, productDestination)
+  if (!fromLlm || normKey(fromLlm) === normKey(primary)) return null
+  return fromLlm
 }
 
 export function applyHanatourScheduleImageKeywordsToRows<
@@ -209,7 +286,7 @@ export function applyHanatourScheduleImageKeywordsToRows<
     const haystack = buildHanatourDayHaystack(row)
     const dayKind = classifyHanatourScheduleCardDayKind(day, maxDay, haystack)
     const primary = resolveHanatourPrimaryKeyword(row, dayKind, day, maxDay, productDestination)
-    const secondary = resolveHanatourSecondaryKeyword(row, primary, productDestination)
+    const secondary = resolveHanatourSecondaryKeyword(row, primary, dayKind, productDestination)
 
     return {
       ...row,
