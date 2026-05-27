@@ -1530,10 +1530,14 @@ export function polishHanatourScheduleRowsPreferDetailBody(
         mealSummaryText: polished.mealSummaryText?.trim() || row.mealSummaryText?.trim() || null,
         hotelText: polished.hotelText?.trim() || row.hotelText?.trim() || null,
         imageKeyword: preservedImageKeyword,
+        imageKeyword2: row.imageKeyword2 ?? null,
         description: preservedDescription,
       }
     }
-    return polishHanatourScheduleDayForItinerary(row, maxDay)
+    return {
+      ...polishHanatourScheduleDayForItinerary(row, maxDay),
+      imageKeyword2: row.imageKeyword2 ?? null,
+    }
   })
 }
 
