@@ -1,37 +1,61 @@
 /**
- * 모두투어 전용: `Product.schedule[].imageKeyword`만 Pexels 검색용 영문 관광지 고유명으로 정리.
- * title/description/일정 분리 로직은 건드리지 않는다.
+ * 모두투어 전용: `Product.schedule[].imageKeyword` / `imageKeyword2` — Pexels 검색용 영문.
+ * LLM 영문 그대로 사용, routeText 라틴 세그먼트 폴백만. 매핑·고정폴백 없음.
  */
+import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
+import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
-import {
-  finalizeScheduleImageKeyword,
-  isBareCityOrCountryKeyword,
-  normalizeToPlaceName,
-} from '@/lib/pexels-place-name-keyword'
-export type ModetourScheduleRowInput = {
+export type ModetourScheduleImageKeywordOpts = {
+  productDestination?: string | null
+  productTitle?: string
+  pastedBlob?: string
+}
+
+export type ModetourScheduleImageKeywordRow = {
   day: number
   title?: string
   description?: string
   routeText?: string | null
+  imageKeyword?: string | null
+  imageKeyword2?: string | null
 }
 
-export type ModetourImageKeywordContext = {
-  day: number
-  title: string
-  description: string
-  routeText?: string | null
-  /** 일차 원문 블록(붙여넣기 파이프라인) */
-  blob?: string
-  /** 동일 상품 일정 전체 — 출발일=첫 해외 도시, 귀국일=마지막 해외 도시 */
-  scheduleRows?: ReadonlyArray<ModetourScheduleRowInput>
-  /** 에어텔(항공+호텔) + 일정 빈약 시 도시 기반 키워드(모두투어 전용) */
-  airtelFreeTravelImageKw?: 'off' | 'force-city'
-  productTitle?: string
-  productPrimaryDestination?: string | null
-  productDestination?: string | null
-}
+type ModetourScheduleCardDayKind = 'tourism' | 'movement' | 'return_home'
 
-const HANGUL = /\p{Script=Hangul}/u
+const DOMESTIC_HUB_KO_RE =
+  /^(?:인천|김포|부산|대구|청주|김해|서울|제주)(?:\s*국제?\s*공항|\s*공항)?(?:\s*출발|\s*도착)?$/u
+
+const DOMESTIC_HUB_EN_RE =
+  /^(?:Incheon|Gimpo|Busan|Daegu|Cheongju|Gimhae|Seoul|Jeju|ICN|GMP|PUS|TAE|CJJ|CJU)$/i
+
+const ASIA_PACIFIC_PRODUCT_DEST_RE =
+  /인도|India|일본|Japan|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii/i
+
+const MODETOUR_TOXIC_IMAGE_KEYWORD_RE =
+  /\bscenic\s+asian\s+city\s+travel\s+skyline\s+dusk\b/i
+
+const MODETOUR_LLM_DAY_TRAVEL_RE = /^day\s*\d+\s*travel$/i
+
+const CROSS_CONTINENT_HALLUCINATION_KW_RES: ReadonlyArray<RegExp> = [
+  /\bParis\b/i,
+  /\bEiffel\b/i,
+  /\bLouvre\b/i,
+  /Notre\s*Dame/i,
+  /\bColosseum\b/i,
+  /\bRome\b/i,
+  /Forbidden(\s*City)?/i,
+  /Big\s*Ben/i,
+  /London\s*Eye/i,
+  /Tower\s*of\s*London/i,
+  /\bBarcelona\b/i,
+  /Sagrada\s*Familia/i,
+  /\bAmsterdam\b/i,
+  /\bVenice\b/i,
+  /Brandenburg/i,
+  /\bMunich\b/i,
+  /Arc\s*de\s*Triomphe/i,
+  /Versailles/i,
+]
 
 /** LLM/파서 placeholder·불량 패턴 */
 export function isModetourPlaceholderImageKeyword(s: string): boolean {
@@ -43,358 +67,230 @@ export function isModetourPlaceholderImageKeyword(s: string): boolean {
   return false
 }
 
-const DATE_LIKE =
-  /\d{4}\s*[.\-/]\s*\d{1,2}\s*[.\-/]\s*\d{1,2}|\d{1,2}\s*\/\s*\d{1,2}\s*\(\s*[월화수목금토일]\s*\)|\b\d{1,2}\s*\/\s*\d{1,2}\b/
-
-const MEAL_HOTEL_KO = /호텔|예정\s*호텔|호텔식|조식|중식|석식|점심|저녁|아침|식사\s*[:：]/u
-
-const TRAVEL_STANDALONE_KO = /^(?:출발|도착|귀국|입국|출국|공항\s*이동|이동)$/u
-
-const GENERIC_EN = /^(?:travel|tour|city\s*tour|day\s*\d+\s*travel)$/i
-
-/** 최소 한글→영문 관광지 (모두투어 일정 본문에서 자주 쓰이는 표기만) */
-const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
-  { re: /(?:유|우)원|豫园|예원/u, en: 'Yu Garden Shanghai' },
-  { re: /외탄|外灘|外滩|와탄/u, en: 'Shanghai Bund skyline' },
-  { re: /항주|杭州|서호|西湖/u, en: 'West Lake Hangzhou' },
-  { re: /송성|宋城|송가무|가무쇼/u, en: 'Songcheng Park Hangzhou' },
-  { re: /청황|城隍/u, en: 'City God Temple of Shanghai' },
-  { re: /동방명주|东方明珠/u, en: 'Oriental Pearl Tower Shanghai' },
-  { re: /주가각|朱家角/u, en: 'Zhujiajiao water town canal bridge' },
-  { re: /우캉\s*루|武康路/u, en: 'Wukang Road Shanghai' },
-  { re: /남경\s*로|南京路/u, en: 'Nanjing Road Shanghai' },
-  { re: /에펠\s*탑|에펠탑|Eiffel/i, en: 'Eiffel Tower Paris' },
-  { re: /개선문/u, en: 'Arc de Triomphe Paris' },
-  { re: /몽생미셸|Mont\s*Saint\s*Michel/i, en: 'Mont Saint Michel abbey' },
-  { re: /시부야|渋谷/u, en: 'Shibuya crossing Tokyo night' },
-  { re: /하라주쿠|原宿/u, en: 'Harajuku Takeshita street Tokyo' },
-  { re: /금각사|金閣寺/u, en: 'Kinkakuji golden pavilion Kyoto' },
-  { re: /은각사|銀閣寺/u, en: 'Ginkakuji temple Kyoto' },
-  { re: /후시미\s*이나리|伏見稲荷/u, en: 'Fushimi Inari torii gates Kyoto' },
-  { re: /도톤보리|道頓堀/u, en: 'Dotonbori Osaka night' },
-  { re: /(?:유|우)니버설|USJ/u, en: 'Universal Studios Japan Osaka' },
-  { re: /도쿄\s*디즈니|디즈니(?:랜드|씨)/u, en: 'Tokyo Disneyland castle' },
-  { re: /타이페이\s*101|台北\s*101|타이편\s*101/u, en: 'Taipei 101 tower night' },
-  { re: /지우펀|九份/u, en: 'Jiufen old street Taiwan night' },
-  { re: /백두산/u, en: 'Changbai Mountain scenic view' },
-  { re: /이도백하/u, en: 'Erdaobaihe river town Changbai' },
-  { re: /금강\s*대?\s*협곡/u, en: 'Mount Geumgang gorge scenic' },
-]
-
-const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
-  { re: /상해|사해|上海/u, en: 'Shanghai skyline night' },
-  { re: /북경|베이징|北京/u, en: 'Beijing Forbidden City view' },
-  { re: /광저우|광주|广州/u, en: 'Guangzhou skyline night' },
-  { re: /심천|深圳/u, en: 'Shenzhen skyline night' },
-  { re: /도쿄|東京/u, en: 'Tokyo street night' },
-  { re: /오사카|大阪/u, en: 'Osaka Dotonbori night' },
-  { re: /교토|京都/u, en: 'Kyoto temple street' },
-  { re: /후쿠오카|福岡/u, en: 'Fukuoka city night' },
-  { re: /삿포로|札幌/u, en: 'Sapporo snow city street' },
-  { re: /나고야|名古屋/u, en: 'Nagoya castle view' },
-  { re: /요코하마|横浜/u, en: 'Yokohama bay night' },
-  { re: /파리/u, en: 'Paris city skyline' },
-  { re: /로마/u, en: 'Rome Colosseum view' },
-  { re: /바르셀로나/u, en: 'Barcelona Sagrada Familia exterior' },
-  { re: /런던/u, en: 'London Thames skyline' },
-  { re: /뉴욕/u, en: 'New York Manhattan skyline' },
-  { re: /연길/u, en: 'Yanji Korean quarter winter street' },
-  { re: /제주/u, en: 'Jeju coast view' },
-  { re: /서울/u, en: 'Seoul city skyline night' },
-  { re: /부산/u, en: 'Busan Gamcheon village' },
-  { re: /방콕/u, en: 'Bangkok Wat Arun temple' },
-  { re: /치앙마이/u, en: 'Chiang Mai old city temple' },
-  { re: /파타야/u, en: 'Pattaya beach sunset' },
-  { re: /바나힐|바나\s*힐|Ba\s*Na\s*Hills/i, en: 'Ba Na Hills Golden Bridge Da Nang' },
-  { re: /호이안|회안|Hoi\s*An/i, en: 'Hoi An ancient town lanterns Vietnam' },
-  { re: /미케\s*비치|Mỹ\s*Khê|My\s*Khe/i, en: 'My Khe Beach Da Nang' },
-  { re: /마블\s*마운틴|오행산|Marble\s*Mountain/i, en: 'Marble Mountains Da Nang caves' },
-  { re: /다낭\s*대성당|수탉\s*성당/i, en: 'Da Nang Cathedral pink church' },
-  { re: /영흥사|손짜|Linh\s*Ung/i, en: 'Linh Ung Pagoda Son Tra Da Nang' },
-  { re: /투본강/i, en: 'Thu Bon River Hoi An boat' },
-  { re: /다낭/u, en: 'Da Nang Marble Mountains view' },
-  { re: /하노이/u, en: 'Hanoi Old Quarter street' },
-  { re: /호치민/u, en: 'Ho Chi Minh city skyline' },
-  { re: /세부/u, en: 'Cebu tropical beach' },
-  { re: /보라카이/u, en: 'Boracay white beach' },
-  { re: /발리/u, en: 'Bali rice terrace view' },
-  { re: /시드니|悉尼/u, en: 'Sydney Opera House harbour' },
-  { re: /멜버른|멜번/u, en: 'Melbourne laneway street' },
-  { re: /홍콩|香港/u, en: 'Hong Kong Victoria Harbour night' },
-  { re: /마카오|澳門/u, en: 'Macau Senado square' },
-  { re: /타이페이|台北/u, en: 'Taipei night market street' },
-  { re: /하와이|호놀룰루|Honolulu/i, en: 'Honolulu Waikiki beach' },
-  { re: /괌|Guam/i, en: 'Guam Tumon beach' },
-  { re: /사이판|Saipan/i, en: 'Saipan Managaha lagoon' },
-]
-
-const AIRPORT_KEYWORD_RE =
-  /\bairport\b|international\s+flight|departure\s+hall|heathrow|narita|haneda|gimpo|incheon\s+airport|terminal\b/i
-
-function hay(ctx: ModetourImageKeywordContext): string {
-  return `${ctx.title}\n${ctx.description}\n${ctx.routeText ?? ''}\n${ctx.blob ?? ''}`.replace(/\s+/g, ' ')
+function normKey(s: string): string {
+  return normalizeSemanticPoiKey(s)
 }
 
-function resolveModetourHubImageKeyword(_ctx: ModetourImageKeywordContext): string | null {
-  return null
+function buildModetourDayHaystack(row: ModetourScheduleImageKeywordRow): string {
+  return [row.title, row.description, row.routeText].filter(Boolean).join('\n').replace(/\r/g, '')
 }
 
-function stripDatesAndNoise(s: string): string {
-  return s
-    .replace(/\b\d{4}\s*[.\-/]\s*\d{1,2}\s*[.\-/]\s*\d{1,2}\b/g, ' ')
-    .replace(/\d{1,2}\s*\/\s*\d{1,2}\s*\(\s*[월화수목금토일]\s*\)/g, ' ')
-    .replace(/\s*·\s*/g, ' ')
+function stripRouteSegmentNoise(seg: string): string {
+  return seg
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
 
-function countWords(s: string): number {
-  return s.split(/\s+/).filter(Boolean).length
-}
-
-function clampWords(s: string, maxWords: number): string {
-  const w = s.split(/\s+/).filter(Boolean)
-  if (w.length <= maxWords) return w.join(' ').trim()
-  return w.slice(0, maxWords).join(' ').trim()
-}
-
-function hasHangul(s: string): boolean {
-  return HANGUL.test(s)
-}
-
-function hasBadSubstrings(s: string): boolean {
-  if (DATE_LIKE.test(s)) return true
-  if (MEAL_HOTEL_KO.test(s)) return true
-  if (GENERIC_EN.test(s.trim())) return true
-  if (TRAVEL_STANDALONE_KO.test(s.trim())) return true
-  if (/\b(?:hotel\s*only|breakfast|lunch|dinner|meals?\s*at)\b/i.test(s)) return true
-  if (AIRPORT_KEYWORD_RE.test(s)) return true
+export function isModetourDomesticHubToken(token: string): boolean {
+  const t = stripRouteSegmentNoise(token)
+  if (!t) return true
+  if (DOMESTIC_HUB_KO_RE.test(t)) return true
+  if (DOMESTIC_HUB_EN_RE.test(t)) return true
+  if (/^인천(?:국제)?공항$/u.test(t)) return true
+  if (/^김포(?:국제)?공항$/u.test(t)) return true
+  if (/^부산(?:국제)?공항$/u.test(t)) return true
+  if (/^대구(?:국제)?공항$/u.test(t)) return true
+  if (/^청주(?:국제)?공항$/u.test(t)) return true
   return false
 }
 
-/** 이미 영문 이미지 검색어로 쓸 만하면 true (한글 금지) */
-function isAcceptableEnglishKeyword(s: string): boolean {
-  const t = stripDatesAndNoise(s)
-  if (t.length < 4 || t.length > 120) return false
-  if (hasHangul(t)) return false
-  if (isModetourPlaceholderImageKeyword(t)) return false
-  if (hasBadSubstrings(t)) return false
-  if (!/[a-z]{4,}/i.test(t)) return false
-  if (countWords(t) > 10) return false
-  return true
+function routeTextSegments(routeText: string | null | undefined): string[] {
+  const rt = String(routeText ?? '').trim()
+  if (!rt) return []
+  return rt
+    .split(/\s*-\s*/)
+    .map(stripRouteSegmentNoise)
+    .filter((s) => s.length >= 2)
 }
 
-function firstMatchingEn(rules: ReadonlyArray<{ re: RegExp; en: string }>, h: string): string | null {
-  for (const { re, en } of rules) {
-    if (re.test(h)) return en
+function isLatinRoutePlaceSegment(seg: string): boolean {
+  const t = stripRouteSegmentNoise(seg)
+  if (!t || t.length < 2) return false
+  if (/[가-힣]/.test(t)) return false
+  if (/[\u4e00-\u9fff]/.test(t)) return false
+  return t.replace(/[^A-Za-z]/g, '').length >= 3
+}
+
+function pickEnglishRouteTextPlace(routeText: string | null | undefined, pickLast: boolean): string {
+  const segs = routeTextSegments(routeText).filter(
+    (s) => isLatinRoutePlaceSegment(s) && !isModetourDomesticHubToken(s),
+  )
+  if (!segs.length) return ''
+  const raw = pickLast ? segs[segs.length - 1]! : segs[0]!
+  try {
+    return finalizeScheduleImageKeyword(raw)
+  } catch {
+    return ''
   }
+}
+
+function isModetourLlmImageKeywordFormatOk(kw: string): boolean {
+  const k = kw.trim()
+  if (!k || k.length < 3 || k.length > 120) return false
+  if (/[\uAC00-\uD7AF]/.test(k)) return false
+  if (MODETOUR_TOXIC_IMAGE_KEYWORD_RE.test(k)) return false
+  if (MODETOUR_LLM_DAY_TRAVEL_RE.test(k)) return false
+  if (/\b(hotel|resort|buffet|breakfast|lunch|dinner|brunch)\b/i.test(k)) return false
+  if (/\d{1,2}\/\d{1,2}/.test(k) || /\d{1,2}-\d{1,2}\b/.test(k)) return false
+  const words = k.split(/\s+/).filter(Boolean).length
+  if (words < 1 || words > 10) return false
+  return /^[A-Za-z0-9\s,.'-]+$/.test(k)
+}
+
+export function isModetourCrossContinentHallucinationKeyword(
+  keyword: string,
+  productDestination: string | null | undefined,
+): boolean {
+  const dest = String(productDestination ?? '').trim()
+  if (!dest || !ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest)) return false
+  const raw = String(keyword ?? '').trim()
+  if (!raw) return false
+  const fin = normalizeToPlaceName(raw)
+  const haystacks = fin && fin !== raw ? [raw, fin] : [raw]
+  return CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))
+}
+
+function extractLatinEnglishFromRouteSegment(seg: string): string {
+  const t = stripRouteSegmentNoise(seg)
+  if (!t || isModetourDomesticHubToken(t)) return ''
+  const paren = t.match(/\(\s*([A-Za-z][A-Za-z0-9\s,.'-]{2,62})\s*\)/)
+  if (paren?.[1]) {
+    try {
+      return finalizeScheduleImageKeyword(paren[1])
+    } catch {
+      return ''
+    }
+  }
+  if (isLatinRoutePlaceSegment(t)) {
+    try {
+      return finalizeScheduleImageKeyword(t)
+    } catch {
+      return ''
+    }
+  }
+  return ''
+}
+
+function resolveRouteTextSecondLatinPlace(routeText: string | null | undefined): string {
+  const segs = routeTextSegments(routeText)
+  if (segs.length < 2) return ''
+  return extractLatinEnglishFromRouteSegment(segs[1]!)
+}
+
+function tryAcceptModetourLlmImageKeyword(
+  raw: string | null | undefined,
+  productDestination: string | null | undefined,
+): string {
+  const llmRaw = String(raw ?? '').trim()
+  if (!llmRaw || !isModetourLlmImageKeywordFormatOk(llmRaw)) return ''
+  if (isModetourDomesticHubToken(llmRaw)) return ''
+  if (isModetourCrossContinentHallucinationKeyword(llmRaw, productDestination)) return ''
+  try {
+    return finalizeScheduleImageKeyword(llmRaw)
+  } catch {
+    return ''
+  }
+}
+
+export function classifyModetourScheduleCardDayKind(
+  day: number,
+  maxDay: number,
+  joined: string,
+): ModetourScheduleCardDayKind {
+  const j = joined.slice(0, 12_000)
+  if (
+    day === maxDay &&
+    maxDay >= 2 &&
+    /(인천|ICN|김포|GMP)/.test(j) &&
+    /(출발|귀국|탑승)/.test(j) &&
+    /(상해|PVG|푸동|연길|YNJ|다낭|Da\s*Nang|호치민|방콕|Bangkok|Tokyo|Osaka)/i.test(j)
+  ) {
+    return 'return_home'
+  }
+  if (day === maxDay && maxDay >= 2 && /(귀국|인천\s*도착|ICN\s*도착|서울\s*도착)/.test(j) && /출발/.test(j)) {
+    return 'return_home'
+  }
+  if (day === 1 && /출발/.test(j) && /(도착|입국)/.test(j) && /(공항|ICN|PVG|GMP|김포|인천|부산|PUS|대구|TAE|청주|CJJ)/.test(j)) {
+    return 'movement'
+  }
+  if (
+    day === 1 &&
+    /(입국|도착|공항|피켓|미팅)/.test(j) &&
+    /(상해|PVG|푸동|연길|YNJ|다낭|Da\s*Nang|김포|인천|부산)/i.test(j) &&
+    /(가이드|호텔|공항|출발|탑승)/.test(j)
+  ) {
+    return 'movement'
+  }
+  return 'tourism'
+}
+
+function resolveModetourPrimaryKeyword(
+  row: ModetourScheduleImageKeywordRow,
+  dayKind: ModetourScheduleCardDayKind,
+  day: number,
+  maxDay: number,
+  productDestination: string | null | undefined,
+): string {
+  const accepted = tryAcceptModetourLlmImageKeyword(row.imageKeyword, productDestination)
+  if (accepted) return accepted
+
+  if (dayKind === 'movement' || dayKind === 'return_home') {
+    const pickLast = day === maxDay && maxDay >= 2
+    return pickEnglishRouteTextPlace(row.routeText, pickLast)
+  }
+
+  return pickEnglishRouteTextPlace(row.routeText, false)
+}
+
+function resolveModetourSecondaryKeyword(
+  row: ModetourScheduleImageKeywordRow,
+  primary: string,
+  dayKind: ModetourScheduleCardDayKind,
+  productDestination: string | null | undefined,
+): string | null {
+  if (!primary) return null
+  if (dayKind === 'movement' || dayKind === 'return_home') return null
+
+  const fromLlm = tryAcceptModetourLlmImageKeyword(row.imageKeyword2, productDestination)
+  if (fromLlm && normKey(fromLlm) !== normKey(primary)) return fromLlm
+
+  const fromRouteRaw = resolveRouteTextSecondLatinPlace(row.routeText)
+  const fromRoute = fromRouteRaw
+    ? tryAcceptModetourLlmImageKeyword(fromRouteRaw, productDestination)
+    : ''
+  if (fromRoute && normKey(fromRoute) !== normKey(primary)) return fromRoute
+
   return null
 }
 
-const MODETOUR_AIRTEL_SCHEDULE_STOPWORDS = new Set([
-  '공항',
-  '호텔',
-  '이동',
-  '출발',
-  '도착',
-  '자유일정',
-  '체크인',
-  '귀국',
-  '입국',
-  '일차',
-  '미팅',
-  '호텔숙박',
-  '석식',
-  '조식',
-  '중식',
-  '식사',
-  '자유',
-  '예정',
-  '체크인',
-  '픽업',
-  '탑승',
-  '수속',
-])
-
-function modetourAirtelScheduleRowHasPlaceSignal(row: { title: string; description: string }): boolean {
-  const t = `${row.title ?? ''}\n${row.description ?? ''}`
-  const compact = t.replace(/\s/g, '')
-  if (compact.length < 10) return false
-  const hangulWords = t.match(/[가-힣]{3,}/g) ?? []
-  for (const w of hangulWords) {
-    if (w.length >= 3 && !MODETOUR_AIRTEL_SCHEDULE_STOPWORDS.has(w) && !/^제?\d+일차?$/.test(w)) return true
-  }
-  if (/[A-Za-z]{6,}/.test(t) && !/^day\s*\d+/i.test(t.trim())) return true
-  return false
-}
-
-/** 에어텔 일정이 관광지 서술 없이 빈약한지(모두투어 전용) */
-export function isModetourScheduleWeakForAirtelImageKw(
-  rows: ReadonlyArray<{ title: string; description: string }>
-): boolean {
-  if (!rows.length) return true
-  const usable = rows.filter((r) => (String(r.title) + String(r.description)).trim().length > 0)
-  if (!usable.length) return true
-  return usable.every((r) => !modetourAirtelScheduleRowHasPlaceSignal(r))
-}
-
-function modetourAirtelFreeTravelHaystackLocal(ctx: ModetourImageKeywordContext): string {
-  const parts = [
-    ctx.productTitle,
-    ctx.productPrimaryDestination,
-    ctx.productDestination,
-    ctx.title,
-    ctx.description,
-    ctx.blob,
-  ].filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
-  return parts.join('\n').replace(/\s+/g, ' ').trim().slice(0, 24_000)
-}
-
-function modetourAirtelFreeTravelRegionalFallbackLocal(h: string): string {
-  if (/(북유럽|노르웨이|스웨덴|핀란드|덴마크|스칸디나비아|Norway|Sweden|Finland|Denmark|Scandinavia)/i.test(h))
-    return 'Scandinavia Nordic waterfront city harbor view'
-  if (/(발틱|에스토니아|라트비아|리투아니아|타린|리가|빌뉴스)/i.test(h))
-    return 'Baltic historic old town cobblestone street'
-  if (/(유럽|프랑스|독일|이탈리아|스페인|포르투갈|오스트리아|스위스|그리스|크로아티아|슬로베니아)/i.test(h))
-    return 'European historic city center architecture plaza'
-  if (/(영국|아일랜드|스코틀랜드|에든버러)/i.test(h)) return 'British Isles historic city street architecture'
-  if (/(중동|터키|요르단|이집트|모로코|UAE|아랍)/i.test(h)) return 'Middle East historic mosque old city skyline'
-  if (/(아프리카|케냐|남아프리카|모잠비크)/i.test(h)) return 'Africa savanna lodge sunrise landscape'
-  if (/(호주|뉴질랜드|Oceania)/i.test(h)) return 'Oceania coastal city waterfront skyline'
-  if (/(미국|캐나다|하와이|알래스카|멕시코|Mexico)/i.test(h)) return 'North America urban skyline downtown day'
-  if (/(일본|도쿄|오사카|교토|沖縄)/i.test(h)) return 'Japan city street skyline night district'
-  if (/(중국|홍콩|마카오|대만|타이베이)/i.test(h)) return 'East Asia metropolitan skyline riverfront'
-  if (/(태국|베트남|캄보디아|라오스|미얀마|필리핀|인도네시아|말레이시아|싱가포르|동남아)/i.test(h))
-    return 'Southeast Asia tropical city riverfront temples'
-  if (/(인도|네팔|스리랑카)/i.test(h)) return 'South Asia historic monument cityscape'
-  if (/(한국|서울|제주|부산)/i.test(h)) return 'Korea modern city skyline Han river'
-  return 'International city travel destination view'
-}
-
-/** 모두투어 전용: 에어텔+빈약 일정용 도시/권역 키워드(타 공급사 미사용) */
-function modetourResolveAirtelFreeTravelImageKeywordLocal(ctx: ModetourImageKeywordContext): string {
-  const h = modetourAirtelFreeTravelHaystackLocal(ctx)
-  if (!h) return 'International city travel destination view'
-
-  const cityRules: ReadonlyArray<{ re: RegExp; en: string }> = [
-    { re: /코펜하겐|Copenhagen|København/i, en: 'Copenhagen Nyhavn waterfront' },
-    { re: /파리|Paris/i, en: 'Paris Eiffel Tower city view' },
-    { re: /로마|Roma?\b|Rome/i, en: 'Rome Colosseum historic city' },
-    { re: /오사카|大阪|Osaka/i, en: 'Osaka Dotonbori city night' },
-    { re: /방콕|Bangkok/i, en: 'Bangkok riverside city skyline' },
-    { re: /다낭|Da\s*Nang/i, en: 'Da Nang beach city skyline' },
-    { re: /바르셀로나|Barcelona/i, en: 'Barcelona Sagrada Familia city view' },
-    { re: /스톡홀름|Stockholm/i, en: 'Stockholm Gamla Stan waterfront' },
-    { re: /오슬로|Oslo/i, en: 'Oslo fjord harbor city view' },
-    { re: /헬싱키|Helsinki/i, en: 'Helsinki waterfront market square' },
-    { re: /베르겐|Bergen/i, en: 'Bergen Norway harbor colorful houses' },
-    { re: /상해|上海|Shanghai/i, en: 'Shanghai Bund skyline Huangpu river' },
-    { re: /도쿄|東京|Tokyo/i, en: 'Tokyo Shibuya crossing night city' },
-    { re: /런던|London/i, en: 'London Thames skyline Westminster' },
-    { re: /암스테르담|Amsterdam/i, en: 'Amsterdam canal houses bridges' },
-    { re: /프라하|Prague|Praha/i, en: 'Prague old town square historic towers' },
-    { re: /비엔나|Vienna|Wien/i, en: 'Vienna historic palace district city view' },
-    { re: /마드리드|Madrid/i, en: 'Madrid Gran Via city sunset' },
-    { re: /리스본|Lisbon/i, en: 'Lisbon Alfama hillside tram city view' },
-    { re: /뮌헨|Munich/i, en: 'Munich Marienplatz historic square' },
-    { re: /베를린|Berlin/i, en: 'Berlin Brandenburg Gate city view' },
-    { re: /취리히|Zurich/i, en: 'Zurich lake Alps city waterfront' },
-    { re: /제네바|Geneva/i, en: 'Geneva lake Jet dEau waterfront' },
-    { re: /부다페스트|Budapest/i, en: 'Budapest Danube Parliament night' },
-    { re: /두브로브니크|Dubrovnik/i, en: 'Dubrovnik old town walls Adriatic sea' },
-    { re: /레이캬비크|Reykjavik/i, en: 'Reykjavik colorful harbor houses' },
-    { re: /뉴욕|Manhattan|New\s*York/i, en: 'New York Manhattan skyline Hudson' },
-    { re: /호놀룰루|Honolulu|하와이|Hawaii/i, en: 'Honolulu Waikiki beach palm sunset' },
-    { re: /시드니|Sydney/i, en: 'Sydney Opera House harbour bridge view' },
-    { re: /멜번|Melbourne/i, en: 'Melbourne laneway cafes city day' },
-    { re: /아테네|Athens/i, en: 'Athens Acropolis historic skyline' },
-    { re: /이스탄불|Istanbul/i, en: 'Istanbul Bosporus mosque skyline sunset' },
-    { re: /두바이|Dubai/i, en: 'Dubai Marina skyline skyscrapers night' },
-    { re: /싱가포르|Singapore/i, en: 'Singapore Marina Bay night skyline' },
-    { re: /쿠알라룸푸르|Kuala Lumpur/i, en: 'Kuala Lumpur Petronas Twin Towers' },
-    { re: /세부|Cebu/i, en: 'Cebu tropical turquoise beach' },
-    { re: /치앙마이|Chiang Mai/i, en: 'Chiang Mai old city temple street' },
-    { re: /하노이|Hanoi/i, en: 'Hanoi Old Quarter colonial street day' },
-    { re: /호치민|Ho Chi Minh|사이공/i, en: 'Ho Chi Minh city skyline Saigon river' },
-    { re: /교토|京都|Kyoto/i, en: 'Kyoto bamboo forest temple path' },
-    { re: /후쿠오카|福岡|Fukuoka/i, en: 'Fukuoka city ramen street night' },
-    { re: /삿포로|札幌|Sapporo/i, en: 'Sapporo snow festival winter city' },
-    { re: /나고야|名古屋/i, en: 'Nagoya castle cherry park view' },
-    { re: /요코하마|横浜/i, en: 'Yokohama bay Minato Mirai night' },
-    { re: /괌|Guam/i, en: 'Guam Tumon beach lagoon' },
-    { re: /발리|Bali/i, en: 'Bali rice terraces jungle sunrise' },
-    { re: /연길|延吉|Yanji/i, en: 'Yanji Korean quarter winter street' },
-    { re: /북경|베이징|北京/i, en: 'Beijing Forbidden City view' },
-    { re: /광저우|广州/i, en: 'Guangzhou skyline night' },
-  ]
-  for (const { re, en } of cityRules) {
-    if (re.test(h)) return en
-  }
-  return modetourAirtelFreeTravelRegionalFallbackLocal(h)
-}
-
-/** 붙여넣기/LLM 후처리 공통: 본문·제목에서 영문 검색어 유도 (공항·IATA 금지) */
-export function deriveModetourImageKeyword(ctx: ModetourImageKeywordContext): string {
-  const hubKw = resolveModetourHubImageKeyword(ctx)
-  if (hubKw) return hubKw
-
-  const h = hay(ctx)
-  const spot = firstMatchingEn(SPOT_RULES, h)
-  if (spot) return spot
-
-  const cityHit = firstMatchingEn(CITY_RULES, h)
-  if (cityHit) return cityHit
-
-  return modetourAirtelFreeTravelRegionalFallbackLocal(h)
-}
-
-export function polishModetourImageKeyword(raw: string, ctx: ModetourImageKeywordContext): string {
-  const cleaned = stripDatesAndNoise(String(raw ?? '').trim())
-  let chosen = ''
-  if (ctx.airtelFreeTravelImageKw === 'force-city') {
-    const kw = modetourResolveAirtelFreeTravelImageKeywordLocal(ctx)
-    if (kw.trim()) chosen = clampWords(kw, 8)
-  } else if (cleaned && isAcceptableEnglishKeyword(cleaned)) {
-    chosen = clampWords(cleaned, 8)
-  } else if (cleaned && !hasHangul(cleaned) && !isModetourPlaceholderImageKeyword(cleaned) && !hasBadSubstrings(cleaned)) {
-    const t2 = clampWords(cleaned.replace(/[,，]+/g, ' '), 8)
-    if (t2.length >= 4 && /[a-z]{3,}/i.test(t2)) chosen = t2
-  } else {
-    chosen = clampWords(deriveModetourImageKeyword(ctx), 8)
-  }
-  let out = finalizeScheduleImageKeyword(chosen) || normalizeToPlaceName(chosen) || ''
-  if (isBareCityOrCountryKeyword(out)) {
-    const d = deriveModetourImageKeyword(ctx)
-    out = finalizeScheduleImageKeyword(d) || out
-  }
-  return out
-}
-
-export type ModetourScheduleImageKeywordOpts = {
-  productDestination?: string | null
-  productTitle?: string
-  pastedBlob?: string
-}
-
 export function applyModetourScheduleImageKeywordsToRows<
-  T extends ModetourScheduleRowInput & { imageKeyword?: string | null; imageKeyword2?: string | null },
+  T extends ModetourScheduleImageKeywordRow,
 >(rows: T[], opts?: ModetourScheduleImageKeywordOpts): T[] {
+  const sorted = rows.filter((r) => Number(r.day) > 0)
+  const maxDay = sorted.length ? Math.max(...sorted.map((r) => Number(r.day))) : 1
+  const productDestination = opts?.productDestination ?? null
+
   return rows.map((row) => {
-    const kw = polishModetourImageKeyword(String(row.imageKeyword ?? '').trim(), {
-      day: row.day,
-      title: String(row.title ?? ''),
-      description: String(row.description ?? ''),
-      routeText: row.routeText ?? null,
-      blob: opts?.pastedBlob,
-      productTitle: opts?.productTitle,
-      productPrimaryDestination: opts?.productDestination ?? null,
-      productDestination: opts?.productDestination ?? null,
-      scheduleRows: rows,
-    })
+    const day = Number(row.day)
+    if (day <= 0) {
+      return {
+        ...row,
+        imageKeyword: String(row.imageKeyword ?? '').trim(),
+        imageKeyword2: row.imageKeyword2 ?? null,
+      }
+    }
+
+    const haystack = buildModetourDayHaystack(row)
+    const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, haystack)
+    const primary = resolveModetourPrimaryKeyword(row, dayKind, day, maxDay, productDestination)
+    const secondary = resolveModetourSecondaryKeyword(row, primary, dayKind, productDestination)
+
     return {
       ...row,
-      imageKeyword: kw,
-      imageKeyword2: row.imageKeyword2 ?? null,
+      imageKeyword: primary,
+      imageKeyword2: secondary,
     }
   })
 }

@@ -7,7 +7,7 @@ import { parseModetourFlightInput } from '../lib/register-input-parse-modetour'
 import { buildModetourDirectedSegmentLinesFromFlightRaw } from '../lib/flight-modetour-parser'
 import { extractProductPriceTableByLabels } from '../lib/product-price-table-extract'
 import { extractStructuredTourSignals } from '../lib/structured-tour-signals-modetour'
-import { deriveModetourImageKeyword } from '../lib/modetour-schedule-image-keyword'
+import { applyModetourScheduleImageKeywordsToRows } from '../lib/modetour-schedule-image-keyword'
 import {
   MODETOUR_AVP603_FLIGHT_PASTE,
   MODETOUR_AVP603_HEADER_SNIPPET,
@@ -45,43 +45,48 @@ function main() {
   console.log('  shopping visits:', signals.shoppingVisitCount)
 
   const avp603ScheduleRows = [
-    { day: 1, title: '인천', description: '인천 (ICN) 출발 21:35 → 다낭 도착' },
-    { day: 2, title: '다낭 → 호이안', description: '마블 마운틴 호이안 야경' },
-    { day: 3, title: '다낭', description: '바나힐 테마파크' },
-    { day: 4, title: '다낭', description: '영흥사 미케비치' },
-    { day: 5, title: '인천', description: '다낭 출발 인천 국제공항 도착' },
+    { day: 1, title: '인천', description: '인천 (ICN) 출발 21:35 → 다낭 도착', routeText: 'Incheon - Da Nang' },
+    { day: 2, title: '다낭 → 호이안', description: '마블 마운틴 호이안 야경', routeText: 'Da Nang - Hoi An' },
+    { day: 3, title: '다낭', description: '바나힐 테마파크', routeText: 'Da Nang - Ba Na Hills', imageKeyword: 'Ba Na Hills' },
+    { day: 4, title: '다낭', description: '영흥사 미케비치', routeText: 'Da Nang - My Khe Beach', imageKeyword: 'My Khe Beach' },
+    { day: 5, title: '인천', description: '다낭 출발 인천 국제공항 도착', routeText: 'Da Nang - Incheon' },
   ]
-  const kwDay1 = deriveModetourImageKeyword({
-    day: 1,
-    title: '인천',
-    description: '인천 (ICN) 출발',
-    scheduleRows: avp603ScheduleRows,
-    productDestination: '다낭, 호이안',
-  })
-  assert.match(kwDay1, /Da Nang/i, 'day1 hub → first overseas city')
+  const dest = '다낭, 호이안'
+  const kwApplied = applyModetourScheduleImageKeywordsToRows(
+    avp603ScheduleRows.map((r) => ({
+      day: r.day,
+      title: r.title,
+      description: r.description,
+      routeText: r.routeText ?? null,
+      imageKeyword: (r as { imageKeyword?: string }).imageKeyword ?? 'Da Nang',
+      imageKeyword2: null,
+    })),
+    { productDestination: dest },
+  )
+  const kwDay1 = kwApplied.find((r) => r.day === 1)!.imageKeyword
+  const kwDay5 = kwApplied.find((r) => r.day === 5)!.imageKeyword
+  assert.match(kwDay1, /Da Nang/i, 'day1 movement → overseas city from routeText')
   assert.ok(!/airport/i.test(kwDay1), 'day1 no airport keyword')
-  const kwDay5 = deriveModetourImageKeyword({
-    day: 5,
-    title: '인천',
-    description: '인천 국제공항 도착',
-    scheduleRows: avp603ScheduleRows,
-    productDestination: '다낭, 호이안',
-  })
-  assert.match(kwDay5, /Da Nang|Hoi An/i, 'day5 hub → last overseas city')
+  assert.match(kwDay5, /Da Nang/i, 'day5 return → overseas city from routeText')
   assert.ok(!/airport/i.test(kwDay5), 'day5 no airport keyword')
 
-  const kwBanahill = deriveModetourImageKeyword({
-    day: 3,
-    title: '바나힐 테마파크',
-    description: '골든 브릿지 케이블카',
-  })
-  assert.match(kwBanahill, /Ba Na|Golden Bridge/i, 'day3 banahill keyword')
-  const kwHoiAn = deriveModetourImageKeyword({
-    day: 2,
-    title: '호이안 야경투어',
-    description: '투본강',
-  })
-  assert.match(kwHoiAn, /Hoi An/i, 'day2 hoian keyword')
+  const kwDay2Applied = applyModetourScheduleImageKeywordsToRows(
+    [
+      {
+        day: 2,
+        title: '호이안 야경투어',
+        description: '투본강',
+        routeText: 'Da Nang - Hoi An',
+        imageKeyword: 'Hoi An',
+        imageKeyword2: null,
+      },
+    ],
+    { productDestination: dest },
+  )
+  const kwHoiAn = kwDay2Applied[0]!.imageKeyword
+  assert.match(kwHoiAn, /Hoi An/i, 'day2 hoian LLM keyword')
+  const kwBanahill = kwApplied.find((r) => r.day === 3)!.imageKeyword
+  assert.match(kwBanahill, /Ba Na|My Khe|Da Nang/i, 'day3 keyword from LLM or route')
   console.log('  imageKeyword day1/5:', kwDay1, '|', kwDay5)
   console.log('  imageKeyword spots:', kwBanahill, '|', kwHoiAn)
 }

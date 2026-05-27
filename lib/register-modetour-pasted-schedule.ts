@@ -4,23 +4,28 @@
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
 import {
   applyModetourScheduleImageKeywordsToRows,
-  deriveModetourImageKeyword,
   isModetourPlaceholderImageKeyword,
-  type ModetourImageKeywordContext,
 } from '@/lib/modetour-schedule-image-keyword'
 
-function modetourScheduleImageKeywordFallback(ctx: ModetourImageKeywordContext): string {
-  return deriveModetourImageKeyword(ctx)
-}
-
-function kwFallbackFromScheduleRow(row: RegisterScheduleDay, blob?: string): string {
-  return modetourScheduleImageKeywordFallback({
-    day: row.day,
-    title: String(row.title ?? ''),
-    description: String(row.description ?? ''),
-    routeText: row.routeText ?? null,
-    blob,
-  })
+function kwFallbackFromScheduleRow(
+  row: RegisterScheduleDay,
+  blob?: string,
+  productDestination?: string | null,
+): string {
+  const out = applyModetourScheduleImageKeywordsToRows(
+    [
+      {
+        day: row.day,
+        title: String(row.title ?? ''),
+        description: String(row.description ?? ''),
+        routeText: row.routeText ?? null,
+        imageKeyword: String(row.imageKeyword ?? '').trim(),
+        imageKeyword2: row.imageKeyword2 ?? null,
+      },
+    ],
+    { pastedBlob: blob, productDestination: productDestination ?? null },
+  )
+  return out[0]?.imageKeyword ?? ''
 }
 
 function finalizeModetourScheduleImageKeywords(
@@ -578,7 +583,10 @@ function blockToScheduleDay(day: number, lines: string[]): RegisterScheduleDay {
   const blob = useful.join('\n')
   const meal = extractMealHotelFromBlock(blob)
   const { title, description } = finalizeModetourTitleAndDescription(useful)
-  const imageKeyword = modetourScheduleImageKeywordFallback({ day, title, description, blob })
+  const imageKeyword = kwFallbackFromScheduleRow(
+    { day, title, description, imageKeyword: '', routeText: null },
+    blob,
+  )
   return {
     day,
     title,
