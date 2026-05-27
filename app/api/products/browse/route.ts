@@ -53,6 +53,7 @@ export async function GET(request: Request) {
     const payload = await getCachedProductsBrowsePayload(queryKey)
     const cacheHit = browsePerfLastPhases === perfPhasesBefore // PERF-LOG: 측정 후 제거
     const res = jsonWithLeakGuard(payload, 'api.products.browse.ok') // PERF-LOG: 측정 후 제거
+    res.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400')
     if (perfGet) {
       const totalMs = Math.round(performance.now() - tGet0) // PERF-LOG: 측정 후 제거
       if (cacheHit) {

@@ -1,9 +1,27 @@
+import type { Prisma } from '@prisma/client'
 import { parseTravelScope } from '@/lib/product-listing-kind'
 
 /**
  * 공개 browse — URL `scope=domestic|overseas` 와 Product.travelScope 를 맞출 때 사용.
  * travelScope 미설정(null)은 기존 제목 기반 트리아지와 병행(fallback).
  */
+/**
+ * browse `findMany` — `filterPoolByStoredTravelScope`와 동일 규칙.
+ * `travelScope` 미설정(null·'')은 domestic/overseas 양쪽 풀에 포함.
+ */
+export function prismaWhereForBrowseTravelScope(
+  scopeParam: string | null | undefined,
+): Prisma.ProductWhereInput | null {
+  const s = (scopeParam ?? '').trim().toLowerCase()
+  if (s === 'overseas') {
+    return { OR: [{ travelScope: 'overseas' }, { travelScope: null }, { travelScope: '' }] }
+  }
+  if (s === 'domestic') {
+    return { OR: [{ travelScope: 'domestic' }, { travelScope: null }, { travelScope: '' }] }
+  }
+  return null
+}
+
 export function filterPoolByStoredTravelScope<T extends { travelScope?: string | null }>(
   products: T[],
   scopeParam: string | null

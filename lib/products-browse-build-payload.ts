@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { PRODUCT_BROWSE_FULL_INCLUDE, type ProductBrowseIncludedRow } from '@/lib/product-browse-full-include'
+import { buildProductBrowseFullInclude, type ProductBrowseIncludedRow } from '@/lib/product-browse-full-include'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
 import { filterProductsForDomesticDestinationTree } from '@/lib/active-domestic-location-tree'
@@ -37,7 +37,10 @@ import {
   sportsThemeTagForBrowseRegion,
 } from '@/lib/browse-master-geo-continents'
 import { resolveOverseasDisplayBucketForBrowse } from '@/lib/overseas-display-buckets'
-import { filterPoolByStoredTravelScope } from '@/lib/travel-scope-pool-filter'
+import {
+  filterPoolByStoredTravelScope,
+  prismaWhereForBrowseTravelScope,
+} from '@/lib/travel-scope-pool-filter'
 import { parseListingKind } from '@/lib/product-listing-kind'
 import {
   domesticDisplayCategoryIsSpecialTheme,
@@ -224,16 +227,21 @@ export async function productsBrowseBuildPayload(queryKey: string) {
 
     if (perf) perf.parse = performance.now() // PERF-LOG: 측정 후 제거
 
+    const travelScopeDb =
+      prismaWhereForBrowseTravelScope(scopeForLimit) ??
+      prismaWhereForBrowseTravelScope(region?.trim() ? 'overseas' : null)
+
     const rows = await prisma.product.findMany({
       where: {
         registrationStatus: 'registered',
         AND: [
           ...(overseasGeoAnd.length > 0 ? overseasGeoAnd : []),
+          ...(travelScopeDb ? [travelScopeDb] : []),
           publicProductWhereClause(),
         ],
       },
       orderBy: { updatedAt: 'desc' },
-      include: PRODUCT_BROWSE_FULL_INCLUDE,
+      include: buildProductBrowseFullInclude(),
     })
     if (perf) {
       perf.db = performance.now() // PERF-LOG: 측정 후 제거

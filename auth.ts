@@ -69,8 +69,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id
       }
       const userId = (token.id as string | undefined) ?? (token.sub as string | undefined)
-      if (userId) {
-        token.id = userId
+      if (!userId) return token
+
+      token.id = userId
+
+      /** 로그인·세션 갱신 시에만 DB — `/api/auth/session` 폴링마다 Prisma 2회 호출하지 않음 */
+      const shouldRefreshRoleFromDb =
+        Boolean(user?.id) || trigger === 'update' || token.role == null || token.accountStatus == null
+
+      if (shouldRefreshRoleFromDb) {
         const email = (user?.email as string | undefined) ?? (token.email as string | undefined)
         await ensureUserBootstrapRole(userId, email ?? null)
         const dbUser = await prisma.user.findUnique({
@@ -80,6 +87,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = dbUser?.role ?? null
         token.accountStatus = dbUser?.accountStatus ?? 'active'
       }
+
       if (trigger === 'update' && session) {
         token.role = (session as { role?: string }).role ?? token.role
       }
