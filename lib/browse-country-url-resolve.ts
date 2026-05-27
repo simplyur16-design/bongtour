@@ -73,6 +73,14 @@ const OVERSEAS_AND_DB_COUNTRY_LABELS = new Set<string>([
   '전라',
   '제주',
   '충북',
+  '멕시코',
+  '쿠바',
+  '페루',
+  '브라질',
+  '아르헨티나',
+  '칠레',
+  '볼리비아',
+  '도미니카공화국',
 ])
 
 /** 운영 `Product.city` (해외·국내 허브 한글) — browse `city` 슬러그 매핑 대상 */
@@ -653,6 +661,27 @@ const LATIN_AMERICA_DB_COUNTRY_LABELS = [
   '도미니카공화국',
 ] as const
 
+/** browse `country` 슬러그(영문·한글) → `ProductCountryTag.countryKey` */
+const SOUTH_AMERICA_COUNTRY_KEY_BY_BROWSE_SLUG: Record<string, string> = {
+  mexico: 'mexico',
+  멕시코: 'mexico',
+  cuba: 'cuba',
+  쿠바: 'cuba',
+  peru: 'peru',
+  페루: 'peru',
+  brazil: 'brazil',
+  브라질: 'brazil',
+  argentina: 'argentina',
+  아르헨티나: 'argentina',
+  chile: 'chile',
+  칠레: 'chile',
+  bolivia: 'bolivia',
+  볼리비아: 'bolivia',
+  'dominican-republic': 'dominican-republic',
+  도미니카: 'dominican-republic',
+  도미니카공화국: 'dominican-republic',
+}
+
 const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   ...TREE_SLUG_TO_DB_COUNTRIES,
   ...CHINA_TAB_SLUG_TO_DB_COUNTRIES,
@@ -757,6 +786,23 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   africa: [],
   'latin-america': [...LATIN_AMERICA_DB_COUNTRY_LABELS],
   'latin-mexico': [...LATIN_AMERICA_DB_COUNTRY_LABELS],
+  mexico: ['멕시코'],
+  cuba: ['쿠바'],
+  peru: ['페루'],
+  brazil: ['브라질'],
+  argentina: ['아르헨티나'],
+  chile: ['칠레'],
+  bolivia: ['볼리비아'],
+  'dominican-republic': ['도미니카공화국'],
+  멕시코: ['멕시코'],
+  쿠바: ['쿠바'],
+  페루: ['페루'],
+  브라질: ['브라질'],
+  아르헨티나: ['아르헨티나'],
+  칠레: ['칠레'],
+  볼리비아: ['볼리비아'],
+  도미니카: ['도미니카공화국'],
+  도미니카공화국: ['도미니카공화국'],
   'us-west': ['미국'],
   'us-east': ['미국'],
   canada: ['캐나다'],
@@ -837,9 +883,12 @@ export function resolveBrowseCountryParamToDbCountries(param: string | null | un
  * browse `country` URL 값 → `ProductCountryTag.countryKey` 후보 (소문자, 트리 `countryKey` 정합).
  */
 export function resolveBrowseCountryParamToCountryKeySlugs(param: string | null | undefined): string[] {
-  const raw = (param ?? '').trim().toLowerCase()
+  const trimmed = (param ?? '').trim()
+  const raw = trimmed.toLowerCase()
   const out = new Set<string>()
   if (raw) out.add(raw)
+  const saKey = SOUTH_AMERICA_COUNTRY_KEY_BY_BROWSE_SLUG[raw] ?? SOUTH_AMERICA_COUNTRY_KEY_BY_BROWSE_SLUG[trimmed]
+  if (saKey) out.add(saKey)
   const dbCountries = resolveBrowseCountryParamToDbCountries(param)
   for (const g of OVERSEAS_LOCATION_TREE_DATA) {
     for (const co of g.countries) {

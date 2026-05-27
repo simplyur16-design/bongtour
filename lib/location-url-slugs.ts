@@ -141,8 +141,19 @@ function slugFromEnglishTerm(terms: string[]): string {
 }
 
 /** browse `Product.country` 슬러그 → 칩·표시용 한글 라벨(메가메뉴 매핑 역조회, 없으면 null) */
+const SOUTH_AMERICA_BROWSE_SLUG_TO_KR_LABEL: Record<string, string> = {
+  mexico: '멕시코',
+  cuba: '쿠바',
+  peru: '페루',
+  brazil: '브라질',
+  argentina: '아르헨티나',
+  chile: '칠레',
+  bolivia: '볼리비아',
+  'dominican-republic': '도미니카공화국',
+}
+
 const BROWSE_SLUG_TO_KR_LABEL: Record<string, string> = (() => {
-  const m: Record<string, string> = {}
+  const m: Record<string, string> = { ...SOUTH_AMERICA_BROWSE_SLUG_TO_KR_LABEL }
   for (const [label, slug] of Object.entries(COUNTRY_SLUG_BY_LABEL)) {
     if (!(slug in m)) m[slug] = label
   }
