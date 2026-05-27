@@ -734,7 +734,6 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   시칠리아: ['이탈리아'],
   'usa-south': ['미국'],
   'latin-caribbean': [...LATIN_AMERICA_DB_COUNTRY_LABELS],
-  'sports-tours': ['일본', '미국'],
   'cruise-east-asia': ['일본', '태국', '싱가포르', '베트남', '필리핀', '말레이시아'],
   thailand: ['태국'],
   vietnam: ['베트남'],

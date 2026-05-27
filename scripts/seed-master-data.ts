@@ -1243,7 +1243,6 @@ async function main(): Promise<void> {
     'buddhist-pilgrimage',
     'europe-pilgrimage',
     'china-trekking',
-    'sports-tours',
     'caucasus',
     'middle-east',
     'nordic-baltic',

@@ -22,7 +22,6 @@ const TREE_THEME_OR_MULTI_ROUTE_COUNTRIES = new Set([
   'buddhist-pilgrimage',
   'europe-pilgrimage',
   'china-trekking',
-  'sports-tours',
 ])
 
 const TREE_COUNTRY_CANONICAL: Record<string, string> = {

@@ -660,12 +660,6 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         aliases: ['알래스카'],
         supplierKeywords: ['알래스카'],
       }),
-      C(
-        'sports-tours',
-        '스포츠 · 경기 직관',
-        [L('sports', '경기 직관 여행', { nodeType: 'theme', supplierKeywords: ['경기 직관', '스포츠 테마'] })],
-        { supplierKeywords: ['스포츠 테마 투어'] }
-      ),
     ],
     ['미국', '캐나다', '하와이', '중남미']
   ),

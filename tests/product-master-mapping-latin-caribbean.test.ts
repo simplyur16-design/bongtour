@@ -2,7 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { mapTreeKeysToMasterKeys } from '../lib/product-master-mapping'
 
-describe('mapTreeKeysToMasterKeys — latin-caribbean / sports-tours FK alignment', () => {
+describe('mapTreeKeysToMasterKeys — latin-caribbean FK alignment', () => {
   it('cuba-mexico leaf defaults to mexico (seed parity)', () => {
     const r = mapTreeKeysToMasterKeys({
       groupKey: 'americas',
@@ -79,15 +79,5 @@ describe('mapTreeKeysToMasterKeys — latin-caribbean / sports-tours FK alignmen
       nodeKey: 'caribbean',
     })
     assert.equal(r.masterCountryKey, 'dominican-republic')
-  })
-
-  it('sports-tours theme country → masterCountryKey null', () => {
-    const r = mapTreeKeysToMasterKeys({
-      groupKey: 'americas',
-      countryKey: 'sports-tours',
-      nodeKey: 'sports',
-    })
-    assert.equal(r.masterCountryKey, null)
-    assert.ok(r.reasons.includes('theme_or_multi_country_tree'))
   })
 })

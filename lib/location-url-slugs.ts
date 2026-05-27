@@ -122,7 +122,6 @@ const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
   '미국 동부': 'us-east',
   '미국 중남부 · 플로리다': 'usa-south',
   '중남미 · 카리브': 'latin-caribbean',
-  '스포츠 · 경기 직관': 'sports-tours',
   동아시아: 'cruise-east-asia',
   남프랑스: 'france',
   시칠리아: 'italy',
