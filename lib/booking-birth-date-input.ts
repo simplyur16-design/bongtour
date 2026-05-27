@@ -16,7 +16,7 @@ export function normalizeBirthDateDigitsInput(raw: string): string {
     .slice(0, 8)
 }
 
-/** 입력 중·완료 후 표시용 (1978 → 1978-02 → 1978-02-16) */
+/** 입력 중·완료 후 표시용 (0000 → 0000-00 → 0000-00-00) */
 export function formatBirthDateDigitsForDisplay(digits: string): string {
   const d = normalizeBirthDateDigitsInput(digits)
   if (d.length <= 4) return d

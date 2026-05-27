@@ -28,7 +28,7 @@ export function BookingBirthDateField({ id, label, digits, onDigitsChange, class
         type="text"
         inputMode="numeric"
         autoComplete="off"
-        placeholder="예: 19780216"
+        placeholder="예: 0000-00-00"
         maxLength={10}
         value={formatBirthDateDigitsForDisplay(digits)}
         onChange={(e) => onDigitsChange(normalizeBirthDateDigitsInput(e.target.value))}
@@ -58,7 +58,7 @@ export function BookingBirthDateFieldCompact({
         type="text"
         inputMode="numeric"
         autoComplete="off"
-        placeholder="예: 19780216"
+        placeholder="예: 0000-00-00"
         maxLength={10}
         value={formatBirthDateDigitsForDisplay(digits)}
         onChange={(e) => onDigitsChange(normalizeBirthDateDigitsInput(e.target.value))}
