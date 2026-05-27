@@ -767,7 +767,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-24 bg-gradient-to-t from-black/65 to-transparent sm:h-28" aria-hidden />
       </div>
 
-      <div className="relative z-20 mx-auto w-full max-w-6xl px-4 sm:px-6">{heroSearchForm}</div>
+      <div className="relative z-20 mx-auto w-full max-w-6xl px-4 sm:px-6 lg:hidden">{heroSearchForm}</div>
     </section>
   )
 }
