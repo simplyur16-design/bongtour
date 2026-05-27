@@ -84,6 +84,7 @@ export type CommonScheduleDayRow = {
   title: string
   description: string
   imageKeyword: string
+  imageKeyword2?: string | null
   routeText?: string | null
   hotelText: string | null
   breakfastText: string | null
@@ -91,6 +92,11 @@ export type CommonScheduleDayRow = {
   dinnerText: string | null
   mealSummaryText: string | null
 }
+
+/** modetour 일정 선추출 전용 — 자유시간·단일 도시 imageKeyword/imageKeyword2 강화 */
+const MODETOUR_SCHEDULE_EXTRACT_IMAGE_KEYWORD_ADDENDUM =
+  '- **자유시간·단일 도시 일차:** imageKeyword를 비우지 말 것. 그 도시 **대표 관광명소 영문**을 imageKeyword로(예: 과달라하라 자유시간 → Guadalajara Cathedral). 도시명 단독·국가명 단독은 금지.\n' +
+  '- **imageKeyword2:** routeText에 관광지 2곳 이상이면 routeText **두 번째** 관광명소의 **영문**을 imageKeyword2로(1순위와 다른 명소). 출발·귀국(비행) 일차는 null.\n'
 
 function strOrNull(v: unknown): string | null {
   if (v == null) return null
@@ -167,7 +173,7 @@ function dayMapCoversExpectedRange(dayMap: Map<number, string>, expectedDays: nu
   return true
 }
 
-function parseScheduleRowsFromLlmJson(
+export function parseScheduleRowsFromLlmJson(
   schedule: unknown,
   opts: { expectedDays: number; strictDay: number | null }
 ): CommonScheduleDayRow[] {
@@ -182,6 +188,7 @@ function parseScheduleRowsFromLlmJson(
       title: String(rec.title ?? '').trim(),
       description: clampScheduleDescriptionText(String(rec.description ?? '')),
       imageKeyword: String(rec.imageKeyword ?? '').trim(),
+      imageKeyword2: strOrNull(rec.imageKeyword2),
       routeText: strOrNull(rec.routeText),
       hotelText: strOrNull(rec.hotelText),
       breakfastText: strOrNull(rec.breakfastText),
@@ -278,7 +285,9 @@ function buildScheduleOnlyPrompt(
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
     `- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 한국어로 작성. 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
     `- description: 해당 일차의 이동·관광·식사·숙박 흐름을 **짧은 문어체**로 요약. 원문 장문·HTML을 **통째로 복사**하지 말 것.\n` +
-    `- 방문지가 많으면 **이름 위주로 묶어** 쓰고, 식사·호텔 디테일은 가능하면 meal·hotel 필드에 둔다.\n\n` +
+    `- 방문지가 많으면 **이름 위주로 묶어** 쓰고, 식사·호텔 디테일은 가능하면 meal·hotel 필드에 둔다.\n` +
+    MODETOUR_SCHEDULE_EXTRACT_IMAGE_KEYWORD_ADDENDUM +
+    `\n` +
     hint +
     add +
     `# 붙여넣기 본문\n` +
@@ -315,7 +324,9 @@ function buildScheduleOnlyPromptForSingleDay(
     `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), ${REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE} routeText, ` +
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
     `- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 한국어로 작성. 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
-    `- description: 해당 일차를 **짧게** 요약. 원문 복붙·장황한 나열 금지.\n\n` +
+    `- description: 해당 일차를 **짧게** 요약. 원문 복붙·장황한 나열 금지.\n` +
+    MODETOUR_SCHEDULE_EXTRACT_IMAGE_KEYWORD_ADDENDUM +
+    `\n` +
     hint +
     add +
     `# 붙여넣기 본문 (제${day}일차)\n` +
@@ -477,6 +488,7 @@ export function mergeScheduleWithFirstPassPreferExtractRows(
         title: fp.title.trim() || String(main.title ?? '').trim(),
         description: fp.description.trim() || String(main.description ?? '').trim(),
         imageKeyword: (fp.imageKeyword.trim() || String(main.imageKeyword ?? '').trim()),
+        imageKeyword2: strOrNull(fp.imageKeyword2) ?? strOrNull(main.imageKeyword2),
         hotelText: fp.hotelText ?? main.hotelText ?? null,
         breakfastText: fp.breakfastText ?? main.breakfastText ?? null,
         lunchText: fp.lunchText ?? main.lunchText ?? null,
@@ -490,6 +502,7 @@ export function mergeScheduleWithFirstPassPreferExtractRows(
         title: fp.title,
         description: fp.description,
         imageKeyword: String(fp.imageKeyword ?? '').trim(),
+        imageKeyword2: strOrNull(fp.imageKeyword2),
         routeText: strOrNull(fp.routeText),
         hotelText: fp.hotelText,
         breakfastText: fp.breakfastText,
