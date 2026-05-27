@@ -58,19 +58,22 @@ describe('keywordFromTitleDescription (ybtour)', () => {
 })
 
 describe('applyHanatourScheduleImageKeywordsToRows', () => {
-  it('본문 근거 LLM 키워드를 유지하고 환각은 제거한다', () => {
-    const out = applyHanatourScheduleImageKeywordsToRows([
-      {
-        day: 2,
-        title: '델리',
-        description: '타지마할 관람',
-        routeText: '델리 - 타지마할',
-        imageKeyword: '  Taj Mahal  ',
-        imageKeyword2: 'Paris Eiffel Tower',
-      },
-    ])
+  it('LLM 영문 키워드를 유지하고 타대륙 환각은 제거한다', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 2,
+          title: '델리',
+          description: '타지마할 관람',
+          routeText: '델리 - 타지마할',
+          imageKeyword: '  Taj Mahal  ',
+          imageKeyword2: 'Paris Eiffel Tower',
+        },
+      ],
+      { productDestination: 'India' },
+    )
     assert.equal(out[0]!.imageKeyword, 'Taj Mahal')
-    assert.notEqual(out[0]!.imageKeyword2, 'Paris')
+    assert.equal(out[0]!.imageKeyword2, null)
   })
 })
 
