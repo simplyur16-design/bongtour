@@ -32,7 +32,10 @@ import {
   resolveBrowseCountryParamToDbCountries,
 } from '@/lib/browse-country-url-resolve'
 import { buildOverseasBrowseGeoResolution, prismaWhereProductCountryTagKeysIn } from '@/lib/browse-master-geo'
-import { localDepartureTagForBrowseRegion } from '@/lib/browse-master-geo-continents'
+import {
+  localDepartureTagForBrowseRegion,
+  sportsThemeTagForBrowseRegion,
+} from '@/lib/browse-master-geo-continents'
 import { resolveOverseasDisplayBucketForBrowse } from '@/lib/overseas-display-buckets'
 import { filterPoolByStoredTravelScope } from '@/lib/travel-scope-pool-filter'
 import { parseListingKind } from '@/lib/product-listing-kind'
@@ -120,9 +123,15 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     const destination = searchParams.get('destination')?.trim() || null
     const city = searchParams.get('city')?.trim() || destination
     const scope = searchParams.get('scope')
+    const sportsThemeParam = searchParams.get('sportsTheme')?.trim() || null
     const hasOverseasUrlGeo =
       scope !== 'domestic' &&
-      Boolean((region ?? '').trim() || (country ?? '').trim() || (city ?? '').trim())
+      Boolean(
+        (region ?? '').trim() ||
+          (country ?? '').trim() ||
+          (city ?? '').trim() ||
+          sportsThemeParam,
+      )
     const overseasGeoAnd: Prisma.ProductWhereInput[] = []
     let browseRegionCountryKeys: string[] = []
     if (hasOverseasUrlGeo) {
@@ -130,8 +139,13 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       const c = (country ?? '').trim()
       const ct = (city ?? '').trim()
       const localDepTag = localDepartureTagForBrowseRegion(r)
+      const sportsThemeTag = sportsThemeTagForBrowseRegion(r, sportsThemeParam)
       if (localDepTag) {
         overseasGeoAnd.push({ localDepartureTag: { has: localDepTag } })
+      } else if (r === 'sports_theme' || sportsThemeParam) {
+        if (sportsThemeTag) {
+          overseasGeoAnd.push({ sportsThemeTag: { has: sportsThemeTag } })
+        }
       } else {
         const geo = await buildOverseasBrowseGeoResolution({
           region,

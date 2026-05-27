@@ -1,5 +1,6 @@
 import { browseRegionToDbContinents } from '@/lib/browse-country-url-resolve'
 import { BROWSE_TAB_ID_TO_CARD_KEYS } from '@/lib/mega-menu-regions.data'
+import { SPORTS_THEME_TAG_VALUES, type SportsThemeTag } from '@/lib/product-listing-kind'
 
 export { BROWSE_TAB_ID_TO_CARD_KEYS } from '@/lib/mega-menu-regions.data'
 
@@ -19,6 +20,18 @@ export function localDepartureTagForBrowseRegion(
   if (t === 'busan_dep') return 'busan'
   if (t === 'cheongju_dep') return 'cheongju'
   if (t === 'daegu_dep') return 'daegu'
+  return null
+}
+
+const SPORTS_THEME_TAG_SET = new Set<string>(SPORTS_THEME_TAG_VALUES)
+
+/** browse `region=sports_theme` 또는 `sportsTheme` 쿼리 → `Product.sportsThemeTag` 키 */
+export function sportsThemeTagForBrowseRegion(
+  region: string | null | undefined,
+  sportsThemeParam: string | null | undefined,
+): SportsThemeTag | null {
+  const theme = (sportsThemeParam ?? '').trim().toLowerCase()
+  if (theme && SPORTS_THEME_TAG_SET.has(theme)) return theme as SportsThemeTag
   return null
 }
 

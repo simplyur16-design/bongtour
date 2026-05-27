@@ -9,6 +9,8 @@ export type BrowseQueryState = {
   region: string | null
   country: string | null
   city: string | null
+  /** 스포츠 테마 메가메뉴·browse 필터 (`Product.sportsThemeTag`) */
+  sportsTheme: string | null
   regionPref: string | null
   /** 인당 예산 상한(원) — 등록 상품 실제 인당 최저가와 비교 */
   budgetPerPerson: number | null
@@ -110,6 +112,7 @@ export function parseBrowseQuery(searchParams: URLSearchParams): BrowseQueryStat
     region: searchParams.get('region'),
     country: searchParams.get('country'),
     city: cityFromUrl || destination,
+    sportsTheme: searchParams.get('sportsTheme')?.trim() || null,
     regionPref: searchParams.get('regionPref'),
     budgetPerPerson: parseIntSafe(searchParams.get('budgetPerPerson')),
     budgetMin: parseIntSafe(searchParams.get('budgetMin')),
@@ -139,6 +142,7 @@ export function serializeBrowseQuery(state: BrowseQueryState): string {
   if (state.region) set('region', state.region)
   if (state.country) set('country', state.country)
   if (state.city) set('city', state.city)
+  if (state.sportsTheme) set('sportsTheme', state.sportsTheme)
   if (state.regionPref) set('regionPref', state.regionPref)
   if (state.budgetPerPerson != null) set('budgetPerPerson', state.budgetPerPerson)
   if (state.budgetMin != null) set('budgetMin', state.budgetMin)

@@ -22,6 +22,7 @@ export {
   localDepartureTagForBrowseRegion,
   masterContinentKeysFromBrowseDbContinents,
   masterContinentKeysFromBrowseRegion,
+  sportsThemeTagForBrowseRegion,
 } from '@/lib/browse-master-geo-continents'
 
 const BROWSE_NONE_COUNTRY_KEY = '__browse_none__'

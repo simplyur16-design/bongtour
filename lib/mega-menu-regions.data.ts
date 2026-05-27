@@ -2,6 +2,7 @@
  * 해외 상단 메가메뉴 — 탭·열·도시 SSOT (운영 스펙 단일 원본).
  * browse `country`/`city` 슬러그는 `browseCountryLabel`·`label` 기준으로 `location-url-slugs`와 맞춘다.
  */
+import { SPORTS_THEME_TAG_LABELS, SPORTS_THEME_TAG_VALUES } from '@/lib/product-listing-kind'
 
 export type MegaMenuLeafKind = 'country' | 'city'
 
@@ -369,6 +370,16 @@ const SA: MegaMenuCountryGroupDef[] = [
   ),
 ]
 
+const ST: MegaMenuCountryGroupDef[] = [
+  G(
+    '스포츠테마',
+    SPORTS_THEME_TAG_VALUES.map((key) =>
+      LC(SPORTS_THEME_TAG_LABELS[key], [SPORTS_THEME_TAG_LABELS[key], key], key),
+    ),
+    true,
+  ),
+]
+
 const AM: MegaMenuCountryGroupDef[] = [
   G('하와이', [
     city('호놀룰루', ['호놀룰루', 'honolulu', '하와이', '오아후']),
@@ -395,20 +406,6 @@ const AM: MegaMenuCountryGroupDef[] = [
     city('옐로우나이프', ['옐로우나이프', 'yellowknife', '캐나다']),
   ]),
   G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지', '미국'])]),
-  G('스포츠 테마 투어', [
-    city('경기 직관 여행', [
-      '경기 직관',
-      '스포츠 테마',
-      '직관 여행',
-      '런트립',
-      '런닝',
-      '직관',
-      'MLB',
-      'NBA',
-      '미국',
-      '일본',
-    ]),
-  ]),
 ]
 
 /**
@@ -424,6 +421,7 @@ export const MEGA_MENU_TAB_DEFINITIONS: MegaMenuTabDef[] = [
   { id: 'oceania', label: '괌/사이판/호주/뉴질랜드', groups: OC },
   { id: 'americas', label: '미주/캐나다/하와이', groups: AM },
   { id: 'south-america', label: '중남미', groups: SA },
+  { id: 'sports_theme', label: '스포츠테마', groups: ST },
   { id: 'busan_dep', label: '부산출발', groups: [], localDeparture: 'busan' },
   { id: 'cheongju_dep', label: '청주출발', groups: [], localDeparture: 'cheongju' },
   { id: 'daegu_dep', label: '대구출발', groups: [], localDeparture: 'daegu' },

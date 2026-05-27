@@ -75,6 +75,21 @@ export function buildProductsHref(opts: {
   return `${browseBasePath(scope)}?${params.toString()}`
 }
 
+export function buildProductsHrefSportsTheme(opts: {
+  type: string
+  sportsThemeKey: string
+  scope?: BrowseHrefScope
+}): string {
+  const params = new URLSearchParams()
+  appendBrowseTypeParamIfNarrowing(params, opts.type)
+  const scope = opts.scope ?? 'overseas'
+  if (scope === 'overseas') params.set('scope', 'overseas')
+  else params.set('scope', 'domestic')
+  params.set('region', 'sports_theme')
+  params.set('sportsTheme', opts.sportsThemeKey.trim().toLowerCase())
+  return `${browseBasePath(scope)}?${params.toString()}`
+}
+
 export function buildProductsHrefCountryOnly(opts: {
   type: string
   regionId: string
@@ -103,6 +118,13 @@ export function buildMegaMenuLeafHref(opts: {
   leaf: MegaMenuLeaf
   scope?: BrowseHrefScope
 }): string {
+  if (opts.regionId === 'sports_theme') {
+    return buildProductsHrefSportsTheme({
+      type: opts.type,
+      sportsThemeKey: opts.leaf.browseCountryLabel ?? opts.leaf.label,
+      scope: opts.scope,
+    })
+  }
   if (opts.leaf.kind === 'country') {
     return buildProductsHrefCountryOnly({
       type: opts.type,
