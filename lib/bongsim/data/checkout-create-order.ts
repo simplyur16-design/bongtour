@@ -26,6 +26,37 @@ import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contr
 /** 체크아웃 confirm 다상품 라인 상한. */
 const MAX_CHECKOUT_LINES = 10;
 
+/** 직군(언론사) 회원 eSIM 자동 할인율(%) — 서버 단독 계산, 쿠폰과 배타. */
+export const PRESS_MEMBER_DISCOUNT_RATE_PCT = 25;
+
+/** 직군 자동 할인액(원, floor). subtotal ≤ 0 이면 0. */
+export function computePressMemberDiscountKrw(subtotal_krw: number): number {
+  const sub = Math.trunc(subtotal_krw);
+  if (!Number.isFinite(sub) || sub <= 0) return 0;
+  return Math.floor((sub * PRESS_MEMBER_DISCOUNT_RATE_PCT) / 100);
+}
+
+/** pressVerified 직군 회원이 쿠폰 필드를내면 거절 코드, 아니면 null. */
+export function pressMemberCouponRejection(
+  pressVerified: boolean,
+  coupon_id?: string | null,
+  user_coupon_id?: string | null,
+): "press_member_no_coupon" | null {
+  if (!pressVerified) return null;
+  if ((coupon_id ?? "").trim() || (user_coupon_id ?? "").trim()) {
+    return "press_member_no_coupon";
+  }
+  return null;
+}
+
+async function loadUserPressVerified(client: PoolClient, userId: string): Promise<boolean> {
+  const r = await client.query<{ pressVerified: boolean }>(
+    `SELECT "pressVerified" FROM "User" WHERE id = $1 LIMIT 1`,
+    [userId.trim()],
+  );
+  return Boolean(r.rows[0]?.pressVerified);
+}
+
 /** validateRequest 이후 항상 `lines`가 채워진 요청. */
 type NormalizedCheckoutConfirmRequest = BongsimCheckoutConfirmRequestV1 & {
   lines: BongsimCheckoutConfirmLineV1[];
@@ -530,9 +561,9 @@ function validateRequest(
       ? {
           user_coupon_id: user_coupon_id_raw,
           coupon_discount_krw: Math.trunc(coupon_discount_krw),
-          bongtour_user_id: bongtour_user_id_raw,
         }
       : {}),
+    ...(bongtour_user_id_raw ? { bongtour_user_id: bongtour_user_id_raw } : {}),
     ...(attr.utmSource ? { utmSource: attr.utmSource } : {}),
     ...(attr.utmMedium ? { utmMedium: attr.utmMedium } : {}),
     ...(attr.utmCampaign ? { utmCampaign: attr.utmCampaign } : {}),
@@ -593,33 +624,54 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const subtotal_krw = prepared.reduce((sum, p) => sum + p.line_total, 0);
 
     let discount_krw = 0;
-    if (req.coupon_id && req.user_coupon_id) {
-      await client.query("ROLLBACK");
-      return { ok: false, reason: "validation", details: { coupon: "at_most_one_coupon_per_order" } };
+    let pressDiscountApplied = false;
+    const bongtourUserId = req.bongtour_user_id?.trim() ?? "";
+    if (bongtourUserId) {
+      const pressVerified = await loadUserPressVerified(client, bongtourUserId);
+      const pressCouponReject = pressMemberCouponRejection(
+        pressVerified,
+        req.coupon_id,
+        req.user_coupon_id,
+      );
+      if (pressCouponReject) {
+        await client.query("ROLLBACK");
+        return { ok: false, reason: "validation", details: { coupon: pressCouponReject } };
+      }
+      if (pressVerified) {
+        discount_krw = computePressMemberDiscountKrw(subtotal_krw);
+        pressDiscountApplied = true;
+      }
     }
-    if (req.user_coupon_id && req.bongtour_user_id && req.coupon_discount_krw != null) {
-      const uv = await validateUserCouponForOrderInsert(client, {
-        user_coupon_id: req.user_coupon_id,
-        user_id: req.bongtour_user_id,
-        client_discount_krw: req.coupon_discount_krw,
-        lines: req.lines,
-      });
-      if (!uv.ok) {
+
+    if (!pressDiscountApplied) {
+      if (req.coupon_id && req.user_coupon_id) {
         await client.query("ROLLBACK");
-        return { ok: false, reason: "validation", details: { coupon: uv.error } };
+        return { ok: false, reason: "validation", details: { coupon: "at_most_one_coupon_per_order" } };
       }
-      discount_krw = uv.discount_krw;
-    } else if (req.coupon_id && req.coupon_discount_krw != null) {
-      const cv = await assertBongsimCouponForOrderInsert(client, {
-        coupon_id: req.coupon_id,
-        client_discount_krw: req.coupon_discount_krw,
-        lines: req.lines,
-      });
-      if (!cv.ok) {
-        await client.query("ROLLBACK");
-        return { ok: false, reason: "validation", details: { coupon: cv.error } };
+      if (req.user_coupon_id && req.bongtour_user_id && req.coupon_discount_krw != null) {
+        const uv = await validateUserCouponForOrderInsert(client, {
+          user_coupon_id: req.user_coupon_id,
+          user_id: req.bongtour_user_id,
+          client_discount_krw: req.coupon_discount_krw,
+          lines: req.lines,
+        });
+        if (!uv.ok) {
+          await client.query("ROLLBACK");
+          return { ok: false, reason: "validation", details: { coupon: uv.error } };
+        }
+        discount_krw = uv.discount_krw;
+      } else if (req.coupon_id && req.coupon_discount_krw != null) {
+        const cv = await assertBongsimCouponForOrderInsert(client, {
+          coupon_id: req.coupon_id,
+          client_discount_krw: req.coupon_discount_krw,
+          lines: req.lines,
+        });
+        if (!cv.ok) {
+          await client.query("ROLLBACK");
+          return { ok: false, reason: "validation", details: { coupon: cv.error } };
+        }
+        discount_krw = cv.discount_krw;
       }
-      discount_krw = cv.discount_krw;
     }
 
     const consentsJson: Record<string, unknown> = {
@@ -633,7 +685,11 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     if (req.bongtour_user_id?.trim()) {
       consentsJson.bongtour_user_id = req.bongtour_user_id.trim();
     }
-    if (req.user_coupon_id && discount_krw > 0) {
+    if (pressDiscountApplied) {
+      consentsJson.press_discount = true;
+      consentsJson.press_discount_krw = discount_krw;
+      consentsJson.press_discount_rate = PRESS_MEMBER_DISCOUNT_RATE_PCT;
+    } else if (req.user_coupon_id && discount_krw > 0) {
       consentsJson.user_coupon_id = req.user_coupon_id;
       consentsJson.coupon_discount_krw = discount_krw;
     } else if (req.coupon_id && discount_krw > 0) {
