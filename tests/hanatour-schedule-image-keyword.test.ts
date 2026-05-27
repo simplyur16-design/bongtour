@@ -34,11 +34,47 @@ describe('isHanatourCrossContinentHallucinationKeyword', () => {
   })
 })
 
-describe('applyHanatourScheduleImageKeywordsToRows — LLM 1순위 + routeText 2순위', () => {
+describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + routeText 영문 폴백', () => {
   const japanOpts = { productDestination: 'Japan' }
   const indiaOpts = { productDestination: 'India' }
 
-  it('routeText 영문 둘째 세그먼트 → 2순위 그대로 (야리가다케 - 신호다카 - 히라유)', () => {
+  it('LLM imageKeyword2="Shinhotaka Onsen" → 2순위 우선 사용', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 4,
+          title: '야리가다케',
+          description: '야리가다케와 신호다카 온천',
+          routeText: '야리가다케 - 신호다카 - 히라유',
+          imageKeyword: 'Yarigatake',
+          imageKeyword2: 'Shinhotaka Onsen',
+        },
+      ],
+      japanOpts,
+    )
+    assert.equal(out[0]!.imageKeyword, 'Yarigatake')
+    assert.equal(out[0]!.imageKeyword2, 'Shinhotaka Onsen')
+  })
+
+  it('LLM 2순위가 routeText 영문 둘째 세그먼트보다 우선', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 4,
+          title: '야리가다케',
+          description: '야리가다케와 신호다카 온천',
+          routeText: 'Yarigatake - Hirayu Onsen - Shinhotaka',
+          imageKeyword: 'Yarigatake',
+          imageKeyword2: 'Shinhotaka Onsen',
+        },
+      ],
+      japanOpts,
+    )
+    assert.equal(out[0]!.imageKeyword2, 'Shinhotaka Onsen')
+    assert.notEqual(out[0]!.imageKeyword2, 'Hirayu Onsen')
+  })
+
+  it('routeText 영문 둘째 세그먼트 → LLM 없을 때 2순위 폴백', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
         {
@@ -56,7 +92,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 1순위 + routeText 2
     assert.equal(out[0]!.imageKeyword2, 'Shinhotaka Onsen')
   })
 
-  it('routeText 한글 둘째 세그먼트 — LLM imageKeyword2 보조(신호다카 → Shinhotaka)', () => {
+  it('routeText 한글 둘째 세그먼트 — LLM imageKeyword2 없으면 null', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
         {
@@ -65,13 +101,13 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 1순위 + routeText 2
           description: '야리가다케 등산 후 신호다카 온천',
           routeText: '야리가다케 - 신호다카 - 히라유',
           imageKeyword: 'Yarigatake',
-          imageKeyword2: 'Shinhotaka',
+          imageKeyword2: null,
         },
       ],
       japanOpts,
     )
     assert.equal(out[0]!.imageKeyword, 'Yarigatake')
-    assert.equal(out[0]!.imageKeyword2, 'Shinhotaka')
+    assert.equal(out[0]!.imageKeyword2, null)
   })
 
   it('routeText 타지마할 - 아그라성 영문 → 2순위 Agra Fort', () => {
@@ -162,7 +198,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 1순위 + routeText 2
     assert.equal(out[0]!.imageKeyword, 'Kamikochi')
   })
 
-  it('routeText 둘째 명소 없으면 null — LLM imageKeyword2만으로는 채우지 않음', () => {
+  it('LLM imageKeyword2만 있으면 routeText 1세그먼트여도 2순위 사용', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
         {
@@ -172,6 +208,24 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 1순위 + routeText 2
           routeText: '후쿠오카',
           imageKeyword: 'Fukuoka',
           imageKeyword2: 'Dazaifu Tenmangu',
+        },
+      ],
+      japanOpts,
+    )
+    assert.equal(out[0]!.imageKeyword, 'Fukuoka')
+    assert.equal(out[0]!.imageKeyword2, 'Dazaifu Tenmangu')
+  })
+
+  it('LLM·routeText 둘 다 없으면 null', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 2,
+          title: '후쿠오카',
+          description: '후쿠오카 시내',
+          routeText: '후쿠오카 - 유후인',
+          imageKeyword: 'Fukuoka',
+          imageKeyword2: null,
         },
       ],
       japanOpts,
