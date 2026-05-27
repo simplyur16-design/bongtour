@@ -53,7 +53,17 @@ const TREE_COUNTRY_REQUIRES_NODEKEY = new Set([
   'netherlands',
   'uk',
   'middle-east',
+  'latin-caribbean',
 ])
+
+const RE_CUBA_DESTINATION_HINT = /(?:\bcuba\b|쿠바|\bhavana\b|아바나)/i
+
+/** seed `cuba-mexico` 리프와 동일 — 기본 mexico, 목적지에 쿠바만 명시되면 cuba */
+function masterCountryKeyForCubaMexicoLeaf(destinationHint: string | null | undefined): 'mexico' | 'cuba' {
+  const h = (destinationHint ?? '').trim()
+  if (h && RE_CUBA_DESTINATION_HINT.test(h)) return 'cuba'
+  return 'mexico'
+}
 
 export function continentForGroupAndTreeCountry(
   groupKey: string,
@@ -112,6 +122,8 @@ export type MapTreeKeysInput = {
   /** 트리 OverseasCountryNode.countryKey (일본 권역·다국가 묶음 등) */
   countryKey?: string | null
   nodeKey?: string | null
+  /** cuba-mexico 등 다국가 리프 disambiguation (목적지·도시 한글/영문 일부) */
+  destinationHint?: string | null
 }
 
 export type MapTreeKeysResult = {
@@ -130,6 +142,7 @@ function resolveTreeCountryAndCity(
   treeCk: string,
   nodeKey: string | null,
   reasons: string[],
+  destinationHint?: string | null,
 ): { masterCountryKey: string | null; cityKey: string | null } {
   if (TREE_COUNTRY_REQUIRES_NODEKEY.has(treeCk)) {
     if (!nodeKey?.trim()) {
@@ -333,7 +346,14 @@ function resolveTreeCountryAndCity(
         masterCountryKey: 'dominican-republic',
         cityKey: isMultiCityClusterNode(nodeKey) ? null : 'caribbean-mix',
       }
-    if (nk === 'cuba-mexico' || nk === 'south-america') {
+    if (nk === 'cuba-mexico') {
+      pushReason(reasons, 'cuba_mexico_leaf_resolved')
+      return {
+        masterCountryKey: masterCountryKeyForCubaMexicoLeaf(destinationHint),
+        cityKey: null,
+      }
+    }
+    if (nk === 'south-america') {
       pushReason(reasons, 'latin_multi_country_leaf')
       return { masterCountryKey: null, cityKey: null }
     }
@@ -426,6 +446,7 @@ export function mapTreeKeysToMasterKeys(input: MapTreeKeysInput): MapTreeKeysRes
     treeCk,
     nodeKey || null,
     reasons,
+    input.destinationHint,
   )
 
   return { continentKey, masterCountryKey, cityKey, reasons }

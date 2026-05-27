@@ -47,6 +47,7 @@ export async function enrichPrismaGeoWithMasterLabels(
     groupKey: d.groupKey,
     countryKey: d.countryKey,
     nodeKey: d.nodeKey,
+    destinationHint: [d.country, d.city].filter(Boolean).join(' ').trim() || null,
   })
 
   if (!mapped.masterCountryKey) {

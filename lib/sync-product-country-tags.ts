@@ -51,6 +51,30 @@ function buildMultiCountryTagRows(
   return rows as NonNullable<(typeof rows)[number]>[]
 }
 
+type ProductCountryTagInsertRow = {
+  productId: string
+  countryKey: string
+  nodeKey: string | null
+  groupKey: string
+  isPrimary: boolean
+  sortOrder: number
+}
+
+/** Country 마스터에 없는 countryKey는 ProductCountryTag FK 위반 — createMany 전 1회 조회로 필터 */
+async function filterRowsToExistingMasterCountries(
+  db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
+  rows: ProductCountryTagInsertRow[],
+): Promise<ProductCountryTagInsertRow[]> {
+  if (rows.length === 0) return rows
+  const keys = [...new Set(rows.map((r) => r.countryKey))]
+  const existing = await db.country.findMany({
+    where: { countryKey: { in: keys }, isActive: true },
+    select: { countryKey: true },
+  })
+  const allowed = new Set(existing.map((c) => c.countryKey))
+  return rows.filter((r) => allowed.has(r.countryKey))
+}
+
 function buildSinglePrimaryTagRow(
   productId: string,
   geo: ProductLocationKeyPrismaFields,
@@ -106,11 +130,12 @@ export async function syncProductCountryTags(
     rows = buildSinglePrimaryTagRow(productId, geo)
   }
 
-  if (rows?.length) {
-    await db.productCountryTag.createMany({ data: rows })
+  const safeRows = rows?.length ? await filterRowsToExistingMasterCountries(db, rows) : []
+  if (safeRows.length > 0) {
+    await db.productCountryTag.createMany({ data: safeRows })
   }
 
-  return { plan, tagCount: rows?.length ?? 0 }
+  return { plan, tagCount: safeRows.length }
 }
 
 /**
@@ -162,8 +187,9 @@ export async function syncSupplementalCountryTagsFromCityKeys(
     haveCountry.add(c.countryKey)
   }
 
-  if (rows.length > 0) {
-    await db.productCountryTag.createMany({ data: rows })
+  const safeRows = await filterRowsToExistingMasterCountries(db, rows)
+  if (safeRows.length > 0) {
+    await db.productCountryTag.createMany({ data: safeRows })
   }
-  return rows.length
+  return safeRows.length
 }
