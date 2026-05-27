@@ -8,11 +8,12 @@ import {
   isBareCityOrCountryKeyword,
   normalizeToPlaceName,
 } from '@/lib/pexels-place-name-keyword'
-import {
-  buildScheduleImageKeywordPlan,
-  resolveScheduleHubImageKeyword,
-  type ScheduleImageKeywordDayInput,
-} from '@/lib/register-schedule-image-keyword-ssot'
+export type ModetourScheduleRowInput = {
+  day: number
+  title?: string
+  description?: string
+  routeText?: string | null
+}
 
 export type ModetourImageKeywordContext = {
   day: number
@@ -21,8 +22,8 @@ export type ModetourImageKeywordContext = {
   routeText?: string | null
   /** 일차 원문 블록(붙여넣기 파이프라인) */
   blob?: string
-  /** 동일 상품 일정 전체 — 출발일=첫 해외 도시, 귀국일=마지막 해외 도시(SSOT) */
-  scheduleRows?: ReadonlyArray<ScheduleImageKeywordDayInput>
+  /** 동일 상품 일정 전체 — 출발일=첫 해외 도시, 귀국일=마지막 해외 도시 */
+  scheduleRows?: ReadonlyArray<ModetourScheduleRowInput>
   /** 에어텔(항공+호텔) + 일정 빈약 시 도시 기반 키워드(모두투어 전용) */
   airtelFreeTravelImageKw?: 'off' | 'force-city'
   productTitle?: string
@@ -134,38 +135,8 @@ function hay(ctx: ModetourImageKeywordContext): string {
   return `${ctx.title}\n${ctx.description}\n${ctx.routeText ?? ''}\n${ctx.blob ?? ''}`.replace(/\s+/g, ' ')
 }
 
-function modetourRowInput(ctx: ModetourImageKeywordContext): ScheduleImageKeywordDayInput {
-  return {
-    day: ctx.day,
-    title: ctx.title,
-    description: ctx.description,
-    routeText: ctx.routeText ?? null,
-  }
-}
-
-function resolveModetourHubImageKeyword(ctx: ModetourImageKeywordContext): string | null {
-  if (ctx.scheduleRows?.length) {
-    const plan = buildScheduleImageKeywordPlan([...ctx.scheduleRows])
-    return resolveScheduleHubImageKeyword(modetourRowInput(ctx), plan)
-  }
-  const productHay = [ctx.productTitle, ctx.productPrimaryDestination, ctx.productDestination, ctx.blob]
-    .filter((x): x is string => Boolean(x?.trim()))
-    .join('\n')
-  const cities: string[] = []
-  const seen = new Set<string>()
-  for (const { re, en } of CITY_RULES) {
-    if (re.test(productHay) && !seen.has(en)) {
-      seen.add(en)
-      cities.push(en)
-    }
-  }
-  if (!cities.length) return null
-  const plan = {
-    firstDestinationEn: cities[0]!,
-    lastDestinationEn: cities[cities.length - 1]!,
-    totalDays: ctx.day,
-  }
-  return resolveScheduleHubImageKeyword(modetourRowInput(ctx), plan)
+function resolveModetourHubImageKeyword(_ctx: ModetourImageKeywordContext): string | null {
+  return null
 }
 
 function stripDatesAndNoise(s: string): string {
@@ -397,4 +368,33 @@ export function polishModetourImageKeyword(raw: string, ctx: ModetourImageKeywor
     out = finalizeScheduleImageKeyword(d) || out
   }
   return out
+}
+
+export type ModetourScheduleImageKeywordOpts = {
+  productDestination?: string | null
+  productTitle?: string
+  pastedBlob?: string
+}
+
+export function applyModetourScheduleImageKeywordsToRows<
+  T extends ModetourScheduleRowInput & { imageKeyword?: string | null; imageKeyword2?: string | null },
+>(rows: T[], opts?: ModetourScheduleImageKeywordOpts): T[] {
+  return rows.map((row) => {
+    const kw = polishModetourImageKeyword(String(row.imageKeyword ?? '').trim(), {
+      day: row.day,
+      title: String(row.title ?? ''),
+      description: String(row.description ?? ''),
+      routeText: row.routeText ?? null,
+      blob: opts?.pastedBlob,
+      productTitle: opts?.productTitle,
+      productPrimaryDestination: opts?.productDestination ?? null,
+      productDestination: opts?.productDestination ?? null,
+      scheduleRows: rows,
+    })
+    return {
+      ...row,
+      imageKeyword: kw,
+      imageKeyword2: row.imageKeyword2 ?? null,
+    }
+  })
 }

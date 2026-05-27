@@ -2,7 +2,7 @@
  * 하나투어 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-hanatour`만 호출.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
-import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
+import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -1721,7 +1721,7 @@ ${text.slice(0, 16000)}`
       ? normalizeHanatourRegisterTitleMinimalLocal(supplierListingTitleRaw)
       : llmTitleNormalized || '상품명 없음'
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
-  schedule = applyScheduleImageKeywordsToRows(schedule, undefined, {
+  schedule = applyHanatourScheduleImageKeywordsToRows(schedule, {
     productDestination: finalDestination || null,
   })
 

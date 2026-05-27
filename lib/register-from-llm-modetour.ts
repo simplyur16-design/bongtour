@@ -49,8 +49,7 @@ import { filterOptionalTourRows, optionalTourRowPassesStrictGate, type OptionalT
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 import { isMustKnowInsufficient, supplementMustKnowWithWebSearch } from './must-know-web-supplement'
 import { normalizeModetourOptionalTourDisplayName } from '@/lib/modetour-optional-tour-name'
-import { polishModetourImageKeyword } from '@/lib/modetour-schedule-image-keyword'
-import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
+import { applyModetourScheduleImageKeywordsToRows } from '@/lib/modetour-schedule-image-keyword'
 import { parseLlmJsonObject } from './llm-json-extract'
 import {
   mergeDayHotelPlansForRegister,
@@ -1562,22 +1561,11 @@ ${text.slice(0, 16000)}`
     routeText: row.routeText ?? null,
     imageKeyword: row.imageKeyword,
   }))
-  const schedule: RegisterScheduleDay[] = applyScheduleImageKeywordsToRows(
-    scheduleRowsForKw,
-    (kw, ctx) =>
-      polishModetourImageKeyword(kw, {
-        day: ctx.day,
-        title: String(ctx.title ?? ''),
-        description: String(ctx.description ?? ''),
-        routeText: ctx.routeText ?? null,
-        blob: pastedBlobForKw,
-        productTitle: kwTitleEarly || undefined,
-        productPrimaryDestination: kwDestEarly || undefined,
-        productDestination: kwDestEarly || undefined,
-        scheduleRows: scheduleRowsForKw,
-      }),
-    { productDestination: kwDestEarly || null },
-  )
+  const schedule: RegisterScheduleDay[] = applyModetourScheduleImageKeywordsToRows(scheduleRowsForKw, {
+    productDestination: kwDestEarly || null,
+    productTitle: kwTitleEarly || undefined,
+    pastedBlob: pastedBlobForKw,
+  })
 
   /** 선추출이 최종 일정에 들어갔을 때만 true — 이후 본문 보강이 요약 문장을 정규식 결과로 되돌리지 않게 함 */
   const modetourScheduleExtractFilled = Boolean(

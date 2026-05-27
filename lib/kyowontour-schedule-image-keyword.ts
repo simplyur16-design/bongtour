@@ -456,3 +456,28 @@ export function polishKyowontourImageKeyword(raw: string, ctx: KyowontourImageKe
   }
   return exitKyowontourLandmark(deriveKyowontourImageKeyword(ctx), ctx)
 }
+
+export type KyowontourScheduleImageKeywordOpts = {
+  productDestination?: string | null
+  productTitle?: string
+}
+
+export function applyKyowontourScheduleImageKeywordsToRows<
+  T extends { day: number; title?: string; description?: string; imageKeyword?: string | null; imageKeyword2?: string | null },
+>(rows: T[], opts?: KyowontourScheduleImageKeywordOpts): T[] {
+  return rows.map((row) => {
+    const kw = polishKyowontourImageKeyword(String(row.imageKeyword ?? '').trim(), {
+      day: row.day,
+      title: String(row.title ?? ''),
+      description: String(row.description ?? ''),
+      productTitle: opts?.productTitle,
+      productDestination: opts?.productDestination ?? null,
+      productPrimaryDestination: opts?.productDestination ?? null,
+    })
+    return {
+      ...row,
+      imageKeyword: kw,
+      imageKeyword2: row.imageKeyword2 ?? null,
+    }
+  })
+}

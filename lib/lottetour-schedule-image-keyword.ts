@@ -456,3 +456,28 @@ export function polishLottetourImageKeyword(raw: string, ctx: LottetourImageKeyw
   }
   return exitLottetourLandmark(deriveLottetourImageKeyword(ctx), ctx)
 }
+
+export type LottetourScheduleImageKeywordOpts = {
+  productDestination?: string | null
+  productTitle?: string
+}
+
+export function applyLottetourScheduleImageKeywordsToRows<
+  T extends { day: number; title?: string; description?: string; imageKeyword?: string | null; imageKeyword2?: string | null },
+>(rows: T[], opts?: LottetourScheduleImageKeywordOpts): T[] {
+  return rows.map((row) => {
+    const kw = polishLottetourImageKeyword(String(row.imageKeyword ?? '').trim(), {
+      day: row.day,
+      title: String(row.title ?? ''),
+      description: String(row.description ?? ''),
+      productTitle: opts?.productTitle,
+      productDestination: opts?.productDestination ?? null,
+      productPrimaryDestination: opts?.productDestination ?? null,
+    })
+    return {
+      ...row,
+      imageKeyword: kw,
+      imageKeyword2: row.imageKeyword2 ?? null,
+    }
+  })
+}

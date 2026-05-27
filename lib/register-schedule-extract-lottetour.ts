@@ -6,10 +6,8 @@
  * 풀 등록 JSON과 동시에 거대 schedule을 출력하면 MAX_TOKENS·일차 누락이 나기 쉬워 분리한다.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
-import {
-  applyScheduleImageKeywordsToRows,
-  REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE,
-} from '@/lib/register-schedule-image-keyword-ssot'
+import { REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE } from '@/lib/register-schedule-image-keyword-prompt'
+import { applyLottetourScheduleImageKeywordsToRows } from '@/lib/lottetour-schedule-image-keyword'
 import { buildScheduleExtractToneBlock } from '@/lib/bongtour-tone-manner-llm-ssot'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import { extractRelevantSections } from '@/lib/paste-relevant-sections'
@@ -205,7 +203,7 @@ function parseScheduleRowsFromLlmJson(
     if (!row && byDay.size === 1) {
       row = [...byDay.values()][0]!
     }
-    if (row) return applyScheduleImageKeywordsToRows([{ ...row, day: want }])
+    if (row) return applyLottetourScheduleImageKeywordsToRows([{ ...row, day: want }])
     return []
   }
   const out: CommonScheduleDayRow[] = []
@@ -213,7 +211,7 @@ function parseScheduleRowsFromLlmJson(
     const row = byDay.get(d)
     if (row) out.push(row)
   }
-  return applyScheduleImageKeywordsToRows(out)
+  return applyLottetourScheduleImageKeywordsToRows(out)
 }
 
 /** 풀 등록 프롬프트 JSON 예시의 schedule 배열을 []로 바꿔 출력 토큰·모델 복사를 줄인다. */

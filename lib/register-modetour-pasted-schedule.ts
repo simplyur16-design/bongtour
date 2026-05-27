@@ -3,12 +3,11 @@
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
 import {
+  applyModetourScheduleImageKeywordsToRows,
   deriveModetourImageKeyword,
   isModetourPlaceholderImageKeyword,
-  polishModetourImageKeyword,
+  type ModetourImageKeywordContext,
 } from '@/lib/modetour-schedule-image-keyword'
-import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
-import type { ModetourImageKeywordContext } from '@/lib/modetour-schedule-image-keyword'
 
 function modetourScheduleImageKeywordFallback(ctx: ModetourImageKeywordContext): string {
   return deriveModetourImageKeyword(ctx)
@@ -32,19 +31,11 @@ function finalizeModetourScheduleImageKeywords(
   if (!schedule.length) return schedule
   const blob = pastedRaw.slice(0, 32_000)
   const rows = schedule.map((r) => ({ ...r }))
-  return applyScheduleImageKeywordsToRows(rows, (kw, ctx) =>
-    polishModetourImageKeyword(kw, {
-      day: ctx.day,
-      title: String(ctx.title ?? ''),
-      description: String(ctx.description ?? ''),
-      routeText: ctx.routeText ?? null,
-      blob,
-      scheduleRows: rows,
-      productTitle: parsed.title,
-      productPrimaryDestination: parsed.destination ?? null,
-      productDestination: parsed.destination ?? null,
-    })
-  )
+  return applyModetourScheduleImageKeywordsToRows(rows, {
+    pastedBlob: blob,
+    productTitle: parsed.title,
+    productDestination: parsed.destination ?? null,
+  })
 }
 
 const NOISE_LINE =

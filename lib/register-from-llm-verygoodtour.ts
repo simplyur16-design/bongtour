@@ -2,7 +2,7 @@
  * 참좋은여행 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-verygoodtour`만 호출.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
-import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
+import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-schedule-image-keyword'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -122,7 +122,6 @@ import {
   traceVerygoodDetScheduleDesc,
   traceVerygoodScheduleDesc,
 } from '@/lib/verygoodtour-schedule-description-trace'
-import { polishVerygoodRegisterScheduleImageKeywords } from '@/lib/verygoodtour-schedule-image-keyword'
 import { registerScheduleToDayInputs } from '@/lib/upsert-itinerary-days-verygoodtour'
 
 /** parse/route TEXT_LIMIT(26k)보다 넉넉히 — 등록 프롬프트가 더 길어 32k. 초과분은 잘라 입력 토큰·지연을 줄임 */
@@ -1685,12 +1684,12 @@ ${text.slice(0, 16000)}`
 
   schedule = polishVerygoodRegisterScheduleDescriptions(schedule)
   traceVerygoodScheduleDesc('register-llm-D-after-polishVerygoodRegisterScheduleDescriptions', schedule)
-  schedule = polishVerygoodRegisterScheduleImageKeywords(schedule, detRows)
   const scheduleDestHintEarly =
     (raw.destination ?? '').trim() ||
     extractDestinationFromTitle(String(raw.title ?? '').trim()) ||
     null
-  schedule = applyScheduleImageKeywordsToRows(schedule, undefined, {
+  schedule = applyVerygoodScheduleImageKeywordsToRows(schedule, {
+    detRows,
     productDestination: scheduleDestHintEarly,
   })
   traceVerygoodScheduleDesc('register-llm-E-after-polishVerygoodRegisterScheduleImageKeywords', schedule)

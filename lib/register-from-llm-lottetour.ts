@@ -2,8 +2,7 @@
  * 롯데관광(lottetour) 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-lottetour`만 호출.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
-import { applyScheduleImageKeywordsToRows } from '@/lib/register-schedule-image-keyword-ssot'
-import { polishLottetourImageKeyword } from '@/lib/lottetour-schedule-image-keyword'
+import { applyLottetourScheduleImageKeywordsToRows } from '@/lib/lottetour-schedule-image-keyword'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -1791,19 +1790,10 @@ ${text.slice(0, 16000)}`
   const lottetourTitleEarly = String(raw.title ?? '').trim()
   const lottetourDestEarly =
     (raw.destination ?? '').trim() || extractDestinationFromTitle(lottetourTitleEarly)
-  const schedule: RegisterScheduleDay[] = applyScheduleImageKeywordsToRows(
-    scheduleRowsForKw,
-    (kw, ctx) =>
-      polishLottetourImageKeyword(kw, {
-        day: ctx.day,
-        title: String(ctx.title ?? ''),
-        description: String(ctx.description ?? ''),
-        productTitle: lottetourTitleEarly || undefined,
-        productDestination: lottetourDestEarly || undefined,
-        productPrimaryDestination: lottetourDestEarly || undefined,
-      }),
-    { productDestination: lottetourDestEarly || null },
-  )
+  const schedule: RegisterScheduleDay[] = applyLottetourScheduleImageKeywordsToRows(scheduleRowsForKw, {
+    productDestination: lottetourDestEarly || null,
+    productTitle: lottetourTitleEarly || undefined,
+  })
 
   const pasteForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
   const supplierListingTitleRaw = extractLottetourVerbatimListingTitle(pasteForTitle)

@@ -36,3 +36,19 @@ export function polishVerygoodRegisterScheduleImageKeywords(
     return { ...row, imageKeyword: kw }
   })
 }
+
+export type VerygoodScheduleImageKeywordOpts = {
+  productDestination?: string | null
+  detRows?: RegisterScheduleDay[]
+}
+
+export function applyVerygoodScheduleImageKeywordsToRows<
+  T extends RegisterScheduleDay,
+>(rows: T[], opts?: VerygoodScheduleImageKeywordOpts): T[] {
+  const polished = polishVerygoodRegisterScheduleImageKeywords(rows, opts?.detRows ?? rows)
+  return polished.map((row) => ({
+    ...row,
+    imageKeyword: String(row.imageKeyword ?? '').trim(),
+    imageKeyword2: row.imageKeyword2 ?? null,
+  })) as T[]
+}

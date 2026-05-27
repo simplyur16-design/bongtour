@@ -39,7 +39,30 @@ import {
   isLikelyTourismLandmarkKeyword,
   normalizeToPlaceName,
 } from '@/lib/pexels-place-name-keyword'
-import { collectScheduleLandmarksFromDayContext } from '@/lib/register-schedule-image-keyword-ssot'
+
+function routeTextSegmentsForHero(routeText: string): string[] {
+  return routeText
+    .split(/\s*[-–—·]\s*|\s*-\s*/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 2 && s.length < 90)
+}
+
+function collectHeroLandmarksFromScheduleContext(input: {
+  scheduleTitle?: string
+  scheduleDescription?: string
+  scheduleRouteText?: string | null
+}): string[] {
+  const out: string[] = []
+  const routeText = input.scheduleRouteText?.trim() || null
+  if (routeText) out.push(...routeTextSegmentsForHero(routeText))
+  const desc = input.scheduleDescription?.trim()
+  if (desc && desc.length >= 120) {
+    for (const part of desc.split(/[,，、·\n]|(?:\s+및\s+)|(?:\s+그리고\s+)/).map((s) => s.trim()).filter(Boolean)) {
+      if (part.length >= 2 && part.length < 90) out.push(part)
+    }
+  }
+  return out
+}
 
 export type { PexelsQuerySet } from '@/lib/pexels-hero-query'
 
@@ -172,11 +195,10 @@ export function extractDayPoiCandidates(input: {
   if (input.scheduleTitle?.trim()) push(input.scheduleTitle.trim(), 'schedule')
   const routeText = input.scheduleRouteText?.trim() || null
   if (routeText) {
-    for (const lm of collectScheduleLandmarksFromDayContext({
-      day: 0,
-      title: input.scheduleTitle ?? '',
-      description: input.scheduleDescription ?? '',
-      routeText,
+    for (const lm of collectHeroLandmarksFromScheduleContext({
+      scheduleTitle: input.scheduleTitle ?? '',
+      scheduleDescription: input.scheduleDescription ?? '',
+      scheduleRouteText: routeText,
     })) {
       push(lm, 'schedule')
     }
@@ -184,11 +206,10 @@ export function extractDayPoiCandidates(input: {
   const desc = input.scheduleDescription?.trim()
   if (desc && desc.length < 120) push(desc, 'schedule')
   if (desc && desc.length >= 120) {
-    for (const lm of collectScheduleLandmarksFromDayContext({
-      day: 0,
-      title: input.scheduleTitle ?? '',
-      description: desc,
-      routeText,
+    for (const lm of collectHeroLandmarksFromScheduleContext({
+      scheduleTitle: input.scheduleTitle ?? '',
+      scheduleDescription: desc,
+      scheduleRouteText: routeText,
     })) {
       push(lm, 'schedule')
     }
