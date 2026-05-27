@@ -83,6 +83,11 @@ const AMERICAS_SOUTH_AMERICA_COUNTRY_KEYS = new Set([
   'dominican-republic',
 ])
 
+/** browse `region=south-america` — 메가메뉴 중남미 탭·트리 매칭과 동일 countryKey */
+export function isAmericasSouthAmericaBrowseCountryKey(countryKey: string): boolean {
+  return AMERICAS_SOUTH_AMERICA_COUNTRY_KEYS.has(countryKey)
+}
+
 /** 매칭 트리 → 메가메뉴 browse `region` 탭 id */
 function continentIdForLegacyCountry(groupKey: string, countryKey: string): string {
   if (groupKey === 'japan') return 'japan'

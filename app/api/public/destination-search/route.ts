@@ -33,7 +33,7 @@ export async function GET(request: Request) {
         select: {
           cityKey: true,
           koreanLabel: true,
-          country: { select: { koreanLabel: true } },
+          country: { select: { koreanLabel: true, countryKey: true } },
         },
       }),
       prisma.country.findMany({
@@ -55,6 +55,7 @@ export async function GET(request: Request) {
         cityKey: c.cityKey,
         koreanLabel: c.koreanLabel,
         countryLabel: c.country.koreanLabel,
+        countryKey: c.country.countryKey,
       })),
       countries: countries.map((c) => ({ countryKey: c.countryKey, koreanLabel: c.koreanLabel })),
     })

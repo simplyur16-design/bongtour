@@ -2,9 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { isAmericasSouthAmericaBrowseCountryKey } from '@/lib/unified-location-tree'
 
-type CityHit = { cityKey: string; koreanLabel: string; countryLabel: string }
+type CityHit = { cityKey: string; koreanLabel: string; countryLabel: string; countryKey: string }
 type CountryHit = { countryKey: string; koreanLabel: string }
+
+function buildMobileOverseasHref(opts: { countryKey?: string; cityKey?: string }): string {
+  const params = new URLSearchParams()
+  if (opts.cityKey) params.set('destination', opts.cityKey)
+  if (opts.countryKey) params.set('country', opts.countryKey)
+  if (opts.countryKey && isAmericasSouthAmericaBrowseCountryKey(opts.countryKey)) {
+    params.set('region', 'south-america')
+  }
+  return `/travel/overseas?${params.toString()}`
+}
 
 /**
  * 모바일 메인 — 헤더 가로 메뉴(PR #25) 대신 도시·국가 빠른 이동.
@@ -116,7 +127,7 @@ export default function MobileDestinationSearch() {
                 {cities.map((c) => (
                   <li key={`c-${c.cityKey}`} role="option">
                     <Link
-                      href={`/travel/overseas?destination=${encodeURIComponent(c.cityKey)}`}
+                      href={buildMobileOverseasHref({ cityKey: c.cityKey, countryKey: c.countryKey })}
                       className="block px-3 py-2.5 text-left text-sm text-bt-text-navy hover:bg-teal-50 active:bg-teal-100"
                       onClick={() => {
                         setOpen(false)
@@ -131,7 +142,7 @@ export default function MobileDestinationSearch() {
                 {countries.map((c) => (
                   <li key={`n-${c.countryKey}`} role="option">
                     <Link
-                      href={`/travel/overseas?country=${encodeURIComponent(c.countryKey)}`}
+                      href={buildMobileOverseasHref({ countryKey: c.countryKey })}
                       className="block px-3 py-2.5 text-left text-sm text-bt-text-navy hover:bg-teal-50 active:bg-teal-100"
                       onClick={() => {
                         setOpen(false)
