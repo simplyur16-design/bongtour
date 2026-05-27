@@ -130,7 +130,7 @@ import type {
   KyowontourOptionalTourFromBody,
   KyowontourShoppingItemFromBody,
 } from '@/lib/kyowontour-admin-preview-card-types'
-import { parseLocalDepartureTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import {
   buildRegisterPublicImageHeroSeoKeywords,
@@ -1689,6 +1689,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       ...registerListingMeta,
       ...geo,
       localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
+      sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
     }
 
     let productId: string

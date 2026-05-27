@@ -95,7 +95,7 @@ import {
   finalizeVerygoodtourItineraryDayDraftsFromSchedule,
   verygoodConfirmHasScheduleExpressionLayer,
 } from '@/lib/parse-and-register-verygoodtour-schedule'
-import { parseLocalDepartureTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import {
   buildRegisterPublicImageHeroSeoKeywords,
@@ -1393,6 +1393,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       ...registerListingMeta,
       ...geo,
       localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
+      sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
     }
 
     let productId: string

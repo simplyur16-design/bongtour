@@ -22,6 +22,7 @@ import { computeAdminProductSupplierDerivatives } from '@/lib/admin-product-supp
 import {
   LISTING_KIND_VALUES,
   parseLocalDepartureTagArrayFromAdminBody,
+  parseSportsThemeTagArrayFromAdminBody,
   TRAVEL_SCOPE_VALUES,
 } from '@/lib/product-listing-kind'
 import {
@@ -200,6 +201,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         travelScope: true,
         listingKind: true,
         localDepartureTag: true,
+        sportsThemeTag: true,
         departures: { orderBy: { departureDate: 'asc' }, take: 1, select: { carrierName: true } },
       },
     })
@@ -302,6 +304,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       imageReviewRequestedAt?: Date | null
       rawMeta?: string | null
       localDepartureTag?: string[]
+      sportsThemeTag?: string[]
       highlightPointsRaw?: string | null
       highlightPoints?: string | null
     } = {}
@@ -503,6 +506,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (body.targetAudience !== undefined) data.targetAudience = strOrNull(body.targetAudience)
     if (body.localDepartureTag !== undefined) {
       data.localDepartureTag = parseLocalDepartureTagArrayFromAdminBody(body)
+    }
+    if (body.sportsThemeTag !== undefined) {
+      data.sportsThemeTag = parseSportsThemeTagArrayFromAdminBody(body)
     }
     // 대표 이미지 (Pexels 선택 등): primaryImage* → bgImage* (URL 비우면 메타도 null)
     if (body.primaryImageUrl !== undefined) {
@@ -853,6 +859,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         travelScope: true,
         listingKind: true,
         localDepartureTag: true,
+        sportsThemeTag: true,
         departures: { orderBy: { departureDate: 'asc' }, take: 1, select: { carrierName: true } },
       },
     })

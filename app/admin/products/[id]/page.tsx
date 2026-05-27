@@ -22,7 +22,10 @@ import {
   type ListingKind,
   LOCAL_DEPARTURE_TAG_LABELS,
   LOCAL_DEPARTURE_TAG_VALUES,
+  SPORTS_THEME_TAG_LABELS,
+  SPORTS_THEME_TAG_VALUES,
   type LocalDepartureTag,
+  type SportsThemeTag,
   TRAVEL_SCOPE_LABELS,
   TRAVEL_SCOPE_VALUES,
 } from '@/lib/product-listing-kind'
@@ -367,6 +370,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
     listingKind: '' as '' | ListingKind,
   })
   const [localDepartureTagDraft, setLocalDepartureTagDraft] = useState<LocalDepartureTag[]>([])
+  const [sportsThemeTagDraft, setSportsThemeTagDraft] = useState<SportsThemeTag[]>([])
   const [benefitDraft, setBenefitDraft] = useState('')
   const [counselingDraft, setCounselingDraft] = useState('')
   const [flightAdminDraft, setFlightAdminDraft] = useState('')
@@ -452,6 +456,11 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
         (k) => Array.isArray(product.localDepartureTag) && product.localDepartureTag!.includes(k)
       )
     )
+    setSportsThemeTagDraft(
+      SPORTS_THEME_TAG_VALUES.filter(
+        (k) => Array.isArray(product.sportsThemeTag) && product.sportsThemeTag!.includes(k)
+      )
+    )
     setBenefitDraft(product.benefitSummary ?? '')
     setHighlightRawDraft(product.highlightPointsRaw ?? '')
     setHighlightCuratedDraft(product.highlightPoints ?? '')
@@ -465,6 +474,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
     product?.travelScope,
     product?.listingKind,
     product?.localDepartureTag,
+    product?.sportsThemeTag,
     product?.benefitSummary,
     product?.highlightPointsRaw,
     product?.highlightPoints,
@@ -1478,6 +1488,29 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                 ))}
               </div>
             </div>
+            <div className="mt-3 rounded border border-bt-border-strong bg-bt-title/30 px-3 py-2">
+              <p className="text-[11px] font-semibold text-bt-inverse">스포츠 테마 (수동 지정)</p>
+              <p className="mt-1 text-[10px] text-bt-subtle">
+                스포츠 테마 메가 메뉴·browse용입니다. 해당 없으면 모두 해제하세요.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-bt-inverse">
+                {SPORTS_THEME_TAG_VALUES.map((tag) => (
+                  <label key={tag} className="inline-flex cursor-pointer items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 rounded border-bt-border-strong"
+                      checked={sportsThemeTagDraft.includes(tag)}
+                      onChange={() =>
+                        setSportsThemeTagDraft((prev) =>
+                          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                        )
+                      }
+                    />
+                    <span>{SPORTS_THEME_TAG_LABELS[tag]}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
           <button
             type="button"
@@ -1496,6 +1529,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                     travelScope: basicDraft.travelScope || null,
                     listingKind: basicDraft.listingKind || null,
                     localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTagDraft.includes(k)),
+                    sportsThemeTag: SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTagDraft.includes(k)),
                   }),
                 })
                 const text = await res.text()

@@ -134,7 +134,7 @@ import {
 } from '@/lib/register-admin-input-persist-modetour'
 import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confirm-reuse-modetour'
 import { buildRegisterProductScheduleJson } from '@/lib/build-register-product-schedule-json'
-import { parseLocalDepartureTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import {
   buildRegisterPublicImageHeroSeoKeywords,
@@ -1752,6 +1752,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       ...registerListingMeta,
       ...geo,
       localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
+      sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
     }
 
     let productId: string

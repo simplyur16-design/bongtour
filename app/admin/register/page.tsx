@@ -73,7 +73,10 @@ import {
 import {
   LOCAL_DEPARTURE_TAG_LABELS,
   LOCAL_DEPARTURE_TAG_VALUES,
+  SPORTS_THEME_TAG_LABELS,
+  SPORTS_THEME_TAG_VALUES,
   type LocalDepartureTag,
+  type SportsThemeTag,
 } from '@/lib/product-listing-kind'
 import {
   CANONICAL_OVERSEAS_SUPPLIER_KEYS,
@@ -551,6 +554,8 @@ export default function AdminRegisterPage() {
   const [travelScope, setTravelScope] = useState<'overseas' | 'domestic' | 'air_hotel_free'>('overseas')
   /** 지방 출발 메가 메뉴·browse용 — LLM 비사용, 확정 시 DB `Product.localDepartureTag`만 반영 */
   const [localDepartureTag, setLocalDepartureTag] = useState<LocalDepartureTag[]>([])
+  /** 스포츠 테마 메가 메뉴·browse용 — LLM 비사용, 확정 시 DB `Product.sportsThemeTag`만 반영 */
+  const [sportsThemeTag, setSportsThemeTag] = useState<SportsThemeTag[]>([])
   const [rawText, setRawText] = useState('')
   const [originUrl, setOriginUrl] = useState('')
   const [loading, setLoading] = useState(false)
@@ -695,6 +700,11 @@ export default function AdminRegisterPage() {
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     )
   }, [])
+  const toggleSportsThemeTag = useCallback((tag: SportsThemeTag) => {
+    setSportsThemeTag((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    )
+  }, [])
   const currentRegisterPreviewFingerprint = () =>
     buildRegisterCanonForSupplier(selectedBrandKey, {
       text: rawText.trim(),
@@ -796,6 +806,7 @@ export default function AdminRegisterPage() {
                   originSource,
                   travelScope,
                   localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
+                  sportsThemeTag: SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTag.includes(k)),
                   ...(selectedBrandKey && { brandKey: selectedBrandKey }),
                   ...(urlToCheck && { originUrl: urlToCheck }),
                   ...(blocksPayload && { pastedBlocks: blocksPayload }),
@@ -809,6 +820,7 @@ export default function AdminRegisterPage() {
                   ...(blocksPayload && { pastedBlocks: blocksPayload }),
                   travelScope,
                   localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
+                  sportsThemeTag: SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTag.includes(k)),
                 }
           ),
           signal: controller.signal,
@@ -994,6 +1006,7 @@ export default function AdminRegisterPage() {
             ...(correctionOverlay && { correctionOverlay }),
             previewContentDigest: preview.previewContentDigest,
             localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
+            sportsThemeTag: SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTag.includes(k)),
             ...(typeof snap.registerSnapshotId === 'string' &&
               snap.registerSnapshotId.trim() && { registerSnapshotId: snap.registerSnapshotId.trim() }),
             ...(typeof snap.registerAnalysisId === 'string' &&
@@ -1209,6 +1222,29 @@ export default function AdminRegisterPage() {
                   disabled={loading || confirming}
                 />
                 <span>{LOCAL_DEPARTURE_TAG_LABELS[tag]}</span>
+                <span className="font-mono text-[11px] text-slate-500">({tag})</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 border-l-4 border-[#0f172a] pl-6">
+          <p className="text-sm font-semibold text-slate-800">스포츠 테마 (수동 지정)</p>
+          <p className="mt-1 text-xs text-slate-500">
+            스포츠 테마 메가 메뉴·browse용입니다. 해당 없으면 모두 해제하세요. 체크한 값은 확정 저장 시 DB{' '}
+            <code className="text-[11px]">sportsThemeTag</code>에만 반영되며, 미리보기 본문 지문과는 무관합니다.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-800">
+            {SPORTS_THEME_TAG_VALUES.map((tag) => (
+              <label key={tag} className="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-400 text-[#0f172a] focus:ring-[#0f172a]"
+                  checked={sportsThemeTag.includes(tag)}
+                  onChange={() => toggleSportsThemeTag(tag)}
+                  disabled={loading || confirming}
+                />
+                <span>{SPORTS_THEME_TAG_LABELS[tag]}</span>
                 <span className="font-mono text-[11px] text-slate-500">({tag})</span>
               </label>
             ))}
@@ -1482,6 +1518,17 @@ export default function AdminRegisterPage() {
                     ? '없음 (인천/김포 기본)'
                     : LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k))
                         .map((k) => LOCAL_DEPARTURE_TAG_LABELS[k])
+                        .join(', ')}
+                </p>
+              </div>
+
+              <div className="rounded border border-violet-200 bg-violet-50/80 p-3 text-xs text-violet-950">
+                <p className="font-semibold text-violet-900">스포츠 테마 태그 (수동)</p>
+                <p className="mt-1 text-violet-900/90">
+                  {sportsThemeTag.length === 0
+                    ? '없음'
+                    : SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTag.includes(k))
+                        .map((k) => SPORTS_THEME_TAG_LABELS[k])
                         .join(', ')}
                 </p>
               </div>

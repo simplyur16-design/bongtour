@@ -94,6 +94,8 @@ export type Product = {
   listingKind?: string | null
   /** 지방 출발 메가 메뉴·browse — `busan` | `cheongju` | `daegu` */
   localDepartureTag?: string[]
+  /** 스포츠 테마 메가 메뉴·browse — `running` | `trekking` | `diving` | `spectator` | `golf` */
+  sportsThemeTag?: string[]
 }
 
 /** GET /api/admin/products/[id]/itinerary-days 응답 1건 */

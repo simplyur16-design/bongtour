@@ -129,7 +129,7 @@ import {
 import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confirm-reuse-ybtour'
 import { buildRegisterVerificationBundle } from '@/lib/admin-register-verification-meta-ybtour'
 import type { RegisterPreviewProductDraft } from '@/lib/register-preview-payload-ybtour'
-import { parseLocalDepartureTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import {
   buildRegisterPublicImageHeroSeoKeywords,
@@ -1506,6 +1506,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       ...registerListingMeta,
       ...geo,
       localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
+      sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
     }
 
     let productId: string
