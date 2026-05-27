@@ -4,7 +4,7 @@ import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
-import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-ssot'
+import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-prompt'
 import {
   finalizeRegisterScheduleImageKeywords,
   tryPersistScheduleImageKeyword,

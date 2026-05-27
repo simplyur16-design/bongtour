@@ -2,7 +2,7 @@
  * LLM 프롬프트용 톤앤매너 — 문서 SSOT 발췌.
  * @see docs/BONGTOUR-MASTER-PLATFORM-DESIGN.md §9 톤앤매너 가이드 (원문·우선순위는 항상 해당 문서)
  */
-import { REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK } from '@/lib/register-schedule-image-keyword-ssot'
+import { REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK } from '@/lib/register-schedule-image-keyword-prompt'
 
 export const BONGTOUR_TONE_MANNER_DOCUMENT_SEE = 'docs/BONGTOUR-MASTER-PLATFORM-DESIGN.md §9 톤앤매너 가이드'
 

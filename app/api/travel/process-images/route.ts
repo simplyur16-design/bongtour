@@ -37,7 +37,7 @@ import {
   finalizeRegisterScheduleImageKeywords,
   resolveScheduleImageKeywordForDb,
 } from '@/lib/schedule-image-keyword-persist'
-import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-ssot'
+import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-prompt'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
