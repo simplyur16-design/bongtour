@@ -59,3 +59,32 @@ export function parseLocalDepartureTagArrayFromAdminBody(body: Record<string, un
   }
   return LOCAL_DEPARTURE_TAG_VALUES.filter((k) => seen.has(k))
 }
+
+/** 관리자 수동 지정 — 스포츠 테마 메가 메뉴·browse 필터용 (`Product.sportsThemeTag`). */
+export const SPORTS_THEME_TAG_VALUES = ['running', 'trekking', 'diving', 'spectator', 'golf'] as const
+export type SportsThemeTag = (typeof SPORTS_THEME_TAG_VALUES)[number]
+
+export const SPORTS_THEME_TAG_LABELS: Record<SportsThemeTag, string> = {
+  running: '러닝',
+  trekking: '트레킹',
+  diving: '다이빙',
+  spectator: '직관',
+  golf: '골프',
+}
+
+const SPORTS_THEME_TAG_SET = new Set<string>(SPORTS_THEME_TAG_VALUES)
+
+/**
+ * 관리자 등록/수정 POST 본문에서만 사용. 허용값 외는 무시, 중복 제거, canonical 순서.
+ */
+export function parseSportsThemeTagArrayFromAdminBody(body: Record<string, unknown>): SportsThemeTag[] {
+  const raw = body.sportsThemeTag
+  if (raw == null) return []
+  if (!Array.isArray(raw)) return []
+  const seen = new Set<string>()
+  for (const x of raw) {
+    const s = typeof x === 'string' ? x.trim() : ''
+    if (SPORTS_THEME_TAG_SET.has(s)) seen.add(s)
+  }
+  return SPORTS_THEME_TAG_VALUES.filter((k) => seen.has(k))
+}
