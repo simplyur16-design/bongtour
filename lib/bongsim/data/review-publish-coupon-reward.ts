@@ -3,7 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { findReviewRewardForReviewId, issueUserCoupon } from "@/lib/bongsim/data/user-coupon";
 import { getTemplateBySlot } from "@/lib/coupon/issuance-helpers";
-import { notifyCouponReviewReward } from "@/lib/notifications/coupon-notifications";
+import {
+  formatCouponDiscountText,
+  notifyCouponReviewReward,
+} from "@/lib/notifications/coupon-notifications";
 
 /** 관리자 게시 승인 직후 — 리뷰 작성자에게 보상 쿠폰(멱등). */
 export async function maybeIssueTravelReviewPublishedCoupon(reviewId: string): Promise<void> {
@@ -37,10 +40,16 @@ export async function maybeIssueTravelReviewPublishedCoupon(reviewId: string): P
     if (!issued.issued) return;
 
     const tpl = await getTemplateBySlot(client, "review");
-    const amt = tpl ? Math.trunc(Number(tpl.discount_value)) || 0 : 0;
     await notifyCouponReviewReward(
       { id: user.id, email: user.email, name: user.name, phone: user.phone },
-      { amountKrw: amt, expiresAt: issued.expiresAt ?? new Date() },
+      {
+        amountKrw: tpl?.discount_value ?? 0,
+        discountType: tpl?.discount_type ?? null,
+        discountText: tpl
+          ? formatCouponDiscountText(tpl.discount_type, tpl.discount_value)
+          : undefined,
+        expiresAt: issued.expiresAt ?? new Date(),
+      },
     );
   } catch (e) {
     const er = e as { code?: string; message?: string };

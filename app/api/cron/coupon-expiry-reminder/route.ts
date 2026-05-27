@@ -12,7 +12,8 @@ type ReminderRow = {
   source_coupon_id: string;
   expires_at: Date;
   coupon_label: string | null;
-  amount: string | null;
+  discount_type: string | null;
+  discount_value: string | null;
   phone: string | null;
   name: string | null;
 };
@@ -39,7 +40,8 @@ export async function POST(req: Request) {
               uc.source_coupon_id::text AS source_coupon_id,
               uc.expires_at,
               (SELECT c.template_label FROM bongsim_coupon c WHERE c.coupon_id = uc.source_coupon_id) AS coupon_label,
-              (SELECT c.discount_value::text FROM bongsim_coupon c WHERE c.coupon_id = uc.source_coupon_id) AS amount,
+              (SELECT c.discount_type FROM bongsim_coupon c WHERE c.coupon_id = uc.source_coupon_id) AS discount_type,
+              (SELECT c.discount_value::text FROM bongsim_coupon c WHERE c.coupon_id = uc.source_coupon_id) AS discount_value,
               u.phone AS phone,
               u.name AS name
          FROM bongsim_user_coupon uc
@@ -71,7 +73,8 @@ export async function POST(req: Request) {
           phone: row.phone,
         },
         {
-          amountKrw: row.amount ?? "0",
+          amountKrw: row.discount_value ?? "0",
+          discountType: row.discount_type,
           expiresAt: row.expires_at,
           couponLabel: row.coupon_label,
         },

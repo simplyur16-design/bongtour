@@ -129,13 +129,16 @@ export async function notifyCouponReviewReward(
     return { ok: true, dryRun: true, error: 'no-phone' }
   }
   const name = displayName(user)
+  const discountText =
+    userCoupon.discountText?.trim() ||
+    formatCouponDiscountText(userCoupon.discountType, userCoupon.amountKrw)
   return guardNotify(() =>
     sendKakaoNotification({
       to: phone,
       templateKey: 'coupon_review_reward',
       variables: {
         name,
-        amount: formatAmountKrw(userCoupon.amountKrw),
+        discountText,
         expiresAt: formatExpiresAt(userCoupon.expiresAt),
       },
       userId: user.id ?? undefined,
@@ -210,6 +213,9 @@ export async function notifyCouponExpiry(
   }
   const name = displayName(user)
   const couponLabel = userCoupon.couponLabel?.trim() || '보유 쿠폰'
+  const discountText =
+    userCoupon.discountText?.trim() ||
+    formatCouponDiscountText(userCoupon.discountType, userCoupon.amountKrw)
   return guardNotify(() =>
     sendKakaoNotification({
       to: phone,
@@ -217,7 +223,7 @@ export async function notifyCouponExpiry(
       variables: {
         name,
         couponLabel,
-        amount: formatAmountKrw(userCoupon.amountKrw),
+        discountText,
         expiresAt: formatExpiresAt(userCoupon.expiresAt),
       },
       userId: user.id ?? undefined,

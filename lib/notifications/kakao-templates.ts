@@ -31,9 +31,9 @@ export const KAKAO_TEMPLATES: Record<KakaoTemplateKey, KakaoTemplateSpec> = {
   coupon_review_reward: {
     templateId: process.env.SOLAPI_KAKAO_TPL_COUPON_REVIEW ?? '__TBD__COUPON_REVIEW__',
     description: '리뷰 작성 감사 + 보상 쿠폰',
-    requiredVars: ['name', 'amount', 'expiresAt'],
+    requiredVars: ['name', 'discountText', 'expiresAt'],
     sampleText:
-      '#{name}님, 소중한 리뷰 감사합니다.\n보상 쿠폰 #{amount}원을 발급해드렸어요.\n사용 기한: #{expiresAt}',
+      '#{name}님, 소중한 리뷰 감사합니다.\n보상 쿠폰 #{discountText}을 발급해드렸어요.\n사용 기한: #{expiresAt}',
   },
   /** @deprecated referral 폐기(4차-A) — 키만 유지. */
   coupon_referral_invitee: {
@@ -56,9 +56,9 @@ export const KAKAO_TEMPLATES: Record<KakaoTemplateKey, KakaoTemplateSpec> = {
   coupon_expiry_reminder: {
     templateId: process.env.SOLAPI_KAKAO_TPL_COUPON_EXPIRY ?? '__TBD__COUPON_EXPIRY__',
     description: '쿠폰 만료 D-3 알림',
-    requiredVars: ['name', 'couponLabel', 'amount', 'expiresAt'],
+    requiredVars: ['name', 'couponLabel', 'discountText', 'expiresAt'],
     sampleText:
-      '#{name}님, 보유하신 쿠폰이 곧 만료돼요.\n· #{couponLabel} #{amount}원\n· 만료일: #{expiresAt}\n쿠폰함에서 사용하기 →',
+      '#{name}님, 보유하신 쿠폰이 곧 만료돼요.\n· #{couponLabel} #{discountText}\n· 만료일: #{expiresAt}\n쿠폰함에서 사용하기 →',
   },
   /** @deprecated 레지스트리 보존용 — 생일 미수집 정책으로 미사용. */
   coupon_birthday: {

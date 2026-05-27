@@ -38,9 +38,18 @@ function varsFor(key: KakaoTemplateKey): Record<string, string> {
     case 'coupon_referral_inviter':
       return { ...legacy, inviteeName: '친구' }
     case 'coupon_expiry_reminder':
-      return { ...legacy, couponLabel: '환영 쿠폰' }
+      return {
+        name: '테스트',
+        couponLabel: '환영 쿠폰',
+        discountText: '5,000원 할인',
+        expiresAt: '2030. 1. 1.',
+      }
     default:
-      return legacy
+      return {
+        name: '테스트',
+        discountText: '20% 할인',
+        expiresAt: '2030. 1. 1.',
+      }
   }
 }
 
