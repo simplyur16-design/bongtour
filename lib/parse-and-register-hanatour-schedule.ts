@@ -265,12 +265,14 @@ export function hanatourEnglishPexelsImageKeywordFromBlob(blob: string, day: num
   return 'Scenic Asian city travel skyline dusk'
 }
 
-/** 카드 description: 1문장, 허용 90~150자·목표 100~140자 */
-const HANATOUR_CARD_DESCRIPTION_MAX = 150
-/** 교체·보강 판정 하한(이 미만이면 규칙 보강·제미나이 후보) */
-const HANATOUR_CARD_DESCRIPTION_MIN = 90
-/** 설명 밀도 목표 하한(가능하면 이 길이까지 장소·동선으로 채움) */
-const HANATOUR_CARD_DESCRIPTION_TARGET = 100
+/** 카드 description: 3~4문장·300자 이내(본문이 짧으면 그 이하 허용) */
+const HANATOUR_CARD_DESCRIPTION_MAX = 300
+/** 교체·보강 판정 하한(문자 수·문장 수 병행) */
+const HANATOUR_CARD_DESCRIPTION_MIN = 72
+/** 설명 밀도 목표 하한(가능하면 3문장 이상) */
+const HANATOUR_CARD_DESCRIPTION_TARGET = 180
+const HANATOUR_CARD_DESCRIPTION_MAX_SENTENCES = 4
+const HANATOUR_CARD_DESCRIPTION_IDEAL_SENTENCES = 3
 
 /** 본문에 실제로 있을 때만 제목·설명 재료로 쓰는 관광·동선 토막(긴 문자열 우선 매칭) */
 const HANATOUR_KNOWN_POI_SUBSTRINGS: readonly string[] = [
@@ -370,16 +372,16 @@ function stripLeadingHanatourDatePrefix(s: string): string {
     .trim()
 }
 
-/** 장문 일정표·리스트·다문장이 카드 description으로 들어온 경우 */
+/** 장문 일정표·리스트·과다 문장이 카드 description으로 들어온 경우(정상 3~4문장은 허용) */
 function hanatourDescriptionLooksLikeDetailDump(s: string): boolean {
   const t = s.trim()
   if (!t) return false
   if (t.length > HANATOUR_CARD_DESCRIPTION_MAX) return true
+  const sentenceCount = hanatourCountKrSentences(t)
+  if (sentenceCount > HANATOUR_CARD_DESCRIPTION_MAX_SENTENCES) return true
   const lines = t.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)
   if (lines.length >= 3) return true
   if (lines.length === 2 && lines.some((l) => l.length > 70)) return true
-  const chunks = t.split(/(?<=[.!?。])\s+/).map((x) => x.trim()).filter((x) => x.length > 8)
-  if (chunks.length >= 3) return true
   if (/※\s*※|[▶■]{2,}/.test(t)) return true
   if (/\d{1,2}\/\d{1,2}\s*\([월화수목금토일]\)/.test(t)) return true
   if (/유의사항|개요\s*[:：]|선택관광\s*안내|TIP\]/i.test(t)) return true
@@ -903,22 +905,172 @@ function pickHanatourDescriptionSnippetFromLines(lines: string[], joined: string
   return j.length >= 24 ? j : ''
 }
 
-function hanatourTrimOneSentenceMax(s: string, max: number = HANATOUR_CARD_DESCRIPTION_MAX): string {
+function hanatourCountKrSentences(s: string): number {
+  const t = s.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim()
+  if (!t) return 0
+  const parts = t
+    .split(/(?<=[.!?。…])\s+/)
+    .map((x) => x.trim())
+    .filter((x) => x.replace(/[.!?。…]+$/u, '').length >= 4)
+  return parts.length > 0 ? parts.length : t.length >= 8 ? 1 : 0
+}
+
+function hanatourSplitKrSentences(t: string): string[] {
+  return t
+    .replace(/\r?\n/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(/(?<=[.!?。…])\s+/)
+    .map((x) => x.trim())
+    .filter((x) => x.replace(/[.!?。…]+$/u, '').length >= 4)
+}
+
+function hanatourClampToMaxSentences(text: string, maxSentences: number): string {
+  const parts = hanatourSplitKrSentences(text)
+  if (!parts.length) return text.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim()
+  if (parts.length <= maxSentences) return parts.map((p) => (/[.!?…]$/.test(p) ? p : `${p}.`)).join(' ')
+  return parts
+    .slice(0, maxSentences)
+    .map((p) => (/[.!?…]$/.test(p) ? p : `${p}.`))
+    .join(' ')
+    .trim()
+}
+
+/** 본문 근거 description: 1문장으로 자르지 않고 최대 N문장·max자만 제한 */
+function hanatourTrimDescriptionMax(s: string, max: number = HANATOUR_CARD_DESCRIPTION_MAX): string {
   let t = s.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim()
   if (!t) return ''
-  const dotIdx = t.indexOf('.', 24)
-  if (dotIdx !== -1 && dotIdx < t.length - 1) {
-    const rest = t.slice(dotIdx + 1).trim()
-    if (rest.length > 8) t = t.slice(0, dotIdx + 1).trim()
-  }
+  t = hanatourClampToMaxSentences(t, HANATOUR_CARD_DESCRIPTION_MAX_SENTENCES)
   if (t.length > max) {
-    const cut = t.slice(0, max)
-    const sp = cut.lastIndexOf(' ')
-    t = (sp > 40 ? cut.slice(0, sp) : cut).trim()
+    const clipped = hanatourClampToMaxSentences(t.slice(0, max + 120), HANATOUR_CARD_DESCRIPTION_MAX_SENTENCES)
+    t = clipped.length <= max ? clipped : clipped.slice(0, max).trim()
+    const lastDot = t.lastIndexOf('.')
+    if (lastDot > max * 0.45) t = t.slice(0, lastDot + 1).trim()
+    else {
+      const sp = t.lastIndexOf(' ')
+      if (sp > 48) t = t.slice(0, sp).trim()
+    }
   }
-  if (!t) return ''
-  if (!/[.!?…]$/.test(t)) t = `${t}.`
-  return t.slice(0, HANATOUR_CARD_DESCRIPTION_MAX).trim()
+  if (t && !/[.!?…]$/.test(t)) t = `${t}.`
+  return t.slice(0, max).trim()
+}
+
+function hanatourBodyLinesEligibleForDescription(lines: string[]): string[] {
+  const out: string[] = []
+  for (const raw of lines) {
+    const line = stripLeadingHanatourDatePrefix(raw).replace(/\s+/g, ' ').trim()
+    if (line.length < 14 || line.length > 220) continue
+    if (isHanatourMealOrHotelLine(line)) continue
+    if (
+      /요금|소요시간|대체일정|TIP|상세내용|이전다음|일정표_|유의사항|여행일정 변경|사전 동의|미팅정보|출입국 카드/i.test(line)
+    )
+      continue
+    if (
+      /일정표에 따라 관광|일정표에 따라 이동|핵심\s*일정을\s*중심으로|일대를\s*순서대로\s*둘러본\s*뒤|현지\s*공항에\s*입국한\s*뒤/.test(
+        line
+      )
+    )
+      continue
+    out.push(line)
+  }
+  return out
+}
+
+/** 본문 줄에서 최대 maxSentences개 문장(억지 패딩 없음) */
+function buildHanatourDescriptionFromBodyLines(
+  lines: string[],
+  joined: string,
+  maxSentences: number = HANATOUR_CARD_DESCRIPTION_MAX_SENTENCES
+): string {
+  const eligible = hanatourBodyLinesEligibleForDescription(lines)
+  const sentences: string[] = []
+  for (const line of eligible) {
+    let sent = line
+    if (!/[.!?…]$/.test(sent)) sent = `${sent}.`
+    const key = sent.slice(0, 28)
+    if (sentences.some((s) => s.slice(0, 28) === key)) continue
+    sentences.push(sent)
+    if (sentences.length >= maxSentences) break
+  }
+  if (!sentences.length) {
+    const fallback = joined.replace(/\s+/g, ' ').trim().slice(0, 280)
+    if (fallback.length >= 20) {
+      const one = /[.!?…]$/.test(fallback) ? fallback : `${fallback}.`
+      return hanatourTrimDescriptionMax(one)
+    }
+    return ''
+  }
+  return hanatourTrimDescriptionMax(sentences.join(' '))
+}
+
+function hanatourExpandDescriptionFromBodyIfNeeded(
+  desc: string,
+  lines: string[],
+  joined: string,
+  idealMin: number = HANATOUR_CARD_DESCRIPTION_IDEAL_SENTENCES
+): string {
+  let current = desc.trim()
+  if (!current) return buildHanatourDescriptionFromBodyLines(lines, joined)
+  const seen = new Set(hanatourSplitKrSentences(current).map((s) => s.slice(0, 28)))
+  while (hanatourCountKrSentences(current) < idealMin) {
+    const extraLines = buildHanatourDescriptionFromBodyLines(lines, joined, idealMin)
+    if (!extraLines) break
+    let added = false
+    for (const part of hanatourSplitKrSentences(extraLines)) {
+      if (hanatourCountKrSentences(current) >= HANATOUR_CARD_DESCRIPTION_MAX_SENTENCES) break
+      const key = part.slice(0, 28)
+      if (seen.has(key)) continue
+      seen.add(key)
+      current = `${current.replace(/\s+$/, '')} ${part}`
+      added = true
+    }
+    if (!added) break
+  }
+  return hanatourTrimDescriptionMax(current)
+}
+
+function hanatourLlmDescriptionLooksUsable(llm: string): boolean {
+  const d = llm.trim()
+  if (!d || d.length < 12) return false
+  if (hanatourDescriptionLooksLikeDetailDump(d)) return false
+  if (
+    /일정표에 따라 관광·이동을|핵심\s*일정을\s*중심으로|일대를\s*순서대로\s*둘러본\s*뒤|현지\s*공항에\s*입국한\s*뒤/.test(d)
+  )
+    return false
+  return true
+}
+
+function pickPreservedHanatourDescription(
+  llmDescRaw: string,
+  polishedDesc: string,
+  lines: string[],
+  joined: string
+): string {
+  const llmT = llmDescRaw.trim()
+  const polishedT = polishedDesc.trim()
+  const bodyRich = hanatourBodyLinesEligibleForDescription(lines).length >= 3
+
+  if (llmT && hanatourLlmDescriptionLooksUsable(llmT)) {
+    const n = hanatourCountKrSentences(llmT)
+    if (n >= 3 && n <= HANATOUR_CARD_DESCRIPTION_MAX_SENTENCES) return hanatourTrimDescriptionMax(llmT)
+    if (n >= 1 && n <= 2 && !bodyRich) return hanatourTrimDescriptionMax(llmT)
+  }
+
+  if (polishedT) {
+    let out = polishedT
+    if (bodyRich && hanatourCountKrSentences(out) < HANATOUR_CARD_DESCRIPTION_IDEAL_SENTENCES) {
+      out = hanatourExpandDescriptionFromBodyIfNeeded(out, lines, joined)
+    }
+    return hanatourTrimDescriptionMax(out)
+  }
+
+  if (llmT && hanatourLlmDescriptionLooksUsable(llmT)) {
+    if (bodyRich && hanatourCountKrSentences(llmT) < HANATOUR_CARD_DESCRIPTION_IDEAL_SENTENCES) {
+      return hanatourExpandDescriptionFromBodyIfNeeded(llmT, lines, joined)
+    }
+    return hanatourTrimDescriptionMax(llmT)
+  }
+  return polishedT
 }
 
 function hanatourEnsureDescriptionMinLength(
@@ -973,33 +1125,13 @@ function buildHanatourMovementDayDescription(
   if (day === maxDay && maxDay >= 2) {
     if (/(인천|ICN|김포|GMP)/.test(j0) && /(출발|귀국|탑승)/.test(j0) && /(상해|PVG|푸동|연길|YNJ)/.test(j0)) {
       const core = buildDenseReturnHomeDescription(joined, maxDay)
-      return hanatourTrimOneSentenceMax(
-        hanatourEnsureDescriptionMinLength(core, lines, true),
-        HANATOUR_CARD_DESCRIPTION_MAX
-      )
+      return hanatourExpandDescriptionFromBodyIfNeeded(core, lines, joined, 1)
     }
   }
-  const ml = pickBestHanatourMotionSummaryLine(lines)
-  if (
-    ml &&
-    /(입국|미팅|공항|피켓|터미널|PVG|ICN|GMP|도착)/.test(ml) &&
-    !/(조식|중식|석식|호텔\s*[:：])/i.test(ml)
-  ) {
-    const frag = stripLeadingHanatourDatePrefix(ml).replace(/\s+/g, ' ').trim().slice(0, 220)
-    const core = frag.length >= 20 ? frag : pickHanatourDescriptionSnippetFromLines(lines, joined, 220)
-    let out = hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(core, lines, true), HANATOUR_CARD_DESCRIPTION_MAX)
-    if (movementDescriptionHasForbiddenTourismWording(out))
-      out = rebuildMovementDayDescriptionWithoutTourismWording(lines, joined, day, maxDay)
-    return out
-  }
-  const snippet = pickHanatourDescriptionSnippetFromLines(lines, joined, 280)
-  if (snippet) {
-    let out2 = hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(snippet, lines, true), HANATOUR_CARD_DESCRIPTION_MAX)
-    if (movementDescriptionHasForbiddenTourismWording(out2))
-      out2 = rebuildMovementDayDescriptionWithoutTourismWording(lines, joined, day, maxDay)
-    return out2
-  }
-  return ''
+  let out = buildHanatourDescriptionFromBodyLines(lines, joined)
+  if (movementDescriptionHasForbiddenTourismWording(out))
+    out = rebuildMovementDayDescriptionWithoutTourismWording(lines, joined, day, maxDay)
+  return out
 }
 
 function buildHanatourTourismDayDescription(
@@ -1009,18 +1141,7 @@ function buildHanatourTourismDayDescription(
   _day: number,
   _maxDay: number
 ): string {
-  const snippet = pickHanatourDescriptionSnippetFromLines(lines, joined, 520)
-  if (snippet) {
-    return hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(snippet, lines), HANATOUR_CARD_DESCRIPTION_MAX)
-  }
-  const head = findHanatourItineraryHeadline(lines)
-  if (head) {
-    const h = stripLeadingHanatourDatePrefix(head).replace(/\s+/g, ' ').trim()
-    if (h.length >= 16) {
-      return hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(h.slice(0, 400), lines), HANATOUR_CARD_DESCRIPTION_MAX)
-    }
-  }
-  return ''
+  return buildHanatourDescriptionFromBodyLines(lines, joined)
 }
 
 function inferHanatourReturnHomeDay(day: number, maxDay: number, joined: string): boolean {
@@ -1056,8 +1177,8 @@ function rebuildMovementDayDescriptionWithoutTourismWording(
 ): string {
   const arrivalish = day === 1 || /입국|도착|공항/.test(joined.slice(0, 4000))
   const base = arrivalish ? buildDenseMovementArrivalDescription(joined, lines) : ''
-  if (!base.trim()) return ''
-  return hanatourTrimOneSentenceMax(hanatourEnsureDescriptionMinLength(base, lines, true), HANATOUR_CARD_DESCRIPTION_MAX)
+  if (!base.trim()) return buildHanatourDescriptionFromBodyLines(lines, joined, 2)
+  return hanatourExpandDescriptionFromBodyIfNeeded(base, lines, joined, 1)
 }
 
 function buildDenseMovementArrivalDescription(joined: string, lines: string[]): string {
@@ -1070,7 +1191,7 @@ function buildDenseMovementArrivalDescription(joined: string, lines: string[]): 
 }
 
 /**
- * 1문장 유지. 90자 미만·유형별 정보 부족 시 코드로 밀도만 보강한다(호텔명·식사 메뉴 없음).
+ * 3~4문장(본문이 짧으면 그 이하). 유형별 정보 부족 시 본문 줄로만 보강(호텔명·식사 메뉴 없음).
  */
 function finalizeHanatourCardDescriptionInformation(
   desc: string,
@@ -1080,61 +1201,40 @@ function finalizeHanatourCardDescriptionInformation(
   maxDay: number,
   lines: string[],
   joined: string,
-  title: string
+  _title: string
 ): string {
-  let core = desc.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim().replace(/\.$/, '')
-  const L = () => core.length
-
-  if (L() > HANATOUR_CARD_DESCRIPTION_MAX) {
-    return hanatourTrimOneSentenceMax(`${core}.`, HANATOUR_CARD_DESCRIPTION_MAX)
-  }
+  let out = desc.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim()
+  if (!out) out = buildHanatourDescriptionFromBodyLines(lines, joined)
 
   if (returnHome) {
-    if (L() < HANATOUR_CARD_DESCRIPTION_MIN || !/(귀국|인천)/.test(core) || /(관광합니다|핵심\s*코스)/.test(core)) {
-      core = buildDenseReturnHomeDescription(joined, maxDay).replace(/\.$/, '')
-    }
-    if (L() < HANATOUR_CARD_DESCRIPTION_MIN) {
-      core = `${core.replace(/\.$/, '')}, 탑승과 출국 절차를 마친 뒤 국제선 동선을 마무리합니다.`.replace(/\s+/g, ' ').replace(/\.$/, '')
+    if (!/(귀국|인천)/.test(out) || /(관광합니다|핵심\s*코스)/.test(out)) {
+      out = buildDenseReturnHomeDescription(joined, maxDay)
     }
   } else if (movementDay) {
     const badTourismInMovement =
-      movementDescriptionHasForbiddenTourismWording(core) ||
-      /일대를\s*둘러본|핵심\s*코스를\s*관광|핵심\s*일정을\s*중심으로/.test(core)
-    if (L() < HANATOUR_CARD_DESCRIPTION_MIN || badTourismInMovement) {
-      const arrivalish = day === 1 || /입국|도착|공항/.test(joined.slice(0, 4000))
-      const patch = arrivalish
-        ? buildDenseMovementArrivalDescription(joined, lines)
-        : pickHanatourDescriptionSnippetFromLines(lines, joined, 320)
-      core = patch.replace(/\.$/, '')
+      movementDescriptionHasForbiddenTourismWording(out) ||
+      /일대를\s*둘러본|핵심\s*코스를\s*관광|핵심\s*일정을\s*중심으로/.test(out)
+    if (badTourismInMovement) {
+      const rebuilt = rebuildMovementDayDescriptionWithoutTourismWording(lines, joined, day, maxDay)
+      if (rebuilt) out = rebuilt
     }
-    if (L() < HANATOUR_CARD_DESCRIPTION_MIN) {
-      core = hanatourEnsureDescriptionMinLength(`${core}.`, lines, true).replace(/\.$/, '')
-    }
-    if (movementDescriptionHasForbiddenTourismWording(core)) {
-      core = rebuildMovementDayDescriptionWithoutTourismWording(lines, joined, day, maxDay).replace(/\.$/, '')
-    }
-  } else {
-    if (
-      L() < HANATOUR_CARD_DESCRIPTION_MIN ||
-      /핵심\s*일정을\s*중심으로|일정표에 따라 관광|일대를\s*순서대로\s*둘러본\s*뒤/.test(core)
-    ) {
-      const sn = pickHanatourDescriptionSnippetFromLines(lines, joined, 500)
-      if (sn) core = sn.replace(/\.$/, '')
-    }
-    if (L() < HANATOUR_CARD_DESCRIPTION_TARGET) {
-      const sn2 = pickHanatourDescriptionSnippetFromLines(lines, joined, 500)
-      if (sn2 && sn2.length > L()) core = sn2.replace(/\.$/, '')
-    }
+    if (!out.trim()) out = buildHanatourDescriptionFromBodyLines(lines, joined, 2)
+  } else if (
+    /핵심\s*일정을\s*중심으로|일정표에 따라 관광|일대를\s*순서대로\s*둘러본\s*뒤/.test(out)
+  ) {
+    out = buildHanatourDescriptionFromBodyLines(lines, joined)
   }
 
-  let out = core.trim()
-  if (!out) return ''
-  if (!/[.!?…]$/.test(out)) out = `${out}.`
-  return hanatourTrimOneSentenceMax(out, HANATOUR_CARD_DESCRIPTION_MAX)
+  const bodyRich = hanatourBodyLinesEligibleForDescription(lines).length >= 3
+  if (bodyRich && hanatourCountKrSentences(out) < HANATOUR_CARD_DESCRIPTION_IDEAL_SENTENCES) {
+    out = hanatourExpandDescriptionFromBodyIfNeeded(out, lines, joined)
+  }
+  if (!out.trim()) return ''
+  return hanatourTrimDescriptionMax(out, HANATOUR_CARD_DESCRIPTION_MAX)
 }
 
 /**
- * 일정 카드 description: 항상 한국어 1문장·일정 흐름만. 호텔·식사·장문 dump 금지. title 과 과도 중복 금지.
+ * 일정 카드 description: 한국어 3~4문장(본문이 짧으면 그 이하)·본문 근거만. 호텔·식사·장문 dump 금지.
  */
 function composeHanatourScheduleDescriptionSentence(
   lines: string[],
@@ -1152,32 +1252,14 @@ function composeHanatourScheduleDescriptionSentence(
   let desc = movementDay
     ? buildHanatourMovementDayDescription(lines, joined, day, maxDay)
     : buildHanatourTourismDayDescription(lines, joined, title, day, maxDay)
-  if (
-    desc.length < HANATOUR_CARD_DESCRIPTION_MIN ||
-    hanatourDescriptionOverlapsTitle(title, desc)
-  ) {
-    const sn = pickHanatourDescriptionSnippetFromLines(lines, joined, 400) || joined.slice(0, 280).trim()
-    desc = hanatourEnsureDescriptionMinLength(sn, lines, movementDay)
-  }
-  if (hanatourDescriptionOverlapsTitle(title, desc)) {
-    const sn = pickHanatourDescriptionSnippetFromLines(lines, joined, 400) || joined.slice(0, 280).trim()
-    desc = hanatourEnsureDescriptionMinLength(sn, lines, movementDay)
-    if (hanatourDescriptionOverlapsTitle(title, desc)) {
-      desc = hanatourTrimOneSentenceMax(
-        hanatourEnsureDescriptionMinLength(
-          pickHanatourDescriptionSnippetFromLines(lines, joined, 500) || joined.slice(0, 320).trim(),
-          lines,
-          movementDay
-        ),
-        HANATOUR_CARD_DESCRIPTION_MAX
-      )
-    }
+  if (!desc.trim() || hanatourDescriptionOverlapsTitle(title, desc)) {
+    desc = buildHanatourDescriptionFromBodyLines(lines, joined)
   }
   if (/핵심\s*일정을\s*중심으로\s*관광합니다/.test(desc) && isHanatourMovementPatternDay(joined, day, maxDay)) {
     desc = buildHanatourMovementDayDescription(lines, joined, day, maxDay)
   }
   desc = finalizeHanatourCardDescriptionInformation(desc, movementDay, returnHome, day, maxDay, lines, joined, title)
-  return hanatourTrimOneSentenceMax(desc, HANATOUR_CARD_DESCRIPTION_MAX)
+  return hanatourTrimDescriptionMax(desc, HANATOUR_CARD_DESCRIPTION_MAX)
 }
 
 function inferHanatourImageKeyword(_day: number, _maxDay: number, _rawBlob: string): string {
@@ -1429,13 +1511,15 @@ export function polishHanatourScheduleRowsPreferDetailBody(
       const preservedImageKeyword = finalizeScheduleImageKeyword(
         llmKw && !llmKwIsFallback ? llmKw : polished.imageKeyword,
       ).slice(0, 120)
-      // LLM description이 충분히 의미 있으면(30자 이상) 보존, 아니면 polished 사용
-      // polished.description은 본문 청크에서 단순 추출한 값이라 단편적이기 쉬움
       const llmDescRaw = (row.description ?? '').trim()
-      const preservedDescription =
-        llmDescRaw.length >= 30
-          ? llmDescRaw.slice(0, HANATOUR_CARD_DESCRIPTION_MAX)
-          : polished.description
+      const chunkLines = stripHanatourScheduleNoiseLines(chunk)
+      const chunkJoined = chunkLines.join('\n')
+      const preservedDescription = pickPreservedHanatourDescription(
+        llmDescRaw,
+        polished.description,
+        chunkLines,
+        chunkJoined
+      )
       return {
         ...polished,
         day: row.day,
@@ -1729,7 +1813,8 @@ function shouldHanatourScheduleCardInvokeGeminiPolish(
   row: RegisterScheduleDay,
   joined: string,
   kind: HanatourScheduleCardDayKind,
-  placeCandidates: string[]
+  placeCandidates: string[],
+  lines: string[]
 ): boolean {
   const t = row.title.trim()
   const d = row.description.trim()
@@ -1740,7 +1825,13 @@ function shouldHanatourScheduleCardInvokeGeminiPolish(
     /공항·구간\s*이동에\s*따라/.test(d)
   const titleWeak =
     !hanatourTitleLooksLikePlaceRoute(t) || t === '일차 동선' || t.length < 5 || t.length > 48
-  const descLenWeak = d.length < HANATOUR_CARD_DESCRIPTION_MIN || d.length > HANATOUR_CARD_DESCRIPTION_MAX
+  const descSentenceWeak =
+    hanatourBodyLinesEligibleForDescription(lines).length >= 3 &&
+    hanatourCountKrSentences(d) < HANATOUR_CARD_DESCRIPTION_IDEAL_SENTENCES
+  const descLenWeak =
+    d.length < HANATOUR_CARD_DESCRIPTION_MIN ||
+    d.length > HANATOUR_CARD_DESCRIPTION_MAX ||
+    descSentenceWeak
   const returnMismatch =
     kind === 'return_home' && (!/(귀국|인천으로|인천\s*로|출발해\s*인천)/.test(d) || /(핵심\s*일정|핵심\s*코스를\s*관광)/.test(d))
   const movementTourismMismatch =
@@ -1785,7 +1876,9 @@ function validateHanatourGeminiCardPolishOutput(
   const t = title.replace(/\s+/g, ' ').trim()
   const d = description.replace(/\s+/g, ' ').trim()
   if (t.length < 12 || t.length > 40) return null
-  if (d.length < HANATOUR_CARD_DESCRIPTION_MIN || d.length > HANATOUR_CARD_DESCRIPTION_MAX) return null
+  const sentenceCount = hanatourCountKrSentences(d)
+  if (sentenceCount < 1 || sentenceCount > HANATOUR_CARD_DESCRIPTION_MAX_SENTENCES) return null
+  if (d.length < 24 || d.length > HANATOUR_CARD_DESCRIPTION_MAX) return null
   if (isHanatourDateLikeScheduleToken(t)) return null
   if (DAY_N_TRAVEL_RE.test(t)) return null
   const forbid =
@@ -1809,7 +1902,7 @@ const HANATOUR_CARD_GEMINI_POLISH_TIMEOUT_MS = Math.min(
 )
 
 /**
- * 규칙 기반으로 만든 일정 카드 1행에 대해, 필요할 때만 제미나이로 title·description 문장만 다듬는다.
+ * 규칙 기반으로 만든 일정 카드 1행에 대해, 필요할 때만 제미나이로 title·description(3~4문장)만 다듬는다.
  * 실패·검증 실패 시 `row` 그대로 반환한다. hotel·식사·imageKeyword는 변경하지 않는다.
  */
 export async function polishHanatourScheduleRowTitleDescriptionWithGeminiIfNeeded(
@@ -1828,7 +1921,7 @@ export async function polishHanatourScheduleRowTitleDescriptionWithGeminiIfNeede
   const placeCandidates = mergeHanatourPlaceCandidatesFromTitleAndJoined(row.title, joined)
   const cityCandidates = extractHanatourCityCandidates(joined)
   const movementCue = extractHanatourMovementCueLine(lines)
-  if (!shouldHanatourScheduleCardInvokeGeminiPolish(row, joined, kind, placeCandidates)) return row
+  if (!shouldHanatourScheduleCardInvokeGeminiPolish(row, joined, kind, placeCandidates, lines)) return row
 
   const forbiddenList = [
     '상세보기',
@@ -1859,14 +1952,14 @@ export async function polishHanatourScheduleRowTitleDescriptionWithGeminiIfNeede
     reference_hotel_text: row.hotelText?.trim().slice(0, 120) ?? null,
     reference_meals_one_line: [row.breakfastText, row.lunchText, row.dinnerText].filter(Boolean).join(' / ').slice(0, 160) || null,
     instructions:
-      '참고용 hotel/meals는 title·description에 넣지 말 것. JSON만 출력: {"title":"...","description":"..."}. title 12–40자 장소·동선 요약, description 한 문장 90–150자(목표 100–140자) 마침표로 끝.',
+      '참고용 hotel/meals는 title·description에 넣지 말 것. JSON만 출력: {"title":"...","description":"..."}. title 12–40자 장소·동선 요약, description 한국어 3~4문장·300자 이내(본문이 짧으면 있는 만큼만, 억지로 4문장 채우지 말 것). day_block_refined에 없는 지명·활동 금지.',
   }
 
   const systemPreamble = `역할: 하나투어 일정 카드용 한국어 카피 편집만 한다.
 출력은 반드시 JSON 객체 하나이며 키는 title, description 만 허용한다.
 구조화·추출은 이미 서버가 했다. 너는 받은 day_kind·place_candidates·day_block_refined에 맞춰 문장만 다듬는다.
 귀국일이면 귀국·인천 도착 흐름만. 이동일이면 입국·미팅·공항·이동 등 관광 나열 금지. 관광일이면 장소 2~4개가 자연스럽게 드러나게.
-description은 한 문장·90~150자(가능하면 100~140자)로 정보량을 채운다.
+description은 3~4문장·300자 이내(본문이 매우 짧으면 1~2문장 허용). 본문에 없는 사실·지명은 추가하지 않는다.
 title·description에 호텔명·식사 메뉴·요금·소요시간·TIP·상세보기·슬라이더·일정표_류는 넣지 않는다.
 날짜만 title 금지. placeholder·일차 동선 금지.`
 

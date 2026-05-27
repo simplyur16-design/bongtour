@@ -253,6 +253,11 @@ export function registerPromptWithScheduleEmptyForConfirm(registerPrompt: string
   )
 }
 
+/** 하나투어 선추출 — 공통 tone 블록의 2~4문장을 3~4로만 치환(다른 공급사 extract 파일 무영향) */
+function buildHanatourScheduleExtractToneBlock(): string {
+  return buildScheduleExtractToneBlock().replace(/\*\*2~4문장·300자 이내\*\*/g, '**3~4문장·300자 이내**')
+}
+
 function buildScheduleOnlyPrompt(
   expectedDays: number,
   pastedBody: string,
@@ -271,14 +276,14 @@ function buildScheduleOnlyPrompt(
   return (
     `# Role: 여행 상품 붙여넣기 — schedule[] 전용 (공급사 무관)\n` +
     `출력은 JSON 객체 하나만: {"schedule":[...]} . 다른 키 금지.\n\n` +
-    buildScheduleExtractToneBlock() +
+    buildHanatourScheduleExtractToneBlock() +
     `\n` +
     `# 규칙\n` +
     `- 붙여넣은 본문의 일정표(1일차~N일차 등)만 근거로 작성. 창작·추측 금지.\n` +
     `- **schedule 배열 길이 = 정확히 ${expectedDays}개.**\n` +
     `- **day는 1부터 ${expectedDays}까지 각각 1개씩, 중복·누락 금지.**\n` +
     `- 마지막 일차(귀국·출국·기내박·숙박 없음)까지 반드시 포함.\n` +
-    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), ${REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE} routeText, ` +
+    `- 각 항목: day, title, description(한국어 **3~4문장·300자 이내**, 원문이 짧으면 있는 만큼만), ${REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE} routeText, ` +
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
     `- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 한국어로 작성. 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
     `- description: 해당 일차의 이동·관광·식사·숙박 흐름을 **짧은 문어체**로 요약. 원문 장문·HTML을 **통째로 복사**하지 말 것.\n` +
@@ -310,13 +315,13 @@ function buildScheduleOnlyPromptForSingleDay(
   return (
     `# Role: 여행 상품 붙여넣기 — schedule[] 전용 (공급사 무관)\n` +
     `출력은 JSON 객체 하나만: {"schedule":[...]} . 다른 키 금지.\n\n` +
-    buildScheduleExtractToneBlock() +
+    buildHanatourScheduleExtractToneBlock() +
     `\n` +
     `# 규칙\n` +
     `- 아래 본문은 **제${day}일차** 구간만 포함한다.\n` +
     `- **schedule 배열 길이 = 정확히 1개.** day=${day} 인 항목만.\n` +
     `- **day 필드는 반드시 정수 ${day}**\n` +
-    `- 각 항목: day, title, description(한국어 **2~4문장·300자 이내**), ${REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE} routeText, ` +
+    `- 각 항목: day, title, description(한국어 **3~4문장·300자 이내**, 원문이 짧으면 있는 만큼만), ${REGISTER_SCHEDULE_EXTRACT_IMAGE_KEYWORD_LINE} routeText, ` +
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
     `- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 한국어로 작성. 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
     `- description: 해당 일차를 **짧게** 요약. 원문 복붙·장황한 나열 금지.\n\n` +

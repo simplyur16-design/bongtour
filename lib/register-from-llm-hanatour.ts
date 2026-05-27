@@ -912,9 +912,18 @@ function applyProductLevelFlightMeeting(
   return [{ ...first, ...patch }, ...rows.slice(1)]
 }
 
+/** 하나투어 pilot — schedule description 3~4문장(공통 SSOT 2~4와 별도, hanatour만 적용) */
+const HANATOUR_REGISTER_SCHEDULE_DESCRIPTION_BLOCK = `# [schedule[].description — 하나투어]
+- 일차당 description: **한국어 3~4문장·300자 이내**. 원문(해당 일차 블록)이 매우 짧으면 있는 만큼만 쓰고 **억지로 4문장을 채우지 말 것**. 본문에 없는 지명·활동·창작·추측 금지.
+- 본문 첫 줄만 잘라 붙이거나 한두 문장으로 끝내지 말 것(정보가 충분하면 3문장 이상).
+
+`
+
 const REGISTER_PROMPT = `${REGISTER_LLM_ROLE_DATA_AUDITOR_INTRO}
 
 ${REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK}
+
+${HANATOUR_REGISTER_SCHEDULE_DESCRIPTION_BLOCK}
 
 ${BONGTOUR_TONE_MANNER_LLM_BLOCK}
 
