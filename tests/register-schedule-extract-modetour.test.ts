@@ -54,6 +54,74 @@ describe('parseScheduleRowsFromLlmJson — modetour imageKeyword2 보존', () =>
     assert.equal(rows[0]!.imageKeyword2, null)
   })
 
+  it('자유일정·명소0 — LLM 도시 영문(Guadalajara) 1순위, 2순위 null', () => {
+    const rows = parseScheduleRowsFromLlmJson(
+      [
+        {
+          day: 4,
+          title: '과달라하라 자유시간',
+          description: '전일 자유시간',
+          imageKeyword: 'Guadalajara',
+          imageKeyword2: null,
+          routeText: '과달라하라',
+          hotelText: null,
+          breakfastText: null,
+          lunchText: null,
+          dinnerText: null,
+          mealSummaryText: null,
+        },
+      ],
+      { expectedDays: 4, strictDay: null },
+    )
+    assert.equal(rows[0]!.imageKeyword, 'Guadalajara')
+    assert.equal(rows[0]!.imageKeyword2, null)
+  })
+
+  it('자유일정·본문 명소 — Day3 에스타디오 아크론 1순위', () => {
+    const rows = parseScheduleRowsFromLlmJson(
+      [
+        {
+          day: 3,
+          title: '과달라하라 자유일정',
+          description: '에스타디오 아크론 월드컵 경기 관람 등 자유일정',
+          imageKeyword: 'Estadio Akron',
+          imageKeyword2: null,
+          routeText: '과달라하라 - 에스타디오 아크론',
+          hotelText: null,
+          breakfastText: null,
+          lunchText: null,
+          dinnerText: null,
+          mealSummaryText: null,
+        },
+      ],
+      { expectedDays: 3, strictDay: null },
+    )
+    assert.equal(rows[0]!.imageKeyword, 'Estadio Akron')
+  })
+
+  it('자유일정·본문 명소 2곳 — Day5 데낄라공장/테킬라마을 1·2순위', () => {
+    const rows = parseScheduleRowsFromLlmJson(
+      [
+        {
+          day: 5,
+          title: '테킬라 자유일정',
+          description: '데낄라 공장 견학 및 테킬라 마을 투어',
+          imageKeyword: 'Tequila',
+          imageKeyword2: 'La Rojena',
+          routeText: '테킬라 - 데낄라 공장 - 테킬라 마을',
+          hotelText: null,
+          breakfastText: null,
+          lunchText: null,
+          dinnerText: null,
+          mealSummaryText: null,
+        },
+      ],
+      { expectedDays: 5, strictDay: null },
+    )
+    assert.equal(rows[0]!.imageKeyword, 'Tequila')
+    assert.equal(rows[0]!.imageKeyword2, 'La Rojena')
+  })
+
   it('LLM imageKeyword 없고 한글 routeText만 — 1순위 빈값 유지', () => {
     const rows = parseScheduleRowsFromLlmJson(
       [

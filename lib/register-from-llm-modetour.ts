@@ -5,6 +5,7 @@ import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
+  MODETOUR_SCHEDULE_IMAGE_KEYWORD_PROMPT_ADDENDUM,
   registerPromptWithScheduleEmptyForConfirm,
   runScheduleExtractLlm,
   type CommonScheduleDayRow,
@@ -914,6 +915,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - day, title, description, imageKeyword, imageKeyword2, routeText
 - description: 해당 일차 블록 전체를 근거로 관광·이동·식사·숙박을 **빠짐없이** 반영한 문어체 존댓말 요약. **3~6문장·450자 이내**를 목표로 하며, 한 줄·한두 문장만 쓰지 말 것. 복수 관광지가 있으면 모두 짧게라도 언급.
 - **imageKeyword / imageKeyword2**: 위 [schedule[].imageKeyword / imageKeyword2] 규칙 준수. **imageKeyword** = 그날 1순위 관광명소 영문. **imageKeyword2** = 그날 routeText의 **두 번째** 관광명소 영문(1순위와 다른 명소). routeText에 관광지 2곳 이상이면 imageKeyword2 **필수**. 출발·귀국(비행) 일차는 imageKeyword2 생략(null).
+${MODETOUR_SCHEDULE_IMAGE_KEYWORD_PROMPT_ADDENDUM}
 - routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. **한국어로 작성.** 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기를 사용한다. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 

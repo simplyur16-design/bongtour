@@ -93,10 +93,11 @@ export type CommonScheduleDayRow = {
   mealSummaryText: string | null
 }
 
-/** modetour 일정 선추출 전용 — 자유시간·단일 도시 imageKeyword/imageKeyword2 강화 */
-const MODETOUR_SCHEDULE_EXTRACT_IMAGE_KEYWORD_ADDENDUM =
-  '- **자유시간·단일 도시 일차:** imageKeyword를 비우지 말 것. 그 도시 **대표 관광명소 영문**을 imageKeyword로(예: 과달라하라 자유시간 → Guadalajara Cathedral). 도시명 단독·국가명 단독은 금지.\n' +
-  '- **imageKeyword2:** routeText에 관광지 2곳 이상이면 routeText **두 번째** 관광명소의 **영문**을 imageKeyword2로(1순위와 다른 명소). 출발·귀국(비행) 일차는 null.\n'
+/** modetour 일정 선추출·등록 전용 — 자유일정 imageKeyword/imageKeyword2 규칙 */
+export const MODETOUR_SCHEDULE_IMAGE_KEYWORD_PROMPT_ADDENDUM =
+  '- **자유일정·선택관광 일차:** 자유일정이라도 본문에 관광지·명소(경기장·공장견학·마을투어·테마파크 등)가 있으면 그 명소를 **영문**으로 imageKeyword(1순위)·imageKeyword2(2순위, 1순위와 다른 명소)에 넣을 것. 자유일정이라고 비우지 말 것.\n' +
+  '- **명소가 본문에 없는 자유일정(전일 자유시간만):** 그날 머무는 **도시 영문명**만 imageKeyword로(예: 과달라하라 자유시간 → Guadalajara). imageKeyword2는 null. **도시·국가 단독 금지**는 명소가 있는 날만 적용 — 명소 0 자유일정은 도시 영문 **허용**.\n' +
+  '- **imageKeyword2:** routeText·본문에 관광지 2곳 이상이면 **두 번째** 관광명소 **영문**. 출발·귀국(비행) 일차는 null.\n'
 
 function strOrNull(v: unknown): string | null {
   if (v == null) return null
@@ -286,7 +287,7 @@ function buildScheduleOnlyPrompt(
     `- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 한국어로 작성. 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
     `- description: 해당 일차의 이동·관광·식사·숙박 흐름을 **짧은 문어체**로 요약. 원문 장문·HTML을 **통째로 복사**하지 말 것.\n` +
     `- 방문지가 많으면 **이름 위주로 묶어** 쓰고, 식사·호텔 디테일은 가능하면 meal·hotel 필드에 둔다.\n` +
-    MODETOUR_SCHEDULE_EXTRACT_IMAGE_KEYWORD_ADDENDUM +
+    MODETOUR_SCHEDULE_IMAGE_KEYWORD_PROMPT_ADDENDUM +
     `\n` +
     hint +
     add +
@@ -325,7 +326,7 @@ function buildScheduleOnlyPromptForSingleDay(
     `hotelText, breakfastText, lunchText, dinnerText, mealSummaryText.\n` +
     `- routeText: 그날 방문 도시·장소를 본문 순서 그대로 ' - ' (공백-하이픈-공백)로 연결한 한 줄 경로. 한국어로 작성. 본문에 한국어 지명이 있으면 그대로 사용. 영문 지명만 있으면 한국어 음역 또는 한국에서 통용되는 한국어 표기. 예: "인천 - 부다페스트 - 나지카니자", "인천 - 아디스아바바 - 빅토리아 폭포", "JFK공항 - 뉴욕 - 덤보 - 브루클린브릿지(조망)", "스플리트 - 두브로브니크". [조망], [차창관광], [외부관람], [선택관광] 태그는 (조망), (차창), (외부관람), (선택관광)로 보존. 빈 일정이면 null.\n` +
     `- description: 해당 일차를 **짧게** 요약. 원문 복붙·장황한 나열 금지.\n` +
-    MODETOUR_SCHEDULE_EXTRACT_IMAGE_KEYWORD_ADDENDUM +
+    MODETOUR_SCHEDULE_IMAGE_KEYWORD_PROMPT_ADDENDUM +
     `\n` +
     hint +
     add +
