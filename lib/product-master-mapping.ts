@@ -56,12 +56,17 @@ const TREE_COUNTRY_REQUIRES_NODEKEY = new Set([
   'latin-caribbean',
 ])
 
+const RE_MEXICO_DESTINATION_HINT = /(?:\bmexico\b|멕시코|\bcancun\b|칸쿤)/i
 const RE_CUBA_DESTINATION_HINT = /(?:\bcuba\b|쿠바|\bhavana\b|아바나)/i
 
-/** seed `cuba-mexico` 리프와 동일 — 기본 mexico, 목적지에 쿠바만 명시되면 cuba */
+/** seed `cuba-mexico` 리프와 동일 — 기본 mexico; 멕시코 명시 우선, 쿠바만 명시 시 cuba */
 function masterCountryKeyForCubaMexicoLeaf(destinationHint: string | null | undefined): 'mexico' | 'cuba' {
   const h = (destinationHint ?? '').trim()
-  if (h && RE_CUBA_DESTINATION_HINT.test(h)) return 'cuba'
+  if (!h) return 'mexico'
+  /** browse slug 조합(`latin-caribbean` + leaf city slug `cuba`) — 목적지 신호 아님 */
+  if (/^latin-caribbean(\s+cuba)?$/i.test(h)) return 'mexico'
+  if (RE_MEXICO_DESTINATION_HINT.test(h)) return 'mexico'
+  if (RE_CUBA_DESTINATION_HINT.test(h)) return 'cuba'
   return 'mexico'
 }
 

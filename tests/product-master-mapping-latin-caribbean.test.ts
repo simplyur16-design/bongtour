@@ -23,6 +23,36 @@ describe('mapTreeKeysToMasterKeys — latin-caribbean / sports-tours FK alignmen
     assert.equal(r.masterCountryKey, 'cuba')
   })
 
+  it('cuba-mexico leaf with mexico primaryDestination → mexico (not tree city slug cuba)', () => {
+    const r = mapTreeKeysToMasterKeys({
+      groupKey: 'americas',
+      countryKey: 'latin-caribbean',
+      nodeKey: 'cuba-mexico',
+      destinationHint: '멕시코(멕시코시티, 과달라하라) 북중미 2경기+멕시코 일주 13일',
+    })
+    assert.equal(r.masterCountryKey, 'mexico')
+  })
+
+  it('cuba-mexico leaf with mexico and cuba in hint → mexico wins', () => {
+    const r = mapTreeKeysToMasterKeys({
+      groupKey: 'americas',
+      countryKey: 'latin-caribbean',
+      nodeKey: 'cuba-mexico',
+      destinationHint: '멕시코 · 쿠바',
+    })
+    assert.equal(r.masterCountryKey, 'mexico')
+  })
+
+  it('cuba-mexico leaf with tree browse slug only (latin-caribbean cuba) → mexico default', () => {
+    const r = mapTreeKeysToMasterKeys({
+      groupKey: 'americas',
+      countryKey: 'latin-caribbean',
+      nodeKey: 'cuba-mexico',
+      destinationHint: 'latin-caribbean cuba',
+    })
+    assert.equal(r.masterCountryKey, 'mexico')
+  })
+
   it('latin-caribbean country-only (no leaf) → masterCountryKey null', () => {
     const r = mapTreeKeysToMasterKeys({
       groupKey: 'americas',

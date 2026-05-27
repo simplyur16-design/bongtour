@@ -55,7 +55,10 @@ export async function normalizeProductGeoForPrisma(
   input: ProductLocationKeyMatchInput,
 ): Promise<NormalizeProductGeoResult> {
   const tree = deriveProductLocationKeyFieldsForPrisma(input)
-  const geo = await enrichPrismaGeoWithMasterLabels(db, tree)
+  const geo = await enrichPrismaGeoWithMasterLabels(db, tree, {
+    primaryDestination: input.primaryDestination,
+    title: input.title,
+  })
   return {
     geo,
     masterRegistrationOk: masterGeoMeetsRegistrationBar(tree, geo),

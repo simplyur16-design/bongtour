@@ -36,18 +36,35 @@ function fallbackBrowseKoreanLabels(d: ProductLocationKeyPrismaFields): {
   return { country, city }
 }
 
+export type EnrichPrismaGeoDestinationContext = {
+  primaryDestination?: string | null
+  title?: string | null
+}
+
+/** cuba-mexico leaf — browse city slug(`cuba`) 오염 방지; 상품 목적지·제목 우선 */
+function destinationHintForMasterMapping(
+  d: ProductLocationKeyPrismaFields,
+  ctx?: EnrichPrismaGeoDestinationContext,
+): string | null {
+  const parts = [ctx?.primaryDestination, ctx?.title, d.country]
+    .map((s) => (s ?? '').trim())
+    .filter(Boolean)
+  return parts.length > 0 ? parts.join(' ').trim() : null
+}
+
 /**
  * D-3 트리 추론 결과에 마스터 라벨·FK(continentKey/cityKey)·canonical countryKey 보강.
  */
 export async function enrichPrismaGeoWithMasterLabels(
   db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
   d: ProductLocationKeyPrismaFields,
+  ctx?: EnrichPrismaGeoDestinationContext,
 ): Promise<ProductLocationKeyPrismaFields> {
   const mapped = mapTreeKeysToMasterKeys({
     groupKey: d.groupKey,
     countryKey: d.countryKey,
     nodeKey: d.nodeKey,
-    destinationHint: [d.country, d.city].filter(Boolean).join(' ').trim() || null,
+    destinationHint: destinationHintForMasterMapping(d, ctx),
   })
 
   if (!mapped.masterCountryKey) {
