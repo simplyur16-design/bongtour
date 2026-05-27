@@ -642,6 +642,17 @@ if (shandongKw?.length) {
  * browse `country` 슬러그(소문자 키) → DB `country` IN 목록.
  * 트리(`countryKey`·`countryLabel`→슬러그) 매핑 우선, 이후 정적·라벨 폴백.
  */
+const LATIN_AMERICA_DB_COUNTRY_LABELS = [
+  '멕시코',
+  '쿠바',
+  '페루',
+  '브라질',
+  '아르헨티나',
+  '칠레',
+  '볼리비아',
+  '도미니카공화국',
+] as const
+
 const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   ...TREE_SLUG_TO_DB_COUNTRIES,
   ...CHINA_TAB_SLUG_TO_DB_COUNTRIES,
@@ -722,7 +733,7 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   남프랑스: ['프랑스'],
   시칠리아: ['이탈리아'],
   'usa-south': ['미국'],
-  'latin-caribbean': ['미국', '캐나다'],
+  'latin-caribbean': [...LATIN_AMERICA_DB_COUNTRY_LABELS],
   'sports-tours': ['일본', '미국'],
   'cruise-east-asia': ['일본', '태국', '싱가포르', '베트남', '필리핀', '말레이시아'],
   thailand: ['태국'],
@@ -745,8 +756,8 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   slovenia: ['슬로베니아'],
   hawaii: ['하와이'],
   africa: [],
-  'latin-america': ['미국', '캐나다'],
-  'latin-mexico': ['미국', '캐나다'],
+  'latin-america': [...LATIN_AMERICA_DB_COUNTRY_LABELS],
+  'latin-mexico': [...LATIN_AMERICA_DB_COUNTRY_LABELS],
   'us-west': ['미국'],
   'us-east': ['미국'],
   canada: ['캐나다'],

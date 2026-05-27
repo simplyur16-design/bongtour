@@ -71,13 +71,28 @@ export function collectLeafTerms(country: OverseasCountryNode, leaf: OverseasLea
   return [...set]
 }
 
+const AMERICAS_SOUTH_AMERICA_COUNTRY_KEYS = new Set([
+  'latin-caribbean',
+  'mexico',
+  'cuba',
+  'peru',
+  'brazil',
+  'argentina',
+  'chile',
+  'bolivia',
+  'dominican-republic',
+])
+
 /** 매칭 트리 → 메가메뉴 browse `region` 탭 id */
 function continentIdForLegacyCountry(groupKey: string, countryKey: string): string {
   if (groupKey === 'japan') return 'japan'
   if (groupKey === 'china-circle') return 'china-hk-mo'
   if (groupKey === 'sea-taiwan-south-asia') return 'southeast-asia'
   if (groupKey === 'guam-au-nz') return 'oceania'
-  if (groupKey === 'americas') return 'americas'
+  if (groupKey === 'americas') {
+    if (AMERICAS_SOUTH_AMERICA_COUNTRY_KEYS.has(countryKey)) return 'south-america'
+    return 'americas'
+  }
   if (groupKey === 'europe-me-africa') return 'europe-me'
   return 'oceania'
 }
@@ -98,7 +113,7 @@ function groupDefToGroup(d: MegaMenuCountryGroupDef): MegaMenuCountryGroup {
   }
 }
 
-/** 메가메뉴 9탭(일반 6 + 지방출발 3) — `lib/mega-menu-regions.data.ts` SSOT. tab.localDeparture 마커는 결과 region에 그대로 통과. */
+/** 메가메뉴 10탭(일반 7 + 지방출발 3) — `lib/mega-menu-regions.data.ts` SSOT. tab.localDeparture 마커는 결과 region에 그대로 통과. */
 export function buildMegaMenuRegionsFromDefinitions(): MegaMenuRegion[] {
   return MEGA_MENU_TAB_DEFINITIONS.map((tab) => {
     const groups = tab.groups.map(groupDefToGroup).filter((g) => g.cities.length > 0)

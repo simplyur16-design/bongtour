@@ -952,7 +952,7 @@ const MEGA_MENU_REGION_CARD_DEF: Array<{
   },
   {
     groupKey: 'americas',
-    koreanLabel: '미주 · 하와이 · 캐나다 · 중남미',
+    koreanLabel: '미주 · 하와이 · 캐나다',
     continentKey: 'north-america',
     displayMode: 'countryGroup',
   },
@@ -978,6 +978,8 @@ function collectMegaMenuRegionCoverage(tree: OverseasRegionGroupNode[]): Map<str
     if (!byGroup.has(gk)) continue
 
     for (const country of group.countries) {
+      if (gk === 'americas' && country.countryKey === 'latin-caribbean') continue
+
       for (const leaf of country.children) {
         if (leaf.nodeType === 'theme' || leaf.nodeType === 'route') continue
 
@@ -993,28 +995,6 @@ function collectMegaMenuRegionCoverage(tree: OverseasRegionGroupNode[]): Map<str
             countryKey: 'slovenia',
             cities: [{ cityKey: 'ljubljana', koreanLabel: '류블랴나', isMajor: true }],
           })
-          continue
-        }
-
-        if (country.countryKey === 'latin-caribbean' && leaf.nodeKey === 'cuba-mexico') {
-          add(gk, { countryKey: 'mexico', cities: CLUSTER_EXPANSIONS['cuba-mexico']! })
-          add(gk, {
-            countryKey: 'cuba',
-            cities: [{ cityKey: 'havana', koreanLabel: '아바나', isMajor: true }],
-          })
-          continue
-        }
-
-        if (country.countryKey === 'latin-caribbean' && leaf.nodeKey === 'south-america') {
-          const rows: ResolvedLeaf[] = [
-            { countryKey: 'peru', cities: [{ cityKey: 'lima', koreanLabel: '리마', isMajor: true }] },
-            { countryKey: 'peru', cities: [{ cityKey: 'cusco', koreanLabel: '쿠스코', isMajor: true }] },
-            { countryKey: 'brazil', cities: [{ cityKey: 'rio-de-janeiro', koreanLabel: '리우데자네이루', isMajor: true }] },
-            { countryKey: 'argentina', cities: [{ cityKey: 'buenos-aires', koreanLabel: '부에노스아이레스', isMajor: true }] },
-            { countryKey: 'chile', cities: [{ cityKey: 'santiago', koreanLabel: '산티아고', isMajor: true }] },
-            { countryKey: 'bolivia', cities: [{ cityKey: 'la-paz', koreanLabel: '라파스', isMajor: false }] },
-          ]
-          for (const r of rows) add(gk, r)
           continue
         }
 

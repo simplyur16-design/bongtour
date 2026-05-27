@@ -352,6 +352,23 @@ const OC: MegaMenuCountryGroupDef[] = [
   ]),
 ]
 
+const SA: MegaMenuCountryGroupDef[] = [
+  G(
+    '중남미',
+    [
+      LC('멕시코', ['멕시코', 'mexico', 'mexico city', '멕시코시티', 'cancun', '칸쿤']),
+      LC('쿠바', ['쿠바', 'cuba', 'havana', '아바나']),
+      LC('페루', ['페루', 'peru', '리마', '마추픽추', 'lima', 'cusco']),
+      LC('브라질', ['브라질', 'brazil', '리우', '상파울루', 'rio']),
+      LC('아르헨티나', ['아르헨티나', 'argentina', '부에노스아이레스']),
+      LC('칠레', ['칠레', 'chile', '산티아고', 'santiago']),
+      LC('볼리비아', ['볼리비아', 'bolivia', '라파스', 'la paz']),
+      LC('도미니카', ['도미니카', '도미니카공화국', 'dominican', 'caribbean']),
+    ],
+    true,
+  ),
+]
+
 const AM: MegaMenuCountryGroupDef[] = [
   G('하와이', [
     city('호놀룰루', ['호놀룰루', 'honolulu', '하와이', '오아후']),
@@ -377,18 +394,6 @@ const AM: MegaMenuCountryGroupDef[] = [
     city('나이아가라', ['나이아가라', 'niagara', '캐나다']),
     city('옐로우나이프', ['옐로우나이프', 'yellowknife', '캐나다']),
   ]),
-  G(
-    '중남미·멕시코',
-    [
-      city('칸쿤', ['칸쿤', 'cancun', '멕시코', 'mexico']),
-      LC('멕시코', ['멕시코', 'mexico city', '멕시코시티']),
-      LC('브라질', ['브라질', 'brazil', '리우', '상파울루']),
-      LC('칠레', ['칠레', 'chile', '산티아고']),
-      LC('아르헨티나', ['아르헨티나', 'argentina', '부에노스아이레스']),
-      LC('페루', ['페루', 'peru', '리마', '마추픽추']),
-    ],
-    true,
-  ),
   G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지', '미국'])]),
   G('스포츠 테마 투어', [
     city('경기 직관 여행', [
@@ -407,7 +412,7 @@ const AM: MegaMenuCountryGroupDef[] = [
 ]
 
 /**
- * 9탭 — 일반 6탭(권역별 도시 펼침) + 지방출발 3탭(단일 링크).
+ * 10탭 — 일반 7탭(권역별 도시 펼침) + 지방출발 3탭(단일 링크).
  * 지방출발 탭은 `localDeparture` 마커로 식별 — 도시 leaf 펼침 없이 `/travel/overseas?region={id}` 로 즉시 이동.
  * 라우팅·필터 SSOT: `app/api/products/browse/route.ts` localDepartureTagForBrowseRegion (busan_dep → 'busan' 등).
  */
@@ -417,7 +422,8 @@ export const MEGA_MENU_TAB_DEFINITIONS: MegaMenuTabDef[] = [
   { id: 'japan', label: '일본', groups: JP },
   { id: 'china-hk-mo', label: '중국/홍콩/마카오/몽골', groups: CN },
   { id: 'oceania', label: '괌/사이판/호주/뉴질랜드', groups: OC },
-  { id: 'americas', label: '미주/캐나다/하와이/중남미', groups: AM },
+  { id: 'americas', label: '미주/캐나다/하와이', groups: AM },
+  { id: 'south-america', label: '중남미', groups: SA },
   { id: 'busan_dep', label: '부산출발', groups: [], localDeparture: 'busan' },
   { id: 'cheongju_dep', label: '청주출발', groups: [], localDeparture: 'cheongju' },
   { id: 'daegu_dep', label: '대구출발', groups: [], localDeparture: 'daegu' },
@@ -446,5 +452,6 @@ export const BROWSE_TAB_ID_TO_CARD_KEYS: Record<string, readonly string[]> = {
   japan: ['japan', 'japan-hokkaido', 'japan-kansai', 'japan-kanto'],
   'china-hk-mo': ['china-circle', 'china-major-cities', 'china-shandong-cluster', 'hk-mo-sz-cluster'],
   oceania: ['guam-au-nz'],
-  americas: ['americas', 'latin-caribbean-cluster'],
+  americas: ['americas'],
+  'south-america': ['latin-caribbean-cluster'],
 }

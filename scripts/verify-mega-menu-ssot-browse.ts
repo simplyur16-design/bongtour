@@ -339,10 +339,42 @@ async function main() {
     console.log('[SSOT tabs]', MEGA_MENU_TAB_DEFINITIONS.map((t) => `${t.id} (${t.label})`).join(' | '))
     console.log('[card map]', JSON.stringify(BROWSE_TAB_ID_TO_CARD_KEYS, null, 0))
 
+    const { browseTabIdToMegaMenuCardKeys } = await import('@/lib/browse-master-geo-continents')
+    const saCards = browseTabIdToMegaMenuCardKeys('south-america')
+    const amCards = browseTabIdToMegaMenuCardKeys('americas')
+    if (!saCards.includes('latin-caribbean-cluster')) {
+      console.error('[FAIL] south-america tab must map to latin-caribbean-cluster', saCards)
+      failed = true
+    } else console.log('[ok] south-america card map → latin-caribbean-cluster')
+    if (!amCards.includes('americas') || amCards.includes('latin-caribbean-cluster')) {
+      console.error('[FAIL] americas tab must map to americas card only', amCards)
+      failed = true
+    } else console.log('[ok] americas card map → americas only')
+
+    const saCountryKeys = await resolveBrowseRegionToCountryKeys('south-america')
+    const latinMasterKeys = [
+      'mexico',
+      'cuba',
+      'peru',
+      'brazil',
+      'argentina',
+      'chile',
+      'bolivia',
+      'dominican-republic',
+    ] as const
+    for (const k of latinMasterKeys) {
+      if (!saCountryKeys.includes(k)) {
+        console.error(`[FAIL] south-america region missing countryKey ${k}`, saCountryKeys)
+        failed = true
+      }
+    }
+    if (!failed) console.log('[ok] south-america region includes latin 8 countries')
+
     const tabCases = [
       { id: 'A-japan', region: 'japan', min: 28 },
       { id: 'B-china', region: 'china-hk-mo', min: 26 },
-      { id: 'C-americas', region: 'americas', min: 11 },
+      { id: 'C-americas', region: 'americas', min: 1 },
+      { id: 'J-south-america', region: 'south-america', min: 1 },
       { id: 'D-europe', region: 'europe-me', min: 25 },
       { id: 'E-sea', region: 'southeast-asia', min: 43 },
       { id: 'F-oceania', region: 'oceania', min: 5 },
@@ -408,6 +440,7 @@ async function main() {
       { id: 'C-hokkaido-header', href: headerHref('japan', '홋카이도'), min: 1 },
       { id: 'C-shandong-header', href: headerHref('china-hk-mo', '산동'), min: 1 },
       { id: 'C-us-west-header', href: headerHref('americas', '미서부'), min: 1 },
+      { id: 'J-mexico-sa', href: leafHref('south-america', '중남미', '멕시코'), min: 1 },
       { id: 'C-vietnam-header', href: headerHref('southeast-asia', '베트남'), min: 1 },
     ]
 
