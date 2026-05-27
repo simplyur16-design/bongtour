@@ -975,11 +975,11 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 // [prices]·출발일별 달력·출발일별 항공: E2E·확정 파싱 SSOT — LLM 추출 금지
 
 # [schedule] 일차별 (필수) — 본문 일차 헤더(1일차/2일차/…)마다 1행
-- 각 항목: day, title, description, routeText, imageKeyword, hotelText, breakfastText, lunchText, dinnerText, mealSummaryText
+- 각 항목: day, title, description, routeText, imageKeyword, imageKeyword2, hotelText, breakfastText, lunchText, dinnerText, mealSummaryText
 - **title**: 그날 핵심 도시 또는 활동 한 줄(간결·한글). 호텔명·항공편명만으로 끝내지 말 것.
 - **description**: 본문만 근거로 **한국어 문어체 3~4문장**(방문·체험·식사·이동 흐름). 콤마로 이어진 관광지 리스트를 그대로 붙여넣지 말고 자연스럽게 풀 것. **본문에 없는 정보·추측·항공편 번호(BX0182 등)·항공 브랜드 나열은 넣지 말 것**(항공은 별도 필드). 패키지는 관광 흐름과 식사를 풍부하게, 자유여행은 자유일정과 본문에 적힌 추천 활동·먹거리 등을 풍부하게.
 - **routeText**: 그날 방문 도시·장소를 본문 순서대로 **' - '**(공백-하이픈-공백)로 잇는 한 줄. 한글 지명 우선. 없으면 null.
-- **imageKeyword**: 위 [schedule[].imageKeyword] 규칙 준수
+- **imageKeyword / imageKeyword2**: 위 [schedule[].imageKeyword / imageKeyword2] 규칙 준수. **imageKeyword** = 그날 1순위 관광명소 영문. **imageKeyword2** = 그날 routeText의 **두 번째** 관광명소 영문(1순위와 다른 명소). routeText에 관광지 2곳 이상이면 imageKeyword2 **필수**. 출발·귀국(비행) 일차는 imageKeyword2 생략(null).
 - **[조망], [차창관광]** 등은 본문에 있을 때 **(조망), (차창)** 으로만 바꿔 표기하고 의미는 유지.
 - **hotelText / breakfastText / lunchText / dinnerText / mealSummaryText**: 본문·일정표에 있을 때만. 없으면 null. 식사·숙소 원문은 가능하면 이 필드에 두고 description은 서술 흐름 위주.
 
@@ -1077,6 +1077,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
       "description": "부산에서 출발하여 마츠야마 공항에 도착합니다. 호텔에 체크인 후 자유롭게 시간을 보냅니다. REF 마츠야마 시티 스테이션 호텔은 마츠야마역 도보 1분 거리에 위치하며 대욕장과 사우나를 무료로 이용할 수 있습니다.",
       "routeText": "부산 - 마츠야마",
       "imageKeyword": "Matsuyama Castle",
+      "imageKeyword2": "Dogo Onsen",
       "hotelText": "REF 마츠야마 시티 스테이션 바이 베셀 호텔",
       "breakfastText": null,
       "lunchText": null,
@@ -1112,7 +1113,7 @@ const REGISTER_PREVIEW_MINIMAL_PROMPT = `${REGISTER_PREVIEW_MINIMAL_TONE_BLOCK}
 - hasShopping (bool), shoppingVisitCount (숫자 또는 null), shoppingSummaryText: 짧은 쇼핑 요약만 또는 null
 - hotelSummaryText: 없으면 null, 있으면 80자 이내
 - fieldIssues: { field, reason, source:"llm", severity:"info"|"warn" } **최대 3건**. reason 각 120자 이내. 목적지·일정 힌트만.
-- **schedule[]** (필수): 본문 **1일차~N일차**마다 1객체. day, title(간결 한글), description(본문만·한국어 3~4문장·항공편 번호·항공사 홍보 문구 금지), routeText(' - ' 한 줄·한글 우선 또는 null), imageKeyword(해당 일 가장 유명한 관광명소 영문 고유명 1개), hotelText·breakfastText·lunchText·dinnerText·mealSummaryText(본문에 있을 때만, 없으면 null). [조망]/[차창관광] → (조망)/(차창). 창작 금지.
+- **schedule[]** (필수): 본문 **1일차~N일차**마다 1객체. day, title(간결 한글), description(본문만·한국어 3~4문장·항공편 번호·항공사 홍보 문구 금지), routeText(' - ' 한 줄·한글 우선 또는 null), imageKeyword(그날 1순위 관광명소 영문), imageKeyword2(그날 routeText **두 번째** 관광명소 영문·1순위와 다름·routeText 관광지 2곳 이상이면 **필수**), hotelText·breakfastText·lunchText·dinnerText·mealSummaryText(본문에 있을 때만, 없으면 null). 출발·귀국(비행) 일차는 imageKeyword2 생략(null). [조망]/[차창관광] → (조망)/(차창). 창작 금지.
 
 {
   "originSource": "string",
@@ -1135,6 +1136,7 @@ const REGISTER_PREVIEW_MINIMAL_PROMPT = `${REGISTER_PREVIEW_MINIMAL_TONE_BLOCK}
       "description": "부산에서 출발하여 마츠야마 공항에 도착합니다. 호텔에 체크인 후 자유롭게 시간을 보냅니다. REF 마츠야마 시티 스테이션 호텔은 마츠야마역 도보 1분 거리에 위치하며 대욕장과 사우나를 무료로 이용할 수 있습니다.",
       "routeText": "부산 - 마츠야마",
       "imageKeyword": "Matsuyama Castle",
+      "imageKeyword2": "Dogo Onsen",
       "hotelText": "REF 마츠야마 시티 스테이션 바이 베셀 호텔",
       "breakfastText": null,
       "lunchText": null,
