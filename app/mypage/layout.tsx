@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { Gift, Heart, MessageSquareText, PenLine, Smartphone } from 'lucide-react'
+import { BadgeCheck, Gift, Heart, MessageSquareText, PenLine, Smartphone } from 'lucide-react'
 import Header from '@/app/components/Header'
 
 const nav = [
@@ -9,6 +9,7 @@ const nav = [
   { href: '/mypage/esim', label: '내 eSIM', icon: Smartphone },
   { href: '/mypage/reviews', label: '여행 후기', icon: PenLine },
   { href: '/mypage/coupons', label: '내 쿠폰함', icon: Gift },
+  { href: '/mypage/press', label: '직군 인증', icon: BadgeCheck },
 ] as const
 
 export default function MyPageLayout({ children }: { children: ReactNode }) {
@@ -46,7 +47,7 @@ export default function MyPageLayout({ children }: { children: ReactNode }) {
         className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#DAD4EE] bg-white/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-4px_16px_rgba(83,74,183,0.08)] backdrop-blur-md md:hidden"
         aria-label="마이페이지 하단 메뉴"
       >
-        <div className="mx-auto grid max-w-lg grid-cols-5 gap-0.5 px-1">
+        <div className="mx-auto grid max-w-lg grid-cols-6 gap-0.5 px-1">
           {nav.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}

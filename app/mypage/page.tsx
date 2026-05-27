@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Gift, Heart, MessageSquareText, PenLine, Smartphone } from 'lucide-react'
+import { BadgeCheck, Gift, Heart, MessageSquareText, PenLine, Smartphone } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
 const HUB_LINKS = [
@@ -10,6 +10,7 @@ const HUB_LINKS = [
   { href: '/mypage/esim', label: '내 eSIM 주문내역', desc: '주문·QR·사용량', icon: Smartphone },
   { href: '/mypage/reviews', label: '여행 후기', desc: '목록·작성·수정', icon: PenLine },
   { href: '/mypage/coupons', label: '내 쿠폰함', desc: '할인권 확인', icon: Gift },
+  { href: '/mypage/press', label: '직군 인증', desc: '언론사 직장 이메일', icon: BadgeCheck },
 ] as const
 
 export default function MyPage() {
