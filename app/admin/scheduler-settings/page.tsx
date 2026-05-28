@@ -69,7 +69,13 @@ type SchedulerCheckpointPayload = {
   currentMode?: string
   modeLabel: string
   nextRunHint: string
-  progress: { coveredDaysOutOfHorizon: number; horizonDays: number }
+  progress: {
+    nextProductIndex?: number
+    chunkDays?: number
+    horizonDays: number
+    /** @deprecated sequential 이전 API */
+    coveredDaysOutOfHorizon?: number
+  }
   activeDateRange: { startYmd: string; endYmd: string }
   error?: string
 }
@@ -445,20 +451,38 @@ export default function AdminSchedulerSettingsPage() {
                 run-once 시 자동 결정과 동일 기준)
               </p>
               <div>
-                <div className="mb-1 flex justify-between text-xs text-gray-600">
-                  <span>오늘 기준 확보 일수</span>
-                  <span>
-                    {checkpoint.progress.coveredDaysOutOfHorizon} / {checkpoint.progress.horizonDays}일
-                  </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-                  <div
-                    className="h-full rounded-full bg-teal-600 transition-[width]"
-                    style={{
-                      width: `${Math.min(100, Math.round((checkpoint.progress.coveredDaysOutOfHorizon / checkpoint.progress.horizonDays) * 100))}%`,
-                    }}
-                  />
-                </div>
+                {typeof checkpoint.progress.nextProductIndex === 'number' ? (
+                  <p className="text-xs text-gray-600">
+                    순차 수집 · 다음 상품 순번{' '}
+                    <span className="font-mono font-medium text-gray-900">{checkpoint.progress.nextProductIndex}</span>
+                    {typeof checkpoint.progress.chunkDays === 'number'
+                      ? ` · 상품당 ${checkpoint.progress.chunkDays}일 창 · 지평선 ${checkpoint.progress.horizonDays}일`
+                      : null}
+                  </p>
+                ) : (
+                  <>
+                    <div className="mb-1 flex justify-between text-xs text-gray-600">
+                      <span>오늘 기준 확보 일수</span>
+                      <span>
+                        {checkpoint.progress.coveredDaysOutOfHorizon ?? 0} / {checkpoint.progress.horizonDays}일
+                      </span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className="h-full rounded-full bg-teal-600 transition-[width]"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.round(
+                              ((checkpoint.progress.coveredDaysOutOfHorizon ?? 0) / checkpoint.progress.horizonDays) *
+                                100,
+                            ),
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
               {checkpoint.lastRunStatus ? (
                 <p className="text-xs text-gray-600">
