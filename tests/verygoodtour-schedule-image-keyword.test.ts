@@ -71,6 +71,40 @@ describe('classifyVerygoodDayKind', () => {
     const d2 = extracted.rows.find((r) => r.day === 2)!
     assert.equal(classifyVerygoodDayKind(d1.description, d1.title, 1, 9), 'flight')
     assert.equal(classifyVerygoodDayKind(d2.description, d2.title, 2, 9), 'touring')
+    assert.equal(classifyVerygoodDayKind(d2.description, d2.title, 2, 9, null), 'touring')
+  })
+
+  it('routeText 비허브 세그먼트 ≥3 → touring (산문 POI 없음)', () => {
+    assert.equal(
+      classifyVerygoodDayKind(
+        '아부다비에서 출발하여 튀니스에 도착 후 카르타고 유적 관람.',
+        '튀니스 도착 및 카르타고 유적 탐방',
+        2,
+        10,
+        '아부다비 - 튀니스 - 카르타고 - 안토니우스 목욕탕(내부) - 비사르힐',
+      ),
+      'touring',
+    )
+  })
+
+  it('routeText 비허브 세그먼트 2 → free (출국일 오판 방지)', () => {
+    assert.equal(
+      classifyVerygoodDayKind(
+        '튀니스 출발 후 아부다비 경유 귀국.',
+        '튀니스 출발 및 귀국 여정',
+        9,
+        10,
+        '튀니스 - 아부다비',
+      ),
+      'free',
+    )
+  })
+
+  it('routeText 단일·허브만 → free (산문 POI 없음)', () => {
+    assert.equal(
+      classifyVerygoodDayKind('인천 출발 및 아부다비 경유', '인천 출발', 1, 10, '인천 - 아부다비'),
+      'free',
+    )
   })
 })
 
@@ -86,6 +120,10 @@ describe('resolveVerygoodPrimaryKeyword — LLM only', () => {
 
   it('국내 허브 LLM 키워드는 거부한다', () => {
     assert.equal(resolveVerygoodPrimaryKeyword({ day: 1, imageKeyword: 'Incheon' }, 'flight', 'Japan'), '')
+  })
+
+  it('Japan + Paris imageKeyword kw1 → 차단', () => {
+    assert.equal(resolveVerygoodPrimaryKeyword({ day: 2, imageKeyword: 'Paris' }, 'touring', 'Japan'), '')
   })
 
   it('LLM 빈값 — det 폴백 없음', () => {
@@ -112,6 +150,13 @@ describe('resolveVerygoodSecondaryKeyword — LLM only', () => {
   it('free: kw2는 null', () => {
     assert.equal(
       resolveVerygoodSecondaryKeyword({ day: 2, imageKeyword2: 'Warsaw' }, 'Warsaw', 'free', 'Poland'),
+      null,
+    )
+  })
+
+  it('flight: kw2는 null (비행일 kw2=null 규칙)', () => {
+    assert.equal(
+      resolveVerygoodSecondaryKeyword({ day: 1, imageKeyword2: 'Warsaw' }, 'Warsaw', 'flight', 'Poland'),
       null,
     )
   })
@@ -167,5 +212,23 @@ describe('applyVerygoodScheduleImageKeywordsToRows — Plan A', () => {
     )
     assert.equal(out[0]!.imageKeyword, 'Warsaw')
     assert.equal(out[0]!.imageKeyword2, null)
+  })
+
+  it('touring + routeText gate — LLM 산문만 있어도 kw2 keep', () => {
+    const out = applyVerygoodScheduleImageKeywordsToRows(
+      [
+        {
+          day: 2,
+          title: '튀니스 도착 및 카르타고 유적 탐방',
+          description: '아부다비에서 출발하여 튀니스에 도착. 카르타고와 바르도 박물관 관람.',
+          routeText: '아부다비 - 튀니스 - 카르타고 - 바르도 박물관(내부)',
+          imageKeyword: 'Carthage',
+          imageKeyword2: 'Bardo National Museum',
+        },
+      ],
+      { productDestination: '튀니지', totalDays: 10 },
+    )
+    assert.equal(out[0]!.imageKeyword, 'Carthage')
+    assert.equal(out[0]!.imageKeyword2, 'Bardo National Museum')
   })
 })

@@ -11,6 +11,7 @@ export type VerygoodScheduleImageKeywordRow = {
   day: number
   title?: string
   description?: string
+  routeText?: string | null
   imageKeyword?: string | null
   imageKeyword2?: string | null
 }
@@ -247,16 +248,35 @@ export function extractVerygoodOrderedDayPoi(description: string, title: string)
   return out
 }
 
+/** routeText 게이트 전용 — ' - ' 세그먼트 중 국내 허브 제외 개수(KO→EN·키워드 생성 없음). */
+function countVerygoodNonHubRouteTextSegments(routeText: string | null | undefined): number {
+  const raw = String(routeText ?? '').trim()
+  if (!raw) return 0
+  const parts = raw
+    .split(/\s+-\s+/)
+    .map((p) => p.replace(/\s+/g, ' ').trim())
+    .filter((p) => p.length >= 2)
+  let count = 0
+  for (const p of parts) {
+    if (isVerygoodDomesticHubToken(p)) continue
+    count++
+  }
+  return count
+}
+
 export function classifyVerygoodDayKind(
   description: string,
   title: string,
   dayIndex: number,
   totalDays: number,
+  routeText?: string | null,
 ): VerygoodDayKind {
   if (hasVerygoodDomesticHubOrAviationBlock(description, title)) return 'flight'
 
   const pois = extractVerygoodOrderedDayPoi(description, title)
   if (pois.length >= 1) return 'touring'
+
+  if (countVerygoodNonHubRouteTextSegments(routeText) >= 3) return 'touring'
 
   void dayIndex
   void totalDays
@@ -280,11 +300,10 @@ export function resolveVerygoodSecondaryKeyword(
   dayKind: VerygoodDayKind,
   productDestination: string | null | undefined,
 ): string | null {
-  if (dayKind === 'free') return null
+  if (dayKind !== 'touring') return null
 
   const fromLlm = tryAcceptVerygoodLlmImageKeyword(row.imageKeyword2, productDestination)
   if (!fromLlm) return null
-  if (dayKind === 'flight') return fromLlm
   if (primary && keysEqual(fromLlm, primary)) return null
   return fromLlm
 }
@@ -321,7 +340,8 @@ export function applyVerygoodScheduleImageKeywordsToRows<
     const det = detByDay.get(day)
     const description = String(det?.description ?? row.description ?? '')
     const title = String(det?.title ?? row.title ?? '').trim()
-    const dayKind = classifyVerygoodDayKind(description, title, day, totalDays)
+    const routeText = row.routeText ?? det?.routeText ?? null
+    const dayKind = classifyVerygoodDayKind(description, title, day, totalDays, routeText)
     const primary = resolveVerygoodPrimaryKeyword(row, dayKind, productDestination)
     const secondary = resolveVerygoodSecondaryKeyword(row, primary, dayKind, productDestination)
     return {
