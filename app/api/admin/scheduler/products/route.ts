@@ -27,6 +27,12 @@ function hasFutureDeparturesFromMax(maxYmd: string | null, todayYmd: string): bo
   return maxYmd >= todayYmd
 }
 
+function schedulerDetailUrl(originSource: string | null, originCode: string | null, originUrl: string | null): string {
+  const direct = (originUrl ?? '').trim()
+  if (direct.startsWith('http')) return direct
+  return buildDetailUrl(originSource ?? '', originCode ?? '')
+}
+
 /**
  * GET /api/admin/scheduler/products. 인증: 관리자.
  * 등록완료 + 미래 출발(성인가 하한 이상) + windsor(공공기업) 제외.
@@ -57,7 +63,7 @@ export async function GET() {
           },
         },
         orderBy: { updatedAt: 'asc' },
-        select: { id: true, originCode: true, originSource: true, rawMeta: true },
+        select: { id: true, originCode: true, originSource: true, originUrl: true, rawMeta: true },
       }),
     ])
 
@@ -93,7 +99,7 @@ export async function GET() {
             originCode: p.originCode,
             originSource: p.originSource,
             site,
-            detailUrl: buildDetailUrl(p.originSource ?? '', p.originCode),
+            detailUrl: schedulerDetailUrl(p.originSource, p.originCode, p.originUrl),
             sequentialEligible: false,
             rangeStartYmd: todaySeoulYmd,
             rangeEndYmd: horizonYmd,
@@ -115,7 +121,7 @@ export async function GET() {
           originCode: p.originCode,
           originSource: p.originSource,
           site,
-          detailUrl: buildDetailUrl(p.originSource ?? '', p.originCode),
+          detailUrl: schedulerDetailUrl(p.originSource, p.originCode, p.originUrl),
           sequentialEligible: true,
           hasFutureDepartures,
           calendarBatchCursorYmd: win.cursorYmd,
