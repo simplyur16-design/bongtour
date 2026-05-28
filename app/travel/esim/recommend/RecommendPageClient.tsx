@@ -28,6 +28,11 @@ const POPULAR_COUNTRY_CODES = ["jp", "tw", "vn", "th", "hk", "sg", "us", "cn", "
 
 type ApiCountriesPayload = { countries: { code: string; nameKr: string }[] };
 
+type RecommendPageClientProps = {
+  initialCountries?: { code: string; nameKr: string }[];
+  initialHeroMap?: Record<string, string>;
+};
+
 function mergeCountryOptionsFromApi(allowed: { code: string; nameKr: string }[]): CountryOption[] {
   const byCode = new Map(COUNTRY_OPTIONS.map((c) => [c.code.toLowerCase(), c]));
   const out: CountryOption[] = [];
@@ -39,7 +44,10 @@ function mergeCountryOptionsFromApi(allowed: { code: string; nameKr: string }[])
   return out.sort((a, b) => a.nameKr.localeCompare(b.nameKr, "ko"));
 }
 
-export default function RecommendPageClient() {
+export default function RecommendPageClient({
+  initialCountries = [],
+  initialHeroMap = {},
+}: RecommendPageClientProps) {
   const searchParams = useSearchParams();
   const fromCheckout = searchParams?.get("fromCheckout") === "1";
 
@@ -48,9 +56,11 @@ export default function RecommendPageClient() {
   const [storedCompleted, setStoredCompleted] = useState<Record<string, StoredCountryPlanSelection>>({});
   const [funnelHydrated, setFunnelHydrated] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [standaloneCountries, setStandaloneCountries] = useState<CountryOption[] | null>(null);
+  const [standaloneCountries, setStandaloneCountries] = useState<CountryOption[] | null>(() =>
+    initialCountries.length > 0 ? mergeCountryOptionsFromApi(initialCountries) : null,
+  );
   const [countriesLoadError, setCountriesLoadError] = useState<string | null>(null);
-  const [heroMap, setHeroMap] = useState<Record<string, string>>({});
+  const [heroMap, setHeroMap] = useState<Record<string, string>>(() => initialHeroMap);
 
   useEffect(() => {
     const snap = loadRecommendFunnelSnapshot();
@@ -86,7 +96,7 @@ export default function RecommendPageClient() {
     setCountriesLoadError(null);
     setStandaloneCountries(null);
     try {
-      const res = await fetch("/api/bongsim/countries", { cache: "no-store" });
+      const res = await fetch("/api/bongsim/countries");
       const data = (await res.json()) as ApiCountriesPayload & { error?: string };
       if (!res.ok) {
         setCountriesLoadError(data.error || "국가 목록을 불러오지 못했습니다.");
@@ -100,12 +110,14 @@ export default function RecommendPageClient() {
   }, []);
 
   useEffect(() => {
+    if (initialCountries.length > 0) return;
     void loadCountries();
-  }, [loadCountries]);
+  }, [initialCountries.length, loadCountries]);
 
   useEffect(() => {
+    if (Object.keys(initialHeroMap).length > 0) return;
     let cancelled = false;
-    void fetch("/api/bongsim/country-heroes", { cache: "no-store" })
+    void fetch("/api/bongsim/country-heroes")
       .then(async (res) => {
         if (cancelled || !res.ok) return;
         const data = (await res.json().catch(() => null)) as unknown;
@@ -124,7 +136,7 @@ export default function RecommendPageClient() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialHeroMap]);
 
   const countryChoices = useMemo(() => standaloneCountries ?? [], [standaloneCountries]);
 

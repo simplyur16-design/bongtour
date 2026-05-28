@@ -21,6 +21,7 @@ import type { OverseasGeoFilterBanner } from '@/lib/overseas-destination-browse'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import { sortProductsBySeason } from '@/lib/product-sort'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
+import { buildProductsBrowseClientFetchKey } from '@/lib/products-browse-client-fetch-key'
 
 type ApiOk = {
   ok: true
@@ -35,13 +36,6 @@ type ApiOk = {
 
 /** 국내 허브 browse 1회 요청 상한 */
 const BROWSE_DOMESTIC_HUB_FETCH_LIMIT = '30'
-/**
- * 해외 허브(`/travel/overseas`) 기본 목록 — 지역별 섹션 전체를 한 번에 내려받기 위해 browse API 해외 상한과 동일.
- * (점진 렌더는 `ProductResultsList`의 Intersection Observer가 담당)
- */
-const BROWSE_OVERSEAS_HUB_FETCH_LIMIT = '120'
-/** 항공+호텔: 나라별 칩 집계·클라이언트 필터용으로 browse 상한까지 한 번에 로드 */
-const AIR_HOTEL_BROWSE_FETCH_LIMIT = '120'
 
 /** 국내 허브(`/travel/domestic`)에서 browse·URL 정리 시 제거(레거시 링크 무시) */
 const DOMESTIC_HUB_QUERY_STRIP_KEYS = [
@@ -84,6 +78,9 @@ type Props = {
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
   /** 추천 여행지·메가메뉴 도시/국가 필터 시 상단 제목·해제 */
   overseasGeoFilterBanner?: OverseasGeoFilterBanner | null
+  /** 해외 허브: 서버 prefetch browse — queryKey 일치 시 첫 paint에 목록 표시 */
+  initialBrowseQueryKey?: string
+  initialBrowseData?: ApiOk | null
 }
 
 function formatWon(n: number | null) {
@@ -127,6 +124,8 @@ export default function ProductsBrowseClient({
   hidePageHeading = false,
   overseasEditorialBriefing = null,
   overseasGeoFilterBanner = null,
+  initialBrowseQueryKey,
+  initialBrowseData = null,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname() ?? ''
@@ -167,8 +166,8 @@ export default function ProductsBrowseClient({
     return qs
   }, [isDomesticHub, isAirHotelHub, airHotelBrowseFetchKey, qs, searchParams])
 
-  const [data, setData] = useState<ApiOk | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState<ApiOk | null>(initialBrowseData)
+  const [loading, setLoading] = useState(() => !(initialBrowseData && initialBrowseQueryKey))
   const [error, setError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [draft, setDraft] = useState<BrowseQueryState>(q)
@@ -204,47 +203,36 @@ export default function ProductsBrowseClient({
 
   useEffect(() => {
     let cancelled = false
+    const urlKey = buildProductsBrowseClientFetchKey({
+      pathname,
+      defaultScope,
+      searchParams,
+      qs,
+      isDomesticHub,
+      isAirHotelHub,
+      q,
+    })
+
+    if (
+      initialBrowseQueryKey &&
+      initialBrowseData &&
+      urlKey === initialBrowseQueryKey
+    ) {
+      setData(initialBrowseData)
+      setLoading(false)
+      setError(null)
+      return () => {
+        cancelled = true
+      }
+    }
+
     async function load() {
       setLoading(true)
       setError(null)
       try {
-        let p: URLSearchParams
-        if (isDomesticHub) {
-          p = new URLSearchParams()
-          p.set('scope', 'domestic')
-          p.set('limit', BROWSE_DOMESTIC_HUB_FETCH_LIMIT)
-          const sortRaw = searchParams.get('sort')
-          if (
-            sortRaw === 'budget_fit' ||
-            sortRaw === 'price_asc' ||
-            sortRaw === 'price_desc' ||
-            sortRaw === 'departure_asc'
-          ) {
-            p.set('sort', sortRaw)
-          }
-        } else {
-          p = new URLSearchParams(qs)
-          if (defaultScope && !p.get('scope')) p.set('scope', defaultScope)
-        }
-        if (defaultScope === 'overseas' && pathname === '/travel/overseas') {
-          p.delete('listingKind')
-          p.set('limit', BROWSE_OVERSEAS_HUB_FETCH_LIMIT)
-          p.delete('page')
-        }
-        if (pathname === '/travel/air-hotel') {
-          p.set('limit', AIR_HOTEL_BROWSE_FETCH_LIMIT)
-          p.delete('page')
-          p.delete('country')
-          p.delete('region')
-          p.delete('city')
-        }
-        if ((q.budgetPerPerson != null || q.budgetMin != null) && !p.get('sort')) {
-          p.set('sort', 'budget_fit')
-        }
-        const urlKey = p.toString() // PERF-LOG: 측정 후 제거
         const perfClient = process.env.NEXT_PUBLIC_BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
         const tFetch0 = perfClient ? performance.now() : 0 // PERF-LOG: 측정 후 제거
-        const res = await fetch(`/api/products/browse?${urlKey}`, { cache: 'no-store' })
+        const res = await fetch(`/api/products/browse?${urlKey}`)
         const json = (await res.json()) as ApiOk | { ok: false; error?: string }
         if (perfClient) {
           console.log(
@@ -272,7 +260,18 @@ export default function ProductsBrowseClient({
     return () => {
       cancelled = true
     }
-  }, [browseReloadKey, pathname, defaultScope, isDomesticHub, q.budgetMin, q.budgetPerPerson])
+  }, [
+    browseReloadKey,
+    pathname,
+    defaultScope,
+    isDomesticHub,
+    isAirHotelHub,
+    q,
+    qs,
+    searchParams,
+    initialBrowseQueryKey,
+    initialBrowseData,
+  ])
 
   const navigate = useCallback(
     (next: BrowseQueryState) => {

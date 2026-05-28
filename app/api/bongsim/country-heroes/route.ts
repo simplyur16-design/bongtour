@@ -1,9 +1,5 @@
-import { NextResponse } from "next/server";
-import { jsonWithLeakGuard } from "@/lib/public-response-guard";
-import { prisma } from "@/lib/prisma";
-
-const ENTITY_TYPE = "bongsim_esim_country";
-const IMAGE_ROLE = "recommend_hero";
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
+import { getCachedBongsimCountryHeroesMap } from '@/lib/bongsim/country-heroes-cached'
 
 /**
  * GET /api/bongsim/country-heroes
@@ -13,35 +9,13 @@ const IMAGE_ROLE = "recommend_hero";
  */
 export async function GET() {
   try {
-    const rows = await prisma.imageAsset.findMany({
-      where: {
-        entityType: ENTITY_TYPE,
-        imageRole: IMAGE_ROLE,
-        isPrimary: true,
-      },
-      select: {
-        entityId: true,
-        publicUrl: true,
-        updatedAt: true,
-      },
-      orderBy: { updatedAt: "desc" },
-    });
-
-    const heroes: Record<string, string> = {};
-    for (const r of rows) {
-      const code = r.entityId.trim().toLowerCase();
-      const url = r.publicUrl.trim();
-      if (!code || !url) continue;
-      if (heroes[code] !== undefined) continue;
-      heroes[code] = url;
-    }
-
-    return jsonWithLeakGuard(heroes, "bongsim.country-heroes.map", {
-      headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
-    });
+    const heroes = await getCachedBongsimCountryHeroesMap()
+    return jsonWithLeakGuard(heroes, 'bongsim.country-heroes.map', {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+    })
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "query failed";
-    console.error("[api/bongsim/country-heroes]", e);
-    return jsonWithLeakGuard({ error: msg }, "bongsim.country-heroes.map", { status: 500 });
+    const msg = e instanceof Error ? e.message : 'query failed'
+    console.error('[api/bongsim/country-heroes]', e)
+    return jsonWithLeakGuard({ error: msg }, 'bongsim.country-heroes.map', { status: 500 })
   }
 }

@@ -15,6 +15,11 @@ import {
   prioritizeEditorialsByRegionAndCountry,
 } from '@/lib/overseas-editorial-prioritize'
 import { resolveOverseasGeoFilterBanner } from '@/lib/overseas-destination-browse'
+import { getCachedProductsBrowsePayload } from '@/lib/products-browse-cached'
+import {
+  buildOverseasHubBrowseQueryKey,
+  searchParamsRecordToUrlSearchParams,
+} from '@/lib/products-browse-hub-query'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
 
@@ -56,12 +61,18 @@ export default async function OverseasTravelPage({
   const selectedRegionSlug =
     region && (LOCAL_DEPARTURE_REGIONS as readonly string[]).includes(region) ? region : null
 
-  const [editorialAll, seasonDestinationHeroSlides] = await Promise.all([
+  const [editorialAll, seasonDestinationHeroSlides, initialBrowseData] = await Promise.all([
     fetchPublishedOverseasEditorials().catch(
       (): Awaited<ReturnType<typeof fetchPublishedOverseasEditorials>> => [],
     ),
     getCachedOverseasHubSeasonDestinationHeroSlides(),
+    getCachedProductsBrowsePayload(
+      buildOverseasHubBrowseQueryKey(searchParamsRecordToUrlSearchParams(sp)),
+    ).catch(() => null),
   ])
+  const initialBrowseQueryKey = buildOverseasHubBrowseQueryKey(
+    searchParamsRecordToUrlSearchParams(sp),
+  )
 
   let overseasEditorialBriefing: OverseasEditorialBriefingPayload | null = null
   try {
@@ -97,6 +108,8 @@ export default async function OverseasTravelPage({
             hidePageHeading
             overseasEditorialBriefing={overseasEditorialBriefing}
             overseasGeoFilterBanner={overseasGeoFilterBanner}
+            initialBrowseQueryKey={initialBrowseQueryKey}
+            initialBrowseData={initialBrowseData}
           />
         </Suspense>
 

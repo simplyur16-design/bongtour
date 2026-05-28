@@ -1,8 +1,17 @@
-import { Suspense } from "react";
-import Header from "@/app/components/Header";
-import RecommendPageClient from "./RecommendPageClient";
+import { Suspense } from 'react'
+import Header from '@/app/components/Header'
+import { getCachedBongsimCountriesList } from '@/lib/bongsim/countries-list-cached'
+import { getCachedBongsimCountryHeroesMap } from '@/lib/bongsim/country-heroes-cached'
+import RecommendPageClient from './RecommendPageClient'
 
-export default function RecommendPage() {
+export const revalidate = 300
+
+export default async function RecommendPage() {
+  const [initialCountries, initialHeroMap] = await Promise.all([
+    getCachedBongsimCountriesList().catch(() => []),
+    getCachedBongsimCountryHeroesMap().catch(() => ({})),
+  ])
+
   return (
     <Suspense
       fallback={
@@ -14,7 +23,10 @@ export default function RecommendPage() {
         </div>
       }
     >
-      <RecommendPageClient />
+      <RecommendPageClient
+        initialCountries={initialCountries}
+        initialHeroMap={initialHeroMap}
+      />
     </Suspense>
-  );
+  )
 }
