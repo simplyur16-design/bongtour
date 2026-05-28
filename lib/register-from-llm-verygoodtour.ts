@@ -1691,6 +1691,7 @@ ${text.slice(0, 16000)}`
   schedule = applyVerygoodScheduleImageKeywordsToRows(schedule, {
     detRows,
     productDestination: scheduleDestHintEarly,
+    totalDays: schedule.length,
   })
   traceVerygoodScheduleDesc('register-llm-E-after-polishVerygoodRegisterScheduleImageKeywords', schedule)
 

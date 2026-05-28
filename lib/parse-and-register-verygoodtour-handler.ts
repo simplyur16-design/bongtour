@@ -119,7 +119,7 @@ import {
   traceVerygoodItineraryLegacyTable,
   traceVerygoodScheduleDesc,
 } from '@/lib/verygoodtour-schedule-description-trace'
-import { polishVerygoodRegisterScheduleImageKeywords } from '@/lib/verygoodtour-schedule-image-keyword'
+import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-schedule-image-keyword'
 /** 참좋은여행 등록 POST 전용 */
 let currentLogPrefix = '[parse-and-register-verygoodtour]'
 const isDev = process.env.NODE_ENV === 'development'
@@ -729,7 +729,11 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     traceVerygoodScheduleDesc('handler-4-post-polish-description', scheduleDescPolished)
     parsed = {
       ...parsed,
-      schedule: polishVerygoodRegisterScheduleImageKeywords(scheduleDescPolished, detRowsForImageKeyword),
+      schedule: applyVerygoodScheduleImageKeywordsToRows(scheduleDescPolished, {
+        detRows: detRowsForImageKeyword,
+        productDestination: parsed.destination ?? null,
+        totalDays: scheduleDescPolished.length,
+      }),
     }
     traceVerygoodScheduleDesc('handler-4-post-polish-imageKeyword-only', parsed.schedule)
 
