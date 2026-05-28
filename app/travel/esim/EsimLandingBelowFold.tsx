@@ -14,7 +14,7 @@ const WHY_ITEMS = [
   },
   {
     icon: ShieldCheck,
-    title: '100% 환불보장',
+    title: '품질보장서비스',
     body: '제품 결함 시 전액 환불',
     circleClass: 'bg-emerald-100 text-emerald-600',
   },
