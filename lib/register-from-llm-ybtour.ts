@@ -2,7 +2,6 @@
  * 노랑풍선(ybtour) 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-ybtour`만 호출.
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
-import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -1735,11 +1734,7 @@ ${text.slice(0, 16000)}`
       ? normalizeYbtourRegisterTitleMinimalLocal(supplierListingTitleRaw)
       : normalizeYbtourRegisterTitleMinimalLocal(llmTitleRaw) || llmTitleRaw || '상품명 없음'
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
-  const scheduleDestHint = finalDestination || null
-  const schedule: RegisterScheduleDay[] = applyYbtourScheduleImageKeywordsToRows(
-    scheduleBase.map(supplementScheduleDayFromDescription),
-    { productDestination: scheduleDestHint },
-  )
+  const schedule: RegisterScheduleDay[] = scheduleBase.map(supplementScheduleDayFromDescription)
 
   const mustKnowFromLlm = forPreview
     ? []
