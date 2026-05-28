@@ -23,6 +23,7 @@ import {
   buildDepartureTerminalInfo,
   inferDepartureAirportCodeFromKoreanDetailText,
 } from '@/lib/meeting-terminal-rules'
+import { ModetourB2cApiError } from '@/lib/modetour-sd1-policy'
 
 type ModetourDepartureRow = Record<string, unknown> & {
   pId?: number
@@ -32,7 +33,7 @@ type ModetourDepartureRow = Record<string, unknown> & {
 
 type ModetourDepartureResponse = {
   result?: ModetourDepartureRow[]
-  errorMessages?: string[] | null
+  errorMessages?: Array<{ errorCode?: string; errorMessage?: string } | string> | null
   isOK?: boolean
 }
 
@@ -349,7 +350,16 @@ function toHeader(referer: string, productNo: string): HeadersInit {
 
 async function fetchJson<T>(url: string, headers: HeadersInit): Promise<T> {
   const res = await fetch(url, { method: 'GET', headers })
-  if (!res.ok) throw new Error(`modetour api failed: HTTP ${res.status} (${url})`)
+  if (!res.ok) {
+    const bodyText = await res.text()
+    let bodyJson: unknown = null
+    try {
+      bodyJson = JSON.parse(bodyText) as unknown
+    } catch {
+      bodyJson = null
+    }
+    throw new ModetourB2cApiError(res.status, url, bodyText, bodyJson)
+  }
   return (await res.json()) as T
 }
 

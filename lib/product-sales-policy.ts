@@ -30,6 +30,16 @@ import {
 import { collectHanatourDepartureInputsForDateRange } from '@/lib/hanatour-departures'
 import { collectModetourDepartureInputsForDateRange } from '@/lib/modetour-departures'
 import {
+  bumpModetourNotFoundStreak,
+  modetourSd1StreakReachedRetire,
+  parseModetourNotFoundStreak,
+  resetModetourNotFoundStreak,
+} from '@/lib/modetour-sd1-meta'
+import {
+  isModetourSd1NotFoundError,
+  MODETOUR_SD1_AUTO_UNPUBLISH_REASON,
+} from '@/lib/modetour-sd1-policy'
+import {
   collectLottetourCalendarRange,
   mapLottetourCalendarToDepartureInputs,
   parseLottetourEvtListCollectionHints,
@@ -54,7 +64,7 @@ import {
 // ---------------------------------------------------------------------------
 
 /** 룰 A — 미래 출발일 탐색 범위 (today ~ today + N일). */
-const RULE_A_WINDOW_DAYS = 180
+export const RULE_A_WINDOW_DAYS = 180
 /** 룰 B — 마지막 미래 출발일 cutoff (today + N일 미만이면 노출 제외). */
 const RULE_B_CUTOFF_DAYS = 7
 /** G3 동시 락 wait cap — 5공급사 동시 검증 충돌 시 기다릴 한계 (ms). */
@@ -65,7 +75,7 @@ const SUPPLIER_LOCK_WAIT_CAP_MS = 15_000
 // ---------------------------------------------------------------------------
 
 /** YMD(`YYYY-MM-DD`) ± delta 일. UTC 기준(달력 일자 SSOT). */
-function addDaysUtcYmd(ymd: string, deltaDays: number): string {
+export function addDaysUtcYmd(ymd: string, deltaDays: number): string {
   const [y, m, d] = ymd.split('-').map(Number)
   const dt = new Date(Date.UTC(y, m - 1, d))
   dt.setUTCDate(dt.getUTCDate() + deltaDays)
@@ -96,10 +106,69 @@ function eachYmBetweenInclusive(fromYmd: string, toYmd: string): string[] {
 }
 
 /** KST 기준 오늘(`YYYY-MM-DD`). 라이브 fetch 의 `fromYmd` 시작점. */
-function kstTodayYmd(): string {
+export function kstTodayYmd(): string {
   const now = new Date()
   const kstMs = now.getTime() + 9 * 60 * 60 * 1000
   return new Date(kstMs).toISOString().slice(0, 10)
+}
+
+/** Rule A 마커 집계 입력 — 출발일·성인가만 필요. */
+export type RuleADepartureInputLike = {
+  departureDate: string | Date
+  adultPrice?: number | null
+}
+
+export type RuleAMarkerResult = {
+  noFutureDepartureConfirmedAt: Date | null
+  lastFutureDepartureDate: Date | null
+  marked: boolean
+}
+
+/**
+ * Rule A 마커 — `runOneSalesPolicyCheck`·modetour sweep 공용 SSOT.
+ * `inputs`는 이미 180일 윈도우 fetch 결과라고 가정; 미래(오늘 포함)만 집계.
+ */
+export function computeRuleAMarkersFromDepartureInputs(
+  inputs: RuleADepartureInputLike[],
+  todayYmd: string
+): RuleAMarkerResult {
+  const futureRows = inputs.filter((x) => {
+    const dk = departureInputToYmd(x.departureDate)
+    return dk != null && dk >= todayYmd
+  })
+
+  let lastFutureDate: Date | null = null
+  if (futureRows.length > 0) {
+    let maxYmd = ''
+    for (const r of futureRows) {
+      const dk = departureInputToYmd(r.departureDate)
+      if (dk && dk > maxYmd) maxYmd = dk
+    }
+    if (maxYmd) lastFutureDate = new Date(`${maxYmd}T00:00:00.000Z`)
+  }
+  const marked = futureRows.length === 0
+
+  return {
+    noFutureDepartureConfirmedAt: marked ? new Date() : null,
+    lastFutureDepartureDate: lastFutureDate,
+    marked,
+  }
+}
+
+/** 미래 출발일 중 최저 성인가 — sweep `priceFrom` 갱신용. */
+export function computePriceFromFromDepartureInputs(
+  inputs: RuleADepartureInputLike[],
+  todayYmd: string
+): number | null {
+  let min: number | null = null
+  for (const x of inputs) {
+    const dk = departureInputToYmd(x.departureDate)
+    if (dk == null || dk < todayYmd) continue
+    const p = x.adultPrice
+    if (p == null || !Number.isFinite(p) || p <= 0) continue
+    if (min == null || p < min) min = p
+  }
+  return min
 }
 
 // ---------------------------------------------------------------------------
@@ -284,7 +353,58 @@ export async function runOneSalesPolicyCheck(
     } else if (supplierKey === 'hanatour') {
       livesRange = await collectHanatourDepartureInputsForDateRange(detailUrl, fromYmd, toYmd)
     } else if (supplierKey === 'modetour') {
-      livesRange = await collectModetourDepartureInputsForDateRange(product.originUrl, fromYmd, toYmd)
+      try {
+        livesRange = await collectModetourDepartureInputsForDateRange(
+          product.originUrl,
+          fromYmd,
+          toYmd
+        )
+        const metaRow = await prisma.product.findUnique({
+          where: { id: product.id },
+          select: { rawMeta: true },
+        })
+        if (parseModetourNotFoundStreak(metaRow?.rawMeta ?? null) > 0) {
+          await prisma.product.update({
+            where: { id: product.id },
+            data: { rawMeta: resetModetourNotFoundStreak(metaRow?.rawMeta ?? null) },
+          })
+        }
+      } catch (err) {
+        if (!isModetourSd1NotFoundError(err)) throw err
+        const metaRow = await prisma.product.findUnique({
+          where: { id: product.id },
+          select: { rawMeta: true },
+        })
+        const { nextRawMeta, streak } = bumpModetourNotFoundStreak(metaRow?.rawMeta ?? null)
+        const now = new Date()
+        if (modetourSd1StreakReachedRetire(streak)) {
+          await prisma.product.update({
+            where: { id: product.id },
+            data: {
+              rawMeta: nextRawMeta,
+              registrationStatus: 'auto_unpublished',
+              autoUnpublishedAt: now,
+              autoUnpublishedReason: MODETOUR_SD1_AUTO_UNPUBLISH_REASON,
+              lastSalesPolicyCheckedAt: now,
+            },
+          })
+        } else {
+          await prisma.product.update({
+            where: { id: product.id },
+            data: {
+              rawMeta: nextRawMeta,
+              lastSalesPolicyCheckedAt: now,
+            },
+          })
+        }
+        return {
+          checked: true,
+          marked: false,
+          lastFutureDate: null,
+          supplierKey,
+          skipReason: null,
+        }
+      }
     } else if (supplierKey === 'verygoodtour') {
       const lo = fromYmd <= toYmd ? fromYmd : toYmd
       const hi = fromYmd <= toYmd ? toYmd : fromYmd
@@ -332,36 +452,21 @@ export async function runOneSalesPolicyCheck(
     }
   }
 
-  // 결과 집계 — 미래 출발일만 (오늘 포함). YMD 비교로 timezone 안전.
-  const futureRows = livesRange.filter((x) => {
-    const dk = departureInputToYmd(x.departureDate)
-    return dk != null && dk >= todayYmd
-  })
-
-  let lastFutureDate: Date | null = null
-  if (futureRows.length > 0) {
-    let maxYmd = ''
-    for (const r of futureRows) {
-      const dk = departureInputToYmd(r.departureDate)
-      if (dk && dk > maxYmd) maxYmd = dk
-    }
-    if (maxYmd) lastFutureDate = new Date(`${maxYmd}T00:00:00.000Z`)
-  }
-  const marked = futureRows.length === 0
+  const markers = computeRuleAMarkersFromDepartureInputs(livesRange, todayYmd)
 
   await prisma.product.update({
     where: { id: product.id },
     data: {
-      noFutureDepartureConfirmedAt: marked ? new Date() : null,
-      lastFutureDepartureDate: lastFutureDate,
+      noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt,
+      lastFutureDepartureDate: markers.lastFutureDepartureDate,
       lastSalesPolicyCheckedAt: new Date(),
     },
   })
 
   return {
     checked: true,
-    marked,
-    lastFutureDate,
+    marked: markers.marked,
+    lastFutureDate: markers.lastFutureDepartureDate,
     supplierKey,
     skipReason: null,
   }
