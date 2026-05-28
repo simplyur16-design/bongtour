@@ -4,10 +4,11 @@
 공급사별 calendar E2E 모듈로만 위임한다 (스크래프 로직은 각 패키지 내부).
 
 환경변수(선택):
-  SCRAPER_CALENDAR_RANGE_START, SCRAPER_CALENDAR_RANGE_END — YYYY-MM-DD 닫힌 구간 필터
-  SCRAPER_BATCH_MODE — initial | maintenance (로그용)
-  SCRAPER_DAY_ROTATION_SLOTS — 기본 7 (KST 일자 기준 7일 로테이션, ceil(n/7) 동적 + 공급사 인터리브)
-  SCRAPER_MAX_PRODUCTS_PER_RUN — (레거시, 선택 로직 미사용)
+  SCRAPER_CALENDAR_HORIZON_END — YYYY-MM-DD 지평선 상한 (로그용)
+  SCRAPER_CALENDAR_SEQ_START_INDEX — sequential 시작 상품 인덱스
+  CALENDAR_BATCH_WALL_BUDGET_SEC — 1 run wall-clock 상한 (기본 36000)
+  SCRAPER_BATCH_MODE — sequential | manual (로그용)
+  공급사별 DATE_FROM/TO — 상품별 in-window 수집 (하나투어 HANATOUR_E2E_DATE_FROM/TO 포함)
 완료 시 stdout 마지막에 `BONGTOUR_BATCH_RESULT:{json}` 1줄 출력.
 """
 from __future__ import annotations
@@ -38,10 +39,10 @@ API_BASE = os.getenv("BONGTOUR_API_BASE", "http://localhost:3000").rstrip("/")
 ADMIN_SECRET = os.getenv("ADMIN_BYPASS_SECRET", "")
 SCHEDULER_HOUR = int(os.getenv("SCHEDULER_HOUR", "12"))
 SCHEDULER_MINUTE = int(os.getenv("SCHEDULER_MINUTE", "30"))
-RANGE_START = (os.getenv("SCRAPER_CALENDAR_RANGE_START") or "").strip()[:10]
-DAY_ROTATION_SLOTS = int(os.getenv("SCRAPER_DAY_ROTATION_SLOTS", "7"))
+HORIZON_END = (os.getenv("SCRAPER_CALENDAR_HORIZON_END") or "").strip()[:10]
+SEQ_START_INDEX = int(os.getenv("SCRAPER_CALENDAR_SEQ_START_INDEX", "0") or "0")
+WALL_BUDGET_SEC = float(os.getenv("CALENDAR_BATCH_WALL_BUDGET_SEC", "36000"))
 MAX_RETRIES_PER_PRODUCT = 3
-RANGE_END = (os.getenv("SCRAPER_CALENDAR_RANGE_END") or "").strip()[:10]
 BATCH_MODE = (os.getenv("SCRAPER_BATCH_MODE") or "").strip() or "daemon"
 
 _CALENDAR_MODULE_BY_SITE: Dict[str, str] = {
@@ -108,6 +109,8 @@ def _run_calendar_price_from_url(detail_url: str, site: str, headless: bool) -> 
         from scripts.calendar_e2e_scraper_lottetour import config as lcfg
         from scripts.calendar_e2e_scraper_lottetour.calendar_price_scraper import run_scrape
 
+        date_from = (os.getenv("LOTTETOUR_DATE_FROM") or "").strip() or lcfg.DATE_FROM
+        date_to = (os.getenv("LOTTETOUR_DATE_TO") or "").strip() or lcfg.DATE_TO
         raw = run_scrape(
             god_id=god,
             menu1=menus[0],
@@ -115,8 +118,8 @@ def _run_calendar_price_from_url(detail_url: str, site: str, headless: bool) -> 
             menu3=menus[2],
             menu4=menus[3],
             months=lcfg.MONTH_LIMIT,
-            date_from=lcfg.DATE_FROM,
-            date_to=lcfg.DATE_TO,
+            date_from=date_from,
+            date_to=date_to,
             depart_month=None,
             evt_cd_hint=evt or None,
         )
@@ -152,7 +155,9 @@ def _run_calendar_price_from_url(detail_url: str, site: str, headless: bool) -> 
         tour = _kyowontour_tour_code_from_url(detail_url)
         if not tour:
             raise ValueError("kyowontour: detail URL에서 tourCd/goodsCd를 찾을 수 없습니다.")
-        raw = run_scrape(tour, None, kcfg.MONTH_LIMIT, kcfg.DATE_FROM, kcfg.DATE_TO)
+        date_from = (os.getenv("KYOWONTOUR_DATE_FROM") or "").strip() or kcfg.DATE_FROM
+        date_to = (os.getenv("KYOWONTOUR_DATE_TO") or "").strip() or kcfg.DATE_TO
+        raw = run_scrape(tour, None, kcfg.MONTH_LIMIT, date_from, date_to)
         rows = raw.get("rows") if isinstance(raw, dict) else None
         out: List[Dict[str, Any]] = []
         if isinstance(rows, list):
@@ -250,14 +255,6 @@ def _normalize_scraper_payload_to_api_items(raw: Any, _site: str) -> List[Dict[s
     return []
 
 
-def _parse_range() -> Optional[Tuple[str, str]]:
-    if not RANGE_START or not RANGE_END or len(RANGE_START) != 10 or len(RANGE_END) != 10:
-        return None
-    if RANGE_START > RANGE_END:
-        return None
-    return (RANGE_START, RANGE_END)
-
-
 def _in_range(ymd: str, lo: str, hi: str) -> bool:
     return bool(ymd) and len(ymd) >= 10 and lo <= ymd[:10] <= hi
 
@@ -266,61 +263,91 @@ def _filter_items_by_range(items: List[Dict[str, Any]], lo: str, hi: str) -> Lis
     return [x for x in items if _in_range(_item_date_ymd(x), lo, hi)]
 
 
-def _ordinal_kst_date() -> int:
-    from datetime import datetime, timedelta, timezone
-
-    kst = timezone(timedelta(hours=9))
-    return datetime.now(kst).date().toordinal()
-
-
-_INTERLEAVE_SITE_ORDER: Tuple[str, ...] = (
-    "modetour",
-    "ybtour",
-    "hanatour",
-    "verygoodtour",
-    "lottetour",
-    "kyowontour",
-)
+def _product_rng(product: Dict[str, Any]) -> Optional[Tuple[str, str]]:
+    lo = str(product.get("rangeStartYmd") or "").strip()[:10]
+    hi = str(product.get("rangeEndYmd") or "").strip()[:10]
+    if len(lo) == 10 and len(hi) == 10 and lo <= hi:
+        return (lo, hi)
+    return None
 
 
-def _interleave_products_by_site(products: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """site별 큐를 라운드로빈으로 합친다 (한 공급사 연속 집중 방지)."""
-    queues: Dict[str, List[Dict[str, Any]]] = {s: [] for s in _INTERLEAVE_SITE_ORDER}
-    other: List[Dict[str, Any]] = []
-    for p in products:
-        site = str(p.get("site") or "hanatour").strip().lower()
-        if site in queues:
-            queues[site].append(p)
+def _legacy_rng(product: Dict[str, Any]) -> Optional[Tuple[str, str]]:
+    lo = str(product.get("rangeStartYmd") or product.get("todaySeoulYmd") or "").strip()[:10]
+    hi = str(product.get("rangeEndYmd") or product.get("horizonYmd") or "").strip()[:10]
+    if len(lo) == 10 and len(hi) == 10 and lo <= hi:
+        return (lo, hi)
+    return None
+
+
+def _is_modetour_legacy(product: Dict[str, Any], site: str) -> bool:
+    if site == "modetour":
+        return True
+    return product.get("sequentialEligible") is False
+
+
+def _clear_site_date_env() -> None:
+    for key in (
+        "HANATOUR_E2E_DATE_FROM",
+        "HANATOUR_E2E_DATE_TO",
+        "HANATOUR_E2E_PROBE_ONLY_DATES",
+        "VERYGOOD_DATE_FROM",
+        "VERYGOOD_DATE_TO",
+        "YBTOUR_DATE_FROM",
+        "YBTOUR_DATE_TO",
+        "LOTTETOUR_DATE_FROM",
+        "LOTTETOUR_DATE_TO",
+        "KYOWONTOUR_DATE_FROM",
+        "KYOWONTOUR_DATE_TO",
+    ):
+        os.environ.pop(key, None)
+
+
+def _set_site_date_env(site: str, lo: str, hi: str) -> None:
+    _clear_site_date_env()
+    s = (site or "hanatour").strip().lower()
+    if s == "hanatour":
+        os.environ["HANATOUR_E2E_DATE_FROM"] = lo
+        os.environ["HANATOUR_E2E_DATE_TO"] = hi
+    elif s == "verygoodtour":
+        os.environ["VERYGOOD_DATE_FROM"] = lo
+        os.environ["VERYGOOD_DATE_TO"] = hi
+    elif s in ("ybtour", "yellowballoon"):
+        os.environ["YBTOUR_DATE_FROM"] = lo
+        os.environ["YBTOUR_DATE_TO"] = hi
+    elif s == "lottetour":
+        os.environ["LOTTETOUR_DATE_FROM"] = lo
+        os.environ["LOTTETOUR_DATE_TO"] = hi
+    elif s == "kyowontour":
+        os.environ["KYOWONTOUR_DATE_FROM"] = lo
+        os.environ["KYOWONTOUR_DATE_TO"] = hi
+
+
+def _patch_product_cursor(product_id: str, payload: Dict[str, Any]) -> bool:
+    url = f"{API_BASE}/api/admin/products/{product_id}/calendar-batch-cursor"
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    headers = {**_headers(), "Content-Type": "application/json"}
+    req = urllib.request.Request(url, data=body, headers=headers, method="PATCH")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            resp.read()
+            return True
+    except Exception as e:
+        logger.error("patch_cursor %s: %s", product_id, e)
+        return False
+
+
+def _advance_product_after_window(product: Dict[str, Any], range_end_ymd: str) -> None:
+    pid = str(product.get("id") or "")
+    if not pid:
+        return
+    if product.get("atHorizon") or product.get("windowEmpty"):
+        if product.get("hasFutureDepartures") is True:
+            _patch_product_cursor(pid, {"horizonRolling": True})
         else:
-            other.append(p)
-    merged: List[Dict[str, Any]] = []
-    idx = {s: 0 for s in _INTERLEAVE_SITE_ORDER}
-    while True:
-        advanced = False
-        for s in _INTERLEAVE_SITE_ORDER:
-            q = queues[s]
-            i = idx[s]
-            if i < len(q):
-                merged.append(q[i])
-                idx[s] = i + 1
-                advanced = True
-        if not advanced:
-            break
-    return merged + other
-
-
-def _kst_rotation_slot() -> int:
-    return _ordinal_kst_date() % DAY_ROTATION_SLOTS
-
-
-def _select_products_for_run(products: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """API 목록 → 전역 인터리브 → slot=i%7 당일 선정(고정) → 당일분만 재인터리브(실행 순서)."""
-    if not products:
-        return []
-    interleaved = _interleave_products_by_site(products)
-    slot = _kst_rotation_slot()
-    day_batch = [p for i, p in enumerate(interleaved) if i % DAY_ROTATION_SLOTS == slot]
-    return _interleave_products_by_site(day_batch)
+            _patch_product_cursor(pid, {"retired": True})
+        return
+    if range_end_ymd:
+        _patch_product_cursor(pid, {"advanceToYmd": range_end_ymd})
 
 
 def _emit_batch_result(payload: Dict[str, Any]) -> None:
@@ -379,7 +406,7 @@ def _process_one_attempt(
         logger.warning("Skip (no id or detailUrl): %s", product)
         return "skip"
     headless = os.getenv("HEADLESS", "1") != "0"
-    logger.info("Start id=%s site=%s", product_id, site)
+    logger.info("Start id=%s site=%s range=%s", product_id, site, rng or "full")
     try:
         raw = _run_calendar_price_from_url(detail_url, site, headless=headless)
         items = _normalize_scraper_payload_to_api_items(raw, site)
@@ -425,8 +452,21 @@ def process_one_with_retries(
     return "fail"
 
 
+def _apply_site_gaps(prev_site: Optional[str], site: str) -> None:
+    if prev_site is None:
+        return
+    if site != prev_site:
+        sw = random.uniform(8.0, 15.0)
+        logger.info("Site switch delay %.1fs (%s -> %s)", sw, prev_site, site)
+        time.sleep(sw)
+    else:
+        gap = random.uniform(4.0, 7.0)
+        logger.info("Product gap %.1fs (same site)", gap)
+        time.sleep(gap)
+
+
 def run_batch() -> Dict[str, Any]:
-    rng = _parse_range()
+    run_started = time.monotonic()
     all_products = fetch_products()
     if not all_products:
         logger.info("No products.")
@@ -441,17 +481,16 @@ def run_batch() -> Dict[str, Any]:
         _emit_batch_result(out)
         return out
 
-    products = _select_products_for_run(all_products)
     n_total = len(all_products)
-    daily_quota = (n_total + DAY_ROTATION_SLOTS - 1) // DAY_ROTATION_SLOTS if n_total else 0
-    slot = _kst_rotation_slot()
+    start_idx = max(0, min(SEQ_START_INDEX, n_total))
+    products = all_products[start_idx:]
     logger.info(
-        "Batch slice: %d / %d total (ceil(n/7)≈%d, KST day_slot=%d/%d, interleave)",
+        "Batch sequential: %d products from index=%d / %d total horizon=%s budget=%.0fs",
         len(products),
+        start_idx,
         n_total,
-        daily_quota,
-        slot,
-        DAY_ROTATION_SLOTS,
+        HORIZON_END or "-",
+        WALL_BUDGET_SEC,
     )
 
     max_saved_ymd: List[str] = [""]
@@ -461,28 +500,80 @@ def run_batch() -> Dict[str, Any]:
     prev_site: Optional[str] = None
     consecutive_site_fail: Dict[str, int] = {}
     skipped_sites: set[str] = set()
+    last_completed_index = start_idx - 1
+    processed_count = 0
 
-    logger.info("Batch start: %d products mode=%s range=%s", len(products), BATCH_MODE, rng or "full")
+    logger.info("Batch start mode=%s per-product windows", BATCH_MODE)
 
     for i, product in enumerate(products, 1):
+        if time.monotonic() - run_started > WALL_BUDGET_SEC:
+            logger.info("Wall budget reached before product i=%d", i)
+            break
+
+        abs_index = start_idx + i - 1
         site = str(product.get("site") or "hanatour").strip().lower()
+
         if site in skipped_sites:
             skip_c += 1
             logger.info("Skip (supplier blocked): %s id=%s", site, product.get("id"))
+            last_completed_index = abs_index
+            processed_count += 1
             continue
-        if prev_site is not None:
-            if site != prev_site:
-                sw = random.uniform(8.0, 15.0)
-                logger.info("Site switch delay %.1fs (%s -> %s)", sw, prev_site, site)
-                time.sleep(sw)
-            else:
-                gap = random.uniform(4.0, 7.0)
-                logger.info("Product gap %.1fs (same site)", gap)
-                time.sleep(gap)
+
+        if product.get("retired"):
+            skip_c += 1
+            logger.info("Skip retired id=%s", product.get("id"))
+            last_completed_index = abs_index
+            processed_count += 1
+            continue
+
+        _apply_site_gaps(prev_site, site)
         prev_site = site
 
+        if _is_modetour_legacy(product, site):
+            legacy_rng = _legacy_rng(product)
+            try:
+                st = process_one_with_retries(product, legacy_rng, max_saved_ymd)
+                if st == "ok":
+                    ok_c += 1
+                    consecutive_site_fail[site] = 0
+                elif st == "skip":
+                    skip_c += 1
+                else:
+                    fail_c += 1
+                    consecutive_site_fail[site] = consecutive_site_fail.get(site, 0) + 1
+                    if consecutive_site_fail[site] >= 3:
+                        logger.error("Skip supplier after 3 consecutive failures: %s", site)
+                        skipped_sites.add(site)
+            except Exception as e:
+                logger.exception("modetour legacy item failed: %s", e)
+                fail_c += 1
+            last_completed_index = abs_index
+            processed_count += 1
+            continue
+
+        rng = _product_rng(product)
+        range_end = str(product.get("rangeEndYmd") or (rng[1] if rng else ""))[:10]
+
+        if product.get("windowEmpty") or not rng:
+            _advance_product_after_window(product, range_end)
+            skip_c += 1
+            logger.info(
+                "Skip empty window id=%s atHorizon=%s windowEmpty=%s",
+                product.get("id"),
+                product.get("atHorizon"),
+                product.get("windowEmpty"),
+            )
+            last_completed_index = abs_index
+            processed_count += 1
+            continue
+
+        lo, hi = rng
         try:
+            _set_site_date_env(site, lo, hi)
             st = process_one_with_retries(product, rng, max_saved_ymd)
+            if st in ("ok", "fail"):
+                _advance_product_after_window(product, hi)
             if st == "ok":
                 ok_c += 1
                 consecutive_site_fail[site] = 0
@@ -497,11 +588,20 @@ def run_batch() -> Dict[str, Any]:
         except Exception as e:
             logger.exception("Item %d failed: %s", i, e)
             fail_c += 1
+            _advance_product_after_window(product, hi)
             consecutive_site_fail[site] = consecutive_site_fail.get(site, 0) + 1
             if consecutive_site_fail[site] >= 3:
                 skipped_sites.add(site)
+        finally:
+            _clear_site_date_env()
 
-    total = len(products)
+        last_completed_index = abs_index
+        processed_count += 1
+
+    next_index = last_completed_index + 1
+    if next_index >= n_total:
+        next_index = 0
+
     if ok_c == 0:
         status = "failed"
         last_ymd = None
@@ -510,15 +610,18 @@ def run_batch() -> Dict[str, Any]:
         last_ymd = max_saved_ymd[0] or None
     else:
         status = "success"
-        last_ymd = (rng[1] if rng else None) or max_saved_ymd[0] or None
+        last_ymd = max_saved_ymd[0] or None
 
     out = {
         "status": status,
         "lastCollectedDateYmd": last_ymd,
-        "totalProducts": total,
+        "totalProducts": processed_count,
         "succeeded": ok_c,
         "failed": fail_c,
         "skipped": skip_c,
+        "nextProductIndex": next_index,
+        "resumedFromIndex": start_idx,
+        "wallBudgetSec": WALL_BUDGET_SEC,
     }
     logger.info("Batch done: %s", out)
     _emit_batch_result(out)

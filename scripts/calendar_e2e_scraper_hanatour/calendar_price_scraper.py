@@ -23,11 +23,10 @@ HANATOUR_TRP_PKG_DETAIL_PATH = "/trp/pkg/CHPC0PKG0200M200"
 
 
 def apply_hanatour_scheduler_e2e_env() -> None:
-    """배치 scheduler·run_calendar_price_from_url — 1건 확보 후 종료, 대기 단축."""
+    """배치 scheduler·run_calendar_price_from_url — FAST/LIGHT, 창 안 전부 수집(stop-after-first OFF)."""
     defaults = {
         "HANATOUR_E2E_FAST": "1",
         "HANATOUR_E2E_LIGHT_OPS": "1",
-        "HANATOUR_E2E_STOP_AFTER_FIRST_DEPARTURE": "1",
         "HANATOUR_E2E_ALLOW_COLLECT_WITHOUT_LIST_REFRESH": "1",
         "HANATOUR_E2E_NETWORK_IDLE_MS": "3500",
         "HANATOUR_E2E_LIST_REFRESH_MS": "4500",
@@ -36,6 +35,7 @@ def apply_hanatour_scheduler_e2e_env() -> None:
     }
     for key, val in defaults.items():
         os.environ.setdefault(key, val)
+    os.environ["HANATOUR_E2E_STOP_AFTER_FIRST_DEPARTURE"] = "0"
 
 
 def _scheduler_max_months() -> int:

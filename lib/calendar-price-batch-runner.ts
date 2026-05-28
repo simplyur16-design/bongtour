@@ -5,9 +5,9 @@ import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 const RESULT_PREFIX = 'BONGTOUR_BATCH_RESULT:'
 
 export type CalendarPriceBatchEnv = {
-  dateRangeStartYmd: string
-  dateRangeEndYmd: string
+  horizonYmd: string
   mode: string
+  nextProductIndex: number
 }
 
 export type CalendarPriceBatchResult = {
@@ -16,6 +16,8 @@ export type CalendarPriceBatchResult = {
   totalProducts: number
   succeeded: number
   failed: number
+  nextProductIndex?: number
+  resumedFromIndex?: number
   exitCode: number | null
   rawTail?: string
 }
@@ -32,6 +34,8 @@ function parseBatchResultLine(text: string): CalendarPriceBatchResult | null {
         totalProducts?: number
         succeeded?: number
         failed?: number
+        nextProductIndex?: number
+        resumedFromIndex?: number
       }
       const st = j.status === 'success' || j.status === 'partial' || j.status === 'failed' ? j.status : 'failed'
       return {
@@ -40,6 +44,8 @@ function parseBatchResultLine(text: string): CalendarPriceBatchResult | null {
         totalProducts: typeof j.totalProducts === 'number' ? j.totalProducts : 0,
         succeeded: typeof j.succeeded === 'number' ? j.succeeded : 0,
         failed: typeof j.failed === 'number' ? j.failed : 0,
+        nextProductIndex: typeof j.nextProductIndex === 'number' ? j.nextProductIndex : undefined,
+        resumedFromIndex: typeof j.resumedFromIndex === 'number' ? j.resumedFromIndex : undefined,
         exitCode: st === 'failed' ? 1 : 0,
         rawTail: line,
       }
@@ -52,14 +58,14 @@ function parseBatchResultLine(text: string): CalendarPriceBatchResult | null {
 
 /**
  * Python `calendar_price_scheduler --once` 1회 실행(완료까지 대기).
- * env: SCRAPER_CALENDAR_RANGE_START/END, SCRAPER_BATCH_MODE
+ * env: SCRAPER_CALENDAR_HORIZON_END, SCRAPER_CALENDAR_SEQ_START_INDEX, SCRAPER_BATCH_MODE
  */
 export function runCalendarPriceBatchOnce(envOverlay: CalendarPriceBatchEnv): Promise<CalendarPriceBatchResult> {
   const py = resolvePythonExecutable()
   const cwd = process.cwd()
   const env = getCalendarBatchSpawnEnv({
-    SCRAPER_CALENDAR_RANGE_START: envOverlay.dateRangeStartYmd,
-    SCRAPER_CALENDAR_RANGE_END: envOverlay.dateRangeEndYmd,
+    SCRAPER_CALENDAR_HORIZON_END: envOverlay.horizonYmd,
+    SCRAPER_CALENDAR_SEQ_START_INDEX: String(envOverlay.nextProductIndex),
     SCRAPER_BATCH_MODE: envOverlay.mode,
   })
 

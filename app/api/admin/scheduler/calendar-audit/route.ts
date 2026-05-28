@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { determineScrapeStrategy } from '@/lib/scraper-schedule-strategy'
 import { getCalendarBatchReadiness } from '@/lib/calendar-batch-env'
+import { readCalendarBatchSeqState, CALENDAR_BATCH_CHUNK_DAYS } from '@/lib/calendar-batch-seq-state'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export async function GET() {
   const now = new Date()
   const strategy = await determineScrapeStrategy()
   const readiness = getCalendarBatchReadiness()
+  const seq = readCalendarBatchSeqState()
 
   const registeredCount = await prisma.product.count({
     where: { registrationStatus: 'registered', originCode: { not: '' } },
@@ -47,11 +49,6 @@ export async function GET() {
       '로컬(dev)에서는 기본적으로 자동 크론이 꺼져 있습니다. 테스트 시 .env에 ENABLE_INSTRUMENTATION_CALENDAR_CRON=1 을 넣고 서버를 재시작하세요.',
     )
   }
-  if (!strategy.shouldRunToday) {
-    issues.push(
-      `오늘은 배치 실행일이 아닙니다(유지보수 모드·월요일만). 모드: ${strategy.mode}, 구간: ${strategy.dateRangeStartYmd}~${strategy.dateRangeEndYmd}`,
-    )
-  }
 
   const setupSteps: string[] = [
     '운영 .env: ADMIN_SERVICE_BEARER_SECRET, BONGTOUR_API_BASE=https://bongtour.com (도메인과 동일)',
@@ -73,6 +70,11 @@ export async function GET() {
       pythonExecutable: readiness.pythonExecutable,
     },
     strategy,
+    sequential: {
+      nextProductIndex: seq.nextProductIndex,
+      chunkDays: CALENDAR_BATCH_CHUNK_DAYS,
+      horizonYmd: strategy.horizonYmd,
+    },
     counts: {
       registeredProducts: registeredCount,
       registeredWithFutureDepartures: withFutureDepartures,
@@ -80,7 +82,7 @@ export async function GET() {
     },
     setupSteps,
     scheduleNote:
-      '매일 21:00 KST instrumentation → Python calendar_price_scheduler (등록 상품 로테이션·1회 최대 30건). 수동: POST /api/admin/scheduler/run-once 또는 관리자 스케줄러 설정.',
+      '매일 21:00 KST → sequential: 등록 상품 순번대로 상품별 14일 창(cursor+1~+14), 창 안 전부 수집, wall-budget 내 resume. modetour는 레거시(today~horizon). 수동: POST /api/admin/scheduler/run-once.',
     issues,
   })
 }

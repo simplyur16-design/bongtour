@@ -4,6 +4,7 @@ import {
   finalizeCheckpointAfterBatch,
   type ScrapeScheduleStrategy,
 } from '@/lib/scraper-schedule-strategy'
+import { writeCalendarBatchSeqState } from '@/lib/calendar-batch-seq-state'
 import {
   releaseCalendarPriceBatchLock,
   tryAcquireCalendarPriceBatchLock,
@@ -38,6 +39,8 @@ function parseBatchResultFromOutput(text: string): CalendarPriceBatchResult {
         totalProducts?: number
         succeeded?: number
         failed?: number
+        nextProductIndex?: number
+        resumedFromIndex?: number
       }
       const st = j.status === 'success' || j.status === 'partial' || j.status === 'failed' ? j.status : 'failed'
       return {
@@ -46,6 +49,8 @@ function parseBatchResultFromOutput(text: string): CalendarPriceBatchResult {
         totalProducts: typeof j.totalProducts === 'number' ? j.totalProducts : 0,
         succeeded: typeof j.succeeded === 'number' ? j.succeeded : 0,
         failed: typeof j.failed === 'number' ? j.failed : 0,
+        nextProductIndex: typeof j.nextProductIndex === 'number' ? j.nextProductIndex : undefined,
+        resumedFromIndex: typeof j.resumedFromIndex === 'number' ? j.resumedFromIndex : undefined,
         exitCode: 0,
         rawTail: line,
       }
@@ -64,6 +69,11 @@ function parseBatchResultFromOutput(text: string): CalendarPriceBatchResult {
   }
 }
 
+async function persistSeqIndexAfterBatch(batch: CalendarPriceBatchResult): Promise<void> {
+  if (typeof batch.nextProductIndex !== 'number') return
+  writeCalendarBatchSeqState({ nextProductIndex: batch.nextProductIndex })
+}
+
 export function attachCalendarBatchFinalizeOnExit(child: ChildProcess, strategy: ScrapeScheduleStrategy): void {
   let combined = ''
   let finalized = false
@@ -80,6 +90,7 @@ export function attachCalendarBatchFinalizeOnExit(child: ChildProcess, strategy:
         const parsed = parseBatchResultFromOutput(combined)
         parsed.exitCode = child.exitCode
         await finalizeCheckpointAfterBatch(strategy, parsed)
+        await persistSeqIndexAfterBatch(parsed)
       } catch (e) {
         console.error('[calendar-batch] finalize:', e)
       } finally {
@@ -100,11 +111,12 @@ export async function runCalendarPriceBatchInline(
   }
   try {
     const r = await runCalendarPriceBatchOnce({
-      dateRangeStartYmd: strategy.dateRangeStartYmd,
-      dateRangeEndYmd: strategy.dateRangeEndYmd,
+      horizonYmd: strategy.horizonYmd,
       mode: strategy.mode,
+      nextProductIndex: strategy.nextProductIndex,
     })
     await finalizeCheckpointAfterBatch(strategy, r)
+    await persistSeqIndexAfterBatch(r)
     return r
   } finally {
     await markAllScrapersBatchFinished()

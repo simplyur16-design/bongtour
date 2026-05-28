@@ -3425,6 +3425,30 @@ class HanatourCalendarE2EScraper:
                             )
                     except Exception:
                         pass
+                _date_from = (
+                    os.getenv("HANATOUR_E2E_DATE_FROM")
+                    or getattr(config, "DATE_FROM", None)
+                    or ""
+                ).strip()[:10]
+                _date_to = (
+                    os.getenv("HANATOUR_E2E_DATE_TO")
+                    or getattr(config, "DATE_TO", None)
+                    or ""
+                ).strip()[:10]
+                if _date_from or _date_to:
+                    def _iso_in_window(iso_s: str) -> bool:
+                        if _date_from and iso_s < _date_from:
+                            return False
+                        if _date_to and iso_s > _date_to:
+                            return False
+                        return True
+
+                    days = [
+                        s
+                        for s in days
+                        if _iso_in_window(str((s or {}).get("iso") or ""))
+                    ]
+                    notes.append(f"e2e_date_window:{_date_from or ''}..{_date_to or ''}")
                 notes.append(
                     f"[HANATOUR_E2E_MONTH] index={mi} y={wy} m={wm} day_slots={len(days)}"
                 )

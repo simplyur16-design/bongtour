@@ -40,6 +40,7 @@ async function resolveStrategyFromRequest(body: BodyJson | null): Promise<Scrape
       dateRangeEndYmd: b,
       horizonYmd: today.horizonYmd,
       todaySeoulYmd: today.todaySeoulYmd,
+      nextProductIndex: today.nextProductIndex,
     }
   }
   return determineScrapeStrategy()
@@ -78,8 +79,8 @@ export async function POST(req: NextRequest) {
       )
     }
     const env = getCalendarBatchSpawnEnv({
-      SCRAPER_CALENDAR_RANGE_START: strategy.dateRangeStartYmd,
-      SCRAPER_CALENDAR_RANGE_END: strategy.dateRangeEndYmd,
+      SCRAPER_CALENDAR_HORIZON_END: strategy.horizonYmd,
+      SCRAPER_CALENDAR_SEQ_START_INDEX: String(strategy.nextProductIndex ?? 0),
       SCRAPER_BATCH_MODE: strategy.mode,
     })
 

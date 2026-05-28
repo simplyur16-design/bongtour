@@ -41,6 +41,12 @@ type CalendarAudit = {
     mode: string
     dateRangeStartYmd?: string
     dateRangeEndYmd?: string
+    nextProductIndex?: number
+  }
+  sequential?: {
+    nextProductIndex: number
+    chunkDays: number
+    horizonYmd: string
   }
   counts: {
     registeredProducts: number
@@ -180,9 +186,11 @@ export default function RegistrationStatsClient() {
               <dt className="text-bt-text-muted-lavender">모드</dt>
               <dd className="font-medium">
                 {audit.strategy.mode}
-                {audit.strategy.dateRangeStartYmd
-                  ? ` (${audit.strategy.dateRangeStartYmd}~${audit.strategy.dateRangeEndYmd ?? ''})`
-                  : ''}
+                {audit.sequential
+                  ? ` · 순번 ${audit.sequential.nextProductIndex} · ${audit.sequential.chunkDays}일/상품 · ~${audit.sequential.horizonYmd}`
+                  : audit.strategy.dateRangeStartYmd
+                    ? ` (${audit.strategy.dateRangeStartYmd}~${audit.strategy.dateRangeEndYmd ?? ''})`
+                    : ''}
               </dd>
             </div>
             <div>

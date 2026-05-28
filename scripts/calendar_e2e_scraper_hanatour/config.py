@@ -48,6 +48,8 @@ ALLOW_SAME_DAY_SELECTION_COMMIT = _int_env(
 )
 # 콤마 구분 ISO만 클릭(예: 2026-05-17,2026-05-18) — 날짜 전환 검증 실험 시 전체 월 루프 방지
 PROBE_ONLY_DATES = (os.getenv("HANATOUR_E2E_PROBE_ONLY_DATES") or "").strip()
+DATE_FROM = (os.getenv("HANATOUR_E2E_DATE_FROM") or "").strip()[:10] or None
+DATE_TO = (os.getenv("HANATOUR_E2E_DATE_TO") or "").strip()[:10] or None
 SAMPLE_MODE = (os.getenv("HANATOUR_E2E_SAMPLE_MODE") or "").strip().lower() in (
     "1",
     "true",
