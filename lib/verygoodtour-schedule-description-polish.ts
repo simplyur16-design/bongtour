@@ -26,6 +26,73 @@ const VERYGOOD_TITLE_PLACES: string[] = `체스키크룸로프 잘츠부르크 �
   .filter(Boolean)
   .sort((a, b) => b.length - a.length)
 
+type VerygoodTitlePlaceRegion = 'europe' | 'asia_pacific' | 'americas' | 'domestic_kr'
+
+/** imageKeyword 모듈과 동일 패턴 — title-place 권역 가드용 module-local */
+const ASIA_PACIFIC_PRODUCT_DEST_RE =
+  /인도|India|일본|Japan|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|호주|Australia|시드니|Sydney|멜버른|Melbourne/i
+
+const EUROPE_PRODUCT_DEST_RE =
+  /유럽|Europe|서유럽|동유럽|북유럽|남유럽|중유럽|발칸|Balkan|스칸디|Scandinav|지중해|Mediterranean|이탈리아|Italy|Italia|로마|Rome|프랑스|France|파리|Paris|스페인|Spain|Spain|포르투갈|Portugal|독일|Germany|Deutschland|영국|Britain|UK|United\s*Kingdom|London|런던|스위스|Switzerland|Swiss|오스트리아|Austria|체코|Czech|Poland|Polska|Poland|Hungary|헝가리|Croatia|크로아티아|그리스|Greece|네덜란드|Netherlands|Holland|Belgium|벨기에|Denmark|덴마크|Norway|노르웨이|Sweden|스웨덴|Finland|핀란드|Iceland|아이슬란드|Monaco|모나코|Nice|니스|피렌체|Florence|베네치아|Venice|밀라노|Milan|Barcelona|바르셀로나|Lisbon|리스본|Berlin|베를린|Munich|뮌헨|Vienna|비엔나|Prague|프라하|Krakow|크라쿠프|Edinburgh|에든버러|Interlaken|인터라켄|Zurich|취리히|Geneva|제네바|Lucerne|루체른|Budapest|부다페스트|Salzburg|잘츠부르크|Hallstatt|할슈타트|Krummau|체스키/i
+
+const AMERICAS_PRODUCT_DEST_RE =
+  /미국|USA|United\s*States|America|캐나다|Canada|북미|남미|중남미|Latin\s*America|멕시코|Mexico|브라질|Brazil|하와이|Hawaii|뉴욕|New\s*York|밴쿠버|Vancouver|토론토|Toronto|LA|Los\s*Angeles|샌프란|San\s*Francisco|Chicago|시카고|괌|Guam|사이판|Saipan/i
+
+const DOMESTIC_KR_PRODUCT_DEST_RE =
+  /국내|한국|Korea|대한민국|제주|Jeju|강원|경주|부산|Busan|서울|Seoul|인천|Incheon|국내여행|domestic/i
+
+const AFRICA_MIDDLE_EAST_PRODUCT_DEST_RE =
+  /튀니지|Tunisia|이집트|Egypt|모로코|Morocco|아프리카|Africa|중동|Middle\s*East|UAE|두바이|Dubai|Abu\s*Dhabi|아부다비|Israel|이스라열|Jordan|요르단|Turkey|터키|튀르키예|Iran|이란|Kenya|케냐|South\s*Africa|남아공|Ethiopia|에티오피아/i
+
+function verygoodTitlePlaceNameSet(names: string): Set<string> {
+  return new Set(names.split(/\s+/).filter(Boolean))
+}
+
+const VERYGOOD_EUROPE_TITLE_PLACE_NAMES = verygoodTitlePlaceNameSet(
+  `체스키크룸로프 잘츠부르크 브로츠와프 부다페스트 할슈타트 인터라켄 취리히 제네바 루체른 베네치아 피렌체 로마 밀라노 바티칸 파리 니스 마르세유 런던 에든버러 바르셀로나 마드리드 리스본 베를린 뮌헨 비엔나 프라하 크라쿠프 융프라우 그린델발트`,
+)
+
+const VERYGOOD_DOMESTIC_KR_TITLE_PLACE_NAMES = verygoodTitlePlaceNameSet(`인천 김포 서울 부산 제주`)
+
+const VERYGOOD_AMERICAS_TITLE_PLACE_NAMES = verygoodTitlePlaceNameSet(`뉴욕 밴쿠버 토론토`)
+
+const VERYGOOD_ASIA_PACIFIC_TITLE_PLACE_NAMES = verygoodTitlePlaceNameSet(
+  `도쿄 요코하마 오사카 교토 삿포로 나고야 후쿠오카 가나자와 홍콩 마카오 타이페이 방콕 치앙마이 파타야 푸켓 다낭 하노이 호치민 발리 싱가포르 시드니 멜버른 괌 사이판 호놀룰루 상해 북경 광저우 연길 장춘`,
+)
+
+function classifyVerygoodProductDestinationRegion(
+  productDestination: string | null | undefined,
+): VerygoodTitlePlaceRegion | 'other' | null {
+  const dest = String(productDestination ?? '').trim()
+  if (!dest) return null
+  if (DOMESTIC_KR_PRODUCT_DEST_RE.test(dest)) return 'domestic_kr'
+  if (EUROPE_PRODUCT_DEST_RE.test(dest)) return 'europe'
+  if (ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest)) return 'asia_pacific'
+  if (AMERICAS_PRODUCT_DEST_RE.test(dest)) return 'americas'
+  if (AFRICA_MIDDLE_EAST_PRODUCT_DEST_RE.test(dest)) return 'other'
+  return null
+}
+
+function classifyVerygoodTitlePlaceRegion(name: string): VerygoodTitlePlaceRegion | null {
+  if (VERYGOOD_EUROPE_TITLE_PLACE_NAMES.has(name)) return 'europe'
+  if (VERYGOOD_DOMESTIC_KR_TITLE_PLACE_NAMES.has(name)) return 'domestic_kr'
+  if (VERYGOOD_AMERICAS_TITLE_PLACE_NAMES.has(name)) return 'americas'
+  if (VERYGOOD_ASIA_PACIFIC_TITLE_PLACE_NAMES.has(name)) return 'asia_pacific'
+  return null
+}
+
+/** 목적지 권역과 title-place hit 권역이 다르면 제외. 목적지 빈 값이면 보수적으로 유지. */
+function isVerygoodTitlePlaceRegionOk(
+  name: string,
+  productDestination: string | null | undefined,
+): boolean {
+  const destRegion = classifyVerygoodProductDestinationRegion(productDestination)
+  if (destRegion === null) return true
+  const placeRegion = classifyVerygoodTitlePlaceRegion(name)
+  if (placeRegion === null) return true
+  return destRegion === placeRegion
+}
+
 function stripVerygoodTitleScanText(text: string): string {
   return text.replace(VERYGOOD_TITLE_JUNK, ' ').replace(/\s+/g, ' ').trim()
 }
@@ -139,11 +206,16 @@ function extractVerygoodTitlePlaceHits(hay: string): TitlePlaceHit[] {
   return hits
 }
 
-function extractVerygoodTitlePlacesFromHay(hay: string): string[] {
+function extractVerygoodTitlePlacesFromHay(
+  hay: string,
+  productDestination?: string | null,
+): string[] {
   const raw = extractVerygoodTitlePlaceHits(hay)
-  const filtered = raw.filter((hit) => !isVerygoodTitlePlaceProseContext(hay, hit.idx, hit.name))
-  let pool = filtered.length > 0 ? filtered : raw.filter((hit) => hit.idx < 480)
-  if (pool.length === 0) pool = raw.slice(0, 12)
+  const regionOk = (hit: TitlePlaceHit) => isVerygoodTitlePlaceRegionOk(hit.name, productDestination)
+  const rawRegion = raw.filter(regionOk)
+  const filtered = rawRegion.filter((hit) => !isVerygoodTitlePlaceProseContext(hay, hit.idx, hit.name))
+  let pool = filtered.length > 0 ? filtered : rawRegion.filter((hit) => hit.idx < 480)
+  if (pool.length === 0) pool = rawRegion.slice(0, 12)
   pool = [...pool].sort((a, b) => {
     const ta = verygoodTitlePlacePriorityTier(a.idx)
     const tb = verygoodTitlePlacePriorityTier(b.idx)
@@ -184,9 +256,10 @@ function isMovementHay(hay: string): boolean {
 function formatVerygoodOneLineVisitTitle(
   title: string,
   descriptionRaw: string,
-  ctx: { isLastDay: boolean }
+  ctx: { isLastDay: boolean; productDestination?: string | null },
 ): string {
   const maxLen = 56
+  const productDestination = ctx.productDestination ?? null
   const routeFromTitle = tryVerygoodHyphenRouteTitle(title)
   if (routeFromTitle) return routeFromTitle.slice(0, maxLen)
   const descLines = descriptionRaw.split(/\r?\n/).map((l) => l.trim())
@@ -197,7 +270,7 @@ function formatVerygoodOneLineVisitTitle(
   }
 
   const hay = stripVerygoodTitleScanText(`${title}\n${descriptionRaw}`)
-  const places = extractVerygoodTitlePlacesFromHay(hay)
+  const places = extractVerygoodTitlePlacesFromHay(hay, productDestination)
 
   if (isReturnDayHay(hay, ctx.isLastDay)) {
     const body = places.filter((p) => p !== '인천' && p !== '김포')
@@ -232,7 +305,7 @@ function formatVerygoodOneLineVisitTitle(
   }
 
   const descHay = stripVerygoodTitleScanText(descriptionRaw)
-  const dp = extractVerygoodTitlePlacesFromHay(descHay)
+  const dp = extractVerygoodTitlePlacesFromHay(descHay, productDestination)
   if (dp.length >= 2) return squashHyphenChain(dp.slice(0, 4).join('-')).slice(0, maxLen)
   if (dp.length === 1) return dp[0]!.slice(0, maxLen)
   return ''
@@ -1086,8 +1159,12 @@ export function pickMergedVerygoodDayDescription(
   return fromGemini()
 }
 
-export function polishVerygoodRegisterScheduleDescriptions(schedule: RegisterScheduleDay[]): RegisterScheduleDay[] {
+export function polishVerygoodRegisterScheduleDescriptions(
+  schedule: RegisterScheduleDay[],
+  opts?: { productDestination?: string | null },
+): RegisterScheduleDay[] {
   if (!schedule?.length) return schedule
+  const productDestination = opts?.productDestination ?? null
   const maxDay = Math.max(...schedule.map((s) => Number(s.day) || 0))
   return schedule.map((row) => {
     const day = Number(row.day) || 0
@@ -1095,7 +1172,10 @@ export function polishVerygoodRegisterScheduleDescriptions(schedule: RegisterSch
     const isLastDay = maxDay > 1 && day === maxDay
     const raw = row.description ?? ''
     const desc = narrativeCompactVerygoodDayDescription(raw, { isLastDay })
-    const titleNext = formatVerygoodOneLineVisitTitle(String(row.title ?? ''), raw, { isLastDay })
+    const titleNext = formatVerygoodOneLineVisitTitle(String(row.title ?? ''), raw, {
+      isLastDay,
+      productDestination,
+    })
     return { ...row, title: titleNext || String(row.title ?? '').trim(), description: desc }
   })
 }

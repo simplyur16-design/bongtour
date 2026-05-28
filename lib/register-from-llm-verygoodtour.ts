@@ -1682,7 +1682,13 @@ ${text.slice(0, 16000)}`
     schedule = scheduleFromDet
   }
 
-  schedule = polishVerygoodRegisterScheduleDescriptions(schedule)
+  const polishDestHint =
+    (raw.destination ?? '').trim() ||
+    extractDestinationFromTitle(String(raw.title ?? '').trim()) ||
+    null
+  schedule = polishVerygoodRegisterScheduleDescriptions(schedule, {
+    productDestination: polishDestHint,
+  })
   traceVerygoodScheduleDesc('register-llm-D-after-polishVerygoodRegisterScheduleDescriptions', schedule)
   const scheduleDestHintEarly =
     (raw.destination ?? '').trim() ||
