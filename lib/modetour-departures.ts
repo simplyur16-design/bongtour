@@ -23,6 +23,7 @@ import {
   buildDepartureTerminalInfo,
   inferDepartureAirportCodeFromKoreanDetailText,
 } from '@/lib/meeting-terminal-rules'
+import { CALENDAR_PRICES_MIN_ADULT_PRICE_KRW } from '@/lib/calendar-prices-adult-floor'
 import { ModetourB2cApiError } from '@/lib/modetour-sd1-policy'
 
 type ModetourDepartureRow = Record<string, unknown> & {
@@ -261,6 +262,35 @@ export function parseModetourPackageProductNoFromUrl(originUrl: string | null | 
   return parseProductNo(originUrl)
 }
 
+/** `supplierDepartureCodeCandidate` → pId (`modetour:<digits>`). */
+export function parseModetourSupplierDeparturePid(
+  candidate: string | null | undefined
+): string | null {
+  const m = String(candidate ?? '').trim().match(/^modetour:(\d+)$/)
+  return m?.[1] ?? null
+}
+
+/**
+ * GetProductDetailInfo?pId= result → 성인 올인 KRW.
+ * SSOT: `sellingPriceAdultTotalAmount`; 폴백 `sellingPriceAdult + fuelSurchargeFeeAdult`.
+ */
+export function extractModetourPidAdultPriceKrw(
+  res: Record<string, unknown> | null | undefined
+): number | null {
+  if (!res) return null
+  const total = Number(res.sellingPriceAdultTotalAmount ?? 0)
+  if (Number.isFinite(total) && total >= CALENDAR_PRICES_MIN_ADULT_PRICE_KRW) {
+    return Math.round(total)
+  }
+  const base = Number(res.sellingPriceAdult ?? 0)
+  const fuel = Number(res.fuelSurchargeFeeAdult ?? 0)
+  if (Number.isFinite(base) && Number.isFinite(fuel)) {
+    const sum = base + fuel
+    if (sum >= CALENDAR_PRICES_MIN_ADULT_PRICE_KRW) return Math.round(sum)
+  }
+  return null
+}
+
 function toYmd(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
@@ -361,6 +391,25 @@ async function fetchJson<T>(url: string, headers: HeadersInit): Promise<T> {
     throw new ModetourB2cApiError(res.status, url, bodyText, bodyJson)
   }
   return (await res.json()) as T
+}
+
+/**
+ * group productNo(originUrl) + pId → GetProductDetailInfo 단건 fetch.
+ * HTTP 실패 시 `ModetourB2cApiError` throw.
+ */
+export async function fetchModetourPidDetailInfo(
+  originUrl: string | null | undefined,
+  pId: string
+): Promise<Record<string, unknown> | null> {
+  const productNo = parseProductNo(originUrl)
+  const pid = String(pId ?? '').trim()
+  if (!productNo || !pid) return null
+  const referer = originUrl?.trim() || `https://www.modetour.com/package/${productNo}`
+  const headers = toHeader(referer, productNo)
+  const detailUrlBase = `${MODETOUR_API_BASE.replace(/\/$/, '')}/Package/GetProductDetailInfo?productNo=${encodeURIComponent(productNo)}&companyNo=undefined&companyStaffNo=undefined`
+  const u = `${detailUrlBase}&pId=${encodeURIComponent(pid)}`
+  const r = await fetchJson<ModetourDetailInfoResponse>(u, headers)
+  return r.result ?? null
 }
 
 /** 동시에 너무 많은 요청을 보내지 않도록 청크 단위 병렬 프리패치 */

@@ -18,6 +18,12 @@ import { getPublicMutationOriginError, publicMutationOriginJsonResponse } from '
 import { makeBookingNumber } from '@/lib/identifiers/make-booking-number'
 import { parsePublicAttributionFromBody } from '@/lib/public-attribution-body'
 import { CALENDAR_PRICES_MIN_ADULT_PRICE_KRW } from '@/lib/calendar-prices-adult-floor'
+import {
+  extractModetourPidAdultPriceKrw,
+  fetchModetourPidDetailInfo,
+  parseModetourPackageProductNoFromUrl,
+  parseModetourSupplierDeparturePid,
+} from '@/lib/modetour-departures'
 
 function departureDateYmd(raw: Date | string): string {
   return raw instanceof Date ? raw.toISOString().slice(0, 10) : String(raw).slice(0, 10)
@@ -169,13 +175,37 @@ export async function POST(request: Request) {
 
     let pricingMode: 'schedule_price' | 'schedule_selected_pending_quote'
     const departure = product.departures.find((d) => departureDateYmd(d.departureDate) === dateKey)
-    if (!departure || !isBookableDepartureAdultPrice(departure.adultPrice)) {
+    const isModetour = product.originSource === 'modetour'
+    let modetourLiveAdultPrice: number | null = null
+
+    if (isModetour && departure) {
+      const pId = parseModetourSupplierDeparturePid(departure.supplierDepartureCodeCandidate)
+      const groupProductNo = parseModetourPackageProductNoFromUrl(product.originUrl)
+      if (pId && groupProductNo) {
+        try {
+          const detail = await fetchModetourPidDetailInfo(product.originUrl, pId)
+          modetourLiveAdultPrice = extractModetourPidAdultPriceKrw(detail)
+        } catch {
+          modetourLiveAdultPrice = null
+        }
+      }
+    }
+
+    const authoritativeAdultPrice =
+      isModetour && departure ? modetourLiveAdultPrice : (departure?.adultPrice ?? null)
+
+    if (!departure || !isBookableDepartureAdultPrice(authoritativeAdultPrice)) {
       pricingMode = 'schedule_selected_pending_quote'
       totalKrwAmount = 0
       totalLocalAmount = 0
     } else {
       pricingMode = 'schedule_price'
-      const priceRow = productDepartureToPriceRowLike(departure)
+      const priceRow = productDepartureToPriceRowLike({
+        adultPrice: authoritativeAdultPrice,
+        childBedPrice: departure.childBedPrice,
+        childNoBedPrice: departure.childNoBedPrice,
+        infantPrice: departure.infantPrice,
+      })
       const paxForKrw = {
         adult: pax.adult,
         childBed: pax.childBed,
@@ -189,6 +219,17 @@ export async function POST(request: Request) {
         childBed: pax.childBed,
         childNoBed: pax.childNoBed,
       }) ?? 0
+
+      if (
+        isModetour &&
+        modetourLiveAdultPrice != null &&
+        modetourLiveAdultPrice !== departure.adultPrice
+      ) {
+        await prisma.productDeparture.update({
+          where: { id: departure.id },
+          data: { adultPrice: modetourLiveAdultPrice },
+        })
+      }
     }
 
     const birthsJson = JSON.stringify(
