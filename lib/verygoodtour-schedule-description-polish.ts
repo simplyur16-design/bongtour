@@ -114,17 +114,26 @@ function verygoodTitlePlacePriorityTier(idx: number): number {
 
 type TitlePlaceHit = { idx: number; name: string }
 
+/** 지명이 한글에 붙은 부분문자열(튀니스→니스, 로마유적→로마)이면 title hit 제외 */
+function isVerygoodTitlePlaceHangulBoundaryOk(h: string, idx: number, name: string): boolean {
+  const before = idx > 0 ? h[idx - 1] : undefined
+  const after = idx + name.length < h.length ? h[idx + name.length] : undefined
+  if (isHangulSyllable(before)) return false
+  if (isHangulSyllable(after)) return false
+  return true
+}
+
 function extractVerygoodTitlePlaceHits(hay: string): TitlePlaceHit[] {
   const h = hay.replace(/\s+/g, ' ')
   if (!h) return []
   const hits: TitlePlaceHit[] = []
   for (let i = 0; i < h.length; i++) {
     for (const name of VERYGOOD_TITLE_PLACES) {
-      if (h.startsWith(name, i)) {
-        hits.push({ idx: i, name })
-        i += name.length - 1
-        break
-      }
+      if (!h.startsWith(name, i)) continue
+      if (!isVerygoodTitlePlaceHangulBoundaryOk(h, i, name)) continue
+      hits.push({ idx: i, name })
+      i += name.length - 1
+      break
     }
   }
   return hits
