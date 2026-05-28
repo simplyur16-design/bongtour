@@ -725,7 +725,9 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     traceVerygoodScheduleDesc('handler-3-post-augment-expression', parsed.schedule)
     parsed = stripBodyDerivedMeetingFromRegisterParsed(parsed)
     traceVerygoodScheduleDesc('handler-3b-post-strip-body-derived-meeting', parsed.schedule)
-    const scheduleDescPolished = polishVerygoodRegisterScheduleDescriptions(parsed.schedule ?? [])
+    const scheduleDescPolished = polishVerygoodRegisterScheduleDescriptions(parsed.schedule ?? [], {
+      productDestination: parsed.destination ?? null,
+    })
     traceVerygoodScheduleDesc('handler-4-post-polish-description', scheduleDescPolished)
     parsed = {
       ...parsed,
