@@ -867,12 +867,14 @@ export function ProductResultCard({
               <span className="text-sm font-medium text-red-600 line-through">
                 {formatWon(item.urgentDealBaselinePriceKrw)}
               </span>
-              <span className="text-xs font-semibold text-[#1F1B2D]" aria-hidden>
-                ↓
-              </span>
-              <span className="text-base font-bold text-[#1F1B2D]">
-                {formatWon(item.urgentDealCurrentPriceKrw)}
-              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-sm font-bold text-[#1F1B2D]" aria-hidden>
+                  ↓
+                </span>
+                <span className="text-lg font-extrabold tracking-tight text-[#1F1B2D]">
+                  {formatWon(item.urgentDealCurrentPriceKrw)}
+                </span>
+              </div>
             </div>
           ) : (
             <span className="text-base font-bold text-slate-900">{formatWon(item.effectivePricePerPersonKrw)}</span>

@@ -16,22 +16,19 @@ export default function PublicImageBottomOverlay({ leftLabel, rightLabel, classN
   const right = (rightLabel ?? '').trim()
   if (!publicImageOverlayHasAny(left, right)) return null
 
+  const chipCls =
+    'rounded bg-black/55 px-2 py-0.5 text-xs leading-tight text-white shadow-sm'
+
   return (
     <div
-      className={`pointer-events-none absolute inset-x-0 bottom-0 z-[15] flex flex-row items-end justify-between gap-2 border-t border-white/40 bg-white/92 px-2.5 py-1.5 backdrop-blur-sm sm:px-3 sm:py-2 ${className ?? ''}`.trim()}
+      className={`pointer-events-none absolute inset-x-0 bottom-2 z-[15] flex justify-between gap-2 px-3 ${className ?? ''}`.trim()}
     >
       {left ? (
-        <p className="line-clamp-1 min-w-0 flex-1 text-left text-[11px] font-semibold leading-tight text-slate-800 sm:text-xs">
-          {left}
-        </p>
+        <span className={`line-clamp-1 min-w-0 max-w-[65%] ${chipCls}`}>{left}</span>
       ) : (
         <span className="min-w-0 flex-1" />
       )}
-      {right ? (
-        <span className="shrink-0 self-end rounded-full border border-slate-200/80 bg-slate-100/95 px-2 py-0.5 text-right text-[10px] font-medium leading-tight text-slate-600">
-          {right}
-        </span>
-      ) : null}
+      {right ? <span className={`shrink-0 ${chipCls}`}>{right}</span> : null}
     </div>
   )
 }

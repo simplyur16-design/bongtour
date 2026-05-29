@@ -564,7 +564,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
         e.preventDefault()
         applySearch({ departDate, adult: adultCount, child: childCount })
       }}
-      className="-mt-10 rounded-2xl border border-bt-border bg-white p-4 shadow-lg sm:-mt-12 sm:p-5"
+      className="rounded-2xl border border-bt-border bg-white p-4 shadow-lg sm:p-5"
       role="search"
       aria-label="목적지와 출발일로 해외여행 검색"
     >
@@ -589,9 +589,9 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   )
 
   return (
-    <section className="relative border-b border-bt-border bg-bt-surface pb-3">
+    <section className="relative border-b border-bt-border">
       <div
-        className={`relative w-full overflow-hidden ${
+        className={`relative w-full overflow-hidden pb-[5.5rem] sm:pb-[6rem] lg:pb-0 ${
           isSpotlightMode
             ? 'min-h-[min(260px,44vh)] sm:min-h-[min(300px,48vh)]'
             : 'min-h-[min(280px,46vh)] sm:min-h-[min(340px,50vh)]'
@@ -600,7 +600,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
         onMouseLeave={() => setIsPaused(false)}
         aria-live={reduceMotion ? 'polite' : 'off'}
       >
-        <div className="absolute inset-0 bottom-14 sm:bottom-16">
+        <div className="absolute inset-0">
             {isSpotlightMode ? (
               matchedCountrySlide ? (
                 <OverseasCountryHeroBanner
@@ -764,10 +764,12 @@ const OverseasHero: FC<OverseasHeroProps> = ({
           </div>
         ) : null}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-24 bg-gradient-to-t from-black/65 to-transparent sm:h-28" aria-hidden />
-      </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-32 bg-gradient-to-t from-black/50 via-black/15 to-transparent sm:h-36 lg:hidden" aria-hidden />
 
-      <div className="relative z-20 mx-auto w-full max-w-6xl px-4 sm:px-6 lg:hidden">{heroSearchForm}</div>
+        <div className="absolute inset-x-0 bottom-0 z-20 mx-auto w-full max-w-6xl px-4 pb-3 sm:px-6 sm:pb-4 lg:hidden">
+          {heroSearchForm}
+        </div>
+      </div>
     </section>
   )
 }
