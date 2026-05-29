@@ -10,6 +10,8 @@ import {
 } from "@/lib/bongsim/recommend/product-option";
 import { parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
 import { esimHasFreeData } from "@/lib/bongsim/constants";
+import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
+import { getKycLabelState } from "@/lib/bongsim/esim/kyc-required";
 type PlanTab = "unlimited" | "daily" | "fixed";
 
 type RecommendedPlan = ProductOption & { rec_source: PlanTab };
@@ -421,6 +423,10 @@ export function PlanSelectPopup({
                     <span className="text-xs rounded-full bg-slate-100 px-2 py-0.5 text-slate-800 lg:text-sm">
                       {badge}
                     </span>
+                    <TravelerVerificationProductBadge
+                      state={getKycLabelState(product.flags)}
+                      size="sm"
+                    />
                   </div>
 
                   {activeTab === "fixed" ? (

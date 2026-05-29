@@ -21,6 +21,8 @@ import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/c
 import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/payment-session.v1";
 import { readUtmFromSession } from "@/lib/utm-capture";
 import { useSession } from "next-auth/react";
+import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
+import { getKycLabelStateFromRaw } from "@/lib/bongsim/esim/kyc-required";
 
 type CheckoutRetryContextResponse = {
   ok?: boolean;
@@ -774,6 +776,10 @@ export function CheckoutStoreClient({
                           {head.flag}
                         </span>
                         <span>{head.name}</span>
+                        <TravelerVerificationProductBadge
+                          state={getKycLabelStateFromRaw(row.detail.usage.kyc_flag_raw)}
+                          size="sm"
+                        />
                       </p>
                       <p className="mt-1 text-sm leading-snug text-slate-700">
                         {checkoutPlanSubtitle(row.detail, head.name)}

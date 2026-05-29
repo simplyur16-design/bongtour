@@ -21,6 +21,8 @@ import {
   isTrueUnlimited,
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
+import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
+import { getKycLabelState } from "@/lib/bongsim/esim/kyc-required";
 
 export type CompareChoice = "individual" | "multi";
 
@@ -167,8 +169,9 @@ function MultiOfferBody({
         )}
         <span className="text-xs font-semibold text-slate-600">{tierLabel}</span>
       </div>
-      <p className="mt-2 text-sm font-medium text-slate-800">
-        {offer.product.plan_name.trim() || "다국가 플랜"}
+      <p className="mt-2 flex flex-wrap items-center gap-2 text-sm font-medium text-slate-800">
+        <span>{offer.product.plan_name.trim() || "다국가 플랜"}</span>
+        <TravelerVerificationProductBadge state={getKycLabelState(offer.product.flags)} size="sm" />
       </p>
       <p className="mt-0.5 text-xs text-slate-600">
         {buildPlanSummaryForCompare(offer.product, 1)}
@@ -352,7 +355,15 @@ export function ComparePlansPopup({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-bold text-slate-900">{line.nameKr}</p>
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <p className="text-sm font-bold text-slate-900">{line.nameKr}</p>
+                          {completed[line.code]?.product ? (
+                            <TravelerVerificationProductBadge
+                              state={getKycLabelState(completed[line.code]!.product.flags)}
+                              size="sm"
+                            />
+                          ) : null}
+                        </div>
                         <button
                           type="button"
                           onClick={(e) => {

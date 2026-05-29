@@ -1,5 +1,7 @@
 import type { BongsimProductDetailSummaryV1 } from "@/lib/bongsim/contracts/product-detail.v1";
 import { formatKrw } from "@/components/bongsim/detail-v1/format-krw";
+import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
+import type { KycLabelState } from "@/lib/bongsim/esim/kyc-required";
 
 function badge(text: string, tone: "slate" | "teal" | "amber") {
   const tones = {
@@ -21,13 +23,20 @@ function planTypeLabel(planType: BongsimProductDetailSummaryV1["plan_type"]): st
   return "로컬";
 }
 
-export function ProductDetailSummaryV1({ summary }: { summary: BongsimProductDetailSummaryV1 }) {
+export function ProductDetailSummaryV1({
+  summary,
+  kycState,
+}: {
+  summary: BongsimProductDetailSummaryV1;
+  kycState: KycLabelState;
+}) {
   return (
     <header className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
         {badge(summary.network_family === "local" ? "로컬 망" : "로밍", summary.network_family === "local" ? "teal" : "slate")}
         {badge(planTypeLabel(summary.plan_type), "amber")}
         {badge(summary.plan_line_excel, "slate")}
+        <TravelerVerificationProductBadge state={kycState} size="md" />
       </div>
       <h1 className="mt-3 text-[20px] font-semibold leading-snug text-slate-900 sm:text-[22px]">{summary.plan_name}</h1>
       <p className="mt-1 text-[13px] leading-relaxed text-slate-600 sm:text-[14px]">{summary.option_label}</p>

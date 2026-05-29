@@ -19,6 +19,8 @@ import {
 import type { RecommendFunnelSnapshot } from "@/lib/bongsim/recommend/funnel-storage";
 import { isTrueUnlimited, type ProductOption } from "@/lib/bongsim/recommend/product-option";
 import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-ranges";
+import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
+import { getKycLabelState } from "@/lib/bongsim/esim/kyc-required";
 
 const HERO_IMAGE_SIZES = "(max-width:1023px) 100vw, 55vw";
 
@@ -672,13 +674,22 @@ export function ProductCombinationStep({
                           clipRule="evenodd"
                         />
                       </svg>
-                      <span
-                        className="text-sm font-medium !text-slate-900 sm:text-base lg:text-lg"
-                        style={{ color: "#1F1B2D" }}
-                        title={summaryLine}
-                      >
-                        {summaryLine}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className="text-sm font-medium !text-slate-900 sm:text-base lg:text-lg"
+                            style={{ color: "#1F1B2D" }}
+                            title={summaryLine}
+                          >
+                            {summaryLine}
+                          </span>
+                          {selection ? (
+                            <TravelerVerificationProductBadge
+                              state={getKycLabelState(selection.product.flags)}
+                              size="sm"
+                            />
+                          ) : null}
+                        </div>
                       {selection &&
                       esimHasFreeData(selection.product.network_family, selection.product.plan_name) ? (
                         <span className="mt-1.5 block text-xs font-bold text-teal-700 sm:text-sm">
@@ -686,6 +697,7 @@ export function ProductCombinationStep({
                         </span>
                       ) : null}
                     </div>
+                  </div>
                   </div>
                 ) : null}
               </div>
@@ -792,9 +804,15 @@ export function ProductCombinationStep({
                       </p>
                     ) : null}
                     {multiPlanDraft ? (
-                      <p className="mt-2 text-center text-xs font-medium text-teal-800 sm:text-sm">
-                        선택(임시): {multiPlanDraft.product.plan_name.trim()} ·{" "}
-                        {allowanceLabelForSummary(multiPlanDraft.product)} ×{multiPlanDraft.quantity}
+                      <p className="mt-2 flex flex-wrap items-center justify-center gap-2 text-center text-xs font-medium text-teal-800 sm:text-sm">
+                        <span>
+                          선택(임시): {multiPlanDraft.product.plan_name.trim()} ·{" "}
+                          {allowanceLabelForSummary(multiPlanDraft.product)} ×{multiPlanDraft.quantity}
+                        </span>
+                        <TravelerVerificationProductBadge
+                          state={getKycLabelState(multiPlanDraft.product.flags)}
+                          size="sm"
+                        />
                       </p>
                     ) : null}
                   </div>

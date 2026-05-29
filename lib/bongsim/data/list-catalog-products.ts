@@ -10,6 +10,7 @@ export type CatalogProductListRow = {
   allowance_label: string;
   days_raw: string;
   price_block: unknown;
+  flags: Record<string, unknown>;
 };
 
 export type ListCatalogProductsParams = {
@@ -44,7 +45,8 @@ export async function listCatalogProducts(params: ListCatalogProductsParams): Pr
          plan_type,
          allowance_label,
          days_raw,
-         price_block
+         price_block,
+         flags
        FROM bongsim_product_option
        WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
          AND ($1::text IS NULL OR network_family = $1)

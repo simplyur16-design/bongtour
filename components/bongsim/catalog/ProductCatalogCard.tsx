@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { CatalogProductListRow } from "@/lib/bongsim/data/list-catalog-products";
 import { bongsimPath } from "@/lib/bongsim/constants";
+import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
+import { getKycLabelState } from "@/lib/bongsim/esim/kyc-required";
 
 function consumerAfterKrw(price_block: unknown): number | null {
   if (!price_block || typeof price_block !== "object") return null;
@@ -29,7 +31,10 @@ export function ProductCatalogCard({ row }: Props) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold leading-snug text-slate-900">{row.plan_name}</p>
+          <p className="flex flex-wrap items-center gap-2 text-[13px] font-semibold leading-snug text-slate-900">
+            <span>{row.plan_name}</span>
+            <TravelerVerificationProductBadge state={getKycLabelState(row.flags)} size="sm" />
+          </p>
           <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-slate-600">{row.option_label}</p>
           <p className="mt-2 text-[11px] text-slate-400">
             {row.allowance_label} · {row.days_raw}
