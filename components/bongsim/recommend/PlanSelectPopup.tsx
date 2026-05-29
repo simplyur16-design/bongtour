@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { RecommendModalShell } from "@/components/bongsim/recommend/RecommendModalShell";
 import {
@@ -272,38 +272,62 @@ function PlanCard({
       : isRecommended
         ? "border-2 border-[#AFA9EC]"
         : "border-[0.5px] border-[#E5E5E5]";
+    const planTab: PlanTab =
+      planType === "unlimited" || planType === "daily" || planType === "fixed"
+        ? planType
+        : "fixed";
+    const tierCategoryLabel = TAB_LABELS[planTab];
+    const desktopSubLine =
+      planType === "fixed"
+        ? fixedDays != null
+          ? `${fixedDays}일 이내 사용`
+          : "—"
+        : cardSpeedSubLine(product);
+    const hasFreeData = esimHasFreeData(product.network_family, product.plan_name);
 
     return (
       <button
         type="button"
         onClick={onSelect}
-        className={`flex w-full flex-col rounded-lg bg-[#FFFFFF] p-[10px_12px] text-left transition hover:opacity-95 ${borderClass}`}
+        className={`flex h-full w-full flex-col rounded-lg bg-[#FFFFFF] p-[10px_12px] text-left transition hover:opacity-95 ${borderClass}`}
         aria-pressed={isSelected}
       >
-        <div className="mb-1 flex flex-wrap items-center gap-[4px]">
-          {isRecommended ? (
-            <span className="inline-block rounded-full border-0 bg-[#EEEDFE] px-2 py-0.5 text-[10px] font-medium text-[#26215C]">
-              추천
-            </span>
-          ) : null}
-          <AuthChipDesktop badge={kycBadge} />
+        {isRecommended ? (
+          <span className="mb-1 inline-block self-start rounded-full border-0 bg-[#EEEDFE] px-2 py-0.5 text-[10px] font-medium text-[#26215C]">
+            추천
+          </span>
+        ) : null}
+
+        <div className="flex flex-1 gap-[8px]">
+          <div className="flex min-w-0 flex-1 flex-col gap-[4px]">
+            <div className="text-[10px] text-[#6B7280]">{tierCategoryLabel}</div>
+            <div className="text-[18px] font-medium leading-none text-[#1F1B2D]">{allowance}</div>
+            <div className="text-[11px] text-[#6B7280]">{desktopSubLine}</div>
+            <div className="truncate text-[11px] text-[#9CA3AF]">{country}</div>
+          </div>
+
+          <div className="flex shrink-0 flex-col items-end justify-center gap-[2px]">
+            {packageTotal != null && Number.isFinite(packageTotal) ? (
+              <div className="whitespace-nowrap text-[14px] font-medium text-[#1F1B2D]">
+                {formatKrw(packageTotal)}
+              </div>
+            ) : null}
+            {dailyRate != null && Number.isFinite(dailyRate) ? (
+              <div className="whitespace-nowrap text-[10px] text-[#6B7280]">
+                {formatKrwPerDay(dailyRate)}
+              </div>
+            ) : null}
+          </div>
         </div>
-        <div className="mb-0.5 text-[11px] text-[#6B7280]">{cardSpeedSubLine(product)}</div>
-        <div className="mb-0.5 text-[15px] font-medium text-[#1F1B2D]">{allowance}</div>
-        {planType === "fixed" && fixedDays != null ? (
-          <div className="mb-0.5 text-[11px] text-[#9CA3AF]">{fixedDays}일 이내 사용</div>
+
+        {hasFreeData ? (
+          <div className="mt-[6px] text-[10px] text-[#6B7280]">구글맵·ChatGPT 데이터 무료</div>
         ) : null}
-        <div className="mb-1 text-[11px] text-[#9CA3AF]">
-          {country} · {carrier}
-        </div>
-        {packageTotal != null && Number.isFinite(packageTotal) ? (
-          <div className="text-[14px] font-medium text-[#1F1B2D]">{formatKrw(packageTotal)}</div>
-        ) : null}
-        {dailyRate != null && Number.isFinite(dailyRate) ? (
-          <div className="text-[10px] text-[#6B7280]">{formatKrwPerDay(dailyRate)}</div>
-        ) : null}
-        {esimHasFreeData(product.network_family, product.plan_name) ? (
-          <p className="mt-1 text-[10px] font-medium text-[#0F6E56]">구글맵·ChatGPT 데이터 무료</p>
+
+        {kycBadge != null ? (
+          <div className="mt-[6px]">
+            <AuthChipDesktop badge={kycBadge} />
+          </div>
         ) : null}
       </button>
     );
@@ -397,6 +421,7 @@ export function PlanSelectPopup({
   const [quantity] = useState(1);
   const [err, setErr] = useState<string | null>(null);
   const [matchedDays, setMatchedDays] = useState<number | null>(null);
+  const skipClearSelectionRef = useRef(false);
 
   const tripDaysFloored = Math.max(1, Math.floor(tripDays));
   const displayMatchedDays = matchedDays ?? tripDaysFloored;
@@ -586,6 +611,10 @@ export function PlanSelectPopup({
   const canComplete = Boolean(selectedId && selectedProduct && quantity >= 1);
 
   useEffect(() => {
+    if (skipClearSelectionRef.current) {
+      skipClearSelectionRef.current = false;
+      return;
+    }
     setSelectedId(null);
   }, [activeTab, authFilter]);
 
@@ -805,7 +834,9 @@ export function PlanSelectPopup({
                   <div
                     key={tab}
                     className={`flex flex-col gap-[8px] ${
-                      isActiveColumn ? "opacity-100" : "pointer-events-none opacity-[0.35]"
+                      isActiveColumn
+                        ? "opacity-100"
+                        : "opacity-[0.35] transition-opacity duration-150 hover:opacity-70"
                     }`}
                   >
                     {cards.length === 0 ? (
@@ -822,7 +853,15 @@ export function PlanSelectPopup({
                           displayMatchedDays={displayMatchedDays}
                           kycDistribution={kycDistribution}
                           layout="desktop"
-                          onSelect={() => setSelectedId(product.option_api_id)}
+                          onSelect={() => {
+                            if (isActiveColumn) {
+                              setSelectedId(product.option_api_id);
+                              return;
+                            }
+                            skipClearSelectionRef.current = true;
+                            setActiveTab(tab);
+                            setSelectedId(product.option_api_id);
+                          }}
                         />
                       ))
                     )}
