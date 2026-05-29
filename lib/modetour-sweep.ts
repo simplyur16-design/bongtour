@@ -47,6 +47,7 @@ export type ModetourSweepResult = {
   updated: number
   retired: number
   skipped: number
+  pruned: number
 }
 
 type SweepProductRow = {
@@ -92,9 +93,9 @@ async function collectModetourSweepDepartureInputs(
   originUrl: string | null | undefined,
   fromYmd: string,
   toYmd: string
-): Promise<DepartureInput[]> {
+): Promise<{ inputs: DepartureInput[]; apiDates: string[] }> {
   const productNo = parseModetourPackageProductNoFromUrl(originUrl)
-  if (!productNo) return []
+  if (!productNo) return { inputs: [], apiDates: [] }
 
   const lo = fromYmd <= toYmd ? fromYmd : toYmd
   const hi = fromYmd <= toYmd ? toYmd : fromYmd
@@ -105,10 +106,14 @@ async function collectModetourSweepDepartureInputs(
   const json = await fetchModetourJson<ModetourDepartureResponse>(apiUrl, headers)
   const rows = Array.isArray(json?.result) ? json.result : []
 
+  const apiDates: string[] = []
   const inputs: DepartureInput[] = []
   for (const r of rows) {
     const departureDate = String(r.departureDate ?? '').trim()
     if (!/^\d{4}-\d{2}-\d{2}$/.test(departureDate)) continue
+    if (departureDate >= lo && departureDate <= hi) {
+      apiDates.push(departureDate)
+    }
 
     const price = Number(r.minPrice ?? 0)
     if (!Number.isFinite(price) || price <= 0) continue
@@ -121,7 +126,11 @@ async function collectModetourSweepDepartureInputs(
       localPriceText: pid ? `modetour:pId=${pid}`.slice(0, 200) : null,
     })
   }
-  return inputs
+  return { inputs, apiDates }
+}
+
+function ymdToUtcMidnight(ymd: string): Date {
+  return new Date(`${ymd}T00:00:00.000Z`)
 }
 
 async function findSweepProducts(
@@ -173,6 +182,7 @@ export async function sweepDueModetourProducts(
     updated: 0,
     retired: 0,
     skipped: 0,
+    pruned: 0,
   }
 
   const todayYmd = kstTodayYmd()
@@ -184,7 +194,11 @@ export async function sweepDueModetourProducts(
     const now = new Date()
 
     try {
-      const inputs = await collectModetourSweepDepartureInputs(product.originUrl, fromYmd, toYmd)
+      const { inputs, apiDates } = await collectModetourSweepDepartureInputs(
+        product.originUrl,
+        fromYmd,
+        toYmd
+      )
       const inWindow = inputs.filter((x) => {
         const dk = departureInputToYmd(x.departureDate)
         return dk != null && dk >= fromYmd && dk <= toYmd
@@ -192,6 +206,23 @@ export async function sweepDueModetourProducts(
 
       if (inWindow.length > 0) {
         await upsertProductDepartures(prisma, product.id, inWindow)
+      }
+
+      let prunedCount = 0
+      if (apiDates.length > 0) {
+        const notIn = [...new Set(apiDates)].map(ymdToUtcMidnight)
+        const deleted = await prisma.productDeparture.deleteMany({
+          where: {
+            productId: product.id,
+            departureDate: {
+              gte: ymdToUtcMidnight(fromYmd),
+              lte: ymdToUtcMidnight(toYmd),
+              notIn,
+            },
+          },
+        })
+        prunedCount = deleted.count
+        result.pruned += prunedCount
       }
 
       const markers = computeRuleAMarkersFromDepartureInputs(inWindow, todayYmd)
