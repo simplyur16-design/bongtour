@@ -7,17 +7,32 @@ import {
 } from '@/lib/bongsim/recommend/plan-display-filter'
 import type { ProductOption } from '@/lib/bongsim/recommend/product-option'
 
-function plan(days_raw: string, id = 'x'): ProductOption {
+function plan(
+  days_raw: string,
+  id = 'x',
+  plan_type = 'unlimited',
+): ProductOption {
   return {
     option_api_id: id,
     plan_name: '대만',
     network_family: 'local',
-    plan_type: 'unlimited',
+    plan_type,
     days_raw,
     allowance_label: '무제한',
     option_label: '',
     price_block: {},
     flags: {},
+  }
+}
+
+function fixedPlan(
+  days_raw: string,
+  allowance_label: string,
+  id: string,
+): ProductOption {
+  return {
+    ...plan(days_raw, id, 'fixed'),
+    allowance_label,
   }
 }
 
@@ -44,17 +59,17 @@ describe('plan-display-filter ±2 window SSOT', () => {
     expect(isWithinTripDaysWindow(plan('7일'), 4)).toBe(false)
   })
 
-  it('filterPlanGroupsByTripDaysWindow — unlimited/daily/fixed 동일 적용', () => {
+  it('filterPlanGroupsByTripDaysWindow — unlimited/daily만 ±2, fixed는 전체 통과', () => {
     const groups = filterPlanGroupsByTripDaysWindow(
       {
         unlimited: [plan('30일', 'u30'), plan('4일', 'u4')],
         daily: [plan('30일', 'd30'), plan('5일', 'd5')],
-        fixed: [plan('15일', 'f15')],
+        fixed: [fixedPlan('7일', '1GB', 'f7'), fixedPlan('30일', '3GB', 'f30')],
       },
       4,
     )
     expect(groups.unlimited.map((p) => p.option_api_id)).toEqual(['u4'])
     expect(groups.daily.map((p) => p.option_api_id)).toEqual(['d5'])
-    expect(groups.fixed).toHaveLength(0)
+    expect(groups.fixed.map((p) => p.option_api_id)).toEqual(['f7', 'f30'])
   })
 })

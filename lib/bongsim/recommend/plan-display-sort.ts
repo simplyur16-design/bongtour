@@ -36,6 +36,9 @@ export function catalogDayDistanceFromTrip(p: ProductOption, tripDays: number): 
 
 function allowanceLabelSortKey(label: string): number {
   const compact = label.trim().toLowerCase().replace(/\s/g, '')
+  if (compact === '무제한' || compact === '완전무제한' || compact === 'unlimited') {
+    return Number.POSITIVE_INFINITY
+  }
   const gb = compact.match(/(\d+(?:\.\d+)?)gb/)
   if (gb) return parseFloat(gb[1]) * 1024
   const mb = compact.match(/(\d+(?:\.\d+)?)mb/)
@@ -43,11 +46,27 @@ function allowanceLabelSortKey(label: string): number {
   return 99999
 }
 
+function catalogDaysSortKey(p: ProductOption): number {
+  return extractDaysFromDaysRaw(p.days_raw) ?? 99999
+}
+
 export function sortPlansForDisplayList(
   plans: ProductOption[],
   tripDays: number,
   planType: PlanDisplayTab,
 ): ProductOption[] {
+  if (planType === 'fixed') {
+    return [...plans].sort((a, b) => {
+      const ka = allowanceLabelSortKey(a.allowance_label || '')
+      const kb = allowanceLabelSortKey(b.allowance_label || '')
+      if (ka !== kb) return ka - kb
+      const da = catalogDaysSortKey(a)
+      const db = catalogDaysSortKey(b)
+      if (da !== db) return da - db
+      return displayPrice(a) - displayPrice(b)
+    })
+  }
+
   return [...plans].sort((a, b) => {
     const da = catalogDayDistanceFromTrip(a, tripDays)
     const db = catalogDayDistanceFromTrip(b, tripDays)
@@ -67,9 +86,6 @@ export function sortPlansForDisplayList(
       return displayPrice(a) - displayPrice(b)
     }
 
-    const ka = allowanceLabelSortKey(a.allowance_label || '')
-    const kb = allowanceLabelSortKey(b.allowance_label || '')
-    if (ka !== kb) return ka - kb
     return displayPrice(a) - displayPrice(b)
   })
 }

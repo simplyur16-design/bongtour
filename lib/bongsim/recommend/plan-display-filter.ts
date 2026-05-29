@@ -1,6 +1,7 @@
 /**
  * 플랜 선택 팝업 표시 범위 SSOT.
- * |catalogDay - tripDays| ≤ window 인 SKU만 UI에 노출 (그 외는 목록에서 제외).
+ * - unlimited·daily: |catalogDay - tripDays| ≤ window 인 SKU만 노출
+ * - fixed(종량제): 일수 필터 없음 — 해당 국가 전체 노출 (봉사장 SSOT 49ca42d1)
  */
 import type { ProductOption } from '@/lib/bongsim/recommend/product-option'
 import { extractDaysFromDaysRaw } from '@/lib/bongsim/recommend/product-option'
@@ -44,6 +45,7 @@ export function filterPlanGroupsByTripDaysWindow(
   return {
     unlimited: filterByTripDaysWindow(groups.unlimited, tripDaysFloored, window),
     daily: filterByTripDaysWindow(groups.daily, tripDaysFloored, window),
-    fixed: filterByTripDaysWindow(groups.fixed, tripDaysFloored, window),
+    /** 종량제: ±2일 필터 미적용 — 전체 통과 */
+    fixed: [...groups.fixed],
   }
 }

@@ -216,6 +216,8 @@ function PlanCard({
   const allowance = (product.allowance_label || "").trim() || "—";
   const country = product.plan_name.trim() || "—";
   const carrier = cardCarrierLabel(product);
+  const planType = (product.plan_type || "").trim().toLowerCase();
+  const fixedDays = planType === "fixed" ? extractDaysFromDaysRaw(product.days_raw) : null;
 
   const borderStyle = isSelected
     ? { border: "2px solid #6366F1" }
@@ -243,13 +245,27 @@ function PlanCard({
           ) : null}
           <AuthChip product={product} />
         </div>
-        <div className="mb-1 text-xs text-slate-500">{cardSubLine(product)}</div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-lg font-medium text-slate-900">{allowance}</span>
-          <span className="text-xs text-slate-400">
-            {country} · {carrier}
-          </span>
-        </div>
+        {planType === "fixed" ? (
+          <>
+            <div className="mb-1 text-lg font-medium text-slate-900">{allowance}</div>
+            {fixedDays != null ? (
+              <div className="mb-1 text-xs text-slate-400">{fixedDays}일 이내 사용</div>
+            ) : null}
+            <div className="text-xs text-slate-400">
+              {country} · {carrier}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mb-1 text-xs text-slate-500">{cardSubLine(product)}</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-medium text-slate-900">{allowance}</span>
+              <span className="text-xs text-slate-400">
+                {country} · {carrier}
+              </span>
+            </div>
+          </>
+        )}
         {esimHasFreeData(product.network_family, product.plan_name) ? (
           <p className="mt-1 text-[11px] font-medium text-teal-700">구글맵·ChatGPT 데이터 무료</p>
         ) : null}
