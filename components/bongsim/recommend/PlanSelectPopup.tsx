@@ -15,6 +15,7 @@ import { EsimVerificationGuideBox } from "@/components/bongsim/esim/EsimVerifica
 import {
   getKycLabelDistribution,
   getKycLabelState,
+  hasBinaryAuthDistribution,
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
 import { sortPlanGroupsForDisplay } from "@/lib/bongsim/recommend/plan-display-sort";
@@ -37,16 +38,13 @@ type PlanGroups = {
   fixed: ProductOption[];
 };
 
-const SECTION_LABELS: Record<PlanTab, string> = {
+const TAB_LABELS: Record<PlanTab, string> = {
   unlimited: "무제한",
   daily: "데일리",
   fixed: "종량제",
 };
 
-const ALL_SECTIONS: PlanTab[] = ["unlimited", "daily", "fixed"];
-
-/** mockup: 긴 리스트 일부 노출 후 "N건 더 보기" */
-const SECTION_INITIAL_VISIBLE = 6;
+const ALL_PLAN_TABS: PlanTab[] = ["unlimited", "daily", "fixed"];
 
 function filterGroupsByAuth(groups: PlanGroups, auth: AuthFilter): PlanGroups {
   const match = (p: ProductOption) => {
@@ -286,79 +284,6 @@ function PlanCard({
   );
 }
 
-type PlanSectionProps = {
-  section: PlanTab;
-  plans: ProductOption[];
-  recommendedId: string | null;
-  displayMatchedDays: number;
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-};
-
-function PlanSection({
-  section,
-  plans,
-  recommendedId,
-  displayMatchedDays,
-  selectedId,
-  onSelect,
-}: PlanSectionProps) {
-  const [expanded, setExpanded] = useState(false);
-  const disabled = plans.length === 0;
-  const ordered = useMemo(
-    () => orderWithRecommendedFirst(plans, recommendedId),
-    [plans, recommendedId],
-  );
-  const visible = expanded ? ordered : ordered.slice(0, SECTION_INITIAL_VISIBLE);
-  const hiddenCount = Math.max(0, ordered.length - SECTION_INITIAL_VISIBLE);
-
-  return (
-    <section aria-label={SECTION_LABELS[section]}>
-      <div
-        className="mb-2.5 mt-3.5 flex items-center justify-between border-b border-slate-200 px-1 pb-2 pt-2.5"
-        style={{ borderBottomWidth: "0.5px" }}
-      >
-        <div
-          className={`text-sm font-medium ${disabled ? "text-slate-400" : "text-slate-900"}`}
-        >
-          {SECTION_LABELS[section]}{" "}
-          <span className="font-normal text-slate-500">({plans.length})</span>
-        </div>
-        {disabled ? (
-          <span className="text-xs text-slate-400">이 일정엔 해당 상품 없음</span>
-        ) : null}
-      </div>
-      {visible.length > 0 ? (
-        <div
-          className="grid gap-2.5"
-          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
-        >
-          {visible.map((product) => (
-            <PlanCard
-              key={product.option_api_id}
-              product={product}
-              isRecommended={recommendedId === product.option_api_id}
-              isSelected={selectedId === product.option_api_id}
-              displayMatchedDays={displayMatchedDays}
-              onSelect={() => onSelect(product.option_api_id)}
-            />
-          ))}
-        </div>
-      ) : null}
-      {!expanded && hiddenCount > 0 ? (
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          className="mt-2.5 w-full cursor-pointer rounded-md border border-dashed border-slate-300 bg-white px-2.5 py-2.5 text-[13px] text-slate-500"
-          style={{ borderWidth: "0.5px" }}
-        >
-          {SECTION_LABELS[section]} {hiddenCount}건 더 보기
-        </button>
-      ) : null}
-    </section>
-  );
-}
-
 export function PlanSelectPopup({
   open,
   inline = false,
@@ -375,6 +300,7 @@ export function PlanSelectPopup({
   const [kycDistribution, setKycDistribution] = useState<KycLabelDistribution>("none");
   const [authFilter, setAuthFilter] = useState<AuthFilter>("not_required");
   const [rawGroups, setRawGroups] = useState<PlanGroups>({ unlimited: [], daily: [], fixed: [] });
+  const [activeTab, setActiveTab] = useState<PlanTab>("unlimited");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [quantity] = useState(1);
   const [err, setErr] = useState<string | null>(null);
@@ -382,7 +308,8 @@ export function PlanSelectPopup({
 
   const tripDaysFloored = Math.max(1, Math.floor(tripDays));
   const displayMatchedDays = matchedDays ?? tripDaysFloored;
-  const showDayMatchNotice = matchedDays != null && tripDaysFloored !== matchedDays;
+  const showDayMatchNotice =
+    activeTab !== "fixed" && matchedDays != null && tripDaysFloored !== matchedDays;
 
   useEffect(() => {
     if (!open) {
@@ -391,6 +318,7 @@ export function PlanSelectPopup({
       setKycDistribution("none");
       setAuthFilter("not_required");
       setRawGroups({ unlimited: [], daily: [], fixed: [] });
+      setActiveTab("unlimited");
       setSelectedId(null);
       setErr(null);
       setMatchedDays(null);
@@ -437,10 +365,28 @@ export function PlanSelectPopup({
         };
         setRawGroups(nextGroups);
         setRecommendedByAuth(json.recommended_by_auth ?? null);
-        setRecommended(
-          json.recommended && json.recommended.option_api_id ? json.recommended : null,
+        const nextRecommended =
+          json.recommended && json.recommended.option_api_id ? json.recommended : null;
+        setRecommended(nextRecommended);
+        const defaultAuth: AuthFilter = "not_required";
+        setAuthFilter(defaultAuth);
+        const showBinary = hasBinaryAuthDistribution([
+          ...nextGroups.unlimited,
+          ...nextGroups.daily,
+          ...nextGroups.fixed,
+        ]);
+        const windowed = filterPlanGroupsByTripDaysWindow(nextGroups, tripDaysFloored);
+        const visibleGroups = showBinary
+          ? filterGroupsByAuth(windowed, defaultAuth)
+          : windowed;
+        const pin = showBinary
+          ? json.recommended_by_auth?.[defaultAuth] ?? null
+          : nextRecommended;
+        const visibleTabs = ALL_PLAN_TABS.filter((t) => (visibleGroups[t]?.length ?? 0) > 0);
+        const recTab = pin?.rec_source;
+        setActiveTab(
+          recTab && visibleTabs.includes(recTab) ? recTab : (visibleTabs[0] ?? "unlimited"),
         );
-        setAuthFilter("not_required");
         setSelectedId(null);
       } catch {
         if (!cancelled) {
@@ -459,7 +405,12 @@ export function PlanSelectPopup({
     };
   }, [open, countryCode, tripDaysFloored, allSelectedCodes.join(",")]);
 
-  const showAuthToggle = kycDistribution === "binary";
+  const allCatalogProducts = useMemo(
+    () => [...rawGroups.unlimited, ...rawGroups.daily, ...rawGroups.fixed],
+    [rawGroups],
+  );
+
+  const showAuthToggle = hasBinaryAuthDistribution(allCatalogProducts);
 
   const windowFilteredGroups = useMemo(
     () => filterPlanGroupsByTripDaysWindow(rawGroups, tripDaysFloored),
@@ -484,29 +435,35 @@ export function PlanSelectPopup({
     };
   }, [windowFilteredGroups]);
 
+  const tabCounts = useMemo(
+    () => ({
+      unlimited: groups.unlimited.length,
+      daily: groups.daily.length,
+      fixed: groups.fixed.length,
+    }),
+    [groups],
+  );
+
   const activeRecommended = useMemo(() => {
     const pin = showAuthToggle ? recommendedByAuth?.[authFilter] ?? null : recommended;
     if (!pin?.option_api_id) return null;
-    const inView = [...groups.unlimited, ...groups.daily, ...groups.fixed].some(
+    const inView = (groups[pin.rec_source as PlanTab] ?? []).some(
       (p) => p.option_api_id === pin.option_api_id,
     );
     return inView ? pin : null;
   }, [showAuthToggle, recommendedByAuth, authFilter, recommended, groups]);
 
-  const recommendedBySection = useMemo(
-    () => ({
-      unlimited:
-        activeRecommended?.rec_source === "unlimited" ? activeRecommended.option_api_id : null,
-      daily: activeRecommended?.rec_source === "daily" ? activeRecommended.option_api_id : null,
-      fixed: activeRecommended?.rec_source === "fixed" ? activeRecommended.option_api_id : null,
-    }),
-    [activeRecommended],
-  );
+  const tabCards = useMemo(() => {
+    const list = groups[activeTab] ?? [];
+    const recId =
+      activeRecommended?.rec_source === activeTab ? activeRecommended.option_api_id : null;
+    return orderWithRecommendedFirst(list, recId).map((product) => ({
+      product,
+      isPinned: recId === product.option_api_id,
+    }));
+  }, [groups, activeTab, activeRecommended]);
 
-  const allVisibleProducts = useMemo(
-    () => [...groups.unlimited, ...groups.daily, ...groups.fixed],
-    [groups],
-  );
+  const allVisibleProducts = useMemo(() => tabCards.map((r) => r.product), [tabCards]);
 
   const hasAnyPlansAtAll =
     windowFilteredGroups.unlimited.length > 0 ||
@@ -534,7 +491,23 @@ export function PlanSelectPopup({
 
   useEffect(() => {
     setSelectedId(null);
-  }, [authFilter]);
+  }, [activeTab, authFilter]);
+
+  useEffect(() => {
+    if (!showAuthToggle || !open || loading) return;
+    const pin = recommendedByAuth?.[authFilter] ?? null;
+    const recTab = pin?.rec_source;
+    if (recTab && tabCounts[recTab] > 0) {
+      setActiveTab(recTab);
+    }
+  }, [authFilter, showAuthToggle, recommendedByAuth, tabCounts, open, loading]);
+
+  useEffect(() => {
+    if (!open || loading) return;
+    if (tabCounts[activeTab] > 0) return;
+    const next = ALL_PLAN_TABS.find((t) => tabCounts[t] > 0);
+    if (next) setActiveTab(next);
+  }, [open, loading, tabCounts, activeTab, authFilter]);
 
   if (!open) return null;
 
@@ -606,11 +579,56 @@ export function PlanSelectPopup({
         </div>
       ) : null}
 
+      {hasAnyPlansAtAll ? (
+        <div className="border-b border-slate-100 px-5">
+          <div className="flex gap-1 py-3" role="tablist" aria-label="플랜 유형">
+            {ALL_PLAN_TABS.map((tab) => {
+              const selected = activeTab === tab;
+              const count = tabCounts[tab];
+              const disabled = count === 0;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  aria-disabled={disabled}
+                  disabled={disabled}
+                  onClick={() => {
+                    if (!disabled) setActiveTab(tab);
+                  }}
+                  className={`min-h-10 flex-1 rounded-lg px-2 text-sm font-bold transition lg:text-base ${
+                    disabled
+                      ? "cursor-not-allowed bg-slate-100 !text-slate-400 opacity-60"
+                      : selected
+                        ? "bg-teal-700 !text-white shadow-sm"
+                        : "bg-slate-100 !text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  {TAB_LABELS[tab]}
+                  <span
+                    className={`ml-1 text-xs font-semibold ${
+                      disabled
+                        ? "!text-slate-400"
+                        : selected
+                          ? "!text-white/90"
+                          : "!text-slate-700"
+                    }`}
+                  >
+                    ({count})
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       <div
         className={
           inline
-            ? "max-h-[min(55vh,520px)] overflow-y-auto px-5 py-4"
-            : "flex-1 overflow-y-auto px-5 py-4"
+            ? "max-h-[min(55vh,520px)] space-y-3 overflow-y-auto px-5 py-4"
+            : "flex-1 space-y-3 overflow-y-auto px-5 py-4"
         }
       >
         {loading && (
@@ -627,19 +645,23 @@ export function PlanSelectPopup({
             선택한 인증 조건의 플랜이 없습니다.
           </p>
         )}
-        {!loading && !err && hasVisiblePlans
-          ? ALL_SECTIONS.map((section) => (
-              <PlanSection
-                key={section}
-                section={section}
-                plans={groups[section]}
-                recommendedId={recommendedBySection[section]}
-                displayMatchedDays={displayMatchedDays}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-              />
-            ))
-          : null}
+        {!loading && !err && hasVisiblePlans && tabCards.length === 0 && (
+          <p className="py-8 text-center text-sm text-slate-600 lg:text-base">
+            이 유형의 플랜이 없습니다.
+          </p>
+        )}
+        {!loading &&
+          !err &&
+          tabCards.map(({ product, isPinned }) => (
+            <PlanCard
+              key={`${activeTab}-${product.option_api_id}${isPinned ? "-pin" : ""}`}
+              product={product}
+              isRecommended={isPinned}
+              isSelected={selectedId === product.option_api_id}
+              displayMatchedDays={displayMatchedDays}
+              onSelect={() => setSelectedId(product.option_api_id)}
+            />
+          ))}
       </div>
 
       <div className="border-t border-slate-100 px-5 py-4 lg:px-6">
@@ -686,7 +708,7 @@ export function PlanSelectPopup({
   }
 
   return (
-    <RecommendModalShell open={open} onClose={onBack} maxWidthClassName="max-w-2xl lg:max-w-3xl">
+    <RecommendModalShell open={open} onClose={onBack} maxWidthClassName="max-w-md lg:max-w-xl">
       {panel}
     </RecommendModalShell>
   );
