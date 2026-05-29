@@ -10,7 +10,7 @@ const USIMSA_INSTALL_USAGE_CS =
 // - eSIM 공급사 공식 안내를 봉투어 맥락으로 재구성(원문 복사 아님).
 // - 손님 노출 시 공급사명 미표기. 모든 채널 표현은 봉투어 기준
 //   (마이페이지 / 카카오 알림톡 / 이메일 / 고객센터).
-// - image 필드는 봉투어 자체 캡처 자리 placeholder 라벨.
+// - image 필드 = image_assets.entity_id (guideKey). 매니페스트·DB 1:1.
 // ─────────────────────────────────────────────────────────────
 
 export type GuideTab = "precheck" | "iphone" | "android";
@@ -24,9 +24,11 @@ export interface GuideBlock {
   bullets?: string[];
   /** 강조/주의 한 줄(amber callout 등으로 렌더 권장) */
   note?: string;
-  /** 이미지 placeholder 라벨(자체 캡처 교체 자리) */
+  /** image_assets entity_id (guideKey) — esim-guide-image-manifest.ts 와 1:1 */
   image?: string;
 }
+
+export type EsimGuideImageMap = Record<string, { url: string; alt: string }>;
 
 export interface GuideStep {
   n: number;
@@ -52,7 +54,6 @@ export const PRECHECK_BLOCKS: GuideBlock[] = [
       "현지 설치 가능 — 여행지 도착 후 설치하세요. 필요한 시점에 설치해 사용합니다.",
       "국내·현지 모두 가능 — 언제든 설치 가능. 출국 전 미리 설치해 두면 도착 즉시 사용할 수 있어 권장합니다.",
     ],
-    image: "봉투어 알림톡 / 이메일 / 마이페이지에서 상품 정보 확인 화면",
   },
   {
     heading: "2. 안전한 네트워크에서 설치",
@@ -60,6 +61,7 @@ export const PRECHECK_BLOCKS: GuideBlock[] = [
       '"보안되지 않은 네트워크" 또는 "보안이 취약함"으로 표시되는 와이파이 환경에서는 설치가 실패할 수 있습니다.',
     ],
     note: "설치가 잘 안 될 때는 기기를 재시작한 뒤 다시 시도해 주세요.",
+    image: "precheck_secure_network",
   },
 ];
 
@@ -94,7 +96,6 @@ export const IOS_STEPS: GuideStep[] = [
           "QR코드가 발급됩니다.",
         ],
         note: "eSIM 설치용 QR·코드는 카카오 알림톡과 이메일로도 함께 발송됩니다.",
-        image: "발급 완료 화면",
       },
     ],
   },
@@ -118,7 +119,7 @@ export const IOS_STEPS: GuideStep[] = [
           "봉투어 마이페이지 로그인 → [내 데이터] → [설치 및 활성화] → [Step 1. eSIM 설치하기]의 [설치]를 누른 뒤 화면 안내를 따릅니다.",
         ],
         note: "[가이드]와 [설치시작] 버튼만 보인다면 아직 코드 발급 전입니다. 1단계 발급을 먼저 진행하세요.",
-        image: "원클릭 설치 진행 화면",
+        image: "ios_install_oneclick",
       },
       {
         heading: "방법 B — QR코드로 설치",
@@ -144,6 +145,7 @@ export const IOS_STEPS: GuideStep[] = [
         paras: [
           "국내에서 미리 설치했다면, 출국 전까지는 국내 통신사 데이터를 쓰도록 '국내 전용' 설정을 유지하세요. 그래야 출국 전 국내 데이터가 정상 사용됩니다.",
         ],
+        image: "ios_activate_predeparture",
       },
       {
         heading: "로밍망 상품 — 도착 후 활성화",
@@ -152,6 +154,7 @@ export const IOS_STEPS: GuideStep[] = [
           "새로 설치한 eSIM의 데이터가 사용되도록 설정을 변경합니다. (상품마다 설정이 다르니 구매 상품명을 확인하세요.)",
           "설정을 모두 마쳤다면 비행기 모드를 끕니다.",
         ],
+        image: "ios_activate_roaming",
       },
       {
         heading: "로컬망 상품 — 도착 후 활성화",
@@ -162,7 +165,7 @@ export const IOS_STEPS: GuideStep[] = [
           "일본 / 베트남 / 태국 / 라오스 로컬망 설정",
           "유럽 33개국·36개국: eSIM 설정창에서 데이터 로밍 버튼을 켜는 상품입니다.",
         ],
-        image: "국가별 로컬망 설정 화면",
+        image: "ios_local_jp",
       },
       {
         heading: "eSIM 이름(레이블) 변경 — 선택",
@@ -190,7 +193,7 @@ export const IOS_STEPS: GuideStep[] = [
           '"셀룰러 요금제를 더 이상 사용할 수 없음" 팝업에서 [연락처 업데이트]를 누릅니다.',
           "메인 또는 다른 SIM을 선택합니다.",
         ],
-        image: "eSIM 삭제 화면",
+        image: "ios_delete",
       },
     ],
   },
@@ -212,7 +215,6 @@ export const ANDROID_STEPS: GuideStep[] = [
           "QR코드가 발급됩니다.",
         ],
         note: "eSIM 설치용 QR·코드는 카카오 알림톡과 이메일로도 함께 발송됩니다.",
-        image: "발급 완료 화면",
       },
     ],
   },
@@ -234,7 +236,7 @@ export const ANDROID_STEPS: GuideStep[] = [
           "봉투어 마이페이지 로그인 → [내 데이터] → [설치 및 활성화] → [Step 1. eSIM 설치하기]의 [설치]를 누른 뒤 화면 안내를 따릅니다.",
         ],
         note: "[가이드]와 [설치시작] 버튼만 보인다면 아직 코드 발급 전입니다. 1단계 발급을 먼저 진행하세요.",
-        image: "QR 설치 진행 화면",
+        image: "android_install_qr",
       },
       {
         heading: "방법 B — 수동코드로 설치",
@@ -260,7 +262,7 @@ export const ANDROID_STEPS: GuideStep[] = [
           "여행지 도착 후, 새로 설치한 eSIM의 데이터가 사용되도록 설정을 변경합니다.",
           "상품마다 설정이 다르니 구매 상품명을 정확히 확인하세요.",
         ],
-        image: "로밍망 설정 화면",
+        image: "android_activate_roaming",
       },
       {
         heading: "로컬망 상품 — 도착 후 활성화",
@@ -271,7 +273,7 @@ export const ANDROID_STEPS: GuideStep[] = [
           "일본 / 베트남 / 태국 / 라오스 로컬망 설정",
           "유럽 33개국·36개국 로컬망 설정",
         ],
-        image: "국가별 로컬망 설정 화면",
+        image: "android_local_jp",
       },
     ],
   },
@@ -288,7 +290,7 @@ export const ANDROID_STEPS: GuideStep[] = [
           "제거할 eSIM을 선택합니다.",
           "[삭제]를 누릅니다.",
         ],
-        image: "eSIM 삭제 화면",
+        image: "android_delete",
       },
       {
         paras: ["기종(삼성·구글·기타)에 따라 메뉴 이름이 조금씩 다를 수 있습니다."],

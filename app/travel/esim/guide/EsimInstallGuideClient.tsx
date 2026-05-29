@@ -12,6 +12,7 @@ import {
   type GuideFaq,
   type GuideStep,
   type GuideTab,
+  type EsimGuideImageMap,
   IOS_STEPS,
   PRECHECK_BLOCKS,
   PRECHECK_FAQ,
@@ -24,7 +25,24 @@ const TABS: { key: GuideTab; label: string }[] = [
   { key: "android", label: "Android" },
 ];
 
-function GuideBlockContent({ block }: { block: GuideBlock }) {
+function GuideBlockImage({ guideKey, imageMap }: { guideKey: string; imageMap: EsimGuideImageMap }) {
+  const entry = imageMap[guideKey];
+  if (!entry) return null;
+  return (
+    <div className="flex justify-center pt-1">
+      {/* eslint-disable-next-line @next/next/no-img-element -- NCloud public_url */}
+      <img
+        src={entry.url}
+        alt={entry.alt}
+        className="mx-auto max-w-[280px] rounded-lg border border-slate-200"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+  );
+}
+
+function GuideBlockContent({ block, imageMap }: { block: GuideBlock; imageMap: EsimGuideImageMap }) {
   return (
     <div className="space-y-3">
       {block.heading ? (
@@ -45,6 +63,7 @@ function GuideBlockContent({ block }: { block: GuideBlock }) {
           ))}
         </ul>
       ) : null}
+      {block.image ? <GuideBlockImage guideKey={block.image} imageMap={imageMap} /> : null}
       {block.note ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 lg:text-base">
           {block.note}
@@ -54,7 +73,7 @@ function GuideBlockContent({ block }: { block: GuideBlock }) {
   );
 }
 
-function GuideStepsSection({ steps }: { steps: GuideStep[] }) {
+function GuideStepsSection({ steps, imageMap }: { steps: GuideStep[]; imageMap: EsimGuideImageMap }) {
   return (
     <section aria-labelledby="esim-guide-steps">
       <h2 id="esim-guide-steps" className="flex items-center gap-2 text-lg font-bold text-slate-900 lg:text-xl">
@@ -74,7 +93,7 @@ function GuideStepsSection({ steps }: { steps: GuideStep[] }) {
               <h3 className="text-base font-semibold leading-snug text-slate-900 lg:text-lg">{title}</h3>
               <div className="mt-3 space-y-4">
                 {blocks.map((block, blockIdx) => (
-                  <GuideBlockContent key={`${n}-${blockIdx}`} block={block} />
+                  <GuideBlockContent key={`${n}-${blockIdx}`} block={block} imageMap={imageMap} />
                 ))}
               </div>
             </div>
@@ -130,7 +149,7 @@ function GuideFaqSection({
   );
 }
 
-export function EsimInstallGuideClient() {
+export function EsimInstallGuideClient({ imageMap }: { imageMap: EsimGuideImageMap }) {
   const [tab, setTab] = useState<GuideTab>("precheck");
   const [openFaq, setOpenFaq] = useState<string | null>(null);
 
@@ -188,13 +207,13 @@ export function EsimInstallGuideClient() {
                 key={idx}
                 className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:p-6"
               >
-                <GuideBlockContent block={block} />
+                <GuideBlockContent block={block} imageMap={imageMap} />
               </div>
             ))}
           </div>
         ) : steps ? (
           <div className="mt-10 lg:mt-12">
-            <GuideStepsSection steps={steps} />
+            <GuideStepsSection steps={steps} imageMap={imageMap} />
           </div>
         ) : null}
 

@@ -149,6 +149,14 @@ export async function insertImageAssetRow(row: InsertImageAssetPayload): Promise
   return toRow(created)
 }
 
+export async function findImageAssetsByEntityType(entityType: string): Promise<ImageAssetRow[]> {
+  const rows = await prisma.imageAsset.findMany({
+    where: { entityType },
+    orderBy: [{ sortOrder: 'asc' }, { uploadedAt: 'asc' }],
+  })
+  return rows.map(toRow)
+}
+
 export async function findImageAssetById(id: string): Promise<ImageAssetRow | null> {
   const m = await prisma.imageAsset.findUnique({ where: { id } })
   return m ? toRow(m) : null
