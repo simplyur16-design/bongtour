@@ -28,17 +28,6 @@ import {
   scrapeLiveCalendar,
 } from '@/lib/admin-departure-rescrape'
 import { collectHanatourDepartureInputsForDateRange } from '@/lib/hanatour-departures'
-import { collectModetourDepartureInputsForDateRange } from '@/lib/modetour-departures'
-import {
-  bumpModetourNotFoundStreak,
-  modetourSd1StreakReachedRetire,
-  parseModetourNotFoundStreak,
-  resetModetourNotFoundStreak,
-} from '@/lib/modetour-sd1-meta'
-import {
-  isModetourSd1NotFoundError,
-  MODETOUR_SD1_AUTO_UNPUBLISH_REASON,
-} from '@/lib/modetour-sd1-policy'
 import {
   collectLottetourCalendarRange,
   mapLottetourCalendarToDepartureInputs,
@@ -199,6 +188,7 @@ export async function pickNextProductToCheck(
     where: {
       registrationStatus: 'registered',
       travelScope: { in: ['overseas', 'domestic'] },
+      originSource: { not: 'modetour' },
     },
     orderBy: [
       { lastSalesPolicyCheckedAt: { sort: 'asc', nulls: 'first' } },
@@ -257,9 +247,7 @@ export async function runOneSalesPolicyCheck(
       ? 'lottetour'
       : bk === 'hanatour' || norm === 'hanatour'
         ? 'hanatour'
-        : bk === 'modetour' || norm === 'modetour'
-          ? 'modetour'
-          : bk === 'verygoodtour' || norm === 'verygoodtour'
+        : bk === 'verygoodtour' || norm === 'verygoodtour'
             ? 'verygoodtour'
             : norm === 'ybtour' ||
                 bk === 'ybtour' ||
@@ -352,59 +340,6 @@ export async function runOneSalesPolicyCheck(
       }
     } else if (supplierKey === 'hanatour') {
       livesRange = await collectHanatourDepartureInputsForDateRange(detailUrl, fromYmd, toYmd)
-    } else if (supplierKey === 'modetour') {
-      try {
-        livesRange = await collectModetourDepartureInputsForDateRange(
-          product.originUrl,
-          fromYmd,
-          toYmd
-        )
-        const metaRow = await prisma.product.findUnique({
-          where: { id: product.id },
-          select: { rawMeta: true },
-        })
-        if (parseModetourNotFoundStreak(metaRow?.rawMeta ?? null) > 0) {
-          await prisma.product.update({
-            where: { id: product.id },
-            data: { rawMeta: resetModetourNotFoundStreak(metaRow?.rawMeta ?? null) },
-          })
-        }
-      } catch (err) {
-        if (!isModetourSd1NotFoundError(err)) throw err
-        const metaRow = await prisma.product.findUnique({
-          where: { id: product.id },
-          select: { rawMeta: true },
-        })
-        const { nextRawMeta, streak } = bumpModetourNotFoundStreak(metaRow?.rawMeta ?? null)
-        const now = new Date()
-        if (modetourSd1StreakReachedRetire(streak)) {
-          await prisma.product.update({
-            where: { id: product.id },
-            data: {
-              rawMeta: nextRawMeta,
-              registrationStatus: 'auto_unpublished',
-              autoUnpublishedAt: now,
-              autoUnpublishedReason: MODETOUR_SD1_AUTO_UNPUBLISH_REASON,
-              lastSalesPolicyCheckedAt: now,
-            },
-          })
-        } else {
-          await prisma.product.update({
-            where: { id: product.id },
-            data: {
-              rawMeta: nextRawMeta,
-              lastSalesPolicyCheckedAt: now,
-            },
-          })
-        }
-        return {
-          checked: true,
-          marked: false,
-          lastFutureDate: null,
-          supplierKey,
-          skipReason: null,
-        }
-      }
     } else if (supplierKey === 'verygoodtour') {
       const lo = fromYmd <= toYmd ? fromYmd : toYmd
       const hi = fromYmd <= toYmd ? toYmd : fromYmd

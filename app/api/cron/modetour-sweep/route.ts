@@ -19,8 +19,9 @@ export async function POST(req: Request) {
   const limit = limitRaw != null ? Number.parseInt(limitRaw, 10) : undefined
 
   try {
+    const defaultLimit = 200
     const result = await sweepDueModetourProducts(prisma, {
-      limit: Number.isFinite(limit) && limit! > 0 ? limit : undefined,
+      limit: Number.isFinite(limit) && limit! > 0 ? limit : defaultLimit,
       productNo,
     })
     return jsonWithLeakGuard({ ok: true, ...result }, 'cron-modetour-sweep.response')

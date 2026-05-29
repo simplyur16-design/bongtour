@@ -1,6 +1,6 @@
 /**
- * modetour 월간 sweep — GetOtherDepartureDates(minPrice) 경량 수집 + ProductDeparture upsert.
- * instrumentation 등록 전 수동 POST `/api/cron/modetour-sweep` 로만 검증.
+ * modetour 일1회 sweep — GetOtherDepartureDates(minPrice) 경량 수집 + ProductDeparture upsert.
+ * instrumentation: `lib/instrumentation-modetour-sweep-cron.ts` (KST 04:00).
  */
 import type { PrismaClient } from '@prisma/client'
 
@@ -28,7 +28,8 @@ const MODETOUR_WEB_API_REQ_HEADER =
   process.env.MODETOUR_WEB_API_REQ_HEADER ??
   '{"WebSiteNo":2,"CompanyNo":81202,"DeviceType":"DVTPC","ApiKey":"jm9i5RUzKPMPdklHzDKqNzwZYy0IGV5hTyKkCcpxO0IGIgVS+8Z7NnbzbARv5w7Bn90KT13Gq79XZMow6TYvwQ=="}'
 
-const SWEEP_DUE_DAYS = 30
+const SWEEP_DUE_DAYS = 1
+const SWEEP_DEFAULT_LIMIT = 200
 
 type ModetourDepartureRow = {
   pId?: number
@@ -174,7 +175,7 @@ export async function sweepDueModetourProducts(
   prisma: PrismaClient,
   options?: { limit?: number; productNo?: string | null }
 ): Promise<ModetourSweepResult> {
-  const limit = Math.max(1, Math.min(500, options?.limit ?? 50))
+  const limit = Math.max(1, Math.min(500, options?.limit ?? SWEEP_DEFAULT_LIMIT))
   const products = await findSweepProducts(prisma, limit, options?.productNo ?? null)
 
   const result: ModetourSweepResult = {
