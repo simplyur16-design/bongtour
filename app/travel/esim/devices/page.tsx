@@ -15,7 +15,7 @@ function SectionCard({ title, children }: { title: string; children: ReactNode }
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-      <div className="mt-4 space-y-3 text-sm leading-relaxed text-slate-700">{children}</div>
+      <div className="mt-4 space-y-3 text-sm leading-relaxed text-slate-900">{children}</div>
     </section>
   );
 }
@@ -35,7 +35,7 @@ export default function EsimDevicesPage() {
           >
             eSIM 지원 기종, 구매 전 체크해 보세요
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 lg:mt-5 lg:text-lg">
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-700 lg:mt-5 lg:text-lg">
             여행자님, 사용 중인 휴대폰이 eSIM을 지원하는지 먼저 확인해보세요.
           </p>
         </div>
@@ -51,33 +51,33 @@ export default function EsimDevicesPage() {
 
         <div className="mt-8 space-y-8 lg:mt-10 lg:space-y-10">
           <SectionCard title="Samsung (한국 사용자 기준)">
-            <ul className="list-inside list-disc space-y-1.5 marker:text-teal-600">
-              <li>Z Fold 7, Z Flip 7, Z Fold 6, Z Flip 6, Z Fold 5, Z Flip 5, Z Fold 4, Z Flip 4</li>
-              <li>S23 Series, S24 Series, S25 Series, S26 Series</li>
-              <li>A54, A55, A56 (한국판)</li>
+            <ul className="list-inside list-disc space-y-1.5 marker:text-teal-600 text-slate-900">
+              <li className="text-slate-900">Z Fold 7, Z Flip 7, Z Fold 6, Z Flip 6, Z Fold 5, Z Flip 5, Z Fold 4, Z Flip 4</li>
+              <li className="text-slate-900">S23 Series, S24 Series, S25 Series, S26 Series</li>
+              <li className="text-slate-900">A54, A55, A56 (한국판)</li>
             </ul>
             <p className="rounded-lg border border-amber-100 bg-amber-50/80 px-3 py-2 text-sm text-amber-950">
               ⚠️ Galaxy S22 이하 한국판은 eSIM을 지원하지 않습니다
             </p>
-            <p className="rounded-lg border border-sky-100 bg-sky-50/80 px-3 py-2 text-sm text-slate-700">
+            <p className="rounded-lg border border-sky-100 bg-sky-50/80 px-3 py-2 text-sm text-slate-900">
               💡 출시 국가가 중국 본토, 홍콩, 마카오인 갤럭시 기기는 eSIM을 지원하지 않아요.
             </p>
           </SectionCard>
 
           <SectionCard title="Apple iPhone">
-            <ul className="list-inside list-disc space-y-1.5 marker:text-teal-600">
-              <li>iPhone XR, XS, XS Max</li>
-              <li>iPhone SE (2세대, 3세대)</li>
-              <li>iPhone 11~17 Series 전부</li>
+            <ul className="list-inside list-disc space-y-1.5 marker:text-teal-600 text-slate-900">
+              <li className="text-slate-900">iPhone XR, XS, XS Max</li>
+              <li className="text-slate-900">iPhone SE (2세대, 3세대)</li>
+              <li className="text-slate-900">iPhone 11~17 Series 전부</li>
             </ul>
-            <p className="rounded-lg border border-sky-100 bg-sky-50/80 px-3 py-2 text-sm text-slate-700">
+            <p className="rounded-lg border border-sky-100 bg-sky-50/80 px-3 py-2 text-sm text-slate-900">
               💡 출시 국가가 중국 본토, 홍콩, 마카오인 기기는 eSIM을 지원하지 않아요. (단, iPhone 13 Mini, iPhone 12
               Mini, iPhone SE 2020 및 iPhone XS는 지원)
             </p>
           </SectionCard>
 
           <SectionCard title="Google Pixel">
-            <p>Pixel 2 이후 전 모델 (한국 미출시)</p>
+            <p className="text-slate-900">Pixel 2 이후 전 모델 (한국 미출시)</p>
           </SectionCard>
 
           <section
@@ -87,9 +87,9 @@ export default function EsimDevicesPage() {
             <h2 id="esim-devices-check-heading" className="text-lg font-bold text-slate-900 lg:text-xl">
               가능한 기종인지 확인하기
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600 lg:text-base">
+            <p className="mt-3 text-sm leading-relaxed text-slate-900 lg:text-base">
               전화 키패드 {">"}{" "}
-              <span className="font-mono font-semibold text-slate-800">*#06#</span> 입력 {">"}{" "}
+              <span className="font-mono font-semibold text-slate-900">*#06#</span> 입력 {">"}{" "}
               <span className="font-semibold text-teal-700">‘EID’</span>가 있다면 사용 가능!
             </p>
             <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-stretch sm:gap-4">
@@ -102,7 +102,7 @@ export default function EsimDevicesPage() {
               </div>
               <div className="flex flex-1 flex-col justify-center rounded-xl border border-teal-200 bg-teal-50/60 px-4 py-6 shadow-sm">
                 <p className="text-xs font-medium uppercase tracking-wide text-teal-800">EID 정보</p>
-                <p className="mt-2 break-all font-mono text-[11px] leading-relaxed text-slate-700 lg:text-xs">
+                <p className="mt-2 break-all font-mono text-[11px] leading-relaxed text-slate-900 lg:text-xs">
                   EID: 89049032…
                   <br />
                   (일부 기기에서는 IMEI와 함께 표시돼요)
@@ -113,7 +113,7 @@ export default function EsimDevicesPage() {
           </section>
 
           <div className="rounded-2xl border border-teal-100 bg-gradient-to-br from-sky-50/80 to-teal-50/80 px-5 py-8 text-center lg:px-8 lg:py-10">
-            <p className="text-base font-semibold text-slate-800 lg:text-lg">
+            <p className="text-base font-semibold text-slate-900 lg:text-lg">
               확인되셨나요? 지금 바로 나에게 맞는 eSIM을 찾아보세요!
             </p>
             <Link

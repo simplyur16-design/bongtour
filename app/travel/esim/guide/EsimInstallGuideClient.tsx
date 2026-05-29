@@ -28,25 +28,25 @@ function GuideBlockContent({ block }: { block: GuideBlock }) {
   return (
     <div className="space-y-3">
       {block.heading ? (
-        <p className="font-semibold text-slate-800 lg:text-base">{block.heading}</p>
+        <p className="font-semibold text-slate-900 lg:text-base">{block.heading}</p>
       ) : null}
       {block.paras?.map((para) => (
-        <p key={para} className="text-sm leading-relaxed text-slate-700 lg:text-base">
+        <p key={para} className="text-sm leading-relaxed text-slate-900 lg:text-base">
           {para}
         </p>
       ))}
       {block.bullets?.length ? (
-        <ul className="space-y-2.5 text-sm leading-relaxed text-slate-700 lg:text-base">
+        <ul className="space-y-2.5 text-sm leading-relaxed text-slate-900 lg:text-base">
           {block.bullets.map((item) => (
-            <li key={item} className="flex gap-2">
+            <li key={item} className="flex gap-2 text-slate-900">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" aria-hidden />
-              <span>{item}</span>
+              <span className="text-slate-900">{item}</span>
             </li>
           ))}
         </ul>
       ) : null}
       {block.note ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 lg:text-base">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 lg:text-base">
           {block.note}
         </p>
       ) : null}
@@ -111,14 +111,14 @@ function GuideFaqSection({
                 className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-sm font-semibold text-slate-900 transition hover:bg-slate-50 lg:px-5 lg:py-4 lg:text-base"
                 aria-expanded={open}
               >
-                <span>{q}</span>
+                <span className="text-slate-900">{q}</span>
                 <ChevronDown
                   className={`h-5 w-5 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`}
                   aria-hidden
                 />
               </button>
               {open ? (
-                <div className="border-t border-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-600 lg:px-5 lg:py-4 lg:text-base">
+                <div className="border-t border-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-900 lg:px-5 lg:py-4 lg:text-base">
                   {a}
                 </div>
               ) : null}
@@ -156,10 +156,10 @@ export function EsimInstallGuideClient() {
           >
             eSIM 설치 가이드
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base font-medium text-slate-600 lg:mt-5 lg:text-lg">
+          <p className="mx-auto mt-4 max-w-xl text-base font-medium text-slate-700 lg:mt-5 lg:text-lg">
             QR코드 하나로 1분 만에 설치 완료!
           </p>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500 lg:text-base">여행자님, 천천히 따라 오시면 금방 끝나요.</p>
+          <p className="mx-auto mt-2 max-w-xl text-sm text-slate-700 lg:text-base">여행자님, 천천히 따라 오시면 금방 끝나요.</p>
         </div>
       </section>
 
@@ -201,7 +201,7 @@ export function EsimInstallGuideClient() {
         <GuideFaqSection faqs={faqs} openFaq={openFaq} setOpenFaq={setOpenFaq} />
 
         <div className="mt-12 rounded-2xl border border-teal-100 bg-gradient-to-br from-sky-50/90 to-teal-50/90 px-5 py-8 text-center lg:mt-14 lg:px-8 lg:py-10">
-          <p className="text-base font-semibold text-slate-800 lg:text-lg">아직 eSIM이 없으신가요?</p>
+          <p className="text-base font-semibold text-slate-900 lg:text-lg">아직 eSIM이 없으신가요?</p>
           <Link
             href={bongsimPath("/recommend")}
             className="mt-5 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 px-8 py-3.5 text-base font-bold text-white shadow-md transition hover:from-teal-600 hover:to-cyan-600 hover:shadow-lg active:scale-[0.99] lg:px-10 lg:py-4 lg:text-lg"
