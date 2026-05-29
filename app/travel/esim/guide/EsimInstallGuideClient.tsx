@@ -25,6 +25,19 @@ const TABS: { key: GuideTab; label: string }[] = [
   { key: "android", label: "Android" },
 ];
 
+/** 초세로·세로형 가이드 이미지 — flex 레이아웃에서 문서 높이 폭주 방지 */
+function GuideTallImageScroll({ url, alt }: { url: string; alt: string }) {
+  return (
+    <div className="w-full min-h-0">
+      <p className="mb-1 text-center text-xs text-slate-500">↕ 스크롤하여 전체 단계 보기</p>
+      <div className="mx-auto max-h-[min(70vh,520px)] w-full max-w-[360px] overflow-x-hidden overflow-y-auto rounded-lg border border-slate-200 bg-white leading-[0] sm:max-w-[420px]">
+        {/* eslint-disable-next-line @next/next/no-img-element -- NCloud public_url */}
+        <img src={url} alt={alt} className="block h-auto w-full" loading="lazy" decoding="async" />
+      </div>
+    </div>
+  );
+}
+
 function GuideBlockImage({ guideKey, imageMap }: { guideKey: string; imageMap: EsimGuideImageMap }) {
   const entry = imageMap[guideKey];
   if (!entry) return null;
@@ -49,29 +62,14 @@ function GuideBlockImage({ guideKey, imageMap }: { guideKey: string; imageMap: E
 
   const aspect = width / height;
 
-  if (aspect < 0.3) {
-    return (
-      <div>
-        <p className="mb-1 text-center text-xs text-slate-500">↕ 스크롤하여 전체 단계 보기</p>
-        <div className="mx-auto h-auto max-h-[70vh] w-full max-w-[360px] overflow-x-hidden overflow-y-auto rounded-lg border border-slate-200 leading-[0] sm:max-w-[480px]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- NCloud public_url */}
-          <img
-            src={url}
-            alt={alt}
-            width={width}
-            height={height}
-            className="block h-auto w-full"
-            loading="lazy"
-            decoding="async"
-          />
-        </div>
-      </div>
-    );
+  // 초세로 합성 + 세로 스크린샷 — flex 안에서도 높이 캡(스크롤)
+  if (aspect < 1.0) {
+    return <GuideTallImageScroll url={url} alt={alt} />;
   }
 
   if (aspect < 1.15) {
     return (
-      <div className="flex justify-center pt-1">
+      <div className="flex justify-center">
         {/* eslint-disable-next-line @next/next/no-img-element -- NCloud public_url */}
         <img
           src={url}
@@ -87,7 +85,7 @@ function GuideBlockImage({ guideKey, imageMap }: { guideKey: string; imageMap: E
   }
 
   return (
-    <div className="flex justify-center pt-1">
+    <div className="flex justify-center">
       {/* eslint-disable-next-line @next/next/no-img-element -- NCloud public_url */}
       <img
         src={url}
@@ -106,28 +104,32 @@ function GuideBlockContent({ block, imageMap }: { block: GuideBlock; imageMap: E
   return (
     <div className="space-y-3 text-slate-900">
       {block.heading ? (
-        <p className="font-semibold text-slate-900 lg:text-base">{block.heading}</p>
+        <p className="font-semibold !text-slate-900 lg:text-base">{block.heading}</p>
       ) : null}
       {block.paras?.map((para) => (
-        <p key={para} className="text-sm leading-relaxed text-slate-900 lg:text-base">
+        <p key={para} className="text-sm leading-relaxed !text-slate-900 lg:text-base">
           {para}
         </p>
       ))}
       {block.bullets?.length ? (
-        <ul className="space-y-2.5 text-sm leading-relaxed text-slate-900 lg:text-base">
+        <ul className="space-y-2.5 text-sm leading-relaxed !text-slate-900 lg:text-base">
           {block.bullets.map((item) => (
-            <li key={item} className="flex gap-2 text-slate-900">
+            <li key={item} className="flex gap-2 !text-slate-900">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" aria-hidden />
-              <span className="text-slate-900">{item}</span>
+              <span className="!text-slate-900">{item}</span>
             </li>
           ))}
         </ul>
       ) : null}
-      {block.image ? <GuideBlockImage guideKey={block.image} imageMap={imageMap} /> : null}
       {block.note ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm !text-amber-900 lg:text-base">
           <p>{block.note}</p>
           {block.showUsimsaCs ? <EsimUsimsaCsLinks /> : null}
+        </div>
+      ) : null}
+      {block.image ? (
+        <div className="min-h-0 w-full overflow-hidden">
+          <GuideBlockImage guideKey={block.image} imageMap={imageMap} />
         </div>
       ) : null}
     </div>
@@ -141,18 +143,18 @@ function GuideStepsSection({ steps, imageMap }: { steps: GuideStep[]; imageMap: 
         <Settings2 className="h-5 w-5 text-teal-600" aria-hidden />
         설치 단계
       </h2>
-      <ol className="mt-6 space-y-8">
+      <ol className="mt-6 space-y-6">
         {steps.map(({ n, title, blocks }) => (
-          <li key={n} className="relative flex gap-4">
+          <li key={n} className="relative flex items-start gap-4">
             <div
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 text-sm font-bold text-white shadow-md ring-4 ring-teal-100 lg:h-11 lg:w-11 lg:text-base"
               aria-hidden
             >
               {n}
             </div>
-            <div className="min-w-0 flex-1 pb-2 text-slate-900">
+            <div className="min-h-0 min-w-0 flex-1 pb-1 text-slate-900">
               <h3 className="text-base font-semibold leading-snug text-slate-900 lg:text-lg">{title}</h3>
-              <div className="mt-3 space-y-4">
+              <div className="mt-2 space-y-3">
                 {blocks.map((block, blockIdx) => (
                   <GuideBlockContent key={`${n}-${blockIdx}`} block={block} imageMap={imageMap} />
                 ))}
@@ -267,7 +269,7 @@ export function EsimInstallGuideClient({ imageMap }: { imageMap: EsimGuideImageM
             {PRECHECK_BLOCKS.map((block, idx) => (
               <div
                 key={idx}
-                className="rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm lg:p-6"
+                className="overflow-hidden rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm lg:p-6"
               >
                 <GuideBlockContent block={block} imageMap={imageMap} />
               </div>
