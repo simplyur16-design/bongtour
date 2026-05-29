@@ -302,16 +302,12 @@ export function PlanSelectPopup({
 
   useEffect(() => {
     if (!showAuthToggle || !open || loading) return;
-    const visibleAfterAuth = ALL_PLAN_TABS.filter((t) => (groups[t]?.length ?? 0) > 0);
-    if (visibleAfterAuth.length === 0) return;
     const pin = recommendedByAuth?.[authFilter] ?? null;
     const recTab = pin?.rec_source;
-    if (recTab && visibleAfterAuth.includes(recTab)) {
+    if (recTab && (rawGroups[recTab]?.length ?? 0) > 0) {
       setActiveTab(recTab);
-    } else if (!visibleAfterAuth.includes(activeTab)) {
-      setActiveTab(visibleAfterAuth[0]!);
     }
-  }, [authFilter, showAuthToggle, recommendedByAuth, groups, open, loading, activeTab]);
+  }, [authFilter, showAuthToggle, recommendedByAuth, rawGroups, open, loading]);
 
   const totalKrw = unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
 
@@ -327,18 +323,18 @@ export function PlanSelectPopup({
 
   const canComplete = Boolean(selectedId && selectedProduct && quantity >= 1);
 
-  const visibleTabs = useMemo(
-    () => ALL_PLAN_TABS.filter((tab) => groups[tab].length > 0),
-    [groups],
+  const availableTabs = useMemo(
+    () => ALL_PLAN_TABS.filter((tab) => rawGroups[tab].length > 0),
+    [rawGroups],
   );
 
   useEffect(() => {
     if (!open || loading) return;
-    if (visibleTabs.length === 0) return;
-    if (!visibleTabs.includes(activeTab)) {
-      setActiveTab(visibleTabs[0]!);
+    if (availableTabs.length === 0) return;
+    if (!availableTabs.includes(activeTab)) {
+      setActiveTab(availableTabs[0]!);
     }
-  }, [open, loading, visibleTabs, activeTab]);
+  }, [open, loading, availableTabs, activeTab]);
 
   if (!open) return null;
 
@@ -368,22 +364,24 @@ export function PlanSelectPopup({
               <button
                 type="button"
                 onClick={() => setAuthFilter("required")}
-                className={`min-h-10 rounded-lg px-3 text-sm font-bold transition lg:text-base ${
+                className={`min-h-10 rounded-lg border px-3 text-sm font-bold transition lg:text-base ${
                   authFilter === "required"
-                    ? "border-2 border-amber-400 bg-amber-100 text-amber-900 shadow-sm"
-                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    ? "border-[#BA7517] bg-[#FAEEDA] !text-[#412402] shadow-sm"
+                    : "border-slate-200 bg-white !text-slate-700 hover:bg-slate-50"
                 }`}
+                style={authFilter === "required" ? { color: "#412402" } : { color: "#334155" }}
               >
                 인증 필요
               </button>
               <button
                 type="button"
                 onClick={() => setAuthFilter("not_required")}
-                className={`min-h-10 rounded-lg px-3 text-sm font-bold transition lg:text-base ${
+                className={`min-h-10 rounded-lg border px-3 text-sm font-bold transition lg:text-base ${
                   authFilter === "not_required"
-                    ? "border-2 border-teal-400 bg-teal-100 text-teal-900 shadow-sm"
-                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    ? "border-[#0F6E56] bg-[#E1F5EE] !text-[#04342C] shadow-sm"
+                    : "border-slate-200 bg-white !text-slate-700 hover:bg-slate-50"
                 }`}
+                style={authFilter === "not_required" ? { color: "#04342C" } : { color: "#334155" }}
               >
                 인증 필요없음
               </button>
@@ -393,31 +391,32 @@ export function PlanSelectPopup({
         ) : null}
 
         <div className="border-b border-slate-100 px-5">
-          {visibleTabs.length > 0 ? (
+          {availableTabs.length > 0 ? (
             <div className="flex gap-1 py-3" role="tablist" aria-label="플랜 유형">
-              {visibleTabs.map((tab) => {
+              {availableTabs.map((tab) => {
                 const selected = activeTab === tab;
-                const count = groups[tab].length;
+                const totalCount = rawGroups[tab].length;
                 return (
                   <button
                     key={tab}
                     type="button"
                     role="tab"
                     aria-selected={selected}
+                    disabled={totalCount === 0}
                     onClick={() => setActiveTab(tab)}
                     className={`min-h-10 flex-1 rounded-lg px-2 text-sm font-bold transition lg:text-base ${
                       selected
-                        ? "bg-teal-700 text-white shadow-sm"
+                        ? "bg-teal-700 !text-white shadow-sm"
                         : "bg-slate-100 !text-slate-700 hover:bg-slate-200"
-                    }`}
+                    } disabled:cursor-not-allowed disabled:opacity-40`}
                   >
                     {TAB_LABELS[tab]}
                     <span
                       className={`ml-1 text-xs font-semibold ${
-                        selected ? "text-white/90" : "!text-slate-700"
+                        selected ? "!text-white/90" : "!text-slate-700"
                       }`}
                     >
-                      ({count})
+                      ({totalCount})
                     </span>
                   </button>
                 );
