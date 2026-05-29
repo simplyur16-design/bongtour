@@ -18,7 +18,6 @@ import {
   PRECHECK_BLOCKS,
   PRECHECK_FAQ,
 } from "@/lib/bongsim/esim-guide-content";
-import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
 
 const TABS: { key: GuideTab; label: string }[] = [
   { key: "precheck", label: "설치 전 확인" },
@@ -52,16 +51,16 @@ function GuideBlockImage({ guideKey, imageMap }: { guideKey: string; imageMap: E
 
   if (aspect < 0.3) {
     return (
-      <div className="pt-1">
-        <p className="mb-1.5 text-center text-xs text-slate-500">↕ 스크롤하여 전체 단계 보기</p>
-        <div className="mx-auto max-h-[70vh] w-full max-w-[360px] overflow-y-auto rounded-lg border border-slate-200 sm:max-w-[480px]">
+      <div>
+        <p className="mb-1 text-center text-xs text-slate-500">↕ 스크롤하여 전체 단계 보기</p>
+        <div className="mx-auto h-auto max-h-[70vh] w-full max-w-[360px] overflow-x-hidden overflow-y-auto rounded-lg border border-slate-200 leading-[0] sm:max-w-[480px]">
           {/* eslint-disable-next-line @next/next/no-img-element -- NCloud public_url */}
           <img
             src={url}
             alt={alt}
             width={width}
             height={height}
-            className="block h-auto w-full rounded-lg"
+            className="block h-auto w-full"
             loading="lazy"
             decoding="async"
           />
@@ -290,7 +289,19 @@ export function EsimInstallGuideClient({ imageMap }: { imageMap: EsimGuideImageM
           >
             나에게 맞는 eSIM 찾기
           </Link>
-          <EsimSupportFootnote className="mt-6" />
+          <div className="mt-6 text-center">
+            <p className="text-sm font-medium text-slate-600">문제가 있으신가요?</p>
+            <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-slate-500 lg:text-sm">
+              eSIM 고객지원은 eSIM 전문 파트너 유심사에서 24시간 운영합니다.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <EsimUsimsaCsLinks
+                kakaoLabel="카카오톡 문의하기"
+                emailWithPrefix={false}
+                className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center"
+              />
+            </div>
+          </div>
         </div>
 
         <p className="mt-8 text-center text-sm text-slate-500">
