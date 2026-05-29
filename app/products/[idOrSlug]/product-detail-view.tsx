@@ -195,9 +195,11 @@ function coalesceItineraryOrScheduleText(
 export async function ProductDetailView({
   travelProduct,
   fitMaster,
+  initialDepartureYmd = null,
 }: {
   travelProduct: ProductDetailViewRow
   fitMaster: FitMasterWithDays | null
+  initialDepartureYmd?: string | null
 }) {
   const isAdminDraftPreview = travelProduct.registrationStatus !== 'registered'
 
@@ -1005,12 +1007,20 @@ export async function ProductDetailView({
   const showEsimCrossSell = travelProduct.travelScope === 'overseas'
 
   const packageDetailMobile = (
-    <MobileProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
+    <MobileProductDetail
+      product={serialized}
+      showEsimCrossSell={showEsimCrossSell}
+      initialDepartureYmd={initialDepartureYmd}
+    />
   )
   const packageDetailDesktop = isPrivateOrSemi ? (
     <PrivateTravelProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
   ) : (
-    <TravelProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
+    <TravelProductDetail
+      product={serialized}
+      showEsimCrossSell={showEsimCrossSell}
+      initialDepartureYmd={initialDepartureYmd}
+    />
   )
 
   const detailMobile = isPackageItineraryBody

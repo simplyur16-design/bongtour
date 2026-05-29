@@ -14,6 +14,12 @@ export type UrgentDealDepartureRow = {
   baselineAdultPrice: number | null
 }
 
+export type ModetourUrgentDealNearest = {
+  departureDateYmd: string
+  baseline: number
+  current: number
+}
+
 export function isValidModetourUrgentDealPrice(n: number | null | undefined): n is number {
   return n != null && Number.isFinite(n) && n >= MODETOUR_URGENT_DEAL_MIN_PRICE_KRW
 }
@@ -38,24 +44,27 @@ export function isModetourUrgentDealDeparture(
   return row.adultPrice < row.baselineAdultPrice
 }
 
-export function pickBestModetourUrgentDealCardPair(
+/** 인하 출발일 중 departureDate 가장 가까운(최소) 1건 — 카드·urgentDealNextDate SSOT */
+export function pickNearestModetourUrgentDealDeparture(
   rows: UrgentDealDepartureRow[],
   todayYmd: string = kstTodayYmd()
-): { baseline: number; current: number } | null {
+): ModetourUrgentDealNearest | null {
   const windowEndYmd = addDaysUtcYmd(todayYmd, MODETOUR_URGENT_DEAL_WINDOW_DAYS)
-  let best: { baseline: number; current: number; drop: number } | null = null
+  let best: ModetourUrgentDealNearest | null = null
 
   for (const row of rows) {
     if (!isModetourUrgentDealDeparture(row, todayYmd, windowEndYmd)) continue
-    const baseline = row.baselineAdultPrice!
-    const current = row.adultPrice!
-    const drop = baseline - current
-    if (!best || drop > best.drop) {
-      best = { baseline, current, drop }
+    const departureDateYmd = departureDateToYmd(row.departureDate)
+    if (!best || departureDateYmd < best.departureDateYmd) {
+      best = {
+        departureDateYmd,
+        baseline: row.baselineAdultPrice!,
+        current: row.adultPrice!,
+      }
     }
   }
 
-  return best ? { baseline: best.baseline, current: best.current } : null
+  return best
 }
 
 export type ModetourUrgentDealSyncResult = {
@@ -65,7 +74,7 @@ export type ModetourUrgentDealSyncResult = {
 }
 
 /**
- * sweep 성공 경로 — 30일 윈도우 평가 + hasUrgentDeal 캐시 갱신.
+ * sweep 성공 경로 — 30일 윈도우 평가 + hasUrgentDeal / urgentDealNextDate 캐시 갱신.
  * baseline SSOT: upsertProductDepartures (lib/upsert-product-departures-modetour.ts).
  */
 export async function syncModetourUrgentDealForProduct(
@@ -92,9 +101,9 @@ export async function syncModetourUrgentDealForProduct(
     },
   })
 
-  const hasUrgentDeal = departures.some((dep) =>
-    isModetourUrgentDealDeparture(dep, todayYmd, windowEndYmd)
-  )
+  const nearest = pickNearestModetourUrgentDealDeparture(departures, todayYmd)
+  const hasUrgentDeal = nearest != null
+  const urgentDealNextDate = nearest ? ymdToUtcMidnight(nearest.departureDateYmd) : null
 
   let previous = options?.previousHasUrgentDeal
   if (previous === undefined || previous === null) {
@@ -110,6 +119,7 @@ export async function syncModetourUrgentDealForProduct(
     data: {
       hasUrgentDeal,
       urgentDealUpdatedAt: now,
+      urgentDealNextDate,
     },
   })
 

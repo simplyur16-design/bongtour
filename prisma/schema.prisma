@@ -236,6 +236,8 @@ model Product {
   /// modetour 긴급모객 — sweep가 today~+30일 윈도우에서 baseline 대비 인하 출발일 1건 이상일 때 true
   hasUrgentDeal       Boolean   @default(false)
   urgentDealUpdatedAt DateTime?
+  /// modetour 긴급모객 — 인하 출발일 중 가장 임박한 departureDate (카드·정렬 SSOT)
+  urgentDealNextDate  DateTime? @db.Date
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -251,6 +253,7 @@ model Product {
   @@index([cityKey])
   @@index([lastSalesPolicyCheckedAt])
   @@index([hasUrgentDeal])
+  @@index([hasUrgentDeal, urgentDealNextDate])
 }
 
 model OptionalTour {

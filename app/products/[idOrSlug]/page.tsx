@@ -18,12 +18,16 @@ import {
   loadProductDetailRowCached,
   loadProductForMetadataCached,
 } from '@/lib/product-detail-page-cache'
+import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
 
 /** 공개 등록 상품 — 5분 ISR. draft 미리보기는 요청 시 `connection()`으로 동적 렌더 */
 export const revalidate = 300
 
-type Props = { params: Promise<{ idOrSlug: string }> }
+type Props = {
+  params: Promise<{ idOrSlug: string }>
+  searchParams: Promise<{ departure?: string }>
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { idOrSlug } = await params
@@ -82,8 +86,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * Public product detail. slug 우선 URL; cuid 접근 시 slug가 있으면 permanent redirect.
  * Draft rows render only when `requireAdmin()` succeeds.
  */
-export default async function ProductDetailPage({ params }: Props) {
+export default async function ProductDetailPage({ params, searchParams }: Props) {
   const { idOrSlug } = await params
+  const sp = await searchParams
   if (typeof idOrSlug !== 'string' || !idOrSlug.trim()) {
     notFound()
   }
@@ -124,5 +129,25 @@ export default async function ProductDetailPage({ params }: Props) {
         })
       : null
 
-  return <ProductDetailView travelProduct={travelProduct} fitMaster={fitMaster} />
+  const departureParam = (sp.departure ?? '').trim()
+  let initialDepartureYmd: string | null = null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(departureParam)) {
+    const exists = (travelProduct.departures ?? []).some((d) => {
+      if (!isOnOrAfterPublicBookableMinDate(d.departureDate)) return false
+      const ymd =
+        d.departureDate instanceof Date
+          ? d.departureDate.toISOString().slice(0, 10)
+          : new Date(d.departureDate).toISOString().slice(0, 10)
+      return ymd === departureParam
+    })
+    if (exists) initialDepartureYmd = departureParam
+  }
+
+  return (
+    <ProductDetailView
+      travelProduct={travelProduct}
+      fitMaster={fitMaster}
+      initialDepartureYmd={initialDepartureYmd}
+    />
+  )
 }

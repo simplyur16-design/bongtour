@@ -44,6 +44,7 @@ export type ResultItem = {
   effectivePricePerPersonKrw: number | null
   /** modetour 긴급모객 — browse API가 hasUrgentDeal=true일 때만 채움 */
   hasUrgentDeal?: boolean
+  urgentDealNextDepartureDate?: string
   urgentDealBaselinePriceKrw?: number
   urgentDealCurrentPriceKrw?: number
   hotelName?: string | null
@@ -777,9 +778,14 @@ export function ProductResultCard({
   const cardSrc = (item.coverImageUrl ?? item.bgImageUrl ?? '').trim()
   const cardBlur = Boolean(cardSrc) && isSrcOptimizableByNextImage(cardSrc)
 
+  const cardHref =
+    item.hasUrgentDeal && item.urgentDealNextDepartureDate
+      ? `/products/${item.id}?departure=${encodeURIComponent(item.urgentDealNextDepartureDate)}`
+      : `/products/${item.id}`
+
   return (
     <Link
-      href={`/products/${item.id}`}
+      href={cardHref}
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md"
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">

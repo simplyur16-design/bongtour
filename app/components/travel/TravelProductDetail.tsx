@@ -237,7 +237,7 @@ function toDateKey(d: string): string {
   return d.startsWith('20') && d.length >= 10 ? d.slice(0, 10) : d
 }
 
-type Props = { product: TravelProduct; showEsimCrossSell?: boolean }
+type Props = { product: TravelProduct; showEsimCrossSell?: boolean; initialDepartureYmd?: string | null }
 
 function applyFlightManualCorrectionForPublicOrigin(
   facts: DepartureKeyFacts | null,
@@ -249,7 +249,11 @@ function applyFlightManualCorrectionForPublicOrigin(
   return apply(facts, correction)
 }
 
-export default function TravelProductDetail({ product, showEsimCrossSell = false }: Props) {
+export default function TravelProductDetail({
+  product,
+  showEsimCrossSell = false,
+  initialDepartureYmd = null,
+}: Props) {
   const router = useRouter()
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
   const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(null)
@@ -288,12 +292,20 @@ export default function TravelProductDetail({ product, showEsimCrossSell = false
 
   useEffect(() => {
     if (departureUserPinned) return
+    if (initialDepartureYmd) {
+      const row = mergedPrices.find((p) => toDateKey(p.date) === initialDepartureYmd)
+      if (row) {
+        setSelectedDepartureRowId(row.id)
+        setCalendarDateKey(initialDepartureYmd)
+        return
+      }
+    }
     if (!defaultDepartureRow) {
       setSelectedDepartureRowId(null)
       return
     }
     setSelectedDepartureRowId(defaultDepartureRow.id)
-  }, [departureUserPinned, defaultDepartureRow?.id])
+  }, [departureUserPinned, defaultDepartureRow?.id, initialDepartureYmd, mergedPrices])
 
   useEffect(() => {
     if (!selectedDepartureRowId) return

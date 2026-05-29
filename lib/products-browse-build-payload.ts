@@ -24,8 +24,8 @@ import { buildCaptionLookupMapFromPublicUrls, lookupCaptionFromMap } from '@/lib
 import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
-import { kstTodayYmd, publicProductWhereClause } from '@/lib/product-sales-policy'
-import { pickBestModetourUrgentDealCardPair } from '@/lib/modetour-urgent-deal'
+import { departureDateToYmd } from '@/lib/modetour-urgent-deal'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 import {
@@ -241,7 +241,11 @@ export async function productsBrowseBuildPayload(queryKey: string) {
           publicProductWhereClause(),
         ],
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [
+        { hasUrgentDeal: 'desc' },
+        { urgentDealNextDate: { sort: 'asc', nulls: 'last' } },
+        { updatedAt: 'desc' },
+      ],
       include: buildProductBrowseFullInclude(),
     })
     if (perf) {
@@ -500,19 +504,23 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       earliestDeparture: p.departures[0]?.departureDate?.toISOString() ?? null,
       ...(p.hasUrgentDeal
         ? (() => {
-            const pair = pickBestModetourUrgentDealCardPair(
-              (p.departures ?? []).map((d) => ({
-                departureDate: d.departureDate,
-                adultPrice: d.adultPrice,
-                baselineAdultPrice: d.baselineAdultPrice ?? null,
-              })),
-              kstTodayYmd()
-            )
-            if (!pair) return { hasUrgentDeal: true as const }
+            const ymd = p.urgentDealNextDate
+              ? departureDateToYmd(p.urgentDealNextDate)
+              : null
+            const dep =
+              ymd != null
+                ? (p.departures ?? []).find((d) => departureDateToYmd(d.departureDate) === ymd)
+                : null
+            if (!ymd) return { hasUrgentDeal: true as const }
             return {
               hasUrgentDeal: true as const,
-              urgentDealBaselinePriceKrw: pair.baseline,
-              urgentDealCurrentPriceKrw: pair.current,
+              urgentDealNextDepartureDate: ymd,
+              ...(dep?.baselineAdultPrice != null && dep.adultPrice != null
+                ? {
+                    urgentDealBaselinePriceKrw: dep.baselineAdultPrice,
+                    urgentDealCurrentPriceKrw: dep.adultPrice,
+                  }
+                : {}),
             }
           })()
         : {}),
@@ -567,7 +575,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         mapMs: Math.round(map - score),
         rowCount,
         finalCount,
-        cacheKey: `products-browse-v9|${queryKey}`,
+        cacheKey: `products-browse-v10|${queryKey}`,
       }
       browsePerfLastPhases = phases // PERF-LOG: 측정 후 제거
       console.log('[browse-perf]', JSON.stringify({ cacheHit: false, ...phases })) // PERF-LOG: 측정 후 제거
