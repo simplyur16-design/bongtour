@@ -44,4 +44,7 @@ export type BongsimOrderPublicV1 = {
   /** 고객 전액 취소(웰컴페이 환불) 가능 여부 */
   cancel_eligible: boolean;
   cancel_block_reason: string | null;
+  /** ICCID prefix 8985234* any-match */
+  requires_traveler_verification: boolean;
+  traveler_verification_iccid: string | null;
 };

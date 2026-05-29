@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import type { BongsimOrderPublicV1 } from "@/lib/bongsim/contracts/order-public.v1";
 import { buildEsimInstallFromTopup } from "@/lib/bongsim/esim-install-presentation";
+import { pickPrimaryVerificationIccid } from "@/lib/bongsim/esim/iccid-verification";
 import { getRefundEligibility } from "@/lib/bongsim/refund/refund-eligibility";
 
 export type GetOrderPublicResult =
@@ -147,6 +148,16 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
       [id],
     );
     const tl = topupLink.rows[0];
+
+    const topupIccids = await pool.query<{ iccid: string | null }>(
+      `SELECT iccid
+         FROM bongsim_fulfillment_topup
+        WHERE order_id = $1
+        ORDER BY created_at ASC`,
+      [id],
+    );
+    const travelerVerificationIccid = pickPrimaryVerificationIccid(topupIccids.rows);
+
     const esim_install = buildEsimInstallFromTopup({
       orderStatus: row.status,
       qr_code_img_url: tl?.qr_code_img_url ?? null,
@@ -176,6 +187,8 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
       esim_install,
       cancel_eligible: cancelEligible,
       cancel_block_reason: cancelBlockReason,
+      requires_traveler_verification: travelerVerificationIccid !== null,
+      traveler_verification_iccid: travelerVerificationIccid,
     };
 
     return { ok: true, order };

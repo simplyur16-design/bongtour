@@ -2,6 +2,11 @@ import nodemailer from "nodemailer";
 
 import { BONGSIM_ESIM_SUPPORT_EMAIL_LINE, USIMSA_CX_CONTACT_URL, USIMSA_CX_KAKAO_CHAT_URL } from "@/lib/bongsim/constants";
 import { buildAppleQuickInstallUrl } from "@/lib/bongsim/esim-install-presentation";
+import {
+  CMLINK_TRAVELER_VERIFICATION_URL,
+  TRAVELER_VERIFICATION_ICCID_PREFIX,
+  extractIccidPostPrefix,
+} from "@/lib/bongsim/esim/iccid-verification";
 
 export type TravelEsimOrderQrMailInput = {
   to: string;
@@ -12,6 +17,7 @@ export type TravelEsimOrderQrMailInput = {
   smDpPlusAddress?: string | null;
   activationCode?: string | null;
   orderPageUrl: string;
+  travelerVerificationIccid?: string | null;
 };
 
 function escapeHtml(s: string): string {
@@ -45,6 +51,45 @@ function buildQrImgHtml(safeQrUrl: string, imgSrc: string): string {
        <p style="margin:8px 0 0;font-size:12px;color:#64748b;text-align:center;">이미지가 보이지 않으면 <a href="${safeQrUrl}" style="color:#0f766e;">QR 열기</a> 또는 주문 페이지를 이용해 주세요.</p>`;
 }
 
+function buildTravelerVerificationEmailBlock(iccid: string): { html: string; text: string } {
+  const postPrefix = extractIccidPostPrefix(iccid);
+  if (!postPrefix) return { html: "", text: "" };
+
+  const safePrefix = escapeHtml(TRAVELER_VERIFICATION_ICCID_PREFIX);
+  const safePost = escapeHtml(postPrefix);
+  const safeCmlink = escapeHtml(CMLINK_TRAVELER_VERIFICATION_URL);
+
+  const html = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:16px 0 0;border-collapse:collapse;">
+  <tr>
+    <td style="padding:16px;border:1px solid #fcd34d;border-radius:12px;background:#fffbeb;">
+      <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#0f172a;">여행자 인증이 필요합니다</p>
+      <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:#475569;">이 eSIM은 사용 전 CMLink에서 여행자 인증을 진행해 주세요.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+        <tr>
+          <td style="padding:12px;border:1px solid #fde68a;border-radius:8px;background:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:1.5;word-break:break-all;">
+            <span style="color:#94a3b8;">${safePrefix}</span><strong style="color:#0f172a;">${safePost}</strong>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#64748b;">ICCID 뒷부분 복사는 마이페이지 또는 주문 완료 페이지에서 할 수 있습니다.</p>
+      <p style="margin:16px 0 0;text-align:center;">
+        <a href="${safeCmlink}" style="display:inline-block;padding:12px 20px;background:#1F1B2D;color:#ffffff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">CMLink에서 인증하기</a>
+      </p>
+    </td>
+  </tr>
+</table>`;
+
+  const text = [
+    "── 여행자 인증 ──",
+    "이 eSIM은 사용 전 CMLink에서 여행자 인증을 진행해 주세요.",
+    `ICCID: ${TRAVELER_VERIFICATION_ICCID_PREFIX}${postPrefix}`,
+    "ICCID 뒷부분 복사는 마이페이지 또는 주문 완료 페이지에서 할 수 있습니다.",
+    `CMLink: ${CMLINK_TRAVELER_VERIFICATION_URL}`,
+  ].join("\n");
+
+  return { html, text };
+}
+
 export type TravelEsimOrderQrMailBuildOptions = {
   /** `cid:esimqr` (인라인 첨부) 또는 이스케이프된 https QR URL (직접 로드) */
   qrImgSrc?: string;
@@ -66,6 +111,10 @@ export function buildTravelEsimOrderQrMailContent(
   const appleUrl = lpa ? buildAppleQuickInstallUrl(lpa) : null;
   const smDp = input.smDpPlusAddress?.trim() || "";
   const activationCode = input.activationCode?.trim() || "";
+  const verificationIccid = input.travelerVerificationIccid?.trim() || "";
+  const verificationBlock = verificationIccid
+    ? buildTravelerVerificationEmailBlock(verificationIccid)
+    : { html: "", text: "" };
 
   const text = [
     "결제가 완료되었습니다. eSIM 설치 안내를 보내드립니다.",
@@ -79,6 +128,7 @@ export function buildTravelEsimOrderQrMailContent(
     smDp ? `SM-DP+ 주소: ${smDp}` : "",
     activationCode ? `활성화 코드: ${activationCode}` : "",
     appleUrl ? `iPhone 바로 설치: ${appleUrl}` : "",
+    verificationBlock.text ? ["", verificationBlock.text].join("\n") : "",
     "",
     "── 설치·사용 문의 ──",
     "eSIM 전문 파트너 유심사가 설치·사용을 직접 지원합니다.",
@@ -116,6 +166,7 @@ export function buildTravelEsimOrderQrMailContent(
     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#334155;">주문번호 <strong>${safeOrder}</strong> 결제가 완료되었습니다.</p>
     <p style="margin:0 0 8px;font-size:14px;color:#475569;">QR 코드 스캔</p>
     <div style="margin:0 0 16px;text-align:center;">${qrImgHtml}</div>
+    ${verificationBlock.html}
     <p style="margin:0 0 8px;font-size:14px;color:#475569;">주문 페이지에서 QR 보기</p>
     <p style="margin:0 0 16px;"><a href="${safeOrderPage}" style="color:#0f766e;word-break:break-all;">${safeOrderPage}</a></p>
     ${

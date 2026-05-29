@@ -3,6 +3,7 @@ import { resolveEsimDeliveryContact } from "@/lib/bongsim/checkout/gift-order";
 import { resolveBuyerPhoneForOrder } from "@/lib/bongsim/data/resolve-buyer-phone";
 import { buildBongsimOrderCompleteUrl } from "@/lib/bongsim/esim-install-presentation";
 import { sendTravelEsimOrderQrMail } from "@/lib/bongsim/email/travel-esim-order-qr-mail";
+import { pickPrimaryVerificationIccid } from "@/lib/bongsim/esim/iccid-verification";
 import { sendEsimQrDeliveredAlimTalk } from "@/lib/bongsim/notifications/esim-qr-alimtalk";
 import { isBongsimCheckoutTestMode } from "@/lib/bongsim/test-mode";
 import { sendEsimQrDeliveredLmsFallback } from "@/lib/notification-service";
@@ -23,9 +24,10 @@ export type DeliverEsimToCustomerResult =
 async function fetchTopupManualCredentials(orderId: string): Promise<{
   smdp: string | null;
   activate_code: string | null;
+  travelerVerificationIccid: string | null;
 }> {
   const pool = getPgPool();
-  if (!pool) return { smdp: null, activate_code: null };
+  if (!pool) return { smdp: null, activate_code: null, travelerVerificationIccid: null };
   try {
     const r = await pool.query<{ smdp: string | null; activate_code: string | null }>(
       `SELECT smdp, activate_code
@@ -36,12 +38,23 @@ async function fetchTopupManualCredentials(orderId: string): Promise<{
       [orderId],
     );
     const row = r.rows[0];
+
+    const iccidRows = await pool.query<{ iccid: string | null }>(
+      `SELECT iccid
+         FROM bongsim_fulfillment_topup
+        WHERE order_id = $1::uuid
+        ORDER BY created_at ASC`,
+      [orderId],
+    );
+    const travelerVerificationIccid = pickPrimaryVerificationIccid(iccidRows.rows);
+
     return {
       smdp: row?.smdp?.trim() || null,
       activate_code: row?.activate_code?.trim() || null,
+      travelerVerificationIccid,
     };
   } catch {
-    return { smdp: null, activate_code: null };
+    return { smdp: null, activate_code: null, travelerVerificationIccid: null };
   }
 }
 
@@ -53,6 +66,7 @@ async function sendEsimQrEmailBestEffort(params: {
   downloadLink: string;
   smdp: string | null;
   activate_code: string | null;
+  travelerVerificationIccid: string | null;
 }): Promise<void> {
   const send = await sendTravelEsimOrderQrMail({
     to: params.buyerEmail,
@@ -62,6 +76,7 @@ async function sendEsimQrEmailBestEffort(params: {
     downloadLink: params.downloadLink,
     smDpPlusAddress: params.smdp,
     activationCode: params.activate_code,
+    travelerVerificationIccid: params.travelerVerificationIccid ?? undefined,
   });
   if (!send.ok) {
     console.warn("[bongsim:email:esim-qr]", send.error, { orderNumber: params.orderNumber });
@@ -77,6 +92,7 @@ async function notifyEsimQrToCustomer(params: {
   downloadLink: string;
   smdp: string | null;
   activate_code: string | null;
+  travelerVerificationIccid: string | null;
 }): Promise<void> {
   const orderPageUrl = buildBongsimOrderCompleteUrl(params.orderId);
   const phone = params.deliveryPhone ?? (await resolveBuyerPhoneForOrder(params.orderId));
@@ -106,6 +122,7 @@ async function notifyEsimQrToCustomer(params: {
     downloadLink: params.downloadLink,
     smdp: params.smdp,
     activate_code: params.activate_code,
+    travelerVerificationIccid: params.travelerVerificationIccid,
   });
 }
 
@@ -178,7 +195,7 @@ export async function deliverEsimToCustomer(
   }
 
   if (!isBongsimCheckoutTestMode()) {
-    const { smdp, activate_code } = await fetchTopupManualCredentials(orderId);
+    const { smdp, activate_code, travelerVerificationIccid } = await fetchTopupManualCredentials(orderId);
     await notifyEsimQrToCustomer({
       orderId,
       orderNumber,
@@ -188,6 +205,7 @@ export async function deliverEsimToCustomer(
       downloadLink,
       smdp,
       activate_code,
+      travelerVerificationIccid,
     });
   }
 

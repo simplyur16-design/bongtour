@@ -2,6 +2,7 @@ import Link from "next/link";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import type { BongsimOrderPublicV1 } from "@/lib/bongsim/contracts/order-public.v1";
 import { EsimInstallSection } from "@/components/bongsim/order-complete/EsimInstallSection";
+import { EsimTravelerVerificationCallout } from "@/components/bongsim/esim/EsimTravelerVerificationCallout";
 import { OrderCompleteRefundActions } from "@/components/bongsim/order-complete/OrderCompleteRefundActions";
 
 function formatKrw(n: number): string {
@@ -127,6 +128,10 @@ export function OrderCompleteRealView({ order }: { order: BongsimOrderPublicV1 }
       />
 
       <EsimInstallSection install={order.esim_install} />
+
+      {order.requires_traveler_verification && order.traveler_verification_iccid ? (
+        <EsimTravelerVerificationCallout iccid={order.traveler_verification_iccid} />
+      ) : null}
 
       <Link href={bongsimPath()} className="inline-block text-[13px] text-teal-800 underline">
         홈으로

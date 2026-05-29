@@ -3,6 +3,7 @@ import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { countryDisplayFromPlanNameKr } from "@/lib/bongsim/mypage-esim-display";
+import { pickPrimaryVerificationIccid } from "@/lib/bongsim/esim/iccid-verification";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ type TopupRow = {
   qr_code_img_url: string | null;
   smdp: string | null;
   activate_code: string | null;
+  iccid: string | null;
 };
 
 export async function GET() {
@@ -54,7 +56,8 @@ export async function GET() {
                'status', t.status,
                'qr_code_img_url', t.qr_code_img_url,
                'smdp', t.smdp,
-               'activate_code', t.activate_code
+               'activate_code', t.activate_code,
+               'iccid', t.iccid
              ) ORDER BY t.created_at)
              FROM bongsim_fulfillment_topup t
             WHERE t.order_id = o.order_id AND t.supplier_id = 'usimsa'),
@@ -77,6 +80,7 @@ export async function GET() {
       const primaryActivateCode =
         topups.find((t) => (t.activate_code ?? "").trim().length > 0)?.activate_code?.trim() ?? null;
       const canEsimActions = row.status === "delivered" && Boolean(primaryQr);
+      const travelerVerificationIccid = pickPrimaryVerificationIccid(topups);
 
       return {
         order_id: row.order_id,
@@ -90,12 +94,20 @@ export async function GET() {
         allowance_label: row.allowance_label?.trim() || "",
         country_flag: flag,
         country_label: countryLabel,
-        topups,
+        topups: topups.map(({ topup_id, status, qr_code_img_url, smdp, activate_code }) => ({
+          topup_id,
+          status,
+          qr_code_img_url,
+          smdp,
+          activate_code,
+        })),
         qr_code_img_url: primaryQr,
         sm_dp_plus_address: primarySmdp,
         activation_code: primaryActivateCode,
         can_show_qr: canEsimActions,
         can_check_usage: canEsimActions,
+        requires_traveler_verification: travelerVerificationIccid !== null,
+        traveler_verification_iccid: travelerVerificationIccid,
       };
     });
 

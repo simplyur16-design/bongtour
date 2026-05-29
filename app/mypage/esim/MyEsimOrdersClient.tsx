@@ -19,6 +19,8 @@ type OrderRow = {
   activation_code: string | null;
   can_show_qr: boolean;
   can_check_usage: boolean;
+  requires_traveler_verification: boolean;
+  traveler_verification_iccid: string | null;
 };
 
 type UsageResponse = {
@@ -87,6 +89,7 @@ function ManualInstallField({ label, value, copyLabel }: { label: string; value:
 }
 
 import MypagePageHeading from '@/components/mypage/MypagePageHeading'
+import { EsimTravelerVerificationCallout } from "@/components/bongsim/esim/EsimTravelerVerificationCallout";
 
 export default function MyEsimOrdersClient() {
   const [rows, setRows] = useState<OrderRow[]>([]);
@@ -224,6 +227,12 @@ export default function MyEsimOrdersClient() {
                 </button>
               ) : null}
             </div>
+
+            {o.requires_traveler_verification && o.traveler_verification_iccid ? (
+              <div className="mt-4">
+                <EsimTravelerVerificationCallout iccid={o.traveler_verification_iccid} />
+              </div>
+            ) : null}
           </article>
         ))}
 
