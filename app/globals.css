@@ -403,3 +403,25 @@ a:not([class]):hover {
 .bt-bongsim-readable .bt-bongsim-footer-lowest-price {
   color: #0f172a !important;
 }
+
+/* eSIM 혜택 상세 (구글맵·ChatGPT) — 밝은 배경 본문: 흰색 상속·전역 덮어쓰기 차단 */
+.bt-esim-benefit-page,
+.bt-esim-benefit-page main,
+.bt-esim-benefit-page section:not(.bt-esim-benefit-notice),
+.bt-esim-benefit-page h1,
+.bt-esim-benefit-page h2,
+.bt-esim-benefit-page p,
+.bt-esim-benefit-page li {
+  color: #0f172a !important;
+}
+.bt-esim-benefit-page .bt-esim-benefit-subtitle {
+  color: #334155 !important;
+}
+.bt-esim-benefit-page .bt-esim-benefit-muted {
+  color: #475569 !important;
+}
+.bt-esim-benefit-page .bt-esim-benefit-notice,
+.bt-esim-benefit-page .bt-esim-benefit-notice h2,
+.bt-esim-benefit-page .bt-esim-benefit-notice li {
+  color: #78350f !important;
+}
