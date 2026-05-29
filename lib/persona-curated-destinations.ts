@@ -6,7 +6,12 @@
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
-import { getCurrentCycle, getProductCityDistribution } from '@/lib/season-curation'
+import { getCurrentCycle } from '@/lib/season-curation'
+import {
+  loadHeroEligibleCityKeySet,
+  logHeroCityKeyReplacements,
+  resolveHeroCityKeysWithProductFallback,
+} from '@/lib/season-hero-city-keys'
 import { getHomeHubCoverImageUrl } from '@/lib/final-image-selection'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import type { PersonaTabKey } from '@/lib/main-hub-copy'
@@ -74,28 +79,6 @@ function hasLabel(labels: string[] | null | undefined, key: string): boolean {
   return Array.isArray(labels) && labels.includes(key)
 }
 
-function resolveFiveCityKeys(
-  cycle: Awaited<ReturnType<typeof getCurrentCycle>>,
-  dist: Map<string, { count: number }>,
-): string[] {
-  const primary = uniqPreserveOrder(cycle?.cityKeys ?? [])
-  const fallback = uniqPreserveOrder(cycle?.fallbackKeys ?? [])
-  const out: string[] = []
-  for (const k of primary) {
-    if (out.length >= 5) break
-    out.push(k)
-  }
-  for (const k of fallback) {
-    if (out.length >= 5) break
-    if (!out.includes(k)) out.push(k)
-  }
-  for (const k of dist.keys()) {
-    if (out.length >= 5) break
-    if (!out.includes(k)) out.push(k)
-  }
-  return out.slice(0, 5)
-}
-
 function tabCountsForCards(cards: PersonaCityCard[]): Record<PersonaTabKey, number> {
   return {
     all: cards.length,
@@ -107,8 +90,21 @@ function tabCountsForCards(cards: PersonaCityCard[]): Record<PersonaTabKey, numb
 
 async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedDestinationsPayload> {
   const now = new Date()
-  const [cycle, dist] = await Promise.all([getCurrentCycle(now), getProductCityDistribution(now)])
-  const cityKeys = resolveFiveCityKeys(cycle, dist)
+  const [cycle] = await Promise.all([getCurrentCycle(now)])
+
+  const rawPrimary = uniqPreserveOrder(cycle?.cityKeys ?? []).slice(0, 5)
+  const rawFallback = uniqPreserveOrder(cycle?.fallbackKeys ?? [])
+  const heroPool = uniqPreserveOrder([...rawPrimary, ...rawFallback])
+  const eligible = await loadHeroEligibleCityKeySet(heroPool, now)
+  const { resolved: cityKeys, replacements } = resolveHeroCityKeysWithProductFallback(
+    rawPrimary,
+    rawFallback,
+    eligible,
+    5,
+  )
+  if (replacements.length > 0) {
+    logHeroCityKeyReplacements(replacements, '[persona-curated-destinations] hero city replace:')
+  }
 
   const cycleMeta = cycle
     ? {
@@ -134,9 +130,13 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
   const products = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
-      cityKey: { in: cityKeys },
-      NOT: { travelScope: 'domestic' },
-      AND: [publicProductWhereClause(now)],
+      travelScope: 'overseas',
+      AND: [
+        publicProductWhereClause(now),
+        {
+          OR: [{ cityKey: { in: cityKeys } }, { cityTags: { some: { cityKey: { in: cityKeys } } } }],
+        },
+      ],
     },
     select: {
       id: true,
@@ -144,16 +144,22 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
       personaLabels: true,
       bgImageUrl: true,
       schedule: true,
-      itineraries: { select: { day: true, description: true }, orderBy: { day: 'asc' }, take: 24 },
+      itineraries: { select: { day: true, description: true }, orderBy: { day: 'asc' as const }, take: 24 },
+      cityTags: { select: { cityKey: true } },
     },
   })
 
   const byCity = new Map<string, typeof products>()
   for (const p of products) {
-    const ck = p.cityKey
-    if (!ck) continue
-    if (!byCity.has(ck)) byCity.set(ck, [])
-    byCity.get(ck)!.push(p)
+    const matched = new Set<string>()
+    if (p.cityKey && cityKeys.includes(p.cityKey)) matched.add(p.cityKey)
+    for (const t of p.cityTags) {
+      if (cityKeys.includes(t.cityKey)) matched.add(t.cityKey)
+    }
+    for (const ck of matched) {
+      if (!byCity.has(ck)) byCity.set(ck, [])
+      byCity.get(ck)!.push(p)
+    }
   }
 
   const seedBase = cycle?.id ?? 'no-cycle'
@@ -209,7 +215,7 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
 
 export async function getPersonaCuratedDestinationsPayload(): Promise<PersonaCuratedDestinationsPayload> {
   const cycle = await getCurrentCycle(new Date())
-  const cacheKey = ['persona-curated-destinations', cycle?.id ?? 'no-active-cycle']
+  const cacheKey = ['persona-curated-destinations', cycle?.id ?? 'no-active-cycle', 'v7-hero-city-fallback']
   const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(), cacheKey, { revalidate: 21_600 })
   return run()
 }

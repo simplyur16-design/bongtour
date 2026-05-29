@@ -100,7 +100,7 @@ async function loadOverseasHubSeasonDestinationHeroSlidesUncached(): Promise<Ove
 
 export async function getCachedOverseasHubSeasonDestinationHeroSlides(): Promise<OverseasHubDestinationHeroSlide[]> {
   const cycle = await getCurrentCycle(new Date())
-  const cacheKey = ['overseas-hub-season-destination-hero', cycle?.id ?? 'no-active-cycle', 'v6-month-123']
+  const cacheKey = ['overseas-hub-season-destination-hero', cycle?.id ?? 'no-active-cycle', 'v7-hero-city-fallback']
   const run = unstable_cache(
     () => loadOverseasHubSeasonDestinationHeroSlidesUncached(),
     cacheKey,

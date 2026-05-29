@@ -7,6 +7,11 @@ import type { SeasonalDestinationCuration } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { extractFirstBalancedJsonObject, stripLlmMarkdownJsonFence } from '@/lib/llm-json-extract'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
+import {
+  loadHeroEligibleCityKeySet,
+  logHeroCityKeyReplacements,
+  resolveHeroCityKeysWithProductFallback,
+} from '@/lib/season-hero-city-keys'
 
 const SEASON_MODEL = process.env.GEMINI_SEASON_CURATION_MODEL?.trim() || getModelName()
 
@@ -349,7 +354,19 @@ export async function generateNewCycle(input: GenerateNewCycleInput): Promise<Se
     candidateKeys.length ? candidateKeys : sortedCatalogKeys.slice(0, 40),
   )
 
-  const { primary, fallback, reasoning } = normalizePicks(parsed, allowedCatalog, masterKeys, sortedCatalogKeys)
+  const { primary: rawPrimary, fallback, reasoning } = normalizePicks(parsed, allowedCatalog, masterKeys, sortedCatalogKeys)
+
+  const heroPool = uniqPreserveOrder([...rawPrimary, ...fallback])
+  const eligible = await loadHeroEligibleCityKeySet(heroPool, now)
+  const { resolved: primary, replacements: heroReplacements } = resolveHeroCityKeysWithProductFallback(
+    rawPrimary,
+    fallback,
+    eligible,
+    5,
+  )
+  if (heroReplacements.length > 0) {
+    logHeroCityKeyReplacements(heroReplacements, '[season-curation] hero city replace:')
+  }
 
   if (primary.length < 5) {
     throw new Error(`primary 도시가 5개 미만입니다 (${primary.length}). 카탈로그·City 마스터를 확인하세요.`)
@@ -362,6 +379,7 @@ export async function generateNewCycle(input: GenerateNewCycleInput): Promise<Se
     primary,
     fallback,
     reasoning,
+    heroReplacements,
     rawText: text,
     model: SEASON_MODEL,
   }
