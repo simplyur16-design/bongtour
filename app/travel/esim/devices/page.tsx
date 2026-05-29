@@ -28,14 +28,14 @@ export default function EsimDevicesPage() {
         className="w-full bg-gradient-to-br from-sky-50 to-teal-50 px-4 py-12 lg:py-16"
         aria-labelledby="esim-devices-hero"
       >
-        <div className="mx-auto max-w-3xl text-center lg:max-w-4xl">
+        <div className="mx-auto max-w-3xl text-center text-slate-900 lg:max-w-4xl">
           <h1
             id="esim-devices-hero"
-            className="text-balance text-2xl font-bold leading-tight tracking-tight text-slate-900 lg:text-4xl"
+            className="text-balance text-2xl font-bold leading-tight tracking-tight !text-slate-900 lg:text-4xl"
           >
             eSIM 지원 기종, 구매 전 체크해 보세요
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-700 lg:mt-5 lg:text-lg">
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed !text-slate-700 lg:mt-5 lg:text-lg">
             여행자님, 사용 중인 휴대폰이 eSIM을 지원하는지 먼저 확인해보세요.
           </p>
         </div>
@@ -43,7 +43,7 @@ export default function EsimDevicesPage() {
 
       <main className="mx-auto max-w-3xl px-4 pb-16 pt-8 lg:max-w-4xl lg:px-6 lg:pb-20 lg:pt-10">
         <div
-          className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-950 lg:p-5 lg:text-base"
+          className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed !text-amber-900 lg:p-5 lg:text-base"
           role="note"
         >
           eSIM을 먼저 구매한 후 휴대폰이 미지원 기종임을 뒤늦게 알게 되면, 여행지에서 인터넷 연결이 안 되는 불편을 겪을 수 있어요.
@@ -56,7 +56,7 @@ export default function EsimDevicesPage() {
               <li className="text-slate-900">S23 Series, S24 Series, S25 Series, S26 Series</li>
               <li className="text-slate-900">A54, A55, A56 (한국판)</li>
             </ul>
-            <p className="rounded-lg border border-amber-100 bg-amber-50/80 px-3 py-2 text-sm text-amber-950">
+            <p className="rounded-lg border border-amber-100 bg-amber-50/80 px-3 py-2 text-sm !text-amber-900">
               ⚠️ Galaxy S22 이하 한국판은 eSIM을 지원하지 않습니다
             </p>
             <p className="rounded-lg border border-sky-100 bg-sky-50/80 px-3 py-2 text-sm text-slate-900">
