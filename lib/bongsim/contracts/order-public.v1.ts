@@ -17,11 +17,12 @@ export type BongsimOrderPublicFulfillmentV1 = {
   attempt_count: number;
 };
 
-/** QR 이미지 URL + LPA 수동 코드 (클릭 URL 아님) */
+/** QR 이미지 URL + SM-DP+ / 활성화 코드 (수동 설치) */
 export type BongsimOrderPublicEsimInstallV1 = {
   ready: boolean;
   qr_image_url: string | null;
-  manual_install_code: string | null;
+  sm_dp_plus_address: string | null;
+  activation_code: string | null;
   apple_quick_install_url: string | null;
 };
 

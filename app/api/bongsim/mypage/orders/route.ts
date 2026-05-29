@@ -6,7 +6,13 @@ import { countryDisplayFromPlanNameKr } from "@/lib/bongsim/mypage-esim-display"
 
 export const dynamic = "force-dynamic";
 
-type TopupRow = { topup_id: string; status: string; qr_code_img_url: string | null };
+type TopupRow = {
+  topup_id: string;
+  status: string;
+  qr_code_img_url: string | null;
+  smdp: string | null;
+  activate_code: string | null;
+};
 
 export async function GET() {
   const session = await auth();
@@ -46,7 +52,9 @@ export async function GET() {
            (SELECT json_agg(json_build_object(
                'topup_id', t.topup_id,
                'status', t.status,
-               'qr_code_img_url', t.qr_code_img_url
+               'qr_code_img_url', t.qr_code_img_url,
+               'smdp', t.smdp,
+               'activate_code', t.activate_code
              ) ORDER BY t.created_at)
              FROM bongsim_fulfillment_topup t
             WHERE t.order_id = o.order_id AND t.supplier_id = 'usimsa'),
@@ -65,6 +73,9 @@ export async function GET() {
       const { flag, countryLabel } = countryDisplayFromPlanNameKr(planName);
       const topups = Array.isArray(row.topups) ? row.topups : [];
       const primaryQr = topups.find((t) => (t.qr_code_img_url ?? "").trim().length > 0)?.qr_code_img_url ?? null;
+      const primarySmdp = topups.find((t) => (t.smdp ?? "").trim().length > 0)?.smdp?.trim() ?? null;
+      const primaryActivateCode =
+        topups.find((t) => (t.activate_code ?? "").trim().length > 0)?.activate_code?.trim() ?? null;
       const canEsimActions = row.status === "delivered" && Boolean(primaryQr);
 
       return {
@@ -81,6 +92,8 @@ export async function GET() {
         country_label: countryLabel,
         topups,
         qr_code_img_url: primaryQr,
+        sm_dp_plus_address: primarySmdp,
+        activation_code: primaryActivateCode,
         can_show_qr: canEsimActions,
         can_check_usage: canEsimActions,
       };

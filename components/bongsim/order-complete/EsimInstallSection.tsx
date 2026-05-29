@@ -27,8 +27,22 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
+function ManualInstallField({ label, value, copyLabel }: { label: string; value: string; copyLabel: string }) {
+  return (
+    <div className="mt-3">
+      <p className="text-[12px] font-medium text-slate-600">{label}</p>
+      <p className="mt-1 break-all rounded-lg bg-slate-50 p-3 font-mono text-[11px] leading-relaxed text-slate-800">
+        {value}
+      </p>
+      <CopyButton text={value} label={copyLabel} />
+    </div>
+  );
+}
+
 export function EsimInstallSection({ install }: { install: BongsimOrderPublicEsimInstallV1 }) {
-  if (!install.ready && !install.qr_image_url && !install.manual_install_code) {
+  const hasManualFields = Boolean(install.sm_dp_plus_address || install.activation_code);
+
+  if (!install.ready && !install.qr_image_url && !hasManualFields) {
     return (
       <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
         <h2 className="text-[13px] font-semibold text-slate-800">eSIM 설치</h2>
@@ -64,13 +78,22 @@ export function EsimInstallSection({ install }: { install: BongsimOrderPublicEsi
         </div>
       ) : null}
 
-      {install.manual_install_code ? (
-        <div className="mt-4">
-          <p className="text-[12px] font-medium text-slate-600">수동 설치 코드</p>
-          <p className="mt-1 break-all rounded-lg bg-slate-50 p-3 font-mono text-[11px] leading-relaxed text-slate-800">
-            {install.manual_install_code}
+      {hasManualFields ? (
+        <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50/40 p-4">
+          <p className="text-[12px] font-semibold text-teal-900">수동 설치</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-teal-800">
+            QR 스캔이 어려우면 아래 SM-DP+ 주소와 활성화 코드를 설정에 직접 입력하세요.
           </p>
-          <CopyButton text={install.manual_install_code} label="코드 복사" />
+          {install.sm_dp_plus_address ? (
+            <ManualInstallField
+              label="SM-DP+ 주소"
+              value={install.sm_dp_plus_address}
+              copyLabel="주소 복사"
+            />
+          ) : null}
+          {install.activation_code ? (
+            <ManualInstallField label="활성화 코드" value={install.activation_code} copyLabel="코드 복사" />
+          ) : null}
         </div>
       ) : null}
 

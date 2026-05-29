@@ -20,12 +20,39 @@ export type DeliverEsimToCustomerResult =
     }
   | { ok: false; reason: "db_unconfigured" | "db_error" };
 
+async function fetchTopupManualCredentials(orderId: string): Promise<{
+  smdp: string | null;
+  activate_code: string | null;
+}> {
+  const pool = getPgPool();
+  if (!pool) return { smdp: null, activate_code: null };
+  try {
+    const r = await pool.query<{ smdp: string | null; activate_code: string | null }>(
+      `SELECT smdp, activate_code
+         FROM bongsim_fulfillment_topup
+        WHERE order_id = $1::uuid
+        ORDER BY updated_at DESC NULLS LAST
+        LIMIT 1`,
+      [orderId],
+    );
+    const row = r.rows[0];
+    return {
+      smdp: row?.smdp?.trim() || null,
+      activate_code: row?.activate_code?.trim() || null,
+    };
+  } catch {
+    return { smdp: null, activate_code: null };
+  }
+}
+
 async function sendEsimQrEmailBestEffort(params: {
   buyerEmail: string;
   orderNumber: string;
   orderPageUrl: string;
   qrCodeUrl: string;
   downloadLink: string;
+  smdp: string | null;
+  activate_code: string | null;
 }): Promise<void> {
   const send = await sendTravelEsimOrderQrMail({
     to: params.buyerEmail,
@@ -33,6 +60,8 @@ async function sendEsimQrEmailBestEffort(params: {
     orderPageUrl: params.orderPageUrl,
     qrCodeUrl: params.qrCodeUrl,
     downloadLink: params.downloadLink,
+    smDpPlusAddress: params.smdp,
+    activationCode: params.activate_code,
   });
   if (!send.ok) {
     console.warn("[bongsim:email:esim-qr]", send.error, { orderNumber: params.orderNumber });
@@ -46,6 +75,8 @@ async function notifyEsimQrToCustomer(params: {
   deliveryPhone: string | null;
   qrCodeUrl: string;
   downloadLink: string;
+  smdp: string | null;
+  activate_code: string | null;
 }): Promise<void> {
   const orderPageUrl = buildBongsimOrderCompleteUrl(params.orderId);
   const phone = params.deliveryPhone ?? (await resolveBuyerPhoneForOrder(params.orderId));
@@ -73,6 +104,8 @@ async function notifyEsimQrToCustomer(params: {
     orderPageUrl,
     qrCodeUrl: params.qrCodeUrl,
     downloadLink: params.downloadLink,
+    smdp: params.smdp,
+    activate_code: params.activate_code,
   });
 }
 
@@ -145,6 +178,7 @@ export async function deliverEsimToCustomer(
   }
 
   if (!isBongsimCheckoutTestMode()) {
+    const { smdp, activate_code } = await fetchTopupManualCredentials(orderId);
     await notifyEsimQrToCustomer({
       orderId,
       orderNumber,
@@ -152,6 +186,8 @@ export async function deliverEsimToCustomer(
       deliveryPhone,
       qrCodeUrl,
       downloadLink,
+      smdp,
+      activate_code,
     });
   }
 

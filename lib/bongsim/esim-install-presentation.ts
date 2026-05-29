@@ -31,17 +31,24 @@ export function buildEsimInstallFromTopup(params: {
   orderStatus: string;
   qr_code_img_url: string | null;
   download_link: string | null;
+  smdp: string | null;
+  activate_code: string | null;
 }): BongsimOrderPublicEsimInstallV1 {
   const qr = params.qr_code_img_url?.trim() || null;
-  const manual = params.download_link?.trim() || null;
+  const downloadLink = params.download_link?.trim() || null;
+  const smDpPlusAddress = params.smdp?.trim() || null;
+  const activationCode = params.activate_code?.trim() || null;
   const hasQr = Boolean(qr);
-  const hasManual = Boolean(manual);
-  const ready = params.orderStatus === "delivered" && (hasQr || hasManual);
+  const hasManualFields = Boolean(smDpPlusAddress || activationCode);
+  const hasDownloadLink = Boolean(downloadLink);
+  const ready =
+    params.orderStatus === "delivered" && (hasQr || hasManualFields || hasDownloadLink);
 
   return {
     ready,
     qr_image_url: qr,
-    manual_install_code: manual,
-    apple_quick_install_url: manual ? buildAppleQuickInstallUrl(manual) : null,
+    sm_dp_plus_address: smDpPlusAddress,
+    activation_code: activationCode,
+    apple_quick_install_url: downloadLink ? buildAppleQuickInstallUrl(downloadLink) : null,
   };
 }

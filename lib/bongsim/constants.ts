@@ -22,6 +22,12 @@ export const BONGSIM_ESIM_SUPPORT_CARD_BODY = 'Bong투어 카카오톡으로 문
 /** 결제·가이드·기기·체크아웃 등 1차 문의 */
 export const BONGSIM_ESIM_SUPPORT_EMAIL_LINE = '고객지원 문의: bongtour24@naver.com'
 
+/** 유심사 CX — eSIM 설치·사용 문의 카카오톡 1:1 채팅 (공식 채널) */
+export const USIMSA_CX_KAKAO_CHAT_URL = 'https://pf.kakao.com/_fqTkK/chat'
+
+/** 유심사 CX — 이메일·문의 채널 페이지 */
+export const USIMSA_CX_CONTACT_URL = 'https://www.usimsa.com/board/contact-channel/'
+
 export function bongsimPath(sub: string = ""): string {
   if (!sub) return BONGSIM_BASE_PATH;
   const normalized = sub.startsWith("/") ? sub : `/${sub}`;

@@ -1,14 +1,16 @@
 import nodemailer from "nodemailer";
 
-import { BONGSIM_ESIM_SUPPORT_EMAIL_LINE, BONGSIM_KAKAO_CHANNEL_URL } from "@/lib/bongsim/constants";
+import { BONGSIM_ESIM_SUPPORT_EMAIL_LINE, USIMSA_CX_CONTACT_URL, USIMSA_CX_KAKAO_CHAT_URL } from "@/lib/bongsim/constants";
 import { buildAppleQuickInstallUrl } from "@/lib/bongsim/esim-install-presentation";
 
 export type TravelEsimOrderQrMailInput = {
   to: string;
   orderNumber: string;
   qrCodeUrl: string;
-  /** LPA:1$… 수동 설치 코드 (클릭 URL 아님) */
+  /** LPA:1$… — iPhone 원클릭 URL 파생용 (본문 LPA 노출 아님) */
   downloadLink: string;
+  smDpPlusAddress?: string | null;
+  activationCode?: string | null;
   orderPageUrl: string;
 };
 
@@ -62,6 +64,8 @@ export function buildTravelEsimOrderQrMailContent(
   const lpa = input.downloadLink.trim();
   const orderPage = input.orderPageUrl.trim();
   const appleUrl = lpa ? buildAppleQuickInstallUrl(lpa) : null;
+  const smDp = input.smDpPlusAddress?.trim() || "";
+  const activationCode = input.activationCode?.trim() || "";
 
   const text = [
     "결제가 완료되었습니다. eSIM 설치 안내를 보내드립니다.",
@@ -72,11 +76,17 @@ export function buildTravelEsimOrderQrMailContent(
     orderPage,
     "",
     qr ? `QR 이미지(백업 URL): ${qr}` : "",
-    lpa ? `수동 설치 코드: ${lpa}` : "",
+    smDp ? `SM-DP+ 주소: ${smDp}` : "",
+    activationCode ? `활성화 코드: ${activationCode}` : "",
     appleUrl ? `iPhone 바로 설치: ${appleUrl}` : "",
     "",
+    "── 설치·사용 문의 ──",
+    "eSIM 전문 파트너 유심사가 설치·사용을 직접 지원합니다.",
+    `카카오톡 문의: ${USIMSA_CX_KAKAO_CHAT_URL}`,
+    `이메일 문의: ${USIMSA_CX_CONTACT_URL}`,
+    `문의 시 주문번호를 알려주세요: ${orderNumber}`,
+    "",
     BONGSIM_ESIM_SUPPORT_EMAIL_LINE,
-    BONGSIM_KAKAO_CHANNEL_URL.trim() ? `카카오 채널: ${BONGSIM_KAKAO_CHANNEL_URL.trim()}` : "",
     "",
     "Bong투어 드림",
   ]
@@ -85,12 +95,12 @@ export function buildTravelEsimOrderQrMailContent(
 
   const safeOrder = escapeHtml(orderNumber);
   const safeQr = escapeHtml(qr);
-  const safeLpa = escapeHtml(lpa);
   const safeOrderPage = escapeHtml(orderPage);
   const safeSupport = escapeHtml(BONGSIM_ESIM_SUPPORT_EMAIL_LINE);
-  const kakaoLine = BONGSIM_KAKAO_CHANNEL_URL.trim()
-    ? `<p style="margin:12px 0 0;font-size:14px;color:#334155;">카카오: <a href="${escapeHtml(BONGSIM_KAKAO_CHANNEL_URL.trim())}" style="color:#0f766e;">채널 바로가기</a></p>`
-    : "";
+  const safeSmDp = escapeHtml(smDp);
+  const safeActivationCode = escapeHtml(activationCode);
+  const safeUsimsaKakao = escapeHtml(USIMSA_CX_KAKAO_CHAT_URL);
+  const safeUsimsaContact = escapeHtml(USIMSA_CX_CONTACT_URL);
 
   const qrImgSrc = options?.qrImgSrc?.trim() ?? "";
   const qrImgHtml = qr && qrImgSrc ? buildQrImgHtml(safeQr, qrImgSrc) : "";
@@ -109,14 +119,34 @@ export function buildTravelEsimOrderQrMailContent(
     <p style="margin:0 0 8px;font-size:14px;color:#475569;">주문 페이지에서 QR 보기</p>
     <p style="margin:0 0 16px;"><a href="${safeOrderPage}" style="color:#0f766e;word-break:break-all;">${safeOrderPage}</a></p>
     ${
-      lpa
-        ? `<p style="margin:0 0 8px;font-size:14px;color:#475569;">수동 설치 코드</p>
-    <pre style="margin:0 0 16px;padding:12px;background:#f1f5f9;border-radius:8px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-all;color:#0f172a;">${safeLpa}</pre>`
+      smDp || activationCode
+        ? `<p style="margin:0 0 8px;font-size:14px;color:#475569;">수동 설치 (QR 스캔이 어려울 때)</p>
+    ${
+      smDp
+        ? `<p style="margin:0 0 4px;font-size:13px;color:#475569;">SM-DP+ 주소</p>
+    <pre style="margin:0 0 12px;padding:12px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-all;color:#0f172a;">${safeSmDp}</pre>`
+        : ""
+    }
+    ${
+      activationCode
+        ? `<p style="margin:0 0 4px;font-size:13px;color:#475569;">활성화 코드</p>
+    <pre style="margin:0 0 16px;padding:12px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-all;color:#0f172a;">${safeActivationCode}</pre>`
+        : ""
+    }`
         : ""
     }
     ${appleBtn}
+    <div style="margin:20px 0 0;padding:16px;border:1px solid #99f6e4;border-radius:12px;background:#f0fdfa;">
+      <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#0f766e;">설치·사용 문의</p>
+      <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:#334155;">eSIM 전문 파트너 유심사가 설치·사용을 직접 지원합니다.</p>
+      <p style="margin:0 0 10px;text-align:center;">
+        <a href="${safeUsimsaKakao}" style="display:inline-block;padding:12px 20px;background:#FEE500;color:#191919;text-decoration:none;border-radius:8px;font-size:14px;font-weight:700;">카카오톡 문의하기</a>
+      </p>
+      <p style="margin:0 0 4px;font-size:13px;color:#475569;">이메일 문의</p>
+      <p style="margin:0 0 12px;"><a href="${safeUsimsaContact}" style="color:#0f766e;word-break:break-all;">${safeUsimsaContact}</a></p>
+      <p style="margin:0;font-size:13px;line-height:1.5;color:#334155;">문의 시 주문번호를 알려주세요: <strong>${safeOrder}</strong></p>
+    </div>
     <p style="margin:16px 0 0;font-size:13px;color:#64748b;">${safeSupport}</p>
-    ${kakaoLine}
   </div>
 </body></html>`;
 

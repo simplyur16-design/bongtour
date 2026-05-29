@@ -127,11 +127,21 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
         }
       : null;
 
-    const topupLink = await pool.query<{ qr_code_img_url: string | null; download_link: string | null }>(
-      `SELECT qr_code_img_url, download_link
+    const topupLink = await pool.query<{
+      qr_code_img_url: string | null;
+      download_link: string | null;
+      smdp: string | null;
+      activate_code: string | null;
+    }>(
+      `SELECT qr_code_img_url, download_link, smdp, activate_code
          FROM bongsim_fulfillment_topup
         WHERE order_id = $1
-          AND (COALESCE(qr_code_img_url, '') <> '' OR COALESCE(download_link, '') <> '')
+          AND (
+            COALESCE(qr_code_img_url, '') <> ''
+            OR COALESCE(download_link, '') <> ''
+            OR COALESCE(smdp, '') <> ''
+            OR COALESCE(activate_code, '') <> ''
+          )
         ORDER BY updated_at DESC NULLS LAST
         LIMIT 1`,
       [id],
@@ -141,6 +151,8 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
       orderStatus: row.status,
       qr_code_img_url: tl?.qr_code_img_url ?? null,
       download_link: tl?.download_link ?? null,
+      smdp: tl?.smdp ?? null,
+      activate_code: tl?.activate_code ?? null,
     });
 
     const refundElig = await getRefundEligibility(id);

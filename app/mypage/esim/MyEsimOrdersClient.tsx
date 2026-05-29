@@ -15,6 +15,8 @@ type OrderRow = {
   country_flag: string;
   country_label: string;
   qr_code_img_url: string | null;
+  sm_dp_plus_address: string | null;
+  activation_code: string | null;
   can_show_qr: boolean;
   can_check_usage: boolean;
 };
@@ -48,12 +50,48 @@ function badgeClass(display: string): string {
   return "bg-slate-400 text-white";
 }
 
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => void onCopy()}
+      className="mt-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+    >
+      {copied ? "복사됨" : label}
+    </button>
+  );
+}
+
+function ManualInstallField({ label, value, copyLabel }: { label: string; value: string; copyLabel: string }) {
+  return (
+    <div className="mt-3 text-left">
+      <p className="text-xs font-medium text-slate-600">{label}</p>
+      <p className="mt-1 break-all rounded-lg bg-slate-50 p-3 font-mono text-[11px] leading-relaxed text-slate-800">
+        {value}
+      </p>
+      <CopyButton text={value} label={copyLabel} />
+    </div>
+  );
+}
+
 import MypagePageHeading from '@/components/mypage/MypagePageHeading'
 
 export default function MyEsimOrdersClient() {
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
-  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qrModal, setQrModal] = useState<OrderRow | null>(null);
   const [usageFor, setUsageFor] = useState<string | null>(null);
   const [usage, setUsage] = useState<UsageResponse | null>(null);
   const [usageErr, setUsageErr] = useState<string | null>(null);
@@ -171,7 +209,7 @@ export default function MyEsimOrdersClient() {
                 <button
                   type="button"
                   className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-teal-600 hover:to-cyan-700"
-                  onClick={() => setQrUrl(o.qr_code_img_url)}
+                  onClick={() => setQrModal(o)}
                 >
                   QR코드 보기
                 </button>
@@ -196,12 +234,12 @@ export default function MyEsimOrdersClient() {
         ) : null}
       </div>
 
-      {qrUrl ? (
+      {qrModal ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           role="dialog"
           aria-modal
-          onClick={() => setQrUrl(null)}
+          onClick={() => setQrModal(null)}
         >
           <div
             className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-teal-100 bg-white p-6 shadow-xl"
@@ -212,21 +250,41 @@ export default function MyEsimOrdersClient() {
               <button
                 type="button"
                 className="rounded-lg px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
-                onClick={() => setQrUrl(null)}
+                onClick={() => setQrModal(null)}
               >
                 닫기
               </button>
             </div>
-            <div className="mt-4 flex justify-center rounded-xl bg-white p-4">
-              {/* eslint-disable-next-line @next/next/no-img-element -- 외부 eSIM QR URL 동적 도메인 */}
-              <img
-                src={qrUrl}
-                alt="eSIM QR 코드"
-                loading="eager"
-                decoding="async"
-                className="max-h-[min(70vh,320px)] w-full max-w-[320px] object-contain"
-              />
-            </div>
+            {qrModal.qr_code_img_url ? (
+              <div className="mt-4 flex justify-center rounded-xl bg-white p-4">
+                {/* eslint-disable-next-line @next/next/no-img-element -- 외부 eSIM QR URL 동적 도메인 */}
+                <img
+                  src={qrModal.qr_code_img_url}
+                  alt="eSIM QR 코드"
+                  loading="eager"
+                  decoding="async"
+                  className="max-h-[min(70vh,320px)] w-full max-w-[320px] object-contain"
+                />
+              </div>
+            ) : null}
+            {qrModal.sm_dp_plus_address || qrModal.activation_code ? (
+              <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50/40 p-4">
+                <p className="text-xs font-semibold text-teal-900">수동 설치</p>
+                <p className="mt-1 text-xs leading-relaxed text-teal-800">
+                  QR 스캔이 어려우면 아래 SM-DP+ 주소와 활성화 코드를 설정에 직접 입력하세요.
+                </p>
+                {qrModal.sm_dp_plus_address ? (
+                  <ManualInstallField
+                    label="SM-DP+ 주소"
+                    value={qrModal.sm_dp_plus_address}
+                    copyLabel="주소 복사"
+                  />
+                ) : null}
+                {qrModal.activation_code ? (
+                  <ManualInstallField label="활성화 코드" value={qrModal.activation_code} copyLabel="코드 복사" />
+                ) : null}
+              </div>
+            ) : null}
             <p className="mt-3 text-center text-xs text-slate-500">설치 앱에서 QR을 스캔해 주세요.</p>
           </div>
         </div>
