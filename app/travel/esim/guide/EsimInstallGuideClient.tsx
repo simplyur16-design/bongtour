@@ -44,7 +44,7 @@ function GuideBlockImage({ guideKey, imageMap }: { guideKey: string; imageMap: E
 
 function GuideBlockContent({ block, imageMap }: { block: GuideBlock; imageMap: EsimGuideImageMap }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 text-slate-900">
       {block.heading ? (
         <p className="font-semibold text-slate-900 lg:text-base">{block.heading}</p>
       ) : null}
@@ -65,7 +65,7 @@ function GuideBlockContent({ block, imageMap }: { block: GuideBlock; imageMap: E
       ) : null}
       {block.image ? <GuideBlockImage guideKey={block.image} imageMap={imageMap} /> : null}
       {block.note ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 lg:text-base">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm !text-amber-900 lg:text-base">
           {block.note}
         </p>
       ) : null}
@@ -89,7 +89,7 @@ function GuideStepsSection({ steps, imageMap }: { steps: GuideStep[]; imageMap: 
             >
               {n}
             </div>
-            <div className="min-w-0 flex-1 pb-2">
+            <div className="min-w-0 flex-1 pb-2 text-slate-900">
               <h3 className="text-base font-semibold leading-snug text-slate-900 lg:text-lg">{title}</h3>
               <div className="mt-3 space-y-4">
                 {blocks.map((block, blockIdx) => (
@@ -123,22 +123,22 @@ function GuideFaqSection({
         {faqs.map(({ q, a }) => {
           const open = openFaq === q;
           return (
-            <div key={q} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div key={q} className="overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm">
               <button
                 type="button"
                 onClick={() => setOpenFaq(open ? null : q)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-sm font-semibold text-slate-900 transition hover:bg-slate-50 lg:px-5 lg:py-4 lg:text-base"
+                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-sm font-semibold !text-slate-900 transition hover:bg-slate-50 lg:px-5 lg:py-4 lg:text-base"
                 aria-expanded={open}
               >
-                <span className="text-slate-900">{q}</span>
+                <span className="!text-slate-900">{q}</span>
                 <ChevronDown
                   className={`h-5 w-5 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`}
                   aria-hidden
                 />
               </button>
               {open ? (
-                <div className="border-t border-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-900 lg:px-5 lg:py-4 lg:text-base">
-                  {a}
+                <div className="border-t border-slate-100 px-4 py-3 lg:px-5 lg:py-4">
+                  <p className="text-sm leading-relaxed !text-slate-900 lg:text-base">{a}</p>
                 </div>
               ) : null}
             </div>
@@ -162,27 +162,27 @@ export function EsimInstallGuideClient({ imageMap }: { imageMap: EsimGuideImageM
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white text-slate-900">
       <Header />
       <section
         className="w-full bg-gradient-to-br from-sky-50 to-teal-50 px-4 py-12 lg:py-16"
         aria-labelledby="esim-guide-hero"
       >
-        <div className="mx-auto max-w-3xl text-center lg:max-w-4xl">
+        <div className="mx-auto max-w-3xl text-center text-slate-900 lg:max-w-4xl">
           <h1
             id="esim-guide-hero"
-            className="text-balance text-2xl font-bold leading-tight tracking-tight text-slate-900 lg:text-4xl"
+            className="text-balance text-2xl font-bold leading-tight tracking-tight !text-slate-900 lg:text-4xl"
           >
             eSIM 설치 가이드
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base font-medium text-slate-700 lg:mt-5 lg:text-lg">
+          <p className="mx-auto mt-4 max-w-xl text-base font-medium !text-slate-700 lg:mt-5 lg:text-lg">
             QR코드 하나로 1분 만에 설치 완료!
           </p>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-slate-700 lg:text-base">여행자님, 천천히 따라 오시면 금방 끝나요.</p>
+          <p className="mx-auto mt-2 max-w-xl text-sm !text-slate-700 lg:text-base">여행자님, 천천히 따라 오시면 금방 끝나요.</p>
         </div>
       </section>
 
-      <main className="mx-auto max-w-3xl px-4 pb-16 pt-8 lg:max-w-4xl lg:px-6 lg:pb-20 lg:pt-10">
+      <main className="mx-auto max-w-3xl px-4 pb-16 pt-8 text-slate-900 lg:max-w-4xl lg:px-6 lg:pb-20 lg:pt-10">
         <div className="flex gap-1 rounded-lg bg-slate-200/60 p-1" role="tablist" aria-label="eSIM 가이드 탭">
           {TABS.map(({ key, label }) => (
             <button
@@ -205,7 +205,7 @@ export function EsimInstallGuideClient({ imageMap }: { imageMap: EsimGuideImageM
             {PRECHECK_BLOCKS.map((block, idx) => (
               <div
                 key={idx}
-                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:p-6"
+                className="rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm lg:p-6"
               >
                 <GuideBlockContent block={block} imageMap={imageMap} />
               </div>
@@ -219,8 +219,8 @@ export function EsimInstallGuideClient({ imageMap }: { imageMap: EsimGuideImageM
 
         <GuideFaqSection faqs={faqs} openFaq={openFaq} setOpenFaq={setOpenFaq} />
 
-        <div className="mt-12 rounded-2xl border border-teal-100 bg-gradient-to-br from-sky-50/90 to-teal-50/90 px-5 py-8 text-center lg:mt-14 lg:px-8 lg:py-10">
-          <p className="text-base font-semibold text-slate-900 lg:text-lg">아직 eSIM이 없으신가요?</p>
+        <div className="mt-12 rounded-2xl border border-teal-100 bg-gradient-to-br from-sky-50/90 to-teal-50/90 px-5 py-8 text-center text-slate-900 lg:mt-14 lg:px-8 lg:py-10">
+          <p className="text-base font-semibold !text-slate-900 lg:text-lg">아직 eSIM이 없으신가요?</p>
           <Link
             href={bongsimPath("/recommend")}
             className="mt-5 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 px-8 py-3.5 text-base font-bold text-white shadow-md transition hover:from-teal-600 hover:to-cyan-600 hover:shadow-lg active:scale-[0.99] lg:px-10 lg:py-4 lg:text-lg"
