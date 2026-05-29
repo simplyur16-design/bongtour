@@ -46,7 +46,7 @@ export function ProductCatalogCard({ row, kycDistribution }: Props) {
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-2 text-[13px] font-semibold leading-snug text-slate-900">
             <span>{row.plan_name}</span>
-            <TravelerVerificationProductBadge state={kycBadge} size="sm" />
+            <TravelerVerificationProductBadge state={kycBadge} size="sm" showHelpIcon />
           </p>
           <p className="mt-1 text-xs font-medium text-slate-700">{optionLabel}</p>
           <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-slate-600">{row.option_label}</p>

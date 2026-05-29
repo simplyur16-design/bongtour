@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { LucideIcon } from 'lucide-react'
 import { BarChart3, Map, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react'
-import { USIMSA_CX_KAKAO_CHAT_URL, bongsimPath } from '@/lib/bongsim/constants'
+import { BONGSIM_KAKAO_CHANNEL_URL, bongsimPath } from '@/lib/bongsim/constants'
 
 type WhyItem = {
   icon: LucideIcon
@@ -46,9 +46,9 @@ const WHY_ITEMS: readonly WhyItem[] = [
   },
   {
     icon: MessageCircle,
-    title: '24시간 안심 고객센터',
-    body: 'eSIM 전문 파트너 유심사가 24시간 직접 지원',
-    href: USIMSA_CX_KAKAO_CHAT_URL,
+    title: '안심 고객센터',
+    body: 'Bong투어 카카오톡으로 문의하세요 (09:00-18:00 KST)',
+    href: BONGSIM_KAKAO_CHANNEL_URL.trim() || undefined,
     linkLabel: '카카오톡 문의하기',
     external: true,
     circleClass: 'bg-amber-100 text-amber-600',

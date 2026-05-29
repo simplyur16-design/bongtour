@@ -13,7 +13,7 @@ type Props = {
   useCheckoutOpenChat?: boolean
 }
 
-/** eSIM 결제·가이드·기기·체크아웃 하단 — 유심사 직링크 없음, 자사 카카오 URL 있을 때만 링크 노출 */
+/** eSIM 결제·가이드·기기·체크아웃 하단 — 자사 카카오 URL 있을 때만 링크 노출 */
 export function EsimSupportFootnote({ className, useCheckoutOpenChat }: Props) {
   const kakao = useCheckoutOpenChat
     ? BONGSIM_CHECKOUT_KAKAO_OPEN_CHAT_URL

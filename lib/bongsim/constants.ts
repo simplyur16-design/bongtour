@@ -12,9 +12,9 @@ export const BONGSIM_BASE_PATH = "/travel/esim" as const;
 /** 봉투어 오픈카톡 — `lib/kakao-open-chat.ts` 와 동일 env */
 export const BONGSIM_KAKAO_CHANNEL_URL = process.env.NEXT_PUBLIC_KAKAO_OPEN_CHAT_URL || ''
 
-/** 자사 카카오 링크 없을 때 — 유심사 운영 신뢰, 고객을 유심사 채널로 보내지 않음 */
+/** eSIM 결제·가이드·체크아웃 하단 — 1차 문의 안내 카피 */
 export const BONGSIM_ESIM_USIM_SUPPORT_COPY =
-  'eSIM 고객지원은 국내 최대 eSIM 전문기업 유심사에서 24시간 운영합니다'
+  '봉투어 고객센터(09:00-18:00 KST)로 문의해 주세요. 시간 외 긴급 문의는 마이페이지 → eSIM 구매내역 → 고객지원센터를 이용해 주세요.'
 
 /** eSIM 메인 랜딩 「24시간 안심 고객센터」 카드 부제 */
 export const BONGSIM_ESIM_SUPPORT_CARD_BODY = 'Bong투어 카카오톡으로 문의하세요'

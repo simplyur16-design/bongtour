@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Header from "@/app/components/Header";
-import { EsimUsimsaCsLinks } from "@/components/bongsim/EsimUsimsaCsLinks";
+import { EsimBongsimCsLinks } from "@/components/bongsim/EsimBongsimCsLinks";
 
 type Props = {
   title: string;
@@ -113,12 +113,12 @@ export function EsimBenefitPageShell({
             문제가 있으신가요?
           </h2>
           <p className="bt-esim-benefit-muted mx-auto mt-2 max-w-md text-sm leading-relaxed lg:text-base">
-            eSIM 설치·사용은 eSIM 전문 파트너 유심사가 직접 지원합니다.
+            봉투어 고객센터 (09:00-18:00 KST)로 문의해 주세요.
           </p>
           <div className="mt-4 flex justify-center">
-            <EsimUsimsaCsLinks
+            <EsimBongsimCsLinks
               kakaoLabel="카카오톡 문의하기"
-              emailWithPrefix={false}
+              showHeading={false}
               className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center"
             />
           </div>

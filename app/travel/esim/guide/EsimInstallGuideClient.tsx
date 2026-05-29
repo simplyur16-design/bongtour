@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ChevronDown, HelpCircle, Settings2 } from "lucide-react";
 import Header from "@/app/components/Header";
 import { bongsimPath } from "@/lib/bongsim/constants";
-import { EsimUsimsaCsLinks } from "@/components/bongsim/EsimUsimsaCsLinks";
+import { EsimBongsimCsLinks } from "@/components/bongsim/EsimBongsimCsLinks";
 import {
   ANDROID_STEPS,
   COMMON_FAQ,
@@ -124,7 +124,7 @@ function GuideBlockContent({ block, imageMap }: { block: GuideBlock; imageMap: E
       {block.note ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm !text-amber-900 lg:text-base">
           <p>{block.note}</p>
-          {block.showUsimsaCs ? <EsimUsimsaCsLinks /> : null}
+          {block.showBongsimCs ? <EsimBongsimCsLinks /> : null}
         </div>
       ) : null}
       {block.image ? (
@@ -183,7 +183,7 @@ function GuideFaqSection({
         자주 묻는 질문
       </h2>
       <div className="mt-4 space-y-2">
-        {faqs.map(({ q, a, showUsimsaCs }) => {
+        {faqs.map(({ q, a, showBongsimCs }) => {
           const open = openFaq === q;
           return (
             <div key={q} className="overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm">
@@ -202,7 +202,7 @@ function GuideFaqSection({
               {open ? (
                 <div className="border-t border-slate-100 px-4 py-3 lg:px-5 lg:py-4">
                   <p className="text-sm leading-relaxed !text-slate-900 lg:text-base">{a}</p>
-                  {showUsimsaCs ? <EsimUsimsaCsLinks /> : null}
+                  {showBongsimCs ? <EsimBongsimCsLinks /> : null}
                 </div>
               ) : null}
             </div>
@@ -294,12 +294,12 @@ export function EsimInstallGuideClient({ imageMap }: { imageMap: EsimGuideImageM
           <div className="mt-6 text-center">
             <p className="text-sm font-medium text-slate-600">문제가 있으신가요?</p>
             <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-slate-500 lg:text-sm">
-              eSIM 고객지원은 eSIM 전문 파트너 유심사에서 24시간 운영합니다.
+              봉투어 고객센터 (09:00-18:00 KST)로 문의해 주세요.
             </p>
             <div className="mt-4 flex justify-center">
-              <EsimUsimsaCsLinks
+              <EsimBongsimCsLinks
                 kakaoLabel="카카오톡 문의하기"
-                emailWithPrefix={false}
+                showHeading={false}
                 className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center"
               />
             </div>

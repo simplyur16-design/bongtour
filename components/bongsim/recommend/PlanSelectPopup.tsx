@@ -11,6 +11,7 @@ import {
 import { parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
 import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
 import { esimHasFreeData } from "@/lib/bongsim/constants";
+import { EsimVerificationGuideBox } from "@/components/bongsim/esim/EsimVerificationGuideBox";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
 import {
   getKycLabelDistribution,
@@ -387,6 +388,7 @@ export function PlanSelectPopup({
                 인증 필요없음
               </button>
             </div>
+            {authFilter === "required" ? <EsimVerificationGuideBox /> : null}
           </div>
         ) : null}
 
@@ -501,7 +503,7 @@ export function PlanSelectPopup({
                             추천
                           </div>
                         ) : null}
-                        <TravelerVerificationProductBadge state={kycBadge} size="sm" />
+                        <TravelerVerificationProductBadge state={kycBadge} size="sm" showHelpIcon />
                       </div>
                       <p className="text-xs font-semibold text-slate-800 lg:text-sm">{optionLabel}</p>
                       {activeTab === "fixed" ? (

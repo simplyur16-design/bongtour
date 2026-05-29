@@ -90,6 +90,7 @@ function ManualInstallField({ label, value, copyLabel }: { label: string; value:
 
 import MypagePageHeading from '@/components/mypage/MypagePageHeading'
 import { EsimTravelerVerificationCallout } from "@/components/bongsim/esim/EsimTravelerVerificationCallout";
+import { EsimMypageUsimsaCsLinks } from "@/components/bongsim/EsimMypageUsimsaCsLinks";
 
 export default function MyEsimOrdersClient() {
   const [rows, setRows] = useState<OrderRow[]>([]);
@@ -242,6 +243,20 @@ export default function MyEsimOrdersClient() {
           </p>
         ) : null}
       </div>
+
+      <section
+        className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-6 sm:px-6"
+        aria-labelledby="esim-mypage-usimsa-cs-heading"
+      >
+        <h2 id="esim-mypage-usimsa-cs-heading" className="text-base font-bold text-slate-900">
+          고객지원센터
+        </h2>
+        <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
+          eSIM 설치·사용 중 문제가 있으면 유심사 CX(24시간)를 이용해 주세요. 일반 문의는 봉투어 고객센터(09:00-18:00
+          KST)를 이용해 주세요.
+        </p>
+        <EsimMypageUsimsaCsLinks className="mt-4" />
+      </section>
 
       {qrModal ? (
         <div

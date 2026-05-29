@@ -708,6 +708,7 @@ export function ProductCombinationStep({
                                   getKycLabelDistribution([selection.product]),
                               )}
                               size="sm"
+                              showHelpIcon
                             />
                           ) : null}
                         </div>
@@ -841,6 +842,7 @@ export function ProductCombinationStep({
                               getKycLabelDistribution([multiPlanDraft.product]),
                           )}
                           size="sm"
+                          showHelpIcon
                         />
                       </p>
                     ) : null}

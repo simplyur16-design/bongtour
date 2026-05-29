@@ -810,7 +810,7 @@ export function CheckoutStoreClient({
                               {head.flag}
                             </span>
                             <span>{head.name}</span>
-                            <TravelerVerificationProductBadge state={kycBadge} size="sm" />
+                            <TravelerVerificationProductBadge state={kycBadge} size="sm" showHelpIcon />
                           </p>
                           <p className="mt-1 text-xs font-medium text-slate-700">{optionLabel}</p>
                           <p className="mt-0.5 text-sm leading-snug text-slate-600">

@@ -39,7 +39,7 @@ export function ProductDetailSummaryV1({
         {badge(summary.network_family === "local" ? "로컬 망" : "로밍", summary.network_family === "local" ? "teal" : "slate")}
         {badge(planTypeLabel(summary.plan_type), "amber")}
         {badge(summary.plan_line_excel, "slate")}
-        <TravelerVerificationProductBadge state={kycBadge} size="md" />
+        <TravelerVerificationProductBadge state={kycBadge} size="md" showHelpIcon />
       </div>
       <h1 className="mt-3 text-[20px] font-semibold leading-snug text-slate-900 sm:text-[22px]">{summary.plan_name}</h1>
       <p className="mt-1 text-[13px] font-medium text-slate-800 sm:text-[14px]">

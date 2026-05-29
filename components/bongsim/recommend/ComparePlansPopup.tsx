@@ -184,7 +184,7 @@ function MultiOfferBody({
               </span>
             )}
             <span className="text-xs font-semibold text-slate-600">{tierLabel}</span>
-            <TravelerVerificationProductBadge state={kycBadge} size="sm" />
+            <TravelerVerificationProductBadge state={kycBadge} size="sm" showHelpIcon />
           </div>
           <p className="mt-2 text-sm font-medium text-slate-800">
             {offer.product.plan_name.trim() || "다국가 플랜"}
@@ -391,7 +391,7 @@ export function ComparePlansPopup({
                           <div className="flex min-w-0 flex-wrap items-center gap-2">
                             <p className="text-sm font-bold text-slate-900">{line.nameKr}</p>
                             {kycBadge != null ? (
-                              <TravelerVerificationProductBadge state={kycBadge} size="sm" />
+                              <TravelerVerificationProductBadge state={kycBadge} size="sm" showHelpIcon />
                             ) : null}
                           </div>
                           <p className="mt-0.5 text-xs leading-snug text-slate-600">{line.summary}</p>

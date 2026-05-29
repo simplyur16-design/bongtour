@@ -21,8 +21,8 @@ export interface GuideBlock {
   note?: string;
   /** image_assets entity_id (guideKey) — esim-guide-image-manifest.ts 와 1:1 */
   image?: string;
-  /** note 아래 유심사 CX(카톡·이메일) 버튼 블록 */
-  showUsimsaCs?: boolean;
+  /** note 아래 봉투어 CS(카톡) 버튼 블록 */
+  showBongsimCs?: boolean;
 }
 
 export type EsimGuideImageMap = Record<
@@ -39,8 +39,8 @@ export interface GuideStep {
 export interface GuideFaq {
   q: string;
   a: string;
-  /** 답변 아래 유심사 CX(카톡·이메일) 버튼 블록 */
-  showUsimsaCs?: boolean;
+  /** 답변 아래 봉투어 CS(카톡) 버튼 블록 */
+  showBongsimCs?: boolean;
 }
 
 /** eSIM 가이드 — 설치·사용 CS 이메일 (mailto) */
@@ -73,8 +73,8 @@ export const PRECHECK_BLOCKS: GuideBlock[] = [
 export const PRECHECK_FAQ: GuideFaq[] = [
   {
     q: "사전 설치가 안 되는 상품을 실수로 미리 설치했어요.",
-    a: "유심사 CX팀으로 문의해 주세요. eSIM 전문 파트너 유심사가 설치·사용을 직접 지원합니다. 상품 개통 여부를 먼저 확인한 뒤, 필요하면 부족한 일수만큼 안내해 드립니다.",
-    showUsimsaCs: true,
+    a: "봉투어 고객센터(09:00-18:00 KST)로 문의해 주세요. 상품 개통 여부를 먼저 확인한 뒤, 필요하면 부족한 일수만큼 안내해 드립니다. 시간 외 긴급 문의는 마이페이지 → eSIM 구매내역 → 고객지원센터를 이용해 주세요.",
+    showBongsimCs: true,
   },
   {
     q: "eSIM을 다른 휴대폰으로 옮길 수 있나요?",
@@ -188,8 +188,8 @@ export const IOS_STEPS: GuideStep[] = [
     title: "여행 후 eSIM 제거하기",
     blocks: [
       {
-        note: "eSIM 제거는 여행이 완전히 끝난 뒤 진행하세요. 사용에 문제가 있을 때는 제거하지 말고 먼저 유심사 CX팀에 문의해 주세요.",
-        showUsimsaCs: true,
+        note: "eSIM 제거는 여행이 완전히 끝난 뒤 진행하세요. 사용에 문제가 있을 때는 제거하지 말고 먼저 봉투어 고객센터(09:00-18:00 KST)로 문의해 주세요. 시간 외 긴급 문의는 마이페이지 → eSIM 구매내역 → 고객지원센터를 이용해 주세요.",
+        showBongsimCs: true,
         bullets: [
           "iPhone [설정] 앱을 엽니다.",
           "[셀룰러]를 누릅니다.",
@@ -289,8 +289,8 @@ export const ANDROID_STEPS: GuideStep[] = [
     title: "여행 후 eSIM 제거하기",
     blocks: [
       {
-        note: "eSIM 제거는 여행이 완전히 끝난 뒤 진행하세요. 사용에 문제가 있을 때는 제거하지 말고 먼저 유심사 CX팀에 문의해 주세요.",
-        showUsimsaCs: true,
+        note: "eSIM 제거는 여행이 완전히 끝난 뒤 진행하세요. 사용에 문제가 있을 때는 제거하지 말고 먼저 봉투어 고객센터(09:00-18:00 KST)로 문의해 주세요. 시간 외 긴급 문의는 마이페이지 → eSIM 구매내역 → 고객지원센터를 이용해 주세요.",
+        showBongsimCs: true,
         bullets: [
           "Android [설정] 앱을 엽니다.",
           "[연결]을 누릅니다.",
@@ -316,7 +316,7 @@ export const COMMON_FAQ: GuideFaq[] = [
   {
     q: "해외에서 사용에 문제가 생겼어요.",
     a: "먼저 비행기 모드를 켰다 끄며 네트워크를 초기화해 보세요. 그래도 안 되면 통신사를 수동으로 선택해 보세요.",
-    showUsimsaCs: true,
+    showBongsimCs: true,
   },
   {
     q: "데이터 로밍을 켜야 하나요?",

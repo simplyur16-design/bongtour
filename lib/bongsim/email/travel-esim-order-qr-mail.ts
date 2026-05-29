@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 
-import { BONGSIM_ESIM_SUPPORT_EMAIL_LINE, USIMSA_CX_CONTACT_URL, USIMSA_CX_KAKAO_CHAT_URL } from "@/lib/bongsim/constants";
+import { BONGSIM_ESIM_SUPPORT_EMAIL_LINE, BONGSIM_KAKAO_CHANNEL_URL } from "@/lib/bongsim/constants";
+import { ESIM_VERIFICATION_GUIDE_HOURS } from "@/components/bongsim/esim/EsimVerificationGuideContent";
 import { buildAppleQuickInstallUrl } from "@/lib/bongsim/esim-install-presentation";
 import {
   CMLINK_TRAVELER_VERIFICATION_URL,
@@ -116,6 +117,8 @@ export function buildTravelEsimOrderQrMailContent(
     ? buildTravelerVerificationEmailBlock(verificationIccid)
     : { html: "", text: "" };
 
+  const kakaoUrl = BONGSIM_KAKAO_CHANNEL_URL.trim();
+
   const text = [
     "결제가 완료되었습니다. eSIM 설치 안내를 보내드립니다.",
     "",
@@ -131,9 +134,9 @@ export function buildTravelEsimOrderQrMailContent(
     verificationBlock.text ? ["", verificationBlock.text].join("\n") : "",
     "",
     "── 설치·사용 문의 ──",
-    "eSIM 전문 파트너 유심사가 설치·사용을 직접 지원합니다.",
-    `카카오톡 문의: ${USIMSA_CX_KAKAO_CHAT_URL}`,
-    `이메일 문의: ${USIMSA_CX_CONTACT_URL}`,
+    `봉투어 고객센터 (${ESIM_VERIFICATION_GUIDE_HOURS})`,
+    kakaoUrl ? `카카오톡 문의: ${kakaoUrl}` : "",
+    "긴급·시간 외 불편사항은 마이페이지 → eSIM 구매내역 → 고객지원센터 이용",
     `문의 시 주문번호를 알려주세요: ${orderNumber}`,
     "",
     BONGSIM_ESIM_SUPPORT_EMAIL_LINE,
@@ -149,8 +152,7 @@ export function buildTravelEsimOrderQrMailContent(
   const safeSupport = escapeHtml(BONGSIM_ESIM_SUPPORT_EMAIL_LINE);
   const safeSmDp = escapeHtml(smDp);
   const safeActivationCode = escapeHtml(activationCode);
-  const safeUsimsaKakao = escapeHtml(USIMSA_CX_KAKAO_CHAT_URL);
-  const safeUsimsaContact = escapeHtml(USIMSA_CX_CONTACT_URL);
+  const safeKakao = kakaoUrl ? escapeHtml(kakaoUrl) : "";
 
   const qrImgSrc = options?.qrImgSrc?.trim() ?? "";
   const qrImgHtml = qr && qrImgSrc ? buildQrImgHtml(safeQr, qrImgSrc) : "";
@@ -189,12 +191,15 @@ export function buildTravelEsimOrderQrMailContent(
     ${appleBtn}
     <div style="margin:20px 0 0;padding:16px;border:1px solid #99f6e4;border-radius:12px;background:#f0fdfa;">
       <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#0f766e;">설치·사용 문의</p>
-      <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:#334155;">eSIM 전문 파트너 유심사가 설치·사용을 직접 지원합니다.</p>
-      <p style="margin:0 0 10px;text-align:center;">
-        <a href="${safeUsimsaKakao}" style="display:inline-block;padding:12px 20px;background:#FEE500;color:#191919;text-decoration:none;border-radius:8px;font-size:14px;font-weight:700;">카카오톡 문의하기</a>
-      </p>
-      <p style="margin:0 0 4px;font-size:13px;color:#475569;">이메일 문의</p>
-      <p style="margin:0 0 12px;"><a href="${safeUsimsaContact}" style="color:#0f766e;word-break:break-all;">${safeUsimsaContact}</a></p>
+      <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:#334155;">봉투어 고객센터 (${ESIM_VERIFICATION_GUIDE_HOURS})</p>
+      ${
+        safeKakao
+          ? `<p style="margin:0 0 10px;text-align:center;">
+        <a href="${safeKakao}" style="display:inline-block;padding:12px 20px;background:#FEE500;color:#191919;text-decoration:none;border-radius:8px;font-size:14px;font-weight:700;">카카오톡 문의하기</a>
+      </p>`
+          : ""
+      }
+      <p style="margin:0 0 12px;font-size:12px;line-height:1.5;color:#64748b;">긴급·시간 외 불편사항은 마이페이지 → eSIM 구매내역 → 고객지원센터 이용</p>
       <p style="margin:0;font-size:13px;line-height:1.5;color:#334155;">문의 시 주문번호를 알려주세요: <strong>${safeOrder}</strong></p>
     </div>
     <p style="margin:16px 0 0;font-size:13px;color:#64748b;">${safeSupport}</p>
