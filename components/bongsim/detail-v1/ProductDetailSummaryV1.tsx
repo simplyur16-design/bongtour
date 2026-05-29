@@ -1,7 +1,8 @@
 import type { BongsimProductDetailSummaryV1 } from "@/lib/bongsim/contracts/product-detail.v1";
 import { formatKrw } from "@/components/bongsim/detail-v1/format-krw";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
-import type { KycLabelState } from "@/lib/bongsim/esim/kyc-required";
+import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
+import type { KycBadgeState } from "@/lib/bongsim/esim/kyc-required";
 
 function badge(text: string, tone: "slate" | "teal" | "amber") {
   const tones = {
@@ -25,10 +26,12 @@ function planTypeLabel(planType: BongsimProductDetailSummaryV1["plan_type"]): st
 
 export function ProductDetailSummaryV1({
   summary,
-  kycState,
+  kycBadge,
+  qosRaw,
 }: {
   summary: BongsimProductDetailSummaryV1;
-  kycState: KycLabelState;
+  kycBadge: KycBadgeState;
+  qosRaw: string;
 }) {
   return (
     <header className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -36,9 +39,16 @@ export function ProductDetailSummaryV1({
         {badge(summary.network_family === "local" ? "로컬 망" : "로밍", summary.network_family === "local" ? "teal" : "slate")}
         {badge(planTypeLabel(summary.plan_type), "amber")}
         {badge(summary.plan_line_excel, "slate")}
-        <TravelerVerificationProductBadge state={kycState} size="md" />
+        <TravelerVerificationProductBadge state={kycBadge} size="md" />
       </div>
       <h1 className="mt-3 text-[20px] font-semibold leading-snug text-slate-900 sm:text-[22px]">{summary.plan_name}</h1>
+      <p className="mt-1 text-[13px] font-medium text-slate-800 sm:text-[14px]">
+        {formatPlanOptionLabel({
+          plan_type: summary.plan_type,
+          allowance_label: summary.allowance_label,
+          qos_raw: qosRaw,
+        })}
+      </p>
       <p className="mt-1 text-[13px] leading-relaxed text-slate-600 sm:text-[14px]">{summary.option_label}</p>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-[12px] text-slate-600 sm:text-[13px]">
         <div className="rounded-xl bg-slate-50 p-3">

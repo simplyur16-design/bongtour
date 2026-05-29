@@ -19,8 +19,13 @@ import {
 import type { RecommendFunnelSnapshot } from "@/lib/bongsim/recommend/funnel-storage";
 import { isTrueUnlimited, type ProductOption } from "@/lib/bongsim/recommend/product-option";
 import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-ranges";
+import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
-import { getKycLabelState } from "@/lib/bongsim/esim/kyc-required";
+import {
+  getKycLabelDistribution,
+  shouldShowBadge,
+  type KycLabelDistribution,
+} from "@/lib/bongsim/esim/kyc-required";
 
 const HERO_IMAGE_SIZES = "(max-width:1023px) 100vw, 55vw";
 
@@ -97,7 +102,11 @@ type OpenPlanByCode = Record<
 
 const MULTI_PLAN_KEY = "__multi__";
 
-export type CountryPlanSelection = { product: ProductOption; quantity: number };
+export type CountryPlanSelection = {
+  product: ProductOption;
+  quantity: number;
+  kycDistribution?: KycLabelDistribution;
+};
 
 export type StoredCountryPlanSelection = RecommendFunnelSnapshot["completed"][string];
 
@@ -243,6 +252,7 @@ export function ProductCombinationStep({
   const [multiPlanDraft, setMultiPlanDraft] = useState<{
     product: ProductOption;
     quantity: number;
+    kycDistribution?: KycLabelDistribution;
   } | null>(null);
   const [tripResume, setTripResume] = useState<{ start: Date; end: Date } | null>(null);
   const redirectRef = useRef(false);
@@ -324,14 +334,19 @@ export function ProductCombinationStep({
 
   const isCountryDone = (code: string) => Boolean(completed[code] || storedDone[code]);
 
-  const completeCountryPlan = (code: string, product: ProductOption, quantity: number) => {
+  const completeCountryPlan = (
+    code: string,
+    product: ProductOption,
+    quantity: number,
+    kycDistribution?: KycLabelDistribution,
+  ) => {
     const range = countryDateRanges.find((r) => r.code === code);
     const summaryParts: string[] = [];
     summaryParts.push(networkFamilyLabelKr(product.network_family));
     if (range) summaryParts.push(formatShortRange(range.start, range.end));
     summaryParts.push(`${allowanceLabelForSummary(product)} ×${quantity}`);
     const summaryLine = summaryParts.join(" · ");
-    setCompleted((prev) => ({ ...prev, [code]: { product, quantity } }));
+    setCompleted((prev) => ({ ...prev, [code]: { product, quantity, kycDistribution } }));
     setStoredDone((prev) => ({
       ...prev,
       [code]: {
@@ -541,6 +556,7 @@ export function ProductCombinationStep({
           let summaryLine = stored?.summaryLine ?? "";
           if (selection) {
             const summaryParts: string[] = [];
+            summaryParts.push(formatPlanOptionLabel(selection.product));
             summaryParts.push(networkFamilyLabelKr(selection.product.network_family));
             if (range) summaryParts.push(formatShortRange(range.start, range.end));
             summaryParts.push(`${allowanceLabelForSummary(selection.product)} ×${selection.quantity}`);
@@ -661,7 +677,8 @@ export function ProductCombinationStep({
 
                 {done ? (
                   <div className="bg-white px-4 py-4 text-slate-900 sm:px-5 sm:py-5 lg:flex lg:flex-1 lg:items-center lg:border-l lg:border-slate-100 lg:px-8 lg:py-6">
-                    <div className="flex w-full items-start gap-2.5 rounded-xl bg-blue-50 px-4 py-3.5 sm:px-5 sm:py-4 lg:px-6 lg:py-5">
+                    <div className="flex w-full items-start justify-between gap-3 rounded-xl bg-blue-50 px-4 py-3.5 sm:px-5 sm:py-4 lg:px-6 lg:py-5">
+                      <div className="flex min-w-0 flex-1 items-start gap-2.5">
                       <svg
                         className="mt-0.5 h-5 w-5 shrink-0 text-blue-500 lg:h-6 lg:w-6"
                         fill="currentColor"
@@ -685,7 +702,11 @@ export function ProductCombinationStep({
                           </span>
                           {selection ? (
                             <TravelerVerificationProductBadge
-                              state={getKycLabelState(selection.product.flags)}
+                              state={shouldShowBadge(
+                                selection.product,
+                                selection.kycDistribution ??
+                                  getKycLabelDistribution([selection.product]),
+                              )}
                               size="sm"
                             />
                           ) : null}
@@ -697,6 +718,7 @@ export function ProductCombinationStep({
                         </span>
                       ) : null}
                     </div>
+                      </div>
                   </div>
                   </div>
                 ) : null}
@@ -711,7 +733,9 @@ export function ProductCombinationStep({
                   allSelectedCodes={[code]}
                   tripDays={planCtx.tripDays}
                   onBack={() => reopenDurationForPlan(code)}
-                  onComplete={(product, quantity) => completeCountryPlan(code, product, quantity)}
+                  onComplete={(product, quantity, ctx) =>
+                    completeCountryPlan(code, product, quantity, ctx?.kycDistribution)
+                  }
                 />
               ) : null}
             </Fragment>
@@ -806,11 +830,16 @@ export function ProductCombinationStep({
                     {multiPlanDraft ? (
                       <p className="mt-2 flex flex-wrap items-center justify-center gap-2 text-center text-xs font-medium text-teal-800 sm:text-sm">
                         <span>
-                          선택(임시): {multiPlanDraft.product.plan_name.trim()} ·{" "}
+                          선택(임시): {formatPlanOptionLabel(multiPlanDraft.product)} ·{" "}
+                          {multiPlanDraft.product.plan_name.trim()} ·{" "}
                           {allowanceLabelForSummary(multiPlanDraft.product)} ×{multiPlanDraft.quantity}
                         </span>
                         <TravelerVerificationProductBadge
-                          state={getKycLabelState(multiPlanDraft.product.flags)}
+                          state={shouldShowBadge(
+                            multiPlanDraft.product,
+                            multiPlanDraft.kycDistribution ??
+                              getKycLabelDistribution([multiPlanDraft.product]),
+                          )}
                           size="sm"
                         />
                       </p>
@@ -827,8 +856,12 @@ export function ProductCombinationStep({
                     allSelectedCodes={selectedCodes}
                     tripDays={multiPlanCtx.tripDays}
                     onBack={closeMultiPlan}
-                    onComplete={(product, quantity) => {
-                      setMultiPlanDraft({ product, quantity });
+                    onComplete={(product, quantity, ctx) => {
+                      setMultiPlanDraft({
+                        product,
+                        quantity,
+                        kycDistribution: ctx?.kycDistribution,
+                      });
                       closeMultiPlan();
                     }}
                   />

@@ -21,12 +21,21 @@ import {
   isTrueUnlimited,
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
+import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
-import { getKycLabelState } from "@/lib/bongsim/esim/kyc-required";
+import {
+  getKycLabelDistribution,
+  shouldShowBadge,
+  type KycLabelDistribution,
+} from "@/lib/bongsim/esim/kyc-required";
 
 export type CompareChoice = "individual" | "multi";
 
-export type CompareCountryPlanSelection = { product: ProductOption; quantity: number };
+export type CompareCountryPlanSelection = {
+  product: ProductOption;
+  quantity: number;
+  kycDistribution?: KycLabelDistribution;
+};
 
 type Props = {
   open: boolean;
@@ -79,11 +88,12 @@ export function unitConsumerKrw(product: ProductOption): number | null {
 }
 
 export function buildPlanSummaryForCompare(product: ProductOption, quantity: number): string {
+  const optionLabel = formatPlanOptionLabel(product);
   const grade = planTypeLabelKr(product.plan_type);
   const capacity = allowanceLabelForSummary(product);
   const days = extractDaysFromDaysRaw(product.days_raw);
   const daysLabel = days != null ? `${days}일` : (product.days_raw || "").trim() || "—";
-  return `${grade} · ${capacity} · ${daysLabel} ×${quantity}`;
+  return `${optionLabel} · ${grade} · ${capacity} · ${daysLabel} ×${quantity}`;
 }
 
 export type CompareIndividualLine = {
@@ -133,10 +143,12 @@ function MultiOfferBody({
   judgment,
   individualTotal,
   individualMaxTier,
+  kycDistribution,
 }: {
   judgment: CompareMultiJudgment;
   individualTotal: number | null;
   individualMaxTier: PlanSpeedTier | null;
+  kycDistribution: KycLabelDistribution;
 }) {
   if (judgment.kind === "hidden") {
     return (
@@ -146,6 +158,8 @@ function MultiOfferBody({
 
   const { offer } = judgment;
   const tierLabel = PLAN_SPEED_TIER_LABEL[offer.tier];
+  const optionLabel = formatPlanOptionLabel(offer.product);
+  const kycBadge = shouldShowBadge(offer.product, kycDistribution);
   const priceMsg =
     judgment.kind === "recommend" &&
     individualTotal != null &&
@@ -157,30 +171,37 @@ function MultiOfferBody({
 
   return (
     <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {judgment.kind === "recommend" ? (
-          <span className="inline-flex rounded-full bg-teal-600 px-2.5 py-0.5 text-xs font-bold text-white">
-            추천
-          </span>
-        ) : (
-          <span className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-900">
-            더 저렴한 대안
-          </span>
-        )}
-        <span className="text-xs font-semibold text-slate-600">{tierLabel}</span>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {judgment.kind === "recommend" ? (
+              <span className="inline-flex rounded-full bg-teal-600 px-2.5 py-0.5 text-xs font-bold text-white">
+                추천
+              </span>
+            ) : (
+              <span className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-900">
+                더 저렴한 대안
+              </span>
+            )}
+            <span className="text-xs font-semibold text-slate-600">{tierLabel}</span>
+            <TravelerVerificationProductBadge state={kycBadge} size="sm" />
+          </div>
+          <p className="mt-2 text-sm font-medium text-slate-800">
+            {offer.product.plan_name.trim() || "다국가 플랜"}
+          </p>
+          <p className="mt-0.5 text-xs font-medium text-slate-700">{optionLabel}</p>
+          <p className="mt-0.5 text-xs text-slate-600">
+            {buildPlanSummaryForCompare(offer.product, 1)}
+          </p>
+          {judgment.kind === "alternative" ? (
+            <p className="mt-1 text-xs font-medium text-amber-800">사양 다름</p>
+          ) : null}
+          {priceMsg ? <p className="mt-1 text-sm font-semibold text-teal-700">{priceMsg}</p> : null}
+        </div>
+        <div className="ml-auto shrink-0 text-right">
+          <p className="text-base font-bold text-teal-800">{formatKrw(offer.priceKrw)}</p>
+        </div>
       </div>
-      <p className="mt-2 flex flex-wrap items-center gap-2 text-sm font-medium text-slate-800">
-        <span>{offer.product.plan_name.trim() || "다국가 플랜"}</span>
-        <TravelerVerificationProductBadge state={getKycLabelState(offer.product.flags)} size="sm" />
-      </p>
-      <p className="mt-0.5 text-xs text-slate-600">
-        {buildPlanSummaryForCompare(offer.product, 1)}
-      </p>
-      <p className="mt-2 text-base font-bold text-teal-800">{formatKrw(offer.priceKrw)}</p>
-      {judgment.kind === "alternative" ? (
-        <p className="mt-1 text-xs font-medium text-amber-800">사양 다름</p>
-      ) : null}
-      {priceMsg ? <p className="mt-1 text-sm font-semibold text-teal-700">{priceMsg}</p> : null}
     </div>
   );
 }
@@ -206,6 +227,10 @@ export function ComparePlansPopup({
   const individualLines = buildCompareIndividualLines(selectedCodes, completed, countryNameByCode);
   const individualTotal = sumCompareIndividualTotal(individualLines);
   const individualMaxTier = maxIndividualSpeedTier(selectedCodes, completed);
+  const multiKycDistribution = useMemo(
+    () => getKycLabelDistribution(multiPlans),
+    [multiPlans],
+  );
 
   const judgment = useMemo(
     () => judgeCompareMultiOffer(individualMaxTier, individualTotal, multiPlans),
@@ -335,7 +360,14 @@ export function ComparePlansPopup({
               </p>
             ) : (
               <ul className="mt-3 space-y-3">
-                {individualLines.map((line) => (
+                {individualLines.map((line) => {
+                  const sel = completed[line.code];
+                  const product = sel?.product;
+                  const dist =
+                    sel?.kycDistribution ??
+                    (product ? getKycLabelDistribution([product]) : "none");
+                  const kycBadge = product ? shouldShowBadge(product, dist) : null;
+                  return (
                   <li
                     key={line.code}
                     className="flex gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0"
@@ -355,44 +387,46 @@ export function ComparePlansPopup({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <p className="text-sm font-bold text-slate-900">{line.nameKr}</p>
-                          {completed[line.code]?.product ? (
-                            <TravelerVerificationProductBadge
-                              state={getKycLabelState(completed[line.code]!.product.flags)}
-                              size="sm"
-                            />
-                          ) : null}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onChangeCountryPlan(line.code);
-                          }}
-                          className="shrink-0 rounded-md border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-teal-300 hover:bg-teal-50"
-                        >
-                          변경
-                        </button>
-                      </div>
-                      <p className="mt-0.5 text-xs leading-snug text-slate-600">{line.summary}</p>
-                      <p className="mt-1 text-sm font-semibold text-slate-900">
-                        {line.lineTotalKrw != null ? (
-                          <>
-                            {formatKrw(line.lineTotalKrw)}
-                            {line.quantity > 1 && line.unitKrw != null ? (
-                              <span className="ml-1 text-xs font-medium text-slate-500">
-                                ({formatKrw(line.unitKrw)} ×{line.quantity})
-                              </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <p className="text-sm font-bold text-slate-900">{line.nameKr}</p>
+                            {kycBadge != null ? (
+                              <TravelerVerificationProductBadge state={kycBadge} size="sm" />
                             ) : null}
-                          </>
-                        ) : (
-                          <span className="text-slate-500">가격 정보 없음</span>
-                        )}
-                      </p>
+                          </div>
+                          <p className="mt-0.5 text-xs leading-snug text-slate-600">{line.summary}</p>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onChangeCountryPlan(line.code);
+                            }}
+                            className="rounded-md border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-teal-300 hover:bg-teal-50"
+                          >
+                            변경
+                          </button>
+                          <p className="text-sm font-semibold text-slate-900">
+                            {line.lineTotalKrw != null ? (
+                              <>
+                                {formatKrw(line.lineTotalKrw)}
+                                {line.quantity > 1 && line.unitKrw != null ? (
+                                  <span className="ml-1 text-xs font-medium text-slate-500">
+                                    ({formatKrw(line.unitKrw)} ×{line.quantity})
+                                  </span>
+                                ) : null}
+                              </>
+                            ) : (
+                              <span className="text-slate-500">가격 정보 없음</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
             <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
@@ -441,6 +475,7 @@ export function ComparePlansPopup({
                   judgment={judgment}
                   individualTotal={individualTotal}
                   individualMaxTier={individualMaxTier}
+                  kycDistribution={multiKycDistribution}
                 />
               )}
             </section>

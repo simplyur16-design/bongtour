@@ -3,6 +3,12 @@ import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { parseFlagsJson } from "@/lib/bongsim/data/parse-product-json";
+import {
+  getKycLabelDistribution,
+  getKycLabelState,
+  hasBinaryAuthDistribution,
+  type KycLabelDistribution,
+} from "@/lib/bongsim/esim/kyc-required";
 import { doesPlanCoverAllSelected, getPlanCoveredCountries } from "@/lib/bongsim/plan-coverage-map";
 import {
   detectAllowanceBucket,
@@ -13,6 +19,10 @@ import {
   isTrueUnlimited,
 } from "@/lib/bongsim/recommend/product-option";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
+import {
+  pickRecommendedBySpeedTier,
+  type PlanRecSource,
+} from "@/lib/bongsim/recommend/plan-speed-tier";
 
 type Row = {
   option_api_id: string;
@@ -29,9 +39,14 @@ type Row = {
 
 type EnrichedPlan = ReturnType<typeof enrich>;
 
-type RecSource = "unlimited" | "daily" | "fixed";
+type RecSource = PlanRecSource;
 
 type RecommendedPlan = EnrichedPlan & { rec_source: RecSource };
+
+type RecommendedByAuth = {
+  required: RecommendedPlan | null;
+  not_required: RecommendedPlan | null;
+};
 
 function numField(v: unknown): number | null {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -72,8 +87,8 @@ function isQos384kbpsRow(qos_raw: string | null): boolean {
   return false;
 }
 
-function passesShipmentAndQosFilter(row: Row): boolean {
-  if (isQos128kbpsRow(row.qos_raw)) return false;
+function passesShipmentAndQosFilter(row: Row, opts?: { skip128kbps?: boolean }): boolean {
+  if (!opts?.skip128kbps && isQos128kbpsRow(row.qos_raw)) return false;
   const { request_shipment } = parseFlagsJson(row.flags);
   if (request_shipment.trim().toUpperCase() !== "O") return false;
   return true;
@@ -246,21 +261,29 @@ function dedupeMinDaysAtOrAbove(
   return [...best.values()];
 }
 
+function kycDedupeKeySuffix(p: EnrichedPlan): string {
+  const state = getKycLabelState(p.flags);
+  if (state === "required") return ":kyc:O";
+  if (state === "not_required") return ":kyc:X";
+  return ":kyc:unknown";
+}
+
 function fixedGroupKey(p: EnrichedPlan): string | null {
   const key = normalizeAllowanceKey(p.allowance_label || "");
-  return key || null;
+  return key ? `${key}${kycDedupeKeySuffix(p)}` : null;
 }
 
 function dailyGroupKey(p: EnrichedPlan): string | null {
   const bucket = detectAllowanceBucket(p as ProductOption);
-  if (bucket && bucket !== "unlimited") return bucket;
-  const key = normalizeAllowanceKey(p.allowance_label || "");
-  return key || null;
+  const base =
+    bucket && bucket !== "unlimited" ? bucket : normalizeAllowanceKey(p.allowance_label || "");
+  return base ? `${base}${kycDedupeKeySuffix(p)}` : null;
 }
 
 function unlimitedGroupKey(p: EnrichedPlan): string | null {
   const qos = (p.qos_raw || "").trim().toLowerCase().replace(/\s+/g, "");
-  return qos ? `unlimited:${qos}` : "unlimited:unknown";
+  const base = qos ? `unlimited:${qos}` : "unlimited:unknown";
+  return `${base}${kycDedupeKeySuffix(p)}`;
 }
 
 /** 매칭 풀에서 tripDays 이상인 최소 catalog 일수 (동적, tier 하드코딩 없음). */
@@ -284,31 +307,6 @@ function sortFixedByAllowanceAsc(plans: EnrichedPlan[]): EnrichedPlan[] {
   });
 }
 
-/** 로밍/로컬 동시 후보일 때: QOS 높은 것, 같으면 소비자가 낮은 것 */
-function pickWinnerByQosThenPrice(candidates: EnrichedPlan[]): EnrichedPlan | null {
-  if (candidates.length === 0) return null;
-  const sorted = [...candidates].sort((a, b) => {
-    const qa = qosSortScoreMbps(a.qos_raw);
-    const qb = qosSortScoreMbps(b.qos_raw);
-    if (qb !== qa) return qb - qa;
-    return comparePriceAsc(a, b);
-  });
-  return sorted[0] ?? null;
-}
-
-function pickCheapestInList(list: EnrichedPlan[]): EnrichedPlan | null {
-  let best: EnrichedPlan | null = null;
-  let bestPrice = Number.POSITIVE_INFINITY;
-  for (const p of list) {
-    const pr = p.recommended_price;
-    if (pr == null || !Number.isFinite(pr)) continue;
-    if (pr < bestPrice) {
-      bestPrice = pr;
-      best = p;
-    }
-  }
-  return best;
-}
 
 function buildPlanGroups(pool: EnrichedPlan[], tripDays: number) {
   const unlimited: EnrichedPlan[] = [];
@@ -327,29 +325,48 @@ function buildPlanGroups(pool: EnrichedPlan[], tripDays: number) {
   };
 }
 
-function buildRecommended(
-  pool: EnrichedPlan[],
-  groups: ReturnType<typeof buildPlanGroups>,
-): RecommendedPlan | null {
-  const premiumCandidates = pool.filter(
-    (p) => p.is_true_unlimited && isQos5MbpsForPremium(p.qos_raw),
-  );
-  const unlimitedPick = pickWinnerByQosThenPrice(premiumCandidates);
-  if (unlimitedPick) {
-    return { ...unlimitedPick, rec_source: "unlimited" };
+function groupCandidates(pool: EnrichedPlan[], tripDays: number): ProductOption[] {
+  const groups = buildPlanGroups(pool, tripDays);
+  return [...groups.unlimited, ...groups.daily, ...groups.fixed] as ProductOption[];
+}
+
+function filterPoolByExactCatalogDays(pool: EnrichedPlan[], catalogDays: number): EnrichedPlan[] {
+  return pool.filter((p) => extractDaysFromDaysRaw(p.days_raw) === catalogDays);
+}
+
+/** 추천 전용: tripDays 일치 SKU 우선 → 없으면 +1,+2,… 가까운 catalog 일수 fallback */
+function pickRecommendedFromPool(pool: EnrichedPlan[], tripDays: number): RecommendedPlan | null {
+  if (pool.length === 0) return null;
+
+  let maxCatalogDays = tripDays;
+  for (const p of pool) {
+    const d = extractDaysFromDaysRaw(p.days_raw);
+    if (d != null && d > maxCatalogDays) maxCatalogDays = d;
   }
 
-  const dailyPick = pickCheapestInList(groups.daily);
-  if (dailyPick) {
-    return { ...dailyPick, rec_source: "daily" };
-  }
-
-  const fixedPick = pickCheapestInList(groups.fixed);
-  if (fixedPick) {
-    return { ...fixedPick, rec_source: "fixed" };
+  for (let catalogDays = tripDays; catalogDays <= maxCatalogDays; catalogDays++) {
+    const dayPool = filterPoolByExactCatalogDays(pool, catalogDays);
+    if (dayPool.length === 0) continue;
+    const pick = pickRecommendedBySpeedTier(groupCandidates(dayPool, tripDays));
+    if (!pick) return null;
+    return { ...(pick as unknown as EnrichedPlan), rec_source: pick.rec_source };
   }
 
   return null;
+}
+
+function buildRecommended(pool: EnrichedPlan[], tripDays: number): RecommendedPlan | null {
+  return pickRecommendedFromPool(pool, tripDays);
+}
+
+/** tierPool → KYC별 사전 분리 → 각각 buildPlanGroups 후 4티어 추천 */
+function buildRecommendedByAuth(pool: EnrichedPlan[], tripDays: number): RecommendedByAuth {
+  const requiredPool = pool.filter((p) => getKycLabelState(p.flags) === "required");
+  const notRequiredPool = pool.filter((p) => getKycLabelState(p.flags) === "not_required");
+  return {
+    required: pickRecommendedFromPool(requiredPool, tripDays),
+    not_required: pickRecommendedFromPool(notRequiredPool, tripDays),
+  };
 }
 
 function matchesFilters(row: Row, ctx: { country: string; days: number; allSelected: string[] }) {
@@ -385,7 +402,8 @@ function matchesFilters(row: Row, ctx: { country: string; days: number; allSelec
  * - is_true_unlimited: allowance_label 이 무제한/완전 무제한/unlimited 인 경우만 true
  * - flags.request_shipment = O, qos_raw 128kbps 제외 후 tierPool
  * - groups: tierPool 을 plan_type(unlimited|daily|fixed) 별 분류·정렬
- * - recommended: 5Mbps 무제한 → daily 최저가 → fixed 최저가 폴백, rec_source 부착
+ * - recommended: 4티어 SSOT; 추천 후보만 catalog 일수 정확 일치 우선(+1,+2… fallback)
+ * - 다국가도 동일 추천 규칙 적용 (binary → recommended_by_auth)
  * - plans: 국가·일수 matched + 발송/QOS 필터 통과 목록(가격 오름차순)
  */
 export async function GET(req: Request) {
@@ -450,20 +468,33 @@ export async function GET(req: Request) {
     );
 
     const ctx = { country, days, allSelected };
-    const matched = (result.rows as Row[])
-      .filter((row) => matchesFilters(row, ctx))
-      .filter((row) => passesShipmentAndQosFilter(row));
+    const matched = (result.rows as Row[]).filter((row) => matchesFilters(row, ctx));
+    const kycDistribution: KycLabelDistribution = getKycLabelDistribution(matched);
+    const skip128kbps = hasBinaryAuthDistribution(matched);
 
-    const enriched = matched.map(enrich).sort(comparePriceAsc);
+    const shipmentFiltered = matched.filter((row) =>
+      passesShipmentAndQosFilter(row, { skip128kbps }),
+    );
+
+    const enriched = shipmentFiltered.map(enrich).sort(comparePriceAsc);
 
     const tierPool = applyTierInputFilters(enriched);
     const groups = buildPlanGroups(tierPool, days);
-    const recommended =
-      allSelected.length >= 2 ? null : buildRecommended(tierPool, groups);
+    const isBinary = kycDistribution === "binary";
+    const recommended = isBinary ? null : buildRecommended(tierPool, days);
+    const recommended_by_auth = isBinary ? buildRecommendedByAuth(tierPool, days) : null;
     const matched_days = computeMatchedBillableDays(enriched, days);
 
     return jsonWithLeakGuard(
-      { plans: enriched, recommended, groups, trip_days: days, matched_days },
+      {
+        plans: enriched,
+        recommended,
+        recommended_by_auth,
+        kyc_distribution: kycDistribution,
+        groups,
+        trip_days: days,
+        matched_days,
+      },
       "bongsim.products.plans",
     );
   } catch (e) {

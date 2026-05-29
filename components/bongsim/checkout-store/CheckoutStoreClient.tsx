@@ -22,7 +22,11 @@ import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/pa
 import { readUtmFromSession } from "@/lib/utm-capture";
 import { useSession } from "next-auth/react";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
-import { getKycLabelStateFromRaw } from "@/lib/bongsim/esim/kyc-required";
+import {
+  shouldShowBadge,
+  type KycLabelDistribution,
+} from "@/lib/bongsim/esim/kyc-required";
+import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
 
 type CheckoutRetryContextResponse = {
   ok?: boolean;
@@ -144,7 +148,12 @@ export function CheckoutStoreClient({
   const qtyFromSearch = parseQtySearch(sp?.get("qty") ?? null);
 
   const [lineRows, setLineRows] = useState<
-    { line: BongsimRecommendCheckoutLine; detail: BongsimProductDetailV1 | null; loadError: string | null }[]
+    {
+      line: BongsimRecommendCheckoutLine;
+      detail: BongsimProductDetailV1 | null;
+      kycDistribution: KycLabelDistribution;
+      loadError: string | null;
+    }[]
   >([]);
   const [linesLoading, setLinesLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -384,17 +393,31 @@ export function CheckoutStoreClient({
               return {
                 line,
                 detail: null,
+                kycDistribution: "none" as const,
                 loadError:
                   res.status === 404 ? "상품을 찾을 수 없습니다." : "상품을 불러오지 못했습니다.",
               };
             }
-            const json = (await res.json()) as BongsimProductDetailV1;
+            const json = (await res.json()) as BongsimProductDetailV1 & {
+              kyc_distribution?: KycLabelDistribution;
+            };
             if (json.schema !== "bongsim.product_detail.v1") {
-              return { line, detail: null, loadError: "잘못된 응답입니다." };
+              return {
+                line,
+                detail: null,
+                kycDistribution: "none" as const,
+                loadError: "잘못된 응답입니다.",
+              };
             }
-            return { line, detail: json, loadError: null };
+            const { kyc_distribution: kycDistribution = "none", ...detail } = json;
+            return { line, detail, kycDistribution, loadError: null };
           } catch {
-            return { line, detail: null, loadError: "상품을 불러오지 못했습니다." };
+            return {
+              line,
+              detail: null,
+              kycDistribution: "none" as const,
+              loadError: "상품을 불러오지 못했습니다.",
+            };
           }
         }),
       );
@@ -766,28 +789,43 @@ export function CheckoutStoreClient({
                   const unit = row.detail.summary.pricing.display_amount_krw;
                   const lineTotal = unit * row.line.quantity;
                   const nf = new Intl.NumberFormat("ko-KR");
+                  const optionLabel = formatPlanOptionLabel({
+                    plan_type: row.detail.summary.plan_type,
+                    allowance_label: row.detail.summary.allowance_label,
+                    qos_raw: row.detail.specs.qos_raw,
+                  });
+                  const kycBadge = shouldShowBadge(
+                    { flags: { kyc: row.detail.usage.kyc_flag_raw } },
+                    row.kycDistribution,
+                  );
                   return (
                     <li
                       key={row.line.optionApiId}
                       className="rounded-lg border border-teal-100/80 bg-white px-3 py-3 lg:px-4 lg:py-3.5"
                     >
-                      <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-slate-900">
-                        <span className="text-xl leading-none" aria-hidden>
-                          {head.flag}
-                        </span>
-                        <span>{head.name}</span>
-                        <TravelerVerificationProductBadge
-                          state={getKycLabelStateFromRaw(row.detail.usage.kyc_flag_raw)}
-                          size="sm"
-                        />
-                      </p>
-                      <p className="mt-1 text-sm leading-snug text-slate-700">
-                        {checkoutPlanSubtitle(row.detail, head.name)}
-                      </p>
-                      <p className="mt-2 text-sm text-slate-800">
-                        {nf.format(unit)}원 × {row.line.quantity} ={" "}
-                        <span className="font-bold text-slate-900">{nf.format(lineTotal)}원</span>
-                      </p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-slate-900">
+                            <span className="text-xl leading-none" aria-hidden>
+                              {head.flag}
+                            </span>
+                            <span>{head.name}</span>
+                            <TravelerVerificationProductBadge state={kycBadge} size="sm" />
+                          </p>
+                          <p className="mt-1 text-xs font-medium text-slate-700">{optionLabel}</p>
+                          <p className="mt-0.5 text-sm leading-snug text-slate-600">
+                            {checkoutPlanSubtitle(row.detail, head.name)}
+                          </p>
+                        </div>
+                        <div className="ml-auto shrink-0 text-right">
+                          <p className="text-sm font-bold text-slate-900">
+                            {nf.format(unit)}원 × {row.line.quantity}
+                          </p>
+                          <p className="mt-0.5 text-base font-bold text-slate-900">
+                            {nf.format(lineTotal)}원
+                          </p>
+                        </div>
+                      </div>
                     </li>
                   );
                 })}

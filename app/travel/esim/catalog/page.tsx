@@ -3,6 +3,8 @@ import Header from '@/app/components/Header'
 import { bongsimPath } from '@/lib/bongsim/constants'
 import { ProductCatalogCard } from "@/components/bongsim/catalog/ProductCatalogCard";
 import { listCatalogProducts, type CatalogProductListRow } from "@/lib/bongsim/data/list-catalog-products";
+import { getKycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
+import type { KycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
 
 type BucketKey = "local" | "roam_unlimited" | "roam_fixed" | "roam_daily";
 
@@ -61,6 +63,13 @@ export default async function CatalogPage() {
   const grouped = groupRows(res.rows);
   const order: BucketKey[] = ["local", "roam_unlimited", "roam_fixed", "roam_daily"];
 
+  const kycByPlanName = new Map<string, KycLabelDistribution>();
+  for (const row of res.rows) {
+    if (kycByPlanName.has(row.plan_name)) continue;
+    const siblings = res.rows.filter((r) => r.plan_name === row.plan_name);
+    kycByPlanName.set(row.plan_name, getKycLabelDistribution(siblings));
+  }
+
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
@@ -92,7 +101,10 @@ export default async function CatalogPage() {
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {items.map((row) => (
                     <li key={row.option_api_id}>
-                      <ProductCatalogCard row={row} />
+                      <ProductCatalogCard
+                        row={row}
+                        kycDistribution={kycByPlanName.get(row.plan_name) ?? "none"}
+                      />
                     </li>
                   ))}
                 </ul>

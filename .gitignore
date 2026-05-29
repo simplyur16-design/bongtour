@@ -149,6 +149,9 @@ tools/_e2e-out/
 # DB backups
 backups/
 
+# eSIM plans API 시뮬 (로컬 검증 전용, 커밋 제외)
+scripts/sim-plans-*.ts
+
 # 개발용 검증 스크립트 (untracked 유지)
 scripts/verify-ncloud-korean-key.ts
 scripts/verify-ncloud-cors-presigned-put.ts

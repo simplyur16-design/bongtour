@@ -1,14 +1,14 @@
 import { ShieldAlert, ShieldCheck } from "lucide-react";
-import type { KycLabelState } from "@/lib/bongsim/esim/kyc-required";
+import type { KycBadgeState } from "@/lib/bongsim/esim/kyc-required";
 
 type Props = {
-  state: KycLabelState;
+  state: KycBadgeState;
   className?: string;
   size?: "sm" | "md";
 };
 
 export function TravelerVerificationProductBadge({ state, className = "", size = "sm" }: Props) {
-  if (state === "unknown") return null;
+  if (state == null) return null;
 
   const sizeClass =
     size === "md" ? "text-xs py-1 px-2" : "text-[10px] py-0.5 px-1.5";

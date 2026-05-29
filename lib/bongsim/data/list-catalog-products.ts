@@ -9,6 +9,7 @@ export type CatalogProductListRow = {
   plan_type: string | null;
   allowance_label: string;
   days_raw: string;
+  qos_raw: string | null;
   price_block: unknown;
   flags: Record<string, unknown>;
 };
@@ -45,6 +46,7 @@ export async function listCatalogProducts(params: ListCatalogProductsParams): Pr
          plan_type,
          allowance_label,
          days_raw,
+         qos_raw,
          price_block,
          flags
        FROM bongsim_product_option

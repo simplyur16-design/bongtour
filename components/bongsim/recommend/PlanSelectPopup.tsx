@@ -9,18 +9,43 @@ import {
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
 import { parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
+import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
 import { esimHasFreeData } from "@/lib/bongsim/constants";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
-import { getKycLabelState } from "@/lib/bongsim/esim/kyc-required";
+import {
+  getKycLabelDistribution,
+  getKycLabelState,
+  shouldShowBadge,
+  type KycLabelDistribution,
+} from "@/lib/bongsim/esim/kyc-required";
 type PlanTab = "unlimited" | "daily" | "fixed";
 
 type RecommendedPlan = ProductOption & { rec_source: PlanTab };
+
+type RecommendedByAuth = {
+  required: RecommendedPlan | null;
+  not_required: RecommendedPlan | null;
+};
+
+type AuthFilter = "required" | "not_required";
 
 type PlanGroups = {
   unlimited: ProductOption[];
   daily: ProductOption[];
   fixed: ProductOption[];
 };
+
+function filterGroupsByAuth(groups: PlanGroups, auth: AuthFilter): PlanGroups {
+  const match = (p: ProductOption) => {
+    const state = getKycLabelState(p.flags);
+    return auth === "required" ? state === "required" : state === "not_required";
+  };
+  return {
+    unlimited: groups.unlimited.filter(match),
+    daily: groups.daily.filter(match),
+    fixed: groups.fixed.filter(match),
+  };
+}
 
 const TAB_LABELS: Record<PlanTab, string> = {
   unlimited: "무제한",
@@ -33,6 +58,18 @@ const ALL_PLAN_TABS: PlanTab[] = ["unlimited", "daily", "fixed"];
 const PLAN_TYPE_HELP = `무제한: 데이터 양은 무제한, 속도는 일정하게 유지돼요(영상은 화질 제한될 수 있어요).
 데일리: 매일 정해진 용량까지 고속, 소진 후 다음날까지 느려졌다가 매일 초기화돼요.
 종량제: 전체 기간 동안 정해진 용량까지 고속, 다 쓰면 종료(충전 연장 가능).`;
+
+function networkFamilyLabelKr(family: string | undefined): string {
+  switch ((family ?? "").toLowerCase()) {
+    case "local":
+      return "로컬";
+    case "roaming":
+      return "로밍";
+    default:
+      return family?.trim() || "—";
+  }
+}
+
 
 function displayRecommended(p: ProductOption): number | null {
   if (typeof p.recommended_price === "number" && Number.isFinite(p.recommended_price)) {
@@ -51,55 +88,6 @@ function dailyRateFromProduct(p: ProductOption, fallbackDays: number): number | 
   const d = productBillableDays(p, fallbackDays);
   if (d <= 0) return null;
   return total / d;
-}
-
-function parseMbpsFromQos(qos_raw: string | null | undefined): number | null {
-  const low = (qos_raw || "").trim().toLowerCase();
-  if (!low) return null;
-  const kb = low.match(/(\d+(?:\.\d+)?)\s*kbps/);
-  if (kb) {
-    const n = parseFloat(kb[1]);
-    return Number.isFinite(n) ? n / 1000 : null;
-  }
-  const mb = low.match(/(\d+(?:\.\d+)?)\s*mbps/);
-  if (mb) {
-    const n = parseFloat(mb[1]);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
-
-function formatMbpsLabel(qos_raw: string | null | undefined): string {
-  const m = parseMbpsFromQos(qos_raw);
-  if (m == null) return "—";
-  const rounded = m >= 1 ? String(Math.round(m)) : m.toFixed(2).replace(/\.?0+$/, "");
-  return `${rounded}Mbps`;
-}
-
-function structureBadgeText(tab: PlanTab, product: ProductOption): string {
-  const allowance = (product.allowance_label || "").trim() || "—";
-  const qos = (product.qos_raw || "").trim() || "—";
-  switch (tab) {
-    case "unlimited":
-      return `무제한 · 최대 ${formatMbpsLabel(product.qos_raw)}`;
-    case "daily":
-      return `매일 ${allowance} 고속 · 소진 후 ${qos}`;
-    case "fixed":
-      return `총 ${allowance} 고속 · 소진 시 종료`;
-    default:
-      return "";
-  }
-}
-
-function networkFamilyLabelKr(family: string | undefined): string {
-  switch ((family ?? "").toLowerCase()) {
-    case "local":
-      return "로컬";
-    case "roaming":
-      return "로밍";
-    default:
-      return family?.trim() || "—";
-  }
 }
 
 /** allowance_label → GB 비교키 (500MB=0.5, 1GB=1 …). 문자열 정렬 금지. */
@@ -131,7 +119,11 @@ type Props = {
   allSelectedCodes: string[];
   tripDays: number;
   onBack: () => void;
-  onComplete: (product: ProductOption, quantity: number) => void;
+  onComplete: (
+    product: ProductOption,
+    quantity: number,
+    ctx?: { kycDistribution: KycLabelDistribution },
+  ) => void;
 };
 
 export function PlanSelectPopup({
@@ -146,7 +138,10 @@ export function PlanSelectPopup({
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [recommended, setRecommended] = useState<RecommendedPlan | null>(null);
-  const [groups, setGroups] = useState<PlanGroups>({ unlimited: [], daily: [], fixed: [] });
+  const [recommendedByAuth, setRecommendedByAuth] = useState<RecommendedByAuth | null>(null);
+  const [kycDistribution, setKycDistribution] = useState<KycLabelDistribution>("none");
+  const [authFilter, setAuthFilter] = useState<AuthFilter>("not_required");
+  const [rawGroups, setRawGroups] = useState<PlanGroups>({ unlimited: [], daily: [], fixed: [] });
   const [activeTab, setActiveTab] = useState<PlanTab>("unlimited");
   const [helpOpen, setHelpOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -161,7 +156,10 @@ export function PlanSelectPopup({
   useEffect(() => {
     if (!open) {
       setRecommended(null);
-      setGroups({ unlimited: [], daily: [], fixed: [] });
+      setRecommendedByAuth(null);
+      setKycDistribution("none");
+      setAuthFilter("not_required");
+      setRawGroups({ unlimited: [], daily: [], fixed: [] });
       setActiveTab("unlimited");
       setHelpOpen(false);
       setSelectedId(null);
@@ -186,6 +184,8 @@ export function PlanSelectPopup({
         if (!res.ok) throw new Error("fetch failed");
         const json = (await res.json()) as {
           recommended?: RecommendedPlan | null;
+          recommended_by_auth?: RecommendedByAuth | null;
+          kyc_distribution?: KycLabelDistribution;
           groups?: Partial<PlanGroups>;
           matched_days?: number;
         };
@@ -196,6 +196,8 @@ export function PlanSelectPopup({
             ? Math.trunc(mdRaw)
             : tripDaysFloored;
         setMatchedDays(md);
+        const dist = json.kyc_distribution ?? "none";
+        setKycDistribution(dist);
         const rawDaily = json.groups?.daily ?? [];
         const nextGroups: PlanGroups = {
           unlimited: json.groups?.unlimited ?? [],
@@ -205,12 +207,22 @@ export function PlanSelectPopup({
               : rawDaily,
           fixed: json.groups?.fixed ?? [],
         };
+        setRawGroups(nextGroups);
+        const nextRecommendedByAuth = json.recommended_by_auth ?? null;
+        setRecommendedByAuth(nextRecommendedByAuth);
         const nextRecommended =
           json.recommended && json.recommended.option_api_id ? json.recommended : null;
-        setGroups(nextGroups);
         setRecommended(nextRecommended);
-        const visibleAfterLoad = ALL_PLAN_TABS.filter((t) => (nextGroups[t]?.length ?? 0) > 0);
-        const recTab = nextRecommended?.rec_source;
+        const defaultAuth: AuthFilter = "not_required";
+        setAuthFilter(defaultAuth);
+        const visibleGroups =
+          dist === "binary" ? filterGroupsByAuth(nextGroups, defaultAuth) : nextGroups;
+        const pin =
+          dist === "binary"
+            ? nextRecommendedByAuth?.[defaultAuth] ?? null
+            : nextRecommended;
+        const visibleAfterLoad = ALL_PLAN_TABS.filter((t) => (visibleGroups[t]?.length ?? 0) > 0);
+        const recTab = pin?.rec_source;
         const nextTab =
           recTab && visibleAfterLoad.includes(recTab) ? recTab : (visibleAfterLoad[0] ?? "unlimited");
         setActiveTab(nextTab);
@@ -218,7 +230,8 @@ export function PlanSelectPopup({
         if (!cancelled) {
           setErr("플랜을 불러오지 못했습니다.");
           setRecommended(null);
-          setGroups({ unlimited: [], daily: [], fixed: [] });
+          setRecommendedByAuth(null);
+          setRawGroups({ unlimited: [], daily: [], fixed: [] });
           setMatchedDays(null);
         }
       } finally {
@@ -230,16 +243,36 @@ export function PlanSelectPopup({
     };
   }, [open, countryCode, tripDaysFloored, allSelectedCodes.join(",")]);
 
+  const showAuthToggle = kycDistribution === "binary";
+
+  const groups = useMemo(() => {
+    if (!showAuthToggle) return rawGroups;
+    return filterGroupsByAuth(rawGroups, authFilter);
+  }, [rawGroups, authFilter, showAuthToggle]);
+
+  const activeRecommended = useMemo(() => {
+    if (showAuthToggle) {
+      return recommendedByAuth?.[authFilter] ?? null;
+    }
+    return recommended;
+  }, [showAuthToggle, recommendedByAuth, authFilter, recommended]);
+
   const tabCards = useMemo(() => {
     const list = groups[activeTab] ?? [];
-    const recId = recommended?.rec_source === activeTab ? recommended.option_api_id : null;
+    const recId = activeRecommended?.rec_source === activeTab ? activeRecommended.option_api_id : null;
     const pinned = recId ? list.find((p) => p.option_api_id === recId) : null;
     const rest = recId ? list.filter((p) => p.option_api_id !== recId) : list;
     const rows: { product: ProductOption; isPinned: boolean }[] = [];
     if (pinned) rows.push({ product: pinned, isPinned: true });
     for (const p of rest) rows.push({ product: p, isPinned: false });
     return rows;
-  }, [groups, activeTab, recommended]);
+  }, [groups, activeTab, activeRecommended]);
+
+  const hasAnyPlansAtAll =
+    rawGroups.unlimited.length > 0 || rawGroups.daily.length > 0 || rawGroups.fixed.length > 0;
+
+  const hasVisiblePlans =
+    groups.unlimited.length > 0 || groups.daily.length > 0 || groups.fixed.length > 0;
 
   const allProductsInView = useMemo(() => tabCards.map((r) => r.product), [tabCards]);
 
@@ -264,7 +297,20 @@ export function PlanSelectPopup({
   useEffect(() => {
     setSelectedId(null);
     setQuantity(1);
-  }, [activeTab]);
+  }, [activeTab, authFilter]);
+
+  useEffect(() => {
+    if (!showAuthToggle || !open || loading) return;
+    const visibleAfterAuth = ALL_PLAN_TABS.filter((t) => (groups[t]?.length ?? 0) > 0);
+    if (visibleAfterAuth.length === 0) return;
+    const pin = recommendedByAuth?.[authFilter] ?? null;
+    const recTab = pin?.rec_source;
+    if (recTab && visibleAfterAuth.includes(recTab)) {
+      setActiveTab(recTab);
+    } else if (!visibleAfterAuth.includes(activeTab)) {
+      setActiveTab(visibleAfterAuth[0]!);
+    }
+  }, [authFilter, showAuthToggle, recommendedByAuth, groups, open, loading, activeTab]);
 
   const totalKrw = unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
 
@@ -279,9 +325,6 @@ export function PlanSelectPopup({
   }, [allProductsInView]);
 
   const canComplete = Boolean(selectedId && selectedProduct && quantity >= 1);
-
-  const hasAnyPlans =
-    groups.unlimited.length > 0 || groups.daily.length > 0 || groups.fixed.length > 0;
 
   const visibleTabs = useMemo(
     () => ALL_PLAN_TABS.filter((tab) => groups[tab].length > 0),
@@ -317,6 +360,35 @@ export function PlanSelectPopup({
             {tripDaysFloored}일 동안 사용할 플랜을 골라주세요
           </h2>
         </div>
+
+        {showAuthToggle ? (
+          <div className="border-b border-slate-100 px-5 pb-3 pt-3">
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label="여행자 인증 필터">
+              <button
+                type="button"
+                onClick={() => setAuthFilter("required")}
+                className={`min-h-10 rounded-lg px-3 text-sm font-bold transition lg:text-base ${
+                  authFilter === "required"
+                    ? "border-2 border-amber-400 bg-amber-100 text-amber-900 shadow-sm"
+                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                인증 필요
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthFilter("not_required")}
+                className={`min-h-10 rounded-lg px-3 text-sm font-bold transition lg:text-base ${
+                  authFilter === "not_required"
+                    ? "border-2 border-teal-400 bg-teal-100 text-teal-900 shadow-sm"
+                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                인증 필요없음
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="border-b border-slate-100 px-5">
           {visibleTabs.length > 0 ? (
@@ -381,12 +453,17 @@ export function PlanSelectPopup({
             <div className="py-10 text-center text-sm text-slate-600 lg:text-base">불러오는 중…</div>
           )}
           {!loading && err && <p className="text-center text-sm text-red-600 lg:text-base">{err}</p>}
-          {!loading && !err && !hasAnyPlans && (
+          {!loading && !err && !hasAnyPlansAtAll && (
             <p className="py-8 text-center text-sm text-slate-600 lg:text-base">
               해당 조건의 상품이 없습니다.
             </p>
           )}
-          {!loading && !err && hasAnyPlans && tabCards.length === 0 && (
+          {!loading && !err && hasAnyPlansAtAll && !hasVisiblePlans && (
+            <p className="py-8 text-center text-sm text-slate-600 lg:text-base">
+              선택한 인증 조건의 플랜이 없습니다.
+            </p>
+          )}
+          {!loading && !err && hasVisiblePlans && tabCards.length === 0 && (
             <p className="py-8 text-center text-sm text-slate-600 lg:text-base">
               이 유형의 플랜이 없습니다.
             </p>
@@ -399,8 +476,10 @@ export function PlanSelectPopup({
               const dailyRate = dailyRateFromProduct(product, displayMatchedDays);
               const totalShow = packageTotal != null && Number.isFinite(packageTotal) ? packageTotal : null;
               const dailyShow = dailyRate != null && Number.isFinite(dailyRate) ? dailyRate : null;
-              const badge = structureBadgeText(activeTab, product);
+              const optionLabel = formatPlanOptionLabel(product);
               const validDays = extractDaysFromDaysRaw(product.days_raw);
+              const allowance = (product.allowance_label || "").trim() || "—";
+              const kycBadge = shouldShowBadge(product, kycDistribution);
 
               return (
                 <div
@@ -414,71 +493,56 @@ export function PlanSelectPopup({
                         : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    {isPinned ? (
-                      <div className="bt-bongsim-on-dark inline-flex items-center rounded-full bg-gradient-to-r from-violet-600 to-blue-600 px-3 py-1.5 text-[11px] font-extrabold tracking-wide text-white shadow-md ring-2 ring-violet-300/80 lg:px-4 lg:py-2 lg:text-xs">
-                        추천
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        {isPinned ? (
+                          <div className="bt-bongsim-on-dark inline-flex items-center rounded-full bg-gradient-to-r from-violet-600 to-blue-600 px-3 py-1.5 text-[11px] font-extrabold tracking-wide text-white shadow-md ring-2 ring-violet-300/80 lg:px-4 lg:py-2 lg:text-xs">
+                            추천
+                          </div>
+                        ) : null}
+                        <TravelerVerificationProductBadge state={kycBadge} size="sm" />
                       </div>
-                    ) : null}
-                    <span className="text-xs rounded-full bg-slate-100 px-2 py-0.5 text-slate-800 lg:text-sm">
-                      {badge}
-                    </span>
-                    <TravelerVerificationProductBadge
-                      state={getKycLabelState(product.flags)}
-                      size="sm"
-                    />
-                  </div>
-
-                  {activeTab === "fixed" ? (
-                    <>
-                      <p className="text-xl font-bold !text-slate-900 lg:text-2xl">
-                        {(product.allowance_label || "").trim() || "—"}
-                      </p>
-                      {validDays != null ? (
-                        <p className="mt-0.5 text-xs !text-slate-600 lg:text-sm">
-                          {validDays}일 이내 사용
+                      <p className="text-xs font-semibold text-slate-800 lg:text-sm">{optionLabel}</p>
+                      {activeTab === "fixed" ? (
+                        <>
+                          <p className="mt-1 text-lg font-bold !text-slate-900 lg:text-xl">{allowance}</p>
+                          {validDays != null ? (
+                            <p className="mt-0.5 text-xs !text-slate-600 lg:text-sm">
+                              {validDays}일 이내 사용 · {product.plan_name.trim()} ·{" "}
+                              {networkFamilyLabelKr(product.network_family)}
+                            </p>
+                          ) : (
+                            <p className="mt-0.5 text-xs !text-slate-600 lg:text-sm">
+                              {product.plan_name.trim()} · {networkFamilyLabelKr(product.network_family)}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="mt-1 text-sm !text-slate-700 lg:text-base">
+                          {allowance} · {product.plan_name.trim()} ·{" "}
+                          {networkFamilyLabelKr(product.network_family)}
                         </p>
-                      ) : null}
-                      <p className="mt-0.5 text-xs !text-slate-600 lg:text-sm">
-                        {networkFamilyLabelKr(product.network_family)}
-                      </p>
+                      )}
                       {esimHasFreeData(product.network_family, product.plan_name) ? (
                         <p className="mt-1 text-xs font-bold text-teal-700 lg:text-sm">
                           구글맵·ChatGPT 데이터 무료
                         </p>
                       ) : null}
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-semibold !text-slate-800 lg:text-base">
-                        {product.plan_name.trim()}
-                      </p>
-                      <p className="mt-1 text-lg font-bold !text-slate-900 lg:text-xl">
-                        {(product.allowance_label || "").trim() || "—"}
-                      </p>
-                      <p className="mt-0.5 text-xs !text-slate-600 lg:text-sm">
-                        {networkFamilyLabelKr(product.network_family)}
-                      </p>
-                      {esimHasFreeData(product.network_family, product.plan_name) ? (
-                        <p className="mt-1 text-xs font-bold text-teal-700 lg:text-sm">
-                          구글맵·ChatGPT 데이터 무료
-                        </p>
-                      ) : null}
-                    </>
-                  )}
-
-                  {totalShow != null && (
-                    <div className="mt-2">
-                      <p className="bt-bongsim-plan-price text-lg font-bold !text-slate-900 lg:text-xl">
-                        {formatKrw(totalShow)}
-                      </p>
                     </div>
-                  )}
-                  {dailyShow != null && (
-                    <p className="mt-0.5 text-xs font-medium !text-slate-700 lg:text-sm">
-                      일당 {formatKrwPerDay(dailyShow)}
-                    </p>
-                  )}
+                    <div className="ml-auto shrink-0 text-right">
+                      {totalShow != null && (
+                        <p className="bt-bongsim-plan-price text-lg font-bold !text-slate-900 lg:text-xl">
+                          {formatKrw(totalShow)}
+                        </p>
+                      )}
+                      {dailyShow != null && (
+                        <p className="mt-0.5 text-xs font-medium !text-slate-700 lg:text-sm">
+                          일당 {formatKrwPerDay(dailyShow)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
                   {active && (
                     <div className="mt-4 border-t border-blue-200 pt-3" onClick={(e) => e.stopPropagation()}>
@@ -547,7 +611,10 @@ export function PlanSelectPopup({
             <button
               type="button"
               disabled={!canComplete}
-              onClick={() => selectedProduct && onComplete(selectedProduct, quantity)}
+              onClick={() =>
+                selectedProduct &&
+                onComplete(selectedProduct, quantity, { kycDistribution })
+              }
               className={`min-h-[3rem] flex-1 rounded-xl text-sm font-bold !text-black transition lg:text-base ${
                 canComplete
                   ? "bg-blue-100 hover:bg-blue-200"

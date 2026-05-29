@@ -4,6 +4,8 @@ import { bongsimPath } from '@/lib/bongsim/constants'
 import { notFound } from "next/navigation";
 import { ProductDetailV1View } from "@/components/bongsim/detail-v1/ProductDetailV1View";
 import { getProductDetailByOptionApiId } from "@/lib/bongsim/data/get-product-detail-by-option-api-id";
+import { listKycFlagProductsForPlanName } from "@/lib/bongsim/data/list-kyc-flag-products-for-plan-name";
+import { getKycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
 
 type Props = { params: Promise<{ optionApiId: string }> };
 
@@ -31,6 +33,10 @@ export default async function ProductDetailV1Page({ params }: Props) {
     );
   }
 
+  const kycDistribution = getKycLabelDistribution(
+    await listKycFlagProductsForPlanName(res.detail.summary.plan_name),
+  );
+
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
@@ -43,7 +49,7 @@ export default async function ProductDetailV1Page({ params }: Props) {
           <span className="mx-1.5 text-slate-300">/</span>
           <span className="text-slate-800">eSIM 상품</span>
         </nav>
-        <ProductDetailV1View detail={res.detail} />
+        <ProductDetailV1View detail={res.detail} kycDistribution={kycDistribution} />
       </main>
       </div>
     </div>
