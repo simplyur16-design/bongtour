@@ -1,15 +1,25 @@
-import { Gift, MessageCircle, ShieldCheck, Signal } from 'lucide-react'
-import {
-  BONGSIM_ESIM_SUPPORT_CARD_BODY,
-  BONGSIM_ESIM_USIM_SUPPORT_COPY,
-  BONGSIM_KAKAO_CHANNEL_URL,
-} from '@/lib/bongsim/constants'
+import Link from 'next/link'
+import type { LucideIcon } from 'lucide-react'
+import { Map, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react'
+import { USIMSA_CX_KAKAO_CHAT_URL, bongsimPath } from '@/lib/bongsim/constants'
 
-const WHY_ITEMS = [
+type WhyItem = {
+  icon: LucideIcon
+  title: string
+  body: string
+  circleClass: string
+  href?: string
+  linkLabel?: string
+  external?: boolean
+}
+
+const WHY_ITEMS: readonly WhyItem[] = [
   {
-    icon: MessageCircle,
-    title: '24시간 안심 고객센터',
-    body: BONGSIM_ESIM_SUPPORT_CARD_BODY,
+    icon: Map,
+    title: '구글맵 데이터 무료',
+    body: '해외에서 구글지도 길찾기를 데이터 차감 없이',
+    href: bongsimPath('/benefits/google-maps'),
+    linkLabel: '자세히 보기 →',
     circleClass: 'bg-teal-100 text-teal-600',
   },
   {
@@ -19,18 +29,72 @@ const WHY_ITEMS = [
     circleClass: 'bg-emerald-100 text-emerald-600',
   },
   {
-    icon: Signal,
-    title: '데이터 안정성',
-    body: '현지 주요 통신사 직접 연결',
-    circleClass: 'bg-blue-100 text-blue-600',
+    icon: Sparkles,
+    title: 'ChatGPT 데이터 무료',
+    body: '여행 중 번역·검색을 데이터 부담 없이',
+    href: bongsimPath('/benefits/chatgpt'),
+    linkLabel: '자세히 보기 →',
+    circleClass: 'bg-violet-100 text-violet-600',
   },
   {
-    icon: Gift,
-    title: '간편한 선물하기 기능',
-    body: '친구·가족에게 쉽게 전송',
+    icon: MessageCircle,
+    title: '24시간 안심 고객센터',
+    body: 'eSIM 전문 파트너 유심사가 24시간 직접 지원',
+    href: USIMSA_CX_KAKAO_CHAT_URL,
+    linkLabel: '카카오톡 문의하기',
+    external: true,
     circleClass: 'bg-amber-100 text-amber-600',
   },
-] as const
+]
+
+function WhyCard({ item }: { item: WhyItem }) {
+  const { icon: Icon, title, body, circleClass, href, linkLabel, external } = item
+  const cardClass =
+    'flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm transition hover:border-teal-200 hover:shadow-md'
+
+  const inner = (
+    <>
+      <div
+        className={`flex shrink-0 items-center justify-center rounded-full p-3 ${circleClass}`}
+        aria-hidden
+      >
+        <Icon className="h-6 w-6" strokeWidth={2} />
+      </div>
+      <div className="w-full min-w-0">
+        <h3 className="font-semibold text-slate-900">{title}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-slate-700">{body}</p>
+        {href && linkLabel ? (
+          <span className="mt-2 inline-block text-sm font-medium text-teal-600 underline-offset-4 group-hover:underline">
+            {linkLabel}
+          </span>
+        ) : null}
+      </div>
+    </>
+  )
+
+  if (!href) {
+    return <div className={cardClass}>{inner}</div>
+  }
+
+  if (external) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`group ${cardClass}`}
+      >
+        {inner}
+      </a>
+    )
+  }
+
+  return (
+    <Link href={href} className={`group ${cardClass}`}>
+      {inner}
+    </Link>
+  )
+}
 
 /** eSIM 랜딩 — 히어로 아래 본문·푸터 (초기 JS 분할용) */
 export default function EsimLandingBelowFold() {
@@ -46,45 +110,9 @@ export default function EsimLandingBelowFold() {
           </p>
 
           <div className="mx-auto mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 lg:mt-12">
-            {WHY_ITEMS.map((item, idx) => {
-              const { icon: Icon, title, body, circleClass } = item
-              const cardClass =
-                'flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm transition hover:border-teal-200 hover:shadow-md'
-              const kakaoUrl = BONGSIM_KAKAO_CHANNEL_URL.trim()
-              const inner = (
-                <>
-                  <div
-                    className={`flex shrink-0 items-center justify-center rounded-full p-3 ${circleClass}`}
-                    aria-hidden
-                  >
-                    <Icon className="h-6 w-6" strokeWidth={2} />
-                  </div>
-                  <div className="w-full min-w-0">
-                    <h3 className="font-semibold text-slate-900">{title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-slate-500">{body}</p>
-                    {idx === 0 ? (
-                      kakaoUrl ? (
-                        <a
-                          href={kakaoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-block text-sm font-medium text-teal-600 underline hover:text-teal-700"
-                        >
-                          카카오톡 문의하기
-                        </a>
-                      ) : (
-                        <p className="mt-2 text-xs leading-relaxed text-slate-500">{BONGSIM_ESIM_USIM_SUPPORT_COPY}</p>
-                      )
-                    ) : null}
-                  </div>
-                </>
-              )
-              return (
-                <div key={title} className={cardClass}>
-                  {inner}
-                </div>
-              )
-            })}
+            {WHY_ITEMS.map((item) => (
+              <WhyCard key={item.title} item={item} />
+            ))}
           </div>
         </section>
 

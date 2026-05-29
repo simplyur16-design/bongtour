@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import Header from "@/app/components/Header";
 import { bongsimPath } from "@/lib/bongsim/constants";
-import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
+import { EsimUsimsaCsLinks } from "@/components/bongsim/EsimUsimsaCsLinks";
 
 export const metadata: Metadata = {
   title: "eSIM 지원 기기 확인 | Bong투어 eSIM",
@@ -124,8 +124,24 @@ export default function EsimDevicesPage() {
             </Link>
           </div>
 
-          <p className="text-center text-sm text-slate-500">기기 확인이 어려우신가요?</p>
-          <EsimSupportFootnote className="mt-2" />
+          <section
+            className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-6 text-center lg:px-8 lg:py-8"
+            aria-labelledby="esim-devices-cs-heading"
+          >
+            <h2 id="esim-devices-cs-heading" className="text-base font-semibold text-slate-900 lg:text-lg">
+              문제가 있으신가요?
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600 lg:text-base">
+              eSIM 설치·사용은 eSIM 전문 파트너 유심사가 직접 지원합니다.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <EsimUsimsaCsLinks
+                kakaoLabel="카카오톡 문의하기"
+                emailWithPrefix={false}
+                className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center"
+              />
+            </div>
+          </section>
           <p className="mt-3 text-center text-sm text-slate-500">
             <Link href={bongsimPath()} className="font-medium text-teal-700 underline-offset-4 hover:underline">
               ← eSIM 홈으로

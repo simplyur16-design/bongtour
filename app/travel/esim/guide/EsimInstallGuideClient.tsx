@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronDown, HelpCircle, Settings2 } from "lucide-react";
 import Header from "@/app/components/Header";
-import { USIMSA_CX_KAKAO_CHAT_URL, bongsimPath } from "@/lib/bongsim/constants";
+import { bongsimPath } from "@/lib/bongsim/constants";
+import { EsimUsimsaCsLinks } from "@/components/bongsim/EsimUsimsaCsLinks";
 import {
   ANDROID_STEPS,
   COMMON_FAQ,
-  ESIM_GUIDE_CS_EMAIL,
   type GuideBlock,
   type GuideFaq,
   type GuideStep,
@@ -25,27 +25,6 @@ const TABS: { key: GuideTab; label: string }[] = [
   { key: "iphone", label: "iPhone" },
   { key: "android", label: "Android" },
 ];
-
-function GuideUsimsaCsLinks() {
-  return (
-    <div className="mt-3 flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-      <a
-        href={USIMSA_CX_KAKAO_CHAT_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#FEE500] px-4 py-2 text-sm font-semibold text-[#3C1E1E] shadow-sm transition hover:bg-[#f5dc00]"
-      >
-        카카오톡 상담하기
-      </a>
-      <a
-        href={`mailto:${ESIM_GUIDE_CS_EMAIL}`}
-        className="inline-flex min-h-10 items-center text-sm font-medium text-teal-700 underline decoration-teal-300 underline-offset-4 transition hover:text-teal-800 hover:decoration-teal-500"
-      >
-        이메일 문의: {ESIM_GUIDE_CS_EMAIL}
-      </a>
-    </div>
-  );
-}
 
 function GuideBlockImage({ guideKey, imageMap }: { guideKey: string; imageMap: EsimGuideImageMap }) {
   const entry = imageMap[guideKey];
@@ -149,7 +128,7 @@ function GuideBlockContent({ block, imageMap }: { block: GuideBlock; imageMap: E
       {block.note ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm !text-amber-900 lg:text-base">
           <p>{block.note}</p>
-          {block.showUsimsaCs ? <GuideUsimsaCsLinks /> : null}
+          {block.showUsimsaCs ? <EsimUsimsaCsLinks /> : null}
         </div>
       ) : null}
     </div>
@@ -222,7 +201,7 @@ function GuideFaqSection({
               {open ? (
                 <div className="border-t border-slate-100 px-4 py-3 lg:px-5 lg:py-4">
                   <p className="text-sm leading-relaxed !text-slate-900 lg:text-base">{a}</p>
-                  {showUsimsaCs ? <GuideUsimsaCsLinks /> : null}
+                  {showUsimsaCs ? <EsimUsimsaCsLinks /> : null}
                 </div>
               ) : null}
             </div>
