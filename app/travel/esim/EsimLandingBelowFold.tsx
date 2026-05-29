@@ -114,6 +114,21 @@ export default function EsimLandingBelowFold() {
               <WhyCard key={item.title} item={item} />
             ))}
           </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <Link
+              href={bongsimPath('/devices')}
+              className="text-sm font-medium text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-teal-800 hover:decoration-teal-400"
+            >
+              사용가능 기기 확인하기 →
+            </Link>
+            <Link
+              href={bongsimPath('/guide')}
+              className="text-sm font-medium text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-teal-800 hover:decoration-teal-400"
+            >
+              eSIM 설치 가이드 보기 →
+            </Link>
+          </div>
         </section>
 
         <section className="mt-14 lg:mt-20" aria-labelledby="esim-reviews-heading">

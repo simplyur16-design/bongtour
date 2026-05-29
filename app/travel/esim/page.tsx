@@ -36,12 +36,20 @@ export default function EsimPage() {
           </h1>
           <div className="mx-auto mt-3 flex max-w-2xl flex-col items-center gap-2 lg:mt-4">
             <p className="text-lg text-slate-600 lg:text-xl">해외 여행 데이터, 이제 더 쉽게</p>
-            <Link
-              href={bongsimPath('/devices')}
-              className="text-sm font-medium text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-teal-800 hover:decoration-teal-400"
-            >
-              사용가능 기기 확인하기 →
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+              <Link
+                href={bongsimPath('/devices')}
+                className="text-sm font-medium text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-teal-800 hover:decoration-teal-400"
+              >
+                사용가능 기기 확인하기 →
+              </Link>
+              <Link
+                href={bongsimPath('/guide')}
+                className="text-sm font-medium text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-teal-800 hover:decoration-teal-400"
+              >
+                설치 가이드 보기 →
+              </Link>
+            </div>
           </div>
           <div className="mt-8 lg:mt-10">
             <Link
