@@ -18,6 +18,7 @@ import {
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
 import { sortPlanGroupsForDisplay } from "@/lib/bongsim/recommend/plan-display-sort";
+import { filterPlanGroupsByTripDaysWindow } from "@/lib/bongsim/recommend/plan-display-filter";
 
 type PlanTab = "unlimited" | "daily" | "fixed";
 
@@ -444,26 +445,37 @@ export function PlanSelectPopup({
 
   const showAuthToggle = kycDistribution === "binary";
 
+  const windowFilteredGroups = useMemo(
+    () => filterPlanGroupsByTripDaysWindow(rawGroups, tripDaysFloored),
+    [rawGroups, tripDaysFloored],
+  );
+
   const groups = useMemo(() => {
-    const filtered = !showAuthToggle ? rawGroups : filterGroupsByAuth(rawGroups, authFilter);
+    const filtered = !showAuthToggle
+      ? windowFilteredGroups
+      : filterGroupsByAuth(windowFilteredGroups, authFilter);
     return sortPlanGroupsForDisplay(filtered, tripDaysFloored);
-  }, [rawGroups, authFilter, showAuthToggle, tripDaysFloored]);
+  }, [windowFilteredGroups, authFilter, showAuthToggle, tripDaysFloored]);
 
   const authCounts = useMemo(() => {
     const countFor = (auth: AuthFilter) => {
-      const g = filterGroupsByAuth(rawGroups, auth);
+      const g = filterGroupsByAuth(windowFilteredGroups, auth);
       return g.unlimited.length + g.daily.length + g.fixed.length;
     };
     return {
       not_required: countFor("not_required"),
       required: countFor("required"),
     };
-  }, [rawGroups]);
+  }, [windowFilteredGroups]);
 
   const activeRecommended = useMemo(() => {
-    if (showAuthToggle) return recommendedByAuth?.[authFilter] ?? null;
-    return recommended;
-  }, [showAuthToggle, recommendedByAuth, authFilter, recommended]);
+    const pin = showAuthToggle ? recommendedByAuth?.[authFilter] ?? null : recommended;
+    if (!pin?.option_api_id) return null;
+    const inView = [...groups.unlimited, ...groups.daily, ...groups.fixed].some(
+      (p) => p.option_api_id === pin.option_api_id,
+    );
+    return inView ? pin : null;
+  }, [showAuthToggle, recommendedByAuth, authFilter, recommended, groups]);
 
   const recommendedBySection = useMemo(
     () => ({
@@ -481,7 +493,9 @@ export function PlanSelectPopup({
   );
 
   const hasAnyPlansAtAll =
-    rawGroups.unlimited.length > 0 || rawGroups.daily.length > 0 || rawGroups.fixed.length > 0;
+    windowFilteredGroups.unlimited.length > 0 ||
+    windowFilteredGroups.daily.length > 0 ||
+    windowFilteredGroups.fixed.length > 0;
 
   const hasVisiblePlans =
     groups.unlimited.length > 0 || groups.daily.length > 0 || groups.fixed.length > 0;
