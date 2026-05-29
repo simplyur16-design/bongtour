@@ -92,7 +92,7 @@ async function loadSeasonLinkedProductsMobileUncached(): Promise<ResultItem[]> {
     where: {
       id: { in: ids },
       registrationStatus: 'registered',
-      NOT: { travelScope: 'domestic' },
+      travelScope: 'overseas',
       AND: [publicProductWhereClause(now)],
     },
     select: productSelect,
@@ -108,7 +108,7 @@ async function loadSeasonLinkedProductsMobileUncached(): Promise<ResultItem[]> {
         registrationStatus: 'registered',
         cityKey: { in: cityKeys },
         id: { notIn: [...linkedIds] },
-        NOT: { travelScope: 'domestic' },
+        travelScope: 'overseas',
         AND: [publicProductWhereClause(now)],
       },
       select: productSelect,

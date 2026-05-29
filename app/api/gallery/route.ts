@@ -88,6 +88,7 @@ export async function GET(request: Request) {
 
     const publicWhere: Prisma.ProductWhereInput = {
       registrationStatus: 'registered',
+      travelScope: 'overseas',
       AND: [publicProductWhereClause()],
     }
     const [products, total] = await Promise.all([

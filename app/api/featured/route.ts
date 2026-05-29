@@ -19,6 +19,7 @@ export async function GET() {
     const product = await prisma.product.findFirst({
       where: {
         registrationStatus: 'registered',
+        travelScope: 'overseas',
         AND: [publicProductWhereClause()],
       },
       orderBy: { updatedAt: 'desc' },

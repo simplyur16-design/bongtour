@@ -34,6 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const registered = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
+      travelScope: 'overseas',
       AND: [publicProductWhereClause()],
       NOT: { listingKind: OVERSEAS_TRAINING_LISTING_KIND },
     },

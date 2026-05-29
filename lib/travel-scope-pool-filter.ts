@@ -7,14 +7,15 @@ import { parseTravelScope } from '@/lib/product-listing-kind'
  */
 /**
  * browse `findMany` — `filterPoolByStoredTravelScope`와 동일 규칙.
- * `travelScope` 미설정(null·'')은 domestic/overseas 양쪽 풀에 포함.
+ * `overseas`: travelScope='overseas'만 (NULL·'' 제외 — 공공기관 windsor 등).
+ * `domestic`: travelScope 미설정(null·'')은 domestic 풀에 포함(기존).
  */
 export function prismaWhereForBrowseTravelScope(
   scopeParam: string | null | undefined,
 ): Prisma.ProductWhereInput | null {
   const s = (scopeParam ?? '').trim().toLowerCase()
   if (s === 'overseas') {
-    return { OR: [{ travelScope: 'overseas' }, { travelScope: null }, { travelScope: '' }] }
+    return { travelScope: 'overseas' }
   }
   if (s === 'domestic') {
     return { OR: [{ travelScope: 'domestic' }, { travelScope: null }, { travelScope: '' }] }
@@ -29,8 +30,8 @@ export function filterPoolByStoredTravelScope<T extends { travelScope?: string |
   if (scopeParam !== 'domestic' && scopeParam !== 'overseas') return products
   return products.filter((p) => {
     const ts = parseTravelScope(p.travelScope ?? undefined)
+    if (scopeParam === 'overseas') return ts === 'overseas'
     if (ts == null) return true
-    if (scopeParam === 'overseas') return ts !== 'domestic'
     return ts !== 'overseas'
   })
 }

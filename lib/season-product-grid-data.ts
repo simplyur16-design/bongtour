@@ -93,7 +93,7 @@ async function loadSeasonProductGridUncached(): Promise<ResultItem[]> {
     where: {
       id: { in: ids },
       registrationStatus: 'registered',
-      NOT: { travelScope: 'domestic' },
+      travelScope: 'overseas',
       AND: [publicProductWhereClause(now)],
     },
     select: productSelect,
@@ -112,7 +112,7 @@ async function loadSeasonProductGridUncached(): Promise<ResultItem[]> {
     related = await prisma.product.findMany({
       where: {
         registrationStatus: 'registered',
-        NOT: { travelScope: 'domestic' },
+        travelScope: 'overseas',
         id: { notIn: [...linkedIds] },
         AND: [{ OR: geoOr }, publicProductWhereClause(now)],
       },

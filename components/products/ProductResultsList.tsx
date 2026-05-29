@@ -59,7 +59,7 @@ export type ResultItem = {
 
 const PRODUCT_CARD_LOAD_STEP = 4
 /** 해외 목록: 상품 카드 N개마다 eSIM 네이티브 카드 1개 */
-const ESIM_NATIVE_INSERT_EVERY = 4
+const ESIM_NATIVE_INSERT_EVERY = 10
 const PRODUCT_LIST_INITIAL_MOBILE = 4
 const PRODUCT_LIST_INITIAL_DESKTOP = 8
 
