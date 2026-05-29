@@ -98,9 +98,11 @@ export type CommonScheduleDayRow = {
 /** verygoodtour 일정 선추출·등록 전용 — 자유일정 imageKeyword/imageKeyword2 규칙 */
 export const VERYGOOD_SCHEDULE_IMAGE_KEYWORD_PROMPT_ADDENDUM =
   '- **참좋은여행 본문(N일차 + 호텔/식사 블록):** 일차 description·routeText는 한국어로 작성. imageKeyword·imageKeyword2는 **영문 관광지·명소**만.\n' +
+  '- **한글 imageKeyword/imageKeyword2 절대 금지:** 한글·가나·한자 키워드는 무효. 반드시 영문 landmark·고유명(예: Taj Mahal, Schonbrunn Palace). 도시명 영문 단독(예: Vienna)도 허용.\n' +
+  '- **구체 landmark 권장:** 가능하면 도시명 단독보다 해당 일차 **대표 관광명소** 영문명을 우선(강제는 아님).\n' +
   '- **자유일정·선택관광 일차:** 자유일정이라도 본문에 관광지·명소(공원·광장·성·박물관·테마파크 등)가 있으면 그 명소를 **영문**으로 imageKeyword(1순위)·imageKeyword2(2순위, 1순위와 다른 명소)에 넣을 것. 자유일정이라고 비우지 말 것.\n' +
   '- **명소가 본문에 없는 자유일정(전일 자유시간만):** 그날 머무는 **도시 영문명**만 imageKeyword로(예: 바르샤바 자유시간 → Warsaw). imageKeyword2는 null.\n' +
-  '- **imageKeyword2:** 본문에 관광지 2곳 이상이면 **두 번째** 관광명소 **영문**. 출발·귀국(비행) 일차는 null.\n' +
+  '- **imageKeyword2 ([touring] 일차 필수):** 관광 일차(touring)이고 본문·routeText에 관광지가 2곳 이상이면 **imageKeyword2 필수** — 1순위와 다른 **두 번째** 관광명소 영문. null·빈 문자열 금지. 출발·귀국(비행) 일차는 null.\n' +
   '- **routeText는 한국어**이므로 imageKeyword·imageKeyword2의 영문 키워드 소스로 **사용하지 말 것**.\n'
 
 function strOrNull(v: unknown): string | null {
