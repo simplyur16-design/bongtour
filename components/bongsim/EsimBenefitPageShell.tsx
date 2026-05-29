@@ -6,19 +6,40 @@ type Props = {
   title: string;
   subtitle: string;
   intro: string;
+  introHeading?: string;
+  introBullets?: string[];
   countriesHeading: string;
   countriesText: string;
+  countriesBullets?: string[];
+  noticeHeading?: string;
   noticeItems: string[];
+  noticeLink?: { href: string; label: string };
   children?: ReactNode;
 };
+
+function BulletList({ items }: { items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <ul className="mt-3 list-inside list-disc space-y-2 text-sm leading-relaxed marker:text-slate-400 lg:text-base">
+      {items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
+  );
+}
 
 export function EsimBenefitPageShell({
   title,
   subtitle,
   intro,
+  introHeading = "소개",
+  introBullets,
   countriesHeading,
   countriesText,
+  countriesBullets,
+  noticeHeading = "주의사항",
   noticeItems,
+  noticeLink,
   children,
 }: Props) {
   return (
@@ -43,26 +64,44 @@ export function EsimBenefitPageShell({
 
       <main className="mx-auto max-w-3xl px-4 pb-16 pt-8 lg:max-w-4xl lg:px-6 lg:pb-20 lg:pt-10">
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:p-6">
-          <h2 className="text-lg font-bold lg:text-xl">소개</h2>
+          <h2 className="text-lg font-bold lg:text-xl">{introHeading}</h2>
           <p className="mt-3 text-sm leading-relaxed lg:text-base">{intro}</p>
+          <BulletList items={introBullets ?? []} />
         </section>
 
         <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:mt-8 lg:p-6">
           <h2 className="text-lg font-bold lg:text-xl">{countriesHeading}</h2>
-          <p className="mt-3 text-sm leading-relaxed lg:text-base">{countriesText}</p>
+          {countriesText.trim() ? (
+            <p className="mt-3 text-sm leading-relaxed lg:text-base">{countriesText}</p>
+          ) : null}
+          <BulletList items={countriesBullets ?? []} />
         </section>
 
-        <div
-          className="bt-esim-benefit-notice mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed lg:mt-8 lg:p-5 lg:text-base"
-          role="note"
-        >
-          <h2 className="font-semibold">주의사항</h2>
-          <ul className="mt-3 list-inside list-disc space-y-2 marker:text-amber-700">
-            {noticeItems.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
+        {noticeItems.length > 0 ? (
+          <div
+            className="bt-esim-benefit-notice mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed lg:mt-8 lg:p-5 lg:text-base"
+            role="note"
+          >
+            <h2 className="font-semibold">{noticeHeading}</h2>
+            {noticeLink ? (
+              <p className="mt-3">
+                <a
+                  href={noticeLink.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-10 items-center justify-center rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-800"
+                >
+                  {noticeLink.label}
+                </a>
+              </p>
+            ) : null}
+            <ul className="mt-3 list-inside list-disc space-y-2 marker:text-amber-700">
+              {noticeItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {children}
 

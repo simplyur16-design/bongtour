@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { LucideIcon } from 'lucide-react'
-import { Map, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react'
+import { BarChart3, Map, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react'
 import { USIMSA_CX_KAKAO_CHAT_URL, bongsimPath } from '@/lib/bongsim/constants'
 
 type WhyItem = {
@@ -27,6 +27,14 @@ const WHY_ITEMS: readonly WhyItem[] = [
     title: '품질보장서비스',
     body: '제품 결함 시 전액 환불',
     circleClass: 'bg-emerald-100 text-emerald-600',
+  },
+  {
+    icon: BarChart3,
+    title: '데이터 사용량 실시간 확인',
+    body: '마이페이지에서 남은 데이터를 언제든 확인',
+    href: '/mypage/esim',
+    linkLabel: '사용량 확인하기 →',
+    circleClass: 'bg-sky-100 text-sky-600',
   },
   {
     icon: Sparkles,
@@ -109,7 +117,7 @@ export default function EsimLandingBelowFold() {
             여행 준비부터 현지 체류까지, 데이터 걱정을 덜어 드립니다.
           </p>
 
-          <div className="mx-auto mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 lg:mt-12">
+          <div className="mx-auto mt-8 grid grid-cols-1 gap-4 sm:mt-10 md:grid-cols-3 lg:mt-12">
             {WHY_ITEMS.map((item) => (
               <WhyCard key={item.title} item={item} />
             ))}
