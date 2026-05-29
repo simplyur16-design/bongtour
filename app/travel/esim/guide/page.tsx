@@ -22,6 +22,8 @@ async function loadEsimGuideImageMap(): Promise<EsimGuideImageMap> {
       map[guideKey] = {
         url,
         alt: row.alt_kr.trim() || row.title_kr?.trim() || "eSIM 설치 가이드",
+        ...(row.width != null && row.width > 0 ? { width: row.width } : {}),
+        ...(row.height != null && row.height > 0 ? { height: row.height } : {}),
       };
     }
     return map;

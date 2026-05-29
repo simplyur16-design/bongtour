@@ -840,6 +840,8 @@ model ImageAsset {
   storageBucket   String    @map("storage_bucket")
   storagePath     String    @map("storage_path")
   publicUrl       String    @map("public_url")
+  width           Int?
+  height          Int?
   altKr           String    @map("alt_kr")
   altEn           String    @map("alt_en")
   titleKr         String?   @map("title_kr")

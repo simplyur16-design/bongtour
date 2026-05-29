@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronDown, HelpCircle, Settings2 } from "lucide-react";
 import Header from "@/app/components/Header";
-import { bongsimPath } from "@/lib/bongsim/constants";
+import { USIMSA_CX_KAKAO_CHAT_URL, bongsimPath } from "@/lib/bongsim/constants";
 import {
   ANDROID_STEPS,
   COMMON_FAQ,
+  ESIM_GUIDE_CS_EMAIL,
   type GuideBlock,
   type GuideFaq,
   type GuideStep,
@@ -25,16 +26,97 @@ const TABS: { key: GuideTab; label: string }[] = [
   { key: "android", label: "Android" },
 ];
 
+function GuideUsimsaCsLinks() {
+  return (
+    <div className="mt-3 flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <a
+        href={USIMSA_CX_KAKAO_CHAT_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#FEE500] px-4 py-2 text-sm font-semibold text-[#3C1E1E] shadow-sm transition hover:bg-[#f5dc00]"
+      >
+        카카오톡 상담하기
+      </a>
+      <a
+        href={`mailto:${ESIM_GUIDE_CS_EMAIL}`}
+        className="inline-flex min-h-10 items-center text-sm font-medium text-teal-700 underline decoration-teal-300 underline-offset-4 transition hover:text-teal-800 hover:decoration-teal-500"
+      >
+        이메일 문의: {ESIM_GUIDE_CS_EMAIL}
+      </a>
+    </div>
+  );
+}
+
 function GuideBlockImage({ guideKey, imageMap }: { guideKey: string; imageMap: EsimGuideImageMap }) {
   const entry = imageMap[guideKey];
   if (!entry) return null;
+
+  const { url, alt, width, height } = entry;
+  const imgCommon = "block h-auto rounded-lg border border-slate-200";
+
+  if (!width || !height) {
+    return (
+      <div className="flex justify-center pt-1">
+        {/* eslint-disable-next-line @next/next/no-img-element -- NCloud public_url */}
+        <img
+          src={url}
+          alt={alt}
+          className={`mx-auto max-w-md ${imgCommon}`}
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    );
+  }
+
+  const aspect = width / height;
+
+  if (aspect < 0.3) {
+    return (
+      <div className="pt-1">
+        <p className="mb-1.5 text-center text-xs text-slate-500">↕ 스크롤하여 전체 단계 보기</p>
+        <div className="mx-auto max-h-[70vh] w-full max-w-[360px] overflow-y-auto rounded-lg border border-slate-200 sm:max-w-[480px]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- NCloud public_url */}
+          <img
+            src={url}
+            alt={alt}
+            width={width}
+            height={height}
+            className="block h-auto w-full rounded-lg"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (aspect < 1.15) {
+    return (
+      <div className="flex justify-center pt-1">
+        {/* eslint-disable-next-line @next/next/no-img-element -- NCloud public_url */}
+        <img
+          src={url}
+          alt={alt}
+          width={width}
+          height={height}
+          className={`mx-auto w-full max-w-[420px] sm:max-w-xl ${imgCommon}`}
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex justify-center pt-1">
       {/* eslint-disable-next-line @next/next/no-img-element -- NCloud public_url */}
       <img
-        src={entry.url}
-        alt={entry.alt}
-        className="mx-auto max-w-[280px] rounded-lg border border-slate-200"
+        src={url}
+        alt={alt}
+        width={width}
+        height={height}
+        className={`mx-auto w-full max-w-4xl ${imgCommon}`}
         loading="lazy"
         decoding="async"
       />
@@ -65,9 +147,10 @@ function GuideBlockContent({ block, imageMap }: { block: GuideBlock; imageMap: E
       ) : null}
       {block.image ? <GuideBlockImage guideKey={block.image} imageMap={imageMap} /> : null}
       {block.note ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm !text-amber-900 lg:text-base">
-          {block.note}
-        </p>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm !text-amber-900 lg:text-base">
+          <p>{block.note}</p>
+          {block.showUsimsaCs ? <GuideUsimsaCsLinks /> : null}
+        </div>
       ) : null}
     </div>
   );
@@ -120,7 +203,7 @@ function GuideFaqSection({
         자주 묻는 질문
       </h2>
       <div className="mt-4 space-y-2">
-        {faqs.map(({ q, a }) => {
+        {faqs.map(({ q, a, showUsimsaCs }) => {
           const open = openFaq === q;
           return (
             <div key={q} className="overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm">
@@ -139,6 +222,7 @@ function GuideFaqSection({
               {open ? (
                 <div className="border-t border-slate-100 px-4 py-3 lg:px-5 lg:py-4">
                   <p className="text-sm leading-relaxed !text-slate-900 lg:text-base">{a}</p>
+                  {showUsimsaCs ? <GuideUsimsaCsLinks /> : null}
                 </div>
               ) : null}
             </div>

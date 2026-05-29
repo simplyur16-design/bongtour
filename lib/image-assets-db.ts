@@ -26,6 +26,8 @@ export type ImageAssetRow = {
   storage_bucket: string
   storage_path: string
   public_url: string
+  width: number | null
+  height: number | null
   alt_kr: string
   alt_en: string
   title_kr: string | null
@@ -63,6 +65,8 @@ function toRow(m: ImageAssetModel): ImageAssetRow {
     storage_bucket: m.storageBucket,
     storage_path: m.storagePath,
     public_url: m.publicUrl,
+    width: m.width ?? null,
+    height: m.height ?? null,
     alt_kr: m.altKr,
     alt_en: m.altEn,
     title_kr: m.titleKr,
@@ -100,7 +104,9 @@ export async function clearPrimaryForEntity(entityType: string, entityId: string
   })
 }
 
-export type InsertImageAssetPayload = Omit<ImageAssetRow, 'uploaded_at' | 'updated_at'> & {
+export type InsertImageAssetPayload = Omit<ImageAssetRow, 'uploaded_at' | 'updated_at' | 'width' | 'height'> & {
+  width?: number | null
+  height?: number | null
   uploaded_at?: string
   updated_at?: string
 }
@@ -127,6 +133,8 @@ export async function insertImageAssetRow(row: InsertImageAssetPayload): Promise
       storageBucket: row.storage_bucket,
       storagePath: row.storage_path,
       publicUrl: row.public_url,
+      width: row.width ?? null,
+      height: row.height ?? null,
       altKr: row.alt_kr,
       altEn: row.alt_en,
       titleKr: row.title_kr,
