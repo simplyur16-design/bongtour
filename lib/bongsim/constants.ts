@@ -28,6 +28,49 @@ export const USIMSA_CX_KAKAO_CHAT_URL = 'https://pf.kakao.com/_fqTkK/chat'
 /** 유심사 CX — 이메일·문의 채널 페이지 */
 export const USIMSA_CX_CONTACT_URL = 'https://www.usimsa.com/board/contact-channel/'
 
+/** 로밍 상품 중 구글맵·ChatGPT 데이터 무료 혜택 대상 plan_name 화이트리스트 */
+export const ESIM_FREE_DATA_PLAN_NAMES = new Set<string>([
+  "괌",
+  "괌/사이판",
+  "사이판",
+  "뉴질랜드",
+  "호주",
+  "호주/뉴질랜드",
+  "대한민국",
+  "대한민국(3Mbps)",
+  "일본",
+  "베트남",
+  "필리핀",
+  "싱가포르",
+  "태국",
+  "중국",
+  "말레이시아",
+  "인도네시아",
+  "캄보디아",
+  "아시아 13개국",
+  "남미 10개국",
+  "캐나다",
+  "미국/캐나다/멕시코",
+  "이탈리아",
+  "프랑스",
+  "스페인",
+  "터키(튀르키예)",
+  "영국",
+  "독일",
+  "카타르",
+  "포르투갈",
+  "유럽 42개국",
+  "아랍에미리트",
+]);
+
+export function esimHasFreeData(networkFamily?: string, planName?: string): boolean {
+  return (
+    (networkFamily ?? "").toLowerCase() === "roaming" &&
+    !!planName &&
+    ESIM_FREE_DATA_PLAN_NAMES.has(planName.trim())
+  );
+}
+
 export function bongsimPath(sub: string = ""): string {
   if (!sub) return BONGSIM_BASE_PATH;
   const normalized = sub.startsWith("/") ? sub : `/${sub}`;

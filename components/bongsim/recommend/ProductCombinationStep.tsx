@@ -10,7 +10,7 @@ import {
 import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
-import { bongsimPath, type BongsimRecommendCheckoutLine } from "@/lib/bongsim/constants";
+import { bongsimPath, esimHasFreeData, type BongsimRecommendCheckoutLine } from "@/lib/bongsim/constants";
 import {
   clearRecommendCheckoutDispatched,
   markRecommendCheckoutDispatched,
@@ -679,6 +679,12 @@ export function ProductCombinationStep({
                       >
                         {summaryLine}
                       </span>
+                      {selection &&
+                      esimHasFreeData(selection.product.network_family, selection.product.plan_name) ? (
+                        <span className="mt-1.5 block text-xs font-bold text-teal-700 sm:text-sm">
+                          구글맵·ChatGPT 데이터 무료
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}

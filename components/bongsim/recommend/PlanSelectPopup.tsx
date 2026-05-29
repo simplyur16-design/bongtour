@@ -9,6 +9,7 @@ import {
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
 import { parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
+import { esimHasFreeData } from "@/lib/bongsim/constants";
 type PlanTab = "unlimited" | "daily" | "fixed";
 
 type RecommendedPlan = ProductOption & { rec_source: PlanTab };
@@ -435,6 +436,11 @@ export function PlanSelectPopup({
                       <p className="mt-0.5 text-xs !text-slate-600 lg:text-sm">
                         {networkFamilyLabelKr(product.network_family)}
                       </p>
+                      {esimHasFreeData(product.network_family, product.plan_name) ? (
+                        <p className="mt-1 text-xs font-bold text-teal-700 lg:text-sm">
+                          구글맵·ChatGPT 데이터 무료
+                        </p>
+                      ) : null}
                     </>
                   ) : (
                     <>
@@ -447,6 +453,11 @@ export function PlanSelectPopup({
                       <p className="mt-0.5 text-xs !text-slate-600 lg:text-sm">
                         {networkFamilyLabelKr(product.network_family)}
                       </p>
+                      {esimHasFreeData(product.network_family, product.plan_name) ? (
+                        <p className="mt-1 text-xs font-bold text-teal-700 lg:text-sm">
+                          구글맵·ChatGPT 데이터 무료
+                        </p>
+                      ) : null}
                     </>
                   )}
 
