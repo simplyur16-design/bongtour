@@ -19,6 +19,7 @@ import {
   shouldShowBadge,
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
+import { sortPlanGroupsForDisplay } from "@/lib/bongsim/recommend/plan-display-sort";
 type PlanTab = "unlimited" | "daily" | "fixed";
 
 type RecommendedPlan = ProductOption & { rec_source: PlanTab };
@@ -247,9 +248,18 @@ export function PlanSelectPopup({
   const showAuthToggle = kycDistribution === "binary";
 
   const groups = useMemo(() => {
-    if (!showAuthToggle) return rawGroups;
-    return filterGroupsByAuth(rawGroups, authFilter);
-  }, [rawGroups, authFilter, showAuthToggle]);
+    const filtered = !showAuthToggle ? rawGroups : filterGroupsByAuth(rawGroups, authFilter);
+    return sortPlanGroupsForDisplay(filtered, tripDaysFloored);
+  }, [rawGroups, authFilter, showAuthToggle, tripDaysFloored]);
+
+  const tabCounts = useMemo(
+    () => ({
+      unlimited: groups.unlimited.length,
+      daily: groups.daily.length,
+      fixed: groups.fixed.length,
+    }),
+    [groups],
+  );
 
   const activeRecommended = useMemo(() => {
     if (showAuthToggle) {
@@ -304,12 +314,17 @@ export function PlanSelectPopup({
     if (!showAuthToggle || !open || loading) return;
     const pin = recommendedByAuth?.[authFilter] ?? null;
     const recTab = pin?.rec_source;
-    if (recTab && (rawGroups[recTab]?.length ?? 0) > 0) {
+    if (recTab && tabCounts[recTab] > 0) {
       setActiveTab(recTab);
     }
-  }, [authFilter, showAuthToggle, recommendedByAuth, rawGroups, open, loading]);
+  }, [authFilter, showAuthToggle, recommendedByAuth, tabCounts, open, loading]);
 
-  const totalKrw = unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
+  useEffect(() => {
+    if (!open || loading) return;
+    if (tabCounts[activeTab] > 0) return;
+    const next = ALL_PLAN_TABS.find((t) => tabCounts[t] > 0);
+    if (next) setActiveTab(next);
+  }, [open, loading, tabCounts, activeTab, authFilter]);
 
   const lowestPackageKrw = useMemo(() => {
     let min: number | null = null;
@@ -321,20 +336,9 @@ export function PlanSelectPopup({
     return min;
   }, [allProductsInView]);
 
+  const totalKrw = unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
+
   const canComplete = Boolean(selectedId && selectedProduct && quantity >= 1);
-
-  const availableTabs = useMemo(
-    () => ALL_PLAN_TABS.filter((tab) => rawGroups[tab].length > 0),
-    [rawGroups],
-  );
-
-  useEffect(() => {
-    if (!open || loading) return;
-    if (availableTabs.length === 0) return;
-    if (!availableTabs.includes(activeTab)) {
-      setActiveTab(availableTabs[0]!);
-    }
-  }, [open, loading, availableTabs, activeTab]);
 
   if (!open) return null;
 
@@ -391,32 +395,42 @@ export function PlanSelectPopup({
         ) : null}
 
         <div className="border-b border-slate-100 px-5">
-          {availableTabs.length > 0 ? (
+          {hasAnyPlansAtAll ? (
             <div className="flex gap-1 py-3" role="tablist" aria-label="플랜 유형">
-              {availableTabs.map((tab) => {
+              {ALL_PLAN_TABS.map((tab) => {
                 const selected = activeTab === tab;
-                const totalCount = rawGroups[tab].length;
+                const count = tabCounts[tab];
+                const disabled = count === 0;
                 return (
                   <button
                     key={tab}
                     type="button"
                     role="tab"
                     aria-selected={selected}
-                    disabled={totalCount === 0}
-                    onClick={() => setActiveTab(tab)}
+                    aria-disabled={disabled}
+                    disabled={disabled}
+                    onClick={() => {
+                      if (!disabled) setActiveTab(tab);
+                    }}
                     className={`min-h-10 flex-1 rounded-lg px-2 text-sm font-bold transition lg:text-base ${
-                      selected
-                        ? "bg-teal-700 !text-white shadow-sm"
-                        : "bg-slate-100 !text-slate-700 hover:bg-slate-200"
-                    } disabled:cursor-not-allowed disabled:opacity-40`}
+                      disabled
+                        ? "cursor-not-allowed bg-slate-100 !text-slate-400 opacity-60"
+                        : selected
+                          ? "bg-teal-700 !text-white shadow-sm"
+                          : "bg-slate-100 !text-slate-700 hover:bg-slate-200"
+                    }`}
                   >
                     {TAB_LABELS[tab]}
                     <span
                       className={`ml-1 text-xs font-semibold ${
-                        selected ? "!text-white/90" : "!text-slate-700"
+                        disabled
+                          ? "!text-slate-400"
+                          : selected
+                            ? "!text-white/90"
+                            : "!text-slate-700"
                       }`}
                     >
-                      ({totalCount})
+                      ({count})
                     </span>
                   </button>
                 );
