@@ -233,6 +233,10 @@ model Product {
   /// 인덱스는 운영 측정 후 추가 (현재 Product ~110건 규모, 메모리 #11 정합).
   lastFutureDepartureDate      DateTime?
 
+  /// modetour 긴급모객 — sweep가 today~+30일 윈도우에서 baseline 대비 인하 출발일 1건 이상일 때 true
+  hasUrgentDeal       Boolean   @default(false)
+  urgentDealUpdatedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -246,6 +250,7 @@ model Product {
   @@index([continentKey])
   @@index([cityKey])
   @@index([lastSalesPolicyCheckedAt])
+  @@index([hasUrgentDeal])
 }
 
 model OptionalTour {
@@ -348,6 +353,8 @@ model ProductDeparture {
   product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   departureDate   DateTime // 출발일(날짜). SQLite/Prisma는 Date 없음 → 날짜만 사용 시 00:00:00 등으로 저장
   adultPrice      Int? // 원 단위. 미노출/문의형/파싱 실패 시 null 허용
+  /// modetour 긴급모객 — 최초 등록/sweep 시점 adultPrice 고정. 이후 sweep은 adultPrice만 갱신.
+  baselineAdultPrice Int?
   childBedPrice   Int?
   childNoBedPrice Int?
   infantPrice     Int?

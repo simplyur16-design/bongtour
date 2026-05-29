@@ -24,7 +24,8 @@ import { buildCaptionLookupMapFromPublicUrls, lookupCaptionFromMap } from '@/lib
 import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
-import { publicProductWhereClause } from '@/lib/product-sales-policy'
+import { kstTodayYmd, publicProductWhereClause } from '@/lib/product-sales-policy'
+import { pickBestModetourUrgentDealCardPair } from '@/lib/modetour-urgent-deal'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 import {
@@ -497,6 +498,24 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       priceFrom: p.priceFrom,
       effectivePricePerPersonKrw: effectivePricePerPerson,
       earliestDeparture: p.departures[0]?.departureDate?.toISOString() ?? null,
+      ...(p.hasUrgentDeal
+        ? (() => {
+            const pair = pickBestModetourUrgentDealCardPair(
+              (p.departures ?? []).map((d) => ({
+                departureDate: d.departureDate,
+                adultPrice: d.adultPrice,
+                baselineAdultPrice: d.baselineAdultPrice ?? null,
+              })),
+              kstTodayYmd()
+            )
+            if (!pair) return { hasUrgentDeal: true as const }
+            return {
+              hasUrgentDeal: true as const,
+              urgentDealBaselinePriceKrw: pair.baseline,
+              urgentDealCurrentPriceKrw: pair.current,
+            }
+          })()
+        : {}),
       ...(scope === 'overseas' || region
         ? (() => {
             const matchInput = {
@@ -548,7 +567,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         mapMs: Math.round(map - score),
         rowCount,
         finalCount,
-        cacheKey: `products-browse-v8|${queryKey}`,
+        cacheKey: `products-browse-v9|${queryKey}`,
       }
       browsePerfLastPhases = phases // PERF-LOG: 측정 후 제거
       console.log('[browse-perf]', JSON.stringify({ cacheHit: false, ...phases })) // PERF-LOG: 측정 후 제거

@@ -17,6 +17,9 @@ import {
   kstTodayYmd,
   RULE_A_WINDOW_DAYS,
 } from '@/lib/product-sales-policy'
+import {
+  syncModetourUrgentDealForProduct,
+} from '@/lib/modetour-urgent-deal'
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import {
   upsertProductDepartures,
@@ -49,6 +52,8 @@ export type ModetourSweepResult = {
   retired: number
   skipped: number
   pruned: number
+  urgentDealOn: number
+  urgentDealOff: number
 }
 
 type SweepProductRow = {
@@ -184,6 +189,8 @@ export async function sweepDueModetourProducts(
     retired: 0,
     skipped: 0,
     pruned: 0,
+    urgentDealOn: 0,
+    urgentDealOff: 0,
   }
 
   const todayYmd = kstTodayYmd()
@@ -228,6 +235,12 @@ export async function sweepDueModetourProducts(
 
       const markers = computeRuleAMarkersFromDepartureInputs(inWindow, todayYmd)
       const priceFrom = computePriceFromFromDepartureInputs(inWindow, todayYmd)
+      const urgentDeal = await syncModetourUrgentDealForProduct(prisma, product.id, {
+        todayYmd,
+        now,
+      })
+      if (urgentDeal.turnedOn) result.urgentDealOn += 1
+      if (urgentDeal.turnedOff) result.urgentDealOff += 1
 
       await prisma.product.update({
         where: { id: product.id },

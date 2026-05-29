@@ -42,6 +42,10 @@ export type ResultItem = {
   coverImageSeoKeyword?: string | null
   coverImageSourceUserLabel?: string | null
   effectivePricePerPersonKrw: number | null
+  /** modetour 긴급모객 — browse API가 hasUrgentDeal=true일 때만 채움 */
+  hasUrgentDeal?: boolean
+  urgentDealBaselinePriceKrw?: number
+  urgentDealCurrentPriceKrw?: number
   hotelName?: string | null
   hotelGrade?: string | null
   roomType?: string | null
@@ -779,6 +783,14 @@ export function ProductResultCard({
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md"
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
+        {item.hasUrgentDeal ? (
+          <span
+            className="pointer-events-none absolute -left-9 top-5 z-20 w-[150px] -rotate-45 bg-[#d9a81e] py-1 text-center text-[11px] font-semibold leading-tight text-[#1F1B2D] shadow-sm"
+            aria-label="긴급모객"
+          >
+            긴급모객
+          </span>
+        ) : null}
         <div className="absolute right-2 top-2 z-10">
           <WishlistToggleButton
             kind="product"
@@ -842,7 +854,23 @@ export function ProductResultCard({
           </p>
         )}
         <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-3">
-          <span className="text-base font-bold text-slate-900">{formatWon(item.effectivePricePerPersonKrw)}</span>
+          {item.hasUrgentDeal &&
+          item.urgentDealBaselinePriceKrw != null &&
+          item.urgentDealCurrentPriceKrw != null ? (
+            <div className="flex flex-col items-start gap-0.5">
+              <span className="text-sm font-medium text-red-600 line-through">
+                {formatWon(item.urgentDealBaselinePriceKrw)}
+              </span>
+              <span className="text-xs font-semibold text-[#1F1B2D]" aria-hidden>
+                ↓
+              </span>
+              <span className="text-base font-bold text-[#1F1B2D]">
+                {formatWon(item.urgentDealCurrentPriceKrw)}
+              </span>
+            </div>
+          ) : (
+            <span className="text-base font-bold text-slate-900">{formatWon(item.effectivePricePerPersonKrw)}</span>
+          )}
           {item.duration && <span className="text-xs text-slate-500">{item.duration}</span>}
         </div>
       </div>

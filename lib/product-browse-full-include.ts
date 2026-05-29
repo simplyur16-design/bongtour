@@ -14,6 +14,7 @@ export function buildProductBrowseFullInclude(baseDate: Date = new Date()) {
       orderBy: { departureDate: 'asc' as const },
       select: {
         adultPrice: true,
+        baselineAdultPrice: true,
         departureDate: true,
         minPax: true,
         outboundDepartureAt: true,

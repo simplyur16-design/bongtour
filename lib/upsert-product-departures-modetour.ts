@@ -4,6 +4,7 @@
  */
 import type { PrismaClient } from '@prisma/client'
 
+import { isValidModetourUrgentDealPrice } from '@/lib/modetour-urgent-deal'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeCalendarDate } from './date-normalize'
 import { deriveHanatourConfirmationFlags, parseStatusLabelsJson } from './hanatour-normalize'
@@ -250,20 +251,30 @@ export async function upsertProductDepartures(
     where: { productId, departureDate: { in: pairs.map((p) => p.departureDate) } },
     select: {
       departureDate: true,
+      adultPrice: true,
       childBedPrice: true,
       childNoBedPrice: true,
       infantPrice: true,
+      baselineAdultPrice: true,
     },
   })
   const existingChildByUtc = new Map<
     number,
-    { childBedPrice: number | null; childNoBedPrice: number | null; infantPrice: number | null }
+    {
+      adultPrice: number | null
+      childBedPrice: number | null
+      childNoBedPrice: number | null
+      infantPrice: number | null
+      baselineAdultPrice: number | null
+    }
   >()
   for (const row of existingRows) {
     existingChildByUtc.set(row.departureDate.getTime(), {
+      adultPrice: row.adultPrice,
       childBedPrice: row.childBedPrice,
       childNoBedPrice: row.childNoBedPrice,
       infantPrice: row.infantPrice,
+      baselineAdultPrice: row.baselineAdultPrice,
     })
   }
 
@@ -272,6 +283,14 @@ export async function upsertProductDepartures(
 
     const previous = existingChildByUtc.get(departureDate.getTime())
     const adultPrice = d.adultPrice != null && !Number.isNaN(d.adultPrice) ? d.adultPrice : null
+    const baselineAdultPrice =
+      previous?.baselineAdultPrice != null
+        ? previous.baselineAdultPrice
+        : previous && isValidModetourUrgentDealPrice(previous.adultPrice)
+          ? previous.adultPrice
+          : isValidModetourUrgentDealPrice(adultPrice)
+            ? adultPrice
+            : null
     const childBedRaw = pickPreservedChildPriceModetour(d.childBedPrice, previous?.childBedPrice)
     const childBedPrice = childBedRaw ?? adultPrice
     const childNoBedRaw = pickPreservedChildPriceModetour(d.childNoBedPrice, previous?.childNoBedPrice)
@@ -333,6 +352,7 @@ export async function upsertProductDepartures(
     const where = { productId_departureDate: { productId, departureDate } }
     const corePayload = {
       adultPrice,
+      baselineAdultPrice,
       childBedPrice,
       childNoBedPrice,
       infantPrice,
