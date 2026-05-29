@@ -16,6 +16,8 @@ import {
   getKycLabelDistribution,
   getKycLabelState,
   hasBinaryAuthDistribution,
+  shouldShowBadge,
+  type KycBadgeState,
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
 import { sortPlanGroupsForDisplay } from "@/lib/bongsim/recommend/plan-display-sort";
@@ -167,12 +169,13 @@ type PlanCardProps = {
   isRecommended: boolean;
   isSelected: boolean;
   displayMatchedDays: number;
+  kycDistribution: KycLabelDistribution;
   onSelect: () => void;
 };
 
-function AuthChip({ product }: { product: ProductOption }) {
-  const required = getKycLabelState(product.flags) === "required";
-  if (!required) {
+function AuthChip({ badge }: { badge: KycBadgeState }) {
+  if (badge == null) return null;
+  if (badge === "not_required") {
     return (
       <span
         className="inline-flex items-center gap-[3px] rounded-md px-[7px] py-0.5 text-[11px]"
@@ -207,8 +210,10 @@ function PlanCard({
   isRecommended,
   isSelected,
   displayMatchedDays,
+  kycDistribution,
   onSelect,
 }: PlanCardProps) {
+  const kycBadge = shouldShowBadge(product, kycDistribution);
   const packageTotal = displayRecommended(product);
   const dailyRate = dailyRateFromProduct(product, displayMatchedDays);
   const allowance = (product.allowance_label || "").trim() || "—";
@@ -241,7 +246,7 @@ function PlanCard({
               추천
             </span>
           ) : null}
-          <AuthChip product={product} />
+          <AuthChip badge={kycBadge} />
         </div>
         {planType === "fixed" ? (
           <>
@@ -659,6 +664,7 @@ export function PlanSelectPopup({
               isRecommended={isPinned}
               isSelected={selectedId === product.option_api_id}
               displayMatchedDays={displayMatchedDays}
+              kycDistribution={kycDistribution}
               onSelect={() => setSelectedId(product.option_api_id)}
             />
           ))}
