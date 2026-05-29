@@ -1,4 +1,10 @@
 // lib/bongsim/esim-guide-content.ts
+import { USIMSA_CX_CONTACT_URL, USIMSA_CX_KAKAO_CHAT_URL } from "./constants";
+
+/** eSIM 설치·사용 문의 — 유심사 CX (결제·환불·주문은 봉투어 채널 유지) */
+const USIMSA_INSTALL_USAGE_CS =
+  `유심사 CX팀(카카오톡/이메일)로 문의해 주세요. eSIM 전문 파트너 유심사가 설치·사용을 직접 지원합니다. 카카오톡: ${USIMSA_CX_KAKAO_CHAT_URL} · 이메일/문의: ${USIMSA_CX_CONTACT_URL}`;
+
 // ─────────────────────────────────────────────────────────────
 // eSIM 설치 가이드 콘텐츠 SSOT
 // - eSIM 공급사 공식 안내를 봉투어 맥락으로 재구성(원문 복사 아님).
@@ -60,7 +66,7 @@ export const PRECHECK_BLOCKS: GuideBlock[] = [
 export const PRECHECK_FAQ: GuideFaq[] = [
   {
     q: "사전 설치가 안 되는 상품을 실수로 미리 설치했어요.",
-    a: "봉투어 고객센터로 문의해 주세요. 상품 개통 여부를 먼저 확인한 뒤, 필요하면 부족한 일수만큼 안내해 드립니다.",
+    a: `${USIMSA_INSTALL_USAGE_CS}. 상품 개통 여부를 먼저 확인한 뒤, 필요하면 부족한 일수만큼 안내해 드립니다.`,
   },
   {
     q: "eSIM을 다른 휴대폰으로 옮길 수 있나요?",
@@ -173,7 +179,7 @@ export const IOS_STEPS: GuideStep[] = [
     title: "여행 후 eSIM 제거하기",
     blocks: [
       {
-        note: "eSIM 제거는 여행이 완전히 끝난 뒤 진행하세요. 사용에 문제가 있을 때는 제거하지 말고 봉투어 고객센터로 먼저 문의해 주세요.",
+        note: `eSIM 제거는 여행이 완전히 끝난 뒤 진행하세요. 사용에 문제가 있을 때는 제거하지 말고 먼저 ${USIMSA_INSTALL_USAGE_CS}`,
         bullets: [
           "iPhone [설정] 앱을 엽니다.",
           "[셀룰러]를 누릅니다.",
@@ -274,7 +280,7 @@ export const ANDROID_STEPS: GuideStep[] = [
     title: "여행 후 eSIM 제거하기",
     blocks: [
       {
-        note: "eSIM 제거는 여행이 완전히 끝난 뒤 진행하세요. 사용에 문제가 있을 때는 제거하지 말고 봉투어 고객센터로 먼저 문의해 주세요.",
+        note: `eSIM 제거는 여행이 완전히 끝난 뒤 진행하세요. 사용에 문제가 있을 때는 제거하지 말고 먼저 ${USIMSA_INSTALL_USAGE_CS}`,
         bullets: [
           "Android [설정] 앱을 엽니다.",
           "[연결]을 누릅니다.",
@@ -299,7 +305,7 @@ export const COMMON_FAQ: GuideFaq[] = [
   },
   {
     q: "해외에서 사용에 문제가 생겼어요.",
-    a: "먼저 비행기 모드를 켰다 끄며 네트워크를 초기화해 보세요. 그래도 안 되면 통신사를 수동으로 선택하거나, 봉투어 고객센터로 문의해 주세요.",
+    a: `먼저 비행기 모드를 켰다 끄며 네트워크를 초기화해 보세요. 그래도 안 되면 통신사를 수동으로 선택하거나, ${USIMSA_INSTALL_USAGE_CS}`,
   },
   {
     q: "데이터 로밍을 켜야 하나요?",
