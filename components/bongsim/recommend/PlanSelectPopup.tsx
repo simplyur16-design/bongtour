@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { RecommendModalShell } from "@/components/bongsim/recommend/RecommendModalShell";
 import {
@@ -53,7 +53,7 @@ const TAB_LABELS: Record<PlanTab, string> = {
 const ALL_PLAN_TABS: PlanTab[] = ["unlimited", "daily", "fixed"];
 
 const PLAN_QUANTITY_MIN = 1;
-const PLAN_QUANTITY_MAX = 10;
+const PLAN_QUANTITY_MAX = 15;
 
 function filterGroupsByAuth(groups: PlanGroups, auth: AuthFilter): PlanGroups {
   const match = (p: ProductOption) => {
@@ -198,8 +198,47 @@ type PlanCardProps = {
   displayMatchedDays: number;
   kycDistribution: KycLabelDistribution;
   layout: "mobile" | "desktop";
+  quantity: number;
+  onQuantityDecrease: (e: MouseEvent) => void;
+  onQuantityIncrease: (e: MouseEvent) => void;
   onSelect: () => void;
 };
+
+function CardQuantityControls({
+  quantity,
+  onDecrease,
+  onIncrease,
+}: {
+  quantity: number;
+  onDecrease: (e: MouseEvent) => void;
+  onIncrease: (e: MouseEvent) => void;
+}) {
+  return (
+    <div className="mt-[8px] flex items-center justify-end gap-[6px]">
+      <button
+        type="button"
+        aria-label="수량 감소"
+        onClick={onDecrease}
+        disabled={quantity <= PLAN_QUANTITY_MIN}
+        className="h-[28px] w-[28px] rounded-md border border-[#E5E5E5] bg-[#FFFFFF] text-[14px] text-[#1F1B2D] disabled:cursor-not-allowed disabled:text-[#9CA3AF]"
+      >
+        −
+      </button>
+      <span className="min-w-[20px] text-center text-[14px] font-medium text-[#1F1B2D]">
+        {quantity}
+      </span>
+      <button
+        type="button"
+        aria-label="수량 증가"
+        onClick={onIncrease}
+        disabled={quantity >= PLAN_QUANTITY_MAX}
+        className="h-[28px] w-[28px] rounded-md border border-[#E5E5E5] bg-[#FFFFFF] text-[14px] text-[#1F1B2D] disabled:cursor-not-allowed disabled:text-[#9CA3AF]"
+      >
+        +
+      </button>
+    </div>
+  );
+}
 
 function AuthChipMobile({ badge }: { badge: KycBadgeState }) {
   if (badge == null) return null;
@@ -258,6 +297,9 @@ function PlanCard({
   displayMatchedDays,
   kycDistribution,
   layout,
+  quantity,
+  onQuantityDecrease,
+  onQuantityIncrease,
   onSelect,
 }: PlanCardProps) {
   const kycBadge = shouldShowBadge(product, kycDistribution);
@@ -313,6 +355,13 @@ function PlanCard({
               <div className="whitespace-nowrap text-[10px] text-[#6B7280]">
                 {formatKrwPerDay(dailyRate)}
               </div>
+            ) : null}
+            {isSelected ? (
+              <CardQuantityControls
+                quantity={quantity}
+                onDecrease={onQuantityDecrease}
+                onIncrease={onQuantityIncrease}
+              />
             ) : null}
           </div>
         </div>
@@ -391,6 +440,13 @@ function PlanCard({
           <div className="whitespace-nowrap text-[11px] text-slate-500">
             {formatKrwPerDay(dailyRate)}
           </div>
+        ) : null}
+        {isSelected ? (
+          <CardQuantityControls
+            quantity={quantity}
+            onDecrease={onQuantityDecrease}
+            onIncrease={onQuantityIncrease}
+          />
         ) : null}
       </div>
     </button>
@@ -608,6 +664,16 @@ export function PlanSelectPopup({
   const totalKrw = unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
   const canComplete = Boolean(selectedId && selectedProduct && quantity >= 1);
 
+  const handleQuantityDecrease = (e: MouseEvent) => {
+    e.stopPropagation();
+    setQuantity((q) => Math.max(PLAN_QUANTITY_MIN, q - 1));
+  };
+
+  const handleQuantityIncrease = (e: MouseEvent) => {
+    e.stopPropagation();
+    setQuantity((q) => Math.min(PLAN_QUANTITY_MAX, q + 1));
+  };
+
   useEffect(() => {
     setQuantity(1);
   }, [selectedId]);
@@ -791,6 +857,9 @@ export function PlanSelectPopup({
                 displayMatchedDays={displayMatchedDays}
                 kycDistribution={kycDistribution}
                 layout="mobile"
+                quantity={quantity}
+                onQuantityDecrease={handleQuantityDecrease}
+                onQuantityIncrease={handleQuantityIncrease}
                 onSelect={() => setSelectedId(product.option_api_id)}
               />
             ))}
@@ -855,6 +924,9 @@ export function PlanSelectPopup({
                           displayMatchedDays={displayMatchedDays}
                           kycDistribution={kycDistribution}
                           layout="desktop"
+                          quantity={quantity}
+                          onQuantityDecrease={handleQuantityDecrease}
+                          onQuantityIncrease={handleQuantityIncrease}
                           onSelect={() => {
                             if (isActiveColumn) {
                               setSelectedId(product.option_api_id);
@@ -876,38 +948,7 @@ export function PlanSelectPopup({
       </div>
 
       <div className="border-t border-slate-100 px-5 py-4 lg:px-6">
-        <div className="mb-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              aria-label="수량 감소"
-              disabled={!selectedProduct || quantity <= PLAN_QUANTITY_MIN}
-              onClick={() => setQuantity((q) => Math.max(PLAN_QUANTITY_MIN, q - 1))}
-              className={`flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E5E5] bg-[#FFFFFF] text-[18px] font-bold transition hover:opacity-90 disabled:cursor-not-allowed ${
-                !selectedProduct || quantity <= PLAN_QUANTITY_MIN
-                  ? "text-[#9CA3AF]"
-                  : "text-[#1F1B2D]"
-              }`}
-            >
-              −
-            </button>
-            <span className="min-w-[2rem] text-center text-[14px] font-medium tabular-nums text-[#1F1B2D]">
-              {quantity}
-            </span>
-            <button
-              type="button"
-              aria-label="수량 증가"
-              disabled={!selectedProduct || quantity >= PLAN_QUANTITY_MAX}
-              onClick={() => setQuantity((q) => Math.min(PLAN_QUANTITY_MAX, q + 1))}
-              className={`flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E5E5] bg-[#FFFFFF] text-[18px] font-bold transition hover:opacity-90 disabled:cursor-not-allowed ${
-                !selectedProduct || quantity >= PLAN_QUANTITY_MAX
-                  ? "text-[#9CA3AF]"
-                  : "text-[#1F1B2D]"
-              }`}
-            >
-              +
-            </button>
-          </div>
+        <div className="mb-3 flex items-center justify-end">
           <div className="flex items-center">
             <span className="mr-[8px] text-[13px] text-[#6B7280]">총 금액</span>
             {totalKrw != null ? (
