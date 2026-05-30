@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import SafeImage from '@/app/components/SafeImage'
 import type { AirHotelSeasonHeroSlide } from '@/lib/air-hotel-season-curation-content'
 
-const HERO_AUTO_MS = 5_000
+const HERO_AUTO_MS = 10_000
+const HERO_MANUAL_COOLDOWN_MS = 10_000
 
 type Props = {
   slides: AirHotelSeasonHeroSlide[]
@@ -14,26 +15,44 @@ type Props = {
 export default function AirHotelHero({ slides }: Props) {
   const [idx, setIdx] = useState(0)
   const [broken, setBroken] = useState<Record<string, boolean>>({})
+  const [lastManualAt, setLastManualAt] = useState(0)
+  const slideCountRef = useRef(0)
 
   useEffect(() => {
     setIdx(0)
   }, [slides.length])
 
   useEffect(() => {
+    slideCountRef.current = slides.length
     if (slides.length <= 1) return
     const id = setInterval(() => {
-      setIdx((i) => (i + 1) % slides.length)
+      if (Date.now() - lastManualAt < HERO_MANUAL_COOLDOWN_MS) return
+      setIdx((v) => {
+        const n = slideCountRef.current
+        if (n <= 1) return v
+        return (v + 1) % n
+      })
     }, HERO_AUTO_MS)
     return () => clearInterval(id)
-  }, [slides.length])
+  }, [slides.length, lastManualAt])
 
   if (slides.length === 0) return null
 
   const current = slides[idx % slides.length]!
   const imageSrc = broken[current.productId] ? '' : current.productImageUrl
 
-  const shift = (delta: number) => {
-    setIdx((v) => (v + delta + slides.length) % slides.length)
+  const shiftSlide = (delta: number) => {
+    setLastManualAt(Date.now())
+    setIdx((v) => {
+      const n = slides.length
+      if (n <= 1) return v
+      return (v + delta + n) % n
+    })
+  }
+
+  const goToSlide = (i: number) => {
+    setLastManualAt(Date.now())
+    setIdx(i)
   }
 
   return (
@@ -66,7 +85,7 @@ export default function AirHotelHero({ slides }: Props) {
               type="button"
               className="absolute left-2 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/45 text-2xl font-light text-white shadow-lg backdrop-blur-sm transition hover:bg-black/60 sm:left-4"
               aria-label="이전 슬라이드"
-              onClick={() => shift(-1)}
+              onClick={() => shiftSlide(-1)}
             >
               ‹
             </button>
@@ -74,7 +93,7 @@ export default function AirHotelHero({ slides }: Props) {
               type="button"
               className="absolute right-2 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/45 text-2xl font-light text-white shadow-lg backdrop-blur-sm transition hover:bg-black/60 sm:right-4"
               aria-label="다음 슬라이드"
-              onClick={() => shift(1)}
+              onClick={() => shiftSlide(1)}
             >
               ›
             </button>
@@ -83,7 +102,7 @@ export default function AirHotelHero({ slides }: Props) {
                 <button
                   key={`air-hotel-hero-dot-${i}`}
                   type="button"
-                  onClick={() => setIdx(i)}
+                  onClick={() => goToSlide(i)}
                   className={`h-1.5 rounded-full transition-all ${
                     i === idx ? 'w-4 bg-white' : 'w-1.5 bg-white/60'
                   }`}
