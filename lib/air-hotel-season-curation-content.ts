@@ -4,72 +4,40 @@
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
-import { computeEffectivePricePerPersonKrwFromRow, PRODUCT_PRICE_FOR_BROWSE_INCLUDE } from '@/lib/product-price-per-person'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
-import type { ResultItem } from '@/components/products/ProductResultsList'
-import { getAirHotelCycleIdForNow } from '@/lib/air-hotel-season-curation-constants'
+import {
+  getAirHotelCycleIdForNow,
+  getAirHotelExposureMonthKeys,
+} from '@/lib/air-hotel-season-curation-constants'
+
+export type AirHotelSeasonHeroSlide = {
+  monthKey: string
+  monthLabel: string
+  message: string
+  productId: string
+  productTitle: string
+  productImageUrl: string
+  productHref: string
+}
 
 export type AirHotelSeasonCurationDTO = {
   cycleId: string
   monthlyMessages: Record<string, string>
-  heroImageUrl: string | null
-  monthlyProducts: Record<string, ResultItem[]>
+  heroSlides: AirHotelSeasonHeroSlide[]
 }
 
 const productSelect = {
   id: true,
   title: true,
-  originSource: true,
-  productType: true,
-  listingKind: true,
-  airportTransferType: true,
-  primaryDestination: true,
-  primaryRegion: true,
-  duration: true,
   bgImageUrl: true,
-  priceFrom: true,
   schedule: true,
   itineraries: { select: { day: true, description: true }, orderBy: { day: 'asc' as const }, take: 24 },
-  ...PRODUCT_PRICE_FOR_BROWSE_INCLUDE,
 } as const
 
-function toResultItem(p: {
-  id: string
-  title: string
-  originSource: string
-  productType: string | null
-  listingKind: string | null
-  airportTransferType: string | null
-  primaryDestination: string | null
-  primaryRegion: string | null
-  duration: string | null
-  bgImageUrl: string | null
-  schedule: string | null
-  itineraries: { day: number; description: string }[]
-  departures: { adultPrice: number | null; departureDate: Date }[]
-  prices: { adult: number }[]
-  priceFrom: number | null
-}): ResultItem {
-  const scheduleRows = getScheduleFromProduct(p as Parameters<typeof getScheduleFromProduct>[0])
-  const coverUrl = getFinalCoverImageUrl({
-    bgImageUrl: p.bgImageUrl,
-    scheduleDays: scheduleRows,
-  })
-  return {
-    id: p.id,
-    title: p.title,
-    originSource: p.originSource,
-    productType: p.productType,
-    listingKind: p.listingKind ?? null,
-    airportTransferType: p.airportTransferType,
-    primaryDestination: p.primaryDestination,
-    primaryRegion: p.primaryRegion,
-    duration: p.duration,
-    bgImageUrl: p.bgImageUrl,
-    coverImageUrl: coverUrl,
-    effectivePricePerPersonKrw: computeEffectivePricePerPersonKrwFromRow(p),
-  }
+function formatMonthLabel(monthKey: string): string {
+  const [year, month] = monthKey.split('-')
+  return `${year}년 ${parseInt(month ?? '0', 10)}월`
 }
 
 function parseLinkedProductIds(raw: unknown): Record<string, string[]> {
@@ -92,6 +60,15 @@ function parseMonthlyMessages(raw: unknown): Record<string, string> {
   return out
 }
 
+function productCoverUrl(p: {
+  bgImageUrl: string | null
+  schedule: string | null
+  itineraries: { day: number; description: string }[]
+}): string {
+  const scheduleRows = getScheduleFromProduct(p as Parameters<typeof getScheduleFromProduct>[0])
+  return (getFinalCoverImageUrl({ bgImageUrl: p.bgImageUrl, scheduleDays: scheduleRows }) ?? '').trim()
+}
+
 async function loadAirHotelSeasonCurationUncached(): Promise<AirHotelSeasonCurationDTO | null> {
   const now = new Date()
   const cycleId = getAirHotelCycleIdForNow(now)
@@ -102,16 +79,19 @@ async function loadAirHotelSeasonCurationUncached(): Promise<AirHotelSeasonCurat
 
   const monthlyMessages = parseMonthlyMessages(row.monthlyMessages)
   const linkedMap = parseLinkedProductIds(row.linkedProductIds)
-  const allIds = [...new Set(Object.values(linkedMap).flat())]
-  if (allIds.length === 0) {
-    return {
-      cycleId: row.cycleId,
-      monthlyMessages,
-      heroImageUrl: row.heroImageUrl,
-      monthlyProducts: {},
+  const monthKeys = getAirHotelExposureMonthKeys(row.cycleId)
+  const orderedIds: { monthKey: string; productId: string }[] = []
+  for (const monthKey of monthKeys) {
+    for (const productId of linkedMap[monthKey] ?? []) {
+      orderedIds.push({ monthKey, productId })
     }
   }
 
+  if (orderedIds.length === 0) {
+    return { cycleId: row.cycleId, monthlyMessages, heroSlides: [] }
+  }
+
+  const allIds = [...new Set(orderedIds.map((x) => x.productId))]
   const products = await prisma.product.findMany({
     where: {
       id: { in: allIds },
@@ -120,25 +100,36 @@ async function loadAirHotelSeasonCurationUncached(): Promise<AirHotelSeasonCurat
     },
     select: productSelect,
   })
-  const byId = new Map(products.map((p) => [p.id, toResultItem(p)]))
+  const byId = new Map(products.map((p) => [p.id, p]))
 
-  const monthlyProducts: Record<string, ResultItem[]> = {}
-  for (const [monthKey, ids] of Object.entries(linkedMap)) {
-    monthlyProducts[monthKey] = ids.map((id) => byId.get(id)).filter((x): x is ResultItem => Boolean(x))
+  const heroSlides: AirHotelSeasonHeroSlide[] = []
+  for (const { monthKey, productId } of orderedIds) {
+    const p = byId.get(productId)
+    if (!p) continue
+    const cover = productCoverUrl(p)
+    if (!cover) continue
+    heroSlides.push({
+      monthKey,
+      monthLabel: formatMonthLabel(monthKey),
+      message: monthlyMessages[monthKey] ?? '',
+      productId: p.id,
+      productTitle: p.title,
+      productImageUrl: cover,
+      productHref: `/products/${p.id}`,
+    })
   }
 
   return {
     cycleId: row.cycleId,
     monthlyMessages,
-    heroImageUrl: row.heroImageUrl,
-    monthlyProducts,
+    heroSlides,
   }
 }
 
 export async function getCachedAirHotelSeasonCuration(): Promise<AirHotelSeasonCurationDTO | null> {
   const run = unstable_cache(
     () => loadAirHotelSeasonCurationUncached(),
-    ['air-hotel-season-curation-v2'],
+    ['air-hotel-season-curation-v3'],
     { revalidate: 21_600, tags: ['air-hotel-season'] },
   )
   return run()

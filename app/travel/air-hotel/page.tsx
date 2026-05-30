@@ -3,7 +3,6 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import Header from '@/app/components/Header'
 import AirHotelHero from '@/app/components/travel/air-hotel/AirHotelHero'
-import AirHotelSeasonGrid from '@/app/components/travel/air-hotel/AirHotelSeasonGrid'
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
 import { getCachedAirHotelSeasonCuration } from '@/lib/air-hotel-season-curation-content'
 import { SITE_NAME } from '@/lib/site-metadata'
@@ -25,25 +24,7 @@ export const metadata: Metadata = {
 
 async function AirHotelSeasonSection() {
   const data = await getCachedAirHotelSeasonCuration()
-  if (!data) {
-    return <AirHotelHero heroImageUrl={null} />
-  }
-
-  const hasSeasonRows = Object.keys(data.monthlyMessages).some(
-    (k) => (data.monthlyProducts[k]?.length ?? 0) > 0,
-  )
-
-  return (
-    <>
-      <AirHotelHero heroImageUrl={data.heroImageUrl} />
-      {hasSeasonRows ? (
-        <AirHotelSeasonGrid
-          monthlyMessages={data.monthlyMessages}
-          monthlyProducts={data.monthlyProducts}
-        />
-      ) : null}
-    </>
-  )
+  return <AirHotelHero slides={data?.heroSlides ?? []} />
 }
 
 export default async function AirHotelPage({
