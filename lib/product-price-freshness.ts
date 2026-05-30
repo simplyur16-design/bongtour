@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client'
 
 import { createSolapiAuthorizationHeader } from '@/lib/solapi-auth'
 import { resolveSolapiOperatorRecipient } from '@/lib/bong-marketing/publish-reminder'
+import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 
 const THROTTLE_MS = 5 * 60 * 1000
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -194,6 +195,10 @@ export async function autoUnpublishStaleProducts(
       autoUnpublishedReason: 'no_price_180d',
     },
   })
+
+  if (ur.count > 0) {
+    revalidateProductListingCaches()
+  }
 
   const to = resolveSolapiOperatorRecipient()
   let notifyAttempted = false

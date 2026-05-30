@@ -25,6 +25,7 @@ import {
   upsertProductDepartures,
   type DepartureInput,
 } from '@/lib/upsert-product-departures-modetour'
+import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 
 const MODETOUR_API_BASE = process.env.MODETOUR_API_BASE_URL ?? 'https://b2c-api.modetour.com'
 const MODETOUR_WEB_API_REQ_HEADER =
@@ -278,6 +279,10 @@ export async function sweepDueModetourProducts(
       })
       result.skipped += 1
     }
+  }
+
+  if (result.retired > 0) {
+    revalidateProductListingCaches()
   }
 
   return result
