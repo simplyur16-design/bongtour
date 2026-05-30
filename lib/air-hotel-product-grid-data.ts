@@ -111,8 +111,9 @@ async function loadAirHotelGridUncached(): Promise<ResultItem[]> {
 }
 
 export async function getCachedAirHotelProductGridItems(): Promise<ResultItem[]> {
-  const run = unstable_cache(() => loadAirHotelGridUncached(), ['air-hotel-product-grid-main-v1'], {
+  const run = unstable_cache(() => loadAirHotelGridUncached(), ['air-hotel-product-grid-main-v2'], {
     revalidate: 21_600,
+    tags: ['air-hotel-listing'],
   })
   return run()
 }

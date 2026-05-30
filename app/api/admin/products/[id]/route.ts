@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
+import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { adminProductJsonWithPromotionRef } from '@/lib/admin-product-reference-prices'
 import {
   getFlightAdminJsonFromRawMeta,
@@ -248,6 +249,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
     }
     const body = (await request.json()) as Record<string, unknown>
+    const willChangeListing =
+      body.registrationStatus !== undefined ||
+      body.listingKind !== undefined ||
+      body.travelScope !== undefined
     const MAX_STR = 500
     const MAX_REJECT_REASON = 200
     const strOrNull = (v: unknown, max = MAX_STR): string | null =>
@@ -784,6 +789,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         })
         await updateLastPriceObservedAt(prisma, id)
       }
+    }
+    if (willChangeListing) {
+      revalidateProductListingCaches()
     }
     const product = await prisma.product.findUnique({
       where: { id },

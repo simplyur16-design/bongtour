@@ -5,6 +5,7 @@ import {
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
 import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
+import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { extractHighlightFromModetour } from '@/lib/extract-highlight-modetour'
 import { extractHighlightFromModetourLLM } from '@/lib/llm-extract-highlight-modetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
@@ -1887,6 +1888,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
     assertJsonSerializable(ctx, 'confirmPayload', confirmPayload)
     logParseAndRegister('ok', ctx)
     timing.mark('done')
+    revalidateProductListingCaches()
     return NextResponse.json(confirmPayload)
   } catch (e) {
     ctx.stage = stage

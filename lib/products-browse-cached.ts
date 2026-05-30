@@ -10,6 +10,6 @@ export function getCachedProductsBrowsePayload(queryKey: string) {
   return unstable_cache(
     () => productsBrowseBuildPayload(queryKey),
     [BROWSE_CACHE_TAG, queryKey],
-    { revalidate: 3600 },
+    { revalidate: 3600, tags: ['products-browse'] },
   )()
 }

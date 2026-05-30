@@ -5,6 +5,7 @@ import {
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
 import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
+import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { extractHighlightFromHanatour } from '@/lib/extract-highlight-hanatour'
 import { extractHighlightFromHanatourLLM } from '@/lib/llm-extract-highlight-hanatour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
@@ -1671,6 +1672,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     }
     logParseAndRegister('ok', ctx)
     timing.mark('done')
+    revalidateProductListingCaches()
     return NextResponse.json(confirmPayload)
   } catch (e) {
     ctx.stage = stage
