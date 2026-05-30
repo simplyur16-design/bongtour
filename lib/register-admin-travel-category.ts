@@ -4,14 +4,15 @@
  *
  * - overseas → 해외 패키지형 (여행상품)
  * - domestic → 국내 패키지형 (여행상품)
- * - air_hotel_free → 항공권+호텔(자유여행) — 지리 축은 비움(null), listingKind만 확정
+ * - air_hotel_free → 항공권+호텔(자유여행). 현재 어드민 UI는 해외 자유여행 단일 옵션 → travelScope='overseas' 강제.
+ *   국내 자유여행 옵션 추가 시 분기 확장 필요.
  */
 export function travelScopeAndListingKindFromAdminRegister(
   bodyTravelScope: string | undefined | null
 ): { travelScope: string | null; listingKind: string } {
   const t = (bodyTravelScope ?? '').trim()
   if (t === 'air_hotel_free') {
-    return { travelScope: null, listingKind: 'air_hotel_free' }
+    return { travelScope: 'overseas', listingKind: 'air_hotel_free' }
   }
   if (t === 'domestic') {
     return { travelScope: 'domestic', listingKind: 'travel' }
