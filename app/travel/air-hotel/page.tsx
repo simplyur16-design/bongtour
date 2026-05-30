@@ -2,10 +2,13 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import Header from '@/app/components/Header'
+import AirHotelHero from '@/app/components/travel/air-hotel/AirHotelHero'
+import AirHotelSeasonGrid from '@/app/components/travel/air-hotel/AirHotelSeasonGrid'
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
+import { getCachedAirHotelSeasonCuration } from '@/lib/air-hotel-season-curation-content'
 import { SITE_NAME } from '@/lib/site-metadata'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 export const metadata: Metadata = {
   title: '항공+호텔',
@@ -18,6 +21,29 @@ export const metadata: Metadata = {
     url: '/travel/air-hotel',
     type: 'website',
   },
+}
+
+async function AirHotelSeasonSection() {
+  const data = await getCachedAirHotelSeasonCuration()
+  if (!data) {
+    return <AirHotelHero heroImageUrl={null} />
+  }
+
+  const hasSeasonRows = Object.keys(data.monthlyMessages).some(
+    (k) => (data.monthlyProducts[k]?.length ?? 0) > 0,
+  )
+
+  return (
+    <>
+      <AirHotelHero heroImageUrl={data.heroImageUrl} />
+      {hasSeasonRows ? (
+        <AirHotelSeasonGrid
+          monthlyMessages={data.monthlyMessages}
+          monthlyProducts={data.monthlyProducts}
+        />
+      ) : null}
+    </>
+  )
 }
 
 export default async function AirHotelPage({
@@ -49,14 +75,9 @@ export default async function AirHotelPage({
     <div className="min-h-screen bg-bt-page">
       <Header />
       <main>
-        <section className="border-b border-bt-border bg-gradient-to-b from-slate-50 to-white">
-          <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">항공+호텔</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">
-              항공과 호텔을 함께 준비하고, 추천일정까지 참고할 수 있는 자유여행 상품을 만나보세요.
-            </p>
-          </div>
-        </section>
+        <Suspense fallback={null}>
+          <AirHotelSeasonSection />
+        </Suspense>
 
         <Suspense fallback={<p className="py-16 text-center text-sm text-slate-500">상품을 불러오는 중…</p>}>
           <ProductsBrowseClient
@@ -66,16 +87,6 @@ export default async function AirHotelPage({
             hidePageHeading
           />
         </Suspense>
-
-        <section className="border-t border-bt-border bg-slate-50">
-          <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-            <h2 className="text-sm font-semibold text-slate-800">추천일정·안내</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              상품별 추천일정·호텔·항공 구성은 상세 페이지에서 확인할 수 있습니다. 이 영역은 추후 큐레이션·추천 코스 연결용으로
-              확장할 수 있습니다.
-            </p>
-          </div>
-        </section>
       </main>
     </div>
   )
