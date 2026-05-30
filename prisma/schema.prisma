@@ -1488,3 +1488,21 @@ model FitItineraryActivityValidation {
 
   @@index([status, checkedAt], map: "FitItineraryActivityValidation_status_checkedAt_idx")
 }
+
+/// /travel/air-hotel 페이지 전용 시즌 큐레이션 (다음 3개월, 25일 cron 신규)
+/// cycle 1 row + Json blob 패턴, 자동 publish (검수 X)
+model AirHotelSeasonCuration {
+  id               String   @id @default(cuid())
+  cycleId          String   @unique // 'YYYY-MM' (예: '2026-05' = 5/25~6/24 cycle, 6·7·8월 노출)
+  cycleStartDate   DateTime // 매월 25일 KST 00:00
+  seasonMessage    String   @db.Text // Gemini 자동 생성, 1~2문장 한글
+  heroImageUrl     String? // air_hotel_free product cover (pickAirHotelCoverUrl)
+  linkedProductIds Json // { "2026-06": ["id"...], "2026-07": [...], "2026-08": [...] }
+  geminiPrompt     String?  @db.Text // 디버그용
+  geminiResponse   Json? // 디버그용
+  isPublished      Boolean  @default(true) // 봉사장 결정 (가) 자동 publish
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([cycleStartDate])
+}
