@@ -52,6 +52,9 @@ const TAB_LABELS: Record<PlanTab, string> = {
 
 const ALL_PLAN_TABS: PlanTab[] = ["unlimited", "daily", "fixed"];
 
+const PLAN_QUANTITY_MIN = 1;
+const PLAN_QUANTITY_MAX = 10;
+
 function filterGroupsByAuth(groups: PlanGroups, auth: AuthFilter): PlanGroups {
   const match = (p: ProductOption) => {
     const state = getKycLabelState(p.flags);
@@ -272,11 +275,6 @@ function PlanCard({
       : isRecommended
         ? "border-2 border-[#AFA9EC]"
         : "border-[0.5px] border-[#E5E5E5]";
-    const planTab: PlanTab =
-      planType === "unlimited" || planType === "daily" || planType === "fixed"
-        ? planType
-        : "fixed";
-    const tierCategoryLabel = TAB_LABELS[planTab];
     const desktopSubLine =
       planType === "fixed"
         ? fixedDays != null
@@ -289,7 +287,7 @@ function PlanCard({
       <button
         type="button"
         onClick={onSelect}
-        className={`flex h-full w-full flex-col rounded-lg bg-[#FFFFFF] p-[10px_12px] text-left transition hover:opacity-95 ${borderClass}`}
+        className={`flex w-full flex-col rounded-lg bg-[#FFFFFF] p-[10px_12px] text-left transition hover:opacity-95 ${borderClass}`}
         aria-pressed={isSelected}
       >
         {isRecommended ? (
@@ -298,17 +296,16 @@ function PlanCard({
           </span>
         ) : null}
 
-        <div className="flex flex-1 gap-[8px]">
+        <div className="flex gap-[8px]">
           <div className="flex min-w-0 flex-1 flex-col gap-[4px]">
-            <div className="text-[10px] text-[#6B7280]">{tierCategoryLabel}</div>
             <div className="text-[18px] font-medium leading-none text-[#1F1B2D]">{allowance}</div>
-            <div className="text-[11px] text-[#6B7280]">{desktopSubLine}</div>
+            <div className="text-[13px] font-medium text-[#1F1B2D]">{desktopSubLine}</div>
             <div className="truncate text-[11px] text-[#9CA3AF]">{country}</div>
           </div>
 
           <div className="flex shrink-0 flex-col items-end justify-center gap-[2px]">
             {packageTotal != null && Number.isFinite(packageTotal) ? (
-              <div className="whitespace-nowrap text-[14px] font-medium text-[#1F1B2D]">
+              <div className="whitespace-nowrap text-[18px] font-medium text-[#1F1B2D]">
                 {formatKrw(packageTotal)}
               </div>
             ) : null}
@@ -418,7 +415,7 @@ export function PlanSelectPopup({
   const [rawGroups, setRawGroups] = useState<PlanGroups>({ unlimited: [], daily: [], fixed: [] });
   const [activeTab, setActiveTab] = useState<PlanTab>("unlimited");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [quantity] = useState(1);
+  const [quantity, setQuantity] = useState(1);
   const [err, setErr] = useState<string | null>(null);
   const [matchedDays, setMatchedDays] = useState<number | null>(null);
   const skipClearSelectionRef = useRef(false);
@@ -437,6 +434,7 @@ export function PlanSelectPopup({
       setRawGroups({ unlimited: [], daily: [], fixed: [] });
       setActiveTab("unlimited");
       setSelectedId(null);
+      setQuantity(1);
       setErr(null);
       setMatchedDays(null);
       return;
@@ -609,6 +607,10 @@ export function PlanSelectPopup({
 
   const totalKrw = unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
   const canComplete = Boolean(selectedId && selectedProduct && quantity >= 1);
+
+  useEffect(() => {
+    setQuantity(1);
+  }, [selectedId]);
 
   useEffect(() => {
     if (skipClearSelectionRef.current) {
@@ -827,7 +829,7 @@ export function PlanSelectPopup({
                 );
               })}
             </div>
-            <div className="grid grid-cols-3 gap-[8px]">
+            <div className="grid grid-cols-3 items-start gap-[8px]">
               {gridColumns.map(({ tab, cards }) => {
                 const isActiveColumn = activeTab === tab;
                 return (
@@ -874,13 +876,47 @@ export function PlanSelectPopup({
       </div>
 
       <div className="border-t border-slate-100 px-5 py-4 lg:px-6">
-        <p className="mb-3 text-center text-sm text-slate-800 lg:text-base">
-          {totalKrw != null ? (
-            <span className="text-lg font-bold text-slate-900 lg:text-xl">{formatKrw(totalKrw)}</span>
-          ) : (
-            <span className="text-slate-500">플랜을 선택해주세요</span>
-          )}
-        </p>
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="수량 감소"
+              disabled={!selectedProduct || quantity <= PLAN_QUANTITY_MIN}
+              onClick={() => setQuantity((q) => Math.max(PLAN_QUANTITY_MIN, q - 1))}
+              className={`flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E5E5] bg-[#FFFFFF] text-[18px] font-bold transition hover:opacity-90 disabled:cursor-not-allowed ${
+                !selectedProduct || quantity <= PLAN_QUANTITY_MIN
+                  ? "text-[#9CA3AF]"
+                  : "text-[#1F1B2D]"
+              }`}
+            >
+              −
+            </button>
+            <span className="min-w-[2rem] text-center text-[14px] font-medium tabular-nums text-[#1F1B2D]">
+              {quantity}
+            </span>
+            <button
+              type="button"
+              aria-label="수량 증가"
+              disabled={!selectedProduct || quantity >= PLAN_QUANTITY_MAX}
+              onClick={() => setQuantity((q) => Math.min(PLAN_QUANTITY_MAX, q + 1))}
+              className={`flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E5E5] bg-[#FFFFFF] text-[18px] font-bold transition hover:opacity-90 disabled:cursor-not-allowed ${
+                !selectedProduct || quantity >= PLAN_QUANTITY_MAX
+                  ? "text-[#9CA3AF]"
+                  : "text-[#1F1B2D]"
+              }`}
+            >
+              +
+            </button>
+          </div>
+          <div className="flex items-center">
+            <span className="mr-[8px] text-[13px] text-[#6B7280]">총 금액</span>
+            {totalKrw != null ? (
+              <span className="text-[18px] font-medium text-[#1F1B2D]">{formatKrw(totalKrw)}</span>
+            ) : (
+              <span className="text-[13px] text-[#6B7280]">플랜을 선택해주세요</span>
+            )}
+          </div>
+        </div>
         <div className="flex gap-3">
           <button
             type="button"
