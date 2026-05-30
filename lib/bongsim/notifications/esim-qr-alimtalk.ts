@@ -76,9 +76,6 @@ export async function sendEsimQrDeliveredAlimTalk(
   const variables: Record<string, string> = {
     orderNumber: payload.orderNumber.trim() || "—",
     installPath,
-    /** 레거시·다른 템플릿 버전 호환 */
-    installLink: orderPageUrl,
-    qrLink: orderPageUrl,
   };
 
   try {
