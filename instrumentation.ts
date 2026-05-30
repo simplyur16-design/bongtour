@@ -66,6 +66,10 @@ export async function register() {
           '@/lib/instrumentation-monthly-curation-cron'
         )
         startInstrumentationMonthlyCurationCron()
+        const { startInstrumentationAirHotelSeasonCron } = await import(
+          '@/lib/instrumentation-air-hotel-season-cron'
+        )
+        startInstrumentationAirHotelSeasonCron()
         const { startInstrumentationProductSalesPolicyCron } = await import(
           '@/lib/instrumentation-product-sales-policy-cron'
         )

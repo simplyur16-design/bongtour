@@ -6,6 +6,7 @@ import { revalidatePath, revalidateTag } from 'next/cache'
  */
 export function revalidateProductListingCaches() {
   revalidateTag('air-hotel-listing')
+  revalidateTag('air-hotel-season')
   revalidateTag('products-browse')
   revalidatePath('/')
   revalidatePath('/travel/air-hotel')
