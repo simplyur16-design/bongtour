@@ -12,7 +12,7 @@ import { getAirHotelCycleIdForNow } from '@/lib/air-hotel-season-curation-consta
 
 export type AirHotelSeasonCurationDTO = {
   cycleId: string
-  seasonMessage: string
+  monthlyMessages: Record<string, string>
   heroImageUrl: string | null
   monthlyProducts: Record<string, ResultItem[]>
 }
@@ -83,6 +83,15 @@ function parseLinkedProductIds(raw: unknown): Record<string, string[]> {
   return out
 }
 
+function parseMonthlyMessages(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof v === 'string' && v.trim()) out[k] = v.trim()
+  }
+  return out
+}
+
 async function loadAirHotelSeasonCurationUncached(): Promise<AirHotelSeasonCurationDTO | null> {
   const now = new Date()
   const cycleId = getAirHotelCycleIdForNow(now)
@@ -91,12 +100,13 @@ async function loadAirHotelSeasonCurationUncached(): Promise<AirHotelSeasonCurat
   })
   if (!row) return null
 
+  const monthlyMessages = parseMonthlyMessages(row.monthlyMessages)
   const linkedMap = parseLinkedProductIds(row.linkedProductIds)
   const allIds = [...new Set(Object.values(linkedMap).flat())]
   if (allIds.length === 0) {
     return {
       cycleId: row.cycleId,
-      seasonMessage: row.seasonMessage,
+      monthlyMessages,
       heroImageUrl: row.heroImageUrl,
       monthlyProducts: {},
     }
@@ -119,7 +129,7 @@ async function loadAirHotelSeasonCurationUncached(): Promise<AirHotelSeasonCurat
 
   return {
     cycleId: row.cycleId,
-    seasonMessage: row.seasonMessage,
+    monthlyMessages,
     heroImageUrl: row.heroImageUrl,
     monthlyProducts,
   }
@@ -128,7 +138,7 @@ async function loadAirHotelSeasonCurationUncached(): Promise<AirHotelSeasonCurat
 export async function getCachedAirHotelSeasonCuration(): Promise<AirHotelSeasonCurationDTO | null> {
   const run = unstable_cache(
     () => loadAirHotelSeasonCurationUncached(),
-    ['air-hotel-season-curation-v1'],
+    ['air-hotel-season-curation-v2'],
     { revalidate: 21_600, tags: ['air-hotel-season'] },
   )
   return run()

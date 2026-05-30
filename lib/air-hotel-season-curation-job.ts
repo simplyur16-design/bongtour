@@ -8,7 +8,7 @@ import { getGenAI, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { pickAirHotelSeasonHeroUrl } from '@/lib/air-hotel-hero-image-pick'
 import {
   AIR_HOTEL_SEASON_CARD_COUNTS,
-  AIR_HOTEL_SEASON_TOTAL_CARDS,
+  AIR_HOTEL_SEASON_POOL_SIZE,
   getAirHotelCycleIdForNow,
   getAirHotelCycleStartDate,
   getAirHotelExposureMonthKeys,
@@ -28,51 +28,104 @@ export type AirHotelSeasonCurationJobResult = {
   messageOk: boolean
 }
 
+type PoolProduct = { id: string; title: string; country: string | null }
+type MonthCuration = { productIds: string[]; message: string }
+
 function startOfTodayKst(): Date {
   const seoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
   seoul.setHours(0, 0, 0, 0)
   return seoul
 }
 
+function monthLabelShort(monthKey: string): string {
+  return String(parseInt(monthKey.split('-')[1] ?? '0', 10))
+}
+
 function formatMonthKeysForPrompt(monthKeys: string[]): string {
-  return monthKeys
-    .map((k) => {
-      const m = parseInt(k.split('-')[1] ?? '0', 10)
-      return `${k.split('-')[0]}년 ${m}월`
-    })
-    .join('·')
+  const y = monthKeys[0]?.split('-')[0] ?? ''
+  const months = monthKeys.map(monthLabelShort).join('·')
+  return `${y}년 ${months}월`
 }
 
-function buildFallbackSeasonMessage(monthKeys: string[]): string {
-  const label = formatMonthKeysForPrompt(monthKeys)
-  return `${label} 가족과 함께 떠나는 해외 자유여행 시즌입니다.`
+function expectedCounts(): [number, number, number] {
+  return [
+    AIR_HOTEL_SEASON_CARD_COUNTS.plus1,
+    AIR_HOTEL_SEASON_CARD_COUNTS.plus2,
+    AIR_HOTEL_SEASON_CARD_COUNTS.plus3,
+  ]
 }
 
-function buildGeminiPrompt(
-  monthKeys: string[],
-  products: { title: string; country: string | null }[],
-): string {
-  const monthLine = formatMonthKeysForPrompt(monthKeys)
+function buildGeminiPrompt(monthKeys: [string, string, string], products: PoolProduct[]): string {
+  const [m1, m2, m3] = monthKeys
+  const seasonLine = formatMonthKeysForPrompt(monthKeys)
   const productLines = products
-    .map((p) => `- ${p.title}${p.country ? ` (${p.country})` : ''}`)
+    .map((p) => `- ${p.id}: ${p.title}${p.country ? ` (${p.country})` : ''}`)
     .join('\n')
-  return `${monthLine} 가족과 함께 떠나는 해외 자유여행 시즌입니다.
-현재 인기 자유여행 상품 ${products.length}개:
+
+  return `${seasonLine} 자유여행 시즌 큐레이션을 다음 2단계로 수행하세요.
+
+[1단계] 아래 상품 풀에서 각 월별로 갈만한 곳을 선정:
+- ${monthLabelShort(m1)}월 ${AIR_HOTEL_SEASON_CARD_COUNTS.plus1}개 (초여름·가족여행지)
+- ${monthLabelShort(m2)}월 ${AIR_HOTEL_SEASON_CARD_COUNTS.plus2}개 (여름방학·휴양·액티비티)
+- ${monthLabelShort(m3)}월 ${AIR_HOTEL_SEASON_CARD_COUNTS.plus3}개 (한여름·시원한 곳 또는 휴양)
+- 같은 상품은 한 월에만 (중복 금지)
+- 풀 부족하면 가능한 만큼만
+
+[2단계] 각 월별로 선정된 상품 기반으로 친근한 톤 1~2문장 멘트 작성.
+
+[봉사장 톤 예시 — 반드시 참고]
+- "6월의 가족여행지 우리가족만 오붓하게 보내는 다낭"
+- "7월 여름방학의 시작 즐거운 추억만들기"
+- "8월 여름은 어디나 더울까요? 홋카이도는 조금 서늘해요"
+
+조건:
+- 한글 1~2문장
+- 친근한 대화체 (질문형/감탄형 자연스럽게)
+- 선정 상품 중 도시 1~2개 자연스럽게 언급
+- 해당 월 시즌 맥락 반영
+
+[상품 풀] (${products.length}개)
 ${productLines}
 
-위 상품들을 아우르는 1~2문장 시즌 멘트를 한글로 작성하세요.
-조건: 가족여행·자유여행 분위기, 다음 3개월 시즌감, 따뜻한 톤.
-출력은 JSON {"message": "..."} 형식.`
+[출력 JSON]
+{
+  "${m1}": {
+    "productIds": ["id1", "id2", "id3"],
+    "message": "..."
+  },
+  "${m2}": {
+    "productIds": ["id4", "id5", "id6"],
+    "message": "..."
+  },
+  "${m3}": {
+    "productIds": ["id7", "id8", "id9", "id10", "id11"],
+    "message": "..."
+  }
+}`
 }
 
-function parseGeminiMessage(text: string): string | null {
+function parseGeminiMonthlyCuration(
+  text: string,
+  monthKeys: [string, string, string],
+): Record<string, MonthCuration> | null {
   const raw = stripLlmMarkdownJsonFence(text.trim())
   const objStr = extractFirstBalancedJsonObject(raw) ?? extractFirstBalancedJsonObject(text)
   if (!objStr) return null
   try {
-    const parsed = JSON.parse(objStr) as { message?: unknown }
-    const msg = typeof parsed.message === 'string' ? parsed.message.trim() : ''
-    return msg || null
+    const parsed = JSON.parse(objStr) as Record<string, unknown>
+    const out: Record<string, MonthCuration> = {}
+    for (const mk of monthKeys) {
+      const el = parsed[mk]
+      if (!el || typeof el !== 'object' || Array.isArray(el)) return null
+      const o = el as Record<string, unknown>
+      const message = typeof o.message === 'string' ? o.message.trim() : ''
+      if (!message) return null
+      const productIds = Array.isArray(o.productIds)
+        ? o.productIds.filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+        : []
+      out[mk] = { productIds, message }
+    }
+    return out
   } catch {
     return null
   }
@@ -92,15 +145,100 @@ function distributeProductIds(
   }
 }
 
-async function generateSeasonMessage(
-  monthKeys: string[],
-  products: { title: string; country: string | null }[],
-): Promise<{ message: string; prompt: string; response: unknown; messageOk: boolean }> {
+function buildFallbackMonthlyMessages(monthKeys: [string, string, string]): Record<string, string> {
+  const [m1, m2, m3] = monthKeys
+  return {
+    [m1]: `${monthLabelShort(m1)}월의 가족여행지, 우리 가족만의 특별한 시간을 보내세요.`,
+    [m2]: `${monthLabelShort(m2)}월 여름방학, 즐거운 추억만 만들어 가요.`,
+    [m3]: `${monthLabelShort(m3)}월 한여름, 시원한 바다와 함께 휴양을 떠나보세요.`,
+  }
+}
+
+function buildCodeFallback(
+  products: PoolProduct[],
+  monthKeys: [string, string, string],
+): { linkedProductIds: Record<string, string[]>; monthlyMessages: Record<string, string> } {
+  const ids = products.map((p) => p.id)
+  const linkedProductIds = distributeProductIds(ids, monthKeys)
+  const monthlyMessages = buildFallbackMonthlyMessages(monthKeys)
+  return { linkedProductIds, monthlyMessages }
+}
+
+function countsMatch(
+  linkedProductIds: Record<string, string[]>,
+  monthKeys: [string, string, string],
+): boolean {
+  const [m1, m2, m3] = monthKeys
+  const [c1, c2, c3] = expectedCounts()
+  return (
+    (linkedProductIds[m1]?.length ?? 0) === c1 &&
+    (linkedProductIds[m2]?.length ?? 0) === c2 &&
+    (linkedProductIds[m3]?.length ?? 0) === c3
+  )
+}
+
+/** LLM 응답 보정 — 풀 내 ID만, 중복 제거, 부족분 풀에서 채움 */
+function correctMonthlyCuration(
+  parsed: Record<string, MonthCuration>,
+  monthKeys: [string, string, string],
+  products: PoolProduct[],
+): { linkedProductIds: Record<string, string[]>; monthlyMessages: Record<string, string> } | null {
+  const poolOrder = products.map((p) => p.id)
+  const poolSet = new Set(poolOrder)
+  const used = new Set<string>()
+  const [c1, c2, c3] = expectedCounts()
+  const counts = [c1, c2, c3]
+  const linkedProductIds: Record<string, string[]> = {}
+  const monthlyMessages: Record<string, string> = {}
+
+  for (let i = 0; i < monthKeys.length; i++) {
+    const mk = monthKeys[i]
+    const entry = parsed[mk]
+    if (!entry?.message.trim()) return null
+
+    const want = counts[i]
+    const valid: string[] = []
+    for (const id of entry.productIds) {
+      if (!poolSet.has(id) || used.has(id)) continue
+      valid.push(id)
+      used.add(id)
+      if (valid.length >= want) break
+    }
+    for (const id of poolOrder) {
+      if (valid.length >= want) break
+      if (used.has(id)) continue
+      valid.push(id)
+      used.add(id)
+    }
+    if (valid.length !== want) return null
+
+    linkedProductIds[mk] = valid
+    monthlyMessages[mk] = entry.message.trim()
+  }
+
+  return { linkedProductIds, monthlyMessages }
+}
+
+async function generateMonthlyCuration(
+  monthKeys: [string, string, string],
+  products: PoolProduct[],
+): Promise<{
+  linkedProductIds: Record<string, string[]>
+  monthlyMessages: Record<string, string>
+  prompt: string
+  response: unknown
+  messageOk: boolean
+}> {
   const prompt = buildGeminiPrompt(monthKeys, products)
-  const fallback = buildFallbackSeasonMessage(monthKeys)
+  const codeFallback = buildCodeFallback(products, monthKeys)
   const apiKey = (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
   if (!apiKey) {
-    return { message: fallback, prompt, response: { error: 'GEMINI_KEY_MISSING' }, messageOk: false }
+    return {
+      ...codeFallback,
+      prompt,
+      response: { error: 'GEMINI_KEY_MISSING', fallback: true },
+      messageOk: false,
+    }
   }
 
   try {
@@ -110,7 +248,6 @@ async function generateSeasonMessage(
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.7,
-          // gemini-3-flash-preview: thinking 토큰이 출력 한도에 포함되어 512면 JSON 잘림(MAX_TOKENS)
           maxOutputTokens: 4096,
           ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
         },
@@ -119,21 +256,37 @@ async function generateSeasonMessage(
     )
     const text = result.response.text()
     const finishReason = result.response.candidates?.[0]?.finishReason ?? null
-    const parsed = parseGeminiMessage(text)
+    const parsed = parseGeminiMonthlyCuration(text, monthKeys)
+
+    if (parsed) {
+      const corrected = correctMonthlyCuration(parsed, monthKeys, products)
+      if (corrected && countsMatch(corrected.linkedProductIds, monthKeys)) {
+        return {
+          ...corrected,
+          prompt,
+          response: { raw: text, finishReason, source: 'llm' },
+          messageOk: true,
+        }
+      }
+    }
+
     return {
-      message: parsed ?? fallback,
+      ...codeFallback,
       prompt,
-      response: parsed
-        ? { message: parsed, raw: text, finishReason }
-        : { fallback, raw: text, finishReason },
-      messageOk: Boolean(parsed),
+      response: {
+        fallback: true,
+        raw: text,
+        finishReason,
+        parsed: parsed ?? null,
+      },
+      messageOk: false,
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     return {
-      message: fallback,
+      ...codeFallback,
       prompt,
-      response: { error: msg },
+      response: { error: msg, fallback: true },
       messageOk: false,
     }
   }
@@ -156,38 +309,34 @@ export async function runAirHotelSeasonCurationJob(
       AND: [publicProductWhereClause(now)],
     },
     orderBy: { updatedAt: 'desc' },
-    take: AIR_HOTEL_SEASON_TOTAL_CARDS,
+    take: AIR_HOTEL_SEASON_POOL_SIZE,
     select: { id: true, title: true, country: true },
   })
 
-  const linkedProductIds = distributeProductIds(
-    products.map((p) => p.id),
-    monthKeys,
-  )
-  const linkedCount = products.length
-
   const [heroImageUrl, gemini] = await Promise.all([
     pickAirHotelSeasonHeroUrl(now),
-    generateSeasonMessage(monthKeys, products),
+    generateMonthlyCuration(monthKeys, products),
   ])
+
+  const linkedCount = Object.values(gemini.linkedProductIds).reduce((n, ids) => n + ids.length, 0)
 
   await prisma.airHotelSeasonCuration.upsert({
     where: { cycleId },
     create: {
       cycleId,
       cycleStartDate: getAirHotelCycleStartDate(cycleId),
-      seasonMessage: gemini.message,
+      monthlyMessages: gemini.monthlyMessages,
       heroImageUrl,
-      linkedProductIds,
+      linkedProductIds: gemini.linkedProductIds,
       geminiPrompt: gemini.prompt,
       geminiResponse: gemini.response as object,
       isPublished: true,
     },
     update: {
       cycleStartDate: getAirHotelCycleStartDate(cycleId),
-      seasonMessage: gemini.message,
+      monthlyMessages: gemini.monthlyMessages,
       heroImageUrl,
-      linkedProductIds,
+      linkedProductIds: gemini.linkedProductIds,
       geminiPrompt: gemini.prompt,
       geminiResponse: gemini.response as object,
       isPublished: true,

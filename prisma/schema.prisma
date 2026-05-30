@@ -1495,7 +1495,7 @@ model AirHotelSeasonCuration {
   id               String   @id @default(cuid())
   cycleId          String   @unique // 'YYYY-MM' (예: '2026-05' = 5/25~6/24 cycle, 6·7·8월 노출)
   cycleStartDate   DateTime // 매월 25일 KST 00:00
-  seasonMessage    String   @db.Text // Gemini 자동 생성, 1~2문장 한글
+  monthlyMessages  Json // { "2026-06": "...", "2026-07": "...", "2026-08": "..." }
   heroImageUrl     String? // air_hotel_free product cover (pickAirHotelCoverUrl)
   linkedProductIds Json // { "2026-06": ["id"...], "2026-07": [...], "2026-08": [...] }
   geminiPrompt     String?  @db.Text // 디버그용

@@ -11,6 +11,9 @@ export const AIR_HOTEL_SEASON_TOTAL_CARDS =
   AIR_HOTEL_SEASON_CARD_COUNTS.plus2 +
   AIR_HOTEL_SEASON_CARD_COUNTS.plus3
 
+/** Gemini 선정 후보 풀 — updatedAt desc 상위 N개 */
+export const AIR_HOTEL_SEASON_POOL_SIZE = 30
+
 const YM_RE = /^\d{4}-\d{2}$/
 
 function getKstYmdParts(d: Date): { y: number; m: number; day: number } {
