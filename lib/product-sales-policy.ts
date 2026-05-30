@@ -434,20 +434,10 @@ export function isProductHiddenByPolicy(
 }
 
 /**
- * 8 노출 경로의 prisma `where` 에 AND 로 합쳐 쓰는 부분 (룰 B cutoff).
- *
- * 의미: "마커 미부착 (정책 미적용)" OR "마지막 미래 출발일 ≥ NOW() + 7d".
- *  → 어드민 list 는 이 조건을 합치지 않음(정책 X).
- *
- * 캐시 컬럼(`lastFutureDepartureDate`) 단일 비교로 8경로 공통 적용 — `runOneSalesPolicyCheck` 가 5분마다
- *  1상품씩 갱신해 stale ≤10h. D-7 cutoff 정확도에는 영향 0.
+ * 마커 정책 폐기 (2026-05-30 봉사장 SSOT). 노출 차단은 registrationStatus 단일 SSOT.
+ * 함수 시그니처는 호환성 위해 유지 (호출처 8군데 spread 미변경).
+ * @deprecated registrationStatus만으로 노출 결정. 본 함수는 빈 조건만 반환.
  */
-export function publicProductWhereClause(now: Date = new Date()): Prisma.ProductWhereInput {
-  const cutoff = new Date(now.getTime() + RULE_B_CUTOFF_DAYS * 24 * 60 * 60 * 1000)
-  return {
-    OR: [
-      { noFutureDepartureConfirmedAt: null },
-      { lastFutureDepartureDate: { gte: cutoff } },
-    ],
-  }
+export function publicProductWhereClause(_now: Date = new Date()): Prisma.ProductWhereInput {
+  return {}
 }
