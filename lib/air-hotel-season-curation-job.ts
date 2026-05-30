@@ -4,7 +4,7 @@
 import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { extractFirstBalancedJsonObject, stripLlmMarkdownJsonFence } from '@/lib/llm-json-extract'
-import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
+import { getGenAI, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { pickAirHotelSeasonHeroUrl } from '@/lib/air-hotel-hero-image-pick'
 import {
   AIR_HOTEL_SEASON_CARD_COUNTS,
@@ -14,7 +14,11 @@ import {
   getAirHotelExposureMonthKeys,
 } from '@/lib/air-hotel-season-curation-constants'
 
-const JOB_MODEL = process.env.GEMINI_AIR_HOTEL_SEASON_MODEL?.trim() || getModelName()
+const JOB_MODEL =
+  process.env.GEMINI_CURATION_MODEL?.trim() ||
+  process.env.GEMINI_SEASON_CURATION_MODEL?.trim() ||
+  process.env.GEMINI_MODEL?.trim() ||
+  'gemini-2.5-flash'
 
 export type AirHotelSeasonCurationJobResult = {
   cycleId: string
@@ -106,18 +110,22 @@ async function generateSeasonMessage(
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 512,
+          // gemini-3-flash-preview: thinking 토큰이 출력 한도에 포함되어 512면 JSON 잘림(MAX_TOKENS)
+          maxOutputTokens: 4096,
           ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
         },
       },
       geminiTimeoutOpts(60_000),
     )
     const text = result.response.text()
+    const finishReason = result.response.candidates?.[0]?.finishReason ?? null
     const parsed = parseGeminiMessage(text)
     return {
       message: parsed ?? fallback,
       prompt,
-      response: parsed ? { message: parsed, raw: text } : { fallback, raw: text },
+      response: parsed
+        ? { message: parsed, raw: text, finishReason }
+        : { fallback, raw: text, finishReason },
       messageOk: Boolean(parsed),
     }
   } catch (e) {
