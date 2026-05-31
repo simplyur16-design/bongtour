@@ -71,18 +71,29 @@ function buildGeminiPrompt(monthKeys: [string, string, string], products: PoolPr
 - 같은 상품은 한 월에만 (중복 금지)
 - 풀 부족하면 가능한 만큼만
 
-[2단계] 각 월별로 선정된 상품 기반으로 친근한 톤 1~2문장 멘트 작성.
+[2단계] 각 월별로 선정된 상품 기반으로 친근한 톤 1문장 멘트 작성.
 
 [봉사장 톤 예시 — 반드시 참고]
 - "6월의 가족여행지 우리가족만 오붓하게 보내는 다낭"
 - "7월 여름방학의 시작 즐거운 추억만들기"
 - "8월 여름은 어디나 더울까요? 홋카이도는 조금 서늘해요"
 
-조건:
-- 한글 1~2문장
+조건 (필수 준수):
+- **한글 1문장만** (마침표·물음표·느낌표 1개만)
+- **길이 30자 이내** (제목처럼 짧고 임팩트)
 - 친근한 대화체 (질문형/감탄형 자연스럽게)
-- 선정 상품 중 도시 1~2개 자연스럽게 언급
+- 선정 상품 중 도시 1개 자연스럽게 언급
 - 해당 월 시즌 맥락 반영
+
+[좋은 예 길이 참고]
+- "6월의 가족여행지 우리가족만 오붓하게 보내는 다낭" (24자)
+- "7월 여름방학의 시작 즐거운 추억만들기" (19자)
+- "8월 여름은 어디나 더울까요? 홋카이도는 조금 서늘해요" (26자)
+
+[나쁜 예 — 절대 금지]
+- 2문장 이상
+- 50자 초과
+- "~죠? ~까요?" 같은 2문장 조합
 
 [상품 풀] (${products.length}개)
 ${productLines}
@@ -145,13 +156,43 @@ function distributeProductIds(
   }
 }
 
-function buildFallbackMonthlyMessages(monthKeys: [string, string, string]): Record<string, string> {
-  const [m1, m2, m3] = monthKeys
-  return {
-    [m1]: `${monthLabelShort(m1)}월의 가족여행지, 우리 가족만의 특별한 시간을 보내세요.`,
-    [m2]: `${monthLabelShort(m2)}월 여름방학, 즐거운 추억만 만들어 가요.`,
-    [m3]: `${monthLabelShort(m3)}월 한여름, 시원한 바다와 함께 휴양을 떠나보세요.`,
+const SEASON_MESSAGE_MAX_LEN = 50
+
+/** 월별 기본 fallback — 30자 이내 1문장 (봉사장 톤) */
+const FALLBACK_PER_MONTH: Record<string, string> = {
+  '1': '1월 새해, 따뜻한 여행지로 떠나요',
+  '2': '2월 설 연휴, 가족과 함께 여행',
+  '3': '3월 봄바람, 벚꽃과 함께 출발',
+  '4': '4월 황금연휴, 봄 여행 어때요?',
+  '5': '5월 어린이날, 가족여행 떠나요',
+  '6': '6월, 가족과 떠나는 자유여행',
+  '7': '7월 여름방학, 시원한 휴양지로',
+  '8': '8월 무더위, 서늘한 곳으로',
+  '9': '9월 추석 연휴, 힐링 여행',
+  '10': '10월 단풍, 가을 여행 어떠세요?',
+  '11': '11월 가을끝, 따뜻한 남쪽으로',
+  '12': '12월 연말, 추억 만들 여행',
+}
+
+function buildFallbackPerMonth(monthKey: string): string {
+  const monthNum = monthLabelShort(monthKey)
+  return FALLBACK_PER_MONTH[monthNum] ?? `${monthNum}월, 즐거운 자유여행 떠나요`
+}
+
+function countSentenceMarkers(message: string): number {
+  return (message.match(/[.!?]/g) || []).length
+}
+
+function sanitizeSeasonMessage(message: string, monthKey: string): string {
+  const trimmed = message.trim()
+  if (trimmed.length > SEASON_MESSAGE_MAX_LEN || countSentenceMarkers(trimmed) > 1) {
+    return buildFallbackPerMonth(monthKey)
   }
+  return trimmed
+}
+
+function buildFallbackMonthlyMessages(monthKeys: [string, string, string]): Record<string, string> {
+  return Object.fromEntries(monthKeys.map((mk) => [mk, buildFallbackPerMonth(mk)]))
 }
 
 function buildCodeFallback(
@@ -213,7 +254,7 @@ function correctMonthlyCuration(
     if (valid.length !== want) return null
 
     linkedProductIds[mk] = valid
-    monthlyMessages[mk] = entry.message.trim()
+    monthlyMessages[mk] = sanitizeSeasonMessage(entry.message, mk)
   }
 
   return { linkedProductIds, monthlyMessages }
