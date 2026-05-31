@@ -12,14 +12,14 @@ import {
 } from '@/lib/gemini-client'
 import { logLlmJsonRawDebug, parseLlmJsonObject } from '@/lib/llm-json-extract'
 
-/** 다일정 Fit JSON은 ~8k chars — season(4096)보다 큼. 4096이면 MAX_TOKENS·JSON 잘림 */
+/** 다일정 Fit JSON — season(4096)과 달리 5~6일·activities 다수 시 8k+ chars. 기본 16384 */
 const FIT_ITINERARY_MAX_OUTPUT_TOKENS = Math.max(
   4096,
-  Number(process.env.FIT_ITINERARY_MAX_OUTPUT_TOKENS) || 8192,
+  Number(process.env.FIT_ITINERARY_MAX_OUTPUT_TOKENS) || 16384,
 )
 const FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY = Math.max(
   FIT_ITINERARY_MAX_OUTPUT_TOKENS,
-  Number(process.env.FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY) || 16384,
+  Number(process.env.FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY) || 32768,
 )
 
 const VALID_PERSONAS = new Set(['mixed', 'couple', 'with-parents', 'with-kids'])
@@ -159,16 +159,7 @@ async function generateGeminiText(opts: {
   prompt: string
   temperature?: number
   maxOutputTokens?: number
-}): Promise<{
-  text: string
-  finishReason: string | null
-  usageMetadata?: {
-    promptTokenCount?: number
-    candidatesTokenCount?: number
-    thoughtsTokenCount?: number
-    totalTokenCount?: number
-  }
-}> {
+}): Promise<GeminiGenerateResult> {
   const genAI = getGenAI()
   const model = genAI.getGenerativeModel({ model: opts.model || getModelName() })
   const result = await model.generateContent(
@@ -182,28 +173,39 @@ async function generateGeminiText(opts: {
     },
     geminiTimeoutOpts(300_000),
   )
+  const response = result.response
+  const text = extractGeminiResponseText(response)
   return {
-    text: result.response.text(),
-    finishReason: result.response.candidates?.[0]?.finishReason ?? null,
-    usageMetadata: result.response.usageMetadata,
+    text,
+    finishReason: response.candidates?.[0]?.finishReason ?? null,
+    usageMetadata: response.usageMetadata,
+    partCount: response.candidates?.[0]?.content?.parts?.length ?? 0,
   }
 }
 
-function logGeminiRawFailure(
-  productId: string,
-  raw: { text: string; finishReason: string | null; usageMetadata?: GenerateGeminiTextUsage },
-  err?: unknown,
-): void {
-  console.error(`[fit-itinerary-generate] raw response: productId=${productId}`, {
-    finishReason: raw.finishReason,
-    responseLength: raw.text?.length,
-    rawSnippet: raw.text?.substring(0, 500),
-    promptTokens: raw.usageMetadata?.promptTokenCount,
-    candidatesTokens: raw.usageMetadata?.candidatesTokenCount,
-    thoughtsTokens: raw.usageMetadata?.thoughtsTokenCount,
-    error: err instanceof Error ? err.message : err,
-  })
-  logLlmJsonRawDebug(`fit-itinerary:${productId}`, raw.text, err)
+/** thinking model — response.text()가 비면 non-thought parts에서 JSON 추출 */
+function extractGeminiResponseText(response: {
+  text: () => string
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string; thought?: boolean }> }
+  }>
+}): string {
+  try {
+    const direct = response.text()?.trim()
+    if (direct) return direct
+  } catch {
+    /* fall through — thinking-only 응답 등 */
+  }
+  const parts = response.candidates?.[0]?.content?.parts ?? []
+  const fromParts = parts
+    .filter((p) => !p.thought && typeof p.text === 'string' && p.text.trim())
+    .map((p) => p.text!.trim())
+    .join('\n')
+  if (fromParts) return fromParts
+  return parts
+    .filter((p) => typeof p.text === 'string' && p.text.trim())
+    .map((p) => p.text!.trim())
+    .join('\n')
 }
 
 type GenerateGeminiTextUsage = {
@@ -211,6 +213,35 @@ type GenerateGeminiTextUsage = {
   candidatesTokenCount?: number
   thoughtsTokenCount?: number
   totalTokenCount?: number
+}
+
+type GeminiGenerateResult = {
+  text: string
+  finishReason: string | null
+  usageMetadata?: GenerateGeminiTextUsage
+  partCount?: number
+}
+
+function logGeminiRawFailure(
+  productId: string,
+  raw: GeminiGenerateResult,
+  err?: unknown,
+): void {
+  const rawText = raw.text ?? ''
+  const len = rawText.length
+  console.error(`[fit-itinerary-generate] gemini_failed_detail productId=${productId}`, {
+    finishReason: raw.finishReason,
+    responseLength: len,
+    rawSnippet: rawText.substring(0, 1000),
+    rawTail: rawText.substring(Math.max(0, len - 500)),
+    partCount: raw.partCount,
+    promptTokenCount: raw.usageMetadata?.promptTokenCount,
+    candidatesTokenCount: raw.usageMetadata?.candidatesTokenCount,
+    thoughtsTokenCount: raw.usageMetadata?.thoughtsTokenCount,
+    totalTokenCount: raw.usageMetadata?.totalTokenCount,
+    error: err instanceof Error ? err.message : err,
+  })
+  logLlmJsonRawDebug(`fit-itinerary:${productId}`, rawText, err)
 }
 
 function parseGeminiJson(text: string, productId: string): GeminiResponse {
@@ -294,9 +325,13 @@ export async function generateFitItineraryForProduct(
   try {
     parsed = parseGeminiJson(geminiResult.text, productId)
   } catch (firstError) {
-    if (geminiResult.finishReason === 'MAX_TOKENS') {
+    const shouldRetry =
+      geminiResult.finishReason === 'MAX_TOKENS' ||
+      (geminiResult.text.length > 0 && !geminiResult.text.trimEnd().endsWith('}'))
+    if (shouldRetry) {
+      logGeminiRawFailure(productId, geminiResult, firstError)
       console.warn(
-        `[fit-itinerary-generate] MAX_TOKENS retry productId=${productId} tokens=${FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY}`,
+        `[fit-itinerary-generate] retry productId=${productId} reason=${geminiResult.finishReason ?? 'truncated_json'} tokens=${FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY}`,
       )
       geminiResult = await generateGeminiText({
         model,
