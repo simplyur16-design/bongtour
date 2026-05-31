@@ -27,6 +27,11 @@ import {
   buildOverseasHubBrowseQueryKey,
   buildProductsBrowseQueryKey,
 } from '@/lib/products-browse-hub-query'
+import {
+  filterBrowseItemsBySidebarFilters,
+  sortBrowseItemsClient,
+  type BrowseResultItemWithMeta,
+} from '@/lib/products-browse-client-sidebar'
 
 type ApiOk = {
   ok: true
@@ -143,6 +148,7 @@ export default function ProductsBrowseClient({
 
   /** 항공+호텔: `country` 등은 클라이언트 필터 — 동일 목록 재요청 방지용 fetch 키 */
   const isOverseasProductsHub = pathname === '/travel/overseas' && defaultScope === 'overseas'
+  const useHubClientSidebarFilter = isOverseasProductsHub || isAirHotelHub
 
   const browseApiQueryKey = useMemo(() => {
     if (isDomesticHub) return buildDomesticHubBrowseQueryKey(searchParams.toString())
@@ -392,22 +398,40 @@ export default function ProductsBrowseClient({
     (pathname === '/travel/overseas' && defaultScope === 'overseas') || scopeFromUrl === 'overseas'
 
   const itemsAfterAirHotelCountry = useMemo(() => {
-    if (!data?.items) return [] as ResultItem[]
-    if (!isAirHotelHub) return data.items
+    if (!data?.items) return [] as BrowseResultItemWithMeta[]
+    if (!isAirHotelHub) return data.items as BrowseResultItemWithMeta[]
     const c = q.country?.trim()
-    if (!c) return data.items
-    return data.items.filter((it) => (it.browseCountry ?? '').trim() === c)
+    if (!c) return data.items as BrowseResultItemWithMeta[]
+    return (data.items as BrowseResultItemWithMeta[]).filter((it) => (it.browseCountry ?? '').trim() === c)
   }, [data?.items, isAirHotelHub, q.country])
+
+  const itemsAfterHubSidebar = useMemo(() => {
+    let items = itemsAfterAirHotelCountry
+    if (useHubClientSidebarFilter) {
+      items = filterBrowseItemsBySidebarFilters(items, q)
+      if (sort !== 'popular') {
+        items = sortBrowseItemsClient(items, sort, q.budgetPerPerson)
+      }
+    }
+    return items
+  }, [itemsAfterAirHotelCountry, useHubClientSidebarFilter, q, sort])
+
+  const displayedTotal = useMemo(() => {
+    if (!data) return 0
+    if (useHubClientSidebarFilter) return itemsAfterHubSidebar.length
+    if (isAirHotelHub && q.country?.trim()) return itemsAfterHubSidebar.length
+    return data.total
+  }, [data, useHubClientSidebarFilter, isAirHotelHub, q.country, itemsAfterHubSidebar.length])
 
   const browsePresented = useMemo(() => {
     if (!data) return { items: [] as ResultItem[], seasonalPickIds: null as ReadonlySet<string> | null }
-    const baseItems = itemsAfterAirHotelCountry
+    const baseItems = itemsAfterHubSidebar
     if (!isOverseasBrowse || budgetActive || sort !== 'popular') {
       return { items: baseItems, seasonalPickIds: null }
     }
     const { items, seasonalPickIds } = sortProductsBySeason(baseItems, new Date().getMonth() + 1)
     return { items, seasonalPickIds }
-  }, [data, isOverseasBrowse, budgetActive, sort, itemsAfterAirHotelCountry])
+  }, [data, isOverseasBrowse, budgetActive, sort, itemsAfterHubSidebar])
 
   const airHotelCountryChips = useMemo(() => {
     if (!isAirHotelHub || !data?.items?.length) return []
@@ -427,9 +451,8 @@ export default function ProductsBrowseClient({
 
   const listedProductCount = useMemo(() => {
     if (!data) return null
-    if (isAirHotelHub && q.country?.trim()) return browsePresented.items.length
-    return data.total
-  }, [data, isAirHotelHub, q.country, browsePresented.items.length])
+    return displayedTotal
+  }, [data, displayedTotal])
 
   /** 메가메뉴 권역·나라 선택 — 시즌 허브 카드/시즌 추천 상품 숨김용 */
   const hasMegaGeo = Boolean((q.region ?? '').trim() || (q.country ?? '').trim())
@@ -548,13 +571,28 @@ export default function ProductsBrowseClient({
   const results = (
     <>
       {airHotelCountryChipRow}
-      {loading && <p className="mt-10 text-center text-sm text-slate-500">불러오는 중…</p>}
-      {error && (
-        <p className="mt-10 text-center text-sm text-rose-700" role="alert">
-          {error}
-        </p>
-      )}
-      {!loading && data && data.total === 0 && budgetActive && (
+      <div className="relative">
+        {loading && data && (
+          <div
+            className="pointer-events-none absolute right-0 top-0 z-10 flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-xs text-slate-600 shadow-sm"
+            aria-live="polite"
+          >
+            <span
+              className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-teal-600"
+              aria-hidden
+            />
+            불러오는 중…
+          </div>
+        )}
+        {loading && !data && (
+          <p className="mt-10 text-center text-sm text-slate-500">불러오는 중…</p>
+        )}
+        {error && (
+          <p className="mt-10 text-center text-sm text-rose-700" role="alert">
+            {error}
+          </p>
+        )}
+        {!loading && data && displayedTotal === 0 && budgetActive && (
         <div className="mt-10 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-6 text-sm text-slate-900">
           <p className="font-semibold">입력한 1인당 예산 범위에 맞는 상품이 없습니다.</p>
           <p className="mt-2 text-slate-700">예산 범위를 조금 넓히거나 다른 조건과 함께 다시 찾아보세요.</p>
@@ -573,7 +611,7 @@ export default function ProductsBrowseClient({
           </button>
         </div>
       )}
-      {!loading && data && data.total === 0 && !budgetActive && hasNonBudgetFilters && (
+        {!loading && data && displayedTotal === 0 && !budgetActive && hasNonBudgetFilters && (
         <div className="mt-10 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-6 text-sm text-slate-900">
           <p className="font-semibold">
             {hasMegaGeo || hasDestinationFilter
@@ -594,12 +632,12 @@ export default function ProductsBrowseClient({
           </button>
         </div>
       )}
-      {!loading &&
-        data &&
-        data.total > 0 &&
-        isAirHotelHub &&
-        q.country?.trim() &&
-        browsePresented.items.length === 0 && (
+        {!loading &&
+          data &&
+          displayedTotal > 0 &&
+          isAirHotelHub &&
+          q.country?.trim() &&
+          browsePresented.items.length === 0 && (
           <div className="mt-10 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-6 text-sm text-slate-900">
             <p className="font-semibold">선택한 나라에 해당하는 항공+호텔 상품이 없습니다.</p>
             <p className="mt-2 text-slate-700">다른 나라를 선택하거나 전체로 돌아가 보세요.</p>
@@ -612,16 +650,16 @@ export default function ProductsBrowseClient({
             </button>
           </div>
         )}
-      {!loading &&
-        data &&
-        data.total === 0 &&
-        !budgetActive &&
-        !hasNonBudgetFilters &&
-        !(
-          pathname === '/travel/overseas' &&
-          defaultScope === 'overseas' &&
-          !hasMegaGeo
-        ) && (
+        {!loading &&
+          data &&
+          displayedTotal === 0 &&
+          !budgetActive &&
+          !hasNonBudgetFilters &&
+          !(
+            pathname === '/travel/overseas' &&
+            defaultScope === 'overseas' &&
+            !hasMegaGeo
+          ) && (
         <div className="mt-10 w-full rounded-xl border border-bt-border bg-bt-surface px-4 py-8 text-center text-sm text-bt-muted">
           <p className="text-base font-semibold text-bt-ink">등록된 여행상품이 아직 없습니다.</p>
           <p className="mt-3 leading-relaxed">준비 중인 상품은 순차적으로 업데이트됩니다.</p>
@@ -641,54 +679,55 @@ export default function ProductsBrowseClient({
           </p>
         </div>
       )}
-      {!loading && data && browsePresented.items.length > 0 && (
-        <>
-          {(basePath === '/travel/overseas' && defaultScope === 'overseas') || pathname === '/travel/air-hotel' ? (
-            <p className="mb-3 text-center text-sm text-slate-600 md:hidden">
-              상품 카드를 좌우로 밀어 다른 일정을 확인하세요
-            </p>
-          ) : null}
-          <ProductResultsList
-            items={browsePresented.items}
-            formatWon={formatWon}
-            groupOverseasByRegion={basePath === '/travel/overseas' && defaultScope === 'overseas'}
-            groupAirHotelByCountry={pathname === '/travel/air-hotel'}
-            groupDomesticByRegion={isDomesticHub}
-            overseasEditorialBriefing={overseasEditorialBriefing}
-            seasonalPickIds={browsePresented.seasonalPickIds}
-            overseasFlatByCountrySlug={q.country?.trim() || null}
-            interleaveEsimNativeCards={basePath === '/travel/overseas' && defaultScope === 'overseas'}
-          />
-          {data.total > data.limit &&
-            !(
-              (basePath === '/travel/overseas' && defaultScope === 'overseas') ||
-              (basePath === '/travel/domestic' && defaultScope === 'domestic') ||
-              basePath === '/travel/air-hotel'
-            ) && (
-            <div className="mt-10 flex items-center justify-center gap-3">
-              <button
-                type="button"
-                disabled={data.page <= 1}
-                onClick={() => onPatch({ page: Math.max(1, data.page - 1) })}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-800 disabled:opacity-40"
-              >
-                이전
-              </button>
-              <span className="text-sm text-slate-600">
-                {data.page} / {Math.ceil(data.total / data.limit)}
-              </span>
-              <button
-                type="button"
-                disabled={data.page * data.limit >= data.total}
-                onClick={() => onPatch({ page: data.page + 1 })}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-800 disabled:opacity-40"
-              >
-                다음
-              </button>
-            </div>
-          )}
-        </>
-      )}
+        {data && browsePresented.items.length > 0 && (
+          <div className={loading ? 'opacity-60 transition-opacity duration-200' : ''}>
+            {(basePath === '/travel/overseas' && defaultScope === 'overseas') || pathname === '/travel/air-hotel' ? (
+              <p className="mb-3 text-center text-sm text-slate-600 md:hidden">
+                상품 카드를 좌우로 밀어 다른 일정을 확인하세요
+              </p>
+            ) : null}
+            <ProductResultsList
+              items={browsePresented.items}
+              formatWon={formatWon}
+              groupOverseasByRegion={basePath === '/travel/overseas' && defaultScope === 'overseas'}
+              groupAirHotelByCountry={pathname === '/travel/air-hotel'}
+              groupDomesticByRegion={isDomesticHub}
+              overseasEditorialBriefing={overseasEditorialBriefing}
+              seasonalPickIds={browsePresented.seasonalPickIds}
+              overseasFlatByCountrySlug={q.country?.trim() || null}
+              interleaveEsimNativeCards={basePath === '/travel/overseas' && defaultScope === 'overseas'}
+            />
+            {data.total > data.limit &&
+              !(
+                (basePath === '/travel/overseas' && defaultScope === 'overseas') ||
+                (basePath === '/travel/domestic' && defaultScope === 'domestic') ||
+                basePath === '/travel/air-hotel'
+              ) && (
+              <div className="mt-10 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  disabled={data.page <= 1}
+                  onClick={() => onPatch({ page: Math.max(1, data.page - 1) })}
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-800 disabled:opacity-40"
+                >
+                  이전
+                </button>
+                <span className="text-sm text-slate-600">
+                  {data.page} / {Math.ceil(data.total / data.limit)}
+                </span>
+                <button
+                  type="button"
+                  disabled={data.page * data.limit >= data.total}
+                  onClick={() => onPatch({ page: data.page + 1 })}
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-800 disabled:opacity-40"
+                >
+                  다음
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </>
   )
 

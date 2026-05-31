@@ -24,6 +24,7 @@ import {
   matchProductToDomesticNode,
   type DomesticProductMatchInput,
 } from '@/lib/match-domestic-product'
+import type { BrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
 
 export type ResultItem = {
@@ -42,6 +43,10 @@ export type ResultItem = {
   coverImageSeoKeyword?: string | null
   coverImageSourceUserLabel?: string | null
   effectivePricePerPersonKrw: number | null
+  /** browse API — 출발일 정렬·필터용 */
+  earliestDeparture?: string | null
+  /** 해외·항공+호텔 허브 클라이언트 sidebar 필터용 */
+  browseFilterMeta?: BrowseItemFilterMeta
   /** modetour 긴급모객 — browse API가 hasUrgentDeal=true일 때만 채움 */
   hasUrgentDeal?: boolean
   urgentDealNextDepartureDate?: string

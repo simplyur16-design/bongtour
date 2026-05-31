@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BrowseQueryState } from '@/lib/products-browse-query'
 
 export type BrowseFacets = {
@@ -129,6 +129,24 @@ export default function ProductFilterForm({
   const [budgetMinInput, setBudgetMinInput] = useState('')
   const [budgetMaxInput, setBudgetMaxInput] = useState('')
   const [budgetRangeError, setBudgetRangeError] = useState<string | null>(null)
+  const budgetPatchTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (budgetPatchTimerRef.current) window.clearTimeout(budgetPatchTimerRef.current)
+    }
+  }, [])
+
+  const scheduleBudgetPatch = useCallback(
+    (patch: Partial<BrowseQueryState>) => {
+      if (budgetPatchTimerRef.current) window.clearTimeout(budgetPatchTimerRef.current)
+      budgetPatchTimerRef.current = window.setTimeout(() => {
+        onPatch(patch)
+        budgetPatchTimerRef.current = null
+      }, 300)
+    },
+    [onPatch],
+  )
 
   useEffect(() => {
     setBudgetMinInput(q.budgetMin != null ? q.budgetMin.toLocaleString('ko-KR') : '')
@@ -158,11 +176,11 @@ export default function ProductFilterForm({
       // min > max 는 적용 막지 않고 max를 맞춰 자동 보정
       setBudgetRangeError('최소 예산이 최대 예산보다 커서 최대값을 자동 조정했습니다.')
       setBudgetMaxInput(min.toLocaleString('ko-KR'))
-      onPatch({ budgetMin: min, budgetPerPerson: min, page: 1, sort: 'budget_fit' })
+      scheduleBudgetPatch({ budgetMin: min, budgetPerPerson: min, page: 1, sort: 'budget_fit' })
       return
     }
     setBudgetRangeError(null)
-    onPatch({
+    scheduleBudgetPatch({
       budgetMin: min,
       page: 1,
       sort: min != null || max != null ? 'budget_fit' : 'popular',
@@ -177,11 +195,11 @@ export default function ProductFilterForm({
     if (min != null && max != null && min > max) {
       setBudgetRangeError('최대 예산이 최소 예산보다 작아 최소값을 자동 조정했습니다.')
       setBudgetMinInput(max.toLocaleString('ko-KR'))
-      onPatch({ budgetMin: max, budgetPerPerson: max, page: 1, sort: 'budget_fit' })
+      scheduleBudgetPatch({ budgetMin: max, budgetPerPerson: max, page: 1, sort: 'budget_fit' })
       return
     }
     setBudgetRangeError(null)
-    onPatch({
+    scheduleBudgetPatch({
       budgetPerPerson: max,
       page: 1,
       sort: min != null || max != null ? 'budget_fit' : 'popular',

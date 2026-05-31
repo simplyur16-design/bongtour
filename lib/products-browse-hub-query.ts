@@ -22,6 +22,30 @@ function applyBudgetFitSortIfNeeded(p: URLSearchParams): void {
   }
 }
 
+/** sidebar 필터는 클라이언트 메모리에서 처리 — hub cache key에서 제외 (HIT 향상) */
+export const SIDEBAR_FILTER_PARAM_KEYS = [
+  'noOptionalTour',
+  'noShopping',
+  'brand',
+  'brands',
+  'airline',
+  'airlines',
+  'budgetMin',
+  'budgetPerPerson',
+  'departHour',
+  'departHours',
+  'departDay',
+  'departWeekdays',
+  'category',
+  'categories',
+] as const
+
+export function stripSidebarFilterParamsFromSearchParams(p: URLSearchParams): void {
+  for (const param of SIDEBAR_FILTER_PARAM_KEYS) {
+    p.delete(param)
+  }
+}
+
 /** `URLSearchParams.toString()` 삽입 순서 차이로 SSR/CSR prefetch 키가 어긋나는 것 방지 */
 export function canonicalBrowseQueryKey(p: URLSearchParams): string {
   const sorted = new URLSearchParams()
@@ -40,6 +64,7 @@ export function buildOverseasHubBrowseQueryKey(qsInput: URLSearchParams | string
   p.delete('listingKind')
   p.set('limit', OVERSEAS_HUB_BROWSE_LIMIT)
   p.delete('page')
+  stripSidebarFilterParamsFromSearchParams(p)
   applyBudgetFitSortIfNeeded(p)
   return canonicalBrowseQueryKey(p)
 }
@@ -66,6 +91,7 @@ export function buildAirHotelHubBrowseQueryKey(qsInput: URLSearchParams | string
   p.delete('country')
   p.delete('region')
   p.delete('city')
+  stripSidebarFilterParamsFromSearchParams(p)
   applyBudgetFitSortIfNeeded(p)
   return canonicalBrowseQueryKey(p)
 }

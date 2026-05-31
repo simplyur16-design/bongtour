@@ -38,6 +38,7 @@ import {
   sportsThemeTagForBrowseRegion,
 } from '@/lib/browse-master-geo-continents'
 import { resolveOverseasDisplayBucketForBrowse } from '@/lib/overseas-display-buckets'
+import { buildBrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import {
   filterPoolByStoredTravelScope,
   prismaWhereForBrowseTravelScope,
@@ -511,6 +512,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       priceFrom: p.priceFrom,
       effectivePricePerPersonKrw: effectivePricePerPerson,
       earliestDeparture: p.departures[0]?.departureDate?.toISOString() ?? null,
+      browseFilterMeta: buildBrowseItemFilterMeta(p),
       ...(p.hasUrgentDeal
         ? (() => {
             const ymd = p.urgentDealNextDate
