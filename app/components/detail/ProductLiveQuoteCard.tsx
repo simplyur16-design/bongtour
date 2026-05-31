@@ -241,7 +241,7 @@ export default function ProductLiveQuoteCard({
       <button
         type="button"
         onClick={onBookingOpen}
-        className="mt-3 w-full bt-btn-secondary"
+        className={copy.bookingCtaButtonClass}
       >
         {copy.bookingCta}
       </button>

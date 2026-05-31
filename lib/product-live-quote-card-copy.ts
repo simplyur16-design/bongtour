@@ -21,6 +21,9 @@ export const PRODUCT_LIVE_QUOTE_CARD_COPY = {
   counselPasteHint:
     '\uC785\uB825\uCC3D\uC774 \uBE44\uC5B4 \uC788\uC73C\uBA74 \uBCF5\uC0AC\uD55C \uC694\uC57D\uC744 \uBD99\uC5EC \uB123\uC5B4 \uC8FC\uC138\uC694.',
   bookingCta: '\uC608\uC57D \uC2E0\uCCAD',
+  /** 패키지·자유여행 예약 신청 CTA — 골드 SSOT #d9a81e */
+  bookingCtaButtonClass:
+    'mt-3 w-full bt-btn rounded-xl border-0 bg-[#d9a81e] text-[#1F1B2D] hover:bg-[#c89619]',
   paxDecreaseAria: (label: string) => `${label} \uAC10\uC18C`,
   paxIncreaseAria: (label: string) => `${label} \uC99D\uAC00`,
 } as const

@@ -591,7 +591,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   return (
     <section className="relative border-b border-bt-border">
       <div
-        className={`relative w-full overflow-hidden pb-[5.5rem] sm:pb-[6rem] lg:pb-0 ${
+        className={`relative w-full overflow-hidden lg:pb-0 ${
           isSpotlightMode
             ? 'min-h-[min(260px,44vh)] sm:min-h-[min(300px,48vh)]'
             : 'min-h-[min(280px,46vh)] sm:min-h-[min(340px,50vh)]'
@@ -765,11 +765,9 @@ const OverseasHero: FC<OverseasHeroProps> = ({
         ) : null}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-32 bg-gradient-to-t from-black/50 via-black/15 to-transparent sm:h-36 lg:hidden" aria-hidden />
-
-        <div className="absolute inset-x-0 bottom-0 z-20 mx-auto w-full max-w-6xl px-4 pb-3 sm:px-6 sm:pb-4 lg:hidden">
-          {heroSearchForm}
-        </div>
       </div>
+
+      <div className="px-4 pb-3 pt-3 sm:px-6 lg:hidden">{heroSearchForm}</div>
     </section>
   )
 }
