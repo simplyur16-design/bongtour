@@ -20,12 +20,7 @@ export function buildProductBrowseFullInclude(baseDate: Date = new Date()) {
         outboundDepartureAt: true,
         carrierName: true,
       },
-      take: 48,
-    },
-    prices: {
-      select: { adult: true },
-      take: 40,
-      orderBy: { date: 'asc' as const },
+      take: 100,
     },
     brand: {
       select: { brandKey: true, displayName: true },
@@ -39,9 +34,6 @@ export function buildProductBrowseFullInclude(baseDate: Date = new Date()) {
     /** I-4: 다도시 태그 OR */
     cityTags: {
       select: { cityKey: true },
-    },
-    _count: {
-      select: { optionalTours: true },
     },
   } as const
 }

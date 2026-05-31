@@ -61,7 +61,7 @@ export function buildBrowseItemFilterMeta(p: ProductBrowseFullRow): BrowseItemFi
   return {
     brandKey: resolveProductBrandKey(p),
     airlineHaystack: buildAirlineHaystack(parts),
-    hasOptionalTour: p.hasOptionalTours === true || (p._count?.optionalTours ?? 0) > 0,
+    hasOptionalTour: p.hasOptionalTours === true,
     hasShopping: (p.shoppingCount ?? 0) > 0 || (p.shoppingVisitCountTotal ?? 0) > 0,
     departureHours,
     departureWeekdays,

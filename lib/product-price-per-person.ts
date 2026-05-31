@@ -4,35 +4,35 @@
  * 출발행(ProductDeparture)에 반영된 금액이 있으면 **그 최저만** 사용한다.
  * (오래된 priceFrom 대표가가 목록 최저가를 오염시키지 않도록 함)
  *
- * 출발행이 없거나 전부 null/0이면:
- *   레거시 ProductPrice.adult 최소 → 그다음 Product.priceFrom
+ * 출발행이 없거나 전부 null/0이면 Product.priceFrom scalar 폴백.
  */
 export type ProductPriceSelect = {
   id: string
   priceFrom: number | null
   departures: { adultPrice: number | null; departureDate: Date }[]
-  prices: { adult: number }[]
+}
+
+function computeDeparturesAdultPriceMin(
+  departures: { adultPrice: number | null }[],
+): number | null {
+  const fromDep: number[] = []
+  for (const d of departures) {
+    if (d.adultPrice != null && d.adultPrice > 0) fromDep.push(d.adultPrice)
+  }
+  if (fromDep.length === 0) return null
+  return Math.min(...fromDep)
 }
 
 export function computeEffectivePricePerPersonKrwFromRow(p: ProductPriceSelect): number | null {
-  const fromDep: number[] = []
-  for (const d of p.departures) {
-    if (d.adultPrice != null && d.adultPrice > 0) fromDep.push(d.adultPrice)
-  }
-  if (fromDep.length > 0) return Math.min(...fromDep)
-
-  const fromLegacy: number[] = []
-  for (const x of p.prices) {
-    if (x.adult > 0) fromLegacy.push(x.adult)
-  }
-  if (fromLegacy.length > 0) return Math.min(...fromLegacy)
+  const depMin = computeDeparturesAdultPriceMin(p.departures)
+  if (depMin != null && depMin > 0) return depMin
 
   if (p.priceFrom != null && p.priceFrom > 0) return p.priceFrom
 
   return null
 }
 
-/** Prisma include 스니펫 — browse API에서 사용 */
+/** Prisma include 스니펫 — browse API 외(시즌 그리드 등) 레거시 조회용 */
 export const PRODUCT_PRICE_FOR_BROWSE_INCLUDE = {
   departures: {
     orderBy: { departureDate: 'asc' as const },

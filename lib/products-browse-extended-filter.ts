@@ -114,11 +114,7 @@ function matchesAirlineCodes(p: ProductBrowseFullRow, codes: string[]): boolean 
 }
 
 function matchesOptionalTourNone(p: ProductBrowseFullRow): boolean {
-  const hasRow = p.hasOptionalTours === true
-  const count = p._count.optionalTours
-  if (hasRow) return false
-  if (count > 0) return false
-  return true
+  return p.hasOptionalTours !== true
 }
 
 function matchesShoppingNone(p: ProductBrowseFullRow): boolean {
