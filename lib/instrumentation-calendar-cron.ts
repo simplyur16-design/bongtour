@@ -1,5 +1,5 @@
 /**
- * Next instrumentation: 매일 21:00 (Asia/Seoul) 달력 가격 배치.
+ * Next instrumentation: 3시간마다 1회 (Asia/Seoul) 달력 가격 배치 — 5공급사 sequential.
  * 등록 조건: `lib/calendar-batch-env` `canRegisterCalendarCron()` (운영 또는 ENABLE_INSTRUMENTATION_CALENDAR_CRON=1).
  */
 export function startInstrumentationCalendarCron(): void {
@@ -9,13 +9,13 @@ export function startInstrumentationCalendarCron(): void {
       const readiness = getCalendarBatchReadiness()
       const cron = m.default
       cron.schedule(
-        '0 21 * * *',
+        '0 */3 * * *',
         () => {
           void tickCalendarCron()
         },
         { timezone: 'Asia/Seoul' },
       )
-      console.log('[calendar-cron] registered: 0 21 * * * (Asia/Seoul)', {
+      console.log('[calendar-cron] registered: 0 */3 * * * (Asia/Seoul)', {
         apiBase: resolveBongtourApiBase() || '(unset)',
         python: readiness.pythonExecutable,
         nodeEnv: readiness.nodeEnv,

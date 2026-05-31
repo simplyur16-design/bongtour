@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import path from 'path'
 
-export const CALENDAR_BATCH_CHUNK_DAYS = 14
+export const CALENDAR_BATCH_CHUNK_DAYS = 22
 export const CALENDAR_BATCH_HORIZON_DAYS = 180
 
 export type CalendarBatchSeqState = {
