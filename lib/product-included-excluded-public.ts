@@ -382,6 +382,26 @@ export function formatPublicExcludedLinesForDisplay(lines: string[]): string[] {
   return out
 }
 
+/** 불포함 한 줄에 공항이동·개별이동 + 조·중·석식 breakdown이 붙어 저장된 경우 분리 */
+function expandPublicExcludedCompoundLines(lines: string[]): string[] {
+  const out: string[] = []
+  for (const raw of lines) {
+    const t = raw.replace(/\s+/g, ' ').trim()
+    if (!t) continue
+    const chunks = t.split(/\s*◈\s*/).map((s) => s.trim()).filter(Boolean)
+    for (const chunk of chunks.length > 1 ? chunks : [t]) {
+      const mealStart = chunk.search(/\s+(?=(?:조식|중식|석식)\s*[-–—])/i)
+      if (mealStart > 0) {
+        out.push(chunk.slice(0, mealStart).trim())
+        out.push(chunk.slice(mealStart).trim())
+      } else {
+        out.push(chunk)
+      }
+    }
+  }
+  return out
+}
+
 /** 불포함 목록에서 조·중·석식 불포함 breakdown 줄 제거(에어텔 등 반복 식사 나열) */
 function isExcludedMealBreakdownNoiseLine(line: string): boolean {
   const t = line.replace(/^[\-*•◇◆\s]+/, '').replace(/\s+/g, ' ').trim()
@@ -417,14 +437,38 @@ export function ensureAirtelAirportTransferExcludedWhenNotInIncluded(input: {
   if (input.excludedLines.some(isAirportHotelTransferLine)) {
     return { includedLines: input.includedLines, excludedLines: input.excludedLines }
   }
-  const fromBody = splitLines(input.excludedText).find(isAirportHotelTransferLine)
   const excludedLines = [...input.excludedLines]
-  pushUniqueLine(excludedLines, fromBody ?? AIRTEL_AIRPORT_TRANSFER_EXCLUDED_LABEL)
+  pushUniqueLine(excludedLines, AIRTEL_AIRPORT_TRANSFER_EXCLUDED_LABEL)
   return { includedLines: input.includedLines, excludedLines }
 }
 
+function collapseDuplicateAirportTransferExcludedLines(lines: string[]): string[] {
+  const transferLines = lines.filter(isAirportHotelTransferLine)
+  if (transferLines.length <= 1) return lines
+  const keep =
+    transferLines.find((l) => /개별\s*이동/i.test(l)) ??
+    transferLines.reduce((a, b) => (a.length <= b.length ? a : b))
+  const out: string[] = []
+  let kept = false
+  for (const line of lines) {
+    if (isAirportHotelTransferLine(line)) {
+      if (!kept) {
+        out.push(keep)
+        kept = true
+      }
+      continue
+    }
+    out.push(line)
+  }
+  return out
+}
+
 function finalizePublicExcludedLines(lines: string[]): string[] {
-  return dropPublicExcludedMealBreakdownLines(
-    formatPublicExcludedLinesForDisplay(dedupeSingleRoomSurchargeLines(dropStandaloneNoiseFromIeLines(lines)))
+  return collapseDuplicateAirportTransferExcludedLines(
+    dropPublicExcludedMealBreakdownLines(
+      formatPublicExcludedLinesForDisplay(
+        dedupeSingleRoomSurchargeLines(dropStandaloneNoiseFromIeLines(expandPublicExcludedCompoundLines(lines)))
+      )
+    )
   )
 }
