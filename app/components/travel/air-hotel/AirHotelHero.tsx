@@ -75,7 +75,7 @@ export default function AirHotelHero({ slides }: Props) {
         </div>
 
         <div
-          className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/75 via-black/30 to-transparent"
+          className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/85 via-black/40 to-transparent"
           aria-hidden
         />
 
@@ -117,16 +117,25 @@ export default function AirHotelHero({ slides }: Props) {
 
         <div className="absolute inset-0 z-10 flex flex-col justify-end p-6 sm:p-10">
           {current.monthLabel ? (
-            <p className="mb-1 text-xs text-bt-bg/80 drop-shadow sm:text-sm">{current.monthLabel}</p>
+            <p
+              className="mb-1 text-xs text-white/90 sm:text-sm"
+              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+            >
+              {current.monthLabel}
+            </p>
           ) : null}
           {current.message ? (
-            <h2 className="mb-2 max-w-2xl text-lg font-bold text-bt-bg drop-shadow-md sm:text-2xl">
+            <h2
+              className="mb-2 max-w-2xl text-lg font-bold text-white sm:text-2xl"
+              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}
+            >
               {current.message}
             </h2>
           ) : null}
           <Link
             href={current.productHref}
-            className="text-sm text-bt-bg underline-offset-4 drop-shadow hover:underline sm:text-base"
+            className="text-sm text-white underline-offset-4 hover:underline sm:text-base"
+            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
           >
             {current.productTitle}
           </Link>
