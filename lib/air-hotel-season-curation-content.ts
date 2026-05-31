@@ -129,7 +129,7 @@ async function loadAirHotelSeasonCurationUncached(): Promise<AirHotelSeasonCurat
 export async function getCachedAirHotelSeasonCuration(): Promise<AirHotelSeasonCurationDTO | null> {
   const run = unstable_cache(
     () => loadAirHotelSeasonCurationUncached(),
-    ['air-hotel-season-curation-v3'],
+    ['air-hotel-season-curation-v4'],
     { revalidate: 21_600, tags: ['air-hotel-season'] },
   )
   return run()

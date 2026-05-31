@@ -1,6 +1,7 @@
 /**
  * /travel/air-hotel 시즌 큐레이션 — Gemini job + DB upsert (25일 cron 2단계에서 호출).
  */
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { extractFirstBalancedJsonObject, stripLlmMarkdownJsonFence } from '@/lib/llm-json-extract'
@@ -383,6 +384,9 @@ export async function runAirHotelSeasonCurationJob(
       isPublished: true,
     },
   })
+
+  revalidateTag('air-hotel-season')
+  revalidatePath('/travel/air-hotel')
 
   return {
     cycleId,
