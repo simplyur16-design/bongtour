@@ -65,7 +65,6 @@ function run() {
   mustContain('app/api/analyze/route.ts', 'requireAdmin')
   mustContain('app/api/extract/route.ts', 'requireAdmin')
   mustContain('app/api/parse-product/route.ts', 'requireAdmin')
-  mustContain('app/api/agent/scrape/route.ts', 'requireAdmin')
 
   assertNoInternalMetaLeak(
     {

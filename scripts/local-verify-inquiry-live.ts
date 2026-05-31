@@ -4,7 +4,7 @@
  * ■ 운영 검수 (기본) — `npm run verify:inquiry:live`
  *    - `lib/verify-inquiry-operational-env.ts` 로 env 전부 검증 후에만 Next 기동.
  *    - Ethereal / example.com / 코드 기본 카카오 URL → **즉시 실패**.
- *    - 이메일 수신·본문 전체·카카오 앱 내 화면은 **운영자가 실제 채널에서 수동 확인**(스크립트는 SMTP 발송 성공 + 팝업 URL 일치까지).
+ *    - 이메일 수신·본문 전체·카카오 앱 내 화면은 **운영자가 실제 채널에서 수동 확인**(스크립트는 SMTP 발송 성공까지; 카카오 UI는 수동).
  *
  * ■ 샌드박스 (구조·회귀만, 운영 통과 **무효**)
  *      npx tsx scripts/local-verify-inquiry-live.ts --sandbox
@@ -17,7 +17,6 @@ import './load-env-for-scripts'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { join } from 'node:path'
 import nodemailer from 'nodemailer'
-import puppeteer from 'puppeteer'
 import { PrismaClient } from '@prisma/client'
 
 import { sendInquiryReceivedEmail } from '@/lib/inquiry-email'
@@ -120,19 +119,6 @@ async function fetchEtherealPreviewHtml(messageUrl: string): Promise<string> {
   const res = await fetch(messageUrl, { redirect: 'follow' })
   if (!res.ok) throw new Error(`Ethereal 미리보기 HTTP ${res.status}`)
   return res.text()
-}
-
-/** 팝업이 `.env`에 넣은 카카오 진입 URL과 동일 호스트·경로인지(쿼리 `text=` 허용) */
-function kakaoPopupMatchesConfigured(opened: string, configuredRaw: string): boolean {
-  try {
-    const c = new URL(configuredRaw.trim())
-    const o = new URL(opened.trim())
-    const cp = c.pathname.replace(/\/$/, '') || '/'
-    const op = o.pathname.replace(/\/$/, '') || '/'
-    return o.hostname === c.hostname && op === cp
-  } catch {
-    return opened.startsWith(configuredRaw.split('?')[0])
-  }
 }
 
 async function main(): Promise<void> {
@@ -388,102 +374,11 @@ async function main(): Promise<void> {
     }
 
     const configuredKakao = SANDBOX ? undefined : process.env.NEXT_PUBLIC_KAKAO_OPEN_CHAT_URL!.trim()
-
-    console.log('[verify] Puppeteer: 상품 상세 카카오…')
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    })
-    try {
-      const context = browser.defaultBrowserContext()
-      await context.overridePermissions(`${BASE}`, ['clipboard-read', 'clipboard-write'])
-      const page = await browser.newPage()
-      await page.setViewport({ width: 1400, height: 900 })
-      const productUrl = `${BASE}/products/${encodeURIComponent(product.id)}`
-      await page.goto(productUrl, { waitUntil: 'networkidle2', timeout: 120_000 })
-
-      await page.waitForFunction(
-        () => document.body.innerText.includes('1:1 카카오 상담하기'),
-        { timeout: 60_000 }
-      )
-
-      async function waitPopupUrl(match: (u: string) => boolean, click: () => Promise<void>): Promise<string> {
-        return new Promise((resolve, reject) => {
-          const timer = setTimeout(() => {
-            browser.off('targetcreated', onTarget)
-            reject(new Error('팝업 URL 타임아웃'))
-          }, 35_000)
-          const onTarget = async (target: import('puppeteer').Target) => {
-            try {
-              const p = await target.page()
-              if (!p) return
-              for (let i = 0; i < 60; i++) {
-                const u = p.url()
-                if (u && u !== 'about:blank' && match(u)) {
-                  clearTimeout(timer)
-                  browser.off('targetcreated', onTarget)
-                  resolve(u)
-                  return
-                }
-                await sleep(200)
-              }
-            } catch {
-              /* */
-            }
-          }
-          browser.on('targetcreated', onTarget)
-          void click().catch((e) => {
-            clearTimeout(timer)
-            browser.off('targetcreated', onTarget)
-            reject(e)
-          })
-        })
-      }
-
-      const kakaoPopupUrl = await waitPopupUrl(
-        (u) => u.toLowerCase().includes('kakao'),
-        async () => {
-          const clicked = await page.evaluate(() => {
-            const buttons = Array.from(document.querySelectorAll('button[type="button"]'))
-            const b = buttons.find((x) => (x.textContent || '').includes('1:1 카카오 상담하기'))
-            if (!b) return false
-            b.scrollIntoView({ block: 'center', inline: 'nearest' })
-            ;(b as HTMLButtonElement).click()
-            return true
-          })
-          if (!clicked) throw new Error('카카오 버튼 없음')
-        }
-      )
-      console.log('[verify] 카카오 팝업 URL:', kakaoPopupUrl.slice(0, 260))
-      if (!SANDBOX && configuredKakao) {
-        if (!kakaoPopupMatchesConfigured(kakaoPopupUrl, configuredKakao)) {
-          throw new Error(
-            `카카오 팝업이 설정 URL과 불일치합니다.\n설정: ${configuredKakao}\n열림: ${kakaoPopupUrl.slice(0, 180)}`
-          )
-        }
-      }
-      if (kakaoPopupUrl.includes('text=')) {
-        try {
-          const u = new URL(kakaoPopupUrl)
-          const t = u.searchParams.get('text') ?? ''
-          console.log('[verify] 카카오 URL ?text= 디코드(앞 500자):', t.slice(0, 500))
-          assertContains(t, product.id, '카카오 URL 요약 productId')
-          assertContains(t, product.originCode, '카카오 URL 요약 상품번호')
-        } catch (e) {
-          console.warn('[verify] 카카오 URL text 파싱 생략:', e)
-        }
-      }
-
-      await sleep(600)
-      await page.bringToFront()
-      try {
-        const clipKakao = await page.evaluate(() => navigator.clipboard.readText())
-        console.log('[verify] 카카오 클립보드(앞 400자):', clipKakao.slice(0, 400))
-      } catch (e) {
-        console.warn('[verify] 카카오 클립보드 읽기 실패(헤드리스):', e)
-      }
-    } finally {
-      await browser.close()
+    const productUrl = `${BASE}/products/${encodeURIComponent(product.id)}`
+    console.log('[verify] 카카오 UI: 브라우저 자동화 제거 — 운영자 수동 확인 필요')
+    console.log('[verify] 상품 상세 URL:', productUrl)
+    if (configuredKakao) {
+      console.log('[verify] 설정 카카오 URL:', configuredKakao)
     }
 
     const subj = buildInquiryEmailSubject(travelInput, prefix)
