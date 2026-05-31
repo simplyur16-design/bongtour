@@ -21,7 +21,8 @@ import type { OverseasCountryNode, OverseasLeafNode } from '@/lib/overseas-locat
 export type CountryTagMatchSlice = {
   countryKey: string
   nodeKey: string | null
-  groupKey: string | null
+  /** browse include에서 생략 가능 — match는 countryKey·nodeKey만 사용 */
+  groupKey?: string | null
   country?: { continentKey: string } | null
 }
 

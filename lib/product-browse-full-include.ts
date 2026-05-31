@@ -19,9 +19,6 @@ export function buildProductBrowseFullInclude(baseDate: Date = new Date()) {
         minPax: true,
         outboundDepartureAt: true,
         carrierName: true,
-        isDepartureConfirmed: true,
-        statusLabelsRaw: true,
-        statusRaw: true,
       },
       take: 48,
     },
@@ -33,13 +30,10 @@ export function buildProductBrowseFullInclude(baseDate: Date = new Date()) {
     brand: {
       select: { brandKey: true, displayName: true },
     },
-    /** G-3 / I-4: browse·트리 다국가 OR — 최소 필드 + 마스터 대륙 */
     countryTags: {
       select: {
         countryKey: true,
         nodeKey: true,
-        groupKey: true,
-        country: { select: { continentKey: true } },
       },
     },
     /** I-4: 다도시 태그 OR */
