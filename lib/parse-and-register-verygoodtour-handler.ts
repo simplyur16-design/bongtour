@@ -98,7 +98,10 @@ import {
   verygoodConfirmHasScheduleExpressionLayer,
 } from '@/lib/parse-and-register-verygoodtour-schedule'
 import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
-import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
+import {
+  resolveRegisterProductType,
+  travelScopeAndListingKindFromAdminRegister,
+} from '@/lib/register-admin-travel-category'
 import {
   buildRegisterPublicImageHeroSeoKeywords,
   buildRegisterPublicImageHeroSeoLineCandidate,
@@ -1009,7 +1012,10 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
       duration: parsed.duration,
       airline: parsed.airline ?? null,
-      productType: parsed.productType || 'travel',
+      productType: resolveRegisterProductType(
+        travelScopeAndListingKindFromAdminRegister(travelScope),
+        parsed.productType
+      ),
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       airportTransferType: parsed.airportTransferType ?? null,
       optionalToursStructured: parsed.optionalToursStructured ?? null,
@@ -1347,7 +1353,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       priceCurrency: parsed.priceCurrency?.trim() || null,
       duration: parsed.duration,
       airline: parsed.airline ?? null,
-      productType: parsed.productType || 'travel',
+      productType: resolveRegisterProductType(registerListingMeta, parsed.productType),
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       hotelSummaryRaw,
       hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
