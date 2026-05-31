@@ -23,7 +23,7 @@ export const PRODUCT_LIVE_QUOTE_CARD_COPY = {
   bookingCta: '\uC608\uC57D \uC2E0\uCCAD',
   /** 패키지·자유여행 예약 신청 CTA — ShareActions 공유하기와 동일 박스, 배경만 골드 #d9a81e */
   bookingCtaButtonClass:
-    'mt-3 w-full bt-btn-secondary min-h-[40px] text-[13px] font-medium bg-[#d9a81e] text-[#1F1B2D] hover:bg-[#c89619] hover:text-[#1F1B2D]',
+    'mt-3 w-full bt-btn-secondary min-h-[56px] text-base font-bold bg-[#d9a81e] text-[#1F1B2D] hover:bg-[#c89619] hover:text-[#1F1B2D]',
   paxDecreaseAria: (label: string) => `${label} \uAC10\uC18C`,
   paxIncreaseAria: (label: string) => `${label} \uC99D\uAC00`,
 } as const

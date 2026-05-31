@@ -142,7 +142,7 @@ export default function ProductLiveQuoteCard({
       ) : null}
 
       <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#1F1B2D]">{copy.paxSectionTitle}</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide fit-tx-primary">{copy.paxSectionTitle}</p>
         <div className="space-y-2.5">
           {STICKY_PAX_ROWS.map((row) => {
             const isChildRow = row.key === 'child'
@@ -170,7 +170,7 @@ export default function ProductLiveQuoteCard({
             )
           })}
         </div>
-        <p className="mt-2 text-[10px] leading-relaxed text-bt-meta">{copy.paxFootnote}</p>
+        <p className="mt-2 text-[10px] leading-relaxed fit-tx-meta">{copy.paxFootnote}</p>
         {showQuotationTotal ? (
           <div
             className="mt-3 rounded-xl border border-[#DAD4EE] bg-white px-3 py-3 text-center"

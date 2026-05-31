@@ -85,8 +85,8 @@ export function QuoteCardPaxStepperRow({
     <div className="flex items-center justify-between gap-2 rounded-xl border border-[#DAD4EE] bg-[#FAFAFC] px-3 py-2.5">
       <div className="min-w-0 shrink">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="text-base font-semibold text-[#1F1B2D]">{label}</span>
-          <span className="text-xs text-bt-meta">{ageLine}</span>
+          <span className="text-base font-semibold fit-tx-primary">{label}</span>
+          <span className="text-xs fit-tx-meta">{ageLine}</span>
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
