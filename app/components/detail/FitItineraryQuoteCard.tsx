@@ -141,7 +141,7 @@ export default function FitItineraryQuoteCard({
                     <span className="text-[10px] !text-[#4B5563]">{row.ageLine}</span>
                   </div>
                   {unit > 0 ? (
-                    <div className="mt-0.5 text-base font-semibold tabular-nums text-[#85510B]">
+                    <div className="mt-0.5 text-base font-semibold tabular-nums fit-tx-gold">
                       {unit.toLocaleString('ko-KR')}원
                     </div>
                   ) : null}
@@ -183,7 +183,7 @@ export default function FitItineraryQuoteCard({
             <p className="text-[11px] font-semibold uppercase tracking-wide text-bt-meta">
               {copy.quotationTotalLabel}
             </p>
-            <p className="mt-1 text-2xl font-black tabular-nums tracking-tight text-[#85510B]">
+            <p className="mt-1 text-2xl font-black tabular-nums tracking-tight fit-tx-gold">
               {totalQuote.toLocaleString('ko-KR')}
               <span className="ml-0.5 text-base font-bold">원</span>
             </p>
