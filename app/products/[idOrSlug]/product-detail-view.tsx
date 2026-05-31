@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import type { Prisma } from '@prisma/client'
-import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import {
   sanitizeFlightStructuredBodyForPublic,
@@ -25,11 +24,7 @@ import {
   extractProductPriceTableByLabels,
   mergeProductPriceTableWithLabelExtract,
 } from '@/lib/product-price-table-extract'
-import {
-  normalizeMustKnowItems,
-  parseProductRawMetaPublic,
-  parseShoppingStopsJson,
-} from '@/lib/public-product-extras'
+import { normalizeMustKnowItems, parseShoppingStopsJson } from '@/lib/public-product-extras'
 import {
   pickPrimaryAirlineNameForOperationalMeeting,
   resolveOperationalMeetingDisplay,
@@ -47,17 +42,7 @@ import {
 } from '@/lib/flight-modetour-parser'
 import { getProductTotalDays } from '@/lib/package-rules'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
-import {
-  buildDepartureKeyFactsByDepartureId,
-  buildDepartureKeyFactsMap,
-  enrichDepartureKeyFactsMapForDisplay,
-  mergeAdminDepartureFactsWithParsedLegs,
-} from '@/lib/departure-key-facts'
-import {
-  buildKeyFactsFromAdminProfile,
-  parseFlightAdminJson,
-  resolveFlightDisplayPolicy,
-} from '@/lib/admin-flight-profile'
+import { parseFlightAdminJson, resolveFlightDisplayPolicy } from '@/lib/admin-flight-profile'
 import { getFlightAdminJsonFromRawMeta } from '@/lib/raw-meta-admin-flight'
 import * as flightManualHanatour from '@/lib/flight-manual-correction-hanatour'
 import * as flightManualModetour from '@/lib/flight-manual-correction-modetour'
@@ -95,102 +80,33 @@ import {
 } from '@/lib/site-metadata'
 import {
   formatModetourStickyLocalPayPerPersonLine,
-  sanitizeModetourPublicDepartureKeyFacts,
   sanitizeModetourPublicProductAirlineLine,
 } from '@/lib/modetour-product-public-display'
 import {
   formatKyowontourStickyLocalPayPerPersonLine,
-  sanitizeKyowontourPublicDepartureKeyFacts,
   sanitizeKyowontourPublicProductAirlineLine,
 } from '@/lib/kyowontour-product-public-display'
 import {
   formatLottetourStickyLocalPayPerPersonLine,
-  sanitizeLottetourPublicDepartureKeyFacts,
   sanitizeLottetourPublicProductAirlineLine,
 } from '@/lib/lottetour-product-public-display'
-import { deriveIncludedExcludedFromRaw } from '@/lib/derive-included-excluded-from-raw'
+import { buildProductDetailDepartureKeyFacts } from '@/lib/product-detail-departure-facts'
+import { parseProductDetailRawMeta } from '@/lib/product-detail-rawmeta'
+import {
+  mapFitMasterForItinerary,
+  mergeProductDetailSchedule,
+  type FitMasterWithDays,
+} from '@/lib/product-detail-schedule-merge'
+import { buildProductDetailSeoOffers } from '@/lib/product-detail-seo-offers'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import { buildProductMetaChips } from '@/lib/product-meta-chips'
 import { PRODUCT_DETAIL_PAGE_INCLUDE } from '@/lib/product-detail-page-include'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
 import { ItineraryViewLazy } from '@/components/itinerary/ItineraryViewLazy'
-import type {
-  FitItineraryMaster,
-  FitItineraryDay,
-  FitItineraryActivity,
-  FitItineraryActivityValidation,
-} from '@prisma/client'
 
 export type ProductDetailViewRow = Prisma.ProductGetPayload<{ include: typeof PRODUCT_DETAIL_PAGE_INCLUDE }>
 
-type FitMasterWithDays = FitItineraryMaster & {
-  days: (FitItineraryDay & {
-    activities: (FitItineraryActivity & {
-      validation: FitItineraryActivityValidation | null
-    })[]
-  })[]
-}
-
-function mapFitMasterForItinerary(fitMaster: FitMasterWithDays) {
-  return {
-    id: fitMaster.id,
-    title: fitMaster.title,
-    summary: fitMaster.summary ?? '',
-    totalDays: fitMaster.totalDays,
-    persona: fitMaster.persona as 'mixed' | 'couple' | 'with-parents' | 'with-kids',
-    cityNameKo: fitMaster.cityNameKo,
-    productId: fitMaster.productId,
-    days: fitMaster.days.map((d) => ({
-      id: d.id,
-      dayNumber: d.dayNumber,
-      title: d.title,
-      summary: d.summary ?? '',
-      activities: d.activities.map((act) => ({
-        id: act.id,
-        order: act.order,
-        category: act.category as
-          | 'transport'
-          | 'hotel'
-          | 'meal'
-          | 'attraction'
-          | 'shopping'
-          | 'tip'
-          | 'leisure',
-        title: act.title,
-        description: act.description ?? '',
-        location: act.location,
-        startTime: act.startTime ?? '',
-        durationMinutes: act.durationMinutes ?? 0,
-        estimatedCostKrw: act.estimatedCostKrw ?? 0,
-        estimatedCostNote: act.estimatedCostNote,
-        transportMode: act.transportMode,
-        transportDuration: act.transportDuration,
-        transportCostKrw: act.transportCostKrw,
-      })),
-    })),
-  }
-}
-
-type ProductDetailItineraryDayRow = NonNullable<ProductDetailViewRow['itineraryDays']>[number]
-
-function itineraryDayMetaByDay(days: readonly ProductDetailItineraryDayRow[]): Map<number, ProductDetailItineraryDayRow> {
-  const m = new Map<number, ProductDetailItineraryDayRow>()
-  for (const d of days) {
-    const k = Math.floor(Number(d.day))
-    if (Number.isFinite(k) && k >= 1) m.set(k, d)
-  }
-  return m
-}
-
-function coalesceItineraryOrScheduleText(
-  db: string | null | undefined,
-  fromScheduleJson: string | null | undefined
-): string | null {
-  const a = typeof db === 'string' ? db.trim() : ''
-  if (a) return a
-  const b = typeof fromScheduleJson === 'string' ? fromScheduleJson.trim() : ''
-  return b || null
-}
+export type { FitMasterWithDays } from '@/lib/product-detail-schedule-merge'
 
 export async function ProductDetailView({
   travelProduct,
@@ -267,71 +183,13 @@ export async function ProductDetailView({
     }
   })()
 
-  const rawParsed = parseProductRawMetaPublic(travelProduct.rawMeta ?? null)
-  const structured = rawParsed?.structuredSignals
-
-  const derivedIncludedExcluded = deriveIncludedExcludedFromRaw(
-    structured?.detailBodyNormalizedRaw ?? null
+  const { rawParsed, structured, finalIncludedText, finalExcludedText } = parseProductDetailRawMeta(
+    travelProduct.rawMeta,
+    travelProduct.includedText,
+    travelProduct.excludedText
   )
-  const finalIncludedText =
-    travelProduct.includedText && travelProduct.includedText.trim().length > 0
-      ? travelProduct.includedText
-      : derivedIncludedExcluded.includedItems.length > 0
-        ? derivedIncludedExcluded.includedItems.join('\n')
-        : null
-  const finalExcludedText =
-    travelProduct.excludedText && travelProduct.excludedText.trim().length > 0
-      ? travelProduct.excludedText
-      : derivedIncludedExcluded.excludedItems.length > 0
-        ? derivedIncludedExcluded.excludedItems.join('\n')
-        : null
 
-  const itineraryDaysList = travelProduct.itineraryDays ?? []
-  const scheduleArr = getScheduleFromProduct(travelProduct)
-  const dayMeta = itineraryDayMetaByDay(itineraryDaysList)
-  const scheduleMergedBase =
-    scheduleArr.length > 0
-      ? scheduleArr.map((s) => {
-          const sk = Math.floor(Number(s.day))
-          const iday = Number.isFinite(sk) && sk >= 1 ? dayMeta.get(sk) : undefined
-          /** ItineraryDay가 비어 있으면 Product.schedule JSON에 넣어 둔 식사·숙소(모두투어 confirm)로 보조 */
-          return {
-            ...s,
-            city: iday?.city?.trim() || null,
-            hotelText: coalesceItineraryOrScheduleText(iday?.hotelText, s.hotelText),
-            breakfastText: coalesceItineraryOrScheduleText(iday?.breakfastText, s.breakfastText),
-            lunchText: coalesceItineraryOrScheduleText(iday?.lunchText, s.lunchText),
-            dinnerText: coalesceItineraryOrScheduleText(iday?.dinnerText, s.dinnerText),
-            mealSummaryText: coalesceItineraryOrScheduleText(iday?.mealSummaryText, s.mealSummaryText),
-            meals: coalesceItineraryOrScheduleText(iday?.meals, s.meals),
-          }
-        })
-      : []
-  const scheduleMerged = scheduleMergedBase
-  const seoItinerary: ProductJsonLdItineraryItem[] =
-    scheduleMerged.length > 0
-      ? scheduleMerged.flatMap((s, idx) => {
-          const rawDay = Number(s.day)
-          const dayNum = Number.isFinite(rawDay) && rawDay >= 1 ? Math.floor(rawDay) : idx + 1
-          const fromTitle = typeof s.title === 'string' ? s.title.trim() : ''
-          const descFirst =
-            typeof s.description === 'string'
-              ? (s.description
-                  .trim()
-                  .split(/\r?\n/)
-                  .find((ln) => ln.trim().length > 0) ?? ''
-                ).trim()
-              : ''
-          const title = (fromTitle || descFirst || `제${dayNum}일`).slice(0, 240).trim()
-          if (!title) return []
-          const cityField = (s as { city?: string | null }).city
-          const city: string | null =
-            typeof cityField === 'string' && cityField.trim() ? cityField.trim() : null
-          const row: ProductJsonLdItineraryItem = { dayNumber: dayNum, title, city }
-          return [row]
-        })
-      : []
-  const schedule = scheduleMerged.length > 0 ? scheduleMerged : null
+  const { scheduleMerged, schedule, seoItinerary } = mergeProductDetailSchedule(travelProduct)
 
   const seoCoverUrl = getFinalCoverImageUrl({
     bgImageUrl: travelProduct.bgImageUrl,
@@ -503,87 +361,17 @@ export async function ProductDetailView({
     travelProduct.brand?.brandKey === 'verygoodtour' ||
     flightStructuredDebug?.supplierBrandKey === 'verygoodtour'
 
-  const baseFactsByDate = departures.length > 0 ? buildDepartureKeyFactsMap(departures) : {}
-  const departureKeyFactsByDepartureId =
-    departures.length > 0 ? buildDepartureKeyFactsByDepartureId(departures) : undefined
-  const parsedFactsByDate =
-    departures.length > 0
-      ? verygoodtourPublicRowFactsOnly
-        ? baseFactsByDate
-        : enrichDepartureKeyFactsMapForDisplay(
-            baseFactsByDate,
-            flightStructured,
-            travelProduct.airline ?? null
-          )
-      : undefined
-  const adminFactsTemplate =
-    adminFlightProfile != null
-      ? buildKeyFactsFromAdminProfile(adminFlightProfile, travelProduct.airline ?? null)
-      : null
-  let departureKeyFactsByDate =
-    departures.length === 0
-      ? undefined
-      : flightDisplayPolicy === 'admin_only' && adminFactsTemplate != null
-        ? Object.fromEntries(
-            Object.keys(baseFactsByDate).map((dateKey) => {
-              const parsedRow = parsedFactsByDate?.[dateKey]
-              const merged =
-                parsedRow != null
-                  ? mergeAdminDepartureFactsWithParsedLegs(adminFactsTemplate, parsedRow)
-                  : adminFactsTemplate
-              return [
-                dateKey,
-                {
-                  ...merged,
-                  meetingSummary: baseFactsByDate[dateKey]?.meetingSummary ?? merged.meetingSummary ?? null,
-                },
-              ]
-            })
-          )
-        : flightDisplayPolicy === 'suppress_no_parsed'
-          ? Object.fromEntries(
-              Object.keys(baseFactsByDate).map((dateKey) => [
-                dateKey,
-                {
-                  airline:
-                    adminFactsTemplate?.airline ??
-                    baseFactsByDate[dateKey]?.airline ??
-                    travelProduct.airline ??
-                    null,
-                  outbound: null,
-                  inbound: null,
-                  outboundSummary: null,
-                  inboundSummary: null,
-                  meetingSummary: baseFactsByDate[dateKey]?.meetingSummary ?? null,
-                },
-              ])
-            )
-          : parsedFactsByDate
-
-  if (useModetourDirectedParse && departureKeyFactsByDate) {
-    departureKeyFactsByDate = Object.fromEntries(
-      Object.entries(departureKeyFactsByDate).map(([dateKey, facts]) => [
-        dateKey,
-        sanitizeModetourPublicDepartureKeyFacts(facts),
-      ])
-    )
-  }
-  if (useKyowontourPublicFlightScrub && departureKeyFactsByDate) {
-    departureKeyFactsByDate = Object.fromEntries(
-      Object.entries(departureKeyFactsByDate).map(([dateKey, facts]) => [
-        dateKey,
-        sanitizeKyowontourPublicDepartureKeyFacts(facts),
-      ])
-    )
-  }
-  if (useLottetourPublicFlightScrub && departureKeyFactsByDate) {
-    departureKeyFactsByDate = Object.fromEntries(
-      Object.entries(departureKeyFactsByDate).map(([dateKey, facts]) => [
-        dateKey,
-        sanitizeLottetourPublicDepartureKeyFacts(facts),
-      ])
-    )
-  }
+  const { departureKeyFactsByDate, departureKeyFactsByDepartureId } = buildProductDetailDepartureKeyFacts({
+    departures,
+    flightStructured,
+    productAirline: travelProduct.airline ?? null,
+    adminFlightProfile,
+    flightDisplayPolicy,
+    verygoodtourPublicRowFactsOnly,
+    useModetourDirectedParse,
+    useKyowontourPublicFlightScrub,
+    useLottetourPublicFlightScrub,
+  })
 
   /** 가격: 본문 라벨 추출 보강·날짜별 아동/유아 후처리는 모두투어 컨텍스트에서만 (타 공급사 공통화 금지) */
   const priceTableRawTrim = structured?.priceTableRawText?.trim() ?? ''
@@ -1043,42 +831,7 @@ export async function ProductDetailView({
         packageDetailDesktop
       )
 
-  const pricedDepartures = departures.filter((d) => d.adultPrice != null && d.adultPrice > 0)
-  const isUnavailable = (d: (typeof departures)[number]) => {
-    const sold =
-      (d.statusRaw ?? '').includes('마감') || (d.seatsStatusRaw ?? '').includes('마감')
-    return sold
-  }
-  const unavailableCount = departures.filter(isUnavailable).length
-  const totalCount = departures.length
-
-  const formatYmd = (d: Date) => d.toISOString().slice(0, 10)
-
-  let seoOffers: ProductJsonLdAggregateOffer | null = null
-  if (pricedDepartures.length > 0) {
-    const prices = pricedDepartures.map((d) => d.adultPrice as number)
-    const dates = pricedDepartures.map((d) => d.departureDate).sort((a, b) => +a - +b)
-
-    let availability: 'InStock' | 'LimitedAvailability' | 'SoldOut' = 'InStock'
-    if (totalCount > 0 && unavailableCount === totalCount) availability = 'SoldOut'
-    else if (totalCount > 0 && unavailableCount * 2 >= totalCount) availability = 'LimitedAvailability'
-
-    seoOffers = {
-      lowPrice: Math.min(...prices),
-      highPrice: Math.max(...prices),
-      offerCount: pricedDepartures.length,
-      availability,
-      validFrom: formatYmd(dates[0]),
-      priceValidUntil: formatYmd(dates[dates.length - 1]),
-    }
-  } else if (resolvedPriceFrom != null && resolvedPriceFrom > 0) {
-    seoOffers = {
-      lowPrice: resolvedPriceFrom,
-      highPrice: resolvedPriceFrom,
-      offerCount: 0,
-      availability: 'OutOfStock',
-    }
-  }
+  const seoOffers = buildProductDetailSeoOffers(departures, resolvedPriceFrom)
 
   const travelScopeLabel =
     travelProduct.travelScope === 'overseas'
