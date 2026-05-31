@@ -8,47 +8,33 @@ type Props = {
   className?: string
 }
 
-const LEFT_CHIP_CLS =
-  'rounded bg-black/55 px-2 py-0.5 text-xs leading-tight text-white shadow-sm'
-
-const RIGHT_CHIP_CLS = LEFT_CHIP_CLS
-
-const PEXELS_RIGHT_CLS = 'text-xs leading-tight text-white'
-
-const PEXELS_TEXT_SHADOW = '0 1px 4px rgba(0,0,0,0.7)'
-
-function isPexelsStockSourceLabel(label: string): boolean {
-  return /Pexels\s*스톡\s*이미지/i.test(label.trim())
-}
+const LABEL_CLS = 'text-xs leading-tight text-white drop-shadow-sm'
 
 /**
  * 이미지 내부 하단: 좌 SEO 키워드 / 우 출처. 둘 다 없으면 null.
+ * 배경 칩 없음 — 하단 그라데이션 fade + 흰색 텍스트 drop-shadow.
  */
 export default function PublicImageBottomOverlay({ leftLabel, rightLabel, className = '' }: Props) {
   const left = (leftLabel ?? '').trim()
   const right = (rightLabel ?? '').trim()
   if (!publicImageOverlayHasAny(left, right)) return null
 
-  const rightIsPexels = isPexelsStockSourceLabel(right)
-
   return (
     <div
-      className={`pointer-events-none absolute inset-x-0 bottom-2 z-[15] flex justify-between gap-2 px-3 ${className ?? ''}`.trim()}
+      className={`pointer-events-none absolute inset-x-0 bottom-0 z-[15] ${className ?? ''}`.trim()}
     >
-      {left ? (
-        <span className={`line-clamp-1 min-w-0 max-w-[65%] ${LEFT_CHIP_CLS}`}>{left}</span>
-      ) : (
-        <span className="min-w-0 flex-1" />
-      )}
-      {right ? (
-        rightIsPexels ? (
-          <span className={`shrink-0 ${PEXELS_RIGHT_CLS}`} style={{ textShadow: PEXELS_TEXT_SHADOW }}>
-            {right}
-          </span>
+      <div
+        className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/40 to-transparent"
+        aria-hidden
+      />
+      <div className="relative flex items-end justify-between gap-2 px-3 pb-2">
+        {left ? (
+          <span className={`line-clamp-1 min-w-0 max-w-[65%] ${LABEL_CLS}`}>{left}</span>
         ) : (
-          <span className={`shrink-0 ${RIGHT_CHIP_CLS}`}>{right}</span>
-        )
-      ) : null}
+          <span className="min-w-0 flex-1" />
+        )}
+        {right ? <span className={`shrink-0 ${LABEL_CLS}`}>{right}</span> : null}
+      </div>
     </div>
   )
 }
