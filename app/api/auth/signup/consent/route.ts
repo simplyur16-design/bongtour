@@ -85,15 +85,13 @@ export async function POST(req: Request) {
     return jsonWithLeakGuard({ error: 'user_missing' }, 'auth.signup.consent.post', { status: 500 })
   }
 
-  if (marketing) {
-    void runNewUserCouponBootstrap(userId)
-      .then((r) => {
-        if (!r.welcomeIssued && r.reason !== 'ok') {
-          console.warn('[auth/signup/consent] coupon_bootstrap', r.reason)
-        }
-      })
-      .catch((e) => console.warn('[auth/signup/consent] coupon_bootstrap', e))
-  }
+  void runNewUserCouponBootstrap(userId)
+    .then((r) => {
+      if (!r.welcomeIssued && r.reason !== 'ok') {
+        console.warn('[auth/signup/consent] coupon_bootstrap', r.reason)
+      }
+    })
+    .catch((e) => console.warn('[auth/signup/consent] coupon_bootstrap', e))
 
   const payload = { ok: true as const, redirectTo }
   try {

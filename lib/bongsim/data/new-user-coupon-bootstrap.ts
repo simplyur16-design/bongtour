@@ -6,12 +6,12 @@ import { getTemplateBySlot } from "@/lib/coupon/issuance-helpers";
 
 export type NewUserCouponBootstrapResult = {
   welcomeIssued: boolean;
-  reason: "ok" | "no-pg" | "no-email" | "no-marketing-consent" | "welcome-skip-existing" | "welcome-not-issued";
+  reason: "ok" | "no-pg" | "no-email" | "welcome-skip-existing" | "welcome-not-issued";
 };
 
 /**
  * 신규 User 생성 직후(이메일 가입 API 또는 OAuth 콜백).
- * welcome 쿠폰은 User.marketingConsent === true 일 때만 발급.
+ * welcome 쿠폰은 모든 신규 가입자에게 자동 발급 (2026-05-30 marketingConsent 조건 폐기).
  * PG 미설정·스키마 미적용 시 조용히 스킵.
  */
 export async function runNewUserCouponBootstrap(userId: string): Promise<NewUserCouponBootstrapResult> {
@@ -22,15 +22,11 @@ export async function runNewUserCouponBootstrap(userId: string): Promise<NewUser
   }
   const u = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, phone: true, marketingConsent: true },
+    select: { id: true, email: true, name: true, phone: true },
   });
   if (!u?.email) {
     console.warn("[bongsim:new-user-coupon] skipped: no-email", { userId });
     return { welcomeIssued: false, reason: "no-email" };
-  }
-  if (!u.marketingConsent) {
-    console.warn("[bongsim:new-user-coupon] welcome skipped: no-marketing-consent", { userId });
-    return { welcomeIssued: false, reason: "no-marketing-consent" };
   }
 
   const client = await pool.connect();
