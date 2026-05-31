@@ -8,6 +8,7 @@ import type { ShoppingStopRow } from '@/lib/public-product-extras-types'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import {
   filterPackagePublicIncludedExcludedLines,
+  dropPublicExcludedMealBreakdownLines,
   organizePackageIncludedExcludedForPublicDisplay,
   splitIncludedExcludedForPublicDisplay,
 } from '@/lib/product-included-excluded-public'
@@ -28,6 +29,7 @@ export type ItineraryExtraInfoProduct = {
   shoppingCautionNoticeRaw?: string | null
   reservationNoticeRaw?: string | null
   shoppingStopsStructured?: ShoppingStopRow[] | null
+  airportTransferType?: string | null
 }
 
 type OptionalTourRow = {
@@ -41,6 +43,7 @@ type OptionalTourRow = {
 }
 
 type ItineraryExtraInfoSection = 'top' | 'bottom' | 'all'
+type ItineraryExtraInfoLayout = 'default' | 'split'
 
 function isPackageProductType(productType: string | null | undefined): boolean {
   const t = (productType ?? '').toLowerCase()
@@ -50,15 +53,19 @@ function isPackageProductType(productType: string | null | undefined): boolean {
 export function ItineraryExtraInfoBoxes({
   product,
   section = 'all',
+  layout = 'default',
 }: {
   product: ItineraryExtraInfoProduct
   section?: ItineraryExtraInfoSection
+  layout?: ItineraryExtraInfoLayout
 }) {
   const showTop = section === 'top' || section === 'all'
   const showBottom = section === 'bottom' || section === 'all'
+  const isSplitLayout = layout === 'split'
   const isPackage = isPackageProductType(product.productType)
   const isAirHotelFree = isAirHotelFreeListingForUi(product.listingKind)
-  const usePackageIncludedExcludedRules = isPackage || isAirHotelFree
+  const isAirtel = product.productType === 'airtel'
+  const usePackageIncludedExcludedRules = isPackage || isAirHotelFree || isAirtel
 
   let includedItems: string[]
   let excludedItems: string[]
@@ -75,10 +82,12 @@ export function ItineraryExtraInfoBoxes({
       .split(/\r?\n/)
       .map((s) => s.trim())
       .filter(Boolean)
-    excludedItems = (product.excludedText ?? '')
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean)
+    excludedItems = dropPublicExcludedMealBreakdownLines(
+      (product.excludedText ?? '')
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    )
   }
 
   const reservationNotices = (product.reservationNoticeRaw ?? '')
@@ -100,7 +109,6 @@ export function ItineraryExtraInfoBoxes({
     .map((s) => s.trim())
     .filter(Boolean)
 
-  const isAirtel = product.productType === 'airtel'
   const isModetour = normalizeSupplierOrigin(product.originSource) === 'modetour'
   const isHanatour = normalizeSupplierOrigin(product.originSource) === 'hanatour'
   const shoppingVisitCountForUi = isHanatour
@@ -108,56 +116,60 @@ export function ItineraryExtraInfoBoxes({
     : (product.shoppingCount ?? product.shoppingVisitCountTotal ?? null)
 
   return (
-    <div className="space-y-2">
-      {showTop && includedItems.length > 0 && (
-        <section className="mb-4">
-          <div className="border-l-4 border-[#6B8E5C] pl-3 mb-2">
-            <h3 className="text-base font-bold fit-tx-primary">포함 사항</h3>
-          </div>
-          <ul
-            className={
-              usePackageIncludedExcludedRules
-                ? 'rounded-2xl border border-[#DAD4EE] bg-white p-4 space-y-2'
-                : 'bg-green-50 rounded-2xl p-4 space-y-2'
-            }
-          >
-            {includedItems.map((item, i) => (
-              <li key={i} className="text-sm fit-tx-primary bt-wrap">
-                {item}
-              </li>
-            ))}
-          </ul>
-          {usePackageIncludedExcludedRules && includedFootnotes.length > 0 ? (
-            <div className="mt-2 space-y-1 px-1">
-              {includedFootnotes.map((line, i) => (
-                <p key={i} className="text-xs leading-relaxed text-bt-meta bt-wrap">
-                  {line}
-                </p>
-              ))}
-            </div>
-          ) : null}
-        </section>
-      )}
+    <div className={isSplitLayout ? '' : 'space-y-2'}>
+      {showTop && (includedItems.length > 0 || excludedItems.length > 0) && (
+        <div className={isSplitLayout ? 'grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6' : undefined}>
+          {includedItems.length > 0 && (
+            <section className={isSplitLayout ? '' : 'mb-4'}>
+              <div className="mb-2 border-l-4 border-[#6B8E5C] pl-3">
+                <h3 className="text-base font-bold fit-tx-primary">포함 사항</h3>
+              </div>
+              <ul
+                className={
+                  usePackageIncludedExcludedRules
+                    ? 'space-y-2 rounded-2xl border border-[#DAD4EE] bg-white p-4'
+                    : 'space-y-2 rounded-2xl bg-green-50 p-4'
+                }
+              >
+                {includedItems.map((item, i) => (
+                  <li key={i} className="bt-wrap text-sm fit-tx-primary">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              {usePackageIncludedExcludedRules && includedFootnotes.length > 0 ? (
+                <div className="mt-2 space-y-1 px-1">
+                  {includedFootnotes.map((line, i) => (
+                    <p key={i} className="bt-wrap text-xs leading-relaxed text-bt-meta">
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          )}
 
-      {showTop && excludedItems.length > 0 && (
-        <section className="mb-4">
-          <div className="border-l-4 border-[#D85A30] pl-3 mb-2">
-            <h3 className="text-base font-bold fit-tx-primary">불포함 사항</h3>
-          </div>
-          <ul
-            className={
-              usePackageIncludedExcludedRules
-                ? 'rounded-2xl border border-[#DAD4EE] bg-white p-4 space-y-2'
-                : 'bg-orange-50 rounded-2xl p-4 space-y-2'
-            }
-          >
-            {excludedItems.map((item, i) => (
-              <li key={i} className="text-sm fit-tx-primary bt-wrap whitespace-pre-wrap">
-                {item}
-              </li>
-            ))}
-          </ul>
-        </section>
+          {excludedItems.length > 0 && (
+            <section className={isSplitLayout ? '' : 'mb-4'}>
+              <div className="mb-2 border-l-4 border-[#D85A30] pl-3">
+                <h3 className="text-base font-bold fit-tx-primary">불포함 사항</h3>
+              </div>
+              <ul
+                className={
+                  usePackageIncludedExcludedRules
+                    ? 'space-y-2 rounded-2xl border border-[#DAD4EE] bg-white p-4'
+                    : 'space-y-2 rounded-2xl bg-orange-50 p-4'
+                }
+              >
+                {excludedItems.map((item, i) => (
+                  <li key={i} className="bt-wrap whitespace-pre-wrap text-sm fit-tx-primary">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
       )}
 
       {showTop && usePackageIncludedExcludedRules && !isAirtel ? (

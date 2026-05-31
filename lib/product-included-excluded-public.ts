@@ -60,6 +60,7 @@ function shouldMovePackageIncludedLineToExcluded(line: string): boolean {
   if (isSingleRoomDuplicateNoiseLine(t)) return true
   if (LINE_NOT_FOR_INCLUDED_LIST.test(t)) return true
   if (LINE_INCLUDED_MEAL_EXCLUDED_CLAUSE.test(t)) return true
+  if (shouldMoveAirportTransferIncludedLineToExcluded(t)) return true
   return false
 }
 
@@ -380,6 +381,45 @@ export function formatPublicExcludedLinesForDisplay(lines: string[]): string[] {
   return out
 }
 
+/** 불포함 목록에서 조·중·석식 불포함 breakdown 줄 제거(에어텔 등 반복 식사 나열) */
+function isExcludedMealBreakdownNoiseLine(line: string): boolean {
+  const t = line.replace(/^[\-*•◇◆\s]+/, '').replace(/\s+/g, ' ').trim()
+  if (!t) return true
+  if (!/(?:조식|중식|석식)/i.test(t)) return false
+  if (!/(?:불포함|미포함|없음|기내식\s*없음)/i.test(t)) return false
+  if (/(?:조식|중식|석식)\s*[-–—]/i.test(t)) return true
+  if (/중식.*(?:불포함|미포함|없음|기내식).*석식|석식.*(?:불포함|미포함|없음).*중식/i.test(t)) return true
+  const mealTypeCount = (t.match(/(?:조식|중식|석식)/gi) ?? []).length
+  return mealTypeCount >= 2
+}
+
+export function dropPublicExcludedMealBreakdownLines(lines: string[]): string[] {
+  return lines.filter((line) => !isExcludedMealBreakdownNoiseLine(line))
+}
+
+const LINE_AIRPORT_HOTEL_TRANSFER =
+  /공항\s*[<↔↕⇔\-–—~]\s*>?\s*호텔|호텔\s*[<↔↕⇔\-–—~]\s*>?\s*공항|공항.{0,12}호텔.{0,16}(?:이동|픽업|샌딩|송영|차량)|공항\s*(?:픽업|샌딩)|픽업.{0,8}샌딩|공항에서\s*호텔\s*이동|공항↔호텔/i
+
+export function isAirportHotelTransferLine(line: string): boolean {
+  return LINE_AIRPORT_HOTEL_TRANSFER.test(line.replace(/\s+/g, ' ').trim())
+}
+
+function airportTransferLineIndicatesIncluded(line: string): boolean {
+  const t = line.replace(/\s+/g, ' ').trim()
+  if (!isAirportHotelTransferLine(t)) return false
+  if (/(?:불포함|미포함|별도|제외|없음|불포)/i.test(t)) return false
+  return /(?:포함|제공|서비스|왕복|픽업|샌딩|송영|차량)/i.test(t)
+}
+
+/** 포함란 공항↔호텔 줄 — 본문에 포함/제공 표현 없으면 불포함으로 이동 */
+function shouldMoveAirportTransferIncludedLineToExcluded(line: string): boolean {
+  const t = line.replace(/\s+/g, ' ').trim()
+  if (!isAirportHotelTransferLine(t)) return false
+  return !airportTransferLineIndicatesIncluded(t)
+}
+
 function finalizePublicExcludedLines(lines: string[]): string[] {
-  return formatPublicExcludedLinesForDisplay(dedupeSingleRoomSurchargeLines(dropStandaloneNoiseFromIeLines(lines)))
+  return dropPublicExcludedMealBreakdownLines(
+    formatPublicExcludedLinesForDisplay(dedupeSingleRoomSurchargeLines(dropStandaloneNoiseFromIeLines(lines)))
+  )
 }

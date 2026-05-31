@@ -983,6 +983,8 @@ export async function ProductDetailView({
             reservationNoticeRaw: product.reservationNoticeRaw ?? null,
             mustKnowItems: product.mustKnowItems ?? null,
             travelScope: travelProduct.travelScope === 'domestic' ? 'domestic' : 'overseas',
+            listingKind: travelProduct.listingKind ?? null,
+            airportTransferType: travelProduct.airportTransferType ?? null,
           }}
           prices={priceRowsForPublic}
           priceInfo={priceInfo}

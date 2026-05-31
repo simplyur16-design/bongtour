@@ -27,7 +27,7 @@ type Props = CarouselProps & {
   showChangeDepartureCta?: boolean
   modetourStickyLocalPayLine?: string | null
   supplierLabel?: string | null
-  regionLabel?: string | null
+  airtelRegionLine?: string | null
   onScrollToExampleItinerary?: () => void
 }
 
@@ -47,10 +47,9 @@ export default function FitItineraryHeroSection({
   showChangeDepartureCta,
   modetourStickyLocalPayLine,
   supplierLabel,
-  regionLabel,
+  airtelRegionLine,
   onScrollToExampleItinerary,
 }: Props) {
-  const fitTypeLabel = [supplierLabel, '자유여행', '에어텔', regionLabel].filter(Boolean).join(' · ')
   const infoPanelWithCta: FitItineraryHeroInfoPanelProps = {
     ...infoPanel,
     onChangeDepartureDate,
@@ -105,29 +104,44 @@ export default function FitItineraryHeroSection({
 
         <div className="absolute inset-x-0 bottom-0 z-[25] pointer-events-none">
           <div className="mx-auto w-full max-w-7xl px-6 pb-14 pr-6 text-white lg:px-8 lg:pb-20 lg:pr-48">
-            <div className="max-w-3xl pointer-events-auto">
+            <div className="max-w-4xl pointer-events-auto">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full bg-[#d9a81e] px-3 py-1 text-xs font-bold text-[#1F1B2D] shadow-md md:text-sm">
+                  예시일정
+                </span>
+                {supplierLabel ? (
+                  <span className="inline-flex items-center rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm md:text-sm">
+                    {supplierLabel}
+                  </span>
+                ) : null}
+                {airtelRegionLine ? (
+                  <span
+                    className="text-sm font-semibold text-white md:text-base"
+                    style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
+                  >
+                    {airtelRegionLine}
+                  </span>
+                ) : null}
+              </div>
+
+              <ProductHeroTitleLines
+                title={productTitle}
+                className="max-w-xl text-2xl font-bold leading-[1.35] tracking-[0.02em] sm:text-3xl lg:text-4xl lg:leading-[1.35]"
+                style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
+              />
+
               {onScrollToExampleItinerary ? (
                 <button
                   type="button"
                   onClick={onScrollToExampleItinerary}
-                  className="mb-3 inline-flex items-center rounded-full bg-[#d9a81e] px-3 py-1.5 text-xs font-bold text-[#1F1B2D] shadow-md transition hover:bg-[#c89619] md:text-sm"
+                  className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-[#d9a81e] px-5 py-2.5 text-[15px] font-bold tracking-wide text-white shadow-md transition hover:bg-[#c89619] md:gap-2 md:px-6 md:py-3 md:text-[18px]"
                 >
                   예시일정보기
+                  <span aria-hidden className="text-[0.9em] leading-none">
+                    →
+                  </span>
                 </button>
               ) : null}
-              {fitTypeLabel ? (
-                <p
-                  className="text-base font-semibold tracking-wide md:text-lg"
-                  style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
-                >
-                  {fitTypeLabel}
-                </p>
-              ) : null}
-              <ProductHeroTitleLines
-                title={productTitle}
-                className="mt-3 hidden max-w-xl lg:block"
-                style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
-              />
             </div>
           </div>
         </div>

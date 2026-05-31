@@ -130,6 +130,8 @@ interface ItineraryViewProps {
     mustKnowItems?: Array<{ category: string; title: string; body: string; raw?: string }> | null
     flightAdminJson?: string | null
     travelScope?: 'domestic' | 'overseas' | null
+    listingKind?: string | null
+    airportTransferType?: string | null
   }
   prices?: ProductPriceRow[]
   departure?: {
@@ -437,14 +439,15 @@ export function ItineraryView({
   const durationLabel = travelCoreInfo?.duration?.trim() || product.duration?.trim() || ''
 
   const supplierLabel = formatOriginSourceForDisplay(product.originSource)
-  const regionLabel =
-    master?.cityNameKo?.trim() ||
-    destinationLine
+  const airtelRegionLine = (() => {
+    const cities = destinationLine
       .split(/[,，/]/)
       .map((s) => s.trim())
-      .filter(Boolean)[0] ||
-    product.primaryDestination?.trim() ||
-    ''
+      .filter(Boolean)
+    if (cities.length > 0) return `에어텔 ${cities.join(' ')}`
+    const fallback = master?.cityNameKo?.trim() || product.primaryDestination?.trim()
+    return fallback ? `에어텔 ${fallback}` : null
+  })()
 
   const scrollToExampleItinerary = () => {
     document.getElementById('fit-itinerary-example')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -502,7 +505,7 @@ export function ItineraryView({
         primaryDestination={product.primaryDestination ?? null}
         destination={product.primaryDestination ?? null}
         supplierLabel={supplierLabel || null}
-        regionLabel={regionLabel || null}
+        airtelRegionLine={airtelRegionLine}
         onScrollToExampleItinerary={scrollToExampleItinerary}
         onChangeDepartureDate={() => setPickerOpen(true)}
         showChangeDepartureCta={(prices?.length ?? 0) > 0}
@@ -537,8 +540,8 @@ export function ItineraryView({
       </div>
 
       {travelCoreInfo ? (
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-8">
-          <ItineraryExtraInfoBoxes product={product} section="top" />
+        <div className="mx-auto max-w-7xl px-6 pt-8 lg:px-8">
+          <ItineraryExtraInfoBoxes product={product} section="top" layout="split" />
         </div>
       ) : null}
 
