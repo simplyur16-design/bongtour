@@ -19,6 +19,7 @@ import {
   GEMINI_MODEL,
 } from '@/lib/gemini-client'
 import { extractFirstBalancedJsonObject, stripLlmMarkdownJsonFence } from '@/lib/llm-json-extract'
+import { generateFitItineraryForProduct } from '@/lib/fit-itinerary-generate-for-product'
 
 loadEnvForScripts()
 
@@ -109,12 +110,6 @@ function parseGeminiJson(text: string): GeminiResponse {
   return parsed
 }
 
-function schedulePreview(schedule: string | null, maxLen = 4000): string {
-  if (!schedule?.trim()) return '없음'
-  const t = schedule.trim()
-  return t.length > maxLen ? `${t.slice(0, maxLen)}…` : t
-}
-
 type PromptProduct = {
   title: string
   cityNameKo: string
@@ -126,54 +121,6 @@ type PromptProduct = {
   hotelSummaryText: string | null
   airtelHotelInfoJson: string | null
   schedule: string | null
-}
-
-function buildAirtelPrompt(p: PromptProduct): string {
-  return `당신은 가오슝 v3 패턴 그대로 자유여행 예시 일정을 만드는 봉투어 큐레이터입니다.
-
-[상품 정보]
-- 제목: ${p.title}
-- 도시: ${p.cityNameKo} (cityKey: ${p.cityKey}, 국가: ${p.countryCode})
-- 일정: ${p.duration} (총 ${p.totalDays}일)
-- 항공사: ${p.airline ?? '미지정'}
-- 호텔: ${p.hotelSummaryText ?? p.airtelHotelInfoJson ?? '에어텔 포함'}
-- 기존 스케줄: ${schedulePreview(p.schedule)}
-
-[작성 규칙 — 가오슝 v3와 동일 패턴]
-- persona 자동 결정: '${p.cityNameKo}' 도시의 일반 자유여행객 페르소나 (mixed / couple / with-parents / with-kids 중 1)
-- 각 day = title(시적 한국어), summary(1문장 한국어), activities 3~6개
-- 카테고리 5개만 사용: transport(공항·이동) / hotel(체크인) / meal(식사·야시장 미식) / attraction(관광·전망대·사찰) / shopping(쇼핑·기념품)
-- Day 1 첫 활동 = 공항 도착(transport), 호텔 체크인(hotel), 야시장/저녁(meal)
-- Day 마지막 = 공항 출국(transport)
-- startTime = "HH:MM" 24시간 (예: "10:00", "15:55")
-- durationMinutes = 30 ~ 180
-- estimatedCostKrw = 정수 (0 = 무료/포함)
-- estimatedCostNote = "현지 통화 약 $XX 기준, 현지 실제 가격은 다를 수 있음"
-- transportMode = "도보" / "MRT" / "택시" / "버스" / "페리" 또는 null (hotel/meal일 때 null 가능)
-- transportDuration = "10분" 등 한국어 + 숫자
-- 모든 텍스트 한국어 (장소명은 현지어 + 한국어 병기 가능: "리우허 야시장(六合夜市)")
-- 음식점은 추천 메뉴 1~2개 포함
-- 가족·연인·부모 등 페르소나 언급 활동 1~2개 포함
-- 야경/포토존 1개 포함
-- days 배열 길이 = ${p.totalDays}일 (dayNumber 1부터 연속)
-
-[출력] 아래 JSON만, 다른 설명 없이:
-{
-  "title": "도시 X일 페르소나에 맞는 한국어 제목 (호텔명 포함)",
-  "summary": "1문장 한국어 요약",
-  "persona": "mixed|couple|with-parents|with-kids",
-  "days": [
-    {
-      "dayNumber": 1,
-      "title": "Day 시적 한국어 제목",
-      "summary": "Day 1문장 한국어",
-      "dayCityKey": "${p.cityKey}",
-      "activities": [
-        { "order": 1, "category": "transport", "title": "...", "description": "...", "location": "...", "startTime": "HH:MM", "durationMinutes": 60, "estimatedCostKrw": 15000, "estimatedCostNote": "...", "transportMode": "택시", "transportDuration": "35분" }
-      ]
-    }
-  ]
-}`
 }
 
 function buildPackagePrompt(p: PromptProduct): string {
@@ -224,34 +171,61 @@ const countryCodeMap: Record<string, string> = {
 
 /** 자유여행 26개 (가오승 cmnwlxxah01itkvo6jr6dv2y8 제외). 고베 ID 중복 제거 — 확인 후 추가. */
 const TARGETS_RAW = [
-  'cmnwmunpq02vjkvo6hqzx7m6v', // 후쿠오카
-  'cmnwlheca009gkvo6e4euyn78', // 오사카
-  'cmnwlr2z000umkvo6w1tw4499', // 삿포로
-  'cmnwlthdh010ikvo62yb0ah9d', // 오키나와
-  'cmoplef6x00099hhf0ty0znwu', // 시즈오카
-  'cmnwmclw602lskvo6k169im5t', // 요나고
-  'cmnwlwa9u018bkvo6xe62hkuj', // 타이베이
-  'cmp8fdpml001h3t9ys7f02jv3', // 타이베이 단수이
-  'cmnsh6qrc0008lb3kpuoi9qhk', // 타이베이 단수이 4일 모두투어
-  'cmnrkne9w000z4dmyv7iivoju', // 타이베이 단수이 4일 이스타
-  'cmnwm2r8301v4kvo6roron364', // 싱가포르 1
-  'cmnwm0fxv01o1kvo6vfuhxw5b', // 싱가포르 2
-  'cmnx5mr8j0006ifirxvpt5djk', // 시드니
-  'cmnwn9myi02xukvo6e7yuo0hb', // 시드니 스마트초이스
-  'cmnxx0oif00061boptd9xp0mc', // 상하이
-  'cmny0in320006dkrmgkcjxf00', // 옌타이
-  'cmnxx5kur000s1boptcpchqkt', // 파리
-  'cmnx7d0cj001nifiry22xb6b6', // 아테네
-  'cmnwm8rsn024mkvo62q1ycxdp', // 홍콩
-  'cmnwni4jw02z3kvo61hi6tw4s', // 발리
-  'cmnshozbt00h1lb3ks6xuwvvr', // 마나도
-  'cmnwmatup02f3kvo6456la240', // 마카오
-  'cmnx4zckr00y7phc9yhja5jni', // 코타키나발루
-  'cmnwm6w6t0241kvo6q3wc81ww', // 사이판
-  'cmnx4i7wu00uyphc9wi7yrlza', // 나트랑
+  'cmnwmunpq02vjkvo6hqzx7m6v',
+  'cmnwlheca009gkvo6e4euyn78',
+  'cmnwlr2z000umkvo6w1tw4499',
+  'cmnwlthdh010ikvo62yb0ah9d',
+  'cmoplef6x00099hhf0ty0znwu',
+  'cmnwmclw602lskvo6k169im5t',
+  'cmnwlwa9u018bkvo6xe62hkuj',
+  'cmp8fdpml001h3t9ys7f02jv3',
+  'cmnsh6qrc0008lb3kpuoi9qhk',
+  'cmnrkne9w000z4dmyv7iivoju',
+  'cmnwm2r8301v4kvo6roron364',
+  'cmnwm0fxv01o1kvo6vfuhxw5b',
+  'cmnx5mr8j0006ifirxvpt5djk',
+  'cmnwn9myi02xukvo6e7yuo0hb',
+  'cmnxx0oif00061boptd9xp0mc',
+  'cmny0in320006dkrmgkcjxf00',
+  'cmnxx5kur000s1boptcpchqkt',
+  'cmnx7d0cj001nifiry22xb6b6',
+  'cmnwm8rsn024mkvo62q1ycxdp',
+  'cmnwni4jw02z3kvo61hi6tw4s',
+  'cmnshozbt00h1lb3ks6xuwvvr',
+  'cmnwmatup02f3kvo6456la240',
+  'cmnx4zckr00y7phc9yhja5jni',
+  'cmnwm6w6t0241kvo6q3wc81ww',
+  'cmnx4i7wu00uyphc9wi7yrlza',
 ]
 
-async function generateOneMaster(productId: string, skipExisting: boolean) {
+async function generateOneAirtelMaster(productId: string, skipExisting: boolean) {
+  console.log(`[start] ${productId}`)
+  if (!skipExisting) {
+    const existing = await prisma.fitItineraryMaster.findUnique({
+      where: { productId },
+      select: { id: true },
+    })
+    if (existing) {
+      await prisma.fitItineraryMaster.delete({ where: { productId } })
+      console.log(`[replace] ${productId} — 기존 master 삭제`)
+    }
+  }
+
+  const result = await generateFitItineraryForProduct(productId)
+  if (result.success) {
+    console.log(`[done] ${productId} — master=${result.masterId}`)
+    return
+  }
+  if (result.reason === 'already_exists') {
+    console.log(`[skip] ${productId} — 기존 master=${result.masterId}`)
+    return
+  }
+  throw new Error(
+    `${productId}: ${result.reason ?? 'unknown'}${result.error instanceof Error ? ` — ${result.error.message}` : ''}`,
+  )
+}
+
+async function generateOnePackageMaster(productId: string, skipExisting: boolean) {
   console.log(`[start] ${productId}`)
   const existing = await prisma.fitItineraryMaster.findUnique({
     where: { productId },
@@ -301,8 +275,7 @@ async function generateOneMaster(productId: string, skipExisting: boolean) {
     airtelHotelInfoJson: product.airtelHotelInfoJson,
     schedule: product.schedule,
   }
-  const prompt =
-    MODE === 'package' ? buildPackagePrompt(promptInput) : buildAirtelPrompt(promptInput)
+  const prompt = buildPackagePrompt(promptInput)
 
   const responseText = await generateGeminiText({
     model: MODEL,
@@ -406,7 +379,11 @@ async function main() {
   let fail = 0
   for (const id of targets) {
     try {
-      await generateOneMaster(id, skipExisting)
+      if (MODE === 'package') {
+        await generateOnePackageMaster(id, skipExisting)
+      } else {
+        await generateOneAirtelMaster(id, skipExisting)
+      }
       success++
     } catch (err) {
       console.error(`[fail] ${id}:`, err)

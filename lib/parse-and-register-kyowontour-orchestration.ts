@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
+import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import {
@@ -1880,6 +1881,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     timing.mark('done')
     revalidateProductListingCaches()
     revalidateProductDetailCaches(productId)
+    fireFitItineraryGenerationAfterRegister(productId, productData.productType)
     return NextResponse.json(confirmPayload)
   } catch (e) {
     ctx.stage = stage

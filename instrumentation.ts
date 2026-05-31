@@ -74,6 +74,10 @@ export async function register() {
           '@/lib/instrumentation-product-sales-policy-cron'
         )
         startInstrumentationProductSalesPolicyCron()
+        const { startInstrumentationFitItineraryBackfillCron } = await import(
+          '@/lib/instrumentation-fit-itinerary-backfill'
+        )
+        startInstrumentationFitItineraryBackfillCron()
       }
     }
   }
