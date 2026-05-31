@@ -10,9 +10,17 @@ import {
   getGenAI,
   getModelName,
 } from '@/lib/gemini-client'
-import { extractFirstBalancedJsonObject, stripLlmMarkdownJsonFence } from '@/lib/llm-json-extract'
+import { logLlmJsonRawDebug, parseLlmJsonObject } from '@/lib/llm-json-extract'
 
-const FIT_ITINERARY_MAX_OUTPUT_TOKENS = 4096
+/** 다일정 Fit JSON은 ~8k chars — season(4096)보다 큼. 4096이면 MAX_TOKENS·JSON 잘림 */
+const FIT_ITINERARY_MAX_OUTPUT_TOKENS = Math.max(
+  4096,
+  Number(process.env.FIT_ITINERARY_MAX_OUTPUT_TOKENS) || 8192,
+)
+const FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY = Math.max(
+  FIT_ITINERARY_MAX_OUTPUT_TOKENS,
+  Number(process.env.FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY) || 16384,
+)
 
 const VALID_PERSONAS = new Set(['mixed', 'couple', 'with-parents', 'with-kids'])
 const VALID_CATEGORIES = new Set(['transport', 'hotel', 'meal', 'attraction', 'shopping'])
@@ -127,6 +135,7 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 - days 배열 길이 = ${p.totalDays}일 (dayNumber 1부터 연속)
 
 [출력] 아래 JSON만, 다른 설명 없이:
+- 응답은 반드시 유효한 JSON 객체 하나만. markdown 코드블록(\`\`\`json), 설명 문장, 주석 절대 금지.
 {
   "title": "도시 X일 페르소나에 맞는 한국어 제목 (호텔명 포함)",
   "summary": "1문장 한국어 요약",
@@ -150,7 +159,16 @@ async function generateGeminiText(opts: {
   prompt: string
   temperature?: number
   maxOutputTokens?: number
-}): Promise<string> {
+}): Promise<{
+  text: string
+  finishReason: string | null
+  usageMetadata?: {
+    promptTokenCount?: number
+    candidatesTokenCount?: number
+    thoughtsTokenCount?: number
+    totalTokenCount?: number
+  }
+}> {
   const genAI = getGenAI()
   const model = genAI.getGenerativeModel({ model: opts.model || getModelName() })
   const result = await model.generateContent(
@@ -164,15 +182,39 @@ async function generateGeminiText(opts: {
     },
     geminiTimeoutOpts(300_000),
   )
-  return result.response.text()
+  return {
+    text: result.response.text(),
+    finishReason: result.response.candidates?.[0]?.finishReason ?? null,
+    usageMetadata: result.response.usageMetadata,
+  }
 }
 
-function parseGeminiJson(text: string): GeminiResponse {
-  const stripped = stripLlmMarkdownJsonFence(text.trim())
-  const objStr =
-    extractFirstBalancedJsonObject(stripped) ?? extractFirstBalancedJsonObject(text)
-  if (!objStr) throw new Error('응답에서 JSON 객체를 찾지 못했습니다.')
-  const parsed = JSON.parse(objStr) as GeminiResponse
+function logGeminiRawFailure(
+  productId: string,
+  raw: { text: string; finishReason: string | null; usageMetadata?: GenerateGeminiTextUsage },
+  err?: unknown,
+): void {
+  console.error(`[fit-itinerary-generate] raw response: productId=${productId}`, {
+    finishReason: raw.finishReason,
+    responseLength: raw.text?.length,
+    rawSnippet: raw.text?.substring(0, 500),
+    promptTokens: raw.usageMetadata?.promptTokenCount,
+    candidatesTokens: raw.usageMetadata?.candidatesTokenCount,
+    thoughtsTokens: raw.usageMetadata?.thoughtsTokenCount,
+    error: err instanceof Error ? err.message : err,
+  })
+  logLlmJsonRawDebug(`fit-itinerary:${productId}`, raw.text, err)
+}
+
+type GenerateGeminiTextUsage = {
+  promptTokenCount?: number
+  candidatesTokenCount?: number
+  thoughtsTokenCount?: number
+  totalTokenCount?: number
+}
+
+function parseGeminiJson(text: string, productId: string): GeminiResponse {
+  const parsed = parseLlmJsonObject<GeminiResponse>(text, { logLabel: `fit-itinerary:${productId}` })
   if (!parsed?.days?.length) throw new Error('days 배열이 비어 있습니다.')
   if (!VALID_PERSONAS.has(parsed.persona)) {
     throw new Error(`잘못된 persona: ${String(parsed.persona)}`)
@@ -241,17 +283,39 @@ export async function generateFitItineraryForProduct(
   }
 
   let parsed: GeminiResponse
+  const prompt = buildAirtelPrompt(promptInput)
+  const model = fitItineraryModelName()
+  let geminiResult = await generateGeminiText({
+    model,
+    prompt,
+    temperature: 0.7,
+    maxOutputTokens: FIT_ITINERARY_MAX_OUTPUT_TOKENS,
+  })
   try {
-    const responseText = await generateGeminiText({
-      model: fitItineraryModelName(),
-      prompt: buildAirtelPrompt(promptInput),
-      temperature: 0.7,
-      maxOutputTokens: FIT_ITINERARY_MAX_OUTPUT_TOKENS,
-    })
-    parsed = parseGeminiJson(responseText)
-  } catch (error) {
-    console.error(`[fit-itinerary-generate] gemini_failed productId=${productId}`, error)
-    return { success: false, reason: 'gemini_failed', error }
+    parsed = parseGeminiJson(geminiResult.text, productId)
+  } catch (firstError) {
+    if (geminiResult.finishReason === 'MAX_TOKENS') {
+      console.warn(
+        `[fit-itinerary-generate] MAX_TOKENS retry productId=${productId} tokens=${FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY}`,
+      )
+      geminiResult = await generateGeminiText({
+        model,
+        prompt,
+        temperature: 0.7,
+        maxOutputTokens: FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY,
+      })
+      try {
+        parsed = parseGeminiJson(geminiResult.text, productId)
+      } catch (retryError) {
+        logGeminiRawFailure(productId, geminiResult, retryError)
+        console.error(`[fit-itinerary-generate] gemini_failed productId=${productId}`, retryError)
+        return { success: false, reason: 'gemini_failed', error: retryError }
+      }
+    } else {
+      logGeminiRawFailure(productId, geminiResult, firstError)
+      console.error(`[fit-itinerary-generate] gemini_failed productId=${productId}`, firstError)
+      return { success: false, reason: 'gemini_failed', error: firstError }
+    }
   }
 
   const masterId = cuid()
