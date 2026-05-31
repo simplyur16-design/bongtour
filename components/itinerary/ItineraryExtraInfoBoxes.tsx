@@ -7,6 +7,7 @@ import ShoppingFactSheet from '@/app/components/detail/ShoppingFactSheet'
 import type { ShoppingStopRow } from '@/lib/public-product-extras-types'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import {
+  ensureAirtelAirportTransferExcludedWhenNotInIncluded,
   filterPackagePublicIncludedExcludedLines,
   dropPublicExcludedMealBreakdownLines,
   organizePackageIncludedExcludedForPublicDisplay,
@@ -88,6 +89,16 @@ export function ItineraryExtraInfoBoxes({
         .map((s) => s.trim())
         .filter(Boolean)
     )
+  }
+
+  if (isAirtel) {
+    const adjusted = ensureAirtelAirportTransferExcludedWhenNotInIncluded({
+      includedLines: includedItems,
+      excludedLines: excludedItems,
+      excludedText: product.excludedText,
+    })
+    includedItems = adjusted.includedLines
+    excludedItems = adjusted.excludedLines
   }
 
   const reservationNotices = (product.reservationNoticeRaw ?? '')

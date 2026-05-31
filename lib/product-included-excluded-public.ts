@@ -2,6 +2,8 @@
  * 공개 상세 포함/불포함 — 헤더 기준 결정적 분리·오분류 라인 이동·1인실 중복 제거(LLM 없음).
  */
 
+import { AIRTEL_AIRPORT_TRANSFER_EXCLUDED_LABEL } from '@/lib/airport-transfer-infer'
+
 const HEADER_INCLUDED = /^(?:[-*•◇◆\d]+[\.\)]\s*)?포함\s*내역\s*[:：]?\s*$/i
 const HEADER_EXCLUDED = /^(?:[-*•◇◆\d]+[\.\)]\s*)?불포함\s*내역\s*[:：]?\s*$/i
 
@@ -60,7 +62,6 @@ function shouldMovePackageIncludedLineToExcluded(line: string): boolean {
   if (isSingleRoomDuplicateNoiseLine(t)) return true
   if (LINE_NOT_FOR_INCLUDED_LIST.test(t)) return true
   if (LINE_INCLUDED_MEAL_EXCLUDED_CLAUSE.test(t)) return true
-  if (shouldMoveAirportTransferIncludedLineToExcluded(t)) return true
   return false
 }
 
@@ -404,18 +405,22 @@ export function isAirportHotelTransferLine(line: string): boolean {
   return LINE_AIRPORT_HOTEL_TRANSFER.test(line.replace(/\s+/g, ' ').trim())
 }
 
-function airportTransferLineIndicatesIncluded(line: string): boolean {
-  const t = line.replace(/\s+/g, ' ').trim()
-  if (!isAirportHotelTransferLine(t)) return false
-  if (/(?:불포함|미포함|별도|제외|없음|불포)/i.test(t)) return false
-  return /(?:포함|제공|서비스|왕복|픽업|샌딩|송영|차량)/i.test(t)
-}
-
-/** 포함란 공항↔호텔 줄 — 본문에 포함/제공 표현 없으면 불포함으로 이동 */
-function shouldMoveAirportTransferIncludedLineToExcluded(line: string): boolean {
-  const t = line.replace(/\s+/g, ' ').trim()
-  if (!isAirportHotelTransferLine(t)) return false
-  return !airportTransferLineIndicatesIncluded(t)
+/** 자유여행 — 포함란에 공항↔호텔 이동 없으면 불포함란에 표시(포함에 있으면 그대로 유지) */
+export function ensureAirtelAirportTransferExcludedWhenNotInIncluded(input: {
+  includedLines: string[]
+  excludedLines: string[]
+  excludedText?: string | null
+}): { includedLines: string[]; excludedLines: string[] } {
+  if (input.includedLines.some(isAirportHotelTransferLine)) {
+    return { includedLines: input.includedLines, excludedLines: input.excludedLines }
+  }
+  if (input.excludedLines.some(isAirportHotelTransferLine)) {
+    return { includedLines: input.includedLines, excludedLines: input.excludedLines }
+  }
+  const fromBody = splitLines(input.excludedText).find(isAirportHotelTransferLine)
+  const excludedLines = [...input.excludedLines]
+  pushUniqueLine(excludedLines, fromBody ?? AIRTEL_AIRPORT_TRANSFER_EXCLUDED_LABEL)
+  return { includedLines: input.includedLines, excludedLines }
 }
 
 function finalizePublicExcludedLines(lines: string[]): string[] {
