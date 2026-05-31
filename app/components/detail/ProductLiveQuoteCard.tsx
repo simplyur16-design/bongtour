@@ -13,11 +13,10 @@ import {
   PRODUCT_LIVE_QUOTE_CARD_COPY,
 } from '@/lib/product-live-quote-card-copy'
 import {
-  PAX_STEP_BUTTON_CLASS,
-  PAX_STEP_DECREMENT_GLYPH,
-  PAX_STEP_INCREMENT_GLYPH,
-  STICKY_PAX_ROWS,
-} from '@/lib/product-live-quote-pax-ui'
+  QuoteCardPaxStepperRow,
+  QuoteCardTripDatesBox,
+} from '@/app/components/detail/QuoteCardLayoutBlocks'
+import { STICKY_PAX_ROWS } from '@/lib/product-live-quote-pax-ui'
 
 type Pax = { adult: number; childBed: number; childNoBed: number; infant: number }
 
@@ -89,6 +88,7 @@ export default function ProductLiveQuoteCard({
 
   const isMobile = variant === 'mobile'
   const pad = isMobile ? 'p-4' : 'p-6'
+  const tripVariant = isMobile ? 'mobile' : 'desktop'
 
   const showCollectingBanner =
     isCollectingPrices &&
@@ -108,20 +108,11 @@ export default function ProductLiveQuoteCard({
 
   return (
     <div className={`bt-card-strong border-2 border-bt-border-soft ${pad}`}>
-      {heroTripDepartureDisplay || heroTripReturnDisplay ? (
-        <div className="mb-4 rounded-xl border border-bt-border-soft bg-bt-surface-alt px-3 py-2.5 text-center text-sm">
-          <div className="flex flex-col items-center gap-2">
-            <p className="flex flex-col items-center gap-0.5">
-              <span className="text-bt-meta">출발</span>
-              <span className="font-semibold tabular-nums text-bt-title">{heroTripDepartureDisplay ?? '—'}</span>
-            </p>
-            <p className="flex flex-col items-center gap-0.5">
-              <span className="text-bt-meta">귀국</span>
-              <span className="font-semibold tabular-nums text-bt-title">{heroTripReturnDisplay ?? '상담 시 안내'}</span>
-            </p>
-          </div>
-        </div>
-      ) : null}
+      <QuoteCardTripDatesBox
+        heroTripDepartureDisplay={heroTripDepartureDisplay ?? null}
+        heroTripReturnDisplay={heroTripReturnDisplay ?? null}
+        variant={tripVariant}
+      />
       {showCollectingBanner ? (
         <div
           className={`mb-3 rounded-lg border px-3 py-2.5 text-center text-[12px] leading-relaxed ${
@@ -163,43 +154,19 @@ export default function ProductLiveQuoteCard({
             const onDecrease = () => (isChildRow ? updateChildCombined(-1) : updatePax(row.key, -1))
             const onIncrease = () => (isChildRow ? updateChildCombined(1) : updatePax(row.key, 1))
             return (
-              <div
+              <QuoteCardPaxStepperRow
                 key={row.key}
-                className="flex items-center justify-between gap-3 rounded-xl border border-[#DAD4EE] bg-[#FAFAFC] px-3 py-2.5"
-              >
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-[#1F1B2D]">{row.label}</div>
-                  <div className="text-[10px] text-bt-meta">{row.ageLine}</div>
-                  {unit != null && unit > 0 && priceRow != null ? (
-                    <div className="mt-0.5 text-xs font-semibold tabular-nums text-[#85510B]">
-                      {unit.toLocaleString('ko-KR')}
-                      {copy.perPersonSuffix}
-                    </div>
-                  ) : null}
-                </div>
-                <div className="grid h-9 w-[7rem] shrink-0 grid-cols-[2rem_1fr_2rem] items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={onDecrease}
-                    disabled={atMin}
-                    className={PAX_STEP_BUTTON_CLASS}
-                    aria-label={copy.paxDecreaseAria(row.label)}
-                  >
-                    {PAX_STEP_DECREMENT_GLYPH}
-                  </button>
-                  <span className="min-w-[28px] text-center text-lg font-bold tabular-nums text-[#1F1B2D]">
-                    {count}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={onIncrease}
-                    className={PAX_STEP_BUTTON_CLASS}
-                    aria-label={copy.paxIncreaseAria(row.label)}
-                  >
-                    {PAX_STEP_INCREMENT_GLYPH}
-                  </button>
-                </div>
-              </div>
+                label={row.label}
+                ageLine={row.ageLine}
+                count={count}
+                atMin={atMin}
+                onDecrease={onDecrease}
+                onIncrease={onIncrease}
+                decreaseAria={copy.paxDecreaseAria(row.label)}
+                increaseAria={copy.paxIncreaseAria(row.label)}
+                unitPrice={unit}
+                showUnitPrice={priceRow != null}
+              />
             )
           })}
         </div>
