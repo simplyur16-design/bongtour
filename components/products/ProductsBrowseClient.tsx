@@ -439,8 +439,6 @@ export default function ProductsBrowseClient({
   const hasGeoFilter = Boolean(
     hasMegaGeo || hasDestinationFilter || (searchParams.get('hubSeason') ?? '').trim(),
   )
-  const showOverseasSidebar = !isOverseasProductsHub || hasGeoFilter
-  const overseasHubWideLayout = isOverseasProductsHub && !hasMegaGeo
 
   const summary = hidePageHeading
     ? null
@@ -658,7 +656,6 @@ export default function ProductsBrowseClient({
             groupDomesticByRegion={isDomesticHub}
             overseasEditorialBriefing={overseasEditorialBriefing}
             seasonalPickIds={browsePresented.seasonalPickIds}
-            overseasHubWideLayout={overseasHubWideLayout}
             overseasFlatByCountrySlug={q.country?.trim() || null}
             interleaveEsimNativeCards={basePath === '/travel/overseas' && defaultScope === 'overseas'}
           />
@@ -712,27 +709,26 @@ export default function ProductsBrowseClient({
       </div>
     ) : null
 
-  const mobileBar =
-    showOverseasSidebar ? (
-      <div
-        className={`mb-4 flex items-center gap-2 ${hidePageHeading ? 'justify-start' : 'justify-between'}`}
+  const mobileBar = (
+    <div
+      className={`mb-4 flex items-center gap-2 ${hidePageHeading ? 'justify-start' : 'justify-between'}`}
+    >
+      <button
+        type="button"
+        onClick={() => setDrawerOpen(true)}
+        className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm"
       >
-        <button
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm"
-        >
-          필터
-        </button>
-        {!hidePageHeading ? (
-          <span className="text-xs text-slate-500">
-            {data ? `${listedProductCount ?? data.total}건` : ''}
-          </span>
-        ) : isAirHotelHub && data ? (
-          <span className="text-xs text-slate-500">{`${listedProductCount ?? data.total}건`}</span>
-        ) : null}
-      </div>
-    ) : null
+        필터
+      </button>
+      {!hidePageHeading ? (
+        <span className="text-xs text-slate-500">
+          {data ? `${listedProductCount ?? data.total}건` : ''}
+        </span>
+      ) : isAirHotelHub && data ? (
+        <span className="text-xs text-slate-500">{`${listedProductCount ?? data.total}건`}</span>
+      ) : null}
+    </div>
+  )
 
   if (isDomesticHub) {
     return (
@@ -753,16 +749,14 @@ export default function ProductsBrowseClient({
           <ProductFilterChips chips={chips} onRemove={removeChip} onClearAll={clearAllFilters} />
         }
         sidebar={
-          showOverseasSidebar ? (
-            <ProductFilterForm
-              q={q}
-              facets={facets}
-              onPatch={onPatch}
-              airlineShowAll={airlineShowAll}
-              setAirlineShowAll={setAirlineShowAll}
-              travelContext={defaultScope === 'domestic' ? 'domestic' : 'overseas'}
-            />
-          ) : null
+          <ProductFilterForm
+            q={q}
+            facets={facets}
+            onPatch={onPatch}
+            airlineShowAll={airlineShowAll}
+            setAirlineShowAll={setAirlineShowAll}
+            travelContext={defaultScope === 'domestic' ? 'domestic' : 'overseas'}
+          />
         }
         toolbar={toolbar}
         results={results}
