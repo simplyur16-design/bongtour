@@ -1354,7 +1354,6 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       priceCurrency: parsed.priceCurrency?.trim() || null,
       duration: parsed.duration,
       airline: parsed.airline ?? null,
-      productType: resolveRegisterProductType(registerListingMeta, parsed.productType),
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       hotelSummaryRaw,
       hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),

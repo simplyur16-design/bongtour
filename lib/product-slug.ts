@@ -2,9 +2,9 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 
-export type ProductSlugCategory = 'pkg' | 'fit' | 'fim' | 'otr'
+export type ProductSlugCategory = 'pkg' | 'fit' | 'otr'
 
-const SLUG_CATEGORY_VALUES: ProductSlugCategory[] = ['pkg', 'fit', 'fim', 'otr']
+const SLUG_CATEGORY_VALUES: ProductSlugCategory[] = ['pkg', 'fit', 'otr']
 
 const SUPPLIER_TO_SLUG: Record<string, string> = {
   modetour: 'mt',
@@ -17,7 +17,7 @@ const SUPPLIER_TO_SLUG: Record<string, string> = {
   overseas_training: 'bt',
 }
 
-const SLUG_PATTERN = /^(pkg|fit|fim|otr)-(mt|hn|yb|vg|lt|ky|wn|bt)-(\d{4})$/
+const SLUG_PATTERN = /^(pkg|fit|otr)-(mt|hn|yb|vg|lt|ky|wn|bt)-(\d{4})$/
 
 export type ProductSlugInput = {
   listingKind?: string | null
@@ -32,9 +32,6 @@ export function inferProductSlugCategory(input: ProductSlugInput): ProductSlugCa
   const productType = (input.productType ?? '').trim().toLowerCase()
   if (listingKind === 'overseas_training') {
     return 'otr'
-  }
-  if (listingKind === 'private_trip' || productType === 'private' || productType === 'semi') {
-    return 'fim'
   }
   if (listingKind === 'air_hotel_free' || productType === 'airtel') {
     return 'fit'

@@ -304,14 +304,6 @@ function normalizeKyowontourRegisterTitleMinimalLocal(s: string): string {
   return t
 }
 
-function inferProductTypeFromText(rawText: string, title: string): string {
-  const hay = `${rawText}\n${title}`.toLowerCase()
-  if (/(에어텔|air[\s-]?tel|항공\s*\+?\s*호텔|항공권\s*\+?\s*호텔)/i.test(hay)) return 'airtel'
-  if (/(세미\s*패키지|세미패키지|semi|준패키지|1\s*일\s*자유)/i.test(hay)) return 'semi'
-  if (/(우리끼리|단독\s*행사|맞춤\s*여행|소그룹)/i.test(hay)) return 'private'
-  return 'travel'
-}
-
 function extractAirtelHotelInfoJson(rawText: string): string | null {
   const text = rawText.replace(/\r/g, '')
   const pick = (re: RegExp): string | null => {
@@ -1942,13 +1934,9 @@ ${text.slice(0, 16000)}`
   const firstPriceTotal = prices.length > 0
     ? (prices[0].adultBase ?? 0) + (prices[0].adultFuel ?? 0)
     : null
-  const inferBase = pastedForSupplier.length > 0 ? pastedForSupplier : titleTrimmed
-  const inferredProductType = inferProductTypeFromText(inferBase, titleTrimmed)
   const textForAirtel = pastedForSupplier.length > 0 ? pastedForSupplier : rawText
-  const airtelHotelInfoJson =
-    inferredProductType === 'airtel' ? extractAirtelHotelInfoJson(textForAirtel) : null
-  const airportTransferType =
-    inferredProductType === 'airtel' ? inferAirportTransferType(textForAirtel) : null
+  const airtelHotelInfoJson = extractAirtelHotelInfoJson(textForAirtel)
+  const airportTransferType = airtelHotelInfoJson ? inferAirportTransferType(textForAirtel) : null
   const signalsHaystack = buildRegisterSignalsHaystack(
     rawText,
     options?.pastedBodyForInference,
@@ -2218,9 +2206,8 @@ ${text.slice(0, 16000)}`
     (raw.excludedText as string)?.trim() ||
     null
 
-  let airtelHotelInfoJsonOut =
-    inferredProductType === 'airtel' ? extractAirtelHotelInfoJson(textForAirtel) : null
-  if (inferredProductType === 'airtel') {
+  let airtelHotelInfoJsonOut = extractAirtelHotelInfoJson(textForAirtel)
+  if (airtelHotelInfoJsonOut) {
     airtelHotelInfoJsonOut = mergeAirtelHotelJsonWithLlm(airtelHotelInfoJsonOut, {
       hotelInfoRaw: strOrNull(raw.hotelInfoRaw),
       hotelNames: Array.isArray(raw.hotelNames) ? raw.hotelNames.map((x) => String(x)) : undefined,
@@ -2374,7 +2361,6 @@ ${text.slice(0, 16000)}`
     destinationRaw: finalDestination || null,
     primaryDestination: finalDestination || null,
     supplierGroupId: supplierGroupFromText || null,
-    productType: inferredProductType,
     airtelHotelInfoJson: airtelHotelInfoJsonOut,
     airportTransferType,
     optionalToursStructured: optionalToursStructuredForRegister,

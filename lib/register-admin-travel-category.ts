@@ -10,8 +10,8 @@
 export type AdminRegisterCategoryMeta = {
   travelScope: string | null
   listingKind: string
-  /** admin UI '항공권+호텔(자유여행)' 선택 시만 'airtel' — 그 외는 본문 regex fallback */
-  productType?: string
+  /** admin UI travelScope 선택값 → productType SSOT (regex fallback 없음) */
+  productType: string
 }
 
 export function travelScopeAndListingKindFromAdminRegister(
@@ -22,18 +22,15 @@ export function travelScopeAndListingKindFromAdminRegister(
     return { travelScope: 'overseas', listingKind: 'air_hotel_free', productType: 'airtel' }
   }
   if (t === 'domestic') {
-    return { travelScope: 'domestic', listingKind: 'travel' }
+    return { travelScope: 'domestic', listingKind: 'travel', productType: 'travel' }
   }
-  if (t === 'overseas') {
-    return { travelScope: 'overseas', listingKind: 'travel' }
-  }
-  return { travelScope: 'overseas', listingKind: 'travel' }
+  return { travelScope: 'overseas', listingKind: 'travel', productType: 'travel' }
 }
 
-/** admin UI 트리거 우선 — air_hotel_free만 productType 강제, 나머지는 parsed(regex) fallback */
+/** admin UI travelScope SSOT — parsed.productType 인자는 호환성용(미사용) */
 export function resolveRegisterProductType(
   adminMeta: AdminRegisterCategoryMeta,
-  parsedProductType: string | null | undefined
+  _parsedProductType: string | null | undefined
 ): string {
-  return adminMeta.productType ?? parsedProductType ?? 'travel'
+  return adminMeta.productType ?? 'travel'
 }
