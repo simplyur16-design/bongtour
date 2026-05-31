@@ -42,6 +42,7 @@ import {
   filterPoolByStoredTravelScope,
   prismaWhereForBrowseTravelScope,
 } from '@/lib/travel-scope-pool-filter'
+import { prismaWhereClausesForBrowseListingSlice } from '@/lib/products-browse-db-where'
 import { parseListingKind } from '@/lib/product-listing-kind'
 import {
   domesticDisplayCategoryIsSpecialTheme,
@@ -228,6 +229,15 @@ export async function productsBrowseBuildPayload(queryKey: string) {
 
     if (perf) perf.parse = performance.now() // PERF-LOG: 측정 후 제거
 
+    const listingKindRaw = searchParams.get('listingKind')
+    const listingKindParsed = listingKindRaw ? parseListingKind(listingKindRaw) : null
+    const listingSliceWhere = prismaWhereClausesForBrowseListingSlice({
+      scope: scopeForLimit,
+      typeParam,
+      listingKindParsed,
+      airtelCategory: q.categories.some((c) => c === 'airtel'),
+    })
+
     const travelScopeDb =
       prismaWhereForBrowseTravelScope(scopeForLimit) ??
       prismaWhereForBrowseTravelScope(region?.trim() ? 'overseas' : null)
@@ -238,6 +248,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         AND: [
           ...(overseasGeoAnd.length > 0 ? overseasGeoAnd : []),
           ...(travelScopeDb ? [travelScopeDb] : []),
+          ...listingSliceWhere,
           publicProductWhereClause(),
         ],
       },
@@ -291,8 +302,6 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     }
 
     /** DB `Product.listingKind` 로 한정. 레거시 null 은 일반 패키지(travel)로 간주 */
-    const listingKindRaw = searchParams.get('listingKind')
-    const listingKindParsed = listingKindRaw ? parseListingKind(listingKindRaw) : null
     if (listingKindParsed) {
       filteredRows = filteredRows.filter((p) => {
         const lk = p.listingKind
@@ -575,7 +584,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         mapMs: Math.round(map - score),
         rowCount,
         finalCount,
-        cacheKey: `products-browse-v10|${queryKey}`,
+        cacheKey: `products-browse-v11|${queryKey}`,
       }
       browsePerfLastPhases = phases // PERF-LOG: 측정 후 제거
       console.log('[browse-perf]', JSON.stringify({ cacheHit: false, ...phases })) // PERF-LOG: 측정 후 제거

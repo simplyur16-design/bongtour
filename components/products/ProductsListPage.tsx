@@ -54,7 +54,7 @@ export default function ProductsListPage() {
       try {
         const p = new URLSearchParams(qs)
         if (budget && !p.get('sort')) p.set('sort', 'budget_fit')
-        const res = await fetch(`/api/products/browse?${p.toString()}`, { cache: 'no-store' })
+        const res = await fetch(`/api/products/browse?${p.toString()}`)
         const json = (await res.json()) as ApiOk | { ok: false; error?: string }
         if (cancelled) return
         if (!res.ok || !('ok' in json) || json.ok === false) {

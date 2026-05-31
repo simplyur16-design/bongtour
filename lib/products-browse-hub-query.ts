@@ -2,6 +2,7 @@ import { parseBrowseQuery } from '@/lib/products-browse-query'
 
 export const OVERSEAS_HUB_BROWSE_LIMIT = '120'
 export const AIR_HOTEL_HUB_BROWSE_LIMIT = '120'
+export const DOMESTIC_HUB_BROWSE_LIMIT = '30'
 
 export function searchParamsRecordToUrlSearchParams(
   sp: Record<string, string | string[] | undefined>,
@@ -66,5 +67,18 @@ export function buildAirHotelHubBrowseQueryKey(qsInput: URLSearchParams | string
   p.delete('region')
   p.delete('city')
   applyBudgetFitSortIfNeeded(p)
+  return canonicalBrowseQueryKey(p)
+}
+
+const DOMESTIC_HUB_SORT_VALUES = new Set(['budget_fit', 'price_asc', 'price_desc', 'departure_asc'])
+
+/** 국내 허브 — 레거시 쿼리 키 제거, sort만 유지 */
+export function buildDomesticHubBrowseQueryKey(qsInput: URLSearchParams | string): string {
+  const src = typeof qsInput === 'string' ? new URLSearchParams(qsInput) : new URLSearchParams(qsInput.toString())
+  const p = new URLSearchParams()
+  p.set('scope', 'domestic')
+  p.set('limit', DOMESTIC_HUB_BROWSE_LIMIT)
+  const sortRaw = src.get('sort')
+  if (sortRaw && DOMESTIC_HUB_SORT_VALUES.has(sortRaw)) p.set('sort', sortRaw)
   return canonicalBrowseQueryKey(p)
 }

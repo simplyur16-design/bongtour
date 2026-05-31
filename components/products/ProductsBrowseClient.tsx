@@ -21,6 +21,12 @@ import type { OverseasGeoFilterBanner } from '@/lib/overseas-destination-browse'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
 import { sortProductsBySeason } from '@/lib/product-sort'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
+import {
+  buildAirHotelHubBrowseQueryKey,
+  buildDomesticHubBrowseQueryKey,
+  buildOverseasHubBrowseQueryKey,
+  buildProductsBrowseQueryKey,
+} from '@/lib/products-browse-hub-query'
 
 type ApiOk = {
   ok: true
@@ -35,13 +41,6 @@ type ApiOk = {
 
 /** 국내 허브 browse 1회 요청 상한 */
 const BROWSE_DOMESTIC_HUB_FETCH_LIMIT = '30'
-/**
- * 해외 허브(`/travel/overseas`) 기본 목록 — 지역별 섹션 전체를 한 번에 내려받기 위해 browse API 해외 상한과 동일.
- * (점진 렌더는 `ProductResultsList`의 Intersection Observer가 담당)
- */
-const BROWSE_OVERSEAS_HUB_FETCH_LIMIT = '120'
-/** 항공+호텔: 나라별 칩 집계·클라이언트 필터용으로 browse 상한까지 한 번에 로드 */
-const AIR_HOTEL_BROWSE_FETCH_LIMIT = '120'
 
 /** 국내 허브(`/travel/domestic`)에서 browse·URL 정리 시 제거(레거시 링크 무시) */
 const DOMESTIC_HUB_QUERY_STRIP_KEYS = [
@@ -138,14 +137,14 @@ export default function ProductsBrowseClient({
   const suppressHeadingToolbarGap = hidePageHeading && isDomesticHub
 
   /** 항공+호텔: `country` 등은 클라이언트 필터 — 동일 목록 재요청 방지용 fetch 키 */
-  const airHotelBrowseFetchKey = useMemo(() => {
-    if (!isAirHotelHub) return null
-    const sp = new URLSearchParams(searchParams.toString())
-    sp.delete('country')
-    sp.delete('region')
-    sp.delete('city')
-    return sp.toString()
-  }, [isAirHotelHub, searchParams])
+  const isOverseasProductsHub = pathname === '/travel/overseas' && defaultScope === 'overseas'
+
+  const browseApiQueryKey = useMemo(() => {
+    if (isDomesticHub) return buildDomesticHubBrowseQueryKey(searchParams.toString())
+    if (isAirHotelHub) return buildAirHotelHubBrowseQueryKey(searchParams.toString())
+    if (isOverseasProductsHub) return buildOverseasHubBrowseQueryKey(searchParams.toString())
+    return buildProductsBrowseQueryKey(qs, defaultScope)
+  }, [isDomesticHub, isAirHotelHub, isOverseasProductsHub, searchParams, qs, defaultScope])
 
   const emptyStateTravelInquiryHref = useMemo(
     () => travelConsultInquiryHref(basePath, pathname, defaultScope),
@@ -160,12 +159,6 @@ export default function ProductsBrowseClient({
     }
     return parseBrowseQuery(new URLSearchParams(searchParams.toString()))
   }, [isDomesticHub, searchParams])
-
-  const browseReloadKey = useMemo(() => {
-    if (isDomesticHub) return searchParams.toString()
-    if (isAirHotelHub) return airHotelBrowseFetchKey ?? ''
-    return qs
-  }, [isDomesticHub, isAirHotelHub, airHotelBrowseFetchKey, qs, searchParams])
 
   const [data, setData] = useState<ApiOk | null>(null)
   const [loading, setLoading] = useState(true)
@@ -208,43 +201,10 @@ export default function ProductsBrowseClient({
       setLoading(true)
       setError(null)
       try {
-        let p: URLSearchParams
-        if (isDomesticHub) {
-          p = new URLSearchParams()
-          p.set('scope', 'domestic')
-          p.set('limit', BROWSE_DOMESTIC_HUB_FETCH_LIMIT)
-          const sortRaw = searchParams.get('sort')
-          if (
-            sortRaw === 'budget_fit' ||
-            sortRaw === 'price_asc' ||
-            sortRaw === 'price_desc' ||
-            sortRaw === 'departure_asc'
-          ) {
-            p.set('sort', sortRaw)
-          }
-        } else {
-          p = new URLSearchParams(qs)
-          if (defaultScope && !p.get('scope')) p.set('scope', defaultScope)
-        }
-        if (defaultScope === 'overseas' && pathname === '/travel/overseas') {
-          p.delete('listingKind')
-          p.set('limit', BROWSE_OVERSEAS_HUB_FETCH_LIMIT)
-          p.delete('page')
-        }
-        if (pathname === '/travel/air-hotel') {
-          p.set('limit', AIR_HOTEL_BROWSE_FETCH_LIMIT)
-          p.delete('page')
-          p.delete('country')
-          p.delete('region')
-          p.delete('city')
-        }
-        if ((q.budgetPerPerson != null || q.budgetMin != null) && !p.get('sort')) {
-          p.set('sort', 'budget_fit')
-        }
-        const urlKey = p.toString() // PERF-LOG: 측정 후 제거
+        const urlKey = browseApiQueryKey
         const perfClient = process.env.NEXT_PUBLIC_BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
         const tFetch0 = perfClient ? performance.now() : 0 // PERF-LOG: 측정 후 제거
-        const res = await fetch(`/api/products/browse?${urlKey}`, { cache: 'no-store' })
+        const res = await fetch(`/api/products/browse?${urlKey}`)
         const json = (await res.json()) as ApiOk | { ok: false; error?: string }
         if (perfClient) {
           console.log(
@@ -272,7 +232,7 @@ export default function ProductsBrowseClient({
     return () => {
       cancelled = true
     }
-  }, [browseReloadKey, pathname, defaultScope, isDomesticHub, q.budgetMin, q.budgetPerPerson])
+  }, [browseApiQueryKey])
 
   const navigate = useCallback(
     (next: BrowseQueryState) => {
@@ -456,7 +416,6 @@ export default function ProductsBrowseClient({
     return data.total
   }, [data, isAirHotelHub, q.country, browsePresented.items.length])
 
-  const isOverseasProductsHub = pathname === '/travel/overseas' && defaultScope === 'overseas'
   /** 메가메뉴 권역·나라 선택 — 시즌 허브 카드/시즌 추천 상품 숨김용 */
   const hasMegaGeo = Boolean((q.region ?? '').trim() || (q.country ?? '').trim())
   const hasDestinationFilter = Boolean(

@@ -241,7 +241,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
         } else if (normalizedSelectedRegionSlug) {
           p.set('region', normalizedSelectedRegionSlug)
         }
-        const res = await fetch(`/api/products/browse?${p.toString()}`, { cache: 'no-store' })
+        const res = await fetch(`/api/products/browse?${p.toString()}`)
         const json = (await res.json()) as {
           ok?: boolean
           total?: number
