@@ -1,11 +1,11 @@
 import type { Prisma } from '@prisma/client'
 import type { ListingKind } from '@/lib/product-listing-kind'
 
-function parseBrowseTypeForWhere(raw: string | null): 'airtel' | 'travel' | 'private' | 'semi' | null {
+function parseBrowseTypeForWhere(raw: string | null): 'airtel' | 'travel' | null {
   if (!raw) return null
   const u = raw.toLowerCase().trim()
   if (u === 'free' || u === 'airtel') return 'airtel'
-  if (u === 'travel' || u === 'semi' || u === 'private') return u
+  if (u === 'travel') return 'travel'
   return null
 }
 

@@ -85,8 +85,8 @@ function displayNameFromImageUrl(url: string | null | undefined): string | null 
 function parseBrowseType(raw: string | null): ProductBrowseType | null {
   if (!raw) return null
   const u = raw.toLowerCase().trim()
-  if (u === 'free') return 'airtel'
-  if (u === 'travel' || u === 'semi' || u === 'private' || u === 'airtel') return u
+  if (u === 'free' || u === 'airtel') return 'airtel'
+  if (u === 'travel') return 'travel'
   return null
 }
 

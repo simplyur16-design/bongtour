@@ -31,16 +31,15 @@ const EXCERPT_DB_MAX = 500
 
 export type BongBlogContentTrack = 'package' | 'airtel'
 
-function isAirtelPrivateProductType(productType: string | null | undefined): boolean {
-  const p = (productType ?? '').trim().toLowerCase()
-  return p === 'airtel' || p === 'private'
+function isAirtelProductType(productType: string | null | undefined): boolean {
+  return (productType ?? '').trim().toLowerCase() === 'airtel'
 }
 
-/** B-CRUD-1: travel/semi/기타 → package, airtel/private → airtel */
+/** B-CRUD-1: travel/기타 → package, airtel → airtel */
 export function blogPostContentTrackFromProductType(
   productType: string | null | undefined,
 ): BongBlogContentTrack {
-  return isAirtelPrivateProductType(productType) ? 'airtel' : 'package'
+  return isAirtelProductType(productType) ? 'airtel' : 'package'
 }
 
 export type GenerateNaverBlogDraftForPackageOptions = {
@@ -331,7 +330,7 @@ export async function generateNaverBlogDraftForPackage(
   if (
     packageOnly &&
     pt &&
-    (/자유/.test(pt) || isAirtelPrivateProductType(pt))
+    (/자유/.test(pt) || isAirtelProductType(pt))
   ) {
     return {
       ok: false,
@@ -585,7 +584,7 @@ export async function generateNaverBlogDraftForAirtel(
   }
 
   const pt = ctx.row.productType
-  if (!forceAirtelTrack && !isAirtelPrivateProductType(pt)) {
+  if (!forceAirtelTrack && !isAirtelProductType(pt)) {
     return {
       ok: false,
       code: 'AIRTEL_TRACK_SKIP',
@@ -784,7 +783,7 @@ export async function generateMonthBlogDraftsForAirtels(
 
   const pool = candidates.filter((c) => {
     const pt = typeById.get(c.productId)
-    return isAirtelPrivateProductType(pt)
+    return isAirtelProductType(pt)
   })
 
   const skipped: Array<{ productId: string; code: string; message: string }> = []

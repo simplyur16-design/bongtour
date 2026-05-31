@@ -12,7 +12,7 @@ import {
 } from '@/lib/match-overseas-product'
 import { parseListingKind, type ListingKind } from '@/lib/product-listing-kind'
 
-export type ProductBrowseType = 'travel' | 'free' | 'semi' | 'private' | 'airtel'
+export type ProductBrowseType = 'travel' | 'free' | 'airtel'
 
 /** DB listingKind → browse 유형 (없으면 null → 제목 추론으로 대체) */
 export function browseTypeFromListingKind(kind: string | null | undefined): ProductBrowseType | null {
@@ -21,7 +21,7 @@ export function browseTypeFromListingKind(kind: string | null | undefined): Prod
   if (k === 'overseas_training') return null
   const map: Record<Exclude<ListingKind, 'overseas_training'>, ProductBrowseType> = {
     travel: 'travel',
-    private_trip: 'private',
+    private_trip: 'travel',
     air_hotel_free: 'airtel',
   }
   return map[k]
@@ -31,8 +31,6 @@ export function inferBrowseType(p: { productType: string | null; title: string }
   const hay = `${p.productType ?? ''} ${p.title}`.toLowerCase()
   if (/(에어텔|air[\s-]?tel)/i.test(hay)) return 'airtel'
   if (/(자유여행|자유\s*여행|\bfree\b|항공\s*\+\s*호텔|항공\+호텔)/i.test(hay)) return 'free'
-  if (/(세미\s*패키지|세미패키지|semi|준패키지)/i.test(hay)) return 'semi'
-  if (/(우리끼리|단독\s*행사|맞춤\s*여행|소그룹)/i.test(hay)) return 'private'
   return 'travel'
 }
 

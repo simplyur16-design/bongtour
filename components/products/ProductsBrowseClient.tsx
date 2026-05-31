@@ -102,7 +102,6 @@ function syncTypeWithCategories(q: BrowseQueryState): BrowseQueryState {
   if (q.categories.length !== 1) return q
   const c = q.categories[0]
   if (c === 'airtel') return { ...q, type: 'airtel' }
-  if (c === 'private') return { ...q, type: 'private' }
   return q
 }
 

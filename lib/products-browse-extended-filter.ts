@@ -21,8 +21,8 @@ export type ExtendedBrowseFilters = {
   noShopping?: boolean
   /** Brand.brandKey 또는 originSource 정규화 키 (복수 선택 시 OR) */
   brandKeys?: string[]
-  /** 에어텔·단독(프라이빗)·프리미엄 (복수 선택 시 OR) — 구 URL category= */
-  productCategories?: Array<'airtel' | 'private' | 'premium'>
+  /** 에어텔·프리미엄 (복수 선택 시 OR) — 구 URL category= */
+  productCategories?: Array<'airtel' | 'premium'>
   /** airline catalog code + 'other' (복수 선택 시 OR) */
   airlineCodes?: string[]
   /** '04-07' … '20-24' — 출발편 outboundDepartureAt 기준 (복수 선택 시 OR) */
@@ -81,12 +81,11 @@ function matchesBrandKeys(p: ProductBrowseFullRow, keys: string[]): boolean {
   })
 }
 
-function matchesProductCategories(p: ProductBrowseFullRow, cats: Array<'airtel' | 'private' | 'premium'>): boolean {
+function matchesProductCategories(p: ProductBrowseFullRow, cats: Array<'airtel' | 'premium'>): boolean {
   if (cats.length === 0) return true
   const inferred = effectiveBrowseTypeForProduct(p)
   return cats.some((c) => {
     if (c === 'airtel') return inferred === 'airtel' || inferred === 'free'
-    if (c === 'private') return inferred === 'private'
     if (c === 'premium') {
       const t = `${p.title} ${p.productType ?? ''}`.toLowerCase()
       return /프리미엄|premium|품격|특급|프리미엄\s*패키지/i.test(t)

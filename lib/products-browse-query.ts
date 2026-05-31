@@ -1,7 +1,7 @@
 import type { BrowseSort } from '@/lib/products-browse-filter'
 
-/** 구 URL·사이드바 호환 — 운영 상품유형(에어텔/단독/프리미엄 키워드) 필터 */
-export type ProductCategoryFilter = 'airtel' | 'private' | 'premium'
+/** 구 URL·사이드바 호환 — 운영 상품유형(에어텔/프리미엄 키워드) 필터 */
+export type ProductCategoryFilter = 'airtel' | 'premium'
 
 export type BrowseQueryState = {
   type: string | null
@@ -65,7 +65,7 @@ function parseCategories(raw: string | null, repeated: string[]): ProductCategor
   const set = new Set<ProductCategoryFilter>()
   for (const r of [...parseMulti(raw), ...repeated]) {
     const u = r.toLowerCase()
-    if (u === 'airtel' || u === 'private' || u === 'premium') set.add(u)
+    if (u === 'airtel' || u === 'premium') set.add(u)
   }
   return [...set]
 }
