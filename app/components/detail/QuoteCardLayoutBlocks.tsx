@@ -66,7 +66,6 @@ type PaxStepperRowProps = {
   increaseAria: string
   unitPrice: number | null
   showUnitPrice: boolean
-  perPersonSuffix?: string
 }
 
 /** 인원 행 — 좌: (라벨+나이 inline) + 가격 아래 / 우: stepper (원래 카드 구조) */
@@ -81,7 +80,6 @@ export function QuoteCardPaxStepperRow({
   increaseAria,
   unitPrice,
   showUnitPrice,
-  perPersonSuffix = '원',
 }: PaxStepperRowProps) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-[#DAD4EE] bg-[#FAFAFC] px-3 py-2.5">
@@ -92,8 +90,7 @@ export function QuoteCardPaxStepperRow({
         </div>
         {showUnitPrice && unitPrice != null && unitPrice > 0 ? (
           <div className="mt-0.5 text-base font-semibold tabular-nums fit-tx-price">
-            {unitPrice.toLocaleString('ko-KR')}
-            {perPersonSuffix}
+            {unitPrice.toLocaleString('ko-KR')}원
           </div>
         ) : null}
       </div>

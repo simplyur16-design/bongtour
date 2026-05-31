@@ -166,7 +166,6 @@ export default function ProductLiveQuoteCard({
                 increaseAria={copy.paxIncreaseAria(row.label)}
                 unitPrice={unit}
                 showUnitPrice={priceRow != null}
-                perPersonSuffix={copy.perPersonSuffix}
               />
             )
           })}
