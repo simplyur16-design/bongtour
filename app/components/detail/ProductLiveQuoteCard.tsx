@@ -13,10 +13,11 @@ import {
   PRODUCT_LIVE_QUOTE_CARD_COPY,
 } from '@/lib/product-live-quote-card-copy'
 import {
-  QuoteCardPaxStepperRow,
-  QuoteCardTripDatesBox,
-} from '@/app/components/detail/QuoteCardLayoutBlocks'
-import { STICKY_PAX_ROWS } from '@/lib/product-live-quote-pax-ui'
+  PAX_STEP_BUTTON_CLASS,
+  PAX_STEP_DECREMENT_GLYPH,
+  PAX_STEP_INCREMENT_GLYPH,
+  STICKY_PAX_ROWS,
+} from '@/lib/product-live-quote-pax-ui'
 
 type Pax = { adult: number; childBed: number; childNoBed: number; infant: number }
 
@@ -108,11 +109,44 @@ export default function ProductLiveQuoteCard({
 
   return (
     <div className={`bt-card-strong border-2 border-bt-border-soft ${pad}`}>
-      <QuoteCardTripDatesBox
-        heroTripDepartureDisplay={heroTripDepartureDisplay ?? null}
-        heroTripReturnDisplay={heroTripReturnDisplay ?? null}
-        variant={tripVariant}
-      />
+      {heroTripDepartureDisplay || heroTripReturnDisplay ? (
+        <div className="mb-4 rounded-xl border border-bt-border-soft bg-bt-surface-alt px-3 py-2.5 text-center text-sm">
+          {tripVariant === 'mobile' ? (
+            <div className="flex flex-row items-center justify-center gap-3">
+              <div className="flex min-w-0 flex-col items-center gap-0.5">
+                <span className="text-xs text-bt-meta">출발</span>
+                <span className="text-sm font-semibold tabular-nums text-bt-title">
+                  {heroTripDepartureDisplay ?? '—'}
+                </span>
+              </div>
+              <span className="shrink-0 text-bt-border-soft" aria-hidden>
+                |
+              </span>
+              <div className="flex min-w-0 flex-col items-center gap-0.5">
+                <span className="text-xs text-bt-meta">귀국</span>
+                <span className="text-sm font-semibold tabular-nums text-bt-title">
+                  {heroTripReturnDisplay ?? '상담 시 안내'}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <p className="flex flex-col items-center gap-0.5">
+                <span className="text-bt-meta">출발</span>
+                <span className="font-semibold tabular-nums text-bt-title">
+                  {heroTripDepartureDisplay ?? '—'}
+                </span>
+              </p>
+              <p className="flex flex-col items-center gap-0.5">
+                <span className="text-bt-meta">귀국</span>
+                <span className="font-semibold tabular-nums text-bt-title">
+                  {heroTripReturnDisplay ?? '상담 시 안내'}
+                </span>
+              </p>
+            </div>
+          )}
+        </div>
+      ) : null}
       {showCollectingBanner ? (
         <div
           className={`mb-3 rounded-lg border px-3 py-2.5 text-center text-[12px] leading-relaxed ${
@@ -142,7 +176,7 @@ export default function ProductLiveQuoteCard({
       ) : null}
 
       <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide fit-tx-primary">{copy.paxSectionTitle}</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide !text-[#1F1B2D]">{copy.paxSectionTitle}</p>
         <div className="space-y-2.5">
           {STICKY_PAX_ROWS.map((row) => {
             const isChildRow = row.key === 'child'
@@ -154,23 +188,48 @@ export default function ProductLiveQuoteCard({
             const onDecrease = () => (isChildRow ? updateChildCombined(-1) : updatePax(row.key, -1))
             const onIncrease = () => (isChildRow ? updateChildCombined(1) : updatePax(row.key, 1))
             return (
-              <QuoteCardPaxStepperRow
+              <div
                 key={row.key}
-                label={row.label}
-                ageLine={row.ageLine}
-                count={count}
-                atMin={atMin}
-                onDecrease={onDecrease}
-                onIncrease={onIncrease}
-                decreaseAria={copy.paxDecreaseAria(row.label)}
-                increaseAria={copy.paxIncreaseAria(row.label)}
-                unitPrice={unit}
-                showUnitPrice={priceRow != null}
-              />
+                className="flex items-center justify-between gap-3 rounded-xl border border-[#DAD4EE] bg-[#FAFAFC] px-3 py-2.5"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-nowrap items-baseline gap-x-2 whitespace-nowrap">
+                    <span className="text-sm font-semibold !text-[#1F1B2D]">{row.label}</span>
+                    <span className="text-[10px] !text-[#4B5563]">{row.ageLine}</span>
+                  </div>
+                  {priceRow != null && unit != null && unit > 0 ? (
+                    <div className="mt-0.5 text-base font-semibold tabular-nums text-[#85510B]">
+                      {unit.toLocaleString('ko-KR')}원
+                    </div>
+                  ) : null}
+                </div>
+                <div className="grid h-9 w-[7rem] shrink-0 grid-cols-[2rem_1fr_2rem] items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={onDecrease}
+                    disabled={atMin}
+                    className={PAX_STEP_BUTTON_CLASS}
+                    aria-label={copy.paxDecreaseAria(row.label)}
+                  >
+                    {PAX_STEP_DECREMENT_GLYPH}
+                  </button>
+                  <span className="min-w-[28px] text-center text-lg font-bold tabular-nums text-[#1F1B2D]">
+                    {count}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onIncrease}
+                    className={PAX_STEP_BUTTON_CLASS}
+                    aria-label={copy.paxIncreaseAria(row.label)}
+                  >
+                    {PAX_STEP_INCREMENT_GLYPH}
+                  </button>
+                </div>
+              </div>
             )
           })}
         </div>
-        <p className="mt-2 text-[10px] leading-relaxed fit-tx-meta">{copy.paxFootnote}</p>
+        <p className="mt-2 text-[10px] leading-relaxed !text-[#4B5563]">{copy.paxFootnote}</p>
         {showQuotationTotal ? (
           <div
             className="mt-3 rounded-xl border border-[#DAD4EE] bg-white px-3 py-3 text-center"
