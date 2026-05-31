@@ -15,6 +15,7 @@ import {
   prioritizeEditorialsByRegionAndCountry,
 } from '@/lib/overseas-editorial-prioritize'
 import { resolveOverseasGeoFilterBanner } from '@/lib/overseas-destination-browse'
+import { prefetchOverseasHubBrowse } from '@/lib/products-browse-server-prefetch'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
 
@@ -56,11 +57,12 @@ export default async function OverseasTravelPage({
   const selectedRegionSlug =
     region && (LOCAL_DEPARTURE_REGIONS as readonly string[]).includes(region) ? region : null
 
-  const [editorialAll, seasonDestinationHeroSlides] = await Promise.all([
+  const [editorialAll, seasonDestinationHeroSlides, hubBrowse] = await Promise.all([
     fetchPublishedOverseasEditorials().catch(
       (): Awaited<ReturnType<typeof fetchPublishedOverseasEditorials>> => [],
     ),
     getCachedOverseasHubSeasonDestinationHeroSlides(),
+    prefetchOverseasHubBrowse(sp).catch(() => null),
   ])
 
   let overseasEditorialBriefing: OverseasEditorialBriefingPayload | null = null
@@ -97,6 +99,8 @@ export default async function OverseasTravelPage({
             hidePageHeading
             overseasEditorialBriefing={overseasEditorialBriefing}
             overseasGeoFilterBanner={overseasGeoFilterBanner}
+            initialBrowse={hubBrowse?.payload ?? null}
+            initialBrowseQueryKey={hubBrowse?.queryKey ?? null}
           />
         </Suspense>
 

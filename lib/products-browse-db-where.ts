@@ -11,7 +11,7 @@ function parseBrowseTypeForWhere(raw: string | null): 'airtel' | 'travel' | 'pri
 
 /**
  * browse `findMany` — listingKind·허브 슬라이스를 DB where로 push-down.
- * 메모리 필터(`products-browse-build-payload`)와 동일 의미만 적용 (동작 변경 없음).
+ * 해외·국내 허브 기본 목록은 air_hotel_free 제외(자유여행은 `/travel/air-hotel`).
  */
 export function prismaWhereClausesForBrowseListingSlice(input: {
   scope: string | null
@@ -43,7 +43,7 @@ export function prismaWhereClausesForBrowseListingSlice(input: {
   }
 
   const scope = (input.scope ?? '').trim().toLowerCase()
-  if (scope === 'domestic' && !wantsAirtelHubSlice) {
+  if ((scope === 'domestic' || scope === 'overseas') && !wantsAirtelHubSlice) {
     clauses.push({
       OR: [{ listingKind: null }, { listingKind: '' }, { listingKind: { not: 'air_hotel_free' } }],
     })

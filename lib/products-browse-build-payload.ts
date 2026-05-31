@@ -312,12 +312,12 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       })
     }
 
-    /** 국내 허브는 패키지·우리여행 중심 — 자유여행(항공+호텔)은 `/travel/air-hotel`로 분리 노출 */
+    /** 국내·해외 허브 기본 목록 — 자유여행(항공+호텔)은 `/travel/air-hotel` 전용 */
     const wantsAirtelHubSlice =
       parseBrowseType(typeParam) === 'airtel' ||
       q.categories.some((c) => c === 'airtel') ||
       listingKindParsed === 'air_hotel_free'
-    if (domesticLike && !wantsAirtelHubSlice) {
+    if ((domesticLike || scope === 'overseas') && !wantsAirtelHubSlice) {
       filteredRows = filteredRows.filter((p) => (p.listingKind ?? '').trim() !== 'air_hotel_free')
     }
 
@@ -584,7 +584,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         mapMs: Math.round(map - score),
         rowCount,
         finalCount,
-        cacheKey: `products-browse-v11|${queryKey}`,
+        cacheKey: `products-browse-v12|${queryKey}`,
       }
       browsePerfLastPhases = phases // PERF-LOG: 측정 후 제거
       console.log('[browse-perf]', JSON.stringify({ cacheHit: false, ...phases })) // PERF-LOG: 측정 후 제거

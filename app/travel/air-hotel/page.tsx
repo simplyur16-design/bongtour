@@ -5,6 +5,7 @@ import Header from '@/app/components/Header'
 import AirHotelHero from '@/app/components/travel/air-hotel/AirHotelHero'
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
 import { getCachedAirHotelSeasonCuration } from '@/lib/air-hotel-season-curation-content'
+import { prefetchAirHotelHubBrowse } from '@/lib/products-browse-server-prefetch'
 import { SITE_NAME } from '@/lib/site-metadata'
 
 export const revalidate = 300
@@ -52,6 +53,8 @@ export default async function AirHotelPage({
     ) // PERF-LOG: 측정 후 제거
   }
 
+  const hubBrowse = await prefetchAirHotelHubBrowse(sp).catch(() => null)
+
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
@@ -66,6 +69,8 @@ export default async function AirHotelPage({
             defaultScope="overseas"
             pageTitle="항공+호텔"
             hidePageHeading
+            initialBrowse={hubBrowse?.payload ?? null}
+            initialBrowseQueryKey={hubBrowse?.queryKey ?? null}
           />
         </Suspense>
       </main>

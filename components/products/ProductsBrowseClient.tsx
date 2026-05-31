@@ -83,6 +83,9 @@ type Props = {
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
   /** 추천 여행지·메가메뉴 도시/국가 필터 시 상단 제목·해제 */
   overseasGeoFilterBanner?: OverseasGeoFilterBanner | null
+  /** RSC prefetch — queryKey 일치 시 클라이언트 fetch 생략 */
+  initialBrowse?: ApiOk | null
+  initialBrowseQueryKey?: string | null
 }
 
 function formatWon(n: number | null) {
@@ -126,6 +129,8 @@ export default function ProductsBrowseClient({
   hidePageHeading = false,
   overseasEditorialBriefing = null,
   overseasGeoFilterBanner = null,
+  initialBrowse = null,
+  initialBrowseQueryKey = null,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname() ?? ''
@@ -146,6 +151,10 @@ export default function ProductsBrowseClient({
     return buildProductsBrowseQueryKey(qs, defaultScope)
   }, [isDomesticHub, isAirHotelHub, isOverseasProductsHub, searchParams, qs, defaultScope])
 
+  const seedFromServer = Boolean(
+    initialBrowse?.ok && initialBrowseQueryKey && initialBrowseQueryKey === browseApiQueryKey,
+  )
+
   const emptyStateTravelInquiryHref = useMemo(
     () => travelConsultInquiryHref(basePath, pathname, defaultScope),
     [basePath, pathname, defaultScope]
@@ -160,8 +169,8 @@ export default function ProductsBrowseClient({
     return parseBrowseQuery(new URLSearchParams(searchParams.toString()))
   }, [isDomesticHub, searchParams])
 
-  const [data, setData] = useState<ApiOk | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState<ApiOk | null>(seedFromServer ? initialBrowse : null)
+  const [loading, setLoading] = useState(!seedFromServer)
   const [error, setError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [draft, setDraft] = useState<BrowseQueryState>(q)
@@ -198,6 +207,12 @@ export default function ProductsBrowseClient({
   useEffect(() => {
     let cancelled = false
     async function load() {
+      if (initialBrowse?.ok && initialBrowseQueryKey === browseApiQueryKey) {
+        setData(initialBrowse)
+        setError(null)
+        setLoading(false)
+        return
+      }
       setLoading(true)
       setError(null)
       try {
@@ -232,7 +247,7 @@ export default function ProductsBrowseClient({
     return () => {
       cancelled = true
     }
-  }, [browseApiQueryKey])
+  }, [browseApiQueryKey, initialBrowse, initialBrowseQueryKey])
 
   const navigate = useCallback(
     (next: BrowseQueryState) => {
