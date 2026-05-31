@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import type { LucideIcon } from 'lucide-react'
-import { BarChart3, Map, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react'
+import { BarChart3, Map, MessageCircle, ShieldCheck, Sparkles, Zap } from 'lucide-react'
 import { BONGSIM_KAKAO_CHANNEL_URL, bongsimPath } from '@/lib/bongsim/constants'
 
 type WhyItem = {
   icon: LucideIcon
   title: string
   body: string
+  hint?: string
   circleClass: string
   href?: string
   linkLabel?: string
@@ -15,12 +16,13 @@ type WhyItem = {
 
 const WHY_ITEMS: readonly WhyItem[] = [
   {
-    icon: Map,
-    title: '구글맵 데이터 무료',
-    body: '해외에서 구글지도 길찾기를 데이터 차감 없이',
-    href: bongsimPath('/benefits/google-maps'),
+    icon: Zap,
+    title: '원클릭 설치',
+    body: 'QR 코드와 설치 문자 한 번 클릭이면 끝',
+    hint: 'iOS 17.4+ / Android 13+ 필요',
+    href: bongsimPath('/guide'),
     linkLabel: '자세히 보기 →',
-    circleClass: 'bg-teal-100 text-teal-600',
+    circleClass: 'bg-pink-100 text-pink-600',
   },
   {
     icon: ShieldCheck,
@@ -35,6 +37,14 @@ const WHY_ITEMS: readonly WhyItem[] = [
     href: '/mypage/esim',
     linkLabel: '사용량 확인하기 →',
     circleClass: 'bg-sky-100 text-sky-600',
+  },
+  {
+    icon: Map,
+    title: '구글맵 데이터 무료',
+    body: '해외에서 구글지도 길찾기를 데이터 차감 없이',
+    href: bongsimPath('/benefits/google-maps'),
+    linkLabel: '자세히 보기 →',
+    circleClass: 'bg-teal-100 text-teal-600',
   },
   {
     icon: Sparkles,
@@ -56,7 +66,7 @@ const WHY_ITEMS: readonly WhyItem[] = [
 ]
 
 function WhyCard({ item }: { item: WhyItem }) {
-  const { icon: Icon, title, body, circleClass, href, linkLabel, external } = item
+  const { icon: Icon, title, body, hint, circleClass, href, linkLabel, external } = item
   const cardClass =
     'flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm transition hover:border-teal-200 hover:shadow-md'
 
@@ -71,6 +81,7 @@ function WhyCard({ item }: { item: WhyItem }) {
       <div className="w-full min-w-0">
         <h3 className="font-semibold text-slate-900">{title}</h3>
         <p className="mt-1 text-sm leading-relaxed text-slate-700">{body}</p>
+        {hint ? <p className="mt-1 text-xs text-gray-500">{hint}</p> : null}
         {href && linkLabel ? (
           <span className="mt-2 inline-block text-sm font-medium text-teal-600 underline-offset-4 group-hover:underline">
             {linkLabel}
