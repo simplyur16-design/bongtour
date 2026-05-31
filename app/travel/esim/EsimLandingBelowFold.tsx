@@ -20,8 +20,6 @@ const WHY_ITEMS: readonly WhyItem[] = [
     title: '원클릭 설치',
     body: 'QR 코드와 설치 문자 한 번 클릭이면 끝',
     hint: 'iOS 17.4+ / Android 13+ 필요',
-    href: bongsimPath('/guide'),
-    linkLabel: '자세히 보기 →',
     circleClass: 'bg-pink-100 text-pink-600',
   },
   {
