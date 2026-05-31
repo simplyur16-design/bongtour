@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useProductDepartureYmdFromUrl } from '@/lib/use-product-departure-url-param'
 import type { ProductPriceRow, TravelProduct } from './TravelProductDetail'
 import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
 import { formatFlightLegTwoLines } from '@/lib/flight-user-display'
@@ -85,7 +86,7 @@ type ScheduleDayWithMeta = TravelProduct['schedule'] extends (infer D)[] | null 
   ? D & { title?: string; notice?: string }
   : never
 
-type Props = { product: TravelProduct; showEsimCrossSell?: boolean; initialDepartureYmd?: string | null }
+type Props = { product: TravelProduct; showEsimCrossSell?: boolean }
 
 function toDateKey(d: string): string {
   return d.startsWith('20') && d.length >= 10 ? d.slice(0, 10) : d
@@ -104,9 +105,9 @@ function applyFlightManualCorrectionForPublicOrigin(
 export default function MobileProductDetail({
   product,
   showEsimCrossSell = false,
-  initialDepartureYmd = null,
 }: Props) {
   const router = useRouter()
+  const initialDepartureYmd = useProductDepartureYmdFromUrl()
   const basePrices = Array.isArray(product.prices) ? product.prices : []
   const [pricePatches, setPricePatches] = useState<ProductPriceRow[]>([])
   const [onDemandNotice, setOnDemandNotice] = useState<string | null>(null)

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useProductDepartureYmdFromUrl } from '@/lib/use-product-departure-url-param'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
@@ -241,7 +242,7 @@ function toDateKey(d: string): string {
   return d.startsWith('20') && d.length >= 10 ? d.slice(0, 10) : d
 }
 
-type Props = { product: TravelProduct; showEsimCrossSell?: boolean; initialDepartureYmd?: string | null }
+type Props = { product: TravelProduct; showEsimCrossSell?: boolean }
 
 function applyFlightManualCorrectionForPublicOrigin(
   facts: DepartureKeyFacts | null,
@@ -256,9 +257,9 @@ function applyFlightManualCorrectionForPublicOrigin(
 export default function TravelProductDetail({
   product,
   showEsimCrossSell = false,
-  initialDepartureYmd = null,
 }: Props) {
   const router = useRouter()
+  const initialDepartureYmd = useProductDepartureYmdFromUrl()
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
   const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(null)
   const [pax, setPax] = useState({ adult: 1, childBed: 0, childNoBed: 0, infant: 0 })
