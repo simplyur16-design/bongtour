@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
+import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { adminProductJsonWithPromotionRef } from '@/lib/admin-product-reference-prices'
 import {
   getFlightAdminJsonFromRawMeta,
@@ -793,6 +794,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (willChangeListing) {
       revalidateProductListingCaches()
     }
+    const productMutated =
+      Object.keys(data).length > 0 ||
+      (body.firstPriceRow &&
+        typeof body.firstPriceRow === 'object' &&
+        (body.firstPriceRow as Record<string, unknown>).priceAdult != null)
+    if (productMutated) {
+      revalidateProductDetailCaches(id)
+    }
     const product = await prisma.product.findUnique({
       where: { id },
       select: {
@@ -920,7 +929,9 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
         { status: 400 }
       )
     }
+    const existing = await prisma.product.findUnique({ where: { id }, select: { slug: true } })
     await prisma.product.delete({ where: { id } })
+    revalidateProductDetailCaches(id, existing?.slug)
     return NextResponse.json({ ok: true })
   } catch (e) {
     if (e && typeof e === 'object' && 'code' in e && e.code === 'P2025') {

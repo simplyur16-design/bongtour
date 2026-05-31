@@ -5,6 +5,7 @@ import { itineraryDescriptionsBlob } from '@/lib/product-location-key-match'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
+import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { requireAdmin } from '@/lib/require-admin'
 import { mapToParsedProductForDB } from '@/lib/map-to-parsed-product'
 import type { ExtractedProduct } from '@/lib/extraction-schema'
@@ -317,6 +318,7 @@ export async function POST(request: Request) {
     }
 
     revalidateProductListingCaches()
+    revalidateProductDetailCaches(productId)
 
     return NextResponse.json({
       detailPath: `/admin/products/${productId}`,

@@ -17,12 +17,33 @@ import { publicProductPath } from '@/lib/product-public-path'
 import {
   loadProductDetailRowCached,
   loadProductForMetadataCached,
+  consumeProductDetailUnstableCacheMiss,
 } from '@/lib/product-detail-page-cache'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
 
 /** 공개 등록 상품 — 5분 ISR. draft 미리보기는 요청 시 `connection()`으로 동적 렌더 */
 export const revalidate = 300
+
+const FIT_ITINERARY_MASTER_DETAIL_INCLUDE = {
+  days: {
+    orderBy: { dayNumber: 'asc' as const },
+    include: {
+      activities: {
+        orderBy: { order: 'asc' as const },
+        include: { validation: true },
+      },
+    },
+  },
+} as const
+
+function loadFitItineraryMasterForProduct(productId: string, productType: string | null | undefined) {
+  if (productType !== 'airtel') return Promise.resolve(null)
+  return prisma.fitItineraryMaster.findUnique({
+    where: { productId },
+    include: FIT_ITINERARY_MASTER_DETAIL_INCLUDE,
+  })
+}
 
 type Props = {
   params: Promise<{ idOrSlug: string }>
@@ -87,13 +108,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * Draft rows render only when `requireAdmin()` succeeds.
  */
 export default async function ProductDetailPage({ params, searchParams }: Props) {
+  const perfPage = process.env.BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
+  const t0 = perfPage ? Date.now() : 0 // PERF-LOG: 측정 후 제거
+
   const { idOrSlug } = await params
   const sp = await searchParams
   if (typeof idOrSlug !== 'string' || !idOrSlug.trim()) {
     notFound()
   }
 
+  const tResolved = perfPage ? Date.now() : 0 // PERF-LOG: 측정 후 제거
   const { resolved, allowAdminDraft } = await resolveProductPageAccess(idOrSlug)
+  const resolveMs = perfPage ? Date.now() - tResolved : 0 // PERF-LOG: 측정 후 제거
+
   if (allowAdminDraft) await connection()
 
   if (resolved.kind === 'redirect') {
@@ -105,29 +132,25 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
 
   const productId = resolved.productId
 
-  const travelProduct = await loadProductDetailRowCached(productId, allowAdminDraft)
+  const tProduct = perfPage ? Date.now() : 0 // PERF-LOG: 측정 후 제거
+  const [travelProduct, fitMaster] = await Promise.all([
+    loadProductDetailRowCached(productId, allowAdminDraft),
+    loadFitItineraryMasterForProduct(productId, resolved.productType),
+  ])
+  const productMs = perfPage ? Date.now() - tProduct : 0 // PERF-LOG: 측정 후 제거
+
+  if (perfPage) {
+    const cacheMiss = consumeProductDetailUnstableCacheMiss()
+    const cacheLabel =
+      allowAdminDraft ? 'draft-fresh' : cacheMiss === true ? 'miss' : cacheMiss === false ? 'hit' : 'unknown'
+    console.log(
+      `[product-detail-perf] slug=${idOrSlug} resolve=${resolveMs}ms product+fit=${productMs}ms total=${Date.now() - t0}ms cache=${cacheLabel}`,
+    ) // PERF-LOG: 측정 후 제거
+  }
 
   if (!travelProduct) {
     notFound()
   }
-
-  const fitMaster =
-    travelProduct.productType === 'airtel'
-      ? await prisma.fitItineraryMaster.findUnique({
-          where: { productId: travelProduct.id },
-          include: {
-            days: {
-              orderBy: { dayNumber: 'asc' },
-              include: {
-                activities: {
-                  orderBy: { order: 'asc' },
-                  include: { validation: true },
-                },
-              },
-            },
-          },
-        })
-      : null
 
   const departureParam = (sp.departure ?? '').trim()
   let initialDepartureYmd: string | null = null

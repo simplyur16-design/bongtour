@@ -1,5 +1,6 @@
 import { revalidatePath } from 'next/cache'
 import type { PrismaClient } from '@prisma/client'
+import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import {
   buildDetailUrl,
   collectDepartureInputsForAdminRescrape,
@@ -303,6 +304,7 @@ export async function executeAdminDeparturesRescrapeCore(
 
   if (isHanatourProduct && upsertedCount > 0) {
     revalidatePath(`/products/${product.id}`)
+    revalidateProductDetailCaches(product.id)
   }
 
   const rescrapeOutcome: AdminDeparturesRescrapeResponseBody['rescrapeOutcome'] =
@@ -633,6 +635,7 @@ export async function executeRangeOnDemandDepartures(
     }
     if ((bk === 'hanatour' || norm === 'hanatour') && toUpsert.some((x) => (x.adultPrice ?? 0) > 0)) {
       revalidatePath(`/products/${product.id}`)
+      revalidateProductDetailCaches(product.id)
     }
   }
 

@@ -7,16 +7,17 @@ const PRODUCT_LOOKUP_SELECT = {
   id: true,
   slug: true,
   registrationStatus: true,
+  productType: true,
 } as const
 
 export type ResolvedProductLookup =
   | { kind: 'not_found' }
-  | { kind: 'render'; productId: string; slug: string | null }
+  | { kind: 'render'; productId: string; slug: string | null; productType: string | null }
   | { kind: 'redirect'; slug: string }
 
 async function findRegisteredProduct(
   where: Prisma.ProductWhereInput
-): Promise<{ id: string; slug: string | null; registrationStatus: string | null } | null> {
+): Promise<{ id: string; slug: string | null; registrationStatus: string | null; productType: string | null } | null> {
   return prisma.product.findFirst({
     where: {
       ...where,
@@ -29,7 +30,7 @@ async function findRegisteredProduct(
 
 async function findAdminPreviewProduct(
   where: Prisma.ProductWhereInput
-): Promise<{ id: string; slug: string | null; registrationStatus: string | null } | null> {
+): Promise<{ id: string; slug: string | null; registrationStatus: string | null; productType: string | null } | null> {
   return prisma.product.findFirst({
     where,
     select: PRODUCT_LOOKUP_SELECT,
@@ -56,7 +57,12 @@ export async function resolveProductByPathSegment(
     if (registered.id === segment && slug && slug !== segment) {
       return { kind: 'redirect', slug }
     }
-    return { kind: 'render', productId: registered.id, slug: registered.slug }
+    return {
+      kind: 'render',
+      productId: registered.id,
+      slug: registered.slug,
+      productType: registered.productType,
+    }
   }
 
   if (opts?.allowAdminDraft) {
@@ -68,7 +74,12 @@ export async function resolveProductByPathSegment(
       if (draft.id === segment && slug && slug !== segment) {
         return { kind: 'redirect', slug }
       }
-      return { kind: 'render', productId: draft.id, slug: draft.slug }
+      return {
+        kind: 'render',
+        productId: draft.id,
+        slug: draft.slug,
+        productType: draft.productType,
+      }
     }
   }
 

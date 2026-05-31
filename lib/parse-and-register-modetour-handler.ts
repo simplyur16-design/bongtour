@@ -6,6 +6,7 @@ import {
 import { prisma } from '@/lib/prisma'
 import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
+import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { extractHighlightFromModetour } from '@/lib/extract-highlight-modetour'
 import { extractHighlightFromModetourLLM } from '@/lib/llm-extract-highlight-modetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
@@ -1889,6 +1890,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
     logParseAndRegister('ok', ctx)
     timing.mark('done')
     revalidateProductListingCaches()
+    revalidateProductDetailCaches(productId)
     return NextResponse.json(confirmPayload)
   } catch (e) {
     ctx.stage = stage

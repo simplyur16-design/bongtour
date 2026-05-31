@@ -4,6 +4,7 @@
  */
 
 import { findImageAssetByPublicUrl, findImageAssetsByPublicUrls, type ImageAssetRow } from '@/lib/image-assets-db'
+import { cache as reactCache } from 'react'
 
 export function captionTextFromImageAssetRow(
   row: Pick<ImageAssetRow, 'seo_title_kr' | 'title_kr' | 'alt_kr'>
@@ -13,7 +14,7 @@ export function captionTextFromImageAssetRow(
 }
 
 /** 조회 실패 시 null (예외 삼킴 — 공개 페이지는 계속 렌더) */
-export async function tryCaptionFromPublicImageUrl(url: string | null | undefined): Promise<string | null> {
+async function tryCaptionFromPublicImageUrlImpl(url: string | null | undefined): Promise<string | null> {
   const raw = String(url ?? '').trim()
   if (!raw) return null
   try {
@@ -24,6 +25,9 @@ export async function tryCaptionFromPublicImageUrl(url: string | null | undefine
     return null
   }
 }
+
+/** 동일 RSC 요청 내 metadata·page 중복 image_assets 조회 방지 */
+export const tryCaptionFromPublicImageUrl = reactCache(tryCaptionFromPublicImageUrlImpl)
 
 /** `findImageAssetByPublicUrl` 과 동일하게 query 제거·슬래시 변형으로 IN 목록 확장 */
 function expandPublicUrlQueryVariants(urls: (string | null | undefined)[]): string[] {

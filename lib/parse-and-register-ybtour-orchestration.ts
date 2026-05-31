@@ -7,6 +7,7 @@ import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier
 import { prisma } from '@/lib/prisma'
 import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
+import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { extractHighlightFromYbtour } from '@/lib/extract-highlight-ybtour'
 import { extractHighlightFromYbtourLLM } from '@/lib/llm-extract-highlight-ybtour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
@@ -1689,6 +1690,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     logParseAndRegister('ok', ctx)
     timing.mark('done')
     revalidateProductListingCaches()
+    revalidateProductDetailCaches(productId)
     return NextResponse.json(confirmPayload)
   } catch (e) {
     ctx.stage = stage

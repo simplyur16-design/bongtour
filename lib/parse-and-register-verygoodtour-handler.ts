@@ -6,6 +6,7 @@ import {
 import { prisma } from '@/lib/prisma'
 import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
+import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { extractHighlightFromVerygoodtour } from '@/lib/extract-highlight-verygoodtour'
 import { extractHighlightFromVerygoodtourLLM } from '@/lib/llm-extract-highlight-verygoodtour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
@@ -1557,6 +1558,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     logParseAndRegister('ok', ctx)
     timing.mark('done')
     revalidateProductListingCaches()
+    revalidateProductDetailCaches(productId)
     return NextResponse.json(confirmPayload)
   } catch (e) {
     ctx.stage = stage
