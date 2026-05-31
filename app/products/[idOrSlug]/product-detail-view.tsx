@@ -72,7 +72,7 @@ import * as dayHotelYbtour from '@/lib/day-hotel-plans-ybtour'
 import * as dayHotelKyowontour from '@/lib/day-hotel-plans-kyowontour'
 import * as dayHotelLottetour from '@/lib/day-hotel-plans-lottetour'
 import { normalizePromotionMarketingCopy, normalizePricePromotionViewCopy } from '@/lib/promotion-copy-normalize'
-import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
+import { isOnOrAfterPublicBookableMinDate, toDepartureDateYmd } from '@/lib/public-bookable-date'
 import { getPriceAdult } from '@/lib/price-utils'
 import { pickVerygoodPublicDefaultDepartureRow } from '@/lib/verygood/verygood-public-default-departure'
 import { verygoodDurationLabelFromDepartureAtPair } from '@/lib/verygood/verygood-selected-row-trip-display'
@@ -621,8 +621,7 @@ export async function ProductDetailView({
     departures.length > 0
       ? publicPriceRowsModule.productDeparturesToProductPriceRows(departures)
       : publicPrices.map((p) => {
-          const dateStr =
-            p.date instanceof Date ? p.date.toISOString().slice(0, 10) : String(p.date).slice(0, 10)
+          const dateStr = toDepartureDateYmd(p.date)
           const adultPx = p.adult ?? 0
           const childBedPx = p.childBed != null ? p.childBed : null
           const childNoBedPx = p.childNoBed != null ? p.childNoBed : null
@@ -1051,12 +1050,12 @@ export async function ProductDetailView({
   const unavailableCount = departures.filter(isUnavailable).length
   const totalCount = departures.length
 
-  const formatYmd = (d: Date) => d.toISOString().slice(0, 10)
-
   let seoOffers: ProductJsonLdAggregateOffer | null = null
   if (pricedDepartures.length > 0) {
     const prices = pricedDepartures.map((d) => d.adultPrice as number)
-    const dates = pricedDepartures.map((d) => d.departureDate).sort((a, b) => +a - +b)
+    const dates = pricedDepartures
+      .map((d) => d.departureDate)
+      .sort((a, b) => toDepartureDateYmd(a).localeCompare(toDepartureDateYmd(b)))
 
     let availability: 'InStock' | 'LimitedAvailability' | 'SoldOut' = 'InStock'
     if (totalCount > 0 && unavailableCount === totalCount) availability = 'SoldOut'
@@ -1067,8 +1066,8 @@ export async function ProductDetailView({
       highPrice: Math.max(...prices),
       offerCount: pricedDepartures.length,
       availability,
-      validFrom: formatYmd(dates[0]),
-      priceValidUntil: formatYmd(dates[dates.length - 1]),
+      validFrom: toDepartureDateYmd(dates[0]),
+      priceValidUntil: toDepartureDateYmd(dates[dates.length - 1]),
     }
   } else if (resolvedPriceFrom != null && resolvedPriceFrom > 0) {
     seoOffers = {

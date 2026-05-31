@@ -34,3 +34,14 @@ export function isOnOrAfterPublicBookableMinDate(
   const rhs = getPublicBookableMinDate(baseDate).getTime()
   return lhs >= rhs
 }
+
+/** Prisma Date 또는 unstable_cache JSON 직렬화 ISO string → YYYY-MM-DD */
+export function toDepartureDateYmd(dateLike: Date | string | null | undefined): string {
+  if (!dateLike) return ''
+  if (typeof dateLike === 'string') return dateLike.slice(0, 10)
+  if (dateLike instanceof Date) {
+    if (Number.isNaN(dateLike.getTime())) return ''
+    return dateLike.toISOString().slice(0, 10)
+  }
+  return ''
+}
