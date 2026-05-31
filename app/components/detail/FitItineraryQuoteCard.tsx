@@ -109,6 +109,7 @@ export default function FitItineraryQuoteCard({
                 increaseAria={copy.paxIncreaseAria(row.label)}
                 unitPrice={unit}
                 showUnitPrice
+                perPersonSuffix={copy.perPersonSuffix}
               />
             )
           })}

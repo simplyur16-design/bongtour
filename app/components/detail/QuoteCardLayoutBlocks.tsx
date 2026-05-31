@@ -66,9 +66,10 @@ type PaxStepperRowProps = {
   increaseAria: string
   unitPrice: number | null
   showUnitPrice: boolean
+  perPersonSuffix?: string
 }
 
-/** 인원 행 — 제목·나이 inline (좌) + 가격 (중) + stepper (우) */
+/** 인원 행 — 좌: (라벨+나이 inline) + 가격 아래 / 우: stepper (원래 카드 구조) */
 export function QuoteCardPaxStepperRow({
   label,
   ageLine,
@@ -80,43 +81,43 @@ export function QuoteCardPaxStepperRow({
   increaseAria,
   unitPrice,
   showUnitPrice,
+  perPersonSuffix = '원',
 }: PaxStepperRowProps) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-xl border border-[#DAD4EE] bg-[#FAFAFC] px-3 py-2.5">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#DAD4EE] bg-[#FAFAFC] px-3 py-2.5">
       <div className="min-w-0 flex-1">
         <div className="flex flex-nowrap items-baseline gap-x-2 whitespace-nowrap">
-          <span className="text-base font-semibold fit-tx-primary">{label}</span>
-          <span className="text-xs fit-tx-meta">{ageLine}</span>
+          <span className="text-sm font-semibold fit-tx-primary">{label}</span>
+          <span className="text-[10px] fit-tx-meta">{ageLine}</span>
         </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-3">
         {showUnitPrice && unitPrice != null && unitPrice > 0 ? (
-          <span className="shrink-0 text-base font-bold tabular-nums text-[#85510B]">
-            {unitPrice.toLocaleString('ko-KR')}원
-          </span>
+          <div className="mt-0.5 text-base font-semibold tabular-nums fit-tx-price">
+            {unitPrice.toLocaleString('ko-KR')}
+            {perPersonSuffix}
+          </div>
         ) : null}
-        <div className="grid h-9 w-[7rem] shrink-0 grid-cols-[2rem_1fr_2rem] items-center gap-1">
-          <button
-            type="button"
-            onClick={onDecrease}
-            disabled={atMin}
-            className={PAX_STEP_BUTTON_CLASS}
-            aria-label={decreaseAria}
-          >
-            {PAX_STEP_DECREMENT_GLYPH}
-          </button>
-          <span className="min-w-[28px] text-center text-lg font-bold tabular-nums text-[#1F1B2D]">
-            {count}
-          </span>
-          <button
-            type="button"
-            onClick={onIncrease}
-            className={PAX_STEP_BUTTON_CLASS}
-            aria-label={increaseAria}
-          >
-            {PAX_STEP_INCREMENT_GLYPH}
-          </button>
-        </div>
+      </div>
+      <div className="grid h-9 w-[7rem] shrink-0 grid-cols-[2rem_1fr_2rem] items-center gap-1">
+        <button
+          type="button"
+          onClick={onDecrease}
+          disabled={atMin}
+          className={PAX_STEP_BUTTON_CLASS}
+          aria-label={decreaseAria}
+        >
+          {PAX_STEP_DECREMENT_GLYPH}
+        </button>
+        <span className="min-w-[28px] text-center text-lg font-bold tabular-nums text-[#1F1B2D]">
+          {count}
+        </span>
+        <button
+          type="button"
+          onClick={onIncrease}
+          className={PAX_STEP_BUTTON_CLASS}
+          aria-label={increaseAria}
+        >
+          {PAX_STEP_INCREMENT_GLYPH}
+        </button>
       </div>
     </div>
   )
