@@ -436,6 +436,20 @@ export function ItineraryView({
     travelCoreInfo?.travelCitiesLine?.trim() || product.primaryDestination?.trim() || ''
   const durationLabel = travelCoreInfo?.duration?.trim() || product.duration?.trim() || ''
 
+  const supplierLabel = formatOriginSourceForDisplay(product.originSource)
+  const regionLabel =
+    master?.cityNameKo?.trim() ||
+    destinationLine
+      .split(/[,，/]/)
+      .map((s) => s.trim())
+      .filter(Boolean)[0] ||
+    product.primaryDestination?.trim() ||
+    ''
+
+  const scrollToExampleItinerary = () => {
+    document.getElementById('fit-itinerary-example')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const ctaLabel =
     mode === 'example'
       ? '예약 신청'
@@ -487,6 +501,9 @@ export function ItineraryView({
         heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
         primaryDestination={product.primaryDestination ?? null}
         destination={product.primaryDestination ?? null}
+        supplierLabel={supplierLabel || null}
+        regionLabel={regionLabel || null}
+        onScrollToExampleItinerary={scrollToExampleItinerary}
         onChangeDepartureDate={() => setPickerOpen(true)}
         showChangeDepartureCta={(prices?.length ?? 0) > 0}
         infoPanel={{
@@ -567,7 +584,9 @@ export function ItineraryView({
       {/* 본문 */}
       <main ref={mainContentRef} className="max-w-7xl mx-auto px-6 lg:px-8 py-10 lg:grid lg:grid-cols-[1fr_300px] lg:gap-10 lg:items-start">
         <div className="space-y-12 min-w-0">
-          {!master && mode === 'example' && (
+          {mode === 'example' && (
+            <div id="fit-itinerary-example" className="scroll-mt-24">
+          {!master && (
             <div>
               <h2 className="mb-3 border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
                 예시 일정 안내
@@ -598,6 +617,8 @@ export function ItineraryView({
                 </p>
               </div>
             </>
+          )}
+            </div>
           )}
 
           {!master ? (

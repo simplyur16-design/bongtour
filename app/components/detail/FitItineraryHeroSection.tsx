@@ -26,6 +26,9 @@ type Props = CarouselProps & {
   onChangeDepartureDate: () => void
   showChangeDepartureCta?: boolean
   modetourStickyLocalPayLine?: string | null
+  supplierLabel?: string | null
+  regionLabel?: string | null
+  onScrollToExampleItinerary?: () => void
 }
 
 /** 자유여행 상세 — 패키지와 동일 풀폭 히어로 + 좌측 제목 + 우측 정보 카드(데스크톱) / 모바일 스택 */
@@ -43,7 +46,11 @@ export default function FitItineraryHeroSection({
   onChangeDepartureDate,
   showChangeDepartureCta,
   modetourStickyLocalPayLine,
+  supplierLabel,
+  regionLabel,
+  onScrollToExampleItinerary,
 }: Props) {
+  const fitTypeLabel = [supplierLabel, '자유여행', '에어텔', regionLabel].filter(Boolean).join(' · ')
   const infoPanelWithCta: FitItineraryHeroInfoPanelProps = {
     ...infoPanel,
     onChangeDepartureDate,
@@ -96,11 +103,33 @@ export default function FitItineraryHeroSection({
           </div>
         ) : null}
 
-        <div className="absolute bottom-16 left-8 z-[20] hidden max-w-xl pr-8 lg:block lg:bottom-24 lg:left-16">
-          <ProductHeroTitleLines
-            title={productTitle}
-            style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
-          />
+        <div className="absolute inset-x-0 bottom-0 z-[25] pointer-events-none">
+          <div className="mx-auto w-full max-w-7xl px-6 pb-14 pr-6 text-white lg:px-8 lg:pb-20 lg:pr-48">
+            <div className="max-w-3xl pointer-events-auto">
+              {onScrollToExampleItinerary ? (
+                <button
+                  type="button"
+                  onClick={onScrollToExampleItinerary}
+                  className="mb-3 inline-flex items-center rounded-full bg-[#d9a81e] px-3 py-1.5 text-xs font-bold text-[#1F1B2D] shadow-md transition hover:bg-[#c89619] md:text-sm"
+                >
+                  예시일정보기
+                </button>
+              ) : null}
+              {fitTypeLabel ? (
+                <p
+                  className="text-base font-semibold tracking-wide md:text-lg"
+                  style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
+                >
+                  {fitTypeLabel}
+                </p>
+              ) : null}
+              <ProductHeroTitleLines
+                title={productTitle}
+                className="mt-3 hidden max-w-xl lg:block"
+                style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
+              />
+            </div>
+          </div>
         </div>
 
         <aside className="absolute right-6 top-1/2 z-[30] hidden max-h-[min(760px,calc(100vh-96px))] w-[420px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl lg:block xl:right-12 xl:w-[460px]">
