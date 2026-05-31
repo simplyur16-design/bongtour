@@ -854,7 +854,7 @@ export async function ProductDetailView({
 
   const productType = travelProduct.productType ?? ''
   const isAirtel = productType === 'airtel'
-  /** 항공+호텔 자유여행 — 패키지형 상세(히어로 우측 카드·스티키 견적) */
+  /** air_hotel_free listingKind 마커 — browse·공급사 래퍼 등 (view 분기 SSOT: productType=airtel) */
   const isAirHotelFreeProduct = isAirHotelFreeListingForUi(travelProduct.listingKind)
   /** Fit 예시 일정 ItineraryView — SSOT: 자유여행(productType=airtel)=FitItinerary */
   const isAirtelItineraryView = productType === 'airtel'
