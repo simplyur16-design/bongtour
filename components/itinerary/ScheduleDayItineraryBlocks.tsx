@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import SafeImage from '@/app/components/SafeImage'
+import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import { formatMealDisplay, formatScheduleDayHotelLine } from '@/lib/hotel-meal-display'
+import { resolveScheduleDayImageRightLabel } from '@/lib/public-image-overlay-ssot'
 import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
 import { Bed, UtensilsCrossed, X } from 'lucide-react'
 
@@ -24,6 +26,10 @@ export type ScheduleDayItineraryBlocksDay = {
   imageUrl2?: string | null
   imageDisplayName?: string | null
   imageDisplayName2?: string | null
+  imagePhotographer?: string | null
+  imageSource?: string | null
+  imagePhotographer2?: string | null
+  imageSource2?: string | null
   hotelText?: string | null
   breakfastText?: string | null
   lunchText?: string | null
@@ -39,13 +45,23 @@ type Props = {
   isLastScheduleRow?: boolean
 }
 
+type ThumbOverlayProps = {
+  src: string
+  leftLabel?: string | null
+  rightLabel?: string | null
+}
+
 function ScheduleDayImageLightbox({
   src,
   alt,
+  leftLabel,
+  rightLabel,
   onClose,
 }: {
   src: string
   alt: string
+  leftLabel?: string | null
+  rightLabel?: string | null
   onClose: () => void
 }) {
   useEffect(() => {
@@ -73,7 +89,7 @@ function ScheduleDayImageLightbox({
         <X size={22} />
       </button>
       <div
-        className="relative max-h-[85vh] max-w-[min(960px,100%)] w-full"
+        className="relative max-h-[85vh] max-w-[min(960px,100%)] w-full overflow-hidden rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <SafeImage
@@ -81,8 +97,9 @@ function ScheduleDayImageLightbox({
           alt={alt}
           width={1200}
           height={800}
-          className="max-h-[85vh] w-full rounded-lg object-contain"
+          className="max-h-[85vh] w-full object-contain"
         />
+        <PublicImageBottomOverlay leftLabel={leftLabel} rightLabel={rightLabel} />
       </div>
     </div>
   )
@@ -92,11 +109,15 @@ function DayThumb({
   src,
   alt,
   caption,
+  leftLabel,
+  rightLabel,
   onOpen,
 }: {
   src: string
   alt: string
   caption?: string | null
+  leftLabel?: string | null
+  rightLabel?: string | null
   onOpen: () => void
 }) {
   return (
@@ -107,12 +128,15 @@ function DayThumb({
       className="group relative h-full min-h-0 w-full overflow-hidden rounded-lg border border-[#DAD4EE] bg-[#F5F2EA] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#85510B]"
     >
       <SafeImage src={src} alt={alt} fill className="object-cover transition group-hover:scale-[1.02]" sizes="120px" />
+      <PublicImageBottomOverlay leftLabel={leftLabel} rightLabel={rightLabel} />
     </button>
   )
 }
 
 export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, isLastScheduleRow }: Props) {
-  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
+  const [lightbox, setLightbox] = useState<
+    ({ src: string; alt: string } & ThumbOverlayProps) | null
+  >(null)
   const closeLightbox = useCallback(() => setLightbox(null), [])
 
   const hotelLine = formatScheduleDayHotelLine({
@@ -145,12 +169,24 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
     imageKeyword: day.imageKeyword2,
     imageDisplayNameManual: day.imageDisplayName2,
   })
-  const thumbs: { src: string; alt: string; caption: string | null }[] = []
+  const thumbs: Array<{
+    src: string
+    alt: string
+    caption: string | null
+    leftLabel: string | null
+    rightLabel: string | null
+  }> = []
   if (url1) {
     thumbs.push({
       src: url1,
       alt: caption1 || `Day ${day.day} itinerary photo`,
       caption: caption1,
+      leftLabel: caption1,
+      rightLabel: resolveScheduleDayImageRightLabel({
+        imageUrl: url1,
+        imagePhotographer: day.imagePhotographer,
+        imageSource: day.imageSource,
+      }),
     })
   }
   if (url2 && url2 !== url1) {
@@ -158,6 +194,12 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
       src: url2,
       alt: caption2 || `Day ${day.day} itinerary photo 2`,
       caption: caption2,
+      leftLabel: caption2,
+      rightLabel: resolveScheduleDayImageRightLabel({
+        imageUrl: url2,
+        imagePhotographer: day.imagePhotographer2 ?? day.imagePhotographer,
+        imageSource: day.imageSource2 ?? day.imageSource,
+      }),
     })
   }
 
@@ -232,6 +274,8 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
                     src={t.src}
                     alt={t.alt}
                     caption={t.caption}
+                    leftLabel={t.leftLabel}
+                    rightLabel={t.rightLabel}
                     onOpen={() => setLightbox(t)}
                   />
                 ))}
@@ -243,7 +287,15 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
         )}
       </div>
 
-      {lightbox ? <ScheduleDayImageLightbox src={lightbox.src} alt={lightbox.alt} onClose={closeLightbox} /> : null}
+      {lightbox ? (
+        <ScheduleDayImageLightbox
+          src={lightbox.src}
+          alt={lightbox.alt}
+          leftLabel={lightbox.leftLabel}
+          rightLabel={lightbox.rightLabel}
+          onClose={closeLightbox}
+        />
+      ) : null}
     </>
   )
 }

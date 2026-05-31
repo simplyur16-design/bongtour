@@ -118,6 +118,10 @@ export type ScheduleDay = {
   imageKeyword2?: string | null
   imageUrl2?: string | null
   imageDisplayName2?: string | null
+  imagePhotographer?: string | null
+  imageSource?: string | null
+  imagePhotographer2?: string | null
+  imageSource2?: string | null
   /** ItineraryDay.city — carousel DAY label fallback */
   city?: string | null
   hotelText?: string | null
@@ -519,6 +523,8 @@ export default function TravelProductDetail({
         title: d.title ?? null,
         imageKeyword: d.imageKeyword ?? null,
         city: d.city ?? null,
+        imagePhotographer: d.imagePhotographer ?? null,
+        imageSource: d.imageSource ?? null,
       })),
     [product.schedule]
   )

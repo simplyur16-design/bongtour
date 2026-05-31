@@ -23,6 +23,10 @@ export type ScheduleDayDisplay = {
   imageUrl2?: string | null
   imageDisplayName?: string | null
   imageDisplayName2?: string | null
+  imagePhotographer?: string | null
+  imageSource?: string | null
+  imagePhotographer2?: string | null
+  imageSource2?: string | null
   /** confirm 시 itineraryDayDrafts와 함께 직렬화(모두투어 등) — 공개 상세는 ItineraryDay와 병합 */
   hotelText?: string | null
   breakfastText?: string | null
@@ -88,6 +92,40 @@ function optionalScheduleMealCol(row: Record<string, unknown>, key: string): str
   if (v == null) return null
   const t = String(v).trim()
   return t.length > 0 ? t : null
+}
+
+function resolveScheduleRowImageSource(
+  row: Record<string, unknown>,
+  sourceKey: 'imageSource' | 'imageSource2'
+): string | null {
+  const raw = row[sourceKey]
+  if (typeof raw === 'string') {
+    const t = raw.trim()
+    return t || null
+  }
+  if (raw && typeof raw === 'object' && typeof (raw as { source?: string }).source === 'string') {
+    const t = (raw as { source: string }).source.trim()
+    return t || null
+  }
+  return null
+}
+
+function resolveScheduleRowImagePhotographer(
+  row: Record<string, unknown>,
+  photographerKey: 'imagePhotographer' | 'imagePhotographer2',
+  sourceKey: 'imageSource' | 'imageSource2'
+): string | null {
+  const direct = row[photographerKey]
+  if (typeof direct === 'string') {
+    const t = direct.trim()
+    if (t) return t
+  }
+  const raw = row[sourceKey]
+  if (raw && typeof raw === 'object' && typeof (raw as { photographer?: string }).photographer === 'string') {
+    const t = (raw as { photographer: string }).photographer.trim()
+    return t || null
+  }
+  return null
 }
 
 type GetScheduleOptions = {
@@ -163,6 +201,10 @@ export function getScheduleFromProduct(
             imageUrl2,
             imageDisplayName,
             imageDisplayName2,
+            imagePhotographer: resolveScheduleRowImagePhotographer(row, 'imagePhotographer', 'imageSource'),
+            imageSource: resolveScheduleRowImageSource(row, 'imageSource'),
+            imagePhotographer2: resolveScheduleRowImagePhotographer(row, 'imagePhotographer2', 'imageSource2'),
+            imageSource2: resolveScheduleRowImageSource(row, 'imageSource2'),
             hotelText: optionalScheduleMealCol(row, 'hotelText'),
             breakfastText: optionalScheduleMealCol(row, 'breakfastText'),
             lunchText: optionalScheduleMealCol(row, 'lunchText'),

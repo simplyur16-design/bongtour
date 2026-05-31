@@ -9,6 +9,8 @@ import {
 import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
 import FitItineraryHeroSection from '@/app/components/detail/FitItineraryHeroSection'
 import FitItineraryQuoteCard from '@/app/components/detail/FitItineraryQuoteCard'
+import SafeImage from '@/app/components/SafeImage'
+import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import type { ProductPriceRow, ScheduleDay } from '@/app/components/travel/TravelProductDetail'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import type { FlightStructuredBody } from '@/lib/public-product-extras'
@@ -32,6 +34,8 @@ import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 import { computeKRWQuotation } from '@/lib/price-utils'
 import { buildPriceDisplaySsot } from '@/lib/price-display-ssot'
+import { resolveScheduleDayImageRightLabel } from '@/lib/public-image-overlay-ssot'
+import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
 import type { ProductMetaChip } from '@/lib/product-meta-chips'
 
 type Persona = 'mixed' | 'couple' | 'with-parents' | 'with-kids'
@@ -301,7 +305,7 @@ export function ItineraryView({
   }, [selectedDate, priceInfo?.departureDateFrom, totalDays])
 
   const daySlidesData = useMemo(() => {
-    type ScheduleRowWithImageMeta = ScheduleDay & {
+    type ScheduleRowWithImageMeta = Omit<ScheduleDay, 'imageSource' | 'imagePhotographer'> & {
       imagePhotographer?: string | null
       imageSource?: string | { source?: string } | null
     }
@@ -346,6 +350,15 @@ export function ItineraryView({
       }))
       .filter((s) => s.imageUrl)
   }, [product.schedule])
+
+  const daySlideByDayNumber = useMemo(() => {
+    const m = new Map<number, (typeof daySlidesData)[number]>()
+    for (const s of daySlidesData) {
+      const n = Math.floor(Number(s.day))
+      if (Number.isFinite(n) && n >= 1) m.set(n, s)
+    }
+    return m
+  }, [daySlidesData])
 
   useEffect(() => {
     if (!master || activePage !== 'all') return
@@ -638,6 +651,22 @@ export function ItineraryView({
               const isFirstInPaging = activePage !== 'all' && day.dayNumber === (activePage - 1) * pageSize + 1
               const isFinalPage = (activePage !== 'all' && activePage === pageCount && day.dayNumber === master.totalDays) || (activePage === 'all' && day.dayNumber === master.totalDays)
 
+              const daySlide = daySlideByDayNumber.get(day.dayNumber)
+              const dayImageUrl = daySlide?.imageUrl?.trim() || null
+              const dayImageLeftLabel = daySlide
+                ? resolveScheduleThumbCaption({
+                    imageKeyword: daySlide.imageKeyword,
+                    imageDisplayNameManual: daySlide.imageDisplayName,
+                  })
+                : null
+              const dayImageRightLabel = daySlide
+                ? resolveScheduleDayImageRightLabel({
+                    imageUrl: dayImageUrl,
+                    imagePhotographer: daySlide.imagePhotographer,
+                    imageSource: daySlide.imageSource,
+                  })
+                : null
+
               return (
                 <section
                   key={day.id}
@@ -646,9 +675,35 @@ export function ItineraryView({
                   className="scroll-mt-24"
                 >
                   <div className="pb-4 border-b border-[#DAD4EE] mb-4">
-                    <div className="text-sm md:text-base fit-tx-gold font-black mb-2 tracking-widest">DAY {day.dayNumber}</div>
-                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold fit-tx-primary mb-2">{day.title}</h2>
-                    <p className="text-base md:text-lg fit-tx-primary leading-relaxed">{day.summary}</p>
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm md:text-base fit-tx-gold font-black mb-2 tracking-widest">DAY {day.dayNumber}</div>
+                        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold fit-tx-primary mb-2">{day.title}</h2>
+                        <p className="text-base md:text-lg fit-tx-primary leading-relaxed">{day.summary}</p>
+                      </div>
+                      {dayImageUrl ? (
+                        <div
+                          className="relative h-48 w-full shrink-0 overflow-hidden rounded-2xl border border-[#DAD4EE] bg-[#1F1B2D] shadow-sm lg:h-40 lg:w-60"
+                          style={{ filter: 'brightness(1.06) contrast(1.12) saturate(1.20)' }}
+                        >
+                          <SafeImage
+                            src={dayImageUrl}
+                            alt={dayImageLeftLabel || `${day.title} Day ${day.dayNumber}`}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 1024px) 100vw, 240px"
+                          />
+                          <div
+                            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent"
+                            aria-hidden
+                          />
+                          <PublicImageBottomOverlay
+                            leftLabel={dayImageLeftLabel}
+                            rightLabel={dayImageRightLabel}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="space-y-3">
