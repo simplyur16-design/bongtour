@@ -2,7 +2,7 @@ import { unstable_cache } from 'next/cache'
 import { cache as reactCache } from 'react'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import { buildProductDetailPageSelect } from '@/lib/product-detail-page-include'
+import { buildProductDetailHeroSelect, buildProductDetailPageSelect } from '@/lib/product-detail-page-include'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { resolveProductByPathSegment } from '@/lib/resolve-product-by-path-segment'
 
@@ -81,6 +81,24 @@ function loadProductDetailRowCachedPublic(productId: string) {
     { revalidate: 3600, tags: [`product-detail-${productId}`, 'product-detail'] },
   )()
 }
+
+export const loadProductDetailHeroCached = reactCache(async (productId: string, allowAdminDraftFallback: boolean) => {
+  let row = await prisma.product.findFirst({
+    where: {
+      id: productId,
+      registrationStatus: 'registered',
+      AND: [publicProductWhereClause()],
+    },
+    select: buildProductDetailHeroSelect(),
+  })
+  if (!row && allowAdminDraftFallback) {
+    row = await prisma.product.findFirst({
+      where: { id: productId },
+      select: buildProductDetailHeroSelect(),
+    })
+  }
+  return row
+})
 
 export const loadProductDetailRowCached = reactCache(async (productId: string, allowAdminDraftFallback: boolean) => {
   productDetailUnstableCacheMiss = null

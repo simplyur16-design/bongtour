@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import ProductDetailNavLink from '@/components/products/ProductDetailNavLink'
+import { productDetailCardPreviewFromResultItem } from '@/lib/product-detail-card-preview-from-item'
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import EsimProductListNativeCard from '@/app/components/travel/EsimProductListNativeCard'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
@@ -783,14 +785,12 @@ export function ProductResultCard({
   const cardSrc = (item.coverImageUrl ?? item.bgImageUrl ?? '').trim()
   const cardBlur = Boolean(cardSrc) && isSrcOptimizableByNextImage(cardSrc)
 
-  const cardHref =
-    item.hasUrgentDeal && item.urgentDealNextDepartureDate
-      ? `/products/${item.id}?departure=${encodeURIComponent(item.urgentDealNextDepartureDate)}`
-      : `/products/${item.id}`
+  const preview = productDetailCardPreviewFromResultItem(item, formatWon)
 
   return (
-    <Link
-      href={cardHref}
+    <ProductDetailNavLink
+      href={preview.href}
+      preview={preview}
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md"
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
@@ -887,7 +887,7 @@ export function ProductResultCard({
           {item.duration && <span className="text-xs text-slate-500">{item.duration}</span>}
         </div>
       </div>
-    </Link>
+    </ProductDetailNavLink>
   )
 }
 
