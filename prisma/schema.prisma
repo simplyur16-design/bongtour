@@ -248,6 +248,7 @@ model Product {
 
   @@unique([originSource, originCode])
   @@index([registrationStatus, updatedAt])
+  @@index([registrationStatus, travelScope, updatedAt(sort: Desc)])
   @@index([registrationStatus, lastPriceObservedAt])
   @@index([continentKey])
   @@index([cityKey])
