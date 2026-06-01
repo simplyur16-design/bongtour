@@ -20,6 +20,7 @@ import {
   consumeProductDetailUnstableCacheMiss,
 } from '@/lib/product-detail-page-cache'
 import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
+import { runWithQueryLogScope } from '@/lib/prisma-query-log'
 
 /** 공개 등록 상품 — 5분 ISR. draft 미리보기는 요청 시 `connection()`으로 동적 렌더 */
 export const revalidate = 300
@@ -50,6 +51,12 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { idOrSlug } = await params
+  return runWithQueryLogScope(`/products/${idOrSlug} [metadata]`, async () => {
+    return generateMetadataInner(idOrSlug)
+  })
+}
+
+async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
   const { resolved, allowAdminDraft } = await resolveProductPageAccess(idOrSlug)
   if (allowAdminDraft) await connection()
   if (resolved.kind === 'redirect') {
@@ -106,13 +113,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * Draft rows render only when `requireAdmin()` succeeds.
  */
 export default async function ProductDetailPage({ params }: Props) {
-  const perfPage = process.env.BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
-  const t0 = perfPage ? Date.now() : 0 // PERF-LOG: 측정 후 제거
-
   const { idOrSlug } = await params
   if (typeof idOrSlug !== 'string' || !idOrSlug.trim()) {
     notFound()
   }
+
+  return runWithQueryLogScope(`/products/${idOrSlug}`, () => productDetailPageInner(idOrSlug))
+}
+
+async function productDetailPageInner(idOrSlug: string) {
+  const perfPage = process.env.BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
+  const t0 = perfPage ? Date.now() : 0 // PERF-LOG: 측정 후 제거
 
   const tResolved = perfPage ? Date.now() : 0 // PERF-LOG: 측정 후 제거
   const { resolved, allowAdminDraft } = await resolveProductPageAccess(idOrSlug)
