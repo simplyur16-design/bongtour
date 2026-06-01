@@ -18,12 +18,11 @@ import { loadProductForMetadataCached } from '@/lib/product-detail-page-cache'
 import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
 import { runWithQueryLogScope } from '@/lib/prisma-query-log'
 import { ProductDetailPageContent } from '@/app/products/[idOrSlug]/product-detail-page-content'
-import { ProductDetailHeroChunk } from '@/app/products/[idOrSlug]/product-detail-hero-chunk'
 import ProductDetailTransitionShell from '@/components/products/ProductDetailTransitionShell'
-import ProductDetailHeroSlot from '@/components/products/ProductDetailHeroSlot'
 
 // `headers()` UA 분기로 라우트가 dynamic — `revalidate` ISR은 적용되지 않음.
 // 상품 데이터는 `loadProductDetailRowCached` unstable_cache(v2, 3600s)가 담당.
+// 근본 병목·로드맵: docs/ops/product-detail-navigation-root-cause.md
 
 type Props = {
   params: Promise<{ idOrSlug: string }>
@@ -102,11 +101,6 @@ export default async function ProductDetailPage({ params }: Props) {
 
   return (
     <ProductDetailTransitionShell idOrSlug={idOrSlug} userAgent={userAgent}>
-      <ProductDetailHeroSlot>
-        <Suspense fallback={null}>
-          <ProductDetailHeroChunk idOrSlug={idOrSlug} />
-        </Suspense>
-      </ProductDetailHeroSlot>
       <Suspense fallback={null}>
         <ProductDetailPageContent idOrSlug={idOrSlug} />
       </Suspense>

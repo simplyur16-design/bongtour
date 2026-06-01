@@ -77,25 +77,6 @@ function buildProductDetailOptionalTourSelect() {
   } satisfies Prisma.OptionalTourSelect
 }
 
-/** 스트리밍 1단 — 히어로·제목만 먼저 (rawMeta·schedule·출발 제외) */
-export function buildProductDetailHeroSelect() {
-  return {
-    id: true,
-    title: true,
-    originSource: true,
-    primaryDestination: true,
-    destination: true,
-    duration: true,
-    bgImageUrl: true,
-    priceFrom: true,
-    publicImageHeroSeoLine: true,
-  } satisfies Prisma.ProductSelect
-}
-
-export type ProductDetailHeroRow = Prisma.ProductGetPayload<{
-  select: ReturnType<typeof buildProductDetailHeroSelect>
-}>
-
 /** 상세 UI·직렬화에 쓰는 Product 스칼라 — browse 파생·운영 메타·미사용 대용량 TEXT 제외 */
 export function buildProductDetailScalarsSelect() {
   return {

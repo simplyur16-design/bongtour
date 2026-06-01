@@ -35,6 +35,7 @@ export default function ProductDetailNavLink({
     <Link
       href={href}
       prefetch
+      scroll
       onMouseEnter={(e) => {
         warm()
         onMouseEnter?.(e)

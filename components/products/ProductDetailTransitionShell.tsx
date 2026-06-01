@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, type ReactNode } from 'react'
+import { useLayoutEffect, useState, type ReactNode } from 'react'
 import {
   productIdFromDetailPathSegment,
   readProductDetailCardPreview,
+  type ProductDetailCardPreview,
 } from '@/lib/product-detail-card-preview'
 import { isMobileUserAgent } from '@/lib/product-detail-viewport-from-ua'
 import ProductDetailInstantFromCard from '@/components/products/ProductDetailInstantFromCard'
@@ -22,27 +23,36 @@ function ProductDetailTransitionShellInner({
   children: ReactNode
 }) {
   const productId = productIdFromDetailPathSegment(idOrSlug)
-  const preview = useMemo(() => readProductDetailCardPreview(productId), [productId])
-  const { heroReady, serverReady } = useProductDetailTransition()
+  const [preview, setPreview] = useState<ProductDetailCardPreview | null>(null)
+  const { serverReady } = useProductDetailTransition()
 
-  const showInstant = Boolean(preview) && !heroReady && !serverReady
-  const hideStreamed = showInstant
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0)
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual'
+    }
+  }, [idOrSlug])
+
+  useLayoutEffect(() => {
+    setPreview(readProductDetailCardPreview(productId))
+  }, [productId])
+
+  const showCardOverlay = Boolean(preview) && !serverReady
 
   return (
-    <div className="relative min-h-screen bg-bt-page">
-      {showInstant && preview ? (
-        <div className="absolute inset-0 z-10 bg-bt-page">
+    <>
+      {showCardOverlay && preview ? (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-bt-page overscroll-none">
           <ProductDetailInstantFromCard preview={preview} isMobile={isMobileUa} />
         </div>
       ) : null}
-      <div className={hideStreamed ? 'invisible' : undefined} aria-busy={!serverReady}>
-        {children}
-      </div>
-    </div>
+      {/* invisible 대신 hidden — 부분 스트림 높이로 스크롤 튐 방지 */}
+      <div className={serverReady ? undefined : 'hidden'}>{children}</div>
+    </>
   )
 }
 
-/** 목록 카드 preview + 서버 hero/본문 스트리밍 전환 */
+/** 목록 카드 preview(고정 오버레이) → 서버 본문 1회 교체 */
 export default function ProductDetailTransitionShell({
   idOrSlug,
   userAgent,
