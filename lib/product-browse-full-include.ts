@@ -144,7 +144,9 @@ export function buildProductBrowseFullInclude(baseDate: Date = new Date()) {
 /** @deprecated `buildProductBrowseFullInclude()` 사용 */
 export const PRODUCT_BROWSE_FULL_INCLUDE = buildProductBrowseFullInclude()
 
-export type ProductBrowseIncludedRow = ProductBrowseFindManyRow
+export type ProductBrowseIncludedRow = ProductBrowseFindManyRowWithoutDepartures & {
+  departures: ProductBrowseDepartureRow[]
+}
 
 export async function fetchBrowseDeparturesByProductIds(
   productIds: string[],

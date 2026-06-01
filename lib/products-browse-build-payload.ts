@@ -1,7 +1,9 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import {
-  buildProductBrowseFindManySelect,
+  attachBrowseDeparturesToProducts,
+  buildProductBrowseFindManySelectWithoutDepartures,
+  fetchBrowseDeparturesByProductIds,
   fetchProductBrowseScheduleByIds,
   type ProductBrowseIncludedRow,
 } from '@/lib/product-browse-full-include'
@@ -247,7 +249,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       prismaWhereForBrowseTravelScope(scopeForLimit) ??
       prismaWhereForBrowseTravelScope(region?.trim() ? 'overseas' : null)
 
-    const rows = await prisma.product.findMany({
+    const productRows = await prisma.product.findMany({
       where: {
         registrationStatus: 'registered',
         AND: [
@@ -262,8 +264,12 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         { urgentDealNextDate: { sort: 'asc', nulls: 'last' } },
         { updatedAt: 'desc' },
       ],
-      select: buildProductBrowseFindManySelect(),
+      select: buildProductBrowseFindManySelectWithoutDepartures(),
     })
+    const departureByProductId = await fetchBrowseDeparturesByProductIds(
+      productRows.map((p) => p.id)
+    )
+    const rows = attachBrowseDeparturesToProducts(productRows, departureByProductId)
     if (perf) {
       perf.db = performance.now() // PERF-LOG: 측정 후 제거
       perf.rowCount = rows.length // PERF-LOG: 측정 후 제거
