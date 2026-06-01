@@ -173,6 +173,21 @@ function TravelerAvgDailyProgressBar({ countryNameKr, code }: TravelerAvgDailyPr
       </p>
 
       <div className="relative w-full">
+        {/* 평균 마커 — 막대·구간 라벨과 겹치지 않도록 막대 위 전용 행에 배치 */}
+        <div className="relative mb-1.5 h-11 w-full sm:h-12">
+          <div
+            className="absolute bottom-0 z-10 flex flex-col items-center"
+            style={{ left: `${markerLeftPct}%`, transform: "translateX(-50%)" }}
+          >
+            <span className="whitespace-nowrap rounded-md border border-teal-200 bg-white px-2 py-0.5 text-xs font-bold text-teal-700 shadow-sm sm:text-sm">
+              평균 {formatAvgDailyGbLabel(avgGb)}
+            </span>
+            <span className="text-[10px] leading-none text-teal-500 sm:text-xs" aria-hidden>
+              ▼
+            </span>
+          </div>
+        </div>
+
         <div className="flex h-9 w-full overflow-hidden rounded-full border border-slate-200 sm:h-10">
           <div className="flex flex-[0_0_20%] items-center justify-center bg-emerald-100">
             <span className="text-[11px] font-semibold text-emerald-800 sm:text-xs">알뜰</span>
@@ -202,20 +217,6 @@ function TravelerAvgDailyProgressBar({ countryNameKr, code }: TravelerAvgDailyPr
           <span className="absolute text-[11px] text-slate-500" style={{ right: 0 }}>
             5GB+
           </span>
-        </div>
-
-        <div
-          className="absolute -top-1"
-          style={{ left: `${markerLeftPct}%`, transform: "translateX(-50%)" }}
-        >
-          <div className="flex flex-col items-center">
-            <span className="rounded-md border border-teal-200 bg-white px-2 py-0.5 text-xs font-bold text-teal-700 shadow-sm sm:text-sm">
-              평균 {formatAvgDailyGbLabel(avgGb)}
-            </span>
-            <span className="text-xs leading-none text-teal-500" aria-hidden>
-              ▼
-            </span>
-          </div>
         </div>
       </div>
 
