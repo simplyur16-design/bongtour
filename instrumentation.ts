@@ -78,6 +78,10 @@ export async function register() {
           '@/lib/instrumentation-fit-itinerary-backfill'
         )
         startInstrumentationFitItineraryBackfillCron()
+        const { startInstrumentationCacheWarmCron } = await import(
+          '@/lib/instrumentation-cache-warm-cron'
+        )
+        startInstrumentationCacheWarmCron()
       }
     }
   }
