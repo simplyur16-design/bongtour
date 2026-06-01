@@ -45,12 +45,12 @@ function hourInBucket(hour: number, bucket: string): boolean {
 export function buildBrowseItemFilterMeta(p: ProductBrowseFullRow): BrowseItemFilterMeta {
   const parts: string[] = []
   if (p.airline) parts.push(p.airline)
-  for (const d of p.departures) {
+  for (const d of p.departures ?? []) {
     if (d.carrierName) parts.push(d.carrierName)
   }
   const departureHours: number[] = []
   const departureWeekdays: number[] = []
-  for (const d of p.departures) {
+  for (const d of p.departures ?? []) {
     const day = new Date(d.departureDate).getDay()
     if (!departureWeekdays.includes(day)) departureWeekdays.push(day)
     if (d.outboundDepartureAt) {

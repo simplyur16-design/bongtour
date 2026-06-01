@@ -5,6 +5,8 @@ import {
   buildProductBrowseFindManySelectWithoutDepartures,
   fetchBrowseDeparturesByProductIds,
   fetchProductBrowseScheduleByIds,
+  fetchProductIdsWithDepartureInCalendarMonth,
+  productBrowseRowsWithEmptyDepartures,
   type ProductBrowseIncludedRow,
 } from '@/lib/product-browse-full-include'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
@@ -29,7 +31,7 @@ import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { buildCaptionLookupMapFromPublicUrls, lookupCaptionFromMap } from '@/lib/image-asset-public-caption'
 import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
-import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
+import { toSeoulYmd } from '@/lib/public-bookable-date'
 import { departureDateToYmd } from '@/lib/modetour-urgent-deal'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
@@ -101,6 +103,27 @@ function parseSort(raw: string | null): BrowseSort {
   if (u === 'budget_fit' || u === 'price_asc' || u === 'price_desc' || u === 'popular' || u === 'departure_asc')
     return u
   return 'popular'
+}
+
+/** 목록 풀 단계에서 출발 행이 필요한 필터만 — 기본 browse는 Product derived 만 사용 */
+function browsePoolNeedsDepartureAttach(opts: {
+  paxFilter: number | null
+  domesticLike: boolean
+  dmPillar: string
+  dmItem: string
+  departHours: string[]
+  departWeekdays: number[]
+}): boolean {
+  if (opts.paxFilter != null && !Number.isNaN(opts.paxFilter) && opts.paxFilter > 0) return true
+  if (opts.departHours.length > 0 || opts.departWeekdays.length > 0) return true
+  if (
+    opts.domesticLike &&
+    opts.dmPillar === 'schedule' &&
+    (opts.dmItem === 'weekend' || opts.dmItem === 'weekday')
+  ) {
+    return true
+  }
+  return false
 }
 
 /**
@@ -266,35 +289,37 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       ],
       select: buildProductBrowseFindManySelectWithoutDepartures(),
     })
-    const departureByProductId = await fetchBrowseDeparturesByProductIds(
-      productRows.map((p) => p.id)
-    )
-    const rows = attachBrowseDeparturesToProducts(productRows, departureByProductId)
+
+    const overseasLike = scope === 'overseas' || !!region
+    const domesticLike = scope === 'domestic'
+
+    const poolNeedsDepartures = browsePoolNeedsDepartureAttach({
+      paxFilter,
+      domesticLike,
+      dmPillar,
+      dmItem,
+      departHours: q.departHours,
+      departWeekdays: q.departWeekdays,
+    })
+    let rows: ProductBrowseIncludedRow[]
+    if (poolNeedsDepartures) {
+      const departureByProductId = await fetchBrowseDeparturesByProductIds(
+        productRows.map((p) => p.id),
+      )
+      rows = attachBrowseDeparturesToProducts(productRows, departureByProductId)
+    } else {
+      rows = productBrowseRowsWithEmptyDepartures(productRows)
+    }
     if (perf) {
       perf.db = performance.now() // PERF-LOG: 측정 후 제거
       perf.rowCount = rows.length // PERF-LOG: 측정 후 제거
     }
-    /**
-     * 공개 목록용으로 "예약 가능 최소일(오늘+2일) 이후" 출발만 `departures`에 남긴다.
-     * 예전에는 DB에 출발 행이 하나라도 있으면서 전부 과거인 경우 상품 전체를 빼서,
-     * 관리자 KPI(등록 건수)와 고객 목록이 어긋날 수 있었다. 상품은 유지하고 가격·정렬은
-     * `computeEffectivePricePerPersonKrwFromRow`의 레거시 prices / priceFrom 폴백을 쓴다.
-     */
-    const rowsWithPublicDepartures = rows.map((p) => {
-      const nextDepartures = (p.departures ?? []).filter((d) =>
-        isOnOrAfterPublicBookableMinDate(d.departureDate)
-      )
-      return { ...p, departures: nextDepartures }
-    })
-
-    const overseasLike = scope === 'overseas' || !!region
-    const domesticLike = scope === 'domestic'
     const skipGlobalTripDaysForDomesticSchedule =
       domesticLike && dmPillar === 'schedule' && dmItem.length > 0
     /** region만 있어도 해외 목적지 트리와 동일하게 travelScope 정렬 */
     const travelScopeParam = domesticLike ? 'domestic' : overseasLike ? 'overseas' : null
-    const scopedBeforeTree = filterPoolByStoredTravelScope(rowsWithPublicDepartures, travelScopeParam)
-    let pool: typeof rowsWithPublicDepartures = scopedBeforeTree
+    const scopedBeforeTree = filterPoolByStoredTravelScope(rows, travelScopeParam)
+    let pool: typeof rows = scopedBeforeTree
     if (domesticLike) {
       pool = filterProductsForDomesticDestinationTree(scopedBeforeTree)
     } else if (overseasLike) {
@@ -405,20 +430,17 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     })
 
     if (departMonth && /^\d{4}-\d{2}$/.test(departMonth)) {
-      const monthKeyFromDate = (dt: Date) =>
-        `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
-      /** 예약 가능 출발만 남기기 전 원본 행(`rows`)의 출발일로 월 매칭 — 전부 과거라도 해당 월 상품이 0건으로 사라지지 않게 함 */
+      const monthKeyFromDate = (dt: Date) => toSeoulYmd(dt).slice(0, 7)
+      const scoredIds = scored.map((s) => s.product.id)
+      const anyDepartureInMonth = await fetchProductIdsWithDepartureInCalendarMonth(
+        scoredIds,
+        departMonth,
+      )
+      /** bookable `nextBookableDepartureAt` 우선, 없으면 해당 월 출발 행 존재 여부(과거 출발 포함) */
       scored = scored.filter((s) => {
         const bookable = s.earliestDeparture
         if (bookable && monthKeyFromDate(bookable) === departMonth) return true
-        const orig = rows.find((r) => r.id === s.product.id)
-        for (const dep of orig?.departures ?? []) {
-          const dt =
-            dep.departureDate instanceof Date ? dep.departureDate : new Date(dep.departureDate)
-          if (Number.isNaN(dt.getTime())) continue
-          if (monthKeyFromDate(dt) === departMonth) return true
-        }
-        return false
+        return anyDepartureInMonth.has(s.product.id)
       })
     }
 
@@ -441,6 +463,10 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     const total = scored.length
     const slice = scored.slice((page - 1) * limit, page * limit)
     if (perf) perf.finalCount = slice.length // PERF-LOG: 측정 후 제거
+
+    const sliceDepartureByProductId = await fetchBrowseDeparturesByProductIds(
+      slice.map(({ product }) => product.id),
+    )
 
     const scheduleByProductId = await fetchProductBrowseScheduleByIds(
       slice.map(({ product }) => product.id)
@@ -466,7 +492,10 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     const captionMap = await buildCaptionLookupMapFromPublicUrls(urlsForCaptionBatch)
 
     const items = metaRows.map(({ p: pRaw, effectivePricePerPerson, coverUrl, firstScheduleName }) => {
-      const p = pRaw as ProductBrowseIncludedRow
+      const p: ProductBrowseIncludedRow = {
+        ...(pRaw as ProductBrowseIncludedRow),
+        departures: sliceDepartureByProductId.get(pRaw.id) ?? [],
+      }
       const seoAssetHint = lookupCaptionFromMap(captionMap, coverUrl)
       const coverImageSeoKeyword = resolvePublicProductHeroSeoKeywordOverlay({
         storedRegisterSeoKeywordsJson: p.publicImageHeroSeoKeywordsJson,
@@ -528,7 +557,10 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       coverImageUrl: coverUrl,
       priceFrom: p.priceFrom,
       effectivePricePerPersonKrw: effectivePricePerPerson,
-      earliestDeparture: p.departures[0]?.departureDate?.toISOString() ?? null,
+      earliestDeparture:
+        p.nextBookableDepartureAt?.toISOString() ??
+        p.departures[0]?.departureDate?.toISOString() ??
+        null,
       browseFilterMeta: buildBrowseItemFilterMeta(p),
       ...(p.hasUrgentDeal
         ? (() => {
@@ -603,7 +635,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         mapMs: Math.round(map - score),
         rowCount,
         finalCount,
-        cacheKey: `products-browse-v12|${queryKey}`,
+        cacheKey: `products-browse-v13|${queryKey}`,
       }
       browsePerfLastPhases = phases // PERF-LOG: 측정 후 제거
       console.log('[browse-perf]', JSON.stringify({ cacheHit: false, ...phases })) // PERF-LOG: 측정 후 제거

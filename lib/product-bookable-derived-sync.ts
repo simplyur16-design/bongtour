@@ -2,7 +2,7 @@ import type { PrismaClient } from '@prisma/client'
 
 /**
  * `lib/public-bookable-date.ts` — 오늘(자정) + 2일 이후 출발만 예약 가능.
- * Node 런타임은 서버 로컬 TZ, DB 트리거·백필·nightly cron 은 **Asia/Seoul** 자정+2일 (운영 SSOT).
+ * Node `lib/public-bookable-date.ts` 도 **Asia/Seoul** 자정+2일 (DB·트리거와 동일).
  * facet/정렬 SSOT는 DB 쪽; 단계 2에서 browse가 이 컬럼을 읽는다.
  */
 

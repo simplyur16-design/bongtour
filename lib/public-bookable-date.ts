@@ -1,17 +1,34 @@
 const PUBLIC_BOOKABLE_MIN_OFFSET_DAYS = 2
+const SEOUL_TZ = 'Asia/Seoul'
 
-function startOfDayLocal(d: Date): Date {
-  const x = new Date(d)
-  x.setHours(0, 0, 0, 0)
-  return x
+/** Asia/Seoul 달력 YYYY-MM-DD — DB 트리거·derived SSOT와 동일 */
+export function toSeoulYmd(d: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: SEOUL_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d)
+}
+
+function seoulCalendarAddDays(baseDate: Date, dayOffset: number): string {
+  const ymd = toSeoulYmd(baseDate)
+  const anchor = new Date(`${ymd}T12:00:00+09:00`)
+  anchor.setUTCDate(anchor.getUTCDate() + dayOffset)
+  return toSeoulYmd(anchor)
+}
+
+/** 서울 자정 instant — Prisma `departureDate >=` 비교용 */
+function seoulMidnightInstant(ymd: string): Date {
+  return new Date(`${ymd}T00:00:00+09:00`)
 }
 
 export function getPublicBookableMinDate(baseDate: Date = new Date()): Date {
-  const min = startOfDayLocal(baseDate)
-  min.setDate(min.getDate() + PUBLIC_BOOKABLE_MIN_OFFSET_DAYS)
-  return min
+  const minYmd = seoulCalendarAddDays(baseDate, PUBLIC_BOOKABLE_MIN_OFFSET_DAYS)
+  return seoulMidnightInstant(minYmd)
 }
 
+/** @deprecated 서버 로컬 TZ — 신규 코드는 `toSeoulYmd` 사용 */
 export function toYmdLocal(d: Date): string {
   const yyyy = d.getFullYear()
   const mm = String(d.getMonth() + 1).padStart(2, '0')
@@ -20,7 +37,7 @@ export function toYmdLocal(d: Date): string {
 }
 
 export function getPublicBookableMinYmd(baseDate: Date = new Date()): string {
-  return toYmdLocal(getPublicBookableMinDate(baseDate))
+  return toSeoulYmd(getPublicBookableMinDate(baseDate))
 }
 
 export function isOnOrAfterPublicBookableMinDate(
@@ -28,10 +45,10 @@ export function isOnOrAfterPublicBookableMinDate(
   baseDate: Date = new Date()
 ): boolean {
   if (!dateLike) return false
-  const d = dateLike instanceof Date ? new Date(dateLike) : new Date(dateLike)
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike)
   if (Number.isNaN(d.getTime())) return false
-  const lhs = startOfDayLocal(d).getTime()
-  const rhs = getPublicBookableMinDate(baseDate).getTime()
+  const lhs = toSeoulYmd(d)
+  const rhs = getPublicBookableMinYmd(baseDate)
   return lhs >= rhs
 }
 
@@ -41,7 +58,7 @@ export function toDepartureDateYmd(dateLike: Date | string | null | undefined): 
   if (typeof dateLike === 'string') return dateLike.slice(0, 10)
   if (dateLike instanceof Date) {
     if (Number.isNaN(dateLike.getTime())) return ''
-    return dateLike.toISOString().slice(0, 10)
+    return toSeoulYmd(dateLike)
   }
   return ''
 }

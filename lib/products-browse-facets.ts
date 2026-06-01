@@ -53,7 +53,7 @@ export function aggregateAirlineFacets(rows: ProductBrowseFullRow[]): AirlineFac
   for (const p of rows) {
     const parts: string[] = []
     if (p.airline) parts.push(p.airline)
-    for (const d of p.departures) {
+    for (const d of p.departures ?? []) {
       if (d.carrierName) parts.push(d.carrierName)
     }
     const hay = buildAirlineHaystack(parts)

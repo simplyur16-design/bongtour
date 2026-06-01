@@ -4,7 +4,7 @@
  */
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getPublicBookableMinDate } from '@/lib/public-bookable-date'
+import { getPublicBookableMinDate, toSeoulYmd } from '@/lib/public-bookable-date'
 
 /** 목록·필터·정렬에 쓰는 Product 스칼라 — schedule/rawMeta/counselingNotes 등 대용량 JSON·TEXT 제외 */
 export function buildProductBrowseListSelect() {
@@ -48,6 +48,10 @@ export function buildProductBrowseListSelect() {
     hasUrgentDeal: true,
     urgentDealNextDate: true,
     updatedAt: true,
+    minBookableAdultPrice: true,
+    nextBookableDepartureAt: true,
+    bookableDepartureCount: true,
+    hasBookableDepartures: true,
   } satisfies Prisma.ProductSelect
 }
 
@@ -182,6 +186,40 @@ export function attachBrowseDeparturesToProducts(
     ...p,
     departures: departureByProductId.get(p.id) ?? [],
   }))
+}
+
+export function productBrowseRowsWithEmptyDepartures(
+  rows: ProductBrowseFindManyRowWithoutDepartures[],
+): ProductBrowseIncludedRow[] {
+  return rows.map((p) => ({ ...p, departures: [] }))
+}
+
+/** 달력 월(YYYY-MM)에 출발 행이 하나라도 있는 productId — departMonth 필터용 경량 조회 */
+export async function fetchProductIdsWithDepartureInCalendarMonth(
+  productIds: string[],
+  monthKey: string,
+): Promise<Set<string>> {
+  if (productIds.length === 0 || !/^\d{4}-\d{2}$/.test(monthKey)) return new Set()
+  const [yStr, mStr] = monthKey.split('-')
+  const y = parseInt(yStr!, 10)
+  const m = parseInt(mStr!, 10)
+  if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) return new Set()
+
+  const startYmd = `${y}-${String(m).padStart(2, '0')}-01`
+  const start = new Date(`${startYmd}T00:00:00+09:00`)
+  const endAnchor = new Date(`${startYmd}T12:00:00+09:00`)
+  endAnchor.setUTCMonth(endAnchor.getUTCMonth() + 1)
+  const end = new Date(`${toSeoulYmd(endAnchor)}T00:00:00+09:00`)
+
+  const rows = await prisma.productDeparture.findMany({
+    where: {
+      productId: { in: productIds },
+      departureDate: { gte: start, lt: end },
+    },
+    select: { productId: true },
+    distinct: ['productId'],
+  })
+  return new Set(rows.map((r) => r.productId))
 }
 
 export async function fetchProductBrowseScheduleByIds(

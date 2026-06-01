@@ -98,6 +98,8 @@ export type BrowseScoringProductInput = ProductPriceSelect & {
   productType: string | null
   listingKind?: string | null
   priceFrom: number | null
+  nextBookableDepartureAt?: Date | null
+  bookableDepartureCount?: number
   primaryDestination: string | null
   destinationRaw: string | null
   destination: string | null
@@ -128,6 +130,14 @@ function earliestDepartureDate(departures: { departureDate: Date }[]): Date | nu
   return new Date(min)
 }
 
+function earliestBookableDepartureForProduct(p: BrowseScoringProductInput): Date | null {
+  if (p.nextBookableDepartureAt) {
+    const t = new Date(p.nextBookableDepartureAt)
+    if (!Number.isNaN(t.getTime())) return t
+  }
+  return earliestDepartureDate(p.departures ?? [])
+}
+
 export function scoreAndFilterProducts<T extends BrowseScoringProductInput>(
   rows: T[],
   opts: {
@@ -151,7 +161,7 @@ export function scoreAndFilterProducts<T extends BrowseScoringProductInput>(
       opts.budgetPerPersonMax != null && effectivePricePerPerson != null
         ? Math.abs(opts.budgetPerPersonMax - effectivePricePerPerson)
         : effectivePricePerPerson ?? 0
-    const earliestDeparture = earliestDepartureDate(p.departures)
+    const earliestDeparture = earliestBookableDepartureForProduct(p)
     list.push({ product: p, effectivePricePerPerson, distanceToBudget, earliestDeparture })
   }
 

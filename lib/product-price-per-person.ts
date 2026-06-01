@@ -9,7 +9,9 @@
 export type ProductPriceSelect = {
   id: string
   priceFrom: number | null
-  departures: { adultPrice: number | null; departureDate: Date }[]
+  /** DB derived — bookable 출발 최저 성인가 (트리거·Seoul+2일 SSOT) */
+  minBookableAdultPrice?: number | null
+  departures?: { adultPrice: number | null; departureDate: Date }[]
 }
 
 function computeDeparturesAdultPriceMin(
@@ -24,7 +26,10 @@ function computeDeparturesAdultPriceMin(
 }
 
 export function computeEffectivePricePerPersonKrwFromRow(p: ProductPriceSelect): number | null {
-  const depMin = computeDeparturesAdultPriceMin(p.departures)
+  if (p.minBookableAdultPrice != null && p.minBookableAdultPrice > 0) {
+    return p.minBookableAdultPrice
+  }
+  const depMin = computeDeparturesAdultPriceMin(p.departures ?? [])
   if (depMin != null && depMin > 0) return depMin
 
   if (p.priceFrom != null && p.priceFrom > 0) return p.priceFrom

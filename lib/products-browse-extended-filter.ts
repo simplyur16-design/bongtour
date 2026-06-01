@@ -98,7 +98,7 @@ function matchesAirlineCodes(p: ProductBrowseFullRow, codes: string[]): boolean 
   if (codes.length === 0) return true
   const parts: string[] = []
   if (p.airline) parts.push(p.airline)
-  for (const d of p.departures) {
+  for (const d of p.departures ?? []) {
     if (d.carrierName) parts.push(d.carrierName)
   }
   const hay = buildAirlineHaystack(parts)
@@ -126,7 +126,7 @@ function matchesShoppingNone(p: ProductBrowseFullRow): boolean {
 
 function matchesDepartureHourBuckets(p: ProductBrowseFullRow, buckets: string[]): boolean {
   if (buckets.length === 0) return true
-  return p.departures.some((d: ProductBrowseFullRow['departures'][number]) => {
+  return (p.departures ?? []).some((d: ProductBrowseFullRow['departures'][number]) => {
     if (!d.outboundDepartureAt) return false
     const h = hourFromDepartureAt(new Date(d.outboundDepartureAt))
     return buckets.some((b) => hourInBucket(h, b))
@@ -135,7 +135,7 @@ function matchesDepartureHourBuckets(p: ProductBrowseFullRow, buckets: string[])
 
 function matchesDepartureWeekdays(p: ProductBrowseFullRow, weekdays: number[]): boolean {
   if (weekdays.length === 0) return true
-  return p.departures.some((d: ProductBrowseFullRow['departures'][number]) => {
+  return (p.departures ?? []).some((d: ProductBrowseFullRow['departures'][number]) => {
     const day = new Date(d.departureDate).getDay()
     return weekdays.includes(day)
   })
@@ -178,7 +178,7 @@ export function computeFacetFlags(rows: ProductBrowseFullRow[]): {
   let hasDepartureTimeData = false
   let hasWeekdayData = false
   for (const p of rows) {
-    for (const d of p.departures) {
+    for (const d of p.departures ?? []) {
       hasWeekdayData = true
       if (d.outboundDepartureAt) {
         hasDepartureTimeData = true
