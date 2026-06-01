@@ -1,10 +1,8 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
 import Header from '@/app/components/Header'
-import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import EsimLandingHero from '@/app/travel/esim/EsimLandingHero'
 import { SUBPAGE_PAGE_SHELL_CLASS } from '@/lib/subpage-design-system'
-import { bongsimPath } from '@/lib/bongsim/constants'
 
 const EsimLandingBelowFold = nextDynamic(() => import('./EsimLandingBelowFold'), {
   loading: () => (
@@ -23,45 +21,7 @@ export default function EsimPage() {
   return (
     <div className={SUBPAGE_PAGE_SHELL_CLASS}>
       <Header />
-      <section
-        className="w-full border-b border-bt-border-soft/60 bg-gradient-to-br from-bt-bg-lavender-soft via-white to-bt-bg-lavender/40 py-16 text-center lg:py-24"
-        aria-labelledby="esim-hero-heading"
-      >
-        <div className={SITE_CONTENT_CLASS}>
-          <h1
-            id="esim-hero-heading"
-            className="text-balance text-3xl font-bold leading-tight tracking-tight text-slate-900 lg:text-5xl"
-          >
-            여행지에 딱 맞는 eSIM
-          </h1>
-          <div className="mx-auto mt-3 flex max-w-2xl flex-col items-center gap-2 lg:mt-4">
-            <p className="text-lg text-slate-600 lg:text-xl">해외 여행 데이터, 이제 더 쉽게</p>
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-              <Link
-                href={bongsimPath('/devices')}
-                className="text-sm font-medium text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-teal-800 hover:decoration-teal-400"
-              >
-                사용가능 기기 확인하기 →
-              </Link>
-              <Link
-                href={bongsimPath('/guide')}
-                className="text-sm font-medium text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-teal-800 hover:decoration-teal-400"
-              >
-                설치 가이드 보기 →
-              </Link>
-            </div>
-          </div>
-          <div className="mt-8 lg:mt-10">
-            <Link
-              href={bongsimPath('/recommend')}
-              className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 px-10 py-4 text-lg font-bold text-white shadow-lg transition hover:from-teal-600 hover:to-cyan-600 hover:shadow-xl active:scale-[0.99]"
-            >
-              나에게 맞는 eSIM 찾기
-            </Link>
-          </div>
-        </div>
-      </section>
-
+      <EsimLandingHero />
       <EsimLandingBelowFold />
     </div>
   )
