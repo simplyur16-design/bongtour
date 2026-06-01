@@ -82,6 +82,10 @@ export async function register() {
           '@/lib/instrumentation-cache-warm-cron'
         )
         startInstrumentationCacheWarmCron()
+        const { startInstrumentationRehostImagesCron } = await import(
+          '@/lib/instrumentation-rehost-images-cron'
+        )
+        startInstrumentationRehostImagesCron()
       }
     }
   }
