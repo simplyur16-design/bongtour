@@ -2,6 +2,31 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import type { ScheduleImageItem } from '@/lib/destination-image-set'
+import { isObjectStorageConfigured } from '@/lib/object-storage'
+import { savePhotoFromUrlWithRetry } from '@/lib/photo-pool'
+import { isExternalHttpProductImageUrl } from '@/lib/travel-product-image-internalize'
+
+async function ingestDestinationSetImageUrl(
+  url: string,
+  destinationName: string,
+  label: string
+): Promise<string> {
+  if (!isExternalHttpProductImageUrl(url)) return url
+  if (!isObjectStorageConfigured()) {
+    throw new Error('Object Storage(NCLOUD_*)가 설정되지 않았습니다.')
+  }
+  const pooled = await savePhotoFromUrlWithRetry(
+    prisma,
+    url,
+    destinationName,
+    label.slice(0, 80) || 'destination',
+    'ingest'
+  )
+  if (!pooled) {
+    throw new Error('외부 이미지를 PhotoPool에 저장하지 못했습니다.')
+  }
+  return pooled.filePath
+}
 
 /**
  * GET /api/admin/destination-image-sets. 인증: 관리자.
@@ -59,6 +84,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'scheduleImageUrls 4개(유효한 URL) 필수' }, { status: 400 })
     }
 
+    let ingestedMainUrl: string
+    let ingestedSchedule: ScheduleImageItem[]
+    try {
+      ingestedMainUrl = await ingestDestinationSetImageUrl(mainUrl, name, `${name}_main`)
+      ingestedSchedule = await Promise.all(
+        schedule.map((item, i) =>
+          ingestDestinationSetImageUrl(item.url, name, `${name}_schedule_${i + 1}`).then((url) => ({
+            ...item,
+            url,
+          }))
+        )
+      )
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : '이미지를 Object Storage로 저장하지 못했습니다.'
+      return NextResponse.json({ error: msg }, { status: 503 })
+    }
+
     const mainSourceJson = body.mainImageSource
       ? JSON.stringify({
           source: body.mainImageSource.source ?? 'Pexels',
@@ -71,14 +114,14 @@ export async function POST(request: Request) {
       where: { destinationName: name },
       create: {
         destinationName: name,
-        mainImageUrl: mainUrl,
+        mainImageUrl: ingestedMainUrl,
         mainImageSource: mainSourceJson,
-        scheduleImageUrls: JSON.stringify(schedule),
+        scheduleImageUrls: JSON.stringify(ingestedSchedule),
       },
       update: {
-        mainImageUrl: mainUrl,
+        mainImageUrl: ingestedMainUrl,
         mainImageSource: mainSourceJson,
-        scheduleImageUrls: JSON.stringify(schedule),
+        scheduleImageUrls: JSON.stringify(ingestedSchedule),
       },
     })
     return NextResponse.json(row)

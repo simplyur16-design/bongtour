@@ -1,7 +1,7 @@
 /**
  * 일정 JSON 슬롯 이미지를 Object Storage로만 남기도록 정리한다.
  * 1) `http(s)` 외부 URL → **PhotoPool(WebP)만** 저장 (Pexels·기타 외부 동일, schedules/ 우회 없음)
- * 2) Pool 실패 시 `imageUrl` 제거 + `sourceImageUrl`에 원본 보존(추적)
+ * 2) Pool 실패 시 `imageUrl` / `imageUrl2` 제거 + `sourceImageUrl`에 원본 보존(추적)
  * stem 규칙은 대표 히어로(`buildProductHeroImageStorageKey`)와 동일 철학(place+city→place 우선 등).
  */
 
@@ -160,27 +160,44 @@ function readImageSource(row: ScheduleEntryRecord): Record<string, unknown> {
   return {}
 }
 
+type ScheduleImageSlot = 'primary' | 'secondary'
+
+function readImageSourceForSlot(row: ScheduleEntryRecord, slot: ScheduleImageSlot): Record<string, unknown> {
+  if (slot === 'secondary') {
+    const v = row.imageSource2
+    if (v && typeof v === 'object' && !Array.isArray(v)) return { ...(v as Record<string, unknown>) }
+    return {}
+  }
+  return readImageSource(row)
+}
+
 function rowWithClearedExternalImage(
   row: ScheduleEntryRecord,
+  slot: ScheduleImageSlot,
   srcObj: Record<string, unknown>,
   urlRaw: string,
   reason: string
 ): ScheduleEntryRecord {
-  console.warn('[schedule-day-image-rehost] cleared external imageUrl', reason, urlRaw.slice(0, 120))
+  const field = slot === 'secondary' ? 'imageUrl2' : 'imageUrl'
+  console.warn(`[schedule-day-image-rehost] cleared external ${field}`, reason, urlRaw.slice(0, 120))
+  const failedSource = {
+    ...srcObj,
+    sourceImageUrl: urlRaw,
+    internalizationFailed: reason,
+  }
+  if (slot === 'secondary') {
+    return { ...row, imageUrl2: null, imageSource2: failedSource }
+  }
   return {
     ...row,
     imageUrl: null,
-    imageSource: {
-      ...srcObj,
-      sourceImageUrl: urlRaw,
-      internalizationFailed: reason,
-    },
+    imageSource: failedSource,
   }
 }
 
 /**
- * schedule 배열의 각 행에서 외부 `http(s)` imageUrl을 **PhotoPool 공개 URL**로만 바꾼다.
- * Storage 미설정 시 입력 그대로 반환.
+ * schedule 배열의 각 행에서 외부 `http(s)` imageUrl·imageUrl2를 **PhotoPool 공개 URL**로만 바꾼다.
+ * Storage 미설정 시 throw (호출부에서 503 등으로 변환).
  */
 export async function rehostPexelsUrlsInScheduleEntries(
   prisma: PrismaClient,
@@ -188,36 +205,42 @@ export async function rehostPexelsUrlsInScheduleEntries(
   entries: ScheduleEntryRecord[],
   resolveMeta: (day: number, row: ScheduleEntryRecord) => ScheduleMetaForDay
 ): Promise<ScheduleEntryRecord[]> {
-  if (!isObjectStorageConfigured()) return entries
+  if (!isObjectStorageConfigured()) {
+    throw new Error('Object Storage(NCLOUD_*)가 설정되지 않았습니다.')
+  }
   const out: ScheduleEntryRecord[] = []
   for (const row of entries) {
-    out.push(await finalizeOneScheduleRowImageUrl(prisma, productId, row, resolveMeta))
+    let next = await finalizeOneScheduleSlotUrl(prisma, productId, row, resolveMeta, 'primary')
+    next = await finalizeOneScheduleSlotUrl(prisma, productId, next, resolveMeta, 'secondary')
+    out.push(next)
   }
   return out
 }
 
-async function finalizeOneScheduleRowImageUrl(
+async function finalizeOneScheduleSlotUrl(
   prisma: PrismaClient,
   productId: string,
   row: ScheduleEntryRecord,
-  resolveMeta: (day: number, row: ScheduleEntryRecord) => ScheduleMetaForDay
+  resolveMeta: (day: number, row: ScheduleEntryRecord) => ScheduleMetaForDay,
+  slot: ScheduleImageSlot
 ): Promise<ScheduleEntryRecord> {
-  const urlRaw = row.imageUrl != null ? String(row.imageUrl).trim() : ''
+  const urlField = slot === 'secondary' ? 'imageUrl2' : 'imageUrl'
+  const urlRaw = row[urlField] != null ? String(row[urlField]).trim() : ''
   if (!urlRaw) return row
   if (tryParseObjectKeyFromPublicUrl(urlRaw)) return row
   if (!/^https?:\/\//i.test(urlRaw)) return row
 
   const day = Number(row.day) || 1
   const meta = resolveMeta(day, row)
-  const srcObj = readImageSource(row)
+  const srcObj = readImageSourceForSlot(row, slot)
   const sourceLabelRaw = typeof srcObj.source === 'string' ? srcObj.source.trim() : ''
   const sourceLabel = sourceLabelRaw || 'ingest'
   const pageUrl =
-    (typeof row.imageSourcePageUrl === 'string' ? row.imageSourcePageUrl.trim() : '') ||
+    (slot === 'primary' && typeof row.imageSourcePageUrl === 'string' ? row.imageSourcePageUrl.trim() : '') ||
     (typeof srcObj.originalLink === 'string' ? srcObj.originalLink.trim() : '') ||
     null
   const photographer =
-    (typeof row.imagePhotographer === 'string' ? row.imagePhotographer.trim() : '') ||
+    (slot === 'primary' && typeof row.imagePhotographer === 'string' ? row.imagePhotographer.trim() : '') ||
     (typeof srcObj.photographer === 'string' ? srcObj.photographer.trim() : '') ||
     null
   const sourcePhotoId =
@@ -226,10 +249,14 @@ async function finalizeOneScheduleRowImageUrl(
     null
 
   const cityForPool = meta.cityName?.trim() || 'unknown'
+  const keywordForAttraction =
+    slot === 'secondary' && typeof row.imageKeyword2 === 'string' ? row.imageKeyword2.trim() : ''
+  const keywordPrimary = typeof row.imageKeyword === 'string' ? row.imageKeyword.trim() : ''
   const attractionForPool =
     (meta.placeName?.trim() ||
       meta.searchKeyword?.trim() ||
-      (typeof row.imageKeyword === 'string' ? row.imageKeyword.trim() : '') ||
+      keywordForAttraction ||
+      keywordPrimary ||
       `schedule_day_${day}`).slice(0, 80) || `schedule_day_${day}`
 
   const poolRec = await savePhotoFromUrlWithRetry(prisma, urlRaw, cityForPool, attractionForPool, sourceLabel, {
@@ -254,6 +281,13 @@ async function finalizeOneScheduleRowImageUrl(
         ? { externalId: poolRec.sourcePhotoId ?? sourcePhotoId }
         : {}),
     }
+    if (slot === 'secondary') {
+      return {
+        ...row,
+        imageUrl2: poolRec.filePath,
+        imageSource2: nextSource,
+      }
+    }
     return {
       ...row,
       imageUrl: poolRec.filePath,
@@ -270,5 +304,5 @@ async function finalizeOneScheduleRowImageUrl(
     }
   }
 
-  return rowWithClearedExternalImage(row, srcObj, urlRaw, 'photo-pool-ingest-failed')
+  return rowWithClearedExternalImage(row, slot, srcObj, urlRaw, 'photo-pool-ingest-failed')
 }

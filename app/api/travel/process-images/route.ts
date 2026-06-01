@@ -157,7 +157,9 @@ async function stringifyScheduleWithPexelsRehost(
   destination: string,
   itineraryRows: ItineraryRowLite[]
 ): Promise<string> {
-  if (!isObjectStorageConfigured()) return JSON.stringify(entries)
+  if (!isObjectStorageConfigured()) {
+    throw new Error('Object Storage(NCLOUD_*)가 설정되지 않았습니다.')
+  }
   const rehosted = await rehostPexelsUrlsInScheduleEntries(
     prisma,
     productId,
@@ -239,6 +241,20 @@ function pexelsToResult(p: PexelsPhotoObject): PhotoResult {
   }
 }
 
+function photoFromPoolSave(saved: PoolPhotoRecord | null): PhotoResult | null {
+  return saved ? toPoolResult(saved) : null
+}
+
+function retainScheduleImageUrl(
+  resolved: string | null | undefined,
+  existing: string | null | undefined
+): string | null {
+  if (resolved) return resolved
+  const prev = existing != null ? String(existing).trim() : ''
+  if (!prev) return null
+  return isExternalHttpProductImageUrl(prev) ? null : prev
+}
+
 async function sealProductCoverPhoto(
   prisma: PrismaClient,
   destination: string,
@@ -246,7 +262,10 @@ async function sealProductCoverPhoto(
   poolAttractionLabel: string,
   poolSource?: string
 ): Promise<PhotoResult> {
-  if (!isObjectStorageConfigured() || !isExternalHttpProductImageUrl(photo.url)) {
+  if (!isObjectStorageConfigured()) {
+    throw new Error('Object Storage(NCLOUD_*)가 설정되지 않았습니다.')
+  }
+  if (!isExternalHttpProductImageUrl(photo.url)) {
     return photo
   }
   const extId = photo.externalId != null ? Number(String(photo.externalId).trim()) : NaN
@@ -557,10 +576,14 @@ export async function POST(req: Request) {
             const saved = await savePhotoToPool(prisma, geminiBuffer, destination, mainQuery, 'Gemini', {
               convertToWebpFirst: true,
             })
-            mainPhoto = saved ? toPoolResult(saved) : pexelsToResult(pexelsMain)
+            const fromPool = photoFromPoolSave(saved)
+            if (!fromPool) {
+              throw new Error('메인 제미나이 이미지를 PhotoPool에 저장하지 못했습니다.')
+            }
+            mainPhoto = fromPool
             console.log(`[POOL] 메인 제미나이 생성 → 풀 저장`)
           } else {
-            mainPhoto = pexelsToResult(pexelsMain)
+            throw new Error('메인 이미지 생성(Gemini)에 실패했습니다.')
           }
         } else {
           const saved = await savePhotoFromUrl(
@@ -571,7 +594,11 @@ export async function POST(req: Request) {
             'Pexels',
             pexelsPoolAttribution(pexelsMain)
           )
-          mainPhoto = saved ? toPoolResult(saved) : pexelsToResult(pexelsMain)
+          const fromPool = photoFromPoolSave(saved)
+          if (!fromPool) {
+            throw new Error('메인 Pexels 이미지를 PhotoPool에 저장하지 못했습니다.')
+          }
+          mainPhoto = fromPool
           console.log(`[POOL] 메인 Pexels → 풀 저장`)
         }
       }
@@ -700,8 +727,8 @@ export async function POST(req: Request) {
             'Pexels',
             pexelsPoolAttribution(pexelsPhoto)
           )
-          photo = saved ? toPoolResult(saved) : pexelsToResult(pexelsPhoto)
-          fallbackReason = 'fallback-pexels'
+          photo = photoFromPoolSave(saved)
+          fallbackReason = photo ? 'fallback-pexels' : 'fallback-pool-save-failed'
         } else {
           const fallbackCity = (itRow?.city ?? destination).split(',')[0].trim()
           const poolFallbackList = await prisma.photoPool.findMany({
@@ -723,19 +750,33 @@ export async function POST(req: Request) {
             }
           }
           if (!photo) {
-            photo = pexelsResult
             fallbackReason = fallbackUrl
-              ? 'fallback-pexels-placeholder'
+              ? 'fallback-pexels-placeholder-skipped'
               : sameAsHero
-                ? 'fallback-hero-overlap'
-                : 'fallback-duplicate-url'
+                ? 'fallback-hero-overlap-skipped'
+                : 'fallback-duplicate-url-skipped'
           }
         }
-        fallbackUsed = true
-        selectedOrigin = 'fallback'
-        selectedSemanticKey = normalizeSemanticPoiKey(keywordUsed)
-        usage.mark(photo)
-        usedSemanticKeys.add(normalizeSemanticPoiKey(keywordUsed))
+        if (photo) {
+          fallbackUsed = true
+          selectedOrigin = 'fallback'
+          selectedSemanticKey = normalizeSemanticPoiKey(keywordUsed)
+          usage.mark(photo)
+          usedSemanticKeys.add(normalizeSemanticPoiKey(keywordUsed))
+        }
+      }
+
+      if (!photo) {
+        slotDebug.push({
+          day: dayNum,
+          imageUrl: '',
+          imageSource: '',
+          candidateOrigin: selectedOrigin,
+          semanticKey: selectedSemanticKey,
+          fallbackUsed,
+          fallbackReason,
+        })
+        continue
       }
 
       const sealedSlot = await sealProductCoverPhoto(prisma, destination, photo, keywordUsed, photo.source)
@@ -779,7 +820,9 @@ export async function POST(req: Request) {
         'Pexels',
         pexelsPoolAttribution(pexelsPhoto)
       )
-      let photo: PhotoResult = saved ? toPoolResult(saved) : pexelsToResult(pexelsPhoto)
+      const fromPool = photoFromPoolSave(saved)
+      if (!fromPool) continue
+      let photo: PhotoResult = fromPool
       usage.mark(photo)
       photo = await sealProductCoverPhoto(prisma, destination, photo, kw2, photo.source)
       scheduleSecondaryPhotos[n] = { photo, imageKeyword: kw2 }
@@ -804,8 +847,8 @@ export async function POST(req: Request) {
           `day_${item.day ?? i + 1}`,
         ),
         imageKeyword2: item.imageKeyword2,
-        imageUrl: photo?.url ?? item.imageUrl ?? null,
-        imageUrl2: photo2?.url ?? item.imageUrl2 ?? null,
+        imageUrl: retainScheduleImageUrl(photo?.url, item.imageUrl),
+        imageUrl2: retainScheduleImageUrl(photo2?.url, item.imageUrl2),
         imagePhotographer: photo?.photographer ?? item.imagePhotographer ?? null,
         imageSourcePageUrl: photo?.originalLink ?? item.imageSourcePageUrl ?? null,
         imageSource: photo

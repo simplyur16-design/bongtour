@@ -425,42 +425,53 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       } else {
         const raw =
           typeof body.schedule === 'string' ? body.schedule : JSON.stringify(body.schedule)
-        if (isObjectStorageConfigured()) {
-          try {
-            const parsed = JSON.parse(raw) as unknown
-            if (Array.isArray(parsed)) {
-              const productShort = await prisma.product.findUnique({
-                where: { id },
-                select: { primaryDestination: true, destinationRaw: true, destination: true },
-              })
-              const cityFb =
-                productShort?.primaryDestination?.trim() ||
-                productShort?.destinationRaw?.trim() ||
-                productShort?.destination?.trim() ||
-                null
-              const nextArr = await rehostPexelsUrlsInScheduleEntries(
-                prisma,
-                id,
-                parsed as ScheduleEntryRecord[],
-                (_day, row) => {
-                  const kw = typeof row.imageKeyword === 'string' ? String(row.imageKeyword).trim() : ''
-                  const placeGuess = kw ? kw.split(/[|,]/)[0]?.trim() || null : null
-                  return {
-                    placeName: placeGuess,
-                    cityName: cityFb,
-                    searchKeyword: kw || placeGuess || cityFb,
-                  }
-                }
-              )
-              data.schedule = JSON.stringify(nextArr)
-            } else {
-              data.schedule = raw
+        if (!isObjectStorageConfigured()) {
+          return NextResponse.json(
+            {
+              error:
+                'Object Storage(NCLOUD_*)가 설정되지 않아 일정 이미지를 저장할 수 없습니다.',
+            },
+            { status: 503 }
+          )
+        }
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(raw)
+        } catch {
+          return NextResponse.json({ error: 'schedule JSON 형식이 올바르지 않습니다.' }, { status: 400 })
+        }
+        if (!Array.isArray(parsed)) {
+          return NextResponse.json({ error: 'schedule은 배열이어야 합니다.' }, { status: 400 })
+        }
+        try {
+          const productShort = await prisma.product.findUnique({
+            where: { id },
+            select: { primaryDestination: true, destinationRaw: true, destination: true },
+          })
+          const cityFb =
+            productShort?.primaryDestination?.trim() ||
+            productShort?.destinationRaw?.trim() ||
+            productShort?.destination?.trim() ||
+            null
+          const nextArr = await rehostPexelsUrlsInScheduleEntries(
+            prisma,
+            id,
+            parsed as ScheduleEntryRecord[],
+            (_day, row) => {
+              const kw = typeof row.imageKeyword === 'string' ? String(row.imageKeyword).trim() : ''
+              const placeGuess = kw ? kw.split(/[|,]/)[0]?.trim() || null : null
+              return {
+                placeName: placeGuess,
+                cityName: cityFb,
+                searchKeyword: kw || placeGuess || cityFb,
+              }
             }
-          } catch {
-            data.schedule = raw
-          }
-        } else {
-          data.schedule = raw
+          )
+          data.schedule = JSON.stringify(nextArr)
+        } catch (e) {
+          const msg =
+            e instanceof Error ? e.message : '일정 이미지를 Object Storage로 저장하지 못했습니다.'
+          return NextResponse.json({ error: msg }, { status: 503 })
         }
       }
     }
