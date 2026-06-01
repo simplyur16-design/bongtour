@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { connection } from 'next/server'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
@@ -21,9 +22,10 @@ import {
 } from '@/lib/product-detail-page-cache'
 import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
 import { runWithQueryLogScope } from '@/lib/prisma-query-log'
+import { isMobileUserAgent } from '@/lib/product-detail-viewport-from-ua'
 
-/** 공개 등록 상품 — 1시간 ISR. 변경 시 `revalidateProductDetailCaches`. draft는 `connection()` 동적 */
-export const revalidate = 3600
+// `headers()` UA 분기로 라우트가 dynamic — `revalidate` ISR은 적용되지 않음.
+// 상품 데이터는 `loadProductDetailRowCached` unstable_cache(v2, 3600s)가 담당.
 
 const FIT_ITINERARY_MASTER_DETAIL_INCLUDE = {
   days: {
@@ -160,10 +162,14 @@ async function productDetailPageInner(idOrSlug: string) {
     notFound()
   }
 
+  const userAgent = (await headers()).get('user-agent')
+  const isMobile = isMobileUserAgent(userAgent)
+
   return (
     <ProductDetailView
       travelProduct={travelProduct}
       fitMaster={fitMaster}
+      isMobile={isMobile}
     />
   )
 }

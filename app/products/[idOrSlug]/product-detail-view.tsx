@@ -197,9 +197,12 @@ function coalesceItineraryOrScheduleText(
 export async function ProductDetailView({
   travelProduct,
   fitMaster,
+  isMobile,
 }: {
   travelProduct: ProductDetailViewRow
   fitMaster: FitMasterWithDays | null
+  /** 서버 UA 분기 — 모바일/데스크톱 상세 트리 중 하나만 SSR */
+  isMobile: boolean
 }) {
   const isAdminDraftPreview = travelProduct.registrationStatus !== 'registered'
 
@@ -1114,11 +1117,14 @@ export async function ProductDetailView({
             </Link>
           </div>
         ) : null}
-        <div className="md:hidden">
-          <Header />
-          {detailMobile}
-        </div>
-        <div className="hidden md:block">{detailDesktop}</div>
+        {isMobile ? (
+          <>
+            <Header />
+            {detailMobile}
+          </>
+        ) : (
+          detailDesktop
+        )}
       </ProductDetailCopyGuard>
     </>
   )

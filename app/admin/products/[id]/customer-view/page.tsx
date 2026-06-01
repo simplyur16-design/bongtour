@@ -1,7 +1,9 @@
+import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { buildProductDetailPageSelect } from '@/lib/product-detail-page-include'
+import { isMobileUserAgent } from '@/lib/product-detail-viewport-from-ua'
 import { ProductDetailView } from '@/app/products/[idOrSlug]/product-detail-view'
 
 export const dynamic = 'force-dynamic'
@@ -32,6 +34,8 @@ export default async function AdminProductCustomerViewPage({ params }: Props) {
     notFound()
   }
 
+  const isMobile = isMobileUserAgent((await headers()).get('user-agent'))
+
   return (
     <div className="min-h-screen bg-bt-surface">
       <div className="border-b border-cyan-600 bg-cyan-950 px-4 py-2 text-center text-sm font-medium text-cyan-50">
@@ -40,7 +44,7 @@ export default async function AdminProductCustomerViewPage({ params }: Props) {
           Back to product admin
         </a>
       </div>
-      <ProductDetailView travelProduct={travelProduct} fitMaster={null} />
+      <ProductDetailView travelProduct={travelProduct} fitMaster={null} isMobile={isMobile} />
     </div>
   )
 }
