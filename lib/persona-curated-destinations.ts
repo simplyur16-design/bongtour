@@ -15,6 +15,8 @@ import {
 import { getHomeHubCoverImageUrl } from '@/lib/final-image-selection'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import type { PersonaTabKey } from '@/lib/main-hub-copy'
+import { loadMegaMenuBrowseUrlGeoByCityKeys, resolveMegaMenuBrowseHrefForCityKey } from '@/lib/mega-menu-city-browse-href'
+import { productMatchesBrowseUrlGeo } from '@/lib/match-overseas-product'
 
 export type PersonaCityCard = {
   cityKey: string
@@ -22,6 +24,8 @@ export type PersonaCityCard = {
   koreanSubtitle: string
   countryKey: string | null
   countryKoreanLabel: string | null
+  /** 메가메뉴 browse URL — `destination=` 쿼리와 동일 목록이 아님 */
+  browseHref: string
   imageUrl: string | null
   withParents: boolean
   withKids: boolean
@@ -127,6 +131,14 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
   })
   const cityMeta = new Map(cities.map((c) => [c.cityKey, c]))
 
+  const [browseGeoByCity, browseHrefs] = await Promise.all([
+    loadMegaMenuBrowseUrlGeoByCityKeys(cityKeys),
+    Promise.all(cityKeys.map(async (ck) => [ck, await resolveMegaMenuBrowseHrefForCityKey(ck)] as const)),
+  ])
+  const browseHrefByCity = new Map(
+    browseHrefs.filter(([, href]) => Boolean(href)).map(([ck, href]) => [ck, href!]),
+  )
+
   const products = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
@@ -146,19 +158,25 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
       schedule: true,
       itineraries: { select: { day: true, description: true }, orderBy: { day: 'asc' as const }, take: 24 },
       cityTags: { select: { cityKey: true } },
+      countryTags: { select: { countryKey: true, nodeKey: true } },
     },
   })
 
   const byCity = new Map<string, typeof products>()
-  for (const p of products) {
-    const matched = new Set<string>()
-    if (p.cityKey && cityKeys.includes(p.cityKey)) matched.add(p.cityKey)
-    for (const t of p.cityTags) {
-      if (cityKeys.includes(t.cityKey)) matched.add(t.cityKey)
-    }
-    for (const ck of matched) {
-      if (!byCity.has(ck)) byCity.set(ck, [])
-      byCity.get(ck)!.push(p)
+  for (const cityKey of cityKeys) {
+    const geo = browseGeoByCity.get(cityKey)
+    if (!geo) continue
+    for (const p of products) {
+      if (
+        !productMatchesBrowseUrlGeo(
+          { title: '', originSource: '', cityKey: p.cityKey, cityTags: p.cityTags, countryTags: p.countryTags },
+          geo,
+        )
+      ) {
+        continue
+      }
+      if (!byCity.has(cityKey)) byCity.set(cityKey, [])
+      byCity.get(cityKey)!.push(p)
     }
   }
 
@@ -166,6 +184,7 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
   const cards: PersonaCityCard[] = []
 
   for (const cityKey of cityKeys) {
+    if (!browseHrefByCity.has(cityKey)) continue
     const list = [...(byCity.get(cityKey) ?? [])].sort((a, b) => a.id.localeCompare(b.id))
 
     let withParents = false
@@ -197,12 +216,15 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
     const countryKo = meta?.country?.koreanLabel ?? ''
     const koreanSubtitle = countryKo ? `${ko} · ${countryKo}` : ko
 
+    const browseHref = browseHrefByCity.get(cityKey) ?? '/travel/overseas'
+
     cards.push({
       cityKey,
       titleEn: cityKeyToEnglishTitle(cityKey),
       koreanSubtitle,
       countryKey: meta?.countryKey ?? null,
       countryKoreanLabel: meta?.country?.koreanLabel ?? null,
+      browseHref,
       imageUrl,
       withParents,
       withKids,
@@ -215,7 +237,7 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
 
 export async function getPersonaCuratedDestinationsPayload(): Promise<PersonaCuratedDestinationsPayload> {
   const cycle = await getCurrentCycle(new Date())
-  const cacheKey = ['persona-curated-destinations', cycle?.id ?? 'no-active-cycle', 'v7-hero-city-fallback']
+  const cacheKey = ['persona-curated-destinations', cycle?.id ?? 'no-active-cycle', 'v8-mega-menu-browse']
   const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(), cacheKey, { revalidate: 21_600 })
   return run()
 }

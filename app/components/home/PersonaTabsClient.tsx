@@ -66,7 +66,8 @@ export default function PersonaTabsClient({ cards }: Props) {
           {visible.map((card, index) => {
             const pending = !card.imageUrl?.trim()
             const hubImageUnoptimized = card.imageUrl ? /^https?:\/\//i.test(card.imageUrl) : false
-            const href = `/travel/overseas?destination=${encodeURIComponent(card.cityKey)}`
+            const href =
+              card.browseHref?.trim() || `/travel/overseas?destination=${encodeURIComponent(card.cityKey)}`
             const aria = [`${card.titleEn} ${card.koreanSubtitle}`, '해외여행 상품 보기'].filter(Boolean).join('. ')
             return (
               <li key={card.cityKey} className="relative min-w-0">

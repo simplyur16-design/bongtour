@@ -7,6 +7,9 @@ import type { SeasonalDestinationCuration } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { extractFirstBalancedJsonObject, stripLlmMarkdownJsonFence } from '@/lib/llm-json-extract'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
+import { loadMegaMenuSsotCityKeys } from '@/lib/mega-menu-ssot-city-keys'
+import { megaMenuPlacementForCityKey } from '@/lib/mega-menu-city-group-coherence'
+import { findMegaMenuGroup } from '@/lib/mega-menu-browse-group'
 import {
   loadHeroEligibleCityKeySet,
   logHeroCityKeyReplacements,
@@ -20,6 +23,8 @@ export type CityDistributionRow = {
   koreanLabel: string
   country: string
   countryKey: string
+  /** 메가메뉴 열(간사이·홋카이도 등) — Gemini·운영 참고 */
+  megaMenuGroupLabel: string | null
 }
 
 /** 서울 벽시계 + 계절 힌트 — Gemini `현재 시기` 컨텍스트 */
@@ -98,6 +103,7 @@ primary 5도시 순서대로 목표 월(서울): ${primaryTargetMonths1To12
 현재 시기(큐레이션 생성 시점): ${context}
 ${monthLine}조건: 
 - **현재 달에 여행하기 위한 추천이 아님** — 반드시 위에 배정된 +1~+3개월 목표 월에 맞는 도시만
+- **메가메뉴에 노출된 도시(cityKey)만** — 아래 분포는 메가메뉴 browse와 동일한 ProductCityTag·등록 상품 기준
 - 우리 카탈로그에 registered 상품이 있는 도시만 (아래 분포 참고)
 - 시기 적합성(기후·이벤트·계절) 우선 — 배정 월과 맞출 것
 - 다양성 (같은 국가 중복 최소화, 권역 분산)
@@ -111,7 +117,8 @@ function formatDistributionTop30(dist: Map<string, CityDistributionRow>): string
   let i = 0
   for (const [cityKey, row] of dist) {
     if (i++ >= 30) break
-    lines.push(`${cityKey}: ${row.count}건 (${row.country} · ${row.koreanLabel})`)
+    const group = row.megaMenuGroupLabel ? ` · 메가메뉴 ${row.megaMenuGroupLabel}` : ''
+    lines.push(`${cityKey}: ${row.count}건 (${row.country} · ${row.koreanLabel}${group})`)
   }
   return lines.join('\n')
 }
@@ -179,24 +186,26 @@ export async function getCurrentCycle(now = new Date()): Promise<SeasonalDestina
 }
 
 /**
- * registered 해외 성격 상품, cityKey 있음, 미래 출발일 없음 또는 미래 출발일 > now.
+ * registered 해외 — 메가메뉴 SSOT 도시만, 상품 수는 browse와 동일한 ProductCityTag 기준.
  */
 export async function getProductCityDistribution(now = new Date()): Promise<Map<string, CityDistributionRow>> {
-  const grouped = await prisma.product.groupBy({
+  const ssotKeys = await loadMegaMenuSsotCityKeys(prisma)
+  if (ssotKeys.size === 0) return new Map()
+
+  const grouped = await prisma.productCityTag.groupBy({
     by: ['cityKey'],
     where: {
-      registrationStatus: 'registered',
-      NOT: { travelScope: 'domestic' },
-      cityKey: { not: null },
-      OR: [{ lastFutureDepartureDate: null }, { lastFutureDepartureDate: { gt: now } }],
+      cityKey: { in: [...ssotKeys] },
+      product: {
+        registrationStatus: 'registered',
+        NOT: { travelScope: 'domestic' },
+        OR: [{ lastFutureDepartureDate: null }, { lastFutureDepartureDate: { gt: now } }],
+      },
     },
-    _count: { _all: true },
+    _count: { productId: true },
   })
 
-  const sorted = grouped
-    .filter((g): g is (typeof grouped)[number] & { cityKey: string } => g.cityKey != null)
-    .sort((a, b) => b._count._all - a._count._all)
-
+  const sorted = [...grouped].sort((a, b) => b._count.productId - a._count.productId)
   const keys = sorted.map((s) => s.cityKey)
   if (keys.length === 0) return new Map()
 
@@ -210,11 +219,16 @@ export async function getProductCityDistribution(now = new Date()): Promise<Map<
   for (const row of sorted) {
     const ck = row.cityKey
     const meta = cityMeta.get(ck)
+    const placement = megaMenuPlacementForCityKey(ck)
+    const megaMenuGroupLabel = placement
+      ? (findMegaMenuGroup(placement.regionId, placement.menuGroupSlug)?.countryLabel ?? null)
+      : null
     out.set(ck, {
-      count: row._count._all,
+      count: row._count.productId,
       koreanLabel: meta?.koreanLabel ?? ck,
       country: meta?.country?.koreanLabel ?? '',
       countryKey: meta?.countryKey ?? '',
+      megaMenuGroupLabel,
     })
   }
   return out
@@ -286,10 +300,13 @@ export async function generateNewCycle(input: GenerateNewCycleInput): Promise<Se
   const now = new Date()
   const dist = await getProductCityDistribution(now)
   if (dist.size === 0) {
-    throw new Error('도시 분포가 비어 있습니다. registered 해외 상품에 cityKey가 있는지 확인하세요.')
+    throw new Error(
+      '도시 분포가 비어 있습니다. 메가메뉴 SSOT 도시·ProductCityTag 동기화(`npm run resync:mega-menu-geo:apply`)를 확인하세요.',
+    )
   }
 
-  const sortedCatalogKeys = [...dist.keys()]
+  const ssotKeys = await loadMegaMenuSsotCityKeys(prisma)
+  const sortedCatalogKeys = [...dist.keys()].filter((k) => ssotKeys.has(k))
   const allowedCatalog = new Set(sortedCatalogKeys)
 
   const context = buildSeasonContext(now)

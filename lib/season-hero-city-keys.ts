@@ -1,9 +1,11 @@
 /**
  * 시즌 히어로(메인·해외 허브) — cityKey/fallbackKeys 도시별 hero-eligible 상품 검증·교체 SSOT.
- * 조건: registered + travelScope='overseas' + ProductCityTag(또는 Product.cityKey) 일치 + bgImageUrl 존재.
+ * 조건: registered + travelScope='overseas' + 메가메뉴 browse geo 일치 + bgImageUrl 존재.
  */
 import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
+import { productMatchesBrowseUrlGeo, type OverseasProductMatchInput } from '@/lib/match-overseas-product'
+import { loadMegaMenuBrowseUrlGeoByCityKeys } from '@/lib/mega-menu-city-browse-href'
 
 export type HeroCityKeyReplacement = { from: string; to: string }
 
@@ -19,10 +21,12 @@ function uniqPreserveOrder(keys: string[]): string[] {
   return out
 }
 
-/** 풀 내 도시 중 hero-eligible(등록·해외·bgImageUrl·태그/cityKey) cityKey 집합 */
+/** 풀 내 도시 중 hero-eligible(등록·해외·메가메뉴 browse·bgImageUrl) cityKey 집합 */
 export async function loadHeroEligibleCityKeySet(poolKeys: string[], now = new Date()): Promise<Set<string>> {
   const pool = uniqPreserveOrder(poolKeys)
   if (pool.length === 0) return new Set()
+
+  const geoByCity = await loadMegaMenuBrowseUrlGeoByCityKeys(pool)
 
   const rows = await prisma.product.findMany({
     where: {
@@ -40,17 +44,25 @@ export async function loadHeroEligibleCityKeySet(poolKeys: string[], now = new D
       bgImageUrl: true,
       cityKey: true,
       cityTags: { select: { cityKey: true } },
+      countryTags: { select: { countryKey: true, nodeKey: true } },
     },
   })
 
-  const poolSet = new Set(pool)
+  const products: OverseasProductMatchInput[] = rows
+    .filter((p) => p.bgImageUrl?.trim())
+    .map((p) => ({
+      title: '',
+      originSource: '',
+      cityKey: p.cityKey,
+      cityTags: p.cityTags,
+      countryTags: p.countryTags,
+    }))
+
   const eligible = new Set<string>()
-  for (const p of rows) {
-    if (!p.bgImageUrl?.trim()) continue
-    if (p.cityKey && poolSet.has(p.cityKey)) eligible.add(p.cityKey)
-    for (const t of p.cityTags) {
-      if (poolSet.has(t.cityKey)) eligible.add(t.cityKey)
-    }
+  for (const cityKey of pool) {
+    const geo = geoByCity.get(cityKey)
+    if (!geo) continue
+    if (products.some((p) => productMatchesBrowseUrlGeo(p, geo))) eligible.add(cityKey)
   }
   return eligible
 }
