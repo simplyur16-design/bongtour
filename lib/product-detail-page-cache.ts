@@ -78,7 +78,7 @@ function loadProductDetailRowCachedPublic(productId: string) {
       return loadProductDetailRowFresh(productId, false)
     },
     ['product-detail-public-v1', productId],
-    { revalidate: 300, tags: [`product-detail-${productId}`, 'product-detail'] },
+    { revalidate: 3600, tags: [`product-detail-${productId}`, 'product-detail'] },
   )()
 }
 

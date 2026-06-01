@@ -22,8 +22,8 @@ import {
 import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
 import { runWithQueryLogScope } from '@/lib/prisma-query-log'
 
-/** 공개 등록 상품 — 5분 ISR. draft 미리보기는 요청 시 `connection()`으로 동적 렌더 */
-export const revalidate = 300
+/** 공개 등록 상품 — 1시간 ISR. 변경 시 `revalidateProductDetailCaches`. draft는 `connection()` 동적 */
+export const revalidate = 3600
 
 const FIT_ITINERARY_MASTER_DETAIL_INCLUDE = {
   days: {
