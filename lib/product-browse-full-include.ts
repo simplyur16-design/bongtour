@@ -10,6 +10,7 @@ import { getPublicBookableMinDate, toSeoulYmd } from '@/lib/public-bookable-date
 export function buildProductBrowseListSelect() {
   return {
     id: true,
+    slug: true,
     originSource: true,
     title: true,
     destination: true,

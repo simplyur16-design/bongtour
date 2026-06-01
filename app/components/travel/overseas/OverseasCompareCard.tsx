@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import ProductDetailNavLink from '@/components/products/ProductDetailNavLink'
+import { productDetailCardPreviewFromGalleryProduct } from '@/lib/product-detail-card-preview-from-item'
 import SafeImage from '@/app/components/SafeImage'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import type { GalleryProduct } from '@/app/api/gallery/route'
@@ -37,11 +39,17 @@ export default function OverseasCompareCard({ product, priority = false, product
   const url = product.imageSet?.[0] ?? product.coverImageUrl
   const supplier = formatOriginSourceForDisplay(product.originSource)
   const snapshotCardLabel = [productTypeLabel, product.duration, product.primaryDestination].filter(Boolean).join(' · ')
+  const detailPreview = productDetailCardPreviewFromGalleryProduct(product, formatPrice)
+  const detailHref = detailPreview.href
 
   return (
     <article className="overflow-hidden rounded-xl border border-bt-border-soft bg-bt-surface shadow-sm transition hover:border-bt-link/35 hover:shadow-md">
       <div className="flex flex-col sm:flex-row">
-        <Link href={`/products/${product.id}`} className="relative block shrink-0 sm:w-[200px] lg:w-[240px]">
+        <ProductDetailNavLink
+          href={detailHref}
+          preview={detailPreview}
+          className="relative block shrink-0 sm:w-[200px] lg:w-[240px]"
+        >
           <div className="relative aspect-[16/10] w-full sm:aspect-auto sm:h-full sm:min-h-[168px]">
             <div className="absolute right-2 top-2 z-10">
               <WishlistToggleButton
@@ -80,14 +88,14 @@ export default function OverseasCompareCard({ product, priority = false, product
               })}
             />
           </div>
-        </Link>
+        </ProductDetailNavLink>
         <div className="flex min-w-0 flex-1 flex-col justify-between px-4 py-3 sm:py-4">
           <div>
-            <Link href={`/products/${product.id}`}>
+            <ProductDetailNavLink href={detailHref} preview={detailPreview}>
               <h3 className="line-clamp-2 text-base font-bold leading-snug tracking-tight text-bt-strong sm:text-lg">
                 {product.title}
               </h3>
-            </Link>
+            </ProductDetailNavLink>
             <p className="mt-1 text-[11px] text-bt-meta">상품 안내 출처 · {supplier}</p>
             <p className="mt-2 text-sm text-bt-muted">
               <span className="font-semibold text-bt-body">출발</span>{' '}
@@ -121,12 +129,13 @@ export default function OverseasCompareCard({ product, priority = false, product
             ) : null}
 
             <div className="flex flex-wrap gap-2 pt-1">
-              <Link
-                href={`/products/${product.id}`}
+              <ProductDetailNavLink
+                href={detailHref}
+                preview={detailPreview}
                 className="inline-flex rounded-lg border border-bt-cta-secondary-border bg-bt-cta-secondary px-3 py-2 text-xs font-semibold text-bt-cta-secondary-text transition hover:bg-bt-surface-soft"
               >
                 상세 보기
-              </Link>
+              </ProductDetailNavLink>
               <Link
                 href={`/inquiry?type=travel&source=${encodeURIComponent('/travel/overseas')}&productId=${encodeURIComponent(product.id)}&snapshotProductTitle=${encodeURIComponent(product.title.slice(0, 500))}${
                   snapshotCardLabel

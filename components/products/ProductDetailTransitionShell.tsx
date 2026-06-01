@@ -1,7 +1,8 @@
 'use client'
 
-import { useLayoutEffect, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
 import {
+  clearProductDetailCardPreviewFor,
   productIdFromDetailPathSegment,
   readProductDetailCardPreview,
   type ProductDetailCardPreview,
@@ -38,6 +39,13 @@ function ProductDetailTransitionShellInner({
   }, [productId])
 
   const showCardOverlay = Boolean(preview) && !serverReady
+
+  useEffect(() => {
+    if (serverReady && preview) {
+      clearProductDetailCardPreviewFor(preview)
+      setPreview(null)
+    }
+  }, [serverReady, preview])
 
   return (
     <>

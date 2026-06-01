@@ -536,6 +536,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         return { hotelName, hotelGrade, roomType }
       })(),
       id: p.id,
+      slug: p.slug ?? null,
       title: p.title,
       originSource: p.originSource,
       productType: p.productType,

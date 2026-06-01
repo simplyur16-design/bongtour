@@ -62,11 +62,18 @@ body.flex-col
   ```
 - `prisma migrate deploy` 가 P3005(기존 DB·마이그레이션 이력 없음)이면 위 DDL 스크립트로 컬럼만 추가
 
-## 후속 (선택)
+## 후속 (안전 — 적용됨)
+
+- **slug URL preview 키** — 저장 시 `id` + href segment(slug) 이중 키, 조회는 path segment 기준  
+- **browse canonical href** — `publicProductPath` + browse API `slug` 필드  
+- **해외 비교 카드** — `ProductDetailNavLink` + preview (OverseasCompareCard)  
+- 서버 ready 후 session preview 정리
+
+## 후속 (보류 — 위험도 중~높음)
 
 1. **단일 Suspense** + 고정 `min-height` 껍데기  
-2. slug URL preview 키 통일  
-3. PPR/세그먼트 캐시 — UA dynamic과 정책 정합 후 검토
+2. PPR/세그먼트 캐시 — UA dynamic과 정책 정합 후 검토  
+3. **dynamic / UA 제거** — hydration·SEO·공급사 분기 회귀 면적 큼
 
 ## 측정
 

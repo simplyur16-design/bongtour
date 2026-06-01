@@ -31,6 +31,8 @@ import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
 
 export type ResultItem = {
   id: string
+  /** 공개 URL slug — 있으면 canonical `/products/{slug}` */
+  slug?: string | null
   title: string
   originSource: string
   productType: string | null
