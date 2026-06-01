@@ -35,7 +35,8 @@ export async function POST(req: Request) {
       : result.reason === "invalid_status" ||
           result.reason === "unsupported_provider" ||
           result.reason === "missing_payment_reference" ||
-          result.reason === "esim_activated_no_refund" ||
+          result.reason === "esim_used_no_refund" ||
+          result.reason === "usage_check_failed" ||
           result.reason === "already_refunded"
         ? 400
         : result.reason === "welcomepay_env_incomplete" || result.reason === "db_unconfigured"

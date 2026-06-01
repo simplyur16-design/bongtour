@@ -112,6 +112,17 @@ export async function GET() {
       };
     });
 
+    const orders = await Promise.all(
+      ordersBase.map(async (o) => {
+        const refundElig = await getRefundEligibility(o.order_id);
+        return {
+          ...o,
+          cancel_eligible: refundElig.eligible,
+          cancel_block_reason: refundElig.eligible ? null : refundElig.message,
+        };
+      }),
+    );
+
     if (orders.length > 0) {
       const ids = orders.map((o) => o.order_id);
       const vr = await pool.query<{ c: string }>(
