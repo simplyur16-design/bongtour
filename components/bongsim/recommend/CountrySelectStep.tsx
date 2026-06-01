@@ -4,6 +4,7 @@ import SafeImage from "@/app/components/SafeImage";
 import { COUNTRY_PICKER_GRID_CLASS, CountryPickerGrid } from "@/components/bongsim/CountryPickerGrid";
 import { CountryNameMultiline } from "@/lib/bongsim/country-name-display";
 import type { CountryOption } from "@/lib/bongsim/types";
+import { resolveBongsimFlagImageUrlOrFallback } from "@/lib/bongsim-flag-image-url";
 
 export type CountrySelectStepProps = {
   selectedCodes: string[];
@@ -106,7 +107,7 @@ export function CountrySelectStep({
                         }`}
                       >
                         <SafeImage
-                          src={`https://flagcdn.com/w160/${country.code}.png`}
+                          src={resolveBongsimFlagImageUrlOrFallback(country.code)}
                           alt=""
                           width={48}
                           height={48}

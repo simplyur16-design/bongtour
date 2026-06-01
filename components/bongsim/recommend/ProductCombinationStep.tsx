@@ -26,6 +26,7 @@ import {
   shouldShowBadge,
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
+import { resolveBongsimFlagImageUrlOrFallback } from "@/lib/bongsim-flag-image-url";
 
 const HERO_IMAGE_SIZES = "(max-width:1023px) 100vw, 55vw";
 
@@ -41,7 +42,7 @@ function countryHeroUrl(code: string, heroMap: Record<string, string>): string |
 }
 
 function flagCdnUrl(code: string): string {
-  return `https://flagcdn.com/w160/${code.toLowerCase()}.png`;
+  return resolveBongsimFlagImageUrlOrFallback(code);
 }
 
 function flagCdnBlurBg(code: string): string {

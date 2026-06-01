@@ -28,6 +28,7 @@ import {
   shouldShowBadge,
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
+import { resolveBongsimFlagImageUrlOrFallback } from "@/lib/bongsim-flag-image-url";
 
 export type CompareChoice = "individual" | "multi";
 
@@ -54,7 +55,7 @@ type Props = {
 };
 
 function flagCdnUrl(code: string): string {
-  return `https://flagcdn.com/w160/${code.toLowerCase()}.png`;
+  return resolveBongsimFlagImageUrlOrFallback(code);
 }
 
 function planTypeLabelKr(planType: string | null | undefined): string {

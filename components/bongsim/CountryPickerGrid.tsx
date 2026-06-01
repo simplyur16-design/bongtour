@@ -5,10 +5,11 @@ import SafeImage from "@/app/components/SafeImage";
 import { useMediaQueryBelow } from "@/hooks/useMediaQueryBelow";
 import { CountryNameMultiline } from "@/lib/bongsim/country-name-display";
 import type { CountryOption } from "@/lib/bongsim/types";
+import { resolveBongsimFlagImageUrl } from "@/lib/bongsim-flag-image-url";
 
 /**
  * 국기 렌더링 방식:
- * - ISO alpha-2 코드가 있고 `isRegion`이 false면 flagcdn.com PNG + `next/image` 최적화
+ * - ISO alpha-2 코드가 있고 `isRegion`이 false면 NCloud 국기(manifest) 우선, 없으면 flagcdn 폴백
  *   (Windows Chrome/Edge에서 컬러 이모지 미지원 문제 우회)
  * - 아니면(지역·가짜 코드) 원본 이모지 fallback.
  */
@@ -19,9 +20,8 @@ const ISO_ALPHA2_RE = /^[a-z]{2}$/;
 
 const MOBILE_BREAKPOINT_PX = 768;
 
-/** 고해상도 원본(w160) — 표시 크기는 `sizes`·width/height로 제한 */
-function flagImageUrl(code: string): string {
-  return `https://flagcdn.com/w160/${code}.png`;
+function flagImageUrl(code: string): string | null {
+  return resolveBongsimFlagImageUrl(code);
 }
 
 type Props = {
@@ -89,9 +89,9 @@ export function CountryPickerGrid({
                     }`}
                     aria-hidden
                   >
-                    {useFlagImage ? (
+                    {useFlagImage && flagImageUrl(c.code) ? (
                       <SafeImage
-                        src={flagImageUrl(c.code)}
+                        src={flagImageUrl(c.code)!}
                         alt=""
                         width={48}
                         height={48}

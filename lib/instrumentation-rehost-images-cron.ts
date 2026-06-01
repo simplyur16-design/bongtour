@@ -1,6 +1,6 @@
 /**
- * 매일 KST 03:30 — `Product.schedule` 내 Pexels CDN 잔여를 batch rehost로 정리(신규 등록 누수 safety-net).
- * 스크립트 SSOT: `scripts/rehost-schedule-pexels-batch.ts` (수정 없이 child_process 호출).
+ * 매일 KST 03:30 — DB 잔여 외부 CDN URL 일괄 NCloud 재호스팅 (Memory #5 safety-net).
+ * 스크립트 SSOT: `scripts/rehost-all-external-cdn-to-ncloud.ts`
  *
  * production + DATABASE_URL (`instrumentation.ts` 가드).
  * 비활성화: `DISABLE_INSTRUMENTATION_REHOST_IMAGES_CRON=1`
@@ -10,29 +10,40 @@ import { spawn } from 'node:child_process'
 import path from 'node:path'
 
 const CRON_EXPR = '30 3 * * *'
-const BATCH_SUMMARY_RE = /\[rehost-schedule-pexels-batch\]\s+scanned\s+(\d+)\s+changed\s+(\d+)/
+const BATCH_SUMMARY_RE =
+  /\[rehost-all\]\s+scanned=(\d+)\s+changed=(\d+)\s+failed=(\d+)\s+elapsed=(\d+)s/
 
 function isRehostImagesCronDryRun(): boolean {
   return process.env.REHOST_IMAGES_CRON_DRY_RUN === '1'
 }
 
-function parseBatchSummary(stdout: string): { scanned: number; changed: number } | null {
+function parseBatchSummary(stdout: string): {
+  scanned: number
+  changed: number
+  failed: number
+  elapsedSec: number
+} | null {
   const lines = stdout.split(/\r?\n/)
   for (let i = lines.length - 1; i >= 0; i--) {
     const m = lines[i]?.match(BATCH_SUMMARY_RE)
     if (m) {
-      return { scanned: Number(m[1]), changed: Number(m[2]) }
+      return {
+        scanned: Number(m[1]),
+        changed: Number(m[2]),
+        failed: Number(m[3]),
+        elapsedSec: Number(m[4]),
+      }
     }
   }
   return null
 }
 
-function runRehostSchedulePexelsBatchScript(apply: boolean): Promise<{
+function runRehostAllExternalCdnScript(apply: boolean): Promise<{
   exitCode: number | null
   stdout: string
   stderr: string
 }> {
-  const scriptPath = path.join(process.cwd(), 'scripts', 'rehost-schedule-pexels-batch.ts')
+  const scriptPath = path.join(process.cwd(), 'scripts', 'rehost-all-external-cdn-to-ncloud.ts')
   const args = ['tsx', scriptPath]
   if (apply) args.push('--apply')
 
@@ -78,16 +89,13 @@ async function tickRehostImagesCron(): Promise<void> {
   console.log('[rehost-images-cron] tick start', { dryRun, apply })
 
   try {
-    const { exitCode, stdout, stderr } = await runRehostSchedulePexelsBatchScript(apply)
+    const { exitCode, stdout, stderr } = await runRehostAllExternalCdnScript(apply)
     const parsed = parseBatchSummary(stdout)
-    const scanned = parsed?.scanned ?? null
-    const changed = parsed?.changed ?? null
 
     if (exitCode !== 0) {
       console.error('[rehost-images-cron] tick failed', {
         exitCode,
-        scanned,
-        changed,
+        parsed,
         durationMs: Date.now() - started,
         stderrTail: stderr.slice(-500),
       })
@@ -95,8 +103,7 @@ async function tickRehostImagesCron(): Promise<void> {
     }
 
     console.log('[rehost-images-cron] tick done', {
-      scanned,
-      changed,
+      ...parsed,
       dryRun,
       durationMs: Date.now() - started,
     })

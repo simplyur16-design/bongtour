@@ -4,14 +4,13 @@
  */
 
 import type { PrismaClient } from '@prisma/client'
-import { tryParseObjectKeyFromPublicUrl, isObjectStorageConfigured } from '@/lib/object-storage'
+import { isObjectStorageConfigured } from '@/lib/object-storage'
+import { isExternalCdnImageUrl } from '@/lib/external-cdn-image-ssot'
 import { savePhotoFromUrlWithRetry, type PhotoPoolAttribution } from '@/lib/photo-pool'
 
-/** 최종 상품/일정/히어로에 남기면 안 되는 `http(s)` 외부 URL (우리 Storage 공개 URL 제외) */
+/** 최종 상품/일정/히어로에 남기면 안 되는 외부 `http(s)` 이미지 URL — Memory #5 SSOT */
 export function isExternalHttpProductImageUrl(url: string): boolean {
-  const t = (url ?? '').trim()
-  if (!t || !/^https?:\/\//i.test(t)) return false
-  return tryParseObjectKeyFromPublicUrl(t) == null
+  return isExternalCdnImageUrl(url)
 }
 
 /**

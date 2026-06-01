@@ -9,6 +9,7 @@ import { getHomeHubCoverImageUrl } from '@/lib/final-image-selection'
 import { homeHubCardImageSrc } from '@/lib/home-hub-images'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
+import { isExternalCdnImageUrl } from '@/lib/external-cdn-image-ssot'
 
 export type HomeHubTravelCardCoverScope = 'overseas' | 'domestic'
 
@@ -26,23 +27,11 @@ export type HomeHubTravelCardCoverPick = {
 
 const CANDIDATE_LIMIT = 120
 
-/** Pexels/Unsplash 직링크는 매 요청 CDN 왕복이 크므로, 동일 스코프 정적 WebP로 치환 */
+/** 외부 CDN 직링크는 매 요청 CDN 왕복이 크므로, 동일 스코프 정적 WebP로 치환 */
 function preferStaticHubCoverOverSlowCdNs(url: string, scope: HomeHubTravelCardCoverScope): string {
   const t = url.trim()
-  if (!t || !/^https?:\/\//i.test(t)) return t
-  try {
-    const { hostname } = new URL(t)
-    if (
-      hostname === 'images.pexels.com' ||
-      hostname === 'images.unsplash.com' ||
-      hostname.endsWith('.pexels.com')
-    ) {
-      return homeHubCardImageSrc(scope, 'webp')
-    }
-  } catch {
-    return t
-  }
-  return t
+  if (!t || !isExternalCdnImageUrl(t)) return t
+  return homeHubCardImageSrc(scope, 'webp')
 }
 
 /**

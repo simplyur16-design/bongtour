@@ -1,6 +1,7 @@
 'use client'
 
 import SafeImage from '@/app/components/SafeImage'
+import { resolveBongsimFlagImageUrlOrFallback } from '@/lib/bongsim-flag-image-url'
 import { useCallback, useEffect, useState } from 'react'
 
 type CountryRow = { code: string; nameKr: string }
@@ -19,7 +20,7 @@ type PexelsSearchResponse = { ok: true; query: string; photos: PexelsSearchPhoto
 type ModalState = { code: string; nameKr: string }
 
 function flagCdnUrl(code: string): string {
-  return `https://flagcdn.com/w160/${code.toLowerCase()}.png`
+  return resolveBongsimFlagImageUrlOrFallback(code)
 }
 
 /** Prod CSP / mixed content — `next/image` 미리보기용 (AdminPendingDetailPanel과 동일) */
