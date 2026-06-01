@@ -233,6 +233,12 @@ model Product {
   /// 인덱스는 운영 측정 후 추가 (현재 Product ~110건 규모, 메모리 #11 정합).
   lastFutureDepartureDate      DateTime?
 
+  /// browse 예산·정렬용 — 예약 가능 출발 집계(Asia/Seoul 오늘+2일 00:00 이후, `fn_sync_product_bookable_derived`)
+  minBookableAdultPrice     Int?
+  nextBookableDepartureAt   DateTime?
+  bookableDepartureCount    Int       @default(0)
+  hasBookableDepartures     Boolean   @default(false)
+
   /// modetour 긴급모객 — sweep가 today~+30일 윈도우에서 baseline 대비 인하 출발일 1건 이상일 때 true
   hasUrgentDeal       Boolean   @default(false)
   urgentDealUpdatedAt DateTime?
@@ -255,6 +261,7 @@ model Product {
   @@index([lastSalesPolicyCheckedAt])
   @@index([hasUrgentDeal])
   @@index([hasUrgentDeal, urgentDealNextDate])
+  @@index([hasBookableDepartures, nextBookableDepartureAt])
 }
 
 model OptionalTour {

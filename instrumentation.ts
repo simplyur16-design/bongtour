@@ -86,6 +86,10 @@ export async function register() {
           '@/lib/instrumentation-rehost-images-cron'
         )
         startInstrumentationRehostImagesCron()
+        const { startInstrumentationSyncBookableDerivedCron } = await import(
+          '@/lib/instrumentation-sync-bookable-derived-cron'
+        )
+        startInstrumentationSyncBookableDerivedCron()
       }
     }
   }
