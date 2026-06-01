@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import type { Prisma } from '@prisma/client'
+import type { Prisma, ProductDeparture } from '@prisma/client'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import {
@@ -111,7 +111,7 @@ import {
 import { deriveIncludedExcludedFromRaw } from '@/lib/derive-included-excluded-from-raw'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import { buildProductMetaChips } from '@/lib/product-meta-chips'
-import { PRODUCT_DETAIL_PAGE_INCLUDE } from '@/lib/product-detail-page-include'
+import { buildProductDetailPageInclude } from '@/lib/product-detail-page-include'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
 import { ItineraryViewLazy } from '@/components/itinerary/ItineraryViewLazy'
 import type {
@@ -121,7 +121,9 @@ import type {
   FitItineraryActivityValidation,
 } from '@prisma/client'
 
-export type ProductDetailViewRow = Prisma.ProductGetPayload<{ include: typeof PRODUCT_DETAIL_PAGE_INCLUDE }>
+export type ProductDetailViewRow = Prisma.ProductGetPayload<{
+  include: ReturnType<typeof buildProductDetailPageInclude>
+}>
 
 type FitMasterWithDays = FitItineraryMaster & {
   days: (FitItineraryDay & {
@@ -207,7 +209,10 @@ export async function ProductDetailView({
     itineraryDays: _omitItineraryDays,
     ...productForDetail
   } = travelProduct
-  const departures = (rawDepartures ?? []).filter((d) => isOnOrAfterPublicBookableMinDate(d.departureDate))
+  /** include select는 `buildProductDetailDepartureSelect` — price-row·key-facts 모듈은 full `ProductDeparture` 타입 */
+  const departures = (rawDepartures ?? []).filter((d) =>
+    isOnOrAfterPublicBookableMinDate(d.departureDate),
+  ) as ProductDeparture[]
   const publicPrices = (travelProduct.prices ?? []).filter((p) => isOnOrAfterPublicBookableMinDate(p.date))
 
   const publicConsumptionModuleKey = resolvePublicConsumptionModuleKey(

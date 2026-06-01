@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import { PRODUCT_DETAIL_PAGE_INCLUDE } from '@/lib/product-detail-page-include'
+import { buildProductDetailPageInclude } from '@/lib/product-detail-page-include'
 import { ProductDetailView } from '@/app/products/[idOrSlug]/product-detail-view'
 
 export const dynamic = 'force-dynamic'
@@ -26,7 +26,7 @@ export default async function AdminProductCustomerViewPage({ params }: Props) {
 
   const travelProduct = await prisma.product.findFirst({
     where: { id },
-    include: PRODUCT_DETAIL_PAGE_INCLUDE,
+    include: buildProductDetailPageInclude(),
   })
   if (!travelProduct) {
     notFound()
