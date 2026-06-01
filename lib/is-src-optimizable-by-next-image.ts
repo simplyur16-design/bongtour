@@ -20,7 +20,8 @@ export function isSrcOptimizableByNextImage(src: ImageProps['src']): boolean {
      * rehost 완료 후에도 신규 등록 이미지의 일시적 Pexels CDN URL을 next/image 비용으로부터 보호하기 위해 false 유지.
      */
     if (host === 'images.pexels.com') return false
-    if (host === 'flagcdn.com' || host.endsWith('.flagcdn.com')) return true
+    /** 외부 CDN. next/image 프록시 비용(Railway↔외부 fetch+Sharp 변환) 회피. 장기: 국기 NCloud 이전 별도 트랙. */
+    if (host === 'flagcdn.com' || host.endsWith('.flagcdn.com')) return false
     /** Ncloud 객체 URL — `SafeImage`에서 `<img>` 직접 로드(Railway `/_next/image` 프록시 미경유). */
     if (host.endsWith('.ncloudstorage.com') || host.endsWith('.ncloud.com')) return false
     if (host.endsWith('.supabase.co') && u.pathname.startsWith('/storage/v1')) return true
