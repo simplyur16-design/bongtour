@@ -14,6 +14,7 @@ import {
 } from "@/lib/bongsim/welcomepay-payapi-cancel";
 import { notifyRefundCompletedBestEffort } from "@/lib/bongsim/refund/notify-refund-completed";
 import { resolveWelcomepayCaptureTid } from "@/lib/bongsim/refund/resolve-welcomepay-capture-tid";
+import { checkUsimsaOrderDataUsageForRefund } from "@/lib/bongsim/refund/usimsa-refund-usage";
 
 export type RefundRequestedBy = { kind: "admin"; id: string } | { kind: "customer" };
 
@@ -28,7 +29,8 @@ export type ProcessRefundResult =
         | "unsupported_provider"
         | "missing_payment_reference"
         | "welcomepay_env_incomplete"
-        | "esim_activated_no_refund"
+        | "esim_used_no_refund"
+        | "usage_check_failed"
         | "supplier_refund_failed"
         | "pg_cancel_failed"
         | "already_refunded"
@@ -49,20 +51,6 @@ const REFUND_EVENT = {
   supplierApplied: "refund_supplier_applied",
   cardCancelApproved: "outbound_refund",
 } as const;
-
-async function orderHasUsimsaIccid(client: PoolClient, orderId: string): Promise<boolean> {
-  const r = await client.query<{ ok: boolean }>(
-    `SELECT EXISTS (
-       SELECT 1 FROM bongsim_fulfillment_topup t
-       WHERE t.order_id = $1::uuid
-         AND t.supplier_id = 'usimsa'
-         AND t.iccid IS NOT NULL
-         AND trim(t.iccid) <> ''
-     ) AS ok`,
-    [orderId],
-  );
-  return Boolean(r.rows[0]?.ok);
-}
 
 async function insertRefundProviderEvent(
   client: PoolClient,
@@ -151,8 +139,12 @@ async function validateRefundOrder(
     };
   }
 
-  if (await orderHasUsimsaIccid(client, orderId)) {
-    return { ok: false, reason: "esim_activated_no_refund" };
+  const usage = await checkUsimsaOrderDataUsageForRefund(orderId, client);
+  if (!usage.ok) {
+    if (usage.reason === "esim_used") {
+      return { ok: false, reason: "esim_used_no_refund", message: usage.message };
+    }
+    return { ok: false, reason: "usage_check_failed", message: usage.message };
   }
 
   const priceKrw = Number.parseInt(order.grand_total_krw, 10);
@@ -205,7 +197,6 @@ async function listUsimsaTopupsToCancel(client: PoolClient, orderId: string): Pr
   const rows = await client.query<SupplierCancelRow>(
     `SELECT topup_id FROM bongsim_fulfillment_topup
       WHERE order_id = $1::uuid AND supplier_id = 'usimsa'
-        AND (iccid IS NULL OR trim(iccid) = '')
         AND status NOT IN ('canceled', 'failed')`,
     [orderId],
   );

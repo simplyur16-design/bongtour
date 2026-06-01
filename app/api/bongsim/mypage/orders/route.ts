@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { countryDisplayFromPlanNameKr } from "@/lib/bongsim/mypage-esim-display";
 import { pickPrimaryVerificationIccid } from "@/lib/bongsim/esim/iccid-verification";
+import { getRefundEligibility } from "@/lib/bongsim/refund/refund-eligibility";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,7 @@ export async function GET() {
       [email, userId],
     );
 
-    const orders = r.rows.map((row) => {
+    const ordersBase = r.rows.map((row) => {
       const planName = row.plan_name?.trim() || "—";
       const { flag, countryLabel } = countryDisplayFromPlanNameKr(planName);
       const topups = Array.isArray(row.topups) ? row.topups : [];
@@ -147,5 +148,7 @@ function mapDisplayStatus(orderStatus: string, topups: TopupRow[]): string {
   }
   if (orderStatus === "failed") return "실패";
   if (orderStatus === "cancelled") return "취소";
+  if (orderStatus === "refunded") return "취소";
+  if (orderStatus === "refund_requested") return "환불 처리중";
   return orderStatus;
 }

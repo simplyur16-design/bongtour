@@ -1,24 +1,10 @@
-import type { PoolClient } from "pg";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
+import { checkUsimsaOrderDataUsageForRefund } from "@/lib/bongsim/refund/usimsa-refund-usage";
 
 export type RefundEligibility =
   | { eligible: true }
   | { eligible: false; code: string; message: string };
-
-async function orderHasUsimsaIccid(client: PoolClient, orderId: string): Promise<boolean> {
-  const r = await client.query<{ ok: boolean }>(
-    `SELECT EXISTS (
-       SELECT 1 FROM bongsim_fulfillment_topup t
-       WHERE t.order_id = $1::uuid
-         AND t.supplier_id = 'usimsa'
-         AND t.iccid IS NOT NULL
-         AND trim(t.iccid) <> ''
-     ) AS ok`,
-    [orderId],
-  );
-  return Boolean(r.rows[0]?.ok);
-}
 
 export async function getRefundEligibility(orderId: string): Promise<RefundEligibility> {
   const id = orderId.trim();
@@ -67,12 +53,12 @@ export async function getRefundEligibility(orderId: string): Promise<RefundEligi
       return { eligible: false, code: "missing_payment_reference", message: "결제 정보가 없어 취소할 수 없습니다." };
     }
 
-    if (await orderHasUsimsaIccid(client, id)) {
-      return {
-        eligible: false,
-        code: "esim_activated",
-        message: "eSIM이 이미 발급·활성화되어 취소할 수 없습니다. 고객센터로 문의해 주세요.",
-      };
+    const usage = await checkUsimsaOrderDataUsageForRefund(id, client);
+    if (!usage.ok) {
+      if (usage.reason === "esim_used") {
+        return { eligible: false, code: "esim_used", message: usage.message };
+      }
+      return { eligible: false, code: "usage_check_failed", message: usage.message };
     }
 
     return { eligible: true };

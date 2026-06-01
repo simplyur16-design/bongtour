@@ -21,6 +21,8 @@ type OrderRow = {
   can_check_usage: boolean;
   requires_traveler_verification: boolean;
   traveler_verification_iccid: string | null;
+  cancel_eligible: boolean;
+  cancel_block_reason: string | null;
 };
 
 type UsageResponse = {
@@ -49,6 +51,7 @@ function badgeClass(display: string): string {
   if (display === "사용중") return "bg-cyan-600 text-white";
   if (display === "실패") return "bg-red-600 text-white";
   if (display === "취소") return "bg-amber-500 text-slate-900";
+  if (display === "환불 처리중") return "bg-amber-400 text-slate-900";
   return "bg-slate-400 text-white";
 }
 
@@ -91,6 +94,7 @@ function ManualInstallField({ label, value, copyLabel }: { label: string; value:
 import MypagePageHeading from '@/components/mypage/MypagePageHeading'
 import { EsimTravelerVerificationCallout } from "@/components/bongsim/esim/EsimTravelerVerificationCallout";
 import { EsimMypageUsimsaCsLinks } from "@/components/bongsim/EsimMypageUsimsaCsLinks";
+import { OrderCompleteRefundActions } from "@/components/bongsim/order-complete/OrderCompleteRefundActions";
 
 export default function MyEsimOrdersClient() {
   const [rows, setRows] = useState<OrderRow[]>([]);
@@ -234,6 +238,16 @@ export default function MyEsimOrdersClient() {
                 <EsimTravelerVerificationCallout iccid={o.traveler_verification_iccid} />
               </div>
             ) : null}
+
+            <div className="mt-4">
+              <OrderCompleteRefundActions
+                orderId={o.order_id}
+                cancelEligible={o.cancel_eligible}
+                cancelBlockReason={o.cancel_block_reason}
+                orderStatus={o.status}
+                onSuccess={() => void load()}
+              />
+            </div>
           </article>
         ))}
 

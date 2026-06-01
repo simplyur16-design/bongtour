@@ -65,9 +65,10 @@ export async function POST(req: Request, ctx: Ctx) {
   const status =
     result.reason === "order_not_found"
       ? 404
-      : result.reason === "esim_activated_no_refund" ||
+      : result.reason === "esim_used_no_refund" ||
           result.reason === "already_refunded" ||
-          result.reason === "invalid_status"
+          result.reason === "invalid_status" ||
+          result.reason === "usage_check_failed"
         ? 400
         : result.reason === "pg_cancel_failed" || result.reason === "supplier_refund_failed"
           ? 502

@@ -9,6 +9,8 @@ type Props = {
   cancelEligible: boolean;
   cancelBlockReason: string | null;
   orderStatus: string;
+  /** 취소 성공 후 목록 갱신 등 — 없으면 `router.refresh()` */
+  onSuccess?: () => void;
 };
 
 export function OrderCompleteRefundActions({
@@ -16,6 +18,7 @@ export function OrderCompleteRefundActions({
   cancelEligible,
   cancelBlockReason,
   orderStatus,
+  onSuccess,
 }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -57,7 +60,7 @@ export function OrderCompleteRefundActions({
   const onCancel = async () => {
     if (busy) return;
     const ok = window.confirm(
-      "주문을 취소하고 결제 금액을 환불할까요?\neSIM이 아직 발급되지 않은 경우에만 가능합니다.",
+      "주문을 취소할까요?\n\n1) 유심사 eSIM 발급 취소\n2) 카드 결제 전액 환불\n\nQR·ICCID가 있어도 데이터를 사용하지 않았으면 취소할 수 있습니다. 이미 데이터를 사용한 경우에는 취소할 수 없습니다.",
     );
     if (!ok) return;
     setBusy(true);
@@ -74,7 +77,8 @@ export function OrderCompleteRefundActions({
         return;
       }
       setDone(true);
-      router.refresh();
+      if (onSuccess) onSuccess();
+      else router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "취소 요청에 실패했어요.");
     } finally {
@@ -86,7 +90,8 @@ export function OrderCompleteRefundActions({
     <section className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
       <h2 className="text-[14px] font-semibold text-amber-950">주문 취소</h2>
       <p className="mt-2 text-[13px] leading-relaxed text-amber-900">
-        eSIM이 아직 발급되지 않았다면 결제를 취소(전액 환불)할 수 있어요. 발급이 완료된 뒤에는 취소할 수 없습니다.
+        유심사 eSIM 발급을 취소한 뒤 카드 결제를 전액 환불합니다. 발급(QR·ICCID)만 된 상태이고 데이터를 사용하지 않았으면
+        취소할 수 있습니다.
       </p>
       {err ? <p className="mt-2 text-[13px] text-red-700">{err}</p> : null}
       <button

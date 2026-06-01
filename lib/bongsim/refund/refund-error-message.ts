@@ -11,8 +11,11 @@ export function refundErrorMessage(payload: {
   }
   if (err === "login_required") return "로그인한 뒤, 주문 시 사용한 이메일 계정으로 취소해 주세요.";
   if (err === "forbidden") return "주문 이메일과 로그인 이메일이 일치해야 취소할 수 있어요.";
-  if (err === "esim_activated_no_refund") {
-    return msg || "eSIM이 이미 발급되어 자동 취소할 수 없습니다. 고객센터로 문의해 주세요.";
+  if (err === "esim_used_no_refund" || err === "esim_used" || err === "esim_activated_no_refund") {
+    return msg || "데이터를 이미 사용한 eSIM은 취소할 수 없습니다. 고객센터로 문의해 주세요.";
+  }
+  if (err === "usage_check_failed") {
+    return msg || "사용량 확인에 실패해 취소할 수 없습니다. 잠시 후 다시 시도해 주세요.";
   }
   if (err === "refund_in_progress") {
     return msg || "환불이 처리 중입니다. 잠시 후 새로고침해 주세요.";
