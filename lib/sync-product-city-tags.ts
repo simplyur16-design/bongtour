@@ -4,11 +4,12 @@
  */
 import type { Prisma } from '@prisma/client'
 import { clusterCityKeysForNode, isClusterExpansionNode } from '@/lib/cluster-city-expansions'
+import { filterCityKeysToCoherentMegaMenuGroup } from '@/lib/mega-menu-city-group-coherence'
 import {
-  getMegaMenuCityKeys,
-  isMegaMenuCityKey,
-  matchMegaMenuCityKeysInHaystack,
-} from '@/lib/mega-menu-master-city-keys'
+  isMegaMenuSsotCityKey,
+  loadMegaMenuSsotCityKeys,
+  matchMegaMenuSsotCityKeysInHaystack,
+} from '@/lib/mega-menu-ssot-city-keys'
 import { isMultiCityClusterNode } from '@/lib/product-master-mapping'
 import type { ProductLocationKeyPrismaFields } from '@/lib/product-location-key-match'
 
@@ -41,7 +42,7 @@ async function resolveSingleMegaMenuCityKey(
     }
   }
 
-  if (!cityKey || !isMegaMenuCityKey(cityKey)) return null
+  if (!cityKey || !(await isMegaMenuSsotCityKey(db, cityKey))) return null
   const row = await db.city.findUnique({ where: { cityKey }, select: { cityKey: true } })
   return row ? cityKey : null
 }
@@ -50,7 +51,7 @@ async function filterCityKeysInMaster(
   db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
   keys: Iterable<string>,
 ): Promise<string[]> {
-  const mega = getMegaMenuCityKeys()
+  const mega = await loadMegaMenuSsotCityKeys(db)
   const ordered: string[] = []
   const seen = new Set<string>()
   for (const raw of keys) {
@@ -87,11 +88,24 @@ export async function resolveProductCityKeysForTags(
       .filter((x): x is string => Boolean(x && String(x).trim()))
       .join(' ')
     if (haystack) {
-      candidates.push(...matchMegaMenuCityKeysInHaystack(haystack))
+      candidates.push(...(await matchMegaMenuSsotCityKeysInHaystack(db, haystack)))
     }
   }
 
-  return filterCityKeysInMaster(db, candidates)
+  let filtered = await filterCityKeysInMaster(db, candidates)
+  const primaryGeo = geo.cityKey?.trim() || geo.nodeKey?.trim() || null
+  if (primaryGeo && filtered.length > 1) {
+    filtered = filterCityKeysToCoherentMegaMenuGroup(primaryGeo, filtered)
+  }
+  if (primaryGeo && filtered.includes(primaryGeo) && filtered.length > 1) {
+    const rest = filtered.filter((k) => k !== primaryGeo)
+    return [primaryGeo, ...rest]
+  }
+  if (primaryGeo && filtered.length === 0 && (await isMegaMenuSsotCityKey(db, primaryGeo))) {
+    const row = await db.city.findUnique({ where: { cityKey: primaryGeo }, select: { cityKey: true } })
+    if (row) return [primaryGeo]
+  }
+  return filtered
 }
 
 /**

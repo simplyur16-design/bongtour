@@ -53,11 +53,13 @@ function toGeo(row: {
 
 async function main(): Promise<void> {
   const resyncAll = process.argv.includes('--all-registered')
+  const countryKeyFilter =
+    process.argv.find((a) => a.startsWith('--country-key='))?.split('=')[1]?.trim() || ''
 
   const candidates = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
-      countryKey: { not: null },
+      countryKey: countryKeyFilter ? countryKeyFilter : { not: null },
       ...(resyncAll ? {} : { cityKey: { not: null } }),
     },
     select: {
@@ -83,7 +85,7 @@ async function main(): Promise<void> {
     ? candidates
     : candidates.filter((p) => p.cityTags.length === 0)
   console.log(
-    `[backfill-product-city-tag] targets=${missing.length} (pool=${candidates.length})${resyncAll ? ' --all-registered' : ''}${dryRun ? ' dry-run' : ''}`,
+    `[backfill-product-city-tag] targets=${missing.length} (pool=${candidates.length})${resyncAll ? ' --all-registered' : ''}${countryKeyFilter ? ` country-key=${countryKeyFilter}` : ''}${dryRun ? ' dry-run' : ''}`,
   )
 
   let applied = 0

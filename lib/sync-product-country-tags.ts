@@ -9,6 +9,7 @@ import {
   type MultiCountryAutoPlan,
 } from '@/lib/normalize-product-geo-master'
 import { defaultNodeKeyForMasterCountryTag } from '@/lib/default-node-key-for-country-tag'
+import { isMultiCityClusterNode } from '@/lib/product-master-mapping'
 import type { ProductLocationKeyPrismaFields } from '@/lib/product-location-key-match'
 
 export type SyncProductCountryTagsOpts = {
@@ -97,11 +98,16 @@ function buildSinglePrimaryTagRow(
   const groupKey = (geo.groupKey ?? findGroupKeyForCountryKey(countryKey))?.trim()
   if (!groupKey) return null
 
+  const nodeKey =
+    geo.nodeKey?.trim() ||
+    (geo.cityKey?.trim() && !isMultiCityClusterNode(geo.cityKey) ? geo.cityKey.trim() : null) ||
+    null
+
   return [
     {
       productId,
       countryKey,
-      nodeKey: geo.nodeKey?.trim() || null,
+      nodeKey,
       groupKey,
       isPrimary: true,
       sortOrder: 0,

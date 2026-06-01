@@ -5,7 +5,7 @@ import type { Prisma } from '@prisma/client'
 import { resolveProductCityToKoreanDisplay, resolveProductCountryToKoreanDisplay } from '@/lib/browse-country-url-resolve'
 import { BROWSE_SLUG_PREFER_TREE_KR_LABEL, koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import { buildMultiCountryDetectionHaystack, termAppearsInHaystack } from '@/lib/geo-haystack-match'
-import { matchMegaMenuCityKeysInHaystack } from '@/lib/mega-menu-master-city-keys'
+import { matchMegaMenuSsotCityKeysInHaystack } from '@/lib/mega-menu-ssot-city-keys'
 import {
   findGroupKeyForCountryKey,
   matchTokensForCountryShallow,
@@ -227,7 +227,7 @@ export async function detectMultiCountryAutoPlan(
     }
   }
 
-  const megaCityKeys = matchMegaMenuCityKeysInHaystack(hay)
+  const megaCityKeys = await matchMegaMenuSsotCityKeysInHaystack(db, hay)
   if (megaCityKeys.length > 0) {
     const cities = await db.city.findMany({
       where: { cityKey: { in: megaCityKeys }, isActive: true },

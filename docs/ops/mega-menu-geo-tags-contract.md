@@ -15,7 +15,7 @@ browse·메가메뉴 필터는 **`ProductCountryTag` / `ProductCityTag`만** 본
 |------|------|
 | 단일 도시 | 메가메뉴에 있는 `cityKey` 1건 primary `ProductCityTag` |
 | 다도시 클러스터 | `lib/cluster-city-expansions.ts` 펼침 → **메가메뉴에 있는 도시만** 다건 태그 |
-| 제목·목적지에 여러 도시 | `lib/mega-menu-master-city-keys.ts` 토큰 매칭 → 메가메뉴 집합 ∩ |
+| 제목·목적지에 여러 도시 | `lib/mega-menu-master-city-keys.ts` 토큰 매칭 → 메가메뉴 집합 ∩. **2개 이상 도시에 공통인 토큰(예: `일본`, `간사이`)은 도시 태그에 쓰지 않음** (`lib/mega-menu-city-haystack-terms.ts`) |
 | 메가메뉴에 없는 도시 | 태그 **안 함** (의도적) |
 | 국가만 매칭 | `ProductCountryTag`만 (도시 문자열 없으면 도시 태그 생략 가능) |
 
@@ -28,11 +28,29 @@ browse·메가메뉴 필터는 **`ProductCountryTag` / `ProductCityTag`만** 본
 
 ```bash
 npx tsx scripts/verify-mega-menu-ssot-browse.ts
-npm run backfill:product-city-tag          # 누락 ProductCityTag
+npm run resync:mega-menu-geo              # 전체 registered 해외 — dry-run + 리포트
+npm run resync:mega-menu-geo:apply        # geo 필드 + Country/City 태그 일괄 재동기화
+npm run backfill:product-city-tag          # 누락 ProductCityTag만 (부분)
 npm run backfill:product-country-tag       # 누락 ProductCountryTag
 ```
 
+도시 태그 SSOT: `lib/mega-menu-ssot-city-keys.ts` — UI leaf + `MegaMenuGroupCardCity`(DB).  
+공통 토큰(`일본`, `간사이` 등) 제외: `lib/mega-menu-city-haystack-terms.ts`.  
+일본 열 혼입 방지: `lib/mega-menu-city-group-coherence.ts`.
+
 `registered` + `cityKey` 있는데 `ProductCityTag` 없으면 verify 스크립트가 실패한다.
+
+## 추천 여행지(시즌·페르소나)
+
+- 도시 분포·Gemini 큐레이션: 메가메뉴 SSOT + `ProductCityTag` 건수 (`lib/season-curation.ts`).
+- 카드 CTA·상품 매칭: 메가메뉴 browse URL (`lib/mega-menu-city-browse-href.ts`) + `productMatchesBrowseUrlGeo`.
+
+```bash
+npm run season-curation:force    # 현재 KST 월 사이클 강제 재생성 (Gemini)
+npx tsx scripts/run-season-curation.ts --force   # 동일
+```
+
+관리자 API: `POST /api/admin/season-curation` body `{ "force": true }`.
 
 ## LLM·파서 정리와의 관계
 
