@@ -55,7 +55,12 @@ body.flex-col
 - **`Product.publicDetailPayloadJson`** — 등록·동기화·출발 재수집 시 `rebuildProductPublicDetailPayload` 로 사전 계산
 - 상세 요청: DTO hit 시 **`rawMeta` 파싱·소비 모듈·`TravelProduct` 직렬화 생략** → `renderProductDetailFromModel` 만 실행
 - `bookableMinDateYmd` 가 바뀌면 자동 miss 후 재빌드
-- 일괄 백필: `npx tsx scripts/backfill-product-public-detail-payload.ts`
+- 일괄 백필 (`.env.local` 필요 — Prisma CLI는 로드 안 함):
+  ```bash
+  node scripts/_apply-public-detail-payload-columns.mjs
+  npx tsx scripts/backfill-product-public-detail-payload.ts
+  ```
+- `prisma migrate deploy` 가 P3005(기존 DB·마이그레이션 이력 없음)이면 위 DDL 스크립트로 컬럼만 추가
 
 ## 후속 (선택)
 

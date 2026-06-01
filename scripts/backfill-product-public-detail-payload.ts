@@ -1,11 +1,20 @@
 /**
  * 등록 완료 상품의 공개 상세 DTO 일괄 생성.
  * Usage: npx tsx scripts/backfill-product-public-detail-payload.ts [--limit N] [--id PRODUCT_ID]
+ *
+ * Prisma CLI·tsx는 `.env.local` 을 자동 로드하지 않음 — import 전에 dotenv 로드.
  */
-import { prisma } from '../lib/prisma'
-import { rebuildProductPublicDetailPayload } from '../lib/product-public-detail/persist-payload'
+import dotenv from 'dotenv'
+
+dotenv.config()
+dotenv.config({ path: '.env.local', override: true })
 
 async function main() {
+  const { prisma } = await import('../lib/prisma')
+  const { rebuildProductPublicDetailPayload } = await import(
+    '../lib/product-public-detail/persist-payload'
+  )
+
   const args = process.argv.slice(2)
   const limitIdx = args.indexOf('--limit')
   const limit = limitIdx >= 0 ? Number(args[limitIdx + 1]) : undefined
@@ -37,11 +46,10 @@ async function main() {
     }
   }
   console.log(`[backfill] done ok=${ok} fail=${fail}`)
+  await prisma.$disconnect()
 }
 
-main()
-  .catch((e) => {
-    console.error(e)
-    process.exit(1)
-  })
-  .finally(() => prisma.$disconnect())
+main().catch((e) => {
+  console.error(e)
+  process.exit(1)
+})

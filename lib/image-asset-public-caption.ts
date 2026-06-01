@@ -6,6 +6,11 @@
 import { findImageAssetByPublicUrl, findImageAssetsByPublicUrls, type ImageAssetRow } from '@/lib/image-assets-db'
 import { cache as reactCache } from 'react'
 
+/** Next RSC 밖(tsx 스크립트 등)에서는 cache 미지원 — 그때는 래핑 없이 호출 */
+function withRequestCache<T extends (...args: never[]) => unknown>(fn: T): T {
+  return typeof reactCache === 'function' ? (reactCache(fn) as T) : fn
+}
+
 export function captionTextFromImageAssetRow(
   row: Pick<ImageAssetRow, 'seo_title_kr' | 'title_kr' | 'alt_kr'>
 ): string | null {
@@ -27,7 +32,7 @@ async function tryCaptionFromPublicImageUrlImpl(url: string | null | undefined):
 }
 
 /** 동일 RSC 요청 내 metadata·page 중복 image_assets 조회 방지 */
-export const tryCaptionFromPublicImageUrl = reactCache(tryCaptionFromPublicImageUrlImpl)
+export const tryCaptionFromPublicImageUrl = withRequestCache(tryCaptionFromPublicImageUrlImpl)
 
 /** `findImageAssetByPublicUrl` 과 동일하게 query 제거·슬래시 변형으로 IN 목록 확장 */
 function expandPublicUrlQueryVariants(urls: (string | null | undefined)[]): string[] {
