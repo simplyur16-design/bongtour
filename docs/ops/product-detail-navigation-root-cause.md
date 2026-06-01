@@ -50,12 +50,18 @@ body.flex-col
 - 진입 **`scrollTo(0)`**, 로딩 중 **`data-bt-detail-loading`** → 푸터 숨김
 - **히어로 청크 제거** (2단 스트리밍 롤백)
 
-## 근본 해결 로드맵 (권장 순)
+## 근본 해결 (구현됨)
 
-1. **공개 `ProductPublicDto` JSON** (Product 행 또는 별도 컬럼) — sync 시 계산, 상세는 파싱 최소화  
-2. **단일 Suspense 경계** + 고정 `min-height` 껍데기 (히어로·탭 영역 placeholder 높이 고정)  
-3. browse → 상세 **동일 필드**만 전달 (이미 preview; slug URL은 id resolve 후 키 통일)  
-4. (선택) PPR/세그먼트 캐시 — UA dynamic과 정책 정합 후 검토
+- **`Product.publicDetailPayloadJson`** — 등록·동기화·출발 재수집 시 `rebuildProductPublicDetailPayload` 로 사전 계산
+- 상세 요청: DTO hit 시 **`rawMeta` 파싱·소비 모듈·`TravelProduct` 직렬화 생략** → `renderProductDetailFromModel` 만 실행
+- `bookableMinDateYmd` 가 바뀌면 자동 miss 후 재빌드
+- 일괄 백필: `npx tsx scripts/backfill-product-public-detail-payload.ts`
+
+## 후속 (선택)
+
+1. **단일 Suspense** + 고정 `min-height` 껍데기  
+2. slug URL preview 키 통일  
+3. PPR/세그먼트 캐시 — UA dynamic과 정책 정합 후 검토
 
 ## 측정
 

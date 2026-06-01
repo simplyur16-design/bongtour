@@ -318,7 +318,7 @@ export async function POST(request: Request) {
     }
 
     revalidateProductListingCaches()
-    revalidateProductDetailCaches(productId)
+    await revalidateProductDetailCaches(productId)
 
     return NextResponse.json({
       detailPath: `/admin/products/${productId}`,

@@ -811,7 +811,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         typeof body.firstPriceRow === 'object' &&
         (body.firstPriceRow as Record<string, unknown>).priceAdult != null)
     if (productMutated) {
-      revalidateProductDetailCaches(id)
+      await revalidateProductDetailCaches(id)
     }
     const product = await prisma.product.findUnique({
       where: { id },
@@ -942,7 +942,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     }
     const existing = await prisma.product.findUnique({ where: { id }, select: { slug: true } })
     await prisma.product.delete({ where: { id } })
-    revalidateProductDetailCaches(id, existing?.slug)
+    await revalidateProductDetailCaches(id, existing?.slug)
     return NextResponse.json({ ok: true })
   } catch (e) {
     if (e && typeof e === 'object' && 'code' in e && e.code === 'P2025') {

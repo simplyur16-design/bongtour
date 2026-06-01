@@ -185,6 +185,9 @@ model Product {
   departureStatusText      String?
   /// 관리자 확정 항공여정(JSON). 자동추출(rawMeta structured)과 분리 — 공개 화면은 이 값 우선.
   flightAdminJson          String?
+  /// 공개 상세 SSR용 사전 계산 DTO (`lib/product-public-detail`). 등록·동기화 시 갱신.
+  publicDetailPayloadJson    String?
+  publicDetailPayloadBuiltAt DateTime?
 
   /// 여행 범위(국내/해외). 상품 노출 유형(listingKind)과 별개 — 공개 browse `scope`와 정렬 시 우선.
   travelScope String? // domestic | overseas

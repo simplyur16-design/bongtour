@@ -1892,7 +1892,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     logParseAndRegister('ok', ctx)
     timing.mark('done')
     revalidateProductListingCaches()
-    revalidateProductDetailCaches(productId)
+    await revalidateProductDetailCaches(productId)
     fireFitItineraryGenerationAfterRegister(productId, productData.productType)
     return NextResponse.json(confirmPayload)
   } catch (e) {
