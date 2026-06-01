@@ -76,14 +76,16 @@ function candidateDestinationBlobsForMatch(input: {
   title: string
 }): string[] {
   const { primaryDestination: pd, destinationRaw: dr, title: t } = input
+  /** 목적지 필드 단독 blob을 제목 합친 blob보다 먼저 — 호텔명(닛코) 등 제목 오매칭 완화 */
   return uniqueNonEmptyStrings([
-    [pd, dr, t].filter(Boolean).join(' '),
     pd,
     dr,
-    t,
     ...pd.split(SEG_SPLIT_DEST).map((x) => x.trim()),
     ...dr.split(SEG_SPLIT_DEST).map((x) => x.trim()),
+    [pd, dr].filter(Boolean).join(' '),
+    t,
     ...t.split(SEG_SPLIT_DEST).map((x) => x.trim()),
+    [pd, dr, t].filter(Boolean).join(' '),
   ])
 }
 

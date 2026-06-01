@@ -48,13 +48,14 @@ function candidateDestinationBlobs(input: {
 }): string[] {
   const { primaryDestination: pd, destinationRaw: dr, title: t } = input
   return uniqueNonEmptyStrings([
-    [pd, dr, t].filter(Boolean).join(' '),
     pd,
     dr,
-    t,
     ...pd.split(SEG_SPLIT).map((x) => x.trim()),
     ...dr.split(SEG_SPLIT).map((x) => x.trim()),
+    [pd, dr].filter(Boolean).join(' '),
+    t,
     ...t.split(SEG_SPLIT).map((x) => x.trim()),
+    [pd, dr, t].filter(Boolean).join(' '),
   ])
 }
 

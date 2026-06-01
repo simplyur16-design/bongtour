@@ -38,3 +38,12 @@ npm run backfill:product-country-tag       # 누락 ProductCountryTag
 
 공급사별 LLM 출력이 바뀌어도 **저장 직전 `geo` + `syncProductGeoTags`**만 맞으면 메가메뉴 정합은 유지된다.  
 파서 정리 시 이 계약 파일·verify 스크립트를 **먼저** 깨지 않는지 확인한다.
+
+### 등록 SSOT (A안 — `lib/register-resolve-mega-menu-geo.ts`)
+
+4공급사 confirm은 **`resolveMegaMenuGeoForRegister`** 한 곳만 호출 → `normalizeProductGeoForPrisma` + `detectMultiCountryAutoPlan` + 이후 `syncProductGeoTags`.
+
+- **다국가**: 목적지→제목 haystack, 트리·메가메뉴 도시 토큰. **N국 없어도 2개국 이상이면 medium** → 다건 `ProductCountryTag`.
+- **1글자 국명(괌)**: `matchProductToOverseasNode` 선행 매칭 (호텔명 닛코 오매칭 완화).
+- **다국가 nodeKey**: 보조 국가 태그에 `defaultNodeKeyForMasterCountryTag` (예: `denmark-mix`).
+- **pending**: 다국가 `confidence === 'low'` 또는 마스터 bar 실패만.

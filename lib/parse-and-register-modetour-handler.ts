@@ -11,11 +11,7 @@ import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-reg
 import { extractHighlightFromModetour } from '@/lib/extract-highlight-modetour'
 import { extractHighlightFromModetourLLM } from '@/lib/llm-extract-highlight-modetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
-import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
-import {
-  detectMultiCountryAutoPlan,
-  multiCountryNeedsOperatorReview,
-} from '@/lib/normalize-product-geo-master'
+import { resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
 import { syncProductGeoTags } from '@/lib/sync-product-geo-tags'
 import {
   buildBongtourProductTitleFieldsForRegisterPreview,
@@ -1673,18 +1669,9 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
       bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
     }
-    const { geo, masterRegistrationOk } = await normalizeProductGeoForPrisma(prisma, geoInput)
-    const multiPlan = await detectMultiCountryAutoPlan(
-      prisma,
-      {
-        title: titlePair.prismaTitle,
-        primaryDestination: geoInput.primaryDestination,
-        destinationRaw: geoInput.destinationRaw,
-      },
-      geo.countryKey,
-    )
-    const registrationStatusForSave =
-      !masterRegistrationOk || multiCountryNeedsOperatorReview(multiPlan)
+    const { geo, masterRegistrationOk, needsOperatorReview } =
+      await resolveMegaMenuGeoForRegister(prisma, geoInput)
+    const registrationStatusForSave = !masterRegistrationOk || needsOperatorReview
         ? 'pending'
         : existing?.registrationStatus === 'registered'
           ? 'registered'

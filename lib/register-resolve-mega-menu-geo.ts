@@ -1,0 +1,51 @@
+/**
+ * 등록·재처리 공통 — LLM destination 문자열 → 메가메뉴 SSOT geo + 다국가 판정.
+ * 4공급사 orchestration은 이 모듈만 호출한다 (공급사별 geo 분기 금지).
+ */
+import type { Prisma } from '@prisma/client'
+import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
+import {
+  detectMultiCountryAutoPlan,
+  multiCountryNeedsOperatorReview,
+  type MultiCountryAutoPlan,
+} from '@/lib/normalize-product-geo-master'
+import type {
+  ProductLocationKeyMatchInput,
+  ProductLocationKeyPrismaFields,
+} from '@/lib/product-location-key-match'
+
+export type RegisterMegaMenuGeoInput = ProductLocationKeyMatchInput
+
+export type RegisterMegaMenuGeoResult = {
+  geo: ProductLocationKeyPrismaFields
+  masterRegistrationOk: boolean
+  multiPlan: MultiCountryAutoPlan
+  /** pending 유지 여부 — low confidence 다국가·마스터 미달 */
+  needsOperatorReview: boolean
+}
+
+export function registerGeoTagSyncOpts(input: RegisterMegaMenuGeoInput): {
+  title: string
+  primaryDestination: string | null
+  destinationRaw: string | null
+} {
+  return {
+    title: (input.title ?? '').trim(),
+    primaryDestination: input.primaryDestination?.trim() || null,
+    destinationRaw: input.destinationRaw?.trim() || null,
+  }
+}
+
+/**
+ * 상품 등록 confirm 직전 geo 확정 — normalize + 다국가 auto plan.
+ */
+export async function resolveMegaMenuGeoForRegister(
+  db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
+  input: RegisterMegaMenuGeoInput,
+): Promise<RegisterMegaMenuGeoResult> {
+  const { geo, masterRegistrationOk } = await normalizeProductGeoForPrisma(db, input)
+  const tagOpts = registerGeoTagSyncOpts(input)
+  const multiPlan = await detectMultiCountryAutoPlan(db, tagOpts, geo.countryKey)
+  const needsOperatorReview = !masterRegistrationOk || multiCountryNeedsOperatorReview(multiPlan)
+  return { geo, masterRegistrationOk, multiPlan, needsOperatorReview }
+}

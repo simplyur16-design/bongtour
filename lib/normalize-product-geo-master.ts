@@ -4,7 +4,14 @@
 import type { Prisma } from '@prisma/client'
 import { resolveProductCityToKoreanDisplay, resolveProductCountryToKoreanDisplay } from '@/lib/browse-country-url-resolve'
 import { BROWSE_SLUG_PREFER_TREE_KR_LABEL, koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
-import { findGroupKeyForCountryKey } from '@/lib/overseas-location-tree'
+import { buildMultiCountryDetectionHaystack, termAppearsInHaystack } from '@/lib/geo-haystack-match'
+import { matchMegaMenuCityKeysInHaystack } from '@/lib/mega-menu-master-city-keys'
+import {
+  findGroupKeyForCountryKey,
+  matchTokensForCountryShallow,
+  matchTokensForLeaf,
+  OVERSEAS_LOCATION_TREE_CLEAN,
+} from '@/lib/overseas-location-tree'
 import {
   isMultiCityClusterNode,
   mapTreeKeysToMasterKeys,
@@ -138,7 +145,7 @@ export type MultiCountryAutoPlan =
       declaredN: number
     }
 
-function declaredCountryCountFromTitle(title: string): number | null {
+export function declaredCountryCountFromTitle(title: string): number | null {
   const t = title.trim()
   const m1 = t.match(/(\d+)\s*개국/)
   if (m1) return Math.min(Math.max(2, parseInt(m1[1]!, 10)), 24)
@@ -150,17 +157,51 @@ function declaredCountryCountFromTitle(title: string): number | null {
 /**
  * 제목의 N국·N개국 + 목적지 문자열에 등장하는 Country.koreanLabel 매칭(보수적).
  */
+function collectMasterCountryKeysFromTreeTokens(hay: string): string[] {
+  const keys: string[] = []
+  const used = new Set<string>()
+  for (const group of OVERSEAS_LOCATION_TREE_CLEAN) {
+    for (const country of group.countries) {
+      const tryToken = (term: string, nodeKey: string) => {
+        const t = term.trim()
+        if (t.length < 2) return
+        if (!termAppearsInHaystack(t, hay)) return
+        const mapped = mapTreeKeysToMasterKeys({
+          groupKey: group.groupKey,
+          countryKey: country.countryKey,
+          nodeKey,
+        })
+        const mk = mapped.masterCountryKey?.trim()
+        if (!mk || used.has(mk)) return
+        used.add(mk)
+        keys.push(mk)
+      }
+      for (const term of matchTokensForCountryShallow(country)) {
+        tryToken(term, country.countryKey)
+      }
+      for (const leaf of country.children) {
+        for (const term of matchTokensForLeaf(country, leaf)) {
+          tryToken(term, leaf.nodeKey)
+        }
+      }
+    }
+  }
+  return keys
+}
+
 export async function detectMultiCountryAutoPlan(
   db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
   opts: { title: string; primaryDestination: string | null; destinationRaw: string | null },
   primaryMasterCountryKey: string | null,
 ): Promise<MultiCountryAutoPlan> {
   const title = opts.title.trim()
-  const n = declaredCountryCountFromTitle(title)
-  if (!n) return { kind: 'none' }
+  const nDeclared = declaredCountryCountFromTitle(title)
 
-  const hay = [title, opts.primaryDestination, opts.destinationRaw].filter(Boolean).join('\n')
-  if (!hay.trim()) return { kind: 'multi', confidence: 'low', countryKeys: [], declaredN: n }
+  const hay = buildMultiCountryDetectionHaystack(opts)
+  if (!hay.trim()) {
+    if (nDeclared) return { kind: 'multi', confidence: 'low', countryKeys: [], declaredN: nDeclared }
+    return { kind: 'none' }
+  }
 
   const countries = await db.country.findMany({
     where: { isActive: true },
@@ -173,9 +214,30 @@ export async function detectMultiCountryAutoPlan(
   for (const c of sorted) {
     const label = c.koreanLabel.trim()
     if (label.length < 2) continue
-    if (hay.includes(label) && !used.has(c.countryKey)) {
+    if (termAppearsInHaystack(label, hay) && !used.has(c.countryKey)) {
       foundKeys.push(c.countryKey)
       used.add(c.countryKey)
+    }
+  }
+
+  for (const mk of collectMasterCountryKeysFromTreeTokens(hay)) {
+    if (!used.has(mk)) {
+      foundKeys.push(mk)
+      used.add(mk)
+    }
+  }
+
+  const megaCityKeys = matchMegaMenuCityKeysInHaystack(hay)
+  if (megaCityKeys.length > 0) {
+    const cities = await db.city.findMany({
+      where: { cityKey: { in: megaCityKeys }, isActive: true },
+      select: { countryKey: true },
+    })
+    for (const c of cities) {
+      if (!used.has(c.countryKey)) {
+        foundKeys.push(c.countryKey)
+        used.add(c.countryKey)
+      }
     }
   }
 
@@ -186,20 +248,38 @@ export async function detectMultiCountryAutoPlan(
   }
   foundKeys.sort((a, b) => labelIndex(a) - labelIndex(b))
 
+  const declaredN = nDeclared ?? (foundKeys.length >= 2 ? foundKeys.length : 0)
+
+  if (foundKeys.length < 2) {
+    if (nDeclared && foundKeys.length > 0) {
+      return { kind: 'multi', confidence: 'low', countryKeys: foundKeys, declaredN: nDeclared }
+    }
+    return { kind: 'none' }
+  }
+
   if (!primaryMasterCountryKey || !foundKeys.includes(primaryMasterCountryKey)) {
-    return { kind: 'multi', confidence: 'low', countryKeys: foundKeys, declaredN: n }
+    return { kind: 'multi', confidence: 'low', countryKeys: foundKeys, declaredN: declaredN }
   }
-  if (foundKeys.length === n) {
-    return { kind: 'multi', confidence: 'high', countryKeys: foundKeys, declaredN: n }
+
+  if (nDeclared && foundKeys.length === nDeclared) {
+    return { kind: 'multi', confidence: 'high', countryKeys: foundKeys, declaredN: nDeclared }
   }
+
   if (foundKeys.length >= 2) {
-    return { kind: 'multi', confidence: 'medium', countryKeys: foundKeys, declaredN: n }
+    return {
+      kind: 'multi',
+      confidence: 'medium',
+      countryKeys: foundKeys,
+      declaredN: nDeclared ?? foundKeys.length,
+    }
   }
-  return { kind: 'multi', confidence: 'low', countryKeys: foundKeys, declaredN: n }
+
+  return { kind: 'multi', confidence: 'low', countryKeys: foundKeys, declaredN: declaredN }
 }
 
+/** low만 운영자 검수(pending). medium은 태그 생성·등록 가능(마스터 bar 통과 시). */
 export function multiCountryNeedsOperatorReview(plan: MultiCountryAutoPlan): boolean {
-  return plan.kind === 'multi' && plan.confidence !== 'high'
+  return plan.kind === 'multi' && plan.confidence === 'low'
 }
 
 /**

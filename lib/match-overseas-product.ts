@@ -3,6 +3,7 @@
  * 우선순위: primaryDestination → destinationRaw → 레거시 destination → title → originSource (문자열 힙).
  * @see lib/overseas-location-tree.ts 트리 토큰
  */
+import { SINGLE_CHAR_GEO_TERMS, termAppearsInHaystack } from '@/lib/geo-haystack-match'
 import {
   OVERSEAS_LOCATION_TREE_CLEAN,
   matchTokensForCountryShallow,
@@ -235,14 +236,63 @@ function bestTermInHaystack(haystack: string, terms: string[]): string | null {
   let bestLen = 0
   for (const t of terms) {
     const trimmed = t.trim()
-    if (trimmed.length < 2) continue
-    const low = trimmed.toLowerCase()
-    if (haystack.includes(low) && trimmed.length > bestLen) {
+    if (trimmed.length < 2 && !SINGLE_CHAR_GEO_TERMS.has(trimmed)) continue
+    if (!termAppearsInHaystack(trimmed, haystack)) continue
+    if (trimmed.length > bestLen) {
       best = trimmed
       bestLen = trimmed.length
     }
   }
   return best
+}
+
+/** 제목 선두·목적지에만 있는 1글자 국명(괌) — 긴 leaf 토큰(닛코)보다 우선 */
+const SHORT_COUNTRY_LEAF_HINTS: Array<{
+  term: string
+  groupKey: string
+  countryKey: string
+  leafKey: string
+  leafLabel: string
+  countryLabel: string
+}> = [
+  {
+    term: '괌',
+    groupKey: 'guam-au-nz',
+    countryKey: 'guam',
+    leafKey: 'guam',
+    leafLabel: '괌',
+    countryLabel: '괌',
+  },
+]
+
+function earlyMatchShortCountryLeaf(
+  product: OverseasProductMatchInput,
+): MatchProductToOverseasNodeResult | null {
+  const haystack = buildOverseasProductMatchHaystack(product)
+  const structuredHay = buildOverseasProductMatchHaystack({ ...product, title: '' })
+  const title = (product.title ?? '').trim()
+
+  for (const h of SHORT_COUNTRY_LEAF_HINTS) {
+    const inStructured = termAppearsInHaystack(h.term, structuredHay)
+    const titleLeads =
+      title.startsWith(h.term) ||
+      title.startsWith(`${h.term} `) ||
+      title.includes(` ${h.term} `)
+    if (!inStructured && !(termAppearsInHaystack(h.term, haystack) && titleLeads)) continue
+    const group = OVERSEAS_LOCATION_TREE_CLEAN.find((g) => g.groupKey === h.groupKey)
+    if (!group) continue
+    return {
+      scope: 'leaf',
+      groupKey: h.groupKey,
+      groupLabel: group.groupLabel,
+      countryKey: h.countryKey,
+      countryLabel: h.countryLabel,
+      leafKey: h.leafKey,
+      leafLabel: h.leafLabel,
+      matchedTerm: h.term,
+    }
+  }
+  return null
 }
 
 /**
@@ -253,6 +303,9 @@ export function matchProductToOverseasNode(
   product: OverseasProductMatchInput,
   tree: OverseasRegionGroupNode[] = OVERSEAS_LOCATION_TREE_CLEAN
 ): MatchProductToOverseasNodeResult | null {
+  const shortCountry = earlyMatchShortCountryLeaf(product)
+  if (shortCountry) return shortCountry
+
   const haystack = buildOverseasProductMatchHaystack(product)
 
   let best: MatchProductToOverseasNodeResult | null = null

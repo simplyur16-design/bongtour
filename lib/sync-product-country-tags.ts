@@ -8,6 +8,7 @@ import {
   detectMultiCountryAutoPlan,
   type MultiCountryAutoPlan,
 } from '@/lib/normalize-product-geo-master'
+import { defaultNodeKeyForMasterCountryTag } from '@/lib/default-node-key-for-country-tag'
 import type { ProductLocationKeyPrismaFields } from '@/lib/product-location-key-match'
 
 export type SyncProductCountryTagsOpts = {
@@ -37,10 +38,14 @@ function buildMultiCountryTagRows(
   const rows = ordered.map((countryKey, i) => {
     const groupKey = findGroupKeyForCountryKey(countryKey)
     if (!groupKey) return null
+    const defaultNk = defaultNodeKeyForMasterCountryTag(countryKey)
+    const nodeKey =
+      defaultNk ??
+      (i === 0 && geo.countryKey?.trim() === countryKey ? geo.nodeKey?.trim() || null : null)
     return {
       productId,
       countryKey,
-      nodeKey: i === 0 ? geo.nodeKey?.trim() || null : null,
+      nodeKey: nodeKey ?? null,
       groupKey,
       isPrimary: i === 0,
       sortOrder: i,
@@ -123,7 +128,11 @@ export async function syncProductCountryTags(
   const plan = await detectMultiCountryAutoPlan(db, opts, countryKey)
 
   let rows: ReturnType<typeof buildSinglePrimaryTagRow> = null
-  if (plan.kind === 'multi' && plan.confidence === 'high' && plan.countryKeys.length >= 2) {
+  if (
+    plan.kind === 'multi' &&
+    plan.countryKeys.length >= 2 &&
+    (plan.confidence === 'high' || plan.confidence === 'medium')
+  ) {
     rows = buildMultiCountryTagRows(productId, geo, plan.countryKeys)
   }
   if (!rows?.length) {
