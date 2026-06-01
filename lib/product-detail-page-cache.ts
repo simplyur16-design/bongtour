@@ -2,7 +2,7 @@ import { unstable_cache } from 'next/cache'
 import { cache as reactCache } from 'react'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import { buildProductDetailPageInclude } from '@/lib/product-detail-page-include'
+import { buildProductDetailPageSelect } from '@/lib/product-detail-page-include'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { resolveProductByPathSegment } from '@/lib/resolve-product-by-path-segment'
 
@@ -60,12 +60,12 @@ async function loadProductDetailRowFresh(productId: string, allowAdminDraftFallb
       registrationStatus: 'registered',
       AND: [publicProductWhereClause()],
     },
-    include: buildProductDetailPageInclude(),
+    select: buildProductDetailPageSelect(new Date()),
   })
   if (!row && allowAdminDraftFallback) {
     row = await prisma.product.findFirst({
       where: { id: productId },
-      include: buildProductDetailPageInclude(),
+      select: buildProductDetailPageSelect(new Date()),
     })
   }
   return row
@@ -77,7 +77,7 @@ function loadProductDetailRowCachedPublic(productId: string) {
       productDetailUnstableCacheMiss = true
       return loadProductDetailRowFresh(productId, false)
     },
-    ['product-detail-public-v1', productId],
+    ['product-detail-public-v2', productId],
     { revalidate: 3600, tags: [`product-detail-${productId}`, 'product-detail'] },
   )()
 }

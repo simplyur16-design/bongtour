@@ -111,7 +111,7 @@ import {
 import { deriveIncludedExcludedFromRaw } from '@/lib/derive-included-excluded-from-raw'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import { buildProductMetaChips } from '@/lib/product-meta-chips'
-import { buildProductDetailPageInclude } from '@/lib/product-detail-page-include'
+import { buildProductDetailPageSelect } from '@/lib/product-detail-page-include'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
 import { ItineraryViewLazy } from '@/components/itinerary/ItineraryViewLazy'
 import type {
@@ -122,7 +122,7 @@ import type {
 } from '@prisma/client'
 
 export type ProductDetailViewRow = Prisma.ProductGetPayload<{
-  include: ReturnType<typeof buildProductDetailPageInclude>
+  select: ReturnType<typeof buildProductDetailPageSelect>
 }>
 
 type FitMasterWithDays = FitItineraryMaster & {

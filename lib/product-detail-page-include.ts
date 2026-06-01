@@ -1,5 +1,5 @@
 /**
- * 공개 상품 상세·관리자 고객 미리보기 공통 Prisma include.
+ * 공개 상품 상세·관리자 고객 미리보기 공통 Prisma select.
  */
 import type { Prisma } from '@prisma/client'
 import { getPublicBookableMinDate } from '@/lib/public-bookable-date'
@@ -59,6 +59,131 @@ function buildProductDetailPriceSelect() {
   } satisfies Prisma.ProductPriceSelect
 }
 
+function buildProductDetailItinerarySelect() {
+  return {
+    id: true,
+    day: true,
+    description: true,
+  } satisfies Prisma.ItinerarySelect
+}
+
+function buildProductDetailOptionalTourSelect() {
+  return {
+    id: true,
+    name: true,
+    priceUsd: true,
+    duration: true,
+    waitPlaceIfNotJoined: true,
+  } satisfies Prisma.OptionalTourSelect
+}
+
+/** 상세 UI·직렬화에 쓰는 Product 스칼라 — browse 파생·운영 메타·미사용 대용량 TEXT 제외 */
+export function buildProductDetailScalarsSelect() {
+  return {
+    id: true,
+    registrationStatus: true,
+    originSource: true,
+    originCode: true,
+    title: true,
+    destination: true,
+    primaryDestination: true,
+    primaryRegion: true,
+    duration: true,
+    airline: true,
+    productType: true,
+    listingKind: true,
+    airportTransferType: true,
+    travelScope: true,
+    bgImageUrl: true,
+    bgImageSource: true,
+    bgImageIsGenerated: true,
+    bgImagePhotographer: true,
+    bgImagePlaceName: true,
+    bgImageRehostSearchLabel: true,
+    publicImageHeroSeoKeywordsJson: true,
+    publicImageHeroSeoLine: true,
+    rawMeta: true,
+    counselingNotes: true,
+    schedule: true,
+    includedText: true,
+    excludedText: true,
+    criticalExclusions: true,
+    shoppingShopOptions: true,
+    shoppingVisitCountTotal: true,
+    shoppingCustomsNoticeRaw: true,
+    shoppingCount: true,
+    shoppingItems: true,
+    optionalToursStructured: true,
+    hasOptionalTours: true,
+    priceFrom: true,
+    priceCurrency: true,
+    benefitSummary: true,
+    highlightPoints: true,
+    highlightPointsRaw: true,
+    promotionLabelsRaw: true,
+    hotelSummaryRaw: true,
+    hotelSummaryText: true,
+    airtelHotelInfoJson: true,
+    reservationNoticeRaw: true,
+    minimumDepartureCount: true,
+    minimumDepartureText: true,
+    isDepartureGuaranteed: true,
+    currentBookedCount: true,
+    departureStatusText: true,
+    mandatoryLocalFee: true,
+    mandatoryCurrency: true,
+    flightAdminJson: true,
+  } satisfies Prisma.ProductSelect
+}
+
+export function buildProductDetailPageSelect(baseDate: Date = new Date()) {
+  const minBookable = getPublicBookableMinDate(baseDate)
+  return {
+    ...buildProductDetailScalarsSelect(),
+    prices: {
+      where: { date: { gte: minBookable } },
+      orderBy: { date: 'asc' as const },
+      select: buildProductDetailPriceSelect(),
+    },
+    departures: {
+      where: { departureDate: { gte: minBookable } },
+      orderBy: { departureDate: 'asc' as const },
+      select: buildProductDetailDepartureSelect(),
+      take: DETAIL_DEPARTURE_PER_PRODUCT_TAKE,
+    },
+    itineraries: {
+      orderBy: { day: 'asc' as const },
+      select: buildProductDetailItinerarySelect(),
+    },
+    itineraryDays: {
+      orderBy: { day: 'asc' as const },
+      select: {
+        id: true,
+        day: true,
+        city: true,
+        hotelText: true,
+        breakfastText: true,
+        lunchText: true,
+        dinnerText: true,
+        mealSummaryText: true,
+        meals: true,
+      },
+    },
+    optionalTours: {
+      select: buildProductDetailOptionalTourSelect(),
+    },
+    brand: { select: { brandKey: true } },
+  } satisfies Prisma.ProductSelect
+}
+
+export type ProductDetailPageRow = Prisma.ProductGetPayload<{
+  select: ReturnType<typeof buildProductDetailPageSelect>
+}>
+
+/**
+ * @deprecated `buildProductDetailPageSelect()` — `include`는 Product 전 컬럼을 로드함.
+ * 관계 필터만 동일; 스칼라 push-down 없음.
+ */
 export function buildProductDetailPageInclude(baseDate: Date = new Date()) {
   const minBookable = getPublicBookableMinDate(baseDate)
   return {
@@ -92,6 +217,3 @@ export function buildProductDetailPageInclude(baseDate: Date = new Date()) {
     brand: { select: { brandKey: true } },
   } as const
 }
-
-/** @deprecated `buildProductDetailPageInclude()` 사용 */
-export const PRODUCT_DETAIL_PAGE_INCLUDE = buildProductDetailPageInclude()
