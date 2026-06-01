@@ -58,8 +58,9 @@ export function extractPexelsPhotoIdFromCdnUrl(url: string): number | null {
 
 export function isPexelsCdnUrl(url: string): boolean {
   try {
-    const u = new URL(url)
-    return u.hostname === 'images.pexels.com' || u.hostname.endsWith('.pexels.com')
+    const u = new URL(url.trim())
+    const h = u.hostname.toLowerCase()
+    return h === 'images.pexels.com' || h.endsWith('.pexels.com')
   } catch {
     return false
   }
