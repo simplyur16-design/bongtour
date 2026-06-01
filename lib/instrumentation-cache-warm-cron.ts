@@ -4,7 +4,7 @@
  * 비활성화: `DISABLE_INSTRUMENTATION_CACHE_WARM_CRON=1`
  * Dry-run: `CACHE_WARM_CRON_DRY_RUN=1` (fetch 생략, routes만 로그)
  */
-import { CACHE_WARM_ROUTES, getDynamicProductDetailWarmRoutes } from '@/lib/cache-warm-routes'
+import { CACHE_WARM_ROUTES } from '@/lib/cache-warm-routes'
 import { getSiteOrigin } from '@/lib/site-metadata'
 
 const FETCH_TIMEOUT_MS = 8_000
@@ -49,15 +49,12 @@ async function runCacheWarmTick(source: 'cron' | 'startup'): Promise<void> {
   let success = 0
   let failed = 0
 
-  const productDetailRoutes = await getDynamicProductDetailWarmRoutes()
-  const routes = [...CACHE_WARM_ROUTES, ...productDetailRoutes]
+  const routes = [...CACHE_WARM_ROUTES]
 
   console.log('[cache-warm-cron] tick start', {
     source,
     dryRun,
     origin,
-    staticRouteCount: CACHE_WARM_ROUTES.length,
-    productDetailRouteCount: productDetailRoutes.length,
     routeCount: routes.length,
   })
 
