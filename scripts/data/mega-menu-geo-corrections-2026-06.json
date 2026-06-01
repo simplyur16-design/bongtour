@@ -1,0 +1,110 @@
+[
+  {
+    "slug": "fit-mt-0040",
+    "note": "호텔명 닛코→일본 오매칭 제거, 괌 primary",
+    "primary": { "continentKey": "oceania", "countryKey": "guam", "cityKey": "guam" },
+    "countryTags": [
+      { "countryKey": "guam", "nodeKey": "guam", "groupKey": "guam-au-nz", "isPrimary": true }
+    ]
+  },
+  {
+    "slug": "pkg-yb-0014",
+    "note": "동유럽 3국 — 헝가리 nodeKey hu + 체코",
+    "primary": { "continentKey": "europe", "countryKey": "hungary", "cityKey": "hu" },
+    "countryTags": [
+      { "countryKey": "hungary", "nodeKey": "hu", "groupKey": "europe-me-africa", "isPrimary": true },
+      { "countryKey": "czech", "nodeKey": "cz", "groupKey": "europe-me-africa", "isPrimary": false }
+    ]
+  },
+  {
+    "slug": "pkg-yb-0021",
+    "note": "프라하/비엔나/부다페스트 9일",
+    "primary": { "continentKey": "europe", "countryKey": "hungary", "cityKey": "hu" },
+    "countryTags": [
+      { "countryKey": "hungary", "nodeKey": "hu", "groupKey": "europe-me-africa", "isPrimary": true },
+      { "countryKey": "czech", "nodeKey": "cz", "groupKey": "europe-me-africa", "isPrimary": false },
+      { "countryKey": "austria", "nodeKey": "at", "groupKey": "europe-me-africa", "isPrimary": false }
+    ]
+  },
+  {
+    "slug": "pkg-yb-0015",
+    "note": "코카서스 3국 + 두바이",
+    "primary": { "continentKey": "middle-east", "countryKey": "azerbaijan", "cityKey": "azerbaijan" },
+    "countryTags": [
+      { "countryKey": "azerbaijan", "nodeKey": "azerbaijan", "groupKey": "europe-me-africa", "isPrimary": true },
+      { "countryKey": "georgia", "nodeKey": "georgia", "groupKey": "europe-me-africa", "isPrimary": false },
+      { "countryKey": "armenia", "nodeKey": "armenia", "groupKey": "europe-me-africa", "isPrimary": false },
+      { "countryKey": "united-arab-emirates", "nodeKey": "dubai", "groupKey": "europe-me-africa", "isPrimary": false }
+    ]
+  },
+  {
+    "slug": "pkg-yb-0023",
+    "note": "코카서스 3국 12일",
+    "primary": { "continentKey": "middle-east", "countryKey": "azerbaijan", "cityKey": "azerbaijan" },
+    "countryTags": [
+      { "countryKey": "azerbaijan", "nodeKey": "azerbaijan", "groupKey": "europe-me-africa", "isPrimary": true },
+      { "countryKey": "georgia", "nodeKey": "georgia", "groupKey": "europe-me-africa", "isPrimary": false },
+      { "countryKey": "armenia", "nodeKey": "armenia", "groupKey": "europe-me-africa", "isPrimary": false }
+    ]
+  },
+  {
+    "slug": "pkg-mt-0026",
+    "note": "코카서스 3국 + 타슈켄트",
+    "primary": { "continentKey": "middle-east", "countryKey": "azerbaijan", "cityKey": "azerbaijan" },
+    "countryTags": [
+      { "countryKey": "azerbaijan", "nodeKey": "azerbaijan", "groupKey": "europe-me-africa", "isPrimary": true },
+      { "countryKey": "georgia", "nodeKey": "georgia", "groupKey": "europe-me-africa", "isPrimary": false },
+      { "countryKey": "armenia", "nodeKey": "armenia", "groupKey": "europe-me-africa", "isPrimary": false },
+      { "countryKey": "uzbekistan", "nodeKey": "uzbekistan", "groupKey": "china-circle", "isPrimary": false }
+    ]
+  },
+  {
+    "slug": "pkg-hn-0003",
+    "note": "스페인/포르투갈/모로코",
+    "primary": { "continentKey": "europe", "countryKey": "spain", "cityKey": "es" },
+    "countryTags": [
+      { "countryKey": "spain", "nodeKey": "es", "groupKey": "europe-me-africa", "isPrimary": true },
+      { "countryKey": "portugal", "nodeKey": "pt", "groupKey": "europe-me-africa", "isPrimary": false },
+      { "countryKey": "morocco", "nodeKey": "ma", "groupKey": "europe-me-africa", "isPrimary": false }
+    ]
+  },
+  {
+    "slug": "pkg-yb-0008",
+    "note": "산티아고 순례길+포르투갈",
+    "primary": { "continentKey": "europe", "countryKey": "spain", "cityKey": "es" },
+    "countryTags": [
+      { "countryKey": "spain", "nodeKey": "es", "groupKey": "europe-me-africa", "isPrimary": true },
+      { "countryKey": "portugal", "nodeKey": "pt", "groupKey": "europe-me-africa", "isPrimary": false }
+    ]
+  },
+  {
+    "slug": "fim-vg-0002",
+    "note": "북유럽 3국 — 국가별 mix nodeKey",
+    "primary": { "continentKey": "europe", "countryKey": "denmark", "cityKey": "denmark-mix" },
+    "countryTags": [
+      { "countryKey": "denmark", "nodeKey": "denmark-mix", "groupKey": "europe-me-africa", "isPrimary": true },
+      { "countryKey": "norway", "nodeKey": "norway-mix", "groupKey": "europe-me-africa", "isPrimary": false },
+      { "countryKey": "sweden", "nodeKey": "sweden-mix", "groupKey": "europe-me-africa", "isPrimary": false }
+    ]
+  },
+  {
+    "slug": "fim-vg-0001",
+    "note": "북유럽 4개국",
+    "primary": { "continentKey": "europe", "countryKey": "denmark", "cityKey": "denmark-mix" },
+    "countryTags": [
+      { "countryKey": "denmark", "nodeKey": "denmark-mix", "groupKey": "europe-me-africa", "isPrimary": true },
+      { "countryKey": "norway", "nodeKey": "norway-mix", "groupKey": "europe-me-africa", "isPrimary": false },
+      { "countryKey": "sweden", "nodeKey": "sweden-mix", "groupKey": "europe-me-africa", "isPrimary": false },
+      { "countryKey": "finland", "nodeKey": "finland-mix", "groupKey": "europe-me-africa", "isPrimary": false }
+    ]
+  },
+  {
+    "slug": "pkg-hn-0010",
+    "note": "북알프스 — alpen-route (메가메뉴 일본 카드)",
+    "primary": { "continentKey": "northeast-asia", "countryKey": "japan", "cityKey": "alpen-route" },
+    "countryTags": [
+      { "countryKey": "japan", "nodeKey": "alpen-route", "groupKey": "japan", "isPrimary": true }
+    ],
+    "cityTags": [{ "cityKey": "alpen-route", "isPrimary": true }]
+  }
+]
