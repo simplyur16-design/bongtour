@@ -4,15 +4,19 @@
  */
 import { OVERSEAS_LOCATION_TREE_CLEAN } from '@/lib/overseas-location-tree'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
-import { toOverseasMatchInput, type BrowseScoredProduct } from '@/lib/products-browse-filter'
+import {
+  toOverseasMatchInput,
+  type BrowseScoredProduct,
+  type BrowseScoringProductInput,
+} from '@/lib/products-browse-filter'
 
-export type OverseasProductCountrySection = {
+export type OverseasProductCountrySection<T extends BrowseScoringProductInput = BrowseScoringProductInput> = {
   sectionKey: string
   groupKey: string
   groupLabel: string
   /** 섹션 제목(국가명 또는 권역·기타) */
   headingLabel: string
-  items: BrowseScoredProduct[]
+  items: BrowseScoredProduct<T>[]
 }
 
 /**
@@ -20,12 +24,12 @@ export type OverseasProductCountrySection = {
  * 국가까지 좁히지 못한 상품은 해당 권역의 「권역명 · 기타」에 둔다.
  * 매칭 불가는 마지막에 「국가 미분류」.
  */
-export function groupBrowseScoredProductsByCountry(
-  scored: BrowseScoredProduct[]
-): OverseasProductCountrySection[] {
-  const byKey = new Map<string, BrowseScoredProduct[]>()
+export function groupBrowseScoredProductsByCountry<T extends BrowseScoringProductInput>(
+  scored: BrowseScoredProduct<T>[]
+): OverseasProductCountrySection<T>[] {
+  const byKey = new Map<string, BrowseScoredProduct<T>[]>()
 
-  const push = (key: string, row: BrowseScoredProduct) => {
+  const push = (key: string, row: BrowseScoredProduct<T>) => {
     const arr = byKey.get(key) ?? []
     arr.push(row)
     byKey.set(key, arr)
@@ -44,7 +48,7 @@ export function groupBrowseScoredProductsByCountry(
     push(`group-only::${m.groupKey}`, row)
   }
 
-  const sections: OverseasProductCountrySection[] = []
+  const sections: OverseasProductCountrySection<T>[] = []
 
   for (const g of OVERSEAS_LOCATION_TREE_CLEAN) {
     for (const c of g.countries) {

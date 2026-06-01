@@ -1,6 +1,10 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { buildProductBrowseFullInclude, type ProductBrowseIncludedRow } from '@/lib/product-browse-full-include'
+import {
+  buildProductBrowseFindManySelect,
+  fetchProductBrowseScheduleByIds,
+  type ProductBrowseIncludedRow,
+} from '@/lib/product-browse-full-include'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
 import { filterProductsForDomesticDestinationTree } from '@/lib/active-domestic-location-tree'
@@ -258,7 +262,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         { urgentDealNextDate: { sort: 'asc', nulls: 'last' } },
         { updatedAt: 'desc' },
       ],
-      include: buildProductBrowseFullInclude(),
+      select: buildProductBrowseFindManySelect(),
     })
     if (perf) {
       perf.db = performance.now() // PERF-LOG: 측정 후 제거
@@ -432,8 +436,15 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     const slice = scored.slice((page - 1) * limit, page * limit)
     if (perf) perf.finalCount = slice.length // PERF-LOG: 측정 후 제거
 
+    const scheduleByProductId = await fetchProductBrowseScheduleByIds(
+      slice.map(({ product }) => product.id)
+    )
+
     const metaRows = slice.map(({ product: p, effectivePricePerPerson }) => {
-      const scheduleRows = getScheduleFromProduct(p)
+      const scheduleRows = getScheduleFromProduct({
+        ...p,
+        schedule: scheduleByProductId.get(p.id) ?? null,
+      })
       const coverUrl = getFinalCoverImageUrl({
         bgImageUrl: p.bgImageUrl,
         scheduleDays: scheduleRows,

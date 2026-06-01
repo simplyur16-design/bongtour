@@ -3,7 +3,6 @@
  * 예산: computeEffectivePricePerPersonKrwFromRow 로 산정한 값이 입력 예산 이하인 것만 포함.
  * (등록된 상품의 실제 금액을 확인하여 예산 범위 내 상품만 노출)
  */
-import type { Product } from '@prisma/client'
 import { computeEffectivePricePerPersonKrwFromRow, type ProductPriceSelect } from '@/lib/product-price-per-person'
 import {
   productMatchesOverseasDestinationTerms,
@@ -90,8 +89,30 @@ export function toOverseasMatchInput(p: {
 
 export type BrowseSort = 'budget_fit' | 'price_asc' | 'price_desc' | 'popular' | 'departure_asc'
 
-export type BrowseScoredProduct = {
-  product: Product & ProductPriceSelect
+/** browse·허브 등 `scoreAndFilterProducts` 입력 — 전체 Product 행 또는 browse select 행 */
+export type BrowseScoringProductInput = ProductPriceSelect & {
+  id: string
+  updatedAt: Date
+  title: string
+  originSource: string
+  productType: string | null
+  listingKind?: string | null
+  priceFrom: number | null
+  primaryDestination: string | null
+  destinationRaw: string | null
+  destination: string | null
+  primaryRegion: string | null
+  country?: string | null
+  city?: string | null
+  countryKey?: string | null
+  continentKey?: string | null
+  cityKey?: string | null
+  countryTags?: OverseasProductMatchInput['countryTags']
+  cityTags?: OverseasProductMatchInput['cityTags']
+}
+
+export type BrowseScoredProduct<T extends BrowseScoringProductInput = BrowseScoringProductInput> = {
+  product: T
   effectivePricePerPerson: number | null
   distanceToBudget: number
   earliestDeparture: Date | null
@@ -107,8 +128,8 @@ function earliestDepartureDate(departures: { departureDate: Date }[]): Date | nu
   return new Date(min)
 }
 
-export function scoreAndFilterProducts(
-  rows: Array<Product & ProductPriceSelect>,
+export function scoreAndFilterProducts<T extends BrowseScoringProductInput>(
+  rows: T[],
   opts: {
     type: ProductBrowseType | null
     destinationTerms: string[]
@@ -117,8 +138,8 @@ export function scoreAndFilterProducts(
     /** URL geo — ProductCountryTag / ProductCityTag (`regionCountryKeys`는 browse API에서 주입) */
     urlGeo?: BrowseUrlGeo
   }
-): BrowseScoredProduct[] {
-  const list: BrowseScoredProduct[] = []
+): BrowseScoredProduct<T>[] {
+  const list: BrowseScoredProduct<T>[] = []
   for (const p of rows) {
     if (!productMatchesBrowseType(p, opts.type)) continue
     if (!productMatchesOverseasDestinationTerms(toOverseasMatchInput(p), opts.destinationTerms, opts.urlGeo)) continue
