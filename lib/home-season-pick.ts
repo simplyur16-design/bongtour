@@ -87,45 +87,37 @@ const monthlySelect = {
   regionKey: true,
 } as const
 
-/**
- * 해외 시즌 추천 — `pageScope=overseas` 이고 **발행(`isPublished`)인 행 전부**.
- * 대표 1건·URL 국가 필터·region/country 슬라이스 없음. 정렬: sortOrder → monthKey → updatedAt.
- */
-export async function getPublishedOverseasSeasonCurationSlides(): Promise<HomeSeasonPickDTO[]> {
-  try {
-    const rows = await prisma.monthlyCurationContent.findMany({
-      where: { pageScope: 'overseas', isPublished: true },
-      orderBy: [{ sortOrder: 'asc' }, { monthKey: 'desc' }, { updatedAt: 'desc' }],
-      take: 100,
-      select: monthlySelect,
-    })
-    const slides = rows.map((r) => monthlyCurationRowToHomeSeasonPickDTO(r as MonthlyRow))
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.log('[season-curation]', {
-        fetchedRowCount: rows.length,
-        publishedRowCount: rows.length,
-        carouselSlideCount: slides.length,
-      })
-    }
-    return slides
-  } catch {
-    return []
-  }
+/** 발행 큐레이션 중 연결 상품이 있으면 등록·자동비공개 해제 상태만 노출 (`linkedProductId` 없음은 외부 링크용으로 유지). */
+export function monthlyCurationRowPassesLinkedProductIntegrity(
+  row: { linkedProductId: string | null },
+  validLinkedProductIds: Set<string>
+): boolean {
+  const pid = (row.linkedProductId ?? '').trim()
+  if (!pid) return true
+  return validLinkedProductIds.has(pid)
 }
 
-/** @deprecated 동일 동작 — 이름만 유지 */
-export const getSeasonCurationSlidesForMobileHome = getPublishedOverseasSeasonCurationSlides
-
-/**
- * 해외 상품 목록 일본 아래 슬롯 — **발행 전부** 순환(위치만 고정, 콘텐츠 필터 없음).
- * `_region` / `_country`는 시그니처 호환용으로만 남김(사용하지 않음).
- */
-export async function getSeasonCurationSlidesForOverseasProductHub(
-  _region?: string | null,
-  _country?: string | null
-): Promise<HomeSeasonPickDTO[]> {
-  return getPublishedOverseasSeasonCurationSlides()
+/** `linkedProductId` 목록 중 무결성 통과 Product id 집합. */
+export async function resolveValidMonthlyCurationLinkedProductIds(
+  linkedProductIds: Iterable<string>
+): Promise<Set<string>> {
+  const linkedIds = [
+    ...new Set(
+      [...linkedProductIds]
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0)
+    ),
+  ]
+  if (linkedIds.length === 0) return new Set()
+  const validProducts = await prisma.product.findMany({
+    where: {
+      id: { in: linkedIds },
+      registrationStatus: 'registered',
+      autoUnpublishedAt: null,
+    },
+    select: { id: true },
+  })
+  return new Set(validProducts.map((p) => p.id))
 }
 
 /** 해외 허브 상단 — 서울 기준 `monthKey` 월의 발행 큐레이션만 */
@@ -136,7 +128,15 @@ export async function getPublishedOverseasMonthlyCurationsForMonth(monthKey: str
       orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
       select: monthlySelect,
     })
-    return rows.map((r) => monthlyCurationRowToHomeSeasonPickDTO(r as MonthlyRow))
+
+    const validLinkedProductIds = await resolveValidMonthlyCurationLinkedProductIds(
+      rows.map((r) => r.linkedProductId ?? '')
+    )
+
+    const filtered = rows.filter((r) =>
+      monthlyCurationRowPassesLinkedProductIntegrity(r, validLinkedProductIds)
+    )
+    return filtered.map((r) => monthlyCurationRowToHomeSeasonPickDTO(r as MonthlyRow))
   } catch {
     return []
   }

@@ -62,10 +62,10 @@ export async function register() {
           '@/lib/instrumentation-modetour-sweep-cron'
         )
         startInstrumentationModetourSweepCron()
-        const { startInstrumentationMonthlyCurationCron } = await import(
-          '@/lib/instrumentation-monthly-curation-cron'
+        const { startInstrumentationMonthlyPublishCron } = await import(
+          '@/lib/instrumentation-monthly-publish-cron'
         )
-        startInstrumentationMonthlyCurationCron()
+        startInstrumentationMonthlyPublishCron()
         const { startInstrumentationAirHotelSeasonCron } = await import(
           '@/lib/instrumentation-air-hotel-season-cron'
         )

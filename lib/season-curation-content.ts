@@ -1,14 +1,10 @@
 /**
- * 메인 시즌 큐레이션(+1/+2월 MonthlyCurationContent) — 6h 캐시.
- * 월별 행이 비면 발행 풀에서 보출한다.
+ * 메인 시즌 큐레이션(+1/+2/+3월 MonthlyCurationContent) — 6h 캐시.
  */
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
-import {
-  getPublishedOverseasMonthlyCurationsForMonth,
-  getPublishedOverseasSeasonCurationSlides,
-} from '@/lib/home-season-pick'
+import { getPublishedOverseasMonthlyCurationsForMonth } from '@/lib/home-season-pick'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 
 export function shiftSeoulYearMonth(yearMonth: string, deltaMonths: number): string {
@@ -20,74 +16,54 @@ export function shiftSeoulYearMonth(yearMonth: string, deltaMonths: number): str
   return `${y}-${String(m + 1).padStart(2, '0')}`
 }
 
-async function loadNextTwoMonthsSlidesUncached(): Promise<HomeSeasonPickDTO[]> {
+async function loadNextThreeMonthsSlidesUncached(): Promise<HomeSeasonPickDTO[]> {
   const base = getSeoulYearMonthNow()
   const m1 = shiftSeoulYearMonth(base, 1)
   const m2 = shiftSeoulYearMonth(base, 2)
-  const [first, second] = await Promise.all([
+  const m3 = shiftSeoulYearMonth(base, 3)
+  const [a, b, c] = await Promise.all([
     getPublishedOverseasMonthlyCurationsForMonth(m1),
     getPublishedOverseasMonthlyCurationsForMonth(m2),
+    getPublishedOverseasMonthlyCurationsForMonth(m3),
   ])
 
-  let a = [...first]
-  let b = [...second]
-  const used = new Set<string>([...a, ...b].map((s) => s.id))
-
-  if (a.length === 0 || b.length === 0) {
-    const pool = await getPublishedOverseasSeasonCurationSlides()
-    if (a.length === 0) {
-      a = pool.filter((p) => !used.has(p.id)).slice(0, 6)
-      a.forEach((p) => used.add(p.id))
-    }
-    if (b.length === 0) {
-      b = pool.filter((p) => !used.has(p.id)).slice(0, 6)
-      b.forEach((p) => used.add(p.id))
-    }
-  }
-
-  return [...a, ...b]
+  return [...a, ...b, ...c]
 }
+
+/** `unstable_cache` revalidateTag SSOT (publish cron·수동 무효화) */
+export const SEASON_CURATION_HERO_CACHE_TAG = 'season-curation-hero-slides-v2'
+export const SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG = 'season-curation-next-three-months-v1'
 
 const HERO_MAX_PER_MONTH = 5
 
-/** PC 히어로: +1월·+2월 각 최대 5건(최대 10장). 부족 시 발행 풀 보출. */
+/** PC 히어로: +1·+2·+3월 각 최대 5건(최대 15장). */
 async function loadHeroSlidesUncached(): Promise<HomeSeasonPickDTO[]> {
   const base = getSeoulYearMonthNow()
   const m1 = shiftSeoulYearMonth(base, 1)
   const m2 = shiftSeoulYearMonth(base, 2)
-  const [raw1, raw2] = await Promise.all([
+  const m3 = shiftSeoulYearMonth(base, 3)
+  const [raw1, raw2, raw3] = await Promise.all([
     getPublishedOverseasMonthlyCurationsForMonth(m1),
     getPublishedOverseasMonthlyCurationsForMonth(m2),
+    getPublishedOverseasMonthlyCurationsForMonth(m3),
   ])
 
-  let a = raw1.slice(0, HERO_MAX_PER_MONTH)
-  let b = raw2.slice(0, HERO_MAX_PER_MONTH)
-  const used = new Set<string>([...a, ...b].map((s) => s.id))
-
-  if (a.length === 0 || b.length === 0) {
-    const pool = await getPublishedOverseasSeasonCurationSlides()
-    if (a.length === 0) {
-      a = pool.filter((p) => !used.has(p.id)).slice(0, HERO_MAX_PER_MONTH)
-      a.forEach((p) => used.add(p.id))
-    }
-    if (b.length === 0) {
-      b = pool.filter((p) => !used.has(p.id)).slice(0, HERO_MAX_PER_MONTH)
-    }
-  }
-
-  return [...a, ...b].slice(0, HERO_MAX_PER_MONTH * 2)
+  const a = raw1.slice(0, HERO_MAX_PER_MONTH)
+  const b = raw2.slice(0, HERO_MAX_PER_MONTH)
+  const c = raw3.slice(0, HERO_MAX_PER_MONTH)
+  return [...a, ...b, ...c].slice(0, HERO_MAX_PER_MONTH * 3)
 }
 
 export const getCachedSeasonCurationHeroSlides = unstable_cache(
   async () => loadHeroSlidesUncached(),
-  ['season-curation-hero-slides-v1'],
-  { revalidate: 21_600 },
+  [SEASON_CURATION_HERO_CACHE_TAG],
+  { revalidate: 21_600, tags: [SEASON_CURATION_HERO_CACHE_TAG] },
 )
 
-export const getCachedSeasonCurationNextTwoMonthsSlides = unstable_cache(
-  async () => loadNextTwoMonthsSlidesUncached(),
-  ['season-curation-next-two-months-v1'],
-  { revalidate: 21_600 },
+export const getCachedSeasonCurationNextThreeMonthsSlides = unstable_cache(
+  async () => loadNextThreeMonthsSlidesUncached(),
+  [SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG],
+  { revalidate: 21_600, tags: [SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG] },
 )
 
 async function loadSeasonLinkedProductIdsUncached(): Promise<string[]> {

@@ -12,7 +12,7 @@ import { resolveMobileMainTileBgSrc } from '@/lib/home-mobile-hub-tile-images'
 import { hubPhotoCardIsPending } from '@/lib/home-hub-photo-card-pending'
 import { getHubFourPhotosBundle } from '@/lib/home-hub-four-photo-bundle'
 import { HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS } from '@/lib/home-hub-four-accent-classes'
-import { getCachedSeasonCurationNextTwoMonthsSlides } from '@/lib/season-curation-content'
+import { getCachedSeasonCurationNextThreeMonthsSlides } from '@/lib/season-curation-content'
 import { getCachedSeasonLinkedProductItemsForMobile } from '@/lib/season-linked-products-mobile-data'
 import { normalizeHomeSeasonSlidesForClient } from '@/lib/home-season-pick-shared'
 
@@ -46,11 +46,11 @@ const QUICK_ACTIONS = [
 ] as const
 
 /**
- * 모바일 전용(`lg` 미만) 메인 홈 — 주요 서비스(사진 카드) / 시즌 큐레이션(+1·+2월) / 연결 상품 / 실무 요청.
+ * 모바일 전용(`lg` 미만) 메인 홈 — 주요 서비스(사진 카드) / 시즌 큐레이션(+1·+2·+3월) / 연결 상품 / 실무 요청.
  */
 export default async function HomeMobileHub() {
   const [seasonRaw, linkedItems] = await Promise.all([
-    getCachedSeasonCurationNextTwoMonthsSlides(),
+    getCachedSeasonCurationNextThreeMonthsSlides(),
     getCachedSeasonLinkedProductItemsForMobile(),
   ])
   const seasonSlides = normalizeHomeSeasonSlidesForClient(seasonRaw)
