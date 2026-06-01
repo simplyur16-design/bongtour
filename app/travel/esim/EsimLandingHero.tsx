@@ -30,8 +30,9 @@ export default function EsimLandingHero() {
             <br />
             <span className="text-[#D85A30]">eSIM</span>
           </h1>
-          <p className="mt-4 text-base text-[#1F1B2D]/80 md:text-lg">
-            해외 여행 데이터, 이제 더 쉽게
+          <p className="mt-4 text-lg font-medium text-[#1F1B2D] md:text-xl">
+            해외 여행 데이터,{' '}
+            <span className="font-semibold text-[#D85A30]">이제 더 쉽게</span>
           </p>
 
           <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">
