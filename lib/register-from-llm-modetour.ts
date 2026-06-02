@@ -31,6 +31,7 @@ import type { ParsedProductPrice } from './parsed-product-types'
 import { normalizeCalendarDate } from './date-normalize'
 import { extractDestinationFromTitle } from './destination-from-title'
 import { normalizeOriginSource } from './supplier-origin'
+import { resolveAirportTransferTypeForAirHotelFree } from '@/lib/airport-transfer-infer'
 import { extractStructuredTourSignals } from './structured-tour-signals-modetour'
 import type { StructuredOptionalTourRow, StructuredShoppingStopRow } from './structured-tour-signals-modetour'
 import { normalizeDetailRawText } from '@/lib/detail-body-parser-utils-modetour'
@@ -1735,7 +1736,7 @@ ${text.slice(0, 16000)}`
     : null
   const textForAirtel = pastedForSupplier.length > 0 ? pastedForSupplier : rawText
   const airtelHotelInfoJson = extractAirtelHotelInfoJson(textForAirtel)
-  const airportTransferType = airtelHotelInfoJson ? inferAirportTransferType(textForAirtel) : null
+  const airportTransferHint = airtelHotelInfoJson ? inferAirportTransferType(textForAirtel) : null
   const signalsHaystack = buildRegisterSignalsHaystack(
     rawText,
     options?.pastedBodyForInference,
@@ -2009,6 +2010,22 @@ ${text.slice(0, 16000)}`
       hotelNoticeRaw: strOrNull(raw.hotelNoticeRaw),
     })
   }
+
+  const isAirtelRegisterCandidate =
+    Boolean(airtelHotelInfoJsonOut) ||
+    Boolean(airtelHotelInfoJson) ||
+    (raw.productType as string | undefined)?.trim() === 'airtel' ||
+    /자유\s*여행|에어텔|항공\s*\+\s*호텔/i.test(textForAirtel)
+  const airportTransferType = isAirtelRegisterCandidate
+    ? resolveAirportTransferTypeForAirHotelFree({
+        airportTransferType: airportTransferHint,
+        includedText: includedTextMerged,
+        excludedText: excludedTextMerged,
+        includedItems,
+        excludedItems,
+        extraHaystack: textForAirtel,
+      })
+    : null
 
   const productPriceTableRaw = raw.productPriceTable
   let productPriceTable =

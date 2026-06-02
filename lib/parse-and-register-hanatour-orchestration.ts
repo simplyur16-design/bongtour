@@ -129,6 +129,7 @@ import {
   resolveRegisterProductType,
   travelScopeAndListingKindFromAdminRegister,
 } from '@/lib/register-admin-travel-category'
+import { airportTransferTypeForListingKind } from '@/lib/airport-transfer-infer'
 import {
   buildRegisterPublicImageHeroSeoKeywords,
   buildRegisterPublicImageHeroSeoLineCandidate,
@@ -1124,7 +1125,14 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         parsed.productType
       ),
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
-      airportTransferType: parsed.airportTransferType ?? null,
+      airportTransferType: airportTransferTypeForListingKind(
+        travelScopeAndListingKindFromAdminRegister(travelScope).listingKind,
+        {
+          airportTransferType: parsed.airportTransferType ?? null,
+          includedText: parsed.includedText ?? null,
+          excludedText: parsed.excludedText ?? null,
+        }
+      ),
       optionalToursStructured: parsed.optionalToursStructured ?? null,
       optionalToursLlmSupplementJson: parsed.optionalToursLlmSupplementJson ?? null,
       optionalTourSummaryText: parsed.optionalTourSummaryText ?? null,
@@ -1446,7 +1454,11 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       hotelSummaryRaw,
       hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
-      airportTransferType: parsed.airportTransferType ?? null,
+      airportTransferType: airportTransferTypeForListingKind(registerListingMeta.listingKind, {
+        airportTransferType: parsed.airportTransferType ?? null,
+        includedText: parsed.includedText ?? null,
+        excludedText: parsed.excludedText ?? null,
+      }),
       optionalToursStructured: parsed.optionalToursStructured ?? null,
       isFuelIncluded: parsed.isFuelIncluded !== false,
       isGuideFeeIncluded: parsed.isGuideFeeIncluded === true,

@@ -8,6 +8,7 @@ import { computeEffectivePricePerPersonKrwFromRow, PRODUCT_PRICE_FOR_BROWSE_INCL
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import type { ResultItem } from '@/components/products/ProductResultsList'
+import { airportTransferTypeForListingKind } from '@/lib/airport-transfer-infer'
 
 function startOfTodayKst(): Date {
   const seoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
@@ -32,6 +33,8 @@ function toResultItem(p: {
   productType: string | null
   listingKind: string | null
   airportTransferType: string | null
+  includedText: string | null
+  excludedText: string | null
   primaryDestination: string | null
   primaryRegion: string | null
   duration: string | null
@@ -53,7 +56,11 @@ function toResultItem(p: {
     originSource: p.originSource,
     productType: p.productType,
     listingKind: p.listingKind ?? null,
-    airportTransferType: p.airportTransferType,
+    airportTransferType: airportTransferTypeForListingKind(p.listingKind, {
+      airportTransferType: p.airportTransferType,
+      includedText: p.includedText,
+      excludedText: p.excludedText,
+    }),
     primaryDestination: p.primaryDestination,
     primaryRegion: p.primaryRegion,
     duration: p.duration,
@@ -70,6 +77,8 @@ const productSelect = {
   productType: true,
   listingKind: true,
   airportTransferType: true,
+  includedText: true,
+  excludedText: true,
   primaryDestination: true,
   primaryRegion: true,
   duration: true,

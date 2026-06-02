@@ -44,6 +44,7 @@ export function buildProductBrowseListSelect() {
     travelScope: true,
     displayCategory: true,
     includedText: true,
+    excludedText: true,
     localDepartureTag: true,
     sportsThemeTag: true,
     hasUrgentDeal: true,

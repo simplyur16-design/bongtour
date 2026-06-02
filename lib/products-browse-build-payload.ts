@@ -28,6 +28,7 @@ import {
 import { destinationTermsFromQuery } from '@/lib/top-nav-resolve'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
+import { airportTransferTypeForListingKind } from '@/lib/airport-transfer-infer'
 import { buildCaptionLookupMapFromPublicUrls, lookupCaptionFromMap } from '@/lib/image-asset-public-caption'
 import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
@@ -541,7 +542,11 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       originSource: p.originSource,
       productType: p.productType,
       listingKind: p.listingKind ?? null,
-      airportTransferType: p.airportTransferType,
+      airportTransferType: airportTransferTypeForListingKind(p.listingKind, {
+        airportTransferType: p.airportTransferType,
+        includedText: p.includedText,
+        excludedText: p.excludedText,
+      }),
       primaryDestination: (() => {
         const label = resolveProductListDestinationLabel({
           primaryDestination: p.primaryDestination,

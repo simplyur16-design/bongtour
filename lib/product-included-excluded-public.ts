@@ -418,12 +418,7 @@ export function dropPublicExcludedMealBreakdownLines(lines: string[]): string[] 
   return lines.filter((line) => !isExcludedMealBreakdownNoiseLine(line))
 }
 
-const LINE_AIRPORT_HOTEL_TRANSFER =
-  /공항\s*[<↔↕⇔\-–—~]\s*>?\s*호텔|호텔\s*[<↔↕⇔\-–—~]\s*>?\s*공항|공항.{0,12}호텔.{0,16}(?:이동|픽업|샌딩|송영|차량)|공항\s*(?:픽업|샌딩)|픽업.{0,8}샌딩|공항에서\s*호텔\s*이동|공항↔호텔/i
-
-export function isAirportHotelTransferLine(line: string): boolean {
-  return LINE_AIRPORT_HOTEL_TRANSFER.test(line.replace(/\s+/g, ' ').trim())
-}
+export { isAirportHotelTransferLine } from '@/lib/airport-transfer-infer'
 
 /** 자유여행 — 포함란에 공항↔호텔 이동 없으면 불포함란에 표시(포함에 있으면 그대로 유지) */
 export function ensureAirtelAirportTransferExcludedWhenNotInIncluded(input: {
