@@ -3,6 +3,7 @@
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
+import { overlayScheduleImageKeywordsFromFallbackSchedule } from '@/lib/register-preview-schedule-image-keyword-overlay'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -1168,7 +1169,14 @@ function mergePreviewDeterministicWithLlm(
       merged[key] = detVal
     }
   }
-  return merged as RegisterGeminiLlmJson
+  const out = merged as RegisterGeminiLlmJson
+  if (out.schedule && deterministic.schedule) {
+    out.schedule = overlayScheduleImageKeywordsFromFallbackSchedule(
+      out.schedule,
+      deterministic.schedule,
+    ) as RegisterGeminiLlmJson['schedule']
+  }
+  return out
 }
 
 /** 미리보기: 서술형·장문 키 제거·표 고정(LLM이 넘겨도 무시) */
@@ -1466,15 +1474,16 @@ export async function parseForRegisterLlmHanatour(
       )
   let scheduleFirstPassRows: CommonScheduleDayRow[] | null = null
   let useScheduleEmptyMainPrompt = false
-  const expectedDaysForSchedule = !forPreview ? inferExpectedScheduleDayCountFromPaste(blockB, '') : null
+  const expectedDaysForSchedule = inferExpectedScheduleDayCountFromPaste(blockB, '')
   if (
     !options?.skipScheduleExtractLlm &&
-    !forPreview &&
     expectedDaysForSchedule != null &&
     expectedDaysForSchedule >= 1
   ) {
     const sr = await runScheduleExtractLlm(model, blockB, expectedDaysForSchedule, {
-      logLabel: 'parseForRegisterLlmHanatour-schedule-first',
+      logLabel: forPreview
+        ? 'parseForRegisterLlmHanatour-schedule-first-preview'
+        : 'parseForRegisterLlmHanatour-schedule-first',
     })
     if (sr.rows.length === expectedDaysForSchedule) {
       scheduleFirstPassRows = sr.rows
@@ -1666,7 +1675,7 @@ ${text.slice(0, 16000)}`
       })
     }
   }
-  if (!forPreview && scheduleFirstPassRows?.length && expectedDaysForSchedule != null && expectedDaysForSchedule >= 1) {
+  if (scheduleFirstPassRows?.length && expectedDaysForSchedule != null && expectedDaysForSchedule >= 1) {
     const merged = mergeScheduleWithFirstPassPreferExtractRows(raw.schedule, scheduleFirstPassRows, expectedDaysForSchedule)
     if (merged) {
       raw = { ...raw, schedule: merged as RegisterGeminiLlmJson['schedule'] }
@@ -1700,13 +1709,6 @@ ${text.slice(0, 16000)}`
       }
     })
     .filter((s) => s.day > 0)
-  let schedule: RegisterScheduleDay[] = polishHanatourScheduleRowsPreferDetailBody(
-    scheduleBase.map(supplementScheduleDayFromDescription),
-    detailBody
-  )
-  schedule = await polishHanatourScheduleRowsGeminiCardTextIfNeeded(schedule, detailBody, {
-    onTiming: options?.onTiming,
-  })
   const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
   const supplierListingTitleRaw = extractHanatourVerbatimListingTitleRawFromPasteLocal(pastedBlobForTitle)
   const llmTitleNormalized = normalizeHanatourRegisterTitleMinimalLocal(String(raw.title ?? '').trim())
@@ -1715,6 +1717,16 @@ ${text.slice(0, 16000)}`
       ? normalizeHanatourRegisterTitleMinimalLocal(supplierListingTitleRaw)
       : llmTitleNormalized || '상품명 없음'
   const finalDestination = (raw.destination ?? '').trim() || extractDestinationFromTitle(titleTrimmed)
+  const preliminaryDestination =
+    (raw.destination ?? '').trim() || extractDestinationFromTitle(String(raw.title ?? '').trim())
+  let schedule: RegisterScheduleDay[] = applyHanatourScheduleImageKeywordsToRows(
+    scheduleBase.map(supplementScheduleDayFromDescription),
+    { productDestination: preliminaryDestination || finalDestination || null },
+  )
+  schedule = polishHanatourScheduleRowsPreferDetailBody(schedule, detailBody)
+  schedule = await polishHanatourScheduleRowsGeminiCardTextIfNeeded(schedule, detailBody, {
+    onTiming: options?.onTiming,
+  })
   schedule = applyHanatourScheduleImageKeywordsToRows(schedule, {
     productDestination: finalDestination || null,
   })
@@ -2425,7 +2437,7 @@ ${text.slice(0, 16000)}`
       ? {
           registerPreviewPolicyNotes: [
             '미리보기: 출발일별 달력(prices[])는 확정(전체) 파싱에서 채웁니다. 항공·호텔·옵션·쇼핑·가격표 표는 결정적 파서·병합이 우선입니다.',
-            '미리보기: 일정(schedule[])은 본문 `schedule_section`의 `N일차`/`DAY N` 경계가 있으면 결정적으로 채웁니다. 달력 행만 비어 있을 수 있습니다.',
+            '미리보기: 일정(schedule[])은 일정 선추출 LLM·본문 `schedule_section`·imageKeyword 규칙으로 채웁니다. 달력 행(prices[])만 비어 있을 수 있습니다.',
           ],
         }
       : {}),

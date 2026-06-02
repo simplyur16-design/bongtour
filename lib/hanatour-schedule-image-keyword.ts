@@ -2,7 +2,12 @@ import {
   classifyHanatourScheduleCardDayKind,
   type HanatourScheduleCardDayKind,
 } from '@/lib/parse-and-register-hanatour-schedule'
-import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
+import {
+  acceptLlmScheduleImageKeyword,
+  inferEnglishPlaceKeywordFromDayContent,
+  splitRouteTextPlaceSegments,
+} from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { mapDestination, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 export type HanatourScheduleImageKeywordOpts = {
@@ -86,12 +91,7 @@ export function isHanatourDomesticHubToken(token: string): boolean {
 }
 
 function routeTextSegments(routeText: string | null | undefined): string[] {
-  const rt = String(routeText ?? '').trim()
-  if (!rt) return []
-  return rt
-    .split(/\s*-\s*/)
-    .map(stripRouteSegmentNoise)
-    .filter((s) => s.length >= 2)
+  return splitRouteTextPlaceSegments(routeText).map(stripRouteSegmentNoise).filter((s) => s.length >= 2)
 }
 
 function isLatinRoutePlaceSegment(seg: string): boolean {
@@ -166,26 +166,54 @@ function extractLatinEnglishFromRouteSegment(seg: string): string {
   return ''
 }
 
-/** routeText 2번째 세그먼트 — 라틴·괄호 영문만(매핑 없음) */
-function resolveRouteTextSecondLatinPlace(routeText: string | null | undefined): string {
+function englishFromKoreanRouteSegment(seg: string): string {
+  const t = stripRouteSegmentNoise(seg)
+  if (!t || isHanatourDomesticHubToken(t)) return ''
+  const fromPoi = mapKoreanPoiSegment(t)
+  if (fromPoi) {
+    try {
+      return finalizeScheduleImageKeyword(fromPoi)
+    } catch {
+      /* continue */
+    }
+  }
+  const fromDest = mapDestination(t)
+  if (fromDest && fromDest !== t) {
+    try {
+      return finalizeScheduleImageKeyword(fromDest)
+    } catch {
+      /* continue */
+    }
+  }
+  return ''
+}
+
+/** routeText 2번째 세그먼트 — 영문·한글(매핑) */
+function resolveRouteTextSecondPlace(routeText: string | null | undefined): string {
   const segs = routeTextSegments(routeText)
   if (segs.length < 2) return ''
-  return extractLatinEnglishFromRouteSegment(segs[1]!)
+  return extractLatinEnglishFromRouteSegment(segs[1]!) || englishFromKoreanRouteSegment(segs[1]!)
 }
 
 function tryAcceptHanatourLlmImageKeyword(
   raw: string | null | undefined,
   productDestination: string | null | undefined,
 ): string {
-  const llmRaw = String(raw ?? '').trim()
-  if (!llmRaw || !isHanatourLlmImageKeywordFormatOk(llmRaw)) return ''
-  if (isHanatourDomesticHubToken(llmRaw)) return ''
-  if (isHanatourCrossContinentHallucinationKeyword(llmRaw, productDestination)) return ''
-  try {
-    return finalizeScheduleImageKeyword(llmRaw)
-  } catch {
-    return ''
-  }
+  return acceptLlmScheduleImageKeyword(raw, {
+    productDestination,
+    isFormatOk: isHanatourLlmImageKeywordFormatOk,
+    isDomesticHub: isHanatourDomesticHubToken,
+    isCrossContinentHallucination: isHanatourCrossContinentHallucinationKeyword,
+  })
+}
+
+function inferHanatourKeywordFromDayContent(
+  row: HanatourScheduleImageKeywordRow,
+  productDestination: string | null | undefined,
+): string {
+  const inferred = inferEnglishPlaceKeywordFromDayContent(row, productDestination)
+  if (!inferred) return ''
+  return tryAcceptHanatourLlmImageKeyword(inferred, productDestination)
 }
 
 function resolveHanatourPrimaryKeyword(
@@ -200,10 +228,15 @@ function resolveHanatourPrimaryKeyword(
 
   if (dayKind === 'movement' || dayKind === 'return_home') {
     const pickLast = day === maxDay && maxDay >= 2
-    return pickEnglishRouteTextPlace(row.routeText, pickLast)
+    const fromRoute = pickEnglishRouteTextPlace(row.routeText, pickLast)
+    if (fromRoute) return fromRoute
+    return inferHanatourKeywordFromDayContent(row, productDestination)
   }
 
-  return ''
+  const fromRoute = pickEnglishRouteTextPlace(row.routeText, false)
+  if (fromRoute) return fromRoute
+
+  return inferHanatourKeywordFromDayContent(row, productDestination)
 }
 
 function resolveHanatourSecondaryKeyword(
@@ -218,7 +251,7 @@ function resolveHanatourSecondaryKeyword(
   const fromLlm = tryAcceptHanatourLlmImageKeyword(row.imageKeyword2, productDestination)
   if (fromLlm && normKey(fromLlm) !== normKey(primary)) return fromLlm
 
-  const fromRouteRaw = resolveRouteTextSecondLatinPlace(row.routeText)
+  const fromRouteRaw = resolveRouteTextSecondPlace(row.routeText)
   const fromRoute = fromRouteRaw
     ? tryAcceptHanatourLlmImageKeyword(fromRouteRaw, productDestination)
     : ''

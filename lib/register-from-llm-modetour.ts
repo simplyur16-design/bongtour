@@ -1502,7 +1502,7 @@ ${text.slice(0, 16000)}`
       })
     }
   }
-  if (!forPreview && scheduleFirstPassRows?.length && expectedDaysForSchedule != null && expectedDaysForSchedule >= 1) {
+  if (scheduleFirstPassRows?.length && expectedDaysForSchedule != null && expectedDaysForSchedule >= 1) {
     const merged = mergeScheduleWithFirstPassPreferExtractRows(raw.schedule, scheduleFirstPassRows, expectedDaysForSchedule)
     if (merged) {
       raw = { ...raw, schedule: merged as RegisterGeminiLlmJson['schedule'] }

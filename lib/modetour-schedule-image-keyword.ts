@@ -2,6 +2,11 @@
  * 모두투어 전용: `Product.schedule[].imageKeyword` / `imageKeyword2` — Pexels 검색용 영문.
  * LLM 영문 그대로 사용, routeText 라틴 세그먼트 폴백만. 매핑·고정폴백 없음.
  */
+import {
+  acceptLlmScheduleImageKeyword,
+  inferEnglishPlaceKeywordFromDayContent,
+  splitRouteTextPlaceSegments,
+} from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
@@ -97,12 +102,7 @@ export function isModetourDomesticHubToken(token: string): boolean {
 }
 
 function routeTextSegments(routeText: string | null | undefined): string[] {
-  const rt = String(routeText ?? '').trim()
-  if (!rt) return []
-  return rt
-    .split(/\s*-\s*/)
-    .map(stripRouteSegmentNoise)
-    .filter((s) => s.length >= 2)
+  return splitRouteTextPlaceSegments(routeText).map(stripRouteSegmentNoise).filter((s) => s.length >= 2)
 }
 
 function isLatinRoutePlaceSegment(seg: string): boolean {
@@ -183,15 +183,21 @@ function tryAcceptModetourLlmImageKeyword(
   raw: string | null | undefined,
   productDestination: string | null | undefined,
 ): string {
-  const llmRaw = String(raw ?? '').trim()
-  if (!llmRaw || !isModetourLlmImageKeywordFormatOk(llmRaw)) return ''
-  if (isModetourDomesticHubToken(llmRaw)) return ''
-  if (isModetourCrossContinentHallucinationKeyword(llmRaw, productDestination)) return ''
-  try {
-    return finalizeScheduleImageKeyword(llmRaw)
-  } catch {
-    return ''
-  }
+  return acceptLlmScheduleImageKeyword(raw, {
+    productDestination,
+    isFormatOk: isModetourLlmImageKeywordFormatOk,
+    isDomesticHub: isModetourDomesticHubToken,
+    isCrossContinentHallucination: isModetourCrossContinentHallucinationKeyword,
+  })
+}
+
+function inferModetourKeywordFromDayContent(
+  row: ModetourScheduleImageKeywordRow,
+  productDestination: string | null | undefined,
+): string {
+  const inferred = inferEnglishPlaceKeywordFromDayContent(row, productDestination)
+  if (!inferred) return ''
+  return tryAcceptModetourLlmImageKeyword(inferred, productDestination)
 }
 
 export function classifyModetourScheduleCardDayKind(
@@ -238,10 +244,15 @@ function resolveModetourPrimaryKeyword(
 
   if (dayKind === 'movement' || dayKind === 'return_home') {
     const pickLast = day === maxDay && maxDay >= 2
-    return pickEnglishRouteTextPlace(row.routeText, pickLast)
+    const fromRoute = pickEnglishRouteTextPlace(row.routeText, pickLast)
+    if (fromRoute) return fromRoute
+    return inferModetourKeywordFromDayContent(row, productDestination)
   }
 
-  return pickEnglishRouteTextPlace(row.routeText, false)
+  const fromRoute = pickEnglishRouteTextPlace(row.routeText, false)
+  if (fromRoute) return fromRoute
+
+  return inferModetourKeywordFromDayContent(row, productDestination)
 }
 
 function resolveModetourSecondaryKeyword(

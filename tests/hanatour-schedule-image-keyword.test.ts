@@ -181,6 +181,41 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
     assert.equal(out[0]!.imageKeyword, 'Nagoya')
   })
 
+  it('스페인 순례 — LLM Camino de Santiago 유지', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 3,
+          title: '산티아고 순례',
+          description: '카미노 데 산티아고 트레킹',
+          routeText: '산티아고 - 레온',
+          imageKeyword: 'Camino de Santiago',
+          imageKeyword2: 'Leon Cathedral',
+        },
+      ],
+      { productDestination: '스페인' },
+    )
+    assert.equal(out[0]!.imageKeyword, 'Camino de Santiago')
+    assert.equal(out[0]!.imageKeyword2, 'Leon Cathedral')
+  })
+
+  it('관광 일차 — LLM 없고 한글 routeText만 있어도 영문 추론(산티아고)', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 2,
+          title: '산티아고',
+          description: '순례길 도보',
+          routeText: '산티아고 - 레온',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      { productDestination: '스페인' },
+    )
+    assert.equal(out[0]!.imageKeyword, 'Santiago de Compostela')
+  })
+
   it('카미코치 LLM Kamikochi — 매핑 없이 그대로 통과', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
