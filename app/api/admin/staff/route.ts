@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server'
+import type { AdminSession } from '@/lib/require-admin'
 import { prisma } from '@/lib/prisma'
-import { requireAdmin } from '@/lib/require-admin'
-import { isAdminOnlyRole } from '@/lib/admin-roles'
+import { requireAdminOnlyApi } from '@/lib/require-admin-tool'
 import { displayRole } from '@/lib/user-role'
 
 /**
  * GET /api/admin/staff?q= — 일반 사용자 검색 (ADMIN 전용)
  */
 export async function GET(req: Request) {
-  const session = await requireAdmin()
-  const actorRole = (session?.user as { role?: string | null } | undefined)?.role
-  if (!session?.user?.id || !isAdminOnlyRole(actorRole)) {
-    return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-  }
+  const gate = await requireAdminOnlyApi()
+  if (gate instanceof NextResponse) return gate
+  const session = gate as AdminSession
 
   const q = new URL(req.url).searchParams.get('q')?.trim() ?? ''
   const and: Record<string, unknown>[] = [
@@ -55,10 +53,11 @@ type PatchBody = { userId?: string; role?: 'STAFF' | null }
  * PATCH /api/admin/staff — STAFF 승격 / 강등 (ADMIN 전용)
  */
 export async function PATCH(req: Request) {
-  const session = await requireAdmin()
-  const actorRole = (session?.user as { role?: string | null } | undefined)?.role
-  const actorId = session?.user?.id
-  if (!actorId || !isAdminOnlyRole(actorRole)) {
+  const gate = await requireAdminOnlyApi()
+  if (gate instanceof NextResponse) return gate
+  const session = gate as AdminSession
+  const actorId = session.user?.id
+  if (!actorId) {
     return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
   }
 

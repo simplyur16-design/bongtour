@@ -14,6 +14,7 @@ import {
   getClientIp,
   recordAdminApiSecurityEvent,
 } from '@/lib/admin-api-security'
+import { isAdminOnlyRole, isAdminToolRole } from '@/lib/admin-roles'
 import { isAdminPanelRole, isMembersViewerRole } from '@/lib/user-role'
 import {
   consentPendingFromMarkerCookie,
@@ -183,7 +184,15 @@ export async function middleware(req: NextRequest) {
 
     if (isAdminApiRoute && isStaff) {
       const membersApi = pathname.startsWith('/api/admin/members') && req.method === 'GET'
-      if (!membersApi) {
+      const quickActionsApi = pathname.startsWith('/api/admin/quick-actions/')
+      if (!membersApi && !quickActionsApi) {
+        recordAdminApiSecurityEvent(getClientIp(req.headers), '403', pathname)
+        return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+      }
+    }
+
+    if (isAdminApiRoute && pathname.startsWith('/api/admin/staff')) {
+      if (!isAdminOnlyRole(role)) {
         recordAdminApiSecurityEvent(getClientIp(req.headers), '403', pathname)
         return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
       }
@@ -193,9 +202,22 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL('/admin/members', req.url))
     }
 
+    const quickActionsApi = pathname.startsWith('/api/admin/quick-actions/')
+    const staffApi = pathname.startsWith('/api/admin/staff')
+    const staffAdminPage = pathname.startsWith('/admin/staff')
     const membersPath =
       pathname.startsWith('/admin/members') || pathname.startsWith('/api/admin/members')
-    const allowed = membersPath ? isMembersViewerRole(role) : isAdminPanelRole(role)
+
+    let allowed: boolean
+    if (quickActionsApi) {
+      allowed = isAdminToolRole(role)
+    } else if (staffApi || staffAdminPage) {
+      allowed = isAdminOnlyRole(role)
+    } else if (membersPath) {
+      allowed = isMembersViewerRole(role)
+    } else {
+      allowed = isAdminPanelRole(role)
+    }
     if (!allowed) {
       if (isAdminApiRoute) {
         recordAdminApiSecurityEvent(getClientIp(req.headers), '403', pathname)
