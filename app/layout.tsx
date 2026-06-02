@@ -8,6 +8,7 @@ import AntiCopyProtectionGate from './components/AntiCopyProtectionGate'
 import ConditionalSiteFooter from './components/ConditionalSiteFooter'
 import GoogleTagManager from './components/GoogleTagManager'
 import MobileStickyBar from './components/MobileStickyBar'
+import AdminQuickActionsMount from '@/components/admin/AdminQuickActionsMount'
 import { DEFAULT_OG_IMAGE_PATH, getSiteOrigin, SITE_NAME } from '@/lib/site-metadata'
 
 const siteOrigin = getSiteOrigin()
@@ -92,6 +93,7 @@ export default function RootLayout({
             <div className="flex-1 flex flex-col">{children}</div>
             <ConditionalSiteFooter />
             <MobileStickyBar />
+            <AdminQuickActionsMount />
           </UtmCaptureProvider>
         </SessionProvider>
       </body>

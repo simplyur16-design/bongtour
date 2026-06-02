@@ -9,6 +9,7 @@ const EMPTY_QUERY: InquiryPageQuery = {
   productId: null,
   monthlyCurationItemId: null,
   snapshotProductTitle: null,
+  snapshotOriginCode: null,
   snapshotCardLabel: null,
   targetYearMonth: null,
   trainingServiceScope: null,

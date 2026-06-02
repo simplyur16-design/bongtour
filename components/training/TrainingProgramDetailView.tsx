@@ -189,6 +189,7 @@ export default function TrainingProgramDetailView({ program }: Props) {
                   productId: program.id,
                   monthlyCurationItemId: null,
                   snapshotProductTitle: program.title,
+                  snapshotOriginCode: null,
                   snapshotCardLabel: program.title,
                   targetYearMonth: null,
                   trainingServiceScope: null,

@@ -139,7 +139,7 @@ export default function OverseasCompareCard({ product, priority = false, product
               </ProductDetailNavLink>
               <Link
                 href={buildTravelProductInquiryHref(
-                  { id: product.id, title: product.title, originCode: product.originCode ?? null },
+                  { id: product.id, title: product.title },
                   {
                     source: '/travel/overseas',
                     snapshotCardLabel: snapshotCardLabel ?? null,

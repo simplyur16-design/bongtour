@@ -280,6 +280,7 @@ export default function CharterBusLanding() {
                   productId: null,
                   monthlyCurationItemId: null,
                   snapshotProductTitle: null,
+                  snapshotOriginCode: null,
                   snapshotCardLabel: null,
                   targetYearMonth: null,
                   trainingServiceScope: null,
