@@ -39,6 +39,8 @@ const YBTOUR_TOXIC_IMAGE_KEYWORD_RE =
   /\bscenic\s+asian\s+city\s+travel\s+skyline\s+dusk\b/i
 
 const YBTOUR_LLM_DAY_TRAVEL_RE = /^day\s*\d+\s*travel$/i
+const YBTOUR_ALL_INCLUSIVE_NOISE_RE =
+  /\ball\s*[-_]?\s*inclu(?:de|ded|sive)?\b|\binclusive\s*svc\b|\bsvc\s*\(?.*all\s*inclusive/i
 
 const CROSS_CONTINENT_HALLUCINATION_KW_RES: ReadonlyArray<RegExp> = [
   /\bParis\b/i,
@@ -168,6 +170,7 @@ function isYbtourLlmImageKeywordFormatOk(kw: string): boolean {
   if (/[\uAC00-\uD7AF]/.test(k)) return false
   if (YBTOUR_TOXIC_IMAGE_KEYWORD_RE.test(k)) return false
   if (YBTOUR_LLM_DAY_TRAVEL_RE.test(k)) return false
+  if (YBTOUR_ALL_INCLUSIVE_NOISE_RE.test(k)) return false
   if (/\b(hotel|resort|buffet|breakfast|lunch|dinner|brunch)\b/i.test(k)) return false
   if (/\d{1,2}\/\d{1,2}/.test(k) || /\d{1,2}-\d{1,2}\b/.test(k)) return false
   const words = k.split(/\s+/).filter(Boolean).length
@@ -223,14 +226,27 @@ function pickOverseasCityEnglishFromRouteText(routeText: string | null | undefin
 export function resolveYbtourPrimaryKeyword(
   row: YbtourScheduleImageKeywordRow,
   dayKind: YbtourDayKind,
+  productDestination: string | null | undefined,
 ): string {
   const existing = String(row.imageKeyword ?? '').trim()
-  const kw =
-    dayKind !== 'flight'
-      ? existing
-      : pickOverseasCityEnglishFromRouteText(row.routeText) || existing
-  if (isYbtourDomesticHubToken(kw)) return ''
-  return kw
+  const existingAccepted = tryAcceptYbtourLlmImageKeyword(existing, productDestination)
+  if (existingAccepted) return existingAccepted
+
+  if (dayKind === 'flight') {
+    const fromRoute = pickOverseasCityEnglishFromRouteText(row.routeText)
+    if (fromRoute) return fromRoute
+  }
+
+  // kw1이 빈칸/노이즈일 때만 title+description에서 장소형 키워드를 재추론한다.
+  const fallback = buildEnglishPlaceTripartiteImageKeyword({
+    title: String(row.title ?? '').trim(),
+    description: String(row.description ?? '').trim(),
+    rawDayBody: [String(row.title ?? '').trim(), String(row.description ?? '').trim()].filter(Boolean).join('\n'),
+  })
+  const fallbackAccepted = tryAcceptYbtourLlmImageKeyword(fallback, productDestination)
+  if (fallbackAccepted) return fallbackAccepted
+
+  return ''
 }
 
 export function resolveYbtourSecondaryKeyword(
@@ -282,7 +298,7 @@ export function applyYbtourScheduleImageKeywordsToRows<
     const title = String(row.title ?? '').trim()
     const description = String(row.description ?? '').trim()
     const dayKind = classifyYbtourDayKind(description, title, row.routeText ?? null, day, totalDays)
-    const primary = resolveYbtourPrimaryKeyword(row, dayKind)
+    const primary = resolveYbtourPrimaryKeyword(row, dayKind, productDestination)
     const secondary = resolveYbtourSecondaryKeyword(row, primary, dayKind, productDestination)
 
     return {
