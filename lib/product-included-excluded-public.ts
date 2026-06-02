@@ -2,7 +2,12 @@
  * 공개 상세 포함/불포함 — 헤더 기준 결정적 분리·오분류 라인 이동·1인실 중복 제거(LLM 없음).
  */
 
-import { AIRTEL_AIRPORT_TRANSFER_EXCLUDED_LABEL } from '@/lib/airport-transfer-infer'
+import {
+  AIRTEL_AIRPORT_TRANSFER_EXCLUDED_LABEL,
+  isAirportHotelTransferLine,
+} from '@/lib/airport-transfer-infer'
+
+export { isAirportHotelTransferLine }
 
 const HEADER_INCLUDED = /^(?:[-*•◇◆\d]+[\.\)]\s*)?포함\s*내역\s*[:：]?\s*$/i
 const HEADER_EXCLUDED = /^(?:[-*•◇◆\d]+[\.\)]\s*)?불포함\s*내역\s*[:：]?\s*$/i
@@ -417,8 +422,6 @@ function isExcludedMealBreakdownNoiseLine(line: string): boolean {
 export function dropPublicExcludedMealBreakdownLines(lines: string[]): string[] {
   return lines.filter((line) => !isExcludedMealBreakdownNoiseLine(line))
 }
-
-export { isAirportHotelTransferLine } from '@/lib/airport-transfer-infer'
 
 /** 자유여행 — 포함란에 공항↔호텔 이동 없으면 불포함란에 표시(포함에 있으면 그대로 유지) */
 export function ensureAirtelAirportTransferExcludedWhenNotInIncluded(input: {
