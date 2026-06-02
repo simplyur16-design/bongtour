@@ -43,6 +43,7 @@ type NavEntry =
 const navEntries: NavEntry[] = [
   { type: 'link', href: '/admin', label: '대시보드', icon: LayoutDashboard },
   { type: 'link', href: '/admin/members', label: '회원 관리', icon: Users },
+  { type: 'link', href: '/admin/staff', label: '직원 권한 관리', icon: ShieldCheck },
   { type: 'link', href: '/admin/home-hub-card-images', label: '메인 허브 이미지', icon: Images },
   { type: 'link', href: '/admin/og-images', label: 'OG 이미지 (공유)', icon: Share2 },
   {

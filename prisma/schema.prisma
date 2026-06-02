@@ -509,7 +509,8 @@ model Booking {
 }
 
 // ---- Auth.js (NextAuth v5) ----
-// User.role: USER|STAFF|ADMIN|SUPER_ADMIN (null=일반). signupMethod: email|kakao|google|apple. accountStatus: active|inactive|suspended|withdrawn
+// User.role text — DB enum 없음. 일반: null|USER. Admin tool SSOT (lib/admin-roles.ts): ADMIN|STAFF|null. SUPER_ADMIN=레거시 최고관리자.
+// signupMethod: email|kakao|google|apple. accountStatus: active|inactive|suspended|withdrawn
 model User {
   id                       String    @id @default(cuid())
   name                     String?
