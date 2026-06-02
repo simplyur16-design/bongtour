@@ -30,7 +30,6 @@ import type { RegisterPreviewPayload as RegisterPreviewPayloadLt } from '@/lib/r
 import type { BongtourProductTitlePreviewFields } from '@/lib/bongtour-product-title-register-bridge'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
-import { applyRegisterScheduleImageKeywordsForAdminUi } from '@/lib/register-schedule-image-keywords-ui'
 import {
   finalizeRegisterScheduleImageKeywords,
   ScheduleImageKeywordPersistError,
@@ -280,8 +279,7 @@ type RegisterPexelsSearchPhoto = {
 /** 미리보기 패널용: 유효한 schedule 행이 없으면 itineraryDayDrafts로 일차별 SSOT 입력 행을 만든다 */
 function buildRegisterPexelsUiRows(
   parsed: RegisterParsed | null,
-  preview: AdminRegisterPreviewPayload | null,
-  supplierKey: string | null
+  preview: AdminRegisterPreviewPayload | null
 ): RegisterScheduleDay[] {
   if (!preview) return []
   const sched = parsed?.schedule
@@ -306,13 +304,7 @@ function buildRegisterPexelsUiRows(
         (parsed?.destination ?? '').trim() ||
         (preview?.productDraft?.primaryDestination ?? preview?.productDraft?.destinationRaw ?? '').trim() ||
         null
-      const titleHint = (parsed?.title ?? preview?.productDraft?.title ?? '').trim() || null
-      const withSupplierKw = applyRegisterScheduleImageKeywordsForAdminUi(rawRows, {
-        supplierKey,
-        productDestination: destHint,
-        productTitle: titleHint,
-      })
-      return finalizeRegisterScheduleImageKeywords(withSupplierKw, { productDestination: destHint }).map((row) => ({
+      return finalizeRegisterScheduleImageKeywords(rawRows, { productDestination: destHint }).map((row) => ({
         day: row.day,
         title: String(row.title ?? ''),
         description: String(row.description ?? ''),
@@ -360,12 +352,7 @@ function buildRegisterPexelsUiRows(
     }
   })
   try {
-    const withSupplierKw = applyRegisterScheduleImageKeywordsForAdminUi(draftRows, {
-      supplierKey,
-      productDestination: destHint,
-      productTitle: (d.title ?? '').trim() || null,
-    })
-    return finalizeRegisterScheduleImageKeywords(withSupplierKw, { productDestination: destHint }).map((row) => ({
+    return finalizeRegisterScheduleImageKeywords(draftRows, { productDestination: destHint }).map((row) => ({
       day: row.day,
       title: String(row.title ?? ''),
       description: String(row.description ?? ''),
@@ -392,7 +379,7 @@ function mergeRegisterParsedScheduleWithManualPexels(
   manualByDay: Record<number, string>,
   manualByDay2: Record<number, string> = {}
 ): RegisterParsed {
-  const uiRows = buildRegisterPexelsUiRows(parsed, preview, parsed.originSource ?? null)
+  const uiRows = buildRegisterPexelsUiRows(parsed, preview)
   const validSchedule = (parsed.schedule ?? []).filter((row) => {
     const day = Number(row.day)
     return Number.isFinite(day) && day >= 1
@@ -608,13 +595,8 @@ export default function AdminRegisterPage() {
   const [registerPexelsFallbackKeyword, setRegisterPexelsFallbackKeyword] = useState('')
 
   const registerPexelsUiRows = useMemo(
-    () =>
-      buildRegisterPexelsUiRows(
-        (parsedForConfirm as RegisterParsed | null) ?? null,
-        preview,
-        selectedBrandKey || null
-      ),
-    [parsedForConfirm, preview, selectedBrandKey]
+    () => buildRegisterPexelsUiRows((parsedForConfirm as RegisterParsed | null) ?? null, preview),
+    [parsedForConfirm, preview]
   )
 
   const runRegisterPexelsSearch = useCallback(async (keywordRaw: string) => {

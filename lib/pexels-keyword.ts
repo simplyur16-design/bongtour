@@ -53,7 +53,6 @@ const DESTINATION_MAP: Record<string, string> = {
   세비야: 'Seville',
   그라나다: 'Granada',
   런던: 'London',
-  바르셀로나: 'Barcelona',
   암스테르담: 'Amsterdam',
   두바이: 'Dubai',
   이스탄불: 'Istanbul',

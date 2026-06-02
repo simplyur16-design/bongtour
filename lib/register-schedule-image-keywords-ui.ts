@@ -1,12 +1,14 @@
 /**
- * 관리자 등록 미리보기(Pexels 패널) — 서버 파이프라인과 동일한 공급사별 imageKeyword 규칙 적용.
- * `finalizeRegisterScheduleImageKeywords`만으로는 한글 route·추론 폴백이 반영되지 않는다.
+ * 서버 전용 — 공급사별 imageKeyword 규칙(미리보기 API·등록 파이프라인).
+ * 클라이언트(`app/admin/register/page.tsx`)에서 import 금지 — gemini·파서 체인이 번들에 실림.
  */
+import 'server-only'
 import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
 import { applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
 import { applyLottetourScheduleImageKeywordsToRows } from '@/lib/lottetour-schedule-image-keyword'
 import { applyModetourScheduleImageKeywordsToRows } from '@/lib/modetour-schedule-image-keyword'
-import { normalizeSupplierOrigin } from '@/lib/supplier-origin'
+import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import type { RegisterScheduleDay as VerygoodRegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-schedule-image-keyword'
 import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
 
@@ -42,7 +44,7 @@ export function applyRegisterScheduleImageKeywordsForAdminUi<
       return applyYbtourScheduleImageKeywordsToRows(rows, { productDestination: dest })
     case 'verygoodtour':
       return applyVerygoodScheduleImageKeywordsToRows(rows, {
-        detRows: rows,
+        detRows: rows as VerygoodRegisterScheduleDay[],
         productDestination: dest,
         totalDays: rows.length,
       })

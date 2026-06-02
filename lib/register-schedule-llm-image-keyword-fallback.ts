@@ -93,7 +93,7 @@ export function inferEnglishPlaceKeywordFromDayContent(
   const haystack = [row.title, row.description, row.routeText].filter(Boolean).join('\n')
 
   const fromExtract = extractPlaceNameKeyword({
-    llmImageKeyword: row.imageKeyword,
+    llmImageKeyword: row.imageKeyword ?? undefined,
     title: row.title ?? '',
     description: row.description ?? '',
     rawBody: haystack,
