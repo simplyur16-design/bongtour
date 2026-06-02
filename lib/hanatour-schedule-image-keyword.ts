@@ -102,20 +102,6 @@ function isLatinRoutePlaceSegment(seg: string): boolean {
   return t.replace(/[^A-Za-z]/g, '').length >= 3
 }
 
-/** routeText에 이미 영문으로 적힌 해외 도시·명소(매핑 없음) */
-function pickEnglishRouteTextPlace(routeText: string | null | undefined, pickLast: boolean): string {
-  const segs = routeTextSegments(routeText).filter(
-    (s) => isLatinRoutePlaceSegment(s) && !isHanatourDomesticHubToken(s),
-  )
-  if (!segs.length) return ''
-  const raw = pickLast ? segs[segs.length - 1]! : segs[0]!
-  try {
-    return finalizeScheduleImageKeyword(raw)
-  } catch {
-    return ''
-  }
-}
-
 /** LLM 1순위 imageKeyword 형식 — 라틴·1~10단어·toxic/한글/일정노이즈 제외 (단일 도시명 허용) */
 function isHanatourLlmImageKeywordFormatOk(kw: string): boolean {
   const k = kw.trim()
@@ -216,24 +202,142 @@ function inferHanatourKeywordFromDayContent(
   return tryAcceptHanatourLlmImageKeyword(inferred, productDestination)
 }
 
+function segmentToAcceptedHanatourKeyword(
+  seg: string,
+  productDestination: string | null | undefined,
+): string {
+  const latin = extractLatinEnglishFromRouteSegment(seg)
+  if (latin) {
+    const accepted = tryAcceptHanatourLlmImageKeyword(latin, productDestination)
+    if (accepted) return accepted
+  }
+  const fromKo = englishFromKoreanRouteSegment(seg)
+  if (fromKo) {
+    const accepted = tryAcceptHanatourLlmImageKeyword(fromKo, productDestination)
+    if (accepted) return accepted
+  }
+  return ''
+}
+
+/** routeText 해외 구간 — 영문·한글(매핑) 모두, pickLast면 이동 순서상 뒤쪽 우선 */
+function pickForeignPlaceFromRouteText(
+  routeText: string | null | undefined,
+  pickLast: boolean,
+  productDestination: string | null | undefined,
+): string {
+  const segs = routeTextSegments(routeText).filter((s) => !isHanatourDomesticHubToken(s))
+  if (!segs.length) return ''
+  const ordered = pickLast ? [...segs].reverse() : segs
+  for (const seg of ordered) {
+    const kw = segmentToAcceptedHanatourKeyword(seg, productDestination)
+    if (kw) return kw
+  }
+  return ''
+}
+
+function collectTripForeignPlaceKeywordsInDayOrder(
+  rows: HanatourScheduleImageKeywordRow[],
+  productDestination: string | null | undefined,
+): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  const sorted = [...rows].filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
+  for (const row of sorted) {
+    for (const seg of routeTextSegments(row.routeText)) {
+      if (isHanatourDomesticHubToken(seg)) continue
+      const kw = segmentToAcceptedHanatourKeyword(seg, productDestination)
+      if (!kw) continue
+      const nk = normKey(kw)
+      if (seen.has(nk)) continue
+      seen.add(nk)
+      out.push(kw)
+    }
+  }
+  return out
+}
+
+function productDestinationToAcceptedKeyword(
+  productDestination: string | null | undefined,
+): string {
+  const raw = String(productDestination ?? '').trim()
+  if (!raw) return ''
+  const en = mapDestination(raw)
+  if (!en || (en === raw && /[\uAC00-\uD7AF]/.test(raw))) return ''
+  return tryAcceptHanatourLlmImageKeyword(en, productDestination)
+}
+
+/** 1일차·마지막 일차 — 여행 목적지(대표 destination)·첫/마지막 방문 해외 도시(영문) */
+function isHanatourDestinationCityDay(day: number, maxDay: number): boolean {
+  return maxDay >= 1 && (day === 1 || day === maxDay)
+}
+
+function resolveHanatourDestinationCityDayKeyword(
+  row: HanatourScheduleImageKeywordRow,
+  day: number,
+  maxDay: number,
+  productDestination: string | null | undefined,
+  allRows: HanatourScheduleImageKeywordRow[],
+): string {
+  const tripPlaces = collectTripForeignPlaceKeywordsInDayOrder(allRows, productDestination)
+  const pickLast = day === maxDay && maxDay >= 2 && day !== 1
+  const fromRoute = pickForeignPlaceFromRouteText(row.routeText, pickLast, productDestination)
+
+  if (day === 1) {
+    if (fromRoute) return fromRoute
+    if (tripPlaces[0]) return tripPlaces[0]!
+    const fromProduct = productDestinationToAcceptedKeyword(productDestination)
+    if (fromProduct) return fromProduct
+    return inferHanatourKeywordFromDayContent(row, productDestination)
+  }
+
+  const fromProduct = productDestinationToAcceptedKeyword(productDestination)
+  if (fromProduct) return fromProduct
+  if (tripPlaces.length) return tripPlaces[tripPlaces.length - 1]!
+  if (fromRoute) return fromRoute
+  return inferHanatourKeywordFromDayContent(row, productDestination)
+}
+
+function resolveHanatourMovementDayKeyword(
+  row: HanatourScheduleImageKeywordRow,
+  day: number,
+  maxDay: number,
+  productDestination: string | null | undefined,
+  allRows: HanatourScheduleImageKeywordRow[],
+): string {
+  const pickLast = day === maxDay && maxDay >= 2
+  const fromRoute = pickForeignPlaceFromRouteText(row.routeText, pickLast, productDestination)
+  if (fromRoute) return fromRoute
+
+  const tripPlaces = collectTripForeignPlaceKeywordsInDayOrder(allRows, productDestination)
+  if (day === 1 && tripPlaces[0]) return tripPlaces[0]!
+  if (day === maxDay && tripPlaces.length) return tripPlaces[tripPlaces.length - 1]!
+
+  const fromProduct = productDestinationToAcceptedKeyword(productDestination)
+  if (fromProduct) return fromProduct
+
+  return inferHanatourKeywordFromDayContent(row, productDestination)
+}
+
 function resolveHanatourPrimaryKeyword(
   row: HanatourScheduleImageKeywordRow,
   dayKind: HanatourScheduleCardDayKind,
   day: number,
   maxDay: number,
   productDestination: string | null | undefined,
+  allRows: HanatourScheduleImageKeywordRow[],
 ): string {
   const accepted = tryAcceptHanatourLlmImageKeyword(row.imageKeyword, productDestination)
   if (accepted) return accepted
 
-  if (dayKind === 'movement' || dayKind === 'return_home') {
-    const pickLast = day === maxDay && maxDay >= 2
-    const fromRoute = pickEnglishRouteTextPlace(row.routeText, pickLast)
-    if (fromRoute) return fromRoute
-    return inferHanatourKeywordFromDayContent(row, productDestination)
+  if (isHanatourDestinationCityDay(day, maxDay)) {
+    return resolveHanatourDestinationCityDayKeyword(row, day, maxDay, productDestination, allRows)
   }
 
-  const fromRoute = pickEnglishRouteTextPlace(row.routeText, false)
+  if (dayKind === 'movement' || dayKind === 'return_home') {
+    return resolveHanatourMovementDayKeyword(row, day, maxDay, productDestination, allRows)
+  }
+
+  const fromRoute = pickForeignPlaceFromRouteText(row.routeText, false, productDestination)
   if (fromRoute) return fromRoute
 
   return inferHanatourKeywordFromDayContent(row, productDestination)
@@ -279,7 +383,7 @@ export function applyHanatourScheduleImageKeywordsToRows<
 
     const haystack = buildHanatourDayHaystack(row)
     const dayKind = classifyHanatourScheduleCardDayKind(day, maxDay, haystack)
-    const primary = resolveHanatourPrimaryKeyword(row, dayKind, day, maxDay, productDestination)
+    const primary = resolveHanatourPrimaryKeyword(row, dayKind, day, maxDay, productDestination, rows)
     const secondary = resolveHanatourSecondaryKeyword(row, primary, dayKind, productDestination)
 
     return {

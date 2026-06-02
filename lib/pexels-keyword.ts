@@ -23,6 +23,7 @@ const DESTINATION_MAP: Record<string, string> = {
   나트랑: 'Nha Trang',
   호치민: 'Ho Chi Minh',
   하노이: 'Hanoi',
+  델리: 'Delhi',
   도쿄: 'Tokyo',
   교토: 'Kyoto',
   오사카: 'Osaka',

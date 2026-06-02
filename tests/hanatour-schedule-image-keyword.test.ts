@@ -202,6 +202,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
   it('관광 일차 — LLM 없고 한글 routeText만 있어도 영문 추론(산티아고)', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
+        { day: 1, title: '출발', description: '인천 출발', routeText: '인천', imageKeyword: '', imageKeyword2: null },
         {
           day: 2,
           title: '산티아고',
@@ -210,10 +211,12 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
           imageKeyword: '',
           imageKeyword2: null,
         },
+        { day: 3, title: '레온', description: '이동', routeText: '레온 - 부르고스', imageKeyword: '', imageKeyword2: null },
       ],
       { productDestination: '스페인' },
     )
-    assert.equal(out[0]!.imageKeyword, 'Santiago de Compostela')
+    const d2 = out.find((r) => r.day === 2)!
+    assert.equal(d2.imageKeyword, 'Santiago de Compostela')
   })
 
   it('카미코치 LLM Kamikochi — 매핑 없이 그대로 통과', () => {
@@ -321,7 +324,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
     assert.equal(out[0]!.imageKeyword2, null)
   })
 
-  it('인도 LLM Paris 환각 — 블랙리스트 차단, 매핑 폴백 없음', () => {
+  it('인도 LLM Paris 환각 — 블랙리스트 차단, routeText 델리로 목적 도시', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
         {
@@ -332,12 +335,19 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
           imageKeyword: 'Paris',
           imageKeyword2: null,
         },
+        {
+          day: 2,
+          title: '아그라',
+          description: '타지마할',
+          routeText: '델리 - 아그라',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
       ],
       indiaOpts,
     )
-    assert.equal(out[0]!.imageKeyword, '')
+    assert.equal(out[0]!.imageKeyword, 'Delhi')
     assert.notEqual(out[0]!.imageKeyword, 'Paris')
-    assert.notEqual(out[0]!.imageKeyword, 'Delhi')
   })
 })
 
@@ -385,7 +395,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — 인도 일정', () => {
     const d2 = out.find((r) => r.day === 2)!
     const d5 = out.find((r) => r.day === 5)!
 
-    assert.equal(d1.imageKeyword, '')
+    assert.equal(d1.imageKeyword, 'Delhi')
     assert.notEqual(d1.imageKeyword, 'Paris')
     assert.equal(d1.imageKeyword2, null)
 

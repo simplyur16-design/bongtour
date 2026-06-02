@@ -52,12 +52,12 @@ describe('applyHanatourScheduleImageKeywordsToRows — 스페인 순례(Camino)'
       },
     ]
     const out = applyHanatourScheduleImageKeywordsToRows(rows, spainOpts)
-    expect(out[0]!.imageKeyword).toBe('')
+    expect(out[0]!.imageKeyword).toBe('Madrid')
     expect(out[1]!.imageKeyword).toBe('Madrid')
     expect(out[1]!.imageKeyword2).toBe('Lugo')
     expect(out[2]!.imageKeyword).toBe('Lugo')
     expect(out[2]!.imageKeyword2).toBe('Sarria')
-    expect(out[3]!.imageKeyword).toBe('Lugo')
+    expect(out[3]!.imageKeyword).toBe('Spain')
     expect(out[3]!.imageKeyword2).toBe('Portomarin')
   })
 })
