@@ -309,6 +309,25 @@ export default function InquiryFormShell({
           aria-hidden="true"
           style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
         />
+        {initialQuery.productId ? (
+          <>
+            <input type="hidden" name="productId" value={initialQuery.productId} />
+            {initialQuery.snapshotProductTitle ? (
+              <input type="hidden" name="snapshotProductTitle" value={initialQuery.snapshotProductTitle} />
+            ) : null}
+            {initialQuery.snapshotOriginCode ? (
+              <input type="hidden" name="snapshotOriginCode" value={initialQuery.snapshotOriginCode} />
+            ) : null}
+          </>
+        ) : null}
+        {initialQuery.productId && initialQuery.snapshotProductTitle ? (
+          <p className="rounded-lg border border-[#EFEDF8] bg-[#EFEDF8]/80 px-4 py-3 text-sm text-[#1F1B2D]">
+            상품 문의: <span className="font-semibold">{initialQuery.snapshotProductTitle}</span>
+            {initialQuery.snapshotOriginCode ? (
+              <span className="text-[#1F1B2D]/70"> · {initialQuery.snapshotOriginCode}</span>
+            ) : null}
+          </p>
+        ) : null}
         <div className="space-y-4 rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-sm font-semibold text-slate-800">연락처·문의 내용</h2>
 

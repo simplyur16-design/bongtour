@@ -10,6 +10,7 @@ import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ss
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
+import { buildTravelProductInquiryHref } from '@/lib/travel-product-inquiry-href'
 
 function formatDate(iso: string | null): string {
   if (!iso) return '일정 협의'
@@ -137,11 +138,13 @@ export default function OverseasCompareCard({ product, priority = false, product
                 상세 보기
               </ProductDetailNavLink>
               <Link
-                href={`/inquiry?type=travel&source=${encodeURIComponent('/travel/overseas')}&productId=${encodeURIComponent(product.id)}&snapshotProductTitle=${encodeURIComponent(product.title.slice(0, 500))}${
-                  snapshotCardLabel
-                    ? `&snapshotCardLabel=${encodeURIComponent(snapshotCardLabel.slice(0, 500))}`
-                    : ''
-                }`}
+                href={buildTravelProductInquiryHref(
+                  { id: product.id, title: product.title, originCode: product.originCode ?? null },
+                  {
+                    source: '/travel/overseas',
+                    snapshotCardLabel: snapshotCardLabel ?? null,
+                  },
+                )}
                 className="inline-flex rounded-lg bg-bt-cta-primary px-3 py-2 text-xs font-semibold text-bt-cta-primary-fg transition hover:bg-bt-cta-primary-hover"
               >
                 상담 신청

@@ -25,6 +25,7 @@ import {
   type DepartureLegCard,
 } from '@/lib/departure-key-facts'
 import { pickBookableRowForDateKey } from '@/lib/public-default-departure-selection'
+import { buildTravelProductInquiryHref } from '@/lib/travel-product-inquiry-href'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import type { FlightManualCorrectionPayload } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
@@ -460,7 +461,10 @@ export function ItineraryView({
         ? '우리끼리 문의'
         : '예약 요청 접수'
 
-  const ctaHref = `/inquiry?type=travel&productId=${product.id}`
+  const ctaHref = buildTravelProductInquiryHref(
+    { id: product.id, title: product.title, originCode: product.originCode },
+    { source: `/products/${product.id}` },
+  )
 
   const quoteCardProps = {
     productTitle: product.title,

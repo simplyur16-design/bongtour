@@ -42,6 +42,8 @@ export type InquiryPageQuery = {
   productId: string | null
   monthlyCurationItemId: string | null
   snapshotProductTitle: string | null
+  /** UI 프리필·운영 추적용 (저장은 서버가 Product에서 재검증) */
+  snapshotOriginCode: string | null
   snapshotCardLabel: string | null
   /** 사전 채움용(희망 월) */
   targetYearMonth: string | null
@@ -65,6 +67,7 @@ export function parseInquirySearchParams(
     productId: first('productId'),
     monthlyCurationItemId: first('monthlyCurationItemId'),
     snapshotProductTitle,
+    snapshotOriginCode: first('snapshotOriginCode'),
     snapshotCardLabel: first('snapshotCardLabel'),
     targetYearMonth: ymOk,
     trainingServiceScope: first('service'),
@@ -79,6 +82,7 @@ export function sanitizeInquiryQueryForKind(kind: InquiryKind, q: InquiryPageQue
     productId: null,
     monthlyCurationItemId: null,
     snapshotProductTitle: null,
+    snapshotOriginCode: null,
     snapshotCardLabel: null,
   }
 }
@@ -119,6 +123,7 @@ export function buildInquiryHref(kind: InquiryKind, q: InquiryPageQuery): string
     if (safe.productId) p.set('productId', safe.productId)
     if (safe.monthlyCurationItemId) p.set('monthlyCurationItemId', safe.monthlyCurationItemId)
     if (safe.snapshotProductTitle) p.set('snapshotProductTitle', safe.snapshotProductTitle)
+    if (safe.snapshotOriginCode) p.set('snapshotOriginCode', safe.snapshotOriginCode)
     if (safe.snapshotCardLabel) p.set('snapshotCardLabel', safe.snapshotCardLabel)
   }
   if (kind === 'training') {
