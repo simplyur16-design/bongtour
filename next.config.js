@@ -67,6 +67,14 @@ const nextConfig = {
   experimental: {
     /** lucide named import 시 서버 vendor chunk 분절 완화(개발 중 ENOENT 완화에 도움) */
     optimizePackageImports: ['lucide-react'],
+    /**
+     * App Router 뒤로가기·재진입 시 RSC 재요청 완화(기본 dynamic stale 0초).
+     * 해외/자유여행 허브·상세는 여전히 dynamic — 캐시는 짧게만 유지한다.
+     */
+    staleTimes: {
+      dynamic: 60,
+      static: 300,
+    },
   },
   async headers() {
     const base = [
