@@ -17,6 +17,7 @@ import {
   REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK,
   PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK,
 } from '@/lib/bongtour-tone-manner-llm-ssot'
+import { inferAirportTransferTypeFromText } from '@/lib/airport-transfer-infer'
 
 /**
  * 풀 등록(`forPreview: false`) JSON 출력 상한. ybtour 전용 우선순위:
@@ -332,16 +333,6 @@ function extractAirtelHotelInfoJson(rawText: string): string | null {
   }
   const hasAny = Object.values(info).some((v) => typeof v === 'string' && v.length > 0)
   return hasAny ? JSON.stringify(info) : null
-}
-
-function inferAirportTransferType(rawText: string): 'NONE' | 'PICKUP' | 'SENDING' | 'BOTH' {
-  const t = rawText.toLowerCase()
-  const hasPickup = /(공항\s*픽업|픽업\s*포함|pickup)/i.test(t)
-  const hasSending = /(공항\s*샌딩|샌딩\s*포함|sending|drop\s*off|dropoff)/i.test(t)
-  if (hasPickup && hasSending) return 'BOTH'
-  if (hasPickup) return 'PICKUP'
-  if (hasSending) return 'SENDING'
-  return 'NONE'
 }
 
 function extractOptionalToursStructured(rawText: string): string | null {
@@ -1884,7 +1875,9 @@ ${text.slice(0, 16000)}`
     : null
   const textForAirtel = pastedForSupplier.length > 0 ? pastedForSupplier : rawText
   const airtelHotelInfoJson = extractAirtelHotelInfoJson(textForAirtel)
-  const airportTransferHint = airtelHotelInfoJson ? inferAirportTransferType(textForAirtel) : null
+  const airportTransferHint = airtelHotelInfoJson
+    ? inferAirportTransferTypeFromText(textForAirtel)
+    : null
   const signalsHaystack = buildRegisterSignalsHaystack(
     rawText,
     options?.pastedBodyForInference,

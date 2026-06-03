@@ -13,10 +13,14 @@ export function isValidAirportTransferType(value: string | null | undefined): va
 export function inferAirportTransferTypeFromText(
   rawText: string | null | undefined
 ): AirportTransferType {
-  const t = (rawText ?? '').toLowerCase()
+  const t = (rawText ?? '').replace(/\s+/g, ' ')
   if (!t.trim()) return 'NONE'
-  const hasPickup = /(공항\s*픽업|픽업\s*포함|pickup)/i.test(t)
-  const hasSending = /(공항\s*샌딩|샌딩\s*포함|sending|drop\s*off|dropoff)/i.test(t)
+  const hasPickup =
+    /(공항\s*픽업|호텔\s*픽업|픽업\s*(?:포함|서비스)?|공항.{0,12}픽업|공항에서\s*호텔|pickup)/i.test(t)
+  const hasSending =
+    /(공항\s*샌딩|호텔\s*샌딩|샌딩\s*포함|공항.{0,12}송영|호텔.{0,12}송영|sending|drop\s*off|dropoff)/i.test(
+      t,
+    )
   if (hasPickup && hasSending) return 'BOTH'
   if (hasPickup) return 'PICKUP'
   if (hasSending) return 'SENDING'
@@ -43,7 +47,7 @@ export function resolveAirportTransferIncludedFromProduct(input: {
 export const AIRTEL_AIRPORT_TRANSFER_EXCLUDED_LABEL = '공항↔호텔 이동'
 
 const LINE_AIRPORT_HOTEL_TRANSFER =
-  /공항\s*[<↔↕⇔\-–—~]\s*>?\s*호텔|호텔\s*[<↔↕⇔\-–—~]\s*>?\s*공항|공항.{0,12}호텔.{0,16}(?:이동|픽업|샌딩|송영|차량)|공항\s*(?:픽업|샌딩)|픽업.{0,8}샌딩|공항에서\s*호텔\s*이동|공항↔호텔/i
+  /공항\s*[<↔↕⇔\-–—~]\s*>?\s*호텔|호텔\s*[<↔↕⇔\-–—~]\s*>?\s*공항|공항.{0,12}호텔.{0,16}(?:이동|픽업|샌딩|송영|차량|미팅)|공항\s*(?:픽업|샌딩|미팅)|픽업.{0,8}샌딩|공항에서\s*호텔|공항↔호텔|전용\s*차량|차량\s*비용?/i
 
 export function isAirportHotelTransferLine(line: string): boolean {
   return LINE_AIRPORT_HOTEL_TRANSFER.test(line.replace(/\s+/g, ' ').trim())
@@ -64,10 +68,20 @@ function linesFromMultilineText(text: string | null | undefined): string[] {
     .filter(Boolean)
 }
 
+/** 포함란·본문 — 공항↔호텔 이동이 실질 포함된 문구(노랑풍선 「전용차량비용」 등) */
+export function includedDeclaresAirportTransferLoose(haystack: string | null | undefined): boolean {
+  const t = (haystack ?? '').replace(/\s+/g, ' ')
+  if (!t.trim()) return false
+  if (bodyTextMentionsAirportHotelTransfer(t)) return true
+  return /전용\s*차량|차량\s*비용|차량비|공항.{0,12}(송영|미팅|픽업|셔틀|이동)|호텔.{0,12}송영/i.test(t)
+}
+
 function excludedDeclaresAirportTransferNotIncluded(
   excludedLines: string[],
-  excludedText: string | null | undefined
+  excludedText: string | null | undefined,
+  includedHaystack: string
 ): boolean {
+  if (includedDeclaresAirportTransferLoose(includedHaystack)) return false
   if (excludedLines.some(isAirportHotelTransferLine)) return true
   const hay = [excludedText ?? '', ...excludedLines].join('\n').replace(/\s+/g, ' ')
   if (!hay.trim()) return false
@@ -113,7 +127,17 @@ export function resolveAirportTransferTypeForAirHotelFree(input: {
   const pickupSendingFromIncluded = inferAirportTransferTypeFromText(includedOnlyHaystack)
   if (pickupSendingFromIncluded !== 'NONE') return pickupSendingFromIncluded
 
-  if (excludedDeclaresAirportTransferNotIncluded(excludedLines, input.excludedText)) {
+  const includedHaystackFull = [input.includedText, input.extraHaystack, ...includedLines]
+    .filter(Boolean)
+    .join('\n')
+  if (includedDeclaresAirportTransferLoose(includedHaystackFull)) {
+    const loose = inferAirportTransferTypeFromText(includedHaystackFull)
+    return loose !== 'NONE' ? loose : 'BOTH'
+  }
+
+  if (
+    excludedDeclaresAirportTransferNotIncluded(excludedLines, input.excludedText, includedHaystackFull)
+  ) {
     return 'NONE'
   }
 

@@ -39,6 +39,25 @@ describe('resolveAirportTransferTypeForAirHotelFree', () => {
       })
     ).toBe('BOTH')
   })
+
+  it('prefers included 전용차량 over excluded 공항↔호텔 이동 line (ybtour-style)', () => {
+    expect(
+      resolveAirportTransferTypeForAirHotelFree({
+        includedText: '· 교통 : 왕복항공권, 전용차량비용',
+        excludedText: '공항↔호텔 이동\n개인경비',
+        includedItems: ['· 교통 : 왕복항공권, 전용차량비용'],
+        excludedItems: ['공항↔호텔 이동'],
+      })
+    ).toBe('BOTH')
+  })
+
+  it('detects 공항에서 호텔 픽업 in included', () => {
+    expect(
+      resolveAirportTransferTypeForAirHotelFree({
+        includedText: '공항에서 호텔 픽업 서비스',
+      })
+    ).toBe('PICKUP')
+  })
 })
 
 describe('airportTransferTypeForListingKind', () => {

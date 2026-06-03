@@ -66,11 +66,15 @@ function normLine(s: string): string {
 }
 
 function isYbtourIncExcBulletLine(s: string): boolean {
+  const t = s.trim()
+  if (!t) return false
   return (
     /^[\s·•‧∙‣⁃*\-･・\u00B7\u2022\u2023\u30FB\uFF65■▪]+\s*\S/.test(s) ||
     /^\s*■\s*\S/.test(s) ||
     /^\s*ㄴ\s/.test(s) ||
-    /^ㄴ\s/.test(s)
+    /^ㄴ\s/.test(s) ||
+    /^(?:\d{1,2}[.)．]|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫])\s*\S/u.test(t) ||
+    /^(?:교통|숙박|식사|보험|항공|호텔|미팅|픽업|샌딩|차량)\s*[:：]/i.test(t)
   )
 }
 
