@@ -30,6 +30,51 @@ export type ModetourFlightLeg = {
   durationText: string | null
 }
 
+/** 결정적 파서 단계 — 잡 본문 캡처 정상화(upsert 120자보다 여유 있게 잘라 경고) */
+export const MODETOUR_PARSER_AIRPORT_MAX = 200
+/** 등록·LLM·upsert-product-departures-modetour 와 동일 */
+export const MODETOUR_PERSIST_AIRPORT_MAX = 120
+export const MODETOUR_PERSIST_FLIGHT_NO_MAX = 80
+export const MODETOUR_PARSER_FLIGHT_NO_MAX = 20
+const MODETOUR_PARSER_TIME_MAX = 8
+const MODETOUR_PARSER_DATE_MAX = 12
+const MODETOUR_PARSER_DURATION_MAX = 80
+
+export function capModetourPersistString(
+  value: string | null | undefined,
+  maxLen: number,
+  fieldLabel: string,
+): string | null {
+  if (value == null) return null
+  const t = String(value).trim()
+  if (!t) return null
+  if (t.length <= maxLen) return t
+  console.warn(`[flight-modetour-parser] truncated ${fieldLabel}: ${t.length} → ${maxLen}`)
+  return t.slice(0, maxLen)
+}
+
+function sanitizeModetourFlightLeg(leg: ModetourFlightLeg): ModetourFlightLeg {
+  return {
+    ...leg,
+    departureAirport: capModetourPersistString(
+      leg.departureAirport,
+      MODETOUR_PARSER_AIRPORT_MAX,
+      'parse.departureAirport',
+    ),
+    arrivalAirport: capModetourPersistString(
+      leg.arrivalAirport,
+      MODETOUR_PARSER_AIRPORT_MAX,
+      'parse.arrivalAirport',
+    ),
+    departureDate: capModetourPersistString(leg.departureDate, MODETOUR_PARSER_DATE_MAX, 'parse.departureDate'),
+    arrivalDate: capModetourPersistString(leg.arrivalDate, MODETOUR_PARSER_DATE_MAX, 'parse.arrivalDate'),
+    departureTime: capModetourPersistString(leg.departureTime, MODETOUR_PARSER_TIME_MAX, 'parse.departureTime'),
+    arrivalTime: capModetourPersistString(leg.arrivalTime, MODETOUR_PARSER_TIME_MAX, 'parse.arrivalTime'),
+    flightNo: capModetourPersistString(leg.flightNo, MODETOUR_PARSER_FLIGHT_NO_MAX, 'parse.flightNo'),
+    durationText: capModetourPersistString(leg.durationText, MODETOUR_PARSER_DURATION_MAX, 'parse.durationText'),
+  }
+}
+
 export type ModetourFlightParseOk = {
   ok: true
   airlineName: string | null
@@ -95,7 +140,7 @@ function clipModetourInboundBodyBeforeDepartLabel(body: string): string {
 function parseLegBody(body: string): ModetourFlightLeg | null {
   const m = body.trim().match(MODETOUR_LEG_BODY_RE)
   if (!m) return null
-  return {
+  return sanitizeModetourFlightLeg({
     departureAirport: m[1]!.trim(),
     departureAirportCode: null,
     departureDate: normalizeDetailDate(m[2]!),
@@ -106,7 +151,7 @@ function parseLegBody(body: string): ModetourFlightLeg | null {
     arrivalTime: m[8]!,
     flightNo: m[9] ? m[9].toUpperCase() : null,
     durationText: null,
-  }
+  })
 }
 
 /**
@@ -128,7 +173,7 @@ function parseLegBodyLoose(body: string): ModetourFlightLeg | null {
   const d = normalizeDetailDate(m[3]!)
   const tm = m[5]!
   const fn = m[6] ? m[6].toUpperCase() : null
-  return {
+  return sanitizeModetourFlightLeg({
     departureAirport: depA,
     departureAirportCode: null,
     departureDate: d,
@@ -139,7 +184,7 @@ function parseLegBodyLoose(body: string): ModetourFlightLeg | null {
     arrivalTime: tm,
     flightNo: fn,
     durationText: null,
-  }
+  })
 }
 
 /**
@@ -154,7 +199,7 @@ const MODETOUR_DATETIME_ONLY_LEG_RE = new RegExp(
 function parseLegBodyDateTimeOnly(body: string): ModetourFlightLeg | null {
   const m = body.trim().match(MODETOUR_DATETIME_ONLY_LEG_RE)
   if (!m) return null
-  return {
+  return sanitizeModetourFlightLeg({
     departureAirport: null,
     departureAirportCode: null,
     departureDate: normalizeDetailDate(m[1]!),
@@ -165,10 +210,11 @@ function parseLegBodyDateTimeOnly(body: string): ModetourFlightLeg | null {
     arrivalTime: m[6]!,
     flightNo: null,
     durationText: null,
-  }
+  })
 }
 
-function parseLegBodyFlexible(body: string): ModetourFlightLeg | null {
+/** @internal 테스트·flight-parser-modetour 경유 */
+export function parseLegBodyFlexible(body: string): ModetourFlightLeg | null {
   return parseLegBody(body) ?? parseLegBodyDateTimeOnly(body) ?? parseLegBodyLoose(body)
 }
 

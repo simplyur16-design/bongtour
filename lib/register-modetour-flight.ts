@@ -13,7 +13,10 @@ import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import type { RegisterParsed } from '@/lib/register-llm-schema-modetour'
 import {
   buildModetourDirectedSegmentLinesFromFlightRaw,
+  capModetourPersistString,
   extractModetourAirlineMatch,
+  MODETOUR_PERSIST_AIRPORT_MAX,
+  MODETOUR_PERSIST_FLIGHT_NO_MAX,
 } from '@/lib/flight-modetour-parser'
 import { formatDirectedFlightRow } from '@/lib/flight-user-display'
 import type { DepartureInput } from '@/lib/upsert-product-departures-modetour'
@@ -188,22 +191,48 @@ export function enrichModetourDepartureInputsFromFlightStructured(
     if (carrier && !next.carrierName?.trim() && !modetourAirlinePlaceholder(carrier))
       next.carrierName = carrier
     if (useOb && ob) {
-      if (!next.outboundFlightNo?.trim() && ob.flightNo?.trim()) next.outboundFlightNo = ob.flightNo
+      if (!next.outboundFlightNo?.trim() && ob.flightNo?.trim())
+        next.outboundFlightNo =
+          capModetourPersistString(ob.flightNo, MODETOUR_PERSIST_FLIGHT_NO_MAX, 'enrich.outboundFlightNo') ??
+          undefined
       if (!next.outboundDepartureAirport?.trim() && ob.departureAirport?.trim())
-        next.outboundDepartureAirport = ob.departureAirport
+        next.outboundDepartureAirport =
+          capModetourPersistString(
+            ob.departureAirport,
+            MODETOUR_PERSIST_AIRPORT_MAX,
+            'enrich.outboundDepartureAirport',
+          ) ?? undefined
       if (!next.outboundArrivalAirport?.trim() && ob.arrivalAirport?.trim())
-        next.outboundArrivalAirport = ob.arrivalAirport
+        next.outboundArrivalAirport =
+          capModetourPersistString(
+            ob.arrivalAirport,
+            MODETOUR_PERSIST_AIRPORT_MAX,
+            'enrich.outboundArrivalAirport',
+          ) ?? undefined
       if (!next.outboundDepartureAt && modetourLegDateTimeSlot(ob.departureDate, ob.departureTime))
         next.outboundDepartureAt = modetourLegDateTimeSlot(ob.departureDate, ob.departureTime)
       if (!next.outboundArrivalAt && modetourLegDateTimeSlot(ob.arrivalDate, ob.arrivalTime))
         next.outboundArrivalAt = modetourLegDateTimeSlot(ob.arrivalDate, ob.arrivalTime)
     }
     if (useIb && ib) {
-      if (!next.inboundFlightNo?.trim() && ib.flightNo?.trim()) next.inboundFlightNo = ib.flightNo
+      if (!next.inboundFlightNo?.trim() && ib.flightNo?.trim())
+        next.inboundFlightNo =
+          capModetourPersistString(ib.flightNo, MODETOUR_PERSIST_FLIGHT_NO_MAX, 'enrich.inboundFlightNo') ??
+          undefined
       if (!next.inboundDepartureAirport?.trim() && ib.departureAirport?.trim())
-        next.inboundDepartureAirport = ib.departureAirport
+        next.inboundDepartureAirport =
+          capModetourPersistString(
+            ib.departureAirport,
+            MODETOUR_PERSIST_AIRPORT_MAX,
+            'enrich.inboundDepartureAirport',
+          ) ?? undefined
       if (!next.inboundArrivalAirport?.trim() && ib.arrivalAirport?.trim())
-        next.inboundArrivalAirport = ib.arrivalAirport
+        next.inboundArrivalAirport =
+          capModetourPersistString(
+            ib.arrivalAirport,
+            MODETOUR_PERSIST_AIRPORT_MAX,
+            'enrich.inboundArrivalAirport',
+          ) ?? undefined
       if (!next.inboundDepartureAt && modetourLegDateTimeSlot(ib.departureDate, ib.departureTime))
         next.inboundDepartureAt = modetourLegDateTimeSlot(ib.departureDate, ib.departureTime)
       if (!next.inboundArrivalAt && modetourLegDateTimeSlot(ib.arrivalDate, ib.arrivalTime))
