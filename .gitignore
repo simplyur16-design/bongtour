@@ -163,3 +163,15 @@ dry-run-output*.txt
 docs/ops/welcomepay-guide-extracted/
 docs/ops/welcomepay-guide.zip
 docs/ops/welcomepay-guide.zi
+
+# 도구 임시 스크래치 (root level — 기존 tmp*.txt/tmp*.json은 선행 점 미매칭이라 별도 추가)
+.tmp-*
+
+# scripts 임시 스크래치
+scripts/.tmp-*
+
+# 구 prisma generator output 폴더 (7e83c0e 이후 미사용)
+prisma-gen-runtime/
+
+# scripts/data resync 로그 (재실행 가능 아카이브)
+scripts/data/resync-mega-menu-geo-*.json
