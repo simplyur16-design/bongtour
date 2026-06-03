@@ -31,6 +31,7 @@ export type BookingIntakeDto = {
   customerEmail: string
   privacyAgreed: boolean
   privacyNoticeVersion: string
+  marketingConsent: boolean
   /** 서버에서 adult+child+infant 로 계산해 고정 */
   totalPax: number
   adultCount: number
@@ -62,6 +63,7 @@ export function validateBookingIntake(input: unknown): BookingValidationResult {
   const customerPhone = String(b.customerPhone ?? '').trim()
   const customerEmail = String(b.customerEmail ?? '').trim()
   const privacyAgreed = b.privacyAgreed === true
+  const marketingConsent = b.marketingConsent === true
   const privacyNoticeVersion =
     typeof b.privacyNoticeVersion === 'string' && b.privacyNoticeVersion.trim()
       ? b.privacyNoticeVersion.trim()
@@ -180,6 +182,7 @@ export function validateBookingIntake(input: unknown): BookingValidationResult {
       customerEmail: customerEmail.trim(),
       privacyAgreed: true,
       privacyNoticeVersion,
+      marketingConsent,
       totalPax: computedTotalPax,
       adultCount,
       childCount,

@@ -44,6 +44,7 @@ export type ValidatedInquiryCreate = {
   privacyNoticeConfirmedAt: Date
   privacyNoticeVersion: string
   preferredContactChannel: 'email' | 'kakao' | 'both'
+  marketingConsent: boolean
   /** DB에 JSON.stringify 해서 저장 */
   payloadJson: string | null
   payloadObject: Record<string, unknown> | null
@@ -211,6 +212,8 @@ export function validateCustomerInquiryBody(
   if (body.privacyAgreed !== true) {
     fieldErrors.privacyAgreed = '개인정보 처리 동의가 필요합니다.'
   }
+
+  const marketingConsent = body.marketingConsent === true
 
   let payloadObject: Record<string, unknown> | null = null
   const pj = body.payloadJson
@@ -425,6 +428,7 @@ export function validateCustomerInquiryBody(
       privacyNoticeConfirmedAt: privacyConfirmedAt as Date,
       privacyNoticeVersion: privacyVersionR.ok && privacyVersionR.value ? privacyVersionR.value : '',
       preferredContactChannel: preferredContactChannel as 'email' | 'kakao' | 'both',
+      marketingConsent,
       payloadJson,
       payloadObject,
       leadTimeRisk,

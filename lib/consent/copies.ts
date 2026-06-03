@@ -3,6 +3,8 @@ export const TERMS_VERSION = 'member-terms-v1'
 export const PRIVACY_VERSION = 'member-privacy-v1'
 export const MARKETING_VERSION_EMAIL = 'member-marketing-v1'
 export const MARKETING_VERSION_OAUTH = 'oauth-marketing-v1'
+/** 비회원 문의·예약 접수 마케팅 수신 동의 버전 */
+export const MARKETING_VERSION_LEAD = 'lead-marketing-v1'
 
 export const TERMS_NOTICE_BODY = `Bong투어 서비스 이용을 위해 이용약관에 동의합니다. 약관 전문은 사이트 내 「이용약관」 페이지(/terms)에서 확인할 수 있습니다.`
 

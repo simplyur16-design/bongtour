@@ -13,6 +13,7 @@ import { buildAdminBookingAlertPayload } from '@/lib/booking-alert-payload'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError, publicMutationOriginJsonResponse } from '@/lib/public-mutation-origin'
 import { makeBookingNumber } from '@/lib/identifiers/make-booking-number'
+import { intakeMarketingConsentDbFields } from '@/lib/intake-marketing-consent'
 import { parsePublicAttributionFromBody } from '@/lib/public-attribution-body'
 import { CALENDAR_PRICES_MIN_ADULT_PRICE_KRW } from '@/lib/calendar-prices-adult-floor'
 import {
@@ -124,6 +125,7 @@ export async function POST(request: Request) {
       customerPhone: typeof body.customerPhone === 'string' ? body.customerPhone.trim() : '',
       customerEmail: typeof body.customerEmail === 'string' ? body.customerEmail.trim() : '',
       privacyAgreed: body.privacyAgreed === true,
+      marketingConsent: body.marketingConsent === true,
       privacyNoticeVersion:
         typeof body.privacyNoticeVersion === 'string' && body.privacyNoticeVersion.trim()
           ? body.privacyNoticeVersion.trim()
@@ -259,6 +261,7 @@ export async function POST(request: Request) {
         privacyAgreed: true,
         privacyNoticeVersion: intake.privacyNoticeVersion,
         privacyAgreedAt,
+        ...intakeMarketingConsentDbFields(intake.marketingConsent),
         requestNotes: intake.requestNotes ?? null,
         preferredContactChannel: intake.preferredContactChannel,
         singleRoomRequested: intake.singleRoomRequested,

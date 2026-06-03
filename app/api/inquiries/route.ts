@@ -12,6 +12,7 @@ import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError } from '@/lib/public-mutation-origin'
 import { makeInquiryNumber } from '@/lib/identifiers/make-inquiry-number'
+import { intakeMarketingConsentDbFields } from '@/lib/intake-marketing-consent'
 import { parsePublicAttributionFromBody } from '@/lib/public-attribution-body'
 
 const INQUIRY_RATE_LIMIT_WINDOW_MS = 60_000
@@ -250,6 +251,7 @@ export async function POST(request: Request) {
         privacyAgreed: true,
         privacyNoticeConfirmedAt: v.privacyNoticeConfirmedAt,
         privacyNoticeVersion: v.privacyNoticeVersion,
+        ...intakeMarketingConsentDbFields(v.marketingConsent),
         preferredContactChannel: v.preferredContactChannel,
         selectedServiceType,
         payloadJson: v.payloadJson,
