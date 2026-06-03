@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, type ComponentProps, type ReactNode } from 'react'
+import { useCallback, useRef, type ComponentProps, type ReactNode } from 'react'
 import {
   saveProductDetailCardPreview,
   type ProductDetailCardPreview,
@@ -14,41 +14,50 @@ type Props = Omit<ComponentProps<typeof Link>, 'href' | 'prefetch'> & {
   children: ReactNode
 }
 
-/** 상품 상세 — prefetch + 카드 즉시 껍데기용 preview 저장 */
+const HOVER_PREFETCH_MS = 400
+
+/**
+ * 상품 상세 — 목록에서 viewport prefetch 끔(자유여행 등 다수 카드 시 RSC 폭주 방지).
+ * 마우스 hover 시에만 지연 prefetch + 클릭 시 카드 preview 저장.
+ */
 export default function ProductDetailNavLink({
   href,
   preview,
   children,
   onClick,
   onMouseEnter,
-  onFocus,
-  onTouchStart,
   ...rest
 }: Props) {
   const router = useRouter()
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const warm = useCallback(() => {
-    router.prefetch(href)
-  }, [router, href])
+  const cancelHoverPrefetch = useCallback(() => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current)
+      hoverTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleHoverPrefetch = useCallback(() => {
+    cancelHoverPrefetch()
+    hoverTimerRef.current = setTimeout(() => {
+      hoverTimerRef.current = null
+      router.prefetch(href)
+    }, HOVER_PREFETCH_MS)
+  }, [cancelHoverPrefetch, router, href])
 
   return (
     <Link
       href={href}
-      prefetch
+      prefetch={false}
       scroll
       onMouseEnter={(e) => {
-        warm()
+        scheduleHoverPrefetch()
         onMouseEnter?.(e)
       }}
-      onFocus={(e) => {
-        warm()
-        onFocus?.(e)
-      }}
-      onTouchStart={(e) => {
-        warm()
-        onTouchStart?.(e)
-      }}
+      onMouseLeave={cancelHoverPrefetch}
       onClick={(e) => {
+        cancelHoverPrefetch()
         saveProductDetailCardPreview({ ...preview, href, savedAt: Date.now() })
         onClick?.(e)
       }}

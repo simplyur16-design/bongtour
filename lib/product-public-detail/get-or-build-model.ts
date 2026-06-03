@@ -9,6 +9,7 @@ import {
   serializeProductPublicDetailPayload,
 } from '@/lib/product-public-detail/payload-io'
 import { revalidateTag } from 'next/cache'
+import { isNextRouterPrefetchRequest } from '@/lib/next-router-prefetch'
 import { prisma } from '@/lib/prisma'
 
 export type ProductDetailBuildSource = 'payload' | 'computed'
@@ -36,7 +37,7 @@ export async function getOrBuildProductPublicDetailModel(
 
   const model = await buildProductPublicDetailRenderModel(travelProduct, fitMaster)
 
-  if (travelProduct.registrationStatus === 'registered') {
+  if (travelProduct.registrationStatus === 'registered' && !(await isNextRouterPrefetchRequest())) {
     const json = serializeProductPublicDetailPayload(model, bookableYmd)
     void prisma.product
       .update({
