@@ -12,13 +12,18 @@ export const PRODUCT_PUBLIC_DETAIL_PAYLOAD_MAX_BYTES = 1_000_000
 
 const SELF_REFERENCE_FORBIDDEN = /publicDetailPayloadJson/i
 
+export function productPublicDetailPayloadByteLength(json: string): number {
+  return Buffer.byteLength(json, 'utf8')
+}
+
 export function assertProductPublicDetailPayloadJson(json: string): void {
   if (SELF_REFERENCE_FORBIDDEN.test(json)) {
     throw new Error('[product-public-detail-payload] self-reference: publicDetailPayloadJson in output')
   }
-  if (json.length > PRODUCT_PUBLIC_DETAIL_PAYLOAD_MAX_BYTES) {
+  const byteLen = productPublicDetailPayloadByteLength(json)
+  if (byteLen > PRODUCT_PUBLIC_DETAIL_PAYLOAD_MAX_BYTES) {
     throw new Error(
-      `[product-public-detail-payload] size ${json.length} exceeds ${PRODUCT_PUBLIC_DETAIL_PAYLOAD_MAX_BYTES} bytes`,
+      `[product-public-detail-payload] size ${byteLen} bytes exceeds ${PRODUCT_PUBLIC_DETAIL_PAYLOAD_MAX_BYTES} bytes (utf-8)`,
     )
   }
 }

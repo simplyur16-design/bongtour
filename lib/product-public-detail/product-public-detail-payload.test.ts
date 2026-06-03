@@ -4,8 +4,14 @@ import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
 import {
   assertProductPublicDetailPayloadJson,
   finalizeProductPublicDetailPayloadJson,
+  productPublicDetailPayloadByteLength,
   PRODUCT_PUBLIC_DETAIL_PAYLOAD_MAX_BYTES,
 } from '@/lib/product-public-detail/build-product-public-detail-payload'
+import {
+  normalizeDepartureKeyFactsForPayload,
+  PAYLOAD_KEY_FACTS_LIMIT,
+  truncatePayloadKeyFactsString,
+} from '@/lib/product-public-detail/normalize-departure-key-facts-for-payload'
 import { prepareModelForPayloadPersistence } from '@/lib/product-public-detail/prepare-model-for-payload'
 import {
   PAYLOAD_DEPARTURE_KEY_FACTS_MAX_ENTRIES,
@@ -113,13 +119,13 @@ describe('product public detail payload SSOT', () => {
     expect(json!.includes('nested')).toBe(false)
   })
 
-  it('100-departure fixture payload stays under 500 KB', () => {
+  it('100-departure fixture payload stays under 500 KB (utf-8 bytes)', () => {
     const json = finalizeProductPublicDetailPayloadJson(packageModel(baseTravelProduct()))
     expect(json).not.toBeNull()
-    expect(json!.length).toBeLessThan(LARGE_PACKAGE_PAYLOAD_MAX)
+    expect(productPublicDetailPayloadByteLength(json!)).toBeLessThan(LARGE_PACKAGE_PAYLOAD_MAX)
   })
 
-  it('general package fixture stays under 200 KB', () => {
+  it('general package fixture stays under 200 KB (utf-8 bytes)', () => {
     const json = finalizeProductPublicDetailPayloadJson(
       packageModel(
         baseTravelProduct({
@@ -129,7 +135,65 @@ describe('product public detail payload SSOT', () => {
       ),
     )
     expect(json).not.toBeNull()
-    expect(json!.length).toBeLessThan(GENERAL_PACKAGE_PAYLOAD_MAX)
+    expect(productPublicDetailPayloadByteLength(json!)).toBeLessThan(GENERAL_PACKAGE_PAYLOAD_MAX)
+  })
+
+  it('truncates jam arrivalAirport over 200 chars', () => {
+    const jam = '인천 2026.07.10(금) 08:40 7C2624 '.repeat(400)
+    const normalized = normalizeDepartureKeyFactsForPayload({
+      airline: '제주항공',
+      outboundSummary: null,
+      inboundSummary: jam,
+      meetingSummary: null,
+      outbound: null,
+      inbound: {
+        departureAirport: 'ICN',
+        departureAtText: '2026.07.10(금) 08:40',
+        arrivalAirport: jam,
+        arrivalAtText: '2026.07.10(금) 12:00',
+        flightNo: '7C2624',
+        flightDurationText: null,
+      },
+    })
+    expect(normalized.inbound?.arrivalAirport?.length ?? 0).toBeLessThanOrEqual(
+      PAYLOAD_KEY_FACTS_LIMIT.arrivalAirport,
+    )
+    expect(normalized.inboundSummary?.length ?? 0).toBeLessThanOrEqual(PAYLOAD_KEY_FACTS_LIMIT.inboundSummary)
+  })
+
+  it('30 departures × 26KB jam per date stays under 1 MB utf-8', () => {
+    const jam = '상품가격 1,249,900원 스페셜 혜택 '.repeat(900)
+    const byDate: Record<string, DepartureKeyFacts> = {}
+    for (let i = 0; i < 30; i++) {
+      const ymd = `2026-07-${String((i % 28) + 1).padStart(2, '0')}`
+      byDate[ymd] = {
+        airline: '제주항공',
+        outboundSummary: jam,
+        inboundSummary: jam,
+        meetingSummary: null,
+        outbound: {
+          departureAirport: jam,
+          departureAtText: null,
+          arrivalAirport: jam,
+          arrivalAtText: null,
+          flightNo: '7C2624',
+          flightDurationText: null,
+        },
+        inbound: {
+          departureAirport: jam,
+          departureAtText: null,
+          arrivalAirport: jam,
+          arrivalAtText: null,
+          flightNo: '7C2625',
+          flightDurationText: null,
+        },
+      }
+    }
+    const json = finalizeProductPublicDetailPayloadJson(
+      packageModel(baseTravelProduct({ departureKeyFactsByDate: byDate })),
+    )
+    expect(json).not.toBeNull()
+    expect(productPublicDetailPayloadByteLength(json!)).toBeLessThan(PRODUCT_PUBLIC_DETAIL_PAYLOAD_MAX_BYTES)
   })
 
   it('runtime assertion rejects self-reference in raw JSON', () => {
@@ -138,10 +202,16 @@ describe('product public detail payload SSOT', () => {
     ).toThrow(/self-reference/i)
   })
 
-  it('runtime assertion rejects payloads over 1 MB', () => {
-    expect(() => assertProductPublicDetailPayloadJson('x'.repeat(PRODUCT_PUBLIC_DETAIL_PAYLOAD_MAX_BYTES + 1))).toThrow(
-      /exceeds/i,
+  it('runtime assertion rejects payloads over 1 MB utf-8 bytes', () => {
+    const over = 'x'.repeat(PRODUCT_PUBLIC_DETAIL_PAYLOAD_MAX_BYTES + 1)
+    expect(productPublicDetailPayloadByteLength(over)).toBeGreaterThan(
+      PRODUCT_PUBLIC_DETAIL_PAYLOAD_MAX_BYTES,
     )
+    expect(() => assertProductPublicDetailPayloadJson(over)).toThrow(/bytes exceeds/i)
+  })
+
+  it('truncatePayloadKeyFactsString enforces max length', () => {
+    expect(truncatePayloadKeyFactsString('a'.repeat(1000), 200, 'test')?.length).toBe(200)
   })
 
   it('prepareModelForPayloadPersistence does not duplicate serialized key', () => {
