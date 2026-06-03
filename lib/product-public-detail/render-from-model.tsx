@@ -23,7 +23,7 @@ export function renderProductDetailFromModel(
   const isAdminDraftPreview = travelProduct.registrationStatus !== 'registered'
 
   if (model.variant === 'airtel') {
-    const product = model.serialized
+    const product = model.viewProduct
     const airtelDefaultDate = model.priceInfo.departureDateFrom
     const airtelDefaultFacts = product.departureKeyFactsByDate?.[airtelDefaultDate] ?? null
     const airtelTravelCitiesLine = (() => {
@@ -137,13 +137,13 @@ export function renderProductDetailFromModel(
     )
   }
 
-  const { serialized, viewProduct, ybtourDetailProduct, showEsimCrossSell, seo } = model
+  const { viewProduct, ybtourDetailProduct, showEsimCrossSell, seo } = model
 
-  const packageDetailMobile = <MobileProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
+  const packageDetailMobile = <MobileProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
   const packageDetailDesktop = model.isPrivateOrSemi ? (
-    <PrivateTravelProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
+    <PrivateTravelProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
   ) : (
-    <TravelProductDetail product={serialized} showEsimCrossSell={showEsimCrossSell} />
+    <TravelProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
   )
 
   const detailMobile = model.isPackageItineraryBody
@@ -171,7 +171,7 @@ export function renderProductDetailFromModel(
       {model.registrationStatus === 'registered' ? (
         <ProductJsonLd
           productId={travelProduct.id}
-          name={serialized.title ?? ''}
+          name={viewProduct.title ?? ''}
           description={seo.productDescription}
           imageUrl={seo.coverUrl}
           offers={seo.offers}

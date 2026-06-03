@@ -5,7 +5,7 @@ import type { mapFitMasterForItinerary } from '@/lib/product-public-detail/build
 import type { PublicPersistedFlightStructuredDto } from '@/lib/public-flight-structured-sanitize'
 
 /** DB `Product.publicDetailPayloadJson` envelope — bump when shape changes */
-export const PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION = 1
+export const PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION = 2
 
 export type ProductPublicDetailPayloadEnvelope = {
   version: typeof PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION
@@ -25,7 +25,7 @@ export type ProductPublicDetailSeoBundle = {
 
 export type ProductPublicDetailAirtelRenderModel = {
   variant: 'airtel'
-  serialized: TravelProduct
+  viewProduct: TravelProduct
   priceRowsForPublic: TravelProduct['prices']
   priceInfo: {
     departureDateFrom: string
@@ -61,7 +61,6 @@ export type ProductPublicDetailAirtelRenderModel = {
 
 export type ProductPublicDetailPackageRenderModel = {
   variant: 'package'
-  serialized: TravelProduct
   viewProduct: TravelProduct
   ybtourDetailProduct:
     | (TravelProduct & { ybtourFlightStructuredForHero?: PublicPersistedFlightStructuredDto | null })

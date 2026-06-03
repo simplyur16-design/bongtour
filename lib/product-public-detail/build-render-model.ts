@@ -185,6 +185,8 @@ export async function buildProductPublicDetailRenderModel(
     departures: rawDepartures,
     rawMeta: _omitRawMeta,
     itineraryDays: _omitItineraryDays,
+    publicDetailPayloadJson: _omitPayloadJson,
+    publicDetailPayloadBuiltAt: _omitPayloadBuiltAt,
     ...productForDetail
   } = travelProduct
   /** include select는 `buildProductDetailDepartureSelect` — price-row·key-facts 모듈은 full `ProductDeparture` 타입 */
@@ -676,7 +678,7 @@ export async function buildProductPublicDetailRenderModel(
     })
   )
 
-  const serialized: TravelProduct = {
+  const viewProduct: TravelProduct = {
     ...productForDetail,
     includedText: finalIncludedText,
     excludedText: finalExcludedText,
@@ -829,9 +831,9 @@ export async function buildProductPublicDetailRenderModel(
             }
           : {}),
   }
-  assertNoInternalMetaLeak(serialized, '/products/[id]')
+  assertNoInternalMetaLeak(viewProduct, '/products/[id]')
 
-  const product = serialized
+  const product = viewProduct
 
   const productType = travelProduct.productType ?? ''
   const isAirtel = productType === 'airtel'
@@ -914,7 +916,7 @@ export async function buildProductPublicDetailRenderModel(
 
     return {
       variant: 'airtel',
-      serialized: product,
+      viewProduct: product,
       priceRowsForPublic,
       priceInfo,
       masterArg,
@@ -941,13 +943,16 @@ export async function buildProductPublicDetailRenderModel(
   }
 
   if (isPackageItineraryBody) {
-    assertNoInternalMetaLeak(serialized, '/products/[id] package-itinerary')
+    assertNoInternalMetaLeak(viewProduct, '/products/[id] package-itinerary')
   }
 
-  const viewProduct = tryApplyVerygoodPublicProductSerializedPatch(publicConsumptionModuleKey, serialized)
+  const viewProductForRender = tryApplyVerygoodPublicProductSerializedPatch(
+    publicConsumptionModuleKey,
+    viewProduct,
+  )
   const ybtourDetailProduct =
     publicConsumptionModuleKey === 'ybtour'
-      ? { ...viewProduct, ybtourFlightStructuredForHero: ybtourFlightStructuredForHeroPublic }
+      ? { ...viewProductForRender, ybtourFlightStructuredForHero: ybtourFlightStructuredForHeroPublic }
       : null
   const showEsimCrossSell = travelProduct.travelScope === 'overseas'
 
@@ -987,8 +992,7 @@ export async function buildProductPublicDetailRenderModel(
 
   return {
     variant: 'package',
-    serialized: product,
-    viewProduct,
+    viewProduct: viewProductForRender,
     ybtourDetailProduct,
     publicConsumptionModuleKey,
     isPackageItineraryBody,

@@ -1,13 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { buildProductDetailPageSelect } from '@/lib/product-detail-page-include'
-import {
-  buildProductPublicDetailRenderModel,
-  type FitMasterWithDays,
-} from '@/lib/product-public-detail/build-render-model'
-import {
-  bookableMinDateYmdForPayload,
-  serializeProductPublicDetailPayload,
-} from '@/lib/product-public-detail/payload-io'
+import type { FitMasterWithDays } from '@/lib/product-public-detail/build-render-model'
+import { buildProductPublicDetailPayload } from '@/lib/product-public-detail/build-product-public-detail-payload'
 
 async function loadFitMasterForProduct(productId: string, productType: string | null) {
   if (productType !== 'airtel') return null
@@ -46,9 +40,17 @@ export async function rebuildProductPublicDetailPayload(productId: string): Prom
   }
 
   const fitMaster = await loadFitMasterForProduct(productId, row.productType ?? null)
-  const model = await buildProductPublicDetailRenderModel(row, fitMaster)
-  const bookableYmd = bookableMinDateYmdForPayload()
-  const json = serializeProductPublicDetailPayload(model, bookableYmd)
+  const json = await buildProductPublicDetailPayload(row, fitMaster)
+  if (!json) {
+    await prisma.product.updateMany({
+      where: { id: productId },
+      data: {
+        publicDetailPayloadJson: null,
+        publicDetailPayloadBuiltAt: null,
+      },
+    })
+    return false
+  }
 
   await prisma.product.update({
     where: { id: productId },

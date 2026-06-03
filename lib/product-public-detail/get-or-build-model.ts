@@ -3,11 +3,8 @@ import {
   type FitMasterWithDays,
   type ProductDetailViewRow,
 } from '@/lib/product-public-detail/build-render-model'
-import {
-  bookableMinDateYmdForPayload,
-  parseProductPublicDetailPayload,
-  serializeProductPublicDetailPayload,
-} from '@/lib/product-public-detail/payload-io'
+import { bookableMinDateYmdForPayload, parseProductPublicDetailPayload } from '@/lib/product-public-detail/payload-io'
+import { finalizeProductPublicDetailPayloadJson } from '@/lib/product-public-detail/build-product-public-detail-payload'
 import { revalidateTag } from 'next/cache'
 import { isNextRouterPrefetchRequest } from '@/lib/next-router-prefetch'
 import { prisma } from '@/lib/prisma'
@@ -38,7 +35,10 @@ export async function getOrBuildProductPublicDetailModel(
   const model = await buildProductPublicDetailRenderModel(travelProduct, fitMaster)
 
   if (travelProduct.registrationStatus === 'registered' && !(await isNextRouterPrefetchRequest())) {
-    const json = serializeProductPublicDetailPayload(model, bookableYmd)
+    const json = finalizeProductPublicDetailPayloadJson(model, bookableYmd)
+    if (!json) {
+      return { model, source: 'computed' }
+    }
     void prisma.product
       .update({
         where: { id: travelProduct.id },
