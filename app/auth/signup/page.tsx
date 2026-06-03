@@ -20,7 +20,8 @@ export default async function SignUpPage({ searchParams }: Props) {
       <main className={`${SITE_CONTENT_CLASS} flex max-w-md flex-col items-center py-14`}>
         <h1 className="mb-1 text-xl font-bold text-bt-strong">회원가입</h1>
         <p className="mb-8 text-center text-sm leading-relaxed text-bt-body">
-          이메일 또는 소셜 계정으로 시작할 수 있습니다. 상품 탐색은 로그인 없이도 이용할 수 있습니다.
+          신규 가입은 카카오·네이버만 이용할 수 있습니다. 이미 이메일로 가입하신 분은 로그인 페이지에서 그대로
+          로그인하세요. 상품 탐색은 로그인 없이도 이용할 수 있습니다.
         </p>
 
         <SignUpClient callbackUrl={cb} kakaoOn={kakaoOn} naverOn={naverOn} />

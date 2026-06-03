@@ -1,29 +1,6 @@
-import Link from 'next/link'
-import { Suspense } from 'react'
-import Header from '@/app/components/Header'
-import EmailRegisterForm from '@/app/components/auth/EmailRegisterForm'
+import { redirect } from 'next/navigation'
 
+/** 이메일 신규 가입 UI 폐기 — OAuth 전용 회원가입으로 통합 */
 export default function SignUpEmailPage() {
-  return (
-    <div className="min-h-screen bg-beige">
-      <Header />
-      <main className="mx-auto max-w-md px-4 py-14">
-        <h1 className="mb-2 text-xl font-bold text-bt-strong">이메일로 회원가입</h1>
-        <p className="mb-6 text-sm leading-relaxed text-bt-body">
-          이름, 이메일, 비밀번호로 가입합니다. 상품 탐색은 로그인 없이도 이용할 수 있습니다.
-        </p>
-        <Suspense fallback={<p className="text-sm text-bt-body">폼을 불러오는 중…</p>}>
-          <EmailRegisterForm />
-        </Suspense>
-        <p className="mt-6 text-center text-sm text-bt-body">
-          <Link href="/auth/signup" className="text-bt-link hover:text-bt-link-hover hover:underline">
-            다른 가입 방식 보기
-          </Link>
-        </p>
-        <Link href="/" className="mt-4 inline-block text-sm text-bt-meta hover:text-bt-link">
-          ← 홈으로
-        </Link>
-      </main>
-    </div>
-  )
+  redirect('/auth/signup')
 }
