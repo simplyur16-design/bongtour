@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 
+import { bookingAdminNotificationRecipient, logBookingSmtpEnvPresence } from '@/lib/booking-email'
 import { CUSTOMER_INQUIRY_TYPES } from '@/lib/customer-inquiry-intake'
 import {
   adminBaseUrl,
@@ -178,7 +179,8 @@ export async function sendInquiryReceivedEmail(input: InquiryNotifyInput): Promi
   const pass = process.env.SMTP_PASS?.trim()
   const fromName = process.env.SMTP_FROM_NAME?.trim()
   const fromEmail = process.env.SMTP_FROM_EMAIL?.trim()
-  const to = process.env.INQUIRY_NOTIFICATION_EMAIL?.trim()
+  /** 예약 접수와 동일 — `BOOKING_NOTIFICATION_EMAIL` 우선, 없으면 `INQUIRY_NOTIFICATION_EMAIL` */
+  const to = bookingAdminNotificationRecipient()
   const secure = process.env.SMTP_SECURE === 'true'
   const port = Number(portRaw || (secure ? 465 : 587))
 
@@ -190,10 +192,10 @@ export async function sendInquiryReceivedEmail(input: InquiryNotifyInput): Promi
   if (!pass) missing.push('SMTP_PASS')
   if (!fromName) missing.push('SMTP_FROM_NAME')
   if (!fromEmail) missing.push('SMTP_FROM_EMAIL')
-  if (!to) missing.push('INQUIRY_NOTIFICATION_EMAIL')
+  if (!to) missing.push('BOOKING_NOTIFICATION_EMAIL 또는 INQUIRY_NOTIFICATION_EMAIL')
 
   if (missing.length) {
-    logInquirySmtpEnvPresence(console.error)
+    logBookingSmtpEnvPresence(console.error)
     throw new Error(`SMTP 환경변수가 설정되지 않았습니다. (${missing.join(', ')})`)
   }
 

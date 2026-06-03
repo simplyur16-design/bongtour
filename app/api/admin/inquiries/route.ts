@@ -9,6 +9,7 @@ import {
   isLeadTimeRisk,
   sortInquiriesByRiskThenDate,
 } from '@/lib/admin-inquiry'
+import { classifyTestIntake } from '@/lib/test-intake-policy'
 
 /**
  * GET /api/admin/inquiries
@@ -50,6 +51,7 @@ export async function GET(request: Request) {
         applicantName: true,
         applicantPhone: true,
         applicantEmail: true,
+        message: true,
         snapshotProductTitle: true,
         snapshotCardLabel: true,
         sourcePagePath: true,
@@ -143,6 +145,13 @@ export async function GET(request: Request) {
       sourcePagePath: r.sourcePagePath,
       productId: r.productId,
       monthlyCurationItemId: r.monthlyCurationItemId,
+      isTest: classifyTestIntake({
+        customerOrApplicantName: r.applicantName,
+        email: r.applicantEmail,
+        phone: r.applicantPhone,
+        accessionNumber: r.inquiryNumber,
+        message: r.message,
+      }).isTest,
     }))
 
     return NextResponse.json({ inquiries })

@@ -34,6 +34,8 @@
     "test:inquiry-smtp": "npx tsx scripts/test-inquiry-smtp.ts",
     "test:inquiry-smtp:587": "npx tsx scripts/test-inquiry-smtp.ts --try-587",
     "verify:inquiry:live": "npx tsx scripts/local-verify-inquiry-live.ts",
+    "verify:inquiry-notify-env": "npx tsx -e \"import './scripts/load-env-for-scripts'; import { summarizeConsultNotificationEnv } from './lib/consult-notification-env'; console.log(JSON.stringify(summarizeConsultNotificationEnv(), null, 2))\"",
+    "resend:travel-consult-notify": "npx tsx scripts/resend-travel-consult-notify.ts",
     "e2e:inquiry-three-api": "npx tsx scripts/e2e-inquiry-three-api.ts",
     "db:push": "prisma db push",
     "db:sqlite:ensure-product-bgimage": "node scripts/sqlite-add-missing-product-bgimage-columns.mjs",

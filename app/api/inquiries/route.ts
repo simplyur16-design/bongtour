@@ -6,8 +6,8 @@ import {
 } from '@/lib/customer-inquiry-intake'
 import { sendInquiryReceivedEmail } from '@/lib/inquiry-email'
 import { notifyTravelConsultInquiryBookingAligned } from '@/lib/inquiry-booking-aligned-notify'
-import { sendAdminInquiryNotification, sendInquiryCustomerLmsFallback } from '@/lib/notification-service'
-import { attemptSendCustomerInquiryAlimTalk } from '@/lib/solapi-alimtalk'
+import { sendAdminInquiryNotification } from '@/lib/notification-service'
+import { sendInquiryCustomerAlimtalkOrLms } from '@/lib/inquiry-customer-notify'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError } from '@/lib/public-mutation-origin'
@@ -23,6 +23,15 @@ function getClientIp(headers: Headers): string {
   return headers.get('x-real-ip') || 'unknown'
 }
 
+/** 브라우저 자동완성이 `website`/`website_url` 이름에 값을 넣는 경우가 있어 별도 키도 검사 */
+function inquiryHoneypotFilled(obj: Record<string, unknown>): boolean {
+  for (const key of ['website', 'website_url', 'btHpWebsite', 'btHpUrl'] as const) {
+    const v = obj[key]
+    if (typeof v === 'string' && v.trim()) return true
+  }
+  return false
+}
+
 function buildSilentInquiryAcceptPayload(body: Record<string, unknown>) {
   const rawType = body.inquiryType
   const inquiryType: CustomerInquiryType =
@@ -33,6 +42,7 @@ function buildSilentInquiryAcceptPayload(body: Record<string, unknown>) {
   const createdAt = new Date().toISOString()
   return {
     ok: true as const,
+    persisted: false as const,
     inquiry: {
       id,
       inquiryType,
@@ -41,9 +51,9 @@ function buildSilentInquiryAcceptPayload(body: Record<string, unknown>) {
       createdAt,
     },
     notification: {
-      ok: true as const,
-      delayed: false as const,
-      channels: { email: { ok: true as const } },
+      ok: false as const,
+      delayed: true as const,
+      channels: { email: { ok: false as const } },
     },
   }
 }
@@ -55,7 +65,8 @@ function buildSilentInquiryAcceptPayload(body: Record<string, unknown>) {
  * - 동일 출처(Origin/Referer) 검증 후 IP rate limit — lib/public-mutation-origin
  * - Honeypot(`website`·`website_url`)·운영 시각(`formOpenedAt`)·`validateCustomerInquiryBody` 봇 패턴: DB·알림 없이 성공 형태 200.
  * - Captcha: 미적용 — 봇 남용 시 bot 관리·캡차 등 검토
- * - 운영자 이메일: `sendInquiryReceivedEmail`(SMTP_* / INQUIRY_NOTIFICATION_EMAIL). 실패는 DB·로그·`notification.channels.email`.
+ * - travel_consult: `notifyTravelConsultInquiryBookingAligned` — 예약과 동일 env·`bookingAdminNotificationRecipient`.
+ * - 그 외 유형: `sendInquiryReceivedEmail`(SMTP_* / BOOKING_NOTIFICATION_EMAIL 우선·INQUIRY 폴백).
  * - 솔라피: 고객 알림톡 시도(`attemptSendCustomerInquiryAlimTalk`, 미설정 시 LMS 폴백) → `sendInquiryCustomerLmsFallback`; 담당자 `sendAdminInquiryNotification` — `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_FROM_PHONE`, `SOLAPI_ADMIN_PHONES`(쉼표 구분 복수). 문자 실패는 문의 저장 성공과 분리·`console.error`.
  * - `sourcePagePath` / `snapshot*`: 운영·분석 추적용(클라이언트 입력이므로 신뢰 검증은 하지 않음)
  */
@@ -95,9 +106,8 @@ export async function POST(request: Request) {
     )
   }
   const obj = (body ?? {}) as Record<string, unknown>
-  const honeypotWebsite = typeof obj.website === 'string' ? obj.website.trim() : ''
-  const honeypotWebsiteUrl = typeof obj.website_url === 'string' ? obj.website_url.trim() : ''
-  if (honeypotWebsite || honeypotWebsiteUrl) {
+  if (inquiryHoneypotFilled(obj)) {
+    console.warn('[POST /api/inquiries] silent_honeypot', JSON.stringify({ ip }))
     const payload = buildSilentInquiryAcceptPayload(obj)
     return jsonWithLeakGuard(payload, 'api.inquiries.silent-honeypot')
   }
@@ -111,13 +121,25 @@ export async function POST(request: Request) {
     const tooFast =
       !Number.isFinite(openedMs) || openedMs < minTs || openedMs > now || now - openedMs < 3000
     if (tooFast) {
-      const payload = buildSilentInquiryAcceptPayload(obj)
-      return jsonWithLeakGuard(payload, 'api.inquiries.silent-too-fast')
+      console.warn(
+        '[POST /api/inquiries] rejected_too_fast',
+        JSON.stringify({ ip, elapsedMs: Number.isFinite(openedMs) ? now - openedMs : null }),
+      )
+      return jsonWithLeakGuard(
+        {
+          ok: false,
+          error: '제출이 너무 빨랐습니다. 내용을 확인한 뒤 3초 이상 채운 다음 다시 접수해 주세요.',
+          fieldErrors: {} as Record<string, string>,
+        },
+        'api.inquiries.too-fast',
+        { status: 400 },
+      )
     }
   }
 
   const validated = validateCustomerInquiryBody(body, { productionInquiryRules: productionInquiry })
   if (validated.ok === 'silent_bot') {
+    console.warn('[POST /api/inquiries] silent_bot', JSON.stringify({ ip }))
     const payload = buildSilentInquiryAcceptPayload(obj)
     return jsonWithLeakGuard(payload, 'api.inquiries.silent-bot')
   }
@@ -291,6 +313,9 @@ export async function POST(request: Request) {
     let adminLmsOk = false
     let adminLmsSkipped = true
     let adminLmsFailedCount = 0
+    let customerAlimtalkOk: boolean | null = null
+    let customerLmsOk: boolean | null = null
+    let customerLmsSkipped: boolean | null = null
     let notificationMode: 'booking_aligned' | 'inquiry_legacy' = 'inquiry_legacy'
 
     if (row.inquiryType === 'travel_consult') {
@@ -319,6 +344,34 @@ export async function POST(request: Request) {
       adminLmsSkipped = aligned.adminSms.skipped
       adminLmsOk = aligned.adminSms.ok
       adminLmsFailedCount = aligned.adminSms.ok ? 0 : 1
+      customerAlimtalkOk = aligned.customerAlimtalkOk
+      customerLmsOk = aligned.customerLmsOk
+      customerLmsSkipped = aligned.customerLmsSkipped
+      if (!aligned.emailOk) {
+        console.error(
+          '[POST /api/inquiries] booking_aligned_admin_email_failed',
+          JSON.stringify({ inquiryId: row.id, inquiryNumber: row.inquiryNumber }),
+        )
+      }
+      if (!aligned.adminSms.skipped && !aligned.adminSms.ok) {
+        console.error(
+          '[POST /api/inquiries] booking_aligned_admin_sms_failed',
+          JSON.stringify({ inquiryId: row.id, inquiryNumber: row.inquiryNumber }),
+        )
+      }
+      if (!aligned.customerAlimtalkOk && !aligned.noRegisteredAlimtalkTemplate) {
+        console.warn(
+          '[POST /api/inquiries] booking_aligned_customer_alimtalk_failed',
+          JSON.stringify({
+            inquiryId: row.id,
+            customerLmsOk: aligned.customerLmsOk,
+            customerLmsSkipped: aligned.customerLmsSkipped,
+            hint: aligned.customerLmsOk
+              ? '알림톡 실패 후 LMS만 발송 — SOLAPI 4종 템플릿 ID·PFID 확인'
+              : '알림톡·LMS 모두 실패 또는 미설정',
+          }),
+        )
+      }
     } else {
       try {
         await sendInquiryReceivedEmail(notifyInput)
@@ -339,7 +392,7 @@ export async function POST(request: Request) {
       const travelConsultProductTitle =
         productMeta?.title?.trim() || row.snapshotProductTitle?.trim() || '상담문의'
 
-      const alim = await attemptSendCustomerInquiryAlimTalk({
+      const customerNotify = await sendInquiryCustomerAlimtalkOrLms({
         inquiryId: row.id,
         inquiryType: row.inquiryType,
         applicantName: row.applicantName,
@@ -349,19 +402,18 @@ export async function POST(request: Request) {
         travelConsultProductTitle,
         snapshotCardLabel: row.snapshotCardLabel,
       })
-      if (!alim.ok && alim.shouldSendLmsFallback) {
-        const lmsCustomer = await sendInquiryCustomerLmsFallback({
-          inquiryId: row.id,
-          inquiryType: row.inquiryType,
-          productLabel,
-          applicantPhone: row.applicantPhone,
-        })
-        if (!lmsCustomer.ok) {
-          console.error(
-            '[POST /api/inquiries] inquiry_customer_lms_failed',
-            JSON.stringify({ inquiryId: row.id, message: lmsCustomer.message }),
-          )
-        }
+      customerAlimtalkOk = customerNotify.customerAlimtalkOk
+      customerLmsOk = customerNotify.customerLmsOk
+      customerLmsSkipped = customerNotify.customerLmsSkipped
+      if (!customerNotify.customerAlimtalkOk && !customerNotify.noRegisteredAlimtalkTemplate) {
+        console.warn(
+          '[POST /api/inquiries] inquiry_customer_alimtalk_failed',
+          JSON.stringify({
+            inquiryId: row.id,
+            inquiryType: row.inquiryType,
+            customerLmsOk: customerNotify.customerLmsOk,
+          }),
+        )
       }
 
       const lmsAdmin = await sendAdminInquiryNotification({
@@ -405,6 +457,7 @@ export async function POST(request: Request) {
 
     const payload = {
       ok: true,
+      persisted: true as const,
       inquiry: {
         id: row.id,
         inquiryNumber: row.inquiryNumber,
@@ -414,7 +467,7 @@ export async function POST(request: Request) {
         createdAt: row.createdAt.toISOString(),
       },
       notification: {
-        ok: emailOk,
+        ok: emailOk && (adminLmsSkipped || adminLmsOk),
         delayed: !emailOk,
         mode: notificationMode,
         channels: {
@@ -424,9 +477,26 @@ export async function POST(request: Request) {
             ok: adminLmsOk,
             failedCount: adminLmsFailedCount,
           },
+          customerAlimtalk: { ok: customerAlimtalkOk === true },
+          customerLms: {
+            skipped: customerLmsSkipped === true,
+            ok: customerLmsOk === true,
+          },
         },
       },
     }
+    console.log(
+      '[POST /api/inquiries] notify_done',
+      JSON.stringify({
+        inquiryId: row.id,
+        inquiryNumber: row.inquiryNumber,
+        inquiryType: row.inquiryType,
+        mode: notificationMode,
+        emailOk,
+        adminLmsOk,
+        adminLmsSkipped,
+      }),
+    )
     return jsonWithLeakGuard(payload, 'api.inquiries.ok')
   } catch (e) {
     console.error('[POST /api/inquiries]', e)

@@ -29,6 +29,7 @@ export type AdminInquiryListItem = {
   privacyNoticeConfirmedAt: string | null
   emailSentStatus: string | null
   emailSentAt: string | null
+  isTest: boolean
 }
 
 export function preferredContactChannelLabel(channel: AdminInquiryListItem['preferredContactChannel']): string {

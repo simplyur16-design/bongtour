@@ -39,6 +39,7 @@ export type SendAdminNotificationResult =
   | { ok: false; code?: string; message: string }
 
 async function updateBookingNotificationFailed(bookingId: number, errorMessage: string): Promise<void> {
+  if (bookingId <= 0) return
   try {
     await prisma.booking.update({
       where: { id: bookingId },
@@ -138,7 +139,7 @@ export async function sendAdminNotificationWithPayload(
         adminRecipientCount: recipients.length,
       })
     )
-    return { ok: true }
+    return { ok: false, message: 'skipped_missing_env' }
   }
 
   const from = digitsOnlyPhone(senderPhone)
@@ -147,7 +148,7 @@ export async function sendAdminNotificationWithPayload(
       '[sendAdminNotification] skipped_invalid_from_phone',
       JSON.stringify({ bookingId: booking.id })
     )
-    return { ok: true }
+    return { ok: false, message: 'skipped_invalid_from_phone' }
   }
 
   const text = payload
@@ -174,15 +175,19 @@ export async function sendAdminNotificationWithPayload(
   }
 
   if (failed.length === 0) {
-    await prisma.booking.update({
-      where: { id: booking.id },
-      data: { notificationStatus: 'sent', notificationError: null },
-    })
+    if (booking.id > 0) {
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: { notificationStatus: 'sent', notificationError: null },
+      })
+    }
     return { ok: true }
   }
 
   const errorMessage = failed.map((f) => `${f.to}: ${f.code ?? ''} ${f.message}`.trim()).join('; ')
-  await updateBookingNotificationFailed(booking.id, errorMessage)
+  if (booking.id > 0) {
+    await updateBookingNotificationFailed(booking.id, errorMessage)
+  }
   return { ok: false, code: failed[0]?.code, message: errorMessage }
 }
 
@@ -337,9 +342,26 @@ export async function sendAdminShortAlertSms(
   const succeeded: string[] = []
   const failed: { to: string; code?: string; message: string }[] = []
   for (const to of recipients) {
-    const r = await sendSolapiMessage(apiKey, apiSecret, from, to, text)
-    if (r.ok) succeeded.push(to)
-    else failed.push({ to, code: r.code, message: r.message })
+    let lastResult: SendAdminNotificationResult = { ok: false, message: 'unknown' }
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      lastResult = await sendSolapiMessage(apiKey, apiSecret, from, to, text)
+      if (lastResult.ok) break
+      console.error(
+        `[sendAdminShortAlertSms] attempt=${attempt}/${MAX_RETRIES} to=${to} code=${lastResult.code ?? '-'} message=${lastResult.message}`,
+        JSON.stringify(logContext)
+      )
+      if (attempt < MAX_RETRIES) {
+        await new Promise((r) => setTimeout(r, 1000))
+      }
+    }
+    if (lastResult.ok) succeeded.push(to)
+    else failed.push({ to, code: lastResult.code, message: lastResult.message })
+  }
+  if (failed.length > 0) {
+    console.error(
+      '[sendAdminShortAlertSms] partial_or_total_failure',
+      JSON.stringify({ ...logContext, succeeded, failed })
+    )
   }
   return { skipped: false, succeeded, failed }
 }

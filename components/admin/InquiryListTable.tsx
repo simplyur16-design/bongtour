@@ -98,7 +98,7 @@ export default function InquiryListTable({
                   key={r.id}
                   role="link"
                   tabIndex={0}
-                  className="cursor-pointer align-top hover:bg-gray-50/80"
+                  className={`cursor-pointer align-top hover:bg-gray-50/80${r.isTest ? ' bg-amber-50/40' : ''}`}
                   onClick={() => router.push(`/admin/inquiries/${r.id}`)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -110,6 +110,11 @@ export default function InquiryListTable({
                   <td className="whitespace-nowrap px-3 py-2 text-gray-700">{formatCreatedAt(r.createdAt)}</td>
                   <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-800" title={r.inquiryNumber}>
                     {dash(r.inquiryNumber)}
+                    {r.isTest ? (
+                      <span className="ml-1 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-900">
+                        테스트
+                      </span>
+                    ) : null}
                   </td>
                   <td className="max-w-[140px] px-3 py-2 text-xs text-gray-800" title={r.snapshotProductTitle ?? ''}>
                     {productLabel}

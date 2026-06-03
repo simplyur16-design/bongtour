@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { maskEmail, maskPhone } from '@/lib/pii'
 import { INQUIRY_ADMIN_STATUSES, isInquiryAdminStatus } from '@/lib/admin-inquiry'
+import { deleteTestIntake } from '@/lib/purge-test-intake'
+import { classifyTestIntake } from '@/lib/test-intake-policy'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -67,6 +69,13 @@ export async function GET(_request: Request, context: RouteContext) {
       emailError: row.emailError,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
+      isTest: classifyTestIntake({
+        customerOrApplicantName: row.applicantName,
+        email: row.applicantEmail,
+        phone: row.applicantPhone,
+        accessionNumber: row.inquiryNumber,
+        message: row.message,
+      }).isTest,
     }
 
     return NextResponse.json({ inquiry })
@@ -152,5 +161,30 @@ export async function PATCH(request: Request, context: RouteContext) {
       { error: '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
       { status: 500 }
     )
+  }
+}
+
+/**
+ * DELETE /api/admin/inquiries/[id] — 테스트·E2E 문의만 삭제 가능.
+ */
+export async function DELETE(_request: Request, context: RouteContext) {
+  const admin = await requireAdmin()
+  if (!admin) {
+    return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+  }
+
+  const { id } = await context.params
+  if (!id || typeof id !== 'string') {
+    return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
+  }
+
+  try {
+    await deleteTestIntake('inquiry', id)
+    return NextResponse.json({ ok: true, deleted: { kind: 'inquiry', id } })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : '삭제에 실패했습니다.'
+    const status = msg.includes('찾을 수 없') ? 404 : msg.includes('테스트') ? 403 : 500
+    if (status === 500) console.error('[DELETE /api/admin/inquiries/[id]]', e)
+    return NextResponse.json({ error: msg }, { status })
   }
 }

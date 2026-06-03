@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import InquiryStatusSelect from '@/components/admin/InquiryStatusSelect'
 import { inquiryTypeDisplayLabel, leadTimeRiskLabel, preferredContactChannelLabel } from '@/lib/admin-inquiry'
 import { getSiteOrigin } from '@/lib/site-metadata'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
+import { useDeleteTestIntake } from '@/components/admin/TestIntakeAdminTools'
 
 export type InquiryDetailDto = {
   id: string
@@ -44,6 +46,7 @@ export type InquiryDetailDto = {
   emailError: string | null
   createdAt: string
   updatedAt: string
+  isTest?: boolean
 }
 
 function payloadPretty(json: string | null): string {
@@ -66,9 +69,13 @@ function quoteKindFromPayload(json: string | null): string | null {
 }
 
 export default function InquiryDetailClient({ inquiryId }: { inquiryId: string }) {
+  const router = useRouter()
   const [row, setRow] = useState<InquiryDetailDto | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [patchError, setPatchError] = useState<string | null>(null)
+  const { deleteOne, busy: deleteBusy, error: deleteError } = useDeleteTestIntake(() => {
+    router.replace('/admin/inquiries')
+  })
 
   const fetchDetail = useCallback(async () => {
     setLoadError(null)
@@ -125,6 +132,28 @@ export default function InquiryDetailClient({ inquiryId }: { inquiryId: string }
 
         {patchError ? (
           <p className="mt-3 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-800">{patchError}</p>
+        ) : null}
+        {deleteError ? (
+          <p className="mt-3 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-800">{deleteError}</p>
+        ) : null}
+
+        {row.isTest ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+              테스트 접수
+            </span>
+            <button
+              type="button"
+              disabled={deleteBusy}
+              onClick={() => void deleteOne('inquiry', row.id, row.inquiryNumber)}
+              className="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100 disabled:opacity-50"
+            >
+              테스트 문의 삭제
+            </button>
+            <Link href="/admin/bookings" className="text-xs text-gray-600 underline">
+              상담·예약 통합 목록
+            </Link>
+          </div>
         ) : null}
 
         <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">

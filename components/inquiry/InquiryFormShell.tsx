@@ -20,13 +20,15 @@ import { readUtmFromSession } from '@/lib/utm-capture'
 
 type ApiErrorJson = {
   ok?: boolean
+  /** false면 DB·알림 없음(봇 차단·허니팟). ok만 true인 응답은 접수로 보지 않음 */
+  persisted?: boolean
   error?: string
   fieldErrors?: FieldErrors
   inquiry?: { id: string }
   notification?: {
     ok: boolean
     delayed?: boolean
-    channels?: { email?: { ok: boolean } }
+    channels?: { email?: { ok: boolean }; adminLms?: { ok: boolean; skipped?: boolean } }
   }
 }
 
@@ -92,7 +94,8 @@ export default function InquiryFormShell({
   const [privacyOpen, setPrivacyOpen] = useState(false)
   /** 페이지(폼) 로드 시각 — 서버에서 최소 체류 시간 검증용 */
   const [formOpenedAt] = useState(() => Date.now())
-  const [websiteUrl, setWebsiteUrl] = useState('')
+  /** 허니팟 — `website_url` 이름은 브라우저 자동완성에 걸리기 쉬움 */
+  const [hpTrap, setHpTrap] = useState('')
 
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -146,8 +149,8 @@ export default function InquiryFormShell({
         inquiryType: apiType,
         applicantName: applicantName.trim(),
         applicantPhone: applicantPhone.trim(),
-        website: '',
-        website_url: websiteUrl.trim(),
+        btHpWebsite: '',
+        btHpUrl: hpTrap.trim(),
         formOpenedAt,
         privacyAgreed: true,
         privacyNoticeConfirmedAt: new Date().toISOString(),
@@ -210,7 +213,18 @@ export default function InquiryFormShell({
         return
       }
 
-      setNotificationDelayed(Boolean(data.notification && data.notification.ok === false))
+      if (data.persisted === false) {
+        setFormError('접수가 완료되지 않았습니다. 3초 이상 입력 후 다시 시도해 주세요.')
+        return
+      }
+
+      const notify = data.notification
+      const notifyFailed =
+        notify &&
+        (notify.ok === false ||
+          notify.channels?.email?.ok === false ||
+          (notify.channels?.adminLms && !notify.channels.adminLms.skipped && notify.channels.adminLms.ok === false))
+      setNotificationDelayed(Boolean(notifyFailed))
       setDone(true)
     } catch {
       setFormError('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')
@@ -231,7 +245,7 @@ export default function InquiryFormShell({
     messageLabel,
     messageRequired,
     privacyNoticeVersion,
-    websiteUrl,
+    hpTrap,
     formOpenedAt,
   ])
 
@@ -291,7 +305,7 @@ export default function InquiryFormShell({
       >
         <input
           type="text"
-          name="website"
+          name="btHpWebsite"
           value=""
           readOnly
           autoComplete="off"
@@ -301,33 +315,48 @@ export default function InquiryFormShell({
         />
         <input
           type="text"
-          name="website_url"
-          value={websiteUrl}
-          onChange={(e) => setWebsiteUrl(e.target.value)}
+          name="btHpUrl"
+          value={hpTrap}
+          onChange={(e) => setHpTrap(e.target.value)}
           autoComplete="off"
+          data-lpignore="true"
+          data-1p-ignore="true"
           tabIndex={-1}
           aria-hidden="true"
           style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
         />
         {initialQuery.productId ? (
-          <>
-            <input type="hidden" name="productId" value={initialQuery.productId} />
-            {initialQuery.snapshotProductTitle ? (
-              <input type="hidden" name="snapshotProductTitle" value={initialQuery.snapshotProductTitle} />
-            ) : null}
-            {initialQuery.snapshotOriginCode ? (
-              <input type="hidden" name="snapshotOriginCode" value={initialQuery.snapshotOriginCode} />
-            ) : null}
-          </>
+          <input type="hidden" name="productId" value={initialQuery.productId} />
         ) : null}
-        {initialQuery.productId && initialQuery.snapshotProductTitle ? (
+        {initialQuery.monthlyCurationItemId ? (
+          <input type="hidden" name="monthlyCurationItemId" value={initialQuery.monthlyCurationItemId} />
+        ) : null}
+        {initialQuery.snapshotProductTitle ? (
+          <input type="hidden" name="snapshotProductTitle" value={initialQuery.snapshotProductTitle} />
+        ) : null}
+        {initialQuery.snapshotCardLabel ? (
+          <input type="hidden" name="snapshotCardLabel" value={initialQuery.snapshotCardLabel} />
+        ) : null}
+        {initialQuery.snapshotOriginCode ? (
+          <input type="hidden" name="snapshotOriginCode" value={initialQuery.snapshotOriginCode} />
+        ) : null}
+        {(initialQuery.snapshotProductTitle || initialQuery.snapshotCardLabel) && (
           <p className="rounded-lg border border-[#EFEDF8] bg-[#EFEDF8]/80 px-4 py-3 text-sm text-[#1F1B2D]">
-            상품 문의: <span className="font-semibold">{initialQuery.snapshotProductTitle}</span>
+            {initialQuery.snapshotProductTitle ? (
+              <>
+                상품 문의: <span className="font-semibold">{initialQuery.snapshotProductTitle}</span>
+              </>
+            ) : (
+              <span className="font-semibold">여행 상담</span>
+            )}
+            {initialQuery.snapshotCardLabel ? (
+              <span className="text-[#1F1B2D]/80"> · {initialQuery.snapshotCardLabel}</span>
+            ) : null}
             {initialQuery.snapshotOriginCode ? (
               <span className="text-[#1F1B2D]/70"> · {initialQuery.snapshotOriginCode}</span>
             ) : null}
           </p>
-        ) : null}
+        )}
         <div className="space-y-4 rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-sm font-semibold text-slate-800">연락처·문의 내용</h2>
 

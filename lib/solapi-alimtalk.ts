@@ -7,6 +7,7 @@ import {
   type InquiryCustomerAlimtalkContext,
 } from '@/lib/inquiry-customer-alimtalk'
 import { parseInquiryPayloadJson } from '@/lib/inquiry-notification-format'
+import { formatSolapiSendError, normalizeSolapiKakaoVariables } from '@/lib/solapi-kakao-variables'
 
 export type AlimtalkCustomerData = {
   phone: string
@@ -53,11 +54,15 @@ export async function attemptSendCustomerInquiryAlimTalk(
   const payload = parseInquiryPayloadJson(ctx.payloadJson)
   const kind = resolveInquiryCustomerAlimtalkKind(ctx.inquiryType, payload)
   if (!kind) {
-    console.error(
-      '[solapi-alimtalk] inquiry_alimtalk_unknown_branch',
-      JSON.stringify({ inquiryId: ctx.inquiryId, inquiryType: ctx.inquiryType })
+    const generalTravelConsult =
+      ctx.inquiryType === 'travel_consult' && payload.quoteKind !== 'private_custom'
+    console.warn(
+      generalTravelConsult
+        ? '[solapi-alimtalk] inquiry_alimtalk_skipped_general_travel_consult'
+        : '[solapi-alimtalk] inquiry_alimtalk_no_template_for_inquiry_type',
+      JSON.stringify({ inquiryId: ctx.inquiryId, inquiryType: ctx.inquiryType }),
     )
-    return { ok: false, shouldSendLmsFallback: true, detail: 'inquiry_alimtalk_unknown_branch' }
+    return { ok: false, shouldSendLmsFallback: true, detail: 'inquiry_alimtalk_no_registered_template' }
   }
 
   const templateId = selectInquiryCustomerAlimtalkTemplateId(ctx.inquiryType, payload)
@@ -75,7 +80,9 @@ export async function attemptSendCustomerInquiryAlimTalk(
     return { ok: false, shouldSendLmsFallback: true, detail: 'inquiry_alimtalk_invalid_sender' }
   }
 
-  const variables = buildInquiryCustomerAlimtalkVariables(kind, ctx)
+  const variables = normalizeSolapiKakaoVariables(
+    buildInquiryCustomerAlimtalkVariables(kind, ctx),
+  )
 
   try {
     const one = new SolapiMessageService(apiKey, apiSecret)
@@ -87,14 +94,22 @@ export async function attemptSendCustomerInquiryAlimTalk(
         pfId,
         templateId,
         variables,
+        /** 실패 시 솔라피 자동 문자 + 앱 LMS 폴백 이중 발송 방지 — 폴백은 `sendInquiryCustomerLmsFallback` */
+        disableSms: true,
       },
     })
     return { ok: true }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
+    const msg = formatSolapiSendError(e)
     console.error(
       '[solapi-alimtalk] inquiry_alimtalk_send_failed',
-      JSON.stringify({ inquiryId: ctx.inquiryId, templateId, error: msg })
+      JSON.stringify({
+        inquiryId: ctx.inquiryId,
+        templateId,
+        kind,
+        variableKeys: Object.keys(variables),
+        error: msg,
+      }),
     )
     return { ok: false, shouldSendLmsFallback: true, detail: 'inquiry_alimtalk_send_error' }
   }
@@ -158,12 +173,12 @@ export async function sendBookingRequestReceivedAlimTalk(
     return { ok: false, shouldSendLmsFallback: true, detail: 'booking_request_alimtalk_invalid_sender' }
   }
 
-  const variables: Record<string, string> = {
+  const variables = normalizeSolapiKakaoVariables({
     bookingNumber: payload.bookingNumber.trim() || '신청번호 미확인',
     productTitle: payload.productTitle.trim() || '상품명 미확인',
     selectedDate: payload.selectedDate.trim() || '출발일 미확인',
     paxSummary: payload.paxSummary.trim() || '인원 미확인',
-  }
+  })
 
   try {
     const one = new SolapiMessageService(apiKey, apiSecret)
@@ -175,14 +190,20 @@ export async function sendBookingRequestReceivedAlimTalk(
         pfId,
         templateId,
         variables,
+        disableSms: true,
       },
     })
     return { ok: true }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
+    const msg = formatSolapiSendError(e)
     console.error(
       '[solapi-alimtalk] booking_request_alimtalk_send_failed',
-      JSON.stringify({ bookingId, templateId, error: msg })
+      JSON.stringify({
+        bookingId,
+        templateId,
+        variableKeys: Object.keys(variables),
+        error: msg,
+      }),
     )
     return { ok: false, shouldSendLmsFallback: true, detail: 'booking_request_alimtalk_send_error' }
   }

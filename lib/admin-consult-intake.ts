@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { maskEmail, maskPhone } from '@/lib/pii'
 import { inquiryTypeLabel, inquiryStatusLabel } from '@/lib/admin-inquiry'
+import { classifyTestIntake } from '@/lib/test-intake-policy'
 
 /** `/admin/bookings` 통합 목록 — 패키지 예약 */
 export type ConsultIntakeBooking = {
@@ -12,6 +13,7 @@ export type ConsultIntakeBooking = {
   customerName: string
   status: string
   selectedDate: string
+  isTest: boolean
 }
 
 /** `/admin/bookings` 통합 목록 — 홈·상품 문의(CustomerInquiry) */
@@ -29,6 +31,7 @@ export type ConsultIntakeInquiry = {
   productId: string | null
   applicantPhone: string
   message: string | null
+  isTest: boolean
 }
 
 export type ConsultIntakeItem = ConsultIntakeBooking | ConsultIntakeInquiry
@@ -54,6 +57,7 @@ export async function fetchConsultIntakesForAdmin(isSuper: boolean): Promise<{
         status: true,
         applicantName: true,
         applicantPhone: true,
+        applicantEmail: true,
         message: true,
         snapshotProductTitle: true,
         snapshotCardLabel: true,
@@ -62,32 +66,52 @@ export async function fetchConsultIntakesForAdmin(isSuper: boolean): Promise<{
     }),
   ])
 
-  const bookings: ConsultIntakeBooking[] = bookingsRaw.map((b) => ({
-    kind: 'booking' as const,
-    id: b.id,
-    accessionNumber: b.bookingNumber,
-    createdAt: b.createdAt.toISOString(),
-    productTitle: b.productTitle,
-    customerName: b.customerName,
-    status: b.status,
-    selectedDate: b.selectedDate.toISOString(),
-  }))
+  const bookings: ConsultIntakeBooking[] = bookingsRaw.map((b) => {
+    const test = classifyTestIntake({
+      customerOrApplicantName: b.customerName,
+      email: b.customerEmail,
+      phone: b.customerPhone,
+      accessionNumber: b.bookingNumber,
+      message: b.requestNotes,
+    })
+    return {
+      kind: 'booking' as const,
+      id: b.id,
+      accessionNumber: b.bookingNumber,
+      createdAt: b.createdAt.toISOString(),
+      productTitle: b.productTitle,
+      customerName: b.customerName,
+      status: b.status,
+      selectedDate: b.selectedDate.toISOString(),
+      isTest: test.isTest,
+    }
+  })
 
-  const inquiries: ConsultIntakeInquiry[] = inquiriesRaw.map((r) => ({
-    kind: 'inquiry' as const,
-    id: r.id,
-    accessionNumber: r.inquiryNumber,
-    createdAt: r.createdAt.toISOString(),
-    productTitle: r.snapshotProductTitle?.trim() || r.snapshotCardLabel?.trim() || '여행 상담',
-    customerName: r.applicantName,
-    status: r.status,
-    statusLabel: inquiryStatusLabel(r.status),
-    inquiryType: r.inquiryType,
-    inquiryTypeLabel: inquiryTypeLabel(r.inquiryType),
-    productId: r.productId,
-    applicantPhone: isSuper ? r.applicantPhone : maskPhone(r.applicantPhone),
-    message: r.message,
-  }))
+  const inquiries: ConsultIntakeInquiry[] = inquiriesRaw.map((r) => {
+    const test = classifyTestIntake({
+      customerOrApplicantName: r.applicantName,
+      email: r.applicantEmail,
+      phone: r.applicantPhone,
+      accessionNumber: r.inquiryNumber,
+      message: r.message,
+    })
+    return {
+      kind: 'inquiry' as const,
+      id: r.id,
+      accessionNumber: r.inquiryNumber,
+      createdAt: r.createdAt.toISOString(),
+      productTitle: r.snapshotProductTitle?.trim() || r.snapshotCardLabel?.trim() || '여행 상담',
+      customerName: r.applicantName,
+      status: r.status,
+      statusLabel: inquiryStatusLabel(r.status),
+      inquiryType: r.inquiryType,
+      inquiryTypeLabel: inquiryTypeLabel(r.inquiryType),
+      productId: r.productId,
+      applicantPhone: isSuper ? r.applicantPhone : maskPhone(r.applicantPhone),
+      message: r.message,
+      isTest: test.isTest,
+    }
+  })
 
   const items: ConsultIntakeItem[] = [...bookings, ...inquiries].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),

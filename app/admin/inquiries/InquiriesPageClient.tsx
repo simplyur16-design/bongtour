@@ -7,6 +7,7 @@ import AdminEmptyState from '../components/AdminEmptyState'
 import AdminKpiCard from '../components/AdminKpiCard'
 import AdminPageHeader from '../components/AdminPageHeader'
 import InquiryListTable from '@/components/admin/InquiryListTable'
+import TestIntakeAdminTools from '@/components/admin/TestIntakeAdminTools'
 import {
   type AdminInquiryListItem,
   INQUIRY_ADMIN_STATUSES,
@@ -99,8 +100,10 @@ export default function InquiriesPageClient() {
 
         <AdminPageHeader
           title="문의 접수"
-          subtitle="고객 문의를 유형·상태·리드타임으로 빠르게 훑고, 상태만 최소 변경합니다. 상세·메모는 추후 단계에서 확장합니다."
+          subtitle="고객 문의를 유형·상태·리드타임으로 관리합니다. 테스트 접수는 일괄·건별 삭제할 수 있습니다."
         />
+
+        <TestIntakeAdminTools variant="inquiries" onPurged={fetchList} />
 
         {!loading && (
           <section className="mb-6 grid gap-4 sm:grid-cols-3">

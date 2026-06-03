@@ -8,6 +8,7 @@ import AdminEmptyState from '../components/AdminEmptyState'
 import AdminKpiCard from '../components/AdminKpiCard'
 import AdminPageHeader from '../components/AdminPageHeader'
 import AdminStatusBadge from '../components/AdminStatusBadge'
+import TestIntakeAdminTools, { useDeleteTestIntake } from '@/components/admin/TestIntakeAdminTools'
 import { getNextBookingStatuses } from '@/lib/booking-status-policy'
 
 type IntakeSelection =
@@ -64,6 +65,13 @@ export default function AdminBookingsPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [statusError, setStatusError] = useState<string | null>(null)
+  const { deleteOne, busy: deleteBusy, error: deleteError, setError: setDeleteError } =
+    useDeleteTestIntake(() => {
+      setSelection(null)
+      setDetail(null)
+      setLoading(true)
+      fetchList()
+    })
 
   const fetchList = useCallback(() => {
     fetch('/api/admin/bookings')
@@ -88,6 +96,11 @@ export default function AdminBookingsPage() {
     if (selection?.kind !== 'inquiry') return null
     const row = intakeItems.find((i) => i.kind === 'inquiry' && i.id === selection.id)
     return row?.kind === 'inquiry' ? row : null
+  }, [intakeItems, selection])
+
+  const selectedIntake = useMemo(() => {
+    if (!selection) return null
+    return intakeItems.find((i) => i.kind === selection.kind && i.id === selection.id) ?? null
   }, [intakeItems, selection])
 
   useEffect(() => {
@@ -150,6 +163,15 @@ export default function AdminBookingsPage() {
           subtitle="홈·상품 여행 상담(문의)과 패키지 예약 신청을 한곳에서 관리합니다. 알림은 예약 접수와 동일한 문자·알림톡·메일을 사용합니다."
         />
 
+        <TestIntakeAdminTools
+          onPurged={() => {
+            setSelection(null)
+            setDetail(null)
+            setLoading(true)
+            fetchList()
+          }}
+        />
+
         {/* KPI */}
         {!loading && (
           <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -208,6 +230,11 @@ export default function AdminBookingsPage() {
                         </span>
                         <span className="font-medium text-[#0f172a]">{item.productTitle}</span>
                         <span className="text-sm text-gray-500">{item.customerName}</span>
+                        {item.isTest ? (
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
+                            테스트
+                          </span>
+                        ) : null}
                         {item.kind === 'booking' ? (
                           <span className="text-sm text-gray-500">
                             {new Date(item.selectedDate).toLocaleDateString('ko-KR')} 출발
@@ -266,6 +293,19 @@ export default function AdminBookingsPage() {
               >
                 문의 전체 상세 · 상태 변경
               </Link>
+              {selectedInquiry.isTest ? (
+                <button
+                  type="button"
+                  disabled={deleteBusy}
+                  onClick={() => {
+                    setDeleteError(null)
+                    void deleteOne('inquiry', selectedInquiry.id, selectedInquiry.accessionNumber)
+                  }}
+                  className="rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-800 hover:bg-red-100 disabled:opacity-50"
+                >
+                  테스트 문의 삭제
+                </button>
+              ) : null}
             </div>
           </section>
         ) : null}
@@ -427,11 +467,26 @@ export default function AdminBookingsPage() {
                   </p>
                 </div>
 
-                {statusError && (
-                  <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{statusError}</p>
+                {(statusError || deleteError) && (
+                  <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                    {statusError ?? deleteError}
+                  </p>
                 )}
 
                 <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
+                  {selectedIntake?.kind === 'booking' && selectedIntake.isTest && detail ? (
+                    <button
+                      type="button"
+                      disabled={deleteBusy}
+                      onClick={() => {
+                        setDeleteError(null)
+                        void deleteOne('booking', detail.id, detail.bookingNumber)
+                      }}
+                      className="mr-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-100 disabled:opacity-50"
+                    >
+                      테스트 예약 삭제
+                    </button>
+                  ) : null}
                   <span className="text-sm text-gray-500">상태 변경:</span>
                   {getNextBookingStatuses(detail.status).map((status) => (
                     <button

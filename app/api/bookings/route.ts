@@ -1,8 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { computeKRWQuotation, computeLocalFeeTotal, type PriceRowLike } from '@/lib/price-utils'
 import { formatDepartureDate } from '@/lib/message-service'
-import { sendBookingReceivedEmailToAdmin } from '@/lib/booking-email'
-import { parseSolapiReceiverPhones, sendAdminNotificationWithPayload } from '@/lib/notification-service'
+import { notifyBookingStyleIntakeAlerts } from '@/lib/booking-style-intake-notify'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import {
   buildCustomerBookingReceiptMessage,
@@ -10,8 +9,6 @@ import {
   validateBookingIntake,
 } from '@/lib/booking-intake-contract'
 import { BOOKING_PRIVACY_NOTICE_VERSION } from '@/lib/booking-consent'
-import { sendBookingRequestReceivedAlimTalk } from '@/lib/solapi-alimtalk'
-import { sendBookingRequestReceivedLmsFallback } from '@/lib/notification-service'
 import { buildAdminBookingAlertPayload } from '@/lib/booking-alert-payload'
 import { getRateLimitStore } from '@/lib/rate-limit-store'
 import { getPublicMutationOriginError, publicMutationOriginJsonResponse } from '@/lib/public-mutation-origin'
@@ -290,80 +287,20 @@ export async function POST(request: Request) {
 
     const paxSummary = formatBookingPaxSummary(pax)
     const selectedDateLabel = formatDepartureDate(booking.selectedDate)
-    const hasSolapiKey = Boolean(process.env.SOLAPI_API_KEY?.trim())
-    const hasSolapiSecret = Boolean(process.env.SOLAPI_API_SECRET?.trim())
-    const adminRecipients = parseSolapiReceiverPhones()
-    const hasAdminRecipients = adminRecipients.length > 0
-    const hasSenderPhone = Boolean(process.env.SOLAPI_FROM_PHONE?.trim())
-    const smsEnvOk = hasSolapiKey && hasSolapiSecret && hasAdminRecipients && hasSenderPhone
-    if (!smsEnvOk) {
-      const missing: string[] = []
-      if (!hasSolapiKey) missing.push('SOLAPI_API_KEY')
-      if (!hasSolapiSecret) missing.push('SOLAPI_API_SECRET')
-      if (!hasAdminRecipients) missing.push('SOLAPI_ADMIN_PHONES')
-      if (!hasSenderPhone) missing.push('SOLAPI_FROM_PHONE')
-      console.warn('[booking sms] skipped: missing env', missing.join(', '))
-    } else {
-      console.log(
-        '[booking sms] start',
-        JSON.stringify({
-          bookingId: booking.id,
-          adminRecipientCount: adminRecipients.length,
-          senderDigitsLen: process.env.SOLAPI_FROM_PHONE!.replace(/\D/g, '').length,
-        })
-      )
-    }
 
-    try {
-      const alim = await sendBookingRequestReceivedAlimTalk(booking.id, {
-        customerPhone: intake.customerPhone,
+    await notifyBookingStyleIntakeAlerts({
+      bookingForSms: booking,
+      bookingForEmail: booking,
+      adminPayload,
+      customer: {
+        phone: intake.customerPhone,
         bookingNumber: booking.bookingNumber,
         productTitle: booking.productTitle,
-        selectedDate: selectedDateLabel,
+        selectedDateLabel,
         paxSummary,
-      })
-      if (!alim.ok && alim.shouldSendLmsFallback) {
-        const lms = await sendBookingRequestReceivedLmsFallback({
-          bookingId: booking.id,
-          customerPhone: intake.customerPhone,
-          productTitle: booking.productTitle,
-          selectedDate: selectedDateLabel,
-          paxSummary,
-        })
-        if (!lms.ok) {
-          console.error(
-            '[booking] customer_lms_failed',
-            JSON.stringify({ bookingId: booking.id, message: lms.message, detail: alim.detail })
-          )
-        }
-      }
-    } catch (e) {
-      console.error('[booking] customer_notification_exception', e, JSON.stringify({ bookingId: booking.id }))
-    }
-
-    if (smsEnvOk) {
-      try {
-        const r = await sendAdminNotificationWithPayload(booking, adminPayload)
-        if (r.ok) {
-          console.log('[booking sms] sent', JSON.stringify({ bookingId: booking.id }))
-        } else {
-          console.error(
-            '[booking sms] failed:',
-            r.code ?? r.message,
-            JSON.stringify({ bookingId: booking.id })
-          )
-        }
-      } catch (e) {
-        console.error('[booking sms] exception:', e, JSON.stringify({ bookingId: booking.id }))
-      }
-    }
-
-    try {
-      const sent = await sendBookingReceivedEmailToAdmin(booking, adminPayload)
-      if (sent) console.log('[booking email] sent', JSON.stringify({ bookingId: booking.id }))
-    } catch (e) {
-      console.error('[booking email] failed:', e, JSON.stringify({ bookingId: booking.id }))
-    }
+      },
+      log: { bookingId: booking.id, channel: 'booking' },
+    })
 
     const payload = {
       ok: true,

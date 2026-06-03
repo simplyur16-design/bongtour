@@ -1,22 +1,15 @@
 /**
- * travel_consult(홈·상품 상담 신청) 접수 알림 — 패키지 예약(`POST /api/bookings`)과 동일 Solapi·SMTP 템플릿.
+ * travel_consult(홈·상품 상담 신청) 접수 알림 — `POST /api/bookings` 와 동일 SSOT(`notifyBookingStyleIntakeAlerts`).
  */
 
 import type { AdminBookingAlertPayload } from '@/lib/booking-alert-payload'
-import { buildAdminBookingShortAlertLine } from '@/lib/booking-alert-payload'
-import {
-  buildBookingAdminEmailSubject,
-  buildBookingAdminEmailText,
-  bookingAdminNotificationRecipient,
-  logBookingSmtpEnvPresence,
-  type BookingRowForAdminEmail,
-} from '@/lib/booking-email'
+import { notifyBookingStyleIntakeAlerts } from '@/lib/booking-style-intake-notify'
+import type { BookingRowForAdminEmail } from '@/lib/booking-email'
 import { adminInquiryLmsHeadcountLine } from '@/lib/admin-inquiry-lms-content'
 import { parseInquiryPayloadJson } from '@/lib/inquiry-notification-format'
 import { getSiteOrigin } from '@/lib/site-metadata'
-import { sendAdminShortAlertSms, sendBookingRequestReceivedLmsFallback } from '@/lib/notification-service'
-import { sendBookingRequestReceivedAlimTalk } from '@/lib/solapi-alimtalk'
-import nodemailer from 'nodemailer'
+import type { BookingForAlert } from '@/lib/notification-service'
+import { sendInquiryCustomerAlimtalkOrLms } from '@/lib/inquiry-customer-notify'
 
 export type TravelInquiryNotifyRow = {
   id: string
@@ -76,24 +69,21 @@ export function buildBookingAlertPayloadFromTravelInquiry(
   }
 }
 
-function syntheticBookingRowForEmail(
+function syntheticBookingRows(
   row: TravelInquiryNotifyRow,
   productLabel: string,
   adminPayload: AdminBookingAlertPayload,
-): BookingRowForAdminEmail {
+): { bookingForEmail: BookingRowForAdminEmail; bookingForSms: BookingForAlert } {
   const dep = adminPayload.preferredOrSelectedDate
-  const selectedDate = dep && /^\d{4}-\d{2}-\d{2}$/.test(dep)
-    ? new Date(`${dep}T00:00:00.000Z`)
-    : row.createdAt
+  const selectedDate =
+    dep && /^\d{4}-\d{2}-\d{2}$/.test(dep) ? new Date(`${dep}T00:00:00.000Z`) : row.createdAt
 
-  return {
+  const base = {
     id: 0,
     bookingNumber: row.inquiryNumber,
     productId: row.productId ?? '',
     productTitle: productLabel,
     selectedDate,
-    createdAt: row.createdAt,
-    pricingMode: 'inquiry_travel_consult',
     adultCount: 0,
     childBedCount: 0,
     childNoBedCount: 0,
@@ -103,156 +93,94 @@ function syntheticBookingRowForEmail(
     localCurrency: 'KRW',
     customerName: row.applicantName,
     customerPhone: row.applicantPhone,
-    customerEmail: row.applicantEmail,
-    requestNotes: row.message,
-    preferredContactChannel: row.preferredContactChannel,
-    singleRoomRequested: false,
-    childInfantBirthDatesJson: null,
-    originSourceSnapshot: row.snapshotOriginSource,
-    originCodeSnapshot: null,
-    product: null,
-  }
-}
-
-function buildTravelInquiryAdminEmailText(
-  row: TravelInquiryNotifyRow,
-  booking: BookingRowForAdminEmail,
-  adminPayload: AdminBookingAlertPayload,
-): string {
-  const base = buildBookingAdminEmailText(booking, adminPayload)
-  const origin = getSiteOrigin()
-  const detailLink = origin
-    ? `${origin.replace(/\/$/, '')}/admin/inquiries/${row.id}`
-    : `/admin/inquiries/${row.id}`
-  return `${base}\n\n■ 문의 상세(통합 상담·예약)\n${detailLink}\n(접수 유형: 홈·상품 여행 상담 / CustomerInquiry)`
-}
-
-async function sendTravelInquiryBookingStyleAdminEmail(
-  row: TravelInquiryNotifyRow,
-  productLabel: string,
-  adminPayload: AdminBookingAlertPayload,
-): Promise<boolean> {
-  const host = process.env.SMTP_HOST?.trim()
-  const portRaw = process.env.SMTP_PORT?.trim()
-  const user = process.env.SMTP_USER?.trim()
-  const pass = process.env.SMTP_PASS?.trim()
-  const fromName = process.env.SMTP_FROM_NAME?.trim()
-  const fromEmail = process.env.SMTP_FROM_EMAIL?.trim()
-  const to = bookingAdminNotificationRecipient()
-  const secure = process.env.SMTP_SECURE === 'true'
-  const port = Number(portRaw || (secure ? 465 : 587))
-
-  const missing: string[] = []
-  if (!host) missing.push('SMTP_HOST')
-  if (!portRaw) missing.push('SMTP_PORT')
-  if (!user) missing.push('SMTP_USER')
-  if (!pass) missing.push('SMTP_PASS')
-  if (!fromName) missing.push('SMTP_FROM_NAME')
-  if (!fromEmail) missing.push('SMTP_FROM_EMAIL')
-  if (!to) missing.push('BOOKING_NOTIFICATION_EMAIL 또는 INQUIRY_NOTIFICATION_EMAIL')
-
-  if (missing.length) {
-    logBookingSmtpEnvPresence(console.warn)
-    console.warn('[inquiry-booking-aligned] admin_email_skipped', missing.join(', '))
-    return false
   }
 
-  const booking = syntheticBookingRowForEmail(row, productLabel, adminPayload)
-  const subject = buildBookingAdminEmailSubject(booking)
-  const text = buildTravelInquiryAdminEmailText(row, booking, adminPayload)
-  const html = `<pre style="font-family:system-ui,Segoe UI,sans-serif;font-size:14px;line-height:1.45;white-space:pre-wrap">${text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')}</pre>`
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: { user, pass },
-    ...(!secure && port === 587 ? { requireTLS: true as const } : {}),
-  })
-
-  const replyTo =
-    row.applicantEmail?.trim() && row.applicantEmail.includes('@')
-      ? row.applicantEmail.trim()
-      : undefined
-
-  await transporter.sendMail({
-    from: { name: fromName!, address: fromEmail! },
-    to: to!,
-    subject,
-    text,
-    html,
-    ...(replyTo ? { replyTo } : {}),
-  })
-  return true
+  return {
+    bookingForEmail: {
+      ...base,
+      createdAt: row.createdAt,
+      pricingMode: 'inquiry_travel_consult',
+      customerEmail: row.applicantEmail,
+      requestNotes: row.message,
+      preferredContactChannel: row.preferredContactChannel,
+      singleRoomRequested: false,
+      childInfantBirthDatesJson: null,
+      originSourceSnapshot: row.snapshotOriginSource,
+      originCodeSnapshot: null,
+      product: null,
+    },
+    bookingForSms: { ...base, product: null },
+  }
 }
 
 export type TravelInquiryBookingAlignedNotifyResult = {
   emailOk: boolean
   adminSms: { skipped: boolean; ok: boolean }
+  /** 알림톡(ATA)만 — LMS 폴백 성공과 구분 */
   customerAlimtalkOk: boolean
+  customerLmsOk: boolean
+  customerLmsSkipped: boolean
+  noRegisteredAlimtalkTemplate: boolean
 }
 
-/** `travel_consult` — 예약 접수와 동일 알림톡·LMS·관리자 문자·관리자 메일 */
+/** `travel_consult` — 고객 알림톡 4종 해당 없으면 LMS만; 관리자는 예약과 동일 문자·메일 */
 export async function notifyTravelConsultInquiryBookingAligned(
   row: TravelInquiryNotifyRow,
   productLabel: string,
 ): Promise<TravelInquiryBookingAlignedNotifyResult> {
   const adminPayload = buildBookingAlertPayloadFromTravelInquiry(row, productLabel)
-  const paxSummary = adminPayload.paxSummary
-  const selectedDateLabel = adminPayload.preferredOrSelectedDate?.trim() || '협의'
+  const { bookingForEmail, bookingForSms } = syntheticBookingRows(row, productLabel, adminPayload)
+  const origin = getSiteOrigin()
+  const detailLink = origin
+    ? `${origin.replace(/\/$/, '')}/admin/inquiries/${row.id}`
+    : `/admin/inquiries/${row.id}`
+  const emailAppendix = [
+    '■ 문의 상세(통합 상담·예약)',
+    detailLink,
+    '(접수 유형: 홈·상품 여행 상담 / CustomerInquiry)',
+  ].join('\n')
 
-  let emailOk = false
-  try {
-    emailOk = await sendTravelInquiryBookingStyleAdminEmail(row, productLabel, adminPayload)
-  } catch (e) {
-    console.error(
-      '[inquiry-booking-aligned] admin_email_failed',
-      JSON.stringify({
-        inquiryId: row.id,
-        error: e instanceof Error ? e.message.slice(0, 500) : String(e),
-      }),
-    )
-  }
+  const travelConsultProductTitle = row.snapshotProductTitle?.trim() || productLabel
 
-  const adminSmsText = buildAdminBookingShortAlertLine(adminPayload)
-  const adminSms = await sendAdminShortAlertSms(adminSmsText, { inquiryId: row.id, channel: 'booking_aligned' })
-
-  let customerAlimtalkOk = false
-  const alim = await sendBookingRequestReceivedAlimTalk(0, {
-    customerPhone: row.applicantPhone,
-    bookingNumber: row.inquiryNumber,
-    productTitle: productLabel,
-    selectedDate: selectedDateLabel,
-    paxSummary,
+  const customerNotify = await sendInquiryCustomerAlimtalkOrLms({
+    inquiryId: row.id,
+    inquiryType: row.inquiryType,
+    applicantName: row.applicantName,
+    applicantPhone: row.applicantPhone,
+    payloadJson: row.payloadJson,
+    productLabel,
+    travelConsultProductTitle,
+    snapshotCardLabel: row.snapshotCardLabel,
   })
-  if (alim.ok) {
-    customerAlimtalkOk = true
-  } else if (alim.shouldSendLmsFallback) {
-    const lms = await sendBookingRequestReceivedLmsFallback({
-      bookingId: 0,
-      customerPhone: row.applicantPhone,
+  const {
+    customerAlimtalkOk,
+    customerLmsOk,
+    customerLmsSkipped,
+    noRegisteredAlimtalkTemplate,
+  } = customerNotify
+
+  const r = await notifyBookingStyleIntakeAlerts({
+    bookingForSms,
+    bookingForEmail,
+    adminPayload,
+    customer: {
+      phone: row.applicantPhone,
+      bookingNumber: row.inquiryNumber,
       productTitle: productLabel,
-      selectedDate: selectedDateLabel,
-      paxSummary,
-    })
-    customerAlimtalkOk = lms.ok
-    if (!lms.ok) {
-      console.error(
-        '[inquiry-booking-aligned] customer_lms_failed',
-        JSON.stringify({ inquiryId: row.id, message: lms.message }),
-      )
-    }
-  }
+      selectedDateLabel: adminPayload.preferredOrSelectedDate?.trim() || '협의',
+      paxSummary: adminPayload.paxSummary,
+    },
+    emailAppendix,
+    skipCustomerNotify: true,
+    log: { inquiryId: row.id, channel: 'travel_consult' },
+  })
 
   return {
-    emailOk,
-    adminSms: {
-      skipped: adminSms.skipped,
-      ok: !adminSms.skipped && adminSms.failed.length === 0 && adminSms.succeeded.length > 0,
-    },
+    emailOk: r.emailOk,
+    adminSms: r.adminSms,
     customerAlimtalkOk,
+    customerLmsOk,
+    customerLmsSkipped,
+    noRegisteredAlimtalkTemplate,
   }
 }

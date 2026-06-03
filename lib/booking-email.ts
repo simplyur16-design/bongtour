@@ -234,7 +234,8 @@ export function buildBookingAdminEmailText(
  */
 export async function sendBookingReceivedEmailToAdmin(
   booking: BookingRowForAdminEmail,
-  adminPayload: AdminBookingAlertPayload
+  adminPayload: AdminBookingAlertPayload,
+  emailAppendix?: string,
 ): Promise<boolean> {
   const host = process.env.SMTP_HOST?.trim()
   const portRaw = process.env.SMTP_PORT?.trim()
@@ -263,7 +264,8 @@ export async function sendBookingReceivedEmailToAdmin(
   }
 
   const subject = buildBookingAdminEmailSubject(booking)
-  const text = buildBookingAdminEmailText(booking, adminPayload)
+  const appendix = emailAppendix?.trim() ? `\n\n${emailAppendix.trim()}` : ''
+  const text = buildBookingAdminEmailText(booking, adminPayload) + appendix
   const html = `<pre style="font-family:system-ui,Segoe UI,sans-serif;font-size:14px;line-height:1.45;white-space:pre-wrap">${escapeHtml(text)}</pre>`
 
   const customerReply = booking.customerEmail?.trim() ?? ''
