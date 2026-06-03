@@ -480,6 +480,9 @@ model Booking {
   privacyAgreed             Boolean? // 개인정보 수집·이용 동의
   privacyNoticeVersion      String? // 동의 시점 약관 버전
   privacyAgreedAt           DateTime? // 동의 시각
+  marketingConsent          Boolean   @default(false)
+  marketingConsentAt        DateTime?
+  marketingConsentVersion   String?
   requestNotes              String?
   preferredContactChannel   String? // phone | kakao | email
   singleRoomRequested       Boolean @default(false)
@@ -814,6 +817,9 @@ model CustomerInquiry {
   privacyAgreed            Boolean   @default(false)
   privacyNoticeConfirmedAt DateTime?
   privacyNoticeVersion     String?
+  marketingConsent         Boolean   @default(false)
+  marketingConsentAt       DateTime?
+  marketingConsentVersion  String?
   preferredContactChannel  String? // email | kakao | both
   selectedServiceType      String?
   emailSentAt              DateTime?
