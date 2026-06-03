@@ -18,7 +18,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { createClient } from '@supabase/supabase-js'
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
-import { PrismaClient } from '../prisma-gen-runtime/index.js'
+import { PrismaClient } from '@prisma/client'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')

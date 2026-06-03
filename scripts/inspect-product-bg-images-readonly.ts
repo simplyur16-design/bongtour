@@ -3,7 +3,7 @@
  * 실행: npx tsx scripts/inspect-product-bg-images-readonly.ts
  */
 import './load-env-for-scripts'
-import { PrismaClient } from '../prisma-gen-runtime'
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 

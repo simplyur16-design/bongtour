@@ -57,7 +57,7 @@ export async function GET(request: Request) {
       hasPrisma: Boolean(prisma),
       modelKeyCount: modelKeys.length,
       modelKeysSample: modelKeys.slice(0, 25),
-      hint: 'Run `npx prisma generate`, ensure schema includes MonthlyCurationItem, restart `next dev`. If persist, verify next.config server alias `@prisma/client` -> prisma-gen-runtime.',
+      hint: 'Run `npx prisma generate`, ensure schema includes MonthlyCurationItem, restart `next dev`.',
     })
     return jsonWithLeakGuard(
       {

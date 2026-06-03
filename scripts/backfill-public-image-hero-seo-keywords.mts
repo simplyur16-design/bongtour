@@ -35,7 +35,7 @@ function loadEnvLocal() {
 }
 loadEnvLocal()
 
-import { PrismaClient } from '../prisma-gen-runtime/index.js'
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 import heroSeoBackfill from '../lib/backfill-product-public-image-hero-seo-keywords'

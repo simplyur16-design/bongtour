@@ -2,7 +2,7 @@
  * 페이지별 OG 이미지 — Prisma `page_og_images` + Supabase Storage (`page-og/…`).
  */
 
-import type { PageOgImage } from '../prisma-gen-runtime'
+import type { PageOgImage } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { isObjectStorageConfigured, removeStorageObject, tryParseObjectKeyFromPublicUrl } from '@/lib/object-storage'
 

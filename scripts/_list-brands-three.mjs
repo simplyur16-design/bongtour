@@ -1,4 +1,4 @@
-import { PrismaClient } from '../prisma-gen-runtime/index.js'
+import { PrismaClient } from '@prisma/client'
 const p = new PrismaClient()
 const rows = await p.brand.findMany({
   where: { brandKey: { in: ['verygoodtour', 'modetour', 'ybtour'] } },

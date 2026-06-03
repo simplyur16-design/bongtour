@@ -1,5 +1,5 @@
 import dotenv from 'dotenv'
-import { PrismaClient } from '../prisma-gen-runtime/index.js'
+import { PrismaClient } from '@prisma/client'
 dotenv.config()
 dotenv.config({ path: '.env.local', override: true })
 

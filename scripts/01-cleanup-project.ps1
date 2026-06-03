@@ -170,7 +170,7 @@ Write-Host "`n=== [3/4] gitignored 폴더 정리 ===" -ForegroundColor Cyan
 Write-Host "   (npm install 또는 prisma generate 하면 다시 생성됩니다)" -ForegroundColor Gray
 
 $gitignoredFolders = @(
-    @{ Path = "prisma-gen-runtime"; Reason = "Prisma 생성물 (gitignored, prisma generate로 재생성)" },
+    @{ Path = "node_modules/.prisma"; Reason = "Prisma Client 생성 캐시 (npm install / prisma generate로 재생성)" },
     @{ Path = "prisma-gen"; Reason = "Prisma 생성물 (gitignored)" },
     @{ Path = "debug\hanatour"; Reason = "디버그 덤프 (gitignored)" }
 )

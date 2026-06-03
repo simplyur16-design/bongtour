@@ -1,5 +1,5 @@
 /** [modetour] register-admin-analysis-store — 스택: docs/ops/modetour-admin-register-stack.md */
-import type { PrismaClient } from '../prisma-gen-runtime'
+import type { PrismaClient } from '@prisma/client'
 import {
   REGISTER_ADMIN_ANALYSIS_STATUS,
   REGISTER_ADMIN_SNAPSHOT_STATUS,

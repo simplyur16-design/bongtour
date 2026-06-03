@@ -184,12 +184,6 @@ const nextConfig = {
       config.resolve.alias = {
         ...config.resolve.alias,
         '@google/generative-ai': path.resolve(__dirname, 'node_modules/@google/generative-ai/dist/index.js'),
-        /**
-         * Prisma `generator output = "../prisma-gen-runtime"` — TS paths만으로는 번들러가
-         * `node_modules/@prisma/client`(구버전/스텁)를 잡는 경우가 있어 delegate 누락(undefined)이 난다.
-         * 서버 번들에서 항상 생성 산출물을 쓰도록 고정.
-         */
-        '@prisma/client': path.resolve(__dirname, 'prisma-gen-runtime'),
       }
     }
     return config

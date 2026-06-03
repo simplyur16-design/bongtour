@@ -17,16 +17,13 @@ function ensureBaseConfig() {
   if (!/provider\s*=\s*"(?:sqlite|postgresql)"/.test(schema)) {
     fail('schema datasource provider must be sqlite or postgresql')
   }
-  if (!/output\s*=\s*"\.\.\/prisma-gen-runtime"/.test(schema)) {
-    fail('schema generator output must be ../prisma-gen-runtime')
+  if (/output\s*=\s*"\.\.\/prisma-gen-runtime"/.test(schema)) {
+    fail('schema generator must use default output (remove prisma-gen-runtime output line)')
   }
 
   const tsconfig = read('tsconfig.json')
-  if (!/"@prisma\/client"\s*:\s*\["\.\/prisma-gen-runtime"\]/.test(tsconfig)) {
-    fail('tsconfig path alias @prisma/client must point to ./prisma-gen-runtime')
-  }
-  if (!/"@prisma\/client\/\*"\s*:\s*\["\.\/prisma-gen-runtime\/\*"\]/.test(tsconfig)) {
-    fail('tsconfig path alias @prisma/client/* must point to ./prisma-gen-runtime/*')
+  if (/"@prisma\/client"\s*:\s*\["\.\/prisma-gen-runtime"\]/.test(tsconfig)) {
+    fail('tsconfig must not alias @prisma/client to ./prisma-gen-runtime')
   }
 
   const prismaSingleton = read('lib/prisma.ts')
@@ -35,6 +32,9 @@ function ensureBaseConfig() {
   }
   if (!/new PrismaClient\(/.test(prismaSingleton)) {
     fail('lib/prisma.ts must construct PrismaClient (plain options allowed; no Accelerate)')
+  }
+  if (!/from ['"]@prisma\/client['"]/.test(prismaSingleton)) {
+    fail('lib/prisma.ts must import PrismaClient from @prisma/client')
   }
 }
 
@@ -59,6 +59,7 @@ function ensureNoBannedPatterns() {
   collectFiles(root, files)
   for (const rel of files) {
     if (rel === 'scripts/verify-prisma-runtime-policy.ts') continue
+    if (rel.startsWith('.tmp')) continue
     const text = read(rel)
     if (text.includes('withAccelerate(')) {
       fail(`withAccelerate() is forbidden in runtime policy: ${rel}`)
@@ -68,6 +69,9 @@ function ensureNoBannedPatterns() {
     }
     if (/(^|[/"'\\])prisma-gen([/"'\\]|$)/.test(text)) {
       fail(`legacy prisma-gen reference detected: ${rel}`)
+    }
+    if (text.includes('prisma-gen-runtime')) {
+      fail(`prisma-gen-runtime reference detected (use @prisma/client): ${rel}`)
     }
   }
 }

@@ -14,14 +14,13 @@
 // - Destination, DestinationGalleryCache, Brand: 여행지·갤러리·브랜드
 // - CustomerInquiry: 공통 문의 접수 (inquiryType/status/leadTimeRisk String, payloadJson 확장)
 // - MonthlyCurationItem: 월별 큐레이션 카드 1행=1카드 (부모 테이블 없음, linkedProductId 선택)
-// - 클라이언트 생성: output = "../prisma-gen-runtime" (Windows lock 회피)
+// - 클라이언트 생성: 기본 output (node_modules/.prisma/client)
 // - BongSpot 자동 광고 v1: BongSpot·SeasonalNote·Food·Tip·Campaign·Drafts(BongDraftReviewStatus)·소셜 포스트 (마이그레이션 add_bong_marketing_v1)
 // =============================================================================
 
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
-  output        = "../prisma-gen-runtime"
 }
 
 // 프로덕션 DATABASE_URL: pgbouncer 권장. connection_limit은 lib/prisma.ts에서 기본 5로 보강(빌드 SSG 동시 연결 제한).

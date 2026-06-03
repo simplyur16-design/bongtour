@@ -15,7 +15,7 @@
 |------|---------|
 | `provider` | `sqlite` |
 | `url` | `env("DATABASE_URL")` |
-| `generator output` | `../prisma-gen-runtime` (마이그레이션과 무관, 클라이언트 생성 경로) |
+| `generator output` | 기본값 `node_modules/.prisma/client` |
 
 ### 0-2. 모델 수·공통 패턴
 

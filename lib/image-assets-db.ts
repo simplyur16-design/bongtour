@@ -4,7 +4,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import type { ImageAsset as ImageAssetModel } from '../prisma-gen-runtime'
+import type { ImageAsset as ImageAssetModel } from '@prisma/client'
 
 export const IMAGE_ASSETS_TABLE = 'image_assets' as const
 
