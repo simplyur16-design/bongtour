@@ -90,6 +90,10 @@ export async function register() {
           '@/lib/instrumentation-sync-bookable-derived-cron'
         )
         startInstrumentationSyncBookableDerivedCron()
+        const { startInstrumentationProductDetailPayloadCron } = await import(
+          '@/lib/instrumentation-product-detail-payload-cron'
+        )
+        startInstrumentationProductDetailPayloadCron()
       }
     }
   }
