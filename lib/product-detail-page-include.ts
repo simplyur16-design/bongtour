@@ -182,6 +182,28 @@ export type ProductDetailPageRow = Prisma.ProductGetPayload<{
   select: ReturnType<typeof buildProductDetailPageSelect>
 }>
 
+/** `publicDetailPayloadJson` DTO hit 시 — relation·rawMeta·schedule·출발 100건 제외 */
+export function buildProductDetailSlimSelect() {
+  return {
+    id: true,
+    registrationStatus: true,
+    productType: true,
+    slug: true,
+    publicDetailPayloadJson: true,
+    publicDetailPayloadBuiltAt: true,
+  } satisfies Prisma.ProductSelect
+}
+
+export type ProductDetailSlimRow = Prisma.ProductGetPayload<{
+  select: ReturnType<typeof buildProductDetailSlimSelect>
+}>
+
+export type ProductDetailPageLoadRow = ProductDetailPageRow | ProductDetailSlimRow
+
+export function isProductDetailSlimRow(row: ProductDetailPageLoadRow): row is ProductDetailSlimRow {
+  return !('departures' in row) && !('rawMeta' in row)
+}
+
 /**
  * @deprecated `buildProductDetailPageSelect()` — `include`는 Product 전 컬럼을 로드함.
  * 관계 필터만 동일; 스칼라 push-down 없음.

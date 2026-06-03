@@ -9,6 +9,7 @@ import {
 } from '@/lib/product-detail-card-preview'
 import { isMobileUserAgent } from '@/lib/product-detail-viewport-from-ua'
 import ProductDetailInstantFromCard from '@/components/products/ProductDetailInstantFromCard'
+import ProductDetailPageSkeleton from '@/components/products/ProductDetailPageSkeleton'
 import {
   ProductDetailTransitionProvider,
   useProductDetailTransition,
@@ -47,6 +48,8 @@ function ProductDetailTransitionShellInner({
     }
   }, [serverReady, preview])
 
+  const showSkeleton = !serverReady && !showCardOverlay
+
   return (
     <>
       {showCardOverlay && preview ? (
@@ -54,8 +57,15 @@ function ProductDetailTransitionShellInner({
           <ProductDetailInstantFromCard preview={preview} isMobile={isMobileUa} />
         </div>
       ) : null}
-      {/* invisible 대신 hidden — 부분 스트림 높이로 스크롤 튐 방지 */}
-      <div className={serverReady ? undefined : 'hidden'}>{children}</div>
+      <div className="relative min-h-[72vh]">
+        {showSkeleton ? (
+          <div className="pointer-events-none absolute inset-0 z-[5]">
+            <ProductDetailPageSkeleton />
+          </div>
+        ) : null}
+        {/* hidden 제거 — 서버 HTML 즉시 노출, 스켈레톤은 hydration 전 보조 */}
+        <div className="relative z-[1]">{children}</div>
+      </div>
     </>
   )
 }

@@ -2,7 +2,13 @@ import { unstable_cache } from 'next/cache'
 import { cache as reactCache } from 'react'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import { buildProductDetailPageSelect } from '@/lib/product-detail-page-include'
+import {
+  buildProductDetailPageSelect,
+  type ProductDetailPageLoadRow,
+  type ProductDetailPageRow,
+} from '@/lib/product-detail-page-include'
+import type { ProductDetailSelectKind } from '@/lib/product-detail-perf'
+import { loadProductDetailRowSmartPublic } from '@/lib/product-detail-smart-load'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { resolveProductByPathSegment } from '@/lib/resolve-product-by-path-segment'
 
@@ -17,6 +23,11 @@ const PRODUCT_METADATA_SELECT = {
   registrationStatus: true,
   itineraries: { orderBy: { day: 'asc' as const }, select: { day: true, description: true } },
 } as const
+
+export type ProductDetailCachedLoad = {
+  row: ProductDetailPageLoadRow | null
+  selectKind: ProductDetailSelectKind
+}
 
 /** PERF-LOG: unstable_cache MISS 시 true (HIT이면 callback 미실행) */
 let productDetailUnstableCacheMiss: boolean | null = null
@@ -53,7 +64,10 @@ export const loadProductForMetadataCached = reactCache(async (productId: string)
   return p
 })
 
-async function loadProductDetailRowFresh(productId: string, allowAdminDraftFallback: boolean) {
+async function loadProductDetailRowFull(
+  productId: string,
+  allowAdminDraftFallback: boolean,
+): Promise<ProductDetailPageRow | null> {
   let row = await prisma.product.findFirst({
     where: {
       id: productId,
@@ -71,26 +85,29 @@ async function loadProductDetailRowFresh(productId: string, allowAdminDraftFallb
   return row
 }
 
-function loadProductDetailRowCachedPublic(productId: string) {
+function loadProductDetailRowCachedPublic(productId: string): Promise<ProductDetailCachedLoad> {
   return unstable_cache(
     () => {
       productDetailUnstableCacheMiss = true
-      return loadProductDetailRowFresh(productId, false)
+      return loadProductDetailRowSmartPublic(productId)
     },
-    ['product-detail-public-v2', productId],
+    ['product-detail-public-v3', productId],
     { revalidate: 3600, tags: [`product-detail-${productId}`, 'product-detail'] },
   )()
 }
 
-export const loadProductDetailRowCached = reactCache(async (productId: string, allowAdminDraftFallback: boolean) => {
-  productDetailUnstableCacheMiss = null
-  if (allowAdminDraftFallback) {
-    productDetailUnstableCacheMiss = true
-    return loadProductDetailRowFresh(productId, true)
-  }
-  const row = await loadProductDetailRowCachedPublic(productId)
-  if (productDetailUnstableCacheMiss === null) {
-    productDetailUnstableCacheMiss = false
-  }
-  return row
-})
+export const loadProductDetailRowCached = reactCache(
+  async (productId: string, allowAdminDraftFallback: boolean): Promise<ProductDetailCachedLoad> => {
+    productDetailUnstableCacheMiss = null
+    if (allowAdminDraftFallback) {
+      productDetailUnstableCacheMiss = true
+      const row = await loadProductDetailRowFull(productId, true)
+      return { row, selectKind: 'draft' }
+    }
+    const loaded = await loadProductDetailRowCachedPublic(productId)
+    if (productDetailUnstableCacheMiss === null) {
+      productDetailUnstableCacheMiss = false
+    }
+    return loaded
+  },
+)

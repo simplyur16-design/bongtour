@@ -1,3 +1,4 @@
+import type { ProductDetailPageLoadRow } from '@/lib/product-detail-page-include'
 import {
   buildProductPublicDetailRenderModel,
   type FitMasterWithDays,
@@ -14,15 +15,10 @@ export async function ProductDetailView({
   fitMaster,
   isMobile,
 }: {
-  travelProduct: ProductDetailViewRow
+  travelProduct: ProductDetailPageLoadRow
   fitMaster: FitMasterWithDays | null
   isMobile: boolean
 }) {
-  const { model, source } = await getOrBuildProductPublicDetailModel(travelProduct, fitMaster)
-
-  if (process.env.BONGTOUR_PERF_LOG === '1') {
-    console.log(`[product-detail-perf] payload=${source} productId=${travelProduct.id}`)
-  }
-
+  const { model } = await getOrBuildProductPublicDetailModel(travelProduct, fitMaster)
   return renderProductDetailFromModel(model, travelProduct, isMobile)
 }

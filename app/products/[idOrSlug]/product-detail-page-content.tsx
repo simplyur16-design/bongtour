@@ -10,6 +10,12 @@ import {
 import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
 import { runWithQueryLogScope } from '@/lib/prisma-query-log'
 import { isMobileUserAgent } from '@/lib/product-detail-viewport-from-ua'
+import {
+  consumeProductDetailPerf,
+  isProductDetailPerfLogEnabled,
+  patchProductDetailPerf,
+  resetProductDetailPerf,
+} from '@/lib/product-detail-perf'
 import ProductDetailServerReadySignal from '@/components/products/ProductDetailServerReadySignal'
 
 const FIT_ITINERARY_MASTER_DETAIL_INCLUDE = {
@@ -38,12 +44,13 @@ export async function ProductDetailPageContent({ idOrSlug }: { idOrSlug: string 
 }
 
 async function productDetailPageInner(idOrSlug: string) {
-  const perfPage = process.env.BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
-  const t0 = perfPage ? Date.now() : 0 // PERF-LOG: 측정 후 제거
+  const perfPage = isProductDetailPerfLogEnabled()
+  if (perfPage) resetProductDetailPerf()
+  const t0 = perfPage ? Date.now() : 0
 
-  const tResolved = perfPage ? Date.now() : 0 // PERF-LOG: 측정 후 제거
+  const tResolved = perfPage ? Date.now() : 0
   const { resolved, allowAdminDraft } = await resolveProductPageAccess(idOrSlug)
-  const resolveMs = perfPage ? Date.now() - tResolved : 0 // PERF-LOG: 측정 후 제거
+  const resolveMs = perfPage ? Date.now() - tResolved : 0
 
   if (allowAdminDraft) await connection()
 
@@ -56,30 +63,28 @@ async function productDetailPageInner(idOrSlug: string) {
 
   const productId = resolved.productId
 
-  const tProduct = perfPage ? Date.now() : 0 // PERF-LOG: 측정 후 제거
-  const [travelProduct, fitMaster] = await Promise.all([
-    loadProductDetailRowCached(productId, allowAdminDraft),
-    loadFitItineraryMasterForProduct(productId, resolved.productType),
-  ])
-  const productMs = perfPage ? Date.now() - tProduct : 0 // PERF-LOG: 측정 후 제거
+  const tProduct = perfPage ? Date.now() : 0
+  const { row: travelProduct, selectKind } = await loadProductDetailRowCached(productId, allowAdminDraft)
+  const productMs = perfPage ? Date.now() - tProduct : 0
 
   if (perfPage) {
-    const cacheMiss = consumeProductDetailUnstableCacheMiss()
-    const cacheLabel =
-      allowAdminDraft ? 'draft-fresh' : cacheMiss === true ? 'miss' : cacheMiss === false ? 'hit' : 'unknown'
-    console.log(
-      `[product-detail-perf] slug=${idOrSlug} resolve=${resolveMs}ms product+fit=${productMs}ms total=${Date.now() - t0}ms cache=${cacheLabel}`,
-    ) // PERF-LOG: 측정 후 제거
+    patchProductDetailPerf({ selectKind })
   }
 
   if (!travelProduct) {
     notFound()
   }
 
+  const skipFitForPayloadDto = selectKind === 'slim'
+  const fitMaster = skipFitForPayloadDto
+    ? null
+    : await loadFitItineraryMasterForProduct(productId, resolved.productType)
+
   const userAgent = (await headers()).get('user-agent')
   const isMobile = isMobileUserAgent(userAgent)
 
-  return (
+  const tView = perfPage ? Date.now() : 0
+  const view = (
     <>
       <ProductDetailView
         travelProduct={travelProduct}
@@ -89,4 +94,18 @@ async function productDetailPageInner(idOrSlug: string) {
       <ProductDetailServerReadySignal productId={productId} />
     </>
   )
+  const viewMs = perfPage ? Date.now() - tView : 0
+
+  if (perfPage) {
+    patchProductDetailPerf({ viewMs })
+    const cacheMiss = consumeProductDetailUnstableCacheMiss()
+    const cacheLabel =
+      allowAdminDraft ? 'draft-fresh' : cacheMiss === true ? 'miss' : cacheMiss === false ? 'hit' : 'unknown'
+    const snap = consumeProductDetailPerf()
+    console.log(
+      `[product-detail-perf] slug=${idOrSlug} resolve=${resolveMs}ms product+fit=${productMs}ms view=${viewMs}ms total=${Date.now() - t0}ms cache=${cacheLabel} selectKind=${snap?.selectKind ?? selectKind} payload=${snap?.payloadSource ?? 'n/a'} parseMs=${snap?.parseMs ?? 'n/a'} payloadBytes=${snap?.payloadBytes ?? 0}`,
+    )
+  }
+
+  return view
 }
