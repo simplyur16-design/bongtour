@@ -71,7 +71,7 @@ export default function AgentCard({
       transition={{ duration: 0.35 }}
       className={`group overflow-hidden ${shell}`}
     >
-      <Link href={`/products/${product.id}`} className="block">
+      <Link href={`/products/${product.id}`} prefetch={false} className="block">
         <div className="relative overflow-hidden bg-bt-surface-alt">
           <ul className="flex snap-x snap-mandatory overflow-x-auto gap-px">
             {imageSet.map((url, idx) => (

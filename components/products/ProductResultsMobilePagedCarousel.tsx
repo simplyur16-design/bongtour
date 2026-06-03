@@ -64,17 +64,22 @@ export default function ProductResultsMobilePagedCarousel({
         className="flex gap-2.5 overflow-x-auto overscroll-x-contain pb-2 pt-0.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden -mx-0.5 px-0.5"
         aria-label={ariaLabel}
       >
-        {pages.map((page, pageIndex) => (
-          <div
-            key={`page-${pageIndex}`}
-            data-product-page={pageIndex}
-            className="w-[calc(100%-1.25rem)] max-w-[22.5rem] shrink-0 snap-start"
-          >
-            <ul className="grid grid-cols-2 gap-2.5" role="list">
-              {page}
-            </ul>
-          </div>
-        ))}
+        {pages.map((page, pageIndex) => {
+          const pageClass = 'w-[calc(100%-1.25rem)] max-w-[22.5rem] shrink-0 snap-start'
+          const mountNeighbors =
+            pages.length <= 2 ||
+            (pageIndex >= Math.max(0, activePage - 1) && pageIndex <= Math.min(pages.length - 1, activePage + 1))
+          if (!mountNeighbors) {
+            return <div key={`page-spacer-${pageIndex}`} className={pageClass} aria-hidden />
+          }
+          return (
+            <div key={`page-${pageIndex}`} data-product-page={pageIndex} className={pageClass}>
+              <ul className="grid grid-cols-2 gap-2.5" role="list">
+                {page}
+              </ul>
+            </div>
+          )
+        })}
       </div>
       {pages.length > 1 ? (
         <div className="mt-2 flex justify-center gap-1.5" aria-hidden>

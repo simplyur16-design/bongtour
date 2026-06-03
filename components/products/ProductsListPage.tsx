@@ -176,6 +176,7 @@ export default function ProductsListPage() {
             <li key={item.id}>
               <Link
                 href={`/products/${item.id}`}
+                prefetch={false}
                 className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md"
               >
                 <div className="relative aspect-[16/10] w-full bg-slate-100">

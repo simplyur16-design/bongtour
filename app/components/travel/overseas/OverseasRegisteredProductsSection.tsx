@@ -72,6 +72,7 @@ export default async function OverseasRegisteredProductsSection() {
                     >
                       <Link
                         href={`/products/${item.id}`}
+                        prefetch={false}
                         className="group flex h-full flex-col overflow-hidden rounded-xl border border-bt-border bg-white shadow-sm transition hover:border-bt-accent/40 hover:shadow-md"
                       >
                         <div className="relative aspect-[16/10] w-full bg-bt-surface">

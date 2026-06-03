@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 import SafeImage from '@/app/components/SafeImage'
 import { formatCmsSourceLine, toSafePublicUrlOrPath } from '@/lib/cms-source-attribution'
 import { prisma } from '@/lib/prisma'
@@ -121,7 +122,11 @@ export default async function OverseasManagedContent({
                       <p className="mt-2 text-[11px] leading-relaxed text-bt-subtle">{sourceLine}</p>
                     ) : null}
                     {href && (
-                      <Link href={href} className="mt-4 inline-block text-sm font-medium text-bt-link hover:text-bt-link-hover hover:underline">
+                      <Link
+                        href={href}
+                        prefetch={prefetchPropForHref(href)}
+                        className="mt-4 inline-block text-sm font-medium text-bt-link hover:text-bt-link-hover hover:underline"
+                      >
                         {item.ctaLabel || '자세히 보기'}
                       </Link>
                     )}

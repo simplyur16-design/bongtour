@@ -8,16 +8,9 @@ import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { User } from 'lucide-react'
 
-const INQUIRY_HREF = '/inquiry?type=travel'
+import { shouldPrefetchNextLink } from '@/lib/route-prefetch-policy'
 
-/** 무거운 RSC·browse API 라우트 — viewport prefetch로 전환 지연 유발 방지 */
-const HEAVY_NAV_PREFETCH_OFF = new Set([
-  '/travel/overseas',
-  '/travel/air-hotel',
-  '/travel/esim',
-  '/travel/overseas/private-trip',
-  '/business',
-])
+const INQUIRY_HREF = '/inquiry?type=travel'
 
 /**
  * 메모리 #28 — 메인 IA 5메뉴.
@@ -129,7 +122,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
           <nav className="mx-auto hidden min-w-0 flex-1 items-center justify-center gap-5 xl:gap-6 lg:flex" aria-label="주요 메뉴">
             {MAIN_NAV.map((item) => {
               const active = isMainNavActive(pathname, item.href)
-              const prefetch = !HEAVY_NAV_PREFETCH_OFF.has(item.href)
+              const prefetch = shouldPrefetchNextLink(item.href)
               return (
                 <Link
                   key={item.href}
@@ -240,7 +233,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
             {MAIN_NAV.map((item) => {
               const active = isMainNavActive(pathname, item.href)
               const mobileText = item.mobileLabel ?? item.label
-              const prefetch = !HEAVY_NAV_PREFETCH_OFF.has(item.href)
+              const prefetch = shouldPrefetchNextLink(item.href)
               return (
                 <Link
                   key={item.href}

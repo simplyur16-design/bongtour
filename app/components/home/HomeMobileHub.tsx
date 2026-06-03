@@ -15,6 +15,7 @@ import { HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS } from '@/lib/home-hub-four-accent
 import { getCachedSeasonCurationNextThreeMonthsSlides } from '@/lib/season-curation-content'
 import { getCachedSeasonLinkedProductItemsForMobile } from '@/lib/season-linked-products-mobile-data'
 import { normalizeHomeSeasonSlidesForClient } from '@/lib/home-season-pick-shared'
+import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 
 const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
@@ -85,7 +86,7 @@ export default async function HomeMobileHub() {
               <li key={t.href} className="min-w-0">
                 <Link
                   href={t.href}
-                  prefetch={t.href !== '/travel/overseas/private-trip'}
+                  prefetch={prefetchPropForHref(t.href)}
                   aria-label={aria}
                   className={`group relative flex min-h-[11.5rem] flex-col overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-sm active:scale-[0.99] ${HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS}`}
                 >
@@ -148,6 +149,7 @@ export default async function HomeMobileHub() {
               <Link
                 key={a.href}
                 href={a.href}
+                prefetch={prefetchPropForHref(a.href)}
                 className="inline-flex w-full min-h-[3.25rem] shrink-0 items-center justify-center rounded-xl bg-bt-text-navy px-5 py-3.5 text-center text-base font-bold text-white shadow-md ring-2 ring-bt-text-navy/20 transition hover:opacity-95 active:scale-[0.99] sm:w-auto sm:min-w-[10.5rem]"
               >
                 {a.label}
@@ -156,6 +158,7 @@ export default async function HomeMobileHub() {
               <Link
                 key={a.href}
                 href={a.href}
+                prefetch={prefetchPropForHref(a.href)}
                 className="inline-flex w-full min-h-[3.25rem] shrink-0 items-center justify-center rounded-xl border-2 border-bt-bg-lavender bg-bt-bg-lavender-soft px-5 py-3.5 text-center text-base font-bold text-bt-text-navy shadow-sm transition hover:border-bt-text-navy/25 hover:bg-white active:scale-[0.99] sm:w-auto sm:min-w-[9.5rem]"
               >
                 {a.label}

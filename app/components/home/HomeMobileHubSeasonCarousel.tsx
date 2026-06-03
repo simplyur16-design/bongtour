@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeHomeSeasonSlidesForClient, type HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
 import { devWarnMobileHome } from '@/lib/mobile-home-dev-log'
+import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 
 const AUTO_MS = 5200
 const PAUSE_AFTER_INTERACTION_MS = 12000
@@ -27,7 +28,7 @@ function SeasonCtaLink({ href, label }: { href: string; label: string }) {
     )
   }
   return (
-    <Link href={safeHref} className={cls}>
+    <Link href={safeHref} prefetch={prefetchPropForHref(safeHref)} className={cls}>
       {safeLabel}
     </Link>
   )

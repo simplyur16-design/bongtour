@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 import SafeImage from '@/app/components/SafeImage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeHomeSeasonSlidesForClient, type HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
@@ -255,7 +256,7 @@ export function SeasonCurationCardLink({
     )
   }
   return (
-    <Link href={href} className={cardClass}>
+    <Link href={href} prefetch={prefetchPropForHref(href)} className={cardClass}>
       {inner}
     </Link>
   )

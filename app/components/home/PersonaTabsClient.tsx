@@ -11,6 +11,7 @@ import {
 } from '@/lib/main-hub-copy'
 import type { PersonaCityCard } from '@/lib/persona-curated-destinations'
 import { HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS } from '@/lib/home-hub-four-accent-classes'
+import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 
 const PHOTO_FILTER_BASE =
   'transition-[filter] duration-200 ease-out [filter:brightness(0.92)_saturate(1.08)] group-hover:[filter:brightness(1.0)_saturate(1.15)]'
@@ -73,6 +74,7 @@ export default function PersonaTabsClient({ cards }: Props) {
               <li key={card.cityKey} className="relative min-w-0">
                 <Link
                   href={href}
+                  prefetch={prefetchPropForHref(href)}
                   aria-label={aria}
                   className={`group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-md ${HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS}`}
                 >
