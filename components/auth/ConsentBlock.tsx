@@ -62,6 +62,7 @@ export default function ConsentBlock({ type, checked, onChange, required }: Prop
       <label className="mt-3 flex items-start gap-2 text-sm text-slate-700">
         <input
           type="checkbox"
+          name={type === 'marketing' ? 'marketingConsent' : undefined}
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
           className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-600"

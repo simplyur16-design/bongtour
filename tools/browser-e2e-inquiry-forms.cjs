@@ -53,6 +53,7 @@ async function run() {
   var emailErrVisible = false
   await page.type('input[name="applicantEmail"]', 'not-an-email', { delay: 20 })
   await page.click('input[type="checkbox"][name="privacyAgreed"]')
+  await page.click('input[type="checkbox"][name="marketingConsent"]')
   await page.evaluate(function () {
     var btn = Array.from(document.querySelectorAll('button[type="submit"]')).find(function (b) {
       return (b.textContent || '').indexOf('문의 접수하기') !== -1
@@ -89,6 +90,7 @@ async function run() {
     }
   })
   await page.click('input[type="checkbox"][name="privacyAgreed"]')
+  await page.click('input[type="checkbox"][name="marketingConsent"]')
   await page.evaluate(function () {
     var btn = Array.from(document.querySelectorAll('button[type="submit"]')).find(function (b) {
       return (b.textContent || '').indexOf('문의 접수하기') !== -1

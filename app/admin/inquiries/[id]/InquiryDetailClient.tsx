@@ -37,6 +37,9 @@ export type InquiryDetailDto = {
   privacyAgreed: boolean
   privacyNoticeConfirmedAt: string | null
   privacyNoticeVersion: string | null
+  marketingConsent: boolean
+  marketingConsentAt: string | null
+  marketingConsentVersion: string | null
   preferredContactChannel: string | null
   selectedServiceType: string | null
   payloadJson: string | null
@@ -187,6 +190,17 @@ export default function InquiryDetailClient({ inquiryId }: { inquiryId: string }
             <div>
               <dt className="text-xs font-medium text-gray-500">개인정보 동의</dt>
               <dd>{row.privacyAgreed ? '동의' : '미동의'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-gray-500">마케팅 수신 동의</dt>
+              <dd>
+                {row.marketingConsent ? '동의' : '미동의'}
+                {row.marketingConsentAt ? (
+                  <span className="ml-1 text-gray-500">
+                    ({new Date(row.marketingConsentAt).toLocaleString('ko-KR')})
+                  </span>
+                ) : null}
+              </dd>
             </div>
             <div>
               <dt className="text-xs font-medium text-gray-500">희망 답변 채널</dt>

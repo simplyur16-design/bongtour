@@ -38,6 +38,9 @@ type Booking = {
   customerEmail: string | null
   privacyAgreed?: boolean | null
   privacyAgreedAt?: string | null
+  marketingConsent?: boolean | null
+  marketingConsentAt?: string | null
+  marketingConsentVersion?: string | null
   requestNotes?: string | null
   preferredContactChannel?: string | null
   singleRoomRequested?: boolean
@@ -450,6 +453,17 @@ export default function AdminBookingsPage() {
                         <dd>{new Date(detail.privacyAgreedAt).toLocaleString('ko-KR')}</dd>
                       </div>
                     ) : null}
+                    <div className="flex gap-2">
+                      <dt className="shrink-0 text-gray-500">마케팅 수신</dt>
+                      <dd>
+                        {detail.marketingConsent ? '동의함' : '미동의'}
+                        {detail.marketingConsentAt ? (
+                          <span className="ml-1 text-gray-500">
+                            ({new Date(detail.marketingConsentAt).toLocaleString('ko-KR')})
+                          </span>
+                        ) : null}
+                      </dd>
+                    </div>
                   </dl>
                 </div>
 
