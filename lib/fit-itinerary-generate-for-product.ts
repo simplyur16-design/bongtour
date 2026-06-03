@@ -10,6 +10,7 @@ import {
   getGenAI,
   getModelName,
 } from '@/lib/gemini-client'
+import { syncScheduleImageKeywordsFromFitItinerary } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import { logLlmJsonRawDebug, parseLlmJsonObject } from '@/lib/llm-json-extract'
 
 /** 다일정 Fit JSON — season(4096)과 달리 5~6일·activities 다수 시 8k+ chars. 기본 16384 */
@@ -128,7 +129,8 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 - estimatedCostNote = "현지 통화 약 $XX 기준, 현지 실제 가격은 다를 수 있음"
 - transportMode = "도보" / "MRT" / "택시" / "버스" / "페리" 또는 null (hotel/meal일 때 null 가능)
 - transportDuration = "10분" 등 한국어 + 숫자
-- 모든 텍스트 한국어 (장소명은 현지어 + 한국어 병기 가능: "리우허 야시장(六合夜市)")
+- 모든 텍스트 한국어
+- **location 필수 형식(관광·쇼핑·식사):** 한글명 (English landmark name) — 괄호 안 **영문 고유명** 필수 (예: "도톤보리 (Dotonbori)", "청수사 (Kiyomizu-dera Temple)"). transport·hotel은 공항·호텔명 한글만 가능
 - 음식점은 추천 메뉴 1~2개 포함
 - 가족·연인·부모 등 페르소나 언급 활동 1~2개 포함
 - 야경/포토존 1개 포함
@@ -410,6 +412,27 @@ export async function generateFitItineraryForProduct(
   } catch (error) {
     console.error(`[fit-itinerary-generate] db_failed productId=${productId}`, error)
     return { success: false, reason: 'db_failed', error }
+  }
+
+  try {
+    await syncScheduleImageKeywordsFromFitItinerary(
+      productId,
+      parsed.days.map((d) => ({
+        dayNumber: d.dayNumber,
+        title: d.title,
+        summary: d.summary,
+        dayCityKey: d.dayCityKey,
+        activities: (d.activities ?? []).map((a) => ({
+          order: a.order,
+          category: a.category,
+          title: a.title,
+          description: a.description,
+          location: a.location,
+        })),
+      })),
+    )
+  } catch (syncErr) {
+    console.error(`[fit-itinerary-generate] schedule_keyword_sync_failed productId=${productId}`, syncErr)
   }
 
   return { success: true, masterId }
