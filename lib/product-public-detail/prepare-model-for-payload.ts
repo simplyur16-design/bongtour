@@ -6,6 +6,7 @@ import {
   slimTravelProductDepartureFactsForPayload,
 } from '@/lib/product-public-detail/slim-departure-key-facts-for-payload'
 import type { ProductPublicDetailRenderModel } from '@/lib/product-public-detail/types'
+import { slimYbtourDetailProductForPayload } from '@/lib/product-public-detail/ybtour-payload-slim'
 
 function prepareViewProduct(product: TravelProduct): TravelProduct {
   return slimTravelProductDepartureFactsForPayload(stripPayloadLeakFieldsFromTravelProduct(product))
@@ -23,10 +24,7 @@ export function prepareModelForPayloadPersistence(
   }
 
   const viewProduct = prepareViewProduct(model.viewProduct)
-  const ybtourDetailProduct =
-    model.ybtourDetailProduct != null
-      ? (prepareViewProduct(model.ybtourDetailProduct as TravelProduct) as typeof model.ybtourDetailProduct)
-      : null
+  const ybtourDetailProduct = slimYbtourDetailProductForPayload(model)
 
   return {
     ...model,

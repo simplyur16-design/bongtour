@@ -59,12 +59,15 @@ export type ProductPublicDetailAirtelRenderModel = {
   registrationStatus: string | null
 }
 
+/** persist 시 viewProduct 중복 없이 히어로 항공 DTO만 (레거시 DB는 전량 blob일 수 있음) */
+export type YbtourDetailProductPayloadSlice = {
+  ybtourFlightStructuredForHero?: PublicPersistedFlightStructuredDto | null
+}
+
 export type ProductPublicDetailPackageRenderModel = {
   variant: 'package'
   viewProduct: TravelProduct
-  ybtourDetailProduct:
-    | (TravelProduct & { ybtourFlightStructuredForHero?: PublicPersistedFlightStructuredDto | null })
-    | null
+  ybtourDetailProduct: YbtourDetailProductPayloadSlice | null
   publicConsumptionModuleKey: string
   isPackageItineraryBody: boolean
   isPrivateOrSemi: boolean

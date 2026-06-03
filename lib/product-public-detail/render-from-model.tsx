@@ -13,6 +13,7 @@ import { ItineraryViewLazy } from '@/components/itinerary/ItineraryViewLazy'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import { buildProductMetaChips } from '@/lib/product-meta-chips'
 import type { ProductPublicDetailRenderModel } from '@/lib/product-public-detail/types'
+import { mergeViewProductWithYbtourSlice } from '@/lib/product-public-detail/ybtour-payload-slim'
 import type { ProductDetailViewRow } from '@/lib/product-public-detail/build-render-model'
 
 export function renderProductDetailFromModel(
@@ -138,6 +139,7 @@ export function renderProductDetailFromModel(
   }
 
   const { viewProduct, ybtourDetailProduct, showEsimCrossSell, seo } = model
+  const ybtourProduct = mergeViewProductWithYbtourSlice(viewProduct, ybtourDetailProduct)
 
   const packageDetailMobile = <MobileProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
   const packageDetailDesktop = model.isPrivateOrSemi ? (
@@ -150,8 +152,8 @@ export function renderProductDetailFromModel(
     ? packageDetailMobile
     : model.publicConsumptionModuleKey === 'verygoodtour' ? (
         <VerygoodMobileProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
-      ) : model.publicConsumptionModuleKey === 'ybtour' && ybtourDetailProduct ? (
-        <YbtourMobileProductDetail product={ybtourDetailProduct} showEsimCrossSell={showEsimCrossSell} />
+      ) : model.publicConsumptionModuleKey === 'ybtour' ? (
+        <YbtourMobileProductDetail product={ybtourProduct} showEsimCrossSell={showEsimCrossSell} />
       ) : (
         packageDetailMobile
       )
@@ -160,8 +162,8 @@ export function renderProductDetailFromModel(
     ? packageDetailDesktop
     : model.publicConsumptionModuleKey === 'verygoodtour' ? (
         <VerygoodTravelProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
-      ) : model.publicConsumptionModuleKey === 'ybtour' && ybtourDetailProduct ? (
-        <YbtourTravelProductDetail product={ybtourDetailProduct} showEsimCrossSell={showEsimCrossSell} />
+      ) : model.publicConsumptionModuleKey === 'ybtour' ? (
+        <YbtourTravelProductDetail product={ybtourProduct} showEsimCrossSell={showEsimCrossSell} />
       ) : (
         packageDetailDesktop
       )

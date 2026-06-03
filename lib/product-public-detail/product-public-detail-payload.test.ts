@@ -18,6 +18,7 @@ import {
   slimDepartureKeyFactsRecordForPayload,
 } from '@/lib/product-public-detail/slim-departure-key-facts-for-payload'
 import { stripPayloadLeakFieldsFromTravelProduct } from '@/lib/product-public-detail/strip-payload-leak-fields'
+import type { PublicPersistedFlightStructuredDto } from '@/lib/public-flight-structured-sanitize'
 import {
   PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION,
   type ProductPublicDetailPackageRenderModel,
@@ -25,6 +26,7 @@ import {
 
 const GENERAL_PACKAGE_PAYLOAD_MAX = 200 * 1024
 const LARGE_PACKAGE_PAYLOAD_MAX = 500 * 1024
+const YBTOUR_PACKAGE_PAYLOAD_MAX = 120 * 1024
 
 function makeKeyFacts(i: number): DepartureKeyFacts {
   const pad = `DEP-${String(i).padStart(3, '0')}-`.repeat(8)
@@ -77,7 +79,58 @@ function baseTravelProduct(overrides: Partial<TravelProduct> = {}): TravelProduc
   } as TravelProduct
 }
 
-function packageModel(viewProduct: TravelProduct): ProductPublicDetailPackageRenderModel {
+function ybtourHeroFlight(): PublicPersistedFlightStructuredDto {
+  return {
+    airlineName: '제주항공',
+    outbound: {
+      departureAirport: '인천',
+      departureAirportCode: 'ICN',
+      departureDate: '2026-06-05',
+      departureTime: '14:00',
+      arrivalAirport: '간사이',
+      arrivalAirportCode: 'KIX',
+      arrivalDate: '2026-06-05',
+      arrivalTime: '16:00',
+      flightNo: '7C1351',
+      durationText: '2시간',
+    },
+    inbound: {
+      departureAirport: '간사이',
+      departureAirportCode: 'KIX',
+      departureDate: '2026-06-08',
+      departureTime: '10:00',
+      arrivalAirport: '인천',
+      arrivalAirportCode: 'ICN',
+      arrivalDate: '2026-06-08',
+      arrivalTime: '12:00',
+      flightNo: '7C1352',
+      durationText: '2시간',
+    },
+    rawFlightLines: ['인천 14:00 → 간사이 16:00'],
+    reviewNeeded: false,
+    reviewReasons: [],
+  }
+}
+
+function ybtourRichViewProduct(): TravelProduct {
+  return baseTravelProduct({
+    originSource: 'ybtour',
+    itineraries: [{ day: 1, description: '오사카 시내' }],
+    flightStructured: { airlineName: '제주항공', outbound: null, inbound: null },
+    optionalTours: [{ id: 'o1', name: '유니버설', priceUsd: 100, duration: '1일', waitPlaceIfNotJoined: null }],
+    shoppingItems: [{ name: '면세', location: '간사이' }],
+    highlightPoints: ['포인트1'],
+    highlightPointsRaw: '포인트1',
+    promotionLabelsRaw: '프로모',
+    departureKeyFactsByDate: makeManyDeparturesFacts(12),
+    prices: [{ date: '2026-06-05', adult: 899000, childBed: 899000, childNoBed: 0, infant: 100000 }],
+  }) as TravelProduct
+}
+
+function packageModel(
+  viewProduct: TravelProduct,
+  overrides: Partial<ProductPublicDetailPackageRenderModel> = {},
+): ProductPublicDetailPackageRenderModel {
   return {
     variant: 'package',
     viewProduct,
@@ -96,6 +149,7 @@ function packageModel(viewProduct: TravelProduct): ProductPublicDetailPackageRen
     },
     registrationStatus: 'registered',
     departuresForSeo: [],
+    ...overrides,
   }
 }
 
@@ -226,5 +280,94 @@ describe('product public detail payload SSOT', () => {
       model: prepared,
     })
     expect(json.includes('"serialized"')).toBe(false)
+  })
+})
+
+describe('ybtour payload slim', () => {
+  it('ybtourDetailProduct는 ybtourFlightStructuredForHero 1개 키만 박힘', () => {
+    const view = ybtourRichViewProduct()
+    const hero = ybtourHeroFlight()
+    const prepared = prepareModelForPayloadPersistence(
+      packageModel(view, {
+        publicConsumptionModuleKey: 'ybtour',
+        ybtourDetailProduct: { ...view, ybtourFlightStructuredForHero: hero },
+      }),
+    )
+    expect(prepared.variant).toBe('package')
+    if (prepared.variant !== 'package') return
+    expect(Object.keys(prepared.ybtourDetailProduct ?? {})).toEqual(['ybtourFlightStructuredForHero'])
+  })
+
+  it('viewProduct는 ybtour 핵심 필드 보존', () => {
+    const view = ybtourRichViewProduct()
+    const prepared = prepareModelForPayloadPersistence(
+      packageModel(view, {
+        publicConsumptionModuleKey: 'ybtour',
+        ybtourDetailProduct: { ...view, ybtourFlightStructuredForHero: ybtourHeroFlight() },
+      }),
+    )
+    if (prepared.variant !== 'package') return
+    const vp = prepared.viewProduct
+    expect(vp.itineraries).toBeDefined()
+    expect(vp.flightStructured).toBeDefined()
+    expect(vp.optionalTours).toBeDefined()
+    expect(vp.prices?.length).toBeGreaterThan(0)
+    expect(vp.shoppingItems).toBeDefined()
+    expect(vp.highlightPoints).toBeDefined()
+    expect(vp.departureKeyFactsByDate).toBeDefined()
+  })
+
+  it('ybtourFlightStructuredForHero 보존', () => {
+    const hero = ybtourHeroFlight()
+    const prepared = prepareModelForPayloadPersistence(
+      packageModel(ybtourRichViewProduct(), {
+        publicConsumptionModuleKey: 'ybtour',
+        ybtourDetailProduct: { ybtourFlightStructuredForHero: hero },
+      }),
+    )
+    if (prepared.variant !== 'package') return
+    expect(prepared.ybtourDetailProduct?.ybtourFlightStructuredForHero?.airlineName).toBe('제주항공')
+  })
+
+  it('payload byte cap < 120 KB (ybtour 패키지, 중복 제거 후)', () => {
+    const view = ybtourRichViewProduct()
+    const hero = ybtourHeroFlight()
+    const prepared = prepareModelForPayloadPersistence(
+      packageModel(view, {
+        publicConsumptionModuleKey: 'ybtour',
+        ybtourDetailProduct: { ...view, ybtourFlightStructuredForHero: hero },
+      }),
+    )
+    const json = finalizeProductPublicDetailPayloadJson(prepared)
+    expect(json).not.toBeNull()
+    expect(productPublicDetailPayloadByteLength(json!)).toBeLessThan(YBTOUR_PACKAGE_PAYLOAD_MAX)
+  })
+
+  it('다른 공급사 분기 영향 없음', () => {
+    const mt = prepareModelForPayloadPersistence(
+      packageModel(baseTravelProduct(), { publicConsumptionModuleKey: 'modetour' }),
+    )
+    if (mt.variant === 'package') expect(mt.ybtourDetailProduct).toBeNull()
+
+    const hn = prepareModelForPayloadPersistence(packageModel(baseTravelProduct()))
+    if (hn.variant === 'package') expect(hn.ybtourDetailProduct).toBeNull()
+  })
+
+  it('레거시 fat ybtourDetailProduct persist 시 itineraries 중복 제거', () => {
+    const json = finalizeProductPublicDetailPayloadJson(
+      prepareModelForPayloadPersistence(
+        packageModel(ybtourRichViewProduct(), {
+          publicConsumptionModuleKey: 'ybtour',
+          ybtourDetailProduct: {
+            ...ybtourRichViewProduct(),
+            ybtourFlightStructuredForHero: ybtourHeroFlight(),
+          },
+        }),
+      ),
+    )
+    expect(json).not.toBeNull()
+    const parsed = JSON.parse(json!) as { model: ProductPublicDetailPackageRenderModel }
+    expect(parsed.model.ybtourDetailProduct?.itineraries).toBeUndefined()
+    expect(parsed.model.viewProduct.itineraries).toBeDefined()
   })
 })

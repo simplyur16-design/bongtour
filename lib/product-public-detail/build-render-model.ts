@@ -951,8 +951,8 @@ export async function buildProductPublicDetailRenderModel(
     viewProduct,
   )
   const ybtourDetailProduct =
-    publicConsumptionModuleKey === 'ybtour'
-      ? { ...viewProductForRender, ybtourFlightStructuredForHero: ybtourFlightStructuredForHeroPublic }
+    publicConsumptionModuleKey === 'ybtour' && ybtourFlightStructuredForHeroPublic
+      ? { ybtourFlightStructuredForHero: ybtourFlightStructuredForHeroPublic }
       : null
   const showEsimCrossSell = travelProduct.travelScope === 'overseas'
 
