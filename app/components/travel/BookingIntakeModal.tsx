@@ -11,6 +11,7 @@ import {
   BOOKING_PRIVACY_NOTICE_TITLE,
   BOOKING_PRIVACY_NOTICE_VERSION,
 } from '@/lib/booking-consent'
+import ConsentBlock from '@/components/auth/ConsentBlock'
 import KakaoCounselCta from '@/app/components/travel/KakaoCounselCta'
 import type { DeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
 import { departurePriceCollectUiCopy } from '@/lib/departure-price-collect-ui'
@@ -81,6 +82,7 @@ export default function BookingIntakeModal({
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [privacyAgreed, setPrivacyAgreed] = useState(false)
+  const [marketingConsent, setMarketingConsent] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [singleRoomRequested, setSingleRoomRequested] = useState(false)
   const [preferredContactChannel, setPreferredContactChannel] = useState<'phone' | 'kakao' | 'email'>('phone')
@@ -145,6 +147,7 @@ export default function BookingIntakeModal({
       customerEmail: customerEmail.trim(),
       privacyAgreed,
       privacyNoticeVersion: BOOKING_PRIVACY_NOTICE_VERSION,
+      marketingConsent,
       adultCount: pax.adult,
       childCount,
       childWithBedCount: pax.childBed,
@@ -211,6 +214,7 @@ export default function BookingIntakeModal({
         customerEmail: validated.value.customerEmail,
         privacyAgreed: validated.value.privacyAgreed,
         privacyNoticeVersion: validated.value.privacyNoticeVersion,
+        marketingConsent: validated.value.marketingConsent,
         adultCount: validated.value.adultCount,
         childCount: validated.value.childCount,
         childWithBedCount: validated.value.childWithBedCount,
@@ -612,6 +616,14 @@ export default function BookingIntakeModal({
                     안내문 확인 후 체크해 주세요. 동의하지 않으면 예약 신청이 어렵습니다.
                   </p>
                 </div>
+              </div>
+              <div className="mt-3 border-t border-bt-border-soft pt-3">
+                <ConsentBlock
+                  type="marketing"
+                  checked={marketingConsent}
+                  onChange={setMarketingConsent}
+                  required={false}
+                />
               </div>
             </div>
 

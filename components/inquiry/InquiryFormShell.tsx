@@ -12,6 +12,7 @@ import {
   type InquiryPageQuery,
   type InquirySuccessKind,
 } from '@/lib/inquiry-page'
+import ConsentBlock from '@/components/auth/ConsentBlock'
 import type { FieldErrors } from '@/lib/customer-inquiry-intake'
 import { KAKAO_OPEN_CHAT_URL } from '@/lib/kakao-open-chat'
 import { formatKoreanTelInput } from '@/lib/korean-tel-format'
@@ -91,6 +92,7 @@ export default function InquiryFormShell({
   const [applicantEmail, setApplicantEmail] = useState('')
   const [message, setMessage] = useState('')
   const [privacyAgreed, setPrivacyAgreed] = useState(false)
+  const [marketingConsent, setMarketingConsent] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   /** 페이지(폼) 로드 시각 — 서버에서 최소 체류 시간 검증용 */
   const [formOpenedAt] = useState(() => Date.now())
@@ -153,6 +155,7 @@ export default function InquiryFormShell({
         btHpUrl: hpTrap.trim(),
         formOpenedAt,
         privacyAgreed: true,
+        marketingConsent,
         privacyNoticeConfirmedAt: new Date().toISOString(),
         privacyNoticeVersion,
       }
@@ -239,6 +242,7 @@ export default function InquiryFormShell({
     buildPayloadJson,
     message,
     privacyAgreed,
+    marketingConsent,
     preferredContactChannel,
     initialQuery,
     beforeSubmit,
@@ -275,9 +279,9 @@ export default function InquiryFormShell({
               href={KAKAO_OPEN_CHAT_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center justify-center rounded-lg border border-yellow-300 bg-yellow-400 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-yellow-300"
+              className="mt-3 inline-flex items-center justify-center rounded-lg border border-[#E5D200] bg-[#FEE500] px-4 py-2 text-sm font-semibold text-[#3C1E1E] hover:bg-[#f5dc00]"
             >
-              오픈카카오톡 상담하기
+              카카오 채널 상담
             </a>
           </div>
         ) : null}
@@ -522,6 +526,14 @@ export default function InquiryFormShell({
                 </p>
               )}
             </div>
+          </div>
+          <div className="mt-3 border-t border-slate-200 pt-3">
+            <ConsentBlock
+              type="marketing"
+              checked={marketingConsent}
+              onChange={setMarketingConsent}
+              required={false}
+            />
           </div>
         </div>
 
