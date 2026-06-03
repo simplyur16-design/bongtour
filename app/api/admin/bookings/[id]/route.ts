@@ -7,7 +7,7 @@ import {
   BOOKING_STATUSES,
   isBookingStatus,
 } from '@/lib/booking-status-policy'
-import { deleteTestIntake } from '@/lib/purge-test-intake'
+import { deleteAdminIntake } from '@/lib/admin-intake-delete'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -90,7 +90,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 /**
- * DELETE /api/admin/bookings/[id] — 테스트·E2E 예약만 삭제 가능.
+ * DELETE /api/admin/bookings/[id] — 예약 접수 삭제 (복구 불가).
  */
 export async function DELETE(_request: Request, { params }: RouteParams) {
   const admin = await requireAdmin()
@@ -102,11 +102,11 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     if (Number.isNaN(bookingId)) {
       return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
     }
-    await deleteTestIntake('booking', bookingId)
+    await deleteAdminIntake('booking', bookingId)
     return NextResponse.json({ ok: true, deleted: { kind: 'booking', id: bookingId } })
   } catch (e) {
     const msg = e instanceof Error ? e.message : '삭제에 실패했습니다.'
-    const status = msg.includes('찾을 수 없') ? 404 : msg.includes('테스트') ? 403 : 500
+    const status = msg.includes('찾을 수 없') ? 404 : 500
     if (status === 500) console.error('[DELETE /api/admin/bookings/[id]]', e)
     return NextResponse.json({ error: msg }, { status })
   }

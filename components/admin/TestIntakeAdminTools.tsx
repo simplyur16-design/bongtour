@@ -112,12 +112,39 @@ export default function TestIntakeAdminTools({ variant = 'combined', onPurged }:
   )
 }
 
-export function useDeleteTestIntake(onDone: () => void) {
+export type IntakeDeleteRow = {
+  kind: 'inquiry' | 'booking'
+  id: string | number
+  accessionNumber: string
+  isTest?: boolean
+}
+
+export function intakeSelectionKey(kind: 'inquiry' | 'booking', id: string | number): string {
+  return `${kind}:${id}`
+}
+
+function confirmDeleteMessage(label: string, isTest: boolean, count = 1): string {
+  if (count > 1) {
+    return isTest
+      ? `선택한 테스트 접수 ${count}건을 삭제할까요?`
+      : `선택한 접수 ${count}건을 삭제합니다. 복구할 수 없습니다.\n${label}\n계속할까요?`
+  }
+  return isTest
+    ? `테스트 접수 「${label}」를 삭제할까요?`
+    : `접수 「${label}」를 삭제합니다. 복구할 수 없습니다. 계속할까요?`
+}
+
+export function useAdminIntakeDelete(onDone: () => void) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const deleteOne = async (kind: 'inquiry' | 'booking', id: string | number, label: string) => {
-    if (!window.confirm(`테스트 접수 「${label}」를 삭제할까요?`)) return
+  const deleteOne = async (
+    kind: 'inquiry' | 'booking',
+    id: string | number,
+    label: string,
+    isTest = false,
+  ) => {
+    if (!window.confirm(confirmDeleteMessage(label, isTest))) return
     setBusy(true)
     setError(null)
     try {
@@ -135,5 +162,59 @@ export function useDeleteTestIntake(onDone: () => void) {
     }
   }
 
-  return { deleteOne, busy, error, setError }
+  const deleteSelected = async (rows: IntakeDeleteRow[]) => {
+    if (rows.length === 0) return
+    const allTest = rows.every((r) => r.isTest)
+    const sample = rows
+      .slice(0, 5)
+      .map((r) => r.accessionNumber)
+      .join(', ')
+    const sampleLine = sample ? `\n예: ${sample}${rows.length > 5 ? ' …' : ''}` : ''
+    let confirmMsg: string
+    if (rows.length === 1) {
+      confirmMsg = confirmDeleteMessage(rows[0].accessionNumber, rows[0].isTest ?? false)
+    } else if (allTest) {
+      confirmMsg = `선택한 테스트 접수 ${rows.length}건을 삭제할까요?${sampleLine}`
+    } else {
+      confirmMsg = `선택한 접수 ${rows.length}건을 삭제합니다. 복구할 수 없습니다.${sampleLine}\n계속할까요?`
+    }
+    if (!window.confirm(confirmMsg)) return
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/intake/delete-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: rows.map((r) => ({ kind: r.kind, id: r.id })),
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string
+        deletedCount?: number
+        failedCount?: number
+        failed?: { error: string }[]
+      }
+      if (!res.ok) {
+        setError(data.error ?? '삭제 실패')
+        return
+      }
+      if ((data.failedCount ?? 0) > 0) {
+        const first = data.failed?.[0]?.error
+        setError(
+          `${data.deletedCount ?? 0}건 삭제, ${data.failedCount}건 실패${first ? `: ${first}` : ''}`,
+        )
+        if ((data.deletedCount ?? 0) > 0) onDone()
+        return
+      }
+      onDone()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return { deleteOne, deleteSelected, busy, error, setError }
 }
+
+/** @deprecated useAdminIntakeDelete — 이름만 유지 */
+export const useDeleteTestIntake = useAdminIntakeDelete

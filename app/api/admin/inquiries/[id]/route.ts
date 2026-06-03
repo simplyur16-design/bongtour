@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { maskEmail, maskPhone } from '@/lib/pii'
 import { INQUIRY_ADMIN_STATUSES, isInquiryAdminStatus } from '@/lib/admin-inquiry'
-import { deleteTestIntake } from '@/lib/purge-test-intake'
+import { deleteAdminIntake } from '@/lib/admin-intake-delete'
 import { classifyTestIntake } from '@/lib/test-intake-policy'
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -168,7 +168,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 /**
- * DELETE /api/admin/inquiries/[id] — 테스트·E2E 문의만 삭제 가능.
+ * DELETE /api/admin/inquiries/[id] — 문의 접수 삭제 (복구 불가).
  */
 export async function DELETE(_request: Request, context: RouteContext) {
   const admin = await requireAdmin()
@@ -182,11 +182,11 @@ export async function DELETE(_request: Request, context: RouteContext) {
   }
 
   try {
-    await deleteTestIntake('inquiry', id)
+    await deleteAdminIntake('inquiry', id)
     return NextResponse.json({ ok: true, deleted: { kind: 'inquiry', id } })
   } catch (e) {
     const msg = e instanceof Error ? e.message : '삭제에 실패했습니다.'
-    const status = msg.includes('찾을 수 없') ? 404 : msg.includes('테스트') ? 403 : 500
+    const status = msg.includes('찾을 수 없') ? 404 : 500
     if (status === 500) console.error('[DELETE /api/admin/inquiries/[id]]', e)
     return NextResponse.json({ error: msg }, { status })
   }

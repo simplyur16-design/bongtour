@@ -154,13 +154,8 @@ export async function deleteTestIntake(
   const gate = await assertTestIntakeDeletable(kind, id)
   if (!gate.ok) throw new Error(gate.error)
 
-  if (kind === 'inquiry') {
-    await prisma.customerInquiry.delete({ where: { id: String(id) } })
-    return
-  }
-
-  const bookingId = typeof id === 'number' ? id : parseInt(String(id), 10)
-  await prisma.booking.delete({ where: { id: bookingId } })
+  const { deleteAdminIntake } = await import('@/lib/admin-intake-delete')
+  await deleteAdminIntake(kind, id)
 }
 
 export async function purgeAllTestIntakes(dryRun: boolean): Promise<{

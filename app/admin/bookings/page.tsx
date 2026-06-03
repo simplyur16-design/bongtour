@@ -8,7 +8,11 @@ import AdminEmptyState from '../components/AdminEmptyState'
 import AdminKpiCard from '../components/AdminKpiCard'
 import AdminPageHeader from '../components/AdminPageHeader'
 import AdminStatusBadge from '../components/AdminStatusBadge'
-import TestIntakeAdminTools, { useDeleteTestIntake } from '@/components/admin/TestIntakeAdminTools'
+import TestIntakeAdminTools, {
+  intakeSelectionKey,
+  useAdminIntakeDelete,
+  type IntakeDeleteRow,
+} from '@/components/admin/TestIntakeAdminTools'
 import { getNextBookingStatuses } from '@/lib/booking-status-policy'
 
 type IntakeSelection =
@@ -68,13 +72,39 @@ export default function AdminBookingsPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [statusError, setStatusError] = useState<string | null>(null)
-  const { deleteOne, busy: deleteBusy, error: deleteError, setError: setDeleteError } =
-    useDeleteTestIntake(() => {
+  const [checkedKeys, setCheckedKeys] = useState<Set<string>>(() => new Set())
+  const { deleteOne, deleteSelected, busy: deleteBusy, error: deleteError, setError: setDeleteError } =
+    useAdminIntakeDelete(() => {
       setSelection(null)
       setDetail(null)
+      setCheckedKeys(new Set())
       setLoading(true)
       fetchList()
     })
+
+  const toggleChecked = (item: ConsultIntakeItem, on: boolean) => {
+    const key = intakeSelectionKey(item.kind, item.id)
+    setCheckedKeys((prev) => {
+      const next = new Set(prev)
+      if (on) next.add(key)
+      else next.delete(key)
+      return next
+    })
+  }
+
+  const checkedRows = useMemo((): IntakeDeleteRow[] => {
+    return intakeItems
+      .filter((item) => checkedKeys.has(intakeSelectionKey(item.kind, item.id)))
+      .map((item) => ({
+        kind: item.kind,
+        id: item.id,
+        accessionNumber: item.accessionNumber,
+        isTest: item.isTest,
+      }))
+  }, [intakeItems, checkedKeys])
+
+  const allVisibleChecked =
+    intakeItems.length > 0 && intakeItems.every((i) => checkedKeys.has(intakeSelectionKey(i.kind, i.id)))
 
   const fetchList = useCallback(() => {
     fetch('/api/admin/bookings')
@@ -163,7 +193,7 @@ export default function AdminBookingsPage() {
         </div>
         <AdminPageHeader
           title="상담·예약"
-          subtitle="홈·상품 여행 상담(문의)과 패키지 예약 신청을 한곳에서 관리합니다. 알림은 예약 접수와 동일한 문자·알림톡·메일을 사용합니다."
+          subtitle="홈·상품 여행 상담(문의)과 패키지 예약 신청을 한곳에서 관리합니다. 목록에서 선택 후 삭제할 수 있으며, 삭제된 접수는 복구되지 않습니다."
         />
 
         <TestIntakeAdminTools
@@ -187,9 +217,50 @@ export default function AdminBookingsPage() {
         )}
 
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 border-l-4 border-[#0f172a] pl-3 text-base font-semibold text-[#0f172a]">
-            통합 접수 목록 (최신순)
-          </h2>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="border-l-4 border-[#0f172a] pl-3 text-base font-semibold text-[#0f172a]">
+              통합 접수 목록 (최신순)
+            </h2>
+            {!loading && intakeItems.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <label className="flex cursor-pointer items-center gap-2 text-gray-600">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300"
+                    checked={allVisibleChecked}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setCheckedKeys(
+                          new Set(intakeItems.map((i) => intakeSelectionKey(i.kind, i.id))),
+                        )
+                      } else {
+                        setCheckedKeys(new Set())
+                      }
+                    }}
+                  />
+                  전체 선택
+                </label>
+                {checkedRows.length > 0 ? (
+                  <button
+                    type="button"
+                    disabled={deleteBusy}
+                    onClick={() => {
+                      setDeleteError(null)
+                      void deleteSelected(checkedRows)
+                    }}
+                    className="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 font-medium text-red-800 hover:bg-red-100 disabled:opacity-50"
+                  >
+                    {deleteBusy ? '삭제 중…' : `선택 삭제 (${checkedRows.length}건)`}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+          {deleteError && !selection ? (
+            <p className="mb-3 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">
+              {deleteError}
+            </p>
+          ) : null}
           {loading ? (
             <div className="flex justify-center py-12 text-gray-500">로딩 중…</div>
           ) : intakeItems.length === 0 ? (
@@ -205,19 +276,32 @@ export default function AdminBookingsPage() {
                 const isSelected =
                   selection?.kind === item.kind &&
                   (item.kind === 'booking' ? selection.id === item.id : selection.id === item.id)
+                const rowKey = intakeSelectionKey(item.kind, item.id)
+                const isChecked = checkedKeys.has(rowKey)
                 return (
                   <li key={`${item.kind}-${item.id}`}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelection(
-                          item.kind === 'booking'
-                            ? { kind: 'booking', id: item.id }
-                            : { kind: 'inquiry', id: item.id },
-                        )
-                      }
-                      className={`flex w-full items-center justify-between py-3 text-left hover:bg-gray-50 ${isSelected ? 'bg-gray-50' : ''}`}
+                    <div
+                      className={`flex w-full items-center gap-3 py-3 ${isSelected ? 'bg-gray-50' : ''}`}
                     >
+                      <input
+                        type="checkbox"
+                        className="ml-1 h-4 w-4 shrink-0 rounded border-gray-300"
+                        checked={isChecked}
+                        aria-label={`${item.accessionNumber} 선택`}
+                        onChange={(e) => toggleChecked(item, e.target.checked)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelection(
+                            item.kind === 'booking'
+                              ? { kind: 'booking', id: item.id }
+                              : { kind: 'inquiry', id: item.id },
+                          )
+                        }
+                        className="flex min-w-0 flex-1 items-center justify-between text-left hover:opacity-90"
+                      >
                       <div className="flex flex-wrap items-center gap-3">
                         <span
                           className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${
@@ -255,6 +339,7 @@ export default function AdminBookingsPage() {
                         />
                       </div>
                     </button>
+                    </div>
                   </li>
                 )
               })}
@@ -296,19 +381,22 @@ export default function AdminBookingsPage() {
               >
                 문의 전체 상세 · 상태 변경
               </Link>
-              {selectedInquiry.isTest ? (
-                <button
-                  type="button"
-                  disabled={deleteBusy}
-                  onClick={() => {
-                    setDeleteError(null)
-                    void deleteOne('inquiry', selectedInquiry.id, selectedInquiry.accessionNumber)
-                  }}
-                  className="rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-800 hover:bg-red-100 disabled:opacity-50"
-                >
-                  테스트 문의 삭제
-                </button>
-              ) : null}
+              <button
+                type="button"
+                disabled={deleteBusy}
+                onClick={() => {
+                  setDeleteError(null)
+                  void deleteOne(
+                    'inquiry',
+                    selectedInquiry.id,
+                    selectedInquiry.accessionNumber,
+                    selectedInquiry.isTest,
+                  )
+                }}
+                className="rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-800 hover:bg-red-100 disabled:opacity-50"
+              >
+                {selectedInquiry.isTest ? '테스트 문의 삭제' : '문의 삭제'}
+              </button>
             </div>
           </section>
         ) : null}
@@ -488,17 +576,22 @@ export default function AdminBookingsPage() {
                 )}
 
                 <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
-                  {selectedIntake?.kind === 'booking' && selectedIntake.isTest && detail ? (
+                  {selectedIntake?.kind === 'booking' && detail ? (
                     <button
                       type="button"
                       disabled={deleteBusy}
                       onClick={() => {
                         setDeleteError(null)
-                        void deleteOne('booking', detail.id, detail.bookingNumber)
+                        void deleteOne(
+                          'booking',
+                          detail.id,
+                          detail.bookingNumber,
+                          selectedIntake.isTest,
+                        )
                       }}
                       className="mr-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-100 disabled:opacity-50"
                     >
-                      테스트 예약 삭제
+                      {selectedIntake.isTest ? '테스트 예약 삭제' : '예약 삭제'}
                     </button>
                   ) : null}
                   <span className="text-sm text-gray-500">상태 변경:</span>
