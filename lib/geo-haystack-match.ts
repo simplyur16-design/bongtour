@@ -23,7 +23,7 @@ export function termAppearsInHaystack(term: string, haystack: string): boolean {
   if (!t || !h) return false
   const low = h.toLowerCase()
   const tl = t.toLowerCase()
-  if (tl.length === 1 && /[\uac00-\ud7a3]/.test(tl)) {
+  if (/[\uac00-\ud7a3]/.test(tl)) {
     const re = new RegExp(`(^|[^\\uac00-\\ud7a3])${escapeRegExp(tl)}([^\\uac00-\\ud7a3]|$)`)
     return re.test(low)
   }

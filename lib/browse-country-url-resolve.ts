@@ -367,6 +367,7 @@ const BROWSE_CITY_SLUG_TO_DB_CITY: Record<string, string> = {
   changbai: '장백산',
   chongqing: '중경',
   terelj: '테를지',
+  ulaanbaatar: '울란바타르',
   nikko: '닛코',
   hakone: '하코네',
   kamakura: '가마쿠라',

@@ -11,7 +11,8 @@ import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-reg
 import { extractHighlightFromHanatour } from '@/lib/extract-highlight-hanatour'
 import { extractHighlightFromHanatourLLM } from '@/lib/llm-extract-highlight-hanatour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
-import { resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
+import { buildRegisterGeoHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
+import { registerGeoTagSyncOpts, resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
 import { syncProductGeoTags } from '@/lib/sync-product-geo-tags'
 import {
   buildBongtourProductTitleFieldsForRegisterPreview,
@@ -1418,13 +1419,14 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     const registerPublicImageHeroSeoLineSingle = registerPublicImageHeroSeoKeywords?.length
       ? null
       : buildRegisterPublicImageHeroSeoLineCandidate(registerHeroSeoInput)
+    const scheduleHaystack = buildRegisterGeoHaystackFromSchedule(schedule)
     const geoInput = {
       title: titlePair.prismaTitle,
       originSource: effectiveOriginSource,
       destination: parsed.destination,
       destinationRaw: parsed.destinationRaw?.trim() || parsed.destination?.trim() || null,
       primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
-      bodyText: schedule.map((d) => d.title).filter(Boolean).join('\n') || null,
+      bodyText: scheduleHaystack,
     }
     const { geo, masterRegistrationOk, needsOperatorReview } =
       await resolveMegaMenuGeoForRegister(prisma, geoInput)
@@ -1541,11 +1543,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     })
     timing.mark('after-pending-save')
 
-    await syncProductGeoTags(prisma, productId, geo, {
-      title: titlePair.prismaTitle,
-      primaryDestination: geoInput.primaryDestination,
-      destinationRaw: geoInput.destinationRaw,
-    })
+    await syncProductGeoTags(prisma, productId, geo, registerGeoTagSyncOpts(geoInput, scheduleHaystack))
 
     const sortedPrices = [...(parsed.prices ?? [])].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()

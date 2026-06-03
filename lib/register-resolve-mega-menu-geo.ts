@@ -24,15 +24,22 @@ export type RegisterMegaMenuGeoResult = {
   needsOperatorReview: boolean
 }
 
-export function registerGeoTagSyncOpts(input: RegisterMegaMenuGeoInput): {
+export function registerGeoTagSyncOpts(
+  input: RegisterMegaMenuGeoInput,
+  scheduleHaystack?: string | null,
+): {
   title: string
   primaryDestination: string | null
   destinationRaw: string | null
+  scheduleHaystack: string | null
 } {
+  const destRaw = input.destinationRaw?.trim() || null
+  const sched = scheduleHaystack?.trim() || null
   return {
     title: (input.title ?? '').trim(),
     primaryDestination: input.primaryDestination?.trim() || null,
-    destinationRaw: input.destinationRaw?.trim() || null,
+    destinationRaw: destRaw,
+    scheduleHaystack: sched,
   }
 }
 

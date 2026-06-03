@@ -478,9 +478,17 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
     'china-circle',
     '중국권 · 홍콩 · 마카오 · 몽골 · 중앙아',
     [
-      C('mongolia', '몽골', [L('ulaanbaatar', '울란바타르', { aliases: ['ulaanbaatar', '울란바토르', '울란바타르', '몽골'] })], {
-        aliases: ['몽골'],
-      }),
+      C(
+        'mongolia',
+        '몽골',
+        [
+          L('ulaanbaatar', '울란바타르', {
+            aliases: ['ulaanbaatar', '울란바토르', '울란바타르'],
+          }),
+          L('terelj', '테를지', { aliases: ['terelj', '테를지'] }),
+        ],
+        { aliases: ['몽골'] },
+      ),
       C(
         'hk-mo-sz',
         '홍콩 · 마카오 · 심천',

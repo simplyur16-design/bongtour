@@ -17,6 +17,8 @@ export type SyncProductCityTagsOpts = {
   title?: string
   primaryDestination?: string | null
   destinationRaw?: string | null
+  /** 일정 title·description·routeText — 메가메뉴 도시 토큰 매칭용 */
+  scheduleHaystack?: string | null
 }
 
 function clusterNodeKeyFromGeo(geo: ProductLocationKeyPrismaFields): string | null {
@@ -84,7 +86,7 @@ export async function resolveProductCityKeysForTags(
   if (single) candidates.push(single)
 
   if (opts) {
-    const haystack = [opts.title, opts.primaryDestination, opts.destinationRaw]
+    const haystack = [opts.title, opts.primaryDestination, opts.destinationRaw, opts.scheduleHaystack]
       .filter((x): x is string => Boolean(x && String(x).trim()))
       .join(' ')
     if (haystack) {

@@ -3,11 +3,12 @@
 browse·메가메뉴 필터는 **`ProductCountryTag` / `ProductCityTag`만** 본다.  
 `Product.cityKey`·`Product.country` 한글 필드만으로는 도시·열(`menuGroup`) 클릭에 잡히지 않는다.
 
-## 등록 시 필수 (4공급사 공통)
+## 등록 시 필수 (해외 공급사 orchestration 공통)
 
 1. **`syncProductGeoTags`만** 호출한다 (`syncProductCountryTags` 단독 호출 금지).
-2. 흐름: `normalizeProductGeoForPrisma` → `Product` FK → **`syncProductGeoTags`**.
-3. 구현: `lib/sync-product-geo-tags.ts` → `sync-product-country-tags` + `sync-product-city-tags` + 보조 국가 태그.
+2. 흐름: `resolveMegaMenuGeoForRegister` → `normalizeProductGeoForPrisma` → `Product` FK → **`syncProductGeoTags`** (`registerGeoTagSyncOpts` + 일정 haystack).
+3. 일정 **`title`·`description`·`routeText`** → `buildRegisterGeoHaystackFromSchedule` → `ProductCityTag` 매칭 haystack (`lib/register-geo-schedule-haystack.ts`). 제목만 넣으면 다도시·경유 도시가 browse에 안 잡힌다.
+4. 구현: `lib/sync-product-geo-tags.ts` → `sync-product-country-tags` + `sync-product-city-tags` + 보조 국가 태그.
 
 ## 도시 태그 규칙
 
@@ -27,6 +28,8 @@ browse·메가메뉴 필터는 **`ProductCountryTag` / `ProductCityTag`만** 본
 ## 회귀 방지 (E2E 제외)
 
 ```bash
+npm run verify:mega-menu-register-alignment   # 메가메뉴 도시 leaf ↔ 트리·browse·match (DB 불필요)
+npm run audit:geo-master-static               # 트리 시드 vs 메가메뉴 슬러그 갭 리포트 (DB 불필요)
 npx tsx scripts/verify-mega-menu-ssot-browse.ts
 npm run resync:mega-menu-geo              # 전체 registered 해외 — dry-run + 리포트
 npm run resync:mega-menu-geo:apply        # geo 필드 + Country/City 태그 일괄 재동기화
@@ -35,7 +38,10 @@ npm run backfill:product-country-tag       # 누락 ProductCountryTag
 ```
 
 도시 태그 SSOT: `lib/mega-menu-ssot-city-keys.ts` — UI leaf + `MegaMenuGroupCardCity`(DB).  
-공통 토큰(`일본`, `간사이` 등) 제외: `lib/mega-menu-city-haystack-terms.ts`.  
+공통 토큰(`일본`, `간사이` 등) 제외: `lib/mega-menu-city-haystack-terms.ts`.
+
+**중국권 탭(`china-hk-mo`)** — 메가메뉴 그룹·마스터 키: `몽골`→`mongolia`(도시 `ulaanbaatar`·`terelj`), `마카오`→`macau`(국가 leaf, `city` 쿼리 없음), `내몽골`→`inner-mongolia`/`china`(트리 `몽골` 별칭과 분리).  
+회귀: `tests/mega-menu-mongolia-macau-geo.test.ts`  
 일본 열 혼입 방지: `lib/mega-menu-city-group-coherence.ts`.
 
 `registered` + `cityKey` 있는데 `ProductCityTag` 없으면 verify 스크립트가 실패한다.
