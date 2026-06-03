@@ -12,16 +12,26 @@ export type HubBrowsePrefetch = {
 
 export async function prefetchOverseasHubBrowse(
   sp: Record<string, string | string[] | undefined>,
-): Promise<HubBrowsePrefetch> {
-  const queryKey = buildOverseasHubBrowseQueryKey(searchParamsRecordToUrlSearchParams(sp))
-  const payload = await getCachedProductsBrowsePayload(queryKey)
-  return { queryKey, payload }
+): Promise<HubBrowsePrefetch | null> {
+  try {
+    const queryKey = buildOverseasHubBrowseQueryKey(searchParamsRecordToUrlSearchParams(sp))
+    const payload = await getCachedProductsBrowsePayload(queryKey)
+    return { queryKey, payload }
+  } catch (e) {
+    console.error('[prefetchOverseasHubBrowse]', e)
+    return null
+  }
 }
 
 export async function prefetchAirHotelHubBrowse(
   sp: Record<string, string | string[] | undefined>,
-): Promise<HubBrowsePrefetch> {
-  const queryKey = buildAirHotelHubBrowseQueryKey(searchParamsRecordToUrlSearchParams(sp))
-  const payload = await getCachedProductsBrowsePayload(queryKey)
-  return { queryKey, payload }
+): Promise<HubBrowsePrefetch | null> {
+  try {
+    const queryKey = buildAirHotelHubBrowseQueryKey(searchParamsRecordToUrlSearchParams(sp))
+    const payload = await getCachedProductsBrowsePayload(queryKey)
+    return { queryKey, payload }
+  } catch (e) {
+    console.error('[prefetchAirHotelHubBrowse]', e)
+    return null
+  }
 }

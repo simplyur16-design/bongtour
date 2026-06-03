@@ -2,10 +2,10 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import Header from '@/app/components/Header'
+import AirHotelBrowseSlot from '@/app/components/travel/air-hotel/AirHotelBrowseSlot'
 import AirHotelHero from '@/app/components/travel/air-hotel/AirHotelHero'
-import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
+import ProductsBrowseResultsLoading from '@/components/route-loading/ProductsBrowseResultsLoading'
 import { getCachedAirHotelSeasonCuration } from '@/lib/air-hotel-season-curation-content'
-import { prefetchAirHotelHubBrowse } from '@/lib/products-browse-server-prefetch'
 import { SITE_NAME } from '@/lib/site-metadata'
 
 export const revalidate = 300
@@ -24,8 +24,13 @@ export const metadata: Metadata = {
 }
 
 async function AirHotelSeasonSection() {
-  const data = await getCachedAirHotelSeasonCuration()
-  return <AirHotelHero slides={data?.heroSlides ?? []} />
+  try {
+    const data = await getCachedAirHotelSeasonCuration()
+    return <AirHotelHero slides={data?.heroSlides ?? []} />
+  } catch (e) {
+    console.error('[AirHotelSeasonSection]', e)
+    return <AirHotelHero slides={[]} />
+  }
 }
 
 export default async function AirHotelPage({
@@ -53,8 +58,6 @@ export default async function AirHotelPage({
     ) // PERF-LOG: 측정 후 제거
   }
 
-  const hubBrowse = await prefetchAirHotelHubBrowse(sp).catch(() => null)
-
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
@@ -63,15 +66,8 @@ export default async function AirHotelPage({
           <AirHotelSeasonSection />
         </Suspense>
 
-        <Suspense fallback={<p className="py-16 text-center text-sm text-slate-500">상품을 불러오는 중…</p>}>
-          <ProductsBrowseClient
-            basePath="/travel/air-hotel"
-            defaultScope="overseas"
-            pageTitle="항공+호텔"
-            hidePageHeading
-            initialBrowse={hubBrowse?.payload ?? null}
-            initialBrowseQueryKey={hubBrowse?.queryKey ?? null}
-          />
+        <Suspense fallback={<ProductsBrowseResultsLoading />}>
+          <AirHotelBrowseSlot searchParams={sp} />
         </Suspense>
       </main>
     </div>

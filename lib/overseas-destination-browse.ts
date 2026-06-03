@@ -53,3 +53,15 @@ export async function resolveOverseasGeoFilterBanner(
     countryKey: countryKey!,
   }
 }
+
+/** RSC — DB 일시 오류 시 배너만 생략 */
+export async function resolveOverseasGeoFilterBannerSafe(
+  searchParams: Record<string, string | string[] | undefined>,
+): Promise<OverseasGeoFilterBanner | null> {
+  try {
+    return await resolveOverseasGeoFilterBanner(searchParams)
+  } catch (e) {
+    console.error('[overseas-geo-filter-banner]', e)
+    return null
+  }
+}
