@@ -28,6 +28,7 @@ import {
 } from '@/lib/match-domestic-product'
 import type { BrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
+import ProductResultsMobilePagedCarousel from '@/components/products/ProductResultsMobilePagedCarousel'
 
 export type ResultItem = {
   id: string
@@ -169,6 +170,7 @@ function mapFlatListWithEsimCards(
   items: ResultItem[],
   renderProduct: (item: ResultItem) => ReactNode,
   liClassName?: string,
+  esimLiClassName?: string,
 ): ReactNode[] {
   const nodes: ReactNode[] = []
   let sinceEsim = 0
@@ -178,7 +180,7 @@ function mapFlatListWithEsimCards(
     sinceEsim++
     if (sinceEsim >= ESIM_NATIVE_INSERT_EVERY && i < items.length - 1) {
       nodes.push(
-        <li key={`esim-native-${esimKey++}`} className={liClassName}>
+        <li key={`esim-native-${esimKey++}`} className={esimLiClassName ?? liClassName}>
           <EsimProductListNativeCard />
         </li>,
       )
@@ -186,6 +188,62 @@ function mapFlatListWithEsimCards(
     }
   }
   return nodes
+}
+
+function buildProductResultRowNodes(
+  items: ResultItem[],
+  formatWon: (n: number | null) => string,
+  seasonalPickIds: ReadonlySet<string> | null | undefined,
+  opts: {
+    compact?: boolean
+    liClassName?: string
+    interleaveEsim?: boolean
+    esimSpansFullRowOnMobile?: boolean
+  },
+): ReactNode[] {
+  const renderProduct = (item: ResultItem) => (
+    <li key={item.id} className={opts.liClassName}>
+      <ProductResultCard
+        item={item}
+        formatWon={formatWon}
+        seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+        compact={opts.compact}
+      />
+    </li>
+  )
+  if (opts.interleaveEsim) {
+    return mapFlatListWithEsimCards(
+      items,
+      renderProduct,
+      opts.liClassName,
+      opts.esimSpansFullRowOnMobile ? 'col-span-2 min-w-0' : opts.liClassName,
+    )
+  }
+  return items.map((item) => renderProduct(item))
+}
+
+function ProductResultsMobileAndDesktopRow({
+  ariaLabel,
+  mobileNodes,
+  desktopUlClassName,
+  desktopNodes,
+}: {
+  ariaLabel: string
+  mobileNodes: ReactNode[]
+  desktopUlClassName: string
+  desktopNodes: ReactNode[]
+}) {
+  if (mobileNodes.length === 0) return null
+  return (
+    <>
+      <ProductResultsMobilePagedCarousel ariaLabel={ariaLabel}>
+        {mobileNodes}
+      </ProductResultsMobilePagedCarousel>
+      <ul className={`${desktopUlClassName} max-md:hidden`} role="list">
+        {desktopNodes}
+      </ul>
+    </>
+  )
 }
 
 const AIR_HOTEL_MISC_SECTION = '기타'
@@ -640,9 +698,15 @@ function AirHotelCountryGroupedList({
             >
               {countryKey}
             </h2>
-            <ul className={productListUlResponsive(productCardGridClassDefault)} role="list">
-              {rowVisible.map((item) => (
-                <li key={item.id} className={productListLiMobileSnap}>
+            <ProductResultsMobileAndDesktopRow
+              ariaLabel={`${countryKey} 상품`}
+              mobileNodes={buildProductResultRowNodes(rowVisible, formatWon, seasonalPickIds, {
+                compact: true,
+                liClassName: 'min-w-0',
+              })}
+              desktopUlClassName={productCardGridClassDefault}
+              desktopNodes={rowVisible.map((item) => (
+                <li key={item.id}>
                   <ProductResultCard
                     item={item}
                     formatWon={formatWon}
@@ -650,7 +714,7 @@ function AirHotelCountryGroupedList({
                   />
                 </li>
               ))}
-            </ul>
+            />
           </section>
         )
       })}
@@ -779,10 +843,12 @@ export function ProductResultCard({
   item,
   formatWon,
   seasonalPickBadge = false,
+  compact = false,
 }: {
   item: ResultItem
   formatWon: (n: number | null) => string
   seasonalPickBadge?: boolean
+  compact?: boolean
 }) {
   const cardSrc = (item.coverImageUrl ?? item.bgImageUrl ?? '').trim()
   const cardBlur = Boolean(cardSrc) && isSrcOptimizableByNextImage(cardSrc)
@@ -793,18 +859,32 @@ export function ProductResultCard({
     <ProductDetailNavLink
       href={preview.href}
       preview={preview}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md"
+      className={
+        compact
+          ? 'group flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md'
+          : 'group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md'
+      }
     >
-      <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
+      <div
+        className={
+          compact
+            ? 'relative aspect-[4/3] w-full overflow-hidden bg-slate-100'
+            : 'relative aspect-[16/10] w-full overflow-hidden bg-slate-100'
+        }
+      >
         {item.hasUrgentDeal ? (
           <span
-            className="pointer-events-none absolute -left-9 top-5 z-20 w-[150px] -rotate-45 bg-[#d9a81e] py-1 text-center text-[11px] font-semibold leading-tight text-[#1F1B2D] shadow-sm"
+            className={
+              compact
+                ? 'pointer-events-none absolute -left-7 top-3.5 z-20 w-[110px] -rotate-45 bg-[#d9a81e] py-0.5 text-center text-[9px] font-semibold leading-tight text-[#1F1B2D] shadow-sm'
+                : 'pointer-events-none absolute -left-9 top-5 z-20 w-[150px] -rotate-45 bg-[#d9a81e] py-1 text-center text-[11px] font-semibold leading-tight text-[#1F1B2D] shadow-sm'
+            }
             aria-label="긴급모객"
           >
             긴급모객
           </span>
         ) : null}
-        <div className="absolute right-2 top-2 z-10">
+        <div className={compact ? 'absolute right-1.5 top-1.5 z-10' : 'absolute right-2 top-2 z-10'}>
           <WishlistToggleButton
             kind="product"
             id={item.id}
@@ -820,40 +900,66 @@ export function ProductResultCard({
               alt=""
               fill
               className="object-cover"
-              sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
+              sizes={
+                compact
+                  ? '(max-width:768px) 42vw, (max-width:1024px) 25vw, 20vw'
+                  : '(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw'
+              }
               quality={60}
               {...(cardBlur
                 ? { placeholder: 'blur' as const, blurDataURL: PRODUCT_CARD_IMAGE_BLUR_DATA_URL }
                 : {})}
             />
-            <PublicImageBottomOverlay
-              leftLabel={item.coverImageSeoKeyword ?? null}
-              rightLabel={item.coverImageSourceUserLabel ?? null}
-            />
+            {!compact ? (
+              <PublicImageBottomOverlay
+                leftLabel={item.coverImageSeoKeyword ?? null}
+                rightLabel={item.coverImageSourceUserLabel ?? null}
+              />
+            ) : null}
           </>
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-slate-400">이미지 없음</div>
         )}
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <p className="text-[11px] font-medium text-slate-500">{formatOriginSourceForDisplay(item.originSource)}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <h2 className="line-clamp-2 flex-1 min-w-0 text-sm font-semibold text-slate-900 group-hover:text-teal-800">
+      <div className={compact ? 'flex flex-1 flex-col p-2.5' : 'flex flex-1 flex-col p-4'}>
+        {!compact ? (
+          <p className="text-[11px] font-medium text-slate-500">{formatOriginSourceForDisplay(item.originSource)}</p>
+        ) : null}
+        <div className={compact ? 'mt-0.5' : 'mt-1 flex flex-wrap items-center gap-2'}>
+          <h2
+            className={
+              compact
+                ? 'line-clamp-2 min-w-0 text-[11px] font-semibold leading-snug text-slate-900 group-hover:text-teal-800'
+                : 'line-clamp-2 flex-1 min-w-0 text-sm font-semibold text-slate-900 group-hover:text-teal-800'
+            }
+          >
             {item.title}
           </h2>
           {seasonalPickBadge ? (
-            <span className="shrink-0 rounded-full bg-teal-100 px-2 py-0.5 text-xs text-teal-700">이달의 추천</span>
+            <span
+              className={
+                compact
+                  ? 'mt-0.5 inline-block shrink-0 rounded-full bg-teal-100 px-1.5 py-px text-[9px] text-teal-700'
+                  : 'shrink-0 rounded-full bg-teal-100 px-2 py-0.5 text-xs text-teal-700'
+              }
+            >
+              {compact ? '추천' : '이달의 추천'}
+            </span>
           ) : null}
         </div>
-        {item.primaryDestination && <p className="mt-1 text-xs text-slate-600">{item.primaryDestination}</p>}
-        {isAirHotelFreeListingForUi(item.listingKind) && (item.hotelName || item.hotelGrade || item.roomType) && (
+        {!compact && item.primaryDestination ? (
+          <p className="mt-1 text-xs text-slate-600">{item.primaryDestination}</p>
+        ) : null}
+        {!compact &&
+        isAirHotelFreeListingForUi(item.listingKind) &&
+        (item.hotelName || item.hotelGrade || item.roomType) ? (
           <p className="mt-1 text-xs text-slate-600">
             {item.hotelName ?? '호텔 정보 확인'}
             {item.hotelGrade ? ` · ${item.hotelGrade}` : ''}
             {item.roomType ? ` · ${item.roomType}` : ''}
           </p>
-        )}
-        {isAirHotelFreeListingForUi(item.listingKind) && item.airportTransferType && (
+        ) : null}
+        {!compact && isAirHotelFreeListingForUi(item.listingKind) && item.airportTransferType ? (
           <p className="mt-1">
             <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800">
               {item.airportTransferType === 'BOTH'
@@ -865,28 +971,48 @@ export function ProductResultCard({
                     : '공항 이동 불포함'}
             </span>
           </p>
-        )}
-        <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-3">
+        ) : null}
+        <div
+          className={
+            compact
+              ? 'mt-auto flex flex-wrap items-end justify-between gap-1 pt-2'
+              : 'mt-auto flex flex-wrap items-end justify-between gap-2 pt-3'
+          }
+        >
           {item.hasUrgentDeal &&
           item.urgentDealBaselinePriceKrw != null &&
           item.urgentDealCurrentPriceKrw != null ? (
             <div className="flex flex-col items-start gap-0.5">
-              <span className="text-sm font-medium text-red-600 line-through">
-                {formatWon(item.urgentDealBaselinePriceKrw)}
-              </span>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-sm font-bold text-[#1F1B2D]" aria-hidden>
-                  ↓
+              {!compact ? (
+                <span className="text-sm font-medium text-red-600 line-through">
+                  {formatWon(item.urgentDealBaselinePriceKrw)}
                 </span>
-                <span className="text-lg font-extrabold tracking-tight text-[#1F1B2D]">
+              ) : null}
+              <div className="flex items-baseline gap-1">
+                {!compact ? (
+                  <span className="text-sm font-bold text-[#1F1B2D]" aria-hidden>
+                    ↓
+                  </span>
+                ) : null}
+                <span
+                  className={
+                    compact
+                      ? 'text-sm font-extrabold tracking-tight text-[#1F1B2D]'
+                      : 'text-lg font-extrabold tracking-tight text-[#1F1B2D]'
+                  }
+                >
                   {formatWon(item.urgentDealCurrentPriceKrw)}
                 </span>
               </div>
             </div>
           ) : (
-            <span className="text-base font-bold text-slate-900">{formatWon(item.effectivePricePerPersonKrw)}</span>
+            <span className={compact ? 'text-sm font-bold text-slate-900' : 'text-base font-bold text-slate-900'}>
+              {formatWon(item.effectivePricePerPersonKrw)}
+            </span>
           )}
-          {item.duration && <span className="text-xs text-slate-500">{item.duration}</span>}
+          {item.duration ? (
+            <span className={compact ? 'text-[10px] text-slate-500' : 'text-xs text-slate-500'}>{item.duration}</span>
+          ) : null}
         </div>
       </div>
     </ProductDetailNavLink>
@@ -1000,11 +1126,31 @@ function OverseasRegionGroupedList({
                 </div>
               ) : null}
               {visibleInBucket.length > 0 ? (
-                <ul className={countryProductRowClass} role="list">
-                  {interleaveEsimNativeCards
-                    ? mapFlatListWithEsimCards(
-                        visibleInBucket,
-                        (item) => (
+                <ProductResultsMobileAndDesktopRow
+                  ariaLabel={`${OVERSEAS_DISPLAY_BUCKET_LABEL[bucketId]} 상품`}
+                  mobileNodes={buildProductResultRowNodes(visibleInBucket, formatWon, seasonalPickIds, {
+                    compact: true,
+                    liClassName: 'min-w-0',
+                    interleaveEsim: interleaveEsimNativeCards,
+                    esimSpansFullRowOnMobile: true,
+                  })}
+                  desktopUlClassName={countryProductRowClass}
+                  desktopNodes={
+                    interleaveEsimNativeCards
+                      ? mapFlatListWithEsimCards(
+                          visibleInBucket,
+                          (item) => (
+                            <li key={item.id} className={bucketRowLiClass}>
+                              <ProductResultCard
+                                item={item}
+                                formatWon={formatWon}
+                                seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                              />
+                            </li>
+                          ),
+                          bucketRowLiClass,
+                        )
+                      : visibleInBucket.map((item) => (
                           <li key={item.id} className={bucketRowLiClass}>
                             <ProductResultCard
                               item={item}
@@ -1012,19 +1158,9 @@ function OverseasRegionGroupedList({
                               seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
                             />
                           </li>
-                        ),
-                        bucketRowLiClass,
-                      )
-                    : visibleInBucket.map((item) => (
-                        <li key={item.id} className={bucketRowLiClass}>
-                          <ProductResultCard
-                            item={item}
-                            formatWon={formatWon}
-                            seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
-                          />
-                        </li>
-                      ))}
-                </ul>
+                        ))
+                  }
+                />
               ) : flatList.length === 0 && showEuropeBriefing ? (
                 <p className="mt-4 text-sm text-slate-500">
                   현재 조건에 맞는 유럽·중동·아프리카 상품이 없습니다.
@@ -1088,35 +1224,44 @@ function FlatProductResultsList({
   const { visibleCount, sentinelRef } = useProgressiveProductCount(items.length, listResetKey)
   const visibleItems = useMemo(() => items.slice(0, visibleCount), [items, visibleCount])
 
-  const listUlClass = productListUlResponsive(cardGridClass)
+  const desktopGridClass = cardGridClass
 
   return (
     <>
-      <ul className={listUlClass}>
-        {interleaveEsimNativeCards
-          ? mapFlatListWithEsimCards(
-              visibleItems,
-              (item) => (
-                <li key={item.id} className={productListLiMobileSnap}>
+      <ProductResultsMobileAndDesktopRow
+        ariaLabel="상품 목록"
+        mobileNodes={buildProductResultRowNodes(visibleItems, formatWon, seasonalPickIds, {
+          compact: true,
+          liClassName: 'min-w-0',
+          interleaveEsim: interleaveEsimNativeCards,
+          esimSpansFullRowOnMobile: true,
+        })}
+        desktopUlClassName={desktopGridClass}
+        desktopNodes={
+          interleaveEsimNativeCards
+            ? mapFlatListWithEsimCards(
+                visibleItems,
+                (item) => (
+                  <li key={item.id}>
+                    <ProductResultCard
+                      item={item}
+                      formatWon={formatWon}
+                      seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                    />
+                  </li>
+                ),
+              )
+            : visibleItems.map((item) => (
+                <li key={item.id}>
                   <ProductResultCard
                     item={item}
                     formatWon={formatWon}
                     seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
                   />
                 </li>
-              ),
-              productListLiMobileSnap,
-            )
-          : visibleItems.map((item) => (
-              <li key={item.id} className={productListLiMobileSnap}>
-                <ProductResultCard
-                  item={item}
-                  formatWon={formatWon}
-                  seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
-                />
-              </li>
-            ))}
-      </ul>
+              ))
+        }
+      />
       {visibleCount < items.length ? (
         <div ref={sentinelRef} className="mt-2 h-10 w-full shrink-0" aria-hidden />
       ) : null}
