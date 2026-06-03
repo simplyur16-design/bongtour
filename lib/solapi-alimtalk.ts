@@ -241,7 +241,7 @@ export async function sendAlimtalkWithDetail(customerData: AlimtalkCustomerData)
 
   const fromDigits = fromRaw.replace(/\D/g, '')
   const toDigits = phone.replace(/\D/g, '')
-  const plusFriendLink = 'kakaoplus://plusfriend/friend/@봉투어'
+  const plusFriendLink = 'kakaoplus://plusfriend/talk/@봉투어'
 
   const one = new SolapiMessageService(apiKey, apiSecret)
   return await one.send({

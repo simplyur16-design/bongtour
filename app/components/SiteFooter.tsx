@@ -7,6 +7,7 @@ import RepresentativeNameImage from '@/app/components/common/RepresentativeNameI
 import { COMPANY_FOOTER } from '@/lib/company-footer'
 import { FOOTER_POLICY_LINKS } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import KakaoChannelConsultLink from '@/components/bongtour/KakaoChannelConsultLink'
 
 const FTC_BIZ_VERIFY_HREF =
   'https://www.ftc.go.kr/bizCommPop.do?wrkr_no=2558103455' as const
@@ -251,13 +252,14 @@ export default function SiteFooter() {
               <span className="text-[11px] font-medium text-bt-brand-gold-strong sm:text-xs">상담 가능 시간</span>
               <span className="text-xs font-medium text-bt-trust-beige sm:text-sm">평일 08:00 ~ 19:00</span>
             </p>
-            <p className="mt-1 hidden text-xs leading-relaxed text-bt-bg-lavender/70 sm:block">
-              간단한 문의·예약 상담은 <span className="text-bt-bg-lavender">오픈카톡</span>
-              <span className="text-bt-bg-lavender/40"> · </span>
-              급한 문의는 <span className="text-bt-bg-lavender">전화</span>
-              <span className="text-bt-bg-lavender/40"> · </span>
-              자료 첨부가 필요한 경우 <span className="text-bt-bg-lavender">이메일</span>을 이용해 주세요
-            </p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <KakaoChannelConsultLink className="w-full text-xs sm:w-auto" />
+              <p className="text-xs leading-relaxed text-bt-bg-lavender/70">
+                급한 문의는 <span className="text-bt-bg-lavender">전화</span>
+                <span className="text-bt-bg-lavender/40"> · </span>
+                자료 첨부가 필요한 경우 <span className="text-bt-bg-lavender">이메일</span>을 이용해 주세요
+              </p>
+            </div>
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 border-t-[0.5px] border-bt-bg-lavender/20 pt-2 text-[11px] sm:text-xs">

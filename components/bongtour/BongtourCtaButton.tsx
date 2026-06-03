@@ -25,7 +25,7 @@ const variantVisual: Record<BongtourCtaButtonVariant, string> = {
   customItinerary:
     'border border-slate-300 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50 active:bg-slate-100',
   kakao:
-    'border border-[#c5b358]/60 bg-[#FFFBF0] text-[#191919] hover:bg-[#FFF8DC] active:bg-[#FFF5D6]',
+    'border border-[#E5D200] bg-[#FEE500] text-[#3C1E1E] hover:bg-[#f5dc00] active:bg-[#ebd000]',
   phone:
     'border border-slate-300 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50 active:bg-slate-100',
 }

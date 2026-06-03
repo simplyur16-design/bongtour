@@ -29,7 +29,7 @@ export default function MobileStickyBar() {
           href={MOBILE_STICKY_KAKAO_HREF}
           target="_blank"
           rel="noopener noreferrer"
-          className={`${SLOT_BASE} bg-[#FAE100] text-[#3C1E1E]`}
+          className={`${SLOT_BASE} bg-[#FEE500] text-[#3C1E1E]`}
         >
           <MessageCircle className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
           <span>{MOBILE_STICKY_KAKAO_LABEL}</span>

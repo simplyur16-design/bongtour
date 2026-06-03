@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import type { TravelProduct, ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
 import ShareActions from '@/app/components/detail/ShareActions'
+import KakaoChannelConsultLink from '@/components/bongtour/KakaoChannelConsultLink'
 import { getStickyDisplayPerPaxKrw, getStickyQuotationSummary } from '@/lib/public-sticky-pax-display'
 import { quotePriceRowStrictForSelectedDate } from '@/lib/booking-departure-ssot'
 import type { DeparturePriceCollectUiPhase } from '@/lib/departure-price-collect-ui'
@@ -271,6 +272,7 @@ export default function ProductLiveQuoteCard({
       >
         {copy.bookingCta}
       </button>
+      <KakaoChannelConsultLink className="mt-2 w-full" />
     </div>
   )
 }

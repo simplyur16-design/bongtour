@@ -13,8 +13,8 @@ import {
   type InquirySuccessKind,
 } from '@/lib/inquiry-page'
 import ConsentBlock from '@/components/auth/ConsentBlock'
+import KakaoChannelConsultLink from '@/components/bongtour/KakaoChannelConsultLink'
 import type { FieldErrors } from '@/lib/customer-inquiry-intake'
-import { KAKAO_OPEN_CHAT_URL } from '@/lib/kakao-open-chat'
 import { formatKoreanTelInput } from '@/lib/korean-tel-format'
 import { optionalEmailFormatError } from '@/lib/email-format'
 import { readUtmFromSession } from '@/lib/utm-capture'
@@ -275,14 +275,7 @@ export default function InquiryFormShell({
         {showOpenKakaoCta ? (
           <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-center">
             <p className="text-xs leading-relaxed text-slate-700">{kakaoGuide}</p>
-            <a
-              href={KAKAO_OPEN_CHAT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center justify-center rounded-lg border border-[#E5D200] bg-[#FEE500] px-4 py-2 text-sm font-semibold text-[#3C1E1E] hover:bg-[#f5dc00]"
-            >
-              카카오 채널 상담
-            </a>
+            <KakaoChannelConsultLink className="mt-3 w-full" />
           </div>
         ) : null}
         <p className="mt-6 text-center text-xs text-slate-500">{SHORT_NOTICES.inquiryForm}</p>
