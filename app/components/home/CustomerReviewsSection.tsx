@@ -25,13 +25,7 @@ export default async function CustomerReviewsSection() {
 
         {packageReviews.length > 0 ? (
           <div className="mt-10">
-            <h3 className="text-center text-base font-semibold text-bt-text-navy sm:text-lg">패키지 여행 후기</h3>
-            <p className="mt-1 text-center text-xs text-bt-text-muted-lavender sm:text-sm">
-              가족·부부·혼자·친구·부모님 동반 여행
-            </p>
-            <div className="mt-6">
-              <HomeReviewsGridClient reviews={packageReviews} />
-            </div>
+            <HomeReviewsGridClient reviews={packageReviews} />
           </div>
         ) : null}
 
