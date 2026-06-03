@@ -12,16 +12,28 @@
 
 ## 안전하게 체감을 줄이는 순서 (권장)
 
-### 1. 상세 DTO 백필 (효과 큼 · 운영 1회)
+### 1. 상세 DTO 백필 (효과 큼 · **프로덕션 DB**)
 
 등록 상품마다 `publicDetailPayloadJson` 이 있으면 상세 RSC는 **파싱·재계산 생략** (`payload=computed` → `payload=payload`).
 
-```bash
-node scripts/_apply-public-detail-payload-columns.mjs
-npx tsx scripts/backfill-product-public-detail-payload.ts
-```
+**`npm run build` 안에 넣지 않는다** — CI/이미지 빌드 단계는 DB가 없거나 pooler 차단(sitemap과 동일).  
+**배포(release) 직후** 에만 자동 배치:
 
-측정: Railway 등에 `BONGTOUR_PERF_LOG=1` 후 로그 `[product-detail-perf] payload=payload` 비율 확인.
+| 명령 | 용도 |
+|------|------|
+| `npm run postdeploy:detail-payload` | Railway **Release Command** — payload 없는 등록 상품 최대 40건/배포 (환경변수 `POSTDEPLOY_DETAIL_PAYLOAD_BATCH`) |
+| `npm run db:backfill-detail-payload` | 수동 전량 (로컬에서 **프로덕션 `DATABASE_URL`** 로 실행 시 bongtour.com 반영) |
+| `npm run db:backfill-detail-payload:missing` | 수동 — 비어 있는 것만 |
+
+Railway (`railway.json` — 저장소에 반영됨):
+
+- **Build:** `npm run build` (nixpacks)
+- **preDeployCommand:** `npm run postdeploy:detail-payload` (배포마다 자동, 로컬에서 손으로 `npx tsx` 할 필요 없음)
+- 비활성: `SKIP_POSTDEPLOY_DETAIL_PAYLOAD_BACKFILL=1`
+
+신규·재등록 상품은 등록/동기화 시 `rebuildProductPublicDetailPayload` 로 이미 채워짐 — postdeploy는 **기존 누락분** 소진용.
+
+측정: `BONGTOUR_PERF_LOG=1` → `[product-detail-perf] payload=payload` 비율.
 
 ### 2. prefetch 폭주 방지 (배포 필수)
 

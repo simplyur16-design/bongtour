@@ -1,6 +1,6 @@
 /**
  * 등록 완료 상품의 공개 상세 DTO 일괄 생성.
- * Usage: npx tsx scripts/backfill-product-public-detail-payload.ts [--limit N] [--id PRODUCT_ID]
+ * Usage: npx tsx scripts/backfill-product-public-detail-payload.ts [--limit N] [--id PRODUCT_ID] [--missing-only]
  *
  * Prisma CLI·tsx는 `.env.local` 을 자동 로드하지 않음 — import 전에 dotenv 로드.
  */
@@ -20,12 +20,16 @@ async function main() {
   const limit = limitIdx >= 0 ? Number(args[limitIdx + 1]) : undefined
   const idIdx = args.indexOf('--id')
   const singleId = idIdx >= 0 ? args[idIdx + 1] : undefined
+  const missingOnly = args.includes('--missing-only')
 
   const ids = singleId
     ? [singleId]
     : (
         await prisma.product.findMany({
-          where: { registrationStatus: 'registered' },
+          where: {
+            registrationStatus: 'registered',
+            ...(missingOnly ? { publicDetailPayloadJson: null } : {}),
+          },
           select: { id: true },
           orderBy: { updatedAt: 'desc' },
           take: limit,
