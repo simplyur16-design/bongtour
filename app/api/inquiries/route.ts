@@ -5,6 +5,7 @@ import {
   type CustomerInquiryType,
 } from '@/lib/customer-inquiry-intake'
 import { sendInquiryReceivedEmail } from '@/lib/inquiry-email'
+import { notifyTravelConsultInquiryBookingAligned } from '@/lib/inquiry-booking-aligned-notify'
 import { sendAdminInquiryNotification, sendInquiryCustomerLmsFallback } from '@/lib/notification-service'
 import { attemptSendCustomerInquiryAlimTalk } from '@/lib/solapi-alimtalk'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
@@ -280,101 +281,127 @@ export async function POST(request: Request) {
       product: productMeta,
     }
 
-    let emailOk = false
-    try {
-      await sendInquiryReceivedEmail(notifyInput)
-      emailOk = true
-      await prisma.customerInquiry.update({
-        where: { id: row.id },
-        data: {
-          emailSentAt: new Date(),
-          emailSentStatus: 'sent',
-          emailError: null,
-        },
-      })
-    } catch (mailError) {
-      const errMsg = mailError instanceof Error ? mailError.message.slice(0, 500) : 'unknown'
-      await prisma.customerInquiry.update({
-        where: { id: row.id },
-        data: {
-          emailSentAt: null,
-          emailSentStatus: 'failed',
-          emailError: errMsg,
-        },
-      })
-      console.error(
-        '[POST /api/inquiries] notification_email_failed',
-        JSON.stringify({
-          inquiryId: row.id,
-          inquiryType: row.inquiryType,
-          stage: 'smtp_inquiry_received',
-          error: errMsg,
-        })
-      )
-    }
-
     const productLabel =
       productMeta?.title?.trim() ||
       row.snapshotProductTitle?.trim() ||
       row.snapshotCardLabel?.trim() ||
       '상담문의'
 
-    /** `여행상담접수완료` #{상품명} 전용 — snapshotCardLabel 은 #{미리보기} 로만 사용 */
-    const travelConsultProductTitle =
-      productMeta?.title?.trim() || row.snapshotProductTitle?.trim() || '상담문의'
+    let emailOk = false
+    let adminLmsOk = false
+    let adminLmsSkipped = true
+    let adminLmsFailedCount = 0
+    let notificationMode: 'booking_aligned' | 'inquiry_legacy' = 'inquiry_legacy'
 
-    const alim = await attemptSendCustomerInquiryAlimTalk({
-      inquiryId: row.id,
-      inquiryType: row.inquiryType,
-      applicantName: row.applicantName,
-      applicantPhone: row.applicantPhone,
-      payloadJson: row.payloadJson,
-      productLabel,
-      travelConsultProductTitle,
-      snapshotCardLabel: row.snapshotCardLabel,
-    })
-    if (!alim.ok && alim.shouldSendLmsFallback) {
-      const lmsCustomer = await sendInquiryCustomerLmsFallback({
+    if (row.inquiryType === 'travel_consult') {
+      notificationMode = 'booking_aligned'
+      const aligned = await notifyTravelConsultInquiryBookingAligned(
+        {
+          id: row.id,
+          inquiryNumber: row.inquiryNumber,
+          inquiryType: row.inquiryType,
+          applicantName: row.applicantName,
+          applicantPhone: row.applicantPhone,
+          applicantEmail: row.applicantEmail,
+          message: row.message,
+          payloadJson: row.payloadJson,
+          productId: row.productId,
+          snapshotProductTitle: row.snapshotProductTitle,
+          snapshotCardLabel: row.snapshotCardLabel,
+          snapshotOriginSource: row.snapshotOriginSource,
+          snapshotOriginUrl: row.snapshotOriginUrl,
+          preferredContactChannel: row.preferredContactChannel,
+          createdAt: row.createdAt,
+        },
+        productLabel,
+      )
+      emailOk = aligned.emailOk
+      adminLmsSkipped = aligned.adminSms.skipped
+      adminLmsOk = aligned.adminSms.ok
+      adminLmsFailedCount = aligned.adminSms.ok ? 0 : 1
+    } else {
+      try {
+        await sendInquiryReceivedEmail(notifyInput)
+        emailOk = true
+      } catch (mailError) {
+        const errMsg = mailError instanceof Error ? mailError.message.slice(0, 500) : 'unknown'
+        console.error(
+          '[POST /api/inquiries] notification_email_failed',
+          JSON.stringify({
+            inquiryId: row.id,
+            inquiryType: row.inquiryType,
+            stage: 'smtp_inquiry_received',
+            error: errMsg,
+          }),
+        )
+      }
+
+      const travelConsultProductTitle =
+        productMeta?.title?.trim() || row.snapshotProductTitle?.trim() || '상담문의'
+
+      const alim = await attemptSendCustomerInquiryAlimTalk({
+        inquiryId: row.id,
+        inquiryType: row.inquiryType,
+        applicantName: row.applicantName,
+        applicantPhone: row.applicantPhone,
+        payloadJson: row.payloadJson,
+        productLabel,
+        travelConsultProductTitle,
+        snapshotCardLabel: row.snapshotCardLabel,
+      })
+      if (!alim.ok && alim.shouldSendLmsFallback) {
+        const lmsCustomer = await sendInquiryCustomerLmsFallback({
+          inquiryId: row.id,
+          inquiryType: row.inquiryType,
+          productLabel,
+          applicantPhone: row.applicantPhone,
+        })
+        if (!lmsCustomer.ok) {
+          console.error(
+            '[POST /api/inquiries] inquiry_customer_lms_failed',
+            JSON.stringify({ inquiryId: row.id, message: lmsCustomer.message }),
+          )
+        }
+      }
+
+      const lmsAdmin = await sendAdminInquiryNotification({
         inquiryId: row.id,
         inquiryType: row.inquiryType,
         productLabel,
+        applicantName: row.applicantName,
         applicantPhone: row.applicantPhone,
+        applicantEmail: row.applicantEmail ?? null,
+        preferredContactChannel: row.preferredContactChannel ?? null,
+        message: row.message ?? null,
+        payloadJson: row.payloadJson,
+        productId: row.productId,
+        snapshotOriginUrl: row.snapshotOriginUrl,
       })
-      if (!lmsCustomer.ok) {
+      adminLmsSkipped = lmsAdmin.skipped
+      adminLmsOk = !lmsAdmin.skipped && lmsAdmin.failed.length === 0 && lmsAdmin.succeeded.length > 0
+      adminLmsFailedCount = lmsAdmin.failed.length
+      if (lmsAdmin.failed.length > 0) {
         console.error(
-          '[POST /api/inquiries] inquiry_customer_lms_failed',
+          '[POST /api/inquiries] inquiry_admin_lms_failed',
           JSON.stringify({
             inquiryId: row.id,
-            message: lmsCustomer.message,
-            code: 'code' in lmsCustomer ? lmsCustomer.code : undefined,
-          })
+            succeeded: lmsAdmin.succeeded,
+            failed: lmsAdmin.failed,
+          }),
         )
       }
     }
 
-    const lmsAdmin = await sendAdminInquiryNotification({
-      inquiryId: row.id,
-      inquiryType: row.inquiryType,
-      productLabel,
-      applicantName: row.applicantName,
-      applicantPhone: row.applicantPhone,
-      applicantEmail: row.applicantEmail ?? null,
-      preferredContactChannel: row.preferredContactChannel ?? null,
-      message: row.message ?? null,
-      payloadJson: row.payloadJson,
-      productId: row.productId,
-      snapshotOriginUrl: row.snapshotOriginUrl,
+    await prisma.customerInquiry.update({
+      where: { id: row.id },
+      data: emailOk
+        ? { emailSentAt: new Date(), emailSentStatus: 'sent', emailError: null }
+        : {
+            emailSentAt: null,
+            emailSentStatus: 'failed',
+            emailError: notificationMode === 'booking_aligned' ? 'booking_aligned_email_failed' : 'smtp_failed',
+          },
     })
-    if (lmsAdmin.failed.length > 0) {
-      console.error(
-        '[POST /api/inquiries] inquiry_admin_lms_failed',
-        JSON.stringify({
-          inquiryId: row.id,
-          succeeded: lmsAdmin.succeeded,
-          failed: lmsAdmin.failed,
-        })
-      )
-    }
 
     const payload = {
       ok: true,
@@ -389,13 +416,13 @@ export async function POST(request: Request) {
       notification: {
         ok: emailOk,
         delayed: !emailOk,
+        mode: notificationMode,
         channels: {
           email: { ok: emailOk },
           adminLms: {
-            skipped: lmsAdmin.skipped,
-            ok: !lmsAdmin.skipped && lmsAdmin.failed.length === 0 && lmsAdmin.succeeded.length > 0,
-            succeededCount: lmsAdmin.succeeded.length,
-            failedCount: lmsAdmin.failed.length,
+            skipped: adminLmsSkipped,
+            ok: adminLmsOk,
+            failedCount: adminLmsFailedCount,
           },
         },
       },

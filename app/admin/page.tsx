@@ -26,11 +26,13 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
   const { auth } = await searchParams
   const query = auth ? `?auth=${auth}` : ''
 
-  const [pendingCount, registeredCount, bookingCount] = await Promise.all([
+  const [pendingCount, registeredCount, bookingCount, inquiryCount] = await Promise.all([
     prisma.product.count({ where: { registrationStatus: 'pending' } }),
     prisma.product.count({ where: { registrationStatus: 'registered' } }),
     prisma.booking.count({ where: { status: { not: '취소' } } }),
+    prisma.customerInquiry.count({ where: { status: { notIn: ['dropped', 'cancelled'] } } }),
   ])
+  const consultIntakeTotal = bookingCount + inquiryCount
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -40,7 +42,11 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
         <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <AdminKpiCard label="등록대기" value={`${pendingCount}건`} href={`/admin/pending${query}`} />
           <AdminKpiCard label="상품 목록" value={`${registeredCount}건`} href={`/admin/products${query}`} />
-          <AdminKpiCard label="상담 접수" value={`${bookingCount}건`} href={`/admin/bookings${query}`} />
+          <AdminKpiCard
+            label="상담·접수"
+            value={`${consultIntakeTotal}건`}
+            href={`/admin/bookings${query}`}
+          />
           <AdminKpiCard label="오늘 수집" value={<span className="text-base font-normal text-bt-text-muted-lavender">아래 차트 참고</span>} tone="muted" />
         </section>
 

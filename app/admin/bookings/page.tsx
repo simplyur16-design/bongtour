@@ -1,13 +1,19 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { formatKRW } from '@/lib/price-utils'
+import type { ConsultIntakeInquiry, ConsultIntakeItem } from '@/lib/admin-consult-intake'
 import AdminEmptyState from '../components/AdminEmptyState'
 import AdminKpiCard from '../components/AdminKpiCard'
 import AdminPageHeader from '../components/AdminPageHeader'
 import AdminStatusBadge from '../components/AdminStatusBadge'
 import { getNextBookingStatuses } from '@/lib/booking-status-policy'
+
+type IntakeSelection =
+  | { kind: 'booking'; id: number }
+  | { kind: 'inquiry'; id: string }
+  | null
 
 type Booking = {
   id: number
@@ -50,9 +56,10 @@ const STATUS_TO_VARIANT: Record<string, 'received' | 'consulting' | 'confirmed' 
 }
 
 export default function AdminBookingsPage() {
-  const [list, setList] = useState<Booking[]>([])
+  const [bookingRows, setBookingRows] = useState<Booking[]>([])
+  const [intakeItems, setIntakeItems] = useState<ConsultIntakeItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [selection, setSelection] = useState<IntakeSelection>(null)
   const [detail, setDetail] = useState<Booking | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [updating, setUpdating] = useState(false)
@@ -61,10 +68,27 @@ export default function AdminBookingsPage() {
   const fetchList = useCallback(() => {
     fetch('/api/admin/bookings')
       .then((r) => r.json())
-      .then((data) => (Array.isArray(data) ? setList(data) : []))
-      .catch(() => setList([]))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setBookingRows(data)
+          setIntakeItems([])
+          return
+        }
+        setBookingRows(Array.isArray(data.bookings) ? data.bookings : [])
+        setIntakeItems(Array.isArray(data.intakeItems) ? data.intakeItems : [])
+      })
+      .catch(() => {
+        setBookingRows([])
+        setIntakeItems([])
+      })
       .finally(() => setLoading(false))
   }, [])
+
+  const selectedInquiry = useMemo((): ConsultIntakeInquiry | null => {
+    if (selection?.kind !== 'inquiry') return null
+    const row = intakeItems.find((i) => i.kind === 'inquiry' && i.id === selection.id)
+    return row?.kind === 'inquiry' ? row : null
+  }, [intakeItems, selection])
 
   useEffect(() => {
     fetchList()
@@ -72,17 +96,17 @@ export default function AdminBookingsPage() {
 
   useEffect(() => {
     setStatusError(null)
-    if (selectedId == null) {
+    if (selection?.kind !== 'booking') {
       setDetail(null)
       return
     }
     setDetailLoading(true)
-    fetch(`/api/admin/bookings/${selectedId}`)
+    fetch(`/api/admin/bookings/${selection.id}`)
       .then((r) => r.json())
       .then(setDetail)
       .catch(() => setDetail(null))
       .finally(() => setDetailLoading(false))
-  }, [selectedId])
+  }, [selection])
 
   const updateStatus = async (id: number, status: string) => {
     setUpdating(true)
@@ -99,15 +123,21 @@ export default function AdminBookingsPage() {
         return
       }
       setDetail((d) => (d && d.id === id ? { ...d, status } : d))
-      setList((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)))
+      setBookingRows((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)))
+      setIntakeItems((prev) =>
+        prev.map((i) =>
+          i.kind === 'booking' && i.id === id ? { ...i, status } : i,
+        ),
+      )
     } finally {
       setUpdating(false)
     }
   }
 
-  const consultingCount = list.filter((b) => b.status === '상담중').length
-  const inProgressCount = list.filter((b) => b.status === '예약진행중').length
-  const confirmedCount = list.filter((b) => b.status === '예약확정').length
+  const consultingCount = bookingRows.filter((b) => b.status === '상담중').length
+  const confirmedCount = bookingRows.filter((b) => b.status === '예약확정').length
+  const inquiryCount = intakeItems.filter((i) => i.kind === 'inquiry').length
+  const bookingIntakeCount = intakeItems.filter((i) => i.kind === 'booking').length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -117,67 +147,131 @@ export default function AdminBookingsPage() {
         </div>
         <AdminPageHeader
           title="상담·예약"
-          subtitle="고객 상담 접수와 일정·인원 문의를 관리합니다. 확정 시 카카오 등으로 연락해 주세요."
+          subtitle="홈·상품 여행 상담(문의)과 패키지 예약 신청을 한곳에서 관리합니다. 알림은 예약 접수와 동일한 문자·알림톡·메일을 사용합니다."
         />
 
         {/* KPI */}
         {!loading && (
-          <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <AdminKpiCard label="접수" value={`${list.length}건`} tone="muted" />
-            <AdminKpiCard label="상담중" value={`${consultingCount}건`} tone="muted" />
-            <AdminKpiCard label="예약진행" value={`${inProgressCount}건`} tone="muted" />
-            <AdminKpiCard label="확정" value={`${confirmedCount}건`} tone="muted" />
+          <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <AdminKpiCard label="전체 접수" value={`${intakeItems.length}건`} tone="muted" />
+            <AdminKpiCard label="여행 상담" value={`${inquiryCount}건`} tone="muted" />
+            <AdminKpiCard label="패키지 예약" value={`${bookingIntakeCount}건`} tone="muted" />
+            <AdminKpiCard label="상담중(예약)" value={`${consultingCount}건`} tone="muted" />
+            <AdminKpiCard label="확정(예약)" value={`${confirmedCount}건`} tone="muted" />
           </section>
         )}
 
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 border-l-4 border-[#0f172a] pl-3 text-base font-semibold text-[#0f172a]">
-            상담 접수 목록 (최신순)
+            통합 접수 목록 (최신순)
           </h2>
           {loading ? (
             <div className="flex justify-center py-12 text-gray-500">로딩 중…</div>
-          ) : list.length === 0 ? (
+          ) : intakeItems.length === 0 ? (
             <AdminEmptyState
-              title="상담 접수가 없습니다"
-              description="고객이 상품 상세에서 문의하면 여기에 접수됩니다."
+              title="접수 내역이 없습니다"
+              description="헤더 「상담 신청」·상품 상세 예약 신청이 접수되면 여기에 표시됩니다."
               actionLabel="대시보드"
               actionHref="/admin"
             />
           ) : (
             <ul className="divide-y divide-gray-100">
-              {list.map((b) => (
-                <li key={b.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(b.id)}
-                    className="flex w-full items-center justify-between py-3 text-left hover:bg-gray-50"
-                  >
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span
-                        className="rounded border border-gray-200 px-2 py-0.5 font-mono text-xs font-medium text-gray-800"
-                        title={`내부 id ${b.id}`}
-                      >
-                        {b.bookingNumber}
-                      </span>
-                      <span className="text-[11px] text-gray-400">#{b.id}</span>
-                      <span className="font-medium text-[#0f172a]">{b.productTitle}</span>
-                      <span className="text-sm text-gray-500">
-                        {new Date(b.selectedDate).toLocaleDateString('ko-KR')} 출발
-                      </span>
-                      <AdminStatusBadge
-                        variant={STATUS_TO_VARIANT[b.status] ?? 'received'}
-                        label={b.status}
-                      />
-                    </div>
-                  </button>
-                </li>
-              ))}
+              {intakeItems.map((item) => {
+                const isSelected =
+                  selection?.kind === item.kind &&
+                  (item.kind === 'booking' ? selection.id === item.id : selection.id === item.id)
+                return (
+                  <li key={`${item.kind}-${item.id}`}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelection(
+                          item.kind === 'booking'
+                            ? { kind: 'booking', id: item.id }
+                            : { kind: 'inquiry', id: item.id },
+                        )
+                      }
+                      className={`flex w-full items-center justify-between py-3 text-left hover:bg-gray-50 ${isSelected ? 'bg-gray-50' : ''}`}
+                    >
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span
+                          className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                            item.kind === 'inquiry'
+                              ? 'bg-[#EFEDF8] text-[#1F1B2D]'
+                              : 'bg-emerald-50 text-emerald-900'
+                          }`}
+                        >
+                          {item.kind === 'inquiry' ? '여행상담' : '패키지예약'}
+                        </span>
+                        <span className="rounded border border-gray-200 px-2 py-0.5 font-mono text-xs font-medium text-gray-800">
+                          {item.accessionNumber}
+                        </span>
+                        <span className="font-medium text-[#0f172a]">{item.productTitle}</span>
+                        <span className="text-sm text-gray-500">{item.customerName}</span>
+                        {item.kind === 'booking' ? (
+                          <span className="text-sm text-gray-500">
+                            {new Date(item.selectedDate).toLocaleDateString('ko-KR')} 출발
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-500">{item.inquiryTypeLabel}</span>
+                        )}
+                        <AdminStatusBadge
+                          variant={
+                            item.kind === 'booking'
+                              ? STATUS_TO_VARIANT[item.status] ?? 'received'
+                              : 'received'
+                          }
+                          label={item.kind === 'booking' ? item.status : item.statusLabel}
+                        />
+                      </div>
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </section>
 
-        {/* 상담·예약 상세 (선택 시) */}
-        {selectedId != null && (
+        {selection?.kind === 'inquiry' && selectedInquiry ? (
+          <section className="mt-6 rounded-xl border border-[#EFEDF8] bg-white p-5 shadow-sm">
+            <h2 className="mb-4 border-l-4 border-[#d9a81e] pl-3 text-base font-semibold text-[#0f172a]">
+              여행 상담 상세
+            </h2>
+            <dl className="grid gap-3 text-sm text-gray-700">
+              <div>
+                <dt className="text-xs text-gray-500">접수번호</dt>
+                <dd className="font-mono font-semibold">{selectedInquiry.accessionNumber}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-gray-500">고객</dt>
+                <dd>
+                  {selectedInquiry.customerName} · {selectedInquiry.applicantPhone}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-gray-500">상품</dt>
+                <dd>{selectedInquiry.productTitle}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-gray-500">문의 내용</dt>
+                <dd className="whitespace-pre-wrap rounded-lg bg-gray-50 p-3">
+                  {selectedInquiry.message?.trim() || '(본문 없음)'}
+                </dd>
+              </div>
+            </dl>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href={`/admin/inquiries/${selectedInquiry.id}`}
+                className="rounded-lg bg-[#1F1B2D] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+              >
+                문의 전체 상세 · 상태 변경
+              </Link>
+            </div>
+          </section>
+        ) : null}
+
+        {/* 패키지 예약 상세 (선택 시) */}
+        {selection?.kind === 'booking' && (
           <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <h2 className="mb-4 border-l-4 border-[#0f172a] pl-3 text-base font-semibold text-[#0f172a]">상담·예약 상세</h2>
             {detailLoading ? (

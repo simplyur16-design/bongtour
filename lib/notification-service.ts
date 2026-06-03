@@ -305,6 +305,45 @@ export async function sendAdminInquiryNotification(p: AdminInquiryNotificationPa
   return { skipped: false, succeeded, failed }
 }
 
+/** 관리자 휴대폰 짧은 문자 — Booking DB 갱신 없음 (문의·예약 통합 알림용) */
+export async function sendAdminShortAlertSms(
+  text: string,
+  logContext: { inquiryId?: string; bookingId?: number; channel?: string },
+): Promise<SendAdminInquiryNotificationResult> {
+  const apiKey = process.env.SOLAPI_API_KEY?.trim()
+  const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
+  const senderRaw = process.env.SOLAPI_FROM_PHONE?.trim()
+
+  if (!apiKey || !apiSecret || !senderRaw) {
+    console.error(
+      '[sendAdminShortAlertSms] skipped_missing_env',
+      JSON.stringify({ ...logContext, hasKey: Boolean(apiKey), hasSecret: Boolean(apiSecret) })
+    )
+    return { skipped: true, succeeded: [], failed: [] }
+  }
+
+  const recipients = parseSolapiReceiverPhones()
+  if (recipients.length === 0) {
+    console.error('[sendAdminShortAlertSms] skipped_no_admin_phones', JSON.stringify(logContext))
+    return { skipped: true, succeeded: [], failed: [] }
+  }
+
+  const from = digitsOnlyPhone(senderRaw)
+  if (!from || !isPlausibleKrSmsTo(from)) {
+    console.error('[sendAdminShortAlertSms] skipped_invalid_from_phone', JSON.stringify(logContext))
+    return { skipped: true, succeeded: [], failed: [] }
+  }
+
+  const succeeded: string[] = []
+  const failed: { to: string; code?: string; message: string }[] = []
+  for (const to of recipients) {
+    const r = await sendSolapiMessage(apiKey, apiSecret, from, to, text)
+    if (r.ok) succeeded.push(to)
+    else failed.push({ to, code: r.code, message: r.message })
+  }
+  return { skipped: false, succeeded, failed }
+}
+
 /**
  * 문의 접수 — 고객 LMS 폴백 (동일 env·동일 `messages/v4/send` 본문 형식).
  */
