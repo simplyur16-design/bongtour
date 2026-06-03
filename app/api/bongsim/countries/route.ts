@@ -7,6 +7,7 @@ import { extractSingleCountryCode, resolveMultiCoverage } from "@/lib/bongsim/pl
 
 /** Next 15 GET Route Handler 기본 비캐시 대응 — 플랜 메타 반영 지연 허용 */
 export const revalidate = 120;
+export const dynamic = "force-dynamic";
 
 export type BongsimCountryListItem = {
   code: string;

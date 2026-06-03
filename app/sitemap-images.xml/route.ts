@@ -2,8 +2,10 @@ import { prisma } from '@/lib/prisma'
 import { getSiteOrigin } from '@/lib/site-metadata'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { publicProductPath } from '@/lib/product-public-path'
+import { shouldSkipSitemapDbAtBuild } from '@/lib/sitemap-build'
 
 export const revalidate = 3600
+export const dynamic = 'force-dynamic'
 
 function escapeXml(s: string): string {
   return s.replace(/[&<>"']/g, (ch) => {
@@ -43,26 +45,53 @@ function pickImageCaption(p: {
   return (p.title ?? '').trim() || '상품'
 }
 
-export async function GET() {
-  const origin = getSiteOrigin()
-  const products = await prisma.product.findMany({
-    where: {
-      registrationStatus: 'registered',
-      bgImageUrl: { not: null },
-      AND: [publicProductWhereClause()],
-    },
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      bgImageUrl: true,
-      bgImageRehostSearchLabel: true,
-      bgImagePlaceName: true,
-      publicImageHeroSeoLine: true,
-    },
-    take: 5000,
-    orderBy: { updatedAt: 'desc' },
+function emptyImageUrlset(): Response {
+  const body =
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"></urlset>'
+  return new Response(body, {
+    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
   })
+}
+
+export async function GET() {
+  if (shouldSkipSitemapDbAtBuild()) {
+    return emptyImageUrlset()
+  }
+
+  const origin = getSiteOrigin()
+  let products: {
+    id: string
+    slug: string | null
+    title: string
+    bgImageUrl: string | null
+    bgImageRehostSearchLabel: string | null
+    bgImagePlaceName: string | null
+    publicImageHeroSeoLine: string | null
+  }[] = []
+  try {
+    products = await prisma.product.findMany({
+      where: {
+        registrationStatus: 'registered',
+        bgImageUrl: { not: null },
+        AND: [publicProductWhereClause()],
+      },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        bgImageUrl: true,
+        bgImageRehostSearchLabel: true,
+        bgImagePlaceName: true,
+        publicImageHeroSeoLine: true,
+      },
+      take: 5000,
+      orderBy: { updatedAt: 'desc' },
+    })
+  } catch (e) {
+    console.error('[sitemap-images] DB unavailable — empty urlset', e)
+    return emptyImageUrlset()
+  }
 
   const lines: string[] = []
   lines.push('<?xml version="1.0" encoding="UTF-8"?>')

@@ -4,6 +4,7 @@ import { getSiteOrigin } from '@/lib/site-metadata'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { publicProductPath } from '@/lib/product-public-path'
 import { OVERSEAS_TRAINING_LISTING_KIND, trainingProgramPublicPath } from '@/lib/overseas-training-program-query'
+import { shouldSkipSitemapDbAtBuild } from '@/lib/sitemap-build'
 
 export const revalidate = 3600
 
@@ -31,27 +32,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority,
   }))
 
-  const registered = await prisma.product.findMany({
-    where: {
-      registrationStatus: 'registered',
-      travelScope: 'overseas',
-      AND: [publicProductWhereClause()],
-      NOT: { listingKind: OVERSEAS_TRAINING_LISTING_KIND },
-    },
-    select: { id: true, slug: true, updatedAt: true },
-    take: 5000,
-    orderBy: { updatedAt: 'desc' },
-  })
+  if (shouldSkipSitemapDbAtBuild()) {
+    return staticEntries
+  }
 
-  const trainingPrograms = await prisma.product.findMany({
-    where: {
-      registrationStatus: 'registered',
-      listingKind: OVERSEAS_TRAINING_LISTING_KIND,
-    },
-    select: { id: true, slug: true, updatedAt: true },
-    take: 500,
-    orderBy: { updatedAt: 'desc' },
-  })
+  let registered: { id: string; slug: string | null; updatedAt: Date }[] = []
+  let trainingPrograms: { id: string; slug: string | null; updatedAt: Date }[] = []
+  try {
+    registered = await prisma.product.findMany({
+      where: {
+        registrationStatus: 'registered',
+        travelScope: 'overseas',
+        AND: [publicProductWhereClause()],
+        NOT: { listingKind: OVERSEAS_TRAINING_LISTING_KIND },
+      },
+      select: { id: true, slug: true, updatedAt: true },
+      take: 5000,
+      orderBy: { updatedAt: 'desc' },
+    })
+
+    trainingPrograms = await prisma.product.findMany({
+      where: {
+        registrationStatus: 'registered',
+        listingKind: OVERSEAS_TRAINING_LISTING_KIND,
+      },
+      select: { id: true, slug: true, updatedAt: true },
+      take: 500,
+      orderBy: { updatedAt: 'desc' },
+    })
+  } catch (e) {
+    console.error('[sitemap] DB unavailable — static URLs only', e)
+    return staticEntries
+  }
 
   const productEntries: MetadataRoute.Sitemap = registered.map((p) => ({
     url: `${origin}${publicProductPath(p)}`,
