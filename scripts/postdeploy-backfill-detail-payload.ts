@@ -6,12 +6,10 @@
  *
  * 매 배포마다 최대 N건만 처리 → 상품 수가 많아도 배포가 멈추지 않음.
  * 전량 1회: `npm run db:backfill-detail-payload` (수동·프로덕션 DATABASE_URL)
+ *
+ * Railway 등 프로덕션: 환경변수는 플랫폼이 주입 — dotenv(devDependency) 사용 금지.
+ * 로컬 수동 실행: `.env.local` 이 필요하면 `npm run db:backfill-detail-payload` 사용.
  */
-import dotenv from 'dotenv'
-
-dotenv.config()
-dotenv.config({ path: '.env.local', override: true })
-
 async function main() {
   const {
     postdeployDetailPayloadBatchSize,
