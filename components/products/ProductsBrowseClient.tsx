@@ -32,6 +32,10 @@ import {
   sortBrowseItemsClient,
   type BrowseResultItemWithMeta,
 } from '@/lib/products-browse-client-sidebar'
+import {
+  readProductsBrowseClientCache,
+  writeProductsBrowseClientCache,
+} from '@/lib/products-browse-client-cache'
 
 type ApiOk = {
   ok: true
@@ -211,37 +215,61 @@ export default function ProductsBrowseClient({
 
   useEffect(() => {
     let cancelled = false
+    async function fetchBrowse(urlKey: string): Promise<ApiOk | null> {
+      const perfClient = process.env.NEXT_PUBLIC_BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
+      const tFetch0 = perfClient ? performance.now() : 0 // PERF-LOG: 측정 후 제거
+      const res = await fetch(`/api/products/browse?${urlKey}`)
+      const json = (await res.json()) as ApiOk | { ok: false; error?: string }
+      if (perfClient) {
+        console.log(
+          '[browse-client-perf]',
+          JSON.stringify({ urlKey, clientFetchMs: Math.round(performance.now() - tFetch0) }),
+        ) // PERF-LOG: 측정 후 제거
+      }
+      if (!res.ok || !('ok' in json) || json.ok === false) {
+        throw new Error(
+          typeof (json as { error?: string }).error === 'string'
+            ? (json as { error: string }).error
+            : '목록을 불러오지 못했습니다.',
+        )
+      }
+      writeProductsBrowseClientCache(urlKey, json)
+      return json
+    }
+
     async function load() {
-      if (initialBrowse?.ok && initialBrowseQueryKey === browseApiQueryKey) {
+      const urlKey = browseApiQueryKey
+      if (initialBrowse?.ok && initialBrowseQueryKey === urlKey) {
         setData(initialBrowse)
         setError(null)
         setLoading(false)
+        writeProductsBrowseClientCache(urlKey, initialBrowse)
         return
       }
+
+      const cached = readProductsBrowseClientCache<ApiOk>(urlKey)
+      if (cached?.ok) {
+        setData(cached)
+        setError(null)
+        setLoading(false)
+        try {
+          const fresh = await fetchBrowse(urlKey)
+          if (!cancelled && fresh) setData(fresh)
+        } catch {
+          // 캐시만 유지 — 뒤로가기 체감 우선
+        }
+        return
+      }
+
       setLoading(true)
       setError(null)
       try {
-        const urlKey = browseApiQueryKey
-        const perfClient = process.env.NEXT_PUBLIC_BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
-        const tFetch0 = perfClient ? performance.now() : 0 // PERF-LOG: 측정 후 제거
-        const res = await fetch(`/api/products/browse?${urlKey}`)
-        const json = (await res.json()) as ApiOk | { ok: false; error?: string }
-        if (perfClient) {
-          console.log(
-            '[browse-client-perf]',
-            JSON.stringify({ urlKey, clientFetchMs: Math.round(performance.now() - tFetch0) }),
-          ) // PERF-LOG: 측정 후 제거
-        }
+        const json = await fetchBrowse(urlKey)
         if (cancelled) return
-        if (!res.ok || !('ok' in json) || json.ok === false) {
-          setError(typeof (json as { error?: string }).error === 'string' ? (json as { error: string }).error : '목록을 불러오지 못했습니다.')
-          setData(null)
-          return
-        }
         setData(json)
-      } catch {
+      } catch (e) {
         if (!cancelled) {
-          setError('네트워크 오류가 발생했습니다.')
+          setError(e instanceof Error ? e.message : '네트워크 오류가 발생했습니다.')
           setData(null)
         }
       } finally {
