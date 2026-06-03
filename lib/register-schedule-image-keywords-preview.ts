@@ -1,0 +1,64 @@
+/**
+ * 등록 미리보기 UI — 공급사별 imageKeyword 규칙(클라이언트 번들용).
+ * `register-schedule-image-keywords-ui.ts`와 동일 스위치이나 server-only 없음.
+ */
+import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
+import { applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
+import { applyLottetourScheduleImageKeywordsToRows } from '@/lib/lottetour-schedule-image-keyword'
+import { applyModetourScheduleImageKeywordsToRows } from '@/lib/modetour-schedule-image-keyword'
+import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import type { RegisterScheduleDay as VerygoodRegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
+import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-schedule-image-keyword'
+import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
+
+export type RegisterScheduleImageKeywordPreviewRow = {
+  day: number
+  title?: string
+  description?: string
+  routeText?: string | null
+  imageKeyword?: string | null
+  imageKeyword2?: string | null
+}
+
+export type ApplyRegisterScheduleImageKeywordsForPreviewOpts = {
+  supplierKey: string | null | undefined
+  productDestination?: string | null
+  productTitle?: string | null
+}
+
+export function applyRegisterScheduleImageKeywordsForPreview<
+  T extends RegisterScheduleImageKeywordPreviewRow,
+>(rows: T[], opts: ApplyRegisterScheduleImageKeywordsForPreviewOpts): T[] {
+  if (!rows.length) return rows
+  const supplier =
+    normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
+  const dest = opts.productDestination ?? null
+  const title = opts.productTitle ?? null
+
+  switch (supplier) {
+    case 'hanatour':
+      return applyHanatourScheduleImageKeywordsToRows(rows, { productDestination: dest })
+    case 'modetour':
+      return applyModetourScheduleImageKeywordsToRows(rows, { productDestination: dest })
+    case 'ybtour':
+      return applyYbtourScheduleImageKeywordsToRows(rows, { productDestination: dest })
+    case 'verygoodtour':
+      return applyVerygoodScheduleImageKeywordsToRows(rows, {
+        detRows: rows as VerygoodRegisterScheduleDay[],
+        productDestination: dest,
+        totalDays: rows.length,
+      })
+    case 'lottetour':
+      return applyLottetourScheduleImageKeywordsToRows(rows, {
+        productDestination: dest,
+        productTitle: title ?? undefined,
+      })
+    case 'kyowontour':
+      return applyKyowontourScheduleImageKeywordsToRows(rows, {
+        productDestination: dest,
+        productTitle: title ?? undefined,
+      })
+    default:
+      return rows
+  }
+}

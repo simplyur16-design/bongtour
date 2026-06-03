@@ -926,7 +926,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - day, title, description, routeText, imageKeyword, imageKeyword2
 - description: 해당 일차 블록 전체를 근거로 관광·이동·식사·숙박을 **빠짐없이** 반영한 문어체 존댓말 요약. **3~6문장·450자 이내**를 목표로 하며, 한 줄·한두 문장만 쓰지 말 것. 복수 관광지가 있으면 모두 짧게라도 언급.
 - routeText: 그날 방문 도시·관광지를 본문 **이동 순서 그대로** ' - '로 연결(관광 2곳 이상이면 필수). 예: "홍콩 - 하버 시티 - 소호 거리 - 타이쿤 - 빅토리아 피크"
-- imageKeyword·imageKeyword2: 위 [schedule[].imageKeyword] 규칙 준수
+- imageKeyword·imageKeyword2: routeText를 ' - '로 나눈 순서에서 **국내 공항(인천·김포 등)을 제외한 앞 두 곳**의 영문 관광지명(서버가 routeText로 다시 채움). LLM은 routeText만 정확히 채우면 됨.
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
 # [pricePromotion] 상단 요금·할인·혜택·쿠폰 블록 (선택, 반드시 채울 것)

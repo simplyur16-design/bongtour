@@ -1,14 +1,10 @@
 /**
- * 노랑풍선(ybtour): 일차 imageKeyword(1순위)·imageKeyword2(2순위) — Pexels용 영문.
- * kw1: augment det 결과 유지(비행일만 routeText 해외 도시로 강제).
- * kw2: dayKind 게이트 + LLM 우선 + det 2순위 폴백.
- * routeText는 dayKind 게이트·비행일 kw1용만(KO→EN). 관광 키워드 텍스트 소스로 쓰지 않음.
+ * 노랑풍선(ybtour): 일차 imageKeyword(1·2순위) — routeText(일정 요약 A-B-C-D)에서 두 곳만.
+ * 국내 공항·허브는 건너뛰고, 남은 세그먼트 순서대로 1순위·2순위에 KO→EN 매핑한다.
  */
-import { mapDestination } from '@/lib/pexels-keyword'
-import { extractSecondaryEnglishPlaceName } from '@/lib/english-schedule-place-extract'
+import { mapDestination, mapKoreanPoiSegment } from '@/lib/pexels-keyword'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
-import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
-import { buildEnglishPlaceTripartiteImageKeyword } from '@/lib/register-schedule-english-place-image-keyword'
+import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 
 export type YbtourScheduleImageKeywordRow = {
   day: number
@@ -32,37 +28,6 @@ const DOMESTIC_HUB_KO_RE =
 const DOMESTIC_HUB_EN_RE =
   /^(?:Incheon|Gimpo|Busan|Daegu|Cheongju|Gimhae|Seoul|Jeju|ICN|GMP|PUS|TAE|CJJ|CJU)$/i
 
-const ASIA_PACIFIC_PRODUCT_DEST_RE =
-  /인도|India|일본|Japan|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii/i
-
-const YBTOUR_TOXIC_IMAGE_KEYWORD_RE =
-  /\bscenic\s+asian\s+city\s+travel\s+skyline\s+dusk\b/i
-
-const YBTOUR_LLM_DAY_TRAVEL_RE = /^day\s*\d+\s*travel$/i
-const YBTOUR_ALL_INCLUSIVE_NOISE_RE =
-  /\ball\s*[-_]?\s*inclu(?:de|ded|sive)?\b|\binclusive\s*svc\b|\bsvc\s*\(?.*all\s*inclusive/i
-
-const CROSS_CONTINENT_HALLUCINATION_KW_RES: ReadonlyArray<RegExp> = [
-  /\bParis\b/i,
-  /\bEiffel\b/i,
-  /\bLouvre\b/i,
-  /Notre\s*Dame/i,
-  /\bColosseum\b/i,
-  /\bRome\b/i,
-  /Forbidden(\s*City)?/i,
-  /Big\s*Ben/i,
-  /London\s*Eye/i,
-  /Tower\s*of\s*London/i,
-  /\bBarcelona\b/i,
-  /Sagrada\s*Familia/i,
-  /\bAmsterdam\b/i,
-  /\bVenice\b/i,
-  /Brandenburg/i,
-  /\bMunich\b/i,
-  /Arc\s*de\s*Triomphe/i,
-  /Versailles/i,
-]
-
 function normKey(s: string): string {
   return normalizeSemanticPoiKey(s)
 }
@@ -70,10 +35,6 @@ function normKey(s: string): string {
 function keysEqual(a: string, b: string): boolean {
   if (!a || !b) return false
   return normKey(a) === normKey(b)
-}
-
-function dayHaystack(description: string, title: string, routeText?: string | null): string {
-  return [title, description, routeText].filter(Boolean).join('\n')
 }
 
 function stripRouteSegmentNoise(seg: string): string {
@@ -84,7 +45,7 @@ function stripRouteSegmentNoise(seg: string): string {
     .trim()
 }
 
-function routeTextSegments(routeText: string | null | undefined): string[] {
+export function routeTextSegments(routeText: string | null | undefined): string[] {
   const rt = String(routeText ?? '').trim()
   if (!rt) return []
   return rt
@@ -107,18 +68,56 @@ export function isYbtourDomesticHubToken(token: string): boolean {
   return false
 }
 
-/** 아시아·태평양 목적지 상품에서 LLM이 헛생성한 타대륙 유명 랜드마크 */
-export function isYbtourCrossContinentHallucinationKeyword(
-  keyword: string,
-  productDestination: string | null | undefined,
-): boolean {
-  const dest = String(productDestination ?? '').trim()
-  if (!dest || !ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest)) return false
-  const raw = String(keyword ?? '').trim()
-  if (!raw) return false
-  const fin = normalizeToPlaceName(raw)
-  const haystacks = fin && fin !== raw ? [raw, fin] : [raw]
-  return CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))
+function englishFromRouteSegment(seg: string): string {
+  const t = stripRouteSegmentNoise(seg)
+  if (!t || isYbtourDomesticHubToken(t)) return ''
+
+  const fromPoi = mapKoreanPoiSegment(t)
+  if (fromPoi) {
+    try {
+      return finalizeScheduleImageKeyword(fromPoi)
+    } catch {
+      /* continue */
+    }
+  }
+
+  const fromDest = mapDestination(t)
+  if (fromDest && fromDest !== t && !/[\uAC00-\uD7AF]/.test(fromDest)) {
+    try {
+      return finalizeScheduleImageKeyword(fromDest)
+    } catch {
+      /* continue */
+    }
+  }
+
+  if (/^[A-Za-z][A-Za-z0-9\s,.'-]{2,}$/.test(t) && !/[\uAC00-\uD7AF]/.test(t)) {
+    try {
+      return finalizeScheduleImageKeyword(t)
+    } catch {
+      return ''
+    }
+  }
+
+  return ''
+}
+
+/** routeText A-B-C-D → 1·2순위 영문 키워드(중복·허브 제외, 순서 유지) */
+export function pickYbtourImageKeywordsFromRouteText(routeText: string | null | undefined): {
+  imageKeyword: string
+  imageKeyword2: string | null
+} {
+  const picked: string[] = []
+  for (const seg of routeTextSegments(routeText)) {
+    const en = englishFromRouteSegment(seg)
+    if (!en) continue
+    if (picked.some((p) => keysEqual(p, en))) continue
+    picked.push(en)
+    if (picked.length >= 2) break
+  }
+  return {
+    imageKeyword: picked[0] ?? '',
+    imageKeyword2: picked[1] ?? null,
+  }
 }
 
 function countYbtourNonHubRouteTextSegments(routeText: string | null | undefined): number {
@@ -128,6 +127,10 @@ function countYbtourNonHubRouteTextSegments(routeText: string | null | undefined
     count++
   }
   return count
+}
+
+function dayHaystack(description: string, title: string, routeText?: string | null): string {
+  return [title, description, routeText].filter(Boolean).join('\n')
 }
 
 function hasYbtourFlightDaySignals(
@@ -152,6 +155,7 @@ function hasYbtourFlightDaySignals(
   return false
 }
 
+/** dayKind — 레거시·테스트 호환(키워드 SSOT는 routeText 2곳) */
 export function classifyYbtourDayKind(
   description: string,
   title: string,
@@ -164,127 +168,47 @@ export function classifyYbtourDayKind(
   return 'free'
 }
 
-function isYbtourLlmImageKeywordFormatOk(kw: string): boolean {
-  const k = kw.trim()
-  if (!k || k.length < 2 || k.length > 120) return false
-  if (/[\uAC00-\uD7AF]/.test(k)) return false
-  if (YBTOUR_TOXIC_IMAGE_KEYWORD_RE.test(k)) return false
-  if (YBTOUR_LLM_DAY_TRAVEL_RE.test(k)) return false
-  if (YBTOUR_ALL_INCLUSIVE_NOISE_RE.test(k)) return false
-  if (/\b(hotel|resort|buffet|breakfast|lunch|dinner|brunch)\b/i.test(k)) return false
-  if (/\d{1,2}\/\d{1,2}/.test(k) || /\d{1,2}-\d{1,2}\b/.test(k)) return false
-  const words = k.split(/\s+/).filter(Boolean).length
-  if (words < 1 || words > 10) return false
-  return /^[A-Za-z0-9\s,.'-]+$/.test(k)
+/** @deprecated routeText 2곳 규칙 — `pickYbtourImageKeywordsFromRouteText` 사용 */
+export function isYbtourCrossContinentHallucinationKeyword(
+  _keyword: string,
+  _productDestination: string | null | undefined,
+): boolean {
+  return false
 }
 
-function tryAcceptYbtourLlmImageKeyword(
-  raw: string | null | undefined,
-  productDestination: string | null | undefined,
-): string {
-  const llmRaw = String(raw ?? '').trim()
-  if (!llmRaw || !isYbtourLlmImageKeywordFormatOk(llmRaw)) return ''
-  if (isYbtourDomesticHubToken(llmRaw)) return ''
-  if (isYbtourCrossContinentHallucinationKeyword(llmRaw, productDestination)) return ''
-  try {
-    return finalizeScheduleImageKeyword(llmRaw)
-  } catch {
-    return ''
-  }
-}
-
-/** 비행일: routeText 첫 해외(비허브) 세그먼트 → 공용 KO→EN */
-function pickOverseasCityEnglishFromRouteText(routeText: string | null | undefined): string {
-  const segs = routeTextSegments(routeText).filter((s) => !isYbtourDomesticHubToken(s))
-  if (!segs.length) return ''
-  const koSeg = segs[0]!
-  let en = ''
-  try {
-    en = finalizeScheduleImageKeyword(
-      buildEnglishPlaceTripartiteImageKeyword({
-        title: koSeg,
-        description: koSeg,
-        rawDayBody: '',
-      }),
-    ).slice(0, 180)
-  } catch {
-    en = ''
-  }
-  if (!en) {
-    const mapped = mapDestination(koSeg)
-    if (mapped) {
-      try {
-        en = finalizeScheduleImageKeyword(mapped).slice(0, 180)
-      } catch {
-        en = ''
-      }
-    }
-  }
-  return en
+/** @deprecated routeText 2곳 규칙 */
+export function isYbtourKeywordSupportedByDayContent(
+  _keyword: string,
+  _title: string,
+  _description: string,
+  _routeText: string | null | undefined,
+): boolean {
+  return false
 }
 
 export function resolveYbtourPrimaryKeyword(
   row: YbtourScheduleImageKeywordRow,
-  dayKind: YbtourDayKind,
-  productDestination: string | null | undefined,
+  _dayKind: YbtourDayKind,
+  _productDestination: string | null | undefined,
 ): string {
-  const existing = String(row.imageKeyword ?? '').trim()
-  const existingAccepted = tryAcceptYbtourLlmImageKeyword(existing, productDestination)
-  if (existingAccepted) return existingAccepted
-
-  if (dayKind === 'flight') {
-    const fromRoute = pickOverseasCityEnglishFromRouteText(row.routeText)
-    if (fromRoute) return fromRoute
-  }
-
-  // kw1이 빈칸/노이즈일 때만 title+description에서 장소형 키워드를 재추론한다.
-  const fallback = buildEnglishPlaceTripartiteImageKeyword({
-    title: String(row.title ?? '').trim(),
-    description: String(row.description ?? '').trim(),
-    rawDayBody: [String(row.title ?? '').trim(), String(row.description ?? '').trim()].filter(Boolean).join('\n'),
-  })
-  const fallbackAccepted = tryAcceptYbtourLlmImageKeyword(fallback, productDestination)
-  if (fallbackAccepted) return fallbackAccepted
-
-  return ''
+  return pickYbtourImageKeywordsFromRouteText(row.routeText ?? null).imageKeyword
 }
 
 export function resolveYbtourSecondaryKeyword(
   row: YbtourScheduleImageKeywordRow,
   primary: string,
-  dayKind: YbtourDayKind,
-  productDestination: string | null | undefined,
+  _dayKind: YbtourDayKind,
+  _productDestination: string | null | undefined,
 ): string | null {
-  if (dayKind !== 'touring') return null
   if (!primary) return null
-
-  const fromLlm = tryAcceptYbtourLlmImageKeyword(row.imageKeyword2, productDestination)
-  if (fromLlm && !keysEqual(fromLlm, primary)) return fromLlm
-
-  const desc = String(row.description ?? '').trim()
-  const title = String(row.title ?? '').trim()
-  const fromDetRaw = extractSecondaryEnglishPlaceName(desc, desc, title, primary)
-  if (!fromDetRaw) return null
-  if (isYbtourDomesticHubToken(fromDetRaw)) return null
-  if (isYbtourCrossContinentHallucinationKeyword(fromDetRaw, productDestination)) return null
-  try {
-    const fromDet = finalizeScheduleImageKeyword(fromDetRaw)
-    if (!fromDet || keysEqual(fromDet, primary)) return null
-    return fromDet
-  } catch {
-    return null
-  }
+  const kw2 = pickYbtourImageKeywordsFromRouteText(row.routeText ?? null).imageKeyword2
+  if (!kw2 || keysEqual(kw2, primary)) return null
+  return kw2
 }
 
 export function applyYbtourScheduleImageKeywordsToRows<
   T extends YbtourScheduleImageKeywordRow,
->(rows: T[], opts?: YbtourScheduleImageKeywordOpts): T[] {
-  const sorted = rows.filter((r) => Number(r.day) > 0)
-  const totalDays =
-    opts?.totalDays ??
-    (sorted.length ? Math.max(...sorted.map((r) => Number(r.day))) : 0)
-  const productDestination = opts?.productDestination ?? null
-
+>(rows: T[], _opts?: YbtourScheduleImageKeywordOpts): T[] {
   return rows.map((row) => {
     const day = Number(row.day)
     if (day <= 0) {
@@ -295,16 +219,11 @@ export function applyYbtourScheduleImageKeywordsToRows<
       }
     }
 
-    const title = String(row.title ?? '').trim()
-    const description = String(row.description ?? '').trim()
-    const dayKind = classifyYbtourDayKind(description, title, row.routeText ?? null, day, totalDays)
-    const primary = resolveYbtourPrimaryKeyword(row, dayKind, productDestination)
-    const secondary = resolveYbtourSecondaryKeyword(row, primary, dayKind, productDestination)
-
+    const { imageKeyword, imageKeyword2 } = pickYbtourImageKeywordsFromRouteText(row.routeText ?? null)
     return {
       ...row,
-      imageKeyword: primary,
-      imageKeyword2: secondary,
+      imageKeyword,
+      imageKeyword2,
     }
   })
 }

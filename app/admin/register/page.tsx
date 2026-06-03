@@ -35,6 +35,7 @@ import {
   ScheduleImageKeywordPersistError,
   tryPersistScheduleImageKeyword,
 } from '@/lib/schedule-image-keyword-persist'
+import { applyRegisterScheduleImageKeywordsForPreview } from '@/lib/register-schedule-image-keywords-preview'
 import { formatImageKeywordError } from '@/lib/image-keyword-error-messages'
 import {
   CONTINENT_ID_TO_PRIMARY_REGION_KR,
@@ -279,7 +280,8 @@ type RegisterPexelsSearchPhoto = {
 /** 미리보기 패널용: 유효한 schedule 행이 없으면 itineraryDayDrafts로 일차별 SSOT 입력 행을 만든다 */
 function buildRegisterPexelsUiRows(
   parsed: RegisterParsed | null,
-  preview: AdminRegisterPreviewPayload | null
+  preview: AdminRegisterPreviewPayload | null,
+  supplierKey: AdminRegisterSupplierKey | null
 ): RegisterScheduleDay[] {
   if (!preview) return []
   const sched = parsed?.schedule
@@ -304,7 +306,13 @@ function buildRegisterPexelsUiRows(
         (parsed?.destination ?? '').trim() ||
         (preview?.productDraft?.primaryDestination ?? preview?.productDraft?.destinationRaw ?? '').trim() ||
         null
-      return finalizeRegisterScheduleImageKeywords(rawRows, { productDestination: destHint }).map((row) => ({
+      const titleHint = (preview?.productDraft?.title ?? parsed?.title ?? '').trim() || null
+      const augmented = applyRegisterScheduleImageKeywordsForPreview(rawRows, {
+        supplierKey,
+        productDestination: destHint,
+        productTitle: titleHint,
+      })
+      return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHint }).map((row) => ({
         day: row.day,
         title: String(row.title ?? ''),
         description: String(row.description ?? ''),
@@ -351,8 +359,14 @@ function buildRegisterPexelsUiRows(
       imageKeyword2: null as string | null,
     }
   })
+  const titleHint = (d.title ?? '').trim() || null
   try {
-    return finalizeRegisterScheduleImageKeywords(draftRows, { productDestination: destHint }).map((row) => ({
+    const augmented = applyRegisterScheduleImageKeywordsForPreview(draftRows, {
+      supplierKey,
+      productDestination: destHint,
+      productTitle: titleHint,
+    })
+    return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHint }).map((row) => ({
       day: row.day,
       title: String(row.title ?? ''),
       description: String(row.description ?? ''),
@@ -379,7 +393,7 @@ function mergeRegisterParsedScheduleWithManualPexels(
   manualByDay: Record<number, string>,
   manualByDay2: Record<number, string> = {}
 ): RegisterParsed {
-  const uiRows = buildRegisterPexelsUiRows(parsed, preview)
+  const uiRows = buildRegisterPexelsUiRows(parsed, preview, coerceRegisterSupplierKey(parsed.originSource ?? null))
   const validSchedule = (parsed.schedule ?? []).filter((row) => {
     const day = Number(row.day)
     return Number.isFinite(day) && day >= 1
@@ -595,8 +609,8 @@ export default function AdminRegisterPage() {
   const [registerPexelsFallbackKeyword, setRegisterPexelsFallbackKeyword] = useState('')
 
   const registerPexelsUiRows = useMemo(
-    () => buildRegisterPexelsUiRows((parsedForConfirm as RegisterParsed | null) ?? null, preview),
-    [parsedForConfirm, preview]
+    () => buildRegisterPexelsUiRows((parsedForConfirm as RegisterParsed | null) ?? null, preview, selectedBrandKey),
+    [parsedForConfirm, preview, selectedBrandKey]
   )
 
   const runRegisterPexelsSearch = useCallback(async (keywordRaw: string) => {
@@ -2171,7 +2185,7 @@ export default function AdminRegisterPage() {
                               type="text"
                               className="min-w-[12rem] flex-1 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder:text-slate-400"
                               placeholder={
-                                autoKw ? `비우면 자동 추천: ${autoKw}` : 'Osaka Castle'
+                                autoKw ? `비우면 자동 추천: ${autoKw}` : '영문 관광지·랜드마크명'
                               }
                               value={overrideVal}
                               onChange={(e) =>
@@ -2202,7 +2216,7 @@ export default function AdminRegisterPage() {
                               id={`pexels_schedule_kw2_${day}`}
                               type="text"
                               className="min-w-[12rem] flex-1 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder:text-slate-400"
-                              placeholder={autoKw2 ? `비우면 자동: ${autoKw2}` : 'Forbidden City'}
+                              placeholder={autoKw2 ? `비우면 자동: ${autoKw2}` : '2순위 영문 관광지명'}
                               value={overrideVal2}
                               onChange={(e) =>
                                 setManualPexelsKeywords2ByDay((prev) => ({ ...prev, [day]: e.target.value }))
