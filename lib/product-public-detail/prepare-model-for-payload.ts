@@ -27,11 +27,10 @@ export function prepareModelForPayloadPersistence(
   }
 
   const viewProduct = prepareViewProduct(model.viewProduct)
-  const ybtourDetailProduct = shouldSlimYbtourDetailProductForPayload(model)
-    ? slimYbtourDetailProductForPayload(model)
-    : model.variant === 'package'
-      ? model.ybtourDetailProduct
-      : null
+  let ybtourDetailProduct = model.ybtourDetailProduct
+  if (shouldSlimYbtourDetailProductForPayload(model)) {
+    ybtourDetailProduct = slimYbtourDetailProductForPayload(model)
+  }
 
   return {
     ...model,
