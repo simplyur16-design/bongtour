@@ -304,7 +304,7 @@ export type ParseAndRegisterFlowOptions = {
   /** 공급사 전용: 파싱 직후·보강 후 parsed 정규화 */
   augmentParsed?: (
     parsed: RegisterParsed,
-    ctx?: { pastedBodyText?: string }
+    ctx?: { pastedBodyText?: string; travelScope?: string }
   ) => RegisterParsed
   /**
    * augmentParsed 이후 한 번 더 패치(예: 하나투어 가격 행 합성). 브랜드 문자열 분기 없음 — 핸들러가 구현을 넘긴다.
@@ -1019,7 +1019,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     }
 
     if (augmentParsed) {
-      parsed = augmentParsed(parsed, { pastedBodyText: text })
+      parsed = augmentParsed(parsed, { pastedBodyText: text, travelScope })
     }
     if (patchParsedAfterAugment) {
       parsed = patchParsedAfterAugment(parsed, text)

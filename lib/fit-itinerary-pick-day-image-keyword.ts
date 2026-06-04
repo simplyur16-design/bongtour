@@ -1,6 +1,11 @@
 /**
  * Fit 예시 일정 → Product.schedule[].imageKeyword (에어텔 등록 후 동기화 전용).
  */
+import {
+  extractEnglishPoiFromLabel,
+  mapDestination,
+  mapKoreanPoiSegment,
+} from '@/lib/pexels-keyword'
 import { persistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
 import { resolveTravelSubjectEnForMedia } from '@/lib/pexels-keyword'
 
@@ -51,11 +56,41 @@ function tryPersistFitImageKeyword(raw: string): string | null {
   }
 }
 
+/** 괄호 영문 없을 때 — 한글 POI·라벨에서 영문 고유명 (패키지 일정 규칙과 동일 계열) */
+function englishFromKoreanPlaceText(text: string): string | null {
+  const t = String(text ?? '').trim()
+  if (!t) return null
+
+  const fromLabel = extractEnglishPoiFromLabel(t)
+  if (fromLabel) {
+    const kw = tryPersistFitImageKeyword(fromLabel)
+    if (kw) return kw
+  }
+
+  const fromPoi = mapKoreanPoiSegment(t)
+  if (fromPoi) {
+    const kw = tryPersistFitImageKeyword(fromPoi)
+    if (kw) return kw
+  }
+
+  const fromDest = mapDestination(t)
+  if (fromDest && fromDest !== t) {
+    const kw = tryPersistFitImageKeyword(fromDest)
+    if (kw) return kw
+  }
+
+  return null
+}
+
 function keywordFromActivity(act: FitItineraryActivityForKeyword): string | null {
   for (const field of [act.location, act.title, act.description]) {
     const phrase = extractEnglishPlacePhrase(field)
     if (!phrase) continue
     const kw = tryPersistFitImageKeyword(phrase)
+    if (kw) return kw
+  }
+  for (const field of [act.location, act.title, act.description]) {
+    const kw = englishFromKoreanPlaceText(field)
     if (kw) return kw
   }
   return null
@@ -69,7 +104,49 @@ export type FitDayImageKeywordFallbackContext = {
   destination?: string | null
 }
 
-export function buildFitDayImageKeywordFallback(ctx: FitDayImageKeywordFallbackContext): string {
+function keywordFromDayMeta(day: Pick<FitItineraryDayForKeyword, 'title' | 'summary' | 'dayCityKey'>): string | null {
+  const cityKey = String(day.dayCityKey ?? '').trim()
+  if (cityKey) {
+    const fromKey = mapDestination(cityKey) || mapDestination(cityKey.replace(/_/g, ' '))
+    if (fromKey) {
+      const kw = tryPersistFitImageKeyword(fromKey)
+      if (kw) return kw
+    }
+  }
+  for (const text of [day.title, day.summary]) {
+    const kw = englishFromKoreanPlaceText(text)
+    if (kw) return kw
+  }
+  const blob = [day.title, day.summary].filter((t) => String(t ?? '').trim()).join(' ')
+  if (blob) {
+    const fromPoi = mapKoreanPoiSegment(blob)
+    if (fromPoi) {
+      const kw = tryPersistFitImageKeyword(fromPoi)
+      if (kw) return kw
+    }
+  }
+  return null
+}
+
+/** attraction 우선 전 — 카테고리·transport 스킵 없이 활동 전체 스캔 */
+function keywordFromDayActivitiesAnyOrder(day: FitItineraryDayForKeyword): string | null {
+  const activities = [...(day.activities ?? [])].sort((a, b) => a.order - b.order)
+  for (const act of activities) {
+    const kw = keywordFromActivity(act)
+    if (kw) return kw
+  }
+  return null
+}
+
+export function buildFitDayImageKeywordFallback(
+  ctx: FitDayImageKeywordFallbackContext,
+  day?: Pick<FitItineraryDayForKeyword, 'title' | 'summary' | 'dayCityKey'>,
+): string {
+  if (day) {
+    const fromDay = keywordFromDayMeta(day)
+    if (fromDay) return fromDay
+  }
+
   const subject = resolveTravelSubjectEnForMedia({
     destination: ctx.primaryDestination ?? ctx.destination ?? ctx.cityNameKo,
     primaryRegion: ctx.cityKey,
@@ -88,7 +165,7 @@ export function buildFitDayImageKeywordFallback(ctx: FitDayImageKeywordFallbackC
   return 'travel'
 }
 
-/** 일차 대표 Pexels 키워드 — attraction → shopping → meal, 없으면 상품 도시 폴백 */
+/** 일차 대표 Pexels 키워드 — attraction → shopping → meal, 없으면 일차 메타·상품 도시 폴백 */
 export function pickFitDayImageKeyword(
   day: FitItineraryDayForKeyword,
   fallbackCtx: FitDayImageKeywordFallbackContext,
@@ -101,5 +178,12 @@ export function pickFitDayImageKeyword(
       if (kw) return kw
     }
   }
-  return buildFitDayImageKeywordFallback(fallbackCtx)
+  for (const act of activities) {
+    if (act.category === 'transport' || act.category === 'hotel') continue
+    const kw = keywordFromActivity(act)
+    if (kw) return kw
+  }
+  const fromAnyAct = keywordFromDayActivitiesAnyOrder(day)
+  if (fromAnyAct) return fromAnyAct
+  return buildFitDayImageKeywordFallback(fallbackCtx, day)
 }

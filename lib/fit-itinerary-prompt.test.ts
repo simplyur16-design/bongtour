@@ -17,6 +17,7 @@ describe('buildAirtelPrompt', () => {
     })
     expect(prompt).toContain('summary(정확히 2문장 한국어)')
     expect(prompt).toContain('day.summary 2문장 구조')
+    expect(prompt).toContain('구체 지명·랜드마크 한글 고유명사')
     expect(prompt).toContain('합계 50~90자')
     expect(prompt).not.toContain('summary(1문장 한국어)')
   })

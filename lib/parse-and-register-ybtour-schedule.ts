@@ -19,6 +19,7 @@ import {
 } from '@/lib/ybtour-schedule-day-header-title'
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { buildEnglishPlaceTripartiteImageKeyword } from '@/lib/register-schedule-english-place-image-keyword'
+import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
@@ -302,7 +303,8 @@ export function sanitizeYbtourScheduleRowExpression(row: RegisterScheduleDay): R
 
 export function augmentYbtourScheduleExpressionParsed(
   parsed: RegisterParsed,
-  pastedBodyText?: string | null
+  pastedBodyText?: string | null,
+  opts?: { travelScope?: string | null },
 ): RegisterParsed {
   let next = parsed
   if (pastedBodyText?.trim()) {
@@ -325,9 +327,11 @@ export function augmentYbtourScheduleExpressionParsed(
     return { ...r, title: nextTitle.slice(0, 200) }
   })
   const pasteBlob = pastedBodyText?.trim() ? pastedBodyText.trim().slice(0, 24_000) : undefined
+  const skipPackageImageKw = isRegisterAirtelListing(opts?.travelScope, next.productType)
   return {
     ...next,
     schedule: titled.map((r) => {
+      if (skipPackageImageKw) return r
       const title = String(r.title ?? '').trim()
       const description = String(r.description ?? '').trim()
       const kw = finalizeScheduleImageKeyword(

@@ -17,7 +17,9 @@ export async function handleParseAndRegisterYbtourRequest(request: Request) {
     logPrefix: '[parse-and-register-ybtour]',
     savePersistedParsedOnly: true,
     augmentParsed: (p, ctx) =>
-      sanitizeYbtourRegisterParsedStrings(augmentYbtourScheduleExpressionParsed(p, ctx?.pastedBodyText)),
+      sanitizeYbtourRegisterParsedStrings(
+        augmentYbtourScheduleExpressionParsed(p, ctx?.pastedBodyText, { travelScope: ctx?.travelScope }),
+      ),
     finalizeItineraryDayDraftsFromSchedule: finalizeYbtourItineraryDayDraftsFromSchedule,
     getHeroTripDatesSupplement: (p) => ({
       ybtourFlightStructured: p.detailBodyStructured?.flightStructured ?? null,

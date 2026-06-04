@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
+import {
+  isRegisterAirtelListing,
+  stampRegisterAirtelProductTypeOnParsed,
+} from '@/lib/register-admin-airtel-listing'
 import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import type { FitItineraryDayForKeyword } from '@/lib/fit-itinerary-pick-day-image-keyword'
 
@@ -10,6 +13,13 @@ describe('isRegisterAirtelListing', () => {
 
   it('overseas package', () => {
     expect(isRegisterAirtelListing('overseas', 'travel')).toBe(false)
+  })
+})
+
+describe('stampRegisterAirtelProductTypeOnParsed', () => {
+  it('sets productType airtel for air_hotel_free', () => {
+    const out = stampRegisterAirtelProductTypeOnParsed({ productType: 'travel' }, 'air_hotel_free')
+    expect(out.productType).toBe('airtel')
   })
 })
 

@@ -66,6 +66,42 @@ describe('pickFitDayImageKeyword', () => {
     expect(kw).not.toMatch(/Universal Studios/i)
   })
 
+  it('derives distinct keywords from day summaries when activities lack English', () => {
+    const day1: FitItineraryDayForKeyword = {
+      dayNumber: 1,
+      title: '도톤보리의 밤',
+      summary: '저녁엔 도톤보리를 걸으며 야경을 즐겨 보세요. 가벼운 겉옷을 챙기시면 좋아요.',
+      activities: [
+        {
+          order: 1,
+          category: 'transport',
+          title: '입국',
+          description: '',
+          location: '간사이 국제공항',
+        },
+      ],
+    }
+    const day2: FitItineraryDayForKeyword = {
+      dayNumber: 2,
+      title: '교토의 하루',
+      summary: '오전엔 청수사 일대를 둘러보세요. 신발은 편한 것을 권합니다.',
+      activities: [
+        {
+          order: 1,
+          category: 'hotel',
+          title: '체크아웃',
+          description: '',
+          location: '오사카 호텔',
+        },
+      ],
+    }
+    const kw1 = pickFitDayImageKeyword(day1, fallback)
+    const kw2 = pickFitDayImageKeyword(day2, fallback)
+    expect(kw1).not.toBe(kw2)
+    expect(kw1.length).toBeGreaterThan(2)
+    expect(kw2.length).toBeGreaterThan(2)
+  })
+
   it('falls back to city when only transport/hotel', () => {
     const day: FitItineraryDayForKeyword = {
       dayNumber: 3,

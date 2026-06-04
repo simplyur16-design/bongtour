@@ -18,7 +18,9 @@ export async function handleParseAndRegisterLottetourRequest(request: Request) {
     logPrefix: '[parse-and-register-lottetour]',
     savePersistedParsedOnly: true,
     augmentParsed: (p, ctx) =>
-      sanitizeLottetourRegisterParsedStrings(augmentLottetourScheduleExpressionParsed(p, ctx?.pastedBodyText)),
+      sanitizeLottetourRegisterParsedStrings(
+        augmentLottetourScheduleExpressionParsed(p, ctx?.pastedBodyText, { travelScope: ctx?.travelScope }),
+      ),
     finalizeItineraryDayDraftsFromSchedule: finalizeLottetourItineraryDayDraftsFromSchedule,
     getHeroTripDatesSupplement: (p) => ({
       lottetourFlightStructured: p.detailBodyStructured?.flightStructured ?? null,

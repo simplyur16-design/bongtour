@@ -2,7 +2,10 @@
  * 등록 파이프 augment 직후 — 자유여행(Fit+imageKeyword) vs 패키지(공급사별 키워드) 분기.
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
-import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
+import {
+  isRegisterAirtelListing,
+  stampRegisterAirtelProductTypeOnParsed,
+} from '@/lib/register-admin-airtel-listing'
 import { enrichRegisterParsedWithAirtelFit } from '@/lib/register-airtel-fit-enrich'
 import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
 
@@ -19,6 +22,7 @@ export async function applyRegisterPostAugmentSchedulePipeline(
   parsed: RegisterParsed,
   opts: ApplyRegisterPostAugmentScheduleOpts,
 ): Promise<RegisterParsed> {
+  parsed = stampRegisterAirtelProductTypeOnParsed(parsed, opts.travelScope)
   if (isRegisterAirtelListing(opts.travelScope, parsed.productType)) {
     return enrichRegisterParsedWithAirtelFit(parsed, {
       travelScope: opts.travelScope,

@@ -9,3 +9,12 @@ export function isRegisterAirtelListing(
   if (meta.listingKind === 'air_hotel_free' || meta.productType === 'airtel') return true
   return (parsedProductType ?? '').trim() === 'airtel'
 }
+
+/** augment·LLM 직후 — productType=airtel 고정(패키지 일정 키워드 규칙과 분리) */
+export function stampRegisterAirtelProductTypeOnParsed<T extends { productType?: string | null }>(
+  parsed: T,
+  travelScope: string | undefined | null,
+): T {
+  if (!isRegisterAirtelListing(travelScope, parsed.productType)) return parsed
+  return { ...parsed, productType: 'airtel' }
+}

@@ -18,7 +18,9 @@ export async function handleParseAndRegisterKyowontourRequest(request: Request) 
     logPrefix: '[parse-and-register-kyowontour]',
     savePersistedParsedOnly: true,
     augmentParsed: (p, ctx) =>
-      sanitizeKyowontourRegisterParsedStrings(augmentKyowontourScheduleExpressionParsed(p, ctx?.pastedBodyText)),
+      sanitizeKyowontourRegisterParsedStrings(
+        augmentKyowontourScheduleExpressionParsed(p, ctx?.pastedBodyText, { travelScope: ctx?.travelScope }),
+      ),
     finalizeItineraryDayDraftsFromSchedule: finalizeKyowontourItineraryDayDraftsFromSchedule,
     getHeroTripDatesSupplement: (p) => ({
       kyowontourFlightStructured: p.detailBodyStructured?.flightStructured ?? null,
