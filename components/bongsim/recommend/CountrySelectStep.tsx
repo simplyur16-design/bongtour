@@ -5,6 +5,7 @@ import { COUNTRY_PICKER_GRID_CLASS, CountryPickerGrid } from "@/components/bongs
 import { CountryNameMultiline } from "@/lib/bongsim/country-name-display";
 import type { CountryOption } from "@/lib/bongsim/types";
 import { resolveBongsimFlagImageUrlOrFallback } from "@/lib/bongsim-flag-image-url";
+import { isRecommendPopularEuropeRegion } from "@/lib/bongsim/recommend/popular-destinations";
 
 export type CountrySelectStepProps = {
   selectedCodes: string[];
@@ -94,6 +95,7 @@ export function CountrySelectStep({
               <div className={COUNTRY_PICKER_GRID_CLASS}>
                 {popularCountries.map((country) => {
                   const isSelected = selectedCodes.includes(country.code);
+                  const useRegionEmoji = isRecommendPopularEuropeRegion(country.code);
                   return (
                     <button
                       key={country.code}
@@ -102,21 +104,25 @@ export function CountrySelectStep({
                       className="flex w-full min-w-0 flex-col items-center px-1 py-2"
                     >
                       <div
-                        className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-full transition hover:scale-105 ${
+                        className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full transition hover:scale-105 ${
                           isSelected ? "shadow-lg ring-2 ring-blue-400" : "shadow-lg ring-1 ring-gray-200"
-                        }`}
+                        } ${useRegionEmoji ? "bg-slate-100 text-2xl" : ""}`}
                       >
-                        <SafeImage
-                          src={resolveBongsimFlagImageUrlOrFallback(country.code)}
-                          alt=""
-                          width={48}
-                          height={48}
-                          quality={90}
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                          className="h-full w-full object-cover"
-                          sizes="48px"
-                        />
+                        {useRegionEmoji ? (
+                          <span aria-hidden>{country.flag}</span>
+                        ) : (
+                          <SafeImage
+                            src={resolveBongsimFlagImageUrlOrFallback(country.code)}
+                            alt=""
+                            width={48}
+                            height={48}
+                            quality={90}
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            className="h-full w-full object-cover"
+                            sizes="48px"
+                          />
+                        )}
                       </div>
                       <CountryNameMultiline
                         nameKr={country.nameKr}
@@ -124,6 +130,15 @@ export function CountrySelectStep({
                           isSelected ? "font-bold text-blue-500" : "font-medium text-gray-700"
                         }`}
                       />
+                      {country.subtitleKr ? (
+                        <span
+                          className={`mt-0.5 w-full px-0.5 text-center text-[10px] leading-tight ${
+                            isSelected ? "font-semibold text-blue-500" : "font-medium text-slate-500"
+                          }`}
+                        >
+                          {country.subtitleKr}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}

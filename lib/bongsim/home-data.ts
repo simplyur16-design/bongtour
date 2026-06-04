@@ -23,7 +23,6 @@ export const HOME_POPULAR_CODES: string[] = [
   "ch",
   "mo",
   "ae",
-  "kr",
 ];
 
 /** 인기국가 탭 첫 화면에 고정 노출(필수 포함 국가). */

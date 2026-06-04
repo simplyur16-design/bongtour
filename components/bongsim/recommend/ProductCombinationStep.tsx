@@ -10,6 +10,7 @@ import {
 import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
+import { REGION_PACK_OPTIONS } from "@/lib/bongsim/region-packs";
 import { bongsimPath, esimHasFreeData, type BongsimRecommendCheckoutLine } from "@/lib/bongsim/constants";
 import {
   clearRecommendCheckoutDispatched,
@@ -371,7 +372,10 @@ export function ProductCombinationStep({
   }, [selectedCodes]);
 
   const countryByCode = useMemo(
-    () => Object.fromEntries(COUNTRY_OPTIONS.map((c) => [c.code, c])),
+    () =>
+      Object.fromEntries(
+        [...COUNTRY_OPTIONS, ...REGION_PACK_OPTIONS].map((c) => [c.code, c]),
+      ),
     [],
   );
 

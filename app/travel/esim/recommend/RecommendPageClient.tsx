@@ -15,6 +15,13 @@ import {
   loadRecommendFunnelSnapshot,
   saveRecommendFunnelSnapshot,
 } from "@/lib/bongsim/recommend/funnel-storage";
+import { REGION_PACK_OPTIONS } from "@/lib/bongsim/region-packs";
+import {
+  RECOMMEND_POPULAR_COUNTRY_CODES,
+  RECOMMEND_POPULAR_EUROPE_REGION_CODE,
+  buildRecommendPopularEuropeTile,
+  isRecommendPopularEuropeRegion,
+} from "@/lib/bongsim/recommend/popular-destinations";
 import type { CountryOption } from "@/lib/bongsim/types";
 
 /**
@@ -23,8 +30,6 @@ import type { CountryOption } from "@/lib/bongsim/types";
  * Step 1: 국가 선택 (단독 플랜이 DB에 있는 국가만 — GET /api/bongsim/countries)
  * Step 2: 상품 조합 선택 (개별 vs 다국가)
  */
-
-const POPULAR_COUNTRY_CODES = ["jp", "tw", "vn", "th", "hk", "sg", "us", "cn", "kr"];
 
 type ApiCountriesPayload = { countries: { code: string; nameKr: string }[] };
 
@@ -128,13 +133,12 @@ export default function RecommendPageClient() {
 
   const countryChoices = useMemo(() => standaloneCountries ?? [], [standaloneCountries]);
 
-  const popularCountries = useMemo(
-    () =>
-      POPULAR_COUNTRY_CODES.map((code) =>
-        countryChoices.find((c) => c.code === code),
-      ).filter(Boolean) as CountryOption[],
-    [countryChoices],
-  );
+  const popularCountries = useMemo(() => {
+    const countries = RECOMMEND_POPULAR_COUNTRY_CODES.map((code) =>
+      countryChoices.find((c) => c.code === code),
+    ).filter(Boolean) as CountryOption[];
+    return [...countries, buildRecommendPopularEuropeTile()];
+  }, [countryChoices]);
 
   const filteredCountries = useMemo(() => {
     if (!searchQuery.trim()) return countryChoices;
@@ -146,9 +150,19 @@ export default function RecommendPageClient() {
 
   const handleCountryToggle = (code: string) => {
     clearRecommendCheckoutDispatched();
-    setSelectedCodes((prev) =>
-      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
-    );
+    if (isRecommendPopularEuropeRegion(code)) {
+      setSelectedCodes((prev) =>
+        prev.length === 1 && prev[0] === code ? [] : [code],
+      );
+      return;
+    }
+    setSelectedCodes((prev) => {
+      const withoutEurope = prev.filter((c) => !isRecommendPopularEuropeRegion(c));
+      if (withoutEurope.includes(code)) {
+        return withoutEurope.filter((c) => c !== code);
+      }
+      return [...withoutEurope, code];
+    });
   };
 
   const handleRemoveChip = (code: string) => {
@@ -175,7 +189,9 @@ export default function RecommendPageClient() {
 
   const resolveCountry = (code: string) =>
     countryChoices.find((c) => c.code === code) ??
-    COUNTRY_OPTIONS.find((c) => c.code === code);
+    COUNTRY_OPTIONS.find((c) => c.code === code) ??
+    REGION_PACK_OPTIONS.find((c) => c.code === code) ??
+    (code === RECOMMEND_POPULAR_EUROPE_REGION_CODE ? buildRecommendPopularEuropeTile() ?? undefined : undefined);
 
   if (!funnelHydrated) {
     return (

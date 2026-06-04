@@ -7,6 +7,7 @@ import {
   doesPlanCoverAllSelected,
   getPlanCoveredCountries,
 } from "@/lib/bongsim/plan-coverage-map";
+import { isRegionPackCode, planNameForRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
 import {
   computeRecommendedPrice,
   isTrueUnlimited,
@@ -105,30 +106,14 @@ export async function GET(req: Request) {
 
     const individual: Record<string, CountryPack> = {};
 
-    for (const code of selectedCodes) {
-      const single = allProducts.filter((p) => isSingleCountryForCode(p, code));
-      const roamingArr = single.filter(
-        (p) => (p.network_family || "").toLowerCase() === "roaming",
-      );
-      const localArr = single.filter(
-        (p) => (p.network_family || "").toLowerCase() === "local",
-      );
-
+    function packFromProducts(single: ProductOption[]): CountryPack {
+      const roamingArr = single.filter((p) => (p.network_family || "").toLowerCase() === "roaming");
+      const localArr = single.filter((p) => (p.network_family || "").toLowerCase() === "local");
       const roamingMin = minRecommendedPrice(roamingArr);
       const localMin = localArr.length ? minRecommendedPrice(localArr) : null;
-
-      const roamingUnl = roamingArr.filter(
-        (p) => isSingleCountryForCode(p, code) && roamingTrueUnlimitedForMin(p),
-      );
-      const localUnl = localArr.filter(
-        (p) => isSingleCountryForCode(p, code) && localTrueUnlimitedForMin(p),
-      );
-
-      const roaming_unlimited_min = minRecommendedPrice(roamingUnl);
-      const local_unlimited_min =
-        localArr.length > 0 ? minRecommendedPrice(localUnl) : null;
-
-      individual[code] = {
+      const roamingUnl = roamingArr.filter((p) => roamingTrueUnlimitedForMin(p));
+      const localUnl = localArr.filter((p) => localTrueUnlimitedForMin(p));
+      return {
         roaming: {
           min_price: roamingMin ?? 0,
           products: roamingArr,
@@ -140,9 +125,25 @@ export async function GET(req: Request) {
                 products: localArr,
               }
             : null,
-        roaming_unlimited_min,
-        local_unlimited_min,
+        roaming_unlimited_min: minRecommendedPrice(roamingUnl),
+        local_unlimited_min: localArr.length > 0 ? minRecommendedPrice(localUnl) : null,
       };
+    }
+
+    if (selectedCodes.length === 1 && isRegionPackCode(selectedCodes[0]!)) {
+      const regionCode = selectedCodes[0]!;
+      const planName = planNameForRegionPackCode(regionCode);
+      const regional =
+        planName != null
+          ? allProducts.filter((p) => p.plan_name.trim() === planName)
+          : [];
+      individual[regionCode] = packFromProducts(regional);
+      return jsonWithLeakGuard({ individual, multi: [] }, "bongsim.products.by-country");
+    }
+
+    for (const code of selectedCodes) {
+      const single = allProducts.filter((p) => isSingleCountryForCode(p, code));
+      individual[code] = packFromProducts(single);
     }
 
     const multi =
