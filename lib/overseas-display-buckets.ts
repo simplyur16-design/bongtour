@@ -117,6 +117,59 @@ const RE_AU_NZ_TRAVEL = new RegExp(
 
 const RE_GUAM_SAIPAN_TRAVEL = /괌|guam|사이판|saipan/i
 
+/** 미서부·5대 캐년 등 — 목적지 한 줄(특전·호텔명)만 있을 때 `other`로 떨어지는 케이스 보정 */
+/** 인도네시아·자카르타·족자카르타 — 트리 leaf 누락 시 `other` 보정 */
+const RE_INDONESIA_SEA_TRAVEL = new RegExp(
+  [
+    '인도네시아',
+    'indonesia',
+    '자카르타',
+    'jakarta',
+    '족자카르타',
+    'yogyakarta',
+    '보로부두르',
+    'borobudur',
+    '프람반난',
+    'prambanan',
+    '따만',
+    'tamansari',
+    '발리',
+    '\\bbali\\b',
+  ].join('|'),
+  'i',
+)
+
+const RE_US_WEST_TRAVEL = new RegExp(
+  [
+    '5\\s*대\\s*캐년',
+    '5대캐년',
+    '그랜드\\s*캐년',
+    'grand\\s*canyon',
+    '세도나',
+    'sedona',
+    '요세미티',
+    'yosemite',
+    '브라이스',
+    'bryce',
+    '자이언',
+    'zion',
+    '모뉴먼트\\s*밸리',
+    'monument\\s*valley',
+    '샌프란시스코',
+    'san\\s*francisco',
+    '\\bSFO\\b',
+    '라스베이거스',
+    'las\\s*vegas',
+    '로스앤젤레스',
+    'los\\s*angeles',
+    '프레스노',
+    'fresno',
+    '미서부',
+    '미국\\s*서부',
+  ].join('|'),
+  'i',
+)
+
 /**
  * `/api/products/browse` 전용: 트리 매칭 후 **상품 문자열**로 미주 오분류를 덮어쓴다.
  */
@@ -124,10 +177,15 @@ export function resolveOverseasDisplayBucketForBrowse(
   product: OverseasProductMatchInput,
   match: MatchProductToOverseasNodeResult | null,
 ): OverseasDisplayBucketId {
-  const base = mapMatchToOverseasDisplayBucket(match)
-  if (base !== 'americas') return base
-
   const h = buildOverseasProductMatchHaystack(product)
+  let base = mapMatchToOverseasDisplayBucket(match)
+  if (base === 'other' && RE_INDONESIA_SEA_TRAVEL.test(h)) {
+    return 'sea_taiwan'
+  }
+  if (base === 'other' && RE_US_WEST_TRAVEL.test(h)) {
+    return 'americas'
+  }
+  if (base !== 'americas') return base
 
   if (RE_GUAM_SAIPAN_TRAVEL.test(h) && match?.countryKey !== 'hawaii') {
     return 'oceania'
