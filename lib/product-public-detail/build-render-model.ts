@@ -656,6 +656,7 @@ export async function buildProductPublicDetailRenderModel(
   let priceRowsForPublic = Array.isArray(mergedPriceRows) ? mergedPriceRows : []
 
   if (verygoodtourPublicRowFactsOnly && verygoodAirtelListing) {
+    /** Product select has no heroDepartureDate — use departure calendar / merged price rows only. */
     const fallbackDate =
       (departures[0]?.departureDate != null ? toDepartureDateYmd(departures[0].departureDate) : '') ||
       mergedPriceRows[0]?.date?.slice(0, 10) ||
