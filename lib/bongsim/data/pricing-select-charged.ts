@@ -1,17 +1,12 @@
 import type { BongsimPriceBlockV1 } from "@/lib/bongsim/contracts/product-master.v1";
+import {
+  AFTER_RECOMMENDED_BASIS_KEY,
+  afterRecommendedSellKrw,
+} from "@/lib/bongsim/data/pricing-after-recommended-krw";
 
-/**
- * Server-only charged unit selection (same priority family as storefront display: 소비자가 단일).
- */
+/** Server-only charged unit: after.recommended_krw only (변동 후 권장판매가). */
 export function selectChargedUnitPriceKrw(priceBlock: BongsimPriceBlockV1): { basis_key: string; unit_krw: number } {
-  const candidates: Array<{ basis_key: string; value: number | null }> = [
-    { basis_key: "after.consumer_krw", value: priceBlock.after.consumer_krw },
-    { basis_key: "before.consumer_krw", value: priceBlock.before.consumer_krw },
-  ];
-  for (const c of candidates) {
-    if (c.value != null && Number.isFinite(c.value) && c.value >= 0) {
-      return { basis_key: c.basis_key, unit_krw: Math.trunc(c.value) };
-    }
-  }
-  return { basis_key: "missing_all_price_cells", unit_krw: 0 };
+  const v = afterRecommendedSellKrw(priceBlock);
+  if (v != null) return { basis_key: AFTER_RECOMMENDED_BASIS_KEY, unit_krw: v };
+  return { basis_key: "missing_after_recommended_krw", unit_krw: 0 };
 }

@@ -90,10 +90,7 @@ export async function GET(req: Request) {
         flags
       FROM bongsim_product_option
       WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
-      ORDER BY plan_name, days_raw, COALESCE(
-        (price_block->'after'->>'consumer_krw')::numeric,
-        (price_block->'before'->>'consumer_krw')::numeric
-      ) ASC NULLS LAST
+      ORDER BY plan_name, days_raw, (price_block->'after'->>'recommended_krw')::numeric ASC NULLS LAST
     `;
 
     const result = await pool.query(query);

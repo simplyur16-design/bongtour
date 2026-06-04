@@ -64,10 +64,7 @@ const SELECT_ALL_ACTIVE = `
     is_active
   FROM bongsim_product_option
   WHERE is_active IS DISTINCT FROM false
-  ORDER BY plan_name, days_raw, COALESCE(
-    (price_block->'after'->>'consumer_krw')::numeric,
-    (price_block->'before'->>'consumer_krw')::numeric
-  ) ASC NULLS LAST
+  ORDER BY plan_name, days_raw, (price_block->'after'->>'recommended_krw')::numeric ASC NULLS LAST
 `;
 
 function header(title: string): void {

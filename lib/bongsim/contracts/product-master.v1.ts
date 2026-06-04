@@ -5,7 +5,10 @@ import type {
   PlanType,
 } from "@/lib/bongsim/contracts/public-enums";
 
-/** Six-cell supplier price snapshot; keys are stable for charged_basis selection. */
+/**
+ * Six-cell supplier price snapshot (엑셀 기존/변경).
+ * 스토어·결제·정렬 SSOT: `after.recommended_krw` 만 — `before`·소비자가 폴백 없음.
+ */
 export type BongsimPriceBlockV1 = {
   before: {
     consumer_krw: number | null;

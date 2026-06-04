@@ -7,20 +7,7 @@ import {
   shouldShowBadge,
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
-
-function consumerAfterKrw(price_block: unknown): number | null {
-  if (!price_block || typeof price_block !== "object") return null;
-  const o = price_block as Record<string, unknown>;
-  const after = o.after;
-  if (!after || typeof after !== "object") return null;
-  const n = (after as Record<string, unknown>).consumer_krw;
-  if (typeof n === "number" && Number.isFinite(n)) return Math.round(n);
-  if (typeof n === "string" && n.trim()) {
-    const v = Number(n.replace(/,/g, ""));
-    return Number.isFinite(v) ? Math.round(v) : null;
-  }
-  return null;
-}
+import { computeRecommendedPrice } from "@/lib/bongsim/recommend/product-option";
 
 type Props = {
   row: CatalogProductListRow;
@@ -28,7 +15,9 @@ type Props = {
 };
 
 export function ProductCatalogCard({ row, kycDistribution }: Props) {
-  const price = consumerAfterKrw(row.price_block);
+  const price = computeRecommendedPrice(
+    row.price_block as Parameters<typeof computeRecommendedPrice>[0],
+  );
   const href = bongsimPath(`/product/${encodeURIComponent(row.option_api_id)}`);
   const optionLabel = formatPlanOptionLabel({
     plan_type: row.plan_type,

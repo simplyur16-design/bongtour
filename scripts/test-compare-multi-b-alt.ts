@@ -20,7 +20,7 @@ function mk(
     allowance_label: al,
     option_label: "",
     qos_raw: qos,
-    price_block: { after: { consumer_krw: price } },
+    price_block: { after: { recommended_krw: price } },
     recommended_price: price,
     flags: {},
   };

@@ -1,20 +1,11 @@
-function numField(v: unknown): number | null {
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v === "string" && v.trim() !== "" && v.trim().toLowerCase() !== "null") {
-    const n = parseFloat(v);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
+import { afterRecommendedSellKrw } from "@/lib/bongsim/data/pricing-after-recommended-krw";
 
 /**
- * 스토어프론트·추천 API 정렬용 표시 단가: after.consumer_krw → before.consumer_krw 만 (권장가·공급가 폴백 없음).
- * 함수명은 호환용으로 유지.
+ * 스토어프론트·추천 API 표시·정렬 단가: price_block.after.recommended_krw 만 (before·소비자가 폴백 없음).
+ * `recommended_price` 필드명은 API 호환용.
  */
 export function computeRecommendedPrice(price_block: ProductOption["price_block"]): number | null {
-  const after = numField(price_block?.after?.consumer_krw);
-  if (after != null) return after;
-  return numField(price_block?.before?.consumer_krw);
+  return afterRecommendedSellKrw(price_block);
 }
 
 /** API/클라이언트 공통 — `bongsim_product_option` 조회 결과 최소 필드 */
@@ -33,7 +24,7 @@ export interface ProductOption {
     after?: { recommended_krw?: unknown; consumer_krw?: unknown };
   };
   flags: Record<string, unknown>;
-  /** API가 붙이는 표시 단가(소비자가 계열; 필드명은 호환용). */
+  /** API가 붙이는 표시 단가(after 권장판매가; 필드명은 호환용). */
   recommended_price?: number;
 }
 

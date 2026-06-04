@@ -15,6 +15,7 @@ import {
   type AllowanceBucketId,
 } from "@/lib/bongsim/recommend/allowance-buckets";
 import {
+  computeRecommendedPrice,
   extractDaysFromDaysRaw,
   isTrueUnlimited,
 } from "@/lib/bongsim/recommend/product-option";
@@ -48,23 +49,9 @@ type RecommendedByAuth = {
   not_required: RecommendedPlan | null;
 };
 
-function numField(v: unknown): number | null {
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v === "string" && v.trim() !== "" && v.trim().toLowerCase() !== "null") {
-    const n = parseFloat(v);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
-
-/** plans API 전용: after.consumer_krw 만 (before 폴백 없음) */
-function plansConsumerKrw(price_block: ProductOption["price_block"]): number | null {
-  return numField(price_block?.after?.consumer_krw);
-}
-
 function enrich(row: Row) {
   const price_block = row.price_block as ProductOption["price_block"];
-  const recommended_price = plansConsumerKrw(price_block);
+  const recommended_price = computeRecommendedPrice(price_block);
   const is_true_unlimited = isTrueUnlimited(row);
   return { ...row, price_block, recommended_price, is_true_unlimited };
 }
@@ -398,7 +385,7 @@ function matchesFilters(row: Row, ctx: { country: string; days: number; allSelec
  * - `days` = 여정 일수(원본). daily/unlimited/fixed 모두 d>=days 후 그룹별 최소 d 1SKU.
  * - `matched_days` = 매칭 풀에서 d>=days 인 최소 catalog 일수 (안내 문구 M값).
  * - `network` 생략 시 roaming + local 모두 조회 (roaming | local 지정 가능)
- * - recommended_price = price_block.after.consumer_krw 만 (before 폴백 없음)
+ * - recommended_price = price_block.after.recommended_krw 만 (before·소비자가 폴백 없음)
  * - is_true_unlimited: allowance_label 이 무제한/완전 무제한/unlimited 인 경우만 true
  * - flags.request_shipment = O, qos_raw 128kbps 제외 후 tierPool
  * - groups: tierPool 을 plan_type(unlimited|daily|fixed) 별 분류·정렬
@@ -462,7 +449,7 @@ export async function GET(req: Request) {
         AND ($1::text IS NULL OR lower(network_family) = lower($1::text))
         AND plan_type IS NOT NULL
         AND lower(plan_type) IN ('unlimited', 'daily', 'fixed')
-      ORDER BY plan_name, days_raw, (price_block->'after'->>'consumer_krw')::numeric ASC NULLS LAST
+      ORDER BY plan_name, days_raw, (price_block->'after'->>'recommended_krw')::numeric ASC NULLS LAST
       `,
       [networkParam],
     );
