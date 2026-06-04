@@ -287,6 +287,24 @@ export function mapKoreanPoiSegment(segment: string): string {
   return ''
 }
 
+/** routeText·일정 본문에서 매핑 가능한 한글 POI를 긴 키 우선·중복 없이 모두 수집 */
+export function findAllMappedKoreanPoisInText(text: string): string[] {
+  const t = String(text ?? '').trim()
+  if (!t) return []
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const ko of POI_KO_KEYS_SORTED) {
+    if (!t.includes(ko)) continue
+    const en = (POI_KO_TO_EN[ko] ?? '').trim()
+    if (!en) continue
+    const key = en.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(en)
+  }
+  return out
+}
+
 function normalize(s: string): string {
   return s.trim().replace(/\s+/g, ' ')
 }

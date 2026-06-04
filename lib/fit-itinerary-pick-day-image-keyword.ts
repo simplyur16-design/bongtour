@@ -172,6 +172,7 @@ function isWeakFitDayImageKeyword(kw: string): boolean {
   const t = String(kw ?? '').trim()
   if (!t || t.toLowerCase() === 'travel') return true
   if (/^nha$/i.test(t)) return true
+  if (/^nha\s*trang$/i.test(t)) return true
   return isBareCityOrCountryKeyword(t)
 }
 
