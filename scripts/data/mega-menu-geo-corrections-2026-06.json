@@ -106,5 +106,31 @@
       { "countryKey": "japan", "nodeKey": "alpen-route", "groupKey": "japan", "isPrimary": true }
     ],
     "cityTags": [{ "cityKey": "alpen-route", "isPrimary": true }]
+  },
+  {
+    "slug": "pkg-vg-0013",
+    "note": "5대캐년 미서부 9일 — 그외→미주(미국 서부)",
+    "primary": { "continentKey": "north-america", "countryKey": "united-states", "cityKey": "grandcanyon" },
+    "countryTags": [
+      { "countryKey": "united-states", "nodeKey": "grandcanyon", "groupKey": "americas", "isPrimary": true }
+    ],
+    "cityTags": [
+      { "cityKey": "grandcanyon", "isPrimary": true },
+      { "cityKey": "sf", "isPrimary": false },
+      { "cityKey": "lasvegas", "isPrimary": false },
+      { "cityKey": "la", "isPrimary": false }
+    ]
+  },
+  {
+    "slug": "pkg-vg-0011",
+    "note": "자카르타/족자카르타 6일 — 그외→동남아(인도네시아)",
+    "primary": { "continentKey": "southeast-asia", "countryKey": "indonesia", "cityKey": "jakarta" },
+    "countryTags": [
+      { "countryKey": "indonesia", "nodeKey": "jakarta", "groupKey": "sea-taiwan-south-asia", "isPrimary": true }
+    ],
+    "cityTags": [
+      { "cityKey": "jakarta", "isPrimary": true },
+      { "cityKey": "yogyakarta", "isPrimary": false }
+    ]
   }
 ]
