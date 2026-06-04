@@ -5,6 +5,10 @@
  * 가이드경비·인솔 등은 슬롯 추출 대상에서 제외한다.
  */
 import { extractInfantPriceKrwFromText } from '@/lib/infant-price-extract'
+import {
+  extractProductPriceTableByLabels,
+  mergeProductPriceTableWithLabelExtract,
+} from '@/lib/product-price-table-extract'
 import type { RegisterParsed } from '@/lib/register-llm-schema-verygoodtour'
 
 function stripHtmlLoose(html: string | null | undefined): string {
@@ -435,8 +439,20 @@ export function finalizeVerygoodRegisterParsedPricing(parsed: RegisterParsed): R
   const blob = verygoodPriceBlobFromParsed(parsed)
   /** 입력란 SSOT: 입력란 있으면 LLM 본문 추출(productPriceTable) 무시 */
   const llmTable = hasManualPriceInput ? null : (parsed.productPriceTable ?? null)
-  const next = finalizeVerygoodProductPriceTable(llmTable, blob)
+  let next = finalizeVerygoodProductPriceTable(llmTable, blob)
   if (next == null) return parsed
+  const labelMerged = mergeProductPriceTableWithLabelExtract(
+    next,
+    extractProductPriceTableByLabels(blob),
+  )
+  if (labelMerged) {
+    next = {
+      adultPrice: labelMerged.adultPrice ?? null,
+      childExtraBedPrice: labelMerged.childExtraBedPrice ?? null,
+      childNoBedPrice: labelMerged.childNoBedPrice ?? null,
+      infantPrice: labelMerged.infantPrice ?? null,
+    }
+  }
   const adult =
     next.adultPrice != null && next.adultPrice > 0
       ? next.adultPrice

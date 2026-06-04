@@ -70,6 +70,11 @@ import * as dayHotelLottetour from '@/lib/day-hotel-plans-lottetour'
 import { normalizePromotionMarketingCopy, normalizePricePromotionViewCopy } from '@/lib/promotion-copy-normalize'
 import { isOnOrAfterPublicBookableMinDate, toDepartureDateYmd } from '@/lib/public-bookable-date'
 import { getPriceAdult } from '@/lib/price-utils'
+import {
+  backfillVerygoodAirtelPublicPriceRows,
+  isVerygoodAirtelListing,
+  verygoodPublicMergePriceTable,
+} from '@/lib/verygood/verygood-airtel-public-price'
 import { pickVerygoodPublicDefaultDepartureRow } from '@/lib/verygood/verygood-public-default-departure'
 import { verygoodDurationLabelFromDepartureAtPair } from '@/lib/verygood/verygood-selected-row-trip-display'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
@@ -600,16 +605,17 @@ export async function buildProductPublicDetailRenderModel(
       ? structuredAny.shoppingPasteRaw.trim()
       : null
 
-  /** 참좋은: 출발일별 성인가는 행 SSOT — 본문 표로 성인·아동 덮어쓰지 않되, 유아 단가는 본문 표로 빈 칸만 채운다 */
-  const verygoodPriceTableForStickyMerge =
-    verygoodtourPublicRowFactsOnly && structured?.productPriceTable
-      ? {
-          adultPrice: null,
-          childExtraBedPrice: null,
-          childNoBedPrice: null,
-          infantPrice: structured.productPriceTable.infantPrice ?? null,
-        }
-      : productPriceTableForMerge
+  const verygoodAirtelListing = isVerygoodAirtelListing(
+    travelProduct.listingKind,
+    travelProduct.productType,
+  )
+
+  /** 참좋은 패키지: 출발 행 성인가 SSOT. 자유여행(airtel): 본문 연령별 표 SSOT. */
+  const verygoodPriceTableForStickyMerge = verygoodPublicMergePriceTable(
+    verygoodAirtelListing,
+    structured?.productPriceTable ?? null,
+    productPriceTableForMerge,
+  )
 
   const mergedPriceRows = publicPriceRowsModule.mergeProductPriceRowsWithBodyPriceTable(
     departures.length > 0
@@ -647,7 +653,27 @@ export async function buildProductPublicDetailRenderModel(
             ? { lottetourVaryingAdultChildLinkage: true }
             : undefined
   )
-  const priceRowsForPublic = Array.isArray(mergedPriceRows) ? mergedPriceRows : []
+  let priceRowsForPublic = Array.isArray(mergedPriceRows) ? mergedPriceRows : []
+
+  if (verygoodtourPublicRowFactsOnly && verygoodAirtelListing) {
+    const fallbackDate =
+      (travelProduct.heroDepartureDate instanceof Date
+        ? travelProduct.heroDepartureDate.toISOString().slice(0, 10)
+        : String(travelProduct.heroDepartureDate ?? '').slice(0, 10)) ||
+      (departures[0]?.departureDate instanceof Date
+        ? departures[0].departureDate.toISOString().slice(0, 10)
+        : String(departures[0]?.departureDate ?? '').slice(0, 10)) ||
+      new Date().toISOString().slice(0, 10)
+    priceRowsForPublic = backfillVerygoodAirtelPublicPriceRows(
+      priceRowsForPublic,
+      structured?.productPriceTable ?? productPriceTableForMerge ?? null,
+      {
+        productId: travelProduct.id,
+        priceFrom: travelProduct.priceFrom,
+        fallbackDateYmd: fallbackDate,
+      },
+    )
+  }
 
   const verygoodPublicRepRow =
     verygoodtourPublicRowFactsOnly && priceRowsForPublic.length > 0

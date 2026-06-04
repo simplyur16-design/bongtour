@@ -67,6 +67,8 @@ function detectTierSlot(labelOrLine: string): Slot | null {
   )
     return 'infant'
   if (/^성인(?:만)?(?=[\s\d(;]|$)/i.test(s)) return 'adult'
+  /** 참좋은 등 단일 「아동」 슬롯(엑베/노베드 미분리) */
+  if (/^아동(?:만)?(?=[\s\d(;]|$)/i.test(s)) return 'childExtra'
   return null
 }
 
