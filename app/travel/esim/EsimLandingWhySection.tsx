@@ -15,6 +15,7 @@ type WhyItem = {
   /** 모바일 3열용 짧은 제목 (선택, 폰트 크기 동일) */
   titleMobile?: string;
   body: string;
+  /** 모바일 카드 부제 (없으면 제목만) */
   bodyMobile?: string;
   hint?: string;
   circleClass: string;
@@ -30,7 +31,6 @@ const WHY_ITEMS: readonly WhyItem[] = [
     icon: Zap,
     title: "원클릭 설치",
     body: "QR 코드와 설치 문자 한 번 클릭이면 끝",
-    bodyMobile: "QR·설치 링크 한 번에",
     hint: "iOS 17.4+ · Android 13+",
     circleClass: "bg-pink-100 text-pink-600",
   },
@@ -40,7 +40,6 @@ const WHY_ITEMS: readonly WhyItem[] = [
     title: "품질보장서비스",
     titleMobile: "품질보장",
     body: "제품 결함 시 전액 환불",
-    bodyMobile: "결함 시 전액 환불",
     circleClass: "bg-emerald-100 text-emerald-600",
   },
   {
@@ -49,7 +48,6 @@ const WHY_ITEMS: readonly WhyItem[] = [
     title: "데이터 사용량 실시간 확인",
     titleMobile: "사용량 확인",
     body: "마이페이지에서 남은 데이터를 언제든 확인",
-    bodyMobile: "마이페이지 잔량 조회",
     href: "/mypage/esim",
     linkLabel: "사용량 확인하기 →",
     requiresLogin: true,
@@ -61,7 +59,6 @@ const WHY_ITEMS: readonly WhyItem[] = [
     title: "구글맵 데이터 무료",
     titleMobile: "구글맵 무료",
     body: "해외에서 구글지도 길찾기를 데이터 차감 없이",
-    bodyMobile: "길찾기 데이터 차감 없음",
     href: bongsimPath("/benefits/google-maps"),
     linkLabel: "자세히 보기 →",
     circleClass: "bg-teal-100 text-teal-600",
@@ -72,7 +69,6 @@ const WHY_ITEMS: readonly WhyItem[] = [
     title: "ChatGPT 데이터 무료",
     titleMobile: "ChatGPT 무료",
     body: "여행 중 번역·검색을 데이터 부담 없이",
-    bodyMobile: "번역·검색 데이터 차감 없음",
     href: bongsimPath("/benefits/chatgpt"),
     linkLabel: "자세히 보기 →",
     circleClass: "bg-violet-100 text-violet-600",
@@ -82,7 +78,7 @@ const WHY_ITEMS: readonly WhyItem[] = [
     icon: MessageCircle,
     title: "안심 고객센터",
     body: "Bong투어 카카오톡으로 문의하세요 (09:00-18:00 KST)",
-    bodyMobile: "카카오톡 09:00–18:00",
+    titleMobile: "고객센터",
     href: BONGSIM_KAKAO_CHANNEL_URL.trim() || undefined,
     linkLabel: "카카오톡 문의하기",
     external: true,
@@ -144,28 +140,24 @@ type WhyCardMobileProps = {
   onLoginRequired: () => void;
 };
 
-/** 모바일만: 3열×2행 균등 카드 */
+/** 모바일만: 3열×2행, 아이콘·제목 중앙·동일 높이 */
 function WhyCardMobile({ item, isLoggedIn, onLoginRequired }: WhyCardMobileProps) {
-  const { icon: Icon, title, titleMobile, body, bodyMobile, hint, circleClass, href, external, requiresLogin } =
-    item;
+  const { icon: Icon, title, titleMobile, body, bodyMobile, circleClass, href, external, requiresLogin } = item;
   const displayTitle = titleMobile ?? title;
   const tappable = Boolean(href);
-  const bodyText = bodyMobile ?? body;
+  const ariaLabel = bodyMobile ? `${displayTitle}. ${bodyMobile}` : `${displayTitle}. ${body}`;
 
   const cardClass = [
-    "relative flex min-h-[7.5rem] flex-col items-center justify-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm transition",
+    "relative flex h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 text-center shadow-sm transition",
     tappable
       ? "cursor-pointer hover:border-teal-300 hover:shadow-md active:bg-slate-50/80"
       : "cursor-default",
   ].join(" ");
 
   const inner = (
-    <>
+    <div className="flex w-full flex-col items-center justify-center gap-2">
       {tappable ? (
-        <ChevronRight
-          className="absolute right-2 top-2 h-4 w-4 text-teal-600"
-          aria-hidden
-        />
+        <ChevronRight className="absolute right-2 top-2 h-4 w-4 text-teal-600" aria-hidden />
       ) : null}
       <div
         className={`flex shrink-0 items-center justify-center rounded-full p-2.5 ${circleClass}`}
@@ -173,12 +165,11 @@ function WhyCardMobile({ item, isLoggedIn, onLoginRequired }: WhyCardMobileProps
       >
         <Icon className="h-5 w-5" strokeWidth={2} />
       </div>
-      <div className="w-full min-w-0 px-0.5">
-        <h3 className="text-sm font-semibold leading-snug text-slate-900">{displayTitle}</h3>
-        <p className="mt-1 text-sm leading-snug text-slate-600">{bodyText}</p>
-        {hint ? <p className="mt-1 text-xs leading-snug text-gray-500">{hint}</p> : null}
-      </div>
-    </>
+      <h3 className="w-full px-0.5 text-sm font-semibold leading-tight text-slate-900">{displayTitle}</h3>
+      {bodyMobile ? (
+        <p className="w-full px-0.5 text-xs leading-snug text-slate-600">{bodyMobile}</p>
+      ) : null}
+    </div>
   );
 
   if (!tappable) {
@@ -187,7 +178,12 @@ function WhyCardMobile({ item, isLoggedIn, onLoginRequired }: WhyCardMobileProps
 
   if (requiresLogin && !isLoggedIn) {
     return (
-      <button type="button" className={`w-full text-left ${cardClass}`} onClick={onLoginRequired}>
+      <button
+        type="button"
+        className={`w-full ${cardClass}`}
+        aria-label={ariaLabel}
+        onClick={onLoginRequired}
+      >
         {inner}
       </button>
     );
@@ -195,7 +191,7 @@ function WhyCardMobile({ item, isLoggedIn, onLoginRequired }: WhyCardMobileProps
 
   if (external && href) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={cardClass}>
+      <a href={href} target="_blank" rel="noopener noreferrer" className={cardClass} aria-label={ariaLabel}>
         {inner}
       </a>
     );
@@ -203,7 +199,7 @@ function WhyCardMobile({ item, isLoggedIn, onLoginRequired }: WhyCardMobileProps
 
   if (href) {
     return (
-      <Link href={href} className={cardClass}>
+      <Link href={href} className={cardClass} aria-label={ariaLabel}>
         {inner}
       </Link>
     );
@@ -230,7 +226,7 @@ export function EsimLandingWhySection() {
         </p>
 
         {/* 모바일: 3열 × 2행 */}
-        <div className="mx-auto mt-6 grid max-w-lg grid-cols-3 gap-2.5 sm:gap-3 md:hidden">
+        <div className="mx-auto mt-6 grid max-w-lg auto-rows-[5.75rem] grid-cols-3 gap-2.5 sm:gap-3 md:hidden">
           {WHY_ITEMS.map((item) => (
             <WhyCardMobile
               key={item.id}
