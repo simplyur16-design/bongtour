@@ -166,6 +166,11 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('bali', '발리', { aliases: ['bali', '발리', '덴파사르'], supplierKeywords: ['DPS'] }),
           L('batam', '바탐', { aliases: ['batam', '바탐'] }),
           L('manado', '마나도', { aliases: ['manado', '마나도'] }),
+          L('jakarta', '자카르타', { aliases: ['jakarta', '자카르타', 'CGK'], supplierKeywords: ['자카르타'] }),
+          L('yogyakarta', '족자카르타', {
+            aliases: ['yogyakarta', '족자카르타', '조기', 'JOG', '보로부두르', 'borobudur', '프람반난', 'prambanan'],
+            supplierKeywords: ['족자카르타'],
+          }),
         ],
         { aliases: ['인도네시아', 'indonesia'] }
       ),
@@ -612,12 +617,29 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         '미국 서부',
         [
           L('la', '로스앤젤레스', { aliases: ['los angeles', 'LA', '로스앤젤레스'] }),
-          L('sf', '샌프란시스코', { aliases: ['san francisco', '샌프란시스코', 'SFO'] }),
-          L('lasvegas', '라스베이거스', { aliases: ['las vegas', 'vegas', '라스베가스'] }),
+          L('sf', '샌프란시스코', {
+            aliases: ['san francisco', '샌프란시스코', 'SFO', '요세미티', 'yosemite', '요세미티 국립공원'],
+          }),
+          L('lasvegas', '라스베이거스', {
+            aliases: ['las vegas', 'vegas', '라스베가스', '세도나', 'sedona', '프레스노', 'fresno'],
+          }),
           L('seattle', '시애틀', { aliases: ['seattle', '시애틀'] }),
-          L('grandcanyon', '그랜드캐년', { aliases: ['grand canyon', '그랜드캐년'] }),
+          L('grandcanyon', '그랜드캐년', {
+            aliases: [
+              'grand canyon',
+              '그랜드캐년',
+              '5대캐년',
+              '5대 캐년',
+              '브라이스',
+              'bryce',
+              '자이언',
+              'zion',
+              '모뉴먼트밸리',
+              'monument valley',
+            ],
+          }),
         ],
-        { aliases: ['미국서부', '미서부'] }
+        { aliases: ['미국서부', '미서부', '미국', 'USA', '미주'] }
       ),
       C(
         'usa-east',
