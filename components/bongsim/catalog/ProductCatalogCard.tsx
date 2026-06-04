@@ -7,7 +7,7 @@ import {
   shouldShowBadge,
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
-import { computeRecommendedPrice } from "@/lib/bongsim/recommend/product-option";
+import { computeRecommendedPrice, type ProductOption } from "@/lib/bongsim/recommend/product-option";
 
 type Props = {
   row: CatalogProductListRow;
@@ -15,9 +15,7 @@ type Props = {
 };
 
 export function ProductCatalogCard({ row, kycDistribution }: Props) {
-  const price = computeRecommendedPrice(
-    row.price_block as Parameters<typeof computeRecommendedPrice>[0],
-  );
+  const price = computeRecommendedPrice(row.price_block as ProductOption["price_block"]);
   const href = bongsimPath(`/product/${encodeURIComponent(row.option_api_id)}`);
   const optionLabel = formatPlanOptionLabel({
     plan_type: row.plan_type,

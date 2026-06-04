@@ -4,7 +4,7 @@ import { afterRecommendedSellKrw } from "@/lib/bongsim/data/pricing-after-recomm
  * 스토어프론트·추천 API 표시·정렬 단가: price_block.after.recommended_krw 만 (before·소비자가 폴백 없음).
  * `recommended_price` 필드명은 API 호환용.
  */
-export function computeRecommendedPrice(price_block: ProductOption["price_block"]): number | null {
+export function computeRecommendedPrice(price_block: ProductOption["price_block"] | null | undefined): number | null {
   return afterRecommendedSellKrw(price_block);
 }
 
@@ -20,8 +20,8 @@ export interface ProductOption {
   /** DB `qos_raw` — plans API 등에서 노출 */
   qos_raw?: string | null;
   price_block: {
-    before?: { recommended_krw?: unknown; consumer_krw?: unknown };
-    after?: { recommended_krw?: unknown; consumer_krw?: unknown };
+    before?: { recommended_krw?: unknown; consumer_krw?: unknown; supply_krw?: unknown };
+    after?: { recommended_krw?: unknown; consumer_krw?: unknown; supply_krw?: unknown };
   };
   flags: Record<string, unknown>;
   /** API가 붙이는 표시 단가(after 권장판매가; 필드명은 호환용). */
