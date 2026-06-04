@@ -48,11 +48,15 @@ function stripRouteSegmentNoise(seg: string): string {
     .trim()
 }
 
+/** 공백-하이픈-공백 외 · → — 등 공급사 본문 구분자 */
+const ROUTE_TEXT_SEGMENT_SPLIT_RE =
+  /\s*(?:-(?!\d)|[\u2010\u2011\u2012\u2013\u2014\u2212–—]|\u2192|\u00b7|\u2022)\s*/
+
 export function routeTextSegments(routeText: string | null | undefined): string[] {
   const rt = String(routeText ?? '').trim()
   if (!rt) return []
   return rt
-    .split(/\s*-\s*/)
+    .split(ROUTE_TEXT_SEGMENT_SPLIT_RE)
     .map(stripRouteSegmentNoise)
     .filter((s) => s.length >= 2)
 }

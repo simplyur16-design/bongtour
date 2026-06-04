@@ -37,7 +37,7 @@ import {
 } from '@/lib/schedule-image-keyword-persist'
 import { applyRegisterScheduleImageKeywordsForPreview } from '@/lib/register-schedule-image-keywords-preview'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
-import { buildAirtelRegisterScheduleRowsFromFitParsed } from '@/lib/register-airtel-fit-preview-ui'
+import { buildAirtelRegisterPexelsUiScheduleRows } from '@/lib/register-airtel-pexels-ui-rows'
 import { formatImageKeywordError } from '@/lib/image-keyword-error-messages'
 import {
   CONTINENT_ID_TO_PRIMARY_REGION_KR,
@@ -301,31 +301,12 @@ function buildRegisterPexelsUiRows(
   if (!preview) return []
 
   if (isRegisterAirtelListing(travelScope, productType)) {
-    const fitRows = buildAirtelRegisterScheduleRowsFromFitParsed(parsed)
-    if (fitRows?.length) {
-      const destHint =
-        (parsed?.destination ?? '').trim() ||
-        (preview.productDraft?.primaryDestination ?? preview.productDraft?.destinationRaw ?? '').trim() ||
-        null
-      return finalizeRegisterScheduleImageKeywords(
-        fitRows.map((row) => ({
-          day: row.day,
-          title: String(row.title ?? ''),
-          description: String(row.description ?? ''),
-          routeText: row.routeText ?? null,
-          imageKeyword: String(row.imageKeyword ?? '').trim(),
-          imageKeyword2: row.imageKeyword2 ?? null,
-        })),
-        { productDestination: destHint },
-      ).map((row) => ({
-        day: row.day,
-        title: String(row.title ?? ''),
-        description: String(row.description ?? ''),
-        routeText: row.routeText ?? null,
-        imageKeyword: String(row.imageKeyword ?? '').trim(),
-        imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
-      }))
-    }
+    const destHint =
+      (parsed?.destination ?? '').trim() ||
+      (preview.productDraft?.primaryDestination ?? preview.productDraft?.destinationRaw ?? '').trim() ||
+      null
+    const airtelRows = buildAirtelRegisterPexelsUiScheduleRows(parsed, destHint)
+    if (airtelRows?.length) return airtelRows
   }
 
   const sched = parsed?.schedule
@@ -338,31 +319,12 @@ function buildRegisterPexelsUiRows(
       isRegisterAirtelListing(travelScope, productType) &&
       scheduleRowsHaveUniformImageKeyword(validFromParsed)
     if (useFitRowsInstead) {
-      const fitRows = buildAirtelRegisterScheduleRowsFromFitParsed(parsed)
-      if (fitRows?.length) {
-        const destHint =
-          (parsed?.destination ?? '').trim() ||
-          (preview.productDraft?.primaryDestination ?? preview.productDraft?.destinationRaw ?? '').trim() ||
-          null
-        return finalizeRegisterScheduleImageKeywords(
-          fitRows.map((row) => ({
-            day: row.day,
-            title: String(row.title ?? ''),
-            description: String(row.description ?? ''),
-            routeText: row.routeText ?? null,
-            imageKeyword: String(row.imageKeyword ?? '').trim(),
-            imageKeyword2: row.imageKeyword2 ?? null,
-          })),
-          { productDestination: destHint },
-        ).map((row) => ({
-          day: row.day,
-          title: String(row.title ?? ''),
-          description: String(row.description ?? ''),
-          routeText: row.routeText ?? null,
-          imageKeyword: String(row.imageKeyword ?? '').trim(),
-          imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
-        }))
-      }
+      const destHint =
+        (parsed?.destination ?? '').trim() ||
+        (preview.productDraft?.primaryDestination ?? preview.productDraft?.destinationRaw ?? '').trim() ||
+        null
+      const airtelRows = buildAirtelRegisterPexelsUiScheduleRows(parsed, destHint)
+      if (airtelRows?.length) return airtelRows
     }
     const rawRows = validFromParsed.map((row) => {
       const day = Number(row.day)

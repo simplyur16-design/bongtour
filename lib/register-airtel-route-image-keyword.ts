@@ -29,14 +29,18 @@ export function applyAirtelRouteTextImageKeywordsToSchedule<T extends AirtelRout
     if (!picked.imageKeyword) return row
     const current = String(row.imageKeyword ?? '').trim()
     const routeIsLandmark = !isWeakAirtelImageKeyword(picked.imageKeyword)
-    if (!routeIsLandmark && isWeakAirtelImageKeyword(current)) {
+    const currentIsNha = /^nha$/i.test(current)
+    const shouldReplaceKw1 =
+      routeIsLandmark && (currentIsNha || isWeakAirtelImageKeyword(current) || !current)
+
+    if (shouldReplaceKw1) {
       return {
         ...row,
         imageKeyword: picked.imageKeyword,
         imageKeyword2: picked.imageKeyword2 ?? row.imageKeyword2 ?? null,
       }
     }
-    if (routeIsLandmark && (isWeakAirtelImageKeyword(current) || current.toLowerCase() === 'nha')) {
+    if (!routeIsLandmark && isWeakAirtelImageKeyword(current) && picked.imageKeyword) {
       return {
         ...row,
         imageKeyword: picked.imageKeyword,
