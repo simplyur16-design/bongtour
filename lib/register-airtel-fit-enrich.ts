@@ -93,18 +93,20 @@ function mergeParsedScheduleWithFitDays(
   return { schedule: scheduleJsonRowsToRegisterRows(merged), dayKeywords }
 }
 
-function applyRouteTextFallbackIfFitKeywordsUniform(
+/** Fit 추출 후 routeText(이동 경로)로 Nha 등 약한 키워드 보완 — 미리보기 UI와 동일 */
+function applyAirtelRouteTextAfterFitKeywords(
   schedule: RegisterScheduleDay[],
   dayKeywords: Record<number, string>,
   issues: RegisterExtractionFieldIssue[],
 ): RegisterScheduleDay[] {
-  if (!areFitDayImageKeywordsUniform(dayKeywords)) return schedule
-  issues.push(
-    airtelFitFieldIssue(
-      '예시 일정 활동에서 일차별 imageKeyword가 동일합니다. activity location 괄호 영문 지명(일차마다 다른 랜드마크)을 확인하세요. routeText 보조 적용.',
-      'warn',
-    ),
-  )
+  if (areFitDayImageKeywordsUniform(dayKeywords)) {
+    issues.push(
+      airtelFitFieldIssue(
+        '예시 일정 활동에서 일차별 imageKeyword가 동일합니다. activity location 괄호 영문 지명(일차마다 다른 랜드마크)을 확인하세요. routeText 보조 적용.',
+        'warn',
+      ),
+    )
+  }
   return applyAirtelRouteTextImageKeywordsToSchedule(schedule)
 }
 
@@ -135,7 +137,7 @@ export async function enrichRegisterParsedWithAirtelFit(
       const response = parseFitItineraryGeminiJson(geminiJson, logLabel)
       const fitDays = fitGeminiResponseToKeywordDays(response)
       let { schedule, dayKeywords } = mergeParsedScheduleWithFitDays(parsed, fitDays)
-      schedule = applyRouteTextFallbackIfFitKeywordsUniform(schedule, dayKeywords, issues)
+      schedule = applyAirtelRouteTextAfterFitKeywords(schedule, dayKeywords, issues)
       if (Object.keys(dayKeywords).length > 0) {
         issues.push(
           airtelFitFieldIssue(
@@ -173,7 +175,7 @@ export async function enrichRegisterParsedWithAirtelFit(
     geminiJson = geminiResult.text.trim()
     const fitDays = fitGeminiResponseToKeywordDays(response)
     let { schedule, dayKeywords } = mergeParsedScheduleWithFitDays(parsed, fitDays)
-    schedule = applyRouteTextFallbackIfFitKeywordsUniform(schedule, dayKeywords, issues)
+    schedule = applyAirtelRouteTextAfterFitKeywords(schedule, dayKeywords, issues)
     if (Object.keys(dayKeywords).length > 0) {
       const distinct = new Set(Object.values(dayKeywords).map((k) => k.toLowerCase())).size
       issues.push(

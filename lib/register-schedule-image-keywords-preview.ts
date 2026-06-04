@@ -10,6 +10,7 @@ import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import type { RegisterScheduleDay as VerygoodRegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-schedule-image-keyword'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
+import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airtel-route-image-keyword'
 import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
 
 export type RegisterScheduleImageKeywordPreviewRow = {
@@ -35,7 +36,7 @@ export function applyRegisterScheduleImageKeywordsForPreview<
 >(rows: T[], opts: ApplyRegisterScheduleImageKeywordsForPreviewOpts): T[] {
   if (!rows.length) return rows
   if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
-    return rows
+    return applyAirtelRouteTextImageKeywordsToSchedule(rows)
   }
   const supplier =
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
