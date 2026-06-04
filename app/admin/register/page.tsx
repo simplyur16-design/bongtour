@@ -281,8 +281,11 @@ type RegisterPexelsSearchPhoto = {
 function buildRegisterPexelsUiRows(
   parsed: RegisterParsed | null,
   preview: AdminRegisterPreviewPayload | null,
-  supplierKey: AdminRegisterSupplierKey | null
+  supplierKey: AdminRegisterSupplierKey | null,
+  travelScope: 'overseas' | 'domestic' | 'air_hotel_free',
 ): RegisterScheduleDay[] {
+  const productType =
+    preview?.productDraft?.productType ?? parsed?.productType ?? null
   if (!preview) return []
   const sched = parsed?.schedule
   const validFromParsed = (sched ?? []).filter((row) => {
@@ -311,6 +314,8 @@ function buildRegisterPexelsUiRows(
         supplierKey,
         productDestination: destHint,
         productTitle: titleHint,
+        travelScope,
+        productType,
       })
       return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHint }).map((row) => ({
         day: row.day,
@@ -365,6 +370,8 @@ function buildRegisterPexelsUiRows(
       supplierKey,
       productDestination: destHint,
       productTitle: titleHint,
+      travelScope,
+      productType,
     })
     return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHint }).map((row) => ({
       day: row.day,
@@ -391,9 +398,15 @@ function mergeRegisterParsedScheduleWithManualPexels(
   parsed: RegisterParsed,
   preview: AdminRegisterPreviewPayload,
   manualByDay: Record<number, string>,
-  manualByDay2: Record<number, string> = {}
+  manualByDay2: Record<number, string> = {},
+  travelScope: 'overseas' | 'domestic' | 'air_hotel_free' = 'overseas',
 ): RegisterParsed {
-  const uiRows = buildRegisterPexelsUiRows(parsed, preview, coerceRegisterSupplierKey(parsed.originSource ?? null))
+  const uiRows = buildRegisterPexelsUiRows(
+    parsed,
+    preview,
+    coerceRegisterSupplierKey(parsed.originSource ?? null),
+    travelScope,
+  )
   const validSchedule = (parsed.schedule ?? []).filter((row) => {
     const day = Number(row.day)
     return Number.isFinite(day) && day >= 1
@@ -609,8 +622,14 @@ export default function AdminRegisterPage() {
   const [registerPexelsFallbackKeyword, setRegisterPexelsFallbackKeyword] = useState('')
 
   const registerPexelsUiRows = useMemo(
-    () => buildRegisterPexelsUiRows((parsedForConfirm as RegisterParsed | null) ?? null, preview, selectedBrandKey),
-    [parsedForConfirm, preview, selectedBrandKey]
+    () =>
+      buildRegisterPexelsUiRows(
+        (parsedForConfirm as RegisterParsed | null) ?? null,
+        preview,
+        selectedBrandKey,
+        travelScope,
+      ),
+    [parsedForConfirm, preview, selectedBrandKey, travelScope]
   )
 
   const runRegisterPexelsSearch = useCallback(async (keywordRaw: string) => {
@@ -965,7 +984,8 @@ export default function AdminRegisterPage() {
           parsedForConfirm as RegisterParsed,
           preview,
           manualPexelsKeywordsByDay,
-          manualPexelsKeywords2ByDay
+          manualPexelsKeywords2ByDay,
+          travelScope,
         ),
         correctionOverlay
       )

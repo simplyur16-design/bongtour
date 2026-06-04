@@ -10,6 +10,7 @@ import { applyModetourScheduleImageKeywordsToRows } from '@/lib/modetour-schedul
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import type { RegisterScheduleDay as VerygoodRegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-schedule-image-keyword'
+import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
 
 export type RegisterScheduleImageKeywordUiRow = {
@@ -25,12 +26,17 @@ export type ApplyRegisterScheduleImageKeywordsForUiOpts = {
   supplierKey: string | null | undefined
   productDestination?: string | null
   productTitle?: string | null
+  travelScope?: string | null
+  productType?: string | null
 }
 
 export function applyRegisterScheduleImageKeywordsForAdminUi<
   T extends RegisterScheduleImageKeywordUiRow,
 >(rows: T[], opts: ApplyRegisterScheduleImageKeywordsForUiOpts): T[] {
   if (!rows.length) return rows
+  if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
+    return rows
+  }
   const supplier = normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   const dest = opts.productDestination ?? null
   const title = opts.productTitle ?? null

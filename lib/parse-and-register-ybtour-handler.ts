@@ -10,25 +10,14 @@ import {
   finalizeYbtourItineraryDayDraftsFromSchedule,
   ybtourConfirmHasScheduleExpressionLayer,
 } from '@/lib/parse-and-register-ybtour-schedule'
-import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
-
 export async function handleParseAndRegisterYbtourRequest(request: Request) {
   return runParseAndRegisterFlow(request, {
     forcedBrandKey: 'ybtour',
     parseFn: parseForRegisterYbtour,
     logPrefix: '[parse-and-register-ybtour]',
     savePersistedParsedOnly: true,
-    augmentParsed: (p, ctx) => {
-      const aug = sanitizeYbtourRegisterParsedStrings(
-        augmentYbtourScheduleExpressionParsed(p, ctx?.pastedBodyText),
-      )
-      return {
-        ...aug,
-        schedule: applyYbtourScheduleImageKeywordsToRows(aug.schedule ?? [], {
-          productDestination: aug.destination ?? null,
-        }),
-      }
-    },
+    augmentParsed: (p, ctx) =>
+      sanitizeYbtourRegisterParsedStrings(augmentYbtourScheduleExpressionParsed(p, ctx?.pastedBodyText)),
     finalizeItineraryDayDraftsFromSchedule: finalizeYbtourItineraryDayDraftsFromSchedule,
     getHeroTripDatesSupplement: (p) => ({
       ybtourFlightStructured: p.detailBodyStructured?.flightStructured ?? null,

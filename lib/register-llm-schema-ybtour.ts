@@ -312,6 +312,11 @@ export type RegisterParsed = {
   registerParseAudit?: RegisterParseAudit
   /** 관리자 등록 분석 DB용 LLM 병합 객체 JSON (API 응답에서 제외) */
   registerAdminPersistedLlmParsedJson?: string | null
+  /**
+   * 자유여행 preview에서 생성한 Fit 예시 일정 Gemini JSON — confirm 시 DB persist·재호출 생략용.
+   * 미리보기→확정 라운드트립에 포함(내부 감사 필드와 별도).
+   */
+  registerFitItineraryGeminiJson?: string | null
 }
 
 /** API·클라이언트 응답용: 내부 감사·관리자 저장 전용 필드 제거 */

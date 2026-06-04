@@ -8,6 +8,7 @@ import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-afte
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
+import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
 import { extractHighlightFromModetour } from '@/lib/extract-highlight-modetour'
 import { extractHighlightFromModetourLLM } from '@/lib/llm-extract-highlight-modetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
@@ -899,6 +900,13 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
         '모두투어: 현지합류 항목은 사용하지 않습니다.',
       ],
     }
+    parsed = await applyRegisterPostAugmentSchedulePipeline(parsed, {
+      travelScope,
+      forcedBrandKey: 'modetour',
+      logPrefix: '[parse-and-register-modetour]',
+      mode,
+      hasPersistedParsed: hasParsed || reusedConfirmAnalysis,
+    })
     const schedule = parsed.schedule ?? []
     let modetourConfirmBaselineTrace: ModetourBaselineTrace | null = null
     let departureFromParsed: DepartureInput[]
@@ -1894,7 +1902,11 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
     timing.mark('done')
     revalidateProductListingCaches()
     await revalidateProductDetailCaches(productId)
-    fireFitItineraryGenerationAfterRegister(productId, productData.productType)
+    fireFitItineraryGenerationAfterRegister(
+      productId,
+      productData.productType,
+      parsedWithFinalNotice.registerFitItineraryGeminiJson,
+    )
     return NextResponse.json(confirmPayload)
   } catch (e) {
     ctx.stage = stage

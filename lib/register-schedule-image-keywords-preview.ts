@@ -9,6 +9,7 @@ import { applyModetourScheduleImageKeywordsToRows } from '@/lib/modetour-schedul
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import type { RegisterScheduleDay as VerygoodRegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-schedule-image-keyword'
+import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
 
 export type RegisterScheduleImageKeywordPreviewRow = {
@@ -24,12 +25,18 @@ export type ApplyRegisterScheduleImageKeywordsForPreviewOpts = {
   supplierKey: string | null | undefined
   productDestination?: string | null
   productTitle?: string | null
+  /** 관리자 등록 travelScope — air_hotel_free 이면 Fit 키워드 유지(패키지 규칙 스킵) */
+  travelScope?: string | null
+  productType?: string | null
 }
 
 export function applyRegisterScheduleImageKeywordsForPreview<
   T extends RegisterScheduleImageKeywordPreviewRow,
 >(rows: T[], opts: ApplyRegisterScheduleImageKeywordsForPreviewOpts): T[] {
   if (!rows.length) return rows
+  if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
+    return rows
+  }
   const supplier =
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   const dest = opts.productDestination ?? null

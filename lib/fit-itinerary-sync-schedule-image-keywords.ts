@@ -46,7 +46,7 @@ function parseScheduleRows(raw: string | null): ProductScheduleJsonRow[] {
   }
 }
 
-function mergeScheduleWithFitKeywords(
+export function mergeScheduleWithFitKeywords(
   existing: ProductScheduleJsonRow[],
   fitDays: FitItineraryDayForKeyword[],
   fallbackCtx: FitDayImageKeywordFallbackContext,

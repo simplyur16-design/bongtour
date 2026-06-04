@@ -9,6 +9,7 @@ import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-afte
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
+import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
 import { extractHighlightFromYbtour } from '@/lib/extract-highlight-ybtour'
 import { extractHighlightFromYbtourLLM } from '@/lib/llm-extract-highlight-ybtour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
@@ -851,6 +852,13 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     if (patchParsedAfterAugment) {
       parsed = patchParsedAfterAugment(parsed, text)
     }
+    parsed = await applyRegisterPostAugmentSchedulePipeline(parsed, {
+      travelScope,
+      forcedBrandKey,
+      logPrefix: currentLogPrefix,
+      mode,
+      hasPersistedParsed: hasParsed || reusedConfirmAnalysis,
+    })
     parsed = mergeYbtourDeterministicFieldsFromPaste(parsed, text)
 
     stage = 'buildRegisterDrafts'
@@ -1694,7 +1702,11 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     timing.mark('done')
     revalidateProductListingCaches()
     await revalidateProductDetailCaches(productId)
-    fireFitItineraryGenerationAfterRegister(productId, productData.productType)
+    fireFitItineraryGenerationAfterRegister(
+      productId,
+      productData.productType,
+      parsedWithFinalNotice.registerFitItineraryGeminiJson,
+    )
     return NextResponse.json(confirmPayload)
   } catch (e) {
     ctx.stage = stage

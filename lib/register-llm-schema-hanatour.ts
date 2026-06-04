@@ -309,6 +309,8 @@ export type RegisterParsed = {
    * `REGISTER_LLM_AUDIT_MAX_CHARS`(양수)로 문자열 상한 조절.
    */
   registerParseAudit?: RegisterParseAudit
+  /** 자유여행 preview Fit 예시 일정 Gemini JSON — confirm persist·재호출 생략 */
+  registerFitItineraryGeminiJson?: string | null
   /** 관리자 등록 분석 DB용 LLM 병합 객체 JSON (API 응답에서 제외) */
   registerAdminPersistedLlmParsedJson?: string | null
 }

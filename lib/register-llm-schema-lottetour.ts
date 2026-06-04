@@ -342,6 +342,7 @@ export type RegisterParsed = {
    * `REGISTER_LLM_AUDIT_MAX_CHARS`(양수)로 문자열 상한 조절.
    */
   registerParseAudit?: RegisterParseAudit
+  registerFitItineraryGeminiJson?: string | null
   /** 관리자 등록 분석 DB용 LLM 병합 객체 JSON (클라이언트 응답 페이로드에서 제외) */
   registerAdminPersistedLlmParsedJson?: string | null
 }

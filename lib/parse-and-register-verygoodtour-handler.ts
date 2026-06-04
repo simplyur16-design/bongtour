@@ -8,6 +8,8 @@ import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-afte
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
+import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
+import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { extractHighlightFromVerygoodtour } from '@/lib/extract-highlight-verygoodtour'
 import { extractHighlightFromVerygoodtourLLM } from '@/lib/llm-extract-highlight-verygoodtour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
@@ -735,11 +737,24 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     traceVerygoodScheduleDesc('handler-4-post-polish-description', scheduleDescPolished)
     parsed = {
       ...parsed,
-      schedule: applyVerygoodScheduleImageKeywordsToRows(scheduleDescPolished, {
-        detRows: detRowsForImageKeyword,
-        productDestination: parsed.destination ?? null,
-        totalDays: scheduleDescPolished.length,
-      }),
+      schedule: scheduleDescPolished,
+    }
+    parsed = await applyRegisterPostAugmentSchedulePipeline(parsed, {
+      travelScope,
+      forcedBrandKey: 'verygoodtour',
+      logPrefix: '[parse-and-register-verygoodtour]',
+      mode,
+      hasPersistedParsed: hasParsed || reusedConfirmAnalysis,
+    })
+    if (!isRegisterAirtelListing(travelScope, parsed.productType)) {
+      parsed = {
+        ...parsed,
+        schedule: applyVerygoodScheduleImageKeywordsToRows(parsed.schedule ?? [], {
+          detRows: detRowsForImageKeyword,
+          productDestination: parsed.destination ?? null,
+          totalDays: (parsed.schedule ?? []).length,
+        }),
+      }
     }
     traceVerygoodScheduleDesc('handler-4-post-polish-imageKeyword-only', parsed.schedule)
 
@@ -1562,7 +1577,11 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     timing.mark('done')
     revalidateProductListingCaches()
     await revalidateProductDetailCaches(productId)
-    fireFitItineraryGenerationAfterRegister(productId, productData.productType)
+    fireFitItineraryGenerationAfterRegister(
+      productId,
+      productData.productType,
+      parsedWithFinalNotice.registerFitItineraryGeminiJson,
+    )
     return NextResponse.json(confirmPayload)
   } catch (e) {
     ctx.stage = stage

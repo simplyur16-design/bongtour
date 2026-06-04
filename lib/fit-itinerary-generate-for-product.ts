@@ -11,7 +11,10 @@ import {
   getModelName,
 } from '@/lib/gemini-client'
 import { syncScheduleImageKeywordsFromFitItinerary } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
+import type { FitItineraryDayForKeyword } from '@/lib/fit-itinerary-pick-day-image-keyword'
 import { logLlmJsonRawDebug, parseLlmJsonObject } from '@/lib/llm-json-extract'
+import { buildProductScheduleJsonForDb } from '@/lib/schedule-image-keyword-persist'
+import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 
 /** 다일정 Fit JSON — season(4096)과 달리 5~6일·activities 다수 시 8k+ chars. 기본 16384 */
 const FIT_ITINERARY_MAX_OUTPUT_TOKENS = Math.max(
@@ -72,12 +75,14 @@ type GeminiDay = {
   activities: GeminiActivity[]
 }
 
-type GeminiResponse = {
+export type FitItineraryGeminiResponse = {
   title: string
   summary: string
   persona: 'mixed' | 'couple' | 'with-parents' | 'with-kids'
   days: GeminiDay[]
 }
+
+type GeminiResponse = FitItineraryGeminiResponse
 
 type PromptProduct = {
   title: string
@@ -246,8 +251,8 @@ function logGeminiRawFailure(
   logLlmJsonRawDebug(`fit-itinerary:${productId}`, rawText, err)
 }
 
-function parseGeminiJson(text: string, productId: string): GeminiResponse {
-  const parsed = parseLlmJsonObject<GeminiResponse>(text, { logLabel: `fit-itinerary:${productId}` })
+function parseGeminiJson(text: string, logLabel: string): GeminiResponse {
+  const parsed = parseLlmJsonObject<GeminiResponse>(text, { logLabel: `fit-itinerary:${logLabel}` })
   if (!parsed?.days?.length) throw new Error('days 배열이 비어 있습니다.')
   if (!VALID_PERSONAS.has(parsed.persona)) {
     throw new Error(`잘못된 persona: ${String(parsed.persona)}`)
@@ -260,6 +265,222 @@ function parseGeminiJson(text: string, productId: string): GeminiResponse {
     }
   }
   return parsed
+}
+
+export function parseFitItineraryGeminiJson(text: string, logLabel: string): FitItineraryGeminiResponse {
+  return parseGeminiJson(text, logLabel)
+}
+
+export function fitGeminiResponseToKeywordDays(response: FitItineraryGeminiResponse): FitItineraryDayForKeyword[] {
+  return (response.days ?? []).map((d) => ({
+    dayNumber: d.dayNumber,
+    title: d.title,
+    summary: d.summary,
+    dayCityKey: d.dayCityKey,
+    activities: (d.activities ?? []).map((a) => ({
+      order: a.order,
+      category: a.category,
+      title: a.title,
+      description: a.description,
+      location: a.location,
+    })),
+  }))
+}
+
+function inferTotalDaysFromDuration(duration: string | null | undefined, scheduleLen: number): number {
+  const fromDur = parseInt(String(duration ?? '').match(/(\d+)\s*일/)?.[1] ?? '', 10)
+  if (Number.isFinite(fromDur) && fromDur >= 1) return fromDur
+  if (scheduleLen >= 1) return scheduleLen
+  return 4
+}
+
+function inferCountryCodeFromHaystack(hay: string): string {
+  const lower = hay.toLowerCase()
+  for (const [key, code] of Object.entries(countryCodeMap)) {
+    if (lower.includes(key.replace(/_/g, ' ')) || lower.includes(key)) return code
+  }
+  if (/대만|타이완|taiwan/i.test(hay)) return 'TW'
+  if (/일본|japan/i.test(hay)) return 'JP'
+  if (/베트남|vietnam/i.test(hay)) return 'VN'
+  if (/태국|thailand/i.test(hay)) return 'TH'
+  if (/싱가포르|singapore/i.test(hay)) return 'SG'
+  if (/홍콩|hong\s*kong/i.test(hay)) return 'HK'
+  return 'XX'
+}
+
+export function registerParsedToFitPromptProduct(parsed: RegisterParsed): PromptProduct {
+  const cityNameKo =
+    parsed.primaryDestination?.trim() || parsed.destination?.trim() || ''
+  const hay = [parsed.title, cityNameKo, parsed.destination, parsed.primaryDestination].filter(Boolean).join(' ')
+  const scheduleJson =
+    (parsed.schedule?.length ?? 0) > 0
+      ? buildProductScheduleJsonForDb(
+          parsed.schedule.map((r) => ({
+            day: r.day,
+            title: r.title,
+            description: r.description,
+            routeText: r.routeText ?? null,
+            imageKeyword: r.imageKeyword,
+            imageKeyword2: r.imageKeyword2 ?? null,
+          })),
+        )
+      : null
+  const totalDays = inferTotalDaysFromDuration(parsed.duration, parsed.schedule?.length ?? 0)
+  return {
+    title: parsed.title ?? '',
+    cityNameKo,
+    cityKey: '',
+    countryCode: inferCountryCodeFromHaystack(hay),
+    duration: parsed.duration ?? '',
+    totalDays,
+    airline: parsed.airline ?? null,
+    hotelSummaryText: parsed.hotelSummaryText ?? null,
+    airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
+    schedule: scheduleJson,
+  }
+}
+
+export async function generateFitItineraryGeminiResponse(
+  prompt: string,
+  logLabel: string,
+): Promise<GeminiGenerateResult> {
+  const model = fitItineraryModelName()
+  let geminiResult = await generateGeminiText({
+    model,
+    prompt,
+    temperature: 0.7,
+    maxOutputTokens: FIT_ITINERARY_MAX_OUTPUT_TOKENS,
+  })
+  try {
+    parseGeminiJson(geminiResult.text, logLabel)
+    return geminiResult
+  } catch (firstError) {
+    const shouldRetry =
+      geminiResult.finishReason === 'MAX_TOKENS' ||
+      (geminiResult.text.length > 0 && !geminiResult.text.trimEnd().endsWith('}'))
+    if (!shouldRetry) {
+      logGeminiRawFailure(logLabel, geminiResult, firstError)
+      throw firstError
+    }
+    logGeminiRawFailure(logLabel, geminiResult, firstError)
+    console.warn(
+      `[fit-itinerary-generate] retry label=${logLabel} reason=${geminiResult.finishReason ?? 'truncated_json'} tokens=${FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY}`,
+    )
+    geminiResult = await generateGeminiText({
+      model,
+      prompt,
+      temperature: 0.7,
+      maxOutputTokens: FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY,
+    })
+    parseGeminiJson(geminiResult.text, logLabel)
+    return geminiResult
+  }
+}
+
+export async function persistFitItineraryFromGeminiJson(
+  productId: string,
+  geminiJsonText: string,
+): Promise<GenerateFitItineraryResult> {
+  const existing = await prisma.fitItineraryMaster.findUnique({
+    where: { productId },
+    select: { id: true },
+  })
+  if (existing) {
+    return { success: false, reason: 'already_exists', masterId: existing.id }
+  }
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: {
+      id: true,
+      productType: true,
+      title: true,
+      cityKey: true,
+      primaryDestination: true,
+      destination: true,
+    },
+  })
+  if (!product || product.productType !== 'airtel') {
+    return { success: false, reason: 'not_airtel' }
+  }
+
+  let parsed: GeminiResponse
+  try {
+    parsed = parseGeminiJson(geminiJsonText, productId)
+  } catch (error) {
+    return { success: false, reason: 'gemini_failed', error }
+  }
+
+  const cityNameKo =
+    product.primaryDestination?.trim() || product.destination?.trim() || product.cityKey || ''
+  const masterId = cuid()
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.fitItineraryMaster.create({
+        data: {
+          id: masterId,
+          productId,
+          cityKey: product.cityKey ?? '',
+          cityNameKo,
+          countryCode: inferCountryCodeFromHaystack(
+            [product.title, cityNameKo, product.destination, product.primaryDestination].filter(Boolean).join(' '),
+          ),
+          persona: parsed.persona,
+          totalDays: parsed.days.length,
+          title: parsed.title,
+          summary: parsed.summary,
+          generatedBy: 'gemini-v3',
+          status: 'published',
+          publishedAt: new Date(),
+        },
+      })
+
+      for (const day of parsed.days) {
+        const dayId = cuid()
+        await tx.fitItineraryDay.create({
+          data: {
+            id: dayId,
+            masterId,
+            dayNumber: day.dayNumber,
+            title: day.title,
+            summary: day.summary,
+            dayCityKey: day.dayCityKey || product.cityKey || '',
+          },
+        })
+        const activities = [...(day.activities ?? [])].sort((a, b) => a.order - b.order)
+        for (const act of activities) {
+          await tx.fitItineraryActivity.create({
+            data: {
+              id: cuid(),
+              dayId,
+              order: act.order,
+              category: act.category,
+              title: act.title,
+              description: act.description,
+              location: act.location,
+              startTime: act.startTime,
+              durationMinutes: act.durationMinutes,
+              estimatedCostKrw: act.estimatedCostKrw,
+              estimatedCostNote: act.estimatedCostNote,
+              transportMode: act.transportMode,
+              transportDuration: act.transportDuration,
+            },
+          })
+        }
+      }
+    })
+  } catch (error) {
+    console.error(`[fit-itinerary-generate] db_failed productId=${productId}`, error)
+    return { success: false, reason: 'db_failed', error }
+  }
+
+  try {
+    await syncScheduleImageKeywordsFromFitItinerary(productId, fitGeminiResponseToKeywordDays(parsed))
+  } catch (syncErr) {
+    console.error(`[fit-itinerary-generate] schedule_keyword_sync_failed productId=${productId}`, syncErr)
+  }
+
+  return { success: true, masterId }
 }
 
 export async function generateFitItineraryForProduct(
@@ -315,125 +536,12 @@ export async function generateFitItineraryForProduct(
     schedule: product.schedule,
   }
 
-  let parsed: GeminiResponse
   const prompt = buildAirtelPrompt(promptInput)
-  const model = fitItineraryModelName()
-  let geminiResult = await generateGeminiText({
-    model,
-    prompt,
-    temperature: 0.7,
-    maxOutputTokens: FIT_ITINERARY_MAX_OUTPUT_TOKENS,
-  })
   try {
-    parsed = parseGeminiJson(geminiResult.text, productId)
-  } catch (firstError) {
-    const shouldRetry =
-      geminiResult.finishReason === 'MAX_TOKENS' ||
-      (geminiResult.text.length > 0 && !geminiResult.text.trimEnd().endsWith('}'))
-    if (shouldRetry) {
-      logGeminiRawFailure(productId, geminiResult, firstError)
-      console.warn(
-        `[fit-itinerary-generate] retry productId=${productId} reason=${geminiResult.finishReason ?? 'truncated_json'} tokens=${FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY}`,
-      )
-      geminiResult = await generateGeminiText({
-        model,
-        prompt,
-        temperature: 0.7,
-        maxOutputTokens: FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY,
-      })
-      try {
-        parsed = parseGeminiJson(geminiResult.text, productId)
-      } catch (retryError) {
-        logGeminiRawFailure(productId, geminiResult, retryError)
-        console.error(`[fit-itinerary-generate] gemini_failed productId=${productId}`, retryError)
-        return { success: false, reason: 'gemini_failed', error: retryError }
-      }
-    } else {
-      logGeminiRawFailure(productId, geminiResult, firstError)
-      console.error(`[fit-itinerary-generate] gemini_failed productId=${productId}`, firstError)
-      return { success: false, reason: 'gemini_failed', error: firstError }
-    }
-  }
-
-  const masterId = cuid()
-  try {
-    await prisma.$transaction(async (tx) => {
-      await tx.fitItineraryMaster.create({
-        data: {
-          id: masterId,
-          productId,
-          cityKey: product.cityKey ?? '',
-          cityNameKo,
-          countryCode,
-          persona: parsed.persona,
-          totalDays: parsed.days.length,
-          title: parsed.title,
-          summary: parsed.summary,
-          generatedBy: 'gemini-v3',
-          status: 'published',
-          publishedAt: new Date(),
-        },
-      })
-
-      for (const day of parsed.days) {
-        const dayId = cuid()
-        await tx.fitItineraryDay.create({
-          data: {
-            id: dayId,
-            masterId,
-            dayNumber: day.dayNumber,
-            title: day.title,
-            summary: day.summary,
-            dayCityKey: day.dayCityKey || product.cityKey || '',
-          },
-        })
-        const activities = [...(day.activities ?? [])].sort((a, b) => a.order - b.order)
-        for (const act of activities) {
-          await tx.fitItineraryActivity.create({
-            data: {
-              id: cuid(),
-              dayId,
-              order: act.order,
-              category: act.category,
-              title: act.title,
-              description: act.description,
-              location: act.location,
-              startTime: act.startTime,
-              durationMinutes: act.durationMinutes,
-              estimatedCostKrw: act.estimatedCostKrw,
-              estimatedCostNote: act.estimatedCostNote,
-              transportMode: act.transportMode,
-              transportDuration: act.transportDuration,
-            },
-          })
-        }
-      }
-    })
+    const geminiResult = await generateFitItineraryGeminiResponse(prompt, productId)
+    return persistFitItineraryFromGeminiJson(productId, geminiResult.text)
   } catch (error) {
-    console.error(`[fit-itinerary-generate] db_failed productId=${productId}`, error)
-    return { success: false, reason: 'db_failed', error }
+    console.error(`[fit-itinerary-generate] gemini_failed productId=${productId}`, error)
+    return { success: false, reason: 'gemini_failed', error }
   }
-
-  try {
-    await syncScheduleImageKeywordsFromFitItinerary(
-      productId,
-      parsed.days.map((d) => ({
-        dayNumber: d.dayNumber,
-        title: d.title,
-        summary: d.summary,
-        dayCityKey: d.dayCityKey,
-        activities: (d.activities ?? []).map((a) => ({
-          order: a.order,
-          category: a.category,
-          title: a.title,
-          description: a.description,
-          location: a.location,
-        })),
-      })),
-    )
-  } catch (syncErr) {
-    console.error(`[fit-itinerary-generate] schedule_keyword_sync_failed productId=${productId}`, syncErr)
-  }
-
-  return { success: true, masterId }
 }
