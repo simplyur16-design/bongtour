@@ -19,6 +19,7 @@ import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule
 import type { SyncFitScheduleKeywordsResult } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import type { FitDayImageKeywordFallbackContext } from '@/lib/fit-itinerary-pick-day-image-keyword'
 import type { ProductScheduleJsonRow } from '@/lib/schedule-image-keyword-persist'
+import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airtel-route-image-keyword'
 
 export { buildAirtelRegisterScheduleRowsFromFitParsed } from '@/lib/register-airtel-fit-preview-ui'
 
@@ -88,7 +89,10 @@ function mergeParsedScheduleWithFitDays(
       imageKeyword2: row.imageKeyword2 ?? prev.imageKeyword2,
     }
   })
-  return { schedule: scheduleJsonRowsToRegisterRows(merged), dayKeywords }
+  const schedule = applyAirtelRouteTextImageKeywordsToSchedule(
+    scheduleJsonRowsToRegisterRows(merged),
+  )
+  return { schedule, dayKeywords }
 }
 
 function airtelFitFieldIssue(reason: string, severity: 'info' | 'warn' = 'warn'): RegisterExtractionFieldIssue {

@@ -57,6 +57,7 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'london thames skyline': 'London',
   'new york manhattan skyline': 'New York',
   'nagoya castle view': 'Nagoya Castle',
+  'nha trang': 'Nha Trang',
 }
 
 /** 삼단·Pexels 보조 segment (첫 segment 이후 또는 단독 제거) */
@@ -413,6 +414,7 @@ const COMPOUND_LANDMARK_PHRASES: Record<string, string> = {
   'ba na hills': 'Ba Na Hills',
   'ho chi minh city': 'Ho Chi Minh City',
   'chiang mai': 'Chiang Mai',
+  'nha trang': 'Nha Trang',
   'new york': 'New York',
   'hong kong': 'Hong Kong',
   'los angeles': 'Los Angeles',
@@ -470,7 +472,23 @@ function stripTrailingGeoTokens(s: string): string {
   const words = squash(s).split(' ').filter(Boolean)
   if (words.length <= 1) return squash(s)
 
-  const multiGeo = ['new york', 'hong kong', 'ho chi minh', 'da nang', 'hoi an', 'chiang mai', 'los angeles', 'san francisco', 'las vegas', 'lake ashi', 'ba na hills', 'halong bay', 'phi phi islands']
+  const multiGeo = [
+    'new york',
+    'hong kong',
+    'ho chi minh',
+    'ho chi minh city',
+    'da nang',
+    'hoi an',
+    'chiang mai',
+    'nha trang',
+    'los angeles',
+    'san francisco',
+    'las vegas',
+    'lake ashi',
+    'ba na hills',
+    'halong bay',
+    'phi phi islands',
+  ]
   const fullLower = words.join(' ').toLowerCase()
   for (const mg of multiGeo) {
     if (fullLower === mg || fullLower.endsWith(` ${mg}`)) {

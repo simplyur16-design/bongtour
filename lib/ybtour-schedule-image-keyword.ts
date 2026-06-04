@@ -4,7 +4,10 @@
  */
 import { mapDestination, mapKoreanPoiSegment } from '@/lib/pexels-keyword'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
-import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import {
+  finalizeScheduleImageKeyword,
+  isBareCityOrCountryKeyword,
+} from '@/lib/pexels-place-name-keyword'
 
 export type YbtourScheduleImageKeywordRow = {
   day: number
@@ -117,6 +120,37 @@ export function pickYbtourImageKeywordsFromRouteText(routeText: string | null | 
   return {
     imageKeyword: picked[0] ?? '',
     imageKeyword2: picked[1] ?? null,
+  }
+}
+
+function isWeakRouteCityKeyword(kw: string): boolean {
+  const t = kw.trim()
+  if (!t) return true
+  if (/^nha$/i.test(t)) return true
+  return isBareCityOrCountryKeyword(t)
+}
+
+/** 자유여행 routeText — 도시·허브 세그먼트는 건너뛰고 관광지 고유명 1·2순위 */
+export function pickRouteLandmarkImageKeywordsFromRouteText(
+  routeText: string | null | undefined,
+): { imageKeyword: string; imageKeyword2: string | null } {
+  const landmarks: string[] = []
+  const fallback: string[] = []
+  for (const seg of routeTextSegments(routeText)) {
+    const en = englishFromRouteSegment(seg)
+    if (!en) continue
+    if (!fallback.some((p) => keysEqual(p, en))) fallback.push(en)
+    if (isWeakRouteCityKeyword(en)) continue
+    if (landmarks.some((p) => keysEqual(p, en))) continue
+    landmarks.push(en)
+    if (landmarks.length >= 2) break
+  }
+  if (landmarks.length) {
+    return { imageKeyword: landmarks[0]!, imageKeyword2: landmarks[1] ?? null }
+  }
+  return {
+    imageKeyword: fallback[0] ?? '',
+    imageKeyword2: fallback[1] ?? null,
   }
 }
 

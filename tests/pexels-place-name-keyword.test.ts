@@ -44,4 +44,9 @@ describe('finalizeScheduleImageKeyword', () => {
     assert.equal(finalizeScheduleImageKeyword('Universal Studios Japan'), 'Universal Studios Japan')
     assert.equal(finalizeScheduleImageKeyword('Henderson Waves Bridge'), 'Henderson Waves Bridge')
   })
+
+  it('Nha Trang 도시명은 Nha 로 잘리지 않음', () => {
+    assert.equal(finalizeScheduleImageKeyword('Nha Trang'), 'Nha Trang')
+    assert.equal(normalizeToPlaceName('Nha Trang'), 'Nha Trang')
+  })
 })
