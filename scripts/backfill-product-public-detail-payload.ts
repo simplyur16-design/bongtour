@@ -21,6 +21,14 @@ async function main() {
   const idIdx = args.indexOf('--id')
   const singleId = idIdx >= 0 ? args[idIdx + 1] : undefined
   const missingOnly = args.includes('--missing-only')
+  const afterBackup = args.includes('--after-backup')
+
+  if (!afterBackup && !singleId) {
+    console.error(
+      '[backfill] ABORT: run `npm run db:backup-detail-payload` first, then re-run with --after-backup',
+    )
+    process.exit(1)
+  }
 
   const ids = singleId
     ? [singleId]

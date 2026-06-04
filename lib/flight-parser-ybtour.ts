@@ -7,6 +7,7 @@ import { createEmptyFlightLeg, stripLogoNoise } from '@/lib/flight-parser-generi
 import {
   parseYbtourTravelMainScheduleFlight,
   parseYbtourTravelMainScheduleFlightFromTable,
+  tryParseYbtourAdminArrowFlightPaste,
   tryParseYbtourFlightBlocks,
   ybtourSynthesizePreferredRaw,
 } from '@/lib/flight-ybtour-blocks'
@@ -50,6 +51,13 @@ export function parseFlightSectionYbtour(
   }
   if (!blocks?.outbound?.flightNo || !blocks?.inbound?.flightNo) {
     blocks = tryParseYbtourFlightBlocks(sectionClean)
+  }
+  if (!blocks?.outbound?.flightNo || !blocks?.inbound?.flightNo) {
+    blocks = tryParseYbtourAdminArrowFlightPaste(sectionClean)
+  }
+  if (!blocks?.outbound?.flightNo || !blocks?.inbound?.flightNo) {
+    blocks =
+      full.length >= 32 ? tryParseYbtourAdminArrowFlightPaste(full) : null
   }
   const empty = createEmptyFlightLeg()
   const supplierBrandKey = 'ybtour'

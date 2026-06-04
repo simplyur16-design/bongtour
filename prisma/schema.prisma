@@ -187,6 +187,9 @@ model Product {
   /// 공개 상세 SSR용 사전 계산 DTO (`lib/product-public-detail`). 등록·동기화 시 갱신.
   publicDetailPayloadJson    String?
   publicDetailPayloadBuiltAt DateTime?
+  /// backfill 전 스냅샷 — `npm run db:backup-detail-payload` 후 `db:backfill-detail-payload`
+  publicDetailPayloadJsonBackup   String?
+  publicDetailPayloadJsonBackupAt DateTime?
 
   /// 여행 범위(국내/해외). 상품 노출 유형(listingKind)과 별개 — 공개 browse `scope`와 정렬 시 우선.
   travelScope String? // domestic | overseas

@@ -21,8 +21,10 @@ import { stripPayloadLeakFieldsFromTravelProduct } from '@/lib/product-public-de
 import type { PublicPersistedFlightStructuredDto } from '@/lib/public-flight-structured-sanitize'
 import {
   PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION,
+  type ProductPublicDetailAirtelRenderModel,
   type ProductPublicDetailPackageRenderModel,
 } from '@/lib/product-public-detail/types'
+import { shouldSlimYbtourDetailProductForPayload } from '@/lib/product-public-detail/ybtour-payload-slim'
 
 const GENERAL_PACKAGE_PAYLOAD_MAX = 200 * 1024
 const LARGE_PACKAGE_PAYLOAD_MAX = 500 * 1024
@@ -283,9 +285,141 @@ describe('product public detail payload SSOT', () => {
   })
 })
 
+function ybtourAirtelFreeTravelModel(): ProductPublicDetailAirtelRenderModel {
+  const view = {
+    ...ybtourRichViewProduct(),
+    listingKind: 'air_hotel_free',
+    productType: 'airtel',
+  } as TravelProduct
+  const priceRows = Array.from({ length: 3 }, (_, i) => ({
+    id: `pr-${i}`,
+    productId: 'fit-yb-0002',
+    date: `2026-06-${String(5 + i).padStart(2, '0')}`,
+    adult: 690000,
+    childBed: 690000,
+    childNoBed: 0,
+    infant: 150000,
+    localPrice: null,
+    priceGap: null,
+    priceAdult: 690000,
+    priceChildWithBed: 690000,
+    priceChildNoBed: 0,
+    priceInfant: 150000,
+  }))
+  return {
+    variant: 'airtel',
+    viewProduct: view,
+    priceRowsForPublic: priceRows,
+    priceInfo: {
+      departureDateFrom: '2026-06-05',
+      departureDateTo: '2026-06-07',
+      lowestAdultPrice: 690000,
+      highestAdultPrice: 720000,
+      infantPrice: 150000,
+      childBedPrice: 690000,
+      minPaxPerDeparture: 2,
+      totalDays: 4,
+    },
+    masterArg: {
+      id: 'fit-master-yb-0002',
+      title: '상해 예시 일정',
+      summary: '자유여행 예시',
+      totalDays: 4,
+      persona: 'mixed' as const,
+      cityNameKo: '상해',
+      productId: 'fit-yb-0002',
+      days: [
+        {
+          id: 'd1',
+          dayNumber: 1,
+          title: '1일차',
+          summary: '도착',
+          activities: [
+            {
+              id: 'a1',
+              order: 1,
+              category: 'attraction' as const,
+              title: '외탄',
+              description: '산책',
+              location: '상해',
+              startTime: '10:00',
+              durationMinutes: 120,
+              estimatedCostKrw: 0,
+              estimatedCostNote: null,
+              transportMode: null,
+              transportDuration: null,
+              transportCostKrw: null,
+            },
+          ],
+        },
+      ],
+    },
+    adminFlightRaw: null,
+    heroImageSeoKeywordOverlay: null,
+    travelProductScalars: {
+      id: 'fit-yb-0002',
+      originSource: 'ybtour',
+      originCode: 'YB-0002',
+      bgImageUrl: 'https://example.com/cover.webp',
+      bgImagePhotographer: null,
+      bgImagePlaceName: null,
+      bgImageRehostSearchLabel: null,
+      airtelHotelInfoJson: '{}',
+      duration: '3박4일',
+      travelScope: 'overseas',
+      listingKind: 'air_hotel_free',
+      airportTransferType: 'pickup',
+      productType: 'airtel',
+    },
+    seo: {
+      coverUrl: 'https://example.com/cover.webp',
+      productDescription: '상해 자유여행',
+      offers: {
+        lowPrice: 690000,
+        highPrice: 720000,
+        offerCount: 3,
+        availability: 'InStock',
+        validFrom: '2026-06-05',
+        priceValidUntil: '2026-06-07',
+      },
+      breadcrumbItems: [{ position: 1, name: '홈' }],
+      itinerary: null,
+    },
+    registrationStatus: 'registered',
+  }
+}
+
+describe('ybtour air_hotel_free payload (fit-yb-0002 class)', () => {
+  it('자유여행 airtel — slim 비적용·itineraries·가격·masterArg 보존', () => {
+    const raw = ybtourAirtelFreeTravelModel()
+    expect(shouldSlimYbtourDetailProductForPayload(raw)).toBe(false)
+
+    const prepared = prepareModelForPayloadPersistence(raw)
+    expect(prepared.variant).toBe('airtel')
+    if (prepared.variant !== 'airtel') return
+
+    expect(prepared.viewProduct.itineraries).toBeDefined()
+    expect((prepared.viewProduct.itineraries ?? []).length).toBeGreaterThan(0)
+    expect(prepared.priceRowsForPublic.length).toBeGreaterThan(0)
+    expect(prepared.masterArg).not.toBeNull()
+    expect(prepared.masterArg?.days.length).toBeGreaterThan(0)
+
+    const json = finalizeProductPublicDetailPayloadJson(prepared)
+    expect(json).not.toBeNull()
+    const parsed = JSON.parse(json!) as {
+      model: ProductPublicDetailAirtelRenderModel
+    }
+    expect(parsed.model.variant).toBe('airtel')
+    expect(parsed.model.viewProduct.itineraries?.length).toBeGreaterThan(0)
+    expect(parsed.model.priceRowsForPublic.length).toBeGreaterThan(0)
+    expect(parsed.model.masterArg).not.toBeNull()
+    expect(productPublicDetailPayloadByteLength(json!)).toBeGreaterThan(8_000)
+  })
+})
+
 describe('ybtour payload slim', () => {
   it('ybtourDetailProduct는 ybtourFlightStructuredForHero 1개 키만 박힘', () => {
-    const view = ybtourRichViewProduct()
+    const view = { ...ybtourRichViewProduct(), listingKind: 'travel' } as TravelProduct
     const hero = ybtourHeroFlight()
     const prepared = prepareModelForPayloadPersistence(
       packageModel(view, {
@@ -299,7 +433,7 @@ describe('ybtour payload slim', () => {
   })
 
   it('viewProduct는 ybtour 핵심 필드 보존', () => {
-    const view = ybtourRichViewProduct()
+    const view = { ...ybtourRichViewProduct(), listingKind: 'travel' } as TravelProduct
     const prepared = prepareModelForPayloadPersistence(
       packageModel(view, {
         publicConsumptionModuleKey: 'ybtour',
@@ -330,7 +464,7 @@ describe('ybtour payload slim', () => {
   })
 
   it('payload byte cap < 120 KB (ybtour 패키지, 중복 제거 후)', () => {
-    const view = ybtourRichViewProduct()
+    const view = { ...ybtourRichViewProduct(), listingKind: 'travel' } as TravelProduct
     const hero = ybtourHeroFlight()
     const prepared = prepareModelForPayloadPersistence(
       packageModel(view, {
@@ -353,10 +487,24 @@ describe('ybtour payload slim', () => {
     if (hn.variant === 'package') expect(hn.ybtourDetailProduct).toBeNull()
   })
 
+  it('listingKind air_hotel_free 패키지 분기는 slim 하지 않음', () => {
+    const view = { ...ybtourRichViewProduct(), listingKind: 'air_hotel_free' } as TravelProduct
+    const fatSlice = { ...view, ybtourFlightStructuredForHero: ybtourHeroFlight() }
+    const prepared = prepareModelForPayloadPersistence(
+      packageModel(view, {
+        publicConsumptionModuleKey: 'ybtour',
+        ybtourDetailProduct: fatSlice as unknown as ProductPublicDetailPackageRenderModel['ybtourDetailProduct'],
+      }),
+    )
+    if (prepared.variant !== 'package') return
+    expect(prepared.ybtourDetailProduct?.itineraries).toBeDefined()
+    expect(Object.keys(prepared.ybtourDetailProduct ?? {}).length).toBeGreaterThan(1)
+  })
+
   it('레거시 fat ybtourDetailProduct persist 시 itineraries 중복 제거', () => {
     const json = finalizeProductPublicDetailPayloadJson(
       prepareModelForPayloadPersistence(
-        packageModel(ybtourRichViewProduct(), {
+        packageModel({ ...ybtourRichViewProduct(), listingKind: 'travel' } as TravelProduct, {
           publicConsumptionModuleKey: 'ybtour',
           ybtourDetailProduct: {
             ...ybtourRichViewProduct(),

@@ -22,8 +22,11 @@
 | 명령 | 용도 |
 |------|------|
 | `npm run postdeploy:detail-payload` | Railway **Release Command** — payload 없는 등록 상품 최대 40건/배포 (환경변수 `POSTDEPLOY_DETAIL_PAYLOAD_BATCH`) |
-| `npm run db:backfill-detail-payload` | 수동 전량 (로컬에서 **프로덕션 `DATABASE_URL`** 로 실행 시 bongtour.com 반영) |
+| `npm run db:backup-detail-payload` | backfill/cron **전** `publicDetailPayloadJson` → `publicDetailPayloadJsonBackup` 스냅샷 (필수) |
+| `npm run db:backfill-detail-payload` | 수동 전량 (`--after-backup` 내장 — 백업 없으면 거부) |
 | `npm run db:backfill-detail-payload:missing` | 수동 — 비어 있는 것만 |
+
+계약: `docs/ops/product-detail-payload-backfill-contract.md`
 
 Railway (`railway.json` — 저장소에 반영됨):
 

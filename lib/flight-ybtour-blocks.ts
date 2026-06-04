@@ -31,15 +31,30 @@ function ybDepartureOrArrivalDateField(datePart: string, weekdayRaw: string | un
   return iso
 }
 
+/** ZE887 · 7C1351(제주) · TW286 등 */
+const YBTOUR_FLIGHT_NO_RE = /([A-Z]{1,3}\d{2,5}|[0-9][A-Z]{1,2}\d{2,4})/i
+
+function extractYbtourFlightNoToken(t: string): string | null {
+  const hit = findYbtourFlightNoInText(t)
+  return hit?.flightNo ?? null
+}
+
+function findYbtourFlightNoInText(t: string): { flightNo: string; index: number; length: number } | null {
+  const flat = t.replace(/\s+/g, ' ').trim()
+  if (!flat) return null
+  const re = new RegExp(`\\b${YBTOUR_FLIGHT_NO_RE.source}\\b`, 'i')
+  const m = re.exec(flat)
+  if (!m || m.index == null || !m[1]) return null
+  return { flightNo: m[1].toUpperCase(), index: m.index, length: m[0].length }
+}
+
 function extractFlightNoFromLine(line: string): string | null {
   const t = line.replace(/\s+/g, ' ').trim()
   if (!t) return null
-  const standalone = t.match(/^([A-Z]{1,3}\d{2,5})$/i)
-  if (standalone) return standalone[1]!.toUpperCase()
-  const emb = t.match(/\b([A-Z]{1,3}\d{2,5})\b/i)
-  if (!emb) return null
-  if (/\d{4}[.\-/]\d{1,2}/.test(t)) return null
-  return emb[1]!.toUpperCase()
+  const fn = extractYbtourFlightNoToken(t)
+  if (!fn) return null
+  if (/\d{4}[.\-/]\d{1,2}/.test(t) && !new RegExp(`^${YBTOUR_FLIGHT_NO_RE.source}$`, 'i').test(t)) return null
+  return fn
 }
 
 function findFlightNoLineIndex(lines: string[]): number {
@@ -149,6 +164,113 @@ export type YbtourFlightBlockParse = {
   inbound: Partial<FlightLeg>
 }
 
+/** `김포 2026-10-01 08:00` — 도시 + 일시 */
+function parseYbtourCityDateTimeSide(side: string): { city: string; dm: RegExpMatchArray } | null {
+  const flat = side.replace(/\s+/g, ' ').trim()
+  const re = new RegExp(YB_DT.source, 'g')
+  const dm = re.exec(flat)
+  if (!dm || dm.index == null) return null
+  const city = flat
+    .slice(0, dm.index)
+    .trim()
+    .replace(/^[|｜]\s*/, '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .join(' ')
+  if (!city) return null
+  return { city, dm }
+}
+
+/**
+ * 관리자 항공칸 placeholder — `7C1351 | 김포 2026-10-01 08:00 → 제주 2026-10-01 09:10`
+ */
+function parseYbtourArrowLegLine(line: string): Partial<FlightLeg> | null {
+  const flat = line.replace(/\s+/g, ' ').trim()
+  const parts = flat.split(/\s*(?:→|->)\s*/)
+  if (parts.length !== 2) return null
+  const left = parts[0]!.trim()
+  const right = parts[1]!.trim()
+  const flightNo = extractYbtourFlightNoToken(left) ?? extractYbtourFlightNoToken(flat)
+  if (!flightNo) return null
+  const leftRest = left.replace(flightNo, '').replace(/^[|｜]\s*/, '').trim()
+  const dep = parseYbtourCityDateTimeSide(leftRest)
+  const arr = parseYbtourCityDateTimeSide(right)
+  if (!dep || !arr) return null
+  return {
+    departureAirport: dep.city,
+    departureAirportCode: null,
+    departureDate: ybDepartureOrArrivalDateField(dep.dm[1]!, dep.dm[2]),
+    departureTime: dep.dm[3]!,
+    arrivalAirport: arr.city,
+    arrivalAirportCode: null,
+    arrivalDate: ybDepartureOrArrivalDateField(arr.dm[1]!, arr.dm[2]),
+    arrivalTime: arr.dm[3]!,
+    flightNo,
+    durationText: null,
+  }
+}
+
+function isYbtourOutboundSectionHeader(line: string): boolean {
+  return /^(?:—\s*)?출발\s*편(?:\s*—)?$/i.test(line.replace(/\s+/g, ' ').trim()) || /^【\s*출발\s*편\s*】$/i.test(line.trim())
+}
+
+function isYbtourInboundSectionHeader(line: string): boolean {
+  return (
+    /^(?:—\s*)?(?:귀국|도착)\s*편(?:\s*—)?$/i.test(line.replace(/\s+/g, ' ').trim()) ||
+    /^【\s*(?:귀국|도착)\s*편\s*】$/i.test(line.trim())
+  )
+}
+
+/** 관리자 정형 항공칸 — 출발편/귀국편 + `→` 한 줄 (자유여행 등록 시 흔함) */
+export function tryParseYbtourAdminArrowFlightPaste(section: string): YbtourFlightBlockParse | null {
+  const lines = stripLogoNoise(section)
+    .split('\n')
+    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+  if (lines.length < 2) return null
+
+  let airlineName: string | null = null
+  const airlineLine = lines.find((l) => /^항공사\s*[:：]/i.test(l))
+  if (airlineLine) {
+    airlineName = airlineLine.replace(/^항공사\s*[:：]/i, '').trim() || null
+  }
+
+  const arrowLines = lines.filter((l) => /(?:→|->)/.test(l) && extractYbtourFlightNoToken(l))
+  let outbound: Partial<FlightLeg> | null = null
+  let inbound: Partial<FlightLeg> | null = null
+
+  if (arrowLines.length >= 2) {
+    outbound = parseYbtourArrowLegLine(arrowLines[0]!)
+    inbound = parseYbtourArrowLegLine(arrowLines[1]!)
+  } else {
+    for (let i = 0; i < lines.length; i++) {
+      if (isYbtourOutboundSectionHeader(lines[i]!)) {
+        for (let j = i + 1; j < lines.length; j++) {
+          if (isYbtourInboundSectionHeader(lines[j]!) || isYbtourOutboundSectionHeader(lines[j]!)) break
+          const leg = parseYbtourArrowLegLine(lines[j]!)
+          if (leg?.flightNo) {
+            outbound = leg
+            break
+          }
+        }
+      }
+      if (isYbtourInboundSectionHeader(lines[i]!)) {
+        for (let j = i + 1; j < lines.length; j++) {
+          if (isYbtourOutboundSectionHeader(lines[j]!)) break
+          const leg = parseYbtourArrowLegLine(lines[j]!)
+          if (leg?.flightNo) {
+            inbound = leg
+            break
+          }
+        }
+      }
+    }
+  }
+
+  if (!outbound?.flightNo || !inbound?.flightNo) return null
+  return { airlineName, outbound, inbound }
+}
+
 function isYbtourDepartAnchorLine(line: string): boolean {
   const t = line.replace(/\s+/g, ' ').trim()
   return /^출발\s*:?\s*$/i.test(t)
@@ -170,10 +292,10 @@ function isYbtourArriveAnchorLine(line: string): boolean {
 function parseYbtourInlineLegAfterKeyword(rest: string): Partial<FlightLeg> | null {
   const flat = rest.replace(/\s+/g, ' ').trim()
   if (flat.length < 28) return null
-  const fnM = flat.match(/\b([A-Z]{1,3}\d{2,5})\b/i)
-  if (!fnM || fnM.index == null) return null
-  const flightNo = fnM[1]!.toUpperCase()
-  const afterFn = flat.slice(fnM.index + fnM[0].length).trim()
+  const fnHit = findYbtourFlightNoInText(flat)
+  if (!fnHit) return null
+  const flightNo = fnHit.flightNo
+  const afterFn = flat.slice(fnHit.index + fnHit.length).trim()
   const re = new RegExp(YB_DT.source, 'g')
   const matches: RegExpExecArray[] = []
   let m: RegExpExecArray | null
@@ -237,10 +359,7 @@ function tryParseYbtourFlightBlocksInline(lines: string[]): YbtourFlightBlockPar
       const ob = parseYbtourInlineLegAfterKeyword(outRest)
       const ib = parseYbtourInlineLegAfterKeyword(inRest)
       if (!ob?.flightNo || !ib?.flightNo) continue
-      const fnIx = (s: string) => {
-        const i = s.search(/\b[A-Z]{1,3}\d{2,5}\b/i)
-        return i >= 0 ? i : s.length
-      }
+      const fnIx = (s: string) => findYbtourFlightNoInText(s)?.index ?? s.length
       const airlineOut = outRest.slice(0, fnIx(outRest)).trim()
       const airlineIn = inRest.slice(0, fnIx(inRest)).trim()
       const pickAir = (s: string) => {
@@ -273,7 +392,7 @@ function parseYbtourMainScheduleLegLine(line: string): Partial<FlightLeg> | null
     .map((p) => p.trim())
     .filter(Boolean)
   if (parts.length < 5) return null
-  const flightNo = parts[0]!.match(/^([A-Z]{1,3}\d{2,5})$/i)?.[1]?.toUpperCase()
+  const flightNo = extractYbtourFlightNoToken(parts[0]!)
   if (!flightNo) return null
   const depCity = parts[1] ?? ''
   const depRaw = parts[2] ?? ''

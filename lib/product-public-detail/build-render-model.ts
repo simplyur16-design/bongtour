@@ -950,8 +950,10 @@ export async function buildProductPublicDetailRenderModel(
     publicConsumptionModuleKey,
     viewProduct,
   )
+  const ybtourPayloadSlimEligible =
+    publicConsumptionModuleKey === 'ybtour' && travelProduct.listingKind !== 'air_hotel_free'
   const ybtourDetailProduct =
-    publicConsumptionModuleKey === 'ybtour' && ybtourFlightStructuredForHeroPublic
+    ybtourPayloadSlimEligible && ybtourFlightStructuredForHeroPublic
       ? { ybtourFlightStructuredForHero: ybtourFlightStructuredForHeroPublic }
       : null
   const showEsimCrossSell = travelProduct.travelScope === 'overseas'

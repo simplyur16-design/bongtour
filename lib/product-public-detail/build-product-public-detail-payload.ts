@@ -30,7 +30,7 @@ export function assertProductPublicDetailPayloadJson(json: string): void {
 
 /**
  * DTO JSON 생성 SSOT — cron·sync·admin·backfill·postdeploy 모두 이 함수만 사용.
- * ybtour 패키지 `ybtourDetailProduct` 다이어트는 `prepareModelForPayloadPersistence` → `slimYbtourDetailProductForPayload`.
+ * ybtour 패키지 travel만 `ybtourDetailProduct` 다이어트 — `listingKind=air_hotel_free`·`variant=airtel` 은 전량 보존.
  * 실패 시 null (DB 컬럼 NULL 유지 → 상세는 live build fallback).
  */
 export function finalizeProductPublicDetailPayloadJson(
