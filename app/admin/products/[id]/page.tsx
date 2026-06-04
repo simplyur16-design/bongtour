@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import SafeImage from '@/app/components/SafeImage'
 import { sanitizeDetailText } from '@/lib/sanitize-text'
+import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { parseShoppingStopsJson } from '@/lib/public-product-extras'
 import * as publicConsumptionHanatour from '@/lib/public-consumption-hanatour'
@@ -2058,7 +2059,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
           </button>
         </section>
 
-        {product.productType?.toLowerCase() === 'airtel' && airtelHotelInfo && (
+        {isAirHotelProductType(product.productType) && airtelHotelInfo && (
           <section className="mb-6 rounded-xl border border-bt-border-strong bg-bt-title/50 p-4">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-bt-meta">에어텔 호텔 정보</h2>
             <div className="grid gap-2 sm:grid-cols-2 text-sm text-bt-inverse/90">

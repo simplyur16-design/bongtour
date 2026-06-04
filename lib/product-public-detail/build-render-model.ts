@@ -82,6 +82,7 @@ import { brandKeyResolvesToYbtour } from '@/lib/overseas-supplier-canonical-keys
 import { resolvePublicConsumptionModuleKey } from '@/lib/resolve-public-consumption-module-key'
 import { tryApplyVerygoodPublicProductSerializedPatch } from '@/lib/verygood-public-product-detail-patch'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
+import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import { tryCaptionFromPublicImageUrl } from '@/lib/image-asset-public-caption'
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
 import {
@@ -872,8 +873,11 @@ export async function buildProductPublicDetailRenderModel(
   const product = viewProduct
 
   const productType = travelProduct.productType ?? ''
-  const isAirtel = productType === 'airtel'
-  const isAirtelItineraryView = productType === 'airtel'
+  const isAirHotel = isAirHotelProduct({
+    listingKind: travelProduct.listingKind,
+    productType,
+  })
+  const isAirHotelItineraryView = isAirHotel
   const isPackageItineraryBody = ['travel', 'private', 'semi'].includes(productType)
   const isPrivateOrSemi = productType === 'private' || productType === 'semi'
 
@@ -899,7 +903,7 @@ export async function buildProductPublicDetailRenderModel(
     itinerary: seoItinerary.length > 0 ? seoItinerary : null,
   })
 
-  if (isAirtelItineraryView) {
+  if (isAirHotelItineraryView) {
     const bookableRows = priceRowsForPublic.filter((r) => r.priceAdult > 0)
     const lowestAdultPrice = bookableRows.length > 0 ? Math.min(...bookableRows.map((r) => r.priceAdult)) : 0
     const highestAdultPrice = bookableRows.length > 0 ? Math.max(...bookableRows.map((r) => r.priceAdult)) : 0
@@ -916,7 +920,7 @@ export async function buildProductPublicDetailRenderModel(
       return min
     })()
     const masterArg =
-      isAirtel && fitMaster && fitMaster.status === 'published' ? mapFitMasterForItinerary(fitMaster) : null
+      isAirHotel && fitMaster && fitMaster.status === 'published' ? mapFitMasterForItinerary(fitMaster) : null
     const computedTotalDays = getProductTotalDays(travelProduct, masterArg?.totalDays)
     const priceInfo = {
       departureDateFrom,
@@ -951,7 +955,7 @@ export async function buildProductPublicDetailRenderModel(
     }
 
     return {
-      variant: 'airtel',
+      variant: 'air-hotel',
       viewProduct: product,
       priceRowsForPublic,
       priceInfo,

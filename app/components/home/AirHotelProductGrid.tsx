@@ -19,7 +19,10 @@ export default async function AirHotelProductGrid() {
           항공+호텔 (자유여행)
         </h2>
         <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-bt-text-muted-lavender">
-          등록된 항공권+호텔(자유여행) 상품입니다. 세부는 상담에서 확인해 주세요.
+          항공+호텔 허브와 동일한 등록 상품 목록입니다.{' '}
+          <a href="/travel/air-hotel" className="font-medium text-bt-text-navy underline-offset-2 hover:underline">
+            전체 보기
+          </a>
         </p>
         <div className="mt-6">
           <ProductResultCardsClient items={items} layout="scroll" />

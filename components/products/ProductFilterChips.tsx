@@ -16,6 +16,7 @@ const HOUR_LABEL: Record<string, string> = {
 const WD = ['일', '월', '화', '수', '목', '금', '토']
 
 const CAT_LABEL: Record<string, string> = {
+  'air-hotel': '항공권+호텔(자유여행)',
   airtel: '항공권+호텔(자유여행)',
   private: '단독패키지',
   premium: '프리미엄',

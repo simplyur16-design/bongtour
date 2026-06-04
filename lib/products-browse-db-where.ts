@@ -1,12 +1,14 @@
 import type { Prisma } from '@prisma/client'
+import {
+  AIR_HOTEL_BROWSE_TYPE,
+  AIR_HOTEL_LISTING_KIND,
+  isAirHotelBrowseCategoryToken,
+  parseAirHotelBrowseTypeParam,
+} from '@/lib/air-hotel-product-ssot'
 import type { ListingKind } from '@/lib/product-listing-kind'
 
-function parseBrowseTypeForWhere(raw: string | null): 'airtel' | 'travel' | null {
-  if (!raw) return null
-  const u = raw.toLowerCase().trim()
-  if (u === 'free' || u === 'airtel') return 'airtel'
-  if (u === 'travel') return 'travel'
-  return null
+function parseBrowseTypeForWhere(raw: string | null): typeof AIR_HOTEL_BROWSE_TYPE | 'travel' | null {
+  return parseAirHotelBrowseTypeParam(raw)
 }
 
 /**
@@ -17,17 +19,21 @@ export function prismaWhereClausesForBrowseListingSlice(input: {
   scope: string | null
   typeParam: string | null
   listingKindParsed: ListingKind | null
-  airtelCategory: boolean
+  /** @deprecated `airHotelCategory` */
+  airtelCategory?: boolean
+  airHotelCategory?: boolean
 }): Prisma.ProductWhereInput[] {
   const clauses: Prisma.ProductWhereInput[] = [{ NOT: { listingKind: 'overseas_training' } }]
 
-  const wantsAirtelHubSlice =
-    parseBrowseTypeForWhere(input.typeParam) === 'airtel' ||
-    input.airtelCategory ||
-    input.listingKindParsed === 'air_hotel_free'
+  const categoryFlag = input.airHotelCategory ?? input.airtelCategory ?? false
+  const wantsAirHotelHubSlice =
+    parseBrowseTypeForWhere(input.typeParam) === AIR_HOTEL_BROWSE_TYPE ||
+    categoryFlag ||
+    input.listingKindParsed === AIR_HOTEL_LISTING_KIND ||
+    (input.typeParam != null && isAirHotelBrowseCategoryToken(input.typeParam))
 
-  if (wantsAirtelHubSlice) {
-    clauses.push({ listingKind: 'air_hotel_free' })
+  if (wantsAirHotelHubSlice) {
+    clauses.push({ listingKind: AIR_HOTEL_LISTING_KIND })
     return clauses
   }
 
@@ -43,9 +49,9 @@ export function prismaWhereClausesForBrowseListingSlice(input: {
   }
 
   const scope = (input.scope ?? '').trim().toLowerCase()
-  if ((scope === 'domestic' || scope === 'overseas') && !wantsAirtelHubSlice) {
+  if ((scope === 'domestic' || scope === 'overseas') && !wantsAirHotelHubSlice) {
     clauses.push({
-      OR: [{ listingKind: null }, { listingKind: '' }, { listingKind: { not: 'air_hotel_free' } }],
+      OR: [{ listingKind: null }, { listingKind: '' }, { listingKind: { not: AIR_HOTEL_LISTING_KIND } }],
     })
   }
 

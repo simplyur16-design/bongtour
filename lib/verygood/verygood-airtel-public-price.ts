@@ -6,12 +6,17 @@ import type { ProductPriceRow } from '@/app/components/travel/TravelProductDetai
 import type { BodyProductPriceTable } from '@/lib/public-product-extras'
 import { getPriceAdult } from '@/lib/price-utils'
 
-export function isVerygoodAirtelListing(
+import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
+
+export function isVerygoodAirHotelListing(
   listingKind: string | null | undefined,
   productType: string | null | undefined,
 ): boolean {
-  return listingKind === 'air_hotel_free' || productType === 'airtel'
+  return isAirHotelProduct({ listingKind, productType })
 }
+
+/** @deprecated `isVerygoodAirHotelListing` */
+export const isVerygoodAirtelListing = isVerygoodAirHotelListing
 
 /** 패키지용(성인·아동 본문 덮어쓰기 금지) vs 자유여행용(본문 표 전체) */
 export function verygoodPublicMergePriceTable(

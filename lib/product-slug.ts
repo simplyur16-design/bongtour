@@ -1,3 +1,4 @@
+import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
@@ -33,7 +34,7 @@ export function inferProductSlugCategory(input: ProductSlugInput): ProductSlugCa
   if (listingKind === 'overseas_training') {
     return 'otr'
   }
-  if (listingKind === 'air_hotel_free' || productType === 'airtel') {
+  if (isAirHotelProduct({ listingKind, productType })) {
     return 'fit'
   }
   return 'pkg'

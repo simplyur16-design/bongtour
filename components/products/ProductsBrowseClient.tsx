@@ -105,7 +105,7 @@ function formatWon(n: number | null) {
 function syncTypeWithCategories(q: BrowseQueryState): BrowseQueryState {
   if (q.categories.length !== 1) return q
   const c = q.categories[0]
-  if (c === 'airtel') return { ...q, type: 'airtel' }
+  if (c === 'air-hotel') return { ...q, type: 'air-hotel' }
   return q
 }
 

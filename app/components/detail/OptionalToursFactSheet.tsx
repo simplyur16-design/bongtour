@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { OPTIONAL_TOUR_UI_INITIAL_ROWS, OPTIONAL_TOUR_UI_MAX_ROWS } from '@/lib/optional-tour-limits'
 type OptionalTourRow = {
   id: string
@@ -26,7 +27,7 @@ export default function OptionalToursFactSheet({ tours, productType, embedded = 
   const sectionDescription =
     type === 'travel' || type === 'semi'
       ? '기본 일정 외에 추가로 선택할 수 있는 관광 및 옵션입니다. 현지 운영 상황에 따라 진행 여부와 금액이 달라질 수 있습니다.'
-      : type === 'airtel'
+      : isAirHotelProductType(productType)
         ? '항공과 호텔 외에 추가로 선택할 수 있는 일정, 투어, 체험 또는 이동 서비스입니다. 자유시간에 맞춰 투어, 체험, 입장권, 이동 서비스를 추가로 선택해 일정을 더 알차게 구성할 수 있습니다.'
         : '기본 일정 외에 추가로 선택할 수 있는 현지 일정 및 옵션입니다. 진행 여부와 금액은 현지 상황 또는 공급사 운영 기준에 따라 달라질 수 있습니다.'
 

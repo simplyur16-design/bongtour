@@ -13,6 +13,7 @@ import {
   organizePackageIncludedExcludedForPublicDisplay,
   splitIncludedExcludedForPublicDisplay,
 } from '@/lib/product-included-excluded-public'
+import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 
 export type ItineraryExtraInfoProduct = {
@@ -65,8 +66,8 @@ export function ItineraryExtraInfoBoxes({
   const isSplitLayout = layout === 'split'
   const isPackage = isPackageProductType(product.productType)
   const isAirHotelFree = isAirHotelFreeListingForUi(product.listingKind)
-  const isAirtel = product.productType === 'airtel'
-  const usePackageIncludedExcludedRules = isPackage || isAirHotelFree || isAirtel
+  const isAirHotel = isAirHotelProductType(product.productType)
+  const usePackageIncludedExcludedRules = isPackage || isAirHotelFree || isAirHotel
 
   let includedItems: string[]
   let excludedItems: string[]
@@ -91,7 +92,7 @@ export function ItineraryExtraInfoBoxes({
     )
   }
 
-  if (isAirtel) {
+  if (isAirHotel) {
     const adjusted = ensureAirtelAirportTransferExcludedWhenNotInIncluded({
       includedLines: includedItems,
       excludedLines: excludedItems,
@@ -183,7 +184,7 @@ export function ItineraryExtraInfoBoxes({
         </div>
       )}
 
-      {showTop && usePackageIncludedExcludedRules && !isAirtel ? (
+      {showTop && usePackageIncludedExcludedRules && !isAirHotel ? (
         <div className="space-y-4">
           <PackageOptionalToursTable
             optionalToursStructured={product.optionalToursStructured}
@@ -223,7 +224,7 @@ export function ItineraryExtraInfoBoxes({
         </div>
       ) : null}
 
-      {showBottom && !isAirtel && !usePackageIncludedExcludedRules && optionalTours.length > 0 && (
+      {showBottom && !isAirHotel && !usePackageIncludedExcludedRules && optionalTours.length > 0 && (
         <section className="mb-6">
           <div className="border-l-4 border-[#1F1B2D] pl-3 mb-2">
             <h3 className="text-base font-bold fit-tx-primary">현지 옵션</h3>
@@ -262,7 +263,7 @@ export function ItineraryExtraInfoBoxes({
         </section>
       )}
 
-      {showBottom && !isAirtel && !usePackageIncludedExcludedRules && Boolean(product.shoppingCount) && shoppingItems.length > 0 && (
+      {showBottom && !isAirHotel && !usePackageIncludedExcludedRules && Boolean(product.shoppingCount) && shoppingItems.length > 0 && (
         <section className="mb-6">
           <div className="border-l-4 border-[#E89571] pl-3 mb-2">
             <h3 className="text-base font-bold fit-tx-primary">

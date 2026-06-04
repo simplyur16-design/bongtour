@@ -5,6 +5,7 @@ import {
 import {
   slimTravelProductDepartureFactsForPayload,
 } from '@/lib/product-public-detail/slim-departure-key-facts-for-payload'
+import { isAirHotelDetailVariant } from '@/lib/air-hotel-product-ssot'
 import type { ProductPublicDetailRenderModel } from '@/lib/product-public-detail/types'
 import {
   shouldSlimYbtourDetailProductForPayload,
@@ -19,12 +20,14 @@ function prepareViewProduct(product: TravelProduct): TravelProduct {
 export function prepareModelForPayloadPersistence(
   model: ProductPublicDetailRenderModel,
 ): ProductPublicDetailRenderModel {
-  if (model.variant === 'airtel') {
+  if (isAirHotelDetailVariant(model.variant)) {
     return {
       ...model,
       viewProduct: prepareViewProduct(model.viewProduct),
     }
   }
+
+  if (model.variant !== 'package') return model
 
   const viewProduct = prepareViewProduct(model.viewProduct)
   let ybtourDetailProduct = model.ybtourDetailProduct

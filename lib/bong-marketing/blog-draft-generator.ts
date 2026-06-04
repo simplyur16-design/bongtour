@@ -24,22 +24,26 @@ import { getAirtelBlogContext } from '@/lib/bong-marketing/airtel-blog-context'
 import { parseGeminiJsonOutput } from '@/lib/bong-marketing/gemini-json-parse'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { absoluteUrl } from '@/lib/site-metadata'
+import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { isValidYearMonth } from '@/lib/monthly-curation'
 
 const SCHEDULE_EXCERPT_MAX = 8000
 const EXCERPT_DB_MAX = 500
 
-export type BongBlogContentTrack = 'package' | 'airtel'
+export type BongBlogContentTrack = 'package' | 'air-hotel'
 
-function isAirtelProductType(productType: string | null | undefined): boolean {
-  return (productType ?? '').trim().toLowerCase() === 'airtel'
+function isAirHotelBlogProductType(productType: string | null | undefined): boolean {
+  return isAirHotelProductType(productType)
 }
 
-/** B-CRUD-1: travel/기타 → package, airtel → airtel */
+/** @deprecated `isAirHotelBlogProductType` */
+const isAirtelProductType = isAirHotelBlogProductType
+
+/** B-CRUD-1: travel/기타 → package, 항공+호텔 → air-hotel */
 export function blogPostContentTrackFromProductType(
   productType: string | null | undefined,
 ): BongBlogContentTrack {
-  return isAirtelProductType(productType) ? 'airtel' : 'package'
+  return isAirHotelBlogProductType(productType) ? 'air-hotel' : 'package'
 }
 
 export type GenerateNaverBlogDraftForPackageOptions = {
@@ -599,7 +603,7 @@ export async function generateNaverBlogDraftForAirtel(
         linkedProductId: productId,
         monthKey: mk,
         status: 'draft',
-        contentTrack: 'airtel',
+        contentTrack: { in: ['air-hotel', 'airtel'] },
       },
       select: { id: true },
     })
@@ -732,7 +736,7 @@ export async function generateNaverBlogDraftForAirtel(
       excerpt: excerptDb,
       body: bodyWithCta,
       status: 'draft',
-      contentTrack: 'airtel',
+      contentTrack: 'air-hotel',
       linkedProductId: productId,
       monthKey: mk,
       citySlug: ctx.row.city?.trim() || null,

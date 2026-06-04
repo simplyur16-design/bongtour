@@ -1,6 +1,7 @@
 /**
  * 노랑풍선(ybtour) 전용 Gemini JSON → RegisterParsed (LLM 본체). `register-parse-ybtour`만 호출.
  */
+import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import {
   inferExpectedScheduleDayCountFromPaste,
@@ -2183,7 +2184,7 @@ ${text.slice(0, 16000)}`
   const isAirtelRegisterCandidate =
     Boolean(airtelHotelInfoJsonOut) ||
     Boolean(airtelHotelInfoJson) ||
-    (raw.productType as string | undefined)?.trim() === 'airtel' ||
+    isAirHotelProductType((raw.productType as string | undefined) ?? null) ||
     /자유\s*여행|에어텔|항공\s*\+\s*호텔/i.test(textForAirtel)
   const airportTransferType = isAirtelRegisterCandidate
     ? resolveAirportTransferTypeForAirHotelFree({

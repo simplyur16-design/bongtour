@@ -1,8 +1,11 @@
 import { parseBrowseQuery } from '@/lib/products-browse-query'
 
-export const OVERSEAS_HUB_BROWSE_LIMIT = '120'
-export const AIR_HOTEL_HUB_BROWSE_LIMIT = '120'
-export const DOMESTIC_HUB_BROWSE_LIMIT = '30'
+/** 허브·메인 그리드 — 등록 풀 전량(인벤토리 규모상 페이지 상한만 둠, 120 컷 없음) */
+export const HUB_BROWSE_FULL_CATALOG_LIMIT = '10000'
+
+export const OVERSEAS_HUB_BROWSE_LIMIT = HUB_BROWSE_FULL_CATALOG_LIMIT
+export const AIR_HOTEL_HUB_BROWSE_LIMIT = HUB_BROWSE_FULL_CATALOG_LIMIT
+export const DOMESTIC_HUB_BROWSE_LIMIT = HUB_BROWSE_FULL_CATALOG_LIMIT
 
 export function searchParamsRecordToUrlSearchParams(
   sp: Record<string, string | string[] | undefined>,

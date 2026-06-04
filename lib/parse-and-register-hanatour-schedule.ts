@@ -1718,7 +1718,7 @@ export function applyHanatourAirtelFreeTravelImageKeywordsToScheduleIfNeeded(
   schedule: RegisterScheduleDay[],
   meta: HanatourAirtelFreeTravelImageKwMeta
 ): RegisterScheduleDay[] {
-  if (meta.productType !== 'airtel') return schedule
+  if (meta.productType !== 'air-hotel' && meta.productType !== 'airtel') return schedule
   if (!isHanatourAirtelWeakScheduleForImageKw(schedule)) return schedule
   const hay = buildHanatourAirtelFreeTravelHaystackLocal(meta, schedule)
   const kwMain = resolveHanatourAirtelFreeTravelImageKeywordFromHaystackLocal(hay).slice(0, 120)

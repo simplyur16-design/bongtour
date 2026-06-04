@@ -5,6 +5,7 @@
  *   npx tsx scripts/audit-public-product-display.ts --json > audit-public-display.json
  */
 import './load-env-for-scripts'
+import { isAirHotelProductType } from '../lib/air-hotel-product-ssot'
 import { prisma } from '../lib/prisma'
 import { parseFlightAdminJson, resolveFlightDisplayPolicy, type FlightDisplayPolicy } from '../lib/admin-flight-profile'
 import {
@@ -408,7 +409,7 @@ async function main() {
     return PACKAGE_TYPES.has(t) || isAirHotelFreeListing(p.listingKind) || !p.productType
   })
   const airtelLegacyProducts = products.filter(
-    (p) => (p.productType ?? '').toLowerCase() === 'airtel' && !isAirHotelFreeListing(p.listingKind)
+    (p) => isAirHotelProductType(p.productType) && !isAirHotelFreeListing(p.listingKind)
   )
 
   const flagged: ProductIssue[] = []

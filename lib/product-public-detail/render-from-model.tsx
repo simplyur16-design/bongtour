@@ -12,7 +12,11 @@ import ProductDetailCopyGuard from '@/app/components/travel/ProductDetailCopyGua
 import { ItineraryViewLazy } from '@/components/itinerary/ItineraryViewLazy'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import { buildProductMetaChips } from '@/lib/product-meta-chips'
-import type { ProductPublicDetailRenderModel } from '@/lib/product-public-detail/types'
+import { isAirHotelDetailVariant } from '@/lib/air-hotel-product-ssot'
+import type {
+  ProductPublicDetailAirHotelRenderModel,
+  ProductPublicDetailRenderModel,
+} from '@/lib/product-public-detail/types'
 import { mergeViewProductWithYbtourSlice } from '@/lib/product-public-detail/ybtour-payload-slim'
 import type { ProductDetailViewRow } from '@/lib/product-public-detail/build-render-model'
 
@@ -23,9 +27,10 @@ export function renderProductDetailFromModel(
 ) {
   const isAdminDraftPreview = travelProduct.registrationStatus !== 'registered'
 
-  if (model.variant === 'airtel') {
-    const product = model.viewProduct
-    const airtelDefaultDate = model.priceInfo.departureDateFrom
+  if (isAirHotelDetailVariant(model.variant)) {
+    const airModel = model as ProductPublicDetailAirHotelRenderModel
+    const product = airModel.viewProduct
+    const airtelDefaultDate = airModel.priceInfo.departureDateFrom
     const airtelDefaultFacts = product.departureKeyFactsByDate?.[airtelDefaultDate] ?? null
     const airtelTravelCitiesLine = (() => {
       const raw = [product.primaryDestination, product.destination]
@@ -48,10 +53,10 @@ export function renderProductDetailFromModel(
       return '미팅장소는 상담 시 확인하여 안내드리겠습니다.'
     })()
 
-    const { seo } = model
+    const { seo } = airModel
     return (
       <>
-        {model.registrationStatus === 'registered' ? (
+        {airModel.registrationStatus === 'registered' ? (
           <ProductJsonLd
             productId={travelProduct.id}
             name={product.title ?? ''}
@@ -74,7 +79,7 @@ export function renderProductDetailFromModel(
           <Header />
           <ItineraryViewLazy
             mode="example"
-            master={model.masterArg}
+            master={airModel.masterArg}
             travelCoreInfo={{
               productAirline: product.airline ?? null,
               travelCitiesLine: airtelTravelCitiesLine,
@@ -92,18 +97,18 @@ export function renderProductDetailFromModel(
             product={{
               id: String(product.id),
               title: product.title,
-              productType: model.travelProductScalars.productType,
-              originSource: model.travelProductScalars.originSource,
-              originCode: model.travelProductScalars.originCode,
-              bgImageUrl: model.travelProductScalars.bgImageUrl,
-              bgImagePhotographer: model.travelProductScalars.bgImagePhotographer,
+              productType: airModel.travelProductScalars.productType,
+              originSource: airModel.travelProductScalars.originSource,
+              originCode: airModel.travelProductScalars.originCode,
+              bgImageUrl: airModel.travelProductScalars.bgImageUrl,
+              bgImagePhotographer: airModel.travelProductScalars.bgImagePhotographer,
               primaryDestination: product.primaryDestination ?? null,
               schedule: product.schedule ?? null,
               bgImageSource: product.bgImageSource ?? null,
               bgImageIsGenerated: product.bgImageIsGenerated ?? null,
-              bgImagePlaceName: model.travelProductScalars.bgImagePlaceName,
-              bgImageRehostSearchLabel: model.travelProductScalars.bgImageRehostSearchLabel,
-              heroImageSeoKeywordOverlay: model.heroImageSeoKeywordOverlay,
+              bgImagePlaceName: airModel.travelProductScalars.bgImagePlaceName,
+              bgImageRehostSearchLabel: airModel.travelProductScalars.bgImageRehostSearchLabel,
+              heroImageSeoKeywordOverlay: airModel.heroImageSeoKeywordOverlay,
               flightStructured: product.flightStructured ?? null,
               minimumDepartureCount: product.minimumDepartureCount ?? null,
               minimumDepartureText: product.minimumDepartureText ?? null,
@@ -121,23 +126,26 @@ export function renderProductDetailFromModel(
               shoppingCount: product.shoppingCount ?? null,
               shoppingItems: product.shoppingItems ?? null,
               shoppingCautionNoticeRaw: product.shoppingNoticeRaw ?? null,
-              airtelHotelInfoJson: model.travelProductScalars.airtelHotelInfoJson,
-              flightAdminJson: model.adminFlightRaw,
-              duration: model.travelProductScalars.duration,
+              airtelHotelInfoJson: airModel.travelProductScalars.airtelHotelInfoJson,
+              flightAdminJson: airModel.adminFlightRaw,
+              duration: airModel.travelProductScalars.duration,
               reservationNoticeRaw: product.reservationNoticeRaw ?? null,
               mustKnowItems: product.mustKnowItems ?? null,
-              travelScope: model.travelProductScalars.travelScope,
-              listingKind: model.travelProductScalars.listingKind,
-              airportTransferType: model.travelProductScalars.airportTransferType,
+              travelScope: airModel.travelProductScalars.travelScope,
+              listingKind: airModel.travelProductScalars.listingKind,
+              airportTransferType: airModel.travelProductScalars.airportTransferType,
             }}
-            prices={model.priceRowsForPublic}
-            priceInfo={model.priceInfo}
+            prices={airModel.priceRowsForPublic}
+            priceInfo={airModel.priceInfo}
           />
         </ProductDetailCopyGuard>
       </>
     )
   }
 
+  if (model.variant !== 'package') {
+    throw new Error(`[renderProductDetailFromModel] unsupported variant: ${model.variant}`)
+  }
   const { viewProduct, ybtourDetailProduct, showEsimCrossSell, seo } = model
   const ybtourProduct = mergeViewProductWithYbtourSlice(viewProduct, ybtourDetailProduct)
 

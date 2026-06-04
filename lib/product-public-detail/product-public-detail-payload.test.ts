@@ -289,7 +289,7 @@ function ybtourAirtelFreeTravelModel(): ProductPublicDetailAirtelRenderModel {
   const view = {
     ...ybtourRichViewProduct(),
     listingKind: 'air_hotel_free',
-    productType: 'airtel',
+    productType: 'air-hotel',
   } as TravelProduct
   const priceRows = Array.from({ length: 3 }, (_, i) => ({
     id: `pr-${i}`,
@@ -307,7 +307,7 @@ function ybtourAirtelFreeTravelModel(): ProductPublicDetailAirtelRenderModel {
     priceInfant: 150000,
   }))
   return {
-    variant: 'airtel',
+    variant: 'air-hotel',
     viewProduct: view,
     priceRowsForPublic: priceRows,
     priceInfo: {
@@ -369,7 +369,7 @@ function ybtourAirtelFreeTravelModel(): ProductPublicDetailAirtelRenderModel {
       travelScope: 'overseas',
       listingKind: 'air_hotel_free',
       airportTransferType: 'pickup',
-      productType: 'airtel',
+      productType: 'air-hotel',
     },
     seo: {
       coverUrl: 'https://example.com/cover.webp',
@@ -395,8 +395,8 @@ describe('ybtour air_hotel_free payload (fit-yb-0002 class)', () => {
     expect(shouldSlimYbtourDetailProductForPayload(raw)).toBe(false)
 
     const prepared = prepareModelForPayloadPersistence(raw)
-    expect(prepared.variant).toBe('airtel')
-    if (prepared.variant !== 'airtel') return
+    expect(prepared.variant).toBe('air-hotel')
+    if (prepared.variant !== 'air-hotel') return
 
     expect(prepared.viewProduct.itineraries).toBeDefined()
     expect((prepared.viewProduct.itineraries ?? []).length).toBeGreaterThan(0)
@@ -409,7 +409,7 @@ describe('ybtour air_hotel_free payload (fit-yb-0002 class)', () => {
     const parsed = JSON.parse(json!) as {
       model: ProductPublicDetailAirtelRenderModel
     }
-    expect(parsed.model.variant).toBe('airtel')
+    expect(parsed.model.variant).toBe('air-hotel')
     expect(parsed.model.viewProduct.itineraries?.length).toBeGreaterThan(0)
     expect(parsed.model.priceRowsForPublic.length).toBeGreaterThan(0)
     expect(parsed.model.masterArg).not.toBeNull()

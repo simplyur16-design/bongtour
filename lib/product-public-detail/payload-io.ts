@@ -1,4 +1,5 @@
 import { getPublicBookableMinDate, toDepartureDateYmd } from '@/lib/public-bookable-date'
+import { isAirHotelDetailVariant } from '@/lib/air-hotel-product-ssot'
 import {
   PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION,
   type ProductPublicDetailPayloadEnvelope,
@@ -31,7 +32,7 @@ export function parseProductPublicDetailPayload(
     const parsed = JSON.parse(raw) as ProductPublicDetailPayloadEnvelope
     if (parsed?.version !== PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION) return null
     if (parsed.bookableMinDateYmd !== expectedBookableMinDateYmd) return null
-    if (!parsed.model || (parsed.model.variant !== 'airtel' && parsed.model.variant !== 'package')) {
+    if (!parsed.model || (!isAirHotelDetailVariant(parsed.model.variant) && parsed.model.variant !== 'package')) {
       return null
     }
     return parsed.model

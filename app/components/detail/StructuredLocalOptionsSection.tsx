@@ -7,6 +7,7 @@ import {
   formatOptionalTourFeeCellForPublicTable,
   formatOptionalTourGuideOnlyCell,
 } from '@/lib/optional-tours-ui-model'
+import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { OPTIONAL_TOUR_UI_INITIAL_ROWS, OPTIONAL_TOUR_UI_MAX_ROWS } from '@/lib/optional-tour-limits'
 
 type Props = {
@@ -47,7 +48,7 @@ export default function StructuredLocalOptionsSection({
   const sectionDescription =
     type === 'travel' || type === 'semi'
       ? '기본 일정 외에 추가로 선택할 수 있는 관광 및 옵션입니다. 현지 운영 상황에 따라 진행 여부와 금액이 달라질 수 있습니다.'
-      : type === 'airtel'
+      : isAirHotelProductType(productType)
         ? '항공과 호텔 외에 추가로 선택할 수 있는 일정·투어·체험 등입니다.'
         : '기본 일정 외 추가 선택 옵션입니다. 진행 여부와 금액은 현지 또는 공급사 기준에 따릅니다.'
 

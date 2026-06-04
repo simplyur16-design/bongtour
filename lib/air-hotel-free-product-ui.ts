@@ -1,7 +1,8 @@
 /**
- * 공항 픽업/샌딩 배지·에어텔 카드 노출 — 일반 패키지(`listingKind` travel·null 등)에는 표시하지 않는다.
- * 해외 항공권+호텔(자유여행) 상품(`listingKind === 'air_hotel_free'`) 전용.
+ * 공항 픽업/샌딩 배지·항공+호텔 카드 노출 — 일반 패키지에는 표시하지 않는다.
  */
+import { isAirHotelListingKind } from '@/lib/air-hotel-product-ssot'
+
 export function isAirHotelFreeListingForUi(listingKind: string | null | undefined): boolean {
-  return listingKind === 'air_hotel_free'
+  return isAirHotelListingKind(listingKind)
 }

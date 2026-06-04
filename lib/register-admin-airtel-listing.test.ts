@@ -17,9 +17,9 @@ describe('isRegisterAirtelListing', () => {
 })
 
 describe('stampRegisterAirtelProductTypeOnParsed', () => {
-  it('sets productType airtel for air_hotel_free', () => {
+  it('sets productType air-hotel for air_hotel_free', () => {
     const out = stampRegisterAirtelProductTypeOnParsed({ productType: 'travel' }, 'air_hotel_free')
-    expect(out.productType).toBe('airtel')
+    expect(out.productType).toBe('air-hotel')
   })
 })
 

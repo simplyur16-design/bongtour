@@ -1,8 +1,12 @@
 /**
  * 상품 목록 browse — 상품유형·목적지 토큰·인당 예산 필터.
- * 예산: computeEffectivePricePerPersonKrwFromRow 로 산정한 값이 입력 예산 이하인 것만 포함.
- * (등록된 상품의 실제 금액을 확인하여 예산 범위 내 상품만 노출)
  */
+import {
+  AIR_HOTEL_BROWSE_TYPE,
+  inferAirHotelBrowseTypeFromTitle,
+  isAirHotelListingKind,
+  type AirHotelBrowseType,
+} from '@/lib/air-hotel-product-ssot'
 import { computeEffectivePricePerPersonKrwFromRow, type ProductPriceSelect } from '@/lib/product-price-per-person'
 import {
   productMatchesOverseasDestinationTerms,
@@ -11,7 +15,7 @@ import {
 } from '@/lib/match-overseas-product'
 import { parseListingKind, type ListingKind } from '@/lib/product-listing-kind'
 
-export type ProductBrowseType = 'travel' | 'free' | 'airtel'
+export type ProductBrowseType = 'travel' | AirHotelBrowseType
 
 /** DB listingKind → browse 유형 (없으면 null → 제목 추론으로 대체) */
 export function browseTypeFromListingKind(kind: string | null | undefined): ProductBrowseType | null {
@@ -21,15 +25,14 @@ export function browseTypeFromListingKind(kind: string | null | undefined): Prod
   const map: Record<Exclude<ListingKind, 'overseas_training'>, ProductBrowseType> = {
     travel: 'travel',
     private_trip: 'travel',
-    air_hotel_free: 'airtel',
+    air_hotel_free: AIR_HOTEL_BROWSE_TYPE,
   }
   return map[k]
 }
 
 export function inferBrowseType(p: { productType: string | null; title: string }): ProductBrowseType {
-  const hay = `${p.productType ?? ''} ${p.title}`.toLowerCase()
-  if (/(에어텔|air[\s-]?tel)/i.test(hay)) return 'airtel'
-  if (/(자유여행|자유\s*여행|\bfree\b|항공\s*\+\s*호텔|항공\+호텔)/i.test(hay)) return 'free'
+  const airHotel = inferAirHotelBrowseTypeFromTitle(p.productType, p.title)
+  if (airHotel) return airHotel
   return 'travel'
 }
 
@@ -46,12 +49,13 @@ export function effectiveBrowseTypeForProduct(p: {
 
 export function productMatchesBrowseType(
   p: { listingKind?: string | null; productType: string | null; title: string },
-  type: ProductBrowseType | null
+  type: ProductBrowseType | null,
 ): boolean {
   if (!type) return true
   const inferred = effectiveBrowseTypeForProduct(p)
-  /** 항공+호텔(자유여행) 허브: URL type=airtel 에서 에어텔·항공+호텔·자유여행 키워드 모두 매칭 */
-  if (type === 'airtel') return inferred === 'airtel' || inferred === 'free'
+  if (type === AIR_HOTEL_BROWSE_TYPE) {
+    return inferred === AIR_HOTEL_BROWSE_TYPE || isAirHotelListingKind(p.listingKind)
+  }
   return inferred === type
 }
 
@@ -92,14 +96,10 @@ export type BrowseSort = 'budget_fit' | 'price_asc' | 'price_desc' | 'popular' |
 /** browse·허브 등 `scoreAndFilterProducts` 입력 — 전체 Product 행 또는 browse select 행 */
 export type BrowseScoringProductInput = ProductPriceSelect & {
   id: string
-  updatedAt: Date
   title: string
   originSource: string
   productType: string | null
   listingKind?: string | null
-  priceFrom: number | null
-  nextBookableDepartureAt?: Date | null
-  bookableDepartureCount?: number
   primaryDestination: string | null
   destinationRaw: string | null
   destination: string | null
@@ -111,6 +111,9 @@ export type BrowseScoringProductInput = ProductPriceSelect & {
   cityKey?: string | null
   countryTags?: OverseasProductMatchInput['countryTags']
   cityTags?: OverseasProductMatchInput['cityTags']
+  updatedAt: Date
+  nextBookableDepartureAt?: Date | null
+  departures?: { departureDate: Date; minPax?: number | null }[]
 }
 
 export type BrowseScoredProduct<T extends BrowseScoringProductInput = BrowseScoringProductInput> = {
@@ -121,13 +124,12 @@ export type BrowseScoredProduct<T extends BrowseScoringProductInput = BrowseScor
 }
 
 function earliestDepartureDate(departures: { departureDate: Date }[]): Date | null {
-  if (departures.length === 0) return null
-  let min = departures[0]!.departureDate.getTime()
-  for (let i = 1; i < departures.length; i++) {
-    const t = departures[i]!.departureDate.getTime()
-    if (t < min) min = t
+  let min: number | null = null
+  for (const d of departures) {
+    const t = d.departureDate.getTime()
+    if (min == null || t < min) min = t
   }
-  return new Date(min)
+  return min == null ? null : new Date(min)
 }
 
 function earliestBookableDepartureForProduct(p: BrowseScoringProductInput): Date | null {
@@ -145,9 +147,8 @@ export function scoreAndFilterProducts<T extends BrowseScoringProductInput>(
     destinationTerms: string[]
     budgetPerPersonMax: number | null
     sort: BrowseSort
-    /** URL geo — ProductCountryTag / ProductCityTag (`regionCountryKeys`는 browse API에서 주입) */
     urlGeo?: BrowseUrlGeo
-  }
+  },
 ): BrowseScoredProduct<T>[] {
   const list: BrowseScoredProduct<T>[] = []
   for (const p of rows) {

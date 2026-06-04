@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { UiOptionalTourRow } from '@/lib/optional-tours-ui-model'
 import { formatOptionalTourFeeCellForPublicTable } from '@/lib/optional-tours-ui-model'
+import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { OPTIONAL_TOUR_UI_INITIAL_ROWS, OPTIONAL_TOUR_UI_MAX_ROWS } from '@/lib/optional-tour-limits'
 
 /** 노랑풍선(ybtour) 전용 — 옵션명·이용요금·소요시간·참고사항 4열만. 공용 StructuredLocalOptionsSection을 수정하지 않는다. */
@@ -34,7 +35,7 @@ export default function YbtourStructuredLocalOptionsSection({
   const sectionDescription =
     type === 'travel' || type === 'semi'
       ? '기본 일정 외에 추가로 선택할 수 있는 관광 및 옵션입니다. 현지 운영 상황에 따라 진행 여부와 금액이 달라질 수 있습니다.'
-      : type === 'airtel'
+      : isAirHotelProductType(productType)
         ? '항공과 호텔 외에 추가로 선택할 수 있는 일정·투어·체험 등입니다.'
         : '기본 일정 외 추가 선택 옵션입니다. 진행 여부와 금액은 현지 또는 공급사 기준에 따릅니다.'
 

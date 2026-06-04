@@ -5,6 +5,7 @@ import Header from '@/app/components/Header'
 import AirHotelBrowseSlot from '@/app/components/travel/air-hotel/AirHotelBrowseSlot'
 import AirHotelHero from '@/app/components/travel/air-hotel/AirHotelHero'
 import ProductsBrowseResultsLoading from '@/components/route-loading/ProductsBrowseResultsLoading'
+import { AIR_HOTEL_BROWSE_TYPE, parseAirHotelBrowseTypeParam } from '@/lib/air-hotel-product-ssot'
 import { getCachedAirHotelSeasonCuration } from '@/lib/air-hotel-season-curation-content'
 import { SITE_NAME } from '@/lib/site-metadata'
 
@@ -43,12 +44,15 @@ export default async function AirHotelPage({
   const sp = (await searchParams) ?? {}
   const scope = typeof sp.scope === 'string' ? sp.scope : null
   const type = typeof sp.type === 'string' ? sp.type : null
+
   if (!scope || !type) {
-    redirect('/travel/air-hotel?scope=overseas&type=airtel')
+    redirect(`/travel/air-hotel?scope=overseas&type=${AIR_HOTEL_BROWSE_TYPE}`)
   }
   if (scope !== 'overseas' && scope !== 'domestic') {
-    const t = type === 'airtel' || type === 'free' ? type : 'airtel'
-    redirect(`/travel/air-hotel?scope=overseas&type=${encodeURIComponent(t)}`)
+    redirect(`/travel/air-hotel?scope=overseas&type=${AIR_HOTEL_BROWSE_TYPE}`)
+  }
+  if (parseAirHotelBrowseTypeParam(type) !== AIR_HOTEL_BROWSE_TYPE) {
+    redirect(`/travel/air-hotel?scope=${encodeURIComponent(scope)}&type=${AIR_HOTEL_BROWSE_TYPE}`)
   }
 
   if (perfPage) {

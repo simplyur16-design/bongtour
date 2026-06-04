@@ -1,10 +1,11 @@
+import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { prisma } from '@/lib/prisma'
 import { buildProductDetailPageSelect } from '@/lib/product-detail-page-include'
 import type { FitMasterWithDays } from '@/lib/product-public-detail/build-render-model'
 import { buildProductPublicDetailPayload } from '@/lib/product-public-detail/build-product-public-detail-payload'
 
 async function loadFitMasterForProduct(productId: string, productType: string | null) {
-  if (productType !== 'airtel') return null
+  if (!isAirHotelProductType(productType)) return null
   const fitMaster = await prisma.fitItineraryMaster.findFirst({
     where: { productId, status: 'published' },
     include: {

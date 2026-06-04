@@ -23,8 +23,8 @@ export type ProductPublicDetailSeoBundle = {
   itinerary: ProductJsonLdItineraryItem[] | null
 }
 
-export type ProductPublicDetailAirtelRenderModel = {
-  variant: 'airtel'
+export type ProductPublicDetailAirHotelRenderModel = {
+  variant: 'air-hotel'
   viewProduct: TravelProduct
   priceRowsForPublic: TravelProduct['prices']
   priceInfo: {
@@ -79,6 +79,9 @@ export type ProductPublicDetailPackageRenderModel = {
   departuresForSeo: Pick<ProductDeparture, 'adultPrice' | 'departureDate' | 'statusRaw' | 'seatsStatusRaw'>[]
 }
 
+/** @deprecated `ProductPublicDetailAirHotelRenderModel` */
+export type ProductPublicDetailAirtelRenderModel = ProductPublicDetailAirHotelRenderModel
+
 export type ProductPublicDetailRenderModel =
-  | ProductPublicDetailAirtelRenderModel
+  | ProductPublicDetailAirHotelRenderModel
   | ProductPublicDetailPackageRenderModel

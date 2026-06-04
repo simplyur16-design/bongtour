@@ -53,6 +53,7 @@ import {
   prismaWhereForBrowseTravelScope,
 } from '@/lib/travel-scope-pool-filter'
 import { prismaWhereClausesForBrowseListingSlice } from '@/lib/products-browse-db-where'
+import { AIR_HOTEL_BROWSE_TYPE, isAirHotelBrowseCategoryToken, parseAirHotelBrowseTypeParam } from '@/lib/air-hotel-product-ssot'
 import { parseListingKind } from '@/lib/product-listing-kind'
 import {
   domesticDisplayCategoryIsSpecialTheme,
@@ -92,11 +93,7 @@ function displayNameFromImageUrl(url: string | null | undefined): string | null 
 }
 
 function parseBrowseType(raw: string | null): ProductBrowseType | null {
-  if (!raw) return null
-  const u = raw.toLowerCase().trim()
-  if (u === 'free' || u === 'airtel') return 'airtel'
-  if (u === 'travel') return 'travel'
-  return null
+  return parseAirHotelBrowseTypeParam(raw)
 }
 
 function parseSort(raw: string | null): BrowseSort {
@@ -254,9 +251,10 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     const parsedLimit =
       limitParam != null && limitParam !== '' ? parseInt(limitParam, 10) : Number.NaN
     const rawLimit = Number.isFinite(parsedLimit) ? parsedLimit : null
-    /** 클라이언트가 큰 limit을 요청해도 상한 — 응답 크기 제한 */
-    const limitCap = scopeForLimit === 'overseas' || scopeForLimit === 'domestic' ? 120 : 60
-    const limit = Math.min(limitCap, Math.max(1, rawLimit ?? 24))
+    /** 해외·국내·항공+호텔 허브: 등록 풀 전량. `/products` 등 일반 목록만 60 상한 */
+    const isTravelHubScope = scopeForLimit === 'overseas' || scopeForLimit === 'domestic'
+    const limitCap = isTravelHubScope ? 10_000 : 60
+    const limit = Math.min(limitCap, Math.max(1, rawLimit ?? (isTravelHubScope ? limitCap : 24)))
 
     if (perf) perf.parse = performance.now() // PERF-LOG: 측정 후 제거
 
@@ -266,7 +264,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       scope: scopeForLimit,
       typeParam,
       listingKindParsed,
-      airtelCategory: q.categories.some((c) => c === 'airtel'),
+      airHotelCategory: q.categories.some((c) => isAirHotelBrowseCategoryToken(c)),
     })
 
     const travelScopeDb =
@@ -350,11 +348,11 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     }
 
     /** 국내·해외 허브 기본 목록 — 자유여행(항공+호텔)은 `/travel/air-hotel` 전용 */
-    const wantsAirtelHubSlice =
-      parseBrowseType(typeParam) === 'airtel' ||
-      q.categories.some((c) => c === 'airtel') ||
+    const wantsAirHotelHubSlice =
+      parseBrowseType(typeParam) === AIR_HOTEL_BROWSE_TYPE ||
+      q.categories.some((c) => isAirHotelBrowseCategoryToken(c)) ||
       listingKindParsed === 'air_hotel_free'
-    if ((domesticLike || scope === 'overseas') && !wantsAirtelHubSlice) {
+    if ((domesticLike || scope === 'overseas') && !wantsAirHotelHubSlice) {
       filteredRows = filteredRows.filter((p) => (p.listingKind ?? '').trim() !== 'air_hotel_free')
     }
 

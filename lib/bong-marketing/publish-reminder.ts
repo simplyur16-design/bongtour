@@ -76,7 +76,7 @@ async function sendSolapiLms(toDigits: string, text: string): Promise<{ ok: true
 }
 
 function marketingAdminPath(contentTrack: string, id: string): string {
-  const track = contentTrack === 'airtel' ? 'airtel' : 'packages'
+  const track = contentTrack === 'air-hotel' || contentTrack === 'airtel' ? 'airtel' : 'packages'
   return `/admin/marketing/${track}/${id}`
 }
 

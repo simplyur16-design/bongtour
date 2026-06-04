@@ -12,6 +12,7 @@ import {
 } from '@/lib/apply-product-calendar-price-items'
 import { buildDetailUrl } from '@/lib/admin-departure-rescrape'
 import { collectModetourDepartureInputs } from '@/lib/modetour-departures'
+import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import type { DepartureInput } from '@/lib/upsert-product-departures-modetour'
@@ -64,7 +65,7 @@ function assertModetourTravelPackage(product: {
   if (lk === 'air_hotel_free') {
     throw new Error(`거부: 자유여행(air_hotel_free) 상품은 이 명령 대상이 아닙니다 (id=${product.id})`)
   }
-  if ((product.productType ?? '').trim() === 'airtel') {
+  if (isAirHotelProductType(product.productType)) {
     throw new Error(`거부: productType=airtel 은 이 명령 대상이 아닙니다 (id=${product.id})`)
   }
 }
