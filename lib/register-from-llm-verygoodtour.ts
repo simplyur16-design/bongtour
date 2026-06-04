@@ -32,6 +32,7 @@ import {
   REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK,
   PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK,
 } from '@/lib/bongtour-tone-manner-llm-ssot'
+import { REGISTER_LLM_PRODUCT_TITLE_EXTRACT_LINE } from '@/lib/bongtour-product-title-tone-ssot'
 import {
   extractNonPolicyDestinationFragment,
   extractVerygoodDestinationFromBracketTitle,
@@ -881,6 +882,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 
 # [추출 필드 - 강제]
 - originCode, title, destination, duration, schedule[]
+${REGISTER_LLM_PRODUCT_TITLE_EXTRACT_LINE}
 - 상품가격표 원문: priceTableRawText, priceTableRawHtml(있을 때), productPriceTable: adultPrice, childExtraBedPrice, childNoBedPrice, infantPrice (본문 표에서만; 없으면 null).
 - 미팅(상품 단위): meetingInfoRaw, meetingPlaceRaw, meetingNoticeRaw, meetingFallbackText
 - 선택관광(메타만): optionalTourNoticeRaw, optionalTourNoticeItems[], hasOptionalTour, optionalTourCount, optionalTourSummaryText — **optionalTours[] 행 LLM 추출 금지**

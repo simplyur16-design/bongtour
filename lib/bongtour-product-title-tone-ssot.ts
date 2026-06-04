@@ -1,21 +1,20 @@
 /**
  * 봉투어 상품명(Product.title) 톤앤매너 SSOT — 6공급사 등록(R-5) 전용.
  *
- * 템플릿(가이드):
- * {국가/지역}({상세 국가/도시 1~3개}) {+추가 지역} {일수}일 [{항공사 코드+명}{·직항/경유}{·인솔 등}] {특전·키워드 2~4개}{·업그레이드}
+ * 노출 SSOT(마케팅):
+ * {마케팅 국가/권역} {핵심 도시 1~2(·)} {N박M일} [항공·출발·직항 등 — 원문에 있을 때만 1블록]
  *
- * 구분자: 가운뎃점(·), 플러스(+). 괄호: () 지역 상세, [] 항공·부가정보.
- * 강조 기호(★※◎) 금지. 셀러 톤(엄선·프리미엄·단독·THE NEW 등) 금지.
+ * 과도한 특전·키워드·미슐랭 나열로 짧게 압축하지 않는다.
+ * 구분자: 가운뎃점(·), 플러스(+). () 지역 상세(필요 시). [] 항공·출발만.
  * verygoodtour 브랜드 표기는 「참좋은여행」.
- * 길이: 선호 50~70자(검색·가독). 짧은 일정명은 예외적으로 더 짧을 수 있음 — 하드 상한만 강제.
  */
 
-export const BONGTOUR_PRODUCT_TITLE_TONE_VERSION = 'v1-2026-05-04'
+export const BONGTOUR_PRODUCT_TITLE_TONE_VERSION = 'v2-2026-06-06'
 
 /** 선호 최소 길이(가이드). 검증 hard fail 아님. */
-export const BONGTOUR_PRODUCT_TITLE_LENGTH_PREFERRED_MIN = 50
+export const BONGTOUR_PRODUCT_TITLE_LENGTH_PREFERRED_MIN = 16
 /** 선호 최대 길이(가이드). 검증 hard fail 아님. */
-export const BONGTOUR_PRODUCT_TITLE_LENGTH_PREFERRED_MAX = 70
+export const BONGTOUR_PRODUCT_TITLE_LENGTH_PREFERRED_MAX = 56
 /** 저장·노출 상한(잘림 방지) */
 export const BONGTOUR_PRODUCT_TITLE_LENGTH_HARD_MAX = 90
 /** 비정상적으로 짧은 출력 거부 */
@@ -33,7 +32,11 @@ export const BONGTOUR_PRODUCT_TITLE_OPTIONAL_FIELDS = [
 ] as const
 
 export const BONGTOUR_PRODUCT_TITLE_TEMPLATE =
-  '{국가/지역}({도시1~3}) {+추가지역} {N}일 [항공·직항/경유·인솔 등] {키워드·특전}{·업그레이드}'
+  '{마케팅 국가/권역} {도시1·도시2} {N박M일} [항공·출발·직항 — 선택]'
+
+/** 공급사 등록 LLM(JSON title) — 원문 보존. 노출명 다듬기는 bongtour-product-title 단계. */
+export const REGISTER_LLM_PRODUCT_TITLE_EXTRACT_LINE =
+  '- **title(JSON)**: 공급사 리스트·상단에 보이는 상품명을 **붙여넣기 원문과 동일하게** 출력(선행 [배지] 제거·공백 정리만 서버 후처리). 의역·요약·짧게 줄이기·해시태그 삭제 금지. **duration**은 본문 N박M일(예: 3박 4일)을 그대로.'
 
 /** 금칙(부분 일치·대소문자 무시). NO옵션·노옵션 등 공급사 실제 카피는 예시에 포함되어 금칙에서 제외. */
 export const BONGTOUR_PRODUCT_TITLE_FORBIDDEN_TOKENS: readonly string[] = [

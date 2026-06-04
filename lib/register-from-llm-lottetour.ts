@@ -18,6 +18,7 @@ import {
   REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK,
   PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK,
 } from '@/lib/bongtour-tone-manner-llm-ssot'
+import { REGISTER_LLM_PRODUCT_TITLE_EXTRACT_LINE } from '@/lib/bongtour-product-title-tone-ssot'
 
 /**
  * 풀 등록(`forPreview: false`) JSON 출력 상한. lottetour 전용 우선순위:
@@ -929,7 +930,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 # [추출 필드 - 강제]
 - originCode, title, destination, duration, schedule[], prices[] (달력 행)
 - 롯데관광 전용(있을 때만): godId, evtCd, categoryMenuNo, hotelList[], seatUpgradeOptions[], meetingInfo{}, tourLeader{}
-- **title**: 상품 상단에 보이는 상품명·여행 제목을 **붙여넣기 원문과 동일한 문자열**로만 출력한다. 공백·#해시태그·항공편 코드(예: LJ)·기종 표기·'N일' 붙임 방식을 바꾸지 않는다. 고객용으로 다듬는 의역·요약·재작성(괄호로 나열하는 식 포함)을 하지 않는다.
+${REGISTER_LLM_PRODUCT_TITLE_EXTRACT_LINE}
 - 상품가격표 원문: priceTableRawText, priceTableRawHtml(있을 때), productPriceTable: adultPrice, childExtraBedPrice, childNoBedPrice, infantPrice (본문 표에서만; 없으면 null). **infantPrice**: "유아/소아(만 2세 미만)/INFANT/유아 요금" 등과 같은 줄·인접 줄의 원 단위 숫자를 반드시 구조화한다.
 - 항공(상품/구간 요약): airlineName, departureSegmentText, returnSegmentText, outboundFlightNo, inboundFlightNo, departureDateTimeRaw, arrivalDateTimeRaw, routeRaw — 항공사를 태그 한 줄에만 묻지 말고 필드로 분리.
 - 미팅(상품 단위): meetingInfoRaw, meetingPlaceRaw, meetingNoticeRaw, meetingFallbackText

@@ -1210,6 +1210,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
         originalProductTitle: parsed.title,
         pastedBodyText: text,
         duration: parsed.duration,
+        destination: parsed.destination,
         scheduleDayTitles: scheduleTitlesForBongtour,
       })
       const previewPayload = {

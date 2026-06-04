@@ -18,6 +18,7 @@ import {
   REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK,
   PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK,
 } from '@/lib/bongtour-tone-manner-llm-ssot'
+import { REGISTER_LLM_PRODUCT_TITLE_EXTRACT_LINE } from '@/lib/bongtour-product-title-tone-ssot'
 
 /**
  * 풀 등록(`forPreview: false`) JSON 출력 상한. 호텔·일정 배열이 길면 32k에서 MAX_TOKENS 잘림이 난다.
@@ -924,6 +925,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 
 # [추출 필드 - 강제]
 - originCode, title, destination, duration, schedule[]
+${REGISTER_LLM_PRODUCT_TITLE_EXTRACT_LINE}
 - 상품가격표 원문: priceTableRawText, priceTableRawHtml(있을 때), productPriceTable: adultPrice, childExtraBedPrice, childNoBedPrice, infantPrice (본문 표에서만; 없으면 null). **infantPrice**: "유아/소아(만 2세 미만)/INFANT/유아 요금" 등과 같은 줄·인접 줄의 원 단위 숫자를 반드시 구조화한다.
 - 미팅(상품 단위): meetingInfoRaw, meetingPlaceRaw, meetingNoticeRaw, meetingFallbackText
 - 쇼핑(횟수만): hasShopping, shoppingVisitCount, shoppingSummaryText. 항공·옵션·쇼핑 행 데이터는 pastedBlocks 정형 입력란 SSOT, LLM 추출 X

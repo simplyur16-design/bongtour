@@ -1496,6 +1496,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         originalProductTitle: parsed.title,
         pastedBodyText: text,
         duration: parsed.duration,
+        destination: parsed.destination,
         scheduleDayTitles: scheduleTitlesForBongtour,
       })
       const data: LottetourFinalParsed = buildLottetourAdminPreviewCardData({

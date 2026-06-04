@@ -1,5 +1,9 @@
 import { buildBongtourProductTitlePrompt, type BongtourProductTitleLlmInput } from '@/lib/bongtour-product-title-llm-prompt'
 import {
+  composeMarketingProductTitle,
+  shouldPreferMarketingComposeOverLlm,
+} from '@/lib/bongtour-product-title-marketing-compose'
+import {
   sanitizeBongtourProductTitle,
   validateBongtourProductTitle,
   type BongtourProductTitleValidationResult,
@@ -37,7 +41,32 @@ type GenerateResult = {
   title: string | null
   originalTitle: string
   validation: BongtourProductTitleValidationResult
-  source: 'llm' | 'llm_retry' | 'fallback_disabled' | 'fallback_no_key' | 'fallback_error' | 'fallback_invalid'
+  source:
+    | 'llm'
+    | 'llm_retry'
+    | 'marketing_compose'
+    | 'fallback_disabled'
+    | 'fallback_no_key'
+    | 'fallback_error'
+    | 'fallback_invalid'
+}
+
+function tryMarketingComposeTitle(input: BongtourProductTitleLlmInput): GenerateResult | null {
+  const originalTitle = (input.originalProductTitle || '').trim() || '미입력'
+  const composed = composeMarketingProductTitle({
+    originalProductTitle: originalTitle,
+    destination: input.destination,
+    duration: input.duration,
+  })
+  const validation = validateBongtourProductTitle(composed)
+  if (!validation.ok) return null
+  console.info('[bongtour-product-title]', { ok: true, source: 'marketing_compose', charLength: validation.charLength })
+  return {
+    title: composed,
+    originalTitle,
+    validation,
+    source: 'marketing_compose',
+  }
 }
 
 async function callGeminiTitleOnce(
@@ -103,6 +132,10 @@ export async function generateBongtourProductTitle(input: BongtourProductTitleLl
       const cleaned = sanitizeBongtourProductTitle(raw)
       const validation = validateBongtourProductTitle(cleaned)
       if (validation.ok) {
+        if (shouldPreferMarketingComposeOverLlm(cleaned, originalTitle, input.duration)) {
+          const composed = tryMarketingComposeTitle(input)
+          if (composed) return composed
+        }
         console.info('[bongtour-product-title]', { ok: true, source: label, charLength: validation.charLength })
         return { title: cleaned, originalTitle, validation, source: label }
       }
@@ -122,6 +155,9 @@ export async function generateBongtourProductTitle(input: BongtourProductTitleLl
     if (second && second.title) return second
     if (second) return { ...second, source: 'fallback_invalid' }
   }
+
+  const composed = tryMarketingComposeTitle(input)
+  if (composed) return composed
 
   return {
     title: null,

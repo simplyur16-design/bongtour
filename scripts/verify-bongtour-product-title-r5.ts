@@ -8,17 +8,19 @@ import {
   sanitizeBongtourProductTitle,
   validateBongtourProductTitle,
 } from '../lib/bongtour-product-title-tone-ssot'
+import { composeMarketingProductTitle } from '../lib/bongtour-product-title-marketing-compose'
 import { productTitlePairForRegisterConfirm } from '../lib/bongtour-product-title-register-bridge'
 
+/** v2 마케팅 노출 형식(국가/권역 + 도시 + N박M일·N일) */
 const BONGTOUR_FIXTURE_TITLES = [
-  '코카서스 3국(조지아·아제르바이잔·아르메니아)+두바이 10일 [KE 대한항공·인솔자 동행] 와이너리·꼬냑시음·10대특전',
-  '다낭·호이안 5일 [대한항공·인솔자 동행] 호이안 메모리즈쇼·임프레션 테마파크·미슐랭',
-  '도쿄·하코네·가와고에 4일 [직항] 온천욕·오다이바·아사쿠사·신주쿠·전망대',
-  '[부산 출발] 다낭·호이안 5일 [KE 비즈니스 클래스 업그레이드·NO옵션]',
-  '호치민 5일 [KE 대한항공·PRIVATE TOUR·전담 가이드] 미슐랭 4회·풀만 호텔 SPA·아브라 탑승',
-  '동유럽 3~4개국(체코·헝가리·오스트리아) 9일 [노팁·노옵션·자유시간 포함]',
-  '코카서스 3국 일주 9일 [TW 티웨이항공 직항] 조지아 와인·아르메니아 브랜디 투어',
-  '도쿄 자유여행 3일 [신주쿠 숙박·트윈·조식 포함]',
+  '코카서스 3국 두바이 10일 [KE 대한항공·인솔자 동행]',
+  '베트남 다낭·호이안 4박 5일 [대한항공]',
+  '일본 도쿄·하코네 4일 [직항]',
+  '베트남 다낭·호이안 5일 [KE 비즈니스·NO옵션]',
+  '베트남 호치민 5일 [KE 대한항공]',
+  '동유럽 체코·헝가리 9일 [노팁·노옵션]',
+  '코카서스 3국 일주 9일 [TW 티웨이항공 직항]',
+  '일본 도쿄 3일 [신주쿠 숙박]',
 ]
 
 for (const raw of BONGTOUR_FIXTURE_TITLES) {
@@ -35,8 +37,17 @@ for (const raw of BONGTOUR_FIXTURE_TITLES) {
   }
 }
 
+const composed = composeMarketingProductTitle({
+  originalProductTitle:
+    '다낭·호이안 5일 [대한항공] 호이안 메모리즈쇼·임프레션·미슐랭',
+  destination: '다낭',
+  duration: '4박 5일',
+})
+assert.ok(composed.includes('다낭'))
+assert.ok(/4박\s*5일|5일/.test(composed))
+
 const pair1 = productTitlePairForRegisterConfirm(
-  { bongtourProductTitle: '  도쿄 3일 [직항] 온천  ' },
+  { bongtourProductTitle: '  일본 도쿄 3일 [직항]  ' },
   '원본 긴 상품명 테스트'
 )
 assert.equal(pair1.prismaOriginalTitle, '원본 긴 상품명 테스트')

@@ -40,6 +40,7 @@ export async function buildBongtourProductTitleFieldsForRegisterPreview(args: {
   originalProductTitle: string
   pastedBodyText: string
   duration: string | null | undefined
+  destination?: string | null | undefined
   scheduleDayTitles: string[]
 }): Promise<BongtourProductTitlePreviewFields> {
   const originalProductTitle = (args.originalProductTitle || '').trim() || '미입력'
@@ -49,6 +50,7 @@ export async function buildBongtourProductTitleFieldsForRegisterPreview(args: {
     originalProductTitle,
     pastedBodyText: args.pastedBodyText,
     duration: args.duration,
+    destination: args.destination,
     scheduleDayTitles: args.scheduleDayTitles,
   })
   const candidate = gen.title ? sanitizeBongtourProductTitle(gen.title) : ''
