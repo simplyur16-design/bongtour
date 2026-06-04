@@ -17,6 +17,9 @@ import {
   REGISTER_PROMPT_SCHEDULE_FIELDS_SUPPLIER_ONLY_BLOCK,
   PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK,
 } from '@/lib/bongtour-tone-manner-llm-ssot'
+import { REGISTER_LLM_PRODUCT_TITLE_EXTRACT_LINE } from '@/lib/bongtour-product-title-tone-ssot'
+import { REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK } from '@/lib/register-schedule-image-keyword-prompt'
+import { YBTOUR_SCHEDULE_IMAGE_KEYWORD_PROMPT_ADDENDUM } from '@/lib/ybtour-schedule-image-keyword'
 import { inferAirportTransferTypeFromText } from '@/lib/airport-transfer-infer'
 
 /**
@@ -907,7 +910,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 
 # [추출 필드 - 강제]
 - originCode, title, destination, duration, schedule[]
-- **title**: 상품 상단에 보이는 상품명·여행 제목을 **붙여넣기 원문과 동일한 문자열**로만 출력한다. 공백·#해시태그·항공편 코드·'N일' 붙임 방식을 바꾸지 않는다. 의역·요약·재작성 금지.
+${REGISTER_LLM_PRODUCT_TITLE_EXTRACT_LINE}
 - 상품가격표 원문: priceTableRawText, priceTableRawHtml(있을 때), productPriceTable: adultPrice, childExtraBedPrice, childNoBedPrice, infantPrice (본문 표에서만; 없으면 null).
 - 미팅(상품 단위): meetingInfoRaw, meetingPlaceRaw, meetingNoticeRaw, meetingFallbackText
 - 선택관광(메타만): optionalTourNoticeRaw, optionalTourNoticeItems[], hasOptionalTour, optionalTourCount, optionalTourSummaryText — **optionalTours[] 행 LLM 추출 금지**
@@ -923,10 +926,12 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 // [prices]·출발일별 달력·출발일별 항공: E2E·확정 파싱 SSOT — LLM 추출 금지
 
 # [schedule] 일차별 (필수)
+${REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK}
 - day, title, description, routeText, imageKeyword, imageKeyword2
 - description: 해당 일차 블록 전체를 근거로 관광·이동·식사·숙박을 **빠짐없이** 반영한 문어체 존댓말 요약. **3~6문장·450자 이내**를 목표로 하며, 한 줄·한두 문장만 쓰지 말 것. 복수 관광지가 있으면 모두 짧게라도 언급.
+- **imageKeyword / imageKeyword2**: 위 [schedule[].imageKeyword / imageKeyword2] 규칙 준수. **imageKeyword** = 그날 1순위 관광명소 영문. **imageKeyword2** = 그날 **두 번째** 관광명소 영문(1순위와 다른 명소). routeText에 관광지 2곳 이상이면 imageKeyword2 **필수**. 출발·귀국(비행) 일차는 imageKeyword2 생략(null).
+${YBTOUR_SCHEDULE_IMAGE_KEYWORD_PROMPT_ADDENDUM}
 - routeText: 그날 방문 도시·관광지를 본문 **이동 순서 그대로** ' - '로 연결(관광 2곳 이상이면 필수). 예: "홍콩 - 하버 시티 - 소호 거리 - 타이쿤 - 빅토리아 피크"
-- imageKeyword·imageKeyword2: routeText를 ' - '로 나눈 순서에서 **국내 공항(인천·김포 등)을 제외한 앞 두 곳**의 영문 관광지명(서버가 routeText로 다시 채움). LLM은 routeText만 정확히 채우면 됨.
 - 선택(원문에 있을 때만): hotelText, breakfastText, lunchText, dinnerText, mealSummaryText — 공급사 일정표 문구 유지. 불확실하면 mealSummaryText에만 원문 보존.
 
 # [pricePromotion] 상단 요금·할인·혜택·쿠폰 블록 (선택, 반드시 채울 것)
@@ -1062,7 +1067,7 @@ const REGISTER_PREVIEW_MINIMAL_PROMPT = `${REGISTER_PREVIEW_MINIMAL_TONE_BLOCK}
 
 # 채울 필드만 (본문·꼭 확인 구간 근거)
 - originSource, originCode, title, destination, duration(예: 3박 4일, 없으면 null)
-- **title**: 상품 페이지 제목을 원문 그대로(해시태그·항공코드 유지). 의역·괄호 요약 금지.
+${REGISTER_LLM_PRODUCT_TITLE_EXTRACT_LINE}
 - airlineName: 한 줄 또는 null
 - hasOptionalTour (bool), optionalTourCount (숫자 또는 null)
 - hasShopping (bool), shoppingSummaryText: 짧은 쇼핑 요약만 또는 null
