@@ -22,6 +22,7 @@ const REGISTER_FULL_MAX_OUTPUT_TOKENS = Math.max(
 import type { ParsedProductPrice } from './parsed-product-types'
 import { normalizeCalendarDate } from './date-normalize'
 import { extractDestinationFromTitle } from './destination-from-title'
+import { resolveVerygoodtourRegisterDestination } from '@/lib/verygoodtour-register-destination-from-paste'
 import { extractVerygoodProCode, extractVerygoodSupplierGroupId, normalizeOriginSource } from './supplier-origin'
 import { resolveAirportTransferTypeForAirHotelFree } from '@/lib/airport-transfer-infer'
 import {
@@ -870,6 +871,7 @@ ${PACKAGE_INCLUDED_EXCLUDED_LLM_CLASSIFICATION_BLOCK}
 - 애매하면 값을 버리지 말고 fieldIssues에 { field, reason, source:"llm", severity:"info"|"warn" } 로 남길 것.
 
 # [destination·일정·항공 — fieldIssues 작성 시]
+- destination 은 **여행여정**·요약의 권역·도시를 우선한다. 숙박·특전·VIP·#태그 한 줄을 destination 으로 쓰지 말 것.
 - destination 은 상품 카드·검색용 **대표 목적지/권역/도시**일 수 있으며, 항공 **첫 입국(가는편 도착)** 도시와 같아야 한다고 가정하지 말 것. 패키지는 A(출발)→B(입국) 후 여러 도시 경유, C(현지 출국)→A(귀국) **오픈조·다도시**가 흔함.
 - **요약 여정(제목·대표 목적지)과 일차별 일정표·항공 첫 도착/마지막 출발이 문자상 다르더라도 즉시 "오류"로 단정하지 말 것.** 검수 참고용으로만 severity는 기본 **info**를 우선한다.
 - 목적지 관련 fieldIssues 를 넣을 때 구분 권장: (1) field "destination.representative_vs_first_arrival" — 대표 목적지 vs 항공 첫 도착 (2) "destination.schedule_day1_vs_first_arrival" — 1일차 일정 텍스트 vs 항공 첫 도착 (3) "destination.representative_vs_final_departure" — 대표 목적지 vs 귀국편 출발(현지 마지막 출국). 각 reason 에 오픈조·다도시 가능성을 한 문장 포함할 것.
@@ -1712,17 +1714,18 @@ ${text.slice(0, 16000)}`
   )
   const fromTitleDest = extractDestinationFromTitle(titleTrimmed)
   const llmDestination = (raw.destination ?? '').trim()
-  const llmDestinationUsable =
-    llmDestination.length > 0 && !isVerygoodtourPolicyBracketDestination(llmDestination)
-  const finalDestinationRaw =
-    fromBracketDest ||
-    (fromTitleDest !== '미지정' ? fromTitleDest : '') ||
-    (llmDestinationUsable ? llmDestination : '') ||
-    extractDestinationFromTitle(titleTrimmed) ||
-    extractDestinationFromTitle(String(raw.title ?? ''))
+  const destResolved = resolveVerygoodtourRegisterDestination({
+    pastedBody: pastedBlobForTitle,
+    title: titleTrimmed,
+    llmDestination,
+    bracketDestination: fromBracketDest,
+  })
   const finalDestination =
-    extractNonPolicyDestinationFragment(finalDestinationRaw) ||
-    (isVerygoodtourPolicyBracketDestination(finalDestinationRaw) ? '' : finalDestinationRaw)
+    destResolved.destination ||
+    extractNonPolicyDestinationFragment(fromBracketDest ?? '') ||
+    (fromTitleDest !== '미지정' ? fromTitleDest : '') ||
+    extractDestinationFromTitle(titleTrimmed) ||
+    ''
 
   const mustKnowFromLlm = forPreview
     ? []
@@ -2433,8 +2436,8 @@ ${text.slice(0, 16000)}`
     title: titleTrimmed,
     supplierListingTitleRaw: supplierListingTitleRaw ?? null,
     destination: finalDestination,
-    destinationRaw: finalDestination || null,
-    primaryDestination: finalDestination || null,
+    destinationRaw: destResolved.destinationRaw || finalDestination || null,
+    primaryDestination: destResolved.primaryDestination || finalDestination || null,
     supplierGroupId: supplierGroupFromText || null,
     airtelHotelInfoJson: airtelHotelInfoJsonOut,
     airportTransferType,
