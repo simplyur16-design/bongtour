@@ -17,6 +17,8 @@ type WhyItem = {
   body: string;
   /** 모바일 카드 부제 (없으면 제목만) */
   bodyMobile?: string;
+  /** 모바일 카드 한 줄 안내 (예: iOS 버전) */
+  hintMobile?: string;
   hint?: string;
   circleClass: string;
   href?: string;
@@ -31,7 +33,11 @@ const WHY_ITEMS: readonly WhyItem[] = [
     icon: Zap,
     title: "원클릭 설치",
     body: "QR 코드와 설치 문자 한 번 클릭이면 끝",
+    bodyMobile: "QR·설치 링크 한 번에",
     hint: "iOS 17.4+ · Android 13+",
+    hintMobile: "iOS 17.4+ · Android 13+",
+    href: bongsimPath("/guide"),
+    linkLabel: "설치 가이드 보기 →",
     circleClass: "bg-pink-100 text-pink-600",
   },
   {
@@ -40,6 +46,9 @@ const WHY_ITEMS: readonly WhyItem[] = [
     title: "품질보장서비스",
     titleMobile: "품질보장",
     body: "제품 결함 시 전액 환불",
+    bodyMobile: "결함 시 전액 환불",
+    href: bongsimPath("/benefits/quality-guarantee"),
+    linkLabel: "자세히 보기 →",
     circleClass: "bg-emerald-100 text-emerald-600",
   },
   {
@@ -142,13 +151,16 @@ type WhyCardMobileProps = {
 
 /** 모바일만: 3열×2행, 아이콘·제목 중앙·동일 높이 */
 function WhyCardMobile({ item, isLoggedIn, onLoginRequired }: WhyCardMobileProps) {
-  const { icon: Icon, title, titleMobile, body, bodyMobile, circleClass, href, external, requiresLogin } = item;
+  const { icon: Icon, title, titleMobile, body, bodyMobile, hintMobile, circleClass, href, external, requiresLogin } =
+    item;
   const displayTitle = titleMobile ?? title;
   const tappable = Boolean(href);
-  const ariaLabel = bodyMobile ? `${displayTitle}. ${bodyMobile}` : `${displayTitle}. ${body}`;
+  const ariaLabel = [displayTitle, bodyMobile, hintMobile].filter(Boolean).join(". ") || `${displayTitle}. ${body}`;
+  const hasMobileSubcopy = Boolean(bodyMobile || hintMobile);
 
   const cardClass = [
-    "relative flex h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 text-center shadow-sm transition",
+    "relative flex flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white p-2.5 text-center shadow-sm transition",
+    hasMobileSubcopy ? "min-h-[7.5rem]" : "h-[5.75rem]",
     tappable
       ? "cursor-pointer hover:border-teal-300 hover:shadow-md active:bg-slate-50/80"
       : "cursor-default",
@@ -168,6 +180,9 @@ function WhyCardMobile({ item, isLoggedIn, onLoginRequired }: WhyCardMobileProps
       <h3 className="w-full px-0.5 text-sm font-semibold leading-tight text-slate-900">{displayTitle}</h3>
       {bodyMobile ? (
         <p className="w-full px-0.5 text-xs leading-snug text-slate-600">{bodyMobile}</p>
+      ) : null}
+      {hintMobile ? (
+        <p className="w-full px-0.5 text-[11px] leading-snug text-gray-500">{hintMobile}</p>
       ) : null}
     </div>
   );
@@ -226,7 +241,7 @@ export function EsimLandingWhySection() {
         </p>
 
         {/* 모바일: 3열 × 2행 */}
-        <div className="mx-auto mt-6 grid max-w-lg auto-rows-[5.75rem] grid-cols-3 gap-2.5 sm:gap-3 md:hidden">
+        <div className="mx-auto mt-6 grid max-w-lg auto-rows-fr grid-cols-3 gap-2.5 sm:gap-3 md:hidden">
           {WHY_ITEMS.map((item) => (
             <WhyCardMobile
               key={item.id}

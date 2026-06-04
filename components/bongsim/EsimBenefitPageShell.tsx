@@ -15,6 +15,8 @@ type Props = {
   noticeItems: string[];
   noticeLink?: { href: string; label: string };
   children?: ReactNode;
+  /** true면 주의사항 블록 위에 children 렌더 (품질보장 Q&A 등) */
+  childrenBeforeNotice?: boolean;
 };
 
 function BulletList({ items }: { items: string[] }) {
@@ -41,6 +43,7 @@ export function EsimBenefitPageShell({
   noticeItems,
   noticeLink,
   children,
+  childrenBeforeNotice = false,
 }: Props) {
   return (
     <div className="bt-esim-benefit-page min-h-screen bg-white">
@@ -77,6 +80,8 @@ export function EsimBenefitPageShell({
           <BulletList items={countriesBullets ?? []} />
         </section>
 
+        {childrenBeforeNotice ? children : null}
+
         {noticeItems.length > 0 ? (
           <div
             className="bt-esim-benefit-notice mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed lg:mt-8 lg:p-5 lg:text-base"
@@ -103,7 +108,7 @@ export function EsimBenefitPageShell({
           </div>
         ) : null}
 
-        {children}
+        {!childrenBeforeNotice ? children : null}
 
         <section
           className="mt-8 rounded-xl border border-slate-200 bg-slate-50 px-5 py-6 text-center lg:mt-10 lg:px-8 lg:py-8"
