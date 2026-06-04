@@ -657,12 +657,8 @@ export async function buildProductPublicDetailRenderModel(
 
   if (verygoodtourPublicRowFactsOnly && verygoodAirtelListing) {
     const fallbackDate =
-      (travelProduct.heroDepartureDate instanceof Date
-        ? travelProduct.heroDepartureDate.toISOString().slice(0, 10)
-        : String(travelProduct.heroDepartureDate ?? '').slice(0, 10)) ||
-      (departures[0]?.departureDate instanceof Date
-        ? departures[0].departureDate.toISOString().slice(0, 10)
-        : String(departures[0]?.departureDate ?? '').slice(0, 10)) ||
+      (departures[0]?.departureDate != null ? toDepartureDateYmd(departures[0].departureDate) : '') ||
+      mergedPriceRows[0]?.date?.slice(0, 10) ||
       new Date().toISOString().slice(0, 10)
     priceRowsForPublic = backfillVerygoodAirtelPublicPriceRows(
       priceRowsForPublic,
