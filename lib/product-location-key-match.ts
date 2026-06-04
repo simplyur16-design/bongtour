@@ -16,6 +16,7 @@ import {
   matchTokensForLeaf,
 } from '@/lib/overseas-location-tree'
 import { inferBrowseGeoFromDestinationText } from '@/lib/register-infer-browse-geo'
+import { mapMatchToOverseasDisplayBucket } from '@/lib/overseas-display-buckets'
 import { collectLeafTerms, continentTabIdForMatch } from '@/lib/unified-location-tree'
 
 export type ProductLocationKeyMatchInput = {
@@ -192,17 +193,36 @@ function compareOverseasMatchCandidates(
  * 단일 haystack 매칭보다 안전한 1순위: 제목·목적지를 쪼갠 blob마다 `matchProductToOverseasNode`를 돌려
  * 가장 그럴듯한 leaf/country를 고른다 (`inferBrowseGeoFromDestinationText`와 동일 전략).
  */
+/** 목적지 메타만으로는 매칭이 약할 때(호텔/특전 한 줄 등) 일정·본문 줄을 보조 blob으로 쓴다. */
+function supplementalBlobsFromBodyText(body: string | null | undefined): string[] {
+  const t = trimHaystackBody(body)
+  if (!t) return []
+  const lines = t
+    .split(/\n+/)
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter((line) => line.length >= 4 && /[가-힣A-Za-z]/.test(line))
+  const paras = t
+    .split(/\n{2,}/)
+    .map((p) => p.replace(/\s+/g, ' ').trim())
+    .filter((p) => p.length >= 8)
+  return uniqueNonEmptyStrings([...lines, ...paras]).slice(0, 48)
+}
+
 function bestOverseasMatchFromDestinationBlobs(
   input: ProductLocationKeyMatchInput,
+  bodyText?: string | null,
 ): MatchProductToOverseasNodeResult | null {
   const pd = (input.primaryDestination ?? '').trim()
   const dr = (input.destinationRaw ?? '').trim()
   const t = (input.title ?? '').trim()
-  if (!pd && !dr && !t) return null
+  if (!pd && !dr && !t && !bodyText?.trim()) return null
 
-  const sourceForIndex = [pd, dr, t].filter(Boolean).join(' ')
+  const sourceForIndex = [pd, dr, t, bodyText ?? ''].filter(Boolean).join(' ')
   const blobs = narrowBlobsByPrimaryHangulHint(
-    candidateDestinationBlobsForMatch({ primaryDestination: pd, destinationRaw: dr, title: t }),
+    uniqueNonEmptyStrings([
+      ...candidateDestinationBlobsForMatch({ primaryDestination: pd, destinationRaw: dr, title: t }),
+      ...supplementalBlobsFromBodyText(bodyText),
+    ]),
     input,
   )
   let best: MatchProductToOverseasNodeResult | null = null
@@ -337,7 +357,7 @@ export function deriveProductLocationKeyFieldsForPrisma(
 
     if (!m) {
       m =
-        bestOverseasMatchFromDestinationBlobs(input) ?? matchProductToOverseasNode(matchInput)
+        bestOverseasMatchFromDestinationBlobs(input, body) ?? matchProductToOverseasNode(matchInput)
 
       if (!m && hasStructuredDestination && body) {
         m = matchProductToOverseasNode({
@@ -345,6 +365,22 @@ export function deriveProductLocationKeyFieldsForPrisma(
           destinationRaw:
             [String(input.destinationRaw ?? '').trim(), body].filter(Boolean).join(' \n ') || body,
         })
+      }
+    }
+
+    if (m && body && mapMatchToOverseasDisplayBucket(m) === 'other') {
+      const bodyOnly = bestOverseasMatchFromDestinationBlobs(
+        {
+          ...input,
+          primaryDestination: null,
+          destinationRaw: null,
+          destination: null,
+          title: '',
+        },
+        body,
+      )
+      if (bodyOnly && mapMatchToOverseasDisplayBucket(bodyOnly) !== 'other') {
+        m = bodyOnly
       }
     }
 
