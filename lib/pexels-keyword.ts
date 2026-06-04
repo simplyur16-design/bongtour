@@ -28,6 +28,26 @@ const DESTINATION_MAP: Record<string, string> = {
   교토: 'Kyoto',
   오사카: 'Osaka',
   후쿠오카: 'Fukuoka',
+  나고야: 'Nagoya',
+  다카야마: 'Takayama',
+  마츠야마: 'Matsuyama',
+  유후인: 'Yufuin',
+  벳푸: 'Beppu',
+  히로시마: 'Hiroshima',
+  가고시마: 'Kagoshima',
+  삿포로: 'Sapporo',
+  니가타: 'Niigata',
+  칸자와: 'Kanazawa',
+  나라: 'Nara',
+  고베: 'Kobe',
+  요코하마: 'Yokohama',
+  하코다테: 'Hakodate',
+  오타루: 'Otaru',
+  센다이: 'Sendai',
+  아그라: 'Agra',
+  자이푸르: 'Jaipur',
+  뭄바이: 'Mumbai',
+  바라나시: 'Varanasi',
   오키나와: 'Okinawa',
   제주: 'Jeju',
   제주도: 'Jeju',
@@ -121,6 +141,28 @@ const POI_KO_TO_EN: Record<string, string> = {
   칸엘칼릴리: 'Khan El-khalili',
   '칸 엘 칼릴리': 'Khan El-khalili',
   오사카성: 'Osaka Castle',
+  나고야성: 'Nagoya Castle',
+  타지마할: 'Taj Mahal',
+  아그라성: 'Agra Fort',
+  '아그라 성': 'Agra Fort',
+  야리가다케: 'Mount Yari',
+  신호다카온천: 'Shinhotaka Onsen',
+  신호다카: 'Shinhotaka Onsen',
+  히라유온천: 'Hirayu Onsen',
+  카미코치: 'Kamikochi',
+  도고온천: 'Dogo Onsen',
+  마츠야마성: 'Matsuyama Castle',
+  다자이후텐만구: 'Dazaifu Tenmangu',
+  다자이후: 'Dazaifu Tenmangu',
+  유후인온천: 'Yufuin Onsen',
+  벳푸온천: 'Beppu Onsen',
+  긴잔지: 'Kinkaku-ji',
+  금각사: 'Kinkaku-ji',
+  청수사: 'Kiyomizu-dera',
+  기요미즈데라: 'Kiyomizu-dera',
+  후시미이나리: 'Fushimi Inari',
+  이타도신사: 'Itsukushima Shrine',
+  미야지마: 'Itsukushima Shrine',
   도톤보리: 'Dotonbori',
   도톤: 'Dotonbori',
   시라카와고: 'Shirakawa-go',
@@ -289,9 +331,14 @@ export function mapKoreanPoiSegment(segment: string): string {
 
 /** routeText·일정 본문에서 매핑 가능한 한글 POI를 긴 키 우선·중복 없이 모두 수집 */
 export function findAllMappedKoreanPoisInText(text: string): string[] {
+  return findMappedKoreanPoisInTextByMentionOrder(text).map((x) => x.en)
+}
+
+/** 본문 등장 순서대로 매핑된 한글 POI → 영문 (일정 1순위 명소 선택용) */
+export function findMappedKoreanPoisInTextByMentionOrder(text: string): Array<{ en: string; idx: number }> {
   const t = String(text ?? '').trim()
   if (!t) return []
-  const out: string[] = []
+  const out: Array<{ en: string; idx: number }> = []
   const seen = new Set<string>()
   for (const ko of POI_KO_KEYS_SORTED) {
     if (!t.includes(ko)) continue
@@ -300,13 +347,27 @@ export function findAllMappedKoreanPoisInText(text: string): string[] {
     const key = en.toLowerCase()
     if (seen.has(key)) continue
     seen.add(key)
-    out.push(en)
+    out.push({ en, idx: t.indexOf(ko) })
   }
+  out.sort((a, b) => a.idx - b.idx)
   return out
 }
 
 function normalize(s: string): string {
   return s.trim().replace(/\s+/g, ' ')
+}
+
+/** `DESTINATION_MAP` 단일 단어 도시·국가명만 — 복합 지명(타지마할·Palas de Rei 등)은 false */
+export function isKnownDestinationCityEnglishKeyword(kw: string): boolean {
+  const words = kw.trim().split(/\s+/).filter(Boolean)
+  if (words.length !== 1) return false
+  const k = normalizeSemanticPoiKey(kw)
+  if (!k) return false
+  for (const en of Object.values(DESTINATION_MAP)) {
+    if (en.trim().split(/\s+/).filter(Boolean).length !== 1) continue
+    if (normalizeSemanticPoiKey(en) === k) return true
+  }
+  return false
 }
 
 export function mapDestination(destination: string | null): string {

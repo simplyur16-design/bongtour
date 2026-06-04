@@ -92,7 +92,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
     assert.equal(out[0]!.imageKeyword2, 'Shinhotaka Onsen')
   })
 
-  it('routeText 한글 둘째 세그먼트 — LLM imageKeyword2 없으면 null', () => {
+  it('routeText 한글 둘째 세그먼트 — POI 매핑으로 2순위 추론', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
         {
@@ -107,7 +107,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
       japanOpts,
     )
     assert.equal(out[0]!.imageKeyword, 'Yarigatake')
-    assert.equal(out[0]!.imageKeyword2, null)
+    assert.equal(out[0]!.imageKeyword2, 'Shinhotaka Onsen')
   })
 
   it('routeText 타지마할 - 아그라성 영문 → 2순위 Agra Fort', () => {
@@ -128,7 +128,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
     assert.equal(out[0]!.imageKeyword2, 'Agra Fort')
   })
 
-  it('1순위 LLM Takayama — 매핑 없이 통과', () => {
+  it('1순위 LLM Takayama — routeText 2번째 명소 야리가다케', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
         {
@@ -143,7 +143,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
       japanOpts,
     )
     assert.equal(out[0]!.imageKeyword, 'Takayama')
-    assert.equal(out[0]!.imageKeyword2, null)
+    assert.equal(out[0]!.imageKeyword2, 'Mount Yari')
   })
 
   it('규슈 LLM Fukuoka — 그대로 통과', () => {
@@ -254,7 +254,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
     assert.equal(out[0]!.imageKeyword2, 'Dazaifu Tenmangu')
   })
 
-  it('LLM·routeText 둘 다 없으면 null', () => {
+  it('한글 routeText 2번째 도시 — 2순위 유후인', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
         {
@@ -269,7 +269,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
       japanOpts,
     )
     assert.equal(out[0]!.imageKeyword, 'Fukuoka')
-    assert.equal(out[0]!.imageKeyword2, null)
+    assert.equal(out[0]!.imageKeyword2, 'Yufuin')
   })
 
   it('2순위 routeText/LLM 환각(파리/자금성) 차단 — 1순위는 유지', () => {
@@ -409,7 +409,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — 인도 일정', () => {
 })
 
 describe('applyHanatourScheduleImageKeywordsToRows — 부산 출발', () => {
-  it('Busan LLM은 국내허브로 거부, routeText 영문 없으면 빈값', () => {
+  it('Busan LLM은 국내허브로 거부, routeText 해외 도시(마츠야마)로 폴백', () => {
     const out = applyHanatourScheduleImageKeywordsToRows([
       {
         day: 1,
@@ -420,7 +420,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — 부산 출발', () => {
         imageKeyword2: null,
       },
     ])
-    assert.equal(out[0]!.imageKeyword, '')
+    assert.equal(out[0]!.imageKeyword, 'Matsuyama')
     assert.notEqual(out[0]!.imageKeyword, 'Busan')
   })
 

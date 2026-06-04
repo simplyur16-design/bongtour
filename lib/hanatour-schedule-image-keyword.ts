@@ -7,7 +7,14 @@ import {
   inferEnglishPlaceKeywordFromDayContent,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
-import { mapDestination, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
+import {
+  findAllMappedKoreanPoisInText,
+  findMappedKoreanPoisInTextByMentionOrder,
+  isKnownDestinationCityEnglishKeyword,
+  mapDestination,
+  mapKoreanPoiSegment,
+  normalizeSemanticPoiKey,
+} from '@/lib/pexels-keyword'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 export type HanatourScheduleImageKeywordOpts = {
@@ -181,6 +188,50 @@ function resolveRouteTextSecondPlace(routeText: string | null | undefined): stri
   return extractLatinEnglishFromRouteSegment(segs[1]!) || englishFromKoreanRouteSegment(segs[1]!)
 }
 
+function pushUniqueHanatourLandmark(
+  list: string[],
+  raw: string,
+  productDestination: string | null | undefined,
+): void {
+  const kw = tryAcceptHanatourLlmImageKeyword(raw, productDestination)
+  if (!kw) return
+  const nk = normKey(kw)
+  if (list.some((x) => normKey(x) === nk)) return
+  list.push(kw)
+}
+
+/** routeText 전 구간 + 본문 한글 POI — 이동 순서·중복 제거 */
+function collectHanatourLandmarkKeywords(
+  row: HanatourScheduleImageKeywordRow,
+  productDestination: string | null | undefined,
+): string[] {
+  const out: string[] = []
+  for (const seg of routeTextSegments(row.routeText)) {
+    if (isHanatourDomesticHubToken(seg)) continue
+    const kw = segmentToAcceptedHanatourKeyword(seg, productDestination)
+    if (kw) pushUniqueHanatourLandmark(out, kw, productDestination)
+  }
+  const haystack = buildHanatourDayHaystack(row)
+  for (const en of findAllMappedKoreanPoisInText(haystack)) {
+    pushUniqueHanatourLandmark(out, en, productDestination)
+  }
+  return out
+}
+
+/** 본문·제목에 매핑된 명소가 있으면 도시명만인 LLM 1순위보다 우선(본문 등장 순) */
+function preferPoiOverBareCityLlm(
+  row: HanatourScheduleImageKeywordRow,
+  acceptedCity: string,
+  productDestination: string | null | undefined,
+): string {
+  const bodyHaystack = [row.title, row.description].filter(Boolean).join('\n')
+  for (const { en } of findMappedKoreanPoisInTextByMentionOrder(bodyHaystack)) {
+    const kw = tryAcceptHanatourLlmImageKeyword(en, productDestination)
+    if (kw && normKey(kw) !== normKey(acceptedCity)) return kw
+  }
+  return acceptedCity
+}
+
 function tryAcceptHanatourLlmImageKeyword(
   raw: string | null | undefined,
   productDestination: string | null | undefined,
@@ -266,9 +317,18 @@ function productDestinationToAcceptedKeyword(
   return tryAcceptHanatourLlmImageKeyword(en, productDestination)
 }
 
-/** 1일차·마지막 일차 — 여행 목적지(대표 destination)·첫/마지막 방문 해외 도시(영문) */
-function isHanatourDestinationCityDay(day: number, maxDay: number): boolean {
-  return maxDay >= 1 && (day === 1 || day === maxDay)
+/**
+ * 1일차: 첫 해외 도시 키워드 일차.
+ * 마지막 일차: 귀국·공항 동선이 본문에 있을 때만(순수 관광 마지막 일은 제외).
+ */
+function isHanatourDestinationCityDay(day: number, maxDay: number, haystack: string): boolean {
+  if (maxDay < 1) return false
+  if (day === 1) return true
+  if (day !== maxDay || maxDay < 2) return false
+  const j = haystack.slice(0, 12_000)
+  const hasHub = /(?:인천|ICN|김포|GMP|부산|PUS|대구|TAE|청주|CJJ|김해)(?:\s*국제)?\s*공항?/u.test(j)
+  const hasFlightCue = /(?:출발|도착|귀국|탑승|도착)/u.test(j)
+  return hasHub && hasFlightCue
 }
 
 function resolveHanatourDestinationCityDayKeyword(
@@ -326,16 +386,35 @@ function resolveHanatourPrimaryKeyword(
   productDestination: string | null | undefined,
   allRows: HanatourScheduleImageKeywordRow[],
 ): string {
+  const haystack = buildHanatourDayHaystack(row)
   const accepted = tryAcceptHanatourLlmImageKeyword(row.imageKeyword, productDestination)
-  if (accepted) return accepted
+  if (accepted) {
+    const isHubOrFlight =
+      isHanatourDestinationCityDay(day, maxDay, haystack) ||
+      dayKind === 'movement' ||
+      dayKind === 'return_home'
+    if (!isHubOrFlight && isKnownDestinationCityEnglishKeyword(accepted)) {
+      const fromPoi = preferPoiOverBareCityLlm(row, accepted, productDestination)
+      if (fromPoi !== accepted) return fromPoi
+    }
+    return accepted
+  }
 
-  if (isHanatourDestinationCityDay(day, maxDay)) {
+  if (isHanatourDestinationCityDay(day, maxDay, haystack)) {
     return resolveHanatourDestinationCityDayKeyword(row, day, maxDay, productDestination, allRows)
   }
 
   if (dayKind === 'movement' || dayKind === 'return_home') {
     return resolveHanatourMovementDayKeyword(row, day, maxDay, productDestination, allRows)
   }
+
+  const landmarks = collectHanatourLandmarkKeywords(row, productDestination)
+  const fromRouteLast = pickForeignPlaceFromRouteText(row.routeText, true, productDestination)
+  if (fromRouteLast && !isKnownDestinationCityEnglishKeyword(fromRouteLast)) return fromRouteLast
+
+  const fromLandmark =
+    landmarks.find((kw) => !isKnownDestinationCityEnglishKeyword(kw)) ?? landmarks[0]
+  if (fromLandmark) return fromLandmark
 
   const fromRoute = pickForeignPlaceFromRouteText(row.routeText, false, productDestination)
   if (fromRoute) return fromRoute
@@ -359,7 +438,31 @@ function resolveHanatourSecondaryKeyword(
   const fromRoute = fromRouteRaw
     ? tryAcceptHanatourLlmImageKeyword(fromRouteRaw, productDestination)
     : ''
+  if (
+    fromRoute &&
+    normKey(fromRoute) !== normKey(primary) &&
+    !isKnownDestinationCityEnglishKeyword(fromRoute)
+  ) {
+    return fromRoute
+  }
+
+  const bodyHaystack = [row.title, row.description].filter(Boolean).join('\n')
+  for (const { en } of findMappedKoreanPoisInTextByMentionOrder(bodyHaystack)) {
+    const kw = tryAcceptHanatourLlmImageKeyword(en, productDestination)
+    if (kw && normKey(kw) !== normKey(primary)) return kw
+  }
+
   if (fromRoute && normKey(fromRoute) !== normKey(primary)) return fromRoute
+
+  const landmarkCandidates = collectHanatourLandmarkKeywords(row, productDestination)
+  for (const kw of landmarkCandidates) {
+    if (normKey(kw) === normKey(primary)) continue
+    if (!isKnownDestinationCityEnglishKeyword(kw)) return kw
+  }
+  if (!isKnownDestinationCityEnglishKeyword(primary)) return null
+  for (const kw of landmarkCandidates) {
+    if (normKey(kw) !== normKey(primary)) return kw
+  }
 
   return null
 }
