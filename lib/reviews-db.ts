@@ -188,7 +188,7 @@ async function listOverseasPublishedReviewCardsWithOrder(limit = 80): Promise<Re
 }
 
 /**
- * 메인 홈 — 패키지(그리드) vs 모임여행(carousel) 후기 분리.
+ * 메인 홈 — 패키지 vs 모임여행 후기 분리(각 2열 그리드).
  * 패키지: customer_type 가족·부부·혼자·친구·부모님 또는 display_order 51~150.
  * 모임: customer_type 모임·산악회·시니어 등 또는 display_order 1~50.
  */

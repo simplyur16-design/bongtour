@@ -1,4 +1,3 @@
-import HomeReviewsCarouselClient from '@/app/components/home/HomeReviewsCarouselClient'
 import HomeReviewsGridClient from '@/app/components/home/HomeReviewsGridClient'
 import { getCachedOverseasHomeReviewSections } from '@/lib/home-page-data-cached'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
@@ -36,7 +35,7 @@ export default async function CustomerReviewsSection() {
               단체·협회·산악회·시니어·동문 모임 등
             </p>
             <div className="mt-6">
-              <HomeReviewsCarouselClient reviews={groupReviews} />
+              <HomeReviewsGridClient reviews={groupReviews} />
             </div>
           </div>
         ) : null}

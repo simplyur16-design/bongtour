@@ -44,7 +44,7 @@ export default function HomeReviewsGridClient({ reviews }: Props) {
   if (safe.length === 0) return null
 
   return (
-    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" role="list">
+    <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3" role="list">
       {safe.map((r) => (
         <li key={r.id} className="min-h-0">
           <HomeReviewGridCard review={r} />

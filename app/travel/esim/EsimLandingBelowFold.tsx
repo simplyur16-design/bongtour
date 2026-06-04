@@ -14,7 +14,7 @@ export default function EsimLandingBelowFold() {
           >
             여행자들의 실제 후기
           </h2>
-          <div className="mx-auto mt-8 grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-3 lg:mt-10">
+          <div className="mx-auto mt-8 grid max-w-5xl grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 lg:mt-10">
             <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <p className="text-amber-400" aria-hidden>
                 ★★★★★

@@ -79,7 +79,7 @@ export default function PrivateGroupCustomerReviewSection({
               intervalMs={OVERSEAS_REVIEWS_ROTATION_MS}
             />
           ) : (
-            <ul className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
               {publishedReviews.map((review) => (
                 <li key={review.id}>
                   <TravelReviewCard review={review} />

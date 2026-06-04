@@ -36,7 +36,7 @@ export default function OverseasReviewsRotatingGrid({ reviews, visibleCount, int
 
   return (
     <ul
-      className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
+      className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3"
       aria-live="polite"
       aria-atomic="true"
     >

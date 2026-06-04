@@ -1,15 +1,14 @@
-import GroupMeetingReviewsFlipGrid from '@/app/components/travel/reviews/GroupMeetingReviewsFlipGrid'
+import HomeReviewsGridClient from '@/app/components/home/HomeReviewsGridClient'
 import type { GroupMeetingReviewCardModel } from '@/lib/group-meeting-reviews-csv'
+import { groupMeetingReviewsToCardModels } from '@/lib/group-meeting-review-to-card'
 
 type Props = {
   reviews: GroupMeetingReviewCardModel[]
 }
 
-/**
- * CSV 기반 모임·단체 후기 — 무한 가로 롤링(호버 시 정지, reduced-motion 시 정적 그리드).
- */
+/** CSV/DB 모임·단체 후기 — 패키지 후기와 동일한 정적 2열(모바일)·3열(PC) 카드 */
 export default function GroupMeetingReviewsSection({ reviews }: Props) {
-  const n = reviews.length
+  const cards = groupMeetingReviewsToCardModels(reviews)
 
   return (
     <section
@@ -24,15 +23,14 @@ export default function GroupMeetingReviewsSection({ reviews }: Props) {
         >
           모임여행 후기
         </h2>
-        <p className="mx-auto mt-2 max-w-2xl text-center text-xs font-medium text-bt-muted sm:text-sm">
-          공개 후기 {n}건
-        </p>
         <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-relaxed text-bt-muted">
           실제 모임·단체 고객들이 남긴 여행 후기입니다.
         </p>
 
-        {n > 0 ? (
-          <GroupMeetingReviewsFlipGrid reviews={reviews} />
+        {cards.length > 0 ? (
+          <div className="mt-10">
+            <HomeReviewsGridClient reviews={cards} />
+          </div>
         ) : (
           <div className="mt-10 rounded-2xl border border-dashed border-bt-border bg-white/60 px-6 py-12 text-center">
             <p className="text-sm text-bt-muted">후기 데이터를 불러오지 못했습니다.</p>

@@ -1,9 +1,6 @@
 /**
- * 메인 홈 — 패키지 vs 모임여행 후기 분류 (customer_type 우선, display_order 보조).
+ * 메인 홈 — 패키지 vs 모임여행 후기 분류 (customer_type 우선, display_order 보조). 둘 다 2열 그리드.
  */
-
-/** 모임여행 후기 carousel 자동 전환(ms) */
-export const HOME_REVIEW_CAROUSEL_INTERVAL_MS = 6000
 
 const GROUP_CUSTOMER_TYPE_RE =
   /모임|산악회|시니어|최고경영|협회|동문|원우|단체|기업|워크숍|소규모|우리여행|친목|사업자|상인회|경영자|동호회|산행|친목여행/i
