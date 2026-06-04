@@ -698,15 +698,9 @@ function AirHotelCountryGroupedList({
             >
               {countryKey}
             </h2>
-            <ProductResultsMobileAndDesktopRow
-              ariaLabel={`${countryKey} 상품`}
-              mobileNodes={buildProductResultRowNodes(rowVisible, formatWon, seasonalPickIds, {
-                compact: true,
-                liClassName: 'min-w-0',
-              })}
-              desktopUlClassName={productCardGridClassDefault}
-              desktopNodes={rowVisible.map((item) => (
-                <li key={item.id}>
+            <ul className={countryProductRowClass} role="list" aria-label={`${countryKey} 상품`}>
+              {rowVisible.map((item) => (
+                <li key={item.id} className={overseasBucketRowLiClassDefault}>
                   <ProductResultCard
                     item={item}
                     formatWon={formatWon}
@@ -714,7 +708,7 @@ function AirHotelCountryGroupedList({
                   />
                 </li>
               ))}
-            />
+            </ul>
           </section>
         )
       })}
