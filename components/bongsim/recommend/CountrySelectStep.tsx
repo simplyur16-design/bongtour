@@ -5,7 +5,7 @@ import { COUNTRY_PICKER_GRID_CLASS, CountryPickerGrid } from "@/components/bongs
 import { CountryNameMultiline } from "@/lib/bongsim/country-name-display";
 import type { CountryOption } from "@/lib/bongsim/types";
 import { resolveBongsimFlagImageUrlOrFallback } from "@/lib/bongsim-flag-image-url";
-import { isRecommendPopularEuropeRegion } from "@/lib/bongsim/recommend/popular-destinations";
+import { bongsimFlagIsoForDestination } from "@/lib/bongsim/recommend/popular-destinations";
 
 export type CountrySelectStepProps = {
   selectedCodes: string[];
@@ -95,7 +95,7 @@ export function CountrySelectStep({
               <div className={COUNTRY_PICKER_GRID_CLASS}>
                 {popularCountries.map((country) => {
                   const isSelected = selectedCodes.includes(country.code);
-                  const useRegionEmoji = isRecommendPopularEuropeRegion(country.code);
+                  const flagIso = bongsimFlagIsoForDestination(country.code);
                   return (
                     <button
                       key={country.code}
@@ -104,25 +104,21 @@ export function CountrySelectStep({
                       className="flex w-full min-w-0 flex-col items-center px-1 py-2"
                     >
                       <div
-                        className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full transition hover:scale-105 ${
+                        className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-full transition hover:scale-105 ${
                           isSelected ? "shadow-lg ring-2 ring-blue-400" : "shadow-lg ring-1 ring-gray-200"
-                        } ${useRegionEmoji ? "bg-slate-100 text-2xl" : ""}`}
+                        }`}
                       >
-                        {useRegionEmoji ? (
-                          <span aria-hidden>{country.flag}</span>
-                        ) : (
-                          <SafeImage
-                            src={resolveBongsimFlagImageUrlOrFallback(country.code)}
-                            alt=""
-                            width={48}
-                            height={48}
-                            quality={90}
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                            className="h-full w-full object-cover"
-                            sizes="48px"
-                          />
-                        )}
+                        <SafeImage
+                          src={resolveBongsimFlagImageUrlOrFallback(flagIso)}
+                          alt=""
+                          width={48}
+                          height={48}
+                          quality={90}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          className="h-full w-full object-cover"
+                          sizes="48px"
+                        />
                       </div>
                       <CountryNameMultiline
                         nameKr={country.nameKr}

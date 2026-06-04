@@ -11,6 +11,7 @@ import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import { REGION_PACK_OPTIONS } from "@/lib/bongsim/region-packs";
+import { bongsimFlagIsoForDestination } from "@/lib/bongsim/recommend/popular-destinations";
 import { bongsimPath, esimHasFreeData, type BongsimRecommendCheckoutLine } from "@/lib/bongsim/constants";
 import {
   clearRecommendCheckoutDispatched,
@@ -43,7 +44,7 @@ function countryHeroUrl(code: string, heroMap: Record<string, string>): string |
 }
 
 function flagCdnUrl(code: string): string {
-  return resolveBongsimFlagImageUrlOrFallback(code);
+  return resolveBongsimFlagImageUrlOrFallback(bongsimFlagIsoForDestination(code));
 }
 
 function flagCdnBlurBg(code: string): string {
