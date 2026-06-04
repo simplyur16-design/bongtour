@@ -1,10 +1,7 @@
 import Link from 'next/link'
 import OverseasReviewsRotatingGrid from '@/app/components/travel/reviews/OverseasReviewsRotatingGrid'
-import TravelReviewCard from '@/app/components/travel/reviews/TravelReviewCard'
 /** 섹션 카피 SSOT: `lib/reviews/overseas-reviews-section-copy.ts` */
 import {
-  OVERSEAS_LANDING_FEATURED_REVIEWS_LIMIT,
-  OVERSEAS_REVIEWS_ROTATION_MS,
   OVERSEAS_REVIEWS_SECTION_COPY,
   overseasReviewsPublishedMetaLabel,
 } from '@/lib/reviews/overseas-reviews-section-copy'
@@ -31,7 +28,7 @@ type Props = {
 }
 
 /**
- * 해외여행 랜딩 하단 — 공개 후기만. 6장씩 보이며 전체가 순환(21건 등).
+ * 해외여행 랜딩 하단 — 공개 후기. 모바일 8건·10분 로테이션, PC 전체 그리드.
  */
 export default function PrivateGroupCustomerReviewSection({
   publishedReviews,
@@ -44,7 +41,6 @@ export default function PrivateGroupCustomerReviewSection({
   centerIntro = false,
 }: Props) {
   const hasCards = publishedReviews.length > 0
-  const useRotation = publishedReviews.length > OVERSEAS_LANDING_FEATURED_REVIEWS_LIMIT
   const introAlign = centerIntro ? 'text-center' : ''
   const descMax = centerIntro ? 'mx-auto max-w-2xl' : 'max-w-2xl'
 
@@ -72,21 +68,7 @@ export default function PrivateGroupCustomerReviewSection({
         </p>
 
         {hasCards ? (
-          useRotation ? (
-            <OverseasReviewsRotatingGrid
-              reviews={publishedReviews}
-              visibleCount={OVERSEAS_LANDING_FEATURED_REVIEWS_LIMIT}
-              intervalMs={OVERSEAS_REVIEWS_ROTATION_MS}
-            />
-          ) : (
-            <ul className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
-              {publishedReviews.map((review) => (
-                <li key={review.id}>
-                  <TravelReviewCard review={review} />
-                </li>
-              ))}
-            </ul>
-          )
+          <OverseasReviewsRotatingGrid reviews={publishedReviews} />
         ) : (
           <div className="mt-10 rounded-2xl border border-dashed border-bt-border bg-white/60 px-6 py-12 text-center">
             <p className="text-sm text-bt-muted">

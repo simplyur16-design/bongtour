@@ -3,14 +3,13 @@
  *
  * 수정 위치 안내
  * - 타이틀·설명: 아래 `OVERSEAS_REVIEWS_SECTION_COPY` 만 편집 (메타는 실제 published 건수로 동적 생성)
- * - 순환 그리드: `listOverseasPublishedReviewCards` 로 최대 `OVERSEAS_LANDING_PUBLISHED_REVIEWS_LIMIT` 건 로드 후
- *   `OVERSEAS_LANDING_FEATURED_REVIEWS_LIMIT` 장씩 `OVERSEAS_REVIEWS_ROTATION_MS` 마다 로테이션
+ * - 모바일 노출: `lib/reviews-mobile-display.ts` — 8건·10분 로테이션
  * - UI: `PrivateGroupCustomerReviewSection` + `OverseasReviewsRotatingGrid`
  */
-/** 한 번에 보이는 카드 수(21건 전체를 이 개수씩 돌려 가며 표시) */
+/** @deprecated 모바일 로테이션은 `MOBILE_REVIEW_VISIBLE_MAX` 사용 */
 export const OVERSEAS_LANDING_FEATURED_REVIEWS_LIMIT = 6
 
-/** 후기 카드 묶음이 바뀌는 간격(ms) */
+/** @deprecated 모바일 로테이션은 `MOBILE_REVIEW_ROTATE_INTERVAL_MS` 사용 */
 export const OVERSEAS_REVIEWS_ROTATION_MS = 6000
 
 /** 전체 published 목록 조회 시 기본 상한(더보기·별도 연결용) */

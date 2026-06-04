@@ -1,50 +1,38 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
 import TravelReviewCard from '@/app/components/travel/reviews/TravelReviewCard'
+import { useMobileReviewRotation } from '@/app/components/travel/reviews/useMobileReviewRotation'
 import type { ReviewCardModel } from '@/lib/reviews-types'
 
 type Props = {
   reviews: ReviewCardModel[]
-  visibleCount: number
-  intervalMs: number
 }
 
-/** 공개 후기 N건 중 visibleCount 장씩 순환 표시 */
-export default function OverseasReviewsRotatingGrid({ reviews, visibleCount, intervalMs }: Props) {
-  const n = reviews.length
-  const [offset, setOffset] = useState(0)
+/** 공개 후기 — 모바일 8건·10분 로테이션, md+ 전체 2~3열 그리드 */
+export default function OverseasReviewsRotatingGrid({ reviews }: Props) {
+  const safe = useMemo(
+    () => reviews.filter((r) => r.id && r.title && r.excerpt),
+    [reviews],
+  )
+  const { mobileReviews } = useMobileReviewRotation(safe)
 
-  useEffect(() => {
-    if (n <= visibleCount) return
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return
-    }
-    const id = window.setInterval(() => {
-      setOffset((o) => (o + 1) % n)
-    }, intervalMs)
-    return () => window.clearInterval(id)
-  }, [n, visibleCount, intervalMs])
+  if (safe.length === 0) return null
 
-  if (n === 0) return null
-
-  const take = Math.min(visibleCount, n)
-  const slice: ReviewCardModel[] = []
-  for (let i = 0; i < take; i++) {
-    slice.push(reviews[(offset + i) % n]!)
-  }
-
-  return (
-    <ul
-      className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3"
-      aria-live="polite"
-      aria-atomic="true"
-    >
-      {slice.map((review) => (
+  const renderList = (list: ReviewCardModel[], className: string, live?: boolean) => (
+    <ul className={className} role="list" {...(live ? { 'aria-live': 'polite' as const } : {})}>
+      {list.map((review) => (
         <li key={review.id}>
           <TravelReviewCard review={review} />
         </li>
       ))}
     </ul>
+  )
+
+  return (
+    <>
+      {renderList(mobileReviews, 'mt-10 grid grid-cols-2 gap-3 md:hidden', true)}
+      {renderList(safe, 'mt-10 hidden gap-3 md:grid md:grid-cols-2 md:gap-5 xl:grid-cols-3')}
+    </>
   )
 }

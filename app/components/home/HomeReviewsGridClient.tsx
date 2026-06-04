@@ -1,6 +1,7 @@
 'use client'
 
 import SafeImage from '@/app/components/SafeImage'
+import { useMobileReviewRotation } from '@/app/components/travel/reviews/useMobileReviewRotation'
 import { useMemo } from 'react'
 import type { ReviewCardModel } from '@/lib/reviews-types'
 
@@ -37,19 +38,27 @@ export function HomeReviewGridCard({ review: r }: { review: ReviewCardModel }) {
   )
 }
 
-/** 메인 고객 후기 — 2~3열 그리드로 다수 동시 노출 */
+/** 메인·모임여행 후기 — 모바일 8건·10분 로테이션, md+ 전체 그리드 */
 export default function HomeReviewsGridClient({ reviews }: Props) {
   const safe = useMemo(() => reviews.filter((r) => r.id && r.title && r.excerpt), [reviews])
+  const { mobileReviews } = useMobileReviewRotation(safe)
 
   if (safe.length === 0) return null
 
-  return (
-    <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3" role="list">
-      {safe.map((r) => (
+  const renderList = (list: ReviewCardModel[], className: string) => (
+    <ul className={className} role="list">
+      {list.map((r) => (
         <li key={r.id} className="min-h-0">
           <HomeReviewGridCard review={r} />
         </li>
       ))}
     </ul>
+  )
+
+  return (
+    <>
+      {renderList(mobileReviews, 'grid grid-cols-2 gap-3 md:hidden')}
+      {renderList(safe, 'hidden gap-3 md:grid md:grid-cols-2 lg:grid-cols-3 lg:gap-4')}
+    </>
   )
 }
