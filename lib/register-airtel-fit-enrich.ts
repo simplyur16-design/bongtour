@@ -69,12 +69,42 @@ function mergeParsedScheduleWithFitDays(
   fitDays: ReturnType<typeof fitGeminiResponseToKeywordDays>,
 ): { schedule: RegisterScheduleDay[]; dayKeywords: Record<number, string> } {
   const existing = registerRowsToScheduleJsonRows(parsed.schedule ?? [])
-  const { rows, dayKeywords } = mergeScheduleWithFitKeywords(
-    existing,
-    fitDays,
-    fallbackCtxFromRegisterParsed(parsed),
-  )
-  return { schedule: scheduleJsonRowsToRegisterRows(rows), dayKeywords }
+  const existingByDay = new Map(existing.map((r) => [Math.floor(Number(r.day)), r]))
+  const fallbackCtx = fallbackCtxFromRegisterParsed(parsed)
+  /** 자유여행 SSOT — 예시 일정 일차만; LLM 일정의 통일 imageKeyword 잔존 방지 */
+  const { rows, dayKeywords } = mergeScheduleWithFitKeywords([], fitDays, fallbackCtx)
+  const merged = rows.map((row) => {
+    const day = Math.floor(Number(row.day))
+    const prev = existingByDay.get(day)
+    if (!prev) return row
+    return {
+      ...prev,
+      day: row.day,
+      title: row.title ?? prev.title,
+      description: row.description ?? prev.description,
+      imageKeyword: row.imageKeyword,
+      imageKeyword2: row.imageKeyword2 ?? prev.imageKeyword2,
+    }
+  })
+  return { schedule: scheduleJsonRowsToRegisterRows(merged), dayKeywords }
+}
+
+/** 미리보기 UI — API parsed.schedule 이 비었거나 키워드가 깨졌을 때 Fit JSON으로 일차 행 복구 */
+export function buildAirtelRegisterScheduleRowsFromFitParsed(
+  parsed: RegisterParsed | null | undefined,
+): RegisterScheduleDay[] | null {
+  if (!parsed) return null
+  const json = parsed.registerFitItineraryGeminiJson?.trim()
+  if (!json) return null
+  try {
+    const response = parseFitItineraryGeminiJson(json, 'register-ui-fit-schedule')
+    const fitDays = fitGeminiResponseToKeywordDays(response)
+    if (!fitDays.length) return null
+    const { schedule } = mergeParsedScheduleWithFitDays(parsed, fitDays)
+    return schedule.length > 0 ? schedule : null
+  } catch {
+    return null
+  }
 }
 
 function airtelFitFieldIssue(reason: string, severity: 'info' | 'warn' = 'warn'): RegisterExtractionFieldIssue {

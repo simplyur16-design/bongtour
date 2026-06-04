@@ -23,6 +23,74 @@ describe('stampRegisterAirtelProductTypeOnParsed', () => {
   })
 })
 
+describe('buildAirtelRegisterScheduleRowsFromFitParsed', () => {
+  it('replaces uniform LLM schedule keywords with per-day fit keywords', async () => {
+    const { buildAirtelRegisterScheduleRowsFromFitParsed } = await import(
+      '@/lib/register-airtel-fit-enrich'
+    )
+    const parsed = {
+      destination: '오사카',
+      schedule: [
+        { day: 1, title: 'D1', description: '', imageKeyword: 'Osaka' },
+        { day: 2, title: 'D2', description: '', imageKeyword: 'Osaka' },
+      ],
+      registerFitItineraryGeminiJson: JSON.stringify({
+        title: 't',
+        summary: 's',
+        persona: 'mixed',
+        days: [
+          {
+            dayNumber: 1,
+            title: '도톤보리',
+            summary: '도톤보리 산책.',
+            dayCityKey: 'osaka',
+            activities: [
+              {
+                order: 1,
+                category: 'attraction',
+                title: '도톤보리',
+                description: '',
+                location: '도톤보리 (Dotonbori)',
+                startTime: '10:00',
+                durationMinutes: 60,
+                estimatedCostKrw: 0,
+                estimatedCostNote: '',
+                transportMode: null,
+                transportDuration: null,
+              },
+            ],
+          },
+          {
+            dayNumber: 2,
+            title: '교토',
+            summary: '청수사.',
+            dayCityKey: 'kyoto',
+            activities: [
+              {
+                order: 1,
+                category: 'attraction',
+                title: '청수사',
+                description: '',
+                location: '청수사 (Kiyomizu-dera Temple)',
+                startTime: '10:00',
+                durationMinutes: 60,
+                estimatedCostKrw: 0,
+                estimatedCostNote: '',
+                transportMode: null,
+                transportDuration: null,
+              },
+            ],
+          },
+        ],
+      }),
+    }
+    const rows = buildAirtelRegisterScheduleRowsFromFitParsed(parsed)
+    expect(rows?.length).toBe(2)
+    const kws = rows!.map((r) => r.imageKeyword)
+    expect(new Set(kws).size).toBe(2)
+  })
+})
+
 describe('mergeScheduleWithFitKeywords (register preview)', () => {
   it('fills imageKeyword from fit day activities', () => {
     const fitDays: FitItineraryDayForKeyword[] = [
