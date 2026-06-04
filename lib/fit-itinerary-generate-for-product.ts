@@ -122,9 +122,11 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 - 호텔: ${p.hotelSummaryText ?? p.airtelHotelInfoJson ?? '에어텔 포함'}
 - 기존 스케줄: ${schedulePreview(p.schedule)}
 
-[작성 규칙 — 가오슝 v3와 동일 패턴]
+[작성 규칙 — 가오슝 v3 활동 패턴 + 봉투어 2문장 브리프]
 - persona 자동 결정: '${p.cityNameKo}' 도시의 일반 자유여행객 페르소나 (mixed / couple / with-parents / with-kids 중 1)
-- 각 day = title(시적 한국어), summary(1문장 한국어), activities 3~6개
+- 각 day = title(시적 한국어), summary(정확히 2문장 한국어), activities 3~6개
+- day.summary 2문장 구조: ① 오늘 동선·핵심 체험(친근한 권유형, 「~해 보세요」「~즐기기 좋은 날」). ② 이동·시간·비용·준비물 중 실용 팁 1가지(부드러운 조언). 과장·「필수」「무조건」·패키지 가이드 동행 표현 금지. 문장 사이 마침표만(줄바꿈 없음), 합계 50~90자.
+- 상품 최상위 summary: 정확히 2문장 — ① 이 여행의 매력·동선 요약 ② 아래는 참고용 예시 일정이며 순서·시간은 자유롭게 조정 가능함을 짧게 안내
 - 카테고리 5개만 사용: transport(공항·이동) / hotel(체크인) / meal(식사·야시장 미식) / attraction(관광·전망대·사찰) / shopping(쇼핑·기념품)
 - Day 1 첫 활동 = 공항 도착(transport), 호텔 체크인(hotel), 야시장/저녁(meal)
 - Day 마지막 = 공항 출국(transport)
@@ -145,13 +147,13 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 - 응답은 반드시 유효한 JSON 객체 하나만. markdown 코드블록(\`\`\`json), 설명 문장, 주석 절대 금지.
 {
   "title": "도시 X일 페르소나에 맞는 한국어 제목 (호텔명 포함)",
-  "summary": "1문장 한국어 요약",
+  "summary": "상품 2문장 요약(매력+예시일정 참고·자유 조정 안내)",
   "persona": "mixed|couple|with-parents|with-kids",
   "days": [
     {
       "dayNumber": 1,
       "title": "Day 시적 한국어 제목",
-      "summary": "Day 1문장 한국어",
+      "summary": "Day 2문장(동선+실용팁). 예: 오후엔 ○○을 걸으며 ○○을 즐겨 보세요. 저녁엔 ○○을 챙기시면 이동이 수월해요.",
       "dayCityKey": "${p.cityKey}",
       "activities": [
         { "order": 1, "category": "transport", "title": "...", "description": "...", "location": "...", "startTime": "HH:MM", "durationMinutes": 60, "estimatedCostKrw": 15000, "estimatedCostNote": "...", "transportMode": "택시", "transportDuration": "35분" }

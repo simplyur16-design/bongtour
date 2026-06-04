@@ -1,0 +1,23 @@
+import { describe, expect, it } from 'vitest'
+import { buildAirtelPrompt } from '@/lib/fit-itinerary-generate-for-product'
+
+describe('buildAirtelPrompt', () => {
+  it('요청 day·상품 summary 를 2문장 브리프로 명시한다', () => {
+    const prompt = buildAirtelPrompt({
+      title: '오사카 3박4일',
+      cityNameKo: '오사카',
+      cityKey: 'osaka',
+      countryCode: 'JP',
+      duration: '3박 4일',
+      totalDays: 4,
+      airline: 'OZ',
+      hotelSummaryText: '난바 호텔',
+      airtelHotelInfoJson: null,
+      schedule: null,
+    })
+    expect(prompt).toContain('summary(정확히 2문장 한국어)')
+    expect(prompt).toContain('day.summary 2문장 구조')
+    expect(prompt).toContain('합계 50~90자')
+    expect(prompt).not.toContain('summary(1문장 한국어)')
+  })
+})
