@@ -159,9 +159,6 @@ export default function MobileDestinationSearch() {
           </div>
         ) : null}
       </div>
-      <p className="mt-1.5 text-center text-[11px] leading-snug text-bt-text-muted-lavender">
-        선택 시 해외 상품 허브로 이동합니다. 상세 필터는 이후 업데이트에서 연결됩니다.
-      </p>
     </section>
   )
 }
