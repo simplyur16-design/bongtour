@@ -12,15 +12,15 @@ type WhyItem = {
   id: string;
   icon: LucideIcon;
   title: string;
-  titleShort?: string;
+  /** 모바일 3열용 짧은 제목 (선택, 폰트 크기 동일) */
+  titleMobile?: string;
   body: string;
-  bodyShort: string;
+  bodyMobile?: string;
   hint?: string;
   circleClass: string;
   href?: string;
   linkLabel?: string;
   external?: boolean;
-  /** 로그인 필요 시 비로그인 탭 → 로그인 안내 모달 */
   requiresLogin?: boolean;
 };
 
@@ -30,7 +30,7 @@ const WHY_ITEMS: readonly WhyItem[] = [
     icon: Zap,
     title: "원클릭 설치",
     body: "QR 코드와 설치 문자 한 번 클릭이면 끝",
-    bodyShort: "QR·설치 링크 한 번에",
+    bodyMobile: "QR·설치 링크 한 번에",
     hint: "iOS 17.4+ · Android 13+",
     circleClass: "bg-pink-100 text-pink-600",
   },
@@ -38,18 +38,18 @@ const WHY_ITEMS: readonly WhyItem[] = [
     id: "quality",
     icon: ShieldCheck,
     title: "품질보장서비스",
-    titleShort: "품질보장",
+    titleMobile: "품질보장",
     body: "제품 결함 시 전액 환불",
-    bodyShort: "결함 시 전액 환불",
+    bodyMobile: "결함 시 전액 환불",
     circleClass: "bg-emerald-100 text-emerald-600",
   },
   {
     id: "usage",
     icon: BarChart3,
     title: "데이터 사용량 실시간 확인",
-    titleShort: "사용량 확인",
+    titleMobile: "사용량 확인",
     body: "마이페이지에서 남은 데이터를 언제든 확인",
-    bodyShort: "마이페이지에서 잔량 조회",
+    bodyMobile: "마이페이지 잔량 조회",
     href: "/mypage/esim",
     linkLabel: "사용량 확인하기 →",
     requiresLogin: true,
@@ -59,9 +59,9 @@ const WHY_ITEMS: readonly WhyItem[] = [
     id: "google-maps",
     icon: Map,
     title: "구글맵 데이터 무료",
-    titleShort: "구글맵 무료",
+    titleMobile: "구글맵 무료",
     body: "해외에서 구글지도 길찾기를 데이터 차감 없이",
-    bodyShort: "길찾기 데이터 차감 없음",
+    bodyMobile: "길찾기 데이터 차감 없음",
     href: bongsimPath("/benefits/google-maps"),
     linkLabel: "자세히 보기 →",
     circleClass: "bg-teal-100 text-teal-600",
@@ -70,9 +70,9 @@ const WHY_ITEMS: readonly WhyItem[] = [
     id: "chatgpt",
     icon: Sparkles,
     title: "ChatGPT 데이터 무료",
-    titleShort: "ChatGPT 무료",
+    titleMobile: "ChatGPT 무료",
     body: "여행 중 번역·검색을 데이터 부담 없이",
-    bodyShort: "번역·검색 데이터 차감 없음",
+    bodyMobile: "번역·검색 데이터 차감 없음",
     href: bongsimPath("/benefits/chatgpt"),
     linkLabel: "자세히 보기 →",
     circleClass: "bg-violet-100 text-violet-600",
@@ -82,7 +82,7 @@ const WHY_ITEMS: readonly WhyItem[] = [
     icon: MessageCircle,
     title: "안심 고객센터",
     body: "Bong투어 카카오톡으로 문의하세요 (09:00-18:00 KST)",
-    bodyShort: "카카오톡 09:00–18:00",
+    bodyMobile: "카카오톡 09:00–18:00",
     href: BONGSIM_KAKAO_CHANNEL_URL.trim() || undefined,
     linkLabel: "카카오톡 문의하기",
     external: true,
@@ -90,64 +90,93 @@ const WHY_ITEMS: readonly WhyItem[] = [
   },
 ];
 
-const FEATURED = WHY_ITEMS[0];
-const GRID_ROW1 = WHY_ITEMS.slice(1, 4);
-const GRID_ROW2 = WHY_ITEMS.slice(4, 6);
+type WhyCardDesktopProps = { item: WhyItem };
 
-type WhyCardProps = {
+/** PC·태블릿(md+): 등록 전과 동일한 카드·그리드 */
+function WhyCardDesktop({ item }: WhyCardDesktopProps) {
+  const { icon: Icon, title, body, hint, circleClass, href, linkLabel, external } = item;
+  const cardClass =
+    "flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm transition hover:border-teal-200 hover:shadow-md";
+
+  const inner = (
+    <>
+      <div
+        className={`flex shrink-0 items-center justify-center rounded-full p-3 ${circleClass}`}
+        aria-hidden
+      >
+        <Icon className="h-6 w-6" strokeWidth={2} />
+      </div>
+      <div className="w-full min-w-0">
+        <h3 className="font-semibold text-slate-900">{title}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-slate-700">{body}</p>
+        {hint ? <p className="mt-1 text-xs text-gray-500">{hint}</p> : null}
+        {href && linkLabel ? (
+          <span className="mt-2 inline-block text-sm font-medium text-teal-600 underline-offset-4 group-hover:underline">
+            {linkLabel}
+          </span>
+        ) : null}
+      </div>
+    </>
+  );
+
+  if (!href) {
+    return <div className={cardClass}>{inner}</div>;
+  }
+
+  if (external) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={`group ${cardClass}`}>
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={`group ${cardClass}`}>
+      {inner}
+    </Link>
+  );
+}
+
+type WhyCardMobileProps = {
   item: WhyItem;
-  variant?: "default" | "featured";
-  onLoginRequired?: () => void;
   isLoggedIn: boolean;
+  onLoginRequired: () => void;
 };
 
-function WhyCard({ item, variant = "default", onLoginRequired, isLoggedIn }: WhyCardProps) {
-  const { icon: Icon, title, titleShort, body, bodyShort, hint, circleClass, href, linkLabel, external, requiresLogin } =
+/** 모바일만: 3열×2행 균등 카드 */
+function WhyCardMobile({ item, isLoggedIn, onLoginRequired }: WhyCardMobileProps) {
+  const { icon: Icon, title, titleMobile, body, bodyMobile, hint, circleClass, href, external, requiresLogin } =
     item;
+  const displayTitle = titleMobile ?? title;
   const tappable = Boolean(href);
-  const navigate = tappable && (!requiresLogin || isLoggedIn);
+  const bodyText = bodyMobile ?? body;
 
   const cardClass = [
-    "relative flex flex-col items-center rounded-xl border bg-white text-center shadow-sm transition",
-    variant === "featured"
-      ? "col-span-3 gap-2 border-pink-100 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-4 md:flex-col md:gap-3 md:p-5"
-      : "gap-1.5 p-2.5 md:gap-3 md:p-5",
+    "relative flex min-h-[7.5rem] flex-col items-center justify-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm transition",
     tappable
-      ? "cursor-pointer border-slate-200 hover:border-teal-300 hover:shadow-md active:bg-slate-50/80"
-      : "cursor-default border-slate-200",
+      ? "cursor-pointer hover:border-teal-300 hover:shadow-md active:bg-slate-50/80"
+      : "cursor-default",
   ].join(" ");
 
   const inner = (
     <>
       {tappable ? (
         <ChevronRight
-          className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-teal-600 md:right-2 md:top-2 md:h-4 md:w-4"
+          className="absolute right-2 top-2 h-4 w-4 text-teal-600"
           aria-hidden
         />
       ) : null}
       <div
-        className={`flex shrink-0 items-center justify-center rounded-full ${variant === "featured" ? "p-2.5 md:p-3" : "p-2 md:p-3"} ${circleClass}`}
+        className={`flex shrink-0 items-center justify-center rounded-full p-2.5 ${circleClass}`}
         aria-hidden
       >
-        <Icon className={variant === "featured" ? "h-5 w-5 md:h-6 md:w-6" : "h-4 w-4 md:h-6 md:w-6"} strokeWidth={2} />
+        <Icon className="h-5 w-5" strokeWidth={2} />
       </div>
       <div className="w-full min-w-0 px-0.5">
-        <h3 className="text-[11px] font-semibold leading-tight text-slate-900 md:text-base">
-          <span className="md:hidden">{titleShort ?? title}</span>
-          <span className="hidden md:inline">{title}</span>
-        </h3>
-        <p className="mt-0.5 text-[10px] leading-snug text-slate-600 md:mt-1 md:text-sm md:leading-relaxed md:text-slate-700">
-          <span className="md:hidden">{bodyShort}</span>
-          <span className="hidden md:inline">{body}</span>
-        </p>
-        {hint ? (
-          <p className="mt-0.5 text-[9px] text-gray-500 md:mt-1 md:text-xs">{hint}</p>
-        ) : null}
-        {href && linkLabel ? (
-          <span className="mt-1.5 hidden text-sm font-medium text-teal-600 underline-offset-4 md:group-hover:underline lg:inline-block">
-            {linkLabel}
-          </span>
-        ) : null}
+        <h3 className="text-sm font-semibold leading-snug text-slate-900">{displayTitle}</h3>
+        <p className="mt-1 text-sm leading-snug text-slate-600">{bodyText}</p>
+        {hint ? <p className="mt-1 text-xs leading-snug text-gray-500">{hint}</p> : null}
       </div>
     </>
   );
@@ -158,11 +187,7 @@ function WhyCard({ item, variant = "default", onLoginRequired, isLoggedIn }: Why
 
   if (requiresLogin && !isLoggedIn) {
     return (
-      <button
-        type="button"
-        className={`group w-full text-left ${cardClass}`}
-        onClick={() => onLoginRequired?.()}
-      >
+      <button type="button" className={`w-full text-left ${cardClass}`} onClick={onLoginRequired}>
         {inner}
       </button>
     );
@@ -170,7 +195,7 @@ function WhyCard({ item, variant = "default", onLoginRequired, isLoggedIn }: Why
 
   if (external && href) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={`group ${cardClass}`}>
+      <a href={href} target="_blank" rel="noopener noreferrer" className={cardClass}>
         {inner}
       </a>
     );
@@ -178,7 +203,7 @@ function WhyCard({ item, variant = "default", onLoginRequired, isLoggedIn }: Why
 
   if (href) {
     return (
-      <Link href={href} className={`group ${cardClass}`}>
+      <Link href={href} className={cardClass}>
         {inner}
       </Link>
     );
@@ -204,45 +229,22 @@ export function EsimLandingWhySection() {
           여행 준비부터 현지 체류까지, 데이터 걱정을 덜어 드립니다.
         </p>
 
-        <div className="mx-auto mt-6 max-w-lg md:hidden">
-          <div className="grid grid-cols-3 gap-2">
-            <WhyCard
-              item={FEATURED}
-              variant="featured"
-              isLoggedIn={isLoggedIn}
-              onLoginRequired={openLoginModal}
-            />
-          </div>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {GRID_ROW1.map((item) => (
-              <WhyCard
-                key={item.id}
-                item={item}
-                isLoggedIn={isLoggedIn}
-                onLoginRequired={openLoginModal}
-              />
-            ))}
-          </div>
-          <div className="mx-auto mt-2 grid max-w-[14rem] grid-cols-2 gap-2">
-            {GRID_ROW2.map((item) => (
-              <WhyCard
-                key={item.id}
-                item={item}
-                isLoggedIn={isLoggedIn}
-                onLoginRequired={openLoginModal}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="mx-auto mt-8 hidden gap-4 md:grid md:grid-cols-3 md:gap-4 lg:mt-12">
+        {/* 모바일: 3열 × 2행 */}
+        <div className="mx-auto mt-6 grid max-w-lg grid-cols-3 gap-2.5 sm:gap-3 md:hidden">
           {WHY_ITEMS.map((item) => (
-            <WhyCard
+            <WhyCardMobile
               key={item.id}
               item={item}
               isLoggedIn={isLoggedIn}
               onLoginRequired={openLoginModal}
             />
+          ))}
+        </div>
+
+        {/* PC·태블릿: 기존 3열 카드 */}
+        <div className="mx-auto mt-8 hidden grid-cols-1 gap-4 sm:mt-10 md:grid md:grid-cols-3 lg:mt-12">
+          {WHY_ITEMS.map((item) => (
+            <WhyCardDesktop key={item.id} item={item} />
           ))}
         </div>
 
