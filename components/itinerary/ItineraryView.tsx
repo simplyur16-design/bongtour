@@ -639,9 +639,7 @@ export function ItineraryView({
                       )
                     : 0
                   const dayNum = Math.floor(Number(day.day))
-                  const summaryLead = day.description
-                    ? `${day.description.split(/[.\n]/)[0]?.trim() ?? ''}.`
-                    : null
+                  const summaryLead = day.description?.trim() || null
 
                   return (
                     <section key={idx} className="space-y-4">

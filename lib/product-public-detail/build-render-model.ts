@@ -26,6 +26,11 @@ import {
   pickPrimaryAirlineNameForOperationalMeeting,
   resolveOperationalMeetingDisplay,
 } from '@/lib/meeting-airline-operational-ssot'
+import {
+  ensureFitDaySummaryTwoSentences,
+  ensureFitMasterSummaryTwoSentences,
+  extractFitLandmarkHintKoFromActivities,
+} from '@/lib/fit-itinerary-summary-two-sentences'
 import * as publicConsumptionHanatour from '@/lib/public-consumption-hanatour'
 import * as publicConsumptionModetour from '@/lib/public-consumption-modetour'
 import * as publicConsumptionVerygoodtour from '@/lib/public-consumption-verygoodtour'
@@ -120,7 +125,7 @@ export function mapFitMasterForItinerary(fitMaster: FitMasterWithDays) {
   return {
     id: fitMaster.id,
     title: fitMaster.title,
-    summary: fitMaster.summary ?? '',
+    summary: ensureFitMasterSummaryTwoSentences(fitMaster.summary ?? ''),
     totalDays: fitMaster.totalDays,
     persona: fitMaster.persona as 'mixed' | 'couple' | 'with-parents' | 'with-kids',
     cityNameKo: fitMaster.cityNameKo,
@@ -129,7 +134,10 @@ export function mapFitMasterForItinerary(fitMaster: FitMasterWithDays) {
       id: d.id,
       dayNumber: d.dayNumber,
       title: d.title,
-      summary: d.summary ?? '',
+      summary: ensureFitDaySummaryTwoSentences(d.summary ?? '', {
+        title: d.title,
+        landmarkHint: extractFitLandmarkHintKoFromActivities(d.activities),
+      }),
       activities: d.activities.map((act) => ({
         id: act.id,
         order: act.order,

@@ -3,6 +3,11 @@
  */
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import type { FitItineraryDayForKeyword } from '@/lib/fit-itinerary-pick-day-image-keyword'
+import {
+  ensureFitDaySummaryTwoSentences,
+  ensureFitMasterSummaryTwoSentences,
+  extractFitLandmarkHintKoFromActivities,
+} from '@/lib/fit-itinerary-summary-two-sentences'
 
 const VALID_PERSONAS = new Set(['mixed', 'couple', 'with-parents', 'with-kids'])
 const VALID_CATEGORIES = new Set(['transport', 'hotel', 'meal', 'attraction', 'shopping'])
@@ -51,7 +56,17 @@ function parseGeminiJson(text: string, logLabel: string): FitItineraryGeminiResp
       }
     }
   }
-  return parsed
+  return {
+    ...parsed,
+    summary: ensureFitMasterSummaryTwoSentences(parsed.summary ?? ''),
+    days: (parsed.days ?? []).map((day) => ({
+      ...day,
+      summary: ensureFitDaySummaryTwoSentences(day.summary ?? '', {
+        title: day.title,
+        landmarkHint: extractFitLandmarkHintKoFromActivities(day.activities ?? []),
+      }),
+    })),
+  }
 }
 
 export function parseFitItineraryGeminiJson(text: string, logLabel: string): FitItineraryGeminiResponse {
