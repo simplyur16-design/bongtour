@@ -37,7 +37,7 @@ import {
 } from '@/lib/schedule-image-keyword-persist'
 import { applyRegisterScheduleImageKeywordsForPreview } from '@/lib/register-schedule-image-keywords-preview'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
-import { buildAirtelRegisterScheduleRowsFromFitParsed } from '@/lib/register-airtel-fit-enrich'
+import { buildAirtelRegisterScheduleRowsFromFitParsed } from '@/lib/register-airtel-fit-preview-ui'
 import { formatImageKeywordError } from '@/lib/image-keyword-error-messages'
 import {
   CONTINENT_ID_TO_PRIMARY_REGION_KR,

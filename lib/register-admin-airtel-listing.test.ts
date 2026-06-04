@@ -3,7 +3,7 @@ import {
   isRegisterAirtelListing,
   stampRegisterAirtelProductTypeOnParsed,
 } from '@/lib/register-admin-airtel-listing'
-import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
+import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
 import type { FitItineraryDayForKeyword } from '@/lib/fit-itinerary-pick-day-image-keyword'
 
 describe('isRegisterAirtelListing', () => {
@@ -26,7 +26,7 @@ describe('stampRegisterAirtelProductTypeOnParsed', () => {
 describe('buildAirtelRegisterScheduleRowsFromFitParsed', () => {
   it('replaces uniform LLM schedule keywords with per-day fit keywords', async () => {
     const { buildAirtelRegisterScheduleRowsFromFitParsed } = await import(
-      '@/lib/register-airtel-fit-enrich'
+      '@/lib/register-airtel-fit-preview-ui'
     )
     const parsed = {
       destination: '오사카',

@@ -11,8 +11,13 @@ import {
   getModelName,
 } from '@/lib/gemini-client'
 import { syncScheduleImageKeywordsFromFitItinerary } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
+import {
+  fitGeminiResponseToKeywordDays,
+  parseFitItineraryGeminiJson,
+  type FitItineraryGeminiResponse,
+} from '@/lib/fit-itinerary-gemini-parse'
 import type { FitItineraryDayForKeyword } from '@/lib/fit-itinerary-pick-day-image-keyword'
-import { logLlmJsonRawDebug, parseLlmJsonObject } from '@/lib/llm-json-extract'
+import { logLlmJsonRawDebug } from '@/lib/llm-json-extract'
 import { buildProductScheduleJsonForDb } from '@/lib/schedule-image-keyword-persist'
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 
@@ -25,9 +30,6 @@ const FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY = Math.max(
   FIT_ITINERARY_MAX_OUTPUT_TOKENS,
   Number(process.env.FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY) || 32768,
 )
-
-const VALID_PERSONAS = new Set(['mixed', 'couple', 'with-parents', 'with-kids'])
-const VALID_CATEGORIES = new Set(['transport', 'hotel', 'meal', 'attraction', 'shopping'])
 
 const countryCodeMap: Record<string, string> = {
   taiwan: 'TW',
@@ -52,37 +54,6 @@ export type GenerateFitItineraryResult = {
   reason?: 'already_exists' | 'not_airtel' | 'gemini_failed' | 'db_failed'
   error?: unknown
 }
-
-type GeminiActivity = {
-  order: number
-  category: 'transport' | 'hotel' | 'meal' | 'attraction' | 'shopping'
-  title: string
-  description: string
-  location: string
-  startTime: string
-  durationMinutes: number
-  estimatedCostKrw: number
-  estimatedCostNote: string
-  transportMode: string | null
-  transportDuration: string | null
-}
-
-type GeminiDay = {
-  dayNumber: number
-  title: string
-  summary: string
-  dayCityKey: string
-  activities: GeminiActivity[]
-}
-
-export type FitItineraryGeminiResponse = {
-  title: string
-  summary: string
-  persona: 'mixed' | 'couple' | 'with-parents' | 'with-kids'
-  days: GeminiDay[]
-}
-
-type GeminiResponse = FitItineraryGeminiResponse
 
 type PromptProduct = {
   title: string
@@ -253,41 +224,8 @@ function logGeminiRawFailure(
   logLlmJsonRawDebug(`fit-itinerary:${productId}`, rawText, err)
 }
 
-function parseGeminiJson(text: string, logLabel: string): GeminiResponse {
-  const parsed = parseLlmJsonObject<GeminiResponse>(text, { logLabel: `fit-itinerary:${logLabel}` })
-  if (!parsed?.days?.length) throw new Error('days 배열이 비어 있습니다.')
-  if (!VALID_PERSONAS.has(parsed.persona)) {
-    throw new Error(`잘못된 persona: ${String(parsed.persona)}`)
-  }
-  for (const day of parsed.days) {
-    for (const act of day.activities ?? []) {
-      if (!VALID_CATEGORIES.has(act.category)) {
-        throw new Error(`잘못된 category: ${act.category} (day ${day.dayNumber})`)
-      }
-    }
-  }
-  return parsed
-}
-
-export function parseFitItineraryGeminiJson(text: string, logLabel: string): FitItineraryGeminiResponse {
-  return parseGeminiJson(text, logLabel)
-}
-
-export function fitGeminiResponseToKeywordDays(response: FitItineraryGeminiResponse): FitItineraryDayForKeyword[] {
-  return (response.days ?? []).map((d) => ({
-    dayNumber: d.dayNumber,
-    title: d.title,
-    summary: d.summary,
-    dayCityKey: d.dayCityKey,
-    activities: (d.activities ?? []).map((a) => ({
-      order: a.order,
-      category: a.category,
-      title: a.title,
-      description: a.description,
-      location: a.location,
-    })),
-  }))
-}
+export { fitGeminiResponseToKeywordDays, parseFitItineraryGeminiJson }
+export type { FitItineraryGeminiResponse } from '@/lib/fit-itinerary-gemini-parse'
 
 function inferTotalDaysFromDuration(duration: string | null | undefined, scheduleLen: number): number {
   const fromDur = parseInt(String(duration ?? '').match(/(\d+)\s*일/)?.[1] ?? '', 10)
@@ -354,7 +292,7 @@ export async function generateFitItineraryGeminiResponse(
     maxOutputTokens: FIT_ITINERARY_MAX_OUTPUT_TOKENS,
   })
   try {
-    parseGeminiJson(geminiResult.text, logLabel)
+    parseFitItineraryGeminiJson(geminiResult.text, logLabel)
     return geminiResult
   } catch (firstError) {
     const shouldRetry =
@@ -374,7 +312,7 @@ export async function generateFitItineraryGeminiResponse(
       temperature: 0.7,
       maxOutputTokens: FIT_ITINERARY_MAX_OUTPUT_TOKENS_RETRY,
     })
-    parseGeminiJson(geminiResult.text, logLabel)
+    parseFitItineraryGeminiJson(geminiResult.text, logLabel)
     return geminiResult
   }
 }
@@ -406,9 +344,9 @@ export async function persistFitItineraryFromGeminiJson(
     return { success: false, reason: 'not_airtel' }
   }
 
-  let parsed: GeminiResponse
+  let parsed: FitItineraryGeminiResponse
   try {
-    parsed = parseGeminiJson(geminiJsonText, productId)
+    parsed = parseFitItineraryGeminiJson(geminiJsonText, productId)
   } catch (error) {
     return { success: false, reason: 'gemini_failed', error }
   }

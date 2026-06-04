@@ -6,19 +6,21 @@ import type { RegisterExtractionFieldIssue } from '@/lib/register-llm-schema-ybt
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import {
-  buildAirtelPrompt,
   fitGeminiResponseToKeywordDays,
-  generateFitItineraryGeminiResponse,
   parseFitItineraryGeminiJson,
+} from '@/lib/fit-itinerary-gemini-parse'
+import {
+  buildAirtelPrompt,
+  generateFitItineraryGeminiResponse,
   persistFitItineraryFromGeminiJson,
   registerParsedToFitPromptProduct,
 } from '@/lib/fit-itinerary-generate-for-product'
-import {
-  mergeScheduleWithFitKeywords,
-  type SyncFitScheduleKeywordsResult,
-} from '@/lib/fit-itinerary-sync-schedule-image-keywords'
+import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
+import type { SyncFitScheduleKeywordsResult } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import type { FitDayImageKeywordFallbackContext } from '@/lib/fit-itinerary-pick-day-image-keyword'
 import type { ProductScheduleJsonRow } from '@/lib/schedule-image-keyword-persist'
+
+export { buildAirtelRegisterScheduleRowsFromFitParsed } from '@/lib/register-airtel-fit-preview-ui'
 
 export type EnrichRegisterAirtelFitOpts = {
   travelScope: string
@@ -87,24 +89,6 @@ function mergeParsedScheduleWithFitDays(
     }
   })
   return { schedule: scheduleJsonRowsToRegisterRows(merged), dayKeywords }
-}
-
-/** 미리보기 UI — API parsed.schedule 이 비었거나 키워드가 깨졌을 때 Fit JSON으로 일차 행 복구 */
-export function buildAirtelRegisterScheduleRowsFromFitParsed(
-  parsed: RegisterParsed | null | undefined,
-): RegisterScheduleDay[] | null {
-  if (!parsed) return null
-  const json = parsed.registerFitItineraryGeminiJson?.trim()
-  if (!json) return null
-  try {
-    const response = parseFitItineraryGeminiJson(json, 'register-ui-fit-schedule')
-    const fitDays = fitGeminiResponseToKeywordDays(response)
-    if (!fitDays.length) return null
-    const { schedule } = mergeParsedScheduleWithFitDays(parsed, fitDays)
-    return schedule.length > 0 ? schedule : null
-  } catch {
-    return null
-  }
 }
 
 function airtelFitFieldIssue(reason: string, severity: 'info' | 'warn' = 'warn'): RegisterExtractionFieldIssue {
