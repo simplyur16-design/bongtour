@@ -70,3 +70,26 @@ export function applyRegisterScheduleImageKeywordsForPreview<
       return rows
   }
 }
+
+/**
+ * 미리보기 UI(`buildRegisterPexelsUiRows`)와 confirm 저장본이 같은 imageKeyword·imageKeyword2를 쓰도록
+ * 일차별 SSOT 키워드를 LLM `parsed.schedule` 행에 덮어씌운다.
+ */
+export function overlayPreviewScheduleImageKeywords<
+  T extends RegisterScheduleImageKeywordPreviewRow,
+>(scheduleRows: T[], previewRows: RegisterScheduleImageKeywordPreviewRow[]): T[] {
+  if (!scheduleRows.length || !previewRows.length) return scheduleRows
+  const byDay = new Map(previewRows.map((r) => [Number(r.day), r]))
+  return scheduleRows.map((row) => {
+    const day = Number(row.day)
+    if (!Number.isFinite(day) || day < 1) return row
+    const ssot = byDay.get(day)
+    if (!ssot) return row
+    const kw2 = String(ssot.imageKeyword2 ?? '').trim()
+    return {
+      ...row,
+      imageKeyword: String(ssot.imageKeyword ?? '').trim(),
+      imageKeyword2: kw2 ? kw2 : null,
+    }
+  })
+}

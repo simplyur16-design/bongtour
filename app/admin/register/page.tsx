@@ -35,7 +35,10 @@ import {
   ScheduleImageKeywordPersistError,
   tryPersistScheduleImageKeyword,
 } from '@/lib/schedule-image-keyword-persist'
-import { applyRegisterScheduleImageKeywordsForPreview } from '@/lib/register-schedule-image-keywords-preview'
+import {
+  applyRegisterScheduleImageKeywordsForPreview,
+  overlayPreviewScheduleImageKeywords,
+} from '@/lib/register-schedule-image-keywords-preview'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { buildAirtelRegisterPexelsUiScheduleRows } from '@/lib/register-airtel-pexels-ui-rows'
 import { formatImageKeywordError } from '@/lib/image-keyword-error-messages'
@@ -445,7 +448,12 @@ function mergeRegisterParsedScheduleWithManualPexels(
     return Number.isFinite(day) && day >= 1
   })
   if (validSchedule.length > 0) {
-    const withManual = applyManualPexelsKeywordsToParsedSchedule(parsed, manualByDay, manualByDay2)
+    const scheduleWithSsot = overlayPreviewScheduleImageKeywords(validSchedule, uiRows)
+    const withManual = applyManualPexelsKeywordsToParsedSchedule(
+      { ...parsed, schedule: scheduleWithSsot },
+      manualByDay,
+      manualByDay2,
+    )
     return {
       ...withManual,
       schedule: finalizeRegisterScheduleImageKeywords(withManual.schedule ?? [], scheduleKeywordOpts(parsed, preview)),
@@ -2217,7 +2225,7 @@ export default function AdminRegisterPage() {
                             </p>
                           )}
                           <p className="mt-1 text-[10px] text-slate-500">
-                            자동 추천 1·2순위 (칸을 비우면 confirm 시 fallback):{' '}
+                            자동 추천 1·2순위 (미리보기=저장 SSOT, 칸 비우면 아래 값으로 confirm):{' '}
                             <span className="font-mono text-slate-800">{autoKw || '—'}</span>
                             {autoKw2 ? (
                               <span className="ml-2 font-mono text-slate-800">/ {autoKw2}</span>
