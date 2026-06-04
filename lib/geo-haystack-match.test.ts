@@ -19,6 +19,11 @@ describe('geo-haystack-match', () => {
     expect(termAppearsInHaystack('괌', '괌 닛코 호텔')).toBe(true)
     expect(termAppearsInHaystack('괌', '닛코괌호텔')).toBe(false)
   })
+
+  it('matches Korean city before particle (의·입성)', () => {
+    expect(termAppearsInHaystack('샌프란시스코', '샌프란시스코의 상징인 금문교')).toBe(true)
+    expect(termAppearsInHaystack('라스베이거스', '바스토우 쇼핑 및 라스베이거스 입성')).toBe(true)
+  })
 })
 
 describe('matchProductToOverseasNode guam vs nikko', () => {

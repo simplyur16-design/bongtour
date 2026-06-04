@@ -485,6 +485,9 @@ export async function buildProductPublicDetailRenderModel(
   const verygoodtourPublicRowFactsOnly =
     travelProduct.brand?.brandKey === 'verygoodtour' ||
     flightStructuredDebug?.supplierBrandKey === 'verygoodtour'
+  const verygoodFlightStructuredForPublic = verygoodtourPublicRowFactsOnly
+    ? toPublicPersistedFlightStructured(modetourPersistedFlightStructured)
+    : null
 
   const baseFactsByDate = departures.length > 0 ? buildDepartureKeyFactsMap(departures) : {}
   const departureKeyFactsByDepartureId =
@@ -740,7 +743,9 @@ export async function buildProductPublicDetailRenderModel(
     // 관리자 확정 항공이 있으면 자동 파싱 본문값으로 덮어쓰지 않도록 병합 소스를 차단.
     // persisted 모두투어 leg 스냅샷은 debug·modetourParseTrace 등 내부 필드 포함 → 공개용만 통과.
     flightStructured:
-      flightDisplayPolicy === 'legacy_parsed' ? sanitizeFlightStructuredBodyForPublic(flightStructured) : null,
+      flightDisplayPolicy === 'legacy_parsed'
+        ? sanitizeFlightStructuredBodyForPublic(verygoodFlightStructuredForPublic ?? flightStructured)
+        : null,
     hotelSummaryRaw: travelProduct.hotelSummaryRaw ?? null,
     hotelSummaryText: travelProduct.hotelSummaryText ?? structured?.hotelSummaryText ?? null,
     hotelNames: structured?.hotelNames ?? null,

@@ -1352,6 +1352,11 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       console.warn('[verygoodtour] highlight LLM', e instanceof Error ? e.message : e)
       return null
     })
+    const airlineForProduct =
+      parsed.airline?.trim() ||
+      parsed.airlineName?.trim() ||
+      departureInputs.map((d) => d.carrierName?.trim()).find(Boolean) ||
+      null
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1365,7 +1370,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       priceFrom: representativePrice,
       priceCurrency: parsed.priceCurrency?.trim() || null,
       duration: parsed.duration,
-      airline: parsed.airline ?? null,
+      airline: airlineForProduct,
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       hotelSummaryRaw,
       hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),

@@ -5,6 +5,10 @@
 /** 트리·마스터에 정의된 1글자 국가·지역 표기 (leaf 매칭 min length 예외) */
 export const SINGLE_CHAR_GEO_TERMS = new Set(['괌', '몰', '몽'])
 
+/** 일정 본문에서 도시명 뒤에 붙는 조사·어미 — `샌프란시스코의` 등이 매칭되도록 */
+const KOREAN_GEO_TERM_PARTICLE_SUFFIX =
+  '(?:의|에|에서|으로|로|와|과|이|가|을|를|도|만|부터|까지|입성|출발|도착|경유|관광)?'
+
 export function buildMultiCountryDetectionHaystack(opts: {
   title: string
   primaryDestination: string | null
@@ -24,7 +28,13 @@ export function termAppearsInHaystack(term: string, haystack: string): boolean {
   const low = h.toLowerCase()
   const tl = t.toLowerCase()
   if (/[\uac00-\ud7a3]/.test(tl)) {
-    const re = new RegExp(`(^|[^\\uac00-\\ud7a3])${escapeRegExp(tl)}([^\\uac00-\\ud7a3]|$)`)
+    if (SINGLE_CHAR_GEO_TERMS.has(t)) {
+      const re = new RegExp(`(^|[^\\uac00-\\ud7a3])${escapeRegExp(tl)}([^\\uac00-\\ud7a3]|$)`)
+      return re.test(low)
+    }
+    const re = new RegExp(
+      `(^|[^\\uac00-\\ud7a3])${escapeRegExp(tl)}${KOREAN_GEO_TERM_PARTICLE_SUFFIX}([^\\uac00-\\ud7a3]|$)`,
+    )
     return re.test(low)
   }
   if (/^[a-z0-9]+$/i.test(tl) && tl.length <= 4) {

@@ -389,7 +389,7 @@ const AM: MegaMenuCountryGroupDef[] = [
   ]),
   G('미서부', [
     city('로스앤젤레스', ['로스앤젤레스', 'los angeles', 'LA', '미국']),
-    city('라스베가스', ['라스베가스', 'las vegas', 'vegas', '미국']),
+    city('라스베가스', ['라스베가스', '라스베이거스', 'las vegas', 'vegas', '미국']),
     city('샌프란시스코', ['샌프란시스코', 'san francisco', 'SFO', '미국']),
   ]),
   G('미동부', [

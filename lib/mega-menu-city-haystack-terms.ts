@@ -31,15 +31,24 @@ function collectRawCityTermIndex(): Map<string, Set<string>> {
   return byCityKey
 }
 
-/** 2개 이상 도시 leaf에 동시에 등장하는 토큰 — haystack 도시 태그에서 제외 */
+/**
+ * 2개 이상 메가메뉴 도시 leaf에 동시에 등장하는 토큰 — haystack 도시 태그에서 제외.
+ * cityKey( la / los-angeles / lasvegas 등 browse 별칭)가 아니라 leaf 단위로 센다.
+ */
 export function buildMegaMenuSharedCityHaystackStopTerms(): Set<string> {
-  const byCityKey = collectRawCityTermIndex()
   const termHits = new Map<string, number>()
-  for (const terms of byCityKey.values()) {
-    for (const term of terms) {
-      const t = term.trim().toLowerCase()
-      if (t.length < 2) continue
-      termHits.set(t, (termHits.get(t) ?? 0) + 1)
+  for (const tab of MEGA_MENU_TAB_DEFINITIONS) {
+    for (const group of tab.groups) {
+      for (const leaf of group.cities) {
+        if (leaf.kind !== 'city') continue
+        const seenInLeaf = new Set<string>()
+        for (const raw of [leaf.label, ...leaf.terms]) {
+          const t = raw.trim().toLowerCase()
+          if (t.length < 2 || seenInLeaf.has(t)) continue
+          seenInLeaf.add(t)
+          termHits.set(t, (termHits.get(t) ?? 0) + 1)
+        }
+      }
     }
   }
   const stops = new Set<string>()
