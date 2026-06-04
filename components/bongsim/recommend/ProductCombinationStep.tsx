@@ -608,9 +608,6 @@ export function ProductCombinationStep({
         <h1 className="text-center text-xl font-bold text-gray-900 sm:text-2xl lg:text-[1.65rem]">
           {headerTitle} eSIM
         </h1>
-        <p className="mt-2 text-center text-sm leading-relaxed text-slate-600 sm:text-base">
-          카드를 눌러 여행 기간을 고른 뒤, 요금제 선택 단계에서 가격을 확인하세요.
-        </p>
       </div>
 
       <div className="mt-6 space-y-4 sm:mt-8 lg:mt-10">
@@ -929,8 +926,8 @@ export function ProductCombinationStep({
         </section>
       ) : null}
 
-      <div className="mt-8 px-4 sm:mt-10 sm:px-0">
-        {allDone && checkoutQueue.length > 0 ? (
+      {allDone && checkoutQueue.length > 0 ? (
+        <div className="mt-8 px-4 sm:mt-10 sm:px-0">
           <button
             type="button"
             onClick={() => goToCheckout()}
@@ -938,12 +935,8 @@ export function ProductCombinationStep({
           >
             결제하기
           </button>
-        ) : (
-          <p className="text-center text-sm font-medium text-slate-600 sm:text-base">
-            모든 국가의 플랜을 선택해 주세요
-          </p>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       <ComparePlansPopup
         open={comparePopupOpen && compareReady}

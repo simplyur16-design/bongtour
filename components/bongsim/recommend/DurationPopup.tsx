@@ -212,7 +212,7 @@ export function DurationPopup({
   );
 
   return (
-    <RecommendModalShell open={open} onClose={onClose}>
+    <RecommendModalShell open={open} onClose={onClose} mobilePlacement="center">
       <div className="flex max-h-[92vh] flex-col">
         <div className="border-b border-slate-100 px-5 pb-4 pt-5">
           <h2 className="text-[1.05rem] font-bold leading-snug text-slate-900">
