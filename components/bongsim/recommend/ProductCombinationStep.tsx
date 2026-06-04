@@ -159,6 +159,67 @@ function formatAvgDailyGbLabel(gb: number): string {
   return `${s}GB`;
 }
 
+type CountryProductCardMobileBannerProps = {
+  code: string;
+  countryNameKr: string;
+  hero?: string;
+};
+
+/** 모바일 전용 컴팩트 배너 (PC 히어로는 카드 본문에 기존 마크업 유지) */
+function CountryProductCardMobileBanner({ code, countryNameKr, hero }: CountryProductCardMobileBannerProps) {
+  const flagUrl = flagCdnUrl(code);
+
+  return (
+    <div className="relative h-40 w-full shrink-0 overflow-hidden bg-slate-900 lg:hidden">
+      {hero ? (
+        <SafeImage
+          src={hero}
+          alt=""
+          fill
+          className="object-cover object-center"
+          sizes="100vw"
+          quality={85}
+          loading="lazy"
+        />
+      ) : (
+        <div className="absolute inset-0 overflow-hidden">
+          <SafeImage
+            src={flagCdnBlurBg(code)}
+            alt=""
+            fill
+            quality={85}
+            className="h-full w-full scale-110 object-cover blur-[18px]"
+            sizes="100vw"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-black/40" aria-hidden />
+        </div>
+      )}
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/20"
+        aria-hidden
+      />
+      <div className="relative flex h-full items-center gap-3 px-4">
+        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full shadow-md ring-2 ring-white/85">
+          <SafeImage
+            src={flagUrl}
+            alt=""
+            width={48}
+            height={48}
+            quality={90}
+            className="h-full w-full object-cover"
+            sizes="48px"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+        <p className="text-xl font-bold leading-tight text-white drop-shadow-sm">{countryNameKr}</p>
+      </div>
+    </div>
+  );
+}
+
 type TravelerAvgDailyProgressBarProps = { countryNameKr: string; code: string };
 
 /** 미완료 카드 전용 — 일일 평균 사용량 vs 알뜰/스마트/자유 구간 (표시만, 클릭 없음) */
@@ -167,14 +228,14 @@ function TravelerAvgDailyProgressBar({ countryNameKr, code }: TravelerAvgDailyPr
   const markerLeftPct = Math.min(95, Math.max(5, (avgGb / 5) * 100));
 
   return (
-    <div className="mt-4 px-4 pb-4 sm:px-5 sm:pb-5">
-      <p className="mb-3 text-sm font-semibold text-slate-800 sm:text-base">
+    <div className="mt-4 px-4 pb-4 max-lg:mt-0 max-lg:px-3 max-lg:pt-3 max-lg:pb-2 sm:px-5 sm:pb-5">
+      <p className="mb-3 text-sm font-semibold text-slate-800 max-lg:mb-2 sm:text-base">
         {countryNameKr} 여행자 평균 하루 {formatAvgDailyGbLabel(avgGb)} 사용
       </p>
 
       <div className="relative w-full">
         {/* 평균 마커 — 막대·구간 라벨과 겹치지 않도록 막대 위 전용 행에 배치 */}
-        <div className="relative mb-1.5 h-11 w-full sm:h-12">
+        <div className="relative mb-1.5 h-11 w-full max-lg:h-9 sm:h-12">
           <div
             className="absolute bottom-0 z-10 flex flex-col items-center"
             style={{ left: `${markerLeftPct}%`, transform: "translateX(-50%)" }}
@@ -220,13 +281,21 @@ function TravelerAvgDailyProgressBar({ countryNameKr, code }: TravelerAvgDailyPr
         </div>
       </div>
 
-      <div className="mt-3 space-y-1">
-        <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">알뜰: 지도, 메시지, 기본 검색</p>
-        <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">스마트: SNS, 맛집검색, 번역앱 · 사진은 호텔 Wi-Fi 권장</p>
-        <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">자유: 실시간 스트리밍, 영상통화</p>
+      <div className="mt-3 space-y-1 max-lg:mt-2 max-lg:space-y-0.5">
+        <p className="text-xs leading-relaxed text-slate-600 max-lg:text-[11px] max-lg:leading-snug sm:text-sm">
+          알뜰: 지도, 메시지, 기본 검색
+        </p>
+        <p className="text-xs leading-relaxed text-slate-600 max-lg:text-[11px] max-lg:leading-snug sm:text-sm">
+          스마트: SNS, 맛집검색, 번역앱 · 사진은 호텔 Wi-Fi 권장
+        </p>
+        <p className="text-xs leading-relaxed text-slate-600 max-lg:text-[11px] max-lg:leading-snug sm:text-sm">
+          자유: 실시간 스트리밍, 영상통화
+        </p>
       </div>
 
-      <p className="mt-2 text-[11px] text-slate-500 sm:text-xs">* 2025 해외여행 데이터 사용량 분석 기준</p>
+      <p className="mt-2 text-[11px] text-slate-500 max-lg:mt-1.5 max-lg:text-[10px] sm:text-xs">
+        * 2025 해외여행 데이터 사용량 분석 기준
+      </p>
     </div>
   );
 }
@@ -590,8 +659,14 @@ export function ProductCombinationStep({
                   }
                 }}
               >
-                {/* 모바일: 세로형 히어로 / PC(lg+): 가로형 왼쪽 히어로 */}
-                <div className="relative aspect-[3/4] w-full max-h-[min(72vh,520px)] overflow-hidden bg-gray-900 sm:aspect-[4/5] sm:max-h-none lg:aspect-auto lg:h-auto lg:max-h-none lg:min-h-[280px] lg:w-[52%] lg:shrink-0">
+                <CountryProductCardMobileBanner
+                  code={code}
+                  countryNameKr={country?.nameKr ?? code.toUpperCase()}
+                  hero={hero}
+                />
+
+                {/* PC(lg+): 기존 왼쪽 대형 히어로 */}
+                <div className="relative hidden overflow-hidden bg-gray-900 lg:block lg:aspect-auto lg:h-auto lg:max-h-none lg:min-h-[280px] lg:w-[52%] lg:shrink-0">
                   {hero ? (
                     <SafeImage
                       src={hero}
@@ -618,32 +693,10 @@ export function ProductCombinationStep({
                     </div>
                   )}
                   <div
-                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent lg:bg-gradient-to-r lg:from-black/70 lg:via-black/25 lg:to-transparent"
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/70 via-black/25 to-transparent"
                     aria-hidden
                   />
-                  {/* 모바일: 하단 중앙 */}
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col justify-end px-5 pb-5 pt-16 sm:px-6 sm:pb-6 lg:hidden">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full shadow-lg ring-2 ring-white/80">
-                        <SafeImage
-                          src={flagCdnUrl(code)}
-                          alt=""
-                          width={64}
-                          height={64}
-                          quality={90}
-                          className="h-full w-full object-cover"
-                          sizes="64px"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                      <p className="text-2xl font-bold text-white drop-shadow-md">
-                        {country?.nameKr ?? code.toUpperCase()}
-                      </p>
-                    </div>
-                  </div>
-                  {/* PC: 왼쪽 하단 가로 배치 */}
-                  <div className="absolute inset-x-0 bottom-0 hidden px-8 pb-8 pt-20 lg:flex lg:items-end lg:justify-start">
+                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-start px-8 pb-8 pt-20">
                     <div className="flex items-center gap-4">
                       <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full shadow-lg ring-2 ring-white/80">
                         <SafeImage
