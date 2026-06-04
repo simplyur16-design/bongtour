@@ -2,7 +2,7 @@
  * Fit 일차 → Product.schedule imageKeyword 병합 (DB·Gemini 없음, 클라이언트 번들 가능).
  */
 import {
-  pickFitDayImageKeyword,
+  pickFitDayImageKeywordDistinct,
   type FitDayImageKeywordFallbackContext,
   type FitItineraryDayForKeyword,
 } from '@/lib/fit-itinerary-pick-day-image-keyword'
@@ -19,13 +19,16 @@ export function mergeScheduleWithFitKeywords(
   }
 
   const dayKeywords: Record<number, string> = {}
+  const usedLower = new Set<string>()
 
-  for (const fitDay of fitDays) {
+  const sortedDays = [...fitDays].sort((a, b) => a.dayNumber - b.dayNumber)
+  for (const fitDay of sortedDays) {
     const dayNum = Math.floor(Number(fitDay.dayNumber))
     if (!Number.isFinite(dayNum) || dayNum < 1) continue
 
-    const kw = pickFitDayImageKeyword(fitDay, fallbackCtx)
+    const kw = pickFitDayImageKeywordDistinct(fitDay, fallbackCtx, usedLower)
     dayKeywords[dayNum] = kw
+    if (kw) usedLower.add(kw.toLowerCase())
 
     const prev = byDay.get(dayNum)
     const prevKw = String(prev?.imageKeyword ?? '').trim()

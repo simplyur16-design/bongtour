@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  areFitDayImageKeywordsUniform,
   buildFitDayImageKeywordFallback,
   pickFitDayImageKeyword,
   type FitItineraryDayForKeyword,
 } from '@/lib/fit-itinerary-pick-day-image-keyword'
+import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
 
 const fallback = {
   cityNameKo: '오사카',
@@ -120,5 +122,94 @@ describe('pickFitDayImageKeyword', () => {
     const kw = pickFitDayImageKeyword(day, fallback)
     expect(kw.length).toBeGreaterThan(0)
     expect(buildFitDayImageKeywordFallback(fallback).length).toBeGreaterThan(0)
+  })
+
+  it('keeps Nha Trang compound (not truncated to Nha)', () => {
+    const day: FitItineraryDayForKeyword = {
+      dayNumber: 1,
+      title: '나트랑 도착',
+      summary: '',
+      activities: [
+        {
+          order: 2,
+          category: 'attraction',
+          title: '롱선사',
+          description: '',
+          location: '롱선사 (Long Son Pagoda)',
+        },
+      ],
+    }
+    const kw = pickFitDayImageKeyword(day, {
+      cityNameKo: '나트랑',
+      cityKey: 'nhatrang',
+      productTitle: '나트랑 에어텔',
+      primaryDestination: '나트랑',
+      destination: '나트랑',
+    })
+    expect(kw).not.toBe('Nha')
+    expect(kw.toLowerCase()).toMatch(/long son|nha trang/i)
+  })
+})
+
+describe('mergeScheduleWithFitKeywords distinct', () => {
+  const nhaFallback = {
+    cityNameKo: '나트랑',
+    cityKey: 'nhatrang',
+    productTitle: '나트랑 3박 에어텔',
+    primaryDestination: '나트랑',
+    destination: '나트랑',
+  }
+
+  it('assigns different keywords per day from fit landmarks (나트랑 패턴)', () => {
+    const fitDays: FitItineraryDayForKeyword[] = [
+      {
+        dayNumber: 1,
+        title: '도착·해변',
+        summary: '',
+        activities: [
+          {
+            order: 2,
+            category: 'attraction',
+            title: '롱선사',
+            description: '',
+            location: '롱선사 (Long Son Pagoda)',
+          },
+        ],
+      },
+      {
+        dayNumber: 2,
+        title: '테마파크',
+        summary: '',
+        activities: [
+          {
+            order: 2,
+            category: 'attraction',
+            title: '빈원더스',
+            description: '',
+            location: '빈원더스 (VinWonders Nha Trang)',
+          },
+        ],
+      },
+      {
+        dayNumber: 3,
+        title: '유적',
+        summary: '',
+        activities: [
+          {
+            order: 2,
+            category: 'attraction',
+            title: '포나가르',
+            description: '',
+            location: '포나가르 사원 (Po Nagar Cham Towers)',
+          },
+        ],
+      },
+    ]
+    const { dayKeywords } = mergeScheduleWithFitKeywords([], fitDays, nhaFallback)
+    expect(areFitDayImageKeywordsUniform(dayKeywords)).toBe(false)
+    const values = Object.values(dayKeywords)
+    expect(new Set(values.map((v) => v.toLowerCase())).size).toBe(3)
+    expect(values.some((v) => /po nagar/i.test(v))).toBe(true)
+    expect(values.every((v) => v !== 'Nha')).toBe(true)
   })
 })

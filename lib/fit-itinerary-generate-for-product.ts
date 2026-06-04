@@ -109,6 +109,7 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 - transportDuration = "10분" 등 한국어 + 숫자
 - 모든 텍스트 한국어
 - **location 필수 형식(관광·쇼핑·식사):** 한글명 (English landmark name) — 괄호 안 **영문 고유명** 필수 (예: "도톤보리 (Dotonbori)", "청수사 (Kiyomizu-dera Temple)"). transport·hotel은 공항·호텔명 한글만 가능
+- **imageKeyword(시스템 자동):** 등록 후 각 day의 activities[].location 괄호 영문·한글 지명에서 **일차별 서로 다른** Pexels 검색어를 뽑는다. 일차마다 attraction 또는 meal에 **다른 랜드마크** 1곳 이상 넣을 것(도시명·공항명만 반복 금지). Day2 이후는 Day1과 다른 장소(예: Long Son Pagoda, Po Nagar Cham Towers, VinWonders).
 - 음식점은 추천 메뉴 1~2개 포함
 - 가족·연인·부모 등 페르소나 언급 활동 1~2개 포함
 - 야경/포토존 1개 포함

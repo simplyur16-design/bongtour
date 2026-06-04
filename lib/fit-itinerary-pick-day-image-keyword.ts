@@ -6,6 +6,9 @@ import {
   mapDestination,
   mapKoreanPoiSegment,
 } from '@/lib/pexels-keyword'
+import {
+  isBareCityOrCountryKeyword,
+} from '@/lib/pexels-place-name-keyword'
 import { persistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
 import { resolveTravelSubjectEnForMedia } from '@/lib/pexels-keyword'
 
@@ -165,25 +168,73 @@ export function buildFitDayImageKeywordFallback(
   return 'travel'
 }
 
+function isWeakFitDayImageKeyword(kw: string): boolean {
+  const t = String(kw ?? '').trim()
+  if (!t || t.toLowerCase() === 'travel') return true
+  if (/^nha$/i.test(t)) return true
+  return isBareCityOrCountryKeyword(t)
+}
+
+/** 예시 일정 일차별 후보 키워드(활동 location·title 우선, 도시 폴백은 뒤) */
+export function collectFitDayImageKeywordCandidates(
+  day: FitItineraryDayForKeyword,
+  fallbackCtx: FitDayImageKeywordFallbackContext,
+): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  const push = (kw: string | null | undefined) => {
+    const k = String(kw ?? '').trim()
+    if (!k) return
+    const lower = k.toLowerCase()
+    if (seen.has(lower)) return
+    seen.add(lower)
+    out.push(k)
+  }
+
+  const activities = [...(day.activities ?? [])].sort((a, b) => a.order - b.order)
+  for (const cat of KEYWORD_CATEGORY_ORDER) {
+    for (const act of activities) {
+      if (act.category !== cat) continue
+      push(keywordFromActivity(act))
+    }
+  }
+  for (const act of activities) {
+    if (act.category === 'transport' || act.category === 'hotel') continue
+    push(keywordFromActivity(act))
+  }
+  push(keywordFromDayMeta(day))
+  push(buildFitDayImageKeywordFallback(fallbackCtx, day))
+  return out
+}
+
+/** 여러 일차에 걸쳐 중복 키워드 회피 — 예시 일정 SSOT 추출용 */
+export function pickFitDayImageKeywordDistinct(
+  day: FitItineraryDayForKeyword,
+  fallbackCtx: FitDayImageKeywordFallbackContext,
+  usedLower: Set<string>,
+): string {
+  const candidates = collectFitDayImageKeywordCandidates(day, fallbackCtx)
+  for (const kw of candidates) {
+    if (!isWeakFitDayImageKeyword(kw) && !usedLower.has(kw.toLowerCase())) return kw
+  }
+  for (const kw of candidates) {
+    if (!usedLower.has(kw.toLowerCase())) return kw
+  }
+  return candidates[0] ?? buildFitDayImageKeywordFallback(fallbackCtx, day)
+}
+
+export function areFitDayImageKeywordsUniform(dayKeywords: Record<number, string>): boolean {
+  const values = Object.values(dayKeywords)
+    .map((v) => String(v ?? '').trim().toLowerCase())
+    .filter((v) => v.length > 0)
+  if (values.length < 2) return false
+  return new Set(values).size === 1
+}
+
 /** 일차 대표 Pexels 키워드 — attraction → shopping → meal, 없으면 일차 메타·상품 도시 폴백 */
 export function pickFitDayImageKeyword(
   day: FitItineraryDayForKeyword,
   fallbackCtx: FitDayImageKeywordFallbackContext,
 ): string {
-  const activities = [...(day.activities ?? [])].sort((a, b) => a.order - b.order)
-  for (const cat of KEYWORD_CATEGORY_ORDER) {
-    for (const act of activities) {
-      if (act.category !== cat) continue
-      const kw = keywordFromActivity(act)
-      if (kw) return kw
-    }
-  }
-  for (const act of activities) {
-    if (act.category === 'transport' || act.category === 'hotel') continue
-    const kw = keywordFromActivity(act)
-    if (kw) return kw
-  }
-  const fromAnyAct = keywordFromDayActivitiesAnyOrder(day)
-  if (fromAnyAct) return fromAnyAct
-  return buildFitDayImageKeywordFallback(fallbackCtx, day)
+  return pickFitDayImageKeywordDistinct(day, fallbackCtx, new Set())
 }
