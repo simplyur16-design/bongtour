@@ -7,6 +7,7 @@ import {
   buildProductScheduleJsonForDb,
   type ProductScheduleJsonRow,
 } from '@/lib/schedule-image-keyword-persist'
+import { isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
 import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
 import type {
   FitDayImageKeywordFallbackContext,
@@ -61,6 +62,7 @@ export async function syncScheduleImageKeywordsFromFitItinerary(
     select: {
       id: true,
       productType: true,
+      listingKind: true,
       schedule: true,
       title: true,
       cityKey: true,
@@ -69,7 +71,7 @@ export async function syncScheduleImageKeywordsFromFitItinerary(
     },
   })
 
-  if (!product || product.productType !== 'airtel') {
+  if (!product || !isAirHotelFitItineraryProduct(product)) {
     return { updated: false, dayKeywords: {} }
   }
 

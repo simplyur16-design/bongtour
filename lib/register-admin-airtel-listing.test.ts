@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
 import {
   isRegisterAirtelListing,
   stampRegisterAirtelProductTypeOnParsed,
@@ -20,6 +21,20 @@ describe('stampRegisterAirtelProductTypeOnParsed', () => {
   it('sets productType air-hotel for air_hotel_free', () => {
     const out = stampRegisterAirtelProductTypeOnParsed({ productType: 'travel' }, 'air_hotel_free')
     expect(out.productType).toBe('air-hotel')
+  })
+})
+
+describe('isAirHotelFitItineraryProduct', () => {
+  it('accepts air-hotel productType', () => {
+    expect(isAirHotelFitItineraryProduct({ productType: 'air-hotel', listingKind: null })).toBe(true)
+  })
+
+  it('accepts legacy airtel productType', () => {
+    expect(isAirHotelFitItineraryProduct({ productType: 'airtel', listingKind: null })).toBe(true)
+  })
+
+  it('rejects package travel', () => {
+    expect(isAirHotelFitItineraryProduct({ productType: 'travel', listingKind: 'travel' })).toBe(false)
   })
 })
 

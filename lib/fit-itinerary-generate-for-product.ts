@@ -1,8 +1,9 @@
 /**
  * 단일 Product에 FitItineraryMaster + Day + Activity 생성 (Gemini v3 JSON).
- * 자유여행(productType='airtel') 전용 — 등록 hook·backfill cron SSOT.
+ * 자유여행(air-hotel / 레거시 airtel) 전용 — 등록 hook·backfill cron SSOT.
  */
 import { randomBytes } from 'node:crypto'
+import { isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
 import { prisma } from '@/lib/prisma'
 import {
   GEMINI_MODEL,
@@ -335,13 +336,14 @@ export async function persistFitItineraryFromGeminiJson(
     select: {
       id: true,
       productType: true,
+      listingKind: true,
       title: true,
       cityKey: true,
       primaryDestination: true,
       destination: true,
     },
   })
-  if (!product || product.productType !== 'airtel') {
+  if (!product || !isAirHotelFitItineraryProduct(product)) {
     return { success: false, reason: 'not_airtel' }
   }
 
@@ -441,6 +443,7 @@ export async function generateFitItineraryForProduct(
       id: true,
       title: true,
       productType: true,
+      listingKind: true,
       primaryDestination: true,
       destination: true,
       cityKey: true,
@@ -455,7 +458,7 @@ export async function generateFitItineraryForProduct(
   if (!product) {
     return { success: false, reason: 'not_airtel', error: `Product not found: ${productId}` }
   }
-  if (product.productType !== 'airtel') {
+  if (!isAirHotelFitItineraryProduct(product)) {
     return { success: false, reason: 'not_airtel' }
   }
 

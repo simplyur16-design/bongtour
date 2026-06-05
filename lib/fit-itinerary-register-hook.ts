@@ -1,3 +1,4 @@
+import { isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
 import { generateFitItineraryForProduct } from '@/lib/fit-itinerary-generate-for-product'
 import { persistRegisterAirtelFitAfterConfirm } from '@/lib/register-airtel-fit-enrich'
 
@@ -6,11 +7,17 @@ export function fireFitItineraryGenerationAfterRegister(
   productId: string,
   productType: string | null | undefined,
   registerFitItineraryGeminiJson?: string | null,
+  listingKind?: string | null,
 ): void {
-  if (productType !== 'airtel') return
+  if (!isAirHotelFitItineraryProduct({ productType, listingKind })) return
   void (async () => {
     if (registerFitItineraryGeminiJson?.trim()) {
-      await persistRegisterAirtelFitAfterConfirm(productId, registerFitItineraryGeminiJson, productType)
+      await persistRegisterAirtelFitAfterConfirm(
+        productId,
+        registerFitItineraryGeminiJson,
+        productType,
+        listingKind,
+      )
       return
     }
     const result = await generateFitItineraryForProduct(productId)

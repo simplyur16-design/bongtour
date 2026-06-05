@@ -57,6 +57,14 @@ export function isAirHotelProduct(p: {
   return isAirHotelListingKind(p.listingKind) || isAirHotelProductType(p.productType)
 }
 
+/** Gemini 예시 일정(FitItinerary) 생성·persist·상세 노출 대상 */
+export function isAirHotelFitItineraryProduct(p: {
+  listingKind?: string | null
+  productType?: string | null
+}): boolean {
+  return isAirHotelProduct(p)
+}
+
 export function parseAirHotelBrowseTypeParam(raw: string | null | undefined): AirHotelBrowseType | 'travel' | null {
   if (raw == null || raw === '') return null
   const u = raw.toLowerCase().trim()

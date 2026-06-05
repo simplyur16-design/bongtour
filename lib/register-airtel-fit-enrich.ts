@@ -2,6 +2,7 @@
  * 자유여행(air_hotel_free / productType=airtel) 등록 — preview·confirm 공통.
  * 본문 LLM 이후 Gemini 예시 일정 + 일차 imageKeyword → parsed.schedule (미리보기·확정 UI SSOT).
  */
+import { AIR_HOTEL_PRODUCT_TYPE, isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
 import type { RegisterExtractionFieldIssue } from '@/lib/register-llm-schema-ybtour'
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
@@ -148,7 +149,7 @@ export async function enrichRegisterParsedWithAirtelFit(
       }
       return {
         ...parsed,
-        productType: 'airtel',
+        productType: AIR_HOTEL_PRODUCT_TYPE,
         schedule,
         registerFitItineraryGeminiJson: geminiJson,
         extractionFieldIssues: issues,
@@ -164,7 +165,7 @@ export async function enrichRegisterParsedWithAirtelFit(
 
   if (process.env.SKIP_REGISTER_AIRTEL_FIT_GEMINI === '1') {
     issues.push(airtelFitFieldIssue('SKIP_REGISTER_AIRTEL_FIT_GEMINI=1 — 예시 일정 Gemini 생략', 'info'))
-    return { ...parsed, productType: 'airtel', extractionFieldIssues: issues }
+    return { ...parsed, productType: AIR_HOTEL_PRODUCT_TYPE, extractionFieldIssues: issues }
   }
 
   try {
@@ -189,7 +190,7 @@ export async function enrichRegisterParsedWithAirtelFit(
     }
     return {
       ...parsed,
-      productType: 'airtel',
+      productType: AIR_HOTEL_PRODUCT_TYPE,
       schedule,
       registerFitItineraryGeminiJson: geminiJson,
       extractionFieldIssues: issues,
@@ -200,7 +201,7 @@ export async function enrichRegisterParsedWithAirtelFit(
     issues.push(
       airtelFitFieldIssue(`예시 일정 Gemini 실패: ${msg.slice(0, 240)}. 확정 후 backfill cron으로 재시도됩니다.`),
     )
-    return { ...parsed, productType: 'airtel', extractionFieldIssues: issues }
+    return { ...parsed, productType: AIR_HOTEL_PRODUCT_TYPE, extractionFieldIssues: issues }
   }
 }
 
@@ -209,8 +210,9 @@ export async function persistRegisterAirtelFitAfterConfirm(
   productId: string,
   registerFitItineraryGeminiJson: string | null | undefined,
   productType: string | null | undefined,
+  listingKind?: string | null,
 ): Promise<void> {
-  if (productType !== 'airtel') return
+  if (!isAirHotelFitItineraryProduct({ productType, listingKind })) return
   const json = registerFitItineraryGeminiJson?.trim()
   if (!json) return
   const result = await persistFitItineraryFromGeminiJson(productId, json)

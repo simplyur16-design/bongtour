@@ -17,6 +17,7 @@ import {
   resetProductDetailPerf,
 } from '@/lib/product-detail-perf'
 import ProductDetailServerReadySignal from '@/components/products/ProductDetailServerReadySignal'
+import { isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
 
 const FIT_ITINERARY_MASTER_DETAIL_INCLUDE = {
   days: {
@@ -30,8 +31,12 @@ const FIT_ITINERARY_MASTER_DETAIL_INCLUDE = {
   },
 } as const
 
-function loadFitItineraryMasterForProduct(productId: string, productType: string | null | undefined) {
-  if (productType !== 'airtel') return Promise.resolve(null)
+function loadFitItineraryMasterForProduct(
+  productId: string,
+  productType: string | null | undefined,
+  listingKind: string | null | undefined,
+) {
+  if (!isAirHotelFitItineraryProduct({ productType, listingKind })) return Promise.resolve(null)
   return prisma.fitItineraryMaster.findUnique({
     where: { productId },
     include: FIT_ITINERARY_MASTER_DETAIL_INCLUDE,
@@ -78,7 +83,7 @@ async function productDetailPageInner(idOrSlug: string) {
   const skipFitForPayloadDto = selectKind === 'slim'
   const fitMaster = skipFitForPayloadDto
     ? null
-    : await loadFitItineraryMasterForProduct(productId, resolved.productType)
+    : await loadFitItineraryMasterForProduct(productId, resolved.productType, travelProduct.listingKind)
 
   const userAgent = (await headers()).get('user-agent')
   const isMobile = isMobileUserAgent(userAgent)

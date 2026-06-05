@@ -1702,6 +1702,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       productId,
       productData.productType,
       parsedWithFinalNotice.registerFitItineraryGeminiJson,
+      registerListingMeta.listingKind,
     )
     return NextResponse.json(confirmPayload)
   } catch (e) {
