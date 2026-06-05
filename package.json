@@ -27,6 +27,7 @@
     "db:sync-modetour-price": "tsx scripts/sync-modetour-price-single.ts",
     "db:backfill-detail-payload": "tsx scripts/backfill-product-public-detail-payload.ts --after-backup",
     "db:backfill-detail-payload:missing": "tsx scripts/backfill-product-public-detail-payload.ts --missing-only --after-backup",
+    "db:refresh-product-titles": "tsx scripts/refresh-product-titles-from-db.ts",
     "postdeploy:detail-payload": "tsx scripts/postdeploy-backfill-detail-payload.ts",
     "prisma:generate": "prisma generate",
     "prisma:generate:safe": "node scripts/prisma-generate-safe.js",
