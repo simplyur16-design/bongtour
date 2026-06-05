@@ -67,6 +67,25 @@ assert(
 )
 assert(handler.includes('computeRegisterInputDigestFromBody'), 'handler must import digest SSOT')
 
+// 7) 등록 상품명 SSOT — 로직 복제·인라인 추출 금지
+const registerLlm = read('lib/register-from-llm-modetour.ts')
+assert(
+  registerLlm.includes('modetour-register-product-title-ssot'),
+  'register-from-llm-modetour must use modetour-register-product-title-ssot',
+)
+assert(
+  !registerLlm.includes('extractModetourVerbatimListingTitleRawFromPasteLocal'),
+  'inline modetour paste title extract forbidden in register-from-llm-modetour',
+)
+assert(
+  fs.existsSync(path.join(root, 'lib/modetour-register-product-title-ssot.ts')),
+  'missing modetour-register-product-title-ssot.ts',
+)
+assert(
+  fs.existsSync(path.join(root, 'docs/ops/modetour-register-title-contract.md')),
+  'missing modetour-register-title-contract.md',
+)
+
 if (failures.length) {
   console.error('[FAIL] verify-modetour-lib-ssot')
   for (const f of failures) console.error(`  ${f}`)

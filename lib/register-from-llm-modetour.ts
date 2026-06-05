@@ -57,6 +57,11 @@ export function capModetourLlmPriceField(key: string, value: unknown): string | 
 import type { ParsedProductPrice } from './parsed-product-types'
 import { normalizeCalendarDate } from './date-normalize'
 import { extractDestinationFromTitle } from './destination-from-title'
+import {
+  modetourRegisterTitleFieldIssue,
+  normalizeModetourRegisterTitleMinimal,
+  resolveModetourRegisterProductTitle,
+} from '@/lib/modetour-register-product-title-ssot'
 import { resolveModetourRegisterDestination } from '@/lib/modetour-register-destination-from-paste'
 import { normalizeOriginSource } from './supplier-origin'
 import { resolveAirportTransferTypeForAirHotelFree } from '@/lib/airport-transfer-infer'
@@ -297,39 +302,6 @@ function allowedCategoryForSupplement(
   )
     return s
   return '현지준비'
-}
-
-/** 모두투어 등록 전용: 맨 앞 `[배지]`·공백만 정리(요약·해시 제거 금지). 타 공급사와 공유하지 않음. */
-function normalizeModetourRegisterTitleMinimalLocal(s: string): string {
-  let t = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
-  t = t.replace(/^(\[[^\]\n]{1,120}\]\s*)+/, '')
-  t = t.replace(/[\u00a0\u3000]+/g, ' ')
-  t = t.replace(/\s+/g, ' ').trim()
-  return t
-}
-
-/** 붙여넣기 상단부에서 모두투어 상품 리스트 제목 한 줄 원문 추출 */
-function extractModetourVerbatimListingTitleRawFromPasteLocal(blob: string): string | null {
-  const text = blob.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  const head = text.slice(0, 12_000)
-  const lines = head.split('\n').map((l) => l.replace(/\u00a0/g, ' ').trim()).filter(Boolean)
-  const skipRe =
-    /^(상품(?:코드|번호)|담당자|문의|예약|인쇄|공유|https?:|▼|▶|■|※\s*유의|포함사항|불포함|여행\s*일정|상품\s*개요|HOME|고위험)/i
-  for (const line of lines.slice(0, 70)) {
-    if (line.length < 15 || line.length > 220) continue
-    if (skipRe.test(line)) continue
-    if (/^https?:\/\//i.test(line)) continue
-    const hasTourShape = /(?:\d+\s*일|\d+\s*박|\d+\s*국)/.test(line)
-    const hashCount = (line.match(/#/g) || []).length
-    const hasBracketLead = /^\[/.test(line)
-    if ((hasTourShape && (hashCount >= 1 || line.length >= 32)) || (hasBracketLead && hasTourShape)) return line
-  }
-  for (const line of lines.slice(0, 28)) {
-    if (line.length < 14 || line.length > 200) continue
-    if (skipRe.test(line)) continue
-    if (/[가-힣]{8,}/.test(line) && /\d/.test(line) && /[#\[\]일박국]/.test(line)) return line
-  }
-  return null
 }
 
 function extractAirtelHotelInfoJson(rawText: string): string | null {
@@ -1561,9 +1533,10 @@ ${text.slice(0, 16000)}`
   }
   const pastedBlobForKw = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
   const kwTitleEarly =
-    extractModetourVerbatimListingTitleRawFromPasteLocal(pastedBlobForKw)?.trim() ||
-    normalizeModetourRegisterTitleMinimalLocal(String(raw.title ?? '').trim()) ||
-    ''
+    resolveModetourRegisterProductTitle({
+      pasteBlob: pastedBlobForKw,
+      llmTitleRaw: String(raw.title ?? '').trim(),
+    }).title || ''
   const kwDestEarly = (raw.destination ?? '').trim() || extractDestinationFromTitle(kwTitleEarly)
 
   const scheduleBase: RegisterScheduleDay[] = (raw.schedule ?? [])
@@ -1608,12 +1581,12 @@ ${text.slice(0, 16000)}`
   )
 
   const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
-  const supplierListingTitleRaw = extractModetourVerbatimListingTitleRawFromPasteLocal(pastedBlobForTitle)
-  const llmTitleNormalized = normalizeModetourRegisterTitleMinimalLocal(String(raw.title ?? '').trim())
-  const titleTrimmed =
-    supplierListingTitleRaw && supplierListingTitleRaw.length >= 10
-      ? normalizeModetourRegisterTitleMinimalLocal(supplierListingTitleRaw)
-      : llmTitleNormalized || '상품명 없음'
+  const titleResolved = resolveModetourRegisterProductTitle({
+    pasteBlob: pastedBlobForTitle,
+    llmTitleRaw: String(raw.title ?? '').trim(),
+  })
+  const titleTrimmed = titleResolved.title
+  const supplierListingTitleRaw = titleResolved.supplierListingTitleRaw
   const destResolved = resolveModetourRegisterDestination({
     pastedBody: pastedBlobForTitle,
     title: titleTrimmed,
@@ -1836,6 +1809,8 @@ ${text.slice(0, 16000)}`
     ...shopMerged.issues,
     ...flightFieldIssues,
   ]
+  const modetourTitleIssue = modetourRegisterTitleFieldIssue(titleTrimmed)
+  if (modetourTitleIssue) extractionFieldIssues.push(modetourTitleIssue)
   {
     const sr = detailBody.sectionReview ?? {}
     const pushBlock = (field: string, block: { required?: string[]; warning?: string[]; info?: string[] } | undefined) => {

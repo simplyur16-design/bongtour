@@ -74,6 +74,11 @@ import {
   parseModetourPackageProductNoFromUrl,
   type ModetourBaselineTrace,
 } from '@/lib/modetour-departures'
+import {
+  modetourRegisterTitleBlocksConfirmSave,
+  modetourRegisterTitleFieldIssue,
+  resolveModetourRegisterProductTitleForConfirm,
+} from '@/lib/modetour-register-product-title-ssot'
 import { collectModetourItineraryInputs } from '@/lib/modetour-itinerary-collector'
 import {
   normalizeModetourHotelSummaryComposeBlock,
@@ -953,6 +958,16 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
           collectModetourItineraryInputs({ detailUrl: originUrl.trim() }),
         ])
         modetourConfirmBaselineTrace = depRes.baselineTrace
+        const titleForConfirm = resolveModetourRegisterProductTitleForConfirm({
+          parsedTitle: parsed.title,
+          supplierListingTitleRaw: parsed.supplierListingTitleRaw,
+          baselineTrace: modetourConfirmBaselineTrace,
+        })
+        parsed = {
+          ...parsed,
+          title: titleForConfirm.title,
+          supplierListingTitleRaw: titleForConfirm.supplierListingTitleRaw,
+        }
         if (modetourDepartureInputsSubstantive(depRes.inputs)) {
           departureFromParsed = enrichModetourPrefetchedDeparturesWithTable(
             depRes.inputs,
@@ -1285,6 +1300,8 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       ...heroDateFieldIssues,
       ...extractionFieldIssues,
     ]
+    const modetourTitleIssue = modetourRegisterTitleFieldIssue(parsed.title)
+    if (modetourTitleIssue) combinedFieldIssues.push(modetourTitleIssue)
 
     const priceDisplaySsot = buildPriceDisplaySsot(representativeCurrentSellingPrice, mergedPromotion)
     const priceDisplayValidation = validatePriceDisplaySsot(priceDisplaySsot)
@@ -1661,6 +1678,29 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
     })
     const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
     const titlePair = productTitlePairForRegisterConfirm(body, parsed.title)
+    if (
+      modetourRegisterTitleBlocksConfirmSave({
+        prismaTitle: titlePair.prismaTitle,
+        prismaOriginalTitle: titlePair.prismaOriginalTitle,
+        baselineTrace: modetourConfirmBaselineTrace,
+      })
+    ) {
+      console.info('[parse-and-register-modetour][save-gate-strict]', {
+        saveBlockedReason: 'modetour_register_title_unacceptable',
+        prismaTitle: titlePair.prismaTitle.slice(0, 80),
+        prismaOriginalTitle: titlePair.prismaOriginalTitle.slice(0, 80),
+      })
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'MODETOUR_REGISTER_TITLE_UNACCEPTABLE',
+          error:
+            '모두투어 상품명이 출발일 구간·코드만으로 확정되어 저장할 수 없습니다. 붙여넣기 상단 리스트 제목(#·[지역])을 확인하거나 패키지 상세 URL의 h1 제목 수집이 성공하는지 확인하세요.',
+          fieldIssues: combinedFieldIssues,
+        },
+        { status: 422 }
+      )
+    }
     const registerHeroSeoInput = {
       rawBodyText: text,
       title: titlePair.prismaTitle,

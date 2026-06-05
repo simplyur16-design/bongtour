@@ -1,0 +1,25 @@
+# 교정 회귀 얼림 — PR·main push 시 manifest 가드 일괄 실행 (배포 전 회귀 차단)
+name: Regression Freeze
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  freeze:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          package-manager-cache: false
+      - run: npm ci
+      - name: List frozen guards
+        run: npm run verify:regression-freeze:list
+      - name: Run CI tier guards
+        run: npm run verify:regression-freeze:ci

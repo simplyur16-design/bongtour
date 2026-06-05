@@ -1,0 +1,182 @@
+{
+  "version": "1-2026-06-03",
+  "description": "교정(버그픽스) 회귀 얼림 SSOT — 항목 추가 없이 동작 변경 시 CI/prebuild 실패",
+  "npmScripts": [
+    {
+      "id": "register-supplier-cross-import",
+      "tier": ["prebuild", "ci"],
+      "script": "check:register-supplier-imports",
+      "summary": "6공급사 등록 파서 상호 import 금지"
+    },
+    {
+      "id": "modetour-register-title",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:modetour-register-title",
+      "summary": "모두투어 등록 상품명 — 출발일 구간 오염·로직 복제 금지",
+      "doc": "docs/ops/modetour-register-title-contract.md"
+    },
+    {
+      "id": "modetour-lib-ssot",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:modetour-lib",
+      "summary": "모두투어 lib 허브·geo·digest SSOT"
+    },
+    {
+      "id": "hanatour-lib-ssot",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:hanatour-lib",
+      "summary": "하나투어 lib 허브 SSOT"
+    },
+    {
+      "id": "ybtour-lib-ssot",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:ybtour-lib",
+      "summary": "노랑풍선 lib 허브 SSOT"
+    },
+    {
+      "id": "verygoodtour-lib-ssot",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:verygoodtour-lib",
+      "summary": "참좋은여행 lib 허브 SSOT"
+    },
+    {
+      "id": "verygoodtour-listing-title",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:verygoodtour-title",
+      "summary": "참좋은여행 붙여넣기 상품명 — 항공 안내 줄 오염 금지"
+    },
+    {
+      "id": "mega-menu-register-alignment",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:mega-menu-register-alignment",
+      "summary": "등록 geo ↔ 메가메뉴 정합"
+    },
+    {
+      "id": "register-detail-final-chain",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:register-detail-final-chain",
+      "summary": "등록→저장 체인(항공·옵션·쇼핑·가격 4슬롯)"
+    },
+    {
+      "id": "supplier-pipeline-alignment",
+      "tier": ["ci"],
+      "script": "verify:supplier-pipeline",
+      "summary": "4공급사 등록 파이프라인 정렬 (DB 필요 — CI만)"
+    },
+    {
+      "id": "bongtour-product-title-r5",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:bongtour-product-title-r5",
+      "summary": "봉투어 톤 상품명 R-5·confirm 페어"
+    },
+    {
+      "id": "image-keywords-by-supplier",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:image-keywords-by-supplier:ci",
+      "summary": "일정 imageKeyword 공급사별 규칙·바나힐 전일차 반복 금지"
+    },
+    {
+      "id": "public-api-leaks",
+      "tier": ["ci"],
+      "script": "verify:public-leaks",
+      "summary": "공개 API 민감정보 유출 가드"
+    },
+    {
+      "id": "prisma-runtime-policy",
+      "tier": ["ci"],
+      "script": "verify:prisma-runtime-policy",
+      "summary": "Prisma 런타임 정책"
+    },
+    {
+      "id": "modetour-avp603-fixture",
+      "tier": ["ci"],
+      "script": "verify:modetour-avp603",
+      "summary": "모두투어 AVP603 fixture 회귀"
+    },
+    {
+      "id": "hanatour-atp207-fixture",
+      "tier": ["ci"],
+      "script": "verify:hanatour-atp207",
+      "summary": "하나투어 ATP207 fixture 회귀"
+    },
+    {
+      "id": "mega-menu-ssot-browse",
+      "tier": ["ci"],
+      "script": "verify:mega-menu-browse",
+      "summary": "메가메뉴 browse SSOT"
+    },
+    {
+      "id": "sticky-quotation-total",
+      "tier": ["ci"],
+      "script": "verify:sticky-quotation-total",
+      "summary": "스티키 카드 공급사별 합계·만원 절삭 금지"
+    }
+  ],
+  "staticGuards": [
+    {
+      "id": "card-price-exact-krw",
+      "tier": ["prebuild", "ci"],
+      "summary": "갤러리·해외 목록 카드 — 만원 floor 절삭 금지, 원 단위 표기",
+      "checks": [
+        {
+          "file": "app/components/gallery/AgentCard.tsx",
+          "mustInclude": ["Math.trunc(krw)"],
+          "mustNotInclude": ["Math.floor(krw / 10000)", "Math.floor(krw/10000)", "Math.floor(krw / 10_000)"]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasCompareCard.tsx",
+          "mustInclude": ["Math.trunc(krw)"],
+          "mustNotInclude": ["Math.floor(krw / 10000)", "Math.floor(krw/10000)", "Math.floor(krw / 10_000)"]
+        }
+      ]
+    },
+    {
+      "id": "modetour-title-no-inline-extract",
+      "tier": ["prebuild", "ci"],
+      "summary": "모두투어 제목 추출 SSOT 외 인라인 금지",
+      "checks": [
+        {
+          "file": "lib/register-from-llm-modetour.ts",
+          "mustInclude": ["modetour-register-product-title-ssot"],
+          "mustNotInclude": [
+            "extractModetourVerbatimListingTitleRawFromPasteLocal",
+            "function extractModetourVerbatimListingTitleRawFromPaste"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "airtel-fit-per-day-keywords",
+      "tier": ["prebuild", "ci"],
+      "summary": "에어텔 일정 imageKeyword — 단일 키워드 전일차 강제 금지",
+      "checks": [
+        {
+          "file": "lib/register-airtel-fit-enrich.ts",
+          "mustInclude": ["mergeScheduleWithFitKeywords"],
+          "mustNotInclude": ["mergeScheduleWithSingleAirtelFitKeyword"]
+        },
+        {
+          "file": "lib/fit-itinerary-sync-schedule-image-keywords.ts",
+          "mustInclude": ["mergeScheduleWithFitKeywords"],
+          "mustNotInclude": ["mergeScheduleWithSingleAirtelFitKeyword"]
+        }
+      ]
+    }
+  ],
+  "vitestSuites": [
+    {
+      "id": "vitest-regression-core",
+      "tier": ["prebuild", "ci"],
+      "summary": "핵심 vitest 회귀(제목·키워드·가드)",
+      "files": [
+        "lib/modetour-listing-title-from-paste.test.ts",
+        "lib/modetour-register-product-title-ssot.test.ts",
+        "tests/register-schedule-image-keyword-guard.test.ts",
+        "tests/image-keyword-verify-guards.test.ts",
+        "tests/modetour-schedule-image-keyword.test.ts",
+        "lib/fit-itinerary-sync-schedule-image-keywords.test.ts",
+        "lib/geo-haystack-match.test.ts"
+      ]
+    }
+  ]
+}

@@ -454,11 +454,47 @@ function normalizeBaselineRaw(raw: string): string {
     .trim()
 }
 
+const MODETOUR_DATE_YMD = String.raw`\d{4}[./-]\d{1,2}[./-]\d{1,2}`
+const MODETOUR_DATE_RANGE_TITLE_RE = new RegExp(
+  `^${MODETOUR_DATE_YMD}\\s*[~\\-–—]\\s*${MODETOUR_DATE_YMD}(?:\\s+\\d+\\s*박\\s*\\d+\\s*일)?\\s*$`,
+  'i'
+)
+const MODETOUR_SINGLE_DATE_DUR_TITLE_RE = new RegExp(
+  `^${MODETOUR_DATE_YMD}(?:\\s+\\d+\\s*박\\s*\\d+\\s*일)?\\s*$`,
+  'i'
+)
+
+/** 출발일 구간(+박일)만 있는 줄 — 달력 UI 오염, 상품 리스트 제목이 아님 */
+export function isModetourDepartureWindowOnlyTitleText(text: string): boolean {
+  const t = text.replace(/\s+/g, ' ').trim()
+  if (!t) return false
+  if (MODETOUR_DATE_RANGE_TITLE_RE.test(t)) return true
+  if (MODETOUR_SINGLE_DATE_DUR_TITLE_RE.test(t)) return true
+  if (/^\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일/.test(t) && /[~\-–—]/.test(t) && !/[#\[]/.test(t)) {
+    const core = t
+      .replace(/\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일/g, '')
+      .replace(/[~\-–—()월목금토일화수요]/g, '')
+      .replace(/\d+\s*박\s*\d+\s*일/g, '')
+      .replace(/\s+/g, '')
+    if (!/[가-힣]{4,}/.test(core)) return true
+  }
+  if (new RegExp(`^${MODETOUR_DATE_YMD}\\s*[~\\-–—]`).test(t) && !/[#\[]/.test(t)) {
+    const core = t
+      .replace(new RegExp(MODETOUR_DATE_YMD, 'g'), '')
+      .replace(/[~\-–—]/g, '')
+      .replace(/\d+\s*박\s*\d+\s*일/g, '')
+      .replace(/\s+/g, '')
+    if (!/[가-힣]{4,}/.test(core)) return true
+  }
+  return false
+}
+
 /** 날짜+상품코드·코드만·브레드크럼 등 — baseline 소스로 부적절 */
 function isModetourWeakBaselineTitleText(text: string): boolean {
   const t = text.replace(/\s+/g, ' ').trim()
   if (!t) return true
   if (t.length < 4) return true
+  if (isModetourDepartureWindowOnlyTitleText(t)) return true
   if (/패키지\s*[>›|]|상품\s*상세/i.test(t)) return true
   if (/^[A-Z]{2,5}\d{3,12}[A-Z0-9]{0,10}\s*[>›|]/i.test(t)) return true
   if (/^\d{4}-\d{2}-\d{2}\s+[A-Za-z0-9][A-Za-z0-9\-]{4,}$/.test(t)) return true
@@ -469,13 +505,28 @@ function isModetourWeakBaselineTitleText(text: string): boolean {
   return false
 }
 
+/** 등록 미리보기·저장용 상품명으로 부적절(출발 구간·코드만·신호 없음) */
+export function isModetourUnacceptableRegisterListingTitle(text: string): boolean {
+  const t = text.replace(/\s+/g, ' ').trim()
+  if (!t || t === '상품명 없음') return true
+  if (isModetourWeakBaselineTitleText(t)) return true
+  return !modetourBaselineTitleHasProductSignals(t)
+}
+
 function modetourBaselineTitleHasProductSignals(cleaned: string): boolean {
   const t = cleaned.trim()
   if (t.length < 6) return false
-  if (/[\uAC00-\uD7A3]/.test(t)) return true
-  if (/\d+\s*박\s*\d+\s*일|\d+\s*일차/i.test(t)) return true
+  if (isModetourDepartureWindowOnlyTitleText(t)) return false
+  if (/[#\[\]]/.test(t) && /[가-힣]/.test(t)) return true
+  const sansDates = t
+    .replace(/\d{4}[./-]\d{1,2}[./-]\d{1,2}/g, '')
+    .replace(/\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일/g, '')
+    .replace(/\d+\s*박\s*\d+\s*일/g, '')
+    .replace(/\d+\s*일차/g, '')
+    .replace(/[~\-–—\s\d]/g, '')
+  if (/[가-힣]{4,}/.test(sansDates)) return true
   if (/\b(TOKYO|OSAKA|PARIS|SEOUL|BANGKOK|HANOI|DANANG|FUKUOKA|SAPPORO|HONG\s*KONG)\b/i.test(t)) return true
-  if (t.length >= 14 && /[a-zA-Z가-힣]/.test(t)) return true
+  if (t.length >= 20 && /[a-zA-Z가-힣]/.test(t)) return true
   return false
 }
 

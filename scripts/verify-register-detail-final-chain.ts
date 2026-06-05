@@ -297,15 +297,15 @@ function baseDetailRow(over: Partial<Parameters<typeof buildOptionalToursStructu
   assert.equal(out[1]!.childBed, 55)
 }
 
-// —— 가격: 등록 prices[] → DepartureInput — child*Base 누락 시 출발일별 adultBase와 동행(confirm ProductPrice와 동일) ——
+// —— 가격: 등록 prices[] → DepartureInput — child*Base 없으면 필드 생략(upsert에서 adult 폴백) ——
 {
   const ins = parsedPricesToDepartureInputs([
     { date: '2026-03-01', adultBase: 1_000_000, adultFuel: 0, childFuel: 0 },
     { date: '2026-03-10', adultBase: 1_100_000, adultFuel: 0, childFuel: 0 },
     { date: '2026-03-20', adultBase: 1_000_000, adultFuel: 0, childBedBase: 800_000, childFuel: 0 },
   ])
-  assert.equal(ins[0]!.childBedPrice, 1_000_000)
-  assert.equal(ins[1]!.childBedPrice, 1_100_000)
+  assert.equal(ins[0]!.childBedPrice, undefined)
+  assert.equal(ins[1]!.childBedPrice, undefined)
   assert.equal(ins[2]!.childBedPrice, 800_000)
 }
 

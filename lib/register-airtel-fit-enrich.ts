@@ -1,6 +1,6 @@
 /**
  * 자유여행(air_hotel_free / productType=airtel) 등록 — preview·confirm 공통.
- * 본문 LLM 이후 Gemini 예시 일정 + 일차 imageKeyword → parsed.schedule (미리보기·확정 UI SSOT).
+ * REGRESSION-FREEZE[airtel-fit-per-day-keywords]: 일차별 imageKeyword — manifest
  */
 import { AIR_HOTEL_PRODUCT_TYPE, isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
 import type { RegisterExtractionFieldIssue } from '@/lib/register-llm-schema-ybtour'

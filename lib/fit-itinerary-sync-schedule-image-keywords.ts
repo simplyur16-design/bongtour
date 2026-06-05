@@ -1,6 +1,6 @@
 /**
- * Fit 예시 일정 생성 성공 직후 — Product.schedule imageKeyword를 일차별 예시 일정에 맞게 갱신.
- * (신규·backfill 등록분; 기존 상품 일괄 백필은 별도)
+ * Fit 예시 일정 — 일차별 imageKeyword 동기화.
+ * REGRESSION-FREEZE[airtel-fit-per-day-keywords]: 단일 키워드 전일차 강제 금지 — manifest
  */
 import { prisma } from '@/lib/prisma'
 import {

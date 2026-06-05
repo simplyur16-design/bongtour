@@ -1,4 +1,5 @@
 'use client'
+// REGRESSION-FREEZE[card-price-exact-krw]: 갤러리 카드 가격 만원 floor 금지 — manifest
 
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
