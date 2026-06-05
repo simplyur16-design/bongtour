@@ -162,10 +162,6 @@ export function resolveTourismKeywordPreferDistinctPerDay<T extends ScheduleRowT
     if (a && normKeywordKey(a) === llmKey) dup++
   }
   if (dup >= 2) {
-    const primaryCand = cands[0]
-    if (primaryCand && normKeywordKey(primaryCand) === llmKey) {
-      return args.acceptedLlm
-    }
     const distinct = pickFirstDistinct()
     if (normKeywordKey(distinct) !== llmKey) return distinct
   }

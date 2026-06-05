@@ -59,6 +59,25 @@ describe('applyYbtourScheduleImageKeywordsToRows — modetour 우선순위', () 
     expect(rows[0]?.imageKeyword2).toBe('Hurghada')
   })
 
+  it('동일 LLM(Bratislava Castle) 6일 반복 시 routeText 명소로 일차별 분산', () => {
+    const rows = applyYbtourScheduleImageKeywordsToRows(
+      [
+        { day: 2, title: '비엔나', description: '쇤브룬 궁전 관광', routeText: '비엔나 - 쇤브룬 궁전', imageKeyword: 'Bratislava Castle', imageKeyword2: null },
+        { day: 3, title: '부다페스트', description: '헝가리 국회의사당', routeText: '부다페스트 - 헝가리국회의사당', imageKeyword: 'Bratislava Castle', imageKeyword2: null },
+        { day: 4, title: '프라하', description: '카를교와 프라하 성', routeText: '프라하 - 카를교 - 프라하 성', imageKeyword: 'Bratislava Castle', imageKeyword2: null },
+        { day: 5, title: '브라티슬라바', description: '브라티슬라바 성', routeText: '브라티슬라바 - 브라티슬라바 성', imageKeyword: 'Bratislava Castle', imageKeyword2: null },
+        { day: 6, title: '잘츠부르크', description: '모차르트의 고향', routeText: '잘츠부르크', imageKeyword: 'Bratislava Castle', imageKeyword2: null },
+        { day: 7, title: '크라쿠프', description: '구시가지', routeText: '크라쿠프', imageKeyword: 'Bratislava Castle', imageKeyword2: null },
+      ],
+      { productDestination: '동유럽' },
+    )
+
+    const primaries = rows.map((r) => r.imageKeyword).filter(Boolean)
+    const bratislavaCount = primaries.filter((k) => /bratislava/i.test(String(k))).length
+    expect(bratislavaCount).toBeLessThanOrEqual(1)
+    expect(new Set(primaries.map((k) => k!.toLowerCase())).size).toBeGreaterThanOrEqual(4)
+  })
+
   it('movement/return 일차는 imageKeyword2 null', () => {
     const rows = applyYbtourScheduleImageKeywordsToRows(
       [

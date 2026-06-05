@@ -86,6 +86,14 @@ const DESTINATION_MAP: Record<string, string> = {
   아부심벨: 'Abu Simbel',
   에드푸: 'Edfu',
   콤옴보: 'Kom Ombo',
+  비엔나: 'Vienna',
+  부다페스트: 'Budapest',
+  프라하: 'Prague',
+  브라티슬라바: 'Bratislava',
+  잘츠부르크: 'Salzburg',
+  크라쿠프: 'Krakow',
+  류블랴나: 'Ljubljana',
+  자그레브: 'Zagreb',
 }
 
 /** 대표 지역(primaryRegion) → 영어 */
@@ -265,6 +273,16 @@ const POI_KO_TO_EN: Record<string, string> = {
   '오페라 하우스': 'Sydney Opera House',
   하버브리지: 'Sydney Harbour Bridge',
   '하버 브리지': 'Sydney Harbour Bridge',
+  브라티슬라바성: 'Bratislava Castle',
+  '브라티슬라바 성': 'Bratislava Castle',
+  쇤브룬궁전: 'Schonbrunn Palace',
+  '쇤브룬 궁전': 'Schonbrunn Palace',
+  헝가리국회의사당: 'Hungarian Parliament',
+  부다페스트국회의사당: 'Hungarian Parliament',
+  카를교: 'Charles Bridge',
+  '카를 교': 'Charles Bridge',
+  프라하성: 'Prague Castle',
+  '프라하 성': 'Prague Castle',
 }
 
 /** 테마 태그(themeTags) 한국어/혼용 → Pexels 검색용 영어 (후순위 fallback) */

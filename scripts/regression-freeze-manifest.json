@@ -206,6 +206,26 @@
       ]
     },
     {
+      "id": "ybtour-schedule-image-keyword-distinct",
+      "tier": ["prebuild", "ci"],
+      "summary": "노랑풍선 imageKeyword — 동일 랜드마크 전일차 반복 금지",
+      "checks": [
+        {
+          "file": "lib/ybtour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]",
+            "dedupeYbtourTourismPrimaryKeywordsAcrossDays",
+            "collectYbtourDayPrimaryCandidates"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-llm-image-keyword-fallback.ts",
+          "mustInclude": ["resolveTourismKeywordPreferDistinctPerDay"],
+          "mustNotInclude": ["primaryCand && normKeywordKey(primaryCand) === llmKey"]
+        }
+      ]
+    },
+    {
       "id": "hanatour-origin-code-from-paste",
       "tier": ["prebuild", "ci"],
       "summary": "하나투어 originCode — LLM 미지정 시 본문 상품코드 SSOT 덮어쓰기",
@@ -242,7 +262,8 @@
         "lib/hanatour-origin-code-from-paste.test.ts",
         "lib/product-image-source-attribution.test.ts",
         "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
-        "lib/hanatour-schedule-image-keyword-landmark.test.ts"
+        "lib/hanatour-schedule-image-keyword-landmark.test.ts",
+        "lib/ybtour-schedule-image-keyword.test.ts"
       ]
     }
   ]

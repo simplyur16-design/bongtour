@@ -2,6 +2,7 @@
  * 노랑풍선(ybtour): 일차 imageKeyword / imageKeyword2 — Pexels 검색용 영문.
  * 모두투어와 동일 우선순위: LLM → routeText 라틴 세그먼트 → 본문 추론;
  * 2순위: LLM2 → routeText 2번째 라틴; movement/return_home 일차는 imageKeyword2 null.
+ * REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]: 동일 랜드마크 전일차 반복 금지 — manifest
  */
 import {
   acceptLlmScheduleImageKeyword,
@@ -330,6 +331,98 @@ function resolveYbtourPrimaryKeywordCore(
   return inferYbtourKeywordFromDayContent(row, productDestination)
 }
 
+/** 관광 일차 1순위 후보 — route·본문 명소 우선, LLM은 마지막 */
+function collectYbtourDayPrimaryCandidates(
+  row: YbtourScheduleImageKeywordRow,
+  dayKind: YbtourScheduleCardDayKind,
+  productDestination: string | null | undefined,
+): string[] {
+  const out: string[] = []
+  const push = (raw: string | null | undefined) => {
+    const accepted = tryAcceptYbtourLlmImageKeyword(raw, productDestination)
+    if (!accepted) return
+    if (out.some((x) => keysEqual(x, accepted))) return
+    out.push(accepted)
+  }
+
+  if (dayKind === 'movement' || dayKind === 'return_home') {
+    push(pickEnglishRouteTextPlace(row.routeText, true))
+    push(pickEnglishRouteTextPlace(row.routeText, false))
+    push(pickFirstAcceptedFromRouteKoreanSegments(row, productDestination))
+    push(inferYbtourKeywordFromDayContent(row, productDestination))
+    push(row.imageKeyword)
+    return out
+  }
+
+  for (const kw of collectRouteLandmarkKeywordsFromRouteText(row.routeText)) push(kw)
+  for (const en of findAllMappedKoreanPoisInText(buildYbtourDayHaystack(row))) push(en)
+  push(pickEnglishRouteTextPlace(row.routeText, true))
+  push(pickEnglishRouteTextPlace(row.routeText, false))
+  push(pickFirstAcceptedFromRouteKoreanSegments(row, productDestination))
+  push(inferYbtourKeywordFromDayContent(row, productDestination))
+  push(row.imageKeyword)
+  return out
+}
+
+/** LLM이 동일 랜드마크를 여러 관광 일차에 반복할 때 route·본문 명소로 일차별 분산 */
+function dedupeYbtourTourismPrimaryKeywordsAcrossDays<T extends YbtourScheduleImageKeywordRow>(
+  rows: T[],
+  maxDay: number,
+  productDestination: string | null | undefined,
+): T[] {
+  const used = new Set<string>()
+  const tripLandmarks: string[] = []
+
+  const sorted = rows
+    .filter((r) => Number(r.day) > 0)
+    .sort((a, b) => Number(a.day) - Number(b.day))
+
+  for (const row of sorted) {
+    const haystack = buildYbtourDayHaystack(row)
+    const dayKind = classifyYbtourScheduleCardDayKind(Number(row.day), maxDay, haystack)
+    if (dayKind !== 'tourism') continue
+    for (const kw of collectYbtourDayPrimaryCandidates(row, dayKind, productDestination)) {
+      if (!tripLandmarks.some((x) => keysEqual(x, kw))) tripLandmarks.push(kw)
+    }
+  }
+
+  const pickUnused = (cands: string[]): string | null => {
+    for (const kw of cands) {
+      const nk = normKey(kw)
+      if (!nk || used.has(nk)) continue
+      used.add(nk)
+      return kw
+    }
+    return null
+  }
+
+  return rows.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+
+    const haystack = buildYbtourDayHaystack(row)
+    const dayKind = classifyYbtourScheduleCardDayKind(day, maxDay, haystack)
+    if (dayKind !== 'tourism') return row
+
+    const primary = String(row.imageKeyword ?? '').trim()
+    if (!primary) return row
+
+    const nk = normKey(primary)
+    if (!used.has(nk)) {
+      used.add(nk)
+      return row
+    }
+
+    const fromDay = pickUnused(collectYbtourDayPrimaryCandidates(row, dayKind, productDestination))
+    if (fromDay) return { ...row, imageKeyword: fromDay }
+
+    const fromTrip = pickUnused(tripLandmarks)
+    if (fromTrip) return { ...row, imageKeyword: fromTrip }
+
+    return row
+  })
+}
+
 function resolveYbtourSecondaryKeywordCore(
   row: YbtourScheduleImageKeywordRow,
   primary: string,
@@ -364,7 +457,7 @@ export function applyYbtourScheduleImageKeywordsToRows<
   const maxDay = sorted.length ? Math.max(...sorted.map((r) => Number(r.day))) : 1
   const productDestination = opts?.productDestination ?? null
 
-  return rows.map((row) => {
+  const mapped = rows.map((row) => {
     const day = Number(row.day)
     if (day <= 0) {
       return {
@@ -385,6 +478,8 @@ export function applyYbtourScheduleImageKeywordsToRows<
       imageKeyword2: secondary,
     }
   })
+
+  return dedupeYbtourTourismPrimaryKeywordsAcrossDays(mapped, maxDay, productDestination)
 }
 
 /* ——— 레거시·에어텔 routeText KO→EN 헬퍼 (apply SSOT와 분리) ——— */
