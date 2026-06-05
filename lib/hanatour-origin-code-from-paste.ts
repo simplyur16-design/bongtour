@@ -1,3 +1,7 @@
+/**
+ * 하나투어 등록 originCode — 붙여넣기 결정론 SSOT.
+ * REGRESSION-FREEZE[hanatour-origin-code-from-paste]: LLM 미지정 시 본문 상품코드(PAB·ATP 등) 덮어쓰기 — manifest
+ */
 import type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'
 
 export function isUnsetRegisterOriginCode(code: string | null | undefined): boolean {

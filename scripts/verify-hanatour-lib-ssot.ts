@@ -85,6 +85,21 @@ assert(flightParser.includes('[하나투어 항공 스택 P2]'), 'flight-parser-
 assert(flightParser.includes('hanatour-parse-contract.md'), 'flight-parser-hanatour should cite contract')
 assert(read('lib/register-flight-hanatour.ts').includes('[하나투어 항공 스택 P2]'), 'register-flight-hanatour missing P2 header')
 
+// 9) originCode 붙여넣기 SSOT — LLM 미지정 폴백
+assert(
+  fs.existsSync(path.join(root, 'lib/hanatour-origin-code-from-paste.ts')),
+  'missing hanatour-origin-code-from-paste.ts',
+)
+const originSsot = read('lib/hanatour-origin-code-from-paste.ts')
+assert(originSsot.includes('REGRESSION-FREEZE[hanatour-origin-code-from-paste]'), 'origin SSOT missing freeze marker')
+assert(originSsot.includes('isUnsetRegisterOriginCode'), 'origin SSOT must treat 미지정 as unset')
+assert(orchestration.includes('applyHanatourOriginCodeFromPaste'), 'orchestration must apply paste originCode fallback')
+assert(read('lib/register-parse-hanatour.ts').includes('applyHanatourOriginCodeFromPaste'), 'register-parse must apply paste originCode fallback')
+assert(
+  !read('lib/register-parse-hanatour.ts').includes('extractHanatourOriginProductCodeFromBlob'),
+  'register-parse must not inline originCode extract',
+)
+
 if (failures.length) {
   console.error('[FAIL] verify-hanatour-lib-ssot')
   for (const f of failures) console.error(`  ${f}`)

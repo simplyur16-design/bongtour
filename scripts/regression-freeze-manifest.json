@@ -161,6 +161,26 @@
           "mustNotInclude": ["mergeScheduleWithSingleAirtelFitKeyword"]
         }
       ]
+    },
+    {
+      "id": "hanatour-origin-code-from-paste",
+      "tier": ["prebuild", "ci"],
+      "summary": "하나투어 originCode — LLM 미지정 시 본문 상품코드 SSOT 덮어쓰기",
+      "checks": [
+        {
+          "file": "lib/hanatour-origin-code-from-paste.ts",
+          "mustInclude": ["isUnsetRegisterOriginCode", "applyHanatourOriginCodeFromPaste", "REGRESSION-FREEZE[hanatour-origin-code-from-paste]"]
+        },
+        {
+          "file": "lib/register-parse-hanatour.ts",
+          "mustInclude": ["applyHanatourOriginCodeFromPaste"],
+          "mustNotInclude": ["extractHanatourOriginProductCodeFromBlob"]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-orchestration.ts",
+          "mustInclude": ["applyHanatourOriginCodeFromPaste"]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -175,7 +195,8 @@
         "tests/image-keyword-verify-guards.test.ts",
         "tests/modetour-schedule-image-keyword.test.ts",
         "lib/fit-itinerary-sync-schedule-image-keywords.test.ts",
-        "lib/geo-haystack-match.test.ts"
+        "lib/geo-haystack-match.test.ts",
+        "lib/hanatour-origin-code-from-paste.test.ts"
       ]
     }
   ]
