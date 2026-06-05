@@ -4,8 +4,11 @@
  */
 import { execSync } from 'node:child_process'
 import fs from 'node:fs'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+const require = createRequire(import.meta.url)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.join(__dirname, '..')
@@ -117,13 +120,33 @@ function runStaticGuards(manifest: Manifest, runTier: Tier, failures: string[]):
   }
 }
 
-function runVitestSuites(manifest: Manifest, runTier: Tier): void {
+function vitestInstalled(): boolean {
+  try {
+    require.resolve('vitest/config')
+    return true
+  } catch {
+    return false
+  }
+}
+
+function runVitestSuites(manifest: Manifest, runTier: Tier): number {
+  // Railway/Nixpacks build: NODE_ENV=production → npm install omits devDependencies (no vitest).
+  if (runTier === 'prebuild') {
+    return 0
+  }
   const suites = manifest.vitestSuites.filter((s) => tierMatch(s.tier, runTier))
+  if (suites.length === 0) return 0
+  if (!vitestInstalled()) {
+    throw new Error(
+      'vitest devDependency not installed — run npm install (with devDeps) before verify:regression-freeze:ci',
+    )
+  }
   for (const suite of suites) {
     const args = suite.files.map((f) => path.join(ROOT, f).replace(/\\/g, '/')).join(' ')
     console.log(`\n[regression-freeze] ▶ vitest ${suite.id}`)
     execSync(`npx vitest run ${args}`, { cwd: ROOT, stdio: 'inherit', env: process.env })
   }
+  return suites.length
 }
 
 function collectManifestIds(manifest: Manifest): Set<string> {
@@ -206,14 +229,17 @@ function main() {
     }
   }
 
+  let vitestCount = 0
   try {
-    runVitestSuites(manifest, runTier)
-  } catch {
+    vitestCount = runVitestSuites(manifest, runTier)
+  } catch (err) {
     console.error('\n[FAIL] regression-freeze vitest suite')
+    if (err instanceof Error && err.message) console.error(`  ${err.message}`)
     process.exit(1)
   }
 
-  console.log(`\n[ok] regression-freeze tier=${runTier} (${scripts.length} npm + static + vitest)`)
+  const vitestLabel = vitestCount > 0 ? ` + ${vitestCount} vitest` : ''
+  console.log(`\n[ok] regression-freeze tier=${runTier} (${scripts.length} npm + static${vitestLabel})`)
 }
 
 main()
