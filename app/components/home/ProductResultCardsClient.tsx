@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ProductResultCard, type ResultItem } from '@/components/products/ProductResultsList'
+import { MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS } from '@/lib/mobile-hub-scroll-layout'
 
 function formatWon(n: number | null): string {
   if (n == null || !Number.isFinite(n)) return '상담 문의'
@@ -34,7 +35,7 @@ export default function ProductResultCardsClient({
         {items.map((item) => (
           <div
             key={item.id}
-            className="w-[min(11rem,calc((100vw-2.75rem)/2))] shrink-0 snap-center md:w-[min(17.5rem,calc(100vw-2.75rem))] md:snap-start"
+            className={`${MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS} md:w-[min(17.5rem,calc(100vw-2.75rem))] md:snap-start`}
           >
             <ProductResultCard item={item} formatWon={formatWon} compact={compactCard} />
           </div>

@@ -33,6 +33,12 @@ import {
 } from '@/lib/match-domestic-product'
 import type { BrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
+import {
+  MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS,
+  MOBILE_HUB_OVERSEAS_SECTION_STACK_CLASS,
+  MOBILE_HUB_PRODUCT_ROW_CLASS,
+  MOBILE_HUB_SECTION_STACK_CLASS,
+} from '@/lib/mobile-hub-scroll-layout'
 
 export type ResultItem = {
   id: string
@@ -75,12 +81,10 @@ export type ResultItem = {
 const ESIM_NATIVE_INSERT_EVERY = 10
 
 /** 허브 모바일 가로 스크롤 — compact 카드 1장(해외 패키지·자유여행 공통) */
-const mobileHubCompactScrollLiClass =
-  'w-[min(11rem,calc((100vw-2.75rem)/2))] shrink-0 snap-center'
+const mobileHubCompactScrollLiClass = MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS
 
 /** 해외·자유여행 허브: 권역/국가당 한 줄 — 모바일 compact 스냅, md+ 가로 스크롤 다열 */
-const countryProductRowClass =
-  'mt-6 flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible overscroll-x-contain px-0 pb-2 pt-0.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch] max-md:-mx-1'
+const countryProductRowClass = MOBILE_HUB_PRODUCT_ROW_CLASS
 
 /** 해외 허브: 좌측 필터 있음 — 2/3열 */
 const productCardGridClassDefault = 'mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
@@ -617,7 +621,7 @@ function AirHotelCountryGroupedList({
   }, [items])
 
   return (
-    <div className="mt-6 space-y-10">
+    <div className={`mt-6 ${MOBILE_HUB_SECTION_STACK_CLASS}`}>
       {sections.map(({ bucketId, regionLabel, items: rowItems }, idx) => {
         if (rowItems.length === 0) return null
         return (
@@ -632,7 +636,7 @@ function AirHotelCountryGroupedList({
               {rowItems.map((item) => (
                 <li
                   key={item.id}
-                  className={`${overseasBucketRowLiClassDefault} max-md:w-[min(11rem,calc((100vw-2.75rem)/2))] max-md:max-w-none`}
+                  className={`${overseasBucketRowLiClassDefault} max-md:w-[min(11rem,calc((100vw-2.75rem)*0.43))] max-md:max-w-none`}
                 >
                   <ProductResultCard
                     item={item}
@@ -977,7 +981,7 @@ function OverseasRegionGroupedList({
   }, [bucketToCountries])
 
   return (
-    <div className="mt-6 space-y-12">
+    <div className={`mt-6 ${MOBILE_HUB_OVERSEAS_SECTION_STACK_CLASS}`}>
       {OVERSEAS_DISPLAY_BUCKET_ORDER.map((bucketId) => {
         const rawFlat = interleavedByBucket.get(bucketId) ?? []
         const flatList =
