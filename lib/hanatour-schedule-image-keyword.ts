@@ -1,3 +1,6 @@
+/**
+ * REGRESSION-FREEZE[hanatour-schedule-image-keyword-landmark]: 자유여행 imageKeyword — 식당·카페 금지, 랜드마크만 — manifest
+ */
 import {
   classifyHanatourScheduleCardDayKind,
   type HanatourScheduleCardDayKind,
@@ -16,7 +19,12 @@ import {
   mapKoreanPoiSegment,
   normalizeSemanticPoiKey,
 } from '@/lib/pexels-keyword'
-import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+import {
+  finalizeScheduleImageKeyword,
+  isLikelyTourismLandmarkKeyword,
+  isNonLandmarkFoodOrDiningImageKeyword,
+  normalizeToPlaceName,
+} from '@/lib/pexels-place-name-keyword'
 
 export type HanatourScheduleImageKeywordOpts = {
   productDestination?: string | null
@@ -118,6 +126,7 @@ function isHanatourLlmImageKeywordFormatOk(kw: string): boolean {
   if (HANATOUR_TOXIC_IMAGE_KEYWORD_RE.test(k)) return false
   if (HANATOUR_LLM_DAY_TRAVEL_RE.test(k)) return false
   if (/\b(hotel|resort|buffet|breakfast|lunch|dinner|brunch)\b/i.test(k)) return false
+  if (isNonLandmarkFoodOrDiningImageKeyword(k)) return false
   if (/\d{1,2}\/\d{1,2}/.test(k) || /\d{1,2}-\d{1,2}\b/.test(k)) return false
   const words = k.split(/\s+/).filter(Boolean).length
   if (words < 1 || words > 10) return false
@@ -391,7 +400,13 @@ function resolveHanatourPrimaryKeyword(
   const acceptLlm = (raw: string | null | undefined) =>
     tryAcceptHanatourLlmImageKeyword(raw, productDestination)
   const accepted = acceptLlm(row.imageKeyword)
-  if (accepted) {
+  const acceptedIsLandmarkEligible =
+    !!accepted &&
+    !isNonLandmarkFoodOrDiningImageKeyword(accepted) &&
+    (dayKind !== 'tourism' ||
+      isLikelyTourismLandmarkKeyword(accepted) ||
+      isKnownDestinationCityEnglishKeyword(accepted))
+  if (acceptedIsLandmarkEligible) {
     const isHubOrFlight =
       isHanatourDestinationCityDay(day, maxDay, haystack) ||
       dayKind === 'movement' ||

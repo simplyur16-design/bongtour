@@ -252,6 +252,19 @@ const POI_KO_TO_EN: Record<string, string> = {
   투몬베이: 'Tumon Bay',
   피시아이: 'Fish Eye Marine Park Guam',
   '피시 아이': 'Fish Eye Marine Park Guam',
+  본다이비치: 'Bondi Beach',
+  '본다이 비치': 'Bondi Beach',
+  본다이: 'Bondi Beach',
+  블루마운틴: 'Blue Mountains',
+  '블루 마운틴': 'Blue Mountains',
+  포트스티븐스: 'Port Stephens',
+  포트스티븐: 'Port Stephens',
+  '포트 스티븐': 'Port Stephens',
+  '포트 스티븐스': 'Port Stephens',
+  오페라하우스: 'Sydney Opera House',
+  '오페라 하우스': 'Sydney Opera House',
+  하버브리지: 'Sydney Harbour Bridge',
+  '하버 브리지': 'Sydney Harbour Bridge',
 }
 
 /** 테마 태그(themeTags) 한국어/혼용 → Pexels 검색용 영어 (후순위 fallback) */

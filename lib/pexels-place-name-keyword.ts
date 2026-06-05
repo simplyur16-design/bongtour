@@ -545,6 +545,22 @@ export function normalizeToPlaceName(rawKeyword: string): string {
   return t.slice(0, 90)
 }
 
+/** 식당·카페·음식점 — Pexels 일정 imageKeyword(랜드마크 전용)에 부적합 */
+const NON_LANDMARK_FOOD_VENUE_RE =
+  /\b(cafe|café|coffee\s*shop|restaurant|dining|bistro|bakery|eatery|ramen|noodle\s*shop|food\s*stall|street\s*food|hawker|brunch\s*spot|gastropub|food\s*court|kitchen|culinary|dim\s*sum|sushi\s*bar|bbq\s*restaurant|steakhouse|pizzeria|trattoria|brasserie|tea\s*house|bubble\s*tea|dessert\s*shop|ice\s*cream\s*parlor|barbecue\s*restaurant|tapas\s*bar|izakaya|yakiniku|pho\s*shop|burger\s*joint|food\s*hall|dining\s*hall)\b/i
+
+const NON_LANDMARK_FOOD_PHRASE_RE =
+  /\b(laneway\s*cafes?|cafe\s*lane|ramen\s*street|food\s*street|night\s*market\s*food|local\s*food|food\s*tour|culinary\s*tour|restaurant\s*row|dining\s*district)\b/i
+
+export function isNonLandmarkFoodOrDiningImageKeyword(keyword: string): boolean {
+  const raw = String(keyword ?? '').trim()
+  if (!raw) return false
+  if (/카페|식당|레스토랑|맛집|음식점|다이닝|조식|중식|석식|뷔페|라멘|이자카야/u.test(raw)) return true
+  const n = normalizeToPlaceName(raw).toLowerCase()
+  if (!n) return false
+  return NON_LANDMARK_FOOD_VENUE_RE.test(n) || NON_LANDMARK_FOOD_PHRASE_RE.test(n)
+}
+
 /** 호텔·숙박 시설명 — Pexels 관광지 키워드로 부적합 */
 export function isHotelLodgingImageKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
@@ -573,6 +589,7 @@ const LANDMARK_HINT_RE =
 export function isLikelyTourismLandmarkKeyword(keyword: string): boolean {
   const n = normalizeToPlaceName(keyword)
   if (!n || isBareCityOrCountryKeyword(n) || isHotelLodgingImageKeyword(n)) return false
+  if (isNonLandmarkFoodOrDiningImageKeyword(n)) return false
   if (n.split(/\s+/).length >= 2) return true
   return LANDMARK_HINT_RE.test(n)
 }

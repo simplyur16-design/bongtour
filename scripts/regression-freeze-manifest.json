@@ -182,6 +182,30 @@
       ]
     },
     {
+      "id": "hanatour-schedule-image-keyword-landmark",
+      "tier": ["prebuild", "ci"],
+      "summary": "하나투어 자유여행 imageKeyword — 식당·카페 금지, 랜드마크만",
+      "checks": [
+        {
+          "file": "lib/hanatour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-schedule-image-keyword-landmark]",
+            "isNonLandmarkFoodOrDiningImageKeyword",
+            "acceptedIsLandmarkEligible"
+          ]
+        },
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": ["isNonLandmarkFoodOrDiningImageKeyword", "NON_LANDMARK_FOOD_VENUE_RE"]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-schedule.ts",
+          "mustInclude": ["Bondi Beach", "Federation Square"],
+          "mustNotInclude": ["laneway cafes", "ramen street"]
+        }
+      ]
+    },
+    {
       "id": "hanatour-origin-code-from-paste",
       "tier": ["prebuild", "ci"],
       "summary": "하나투어 originCode — LLM 미지정 시 본문 상품코드 SSOT 덮어쓰기",
@@ -217,7 +241,8 @@
         "lib/geo-haystack-match.test.ts",
         "lib/hanatour-origin-code-from-paste.test.ts",
         "lib/product-image-source-attribution.test.ts",
-        "lib/register-public-image-hero-seo-hanatour-airtel.test.ts"
+        "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
+        "lib/hanatour-schedule-image-keyword-landmark.test.ts"
       ]
     }
   ]
