@@ -114,5 +114,5 @@ export function normalizeScheduleImageSourceLabel(raw: string | null | undefined
     dbSource: raw,
     imageUrl,
   })
-  return key ?? (raw ?? '').trim().toLowerCase() || 'pexels'
+  return key ?? ((raw ?? '').trim().toLowerCase() || 'pexels')
 }
