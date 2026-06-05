@@ -81,9 +81,14 @@ async function productDetailPageInner(idOrSlug: string) {
   }
 
   const skipFitForPayloadDto = selectKind === 'slim'
+  const listingKind = 'listingKind' in travelProduct ? travelProduct.listingKind : null
   const fitMaster = skipFitForPayloadDto
     ? null
-    : await loadFitItineraryMasterForProduct(productId, resolved.productType, travelProduct.listingKind)
+    : await loadFitItineraryMasterForProduct(
+        productId,
+        resolved.productType ?? travelProduct.productType,
+        listingKind,
+      )
 
   const userAgent = (await headers()).get('user-agent')
   const isMobile = isMobileUserAgent(userAgent)
