@@ -3,8 +3,12 @@
  * 공급사별 `*-schedule-image-keyword.ts` 에서 공통 사용.
  */
 import { extractPlaceNameKeyword } from '@/lib/pexels-place-name-keyword'
-import { mapDestination, mapKoreanPoiSegment } from '@/lib/pexels-keyword'
+import { mapDestination, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+
+function normKeywordKey(s: string): string {
+  return normalizeSemanticPoiKey(s)
+}
 
 export type ScheduleRowTextForKeyword = {
   title?: string | null
@@ -126,4 +130,44 @@ export function inferEnglishPlaceKeywordFromDayContent(
   }
 
   return ''
+}
+
+/**
+ * 관광 일차: LLM imageKeyword가 여러 일차에 동일 반복(상품명 바나힐 등)이면
+ * 일차별 routeText·본문 명소 후보를 우선한다.
+ */
+export function resolveTourismKeywordPreferDistinctPerDay<T extends ScheduleRowTextForKeyword>(args: {
+  row: T
+  acceptedLlm: string
+  allRows: T[]
+  acceptLlm: (raw: string | null | undefined) => string
+  daySpecificCandidates: string[]
+}): string {
+  const cands = args.daySpecificCandidates.map((k) => String(k ?? '').trim()).filter(Boolean)
+  if (!cands.length) return args.acceptedLlm
+
+  const pickFirstDistinct = (): string => {
+    for (const kw of cands) {
+      if (!args.acceptedLlm || normKeywordKey(kw) !== normKeywordKey(args.acceptedLlm)) return kw
+    }
+    return cands[0]!
+  }
+
+  if (!args.acceptedLlm) return pickFirstDistinct()
+
+  const llmKey = normKeywordKey(args.acceptedLlm)
+  let dup = 0
+  for (const r of args.allRows) {
+    const a = args.acceptLlm(r.imageKeyword)
+    if (a && normKeywordKey(a) === llmKey) dup++
+  }
+  if (dup >= 2) {
+    const primaryCand = cands[0]
+    if (primaryCand && normKeywordKey(primaryCand) === llmKey) {
+      return args.acceptedLlm
+    }
+    const distinct = pickFirstDistinct()
+    if (normKeywordKey(distinct) !== llmKey) return distinct
+  }
+  return args.acceptedLlm
 }

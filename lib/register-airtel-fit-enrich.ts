@@ -16,11 +16,10 @@ import {
   persistFitItineraryFromGeminiJson,
   registerParsedToFitPromptProduct,
 } from '@/lib/fit-itinerary-generate-for-product'
-import { mergeScheduleWithSingleAirtelFitKeyword } from '@/lib/fit-itinerary-merge-schedule-keywords'
+import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
 import type { SyncFitScheduleKeywordsResult } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import type { FitDayImageKeywordFallbackContext } from '@/lib/fit-itinerary-pick-day-image-keyword'
 import type { ProductScheduleJsonRow } from '@/lib/schedule-image-keyword-persist'
-import { pickSingleAirtelFitImageKeywordFromDays } from '@/lib/fit-itinerary-pick-day-image-keyword'
 import { collectRouteLandmarkKeywordsFromRouteText } from '@/lib/ybtour-schedule-image-keyword'
 import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 
@@ -77,8 +76,8 @@ function mergeParsedScheduleWithFitDays(
   const existing = registerRowsToScheduleJsonRows(parsed.schedule ?? [])
   const existingByDay = new Map(existing.map((r) => [Math.floor(Number(r.day)), r]))
   const fallbackCtx = fallbackCtxFromRegisterParsed(parsed)
-  /** 자유여행 SSOT — 예시 일정 일차 + 동일 imageKeyword 1개 */
-  const { rows, dayKeywords } = mergeScheduleWithSingleAirtelFitKeyword([], fitDays, fallbackCtx)
+  /** 자유여행 SSOT — 예시 일정 일차별 imageKeyword (중복 회피) */
+  const { rows, dayKeywords } = mergeScheduleWithFitKeywords([], fitDays, fallbackCtx)
   const merged = rows.map((row) => {
     const day = Math.floor(Number(row.day))
     const prev = existingByDay.get(day)
@@ -103,23 +102,22 @@ function isWeakAirtelRegisterImageKeyword(kw: string | null | undefined): boolea
   return isBareCityOrCountryKeyword(t)
 }
 
-/** 약한 단일 키워드일 때만 routeText에서 대표 랜드마크 1개로 보완(일차별 분기 금지) */
-function applySingleAirtelKeywordRouteTextBoostIfNeeded(
+/** 약한 키워드일 때만 일차별 routeText에서 랜드마크 보완 */
+function applyPerDayAirtelKeywordRouteTextBoostIfNeeded(
   schedule: RegisterScheduleDay[],
-  singleKw: string,
 ): RegisterScheduleDay[] {
-  if (!isWeakAirtelRegisterImageKeyword(singleKw)) {
-    return schedule.map((row) => ({ ...row, imageKeyword: singleKw, imageKeyword2: null }))
-  }
-  for (const row of schedule) {
+  return schedule.map((row) => {
+    if (!isWeakAirtelRegisterImageKeyword(row.imageKeyword)) {
+      return { ...row, imageKeyword2: null }
+    }
     const list = collectRouteLandmarkKeywordsFromRouteText(String(row.routeText ?? '').trim())
     for (const kw of list) {
       if (!isWeakAirtelRegisterImageKeyword(kw)) {
-        return schedule.map((r) => ({ ...r, imageKeyword: kw, imageKeyword2: null }))
+        return { ...row, imageKeyword: kw, imageKeyword2: null }
       }
     }
-  }
-  return schedule.map((row) => ({ ...row, imageKeyword: singleKw, imageKeyword2: null }))
+    return { ...row, imageKeyword2: null }
+  })
 }
 
 function airtelFitFieldIssue(reason: string, severity: 'info' | 'warn' = 'warn'): RegisterExtractionFieldIssue {
@@ -149,14 +147,12 @@ export async function enrichRegisterParsedWithAirtelFit(
       const response = parseFitItineraryGeminiJson(geminiJson, logLabel)
       const fitDays = fitGeminiResponseToKeywordDays(response)
       let { schedule, dayKeywords } = mergeParsedScheduleWithFitDays(parsed, fitDays)
-      const singleKw =
-        Object.values(dayKeywords)[0] ??
-        pickSingleAirtelFitImageKeywordFromDays(fitDays, fallbackCtxFromRegisterParsed(parsed))
-      schedule = applySingleAirtelKeywordRouteTextBoostIfNeeded(schedule, singleKw)
-      if (singleKw) {
-        issues.push(
-          airtelFitFieldIssue(`예시 일정(저장본) — imageKeyword 1건 반영: ${singleKw}`, 'info'),
-        )
+      schedule = applyPerDayAirtelKeywordRouteTextBoostIfNeeded(schedule)
+      const kwSummary = Object.entries(dayKeywords)
+        .map(([d, k]) => `${d}일:${k}`)
+        .join(', ')
+      if (kwSummary) {
+        issues.push(airtelFitFieldIssue(`예시 일정(저장본) — imageKeyword 반영: ${kwSummary}`, 'info'))
       }
       return {
         ...parsed,
@@ -187,14 +183,12 @@ export async function enrichRegisterParsedWithAirtelFit(
     geminiJson = geminiResult.text.trim()
     const fitDays = fitGeminiResponseToKeywordDays(response)
     let { schedule, dayKeywords } = mergeParsedScheduleWithFitDays(parsed, fitDays)
-    const singleKw =
-      Object.values(dayKeywords)[0] ??
-      pickSingleAirtelFitImageKeywordFromDays(fitDays, fallbackCtxFromRegisterParsed(parsed))
-    schedule = applySingleAirtelKeywordRouteTextBoostIfNeeded(schedule, singleKw)
-    if (singleKw) {
-      issues.push(
-        airtelFitFieldIssue(`예시 일정 Gemini 생성 완료 — imageKeyword 1건: ${singleKw}`, 'info'),
-      )
+    schedule = applyPerDayAirtelKeywordRouteTextBoostIfNeeded(schedule)
+    const kwSummary = Object.entries(dayKeywords)
+      .map(([d, k]) => `${d}일:${k}`)
+      .join(', ')
+    if (kwSummary) {
+      issues.push(airtelFitFieldIssue(`예시 일정 Gemini 생성 완료 — imageKeyword: ${kwSummary}`, 'info'))
     } else {
       issues.push(airtelFitFieldIssue('예시 일정은 생성됐으나 imageKeyword를 추출하지 못했습니다.', 'warn'))
     }

@@ -5,6 +5,7 @@ import {
 import {
   acceptLlmScheduleImageKeyword,
   inferEnglishPlaceKeywordFromDayContent,
+  resolveTourismKeywordPreferDistinctPerDay,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import {
@@ -387,7 +388,9 @@ function resolveHanatourPrimaryKeyword(
   allRows: HanatourScheduleImageKeywordRow[],
 ): string {
   const haystack = buildHanatourDayHaystack(row)
-  const accepted = tryAcceptHanatourLlmImageKeyword(row.imageKeyword, productDestination)
+  const acceptLlm = (raw: string | null | undefined) =>
+    tryAcceptHanatourLlmImageKeyword(raw, productDestination)
+  const accepted = acceptLlm(row.imageKeyword)
   if (accepted) {
     const isHubOrFlight =
       isHanatourDestinationCityDay(day, maxDay, haystack) ||
@@ -396,6 +399,24 @@ function resolveHanatourPrimaryKeyword(
     if (!isHubOrFlight && isKnownDestinationCityEnglishKeyword(accepted)) {
       const fromPoi = preferPoiOverBareCityLlm(row, accepted, productDestination)
       if (fromPoi !== accepted) return fromPoi
+    }
+    if (dayKind === 'tourism') {
+      const landmarks = collectHanatourLandmarkKeywords(row, productDestination)
+      const fromRouteLast = pickForeignPlaceFromRouteText(row.routeText, true, productDestination)
+      const fromRoute = pickForeignPlaceFromRouteText(row.routeText, false, productDestination)
+      const dayCands = [
+        ...landmarks.filter((kw) => !isKnownDestinationCityEnglishKeyword(kw)),
+        fromRouteLast,
+        fromRoute,
+      ].filter(Boolean)
+      const resolved = resolveTourismKeywordPreferDistinctPerDay({
+        row,
+        acceptedLlm: accepted,
+        allRows,
+        acceptLlm,
+        daySpecificCandidates: dayCands,
+      })
+      if (resolved) return resolved
     }
     return accepted
   }

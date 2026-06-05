@@ -6,7 +6,7 @@ import {
   pickSingleAirtelFitImageKeywordFromDays,
   type FitItineraryDayForKeyword,
 } from '@/lib/fit-itinerary-pick-day-image-keyword'
-import { mergeScheduleWithSingleAirtelFitKeyword } from '@/lib/fit-itinerary-merge-schedule-keywords'
+import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
 
 const fallback = {
   cityNameKo: '오사카',
@@ -209,7 +209,7 @@ describe('pickSingleAirtelFitImageKeywordFromDays', () => {
   })
 })
 
-describe('mergeScheduleWithSingleAirtelFitKeyword', () => {
+describe('mergeScheduleWithFitKeywords', () => {
   const nhaFallback = {
     cityNameKo: '나트랑',
     cityKey: 'nhatrang',
@@ -218,7 +218,7 @@ describe('mergeScheduleWithSingleAirtelFitKeyword', () => {
     destination: '나트랑',
   }
 
-  it('assigns one keyword to all days from fit landmarks (나트랑 패턴)', () => {
+  it('assigns distinct keywords per day from fit landmarks (나트랑 패턴)', () => {
     const fitDays: FitItineraryDayForKeyword[] = [
       {
         dayNumber: 1,
@@ -263,11 +263,10 @@ describe('mergeScheduleWithSingleAirtelFitKeyword', () => {
         ],
       },
     ]
-    const { dayKeywords } = mergeScheduleWithSingleAirtelFitKeyword([], fitDays, nhaFallback)
-    expect(areFitDayImageKeywordsUniform(dayKeywords)).toBe(true)
+    const { dayKeywords } = mergeScheduleWithFitKeywords([], fitDays, nhaFallback)
+    expect(areFitDayImageKeywordsUniform(dayKeywords)).toBe(false)
     const values = Object.values(dayKeywords)
-    expect(new Set(values.map((v) => v.toLowerCase())).size).toBe(1)
-    expect(values[0]).not.toBe('Nha')
-    expect(values[0]?.length).toBeGreaterThan(2)
+    expect(new Set(values.map((v) => v.toLowerCase())).size).toBe(3)
+    expect(values.every((v) => v && v.length > 2 && v !== 'Nha')).toBe(true)
   })
 })

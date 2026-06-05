@@ -14,8 +14,7 @@ function formatDate(iso: string | null): string {
 
 function formatPrice(krw: number | null): string {
   if (krw == null || krw <= 0) return '—'
-  if (krw >= 10000) return `${Math.floor(krw / 10000).toLocaleString()}만원`
-  return `${krw.toLocaleString()}원`
+  return `${Math.trunc(krw).toLocaleString('ko-KR')}원`
 }
 
 /** 메인·갤러리 공통 비율. 웹/모바일 동일 비율 반응형 */

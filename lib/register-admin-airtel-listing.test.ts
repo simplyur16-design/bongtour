@@ -4,7 +4,7 @@ import {
   isRegisterAirtelListing,
   stampRegisterAirtelProductTypeOnParsed,
 } from '@/lib/register-admin-airtel-listing'
-import { mergeScheduleWithSingleAirtelFitKeyword } from '@/lib/fit-itinerary-merge-schedule-keywords'
+import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
 import type { FitItineraryDayForKeyword } from '@/lib/fit-itinerary-pick-day-image-keyword'
 
 describe('isRegisterAirtelListing', () => {
@@ -39,7 +39,7 @@ describe('isAirHotelFitItineraryProduct', () => {
 })
 
 describe('buildAirtelRegisterScheduleRowsFromFitParsed', () => {
-  it('replaces LLM schedule keywords with single fit keyword on all days', async () => {
+  it('replaces LLM schedule keywords with per-day fit keywords', async () => {
     const { buildAirtelRegisterScheduleRowsFromFitParsed } = await import(
       '@/lib/register-airtel-fit-preview-ui'
     )
@@ -102,13 +102,14 @@ describe('buildAirtelRegisterScheduleRowsFromFitParsed', () => {
     const rows = buildAirtelRegisterScheduleRowsFromFitParsed(parsed)
     expect(rows?.length).toBe(2)
     const kws = rows!.map((r) => r.imageKeyword)
-    expect(new Set(kws).size).toBe(1)
-    expect(kws[0]).toMatch(/kiyomizu|dotonbori/i)
+    expect(new Set(kws).size).toBe(2)
+    expect(kws[0]).toMatch(/dotonbori/i)
+    expect(kws[1]).toMatch(/kiyomizu/i)
   })
 })
 
-describe('mergeScheduleWithSingleAirtelFitKeyword (register preview)', () => {
-  it('fills same imageKeyword on all fit days', () => {
+describe('mergeScheduleWithFitKeywords (register preview)', () => {
+  it('fills distinct imageKeyword per fit day', () => {
     const fitDays: FitItineraryDayForKeyword[] = [
       {
         dayNumber: 1,
@@ -125,7 +126,7 @@ describe('mergeScheduleWithSingleAirtelFitKeyword (register preview)', () => {
         ],
       },
     ]
-    const { rows, dayKeywords } = mergeScheduleWithSingleAirtelFitKeyword([], fitDays, {
+    const { rows, dayKeywords } = mergeScheduleWithFitKeywords([], fitDays, {
       cityNameKo: '오사카',
       cityKey: '',
       productTitle: '오사카 3일',
@@ -133,6 +134,7 @@ describe('mergeScheduleWithSingleAirtelFitKeyword (register preview)', () => {
     })
     expect(rows[0]?.imageKeyword?.length).toBeGreaterThan(2)
     expect(String(rows[0]?.title ?? '')).toContain('도톤보리')
-    expect(new Set(Object.values(dayKeywords)).size).toBe(1)
+    expect(rows[0]?.imageKeyword).toMatch(/dotonbori/i)
+    expect(Object.values(dayKeywords)[0]).toMatch(/dotonbori/i)
   })
 })

@@ -20,8 +20,7 @@ function formatDate(iso: string | null): string {
 
 function formatPrice(krw: number | null): string {
   if (krw == null || krw <= 0) return '문의'
-  if (krw >= 10000) return `${Math.floor(krw / 10000).toLocaleString()}만원~`
-  return `${krw.toLocaleString()}원~`
+  return `${Math.trunc(krw).toLocaleString('ko-KR')}원~`
 }
 
 type Props = {

@@ -123,4 +123,39 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
     assert.equal(out[0]!.imageKeyword2, null)
     assert.equal(out[1]!.imageKeyword2, null)
   })
+
+  it('LLM Ba Na Hills가 모든 일차에 반복되면 routeText 일차별 명소 우선', () => {
+    const out = applyModetourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 2,
+          title: '다낭',
+          description: '미케 비치',
+          routeText: 'Da Nang - My Khe Beach',
+          imageKeyword: 'Ba Na Hills',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '바나힐',
+          description: '바나힐',
+          routeText: 'Da Nang - Ba Na Hills',
+          imageKeyword: 'Ba Na Hills',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '호이안',
+          description: '호이안 올드타운',
+          routeText: 'Da Nang - Hoi An Ancient Town',
+          imageKeyword: 'Ba Na Hills',
+          imageKeyword2: null,
+        },
+      ],
+      { productDestination: '다낭' },
+    )
+    assert.equal(out[0]!.imageKeyword, 'My Khe')
+    assert.equal(out[1]!.imageKeyword, 'Ba Na Hills')
+    assert.match(out[2]!.imageKeyword!, /Hoi/i)
+  })
 })

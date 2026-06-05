@@ -6,7 +6,7 @@ import {
   fitGeminiResponseToKeywordDays,
   parseFitItineraryGeminiJson,
 } from '@/lib/fit-itinerary-gemini-parse'
-import { mergeScheduleWithSingleAirtelFitKeyword } from '@/lib/fit-itinerary-merge-schedule-keywords'
+import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
 import type { FitDayImageKeywordFallbackContext } from '@/lib/fit-itinerary-pick-day-image-keyword'
 import type { ProductScheduleJsonRow } from '@/lib/schedule-image-keyword-persist'
 
@@ -54,7 +54,7 @@ function scheduleRowsFromFitDays(
   const existing = registerRowsToScheduleJsonRows(parsed.schedule ?? [])
   const existingByDay = new Map(existing.map((r) => [Math.floor(Number(r.day)), r]))
   const fallbackCtx = fallbackCtxFromRegisterParsed(parsed)
-  const { rows } = mergeScheduleWithSingleAirtelFitKeyword([], fitDays, fallbackCtx)
+  const { rows } = mergeScheduleWithFitKeywords([], fitDays, fallbackCtx)
   const merged = rows.map((row) => {
     const day = Math.floor(Number(row.day))
     const prev = existingByDay.get(day)

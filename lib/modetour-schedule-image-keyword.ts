@@ -5,6 +5,7 @@
 import {
   acceptLlmScheduleImageKeyword,
   inferEnglishPlaceKeywordFromDayContent,
+  resolveTourismKeywordPreferDistinctPerDay,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
@@ -238,8 +239,28 @@ function resolveModetourPrimaryKeyword(
   day: number,
   maxDay: number,
   productDestination: string | null | undefined,
+  allRows: ModetourScheduleImageKeywordRow[],
 ): string {
-  const accepted = tryAcceptModetourLlmImageKeyword(row.imageKeyword, productDestination)
+  const acceptLlm = (raw: string | null | undefined) =>
+    tryAcceptModetourLlmImageKeyword(raw, productDestination)
+  const accepted = acceptLlm(row.imageKeyword)
+
+  if (dayKind === 'tourism' && accepted) {
+    const fromRouteLast = pickEnglishRouteTextPlace(row.routeText, true)
+    const fromRouteFirst = pickEnglishRouteTextPlace(row.routeText, false)
+    const fromInfer = inferModetourKeywordFromDayContent(row, productDestination)
+    const resolved = resolveTourismKeywordPreferDistinctPerDay({
+      row,
+      acceptedLlm: accepted,
+      allRows,
+      acceptLlm,
+      daySpecificCandidates: [fromRouteLast, fromRouteFirst, fromInfer].filter((k): k is string =>
+        Boolean(k),
+      ),
+    })
+    if (resolved) return resolved
+  }
+
   if (accepted) return accepted
 
   if (dayKind === 'movement' || dayKind === 'return_home') {
@@ -295,7 +316,7 @@ export function applyModetourScheduleImageKeywordsToRows<
 
     const haystack = buildModetourDayHaystack(row)
     const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, haystack)
-    const primary = resolveModetourPrimaryKeyword(row, dayKind, day, maxDay, productDestination)
+    const primary = resolveModetourPrimaryKeyword(row, dayKind, day, maxDay, productDestination, sorted)
     const secondary = resolveModetourSecondaryKeyword(row, primary, dayKind, productDestination)
 
     return {

@@ -114,7 +114,7 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 - transportDuration = "10분" 등 한국어 + 숫자
 - 모든 텍스트 한국어
 - **location 필수 형식(관광·쇼핑·식사):** 한글명 (English landmark name) — 괄호 안 **영문 고유명** 필수 (예: "도톤보리 (Dotonbori)", "청수사 (Kiyomizu-dera Temple)"). transport·hotel은 공항·호텔명 한글만 가능
-- **imageKeyword(시스템 자동·1개만):** 등록 후 예시 일정 전체에서 대표 랜드마크 **1곳**만 Pexels 검색어로 쓴다. 중간 관광일(2~N-1일차) attraction location에 **괄호 영문 고유명** 1곳 이상 필수(예: 미케 비치 (My Khe Beach), 바나힐 (Ba Na Hills)). 도시명·공항명만 쓰지 말 것.
+- **imageKeyword(시스템 자동·일차별):** 등록 후 예시 일정 **각 일차**마다 그날 attraction·shopping·meal location의 **괄호 영문 고유명**으로 Pexels 검색어를 만든다(일차마다 다른 랜드마크). location 형식 예: 미케 비치 (My Khe Beach), 바나힐 (Ba Na Hills), 청수사 (Kiyomizu-dera Temple). 도시명·공항명만 쓰지 말 것.
 - 음식점은 추천 메뉴 1~2개 포함
 - 가족·연인·부모 등 페르소나 언급 활동 1~2개 포함
 - 야경/포토존 1개 포함

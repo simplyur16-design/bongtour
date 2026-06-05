@@ -19,7 +19,7 @@ describe('syncScheduleImageKeywordsFromFitItinerary', () => {
     update.mockReset()
   })
 
-  it('updates schedule with single keyword on all days and clears stale imageUrl on change', async () => {
+  it('updates schedule with per-day keywords and clears stale imageUrl on change', async () => {
     findUnique.mockResolvedValue({
       id: 'p1',
       productType: 'airtel',
@@ -79,7 +79,7 @@ describe('syncScheduleImageKeywordsFromFitItinerary', () => {
 
     expect(result.updated).toBe(true)
     expect(result.dayKeywords[1]).toBe('Dotonbori')
-    expect(result.dayKeywords[2]).toBe('Dotonbori')
+    expect(result.dayKeywords[2]).toBe('Kiyomizu-dera Temple')
     expect(update).toHaveBeenCalledTimes(1)
 
     const saved = JSON.parse(update.mock.calls[0]![0].data.schedule as string) as Array<{
@@ -90,7 +90,7 @@ describe('syncScheduleImageKeywordsFromFitItinerary', () => {
     const d1 = saved.find((r) => r.day === 1)!
     const d2 = saved.find((r) => r.day === 2)!
     expect(d1.imageKeyword).toBe('Dotonbori')
-    expect(d2.imageKeyword).toBe('Dotonbori')
+    expect(d2.imageKeyword).toBe('Kiyomizu-dera Temple')
     expect(d1.imageUrl).toBeNull()
     expect(d2.imageUrl).toBeNull()
   })

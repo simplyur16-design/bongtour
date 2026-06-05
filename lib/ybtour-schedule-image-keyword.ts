@@ -6,6 +6,7 @@
 import {
   acceptLlmScheduleImageKeyword,
   inferEnglishPlaceKeywordFromDayContent,
+  resolveTourismKeywordPreferDistinctPerDay,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { findAllMappedKoreanPoisInText, mapDestination, mapKoreanPoiSegment } from '@/lib/pexels-keyword'
@@ -286,8 +287,29 @@ function resolveYbtourPrimaryKeywordCore(
   day: number,
   maxDay: number,
   productDestination: string | null | undefined,
+  allRows: YbtourScheduleImageKeywordRow[],
 ): string {
-  const accepted = tryAcceptYbtourLlmImageKeyword(row.imageKeyword, productDestination)
+  const acceptLlm = (raw: string | null | undefined) =>
+    tryAcceptYbtourLlmImageKeyword(raw, productDestination)
+  const accepted = acceptLlm(row.imageKeyword)
+
+  if (dayKind === 'tourism' && accepted) {
+    const fromRouteLast = pickEnglishRouteTextPlace(row.routeText, true)
+    const fromRouteFirst = pickEnglishRouteTextPlace(row.routeText, false)
+    const fromRouteKo = pickFirstAcceptedFromRouteKoreanSegments(row, productDestination)
+    const fromInfer = inferYbtourKeywordFromDayContent(row, productDestination)
+    const resolved = resolveTourismKeywordPreferDistinctPerDay({
+      row,
+      acceptedLlm: accepted,
+      allRows,
+      acceptLlm,
+      daySpecificCandidates: [fromRouteLast, fromRouteFirst, fromRouteKo, fromInfer].filter(
+        (k): k is string => Boolean(k),
+      ),
+    })
+    if (resolved) return resolved
+  }
+
   if (accepted) return accepted
 
   if (dayKind === 'movement' || dayKind === 'return_home') {
@@ -354,7 +376,7 @@ export function applyYbtourScheduleImageKeywordsToRows<
 
     const haystack = buildYbtourDayHaystack(row)
     const dayKind = classifyYbtourScheduleCardDayKind(day, maxDay, haystack)
-    const primary = resolveYbtourPrimaryKeywordCore(row, dayKind, day, maxDay, productDestination)
+    const primary = resolveYbtourPrimaryKeywordCore(row, dayKind, day, maxDay, productDestination, sorted)
     const secondary = resolveYbtourSecondaryKeywordCore(row, primary, dayKind, productDestination)
 
     return {
@@ -522,7 +544,7 @@ export function resolveYbtourPrimaryKeyword(
 ): string {
   const mapped: YbtourScheduleCardDayKind =
     dayKind === 'flight' ? 'movement' : dayKind === 'touring' || dayKind === 'free' ? 'tourism' : dayKind
-  return resolveYbtourPrimaryKeywordCore(row, mapped, day, maxDay, productDestination)
+  return resolveYbtourPrimaryKeywordCore(row, mapped, day, maxDay, productDestination, [row])
 }
 
 /** 테스트·디버그 */
