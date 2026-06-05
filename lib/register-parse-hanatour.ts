@@ -26,17 +26,9 @@ import { applyHanatourBasicInfoBodyExtract } from '@/lib/hanatour-basic-info-bod
 import { sanitizeHanatourRegisterParsedDepartureFields } from '@/lib/hanatour-departure-flight-display'
 import { finalizeHanatourRegisterParsedPricing } from '@/lib/register-hanatour-price'
 import { finalizeHanatourRegisterParsedShopping } from '@/lib/register-hanatour-shopping'
+import { applyHanatourOriginCodeFromPaste } from '@/lib/hanatour-origin-code-from-paste'
 
 type ParseOpts = NonNullable<Parameters<typeof parseForRegisterLlmHanatour>[2]>
-
-/** 본문 `상품코드` / `상품번호` + JKP… 형태 */
-function extractHanatourOriginProductCodeFromBlob(blob: string): string | null {
-  const t = blob.replace(/\s+/g, ' ').trim()
-  const m =
-    t.match(/상품(?:코드|번호)\s*[:：]?\s*([A-Za-z]{1,6}\d[A-Za-z0-9-]{4,})/i) ||
-    t.match(/상품번호\s*([A-Za-z]{1,6}\d[A-Za-z0-9-]{4,})/i)
-  return m?.[1]?.trim() ?? null
-}
 
 function mergeAirlineTransportPaste(
   detailBody: DetailBodyParseSnapshot,
@@ -165,10 +157,7 @@ export async function parseForRegisterHanatour(
   parsed = finalizeHanatourRegisterParsedPricing(parsed)
   parsed = finalizeHanatourRegisterParsedShopping(parsed)
 
-  const hCode = extractHanatourOriginProductCodeFromBlob(rawText)
-  if (hCode && !(parsed.originCode ?? '').trim()) {
-    parsed = { ...parsed, originCode: hCode }
-  }
+  parsed = applyHanatourOriginCodeFromPaste(parsed, rawText)
 
   const prevNotes = parsed.registerPreviewPolicyNotes ?? []
   const extra: string[] = []
