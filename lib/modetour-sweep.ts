@@ -1,9 +1,12 @@
 /**
  * modetour 일1회 sweep — GetOtherDepartureDates(minPrice) 경량 수집 + ProductDeparture upsert.
  * instrumentation: `lib/instrumentation-modetour-sweep-cron.ts` (KST 04:00).
+ *
+ * SD1(상품 없음): 패키지(travel 등)는 auto_unpublished. 자유여행(air_hotel_free)은 노출 유지·가격 갱신만 skip.
  */
 import type { PrismaClient } from '@prisma/client'
 
+import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import {
   isModetourSd1NotFoundError,
   ModetourB2cApiError,
@@ -60,6 +63,16 @@ export type ModetourSweepResult = {
 type SweepProductRow = {
   id: string
   originUrl: string | null
+  listingKind: string | null
+  productType: string | null
+}
+
+/** SD1 응답 시 sweep에서 자동 내림할지 — 자유여행은 관리자 검수 전까지 registered 유지. */
+export function shouldModetourSweepRetireOnSd1(product: {
+  listingKind?: string | null
+  productType?: string | null
+}): boolean {
+  return !isAirHotelProduct(product)
 }
 
 function modetourSweepHeaders(referer: string, productNo: string): HeadersInit {
@@ -145,7 +158,7 @@ async function findSweepProducts(
   limit: number,
   productNo?: string | null
 ): Promise<SweepProductRow[]> {
-  const select = { id: true, originUrl: true } as const
+  const select = { id: true, originUrl: true, listingKind: true, productType: true } as const
 
   if (productNo?.trim()) {
     const forcedNo = productNo.trim()
@@ -255,6 +268,16 @@ export async function sweepDueModetourProducts(
       result.updated += 1
     } catch (err) {
       if (isModetourSd1NotFoundError(err)) {
+        if (!shouldModetourSweepRetireOnSd1(product)) {
+          console.warn('[modetour-sweep] sd1-skip-air-hotel', { productId: product.id })
+          await prisma.product.update({
+            where: { id: product.id },
+            data: { lastSalesPolicyCheckedAt: now },
+          })
+          result.skipped += 1
+          continue
+        }
+
         await prisma.product.update({
           where: { id: product.id },
           data: {
