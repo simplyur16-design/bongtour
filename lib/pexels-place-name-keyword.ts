@@ -251,6 +251,7 @@ const TRAILING_MODIFIER_WORDS = [
 const PROTECTED_TRAILING = new Set([
   'crossing',
   'bay',
+  'beach',
   'bridge',
   'tower',
   'castle',
@@ -415,6 +416,9 @@ const COMPOUND_LANDMARK_PHRASES: Record<string, string> = {
   'ho chi minh city': 'Ho Chi Minh City',
   'chiang mai': 'Chiang Mai',
   'nha trang': 'Nha Trang',
+  'bondi beach': 'Bondi Beach',
+  'starfish beach': 'Starfish Beach',
+  'sao beach': 'Sao Beach',
   'new york': 'New York',
   'hong kong': 'Hong Kong',
   'los angeles': 'Los Angeles',
@@ -561,6 +565,19 @@ export function isNonLandmarkFoodOrDiningImageKeyword(keyword: string): boolean 
   return NON_LANDMARK_FOOD_VENUE_RE.test(n) || NON_LANDMARK_FOOD_PHRASE_RE.test(n)
 }
 
+/** 스파·라운지·마트·쇼핑 — Pexels 일정 imageKeyword(랜드마크 전용)에 부적합 */
+const NON_LANDMARK_SPA_SHOPPING_LOUNGE_RE =
+  /\b(spa|massage|wellness\s*center|lounge|club\s*lounge|t\s*lounge|bar\s*&\s*lounge|duty\s*free|shopping\s*mall|supermarket|minimart|convenience\s*store|grocery|retail\s*mall|outlet\s*mall|department\s*store|resort\s*restaurant|moon\s*spa|king\s*kong\s*mart)\b/i
+
+export function isNonLandmarkSpaShoppingLoungeImageKeyword(keyword: string): boolean {
+  const raw = String(keyword ?? '').trim()
+  if (!raw) return false
+  if (/스파|라운지|마트|면세|쇼핑몰|킹콩|뷔페|힐링\s*스파/u.test(raw)) return true
+  const n = normalizeToPlaceName(raw).toLowerCase()
+  if (!n) return false
+  return NON_LANDMARK_SPA_SHOPPING_LOUNGE_RE.test(n)
+}
+
 /** 호텔·숙박 시설명 — Pexels 관광지 키워드로 부적합 */
 export function isHotelLodgingImageKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
@@ -590,8 +607,53 @@ export function isLikelyTourismLandmarkKeyword(keyword: string): boolean {
   const n = normalizeToPlaceName(keyword)
   if (!n || isBareCityOrCountryKeyword(n) || isHotelLodgingImageKeyword(n)) return false
   if (isNonLandmarkFoodOrDiningImageKeyword(n)) return false
+  if (isNonLandmarkSpaShoppingLoungeImageKeyword(n)) return false
   if (n.split(/\s+/).length >= 2) return true
   return LANDMARK_HINT_RE.test(n)
+}
+
+/** 짧은 불투명 단어(Khem 등) — 랜드마크·도시명이 아니면 부적합 */
+export function isWeakOpaqueImageKeyword(keyword: string): boolean {
+  const n = normalizeToPlaceName(keyword)
+  if (!n) return true
+  const words = n.split(/\s+/).filter(Boolean)
+  if (words.length !== 1) return false
+  if (words[0]!.length > 5) return false
+  if (LANDMARK_HINT_RE.test(n)) return false
+  if (isBareCityOrCountryKeyword(n)) return false
+  return true
+}
+
+function isNonLandmarkRouteTextSegmentKo(t: string): boolean {
+  return /스파|라운지|마트|면세|쇼핑|식당|레스토랑|뷔페|호텔|리조트|공항|픽업|이동|체크인|숙박|식사|조식|중식|석식|킹콩|T\s*라운지|문\s*스파|국제\s*공항|투숙/u.test(
+    t,
+  )
+}
+
+/** routeText 세그먼트 — 스파·라운지·마트·공항 등 랜드마크 후보 제외 */
+export function isNonLandmarkRouteTextSegment(seg: string): boolean {
+  const t = String(seg ?? '').trim()
+  if (!t) return true
+  if (isNonLandmarkRouteTextSegmentKo(t)) return true
+  const en = normalizeToPlaceName(t).toLowerCase()
+  if (!en) return false
+  return (
+    isNonLandmarkFoodOrDiningImageKeyword(en) ||
+    isNonLandmarkSpaShoppingLoungeImageKeyword(en) ||
+    isHotelLodgingImageKeyword(en) ||
+    /\b(airport|international\s*airport|pickup|transfer)\b/i.test(en)
+  )
+}
+
+/** Pexels 일정 imageKeyword — 관광 랜드마크만 허용 */
+export function isScheduleImageKeywordLandmarkEligible(keyword: string): boolean {
+  const n = normalizeToPlaceName(keyword)
+  if (!n || n.length < 3) return false
+  if (isNonLandmarkFoodOrDiningImageKeyword(n)) return false
+  if (isNonLandmarkSpaShoppingLoungeImageKeyword(n)) return false
+  if (isHotelLodgingImageKeyword(n)) return false
+  if (isWeakOpaqueImageKeyword(n)) return false
+  return isLikelyTourismLandmarkKeyword(n)
 }
 
 export type ExtractPlaceNameKeywordInput = {

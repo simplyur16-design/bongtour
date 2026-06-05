@@ -11,6 +11,7 @@ import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import type { RegisterScheduleDay as VerygoodRegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-schedule-image-keyword'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
+import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airtel-route-image-keyword'
 import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
 
 export type RegisterScheduleImageKeywordUiRow = {
@@ -34,11 +35,15 @@ export function applyRegisterScheduleImageKeywordsForAdminUi<
   T extends RegisterScheduleImageKeywordUiRow,
 >(rows: T[], opts: ApplyRegisterScheduleImageKeywordsForUiOpts): T[] {
   if (!rows.length) return rows
-  if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
-    return rows
-  }
   const supplier = normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   const dest = opts.productDestination ?? null
+  if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
+    const routed = applyAirtelRouteTextImageKeywordsToSchedule(rows)
+    if (supplier === 'hanatour') {
+      return applyHanatourScheduleImageKeywordsToRows(routed, { productDestination: dest })
+    }
+    return routed
+  }
   const title = opts.productTitle ?? null
 
   switch (supplier) {

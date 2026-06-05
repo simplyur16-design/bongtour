@@ -23,6 +23,7 @@ const DESTINATION_MAP: Record<string, string> = {
   나트랑: 'Nha Trang',
   호치민: 'Ho Chi Minh',
   하노이: 'Hanoi',
+  푸꾸옥: 'Phu Quoc',
   델리: 'Delhi',
   도쿄: 'Tokyo',
   교토: 'Kyoto',
@@ -283,6 +284,11 @@ const POI_KO_TO_EN: Record<string, string> = {
   '카를 교': 'Charles Bridge',
   프라하성: 'Prague Castle',
   '프라하 성': 'Prague Castle',
+  스타피쉬비치: 'Starfish Beach',
+  '스타피쉬 비치': 'Starfish Beach',
+  사오비치: 'Sao Beach',
+  '사오 비치': 'Sao Beach',
+  호국사: 'Ho Quoc Pagoda',
 }
 
 /** 테마 태그(themeTags) 한국어/혼용 → Pexels 검색용 영어 (후순위 fallback) */

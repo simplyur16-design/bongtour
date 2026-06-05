@@ -21,8 +21,11 @@ import {
 } from '@/lib/pexels-keyword'
 import {
   finalizeScheduleImageKeyword,
-  isLikelyTourismLandmarkKeyword,
   isNonLandmarkFoodOrDiningImageKeyword,
+  isNonLandmarkRouteTextSegment,
+  isNonLandmarkSpaShoppingLoungeImageKeyword,
+  isScheduleImageKeywordLandmarkEligible,
+  isWeakOpaqueImageKeyword,
   normalizeToPlaceName,
 } from '@/lib/pexels-place-name-keyword'
 
@@ -127,6 +130,8 @@ function isHanatourLlmImageKeywordFormatOk(kw: string): boolean {
   if (HANATOUR_LLM_DAY_TRAVEL_RE.test(k)) return false
   if (/\b(hotel|resort|buffet|breakfast|lunch|dinner|brunch)\b/i.test(k)) return false
   if (isNonLandmarkFoodOrDiningImageKeyword(k)) return false
+  if (isNonLandmarkSpaShoppingLoungeImageKeyword(k)) return false
+  if (isWeakOpaqueImageKeyword(k)) return false
   if (/\d{1,2}\/\d{1,2}/.test(k) || /\d{1,2}-\d{1,2}\b/.test(k)) return false
   const words = k.split(/\s+/).filter(Boolean).length
   if (words < 1 || words > 10) return false
@@ -218,6 +223,7 @@ function collectHanatourLandmarkKeywords(
   const out: string[] = []
   for (const seg of routeTextSegments(row.routeText)) {
     if (isHanatourDomesticHubToken(seg)) continue
+    if (isNonLandmarkRouteTextSegment(seg)) continue
     const kw = segmentToAcceptedHanatourKeyword(seg, productDestination)
     if (kw) pushUniqueHanatourLandmark(out, kw, productDestination)
   }
@@ -402,10 +408,12 @@ function resolveHanatourPrimaryKeyword(
   const accepted = acceptLlm(row.imageKeyword)
   const acceptedIsLandmarkEligible =
     !!accepted &&
-    !isNonLandmarkFoodOrDiningImageKeyword(accepted) &&
-    (dayKind !== 'tourism' ||
-      isLikelyTourismLandmarkKeyword(accepted) ||
-      isKnownDestinationCityEnglishKeyword(accepted))
+    (dayKind === 'tourism'
+      ? isScheduleImageKeywordLandmarkEligible(accepted) || isKnownDestinationCityEnglishKeyword(accepted)
+      : !isNonLandmarkFoodOrDiningImageKeyword(accepted) &&
+        !isNonLandmarkSpaShoppingLoungeImageKeyword(accepted) &&
+        !isWeakOpaqueImageKeyword(accepted) &&
+        (isKnownDestinationCityEnglishKeyword(accepted) || isScheduleImageKeywordLandmarkEligible(accepted)))
   if (acceptedIsLandmarkEligible) {
     const isHubOrFlight =
       isHanatourDestinationCityDay(day, maxDay, haystack) ||

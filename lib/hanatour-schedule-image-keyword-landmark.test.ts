@@ -3,6 +3,9 @@ import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedul
 import {
   isLikelyTourismLandmarkKeyword,
   isNonLandmarkFoodOrDiningImageKeyword,
+  isNonLandmarkSpaShoppingLoungeImageKeyword,
+  isScheduleImageKeywordLandmarkEligible,
+  isWeakOpaqueImageKeyword,
 } from '@/lib/pexels-place-name-keyword'
 import { applyHanatourAirtelFreeTravelImageKeywordsToScheduleIfNeeded } from '@/lib/parse-and-register-hanatour-schedule'
 
@@ -28,8 +31,8 @@ describe('applyHanatourScheduleImageKeywordsToRows — 랜드마크 우선', () 
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
         {
-          day: 2,
-          title: '시드니',
+          day: 3,
+          title: '본다이 비치',
           description: '공항 픽업 후 본다이 비치 자유 관광',
           routeText: '시드니 - 본다이 비치',
           imageKeyword: 'Sydney cafe brunch district',
@@ -38,8 +41,9 @@ describe('applyHanatourScheduleImageKeywordsToRows — 랜드마크 우선', () 
       ],
       sydneyOpts,
     )
-    expect(out[0]!.imageKeyword).toMatch(/^Bondi(\s+Beach)?$/i)
-    expect(isNonLandmarkFoodOrDiningImageKeyword(out[0]!.imageKeyword!)).toBe(false)
+    expect(out[0]!.imageKeyword).toBe('Bondi Beach')
+    expect(out[0]!.imageKeyword).not.toMatch(/cafe|brunch|restaurant/i)
+    expect(isScheduleImageKeywordLandmarkEligible(out[0]!.imageKeyword!)).toBe(true)
   })
 
   it('LLM이 블루마운틴 대신 식당 키워드면 본문 명소 사용', () => {
@@ -57,6 +61,58 @@ describe('applyHanatourScheduleImageKeywordsToRows — 랜드마크 우선', () 
       sydneyOpts,
     )
     expect(out[0]!.imageKeyword).toBe('Blue Mountains')
+  })
+})
+
+describe('푸꾸옥 자유여행 — 스파·식당·불투명 단어 거부', () => {
+  const phuQuocOpts = { productDestination: '베트남 푸꾸옥' }
+
+  it('Day1 Restaurant / Day4 Moon Spa / Day2 Khem → 랜드마크·도시로 교정', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '푸꾸옥 도착',
+          description: '인천 출발 후 푸꾸옥 도착',
+          routeText: '인천 - 푸꾸옥',
+          imageKeyword: 'New World Resort Restaurant',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '에메랄드빛 바다',
+          description: '푸꾸옥 자유일정',
+          routeText: '푸꾸옥',
+          imageKeyword: 'Khem',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '역사와 자연',
+          description: '스타피쉬 비치와 호국사',
+          routeText: '스타피쉬 비치 - 호국사 - 사오 비치 - 킹콩마트',
+          imageKeyword: 'Ho Quoc Pagoda',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '힐링',
+          description: '문 스파 후 귀국',
+          routeText: '푸꾸옥 - T라운지 - 문 스파 - 푸꾸옥 국제공항',
+          imageKeyword: 'Moon Spa',
+          imageKeyword2: null,
+        },
+      ],
+      phuQuocOpts,
+    )
+
+    expect(isScheduleImageKeywordLandmarkEligible(out[0]!.imageKeyword!)).toBe(true)
+    expect(out[0]!.imageKeyword).not.toMatch(/restaurant/i)
+    expect(isWeakOpaqueImageKeyword('Khem')).toBe(true)
+    expect(out[1]!.imageKeyword).not.toBe('Khem')
+    expect(out[2]!.imageKeyword).toMatch(/Ho Quoc|Starfish|Sao Beach/i)
+    expect(isNonLandmarkSpaShoppingLoungeImageKeyword(out[3]!.imageKeyword!)).toBe(false)
+    expect(out[3]!.imageKeyword).not.toMatch(/spa|lounge/i)
   })
 })
 

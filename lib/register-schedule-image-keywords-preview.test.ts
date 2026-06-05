@@ -24,4 +24,25 @@ describe('overlayPreviewScheduleImageKeywords', () => {
     expect(out[0]!.imageKeyword).toBe('Taj Mahal')
     expect(out[0]!.imageKeyword2).toBe('Agra Fort')
   })
+
+  it('하나투어 자유여행(airtel) 미리보기도 스파·식당 LLM 키워드를 랜드마크로 교정', () => {
+    const llm = [
+      {
+        day: 3,
+        title: '푸꾸옥 관광',
+        description: '스타피쉬 비치와 호국사',
+        routeText: '스타피쉬 비치 - 호국사 - 사오 비치',
+        imageKeyword: 'Moon Spa',
+        imageKeyword2: null,
+      },
+    ]
+    const preview = applyRegisterScheduleImageKeywordsForPreview(llm, {
+      supplierKey: 'hanatour',
+      productDestination: '베트남',
+      travelScope: 'air_hotel_free',
+      productType: 'air-hotel',
+    })
+    expect(preview[0]!.imageKeyword).not.toMatch(/spa|restaurant|lounge/i)
+    expect(preview[0]!.imageKeyword).toMatch(/Ho Quoc|Starfish|Sao Beach/i)
+  })
 })

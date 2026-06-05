@@ -15,6 +15,7 @@ import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import {
   finalizeScheduleImageKeyword,
   isBareCityOrCountryKeyword,
+  isNonLandmarkRouteTextSegment,
   normalizeToPlaceName,
 } from '@/lib/pexels-place-name-keyword'
 
@@ -556,6 +557,7 @@ export function collectRouteLandmarkKeywordsFromRouteText(
 ): string[] {
   const landmarks: string[] = []
   for (const seg of routeTextSegments(routeText)) {
+    if (isNonLandmarkRouteTextSegment(seg)) continue
     pushRouteLandmarkKeyword(landmarks, englishFromRouteSegment(seg))
   }
   if (!landmarks.length) {

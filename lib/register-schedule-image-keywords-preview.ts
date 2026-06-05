@@ -35,12 +35,16 @@ export function applyRegisterScheduleImageKeywordsForPreview<
   T extends RegisterScheduleImageKeywordPreviewRow,
 >(rows: T[], opts: ApplyRegisterScheduleImageKeywordsForPreviewOpts): T[] {
   if (!rows.length) return rows
-  if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
-    return applyAirtelRouteTextImageKeywordsToSchedule(rows)
-  }
   const supplier =
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   const dest = opts.productDestination ?? null
+  if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
+    const routed = applyAirtelRouteTextImageKeywordsToSchedule(rows)
+    if (supplier === 'hanatour') {
+      return applyHanatourScheduleImageKeywordsToRows(routed, { productDestination: dest })
+    }
+    return routed
+  }
   const title = opts.productTitle ?? null
 
   switch (supplier) {

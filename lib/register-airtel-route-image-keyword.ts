@@ -1,7 +1,10 @@
 /**
  * 자유여행 일정 — routeText 세그먼트에서 일차별 imageKeyword (Fit·LLM 폴백 보완).
  */
-import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
+import {
+  isBareCityOrCountryKeyword,
+  isScheduleImageKeywordLandmarkEligible,
+} from '@/lib/pexels-place-name-keyword'
 import {
   collectRouteLandmarkKeywordsFromRouteText,
 } from '@/lib/ybtour-schedule-image-keyword'
@@ -60,7 +63,9 @@ export function applyAirtelRouteTextImageKeywordsToSchedule<T extends AirtelRout
 
     const current = String(row.imageKeyword ?? '').trim()
     const routeIsLandmark = !isWeakAirtelImageKeyword(picked.imageKeyword)
-    const shouldReplace = routeIsLandmark && (isWeakAirtelImageKeyword(current) || !current)
+    const shouldReplace =
+      routeIsLandmark &&
+      (!current || isWeakAirtelImageKeyword(current) || !isScheduleImageKeywordLandmarkEligible(current))
 
     if (!shouldReplace) {
       if (picked.imageKeyword2 && !String(row.imageKeyword2 ?? '').trim()) {
