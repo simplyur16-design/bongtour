@@ -6,12 +6,12 @@ import {
 } from "@/lib/bongsim/data/checkout-create-order";
 
 describe("직군 checkout 할인 (서버 계산)", () => {
-  it("1) subtotal=20000 → discount=5000, grand=15000", () => {
+  it("1) subtotal=20000 → discount=2000, grand=18000", () => {
     const subtotal = 20_000;
     const discount = computePressMemberDiscountKrw(subtotal);
     const grand = Math.max(0, subtotal - discount);
-    expect(discount).toBe(5_000);
-    expect(grand).toBe(15_000);
+    expect(discount).toBe(2_000);
+    expect(grand).toBe(18_000);
   });
 
   it("2) 직군 + coupon_id/user_coupon_id → press_member_no_coupon", () => {
@@ -28,7 +28,7 @@ describe("직군 checkout 할인 (서버 계산)", () => {
     expect(
       pressMemberCouponRejection(false, "00000000-0000-4000-8000-000000000001", null),
     ).toBeNull();
-    expect(computePressMemberDiscountKrw(20_000)).toBe(5_000);
+    expect(computePressMemberDiscountKrw(20_000)).toBe(2_000);
     expect(computePressMemberDiscountKrw(20_000)).toBeGreaterThan(0);
   });
 
@@ -56,14 +56,14 @@ describe("직군 checkout 할인 (서버 계산)", () => {
     consentsJson.press_discount_rate = PRESS_MEMBER_DISCOUNT_RATE_PCT;
     expect(consentsJson).toEqual({
       press_discount: true,
-      press_discount_krw: 5_000,
-      press_discount_rate: 25,
+      press_discount_krw: 2_000,
+      press_discount_rate: 10,
     });
   });
 
   it("클라 coupon_discount_krw만 전송(쿠폰 id 없음) — 직군은 서버 할인만, 쿠폰 필드 거절 없음", () => {
     expect(pressMemberCouponRejection(true, null, null)).toBeNull();
     const discount = computePressMemberDiscountKrw(20_000);
-    expect(discount).toBe(5_000);
+    expect(discount).toBe(2_000);
   });
 });

@@ -8,8 +8,13 @@ import {
   notifyCouponReviewReward,
 } from "@/lib/notifications/coupon-notifications";
 
+/** 리뷰 게시 보상 쿠폰 — 정책상 미운영(2026-06). */
+export const REVIEW_PUBLISH_COUPON_REWARD_ENABLED = false;
+
 /** 관리자 게시 승인 직후 — 리뷰 작성자에게 보상 쿠폰(멱등). */
 export async function maybeIssueTravelReviewPublishedCoupon(reviewId: string): Promise<void> {
+  if (!REVIEW_PUBLISH_COUPON_REWARD_ENABLED) return;
+
   const row = await adminGetReviewById(reviewId);
   if (!row || row.status !== "published") return;
   if (row.source_type !== "customer_submitted") return;

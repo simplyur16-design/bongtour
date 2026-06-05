@@ -22,12 +22,12 @@ import { isValidBuyerPhoneInput, normalizeBuyerPhone } from "@/lib/bongsim/phone
 import { BONGSIM_CATALOG_ACTIVE_WHERE, isEsimCapableSimKind } from "@/lib/bongsim/catalog/active-product-sql";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
+import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
 
 /** 체크아웃 confirm 다상품 라인 상한. */
 const MAX_CHECKOUT_LINES = 10;
 
-/** 직군(언론사) 회원 eSIM 자동 할인율(%) — 서버 단독 계산, 쿠폰과 배타. */
-export const PRESS_MEMBER_DISCOUNT_RATE_PCT = 25;
+export { PRESS_MEMBER_DISCOUNT_RATE_PCT };
 
 /** 직군 자동 할인액(원, floor). subtotal ≤ 0 이면 0. */
 export function computePressMemberDiscountKrw(subtotal_krw: number): number {

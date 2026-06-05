@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import MypagePageHeading from "@/components/mypage/MypagePageHeading";
 import { PRESS_ALLOWED_DOMAINS } from "@/lib/bongsim/press/press-domains";
+import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
 
 export type PressVerificationInitial = {
   pressVerified: boolean;
@@ -88,7 +89,9 @@ export default function PressVerificationClient({ initial }: Props) {
       setVerifiedEmail(j.pressVerifiedEmail ?? workEmail.trim().toLowerCase());
       setVerifiedDomain(j.pressVerifiedDomain ?? null);
       setVerifiedAt(new Date().toISOString());
-      setMsg("직군 인증이 완료되었습니다. eSIM 결제 시 25% 자동 할인이 적용됩니다.");
+      setMsg(
+        `직군 인증이 완료되었습니다. eSIM 결제 시 ${PRESS_MEMBER_DISCOUNT_RATE_PCT}% 자동 할인이 적용됩니다.`,
+      );
       setCode("");
     } catch {
       setErr("네트워크 오류가 발생했습니다.");
@@ -102,7 +105,7 @@ export default function PressVerificationClient({ initial }: Props) {
       <div className="space-y-6">
         <MypagePageHeading
           title="직군(언론사) 인증"
-          description="인증된 직군 회원은 eSIM 결제 시 쿠폰 없이 25% 자동 할인이 적용됩니다."
+          description={`인증된 직군 회원은 eSIM 결제 시 쿠폰 없이 ${PRESS_MEMBER_DISCOUNT_RATE_PCT}% 자동 할인이 적용됩니다.`}
         />
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 shadow-sm">
           <p className="text-sm font-semibold text-emerald-800">인증 완료</p>
@@ -153,7 +156,7 @@ export default function PressVerificationClient({ initial }: Props) {
     <div className="space-y-6">
       <MypagePageHeading
         title="직군(언론사) 인증"
-        description={`허용 도메인: ${allowedLabel}. 인증 후 eSIM 결제 시 25% 자동 할인(쿠폰 미적용).`}
+        description={`허용 도메인: ${allowedLabel}. 인증 후 eSIM 결제 시 ${PRESS_MEMBER_DISCOUNT_RATE_PCT}% 자동 할인(쿠폰 미적용).`}
       />
 
       <div className="rounded-2xl border border-[#DAD4EE] bg-white p-5 shadow-sm space-y-4">
