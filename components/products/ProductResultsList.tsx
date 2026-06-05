@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import ProductDetailNavLink from '@/components/products/ProductDetailNavLink'
 import { productDetailCardPreviewFromResultItem } from '@/lib/product-detail-card-preview-from-item'
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import EsimProductListNativeCard from '@/app/components/travel/EsimProductListNativeCard'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
 import OverseasDestinationBriefingMid from '@/components/products/OverseasDestinationBriefingMid'
@@ -21,6 +21,11 @@ import { PRODUCT_CARD_IMAGE_BLUR_DATA_URL } from '@/lib/product-card-image-blur'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { interleaveProductsBySupplier } from '@/lib/interleave-products-by-supplier'
+import {
+  AIR_HOTEL_REGION_SECTION_ORDER,
+  airHotelRegionLabel,
+  resolveAirHotelItemBucket,
+} from '@/lib/air-hotel-region-filter'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import {
   matchProductToDomesticNode,
@@ -28,7 +33,6 @@ import {
 } from '@/lib/match-domestic-product'
 import type { BrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
-import ProductResultsMobilePagedCarousel from '@/components/products/ProductResultsMobilePagedCarousel'
 
 export type ResultItem = {
   id: string
@@ -67,11 +71,16 @@ export type ResultItem = {
   browseCountry?: string | null
 }
 
-const PRODUCT_CARD_LOAD_STEP = 4
 /** 해외 목록: 상품 카드 N개마다 eSIM 네이티브 카드 1개 */
 const ESIM_NATIVE_INSERT_EVERY = 10
-const PRODUCT_LIST_INITIAL_MOBILE = 4
-const PRODUCT_LIST_INITIAL_DESKTOP = 8
+
+/** 허브 모바일 가로 스크롤 — compact 카드 1장(해외 패키지·자유여행 공통) */
+const mobileHubCompactScrollLiClass =
+  'w-[min(11rem,calc((100vw-2.75rem)/2))] shrink-0 snap-center'
+
+/** 해외·자유여행 허브: 권역/국가당 한 줄 — 모바일 compact 스냅, md+ 가로 스크롤 다열 */
+const countryProductRowClass =
+  'mt-6 flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible overscroll-x-contain px-0 pb-2 pt-0.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch] max-md:-mx-1'
 
 /** 해외 허브: 좌측 필터 있음 — 2/3열 */
 const productCardGridClassDefault = 'mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
@@ -100,44 +109,16 @@ const overseasBucketRowLiClassDefault =
 const overseasBucketRowLiClassWide =
   'w-[90%] max-w-sm shrink-0 snap-center md:w-[min(16.25rem,calc(100vw-2.5rem))] md:max-w-none lg:w-[calc((100%-3rem)/4)] lg:min-w-0'
 
-function useProductListInitialVisible() {
-  const [initialLimit, setInitialLimit] = useState(PRODUCT_LIST_INITIAL_MOBILE)
+function useIsMobileHubCompactCard() {
+  const [compact, setCompact] = useState(true)
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)')
-    const sync = () => setInitialLimit(mq.matches ? PRODUCT_LIST_INITIAL_MOBILE : PRODUCT_LIST_INITIAL_DESKTOP)
+    const mq = window.matchMedia('(max-width: 767px)')
+    const sync = () => setCompact(mq.matches)
     sync()
     mq.addEventListener('change', sync)
     return () => mq.removeEventListener('change', sync)
   }, [])
-  return initialLimit
-}
-
-function useProgressiveProductCount(total: number, resetKey: string) {
-  const initialLimit = useProductListInitialVisible()
-  const [visibleCount, setVisibleCount] = useState(() => Math.min(PRODUCT_LIST_INITIAL_MOBILE, total))
-  const sentinelRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    setVisibleCount(Math.min(initialLimit, total))
-  }, [total, resetKey, initialLimit])
-
-  useEffect(() => {
-    if (visibleCount >= total) return
-    const el = sentinelRef.current
-    if (!el) return
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e?.isIntersecting) {
-          setVisibleCount((c) => Math.min(c + PRODUCT_CARD_LOAD_STEP, total))
-        }
-      },
-      { rootMargin: '200px', threshold: 0 },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [visibleCount, total])
-
-  return { visibleCount, sentinelRef }
+  return compact
 }
 
 type Props = {
@@ -170,7 +151,7 @@ function mapFlatListWithEsimCards(
   items: ResultItem[],
   renderProduct: (item: ResultItem) => ReactNode,
   liClassName?: string,
-  esimLiClassName?: string,
+  opts?: { compactEsim?: boolean },
 ): ReactNode[] {
   const nodes: ReactNode[] = []
   let sinceEsim = 0
@@ -180,8 +161,8 @@ function mapFlatListWithEsimCards(
     sinceEsim++
     if (sinceEsim >= ESIM_NATIVE_INSERT_EVERY && i < items.length - 1) {
       nodes.push(
-        <li key={`esim-native-${esimKey++}`} className={esimLiClassName ?? liClassName}>
-          <EsimProductListNativeCard />
+        <li key={`esim-native-${esimKey++}`} className={liClassName}>
+          <EsimProductListNativeCard compact={opts?.compactEsim} />
         </li>,
       )
       sinceEsim = 0
@@ -198,7 +179,6 @@ function buildProductResultRowNodes(
     compact?: boolean
     liClassName?: string
     interleaveEsim?: boolean
-    esimSpansFullRowOnMobile?: boolean
   },
 ): ReactNode[] {
   const renderProduct = (item: ResultItem) => (
@@ -212,12 +192,9 @@ function buildProductResultRowNodes(
     </li>
   )
   if (opts.interleaveEsim) {
-    return mapFlatListWithEsimCards(
-      items,
-      renderProduct,
-      opts.liClassName,
-      opts.esimSpansFullRowOnMobile ? 'col-span-2 min-w-0' : opts.liClassName,
-    )
+    return mapFlatListWithEsimCards(items, renderProduct, opts.liClassName, {
+      compactEsim: opts.compact,
+    })
   }
   return items.map((item) => renderProduct(item))
 }
@@ -236,9 +213,9 @@ function ProductResultsMobileAndDesktopRow({
   if (mobileNodes.length === 0) return null
   return (
     <>
-      <ProductResultsMobilePagedCarousel ariaLabel={ariaLabel}>
+      <ul className={`${countryProductRowClass} md:hidden`} role="list" aria-label={ariaLabel}>
         {mobileNodes}
-      </ProductResultsMobilePagedCarousel>
+      </ul>
       <ul className={`${desktopUlClassName} max-md:hidden`} role="list">
         {desktopNodes}
       </ul>
@@ -624,87 +601,44 @@ function AirHotelCountryGroupedList({
   formatWon: (n: number | null) => string
   seasonalPickIds?: ReadonlySet<string> | null
 }) {
+  const compactCard = useIsMobileHubCompactCard()
   const sections = useMemo(() => {
-    const byCountry = new Map<string, ResultItem[]>()
+    const byBucket = new Map<string, ResultItem[]>()
+    for (const id of AIR_HOTEL_REGION_SECTION_ORDER) byBucket.set(id, [])
     for (const item of items) {
-      const resolved = resolveAirHotelNationSection(item)
-      if (process.env.NODE_ENV === 'development') {
-        const probe = `${item.title ?? ''}\n${item.primaryDestination ?? ''}\n${item.countryRowLabel ?? ''}\n${item.primaryRegion ?? ''}`
-        if (/괌|\bguam\b|시드니|\bsydney\b/i.test(probe)) {
-          console.info('[air-hotel-nation]', {
-            itemId: item.id,
-            title: item.title,
-            countryRowLabel: item.countryRowLabel,
-            primaryDestination: item.primaryDestination,
-            primaryRegion: item.primaryRegion,
-            sectionKeyInput: resolved.sectionKeyInput,
-            nationSectionKeyForAirHotelItem: resolved.key,
-            finalSectionHeader: resolved.key,
-            rule: resolved.rule,
-          })
-        }
-      }
-      const key = resolved.key
-      let arr = byCountry.get(key)
-      if (!arr) {
-        arr = []
-        byCountry.set(key, arr)
-      }
-      arr.push(item)
+      const bucketId = resolveAirHotelItemBucket(item.overseasBucket)
+      byBucket.get(bucketId)!.push(item)
     }
-    const entries = [...byCountry.entries()].filter(([, list]) => list.length > 0)
-    const nonMisc = entries
-      .filter(([k]) => k !== AIR_HOTEL_MISC_SECTION)
-      .sort((a, b) => {
-        const dc = b[1].length - a[1].length
-        if (dc !== 0) return dc
-        return a[0].localeCompare(b[0], 'ko')
-      })
-    const misc = entries.find(([k]) => k === AIR_HOTEL_MISC_SECTION)
-    const ordered: { countryKey: string; items: ResultItem[] }[] = nonMisc.map(([countryKey, list]) => ({
-      countryKey,
-      items: interleaveProductsBySupplier(list),
-    }))
-    if (misc && misc[1].length > 0) {
-      ordered.push({ countryKey: misc[0], items: interleaveProductsBySupplier(misc[1]) })
-    }
-    return ordered
+    return AIR_HOTEL_REGION_SECTION_ORDER.map((bucketId) => ({
+      bucketId,
+      regionLabel: airHotelRegionLabel(bucketId),
+      items: interleaveProductsBySupplier(byBucket.get(bucketId) ?? []),
+    })).filter((s) => s.items.length > 0)
   }, [items])
-
-  const orderedGlobalItems = useMemo(() => sections.flatMap((s) => s.items), [sections])
-  const listResetKey = useMemo(
-    () =>
-      orderedGlobalItems.length === 0
-        ? '0'
-        : `${orderedGlobalItems[0]?.id ?? ''}:${orderedGlobalItems[orderedGlobalItems.length - 1]?.id ?? ''}:${orderedGlobalItems.length}`,
-    [orderedGlobalItems],
-  )
-  const { visibleCount, sentinelRef } = useProgressiveProductCount(orderedGlobalItems.length, listResetKey)
-  const visibleIdSet = useMemo(
-    () => new Set(orderedGlobalItems.slice(0, visibleCount).map((i) => i.id)),
-    [orderedGlobalItems, visibleCount],
-  )
 
   return (
     <div className="mt-6 space-y-10">
-      {sections.map(({ countryKey, items: rowItems }, idx) => {
-        const rowVisible = rowItems.filter((item) => visibleIdSet.has(item.id))
-        if (rowVisible.length === 0) return null
+      {sections.map(({ bucketId, regionLabel, items: rowItems }, idx) => {
+        if (rowItems.length === 0) return null
         return (
-          <section key={countryKey} className="scroll-mt-4" aria-labelledby={`air-hotel-sec-${idx}`}>
+          <section key={bucketId} className="scroll-mt-4" aria-labelledby={`air-hotel-sec-${idx}`}>
             <h2
               id={`air-hotel-sec-${idx}`}
               className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
             >
-              {countryKey}
+              {regionLabel}
             </h2>
-            <ul className={countryProductRowClass} role="list" aria-label={`${countryKey} 상품`}>
-              {rowVisible.map((item) => (
-                <li key={item.id} className={overseasBucketRowLiClassDefault}>
+            <ul className={countryProductRowClass} role="list" aria-label={`${regionLabel} 상품`}>
+              {rowItems.map((item) => (
+                <li
+                  key={item.id}
+                  className={`${overseasBucketRowLiClassDefault} max-md:w-[min(11rem,calc((100vw-2.75rem)/2))] max-md:max-w-none`}
+                >
                   <ProductResultCard
                     item={item}
                     formatWon={formatWon}
                     seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                    compact={compactCard}
                   />
                 </li>
               ))}
@@ -712,9 +646,6 @@ function AirHotelCountryGroupedList({
           </section>
         )
       })}
-      {visibleCount < orderedGlobalItems.length ? (
-        <div ref={sentinelRef} className="h-8 w-full shrink-0" aria-hidden />
-      ) : null}
     </div>
   )
 }
@@ -781,25 +712,10 @@ function DomesticRegionGroupedList({
     })).filter((s) => s.items.length > 0)
   }, [items])
 
-  const orderedGlobalItems = useMemo(() => sections.flatMap((s) => s.items), [sections])
-  const listResetKey = useMemo(
-    () =>
-      orderedGlobalItems.length === 0
-        ? '0'
-        : `${orderedGlobalItems[0]?.id ?? ''}:${orderedGlobalItems[orderedGlobalItems.length - 1]?.id ?? ''}:${orderedGlobalItems.length}`,
-    [orderedGlobalItems],
-  )
-  const { visibleCount, sentinelRef } = useProgressiveProductCount(orderedGlobalItems.length, listResetKey)
-  const visibleIdSet = useMemo(
-    () => new Set(orderedGlobalItems.slice(0, visibleCount).map((i) => i.id)),
-    [orderedGlobalItems, visibleCount],
-  )
-
   return (
     <div className="mt-6 space-y-10">
       {sections.map(({ id, label, items: rowItems }, idx) => {
-        const rowVisible = rowItems.filter((row) => visibleIdSet.has(row.id))
-        if (rowVisible.length === 0) return null
+        if (rowItems.length === 0) return null
         return (
           <section key={id} className="scroll-mt-4" aria-labelledby={`domestic-hub-sec-${idx}`}>
             <h2
@@ -809,7 +725,7 @@ function DomesticRegionGroupedList({
               {label}
             </h2>
             <ul className={productCardGridClassDefault} role="list">
-              {rowVisible.map((row) => (
+              {rowItems.map((row) => (
                 <li key={row.id}>
                   <ProductResultCard
                     item={row}
@@ -822,16 +738,9 @@ function DomesticRegionGroupedList({
           </section>
         )
       })}
-      {visibleCount < orderedGlobalItems.length ? (
-        <div ref={sentinelRef} className="h-8 w-full shrink-0" aria-hidden />
-      ) : null}
     </div>
   )
 }
-
-/** 해외 여행상품: 권역(버킷)당 한 줄 — 모바일 1장 스냅, md+ 가로 스크롤 다열 */
-const countryProductRowClass =
-  'mt-6 flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible overscroll-x-contain px-0 pb-2 pt-0.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch] max-md:-mx-1'
 
 export function ProductResultCard({
   item,
@@ -1067,32 +976,6 @@ function OverseasRegionGroupedList({
     return out
   }, [bucketToCountries])
 
-  const orderedGlobalItems = useMemo(() => {
-    const out: ResultItem[] = []
-    for (const bucketId of OVERSEAS_DISPLAY_BUCKET_ORDER) {
-      const rawFlat = interleavedByBucket.get(bucketId) ?? []
-      const flatList =
-        seasonalPickIds && seasonalPickIds.size > 0
-          ? [...rawFlat.filter((p) => seasonalPickIds.has(p.id)), ...rawFlat.filter((p) => !seasonalPickIds.has(p.id))]
-          : rawFlat
-      out.push(...flatList)
-    }
-    return out
-  }, [interleavedByBucket, seasonalPickIds])
-
-  const listResetKey = useMemo(
-    () =>
-      orderedGlobalItems.length === 0
-        ? '0'
-        : `${orderedGlobalItems[0]?.id ?? ''}:${orderedGlobalItems[orderedGlobalItems.length - 1]?.id ?? ''}:${orderedGlobalItems.length}`,
-    [orderedGlobalItems],
-  )
-  const { visibleCount, sentinelRef } = useProgressiveProductCount(orderedGlobalItems.length, listResetKey)
-  const visibleIdSet = useMemo(
-    () => new Set(orderedGlobalItems.slice(0, visibleCount).map((i) => i.id)),
-    [orderedGlobalItems, visibleCount],
-  )
-
   return (
     <div className="mt-6 space-y-12">
       {OVERSEAS_DISPLAY_BUCKET_ORDER.map((bucketId) => {
@@ -1101,11 +984,8 @@ function OverseasRegionGroupedList({
           seasonalPickIds && seasonalPickIds.size > 0
             ? [...rawFlat.filter((p) => seasonalPickIds.has(p.id)), ...rawFlat.filter((p) => !seasonalPickIds.has(p.id))]
             : rawFlat
-        const visibleInBucket = flatList.filter((item) => visibleIdSet.has(item.id))
         const showEuropeBriefing = bucketId === 'europe_me_af' && editorialBriefing
-        const hideSection =
-          (flatList.length === 0 && !showEuropeBriefing) ||
-          (flatList.length > 0 && visibleInBucket.length === 0 && !showEuropeBriefing)
+        const hideSection = flatList.length === 0 && !showEuropeBriefing
         const section = hideSection ? null : (
             <section className="scroll-mt-4" aria-labelledby={`overseas-bucket-${bucketId}`}>
               <h2
@@ -1119,20 +999,19 @@ function OverseasRegionGroupedList({
                   <OverseasDestinationBriefingMid {...editorialBriefing} />
                 </div>
               ) : null}
-              {visibleInBucket.length > 0 ? (
+              {flatList.length > 0 ? (
                 <ProductResultsMobileAndDesktopRow
                   ariaLabel={`${OVERSEAS_DISPLAY_BUCKET_LABEL[bucketId]} 상품`}
-                  mobileNodes={buildProductResultRowNodes(visibleInBucket, formatWon, seasonalPickIds, {
+                  mobileNodes={buildProductResultRowNodes(flatList, formatWon, seasonalPickIds, {
                     compact: true,
-                    liClassName: 'min-w-0',
+                    liClassName: mobileHubCompactScrollLiClass,
                     interleaveEsim: interleaveEsimNativeCards,
-                    esimSpansFullRowOnMobile: true,
                   })}
                   desktopUlClassName={countryProductRowClass}
                   desktopNodes={
                     interleaveEsimNativeCards
                       ? mapFlatListWithEsimCards(
-                          visibleInBucket,
+                          flatList,
                           (item) => (
                             <li key={item.id} className={bucketRowLiClass}>
                               <ProductResultCard
@@ -1144,7 +1023,7 @@ function OverseasRegionGroupedList({
                           ),
                           bucketRowLiClass,
                         )
-                      : visibleInBucket.map((item) => (
+                      : flatList.map((item) => (
                           <li key={item.id} className={bucketRowLiClass}>
                             <ProductResultCard
                               item={item}
@@ -1188,9 +1067,6 @@ function OverseasRegionGroupedList({
           </Fragment>
         )
       })}
-      {visibleCount < orderedGlobalItems.length ? (
-        <div ref={sentinelRef} className="h-8 w-full shrink-0" aria-hidden />
-      ) : null}
     </div>
   )
 }
@@ -1208,44 +1084,22 @@ function FlatProductResultsList({
   cardGridClass: string
   interleaveEsimNativeCards?: boolean
 }) {
-  const listResetKey = useMemo(
-    () =>
-      items.length === 0
-        ? '0'
-        : `${items[0]?.id ?? ''}:${items[items.length - 1]?.id ?? ''}:${items.length}`,
-    [items],
-  )
-  const { visibleCount, sentinelRef } = useProgressiveProductCount(items.length, listResetKey)
-  const visibleItems = useMemo(() => items.slice(0, visibleCount), [items, visibleCount])
-
   const desktopGridClass = cardGridClass
 
   return (
-    <>
-      <ProductResultsMobileAndDesktopRow
-        ariaLabel="상품 목록"
-        mobileNodes={buildProductResultRowNodes(visibleItems, formatWon, seasonalPickIds, {
-          compact: true,
-          liClassName: 'min-w-0',
-          interleaveEsim: interleaveEsimNativeCards,
-          esimSpansFullRowOnMobile: true,
-        })}
-        desktopUlClassName={desktopGridClass}
-        desktopNodes={
-          interleaveEsimNativeCards
-            ? mapFlatListWithEsimCards(
-                visibleItems,
-                (item) => (
-                  <li key={item.id}>
-                    <ProductResultCard
-                      item={item}
-                      formatWon={formatWon}
-                      seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
-                    />
-                  </li>
-                ),
-              )
-            : visibleItems.map((item) => (
+    <ProductResultsMobileAndDesktopRow
+      ariaLabel="상품 목록"
+      mobileNodes={buildProductResultRowNodes(items, formatWon, seasonalPickIds, {
+        compact: true,
+        liClassName: mobileHubCompactScrollLiClass,
+        interleaveEsim: interleaveEsimNativeCards,
+      })}
+      desktopUlClassName={desktopGridClass}
+      desktopNodes={
+        interleaveEsimNativeCards
+          ? mapFlatListWithEsimCards(
+              items,
+              (item) => (
                 <li key={item.id}>
                   <ProductResultCard
                     item={item}
@@ -1253,13 +1107,19 @@ function FlatProductResultsList({
                     seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
                   />
                 </li>
-              ))
-        }
-      />
-      {visibleCount < items.length ? (
-        <div ref={sentinelRef} className="mt-2 h-10 w-full shrink-0" aria-hidden />
-      ) : null}
-    </>
+              ),
+            )
+          : items.map((item) => (
+              <li key={item.id}>
+                <ProductResultCard
+                  item={item}
+                  formatWon={formatWon}
+                  seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
+                />
+              </li>
+            ))
+      }
+    />
   )
 }
 
