@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client'
 import {
   AIR_HOTEL_BROWSE_TYPE,
   AIR_HOTEL_LISTING_KIND,
+  AIR_HOTEL_PRODUCT_TYPE,
   isAirHotelBrowseCategoryToken,
   parseAirHotelBrowseTypeParam,
 } from '@/lib/air-hotel-product-ssot'
@@ -33,7 +34,15 @@ export function prismaWhereClausesForBrowseListingSlice(input: {
     (input.typeParam != null && isAirHotelBrowseCategoryToken(input.typeParam))
 
   if (wantsAirHotelHubSlice) {
-    clauses.push({ listingKind: AIR_HOTEL_LISTING_KIND })
+    clauses.push({
+      OR: [
+        { listingKind: AIR_HOTEL_LISTING_KIND },
+        { productType: AIR_HOTEL_PRODUCT_TYPE },
+        { productType: 'airtel' },
+        { productType: 'air-tel' },
+        { productType: 'air_hotel' },
+      ],
+    })
     return clauses
   }
 

@@ -53,7 +53,12 @@ import {
   prismaWhereForBrowseTravelScope,
 } from '@/lib/travel-scope-pool-filter'
 import { prismaWhereClausesForBrowseListingSlice } from '@/lib/products-browse-db-where'
-import { AIR_HOTEL_BROWSE_TYPE, isAirHotelBrowseCategoryToken, parseAirHotelBrowseTypeParam } from '@/lib/air-hotel-product-ssot'
+import {
+  AIR_HOTEL_BROWSE_TYPE,
+  isAirHotelBrowseCategoryToken,
+  isAirHotelProduct,
+  parseAirHotelBrowseTypeParam,
+} from '@/lib/air-hotel-product-ssot'
 import { parseListingKind } from '@/lib/product-listing-kind'
 import {
   domesticDisplayCategoryIsSpecialTheme,
@@ -353,7 +358,11 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       q.categories.some((c) => isAirHotelBrowseCategoryToken(c)) ||
       listingKindParsed === 'air_hotel_free'
     if ((domesticLike || scope === 'overseas') && !wantsAirHotelHubSlice) {
-      filteredRows = filteredRows.filter((p) => (p.listingKind ?? '').trim() !== 'air_hotel_free')
+      filteredRows = filteredRows.filter((p) => !isAirHotelProduct(p))
+    }
+
+    if (wantsAirHotelHubSlice) {
+      filteredRows = filteredRows.filter((p) => isAirHotelProduct(p))
     }
 
     let scoringDestinationTerms = destinationTerms
