@@ -8,8 +8,116 @@
 import type { ProductDeparture } from '@prisma/client'
 import type { ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
 import type { BodyProductPriceTable } from '@/lib/public-product-extras'
+import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { DepartureInput } from '@/lib/upsert-product-departures-hanatour'
 import { normalizeCalendarDate } from '@/lib/date-normalize'
+
+export type HanatourProductPriceTableLike = {
+  adultPrice?: number | null
+  childExtraBedPrice?: number | null
+  childNoBedPrice?: number | null
+  infantPrice?: number | null
+} | null | undefined
+
+function hanatourPositiveSlot(v: number | null | undefined): number | null {
+  if (v == null || !Number.isFinite(v) || v <= 0) return null
+  return v
+}
+
+function hanatourDepartureChildMirrorsAdult(d: DepartureInput): boolean {
+  const ad = hanatourPositiveSlot(d.adultPrice)
+  const cb = hanatourPositiveSlot(d.childBedPrice)
+  return cb == null || (ad != null && cb === ad)
+}
+
+function hanatourDepartureHasDistinctChild(d: DepartureInput): boolean {
+  const ad = hanatourPositiveSlot(d.adultPrice)
+  const cb = hanatourPositiveSlot(d.childBedPrice)
+  return cb != null && ad != null && cb !== ad
+}
+
+/**
+ * 달력 행에 아동·유아가 없을 때 본문 `productPriceTable` 3슬롯으로 보강.
+ * 출발일별 실제 아동 단가가 이미 있으면 덮어쓰지 않는다.
+ */
+export function enrichHanatourDepartureInputsFromProductPriceTable(
+  inputs: DepartureInput[],
+  table: HanatourProductPriceTableLike,
+): DepartureInput[] {
+  if (!inputs.length || !table) return inputs
+
+  const tableChild =
+    hanatourPositiveSlot(table.childExtraBedPrice) ?? hanatourPositiveSlot(table.childNoBedPrice)
+  const tableChildNoBed = hanatourPositiveSlot(table.childNoBedPrice)
+  const tableInfant = hanatourPositiveSlot(table.infantPrice)
+
+  const anyDistinctChild = inputs.some(hanatourDepartureHasDistinctChild)
+  const anyDistinctInfant = inputs.some((d) => {
+    const ad = hanatourPositiveSlot(d.adultPrice)
+    const inf = hanatourPositiveSlot(d.infantPrice)
+    return inf != null && ad != null && inf !== ad
+  })
+
+  return inputs.map((d) => {
+    const next = { ...d }
+
+    if (tableChild != null && !anyDistinctChild && hanatourDepartureChildMirrorsAdult(d)) {
+      next.childBedPrice = tableChild
+    }
+    if (tableChildNoBed != null && !anyDistinctChild) {
+      const cnb = hanatourPositiveSlot(d.childNoBedPrice)
+      const ad = hanatourPositiveSlot(d.adultPrice)
+      if (cnb == null || (ad != null && cnb === ad)) {
+        next.childNoBedPrice = tableChildNoBed
+      }
+    }
+    if (tableInfant != null && !anyDistinctInfant) {
+      const inf = hanatourPositiveSlot(d.infantPrice)
+      if (inf == null) next.infantPrice = tableInfant
+    }
+
+    return next
+  })
+}
+
+/** `parsed.prices[]` → ProductPrice 저장 경로용 — childBedBase·infantBase 보강 */
+export function enrichHanatourParsedPricesFromProductPriceTable(
+  prices: ParsedProductPrice[],
+  table: HanatourProductPriceTableLike,
+): ParsedProductPrice[] {
+  if (!prices.length || !table) return prices
+
+  const tableChild =
+    hanatourPositiveSlot(table.childExtraBedPrice) ?? hanatourPositiveSlot(table.childNoBedPrice)
+  const tableChildNoBed = hanatourPositiveSlot(table.childNoBedPrice)
+  const tableInfant = hanatourPositiveSlot(table.infantPrice)
+
+  const anyDistinctChild = prices.some((p) => {
+    const ad = (Number(p.adultBase) || 0) + (Number(p.adultFuel) || 0)
+    const fuel = Number(p.childFuel) || 0
+    const cb = p.childBedBase != null ? (Number(p.childBedBase) || 0) + fuel : null
+    return cb != null && cb > 0 && ad > 0 && cb !== ad
+  })
+
+  return prices.map((p) => {
+    const next = { ...p }
+    const ad = (Number(p.adultBase) || 0) + (Number(p.adultFuel) || 0)
+    const fuel = Number(p.childFuel) || 0
+    const childTotal = p.childBedBase != null ? (Number(p.childBedBase) || 0) + fuel : null
+    const childMirrorsAdult = childTotal == null || (ad > 0 && childTotal === ad)
+
+    if (tableChild != null && !anyDistinctChild && childMirrorsAdult) {
+      next.childBedBase = Math.max(0, tableChild - fuel)
+    }
+    if (tableChildNoBed != null && !anyDistinctChild && p.childNoBedBase == null) {
+      next.childNoBedBase = tableChildNoBed - fuel
+    }
+    if (tableInfant != null && p.infantBase == null) {
+      next.infantBase = tableInfant - (Number(p.infantFuel) || 0)
+    }
+    return next
+  })
+}
 
 function num(v: unknown): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : 0

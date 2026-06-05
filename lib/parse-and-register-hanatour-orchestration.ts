@@ -86,7 +86,11 @@ import {
   type PricePromotionFieldIssue,
 } from '@/lib/price-promotion-hanatour'
 import { issuePreviewToken, verifyPreviewToken } from '@/lib/registration-preview-token'
-import { departureInputsToProductPriceCreateMany } from '@/lib/product-departure-to-price-rows-hanatour'
+import {
+  departureInputsToProductPriceCreateMany,
+  enrichHanatourDepartureInputsFromProductPriceTable,
+  enrichHanatourParsedPricesFromProductPriceTable,
+} from '@/lib/product-departure-to-price-rows-hanatour'
 import { buildPriceDisplaySsot, validatePriceDisplaySsot } from '@/lib/price-display-ssot'
 import { applyDepartureTerminalMeetingInfo } from '@/lib/meeting-terminal-rules'
 import {
@@ -884,8 +888,15 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     ctx.stage = stage
     parsed = stripBodyDerivedMeetingFromRegisterParsed(parsed)
     const schedule = parsed.schedule ?? []
-    const departureFromParsed = parsedPricesToDepartureInputs(parsed.prices ?? [])
-    const departureInputs: DepartureInput[] = applyDepartureTerminalMeetingInfo(departureFromParsed)
+    const enrichedCalendarPrices = enrichHanatourParsedPricesFromProductPriceTable(
+      parsed.prices ?? [],
+      parsed.productPriceTable,
+    )
+    parsed = { ...parsed, prices: enrichedCalendarPrices }
+    const departureFromParsed = parsedPricesToDepartureInputs(enrichedCalendarPrices)
+    const departureInputs: DepartureInput[] = applyDepartureTerminalMeetingInfo(
+      enrichHanatourDepartureInputsFromProductPriceTable(departureFromParsed, parsed.productPriceTable),
+    )
 
     let itineraryDayDrafts = registerScheduleToDayInputs(schedule ?? [])
     if (finalizeItineraryDayDraftsFromSchedule) {
