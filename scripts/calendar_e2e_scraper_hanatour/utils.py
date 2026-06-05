@@ -16,8 +16,6 @@ from urllib.parse import parse_qs, urlparse
 from pathlib import Path
 import sys
 
-from playwright.async_api import Browser, BrowserContext, Page, async_playwright
-
 _scripts_dir = Path(__file__).resolve().parents[1]
 if str(_scripts_dir) not in sys.path:
     sys.path.insert(0, str(_scripts_dir))
@@ -196,7 +194,9 @@ window.chrome = { runtime: {}, loadTimes: function() {}, csi: function() {} };
 
 async def launch_hanatour_browser(
     headless: bool = True,
-) -> tuple[object, Browser, BrowserContext, Page]:
+) -> tuple[object, object, object, object]:
+    from playwright.async_api import async_playwright
+
     pw = await async_playwright().start()
     browser = await pw.chromium.launch(
         headless=headless,
@@ -219,7 +219,7 @@ async def launch_hanatour_browser(
     return pw, browser, context, page
 
 
-async def close_hanatour_browser(pw: object | None, browser: Browser | None) -> None:
+async def close_hanatour_browser(pw: object | None, browser: object | None) -> None:
     try:
         if browser:
             await browser.close()
