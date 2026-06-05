@@ -31,8 +31,9 @@
    ```
 3. **`npm run verify:regression-freeze`** 통과
 4. **tier**
-   - `prebuild` — `npm run build` 전 자동 (빠른 결정론만)
-   - `ci` — PR/push GitHub Actions
+   - `prebuild` — `npm run build` 전 자동 (빠른 결정론만; `npm ci --omit=dev` 환경)
+   - `ci` — PR/push GitHub Actions (vitest·DB·dotenv 등 devDep 필요 항목)
+   - Docker/Railway prebuild에는 **vitest·DB 스크립트를 넣지 않는다** (devDependency 미설치)
 
 ## 실행
 

@@ -166,8 +166,8 @@
   "vitestSuites": [
     {
       "id": "vitest-regression-core",
-      "tier": ["prebuild", "ci"],
-      "summary": "핵심 vitest 회귀(제목·키워드·가드)",
+      "tier": ["ci"],
+      "summary": "핵심 vitest 회귀(제목·키워드·가드) — devDep 필요, prebuild/Docker 제외",
       "files": [
         "lib/modetour-listing-title-from-paste.test.ts",
         "lib/modetour-register-product-title-ssot.test.ts",
