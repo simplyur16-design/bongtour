@@ -25,6 +25,7 @@ import {
   isAirHotelRegionBucketParam,
   resolveAirHotelItemBucket,
 } from '@/lib/air-hotel-region-filter'
+import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import AirHotelRegionChipRow from '@/components/products/AirHotelRegionChipRow'
 import {
   buildAirHotelHubBrowseQueryKey,
