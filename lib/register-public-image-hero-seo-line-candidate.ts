@@ -90,7 +90,14 @@ function multiCityHeadline(primary: string | null, destination: string | null): 
 
 /** `현지` 단독은 "현지옵션" 등 운영 문구 오탐을 유발하므로 제외 */
 const STRONG_THEME_RE =
-  /관광|미식|일주|온천|크루즈|리조트|핵심|휴양|트레킹|트래킹|골프|야경|설원|드라이브|루트|감성|테마|특급|자유일정|명소|세계유산|국립공원|사원|사찰|크리스마스|벚꽃|올레|온센|알짜|일정|비치|일출|일몰|워킹|산책|스파|동물원|특식|시암|마켓|플로팅|산호섬|마사지/
+  /관광|미식|일주|온천|크루즈|리조트|핵심|휴양|트레킹|트래킹|골프|야경|설원|드라이브|루트|감성|테마|특급|자유일정|자유여행|에어텔|명소|세계유산|국립공원|사원|사찰|크리스마스|벚꽃|올레|온센|알짜|일정|비치|일출|일몰|워킹|산책|스파|동물원|특식|시암|마켓|플로팅|산호섬|마사지/
+
+function hashtagHarvestHaystack(rawBody: string, title: string): string {
+  const body = (rawBody ?? '').replace(/\r\n/g, '\n')
+  const tagIdx = body.search(/해시\s*태그/i)
+  const tagBlock = tagIdx >= 0 ? body.slice(tagIdx, tagIdx + 1600) : ''
+  return [title, body.slice(0, 2800), tagBlock].filter(Boolean).join('\n')
+}
 
 const REGISTER_KEYWORD_POLLUTED_COMPACT = [
   '현지옵션',
@@ -283,6 +290,8 @@ export function buildRegisterPublicImageHeroSeoKeywords(
     if (raw == null || out.length >= 3) return
     let s = String(raw).replace(/\s+/g, ' ').trim()
     if (s.length < 2) return
+    if (/^\d+성급$/u.test(s.replace(/\s/g, ''))) return
+    if (/^항공권\+/u.test(s)) return
     s = truncateLine(s, REGISTER_KEYWORD_EACH_MAX)
     if (registerKeywordContaminated(s)) return
     if (SUPPLIER_NAME_BAN.test(s) || PHRASE_BAN.test(s)) return
@@ -295,9 +304,14 @@ export function buildRegisterPublicImageHeroSeoKeywords(
 
   const rawBody = input.rawBodyText.trim()
 
-  // 1순위: 상품명·본문 앞부분 `#태그` (imageKeyword 와 무관)
-  for (const tag of extractHashtagLabelsFromText(title)) push(tag)
-  for (const tag of extractHashtagLabelsFromText(rawBody.slice(0, 900))) push(tag)
+  // 1순위: 본문 `해시태그` 블록 → 상품명·본문 `#태그` (imageKeyword 와 무관)
+  const bodyNl = rawBody.replace(/\r\n/g, '\n')
+  const tagIdx = bodyNl.search(/해시\s*태그/i)
+  if (tagIdx >= 0) {
+    for (const tag of extractHashtagLabelsFromText(bodyNl.slice(tagIdx, tagIdx + 1600))) push(tag)
+  }
+  const tagHaystack = hashtagHarvestHaystack(rawBody, title)
+  for (const tag of extractHashtagLabelsFromText(tagHaystack)) push(tag)
 
   // 2순위: 본문·혜택 요약의 섹션(핵심 포인트 등) + 짧은 명사구
   const sectionHay = [rawBody, (input.benefitSummary ?? '').trim()].filter(Boolean).join('\n')

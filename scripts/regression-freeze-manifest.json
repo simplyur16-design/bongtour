@@ -163,6 +163,25 @@
       ]
     },
     {
+      "id": "product-image-source-attribution",
+      "tier": ["prebuild", "ci"],
+      "summary": "Pexels 이미지 — PhotoPool 저장이어도 공개 출처 Pexels 표기(사진풀 오표기 금지)",
+      "checks": [
+        {
+          "file": "lib/product-image-source-attribution.ts",
+          "mustInclude": ["REGRESSION-FREEZE[product-image-source-attribution]", "resolveCanonicalImageSourceForDisplay"]
+        },
+        {
+          "file": "lib/public-image-overlay-ssot.ts",
+          "mustInclude": ["resolveCanonicalImageSourceForDisplay", "사진풀"]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": ["resolveProductBgImageFieldsFromPhoto"]
+        }
+      ]
+    },
+    {
       "id": "hanatour-origin-code-from-paste",
       "tier": ["prebuild", "ci"],
       "summary": "하나투어 originCode — LLM 미지정 시 본문 상품코드 SSOT 덮어쓰기",
@@ -196,7 +215,9 @@
         "tests/modetour-schedule-image-keyword.test.ts",
         "lib/fit-itinerary-sync-schedule-image-keywords.test.ts",
         "lib/geo-haystack-match.test.ts",
-        "lib/hanatour-origin-code-from-paste.test.ts"
+        "lib/hanatour-origin-code-from-paste.test.ts",
+        "lib/product-image-source-attribution.test.ts",
+        "lib/register-public-image-hero-seo-hanatour-airtel.test.ts"
       ]
     }
   ]

@@ -20,6 +20,7 @@ import {
 } from '@/lib/product-hero-image-source-type'
 import { downloadRemoteImage, extFromContentType, isPexelsCdnUrl } from '@/lib/product-pexels-image-rehost'
 import { savePhotoFromUrlWithRetry } from '@/lib/photo-pool'
+import { canonicalProductImageSourceKey } from '@/lib/product-image-source-attribution'
 
 export type ScheduleEntryRecord = Record<string, unknown>
 
@@ -268,12 +269,21 @@ async function finalizeOneScheduleSlotUrl(
   })
   if (poolRec) {
     const key = tryParseObjectKeyFromPublicUrl(poolRec.filePath)
-    const resolvedPhotographer = poolRec.photographer?.trim() || photographer || sourceLabel
+    const resolvedPhotographer =
+      poolRec.photographer?.trim() ||
+      photographer ||
+      (/^pexels$/i.test(sourceLabel) ? null : sourceLabel) ||
+      null
     const resolvedPageUrl = poolRec.sourceUrl?.trim() || pageUrl || ''
+    const canonicalSource =
+      canonicalProductImageSourceKey(sourceLabel, {
+        imageUrl: poolRec.filePath,
+        originalLink: resolvedPageUrl || pageUrl,
+      }) ?? canonicalProductImageSourceKey('Pexels', { imageUrl: poolRec.filePath }) ?? 'pexels'
     const nextSource: Record<string, unknown> = {
       ...srcObj,
-      source: sourceLabel,
-      sourceType: toHeroStorageSourceTypeSegment(sourceLabel),
+      source: canonicalSource,
+      sourceType: toHeroStorageSourceTypeSegment(canonicalSource),
       photographer: resolvedPhotographer,
       originalLink: resolvedPageUrl,
       sourceImageUrl: urlRaw,

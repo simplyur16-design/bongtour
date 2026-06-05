@@ -38,6 +38,7 @@ import {
   resolveScheduleImageKeywordForDb,
 } from '@/lib/schedule-image-keyword-persist'
 import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-prompt'
+import { resolveProductBgImageFieldsFromPhoto } from '@/lib/product-image-source-attribution'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -216,7 +217,7 @@ function toPoolResult(rec: PoolPhotoRecord): PhotoResult {
   return {
     url: rec.filePath,
     source: rec.source,
-    photographer: rec.photographer?.trim() || rec.source,
+    photographer: rec.photographer?.trim() || (/^pexels$/i.test(rec.source) ? '' : rec.source),
     originalLink: rec.sourceUrl?.trim() || '',
     externalId: rec.sourcePhotoId ?? undefined,
   }
@@ -906,12 +907,14 @@ export async function POST(req: Request) {
       destination,
       itineraryRows
     )
+    const bgMeta = resolveProductBgImageFieldsFromPhoto(bgPhoto)
     await prisma.product.update({
       where: { id: product.id as string },
       data: {
         bgImageUrl: bgPhoto.url,
         bgImageRehostSearchLabel: mainQuery.slice(0, 120),
         schedule: scheduleStrFinal,
+        ...bgMeta,
       },
     })
 

@@ -7,15 +7,25 @@ import {
   productHeroAttributionBadgeFromImageUrl,
   productHeroAttributionBadgeText,
 } from '@/lib/product-bg-image-attribution'
+import { resolveCanonicalImageSourceForDisplay } from '@/lib/product-image-source-attribution'
 
 /** 우측 출처: DB(bgImageSource 등) 우선, 없으면 이미지 URL·파일명 추정. raw enum 미노출. */
 export function resolvePublicImageSourceUserLabel(params: {
   dbSource?: string | null
   dbIsGenerated?: boolean | null
   imageUrl?: string | null
+  originalLink?: string | null
 }): string | null {
+  const canonical = resolveCanonicalImageSourceForDisplay({
+    dbSource: params.dbSource,
+    imageUrl: params.imageUrl,
+    originalLink: params.originalLink,
+    poolSource: params.dbSource,
+  })
+  const fromCanonical = productHeroAttributionBadgeText(canonical, params.dbIsGenerated)
+  if (fromCanonical && fromCanonical !== '사진풀') return fromCanonical
   const fromDb = productHeroAttributionBadgeText(params.dbSource, params.dbIsGenerated)
-  if (fromDb) return fromDb
+  if (fromDb && fromDb !== '사진풀') return fromDb
   return productHeroAttributionBadgeFromImageUrl(params.imageUrl)
 }
 
@@ -28,16 +38,30 @@ export function resolveScheduleDayImageRightLabel(params: {
   imageUrl?: string | null
   imagePhotographer?: string | null
   imageSource?: string | null
+  imageSourcePageUrl?: string | null
 }): string | null {
   const photographer = (params.imagePhotographer ?? '').trim()
-  const dSrc = (params.imageSource ?? '').trim().toLowerCase()
+  const canonical = resolveCanonicalImageSourceForDisplay({
+    poolSource: params.imageSource,
+    dbSource: params.imageSource,
+    imageUrl: params.imageUrl,
+    originalLink: params.imageSourcePageUrl,
+  })
+  const dSrc = canonical ?? (params.imageSource ?? '').trim().toLowerCase()
   if (photographer && dSrc) {
-    const sourceLabel = dSrc === 'pexels' ? 'Pexels' : dSrc === 'unsplash' ? 'Unsplash' : dSrc
-    return `Photo by ${photographer} on ${sourceLabel}`
+    const sourceLabel =
+      dSrc === 'pexels' ? 'Pexels' : dSrc === 'unsplash' ? 'Unsplash' : dSrc === 'istock' ? 'iStock' : dSrc
+    if (!/^pexels$/i.test(photographer)) {
+      return `Photo by ${photographer} on ${sourceLabel}`
+    }
   }
   if (dSrc === 'pexels') return 'Pexels 스톡이미지'
   if (dSrc === 'unsplash') return 'Unsplash 스톡이미지'
-  return resolvePublicImageSourceUserLabel({ dbSource: dSrc || null, imageUrl: params.imageUrl })
+  return resolvePublicImageSourceUserLabel({
+    dbSource: dSrc || null,
+    imageUrl: params.imageUrl,
+    originalLink: params.imageSourcePageUrl,
+  })
 }
 
 /** 메인 허브 등 자체 스톡 사진 — DB 출처 없을 때 우측 고정 문구 */

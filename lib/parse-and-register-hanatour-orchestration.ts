@@ -1428,7 +1428,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     const titlePair = productTitlePairForRegisterConfirm(body, parsed.title)
     const registerHeroSeoInput = {
       rawBodyText: text,
-      title: titlePair.prismaTitle,
+      title: [titlePair.prismaOriginalTitle, parsed.supplierListingTitleRaw?.trim()].filter(Boolean).join('\n'),
       primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
       destination: parsed.destination,
       duration: parsed.duration,

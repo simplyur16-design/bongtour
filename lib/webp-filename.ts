@@ -81,8 +81,10 @@ export function trailingSourceTokenFromImageUrl(url: string | null | undefined):
   const raw = String(url ?? '').trim()
   if (!raw) return null
   const pathOnly = raw.split('?')[0] ?? raw
-  const base = pathOnly.replace(/^.*[/\\]/, '').replace(/\.[a-z0-9]{2,5}$/i, '')
+  let base = pathOnly.replace(/^.*[/\\]/, '').replace(/\.[a-z0-9]{2,5}$/i, '')
   if (!base) return null
+  // PhotoPool: `City_Landmark_Pexels__{hash}` — 출처 토큰은 `__` 앞 stem 에 있음
+  base = base.replace(/__[a-z0-9]{4,}$/i, '')
   const parts = base.split('_').filter((p) => p.length > 0)
   if (parts.length < 2) return null
   const last = parts[parts.length - 1]!
