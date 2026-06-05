@@ -110,6 +110,12 @@
       "tier": ["ci"],
       "script": "verify:sticky-quotation-total",
       "summary": "스티키 카드 공급사별 합계·만원 절삭 금지"
+    },
+    {
+      "id": "hanatour-e2e-airtel-same-product",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:hanatour-e2e-airtel-same-product",
+      "summary": "하나투어 E2E 자유여행 — 동일상품 anchor(방콕 자유여행 N일) 매칭"
     }
   ],
   "staticGuards": [
@@ -235,6 +241,30 @@
           "file": "lib/register-schedule-llm-image-keyword-fallback.ts",
           "mustInclude": ["resolveTourismKeywordPreferDistinctPerDay"],
           "mustNotInclude": ["primaryCand && normKeywordKey(primaryCand) === llmKey"]
+        }
+      ]
+    },
+    {
+      "id": "hanatour-e2e-airtel-same-product-guard",
+      "tier": ["prebuild", "ci"],
+      "summary": "하나투어 E2E 자유여행 동일상품 anchor·URL type=H01 가드",
+      "checks": [
+        {
+          "file": "scripts/calendar_e2e_scraper_hanatour/utils.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-e2e-airtel-same-product]",
+            "자유\\s*여행",
+            "에어아시아",
+            "[-－―]\\s*[>＞→﹥]\\s*"
+          ]
+        },
+        {
+          "file": "scripts/calendar_e2e_scraper_hanatour/calendar_price_scraper.py",
+          "mustInclude": ["d[\"type\"] = \"H01\""]
+        },
+        {
+          "file": "scripts/calendar_e2e_scraper_hanatour/test_utils_airtel_same_product.py",
+          "mustInclude": ["BANGKOK_REGISTERED", "AAB261260706FDB", "sameProductMatch"]
         }
       ]
     },

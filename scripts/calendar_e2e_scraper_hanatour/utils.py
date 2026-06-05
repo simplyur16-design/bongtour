@@ -370,8 +370,11 @@ def hanatour_variant_inner_is_status_only(inner: str) -> bool:
 
 
 _NDAY_IN_PRE = re.compile(r"([^#\[\]]+?/)*[^#\[\]]+?\s+\d+\s*일")
+# REGRESSION-FREEZE[hanatour-e2e-airtel-same-product]: 자유여행(방콕 N일) anchor·동일상품 매칭
 _GEO_NDAY_ANCHOR = re.compile(
-    r"([가-힣]{2,24}(?:\s*/\s*[가-힣]{2,24})*(?:\s+\d+\s*박)?)\s+(\d+)\s*일",
+    r"([가-힣]{2,24}(?:\s*/\s*[가-힣]{2,24})*(?:\s+\d+\s*박)?)"
+    r"(?:\s+자유\s*여행)?"
+    r"\s+(\d+)\s*일",
 )
 _HANATOUR_LEADING_NON_TITLE = re.compile(
     r"^(?:"
@@ -402,7 +405,8 @@ _HANATOUR_ANCHOR_OP_SUFFIX = re.compile(
     r"|\s+잔여\s*\d+[\s\S]*$"
     r"|\s+(?:"
     r"[가-힣A-Za-z0-9·&]{2,22}항공"
-    r"|이스타항공|진에어|에어서울|에어부산|제주항공|티웨이항공|에어프레미아"
+    r"|이스타항공|진에어|에어서울|에어부산|제주항공|티웨이항공|에어프레미아|에어아시아"
+    r"|타이\s*에어아시아|타이에어아시아"
     r"|[가-힣]{2,12}에어[가-힣]{0,8}"
     r")[\s\S]*$"
     r"|\s+\d{1,2}/\d{1,2}\s*\([^)]*\)[\s\S]*$"
@@ -590,6 +594,7 @@ def hanatour_anchor_tail_comparison_key(tail: str) -> str:
     """공백·# 앞뒤 간격 차이 허용(벳부 온천 vs 벳부온천)."""
     t = (tail or "").replace("\u00a0", " ")
     t = " ".join(t.split())
+    t = re.sub(r"[-－―]\s*[>＞→﹥]\s*", ">", t)
     t = re.sub(r"\s+#", "#", t)
     return re.sub(r"\s+", "", t)
 

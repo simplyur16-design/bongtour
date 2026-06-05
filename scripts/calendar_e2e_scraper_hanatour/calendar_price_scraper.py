@@ -86,9 +86,7 @@ def normalize_hanatour_detail_url_to_trp(detail_url: str) -> str:
             pairs = list(urllib.parse.parse_qsl(u.query, keep_blank_values=True))
             d = dict(pairs)
             d["pkgCd"] = pkg
-            t = str(d.get("type") or "").strip()
-            pre_page = str(d.get("prePage") or "").strip()
-            if not t and not pre_page:
+            if not str(d.get("type") or "").strip():
                 d["type"] = "H01"
             new_q = urllib.parse.urlencode(list(d.items()))
             return urllib.parse.urlunsplit(
