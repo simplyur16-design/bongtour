@@ -2,9 +2,21 @@
  * tsx 스크립트용 — `.env` 후 `.env.local` 로드 (prisma import 전에 호출).
  * Windows 콘솔에서 한글 로그가 깨지지 않도록 UTF-8 코드 페이지를 맞춘다.
  */
-import dotenv from 'dotenv'
 import { execSync } from 'node:child_process'
 import path from 'node:path'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+
+function loadDotenvFiles(root: string): void {
+  try {
+    const dotenv = require('dotenv') as typeof import('dotenv')
+    dotenv.config({ path: path.join(root, '.env') })
+    dotenv.config({ path: path.join(root, '.env.local'), override: true })
+  } catch {
+    /* Docker/Railway prebuild: dotenv devDep 없음 — 주입된 env만 사용 */
+  }
+}
 
 if (process.platform === 'win32') {
   try {
@@ -21,5 +33,4 @@ if (process.platform === 'win32') {
 }
 
 const root = process.cwd()
-dotenv.config({ path: path.join(root, '.env') })
-dotenv.config({ path: path.join(root, '.env.local'), override: true })
+loadDotenvFiles(root)
