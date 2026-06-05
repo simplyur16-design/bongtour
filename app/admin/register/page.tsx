@@ -282,6 +282,11 @@ type RegisterPexelsSearchPhoto = {
   sourceUrl: string
 }
 
+/** 연속 등록 시 이전 미리보기·수동 키워드·Pexels 후보가 섞이지 않도록 한 번에 비운다 */
+function emptyManualPexelsByDay(): Record<number, string> {
+  return {}
+}
+
 function scheduleRowsHaveUniformImageKeyword(
   rows: Array<{ imageKeyword?: string | null }>,
 ): boolean {
@@ -673,6 +678,38 @@ export default function AdminRegisterPage() {
     [parsedForConfirm, preview, selectedBrandKey, travelScope]
   )
 
+  const resetRegisterPreviewSession = useCallback(
+    (opts?: { clearPreview?: boolean; clearCorrection?: boolean; resetOriginCodeRef?: boolean }) => {
+      const clearPreview = opts?.clearPreview !== false
+      const clearCorrection = opts?.clearCorrection !== false
+      if (clearPreview) {
+        setPreview(null)
+        setParsedForConfirm(null)
+        previewContentFingerprintRef.current = null
+        previewStructuredFingerprintRef.current = null
+        setConfirmVerification(null)
+        setLastAdminTracePath(null)
+      }
+      if (clearCorrection) {
+        setCorrectionOverlay(null)
+        setCorrectionDrawerOpen(false)
+        setCorrectionTargetKey(null)
+        setCorrectionHintDetail(null)
+      }
+      if (opts?.resetOriginCodeRef) {
+        lastPreviewOriginCodeRef.current = null
+      }
+      setManualPexelsKeywordsByDay(emptyManualPexelsByDay())
+      setManualPexelsKeywords2ByDay(emptyManualPexelsByDay())
+      setRegisterPexelsPhotos([])
+      setRegisterPexelsError(null)
+      setRegisterPexelsLastQuery(null)
+      setRegisterPexelsLoading(false)
+      setRegisterPexelsFallbackKeyword('')
+    },
+    [],
+  )
+
   const runRegisterPexelsSearch = useCallback(async (keywordRaw: string) => {
     const keyword = keywordRaw.trim()
     console.log('[admin-register] Pexels 미리보기', { keyword })
@@ -838,13 +875,7 @@ export default function AdminRegisterPage() {
     }
     setError('')
     setSavedProductId(null)
-    setPreview(null)
-    setParsedForConfirm(null)
-    setConfirmVerification(null)
-    setLastAdminTracePath(null)
-    previewContentFingerprintRef.current = null
-    previewStructuredFingerprintRef.current = null
-    setManualPexelsKeywordsByDay({})
+    resetRegisterPreviewSession({ clearCorrection: true, resetOriginCodeRef: false })
     setStatusText(null)
 
     // 저장 직전: URL이 유효하고, 아직 검사 안 했거나 URL이 바뀐 경우 1회 재검사. 실패해도 등록은 진행.
@@ -937,15 +968,7 @@ export default function AdminRegisterPage() {
         setLastAdminTracePath(null)
         previewContentFingerprintRef.current = currentRegisterPreviewFingerprint()
         previewStructuredFingerprintRef.current = kres.registerVerification?.structuredFingerprint ?? null
-        setManualPexelsKeywordsByDay({})
-        setRegisterPexelsPhotos([])
-        setRegisterPexelsError(null)
-        setRegisterPexelsLastQuery(null)
-        setRegisterPexelsLoading(false)
-        setCorrectionOverlay(null)
-        setCorrectionDrawerOpen(false)
-        setCorrectionTargetKey(null)
-        setCorrectionHintDetail(null)
+        resetRegisterPreviewSession({ clearPreview: false, clearCorrection: true })
         const oc = kres.parsed && typeof kres.parsed === 'object' && 'originCode' in kres.parsed
           ? String((kres.parsed as RegisterParsedKw).originCode ?? '')
           : null
@@ -974,17 +997,10 @@ export default function AdminRegisterPage() {
       setParsedForConfirm(pdata.parsed ?? null)
       setConfirmVerification(null)
       setLastAdminTracePath(null)
-      setManualPexelsKeywordsByDay({})
-      setRegisterPexelsPhotos([])
-      setRegisterPexelsError(null)
-      setRegisterPexelsLastQuery(null)
-      setRegisterPexelsLoading(false)
-      if (selectedBrandKey === 'lottetour') {
-        setCorrectionOverlay(null)
-        setCorrectionDrawerOpen(false)
-        setCorrectionTargetKey(null)
-        setCorrectionHintDetail(null)
-      }
+      resetRegisterPreviewSession({
+        clearPreview: false,
+        clearCorrection: selectedBrandKey === 'lottetour',
+      })
     } catch (e) {
       if (isAbortError(e)) {
         setError(
@@ -1104,6 +1120,8 @@ export default function AdminRegisterPage() {
       setConfirmVerification(data.registerVerification ?? null)
       setLastAdminTracePath(typeof data.adminTracePath === 'string' ? data.adminTracePath : null)
       setStatusText('3축(Product/ProductDeparture/ItineraryDay) 저장 완료. 등록대기에서 최종 승인해 주세요.')
+      /** 다음 상품 등록 시 이전 미리보기·수동 키워드·Pexels 후보가 섞이지 않도록 초기화 */
+      resetRegisterPreviewSession({ clearPreview: true, clearCorrection: true, resetOriginCodeRef: true })
     } catch (e) {
       if (e instanceof ScheduleImageKeywordPersistError) {
         setError(formatImageKeywordError(e))
@@ -1168,19 +1186,11 @@ export default function AdminRegisterPage() {
                 const next = coerceRegisterSupplierKey(e.target.value)
                 if (next === selectedBrandKey) return
                 setSelectedBrandKey(next)
-                setPreview(null)
-                setParsedForConfirm(null)
-                previewContentFingerprintRef.current = null
-                setCorrectionOverlay(null)
-                setCorrectionDrawerOpen(false)
-                setCorrectionTargetKey(null)
-                setCorrectionHintDetail(null)
-                lastPreviewOriginCodeRef.current = null
-                setManualPexelsKeywordsByDay({})
-                setRegisterPexelsPhotos([])
-                setRegisterPexelsError(null)
-                setRegisterPexelsLastQuery(null)
-                setRegisterPexelsLoading(false)
+                resetRegisterPreviewSession({
+                  clearPreview: true,
+                  clearCorrection: true,
+                  resetOriginCodeRef: true,
+                })
                 setSavedProductId(null)
                 setError('')
                 setDuplicateResult(null)
@@ -1207,9 +1217,23 @@ export default function AdminRegisterPage() {
             <select
               id="admin-register-scope"
               value={travelScope}
-              onChange={(e) =>
-                setTravelScope(e.target.value as 'overseas' | 'domestic' | 'air_hotel_free')
-              }
+              onChange={(e) => {
+                const next = e.target.value as 'overseas' | 'domestic' | 'air_hotel_free'
+                if (next === travelScope) return
+                setTravelScope(next)
+                resetRegisterPreviewSession({
+                  clearPreview: true,
+                  clearCorrection: true,
+                  resetOriginCodeRef: true,
+                })
+                setSavedProductId(null)
+                setError('')
+                setDuplicateResult(null)
+                setLastCheckedOriginUrl('')
+                setStatusText(
+                  '상품 유형이 변경되어 이전 미리보기·키워드 입력을 초기화했습니다. [AI 실시간 분석 시작]으로 다시 분석하세요.',
+                )
+              }}
               className="mt-2 w-full border border-slate-300 bg-white px-3 py-2 text-sm text-[#0f172a] focus:border-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
               disabled={loading}
               required
