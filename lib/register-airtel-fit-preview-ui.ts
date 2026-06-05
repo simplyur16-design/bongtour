@@ -6,9 +6,8 @@ import {
   fitGeminiResponseToKeywordDays,
   parseFitItineraryGeminiJson,
 } from '@/lib/fit-itinerary-gemini-parse'
-import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
+import { mergeScheduleWithSingleAirtelFitKeyword } from '@/lib/fit-itinerary-merge-schedule-keywords'
 import type { FitDayImageKeywordFallbackContext } from '@/lib/fit-itinerary-pick-day-image-keyword'
-import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airtel-route-image-keyword'
 import type { ProductScheduleJsonRow } from '@/lib/schedule-image-keyword-persist'
 
 function registerRowsToScheduleJsonRows(rows: RegisterScheduleDay[]): ProductScheduleJsonRow[] {
@@ -55,7 +54,7 @@ function scheduleRowsFromFitDays(
   const existing = registerRowsToScheduleJsonRows(parsed.schedule ?? [])
   const existingByDay = new Map(existing.map((r) => [Math.floor(Number(r.day)), r]))
   const fallbackCtx = fallbackCtxFromRegisterParsed(parsed)
-  const { rows } = mergeScheduleWithFitKeywords([], fitDays, fallbackCtx)
+  const { rows } = mergeScheduleWithSingleAirtelFitKeyword([], fitDays, fallbackCtx)
   const merged = rows.map((row) => {
     const day = Math.floor(Number(row.day))
     const prev = existingByDay.get(day)
@@ -69,7 +68,7 @@ function scheduleRowsFromFitDays(
       imageKeyword2: row.imageKeyword2 ?? prev.imageKeyword2,
     }
   })
-  return applyAirtelRouteTextImageKeywordsToSchedule(scheduleJsonRowsToRegisterRows(merged))
+  return scheduleJsonRowsToRegisterRows(merged)
 }
 
 /** 미리보기 UI — parsed.schedule 이 비었거나 키워드가 통일됐을 때 Fit JSON으로 일차 행 복구 */

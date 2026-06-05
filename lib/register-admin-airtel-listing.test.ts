@@ -4,7 +4,7 @@ import {
   isRegisterAirtelListing,
   stampRegisterAirtelProductTypeOnParsed,
 } from '@/lib/register-admin-airtel-listing'
-import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
+import { mergeScheduleWithSingleAirtelFitKeyword } from '@/lib/fit-itinerary-merge-schedule-keywords'
 import type { FitItineraryDayForKeyword } from '@/lib/fit-itinerary-pick-day-image-keyword'
 
 describe('isRegisterAirtelListing', () => {
@@ -39,7 +39,7 @@ describe('isAirHotelFitItineraryProduct', () => {
 })
 
 describe('buildAirtelRegisterScheduleRowsFromFitParsed', () => {
-  it('replaces uniform LLM schedule keywords with per-day fit keywords', async () => {
+  it('replaces LLM schedule keywords with single fit keyword on all days', async () => {
     const { buildAirtelRegisterScheduleRowsFromFitParsed } = await import(
       '@/lib/register-airtel-fit-preview-ui'
     )
@@ -102,12 +102,13 @@ describe('buildAirtelRegisterScheduleRowsFromFitParsed', () => {
     const rows = buildAirtelRegisterScheduleRowsFromFitParsed(parsed)
     expect(rows?.length).toBe(2)
     const kws = rows!.map((r) => r.imageKeyword)
-    expect(new Set(kws).size).toBe(2)
+    expect(new Set(kws).size).toBe(1)
+    expect(kws[0]).toMatch(/kiyomizu|dotonbori/i)
   })
 })
 
-describe('mergeScheduleWithFitKeywords (register preview)', () => {
-  it('fills imageKeyword from fit day activities', () => {
+describe('mergeScheduleWithSingleAirtelFitKeyword (register preview)', () => {
+  it('fills same imageKeyword on all fit days', () => {
     const fitDays: FitItineraryDayForKeyword[] = [
       {
         dayNumber: 1,
@@ -124,7 +125,7 @@ describe('mergeScheduleWithFitKeywords (register preview)', () => {
         ],
       },
     ]
-    const { rows } = mergeScheduleWithFitKeywords([], fitDays, {
+    const { rows, dayKeywords } = mergeScheduleWithSingleAirtelFitKeyword([], fitDays, {
       cityNameKo: '오사카',
       cityKey: '',
       productTitle: '오사카 3일',
@@ -132,5 +133,6 @@ describe('mergeScheduleWithFitKeywords (register preview)', () => {
     })
     expect(rows[0]?.imageKeyword?.length).toBeGreaterThan(2)
     expect(String(rows[0]?.title ?? '')).toContain('도톤보리')
+    expect(new Set(Object.values(dayKeywords)).size).toBe(1)
   })
 })

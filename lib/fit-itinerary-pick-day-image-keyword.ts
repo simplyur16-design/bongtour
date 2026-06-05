@@ -239,3 +239,38 @@ export function pickFitDayImageKeyword(
 ): string {
   return pickFitDayImageKeywordDistinct(day, fallbackCtx, new Set())
 }
+
+/**
+ * 자유여행 SSOT — 예시 일정 전체에서 대표 랜드마크 1개만 뽑는다(일차별 키워드 금지).
+ * 도착·출국일보다 중간 관광일(2~N-1일차) attraction을 우선한다.
+ */
+export function pickSingleAirtelFitImageKeywordFromDays(
+  fitDays: FitItineraryDayForKeyword[],
+  fallbackCtx: FitDayImageKeywordFallbackContext,
+): string {
+  const sorted = [...fitDays].sort((a, b) => a.dayNumber - b.dayNumber)
+  if (!sorted.length) return buildFitDayImageKeywordFallback(fallbackCtx)
+
+  const maxDayNumber = sorted.reduce((max, d) => Math.max(max, d.dayNumber), 0)
+  const middleDays = sorted.filter((d) => d.dayNumber > 1 && d.dayNumber < maxDayNumber)
+  const scanOrder = [
+    ...middleDays,
+    ...sorted.filter((d) => d.dayNumber === 1),
+    ...sorted.filter((d) => d.dayNumber === maxDayNumber),
+  ]
+
+  const usedLower = new Set<string>()
+  for (const day of scanOrder) {
+    const kw = pickFitDayImageKeywordDistinct(day, fallbackCtx, usedLower)
+    if (!kw) continue
+    usedLower.add(kw.toLowerCase())
+    if (!isWeakFitDayImageKeyword(kw)) return kw
+  }
+
+  for (const day of sorted) {
+    const kw = pickFitDayImageKeyword(day, fallbackCtx)
+    if (kw && !isWeakFitDayImageKeyword(kw)) return kw
+  }
+
+  return buildFitDayImageKeywordFallback(fallbackCtx, sorted[Math.min(1, sorted.length - 1)])
+}

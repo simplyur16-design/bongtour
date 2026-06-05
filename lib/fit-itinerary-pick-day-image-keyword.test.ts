@@ -3,9 +3,10 @@ import {
   areFitDayImageKeywordsUniform,
   buildFitDayImageKeywordFallback,
   pickFitDayImageKeyword,
+  pickSingleAirtelFitImageKeywordFromDays,
   type FitItineraryDayForKeyword,
 } from '@/lib/fit-itinerary-pick-day-image-keyword'
-import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
+import { mergeScheduleWithSingleAirtelFitKeyword } from '@/lib/fit-itinerary-merge-schedule-keywords'
 
 const fallback = {
   cityNameKo: '오사카',
@@ -151,7 +152,64 @@ describe('pickFitDayImageKeyword', () => {
   })
 })
 
-describe('mergeScheduleWithFitKeywords distinct', () => {
+describe('pickSingleAirtelFitImageKeywordFromDays', () => {
+  it('prefers middle-day attraction over arrival airport', () => {
+    const fitDays: FitItineraryDayForKeyword[] = [
+      {
+        dayNumber: 1,
+        title: '도착',
+        summary: '',
+        activities: [
+          {
+            order: 1,
+            category: 'transport',
+            title: '공항',
+            description: '',
+            location: '다낭 국제공항',
+          },
+        ],
+      },
+      {
+        dayNumber: 3,
+        title: '바나힐',
+        summary: '',
+        activities: [
+          {
+            order: 2,
+            category: 'attraction',
+            title: '바나힐',
+            description: '',
+            location: '바나힐 (Ba Na Hills)',
+          },
+        ],
+      },
+      {
+        dayNumber: 5,
+        title: '출국',
+        summary: '',
+        activities: [
+          {
+            order: 1,
+            category: 'transport',
+            title: '출국',
+            description: '',
+            location: '다낭 국제공항',
+          },
+        ],
+      },
+    ]
+    const kw = pickSingleAirtelFitImageKeywordFromDays(fitDays, {
+      cityNameKo: '다낭',
+      cityKey: 'danang',
+      productTitle: '다낭 5일',
+      primaryDestination: '다낭',
+      destination: '다낭',
+    })
+    expect(kw).toMatch(/ba na hills/i)
+  })
+})
+
+describe('mergeScheduleWithSingleAirtelFitKeyword', () => {
   const nhaFallback = {
     cityNameKo: '나트랑',
     cityKey: 'nhatrang',
@@ -160,7 +218,7 @@ describe('mergeScheduleWithFitKeywords distinct', () => {
     destination: '나트랑',
   }
 
-  it('assigns different keywords per day from fit landmarks (나트랑 패턴)', () => {
+  it('assigns one keyword to all days from fit landmarks (나트랑 패턴)', () => {
     const fitDays: FitItineraryDayForKeyword[] = [
       {
         dayNumber: 1,
@@ -205,11 +263,11 @@ describe('mergeScheduleWithFitKeywords distinct', () => {
         ],
       },
     ]
-    const { dayKeywords } = mergeScheduleWithFitKeywords([], fitDays, nhaFallback)
-    expect(areFitDayImageKeywordsUniform(dayKeywords)).toBe(false)
+    const { dayKeywords } = mergeScheduleWithSingleAirtelFitKeyword([], fitDays, nhaFallback)
+    expect(areFitDayImageKeywordsUniform(dayKeywords)).toBe(true)
     const values = Object.values(dayKeywords)
-    expect(new Set(values.map((v) => v.toLowerCase())).size).toBe(3)
-    expect(values.some((v) => /po nagar/i.test(v))).toBe(true)
-    expect(values.every((v) => v !== 'Nha')).toBe(true)
+    expect(new Set(values.map((v) => v.toLowerCase())).size).toBe(1)
+    expect(values[0]).not.toBe('Nha')
+    expect(values[0]?.length).toBeGreaterThan(2)
   })
 })

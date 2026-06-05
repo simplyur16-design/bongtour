@@ -3,6 +3,7 @@
  */
 import {
   pickFitDayImageKeywordDistinct,
+  pickSingleAirtelFitImageKeywordFromDays,
   type FitDayImageKeywordFallbackContext,
   type FitItineraryDayForKeyword,
 } from '@/lib/fit-itinerary-pick-day-image-keyword'
@@ -48,6 +49,65 @@ export function mergeScheduleWithFitKeywords(
       title: fitDay.title?.trim() || prev?.title || null,
       description: fitDay.summary?.trim() || prev?.description || null,
       imageKeyword: kw,
+    }
+
+    if (keywordChanged) {
+      next.imageUrl = null
+      next.imageUrl2 = null
+      const extra = next as ProductScheduleJsonRow & {
+        imageManualSelected?: boolean
+        imageSelectionMode?: string | null
+      }
+      extra.imageManualSelected = false
+      extra.imageSelectionMode = null
+    }
+
+    byDay.set(dayNum, next)
+  }
+
+  const rows = [...byDay.values()].sort((a, b) => a.day - b.day)
+  return { rows, dayKeywords }
+}
+
+/** 자유여행 SSOT — 예시 일정에서 뽑은 imageKeyword 1개를 모든 일차에 동일 적용 */
+export function mergeScheduleWithSingleAirtelFitKeyword(
+  existing: ProductScheduleJsonRow[],
+  fitDays: FitItineraryDayForKeyword[],
+  fallbackCtx: FitDayImageKeywordFallbackContext,
+): { rows: ProductScheduleJsonRow[]; dayKeywords: Record<number, string> } {
+  const byDay = new Map<number, ProductScheduleJsonRow>()
+  for (const row of existing) {
+    byDay.set(Math.floor(Number(row.day)), { ...row })
+  }
+
+  const singleKw = pickSingleAirtelFitImageKeywordFromDays(fitDays, fallbackCtx)
+  const dayKeywords: Record<number, string> = {}
+
+  const sortedDays = [...fitDays].sort((a, b) => a.dayNumber - b.dayNumber)
+  for (const fitDay of sortedDays) {
+    const dayNum = Math.floor(Number(fitDay.dayNumber))
+    if (!Number.isFinite(dayNum) || dayNum < 1) continue
+    dayKeywords[dayNum] = singleKw
+
+    const prev = byDay.get(dayNum)
+    const prevKw = String(prev?.imageKeyword ?? '').trim()
+    const keywordChanged =
+      singleKw.length > 0 && prevKw.length > 0 && prevKw.toLowerCase() !== singleKw.toLowerCase()
+
+    const next: ProductScheduleJsonRow = {
+      ...(prev ?? {
+        day: dayNum,
+        title: null,
+        description: null,
+        routeText: null,
+        imageUrl: null,
+        imageUrl2: null,
+      }),
+      day: dayNum,
+      title: fitDay.title?.trim() || prev?.title || null,
+      description: fitDay.summary?.trim() || prev?.description || null,
+      imageKeyword: singleKw,
+      imageKeyword2: null,
     }
 
     if (keywordChanged) {

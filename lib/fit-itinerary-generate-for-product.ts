@@ -84,6 +84,10 @@ function schedulePreview(schedule: string | null, maxLen = 4000): string {
 }
 
 export function buildAirtelPrompt(p: PromptProduct): string {
+  const activityRule =
+    p.totalDays >= 5
+      ? 'activities **정확히 3개** (출력 길이·JSON 잘림 방지 — 4개 이상 금지)'
+      : 'activities 3~4개'
   return `당신은 가오슝 v3 패턴 그대로 자유여행 예시 일정을 만드는 봉투어 큐레이터입니다.
 
 [상품 정보]
@@ -96,7 +100,7 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 
 [작성 규칙 — 가오슝 v3 활동 패턴 + 봉투어 2문장 브리프]
 - persona 자동 결정: '${p.cityNameKo}' 도시의 일반 자유여행객 페르소나 (mixed / couple / with-parents / with-kids 중 1)
-- 각 day = title(시적 한국어), summary(정확히 2문장 한국어), activities 3~6개
+- 각 day = title(시적 한국어), summary(정확히 2문장 한국어), ${activityRule}
 - day.summary **반드시 정확히 2문장**(한 문장만 출력 금지). 마침표(.)로 끝나는 완결 문장 두 개를 한 줄에 이어 쓴다. ① 오늘 동선·핵심 체험(친근한 권유형, 「~해 보세요」「~즐기기 좋은 날」) — **구체 지명·랜드마크 한글 고유명사 1개 이상** 필수(예: 도톤보리, 청수사). ② 이동·시간·비용·준비물 중 실용 팁 1가지. 줄바꿈 없음, 합계 50~90자.
 - 상품 최상위 summary: 정확히 2문장 — ① 이 여행의 매력·동선 요약 ② 아래는 참고용 예시 일정이며 순서·시간은 자유롭게 조정 가능함을 짧게 안내
 - 카테고리 5개만 사용: transport(공항·이동) / hotel(체크인) / meal(식사·야시장 미식) / attraction(관광·전망대·사찰) / shopping(쇼핑·기념품)
@@ -110,7 +114,7 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 - transportDuration = "10분" 등 한국어 + 숫자
 - 모든 텍스트 한국어
 - **location 필수 형식(관광·쇼핑·식사):** 한글명 (English landmark name) — 괄호 안 **영문 고유명** 필수 (예: "도톤보리 (Dotonbori)", "청수사 (Kiyomizu-dera Temple)"). transport·hotel은 공항·호텔명 한글만 가능
-- **imageKeyword(시스템 자동):** 등록 후 각 day의 activities[].location 괄호 영문·한글 지명에서 **일차별 서로 다른** Pexels 검색어를 뽑는다. 일차마다 attraction 또는 meal에 **다른 랜드마크** 1곳 이상 넣을 것(도시명·공항명만 반복 금지). Day2 이후는 Day1과 다른 장소(예: Long Son Pagoda, Po Nagar Cham Towers, VinWonders).
+- **imageKeyword(시스템 자동·1개만):** 등록 후 예시 일정 전체에서 대표 랜드마크 **1곳**만 Pexels 검색어로 쓴다. 중간 관광일(2~N-1일차) attraction location에 **괄호 영문 고유명** 1곳 이상 필수(예: 미케 비치 (My Khe Beach), 바나힐 (Ba Na Hills)). 도시명·공항명만 쓰지 말 것.
 - 음식점은 추천 메뉴 1~2개 포함
 - 가족·연인·부모 등 페르소나 언급 활동 1~2개 포함
 - 야경/포토존 1개 포함

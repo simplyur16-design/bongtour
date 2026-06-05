@@ -8,7 +8,7 @@ import {
   type ProductScheduleJsonRow,
 } from '@/lib/schedule-image-keyword-persist'
 import { isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
-import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
+import { mergeScheduleWithSingleAirtelFitKeyword } from '@/lib/fit-itinerary-merge-schedule-keywords'
 import type {
   FitDayImageKeywordFallbackContext,
   FitItineraryDayForKeyword,
@@ -84,7 +84,7 @@ export async function syncScheduleImageKeywordsFromFitItinerary(
   }
 
   const existing = parseScheduleRows(product.schedule)
-  const { rows, dayKeywords } = mergeScheduleWithFitKeywords(existing, fitDays, fallbackCtx)
+  const { rows, dayKeywords } = mergeScheduleWithSingleAirtelFitKeyword(existing, fitDays, fallbackCtx)
   const scheduleJson = buildProductScheduleJsonForDb(rows)
 
   const changed = scheduleJson !== (product.schedule ?? '')
