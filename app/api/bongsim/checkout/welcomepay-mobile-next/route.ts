@@ -14,6 +14,7 @@ import {
   pickAmountKrw,
   pickOid,
   pickCaptureTid,
+  pickWelcomepayPgCallbackMessage,
   readWelcomepayCallbackFromRequest,
   resultCodeOf,
 } from "@/lib/bongsim/welcomepay-callback-parse";
@@ -71,8 +72,7 @@ async function handleWelcomepayMobileNext(req: Request) {
 
   const incoming = await readWelcomepayCallbackFromRequest(req);
   const authRc = resultCodeOf(incoming);
-  const pgMessage =
-    incoming.P_RMESG1 ?? incoming.P_RMESG2 ?? incoming.resultMsg ?? incoming.ResultMsg ?? "";
+  const pgMessage = pickWelcomepayPgCallbackMessage(incoming);
 
   let oid = pickOid(incoming);
   let oidFromCookie = false;
@@ -85,6 +85,7 @@ async function handleWelcomepayMobileNext(req: Request) {
   if (!oid && authRc && !isWelcomepayAuthSuccessCode(authRc)) {
     console.warn("[welcomepay-mobile-next] pg_auth_reject_before_pay_ui", {
       authRc,
+      pgMessage: pgMessage || "(empty)",
       method: req.method,
       keys: Object.keys(incoming),
     });

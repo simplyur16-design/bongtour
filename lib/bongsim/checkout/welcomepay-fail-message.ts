@@ -18,7 +18,7 @@ export function welcomepayPgAuthFailMessage(input: {
       );
     }
     return (
-      "결제창을 열기 전 PG에서 요청이 거절되었습니다. " +
+      "결제창을 열기 전 웰컴페이먼츠에서 요청이 거절되었습니다(코드 01). " +
       "잠시 후 다시 시도해 주세요. 계속되면 고객센터로 문의해 주세요."
     );
   }

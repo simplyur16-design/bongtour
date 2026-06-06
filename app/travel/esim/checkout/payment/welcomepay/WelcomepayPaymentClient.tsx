@@ -142,6 +142,16 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
           );
           return;
         }
+        if (
+          initialMobileWelpay &&
+          typeof document !== "undefined" &&
+          ok.mobile.pOid
+        ) {
+          document.cookie = welcomepayMobileOidDocumentCookie(
+            ok.mobile.pOid,
+            window.location.protocol === "https:",
+          );
+        }
         setPrep(ok);
         setPhase("ready");
       } catch (e) {
@@ -354,7 +364,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
                   <input type="hidden" name="P_MOBILE" value={prep.mobile.pMobile} />
                   <input type="hidden" name="P_INI_PAYMENT" value={prep.mobile.pIniPayment} />
                   <input type="hidden" name="P_RESERVED" value={prep.mobile.pReserved} />
-                  <input type="hidden" name="P_CHARSET" value="utf8" />
+                  <input type="hidden" name="P_CHARSET" value="UTF-8" />
                 </form>
               ) : null}
 

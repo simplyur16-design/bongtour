@@ -76,9 +76,20 @@ export function welcomepayMobileWelpaySubmitUrl(): string {
 /** 모바일 welpay 필수 `P_RESERVED` — IDC센터코드 + 금액위변조 hash (이니시스 stdpay_m). */
 export const WELCOMEPAY_MOBILE_P_RESERVED = "centerCd=Y&amt_hash=Y";
 
-/** 모바일 금액위변조 HashKey — 미설정 시 `WELCOMEPAY_SIGN_KEY` 사용. */
+/**
+ * 모바일 welpay `P_CHKFAKE` HashKey (PC signKey와 별도 규약).
+ * - `WELCOMEPAY_MOBILE_HASH_KEY` 명시 시 그대로 사용
+ * - 미설정 시 기본 `mkey`(SHA256 hex of signKey) — 웰컴페이먼츠 모바일 부가정보 HashKey 형식
+ * - raw 웹 Signkey가 맞으면 `WELCOMEPAY_MOBILE_HASH_KEY_SOURCE=signkey`
+ */
 export function resolveWelcomepayMobileHashKey(): string {
-  return (process.env.WELCOMEPAY_MOBILE_HASH_KEY ?? process.env.WELCOMEPAY_SIGN_KEY ?? "").trim();
+  const explicit = (process.env.WELCOMEPAY_MOBILE_HASH_KEY ?? "").trim();
+  if (explicit) return explicit;
+  const signKey = (process.env.WELCOMEPAY_SIGN_KEY ?? "").trim();
+  if (!signKey) return "";
+  const source = (process.env.WELCOMEPAY_MOBILE_HASH_KEY_SOURCE ?? "mkey").trim().toLowerCase();
+  if (source === "signkey" || source === "raw") return signKey;
+  return generateMKey(signKey);
 }
 
 /** 모바일 welpay `P_TIMESTAMP` — PC 표준결제와 동일하게 Unix epoch 밀리초 문자열. */

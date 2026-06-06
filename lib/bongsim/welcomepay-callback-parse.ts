@@ -113,6 +113,20 @@ export function pickTid(m: Record<string, string>): string {
   return pickCaptureTid(m) || (m.P_TID ?? m.p_tid ?? "").trim();
 }
 
+/** PG 인증 실패 콜백 — `P_RMESG1` 등 사용자·운영자용 메시지 */
+export function pickWelcomepayPgCallbackMessage(m: Record<string, string>): string {
+  return (
+    m.P_RMESG1 ??
+    m.p_rmesg1 ??
+    m.P_RMESG2 ??
+    m.p_rmesg2 ??
+    m.P_RMESG3 ??
+    m.resultMsg ??
+    m.ResultMsg ??
+    ""
+  ).trim();
+}
+
 export function pickAmountKrw(m: Record<string, string>): number | null {
   const raw =
     m.TotPrice ??

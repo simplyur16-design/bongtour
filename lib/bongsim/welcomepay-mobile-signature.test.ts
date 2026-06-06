@@ -25,4 +25,15 @@ describe("모바일 welpay P_CHKFAKE (SHA512+Base64)", () => {
       generateMobileWelpayPChkfake({ pAmt, pOid, pTimestamp, hashKey }),
     ).toBe(expected);
   });
+
+  it("KG이니시스 공식 예시(HashKey=mKey hex)", () => {
+    expect(
+      generateMobileWelpayPChkfake({
+        pAmt: "1000",
+        pOid: "url_99120",
+        pTimestamp: "1640061760611",
+        hashKey: "3CB8183A4BE283555ACC8363C0360223",
+      }),
+    ).toBe("bKVddmNY3kUqWWbeffnPN6r9NatBqhNZe7bx677NyxeLvb42wCRCxEjGx+aH2CATMm0BE8PEKw1x2PqFQbgrsA==");
+  });
 });
