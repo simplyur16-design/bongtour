@@ -1,11 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { isMobileWelpayUserAgent } from "@/lib/bongsim/welcomepay-mobile-user-agent";
+import {
+  isMobileWelpayUserAgent,
+  isProductionWelpaySubmitUrl,
+} from "@/lib/bongsim/welcomepay-mobile-user-agent";
 
 describe("isMobileWelpayUserAgent", () => {
   it("iPhone Safari → welpay", () => {
     const ua =
       "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
     expect(isMobileWelpayUserAgent(ua)).toBe(true);
+  });
+
+  it("iPhone Chrome(CriOS) → welpay", () => {
+    const ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/121.0.0.0 Mobile/15E148 Safari/604.1";
+    expect(isMobileWelpayUserAgent(ua)).toBe(true);
+  });
+
+  it("운영 모바일 PG URL", () => {
+    expect(isProductionWelpaySubmitUrl("https://mobile.paywelcome.co.kr/smart/welpay/")).toBe(true);
+    expect(isProductionWelpaySubmitUrl("https://tmobile.paywelcome.co.kr/smart/welpay/")).toBe(false);
   });
 
   it("Android Chrome → welpay", () => {

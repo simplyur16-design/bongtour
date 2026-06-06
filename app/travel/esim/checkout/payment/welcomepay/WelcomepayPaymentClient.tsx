@@ -6,7 +6,11 @@ import Link from "next/link";
 import Header from "@/app/components/Header";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { removeWelcomepayIniScriptNodes, resetAfterPgOverlay } from "@/lib/bongsim/checkout/reset-after-pg-overlay";
-import { isMobileWelpayUserAgent } from "@/lib/bongsim/welcomepay-mobile-user-agent";
+import {
+  isMobileWelpayUserAgent,
+  isProductionSiteHostname,
+  isProductionWelpaySubmitUrl,
+} from "@/lib/bongsim/welcomepay-mobile-user-agent";
 
 type PrepareMobile = {
   submitUrl: string;
@@ -22,6 +26,7 @@ type PrepareMobile = {
   pEmail: string;
   pMobile: string;
   pIniPayment: string;
+  pReserved: string;
 };
 
 type PrepareOk = {
@@ -37,6 +42,7 @@ type PrepareOk = {
   popupUrl: string;
   pcStdPayScriptUrl: string;
   mobile: PrepareMobile;
+  welcomepay_env?: "test" | "production";
 };
 
 declare global {
@@ -112,6 +118,28 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
           setErrorMsg("결제 준비 응답이 불완전해요.");
           return;
         }
+        if (
+          initialMobileWelpay &&
+          (!ok.mobile.pReserved?.includes("amt_hash=Y") ||
+            !ok.mobile.pChkfake?.trim() ||
+            !ok.mobile.pNextUrl?.trim())
+        ) {
+          setPhase("error");
+          setErrorMsg("모바일(운영) 결제 준비 응답이 올바르지 않습니다.");
+          return;
+        }
+        if (
+          typeof window !== "undefined" &&
+          initialMobileWelpay &&
+          isProductionSiteHostname(window.location.hostname) &&
+          !isProductionWelpaySubmitUrl(ok.mobile.submitUrl)
+        ) {
+          setPhase("error");
+          setErrorMsg(
+            "운영 사이트인데 결제 PG가 테스트로 설정되어 있습니다. 서버에 WELCOMEPAY_ENV=production 이 설정됐는지 확인해 주세요.",
+          );
+          return;
+        }
         setPrep(ok);
         setPhase("ready");
       } catch (e) {
@@ -124,7 +152,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
     return () => {
       cancelled = true;
     };
-  }, [paymentAttemptId, orderId, welcomeOid, amount, orderName, customerEmail]);
+  }, [paymentAttemptId, orderId, welcomeOid, amount, orderName, customerEmail, initialMobileWelpay]);
 
   useEffect(() => {
     if (!prep || phase !== "ready") return;
@@ -225,8 +253,22 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
   const handlePay = () => {
     if (!prep || isSubmitting || !sdkReady) return;
     if (uaMobile) {
+      const form = mobileFormRef.current;
+      if (!form) {
+        setErrorMsg("모바일 결제 폼을 찾을 수 없어요. 새로고침 후 다시 시도해 주세요.");
+        return;
+      }
       setIsSubmitting(true);
-      mobileFormRef.current?.submit();
+      try {
+        if (typeof form.requestSubmit === "function") {
+          form.requestSubmit();
+        } else {
+          form.submit();
+        }
+      } catch (e) {
+        setIsSubmitting(false);
+        setErrorMsg(e instanceof Error ? e.message : "결제 페이지로 이동하지 못했습니다.");
+      }
       return;
     }
     const form = document.getElementById("SendPayForm_id") as HTMLFormElement | null;
@@ -287,7 +329,8 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
                   method="post"
                   action={prep.mobile.submitUrl}
                   acceptCharset="UTF-8"
-                  className="hidden"
+                  target="_self"
+                  className="sr-only"
                   aria-hidden
                 >
                   <input type="hidden" name="P_MID" value={prep.mobile.pMid} />
@@ -302,6 +345,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
                   <input type="hidden" name="P_EMAIL" value={prep.mobile.pEmail} />
                   <input type="hidden" name="P_MOBILE" value={prep.mobile.pMobile} />
                   <input type="hidden" name="P_INI_PAYMENT" value={prep.mobile.pIniPayment} />
+                  <input type="hidden" name="P_RESERVED" value={prep.mobile.pReserved} />
                   <input type="hidden" name="P_CHARSET" value="utf8" />
                 </form>
               ) : null}
