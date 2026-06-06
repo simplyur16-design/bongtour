@@ -1,5 +1,6 @@
 /**
  * 해외·자유여행 허브 상품 행 — li 폭 SSOT (동일 compact 가로 스크롤).
+ * REGRESSION-FREEZE[hub-product-row-compact-scroll]: 그리드·90%·2×2 페이지 회귀 금지 — manifest
  * Tailwind content 스캔·safelist용 리터럴 유지.
  */
 

@@ -287,6 +287,34 @@
           "mustInclude": ["applyHanatourOriginCodeFromPaste"]
         }
       ]
+    },
+    {
+      "id": "hub-product-row-compact-scroll",
+      "tier": ["prebuild", "ci"],
+      "summary": "해외·자유여행 허브 — compact 가로 스크롤 SSOT, 그리드·90%·2×2 페이지 회귀 금지",
+      "checks": [
+        {
+          "file": "components/products/hub-product-row-layout.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hub-product-row-compact-scroll]",
+            "HUB_PRODUCT_SCROLL_LI_CLASS",
+            "w-[43vw]"
+          ]
+        },
+        {
+          "file": "components/products/ProductResultsList.tsx",
+          "mustInclude": [
+            "ProductResultsHubScrollRow",
+            "HUB_PRODUCT_SCROLL_LI_CLASS",
+            "buildProductResultRowNodes"
+          ],
+          "mustNotInclude": [
+            "FlatProductResultsList",
+            "ProductResultsMobilePagedCarousel",
+            "w-[90%] max-w-sm shrink-0 snap-center md:w-[min(17.5rem"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
