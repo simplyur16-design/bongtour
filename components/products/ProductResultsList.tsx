@@ -34,11 +34,13 @@ import {
 import type { BrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
 import {
-  MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS,
+  HUB_PRODUCT_FLAT_LI_CLASS,
+  HUB_PRODUCT_SCROLL_LI_CLASS,
+  HUB_PRODUCT_SCROLL_LI_CLASS_WIDE,
+} from '@/components/products/hub-product-row-layout'
+import {
   MOBILE_HUB_OVERSEAS_SECTION_STACK_CLASS,
   MOBILE_HUB_PRODUCT_ROW_CLASS,
-  MOBILE_HUB_PRODUCT_ROW_LI_CLASS,
-  MOBILE_HUB_PRODUCT_ROW_LI_CLASS_WIDE,
   MOBILE_HUB_SECTION_STACK_CLASS,
 } from '@/lib/mobile-hub-scroll-layout'
 
@@ -95,15 +97,11 @@ function overseasFlatGridClassAfterHeading(wideLayout: boolean): string {
   return base.replace(/^mt-\d+\s+/, 'mt-4 ')
 }
 
-/** 모바일: 카드 1장 스냅 · md+: 그리드/다열 가로줄 */
-const productListLiMobileSnap =
-  'w-[90%] max-w-md shrink-0 snap-center md:w-auto md:max-w-none md:shrink md:snap-align-none'
-
-function productListUlResponsive(gridClass: string): string {
-  const tail = gridClass
+function flatListUlClass(gridClass: string): string {
+  const gridTail = gridClass
     .replace(/^mt-\d+\s+/, '')
     .replace(/^grid\s+/, '')
-  return `mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 pt-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:overflow-visible md:snap-none md:grid ${tail}`
+  return `${MOBILE_HUB_PRODUCT_ROW_CLASS} md:grid md:overflow-visible md:snap-none ${gridTail}`
 }
 
 type Props = {
@@ -197,31 +195,6 @@ function ProductResultsHubScrollRow({
     <ul className={countryProductRowClass} role="list" aria-label={ariaLabel}>
       {children}
     </ul>
-  )
-}
-
-/** 플랫 목록만 — 모바일 가로 스크롤 + 데스크톱 그리드 이중 ul */
-function ProductResultsMobileAndDesktopRow({
-  ariaLabel,
-  mobileNodes,
-  desktopUlClassName,
-  desktopNodes,
-}: {
-  ariaLabel: string
-  mobileNodes: ReactNode[]
-  desktopUlClassName: string
-  desktopNodes: ReactNode[]
-}) {
-  if (mobileNodes.length === 0) return null
-  return (
-    <>
-      <ul className={`${countryProductRowClass} md:hidden`} role="list" aria-label={ariaLabel}>
-        {mobileNodes}
-      </ul>
-      <ul className={`${desktopUlClassName} max-md:hidden`} role="list">
-        {desktopNodes}
-      </ul>
-    </>
   )
 }
 
@@ -632,7 +605,7 @@ function AirHotelCountryGroupedList({
             <ProductResultsHubScrollRow ariaLabel={`${regionLabel} 상품`}>
               {buildProductResultRowNodes(rowItems, formatWon, seasonalPickIds, {
                 compact: true,
-                liClassName: MOBILE_HUB_PRODUCT_ROW_LI_CLASS,
+                liClassName: HUB_PRODUCT_SCROLL_LI_CLASS,
               })}
             </ProductResultsHubScrollRow>
           </section>
@@ -942,7 +915,7 @@ function OverseasRegionGroupedList({
   wideLayout: boolean
   interleaveEsimNativeCards?: boolean
 }) {
-  const bucketRowLiClass = wideLayout ? MOBILE_HUB_PRODUCT_ROW_LI_CLASS_WIDE : MOBILE_HUB_PRODUCT_ROW_LI_CLASS
+  const bucketRowLiClass = wideLayout ? HUB_PRODUCT_SCROLL_LI_CLASS_WIDE : HUB_PRODUCT_SCROLL_LI_CLASS
   const bucketToCountries = useMemo(() => {
     const map = new Map<OverseasDisplayBucketId, Map<string, ResultItem[]>>()
     for (const id of OVERSEAS_DISPLAY_BUCKET_ORDER) {
@@ -1049,42 +1022,14 @@ function FlatProductResultsList({
   cardGridClass: string
   interleaveEsimNativeCards?: boolean
 }) {
-  const desktopGridClass = cardGridClass
-
   return (
-    <ProductResultsMobileAndDesktopRow
-      ariaLabel="상품 목록"
-      mobileNodes={buildProductResultRowNodes(items, formatWon, seasonalPickIds, {
+    <ul className={flatListUlClass(cardGridClass)} role="list" aria-label="상품 목록">
+      {buildProductResultRowNodes(items, formatWon, seasonalPickIds, {
         compact: true,
-        liClassName: MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS,
+        liClassName: HUB_PRODUCT_FLAT_LI_CLASS,
         interleaveEsim: interleaveEsimNativeCards,
       })}
-      desktopUlClassName={desktopGridClass}
-      desktopNodes={
-        interleaveEsimNativeCards
-          ? mapFlatListWithEsimCards(
-              items,
-              (item) => (
-                <li key={item.id}>
-                  <ProductResultCard
-                    item={item}
-                    formatWon={formatWon}
-                    seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
-                  />
-                </li>
-              ),
-            )
-          : items.map((item) => (
-              <li key={item.id}>
-                <ProductResultCard
-                  item={item}
-                  formatWon={formatWon}
-                  seasonalPickBadge={Boolean(seasonalPickIds?.has(item.id))}
-                />
-              </li>
-            ))
-      }
-    />
+    </ul>
   )
 }
 

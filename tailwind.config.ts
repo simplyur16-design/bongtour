@@ -5,8 +5,12 @@ const config: Config = {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './lib/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   safelist: [
+    'w-[min(11rem,calc((100vw-2.75rem)*0.43))]',
+    'snap-start',
+    'md:snap-align-none',
     'text-[#1F1B2D]',
     'text-bt-text-navy',
     'bg-bt-bg-lavender',
