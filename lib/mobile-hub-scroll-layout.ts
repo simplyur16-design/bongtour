@@ -8,6 +8,13 @@
 export const MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS =
   'w-[min(11rem,calc((100vw-2.75rem)*0.43))] shrink-0 snap-start'
 
+/** 해외·자유여행 허브 상품 행 li — 모바일 compact + md+ 가로줄 폭(SSR·하이드레이션 단일 트리) */
+export const MOBILE_HUB_PRODUCT_ROW_LI_CLASS =
+  `${MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS} md:w-[min(17.5rem,calc(100vw-2.75rem))] md:max-w-none lg:w-[calc((100%-2rem)/3)] lg:min-w-0 md:snap-align-none`
+
+export const MOBILE_HUB_PRODUCT_ROW_LI_CLASS_WIDE =
+  `${MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS} md:w-[min(16.25rem,calc(100vw-2.5rem))] md:max-w-none lg:w-[calc((100%-3rem)/4)] lg:min-w-0 md:snap-align-none`
+
 /** 권역/국가 섹션 세로 스택 — 모바일에서 다음 h2 peek */
 export const MOBILE_HUB_SECTION_STACK_CLASS = 'max-md:space-y-5 md:space-y-10'
 
