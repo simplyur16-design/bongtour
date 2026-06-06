@@ -406,7 +406,7 @@ const AIR_HOTEL_SECTION_RULES: ReadonlyArray<{ key: string; re: RegExp }> = [
   },
   {
     key: '인도',
-    re: /인도\b|india|델리|delhi|뭄바이|mumbai|아그라|agra|자이푸르|jaipur/i,
+    re: /북인도|남인도|서인도|north\s*india|인도\b|india|델리|delhi|뭄바이|mumbai|아그라|agra|타지마할|taj\s*mahal|자이푸르|jaipur|바라나시|varanasi|골든트라이앵글|golden\s*triangle|갠지스|ganges|라다크|ladakh|라자스탄|rajasthan/i,
   },
   { key: '네팔', re: /네팔|nepal|카트만두|kathmandu/i },
   { key: '스리랑카', re: /스리랑카|sri\s*lanka|콜롬보|colombo/i },

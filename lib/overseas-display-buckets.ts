@@ -139,6 +139,40 @@ const RE_INDONESIA_SEA_TRAVEL = new RegExp(
   'i',
 )
 
+/** 북인도·골든트라이앵글 등 — 트리 leaf 토큰 누락 시 `other`(그외) 보정 */
+const RE_INDIA_SEA_TRAVEL = new RegExp(
+  [
+    '북인도',
+    '남인도',
+    '서인도',
+    'north\\s*india',
+    '인도\\b',
+    '\\bindia\\b',
+    '델리',
+    'delhi',
+    '뭄바이',
+    'mumbai',
+    '아그라',
+    'agra',
+    '타지마할',
+    'taj\\s*mahal',
+    '자이푸르',
+    'jaipur',
+    '바라나시',
+    'varanasi',
+    '골든트라이앵글',
+    'golden\\s*triangle',
+    '갠지스',
+    'ganges',
+    '라다크',
+    'ladakh',
+    '\\bleh\\b',
+    '라자스탄',
+    'rajasthan',
+  ].join('|'),
+  'i',
+)
+
 const RE_US_WEST_TRAVEL = new RegExp(
   [
     '5\\s*대\\s*캐년',
@@ -182,6 +216,9 @@ export function resolveOverseasDisplayBucketForBrowse(
   if (base === 'other' && RE_INDONESIA_SEA_TRAVEL.test(h)) {
     return 'sea_taiwan'
   }
+  if (base === 'other' && RE_INDIA_SEA_TRAVEL.test(h)) {
+    return 'sea_taiwan'
+  }
   if (base === 'other' && RE_US_WEST_TRAVEL.test(h)) {
     return 'americas'
   }
@@ -197,4 +234,17 @@ export function resolveOverseasDisplayBucketForBrowse(
   }
 
   return base
+}
+
+/** browse 목록 국가 행 라벨 — 클러스터 국가명·북인도 등을 「인도」로 정규화 */
+export function resolveOverseasCountryRowLabelForBrowse(
+  product: OverseasProductMatchInput,
+  match: MatchProductToOverseasNodeResult | null,
+): string {
+  const h = buildOverseasProductMatchHaystack(product)
+  if (match?.leafKey === 'india' || match?.leafLabel === '인도') return '인도'
+  if (RE_INDIA_SEA_TRAVEL.test(h)) return '인도'
+  if (match?.leafLabel?.trim()) return match.leafLabel.trim()
+  if (match?.countryLabel?.trim()) return match.countryLabel.trim()
+  return product.primaryDestination?.trim() || '기타'
 }

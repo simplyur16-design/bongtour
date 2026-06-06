@@ -46,7 +46,10 @@ import {
   localDepartureTagForBrowseRegion,
   sportsThemeTagForBrowseRegion,
 } from '@/lib/browse-master-geo-continents'
-import { resolveOverseasDisplayBucketForBrowse } from '@/lib/overseas-display-buckets'
+import {
+  resolveOverseasCountryRowLabelForBrowse,
+  resolveOverseasDisplayBucketForBrowse,
+} from '@/lib/overseas-display-buckets'
 import { buildBrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import {
   filterPoolByStoredTravelScope,
@@ -616,8 +619,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
             }
             const match = matchProductToOverseasNode(matchInput)
             const overseasBucket = resolveOverseasDisplayBucketForBrowse(matchInput, match)
-            const countryRowLabel =
-              match?.countryLabel?.trim() || p.primaryDestination?.trim() || '기타'
+            const countryRowLabel = resolveOverseasCountryRowLabelForBrowse(matchInput, match)
             const browseCountry = (p.country ?? '').trim() || null
             return { overseasBucket, countryRowLabel, browseCountry }
           })()

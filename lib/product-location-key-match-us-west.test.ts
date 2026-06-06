@@ -45,6 +45,31 @@ describe('resolveOverseasDisplayBucketForBrowse — 미서부 키워드', () => 
   })
 })
 
+describe('resolveOverseasDisplayBucketForBrowse — 북인도', () => {
+  it('북인도 골든트라이앵글 제목은 동남아/서남아 버킷', () => {
+    const bucket = resolveOverseasDisplayBucketForBrowse(
+      {
+        title: '준특급 북인도 골든트라이앵글 <노쇼핑/3대특식> 4박 6일',
+        originSource: 'modetour',
+        primaryDestination: '노쇼핑',
+      },
+      null,
+    )
+    expect(bucket).toBe('sea_taiwan')
+  })
+
+  it('matchProductToOverseasNode — 북인도 6일은 india leaf', async () => {
+    const { matchProductToOverseasNode } = await import('@/lib/match-overseas-product')
+    const m = matchProductToOverseasNode({
+      title: '북인도 6일#바라나시 #아그라 #타지마할',
+      originSource: 'hanatour',
+      primaryDestination: '인도',
+    })
+    expect(m?.groupKey).toBe('sea-taiwan-south-asia')
+    expect(m?.leafKey).toBe('india')
+  })
+})
+
 describe('deriveProductLocationKeyFieldsForPrisma — 인도네시아', () => {
   it('자카르타/족자카르타 제목으로 동남아(indonesia) 매칭', () => {
     const geo = deriveProductLocationKeyFieldsForPrisma({
