@@ -15,6 +15,19 @@ describe('modetour listing title from paste', () => {
     expect(isModetourUnacceptableRegisterListingTitle('2026.12.12~2026.12.14 2박 3일')).toBe(true)
   })
 
+  it('rejects hotel grade + duration only as product title', () => {
+    expect(isModetourUnacceptableRegisterListingTitle('일급호텔 3박 5일')).toBe(true)
+    expect(isModetourUnacceptableRegisterListingTitle('특급 호텔 5박 7일')).toBe(true)
+    expect(isModetourUnacceptableRegisterListingTitle('준특급 3박 5일')).toBe(true)
+    expect(isModetourUnacceptableRegisterListingTitle('준특급 패키지 3박 5일')).toBe(true)
+  })
+
+  it('accepts modetour bracket listing title with hotel grade suffix', () => {
+    const brunei =
+      '[브루나이][노쇼핑+노팁+시내관광+나이트투어] 일급호텔 3박5일'
+    expect(isModetourUnacceptableRegisterListingTitle(brunei)).toBe(false)
+  })
+
   it('accepts real listing title signals', () => {
     expect(isModetourUnacceptableRegisterListingTitle(GOOD_TITLE)).toBe(false)
     expect(

@@ -489,12 +489,34 @@ export function isModetourDepartureWindowOnlyTitleText(text: string): boolean {
   return false
 }
 
+/** 등급·패키지 라벨+박일만(지역·해시·상품 키워드 없음) — 숙박 안내 줄, 리스트 제목이 아님 */
+function modetourGradePackageDurationOnlyResidual(withoutDuration: string): boolean {
+  const core = withoutDuration.replace(/\s+/g, '')
+  if (!core) return false
+  return /^(?:(?:준)?(?:일급|이급|동급|특급)|준[1-5]성|[1-5]성(?:급)?)(?:호텔|패키지)?$/u.test(core)
+}
+
+/** 호텔·등급 라벨+박일만 — `일급호텔 3박5일`, `준특급 3박5일`, `준특급 패키지 3박5일` 등 */
+export function isModetourHotelGradeDurationOnlyTitleText(text: string): boolean {
+  const raw = text.replace(/\s+/g, ' ').trim()
+  if (!raw) return false
+  // 모두투어 [지역][포인트] … 일급호텔 N박 M일 — 대괄호 태그가 있으면 리스트 제목
+  if (/\[[^\]\n]{2,120}\]/.test(raw)) return false
+  let t = raw
+  t = t.replace(/^(\[[^\]\n]{1,120}\]\s*)+/, '').trim()
+  if (!/\d+\s*박\s*\d+\s*일/.test(t)) return false
+  if (/[#]/.test(t)) return false
+  const withoutDur = t.replace(/\d+\s*박\s*\d+\s*일/g, '').replace(/\s+/g, '')
+  return modetourGradePackageDurationOnlyResidual(withoutDur)
+}
+
 /** 날짜+상품코드·코드만·브레드크럼 등 — baseline 소스로 부적절 */
 function isModetourWeakBaselineTitleText(text: string): boolean {
   const t = text.replace(/\s+/g, ' ').trim()
   if (!t) return true
   if (t.length < 4) return true
   if (isModetourDepartureWindowOnlyTitleText(t)) return true
+  if (isModetourHotelGradeDurationOnlyTitleText(t)) return true
   if (/패키지\s*[>›|]|상품\s*상세/i.test(t)) return true
   if (/^[A-Z]{2,5}\d{3,12}[A-Z0-9]{0,10}\s*[>›|]/i.test(t)) return true
   if (/^\d{4}-\d{2}-\d{2}\s+[A-Za-z0-9][A-Za-z0-9\-]{4,}$/.test(t)) return true
@@ -517,6 +539,7 @@ function modetourBaselineTitleHasProductSignals(cleaned: string): boolean {
   const t = cleaned.trim()
   if (t.length < 6) return false
   if (isModetourDepartureWindowOnlyTitleText(t)) return false
+  if (isModetourHotelGradeDurationOnlyTitleText(t)) return false
   if (/[#\[\]]/.test(t) && /[가-힣]/.test(t)) return true
   const sansDates = t
     .replace(/\d{4}[./-]\d{1,2}[./-]\d{1,2}/g, '')
@@ -524,6 +547,7 @@ function modetourBaselineTitleHasProductSignals(cleaned: string): boolean {
     .replace(/\d+\s*박\s*\d+\s*일/g, '')
     .replace(/\d+\s*일차/g, '')
     .replace(/[~\-–—\s\d]/g, '')
+  if (modetourGradePackageDurationOnlyResidual(sansDates)) return false
   if (/[가-힣]{4,}/.test(sansDates)) return true
   if (/\b(TOKYO|OSAKA|PARIS|SEOUL|BANGKOK|HANOI|DANANG|FUKUOKA|SAPPORO|HONG\s*KONG)\b/i.test(t)) return true
   if (t.length >= 20 && /[a-zA-Z가-힣]/.test(t)) return true

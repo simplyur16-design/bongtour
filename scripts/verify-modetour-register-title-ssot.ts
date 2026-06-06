@@ -27,10 +27,14 @@ function assert(cond: boolean, msg: string) {
 const GOOD =
   '[다낭] #바나힐 #호이안 #미케비치 #전신마사지 60분 #노쇼핑 #노옵션 3박 4일'
 const BAD_WINDOW = '2026.12.12~2026.12.14 2박 3일'
+const BAD_HOTEL_GRADE = '일급호텔 3박 5일'
+const BAD_JUNTEUK_GRADE = '준특급 3박 5일'
 
 // --- 런타임 계약 ---
 assert(isModetourDepartureWindowOnlyTitleText(BAD_WINDOW), 'departure window detector')
 assert(isModetourUnacceptableRegisterListingTitle(BAD_WINDOW), 'unacceptable register title')
+assert(isModetourUnacceptableRegisterListingTitle(BAD_HOTEL_GRADE), 'hotel grade duration not title')
+assert(isModetourUnacceptableRegisterListingTitle(BAD_JUNTEUK_GRADE), 'junteuk grade duration not title')
 assert(!isModetourUnacceptableRegisterListingTitle(GOOD), 'good title acceptable')
 
 const paste = `${BAD_WINDOW}\n${GOOD}\n여행 일정`
@@ -48,6 +52,12 @@ const badOnly = resolveModetourRegisterProductTitle({
   llmTitleRaw: BAD_WINDOW,
 })
 assert(badOnly.unacceptable, 'bad-only paste+llm flagged unacceptable')
+
+const badHotelOnly = resolveModetourRegisterProductTitle({
+  pasteBlob: `${BAD_HOTEL_GRADE}\n이스타항공`,
+  llmTitleRaw: BAD_HOTEL_GRADE,
+})
+assert(badHotelOnly.unacceptable, 'hotel grade duration paste+llm flagged unacceptable')
 
 const confirmFixed = resolveModetourRegisterProductTitleForConfirm({
   parsedTitle: BAD_WINDOW,

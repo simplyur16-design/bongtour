@@ -8,12 +8,21 @@ import {
 const GOOD =
   '[다낭] #바나힐 #호이안 #미케비치 #전신마사지 60분 #노쇼핑 #노옵션 3박 4일'
 const BAD = '2026.12.12~2026.12.14 2박 3일'
+const BAD_HOTEL = '일급호텔 3박 5일'
 
 describe('modetour-register-product-title-ssot', () => {
   it('resolver rejects departure window when no hash title in paste', () => {
     const r = resolveModetourRegisterProductTitle({
       pasteBlob: `${BAD}\n이스타항공`,
       llmTitleRaw: BAD,
+    })
+    expect(r.unacceptable).toBe(true)
+  })
+
+  it('resolver rejects hotel grade duration when llm returns it', () => {
+    const r = resolveModetourRegisterProductTitle({
+      pasteBlob: `${BAD_HOTEL}\n이스타항공`,
+      llmTitleRaw: BAD_HOTEL,
     })
     expect(r.unacceptable).toBe(true)
   })
