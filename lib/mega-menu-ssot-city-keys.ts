@@ -82,8 +82,11 @@ export async function matchMegaMenuSsotCityKeysInHaystack(
   for (const { cityKey, terms } of termIndex) {
     if (!cityKeys.has(cityKey)) continue
     for (const term of terms) {
-      if (term.trim().length < 2) continue
-      if (termAppearsInHaystack(term, h)) {
+      const trimmed = term.trim()
+      if (trimmed.length < 2) continue
+      // 2자 라틴 슬러그(es/fr/it) — 영문 일정 부분매칭 오매칭 방지
+      if (/^[a-z]{2}$/i.test(trimmed)) continue
+      if (termAppearsInHaystack(trimmed, h)) {
         out.add(cityKey)
         break
       }

@@ -19,7 +19,7 @@ function buildCityPlacementIndex(): Map<string, MegaMenuCityPlacement> {
     for (const group of tab.groups) {
       const menuGroupSlug = countrySlugFromLabel(group.countryLabel)
       for (const leaf of group.cities) {
-        if (leaf.kind !== 'city') continue
+        if (leaf.kind !== 'city' && leaf.kind !== 'country') continue
         const slug = citySlugFromTermsAndLabel(leaf.label, leaf.terms)
         for (const ck of resolveBrowseCityKeysForFilter(slug)) {
           map.set(ck, { regionId: tab.id, menuGroupSlug })
@@ -33,6 +33,10 @@ function buildCityPlacementIndex(): Map<string, MegaMenuCityPlacement> {
 function cityPlacementIndex(): Map<string, MegaMenuCityPlacement> {
   if (!cityPlacementCache) cityPlacementCache = buildCityPlacementIndex()
   return cityPlacementCache
+}
+
+export function resetMegaMenuCityPlacementCache(): void {
+  cityPlacementCache = null
 }
 
 export function megaMenuPlacementForCityKey(cityKey: string | null | undefined): MegaMenuCityPlacement | null {
@@ -59,8 +63,13 @@ export function filterCityKeysToCoherentMegaMenuGroup(
     const p = megaMenuPlacementForCityKey(k)
     return p?.regionId === primaryPlace.regionId && p.menuGroupSlug === primaryPlace.menuGroupSlug
   })
-
-  if (sameGroup.length === 0) return keys
   if (sameGroup.includes(primary)) return sameGroup
-  return keys
+
+  const sameRegion = keys.filter((k) => {
+    const p = megaMenuPlacementForCityKey(k)
+    return p?.regionId === primaryPlace.regionId
+  })
+  if (sameRegion.includes(primary)) return sameRegion
+
+  return primary && keys.includes(primary) ? [primary] : keys
 }
