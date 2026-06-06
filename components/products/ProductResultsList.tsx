@@ -33,8 +33,8 @@ import {
 } from '@/lib/match-domestic-product'
 import type { BrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
-import ProductResultsMobilePagedCarousel from '@/components/products/ProductResultsMobilePagedCarousel'
 import {
+  MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS,
   MOBILE_HUB_OVERSEAS_SECTION_STACK_CLASS,
   MOBILE_HUB_PRODUCT_ROW_CLASS,
   MOBILE_HUB_SECTION_STACK_CLASS,
@@ -80,10 +80,10 @@ export type ResultItem = {
 /** 해외 목록: 상품 카드 N개마다 eSIM 네이티브 카드 1개 */
 const ESIM_NATIVE_INSERT_EVERY = 10
 
-/** 모바일 2×2 그리드 셀 — ProductResultsMobilePagedCarousel 내부 */
-const mobileHubGridCellLiClass = 'min-w-0'
+/** 모바일 가로 스크롤 한 줄 — compact 카드 폭(다음 카드 peek) */
+const mobileHubScrollLiClass = MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS
 
-/** 해외·자유여행 허브: 권역/국가당 한 줄 — 모바일 2×2 페이지, md+ 가로 스크롤 다열 */
+/** 해외·자유여행 허브: 권역/국가당 한 줄 — 모바일 compact 가로 스크롤, md+ 다열 */
 const countryProductRowClass = MOBILE_HUB_PRODUCT_ROW_CLASS
 
 /** 해외 허브: 좌측 필터 있음 — 2/3열 */
@@ -184,7 +184,6 @@ function buildProductResultRowNodes(
     compact?: boolean
     liClassName?: string
     interleaveEsim?: boolean
-    esimSpansFullRowOnMobile?: boolean
   },
 ): ReactNode[] {
   const renderProduct = (item: ResultItem) => (
@@ -198,13 +197,9 @@ function buildProductResultRowNodes(
     </li>
   )
   if (opts.interleaveEsim) {
-    return mapFlatListWithEsimCards(
-      items,
-      renderProduct,
-      opts.liClassName,
-      opts.esimSpansFullRowOnMobile ? 'col-span-2 min-w-0' : opts.liClassName,
-      { compactEsim: opts.compact },
-    )
+    return mapFlatListWithEsimCards(items, renderProduct, opts.liClassName, undefined, {
+      compactEsim: opts.compact,
+    })
   }
   return items.map((item) => renderProduct(item))
 }
@@ -223,9 +218,9 @@ function ProductResultsMobileAndDesktopRow({
   if (mobileNodes.length === 0) return null
   return (
     <>
-      <ProductResultsMobilePagedCarousel ariaLabel={ariaLabel}>
+      <ul className={`${countryProductRowClass} md:hidden`} role="list" aria-label={ariaLabel}>
         {mobileNodes}
-      </ProductResultsMobilePagedCarousel>
+      </ul>
       <ul className={`${desktopUlClassName} max-md:hidden`} role="list">
         {desktopNodes}
       </ul>
@@ -642,7 +637,7 @@ function AirHotelCountryGroupedList({
               ariaLabel={`${regionLabel} 상품`}
               mobileNodes={buildProductResultRowNodes(rowItems, formatWon, seasonalPickIds, {
                 compact: true,
-                liClassName: mobileHubGridCellLiClass,
+                liClassName: mobileHubScrollLiClass,
               })}
               desktopUlClassName={countryProductRowClass}
               desktopNodes={rowItems.map((item) => (
@@ -1017,9 +1012,8 @@ function OverseasRegionGroupedList({
                   ariaLabel={`${OVERSEAS_DISPLAY_BUCKET_LABEL[bucketId]} 상품`}
                   mobileNodes={buildProductResultRowNodes(flatList, formatWon, seasonalPickIds, {
                     compact: true,
-                    liClassName: mobileHubGridCellLiClass,
+                    liClassName: mobileHubScrollLiClass,
                     interleaveEsim: interleaveEsimNativeCards,
-                    esimSpansFullRowOnMobile: true,
                   })}
                   desktopUlClassName={countryProductRowClass}
                   desktopNodes={
@@ -1105,9 +1099,8 @@ function FlatProductResultsList({
       ariaLabel="상품 목록"
       mobileNodes={buildProductResultRowNodes(items, formatWon, seasonalPickIds, {
         compact: true,
-        liClassName: mobileHubGridCellLiClass,
+        liClassName: mobileHubScrollLiClass,
         interleaveEsim: interleaveEsimNativeCards,
-        esimSpansFullRowOnMobile: true,
       })}
       desktopUlClassName={desktopGridClass}
       desktopNodes={

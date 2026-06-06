@@ -1,10 +1,10 @@
 /**
  * 모바일 허브 가로 스크롤·권역 섹션 스택 SSOT.
- * - 해외·자유여행 상품 목록: ProductResultsMobilePagedCarousel (2×2 + 옆 페이지 peek)
+ * - 해외·자유여행 상품: compact 카드 한 줄 가로 스크롤(드래그) + 다음 카드 peek
  * - 세로: 섹션 간격 축소 → 다음 권역 제목이 화면 하단에 peek
  */
 
-/** 좁은 peek 카드(홈 시즌·연결상품 등) */
+/** compact 카드 — 모바일 가로 스크롤 한 줄(해외·자유여행·홈 시즌 등) */
 export const MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS =
   'w-[min(11rem,calc((100vw-2.75rem)*0.43))] shrink-0 snap-start'
 
