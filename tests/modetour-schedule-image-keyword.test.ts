@@ -2,6 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   applyModetourScheduleImageKeywordsToRows,
+  classifyModetourScheduleCardDayKind,
   isModetourCrossContinentHallucinationKeyword,
   isModetourDomesticHubToken,
 } from '../lib/modetour-schedule-image-keyword'
@@ -154,8 +155,121 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
       ],
       { productDestination: '다낭' },
     )
-    assert.equal(out[0]!.imageKeyword, 'My Khe')
+    assert.match(out[0]!.imageKeyword!, /My Khe/i)
     assert.equal(out[1]!.imageKeyword, 'Ba Na Hills')
     assert.match(out[2]!.imageKeyword!, /Hoi/i)
   })
 })
+
+describe('classifyModetourScheduleCardDayKind — 인천 귀국', () => {
+  it('마지막 일차 인천 국제공항 도착 → return_home', () => {
+    assert.equal(
+      classifyModetourScheduleCardDayKind(
+        9,
+        9,
+        '인천 국제공항 도착\n이동 경로: 인천',
+      ),
+      'return_home',
+    )
+  })
+})
+
+describe('applyModetourScheduleImageKeywordsToRows — 라다크·인도 한글 routeText', () => {
+  const indiaOpts = { productDestination: '인도, 라다크' }
+
+  const ladakhRows = [
+    {
+      day: 1,
+      title: '인천 출발 및 델리 도착',
+      description: '',
+      routeText: '인천 - 델리',
+      imageKeyword: 'Delhi',
+      imageKeyword2: null,
+    },
+    {
+      day: 2,
+      title: '레 도착 및 시내 관광',
+      description: '',
+      routeText: '델리 - 레 - 레 왕궁 - 레 시장',
+      imageKeyword: 'Delhi',
+      imageKeyword2: 'Leh Market',
+    },
+    {
+      day: 7,
+      title: '델리 귀환 및 시내 관광',
+      description: '',
+      routeText: '레 - 델리 - 아그라센 키 바올리 - 구르드와라 방글라 사힙 - 인디아 게이트(차창)',
+      imageKeyword: 'Delhi',
+      imageKeyword2: 'Gurudwara Bangla Sahib',
+    },
+    {
+      day: 8,
+      title: '델리 유적 관람 및 출국',
+      description: '',
+      routeText: '델리 - 꾸뜹미나르 - 델리 공항',
+      imageKeyword: 'Delhi',
+      imageKeyword2: null,
+    },
+    {
+      day: 9,
+      title: '인천 국제공항 도착',
+      description: '',
+      routeText: '인천',
+      imageKeyword: 'Delhi',
+      imageKeyword2: null,
+    },
+  ]
+
+  it('Day2 — Delhi LLM 대신 routeText 레 구간 랜드마크', () => {
+    const out = applyModetourScheduleImageKeywordsToRows(ladakhRows, indiaOpts)
+    const d2 = out.find((r) => r.day === 2)!
+    assert.match(d2.imageKeyword!, /Leh/i)
+    assert.notEqual(normLoose(d2.imageKeyword!), 'delhi')
+    assert.match(d2.imageKeyword2!, /Leh Market/i)
+  })
+
+  it('Day7·8 — 도시명 Delhi 대신 routeText 명소', () => {
+    const out = applyModetourScheduleImageKeywordsToRows(ladakhRows, indiaOpts)
+    const d7 = out.find((r) => r.day === 7)!
+    const d8 = out.find((r) => r.day === 8)!
+    assert.match(d7.imageKeyword!, /Agrasen|India Gate/i)
+    assert.match(d8.imageKeyword!, /Qutub/i)
+  })
+
+  it('Day9 귀국 — 인천만 있으면 키워드 비움', () => {
+    const out = applyModetourScheduleImageKeywordsToRows(ladakhRows, indiaOpts)
+    const d9 = out.find((r) => r.day === 9)!
+    assert.equal(d9.imageKeyword, '')
+    assert.equal(d9.imageKeyword2, null)
+  })
+
+  it('한글 routeText만 — 알치·판공초 1·2순위', () => {
+    const out = applyModetourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 3,
+          title: '알치와 라마유르 탐방',
+          routeText: '레 - 알치 - 알치 곰파 - 라마유르 - 라마유르 곰파 - 레',
+          imageKeyword: 'Alchi Monastery',
+          imageKeyword2: 'Lamayuru Monastery',
+        },
+        {
+          day: 5,
+          title: '판공초',
+          routeText: '누브라 밸리 - 판공초 - 메락 마을',
+          imageKeyword: 'Pangong Tso',
+          imageKeyword2: 'Merak Village',
+        },
+      ],
+      indiaOpts,
+    )
+    assert.match(out[0]!.imageKeyword!, /Alchi/i)
+    assert.match(out[0]!.imageKeyword2!, /Lamayuru/i)
+    assert.match(out[1]!.imageKeyword!, /Pangong/i)
+    assert.match(out[1]!.imageKeyword2!, /Merak/i)
+  })
+})
+
+function normLoose(s: string): string {
+  return s.trim().toLowerCase()
+}

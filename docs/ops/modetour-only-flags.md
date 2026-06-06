@@ -84,7 +84,7 @@
 |------|------|
 | 옵션 표 제목 「현지옵션」 | `ItineraryExtraInfoBoxes`, `modetourPublicOptionalSummaryText` |
 | `[선택관광]`·`#` 제거 | `lib/modetour-optional-tour-name.ts` |
-| imageKeyword 허브·스팟 | `modetour-schedule-image-keyword.ts` + `register-schedule-image-keyword-ssot.ts` |
+| imageKeyword 허브·스팟 | `modetour-schedule-image-keyword.ts` (한글·라틴 routeText, 랜드마크 우선) + `register-schedule-image-keyword-ssot.ts` |
 | `isModetourPlaceholderImageKeyword` | placeholder·공항 키워드 배제 |
 
 ---
