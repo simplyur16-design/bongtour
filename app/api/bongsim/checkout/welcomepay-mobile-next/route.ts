@@ -10,6 +10,7 @@ import {
   pickAmountKrw,
   pickOid,
   pickCaptureTid,
+  readWelcomepayCallbackFromRequest,
   resultCodeOf,
 } from "@/lib/bongsim/welcomepay-callback-parse";
 import { isPaywelcomeHttpsUrl, welcomepayPayAuthUrl } from "@/lib/bongsim/welcomepay";
@@ -37,7 +38,7 @@ function requestOrigin(req: Request): string {
   return `${proto}://${host}`;
 }
 
-export async function POST(req: Request) {
+async function handleWelcomepayMobileNext(req: Request) {
   const origin = requestOrigin(req);
   let orderId = "";
   let orderNumber = "";
@@ -57,11 +58,15 @@ export async function POST(req: Request) {
   }
   await probePgPoolTlsOrFallback();
 
-  const rawBody = await req.text();
-  const incoming = parseWelcomepayPayload(rawBody);
-  const oid = pickOid(incoming) || incoming.P_NOTI || incoming.p_noti || "";
+  const incoming = await readWelcomepayCallbackFromRequest(req);
+  const oid = pickOid(incoming);
   if (!oid) {
-    return new NextResponse("missing_oid", { status: 400 });
+    console.error("[welcomepay-mobile-next] missing_oid", {
+      method: req.method,
+      contentType: req.headers.get("content-type"),
+      keys: Object.keys(incoming),
+    });
+    return fail("missing_oid");
   }
 
   const pool = getPgPool()!;
@@ -187,4 +192,12 @@ export async function POST(req: Request) {
     return fail("internal_meta_leak_blocked");
   }
   return NextResponse.redirect(okUrl, 303);
+}
+
+export async function GET(req: Request) {
+  return handleWelcomepayMobileNext(req);
+}
+
+export async function POST(req: Request) {
+  return handleWelcomepayMobileNext(req);
 }

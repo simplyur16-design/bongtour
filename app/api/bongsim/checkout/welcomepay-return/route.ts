@@ -8,6 +8,7 @@ import {
   pickAmountKrw,
   pickOid,
   pickCaptureTid,
+  readWelcomepayCallbackFromRequest,
   resultCodeOf,
 } from "@/lib/bongsim/welcomepay-callback-parse";
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
@@ -51,11 +52,15 @@ export async function POST(req: Request) {
   }
   await probePgPoolTlsOrFallback();
 
-  const rawBody = await req.text();
-  const incoming = parseWelcomepayPayload(rawBody);
+  const incoming = await readWelcomepayCallbackFromRequest(req);
   const oid = pickOid(incoming);
   if (!oid) {
-    return new NextResponse("missing_oid", { status: 400 });
+    console.error("[welcomepay-return] missing_oid", {
+      method: req.method,
+      contentType: req.headers.get("content-type"),
+      keys: Object.keys(incoming),
+    });
+    return fail("missing_oid");
   }
 
   const pool = getPgPool()!;

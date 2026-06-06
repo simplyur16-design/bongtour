@@ -12,6 +12,24 @@ export function welcomepayCheckoutCallbackOrigin(): string {
   return getSiteOrigin();
 }
 
+/**
+ * 모바일 welpay `P_NEXT_URL` — iOS Safari 등에서 POST 본문이 비어도 주문번호를 복구할 수 있도록
+ * `P_OID`·`P_NOTI`를 쿼리에 포함한다(가맹 세션 id = provider_session_id).
+ */
+export function welcomepayMobileNextCallbackUrl(providerSessionId: string): string {
+  const sid = providerSessionId.trim();
+  const q = new URLSearchParams();
+  if (sid) {
+    q.set("P_OID", sid);
+    q.set("P_NOTI", sid);
+  }
+  const qs = q.toString();
+  const origin = welcomepayCheckoutCallbackOrigin();
+  return qs
+    ? `${origin}/api/bongsim/checkout/welcomepay-mobile-next?${qs}`
+    : `${origin}/api/bongsim/checkout/welcomepay-mobile-next`;
+}
+
 export function resolveWelcomepayEnv(): WelcomepayEnvKind {
   const raw = (process.env.WELCOMEPAY_ENV ?? "test").trim().toLowerCase();
   if (raw === "production" || raw === "prod" || raw === "live") return "production";

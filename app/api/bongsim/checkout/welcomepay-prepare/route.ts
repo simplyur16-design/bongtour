@@ -10,6 +10,7 @@ import {
   generatePcStdPaySignature,
   generateTimestamp,
   welcomepayCheckoutCallbackOrigin,
+  welcomepayMobileNextCallbackUrl,
   welcomepayMobileWelpaySubmitUrl,
   welcomepayStdPayScriptUrl,
 } from "@/lib/bongsim/welcomepay";
@@ -126,7 +127,7 @@ export async function POST(req: Request) {
     orderNumber: bongsimOrderNumber,
   });
   const popupUrl = closeUrl;
-  const pNextUrl = `${origin}/api/bongsim/checkout/welcomepay-mobile-next`;
+  const pNextUrl = welcomepayMobileNextCallbackUrl(orderNumber);
 
   const timestamp = generateTimestamp();
   const mKey = generateMKey(signKey);
