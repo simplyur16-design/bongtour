@@ -4,11 +4,14 @@ import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/pa
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import {
+  WELCOMEPAY_MOBILE_P_RESERVED,
   generateMKey,
-  generateMobileSignature,
+  generateMobileWelpayPChkfake,
   generateMobileWelpayTimestamp,
   generatePcStdPaySignature,
   generateTimestamp,
+  resolveWelcomepayEnv,
+  resolveWelcomepayMobileHashKey,
   welcomepayCheckoutCallbackOrigin,
   welcomepayMobileNextCallbackUrl,
   welcomepayMobileWelpaySubmitUrl,
@@ -29,10 +32,17 @@ type PrepareBody = {
 export async function POST(req: Request) {
   const mid = (process.env.WELCOMEPAY_MID ?? "").trim();
   const signKey = (process.env.WELCOMEPAY_SIGN_KEY ?? "").trim();
-  if (!mid || !signKey) {
+  const mobileHashKey = resolveWelcomepayMobileHashKey();
+  if (!mid || !signKey || !mobileHashKey) {
     return jsonWithLeakGuard({ ok: false, error: "welcomepay_env_incomplete" }, "bongsim.checkout.welcomepay-prepare", {
       status: 503,
     });
+  }
+  const welcomepayEnvRaw = (process.env.WELCOMEPAY_ENV ?? "").trim().toLowerCase();
+  if (process.env.NODE_ENV === "production" && welcomepayEnvRaw === "test") {
+    console.error(
+      "[welcomepay-prepare] NODE_ENV=production but WELCOMEPAY_ENV=test — iPhone/Android가 tmobile(테스트 PG)로 나갑니다",
+    );
   }
   if (!getPgPool()) {
     return jsonWithLeakGuard({ ok: false, error: "db_unconfigured" }, "bongsim.checkout.welcomepay-prepare", { status: 503 });
@@ -127,7 +137,7 @@ export async function POST(req: Request) {
     orderNumber: bongsimOrderNumber,
   });
   const popupUrl = closeUrl;
-  const pNextUrl = welcomepayMobileNextCallbackUrl(orderNumber);
+  const pNextUrl = welcomepayMobileNextCallbackUrl();
 
   const timestamp = generateTimestamp();
   const mKey = generateMKey(signKey);
@@ -135,11 +145,11 @@ export async function POST(req: Request) {
   const signature = generatePcStdPaySignature({ mKey, oid: orderNumber, price, timestamp });
 
   const mobilePTimestamp = generateMobileWelpayTimestamp();
-  const mobilePChkfake = generateMobileSignature({
-    mKey,
+  const mobilePChkfake = generateMobileWelpayPChkfake({
     pAmt: price,
     pOid: orderNumber,
     pTimestamp: mobilePTimestamp,
+    hashKey: mobileHashKey,
   });
   const buyerShort =
     customerEmail.includes("@") && customerEmail.length > 1
@@ -174,7 +184,9 @@ export async function POST(req: Request) {
         pEmail: customerEmail,
         pMobile,
         pIniPayment: "CARD",
+        pReserved: WELCOMEPAY_MOBILE_P_RESERVED,
       },
+      welcomepay_env: resolveWelcomepayEnv(),
     },
     "bongsim.checkout.welcomepay-prepare",
   );
