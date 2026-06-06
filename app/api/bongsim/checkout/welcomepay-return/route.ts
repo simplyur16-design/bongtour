@@ -13,6 +13,10 @@ import {
 } from "@/lib/bongsim/welcomepay-callback-parse";
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
 import { welcomepayCheckoutFailMessage } from "@/lib/bongsim/checkout/welcomepay-fail-message";
+import {
+  isWelcomepayAuthSuccessCode,
+  welcomepayPgAuthFailMessage,
+} from "@/lib/bongsim/checkout/welcomepay-pg-auth-fail-message";
 import { isPaywelcomeHttpsUrl, welcomepayPayAuthUrl } from "@/lib/bongsim/welcomepay";
 import {
   buildPcPayAuthFormBody,
@@ -94,8 +98,11 @@ export async function POST(req: Request) {
   }
 
   const authRc = resultCodeOf(incoming);
-  if (authRc && authRc !== "0000") {
-    const msg = incoming.resultMsg ?? incoming.ResultMsg ?? `resultCode=${authRc}`;
+  if (authRc && !isWelcomepayAuthSuccessCode(authRc)) {
+    const msg = welcomepayPgAuthFailMessage({
+      resultCode: authRc,
+      pgMessage: incoming.resultMsg ?? incoming.ResultMsg,
+    });
     return fail(msg);
   }
 

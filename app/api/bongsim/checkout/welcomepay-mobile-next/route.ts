@@ -3,6 +3,10 @@ import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
 import { welcomepayCheckoutFailMessage } from "@/lib/bongsim/checkout/welcomepay-fail-message";
+import {
+  isWelcomepayAuthSuccessCode,
+  welcomepayPgAuthFailMessage,
+} from "@/lib/bongsim/checkout/welcomepay-pg-auth-fail-message";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import { getPgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
 import {
@@ -110,8 +114,11 @@ async function handleWelcomepayMobileNext(req: Request) {
   }
 
   const authRc = resultCodeOf(incoming);
-  if (authRc && authRc !== "0000" && authRc !== "00") {
-    const msg = incoming.P_RMESG1 ?? incoming.resultMsg ?? `resultCode=${authRc}`;
+  if (authRc && !isWelcomepayAuthSuccessCode(authRc)) {
+    const msg = welcomepayPgAuthFailMessage({
+      resultCode: authRc,
+      pgMessage: incoming.P_RMESG1 ?? incoming.P_RMESG2 ?? incoming.resultMsg ?? incoming.ResultMsg,
+    });
     return fail(msg);
   }
 
