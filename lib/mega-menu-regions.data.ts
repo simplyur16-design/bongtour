@@ -202,6 +202,21 @@ const SEA: MegaMenuCountryGroupDef[] = [
     city('타이중', ['타이중', 'taichung', '대만']),
     city('화롄', ['화롄', 'hualien', '대만', '타로코']),
   ]),
+  // 서남아 — 4열 그리드 2행 이내 노출(패널 max-h 잘림 방지). 탭명 「동남아/대만/서남아」와 맞춤.
+  G('인도', [
+    LC('인도', ['인도', 'india', '뭄바이', 'mumbai', '라다크', 'ladakh']),
+    city('델리', ['델리', 'delhi', '인도']),
+    city('자이푸르', ['자이푸르', 'jaipur', '인도']),
+    city('아그라', ['아그라', 'agra', '인도', '타지마할']),
+    city('바라나시', ['바라나시', 'varanasi', '인도']),
+  ]),
+  G('스리랑카', [
+    city('콜롬보', ['콜롬보', 'colombo', '스리랑카']),
+    city('캔디', ['캔디', 'kandy', '스리랑카']),
+    city('시기리야', ['시기리야', 'sigiriya', '스리랑카']),
+  ]),
+  G('네팔', [city('카트만두', ['카트만두', 'kathmandu', '네팔']), city('포카라', ['포카라', 'pokhara', '네팔'])]),
+  G('몰디브', [LC('몰디브', ['몰디브', 'maldives', 'male'])]),
   G('말레이시아', [
     city('코타키나발루', ['코타키나발루', 'kota kinabalu', '말레이시아']),
     city('쿠알라룸푸르', ['쿠알라룸푸르', 'kuala lumpur', '말레이시아', 'KL']),
@@ -217,20 +232,6 @@ const SEA: MegaMenuCountryGroupDef[] = [
     city('비엔티안', ['비엔티안', 'vientiane', '라오스']),
   ]),
   G('미얀마', [city('양곤', ['양곤', 'yangon', '미얀마']), city('바간', ['바간', 'bagan', '미얀마'])]),
-  G('인도', [
-    LC('인도', ['인도', 'india', '뭄바이', 'mumbai', '라다크', 'ladakh']),
-    city('델리', ['델리', 'delhi', '인도']),
-    city('자이푸르', ['자이푸르', 'jaipur', '인도']),
-    city('아그라', ['아그라', 'agra', '인도', '타지마할']),
-    city('바라나시', ['바라나시', 'varanasi', '인도']),
-  ]),
-  G('스리랑카', [
-    city('콜롬보', ['콜롬보', 'colombo', '스리랑카']),
-    city('캔디', ['캔디', 'kandy', '스리랑카']),
-    city('시기리야', ['시기리야', 'sigiriya', '스리랑카']),
-  ]),
-  G('네팔', [city('카트만두', ['카트만두', 'kathmandu', '네팔']), city('포카라', ['포카라', 'pokhara', '네팔'])]),
-  G('몰디브', [LC('몰디브', ['몰디브', 'maldives', 'male'])]),
 ]
 
 const JP: MegaMenuCountryGroupDef[] = [

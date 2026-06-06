@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import type { MegaMenuCountryGroup } from '@/lib/travel-landing-mega-menu-data'
+import { resolveMegaMenuPanelLayout } from '@/lib/mega-menu-panel-layout'
 import { buildMegaMenuLeafHref, buildProductsHrefCountryOnly } from '@/lib/top-nav-resolve'
 import type { ProductBrowseType } from '@/lib/products-browse-filter'
 
@@ -18,14 +19,25 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
   const flatGridLeafCols =
     regionId === 'south-america' ? 4 : regionId === 'sports_theme' ? 3 : null
   const isFlatGrid = flatGridLeafCols != null
+  const layout = resolveMegaMenuPanelLayout(regionId, countryGroups)
 
   return (
-    <div className="min-h-[280px] max-h-[min(78vh,560px)] overflow-y-auto p-6">
-      <div className="mx-auto grid w-full max-w-[1200px] grid-cols-4 gap-8">
+    <div
+      className={
+        layout.innerScroll
+          ? 'min-h-[280px] max-h-[min(78vh,560px)] overflow-y-auto p-6'
+          : 'min-h-[280px] overflow-visible p-5 sm:p-6'
+      }
+    >
+      <div
+        className={`mx-auto grid w-full ${layout.gridMaxWidthClass} ${layout.gridColsClass} ${
+          layout.compact ? 'gap-x-5 gap-y-4' : 'gap-8'
+        }`}
+      >
         {countryGroups.map((g, idx) => (
           <div
             key={`${regionId}-${g.countryLabel}-${idx}`}
-            className={`mb-6 min-w-0${isFlatGrid ? ' col-span-4' : ''}`}
+            className={`${layout.compact ? 'mb-4' : 'mb-6'} min-w-0${isFlatGrid ? ' col-span-full' : ''}`}
           >
             {!isFlatGrid &&
               (g.nonLinkHeader ? (
@@ -60,7 +72,9 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                       headerBrowseCountryLabel: g.headerBrowseCountryLabel,
                       leaf: c,
                     })}
-                    className="block text-left text-sm leading-8 text-slate-600 transition hover:text-orange-500"
+                    className={`block text-left text-sm text-slate-600 transition hover:text-orange-500 ${
+                      layout.compact ? 'leading-7' : 'leading-8'
+                    }`}
                     title={c.label}
                   >
                     {c.label}
