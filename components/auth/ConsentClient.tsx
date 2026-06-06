@@ -94,7 +94,7 @@ export default function ConsentClient({ callbackUrl }: Props) {
     <>
       <h1 className="mb-2 text-xl font-bold text-bt-strong">가입을 거의 마쳤습니다</h1>
       <p className="mb-6 text-center text-sm leading-relaxed text-bt-body">
-        서비스 이용을 위해 아래 내용에 동의해 주세요. 마케팅 수신은 선택이며, 동의 시 가입 환영 쿠폰이 발급될 수 있습니다.
+        서비스 이용을 위해 아래 내용에 동의해 주세요. 마케팅 수신은 선택이며, 동의하지 않아도 가입 및 기본 서비스 이용에 제한이 없습니다.
       </p>
 
       <form onSubmit={onSubmit} className="w-full space-y-3">

@@ -23,11 +23,22 @@ import { BONGSIM_CATALOG_ACTIVE_WHERE, isEsimCapableSimKind } from "@/lib/bongsi
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
 import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
+import {
+  JUNE_2026_FIRST_PURCHASE_RATE_PCT,
+  buyerAlreadyUsedJune2026FirstPurchaseDiscount,
+  computeJune2026FirstPurchaseDiscountKrw,
+  isJune2026PromoActive,
+} from "@/lib/bongsim/promo/june-2026-first-purchase-discount";
 
 /** 체크아웃 confirm 다상품 라인 상한. */
 const MAX_CHECKOUT_LINES = 10;
 
 export { PRESS_MEMBER_DISCOUNT_RATE_PCT };
+export {
+  JUNE_2026_FIRST_PURCHASE_RATE_PCT,
+  computeJune2026FirstPurchaseDiscountKrw,
+  isJune2026PromoActive,
+};
 
 /** 직군 자동 할인액(원, floor). subtotal ≤ 0 이면 0. */
 export function computePressMemberDiscountKrw(subtotal_krw: number): number {
@@ -674,6 +685,21 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
       }
     }
 
+    let june2026PromoApplied = false;
+    if (!pressDiscountApplied && discount_krw === 0 && isJune2026PromoActive()) {
+      const alreadyUsed = await buyerAlreadyUsedJune2026FirstPurchaseDiscount(client, {
+        bongtourUserId: bongtourUserId || null,
+        buyerEmail: req.buyer_email,
+      });
+      if (!alreadyUsed) {
+        const juneDiscount = computeJune2026FirstPurchaseDiscountKrw(subtotal_krw);
+        if (juneDiscount > 0) {
+          discount_krw = juneDiscount;
+          june2026PromoApplied = true;
+        }
+      }
+    }
+
     const consentsJson: Record<string, unknown> = {
       terms_version: req.consents?.terms_version ?? "",
       terms_accepted: req.consents?.terms_accepted !== false,
@@ -695,6 +721,10 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     } else if (req.coupon_id && discount_krw > 0) {
       consentsJson.coupon_id = req.coupon_id;
       consentsJson.coupon_discount_krw = discount_krw;
+    } else if (june2026PromoApplied) {
+      consentsJson.june_2026_first_purchase_discount = true;
+      consentsJson.june_2026_first_purchase_discount_krw = discount_krw;
+      consentsJson.june_2026_first_purchase_discount_rate = JUNE_2026_FIRST_PURCHASE_RATE_PCT;
     }
     const giftJson = buildGiftConsentsJson(parseGiftFromCheckoutBody(req.consents));
     if (giftJson) consentsJson.gift = giftJson;
