@@ -25,6 +25,10 @@ import {
   pickMid,
   pickMobileTid,
 } from "@/lib/bongsim/welcomepay-payauth";
+import {
+  pickOidFromWelpayCookie,
+  welcomepayMobileOidCookieClearHeader,
+} from "@/lib/bongsim/welcomepay-mobile-oid-cookie";
 
 export const dynamic = "force-dynamic";
 
@@ -46,8 +50,8 @@ async function handleWelcomepayMobileNext(req: Request) {
   const origin = requestOrigin(req);
   let orderId = "";
   let orderNumber = "";
-  const fail = (reason: string) =>
-    NextResponse.redirect(
+  const fail = (reason: string) => {
+    const res = NextResponse.redirect(
       buildCheckoutPaymentResultRedirectUrl(origin, {
         status: "fail",
         orderId,
@@ -56,6 +60,9 @@ async function handleWelcomepayMobileNext(req: Request) {
       }),
       303,
     );
+    res.headers.append("Set-Cookie", welcomepayMobileOidCookieClearHeader());
+    return res;
+  };
 
   if (!getPgPool()) {
     return new NextResponse("db_unconfigured", { status: 503 });
@@ -63,14 +70,25 @@ async function handleWelcomepayMobileNext(req: Request) {
   await probePgPoolTlsOrFallback();
 
   const incoming = await readWelcomepayCallbackFromRequest(req);
-  const oid = pickOid(incoming);
+  let oid = pickOid(incoming);
+  let oidFromCookie = false;
+  if (!oid) {
+    oid = pickOidFromWelpayCookie(req);
+    oidFromCookie = Boolean(oid);
+  }
   if (!oid) {
     console.error("[welcomepay-mobile-next] missing_oid", {
       method: req.method,
       contentType: req.headers.get("content-type"),
       keys: Object.keys(incoming),
+      hasCookie: Boolean(req.headers.get("cookie")),
     });
-    return fail("missing_oid");
+    return fail(
+      "결제 인증 후 주문번호를 확인하지 못했습니다. 결제가 중복됐는지 웰컴페이먼츠 승인내역을 확인한 뒤, 장바구니에서 다시 시도해 주세요.",
+    );
+  }
+  if (oidFromCookie) {
+    console.warn("[welcomepay-mobile-next] oid_recovered_from_cookie", { oid });
   }
 
   const pool = getPgPool()!;
@@ -198,7 +216,9 @@ async function handleWelcomepayMobileNext(req: Request) {
     console.error("[leak-guard]", err);
     return fail("internal_meta_leak_blocked");
   }
-  return NextResponse.redirect(okUrl, 303);
+  const okRes = NextResponse.redirect(okUrl, 303);
+  okRes.headers.append("Set-Cookie", welcomepayMobileOidCookieClearHeader());
+  return okRes;
 }
 
 export async function GET(req: Request) {

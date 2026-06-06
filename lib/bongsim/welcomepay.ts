@@ -12,12 +12,23 @@ export function welcomepayCheckoutCallbackOrigin(): string {
   return getSiteOrigin();
 }
 
-/**
- * 모바일 welpay `P_NEXT_URL` — 가맹 PG 등록 URL과 **쿼리 없이** 동일해야 한다.
- * 주문번호 복구는 POST `P_OID`·`P_NOTI`(폼 hidden) 및 PG가 붙이는 콜백 파라미터에 의존한다.
- */
-export function welcomepayMobileNextCallbackUrl(): string {
+/** 가맹점 관리자에 등록하는 모바일 `P_NEXT_URL` (path만, 쿼리 없음). */
+export function welcomepayMobileNextCallbackUrlRegistered(): string {
   return `${welcomepayCheckoutCallbackOrigin()}/api/bongsim/checkout/welcomepay-mobile-next`;
+}
+
+/**
+ * 결제 요청 폼 `P_NEXT_URL` — path는 등록 URL과 동일, `P_OID`·`P_NOTI` 쿼리는 iPhone Safari GET 폴백용.
+ * PG 등록은 `welcomepayMobileNextCallbackUrlRegistered()`만 넣는다.
+ */
+export function welcomepayMobileNextCallbackUrl(providerSessionId?: string): string {
+  const base = welcomepayMobileNextCallbackUrlRegistered();
+  const sid = (providerSessionId ?? "").trim();
+  if (!sid) return base;
+  const q = new URLSearchParams();
+  q.set("P_OID", sid);
+  q.set("P_NOTI", sid);
+  return `${base}?${q.toString()}`;
 }
 
 export function resolveWelcomepayEnv(): WelcomepayEnvKind {

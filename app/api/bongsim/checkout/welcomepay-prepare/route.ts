@@ -17,6 +17,7 @@ import {
   welcomepayMobileWelpaySubmitUrl,
   welcomepayStdPayScriptUrl,
 } from "@/lib/bongsim/welcomepay";
+import { welcomepayMobileOidCookieSetHeader } from "@/lib/bongsim/welcomepay-mobile-oid-cookie";
 
 export const dynamic = "force-dynamic";
 
@@ -137,7 +138,7 @@ export async function POST(req: Request) {
     orderNumber: bongsimOrderNumber,
   });
   const popupUrl = closeUrl;
-  const pNextUrl = welcomepayMobileNextCallbackUrl();
+  const pNextUrl = welcomepayMobileNextCallbackUrl(orderNumber);
 
   const timestamp = generateTimestamp();
   const mKey = generateMKey(signKey);
@@ -157,7 +158,7 @@ export async function POST(req: Request) {
       : customerEmail.slice(0, 30) || "고객";
   const pGoods = orderName.length > 80 ? orderName.slice(0, 80) : orderName;
 
-  return jsonWithLeakGuard(
+  const res = jsonWithLeakGuard(
     {
       ok: true,
       mid,
@@ -190,4 +191,6 @@ export async function POST(req: Request) {
     },
     "bongsim.checkout.welcomepay-prepare",
   );
+  res.headers.append("Set-Cookie", welcomepayMobileOidCookieSetHeader(orderNumber));
+  return res;
 }
