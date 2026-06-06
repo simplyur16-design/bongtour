@@ -72,12 +72,18 @@ export async function appendNaverSessionCookie(params: {
     accountStatus: user.accountStatus,
   }
 
-  const jwt = await encode({
-    token: tokenPayload,
-    secret,
-    salt,
-    maxAge: SESSION_MAX_AGE_SEC,
-  })
+  let jwt: string
+  try {
+    jwt = await encode({
+      token: tokenPayload,
+      secret,
+      salt,
+      maxAge: SESSION_MAX_AGE_SEC,
+    })
+  } catch (err) {
+    console.error('[naver-auth-session] encode failed', err)
+    return false
+  }
 
   const expires = new Date(Date.now() + SESSION_MAX_AGE_SEC * 1000)
   response.cookies.set(cookieName, jwt, {

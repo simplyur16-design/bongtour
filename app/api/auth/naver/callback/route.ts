@@ -16,6 +16,7 @@ import {
   resolveNaverOAuthPublicOrigin,
   resolveNaverRedirectUri,
 } from '@/lib/naver-oauth-public'
+import { oauthCallbackServerError } from '@/lib/oauth-callback-server-error'
 import { readCookieFromRequestHeader } from '@/lib/parse-cookie-header'
 import { prisma } from '@/lib/prisma'
 
@@ -136,6 +137,7 @@ export async function GET(request: Request) {
       readCookieFromRequestHeader(request, NAVER_OAUTH_REDIRECT_COOKIE)
   )
 
+  try {
   const clientId = process.env.NAVER_CLIENT_ID?.trim()
   const clientSecret = process.env.NAVER_CLIENT_SECRET?.trim()
   if (!clientId || !clientSecret) {
@@ -350,4 +352,7 @@ export async function GET(request: Request) {
 
   naverOAuthLog('callback:success', { userId: full.id })
   return res
+  } catch (err) {
+    return oauthCallbackServerError('naver', err, clearNaverOAuthStateCookies, request)
+  }
 }

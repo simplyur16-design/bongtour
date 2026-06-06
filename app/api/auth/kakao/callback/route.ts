@@ -16,6 +16,7 @@ import {
 } from '@/lib/kakao-oauth-public'
 import type { KakaoTokenResponse, KakaoUserMeResponse } from '@/lib/kakao-oauth-types'
 import { appendNaverSessionCookie, redirectAfterNaverLogin } from '@/lib/naver-auth-session'
+import { oauthCallbackServerError } from '@/lib/oauth-callback-server-error'
 import { readCookieFromRequestHeader } from '@/lib/parse-cookie-header'
 import { prisma } from '@/lib/prisma'
 
@@ -131,6 +132,7 @@ export async function GET(request: Request) {
       readCookieFromRequestHeader(request, KAKAO_OAUTH_REDIRECT_COOKIE)
   )
 
+  try {
   const clientId = process.env.KAKAO_CLIENT_ID?.trim()
   const clientSecret = process.env.KAKAO_CLIENT_SECRET?.trim()
   if (!clientId || !clientSecret) {
@@ -337,4 +339,7 @@ export async function GET(request: Request) {
 
   kakaoOAuthLog('callback:success', { userId: full.id })
   return res
+  } catch (err) {
+    return oauthCallbackServerError('kakao', err, clearKakaoOAuthStateCookies, request)
+  }
 }
