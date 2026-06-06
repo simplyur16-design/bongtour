@@ -15,6 +15,7 @@ import {
   logHeroCityKeyReplacements,
   resolveHeroCityKeysWithProductFallback,
 } from '@/lib/season-hero-city-keys'
+import { resolveSeasonCurationSubline } from '@/lib/season-curation-subline'
 
 const SEASON_MODEL = process.env.GEMINI_SEASON_CURATION_MODEL?.trim() || getModelName()
 
@@ -96,7 +97,7 @@ primary 5도시 순서대로 목표 월(서울): ${primaryTargetMonths1To12
           .slice(0, 5)
           .map((m) => `${m}월`)
           .join(', ')}.
-- reasoning.{cityKey}는 반드시 해당 도시에 배정된 월 숫자로 시작(예: "7월 …")하고, 그 월에 떠나기 좋은 시즌·기후·이벤트만 언급. 생성 달·지난달 기준 문구 금지.
+- reasoning.{cityKey}는 **한 문장**(25~55자). 반드시 배정 월로 시작(예: "7월 …"). 그 월의 시즌·기후·분위기만. "7월 다낭 베트남"·"도쿄 · 일본"처럼 도시·국가 나열만 금지. 생성 달·지난달 기준 문구 금지.
 `
       : ''
   return `한국 출발 패키지 여행사의 메인 페이지 '시즌 추천 여행지' 5개 도시를 골라줘.
@@ -392,10 +393,22 @@ export async function generateNewCycle(input: GenerateNewCycleInput): Promise<Se
     throw new Error(`fallback 도시가 10개 미만입니다 (${fallback.length}). 카탈로그·City 마스터를 확인하세요.`)
   }
 
+  const sanitizedReasoning: Record<string, string> = { ...reasoning }
+  for (let i = 0; i < primary.length; i++) {
+    const ck = primary[i]!
+    const row = dist.get(ck)
+    sanitizedReasoning[ck] = resolveSeasonCurationSubline({
+      targetMonth1To12: primaryTargetMonths[i] ?? primaryTargetMonths[0]!,
+      geminiLine: reasoning[ck],
+      cityLabel: row?.koreanLabel ?? ck,
+      countryLabel: row?.country ?? null,
+    })
+  }
+
   const geminiResponse = {
     primary,
     fallback,
-    reasoning,
+    reasoning: sanitizedReasoning,
     heroReplacements,
     rawText: text,
     model: SEASON_MODEL,

@@ -5,6 +5,11 @@
 import { prisma } from '@/lib/prisma'
 import { extractFirstBalancedJsonArray, stripLlmMarkdownJsonFence } from '@/lib/llm-json-extract'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
+import {
+  buildSeasonCurationSublineFallback,
+  firstSentenceFromText,
+  isValidSeasonCurationSubtitle,
+} from '@/lib/season-curation-subline'
 
 const CURATION_MODEL = process.env.GEMINI_CURATION_MODEL?.trim() || getModelName()
 const PAGE_SCOPE_OVERSEAS = 'overseas' as const
@@ -147,16 +152,42 @@ ${JSON.stringify(lines, null, 0)}
    - 예시 제목: "5월의 이탈리아, 레몬 향기에 물드는 지중해의 오후"
    - 예시 본문: 지중해의 푸른 바다와 토스카나의 연두빛 구릉이 가장 아름답게 조화를 이루는 시기 같은 뉘앙스
 3) bodyKr은 공백 포함 약 150자 전후(130~170자 권장)로, 왜 이 시즌에 그 여행지가 좋은지 설명하세요.
-4) ctaLabel은 클릭을 유도하는 짧은 한 줄(예: "이탈리아 상품 보기", "발리 일정 살펴보기").
+4) subtitle은 **필수** — **한 문장**(12~45자). 제목을 반복·요약하지 말 것. "7월 다낭 베트남", "8월 도쿄 일본"처럼 월+도시+국가 나열만 금지. 예: "가장 눈부신 보랏빛 계절을 만나다", "시원한 바람이 머무는 여름의 섬"
+5) ctaLabel은 클릭을 유도하는 짧은 한 줄(예: "이탈리아 상품 보기", "발리 일정 살펴보기").
 
 응답 형식: JSON 배열만 출력하세요. 설명 문장·마크다운 코드펜스 없이 배열만.
 각 원소는 다음 키를 가집니다:
 - productId (문자열, 위 후보의 id와 정확히 일치)
 - title (문자열)
-- subtitle (문자열, 선택 — 없으면 null 또는 생략)
+- subtitle (문자열, 필수 — 한 문장)
 - bodyKr (문자열)
 - ctaLabel (문자열)
 - countryCode (문자열, 한글 국가명이나 짧은 지역 라벨, 예: "이탈리아", "발리", "일본")`
+}
+
+function normalizeCurationSubtitle(
+  row: CurationLlmRow,
+  monthKey: string,
+  product?: ProductForCuration,
+): string {
+  const sub = (row.subtitle ?? '').trim()
+  if (isValidSeasonCurationSubtitle(sub)) return sub
+
+  const fromBody = firstSentenceFromText(row.bodyKr, 72)
+  if (isValidSeasonCurationSubtitle(fromBody)) return fromBody
+
+  const month = parseInt(monthKey.split('-')[1] ?? '0', 10)
+  const city =
+    (product?.city ?? '').trim() ||
+    (product?.primaryDestination ?? '').trim().split(/[,/·\s]+/)[0]?.trim() ||
+    row.countryCode.trim() ||
+    '여행지'
+  const country = (product?.country ?? row.countryCode ?? '').trim() || null
+  return buildSeasonCurationSublineFallback(
+    Number.isFinite(month) && month >= 1 && month <= 12 ? month : 1,
+    city,
+    country,
+  )
 }
 
 /**
@@ -264,7 +295,7 @@ export async function generateMonthlyCuration(
           regionKey: p?.continent?.trim() || null,
           countryCode: r.countryCode?.trim() || p?.country?.trim() || null,
           title: r.title,
-          subtitle: r.subtitle ?? null,
+          subtitle: normalizeCurationSubtitle(r, monthKey, p),
           bodyKr: r.bodyKr,
           ctaLabel: r.ctaLabel,
           linkedProductId: r.productId,

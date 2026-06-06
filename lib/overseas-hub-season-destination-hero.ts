@@ -16,8 +16,8 @@ import { buildPublicPageHeroEditorialLineMonthlyStub } from '@/lib/public-page-h
 import {
   seasonHeroBaseMonthFromCycleStart,
   seasonHeroTargetMonthForSlotIndex,
-  sublineWithTargetMonth,
 } from '@/lib/season-hero-target-months'
+import { resolveSeasonCurationSubline } from '@/lib/season-curation-subline'
 import type { OverseasHubDestinationHeroSlide } from '@/lib/overseas-hub-season-destination-hero-shared'
 
 export type { OverseasHubDestinationHeroSlide } from '@/lib/overseas-hub-season-destination-hero-shared'
@@ -79,10 +79,12 @@ async function loadOverseasHubSeasonDestinationHeroSlidesUncached(): Promise<Ove
       travelScope: 'overseas',
     })
     const geminiLine = reasoning[card.cityKey]?.trim()
-    const subline = sublineWithTargetMonth(
+    const subline = resolveSeasonCurationSubline({
       targetMonth1To12,
-      geminiLine || card.koreanSubtitle.trim() || destKo,
-    )
+      geminiLine,
+      cityLabel: destKo,
+      countryLabel: card.countryKoreanLabel,
+    })
 
     return {
       id: `overseas-hub-season-${card.cityKey}-m${targetMonth1To12}-${cycleId}`,
@@ -101,7 +103,7 @@ async function loadOverseasHubSeasonDestinationHeroSlidesUncached(): Promise<Ove
 export async function getCachedOverseasHubSeasonDestinationHeroSlides(): Promise<OverseasHubDestinationHeroSlide[]> {
   try {
     const cycle = await getCurrentCycle(new Date())
-    const cacheKey = ['overseas-hub-season-destination-hero', cycle?.id ?? 'no-active-cycle', 'v7-hero-city-fallback']
+    const cacheKey = ['overseas-hub-season-destination-hero', cycle?.id ?? 'no-active-cycle', 'v8-one-sentence-subline']
     const run = unstable_cache(
       () => loadOverseasHubSeasonDestinationHeroSlidesUncached(),
       cacheKey,

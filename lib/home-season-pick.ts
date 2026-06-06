@@ -5,6 +5,11 @@ import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { excerptBody, stripSupabaseStorageForHomeSeasonImage } from '@/lib/home-season-pick-shared'
 import { resolveMonthlyCurationProductCountrySlug } from '@/lib/monthly-curation-product-country'
+import {
+  buildSeasonCurationSublineFallback,
+  firstSentenceFromText,
+  isValidSeasonCurationSubtitle,
+} from '@/lib/season-curation-subline'
 
 /** 타입만 재보냄. `normalizeHomeSeasonSlidesForClient`는 클라이언트에서 `@/lib/home-season-pick-shared`만 import. */
 export type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
@@ -54,7 +59,19 @@ export function monthlyCurationRowToHomeSeasonPickDTO(row: MonthlyRow): HomeSeas
 
   const cc = (row.countryCode ?? '').trim()
   const title = (row.title ?? '').trim()
-  const subtitle = (row.subtitle ?? '').trim() || null
+  let subtitle = (row.subtitle ?? '').trim() || null
+  if (!isValidSeasonCurationSubtitle(subtitle ?? '')) {
+    const fromBody = firstSentenceFromText(bodyFull, 72)
+    if (isValidSeasonCurationSubtitle(fromBody)) {
+      subtitle = fromBody
+    } else if (row.monthKey) {
+      const m = parseInt(row.monthKey.split('-')[1] ?? '0', 10)
+      if (Number.isFinite(m) && m >= 1 && m <= 12) {
+        const place = cc || title.split(/[,，]/)[0]?.trim() || '여행지'
+        subtitle = buildSeasonCurationSublineFallback(m, place)
+      }
+    }
+  }
   const resolvedProductCountrySlug = resolveMonthlyCurationProductCountrySlug(row.countryCode, title)
 
   return {
