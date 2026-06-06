@@ -4,10 +4,7 @@ vi.mock("server-only", () => ({}));
 
 import { pickOid, readWelcomepayCallbackFromRequest } from "@/lib/bongsim/welcomepay-callback-parse";
 import { isMobileWelpayUserAgent } from "@/lib/bongsim/welcomepay-mobile-user-agent";
-import {
-  welcomepayMobileNextCallbackUrl,
-  welcomepayMobileNextCallbackUrlRegistered,
-} from "@/lib/bongsim/welcomepay";
+import { welcomepayMobileNextCallbackUrlRegistered } from "@/lib/bongsim/welcomepay";
 
 const ANDROID_CHROME_UA =
   "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36";
@@ -57,10 +54,10 @@ describe("모바일 welpay 체크아웃 — iPhone·Android", () => {
       );
     });
 
-    it("prepare — 폼 P_NEXT_URL에 P_OID·P_NOTI 쿼리 (iPhone GET 폴백)", () => {
+    it("prepare — 폼 P_NEXT_URL은 가맹점 등록 URL과 동일(쿼리 없음, PG 01 방지)", () => {
       process.env.NEXT_PUBLIC_SITE_URL = "https://bongtour.com";
-      expect(welcomepayMobileNextCallbackUrl(SESSION_ID)).toBe(
-        `https://bongtour.com/api/bongsim/checkout/welcomepay-mobile-next?P_OID=${encodeURIComponent(SESSION_ID)}&P_NOTI=${encodeURIComponent(SESSION_ID)}`,
+      expect(welcomepayMobileNextCallbackUrlRegistered()).toBe(
+        "https://bongtour.com/api/bongsim/checkout/welcomepay-mobile-next",
       );
     });
 

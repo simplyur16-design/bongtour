@@ -13,7 +13,7 @@ import {
   resolveWelcomepayEnv,
   resolveWelcomepayMobileHashKey,
   welcomepayCheckoutCallbackOrigin,
-  welcomepayMobileNextCallbackUrl,
+  welcomepayMobileNextCallbackUrlRegistered,
   welcomepayMobileWelpaySubmitUrl,
   welcomepayStdPayScriptUrl,
 } from "@/lib/bongsim/welcomepay";
@@ -138,7 +138,8 @@ export async function POST(req: Request) {
     orderNumber: bongsimOrderNumber,
   });
   const popupUrl = closeUrl;
-  const pNextUrl = welcomepayMobileNextCallbackUrl(orderNumber);
+  // 폼 P_NEXT_URL은 가맹점 등록 URL과 바이트 단위 동일해야 함(쿼리 붙이면 PG가 01로 거절하는 경우 있음).
+  const pNextUrl = welcomepayMobileNextCallbackUrlRegistered();
 
   const timestamp = generateTimestamp();
   const mKey = generateMKey(signKey);

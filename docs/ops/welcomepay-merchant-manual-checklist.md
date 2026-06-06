@@ -39,8 +39,8 @@ PG 가맹점 관리자에 등록할 URL (apex 기준):
 | P_MID, P_OID, P_AMT, P_TIMESTAMP, P_CHKFAKE | `welcomepay-prepare` mobile 블록 |
 | P_RESERVED=centerCd=Y&amt_hash=Y | prepare·결제 폼 (필수) |
 | P_CHKFAKE = BASE64(SHA512(P_AMT+P_OID+P_TIMESTAMP+HashKey)) | `generateMobileWelpayPChkfake` — HashKey=`WELCOMEPAY_MOBILE_HASH_KEY` 또는 signKey |
-| P_NEXT_URL (가맹점 등록) | `welcomepay-mobile-next` path만 (쿼리 없음) |
-| P_NEXT_URL (결제 폼) | 동일 path + `P_OID`·`P_NOTI` 쿼리 (iPhone GET 폴백) |
+| P_NEXT_URL (가맹점 등록·결제 폼 동일) | `welcomepay-mobile-next` path만 (쿼리 없음) — 폼에 쿼리 붙이면 01 거절 가능 |
+| 주문번호 복구 | hidden `P_OID`·`P_NOTI` + prepare 쿠키 |
 | P_CHARSET=utf8 | prepare·결제 폼 `P_CHARSET` |
 | P_REQ_URL 승인 — **P_MID + P_TID 만** | `buildMobilePayApprovalFormBody` |
 | UTF-8 샘플 | `WelPayMoNextUrlUtf8` 흐름과 동일 |

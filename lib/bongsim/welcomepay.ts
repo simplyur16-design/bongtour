@@ -18,8 +18,8 @@ export function welcomepayMobileNextCallbackUrlRegistered(): string {
 }
 
 /**
- * 결제 요청 폼 `P_NEXT_URL` — path는 등록 URL과 동일, `P_OID`·`P_NOTI` 쿼리는 iPhone Safari GET 폴백용.
- * PG 등록은 `welcomepayMobileNextCallbackUrlRegistered()`만 넣는다.
+ * @deprecated prepare·폼에는 `welcomepayMobileNextCallbackUrlRegistered()`만 사용(PG 등록 URL과 완전 일치).
+ * 쿼리 붙인 URL은 PG 사전 거절(01) 원인이 될 수 있음. oid는 hidden `P_OID`·`P_NOTI`·쿠키로 복구.
  */
 export function welcomepayMobileNextCallbackUrl(providerSessionId?: string): string {
   const base = welcomepayMobileNextCallbackUrlRegistered();
