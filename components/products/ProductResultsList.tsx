@@ -33,11 +33,7 @@ import {
 } from '@/lib/match-domestic-product'
 import type { BrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
-import {
-  HUB_PRODUCT_FLAT_LI_CLASS,
-  HUB_PRODUCT_SCROLL_LI_CLASS,
-  HUB_PRODUCT_SCROLL_LI_CLASS_WIDE,
-} from '@/components/products/hub-product-row-layout'
+import { HUB_PRODUCT_SCROLL_LI_CLASS } from '@/components/products/hub-product-row-layout'
 import {
   MOBILE_HUB_OVERSEAS_SECTION_STACK_CLASS,
   MOBILE_HUB_PRODUCT_ROW_CLASS,
@@ -87,22 +83,8 @@ const ESIM_NATIVE_INSERT_EVERY = 10
 /** 해외·자유여행 허브: 권역/국가당 한 줄 — compact 가로 스크롤(모바일·데스크톱 공통 ul) */
 const countryProductRowClass = MOBILE_HUB_PRODUCT_ROW_CLASS
 
-/** 해외 허브: 좌측 필터 있음 — 2/3열 */
+/** 국내 허브 전용 그리드 */
 const productCardGridClassDefault = 'mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
-/** 해외 허브: 전체 너비 — 3/4열 */
-const productCardGridClassOverseasWide = 'mt-6 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
-
-function overseasFlatGridClassAfterHeading(wideLayout: boolean): string {
-  const base = wideLayout ? productCardGridClassOverseasWide : productCardGridClassDefault
-  return base.replace(/^mt-\d+\s+/, 'mt-4 ')
-}
-
-function flatListUlClass(gridClass: string): string {
-  const gridTail = gridClass
-    .replace(/^mt-\d+\s+/, '')
-    .replace(/^grid\s+/, '')
-  return `${MOBILE_HUB_PRODUCT_ROW_CLASS} md:grid md:overflow-visible md:snap-none ${gridTail}`
-}
 
 type Props = {
   items: ResultItem[]
@@ -119,8 +101,6 @@ type Props = {
   overseasSeasonCurationSlides?: HomeSeasonPickDTO[] | null | undefined
   /** 해외 목록 시즌 정렬 시 `이달의 추천` 배지 대상 */
   seasonalPickIds?: ReadonlySet<string> | null
-  /** `/travel/overseas` 에서 지역 미선택 시 — 카드 그리드·가로줄 카드 폭 확장 */
-  overseasHubWideLayout?: boolean
   /**
    * browse URL `country` 슬러그가 있을 때: 대륙(버킷) 그룹핑 없이 한글 나라명 헤더 + 플랫 그리드.
    * `region`만 있으면 null 유지 → 권역(버킷) 그룹 유지.
@@ -165,8 +145,9 @@ function buildProductResultRowNodes(
     interleaveEsim?: boolean
   },
 ): ReactNode[] {
+  const liClass = opts.liClassName ?? HUB_PRODUCT_SCROLL_LI_CLASS
   const renderProduct = (item: ResultItem) => (
-    <li key={item.id} className={opts.liClassName}>
+    <li key={item.id} className={liClass}>
       <ProductResultCard
         item={item}
         formatWon={formatWon}
@@ -176,7 +157,7 @@ function buildProductResultRowNodes(
     </li>
   )
   if (opts.interleaveEsim) {
-    return mapFlatListWithEsimCards(items, renderProduct, opts.liClassName, undefined, {
+    return mapFlatListWithEsimCards(items, renderProduct, liClass, undefined, {
       compactEsim: opts.compact,
     })
   }
@@ -904,7 +885,6 @@ function OverseasRegionGroupedList({
   editorialBriefing,
   seasonCurationSlides,
   seasonalPickIds,
-  wideLayout,
   interleaveEsimNativeCards = false,
 }: {
   items: ResultItem[]
@@ -912,10 +892,9 @@ function OverseasRegionGroupedList({
   editorialBriefing: OverseasEditorialBriefingPayload | null | undefined
   seasonCurationSlides: HomeSeasonPickDTO[] | null | undefined
   seasonalPickIds?: ReadonlySet<string> | null
-  wideLayout: boolean
   interleaveEsimNativeCards?: boolean
 }) {
-  const bucketRowLiClass = wideLayout ? HUB_PRODUCT_SCROLL_LI_CLASS_WIDE : HUB_PRODUCT_SCROLL_LI_CLASS
+  const bucketRowLiClass = HUB_PRODUCT_SCROLL_LI_CLASS
   const bucketToCountries = useMemo(() => {
     const map = new Map<OverseasDisplayBucketId, Map<string, ResultItem[]>>()
     for (const id of OVERSEAS_DISPLAY_BUCKET_ORDER) {
@@ -1009,30 +988,6 @@ function OverseasRegionGroupedList({
   )
 }
 
-function FlatProductResultsList({
-  items,
-  formatWon,
-  seasonalPickIds,
-  cardGridClass,
-  interleaveEsimNativeCards = false,
-}: {
-  items: ResultItem[]
-  formatWon: (n: number | null) => string
-  seasonalPickIds?: ReadonlySet<string> | null
-  cardGridClass: string
-  interleaveEsimNativeCards?: boolean
-}) {
-  return (
-    <ul className={flatListUlClass(cardGridClass)} role="list" aria-label="상품 목록">
-      {buildProductResultRowNodes(items, formatWon, seasonalPickIds, {
-        compact: true,
-        liClassName: HUB_PRODUCT_FLAT_LI_CLASS,
-        interleaveEsim: interleaveEsimNativeCards,
-      })}
-    </ul>
-  )
-}
-
 export default function ProductResultsList({
   items,
   formatWon,
@@ -1042,7 +997,6 @@ export default function ProductResultsList({
   overseasEditorialBriefing = null,
   overseasSeasonCurationSlides = null,
   seasonalPickIds = null,
-  overseasHubWideLayout = false,
   overseasFlatByCountrySlug = null,
   interleaveEsimNativeCards = false,
 }: Props) {
@@ -1054,38 +1008,28 @@ export default function ProductResultsList({
     return <AirHotelCountryGroupedList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
   }
 
-  const countrySlugForFlat = (overseasFlatByCountrySlug ?? '').trim().toLowerCase()
-  const overseasCountryFlatMode = Boolean(groupOverseasByRegion && countrySlugForFlat)
-  if (overseasCountryFlatMode) {
-    const heading = koreanCountryLabelFromBrowseSlug(countrySlugForFlat) ?? countrySlugForFlat
-    const flatGridClass = overseasFlatGridClassAfterHeading(overseasHubWideLayout)
-    return (
-      <section className="mt-6 scroll-mt-4" aria-labelledby="overseas-country-flat-heading">
-        <h2
-          id="overseas-country-flat-heading"
-          className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
-        >
-          {heading}
-        </h2>
-        <FlatProductResultsList
-          items={items}
-          formatWon={formatWon}
-          seasonalPickIds={seasonalPickIds}
-          cardGridClass={flatGridClass}
-          interleaveEsimNativeCards={interleaveEsimNativeCards}
-        />
-      </section>
-    )
-  }
+  if (groupOverseasByRegion && items.length > 0) {
+    const countrySlugForFlat = (overseasFlatByCountrySlug ?? '').trim().toLowerCase()
+    if (countrySlugForFlat) {
+      const heading = koreanCountryLabelFromBrowseSlug(countrySlugForFlat) ?? countrySlugForFlat
+      return (
+        <section className="mt-6 scroll-mt-4" aria-labelledby="overseas-country-flat-heading">
+          <h2
+            id="overseas-country-flat-heading"
+            className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
+          >
+            {heading}
+          </h2>
+          <ProductResultsHubScrollRow ariaLabel={`${heading} 상품`}>
+            {buildProductResultRowNodes(items, formatWon, seasonalPickIds, {
+              compact: true,
+              interleaveEsim: interleaveEsimNativeCards,
+            })}
+          </ProductResultsHubScrollRow>
+        </section>
+      )
+    }
 
-  const hasBucketMeta = items.some((i) => i.overseasBucket != null || i.countryRowLabel != null)
-  const useGrouped =
-    groupOverseasByRegion &&
-    (hasBucketMeta ||
-      (overseasSeasonCurationSlides != null && overseasSeasonCurationSlides.length > 0) ||
-      overseasEditorialBriefing != null)
-
-  if (useGrouped) {
     return (
       <OverseasRegionGroupedList
         items={items}
@@ -1093,20 +1037,17 @@ export default function ProductResultsList({
         editorialBriefing={overseasEditorialBriefing}
         seasonCurationSlides={overseasSeasonCurationSlides}
         seasonalPickIds={seasonalPickIds}
-        wideLayout={overseasHubWideLayout}
         interleaveEsimNativeCards={interleaveEsimNativeCards}
       />
     )
   }
 
-  const flatGridClass = overseasHubWideLayout ? productCardGridClassOverseasWide : productCardGridClassDefault
   return (
-    <FlatProductResultsList
-      items={items}
-      formatWon={formatWon}
-      seasonalPickIds={seasonalPickIds}
-      cardGridClass={flatGridClass}
-      interleaveEsimNativeCards={interleaveEsimNativeCards}
-    />
+    <ProductResultsHubScrollRow ariaLabel="상품 목록">
+      {buildProductResultRowNodes(items, formatWon, seasonalPickIds, {
+        compact: true,
+        interleaveEsim: interleaveEsimNativeCards,
+      })}
+    </ProductResultsHubScrollRow>
   )
 }

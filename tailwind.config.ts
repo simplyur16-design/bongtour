@@ -8,9 +8,11 @@ const config: Config = {
     './lib/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   safelist: [
-    'w-[min(11rem,calc((100vw-2.75rem)*0.43))]',
+    'w-[43vw]',
+    'max-w-[11rem]',
+    'min-w-[9.5rem]',
     'snap-start',
-    'md:snap-align-none',
+    'shrink-0',
     'text-[#1F1B2D]',
     'text-bt-text-navy',
     'bg-bt-bg-lavender',

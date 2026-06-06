@@ -1,16 +1,8 @@
 /**
- * 해외·자유여행 허브 상품 행 — li 폭 SSOT.
- * Tailwind content 스캔용: 전체 클래스를 리터럴 문자열로 유지(템플릿 분리 금지).
+ * 해외·자유여행 허브 상품 행 — li 폭 SSOT (동일 compact 가로 스크롤).
+ * Tailwind content 스캔·safelist용 리터럴 유지.
  */
 
-/** 권역 가로 스크롤 줄 — compact + md+ 고정 폭 */
+/** 허브 권역 가로 스크롤 — 해외·자유여행 공통 compact 폭 */
 export const HUB_PRODUCT_SCROLL_LI_CLASS =
-  'w-[min(11rem,calc((100vw-2.75rem)*0.43))] shrink-0 snap-start md:w-[min(17.5rem,calc(100vw-2.75rem))] md:max-w-none lg:w-[calc((100%-2rem)/3)] lg:min-w-0 md:snap-align-none'
-
-/** 해외 허브 wide — 4열 */
-export const HUB_PRODUCT_SCROLL_LI_CLASS_WIDE =
-  'w-[min(11rem,calc((100vw-2.75rem)*0.43))] shrink-0 snap-start md:w-[min(16.25rem,calc(100vw-2.5rem))] md:max-w-none lg:w-[calc((100%-3rem)/4)] lg:min-w-0 md:snap-align-none'
-
-/** 국가 필터 플랫 목록 — 모바일 compact 가로줄 · md+ 그리드 auto */
-export const HUB_PRODUCT_FLAT_LI_CLASS =
-  'w-[min(11rem,calc((100vw-2.75rem)*0.43))] shrink-0 snap-start md:w-auto md:max-w-none md:shrink md:snap-align-none'
+  'w-[43vw] max-w-[11rem] min-w-[9.5rem] shrink-0 snap-start'
