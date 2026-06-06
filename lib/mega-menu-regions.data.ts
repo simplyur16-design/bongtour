@@ -218,6 +218,7 @@ const SEA: MegaMenuCountryGroupDef[] = [
   ]),
   G('미얀마', [city('양곤', ['양곤', 'yangon', '미얀마']), city('바간', ['바간', 'bagan', '미얀마'])]),
   G('인도', [
+    LC('인도', ['인도', 'india', '뭄바이', 'mumbai', '라다크', 'ladakh']),
     city('델리', ['델리', 'delhi', '인도']),
     city('자이푸르', ['자이푸르', 'jaipur', '인도']),
     city('아그라', ['아그라', 'agra', '인도', '타지마할']),

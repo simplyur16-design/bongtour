@@ -250,6 +250,14 @@ function uniqueStrings(xs: string[]): string[] {
   return out
 }
 
+/** 운영 `Product.country` 한글 라벨 → 마스터 `ProductCountryTag.countryKey` */
+const DB_KR_LABEL_TO_MASTER_COUNTRY_KEY: Record<string, string> = {
+  인도: 'india',
+  네팔: 'nepal',
+  스리랑카: 'srilanka',
+  부탄: 'bhutan',
+}
+
 function inferDbCountriesFromTreeLabel(country: OverseasCountryNode): string[] {
   if (country.dbCountryValues?.length) return uniqueStrings(country.dbCountryValues)
   const L = country.countryLabel.trim()
@@ -774,6 +782,9 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   laos: ['라오스'],
   cambodia: ['캄보디아'],
   maldives: ['몰디브'],
+  india: ['인도'],
+  srilanka: ['스리랑카'],
+  bhutan: ['부탄'],
   'new-zealand': ['뉴질랜드'],
   nepal: ['네팔'],
   myanmar: ['미얀마'],
@@ -891,6 +902,10 @@ export function resolveBrowseCountryParamToCountryKeySlugs(param: string | null 
   const saKey = SOUTH_AMERICA_COUNTRY_KEY_BY_BROWSE_SLUG[raw] ?? SOUTH_AMERICA_COUNTRY_KEY_BY_BROWSE_SLUG[trimmed]
   if (saKey) out.add(saKey)
   const dbCountries = resolveBrowseCountryParamToDbCountries(param)
+  for (const dbKr of dbCountries) {
+    const master = DB_KR_LABEL_TO_MASTER_COUNTRY_KEY[dbKr]
+    if (master) out.add(master)
+  }
   for (const g of OVERSEAS_LOCATION_TREE_DATA) {
     for (const co of g.countries) {
       const vals = inferDbCountriesFromTreeLabel(co)
