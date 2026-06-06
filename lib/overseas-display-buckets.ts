@@ -213,6 +213,10 @@ export function resolveOverseasDisplayBucketForBrowse(
 ): OverseasDisplayBucketId {
   const h = buildOverseasProductMatchHaystack(product)
   let base = mapMatchToOverseasDisplayBucket(match)
+  /** 괌·사이판 — 유럽·미주 등 트리 오매칭 시에도 oceania SSOT */
+  if (RE_GUAM_SAIPAN_TRAVEL.test(h) && match?.countryKey !== 'hawaii') {
+    return 'oceania'
+  }
   if (base === 'other' && RE_INDONESIA_SEA_TRAVEL.test(h)) {
     return 'sea_taiwan'
   }
@@ -223,10 +227,6 @@ export function resolveOverseasDisplayBucketForBrowse(
     return 'americas'
   }
   if (base !== 'americas') return base
-
-  if (RE_GUAM_SAIPAN_TRAVEL.test(h) && match?.countryKey !== 'hawaii') {
-    return 'oceania'
-  }
 
   if (RE_AU_NZ_TRAVEL.test(h)) {
     if (match?.groupKey === 'americas' && match.countryKey === 'hawaii') return base

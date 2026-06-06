@@ -45,6 +45,29 @@ describe('resolveOverseasDisplayBucketForBrowse — 미서부 키워드', () => 
   })
 })
 
+describe('resolveOverseasDisplayBucketForBrowse — 사이판', () => {
+  it('유럽 버킷으로 매칭돼도 사이판 키워드면 oceania', () => {
+    const bucket = resolveOverseasDisplayBucketForBrowse(
+      {
+        title: '사이판 자유여행 4박 6일',
+        originSource: 'hanatour',
+        primaryDestination: '사이판',
+      },
+      {
+        scope: 'leaf',
+        groupKey: 'europe-me-africa',
+        countryKey: 'france',
+        leafKey: 'paris',
+        groupLabel: '유럽',
+        countryLabel: '프랑스',
+        leafLabel: '파리',
+        matchedTerm: 'paris',
+      },
+    )
+    expect(bucket).toBe('oceania')
+  })
+})
+
 describe('resolveOverseasDisplayBucketForBrowse — 북인도', () => {
   it('북인도 골든트라이앵글 제목은 동남아/서남아 버킷', () => {
     const bucket = resolveOverseasDisplayBucketForBrowse(

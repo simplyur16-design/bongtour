@@ -32,7 +32,7 @@ export type ProductPublicDetailAirHotelRenderModel = {
     departureDateTo: string
     lowestAdultPrice: number
     highestAdultPrice: number
-    infantPrice: number
+    infantPrice: number | null
     childBedPrice: number
     minPaxPerDeparture: number | null
     totalDays: number
