@@ -3,6 +3,7 @@ import {
   WELCOMEPAY_MOBILE_OID_COOKIE,
   pickOidFromWelpayCookie,
   welcomepayMobileOidCookieSetHeader,
+  welcomepayMobileOidDocumentCookie,
 } from "@/lib/bongsim/welcomepay-mobile-oid-cookie";
 
 describe("welcomepay-mobile-oid-cookie", () => {
@@ -26,5 +27,20 @@ describe("welcomepay-mobile-oid-cookie", () => {
       },
     });
     expect(pickOidFromWelpayCookie(req)).toBe("oid_test_1");
+  });
+
+  it("운영 Set-Cookie — PG cross-site POST용 SameSite=None", () => {
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    const h = welcomepayMobileOidCookieSetHeader("oid1");
+    expect(h).toContain("SameSite=None");
+    expect(h).toContain("Secure");
+    process.env.NODE_ENV = prev;
+  });
+
+  it("document.cookie — https 에서 SameSite=None", () => {
+    const line = welcomepayMobileOidDocumentCookie("oid_x", true);
+    expect(line).toContain("SameSite=None");
+    expect(line).toContain("Secure");
   });
 });

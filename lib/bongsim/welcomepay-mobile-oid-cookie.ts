@@ -3,6 +3,15 @@ export const WELCOMEPAY_MOBILE_OID_COOKIE = "bongsim_welpay_p_oid";
 
 const COOKIE_PATH = "/api/bongsim/checkout/welcomepay-mobile-next";
 
+/** PG → 가맹점 cross-site POST 콜백에 쿠키가 실리도록 운영은 `SameSite=None`. */
+function welpayOidCookieSameSite(): "None" | "Lax" {
+  return process.env.NODE_ENV === "production" ? "None" : "Lax";
+}
+
+function welpayOidCookieSecure(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
 export function welcomepayMobileOidCookieSetHeader(providerSessionId: string): string {
   const sid = providerSessionId.trim();
   const parts = [
@@ -10,9 +19,9 @@ export function welcomepayMobileOidCookieSetHeader(providerSessionId: string): s
     `Path=${COOKIE_PATH}`,
     "Max-Age=7200",
     "HttpOnly",
-    "SameSite=Lax",
+    `SameSite=${welpayOidCookieSameSite()}`,
   ];
-  if (process.env.NODE_ENV === "production") parts.push("Secure");
+  if (welpayOidCookieSecure()) parts.push("Secure");
   return parts.join("; ");
 }
 
@@ -22,10 +31,18 @@ export function welcomepayMobileOidCookieClearHeader(): string {
     `Path=${COOKIE_PATH}`,
     "Max-Age=0",
     "HttpOnly",
-    "SameSite=Lax",
+    `SameSite=${welpayOidCookieSameSite()}`,
   ];
-  if (process.env.NODE_ENV === "production") parts.push("Secure");
+  if (welpayOidCookieSecure()) parts.push("Secure");
   return parts.join("; ");
+}
+
+/** 결제 폼 submit 직전 브라우저 `document.cookie` (HttpOnly fetch 누락·Safari 폴백). */
+export function welcomepayMobileOidDocumentCookie(providerSessionId: string, httpsPage: boolean): string {
+  const sid = encodeURIComponent(providerSessionId.trim());
+  const sameSite = httpsPage ? "None" : "Lax";
+  const secure = httpsPage ? "; Secure" : "";
+  return `${WELCOMEPAY_MOBILE_OID_COOKIE}=${sid}; path=${COOKIE_PATH}; max-age=7200; SameSite=${sameSite}${secure}`;
 }
 
 export function pickOidFromWelpayCookie(req: Request): string {

@@ -11,6 +11,7 @@ import {
   isProductionSiteHostname,
   isProductionWelpaySubmitUrl,
 } from "@/lib/bongsim/welcomepay-mobile-user-agent";
+import { welcomepayMobileOidDocumentCookie } from "@/lib/bongsim/welcomepay-mobile-oid-cookie";
 
 type PrepareMobile = {
   submitUrl: string;
@@ -91,6 +92,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
       try {
         const res = await fetch("/api/bongsim/checkout/welcomepay-prepare", {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             orderId,
@@ -260,6 +262,12 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
       }
       setIsSubmitting(true);
       try {
+        if (typeof document !== "undefined" && prep.mobile.pOid) {
+          document.cookie = welcomepayMobileOidDocumentCookie(
+            prep.mobile.pOid,
+            window.location.protocol === "https:",
+          );
+        }
         if (typeof form.requestSubmit === "function") {
           form.requestSubmit();
         } else {

@@ -70,16 +70,34 @@ async function handleWelcomepayMobileNext(req: Request) {
   await probePgPoolTlsOrFallback();
 
   const incoming = await readWelcomepayCallbackFromRequest(req);
+  const authRc = resultCodeOf(incoming);
+  const pgMessage =
+    incoming.P_RMESG1 ?? incoming.P_RMESG2 ?? incoming.resultMsg ?? incoming.ResultMsg ?? "";
+
   let oid = pickOid(incoming);
   let oidFromCookie = false;
   if (!oid) {
     oid = pickOidFromWelpayCookie(req);
     oidFromCookie = Boolean(oid);
   }
+
+  // 결제창 뜨기 전 PG 거절(01 등) — 콜백에 P_OID 없이 오는 경우가 많음
+  if (!oid && authRc && !isWelcomepayAuthSuccessCode(authRc)) {
+    console.warn("[welcomepay-mobile-next] pg_auth_reject_before_pay_ui", {
+      authRc,
+      method: req.method,
+      keys: Object.keys(incoming),
+    });
+    return fail(
+      welcomepayPgAuthFailMessage({ resultCode: authRc, pgMessage: pgMessage || null }),
+    );
+  }
+
   if (!oid) {
     console.error("[welcomepay-mobile-next] missing_oid", {
       method: req.method,
       contentType: req.headers.get("content-type"),
+      authRc: authRc || "(empty)",
       keys: Object.keys(incoming),
       hasCookie: Boolean(req.headers.get("cookie")),
     });
@@ -131,13 +149,8 @@ async function handleWelcomepayMobileNext(req: Request) {
     return fail("amount_mismatch");
   }
 
-  const authRc = resultCodeOf(incoming);
   if (authRc && !isWelcomepayAuthSuccessCode(authRc)) {
-    const msg = welcomepayPgAuthFailMessage({
-      resultCode: authRc,
-      pgMessage: incoming.P_RMESG1 ?? incoming.P_RMESG2 ?? incoming.resultMsg ?? incoming.ResultMsg,
-    });
-    return fail(msg);
+    return fail(welcomepayPgAuthFailMessage({ resultCode: authRc, pgMessage: pgMessage || null }));
   }
 
   const preq = incoming.P_REQ_URL?.trim() ?? incoming.p_req_url?.trim();
