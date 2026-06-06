@@ -245,6 +245,30 @@
       ]
     },
     {
+      "id": "modetour-schedule-image-keyword-ko-route",
+      "tier": ["prebuild", "ci"],
+      "summary": "모두투어 imageKeyword — 한글 routeText·랜드마크 우선·귀국일 키워드 비움",
+      "checks": [
+        {
+          "file": "lib/modetour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]",
+            "pickForeignPlaceFromRouteText",
+            "englishFromKoreanRouteSegment",
+            "dedupeModetourTourismPrimaryKeywordsAcrossDays",
+            "isDomesticOnlyRouteText"
+          ],
+          "mustNotInclude": [
+            "routeText 라틴 세그먼트 폴백만"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-preview.ts",
+          "mustInclude": ["applyModetourScheduleImageKeywordsToRows"]
+        }
+      ]
+    },
+    {
       "id": "hanatour-e2e-airtel-same-product-guard",
       "tier": ["prebuild", "ci"],
       "summary": "하나투어 E2E 자유여행 동일상품 anchor·URL type=H01 가드",
