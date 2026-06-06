@@ -656,8 +656,8 @@ export async function buildProductPublicDetailRenderModel(
   )
   let priceRowsForPublic = Array.isArray(mergedPriceRows) ? mergedPriceRows : []
 
-  if (verygoodtourPublicRowFactsOnly && verygoodAirtelListing) {
-    /** Product select has no heroDepartureDate — use departure calendar / merged price rows only. */
+  if (isAirHotelProduct({ listingKind: travelProduct.listingKind, productType: travelProduct.productType })) {
+    /** 자유여행: 출발 달력·ProductPrice 행이 비어도 본문 연령별 표·priceFrom으로 견적 SSOT 보강 */
     const fallbackDate =
       (departures[0]?.departureDate != null ? toDepartureDateYmd(departures[0].departureDate) : '') ||
       mergedPriceRows[0]?.date?.slice(0, 10) ||
@@ -927,7 +927,7 @@ export async function buildProductPublicDetailRenderModel(
       departureDateTo,
       lowestAdultPrice,
       highestAdultPrice,
-      infantPrice: firstBookable?.priceInfant ?? 150000,
+      infantPrice: firstBookable?.priceInfant ?? null,
       childBedPrice: firstBookable?.priceChildWithBed ?? lowestAdultPrice,
       minPaxPerDeparture:
         minPaxFromDepartures ??

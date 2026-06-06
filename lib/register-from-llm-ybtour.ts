@@ -115,6 +115,8 @@ import { parseLlmJsonObject } from './llm-json-extract'
 import {
   extractYbtourMetaSingleRoomFromBody,
   extractYbtourVerbatimListingTitle,
+  overlayYbtourStructuredIncExcOnRegisterRaw,
+  resolveYbtourMergedIncExcText,
 } from '@/lib/register-ybtour-basic'
 import { parseYbtourShoppingVisitCount } from '@/lib/register-ybtour-shopping'
 import {
@@ -1694,6 +1696,7 @@ ${text.slice(0, 16000)}`
     raw = { ...raw, schedule: scheduleFirstPassRows as RegisterGeminiLlmJson['schedule'] }
   }
   ybtourClearLlmWhenDedicatedPasteEmpty(raw, pb)
+  raw = overlayYbtourStructuredIncExcOnRegisterRaw(raw, detailBody.includedExcludedStructured)
   let registerAdminPersistedLlmParsedJson: string | null = null
   try {
     registerAdminPersistedLlmParsedJson = clipRegisterAdminLlmParsedJsonString(JSON.stringify(raw))
@@ -2160,16 +2163,19 @@ ${text.slice(0, 16000)}`
     const nextKey = normalizeDedupText(singleRoomSurchargeDisplayText)
     if (!existingKeys.has(nextKey)) excludedItems.push(singleRoomSurchargeDisplayText)
   }
-  const includedTextMerged =
-    (raw.includedRaw as string)?.trim() ||
-    (includedItems.length > 0 ? includedItems.join('\n') : null) ||
-    (raw.includedText as string)?.trim() ||
-    null
-  const excludedTextMerged =
-    (raw.excludedRaw as string)?.trim() ||
-    (excludedItems.length > 0 ? excludedItems.join('\n') : null) ||
-    (raw.excludedText as string)?.trim() ||
-    null
+  const ieStructured = detailBody.includedExcludedStructured
+  const includedTextMerged = resolveYbtourMergedIncExcText({
+    rawText: (raw.includedRaw as string)?.trim() || null,
+    items: includedItems,
+    structuredItems: ieStructured.includedItems,
+    fallbackText: (raw.includedText as string)?.trim() || null,
+  })
+  const excludedTextMerged = resolveYbtourMergedIncExcText({
+    rawText: (raw.excludedRaw as string)?.trim() || null,
+    items: excludedItems,
+    structuredItems: ieStructured.excludedItems,
+    fallbackText: (raw.excludedText as string)?.trim() || null,
+  })
 
   let airtelHotelInfoJsonOut = extractAirtelHotelInfoJson(textForAirtel)
   if (airtelHotelInfoJsonOut) {

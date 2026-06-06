@@ -376,6 +376,85 @@ export function logYbtourBasicDetailBody(detail: DetailBodyParseSnapshot, rawLen
   }
 }
 
+/** LLM `includedRaw`/`excludedRaw`에 일정·약관 등 본문 전체가 섞였는지 */
+export function isYbtourIncExcTextBodyDump(text: string | null | undefined): boolean {
+  const t = (text ?? '').replace(/\r/g, '').trim()
+  if (!t) return false
+  const markerRes = [
+    /(?:^|\n)\s*여행\s*일정/im,
+    /(?:^|\n)\s*\d\s*일차/im,
+    /(?:^|\n)\s*DAY\s*\d/im,
+    /(?:^|\n)\s*약관\s*\/\s*취소/im,
+    /(?:^|\n)\s*■\s*약관/im,
+    /(?:^|\n)\s*■\s*취소수수료/im,
+    /(?:^|\n)\s*참고하세요/im,
+  ]
+  const markerHits = markerRes.filter((re) => re.test(t)).length
+  const bothIeHeaders =
+    /(?:^|\n)\s*포함\s*사항/im.test(t) && /(?:^|\n)\s*불포함\s*사항/im.test(t)
+  if (bothIeHeaders && t.length > 80) return true
+  if (markerHits >= 2) return true
+  if (markerHits >= 1 && t.length > 100) return true
+  if (t.length > 2400) return true
+  return false
+}
+
+/** 구조화 bullet·파서 결과가 있으면 LLM raw 덤프보다 우선 */
+export function resolveYbtourMergedIncExcText(args: {
+  rawText?: string | null
+  items: string[]
+  structuredItems?: string[]
+  fallbackText?: string | null
+}): string | null {
+  const raw = args.rawText?.trim() || null
+  const fromItems = args.items.map((x) => String(x).trim()).filter(Boolean)
+  const fromStructured = (args.structuredItems ?? []).map((x) => String(x).trim()).filter(Boolean)
+  const itemLines = fromItems.length > 0 ? fromItems : fromStructured
+  const joinedItems = itemLines.length > 0 ? itemLines.join('\n') : null
+  if (isYbtourIncExcTextBodyDump(raw)) {
+    return joinedItems ?? args.fallbackText?.trim() ?? null
+  }
+  return raw ?? joinedItems ?? args.fallbackText?.trim() ?? null
+}
+
+export type YbtourRegisterGeminiIncExcRaw = {
+  includedItems?: string[] | null
+  excludedItems?: string[] | null
+  includedRaw?: string | null
+  excludedRaw?: string | null
+  includedText?: string | null
+  excludedText?: string | null
+}
+
+/** 풀 등록 LLM JSON — detail-body 구조화 포함·불포함이 raw 덤프보다 우선 */
+export function overlayYbtourStructuredIncExcOnRegisterRaw<T extends YbtourRegisterGeminiIncExcRaw>(
+  raw: T,
+  ie: Pick<IncludedExcludedStructured, 'includedItems' | 'excludedItems'>
+): T {
+  const next = { ...raw }
+  if (ie.includedItems.length) {
+    const dump = isYbtourIncExcTextBodyDump(
+      typeof raw.includedRaw === 'string' ? raw.includedRaw : null
+    )
+    const emptyItems = !Array.isArray(raw.includedItems) || raw.includedItems.length === 0
+    if (dump || emptyItems) {
+      next.includedItems = [...ie.includedItems]
+      if (dump) next.includedRaw = null
+    }
+  }
+  if (ie.excludedItems.length) {
+    const dump = isYbtourIncExcTextBodyDump(
+      typeof raw.excludedRaw === 'string' ? raw.excludedRaw : null
+    )
+    const emptyItems = !Array.isArray(raw.excludedItems) || raw.excludedItems.length === 0
+    if (dump || emptyItems) {
+      next.excludedItems = [...ie.excludedItems]
+      if (dump) next.excludedRaw = null
+    }
+  }
+  return next
+}
+
 /** LLM이 포함·불포함을 한 덩어리로 넣었을 때 `불포함사항` 헤더 기준 분리 */
 export function repairYbtourMergedIncludedExcluded(parsed: RegisterParsed): RegisterParsed {
   const blob = (parsed.includedText ?? '').trim()
@@ -480,7 +559,8 @@ export function applyYbtourStructuredPreviewFields(parsed: RegisterParsed): Regi
     if (lines.length) out = { ...out, includedText: lines.join('\n'), includedItems: lines }
   }
 
-  if (!(out.excludedText ?? '').trim()) {
+  const excludedCurrent = (out.excludedText ?? '').trim()
+  if (!excludedCurrent || isYbtourIncExcTextBodyDump(excludedCurrent)) {
     const fromItems = out.excludedItems?.length ? out.excludedItems : ieExc
     const note = (ie?.noteText ?? '').trim()
     const lines = (fromItems ?? []).map((x) => String(x).trim()).filter(Boolean)
@@ -495,6 +575,16 @@ export function applyYbtourStructuredPreviewFields(parsed: RegisterParsed): Regi
   } else if (ieExc.length > 0 && !(out.excludedItems?.length ?? 0)) {
     const lines = ieExc.map((x) => String(x).trim()).filter(Boolean)
     if (lines.length) out = { ...out, excludedItems: lines }
+  }
+
+  const includedCurrent = (out.includedText ?? '').trim()
+  if (
+    includedCurrent &&
+    isYbtourIncExcTextBodyDump(includedCurrent) &&
+    ieInc.length > 0
+  ) {
+    const lines = ieInc.map((x) => String(x).trim()).filter(Boolean)
+    if (lines.length) out = { ...out, includedText: lines.join('\n'), includedItems: lines }
   }
 
   return out
