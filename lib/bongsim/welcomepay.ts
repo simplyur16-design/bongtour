@@ -13,26 +13,19 @@ export function welcomepayCheckoutCallbackOrigin(): string {
 }
 
 /**
- * 모바일 welpay `P_NEXT_URL` — iOS Safari 등에서 POST 본문이 비어도 주문번호를 복구할 수 있도록
- * `P_OID`·`P_NOTI`를 쿼리에 포함한다(가맹 세션 id = provider_session_id).
+ * 모바일 welpay `P_NEXT_URL` — 가맹 PG 등록 URL과 **쿼리 없이** 동일해야 한다.
+ * 주문번호 복구는 POST `P_OID`·`P_NOTI`(폼 hidden) 및 PG가 붙이는 콜백 파라미터에 의존한다.
  */
-export function welcomepayMobileNextCallbackUrl(providerSessionId: string): string {
-  const sid = providerSessionId.trim();
-  const q = new URLSearchParams();
-  if (sid) {
-    q.set("P_OID", sid);
-    q.set("P_NOTI", sid);
-  }
-  const qs = q.toString();
-  const origin = welcomepayCheckoutCallbackOrigin();
-  return qs
-    ? `${origin}/api/bongsim/checkout/welcomepay-mobile-next?${qs}`
-    : `${origin}/api/bongsim/checkout/welcomepay-mobile-next`;
+export function welcomepayMobileNextCallbackUrl(): string {
+  return `${welcomepayCheckoutCallbackOrigin()}/api/bongsim/checkout/welcomepay-mobile-next`;
 }
 
 export function resolveWelcomepayEnv(): WelcomepayEnvKind {
-  const raw = (process.env.WELCOMEPAY_ENV ?? "test").trim().toLowerCase();
+  const raw = (process.env.WELCOMEPAY_ENV ?? "").trim().toLowerCase();
   if (raw === "production" || raw === "prod" || raw === "live") return "production";
+  if (raw === "test") return "test";
+  // 배포(NODE_ENV=production)에서 WELCOMEPAY_ENV 미설정 시 운영 PG 사용 — iPhone/Android tmobile 오송신 방지
+  if (process.env.NODE_ENV === "production") return "production";
   return "test";
 }
 
@@ -69,12 +62,31 @@ export function welcomepayMobileWelpaySubmitUrl(): string {
     : "https://tmobile.paywelcome.co.kr/smart/welpay/";
 }
 
-/**
- * 모바일 welpay `P_TIMESTAMP` — PC 표준결제와 동일하게 Unix epoch 밀리초 문자열.
- * `generateMobileSignature` 입력값과 반드시 일치해야 함.
- */
+/** 모바일 welpay 필수 `P_RESERVED` — IDC센터코드 + 금액위변조 hash (이니시스 stdpay_m). */
+export const WELCOMEPAY_MOBILE_P_RESERVED = "centerCd=Y&amt_hash=Y";
+
+/** 모바일 금액위변조 HashKey — 미설정 시 `WELCOMEPAY_SIGN_KEY` 사용. */
+export function resolveWelcomepayMobileHashKey(): string {
+  return (process.env.WELCOMEPAY_MOBILE_HASH_KEY ?? process.env.WELCOMEPAY_SIGN_KEY ?? "").trim();
+}
+
+/** 모바일 welpay `P_TIMESTAMP` — PC 표준결제와 동일하게 Unix epoch 밀리초 문자열. */
 export function generateMobileWelpayTimestamp(): string {
   return generateTimestamp();
+}
+
+/**
+ * 모바일 welpay `P_CHKFAKE` — BASE64(SHA512(P_AMT + P_OID + P_TIMESTAMP + HashKey)).
+ */
+export function generateMobileWelpayPChkfake(input: {
+  pAmt: string;
+  pOid: string;
+  pTimestamp: string;
+  hashKey: string;
+}): string {
+  const data =
+    `${input.pAmt.trim()}${input.pOid.trim()}${input.pTimestamp.trim()}${input.hashKey.trim()}`;
+  return createHash("sha512").update(data, "utf8").digest("base64");
 }
 
 /** 승인/인증 콜백 URL이 웰컴페이먼츠 호스트인지(오픈 리다이렉트 방지). */
@@ -124,7 +136,7 @@ export function generatePcStdPaySignature(input: {
   return createHash("sha256").update(plain, "utf8").digest("hex");
 }
 
-/** 모바일 등: SHA256("mkey={mKey}&P_AMT={amt}&P_OID={oid}&P_TIMESTAMP={ts}") — mkey 소문자 */
+/** @deprecated `generateMobileWelpayPChkfake` — 구 v1.10 SHA256(mkey) 방식. 신규 연동 금지. */
 export function generateMobileSignature(input: {
   mKey: string;
   pAmt: string;
