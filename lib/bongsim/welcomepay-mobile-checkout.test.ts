@@ -47,10 +47,10 @@ describe("모바일 welpay 체크아웃 — iPhone·Android", () => {
   });
 
   describe("P_NEXT_URL (welcomepay-mobile-next)", () => {
-    it("prepare — P_OID·P_NOTI 쿼리 포함 (iOS·Android 공통 폴백)", () => {
+    it("prepare — P_NEXT_URL은 PG 등록과 동일(쿼리 없음)", () => {
       process.env.NEXT_PUBLIC_SITE_URL = "https://bongtour.com";
-      expect(welcomepayMobileNextCallbackUrl(SESSION_ID)).toBe(
-        `https://bongtour.com/api/bongsim/checkout/welcomepay-mobile-next?P_OID=${encodeURIComponent(SESSION_ID)}&P_NOTI=${encodeURIComponent(SESSION_ID)}`,
+      expect(welcomepayMobileNextCallbackUrl()).toBe(
+        "https://bongtour.com/api/bongsim/checkout/welcomepay-mobile-next",
       );
     });
 
@@ -66,11 +66,11 @@ describe("모바일 welpay 체크아웃 — iPhone·Android", () => {
       expect(m.P_AMT).toBe("15000");
     });
 
-    it("Android — GET만 오고 본문 없음 (쿼리 폴백)", async () => {
-      process.env.NEXT_PUBLIC_SITE_URL = "https://bongtour.com";
-      const req = new Request(`${welcomepayMobileNextCallbackUrl(SESSION_ID)}&P_STATUS=00&P_TID=android_get_tid`, {
-        method: "GET",
-      });
+    it("Android — GET만 오고 PG가 붙인 쿼리 (iOS·WebView 폴백)", async () => {
+      const req = new Request(
+        `https://bongtour.com/api/bongsim/checkout/welcomepay-mobile-next?P_OID=${encodeURIComponent(SESSION_ID)}&P_NOTI=${encodeURIComponent(SESSION_ID)}&P_STATUS=00&P_TID=android_get_tid`,
+        { method: "GET" },
+      );
       const m = await readWelcomepayCallbackFromRequest(req);
       expect(pickOid(m)).toBe(SESSION_ID);
       expect(m.P_TID).toBe("android_get_tid");
@@ -91,23 +91,24 @@ describe("모바일 welpay 체크아웃 — iPhone·Android", () => {
       expect(m.P_TID).toBe("android_multi_tid");
     });
 
-    it("iPhone — GET 쿼리 폴백 (Safari POST 본문 유실)", async () => {
-      process.env.NEXT_PUBLIC_SITE_URL = "https://bongtour.com";
-      const req = new Request(`${welcomepayMobileNextCallbackUrl(SESSION_ID)}&P_STATUS=00`, {
-        method: "GET",
-      });
+    it("iPhone — GET 쿼리 폴백 (Safari POST 본문 유실, PG가 파라미터 부착)", async () => {
+      const req = new Request(
+        `https://bongtour.com/api/bongsim/checkout/welcomepay-mobile-next?P_OID=${encodeURIComponent(SESSION_ID)}&P_STATUS=00`,
+        { method: "GET" },
+      );
       const m = await readWelcomepayCallbackFromRequest(req);
       expect(pickOid(m)).toBe(SESSION_ID);
     });
 
     it("쿼리+본문 병합 시 본문 P_OID 우선", async () => {
-      process.env.NEXT_PUBLIC_SITE_URL = "https://bongtour.com";
-      const base = welcomepayMobileNextCallbackUrl("from_query");
-      const req = new Request(base, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `P_OID=${SESSION_ID}&P_STATUS=00`,
-      });
+      const req = new Request(
+        `https://bongtour.com/api/bongsim/checkout/welcomepay-mobile-next?P_OID=from_query`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `P_OID=${SESSION_ID}&P_STATUS=00`,
+        },
+      );
       const m = await readWelcomepayCallbackFromRequest(req);
       expect(pickOid(m)).toBe(SESSION_ID);
     });

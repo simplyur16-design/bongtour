@@ -24,7 +24,7 @@ describe("welcomepay-callback-parse", () => {
     });
   });
 
-  it("readWelcomepayCallbackFromRequest — GET 쿼리 (iOS P_NEXT_URL 폴백)", async () => {
+  it("readWelcomepayCallbackFromRequest — GET 쿼리 (PG 콜백 파라미터)", async () => {
     const req = new Request(
       "https://bongtour.com/api/bongsim/checkout/welcomepay-mobile-next?P_OID=MID_q1&P_NOTI=MID_q1",
       { method: "GET" },
