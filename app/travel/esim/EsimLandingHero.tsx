@@ -1,5 +1,5 @@
-import Image from 'next/image'
 import Link from 'next/link'
+import SafeImage from '@/app/components/SafeImage'
 import { bongsimPath } from '@/lib/bongsim/constants'
 import { ESIM_HERO_IMAGE_URL } from '@/lib/esim-hero-constants'
 import EsimLandingHeroBackground from '@/app/travel/esim/EsimLandingHeroBackground'
@@ -15,7 +15,7 @@ export default function EsimLandingHero() {
       aria-labelledby="esim-hero-heading"
     >
       {useLocalImage ? (
-        <Image
+        <SafeImage
           src={ESIM_HERO_IMAGE_URL}
           alt={HERO_ALT}
           fill

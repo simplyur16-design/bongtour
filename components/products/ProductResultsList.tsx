@@ -636,7 +636,7 @@ function AirHotelCountryGroupedList({
               {rowItems.map((item) => (
                 <li
                   key={item.id}
-                  className={`${overseasBucketRowLiClassDefault} max-md:w-[min(11rem,calc((100vw-2.75rem)*0.43))] max-md:max-w-none`}
+                  className={`${MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS} md:w-[min(17.5rem,calc(100vw-2.75rem))] md:max-w-none lg:w-[calc((100%-2rem)/3)] lg:min-w-0 md:shrink md:snap-align-none`}
                 >
                   <ProductResultCard
                     item={item}

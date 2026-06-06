@@ -596,8 +596,16 @@ const OverseasHero: FC<OverseasHeroProps> = ({
             ? 'min-h-[min(260px,44vh)] sm:min-h-[min(300px,48vh)]'
             : 'min-h-[min(280px,46vh)] sm:min-h-[min(340px,50vh)]'
         }`}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
+        onMouseEnter={() => {
+          if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
+            setIsPaused(true)
+          }
+        }}
+        onMouseLeave={() => {
+          if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
+            setIsPaused(false)
+          }
+        }}
         aria-live={reduceMotion ? 'polite' : 'off'}
       >
         <div className="absolute inset-0">

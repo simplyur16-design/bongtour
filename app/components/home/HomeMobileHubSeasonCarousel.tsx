@@ -160,8 +160,6 @@ export default function HomeMobileHubSeasonCarousel({ slides, hideHeading = fals
     if (index >= n && n > 0) setIndex(0)
   }, [index, n])
 
-  if (n === 0) return null
-
   const bumpInteractionPause = useCallback(() => {
     resumeAtRef.current = Date.now() + PAUSE_AFTER_INTERACTION_MS
   }, [])
@@ -201,6 +199,8 @@ export default function HomeMobileHubSeasonCarousel({ slides, hideHeading = fals
     },
     [bumpInteractionPause, n]
   )
+
+  if (n === 0) return null
 
   const onTouchStart = (e: React.TouchEvent) => {
     bumpInteractionPause()

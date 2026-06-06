@@ -7,6 +7,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeHomeSeasonSlidesForClient, type HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
 import { MAIN_CURATION_EYEBROW, MAIN_CURATION_LEAD, MAIN_CURATION_TITLE } from '@/lib/main-hub-copy'
+import {
+  MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS,
+  MOBILE_HUB_PRODUCT_ROW_CLASS,
+} from '@/lib/mobile-hub-scroll-layout'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
 const AUTO_MS = 5600
@@ -59,12 +63,9 @@ export default function SeasonCurationCarouselClient({ slides, variant, sectionI
           {MAIN_CURATION_EYEBROW}
         </p>
         <h2 className={`${HOME_MOBILE_HUB_SECTION_TITLE_CLASS} mt-1 text-bt-text-navy`}>{MAIN_CURATION_TITLE}</h2>
-        <ul className="mt-3 flex gap-3 overflow-x-auto pb-1 pt-0.5 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory">
+        <ul className={`${MOBILE_HUB_PRODUCT_ROW_CLASS} mt-3`}>
           {safe.map((slide) => (
-            <li
-              key={slide.id}
-              className="w-[min(18.5rem,calc(100vw-3rem))] shrink-0 snap-start"
-            >
+            <li key={slide.id} className={MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS}>
               <SeasonCurationCardLink slide={slide} compact />
             </li>
           ))}
