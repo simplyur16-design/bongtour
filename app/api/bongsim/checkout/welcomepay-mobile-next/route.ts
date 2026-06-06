@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
-import { welcomepayCheckoutFailMessage } from "@/lib/bongsim/checkout/welcomepay-fail-message";
 import {
   isWelcomepayAuthSuccessCode,
+  welcomepayCheckoutFailMessage,
   welcomepayPgAuthFailMessage,
-} from "@/lib/bongsim/checkout/welcomepay-pg-auth-fail-message";
+} from "@/lib/bongsim/checkout/welcomepay-fail-message";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import { getPgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
 import {

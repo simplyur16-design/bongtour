@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 import {
   isWelcomepayAuthSuccessCode,
   welcomepayPgAuthFailMessage,
-} from "@/lib/bongsim/checkout/welcomepay-pg-auth-fail-message";
+} from "@/lib/bongsim/checkout/welcomepay-fail-message";
 
 describe("welcomepayPgAuthFailMessage", () => {
   it("resultCode 01 — 테스트 환경 안내", () => {

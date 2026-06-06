@@ -12,11 +12,11 @@ import {
   resultCodeOf,
 } from "@/lib/bongsim/welcomepay-callback-parse";
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
-import { welcomepayCheckoutFailMessage } from "@/lib/bongsim/checkout/welcomepay-fail-message";
 import {
   isWelcomepayAuthSuccessCode,
+  welcomepayCheckoutFailMessage,
   welcomepayPgAuthFailMessage,
-} from "@/lib/bongsim/checkout/welcomepay-pg-auth-fail-message";
+} from "@/lib/bongsim/checkout/welcomepay-fail-message";
 import { isPaywelcomeHttpsUrl, welcomepayPayAuthUrl } from "@/lib/bongsim/welcomepay";
 import {
   buildPcPayAuthFormBody,
