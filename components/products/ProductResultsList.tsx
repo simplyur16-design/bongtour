@@ -34,8 +34,8 @@ import {
 import type { BrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
 import {
-  MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS,
   MOBILE_HUB_OVERSEAS_SECTION_STACK_CLASS,
+  MOBILE_HUB_PRODUCT_CARD_WIDTH_CLASS,
   MOBILE_HUB_PRODUCT_ROW_CLASS,
   MOBILE_HUB_SECTION_STACK_CLASS,
 } from '@/lib/mobile-hub-scroll-layout'
@@ -80,8 +80,8 @@ export type ResultItem = {
 /** 해외 목록: 상품 카드 N개마다 eSIM 네이티브 카드 1개 */
 const ESIM_NATIVE_INSERT_EVERY = 10
 
-/** 허브 모바일 가로 스크롤 — compact 카드 1장(해외 패키지·자유여행 공통) */
-const mobileHubCompactScrollLiClass = MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS
+/** 허브 모바일 가로 스크롤 — 상품 카드 1장 중심(해외 패키지·자유여행 공통) */
+const mobileHubProductScrollLiClass = MOBILE_HUB_PRODUCT_CARD_WIDTH_CLASS
 
 /** 해외·자유여행 허브: 권역/국가당 한 줄 — 모바일 compact 스냅, md+ 가로 스크롤 다열 */
 const countryProductRowClass = MOBILE_HUB_PRODUCT_ROW_CLASS
@@ -634,10 +634,7 @@ function AirHotelCountryGroupedList({
             </h2>
             <ul className={countryProductRowClass} role="list" aria-label={`${regionLabel} 상품`}>
               {rowItems.map((item) => (
-                <li
-                  key={item.id}
-                  className={`${MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS} md:w-[min(17.5rem,calc(100vw-2.75rem))] md:max-w-none lg:w-[calc((100%-2rem)/3)] lg:min-w-0 md:shrink md:snap-align-none`}
-                >
+                <li key={item.id} className={overseasBucketRowLiClassDefault}>
                   <ProductResultCard
                     item={item}
                     formatWon={formatWon}
@@ -1008,7 +1005,7 @@ function OverseasRegionGroupedList({
                   ariaLabel={`${OVERSEAS_DISPLAY_BUCKET_LABEL[bucketId]} 상품`}
                   mobileNodes={buildProductResultRowNodes(flatList, formatWon, seasonalPickIds, {
                     compact: true,
-                    liClassName: mobileHubCompactScrollLiClass,
+                    liClassName: mobileHubProductScrollLiClass,
                     interleaveEsim: interleaveEsimNativeCards,
                   })}
                   desktopUlClassName={countryProductRowClass}
@@ -1095,7 +1092,7 @@ function FlatProductResultsList({
       ariaLabel="상품 목록"
       mobileNodes={buildProductResultRowNodes(items, formatWon, seasonalPickIds, {
         compact: true,
-        liClassName: mobileHubCompactScrollLiClass,
+        liClassName: mobileHubProductScrollLiClass,
         interleaveEsim: interleaveEsimNativeCards,
       })}
       desktopUlClassName={desktopGridClass}
