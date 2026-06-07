@@ -36,29 +36,71 @@ export function extractYbtourProductCodeFromBlob(blob: string): string | null {
   return m?.[1]?.trim() ?? null
 }
 
+const YBTOUR_LISTING_TITLE_SKIP_RE =
+  /^(출발|도착|예약하기|인쇄|문의|찜|공유|담당자|상품\s*이미지|더보기|추천\s*상품|상품번호)\b/i
+
+function ybtourListingTitleHasTourShape(line: string): boolean {
+  return (
+    /\d+\s*박\s*\d+\s*일/.test(line) ||
+    /\d+\s*박/.test(line) ||
+    /(?<!\d)\d+\s*일(?!\d)/.test(line) ||
+    /\d+\s*\/\s*\d+\s*일/.test(line)
+  )
+}
+
+function isYbtourListingTitleCandidateLine(line: string): boolean {
+  if (!line || line.length < 12 || line.length > 220) return false
+  if (/^https?:\/\//i.test(line)) return false
+  if (/^\d+\s*\.\s*\d+\s*\/\s*\d+/i.test(line)) return false
+  if (/^\d+(\.\d+)?\s*\/\s*\d+/.test(line) && /리뷰/.test(line)) return false
+  if (/(리뷰\s*\d+건)/i.test(line) && line.length < 48) return false
+  if (YBTOUR_LISTING_TITLE_SKIP_RE.test(line)) return false
+  if (/^COUPON\b|^다운로드\b/i.test(line)) return false
+  return true
+}
+
+/** 해시·박일·자유여행 신호가 강한 줄 우선(자유여행 FIT og:title vs 리스트 한 줄). */
+function scoreYbtourListingTitleLine(line: string): number {
+  const hashCount = (line.match(/#/g) || []).length
+  const tourShape = ybtourListingTitleHasTourShape(line)
+  let score = 0
+  if (tourShape) score += 40
+  if (hashCount >= 2) score += 25 + Math.min(hashCount, 8) * 4
+  else if (hashCount >= 1) score += 12
+  if (/자유여행|에어텔/i.test(line)) score += 8
+  score += Math.min(line.length, 140) / 20
+  return score
+}
+
+function pickBestYbtourListingTitle(lines: string[]): string | null {
+  let best: { line: string; score: number } | null = null
+  for (const line of lines) {
+    if (!isYbtourListingTitleCandidateLine(line)) continue
+    const hashCount = (line.match(/#/g) || []).length
+    const tourShape = ybtourListingTitleHasTourShape(line)
+    if (!tourShape && !/(박|일)/.test(line)) continue
+    const minHash = tourShape ? 1 : 2
+    if (hashCount < minHash) continue
+    const score = scoreYbtourListingTitleLine(line)
+    if (!best || score > best.score) best = { line, score }
+  }
+  return best?.line ?? null
+}
+
 /**
  * 상품 상단 노출 제목(해시태그·항공코드 등 포함) — LLM 의역 대신 붙여넣기 원문을 SSOT로 쓴다.
- * `상품번호` 이후 짧은 구간에서만 탐색해 하단 "추천 상품" 줄과 혼동을 줄인다.
+ * `상품번호` 이후 구간 우선; 자유여행(FIT)은 해시 1개+박일 줄도 인정한다.
  */
 export function extractYbtourVerbatimListingTitle(blob: string): string | null {
-  const text = blob.replace(/\r\n/g, '\n')
+  const text = blob.replace(/\r\n/g, '\n').replace(/\u00a0/g, ' ')
+  const lines = text.slice(0, 12_000).split('\n').map((l) => l.trim())
   const productIdx = text.search(/상품번호\s*[A-Za-z]*\d[A-Za-z0-9-]+/i)
-  const windowStart = productIdx >= 0 ? productIdx : 0
-  const window = text.slice(windowStart, windowStart + 9000)
-  const lines = window.split('\n').map((l) => l.trim())
-  for (const line of lines) {
-    if (!line || line.length < 12 || line.length > 220) continue
-    if (/^https?:\/\//i.test(line)) continue
-    if (/^\d+\s*\.\s*\d+\s*\/\s*\d+/i.test(line)) continue
-    if (/(리뷰\s*\d+건)/i.test(line) && line.length < 48) continue
-    if (/^(출발|도착|예약하기|인쇄|문의|찜|공유|담당자|상품\s*이미지|더보기|추천\s*상품)\b/i.test(line)) continue
-    if (/^COUPON\b|^다운로드\b/i.test(line)) continue
-    const hashCount = (line.match(/#/g) || []).length
-    if (hashCount < 2) continue
-    if (!/(일|박|\/)/.test(line)) continue
-    return line
+  if (productIdx >= 0) {
+    const fromProduct = text.slice(productIdx, productIdx + 9000).split('\n').map((l) => l.trim())
+    const picked = pickBestYbtourListingTitle(fromProduct)
+    if (picked) return picked
   }
-  return null
+  return pickBestYbtourListingTitle(lines.slice(0, 70))
 }
 
 function normLine(s: string): string {
