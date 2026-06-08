@@ -5,8 +5,30 @@ import { requireAdmin } from '@/lib/require-admin'
 import { computeAdminProductSupplierDerivatives } from '@/lib/admin-product-supplier-derivatives'
 import { countScheduleDays } from '@/lib/schedule-days'
 import { resolveAdminListPriceFrom } from '@/lib/admin-product-list-price-from'
+import { OVERSEAS_TRAINING_LISTING_KIND } from '@/lib/overseas-training-program-query'
 
 const LIMIT = 50
+
+async function fetchAdminProductPoolCounts() {
+  const [totalAll, registered, autoUnpublished, rejected, trainingPrograms] = await Promise.all([
+    prisma.product.count(),
+    prisma.product.count({ where: { registrationStatus: 'registered' } }),
+    prisma.product.count({ where: { registrationStatus: 'auto_unpublished' } }),
+    prisma.product.count({ where: { registrationStatus: 'rejected' } }),
+    prisma.product.count({
+      where: { registrationStatus: 'registered', listingKind: OVERSEAS_TRAINING_LISTING_KIND },
+    }),
+  ])
+  const registeredTravelPublic = registered - trainingPrograms
+  return {
+    totalAll,
+    registered,
+    registeredTravelPublic,
+    autoUnpublished,
+    rejected,
+    trainingPrograms,
+  }
+}
 
 /**
  * GET /api/admin/products/list — 페이지네이션 목록. 인증: 관리자.
@@ -128,8 +150,10 @@ export async function GET(req: NextRequest) {
     }
 
     const andBase = (Array.isArray(where.AND) ? [...where.AND] : where.AND ? [where.AND] : []) as object[]
-    const [total, items, countWithImage, countLegacy, countPexels, countGemini, countNeedsImageReview] = await Promise.all([
+    const [total, poolCounts, items, countWithImage, countLegacy, countPexels, countGemini, countNeedsImageReview] =
+      await Promise.all([
       prisma.product.count({ where }),
+      fetchAdminProductPoolCounts(),
       prisma.product.findMany({
         where,
         orderBy: { updatedAt: 'desc' },
@@ -279,6 +303,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       items: rows,
       total,
+      poolCounts,
       page,
       totalPages,
       limit: LIMIT,

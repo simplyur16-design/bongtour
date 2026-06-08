@@ -53,6 +53,14 @@ type ProductRow = {
 type ListResponse = {
   items: ProductRow[]
   total: number
+  poolCounts?: {
+    totalAll: number
+    registered: number
+    registeredTravelPublic: number
+    autoUnpublished: number
+    rejected: number
+    trainingPrograms: number
+  }
   page: number
   totalPages: number
   limit: number
@@ -519,7 +527,29 @@ export default function AdminProductsPage() {
         {/* KPI */}
         {!loading && data != null && (
           <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <AdminKpiCard label="전체 상품" value={`${data.total}건`} tone="muted" />
+            <AdminKpiCard
+              label="DB 전체"
+              value={`${data.poolCounts?.totalAll ?? data.total}건`}
+              tone="muted"
+            />
+            <AdminKpiCard
+              label="공개 등록"
+              value={`${data.poolCounts?.registered ?? '—'}건`}
+              tone="muted"
+            />
+            <AdminKpiCard
+              label="여행 허브 노출"
+              value={`${data.poolCounts?.registeredTravelPublic ?? '—'}건`}
+              tone="muted"
+            />
+            {typeof data.poolCounts?.autoUnpublished === 'number' && data.poolCounts.autoUnpublished > 0 ? (
+              <AdminKpiCard
+                label="자동 비공개"
+                value={`${data.poolCounts.autoUnpublished}건`}
+                tone="amber"
+              />
+            ) : null}
+            <AdminKpiCard label="필터 결과" value={`${data.total}건`} tone="muted" />
             <AdminKpiCard label="이번 페이지" value={`${data.items.length}건`} tone="muted" />
             <AdminKpiCard
               label="에러 포함"
