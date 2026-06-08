@@ -41,7 +41,12 @@ import {
   resolveBrowseCountryParamToCountryKeySlugs,
   resolveBrowseCountryParamToDbCountries,
 } from '@/lib/browse-country-url-resolve'
-import { buildOverseasBrowseGeoResolution, prismaWhereProductCountryTagKeysIn } from '@/lib/browse-master-geo'
+import {
+  buildOverseasBrowseGeoResolution,
+  prismaWhereProductCountryTagKeysIn,
+  resolveBrowseRegionToCountryKeys,
+} from '@/lib/browse-master-geo'
+import { productMatchesBrowseRegionTab } from '@/lib/browse-region-tab-match'
 import {
   localDepartureTagForBrowseRegion,
   sportsThemeTagForBrowseRegion,
@@ -50,6 +55,10 @@ import {
   resolveOverseasCountryRowLabelForBrowse,
   resolveOverseasDisplayBucketForBrowse,
 } from '@/lib/overseas-display-buckets'
+import {
+  isMegaMenuRegionCityGroupTabId,
+  resolveOverseasMegaMenuSubgroupLabelForBrowse,
+} from '@/lib/overseas-mega-region-city-group'
 import { buildBrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import {
   filterPoolByStoredTravelScope,
@@ -175,18 +184,32 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       )
     const overseasGeoAnd: Prisma.ProductWhereInput[] = []
     let browseRegionCountryKeys: string[] = []
+    let overseasRegionTabOnlyGeo = false
     if (hasOverseasUrlGeo) {
       const r = (region ?? '').trim()
       const c = (country ?? '').trim()
       const ct = (city ?? '').trim()
       const localDepTag = localDepartureTagForBrowseRegion(r)
       const sportsThemeTag = sportsThemeTagForBrowseRegion(r, sportsThemeParam)
+      overseasRegionTabOnlyGeo =
+        Boolean(r) &&
+        !c &&
+        !ct &&
+        !menuGroup &&
+        !localDepTag &&
+        r !== 'sports_theme' &&
+        !sportsThemeParam
       if (localDepTag) {
         overseasGeoAnd.push({ localDepartureTag: { has: localDepTag } })
       } else if (r === 'sports_theme' || sportsThemeParam) {
         if (sportsThemeTag) {
           overseasGeoAnd.push({ sportsThemeTag: { has: sportsThemeTag } })
+        } else {
+          /** 테마 미지정 시 `sportsThemeTag` 빈 배열 상품 제외 — 미태그 상품 유입 방지 */
+          overseasGeoAnd.push({ sportsThemeTag: { isEmpty: false } })
         }
+      } else if (overseasRegionTabOnlyGeo) {
+        browseRegionCountryKeys = await resolveBrowseRegionToCountryKeys(r)
       } else {
         const geo = await buildOverseasBrowseGeoResolution({
           region,
@@ -355,13 +378,38 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       })
     }
 
-    /** 국내·해외 허브 기본 목록 — 자유여행(항공+호텔)은 `/travel/air-hotel` 전용 */
+    /** 국내 허브만 자유여행 제외. 해외 허브는 패키지·자유여행 통합 노출 */
     const wantsAirHotelHubSlice =
       parseBrowseType(typeParam) === AIR_HOTEL_BROWSE_TYPE ||
       q.categories.some((c) => isAirHotelBrowseCategoryToken(c)) ||
       listingKindParsed === 'air_hotel_free'
-    if ((domesticLike || scope === 'overseas') && !wantsAirHotelHubSlice) {
+    if (domesticLike && !wantsAirHotelHubSlice) {
       filteredRows = filteredRows.filter((p) => !isAirHotelProduct(p))
+    }
+
+    if (overseasRegionTabOnlyGeo) {
+      const regionTabId = (region ?? '').trim()
+      filteredRows = filteredRows.filter((p) =>
+        productMatchesBrowseRegionTab(
+          {
+            title: p.title,
+            originSource: p.originSource,
+            primaryDestination: p.primaryDestination,
+            destinationRaw: p.destinationRaw,
+            destination: p.destination,
+            primaryRegion: p.primaryRegion,
+            country: p.country ?? null,
+            city: p.city ?? null,
+            countryKey: p.countryKey ?? null,
+            continentKey: p.continentKey ?? null,
+            cityKey: p.cityKey ?? null,
+            nodeKey: p.nodeKey ?? null,
+            countryTags: p.countryTags,
+            cityTags: p.cityTags,
+          },
+          regionTabId,
+        ),
+      )
     }
 
     if (wantsAirHotelHubSlice) {
@@ -614,14 +662,24 @@ export async function productsBrowseBuildPayload(queryKey: string) {
               countryKey: p.countryKey ?? null,
               continentKey: p.continentKey ?? null,
               cityKey: p.cityKey ?? null,
+              nodeKey: p.nodeKey ?? null,
               countryTags: p.countryTags,
               cityTags: p.cityTags,
             }
             const match = matchProductToOverseasNode(matchInput)
             const overseasBucket = resolveOverseasDisplayBucketForBrowse(matchInput, match)
             const countryRowLabel = resolveOverseasCountryRowLabelForBrowse(matchInput, match)
+            const regionForSubgroup = (region ?? '').trim()
+            const browseMegaSubgroupLabel = isMegaMenuRegionCityGroupTabId(regionForSubgroup)
+              ? resolveOverseasMegaMenuSubgroupLabelForBrowse(
+                  matchInput,
+                  match,
+                  regionForSubgroup,
+                  countryRowLabel,
+                )
+              : null
             const browseCountry = (p.country ?? '').trim() || null
-            return { overseasBucket, countryRowLabel, browseCountry }
+            return { overseasBucket, countryRowLabel, browseMegaSubgroupLabel, browseCountry }
           })()
         : {}),
     }
@@ -650,7 +708,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         mapMs: Math.round(map - score),
         rowCount,
         finalCount,
-        cacheKey: `products-browse-v13|${queryKey}`,
+        cacheKey: `products-browse-v17|${queryKey}`,
       }
       browsePerfLastPhases = phases // PERF-LOG: 측정 후 제거
       console.log('[browse-perf]', JSON.stringify({ cacheHit: false, ...phases })) // PERF-LOG: 측정 후 제거

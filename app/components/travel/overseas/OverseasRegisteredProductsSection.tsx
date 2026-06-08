@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
+import OverseasProductScrollRow from '@/app/components/travel/overseas/OverseasProductScrollRow'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
 import { groupBrowseScoredProductsByCountry } from '@/lib/overseas-products-by-country'
 import { PRODUCT_PRICE_FOR_BROWSE_INCLUDE } from '@/lib/product-price-per-person'
@@ -62,9 +63,7 @@ export default async function OverseasRegisteredProductsSection() {
                     · {section.items.length}건
                   </span>
                 </div>
-                {/* 모바일 1장 스냅 · md+ 가로줄 다열 */}
-                <div className="mt-5 -mx-4 overflow-x-auto overflow-y-visible overscroll-x-contain px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable] sm:mx-0 sm:px-0">
-                  <ul className="flex snap-x snap-mandatory gap-4 pb-2 pt-0.5">
+                <OverseasProductScrollRow ariaLabel={`${section.headingLabel} 상품`}>
                   {section.items.map(({ product: item, effectivePricePerPerson }) => (
                     <li
                       key={item.id}
@@ -114,8 +113,7 @@ export default async function OverseasRegisteredProductsSection() {
                       </Link>
                     </li>
                   ))}
-                  </ul>
-                </div>
+                </OverseasProductScrollRow>
               </div>
             ))}
           </div>

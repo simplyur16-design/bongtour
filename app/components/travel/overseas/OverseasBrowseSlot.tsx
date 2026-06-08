@@ -6,6 +6,9 @@ import {
   prioritizeEditorialsByRegionAndCountry,
 } from '@/lib/overseas-editorial-prioritize'
 import { resolveOverseasGeoFilterBannerSafe } from '@/lib/overseas-destination-browse'
+import { computeHubFocusedResultsFromRecord } from '@/lib/hub-focused-results'
+import { computeMegaMenuRegionCityGroupIdFromRecord } from '@/lib/overseas-mega-region-city-group'
+import { createHubGalleryRotationSeed } from '@/lib/hub-gallery-rotation'
 import { prefetchOverseasHubBrowse } from '@/lib/products-browse-server-prefetch'
 
 type Props = {
@@ -33,6 +36,17 @@ export default async function OverseasBrowseSlot({ searchParams, region, country
       // 브리핑만 생략
     }
 
+    const hubBrowseOpts = {
+      pathname: '/travel/overseas',
+      defaultScope: 'overseas' as const,
+      overseasGeoFilterBanner,
+    }
+    const initialHubFocusedResults = computeHubFocusedResultsFromRecord(searchParams, hubBrowseOpts)
+    const initialMegaMenuRegionCityGroupId = computeMegaMenuRegionCityGroupIdFromRecord(
+      searchParams,
+      hubBrowseOpts,
+    )
+
     return (
       <ProductsBrowseClient
         basePath="/travel/overseas"
@@ -43,6 +57,10 @@ export default async function OverseasBrowseSlot({ searchParams, region, country
         overseasGeoFilterBanner={overseasGeoFilterBanner}
         initialBrowse={hubBrowse?.payload ?? null}
         initialBrowseQueryKey={hubBrowse?.queryKey ?? null}
+        initialSearchParams={searchParams}
+        initialHubFocusedResults={initialHubFocusedResults}
+        initialMegaMenuRegionCityGroupId={initialMegaMenuRegionCityGroupId}
+        hubGalleryRotationSeed={createHubGalleryRotationSeed()}
       />
     )
   } catch (e) {

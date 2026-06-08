@@ -14,24 +14,24 @@ export type OverseasDisplayBucketId =
   | 'oceania'
   | 'other'
 
-/** 화면 표기 순서 — 메가메뉴 병합 권역과 동일 */
+/** 화면 표기 순서 — PC 해외·자유여행 허브·메가메뉴 대분류 SSOT */
 export const DISPLAY_CATEGORIES = [
-  '유럽/중동/아프리카',
   '동남아/대만/서남아',
   '일본',
   '중국/홍콩/마카오/몽골',
   '괌/사이판/호주/뉴질랜드',
   '미주/캐나다/하와이/중남미',
+  '유럽/중동/아프리카',
   '그외',
 ] as const
 
 export const OVERSEAS_DISPLAY_BUCKET_ORDER: OverseasDisplayBucketId[] = [
-  'europe_me_af',
   'sea_taiwan',
   'japan',
   'china_hk_mo',
   'oceania',
   'americas',
+  'europe_me_af',
   'other',
 ]
 

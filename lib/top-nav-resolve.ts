@@ -90,6 +90,21 @@ export function buildProductsHrefSportsTheme(opts: {
   return `${browseBasePath(scope)}?${params.toString()}`
 }
 
+/** 메가메뉴 대분류(권역 탭) — 해당 대륙·권역 상품만 필터 */
+export function buildProductsHrefRegionOnly(opts: {
+  regionId: string
+  type?: string
+  scope?: BrowseHrefScope
+}): string {
+  const params = new URLSearchParams()
+  appendBrowseTypeParamIfNarrowing(params, opts.type ?? 'travel')
+  const scope = opts.scope ?? 'overseas'
+  if (scope === 'overseas') params.set('scope', 'overseas')
+  else params.set('scope', 'domestic')
+  params.set('region', opts.regionId.trim())
+  return `${browseBasePath(scope)}?${params.toString()}`
+}
+
 export function buildProductsHrefCountryOnly(opts: {
   type: string
   regionId: string

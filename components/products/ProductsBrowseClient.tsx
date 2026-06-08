@@ -13,6 +13,7 @@ import {
 import ProductsPageLayout from '@/components/products/layout/ProductsPageLayout'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import ProductFilterForm, { type BrowseFacets } from '@/components/products/filter/ProductFilterForm'
+import ProductHubInlineFilterBar from '@/components/products/filter/ProductHubInlineFilterBar'
 import ProductFilterMobileDrawer from '@/components/products/filter/ProductFilterMobileDrawer'
 import ProductFilterChips, { buildFilterChips } from '@/components/products/ProductFilterChips'
 import ProductSortBar from '@/components/products/ProductSortBar'
@@ -32,7 +33,10 @@ import {
   buildDomesticHubBrowseQueryKey,
   buildOverseasHubBrowseQueryKey,
   buildProductsBrowseQueryKey,
+  searchParamsRecordToUrlSearchParams,
 } from '@/lib/products-browse-hub-query'
+import { computeHubFocusedResults } from '@/lib/hub-focused-results'
+import { computeMegaMenuRegionCityGroupId } from '@/lib/overseas-mega-region-city-group'
 import {
   filterBrowseItemsBySidebarFilters,
   sortBrowseItemsClient,
@@ -101,6 +105,14 @@ type Props = {
   /** RSC prefetch — queryKey 일치 시 클라이언트 fetch 생략 */
   initialBrowse?: ApiOk | null
   initialBrowseQueryKey?: string | null
+  /** RSC `searchParams` 스냅샷 — 첫 hydration에서 `useSearchParams()`와 SSOT 맞춤 */
+  initialSearchParams?: Record<string, string | string[] | undefined> | null
+  /** RSC에서 계산한 허브 focused 여부 — 미리보기 배너·권역 그룹 hydration 일치 */
+  initialHubFocusedResults?: boolean
+  /** RSC에서 계산한 메가메뉴 하위 지역 그룹 id — 섹션 분리 hydration 일치 */
+  initialMegaMenuRegionCityGroupId?: string | null
+  /** 대표(큰) 카드 로테이션 시드 — 새로고침마다 변경 */
+  hubGalleryRotationSeed?: number
 }
 
 function formatWon(n: number | null) {
@@ -145,10 +157,24 @@ export default function ProductsBrowseClient({
   overseasGeoFilterBanner = null,
   initialBrowse = null,
   initialBrowseQueryKey = null,
+  initialSearchParams = null,
+  initialHubFocusedResults,
+  initialMegaMenuRegionCityGroupId = null,
+  hubGalleryRotationSeed = 0,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname() ?? ''
-  const searchParams = useSearchParams() ?? new URLSearchParams()
+  const searchParamsFromHook = useSearchParams() ?? new URLSearchParams()
+  const [hasMounted, setHasMounted] = useState(false)
+  useEffect(() => setHasMounted(true), [])
+
+  const searchParams = useMemo(() => {
+    if (!hasMounted && initialSearchParams) {
+      return searchParamsRecordToUrlSearchParams(initialSearchParams)
+    }
+    return new URLSearchParams(searchParamsFromHook.toString())
+  }, [hasMounted, initialSearchParams, searchParamsFromHook])
+
   const qs = searchParams.toString()
 
   const isDomesticHub = pathname === '/travel/domestic' && defaultScope === 'domestic'
@@ -394,12 +420,15 @@ export default function ProductsBrowseClient({
   )
 
   const chips = useMemo(() => {
-    const base = buildFilterChips(q)
+    let base = buildFilterChips(q)
+    if (useHubClientSidebarFilter) {
+      base = base.filter((c) => c.key !== 'noOptionalTour' && c.key !== 'noShopping')
+    }
     const hs = (searchParams.get('hubSeason') ?? '').trim().toLowerCase()
     if (!hs) return base
     const lab = koreanCountryLabelFromBrowseSlug(hs) ?? hs
     return [...base, { key: 'hubSeason', label: `시즌:${lab}` }]
-  }, [q, searchParams])
+  }, [q, searchParams, useHubClientSidebarFilter])
 
   const budgetActive = q.budgetPerPerson != null || q.budgetMin != null
 
@@ -493,9 +522,34 @@ export default function ProductsBrowseClient({
   const hasDestinationFilter = Boolean(
     overseasGeoFilterBanner || (q.city ?? '').trim() || (searchParams.get('destination') ?? '').trim(),
   )
-  const hasGeoFilter = Boolean(
-    hasMegaGeo || hasDestinationFilter || (searchParams.get('hubSeason') ?? '').trim(),
+  /** 나라·권역·필터로 좁힌 뒤 — 권역 그룹 해제·섹션 미리보기 해제 */
+  const hubFocusedResultsLive = useMemo(
+    () =>
+      computeHubFocusedResults({
+        pathname,
+        defaultScope,
+        searchParams,
+        overseasGeoFilterBanner,
+      }),
+    [pathname, defaultScope, searchParams, overseasGeoFilterBanner],
   )
+  const hubFocusedResults =
+    initialHubFocusedResults != null && !hasMounted ? initialHubFocusedResults : hubFocusedResultsLive
+
+  const megaMenuRegionCityGroupIdLive = useMemo(
+    () =>
+      computeMegaMenuRegionCityGroupId({
+        pathname,
+        defaultScope,
+        searchParams,
+        overseasGeoFilterBanner,
+      }),
+    [pathname, defaultScope, searchParams, overseasGeoFilterBanner],
+  )
+  const megaMenuRegionCityGroupId =
+    initialMegaMenuRegionCityGroupId != null && !hasMounted
+      ? initialMegaMenuRegionCityGroupId
+      : megaMenuRegionCityGroupIdLive
 
   const summary = hidePageHeading
     ? null
@@ -550,7 +604,19 @@ export default function ProductsBrowseClient({
     hasWeekdayData: false,
   }
 
-  const toolbar = (
+  const toolbar = useHubClientSidebarFilter ? (
+    <div className={suppressHeadingToolbarGap ? 'mt-0' : 'mt-2'}>
+      <ProductHubInlineFilterBar
+        q={q}
+        facets={facets}
+        sort={sort}
+        budgetActive={budgetActive}
+        listedCount={listedProductCount ?? data?.total ?? null}
+        onPatch={onPatch}
+        onSortChange={(next) => onPatch({ sort: next, page: 1 })}
+      />
+    </div>
+  ) : (
     <div className={suppressHeadingToolbarGap ? 'mt-0' : 'mt-2'}>
       <ProductSortBar
         sort={sort}
@@ -683,21 +749,21 @@ export default function ProductsBrowseClient({
       )}
         {data && browsePresented.items.length > 0 && (
           <div className={loading ? 'opacity-60 transition-opacity duration-200' : ''}>
-            {(basePath === '/travel/overseas' && defaultScope === 'overseas') || pathname === '/travel/air-hotel' ? (
-              <p className="mb-3 text-center text-sm text-slate-600 md:hidden">
-                상품 카드를 좌우로 밀어 다른 일정을 확인하세요
-              </p>
-            ) : null}
             <ProductResultsList
               items={browsePresented.items}
               formatWon={formatWon}
-              groupOverseasByRegion={basePath === '/travel/overseas' && defaultScope === 'overseas'}
-              groupAirHotelByCountry={pathname === '/travel/air-hotel'}
+              groupOverseasByRegion={
+                basePath === '/travel/overseas' && defaultScope === 'overseas' && !hubFocusedResults
+              }
+              groupAirHotelByCountry={pathname === '/travel/air-hotel' && !hubFocusedResults}
               groupDomesticByRegion={isDomesticHub}
               overseasEditorialBriefing={overseasEditorialBriefing}
               seasonalPickIds={browsePresented.seasonalPickIds}
-              overseasFlatByCountrySlug={q.country?.trim() || null}
-              interleaveEsimNativeCards={basePath === '/travel/overseas' && defaultScope === 'overseas'}
+              overseasFlatByCountrySlug={hubFocusedResults ? q.country?.trim() || null : null}
+              hubCompareGridLayout={useHubClientSidebarFilter}
+              hubSectionPreview={useHubClientSidebarFilter && !hubFocusedResults}
+              hubGalleryRotationSeed={hubGalleryRotationSeed}
+              megaMenuRegionCityGroupId={megaMenuRegionCityGroupId}
             />
             {data.total > data.limit &&
               !(
@@ -778,6 +844,24 @@ export default function ProductsBrowseClient({
         {toolbar}
         {results}
       </div>
+    )
+  }
+
+  if (useHubClientSidebarFilter) {
+    return (
+      <>
+        {overseasDestinationBanner}
+        <ProductsPageLayout
+          summary={summary}
+          chips={
+            <ProductFilterChips chips={chips} onRemove={removeChip} onClearAll={clearAllFilters} />
+          }
+          sidebar={null}
+          toolbar={toolbar}
+          results={results}
+          mobileFilterBar={null}
+        />
+      </>
     )
   }
 

@@ -1,4 +1,6 @@
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
+import { computeHubFocusedResultsFromRecord } from '@/lib/hub-focused-results'
+import { createHubGalleryRotationSeed } from '@/lib/hub-gallery-rotation'
 import { prefetchAirHotelHubBrowse } from '@/lib/products-browse-server-prefetch'
 
 type Props = {
@@ -16,6 +18,12 @@ export default async function AirHotelBrowseSlot({ searchParams }: Props) {
         hidePageHeading
         initialBrowse={hubBrowse?.payload ?? null}
         initialBrowseQueryKey={hubBrowse?.queryKey ?? null}
+        initialSearchParams={searchParams}
+        initialHubFocusedResults={computeHubFocusedResultsFromRecord(searchParams, {
+          pathname: '/travel/air-hotel',
+          defaultScope: 'overseas',
+        })}
+        hubGalleryRotationSeed={createHubGalleryRotationSeed()}
       />
     )
   } catch (e) {

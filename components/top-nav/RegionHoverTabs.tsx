@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import type { MegaMenuRegion } from '@/lib/travel-landing-mega-menu-data'
+import { buildProductsHrefRegionOnly } from '@/lib/top-nav-resolve'
+import HorizontalScrollWithArrows from '@/components/ui/HorizontalScrollWithArrows'
 
 type Props = {
   regions: MegaMenuRegion[]
@@ -16,6 +18,9 @@ const TAB_BASE_CLASS =
 const TAB_ACTIVE_CLASS = `${TAB_BASE_CLASS} border-orange-500 bg-white text-orange-500`
 const TAB_IDLE_CLASS = `${TAB_BASE_CLASS} border-transparent text-slate-600 transition hover:border-slate-300 hover:text-slate-800`
 
+const TAB_ROW_CLASS =
+  'mx-auto flex w-full max-w-6xl flex-nowrap items-stretch justify-center gap-0 overflow-x-auto px-2 py-0 text-center [-ms-overflow-style:none] [scrollbar-width:none] sm:px-3 [&::-webkit-scrollbar]:hidden'
+
 export default function RegionHoverTabs({
   regions,
   activeRegionId,
@@ -24,20 +29,21 @@ export default function RegionHoverTabs({
 }: Props) {
   return (
     <div className="border-b border-slate-200 bg-white">
-      <div
-        className="mx-auto flex w-full max-w-6xl flex-nowrap items-stretch justify-center gap-0 overflow-x-auto px-2 py-0 text-center [-ms-overflow-style:none] [scrollbar-width:none] sm:px-3 [&::-webkit-scrollbar]:hidden"
-        role="tablist"
-        aria-label="권역"
+      <HorizontalScrollWithArrows
+        as="div"
+        scrollClassName={TAB_ROW_CLASS}
+        scrollRole="tablist"
+        ariaLabel="권역"
+        scrollRatio={0.75}
       >
         {regions.map((r) => {
           const active = activeRegionId === r.id
           const className = active ? TAB_ACTIVE_CLASS : TAB_IDLE_CLASS
-          // 지방출발 단일 링크 탭 — 도시/국가 펼침 없이 즉시 이동. SSOT: lib/mega-menu-regions.data.ts (localDeparture 마커).
           if (r.localDeparture) {
             return (
               <Link
                 key={r.id}
-                href={`/travel/overseas?scope=overseas&region=${r.id}`}
+                href={buildProductsHrefRegionOnly({ regionId: r.id })}
                 role="tab"
                 aria-selected={active}
                 className={className}
@@ -50,9 +56,9 @@ export default function RegionHoverTabs({
             )
           }
           return (
-            <button
+            <Link
               key={r.id}
-              type="button"
+              href={buildProductsHrefRegionOnly({ regionId: r.id })}
               role="tab"
               aria-selected={active}
               className={className}
@@ -60,10 +66,10 @@ export default function RegionHoverTabs({
               onFocus={() => onHoverRegion(r.id)}
             >
               {r.label}
-            </button>
+            </Link>
           )
         })}
-      </div>
+      </HorizontalScrollWithArrows>
     </div>
   )
 }
