@@ -9,7 +9,7 @@ import {
   hasBinaryAuthDistribution,
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
-import { doesPlanCoverAllSelected, getPlanCoveredCountries } from "@/lib/bongsim/plan-coverage-map";
+import { matchesBongsimPlanFilters } from "@/lib/bongsim/recommend/matches-plan-filters";
 import {
   detectAllowanceBucket,
   type AllowanceBucketId,
@@ -356,29 +356,6 @@ function buildRecommendedByAuth(pool: EnrichedPlan[], tripDays: number): Recomme
   };
 }
 
-function matchesFilters(row: Row, ctx: { country: string; days: number; allSelected: string[] }) {
-  const covered = getPlanCoveredCountries(row.plan_name);
-  const pt = (row.plan_type || "").trim().toLowerCase();
-
-  if (pt !== "unlimited" && pt !== "daily" && pt !== "fixed") return false;
-
-  const d = extractDaysFromDaysRaw(row.days_raw);
-  if (d == null || d < ctx.days) return false;
-
-  if (ctx.allSelected.length >= 2) {
-    return (
-      covered.length >= 2 && doesPlanCoverAllSelected(row.plan_name, ctx.allSelected)
-    );
-  }
-
-  const singleOk =
-    covered.length === 1 &&
-    covered[0] === ctx.country &&
-    (pt === "daily" || pt === "unlimited" || pt === "fixed");
-
-  return singleOk;
-}
-
 /**
  * GET /api/bongsim/products/plans?country=jp&network=roaming&days=4&codes=jp,vn
  *
@@ -455,7 +432,7 @@ export async function GET(req: Request) {
     );
 
     const ctx = { country, days, allSelected };
-    const matched = (result.rows as Row[]).filter((row) => matchesFilters(row, ctx));
+    const matched = (result.rows as Row[]).filter((row) => matchesBongsimPlanFilters(row, ctx));
     const kycDistribution: KycLabelDistribution = getKycLabelDistribution(matched);
     const skip128kbps = hasBinaryAuthDistribution(matched);
 
