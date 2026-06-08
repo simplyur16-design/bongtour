@@ -43,20 +43,22 @@ export function quotePriceRowStrictForSelectedDate(
   return findPriceRowForDateKey(prices, selectedDateKey)
 }
 
-/** 상세 SSOT: 캘린더에서 고른 날짜 → 행 id → 없으면 기본 행 날짜. */
+/**
+ * 상세 SSOT — 선택 출발행(`ProductPriceRow.id`) 날짜 우선.
+ * 캘린더 키만 앞서 있으면(행 미매칭·수집 대기) 요약 출발일과 가는편/오는편 facts가 어긋날 수 있어 행을 먼저 본다.
+ */
 export function resolvePublicDetailDateKey(args: {
   calendarDateKey: string | null
   selectedDepartureRowId: string | null
   mergedPrices: ProductPriceRow[]
   defaultDepartureRow: ProductPriceRow | null
 }): string | null {
-  if (args.calendarDateKey && /^\d{4}-\d{2}-\d{2}$/.test(args.calendarDateKey)) {
-    return args.calendarDateKey
-  }
   if (args.selectedDepartureRowId) {
     const r = args.mergedPrices.find((p) => p.id === args.selectedDepartureRowId)
     if (r) return bookingDepartureDateKeyFromRowDate(r.date)
   }
+  const cal = (args.calendarDateKey ?? '').trim()
+  if (cal && /^\d{4}-\d{2}-\d{2}$/.test(cal)) return cal
   return args.defaultDepartureRow ? bookingDepartureDateKeyFromRowDate(args.defaultDepartureRow.date) : null
 }
 

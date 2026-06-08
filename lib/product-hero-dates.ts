@@ -41,6 +41,16 @@ function returnByDuration(departureIso: string | null, duration: string | null |
   return { iso, source: iso ? 'duration_offset' : 'none' }
 }
 
+/** 달력 정렬 후 가는편 일시 — 히어로 출발·귀국 요약과 가는편/오는편 블록 SSOT */
+export function departureIsoFromAlignedFacts(facts: DepartureKeyFacts | null | undefined): string | null {
+  if (!facts?.outbound) return null
+  return (
+    extractIsoDate(facts.outbound.departureAtText) ??
+    extractIsoDate(facts.outbound.arrivalAtText) ??
+    null
+  )
+}
+
 function returnFromListFacts(facts: DepartureKeyFacts | null): { iso: string | null; source: string } {
   if (!facts?.inbound) return { iso: null, source: 'none' }
   const ib = facts.inbound
@@ -144,10 +154,11 @@ export function buildCalendarSsotHeroTripDisplays(opts: {
 }): { departureDisplay: string | null; returnDisplay: string | null } {
   const cal = opts.selectedDate?.trim()
   const calendarDep = cal && /^\d{4}-\d{2}-\d{2}$/.test(cal) ? cal : null
+  const factsDepIso = departureIsoFromAlignedFacts(opts.departureFacts ?? null)
   const factsReturn = returnFromListFacts(opts.departureFacts ?? null)
   const retFromDuration =
-    calendarDep && opts.packageTotalDays > 0
-      ? computeReturnDate(calendarDep, opts.packageTotalDays)
+    (factsDepIso ?? calendarDep) && opts.packageTotalDays > 0
+      ? computeReturnDate(factsDepIso ?? calendarDep!, opts.packageTotalDays)
       : null
   const retIso =
     factsReturn.iso ??
@@ -155,6 +166,14 @@ export function buildCalendarSsotHeroTripDisplays(opts: {
     retFromDuration ??
     opts.computedReturnDate ??
     null
+
+  if (factsDepIso) {
+    const departureDisplay = formatHeroDateKorean(factsDepIso) ?? factsDepIso
+    const returnDisplay =
+      opts.heroResolved.returnDisplayOverride ??
+      (retIso ? formatHeroDateKorean(retIso) ?? retIso : null)
+    return { departureDisplay, returnDisplay }
+  }
 
   if (calendarDep) {
     const departureDisplay = formatHeroDateKorean(calendarDep) ?? calendarDep

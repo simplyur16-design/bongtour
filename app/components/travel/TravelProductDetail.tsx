@@ -310,6 +310,7 @@ export default function TravelProductDetail({
       return
     }
     setSelectedDepartureRowId(defaultDepartureRow.id)
+    setCalendarDateKey(toDateKey(defaultDepartureRow.date))
   }, [departureUserPinned, defaultDepartureRow?.id, initialDepartureYmd, mergedPrices])
 
   useEffect(() => {
@@ -383,6 +384,7 @@ export default function TravelProductDetail({
         setDepartureUserPinned(true)
         return
       }
+      setSelectedDepartureRowId(null)
       await runRangeOnDemandCollect(isoDate)
     },
     [mergedPrices, departureCollectOpen, runRangeOnDemandCollect]

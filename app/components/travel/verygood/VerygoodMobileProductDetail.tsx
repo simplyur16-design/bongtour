@@ -215,7 +215,8 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
       return
     }
     setSelectedDepartureRowId(defaultDepartureRow.id)
-  }, [departureUserPinned, defaultDepartureRow?.id])
+    setCalendarDateKey(toDateKey(defaultDepartureRow.date))
+  }, [departureUserPinned, defaultDepartureRow?.id, defaultDepartureRow?.date])
 
   useEffect(() => {
     if (!selectedDepartureRowId) return
@@ -288,6 +289,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
         setDepartureUserPinned(true)
         return
       }
+      setSelectedDepartureRowId(null)
       await runRangeOnDemandCollect(isoDate)
     },
     [mergedPrices, departureCollectOpen, runRangeOnDemandCollect]
