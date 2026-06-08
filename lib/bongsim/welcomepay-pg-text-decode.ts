@@ -1,6 +1,30 @@
 import iconv from "iconv-lite";
 
 /**
+ * 웰컴페이먼츠 모바일 PG 인코딩 — 가이드 샘플 README·WelPayMoNextUrl(Utf8) 기준.
+ * - `utf8`: 결제 폼 `P_CHARSET=utf8` + WelPayMoNextUrlUtf8 흐름 (Bong투어 기본)
+ * - `euc-kr`: `P_CHARSET` 미전송 + accept-charset=euc-kr
+ */
+export type WelcomepayMobileCharsetMode = "utf8" | "euc-kr";
+
+export function resolveWelcomepayMobileCharsetMode(): WelcomepayMobileCharsetMode {
+  const raw = (process.env.WELCOMEPAY_MOBILE_CHARSET ?? "utf8").trim().toLowerCase();
+  if (raw === "euc-kr" || raw === "euckr" || raw === "euc_kr") return "euc-kr";
+  return "utf8";
+}
+
+/** 폼 `acceptCharset` / `P_CHARSET` hidden 값 (가이드: utf8 또는 미전송). */
+export function welcomepayMobileFormCharsetFields(mode: WelcomepayMobileCharsetMode): {
+  acceptCharset: string;
+  pCharset: string | null;
+} {
+  if (mode === "utf8") {
+    return { acceptCharset: "UTF-8", pCharset: "utf8" };
+  }
+  return { acceptCharset: "EUC-KR", pCharset: null };
+}
+
+/**
  * 웰컴페이먼츠 모바일 PG 기본 인코딩(EUC-KR) ↔ UTF-8(사이트) 변환.
  * 콜백 `P_RMESG1` 등이 깨져 보일 때 복구.
  */
@@ -33,7 +57,14 @@ export function decodeWelcomepayPgTextFromEucKr(raw: string): string {
 /** urlencoded·raw PG 콜백 본문 바이트 → UTF-8 문자열. */
 export function decodeWelcomepayCallbackBody(buf: Buffer, contentType: string): string {
   const ct = contentType.toLowerCase();
-  const charset = ct.includes("utf") ? "utf-8" : "euc-kr";
+  let charset: "utf-8" | "euc-kr";
+  if (ct.includes("utf")) {
+    charset = "utf-8";
+  } else if (ct.includes("euc") || ct.includes("949") || ct.includes("ks_c")) {
+    charset = "euc-kr";
+  } else {
+    charset = resolveWelcomepayMobileCharsetMode() === "utf8" ? "utf-8" : "euc-kr";
+  }
   if (charset === "utf-8") return buf.toString("utf8");
   return iconv.decode(buf, "euc-kr");
 }

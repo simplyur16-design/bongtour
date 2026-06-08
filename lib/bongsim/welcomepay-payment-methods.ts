@@ -44,6 +44,8 @@ export const WELCOMEPAY_CHECKOUT_METHODS: readonly WelcomepayMethodDefinition[] 
     mobilePath: "wcard",
     pIniPayment: "CARD",
     pcGoPayMethod: "Card",
+    // 가이드 샘플 WelPayMoRequest — ISP 2trs·앱설치체크 (amt_hash와 병행)
+    mobileReservedExtra: "twotrs_isp=Y&block_isp=Y&twotrs_isp_noti=N&apprun_check=Y",
     requiresNotiUrl: false,
     requiresHppMethod: false,
     vbankPendingOnIssue: false,

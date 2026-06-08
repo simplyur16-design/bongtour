@@ -4,6 +4,7 @@ import {
   decodeWelcomepayPgTextFromEucKr,
   looksLikeWelcomepayMojibake,
   normalizeWelcomepayPgUserMessage,
+  welcomepayMobileFormCharsetFields,
 } from "@/lib/bongsim/welcomepay-pg-text-decode";
 
 describe("welcomepay-pg-text-decode", () => {
@@ -22,5 +23,16 @@ describe("welcomepay-pg-text-decode", () => {
 
   it("drops unrecoverable mojibake", () => {
     expect(normalizeWelcomepayPgUserMessage("Ã¾Ã†Ã€ÃŒ")).toBe("");
+  });
+
+  it("welcomepayMobileFormCharsetFields — 가이드 utf8 vs euc-kr", () => {
+    expect(welcomepayMobileFormCharsetFields("utf8")).toEqual({
+      acceptCharset: "UTF-8",
+      pCharset: "utf8",
+    });
+    expect(welcomepayMobileFormCharsetFields("euc-kr")).toEqual({
+      acceptCharset: "EUC-KR",
+      pCharset: null,
+    });
   });
 });

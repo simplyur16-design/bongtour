@@ -24,6 +24,7 @@ describe("welcomepay-payment-methods", () => {
     expect(buildWelcomepayMobileReserved(bank)).toContain("centerCd=Y");
     expect(buildWelcomepayMobileReserved(bank)).toContain("twotrs_bank=Y");
     const card = getWelcomepayMethodDefinition("card");
-    expect(buildWelcomepayMobileReserved(card)).toBe("centerCd=Y&amt_hash=Y");
+    expect(buildWelcomepayMobileReserved(card)).toContain("twotrs_isp=Y");
+    expect(buildWelcomepayMobileReserved(card)).toContain("apprun_check=Y");
   });
 });

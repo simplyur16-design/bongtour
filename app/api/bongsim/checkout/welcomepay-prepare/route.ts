@@ -10,6 +10,10 @@ import {
   type WelcomepayMethodId,
 } from "@/lib/bongsim/welcomepay-payment-methods";
 import {
+  resolveWelcomepayMobileCharsetMode,
+  welcomepayMobileFormCharsetFields,
+} from "@/lib/bongsim/welcomepay-pg-text-decode";
+import {
   WELCOMEPAY_MOBILE_P_RESERVED,
   generateMKey,
   generateMobileWelpayPChkfake,
@@ -187,6 +191,9 @@ export async function POST(req: Request) {
   const selectedDef = getWelcomepayMethodDefinition(paymentMethod);
   const pNotiUrl = welcomepayVbankNotiCallbackUrlRegistered();
 
+  const mobileCharset = resolveWelcomepayMobileCharsetMode();
+  const mobileCharsetFields = welcomepayMobileFormCharsetFields(mobileCharset);
+
   const methods: PrepareMethodPayload[] = WELCOMEPAY_CHECKOUT_METHODS.map((def) => ({
     id: def.id,
     label: def.label,
@@ -218,6 +225,9 @@ export async function POST(req: Request) {
       pcStdPayScriptUrl: welcomepayStdPayScriptUrl(),
       paymentMethod,
       pNotiUrl,
+      mobileCharset,
+      mobileAcceptCharset: mobileCharsetFields.acceptCharset,
+      mobilePCharset: mobileCharsetFields.pCharset,
       methods,
       mobile: {
         submitUrl: welcomepayMobileSubmitUrlForMethod(paymentMethod),

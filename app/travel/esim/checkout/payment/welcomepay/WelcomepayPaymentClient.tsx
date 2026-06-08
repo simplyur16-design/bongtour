@@ -64,6 +64,8 @@ type PrepareOk = {
   pcStdPayScriptUrl: string;
   paymentMethod?: WelcomepayMethodId;
   pNotiUrl?: string;
+  mobileAcceptCharset?: string;
+  mobilePCharset?: string | null;
   methods?: PrepareMethodPayload[];
   mobile: PrepareMobile;
   welcomepay_env?: "test" | "production";
@@ -430,7 +432,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
                   id="WelpayMobileForm"
                   method="post"
                   action={activeMethod.mobile.submitUrl}
-                  acceptCharset="EUC-KR"
+                  acceptCharset={prep.mobileAcceptCharset ?? "UTF-8"}
                   target="_self"
                   className="sr-only"
                   aria-hidden
@@ -448,7 +450,9 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
                   <input type="hidden" name="P_MOBILE" value={prep.mobile.pMobile} />
                   <input type="hidden" name="P_INI_PAYMENT" value={activeMethod.mobile.pIniPayment} />
                   <input type="hidden" name="P_RESERVED" value={activeMethod.mobile.pReserved} />
-                  <input type="hidden" name="P_CHARSET" value="EUC-KR" />
+                  {prep.mobilePCharset ? (
+                    <input type="hidden" name="P_CHARSET" value={prep.mobilePCharset} />
+                  ) : null}
                   {activeMethod.mobile.requiresNotiUrl && prep.pNotiUrl ? (
                     <input type="hidden" name="P_NOTI_URL" value={prep.pNotiUrl} />
                   ) : null}
