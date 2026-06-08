@@ -17,9 +17,36 @@ WITH bookable_min AS (
 agg AS (
   SELECT
     pd."productId",
-    MIN(pd."adultPrice") FILTER (WHERE pd."adultPrice" IS NOT NULL AND pd."adultPrice" > 0) AS min_adult,
-    MIN(pd."departureDate") AS min_dep,
-    COUNT(*)::int AS cnt
+    MIN(pd."adultPrice") FILTER (
+      WHERE pd."adultPrice" IS NOT NULL
+        AND pd."adultPrice" > 0
+        AND (pd."isBookable" IS DISTINCT FROM false)
+        AND (pd."seatCount" IS NULL OR pd."seatCount" > 0)
+        AND NOT (
+          COALESCE(pd."statusRaw", '') ~* '마감|만석|매진|판매\\s*완료|판매\\s*종료'
+          OR COALESCE(pd."seatsStatusRaw", '') ~* '마감|만석|매진|잔여\\s*0'
+        )
+    ) AS min_adult,
+    MIN(pd."departureDate") FILTER (
+      WHERE pd."adultPrice" IS NOT NULL
+        AND pd."adultPrice" > 0
+        AND (pd."isBookable" IS DISTINCT FROM false)
+        AND (pd."seatCount" IS NULL OR pd."seatCount" > 0)
+        AND NOT (
+          COALESCE(pd."statusRaw", '') ~* '마감|만석|매진|판매\\s*완료|판매\\s*종료'
+          OR COALESCE(pd."seatsStatusRaw", '') ~* '마감|만석|매진|잔여\\s*0'
+        )
+    ) AS min_dep,
+    COUNT(*) FILTER (
+      WHERE pd."adultPrice" IS NOT NULL
+        AND pd."adultPrice" > 0
+        AND (pd."isBookable" IS DISTINCT FROM false)
+        AND (pd."seatCount" IS NULL OR pd."seatCount" > 0)
+        AND NOT (
+          COALESCE(pd."statusRaw", '') ~* '마감|만석|매진|판매\\s*완료|판매\\s*종료'
+          OR COALESCE(pd."seatsStatusRaw", '') ~* '마감|만석|매진|잔여\\s*0'
+        )
+    )::int AS cnt
   FROM "ProductDeparture" pd
   CROSS JOIN bookable_min bm
   WHERE (pd."departureDate" AT TIME ZONE 'Asia/Seoul')::date >= bm.d
