@@ -1,22 +1,13 @@
-'use client'
-
 import Script from 'next/script'
-import { useEffect, useState } from 'react'
 
 /**
  * Google Tag Manager — `NEXT_PUBLIC_GTM_ID` 가 있을 때만 로드.
- * 클라이언트 마운트 후에만 삽입해 SSR `<script>` vs Suspense hydration 불일치 방지.
+ * Server Component + `afterInteractive` — 루트 layout 클라이언트 청크 로드 오류 방지.
  * @see docs/GTM-KAKAO-COUNSEL-GA4.md
  */
 export default function GoogleTagManager() {
   const id = process.env.NEXT_PUBLIC_GTM_ID?.trim()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!id || !mounted) return null
+  if (!id) return null
 
   return (
     <>
