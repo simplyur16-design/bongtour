@@ -32,10 +32,11 @@ PG 가맹점 관리자에 등록할 URL (apex 기준):
 | authSignature 검증 (MOID, TotPrice) | `verifyWelcomepayAuthSignature` |
 | 운영 JS URL | `welcomepayStdPayScriptUrl()` — `WELCOMEPAY_ENV=production` |
 
-## Mobile Web (welpay) — 코드 매핑
+## Mobile Web (신용카드 §1.2) — 코드 매핑
 
 | 메뉴얼 단계 | 구현 |
 |-------------|------|
+| 결제창 POST URL | `welcomepayMobileWelpaySubmitUrl()` → 운영 `https://mobile.paywelcome.co.kr/smart/wcard/` · 테스트 `tmobile…/smart/wcard/` (구 `/smart/welpay/` 사용 금지) |
 | P_MID, P_OID, P_AMT, P_TIMESTAMP, P_CHKFAKE | `welcomepay-prepare` mobile 블록 |
 | P_RESERVED=centerCd=Y&amt_hash=Y | prepare·결제 폼 (필수) |
 | P_CHKFAKE = BASE64(SHA512(P_AMT+P_OID+P_TIMESTAMP+HashKey)) | HashKey 기본=SHA256(signKey) hex(`mkey`); 부가정보 값=`WELCOMEPAY_MOBILE_HASH_KEY`; raw Signkey=`WELCOMEPAY_MOBILE_HASH_KEY_SOURCE=signkey` |

@@ -66,11 +66,16 @@ export function welcomepayPayAuthUrl(): string {
   return `${welcomepayStdPayOrigin()}/api/payAuth`;
 }
 
-/** 스마트폰 웰페이 결제창 POST 대상 (trailing slash 유지). */
+/**
+ * 모바일 Web 신용카드 결제창 POST URL (Mobile_Web_manual §1.2 — `/smart/wcard/`).
+ * eSIM 카드단건은 신용카드만 사용. trailing slash 유지.
+ */
 export function welcomepayMobileWelpaySubmitUrl(): string {
-  return resolveWelcomepayEnv() === "production"
-    ? "https://mobile.paywelcome.co.kr/smart/welpay/"
-    : "https://tmobile.paywelcome.co.kr/smart/welpay/";
+  const host =
+    resolveWelcomepayEnv() === "production"
+      ? "https://mobile.paywelcome.co.kr"
+      : "https://tmobile.paywelcome.co.kr";
+  return `${host}/smart/wcard/`;
 }
 
 /** 모바일 welpay 필수 `P_RESERVED` — IDC센터코드 + 금액위변조 hash (이니시스 stdpay_m). */

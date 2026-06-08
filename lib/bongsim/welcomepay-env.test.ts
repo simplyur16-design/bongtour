@@ -17,13 +17,17 @@ describe("resolveWelcomepayEnv", () => {
     process.env.NODE_ENV = "production";
     delete process.env.WELCOMEPAY_ENV;
     expect(resolveWelcomepayEnv()).toBe("production");
-    expect(welcomepayMobileWelpaySubmitUrl()).toContain("mobile.paywelcome.co.kr");
+    expect(welcomepayMobileWelpaySubmitUrl()).toBe(
+      "https://mobile.paywelcome.co.kr/smart/wcard/",
+    );
   });
 
   it("WELCOMEPAY_ENV=test → test", () => {
     process.env.NODE_ENV = "production";
     process.env.WELCOMEPAY_ENV = "test";
     expect(resolveWelcomepayEnv()).toBe("test");
-    expect(welcomepayMobileWelpaySubmitUrl()).toContain("tmobile.paywelcome.co.kr");
+    expect(welcomepayMobileWelpaySubmitUrl()).toBe(
+      "https://tmobile.paywelcome.co.kr/smart/wcard/",
+    );
   });
 });

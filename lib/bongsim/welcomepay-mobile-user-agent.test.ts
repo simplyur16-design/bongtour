@@ -18,8 +18,8 @@ describe("isMobileWelpayUserAgent", () => {
   });
 
   it("운영 모바일 PG URL", () => {
-    expect(isProductionWelpaySubmitUrl("https://mobile.paywelcome.co.kr/smart/welpay/")).toBe(true);
-    expect(isProductionWelpaySubmitUrl("https://tmobile.paywelcome.co.kr/smart/welpay/")).toBe(false);
+    expect(isProductionWelpaySubmitUrl("https://mobile.paywelcome.co.kr/smart/wcard/")).toBe(true);
+    expect(isProductionWelpaySubmitUrl("https://tmobile.paywelcome.co.kr/smart/wcard/")).toBe(false);
   });
 
   it("Android Chrome → welpay", () => {
