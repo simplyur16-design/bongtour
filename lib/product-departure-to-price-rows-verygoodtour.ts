@@ -9,21 +9,11 @@ import type { ProductDeparture } from '@prisma/client'
 import type { ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
 import type { BodyProductPriceTable } from '@/lib/public-product-extras'
 import type { DepartureInput } from '@/lib/upsert-product-departures-verygoodtour'
+import { availableSeatsForPriceRow } from '@/lib/departure-seat-availability'
 import { normalizeCalendarDate } from '@/lib/date-normalize'
 
 function num(v: unknown): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : 0
-}
-
-function availableSeatsFromVerygoodDeparture(d: ProductDeparture): number | undefined {
-  if (d.seatCount != null && Number.isFinite(d.seatCount)) return d.seatCount
-  const raw = d.seatsStatusRaw?.trim()
-  if (!raw) return undefined
-  const m1 = raw.match(/잔여\s*(\d+)/)
-  if (m1) return Math.floor(Number(m1[1]))
-  const m2 = raw.match(/(\d+)\s*석/)
-  if (m2) return Math.floor(Number(m2[1]))
-  return undefined
 }
 
 /** 0은 직렬화/DB placeholder로 두는 경우가 있어 미기입으로 본다 */
@@ -300,7 +290,7 @@ export function productDeparturesToProductPriceRows(departures: ProductDeparture
       priceChildNoBed: childNoBed,
       priceInfant: infant,
       status,
-      availableSeats: availableSeatsFromVerygoodDeparture(d),
+      availableSeats: availableSeatsForPriceRow(d),
       /** 출발행 좌석·예약 표기 원문(하나투어 등) — 공개 예약인원 행 보조 */
       seatsStatusRaw,
     }

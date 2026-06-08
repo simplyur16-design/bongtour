@@ -8,6 +8,7 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { seatFieldsFromParsedCalendarPrice } from '@/lib/departure-seat-availability'
 import { normalizeCalendarDate } from './date-normalize'
 import { deriveHanatourConfirmationFlags, parseStatusLabelsJson } from './hanatour-normalize'
 
@@ -515,7 +516,11 @@ export function parsedPricesToDepartureInputs(prices: Array<{
         ? (Number(p.infantBase) || 0) + (Number(p.infantFuel) || 0)
         : undefined
     const statusRaw = p.status && String(p.status).trim() ? String(p.status).trim() : null
-    const seatsStatusRaw = p.availableSeats != null ? `잔여${p.availableSeats}` : null
+    const seatFields = seatFieldsFromParsedCalendarPrice({
+      availableSeats: p.availableSeats,
+      seatsStatusRaw: (p as { seatsStatusRaw?: string | null }).seatsStatusRaw,
+      status: statusRaw,
+    })
     return {
       departureDate: p.date,
       adultPrice: adultPrice || undefined,
@@ -524,7 +529,7 @@ export function parsedPricesToDepartureInputs(prices: Array<{
       ...(inf !== undefined ? { infantPrice: inf } : {}),
       localPriceText: (p as { localPrice?: string | null }).localPrice ?? undefined,
       statusRaw: statusRaw ?? undefined,
-      seatsStatusRaw: seatsStatusRaw ?? undefined,
+      ...seatFields,
       carrierName: p.carrierName ?? undefined,
       outboundFlightNo: p.outboundFlightNo ?? undefined,
       outboundDepartureAirport: p.outboundDepartureAirport ?? undefined,

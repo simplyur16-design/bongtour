@@ -10,6 +10,7 @@ import type { ProductPriceRow } from '@/app/components/travel/TravelProductDetai
 import type { BodyProductPriceTable } from '@/lib/public-product-extras'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { DepartureInput } from '@/lib/upsert-product-departures-hanatour'
+import { availableSeatsForPriceRow } from '@/lib/departure-seat-availability'
 import { normalizeCalendarDate } from '@/lib/date-normalize'
 
 export type HanatourProductPriceTableLike = {
@@ -370,7 +371,7 @@ export function productDeparturesToProductPriceRows(departures: ProductDeparture
       priceChildNoBed: childNoBed,
       priceInfant: infant,
       status,
-      availableSeats: d.seatCount ?? undefined,
+      availableSeats: availableSeatsForPriceRow(d),
       /** 출발행 좌석·예약 표기 원문(하나투어 등) — 공개 예약인원 행 보조 */
       seatsStatusRaw,
     }

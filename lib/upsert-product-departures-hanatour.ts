@@ -7,8 +7,12 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { seatFieldsFromParsedCalendarPrice } from '@/lib/departure-seat-availability'
+import { deriveDepartureFlags } from '@/lib/derive-departure-flags'
 import { normalizeCalendarDate } from './date-normalize'
 import { deriveHanatourConfirmationFlags, parseStatusLabelsJson } from './hanatour-normalize'
+
+export { deriveDepartureFlags } from '@/lib/derive-departure-flags'
 
 const MAX_RAW = 2000
 
@@ -171,35 +175,6 @@ export function normalizeDepartureDate(input: string | Date): Date | null {
   return date
 }
 
-/**
- * statusRaw / seatsStatusRaw → isConfirmed, isBookable.
- * 명확할 때만 채우고, 애매하면 null.
- */
-export function deriveDepartureFlags(
-  statusRaw?: string | null,
-  seatsStatusRaw?: string | null
-): { isConfirmed: boolean | null; isBookable: boolean | null } {
-  const raw = (statusRaw ?? '').trim()
-  const seats = (seatsStatusRaw ?? '').trim()
-  let isConfirmed: boolean | null = null
-  let isBookable: boolean | null = null
-
-  if (raw) {
-    if (/출발\s*확정|확정\s*출발/i.test(raw)) isConfirmed = true
-    else if (/마감|불가|취소/i.test(raw)) {
-      isConfirmed = false
-      isBookable = false
-    }
-  }
-  if (isBookable === null && (raw || seats)) {
-    if (/대기\s*예약|대기/i.test(raw)) isBookable = null
-    else if (/예약\s*가능|예약가능|가능/i.test(raw) || /예약\s*가능|잔여|좌석/i.test(seats)) isBookable = true
-    else if (/마감|불가|대기/i.test(raw) || /마감|불가/i.test(seats)) isBookable = false
-  }
-
-  return { isConfirmed, isBookable }
-}
-
 function mergeHanatourDerivedFlags(
   statusLabelsRaw: string | null | undefined,
   statusRaw: string | null | undefined,
@@ -271,7 +246,9 @@ export async function upsertProductDepartures(
   }
 
   for (const { dep: d, departureDate } of pairs) {
-    const { isConfirmed, isBookable } = deriveDepartureFlags(d.statusRaw, d.seatsStatusRaw)
+    const seatCountForFlags =
+      d.seatCount != null && !Number.isNaN(d.seatCount) ? d.seatCount : null
+    const { isConfirmed, isBookable } = deriveDepartureFlags(d.statusRaw, d.seatsStatusRaw, seatCountForFlags)
 
     const previous = existingChildByUtc.get(departureDate.getTime())
     const adultPrice = d.adultPrice != null && !Number.isNaN(d.adultPrice) ? d.adultPrice : null
@@ -446,7 +423,11 @@ export function parsedPricesToDepartureInputs(prices: Array<{
         ? (Number(p.infantBase) || 0) + (Number(p.infantFuel) || 0)
         : undefined
     const statusRaw = p.status && String(p.status).trim() ? String(p.status).trim() : null
-    const seatsStatusRaw = p.availableSeats != null ? `잔여${p.availableSeats}` : null
+    const seatFields = seatFieldsFromParsedCalendarPrice({
+      availableSeats: p.availableSeats,
+      seatsStatusRaw: (p as { seatsStatusRaw?: string | null }).seatsStatusRaw,
+      status: statusRaw,
+    })
     return {
       departureDate: p.date,
       adultPrice: adultPrice || undefined,
@@ -455,7 +436,7 @@ export function parsedPricesToDepartureInputs(prices: Array<{
       ...(inf !== undefined ? { infantPrice: inf } : {}),
       localPriceText: (p as { localPrice?: string | null }).localPrice ?? undefined,
       statusRaw: statusRaw ?? undefined,
-      seatsStatusRaw: seatsStatusRaw ?? undefined,
+      ...seatFields,
       carrierName: p.carrierName ?? undefined,
       outboundFlightNo: p.outboundFlightNo ?? undefined,
       outboundDepartureAirport: p.outboundDepartureAirport ?? undefined,
