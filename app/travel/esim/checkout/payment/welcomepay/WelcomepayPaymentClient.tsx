@@ -430,7 +430,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
                   id="WelpayMobileForm"
                   method="post"
                   action={activeMethod.mobile.submitUrl}
-                  acceptCharset="UTF-8"
+                  acceptCharset="EUC-KR"
                   target="_self"
                   className="sr-only"
                   aria-hidden
@@ -448,7 +448,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
                   <input type="hidden" name="P_MOBILE" value={prep.mobile.pMobile} />
                   <input type="hidden" name="P_INI_PAYMENT" value={activeMethod.mobile.pIniPayment} />
                   <input type="hidden" name="P_RESERVED" value={activeMethod.mobile.pReserved} />
-                  <input type="hidden" name="P_CHARSET" value="UTF-8" />
+                  <input type="hidden" name="P_CHARSET" value="EUC-KR" />
                   {activeMethod.mobile.requiresNotiUrl && prep.pNotiUrl ? (
                     <input type="hidden" name="P_NOTI_URL" value={prep.pNotiUrl} />
                   ) : null}

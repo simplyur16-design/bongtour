@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { resetAfterPgOverlay } from "@/lib/bongsim/checkout/reset-after-pg-overlay";
+import { normalizeWelcomepayPgUserMessage } from "@/lib/bongsim/welcomepay-pg-text-decode";
 
 function formatAmountKrw(raw: string): string | null {
   const n = Number.parseInt(raw.replace(/[^\d]/g, ""), 10);
@@ -23,7 +24,9 @@ function ResultInner() {
   const orderNumber = (sp?.get("orderNumber") ?? "").trim();
   /** 고객·CS용 표기 — UUID(orderId 쿼리)는 노출하지 않음 */
   const orderNoDisplay = orderNumber || "—";
-  const message = (sp?.get("message") ?? "").trim();
+  const messageRaw = (sp?.get("message") ?? "").trim();
+  const message = normalizeWelcomepayPgUserMessage(messageRaw) || messageRaw;
+  const pgCode = (sp?.get("pgCode") ?? "").trim();
   const amountRaw = (sp?.get("amount") ?? "").trim();
   const orderName = (sp?.get("orderName") ?? "").trim();
   const vbankAccount = (sp?.get("vbankAccount") ?? "").trim();
@@ -230,9 +233,14 @@ function ResultInner() {
             </div>
             <div className="border-t border-slate-100 p-5 sm:p-6">
               {message ? (
-                <div className="rounded-lg border border-amber-100 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
+                <div className="rounded-lg border border-amber-100 bg-amber-50/90 px-4 py-3 text-sm leading-relaxed text-amber-950">
                   {message}
                 </div>
+              ) : null}
+              {pgCode ? (
+                <p className={`text-xs text-slate-500 ${message ? "mt-2" : ""}`}>
+                  PG 오류코드: <span className="font-mono font-semibold text-slate-700">{pgCode}</span>
+                </p>
               ) : null}
               <p className={`break-all text-xs font-mono text-slate-500 sm:text-sm ${message ? "mt-4" : ""}`}>
                 <span className="font-sans font-medium text-slate-600">주문번호 </span>

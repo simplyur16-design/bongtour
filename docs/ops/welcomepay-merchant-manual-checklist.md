@@ -46,7 +46,7 @@ PG 가맹점 관리자에 등록할 URL (apex 기준):
 | P_CHKFAKE = BASE64(SHA512(P_AMT+P_OID+P_TIMESTAMP+HashKey)) | HashKey 기본=SHA256(signKey) hex(`mkey`); 부가정보 값=`WELCOMEPAY_MOBILE_HASH_KEY`; raw Signkey=`WELCOMEPAY_MOBILE_HASH_KEY_SOURCE=signkey` |
 | P_NEXT_URL (가맹점 등록·결제 폼 동일) | `welcomepay-mobile-next` path만 (쿼리 없음) — 폼에 쿼리 붙이면 01 거절 가능 |
 | 주문번호 복구 | hidden `P_OID`·`P_NOTI` + prepare 쿠키 |
-| P_CHARSET=utf8 | prepare·결제 폼 `P_CHARSET` |
+| P_CHARSET=EUC-KR · 폼 `acceptCharset=EUC-KR` | 모바일 결제 폼 (가이드 §1.2 기본 인코딩) |
 | P_REQ_URL 승인 — **P_MID + P_TID 만** | `buildMobilePayApprovalFormBody` |
 | UTF-8 샘플 | `WelPayMoNextUrlUtf8` 흐름과 동일 |
 

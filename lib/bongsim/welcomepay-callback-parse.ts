@@ -1,5 +1,9 @@
 /** PG 인증/승인 콜백 본문 파싱 (PC returnUrl · 모바일 P_NEXT_URL 공통). */
 
+import {
+  decodeWelcomepayCallbackBody,
+  normalizeWelcomepayPgUserMessage,
+} from "@/lib/bongsim/welcomepay-pg-text-decode";
 import { pickCaptureTidFromMap } from "@/lib/bongsim/refund/resolve-welcomepay-capture-tid";
 
 export function parseWelcomepayPayload(text: string): Record<string, string> {
@@ -80,7 +84,8 @@ export async function readWelcomepayCallbackFromRequest(req: Request): Promise<R
   }
 
   const ct = (req.headers.get("content-type") ?? "").toLowerCase();
-  if (ct.includes("multipart/form-data") || ct.includes("application/x-www-form-urlencoded")) {
+
+  if (ct.includes("multipart/form-data")) {
     try {
       const fd = await req.formData();
       const fromForm: Record<string, string> = {};
@@ -91,12 +96,14 @@ export async function readWelcomepayCallbackFromRequest(req: Request): Promise<R
         return mergeWelcomepayParamMaps(fromQuery, fromForm);
       }
     } catch {
-      /* fall through to raw text */
+      /* fall through */
     }
   }
 
   try {
-    const raw = await req.text();
+    const buf = Buffer.from(await req.arrayBuffer());
+    if (buf.length === 0) return fromQuery;
+    const raw = decodeWelcomepayCallbackBody(buf, ct);
     return mergeWelcomepayParamMaps(fromQuery, parseWelcomepayPayload(raw));
   } catch {
     return fromQuery;
@@ -113,9 +120,9 @@ export function pickTid(m: Record<string, string>): string {
   return pickCaptureTid(m) || (m.P_TID ?? m.p_tid ?? "").trim();
 }
 
-/** PG 인증 실패 콜백 — `P_RMESG1` 등 사용자·운영자용 메시지 */
+/** PG 인증 실패 콜백 — `P_RMESG1` 등 사용자·운영자용 메시지 (EUC-KR 복구). */
 export function pickWelcomepayPgCallbackMessage(m: Record<string, string>): string {
-  return (
+  const raw = (
     m.P_RMESG1 ??
     m.p_rmesg1 ??
     m.P_RMESG2 ??
@@ -125,6 +132,7 @@ export function pickWelcomepayPgCallbackMessage(m: Record<string, string>): stri
     m.ResultMsg ??
     ""
   ).trim();
+  return normalizeWelcomepayPgUserMessage(raw);
 }
 
 export function pickPaymentType(m: Record<string, string>): string {

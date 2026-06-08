@@ -53,13 +53,14 @@ async function handleWelcomepayMobileNext(req: Request) {
   const origin = requestOrigin(req);
   let orderId = "";
   let orderNumber = "";
-  const fail = (reason: string) => {
+  const fail = (reason: string, pgCode?: string) => {
     const res = NextResponse.redirect(
       buildCheckoutPaymentResultRedirectUrl(origin, {
         status: "fail",
         orderId,
         orderNumber,
         message: reason,
+        pgCode,
       }),
       303,
     );
@@ -93,6 +94,7 @@ async function handleWelcomepayMobileNext(req: Request) {
     });
     return fail(
       welcomepayPgAuthFailMessage({ resultCode: authRc, pgMessage: pgMessage || null }),
+      authRc || undefined,
     );
   }
 
@@ -153,7 +155,10 @@ async function handleWelcomepayMobileNext(req: Request) {
   }
 
   if (authRc && !isWelcomepayAuthSuccessCode(authRc)) {
-    return fail(welcomepayPgAuthFailMessage({ resultCode: authRc, pgMessage: pgMessage || null }));
+    return fail(
+      welcomepayPgAuthFailMessage({ resultCode: authRc, pgMessage: pgMessage || null }),
+      authRc || undefined,
+    );
   }
 
   const preq = incoming.P_REQ_URL?.trim() ?? incoming.p_req_url?.trim();

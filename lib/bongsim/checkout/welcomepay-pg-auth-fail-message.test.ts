@@ -20,7 +20,7 @@ describe("welcomepayPgAuthFailMessage", () => {
       resultCode: "01",
       pgMessage: "사용자가 결제를 취소하였습니다.",
     });
-    expect(msg).toBe("사용자가 결제를 취소하였습니다.");
+    expect(msg).toBe("사용자가 결제를 취소하였습니다. (오류코드 01)");
   });
 
   it("resultCode 01 — 운영·PG문구 없음", () => {

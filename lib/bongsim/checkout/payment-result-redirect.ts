@@ -12,6 +12,7 @@ export function buildCheckoutPaymentResultRedirectUrl(
     status: CheckoutPaymentResultStatus;
     orderId: string;
     message?: string;
+    pgCode?: string;
     orderNumber?: string;
     amount?: string;
     vbankAccount?: string;
@@ -27,6 +28,8 @@ export function buildCheckoutPaymentResultRedirectUrl(
   if (on) q.set("orderNumber", on);
   const msg = input.message?.trim();
   if (msg) q.set("message", msg);
+  const pgCode = input.pgCode?.trim();
+  if (pgCode) q.set("pgCode", pgCode);
   const amount = input.amount?.trim();
   if (amount) q.set("amount", amount);
   const vbankAccount = input.vbankAccount?.trim();

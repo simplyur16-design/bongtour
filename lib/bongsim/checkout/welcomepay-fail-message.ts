@@ -1,4 +1,5 @@
 import type { ProcessWelcomepayPaymentResult } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
+import { normalizeWelcomepayPgUserMessage } from "@/lib/bongsim/welcomepay-pg-text-decode";
 import { resolveWelcomepayEnv } from "@/lib/bongsim/welcomepay";
 
 /** 모바일 `P_STATUS`·PC `resultCode` 등 PG 인증 실패 코드 → 고객용 문구 */
@@ -7,11 +8,12 @@ export function welcomepayPgAuthFailMessage(input: {
   pgMessage?: string | null;
 }): string {
   const rc = input.resultCode.trim();
-  const pg = (input.pgMessage ?? "").trim();
+  const pg = normalizeWelcomepayPgUserMessage((input.pgMessage ?? "").trim());
   const isTest = resolveWelcomepayEnv() !== "production";
+  const codeHint = rc ? ` (오류코드 ${rc})` : "";
 
   if (rc === "01") {
-    if (pg) return pg;
+    if (pg) return `${pg}${codeHint}`;
     if (isTest) {
       return (
         "결제가 거절되었습니다. 테스트 PG에서는 웰컴페이먼츠 안내 테스트 카드로만 결제할 수 있습니다."
@@ -23,8 +25,8 @@ export function welcomepayPgAuthFailMessage(input: {
     );
   }
 
-  if (pg) return pg;
-  if (rc) return `결제 인증에 실패했습니다(resultCode=${rc}).`;
+  if (pg) return `${pg}${codeHint}`;
+  if (rc) return `결제 인증에 실패했습니다(오류코드 ${rc}).`;
   return "결제 인증에 실패했습니다.";
 }
 
