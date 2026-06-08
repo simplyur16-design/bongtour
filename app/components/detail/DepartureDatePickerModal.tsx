@@ -124,7 +124,7 @@ export default function DepartureDatePickerModal({
   }, [open])
 
   if (!open) return null
-  if ((viewModels.length === 0 || !globalLow) && !allowUndepartedCalendarPick) return null
+  if (viewModels.length === 0 && !allowUndepartedCalendarPick) return null
 
   const pick = (iso: string) => {
     onSelectDate(iso)
