@@ -2,7 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { resolveWelcomepayEnv, welcomepayMobileWelpaySubmitUrl } from "@/lib/bongsim/welcomepay";
+import { WELCOMEPAY_CHECKOUT_METHODS } from "@/lib/bongsim/welcomepay-payment-methods";
+import {
+  resolveWelcomepayEnv,
+  welcomepayMobileSubmitUrlForMethod,
+  welcomepayMobileWelpaySubmitUrl,
+  welcomepayVbankNotiCallbackUrlRegistered,
+} from "@/lib/bongsim/welcomepay";
 
 describe("resolveWelcomepayEnv", () => {
   const prevNode = process.env.NODE_ENV;
@@ -20,6 +26,12 @@ describe("resolveWelcomepayEnv", () => {
     expect(welcomepayMobileWelpaySubmitUrl()).toBe(
       "https://mobile.paywelcome.co.kr/smart/wcard/",
     );
+    for (const def of WELCOMEPAY_CHECKOUT_METHODS) {
+      expect(welcomepayMobileSubmitUrlForMethod(def.id)).toBe(
+        `https://mobile.paywelcome.co.kr/smart/${def.mobilePath}/`,
+      );
+    }
+    expect(welcomepayVbankNotiCallbackUrlRegistered()).toContain("/welcomepay-vbank-noti");
   });
 
   it("WELCOMEPAY_ENV=test → test", () => {
@@ -28,6 +40,9 @@ describe("resolveWelcomepayEnv", () => {
     expect(resolveWelcomepayEnv()).toBe("test");
     expect(welcomepayMobileWelpaySubmitUrl()).toBe(
       "https://tmobile.paywelcome.co.kr/smart/wcard/",
+    );
+    expect(welcomepayMobileSubmitUrlForMethod("vbank")).toBe(
+      "https://tmobile.paywelcome.co.kr/smart/vbank/",
     );
   });
 });

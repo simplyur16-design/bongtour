@@ -2,6 +2,12 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import {
+  buildWelcomepayMobileReserved,
+  getWelcomepayMethodDefinition,
+  type WelcomepayMethodId,
+  WELCOMEPAY_MOBILE_P_RESERVED_BASE,
+} from "@/lib/bongsim/welcomepay-payment-methods";
 import { getSiteOrigin } from "@/lib/site-metadata";
 
 /** test | production (default test) */
@@ -15,6 +21,11 @@ export function welcomepayCheckoutCallbackOrigin(): string {
 /** 가맹점 관리자에 등록하는 모바일 `P_NEXT_URL` (path만, 쿼리 없음). */
 export function welcomepayMobileNextCallbackUrlRegistered(): string {
   return `${welcomepayCheckoutCallbackOrigin()}/api/bongsim/checkout/welcomepay-mobile-next`;
+}
+
+/** 가맹점 관리자에 등록하는 가상계좌 `P_NOTI_URL` (path만, 쿼리 없음). */
+export function welcomepayVbankNotiCallbackUrlRegistered(): string {
+  return `${welcomepayCheckoutCallbackOrigin()}/api/bongsim/checkout/welcomepay-vbank-noti`;
 }
 
 /**
@@ -66,20 +77,35 @@ export function welcomepayPayAuthUrl(): string {
   return `${welcomepayStdPayOrigin()}/api/payAuth`;
 }
 
-/**
- * 모바일 Web 신용카드 결제창 POST URL (Mobile_Web_manual §1.2 — `/smart/wcard/`).
- * eSIM 카드단건은 신용카드만 사용. trailing slash 유지.
- */
+export function welcomepayMobileHost(): string {
+  return resolveWelcomepayEnv() === "production"
+    ? "https://mobile.paywelcome.co.kr"
+    : "https://tmobile.paywelcome.co.kr";
+}
+
+/** Mobile Web §1.2 — `/smart/{path}/` (trailing slash 유지). */
+export function welcomepayMobileSubmitUrlForPath(mobilePath: string): string {
+  const segment = mobilePath.replace(/^\/+|\/+$/g, "");
+  return `${welcomepayMobileHost()}/smart/${segment}/`;
+}
+
+/** 지불수단별 모바일 결제창 POST URL. */
+export function welcomepayMobileSubmitUrlForMethod(methodId: WelcomepayMethodId): string {
+  const def = getWelcomepayMethodDefinition(methodId);
+  return welcomepayMobileSubmitUrlForPath(def.mobilePath);
+}
+
+/** @deprecated `welcomepayMobileSubmitUrlForMethod("card")` 사용 */
 export function welcomepayMobileWelpaySubmitUrl(): string {
-  const host =
-    resolveWelcomepayEnv() === "production"
-      ? "https://mobile.paywelcome.co.kr"
-      : "https://tmobile.paywelcome.co.kr";
-  return `${host}/smart/wcard/`;
+  return welcomepayMobileSubmitUrlForMethod("card");
 }
 
 /** 모바일 welpay 필수 `P_RESERVED` — IDC센터코드 + 금액위변조 hash (이니시스 stdpay_m). */
-export const WELCOMEPAY_MOBILE_P_RESERVED = "centerCd=Y&amt_hash=Y";
+export const WELCOMEPAY_MOBILE_P_RESERVED = WELCOMEPAY_MOBILE_P_RESERVED_BASE;
+
+export function welcomepayMobileReservedForMethod(methodId: WelcomepayMethodId): string {
+  return buildWelcomepayMobileReserved(getWelcomepayMethodDefinition(methodId));
+}
 
 /**
  * 모바일 welpay `P_CHKFAKE` HashKey (PC signKey와 별도 규약).

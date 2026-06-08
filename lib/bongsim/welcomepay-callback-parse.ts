@@ -127,6 +127,35 @@ export function pickWelcomepayPgCallbackMessage(m: Record<string, string>): stri
   ).trim();
 }
 
+export function pickPaymentType(m: Record<string, string>): string {
+  return (m.P_TYPE ?? m.p_type ?? m.payMethod ?? m.PAYMETHOD ?? "").trim().toUpperCase();
+}
+
+export type WelcomepayVbankIssueInfo = {
+  account: string;
+  bankName: string;
+  holder: string;
+  dueDate: string;
+  dueTime: string;
+};
+
+export function pickVbankIssueInfo(m: Record<string, string>): WelcomepayVbankIssueInfo | null {
+  const account = (m.P_VACT_NUM ?? m.p_vact_num ?? m.VACT_Num ?? "").trim();
+  if (!account) return null;
+  return {
+    account,
+    bankName: (m.P_FN_NM ?? m.p_fn_nm ?? m.P_VACT_BANK_NAME ?? "").trim(),
+    holder: (m.P_VACT_NAME ?? m.p_vact_name ?? "").trim(),
+    dueDate: (m.P_VACT_DATE ?? m.p_vact_date ?? "").trim(),
+    dueTime: (m.P_VACT_TIME ?? m.p_vact_time ?? "").trim(),
+  };
+}
+
+export function isVbankIssuedApproval(m: Record<string, string>): boolean {
+  if (pickPaymentType(m) === "VBANK") return true;
+  return Boolean(pickVbankIssueInfo(m));
+}
+
 export function pickAmountKrw(m: Record<string, string>): number | null {
   const raw =
     m.TotPrice ??

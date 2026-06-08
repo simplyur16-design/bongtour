@@ -10,10 +10,12 @@ import {
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import { getPgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
 import {
+  isVbankIssuedApproval,
   parseWelcomepayPayload,
   pickAmountKrw,
-  pickOid,
   pickCaptureTid,
+  pickOid,
+  pickVbankIssueInfo,
   pickWelcomepayPgCallbackMessage,
   readWelcomepayCallbackFromRequest,
   resultCodeOf,
@@ -200,10 +202,44 @@ async function handleWelcomepayMobileNext(req: Request) {
   const tid = pickCaptureTid(merged);
   if (!tid) return fail("missing_capture_tid");
   const amt = pickAmountKrw(merged);
-  const providerEventId = `welcomepay_mobile_${tid}`;
   const amountForCapture =
     amt != null && Number.isFinite(amt) && amt > 0 ? amt : Number.isFinite(grandTotalKrw) ? grandTotalKrw : undefined;
 
+  if (isVbankIssuedApproval(merged)) {
+    const vbank = pickVbankIssueInfo(merged);
+    const providerEventId = `welcomepay_mobile_vbank_issue_${tid}`;
+    const finVbank = await processWelcomepayPaymentOutcome({
+      providerEventId,
+      paymentAttemptId,
+      outcome: "authorized",
+      rawPayload: merged,
+    });
+    if (!finVbank.ok) {
+      return fail(welcomepayCheckoutFailMessage(finVbank));
+    }
+    const due =
+      vbank?.dueDate && vbank.dueTime
+        ? `${vbank.dueDate} ${vbank.dueTime}`
+        : vbank?.dueDate || "";
+    const pendingRes = NextResponse.redirect(
+      buildCheckoutPaymentResultRedirectUrl(origin, {
+        status: "vbank_pending",
+        orderId,
+        orderNumber,
+        amount: amountForCapture != null ? String(amountForCapture) : undefined,
+        vbankAccount: vbank?.account,
+        vbankBank: vbank?.bankName,
+        vbankHolder: vbank?.holder,
+        vbankDue: due || undefined,
+        message: "가상계좌가 발급되었습니다. 입금 기한 내에 입금해 주세요.",
+      }),
+      303,
+    );
+    pendingRes.headers.append("Set-Cookie", welcomepayMobileOidCookieClearHeader());
+    return pendingRes;
+  }
+
+  const providerEventId = `welcomepay_mobile_${tid}`;
   const fin = await processWelcomepayPaymentOutcome({
     providerEventId,
     paymentAttemptId,

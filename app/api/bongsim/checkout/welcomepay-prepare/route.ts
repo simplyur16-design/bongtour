@@ -4,6 +4,12 @@ import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/pa
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import {
+  WELCOMEPAY_CHECKOUT_METHODS,
+  getWelcomepayMethodDefinition,
+  resolveWelcomepayMethodId,
+  type WelcomepayMethodId,
+} from "@/lib/bongsim/welcomepay-payment-methods";
+import {
   WELCOMEPAY_MOBILE_P_RESERVED,
   generateMKey,
   generateMobileWelpayPChkfake,
@@ -14,8 +20,10 @@ import {
   resolveWelcomepayMobileHashKey,
   welcomepayCheckoutCallbackOrigin,
   welcomepayMobileNextCallbackUrlRegistered,
-  welcomepayMobileWelpaySubmitUrl,
+  welcomepayMobileReservedForMethod,
+  welcomepayMobileSubmitUrlForMethod,
   welcomepayStdPayScriptUrl,
+  welcomepayVbankNotiCallbackUrlRegistered,
 } from "@/lib/bongsim/welcomepay";
 import { welcomepayMobileOidCookieSetHeader } from "@/lib/bongsim/welcomepay-mobile-oid-cookie";
 
@@ -28,6 +36,23 @@ type PrepareBody = {
   orderName?: unknown;
   customerEmail?: unknown;
   paymentAttemptId?: unknown;
+  paymentMethod?: unknown;
+};
+
+type PrepareMethodPayload = {
+  id: WelcomepayMethodId;
+  label: string;
+  mobile: {
+    submitUrl: string;
+    pIniPayment: string;
+    pReserved: string;
+    requiresNotiUrl: boolean;
+    requiresHppMethod: boolean;
+  };
+  pc: {
+    goPayMethod: string;
+    acceptMethod?: string;
+  };
 };
 
 export async function POST(req: Request) {
@@ -158,6 +183,25 @@ export async function POST(req: Request) {
       ? customerEmail.split("@")[0]!.slice(0, 30)
       : customerEmail.slice(0, 30) || "고객";
   const pGoods = orderName.length > 80 ? orderName.slice(0, 80) : orderName;
+  const paymentMethod = resolveWelcomepayMethodId(body.paymentMethod);
+  const selectedDef = getWelcomepayMethodDefinition(paymentMethod);
+  const pNotiUrl = welcomepayVbankNotiCallbackUrlRegistered();
+
+  const methods: PrepareMethodPayload[] = WELCOMEPAY_CHECKOUT_METHODS.map((def) => ({
+    id: def.id,
+    label: def.label,
+    mobile: {
+      submitUrl: welcomepayMobileSubmitUrlForMethod(def.id),
+      pIniPayment: def.pIniPayment,
+      pReserved: welcomepayMobileReservedForMethod(def.id),
+      requiresNotiUrl: def.requiresNotiUrl,
+      requiresHppMethod: def.requiresHppMethod,
+    },
+    pc: {
+      goPayMethod: def.pcGoPayMethod,
+      ...(def.pcAcceptMethod ? { acceptMethod: def.pcAcceptMethod } : {}),
+    },
+  }));
 
   const res = jsonWithLeakGuard(
     {
@@ -172,8 +216,11 @@ export async function POST(req: Request) {
       closeUrl,
       popupUrl,
       pcStdPayScriptUrl: welcomepayStdPayScriptUrl(),
+      paymentMethod,
+      pNotiUrl,
+      methods,
       mobile: {
-        submitUrl: welcomepayMobileWelpaySubmitUrl(),
+        submitUrl: welcomepayMobileSubmitUrlForMethod(paymentMethod),
         pNextUrl,
         pMid: mid,
         pOid: orderNumber,
@@ -185,8 +232,8 @@ export async function POST(req: Request) {
         pUnam: buyerShort,
         pEmail: customerEmail,
         pMobile,
-        pIniPayment: "CARD",
-        pReserved: WELCOMEPAY_MOBILE_P_RESERVED,
+        pIniPayment: selectedDef.pIniPayment,
+        pReserved: welcomepayMobileReservedForMethod(paymentMethod),
       },
       welcomepay_env: resolveWelcomepayEnv(),
     },

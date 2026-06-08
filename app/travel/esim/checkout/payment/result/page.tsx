@@ -4,7 +4,7 @@ import Header from "@/app/components/Header";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { buildCheckoutRetryHref } from "@/lib/bongsim/checkout/build-checkout-retry-href";
 import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
-import { Ban, CheckCircle2, XCircle } from "lucide-react";
+import { Ban, CheckCircle2, Landmark, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
@@ -26,6 +26,10 @@ function ResultInner() {
   const message = (sp?.get("message") ?? "").trim();
   const amountRaw = (sp?.get("amount") ?? "").trim();
   const orderName = (sp?.get("orderName") ?? "").trim();
+  const vbankAccount = (sp?.get("vbankAccount") ?? "").trim();
+  const vbankBank = (sp?.get("vbankBank") ?? "").trim();
+  const vbankHolder = (sp?.get("vbankHolder") ?? "").trim();
+  const vbankDue = (sp?.get("vbankDue") ?? "").trim();
 
   useEffect(() => {
     resetAfterPgOverlay();
@@ -38,6 +42,7 @@ function ResultInner() {
   const isCancel = statusRaw === "cancel";
   const isFail = statusRaw === "fail";
   const isSuccess = statusRaw === "success";
+  const isVbankPending = statusRaw === "vbank_pending";
   const amountDisplay = amountRaw ? formatAmountKrw(amountRaw) ?? amountRaw : null;
 
   const shellMainClass =
@@ -110,6 +115,66 @@ function ResultInner() {
               </div>
 
               <EsimSupportFootnote />
+            </div>
+          </div>
+        </main>
+      ) : null}
+
+      {isVbankPending ? (
+        <main className={shellMainClass}>
+          <div className="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 px-6 py-10 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+                <Landmark className="h-9 w-9 text-amber-700" strokeWidth={1.75} aria-hidden />
+              </div>
+              <h1 className="mt-5 text-2xl font-bold text-slate-900">가상계좌가 발급되었습니다</h1>
+              <p className="mx-auto mt-2 max-w-md text-slate-600">
+                {message || "입금 기한 내에 아래 계좌로 입금해 주시면 결제가 완료되고 eSIM이 발송됩니다."}
+              </p>
+            </div>
+            <div className="border-t border-slate-100 p-5 sm:p-6">
+              <dl className="space-y-3 text-sm sm:text-base">
+                {vbankBank ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">입금 은행</dt>
+                    <dd className="font-medium text-slate-900">{vbankBank}</dd>
+                  </div>
+                ) : null}
+                {vbankAccount ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">계좌번호</dt>
+                    <dd className="font-mono font-semibold text-slate-900">{vbankAccount}</dd>
+                  </div>
+                ) : null}
+                {vbankHolder ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">예금주</dt>
+                    <dd className="font-medium text-slate-900">{vbankHolder}</dd>
+                  </div>
+                ) : null}
+                {amountDisplay ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">입금 금액</dt>
+                    <dd className="font-bold text-slate-900">{amountDisplay}</dd>
+                  </div>
+                ) : null}
+                {vbankDue ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">입금 기한</dt>
+                    <dd className="font-medium text-slate-900">{vbankDue}</dd>
+                  </div>
+                ) : null}
+                <div className="flex justify-between gap-3 border-t border-slate-100 pt-3">
+                  <dt className="text-slate-500">주문번호</dt>
+                  <dd className="break-all font-mono text-slate-900">{orderNoDisplay}</dd>
+                </div>
+              </dl>
+              <p className="mt-5 text-xs leading-relaxed text-slate-500 sm:text-sm">
+                입금 확인 후 자동으로 결제가 완료됩니다. 기한 내 미입금 시 주문이 취소될 수 있습니다.
+              </p>
+              <div className="mt-6">
+                <EsimSupportFootnote />
+              </div>
             </div>
           </div>
         </main>

@@ -16,6 +16,7 @@ PG 가맹점 관리자에 등록할 URL (apex 기준):
 
 - PC `returnUrl`: `https://bongtour.com/api/bongsim/checkout/welcomepay-return`
 - 모바일 `P_NEXT_URL`: `https://bongtour.com/api/bongsim/checkout/welcomepay-mobile-next`
+- 가상계좌 `P_NOTI_URL`: `https://bongtour.com/api/bongsim/checkout/welcomepay-vbank-noti`
 - PC `closeUrl` / `popupUrl`: `https://bongtour.com/travel/esim/checkout/payment/welcomepay/close` (+ 쿼리)
 
 ## PC Web (INIStdPay) — 코드 매핑
@@ -25,18 +26,21 @@ PG 가맹점 관리자에 등록할 URL (apex 기준):
 | WelStdPayRequest — mid, oid, price, timestamp, signature, mKey | `welcomepay-prepare` + 결제 페이지 hidden 폼 |
 | returnUrl | `welcomepay-prepare` → `/api/bongsim/checkout/welcomepay-return` |
 | closeUrl / popupUrl | `welcomepay/close` → 결제 결과 `cancel` |
-| gopaymethod=Card, currency=WON, version=1.0 | 결제 페이지 폼 |
+| gopaymethod (Card·VBank·DirectBank·HPP·Culture·해외 GLOBAL) | 결제 페이지 — 수단 선택 시 `methods[].pc` |
 | charset=UTF-8 | PC 폼 `charset` hidden |
 | WelStdPayReturn — 인증 resultCode 0000 | `welcomepay-return` |
 | WelStdPayResult — payAuth (mid, authToken, **새** timestamp·signature) | `lib/bongsim/welcomepay-payauth.ts` → `buildPcPayAuthFormBody` |
 | authSignature 검증 (MOID, TotPrice) | `verifyWelcomepayAuthSignature` |
 | 운영 JS URL | `welcomepayStdPayScriptUrl()` — `WELCOMEPAY_ENV=production` |
 
-## Mobile Web (신용카드 §1.2) — 코드 매핑
+## Mobile Web (§1.2 지불수단별 URL) — 코드 매핑
 
 | 메뉴얼 단계 | 구현 |
 |-------------|------|
-| 결제창 POST URL | `welcomepayMobileWelpaySubmitUrl()` → 운영 `https://mobile.paywelcome.co.kr/smart/wcard/` · 테스트 `tmobile…/smart/wcard/` (구 `/smart/welpay/` 사용 금지) |
+| 결제창 POST URL | `welcomepayMobileSubmitUrlForMethod(id)` — `wcard`·`vbank`·`bank`·`mobile`·`cgft`·`etc` (`lib/bongsim/welcomepay-payment-methods.ts`) |
+| P_INI_PAYMENT | CARD·VBANK·BANK·HPP·CULTURE (해외카드=CARD + `/smart/etc/`) |
+| P_NOTI_URL (가상계좌) | `welcomepayVbankNotiCallbackUrlRegistered()` → `welcomepay-vbank-noti` |
+| P_HPP_METHOD=1 | 휴대폰 결제 시 (eSIM=디지털 컨텐츠) |
 | P_MID, P_OID, P_AMT, P_TIMESTAMP, P_CHKFAKE | `welcomepay-prepare` mobile 블록 |
 | P_RESERVED=centerCd=Y&amt_hash=Y | prepare·결제 폼 (필수) |
 | P_CHKFAKE = BASE64(SHA512(P_AMT+P_OID+P_TIMESTAMP+HashKey)) | HashKey 기본=SHA256(signKey) hex(`mkey`); 부가정보 값=`WELCOMEPAY_MOBILE_HASH_KEY`; raw Signkey=`WELCOMEPAY_MOBILE_HASH_KEY_SOURCE=signkey` |
@@ -46,10 +50,8 @@ PG 가맹점 관리자에 등록할 URL (apex 기준):
 | P_REQ_URL 승인 — **P_MID + P_TID 만** | `buildMobilePayApprovalFormBody` |
 | UTF-8 샘플 | `WelPayMoNextUrlUtf8` 흐름과 동일 |
 
-## 미구현 (eSIM 카드 단건 범위 밖)
+## 미구현
 
-- 가상계좌·계좌이체·휴대폰·문화상품권 (`smart/bank`, `smart/mobile` 등)
-- `P_NOTI_URL` 비동기 입금통보
 - `netCancel` 망취소 자동 호출
 - PAYAPI 부분취소·에스크로 (전체취소: `payapi.paywelcome.co.kr/cancel/cancel` — `lib/bongsim/welcomepay-payapi-cancel.ts`)
 - PC `WelStdPayRelay` (popup crossDomain — overlay 사용)

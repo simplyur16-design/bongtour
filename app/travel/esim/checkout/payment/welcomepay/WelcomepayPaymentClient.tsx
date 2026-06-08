@@ -12,6 +12,26 @@ import {
   isProductionWelpaySubmitUrl,
 } from "@/lib/bongsim/welcomepay-mobile-user-agent";
 import { welcomepayMobileOidDocumentCookie } from "@/lib/bongsim/welcomepay-mobile-oid-cookie";
+import {
+  resolveWelcomepayMethodId,
+  type WelcomepayMethodId,
+} from "@/lib/bongsim/welcomepay-payment-methods";
+
+type PrepareMethodPayload = {
+  id: WelcomepayMethodId;
+  label: string;
+  mobile: {
+    submitUrl: string;
+    pIniPayment: string;
+    pReserved: string;
+    requiresNotiUrl: boolean;
+    requiresHppMethod: boolean;
+  };
+  pc: {
+    goPayMethod: string;
+    acceptMethod?: string;
+  };
+};
 
 type PrepareMobile = {
   submitUrl: string;
@@ -42,6 +62,9 @@ type PrepareOk = {
   closeUrl: string;
   popupUrl: string;
   pcStdPayScriptUrl: string;
+  paymentMethod?: WelcomepayMethodId;
+  pNotiUrl?: string;
+  methods?: PrepareMethodPayload[];
   mobile: PrepareMobile;
   welcomepay_env?: "test" | "production";
 };
@@ -66,8 +89,10 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
   const customerEmail = sp?.get("customerEmail") ?? "";
   const amountStr = sp?.get("amount") ?? "";
   const amount = Number.parseInt(amountStr, 10);
+  const initialPaymentMethod = resolveWelcomepayMethodId(sp?.get("paymentMethod"));
 
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
+  const [paymentMethod, setPaymentMethod] = useState<WelcomepayMethodId>(initialPaymentMethod);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [prep, setPrep] = useState<PrepareOk | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
@@ -101,6 +126,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
             orderName,
             customerEmail,
             paymentAttemptId,
+            paymentMethod: initialPaymentMethod,
           }),
         });
         const data = (await res.json()) as PrepareOk | { ok?: false; error?: string };
@@ -130,11 +156,14 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
           setErrorMsg("모바일(운영) 결제 준비 응답이 올바르지 않습니다.");
           return;
         }
+        const mobileSubmitUrls = (ok.methods?.length ? ok.methods.map((m) => m.mobile.submitUrl) : [ok.mobile.submitUrl]).filter(
+          Boolean,
+        );
         if (
           typeof window !== "undefined" &&
           initialMobileWelpay &&
           isProductionSiteHostname(window.location.hostname) &&
-          !isProductionWelpaySubmitUrl(ok.mobile.submitUrl)
+          !mobileSubmitUrls.some((u) => isProductionWelpaySubmitUrl(u))
         ) {
           setPhase("error");
           setErrorMsg(
@@ -164,7 +193,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
     return () => {
       cancelled = true;
     };
-  }, [paymentAttemptId, orderId, welcomeOid, amount, orderName, customerEmail, initialMobileWelpay]);
+  }, [paymentAttemptId, orderId, welcomeOid, amount, orderName, customerEmail, initialMobileWelpay, initialPaymentMethod]);
 
   useEffect(() => {
     if (!prep || phase !== "ready") return;
@@ -309,6 +338,28 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
   };
 
   const payReady = phase === "ready" && prep && sdkReady;
+  const methodOptions = prep
+    ? prep.methods?.length
+      ? prep.methods
+      : [
+          {
+            id: "card" as const,
+            label: "신용카드",
+            mobile: {
+              submitUrl: prep.mobile.submitUrl,
+              pIniPayment: prep.mobile.pIniPayment,
+              pReserved: prep.mobile.pReserved,
+              requiresNotiUrl: false,
+              requiresHppMethod: false,
+            },
+            pc: { goPayMethod: "Card" },
+          },
+        ]
+    : null;
+  const activeMethod =
+    methodOptions?.find((m) => m.id === paymentMethod) ??
+    methodOptions?.find((m) => m.id === "card") ??
+    null;
 
   return (
     <div className="min-h-screen bg-bt-page">
@@ -317,7 +368,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
         <div className="mx-auto w-full max-w-2xl px-4 pb-20 pt-6 sm:px-6 sm:pt-8 lg:max-w-3xl lg:px-8 lg:pb-28 lg:pt-10">
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-teal-700 lg:text-sm">결제</p>
           <h1 className="mt-2 text-[1.4rem] font-bold leading-snug tracking-tight text-slate-900 sm:text-2xl lg:mt-3 lg:text-3xl">
-            신용카드 결제
+            결제 수단 선택
           </h1>
           <p className="mt-2 text-[13px] leading-relaxed text-slate-600 lg:mt-3 lg:text-base">
             {uaMobile
@@ -340,12 +391,45 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
 
           {phase !== "error" ? (
             <div className={phase === "loading" ? "mt-8 animate-pulse space-y-4" : "mt-8 space-y-4 lg:mt-10 lg:space-y-5"}>
-              {prep && uaMobile ? (
+              {methodOptions ? (
+                <fieldset className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
+                  <legend className="px-1 text-[12px] font-semibold uppercase tracking-wide text-slate-500 lg:text-sm">
+                    결제 수단
+                  </legend>
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {methodOptions.map((m) => {
+                      const selected = paymentMethod === m.id;
+                      return (
+                        <label
+                          key={m.id}
+                          className={`flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2 text-center text-[13px] font-semibold transition lg:min-h-12 lg:text-sm ${
+                            selected
+                              ? "border-teal-600 bg-teal-50 text-teal-900 ring-1 ring-teal-600"
+                              : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="welcomepayMethod"
+                            value={m.id}
+                            checked={selected}
+                            onChange={() => setPaymentMethod(m.id)}
+                            className="sr-only"
+                          />
+                          {m.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              ) : null}
+
+              {prep && uaMobile && activeMethod ? (
                 <form
                   ref={mobileFormRef}
                   id="WelpayMobileForm"
                   method="post"
-                  action={prep.mobile.submitUrl}
+                  action={activeMethod.mobile.submitUrl}
                   acceptCharset="UTF-8"
                   target="_self"
                   className="sr-only"
@@ -362,15 +446,24 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
                   <input type="hidden" name="P_UNAME" value={prep.mobile.pUnam} />
                   <input type="hidden" name="P_EMAIL" value={prep.mobile.pEmail} />
                   <input type="hidden" name="P_MOBILE" value={prep.mobile.pMobile} />
-                  <input type="hidden" name="P_INI_PAYMENT" value={prep.mobile.pIniPayment} />
-                  <input type="hidden" name="P_RESERVED" value={prep.mobile.pReserved} />
+                  <input type="hidden" name="P_INI_PAYMENT" value={activeMethod.mobile.pIniPayment} />
+                  <input type="hidden" name="P_RESERVED" value={activeMethod.mobile.pReserved} />
                   <input type="hidden" name="P_CHARSET" value="UTF-8" />
+                  {activeMethod.mobile.requiresNotiUrl && prep.pNotiUrl ? (
+                    <input type="hidden" name="P_NOTI_URL" value={prep.pNotiUrl} />
+                  ) : null}
+                  {activeMethod.mobile.requiresHppMethod ? (
+                    <input type="hidden" name="P_HPP_METHOD" value="1" />
+                  ) : null}
                 </form>
               ) : null}
 
-              {prep && !uaMobile ? (
+              {prep && !uaMobile && activeMethod ? (
                 <form id="SendPayForm_id" name="SendPayForm_id" method="post" acceptCharset="UTF-8">
-                  <input type="hidden" name="gopaymethod" value="Card" />
+                  <input type="hidden" name="gopaymethod" value={activeMethod.pc.goPayMethod} />
+                  {activeMethod.pc.acceptMethod ? (
+                    <input type="hidden" name="acceptmethod" value={activeMethod.pc.acceptMethod} />
+                  ) : null}
                   <input type="hidden" name="mid" value={prep.mid} />
                   <input type="hidden" name="oid" value={prep.orderNumber} />
                   <input type="hidden" name="price" value={prep.price} />

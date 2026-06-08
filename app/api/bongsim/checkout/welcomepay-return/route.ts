@@ -4,10 +4,12 @@ import { bongsimPath } from "@/lib/bongsim/constants";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import { getPgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
 import {
+  isVbankIssuedApproval,
   parseWelcomepayPayload,
   pickAmountKrw,
-  pickOid,
   pickCaptureTid,
+  pickOid,
+  pickVbankIssueInfo,
   readWelcomepayCallbackFromRequest,
   resultCodeOf,
 } from "@/lib/bongsim/welcomepay-callback-parse";
@@ -177,10 +179,41 @@ export async function POST(req: Request) {
   ) {
     return fail("amount_mismatch");
   }
-  const providerEventId = `welcomepay_auth_${tid}`;
   const amountForCapture =
     amt != null && Number.isFinite(amt) && amt > 0 ? amt : Number.isFinite(grandTotalKrw) ? grandTotalKrw : undefined;
 
+  if (isVbankIssuedApproval(merged)) {
+    const vbank = pickVbankIssueInfo(merged);
+    const finVbank = await processWelcomepayPaymentOutcome({
+      providerEventId: `welcomepay_pc_vbank_issue_${tid}`,
+      paymentAttemptId,
+      outcome: "authorized",
+      rawPayload: merged,
+    });
+    if (!finVbank.ok) {
+      return fail(welcomepayCheckoutFailMessage(finVbank));
+    }
+    const due =
+      vbank?.dueDate && vbank.dueTime
+        ? `${vbank.dueDate} ${vbank.dueTime}`
+        : vbank?.dueDate || "";
+    return NextResponse.redirect(
+      buildCheckoutPaymentResultRedirectUrl(origin, {
+        status: "vbank_pending",
+        orderId,
+        orderNumber,
+        amount: amountForCapture != null ? String(amountForCapture) : undefined,
+        vbankAccount: vbank?.account,
+        vbankBank: vbank?.bankName,
+        vbankHolder: vbank?.holder,
+        vbankDue: due || undefined,
+        message: "가상계좌가 발급되었습니다. 입금 기한 내에 입금해 주세요.",
+      }),
+      303,
+    );
+  }
+
+  const providerEventId = `welcomepay_auth_${tid}`;
   const fin = await processWelcomepayPaymentOutcome({
     providerEventId,
     paymentAttemptId,
