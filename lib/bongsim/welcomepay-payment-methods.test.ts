@@ -21,10 +21,11 @@ describe("welcomepay-payment-methods", () => {
 
   it("buildWelcomepayMobileReserved merges base + extras", () => {
     const bank = getWelcomepayMethodDefinition("bank");
-    expect(buildWelcomepayMobileReserved(bank)).toContain("centerCd=Y");
-    expect(buildWelcomepayMobileReserved(bank)).toContain("twotrs_bank=Y");
+    expect(buildWelcomepayMobileReserved(bank, false)).toContain("centerCd=Y");
+    expect(buildWelcomepayMobileReserved(bank, false)).not.toContain("amt_hash=Y");
+    expect(buildWelcomepayMobileReserved(bank, false)).toContain("twotrs_bank=Y");
     const card = getWelcomepayMethodDefinition("card");
-    expect(buildWelcomepayMobileReserved(card)).toContain("twotrs_isp=Y");
-    expect(buildWelcomepayMobileReserved(card)).toContain("apprun_check=Y");
+    expect(buildWelcomepayMobileReserved(card, true)).toContain("amt_hash=Y");
+    expect(buildWelcomepayMobileReserved(card, false)).toContain("twotrs_isp=Y");
   });
 });

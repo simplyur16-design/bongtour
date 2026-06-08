@@ -103,8 +103,11 @@ export function welcomepayMobileWelpaySubmitUrl(): string {
 /** 모바일 welpay 필수 `P_RESERVED` — IDC센터코드 + 금액위변조 hash (이니시스 stdpay_m). */
 export const WELCOMEPAY_MOBILE_P_RESERVED = WELCOMEPAY_MOBILE_P_RESERVED_BASE;
 
-export function welcomepayMobileReservedForMethod(methodId: WelcomepayMethodId): string {
-  return buildWelcomepayMobileReserved(getWelcomepayMethodDefinition(methodId));
+export function welcomepayMobileReservedForMethod(
+  methodId: WelcomepayMethodId,
+  useAmtHash = resolveWelcomepayMobileUseAmtHash(),
+): string {
+  return buildWelcomepayMobileReserved(getWelcomepayMethodDefinition(methodId), useAmtHash);
 }
 
 /**
@@ -140,6 +143,30 @@ export function generateMobileWelpayPChkfake(input: {
   const data =
     `${input.pAmt.trim()}${input.pOid.trim()}${input.pTimestamp.trim()}${input.hashKey.trim()}`;
   return createHash("sha512").update(data, "utf8").digest("base64");
+}
+
+/**
+ * 가이드 샘플 `P_SIGNATURE` — SHA256(알파벳순 `mkey`·`P_AMT`·`P_OID`·`P_TIMESTAMP` NVP).
+ * `amt_hash=Y` 미사용(기본) 시 PG 필수.
+ */
+export function generateMobileWelpayPSignature(input: {
+  mKey: string;
+  pAmt: string;
+  pOid: string;
+  pTimestamp: string;
+}): string {
+  return generateSignature({
+    mkey: input.mKey.trim(),
+    P_AMT: input.pAmt.trim(),
+    P_OID: input.pOid.trim(),
+    P_TIMESTAMP: input.pTimestamp.trim(),
+  });
+}
+
+/** `P_RESERVED`에 `amt_hash=Y` 포함 여부 — 기본 false(샘플 `P_SIGNATURE` 흐름). */
+export function resolveWelcomepayMobileUseAmtHash(): boolean {
+  const raw = (process.env.WELCOMEPAY_MOBILE_AMT_HASH ?? "0").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes";
 }
 
 /** 승인/인증 콜백 URL이 웰컴페이먼츠 호스트인지(오픈 리다이렉트 방지). */

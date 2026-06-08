@@ -6,11 +6,26 @@ vi.mock("server-only", () => ({}));
 import {
   WELCOMEPAY_MOBILE_P_RESERVED,
   generateMobileWelpayPChkfake,
+  generateMobileWelpayPSignature,
 } from "@/lib/bongsim/welcomepay";
 
 describe("모바일 welpay P_CHKFAKE (SHA512+Base64)", () => {
-  it("P_RESERVED 상수", () => {
-    expect(WELCOMEPAY_MOBILE_P_RESERVED).toBe("centerCd=Y&amt_hash=Y");
+  it("P_SIGNATURE — 샘플 알파벳순 NVP SHA256", () => {
+    const sig = generateMobileWelpayPSignature({
+      mKey: "abc123",
+      pAmt: "1000",
+      pOid: "MID_1",
+      pTimestamp: "1717500000000",
+    });
+    expect(sig).toMatch(/^[a-f0-9]{64}$/);
+    expect(
+      generateMobileWelpayPSignature({
+        mKey: "abc123",
+        pAmt: "1000",
+        pOid: "MID_1",
+        pTimestamp: "1717500000000",
+      }),
+    ).toBe(sig);
   });
 
   it("매뉴얼 규약: BASE64(SHA512(P_AMT+P_OID+P_TIMESTAMP+HashKey))", () => {

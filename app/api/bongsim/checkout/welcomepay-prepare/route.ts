@@ -17,8 +17,10 @@ import {
   WELCOMEPAY_MOBILE_P_RESERVED,
   generateMKey,
   generateMobileWelpayPChkfake,
+  generateMobileWelpayPSignature,
   generateMobileWelpayTimestamp,
   generatePcStdPaySignature,
+  resolveWelcomepayMobileUseAmtHash,
   generateTimestamp,
   resolveWelcomepayEnv,
   resolveWelcomepayMobileHashKey,
@@ -176,12 +178,21 @@ export async function POST(req: Request) {
   const signature = generatePcStdPaySignature({ mKey, oid: orderNumber, price, timestamp });
 
   const mobilePTimestamp = generateMobileWelpayTimestamp();
-  const mobilePChkfake = generateMobileWelpayPChkfake({
+  const mobileUseAmtHash = resolveWelcomepayMobileUseAmtHash();
+  const mobilePSignature = generateMobileWelpayPSignature({
+    mKey,
     pAmt: price,
     pOid: orderNumber,
     pTimestamp: mobilePTimestamp,
-    hashKey: mobileHashKey,
   });
+  const mobilePChkfake = mobileUseAmtHash
+    ? generateMobileWelpayPChkfake({
+        pAmt: price,
+        pOid: orderNumber,
+        pTimestamp: mobilePTimestamp,
+        hashKey: mobileHashKey,
+      })
+    : "";
   const buyerShort =
     customerEmail.includes("@") && customerEmail.length > 1
       ? customerEmail.split("@")[0]!.slice(0, 30)
@@ -200,7 +211,7 @@ export async function POST(req: Request) {
     mobile: {
       submitUrl: welcomepayMobileSubmitUrlForMethod(def.id),
       pIniPayment: def.pIniPayment,
-      pReserved: welcomepayMobileReservedForMethod(def.id),
+      pReserved: welcomepayMobileReservedForMethod(def.id, mobileUseAmtHash),
       requiresNotiUrl: def.requiresNotiUrl,
       requiresHppMethod: def.requiresHppMethod,
     },
@@ -237,13 +248,15 @@ export async function POST(req: Request) {
         pNoti: orderNumber,
         pAmt: price,
         pTimestamp: mobilePTimestamp,
+        pSignature: mobilePSignature,
         pChkfake: mobilePChkfake,
+        mobileUseAmtHash,
         pGoods,
         pUnam: buyerShort,
         pEmail: customerEmail,
         pMobile,
         pIniPayment: selectedDef.pIniPayment,
-        pReserved: welcomepayMobileReservedForMethod(paymentMethod),
+        pReserved: welcomepayMobileReservedForMethod(paymentMethod, mobileUseAmtHash),
       },
       welcomepay_env: resolveWelcomepayEnv(),
     },

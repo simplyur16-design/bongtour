@@ -25,7 +25,7 @@ export type WelcomepayMethodDefinition = {
   pcGoPayMethod: string;
   /** PC `acceptmethod` (해외카드 등) */
   pcAcceptMethod?: string;
-  /** `P_RESERVED`에 `centerCd=Y&amt_hash=Y` 뒤에 붙는 추가 옵션 */
+  /** `P_RESERVED` base(`centerCd=Y`…) 뒤에 붙는 추가 옵션 */
   mobileReservedExtra?: string;
   /** 모바일 폼에 `P_NOTI_URL` 필수 */
   requiresNotiUrl: boolean;
@@ -35,7 +35,11 @@ export type WelcomepayMethodDefinition = {
   vbankPendingOnIssue: boolean;
 };
 
-export const WELCOMEPAY_MOBILE_P_RESERVED_BASE = "centerCd=Y&amt_hash=Y";
+/** `amt_hash=Y` 포함 base — `WELCOMEPAY_MOBILE_AMT_HASH=1` 일 때만 사용 */
+export const WELCOMEPAY_MOBILE_P_RESERVED_AMT_HASH = "centerCd=Y&amt_hash=Y";
+
+/** 가이드 샘플 기본 — `P_SIGNATURE` + `centerCd=Y` */
+export const WELCOMEPAY_MOBILE_P_RESERVED_BASE = "centerCd=Y";
 
 export const WELCOMEPAY_CHECKOUT_METHODS: readonly WelcomepayMethodDefinition[] = [
   {
@@ -117,7 +121,15 @@ export function getWelcomepayMethodDefinition(id: WelcomepayMethodId): Welcomepa
   return METHOD_BY_ID.get(id) ?? METHOD_BY_ID.get("card")!;
 }
 
-export function buildWelcomepayMobileReserved(def: WelcomepayMethodDefinition): string {
+export function buildWelcomepayMobileReservedBase(useAmtHash: boolean): string {
+  return useAmtHash ? WELCOMEPAY_MOBILE_P_RESERVED_AMT_HASH : WELCOMEPAY_MOBILE_P_RESERVED_BASE;
+}
+
+export function buildWelcomepayMobileReserved(
+  def: WelcomepayMethodDefinition,
+  useAmtHash = false,
+): string {
+  const base = buildWelcomepayMobileReservedBase(useAmtHash);
   const extra = def.mobileReservedExtra?.trim();
-  return extra ? `${WELCOMEPAY_MOBILE_P_RESERVED_BASE}&${extra}` : WELCOMEPAY_MOBILE_P_RESERVED_BASE;
+  return extra ? `${base}&${extra}` : base;
 }

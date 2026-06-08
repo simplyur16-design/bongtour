@@ -49,7 +49,8 @@ PG 가맹점 관리자에 등록할 URL (apex 기준):
 | 주문번호 복구 | hidden `P_OID`·`P_NOTI` + prepare 쿠키 |
 | 인코딩 | 기본 `WELCOMEPAY_MOBILE_CHARSET=utf8` → 폼 `P_CHARSET=utf8` + `acceptCharset=UTF-8` (`WelPayMoNextUrlUtf8` 흐름). EUC-KR 시 env `euc-kr` → `P_CHARSET` **미전송** + `acceptCharset=EUC-KR` (`WelPayMoNextUrl`) — 값 `EUC-KR` 전송 금지 |
 | 신용카드 `P_RESERVED` | `centerCd=Y&amt_hash=Y` + 샘플 ISP 옵션 `twotrs_isp=Y&block_isp=Y&twotrs_isp_noti=N&apprun_check=Y` |
-| 해시 | 샘플 구버전 `P_SIGNATURE`(SHA256) 대신 `amt_hash=Y` 시 **`P_CHKFAKE`** (SHA512+HashKey) |
+| 해시 (기본) | **`P_SIGNATURE`** — SHA256(`mkey`·`P_AMT`·`P_OID`·`P_TIMESTAMP` 알파벳순 NVP), 샘플 `WelPayMoRequest` |
+| 해시 (선택) | `WELCOMEPAY_MOBILE_AMT_HASH=1` 시 `P_RESERVED`에 `amt_hash=Y` + **`P_CHKFAKE`** |
 | P_REQ_URL 승인 — **P_MID + P_TID 만** | `buildMobilePayApprovalFormBody` |
 | UTF-8 샘플 | `WelPayMoNextUrlUtf8` 흐름과 동일 |
 

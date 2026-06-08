@@ -41,7 +41,9 @@ type PrepareMobile = {
   pNoti: string;
   pAmt: string;
   pTimestamp: string;
-  pChkfake: string;
+  pSignature: string;
+  pChkfake?: string;
+  mobileUseAmtHash?: boolean;
   pGoods: string;
   pUnam: string;
   pEmail: string;
@@ -150,8 +152,8 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
         }
         if (
           initialMobileWelpay &&
-          (!ok.mobile.pReserved?.includes("amt_hash=Y") ||
-            !ok.mobile.pChkfake?.trim() ||
+          (!ok.mobile.pSignature?.trim() ||
+            (ok.mobile.mobileUseAmtHash && !ok.mobile.pChkfake?.trim()) ||
             !ok.mobile.pNextUrl?.trim())
         ) {
           setPhase("error");
@@ -442,7 +444,10 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
                   <input type="hidden" name="P_NOTI" value={prep.mobile.pNoti} />
                   <input type="hidden" name="P_AMT" value={prep.mobile.pAmt} />
                   <input type="hidden" name="P_TIMESTAMP" value={prep.mobile.pTimestamp} />
-                  <input type="hidden" name="P_CHKFAKE" value={prep.mobile.pChkfake} />
+                  <input type="hidden" name="P_SIGNATURE" value={prep.mobile.pSignature} />
+                  {prep.mobile.pChkfake?.trim() ? (
+                    <input type="hidden" name="P_CHKFAKE" value={prep.mobile.pChkfake} />
+                  ) : null}
                   <input type="hidden" name="P_NEXT_URL" value={prep.mobile.pNextUrl} />
                   <input type="hidden" name="P_GOODS" value={prep.mobile.pGoods} />
                   <input type="hidden" name="P_UNAME" value={prep.mobile.pUnam} />
