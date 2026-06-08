@@ -33,6 +33,7 @@ import {
   Megaphone,
   Plane,
   MapPin,
+  Trash2,
 } from 'lucide-react'
 
 type NavLink = { href: string; label: string; icon: LucideIcon }
@@ -82,6 +83,12 @@ const navEntries: NavEntry[] = [
   { type: 'link', href: '/admin/products', label: '상품 목록', icon: List },
   { type: 'link', href: '/admin/products/geo-audit', label: '상품 지리 검수', icon: MapPin },
   { type: 'link', href: '/admin/products/master-integrity', label: '마스터 정합', icon: ShieldCheck },
+  {
+    type: 'link',
+    href: '/admin/products/six-month-purge-recommendations',
+    label: '6개월 미가격 삭제 권고',
+    icon: Trash2,
+  },
   { type: 'link', href: '/admin/season-curation', label: '시즌 추천 여행지', icon: MapPin },
   { type: 'link', href: '/admin/registration-stats', label: '등록 현황', icon: BarChart3 },
   { type: 'link', href: '/admin/inquiries', label: '문의 접수', icon: Inbox },

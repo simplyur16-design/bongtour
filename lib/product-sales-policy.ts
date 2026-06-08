@@ -39,6 +39,7 @@ import {
 } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import type { DepartureInput } from '@/lib/upsert-product-departures-hanatour'
+import { hasPricedFutureDepartureInput } from '@/lib/product-six-month-price-verification'
 import { departureInputToYmd, filterDepartureInputsOnOrAfterCalendarToday } from '@/lib/scrape-date-bounds'
 import {
   acquireSupplierLock,
@@ -115,27 +116,29 @@ export type RuleAMarkerResult = {
 
 /**
  * Rule A 마커 — `runOneSalesPolicyCheck`·modetour sweep 공용 SSOT.
- * `inputs`는 이미 180일 윈도우 fetch 결과라고 가정; 미래(오늘 포함)만 집계.
+ * `inputs`는 이미 180일 윈도우 fetch 결과라고 가정; **미래(오늘 포함) + 성인가 > 0** 만 집계.
  */
 export function computeRuleAMarkersFromDepartureInputs(
   inputs: RuleADepartureInputLike[],
   todayYmd: string
 ): RuleAMarkerResult {
-  const futureRows = inputs.filter((x) => {
+  const futurePricedRows = inputs.filter((x) => {
     const dk = departureInputToYmd(x.departureDate)
-    return dk != null && dk >= todayYmd
+    if (dk == null || dk < todayYmd) return false
+    const p = x.adultPrice
+    return p != null && Number.isFinite(p) && p > 0
   })
 
   let lastFutureDate: Date | null = null
-  if (futureRows.length > 0) {
+  if (futurePricedRows.length > 0) {
     let maxYmd = ''
-    for (const r of futureRows) {
+    for (const r of futurePricedRows) {
       const dk = departureInputToYmd(r.departureDate)
       if (dk && dk > maxYmd) maxYmd = dk
     }
     if (maxYmd) lastFutureDate = new Date(`${maxYmd}T00:00:00.000Z`)
   }
-  const marked = futureRows.length === 0
+  const marked = !hasPricedFutureDepartureInput(inputs, todayYmd)
 
   return {
     noFutureDepartureConfirmedAt: marked ? new Date() : null,
