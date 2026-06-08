@@ -1,5 +1,6 @@
 /**
  * 웰컴페이먼츠 Mobile Web §1.2 지불수단별 POST URL + P_INI_PAYMENT / PC gopaymethod SSOT.
+ * REGRESSION-FREEZE[welcomepay-esim-payment]: wcard·6수단·centerCd=Y 기본 — manifest
  * 클라이언트·서버 공용 (server-only import 금지).
  */
 

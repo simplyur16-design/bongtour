@@ -1,3 +1,7 @@
+/**
+ * 웰컴페이먼츠 eSIM 결제 SSOT (모바일·PC·PAYAPI).
+ * REGRESSION-FREEZE[welcomepay-esim-payment]: wcard URL·P_SIGNATURE·P_NEXT_URL path-only — manifest
+ */
 /** 서버 전용 — `node:crypto` 사용. 클라이언트 번들에서 import 금지. */
 import "server-only";
 

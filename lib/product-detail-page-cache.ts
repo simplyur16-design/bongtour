@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache'
 import { cache as reactCache } from 'react'
 import { prisma } from '@/lib/prisma'
+import { bookableMinDateYmdForPayload } from '@/lib/product-public-detail/payload-io'
 import { requireAdmin } from '@/lib/require-admin'
 import {
   buildProductDetailPageSelect,
@@ -86,12 +87,14 @@ async function loadProductDetailRowFull(
 }
 
 function loadProductDetailRowCachedPublic(productId: string): Promise<ProductDetailCachedLoad> {
+  // bookableMinDateYmd — KST 자정 rollover 후 전날 slim 캐시가 남지 않도록 키에 포함
+  const bookableYmd = bookableMinDateYmdForPayload()
   return unstable_cache(
     () => {
       productDetailUnstableCacheMiss = true
       return loadProductDetailRowSmartPublic(productId)
     },
-    ['product-detail-public-v3', productId],
+    ['product-detail-public-v4', productId, bookableYmd],
     { revalidate: 3600, tags: [`product-detail-${productId}`, 'product-detail'] },
   )()
 }

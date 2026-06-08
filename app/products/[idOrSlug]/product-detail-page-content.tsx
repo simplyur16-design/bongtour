@@ -80,15 +80,14 @@ async function productDetailPageInner(idOrSlug: string) {
     notFound()
   }
 
-  const skipFitForPayloadDto = selectKind === 'slim'
   const listingKind = 'listingKind' in travelProduct ? travelProduct.listingKind : null
-  const fitMaster = skipFitForPayloadDto
-    ? null
-    : await loadFitItineraryMasterForProduct(
-        productId,
-        resolved.productType ?? travelProduct.productType,
-        listingKind,
-      )
+  const productType = resolved.productType ?? travelProduct.productType
+  const isFitItinerary = isAirHotelFitItineraryProduct({ productType, listingKind })
+  // slim DTO hit여도 에어텔은 fitMaster 필요 — payload miss 시 getOrBuild가 full row로 재빌드
+  const fitMaster =
+    selectKind === 'slim' && !isFitItinerary
+      ? null
+      : await loadFitItineraryMasterForProduct(productId, productType, listingKind)
 
   const userAgent = (await headers()).get('user-agent')
   const isMobile = isMobileUserAgent(userAgent)

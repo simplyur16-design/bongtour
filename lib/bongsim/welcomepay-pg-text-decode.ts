@@ -1,6 +1,7 @@
 import iconv from "iconv-lite";
 
 /**
+ * REGRESSION-FREEZE[welcomepay-esim-payment]: utf8 또는 P_CHARSET 미전송 — manifest
  * 웰컴페이먼츠 모바일 PG 인코딩 — 가이드 샘플 README·WelPayMoNextUrl(Utf8) 기준.
  * - `utf8`: 결제 폼 `P_CHARSET=utf8` + WelPayMoNextUrlUtf8 흐름 (Bong투어 기본)
  * - `euc-kr`: `P_CHARSET` 미전송 + accept-charset=euc-kr

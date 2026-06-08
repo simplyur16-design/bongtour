@@ -339,6 +339,75 @@
           ]
         }
       ]
+    },
+    {
+      "id": "product-detail-payload-slim-persist",
+      "tier": ["prebuild", "ci"],
+      "summary": "상품 상세 payload — slim 행 live persist·자정 전 slim cache 금지",
+      "checks": [
+        {
+          "file": "lib/product-public-detail/get-or-build-model.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-detail-payload-slim-persist]",
+            "resolveProductDetailRowForLiveBuild",
+            "canPersistPayload",
+            "isProductDetailSlimRow"
+          ],
+          "mustNotInclude": ["travelProduct as ProductDetailViewRow,\n    fitMaster"]
+        },
+        {
+          "file": "lib/product-detail-page-cache.ts",
+          "mustInclude": ["product-detail-public-v4", "bookableMinDateYmdForPayload"]
+        }
+      ]
+    },
+    {
+      "id": "welcomepay-esim-payment",
+      "tier": ["prebuild", "ci"],
+      "summary": "웰컴페이 eSIM 결제 — wcard URL·P_SIGNATURE·P_NEXT_URL path-only·charset",
+      "checks": [
+        {
+          "file": "lib/bongsim/welcomepay.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[welcomepay-esim-payment]",
+            "generateMobileWelpayPSignature",
+            "/smart/${segment}/",
+            "welcomepayMobileNextCallbackUrlRegistered"
+          ],
+          "mustNotInclude": ["/smart/welpay/"]
+        },
+        {
+          "file": "lib/bongsim/welcomepay-payment-methods.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[welcomepay-esim-payment]",
+            "mobilePath: \"wcard\"",
+            "WELCOMEPAY_MOBILE_P_RESERVED_BASE = \"centerCd=Y\""
+          ],
+          "mustNotInclude": ["mobilePath: \"welpay\""]
+        },
+        {
+          "file": "app/api/bongsim/checkout/welcomepay-prepare/route.ts",
+          "mustInclude": [
+            "generateMobileWelpayPSignature",
+            "welcomepayMobileNextCallbackUrlRegistered",
+            "pSignature: mobilePSignature"
+          ],
+          "mustNotInclude": ["welcomepayMobileNextCallbackUrl(orderNumber)"]
+        },
+        {
+          "file": "app/travel/esim/checkout/payment/welcomepay/WelcomepayPaymentClient.tsx",
+          "mustInclude": ["name=\"P_SIGNATURE\""]
+        },
+        {
+          "file": "lib/bongsim/welcomepay-pg-text-decode.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[welcomepay-esim-payment]",
+            "pCharset: \"utf8\"",
+            "pCharset: null"
+          ],
+          "mustNotInclude": ["pCharset: \"EUC-KR\""]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -360,6 +429,32 @@
         "lib/hanatour-schedule-image-keyword-landmark.test.ts",
         "lib/register-schedule-image-keywords-preview.test.ts",
         "lib/ybtour-schedule-image-keyword.test.ts"
+      ]
+    },
+    {
+      "id": "product-detail-payload-slim-persist",
+      "tier": ["ci"],
+      "summary": "상품 상세 slim persist 가드 vitest",
+      "files": [
+        "lib/product-public-detail/get-or-build-model.test.ts",
+        "lib/product-detail-page-cache.test.ts",
+        "lib/product-detail-payload-hit.test.ts"
+      ]
+    },
+    {
+      "id": "welcomepay-esim-payment",
+      "tier": ["ci"],
+      "summary": "웰컴페이 eSIM 결제 vitest — URL·해시·charset·콜백",
+      "files": [
+        "lib/bongsim/welcomepay-env.test.ts",
+        "lib/bongsim/welcomepay-payment-methods.test.ts",
+        "lib/bongsim/welcomepay-mobile-signature.test.ts",
+        "lib/bongsim/welcomepay-mobile-hash-key.test.ts",
+        "lib/bongsim/welcomepay-mobile-checkout.test.ts",
+        "lib/bongsim/welcomepay-callback-parse.test.ts",
+        "lib/bongsim/welcomepay-vbank-noti.test.ts",
+        "lib/bongsim/welcomepay-pg-text-decode.test.ts",
+        "lib/bongsim/checkout/welcomepay-pg-auth-fail-message.test.ts"
       ]
     }
   ]

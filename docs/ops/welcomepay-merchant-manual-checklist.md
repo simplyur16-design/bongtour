@@ -1,5 +1,7 @@
 # 웰컴페이먼츠 온라인 PG — Bong투어 eSIM 연동 체크리스트
 
+> **FROZEN** (`bc395fa`) — `REGRESSION-FREEZE[welcomepay-esim-payment]`. 결제 URL·해시·charset 변경 시 manifest·가드·테스트 동시 갱신. 계약: [`welcomepay-esim-payment-contract.md`](./welcomepay-esim-payment-contract.md)
+
 원본: `[웰컴페이먼츠] 온라인PG_가맹점연동가이드` (PC Web v1.10.13, Mobile v1.10.6, PAYAPI v5.1.7).  
 로컬 참고 샘플: `docs/ops/welcomepay-guide.zip` (압축 해제본은 `.gitignore`).  
 운영자 PC 가이드: `[온라인PG]가맹점연동가이드/샘플소스/페이 웰컴 샘플소스_PHP/PHP_MOBILE/`
@@ -42,15 +44,14 @@ PG 가맹점 관리자에 등록할 URL (apex 기준):
 | P_INI_PAYMENT | CARD·VBANK·BANK·HPP·CULTURE (해외카드=CARD + `/smart/etc/`) |
 | P_NOTI_URL (가상계좌) | `welcomepayVbankNotiCallbackUrlRegistered()` → `welcomepay-vbank-noti` |
 | P_HPP_METHOD=1 | 휴대폰 결제 시 (eSIM=디지털 컨텐츠) |
-| P_MID, P_OID, P_AMT, P_TIMESTAMP, P_CHKFAKE | `welcomepay-prepare` mobile 블록 |
-| P_RESERVED=centerCd=Y&amt_hash=Y | prepare·결제 폼 (필수) |
-| P_CHKFAKE = BASE64(SHA512(P_AMT+P_OID+P_TIMESTAMP+HashKey)) | HashKey 기본=SHA256(signKey) hex(`mkey`); 부가정보 값=`WELCOMEPAY_MOBILE_HASH_KEY`; raw Signkey=`WELCOMEPAY_MOBILE_HASH_KEY_SOURCE=signkey` |
+| P_MID, P_OID, P_AMT, P_TIMESTAMP | `welcomepay-prepare` mobile 블록 |
+| 해시 (기본·필수) | **`P_SIGNATURE`** — SHA256(`mkey`·`P_AMT`·`P_OID`·`P_TIMESTAMP` 알파벳순 NVP), 샘플 `WelPayMoRequest` |
+| 해시 (선택) | `WELCOMEPAY_MOBILE_AMT_HASH=1` 시 `P_RESERVED`에 `amt_hash=Y` + **`P_CHKFAKE`** (BASE64 SHA512) |
+| P_CHKFAKE HashKey | 기본=SHA256(signKey) hex(`mkey`); override=`WELCOMEPAY_MOBILE_HASH_KEY`; raw=`WELCOMEPAY_MOBILE_HASH_KEY_SOURCE=signkey` |
+| `P_RESERVED` (기본) | `centerCd=Y` (+ 카드 ISP `twotrs_isp=Y&block_isp=Y&twotrs_isp_noti=N&apprun_check=Y`) |
 | P_NEXT_URL (가맹점 등록·결제 폼 동일) | `welcomepay-mobile-next` path만 (쿼리 없음) — 폼에 쿼리 붙이면 01 거절 가능 |
 | 주문번호 복구 | hidden `P_OID`·`P_NOTI` + prepare 쿠키 |
 | 인코딩 | 기본 `WELCOMEPAY_MOBILE_CHARSET=utf8` → 폼 `P_CHARSET=utf8` + `acceptCharset=UTF-8` (`WelPayMoNextUrlUtf8` 흐름). EUC-KR 시 env `euc-kr` → `P_CHARSET` **미전송** + `acceptCharset=EUC-KR` (`WelPayMoNextUrl`) — 값 `EUC-KR` 전송 금지 |
-| 신용카드 `P_RESERVED` | `centerCd=Y&amt_hash=Y` + 샘플 ISP 옵션 `twotrs_isp=Y&block_isp=Y&twotrs_isp_noti=N&apprun_check=Y` |
-| 해시 (기본) | **`P_SIGNATURE`** — SHA256(`mkey`·`P_AMT`·`P_OID`·`P_TIMESTAMP` 알파벳순 NVP), 샘플 `WelPayMoRequest` |
-| 해시 (선택) | `WELCOMEPAY_MOBILE_AMT_HASH=1` 시 `P_RESERVED`에 `amt_hash=Y` + **`P_CHKFAKE`** |
 | P_REQ_URL 승인 — **P_MID + P_TID 만** | `buildMobilePayApprovalFormBody` |
 | UTF-8 샘플 | `WelPayMoNextUrlUtf8` 흐름과 동일 |
 
