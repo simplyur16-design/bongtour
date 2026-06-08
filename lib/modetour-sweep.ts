@@ -2,13 +2,13 @@
  * modetour 일1회 sweep — GetOtherDepartureDates(minPrice) 경량 수집 + ProductDeparture upsert.
  * instrumentation: `lib/instrumentation-modetour-sweep-cron.ts` (KST 04:00).
  *
- * SD1(상품 없음): 패키지(travel 등)는 auto_unpublished. 자유여행(air_hotel_free)은 노출 유지·가격 갱신만 skip.
+ * SD1(상품 없음): 패키지(travel 등)만 auto_unpublished. 자유여행(air_hotel_free·airtel)은 SD1 비공개 금지(운영 SSOT).
  */
 import type { PrismaClient } from '@prisma/client'
 
-import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import {
   isModetourSd1NotFoundError,
+  isModetourSd1AutoUnpublishEligible,
   ModetourB2cApiError,
   MODETOUR_SD1_AUTO_UNPUBLISH_REASON,
 } from '@/lib/modetour-sd1-policy'
@@ -67,12 +67,12 @@ type SweepProductRow = {
   productType: string | null
 }
 
-/** SD1 응답 시 sweep에서 자동 내림할지 — 자유여행은 관리자 검수 전까지 registered 유지. */
+/** @deprecated `isModetourSd1AutoUnpublishEligible` — 회귀 테스트 호환 alias */
 export function shouldModetourSweepRetireOnSd1(product: {
   listingKind?: string | null
   productType?: string | null
 }): boolean {
-  return !isAirHotelProduct(product)
+  return isModetourSd1AutoUnpublishEligible(product)
 }
 
 function modetourSweepHeaders(referer: string, productNo: string): HeadersInit {

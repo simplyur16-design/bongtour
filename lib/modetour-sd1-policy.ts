@@ -1,7 +1,21 @@
+import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
+
 /** modetour b2c-api SD1(단종) 연속 응답 → 은퇴 임계. modetour sales-policy 전용. */
 export const MODETOUR_SD1_RETIRE_STREAK = 3
 
 export const MODETOUR_SD1_AUTO_UNPUBLISH_REASON = 'modetour_sd1'
+
+/**
+ * SD1 sweep 자동 비공개 대상 여부.
+ * 운영 정책(2026-06): **자유여행(항공+호텔·에어텔)은 SD1로 auto_unpublished 하지 않는다.**
+ * @see lib/modetour-sweep.ts
+ */
+export function isModetourSd1AutoUnpublishEligible(product: {
+  listingKind?: string | null
+  productType?: string | null
+}): boolean {
+  return !isAirHotelProduct(product)
+}
 
 /**
  * 실측 400 body (productNo=101580840):
