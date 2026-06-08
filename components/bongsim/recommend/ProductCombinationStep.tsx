@@ -8,7 +8,9 @@ import {
   ComparePlansPopup,
 } from "@/components/bongsim/recommend/ComparePlansPopup";
 import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
+import { PlanCoverageCountriesPanel } from "@/components/bongsim/recommend/PlanCoverageCountriesPanel";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
+import { isRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import { REGION_PACK_OPTIONS } from "@/lib/bongsim/region-packs";
 import {
@@ -725,6 +727,11 @@ export function ProductCombinationStep({
                       code={code}
                       countryNameKr={country?.nameKr ?? code.toUpperCase()}
                     />
+                    {isRegionPackCode(code) ? (
+                      <div className="border-t border-slate-100 px-4 py-3 sm:px-5 lg:px-6">
+                        <PlanCoverageCountriesPanel destinationCode={code} stopPropagation />
+                      </div>
+                    ) : null}
                     <p className="border-t border-slate-100 px-4 py-3 text-center text-sm font-medium text-slate-600 sm:py-4 sm:text-base lg:mt-auto lg:border-t lg:px-6 lg:py-5 lg:text-lg">
                       카드를 눌러 여행 기간을 선택하세요
                     </p>

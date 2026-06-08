@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
+import { PlanCoverageCountriesPanel } from "@/components/bongsim/recommend/PlanCoverageCountriesPanel";
 import { RecommendModalShell } from "@/components/bongsim/recommend/RecommendModalShell";
+import { isRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
 import {
   extractDaysFromDaysRaw,
   formatKrw,
@@ -718,6 +720,9 @@ export function PlanSelectPopup({
         <h2 className="mt-1 text-[1.05rem] font-bold leading-snug text-slate-900 lg:text-xl">
           {tripDaysFloored}일 동안 사용할 플랜을 골라주세요
         </h2>
+        {isRegionPackCode(countryCode) ? (
+          <PlanCoverageCountriesPanel destinationCode={countryCode} className="mt-3" />
+        ) : null}
       </div>
 
       {showAuthToggle ? (
