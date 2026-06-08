@@ -58,10 +58,7 @@ export default function FitItineraryHeroSection({
   }
   return (
     <section className="relative w-full overflow-hidden" aria-label="상품 소개">
-      <div
-        className="relative w-full"
-        style={{ height: '70vh', minHeight: '520px', maxHeight: '720px' }}
-      >
+      <div className="relative w-full h-[min(46vh,380px)] min-h-[220px] sm:h-[min(52vh,440px)] sm:min-h-[300px] lg:h-[70vh] lg:min-h-[520px] lg:max-h-[720px]">
         <div
           className="absolute inset-0 z-[1]"
           style={{ filter: 'brightness(1.06) contrast(1.12) saturate(1.20)' }}
@@ -151,7 +148,7 @@ export default function FitItineraryHeroSection({
         </aside>
       </div>
 
-      <div className="relative z-[30] mx-4 -mt-8 rounded-2xl bg-white p-6 shadow-lg lg:hidden">
+      <div className="relative z-[30] mx-4 -mt-14 rounded-2xl bg-white p-5 shadow-lg sm:-mt-12 sm:p-6 lg:hidden">
         <FitItineraryHeroInfoPanel {...infoPanelWithCta} showTitle />
       </div>
     </section>

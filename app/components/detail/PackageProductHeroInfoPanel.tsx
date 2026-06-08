@@ -7,6 +7,7 @@ import {
 } from '@/app/components/detail/product-detail-visual'
 import type { ProductMetaChip } from '@/lib/product-meta-chips'
 import type { PriceDisplaySsot } from '@/lib/price-display-ssot'
+import FlightLegTwoLineBlock from '@/app/components/detail/FlightLegTwoLineBlock'
 import type { FlightLegTwoLineDisplay } from '@/lib/flight-user-display'
 import {
   CARD_INSTALLMENT_DISCLAIMER,
@@ -42,64 +43,6 @@ export type PackageProductHeroInfoPanelProps = {
   onChangeDepartureDate: () => void
   showChangeDepartureCta?: boolean
   modetourStickyLocalPayLine?: string | null
-}
-
-function FlightAtTextCell({ atText, dayOffset }: { atText: string; dayOffset?: number | null }) {
-  return (
-    <span className="inline-flex items-baseline justify-end gap-1">
-      {dayOffset != null && dayOffset > 0 ? (
-        <span className="shrink-0 text-[11px] font-bold leading-none text-[#D85A30]" aria-label={`${dayOffset}일 후`}>
-          +{dayOffset}
-        </span>
-      ) : null}
-      <span className="tabular-nums">{atText}</span>
-    </span>
-  )
-}
-
-function FlightLegTwoLineBlock({
-  label,
-  leg,
-}: {
-  label: string
-  leg: FlightLegTwoLineDisplay | null | undefined
-}) {
-  const rowClass = 'bt-wrap text-sm leading-snug text-[#1F1B2D]'
-
-  return (
-    <div className="border-t border-[#DAD4EE]/30 py-1.5 first:border-t-0 first:pt-0">
-      {leg ? (
-        <div
-          className="grid items-center gap-x-2 gap-y-0.5"
-          style={{ gridTemplateColumns: '3.25rem 1.125rem minmax(0, 1fr) auto' }}
-        >
-          <span className={`${rowClass} col-start-1 row-start-1`}>{label}</span>
-          <span className={`${rowClass} col-start-1 row-start-2`}>
-            {leg.flightNo ? `(${leg.flightNo})` : '\u00a0'}
-          </span>
-          <span
-            className={`${rowClass} col-start-2 row-start-2 text-center text-[#1F1B2D]/55`}
-            aria-hidden
-          >
-            →
-          </span>
-          <span className={`${rowClass} col-start-3 row-start-1 min-w-0`}>{leg.departureAirport}</span>
-          <span className={`${rowClass} col-start-3 row-start-2 min-w-0`}>{leg.arrivalAirport}</span>
-          <span className={`${rowClass} col-start-4 row-start-1 text-right`}>
-            <FlightAtTextCell atText={leg.departureAtText} dayOffset={leg.departureDayOffset} />
-          </span>
-          <span className={`${rowClass} col-start-4 row-start-2 text-right`}>
-            <FlightAtTextCell atText={leg.arrivalAtText} dayOffset={leg.arrivalDayOffset} />
-          </span>
-        </div>
-      ) : (
-        <div className="grid grid-cols-[3.25rem_1fr] items-start gap-x-2.5">
-          <span className={rowClass}>{label}</span>
-          <p className={rowClass}>상담 시 안내</p>
-        </div>
-      )}
-    </div>
-  )
 }
 
 /** 패키지 상세 — 코드·날짜·가격·무이자·출발확정·메타 칩 */

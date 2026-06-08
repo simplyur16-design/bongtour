@@ -9,6 +9,16 @@ import { parseKoreanDateTimeLineToDate } from '@/lib/flight-korean-datetime'
 const BANNED_USER_SUBSTRINGS =
   /추출\s*필요|확인중|미입력|출발지\s*확인중|도착지\s*확인중|도착시간\s*미입력|출발시간\s*미입력|편명\s*상담\s*시\s*확인\s*가능|항공\s*예정|예정\s*항공|항공일정\s*미정|편명\s*미정|항공\s*미정/i
 
+/** 공항 미확정 placeholder — UI에 그대로 노출하지 않음 */
+export function isPlaceholderFlightAirportLabel(s: string | null | undefined): boolean {
+  const t = s?.replace(/\s+/g, ' ').trim() || ''
+  return !t || t === '-' || t === '—' || t === '–'
+}
+
+export function normalizeFlightAirportLabel(s: string | null | undefined): string {
+  return isPlaceholderFlightAirportLabel(s) ? '' : s!.replace(/\s+/g, ' ').trim()
+}
+
 /** preview/검수용 요약이 사용자에게 넘어올 때 내부 톤 제거 */
 export function sanitizeFlightFallbackForUser(s: string | null | undefined): string | null {
   if (!s?.trim()) return null
@@ -223,14 +233,9 @@ export function formatFlightLegTwoLines(
   const departureAtText = depParts.text
   const arrivalAtText = arrParts.text
   if (!departureAtText || !arrivalAtText) return null
-  const departureAirport =
-    leg.departureAirport?.replace(/\s+/g, ' ').trim() ||
-    (departureAtText && arrivalAtText ? '—' : '')
-  const arrivalAirport =
-    leg.arrivalAirport?.replace(/\s+/g, ' ').trim() ||
-    (departureAtText && arrivalAtText ? '—' : '')
+  const departureAirport = normalizeFlightAirportLabel(leg.departureAirport)
+  const arrivalAirport = normalizeFlightAirportLabel(leg.arrivalAirport)
   const flightNo = leg.flightNo?.replace(/\s+/g, ' ').trim() || null
-  if (!departureAirport || !arrivalAirport) return null
   const computedArrOffset = computeFlightLegArrivalDayOffset(departureAtText, arrivalAtText)
   return {
     departureAirport,
@@ -271,8 +276,8 @@ export function departureLegCardToItineraryFlightDisplay(
   leg: DepartureLegCard | null | undefined
 ): ItineraryFlightLegDisplay | null {
   if (!leg) return null
-  const from = leg.departureAirport?.trim() || ''
-  const to = leg.arrivalAirport?.trim() || ''
+  const from = normalizeFlightAirportLabel(leg.departureAirport)
+  const to = normalizeFlightAirportLabel(leg.arrivalAirport)
   const departureAt = leg.departureAtText?.trim() || ''
   const arrivalAt = leg.arrivalAtText?.trim() || ''
   if (!from && !to && !departureAt && !arrivalAt) return null
@@ -295,8 +300,8 @@ export function flightLegTwoLineToItineraryLegDisplay(
 ): ItineraryFlightLegDisplay | null {
   if (!leg) return null
   return {
-    from: leg.departureAirport,
-    to: leg.arrivalAirport,
+    from: normalizeFlightAirportLabel(leg.departureAirport),
+    to: normalizeFlightAirportLabel(leg.arrivalAirport),
     departureAt: leg.departureAtText,
     arrivalAt: leg.arrivalAtText,
   }

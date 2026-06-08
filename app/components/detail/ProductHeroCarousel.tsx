@@ -198,7 +198,7 @@ export default function ProductHeroCarousel({
         <PublicImageBottomOverlay
           leftLabel={current.leftLabel}
           rightLabel={current.rightLabel}
-          className={fillParent ? 'z-[40]' : undefined}
+          className={fillParent ? 'z-[40] [&>div:last-child]:px-11 sm:[&>div:last-child]:px-12' : undefined}
         />
       </div>
       {len > 1 && (
@@ -207,7 +207,7 @@ export default function ProductHeroCarousel({
             type="button"
             aria-label="이전 이미지"
             onClick={() => go(-1)}
-            className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/50 bg-white/20 text-lg text-white backdrop-blur-sm transition hover:bg-white/30"
+            className="absolute left-1 top-[42%] z-20 flex h-10 w-8 -translate-y-1/2 items-center justify-center rounded-md border-0 bg-transparent text-3xl font-light leading-none text-white opacity-80 shadow-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] transition hover:opacity-100 active:scale-95 sm:left-2 sm:w-10"
           >
             ‹
           </button>
@@ -215,7 +215,7 @@ export default function ProductHeroCarousel({
             type="button"
             aria-label="다음 이미지"
             onClick={() => go(1)}
-            className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/50 bg-white/20 text-lg text-white backdrop-blur-sm transition hover:bg-white/30"
+            className="absolute right-1 top-[42%] z-20 flex h-10 w-8 -translate-y-1/2 items-center justify-center rounded-md border-0 bg-transparent text-3xl font-light leading-none text-white opacity-80 shadow-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] transition hover:opacity-100 active:scale-95 sm:right-2 sm:w-10"
           >
             ›
           </button>
