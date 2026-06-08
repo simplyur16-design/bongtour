@@ -36,8 +36,27 @@ export function isRecommendPopularEuropeRegion(code: string): boolean {
   return code === RECOMMEND_POPULAR_EUROPE_REGION_CODE;
 }
 
-/** UI 국기 이미지용 ISO — 지역 패키지 코드는 `eu` 등으로 매핑 */
+/** UI 국기 이미지용 ISO — 유럽 지역 패키지·`eu` 코드는 EU 국기 manifest */
 export function bongsimFlagIsoForDestination(code: string): string {
-  if (isRecommendPopularEuropeRegion(code)) return RECOMMEND_POPULAR_EUROPE_FLAG_ISO;
-  return code;
+  const lower = code.trim().toLowerCase();
+  if (lower === RECOMMEND_POPULAR_EUROPE_FLAG_ISO) return RECOMMEND_POPULAR_EUROPE_FLAG_ISO;
+  if (isRecommendPopularEuropeRegion(code) || lower.startsWith("rg-eu-")) {
+    return RECOMMEND_POPULAR_EUROPE_FLAG_ISO;
+  }
+  return lower;
+}
+
+/** GET /api/bongsim/country-heroes 맵 — 지역 패키지는 `eu` 공통 히어로 폴백 */
+export function resolveBongsimCountryHeroUrl(
+  code: string,
+  heroMap: Record<string, string>,
+): string | undefined {
+  const lower = code.trim().toLowerCase();
+  const direct = heroMap[lower]?.trim();
+  if (direct) return direct;
+  if (lower.startsWith("rg-eu-")) {
+    const shared = heroMap[RECOMMEND_POPULAR_EUROPE_FLAG_ISO]?.trim();
+    if (shared) return shared;
+  }
+  return undefined;
 }

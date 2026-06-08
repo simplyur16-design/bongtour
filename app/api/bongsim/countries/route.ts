@@ -1,9 +1,6 @@
-import { NextResponse } from "next/server";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
-import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
+import { listBongsimStandaloneCountries } from "@/lib/bongsim/data/list-standalone-countries";
 import { getPgPool } from "@/lib/bongsim/db/pool";
-import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
-import { extractSingleCountryCode, resolveMultiCoverage } from "@/lib/bongsim/plan-coverage-map";
 
 /** Next 15 GET Route Handler 기본 비캐시 대응 — 플랜 메타 반영 지연 허용 */
 export const revalidate = 120;
@@ -27,34 +24,7 @@ export async function GET() {
   }
 
   try {
-    const { rows } = await pool.query<{ plan_name: string }>(
-      `SELECT DISTINCT TRIM(plan_name) AS plan_name
-       FROM bongsim_product_option
-       WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
-         AND plan_name IS NOT NULL AND TRIM(plan_name) <> ''`,
-    );
-
-    const codes = new Set<string>();
-    for (const row of rows) {
-      const pn = row.plan_name?.trim();
-      if (!pn) continue;
-      const multi = resolveMultiCoverage(pn);
-      const singleCode = extractSingleCountryCode(pn);
-      if (multi !== undefined && singleCode === null) continue;
-      if (singleCode) codes.add(singleCode.trim().toLowerCase());
-    }
-
-    const byCode = new Map(COUNTRY_OPTIONS.map((c) => [c.code.toLowerCase(), c]));
-    const countries: BongsimCountryListItem[] = [];
-
-    for (const code of codes) {
-      const opt = byCode.get(code);
-      if (opt) {
-        countries.push({ code: opt.code, nameKr: opt.nameKr });
-      }
-    }
-
-    countries.sort((a, b) => a.nameKr.localeCompare(b.nameKr, "ko"));
+    const countries = await listBongsimStandaloneCountries(pool);
 
     return jsonWithLeakGuard(
       { countries },

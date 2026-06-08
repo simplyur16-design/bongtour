@@ -1,10 +1,16 @@
 'use client'
 
 import SafeImage from '@/app/components/SafeImage'
+import {
+  ESIM_COUNTRY_HERO_ADMIN_GROUP_LABELS,
+  type EsimCountryHeroAdminEntry,
+  type EsimCountryHeroAdminGroup,
+} from '@/lib/bongsim/esim-country-hero-admin-catalog'
 import { resolveBongsimFlagImageUrlOrFallback } from '@/lib/bongsim-flag-image-url'
-import { useCallback, useEffect, useState } from 'react'
+import { bongsimFlagIsoForDestination } from '@/lib/bongsim/recommend/popular-destinations'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
-type CountryRow = { code: string; nameKr: string }
+const ADMIN_GROUPS: EsimCountryHeroAdminGroup[] = ['standalone', 'europe_region', 'europe_country']
 
 type PexelsSearchPhoto = {
   id: number
@@ -20,7 +26,7 @@ type PexelsSearchResponse = { ok: true; query: string; photos: PexelsSearchPhoto
 type ModalState = { code: string; nameKr: string }
 
 function flagCdnUrl(code: string): string {
-  return resolveBongsimFlagImageUrlOrFallback(code)
+  return resolveBongsimFlagImageUrlOrFallback(bongsimFlagIsoForDestination(code))
 }
 
 /** Prod CSP / mixed content — `next/image` 미리보기용 (AdminPendingDetailPanel과 동일) */
@@ -36,7 +42,7 @@ function adminPreviewImgSrc(url: string | null | undefined): string | undefined 
 }
 
 export default function CountryHeroesAdminClient() {
-  const [countries, setCountries] = useState<CountryRow[]>([])
+  const [catalog, setCatalog] = useState<EsimCountryHeroAdminEntry[]>([])
   const [heroByCode, setHeroByCode] = useState<Record<string, string>>({})
   const [loadErr, setLoadErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -57,21 +63,25 @@ export default function CountryHeroesAdminClient() {
     setLoading(true)
     try {
       const [cRes, hRes] = await Promise.all([
-        fetch('/api/bongsim/countries', { cache: 'no-store' }),
+        fetch('/api/admin/bongsim/country-heroes/catalog', { cache: 'no-store' }),
         fetch('/api/bongsim/country-heroes', { cache: 'no-store' }),
       ])
-      const cJson = (await cRes.json()) as { countries?: CountryRow[]; error?: string }
-      if (!cRes.ok) {
-        setLoadErr(cJson.error ?? `국가 목록 HTTP ${cRes.status}`)
-        setCountries([])
+      const cJson = (await cRes.json()) as {
+        ok?: boolean
+        catalog?: EsimCountryHeroAdminEntry[]
+        error?: string
+      }
+      if (!cRes.ok || !cJson.ok) {
+        setLoadErr(cJson.error ?? `카탈로그 HTTP ${cRes.status}`)
+        setCatalog([])
       } else {
-        setCountries(Array.isArray(cJson.countries) ? cJson.countries : [])
+        setCatalog(Array.isArray(cJson.catalog) ? cJson.catalog : [])
       }
 
       const hJson = (await hRes.json()) as Record<string, string> & { error?: string }
       if (!hRes.ok || typeof hJson.error === 'string') {
         if (!cRes.ok) {
-          /* keep loadErr from countries */
+          /* keep loadErr from catalog */
         } else {
           setLoadErr((prev) => prev ?? hJson.error ?? `히어로 HTTP ${hRes.status}`)
         }
@@ -86,12 +96,24 @@ export default function CountryHeroesAdminClient() {
       }
     } catch (e) {
       setLoadErr(e instanceof Error ? e.message : '불러오기 실패')
-      setCountries([])
+      setCatalog([])
       setHeroByCode({})
     } finally {
       setLoading(false)
     }
   }, [])
+
+  const catalogByGroup = useMemo(() => {
+    const grouped: Record<EsimCountryHeroAdminGroup, EsimCountryHeroAdminEntry[]> = {
+      standalone: [],
+      europe_region: [],
+      europe_country: [],
+    }
+    for (const row of catalog) {
+      grouped[row.group].push(row)
+    }
+    return grouped
+  }, [catalog])
 
   useEffect(() => {
     void refresh()
@@ -204,10 +226,12 @@ export default function CountryHeroesAdminClient() {
       <div className="mb-6 rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-slate-100">
         <h1 className="text-lg font-semibold text-white">봉심 eSIM · 국가별 추천 히어로</h1>
         <p className="mt-1 text-sm text-slate-400">
-          단독 플랜이 있는 국가만 표시됩니다. Pexels에서 고른 이미지는 사진 풀(Ncloud)에 저장된 뒤{' '}
+          단독 플랜 국가와 유럽 패키지·개별국을 함께 관리합니다. Pexels에서 고른 이미지는 사진 풀(Ncloud)에 저장된 뒤{' '}
           <span className="font-mono text-slate-300">ImageAsset</span>(<span className="font-mono">recommend_hero</span>
           )로 연결되며, 사용자 퍼널은{' '}
-          <span className="font-mono text-slate-300">GET /api/bongsim/country-heroes</span>로 반영됩니다.
+          <span className="font-mono text-slate-300">GET /api/bongsim/country-heroes</span>로 반영됩니다. 유럽 패키지(
+          <span className="font-mono text-slate-300">rg-eu-*</span>)는 전용 히어로가 없을 때{' '}
+          <span className="font-mono text-slate-300">eu</span> 공통 히어로를 사용합니다.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
@@ -237,74 +261,99 @@ export default function CountryHeroesAdminClient() {
 
       {loading ? (
         <p className="text-sm text-slate-500">불러오는 중…</p>
-      ) : countries.length === 0 ? (
-        <p className="text-sm text-slate-500">표시할 국가가 없습니다. DB에 단독 플랜이 연결되어 있는지 확인하세요.</p>
+      ) : catalog.length === 0 ? (
+        <p className="text-sm text-slate-500">표시할 항목이 없습니다. DB 연결과 카탈로그 API를 확인하세요.</p>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {countries.map(({ code, nameKr }) => {
-            const lower = code.toLowerCase()
-            const hero = heroByCode[lower]
-            const msg = rowMessage[lower]
+        <div className="space-y-10">
+          {ADMIN_GROUPS.map((group) => {
+            const rows = catalogByGroup[group]
+            if (rows.length === 0) return null
             return (
-              <li
-                key={code}
-                className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/40 shadow-md"
-              >
-                <div className="relative h-40 w-full overflow-hidden bg-gray-900">
-                  {hero ? (
-                    <SafeImage src={hero} alt="" fill className="object-cover" sizes="(max-width:768px) 100vw, 320px" />
-                  ) : (
-                    <div className="absolute inset-0 overflow-hidden">
-                      <SafeImage
-                        src={flagCdnUrl(code)}
-                        alt=""
-                        fill
-                        quality={90}
-                        className="scale-110 object-cover blur-[20px]"
-                        sizes="(max-width:768px) 100vw, 320px"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute inset-0 bg-black/45" aria-hidden />
-                    </div>
-                  )}
-                  <div
-                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent"
-                    aria-hidden
-                  />
-                  <div className="absolute inset-x-0 bottom-0 flex items-end gap-2 px-3 pb-3">
-                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1 ring-white/30">
-                      <SafeImage
-                        src={flagCdnUrl(code)}
-                        alt=""
-                        width={40}
-                        height={40}
-                        className="h-full w-full object-cover"
-                        sizes="40px"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-white drop-shadow">{nameKr}</p>
-                      <p className="font-mono text-xs text-white/70">{code.toUpperCase()}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2 p-3">
-                  <button
-                    type="button"
-                    onClick={() => openModal(code, nameKr)}
-                    className="w-full rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-500"
-                  >
-                    이미지 검색 (Pexels)
-                  </button>
-                  {msg ? (
-                    <p className={`text-xs ${msg.startsWith('저장됨') ? 'text-emerald-400' : 'text-amber-200'}`}>{msg}</p>
-                  ) : null}
-                </div>
-              </li>
+              <section key={group}>
+                <h2 className="mb-4 text-base font-semibold text-slate-200">
+                  {ESIM_COUNTRY_HERO_ADMIN_GROUP_LABELS[group]}
+                  <span className="ml-2 text-sm font-normal text-slate-500">({rows.length})</span>
+                </h2>
+                <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {rows.map(({ code, nameKr, subtitleKr }) => {
+                    const lower = code.toLowerCase()
+                    const hero = heroByCode[lower]
+                    const msg = rowMessage[lower]
+                    return (
+                      <li
+                        key={`${group}-${code}`}
+                        className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/40 shadow-md"
+                      >
+                        <div className="relative h-40 w-full overflow-hidden bg-gray-900">
+                          {hero ? (
+                            <SafeImage
+                              src={hero}
+                              alt=""
+                              fill
+                              className="object-cover"
+                              sizes="(max-width:768px) 100vw, 320px"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 overflow-hidden">
+                              <SafeImage
+                                src={flagCdnUrl(code)}
+                                alt=""
+                                fill
+                                quality={90}
+                                className="scale-110 object-cover blur-[20px]"
+                                sizes="(max-width:768px) 100vw, 320px"
+                                referrerPolicy="no-referrer"
+                              />
+                              <div className="absolute inset-0 bg-black/45" aria-hidden />
+                            </div>
+                          )}
+                          <div
+                            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent"
+                            aria-hidden
+                          />
+                          <div className="absolute inset-x-0 bottom-0 flex items-end gap-2 px-3 pb-3">
+                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1 ring-white/30">
+                              <SafeImage
+                                src={flagCdnUrl(code)}
+                                alt=""
+                                width={40}
+                                height={40}
+                                className="h-full w-full object-cover"
+                                sizes="40px"
+                                referrerPolicy="no-referrer"
+                              />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-white drop-shadow">{nameKr}</p>
+                              <p className="font-mono text-xs text-white/70">{code.toUpperCase()}</p>
+                              {subtitleKr ? (
+                                <p className="truncate text-[11px] text-white/60">{subtitleKr}</p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2 p-3">
+                          <button
+                            type="button"
+                            onClick={() => openModal(code, nameKr)}
+                            className="w-full rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-500"
+                          >
+                            이미지 검색 (Pexels)
+                          </button>
+                          {msg ? (
+                            <p className={`text-xs ${msg.startsWith('저장됨') ? 'text-emerald-400' : 'text-amber-200'}`}>
+                              {msg}
+                            </p>
+                          ) : null}
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
             )
           })}
-        </ul>
+        </div>
       )}
 
       {modal ? (

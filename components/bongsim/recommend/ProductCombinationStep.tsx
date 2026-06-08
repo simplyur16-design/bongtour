@@ -11,7 +11,10 @@ import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import { REGION_PACK_OPTIONS } from "@/lib/bongsim/region-packs";
-import { bongsimFlagIsoForDestination } from "@/lib/bongsim/recommend/popular-destinations";
+import {
+  bongsimFlagIsoForDestination,
+  resolveBongsimCountryHeroUrl,
+} from "@/lib/bongsim/recommend/popular-destinations";
 import { bongsimPath, esimHasFreeData, type BongsimRecommendCheckoutLine } from "@/lib/bongsim/constants";
 import {
   clearRecommendCheckoutDispatched,
@@ -38,10 +41,6 @@ export type CountryProductPack = {
   roaming_unlimited_min: number | null;
   local_unlimited_min: number | null;
 };
-
-function countryHeroUrl(code: string, heroMap: Record<string, string>): string | undefined {
-  return heroMap[code.toLowerCase()];
-}
 
 function flagCdnUrl(code: string): string {
   return resolveBongsimFlagImageUrlOrFallback(bongsimFlagIsoForDestination(code));
@@ -620,7 +619,7 @@ export function ProductCombinationStep({
           const country = countryByCode[code];
           const pack = data.individual[code];
           const done = isCountryDone(code);
-          const hero = countryHeroUrl(code, heroMap);
+          const hero = resolveBongsimCountryHeroUrl(code, heroMap);
           const selection = completed[code];
           const stored = storedDone[code];
           const planCtx = openPlanByCode[code];
