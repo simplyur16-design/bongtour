@@ -1,5 +1,6 @@
 import { getPublicBookableMinDate, toDepartureDateYmd } from '@/lib/public-bookable-date'
 import { isAirHotelDetailVariant } from '@/lib/air-hotel-product-ssot'
+import { isEmptyShellPayloadView } from '@/lib/product-public-detail/payload-corrupt-guard'
 import {
   PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION,
   type ProductPublicDetailPayloadEnvelope,
@@ -33,6 +34,10 @@ export function parseProductPublicDetailPayload(
     if (parsed?.version !== PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION) return null
     if (parsed.bookableMinDateYmd !== expectedBookableMinDateYmd) return null
     if (!parsed.model || (!isAirHotelDetailVariant(parsed.model.variant) && parsed.model.variant !== 'package')) {
+      return null
+    }
+    const payloadBytes = Buffer.byteLength(raw, 'utf8')
+    if (isEmptyShellPayloadView(parsed.model.viewProduct, payloadBytes)) {
       return null
     }
     return parsed.model

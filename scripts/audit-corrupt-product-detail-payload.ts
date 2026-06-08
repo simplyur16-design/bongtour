@@ -10,6 +10,11 @@ import './load-env-for-scripts'
 import { prisma } from '../lib/prisma'
 import { productDetailPayloadDtoHit } from '../lib/product-detail-payload-hit'
 import { bookableMinDateYmdForPayload } from '../lib/product-public-detail/payload-io'
+import {
+  assessPayloadCorruption,
+  payloadViewScheduleLen,
+  type PayloadCorruptKind,
+} from '../lib/product-public-detail/payload-corrupt-guard'
 import { buildProductDetailPageSelect } from '../lib/product-detail-page-include'
 import { buildProductPublicDetailPayload } from '../lib/product-public-detail/build-product-public-detail-payload'
 
@@ -43,20 +48,7 @@ type CorruptRow = {
   liveRebuildBytes: number | null
   liveRebuildTitle: string | null
   liveRebuildScheduleLen: number | null
-  corruptKind: 'empty_shell' | 'title_mismatch' | 'schedule_missing'
-}
-
-function scheduleLen(schedule: unknown): number {
-  if (schedule == null) return 0
-  if (typeof schedule === 'string') {
-    try {
-      const arr = JSON.parse(schedule) as unknown
-      return Array.isArray(arr) ? arr.length : 0
-    } catch {
-      return 0
-    }
-  }
-  return Array.isArray(schedule) ? schedule.length : 0
+  corruptKind: PayloadCorruptKind
 }
 
 function rawMetaLen(rawMeta: unknown): number {
@@ -78,36 +70,6 @@ function parsePayloadView(json: string | null): PayloadView | null {
   } catch {
     return null
   }
-}
-
-function isCorrupt(
-  dbTitle: string,
-  dbScheduleLen: number,
-  view: PayloadView | null,
-  payloadBytes: number,
-): { corrupt: boolean; kind: CorruptRow['corruptKind'] | null } {
-  if (!view) return { corrupt: false, kind: null }
-  const payloadTitle = (view.title ?? '').trim()
-  const payloadSchedLen = Array.isArray(view.schedule) ? view.schedule.length : view.schedule == null ? 0 : -1
-  const dbHasBody = dbTitle.trim().length > 0 || dbScheduleLen > 0
-
-  // 전형적 slim-row 오염: ~1–4KB, title 빈 문자열, schedule null
-  if (
-    dbHasBody &&
-    payloadTitle === '' &&
-    (view.schedule == null || payloadSchedLen === 0) &&
-    payloadBytes > 0 &&
-    payloadBytes < 8000
-  ) {
-    return { corrupt: true, kind: 'empty_shell' }
-  }
-  if (dbTitle.trim() && payloadTitle && dbTitle.trim() !== payloadTitle.trim() && payloadTitle.length < 4) {
-    return { corrupt: true, kind: 'title_mismatch' }
-  }
-  if (dbScheduleLen >= 2 && payloadSchedLen === 0 && payloadBytes < 8000) {
-    return { corrupt: true, kind: 'schedule_missing' }
-  }
-  return { corrupt: false, kind: null }
 }
 
 async function main() {
@@ -139,8 +101,8 @@ async function main() {
     const payload = row.publicDetailPayloadJson
     const payloadBytes = payload?.length ?? 0
     const view = parsePayloadView(payload)
-    const dbSchedLen = scheduleLen(row.schedule)
-    const { corrupt: bad, kind } = isCorrupt(row.title ?? '', dbSchedLen, view, payloadBytes)
+    const dbSchedLen = payloadViewScheduleLen(row.schedule)
+    const { corrupt: bad, kind } = assessPayloadCorruption(row.title ?? '', dbSchedLen, view, payloadBytes)
     if (!bad || !kind) continue
 
     if (sampleRebuildIds.length < 12) sampleRebuildIds.push(row.id)
