@@ -18,10 +18,21 @@ export type DepartureSeatRowLike = {
 
 const SOLD_OUT_TEXT = /마감|만석|매진|판매\s*완료|판매\s*종료|sold\s*out|예약\s*불가/i
 
+function seatStatusBlob(row: DepartureSeatRowLike): string {
+  return `${row.status ?? ''} ${row.statusRaw ?? ''} ${row.seatsStatusRaw ?? ''}`.trim()
+}
+
 /** `seatCount`·`availableSeats`·`seatsStatusRaw`·`status`에서 잔여석 숫자 복원 */
 export function deriveRemainingSeatCount(row: DepartureSeatRowLike): number | null {
   const explicit = row.availableSeats ?? row.seatCount
-  if (explicit != null && Number.isFinite(Number(explicit))) return Math.floor(Number(explicit))
+  if (explicit != null && Number.isFinite(Number(explicit))) {
+    const n = Math.floor(Number(explicit))
+    // 레거시: seatCount=0 placeholder만 있고 마감·잔여0 문구 없으면 미수집으로 본다
+    if (n === 0 && !SOLD_OUT_TEXT.test(seatStatusBlob(row)) && !/잔여\s*0/i.test(seatStatusBlob(row))) {
+      return null
+    }
+    return n
+  }
 
   const seatsRaw = (row.seatsStatusRaw ?? '').trim()
   if (seatsRaw) {
@@ -48,8 +59,21 @@ export function isDepartureSoldOut(row: DepartureSeatRowLike): boolean {
   const seats = deriveRemainingSeatCount(row)
   if (seats != null) return seats <= 0
 
-  const blob = `${row.status ?? ''} ${row.statusRaw ?? ''} ${row.seatsStatusRaw ?? ''}`.trim()
+  const blob = seatStatusBlob(row)
   return blob.length > 0 && SOLD_OUT_TEXT.test(blob)
+}
+
+/** 상품 본문·구조화 `remainingSeatsCount`로 달력 행 보강(에어텔 단일 출발 등) */
+export function enrichPriceRowsWithProductRemainingSeats<
+  T extends DepartureSeatRowLike & { date: string; id: string },
+>(rows: T[], remainingSeatsCount: number | null | undefined): T[] {
+  if (remainingSeatsCount == null || remainingSeatsCount <= 0) return rows
+  return rows.map((row) => {
+    const seats = deriveRemainingSeatCount(row)
+    if (seats != null && seats > 0) return row
+    if (isDepartureSoldOut(row)) return row
+    return { ...row, availableSeats: remainingSeatsCount }
+  })
 }
 
 /** ProductPriceRow `adult`·`priceAdult`·base/fuel 슬롯 통합 */

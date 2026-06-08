@@ -69,6 +69,7 @@ import * as dayHotelKyowontour from '@/lib/day-hotel-plans-kyowontour'
 import * as dayHotelLottetour from '@/lib/day-hotel-plans-lottetour'
 import { normalizePromotionMarketingCopy, normalizePricePromotionViewCopy } from '@/lib/promotion-copy-normalize'
 import { isOnOrAfterPublicBookableMinDate, toDepartureDateYmd } from '@/lib/public-bookable-date'
+import { enrichPriceRowsWithProductRemainingSeats } from '@/lib/departure-seat-availability'
 import { getPriceAdult } from '@/lib/price-utils'
 import {
   backfillVerygoodAirtelPublicPriceRows,
@@ -670,6 +671,10 @@ export async function buildProductPublicDetailRenderModel(
         priceFrom: travelProduct.priceFrom,
         fallbackDateYmd: fallbackDate,
       },
+    )
+    priceRowsForPublic = enrichPriceRowsWithProductRemainingSeats(
+      priceRowsForPublic,
+      structured?.remainingSeatsCount ?? null,
     )
   }
 
