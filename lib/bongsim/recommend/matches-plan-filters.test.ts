@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { matchesBongsimPlanFilters } from "@/lib/bongsim/recommend/matches-plan-filters";
 
-function row(plan_name: string, days_raw: string, plan_type = "unlimited") {
-  return { plan_name, days_raw, plan_type };
+function row(
+  plan_name: string,
+  days_raw: string,
+  plan_type: string | null = "unlimited",
+  extra?: Partial<{
+    network_family: string;
+    allowance_label: string;
+    option_label: string;
+  }>,
+) {
+  return { plan_name, days_raw, plan_type, ...extra };
 }
 
 describe("matchesBongsimPlanFilters", () => {
@@ -48,6 +57,38 @@ describe("matchesBongsimPlanFilters", () => {
       days: 7,
       allSelected: ["fr", "de"],
     });
+    expect(ok).toBe(true);
+  });
+
+  it("로컬 시트(plan_type null) — 매일 용량 옵션은 daily로 해석해 통과", () => {
+    const ok = matchesBongsimPlanFilters(
+      row("유럽 33개국", "7일", null, {
+        network_family: "local",
+        allowance_label: "500MB",
+        option_label: "7일 / 매일 500MB 이후 저속 무제한",
+      }),
+      {
+        country: "rg-eu-33",
+        days: 7,
+        allSelected: ["rg-eu-33"],
+      },
+    );
+    expect(ok).toBe(true);
+  });
+
+  it("로컬 시트(plan_type null) — 완전 무제한은 unlimited로 해석해 통과", () => {
+    const ok = matchesBongsimPlanFilters(
+      row("유럽 33개국", "7일", null, {
+        network_family: "local",
+        allowance_label: "완전 무제한",
+        option_label: "7일 / 완전 무제한",
+      }),
+      {
+        country: "rg-eu-33",
+        days: 7,
+        allSelected: ["rg-eu-33"],
+      },
+    );
     expect(ok).toBe(true);
   });
 });

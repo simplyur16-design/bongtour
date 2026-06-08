@@ -19,6 +19,7 @@ import {
   extractDaysFromDaysRaw,
   isTrueUnlimited,
 } from "@/lib/bongsim/recommend/product-option";
+import { resolveEffectivePlanType } from "@/lib/bongsim/recommend/resolve-effective-plan-type";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 import {
   pickRecommendedBySpeedTier,
@@ -53,7 +54,9 @@ function enrich(row: Row) {
   const price_block = row.price_block as ProductOption["price_block"];
   const recommended_price = computeRecommendedPrice(price_block);
   const is_true_unlimited = isTrueUnlimited(row);
-  return { ...row, price_block, recommended_price, is_true_unlimited };
+  const effectivePlanType = resolveEffectivePlanType(row);
+  const plan_type = effectivePlanType ?? row.plan_type;
+  return { ...row, plan_type, price_block, recommended_price, is_true_unlimited };
 }
 
 /** 128kbps 등 저속 전용 상품 제외 */
@@ -424,8 +427,14 @@ export async function GET(req: Request) {
       FROM bongsim_product_option
       WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
         AND ($1::text IS NULL OR lower(network_family) = lower($1::text))
-        AND plan_type IS NOT NULL
-        AND lower(plan_type) IN ('unlimited', 'daily', 'fixed')
+        AND (
+          (plan_type IS NOT NULL AND lower(plan_type) IN ('unlimited', 'daily', 'fixed'))
+          OR (
+            plan_type IS NULL
+            AND lower(network_family) = 'local'
+            AND ($1::text IS NULL OR lower($1::text) = 'local')
+          )
+        )
       ORDER BY plan_name, days_raw, (price_block->'after'->>'recommended_krw')::numeric ASC NULLS LAST
       `,
       [networkParam],
