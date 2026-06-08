@@ -208,7 +208,7 @@ export async function listOverseasHomeReviewSections(): Promise<{
   groups.sort((a, b) => a.display_order - b.display_order)
   return {
     packageReviews: packages.slice(0, 12).map(stripDisplayOrder),
-    groupReviews: groups.slice(0, 21).map(stripDisplayOrder),
+    groupReviews: groups.map(stripDisplayOrder),
   }
 }
 

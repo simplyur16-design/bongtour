@@ -1,9 +1,13 @@
 import HomeReviewsGridClient from '@/app/components/home/HomeReviewsGridClient'
 import { getCachedOverseasHomeReviewSections } from '@/lib/home-page-data-cached'
+import { sampleReviewsForDisplay } from '@/lib/group-meeting-reviews-display'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import { unstable_noStore as noStore } from 'next/cache'
 
 export default async function CustomerReviewsSection() {
-  const { packageReviews, groupReviews } = await getCachedOverseasHomeReviewSections()
+  noStore()
+  const { packageReviews, groupReviews: groupPool } = await getCachedOverseasHomeReviewSections()
+  const groupReviews = sampleReviewsForDisplay(groupPool)
   if (packageReviews.length === 0 && groupReviews.length === 0) return null
 
   return (

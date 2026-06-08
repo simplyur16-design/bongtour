@@ -38,7 +38,7 @@ export function HomeReviewGridCard({ review: r }: { review: ReviewCardModel }) {
   )
 }
 
-/** 메인·모임여행 후기 — 모바일 8건·10분 로테이션, md+ 전체 그리드 */
+/** 메인·모임여행 후기 — 서버에서 최대 9건 샘플, 모바일 8건·10분 로테이션, md+ 전달 건수 그리드 */
 export default function HomeReviewsGridClient({ reviews }: Props) {
   const safe = useMemo(() => reviews.filter((r) => r.id && r.title && r.excerpt), [reviews])
   const { mobileReviews } = useMobileReviewRotation(safe)
