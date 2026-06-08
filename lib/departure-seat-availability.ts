@@ -18,49 +18,61 @@ export type DepartureSeatRowLike = {
 
 const SOLD_OUT_TEXT = /마감|만석|매진|판매\s*완료|판매\s*종료|sold\s*out|예약\s*불가/i
 
+/** LLM·파싱 JSON — 미기입은 undefined, 0은 실제 0 */
+export function parseOptionalSeatCount(raw: unknown): number | undefined {
+  if (raw == null || raw === '') return undefined
+  const n = Math.floor(Number(raw))
+  return Number.isFinite(n) ? n : undefined
+}
+
 function seatStatusBlob(row: DepartureSeatRowLike): string {
   return `${row.status ?? ''} ${row.statusRaw ?? ''} ${row.seatsStatusRaw ?? ''}`.trim()
 }
 
+/**
+ * 하나투어 등 `예약 : 0명 좌석 : 20석` — **좌석·잔여 라벨**만 잔여석으로 본다.
+ * `예약 : 0`은 현재예약 인원이지 잔여 0이 아니다.
+ */
+export function parseLabeledRemainingSeatCountFromText(text: string): number | null {
+  const t = text.trim()
+  if (!t) return null
+  const labeled = t.match(/좌석\s*[:：]\s*(\d+)\s*석?/i)
+  if (labeled) return Math.floor(Number(labeled[1]))
+  const remain = t.match(/잔여\s*(\d+)\s*석?/i)
+  if (remain) return Math.floor(Number(remain[1]))
+  return null
+}
+
 /** `seatCount`·`availableSeats`·`seatsStatusRaw`·`status`에서 잔여석 숫자 복원 */
 export function deriveRemainingSeatCount(row: DepartureSeatRowLike): number | null {
+  const blob = seatStatusBlob(row)
+
+  for (const part of [row.seatsStatusRaw, row.statusRaw, row.status]) {
+    const fromLabel = parseLabeledRemainingSeatCountFromText(String(part ?? ''))
+    if (fromLabel != null) return fromLabel
+  }
+
   const explicit = row.availableSeats ?? row.seatCount
   if (explicit != null && Number.isFinite(Number(explicit))) {
     const n = Math.floor(Number(explicit))
     // 레거시: seatCount=0 placeholder만 있고 마감·잔여0 문구 없으면 미수집으로 본다
-    if (n === 0 && !SOLD_OUT_TEXT.test(seatStatusBlob(row)) && !/잔여\s*0/i.test(seatStatusBlob(row))) {
+    if (n === 0 && !SOLD_OUT_TEXT.test(blob) && !/잔여\s*0/i.test(blob)) {
       return null
     }
     return n
   }
 
-  const seatsRaw = (row.seatsStatusRaw ?? '').trim()
-  if (seatsRaw) {
-    const m1 = seatsRaw.match(/잔여\s*(\d+)/i)
-    if (m1) return Math.floor(Number(m1[1]))
-    const m2 = seatsRaw.match(/(\d+)\s*석/)
-    if (m2) return Math.floor(Number(m2[1]))
-    if (SOLD_OUT_TEXT.test(seatsRaw)) return 0
-  }
-
-  const status = (row.status ?? row.statusRaw ?? '').trim()
-  if (status && SOLD_OUT_TEXT.test(status)) return 0
-
   return null
 }
 
 /**
- * 판매완료 — **성인가가 있고** 잔여석이 없음이 확인될 때만 true.
- * 가격 없음(미운영)·좌석 정보 미수집(null)은 판매완료가 아님.
+ * 판매완료 — **성인가가 있고** 잔여석이 **숫자로 0임이 확인**될 때만 true.
+ * 가격 없음(미운영)·좌석 미수집(null)·마감 문구만 있는 경우는 판매완료가 아님.
  */
 export function isDepartureSoldOut(row: DepartureSeatRowLike): boolean {
   if (departureRowAdultKrw(row) <= 0) return false
-
   const seats = deriveRemainingSeatCount(row)
-  if (seats != null) return seats <= 0
-
-  const blob = seatStatusBlob(row)
-  return blob.length > 0 && SOLD_OUT_TEXT.test(blob)
+  return seats != null && seats <= 0
 }
 
 /** 상품 본문·구조화 `remainingSeatsCount`로 달력 행 보강(에어텔 단일 출발 등) */
@@ -76,10 +88,8 @@ export function enrichPriceRowsWithProductRemainingSeats<
   })
 }
 
-/** ProductPriceRow `adult`·`priceAdult`·base/fuel 슬롯 통합 */
+/** ProductPriceRow `adult`·`priceAdult`·base/fuel 슬롯 통합 — `getPriceAdult` SSOT */
 export function departureRowAdultKrw(row: DepartureSeatRowLike): number {
-  if (row.adult != null && row.adult > 0) return row.adult
-  if (row.priceAdult != null && row.priceAdult > 0) return row.priceAdult
   return getPriceAdult(row as never)
 }
 
@@ -94,13 +104,28 @@ export function seatFieldsFromParsedCalendarPrice(p: {
   seatsStatusRaw?: string | null
   status?: string | null
 }): { seatCount?: number; seatsStatusRaw?: string } {
-  const fromAvail =
+  const rawAvail =
     p.availableSeats != null && Number.isFinite(Number(p.availableSeats))
       ? Math.floor(Number(p.availableSeats))
       : undefined
   const seatsRawIn = p.seatsStatusRaw != null && String(p.seatsStatusRaw).trim() ? String(p.seatsStatusRaw).trim() : ''
-  const seatsStatusRaw = fromAvail != null ? `잔여${fromAvail}` : seatsRawIn || undefined
-  const seatCount = fromAvail ?? deriveRemainingSeatCount({ seatsStatusRaw, status: p.status }) ?? undefined
+  const fromLabel = parseLabeledRemainingSeatCountFromText(
+    `${seatsRawIn} ${p.status ?? ''}`.trim(),
+  )
+  const fromAvail = rawAvail != null && rawAvail > 0 ? rawAvail : undefined
+  const seatCountResolved =
+    fromAvail ?? fromLabel ?? (rawAvail === 0 ? undefined : rawAvail) ?? undefined
+  const soldOutHint =
+    (rawAvail === 0 && (SOLD_OUT_TEXT.test(`${seatsRawIn} ${p.status ?? ''}`) || /잔여\s*0/i.test(seatsRawIn))) ||
+    false
+  const seatsStatusRaw =
+    seatCountResolved != null
+      ? `잔여${seatCountResolved}`
+      : seatsRawIn || (soldOutHint ? '잔여0' : undefined)
+  const seatCount =
+    seatCountResolved ??
+    deriveRemainingSeatCount({ seatsStatusRaw, status: p.status }) ??
+    undefined
   return {
     ...(seatCount != null ? { seatCount } : {}),
     ...(seatsStatusRaw ? { seatsStatusRaw } : {}),

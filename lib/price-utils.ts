@@ -52,9 +52,14 @@ export function formatKRW(n: number): string {
  */
 export function getPriceAdult(row: PriceRowLike & { adult?: number }): number {
   const rawAdult = 'adult' in row ? row.adult : undefined
-  if (rawAdult != null && rawAdult <= 0) return 0
-  if (row.priceAdult != null && row.priceAdult <= 0) return 0
-  if (row.priceAdult != null && row.priceAdult > 0) return row.priceAdult
+  if (rawAdult != null) {
+    if (rawAdult <= 0) return 0
+    return rawAdult
+  }
+  if (row.priceAdult != null) {
+    if (row.priceAdult <= 0) return 0
+    return row.priceAdult
+  }
   return adultTotal(row)
 }
 

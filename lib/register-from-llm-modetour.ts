@@ -54,6 +54,7 @@ export function capModetourLlmPriceField(key: string, value: unknown): string | 
   const max = MODETOUR_LLM_PRICE_FIELD_MAX[key] ?? 120
   return capModetourPersistString(String(value), max, `llm.prices.${key}`) ?? undefined
 }
+import { parseOptionalSeatCount } from '@/lib/departure-seat-availability'
 import type { ParsedProductPrice } from './parsed-product-types'
 import { normalizeCalendarDate } from './date-normalize'
 import { extractDestinationFromTitle } from './destination-from-title'
@@ -1695,7 +1696,7 @@ ${text.slice(0, 16000)}`
           return st
         return '예약가능'
       })(),
-      availableSeats: Number(p?.availableSeats) || 0,
+      availableSeats: parseOptionalSeatCount(p?.availableSeats),
       carrierName: s('carrierName'),
       outboundFlightNo: s('outboundFlightNo'),
       outboundDepartureAirport: s('outboundDepartureAirport'),

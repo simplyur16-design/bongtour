@@ -1,4 +1,5 @@
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
+import { parseOptionalSeatCount } from '@/lib/departure-seat-availability'
 import type { ParsedProductForDB, ParsedProductPrice, ParsedItinerary } from './parsed-product-types'
 
 const TRAVEL_PARSE_PROMPT = `# Role: 전문 여행 데이터 파싱 엔진 (LLM)
@@ -104,7 +105,7 @@ ${rawText.slice(0, 60000)}
         p?.status === '대기예약'
           ? p.status
           : '예약가능',
-      availableSeats: Number(p?.availableSeats) || 0,
+      availableSeats: parseOptionalSeatCount(p?.availableSeats),
     }
     const ext = p as Record<string, unknown>
     const s = (k: string) => {

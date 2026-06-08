@@ -55,8 +55,11 @@ export function productPriceRowToDepartureView(
     statusLabel = statusRaw && /마감|불가|없음|미운영|대기/i.test(statusRaw) ? statusRaw : '출발없음'
   }
   const seats = deriveRemainingSeatCount(row)
-  const seatStatus =
-    seats != null && seats > 0 ? `잔여 ${seats}석` : seats === 0 ? '판매완료' : null
+  const seatStatus = soldOut
+    ? '판매완료'
+    : seats != null && seats > 0
+      ? `잔여 ${seats}석`
+      : null
 
   return {
     departureDate,
@@ -78,6 +81,7 @@ export function buildDepartureViewModels(
   originSource: string
 ): DeparturePriceViewModel[] {
   return [...rows]
+    .filter((r) => departureRowAdultKrw(r) > 0)
     .map((r) => productPriceRowToDepartureView(r, originSource))
     .sort((a, b) => a.departureDate.localeCompare(b.departureDate))
 }

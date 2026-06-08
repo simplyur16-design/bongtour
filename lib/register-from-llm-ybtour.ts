@@ -88,6 +88,7 @@ function ybtourShouldAttemptJsonRepairAfterMain(
     msg.includes('unexpected end')
   )
 }
+import { parseOptionalSeatCount } from '@/lib/departure-seat-availability'
 import type { ParsedProductPrice } from './parsed-product-types'
 import { normalizeCalendarDate } from './date-normalize'
 import { extractDestinationFromTitle } from './destination-from-title'
@@ -1840,7 +1841,7 @@ ${text.slice(0, 16000)}`
           return st
         return '예약가능'
       })(),
-      availableSeats: Number(p?.availableSeats) || 0,
+      availableSeats: parseOptionalSeatCount(p?.availableSeats),
       carrierName: s('carrierName'),
       outboundFlightNo: s('outboundFlightNo'),
       outboundDepartureAirport: s('outboundDepartureAirport'),

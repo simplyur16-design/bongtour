@@ -10,18 +10,30 @@ import {
 describe('departure-seat-availability', () => {
   it('derives seat count from seatsStatusRaw when seatCount missing', () => {
     expect(deriveRemainingSeatCount({ seatsStatusRaw: '잔여12' })).toBe(12)
-    expect(deriveRemainingSeatCount({ seatsStatusRaw: '3석' })).toBe(3)
+    expect(deriveRemainingSeatCount({ seatsStatusRaw: '좌석 : 3석' })).toBe(3)
     expect(deriveRemainingSeatCount({ seatsStatusRaw: '잔여0' })).toBe(0)
   })
 
-  it('판매완료 — 가격 있고 잔여 0 또는 마감 문구일 때만', () => {
+  it('판매완료 — 가격 있고 잔여 0이 숫자로 확인될 때만', () => {
     expect(isDepartureSoldOut({ availableSeats: 0, adult: 1_000_000, seatsStatusRaw: '잔여0' })).toBe(true)
-    expect(isDepartureSoldOut({ seatsStatusRaw: '마감', adult: 1_000_000 })).toBe(true)
+    expect(isDepartureSoldOut({ seatsStatusRaw: '마감', adult: 1_000_000 })).toBe(false)
     expect(isDepartureSoldOut({ availableSeats: 3, adult: 1_000_000 })).toBe(false)
-    expect(isDepartureSoldOut({ availableSeats: 0, adult: 0 })).toBe(false)
+    expect(isDepartureSoldOut({ availableSeats: 0, adult: 0, seatsStatusRaw: '잔여0' })).toBe(false)
     expect(isDepartureSoldOut({ adult: 1_000_000 })).toBe(false)
     expect(isDepartureSoldOut({ adult: 1_000_000, isBookable: false })).toBe(false)
     expect(isDepartureSoldOut({ seatCount: 0, adult: 1_000_000 })).toBe(false)
+    expect(isDepartureSoldOut({ adult: 0, seatsStatusRaw: '마감', statusRaw: '마감' })).toBe(false)
+  })
+
+  it('parses 좌석 : 20 from reservation line — 예약 0 is not sold out', () => {
+    const row = {
+      seatCount: 0,
+      statusRaw: '예약 : 0명 좌석 : 20석 (최소출발 : 성인 8명)',
+      adult: 900_000,
+    }
+    expect(deriveRemainingSeatCount(row)).toBe(20)
+    expect(isDepartureSoldOut(row)).toBe(false)
+    expect(isDepartureRowPublicBookable(row)).toBe(true)
   })
 
   it('enrichPriceRowsWithProductRemainingSeats fills missing row seats from product meta', () => {
@@ -47,5 +59,15 @@ describe('departure-seat-availability', () => {
       seatCount: 4,
       seatsStatusRaw: '잔여4',
     })
+  })
+
+  it('seatFieldsFromParsedCalendarPrice — availableSeats 0 without sold-out hint is not 잔여0', () => {
+    expect(seatFieldsFromParsedCalendarPrice({ availableSeats: 0 })).toEqual({})
+    expect(
+      seatFieldsFromParsedCalendarPrice({
+        availableSeats: 0,
+        status: '예약 : 0명 좌석 : 20석',
+      }),
+    ).toEqual({ seatCount: 20, seatsStatusRaw: '잔여20' })
   })
 })

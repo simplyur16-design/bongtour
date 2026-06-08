@@ -1,4 +1,5 @@
 import type { Prisma, ProductDeparture } from '@prisma/client'
+import { isDepartureSoldOut } from '@/lib/departure-seat-availability'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import {
@@ -1004,12 +1005,14 @@ export async function buildProductPublicDetailRenderModel(
   const showEsimCrossSell = travelProduct.travelScope === 'overseas'
 
   const pricedDepartures = departures.filter((d) => d.adultPrice != null && d.adultPrice > 0)
-  const isUnavailable = (d: (typeof departures)[number]) => {
-    const sold = (d.statusRaw ?? '').includes('마감') || (d.seatsStatusRaw ?? '').includes('마감')
-    return sold
-  }
-  const unavailableCount = departures.filter(isUnavailable).length
-  const totalCount = departures.length
+  const isSoldOutPriced = (d: (typeof departures)[number]) =>
+    isDepartureSoldOut({
+      adult: d.adultPrice,
+      seatCount: d.seatCount,
+      seatsStatusRaw: d.seatsStatusRaw,
+      statusRaw: d.statusRaw,
+    })
+  const soldOutPricedCount = pricedDepartures.filter(isSoldOutPriced).length
 
   let seoOffers: ProductJsonLdAggregateOffer | null = null
   if (pricedDepartures.length > 0) {
@@ -1018,8 +1021,8 @@ export async function buildProductPublicDetailRenderModel(
       .map((d) => d.departureDate)
       .sort((a, b) => toDepartureDateYmd(a).localeCompare(toDepartureDateYmd(b)))
     let availability: 'InStock' | 'LimitedAvailability' | 'SoldOut' = 'InStock'
-    if (totalCount > 0 && unavailableCount === totalCount) availability = 'SoldOut'
-    else if (totalCount > 0 && unavailableCount * 2 >= totalCount) availability = 'LimitedAvailability'
+    if (soldOutPricedCount === pricedDepartures.length) availability = 'SoldOut'
+    else if (soldOutPricedCount * 2 >= pricedDepartures.length) availability = 'LimitedAvailability'
     seoOffers = {
       lowPrice: Math.min(...prices),
       highPrice: Math.max(...prices),

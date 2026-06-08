@@ -37,6 +37,7 @@ const registerHanatourPreviewMaxOutputTokens = () =>
   Number.isFinite(REGISTER_HANATOUR_MAX_OUTPUT_TOKENS_ENV) && REGISTER_HANATOUR_MAX_OUTPUT_TOKENS_ENV >= 4096
     ? Math.min(32768, Math.floor(REGISTER_HANATOUR_MAX_OUTPUT_TOKENS_ENV))
     : 4096
+import { parseOptionalSeatCount } from '@/lib/departure-seat-availability'
 import type { ParsedProductPrice } from './parsed-product-types'
 import { normalizeCalendarDate } from './date-normalize'
 import { extractDestinationFromTitle } from './destination-from-title'
@@ -1853,7 +1854,7 @@ ${text.slice(0, 16000)}`
           return st
         return '예약가능'
       })(),
-      availableSeats: Number(p?.availableSeats) || 0,
+      availableSeats: parseOptionalSeatCount(p?.availableSeats),
       carrierName: s('carrierName'),
       outboundFlightNo: s('outboundFlightNo'),
       outboundDepartureAirport: s('outboundDepartureAirport'),

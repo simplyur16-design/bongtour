@@ -11,7 +11,8 @@ export type ParsedProductPrice = {
   infantBase?: number
   infantFuel: number
   status: '출발확정' | '예약가능' | '마감' | '대기예약'
-  availableSeats: number
+  /** 미기입(undefined)과 잔여 0(0)을 구분 — 0은 명시적 마감·잔여0일 때만 */
+  availableSeats?: number
   /** 출발일별 항공·미팅 (상세에 명시될 때). 터미널 안내는 최종 항공 입력·구조화 항공값 기준. */
   carrierName?: string | null
   outboundFlightNo?: string | null
