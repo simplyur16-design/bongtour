@@ -20,6 +20,7 @@ import ProductSortBar from '@/components/products/ProductSortBar'
 import ProductResultsList, { type ResultItem } from '@/components/products/ProductResultsList'
 import type { OverseasGeoFilterBanner } from '@/lib/overseas-destination-browse'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
+import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import { sortProductsBySeason } from '@/lib/product-sort'
 import {
   buildAirHotelRegionChips,
@@ -503,7 +504,8 @@ export default function ProductsBrowseClient({
     if (!isOverseasBrowse || budgetActive || sort !== 'popular') {
       return { items: baseItems, seasonalPickIds: null }
     }
-    const { items, seasonalPickIds } = sortProductsBySeason(baseItems, new Date().getMonth() + 1)
+    const seoulMonth = Number(getSeoulYearMonthNow().split('-')[1]) || 1
+    const { items, seasonalPickIds } = sortProductsBySeason(baseItems, seoulMonth)
     return { items, seasonalPickIds }
   }, [data, isOverseasBrowse, budgetActive, sort, itemsAfterHubSidebar])
 

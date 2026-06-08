@@ -1,3 +1,5 @@
+import { toSeoulYmd } from '@/lib/public-bookable-date'
+
 // TODO: 고객 데이터 쌓이면 bongsim_order에서 최근 30일 주문 수 기준 인기순으로 전환
 
 /** 월별 추천 여행지(문자열 포함 매칭용) — 상단 고정 3개 순서 */
@@ -25,9 +27,7 @@ export type SeasonSortableProduct = {
 }
 
 function yyyymmddNumber(d: Date): number {
-  const y = d.getFullYear()
-  const m = d.getMonth() + 1
-  const day = d.getDate()
+  const [y, m, day] = toSeoulYmd(d).split('-').map(Number)
   return y * 10000 + m * 100 + day
 }
 
