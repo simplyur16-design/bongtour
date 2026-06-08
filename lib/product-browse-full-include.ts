@@ -119,6 +119,10 @@ export function buildProductBrowseDepartureSelect() {
     minPax: true,
     outboundDepartureAt: true,
     carrierName: true,
+    seatCount: true,
+    seatsStatusRaw: true,
+    statusRaw: true,
+    isBookable: true,
   } satisfies Prisma.ProductDepartureSelect
 }
 
@@ -140,6 +144,10 @@ export function buildProductBrowseFullInclude(baseDate: Date = new Date()) {
         minPax: true,
         outboundDepartureAt: true,
         carrierName: true,
+        seatCount: true,
+        seatsStatusRaw: true,
+        statusRaw: true,
+        isBookable: true,
       },
       take: BROWSE_DEPARTURE_PER_PRODUCT_TAKE,
     },

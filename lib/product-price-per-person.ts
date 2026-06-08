@@ -6,31 +6,48 @@
  *
  * 출발행이 없거나 전부 null/0이면 Product.priceFrom scalar 폴백.
  */
+import { isDepartureRowPublicBookable } from '@/lib/departure-seat-availability'
+
 export type ProductPriceSelect = {
   id: string
   priceFrom: number | null
   /** DB derived — bookable 출발 최저 성인가 (트리거·Seoul+2일 SSOT) */
   minBookableAdultPrice?: number | null
-  departures?: { adultPrice: number | null; departureDate: Date }[]
+  departures?: Array<{
+    adultPrice: number | null
+    departureDate: Date
+    seatCount?: number | null
+    seatsStatusRaw?: string | null
+    statusRaw?: string | null
+    isBookable?: boolean | null
+  }>
 }
 
 function computeDeparturesAdultPriceMin(
-  departures: { adultPrice: number | null }[],
+  departures: ProductPriceSelect['departures'] | undefined,
+  seatAware: boolean,
 ): number | null {
   const fromDep: number[] = []
-  for (const d of departures) {
-    if (d.adultPrice != null && d.adultPrice > 0) fromDep.push(d.adultPrice)
+  for (const d of departures ?? []) {
+    if (d.adultPrice == null || d.adultPrice <= 0) continue
+    if (seatAware && !isDepartureRowPublicBookable(d)) continue
+    fromDep.push(d.adultPrice)
   }
   if (fromDep.length === 0) return null
   return Math.min(...fromDep)
 }
 
-export function computeEffectivePricePerPersonKrwFromRow(p: ProductPriceSelect): number | null {
-  if (p.minBookableAdultPrice != null && p.minBookableAdultPrice > 0) {
+export function computeEffectivePricePerPersonKrwFromRow(
+  p: ProductPriceSelect,
+  opts?: { seatAware?: boolean },
+): number | null {
+  const seatAware = opts?.seatAware ?? false
+  const depMin = computeDeparturesAdultPriceMin(p.departures, seatAware)
+  if (depMin != null && depMin > 0) return depMin
+
+  if (!seatAware && p.minBookableAdultPrice != null && p.minBookableAdultPrice > 0) {
     return p.minBookableAdultPrice
   }
-  const depMin = computeDeparturesAdultPriceMin(p.departures ?? [])
-  if (depMin != null && depMin > 0) return depMin
 
   if (p.priceFrom != null && p.priceFrom > 0) return p.priceFrom
 
