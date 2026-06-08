@@ -356,13 +356,16 @@ function DepartureCalendarBlock({
           }
 
           if (!bookable) {
+            const soldOut = Boolean(vm?.soldOut)
             return (
               <div
                 key={iso}
                 className="flex min-h-[52px] flex-col items-center justify-center rounded-lg border border-bt-cal-unavailable/80 bg-bt-surface-soft py-1 sm:min-h-[56px]"
               >
                 <span className="text-bt-meta">{day}</span>
-                <span className="mt-0.5 text-[10px] font-medium text-bt-disabled">미운영</span>
+                <span className="mt-0.5 text-[10px] font-medium text-bt-disabled">
+                  {soldOut ? '판매완료' : '미운영'}
+                </span>
               </div>
             )
           }

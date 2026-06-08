@@ -3,7 +3,13 @@
  * @see lib/price-utils.ts isScheduleAdultBookable
  */
 import type { ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
-import { formatKRW, getPriceAdult } from '@/lib/price-utils'
+import {
+  deriveRemainingSeatCount,
+  departureRowAdultKrw,
+  isDepartureRowPublicBookable,
+  isDepartureSoldOut,
+} from '@/lib/departure-seat-availability'
+import { formatKRW } from '@/lib/price-utils'
 import type { OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
 import { normalizeSupplierOrigin, OVERSEAS_SUPPLIER_LABEL } from '@/lib/normalize-supplier-origin'
 
@@ -20,6 +26,8 @@ export type DeparturePriceViewModel = {
   rawPriceText: string | null
   seatStatus: string | null
   note: string | null
+  /** 성인가는 있으나 잔여석·마감으로 예약 불가 */
+  soldOut: boolean
   /** 원본 행 id (키·앵커) */
   sourceRowId: string
 }
@@ -34,22 +42,25 @@ export function productPriceRowToDepartureView(
 ): DeparturePriceViewModel {
   const departureDate = toDateKey(row.date)
   const supplierKey = normalizeSupplierOrigin(originSource)
-  const adultKrw = getPriceAdult(row)
-  const isAvailable = adultKrw > 0
+  const adultKrw = departureRowAdultKrw(row)
+  const soldOut = adultKrw > 0 && isDepartureSoldOut(row)
+  const isAvailable = isDepartureRowPublicBookable(row)
   const statusRaw = row.status?.trim()
   let statusLabel = '미운영'
-  if (isAvailable) {
+  if (soldOut) {
+    statusLabel = '판매완료'
+  } else if (isAvailable) {
     statusLabel = statusRaw && statusRaw.length > 0 ? statusRaw : '예약가능'
   } else {
     statusLabel = statusRaw && /마감|불가|없음|미운영|대기/i.test(statusRaw) ? statusRaw : '출발없음'
   }
-  const seats = row.availableSeats
+  const seats = deriveRemainingSeatCount(row)
   const seatStatus =
-    seats != null && seats > 0 ? `잔여 ${seats}석` : seats === 0 ? '만석' : null
+    seats != null && seats > 0 ? `잔여 ${seats}석` : seats === 0 ? '판매완료' : null
 
   return {
     departureDate,
-    price: isAvailable ? adultKrw : null,
+    price: isAvailable ? adultKrw : soldOut ? adultKrw : null,
     currency: 'KRW',
     isAvailable,
     statusLabel,
@@ -57,6 +68,7 @@ export function productPriceRowToDepartureView(
     rawPriceText: row.localPrice?.trim() || null,
     seatStatus,
     note: statusRaw && statusRaw !== statusLabel ? statusRaw : null,
+    soldOut,
     sourceRowId: row.id,
   }
 }
