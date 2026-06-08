@@ -760,7 +760,7 @@ export function resolveOverseasMegaMenuSubgroupLabelForClient(
       destination: item.primaryDestination ?? null,
       primaryRegion: item.primaryRegion ?? null,
       destinationRaw: null,
-      originSource: null,
+      originSource: '',
     },
     null,
     regionId,
