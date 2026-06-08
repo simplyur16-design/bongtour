@@ -9,7 +9,6 @@ import { resolveOverseasGeoFilterBannerSafe } from '@/lib/overseas-destination-b
 import { computeHubFocusedResultsFromRecord } from '@/lib/hub-focused-results'
 import { computeMegaMenuRegionCityGroupIdFromRecord } from '@/lib/overseas-mega-region-city-group'
 import { createHubGalleryRotationSeed } from '@/lib/hub-gallery-rotation'
-import { prefetchOverseasHubBrowse } from '@/lib/products-browse-server-prefetch'
 
 type Props = {
   searchParams: Record<string, string | string[] | undefined>
@@ -17,15 +16,14 @@ type Props = {
   country: string | null
 }
 
-/** 해외 허브 상품 목록 — browse·브리핑 실패 시 인라인 안내(전체 라우트 500 방지) */
+/** 해외 허브 상품 목록 — browse는 클라이언트 API(캐시 hit ~수십 ms). 브리핑 실패 시 인라인 안내 */
 export default async function OverseasBrowseSlot({ searchParams, region, country }: Props) {
   try {
-    const [overseasGeoFilterBanner, editorialAll, hubBrowse] = await Promise.all([
+    const [overseasGeoFilterBanner, editorialAll] = await Promise.all([
       resolveOverseasGeoFilterBannerSafe(searchParams),
       fetchPublishedOverseasEditorials().catch(
         (): Awaited<ReturnType<typeof fetchPublishedOverseasEditorials>> => [],
       ),
-      prefetchOverseasHubBrowse(searchParams),
     ])
 
     let overseasEditorialBriefing: OverseasEditorialBriefingPayload | null = null
@@ -55,8 +53,6 @@ export default async function OverseasBrowseSlot({ searchParams, region, country
         hidePageHeading
         overseasEditorialBriefing={overseasEditorialBriefing}
         overseasGeoFilterBanner={overseasGeoFilterBanner}
-        initialBrowse={hubBrowse?.payload ?? null}
-        initialBrowseQueryKey={hubBrowse?.queryKey ?? null}
         initialSearchParams={searchParams}
         initialHubFocusedResults={initialHubFocusedResults}
         initialMegaMenuRegionCityGroupId={initialMegaMenuRegionCityGroupId}

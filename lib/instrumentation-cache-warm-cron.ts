@@ -5,7 +5,17 @@
  * Dry-run: `CACHE_WARM_CRON_DRY_RUN=1` (fetch 생략, routes만 로그)
  */
 import { CACHE_WARM_ROUTES } from '@/lib/cache-warm-routes'
+import {
+  buildAirHotelHubBrowseQueryKey,
+  buildOverseasHubBrowseQueryKey,
+} from '@/lib/products-browse-hub-query'
 import { getSiteOrigin } from '@/lib/site-metadata'
+
+/** 허브 목록 API — RSC 임베드 제거 후 cron으로 `unstable_cache` 워밍 */
+const CACHE_WARM_BROWSE_API_PATHS = [
+  `/api/products/browse?${buildOverseasHubBrowseQueryKey('scope=overseas')}`,
+  `/api/products/browse?${buildAirHotelHubBrowseQueryKey('scope=overseas&type=air-hotel')}`,
+] as const
 
 const FETCH_TIMEOUT_MS = 8_000
 const CRON_EXPR = '0 */5 * * *'
@@ -14,7 +24,10 @@ function isCacheWarmDryRun(): boolean {
   return process.env.CACHE_WARM_CRON_DRY_RUN === '1'
 }
 
-async function fetchWithTimeout(url: string): Promise<{ status: number; durationMs: number }> {
+async function fetchWithTimeout(
+  url: string,
+  accept = 'text/html',
+): Promise<{ status: number; durationMs: number }> {
   const started = Date.now()
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
@@ -24,7 +37,7 @@ async function fetchWithTimeout(url: string): Promise<{ status: number; duration
       signal: controller.signal,
       headers: {
         'user-agent': 'BongTourCacheWarm/1.0',
-        accept: 'text/html',
+        accept,
       },
       redirect: 'follow',
     })
@@ -49,13 +62,14 @@ async function runCacheWarmTick(source: 'cron' | 'startup'): Promise<void> {
   let success = 0
   let failed = 0
 
-  const routes = [...CACHE_WARM_ROUTES]
+  const routes = [...CACHE_WARM_ROUTES, ...CACHE_WARM_BROWSE_API_PATHS]
 
   console.log('[cache-warm-cron] tick start', {
     source,
     dryRun,
     origin,
     routeCount: routes.length,
+    browseApiCount: CACHE_WARM_BROWSE_API_PATHS.length,
   })
 
   if (dryRun) {
@@ -65,8 +79,9 @@ async function runCacheWarmTick(source: 'cron' | 'startup'): Promise<void> {
 
   for (const route of routes) {
     const url = `${origin}${route}`
+    const accept = route.startsWith('/api/products/browse') ? 'application/json' : 'text/html'
     try {
-      const { status, durationMs } = await fetchWithTimeout(url)
+      const { status, durationMs } = await fetchWithTimeout(url, accept)
       const ok = status >= 200 && status < 400
       if (ok) success += 1
       else failed += 1

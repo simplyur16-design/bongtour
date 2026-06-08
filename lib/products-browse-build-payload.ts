@@ -148,6 +148,14 @@ function browsePoolNeedsDepartureAttach(opts: {
  * 예산 필터는 등록된 상품의 실제 금액을 확인하여 예산 범위 내 상품만 노출한다.
  * (priceFrom / 출발별 adultPrice / 레거시 adult 중 최소 = 인당 유효가)
  */
+function productHasStoredHeroSeo(
+  p: Pick<ProductBrowseIncludedRow, 'publicImageHeroSeoLine' | 'publicImageHeroSeoKeywordsJson'>,
+): boolean {
+  if (String(p.publicImageHeroSeoLine ?? '').trim()) return true
+  const raw = p.publicImageHeroSeoKeywordsJson
+  return typeof raw === 'string' && raw.trim().length > 2
+}
+
 /** PERF-LOG: 측정 후 제거 — GET Server-Timing용 (응답 본문 변경 없음) */
 export let browsePerfLastPhases: {
   parseMs: number
@@ -524,30 +532,38 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     const slice = scored.slice((page - 1) * limit, page * limit)
     if (perf) perf.finalCount = slice.length // PERF-LOG: 측정 후 제거
 
-    const sliceDepartureByProductId = await fetchBrowseDeparturesByProductIds(
-      slice.map(({ product }) => product.id),
-    )
+    const sliceProductIds = slice.map(({ product }) => product.id)
+    const sliceProductIdsNeedingSchedule = slice
+      .filter(({ product }) => !String(product.bgImageUrl ?? '').trim())
+      .map(({ product }) => product.id)
 
-    const scheduleByProductId = await fetchProductBrowseScheduleByIds(
-      slice.map(({ product }) => product.id)
-    )
+    const [sliceDepartureByProductId, scheduleByProductId] = await Promise.all([
+      fetchBrowseDeparturesByProductIds(sliceProductIds),
+      fetchProductBrowseScheduleByIds(sliceProductIdsNeedingSchedule),
+    ])
 
     const metaRows = slice.map(({ product: p, effectivePricePerPerson }) => {
-      const scheduleRows = getScheduleFromProduct({
-        ...p,
-        schedule: scheduleByProductId.get(p.id) ?? null,
-      })
+      const hasBgImage = Boolean(String(p.bgImageUrl ?? '').trim())
+      const scheduleRows = hasBgImage
+        ? []
+        : getScheduleFromProduct({
+            ...p,
+            schedule: scheduleByProductId.get(p.id) ?? null,
+          })
       const coverUrl = getFinalCoverImageUrl({
         bgImageUrl: p.bgImageUrl,
         scheduleDays: scheduleRows,
       })
-      const firstScheduleName =
-        scheduleRows.find((d) => d.imageDisplayName?.trim())?.imageDisplayName?.trim() ?? null
+      const firstScheduleName = hasBgImage
+        ? null
+        : (scheduleRows.find((d) => d.imageDisplayName?.trim())?.imageDisplayName?.trim() ?? null)
       return { p, effectivePricePerPerson, scheduleRows, coverUrl, firstScheduleName }
     })
 
     const urlsForCaptionBatch = metaRows
-      .filter((m) => !m.firstScheduleName && m.coverUrl)
+      .filter(
+        (m) => !m.firstScheduleName && m.coverUrl && !productHasStoredHeroSeo(m.p),
+      )
       .map((m) => m.coverUrl as string)
     const captionMap = await buildCaptionLookupMapFromPublicUrls(urlsForCaptionBatch)
 

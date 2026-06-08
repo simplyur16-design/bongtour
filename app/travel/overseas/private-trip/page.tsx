@@ -1,17 +1,16 @@
 import type { Metadata } from 'next'
-import { unstable_noStore as noStore } from 'next/cache'
 import Header from '@/app/components/Header'
 import OurTravelHero from '@/app/travel/overseas/private-trip/_components/OurTravelHero'
 import PrivateTripLanding from '@/app/travel/overseas/private-trip/_components/PrivateTripLanding'
-import { sampleReviewsForDisplay } from '@/lib/group-meeting-reviews-display'
-import { loadGroupMeetingReviewsFromDb } from '@/lib/group-meeting-reviews-db'
-import { loadGroupMeetingReviewsFromCsv } from '@/lib/group-meeting-reviews-csv'
+import {
+  getCachedPrivateTripHeroUrls,
+  getCachedPrivateTripReviews,
+} from '@/lib/private-trip-page-cache'
 import {
   fetchPublishedOverseasEditorials,
   prioritizeEditorialsByRegionAndCountry,
   selectPrivateTripHeroEditorialRow,
 } from '@/lib/overseas-editorial-prioritize'
-import { listPrivateTripHeroStoragePublicUrls } from '@/lib/private-trip-hero-supabase'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME, absoluteUrl } from '@/lib/site-metadata'
 
@@ -86,21 +85,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export const revalidate = 300
 
 export default async function PrivateTripPage() {
-  noStore()
-  let groupMeetingReviews = await loadGroupMeetingReviewsFromDb()
-  if (!groupMeetingReviews.length) {
-    console.warn('[private-trip] DB에서 리뷰 없음, CSV fallback 사용')
-    groupMeetingReviews = await loadGroupMeetingReviewsFromCsv()
-  }
-  groupMeetingReviews = sampleReviewsForDisplay(groupMeetingReviews)
+  const [groupMeetingReviews, heroImageUrls] = await Promise.all([
+    getCachedPrivateTripReviews(),
+    getCachedPrivateTripHeroUrls(),
+  ])
   const travelConsultHref = `/inquiry?type=travel&source=${encodeURIComponent(INQUIRY_SOURCE)}`
   const privateQuoteHref = '/quote/private'
-  let heroImageUrls: string[] = []
-  try {
-    heroImageUrls = await listPrivateTripHeroStoragePublicUrls()
-  } catch {
-    heroImageUrls = []
-  }
 
   const prefetchOrigin = storageOriginFromImageUrls(heroImageUrls)
 
