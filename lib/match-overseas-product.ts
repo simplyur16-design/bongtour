@@ -3,6 +3,11 @@
  * 우선순위: primaryDestination → destinationRaw → 레거시 destination → title → originSource (문자열 힙).
  * @see lib/overseas-location-tree.ts 트리 토큰
  */
+import {
+  buildCaucasusPackageTreeMatch,
+  detectCaucasusPackageFromHaystack,
+  detectCaucasusPackageFromKeys,
+} from '@/lib/caucasus-package-detect'
 import { SINGLE_CHAR_GEO_TERMS, termAppearsInHaystack } from '@/lib/geo-haystack-match'
 import {
   OVERSEAS_LOCATION_TREE_CLEAN,
@@ -48,6 +53,8 @@ export type OverseasProductMatchInput = {
   /** I-3: SSOT 대륙·도시 FK */
   continentKey?: string | null
   cityKey?: string | null
+  /** 마스터 도시 노드 키 (`Product.nodeKey`) */
+  nodeKey?: string | null
   /** G-3: `ProductCountryTag` 보조 (없으면 기존 단일 geo만) */
   countryTags?: readonly CountryTagMatchSlice[]
   /** I-4: `ProductCityTag` 보조 */
@@ -265,6 +272,22 @@ const SHORT_COUNTRY_LEAF_HINTS: Array<{
   },
 ]
 
+/** 코카서스 3국(+두바이 연계) — `두바이` leaf가 더 길게 잡히기 전에 country 고정 */
+function earlyMatchCaucasusPackage(
+  product: OverseasProductMatchInput,
+): MatchProductToOverseasNodeResult | null {
+  const haystack = buildOverseasProductMatchHaystack(product)
+  const keys = [
+    product.countryKey,
+    product.cityKey,
+    product.nodeKey,
+    ...(product.cityTags ?? []).map((t) => t.cityKey),
+    ...(product.countryTags ?? []).map((t) => t.countryKey),
+  ].filter((k): k is string => Boolean(k?.trim()))
+  if (!detectCaucasusPackageFromHaystack(haystack) && !detectCaucasusPackageFromKeys(keys)) return null
+  return buildCaucasusPackageTreeMatch()
+}
+
 function earlyMatchShortCountryLeaf(
   product: OverseasProductMatchInput,
 ): MatchProductToOverseasNodeResult | null {
@@ -303,6 +326,9 @@ export function matchProductToOverseasNode(
   product: OverseasProductMatchInput,
   tree: OverseasRegionGroupNode[] = OVERSEAS_LOCATION_TREE_CLEAN
 ): MatchProductToOverseasNodeResult | null {
+  const caucasusPackage = earlyMatchCaucasusPackage(product)
+  if (caucasusPackage) return caucasusPackage
+
   const shortCountry = earlyMatchShortCountryLeaf(product)
   if (shortCountry) return shortCountry
 

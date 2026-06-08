@@ -7,6 +7,11 @@ import type {
   MatchProductToOverseasNodeResult,
   OverseasProductMatchInput,
 } from '@/lib/match-overseas-product'
+import {
+  buildCaucasusPackageTreeMatch,
+  detectCaucasusPackageFromHaystack,
+  isMiddleEastOrDubaiMatch,
+} from '@/lib/caucasus-package-detect'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import { countrySlugFromLabel, citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
 import {
@@ -385,6 +390,13 @@ export function deriveProductLocationKeyFieldsForPrisma(
     }
 
     if (!m) return empty
+
+    const caucasusHaystack = [title, input.primaryDestination, input.destinationRaw, input.destination, body]
+      .filter((x): x is string => Boolean(x && String(x).trim()))
+      .join(' ')
+    if (isMiddleEastOrDubaiMatch(m) && detectCaucasusPackageFromHaystack(caucasusHaystack)) {
+      m = buildCaucasusPackageTreeMatch()
+    }
 
     const confidence = m.scope === 'leaf' ? 'high' : m.scope === 'country' ? 'medium' : 'low'
     const nodeKey = m.scope === 'leaf' && m.leafKey ? m.leafKey : null

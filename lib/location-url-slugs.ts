@@ -47,6 +47,7 @@ const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
   화북: 'huabei',
   동북: 'dongbei',
   화남: 'huanan',
+  복건: 'fujian',
   홍콩: 'hong-kong',
   마카오: 'macau',
   '중남미·멕시코': 'latin-mexico',

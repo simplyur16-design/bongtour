@@ -556,7 +556,10 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('guizhou', '귀주 · 안순', { aliases: ['guiyang', '귀양', '안순'] }),
           L('yunnan', '곤명 · 여강', { aliases: ['kunming', '곤명', 'lijiang', '여강', '리장'] }),
           L('guilin', '계림', { aliases: ['guilin', '계림', '양삭'] }),
-          L('huangshan', '황산', { aliases: ['huangshan', '황산'] }),
+          L('huangshan', '황산', { aliases: ['huangshan', '황산', '운곡', '태평'] }),
+          L('zhangye', '장야 · 七彩丹霞', {
+            aliases: ['zhangye', '장야', '张掖', '七彩', '丹霞', '다채', '쪼한'],
+          }),
           L('hangzhou', '항주', { aliases: ['hangzhou', '항주', '杭州'], supplierKeywords: ['항주'] }),
           L('hefei', '합비', { aliases: ['hefei', '합비'], supplierKeywords: ['합비'] }),
           L('taihang', '태항산', { aliases: ['taihang', '태항산'] }),

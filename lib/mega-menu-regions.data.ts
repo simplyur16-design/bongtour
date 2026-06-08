@@ -108,6 +108,16 @@ const EU: MegaMenuCountryGroupDef[] = [
     true,
   ),
   G(
+    '코카서스 3국',
+    [
+      LC('조지아', ['조지아', 'georgia', '트빌리시', 'tbilisi']),
+      LC('아제르바이잔', ['아제르바이잔', 'azerbaijan', '바쿠', 'baku']),
+      LC('아르메니아', ['아르메니아', 'armenia', '예레반', 'yerevan']),
+      LC('코카서스 3국', ['코카서스', '카카서스', 'caucasus', '3국']),
+    ],
+    true,
+  ),
+  G(
     '북유럽',
     [
       LC('덴마크', ['덴마크', 'denmark', '코펜하겐']),
@@ -255,6 +265,7 @@ const JP: MegaMenuCountryGroupDef[] = [
     city('닛코', ['닛코', 'nikko', '일본', '간토']),
     city('하코네', ['하코네', 'hakone', '일본', '간토']),
     city('가마쿠라', ['가마쿠라', 'kamakura', '일본', '간토']),
+    city('시즈오카', ['시즈오카', 'shizuoka', '이즈', 'izu', '아타미', 'atami', '일본', '간토']),
   ]),
   GJp('추부', [
     city('나고야', ['나고야', 'nagoya', '일본', '추부']),
@@ -276,6 +287,7 @@ const JP: MegaMenuCountryGroupDef[] = [
     city('돗토리', ['돗토리', 'tottori', '일본']),
     city('마츠야마', ['마츠야마', 'matsuyama', '일본', '시코쿠']),
     city('다카마쓰', ['다카마쓰', 'takamatsu', '일본', '시코쿠']),
+    city('도쿠시마', ['도쿠시마', 'tokushima', '일본', '시코쿠']),
     city('시마네', ['시마네', 'shimane', '일본', '주고쿠']),
   ]),
   GJp('규슈', [
@@ -306,11 +318,14 @@ const CN: MegaMenuCountryGroupDef[] = [
     city('소주', ['소주', 'suzhou', '중국', '苏州']),
     city('항주', ['항주', 'hangzhou', '중국', '杭州']),
     city('남경', ['남경', 'nanjing', '중국', '南京']),
+    city('황산', ['황산', 'huangshan', '운곡', '태평', '중국']),
   ]),
   GCn('화북', [
     city('북경', ['북경', 'beijing', '중국']),
     city('천진', ['천진', 'tianjin', '중국']),
     city('대동', ['대동', 'datong', '중국']),
+    city('서안', ['서안', "xi'an", 'xian', '중국']),
+    city('장야', ['장야', 'zhangye', '张掖', '七彩', '丹霞', '다채', '쪼한', '중국']),
   ]),
   GCn('동북', [
     city('대련', ['대련', 'dalian', '중국']),
@@ -318,6 +333,10 @@ const CN: MegaMenuCountryGroupDef[] = [
     city('연길', ['연길', 'yanji', '중국']),
     city('심양', ['심양', 'shenyang', '중국']),
     city('장백산', ['장백산', 'changbai', '백두산', '중국']),
+  ]),
+  GCn('복건', [
+    city('샤먼', ['샤먼', '하문', 'xiamen', '厦门', '중국']),
+    city('푸저우', ['푸저우', '복주', 'fuzhou', '福州', '중국']),
   ]),
   GCn('화남', [
     city('광주', ['광주', 'guangzhou', '广州', '중국']),
@@ -333,6 +352,20 @@ const CN: MegaMenuCountryGroupDef[] = [
   G('몽골', [
     city('울란바타르', ['울란바타르', 'ulaanbaatar', '울란바토르', '몽골']),
     city('테를지', ['테를지', 'terelj', '몽골']),
+    city('내몽골', [
+      '내몽골',
+      '내몽고',
+      'inner mongolia',
+      'inner-mongolia',
+      'mongolia-inner',
+      '후룬베이얼',
+      'hulunbuir',
+      '오르도스',
+      'ordos',
+      '적봉',
+      '치펑',
+      'chifeng',
+    ]),
   ]),
 ]
 
@@ -390,13 +423,13 @@ const AM: MegaMenuCountryGroupDef[] = [
     city('카우아이', ['카우아이', 'kauai', '하와이']),
   ]),
   G('미서부', [
-    city('로스앤젤레스', ['로스앤젤레스', 'los angeles', 'LA', '미국']),
-    city('라스베가스', ['라스베가스', '라스베이거스', 'las vegas', 'vegas', '미국']),
-    city('샌프란시스코', ['샌프란시스코', 'san francisco', 'SFO', '미국']),
+    city('로스앤젤레스', ['로스앤젤레스', 'los angeles', 'LA', '미서부', '미국서부']),
+    city('라스베가스', ['라스베가스', '라스베이거스', 'las vegas', 'vegas', '미서부', '미국서부']),
+    city('샌프란시스코', ['샌프란시스코', 'san francisco', 'SFO', '미서부', '미국서부']),
   ]),
   G('미동부', [
-    city('뉴욕', ['뉴욕', 'new york', 'NYC', '미국']),
-    city('워싱턴', ['워싱턴', 'washington', 'dc', '미국']),
+    city('뉴욕', ['뉴욕', 'new york', 'NYC', '미동부', '미국동부']),
+    city('워싱턴', ['워싱턴', 'washington', 'dc', '미동부', '미국동부']),
   ]),
   G('캐나다', [
     city('밴쿠버', ['밴쿠버', 'vancouver', '캐나다', 'YVR']),
@@ -407,7 +440,7 @@ const AM: MegaMenuCountryGroupDef[] = [
     city('나이아가라', ['나이아가라', 'niagara', '캐나다']),
     city('옐로우나이프', ['옐로우나이프', 'yellowknife', '캐나다']),
   ]),
-  G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지', '미국'])]),
+  G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지'])]),
 ]
 
 /**
