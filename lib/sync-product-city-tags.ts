@@ -3,6 +3,7 @@
  * 다도시 클러스터는 구성 도시 전부(메가메뉴에 있는 도시만) 태그로 연결한다.
  */
 import type { Prisma } from '@prisma/client'
+import { CAUCASUS_COUNTRY_KEY_SET, detectCaucasusPackageFromHaystack } from '@/lib/caucasus-package-detect'
 import { clusterCityKeysForNode, isClusterExpansionNode } from '@/lib/cluster-city-expansions'
 import { filterCityKeysToCoherentMegaMenuGroup } from '@/lib/mega-menu-city-group-coherence'
 import {
@@ -95,6 +96,17 @@ export async function resolveProductCityKeysForTags(
   }
 
   let filtered = await filterCityKeysInMaster(db, candidates)
+
+  if (opts) {
+    const haystack = [opts.title, opts.primaryDestination, opts.destinationRaw, opts.scheduleHaystack]
+      .filter((x): x is string => Boolean(x && String(x).trim()))
+      .join(' ')
+    if (detectCaucasusPackageFromHaystack(haystack)) {
+      const caucasusOnly = filtered.filter((k) => CAUCASUS_COUNTRY_KEY_SET.has(k.trim().toLowerCase()))
+      if (caucasusOnly.length > 0) filtered = caucasusOnly
+    }
+  }
+
   const primaryGeo = geo.cityKey?.trim() || geo.nodeKey?.trim() || null
   if (primaryGeo && filtered.length > 1) {
     filtered = filterCityKeysToCoherentMegaMenuGroup(primaryGeo, filtered)

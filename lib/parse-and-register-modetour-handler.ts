@@ -14,7 +14,7 @@ import { extractHighlightFromModetourLLM } from '@/lib/llm-extract-highlight-mod
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { buildRegisterGeoHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
 import { registerGeoTagSyncOpts, resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
-import { syncProductGeoTags } from '@/lib/sync-product-geo-tags'
+import { syncProductGeoTagsForRegister } from '@/lib/sync-product-geo-tags'
 import {
   buildBongtourProductTitleFieldsForRegisterPreview,
   productTitlePairForRegisterConfirm,
@@ -1843,7 +1843,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
     })
     timing.mark('after-pending-save')
 
-    await syncProductGeoTags(prisma, productId, geo, registerGeoTagSyncOpts(geoInput, scheduleHaystack))
+    await syncProductGeoTagsForRegister(prisma, productId, geo, registerGeoTagSyncOpts(geoInput, scheduleHaystack))
 
     const sortedPrices = [...(parsed.prices ?? [])].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()

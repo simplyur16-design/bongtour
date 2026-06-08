@@ -12,6 +12,11 @@ import {
   syncSupplementalCountryTagsFromCityKeys,
   type SyncProductCountryTagsOpts,
 } from '@/lib/sync-product-country-tags'
+import {
+  buildRegisterMegaMenuGeoSummary,
+  megaMenuSummaryNeedsOperatorReview,
+  type RegisterMegaMenuGeoSummary,
+} from '@/lib/register-mega-menu-geo-summary'
 
 export type SyncProductGeoTagsOpts = SyncProductCountryTagsOpts & SyncProductCityTagsOpts
 
@@ -21,6 +26,8 @@ export type SyncProductGeoTagsResult = {
   cityKeys: string[]
   cityKey: string | null
   supplementalCountryTagCount: number
+  /** 등록 confirm — 메가메뉴 대·중·소분류 정합 요약 */
+  megaMenuSummary: RegisterMegaMenuGeoSummary
 }
 
 /** ProductCountryTag + ProductCityTag — 메가메뉴 browse Prisma where와 정합 */
@@ -37,5 +44,51 @@ export async function syncProductGeoTags(
     productId,
     cityKeys,
   )
-  return { country, cityTagCount, cityKeys, cityKey, supplementalCountryTagCount }
+  const megaMenuSummary = buildRegisterMegaMenuGeoSummary({
+    geo,
+    cityKeys,
+    tagOpts: {
+      title: opts.title,
+      primaryDestination: opts.primaryDestination,
+      destinationRaw: opts.destinationRaw,
+      scheduleHaystack: opts.scheduleHaystack,
+    },
+  })
+  if (megaMenuSummary.warnings.length > 0) {
+    console.warn('[syncProductGeoTags] mega menu geo gaps', {
+      productId,
+      browseRegionTab: megaMenuSummary.browseRegionTab,
+      subgroupLabel: megaMenuSummary.subgroupLabel,
+      warnings: megaMenuSummary.warnings,
+    })
+  }
+  return { country, cityTagCount, cityKeys, cityKey, supplementalCountryTagCount, megaMenuSummary }
+}
+
+/**
+ * 등록 confirm — geo 태그 동기화 후 메가메뉴 대·중·소분류 미달 시 registered → pending 강등.
+ * 4공급사 orchestration은 `syncProductGeoTags` 대신 본 함수만 호출한다.
+ */
+export async function syncProductGeoTagsForRegister(
+  db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
+  productId: string,
+  geo: ProductLocationKeyPrismaFields,
+  opts: SyncProductGeoTagsOpts,
+): Promise<SyncProductGeoTagsResult> {
+  const result = await syncProductGeoTags(db, productId, geo, opts)
+  if (!megaMenuSummaryNeedsOperatorReview(result.megaMenuSummary)) return result
+
+  const downgraded = await db.product.updateMany({
+    where: { id: productId, registrationStatus: 'registered' },
+    data: { registrationStatus: 'pending' },
+  })
+  if (downgraded.count > 0) {
+    console.warn('[syncProductGeoTagsForRegister] mega menu geo gaps — registrationStatus pending', {
+      productId,
+      browseRegionTab: result.megaMenuSummary.browseRegionTab,
+      subgroupLabel: result.megaMenuSummary.subgroupLabel,
+      warnings: result.megaMenuSummary.warnings,
+    })
+  }
+  return result
 }

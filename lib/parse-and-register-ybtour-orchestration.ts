@@ -15,7 +15,7 @@ import { extractHighlightFromYbtourLLM } from '@/lib/llm-extract-highlight-ybtou
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { buildRegisterGeoHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
 import { registerGeoTagSyncOpts, resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
-import { syncProductGeoTags } from '@/lib/sync-product-geo-tags'
+import { syncProductGeoTagsForRegister } from '@/lib/sync-product-geo-tags'
 import {
   buildBongtourProductTitleFieldsForRegisterPreview,
   productTitlePairForRegisterConfirm,
@@ -1557,7 +1557,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     })
     timing.mark('after-pending-save')
 
-    await syncProductGeoTags(prisma, productId, geo, registerGeoTagSyncOpts(geoInput, scheduleHaystack))
+    await syncProductGeoTagsForRegister(prisma, productId, geo, registerGeoTagSyncOpts(geoInput, scheduleHaystack))
 
     const infantFromParsedTable =
       parsed.productPriceTable?.infantPrice != null && Number(parsed.productPriceTable.infantPrice) > 0
