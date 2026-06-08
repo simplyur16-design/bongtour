@@ -14,6 +14,9 @@ export const MOBILE_HUB_SECTION_STACK_CLASS = 'max-md:space-y-5 md:space-y-10'
 /** 해외 허브 권역 블록 세로 스택 */
 export const MOBILE_HUB_OVERSEAS_SECTION_STACK_CLASS = 'max-md:space-y-5 md:space-y-12'
 
+/** 가로 스크롤 줄 — 스크롤 컨테이너 본문(마진 없음) */
+export const MOBILE_HUB_PRODUCT_ROW_SCROLL_CLASS =
+  'flex flex-nowrap gap-3 overflow-x-auto overflow-y-visible overscroll-x-contain px-0 pb-1 pt-0.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch] max-md:-mx-1 md:gap-4 md:pb-2'
+
 /** 가로 스크롤 줄 공통 (모바일·데스크톱) */
-export const MOBILE_HUB_PRODUCT_ROW_CLASS =
-  'mt-6 flex flex-nowrap gap-3 overflow-x-auto overflow-y-visible overscroll-x-contain px-0 pb-1 pt-0.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch] max-md:-mx-1 md:gap-4 md:pb-2'
+export const MOBILE_HUB_PRODUCT_ROW_CLASS = `mt-6 ${MOBILE_HUB_PRODUCT_ROW_SCROLL_CLASS}`

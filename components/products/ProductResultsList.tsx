@@ -3,9 +3,11 @@
 import Link from 'next/link'
 import ProductDetailNavLink from '@/components/products/ProductDetailNavLink'
 import { productDetailCardPreviewFromResultItem } from '@/lib/product-detail-card-preview-from-item'
-import { Fragment, useMemo, type ReactNode } from 'react'
+import { Fragment, useCallback, useMemo, useState, type ReactNode } from 'react'
 import EsimProductListNativeCard from '@/app/components/travel/EsimProductListNativeCard'
 import HomeMobileHubSeasonCarousel from '@/app/components/home/HomeMobileHubSeasonCarousel'
+import ProductHubSectionGallery from '@/components/products/ProductHubSectionGallery'
+import HorizontalScrollWithArrows from '@/components/ui/HorizontalScrollWithArrows'
 import OverseasDestinationBriefingMid from '@/components/products/OverseasDestinationBriefingMid'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
@@ -14,6 +16,11 @@ import {
   OVERSEAS_DISPLAY_BUCKET_ORDER,
   type OverseasDisplayBucketId,
 } from '@/lib/overseas-display-buckets'
+import {
+  megaMenuRegionTabLabel,
+  megaMenuSubgroupLabelsInOrder,
+  resolveOverseasMegaMenuSubgroupLabelForClient,
+} from '@/lib/overseas-mega-region-city-group'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import SafeImage from '@/app/components/SafeImage'
 import { isSrcOptimizableByNextImage } from '@/lib/is-src-optimizable-by-next-image'
@@ -73,6 +80,8 @@ export type ResultItem = {
   /** scope=overseas 시 browse API가 채움 */
   overseasBucket?: OverseasDisplayBucketId
   countryRowLabel?: string | null
+  /** browse API — 메가메뉴 대분류 하위 지역(그룹) 행 라벨 */
+  browseMegaSubgroupLabel?: string | null
   /** DB `Product.country` browse 슬러그 — 항공+호텔 허브 필터 칩용 */
   browseCountry?: string | null
 }
@@ -85,6 +94,35 @@ const countryProductRowClass = MOBILE_HUB_PRODUCT_ROW_CLASS
 
 /** 국내 허브 전용 그리드 */
 const productCardGridClassDefault = 'mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
+
+function renderHubSectionGallery(
+  items: ResultItem[],
+  formatWon: (n: number | null) => string,
+  seasonalPickIds: ReadonlySet<string> | null | undefined,
+  rotationSeed: number,
+  scopeKey: string,
+) {
+  return (
+    <ProductHubSectionGallery
+      items={items}
+      formatWon={formatWon}
+      seasonalPickIds={seasonalPickIds}
+      rotationSeed={rotationSeed}
+      scopeKey={scopeKey}
+    />
+  )
+}
+
+function sortItemsWithSeasonalPicks(
+  items: ResultItem[],
+  seasonalPickIds: ReadonlySet<string> | null | undefined,
+): ResultItem[] {
+  if (!seasonalPickIds || seasonalPickIds.size === 0) return items
+  return [
+    ...items.filter((p) => seasonalPickIds.has(p.id)),
+    ...items.filter((p) => !seasonalPickIds.has(p.id)),
+  ]
+}
 
 type Props = {
   items: ResultItem[]
@@ -108,6 +146,14 @@ type Props = {
   overseasFlatByCountrySlug?: string | null
   /** 해외 여행상품 목록만 — 상품 카드 사이 eSIM 네이티브 카드 삽입 */
   interleaveEsimNativeCards?: boolean
+  /** 해외·자유여행 허브 — PC 가로 스크롤 / 모바일 갤러리 (`ProductHubSectionGallery`) */
+  hubCompareGridLayout?: boolean
+  /** 권역 그룹일 때 섹션당 대표 1+소형 4 미리보기 — 나라·필터 좁히면 해제 */
+  hubSectionPreview?: boolean
+  /** 새로고침마다 바뀌는 대표 카드 시드 (RSC 전달) */
+  hubGalleryRotationSeed?: number
+  /** 메가메뉴 대분류만 선택 시 — 도시별 섹션 (`region` 탭 id) */
+  megaMenuRegionCityGroupId?: string | null
 }
 
 function mapFlatListWithEsimCards(
@@ -120,13 +166,14 @@ function mapFlatListWithEsimCards(
   const nodes: ReactNode[] = []
   let sinceEsim = 0
   let esimKey = 0
+  const esimCompact = opts?.compactEsim !== false
   for (let i = 0; i < items.length; i++) {
     nodes.push(renderProduct(items[i]))
     sinceEsim++
     if (sinceEsim >= ESIM_NATIVE_INSERT_EVERY && i < items.length - 1) {
       nodes.push(
         <li key={`esim-native-${esimKey++}`} className={esimLiClassName ?? liClassName}>
-          <EsimProductListNativeCard compact={opts?.compactEsim} />
+          <EsimProductListNativeCard compact={esimCompact} />
         </li>,
       )
       sinceEsim = 0
@@ -164,7 +211,7 @@ function buildProductResultRowNodes(
   return items.map((item) => renderProduct(item))
 }
 
-/** 해외·자유여행 허브 — 단일 ul 가로 스크롤(SSR·클라이언트 동일 트리) */
+/** 해외·자유여행 허브 — 단일 ul 가로 스크롤 + 좌우 화살표 */
 function ProductResultsHubScrollRow({
   ariaLabel,
   children,
@@ -173,9 +220,9 @@ function ProductResultsHubScrollRow({
   children: ReactNode
 }) {
   return (
-    <ul className={countryProductRowClass} role="list" aria-label={ariaLabel}>
+    <HorizontalScrollWithArrows as="ul" scrollClassName={countryProductRowClass} ariaLabel={ariaLabel}>
       {children}
-    </ul>
+    </HorizontalScrollWithArrows>
   )
 }
 
@@ -552,10 +599,18 @@ function AirHotelCountryGroupedList({
   items,
   formatWon,
   seasonalPickIds,
+  hubCompareGridLayout = false,
+  hubSectionPreview = false,
+  interleaveEsimNativeCards = false,
+  hubGalleryRotationSeed = 0,
 }: {
   items: ResultItem[]
   formatWon: (n: number | null) => string
   seasonalPickIds?: ReadonlySet<string> | null
+  hubCompareGridLayout?: boolean
+  hubSectionPreview?: boolean
+  interleaveEsimNativeCards?: boolean
+  hubGalleryRotationSeed?: number
 }) {
   const sections = useMemo(() => {
     const byBucket = new Map<string, ResultItem[]>()
@@ -575,6 +630,7 @@ function AirHotelCountryGroupedList({
     <div className={`mt-6 ${MOBILE_HUB_SECTION_STACK_CLASS}`}>
       {sections.map(({ bucketId, regionLabel, items: rowItems }, idx) => {
         if (rowItems.length === 0) return null
+        const scopeKey = `air-hotel:${bucketId}`
         return (
           <section key={bucketId} className="scroll-mt-4" aria-labelledby={`air-hotel-sec-${idx}`}>
             <h2
@@ -583,12 +639,23 @@ function AirHotelCountryGroupedList({
             >
               {regionLabel}
             </h2>
-            <ProductResultsHubScrollRow ariaLabel={`${regionLabel} 상품`}>
-              {buildProductResultRowNodes(rowItems, formatWon, seasonalPickIds, {
-                compact: true,
-                liClassName: HUB_PRODUCT_SCROLL_LI_CLASS,
-              })}
-            </ProductResultsHubScrollRow>
+            {hubCompareGridLayout ? (
+              renderHubSectionGallery(
+                rowItems,
+                formatWon,
+                seasonalPickIds,
+                hubGalleryRotationSeed,
+                scopeKey,
+              )
+            ) : (
+              <ProductResultsHubScrollRow ariaLabel={`${regionLabel} 상품`}>
+                {buildProductResultRowNodes(rowItems, formatWon, seasonalPickIds, {
+                  compact: true,
+                  liClassName: HUB_PRODUCT_SCROLL_LI_CLASS,
+                  interleaveEsim: interleaveEsimNativeCards,
+                })}
+              </ProductResultsHubScrollRow>
+            )}
           </section>
         )
       })}
@@ -693,11 +760,20 @@ export function ProductResultCard({
   formatWon,
   seasonalPickBadge = false,
   compact = false,
+  featured = false,
+  hero = false,
+  hubSquareSmall = false,
 }: {
   item: ResultItem
   formatWon: (n: number | null) => string
   seasonalPickBadge?: boolean
   compact?: boolean
+  /** 허브 갤러리 — 2칸 와이드 셀용 (이미지·타이포 약간 확대) */
+  featured?: boolean
+  /** 허브 갤러리 — 대분류 대표 카드 (정사각 이미지) */
+  hero?: boolean
+  /** PC 허브 — 워드 작은 사각형 타일 */
+  hubSquareSmall?: boolean
 }) {
   const cardSrc = (item.coverImageUrl ?? item.bgImageUrl ?? '').trim()
   const cardBlur = Boolean(cardSrc) && isSrcOptimizableByNextImage(cardSrc)
@@ -709,16 +785,22 @@ export function ProductResultCard({
       href={preview.href}
       preview={preview}
       className={
-        compact
+        hubSquareSmall
           ? 'group flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md'
-          : 'group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md'
+          : compact
+            ? 'group flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md'
+            : 'group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md'
       }
     >
       <div
         className={
-          compact
-            ? 'relative aspect-[4/3] w-full overflow-hidden bg-slate-100'
-            : 'relative aspect-[16/10] w-full overflow-hidden bg-slate-100'
+          hubSquareSmall
+            ? 'relative aspect-square w-full overflow-hidden bg-slate-100'
+            : compact
+              ? 'relative aspect-[4/3] w-full overflow-hidden bg-slate-100'
+              : hero
+                ? 'relative aspect-square w-full overflow-hidden bg-slate-100'
+                : 'relative aspect-video w-full overflow-hidden bg-slate-100'
         }
       >
         {item.hasUrgentDeal ? (
@@ -733,7 +815,11 @@ export function ProductResultCard({
             긴급모객
           </span>
         ) : null}
-        <div className={compact ? 'absolute right-1.5 top-1.5 z-10' : 'absolute right-2 top-2 z-10'}>
+        <div
+          className={
+            hubSquareSmall || compact ? 'absolute right-1 top-1 z-10' : 'absolute right-2 top-2 z-10'
+          }
+        >
           <WishlistToggleButton
             kind="product"
             id={item.id}
@@ -750,16 +836,22 @@ export function ProductResultCard({
               fill
               className="object-cover"
               sizes={
-                compact
+                hubSquareSmall
+                  ? '(max-width:1280px) 22vw, 240px'
+                  : compact
                   ? '(max-width:768px) 42vw, (max-width:1024px) 25vw, 20vw'
-                  : '(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw'
+                  : hero
+                    ? '(max-width:768px) 100vw, (max-width:1024px) 50vw, 50vw'
+                    : featured
+                      ? '(max-width:768px) 100vw, (max-width:1024px) 50vw, 40vw'
+                      : '(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw'
               }
               quality={60}
               {...(cardBlur
                 ? { placeholder: 'blur' as const, blurDataURL: PRODUCT_CARD_IMAGE_BLUR_DATA_URL }
                 : {})}
             />
-            {!compact ? (
+            {!compact && !hubSquareSmall ? (
               <PublicImageBottomOverlay
                 leftLabel={item.coverImageSeoKeyword ?? null}
                 rightLabel={item.coverImageSourceUserLabel ?? null}
@@ -770,16 +862,30 @@ export function ProductResultCard({
           <div className="flex h-full items-center justify-center text-xs text-slate-400">이미지 없음</div>
         )}
       </div>
-      <div className={compact ? 'flex flex-1 flex-col p-2.5' : 'flex flex-1 flex-col p-4'}>
-        {!compact ? (
+      <div
+        className={
+          hubSquareSmall
+            ? 'flex flex-1 flex-col p-1.5'
+            : compact
+              ? 'flex flex-1 flex-col p-2.5'
+              : 'flex flex-1 flex-col p-4'
+        }
+      >
+        {!compact && !hubSquareSmall ? (
           <p className="text-[11px] font-medium text-slate-500">{formatOriginSourceForDisplay(item.originSource)}</p>
         ) : null}
-        <div className={compact ? 'mt-0.5' : 'mt-1 flex flex-wrap items-center gap-2'}>
+        <div className={compact || hubSquareSmall ? 'mt-0.5' : 'mt-1 flex flex-wrap items-center gap-2'}>
           <h2
             className={
-              compact
+              hubSquareSmall
+                ? 'line-clamp-2 min-w-0 text-[9px] font-semibold leading-tight text-slate-900 group-hover:text-teal-800'
+                : compact
                 ? 'line-clamp-2 min-w-0 text-[11px] font-semibold leading-snug text-slate-900 group-hover:text-teal-800'
-                : 'line-clamp-2 flex-1 min-w-0 text-sm font-semibold text-slate-900 group-hover:text-teal-800'
+                : hero
+                  ? 'line-clamp-2 flex-1 min-w-0 text-sm font-bold leading-snug text-slate-900 group-hover:text-teal-800'
+                  : featured
+                    ? 'line-clamp-2 flex-1 min-w-0 text-[15px] font-bold leading-snug text-slate-900 group-hover:text-teal-800'
+                    : 'line-clamp-2 flex-1 min-w-0 text-sm font-semibold text-slate-900 group-hover:text-teal-800'
             }
           >
             {item.title}
@@ -796,10 +902,11 @@ export function ProductResultCard({
             </span>
           ) : null}
         </div>
-        {!compact && item.primaryDestination ? (
+        {!compact && !hubSquareSmall && item.primaryDestination ? (
           <p className="mt-1 text-xs text-slate-600">{item.primaryDestination}</p>
         ) : null}
         {!compact &&
+        !hubSquareSmall &&
         isAirHotelFreeListingForUi(item.listingKind) &&
         (item.hotelName || item.hotelGrade || item.roomType) ? (
           <p className="mt-1 text-xs text-slate-600">
@@ -808,7 +915,7 @@ export function ProductResultCard({
             {item.roomType ? ` · ${item.roomType}` : ''}
           </p>
         ) : null}
-        {!compact && isAirHotelFreeListingForUi(item.listingKind) && item.airportTransferType ? (
+        {!compact && !hubSquareSmall && isAirHotelFreeListingForUi(item.listingKind) && item.airportTransferType ? (
           <p className="mt-1">
             <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800">
               {item.airportTransferType === 'BOTH'
@@ -823,9 +930,11 @@ export function ProductResultCard({
         ) : null}
         <div
           className={
-            compact
-              ? 'mt-auto flex flex-wrap items-end justify-between gap-1 pt-2'
-              : 'mt-auto flex flex-wrap items-end justify-between gap-2 pt-3'
+            hubSquareSmall
+              ? 'mt-auto pt-1'
+              : compact
+                ? 'mt-auto flex flex-wrap items-end justify-between gap-1 pt-2'
+                : 'mt-auto flex flex-wrap items-end justify-between gap-2 pt-3'
           }
         >
           {item.hasUrgentDeal &&
@@ -855,7 +964,19 @@ export function ProductResultCard({
               </div>
             </div>
           ) : (
-            <span className={compact ? 'text-sm font-bold text-slate-900' : 'text-base font-bold text-slate-900'}>
+            <span
+              className={
+                hubSquareSmall
+                  ? 'text-[10px] font-bold leading-tight text-slate-900'
+                  : compact
+                    ? 'text-sm font-bold text-slate-900'
+                    : hero
+                        ? 'text-base font-extrabold text-slate-900'
+                        : featured
+                          ? 'text-lg font-extrabold text-slate-900'
+                          : 'text-base font-bold text-slate-900'
+              }
+            >
               {formatWon(item.effectivePricePerPersonKrw)}
             </span>
           )}
@@ -868,15 +989,105 @@ export function ProductResultCard({
   )
 }
 
-function flattenBucketItems(
-  bucketId: OverseasDisplayBucketId,
-  bucketToCountries: Map<OverseasDisplayBucketId, Map<string, ResultItem[]>>
-): ResultItem[] {
-  const countryMap = bucketToCountries.get(bucketId)
-  if (!countryMap) return []
-  const entries = [...countryMap.entries()].filter(([, list]) => list.length > 0)
-  entries.sort(([a], [b]) => a.localeCompare(b, 'ko'))
-  return entries.flatMap(([, list]) => list)
+function subgroupGroupScopeKey(regionId: string, subgroupLabel: string): string {
+  const slug = subgroupLabel
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9가-힣-]/g, '')
+  return `mega-subgroup:${regionId}:${slug || 'misc'}`
+}
+
+function OverseasMegaRegionSubgroupGroupedList({
+  regionId,
+  items,
+  formatWon,
+  seasonalPickIds,
+  hubCompareGridLayout = false,
+  hubGalleryRotationSeed = 0,
+}: {
+  regionId: string
+  items: ResultItem[]
+  formatWon: (n: number | null) => string
+  seasonalPickIds?: ReadonlySet<string> | null
+  hubCompareGridLayout?: boolean
+  hubGalleryRotationSeed?: number
+}) {
+  const subgroupOrder = useMemo(() => megaMenuSubgroupLabelsInOrder(regionId), [regionId])
+
+  const itemsWithSubgroup = useMemo(
+    () =>
+      items.map((item) => {
+        const label = (item.browseMegaSubgroupLabel ?? '').trim()
+        if (label && label !== '기타') return item
+        const resolved = resolveOverseasMegaMenuSubgroupLabelForClient(item, regionId)
+        return { ...item, browseMegaSubgroupLabel: resolved }
+      }),
+    [items, regionId],
+  )
+
+  const sections = useMemo(() => {
+    const bySubgroup = new Map<string, ResultItem[]>()
+    for (const item of itemsWithSubgroup) {
+      const key = (item.browseMegaSubgroupLabel ?? '기타').trim() || '기타'
+      const list = bySubgroup.get(key) ?? []
+      list.push(item)
+      bySubgroup.set(key, list)
+    }
+
+    const orderedLabels = [
+      ...subgroupOrder.filter((label) => (bySubgroup.get(label)?.length ?? 0) > 0),
+      ...[...bySubgroup.keys()]
+        .filter((label) => !subgroupOrder.includes(label))
+        .sort((a, b) => a.localeCompare(b, 'ko')),
+    ]
+
+    return orderedLabels.map((subgroupLabel) => ({
+      subgroupLabel,
+      items: interleaveProductsBySupplier(
+        sortItemsWithSeasonalPicks(bySubgroup.get(subgroupLabel) ?? [], seasonalPickIds),
+      ),
+    }))
+  }, [itemsWithSubgroup, subgroupOrder, seasonalPickIds])
+
+  const regionLabel = megaMenuRegionTabLabel(regionId)
+
+  return (
+    <div className={`mt-6 ${MOBILE_HUB_OVERSEAS_SECTION_STACK_CLASS}`}>
+      {sections.map(({ subgroupLabel, items: subgroupItems }) =>
+        subgroupItems.length === 0 ? null : (
+          <section
+            key={subgroupLabel}
+            className="scroll-mt-4"
+            aria-labelledby={`overseas-mega-subgroup-${subgroupGroupScopeKey(regionId, subgroupLabel)}`}
+          >
+            <h2
+              id={`overseas-mega-subgroup-${subgroupGroupScopeKey(regionId, subgroupLabel)}`}
+              className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
+            >
+              {subgroupLabel}
+            </h2>
+            {hubCompareGridLayout ? (
+              renderHubSectionGallery(
+                subgroupItems,
+                formatWon,
+                seasonalPickIds,
+                hubGalleryRotationSeed,
+                subgroupGroupScopeKey(regionId, subgroupLabel),
+              )
+            ) : (
+              <ProductResultsHubScrollRow ariaLabel={`${regionLabel ?? regionId} ${subgroupLabel} 상품`}>
+                {buildProductResultRowNodes(subgroupItems, formatWon, seasonalPickIds, {
+                  compact: true,
+                  liClassName: HUB_PRODUCT_SCROLL_LI_CLASS,
+                })}
+              </ProductResultsHubScrollRow>
+            )}
+          </section>
+        ),
+      )}
+    </div>
+  )
 }
 
 function OverseasRegionGroupedList({
@@ -886,6 +1097,9 @@ function OverseasRegionGroupedList({
   seasonCurationSlides,
   seasonalPickIds,
   interleaveEsimNativeCards = false,
+  hubCompareGridLayout = false,
+  hubSectionPreview = false,
+  hubGalleryRotationSeed = 0,
 }: {
   items: ResultItem[]
   formatWon: (n: number | null) => string
@@ -893,41 +1107,32 @@ function OverseasRegionGroupedList({
   seasonCurationSlides: HomeSeasonPickDTO[] | null | undefined
   seasonalPickIds?: ReadonlySet<string> | null
   interleaveEsimNativeCards?: boolean
+  hubCompareGridLayout?: boolean
+  hubSectionPreview?: boolean
+  hubGalleryRotationSeed?: number
 }) {
   const bucketRowLiClass = HUB_PRODUCT_SCROLL_LI_CLASS
-  const bucketToCountries = useMemo(() => {
-    const map = new Map<OverseasDisplayBucketId, Map<string, ResultItem[]>>()
-    for (const id of OVERSEAS_DISPLAY_BUCKET_ORDER) {
-      map.set(id, new Map())
-    }
-    for (const item of items) {
-      const bucket: OverseasDisplayBucketId = item.overseasBucket ?? 'other'
-      const country = (item.countryRowLabel ?? '기타').trim() || '기타'
-      if (!map.has(bucket)) map.set(bucket, new Map())
-      const inner = map.get(bucket)!
-      if (!inner.has(country)) inner.set(country, [])
-      inner.get(country)!.push(item)
-    }
-    return map
-  }, [items])
 
   const interleavedByBucket = useMemo(() => {
+    const byBucket = new Map<OverseasDisplayBucketId, ResultItem[]>()
+    for (const id of OVERSEAS_DISPLAY_BUCKET_ORDER) byBucket.set(id, [])
+    for (const item of items) {
+      const bucket: OverseasDisplayBucketId = item.overseasBucket ?? 'other'
+      if (!byBucket.has(bucket)) byBucket.set(bucket, [])
+      byBucket.get(bucket)!.push(item)
+    }
     const out = new Map<OverseasDisplayBucketId, ResultItem[]>()
     for (const bucketId of OVERSEAS_DISPLAY_BUCKET_ORDER) {
-      const raw = flattenBucketItems(bucketId, bucketToCountries)
+      const raw = sortItemsWithSeasonalPicks(byBucket.get(bucketId) ?? [], seasonalPickIds)
       out.set(bucketId, interleaveProductsBySupplier(raw))
     }
     return out
-  }, [bucketToCountries])
+  }, [items, seasonalPickIds])
 
   return (
     <div className={`mt-6 ${MOBILE_HUB_OVERSEAS_SECTION_STACK_CLASS}`}>
       {OVERSEAS_DISPLAY_BUCKET_ORDER.map((bucketId) => {
-        const rawFlat = interleavedByBucket.get(bucketId) ?? []
-        const flatList =
-          seasonalPickIds && seasonalPickIds.size > 0
-            ? [...rawFlat.filter((p) => seasonalPickIds.has(p.id)), ...rawFlat.filter((p) => !seasonalPickIds.has(p.id))]
-            : rawFlat
+        const flatList = interleavedByBucket.get(bucketId) ?? []
         const showEuropeBriefing = bucketId === 'europe_me_af' && editorialBriefing
         const hideSection = flatList.length === 0 && !showEuropeBriefing
         const section = hideSection ? null : (
@@ -944,13 +1149,23 @@ function OverseasRegionGroupedList({
                 </div>
               ) : null}
               {flatList.length > 0 ? (
-                <ProductResultsHubScrollRow ariaLabel={`${OVERSEAS_DISPLAY_BUCKET_LABEL[bucketId]} 상품`}>
-                  {buildProductResultRowNodes(flatList, formatWon, seasonalPickIds, {
-                    compact: true,
-                    liClassName: bucketRowLiClass,
-                    interleaveEsim: interleaveEsimNativeCards,
-                  })}
-                </ProductResultsHubScrollRow>
+                hubCompareGridLayout ? (
+                  renderHubSectionGallery(
+                    flatList,
+                    formatWon,
+                    seasonalPickIds,
+                    hubGalleryRotationSeed,
+                    bucketId,
+                  )
+                ) : (
+                  <ProductResultsHubScrollRow ariaLabel={`${OVERSEAS_DISPLAY_BUCKET_LABEL[bucketId]} 상품`}>
+                    {buildProductResultRowNodes(flatList, formatWon, seasonalPickIds, {
+                      compact: true,
+                      liClassName: bucketRowLiClass,
+                      interleaveEsim: interleaveEsimNativeCards,
+                    })}
+                  </ProductResultsHubScrollRow>
+                )
               ) : flatList.length === 0 && showEuropeBriefing ? (
                 <p className="mt-4 text-sm text-slate-500">
                   현재 조건에 맞는 유럽·중동·아프리카 상품이 없습니다.
@@ -999,13 +1214,41 @@ export default function ProductResultsList({
   seasonalPickIds = null,
   overseasFlatByCountrySlug = null,
   interleaveEsimNativeCards = false,
+  hubCompareGridLayout = false,
+  hubSectionPreview = false,
+  hubGalleryRotationSeed = 0,
+  megaMenuRegionCityGroupId = null,
 }: Props) {
+  const megaRegionId = (megaMenuRegionCityGroupId ?? '').trim()
+  if (megaRegionId && items.length > 0) {
+    return (
+      <OverseasMegaRegionSubgroupGroupedList
+        regionId={megaRegionId}
+        items={items}
+        formatWon={formatWon}
+        seasonalPickIds={seasonalPickIds}
+        hubCompareGridLayout={hubCompareGridLayout}
+        hubGalleryRotationSeed={hubGalleryRotationSeed}
+      />
+    )
+  }
+
   if (groupDomesticByRegion && items.length > 0) {
     return <DomesticRegionGroupedList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
   }
 
   if (groupAirHotelByCountry && items.length > 0) {
-    return <AirHotelCountryGroupedList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
+    return (
+      <AirHotelCountryGroupedList
+        items={items}
+        formatWon={formatWon}
+        seasonalPickIds={seasonalPickIds}
+        hubCompareGridLayout={hubCompareGridLayout}
+        hubSectionPreview={hubSectionPreview}
+        interleaveEsimNativeCards={interleaveEsimNativeCards}
+        hubGalleryRotationSeed={hubGalleryRotationSeed}
+      />
+    )
   }
 
   if (groupOverseasByRegion && items.length > 0) {
@@ -1020,12 +1263,22 @@ export default function ProductResultsList({
           >
             {heading}
           </h2>
-          <ProductResultsHubScrollRow ariaLabel={`${heading} 상품`}>
-            {buildProductResultRowNodes(items, formatWon, seasonalPickIds, {
-              compact: true,
-              interleaveEsim: interleaveEsimNativeCards,
-            })}
-          </ProductResultsHubScrollRow>
+          {hubCompareGridLayout ? (
+            renderHubSectionGallery(
+              items,
+              formatWon,
+              seasonalPickIds,
+              hubGalleryRotationSeed,
+              `country:${countrySlugForFlat}`,
+            )
+          ) : (
+            <ProductResultsHubScrollRow ariaLabel={`${heading} 상품`}>
+              {buildProductResultRowNodes(items, formatWon, seasonalPickIds, {
+                compact: true,
+                interleaveEsim: interleaveEsimNativeCards,
+              })}
+            </ProductResultsHubScrollRow>
+          )}
         </section>
       )
     }
@@ -1038,7 +1291,20 @@ export default function ProductResultsList({
         seasonCurationSlides={overseasSeasonCurationSlides}
         seasonalPickIds={seasonalPickIds}
         interleaveEsimNativeCards={interleaveEsimNativeCards}
+        hubCompareGridLayout={hubCompareGridLayout}
+        hubSectionPreview={hubSectionPreview}
+        hubGalleryRotationSeed={hubGalleryRotationSeed}
       />
+    )
+  }
+
+  if (hubCompareGridLayout) {
+    return renderHubSectionGallery(
+      items,
+      formatWon,
+      seasonalPickIds,
+      hubGalleryRotationSeed,
+      'hub-flat',
     )
   }
 

@@ -1,5 +1,6 @@
 'use client'
 
+import HorizontalScrollWithArrows from '@/components/ui/HorizontalScrollWithArrows'
 import { useCallback, useRef, useState } from 'react'
 import type { TRAINING_SERVICE_OPTIONS } from '@/components/inquiry/TrainingInquiryForm'
 
@@ -58,30 +59,31 @@ function ServiceScopeCardArticle({
 }
 
 export default function TrainingServiceScopeCarousel({ cards, onInquiry }: Props) {
-  const scrollRef = useRef<HTMLDivElement>(null)
   const scrollRafRef = useRef<number | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
-  const onScroll = useCallback(() => {
-    const root = scrollRef.current
-    if (!root || cards.length === 0) return
-    if (scrollRafRef.current != null) cancelAnimationFrame(scrollRafRef.current)
-    scrollRafRef.current = requestAnimationFrame(() => {
-      const center = root.scrollLeft + root.clientWidth / 2
-      let bestIdx = 0
-      let bestDist = Infinity
-      Array.from(root.children).forEach((child, idx) => {
-        const el = child as HTMLElement
-        const mid = el.offsetLeft + el.offsetWidth / 2
-        const dist = Math.abs(mid - center)
-        if (dist < bestDist) {
-          bestDist = dist
-          bestIdx = idx
-        }
+  const onScrollContainer = useCallback(
+    (root: HTMLElement) => {
+      if (cards.length === 0) return
+      if (scrollRafRef.current != null) cancelAnimationFrame(scrollRafRef.current)
+      scrollRafRef.current = requestAnimationFrame(() => {
+        const center = root.scrollLeft + root.clientWidth / 2
+        let bestIdx = 0
+        let bestDist = Infinity
+        Array.from(root.children).forEach((child, idx) => {
+          const el = child as HTMLElement
+          const mid = el.offsetLeft + el.offsetWidth / 2
+          const dist = Math.abs(mid - center)
+          if (dist < bestDist) {
+            bestDist = dist
+            bestIdx = idx
+          }
+        })
+        setActiveIndex((prev) => (prev === bestIdx ? prev : bestIdx))
       })
-      setActiveIndex((prev) => (prev === bestIdx ? prev : bestIdx))
-    })
-  }, [cards.length])
+    },
+    [cards.length],
+  )
 
   return (
     <>
@@ -89,18 +91,18 @@ export default function TrainingServiceScopeCarousel({ cards, onInquiry }: Props
         좌우로 밀어 문의 유형을 비교해 보세요
       </p>
 
-      <div
-        ref={scrollRef}
-        onScroll={onScroll}
-        className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-2 touch-pan-x [scrollbar-width:thin] lg:hidden"
-        aria-label="문의 범위 유형"
+      <HorizontalScrollWithArrows
+        className="lg:hidden"
+        scrollClassName="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-2 touch-pan-x [scrollbar-width:thin]"
+        ariaLabel="문의 범위 유형"
+        onScrollContainer={onScrollContainer}
       >
         {cards.map((card) => (
           <div key={card.title} className="w-[90%] max-w-md shrink-0 snap-center">
             <ServiceScopeCardArticle card={card} onInquiry={onInquiry} />
           </div>
         ))}
-      </div>
+      </HorizontalScrollWithArrows>
 
       {cards.length > 1 ? (
         <div className="mt-3 flex justify-center gap-2 lg:hidden" aria-hidden>

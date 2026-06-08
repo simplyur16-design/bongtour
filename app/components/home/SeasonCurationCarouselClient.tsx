@@ -9,9 +9,10 @@ import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-secti
 import { MAIN_CURATION_EYEBROW, MAIN_CURATION_LEAD, MAIN_CURATION_TITLE } from '@/lib/main-hub-copy'
 import {
   MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS,
-  MOBILE_HUB_PRODUCT_ROW_CLASS,
+  MOBILE_HUB_PRODUCT_ROW_SCROLL_CLASS,
 } from '@/lib/mobile-hub-scroll-layout'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import HorizontalScrollWithArrows from '@/components/ui/HorizontalScrollWithArrows'
 
 const AUTO_MS = 5600
 const PAUSE_AFTER_MS = 12_000
@@ -63,13 +64,18 @@ export default function SeasonCurationCarouselClient({ slides, variant, sectionI
           {MAIN_CURATION_EYEBROW}
         </p>
         <h2 className={`${HOME_MOBILE_HUB_SECTION_TITLE_CLASS} mt-1 text-bt-text-navy`}>{MAIN_CURATION_TITLE}</h2>
-        <ul className={`${MOBILE_HUB_PRODUCT_ROW_CLASS} mt-3`}>
+        <HorizontalScrollWithArrows
+          as="ul"
+          className="mt-3"
+          scrollClassName={MOBILE_HUB_PRODUCT_ROW_SCROLL_CLASS}
+          ariaLabel="시즌 추천 여행"
+        >
           {safe.map((slide) => (
             <li key={slide.id} className={MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS}>
               <SeasonCurationCardLink slide={slide} compact />
             </li>
           ))}
-        </ul>
+        </HorizontalScrollWithArrows>
       </section>
     )
   }

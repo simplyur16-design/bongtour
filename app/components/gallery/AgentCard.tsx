@@ -6,6 +6,7 @@ import SafeImage from '@/app/components/SafeImage'
 import { motion } from 'framer-motion'
 import type { GalleryProduct } from '@/app/api/gallery/route'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
+import HorizontalScrollWithArrows from '@/components/ui/HorizontalScrollWithArrows'
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
@@ -73,7 +74,11 @@ export default function AgentCard({
     >
       <Link href={`/products/${product.id}`} prefetch={false} className="block">
         <div className="relative overflow-hidden bg-bt-surface-alt">
-          <ul className="flex snap-x snap-mandatory overflow-x-auto gap-px">
+          <HorizontalScrollWithArrows
+            as="ul"
+            scrollClassName="flex snap-x snap-mandatory gap-px overflow-x-auto"
+            ariaLabel={`${product.title} 이미지`}
+          >
             {imageSet.map((url, idx) => (
               <li
                 key={`${url}-${idx}`}
@@ -89,7 +94,7 @@ export default function AgentCard({
                 />
               </li>
             ))}
-          </ul>
+          </HorizontalScrollWithArrows>
           <div className="absolute left-2 top-2 z-10 flex flex-wrap gap-1">
             {(editorial || pickStyle) ? (
               <span className={badge}>{formatOriginSourceForDisplay(product.originSource)}</span>

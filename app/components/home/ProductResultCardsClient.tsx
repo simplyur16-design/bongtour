@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ProductResultCard, type ResultItem } from '@/components/products/ProductResultsList'
+import HorizontalScrollWithArrows from '@/components/ui/HorizontalScrollWithArrows'
 import { MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS } from '@/lib/mobile-hub-scroll-layout'
 
 function formatWon(n: number | null): string {
@@ -31,7 +32,9 @@ export default function ProductResultCardsClient({
 
   if (layout === 'scroll') {
     return (
-      <div className="flex gap-3 overflow-x-auto overscroll-x-contain pb-1 snap-x snap-mandatory [-webkit-overflow-scrolling:touch]">
+      <HorizontalScrollWithArrows
+        scrollClassName="flex gap-3 overflow-x-auto overscroll-x-contain pb-1 snap-x snap-mandatory [-webkit-overflow-scrolling:touch]"
+      >
         {items.map((item) => (
           <div
             key={item.id}
@@ -40,7 +43,7 @@ export default function ProductResultCardsClient({
             <ProductResultCard item={item} formatWon={formatWon} compact={compactCard} />
           </div>
         ))}
-      </div>
+      </HorizontalScrollWithArrows>
     )
   }
 
