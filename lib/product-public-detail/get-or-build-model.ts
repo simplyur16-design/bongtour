@@ -47,7 +47,8 @@ async function resolveProductDetailRowForLiveBuild(
   if (full) {
     return { row: full, canPersistPayload: true }
   }
-  return { row: travelProduct as ProductDetailViewRow, canPersistPayload: false }
+  // full load 실패 시 degraded build — persist는 canPersistPayload=false 로 차단
+  return { row: travelProduct as unknown as ProductDetailViewRow, canPersistPayload: false }
 }
 
 /** 캐시된 DTO가 있으면 파싱 생략, 없으면 계산 후 registered 상품은 DB에 저장 */
