@@ -65,8 +65,6 @@ export type ResultItem = {
   coverImageSeoKeyword?: string | null
   coverImageSourceUserLabel?: string | null
   effectivePricePerPersonKrw: number | null
-  /** browse API — 예약 가능 출발이 하나도 없고 가격 행만 있을 때 */
-  isFullySoldOut?: boolean
   /** browse API — 출발일 정렬·필터용 */
   earliestDeparture?: string | null
   /** 해외·항공+호텔 허브 클라이언트 sidebar 필터용 */
@@ -965,22 +963,6 @@ export function ProductResultCard({
                 </span>
               </div>
             </div>
-          ) : item.isFullySoldOut ? (
-            <span
-              className={
-                hubSquareSmall
-                  ? 'text-[11px] font-extrabold uppercase tracking-wide text-rose-700'
-                  : compact
-                    ? 'text-sm font-extrabold uppercase tracking-wide text-rose-700'
-                    : hero
-                      ? 'text-lg font-extrabold uppercase tracking-wide text-rose-700'
-                      : featured
-                        ? 'text-xl font-extrabold uppercase tracking-wide text-rose-700'
-                        : 'text-lg font-extrabold uppercase tracking-wide text-rose-700'
-              }
-            >
-              판매완료
-            </span>
           ) : (
             <span
               className={

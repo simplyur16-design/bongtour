@@ -9,10 +9,7 @@ import {
   productBrowseRowsWithEmptyDepartures,
   type ProductBrowseIncludedRow,
 } from '@/lib/product-browse-full-include'
-import {
-  isBrowseProductFullySoldOut,
-  minBrowseBookableAdultPrice,
-} from '@/lib/browse-product-seat-bookable'
+import { minBrowseBookableAdultPrice } from '@/lib/browse-product-seat-bookable'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
 import { filterProductsForDomesticDestinationTree } from '@/lib/active-domestic-location-tree'
@@ -561,15 +558,13 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         departures,
       }
       const seatAwareMin = minBrowseBookableAdultPrice(departures)
-      const isFullySoldOut = isBrowseProductFullySoldOut(departures)
       const cardPriceKrw =
         seatAwareMin ??
-        (isFullySoldOut
-          ? null
-          : computeEffectivePricePerPersonKrwFromRow(
-              { ...p, departures },
-              { seatAware: true },
-            ) ?? effectivePricePerPerson)
+        computeEffectivePricePerPersonKrwFromRow(
+          { ...p, departures },
+          { seatAware: true },
+        ) ??
+        effectivePricePerPerson
       const seoAssetHint = lookupCaptionFromMap(captionMap, coverUrl)
       const coverImageSeoKeyword = resolvePublicProductHeroSeoKeywordOverlay({
         storedRegisterSeoKeywordsJson: p.publicImageHeroSeoKeywordsJson,
@@ -636,7 +631,6 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       coverImageUrl: coverUrl,
       priceFrom: p.priceFrom,
       effectivePricePerPersonKrw: cardPriceKrw,
-      isFullySoldOut,
       earliestDeparture:
         p.nextBookableDepartureAt?.toISOString() ??
         p.departures[0]?.departureDate?.toISOString() ??
