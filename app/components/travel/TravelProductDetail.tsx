@@ -11,7 +11,6 @@ import ProductExtraInfoTabs from '@/app/components/detail/ProductExtraInfoTabs'
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
 import EsimProductDetailCrossSell from '@/app/components/travel/EsimProductDetailCrossSell'
-import type { PublicPricePromotionView, ShoppingStopRow } from '@/lib/public-product-extras'
 import {
   buildPublicOptionalDisplayInputFromProductFields,
   buildPublicShoppingDisplayInputFromProductFields,
@@ -54,7 +53,6 @@ import { pickDepartureKeyFactsForSelection, type DepartureKeyFacts } from '@/lib
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcHanatour } from '@/lib/flight-manual-correction-hanatour'
 import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } from '@/lib/flight-manual-correction-modetour'
 import type { FlightManualCorrectionPayload } from '@/lib/flight-manual-correction-hanatour'
-import type { FlightStructuredBody } from '@/lib/public-product-extras'
 import { buildPriceDisplaySsot } from '@/lib/price-display-ssot'
 import ScheduleDayHotelMealCard from '@/app/components/detail/ScheduleDayHotelMealCard'
 import { HERO_DATE_INLINE_VALUE_CLASS } from '@/app/components/detail/product-detail-visual'
@@ -66,7 +64,6 @@ import {
   formatHeroDepartureSavingsLine,
   PRICE_MAIN_AMOUNT_HINT,
 } from '@/lib/promotion-copy-normalize'
-import type { DayHotelPlan } from '@/lib/day-hotel-plans-hanatour'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import {
@@ -78,165 +75,15 @@ import { applyHanatourFlightRoutingChipOverride } from '@/lib/hanatour-product-m
 import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/public-schedule-display'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
+import type { ProductPriceRow, TravelProduct } from '@/app/components/travel/travel-product-detail-types'
 
-/** Prisma ProductPrice + quote price* fields (lib/price-utils PriceRowLike compatible) */
-export type ProductPriceRow = {
-  id: string
-  productId: string
-  date: string
-  adult: number
-  childBed: number | null
-  childNoBed: number | null
-  infant: number | null
-  localPrice: string | null
-  priceGap: number
-  priceAdult: number
-  priceChildWithBed: number | null
-  priceChildNoBed: number | null
-  priceInfant: number | null
-  status?: string
-  /** Calendar row remaining seats — optional hint on booking pax row */
-  availableSeats?: number
-  /** ProductDeparture.seatsStatusRaw — seat count vs separate booking/remaining copy */
-  seatsStatusRaw?: string
-}
-
-export type ProductItinerary = { id: number; day: number; description: string }
-
-export type CounselingPoint = {
-  title: string
-  content: string
-  script: string
-}
-
-export type ScheduleDay = {
-  day: number
-  description: string
-  imageUrl?: string | null
-  imageDisplayName?: string | null
-  title?: string
-  imageKeyword?: string | null
-  imageKeyword2?: string | null
-  imageUrl2?: string | null
-  imageDisplayName2?: string | null
-  imagePhotographer?: string | null
-  imageSource?: string | null
-  imagePhotographer2?: string | null
-  imageSource2?: string | null
-  /** ItineraryDay.city — carousel DAY label fallback */
-  city?: string | null
-  hotelText?: string | null
-  breakfastText?: string | null
-  lunchText?: string | null
-  dinnerText?: string | null
-  mealSummaryText?: string | null
-  /** Detail merge: ItineraryDay.meals when meal fields empty — one meal card line */
-  meals?: string | null
-}
-
-export type TravelProduct = {
-  id: number | string
-  originSource: string
-  originCode: string
-  title: string
-  destination: string
-  duration: string
-  airline: string | null
-  mandatoryLocalFee: number | null
-  mandatoryCurrency: string | null
-  includedText: string | null
-  excludedText: string | null
-  counselingNotes?: { counseling_points: CounselingPoint[] } | null
-  criticalExclusions?: string | null
-  productType?: string | null
-  airportTransferType?: string | null
-  optionalToursStructured?: string | null
-  prices: ProductPriceRow[]
-  itineraries: ProductItinerary[]
-  schedule?: ScheduleDay[] | null
-  bgImageUrl?: string | null
-  /** Hero image source type (Product.bgImageSource) — hero badge */
-  bgImageSource?: string | null
-  /** AI-generated flag (Product.bgImageIsGenerated) */
-  bgImageIsGenerated?: boolean | null
-  bgImagePhotographer?: string | null
-  /** When no schedule display name — image_assets meta for hero caption */
-  heroCoverCaptionFromAsset?: string | null
-  /** Hero image left SEO keyword overlay (separate from caption) */
-  heroImageSeoKeywordOverlay?: string | null
-  optionalTours?: Array<{ id: string; name: string; priceUsd: number; duration: string; waitPlaceIfNotJoined: string }>
-  shoppingCount?: number | null
-  shoppingItems?: string | null
-  optionalTourNoticeRaw?: string | null
-  optionalTourNoticeItems?: string[]
-  optionalTourDisplayNoticeFinal?: string | null
-  /** structuredSignals.optionalToursPasteRaw — tab SSOT when structured rows empty */
-  optionalToursPasteRaw?: string | null
-  shoppingVisitCountTotal?: number | null
-  shoppingNoticeRaw?: string | null
-  /** structuredSignals.shoppingPasteRaw — tab SSOT when structured rows empty */
-  shoppingPasteRaw?: string | null
-  shoppingStopsStructured?: ShoppingStopRow[] | null
-  freeTimeSummaryText?: string | null
-  hasFreeTime?: boolean | null
-  hasOptionalTours?: boolean | null
-  pricePromotionView?: PublicPricePromotionView | null
-  benefitSummary?: string | null
-  /** D-5: highlight points for public display priority */
-  highlightPoints?: string | null
-  /** D-5: supplier-extracted highlight raw */
-  highlightPointsRaw?: string | null
-  promotionLabelsRaw?: string | null
-  priceFrom?: number | null
-  priceCurrency?: string | null
-  /** Per-departure flight/meeting summary (YYYY-MM-DD) */
-  departureKeyFactsByDate?: Record<string, DepartureKeyFacts>
-  /** Per departure id — same calendar row execution/price SSOT */
-  departureKeyFactsByDepartureId?: Record<string, DepartureKeyFacts>
-  /** rawMeta flight body — enriches flight card when departure row empty */
-  flightStructured?: FlightStructuredBody | null
-  /** Body price table raw — age bracket extraction for pax card */
-  priceTableRawText?: string | null
-  hotelSummaryRaw?: string | null
-  hotelSummaryText?: string | null
-  hotelNames?: string[] | null
-  /** Per-day planned hotels (structured + schedule + body parser merge on server) */
-  dayHotelPlans?: DayHotelPlan[] | null
-  hotelInfoRaw?: string | null
-  hotelStatusText?: string | null
-  hotelNoticeRaw?: string | null
-  primaryRegion?: string | null
-  primaryDestination?: string | null
-  airtelHotelInfoJson?: string | null
-  infantAgeRuleText?: string | null
-  childAgeRuleText?: string | null
-  reservationNoticeRaw?: string | null
-  mustKnowItems?: Array<{ category: string; title: string; body: string; raw?: string }>
-  /** rawMeta structured — single-room surcharge card merge */
-  singleRoomSurchargeDisplayText?: string | null
-  singleRoomSurchargeAmount?: number | null
-  singleRoomSurchargeCurrency?: string | null
-  minimumDepartureCount?: number | null
-  minimumDepartureText?: string | null
-  isDepartureGuaranteed?: boolean | null
-  currentBookedCount?: number | null
-  remainingSeatsCount?: number | null
-  departureStatusText?: string | null
-  meetingInfoRaw?: string | null
-  meetingPlaceRaw?: string | null
-  meetingFallbackText?: string | null
-  flightExposurePolicy?: 'public_full' | 'public_limited' | 'admin_only' | null
-  /** structuredSignals.flightManualCorrection — legacy_parsed display (flight no/time only) */
-  flightManualCorrection?: FlightManualCorrectionPayload | null
-  /** Apply manual flight correction when only parsed body flight is shown */
-  applyFlightManualCorrectionOverlay?: boolean
-  /** Modetour: local pay line below departure-change CTA */
-  modetourStickyLocalPayLine?: string | null
-  /** travel | private_trip | air_hotel_free — listing kind UI branch */
-  listingKind?: string | null
-  /** rawMeta structuredSignals.flightAdminJson — ItineraryExtraInfoBoxes 항공 SSOT */
-  flightAdminJson?: string | null
-}
+export type {
+  CounselingPoint,
+  ProductItinerary,
+  ProductPriceRow,
+  ScheduleDay,
+  TravelProduct,
+} from '@/app/components/travel/travel-product-detail-types'
 
 function toDateKey(d: string): string {
   return d.startsWith('20') && d.length >= 10 ? d.slice(0, 10) : d

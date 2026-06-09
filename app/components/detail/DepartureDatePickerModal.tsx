@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition, type Dispatch, type SetStateAction } from 'react'
-import type { ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
+import type { ProductPriceRow } from '@/app/components/travel/travel-product-detail-types'
 import {
   buildDepartureViewModels,
   earliestMinBookablePriceDateByMonth,

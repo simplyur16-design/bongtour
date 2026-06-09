@@ -11,7 +11,7 @@ import FitItineraryHeroSection from '@/app/components/detail/FitItineraryHeroSec
 import FitItineraryQuoteCard from '@/app/components/detail/FitItineraryQuoteCard'
 import SafeImage from '@/app/components/SafeImage'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
-import type { ProductPriceRow, ScheduleDay } from '@/app/components/travel/TravelProductDetail'
+import type { ProductPriceRow, ScheduleDay } from '@/app/components/travel/travel-product-detail-types'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import type { FlightStructuredBody } from '@/lib/public-product-extras'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'

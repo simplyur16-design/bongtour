@@ -2,7 +2,7 @@
  * 상품 상세 — 출발일·요금 공통 뷰 모델 (공급사 어댑터 → 단일 UI)
  * @see lib/price-utils.ts isScheduleAdultBookable
  */
-import type { ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
+import type { ProductPriceRow } from '@/app/components/travel/travel-product-detail-types'
 import {
   deriveRemainingSeatCount,
   departureRowAdultKrw,
