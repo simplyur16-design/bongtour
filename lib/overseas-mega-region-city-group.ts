@@ -200,9 +200,13 @@ const AMERICAS_WEST_CITY_KEYS = new Set([
   'la',
   'los-angeles',
   'las-vegas',
+  'lasvegas',
   'san-francisco',
+  'sf',
   'san-diego',
   'seattle',
+  'grandcanyon',
+  'grand-canyon',
 ])
 
 const AMERICAS_CANADA_CITY_KEYS = new Set([
@@ -268,6 +272,22 @@ const AMERICAS_WEST_TEXT = [
   'san diego',
   '시애틀',
   'seattle',
+  '5대캐년',
+  '5대 캐년',
+  '그랜드캐년',
+  'grand canyon',
+  '세도나',
+  'sedona',
+  '요세미티',
+  'yosemite',
+  '브라이스',
+  'bryce',
+  '자이언',
+  'zion',
+  '모뉴먼트밸리',
+  'monument valley',
+  '프레스노',
+  'fresno',
 ]
 
 const AMERICAS_HAWAII_TEXT = ['하와이', 'hawaii', '호놀룰루', 'honolulu', '오아후', 'oahu', '마우이', 'maui']

@@ -41,6 +41,12 @@ describe('overseas mega subgroup browse', () => {
     expect(resolveSubgroup('americas', '뉴욕 워싱턴 8일', '뉴욕', { cityKey: 'new-york' })).toBe('미동부')
     expect(resolveSubgroup('americas', '미서부/미동부/캐나다 완전일주 19일', '캐나다')).toBe('캐나다')
     expect(resolveSubgroup('americas', '밴쿠버 7일', '밴쿠버', { cityKey: 'vancouver' })).toBe('캐나다')
+    expect(
+      resolveSubgroup('americas', '5대캐년 9일', '세도나캐년숙박', { cityKey: 'grandcanyon', countryKey: 'usa-west' }),
+    ).toBe('미서부')
+    expect(
+      resolveSubgroup('americas', '세도나·그랜드캐년', '세도나캐년숙박', { cityKey: 'lasvegas', countryKey: 'usa-west' }),
+    ).toBe('미서부')
     expect(megaMenuSubgroupLabelsInOrder('americas')).toEqual([
       '하와이',
       '미서부',
