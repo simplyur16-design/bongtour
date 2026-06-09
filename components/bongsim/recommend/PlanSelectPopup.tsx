@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
   type MouseEvent,
-  type RefObject,
+  type Ref,
 } from "react";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { PlanCoverageCountriesPanel } from "@/components/bongsim/recommend/PlanCoverageCountriesPanel";
@@ -291,7 +291,7 @@ function PlanInlineConfirmBar({
   totalKrw: number | null;
   canComplete: boolean;
   onConfirm: () => void;
-  barRef?: RefObject<HTMLDivElement | null>;
+  barRef?: Ref<HTMLDivElement>;
 }) {
   return (
     <div
