@@ -3,7 +3,11 @@
  */
 import { resolveBrowseCityKeysForFilter, resolveBrowseCountryParamToCountryKeySlugs } from '@/lib/browse-country-url-resolve'
 import { countrySlugFromLabel, citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
-import { MEGA_MENU_TAB_DEFINITIONS, type MegaMenuCountryGroupDef } from '@/lib/mega-menu-regions.data'
+import {
+  MEGA_MENU_TAB_DEFINITIONS,
+  type MegaMenuCountryGroupDef,
+  type MegaMenuLeafDef,
+} from '@/lib/mega-menu-regions.data'
 
 export function megaMenuGroupSlugFromLabel(countryLabel: string): string {
   return countrySlugFromLabel(countryLabel)
@@ -39,11 +43,70 @@ export function resolveMegaMenuGroupCityKeys(regionId: string, menuGroupSlug: st
   return [...keys]
 }
 
+const REGION_MENU_GROUP_PSEUDO_SLUGS = new Set([
+  'western-europe',
+  'eastern-europe',
+  'northern-europe',
+  'southern-europe',
+  '서유럽',
+  '동유럽',
+  '북유럽',
+  '남유럽',
+])
+
+function isValidMasterCountryKeyForBrowse(k: string): boolean {
+  const s = k.trim().toLowerCase()
+  if (!s || REGION_MENU_GROUP_PSEUDO_SLUGS.has(s)) return false
+  if (/[가-힣]/.test(s)) return false
+  if (s === 'balkans') return false
+  return /^[a-z0-9-]+$/.test(s)
+}
+
+function countryKeysFromMegaMenuCountryLeaf(leaf: MegaMenuLeafDef): string[] {
+  const slugCandidates = new Set<string>()
+  slugCandidates.add(countrySlugFromLabel(leaf.browseCountryLabel ?? leaf.label))
+  for (const term of leaf.terms) slugCandidates.add(countrySlugFromLabel(term))
+
+  const keys = new Set<string>()
+  for (const slug of slugCandidates) {
+    for (const k of resolveBrowseCountryParamToCountryKeySlugs(slug)) {
+      if (isValidMasterCountryKeyForBrowse(k)) keys.add(k)
+    }
+  }
+  return [...keys]
+}
+
+function countryKeysFromMegaMenuGroupLeaves(g: MegaMenuCountryGroupDef): string[] {
+  const countryLeaves = g.cities.filter((leaf) => leaf.kind === 'country')
+  if (countryLeaves.length === 0) return []
+
+  const keys = new Set<string>()
+  for (const leaf of countryLeaves) {
+    for (const k of countryKeysFromMegaMenuCountryLeaf(leaf)) keys.add(k)
+  }
+  return [...keys]
+}
+
 /** 도시 leaf가 없는 그룹(알래스카·홍콩 LC-only 등) — countryKey 슬러그 */
 export function resolveMegaMenuGroupCountryKeySlugs(regionId: string, menuGroupSlug: string): string[] {
-  const cityKeys = resolveMegaMenuGroupCityKeys(regionId, menuGroupSlug)
-  if (cityKeys.length > 0) return []
   const g = findMegaMenuGroup(regionId, menuGroupSlug)
   if (!g) return []
+
+  const fromCountryLeaves = countryKeysFromMegaMenuGroupLeaves(g)
+  if (fromCountryLeaves.length > 0) return fromCountryLeaves
+
+  const cityKeys = resolveMegaMenuGroupCityKeys(regionId, menuGroupSlug)
+  if (cityKeys.length > 0) return []
   return resolveBrowseCountryParamToCountryKeySlugs(countrySlugFromLabel(g.countryLabel))
+}
+
+/** browse `region`이 메가메뉴 열 슬러그(동유럽·서유럽 등)일 때 — 탭을 가로질러 countryKey 합집합 */
+export function resolveMegaMenuMenuGroupSlugToCountryKeySlugs(menuGroupSlug: string): string[] {
+  const norm = menuGroupSlug.trim().toLowerCase()
+  if (!norm) return []
+  const keys = new Set<string>()
+  for (const tab of MEGA_MENU_TAB_DEFINITIONS) {
+    for (const k of resolveMegaMenuGroupCountryKeySlugs(tab.id, norm)) keys.add(k)
+  }
+  return [...keys]
 }

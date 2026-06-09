@@ -1,10 +1,14 @@
 /**
  * 자유여행 등록 미리보기 — 일차 imageKeyword UI 행 (클라이언트·서버 공용, node:crypto 없음).
+ * REGRESSION-FREEZE[airtel-fit-per-day-keywords]: Fit·일차별 키워드 SSOT — manifest
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
 import { buildAirtelRegisterScheduleRowsFromFitParsed } from '@/lib/register-airtel-fit-preview-ui'
 import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airtel-route-image-keyword'
-import { finalizeRegisterScheduleImageKeywords } from '@/lib/schedule-image-keyword-persist'
+import {
+  areScheduleImageKeywordsDistinct,
+  finalizeRegisterScheduleImageKeywords,
+} from '@/lib/schedule-image-keyword-persist'
 
 export function scheduleRowsHaveUniformWeakAirtelKeyword(
   rows: Array<{ imageKeyword?: string | null }>,
@@ -60,25 +64,32 @@ export function finalizeAirtelRegisterPexelsUiRows(
   }))
 }
 
-/** parsed.schedule( routeText ) 우선 → Fit JSON → null */
+/**
+ * SSOT 우선순위: (1) Fit JSON 일차별 랜드마크 (2) parsed.schedule 일차별 구분 (3) routeText 보조.
+ * routeText 존재만으로 Fit·일차별 키워드를 건너뛰지 않는다(단일 도시·Nha 회귀 방지).
+ */
 export function buildAirtelRegisterPexelsUiScheduleRows(
   parsed: RegisterParsed | null | undefined,
   productDestination: string | null | undefined,
 ): RegisterScheduleDay[] | null {
-  const fromParsed = buildAirtelRegisterScheduleRowsFromParsed(parsed)
-  const hasRouteText = Boolean(fromParsed?.some((r) => String(r.routeText ?? '').trim()))
-  if (fromParsed?.length && hasRouteText) {
-    return finalizeAirtelRegisterPexelsUiRows(fromParsed, productDestination)
-  }
-
   const fromFit = buildAirtelRegisterScheduleRowsFromFitParsed(parsed)
-  if (fromFit?.length) {
-    return finalizeAirtelRegisterPexelsUiRows(fromFit, productDestination)
-  }
+  const fromParsed = buildAirtelRegisterScheduleRowsFromParsed(parsed)
 
-  if (fromParsed?.length) {
-    return finalizeAirtelRegisterPexelsUiRows(fromParsed, productDestination)
-  }
+  const candidates: RegisterScheduleDay[][] = []
+  if (fromFit?.length) candidates.push(fromFit)
+  if (fromParsed?.length) candidates.push(fromParsed)
 
-  return null
+  let chosen: RegisterScheduleDay[] | null = null
+  for (const rows of candidates) {
+    if (areScheduleImageKeywordsDistinct(rows)) {
+      chosen = rows
+      break
+    }
+  }
+  if (!chosen) {
+    chosen = fromFit?.length ? fromFit : fromParsed?.length ? fromParsed : null
+  }
+  if (!chosen?.length) return null
+
+  return finalizeAirtelRegisterPexelsUiRows(chosen, productDestination)
 }

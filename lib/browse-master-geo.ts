@@ -15,6 +15,7 @@ import {
 import {
   resolveMegaMenuGroupCityKeys,
   resolveMegaMenuGroupCountryKeySlugs,
+  resolveMegaMenuMenuGroupSlugToCountryKeySlugs,
 } from '@/lib/mega-menu-browse-group'
 
 export {
@@ -91,6 +92,11 @@ export async function resolveBrowseRegionToCountryKeys(region: string | null | u
   const tabCardKeys = browseTabIdToMegaMenuCardKeys(k)
   if (tabCardKeys.length > 0) {
     return countryKeysFromMegaMenuCardKeys(tabCardKeys)
+  }
+
+  const menuGroupCountryKeys = resolveMegaMenuMenuGroupSlugToCountryKeySlugs(k)
+  if (menuGroupCountryKeys.length > 0) {
+    return menuGroupCountryKeys
   }
 
   const masterContinentKeys = masterContinentKeysFromBrowseRegion(k)

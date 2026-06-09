@@ -272,6 +272,36 @@ const SHORT_COUNTRY_LEAF_HINTS: Array<{
   },
 ]
 
+/**
+ * 필리핀 세부·제이파크 등 — 제목/목적지의 「아일랜드」는 EU 아일랜드(ireland)가 아님.
+ * `세부 아일랜드`, `제이파크 아일랜드`, `인천세부인천` 등이 EU `아일랜드` leaf보다 우선.
+ */
+const PHILIPPINES_CEBU_ISLAND_CONTEXT_RE =
+  /(?:^|[\s#·/,，、])세부(?:\s*아일랜드|[\s#·/,，、]|$)|(?:^|[\s#·/,，、])세부[\s#·/,，、]|인천세부인천|\bcebu\b|제이파크|jpark|\bCEB\b/i
+
+function earlyMatchPhilippinesCebuIslandContext(
+  product: OverseasProductMatchInput,
+): MatchProductToOverseasNodeResult | null {
+  const haystack = buildOverseasProductMatchHaystack(product)
+  if (!PHILIPPINES_CEBU_ISLAND_CONTEXT_RE.test(haystack)) return null
+
+  const group = OVERSEAS_LOCATION_TREE_CLEAN.find((g) => g.groupKey === 'sea-taiwan-south-asia')
+  const country = group?.countries.find((c) => c.countryKey === 'philippines')
+  const leaf = country?.children.find((l) => l.nodeKey === 'cebu')
+  if (!group || !country || !leaf) return null
+
+  return {
+    scope: 'leaf',
+    groupKey: group.groupKey,
+    groupLabel: group.groupLabel,
+    countryKey: country.countryKey,
+    countryLabel: country.countryLabel,
+    leafKey: leaf.nodeKey,
+    leafLabel: leaf.nodeLabel,
+    matchedTerm: '세부',
+  }
+}
+
 /** 코카서스 3국(+두바이 연계) — `두바이` leaf가 더 길게 잡히기 전에 country 고정 */
 function earlyMatchCaucasusPackage(
   product: OverseasProductMatchInput,
@@ -328,6 +358,9 @@ export function matchProductToOverseasNode(
 ): MatchProductToOverseasNodeResult | null {
   const caucasusPackage = earlyMatchCaucasusPackage(product)
   if (caucasusPackage) return caucasusPackage
+
+  const philippinesCebu = earlyMatchPhilippinesCebuIslandContext(product)
+  if (philippinesCebu) return philippinesCebu
 
   const shortCountry = earlyMatchShortCountryLeaf(product)
   if (shortCountry) return shortCountry

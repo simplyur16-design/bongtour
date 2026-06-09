@@ -165,6 +165,19 @@
           "file": "lib/fit-itinerary-sync-schedule-image-keywords.ts",
           "mustInclude": ["mergeScheduleWithFitKeywords"],
           "mustNotInclude": ["mergeScheduleWithSingleAirtelFitKeyword"]
+        },
+        {
+          "file": "lib/register-airtel-pexels-ui-rows.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airtel-fit-per-day-keywords]",
+            "areScheduleImageKeywordsDistinct",
+            "buildAirtelRegisterScheduleRowsFromFitParsed"
+          ],
+          "mustNotInclude": ["hasRouteText"]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": ["areScheduleImageKeywordsDistinct", "!areScheduleImageKeywordsDistinct(scheduleArr)"]
         }
       ]
     },

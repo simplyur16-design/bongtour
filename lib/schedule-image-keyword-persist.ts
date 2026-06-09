@@ -16,6 +16,18 @@ export function isOperationalScheduleImageKeyword(kw: string | null | undefined)
   return OPERATIONAL_SCHEDULE_KEY_RE.test(t) || DAY_N_TRAVEL_RE.test(t)
 }
 
+/** 일차별 랜드마크 imageKeyword가 2개 이상 서로 다른지(풀 일괄 배정 스킵·Fit SSOT 판별) */
+export function areScheduleImageKeywordsDistinct(
+  rows: Array<{ imageKeyword?: string | null }>,
+  minDistinct = 2,
+): boolean {
+  const kws = rows
+    .map((r) => String(r.imageKeyword ?? '').trim())
+    .filter((k) => k.length > 0 && !isOperationalScheduleImageKeyword(k))
+  if (kws.length < minDistinct) return false
+  return new Set(kws.map((k) => k.toLowerCase())).size >= minDistinct
+}
+
 /** 일정 SSOT 키워드 우선 — hero 검색 라벨은 보조 */
 export function resolveScheduleImageKeywordForDb(
   stored: string | null | undefined,

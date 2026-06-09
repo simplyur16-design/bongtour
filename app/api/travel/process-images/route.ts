@@ -34,6 +34,7 @@ import {
 } from '@/lib/travel-product-image-internalize'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import {
+  areScheduleImageKeywordsDistinct,
   finalizeRegisterScheduleImageKeywords,
   resolveScheduleImageKeywordForDb,
 } from '@/lib/schedule-image-keyword-persist'
@@ -403,8 +404,11 @@ export async function POST(req: Request) {
 
     const poolList = await getPoolPhotosForDestination(prisma, destination)
 
-    /** 풀 5장 이상: 메인 1 + 일정 4, URL·출처 중복 없이 순서대로 소비 */
-    if (poolList.length >= 5) {
+    /**
+     * 풀 5장 이상: 메인 1 + 일정 4 일괄 배정.
+     * 일차별 랜드마크 imageKeyword가 이미 구분돼 있으면 스킵 — 아래 hero 경로가 키워드별 이미지를 쓴다.
+     */
+    if (poolList.length >= 5 && !areScheduleImageKeywordsDistinct(scheduleArr)) {
       console.log(`[POOL] ${destination} 풀 사진 5장 사용 (중복 제외)`)
       const usage = createPhotoUsage()
       const mainRec = poolList[0]
