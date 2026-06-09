@@ -196,11 +196,20 @@ function englishFromKoreanRouteSegment(seg: string): string {
   return ''
 }
 
-/** routeText 2번째 세그먼트 — 영문·한글(매핑) */
-function resolveRouteTextSecondPlace(routeText: string | null | undefined): string {
-  const segs = routeTextSegments(routeText)
-  if (segs.length < 2) return ''
-  return extractLatinEnglishFromRouteSegment(segs[1]!) || englishFromKoreanRouteSegment(segs[1]!)
+/** routeText 전 구간 — primary와 다른 첫 수용 가능 장소(이동 순서) */
+function pickDistinctPlaceFromRouteText(
+  routeText: string | null | undefined,
+  primary: string,
+  productDestination: string | null | undefined,
+): string {
+  const primaryNk = normKey(primary)
+  for (const seg of routeTextSegments(routeText)) {
+    if (isHanatourDomesticHubToken(seg)) continue
+    const raw = extractLatinEnglishFromRouteSegment(seg) || englishFromKoreanRouteSegment(seg)
+    const kw = raw ? tryAcceptHanatourLlmImageKeyword(raw, productDestination) : ''
+    if (kw && normKey(kw) !== primaryNk) return kw
+  }
+  return ''
 }
 
 function pushUniqueHanatourLandmark(
@@ -478,13 +487,9 @@ function resolveHanatourSecondaryKeyword(
   const fromLlm = tryAcceptHanatourLlmImageKeyword(row.imageKeyword2, productDestination)
   if (fromLlm && normKey(fromLlm) !== normKey(primary)) return fromLlm
 
-  const fromRouteRaw = resolveRouteTextSecondPlace(row.routeText)
-  const fromRoute = fromRouteRaw
-    ? tryAcceptHanatourLlmImageKeyword(fromRouteRaw, productDestination)
-    : ''
+  const fromRoute = pickDistinctPlaceFromRouteText(row.routeText, primary, productDestination)
   if (
     fromRoute &&
-    normKey(fromRoute) !== normKey(primary) &&
     !isKnownDestinationCityEnglishKeyword(fromRoute)
   ) {
     return fromRoute
@@ -496,7 +501,7 @@ function resolveHanatourSecondaryKeyword(
     if (kw && normKey(kw) !== normKey(primary)) return kw
   }
 
-  if (fromRoute && normKey(fromRoute) !== normKey(primary)) return fromRoute
+  if (fromRoute) return fromRoute
 
   const landmarkCandidates = collectHanatourLandmarkKeywords(row, productDestination)
   for (const kw of landmarkCandidates) {

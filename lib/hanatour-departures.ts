@@ -215,7 +215,9 @@ function normalizeHanatourDetailUrlForModalScraper(url: string): string {
       return trimmed
     }
     if (path.includes('/trp/pkg/') && pkg) {
-      if (!u.searchParams.get('type')?.trim()) {
+      const type = u.searchParams.get('type')?.trim()
+      const prePage = u.searchParams.get('prePage')?.trim()
+      if (!type && !prePage) {
         u.searchParams.set('type', 'H01')
         return u.toString()
       }

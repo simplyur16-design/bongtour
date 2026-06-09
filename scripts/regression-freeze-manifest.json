@@ -284,7 +284,7 @@
         },
         {
           "file": "scripts/calendar_e2e_scraper_hanatour/calendar_price_scraper.py",
-          "mustInclude": ["d[\"type\"] = \"H01\""]
+          "mustInclude": ["pre_page", "d[\"type\"] = \"H01\""]
         },
         {
           "file": "scripts/calendar_e2e_scraper_hanatour/test_utils_airtel_same_product.py",

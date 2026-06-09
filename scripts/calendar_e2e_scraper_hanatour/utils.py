@@ -372,7 +372,7 @@ def hanatour_variant_inner_is_status_only(inner: str) -> bool:
 _NDAY_IN_PRE = re.compile(r"([^#\[\]]+?/)*[^#\[\]]+?\s+\d+\s*일")
 # REGRESSION-FREEZE[hanatour-e2e-airtel-same-product]: 자유여행(방콕 N일) anchor·동일상품 매칭
 _GEO_NDAY_ANCHOR = re.compile(
-    r"([가-힣]{2,24}(?:\s*/\s*[가-힣]{2,24})*(?:\s+\d+\s*박)?)"
+    r"([가-힣]{2,24}(?:\s*/\s*[가-힣]{2,24})*(?:\s+\d+\s*박)?(?:\s+\d+\s*국)?)"
     r"(?:\s+자유\s*여행)?"
     r"\s+(\d+)\s*일",
 )

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
 import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-prompt'
+import { applyRegisterScheduleImageKeywordsForPreview } from '@/lib/register-schedule-image-keywords-preview'
 import {
   finalizeRegisterScheduleImageKeywords,
   tryPersistScheduleImageKeyword,
@@ -631,17 +632,30 @@ export default function AdminPendingDetailPanel({
         (detail.destination ?? '').trim() ||
         (detail.primaryDestination ?? '').trim() ||
         null
-      const finalized = finalizeRegisterScheduleImageKeywords(
-        out.map((row) => ({
-          day: row.day,
-          title: row.title ?? '',
-          description: row.description ?? '',
-          routeText: scheduleRouteTextFromRow(row),
-          imageKeyword: row.imageKeyword ?? '',
-          imageKeyword2: row.imageKeyword2 ?? null,
-        })),
-        { productDestination: productDestHint },
-      )
+      const supplierKey =
+        detail.normalizedOriginSupplier ??
+        detail.canonicalBrandKey ??
+        detail.brand?.brandKey ??
+        detail.originSource ??
+        null
+      const rawKeywordRows = out.map((row) => ({
+        day: row.day,
+        title: row.title ?? '',
+        description: row.description ?? '',
+        routeText: scheduleRouteTextFromRow(row),
+        imageKeyword: row.imageKeyword ?? '',
+        imageKeyword2: row.imageKeyword2 ?? null,
+      }))
+      const augmented = applyRegisterScheduleImageKeywordsForPreview(rawKeywordRows, {
+        supplierKey,
+        productDestination: productDestHint,
+        productTitle: (detail.title ?? '').trim() || null,
+        travelScope: detail.travelScope ?? null,
+        productType: detail.productType ?? null,
+      })
+      const finalized = finalizeRegisterScheduleImageKeywords(augmented, {
+        productDestination: productDestHint,
+      })
       return out.map((row, idx) => ({
         ...row,
         routeText: finalized[idx]?.routeText ?? row.routeText ?? null,
