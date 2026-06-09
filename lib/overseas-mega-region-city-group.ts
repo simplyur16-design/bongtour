@@ -547,6 +547,43 @@ const EUROPE_ME_CAUCASUS_CITY_KEYS = new Set([
   'yerevan',
 ])
 
+/** 동유럽 countryTag·도시 키 — primary 오스트리아여도 중분류는 동유럽 */
+const EUROPE_ME_EASTERN_COUNTRY_KEYS = new Set([
+  'czech',
+  'hungary',
+  'poland',
+  'croatia',
+  'slovenia',
+  'prague',
+  'warsaw',
+])
+
+const EUROPE_ME_EASTERN_TEXT = [
+  '동유럽',
+  '체코',
+  'czech',
+  '프라하',
+  'prague',
+  '헝가리',
+  'hungary',
+  '부다페스트',
+  'budapest',
+  '폴란드',
+  'poland',
+  '바르샤바',
+  'warsaw',
+  '크로아티아',
+  'croatia',
+  '슬로베니아',
+  'slovenia',
+  '발칸',
+  'balkans',
+  '브르노',
+  'brno',
+  '잘츠부르크',
+  'salzburg',
+]
+
 const EUROPE_ME_CAUCASUS_TEXT = [
   '코카서스',
   '카카서스',
@@ -586,6 +623,37 @@ function resolveChinaHuangshanOrZhangyeHint(
 
   if (hasHuangshanKey || (hasHuangshanText && !hasZhangyeText)) return '중국'
 
+  return null
+}
+
+function productHasEuropeEasternCountrySignal(
+  product: OverseasProductMatchInput,
+  haystack: string,
+  cityKeys: readonly string[],
+  match: MatchProductToOverseasNodeResult | null,
+): boolean {
+  const tagKeys = (product.countryTags ?? [])
+    .map((t) => (t.countryKey ?? '').trim().toLowerCase())
+    .filter(Boolean)
+  if (tagKeys.some((k) => EUROPE_ME_EASTERN_COUNTRY_KEYS.has(k))) return true
+
+  const keys = [
+    ...cityKeys.map((k) => k.trim().toLowerCase()),
+    (match?.countryKey ?? '').trim().toLowerCase(),
+    (match?.leafKey ?? '').trim().toLowerCase(),
+  ].filter(Boolean)
+  if (keys.some((k) => EUROPE_ME_EASTERN_COUNTRY_KEYS.has(k))) return true
+
+  return EUROPE_ME_EASTERN_TEXT.some((t) => termAppearsInHaystack(t, haystack))
+}
+
+function resolveEuropeMeEasternWesternHint(
+  product: OverseasProductMatchInput,
+  haystack: string,
+  cityKeys: readonly string[],
+  match: MatchProductToOverseasNodeResult | null,
+): '동유럽' | null {
+  if (productHasEuropeEasternCountrySignal(product, haystack, cityKeys, match)) return '동유럽'
   return null
 }
 
@@ -701,6 +769,8 @@ export function resolveOverseasMegaMenuSubgroupLabelForBrowse(
   if (regionId === 'europe-me') {
     const caucasusHint = resolveEuropeMeCaucasusHint(haystack, labelCandidates, cityKeys, match)
     if (caucasusHint) return caucasusHint
+    const easternHint = resolveEuropeMeEasternWesternHint(product, haystack, cityKeys, match)
+    if (easternHint) return easternHint
   }
 
   if (regionId === 'south-america') {

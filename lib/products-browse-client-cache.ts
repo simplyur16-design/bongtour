@@ -2,7 +2,7 @@
  * browse 목록 API 응답 — 같은 탭·뒤로가기 시 즉시 복원용(세션 저장).
  * 서버 `unstable_cache` 와 별개; 클라이언트 `/api/products/browse` 재요청만 줄인다.
  */
-const STORAGE_KEY = 'bt-browse-cache-v1'
+const STORAGE_KEY = 'bt-browse-cache-v2'
 const TTL_MS = 10 * 60 * 1000
 const MAX_ENTRIES = 16
 

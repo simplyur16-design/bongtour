@@ -9,7 +9,11 @@ function resolveSubgroup(
   regionId: string,
   title: string,
   primaryDestination: string,
-  opts?: { cityKey?: string; countryKey?: string },
+  opts?: {
+    cityKey?: string
+    countryKey?: string
+    countryTags?: Array<{ countryKey: string; isPrimary?: boolean }>
+  },
 ) {
   const input = {
     title,
@@ -18,6 +22,7 @@ function resolveSubgroup(
     destination: primaryDestination,
     cityKey: opts?.cityKey ?? null,
     countryKey: opts?.countryKey ?? null,
+    countryTags: opts?.countryTags,
   }
   const match = matchProductToOverseasNode(input)
   return resolveOverseasMegaMenuSubgroupLabelForBrowse(input, match, regionId, primaryDestination)
@@ -78,6 +83,25 @@ describe('overseas mega subgroup browse', () => {
     )
     expect(resolveSubgroup('china-hk-mo', '서안·화불 6일', '서안', { cityKey: 'xian' })).toBe('중국')
     expect(resolveSubgroup('china-hk-mo', '서안 관광', '서안 · 우루무치')).toBe('중국')
+  })
+
+  it('europe-me — 동유럽 3국 패키지는 서유럽이 아닌 동유럽 섹션', () => {
+    expect(
+      resolveSubgroup('europe-me', '동유럽 3국 유럽 (부다페스트 · 잘츠부르크) 7박 9일', '오스트리아', {
+        countryKey: 'austria',
+        countryTags: [
+          { countryKey: 'austria', isPrimary: true },
+          { countryKey: 'czech' },
+          { countryKey: 'hungary' },
+        ],
+      }),
+    ).toBe('동유럽')
+    expect(
+      resolveSubgroup('europe-me', '오스트리아 단독 7일', '오스트리아', {
+        countryKey: 'austria',
+        countryTags: [{ countryKey: 'austria', isPrimary: true }],
+      }),
+    ).toBe('서유럽')
   })
 
   it('europe-me — 코카서스 3국(두바이 연계 포함)', () => {

@@ -47,7 +47,7 @@ export async function GET(request: Request) {
   const queryKey = new URL(request.url).searchParams.toString()
   const perfGet = process.env.BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
   const tGet0 = perfGet ? performance.now() : 0 // PERF-LOG: 측정 후 제거
-  const cacheKey = `products-browse-v17|${queryKey}` // PERF-LOG: 측정 후 제거
+  const cacheKey = `products-browse-v18|${queryKey}` // PERF-LOG: 측정 후 제거
   try {
     const perfPhasesBefore = browsePerfLastPhases // PERF-LOG: 측정 후 제거
     const payload = await getCachedProductsBrowsePayload(queryKey)
