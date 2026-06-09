@@ -6,8 +6,8 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      width={22}
-      height={22}
+      width={20}
+      height={20}
       fill="none"
       stroke="currentColor"
       strokeWidth={2.25}
@@ -20,6 +20,8 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
   )
 }
 
+type ArrowPlacement = 'outside' | 'overlay'
+
 type Props = {
   as?: 'ul' | 'div'
   scrollClassName?: string
@@ -28,15 +30,22 @@ type Props = {
   scrollRole?: string
   children: ReactNode
   scrollRatio?: number
+  /** outside: 카드 밖. overlay: 반투명 고스트 화살표가 카드 위에 겹침(기본) */
+  arrowPlacement?: ArrowPlacement
   onScrollContainer?: (el: HTMLElement) => void
 }
 
-const SCROLL_ARROW_CLASS =
-  'pointer-events-auto absolute top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-800 shadow-lg transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600'
-
 const SCROLL_EDGE_EPS = 4
 
-/** 가로 스크롤 영역 — 불투명 좌우 화살표(끝에서 순환) */
+/** 약간 불투명 + 블러 — 뒤 사진이 비치도록 (상품 히어로 고스트 화살표 톤) */
+const GHOST_ARROW_BASE =
+  'flex items-center justify-center rounded-full border border-white/55 bg-white/45 text-slate-800/90 shadow-sm backdrop-blur-[3px] transition hover:border-white/70 hover:bg-white/65 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 active:scale-95'
+
+const OUTSIDE_ARROW_CLASS = `h-9 w-9 shrink-0 ${GHOST_ARROW_BASE}`
+
+const OVERLAY_ARROW_CLASS = `pointer-events-auto absolute top-1/2 z-20 h-9 w-9 -translate-y-1/2 opacity-90 hover:opacity-100 ${GHOST_ARROW_BASE}`
+
+/** 가로 스크롤 영역 — 반투명 좌우 화살표(끝에서 순환) */
 export default function HorizontalScrollWithArrows({
   as = 'div',
   scrollClassName = '',
@@ -45,6 +54,7 @@ export default function HorizontalScrollWithArrows({
   scrollRole,
   children,
   scrollRatio = 0.88,
+  arrowPlacement = 'overlay',
   onScrollContainer,
 }: Props) {
   const scrollRef = useRef<HTMLUListElement | HTMLDivElement>(null)
@@ -95,6 +105,52 @@ export default function HorizontalScrollWithArrows({
 
   const ScrollTag = as
 
+  const leftBtn = hasOverflow ? (
+    <button
+      type="button"
+      className={arrowPlacement === 'outside' ? OUTSIDE_ARROW_CLASS : `${OVERLAY_ARROW_CLASS} left-1 sm:left-2`}
+      aria-label="이전으로 스크롤 (처음이면 마지막으로)"
+      onClick={(e) => {
+        e.stopPropagation()
+        scrollPage(-1)
+      }}
+    >
+      <ChevronIcon direction="left" />
+    </button>
+  ) : null
+
+  const rightBtn = hasOverflow ? (
+    <button
+      type="button"
+      className={arrowPlacement === 'outside' ? OUTSIDE_ARROW_CLASS : `${OVERLAY_ARROW_CLASS} right-1 sm:right-2`}
+      aria-label="다음으로 스크롤 (끝이면 처음으로)"
+      onClick={(e) => {
+        e.stopPropagation()
+        scrollPage(1)
+      }}
+    >
+      <ChevronIcon direction="right" />
+    </button>
+  ) : null
+
+  if (arrowPlacement === 'outside') {
+    return (
+      <div className={`flex min-w-0 items-center gap-1.5 ${className}`.trim()}>
+        {leftBtn}
+        <ScrollTag
+          ref={scrollRef as never}
+          className={`min-w-0 flex-1 ${scrollClassName}`.trim()}
+          {...(as === 'ul'
+            ? { role: 'list' as const, 'aria-label': ariaLabel }
+            : { role: scrollRole, 'aria-label': ariaLabel })}
+        >
+          {children}
+        </ScrollTag>
+        {rightBtn}
+      </div>
+    )
+  }
+
   return (
     <div className={`relative min-w-0 ${className}`.trim()}>
       <ScrollTag
@@ -106,32 +162,8 @@ export default function HorizontalScrollWithArrows({
       >
         {children}
       </ScrollTag>
-      {hasOverflow ? (
-        <>
-          <button
-            type="button"
-            className={`${SCROLL_ARROW_CLASS} left-1 sm:left-2`}
-            aria-label="이전으로 스크롤 (처음이면 마지막으로)"
-            onClick={(e) => {
-              e.stopPropagation()
-              scrollPage(-1)
-            }}
-          >
-            <ChevronIcon direction="left" />
-          </button>
-          <button
-            type="button"
-            className={`${SCROLL_ARROW_CLASS} right-1 sm:right-2`}
-            aria-label="다음으로 스크롤 (끝이면 처음으로)"
-            onClick={(e) => {
-              e.stopPropagation()
-              scrollPage(1)
-            }}
-          >
-            <ChevronIcon direction="right" />
-          </button>
-        </>
-      ) : null}
+      {leftBtn}
+      {rightBtn}
     </div>
   )
 }
