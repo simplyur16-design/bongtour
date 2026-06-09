@@ -31,12 +31,20 @@ const REGISTER_FULL_MAX_OUTPUT_TOKENS = Math.max(
   Math.min(131072, Number(process.env.GEMINI_REGISTER_FULL_MAX_OUTPUT_TOKENS) || 65536)
 )
 
-/** 미리보기·schedule 풍부화 시 MAX_TOKENS 여유. 미설정 시 4096 유지. */
+/** 미리보기 메타 JSON 상한. 9일 패키지 등 schedule 선추출 실패 시 잘림 방지 — 미설정 시 8192. */
 const REGISTER_HANATOUR_MAX_OUTPUT_TOKENS_ENV = Number(process.env.GEMINI_REGISTER_HANATOUR_MAX_OUTPUT_TOKENS)
-const registerHanatourPreviewMaxOutputTokens = () =>
-  Number.isFinite(REGISTER_HANATOUR_MAX_OUTPUT_TOKENS_ENV) && REGISTER_HANATOUR_MAX_OUTPUT_TOKENS_ENV >= 4096
-    ? Math.min(32768, Math.floor(REGISTER_HANATOUR_MAX_OUTPUT_TOKENS_ENV))
-    : 4096
+const registerHanatourPreviewMaxOutputTokens = (expectedScheduleDays?: number | null) => {
+  if (
+    Number.isFinite(REGISTER_HANATOUR_MAX_OUTPUT_TOKENS_ENV) &&
+    REGISTER_HANATOUR_MAX_OUTPUT_TOKENS_ENV >= 4096
+  ) {
+    return Math.min(32768, Math.floor(REGISTER_HANATOUR_MAX_OUTPUT_TOKENS_ENV))
+  }
+  const days = expectedScheduleDays ?? 0
+  if (days >= 8) return 16384
+  if (days >= 5) return 12288
+  return 8192
+}
 import { parseOptionalSeatCount } from '@/lib/departure-seat-availability'
 import type { ParsedProductPrice } from './parsed-product-types'
 import { normalizeCalendarDate } from './date-normalize'
@@ -1146,6 +1154,41 @@ const REGISTER_PREVIEW_MINIMAL_PROMPT = `${REGISTER_PREVIEW_MINIMAL_TONE_BLOCK}
   ]
 }`
 
+/** 일정 선추출 성공 시 — 미리보기 메타만 요청(schedule[] 중복·4096 토큰 잘림 방지) */
+const REGISTER_PREVIEW_MINIMAL_PROMPT_SCHEDULE_EMPTY = `${REGISTER_PREVIEW_MINIMAL_TONE_BLOCK}
+
+# Role: 등록 미리보기 — 초경량 메타 JSON만
+
+# 규칙
+- 설명·마크다운·코드펜스 없이 JSON 객체 하나만. 마지막 비공백 문자는 닫는 }.
+- **schedule은 반드시 빈 배열 [] 만 출력.** 일차별 일정은 서버가 별도 단계에서 이미 추출·병합했다.
+- 키는 아래 예시만 사용. 값은 짧게.
+
+# 절대 출력 금지
+- summary, mustKnowItems, prices[], optionalTours[], shoppingStops[] 및 장문 raw
+
+# 채울 필드
+- originSource, originCode, title, destination, duration, airlineName
+- hasOptionalTour, optionalTourCount, hasShopping, shoppingVisitCount, shoppingSummaryText
+- hotelSummaryText, fieldIssues(최대 3건)
+
+{
+  "originSource": "string",
+  "originCode": "string",
+  "title": "string",
+  "destination": "string",
+  "duration": null,
+  "airlineName": null,
+  "hasOptionalTour": false,
+  "optionalTourCount": null,
+  "hasShopping": false,
+  "shoppingVisitCount": null,
+  "shoppingSummaryText": null,
+  "hotelSummaryText": null,
+  "fieldIssues": [],
+  "schedule": []
+}`
+
 function isEmptyRegisterPreviewSlot(v: unknown): boolean {
   if (v == null) return true
   if (typeof v === 'string') return !v.trim()
@@ -1502,8 +1545,11 @@ export async function parseForRegisterLlmHanatour(
   const registerPromptBody = useScheduleEmptyMainPrompt
     ? registerPromptWithScheduleEmptyForConfirm(REGISTER_PROMPT)
     : REGISTER_PROMPT
+  const previewPromptBody = useScheduleEmptyMainPrompt
+    ? REGISTER_PREVIEW_MINIMAL_PROMPT_SCHEDULE_EMPTY
+    : REGISTER_PREVIEW_MINIMAL_PROMPT
   const prompt = forPreview
-    ? `${REGISTER_PREVIEW_MINIMAL_PROMPT}\n\n${labeledInput}`.trim()
+    ? `${previewPromptBody}\n\n${labeledInput}`.trim()
     : `${registerPromptBody}\n\n${labeledInput}`.trim()
 
   if (!forPreview) {
@@ -1523,7 +1569,9 @@ export async function parseForRegisterLlmHanatour(
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0,
-        maxOutputTokens: forPreview ? registerHanatourPreviewMaxOutputTokens() : REGISTER_FULL_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: forPreview
+          ? registerHanatourPreviewMaxOutputTokens(expectedDaysForSchedule)
+          : REGISTER_FULL_MAX_OUTPUT_TOKENS,
         /** 가능한 모델에서 순수 JSON만 받아 마크다운·설명 혼입 완화 (@google/generative-ai 타입에 없을 수 있어 단언) */
         ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
       },
@@ -1639,7 +1687,9 @@ ${text.slice(0, 16000)}`
         contents: [{ role: 'user', parts: [{ text: repairPrompt }] }],
         generationConfig: {
           temperature: 0,
-          maxOutputTokens: forPreview ? registerHanatourPreviewMaxOutputTokens() : REGISTER_FULL_MAX_OUTPUT_TOKENS,
+          maxOutputTokens: forPreview
+            ? registerHanatourPreviewMaxOutputTokens(expectedDaysForSchedule)
+            : REGISTER_FULL_MAX_OUTPUT_TOKENS,
           ...( { responseMimeType: 'application/json' } as { responseMimeType?: string }),
         },
       },
