@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { resolveBrowseCountryParamToCountryKeySlugs } from '@/lib/browse-country-url-resolve'
 import {
+  resolveMegaMenuEuropeMenuGroupExclusiveFilter,
   resolveMegaMenuGroupCountryKeySlugs,
   resolveMegaMenuMenuGroupSlugToCountryKeySlugs,
 } from '@/lib/mega-menu-browse-group'
@@ -25,5 +27,22 @@ describe('mega menu — 동유럽 browse countryKey', () => {
     for (const want of ['italy', 'france', 'switzerland', 'uk', 'germany', 'austria']) {
       expect(keys).toContain(want)
     }
+    expect(keys).not.toContain('poland')
+    expect(keys).not.toContain('czech')
+  })
+
+  it('austria slug does not pull poland via 동유럽 bucket', () => {
+    const keys = resolveBrowseCountryParamToCountryKeySlugs('austria')
+    expect(keys).toContain('austria')
+    expect(keys).not.toContain('poland')
+  })
+
+  it('서유럽 menuGroup excludes 동유럽 countryKeys', () => {
+    const filter = resolveMegaMenuEuropeMenuGroupExclusiveFilter('europe-me', 'western-europe')
+    expect(filter).not.toBeNull()
+    expect(filter!.include).toContain('austria')
+    expect(filter!.exclude).toContain('czech')
+    expect(filter!.exclude).toContain('hungary')
+    expect(filter!.include).not.toContain('poland')
   })
 })

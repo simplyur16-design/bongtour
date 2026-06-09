@@ -722,10 +722,10 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   italy: ['이탈리아'],
   uk: ['영국'],
   germany: ['독일'],
-  czech: ['동유럽'],
-  austria: ['동유럽'],
-  hungary: ['동유럽'],
-  poland: ['동유럽'],
+  czech: ['체코'],
+  austria: ['오스트리아'],
+  hungary: ['헝가리'],
+  poland: ['폴란드'],
   warsaw: ['동유럽'],
   바르샤바: ['동유럽'],
   spain: ['스페인'],
@@ -733,7 +733,7 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   greece: ['그리스'],
   turkey: ['튀르키예'],
   egypt: ['이집트'],
-  morocco: ['스페인', '포르투갈', '모로코'],
+  morocco: ['모로코'],
   norway: ['북유럽'],
   finland: ['북유럽'],
   denmark: ['덴마크'],
@@ -747,11 +747,11 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   'greece-turkey': ['그리스', '튀르키예'],
   /** 레거시 URL (구 그리스·이집트 결합 슬러그) */
   'greece-egypt': ['그리스', '이집트'],
-  'western-europe': ['프랑스', '스위스', '이탈리아', '영국'],
+  'western-europe': ['프랑스', '스위스', '이탈리아', '영국', '독일', '네덜란드', '벨기에', '오스트리아'],
   'eastern-europe': ['동유럽'],
   'southern-europe': ['이탈리아', '스페인', '그리스', '포르투갈'],
   'northern-europe': ['북유럽'],
-  서유럽: ['프랑스', '스위스', '이탈리아', '영국'],
+  서유럽: ['프랑스', '스위스', '이탈리아', '영국', '독일', '네덜란드', '벨기에', '오스트리아'],
   동유럽: ['동유럽'],
   북유럽: ['북유럽'],
   'middle-east': ['튀르키예'],
@@ -891,6 +891,28 @@ export function resolveBrowseCountryParamToDbCountries(param: string | null | un
   return []
 }
 
+/** 운영 DB 권역 버킷 — 개별 국가 슬러그 해석 시 트리 전체 합집합으로 퍼지면 안 됨 */
+const KOREAN_REGION_BUCKET_LABELS = new Set([
+  '동유럽',
+  '서유럽',
+  '북유럽',
+  '남유럽',
+  '중동',
+  '아프리카',
+  '중남미',
+  '남태평양',
+])
+
+function browseParamTargetsRegionBucketOnly(param: string, dbCountries: string[]): boolean {
+  const raw = param.trim().toLowerCase()
+  if (!raw) return false
+  return dbCountries.every(
+    (dbKr) =>
+      KOREAN_REGION_BUCKET_LABELS.has(dbKr) &&
+      (raw === countrySlugFromLabel(dbKr).toLowerCase() || raw === dbKr),
+  )
+}
+
 /**
  * browse `country` URL 값 → `ProductCountryTag.countryKey` 후보 (소문자, 트리 `countryKey` 정합).
  */
@@ -906,13 +928,20 @@ export function resolveBrowseCountryParamToCountryKeySlugs(param: string | null 
     const master = DB_KR_LABEL_TO_MASTER_COUNTRY_KEY[dbKr]
     if (master) out.add(master)
   }
+  const expandRegionBucketViaTree = browseParamTargetsRegionBucketOnly(trimmed, dbCountries)
+  const regionBuckets = dbCountries.filter((k) => KOREAN_REGION_BUCKET_LABELS.has(k))
+  const specificLabels = dbCountries.filter((k) => !KOREAN_REGION_BUCKET_LABELS.has(k))
   for (const g of OVERSEAS_LOCATION_TREE_DATA) {
     for (const co of g.countries) {
       const vals = inferDbCountriesFromTreeLabel(co)
-      if (vals.some((v) => dbCountries.includes(v))) {
-        const ck = co.countryKey.trim().toLowerCase()
-        if (ck) out.add(ck)
+      if (!vals.some((v) => dbCountries.includes(v))) continue
+      const ck = co.countryKey.trim().toLowerCase()
+      if (!ck) continue
+      if (regionBuckets.length > 0 && !expandRegionBucketViaTree) {
+        if (specificLabels.length === 0) continue
+        if (!vals.some((v) => specificLabels.includes(v))) continue
       }
+      out.add(ck)
     }
   }
   return [...out].filter(Boolean)

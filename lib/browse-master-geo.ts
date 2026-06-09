@@ -1,6 +1,7 @@
 /**
  * Browse URL → Prisma where (ProductCountryTag / ProductCityTag 단일 SSOT).
  * `Product.continent`·한글 `Product.country` 레거시 필드는 browse where에 쓰지 않는다.
+ * REGRESSION-FREEZE[europe-western-eastern-exclusive]: 서유럽·동유럽 menuGroup 상호 배제 — manifest
  */
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
@@ -13,6 +14,7 @@ import {
   masterContinentKeysFromBrowseRegion,
 } from '@/lib/browse-master-geo-continents'
 import {
+  resolveMegaMenuEuropeMenuGroupExclusiveFilter,
   resolveMegaMenuGroupCityKeys,
   resolveMegaMenuGroupCountryKeySlugs,
   resolveMegaMenuMenuGroupSlugToCountryKeySlugs,
@@ -120,6 +122,22 @@ export function prismaWhereProductCountryTagKeysIn(countryKeys: string[]): Prism
     return { countryTags: { some: { countryKey: { in: [BROWSE_NONE_COUNTRY_KEY] } } } }
   }
   return { countryTags: { some: { countryKey: { in: keys } } } }
+}
+
+/** include countryTag 일치 + exclude countryTag 없음 */
+export function prismaWhereProductCountryTagKeysIncludingExcluding(
+  includeKeys: string[],
+  excludeKeys: string[],
+): Prisma.ProductWhereInput {
+  const include = uniqueNonEmpty(includeKeys)
+  const exclude = uniqueNonEmpty(excludeKeys)
+  const parts: Prisma.ProductWhereInput[] = [prismaWhereProductCountryTagKeysIn(include)]
+  if (exclude.length > 0) {
+    parts.push({
+      NOT: { countryTags: { some: { countryKey: { in: exclude } } } },
+    })
+  }
+  return parts.length === 1 ? parts[0]! : { AND: parts }
 }
 
 /**
@@ -252,8 +270,26 @@ export async function buildOverseasBrowseGeoResolution(input: {
     if (groupCityKeys.length > 0) {
       whereClauses.push(prismaWhereBrowseCityKeys(groupCityKeys, countryScopeForCity()))
     } else {
+      const exclusive = resolveMegaMenuEuropeMenuGroupExclusiveFilter(r, mg)
       const groupCountryKeys = resolveMegaMenuGroupCountryKeySlugs(r, mg)
-      if (groupCountryKeys.length > 0) {
+      if (exclusive && exclusive.include.length > 0) {
+        let include = exclusive.include
+        if (regionCountryKeys.length > 0) {
+          include = include.filter((k) => regionCountryKeys.includes(k))
+        }
+        if (c) {
+          const fromUrl = intersectBrowseCountryKeys(
+            regionCountryKeys.length > 0 ? regionCountryKeys : exclusive.include,
+            c,
+          )
+          include = fromUrl.length > 0 ? fromUrl : include
+        }
+        let exclude = exclusive.exclude
+        if (regionCountryKeys.length > 0 && exclude.length > 0) {
+          exclude = exclude.filter((k) => regionCountryKeys.includes(k))
+        }
+        whereClauses.push(prismaWhereProductCountryTagKeysIncludingExcluding(include, exclude))
+      } else if (groupCountryKeys.length > 0) {
         const scoped =
           regionCountryKeys.length > 0
             ? groupCountryKeys.filter((k) => regionCountryKeys.includes(k))

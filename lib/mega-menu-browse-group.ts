@@ -1,6 +1,7 @@
 /**
  * 메가메뉴 열(현·도·미서부 등) → browse `menuGroup` 쿼리 및 Prisma city/country 키.
  * REGRESSION-FREEZE[eastern-europe-menu-group-country-keys]: 동유럽 LC leaf countryKey 합집합 — manifest
+ * REGRESSION-FREEZE[europe-western-eastern-exclusive]: 서유럽·동유럽 menuGroup 상호 배제 — manifest
  */
 import { resolveBrowseCityKeysForFilter, resolveBrowseCountryParamToCountryKeySlugs } from '@/lib/browse-country-url-resolve'
 import { countrySlugFromLabel, citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
@@ -110,4 +111,32 @@ export function resolveMegaMenuMenuGroupSlugToCountryKeySlugs(menuGroupSlug: str
     for (const k of resolveMegaMenuGroupCountryKeySlugs(tab.id, norm)) keys.add(k)
   }
   return [...keys]
+}
+
+export const EUROPE_WESTERN_MENU_GROUP_SLUG = 'western-europe'
+export const EUROPE_EASTERN_MENU_GROUP_SLUG = 'eastern-europe'
+
+/**
+ * 유럽 서유럽·동유럽 중분류 상호 배제 browse 필터.
+ * 서유럽: 서유럽 countryTag 있으나 동유럽 countryTag가 있으면 제외(오스트리아+체코 3국 패키지 등).
+ */
+export function resolveMegaMenuEuropeMenuGroupExclusiveFilter(
+  regionId: string,
+  menuGroupSlug: string,
+): { include: string[]; exclude: string[] } | null {
+  if (regionId !== 'europe-me') return null
+  const mg = menuGroupSlug.trim().toLowerCase()
+  if (mg === EUROPE_WESTERN_MENU_GROUP_SLUG) {
+    return {
+      include: resolveMegaMenuGroupCountryKeySlugs(regionId, EUROPE_WESTERN_MENU_GROUP_SLUG),
+      exclude: resolveMegaMenuGroupCountryKeySlugs(regionId, EUROPE_EASTERN_MENU_GROUP_SLUG),
+    }
+  }
+  if (mg === EUROPE_EASTERN_MENU_GROUP_SLUG) {
+    return {
+      include: resolveMegaMenuGroupCountryKeySlugs(regionId, EUROPE_EASTERN_MENU_GROUP_SLUG),
+      exclude: [],
+    }
+  }
+  return null
 }
