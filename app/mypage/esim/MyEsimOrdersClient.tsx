@@ -158,7 +158,7 @@ export default function MyEsimOrdersClient() {
     <div className="text-[#1F1B2D]">
       <MypagePageHeading
         title="내 eSIM 주문내역"
-        description="로그인 계정 이메일과 동일한 구매자 이메일로 결제한 주문만 표시됩니다."
+        description="결제 완료 주문은 데이터를 사용하지 않았을 때 아래에서 주문 취소·환불할 수 있습니다."
       />
 
       {err ? <p className="text-sm text-red-600">{err}</p> : null}
@@ -245,6 +245,7 @@ export default function MyEsimOrdersClient() {
                 cancelEligible={o.cancel_eligible}
                 cancelBlockReason={o.cancel_block_reason}
                 orderStatus={o.status}
+                showHeading
                 onSuccess={() => void load()}
               />
             </div>

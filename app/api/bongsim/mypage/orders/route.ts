@@ -114,7 +114,7 @@ export async function GET() {
 
     const orders = await Promise.all(
       ordersBase.map(async (o) => {
-        const refundElig = await getRefundEligibility(o.order_id);
+        const refundElig = await getRefundEligibility(o.order_id, { skipUsageCheck: true });
         return {
           ...o,
           cancel_eligible: refundElig.eligible,

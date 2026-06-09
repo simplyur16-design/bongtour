@@ -1,5 +1,9 @@
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import {
+  bongsimBuyerSessionIdentity,
+  isBongsimOrderOwnedBySession,
+} from "@/lib/bongsim/mypage/order-owned-by-session";
 import { getRefundEligibility } from "@/lib/bongsim/refund/refund-eligibility";
 import { processRefund } from "@/lib/bongsim/refund/process-refund";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
@@ -8,19 +12,15 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ orderId: string }> };
 
-function normEmail(s: string): string {
-  return s.trim().toLowerCase();
-}
-
-/** 고객 주문 취소(웰컴페이 전액 환불) — 로그인 이메일 = 주문 이메일 일치 시 */
+/** 고객 주문 취소(웰컴페이 전액 환불) — 마이페이지와 동일 소유권(이메일·회원 ID) */
 export async function POST(req: Request, ctx: Ctx) {
   if (!getPgPool()) {
     return jsonWithLeakGuard({ error: "db_unconfigured" }, "bongsim.orders.refund", { status: 503 });
   }
 
   const session = await auth();
-  const sessionEmail = normEmail(session?.user?.email ?? "");
-  if (!sessionEmail) {
+  const buyer = bongsimBuyerSessionIdentity(session);
+  if (!buyer.email && !buyer.userId) {
     return jsonWithLeakGuard({ error: "login_required" }, "bongsim.orders.refund", { status: 401 });
   }
 
@@ -28,16 +28,9 @@ export async function POST(req: Request, ctx: Ctx) {
   const id = orderId.trim();
 
   const pool = getPgPool()!;
-  const o = await pool.query<{ buyer_email: string }>(
-    `SELECT buyer_email FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
-    [id],
-  );
-  const order = o.rows[0];
-  if (!order) {
+  const owned = await isBongsimOrderOwnedBySession(pool, id, buyer);
+  if (!owned) {
     return jsonWithLeakGuard({ error: "not_found" }, "bongsim.orders.refund", { status: 404 });
-  }
-  if (normEmail(order.buyer_email) !== sessionEmail) {
-    return jsonWithLeakGuard({ error: "forbidden" }, "bongsim.orders.refund", { status: 403 });
   }
 
   let body: { reason?: unknown } = {};

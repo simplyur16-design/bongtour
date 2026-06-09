@@ -11,6 +11,8 @@ type Props = {
   orderStatus: string;
   /** 취소 성공 후 목록 갱신 등 — 없으면 `router.refresh()` */
   onSuccess?: () => void;
+  /** 마이페이지 — 취소 영역 제목 노출 */
+  showHeading?: boolean;
 };
 
 export function OrderCompleteRefundActions({
@@ -19,6 +21,7 @@ export function OrderCompleteRefundActions({
   cancelBlockReason,
   orderStatus,
   onSuccess,
+  showHeading = false,
 }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -88,7 +91,9 @@ export function OrderCompleteRefundActions({
 
   return (
     <section className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
-      <h2 className="text-[14px] font-semibold text-amber-950">주문 취소</h2>
+      <h2 className="text-[14px] font-semibold text-amber-950">
+        {showHeading ? "주문 취소·환불" : "주문 취소"}
+      </h2>
       <p className="mt-2 text-[13px] leading-relaxed text-amber-900">
         유심사 eSIM 발급을 취소한 뒤 카드 결제를 전액 환불합니다. 발급(QR·ICCID)만 된 상태이고 데이터를 사용하지 않았으면
         취소할 수 있습니다.

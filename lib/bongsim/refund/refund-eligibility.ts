@@ -6,7 +6,15 @@ export type RefundEligibility =
   | { eligible: true }
   | { eligible: false; code: string; message: string };
 
-export async function getRefundEligibility(orderId: string): Promise<RefundEligibility> {
+export type RefundEligibilityOptions = {
+  /** 마이페이지 목록 등 — 유심사 사용량 API는 취소 클릭 시 서버에서만 검증 */
+  skipUsageCheck?: boolean;
+};
+
+export async function getRefundEligibility(
+  orderId: string,
+  options?: RefundEligibilityOptions,
+): Promise<RefundEligibility> {
   const id = orderId.trim();
   const pool = getPgPool();
   if (!pool) return { eligible: false, code: "db_unconfigured", message: "DB 미설정" };
@@ -41,7 +49,8 @@ export async function getRefundEligibility(orderId: string): Promise<RefundEligi
       return {
         eligible: false,
         code: "invalid_status",
-        message: "결제 완료·발급 대기 중인 주문만 취소할 수 있습니다.",
+        message:
+          "결제가 완료된 주문만 취소할 수 있습니다. 결제 실패·대기 중이면 주문이 확정되지 않아 취소 메뉴가 없습니다.",
       };
     }
 
@@ -51,6 +60,10 @@ export async function getRefundEligibility(orderId: string): Promise<RefundEligi
 
     if (!(order.payment_reference ?? "").trim()) {
       return { eligible: false, code: "missing_payment_reference", message: "결제 정보가 없어 취소할 수 없습니다." };
+    }
+
+    if (options?.skipUsageCheck) {
+      return { eligible: true };
     }
 
     const usage = await checkUsimsaOrderDataUsageForRefund(id, client);

@@ -438,7 +438,8 @@ export default function BongsimPaymentsAdminClient() {
                     <div className="rounded-xl border border-amber-900/60 bg-amber-950/40 p-4">
                       <h3 className="font-semibold text-amber-200">환불 (웰컴페이 전액 취소)</h3>
                       <p className="mt-1 text-xs text-amber-100/80">
-                        eSIM ICCID가 발급된 주문은 환불할 수 없습니다. PG 취소 성공 시 주문 상태가 refunded로 바뀝니다.
+                        데이터를 사용하지 않은 eSIM은 ICCID(발급) 여부와 관계없이 환불할 수 있습니다. PG 취소 성공 시
+                        주문 상태가 refunded로 바뀝니다.
                       </p>
                       <label className="mt-3 block text-xs text-slate-400">
                         사유
