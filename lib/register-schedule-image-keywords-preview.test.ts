@@ -25,6 +25,27 @@ describe('overlayPreviewScheduleImageKeywords', () => {
     expect(out[0]!.imageKeyword2).toBe('Agra Fort')
   })
 
+  it('하나투어 자유여행은 패키지 imageKeyword 규칙(타지마할 등)을 적용하지 않는다', () => {
+    const llm = [
+      {
+        day: 2,
+        title: '아그라',
+        description: '타지마할 외부 관람',
+        routeText: '델리 - 아그라',
+        imageKeyword: 'Agra',
+        imageKeyword2: null,
+      },
+    ]
+    const preview = applyRegisterScheduleImageKeywordsForPreview(llm, {
+      supplierKey: 'hanatour',
+      productDestination: 'India',
+      travelScope: 'air_hotel_free',
+      productType: 'air-hotel',
+    })
+    expect(preview[0]!.imageKeyword).not.toBe('Taj Mahal')
+    expect(preview[0]!.imageKeyword).not.toBe('Agra Fort')
+  })
+
   it('하나투어 자유여행(airtel) 미리보기도 스파·식당 LLM 키워드를 랜드마크로 교정', () => {
     const llm = [
       {

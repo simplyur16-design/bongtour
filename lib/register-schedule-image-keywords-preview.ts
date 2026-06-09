@@ -39,11 +39,7 @@ export function applyRegisterScheduleImageKeywordsForPreview<
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   const dest = opts.productDestination ?? null
   if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
-    const routed = applyAirtelRouteTextImageKeywordsToSchedule(rows)
-    if (supplier === 'hanatour') {
-      return applyHanatourScheduleImageKeywordsToRows(routed, { productDestination: dest })
-    }
-    return routed
+    return applyAirtelRouteTextImageKeywordsToSchedule(rows)
   }
   const title = opts.productTitle ?? null
 
