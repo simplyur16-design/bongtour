@@ -6,8 +6,9 @@
  *  - 8 노출 경로 (browse / featured / sitemap / sitemap-images / gallery / product detail × 2 / home-hub) — 2-E
  *
  * 정책 SSOT:
- *  - 룰 A — 향후 180일(6개월) 이내 미래 출발일 0건 확인 시 `Product.noFutureDepartureConfirmedAt = NOW()` 기록.
- *           1건이라도 발견 시 NULL 로 초기화. `registrationStatus` 자동 변경 X (어드민 SSOT 유지).
+ *  - 룰 A — 향후 180일(6개월) 라이브 fetch 결과로 마커 갱신.
+ *           라이브 0건이어도 **DB에 오늘 이후 성인가 출발이 있으면** `noFutureDepartureConfirmedAt` 부착 안 함.
+ *           `registrationStatus` 자동 변경 X (어드민 SSOT 유지).
  *  - 룰 B — 마커 부착 AND `lastFutureDepartureDate < NOW() + 7d` 면 사용자 노출 제외.
  *
  * 봇 차단 회피 — 트랙 ⑤ B' 가드(`waitForSupplierThrottle`/`acquireSupplierLock`/
@@ -41,6 +42,7 @@ import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import type { DepartureInput } from '@/lib/upsert-product-departures-hanatour'
 import { hasPricedFutureDepartureInput } from '@/lib/product-six-month-price-verification'
 import { departureInputToYmd, filterDepartureInputsOnOrAfterCalendarToday } from '@/lib/scrape-date-bounds'
+import { reconcileRuleAMarkersWithDbFutureDepartures } from '@/lib/future-priced-departure-guard'
 import {
   acquireSupplierLock,
   humanDelayBeforeScrape,
@@ -390,7 +392,13 @@ export async function runOneSalesPolicyCheck(
     }
   }
 
-  const markers = computeRuleAMarkersFromDepartureInputs(livesRange, todayYmd)
+  const liveMarkers = computeRuleAMarkersFromDepartureInputs(livesRange, todayYmd)
+  const markers = await reconcileRuleAMarkersWithDbFutureDepartures(
+    prisma,
+    product.id,
+    todayYmd,
+    liveMarkers,
+  )
 
   await prisma.product.update({
     where: { id: product.id },
