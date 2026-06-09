@@ -1,7 +1,7 @@
 import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import ProductResultCardsClient from '@/app/components/home/ProductResultCardsClient'
-import SeasonCurationCarouselClient from '@/app/components/home/SeasonCurationCarouselClient'
+import SeasonCurationMobileBriefingClient from '@/app/components/home/SeasonCurationMobileBriefingClient'
 import MobileHomeClientErrorBoundary from '@/app/components/home/MobileHomeClientErrorBoundary'
 import HomeHubPhotoPlaceholder from '@/app/components/home/HomeHubPhotoPlaceholder'
 import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
@@ -131,7 +131,7 @@ export default async function HomeMobileHub() {
 
       {seasonSlides.length > 0 ? (
         <MobileHomeClientErrorBoundary section="season-curation">
-          <SeasonCurationCarouselClient slides={seasonSlides} variant="mobile" />
+          <SeasonCurationMobileBriefingClient slides={seasonSlides} />
         </MobileHomeClientErrorBoundary>
       ) : null}
 

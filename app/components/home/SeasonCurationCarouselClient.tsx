@@ -5,14 +5,8 @@ import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 import SafeImage from '@/app/components/SafeImage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeHomeSeasonSlidesForClient, type HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
-import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-section-typography'
 import { MAIN_CURATION_EYEBROW, MAIN_CURATION_LEAD, MAIN_CURATION_TITLE } from '@/lib/main-hub-copy'
-import {
-  MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS,
-  MOBILE_HUB_PRODUCT_ROW_SCROLL_CLASS,
-} from '@/lib/mobile-hub-scroll-layout'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
-import HorizontalScrollWithArrows from '@/components/ui/HorizontalScrollWithArrows'
 
 const AUTO_MS = 5600
 const PAUSE_AFTER_MS = 12_000
@@ -23,12 +17,12 @@ export const SEASON_CURATION_PHOTO_FILTER =
 
 type Props = {
   slides: HomeSeasonPickDTO[]
-  variant: 'desktop' | 'mobile'
   /** PC: `app/page.tsx` 앵커용 */
   sectionId?: string
 }
 
-export default function SeasonCurationCarouselClient({ slides, variant, sectionId }: Props) {
+/** PC 메인 시즌 캐러셀 — 모바일은 `SeasonCurationMobileBriefingClient` */
+export default function SeasonCurationCarouselClient({ slides, sectionId }: Props) {
   const safe = useMemo(() => normalizeHomeSeasonSlidesForClient(slides), [slides])
   const n = safe.length
   const [index, setIndex] = useState(0)
@@ -43,42 +37,15 @@ export default function SeasonCurationCarouselClient({ slides, variant, sectionI
   }, [])
 
   useEffect(() => {
-    if (n <= 1 || variant !== 'desktop') return
+    if (n <= 1) return
     const id = window.setInterval(() => {
       if (Date.now() < resumeAt.current) return
       setIndex((i) => (i + 1) % n)
     }, AUTO_MS)
     return () => window.clearInterval(id)
-  }, [n, variant])
+  }, [n])
 
   if (n === 0) return null
-
-  if (variant === 'mobile') {
-    return (
-      <section
-        id={sectionId}
-        aria-label="시즌 추천 여행 캐러셀"
-        className="rounded-2xl border border-bt-border-soft/80 bg-white/90 p-4 shadow-sm ring-1 ring-bt-bg-lavender/25"
-      >
-        <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-bt-text-muted-lavender">
-          {MAIN_CURATION_EYEBROW}
-        </p>
-        <h2 className={`${HOME_MOBILE_HUB_SECTION_TITLE_CLASS} mt-1 text-bt-text-navy`}>{MAIN_CURATION_TITLE}</h2>
-        <HorizontalScrollWithArrows
-          as="ul"
-          className="mt-3"
-          scrollClassName={MOBILE_HUB_PRODUCT_ROW_SCROLL_CLASS}
-          ariaLabel="시즌 추천 여행"
-        >
-          {safe.map((slide) => (
-            <li key={slide.id} className={MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS}>
-              <SeasonCurationCardLink slide={slide} compact />
-            </li>
-          ))}
-        </HorizontalScrollWithArrows>
-      </section>
-    )
-  }
 
   const slide = safe[index]!
 
@@ -138,10 +105,13 @@ export function SeasonCurationCardLink({
   slide,
   compact,
   hero = false,
+  mobileBriefing = false,
 }: {
   slide: HomeSeasonPickDTO
   compact: boolean
   hero?: boolean
+  /** 모바일 메인 브리핑 — 풀폭·세로 비율 확대 */
+  mobileBriefing?: boolean
 }) {
   const href = (slide.ctaHref ?? '/travel/overseas').trim() || '/travel/overseas'
   const title = slide.title.trim()
@@ -157,9 +127,11 @@ export function SeasonCurationCardLink({
         className={`relative w-full overflow-hidden bg-slate-100 ${
           hero
             ? 'min-h-[min(28rem,58vh)] sm:min-h-[min(32rem,62vh)]'
-            : compact
-              ? 'aspect-[16/11]'
-              : 'aspect-[21/9] sm:aspect-[24/9]'
+            : mobileBriefing
+              ? 'aspect-[4/5] min-h-[min(14rem,35vh)] w-full max-h-[39vh]'
+              : compact
+                ? 'aspect-[16/11]'
+                : 'aspect-[21/9] sm:aspect-[24/9]'
         }`}
       >
         <div className={`absolute inset-0 z-[1] ${SEASON_CURATION_PHOTO_FILTER}`}>
@@ -170,7 +142,7 @@ export function SeasonCurationCardLink({
               fill
               className="object-cover object-center"
               sizes={
-                hero
+                hero || mobileBriefing
                   ? '100vw'
                   : compact
                     ? '(max-width:768px) 85vw, 320px'
@@ -193,9 +165,11 @@ export function SeasonCurationCardLink({
           className={`absolute inset-0 z-[3] flex flex-col ${
             hero
               ? 'items-end justify-end pb-8 pr-4 pt-0 sm:pb-12 sm:pr-6'
-              : compact
-                ? 'justify-end p-4'
-                : 'justify-end p-6 sm:p-8'
+              : mobileBriefing
+                ? 'justify-end p-5'
+                : compact
+                  ? 'justify-end p-4'
+                  : 'justify-end p-6 sm:p-8'
           }`}
         >
           <div
@@ -211,7 +185,13 @@ export function SeasonCurationCardLink({
           {title ? (
             <h3
               className={`font-bold leading-tight tracking-tight text-white drop-shadow ${
-                hero ? 'text-3xl sm:text-4xl lg:text-5xl' : compact ? 'text-lg' : 'text-2xl sm:text-3xl'
+                hero
+                  ? 'text-3xl sm:text-4xl lg:text-5xl'
+                  : mobileBriefing
+                    ? 'text-2xl'
+                    : compact
+                      ? 'text-lg'
+                      : 'text-2xl sm:text-3xl'
               }`}
             >
               {title}
@@ -222,9 +202,11 @@ export function SeasonCurationCardLink({
               className={`mt-1 text-white/90 drop-shadow ${
                 hero
                   ? 'max-w-3xl text-lg sm:text-xl'
-                  : compact
-                    ? 'text-sm line-clamp-2'
-                    : 'text-base sm:text-lg'
+                  : mobileBriefing
+                    ? 'text-base line-clamp-3'
+                    : compact
+                      ? 'text-sm line-clamp-2'
+                      : 'text-base sm:text-lg'
               }`}
             >
               {subtitle}
@@ -232,7 +214,13 @@ export function SeasonCurationCardLink({
           ) : excerpt ? (
             <p
               className={`mt-1 text-white/90 drop-shadow ${
-                hero ? 'max-w-3xl text-base sm:text-lg line-clamp-3' : compact ? 'text-sm line-clamp-2' : 'line-clamp-2 text-base'
+                hero
+                  ? 'max-w-3xl text-base sm:text-lg line-clamp-3'
+                  : mobileBriefing
+                    ? 'text-base line-clamp-3'
+                    : compact
+                      ? 'text-sm line-clamp-2'
+                      : 'line-clamp-2 text-base'
               }`}
             >
               {excerpt}
@@ -240,7 +228,7 @@ export function SeasonCurationCardLink({
           ) : null}
           <span
             className={`mt-5 inline-flex w-fit items-center rounded-full bg-white/95 px-5 py-2.5 font-bold text-bt-text-navy shadow ${
-              hero ? 'text-base sm:text-lg' : compact ? 'text-xs' : 'text-sm'
+              hero ? 'text-base sm:text-lg' : mobileBriefing ? 'text-sm' : compact ? 'text-xs' : 'text-sm'
             }`}
           >
             {cta}
@@ -253,7 +241,9 @@ export function SeasonCurationCardLink({
 
   const cardClass = hero
     ? 'group block w-full overflow-hidden rounded-none border-y border-bt-border-soft/80 shadow-lg outline-none ring-bt-text-navy/0 transition hover:ring-2 hover:ring-bt-text-navy/15'
-    : 'group block overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-sm outline-none ring-bt-text-navy/0 transition hover:ring-2 hover:ring-bt-text-navy/15'
+    : mobileBriefing
+      ? 'group block w-full overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-sm outline-none ring-bt-text-navy/0 transition hover:ring-2 hover:ring-bt-text-navy/15'
+      : 'group block overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-sm outline-none ring-bt-text-navy/0 transition hover:ring-2 hover:ring-bt-text-navy/15'
 
   if (isExternal) {
     return (
