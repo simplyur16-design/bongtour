@@ -152,6 +152,45 @@
       ]
     },
     {
+      "id": "eastern-europe-menu-group-country-keys",
+      "tier": ["prebuild", "ci"],
+      "summary": "동유럽 menuGroup — LC leaf countryKey 합집합 (poland 단일 폴백 금지)",
+      "checks": [
+        {
+          "file": "lib/mega-menu-browse-group.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[eastern-europe-menu-group-country-keys]",
+            "countryKeysFromMegaMenuGroupLeaves",
+            "resolveMegaMenuMenuGroupSlugToCountryKeySlugs",
+            "REGION_MENU_GROUP_PSEUDO_SLUGS"
+          ]
+        },
+        {
+          "file": "lib/browse-master-geo.ts",
+          "mustInclude": ["resolveMegaMenuMenuGroupSlugToCountryKeySlugs"]
+        },
+        {
+          "file": "lib/location-url-slugs.ts",
+          "mustInclude": ["폴란드: 'poland'", "크로아티아: 'croatia'", "슬로베니아: 'slovenia'"]
+        }
+      ]
+    },
+    {
+      "id": "cebu-island-geo-priority",
+      "tier": ["prebuild", "ci"],
+      "summary": "세부 아일랜드 상품 — EU ireland 오매칭 방지 (philippines/cebu 우선)",
+      "checks": [
+        {
+          "file": "lib/match-overseas-product.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cebu-island-geo-priority]",
+            "PHILIPPINES_CEBU_ISLAND_CONTEXT_RE",
+            "earlyMatchPhilippinesCebuIslandContext"
+          ]
+        }
+      ]
+    },
+    {
       "id": "airtel-fit-per-day-keywords",
       "tier": ["prebuild", "ci"],
       "summary": "에어텔 일정 imageKeyword — 단일 키워드 전일차 강제 금지",
@@ -468,6 +507,15 @@
         "lib/bongsim/welcomepay-vbank-noti.test.ts",
         "lib/bongsim/welcomepay-pg-text-decode.test.ts",
         "lib/bongsim/checkout/welcomepay-pg-auth-fail-message.test.ts"
+      ]
+    },
+    {
+      "id": "browse-mega-menu-geo",
+      "tier": ["ci"],
+      "summary": "동유럽 menuGroup countryKey·세부 아일랜드 geo 매칭 vitest",
+      "files": [
+        "lib/mega-menu-eastern-europe-browse.test.ts",
+        "lib/match-overseas-product-cebu-island.test.ts"
       ]
     }
   ]

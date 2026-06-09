@@ -234,6 +234,19 @@ async function verifyMegaMenuBrowseUrls(
     issues.push(`[check] france → ${JSON.stringify(fr)}`)
   }
 
+  const { resolveMegaMenuGroupCountryKeySlugs } = await import('@/lib/mega-menu-browse-group')
+  const easternMenuGroupKeys = resolveMegaMenuGroupCountryKeySlugs('europe-me', 'eastern-europe')
+  for (const want of ['czech', 'hungary', 'poland']) {
+    if (!easternMenuGroupKeys.includes(want)) {
+      issues.push(
+        `[eastern-europe-menuGroup] missing ${want} got=${JSON.stringify(easternMenuGroupKeys)}`,
+      )
+    }
+  }
+  if (easternMenuGroupKeys.length === 1 && easternMenuGroupKeys[0] === 'poland') {
+    issues.push('[eastern-europe-menuGroup] regressed to poland-only resolution')
+  }
+
   if (issues.length) {
     console.error('[FAIL] static mega-menu URL resolve:', issues.length)
     for (const x of issues) console.error(`  ${x}`)
@@ -253,11 +266,13 @@ async function verifyTagGeoConsistency(prisma: import('@prisma/client').PrismaCl
     region?: string
     country?: string
     city?: string
+    menuGroup?: string | null
   }) {
     const geo = await buildOverseasBrowseGeoResolution({
       region: query.region ?? null,
       country: query.country ?? null,
       city: query.city ?? null,
+      menuGroup: query.menuGroup ?? null,
     })
     const rows = await prisma.product.findMany({
       where: {
@@ -295,6 +310,15 @@ async function verifyTagGeoConsistency(prisma: import('@prisma/client').PrismaCl
   const c2 = await assertPrismaMatchesMemory({ region: 'japan', city: 'tokyo' })
   if (c2 < 3) throw new Error(`japan+tokyo expected >=3, got ${c2}`)
   console.log(`[ok] tag drift check japan+tokyo: ${c2}건`)
+
+  const easternHeaderQ = {
+    region: 'europe-me',
+    country: 'eastern-europe',
+    city: null as string | null,
+    menuGroup: 'eastern-europe',
+  }
+  const c3 = await assertPrismaMatchesMemory(easternHeaderQ)
+  console.log(`[ok] tag drift check europe-me+eastern-europe menuGroup: ${c3}건`)
 
   const denmarkKeys = await resolveBrowseCardKeyToCountryKeys('nordic-baltic-cluster')
   if (!denmarkKeys.includes('denmark')) {
@@ -442,6 +466,7 @@ async function main() {
       { id: 'C-us-west-header', href: headerHref('americas', '미서부'), min: 1 },
       { id: 'J-mexico-sa', href: leafHref('south-america', '중남미', '멕시코'), min: 1 },
       { id: 'C-vietnam-header', href: headerHref('southeast-asia', '베트남'), min: 1 },
+      { id: 'C-eastern-europe-header', href: headerHref('europe-me', '동유럽'), min: 1 },
     ]
 
     for (const c of hrefCases) {
@@ -462,6 +487,27 @@ async function main() {
       failed = true
     } else {
       console.log(`[ok] hokkaido ⊂ japan: ${hokkaidoOnly.n} / ${japanAll.n}`)
+    }
+
+    const easternEuropeRegionKeys = await resolveBrowseRegionToCountryKeys('eastern-europe')
+    for (const want of ['czech', 'hungary', 'poland']) {
+      if (!easternEuropeRegionKeys.includes(want)) {
+        console.error(
+          `[FAIL] region=eastern-europe missing ${want} got=${easternEuropeRegionKeys.join(',')}`,
+        )
+        failed = true
+      }
+    }
+
+    const europeMeTab = await countBrowse(deps, { region: 'europe-me', country: null, city: null, menuGroup: null })
+    const easternEuropeOnly = await countBrowse(deps, parseBrowseHref(headerHref('europe-me', '동유럽')))
+    if (easternEuropeOnly.n >= europeMeTab.n && europeMeTab.n > 0) {
+      console.error(
+        `[FAIL] eastern-europe menuGroup should narrow europe-me tab: eastern=${easternEuropeOnly.n} all=${europeMeTab.n}`,
+      )
+      failed = true
+    } else {
+      console.log(`[ok] eastern-europe ⊂ europe-me: ${easternEuropeOnly.n} / ${europeMeTab.n}`)
     }
 
     const missingCityTag = await prisma.product.count({

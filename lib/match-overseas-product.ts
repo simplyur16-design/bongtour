@@ -275,6 +275,7 @@ const SHORT_COUNTRY_LEAF_HINTS: Array<{
 /**
  * 필리핀 세부·제이파크 등 — 제목/목적지의 「아일랜드」는 EU 아일랜드(ireland)가 아님.
  * `세부 아일랜드`, `제이파크 아일랜드`, `인천세부인천` 등이 EU `아일랜드` leaf보다 우선.
+ * REGRESSION-FREEZE[cebu-island-geo-priority]: 세부 아일랜드 → philippines/cebu — manifest
  */
 const PHILIPPINES_CEBU_ISLAND_CONTEXT_RE =
   /(?:^|[\s#·/,，、])세부(?:\s*아일랜드|[\s#·/,，、]|$)|(?:^|[\s#·/,，、])세부[\s#·/,，、]|인천세부인천|\bcebu\b|제이파크|jpark|\bCEB\b/i

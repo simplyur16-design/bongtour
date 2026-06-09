@@ -1,5 +1,6 @@
 /**
  * 메가메뉴 열(현·도·미서부 등) → browse `menuGroup` 쿼리 및 Prisma city/country 키.
+ * REGRESSION-FREEZE[eastern-europe-menu-group-country-keys]: 동유럽 LC leaf countryKey 합집합 — manifest
  */
 import { resolveBrowseCityKeysForFilter, resolveBrowseCountryParamToCountryKeySlugs } from '@/lib/browse-country-url-resolve'
 import { countrySlugFromLabel, citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
