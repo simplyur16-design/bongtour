@@ -30,7 +30,7 @@ export function welcomepayPgAuthFailMessage(input: {
   return "결제 인증에 실패했습니다.";
 }
 
-/** 인증 단계 성공 코드 — 모바일 `00`·PC `0000` 등 */
+/** PG 인증·승인 성공 코드 — 모바일 `00`·PC `0000` 등 (승인 API도 `00` 반환) */
 export function isWelcomepayAuthSuccessCode(code: string): boolean {
   const rc = code.trim();
   return rc === "0000" || rc === "00" || rc === "0";

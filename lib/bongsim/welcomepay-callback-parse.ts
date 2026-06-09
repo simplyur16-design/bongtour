@@ -34,6 +34,8 @@ export function resultCodeOf(m: Record<string, string>): string {
     m.ResultCode ??
     m.RESULTCODE ??
     m.resultcode ??
+    m.resultcod ??
+    m.RESULTCOD ??
     m.P_STATUS ??
     m.p_status ??
     "";

@@ -199,7 +199,7 @@ async function handleWelcomepayMobileNext(req: Request) {
   const authMap = parseWelcomepayPayload(authText);
   const merged: Record<string, string> = { ...incoming, ...authMap };
   const rc = resultCodeOf(merged);
-  if (rc !== "0000") {
+  if (!isWelcomepayAuthSuccessCode(rc)) {
     const msg = merged.resultMsg ?? merged.ResultMsg ?? `resultCode=${rc || "unknown"}`;
     return fail(msg);
   }

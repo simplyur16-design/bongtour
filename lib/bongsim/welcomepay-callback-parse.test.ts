@@ -5,6 +5,7 @@ import {
   parseWelcomepayPayload,
   pickOid,
   readWelcomepayCallbackFromRequest,
+  resultCodeOf,
 } from "@/lib/bongsim/welcomepay-callback-parse";
 
 describe("welcomepay-callback-parse", () => {
@@ -15,6 +16,12 @@ describe("welcomepay-callback-parse", () => {
   it("pickOid — 모바일 P_OID·P_NOTI", () => {
     expect(pickOid({ P_OID: "MID_1710000000001" })).toBe("MID_1710000000001");
     expect(pickOid({ p_noti: "MID_1710000000002" })).toBe("MID_1710000000002");
+  });
+
+  it("resultCodeOf — 모바일 승인 resultcod·P_STATUS 00", () => {
+    expect(resultCodeOf({ resultcod: "00" })).toBe("00");
+    expect(resultCodeOf({ P_STATUS: "00" })).toBe("00");
+    expect(resultCodeOf({ resultCode: "0000" })).toBe("0000");
   });
 
   it("parseWelcomepayPayload — urlencoded", () => {
