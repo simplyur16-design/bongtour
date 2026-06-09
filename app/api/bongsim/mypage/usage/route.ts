@@ -52,6 +52,7 @@ export async function GET(req: Request) {
     const top = await pool.query<{ topup_id: string }>(
       `SELECT topup_id FROM bongsim_fulfillment_topup
         WHERE order_id = $1::uuid AND supplier_id = 'usimsa'
+          AND status NOT IN ('canceled', 'failed')
         ORDER BY created_at ASC
         LIMIT 1`,
       [orderId],

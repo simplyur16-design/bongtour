@@ -52,6 +52,16 @@ export function EsimInstallSection({ install }: { install: BongsimOrderPublicEsi
   }
 
   if (!install.ready) {
+    if (install.revoked) {
+      return (
+        <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <h2 className="text-[13px] font-semibold text-slate-800">eSIM 설치</h2>
+          <p className="mt-2 text-[12px] leading-relaxed text-slate-600">
+            주문이 취소(환불)되어 QR·문자로 받은 eSIM은 더 이상 설치·사용할 수 없습니다.
+          </p>
+        </section>
+      );
+    }
     return (
       <section className="rounded-2xl border border-dashed border-amber-200 bg-amber-50/80 p-4">
         <h2 className="text-[13px] font-semibold text-amber-950">eSIM 설치</h2>

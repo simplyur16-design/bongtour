@@ -20,6 +20,8 @@ export type BongsimOrderPublicFulfillmentV1 = {
 /** QR 이미지 URL + SM-DP+ / 활성화 코드 (수동 설치) */
 export type BongsimOrderPublicEsimInstallV1 = {
   ready: boolean;
+  /** 환불·취소 완료(또는 처리 중) — QR·문자 링크 비노출 */
+  revoked?: boolean;
   qr_image_url: string | null;
   sm_dp_plus_address: string | null;
   activation_code: string | null;

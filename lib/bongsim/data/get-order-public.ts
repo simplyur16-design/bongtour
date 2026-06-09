@@ -137,6 +137,7 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
       `SELECT qr_code_img_url, download_link, smdp, activate_code
          FROM bongsim_fulfillment_topup
         WHERE order_id = $1
+          AND status NOT IN ('canceled', 'failed')
           AND (
             COALESCE(qr_code_img_url, '') <> ''
             OR COALESCE(download_link, '') <> ''
@@ -153,6 +154,7 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
       `SELECT iccid
          FROM bongsim_fulfillment_topup
         WHERE order_id = $1
+          AND status NOT IN ('canceled', 'failed')
         ORDER BY created_at ASC`,
       [id],
     );

@@ -1,5 +1,6 @@
 import { bongsimPath } from "@/lib/bongsim/constants";
 import type { BongsimOrderPublicEsimInstallV1 } from "@/lib/bongsim/contracts/order-public.v1";
+import { isBongsimOrderEsimRevoked } from "@/lib/bongsim/fulfillment/active-topup-status";
 import { absoluteUrl } from "@/lib/site-metadata";
 
 const APPLE_ESIM_QR_PROVISIONING_BASE =
@@ -34,6 +35,18 @@ export function buildEsimInstallFromTopup(params: {
   smdp: string | null;
   activate_code: string | null;
 }): BongsimOrderPublicEsimInstallV1 {
+  const revoked = isBongsimOrderEsimRevoked(params.orderStatus);
+  if (revoked) {
+    return {
+      ready: false,
+      revoked: true,
+      qr_image_url: null,
+      sm_dp_plus_address: null,
+      activation_code: null,
+      apple_quick_install_url: null,
+    };
+  }
+
   const qr = params.qr_code_img_url?.trim() || null;
   const downloadLink = params.download_link?.trim() || null;
   const smDpPlusAddress = params.smdp?.trim() || null;

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { countryDisplayFromPlanNameKr } from "@/lib/bongsim/mypage-esim-display";
 import { pickPrimaryVerificationIccid } from "@/lib/bongsim/esim/iccid-verification";
+import { isActiveBongsimTopupStatus } from "@/lib/bongsim/fulfillment/active-topup-status";
 import { getRefundEligibility } from "@/lib/bongsim/refund/refund-eligibility";
 
 export const dynamic = "force-dynamic";
@@ -61,7 +62,8 @@ export async function GET() {
                'iccid', t.iccid
              ) ORDER BY t.created_at)
              FROM bongsim_fulfillment_topup t
-            WHERE t.order_id = o.order_id AND t.supplier_id = 'usimsa'),
+            WHERE t.order_id = o.order_id AND t.supplier_id = 'usimsa'
+              AND t.status NOT IN ('canceled', 'failed')),
            '[]'::json
          ) AS topups
        FROM bongsim_order o
@@ -75,12 +77,15 @@ export async function GET() {
     const ordersBase = r.rows.map((row) => {
       const planName = row.plan_name?.trim() || "—";
       const { flag, countryLabel } = countryDisplayFromPlanNameKr(planName);
-      const topups = Array.isArray(row.topups) ? row.topups : [];
+      const topups = (Array.isArray(row.topups) ? row.topups : []).filter((t) =>
+        isActiveBongsimTopupStatus(String(t.status ?? "")),
+      );
       const primaryQr = topups.find((t) => (t.qr_code_img_url ?? "").trim().length > 0)?.qr_code_img_url ?? null;
       const primarySmdp = topups.find((t) => (t.smdp ?? "").trim().length > 0)?.smdp?.trim() ?? null;
       const primaryActivateCode =
         topups.find((t) => (t.activate_code ?? "").trim().length > 0)?.activate_code?.trim() ?? null;
-      const canEsimActions = row.status === "delivered" && Boolean(primaryQr);
+      const canEsimActions =
+        row.status === "delivered" && Boolean(primaryQr || primarySmdp || primaryActivateCode);
       const travelerVerificationIccid = pickPrimaryVerificationIccid(topups);
 
       return {

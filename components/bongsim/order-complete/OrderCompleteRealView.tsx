@@ -48,7 +48,9 @@ function nextStepMessage(o: BongsimOrderPublicV1): string {
   if (o.status === "refund_requested") {
     return "카드 취소·환불을 처리하고 있습니다. 완료되면 이 페이지에 반영됩니다.";
   }
-  if (o.status === "refunded") return "주문이 취소(환불)되었습니다.";
+  if (o.status === "refunded") {
+    return "주문이 취소(환불)되었습니다. 문자·QR로 받은 eSIM은 더 이상 사용할 수 없습니다.";
+  }
   if (o.status !== "paid" && o.status !== "delivered") return "주문 상태를 확인해 주세요.";
   if (!o.fulfillment) return "배송 준비 중입니다.";
   if (o.fulfillment.status === "delivered") return "eSIM이 발급되었습니다. 이메일 또는 설치 안내를 확인해 주세요.";
