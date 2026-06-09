@@ -3,7 +3,7 @@
 import SafeImage from "@/app/components/SafeImage";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { DeviceCheckCard } from "@/components/bongsim/DeviceCheckCard";
 import { DeviceCompatibilityModal } from "@/components/bongsim/DeviceCompatibilityModal";
 import { ProductInfoSection } from "@/components/bongsim/ProductInfoSection";
@@ -415,47 +415,63 @@ export function ProductDetailClient({ model }: Props) {
                 <div className="mt-6 flex flex-col gap-3">
                   {plans.map((p) => {
                     const sel = p.id === effectivePlanId;
+                    const planCheckoutHref = bongsimPath(`/checkout?planId=${encodeURIComponent(p.id)}`);
                     return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setPickedPlanId(p.id)}
-                        className={`overflow-hidden rounded-2xl border-2 text-left transition ${
-                          sel
-                            ? "border-teal-600 bg-white shadow-md ring-2 ring-teal-100"
-                            : "border-slate-200 bg-white hover:border-slate-300"
-                        }`}
-                      >
-                        {p.isRecommended ? (
-                          <div className="bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-2 text-center text-[11px] font-bold text-white">
-                            많이 고른 요금제
+                      <Fragment key={p.id}>
+                        <button
+                          type="button"
+                          onClick={() => setPickedPlanId(p.id)}
+                          className={`overflow-hidden rounded-2xl border-2 text-left transition ${
+                            sel
+                              ? "border-teal-600 bg-white shadow-md ring-2 ring-teal-100"
+                              : "border-slate-200 bg-white hover:border-slate-300"
+                          }`}
+                        >
+                          {p.isRecommended ? (
+                            <div className="bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-2 text-center text-[11px] font-bold text-white">
+                              많이 고른 요금제
+                            </div>
+                          ) : null}
+                          <div className="px-4 py-4 sm:px-5 sm:py-5">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-[15px] font-bold leading-snug text-slate-900">{p.title}</p>
+                                </div>
+                                {p.subtitle ? (
+                                  <p className="mt-1.5 text-[12px] leading-relaxed text-slate-600">{p.subtitle}</p>
+                                ) : null}
+                              </div>
+                              <p className="shrink-0 text-lg font-black tabular-nums text-slate-900">{formatKrw(p.priceKrw)}</p>
+                            </div>
+                            <p className="mt-2 text-[11px] font-medium text-slate-400">부가세 포함 안내 기준가 · 결제 단계에서 확정</p>
+                            {p.benefitLines && p.benefitLines.length > 0 ? (
+                              <ul className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-[12px] leading-relaxed text-slate-600">
+                                {p.benefitLines.map((line) => (
+                                  <li key={line} className="flex gap-2">
+                                    <span className="font-bold text-teal-700">·</span>
+                                    <span>{line}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </div>
+                        </button>
+                        {sel ? (
+                          <div className="rounded-2xl border-2 border-teal-300 bg-teal-50/95 p-4 shadow-[0_8px_24px_-8px_rgba(15,118,110,0.35)] ring-1 ring-teal-100">
+                            <div className="mb-3 flex items-center justify-between gap-3">
+                              <span className="text-sm font-semibold text-slate-700">선택한 요금제</span>
+                              <span className="text-lg font-black tabular-nums text-slate-900">{formatKrw(p.priceKrw)}</span>
+                            </div>
+                            <Link
+                              href={planCheckoutHref}
+                              className="flex min-h-[3.35rem] w-full items-center justify-center rounded-2xl bg-teal-700 text-[16px] font-bold text-white shadow-lg transition hover:bg-teal-800"
+                            >
+                              결제하기
+                            </Link>
                           </div>
                         ) : null}
-                        <div className="px-4 py-4 sm:px-5 sm:py-5">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-[15px] font-bold leading-snug text-slate-900">{p.title}</p>
-                              </div>
-                              {p.subtitle ? (
-                                <p className="mt-1.5 text-[12px] leading-relaxed text-slate-600">{p.subtitle}</p>
-                              ) : null}
-                            </div>
-                            <p className="shrink-0 text-lg font-black tabular-nums text-slate-900">{formatKrw(p.priceKrw)}</p>
-                          </div>
-                          <p className="mt-2 text-[11px] font-medium text-slate-400">부가세 포함 안내 기준가 · 결제 단계에서 확정</p>
-                          {p.benefitLines && p.benefitLines.length > 0 ? (
-                            <ul className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-[12px] leading-relaxed text-slate-600">
-                              {p.benefitLines.map((line) => (
-                                <li key={line} className="flex gap-2">
-                                  <span className="font-bold text-teal-700">·</span>
-                                  <span>{line}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : null}
-                        </div>
-                      </button>
+                      </Fragment>
                     );
                   })}
                 </div>
@@ -487,12 +503,9 @@ export function ProductDetailClient({ model }: Props) {
                 <p className="mt-1 text-2xl font-black tabular-nums tracking-tight text-slate-900">{formatKrw(priceKrw)}</p>
               </div>
               {selected ? <p className="line-clamp-3 text-[13px] leading-relaxed text-slate-600">{selected.title}</p> : null}
-              <Link
-                href={checkoutHref}
-                className="flex min-h-[3.35rem] w-full items-center justify-center rounded-2xl bg-teal-700 text-[16px] font-bold text-white shadow-lg transition hover:bg-teal-800"
-              >
-                결제하기
-              </Link>
+              <p className="rounded-xl bg-slate-50 px-4 py-3 text-center text-[13px] font-medium leading-relaxed text-slate-600 ring-1 ring-slate-100">
+                선택한 요금제 바로 아래에서 결제할 수 있어요
+              </p>
             </div>
           </aside>
         </div>

@@ -436,6 +436,20 @@ export function ComparePlansPopup({
                 {individualTotal != null ? formatKrw(individualTotal) : "—"}
               </span>
             </div>
+            {boxChoice === "individual" && payReady ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCheckout(individualCheckoutQueue);
+                }}
+                className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-teal-700 px-6 text-base font-bold text-white shadow-md transition hover:bg-teal-800"
+              >
+                {checkoutAmount != null
+                  ? `결제하기 · ${formatKrw(checkoutAmount)}`
+                  : "결제하기"}
+              </button>
+            ) : null}
           </section>
 
           {multiVisible ? (
@@ -479,29 +493,32 @@ export function ComparePlansPopup({
                   kycDistribution={multiKycDistribution}
                 />
               )}
+              {boxChoice === "multi" && payReady ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCheckout(multiCheckoutQueue);
+                  }}
+                  className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-teal-700 px-6 text-base font-bold text-white shadow-md transition hover:bg-teal-800"
+                >
+                  {checkoutAmount != null
+                    ? `결제하기 · ${formatKrw(checkoutAmount)}`
+                    : "결제하기"}
+                </button>
+              ) : null}
             </section>
           ) : null}
         </div>
 
         <div className="border-t border-slate-100 px-5 py-4">
-          <button
-            type="button"
-            disabled={!payReady}
-            onClick={() => {
-              if (!payReady) return;
-              if (boxChoice === "individual") onCheckout(individualCheckoutQueue);
-              else if (boxChoice === "multi") onCheckout(multiCheckoutQueue);
-            }}
-            className={`inline-flex min-h-12 w-full items-center justify-center rounded-xl px-6 text-base font-bold text-white ${
-              payReady
-                ? "bg-teal-700 shadow-md transition hover:bg-teal-800"
-                : "cursor-not-allowed bg-slate-300 opacity-90"
-            }`}
-          >
-            {payReady && checkoutAmount != null
-              ? `결제하기 · ${formatKrw(checkoutAmount)}`
-              : "플랜을 선택하세요"}
-          </button>
+          {payReady ? (
+            <p className="text-center text-xs text-slate-500 sm:text-sm">
+              선택한 플랜 바로 아래에서 결제할 수 있어요
+            </p>
+          ) : (
+            <p className="text-center text-sm font-medium text-slate-500">비교할 플랜을 선택하세요</p>
+          )}
         </div>
       </div>
     </RecommendModalShell>

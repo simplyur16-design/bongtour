@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { submitMockCapturePayment } from "@/lib/bongsim/checkout/mock-capture-server";
+import { buildCheckoutReturnSuccessPath } from "@/lib/bongsim/checkout/build-checkout-return-success-url";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import { isMockPaymentCaptureAllowed } from "@/lib/bongsim/runtime/mock-payment-allowance";
 
@@ -19,7 +20,5 @@ export async function completeMockPaymentForm(formData: FormData) {
       `${bongsimPath("/checkout/return/fail")}?orderId=${encodeURIComponent(orderId)}&reason=${encodeURIComponent(res.error)}`,
     );
   }
-  redirect(
-    `${bongsimPath("/checkout/return/success")}?orderId=${encodeURIComponent(res.order_id)}`,
-  );
+  redirect(buildCheckoutReturnSuccessPath({ orderId: res.order_id }));
 }

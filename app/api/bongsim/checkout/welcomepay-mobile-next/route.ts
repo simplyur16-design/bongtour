@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
-import { bongsimPath } from "@/lib/bongsim/constants";
+import { buildCheckoutReturnSuccessUrl } from "@/lib/bongsim/checkout/build-checkout-return-success-url";
 import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/payment-result-redirect";
 import {
   isWelcomepayAuthSuccessCode,
@@ -258,10 +258,7 @@ async function handleWelcomepayMobileNext(req: Request) {
     return fail(welcomepayCheckoutFailMessage(fin));
   }
 
-  const okQ = new URLSearchParams();
-  okQ.set("orderId", orderId);
-  if (orderNumber.trim()) okQ.set("orderNumber", orderNumber.trim());
-  const okUrl = `${origin}${bongsimPath(`/checkout/return/success?${okQ.toString()}`)}`;
+  const okUrl = buildCheckoutReturnSuccessUrl(origin, { orderId, orderNumber });
   try {
     assertNoInternalMetaLeak(
       { orderId, orderNumber: orderNumber.trim() },

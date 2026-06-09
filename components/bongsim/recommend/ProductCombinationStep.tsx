@@ -24,7 +24,12 @@ import {
   writeRecommendCheckoutQueue,
 } from "@/lib/bongsim/recommend/funnel-storage";
 import type { RecommendFunnelSnapshot } from "@/lib/bongsim/recommend/funnel-storage";
-import { isTrueUnlimited, type ProductOption } from "@/lib/bongsim/recommend/product-option";
+import {
+  computeRecommendedPrice,
+  formatKrw,
+  isTrueUnlimited,
+  type ProductOption,
+} from "@/lib/bongsim/recommend/product-option";
 import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-ranges";
 import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
@@ -544,6 +549,23 @@ export function ProductCombinationStep({
     [selectedCodes, completed, storedDone],
   );
 
+  const checkoutTotalKrw = useMemo(() => {
+    let sum = 0;
+    let hasPrice = false;
+    for (const code of selectedCodes) {
+      const sel = completed[code];
+      if (!sel?.product) continue;
+      const unit =
+        typeof sel.product.recommended_price === "number" && Number.isFinite(sel.product.recommended_price)
+          ? sel.product.recommended_price
+          : computeRecommendedPrice(sel.product.price_block);
+      if (unit == null || !Number.isFinite(unit)) continue;
+      sum += unit * sel.quantity;
+      hasPrice = true;
+    }
+    return hasPrice ? sum : null;
+  }, [selectedCodes, completed]);
+
   const goToCheckout = (queue: BongsimRecommendCheckoutLine[] = checkoutQueue) => {
     if (queue.length === 0) return;
     const payload = { ...completed };
@@ -807,6 +829,20 @@ export function ProductCombinationStep({
         })}
       </div>
 
+      {allDone && checkoutQueue.length > 0 ? (
+        <div className="mt-6 px-4 sm:mt-8 sm:px-0">
+          <button
+            type="button"
+            onClick={() => goToCheckout()}
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-teal-700 px-6 text-base font-bold text-white shadow-md transition hover:bg-teal-800"
+          >
+            {checkoutTotalKrw != null
+              ? `결제하기 · ${formatKrw(checkoutTotalKrw)}`
+              : "결제하기"}
+          </button>
+        </div>
+      ) : null}
+
       {selectedCodes.length >= 2 ? (
         <section className="mt-10 border-t border-gray-200 px-4 pt-8 sm:px-0 lg:mt-12 lg:pt-10">
           <div className="bt-bongsim-info-callout rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm !text-blue-950 lg:px-5 lg:py-4 lg:text-base">
@@ -935,18 +971,6 @@ export function ProductCombinationStep({
             );
           })()}
         </section>
-      ) : null}
-
-      {allDone && checkoutQueue.length > 0 ? (
-        <div className="mt-8 px-4 sm:mt-10 sm:px-0">
-          <button
-            type="button"
-            onClick={() => goToCheckout()}
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-teal-700 px-6 text-base font-bold text-white shadow-md transition hover:bg-teal-800"
-          >
-            결제하기
-          </button>
-        </div>
       ) : null}
 
       <ComparePlansPopup

@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import {
+  Fragment,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type RefObject,
+} from "react";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { PlanCoverageCountriesPanel } from "@/components/bongsim/recommend/PlanCoverageCountriesPanel";
 import { RecommendModalShell } from "@/components/bongsim/recommend/RecommendModalShell";
@@ -274,6 +282,46 @@ function AuthChipMobile({ badge }: { badge: KycBadgeState }) {
   );
 }
 
+function PlanInlineConfirmBar({
+  totalKrw,
+  canComplete,
+  onConfirm,
+  barRef,
+}: {
+  totalKrw: number | null;
+  canComplete: boolean;
+  onConfirm: () => void;
+  barRef?: RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div
+      ref={barRef}
+      className="rounded-2xl border-2 border-teal-300 bg-teal-50/95 p-4 shadow-[0_8px_24px_-8px_rgba(15,118,110,0.35)] ring-1 ring-teal-100"
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold text-slate-700">선택한 플랜</span>
+        {totalKrw != null ? (
+          <span className="text-lg font-bold tabular-nums text-slate-900">{formatKrw(totalKrw)}</span>
+        ) : (
+          <span className="text-sm text-slate-500">금액 확인 중</span>
+        )}
+      </div>
+      <button
+        type="button"
+        disabled={!canComplete}
+        onClick={onConfirm}
+        className={`min-h-[3rem] w-full rounded-xl text-sm font-bold transition lg:text-base ${
+          canComplete
+            ? "bg-teal-700 text-white shadow-md hover:bg-teal-800"
+            : "cursor-not-allowed bg-slate-200 text-slate-400"
+        }`}
+      >
+        선택완료
+      </button>
+    </div>
+  );
+}
+
 function AuthChipDesktop({ badge }: { badge: KycBadgeState }) {
   if (badge == null) return null;
   if (badge === "not_required") {
@@ -477,6 +525,7 @@ export function PlanSelectPopup({
   const [err, setErr] = useState<string | null>(null);
   const [matchedDays, setMatchedDays] = useState<number | null>(null);
   const skipClearSelectionRef = useRef(false);
+  const inlineConfirmRef = useRef<HTMLDivElement | null>(null);
 
   const tripDaysFloored = Math.max(1, Math.floor(tripDays));
   const displayMatchedDays = matchedDays ?? tripDaysFloored;
@@ -666,6 +715,11 @@ export function PlanSelectPopup({
   const totalKrw = unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
   const canComplete = Boolean(selectedId && selectedProduct && quantity >= 1);
 
+  const handleComplete = () => {
+    if (!selectedProduct || !canComplete) return;
+    onComplete(selectedProduct, quantity, { kycDistribution });
+  };
+
   const handleQuantityDecrease = (e: MouseEvent) => {
     e.stopPropagation();
     setQuantity((q) => Math.max(PLAN_QUANTITY_MIN, q - 1));
@@ -678,6 +732,14 @@ export function PlanSelectPopup({
 
   useEffect(() => {
     setQuantity(1);
+  }, [selectedId]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const frame = requestAnimationFrame(() => {
+      inlineConfirmRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [selectedId]);
 
   useEffect(() => {
@@ -853,21 +915,33 @@ export function PlanSelectPopup({
           )}
           {!loading &&
             !err &&
-            tabCards.map(({ product, isPinned }) => (
-              <PlanCard
-                key={`m-${activeTab}-${product.option_api_id}${isPinned ? "-pin" : ""}`}
-                product={product}
-                isRecommended={isPinned}
-                isSelected={selectedId === product.option_api_id}
-                displayMatchedDays={displayMatchedDays}
-                kycDistribution={kycDistribution}
-                layout="mobile"
-                quantity={quantity}
-                onQuantityDecrease={handleQuantityDecrease}
-                onQuantityIncrease={handleQuantityIncrease}
-                onSelect={() => setSelectedId(product.option_api_id)}
-              />
-            ))}
+            tabCards.map(({ product, isPinned }) => {
+              const isCardSelected = selectedId === product.option_api_id;
+              return (
+                <Fragment key={`m-${activeTab}-${product.option_api_id}${isPinned ? "-pin" : ""}`}>
+                  <PlanCard
+                    product={product}
+                    isRecommended={isPinned}
+                    isSelected={isCardSelected}
+                    displayMatchedDays={displayMatchedDays}
+                    kycDistribution={kycDistribution}
+                    layout="mobile"
+                    quantity={quantity}
+                    onQuantityDecrease={handleQuantityDecrease}
+                    onQuantityIncrease={handleQuantityIncrease}
+                    onSelect={() => setSelectedId(product.option_api_id)}
+                  />
+                  {isCardSelected ? (
+                    <PlanInlineConfirmBar
+                      barRef={inlineConfirmRef}
+                      totalKrw={totalKrw}
+                      canComplete={canComplete}
+                      onConfirm={handleComplete}
+                    />
+                  ) : null}
+                </Fragment>
+              );
+            })}
         </div>
 
         {/* PC (lg+): 3-column grid with tab headers + column emphasis */}
@@ -920,29 +994,41 @@ export function PlanSelectPopup({
                         이 유형의 플랜이 없습니다.
                       </p>
                     ) : (
-                      cards.map(({ product, isPinned }) => (
-                        <PlanCard
-                          key={`d-${tab}-${product.option_api_id}${isPinned ? "-pin" : ""}`}
-                          product={product}
-                          isRecommended={isPinned}
-                          isSelected={selectedId === product.option_api_id}
-                          displayMatchedDays={displayMatchedDays}
-                          kycDistribution={kycDistribution}
-                          layout="desktop"
-                          quantity={quantity}
-                          onQuantityDecrease={handleQuantityDecrease}
-                          onQuantityIncrease={handleQuantityIncrease}
-                          onSelect={() => {
-                            if (isActiveColumn) {
-                              setSelectedId(product.option_api_id);
-                              return;
-                            }
-                            skipClearSelectionRef.current = true;
-                            setActiveTab(tab);
-                            setSelectedId(product.option_api_id);
-                          }}
-                        />
-                      ))
+                      cards.map(({ product, isPinned }) => {
+                        const isCardSelected = selectedId === product.option_api_id;
+                        return (
+                          <Fragment key={`d-${tab}-${product.option_api_id}${isPinned ? "-pin" : ""}`}>
+                            <PlanCard
+                              product={product}
+                              isRecommended={isPinned}
+                              isSelected={isCardSelected}
+                              displayMatchedDays={displayMatchedDays}
+                              kycDistribution={kycDistribution}
+                              layout="desktop"
+                              quantity={quantity}
+                              onQuantityDecrease={handleQuantityDecrease}
+                              onQuantityIncrease={handleQuantityIncrease}
+                              onSelect={() => {
+                                if (isActiveColumn) {
+                                  setSelectedId(product.option_api_id);
+                                  return;
+                                }
+                                skipClearSelectionRef.current = true;
+                                setActiveTab(tab);
+                                setSelectedId(product.option_api_id);
+                              }}
+                            />
+                            {isCardSelected ? (
+                              <PlanInlineConfirmBar
+                                barRef={inlineConfirmRef}
+                                totalKrw={totalKrw}
+                                canComplete={canComplete}
+                                onConfirm={handleComplete}
+                              />
+                            ) : null}
+                          </Fragment>
+                        );
+                      })
                     )}
                   </div>
                 );
@@ -953,39 +1039,26 @@ export function PlanSelectPopup({
       </div>
 
       <div className="border-t border-slate-100 px-5 py-4 lg:px-6">
-        <div className="mb-3 flex items-center justify-end">
-          <div className="flex items-center">
-            <span className="mr-[8px] text-[13px] text-[#6B7280]">총 금액</span>
-            {totalKrw != null ? (
-              <span className="text-[18px] font-medium text-[#1F1B2D]">{formatKrw(totalKrw)}</span>
-            ) : (
+        {canComplete ? (
+          <p className="mb-3 text-center text-xs text-slate-500 lg:text-sm">
+            선택한 플랜 바로 아래에서 확인할 수 있어요
+          </p>
+        ) : (
+          <div className="mb-3 flex items-center justify-end">
+            <div className="flex items-center">
+              <span className="mr-[8px] text-[13px] text-[#6B7280]">총 금액</span>
               <span className="text-[13px] text-[#6B7280]">플랜을 선택해주세요</span>
-            )}
+            </div>
           </div>
-        </div>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="min-h-[3rem] flex-1 rounded-xl border-2 border-slate-200 bg-white text-sm font-semibold !text-black transition hover:bg-slate-50 lg:text-base"
-            style={{ color: "#000" }}
-          >
-            이전
-          </button>
-          <button
-            type="button"
-            disabled={!canComplete}
-            onClick={() =>
-              selectedProduct && onComplete(selectedProduct, quantity, { kycDistribution })
-            }
-            className={`min-h-[3rem] flex-1 rounded-xl text-sm font-bold !text-black transition lg:text-base ${
-              canComplete ? "bg-blue-100 hover:bg-blue-200" : "cursor-not-allowed bg-slate-200"
-            }`}
-            style={{ color: "#000" }}
-          >
-            선택완료
-          </button>
-        </div>
+        )}
+        <button
+          type="button"
+          onClick={onBack}
+          className="min-h-[3rem] w-full rounded-xl border-2 border-slate-200 bg-white text-sm font-semibold !text-black transition hover:bg-slate-50 lg:text-base"
+          style={{ color: "#000" }}
+        >
+          이전
+        </button>
       </div>
     </div>
   );

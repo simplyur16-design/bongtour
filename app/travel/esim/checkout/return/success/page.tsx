@@ -6,6 +6,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import type { BongsimOrderPublicV1 } from "@/lib/bongsim/contracts/order-public.v1";
+import { isBongsimOrderPaymentSettled } from "@/lib/bongsim/orders/order-payment-settled";
+
+type MypageOrdersResponse = {
+  orders?: Array<{ order_id: string; status: string }>;
+};
 
 function SuccessInner() {
   const router = useRouter();
@@ -22,6 +27,21 @@ function SuccessInner() {
 
   useEffect(() => {
     if (!orderId) return;
+
+    const completeHref = bongsimPath(`/order/${encodeURIComponent(orderId)}/complete${readKeyQuery}`);
+
+    const goToComplete = () => {
+      if (stopped.current) return;
+      stopped.current = true;
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      router.replace(completeHref);
+    };
+
+    const applyStatus = (nextStatus: string) => {
+      setStatus(nextStatus);
+      if (isBongsimOrderPaymentSettled(nextStatus)) goToComplete();
+    };
+
     let n = 0;
     const tick = async () => {
       if (stopped.current) return;
@@ -34,19 +54,28 @@ function SuccessInner() {
         return;
       }
       try {
-        const res = await fetch(`/api/bongsim/orders/${encodeURIComponent(orderId)}${readKeyQuery}`, { cache: "no-store" });
-        if (!res.ok) {
-          queueMicrotask(() => setStatus("조회 실패"));
-          return;
+        const res = await fetch(`/api/bongsim/orders/${encodeURIComponent(orderId)}${readKeyQuery}`, {
+          cache: "no-store",
+        });
+        if (res.ok) {
+          const o = (await res.json()) as BongsimOrderPublicV1;
+          if (o.schema === "bongsim.order_public.v1") {
+            queueMicrotask(() => applyStatus(o.status));
+            return;
+          }
         }
-        const o = (await res.json()) as BongsimOrderPublicV1;
-        if (o.schema !== "bongsim.order_public.v1") return;
-        queueMicrotask(() => setStatus(o.status));
-        if (o.status === "paid") {
-          stopped.current = true;
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          router.replace(bongsimPath(`/order/${encodeURIComponent(orderId)}/complete${readKeyQuery}`));
+
+        const myRes = await fetch("/api/bongsim/mypage/orders", { cache: "no-store" });
+        if (myRes.ok) {
+          const body = (await myRes.json()) as MypageOrdersResponse;
+          const mine = body.orders?.find((row) => row.order_id === orderId);
+          if (mine?.status) {
+            queueMicrotask(() => applyStatus(mine.status));
+            return;
+          }
         }
+
+        if (!res.ok) queueMicrotask(() => setStatus("조회 실패"));
       } catch {
         queueMicrotask(() => setStatus("일시적 오류"));
       }
@@ -77,6 +106,14 @@ function SuccessInner() {
           </p>
         )}
         {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
+        {orderId ? (
+          <Link
+            href={bongsimPath(`/order/${encodeURIComponent(orderId)}/complete${readKeyQuery}`)}
+            className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-teal-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+          >
+            주문 완료 화면으로 이동
+          </Link>
+        ) : null}
         <Link href={bongsimPath()} className="mt-8 inline-block text-sm text-teal-800 underline">
           eSIM 메인
         </Link>
