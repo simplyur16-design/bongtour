@@ -25,4 +25,22 @@ describe('isModetourSd1AutoUnpublishEligible', () => {
       false,
     )
   })
+
+  it('blocks SD1 auto-unpublish when future priced departures remain in DB', () => {
+    expect(
+      isModetourSd1AutoUnpublishEligible(
+        { listingKind: 'travel', productType: 'travel' },
+        { hasFuturePricedDeparture: true },
+      ),
+    ).toBe(false)
+  })
+
+  it('allows SD1 auto-unpublish for travel packages with no future priced departures', () => {
+    expect(
+      isModetourSd1AutoUnpublishEligible(
+        { listingKind: 'travel', productType: 'travel' },
+        { hasFuturePricedDeparture: false },
+      ),
+    ).toBe(true)
+  })
 })

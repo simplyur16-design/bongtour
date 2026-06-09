@@ -17,4 +17,13 @@ describe('shouldModetourSweepRetireOnSd1', () => {
       false,
     )
   })
+
+  it('skips auto-retire when future priced departures remain', () => {
+    expect(
+      shouldModetourSweepRetireOnSd1(
+        { listingKind: 'travel', productType: 'travel' },
+        { hasFuturePricedDeparture: true },
+      ),
+    ).toBe(false)
+  })
 })

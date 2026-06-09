@@ -2,13 +2,15 @@
  * modetour 일1회 sweep — GetOtherDepartureDates(minPrice) 경량 수집 + ProductDeparture upsert.
  * instrumentation: `lib/instrumentation-modetour-sweep-cron.ts` (KST 04:00).
  *
- * SD1(상품 없음): 패키지(travel 등)만 auto_unpublished. 자유여행(air_hotel_free·airtel)은 SD1 비공개 금지(운영 SSOT).
+ * SD1(상품 없음): 미래 성인가 출발 0건·자유여행 제외 시에만 auto_unpublished.
  */
 import type { PrismaClient } from '@prisma/client'
 
+import { reconcileRuleAMarkersWithDbFutureDepartures } from '@/lib/future-priced-departure-guard'
 import {
   isModetourSd1NotFoundError,
   isModetourSd1AutoUnpublishEligible,
+  modetourProductHasFuturePricedDeparture,
   ModetourB2cApiError,
   MODETOUR_SD1_AUTO_UNPUBLISH_REASON,
 } from '@/lib/modetour-sd1-policy'
@@ -68,11 +70,14 @@ type SweepProductRow = {
 }
 
 /** @deprecated `isModetourSd1AutoUnpublishEligible` — 회귀 테스트 호환 alias */
-export function shouldModetourSweepRetireOnSd1(product: {
-  listingKind?: string | null
-  productType?: string | null
-}): boolean {
-  return isModetourSd1AutoUnpublishEligible(product)
+export function shouldModetourSweepRetireOnSd1(
+  product: {
+    listingKind?: string | null
+    productType?: string | null
+  },
+  options?: { hasFuturePricedDeparture?: boolean },
+): boolean {
+  return isModetourSd1AutoUnpublishEligible(product, options)
 }
 
 function modetourSweepHeaders(referer: string, productNo: string): HeadersInit {
@@ -247,7 +252,13 @@ export async function sweepDueModetourProducts(
         result.pruned += prunedCount
       }
 
-      const markers = computeRuleAMarkersFromDepartureInputs(inWindow, todayYmd)
+      const liveMarkers = computeRuleAMarkersFromDepartureInputs(inWindow, todayYmd)
+      const markers = await reconcileRuleAMarkersWithDbFutureDepartures(
+        prisma,
+        product.id,
+        todayYmd,
+        liveMarkers,
+      )
       const priceFrom = computePriceFromFromDepartureInputs(inWindow, todayYmd)
       const urgentDeal = await syncModetourUrgentDealForProduct(prisma, product.id, {
         todayYmd,
@@ -268,8 +279,20 @@ export async function sweepDueModetourProducts(
       result.updated += 1
     } catch (err) {
       if (isModetourSd1NotFoundError(err)) {
-        if (!shouldModetourSweepRetireOnSd1(product)) {
-          console.warn('[modetour-sweep] sd1-skip-air-hotel', { productId: product.id })
+        const hasFuturePricedDeparture = await modetourProductHasFuturePricedDeparture(
+          prisma,
+          product.id,
+          todayYmd,
+        )
+        if (
+          !isModetourSd1AutoUnpublishEligible(product, { hasFuturePricedDeparture })
+        ) {
+          console.warn('[modetour-sweep] sd1-skip', {
+            productId: product.id,
+            hasFuturePricedDeparture,
+            listingKind: product.listingKind,
+            productType: product.productType,
+          })
           await prisma.product.update({
             where: { id: product.id },
             data: { lastSalesPolicyCheckedAt: now },
