@@ -8,6 +8,7 @@
 
 import type { NextResponse } from 'next/server'
 import { publicOriginIfLoopbackRequest } from '@/lib/oauth-loopback-public-origin'
+import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
 
 export const KAKAO_OAUTH_STATE_COOKIE = 'kakao_oauth_state'
 export const KAKAO_OAUTH_REDIRECT_COOKIE = 'kakao_oauth_redirect'
@@ -99,21 +100,6 @@ export function resolveKakaoRedirectUri(request: Request): string {
   return `${resolveKakaoOAuthPublicOrigin(request)}${KAKAO_CALLBACK_PATH}`
 }
 
-function resolveCookieDomainFromHostname(hostname: string): string | undefined {
-  const raw = process.env.KAKAO_OAUTH_COOKIE_DOMAIN?.trim() ?? process.env.NAVER_OAUTH_COOKIE_DOMAIN?.trim()
-  if (raw) {
-    const h = raw.replace(/^\./, '')
-    return `.${h}`
-  }
-  if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local')) {
-    return undefined
-  }
-  if (hostname.startsWith('www.')) {
-    return `.${hostname.slice(4)}`
-  }
-  return undefined
-}
-
 export type KakaoOAuthStateCookieOptions = {
   httpOnly: true
   secure: boolean
@@ -132,7 +118,7 @@ export function buildKakaoOAuthStateCookieOptions(request: Request): KakaoOAuthS
   } catch {
     hostname = ''
   }
-  const domain = resolveCookieDomainFromHostname(hostname)
+  const domain = resolveOAuthStateCookieDomain(hostname)
   return {
     httpOnly: true,
     secure,

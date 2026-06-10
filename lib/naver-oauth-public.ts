@@ -5,6 +5,7 @@
 
 import type { NextResponse } from 'next/server'
 import { publicOriginIfLoopbackRequest } from '@/lib/oauth-loopback-public-origin'
+import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
 
 export const NAVER_OAUTH_STATE_COOKIE = 'naver_oauth_state'
 export const NAVER_OAUTH_REDIRECT_COOKIE = 'naver_oauth_redirect'
@@ -105,21 +106,6 @@ export function resolveNaverRedirectUri(request: Request): string {
   return `${resolveNaverOAuthPublicOrigin(request)}${NAVER_CALLBACK_PATH}`
 }
 
-function resolveCookieDomainFromHostname(hostname: string): string | undefined {
-  const raw = process.env.NAVER_OAUTH_COOKIE_DOMAIN?.trim()
-  if (raw) {
-    const h = raw.replace(/^\./, '')
-    return `.${h}`
-  }
-  if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local')) {
-    return undefined
-  }
-  if (hostname.startsWith('www.')) {
-    return `.${hostname.slice(4)}`
-  }
-  return undefined
-}
-
 export type NaverOAuthStateCookieOptions = {
   httpOnly: true
   secure: boolean
@@ -139,7 +125,7 @@ export function buildNaverOAuthStateCookieOptions(request: Request): NaverOAuthS
   } catch {
     hostname = ''
   }
-  const domain = resolveCookieDomainFromHostname(hostname)
+  const domain = resolveOAuthStateCookieDomain(hostname)
   return {
     httpOnly: true,
     secure,

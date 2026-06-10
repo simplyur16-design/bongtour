@@ -1,6 +1,7 @@
 import { encode } from 'next-auth/jwt'
 import { NextResponse } from 'next/server'
 import { applyConsentPendingMarkerCookie } from '@/lib/middleware-consent'
+import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
 
 const SESSION_MAX_AGE_SEC = 30 * 24 * 60 * 60
 
@@ -86,14 +87,21 @@ export async function appendNaverSessionCookie(params: {
   }
 
   const expires = new Date(Date.now() + SESSION_MAX_AGE_SEC * 1000)
+  let cookieDomain: string | undefined
+  try {
+    cookieDomain = resolveOAuthStateCookieDomain(new URL(baseUrlFromRequest(request)).hostname)
+  } catch {
+    cookieDomain = undefined
+  }
   response.cookies.set(cookieName, jwt, {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
     secure,
     expires,
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
   })
-  applyConsentPendingMarkerCookie(response, user.accountStatus, secure)
+  applyConsentPendingMarkerCookie(response, user.accountStatus, secure, cookieDomain)
   return true
 }
 

@@ -35,22 +35,24 @@ export function applyConsentPendingMarkerCookie(
   response: NextResponse,
   accountStatus: string,
   secure: boolean,
+  domain?: string,
 ): void {
+  const shared = {
+    httpOnly: true as const,
+    sameSite: 'lax' as const,
+    path: '/',
+    secure,
+    ...(domain ? { domain } : {}),
+  }
   if (accountStatus === 'consent_pending') {
     response.cookies.set(CONSENT_PENDING_MARKER_COOKIE, '1', {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      secure,
+      ...shared,
       maxAge: 30 * 24 * 60 * 60,
     })
     return
   }
   response.cookies.set(CONSENT_PENDING_MARKER_COOKIE, '', {
-    httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    secure,
+    ...shared,
     maxAge: 0,
   })
 }
