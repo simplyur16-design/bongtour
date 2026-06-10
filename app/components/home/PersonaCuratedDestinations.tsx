@@ -7,7 +7,13 @@ import { MAIN_PERSONA_SECTION_TITLE } from '@/lib/main-hub-copy'
  * PC(`lg` 이상)만 노출 — 모바일은 `app/page.tsx`에서 `hidden lg:block` 래핑(4카드와 시각적 혼동 방지).
  */
 export default async function PersonaCuratedDestinations() {
-  const data = await getPersonaCuratedDestinationsPayload()
+  let data: Awaited<ReturnType<typeof getPersonaCuratedDestinationsPayload>>
+  try {
+    data = await getPersonaCuratedDestinationsPayload()
+  } catch (e) {
+    console.error('[PersonaCuratedDestinations]', e)
+    return null
+  }
   return (
     <section
       aria-labelledby="persona-curated-heading"

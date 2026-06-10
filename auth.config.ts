@@ -5,8 +5,6 @@
  * @see https://authjs.dev/getting-started/middleware
  */
 import type { NextAuthConfig } from 'next-auth'
-import { getSiteOrigin } from '@/lib/site-metadata'
-import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -27,31 +25,12 @@ if (!isProduction && resolvedAuthSecret === '__bongtour_dev_auth_secret_change_f
   )
 }
 
-function authSessionCookieDomain(): string | undefined {
-  try {
-    return resolveOAuthStateCookieDomain(new URL(getSiteOrigin()).hostname)
-  } catch {
-    return undefined
-  }
-}
-
-const sessionCookieDomain = authSessionCookieDomain()
-
 /** Credentials는 `auth.ts`에서만 추가(Prisma authorize). 미들웨어 번들에는 OAuth 프로바이더 없음. */
 export default {
   trustHost: true,
   secret: resolvedAuthSecret,
   providers: [],
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
-  cookies: sessionCookieDomain
-    ? {
-        sessionToken: {
-          options: {
-            domain: sessionCookieDomain,
-          },
-        },
-      }
-    : undefined,
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',

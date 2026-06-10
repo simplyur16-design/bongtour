@@ -42,15 +42,30 @@ export const metadata: Metadata = {
 
 /** 메인: 밝은 헤더 + 시즌 히어로(PC) / 모바일 허브 + 추천·B2G·후기 */
 export default async function Home() {
-  const overseasCover = await getCachedHomeHubTravelCardCover('overseas')
+  let overseasCover: Awaited<ReturnType<typeof getCachedHomeHubTravelCardCover>> = null
+  try {
+    overseasCover = await getCachedHomeHubTravelCardCover('overseas')
+  } catch (e) {
+    console.error('[Home] overseas hub cover', e)
+  }
 
   const hubActive = getHomeHubActiveFile()
   const hubSnap = hubActive ? { images: hubActive.images, imageSourceModes: hubActive.imageSourceModes } : null
-  const overseasDetail = getHomeHubCardHybridResolutionDetail('overseas', {
-    activeSnapshot: hubSnap,
-    productPoolOverseasUrl: overseasCover?.imageSrc ?? null,
-    productPoolDomesticUrl: null,
-  })
+  let overseasDetail: ReturnType<typeof getHomeHubCardHybridResolutionDetail>
+  try {
+    overseasDetail = getHomeHubCardHybridResolutionDetail('overseas', {
+      activeSnapshot: hubSnap,
+      productPoolOverseasUrl: overseasCover?.imageSrc ?? null,
+      productPoolDomesticUrl: null,
+    })
+  } catch (e) {
+    console.error('[Home] overseas hub detail', e)
+    overseasDetail = getHomeHubCardHybridResolutionDetail('overseas', {
+      activeSnapshot: null,
+      productPoolOverseasUrl: null,
+      productPoolDomesticUrl: null,
+    })
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">

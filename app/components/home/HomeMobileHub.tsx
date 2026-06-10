@@ -50,13 +50,20 @@ const QUICK_ACTIONS = [
  * 모바일 전용(`lg` 미만) 메인 홈 — 주요 서비스(사진 카드) / 시즌 큐레이션(+1·+2·+3월) / 연결 상품 / 실무 요청.
  */
 export default async function HomeMobileHub() {
-  const [seasonRaw, linkedItems] = await Promise.all([
-    getCachedSeasonCurationNextThreeMonthsSlides(),
-    getCachedSeasonLinkedProductItemsForMobile(),
-  ])
+  let seasonRaw: Awaited<ReturnType<typeof getCachedSeasonCurationNextThreeMonthsSlides>> = []
+  let linkedItems: Awaited<ReturnType<typeof getCachedSeasonLinkedProductItemsForMobile>> = []
+  let bundle: Awaited<ReturnType<typeof getHubFourPhotosBundle>>
+  try {
+    ;[seasonRaw, linkedItems, bundle] = await Promise.all([
+      getCachedSeasonCurationNextThreeMonthsSlides(),
+      getCachedSeasonLinkedProductItemsForMobile(),
+      getHubFourPhotosBundle(),
+    ])
+  } catch (e) {
+    console.error('[HomeMobileHub]', e)
+    return null
+  }
   const seasonSlides = normalizeHomeSeasonSlidesForClient(seasonRaw)
-
-  const bundle = await getHubFourPhotosBundle()
   const mainTiles = MAIN_HUB_FOUR_CARDS.map((card) => {
     const bgKey = hubFourCardKeyToMobileTileKey(card.key)
     const fromBundle = (bundle[card.key] ?? '').trim()

@@ -3,7 +3,13 @@ import { getCachedAirHotelProductGridItems } from '@/lib/air-hotel-product-grid-
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
 export default async function AirHotelProductGrid() {
-  const items = await getCachedAirHotelProductGridItems()
+  let items: Awaited<ReturnType<typeof getCachedAirHotelProductGridItems>> = []
+  try {
+    items = await getCachedAirHotelProductGridItems()
+  } catch (e) {
+    console.error('[AirHotelProductGrid]', e)
+    return null
+  }
   if (items.length === 0) return null
 
   return (

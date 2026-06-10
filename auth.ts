@@ -6,11 +6,41 @@ import { prisma } from '@/lib/prisma'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import { ensureUserBootstrapRole } from '@/lib/ensure-user-bootstrap-role'
 import authConfig from './auth.config'
+import { getSiteOrigin } from '@/lib/site-metadata'
+import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
 
 import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
 
+function authSessionCookieDomain(): string | undefined {
+  try {
+    return resolveOAuthStateCookieDomain(new URL(getSiteOrigin()).hostname)
+  } catch {
+    return undefined
+  }
+}
+
+const sessionCookieDomain = authSessionCookieDomain()
+const sessionCookieSecure = getSiteOrigin().startsWith('https://')
+const sessionCookiePrefix = sessionCookieSecure ? '__Secure-' : ''
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  ...(sessionCookieDomain
+    ? {
+        cookies: {
+          sessionToken: {
+            name: `${sessionCookiePrefix}authjs.session-token`,
+            options: {
+              httpOnly: true,
+              sameSite: 'lax' as const,
+              path: '/',
+              secure: sessionCookieSecure,
+              domain: sessionCookieDomain,
+            },
+          },
+        },
+      }
+    : {}),
   adapter: PrismaAdapter(prisma),
   providers: [
     Credentials({

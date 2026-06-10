@@ -4,9 +4,12 @@ import { useEffect } from 'react'
 
 const SESSION_KEY = 'bongtour.chunkload.autoReloadOnce'
 
-function isChunkLoadFailure(reason: unknown, message: string): boolean {
+function isRecoverableClientFailure(reason: unknown, message: string): boolean {
   const m = `${message} ${reason instanceof Error ? reason.message : ''} ${reason && typeof reason === 'object' && 'name' in reason ? String((reason as { name?: string }).name) : ''}`
-  return /ChunkLoadError|Loading chunk \d+ failed/i.test(m)
+  return (
+    /ChunkLoadError|Loading chunk \d+ failed/i.test(m) ||
+    /An error occurred in the Server Components render/i.test(m)
+  )
 }
 
 /**
@@ -23,11 +26,11 @@ export default function ChunkLoadRecovery() {
     }
 
     const onWindowError = (ev: ErrorEvent) => {
-      if (isChunkLoadFailure(ev.error, ev.message)) tryReloadOnce()
+      if (isRecoverableClientFailure(ev.error, ev.message)) tryReloadOnce()
     }
 
     const onUnhandledRejection = (ev: PromiseRejectionEvent) => {
-      if (isChunkLoadFailure(ev.reason, '')) tryReloadOnce()
+      if (isRecoverableClientFailure(ev.reason, '')) tryReloadOnce()
     }
 
     window.addEventListener('error', onWindowError)

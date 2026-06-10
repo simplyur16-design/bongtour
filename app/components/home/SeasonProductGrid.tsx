@@ -3,7 +3,13 @@ import { getCachedSeasonProductGridItems } from '@/lib/season-product-grid-data'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
 export default async function SeasonProductGrid() {
-  const items = await getCachedSeasonProductGridItems()
+  let items: Awaited<ReturnType<typeof getCachedSeasonProductGridItems>> = []
+  try {
+    items = await getCachedSeasonProductGridItems()
+  } catch (e) {
+    console.error('[SeasonProductGrid]', e)
+    return null
+  }
   if (items.length === 0) return null
 
   return (
