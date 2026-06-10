@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import type { MegaMenuCountryGroup } from '@/lib/travel-landing-mega-menu-data'
 import { resolveMegaMenuPanelLayout } from '@/lib/mega-menu-panel-layout'
-import { buildMegaMenuLeafHref, buildProductsHrefCountryOnly } from '@/lib/top-nav-resolve'
+import { buildMegaMenuGroupHeaderHref, buildMegaMenuLeafHref } from '@/lib/top-nav-resolve'
 import type { ProductBrowseType } from '@/lib/products-browse-filter'
 
 type Props = {
@@ -16,8 +16,7 @@ type Props = {
  * 해외 메가메뉴 공통 패널 — 전 탭 동일: 4열 그리드·타이포·호버 색.
  */
 export default function CountryCityMegaPanel({ regionId, countryGroups, activeProductType }: Props) {
-  const flatGridLeafCols =
-    regionId === 'south-america' ? 4 : regionId === 'sports_theme' ? 3 : null
+  const flatGridLeafCols = regionId === 'south-america' ? 4 : null
   const isFlatGrid = flatGridLeafCols != null
   const layout = resolveMegaMenuPanelLayout(regionId, countryGroups)
 
@@ -44,7 +43,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                 <span className="mb-3 block text-left text-[15px] font-bold text-slate-800">{g.countryLabel}</span>
               ) : (
                 <Link
-                  href={buildProductsHrefCountryOnly({
+                  href={buildMegaMenuGroupHeaderHref({
                     type: activeProductType,
                     regionId,
                     countryLabel: g.countryLabel,
@@ -58,7 +57,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
             <ul
               className={
                 isFlatGrid
-                  ? `m-0 grid list-none ${flatGridLeafCols === 3 ? 'grid-cols-3' : 'grid-cols-4'} gap-x-8 gap-y-2 p-0 text-left`
+                  ? 'm-0 grid list-none grid-cols-4 gap-x-8 gap-y-2 p-0 text-left'
                   : 'm-0 list-none p-0 text-left'
               }
             >

@@ -105,6 +105,25 @@ export function buildProductsHrefRegionOnly(opts: {
   return `${browseBasePath(scope)}?${params.toString()}`
 }
 
+/** 메가메뉴 중분류(국가·스포츠 종목) 그룹 헤더 링크 */
+export function buildMegaMenuGroupHeaderHref(opts: {
+  type: string
+  regionId: string
+  countryLabel: string
+  headerBrowseCountryLabel?: string
+  scope?: BrowseHrefScope
+}): string {
+  if (opts.regionId === 'sports_theme') {
+    const key = (opts.headerBrowseCountryLabel ?? opts.countryLabel).trim()
+    return buildProductsHrefSportsTheme({
+      type: opts.type,
+      sportsThemeKey: key,
+      scope: opts.scope,
+    })
+  }
+  return buildProductsHrefCountryOnly(opts)
+}
+
 export function buildProductsHrefCountryOnly(opts: {
   type: string
   regionId: string

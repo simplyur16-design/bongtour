@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { ProductBrowseType } from '@/lib/products-browse-filter'
 import { TOP_NAV_MEGA_REGIONS } from '@/lib/top-nav-resolve'
-import { buildMegaMenuLeafHref, buildProductsHrefCountryOnly } from '@/lib/top-nav-resolve'
+import { buildMegaMenuGroupHeaderHref, buildMegaMenuLeafHref } from '@/lib/top-nav-resolve'
 import { OVERSEAS_SUB_NAV_ITEMS } from '@/components/top-nav/overseas-sub-nav-items'
 
 type Step = 'types' | 'regions' | 'countries' | 'cities'
@@ -135,17 +135,33 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
           <ul className="space-y-0">
             {region.countryGroups.map((g) => (
               <li key={g.countryLabel} className="border-b border-slate-100">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between py-3 text-left text-[15px] font-semibold text-slate-900"
-                  onClick={() => {
-                    setCountryLabel(g.countryLabel)
-                    setStep('cities')
-                  }}
-                >
-                  {g.countryLabel}
-                  <ChevronRight className="h-5 w-5 text-slate-400" />
-                </button>
+                {g.cities.length === 0 && !g.nonLinkHeader ? (
+                  <Link
+                    href={buildMegaMenuGroupHeaderHref({
+                      type: productType,
+                      regionId: region.id,
+                      countryLabel: g.countryLabel,
+                      headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+                    })}
+                    className="flex w-full items-center justify-between py-3 text-left text-[15px] font-semibold text-slate-900"
+                    onClick={reset}
+                  >
+                    {g.countryLabel}
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between py-3 text-left text-[15px] font-semibold text-slate-900"
+                    onClick={() => {
+                      setCountryLabel(g.countryLabel)
+                      setStep('cities')
+                    }}
+                  >
+                    {g.countryLabel}
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -167,7 +183,7 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
             </button>
             {!grp?.nonLinkHeader && (
               <Link
-                href={buildProductsHrefCountryOnly({
+                href={buildMegaMenuGroupHeaderHref({
                   type: productType,
                   regionId: region.id,
                   countryLabel,
