@@ -20,6 +20,7 @@ export default async function MyPagePressVerificationPage() {
       pressVerifiedDomain: true,
       pressVerifiedEmail: true,
       marketingConsent: true,
+      marketingConsentAt: true,
     },
   });
 
@@ -35,6 +36,7 @@ export default async function MyPagePressVerificationPage() {
         pressVerifiedDomain: user.pressVerifiedDomain,
         pressVerifiedEmail: user.pressVerifiedEmail,
         marketingConsent: user.marketingConsent,
+        marketingConsentAt: user.marketingConsentAt?.toISOString() ?? null,
       }}
     />
   );

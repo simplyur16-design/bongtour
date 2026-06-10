@@ -12,6 +12,7 @@ export type PressVerificationInitial = {
   pressVerifiedDomain: string | null;
   pressVerifiedEmail: string | null;
   marketingConsent: boolean;
+  marketingConsentAt: string | null;
 };
 
 type Props = {
@@ -142,7 +143,7 @@ export default function PressVerificationClient({ initial }: Props) {
             직군 인증은 마케팅 수신에 동의한 회원만 이용할 수 있습니다.
           </p>
           <Link
-            href="/auth/signup/consent?callbackUrl=/mypage/press"
+            href="/mypage/marketing-consent?returnTo=/mypage/press"
             className="mt-4 inline-block rounded-full bg-[#534AB7] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#4339A0]"
           >
             마케팅 동의하러 가기
@@ -158,6 +159,17 @@ export default function PressVerificationClient({ initial }: Props) {
         title="직군(언론사) 인증"
         description={`허용 도메인: ${allowedLabel}. 인증 후 eSIM 결제 시 ${PRESS_MEMBER_DISCOUNT_RATE_PCT}% 자동 할인(쿠폰 미적용).`}
       />
+
+      <p className="text-sm text-[#534AB7]">
+        마케팅 수신: <span className="font-medium text-emerald-700">동의함</span>
+        {initial.marketingConsentAt ? (
+          <span> ({formatKst(initial.marketingConsentAt)})</span>
+        ) : null}
+        {' · '}
+        <Link href="/mypage/marketing-consent?returnTo=/mypage/press" className="underline hover:text-[#1F1B2D]">
+          동의 내역 보기
+        </Link>
+      </p>
 
       <div className="rounded-2xl border border-[#DAD4EE] bg-white p-5 shadow-sm space-y-4">
         <div>
