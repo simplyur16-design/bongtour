@@ -7,10 +7,13 @@ import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { tryCaptionFromPublicImageUrl } from '@/lib/image-asset-public-caption'
 import {
+  buildProductPublicSeoDocumentTitle,
+  buildProductPublicSeoSocialTitle,
+} from '@/lib/product-public-seo-title'
+import {
   absoluteUrl,
   buildPublicProductDescription,
   DEFAULT_OG_IMAGE_PATH,
-  SITE_NAME,
   toAbsoluteImageUrl,
 } from '@/lib/site-metadata'
 import { publicProductPath } from '@/lib/product-public-path'
@@ -58,21 +61,28 @@ async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
     primaryDestination: p.primaryDestination,
     destination: p.destination,
   })
-  const dest = (p.primaryDestination ?? p.destination ?? '').trim()
   const path = publicProductPath(p)
-  const titleSeg = `${p.title}${dest ? ` · ${dest}` : ''} · 여행 상품 안내`
+  const seoTitleInput = {
+    displayTitle: p.title,
+    originalTitle: p.originalTitle,
+    primaryDestination: p.primaryDestination,
+    destination: p.destination,
+    duration: p.duration,
+  }
+  const documentTitle = buildProductPublicSeoDocumentTitle(seoTitleInput)
+  const socialTitle = buildProductPublicSeoSocialTitle(seoTitleInput)
   const scheduleImageCaption = scheduleRows.find((d) => d.imageDisplayName?.trim())?.imageDisplayName?.trim()
   const captionFromImageAsset = await tryCaptionFromPublicImageUrl(coverUrl)
   const ogCaption = scheduleImageCaption || captionFromImageAsset
   const ogImageAlt = ogCaption ? `${p.title} — ${ogCaption}` : p.title
   const isDraft = p.registrationStatus !== 'registered'
   return {
-    title: isDraft ? `${titleSeg} (관리자 미리보기)` : titleSeg,
+    title: isDraft ? `${documentTitle} (관리자 미리보기)` : documentTitle,
     description: desc,
     alternates: { canonical: path },
     ...(isDraft ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
-      title: `${p.title} | ${SITE_NAME}`,
+      title: socialTitle,
       description: desc,
       url: path,
       type: 'website',
@@ -80,7 +90,7 @@ async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${p.title} | ${SITE_NAME}`,
+      title: socialTitle,
       description: desc,
       images: [ogImage],
     },

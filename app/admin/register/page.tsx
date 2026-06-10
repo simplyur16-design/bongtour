@@ -630,6 +630,8 @@ export default function AdminRegisterPage() {
   const [localDepartureTag, setLocalDepartureTag] = useState<LocalDepartureTag[]>([])
   /** 스포츠 테마 메가 메뉴·browse용 — LLM 비사용, 확정 시 DB `Product.sportsThemeTag`만 반영 */
   const [sportsThemeTag, setSportsThemeTag] = useState<SportsThemeTag[]>([])
+  /** 기본(Plan B): 원문 기반 노출명. 체크 시에만 R-5 마케팅 제안명을 Product.title로 저장 */
+  const [useBongtourMarketingTitle, setUseBongtourMarketingTitle] = useState(false)
   const [rawText, setRawText] = useState('')
   const [originUrl, setOriginUrl] = useState('')
   const [loading, setLoading] = useState(false)
@@ -963,6 +965,7 @@ export default function AdminRegisterPage() {
           throw new Error(typeof kres.error === 'string' ? kres.error : '교원이지 분석 응답이 올바르지 않습니다.')
         }
         setPreview(kres as AdminRegisterPreviewPayload)
+        setUseBongtourMarketingTitle(false)
         setParsedForConfirm(kres.parsed ?? null)
         setConfirmVerification(null)
         setLastAdminTracePath(null)
@@ -994,6 +997,7 @@ export default function AdminRegisterPage() {
       previewContentFingerprintRef.current = currentRegisterPreviewFingerprint()
       previewStructuredFingerprintRef.current = pdata.registerVerification?.structuredFingerprint ?? null
       setPreview(pdata)
+      setUseBongtourMarketingTitle(false)
       setParsedForConfirm(pdata.parsed ?? null)
       setConfirmVerification(null)
       setLastAdminTracePath(null)
@@ -1098,8 +1102,10 @@ export default function AdminRegisterPage() {
               snap.registerSnapshotId.trim() && { registerSnapshotId: snap.registerSnapshotId.trim() }),
             ...(typeof snap.registerAnalysisId === 'string' &&
               snap.registerAnalysisId.trim() && { registerAnalysisId: snap.registerAnalysisId.trim() }),
-            ...(typeof preview.bongtourProductTitle === 'string' &&
+            ...(useBongtourMarketingTitle &&
+              typeof preview.bongtourProductTitle === 'string' &&
               preview.bongtourProductTitle.trim() && {
+                productTitleSaveMode: 'bongtour_marketing' as const,
                 bongtourProductTitle: preview.bongtourProductTitle.trim(),
               }),
           }),
@@ -1934,22 +1940,35 @@ export default function AdminRegisterPage() {
                 <p className="font-semibold text-slate-900">확인 요약</p>
                 <dl className="mt-2 grid gap-1.5 sm:grid-cols-2">
                   <div className="sm:col-span-2">
-                    <dt className="text-[11px] text-slate-500">상품명</dt>
-                    <dd className="font-medium">{preview.productDraft.title}</dd>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <dt className="text-[11px] text-slate-500">봉투어 노출 상품명 (저장 시 Product.title)</dt>
+                    <dt className="text-[11px] text-slate-500">노출 상품명 (기본 저장 → Product.title)</dt>
                     <dd className="font-medium text-slate-900">
-                      {preview.bongtourProductTitle?.trim()
-                        ? preview.bongtourProductTitle.trim()
-                        : '— (미생성 시 공급사 상품명으로 저장)'}
+                      {(preview.displayProductTitle ?? preview.productDraft.title)?.trim() || '—'}
                     </dd>
                   </div>
                   <div className="sm:col-span-2">
-                    <dt className="text-[11px] text-slate-500">공급사 원본 (저장 시 Product.originalTitle)</dt>
+                    <dt className="text-[11px] text-slate-500">공급사 원본 (저장 → Product.originalTitle)</dt>
                     <dd className="text-slate-800">
                       {(preview.originalProductTitle ?? preview.productDraft.title)?.trim() || '—'}
                     </dd>
+                  </div>
+                  <div className="sm:col-span-2 rounded border border-slate-200 bg-slate-50/80 p-2.5">
+                    <dt className="text-[11px] font-semibold text-slate-700">R-5 마케팅 제안명 (참고 — 기본으로는 저장하지 않음)</dt>
+                    <dd className="mt-1 font-medium text-slate-800">
+                      {preview.bongtourProductTitle?.trim() ? preview.bongtourProductTitle.trim() : '—'}
+                    </dd>
+                    <label className="mt-2 flex items-start gap-2 text-[11px] text-slate-700">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={useBongtourMarketingTitle}
+                        onChange={(e) => setUseBongtourMarketingTitle(e.target.checked)}
+                        disabled={!preview.bongtourProductTitle?.trim()}
+                      />
+                      <span>
+                        위 마케팅 제안명을 <code className="text-[10px]">Product.title</code>로 저장 (체크하지 않으면
+                        원문 기반 노출명 저장)
+                      </span>
+                    </label>
                   </div>
                   {preview.bongtourTitleValidation ? (
                     <div className="sm:col-span-2 rounded border border-slate-200 bg-slate-50/80 p-2 text-[11px] text-slate-700">

@@ -1,5 +1,5 @@
 /**
- * R-5 단위 검증: 봉투어 톤 예시 문자열·confirm 타이틀 페어.
+ * R-5 단위 검증: 봉투어 톤 예시 문자열·마케팅 opt-in confirm.
  * 실행: npx tsx scripts/verify-bongtour-product-title-r5.ts
  */
 import assert from 'node:assert/strict'
@@ -11,7 +11,7 @@ import {
 import { composeMarketingProductTitle } from '../lib/bongtour-product-title-marketing-compose'
 import { productTitlePairForRegisterConfirm } from '../lib/bongtour-product-title-register-bridge'
 
-/** v2 마케팅 노출 형식(국가/권역 + 도시 + N박M일·N일) */
+/** v2 마케팅 노출 형식(국가/권역 + 도시 + N박M일·N일) — R-5 제안명 전용 */
 const BONGTOUR_FIXTURE_TITLES = [
   '코카서스 3국 두바이 10일 [KE 대한항공·인솔자 동행]',
   '베트남 다낭·호이안 4박 5일 [대한항공]',
@@ -41,20 +41,26 @@ const composed = composeMarketingProductTitle({
   originalProductTitle:
     '다낭·호이안 5일 [대한항공] 호이안 메모리즈쇼·임프레션·미슐랭',
   destination: '다낭',
-  duration: '4박 5일',
+  duration: null,
 })
 assert.ok(composed.includes('다낭'))
 assert.ok(/4박\s*5일|5일/.test(composed))
 
-const pair1 = productTitlePairForRegisterConfirm(
-  { bongtourProductTitle: '  일본 도쿄 3일 [직항]  ' },
+const pairOptIn = productTitlePairForRegisterConfirm(
+  {
+    productTitleSaveMode: 'bongtour_marketing',
+    bongtourProductTitle: '  일본 도쿄 3일 [직항]  ',
+  },
   '원본 긴 상품명 테스트'
 )
-assert.equal(pair1.prismaOriginalTitle, '원본 긴 상품명 테스트')
-assert.ok(pair1.prismaTitle.includes('도쿄'))
+assert.equal(pairOptIn.prismaOriginalTitle, '원본 긴 상품명 테스트')
+assert.ok(pairOptIn.prismaTitle.includes('도쿄'))
 
-const pairFallback = productTitlePairForRegisterConfirm({}, '공급사만')
-assert.equal(pairFallback.prismaTitle, '공급사만')
-assert.equal(pairFallback.prismaOriginalTitle, '공급사만')
+const pairPlanB = productTitlePairForRegisterConfirm(
+  { bongtourProductTitle: '일본 도쿄 3일 [직항]' },
+  '공급사 원문 #노옵션 5일'
+)
+assert.equal(pairPlanB.prismaTitle, '공급사 원문 #노옵션 5일')
+assert.equal(pairPlanB.prismaOriginalTitle, '공급사 원문 #노옵션 5일')
 
 console.log('verify-bongtour-product-title-r5: ok')

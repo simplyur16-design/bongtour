@@ -18,6 +18,7 @@ import { syncProductGeoTagsForRegister } from '@/lib/sync-product-geo-tags'
 import {
   buildBongtourProductTitleFieldsForRegisterPreview,
   productTitlePairForRegisterConfirm,
+  supplierTitleHaystackForHeroSeo,
 } from '@/lib/bongtour-product-title-register-bridge'
 import { requireAdmin } from '@/lib/require-admin'
 import {
@@ -1488,6 +1489,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       const bongtourTitleBlock = await buildBongtourProductTitleFieldsForRegisterPreview({
         brandKey: forcedBrandKey,
         originalProductTitle: parsed.title,
+        supplierListingTitleRaw: parsed.supplierListingTitleRaw,
         pastedBodyText: text,
         duration: parsed.duration,
         destination: parsed.destination,
@@ -1604,10 +1606,14 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       heroReturnDateSource: heroAuditForMeta.returnSource,
     })
     const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
-    const titlePair = productTitlePairForRegisterConfirm(body, parsed.title)
+    const titlePair = productTitlePairForRegisterConfirm(body, {
+      parsedSupplierTitle: parsed.title,
+      supplierListingTitleRaw: parsed.supplierListingTitleRaw,
+      brandKey: forcedBrandKey,
+    })
     const registerHeroSeoInput = {
       rawBodyText: text,
-      title: titlePair.prismaTitle,
+      title: supplierTitleHaystackForHeroSeo(titlePair, parsed.supplierListingTitleRaw),
       primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
       destination: parsed.destination,
       duration: parsed.duration,

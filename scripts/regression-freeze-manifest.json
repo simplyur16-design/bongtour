@@ -67,7 +67,13 @@
       "id": "bongtour-product-title-r5",
       "tier": ["prebuild", "ci"],
       "script": "verify:bongtour-product-title-r5",
-      "summary": "봉투어 톤 상품명 R-5·confirm 페어"
+      "summary": "봉투어 톤 상품명 R-5·마케팅 opt-in confirm"
+    },
+    {
+      "id": "supplier-product-title-plan-b",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:supplier-product-title-plan-b",
+      "summary": "Plan B 원문 노출 상품명·SEO 메타·confirm 기본 저장"
     },
     {
       "id": "image-keywords-by-supplier",
@@ -147,6 +153,32 @@
           "mustNotInclude": [
             "extractModetourVerbatimListingTitleRawFromPasteLocal",
             "function extractModetourVerbatimListingTitleRawFromPaste"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "supplier-product-title-plan-b-ssot",
+      "tier": ["prebuild", "ci"],
+      "summary": "Plan B 등록 title — supplier-product-title-display SSOT·R-5 자동 저장 금지",
+      "checks": [
+        {
+          "file": "lib/bongtour-product-title-register-bridge.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-product-title-plan-b]",
+            "buildSupplierProductDisplayTitle",
+            "isBongtourMarketingTitleSaveRequested",
+            "productTitleSaveMode"
+          ],
+          "mustNotInclude": [
+            "미리보기에서 생성된 bongtourProductTitle을 그대로 쓴다"
+          ]
+        },
+        {
+          "file": "lib/supplier-product-title-display.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-product-title-plan-b]",
+            "SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION"
           ]
         }
       ]
@@ -503,6 +535,8 @@
         "lib/hanatour-origin-code-from-paste.test.ts",
         "lib/product-image-source-attribution.test.ts",
         "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
+        "lib/supplier-product-title-display.test.ts",
+        "lib/product-public-seo-title.test.ts",
         "lib/hanatour-schedule-image-keyword-landmark.test.ts",
         "lib/register-schedule-image-keywords-preview.test.ts",
         "lib/ybtour-schedule-image-keyword.test.ts"

@@ -80,6 +80,7 @@
     "verify:modetour-lib": "npx tsx scripts/verify-modetour-lib-ssot.ts",
     "verify:modetour-register-title": "npx tsx scripts/verify-modetour-register-title-ssot.ts",
     "verify:bongtour-product-title-r5": "npx tsx scripts/verify-bongtour-product-title-r5.ts",
+    "verify:supplier-product-title-plan-b": "npx tsx scripts/verify-supplier-product-title-plan-b.ts",
     "verify:regression-freeze": "npx tsx scripts/verify-regression-freeze.ts --tier all",
     "verify:regression-freeze:prebuild": "npx tsx scripts/verify-regression-freeze.ts --tier prebuild",
     "verify:regression-freeze:ci": "npx tsx scripts/verify-regression-freeze.ts --tier ci",
