@@ -65,7 +65,7 @@ const ALL_WELCOMEPAY_METHOD_DEFINITIONS: readonly WelcomepayMethodDefinition[] =
     mobilePath: "vbank",
     pIniPayment: "VBANK",
     pcGoPayMethod: "VBank",
-    mobileReservedExtra: "vbank_receipt=Y",
+    // 입금기한·현금영수증은 buildWelcomepayMobileReserved에서 수단별 주입
     requiresNotiUrl: true,
     requiresHppMethod: false,
     vbankPendingOnIssue: true,
@@ -120,12 +120,7 @@ const METHOD_BY_ID = new Map(ALL_WELCOMEPAY_METHOD_DEFINITIONS.map((m) => [m.id,
  * 결제 UI·prepare 기본 제외 — MID 미계약·미개시 수단.
  * 재개 시 env `WELCOMEPAY_CHECKOUT_METHODS=card,vbank,bank` (쉼표 allowlist).
  */
-const WELCOMEPAY_CHECKOUT_METHOD_EXCLUDED = new Set<WelcomepayMethodId>([
-  "culture",
-  "hpp",
-  "overseas",
-  "vbank", // MID 채번 은행 미배정 시 은행선택 비어 있음 — 웰컴 개시 후 env로 재노출
-]);
+const WELCOMEPAY_CHECKOUT_METHOD_EXCLUDED = new Set<WelcomepayMethodId>(["culture", "hpp", "overseas"]);
 
 function parseWelcomepayCheckoutMethodAllowlist(): Set<WelcomepayMethodId> | null {
   const raw = (process.env.WELCOMEPAY_CHECKOUT_METHODS ?? "").trim();
@@ -172,10 +167,11 @@ export function buildWelcomepayPcAcceptMethod(id: WelcomepayMethodId, now = new 
       parts.push("GLOBAL");
       break;
     case "vbank":
-      parts.push("va_receipt", `vbank(${formatWelcomepayVbankDeadlineYmd(now)})`);
+      // 현금영수증 미계약 상점 — no_receipt (va_receipt는 별도 계약 필요)
+      parts.push("no_receipt", `vbank(${formatWelcomepayVbankDeadlineYmd(now)})`);
       break;
     case "bank":
-      parts.push("va_receipt");
+      parts.push("no_receipt");
       break;
     default:
       break;
@@ -198,11 +194,22 @@ export function buildWelcomepayMobileReservedBase(useAmtHash: boolean): string {
   return useAmtHash ? WELCOMEPAY_MOBILE_P_RESERVED_AMT_HASH : WELCOMEPAY_MOBILE_P_RESERVED_BASE;
 }
 
+/** 모바일 가상계좌 `P_RESERVED` — 입금기한·현금영수증 UI (웰컴 Mobile Web 가이드) */
+export function buildWelcomepayVbankMobileReservedExtra(now = new Date()): string {
+  const dt = formatWelcomepayVbankDeadlineYmd(now);
+  // 당일 채번이면 TM=2359 필수(가이드). 기본 7일 후면 2359 안전.
+  return `P_VBANK_DT=${dt}&P_VBANK_TM=2359&bank_receipt=N`;
+}
+
 export function buildWelcomepayMobileReserved(
   def: WelcomepayMethodDefinition,
   useAmtHash = false,
+  now = new Date(),
 ): string {
   const base = buildWelcomepayMobileReservedBase(useAmtHash);
+  const chunks: string[] = [];
   const extra = def.mobileReservedExtra?.trim();
-  return extra ? `${base}&${extra}` : base;
+  if (extra) chunks.push(extra);
+  if (def.id === "vbank") chunks.push(buildWelcomepayVbankMobileReservedExtra(now));
+  return chunks.length ? `${base}&${chunks.join("&")}` : base;
 }
