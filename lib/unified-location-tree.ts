@@ -118,10 +118,16 @@ function groupDefToGroup(d: MegaMenuCountryGroupDef): MegaMenuCountryGroup {
   }
 }
 
+/** 도시 leaf 없어도 헤더 링크만 있는 그룹(스포츠 테마 종목)은 유지 */
+function isMegaMenuBrowsableGroup(g: MegaMenuCountryGroup): boolean {
+  if (g.cities.length > 0) return true
+  return Boolean(g.headerBrowseCountryLabel?.trim())
+}
+
 /** 메가메뉴 10탭(일반 7 + 지방출발 3) — `lib/mega-menu-regions.data.ts` SSOT. tab.localDeparture 마커는 결과 region에 그대로 통과. */
 export function buildMegaMenuRegionsFromDefinitions(): MegaMenuRegion[] {
   return MEGA_MENU_TAB_DEFINITIONS.map((tab) => {
-    const groups = tab.groups.map(groupDefToGroup).filter((g) => g.cities.length > 0)
+    const groups = tab.groups.map(groupDefToGroup).filter(isMegaMenuBrowsableGroup)
     const region: MegaMenuRegion = { id: tab.id, label: tab.label, countryGroups: groups }
     if (tab.localDeparture) region.localDeparture = tab.localDeparture
     return region
