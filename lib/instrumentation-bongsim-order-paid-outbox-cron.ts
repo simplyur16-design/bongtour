@@ -51,7 +51,9 @@ export function startInstrumentationBongsimOrderPaidOutboxCron(): void {
         { timezone: "Asia/Seoul" },
       );
       console.log(`[bongsim-order-paid-outbox-cron] registered: ${CRON_EXPR} (Asia/Seoul)`);
-      void tickBongsimOrderPaidOutboxCron("boot");
+      setTimeout(() => {
+        void tickBongsimOrderPaidOutboxCron("boot");
+      }, 45_000);
     })
     .catch((e) => {
       console.error("[bongsim-order-paid-outbox-cron] failed to load node-cron", e);

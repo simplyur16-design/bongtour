@@ -3,6 +3,8 @@
  *
  * 해외·항공+호텔 허브·browse API는 HTTP loopback 금지(단일 프로세스 502).
  * browse 캐시는 cron + `CACHE_WARM_HEAVY_BROWSE=1` 일 때만 in-process 직접 워밍.
+ * HTTP 워밍은 `127.0.0.1:PORT` loopback만 사용(CDN·공개 URL 경유 금지).
+ * 기동 직후 워밍은 `CACHE_WARM_ON_STARTUP=1` 일 때만.
  *
  * 비활성화: `DISABLE_INSTRUMENTATION_CACHE_WARM_CRON=1`
  * Dry-run: `CACHE_WARM_CRON_DRY_RUN=1` (fetch 생략, routes만 로그)
@@ -14,7 +16,6 @@ import {
   buildOverseasHubBrowseQueryKey,
 } from '@/lib/products-browse-hub-query'
 import { hubBrowsePrefetchWithTimeout } from '@/lib/products-browse-hub-prefetch-timeout'
-import { getSiteOrigin } from '@/lib/site-metadata'
 
 const CACHE_WARM_BROWSE_QUERY_KEYS = [
   buildOverseasHubBrowseQueryKey('scope=overseas'),
@@ -37,6 +38,18 @@ function isCacheWarmDryRun(): boolean {
 
 function heavyBrowseWarmEnabled(): boolean {
   return process.env.CACHE_WARM_HEAVY_BROWSE === '1'
+}
+
+function startupCacheWarmEnabled(): boolean {
+  return process.env.CACHE_WARM_ON_STARTUP === '1'
+}
+
+/** 공개 origin(CDN) 경유 self-fetch는 배포·트래픽과 충돌 — 동일 프로세스 loopback만 */
+function getCacheWarmLoopbackOrigin(): string {
+  const override = process.env.CACHE_WARM_LOOPBACK_ORIGIN?.trim()
+  if (override) return override.replace(/\/$/, '')
+  const port = process.env.PORT?.trim() || '3000'
+  return `http://127.0.0.1:${port}`
 }
 
 async function fetchWithTimeout(
@@ -108,7 +121,7 @@ async function runCacheWarmTick(source: 'cron' | 'startup'): Promise<void> {
   tickInFlight = true
   try {
     const dryRun = isCacheWarmDryRun()
-    const origin = getSiteOrigin()
+    const origin = getCacheWarmLoopbackOrigin()
     const tickStarted = Date.now()
     let success = 0
     let failed = 0
@@ -165,6 +178,10 @@ async function runCacheWarmTick(source: 'cron' | 'startup'): Promise<void> {
 }
 
 async function seedCacheWarmOnStartup(): Promise<void> {
+  if (!startupCacheWarmEnabled()) {
+    console.log('[cache-warm-cron] startup warm skipped (set CACHE_WARM_ON_STARTUP=1 to enable)')
+    return
+  }
   try {
     /** instrumentation은 HTTP 리슨 전에 돌 수 있어, 서버 기동 후 가벼운 페이지만 워밍 */
     await new Promise((r) => setTimeout(r, 20_000))
