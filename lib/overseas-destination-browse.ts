@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { SPORTS_THEME_TAG_LABELS, type SportsThemeTag } from '@/lib/product-listing-kind'
 
 export type OverseasGeoFilterBanner = {
   title: string
@@ -21,8 +22,19 @@ export async function resolveOverseasGeoFilterBanner(
   const destination = pickParam(searchParams.destination)
   const cityKey = pickParam(searchParams.city) ?? destination
   const countryKey = pickParam(searchParams.country)
+  const region = pickParam(searchParams.region)
+  const sportsTheme = pickParam(searchParams.sportsTheme)
 
-  if (!cityKey && !countryKey) return null
+  if (!cityKey && !countryKey) {
+    if (region === 'sports_theme' || sportsTheme) {
+      const label =
+        sportsTheme && sportsTheme in SPORTS_THEME_TAG_LABELS
+          ? SPORTS_THEME_TAG_LABELS[sportsTheme as SportsThemeTag]
+          : '스포츠테마'
+      return { title: `${label} 여행상품`, cityKey: null, countryKey: null }
+    }
+    return null
+  }
 
   if (cityKey) {
     const city = await prisma.city.findUnique({

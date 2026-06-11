@@ -401,6 +401,7 @@ export default function ProductsBrowseClient({
       'city',
       'destination',
       'hubSeason',
+      'sportsTheme',
     ].forEach((k) => sp.delete(k))
     if (defaultScope) sp.set('scope', defaultScope)
     router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
@@ -434,6 +435,10 @@ export default function ProductsBrowseClient({
         onPatch({ country: null, page: 1 })
       } else if (key === 'hubSeason') {
         setHubSeasonQuery(null)
+      } else if (key === 'sportsTheme') {
+        onPatch({ sportsTheme: null, page: 1 })
+      } else if (key === 'sportsThemeRegion') {
+        onPatch({ region: null, sportsTheme: null, page: 1 })
       }
     },
     [onPatch, q, setHubSeasonQuery]
@@ -466,6 +471,7 @@ export default function ProductsBrowseClient({
       Boolean(q.region?.trim()) ||
       Boolean(q.country?.trim()) ||
       Boolean(q.city?.trim()) ||
+      Boolean(q.sportsTheme?.trim()) ||
       Boolean((searchParams.get('hubSeason') ?? '').trim()) ||
       Boolean(q.regionPref?.trim()) ||
       Boolean(q.type?.trim()),
@@ -571,6 +577,10 @@ export default function ProductsBrowseClient({
     initialMegaMenuRegionCityGroupId != null && !hasMounted
       ? initialMegaMenuRegionCityGroupId
       : megaMenuRegionCityGroupIdLive
+
+  const isSportsThemeRegion = (q.region ?? '').trim() === 'sports_theme'
+  const sportsThemeFilter = (q.sportsTheme ?? '').trim() || null
+  const groupSportsThemeByCategory = isSportsThemeRegion && !sportsThemeFilter && hubFocusedResults
 
   const showOverseasSeasonCuration =
     isOverseasProductsHub &&
@@ -809,6 +819,7 @@ export default function ProductsBrowseClient({
               hubSectionPreview={useHubClientSidebarFilter && !hubFocusedResults}
               hubGalleryRotationSeed={hubGalleryRotationSeed}
               megaMenuRegionCityGroupId={megaMenuRegionCityGroupId}
+              groupSportsThemeByCategory={groupSportsThemeByCategory}
             />
             {data.total > data.limit &&
               !(

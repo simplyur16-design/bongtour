@@ -15,6 +15,7 @@ const GRID_COLS_CLASS: Record<number, string> = {
 /** 탭·그룹 수 → 그리드 열 수 (flatGrid 탭 제외) */
 export function megaMenuPanelColumnCount(regionId: string, groupCount: number): number {
   if (regionId === 'south-america') return 4
+  if (regionId === 'sports_theme') return 5
   if (groupCount <= 4) return 4
   if (groupCount <= 8) return 4
   if (groupCount <= 10) return 5
@@ -34,7 +35,7 @@ export function megaMenuPanelUsesInnerScroll(
   groupCount: number,
   maxCitiesPerGroup: number,
 ): boolean {
-  if (regionId === 'south-america') return false
+  if (regionId === 'south-america' || regionId === 'sports_theme') return false
   const cols = megaMenuPanelColumnCount(regionId, groupCount)
   const rows = Math.ceil(groupCount / cols)
   const rowPx = 32 + maxCitiesPerGroup * 28

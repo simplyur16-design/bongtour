@@ -12,13 +12,49 @@ type Props = {
   activeProductType: ProductBrowseType
 }
 
+const FLAT_GRID_COLS_CLASS: Record<number, string> = {
+  4: 'grid-cols-4',
+  5: 'grid-cols-5',
+}
+
 /**
  * 해외 메가메뉴 공통 패널 — 전 탭 동일: 4열 그리드·타이포·호버 색.
  */
 export default function CountryCityMegaPanel({ regionId, countryGroups, activeProductType }: Props) {
-  const flatGridLeafCols = regionId === 'south-america' ? 4 : null
+  const flatGridLeafCols = regionId === 'south-america' ? 4 : regionId === 'sports_theme' ? 5 : null
   const isFlatGrid = flatGridLeafCols != null
+  const flatGridColsClass = flatGridLeafCols != null ? (FLAT_GRID_COLS_CLASS[flatGridLeafCols] ?? 'grid-cols-4') : ''
   const layout = resolveMegaMenuPanelLayout(regionId, countryGroups)
+
+  if (regionId === 'sports_theme') {
+    return (
+      <div className="min-h-[280px] overflow-visible p-5 sm:p-6">
+        <ul
+          className={`m-0 mx-auto grid w-full max-w-[1200px] list-none ${flatGridColsClass} gap-x-8 gap-y-2 p-0 text-left`}
+        >
+          {countryGroups.flatMap((g, gi) =>
+            g.cities.map((c, ci) => (
+              <li key={`${g.countryLabel}-${c.label}-${gi}-${ci}`} className="min-w-0">
+                <Link
+                  href={buildMegaMenuLeafHref({
+                    type: activeProductType,
+                    regionId,
+                    countryLabel: g.countryLabel,
+                    headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+                    leaf: c,
+                  })}
+                  className="block text-left text-sm font-medium text-slate-700 transition hover:text-orange-500 leading-8"
+                  title={c.label}
+                >
+                  {c.label}
+                </Link>
+              </li>
+            )),
+          )}
+        </ul>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -57,7 +93,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
             <ul
               className={
                 isFlatGrid
-                  ? 'm-0 grid list-none grid-cols-4 gap-x-8 gap-y-2 p-0 text-left'
+                  ? `m-0 grid list-none ${flatGridColsClass} gap-x-8 gap-y-2 p-0 text-left`
                   : 'm-0 list-none p-0 text-left'
               }
             >

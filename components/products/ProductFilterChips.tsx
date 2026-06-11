@@ -3,6 +3,7 @@
 import type { BrowseQueryState } from '@/lib/products-browse-query'
 import { catalogEntryByCode } from '@/lib/airline-catalog'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
+import { SPORTS_THEME_TAG_LABELS, type SportsThemeTag } from '@/lib/product-listing-kind'
 
 const HOUR_LABEL: Record<string, string> = {
   '04-07': '04~07시',
@@ -30,6 +31,14 @@ export function buildFilterChips(q: BrowseQueryState): Chip[] {
     const slug = q.country.trim()
     const lab = koreanCountryLabelFromBrowseSlug(slug) ?? slug
     out.push({ key: 'countryFilter', label: `나라:${lab}` })
+  }
+  if (q.sportsTheme?.trim()) {
+    const key = q.sportsTheme.trim()
+    const lab =
+      key in SPORTS_THEME_TAG_LABELS ? SPORTS_THEME_TAG_LABELS[key as SportsThemeTag] : key
+    out.push({ key: 'sportsTheme', label: `스포츠:${lab}` })
+  } else if ((q.region ?? '').trim() === 'sports_theme') {
+    out.push({ key: 'sportsThemeRegion', label: '스포츠테마' })
   }
   if (q.noOptionalTour) out.push({ key: 'noOptionalTour', label: '현지옵션 없음' })
   if (q.noShopping) out.push({ key: 'noShopping', label: '쇼핑 없음' })

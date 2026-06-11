@@ -20,7 +20,9 @@ export function computeHubFocusedResults(opts: {
   if (!useHubClientSidebarFilter) return false
 
   const q = parseBrowseQuery(new URLSearchParams(opts.searchParams.toString()))
-  const hasMegaGeo = Boolean((q.region ?? '').trim() || (q.country ?? '').trim())
+  const hasMegaGeo = Boolean(
+    (q.region ?? '').trim() || (q.country ?? '').trim() || (q.sportsTheme ?? '').trim(),
+  )
   const hasDestinationFilter = Boolean(
     opts.overseasGeoFilterBanner || (q.city ?? '').trim() || spGet(opts.searchParams, 'destination'),
   )

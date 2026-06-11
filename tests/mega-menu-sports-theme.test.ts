@@ -16,7 +16,8 @@ describe('mega menu sports_theme tab', () => {
       const g = tab.groups[i]!
       const key = SPORTS_THEME_TAG_VALUES[i]!
       assert.equal(g.headerBrowseCountryLabel, key)
-      assert.equal(g.cities.length, 0)
+      assert.equal(g.cities.length, 1)
+      assert.equal(g.cities[0]!.label, SPORTS_THEME_TAG_LABELS[key])
     }
   })
 

@@ -405,9 +405,14 @@ const SA: MegaMenuCountryGroupDef[] = [
   ),
 ]
 
-/** 스포츠 테마 — 중분류=종목(러닝·트레킹·…), 그룹 헤더 클릭 시 `sportsTheme` browse 필터 */
+/** 스포츠 테마 — 중분류=종목(러닝·트레킹·…), 그룹·leaf 클릭 시 `sportsTheme` browse 필터 */
 const ST: MegaMenuCountryGroupDef[] = SPORTS_THEME_TAG_VALUES.map((key) =>
-  G(SPORTS_THEME_TAG_LABELS[key], [], false, key),
+  G(
+    SPORTS_THEME_TAG_LABELS[key],
+    [LC(SPORTS_THEME_TAG_LABELS[key], [SPORTS_THEME_TAG_LABELS[key], key], key)],
+    false,
+    key,
+  ),
 )
 
 const AM: MegaMenuCountryGroupDef[] = [

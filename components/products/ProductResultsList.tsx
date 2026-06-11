@@ -46,6 +46,11 @@ import {
   MOBILE_HUB_PRODUCT_ROW_CLASS,
   MOBILE_HUB_SECTION_STACK_CLASS,
 } from '@/lib/mobile-hub-scroll-layout'
+import {
+  SPORTS_THEME_TAG_LABELS,
+  SPORTS_THEME_TAG_VALUES,
+  type SportsThemeTag,
+} from '@/lib/product-listing-kind'
 
 export type ResultItem = {
   id: string
@@ -84,6 +89,8 @@ export type ResultItem = {
   browseMegaSubgroupLabel?: string | null
   /** DB `Product.country` browse 슬러그 — 항공+호텔 허브 필터 칩용 */
   browseCountry?: string | null
+  /** browse API — `Product.sportsThemeTag` (종목별 섹션 그룹용) */
+  sportsThemeTags?: SportsThemeTag[]
 }
 
 /** 해외 목록: 상품 카드 N개마다 eSIM 네이티브 카드 1개 */
@@ -154,6 +161,8 @@ type Props = {
   hubGalleryRotationSeed?: number
   /** 메가메뉴 대분류만 선택 시 — 도시별 섹션 (`region` 탭 id) */
   megaMenuRegionCityGroupId?: string | null
+  /** `region=sports_theme` 전체 — 종목(러닝·트레킹·…)별 섹션 */
+  groupSportsThemeByCategory?: boolean
 }
 
 function mapFlatListWithEsimCards(
@@ -989,6 +998,84 @@ export function ProductResultCard({
   )
 }
 
+function sportsThemeGroupScopeKey(tag: SportsThemeTag): string {
+  return `sports-theme:${tag}`
+}
+
+function SportsThemeGroupedList({
+  items,
+  formatWon,
+  seasonalPickIds,
+  hubCompareGridLayout = false,
+  hubGalleryRotationSeed = 0,
+}: {
+  items: ResultItem[]
+  formatWon: (n: number | null) => string
+  seasonalPickIds?: ReadonlySet<string> | null
+  hubCompareGridLayout?: boolean
+  hubGalleryRotationSeed?: number
+}) {
+  const sections = useMemo(() => {
+    const byTag = new Map<SportsThemeTag, ResultItem[]>()
+    for (const key of SPORTS_THEME_TAG_VALUES) byTag.set(key, [])
+
+    for (const item of items) {
+      const tags = item.sportsThemeTags ?? []
+      const seen = new Set<SportsThemeTag>()
+      for (const raw of tags) {
+        if (!SPORTS_THEME_TAG_VALUES.includes(raw as SportsThemeTag)) continue
+        const tag = raw as SportsThemeTag
+        if (seen.has(tag)) continue
+        seen.add(tag)
+        byTag.get(tag)!.push(item)
+      }
+    }
+
+    return SPORTS_THEME_TAG_VALUES.map((tag) => ({
+      tag,
+      label: SPORTS_THEME_TAG_LABELS[tag],
+      items: interleaveProductsBySupplier(
+        sortItemsWithSeasonalPicks(byTag.get(tag) ?? [], seasonalPickIds),
+      ),
+    })).filter((section) => section.items.length > 0)
+  }, [items, seasonalPickIds])
+
+  return (
+    <div className={`mt-6 ${MOBILE_HUB_OVERSEAS_SECTION_STACK_CLASS}`}>
+      {sections.map(({ tag, label, items: sectionItems }) => (
+        <section
+          key={tag}
+          className="scroll-mt-4"
+          aria-labelledby={`sports-theme-section-${sportsThemeGroupScopeKey(tag)}`}
+        >
+          <h2
+            id={`sports-theme-section-${sportsThemeGroupScopeKey(tag)}`}
+            className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
+          >
+            {label}
+          </h2>
+          {hubCompareGridLayout ? (
+            renderHubSectionGallery(
+              sectionItems,
+              formatWon,
+              seasonalPickIds,
+              hubGalleryRotationSeed,
+              sportsThemeGroupScopeKey(tag),
+            )
+          ) : (
+            <ProductResultsHubScrollRow ariaLabel={`스포츠테마 ${label} 상품`}>
+              {buildProductResultRowNodes(sectionItems, formatWon, seasonalPickIds, {
+                compact: true,
+                liClassName: HUB_PRODUCT_SCROLL_LI_CLASS,
+              })}
+            </ProductResultsHubScrollRow>
+          )}
+        </section>
+      ))}
+    </div>
+  )
+}
+
 function subgroupGroupScopeKey(regionId: string, subgroupLabel: string): string {
   const slug = subgroupLabel
     .trim()
@@ -1218,7 +1305,20 @@ export default function ProductResultsList({
   hubSectionPreview = false,
   hubGalleryRotationSeed = 0,
   megaMenuRegionCityGroupId = null,
+  groupSportsThemeByCategory = false,
 }: Props) {
+  if (groupSportsThemeByCategory && items.length > 0) {
+    return (
+      <SportsThemeGroupedList
+        items={items}
+        formatWon={formatWon}
+        seasonalPickIds={seasonalPickIds}
+        hubCompareGridLayout={hubCompareGridLayout}
+        hubGalleryRotationSeed={hubGalleryRotationSeed}
+      />
+    )
+  }
+
   const megaRegionId = (megaMenuRegionCityGroupId ?? '').trim()
   if (megaRegionId && items.length > 0) {
     return (

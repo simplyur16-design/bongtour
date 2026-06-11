@@ -52,6 +52,7 @@ import {
   localDepartureTagForBrowseRegion,
   sportsThemeTagForBrowseRegion,
 } from '@/lib/browse-master-geo-continents'
+import { SPORTS_THEME_TAG_VALUES, type SportsThemeTag } from '@/lib/product-listing-kind'
 import {
   resolveOverseasCountryRowLabelForBrowse,
   resolveOverseasDisplayBucketForBrowse,
@@ -81,6 +82,12 @@ import {
   domesticProductMatchesShip,
   domesticProductMatchesTrain,
 } from '@/lib/domestic-public-browse-match'
+
+function normalizeSportsThemeTagsForBrowse(raw: string[] | null | undefined): SportsThemeTag[] {
+  if (!Array.isArray(raw) || raw.length === 0) return []
+  const set = new Set(raw.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean))
+  return SPORTS_THEME_TAG_VALUES.filter((k) => set.has(k))
+}
 
 /** 4xx 등 클라이언트 오류 — unstable_cache 밖에서 Response 생성 (캐시하지 않음) */
 export class BrowseRouteClientError extends Error {
@@ -652,6 +659,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         p.departures[0]?.departureDate?.toISOString() ??
         null,
       browseFilterMeta: buildBrowseItemFilterMeta(p),
+      sportsThemeTags: normalizeSportsThemeTagsForBrowse(p.sportsThemeTag),
       ...(p.hasUrgentDeal
         ? (() => {
             const ymd = p.urgentDealNextDate
