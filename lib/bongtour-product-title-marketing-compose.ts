@@ -6,6 +6,7 @@ import {
   sanitizeBongtourProductTitle,
   titleHasDayCountToken,
 } from '@/lib/bongtour-product-title-tone-ssot'
+import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 
 export type MarketingProductTitleComposeInput = {
   originalProductTitle: string
@@ -121,7 +122,9 @@ export function shouldPreferMarketingComposeOverLlm(
 
 /** 마케팅 국가/권역 + 도시(1~2) + N박M일 — 과도한 특전·키워드 나열 없음 */
 export function composeMarketingProductTitle(input: MarketingProductTitleComposeInput): string {
-  const original = stripHashtags(stripLeadingBadges(String(input.originalProductTitle ?? '').trim()))
+  const originalRaw = String(input.originalProductTitle ?? '').trim()
+  if (isSupplierListingTitleUnacceptable(originalRaw)) return '해외여행'
+  const original = stripHashtags(stripLeadingBadges(originalRaw))
   const destination = String(input.destination ?? '').trim()
   const durationToken = normalizeMarketingDurationToken(input.duration, original)
 

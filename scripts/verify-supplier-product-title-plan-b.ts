@@ -10,8 +10,10 @@ import {
 import { buildProductPublicSeoDocumentTitle } from '../lib/product-public-seo-title'
 import {
   buildSupplierProductDisplayTitle,
+  resolveSupplierVerbatimOriginalTitle,
   SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION,
 } from '../lib/supplier-product-title-display'
+import { isSupplierListingTitleUnacceptable } from '../lib/supplier-listing-title-unacceptable'
 
 assert.match(SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION, /^plan-b-v/)
 
@@ -57,5 +59,24 @@ const seo = buildProductPublicSeoDocumentTitle({
 })
 assert.ok(seo.includes('|'))
 assert.ok(seo.includes('여행 상품'))
+
+const badWindow = '2026.06.15 ~ 2026.06.17 2박 3일'
+assert.equal(isSupplierListingTitleUnacceptable(badWindow), true)
+assert.equal(
+  resolveSupplierVerbatimOriginalTitle({
+    parsedSupplierTitle: badWindow,
+    supplierListingTitleRaw: badWindow,
+    brandKey: 'hanatour',
+  }),
+  '미입력',
+)
+assert.equal(
+  buildSupplierProductDisplayTitle({
+    verbatimOriginal: '미입력',
+    parsedSupplierTitle: badWindow,
+    brandKey: 'hanatour',
+  }),
+  '미입력',
+)
 
 console.log('verify-supplier-product-title-plan-b: ok')

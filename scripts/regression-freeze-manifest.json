@@ -536,6 +536,7 @@
         "lib/product-image-source-attribution.test.ts",
         "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
         "lib/supplier-product-title-display.test.ts",
+        "lib/supplier-listing-title-unacceptable.test.ts",
         "lib/product-public-seo-title.test.ts",
         "lib/hanatour-schedule-image-keyword-landmark.test.ts",
         "lib/register-schedule-image-keywords-preview.test.ts",

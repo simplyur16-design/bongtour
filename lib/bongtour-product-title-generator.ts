@@ -10,6 +10,7 @@ import {
 } from '@/lib/bongtour-product-title-tone-ssot'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
+import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 
 function envFlag(name: string, defaultTrue: boolean): boolean {
   const v = (process.env[name] ?? '').trim().toLowerCase()
@@ -101,6 +102,16 @@ async function callGeminiTitleOnce(
 export async function generateBongtourProductTitle(input: BongtourProductTitleLlmInput): Promise<GenerateResult> {
   const originalTitle = (input.originalProductTitle || '').trim() || '미입력'
   const emptyValidation = validateBongtourProductTitle('')
+
+  if (isSupplierListingTitleUnacceptable(originalTitle, input.brandKey)) {
+    console.info('[bongtour-product-title] skipped: unacceptable supplier listing title')
+    return {
+      title: null,
+      originalTitle,
+      validation: emptyValidation,
+      source: 'fallback_invalid',
+    }
+  }
 
   if (!envFlag('BONGTOUR_PRODUCT_TITLE_LLM_ENABLED', true)) {
     console.info('[bongtour-product-title] skipped: BONGTOUR_PRODUCT_TITLE_LLM_ENABLED=0')

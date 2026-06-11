@@ -11,6 +11,11 @@ import {
   buildSupplierProductDisplayTitle,
   resolveSupplierVerbatimOriginalTitle,
 } from '@/lib/supplier-product-title-display'
+import {
+  isSupplierListingTitleUnacceptable,
+  SUPPLIER_LISTING_TITLE_REJECTED_HINT,
+} from '@/lib/supplier-listing-title-unacceptable'
+import { extractSupplierListingTitleFromPaste } from '@/lib/supplier-listing-title-from-paste'
 
 /** LLM·프롬프트에 넣는 공급사 한글 라벨(참좋은여행·교원이지 등). */
 export function supplierLabelForBongtourTitle(brandKey: string): string {
@@ -37,6 +42,9 @@ export type BongtourProductTitlePreviewFields = {
   displayProductTitle: string
   bongtourProductTitle: string | null
   originalProductTitle: string
+  /** 리스트 제목 추출 실패(출발일 구간 등) */
+  listingTitleAcceptable: boolean
+  listingTitleWarning: string | null
   bongtourTitleValidation: BongtourProductTitleValidationSnapshotV1
   bongtourTitleToneVersion: string
 }
@@ -51,32 +59,60 @@ export async function buildBongtourProductTitleFieldsForRegisterPreview(args: {
   destination?: string | null | undefined
   scheduleDayTitles: string[]
 }): Promise<BongtourProductTitlePreviewFields> {
+  let supplierListingTitleRaw = args.supplierListingTitleRaw?.trim() || null
+  const parsedBad =
+    !args.originalProductTitle?.trim() ||
+    isSupplierListingTitleUnacceptable(args.originalProductTitle, args.brandKey)
+  const rawBad =
+    !supplierListingTitleRaw || isSupplierListingTitleUnacceptable(supplierListingTitleRaw, args.brandKey)
+  if (parsedBad && rawBad && args.pastedBodyText.trim()) {
+    const fromPaste = extractSupplierListingTitleFromPaste(args.brandKey, args.pastedBodyText)
+    if (fromPaste) supplierListingTitleRaw = fromPaste
+  }
+
   const verbatim = resolveSupplierVerbatimOriginalTitle({
     parsedSupplierTitle: args.originalProductTitle,
-    supplierListingTitleRaw: args.supplierListingTitleRaw,
+    supplierListingTitleRaw,
+    brandKey: args.brandKey,
   })
+  const listingTitleAcceptable = verbatim !== '미입력' && !isSupplierListingTitleUnacceptable(verbatim, args.brandKey)
+  const listingTitleWarning = listingTitleAcceptable ? null : SUPPLIER_LISTING_TITLE_REJECTED_HINT
+
   const displayProductTitle = buildSupplierProductDisplayTitle({
     verbatimOriginal: verbatim,
     parsedSupplierTitle: args.originalProductTitle,
     brandKey: args.brandKey,
   })
 
-  const gen = await generateBongtourProductTitle({
-    brandKey: args.brandKey,
-    supplierDisplayLabel: supplierLabelForBongtourTitle(args.brandKey),
-    originalProductTitle: verbatim,
-    pastedBodyText: args.pastedBodyText,
-    duration: args.duration,
-    destination: args.destination,
-    scheduleDayTitles: args.scheduleDayTitles,
-  })
-  const candidate = gen.title ? sanitizeBongtourProductTitle(gen.title) : ''
-  const validation = candidate ? validateBongtourProductTitle(candidate) : validateBongtourProductTitle('')
-  const bongtourProductTitle = candidate && validation.ok ? candidate : null
+  let bongtourProductTitle: string | null = null
+  let validation = validateBongtourProductTitle('')
+  if (listingTitleAcceptable) {
+    const gen = await generateBongtourProductTitle({
+      brandKey: args.brandKey,
+      supplierDisplayLabel: supplierLabelForBongtourTitle(args.brandKey),
+      originalProductTitle: verbatim,
+      pastedBodyText: args.pastedBodyText,
+      duration: args.duration,
+      destination: args.destination,
+      scheduleDayTitles: args.scheduleDayTitles,
+    })
+    const candidate = gen.title ? sanitizeBongtourProductTitle(gen.title) : ''
+    validation = candidate ? validateBongtourProductTitle(candidate) : validateBongtourProductTitle('')
+    if (
+      candidate &&
+      validation.ok &&
+      !isSupplierListingTitleUnacceptable(candidate, args.brandKey)
+    ) {
+      bongtourProductTitle = candidate
+    }
+  }
+
   return {
     displayProductTitle,
     bongtourProductTitle,
     originalProductTitle: verbatim,
+    listingTitleAcceptable,
+    listingTitleWarning,
     bongtourTitleValidation: validationToSnapshot(validation),
     bongtourTitleToneVersion: BONGTOUR_PRODUCT_TITLE_TONE_VERSION,
   }
@@ -114,11 +150,25 @@ export function isBongtourMarketingTitleSaveRequested(body: Record<string, unkno
 export function productTitlePairForRegisterConfirm(
   body: Record<string, unknown>,
   parsedOrOpts: string | ProductTitleConfirmInput,
+  pasteBlob?: string | null,
 ): BongtourProductTitleConfirmPair {
   const opts = parseProductTitleConfirmInput(parsedOrOpts)
+  let supplierListingTitleRaw = opts.supplierListingTitleRaw?.trim() || null
+  const parsedBad =
+    !opts.parsedSupplierTitle?.trim() ||
+    isSupplierListingTitleUnacceptable(opts.parsedSupplierTitle, opts.brandKey)
+  const rawBad =
+    !supplierListingTitleRaw ||
+    isSupplierListingTitleUnacceptable(supplierListingTitleRaw, opts.brandKey)
+  if (parsedBad && rawBad && opts.brandKey && (pasteBlob ?? '').trim()) {
+    const fromPaste = extractSupplierListingTitleFromPaste(opts.brandKey, pasteBlob!)
+    if (fromPaste) supplierListingTitleRaw = fromPaste
+  }
+
   const prismaOriginalTitle = resolveSupplierVerbatimOriginalTitle({
     parsedSupplierTitle: opts.parsedSupplierTitle,
-    supplierListingTitleRaw: opts.supplierListingTitleRaw,
+    supplierListingTitleRaw,
+    brandKey: opts.brandKey,
   })
 
   if (isBongtourMarketingTitleSaveRequested(body)) {
@@ -127,7 +177,7 @@ export function productTitlePairForRegisterConfirm(
     if (fromClient) {
       const cleaned = sanitizeBongtourProductTitle(fromClient)
       const v = validateBongtourProductTitle(cleaned)
-      if (v.ok) {
+      if (v.ok && !isSupplierListingTitleUnacceptable(cleaned, opts.brandKey)) {
         return { prismaTitle: cleaned, prismaOriginalTitle }
       }
     }

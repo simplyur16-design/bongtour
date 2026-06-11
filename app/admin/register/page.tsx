@@ -1944,6 +1944,9 @@ export default function AdminRegisterPage() {
                     <dd className="font-medium text-slate-900">
                       {(preview.displayProductTitle ?? preview.productDraft.title)?.trim() || '—'}
                     </dd>
+                    {preview.listingTitleWarning ? (
+                      <p className="mt-1.5 text-[11px] leading-relaxed text-amber-800">{preview.listingTitleWarning}</p>
+                    ) : null}
                   </div>
                   <div className="sm:col-span-2">
                     <dt className="text-[11px] text-slate-500">공급사 원본 (저장 → Product.originalTitle)</dt>
@@ -1954,7 +1957,11 @@ export default function AdminRegisterPage() {
                   <div className="sm:col-span-2 rounded border border-slate-200 bg-slate-50/80 p-2.5">
                     <dt className="text-[11px] font-semibold text-slate-700">R-5 마케팅 제안명 (참고 — 기본으로는 저장하지 않음)</dt>
                     <dd className="mt-1 font-medium text-slate-800">
-                      {preview.bongtourProductTitle?.trim() ? preview.bongtourProductTitle.trim() : '—'}
+                      {preview.listingTitleAcceptable === false
+                        ? '— (리스트 제목을 찾지 못해 생성하지 않음)'
+                        : preview.bongtourProductTitle?.trim()
+                          ? preview.bongtourProductTitle.trim()
+                          : '—'}
                     </dd>
                     <label className="mt-2 flex items-start gap-2 text-[11px] text-slate-700">
                       <input

@@ -40,6 +40,23 @@ describe('buildSupplierProductDisplayTitle', () => {
     expect(title).not.toBe('다낭·호이안 4박 5일')
   })
 
+  it('rejects departure window title for all suppliers', () => {
+    expect(
+      resolveSupplierVerbatimOriginalTitle({
+        parsedSupplierTitle: '2026.06.15 ~ 2026.06.17 2박 3일',
+        supplierListingTitleRaw: '2026.06.15 ~ 2026.06.17 2박 3일',
+        brandKey: 'hanatour',
+      }),
+    ).toBe('미입력')
+    expect(
+      buildSupplierProductDisplayTitle({
+        verbatimOriginal: '미입력',
+        parsedSupplierTitle: '2026.06.15 ~ 2026.06.17 2박 3일',
+        brandKey: 'ybtour',
+      }),
+    ).toBe('미입력')
+  })
+
   it('rejects modetour hotel-grade-only display and falls back to parsed', () => {
     const title = buildSupplierProductDisplayTitle({
       verbatimOriginal: '일급호텔 3박 5일',

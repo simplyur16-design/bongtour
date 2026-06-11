@@ -6,7 +6,7 @@
  * - originalTitle: 붙여넣기·파싱 원문(최소 trim)
  * - display title: UI 노이즈만 제거, #태그·[항공/옵션]·선행 [지역] 배지 유지
  */
-import { isModetourUnacceptableRegisterListingTitle } from '@/lib/modetour-departures'
+import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 
 export const SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION = 'plan-b-v1-2026-06-10'
 
@@ -15,14 +15,31 @@ export const SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX = 90
 
 const UI_NOISE_CHARS = ['★', '※', '◎', '◆', '▶'] as const
 
+function uniqueTitleCandidates(...parts: (string | null | undefined)[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const p of parts) {
+    const t = (p ?? '').trim()
+    if (!t || seen.has(t)) continue
+    seen.add(t)
+    out.push(t)
+  }
+  return out
+}
+
 export function resolveSupplierVerbatimOriginalTitle(args: {
   parsedSupplierTitle: string
   supplierListingTitleRaw?: string | null
+  brandKey?: string
 }): string {
-  const raw = (args.supplierListingTitleRaw ?? '').trim()
-  if (raw.length >= 8) return raw
-  const parsed = (args.parsedSupplierTitle ?? '').trim()
-  return parsed || '미입력'
+  const candidates = uniqueTitleCandidates(
+    args.supplierListingTitleRaw,
+    args.parsedSupplierTitle,
+  )
+  for (const c of candidates) {
+    if (c.length >= 4 && !isSupplierListingTitleUnacceptable(c, args.brandKey)) return c
+  }
+  return '미입력'
 }
 
 /** 공백·NBSP·UI 장식(★※▶)만 정리 — #해시·본문 [항공] 블록은 유지 */
@@ -37,29 +54,21 @@ export function stripSupplierTitleUiNoise(s: string): string {
 
 export type SupplierProductDisplayTitleInput = {
   verbatimOriginal: string
-  /** modetour 등 부적절 제목 거부 시 폴백 후보 */
   parsedSupplierTitle?: string
   brandKey?: string
 }
 
-/**
- * Plan B 노출명 — 원문 기반 경량 정리.
- * 모두투어: `일급호텔 N박M일` 등 부적절 줄은 parsed 후보로 1회 폴백(confirm 게이트는 별도).
- */
+/** Plan B 노출명 — 원문 기반 경량 정리. 출발일 구간·박일만 줄은 거부 */
 export function buildSupplierProductDisplayTitle(input: SupplierProductDisplayTitleInput): string {
-  const candidates = [
+  const candidates = uniqueTitleCandidates(
     stripSupplierTitleUiNoise(input.verbatimOriginal),
     stripSupplierTitleUiNoise(input.parsedSupplierTitle ?? ''),
-  ].filter((t) => t.length >= 4)
+  ).filter((t) => t.length >= 4)
 
   for (const c of candidates) {
     const clipped = c.slice(0, SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX)
-    if (input.brandKey === 'modetour' && isModetourUnacceptableRegisterListingTitle(clipped)) {
-      continue
-    }
-    return clipped || '미입력'
+    if (isSupplierListingTitleUnacceptable(clipped, input.brandKey)) continue
+    return clipped
   }
-
-  const fallback = stripSupplierTitleUiNoise(input.verbatimOriginal).slice(0, SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX)
-  return fallback || '미입력'
+  return '미입력'
 }

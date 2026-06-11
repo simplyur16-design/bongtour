@@ -1679,11 +1679,15 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       heroReturnDateSource: heroAuditForMeta.returnSource,
     })
     const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
-    const titlePair = productTitlePairForRegisterConfirm(body, {
-      parsedSupplierTitle: parsed.title,
-      supplierListingTitleRaw: parsed.supplierListingTitleRaw,
-      brandKey: forcedBrandKey,
-    })
+    const titlePair = productTitlePairForRegisterConfirm(
+      body,
+      {
+        parsedSupplierTitle: parsed.title,
+        supplierListingTitleRaw: parsed.supplierListingTitleRaw,
+        brandKey: forcedBrandKey,
+      },
+      text,
+    )
     if (
       modetourRegisterTitleBlocksConfirmSave({
         prismaTitle: titlePair.prismaTitle,

@@ -1427,11 +1427,15 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       heroReturnDateSource: heroAuditForMeta.returnSource,
     })
     const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
-    const titlePair = productTitlePairForRegisterConfirm(body, {
-      parsedSupplierTitle: parsed.title,
-      supplierListingTitleRaw: parsed.supplierListingTitleRaw,
-      brandKey: forcedBrandKey,
-    })
+    const titlePair = productTitlePairForRegisterConfirm(
+      body,
+      {
+        parsedSupplierTitle: parsed.title,
+        supplierListingTitleRaw: parsed.supplierListingTitleRaw,
+        brandKey: forcedBrandKey,
+      },
+      text,
+    )
     const registerHeroSeoInput = {
       rawBodyText: text,
       title: supplierTitleHaystackForHeroSeo(titlePair, parsed.supplierListingTitleRaw),
