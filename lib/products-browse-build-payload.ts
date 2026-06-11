@@ -63,6 +63,7 @@ import {
 } from '@/lib/overseas-mega-region-city-group'
 import { resolveBrowseMegaRegionTabIdForBrowse } from '@/lib/browse-mega-region-tab-id'
 import { buildBrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
+import { isOverseasHubFullCatalogQueryKey } from '@/lib/products-browse-hub-query'
 import {
   filterPoolByStoredTravelScope,
   prismaWhereForBrowseTravelScope,
@@ -179,6 +180,7 @@ export let browsePerfLastPhases: {
 /** 성공 JSON 본문만 반환 — 실패는 throw (unstable_cache가 500 Response를 캐시하지 않도록). */
 export async function productsBrowseBuildPayload(queryKey: string) {
   const perf = process.env.BONGTOUR_PERF_LOG === '1' ? { t0: performance.now(), parse: 0, db: 0, filter: 0, score: 0, map: 0, rowCount: 0, finalCount: 0 } : null // PERF-LOG: 측정 후 제거
+  const isHubFullCatalog = isOverseasHubFullCatalogQueryKey(queryKey)
   const searchParams = new URLSearchParams(queryKey)
     const q = parseBrowseQuery(searchParams)
 
@@ -541,14 +543,19 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     if (perf) perf.finalCount = slice.length // PERF-LOG: 측정 후 제거
 
     const sliceProductIds = slice.map(({ product }) => product.id)
-    const sliceProductIdsNeedingSchedule = slice
-      .filter(({ product }) => !String(product.bgImageUrl ?? '').trim())
-      .map(({ product }) => product.id)
+    const sliceProductIdsNeedingSchedule =
+      isHubFullCatalog
+        ? []
+        : slice
+            .filter(({ product }) => !String(product.bgImageUrl ?? '').trim())
+            .map(({ product }) => product.id)
 
-    const [sliceDepartureByProductId, scheduleByProductId] = await Promise.all([
-      fetchBrowseDeparturesByProductIds(sliceProductIds),
-      fetchProductBrowseScheduleByIds(sliceProductIdsNeedingSchedule),
-    ])
+    const [sliceDepartureByProductId, scheduleByProductId] = isHubFullCatalog
+      ? [new Map<string, ProductBrowseIncludedRow['departures']>(), new Map<string, string | null>()]
+      : await Promise.all([
+          fetchBrowseDeparturesByProductIds(sliceProductIds),
+          fetchProductBrowseScheduleByIds(sliceProductIdsNeedingSchedule),
+        ])
 
     const metaRows = slice.map(({ product: p, effectivePricePerPerson }) => {
       const hasBgImage = Boolean(String(p.bgImageUrl ?? '').trim())
@@ -568,12 +575,25 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       return { p, effectivePricePerPerson, scheduleRows, coverUrl, firstScheduleName }
     })
 
-    const urlsForCaptionBatch = metaRows
-      .filter(
-        (m) => !m.firstScheduleName && m.coverUrl && !productHasStoredHeroSeo(m.p),
-      )
-      .map((m) => m.coverUrl as string)
-    const captionMap = await buildCaptionLookupMapFromPublicUrls(urlsForCaptionBatch)
+    const urlsForCaptionBatch = isHubFullCatalog
+      ? []
+      : metaRows
+          .filter(
+            (m) => !m.firstScheduleName && m.coverUrl && !productHasStoredHeroSeo(m.p),
+          )
+          .map((m) => m.coverUrl as string)
+    const captionMap = isHubFullCatalog
+      ? new Map<string, string>()
+      : await buildCaptionLookupMapFromPublicUrls(urlsForCaptionBatch)
+
+    const overseasGeoFieldCache = new Map<
+      string,
+      {
+        overseasBucket: ReturnType<typeof resolveOverseasDisplayBucketForBrowse>
+        countryRowLabel: string
+        browseMegaRegionTabId: string | null
+      }
+    >()
 
     const items = metaRows.map(({ p: pRaw, effectivePricePerPerson, coverUrl, firstScheduleName }) => {
       const departures = sliceDepartureByProductId.get(pRaw.id) ?? []
@@ -581,12 +601,13 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         ...(pRaw as ProductBrowseIncludedRow),
         departures,
       }
-      const seatAwareMin = minBrowseBookableAdultPrice(departures)
+      const seatAwareMin = isHubFullCatalog ? null : minBrowseBookableAdultPrice(departures)
       const cardPriceKrw =
         seatAwareMin ??
+        (isHubFullCatalog && p.minBookableAdultPrice != null ? p.minBookableAdultPrice : null) ??
         computeEffectivePricePerPersonKrwFromRow(
           { ...p, departures },
-          { seatAware: true },
+          { seatAware: !isHubFullCatalog },
         ) ??
         effectivePricePerPerson
       const seoAssetHint = lookupCaptionFromMap(captionMap, coverUrl)
@@ -701,21 +722,48 @@ export async function productsBrowseBuildPayload(queryKey: string) {
               countryTags: p.countryTags,
               cityTags: p.cityTags,
             }
+            const sportsThemeTags = normalizeSportsThemeTagsForBrowse(p.sportsThemeTag)
+            const geoCacheKey = [
+              p.cityKey ?? '',
+              p.countryKey ?? '',
+              p.nodeKey ?? '',
+              p.primaryDestination ?? '',
+              sportsThemeTags.join(','),
+              (p.countryTags ?? []).map((t) => t.countryKey).sort().join(','),
+              !p.cityKey?.trim() && !p.countryKey?.trim() ? p.title : '',
+            ].join('\0')
+            const canReuseGeoCache = Boolean(p.cityKey?.trim() || p.countryKey?.trim())
+            const cachedGeo = canReuseGeoCache ? overseasGeoFieldCache.get(geoCacheKey) : undefined
+            if (cachedGeo) {
+              return {
+                overseasBucket: cachedGeo.overseasBucket,
+                countryRowLabel: cachedGeo.countryRowLabel,
+                browseMegaSubgroupLabel: null,
+                browseCountry: (p.country ?? '').trim() || null,
+                browseMegaRegionTabId: cachedGeo.browseMegaRegionTabId,
+              }
+            }
             const match = matchProductToOverseasNode(matchInput)
             const overseasBucket = resolveOverseasDisplayBucketForBrowse(matchInput, match)
             const countryRowLabel = resolveOverseasCountryRowLabelForBrowse(matchInput, match)
-            const sportsThemeTags = normalizeSportsThemeTagsForBrowse(p.sportsThemeTag)
             const browseMegaRegionTabId = resolveBrowseMegaRegionTabIdForBrowse(
               matchInput,
               match,
               overseasBucket,
               sportsThemeTags,
             )
+            overseasGeoFieldCache.set(geoCacheKey, {
+              overseasBucket,
+              countryRowLabel,
+              browseMegaRegionTabId,
+            })
             const regionForSubgroup =
-              (region ?? '').trim() ||
-              (browseMegaRegionTabId && isMegaMenuRegionCityGroupTabId(browseMegaRegionTabId)
-                ? browseMegaRegionTabId
-                : '')
+              isHubFullCatalog
+                ? ''
+                : (region ?? '').trim() ||
+                  (browseMegaRegionTabId && isMegaMenuRegionCityGroupTabId(browseMegaRegionTabId)
+                    ? browseMegaRegionTabId
+                    : '')
             const browseMegaSubgroupLabel = regionForSubgroup
               ? resolveOverseasMegaMenuSubgroupLabelForBrowse(
                   matchInput,

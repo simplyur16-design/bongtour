@@ -12,7 +12,7 @@ import {
 } from '@/lib/overseas-display-buckets'
 import {
   megaMenuSubgroupLabelsInOrder,
-  resolveOverseasMegaMenuSubgroupLabelForClient,
+  resolveOverseasHubMegaSubgroupDisplayLabel,
 } from '@/lib/overseas-mega-region-city-group'
 
 export type OverseasHubDisplayMode = 'buckets' | 'megaSubgroups' | 'countryFlat' | 'focusedFlat'
@@ -62,11 +62,7 @@ export default function OverseasHubProductSections({
       const bySubgroup = new Map<string, ResultItem[]>()
 
       for (const item of items) {
-        const preset = (item.browseMegaSubgroupLabel ?? '').trim()
-        const key =
-          preset && preset !== '기타'
-            ? preset
-            : resolveOverseasMegaMenuSubgroupLabelForClient(item, regionId)
+        const key = resolveOverseasHubMegaSubgroupDisplayLabel(item, regionId)
         const list = bySubgroup.get(key) ?? []
         list.push(item)
         bySubgroup.set(key, list)

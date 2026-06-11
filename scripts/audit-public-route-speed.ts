@@ -13,6 +13,7 @@ import {
   buildAirHotelHubBrowseQueryKey,
   buildDomesticHubBrowseQueryKey,
   buildOverseasHubBrowseQueryKey,
+  buildOverseasHubCatalogFetchQueryKey,
 } from '../lib/products-browse-hub-query'
 import { CACHE_WARM_ROUTES } from '../lib/cache-warm-routes'
 
@@ -27,6 +28,10 @@ type Row = {
 }
 
 const BROWSE_CASES: { label: string; queryKey: string }[] = [
+  {
+    label: 'browse 해외 허브 카탈로그 (cold build)',
+    queryKey: buildOverseasHubCatalogFetchQueryKey(),
+  },
   {
     label: 'browse 해외 허브 (cold build)',
     queryKey: buildOverseasHubBrowseQueryKey('scope=overseas'),

@@ -2,6 +2,7 @@
  * 메가메뉴 권역 — 실 API 266건 기준 필터·하위분류 성능 직접 측정.
  * 사용: npx tsx scripts/verify-overseas-mega-menu-perf.ts [baseUrl]
  */
+import { buildOverseasHubCatalogFetchQueryKey } from '../lib/products-browse-hub-query'
 import { buildOverseasHubMegaSubgroupSections } from '../lib/overseas-hub-catalog-sections'
 import {
   getOverseasHubCatalogForMegaRegionTab,
@@ -15,7 +16,7 @@ async function main() {
   console.log(`\n=== mega menu perf verify (${base}) ===\n`)
 
   const tApi = Date.now()
-  const res = await fetch(`${base}/api/products/browse?hubCatalog=2&limit=10000&scope=overseas`, {
+  const res = await fetch(`${base}/api/products/browse?${buildOverseasHubCatalogFetchQueryKey()}`, {
     signal: AbortSignal.timeout(120_000),
   })
   const json = (await res.json()) as { ok?: boolean; items?: unknown[] }

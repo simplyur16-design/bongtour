@@ -30,6 +30,21 @@ describe('buildOverseasHubCatalogSections', () => {
 })
 
 describe('buildOverseasHubMegaSubgroupSections', () => {
+  it('resolves subgroup from countryRow when browseMegaSubgroupLabel is null', () => {
+    const sections = buildOverseasHubMegaSubgroupSections(
+      [
+        item({
+          id: '1',
+          title: '아유타야 당일',
+          countryRowLabel: '아유타야',
+          browseMegaRegionTabId: 'southeast-asia',
+        }),
+      ],
+      'southeast-asia',
+    )
+    expect(sections.map((s) => s.label)).toEqual(['태국'])
+  })
+
   it('splits japan products into mega subgroups', () => {
     const sections = buildOverseasHubMegaSubgroupSections(
       [

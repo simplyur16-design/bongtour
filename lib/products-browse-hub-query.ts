@@ -77,8 +77,25 @@ export function buildOverseasHubCatalogFetchQueryKey(): string {
   p.set('scope', 'overseas')
   p.set('limit', OVERSEAS_HUB_BROWSE_LIMIT)
   /** 클라이언트 sessionStorage 구 캐시 무효화 — API는 무시 */
-  p.set('hubCatalog', '3')
+  p.set('hubCatalog', '4')
   return canonicalBrowseQueryKey(p)
+}
+
+/**
+ * 해외 허브 전량 카탈로그 1회 fetch — geo·가격만 서버, 하위분류는 클라이언트(countryRow·메가메뉴 매칭).
+ * `hubCatalog` 또는 scope=overseas + limit≥5000 + geo 필터 없음.
+ */
+export function isOverseasHubFullCatalogQueryKey(queryKey: string): boolean {
+  const p = new URLSearchParams(queryKey)
+  if ((p.get('scope') ?? '').trim() !== 'overseas') return false
+  if (p.get('hubCatalog')) return true
+  const limit = parseInt(p.get('limit') ?? '0', 10)
+  if (!Number.isFinite(limit) || limit < 5000) return false
+  const geoKeys = ['region', 'country', 'city', 'destination', 'menuGroup', 'sportsTheme', 'seasonCountries']
+  if (geoKeys.some((k) => (p.get(k) ?? '').trim())) return false
+  if ((p.get('type') ?? '').trim()) return false
+  if ((p.get('listingKind') ?? '').trim()) return false
+  return true
 }
 
 /** 해외 허브 — `ProductsBrowseClient` fetch URL 키 SSOT */

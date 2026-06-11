@@ -6,6 +6,7 @@ import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import {
   computeMegaMenuRegionCityGroupId,
   megaMenuSubgroupLabelsInOrder,
+  resolveOverseasHubMegaSubgroupDisplayLabel,
 } from '@/lib/overseas-mega-region-city-group'
 import {
   OVERSEAS_DISPLAY_BUCKET_LABEL,
@@ -47,21 +48,9 @@ function seasonalPickIdsForSection(
   return [...globalPickIds].filter((id) => ids.has(id))
 }
 
-function normalizeHubSubgroupFallbackLabel(regionId: string, label: string): string {
-  if (regionId === 'americas') {
-    if (label === '미국동부') return '미동부'
-    if (label === '미국서부') return '미서부'
-  }
-  return label
-}
-
-/** 허브 클라이언트 — API 필드만 사용 (트리·메가메뉴 term 스캔 금지) */
+/** 허브 클라이언트 — API 필드 + countryRow·메가메뉴 빠른 매칭 (title haystack 스캔 금지) */
 function resolveMegaSubgroupLabelForHubItem(item: ResultItem, regionId: string): string {
-  const preset = (item.browseMegaSubgroupLabel ?? '').trim()
-  if (preset && preset !== '기타') return preset
-  const row = normalizeHubSubgroupFallbackLabel(regionId, (item.countryRowLabel ?? '').trim())
-  if (row && row !== '기타') return row
-  return '기타'
+  return resolveOverseasHubMegaSubgroupDisplayLabel(item, regionId)
 }
 
 /** 기본 허브 — 권역 대분류 버킷 */
