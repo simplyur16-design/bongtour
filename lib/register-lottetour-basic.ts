@@ -8,6 +8,7 @@ import type {
 } from '@/lib/detail-body-parser-types'
 import type { RegisterParsed } from '@/lib/register-llm-schema-lottetour'
 import { sanitizeIncludedExcludedItemsLines } from '@/lib/included-excluded-postprocess'
+import { parseLottetourGodIdFromBlob } from '@/lib/lottetour-paste-deterministic-patch'
 
 const PREFIX = '[lottetour-basic]'
 
@@ -380,12 +381,10 @@ export function extractLottetourEvtCdFromBlob(blob: string): string | null {
   return m?.[1]?.trim() ?? null
 }
 
-/** 붙여넣기·URL에서 마스터 상품 ID(godId). 예: `?godId=65222` */
+/** 붙여넣기·URL·evtDetail HTML에서 마스터 상품 ID(godId). */
 export function extractLottetourGodIdFromBlob(blob: string): string | null {
-  const u = blob.match(/[?&]godId=(\d+)/i)
-  if (u?.[1]) return u[1]!.trim()
-  const m = blob.match(/\bgodId\s*[:：=]\s*(\d{4,})\b/i)
-  if (m?.[1]) return m[1]!.trim()
+  const fromMaster = parseLottetourGodIdFromBlob(blob)
+  if (fromMaster) return fromMaster
   const compact = blob.replace(/\s+/g, ' ').slice(0, 8000)
   const mm = compact.match(/(?:마스터|God)\s*ID\s*[:：]?\s*(\d{4,})\b/i)
   return mm?.[1]?.trim() ?? null

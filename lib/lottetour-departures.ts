@@ -18,7 +18,10 @@ import {
   buildDepartureTitleLayers,
   type DepartureTitleLayers,
 } from '@/lib/departure-option-lottetour'
-import { extractLottetourMasterIdsFromBlob } from '@/lib/lottetour-paste-deterministic-patch'
+import {
+  extractLottetourMasterIdsFromBlob,
+  parseLottetourGodIdFromBlob,
+} from '@/lib/lottetour-paste-deterministic-patch'
 import type { DepartureInput } from '@/lib/upsert-product-departures-lottetour'
 import { upsertProductDepartures } from '@/lib/upsert-product-departures-lottetour'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
@@ -392,14 +395,102 @@ export function parseLottetourEvtListCollectionHints(p: {
   return { godId, menuNos, detailEvtCd, warnings }
 }
 
+export type LottetourEvtListCollectionHints = ReturnType<typeof parseLottetourEvtListCollectionHints>
+
+function isLottetourEvtDetailUrl(url: string): boolean {
+  try {
+    return /\/evtDetail\/\d+\/\d+\/\d+\/\d+/i.test(new URL(url).pathname)
+  } catch {
+    return false
+  }
+}
+
+/** evtDetail 공개 HTML GET — `m_GodId` 등 상세 페이지 전역 변수 보강용. */
+export async function fetchLottetourEvtDetailHtml(
+  detailUrl: string,
+  options?: {
+    timeoutMs?: number
+    maxRetries?: number
+    headers?: Record<string, string>
+    fetchImpl?: (url: string, init: RequestInit) => Promise<Response>
+  }
+): Promise<string> {
+  return fetchEvtListAjaxPage({
+    url: detailUrl,
+    timeoutMs: options?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    maxRetries: options?.maxRetries ?? 2,
+    headers: options?.headers,
+    fetchImpl: options?.fetchImpl,
+  })
+}
+
+/**
+ * evtDetail URL만 있고 godId가 없을 때 상세 HTML에서 `m_GodId` 등을 읽어 hints를 보강한다.
+ */
+export async function enrichLottetourEvtListCollectionHintsFromDetailPage(
+  hints: LottetourEvtListCollectionHints,
+  detailUrl: string | null | undefined,
+  options?: {
+    timeoutMs?: number
+    fetchImpl?: (url: string, init: RequestInit) => Promise<Response>
+  }
+): Promise<LottetourEvtListCollectionHints> {
+  if (hints.godId) return hints
+  if (!hints.menuNos) return hints
+
+  let resolvedUrl = (detailUrl ?? '').trim()
+  if (!isLottetourEvtDetailUrl(resolvedUrl) && hints.detailEvtCd) {
+    resolvedUrl = buildLottetourEvtDetailUrl(hints.menuNos, hints.detailEvtCd)
+  }
+  if (!isLottetourEvtDetailUrl(resolvedUrl)) {
+    return hints
+  }
+
+  try {
+    const html = await fetchLottetourEvtDetailHtml(resolvedUrl, options)
+    const godId = parseLottetourGodIdFromBlob(html)
+    if (!godId) {
+      return {
+        ...hints,
+        warnings: [
+          ...hints.warnings,
+          'evtDetail HTML에서 godId(m_GodId)를 찾지 못했습니다.',
+        ],
+      }
+    }
+    return {
+      ...hints,
+      godId,
+      warnings: hints.warnings.filter((w) => !w.startsWith('godId 없음')),
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return {
+      ...hints,
+      warnings: [...hints.warnings, `evtDetail HTML 조회 실패: ${msg.slice(0, 160)}`],
+    }
+  }
+}
+
 function stripTags(s: string): string {
   return s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 function parseKrwStrong(cell: string): number {
-  const m = cell.match(/<strong>\s*([\d,]+)\s*원\s*<\/strong>/i)
-  if (!m) return 0
-  return parseInt(m[1]!.replace(/,/g, ''), 10) || 0
+  const m =
+    cell.match(/<strong[^>]*>\s*([\d,]+)\s*원\s*<\/strong>/i) ??
+    cell.match(/class\s*=\s*["']price["'][^>]*>\s*([\d,]+)\s*원/i)
+  if (m) return parseInt(m[1]!.replace(/,/g, ''), 10) || 0
+  const plain = stripTags(cell)
+  const m2 = plain.match(/([\d,]+)\s*원/)
+  if (!m2) return 0
+  return parseInt(m2[1]!.replace(/,/g, ''), 10) || 0
+}
+
+/** 체크박스 선행 `<td>` 유무에 따라 컬럼 오프셋(0 또는 1). */
+function lottetourEvtListRowCellOffset(cells: string[]): number {
+  const first = cells[0] ?? ''
+  return /type\s*=\s*["']checkbox["']/i.test(first) ? 1 : 0
 }
 
 function parseEvtCdFromRow(rowHtml: string): string | null {
@@ -421,6 +512,7 @@ function parseStatusParts(text: string): { statusRaw: string | null; seatsStatus
   if (!t) return { statusRaw: null, seatsStatusRaw: null }
   let statusRaw: string | null = t.slice(0, 200)
   if (/출발\s*확정/i.test(t)) statusRaw = '출발확정'
+  else if (/예약\s*마감|예약마감/i.test(t)) statusRaw = '예약마감'
   else if (/대기\s*예약/i.test(t)) statusRaw = '대기예약'
   else if (/예약\s*가능|예약가능/i.test(t)) statusRaw = '예약가능'
   const seatsStatusRaw = /잔여석/.test(t) ? t.slice(0, 200) : null
@@ -521,16 +613,17 @@ export function parseLottetourEvtListAjaxHtml(
     const evtCd = parseEvtCdFromRow(trInner)
     if (!evtCd) continue
     const cells = splitTdCells(trInner)
-    if (cells.length < 6) {
-      warnings.push(`evtCd=${evtCd}: td 컬럼 ${cells.length}개만 확인(6+ 권장)`)
+    const off = lottetourEvtListRowCellOffset(cells)
+    if (cells.length < off + 6) {
+      warnings.push(`evtCd=${evtCd}: td 컬럼 ${cells.length}개만 확인(${off + 6}+ 권장)`)
     }
-    const timeCell = cells[0] ?? trInner
-    const carrierCell = cells[1] ?? ''
-    const gradeCell = cells[2] ?? ''
-    const titleCell = cells[3] ?? ''
-    const durationCell = cells[4] ?? ''
-    const priceCell = cells[5] ?? trInner
-    const statusCell = cells[6] ?? ''
+    const timeCell = cells[off] ?? trInner
+    const carrierCell = cells[off + 1] ?? ''
+    const gradeCell = cells[off + 2] ?? ''
+    const titleCell = cells[off + 3] ?? ''
+    const durationCell = cells[off + 4] ?? ''
+    const priceCell = cells[off + 5] ?? trInner
+    const statusCell = cells[off + 6] ?? ''
 
     const price = parseKrwStrong(priceCell)
     const { departTimeText, returnTimeText, htmlDepartYmd, htmlReturnYmd } = parseTimeCell(timeCell, yearHint)

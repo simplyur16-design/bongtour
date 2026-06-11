@@ -32,7 +32,9 @@ import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-very
 import * as updDeparturesYbtour from '@/lib/upsert-product-departures-ybtour'
 import { upsertKyowontourDepartures } from '@/lib/kyowontour-departures'
 import {
+  buildLottetourEvtDetailUrl,
   collectLottetourCalendarRange,
+  enrichLottetourEvtListCollectionHintsFromDetailPage,
   mapLottetourCalendarToDepartureInputs,
   parseLottetourEvtListCollectionHints,
   upsertLottetourDepartures,
@@ -505,10 +507,18 @@ export async function executeRangeOnDemandDepartures(
           where: { id: product.id },
           select: { rawMeta: true, originUrl: true },
         })
-        const hints = parseLottetourEvtListCollectionHints({
+        let hints = parseLottetourEvtListCollectionHints({
           rawMeta: metaRow?.rawMeta ?? null,
           originUrl: (product.originUrl ?? '').trim() || metaRow?.originUrl || null,
         })
+        const detailUrlResolved =
+          (product.originUrl ?? '').trim() ||
+          (hints.menuNos && hints.detailEvtCd
+            ? buildLottetourEvtDetailUrl(hints.menuNos, hints.detailEvtCd)
+            : buildDetailUrl(product.originSource ?? '', product.originCode ?? ''))
+        if (!hints.godId && hints.menuNos) {
+          hints = await enrichLottetourEvtListCollectionHintsFromDetailPage(hints, detailUrlResolved)
+        }
         if (!hints.godId || !hints.menuNos) {
           return {
             status: 422,

@@ -24,6 +24,7 @@ import { collectKyowontourCalendarRange, mapKyowontourCalendarToDepartureInputs 
 import {
   buildLottetourEvtDetailUrl,
   collectLottetourCalendarRange,
+  enrichLottetourEvtListCollectionHintsFromDetailPage,
   mapLottetourCalendarToDepartureInputs,
   parseLottetourEvtListCollectionHints,
 } from '@/lib/lottetour-departures'
@@ -537,7 +538,7 @@ export async function collectDepartureInputsForAdminRescrape(
       where: { id: product.id },
       select: { rawMeta: true, originUrl: true },
     })
-    const hints = parseLottetourEvtListCollectionHints({
+    let hints = parseLottetourEvtListCollectionHints({
       rawMeta: metaRow?.rawMeta ?? null,
       originUrl: product.originUrl?.trim() || metaRow?.originUrl || null,
     })
@@ -546,6 +547,9 @@ export async function collectDepartureInputsForAdminRescrape(
       (hints.menuNos && hints.detailEvtCd
         ? buildLottetourEvtDetailUrl(hints.menuNos, hints.detailEvtCd)
         : detailUrlForTrace)
+    if (!hints.godId && hints.menuNos) {
+      hints = await enrichLottetourEvtListCollectionHintsFromDetailPage(hints, detailUrlResolved)
+    }
     const detailUrlSummaryLt = (() => {
       try {
         const u = new URL(detailUrlResolved)

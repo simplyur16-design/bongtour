@@ -19,6 +19,7 @@ import {
 } from '@/lib/detail-body-parser-input-axis-stubs'
 import { normalizeDetailRawText, splitDetailSections, sliceDetailBodySections } from '@/lib/detail-body-parser-utils-lottetour'
 import { parseHotelSectionLottetour } from '@/lib/hotel-parser-lottetour'
+import { parseLottetourGodIdFromBlob } from '@/lib/lottetour-paste-deterministic-patch'
 import { parseLottetourIncludedExcludedSection } from '@/lib/register-lottetour-basic'
 import { buildDetailReviewPolicyLottetour } from '@/lib/review-policy-lottetour'
 
@@ -54,11 +55,7 @@ export function clipLottetourIncExcInputForParse(blob: string): string {
 function extractLottetourBodyExtractFromNormalizedRaw(normalizedRaw: string): NonNullable<
   DetailBodyParseSnapshot['raw']['lottetourBodyExtract']
 > {
-  const god =
-    normalizedRaw.match(/\/evtList\/\d+\/\d+\/\d+\/\d+[^\n\r?#]*\?[^\n\r#]*godId=(\d+)/i)?.[1]?.trim() ??
-    normalizedRaw.match(/[?&]godId=(\d+)/i)?.[1]?.trim() ??
-    normalizedRaw.match(/\bgodId\s*[:：=]\s*(\d{4,})\b/i)?.[1]?.trim() ??
-    null
+  const god = parseLottetourGodIdFromBlob(normalizedRaw)
   const evt =
     normalizedRaw.match(/[?&]evtCd=([^&\s#'"<>]+)/i)?.[1]?.trim() ??
     normalizedRaw.match(/\bevtCd\s*[:：=]\s*([A-Za-z0-9_-]{8,34})\b/i)?.[1]?.trim() ??

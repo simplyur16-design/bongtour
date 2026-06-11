@@ -42,16 +42,26 @@ function pickShoppingCount(blob: string): number | null {
   return null
 }
 
+/** URL·붙여넣기·evtDetail HTML에서 godId 후보 추출 (`m_GodId`·쿼리·JSON). */
+export function parseLottetourGodIdFromBlob(blob: string): string | null {
+  return (
+    blob.match(/\/evtList\/\d+\/\d+\/\d+\/\d+[^\n\r?#]*\?[^\n\r#]*godId=(\d+)/i)?.[1]?.trim() ??
+    blob.match(/[?&]godId=(\d+)/i)?.[1]?.trim() ??
+    blob.match(/var\s+m_GodId\s*=\s*['"](\d+)['"]/i)?.[1]?.trim() ??
+    blob.match(/\bm_GodId\s*=\s*['"](\d+)['"]/i)?.[1]?.trim() ??
+    blob.match(/['"]godId['"]\s*:\s*['"]?(\d{4,})['"]?/i)?.[1]?.trim() ??
+    blob.match(/\bgodId\s*[:：=]\s*['"]?(\d{4,})['"]?/i)?.[1]?.trim() ??
+    null
+  )
+}
+
 /** URL·붙여넣기 blob에서 godId·evtCd·categoryMenuNo(경로 세그먼트) 추출 — trip anchors·merge 공용. */
 export function extractLottetourMasterIdsFromBlob(blob: string): {
   godId: string | null
   evtCd: string | null
   categoryMenuNo: { no1: string; no2: string; no3: string; no4: string } | null
 } {
-  const god =
-    blob.match(/\/evtList\/\d+\/\d+\/\d+\/\d+[^\n\r?#]*\?[^\n\r#]*godId=(\d+)/i)?.[1]?.trim() ??
-    blob.match(/[?&]godId=(\d+)/i)?.[1]?.trim() ??
-    null
+  const god = parseLottetourGodIdFromBlob(blob)
   const evt =
     blob.match(/[?&]evtCd=([^&\s#'"<>]+)/i)?.[1]?.trim() ??
     blob.match(/\bevtCd\s*[:：=]\s*([A-Za-z0-9_-]{8,34})\b/i)?.[1]?.trim() ??

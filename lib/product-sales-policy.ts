@@ -30,7 +30,9 @@ import {
 } from '@/lib/admin-departure-rescrape'
 import { collectHanatourDepartureInputsForDateRange } from '@/lib/hanatour-departures'
 import {
+  buildLottetourEvtDetailUrl,
   collectLottetourCalendarRange,
+  enrichLottetourEvtListCollectionHintsFromDetailPage,
   mapLottetourCalendarToDepartureInputs,
   parseLottetourEvtListCollectionHints,
 } from '@/lib/lottetour-departures'
@@ -312,10 +314,18 @@ export async function runOneSalesPolicyCheck(
         where: { id: product.id },
         select: { rawMeta: true, originUrl: true },
       })
-      const hints = parseLottetourEvtListCollectionHints({
+      let hints = parseLottetourEvtListCollectionHints({
         rawMeta: metaRow?.rawMeta ?? null,
         originUrl: (product.originUrl ?? '').trim() || metaRow?.originUrl || null,
       })
+      const detailUrlResolved =
+        (product.originUrl ?? '').trim() ||
+        (hints.menuNos && hints.detailEvtCd
+          ? buildLottetourEvtDetailUrl(hints.menuNos, hints.detailEvtCd)
+          : detailUrl)
+      if (!hints.godId && hints.menuNos) {
+        hints = await enrichLottetourEvtListCollectionHintsFromDetailPage(hints, detailUrlResolved)
+      }
       if (!hints.godId || !hints.menuNos) {
         skipReason = 'lottetour_missing_hints'
       } else {
