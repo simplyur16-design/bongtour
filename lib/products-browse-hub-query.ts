@@ -77,7 +77,7 @@ export function buildOverseasHubCatalogFetchQueryKey(): string {
   p.set('scope', 'overseas')
   p.set('limit', OVERSEAS_HUB_BROWSE_LIMIT)
   /** 클라이언트 sessionStorage 구 캐시 무효화 — API는 무시 */
-  p.set('hubCatalog', '4')
+  p.set('hubCatalog', '5')
   return canonicalBrowseQueryKey(p)
 }
 
