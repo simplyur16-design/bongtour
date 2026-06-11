@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent,
   type MouseEvent,
   type Ref,
 } from "react";
@@ -214,6 +215,15 @@ type PlanCardProps = {
   onSelect: () => void;
 };
 
+function onPlanCardSelectKeyDown(onSelect: () => void) {
+  return (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSelect();
+    }
+  };
+}
+
 function CardQuantityControls({
   quantity,
   onDecrease,
@@ -376,10 +386,12 @@ function PlanCard({
     const hasFreeData = esimHasFreeData(product.network_family, product.plan_name);
 
     return (
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onSelect}
-        className={`flex w-full flex-col rounded-lg bg-[#FFFFFF] p-[10px_12px] text-left transition hover:opacity-95 ${borderClass}`}
+        onKeyDown={onPlanCardSelectKeyDown(onSelect)}
+        className={`flex w-full cursor-pointer flex-col rounded-lg bg-[#FFFFFF] p-[10px_12px] text-left transition hover:opacity-95 ${borderClass}`}
         aria-pressed={isSelected}
       >
         {isRecommended ? (
@@ -425,7 +437,7 @@ function PlanCard({
             <AuthChipDesktop badge={kycBadge} />
           </div>
         ) : null}
-      </button>
+      </div>
     );
   }
 
@@ -436,10 +448,12 @@ function PlanCard({
       : { border: "0.5px solid var(--color-border-tertiary, #e2e8f0)" };
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
-      className="flex w-full items-center gap-3 rounded-lg bg-white px-3.5 py-3 text-left transition hover:opacity-95"
+      onKeyDown={onPlanCardSelectKeyDown(onSelect)}
+      className="flex w-full cursor-pointer items-center gap-3 rounded-lg bg-white px-3.5 py-3 text-left transition hover:opacity-95"
       style={borderStyle}
       aria-pressed={isSelected}
     >
@@ -499,7 +513,7 @@ function PlanCard({
           />
         ) : null}
       </div>
-    </button>
+    </div>
   );
 }
 

@@ -16,6 +16,7 @@ import { bookableMinDateYmdForPayload, parseProductPublicDetailPayload } from '@
 import { finalizeProductPublicDetailPayloadJson } from '@/lib/product-public-detail/build-product-public-detail-payload'
 import { isProductDetailPerfLogEnabled, patchProductDetailPerf } from '@/lib/product-detail-perf'
 import { revalidateTag } from 'next/cache'
+import { after } from 'next/server'
 import { isNextRouterPrefetchRequest } from '@/lib/next-router-prefetch'
 import { prisma } from '@/lib/prisma'
 
@@ -91,21 +92,22 @@ export async function getOrBuildProductPublicDetailModel(
     if (!json) {
       return { model, source: 'computed' }
     }
-    void prisma.product
-      .update({
-        where: { id: travelProduct.id },
-        data: {
-          publicDetailPayloadJson: json,
-          publicDetailPayloadBuiltAt: new Date(),
-        },
-      })
-      .then(() => {
-        revalidateTag(`product-detail-${travelProduct.id}`)
+    const productId = travelProduct.id
+    after(async () => {
+      try {
+        await prisma.product.update({
+          where: { id: productId },
+          data: {
+            publicDetailPayloadJson: json,
+            publicDetailPayloadBuiltAt: new Date(),
+          },
+        })
+        revalidateTag(`product-detail-${productId}`)
         revalidateTag('product-detail')
-      })
-      .catch((err) => {
-        console.error('[product-public-detail] persist payload failed', travelProduct.id, err)
-      })
+      } catch (err) {
+        console.error('[product-public-detail] persist payload failed', productId, err)
+      }
+    })
   }
 
   return { model, source: 'computed' }

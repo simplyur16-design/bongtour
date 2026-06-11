@@ -28,6 +28,12 @@ vi.mock('next/cache', () => ({
   revalidateTag: vi.fn(),
 }))
 
+vi.mock('next/server', () => ({
+  after: (fn: () => void | Promise<void>) => {
+    void fn()
+  },
+}))
+
 function minimalModel(title = 'full-title'): ProductPublicDetailPackageRenderModel {
   return {
     variant: 'package',
