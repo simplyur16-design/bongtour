@@ -117,10 +117,10 @@ const ALL_WELCOMEPAY_METHOD_DEFINITIONS: readonly WelcomepayMethodDefinition[] =
 const METHOD_BY_ID = new Map(ALL_WELCOMEPAY_METHOD_DEFINITIONS.map((m) => [m.id, m]));
 
 /**
- * 결제 UI·prepare 기본 제외 — MID 미계약·미개시 수단.
- * 재개 시 env `WELCOMEPAY_CHECKOUT_METHODS=card,vbank,bank` (쉼표 allowlist).
+ * 결제 UI·prepare 기본 — 신용카드만 (운영 MID 개시 수단).
+ * 추가 노출 시 env `WELCOMEPAY_CHECKOUT_METHODS=card,vbank,bank` (쉼표 allowlist).
  */
-const WELCOMEPAY_CHECKOUT_METHOD_EXCLUDED = new Set<WelcomepayMethodId>(["culture", "hpp", "overseas"]);
+const WELCOMEPAY_CHECKOUT_METHOD_DEFAULT: WelcomepayMethodId = "card";
 
 function parseWelcomepayCheckoutMethodAllowlist(): Set<WelcomepayMethodId> | null {
   const raw = (process.env.WELCOMEPAY_CHECKOUT_METHODS ?? "").trim();
@@ -144,7 +144,7 @@ export function listWelcomepayCheckoutMethods(): readonly WelcomepayMethodDefini
   if (allowlist) {
     return ALL_WELCOMEPAY_METHOD_DEFINITIONS.filter((m) => allowlist.has(m.id));
   }
-  return ALL_WELCOMEPAY_METHOD_DEFINITIONS.filter((m) => !WELCOMEPAY_CHECKOUT_METHOD_EXCLUDED.has(m.id));
+  return ALL_WELCOMEPAY_METHOD_DEFINITIONS.filter((m) => m.id === WELCOMEPAY_CHECKOUT_METHOD_DEFAULT);
 }
 
 /** @deprecated `listWelcomepayCheckoutMethods()` — env·제외 정책 반영 */
@@ -181,9 +181,8 @@ export function buildWelcomepayPcAcceptMethod(id: WelcomepayMethodId, now = new 
 
 export function resolveWelcomepayMethodId(raw: unknown): WelcomepayMethodId {
   const s = typeof raw === "string" ? raw.trim().toLowerCase() : "";
-  if (WELCOMEPAY_CHECKOUT_METHOD_EXCLUDED.has(s as WelcomepayMethodId)) return "card";
   if (s && listWelcomepayCheckoutMethods().some((m) => m.id === s)) return s as WelcomepayMethodId;
-  return "card";
+  return WELCOMEPAY_CHECKOUT_METHOD_DEFAULT;
 }
 
 export function getWelcomepayMethodDefinition(id: WelcomepayMethodId): WelcomepayMethodDefinition {

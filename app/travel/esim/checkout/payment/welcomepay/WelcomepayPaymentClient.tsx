@@ -395,7 +395,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
 
           {phase !== "error" ? (
             <div className={phase === "loading" ? "mt-8 animate-pulse space-y-4" : "mt-8 space-y-4 lg:mt-10 lg:space-y-5"}>
-              {methodOptions ? (
+              {methodOptions && methodOptions.length > 1 ? (
                 <fieldset className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
                   <legend className="px-1 text-[12px] font-semibold uppercase tracking-wide text-slate-500 lg:text-sm">
                     결제 수단
