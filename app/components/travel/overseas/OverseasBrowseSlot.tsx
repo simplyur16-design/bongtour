@@ -5,8 +5,6 @@ import { createHubGalleryRotationSeed } from '@/lib/hub-gallery-rotation'
 
 type Props = {
   searchParams: Record<string, string | string[] | undefined>
-  region: string | null
-  country: string | null
 }
 
 const hubBrowseOpts = {
