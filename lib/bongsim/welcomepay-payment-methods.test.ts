@@ -8,17 +8,19 @@ import {
 } from "@/lib/bongsim/welcomepay-payment-methods";
 
 describe("welcomepay-payment-methods", () => {
-  it("checkout methods exclude culture (미계약)", () => {
+  it("checkout methods exclude 미개시·미계약 수단", () => {
     const ids = WELCOMEPAY_CHECKOUT_METHODS.map((m) => m.id).sort();
-    expect(ids).toEqual(["bank", "card", "hpp", "overseas", "vbank"]);
+    expect(ids).toEqual(["bank", "card"]);
     const paths = WELCOMEPAY_CHECKOUT_METHODS.map((m) => m.mobilePath).sort();
-    expect(paths).toEqual(["bank", "etc", "mobile", "vbank", "wcard"]);
+    expect(paths).toEqual(["bank", "wcard"]);
   });
 
   it("resolveWelcomepayMethodId — unknown defaults to card", () => {
-    expect(resolveWelcomepayMethodId("vbank")).toBe("vbank");
-    expect(resolveWelcomepayMethodId("VBANK")).toBe("vbank");
+    expect(resolveWelcomepayMethodId("vbank")).toBe("card");
+    expect(resolveWelcomepayMethodId("VBANK")).toBe("card");
     expect(resolveWelcomepayMethodId("culture")).toBe("card");
+    expect(resolveWelcomepayMethodId("hpp")).toBe("card");
+    expect(resolveWelcomepayMethodId("overseas")).toBe("card");
     expect(resolveWelcomepayMethodId("")).toBe("card");
     expect(resolveWelcomepayMethodId(null)).toBe("card");
   });

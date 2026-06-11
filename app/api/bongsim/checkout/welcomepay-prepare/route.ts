@@ -4,8 +4,8 @@ import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/pa
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import {
-  WELCOMEPAY_CHECKOUT_METHODS,
   buildWelcomepayPcAcceptMethod,
+  listWelcomepayCheckoutMethods,
   getWelcomepayMethodDefinition,
   resolveWelcomepayMethodId,
   type WelcomepayMethodId,
@@ -206,7 +206,7 @@ export async function POST(req: Request) {
   const mobileCharset = resolveWelcomepayMobileCharsetMode();
   const mobileCharsetFields = welcomepayMobileFormCharsetFields(mobileCharset);
 
-  const methods: PrepareMethodPayload[] = WELCOMEPAY_CHECKOUT_METHODS.map((def) => ({
+  const methods: PrepareMethodPayload[] = listWelcomepayCheckoutMethods().map((def) => ({
     id: def.id,
     label: def.label,
     mobile: {

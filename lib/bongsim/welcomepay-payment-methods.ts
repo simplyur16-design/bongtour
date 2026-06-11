@@ -1,6 +1,6 @@
 /**
  * 웰컴페이먼츠 Mobile Web §1.2 지불수단별 POST URL + P_INI_PAYMENT / PC gopaymethod SSOT.
- * REGRESSION-FREEZE[welcomepay-esim-payment]: wcard·5수단(문화상품권 제외)·centerCd=Y 기본 — manifest
+ * REGRESSION-FREEZE[welcomepay-esim-payment]: wcard·checkout 수단·centerCd=Y 기본 — manifest
  * 클라이언트·서버 공용 (server-only import 금지).
  */
 
@@ -114,11 +114,46 @@ const ALL_WELCOMEPAY_METHOD_DEFINITIONS: readonly WelcomepayMethodDefinition[] =
   },
 ] as const;
 
-/** 결제 UI·prepare에 노출하는 수단 — 문화상품권(미계약) 제외 */
-export const WELCOMEPAY_CHECKOUT_METHODS: readonly WelcomepayMethodDefinition[] =
-  ALL_WELCOMEPAY_METHOD_DEFINITIONS.filter((m) => m.id !== "culture");
-
 const METHOD_BY_ID = new Map(ALL_WELCOMEPAY_METHOD_DEFINITIONS.map((m) => [m.id, m]));
+
+/**
+ * 결제 UI·prepare 기본 제외 — MID 미계약·미개시 수단.
+ * 재개 시 env `WELCOMEPAY_CHECKOUT_METHODS=card,vbank,bank` (쉼표 allowlist).
+ */
+const WELCOMEPAY_CHECKOUT_METHOD_EXCLUDED = new Set<WelcomepayMethodId>([
+  "culture",
+  "hpp",
+  "overseas",
+  "vbank", // MID 채번 은행 미배정 시 은행선택 비어 있음 — 웰컴 개시 후 env로 재노출
+]);
+
+function parseWelcomepayCheckoutMethodAllowlist(): Set<WelcomepayMethodId> | null {
+  const raw = (process.env.WELCOMEPAY_CHECKOUT_METHODS ?? "").trim();
+  if (!raw) return null;
+  const ids = raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  const allowed = new Set<WelcomepayMethodId>();
+  for (const id of ids) {
+    if (METHOD_BY_ID.has(id as WelcomepayMethodId) && id !== "culture") {
+      allowed.add(id as WelcomepayMethodId);
+    }
+  }
+  return allowed.size > 0 ? allowed : null;
+}
+
+/** 결제 UI·prepare에 노출하는 수단 */
+export function listWelcomepayCheckoutMethods(): readonly WelcomepayMethodDefinition[] {
+  const allowlist = parseWelcomepayCheckoutMethodAllowlist();
+  if (allowlist) {
+    return ALL_WELCOMEPAY_METHOD_DEFINITIONS.filter((m) => allowlist.has(m.id));
+  }
+  return ALL_WELCOMEPAY_METHOD_DEFINITIONS.filter((m) => !WELCOMEPAY_CHECKOUT_METHOD_EXCLUDED.has(m.id));
+}
+
+/** @deprecated `listWelcomepayCheckoutMethods()` — env·제외 정책 반영 */
+export const WELCOMEPAY_CHECKOUT_METHODS: readonly WelcomepayMethodDefinition[] = listWelcomepayCheckoutMethods();
 
 export function formatWelcomepayVbankDeadlineYmd(now = new Date(), depositDays = WELCOMEPAY_VBANK_DEPOSIT_DAYS): string {
   const deadline = new Date(now);
@@ -150,15 +185,13 @@ export function buildWelcomepayPcAcceptMethod(id: WelcomepayMethodId, now = new 
 
 export function resolveWelcomepayMethodId(raw: unknown): WelcomepayMethodId {
   const s = typeof raw === "string" ? raw.trim().toLowerCase() : "";
-  if (s === "culture") return "card";
-  if (s && WELCOMEPAY_CHECKOUT_METHODS.some((m) => m.id === s)) return s as WelcomepayMethodId;
+  if (WELCOMEPAY_CHECKOUT_METHOD_EXCLUDED.has(s as WelcomepayMethodId)) return "card";
+  if (s && listWelcomepayCheckoutMethods().some((m) => m.id === s)) return s as WelcomepayMethodId;
   return "card";
 }
 
 export function getWelcomepayMethodDefinition(id: WelcomepayMethodId): WelcomepayMethodDefinition {
-  const def = METHOD_BY_ID.get(id);
-  if (def && def.id !== "culture") return def;
-  return METHOD_BY_ID.get("card")!;
+  return METHOD_BY_ID.get(id) ?? METHOD_BY_ID.get("card")!;
 }
 
 export function buildWelcomepayMobileReservedBase(useAmtHash: boolean): string {
