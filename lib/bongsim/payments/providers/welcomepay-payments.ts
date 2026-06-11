@@ -4,6 +4,7 @@ import type {
   BongsimPaymentProviderCreateResult,
 } from "@/lib/bongsim/payments/provider-types";
 import { bongsimPath } from "@/lib/bongsim/constants";
+import { buildWelcomepayPgGoodsName } from "@/lib/bongsim/welcomepay-payment-methods";
 import { generateOrderNumber } from "@/lib/bongsim/welcomepay";
 
 /**
@@ -20,14 +21,13 @@ export class WelcomepayPaymentsProvider implements BongsimPaymentProviderAdapter
     const welcomeOid = generateOrderNumber(mid);
     const attemptIdStr = String(input.payment_attempt_id);
     const publicRef = `wp_${attemptIdStr.replace(/-/g, "").slice(0, 8)}`;
-    const orderName = buildOrderName(input.order_number);
+    const orderName = buildWelcomepayPgGoodsName(input.order_number);
 
     const q = new URLSearchParams({
       paymentAttemptId: input.payment_attempt_id,
       orderId: input.order_id,
       ref: publicRef,
       welcomeOid,
-      orderName,
       customerEmail: input.buyer_email,
       amount: String(input.amount_krw),
     });
@@ -46,9 +46,4 @@ export class WelcomepayPaymentsProvider implements BongsimPaymentProviderAdapter
       },
     };
   }
-}
-
-function buildOrderName(orderNumber: string): string {
-  const label = `Bong투어 eSIM 주문 ${orderNumber}`;
-  return label.length > 100 ? label.slice(0, 100) : label;
 }

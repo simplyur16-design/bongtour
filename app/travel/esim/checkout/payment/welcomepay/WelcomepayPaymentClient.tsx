@@ -65,6 +65,7 @@ type PrepareOk = {
   popupUrl: string;
   pcStdPayScriptUrl: string;
   paymentMethod?: WelcomepayMethodId;
+  orderName?: string;
   pNotiUrl?: string;
   mobileAcceptCharset?: string;
   mobilePCharset?: string | null;
@@ -89,7 +90,6 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
   const paymentAttemptId = sp?.get("paymentAttemptId") ?? "";
   const orderId = sp?.get("orderId") ?? "";
   const welcomeOid = sp?.get("welcomeOid") ?? "";
-  const orderName = sp?.get("orderName") ?? "Bong투어 eSIM";
   const customerEmail = sp?.get("customerEmail") ?? "";
   const amountStr = sp?.get("amount") ?? "";
   const amount = Number.parseInt(amountStr, 10);
@@ -127,7 +127,6 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
             orderId,
             orderNumber: welcomeOid,
             amount,
-            orderName,
             customerEmail,
             paymentAttemptId,
             paymentMethod: initialPaymentMethod,
@@ -197,7 +196,9 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
     return () => {
       cancelled = true;
     };
-  }, [paymentAttemptId, orderId, welcomeOid, amount, orderName, customerEmail, initialMobileWelpay, initialPaymentMethod]);
+  }, [paymentAttemptId, orderId, welcomeOid, amount, customerEmail, initialMobileWelpay, initialPaymentMethod]);
+
+  const pgGoodsName = prep?.orderName ?? prep?.mobile?.pGoods ?? "";
 
   useEffect(() => {
     if (!prep || phase !== "ready") return;
@@ -478,7 +479,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
                   <input type="hidden" name="signature" value={prep.signature} />
                   <input type="hidden" name="mKey" value={prep.mKey} />
                   <input type="hidden" name="currency" value="WON" />
-                  <input type="hidden" name="goodname" value={orderName} />
+                  <input type="hidden" name="goodname" value={pgGoodsName} />
                   <input type="hidden" name="buyername" value={buyerName} />
                   <input type="hidden" name="buyertel" value="01000000000" />
                   <input type="hidden" name="buyeremail" value={customerEmail} />
@@ -499,11 +500,11 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
                     {Number.isFinite(amount) ? `${amount.toLocaleString("ko-KR")}원` : "-"}
                   </span>
                 </div>
-                {orderName ? (
+                {pgGoodsName ? (
                   <div className="mt-3 border-t border-slate-100 pt-3 text-[13px] lg:mt-4 lg:pt-4 lg:text-[15px]">
                     <div className="flex items-start justify-between gap-3">
                       <span className="shrink-0 text-slate-600">주문명</span>
-                      <span className="text-right font-medium text-slate-900">{orderName}</span>
+                      <span className="text-right font-medium text-slate-900">{pgGoodsName}</span>
                     </div>
                   </div>
                 ) : null}

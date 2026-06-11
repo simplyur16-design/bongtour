@@ -118,9 +118,18 @@ const METHOD_BY_ID = new Map(ALL_WELCOMEPAY_METHOD_DEFINITIONS.map((m) => [m.id,
 
 /**
  * 결제 UI·prepare 기본 — 신용카드만 (운영 MID 개시 수단).
- * 추가 노출 시 env `WELCOMEPAY_CHECKOUT_METHODS=card,vbank,bank` (쉼표 allowlist).
+ * env `WELCOMEPAY_CHECKOUT_METHODS` allowlist가 있어도 아래 수단은 checkout에서 제외.
  */
 const WELCOMEPAY_CHECKOUT_METHOD_DEFAULT: WelcomepayMethodId = "card";
+
+/** MID·wbiz 준비 전 checkout UI·prepare 미노출 (env allowlist 무시) */
+const WELCOMEPAY_CHECKOUT_SUPPRESSED: ReadonlySet<WelcomepayMethodId> = new Set([
+  "vbank",
+  "bank",
+  "culture",
+  "hpp",
+  "overseas",
+]);
 
 function parseWelcomepayCheckoutMethodAllowlist(): Set<WelcomepayMethodId> | null {
   const raw = (process.env.WELCOMEPAY_CHECKOUT_METHODS ?? "").trim();
@@ -141,9 +150,11 @@ function parseWelcomepayCheckoutMethodAllowlist(): Set<WelcomepayMethodId> | nul
 /** 결제 UI·prepare에 노출하는 수단 */
 export function listWelcomepayCheckoutMethods(): readonly WelcomepayMethodDefinition[] {
   const allowlist = parseWelcomepayCheckoutMethodAllowlist();
-  if (allowlist) {
-    return ALL_WELCOMEPAY_METHOD_DEFINITIONS.filter((m) => allowlist.has(m.id));
-  }
+  const candidates = allowlist
+    ? ALL_WELCOMEPAY_METHOD_DEFINITIONS.filter((m) => allowlist.has(m.id))
+    : ALL_WELCOMEPAY_METHOD_DEFINITIONS.filter((m) => m.id === WELCOMEPAY_CHECKOUT_METHOD_DEFAULT);
+  const visible = candidates.filter((m) => !WELCOMEPAY_CHECKOUT_SUPPRESSED.has(m.id));
+  if (visible.length > 0) return visible;
   return ALL_WELCOMEPAY_METHOD_DEFINITIONS.filter((m) => m.id === WELCOMEPAY_CHECKOUT_METHOD_DEFAULT);
 }
 
@@ -198,6 +209,13 @@ export function buildWelcomepayVbankMobileReservedExtra(now = new Date()): strin
   const dt = formatWelcomepayVbankDeadlineYmd(now);
   // 당일 채번이면 TM=2359 필수(가이드). 기본 7일 후면 2359 안전.
   return `P_VBANK_DT=${dt}&P_VBANK_TM=2359&bank_receipt=N`;
+}
+
+/** 웰컴 PG `goodname` / `P_GOODS` — 서버 SSOT (URL 쿼리 한글 깨짐 방지). */
+export function buildWelcomepayPgGoodsName(bongsimOrderNumber: string): string {
+  const num = bongsimOrderNumber.trim();
+  const label = `Bong투어 eSIM ${num}`.normalize("NFC");
+  return label.length > 80 ? label.slice(0, 80) : label;
 }
 
 export function buildWelcomepayMobileReserved(

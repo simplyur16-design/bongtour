@@ -5,6 +5,7 @@ import { getPgPool } from "@/lib/bongsim/db/pool";
 import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import {
   buildWelcomepayPcAcceptMethod,
+  buildWelcomepayPgGoodsName,
   listWelcomepayCheckoutMethods,
   getWelcomepayMethodDefinition,
   resolveWelcomepayMethodId,
@@ -90,7 +91,6 @@ export async function POST(req: Request) {
 
   const orderId = typeof body.orderId === "string" ? body.orderId.trim() : "";
   const orderNumber = typeof body.orderNumber === "string" ? body.orderNumber.trim() : "";
-  const orderName = typeof body.orderName === "string" ? body.orderName.trim() : "";
   const customerEmail = typeof body.customerEmail === "string" ? body.customerEmail.trim() : "";
   const paymentAttemptId = typeof body.paymentAttemptId === "string" ? body.paymentAttemptId.trim() : "";
   const amountRaw = body.amount;
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
         ? Number.parseInt(amountRaw, 10)
         : NaN;
 
-  if (!orderId || !orderNumber || !orderName || !customerEmail || !paymentAttemptId) {
+  if (!orderId || !orderNumber || !customerEmail || !paymentAttemptId) {
     return jsonWithLeakGuard({ ok: false, error: "missing_fields" }, "bongsim.checkout.welcomepay-prepare", { status: 400 });
   }
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -198,7 +198,7 @@ export async function POST(req: Request) {
     customerEmail.includes("@") && customerEmail.length > 1
       ? customerEmail.split("@")[0]!.slice(0, 30)
       : customerEmail.slice(0, 30) || "고객";
-  const pGoods = orderName.length > 80 ? orderName.slice(0, 80) : orderName;
+  const pGoods = buildWelcomepayPgGoodsName(bongsimOrderNumber);
   const paymentMethod = resolveWelcomepayMethodId(body.paymentMethod);
   const selectedDef = getWelcomepayMethodDefinition(paymentMethod);
   const pNotiUrl = welcomepayVbankNotiCallbackUrlRegistered();
@@ -236,6 +236,7 @@ export async function POST(req: Request) {
       popupUrl,
       pcStdPayScriptUrl: welcomepayStdPayScriptUrl(),
       paymentMethod,
+      orderName: pGoods,
       pNotiUrl,
       mobileCharset,
       mobileAcceptCharset: mobileCharsetFields.acceptCharset,
