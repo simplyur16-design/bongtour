@@ -5,7 +5,7 @@
   "deploy": {
     "preDeployCommand": ["npm run postdeploy:detail-payload"],
     "startCommand": "npm start",
-    "healthcheckPath": "/",
+    "healthcheckPath": "/api/health",
     "restartPolicyType": "ON_FAILURE"
   }
 }
