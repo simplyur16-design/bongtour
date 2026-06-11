@@ -17,7 +17,8 @@ const CACHE_WARM_BROWSE_API_PATHS = [
   `/api/products/browse?${buildAirHotelHubBrowseQueryKey('scope=overseas&type=air-hotel')}`,
 ] as const
 
-const FETCH_TIMEOUT_MS = 8_000
+/** browse cold build는 8초를 넘을 수 있음 — 워밍 실패 시 아침 첫 방문이 더 느려짐 */
+const FETCH_TIMEOUT_MS = 45_000
 const CRON_EXPR = '0 */5 * * *'
 
 function isCacheWarmDryRun(): boolean {

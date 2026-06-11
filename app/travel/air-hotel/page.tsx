@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Header from '@/app/components/Header'
 import AirHotelBrowseSlot from '@/app/components/travel/air-hotel/AirHotelBrowseSlot'
 import AirHotelHero from '@/app/components/travel/air-hotel/AirHotelHero'
+import AirHotelHeroLoading from '@/app/components/travel/air-hotel/AirHotelHeroLoading'
 import ProductsBrowseResultsLoading from '@/components/route-loading/ProductsBrowseResultsLoading'
 import { AIR_HOTEL_BROWSE_TYPE, parseAirHotelBrowseTypeParam } from '@/lib/air-hotel-product-ssot'
 import { getCachedAirHotelSeasonCuration } from '@/lib/air-hotel-season-curation-content'
@@ -66,7 +67,7 @@ export default async function AirHotelPage({
     <div className="min-h-screen bg-bt-page">
       <Header />
       <main>
-        <Suspense fallback={null}>
+        <Suspense fallback={<AirHotelHeroLoading />}>
           <AirHotelSeasonSection />
         </Suspense>
 

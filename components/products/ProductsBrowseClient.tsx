@@ -48,6 +48,7 @@ import {
   readProductsBrowseClientCache,
   writeProductsBrowseClientCache,
 } from '@/lib/products-browse-client-cache'
+import { HUB_BROWSE_CLIENT_FETCH_TIMEOUT_MS } from '@/lib/products-browse-hub-prefetch-timeout'
 
 type ApiOk = {
   ok: true
@@ -255,7 +256,21 @@ export default function ProductsBrowseClient({
     async function fetchBrowse(urlKey: string): Promise<ApiOk | null> {
       const perfClient = process.env.NEXT_PUBLIC_BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
       const tFetch0 = perfClient ? performance.now() : 0 // PERF-LOG: 측정 후 제거
-      const res = await fetch(`/api/products/browse?${urlKey}`)
+      const controller = new AbortController()
+      const abortTimer = window.setTimeout(() => controller.abort(), HUB_BROWSE_CLIENT_FETCH_TIMEOUT_MS)
+      let res: Response
+      try {
+        res = await fetch(`/api/products/browse?${urlKey}`, { signal: controller.signal })
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') {
+          throw new Error(
+            '목록 응답이 지연되고 있습니다. 잠시 후 새로고침하거나 다른 메뉴에서 다시 시도해 주세요.',
+          )
+        }
+        throw e
+      } finally {
+        window.clearTimeout(abortTimer)
+      }
       const json = (await res.json()) as ApiOk | { ok: false; error?: string }
       if (perfClient) {
         console.log(
@@ -670,9 +685,22 @@ export default function ProductsBrowseClient({
           <p className="mt-10 text-center text-sm text-slate-500">불러오는 중…</p>
         )}
         {error && (
-          <p className="mt-10 text-center text-sm text-rose-700" role="alert">
-            {error}
-          </p>
+          <div
+            className="mt-10 w-full rounded-xl border border-rose-200 bg-rose-50/90 px-4 py-6 text-center text-sm text-rose-900"
+            role="alert"
+          >
+            <p className="font-semibold">{error}</p>
+            <p className="mt-2 text-rose-800/90">
+              서버가 일시적으로 바쁠 수 있습니다. 새로고침 후에도 같으면 잠시 뒤 다시 확인해 주세요.
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-4 inline-flex rounded-lg border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-900 hover:bg-rose-50"
+            >
+              새로고침
+            </button>
+          </div>
         )}
         {!loading && data && displayedTotal === 0 && budgetActive && (
         <div className="mt-10 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-6 text-sm text-slate-900">

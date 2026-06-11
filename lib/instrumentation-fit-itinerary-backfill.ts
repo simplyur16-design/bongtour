@@ -1,7 +1,8 @@
 /**
- * 자유여행 FitItinerary backfill — 서버 기동 1회 + 매시간 cron.
- * production + DATABASE_URL + GEMINI_API_KEY (`instrumentation.ts` 가드).
+ * 자유여행 FitItinerary backfill — 매시간 cron만 (기동 직후 전량 실행 없음).
+ * 배포 재시작 직후 DB·Gemini 부하로 해외/자유여행 browse가 막히는 것을 방지.
  *
+ * production + DATABASE_URL + GEMINI_API_KEY (`instrumentation.ts` 가드).
  * 비활성화: `DISABLE_INSTRUMENTATION_FIT_ITINERARY_BACKFILL_CRON=1`
  */
 import { AIR_HOTEL_LISTING_KIND, AIR_HOTEL_PRODUCT_TYPE } from '@/lib/air-hotel-product-ssot'
@@ -14,8 +15,6 @@ export function startInstrumentationFitItineraryBackfillCron(): void {
   if (process.env.DISABLE_INSTRUMENTATION_FIT_ITINERARY_BACKFILL_CRON === '1') {
     return
   }
-
-  void runFitItineraryBackfillOnBoot()
 
   void import('node-cron')
     .then((m) => {
