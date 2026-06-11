@@ -5,6 +5,7 @@ import { getPgPool } from "@/lib/bongsim/db/pool";
 import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import {
   WELCOMEPAY_CHECKOUT_METHODS,
+  buildWelcomepayPcAcceptMethod,
   getWelcomepayMethodDefinition,
   resolveWelcomepayMethodId,
   type WelcomepayMethodId,
@@ -217,7 +218,7 @@ export async function POST(req: Request) {
     },
     pc: {
       goPayMethod: def.pcGoPayMethod,
-      ...(def.pcAcceptMethod ? { acceptMethod: def.pcAcceptMethod } : {}),
+      acceptMethod: buildWelcomepayPcAcceptMethod(def.id),
     },
   }));
 

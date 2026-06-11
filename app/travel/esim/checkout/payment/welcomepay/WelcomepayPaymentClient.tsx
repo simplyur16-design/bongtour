@@ -470,9 +470,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
               {prep && !uaMobile && activeMethod ? (
                 <form id="SendPayForm_id" name="SendPayForm_id" method="post" acceptCharset="UTF-8">
                   <input type="hidden" name="gopaymethod" value={activeMethod.pc.goPayMethod} />
-                  {activeMethod.pc.acceptMethod ? (
-                    <input type="hidden" name="acceptmethod" value={activeMethod.pc.acceptMethod} />
-                  ) : null}
+                  <input type="hidden" name="acceptmethod" value={activeMethod.pc.acceptMethod ?? "centerCd(Y)"} />
                   <input type="hidden" name="mid" value={prep.mid} />
                   <input type="hidden" name="oid" value={prep.orderNumber} />
                   <input type="hidden" name="price" value={prep.price} />
