@@ -1,5 +1,7 @@
 /** 배포(release) 직후 상세 DTO 백필 — `next build` 단계에서는 실행하지 않음 */
 
+import { resolveInstrumentationProcessRole } from '@/lib/instrumentation-process-role'
+
 export const POSTDEPLOY_DETAIL_PAYLOAD_BATCH_DEFAULT = 40
 
 export function postdeployDetailPayloadBatchSize(): number {
@@ -18,5 +20,7 @@ export function shouldSkipPostdeployDetailPayloadBackfill(): boolean {
   if (process.env.SKIP_POSTDEPLOY_DETAIL_PAYLOAD_BACKFILL === '1') return true
   if (process.env.NEXT_PHASE === 'phase-production-build') return true
   if (!process.env.DATABASE_URL?.trim()) return true
+  /** 공개 web 서비스 배포 — DB 백필은 worker 서비스에서만 */
+  if (resolveInstrumentationProcessRole() === 'web') return true
   return false
 }

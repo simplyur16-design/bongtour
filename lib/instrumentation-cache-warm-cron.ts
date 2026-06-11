@@ -3,7 +3,8 @@
  *
  * 해외·항공+호텔 허브·browse API는 HTTP loopback 금지(단일 프로세스 502).
  * browse 캐시는 cron + `CACHE_WARM_HEAVY_BROWSE=1` 일 때만 in-process 직접 워밍.
- * HTTP 워밍은 `127.0.0.1:PORT` loopback만 사용(CDN·공개 URL 경유 금지).
+ * HTTP 워밍은 loopback만 사용(CDN·공개 URL 경유 금지).
+ * HTTP cron 워밍은 `CACHE_WARM_HTTP_CRON=1` 일 때만(기본 OFF).
  * 기동 직후 워밍은 `CACHE_WARM_ON_STARTUP=1` 일 때만.
  *
  * 비활성화: `DISABLE_INSTRUMENTATION_CACHE_WARM_CRON=1`
@@ -15,6 +16,7 @@ import {
   buildAirHotelHubBrowseQueryKey,
   buildOverseasHubBrowseQueryKey,
 } from '@/lib/products-browse-hub-query'
+import { getInternalLoopbackOrigin } from '@/lib/internal-loopback-origin'
 import { hubBrowsePrefetchWithTimeout } from '@/lib/products-browse-hub-prefetch-timeout'
 
 const CACHE_WARM_BROWSE_QUERY_KEYS = [
@@ -44,12 +46,12 @@ function startupCacheWarmEnabled(): boolean {
   return process.env.CACHE_WARM_ON_STARTUP === '1'
 }
 
-/** 공개 origin(CDN) 경유 self-fetch는 배포·트래픽과 충돌 — 동일 프로세스 loopback만 */
-function getCacheWarmLoopbackOrigin(): string {
-  const override = process.env.CACHE_WARM_LOOPBACK_ORIGIN?.trim()
-  if (override) return override.replace(/\/$/, '')
-  const port = process.env.PORT?.trim() || '3000'
-  return `http://127.0.0.1:${port}`
+function httpCacheWarmCronEnabled(): boolean {
+  return process.env.CACHE_WARM_HTTP_CRON === '1'
+}
+
+function shouldRegisterCacheWarmCron(): boolean {
+  return httpCacheWarmCronEnabled() || heavyBrowseWarmEnabled()
 }
 
 async function fetchWithTimeout(
@@ -121,18 +123,20 @@ async function runCacheWarmTick(source: 'cron' | 'startup'): Promise<void> {
   tickInFlight = true
   try {
     const dryRun = isCacheWarmDryRun()
-    const origin = getCacheWarmLoopbackOrigin()
+    const origin = getInternalLoopbackOrigin()
     const tickStarted = Date.now()
     let success = 0
     let failed = 0
 
-    const routes = [...CACHE_WARM_HTTP_ROUTES]
+    const routes =
+      source === 'cron' && !httpCacheWarmCronEnabled() ? [] : [...CACHE_WARM_HTTP_ROUTES]
 
     console.log('[cache-warm-cron] tick start', {
       source,
       dryRun,
       origin,
       httpRouteCount: routes.length,
+      httpCron: source !== 'cron' || httpCacheWarmCronEnabled(),
       heavyBrowseWarm: source === 'cron' && heavyBrowseWarmEnabled(),
     })
 
@@ -197,6 +201,13 @@ export function startInstrumentationCacheWarmCron(): void {
   }
 
   void seedCacheWarmOnStartup()
+
+  if (!shouldRegisterCacheWarmCron()) {
+    console.log(
+      '[cache-warm-cron] scheduled cron skipped (set CACHE_WARM_HTTP_CRON=1 and/or CACHE_WARM_HEAVY_BROWSE=1)',
+    )
+    return
+  }
 
   void import('node-cron')
     .then((m) => {

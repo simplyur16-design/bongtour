@@ -2,16 +2,7 @@
  * PHASE H-4: 쿠폰 만료 임박 알림·만료 상태 반영 — 매일 POST 크론 엔드포인트 호출.
  * 스크래퍼 달력 배치(21:00)와 동일하게 production + DATABASE_URL 에서만 등록.
  */
-function resolveInternalSiteBase(): string {
-  const raw =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    process.env.SITE_URL?.trim() ||
-    process.env.BONGTOUR_API_BASE?.trim() ||
-    process.env.NEXTAUTH_URL?.trim() ||
-    "";
-  return raw.replace(/\/$/, "");
-}
+import { getInternalLoopbackOrigin } from '@/lib/internal-loopback-origin'
 
 export function startInstrumentationCouponCron(): void {
   if (process.env.DISABLE_INSTRUMENTATION_COUPON_CRON === "1") {
@@ -47,11 +38,7 @@ async function postCronPath(path: string): Promise<void> {
     console.warn(`[coupon-cron] skip ${path}: BONGTOUR_CRON_SECRET`);
     return;
   }
-  const base = resolveInternalSiteBase();
-  if (!base) {
-    console.warn(`[coupon-cron] skip ${path}: no NEXT_PUBLIC_SITE_URL / SITE_URL / NEXTAUTH_URL`);
-    return;
-  }
+  const base = getInternalLoopbackOrigin();
   try {
     const res = await fetch(`${base}${path}`, {
       method: "POST",

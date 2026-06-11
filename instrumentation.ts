@@ -2,12 +2,19 @@
  * Next.js instrumentation: 서버 기동 시 한 번 실행.
  * 개발: BONGTOUR_DEV_ADMIN_BYPASS + DEV_ADMIN_BYPASS_SECRET(또는 구 ADMIN_BYPASS_SECRET).
  *
+ * Cron 역할: `lib/instrumentation-process-role.ts` — production 기본 `web`(HTTP 전용).
+ *
  * 주의: `@next/env` 는 instrumentation 번들(일부 타깃)에서 Node 내장 모듈 해석이 깨져
  * `Can't resolve 'crypto'|'fs'` 로 프로덕션 빌드가 실패할 수 있다. Node 런타임에서만
  * 동적 import 로 로드한다.
  */
 import { isDevAdminBypassRuntimeAllowed } from '@/lib/admin-bypass'
 import { getDevAdminBypassSecret } from '@/lib/admin-secrets'
+import {
+  logInstrumentationProcessRole,
+  shouldRunBackgroundCrons,
+  shouldRunWebCriticalCrons,
+} from '@/lib/instrumentation-process-role'
 import { assertProductionServerEnv } from '@/lib/server-env'
 
 export async function register() {
@@ -16,85 +23,91 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { loadEnvConfig } = await import('@next/env')
     loadEnvConfig(process.cwd())
+    logInstrumentationProcessRole()
+
     const dbUrl = (process.env.DATABASE_URL ?? '').trim()
+    const hasDb = Boolean(dbUrl)
+
     if (dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://')) {
       const { probePgPoolTlsOrFallback } = await import('@/lib/bongsim/db/pool')
       await probePgPoolTlsOrFallback()
     }
     const { bootstrapHomeHubActiveFromDb } = await import('@/lib/home-hub-active-bootstrap')
     await bootstrapHomeHubActiveFromDb()
-    if (dbUrl) {
-      const { startInstrumentationSeasonCurationCron } = await import(
-        '@/lib/instrumentation-season-curation-cron'
-      )
-      startInstrumentationSeasonCurationCron()
+
+    if (hasDb && shouldRunWebCriticalCrons()) {
       const { startInstrumentationBongsimOrderPaidOutboxCron } = await import(
         '@/lib/instrumentation-bongsim-order-paid-outbox-cron'
       )
       startInstrumentationBongsimOrderPaidOutboxCron()
     }
-    {
+
+    if (hasDb && shouldRunBackgroundCrons()) {
+      const { startInstrumentationSeasonCurationCron } = await import(
+        '@/lib/instrumentation-season-curation-cron'
+      )
+      startInstrumentationSeasonCurationCron()
+
       const { canRegisterCalendarCron } = await import('@/lib/calendar-batch-env')
       if (canRegisterCalendarCron()) {
         const { startInstrumentationCalendarCron } = await import('@/lib/instrumentation-calendar-cron')
         startInstrumentationCalendarCron()
       }
     }
-    if (process.env.NODE_ENV === 'production') {
-      if ((process.env.DATABASE_URL ?? '').trim()) {
-        const { startInstrumentationCurationCron } = await import('@/lib/instrumentation-curation-cron')
-        startInstrumentationCurationCron()
-        const { startInstrumentationMasterIntegrityCron } = await import(
-          '@/lib/instrumentation-master-integrity-cron'
-        )
-        startInstrumentationMasterIntegrityCron()
-        const { startInstrumentationPublishReminderCron } = await import(
-          '@/lib/instrumentation-publish-reminder-cron'
-        )
-        startInstrumentationPublishReminderCron()
-        const { startInstrumentationPriceFreshnessCron } = await import(
-          '@/lib/instrumentation-price-freshness-cron'
-        )
-        startInstrumentationPriceFreshnessCron()
-        const { startInstrumentationCouponCron } = await import('@/lib/instrumentation-coupon-cron')
-        startInstrumentationCouponCron()
-        const { startInstrumentationModetourSweepCron } = await import(
-          '@/lib/instrumentation-modetour-sweep-cron'
-        )
-        startInstrumentationModetourSweepCron()
-        const { startInstrumentationMonthlyPublishCron } = await import(
-          '@/lib/instrumentation-monthly-publish-cron'
-        )
-        startInstrumentationMonthlyPublishCron()
-        const { startInstrumentationAirHotelSeasonCron } = await import(
-          '@/lib/instrumentation-air-hotel-season-cron'
-        )
-        startInstrumentationAirHotelSeasonCron()
-        const { startInstrumentationProductSalesPolicyCron } = await import(
-          '@/lib/instrumentation-product-sales-policy-cron'
-        )
-        startInstrumentationProductSalesPolicyCron()
-        const { startInstrumentationFitItineraryBackfillCron } = await import(
-          '@/lib/instrumentation-fit-itinerary-backfill'
-        )
-        startInstrumentationFitItineraryBackfillCron()
-        const { startInstrumentationCacheWarmCron } = await import(
-          '@/lib/instrumentation-cache-warm-cron'
-        )
-        startInstrumentationCacheWarmCron()
-        const { startInstrumentationRehostImagesCron } = await import(
-          '@/lib/instrumentation-rehost-images-cron'
-        )
-        startInstrumentationRehostImagesCron()
-        const { startInstrumentationSyncBookableDerivedCron } = await import(
-          '@/lib/instrumentation-sync-bookable-derived-cron'
-        )
-        startInstrumentationSyncBookableDerivedCron()
-        const { startInstrumentationProductDetailPayloadCron } = await import(
-          '@/lib/instrumentation-product-detail-payload-cron'
-        )
-        startInstrumentationProductDetailPayloadCron()
-      }
+
+    if (process.env.NODE_ENV === 'production' && hasDb && shouldRunBackgroundCrons()) {
+      const { startInstrumentationCurationCron } = await import('@/lib/instrumentation-curation-cron')
+      startInstrumentationCurationCron()
+      const { startInstrumentationMasterIntegrityCron } = await import(
+        '@/lib/instrumentation-master-integrity-cron'
+      )
+      startInstrumentationMasterIntegrityCron()
+      const { startInstrumentationPublishReminderCron } = await import(
+        '@/lib/instrumentation-publish-reminder-cron'
+      )
+      startInstrumentationPublishReminderCron()
+      const { startInstrumentationPriceFreshnessCron } = await import(
+        '@/lib/instrumentation-price-freshness-cron'
+      )
+      startInstrumentationPriceFreshnessCron()
+      const { startInstrumentationCouponCron } = await import('@/lib/instrumentation-coupon-cron')
+      startInstrumentationCouponCron()
+      const { startInstrumentationModetourSweepCron } = await import(
+        '@/lib/instrumentation-modetour-sweep-cron'
+      )
+      startInstrumentationModetourSweepCron()
+      const { startInstrumentationMonthlyPublishCron } = await import(
+        '@/lib/instrumentation-monthly-publish-cron'
+      )
+      startInstrumentationMonthlyPublishCron()
+      const { startInstrumentationAirHotelSeasonCron } = await import(
+        '@/lib/instrumentation-air-hotel-season-cron'
+      )
+      startInstrumentationAirHotelSeasonCron()
+      const { startInstrumentationProductSalesPolicyCron } = await import(
+        '@/lib/instrumentation-product-sales-policy-cron'
+      )
+      startInstrumentationProductSalesPolicyCron()
+      const { startInstrumentationFitItineraryBackfillCron } = await import(
+        '@/lib/instrumentation-fit-itinerary-backfill'
+      )
+      startInstrumentationFitItineraryBackfillCron()
+      const { startInstrumentationCacheWarmCron } = await import(
+        '@/lib/instrumentation-cache-warm-cron'
+      )
+      startInstrumentationCacheWarmCron()
+      const { startInstrumentationRehostImagesCron } = await import(
+        '@/lib/instrumentation-rehost-images-cron'
+      )
+      startInstrumentationRehostImagesCron()
+      const { startInstrumentationSyncBookableDerivedCron } = await import(
+        '@/lib/instrumentation-sync-bookable-derived-cron'
+      )
+      startInstrumentationSyncBookableDerivedCron()
+      const { startInstrumentationProductDetailPayloadCron } = await import(
+        '@/lib/instrumentation-product-detail-payload-cron'
+      )
+      startInstrumentationProductDetailPayloadCron()
     }
   }
   assertProductionServerEnv()
