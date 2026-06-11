@@ -161,11 +161,23 @@ describe('overseas mega subgroup browse', () => {
     expect(resolveSubgroup('china-hk-mo', '태항산 일출 4일', '태항산')).toBe('중국')
   })
 
-  it('americas — 미국동부=미동부, 알래스카는 시애틀 연계보다 우선', () => {
+  it('americas — 미국동부=미동부, 시애틀+알래스카는 미서부', () => {
     expect(resolveSubgroup('americas', '뉴욕·워싱턴 8일', '미국동부')).toBe('미동부')
-    expect(resolveSubgroup('americas', '알래스카 크루즈 시애틀 출발', '시애틀', { cityKey: 'seattle' })).toBe(
-      '알래스카',
-    )
+    expect(
+      resolveSubgroup(
+        'americas',
+        '시애틀/알래스카 8박 10일<시애틀/인사이드 패시지>',
+        '시애틀, 알래스카',
+        { cityKey: 'seattle' },
+      ),
+    ).toBe('미서부')
+    expect(resolveSubgroup('americas', '알래스카 빙하 7일', '앵커리지', { cityKey: 'anchorage' })).toBe('알래스카')
+  })
+
+  it('americas — 미동부와 캐나다 분리', () => {
+    expect(resolveSubgroup('americas', '뉴욕·보스턴 8일', '뉴욕', { cityKey: 'new-york' })).toBe('미동부')
+    expect(resolveSubgroup('americas', '토론토·나이아가라 7일', '토론토', { cityKey: 'toronto' })).toBe('캐나다')
+    expect(resolveSubgroup('americas', '밴쿠버·밴프 6일', '밴쿠버', { cityKey: 'vancouver' })).toBe('캐나다')
   })
 
   it('south-america — 국가별 섹션(중남미 그룹 아님)', () => {

@@ -477,7 +477,7 @@ const AM: MegaMenuCountryGroupDef[] = [
     city('나이아가라', ['나이아가라', 'niagara', '캐나다']),
     city('옐로우나이프', ['옐로우나이프', 'yellowknife', '캐나다']),
   ]),
-  G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지', 'anchorage', '시애틀', 'seattle'])]),
+  G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지', 'anchorage'])]),
 ]
 
 /**

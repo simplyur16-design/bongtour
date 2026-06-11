@@ -313,6 +313,22 @@ function hasAmericasAlaskaSignal(haystack: string, labels: string[]): boolean {
   return false
 }
 
+function hasAmericasWestCoastSignal(
+  haystack: string,
+  labels: string[],
+  cityKeys: readonly string[],
+): boolean {
+  const keys = cityKeys.map((k) => k.trim().toLowerCase()).filter(Boolean)
+  if (keys.some((k) => AMERICAS_WEST_CITY_KEYS.has(k))) return true
+  for (const term of ['시애틀', 'seattle', '미서부', '미국서부', 'us-west']) {
+    if (termAppearsInHaystack(term, haystack)) return true
+    for (const label of labels) {
+      if (label.toLowerCase().includes(term.toLowerCase())) return true
+    }
+  }
+  return scoreAmericasTextTerms(haystack, labels, AMERICAS_WEST_TEXT) > 0
+}
+
 function resolveAmericasSubgroupHint(
   haystack: string,
   labels: string[],
@@ -321,16 +337,19 @@ function resolveAmericasSubgroupHint(
   const keys = cityKeys.map((k) => k.trim().toLowerCase()).filter(Boolean)
 
   if (keys.some((k) => AMERICAS_HAWAII_CITY_KEYS.has(k))) return '하와이'
-  if (keys.some((k) => AMERICAS_CANADA_CITY_KEYS.has(k))) return '캐나다'
 
-  if (hasAmericasAlaskaSignal(haystack, labels)) return '알래스카'
+  const hasCanadaKey = keys.some((k) => AMERICAS_CANADA_CITY_KEYS.has(k))
+  const hasEastKey = keys.some((k) => AMERICAS_EAST_CITY_KEYS.has(k))
+  const hasWestKey = keys.some((k) => AMERICAS_WEST_CITY_KEYS.has(k))
 
-  if (keys.some((k) => AMERICAS_EAST_CITY_KEYS.has(k)) && !keys.some((k) => AMERICAS_WEST_CITY_KEYS.has(k))) {
-    return '미동부'
-  }
-  if (keys.some((k) => AMERICAS_WEST_CITY_KEYS.has(k)) && !keys.some((k) => AMERICAS_EAST_CITY_KEYS.has(k))) {
-    return '미서부'
-  }
+  if (hasCanadaKey && !hasEastKey) return '캐나다'
+  if (hasEastKey && !hasCanadaKey && !hasWestKey) return '미동부'
+  if (hasWestKey && !hasEastKey) return '미서부'
+
+  const hasAlaska = hasAmericasAlaskaSignal(haystack, labels)
+  const hasWestCoast = hasAmericasWestCoastSignal(haystack, labels, keys)
+  if (hasAlaska && hasWestCoast) return '미서부'
+  if (hasAlaska) return '알래스카'
 
   const canadaScore = scoreAmericasTextTerms(haystack, labels, AMERICAS_CANADA_TEXT)
   const hawaiiScore = scoreAmericasTextTerms(haystack, labels, AMERICAS_HAWAII_TEXT)
@@ -339,6 +358,13 @@ function resolveAmericasSubgroupHint(
 
   const hasEastToken = eastScore > 0
   const hasWestToken = westScore > 0
+  const hasCanadaToken = canadaScore > 0
+
+  if (hasCanadaToken && hasEastToken && !hasWestToken) {
+    if (hasCanadaKey) return '캐나다'
+    if (hasEastKey) return '미동부'
+    return canadaScore >= eastScore ? '캐나다' : '미동부'
+  }
 
   if (hasEastToken && hasWestToken) {
     if (canadaScore >= Math.max(eastScore, westScore)) return '캐나다'
@@ -1049,6 +1075,26 @@ export function resolveOverseasMegaMenuSubgroupLabelForBrowse(
     if (fromCountryLeaf) return megaMenuGroupToDisplayLabel(regionId, fromCountryLeaf.countryLabel)
   }
 
+  return '기타'
+}
+
+/** 허브·메가메뉴 섹션 — API `browseMegaSubgroupLabel` 없을 때 빠른 countryRow·메가메뉴 매칭만 */
+export function resolveOverseasHubMegaSubgroupDisplayLabel(
+  item: { browseMegaSubgroupLabel?: string | null; countryRowLabel?: string | null },
+  regionId: string,
+): string {
+  const preset = (item.browseMegaSubgroupLabel ?? '').trim()
+  if (preset && preset !== '기타') return preset
+
+  const fromMenu = resolveOverseasMegaMenuSubgroupLabelFromCountryRow(regionId, item.countryRowLabel)
+  if (fromMenu) return fromMenu
+
+  const row = (item.countryRowLabel ?? '').trim()
+  if (regionId === 'americas') {
+    if (row === '미국동부') return '미동부'
+    if (row === '미국서부') return '미서부'
+  }
+  if (row && row !== '기타') return row
   return '기타'
 }
 
