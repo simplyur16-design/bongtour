@@ -1193,7 +1193,16 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     const flightHasUsableCore =
       Boolean(factsFromRow?.airline?.trim()) &&
       Boolean((factsFromRow?.outboundSummary ?? '').trim() || (factsFromRow?.inboundSummary ?? '').trim())
-    if (!flightHasUsableCore) {
+    const fs = parsed.detailBodyStructured?.flightStructured
+    const fsDbg = fs?.debug
+    const lottetourFlightLegOk = Boolean(
+      fs &&
+        (Boolean(fs.outbound.flightNo?.trim()) || Boolean(fs.outbound.departureAirport?.trim())) &&
+        (Boolean(fs.inbound.flightNo?.trim()) || Boolean(fs.inbound.departureAirport?.trim()))
+    )
+    const lottetourFlightStructuredOk =
+      fsDbg?.status === 'success' || (fsDbg?.status === 'partial' && lottetourFlightLegOk) || lottetourFlightLegOk
+    if (!flightHasUsableCore && !lottetourFlightStructuredOk) {
       heroDateFieldIssues.push({
         field: 'flight_info',
         reason: '항공정보 검토 필요: 본문 자동 추출 값이 부분 누락되어 등록 후 편집에서 보정이 필요할 수 있습니다.',

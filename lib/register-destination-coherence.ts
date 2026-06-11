@@ -22,6 +22,52 @@ export type ScheduleDayLite = {
 const OPEN_JAW_NOTE =
   '오픈조·다도시 패키지(A→B 입국 후 여러 도시 경유, C→A 귀국 등)에서는 대표 목적지·요약 문구와 첫 입국/최종 출국 도시가 달라도 정상인 경우가 많습니다.'
 
+/** 대표 목적지가 국가·권역이고 항공 도시가 그 권역 내 도시인 경우 — 문자 불일치 info 생략 */
+const REP_REGION_ENCOMPASSES_CITY: Array<{ rep: RegExp; cities: RegExp }> = [
+  {
+    rep: /^(?:튀르키예|터키|Turkey|Türkiye|Turkiye)$/i,
+    cities: /이스탄불|Istanbul|카파도키아|Cappadocia|안탈리아|Antalya|파묵칼레|Pamukkale|에페소|Ephesus|콘야|보드룸|카트마뉴|페르가몬/i,
+  },
+  {
+    rep: /^(?:일본|Japan)$/i,
+    cities: /도쿄|Tokyo|오사카|Osaka|교토|Kyoto|삿포로|후쿠오카|나고야|오키나와|홋카이도|규슈|北海道/i,
+  },
+  {
+    rep: /^(?:태국|Thailand)$/i,
+    cities: /방콕|Bangkok|푸켓|Phuket|치앙마이|Chiang\s*Mai|파타야|Pattaya|크라비|Krabi/i,
+  },
+  {
+    rep: /^(?:베트남|Vietnam)$/i,
+    cities: /하노이|Hanoi|호치민|Ho\s*Chi\s*Minh|다낭|Danang|나트랑|Nha\s*Trang|푸꾸옥|Phu\s*Quoc/i,
+  },
+]
+
+function scheduleFullHaystack(schedule: ScheduleDayLite[]): string {
+  return schedule
+    .map((s) => [s.title, s.description, s.hotelText ?? ''].filter(Boolean).join('\n'))
+    .join('\n')
+}
+
+/** 권역·국가 대표 목적지 vs 입국·출국 도시(이스탄불 등) — 정상 다도시 패키지 */
+function representativeEncompassesFlightPlace(
+  rep: string,
+  place: string | null,
+  schedule: ScheduleDayLite[]
+): boolean {
+  if (!rep.trim() || !place) return false
+  const p = compactPlace(place)
+  if (p.length < 2) return false
+  const repTrim = rep.replace(/\s+/g, ' ').trim()
+  for (const { rep: repRe, cities } of REP_REGION_ENCOMPASSES_CITY) {
+    if (repRe.test(repTrim) && cities.test(p)) return true
+  }
+  const hay = scheduleFullHaystack(schedule)
+  if (hay.trim() && scheduleMentionsPlace(hay, repTrim) && scheduleMentionsPlace(hay, p)) {
+    if (!placeTokensOverlap(repTrim, p)) return true
+  }
+  return false
+}
+
 function compactPlace(s: string | null | undefined): string {
   if (s == null) return ''
   return String(s)
@@ -145,7 +191,7 @@ export function buildDestinationCoherenceFieldIssues(opts: {
     (scheduleMentionsPlace(day1, firstArr) || placeTokensOverlap(day1, firstArr ?? ''))
 
   if (scheduleAlignedWithFirstArrival && firstArr) {
-    if (repDiffersFromPlace(rep, firstArr)) {
+    if (repDiffersFromPlace(rep, firstArr) && !representativeEncompassesFlightPlace(rep, firstArr, opts.schedule)) {
       issues.push({
         field: 'destination.representative_vs_first_arrival',
         reason: `대표 목적지·요약("${rep}")와 항공 첫 도착(추정 "${firstArr}") 문자상 다릅니다. 1일차 일정·항공 도착은 서로 맞는 것으로 보이며, 대표 목적지는 상품명·권역·마케팅용으로 따로 잡히는 경우가 많습니다. ${OPEN_JAW_NOTE} 문구만 필요 시 확인하세요.`,
@@ -154,7 +200,11 @@ export function buildDestinationCoherenceFieldIssues(opts: {
       })
     }
   } else {
-    if (firstArr && repDiffersFromPlace(rep, firstArr)) {
+    if (
+      firstArr &&
+      repDiffersFromPlace(rep, firstArr) &&
+      !representativeEncompassesFlightPlace(rep, firstArr, opts.schedule)
+    ) {
       issues.push({
         field: 'destination.representative_vs_first_arrival',
         reason: `대표 목적지·요약("${rep}")와 항공 가는편 첫 도착(추정 "${firstArr}")이 문자상 다릅니다. ${OPEN_JAW_NOTE} 실제 첫 체류 도시는 항공·일정표 원문을 기준으로 확인하세요.`,
@@ -172,7 +222,11 @@ export function buildDestinationCoherenceFieldIssues(opts: {
     }
   }
 
-  if (finalDep && repDiffersFromPlace(rep, finalDep)) {
+  if (
+    finalDep &&
+    repDiffersFromPlace(rep, finalDep) &&
+    !representativeEncompassesFlightPlace(rep, finalDep, opts.schedule)
+  ) {
     issues.push({
       field: 'destination.representative_vs_final_departure',
       reason: `대표 목적지("${rep}")와 귀국편 출발 도시(추정 "${finalDep}")가 문자상 다릅니다. 지역 순회·오픈조에서 흔합니다. ${OPEN_JAW_NOTE}`,

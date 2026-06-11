@@ -16,6 +16,19 @@ KE95607/03 (금) 21:20
 이스탄불 출발07/03(금) 21:20
 인천국제공항 도착07/04(토) 13:25`
 
+/** 귀국 도착 줄에 날짜가 없는 UI 복붙 변형 */
+const FLIGHT_PASTE_ARRIVAL_NO_DATE = `대한항공
+한국
+출발
+KE95506/26 (금) 13:40
+인천국제공항 출발06/26(금) 19:40
+이스탄불 도착
+한국
+도착
+KE95607/03 (금) 21:20
+이스탄불 출발07/04(토) 13:25
+인천국제공항 도착`
+
 const SHOPPING_PASTE = `구분\t쇼핑품목\t쇼핑장소\t소요시간\t환불여부
 1\t터키석, 술탄라이트, 금&은 제품 등\t터키석 샵, 카파도키아\t40분~1시간 소요\tN
 2\t프로폴리스, 천연 영양제 등\t비타민 샵, 안탈리아\t40분~1시간 소요\tN
@@ -38,6 +51,16 @@ describe('lottetour register preview warnings — Turkey paste', () => {
     assert.equal(fs.inbound.flightNo, 'KE956')
     assert.match(fs.airlineName ?? '', /대한항공/)
     assert.equal(fs.reviewNeeded, false)
+  })
+
+  it('parses flight paste when inbound arrival line has no date', () => {
+    const fs = parseFlightSectionLottetour(FLIGHT_PASTE_ARRIVAL_NO_DATE, `2026 여행 대한항공 KE955`)
+    assert.equal(fs.debug?.status !== 'failure', true, fs.debug?.status)
+    assert.equal(fs.outbound.flightNo, 'KE955')
+    assert.equal(fs.inbound.flightNo, 'KE956')
+    assert.match(fs.airlineName ?? '', /대한항공/)
+    assert.equal(fs.outbound.arrivalAirport, '이스탄불')
+    assert.equal(fs.inbound.departureAirport, '이스탄불')
   })
 
   it('parses shopping table with 구분 header (6 rows)', () => {

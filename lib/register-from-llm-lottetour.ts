@@ -235,17 +235,20 @@ function lottetourBlankSignalsWhenDedicatedPasteEmpty(
   pb: Partial<RegisterPastedBlocksInput> | undefined
 ): ReturnType<typeof extractStructuredTourSignals> {
   const o = { ...(signals as unknown as Record<string, unknown>) }
-  if (!String(pb?.optionalTour ?? '').trim()) {
-    o.optionalToursStructuredJson = null
-    o.optionalTourNoticeRaw = null
-    o.optionalTourNoticeItems = []
-    o.optionalTours = []
-    o.hasOptionalTour = false
-    o.optionalTourCount = 0
-    o.optionalTourSourceCount = 0
-    o.optionalTourSummaryText = ''
-    if (o.headerBadges && typeof o.headerBadges === 'object') {
-      o.headerBadges = { ...(o.headerBadges as Record<string, unknown>), optionalTour: '현지옵션 없음' }
+  const optionalPaste = String(pb?.optionalTour ?? '').trim()
+  /** 전용 옵션칸 SSOT — 본문 haystack에서 선택관광 표를 추출하지 않는다(일정 반복·중복 경고 방지). */
+  o.optionalToursStructuredJson = null
+  o.optionalTourNoticeRaw = null
+  o.optionalTourNoticeItems = []
+  o.optionalTours = []
+  o.hasOptionalTour = false
+  o.optionalTourCount = 0
+  o.optionalTourSourceCount = 0
+  o.optionalTourSummaryText = ''
+  if (o.headerBadges && typeof o.headerBadges === 'object') {
+    o.headerBadges = {
+      ...(o.headerBadges as Record<string, unknown>),
+      optionalTour: optionalPaste ? '현지옵션 있음' : '현지옵션 없음',
     }
   }
   if (!String(pb?.shopping ?? '').trim()) {
@@ -1961,9 +1964,8 @@ ${text.slice(0, 16000)}`
     options?.pastedBodyForInference,
     options?.pastedBlocks
   )
-  const optionalToursLineRegex = pb.optionalTour?.trim()
-    ? extractOptionalToursStructured(signalsHaystack)
-    : null
+  const optionalPasteOnly = String(pb?.optionalTour ?? '').trim()
+  const optionalToursLineRegex = optionalPasteOnly ? extractOptionalToursStructured(optionalPasteOnly) : null
   const signals = lottetourBlankSignalsWhenDedicatedPasteEmpty(extractStructuredTourSignals(signalsHaystack), pb)
   const optMerged = mergeOptionalToursStructured({
     llmRows: raw.optionalTours,
@@ -2009,9 +2011,12 @@ ${text.slice(0, 16000)}`
       .join('\n---\n')
   }
   shoppingStopsLlmSupplementJson = shoppingStopsLlmSupplementJson?.trim() ? shoppingStopsLlmSupplementJson : null
+  const optionalMergeIssuesForPreview = manualPasteAxes.hasManualOptionalInput
+    ? optMerged.issues.filter((issue) => issue.field !== 'optionalToursStructured')
+    : optMerged.issues
   const extractionFieldIssues: RegisterExtractionFieldIssue[] = [
     ...parseLlmExtractionFieldIssues(raw.fieldIssues),
-    ...optMerged.issues,
+    ...optionalMergeIssuesForPreview,
     ...shopMerged.issues,
     ...flightFieldIssues,
   ]
@@ -2048,7 +2053,7 @@ ${text.slice(0, 16000)}`
       })
     }
   }
-  if (signals.optionalTourSourceCount > MAX_OPTIONAL_TOURS) {
+  if (!manualPasteAxes.hasManualOptionalInput && signals.optionalTourSourceCount > MAX_OPTIONAL_TOURS) {
     extractionFieldIssues.push({
       field: 'optionalToursStructured',
       reason: `선택관광 행이 ${signals.optionalTourSourceCount}개로 감지되어 상한 ${MAX_OPTIONAL_TOURS}개까지만 보존했습니다.`,

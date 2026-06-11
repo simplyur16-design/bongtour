@@ -127,11 +127,38 @@ function findOptionalTourPriceParentColumnIndex(hCols: string[]): number | null 
     if (
       /\uBE44\uC6A9\s*\/|\/\s*\uBE44\uC6A9/i.test(c) ||
       /^\uBE44\uC6A9$/i.test(c) ||
-      /^\uC120\uD0DD\uACBD\uBE44$/i.test(c)
+      /^\uC120\uD0DD\uACBD\uBE44$/i.test(c) ||
+      /1\uC778\s*\uC694\uAE08|\uC131\uC778\s*\/\s*(?:\uC18C\uC544|\uC544\uB3D9)|^\uAC00\uACA9$|^\uC694\uAE08$/i.test(c)
     )
       return i
   }
   return null
+}
+
+function normOptionalTourDedupeKey(r: StructuredOptionalTourRow): string {
+  const name = r.name.replace(/\s+/g, ' ').trim().toLowerCase()
+  const price = r.adultPrice ?? r.childPrice ?? ''
+  return `${name}|${price}`
+}
+
+function dedupeOptionalTourRows(rows: StructuredOptionalTourRow[]): StructuredOptionalTourRow[] {
+  const seen = new Set<string>()
+  const out: StructuredOptionalTourRow[] = []
+  for (const r of rows) {
+    const key = normOptionalTourDedupeKey(r)
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(r)
+  }
+  return out
+}
+
+function isOptionalTourDataTableHeaderLine(ln: string): boolean {
+  if (!/\uC120\uD0DD\uAD00\uAD11/i.test(ln)) return false
+  return (
+    /(\uC120\uD0DD\uAD00\uAD11\uBA85|1\uC778\uC694\uAE08|\uD1B5\uD654|\uBE44\uC6A9|\uAC00\uACA9)/i.test(ln) &&
+    /(\uC18C\uC694\uC2DC\uAC04|\uC2DC\uAC04|\uB300\uCCB4|\uB300\uAE30)/i.test(ln)
+  )
 }
 
 function headerHintToDataColIdx(headerColIdx: number | null, priceParentIdx: number | null): number | null {
@@ -331,6 +358,7 @@ function parseOptionalTourRows(lines: string[], startHint: number): StructuredOp
   const gk: GuideFieldKey = 'guide\u540c\u884cText'
   for (let i = start; i < lines.length; i++) {
     const ln = lines[i]!
+    if (i > start && isOptionalTourDataTableHeaderLine(ln)) break
     if (
       /\uC1FC\uD551\s*\uC815\uBCF4|\uC790\uC720\s*\uC77C\uC815|\uD3EC\uD568\s*\uBD88\uD3EC\uD568|\uC8FC\uC758\s*\uC0AC\uD56D/i.test(
         ln
@@ -401,7 +429,9 @@ function parseOptionalTourRows(lines: string[], startHint: number): StructuredOp
     }
     out.push(row)
   }
-  return filterOptionalTourRows(out.filter((r) => !/^(\uC120\uD0DD\uAD00\uAD11\uBA85)$/.test(r.name)))
+  return dedupeOptionalTourRows(
+    filterOptionalTourRows(out.filter((r) => !/^(\uC120\uD0DD\uAD00\uAD11\uBA85)$/.test(r.name)))
+  )
 }
 
 function parseShopping(lines: string[]): {
