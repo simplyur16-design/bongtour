@@ -4,6 +4,7 @@
  */
 
 import { finalizeScheduleImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
+import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
 export type LottetourImageKeywordContext = {
   day: number
@@ -11,6 +12,8 @@ export type LottetourImageKeywordContext = {
   description: string
   /** 일차 원문 블록(붙여넣기 파이프라인) */
   blob?: string
+  /** 이동 경로 — `인천 - 이스탄불 - …` (Pexels 키워드 SSOT 우선) */
+  routeText?: string | null
   /** 에어텔(항공+호텔) + 일정 빈약 시 도시 기반 키워드(롯데관광 전용) */
   airtelFreeTravelImageKw?: 'off' | 'force-city'
   productTitle?: string
@@ -39,8 +42,33 @@ const TRAVEL_STANDALONE_KO = /^(?:출발|도착|귀국|입국|출국|공항\s*�
 
 const GENERIC_EN = /^(?:travel|tour|city\s*tour|day\s*\d+\s*travel)$/i
 
+/** 튀르키예(터키) — routeText·본문 우선 매칭 */
+const TURKEY_SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
+  { re: /술탄\s*아흐메트|블루\s*모스크|Sultan\s*Ahmed/i, en: 'Sultan Ahmed Mosque Istanbul' },
+  { re: /그랜드\s*바자르|Grand\s*Bazaar/i, en: 'Grand Bazaar Istanbul' },
+  { re: /투즈괼|소금\s*호수|Lake\s*Tuz/i, en: 'Lake Tuz salt lake Turkey' },
+  { re: /데린쿠유|지하\s*도시|Derinkuyu/i, en: 'Derinkuyu Underground City Cappadocia' },
+  { re: /괴레메|Goreme|Göreme/i, en: 'Goreme Cappadocia fairy chimneys' },
+  { re: /우치히사르|Uchisar/i, en: 'Uchisar Castle Cappadocia' },
+  { re: /데브란트|Devrent/i, en: 'Devrent Valley Cappadocia' },
+  { re: /카파도키아|카파토키아|Cappadocia/i, en: 'Cappadocia hot air balloons sunrise' },
+  { re: /오브룩|담수호|Obruk/i, en: 'Obruk Lake Turkey sinkhole' },
+  { re: /이블리\s*미나레|Yivli\s*Minaret/i, en: 'Yivli Minaret Antalya' },
+  { re: /하드리아누스|Hadrian/i, en: "Hadrian's Gate Antalya" },
+  { re: /히에라폴리스|Hierapolis/i, en: 'Hierapolis ancient ruins Pamukkale' },
+  { re: /석회붕|파묵칼레|Pamukkale/i, en: 'Pamukkale travertine terraces Turkey' },
+  { re: /쉬린제|Sirince|Şirince/i, en: 'Sirince village Turkey wine houses' },
+  { re: /에페수스|Ephesus/i, en: 'Ephesus ancient library ruins Turkey' },
+  { re: /성\s*소피아|아야\s*소피아|Hagia\s*Sophia/i, en: 'Hagia Sophia Istanbul interior dome' },
+  { re: /톱카프|Topkapi|Topkapı/i, en: 'Topkapi Palace Istanbul courtyard' },
+  { re: /발랏|Balat/i, en: 'Balat Istanbul colorful houses street' },
+  { re: /보스포러스|Bosphorus|Bosporus/i, en: 'Bosphorus Strait Istanbul cruise view' },
+  { re: /피엘로티|Pierre\s*Loti/i, en: 'Pierre Loti Hill Istanbul cable car view' },
+]
+
 /** 최소 한글→영문 관광지 (롯데관광 일정 본문에서 자주 쓰이는 표기만) */
 const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
+  ...TURKEY_SPOT_RULES,
   { re: /(?:유|우)원|豫园|예원/u, en: 'Yu Garden Shanghai' },
   { re: /외탄|外灘|外滩|와탄/u, en: 'Shanghai Bund skyline' },
   { re: /항주|杭州|서호|西湖/u, en: 'West Lake Hangzhou' },
@@ -69,6 +97,11 @@ const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
 ]
 
 const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
+  { re: /이스탄불|Istanbul|İstanbul/i, en: 'Istanbul Bosporus mosque skyline sunset' },
+  { re: /앙카라|Ankara/i, en: 'Ankara city skyline Turkey' },
+  { re: /안탈리아|Antalya/i, en: 'Antalya old town harbour Turkey' },
+  { re: /아이발릭|Ayvalik|Ayvalık/i, en: 'Ayvalik Aegean coast Turkey' },
+  { re: /튀르키예|터키|Turkey/i, en: 'Istanbul Bosporus mosque skyline sunset' },
   { re: /상해|사해|上海/u, en: 'Shanghai skyline night' },
   { re: /북경|베이징|北京/u, en: 'Beijing Forbidden City view' },
   { re: /광저우|광주|广州/u, en: 'Guangzhou skyline night' },
@@ -81,13 +114,14 @@ const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /나고야|名古屋/u, en: 'Nagoya castle view' },
   { re: /요코하마|横浜/u, en: 'Yokohama bay night' },
   { re: /파리/u, en: 'Paris city skyline' },
-  { re: /로마/u, en: 'Rome Colosseum view' },
+  { re: /(?<![가-힣])로마(?!시대)/u, en: 'Rome Colosseum view' },
   { re: /바르셀로나/u, en: 'Barcelona Sagrada Familia exterior' },
   { re: /런던/u, en: 'London Thames skyline' },
   { re: /뉴욕/u, en: 'New York Manhattan skyline' },
   { re: /연길/u, en: 'Yanji Korean quarter winter street' },
   { re: /제주/u, en: 'Jeju coast view' },
-  { re: /서울|인천/u, en: 'Seoul city skyline night' },
+  { re: /서울/u, en: 'Seoul city skyline night' },
+  { re: /인천/u, en: 'Incheon International Airport departure terminal' },
   { re: /부산/u, en: 'Busan Gamcheon village' },
   { re: /방콕/u, en: 'Bangkok Wat Arun temple' },
   { re: /치앙마이/u, en: 'Chiang Mai old city temple' },
@@ -109,8 +143,48 @@ const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /사이판|Saipan/i, en: 'Saipan Managaha lagoon' },
 ]
 
+const LOTTETOUR_DOMESTIC_HUB_RE =
+  /^(?:인천|서울|한국|김포|부산|대구|청주|제주|인천국제공항|김포국제공항|인천공항|김포공항|ICN|GMP|PUS|CJU)$/iu
+
+function isLottetourDomesticHubToken(seg: string): boolean {
+  const t = seg.replace(/\s+/g, ' ').trim()
+  if (!t) return true
+  return LOTTETOUR_DOMESTIC_HUB_RE.test(t)
+}
+
+function stripLottetourRouteSegmentNoise(seg: string): string {
+  return seg
+    .replace(/\[[^\]]*]/g, ' ')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function lottetourRouteTextSegments(routeText: string | null | undefined): string[] {
+  return splitRouteTextPlaceSegments(routeText)
+    .map(stripLottetourRouteSegmentNoise)
+    .filter((s) => s.length >= 2)
+}
+
+/** routeText 해외 구간 — 이동 순서상 마지막 랜드마크(또는 도시) 우선 */
+function landmarkFromRouteText(routeText: string | null | undefined): string | null {
+  const segs = lottetourRouteTextSegments(routeText).filter((s) => !isLottetourDomesticHubToken(s))
+  if (!segs.length) return null
+
+  let lastSpot: string | null = null
+  let lastCity: string | null = null
+  for (const seg of segs) {
+    const spot = firstMatchingEn(SPOT_RULES, seg)
+    if (spot) lastSpot = spot
+    const city = firstMatchingEn(CITY_RULES, seg)
+    if (city) lastCity = city
+  }
+  return lastSpot ?? lastCity
+}
+
 const IATA_IMAGE: Readonly<Record<string, string>> = {
-  ICN: 'Seoul Incheon airport departure hall',
+  ICN: 'Incheon International Airport departure terminal',
+  IST: 'Istanbul airport city Bosporus approach',
   GMP: 'Seoul Gimpo airport',
   PVG: 'Shanghai Pudong airport to city',
   SHA: 'Shanghai Hongqiao airport',
@@ -130,7 +204,7 @@ const IATA_IMAGE: Readonly<Record<string, string>> = {
 }
 
 function hay(ctx: LottetourImageKeywordContext): string {
-  return `${ctx.title}\n${ctx.description}\n${ctx.blob ?? ''}`.replace(/\s+/g, ' ')
+  return `${ctx.title}\n${ctx.description}\n${ctx.routeText ?? ''}\n${ctx.blob ?? ''}`.replace(/\s+/g, ' ')
 }
 
 function stripDatesAndNoise(s: string): string {
@@ -297,6 +371,22 @@ export function isLottetourScheduleWeakForAirtelImageKw(
   return usable.every((r) => !lottetourAirtelScheduleRowHasPlaceSignal(r))
 }
 
+const TURKEY_PRODUCT_SIGNAL_RE = /튀르키예|터키|Turkey|이스탄불|Istanbul|카파도키아|파묵칼레/i
+
+const TURKEY_MISMATCH_KEYWORD_RE =
+  /\b(?:Seoul|Colosseum|International(?:\s+City)?(?:\s+Travel)?(?:\s+Destination)?)\b/i
+
+function lottetourProductHaystack(ctx: LottetourImageKeywordContext): string {
+  return [ctx.productTitle, ctx.productDestination, ctx.productPrimaryDestination, ctx.title, ctx.routeText]
+    .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+    .join('\n')
+}
+
+function isLottetourCrossRegionKeywordMismatch(keyword: string, ctx: LottetourImageKeywordContext): boolean {
+  if (!TURKEY_PRODUCT_SIGNAL_RE.test(lottetourProductHaystack(ctx))) return false
+  return TURKEY_MISMATCH_KEYWORD_RE.test(String(keyword ?? '').trim())
+}
+
 function lottetourAirtelFreeTravelHaystackLocal(ctx: LottetourImageKeywordContext): string {
   const parts = [
     ctx.productTitle,
@@ -317,7 +407,8 @@ function lottetourAirtelFreeTravelRegionalFallbackLocal(h: string): string {
   if (/(유럽|프랑스|독일|이탈리아|스페인|포르투갈|오스트리아|스위스|그리스|크로아티아|슬로베니아)/i.test(h))
     return 'European historic city center architecture plaza'
   if (/(영국|아일랜드|스코틀랜드|에든버러)/i.test(h)) return 'British Isles historic city street architecture'
-  if (/(중동|터키|요르단|이집트|모로코|UAE|아랍)/i.test(h)) return 'Middle East historic mosque old city skyline'
+  if (/(중동|터키|튀르키예|Turkey|요르단|이집트|모로코|UAE|아랍)/i.test(h))
+    return 'Istanbul Bosporus mosque skyline sunset'
   if (/(아프리카|케냐|남아프리카|모잠비크)/i.test(h)) return 'Africa savanna lodge sunrise landscape'
   if (/(호주|뉴질랜드|Oceania)/i.test(h)) return 'Oceania coastal city waterfront skyline'
   if (/(미국|캐나다|하와이|알래스카|멕시코|Mexico)/i.test(h)) return 'North America urban skyline downtown day'
@@ -394,6 +485,9 @@ function lottetourResolveAirtelFreeTravelImageKeywordLocal(ctx: LottetourImageKe
 
 /** 붙여넣기/LLM 후처리 공통: 본문·제목에서 영문 검색어 유도 */
 export function deriveLottetourImageKeyword(ctx: LottetourImageKeywordContext): string {
+  const fromRoute = landmarkFromRouteText(ctx.routeText)
+  if (fromRoute) return fromRoute
+
   const h = hay(ctx)
   const descTriple = firstMatchingEn(LOTTETOUR_DESC_TRIPLE, h)
   if (descTriple) return descTriple
@@ -438,7 +532,7 @@ export function polishLottetourImageKeyword(raw: string, ctx: LottetourImageKeyw
   }
   if (cleaned && isAcceptableEnglishKeyword(cleaned)) {
     let chosen = cleaned
-    if (isLottetourPexelsTooGeneric(cleaned)) {
+    if (isLottetourPexelsTooGeneric(cleaned) || isLottetourCrossRegionKeywordMismatch(cleaned, ctx)) {
       const d = deriveLottetourImageKeyword(ctx)
       if (d.trim()) chosen = d
     }
@@ -447,7 +541,7 @@ export function polishLottetourImageKeyword(raw: string, ctx: LottetourImageKeyw
   if (cleaned && !hasHangul(cleaned) && !isLottetourPlaceholderImageKeyword(cleaned) && !hasBadSubstrings(cleaned)) {
     const t2 = clampWords(cleaned.replace(/[,，]+/g, ' '), IMAGE_KEYWORD_MAX_WORDS)
     if (t2.length >= 4 && /[a-z]{3,}/i.test(t2)) {
-      if (isLottetourPexelsTooGeneric(t2)) {
+      if (isLottetourPexelsTooGeneric(t2) || isLottetourCrossRegionKeywordMismatch(t2, ctx)) {
         const d = deriveLottetourImageKeyword(ctx)
         if (d.trim()) return exitLottetourLandmark(d, ctx)
       }
@@ -463,13 +557,21 @@ export type LottetourScheduleImageKeywordOpts = {
 }
 
 export function applyLottetourScheduleImageKeywordsToRows<
-  T extends { day: number; title?: string; description?: string; imageKeyword?: string | null; imageKeyword2?: string | null },
+  T extends {
+    day: number
+    title?: string
+    description?: string
+    routeText?: string | null
+    imageKeyword?: string | null
+    imageKeyword2?: string | null
+  },
 >(rows: T[], opts?: LottetourScheduleImageKeywordOpts): T[] {
   return rows.map((row) => {
     const kw = polishLottetourImageKeyword(String(row.imageKeyword ?? '').trim(), {
       day: row.day,
       title: String(row.title ?? ''),
       description: String(row.description ?? ''),
+      routeText: row.routeText ?? null,
       productTitle: opts?.productTitle,
       productDestination: opts?.productDestination ?? null,
       productPrimaryDestination: opts?.productDestination ?? null,
