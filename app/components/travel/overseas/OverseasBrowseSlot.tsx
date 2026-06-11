@@ -9,6 +9,9 @@ import { resolveOverseasGeoFilterBannerSafe } from '@/lib/overseas-destination-b
 import { computeHubFocusedResultsFromRecord } from '@/lib/hub-focused-results'
 import { computeMegaMenuRegionCityGroupIdFromRecord } from '@/lib/overseas-mega-region-city-group'
 import { createHubGalleryRotationSeed } from '@/lib/hub-gallery-rotation'
+import { normalizeHomeSeasonSlidesForClient } from '@/lib/home-season-pick-shared'
+import { prefetchOverseasHubBrowse } from '@/lib/products-browse-server-prefetch'
+import { getCachedSeasonCurationNextThreeMonthsSlides } from '@/lib/season-curation-content'
 
 type Props = {
   searchParams: Record<string, string | string[] | undefined>
@@ -16,15 +19,20 @@ type Props = {
   country: string | null
 }
 
-/** 해외 허브 상품 목록 — browse는 클라이언트 API(캐시 hit ~수십 ms). 브리핑 실패 시 인라인 안내 */
+/** 해외 허브 상품 목록 — RSC에서 browse·시즌 큐레이션 prefetch 후 클라이언트 즉시 표시 */
 export default async function OverseasBrowseSlot({ searchParams, region, country }: Props) {
   try {
-    const [overseasGeoFilterBanner, editorialAll] = await Promise.all([
+    const [overseasGeoFilterBanner, editorialAll, browsePrefetch, seasonRaw] = await Promise.all([
       resolveOverseasGeoFilterBannerSafe(searchParams),
       fetchPublishedOverseasEditorials().catch(
         (): Awaited<ReturnType<typeof fetchPublishedOverseasEditorials>> => [],
       ),
+      prefetchOverseasHubBrowse(searchParams),
+      getCachedSeasonCurationNextThreeMonthsSlides().catch(() => [] as Awaited<
+        ReturnType<typeof getCachedSeasonCurationNextThreeMonthsSlides>
+      >),
     ])
+    const overseasSeasonCurationSlides = normalizeHomeSeasonSlidesForClient(seasonRaw)
 
     let overseasEditorialBriefing: OverseasEditorialBriefingPayload | null = null
     try {
@@ -45,6 +53,9 @@ export default async function OverseasBrowseSlot({ searchParams, region, country
       hubBrowseOpts,
     )
 
+    const initialBrowse =
+      browsePrefetch?.payload && browsePrefetch.payload.ok ? browsePrefetch.payload : null
+
     return (
       <ProductsBrowseClient
         basePath="/travel/overseas"
@@ -53,6 +64,9 @@ export default async function OverseasBrowseSlot({ searchParams, region, country
         hidePageHeading
         overseasEditorialBriefing={overseasEditorialBriefing}
         overseasGeoFilterBanner={overseasGeoFilterBanner}
+        overseasSeasonCurationSlides={overseasSeasonCurationSlides}
+        initialBrowse={initialBrowse}
+        initialBrowseQueryKey={browsePrefetch?.queryKey ?? null}
         initialSearchParams={searchParams}
         initialHubFocusedResults={initialHubFocusedResults}
         initialMegaMenuRegionCityGroupId={initialMegaMenuRegionCityGroupId}

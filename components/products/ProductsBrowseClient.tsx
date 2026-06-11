@@ -20,6 +20,7 @@ import ProductSortBar from '@/components/products/ProductSortBar'
 import ProductResultsList, { type ResultItem } from '@/components/products/ProductResultsList'
 import type { OverseasGeoFilterBanner } from '@/lib/overseas-destination-browse'
 import type { OverseasEditorialBriefingPayload } from '@/lib/overseas-editorial-prioritize'
+import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import { sortProductsBySeason } from '@/lib/product-sort'
 import {
@@ -103,6 +104,8 @@ type Props = {
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
   /** 추천 여행지·메가메뉴 도시/국가 필터 시 상단 제목·해제 */
   overseasGeoFilterBanner?: OverseasGeoFilterBanner | null
+  /** 해외 허브 권역 그룹(일본 직후) 시즌 큐레이션 — RSC prefetch */
+  overseasSeasonCurationSlides?: HomeSeasonPickDTO[] | null
   /** RSC prefetch — queryKey 일치 시 클라이언트 fetch 생략 */
   initialBrowse?: ApiOk | null
   initialBrowseQueryKey?: string | null
@@ -156,6 +159,7 @@ export default function ProductsBrowseClient({
   hidePageHeading = false,
   overseasEditorialBriefing = null,
   overseasGeoFilterBanner = null,
+  overseasSeasonCurationSlides = null,
   initialBrowse = null,
   initialBrowseQueryKey = null,
   initialSearchParams = null,
@@ -553,6 +557,14 @@ export default function ProductsBrowseClient({
       ? initialMegaMenuRegionCityGroupId
       : megaMenuRegionCityGroupIdLive
 
+  const showOverseasSeasonCuration =
+    isOverseasProductsHub &&
+    !hasMegaGeo &&
+    !hasDestinationFilter &&
+    !hubFocusedResults &&
+    !(searchParams.get('hubSeason') ?? '').trim() &&
+    (overseasSeasonCurationSlides?.length ?? 0) > 0
+
   const summary = hidePageHeading
     ? null
     : (
@@ -760,6 +772,9 @@ export default function ProductsBrowseClient({
               groupAirHotelByCountry={pathname === '/travel/air-hotel' && !hubFocusedResults}
               groupDomesticByRegion={isDomesticHub}
               overseasEditorialBriefing={overseasEditorialBriefing}
+              overseasSeasonCurationSlides={
+                showOverseasSeasonCuration ? overseasSeasonCurationSlides : null
+              }
               seasonalPickIds={browsePresented.seasonalPickIds}
               overseasFlatByCountrySlug={hubFocusedResults ? q.country?.trim() || null : null}
               hubCompareGridLayout={useHubClientSidebarFilter}
