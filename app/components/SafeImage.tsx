@@ -48,10 +48,12 @@ export default function SafeImage({
     if (process.env.NODE_ENV !== 'development') return
     if (warnedNonWebpNcloud.has(src)) return
     warnedNonWebpNcloud.add(src)
-    console.warn(
-      `[SafeImage] Ncloud JPG/PNG(레거시) — 표시는 정상. WebP·Supabase 이전은 DB bgImageUrl/일정 이미지 마이그레이션 대상:`,
-      src,
-    )
+    if (process.env.NEXT_PUBLIC_SAFEIMAGE_LEGACY_LOG === '1') {
+      console.debug(
+        '[SafeImage] Ncloud JPG/PNG(레거시) — 표시는 정상. 마이그레이션 대상:',
+        src,
+      )
+    }
   }, [src, error])
 
   const handleError = () => {

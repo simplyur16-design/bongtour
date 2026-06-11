@@ -10,6 +10,7 @@ type Props = {
 export default function AirHotelBrowseSlot({ searchParams }: Props) {
   return (
     <ProductsBrowseClient
+      hubBrowse
       basePath="/travel/air-hotel"
       defaultScope="overseas"
       pageTitle="항공+호텔"

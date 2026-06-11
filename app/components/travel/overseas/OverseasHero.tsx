@@ -2,8 +2,22 @@
 
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
-import { type FC, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import {
+  type FC,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
+import {
+  getOverseasHubSearchParamsString,
+  replaceOverseasHubUrl,
+  subscribeOverseasHubUrl,
+} from '@/lib/overseas-hub-client-nav'
 import OverseasDestinationAutocomplete from '@/components/travel/overseas/OverseasDestinationAutocomplete'
 import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
 import { countryDisplayNameFromBrowseParam } from '@/lib/overseas-browse-country-hero'
@@ -109,15 +123,22 @@ export type OverseasHeroProps = {
   selectedRegionSlug?: string | null
   /** 해외 허브 히어로 — 시즌 추천 여행지 5도시(서버, `SeasonalDestinationCuration`) */
   seasonDestinationHeroSlides?: OverseasHubDestinationHeroSlide[] | null
+  /** SSR 스냅샷 — 클라이언트 region 전환 시 RSC 없이 URL만 갱신 */
+  initialSearchParamsString?: string
 }
 
 const OverseasHero: FC<OverseasHeroProps> = ({
   selectedCountrySlug = null,
   selectedRegionSlug = null,
   seasonDestinationHeroSlides = null,
+  initialSearchParamsString = '',
 }) => {
-  const router = useRouter()
-  const searchParams = useSearchParams() ?? new URLSearchParams()
+  const serverSearchParamsRef = useRef(initialSearchParamsString)
+  const searchParamsString = useSyncExternalStore(
+    subscribeOverseasHubUrl,
+    getOverseasHubSearchParamsString,
+    () => serverSearchParamsRef.current,
+  )
   const departDateId = 'overseas-hero-depart-date'
   const calendarTitleId = useId()
   const calendarPanelId = useId()
@@ -128,9 +149,15 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     return v >= publicMinYmd ? v : ''
   }
   const dateWrapRef = useRef<HTMLDivElement>(null)
-  const [departDate, setDepartDate] = useState(sanitizeDepartDate(searchParams.get('departDate')))
-  const [adultCount, setAdultCount] = useState(searchParams.get('adult') ?? '1')
-  const [childCount, setChildCount] = useState(searchParams.get('child') ?? '0')
+  const [departDate, setDepartDate] = useState(() =>
+    sanitizeDepartDate(new URLSearchParams(initialSearchParamsString).get('departDate')),
+  )
+  const [adultCount, setAdultCount] = useState(
+    () => new URLSearchParams(initialSearchParamsString).get('adult') ?? '1',
+  )
+  const [childCount, setChildCount] = useState(
+    () => new URLSearchParams(initialSearchParamsString).get('child') ?? '0',
+  )
   const [idx, setIdx] = useState(0)
   const [broken, setBroken] = useState<Record<string, boolean>>({})
   const [isPaused, setIsPaused] = useState(false)
@@ -144,7 +171,9 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   } | null>(null)
   const [countryBrowseLoading, setCountryBrowseLoading] = useState(false)
   const [viewMonth, setViewMonth] = useState(() => {
-    const fromUrl = parseYmd(sanitizeDepartDate(searchParams.get('departDate')))
+    const fromUrl = parseYmd(
+      sanitizeDepartDate(new URLSearchParams(initialSearchParamsString).get('departDate')),
+    )
     const d = fromUrl ?? new Date()
     return { y: d.getFullYear(), m: d.getMonth() + 1 }
   })
@@ -154,8 +183,18 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   const countrySlug = useMemo(() => {
     const fromProps = (selectedCountrySlug ?? '').trim()
     if (fromProps) return fromProps
-    return (searchParams.get('country') ?? '').trim() || null
-  }, [selectedCountrySlug, searchParams])
+    return (new URLSearchParams(searchParamsString).get('country') ?? '').trim() || null
+  }, [selectedCountrySlug, searchParamsString])
+
+  const regionFromUrl = useMemo(
+    () => (new URLSearchParams(searchParamsString).get('region') ?? '').trim(),
+    [searchParamsString],
+  )
+
+  const cityFromUrl = useMemo(
+    () => (new URLSearchParams(searchParamsString).get('city') ?? '').trim() || null,
+    [searchParamsString],
+  )
 
   const normalizedSelectedRegionSlug = (selectedRegionSlug ?? '').trim()
 
@@ -236,8 +275,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
         })
         if (countrySlug) {
           p.set('country', countrySlug)
-          const r = (searchParams.get('region') ?? '').trim()
-          if (r) p.set('region', r)
+          if (regionFromUrl) p.set('region', regionFromUrl)
         } else if (normalizedSelectedRegionSlug) {
           p.set('region', normalizedSelectedRegionSlug)
         }
@@ -270,23 +308,36 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     return () => {
       cancelled = true
     }
-  }, [countrySlug, isSpotlightMode, searchParams, selectedRegionSlug])
+  }, [countrySlug, isSpotlightMode, normalizedSelectedRegionSlug, regionFromUrl])
 
   useEffect(() => {
-    const nextDepartRaw = searchParams.get('departDate') ?? ''
+    const params = new URLSearchParams(searchParamsString)
+    const nextDepartRaw = params.get('departDate') ?? ''
     const nextDepart = sanitizeDepartDate(nextDepartRaw)
-    setDepartDate(nextDepart)
-    setAdultCount(searchParams.get('adult') ?? '1')
-    setChildCount(searchParams.get('child') ?? '0')
+    const nextAdult = params.get('adult') ?? '1'
+    const nextChild = params.get('child') ?? '0'
+
+    setDepartDate((prev) => (prev === nextDepart ? prev : nextDepart))
+    setAdultCount((prev) => (prev === nextAdult ? prev : nextAdult))
+    setChildCount((prev) => (prev === nextChild ? prev : nextChild))
+
     const d = parseYmd(nextDepart)
-    if (d) setViewMonth({ y: d.getFullYear(), m: d.getMonth() + 1 })
+    if (d) {
+      const y = d.getFullYear()
+      const m = d.getMonth() + 1
+      setViewMonth((prev) => (prev.y === y && prev.m === m ? prev : { y, m }))
+    }
+
     if (nextDepartRaw && !nextDepart) {
-      const p = new URLSearchParams(searchParams.toString())
+      const p = new URLSearchParams(searchParamsString)
       p.delete('departDate')
       p.delete('departMonth')
-      router.replace(`${hubPath}?${p.toString()}`)
+      const nextQs = p.toString()
+      if (nextQs !== searchParamsString) {
+        replaceOverseasHubUrl(p)
+      }
     }
-  }, [hubPath, publicMinYmd, router, searchParams])
+  }, [hubPath, publicMinYmd, searchParamsString])
 
   useEffect(() => {
     if (!calendarOpen) return
@@ -324,18 +375,18 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   )
 
   const applySearch = (next: { departDate: string; adult: string; child: string }) => {
-    const p = new URLSearchParams(searchParams.toString())
+    const p = new URLSearchParams(searchParamsString)
     p.set('scope', 'overseas')
     p.delete('page')
     mergeDepartPax(p, next)
     p.delete('listingKind')
     p.delete('type')
-    router.replace(`${hubPath}?${p.toString()}`)
+    replaceOverseasHubUrl(p)
   }
 
   const applyDestination = useCallback(
     (item: OverseasLocationSuggestion | null) => {
-      const p = new URLSearchParams(searchParams.toString())
+      const p = new URLSearchParams(searchParamsString)
       p.set('scope', 'overseas')
       p.delete('page')
       mergeDepartPax(p, { departDate, adult: adultCount, child: childCount })
@@ -354,18 +405,14 @@ const OverseasHero: FC<OverseasHeroProps> = ({
         }
         p.delete('destination')
       }
-      router.replace(`${hubPath}?${p.toString()}`)
+      replaceOverseasHubUrl(p)
     },
-    [searchParams, router, departDate, adultCount, childCount, mergeDepartPax],
+    [searchParamsString, departDate, adultCount, childCount, mergeDepartPax],
   )
 
   const destinationLabel = useMemo(
-    () =>
-      overseasBrowseLabelFromParams(
-        countrySlug,
-        (searchParams.get('city') ?? '').trim() || null,
-      ),
-    [countrySlug, searchParams],
+    () => overseasBrowseLabelFromParams(countrySlug, cityFromUrl),
+    [countrySlug, cityFromUrl],
   )
 
   useEffect(() => {

@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { handlers } from '@/auth'
 import { clearAllAuthSessionCookies } from '@/lib/clear-auth-session-cookies'
 
+export const dynamic = 'force-dynamic'
+
 const { GET, POST: nextAuthPost } = handlers
 
 export { GET }

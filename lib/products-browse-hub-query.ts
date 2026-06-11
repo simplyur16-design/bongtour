@@ -25,6 +25,15 @@ function applyBudgetFitSortIfNeeded(p: URLSearchParams): void {
   }
 }
 
+/** 해외 허브 히어로(출발일·인원) — browse API·캐시 키와 무관, URL에 남아도 키에서 제외 */
+export const OVERSEAS_HUB_HERO_UI_QUERY_KEYS = [
+  'adult',
+  'child',
+  'pax',
+  'departDate',
+  'departMonth',
+] as const
+
 /** sidebar 필터는 클라이언트 메모리에서 처리 — hub cache key에서 제외 (HIT 향상) */
 export const SIDEBAR_FILTER_PARAM_KEYS = [
   'noOptionalTour',
@@ -59,6 +68,19 @@ export function canonicalBrowseQueryKey(p: URLSearchParams): string {
   return sorted.toString()
 }
 
+/**
+ * 해외 허브 전량 카탈로그 — region/country/city 무관, 세션 1회 fetch SSOT.
+ * 메가메뉴·히어로 URL 변경은 클라이언트 필터만 (`filterOverseasHubCatalogByUrl`).
+ */
+export function buildOverseasHubCatalogFetchQueryKey(): string {
+  const p = new URLSearchParams()
+  p.set('scope', 'overseas')
+  p.set('limit', OVERSEAS_HUB_BROWSE_LIMIT)
+  /** 클라이언트 sessionStorage 구 캐시 무효화 — API는 무시 */
+  p.set('hubCatalog', '2')
+  return canonicalBrowseQueryKey(p)
+}
+
 /** 해외 허브 — `ProductsBrowseClient` fetch URL 키 SSOT */
 export function buildOverseasHubBrowseQueryKey(qsInput: URLSearchParams | string): string {
   const p =
@@ -67,6 +89,7 @@ export function buildOverseasHubBrowseQueryKey(qsInput: URLSearchParams | string
   p.delete('listingKind')
   p.set('limit', OVERSEAS_HUB_BROWSE_LIMIT)
   p.delete('page')
+  for (const k of OVERSEAS_HUB_HERO_UI_QUERY_KEYS) p.delete(k)
   stripSidebarFilterParamsFromSearchParams(p)
   applyBudgetFitSortIfNeeded(p)
   return canonicalBrowseQueryKey(p)

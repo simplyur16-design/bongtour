@@ -833,6 +833,36 @@ export function resolveOverseasMegaMenuSubgroupLabelForBrowse(
   return '기타'
 }
 
+/** 허브 클라이언트 — `countryRowLabel`만으로 하위분류(메가 countryGroup) 라벨 해석 */
+export function resolveOverseasMegaMenuSubgroupLabelFromCountryRow(
+  regionId: string,
+  countryRowLabel: string | null | undefined,
+): string | null {
+  const tab = megaMenuTabById(regionId)
+  if (!tab?.groups.length) return null
+
+  const subgroupStopTerms =
+    regionId === 'japan'
+      ? japanMegaMenuSubgroupStopTerms()
+      : regionId === 'americas'
+        ? americasMegaMenuSubgroupStopTerms()
+        : undefined
+  const countryRow = (countryRowLabel ?? '').trim()
+  const skipGenericJapanCountryRow =
+    regionId === 'japan' && ['일본', 'japan'].includes(countryRow.toLowerCase())
+
+  if (!countryRow || skipGenericJapanCountryRow) return null
+
+  const fromRow = findMegaMenuGroupForLeafLabel(tab, countryRow)
+  if (fromRow) return megaMenuGroupToDisplayLabel(regionId, fromRow.countryLabel)
+  const fromPartialRow = findMegaMenuGroupForPartialLeafLabel(tab, countryRow, subgroupStopTerms)
+  if (fromPartialRow) return megaMenuGroupToDisplayLabel(regionId, fromPartialRow.countryLabel)
+  const fromCountryGroup = findMegaMenuGroupForCountryLabel(tab, countryRow)
+  if (fromCountryGroup) return megaMenuGroupToDisplayLabel(regionId, fromCountryGroup.countryLabel)
+
+  return null
+}
+
 /** 클라이언트 폴백 — browse API 필드가 비었을 때 title·목적지·countryRowLabel로 재매칭 */
 export function resolveOverseasMegaMenuSubgroupLabelForClient(
   item: {

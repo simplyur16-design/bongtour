@@ -61,6 +61,7 @@ import {
   isMegaMenuRegionCityGroupTabId,
   resolveOverseasMegaMenuSubgroupLabelForBrowse,
 } from '@/lib/overseas-mega-region-city-group'
+import { continentTabIdForMatch } from '@/lib/unified-location-tree'
 import { buildBrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import {
   filterPoolByStoredTravelScope,
@@ -713,7 +714,16 @@ export async function productsBrowseBuildPayload(queryKey: string) {
                 )
               : null
             const browseCountry = (p.country ?? '').trim() || null
-            return { overseasBucket, countryRowLabel, browseMegaSubgroupLabel, browseCountry }
+            const browseMegaRegionTabId = match
+              ? continentTabIdForMatch(match.groupKey, match.countryKey)
+              : null
+            return {
+              overseasBucket,
+              countryRowLabel,
+              browseMegaSubgroupLabel,
+              browseCountry,
+              browseMegaRegionTabId,
+            }
           })()
         : {}),
     }

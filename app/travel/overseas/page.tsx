@@ -7,8 +7,8 @@ import OverseasHeroSlot, { overseasSelectedRegionSlug } from '@/app/components/t
 import OverseasInteractiveShell from '@/app/components/travel/overseas/OverseasInteractiveShell'
 import OverseasManagedContent from '@/app/components/travel/overseas/OverseasManagedContent'
 import OverseasRegionMegaNav from '@/app/components/travel/overseas/OverseasRegionMegaNav'
-import ProductsBrowseResultsLoading from '@/components/route-loading/ProductsBrowseResultsLoading'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
+import { searchParamsRecordToUrlSearchParams } from '@/lib/products-browse-hub-query'
 import { SITE_NAME } from '@/lib/site-metadata'
 
 export const revalidate = 300
@@ -46,6 +46,7 @@ export default async function OverseasTravelPage({
   const region = typeof sp.region === 'string' ? sp.region : null
   const country = typeof sp.country === 'string' ? sp.country : null
   const selectedRegionSlug = overseasSelectedRegionSlug(region)
+  const hubSearchParamsString = searchParamsRecordToUrlSearchParams(sp).toString()
 
   return (
     <div className="min-h-screen bg-bt-page">
@@ -53,12 +54,14 @@ export default async function OverseasTravelPage({
       <OverseasRegionMegaNav />
       <main>
         <Suspense fallback={<OverseasHeroLoading />}>
-          <OverseasHeroSlot selectedCountrySlug={country} selectedRegionSlug={selectedRegionSlug} />
+          <OverseasHeroSlot
+            selectedCountrySlug={country}
+            selectedRegionSlug={selectedRegionSlug}
+            initialSearchParamsString={hubSearchParamsString}
+          />
         </Suspense>
 
-        <Suspense fallback={<ProductsBrowseResultsLoading />}>
-          <OverseasBrowseSlot searchParams={sp} />
-        </Suspense>
+        <OverseasBrowseSlot searchParams={sp} />
 
         <OverseasInteractiveShell
           postProductSlot={

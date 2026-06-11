@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BrowseSort } from '@/lib/products-browse-filter'
 import {
   mergeBrowseQuery,
@@ -44,11 +44,8 @@ import {
   sortBrowseItemsClient,
   type BrowseResultItemWithMeta,
 } from '@/lib/products-browse-client-sidebar'
-import {
-  readProductsBrowseClientCache,
-  writeProductsBrowseClientCache,
-} from '@/lib/products-browse-client-cache'
-import { HUB_BROWSE_CLIENT_FETCH_TIMEOUT_MS } from '@/lib/products-browse-hub-prefetch-timeout'
+import { readProductsBrowseClientCache } from '@/lib/products-browse-client-cache'
+import { fetchProductsBrowseClientJson } from '@/lib/products-browse-client-fetch'
 
 type ApiOk = {
   ok: true
@@ -118,6 +115,17 @@ type Props = {
   initialMegaMenuRegionCityGroupId?: string | null
   /** 대표(큰) 카드 로테이션 시드 — 새로고침마다 변경 */
   hubGalleryRotationSeed?: number
+  /**
+   * `/travel/overseas`·`/travel/air-hotel` 등 허브 — `useSearchParams()` 미사용.
+   * (Suspense·soft nav 시 목록 state 리셋·fetch 취소 루프 방지)
+   */
+  hubBrowse?: boolean
+}
+
+type CoreProps = Props & {
+  searchParamsString: string
+  searchParamsHydrated: boolean
+  onControlledSearchParamsChange?: (next: string) => void
 }
 
 function formatWon(n: number | null) {
@@ -153,7 +161,7 @@ function travelConsultInquiryHref(
   return '/inquiry?type=travel'
 }
 
-export default function ProductsBrowseClient({
+function ProductsBrowseClientCore({
   basePath = '/products',
   defaultScope,
   pageTitle = '여행 상품',
@@ -167,40 +175,61 @@ export default function ProductsBrowseClient({
   initialHubFocusedResults,
   initialMegaMenuRegionCityGroupId = null,
   hubGalleryRotationSeed = 0,
-}: Props) {
+  searchParamsString,
+  searchParamsHydrated,
+  onControlledSearchParamsChange,
+}: CoreProps) {
   const router = useRouter()
   const pathname = usePathname() ?? ''
-  const searchParamsFromHook = useSearchParams() ?? new URLSearchParams()
-  const [hasMounted, setHasMounted] = useState(false)
-  useEffect(() => setHasMounted(true), [])
 
-  const searchParams = useMemo(() => {
-    if (!hasMounted && initialSearchParams) {
-      return searchParamsRecordToUrlSearchParams(initialSearchParams)
-    }
-    return new URLSearchParams(searchParamsFromHook.toString())
-  }, [hasMounted, initialSearchParams, searchParamsFromHook])
+  const commitSearchParams = useCallback(
+    (sp: URLSearchParams) => {
+      const qsNext = sp.toString()
+      router.replace(qsNext ? `${basePath}?${qsNext}` : basePath, { scroll: false })
+      onControlledSearchParamsChange?.(qsNext)
+    },
+    [basePath, onControlledSearchParamsChange, router],
+  )
 
-  const qs = searchParams.toString()
+  /** hydration 직후 `usePathname()`이 비는 경우가 있어 허브 판별은 `basePath` SSOT */
+  const hubPathname =
+    basePath === '/travel/overseas' ||
+    basePath === '/travel/air-hotel' ||
+    basePath === '/travel/domestic'
+      ? basePath
+      : pathname
 
-  const isDomesticHub = pathname === '/travel/domestic' && defaultScope === 'domestic'
-  const isAirHotelHub = pathname === '/travel/air-hotel'
+  const searchParams = useMemo(
+    () => new URLSearchParams(searchParamsString),
+    [searchParamsString],
+  )
+
+  const qs = searchParamsString
+
+  const isDomesticHub = hubPathname === '/travel/domestic' && defaultScope === 'domestic'
+  const isAirHotelHub = hubPathname === '/travel/air-hotel'
   const suppressHeadingToolbarGap = hidePageHeading && isDomesticHub
 
   /** 항공+호텔: `country` 등은 클라이언트 필터 — 동일 목록 재요청 방지용 fetch 키 */
-  const isOverseasProductsHub = pathname === '/travel/overseas' && defaultScope === 'overseas'
+  const isOverseasProductsHub = hubPathname === '/travel/overseas' && defaultScope === 'overseas'
   const useHubClientSidebarFilter = isOverseasProductsHub || isAirHotelHub
 
   const browseApiQueryKey = useMemo(() => {
-    if (isDomesticHub) return buildDomesticHubBrowseQueryKey(searchParams.toString())
-    if (isAirHotelHub) return buildAirHotelHubBrowseQueryKey(searchParams.toString())
-    if (isOverseasProductsHub) return buildOverseasHubBrowseQueryKey(searchParams.toString())
-    return buildProductsBrowseQueryKey(qs, defaultScope)
-  }, [isDomesticHub, isAirHotelHub, isOverseasProductsHub, searchParams, qs, defaultScope])
+    if (isDomesticHub) return buildDomesticHubBrowseQueryKey(searchParamsString)
+    if (isAirHotelHub) return buildAirHotelHubBrowseQueryKey(searchParamsString)
+    if (isOverseasProductsHub) return buildOverseasHubBrowseQueryKey(searchParamsString)
+    return buildProductsBrowseQueryKey(searchParamsString, defaultScope)
+  }, [isDomesticHub, isAirHotelHub, isOverseasProductsHub, searchParamsString, defaultScope])
 
   const seedFromServer = Boolean(
     initialBrowse?.ok && initialBrowseQueryKey && initialBrowseQueryKey === browseApiQueryKey,
   )
+
+  const seedFromClientCache = useMemo(() => {
+    if (seedFromServer) return null
+    const hit = readProductsBrowseClientCache<ApiOk>(browseApiQueryKey)
+    return hit?.ok && Array.isArray(hit.items) ? hit : null
+  }, [browseApiQueryKey, seedFromServer])
 
   const emptyStateTravelInquiryHref = useMemo(
     () => travelConsultInquiryHref(basePath, pathname, defaultScope),
@@ -216,8 +245,10 @@ export default function ProductsBrowseClient({
     return parseBrowseQuery(new URLSearchParams(searchParams.toString()))
   }, [isDomesticHub, searchParams])
 
-  const [data, setData] = useState<ApiOk | null>(seedFromServer ? initialBrowse : null)
-  const [loading, setLoading] = useState(!seedFromServer)
+  const [data, setData] = useState<ApiOk | null>(
+    seedFromServer ? initialBrowse : seedFromClientCache,
+  )
+  const [loading, setLoading] = useState(!seedFromServer && !seedFromClientCache)
   const [error, setError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [draft, setDraft] = useState<BrowseQueryState>(q)
@@ -229,9 +260,9 @@ export default function ProductsBrowseClient({
       if (slug) sp.set('hubSeason', slug)
       else sp.delete('hubSeason')
       if (defaultScope && !sp.get('scope')) sp.set('scope', defaultScope)
-      router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
+      commitSearchParams(sp)
     },
-    [basePath, defaultScope, router, searchParams],
+    [commitSearchParams, defaultScope, searchParams],
   )
 
   useEffect(() => {
@@ -240,7 +271,7 @@ export default function ProductsBrowseClient({
 
   /** Persona 카드 `?destination=` → browse API용 `city`로 정규화 */
   useEffect(() => {
-    if (pathname !== '/travel/overseas' || defaultScope !== 'overseas') return
+    if (hubPathname !== '/travel/overseas' || defaultScope !== 'overseas') return
     const dest = (searchParams.get('destination') ?? '').trim()
     const city = (searchParams.get('city') ?? '').trim()
     if (!dest || city) return
@@ -248,91 +279,70 @@ export default function ProductsBrowseClient({
     sp.set('city', dest)
     sp.delete('destination')
     if (defaultScope && !sp.get('scope')) sp.set('scope', defaultScope)
-    router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
-  }, [basePath, defaultScope, pathname, router, searchParams])
+    commitSearchParams(sp)
+  }, [basePath, commitSearchParams, defaultScope, hubPathname, searchParams])
+
+  const initialBrowseSeedRef = useRef(initialBrowse)
+  const initialBrowseQueryKeyRef = useRef(initialBrowseQueryKey)
+  initialBrowseSeedRef.current = initialBrowse
+  initialBrowseQueryKeyRef.current = initialBrowseQueryKey
 
   useEffect(() => {
+    const urlKey = browseApiQueryKey
     let cancelled = false
-    async function fetchBrowse(urlKey: string): Promise<ApiOk | null> {
-      const perfClient = process.env.NEXT_PUBLIC_BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
-      const tFetch0 = perfClient ? performance.now() : 0 // PERF-LOG: 측정 후 제거
-      const controller = new AbortController()
-      const abortTimer = window.setTimeout(() => controller.abort(), HUB_BROWSE_CLIENT_FETCH_TIMEOUT_MS)
-      let res: Response
-      try {
-        res = await fetch(`/api/products/browse?${urlKey}`, { signal: controller.signal })
-      } catch (e) {
-        if (e instanceof Error && e.name === 'AbortError') {
-          throw new Error(
-            '목록 응답이 지연되고 있습니다. 잠시 후 새로고침하거나 다른 메뉴에서 다시 시도해 주세요.',
-          )
-        }
-        throw e
-      } finally {
-        window.clearTimeout(abortTimer)
-      }
-      const json = (await res.json()) as ApiOk | { ok: false; error?: string }
-      if (perfClient) {
-        console.log(
-          '[browse-client-perf]',
-          JSON.stringify({ urlKey, clientFetchMs: Math.round(performance.now() - tFetch0) }),
-        ) // PERF-LOG: 측정 후 제거
-      }
-      if (!res.ok || !('ok' in json) || json.ok === false) {
-        throw new Error(
-          typeof (json as { error?: string }).error === 'string'
-            ? (json as { error: string }).error
-            : '목록을 불러오지 못했습니다.',
-        )
-      }
-      writeProductsBrowseClientCache(urlKey, json)
-      return json
-    }
 
-    async function load() {
-      const urlKey = browseApiQueryKey
-      if (initialBrowse?.ok && initialBrowseQueryKey === urlKey) {
-        setData(initialBrowse)
-        setError(null)
-        setLoading(false)
-        writeProductsBrowseClientCache(urlKey, initialBrowse)
-        return
-      }
+    const serverSeed =
+      initialBrowseSeedRef.current?.ok && initialBrowseQueryKeyRef.current === urlKey
+        ? initialBrowseSeedRef.current
+        : null
+    const seeded = serverSeed ?? readProductsBrowseClientCache<ApiOk>(urlKey)
 
-      const cached = readProductsBrowseClientCache<ApiOk>(urlKey)
-      if (cached?.ok) {
-        setData(cached)
-        setError(null)
-        setLoading(false)
-        try {
-          const fresh = await fetchBrowse(urlKey)
-          if (!cancelled && fresh) setData(fresh)
-        } catch {
-          // 캐시만 유지 — 뒤로가기 체감 우선
-        }
-        return
-      }
-
+    if (seeded?.ok) {
+      setData(seeded)
+      setError(null)
+      setLoading(false)
+    } else {
       setLoading(true)
       setError(null)
-      try {
-        const json = await fetchBrowse(urlKey)
+    }
+
+    const perfClient = process.env.NEXT_PUBLIC_BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
+    const tFetch0 = perfClient ? performance.now() : 0 // PERF-LOG: 측정 후 제거
+
+    void fetchProductsBrowseClientJson(urlKey)
+      .then((json) => {
         if (cancelled) return
-        setData(json)
-      } catch (e) {
-        if (!cancelled) {
+        if (perfClient) {
+          console.log(
+            '[browse-client-perf]',
+            JSON.stringify({ urlKey, clientFetchMs: Math.round(performance.now() - tFetch0) }),
+          ) // PERF-LOG: 측정 후 제거
+        }
+        setData(json as ApiOk)
+        setError(null)
+      })
+      .catch((e) => {
+        if (cancelled) return
+        const cached = readProductsBrowseClientCache<ApiOk>(urlKey)
+        if (cached?.ok) {
+          setData(cached)
+          setError(null)
+        } else if (serverSeed?.ok) {
+          setData(serverSeed)
+          setError(null)
+        } else {
           setError(e instanceof Error ? e.message : '네트워크 오류가 발생했습니다.')
           setData(null)
         }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    void load()
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+
     return () => {
       cancelled = true
     }
-  }, [browseApiQueryKey, initialBrowse, initialBrowseQueryKey])
+  }, [browseApiQueryKey])
 
   const navigate = useCallback(
     (next: BrowseQueryState) => {
@@ -342,19 +352,19 @@ export default function ProductsBrowseClient({
         params.set('limit', BROWSE_DOMESTIC_HUB_FETCH_LIMIT)
         const s = syncTypeWithCategories(next).sort
         if (s && s !== 'popular') params.set('sort', s)
-        router.replace(`${basePath}?${params.toString()}`, { scroll: false })
+        commitSearchParams(params)
         return
       }
       const synced = syncTypeWithCategories(next)
       const params = new URLSearchParams(serializeBrowseQuery(synced))
       if (defaultScope && !params.get('scope')) params.set('scope', defaultScope)
       const hubKeep = (searchParams.get('hubSeason') ?? '').trim()
-      if (hubKeep && pathname === '/travel/overseas' && defaultScope === 'overseas') {
+      if (hubKeep && hubPathname === '/travel/overseas' && defaultScope === 'overseas') {
         params.set('hubSeason', hubKeep)
       }
-      router.replace(`${basePath}?${params.toString()}`, { scroll: false })
+      commitSearchParams(params)
     },
-    [basePath, defaultScope, isDomesticHub, pathname, router, searchParams]
+    [basePath, commitSearchParams, defaultScope, hubPathname, isDomesticHub, searchParams]
   )
 
   const onPatch = useCallback(
@@ -369,7 +379,7 @@ export default function ProductsBrowseClient({
       const sp = new URLSearchParams()
       sp.set('scope', 'domestic')
       sp.set('limit', BROWSE_DOMESTIC_HUB_FETCH_LIMIT)
-      router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
+      commitSearchParams(sp)
       return
     }
     const sp = new URLSearchParams(searchParams.toString())
@@ -404,8 +414,8 @@ export default function ProductsBrowseClient({
       'sportsTheme',
     ].forEach((k) => sp.delete(k))
     if (defaultScope) sp.set('scope', defaultScope)
-    router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
-  }, [basePath, defaultScope, isDomesticHub, router, searchParams])
+    commitSearchParams(sp)
+  }, [basePath, commitSearchParams, defaultScope, isDomesticHub, searchParams])
 
   const clearAllFilters = useCallback(() => {
     clearMegaParams()
@@ -483,7 +493,7 @@ export default function ProductsBrowseClient({
 
   const scopeFromUrl = searchParams.get('scope')
   const isOverseasBrowse =
-    (pathname === '/travel/overseas' && defaultScope === 'overseas') || scopeFromUrl === 'overseas'
+    (hubPathname === '/travel/overseas' && defaultScope === 'overseas') || scopeFromUrl === 'overseas'
 
   const airHotelRegionFilter = useMemo(() => {
     const region = q.region?.trim() ?? ''
@@ -553,28 +563,30 @@ export default function ProductsBrowseClient({
   const hubFocusedResultsLive = useMemo(
     () =>
       computeHubFocusedResults({
-        pathname,
+        pathname: hubPathname,
         defaultScope,
         searchParams,
         overseasGeoFilterBanner,
       }),
-    [pathname, defaultScope, searchParams, overseasGeoFilterBanner],
+    [hubPathname, defaultScope, searchParams, overseasGeoFilterBanner],
   )
   const hubFocusedResults =
-    initialHubFocusedResults != null && !hasMounted ? initialHubFocusedResults : hubFocusedResultsLive
+    initialHubFocusedResults != null && !searchParamsHydrated
+      ? initialHubFocusedResults
+      : hubFocusedResultsLive
 
   const megaMenuRegionCityGroupIdLive = useMemo(
     () =>
       computeMegaMenuRegionCityGroupId({
-        pathname,
+        pathname: hubPathname,
         defaultScope,
         searchParams,
         overseasGeoFilterBanner,
       }),
-    [pathname, defaultScope, searchParams, overseasGeoFilterBanner],
+    [hubPathname, defaultScope, searchParams, overseasGeoFilterBanner],
   )
   const megaMenuRegionCityGroupId =
-    initialMegaMenuRegionCityGroupId != null && !hasMounted
+    initialMegaMenuRegionCityGroupId != null && !searchParamsHydrated
       ? initialMegaMenuRegionCityGroupId
       : megaMenuRegionCityGroupIdLive
 
@@ -691,7 +703,7 @@ export default function ProductsBrowseClient({
             불러오는 중…
           </div>
         )}
-        {loading && !data && (
+        {loading && (data?.items?.length ?? 0) === 0 && (
           <p className="mt-10 text-center text-sm text-slate-500">불러오는 중…</p>
         )}
         {error && (
@@ -776,7 +788,7 @@ export default function ProductsBrowseClient({
           !budgetActive &&
           !hasNonBudgetFilters &&
           !(
-            pathname === '/travel/overseas' &&
+            hubPathname === '/travel/overseas' &&
             defaultScope === 'overseas' &&
             !hasMegaGeo
           ) && (
@@ -807,7 +819,7 @@ export default function ProductsBrowseClient({
               groupOverseasByRegion={
                 basePath === '/travel/overseas' && defaultScope === 'overseas' && !hubFocusedResults
               }
-              groupAirHotelByCountry={pathname === '/travel/air-hotel' && !hubFocusedResults}
+              groupAirHotelByCountry={hubPathname === '/travel/air-hotel' && !hubFocusedResults}
               groupDomesticByRegion={isDomesticHub}
               overseasEditorialBriefing={overseasEditorialBriefing}
               overseasSeasonCurationSlides={
@@ -983,10 +995,58 @@ export default function ProductsBrowseClient({
           ].forEach((k) => sp.delete(k))
           setDraft(parseBrowseQuery(new URLSearchParams(sp.toString())))
           if (defaultScope) sp.set('scope', defaultScope)
-          router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
+          commitSearchParams(sp)
           setDrawerOpen(false)
         }}
       />
     </>
   )
+}
+
+function ProductsBrowseClientWithHook(props: Props) {
+  const searchParamsFromHook = useSearchParams() ?? new URLSearchParams()
+  const initialSearchParamsStringRef = useRef(
+    props.initialSearchParams
+      ? searchParamsRecordToUrlSearchParams(props.initialSearchParams).toString()
+      : '',
+  )
+  const hookSearchParamsString = searchParamsFromHook.toString()
+  const searchParamsString = hookSearchParamsString || initialSearchParamsStringRef.current
+  const searchParamsHydrated =
+    hookSearchParamsString.length > 0 || !initialSearchParamsStringRef.current
+
+  return (
+    <ProductsBrowseClientCore
+      {...props}
+      searchParamsString={searchParamsString}
+      searchParamsHydrated={searchParamsHydrated}
+    />
+  )
+}
+
+function ProductsBrowseClientHub(props: Props) {
+  const initialQs = props.initialSearchParams
+    ? searchParamsRecordToUrlSearchParams(props.initialSearchParams).toString()
+    : ''
+  const [searchParamsString, setSearchParamsString] = useState(initialQs)
+
+  useEffect(() => {
+    setSearchParamsString(initialQs)
+  }, [initialQs])
+
+  return (
+    <ProductsBrowseClientCore
+      {...props}
+      searchParamsString={searchParamsString}
+      searchParamsHydrated
+      onControlledSearchParamsChange={setSearchParamsString}
+    />
+  )
+}
+
+export default function ProductsBrowseClient(props: Props) {
+  if (props.hubBrowse) {
+    return <ProductsBrowseClientHub {...props} />
+  }
+  return <ProductsBrowseClientWithHook {...props} />
 }

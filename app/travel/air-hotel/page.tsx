@@ -5,7 +5,6 @@ import Header from '@/app/components/Header'
 import AirHotelBrowseSlot from '@/app/components/travel/air-hotel/AirHotelBrowseSlot'
 import AirHotelHero from '@/app/components/travel/air-hotel/AirHotelHero'
 import AirHotelHeroLoading from '@/app/components/travel/air-hotel/AirHotelHeroLoading'
-import ProductsBrowseResultsLoading from '@/components/route-loading/ProductsBrowseResultsLoading'
 import { AIR_HOTEL_BROWSE_TYPE, parseAirHotelBrowseTypeParam } from '@/lib/air-hotel-product-ssot'
 import { getCachedAirHotelSeasonCuration } from '@/lib/air-hotel-season-curation-content'
 import { SITE_NAME } from '@/lib/site-metadata'
@@ -71,9 +70,7 @@ export default async function AirHotelPage({
           <AirHotelSeasonSection />
         </Suspense>
 
-        <Suspense fallback={<ProductsBrowseResultsLoading />}>
-          <AirHotelBrowseSlot searchParams={sp} />
-        </Suspense>
+        <AirHotelBrowseSlot searchParams={sp} />
       </main>
     </div>
   )

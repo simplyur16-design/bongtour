@@ -1,7 +1,15 @@
 'use client'
 
+import type { MouseEvent } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import type { MegaMenuRegion } from '@/lib/travel-landing-mega-menu-data'
+import {
+  isOnOverseasHubPage,
+  navigateOverseasHubRegionClient,
+  OVERSEAS_HUB_PATH,
+} from '@/lib/overseas-hub-client-nav'
+import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 import { buildProductsHrefRegionOnly } from '@/lib/top-nav-resolve'
 import HorizontalScrollWithArrows from '@/components/ui/HorizontalScrollWithArrows'
 
@@ -27,6 +35,9 @@ export default function RegionHoverTabs({
   onHoverRegion,
   onPickLocalDepartureLink,
 }: Props) {
+  const pathname = usePathname()
+  const onOverseasHub = pathname === OVERSEAS_HUB_PATH || isOnOverseasHubPage()
+
   return (
     <div className="border-b border-slate-200 bg-white">
       <HorizontalScrollWithArrows
@@ -39,32 +50,43 @@ export default function RegionHoverTabs({
         {regions.map((r) => {
           const active = activeRegionId === r.id
           const className = active ? TAB_ACTIVE_CLASS : TAB_IDLE_CLASS
+          const href = buildProductsHrefRegionOnly({ regionId: r.id })
+          const onRegionTabClick = (e: MouseEvent<HTMLAnchorElement>) => {
+            e.preventDefault()
+            if (onOverseasHub) {
+              navigateOverseasHubRegionClient(href)
+            } else {
+              window.location.assign(href)
+            }
+            onPickLocalDepartureLink?.()
+          }
+
+          const tabProps = {
+            role: 'tab' as const,
+            'aria-selected': active,
+            className,
+            onMouseEnter: () => onHoverRegion(r.id),
+            onFocus: () => onHoverRegion(r.id),
+            onClick: onRegionTabClick,
+          }
+
+          if (onOverseasHub) {
+            return (
+              <a key={r.id} href={href} {...tabProps}>
+                {r.label}
+              </a>
+            )
+          }
+
           if (r.localDeparture) {
             return (
-              <Link
-                key={r.id}
-                href={buildProductsHrefRegionOnly({ regionId: r.id })}
-                role="tab"
-                aria-selected={active}
-                className={className}
-                onMouseEnter={() => onHoverRegion(r.id)}
-                onFocus={() => onHoverRegion(r.id)}
-                onClick={onPickLocalDepartureLink}
-              >
+              <Link key={r.id} href={href} prefetch={prefetchPropForHref(href)} {...tabProps}>
                 {r.label}
               </Link>
             )
           }
           return (
-            <Link
-              key={r.id}
-              href={buildProductsHrefRegionOnly({ regionId: r.id })}
-              role="tab"
-              aria-selected={active}
-              className={className}
-              onMouseEnter={() => onHoverRegion(r.id)}
-              onFocus={() => onHoverRegion(r.id)}
-            >
+            <Link key={r.id} href={href} prefetch={prefetchPropForHref(href)} {...tabProps}>
               {r.label}
             </Link>
           )

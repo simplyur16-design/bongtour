@@ -3,7 +3,7 @@
  *
  * - `web` (production 기본): HTTP 전용 — 결제 outbox만 in-process (가벼운 DB 드레인).
  * - `worker`: 배치·스크래퍼·Gemini·cache-warm 등 무거운 cron 전부.
- * - `all`: 개발·레거시 — web+worker 동시 (production에서는 경고 로그).
+ * - `all`: 레거시 — web+worker 동시 (`BONGTOUR_INSTRUMENTATION_ROLE=all` 로만).
  *
  * Railway: 공개 트래픽 서비스 = web, 동일 repo 복제 서비스(도메인 없음) = worker.
  */
@@ -22,7 +22,7 @@ export function resolveInstrumentationProcessRole(): InstrumentationProcessRole 
   if (serviceName.includes('worker') || serviceName.includes('cron')) return 'worker'
 
   if (process.env.NODE_ENV === 'production') return 'web'
-  return 'all'
+  return 'web'
 }
 
 export function shouldRunWebCriticalCrons(role: InstrumentationProcessRole = resolveInstrumentationProcessRole()): boolean {

@@ -87,6 +87,8 @@ export type ResultItem = {
   countryRowLabel?: string | null
   /** browse API — 메가메뉴 대분류 하위 지역(그룹) 행 라벨 */
   browseMegaSubgroupLabel?: string | null
+  /** browse API — 메가메뉴 대분류 탭 id (`japan`, `southeast-asia` 등) */
+  browseMegaRegionTabId?: string | null
   /** DB `Product.country` browse 슬러그 — 항공+호텔 허브 필터 칩용 */
   browseCountry?: string | null
   /** browse API — `Product.sportsThemeTag` (종목별 섹션 그룹용) */

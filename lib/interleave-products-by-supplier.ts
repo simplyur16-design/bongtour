@@ -9,10 +9,12 @@ export const SUPPLIER_INTERLEAVE_ORDER = [
   'unknown',
 ] as const
 
-/** 라운드로빈 그룹 키 — `normalizeSupplierOrigin`의 `etc`만 `unknown`으로 통일 */
+/** 라운드로빈 그룹 키 — `etc`·비라운드로빈 공급사는 `unknown` */
 export function getSupplierInterleaveKey(originSource: string | null | undefined): string {
   const k = normalizeSupplierOrigin(originSource)
-  return k === 'etc' ? 'unknown' : k
+  const normalized = k === 'etc' ? 'unknown' : k
+  if ((SUPPLIER_INTERLEAVE_ORDER as readonly string[]).includes(normalized)) return normalized
+  return 'unknown'
 }
 
 type WithOrigin = { originSource: string }
@@ -46,13 +48,24 @@ export function interleaveProductsBySupplier<T extends WithOrigin>(products: rea
   const out: T[] = []
   let remaining = products.length
   while (remaining > 0) {
+    let progressed = false
     for (const q of queues) {
       if (q.length > 0) {
         const next = q.shift()
         if (next !== undefined) {
           out.push(next)
           remaining--
+          progressed = true
         }
+      }
+    }
+    if (!progressed) break
+  }
+  if (remaining > 0) {
+    for (const q of queues) {
+      while (q.length > 0) {
+        const next = q.shift()
+        if (next !== undefined) out.push(next)
       }
     }
   }

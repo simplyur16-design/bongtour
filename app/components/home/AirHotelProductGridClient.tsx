@@ -16,17 +16,21 @@ export default function AirHotelProductGridClient() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    let active = true
     const qs = new URLSearchParams({
       scope: 'overseas',
       type: 'air-hotel',
       limit: HOME_AIR_HOTEL_PREVIEW_LIMIT,
       page: '1',
     })
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), HUB_BROWSE_CLIENT_FETCH_TIMEOUT_MS)
-    void fetch(`/api/products/browse?${qs.toString()}`, { signal: controller.signal })
+    const timer = setTimeout(() => {
+      if (active) setReady(true)
+    }, HUB_BROWSE_CLIENT_FETCH_TIMEOUT_MS)
+
+    void fetch(`/api/products/browse?${qs.toString()}`)
       .then((res) => res.json() as Promise<BrowseOk | { ok: false }>)
       .then((body) => {
+        if (!active) return
         if (body.ok && Array.isArray(body.items)) setItems(body.items)
       })
       .catch(() => {
@@ -34,11 +38,12 @@ export default function AirHotelProductGridClient() {
       })
       .finally(() => {
         clearTimeout(timer)
-        setReady(true)
+        if (active) setReady(true)
       })
+
     return () => {
+      active = false
       clearTimeout(timer)
-      controller.abort()
     }
   }, [])
 

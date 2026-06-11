@@ -6,10 +6,15 @@ const LOCAL_DEPARTURE_REGIONS = ['busan_dep', 'cheongju_dep', 'daegu_dep'] as co
 type Props = {
   selectedCountrySlug: string | null
   selectedRegionSlug: string | null
+  initialSearchParamsString?: string
 }
 
 /** 해외 허브 히어로 — 실패 시 빈 슬라이드로 폴백(페이지 전체 RSC 오류 방지) */
-export default async function OverseasHeroSlot({ selectedCountrySlug, selectedRegionSlug }: Props) {
+export default async function OverseasHeroSlot({
+  selectedCountrySlug,
+  selectedRegionSlug,
+  initialSearchParamsString = '',
+}: Props) {
   let seasonDestinationHeroSlides: Awaited<ReturnType<typeof getCachedOverseasHubSeasonDestinationHeroSlides>> = []
   try {
     seasonDestinationHeroSlides = await getCachedOverseasHubSeasonDestinationHeroSlides()
@@ -22,6 +27,7 @@ export default async function OverseasHeroSlot({ selectedCountrySlug, selectedRe
       selectedCountrySlug={selectedCountrySlug}
       selectedRegionSlug={selectedRegionSlug}
       seasonDestinationHeroSlides={seasonDestinationHeroSlides}
+      initialSearchParamsString={initialSearchParamsString}
     />
   )
 }
