@@ -17,6 +17,7 @@ import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import type { PersonaTabKey } from '@/lib/main-hub-copy'
 import { loadMegaMenuBrowseUrlGeoByCityKeys, resolveMegaMenuBrowseHrefForCityKey } from '@/lib/mega-menu-city-browse-href'
 import { productMatchesBrowseUrlGeo } from '@/lib/match-overseas-product'
+import { COUNTRY_LEVEL_CITY_KEYS } from '@/lib/product-citykey-country-slug-fix'
 
 export type PersonaCityCard = {
   cityKey: string
@@ -61,12 +62,22 @@ function uniqPreserveOrder(keys: string[]): string[] {
   return out
 }
 
+const COUNTRY_LEVEL_CITY_KEY_SET = new Set<string>(COUNTRY_LEVEL_CITY_KEYS)
+
 function cityKeyToEnglishTitle(cityKey: string): string {
   return cityKey
     .split(/[-_]+/g)
     .filter(Boolean)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ')
+}
+
+/** 국가 단위 cityKey(`ch` 등)는 슬러그→영문 변환 시 ISO 코드처럼 보이므로 countryKey 슬러그 사용 */
+function resolvePersonaCardEnglishTitle(cityKey: string, countryKey: string | null | undefined): string {
+  if (COUNTRY_LEVEL_CITY_KEY_SET.has(cityKey) && countryKey?.trim()) {
+    return cityKeyToEnglishTitle(countryKey.trim())
+  }
+  return cityKeyToEnglishTitle(cityKey)
 }
 
 function stablePickIndex(seed: string, modulo: number): number {
@@ -220,7 +231,7 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
 
     cards.push({
       cityKey,
-      titleEn: cityKeyToEnglishTitle(cityKey),
+      titleEn: resolvePersonaCardEnglishTitle(cityKey, meta?.countryKey),
       koreanSubtitle,
       countryKey: meta?.countryKey ?? null,
       countryKoreanLabel: meta?.country?.koreanLabel ?? null,
@@ -237,7 +248,7 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
 
 export async function getPersonaCuratedDestinationsPayload(): Promise<PersonaCuratedDestinationsPayload> {
   const cycle = await getCurrentCycle(new Date())
-  const cacheKey = ['persona-curated-destinations', cycle?.id ?? 'no-active-cycle', 'v8-mega-menu-browse']
+  const cacheKey = ['persona-curated-destinations', cycle?.id ?? 'no-active-cycle', 'v9-country-level-title']
   const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(), cacheKey, { revalidate: 21_600 })
   return run()
 }
