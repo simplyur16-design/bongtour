@@ -325,7 +325,7 @@
           ]
         },
         {
-          "file": "lib/register-schedule-image-keywords-preview.ts",
+          "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": ["applyHanatourScheduleImageKeywordsToRows", "applyAirtelRouteTextImageKeywordsToSchedule"]
         },
         {
@@ -372,7 +372,9 @@
             "pickForeignPlaceFromRouteText",
             "englishFromKoreanRouteSegment",
             "dedupeModetourTourismPrimaryKeywordsAcrossDays",
+            "dedupe가 1순위만 바꾸므로",
             "shouldReconcileScheduleImageKeyword2",
+            "resolveModetourSecondaryKeyword",
             "isDomesticOnlyRouteText"
           ],
           "mustNotInclude": [
@@ -380,7 +382,7 @@
           ]
         },
         {
-          "file": "lib/register-schedule-image-keywords-preview.ts",
+          "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": ["applyModetourScheduleImageKeywordsToRows"]
         }
       ]
@@ -403,6 +405,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
             "runScheduleImageKeywordDualSlotContract",
+            "MODETOUR_BA_NA_HILLS_REGRESSION_ROWS",
+            "applyModetourScheduleImageKeywordsToRows",
             "hanatour",
             "modetour",
             "ybtour",
@@ -414,7 +418,10 @@
         {
           "file": "scripts/verify-schedule-image-keyword-dual-slot.ts",
           "mustInclude": [
-            "runScheduleImageKeywordDualSlotContract"
+            "runScheduleImageKeywordDualSlotContract",
+            "check-schedule-image-keyword-routing-parity",
+            "applyRegisterScheduleImageKeywordsBySupplier",
+            "modetour-schedule-image-keyword.test.ts"
           ]
         },
         {
@@ -434,7 +441,38 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
             "shouldReconcileScheduleImageKeyword2",
+            "resolveYbtourSecondaryKeyword",
             "dedupeYbtourTourismPrimaryKeywordsAcrossDays"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-apply.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "applyRegisterScheduleImageKeywordsBySupplier",
+            "applyHanatourScheduleImageKeywordsToRows",
+            "applyModetourScheduleImageKeywordsToRows",
+            "applyYbtourScheduleImageKeywordsToRows",
+            "applyLottetourScheduleImageKeywordsToRows",
+            "applyVerygoodScheduleImageKeywordsToRows",
+            "applyKyowontourScheduleImageKeywordsToRows"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-ui.ts",
+          "mustInclude": [
+            "applyRegisterScheduleImageKeywordsBySupplier"
+          ],
+          "mustNotInclude": [
+            "case 'modetour':"
+          ]
+        },
+        {
+          "file": "scripts/check-schedule-image-keyword-routing-parity.mjs",
+          "mustInclude": [
+            "register-schedule-image-keywords-apply.ts",
+            "applyModetourScheduleImageKeywordsToRows",
+            "kyowontour"
           ]
         },
         {
@@ -448,12 +486,10 @@
         {
           "file": "lib/register-schedule-image-keywords-preview.ts",
           "mustInclude": [
-            "applyHanatourScheduleImageKeywordsToRows",
-            "applyModetourScheduleImageKeywordsToRows",
-            "applyYbtourScheduleImageKeywordsToRows",
-            "applyLottetourScheduleImageKeywordsToRows",
-            "applyVerygoodScheduleImageKeywordsToRows",
-            "applyKyowontourScheduleImageKeywordsToRows"
+            "applyRegisterScheduleImageKeywordsBySupplier"
+          ],
+          "mustNotInclude": [
+            "case 'modetour':"
           ]
         }
       ]

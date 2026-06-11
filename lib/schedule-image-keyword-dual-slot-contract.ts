@@ -3,6 +3,7 @@
  * 6공급사 일괄 계약: 관광 일차 imageKeyword + imageKeyword2(1≠2), 출발·귀국 kw2 null.
  * vitest·`scripts/verify-schedule-image-keyword-dual-slot.ts` 공용 SSOT.
  */
+import { applyModetourScheduleImageKeywordsToRows } from '@/lib/modetour-schedule-image-keyword'
 import { applyRegisterScheduleImageKeywordsForPreview } from '@/lib/register-schedule-image-keywords-preview'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
@@ -60,9 +61,83 @@ function assertMovementKw2Null(failures: string[], label: string, out: DualSlotC
   }
 }
 
+/** 모두투어 Ba Na Hills 전일차 반복 → dedupe 후에도 kw2 비는 회귀 재현 픽스처 */
+export const MODETOUR_BA_NA_HILLS_REGRESSION_ROWS: DualSlotContractRow[] = [
+  {
+    day: 2,
+    title: '다낭',
+    description: '미케 비치',
+    routeText: 'Da Nang - My Khe Beach',
+    imageKeyword: 'Ba Na Hills',
+    imageKeyword2: null,
+  },
+  {
+    day: 3,
+    title: '바나힐',
+    description: '바나힐',
+    routeText: 'Da Nang - Ba Na Hills',
+    imageKeyword: 'Ba Na Hills',
+    imageKeyword2: null,
+  },
+  {
+    day: 4,
+    title: '호이안',
+    description: '호이안 올드타운',
+    routeText: 'Da Nang - Hoi An Ancient Town',
+    imageKeyword: 'Ba Na Hills',
+    imageKeyword2: null,
+  },
+]
+
+function assertModetourBaNaHillsRegression(failures: string[], label: string, out: DualSlotContractRow[]) {
+  const d2 = out.find((r) => r.day === 2)
+  const d4 = out.find((r) => r.day === 4)
+  if (!d2 || !d4) {
+    failures.push(`${label}: missing day 2 or 4 in Ba Na Hills fixture`)
+    return
+  }
+  const kw2 = String(d2.imageKeyword ?? '').trim()
+  const kw2b = String(d2.imageKeyword2 ?? '').trim()
+  const kw4 = String(d4.imageKeyword ?? '').trim()
+  const kw4b = String(d4.imageKeyword2 ?? '').trim()
+  if (!/My Khe/i.test(kw2)) failures.push(`${label}: day2 imageKeyword expected My Khe, got ${kw2}`)
+  if (!kw2b) failures.push(`${label}: day2 imageKeyword2 empty after dedupe (regression)`)
+  if (!/Hoi/i.test(kw4)) failures.push(`${label}: day4 imageKeyword expected Hoi An, got ${kw4}`)
+  if (!kw4b) failures.push(`${label}: day4 imageKeyword2 empty after dedupe (regression)`)
+  if (kw2b && normScheduleImageKeywordKey(kw2b) === normScheduleImageKeywordKey(kw2)) {
+    failures.push(`${label}: day2 imageKeyword2 equals imageKeyword`)
+  }
+  if (kw4b && normScheduleImageKeywordKey(kw4b) === normScheduleImageKeywordKey(kw4)) {
+    failures.push(`${label}: day4 imageKeyword2 equals imageKeyword`)
+  }
+}
+
 /** @returns 실패 메시지 목록 — 빈 배열이면 통과 */
 export function runScheduleImageKeywordDualSlotContract(): string[] {
   const failures: string[] = []
+
+  const modetourDirect = applyModetourScheduleImageKeywordsToRows(MODETOUR_BA_NA_HILLS_REGRESSION_ROWS, {
+    productDestination: '다낭',
+  })
+  assertModetourBaNaHillsRegression(failures, 'modetour-direct', modetourDirect)
+
+  const modetourPreview = apply('modetour', MODETOUR_BA_NA_HILLS_REGRESSION_ROWS, '다낭')
+  assertModetourBaNaHillsRegression(failures, 'modetour-preview', modetourPreview)
+
+  for (const row of modetourDirect) {
+    const day = row.day
+    const other = modetourPreview.find((r) => r.day === day)
+    if (!other) {
+      failures.push(`modetour preview/direct parity: day ${day} missing in preview`)
+      continue
+    }
+    if (String(row.imageKeyword ?? '').trim() !== String(other.imageKeyword ?? '').trim()) {
+      failures.push(`modetour preview/direct parity: day ${day} imageKeyword mismatch`)
+    }
+    if (String(row.imageKeyword2 ?? '').trim() !== String(other.imageKeyword2 ?? '').trim()) {
+      failures.push(`modetour preview/direct parity: day ${day} imageKeyword2 mismatch`)
+    }
+  }
 
   const hanatour = apply(
     'hanatour',
