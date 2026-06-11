@@ -15,7 +15,6 @@ import {
 import { bookableMinDateYmdForPayload, parseProductPublicDetailPayload } from '@/lib/product-public-detail/payload-io'
 import { finalizeProductPublicDetailPayloadJson } from '@/lib/product-public-detail/build-product-public-detail-payload'
 import { isProductDetailPerfLogEnabled, patchProductDetailPerf } from '@/lib/product-detail-perf'
-import { revalidateTag } from 'next/cache'
 import { after } from 'next/server'
 import { isNextRouterPrefetchRequest } from '@/lib/next-router-prefetch'
 import { prisma } from '@/lib/prisma'
@@ -93,6 +92,7 @@ export async function getOrBuildProductPublicDetailModel(
       return { model, source: 'computed' }
     }
     const productId = travelProduct.id
+    /** RSC render 중 revalidateTag 금지(Next 15) — payload는 DB에만 저장, 태그 무효화는 admin·야간 cron */
     after(async () => {
       try {
         await prisma.product.update({
@@ -102,8 +102,6 @@ export async function getOrBuildProductPublicDetailModel(
             publicDetailPayloadBuiltAt: new Date(),
           },
         })
-        revalidateTag(`product-detail-${productId}`)
-        revalidateTag('product-detail')
       } catch (err) {
         console.error('[product-public-detail] persist payload failed', productId, err)
       }
