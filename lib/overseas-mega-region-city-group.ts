@@ -69,13 +69,13 @@ const SUBGROUP_DISPLAY_ORDER_OVERRIDE: Partial<Record<string, string[]>> = {
   'europe-me': [
     '서유럽',
     '동유럽',
+    '스페인/포르투갈',
     '코카서스 3국',
     '북유럽',
     '튀르키예',
     '이집트',
     '중동',
     '아프리카',
-    '스페인/포르투갈',
     '그리스',
   ],
 }
@@ -303,6 +303,16 @@ function scoreAmericasTextTerms(haystack: string, labels: string[], terms: strin
   return score
 }
 
+function hasAmericasAlaskaSignal(haystack: string, labels: string[]): boolean {
+  for (const term of ['알래스카', 'alaska', '앵커리지', 'anchorage']) {
+    if (termAppearsInHaystack(term, haystack)) return true
+    for (const label of labels) {
+      if (label.toLowerCase().includes(term.toLowerCase())) return true
+    }
+  }
+  return false
+}
+
 function resolveAmericasSubgroupHint(
   haystack: string,
   labels: string[],
@@ -312,15 +322,14 @@ function resolveAmericasSubgroupHint(
 
   if (keys.some((k) => AMERICAS_HAWAII_CITY_KEYS.has(k))) return '하와이'
   if (keys.some((k) => AMERICAS_CANADA_CITY_KEYS.has(k))) return '캐나다'
+
+  if (hasAmericasAlaskaSignal(haystack, labels)) return '알래스카'
+
   if (keys.some((k) => AMERICAS_EAST_CITY_KEYS.has(k)) && !keys.some((k) => AMERICAS_WEST_CITY_KEYS.has(k))) {
     return '미동부'
   }
   if (keys.some((k) => AMERICAS_WEST_CITY_KEYS.has(k)) && !keys.some((k) => AMERICAS_EAST_CITY_KEYS.has(k))) {
     return '미서부'
-  }
-
-  for (const term of AMERICAS_ALASKA_TEXT) {
-    if (termAppearsInHaystack(term, haystack)) return '알래스카'
   }
 
   const canadaScore = scoreAmericasTextTerms(haystack, labels, AMERICAS_CANADA_TEXT)
@@ -526,7 +535,14 @@ const CHINA_HK_MO_CHINA_EXTRA_TEXT = [
   '푸저우',
   '복주',
   'fuzhou',
+  '태항산',
+  'taishan',
+  '泰山',
 ]
+
+const SOUTHEAST_ASIA_THAILAND_EXTRA_TEXT = ['아유타야', 'ayutthaya']
+
+const JAPAN_CHUBU_ALPS_TEXT = ['북알프스', 'north alps', 'northern alps', '일본알프스', 'japanese alps']
 
 const CHINA_HK_MO_HUANGSHAN_CITY_KEYS = new Set(['huangshan'])
 
@@ -580,9 +596,101 @@ const EUROPE_ME_EASTERN_TEXT = [
   'balkans',
   '브르노',
   'brno',
+]
+
+/** 서유럽 countryTag·도시 키 — 동유럽 신호 없을 때 서유럽 섹션 */
+const EUROPE_ME_WESTERN_COUNTRY_KEYS = new Set([
+  'italy',
+  'france',
+  'switzerland',
+  'uk',
+  'germany',
+  'netherlands',
+  'belgium',
+  'austria',
+  'greece',
+  'rome',
+  'paris',
+  'london',
+  'munich',
+  'vienna',
+])
+
+const EUROPE_ME_SPAIN_PORTUGAL_COUNTRY_KEYS = new Set([
+  'spain',
+  'portugal',
+  'madrid',
+  'barcelona',
+  'lisbon',
+])
+
+const EUROPE_ME_SPAIN_PORTUGAL_TEXT = [
+  '스페인',
+  'spain',
+  '마드리드',
+  'madrid',
+  '바르셀로나',
+  'barcelona',
+  '포르투갈',
+  'portugal',
+  '리스본',
+  'lisbon',
+]
+
+const EUROPE_ME_WESTERN_TEXT = [
+  '서유럽',
+  '이탈리아',
+  'italy',
+  '로마',
+  'rome',
+  '밀라노',
+  'milan',
+  '베네치아',
+  'venice',
+  '프랑스',
+  'france',
+  '파리',
+  'paris',
+  '니스',
+  'nice',
+  '스위스',
+  'switzerland',
+  '취리히',
+  'zurich',
+  '인터라켄',
+  'interlaken',
+  '영국',
+  '런던',
+  'london',
+  '독일',
+  'germany',
+  '베를린',
+  'berlin',
+  '뮌헨',
+  'munich',
+  '네덜란드',
+  'netherlands',
+  '암스테르담',
+  'amsterdam',
+  '벨기에',
+  'belgium',
+  '브뤼셀',
+  'brussels',
+  '오스트리아',
+  'austria',
+  '비엔나',
+  'vienna',
   '잘츠부르크',
   'salzburg',
+  '그리스',
+  'greece',
+  '아테네',
+  'athens',
+  '산토리니',
+  'santorini',
 ]
+
+const EUROPE_ME_AFRICA_EXTRA_TEXT = ['튀니지', 'tunisia', '튀니스', 'tunis']
 
 const EUROPE_ME_CAUCASUS_TEXT = [
   '코카서스',
@@ -647,6 +755,27 @@ function productHasEuropeEasternCountrySignal(
   return EUROPE_ME_EASTERN_TEXT.some((t) => termAppearsInHaystack(t, haystack))
 }
 
+function productHasEuropeWesternCountrySignal(
+  product: OverseasProductMatchInput,
+  haystack: string,
+  cityKeys: readonly string[],
+  match: MatchProductToOverseasNodeResult | null,
+): boolean {
+  const tagKeys = (product.countryTags ?? [])
+    .map((t) => (t.countryKey ?? '').trim().toLowerCase())
+    .filter(Boolean)
+  if (tagKeys.some((k) => EUROPE_ME_WESTERN_COUNTRY_KEYS.has(k))) return true
+
+  const keys = [
+    ...cityKeys.map((k) => k.trim().toLowerCase()),
+    (match?.countryKey ?? '').trim().toLowerCase(),
+    (match?.leafKey ?? '').trim().toLowerCase(),
+  ].filter(Boolean)
+  if (keys.some((k) => EUROPE_ME_WESTERN_COUNTRY_KEYS.has(k))) return true
+
+  return EUROPE_ME_WESTERN_TEXT.some((t) => termAppearsInHaystack(t, haystack))
+}
+
 function resolveEuropeMeEasternWesternHint(
   product: OverseasProductMatchInput,
   haystack: string,
@@ -654,6 +783,80 @@ function resolveEuropeMeEasternWesternHint(
   match: MatchProductToOverseasNodeResult | null,
 ): '동유럽' | null {
   if (productHasEuropeEasternCountrySignal(product, haystack, cityKeys, match)) return '동유럽'
+  return null
+}
+
+function productHasEuropeSpainPortugalSignal(
+  product: OverseasProductMatchInput,
+  haystack: string,
+  cityKeys: readonly string[],
+  match: MatchProductToOverseasNodeResult | null,
+): boolean {
+  const tagKeys = (product.countryTags ?? [])
+    .map((t) => (t.countryKey ?? '').trim().toLowerCase())
+    .filter(Boolean)
+  if (tagKeys.some((k) => EUROPE_ME_SPAIN_PORTUGAL_COUNTRY_KEYS.has(k))) return true
+
+  const keys = [
+    ...cityKeys.map((k) => k.trim().toLowerCase()),
+    (match?.countryKey ?? '').trim().toLowerCase(),
+    (match?.leafKey ?? '').trim().toLowerCase(),
+  ].filter(Boolean)
+  if (keys.some((k) => EUROPE_ME_SPAIN_PORTUGAL_COUNTRY_KEYS.has(k))) return true
+
+  return EUROPE_ME_SPAIN_PORTUGAL_TEXT.some((t) => termAppearsInHaystack(t, haystack))
+}
+
+function resolveEuropeMeSpainPortugalHint(
+  product: OverseasProductMatchInput,
+  haystack: string,
+  cityKeys: readonly string[],
+  match: MatchProductToOverseasNodeResult | null,
+): '스페인/포르투갈' | null {
+  if (productHasEuropeSpainPortugalSignal(product, haystack, cityKeys, match)) return '스페인/포르투갈'
+  return null
+}
+
+function resolveEuropeMeWesternHint(
+  product: OverseasProductMatchInput,
+  haystack: string,
+  cityKeys: readonly string[],
+  match: MatchProductToOverseasNodeResult | null,
+): '서유럽' | null {
+  if (productHasEuropeWesternCountrySignal(product, haystack, cityKeys, match)) return '서유럽'
+  return null
+}
+
+function resolveEuropeMeAfricaHint(haystack: string, labels: string[]): '아프리카' | null {
+  for (const term of EUROPE_ME_AFRICA_EXTRA_TEXT) {
+    if (termAppearsInHaystack(term, haystack)) return '아프리카'
+  }
+  for (const label of labels) {
+    const low = label.toLowerCase()
+    if (EUROPE_ME_AFRICA_EXTRA_TEXT.some((t) => low.includes(t.toLowerCase()))) return '아프리카'
+  }
+  return null
+}
+
+function resolveJapanChubuAlpsHint(haystack: string, labels: string[]): '추부' | null {
+  for (const term of JAPAN_CHUBU_ALPS_TEXT) {
+    if (termAppearsInHaystack(term, haystack)) return '추부'
+  }
+  for (const label of labels) {
+    const low = label.toLowerCase()
+    if (JAPAN_CHUBU_ALPS_TEXT.some((t) => low.includes(t.toLowerCase()))) return '추부'
+  }
+  return null
+}
+
+function resolveSoutheastAsiaThailandHint(haystack: string, labels: string[]): '태국' | null {
+  for (const term of SOUTHEAST_ASIA_THAILAND_EXTRA_TEXT) {
+    if (termAppearsInHaystack(term, haystack)) return '태국'
+  }
+  for (const label of labels) {
+    const low = label.toLowerCase()
+    if (SOUTHEAST_ASIA_THAILAND_EXTRA_TEXT.some((t) => low.includes(t.toLowerCase()))) return '태국'
+  }
   return null
 }
 
@@ -766,11 +969,27 @@ export function resolveOverseasMegaMenuSubgroupLabelForBrowse(
     if (chinaHint) return chinaHint
   }
 
+  if (regionId === 'southeast-asia') {
+    const thailandHint = resolveSoutheastAsiaThailandHint(haystack, labelCandidates)
+    if (thailandHint) return thailandHint
+  }
+
+  if (regionId === 'japan') {
+    const chubuHint = resolveJapanChubuAlpsHint(haystack, labelCandidates)
+    if (chubuHint) return chubuHint
+  }
+
   if (regionId === 'europe-me') {
     const caucasusHint = resolveEuropeMeCaucasusHint(haystack, labelCandidates, cityKeys, match)
     if (caucasusHint) return caucasusHint
     const easternHint = resolveEuropeMeEasternWesternHint(product, haystack, cityKeys, match)
     if (easternHint) return easternHint
+    const spainPortugalHint = resolveEuropeMeSpainPortugalHint(product, haystack, cityKeys, match)
+    if (spainPortugalHint) return spainPortugalHint
+    const westernHint = resolveEuropeMeWesternHint(product, haystack, cityKeys, match)
+    if (westernHint) return westernHint
+    const africaHint = resolveEuropeMeAfricaHint(haystack, labelCandidates)
+    if (africaHint) return africaHint
   }
 
   if (regionId === 'south-america') {

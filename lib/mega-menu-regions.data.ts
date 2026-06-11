@@ -167,6 +167,7 @@ const EU: MegaMenuCountryGroupDef[] = [
     '아프리카',
     [
       LC('모로코', ['모로코', 'morocco', '마라케시']),
+      LC('튀니지', ['튀니지', 'tunisia', '튀니스', 'tunis']),
       LC('남아공', ['남아공', 'south africa', '케이프타운', '요하네스버그']),
       LC('탄자니아', ['탄자니아', 'tanzania', '세렝게티', '킬리만자로']),
       LC('케냐', ['케냐', 'kenya', '나이로비', '마사이마라']),
@@ -191,6 +192,7 @@ const SEA: MegaMenuCountryGroupDef[] = [
     city('치앙마이', ['치앙마이', 'chiang mai', '태국']),
     city('파타야', ['파타야', 'pattaya', '태국']),
     city('끄라비', ['끄라비', 'krabi', '태국']),
+    city('아유타야', ['아유타야', 'ayutthaya', '태국']),
   ]),
   G('싱가포르', [LC('싱가포르', ['싱가포르', 'singapore', 'SIN'])]),
   G('인도네시아', [
@@ -268,7 +270,7 @@ const JP: MegaMenuCountryGroupDef[] = [
     city('시즈오카', ['시즈오카', 'shizuoka', '이즈', 'izu', '아타미', 'atami', '일본', '간토']),
   ]),
   GJp('추부', [
-    city('나고야', ['나고야', 'nagoya', '일본', '추부']),
+    city('나고야', ['나고야', 'nagoya', '일본', '추부', '북알프스', 'north alps', 'northern alps']),
     city('가나자와', ['가나자와', 'kanazawa', '일본', '추부']),
     city('다카야마', ['다카야마', 'takayama', '일본', '추부']),
     city('시라카와고', ['시라카와고', 'shirakawago', '일본', '추부']),
@@ -319,6 +321,7 @@ const CN: MegaMenuCountryGroupDef[] = [
     city('항주', ['항주', 'hangzhou', '중국', '杭州']),
     city('남경', ['남경', 'nanjing', '중국', '南京']),
     city('황산', ['황산', 'huangshan', '운곡', '태평', '중국']),
+    city('태항산', ['태항산', 'taishan', '泰山', '중국']),
   ]),
   GCn('화북', [
     city('북경', ['북경', 'beijing', '중국']),
@@ -474,7 +477,7 @@ const AM: MegaMenuCountryGroupDef[] = [
     city('나이아가라', ['나이아가라', 'niagara', '캐나다']),
     city('옐로우나이프', ['옐로우나이프', 'yellowknife', '캐나다']),
   ]),
-  G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지'])]),
+  G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지', 'anchorage', '시애틀', 'seattle'])]),
 ]
 
 /**

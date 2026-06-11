@@ -115,7 +115,7 @@ const RE_AU_NZ_TRAVEL = new RegExp(
   'i',
 )
 
-const RE_GUAM_SAIPAN_TRAVEL = /괌|guam|사이판|saipan/i
+export const RE_GUAM_SAIPAN_TRAVEL = /괌|guam|사이판|saipan/i
 
 /** 미서부·5대 캐년 등 — 목적지 한 줄(특전·호텔명)만 있을 때 `other`로 떨어지는 케이스 보정 */
 /** 인도네시아·자카르타·족자카르타 — 트리 leaf 누락 시 `other` 보정 */

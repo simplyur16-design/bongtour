@@ -106,18 +106,18 @@ export default function OverseasHubCatalogRoot({
       setSectionsBusy(false)
     }
 
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      const id = window.requestIdleCallback(run, { timeout: 80 })
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(run, { timeout: 80 })
       return () => {
         cancelled = true
-        window.cancelIdleCallback(id)
+        cancelIdleCallback(id)
       }
     }
 
-    const t = window.setTimeout(run, 0)
+    const t = setTimeout(run, 0)
     return () => {
       cancelled = true
-      window.clearTimeout(t)
+      clearTimeout(t)
     }
   }, [catalogItems, searchParamsString])
 

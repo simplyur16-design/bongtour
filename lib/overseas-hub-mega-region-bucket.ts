@@ -25,6 +25,8 @@ export function itemBelongsToMegaRegionTab(item: ResultItem, regionTab: string):
   const tab = regionTab.trim()
   if (!tab || !isMegaRegionCityGroupTabId(tab)) return false
 
+  if ((item.sportsThemeTags?.length ?? 0) > 0) return false
+
   const itemTab = (item.browseMegaRegionTabId ?? '').trim()
   if (itemTab) return itemTab === tab
 

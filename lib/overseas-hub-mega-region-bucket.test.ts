@@ -11,6 +11,14 @@ describe('filterCatalogByMegaRegionTab', () => {
     expect(filterCatalogByMegaRegionTab(items, 'japan').map((it) => it.id)).toEqual(['1'])
   })
 
+  it('excludes sports-tagged products from geo region tabs', () => {
+    const items = [
+      { id: '1', title: '오사카', browseMegaRegionTabId: 'japan' },
+      { id: '2', title: '골프 일본', browseMegaRegionTabId: 'sports_theme', sportsThemeTags: ['golf'] },
+    ] as ResultItem[]
+    expect(filterCatalogByMegaRegionTab(items, 'japan').map((it) => it.id)).toEqual(['1'])
+  })
+
   it('falls back to overseasBucket', () => {
     const items = [
       { id: '1', title: '오사카', overseasBucket: 'japan' },

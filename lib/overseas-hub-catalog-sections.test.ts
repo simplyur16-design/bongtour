@@ -87,6 +87,18 @@ describe('buildOverseasHubCatalogSectionsForUrl', () => {
     expect(sections.every((s) => s.key.startsWith('mega:japan:'))).toBe(true)
   })
 
+  it('uses sports theme subgroups when region=sports_theme', () => {
+    const sections = buildOverseasHubCatalogSectionsForUrl(
+      [
+        item({ id: '1', title: '골프 일본', sportsThemeTags: ['golf'] }),
+        item({ id: '2', title: '러닝 파리', sportsThemeTags: ['running'] }),
+      ],
+      new URLSearchParams('scope=overseas&region=sports_theme'),
+    )
+    expect(sections.map((s) => s.label)).toEqual(['러닝', '골프'])
+    expect(sections.every((s) => s.key.startsWith('sports:'))).toBe(true)
+  })
+
   it('uses country flat heading when country param is set', () => {
     const sections = buildOverseasHubCatalogSectionsForUrl(
       [item({ id: 'a', title: '방콕', browseCountry: 'thailand', overseasBucket: 'sea_taiwan' })],

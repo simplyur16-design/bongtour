@@ -131,6 +131,43 @@ describe('overseas mega subgroup browse', () => {
     expect(resolveSubgroup('china-hk-mo', '장야 七彩丹霞 5일', '장야', { cityKey: 'zhangye' })).toBe('중국')
   })
 
+  it('europe-me — 스페인/포르투갈·튀니지·서유럽/동유럽 분리', () => {
+    expect(megaMenuSubgroupLabelsInOrder('europe-me').slice(0, 3)).toEqual([
+      '서유럽',
+      '동유럽',
+      '스페인/포르투갈',
+    ])
+    expect(resolveSubgroup('europe-me', '스페인 바르셀로나 7일', '바르셀로나', { cityKey: 'barcelona' })).toBe(
+      '스페인/포르투갈',
+    )
+    expect(resolveSubgroup('europe-me', '튀니지 사하라 8일', '튀니지')).toBe('아프리카')
+    expect(
+      resolveSubgroup('europe-me', '오스트리아 잘츠부르크 7일', '오스트리아', {
+        countryKey: 'austria',
+        countryTags: [{ countryKey: 'austria', isPrimary: true }],
+      }),
+    ).toBe('서유럽')
+  })
+
+  it('southeast-asia — 아유타야는 태국', () => {
+    expect(resolveSubgroup('southeast-asia', '아유타야 당일투어', '아유타야')).toBe('태국')
+  })
+
+  it('japan — 북알프스는 추부(나고야)', () => {
+    expect(resolveSubgroup('japan', '일본 북알프스 트레킹', '북알프스')).toBe('추부')
+  })
+
+  it('china-hk-mo — 태항산은 중국', () => {
+    expect(resolveSubgroup('china-hk-mo', '태항산 일출 4일', '태항산')).toBe('중국')
+  })
+
+  it('americas — 미국동부=미동부, 알래스카는 시애틀 연계보다 우선', () => {
+    expect(resolveSubgroup('americas', '뉴욕·워싱턴 8일', '미국동부')).toBe('미동부')
+    expect(resolveSubgroup('americas', '알래스카 크루즈 시애틀 출발', '시애틀', { cityKey: 'seattle' })).toBe(
+      '알래스카',
+    )
+  })
+
   it('south-america — 국가별 섹션(중남미 그룹 아님)', () => {
     expect(resolveSubgroup('south-america', '멕시코 칸쿤', '멕시코', { countryKey: 'mexico' })).toBe('멕시코')
     expect(resolveSubgroup('south-america', '쿠바 아바나', '쿠바', { countryKey: 'cuba' })).toBe('쿠바')

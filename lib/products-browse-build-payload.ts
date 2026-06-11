@@ -61,7 +61,7 @@ import {
   isMegaMenuRegionCityGroupTabId,
   resolveOverseasMegaMenuSubgroupLabelForBrowse,
 } from '@/lib/overseas-mega-region-city-group'
-import { continentTabIdForMatch } from '@/lib/unified-location-tree'
+import { resolveBrowseMegaRegionTabIdForBrowse } from '@/lib/browse-mega-region-tab-id'
 import { buildBrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import {
   filterPoolByStoredTravelScope,
@@ -704,8 +704,19 @@ export async function productsBrowseBuildPayload(queryKey: string) {
             const match = matchProductToOverseasNode(matchInput)
             const overseasBucket = resolveOverseasDisplayBucketForBrowse(matchInput, match)
             const countryRowLabel = resolveOverseasCountryRowLabelForBrowse(matchInput, match)
-            const regionForSubgroup = (region ?? '').trim()
-            const browseMegaSubgroupLabel = isMegaMenuRegionCityGroupTabId(regionForSubgroup)
+            const sportsThemeTags = normalizeSportsThemeTagsForBrowse(p.sportsThemeTag)
+            const browseMegaRegionTabId = resolveBrowseMegaRegionTabIdForBrowse(
+              matchInput,
+              match,
+              overseasBucket,
+              sportsThemeTags,
+            )
+            const regionForSubgroup =
+              (region ?? '').trim() ||
+              (browseMegaRegionTabId && isMegaMenuRegionCityGroupTabId(browseMegaRegionTabId)
+                ? browseMegaRegionTabId
+                : '')
+            const browseMegaSubgroupLabel = regionForSubgroup
               ? resolveOverseasMegaMenuSubgroupLabelForBrowse(
                   matchInput,
                   match,
@@ -714,9 +725,6 @@ export async function productsBrowseBuildPayload(queryKey: string) {
                 )
               : null
             const browseCountry = (p.country ?? '').trim() || null
-            const browseMegaRegionTabId = match
-              ? continentTabIdForMatch(match.groupKey, match.countryKey)
-              : null
             return {
               overseasBucket,
               countryRowLabel,
