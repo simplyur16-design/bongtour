@@ -1,5 +1,5 @@
 /**
- * 6공급사 imageKeyword·imageKeyword2 이중 슬롯 계약 — prebuild·CI 회귀 가드.
+ * 6공급사 imageKeyword·imageKeyword2 — prebuild·CI 회귀 가드 (공급사별 node:test 포함).
  * npx tsx scripts/verify-schedule-image-keyword-dual-slot.ts
  */
 import { execSync } from 'node:child_process'
@@ -7,6 +7,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '../lib/register-schedule-image-keywords-apply'
 import { applyRegisterScheduleImageKeywordsForPreview } from '../lib/register-schedule-image-keywords-preview'
+import { SCHEDULE_IMAGE_KEYWORD_SUPPLIER_PREBUILD_TESTS } from '../lib/schedule-image-keyword-supplier-prebuild-tests'
 import {
   MODETOUR_BA_NA_HILLS_REGRESSION_ROWS,
   runScheduleImageKeywordDualSlotContract,
@@ -18,30 +19,34 @@ const ROOT = path.join(__dirname, '..')
 const failures: string[] = []
 
 console.log('=== verify-schedule-image-keyword-dual-slot ===\n')
-console.log('REGRESSION-FREEZE[schedule-image-keyword-dual-slot] — 6 suppliers tourism dual slot\n')
+console.log('REGRESSION-FREEZE[schedule-image-keyword-dual-slot] — 6 suppliers (contract + per-supplier tests)\n')
 
 failures.push(...runScheduleImageKeywordDualSlotContract())
-
-console.log('[1/3] shared 6-supplier contract')
+console.log('[contract] shared 6-supplier dual-slot contract')
 
 try {
   execSync('node scripts/check-schedule-image-keyword-routing-parity.mjs', {
     cwd: ROOT,
     stdio: 'inherit',
   })
-  console.log('[2/3] apply SSOT routing parity (static)')
+  console.log('[routing] apply SSOT — preview/ui delegate, no duplicate switch')
 } catch {
   failures.push('routing parity script failed')
 }
 
-try {
-  execSync('node --import tsx --test tests/modetour-schedule-image-keyword.test.ts', {
-    cwd: ROOT,
-    stdio: 'inherit',
-  })
-  console.log('[3/3] modetour-schedule-image-keyword node tests')
-} catch {
-  failures.push('modetour-schedule-image-keyword.test.ts failed')
+let step = 0
+const total = SCHEDULE_IMAGE_KEYWORD_SUPPLIER_PREBUILD_TESTS.length
+for (const { supplier, nodeTest } of SCHEDULE_IMAGE_KEYWORD_SUPPLIER_PREBUILD_TESTS) {
+  step += 1
+  console.log(`\n[${step}/${total}] ${supplier} — node:test ${nodeTest}`)
+  try {
+    execSync(`node --import tsx --test ${nodeTest}`, {
+      cwd: ROOT,
+      stdio: 'inherit',
+    })
+  } catch {
+    failures.push(`${supplier}: ${nodeTest} failed`)
+  }
 }
 
 const opts = {
@@ -66,7 +71,7 @@ for (const row of viaApply) {
 }
 
 if (failures.length === 0) {
-  console.log('\nPASSED: all dual-slot contract checks')
+  console.log('\nPASSED: contract + routing + 6 supplier prebuild tests')
   process.exit(0)
 }
 

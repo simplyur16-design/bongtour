@@ -1,3 +1,7 @@
+/**
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot] — hanatour prebuild
+ * REGRESSION-FREEZE[hanatour-schedule-image-keyword-landmark]
+ */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {

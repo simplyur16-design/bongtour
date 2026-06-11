@@ -1,3 +1,6 @@
+/**
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot] — verygoodtour prebuild
+ */
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -230,5 +233,23 @@ describe('applyVerygoodScheduleImageKeywordsToRows — Plan A', () => {
     )
     assert.equal(out[0]!.imageKeyword, 'Carthage')
     assert.equal(out[0]!.imageKeyword2, 'Bardo National Museum')
+  })
+
+  it('touring + 본문 POI 2곳 — LLM2 없으면 kw2 폴백 (India Agra)', () => {
+    const out = applyVerygoodScheduleImageKeywordsToRows(
+      [
+        {
+          day: 2,
+          title: '아그라',
+          description: "#### 아그라\n'타지마할' 외관과 '아그라 성' 관광",
+          routeText: '아그라',
+          imageKeyword: 'Taj Mahal',
+          imageKeyword2: null,
+        },
+      ],
+      { productDestination: 'India', totalDays: 2 },
+    )
+    assert.equal(out[0]!.imageKeyword, 'Taj Mahal')
+    assert.match(out[0]!.imageKeyword2!, /Agra Fort/i)
   })
 })

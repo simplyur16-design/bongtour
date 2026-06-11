@@ -3,7 +3,7 @@
  * 모두투어와 동일 우선순위: LLM → routeText 라틴 세그먼트 → 본문 추론;
  * 2순위: LLM2 → routeText 2번째 라틴; movement/return_home 일차는 imageKeyword2 null.
  * REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]: 동일 랜드마크 전일차 반복 금지 — manifest
- * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: dedupe 후 imageKeyword2 reconcile — manifest
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: dedupe 후 imageKeyword2 reconcile — prebuild tests/ybtour-schedule-image-keyword.test.ts
  */
 import {
   acceptLlmScheduleImageKeyword,
@@ -445,11 +445,13 @@ function resolveYbtourSecondaryKeywordCore(
     : ''
   if (fromRoute && normKey(fromRoute) !== normKey(primary)) return fromRoute
 
-  const landmarks = collectRouteLandmarkKeywordsFromRouteText(row.routeText)
-    .map((kw) => tryAcceptYbtourLlmImageKeyword(kw, productDestination))
-    .filter(Boolean)
-  const fromRouteOrdered = pickDistinctSecondScheduleImageKeyword(primary, landmarks)
-  if (fromRouteOrdered) return fromRouteOrdered
+  const rawLandmarks = collectRouteLandmarkKeywordsFromRouteText(row.routeText)
+  const fromRouteOrdered = pickDistinctSecondScheduleImageKeyword(primary, rawLandmarks)
+  if (fromRouteOrdered) {
+    const accepted = tryAcceptYbtourLlmImageKeyword(fromRouteOrdered, productDestination)
+    if (accepted && normKey(accepted) !== normKey(primary)) return accepted
+    if (normKey(fromRouteOrdered) !== normKey(primary)) return fromRouteOrdered
+  }
 
   return null
 }
@@ -485,6 +487,7 @@ export function applyYbtourScheduleImageKeywordsToRows<
 
   const deduped = dedupeYbtourTourismPrimaryKeywordsAcrossDays(mapped, maxDay, productDestination)
 
+  // dedupe가 1순위만 바꾸므로 2순위 null·중복이면 최종 primary 기준으로 재산출
   return deduped.map((row) => {
     const day = Number(row.day)
     if (day <= 0) return row

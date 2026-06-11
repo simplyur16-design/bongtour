@@ -416,12 +416,32 @@
           ]
         },
         {
+          "file": "lib/schedule-image-keyword-supplier-prebuild-tests.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "SCHEDULE_IMAGE_KEYWORD_SUPPLIER_PREBUILD_TESTS",
+            "hanatour-schedule-image-keyword-prebuild.test.ts",
+            "modetour-schedule-image-keyword.test.ts",
+            "ybtour-schedule-image-keyword.test.ts",
+            "lottetour-schedule-image-keyword-turkey.test.ts",
+            "verygoodtour-schedule-image-keyword.test.ts",
+            "kyowontour-schedule-image-keyword.test.ts"
+          ]
+        },
+        {
           "file": "scripts/verify-schedule-image-keyword-dual-slot.ts",
           "mustInclude": [
             "runScheduleImageKeywordDualSlotContract",
             "check-schedule-image-keyword-routing-parity",
-            "applyRegisterScheduleImageKeywordsBySupplier",
-            "modetour-schedule-image-keyword.test.ts"
+            "SCHEDULE_IMAGE_KEYWORD_SUPPLIER_PREBUILD_TESTS",
+            "applyRegisterScheduleImageKeywordsBySupplier"
+          ]
+        },
+        {
+          "file": "lib/hanatour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-schedule-image-keyword-landmark]",
+            "applyHanatourScheduleImageKeywordsToRows"
           ]
         },
         {
@@ -440,9 +460,53 @@
           "file": "lib/ybtour-schedule-image-keyword.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]",
             "shouldReconcileScheduleImageKeyword2",
             "resolveYbtourSecondaryKeyword",
-            "dedupeYbtourTourismPrimaryKeywordsAcrossDays"
+            "dedupeYbtourTourismPrimaryKeywordsAcrossDays",
+            "dedupe가 1순위만 바꾸므로"
+          ]
+        },
+        {
+          "file": "tests/ybtour-schedule-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "dedupe 후 관광 일차 kw2 유지"
+          ]
+        },
+        {
+          "file": "tests/hanatour-schedule-image-keyword-prebuild.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "Agra Fort"
+          ]
+        },
+        {
+          "file": "tests/modetour-schedule-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "Ba Na Hills"
+          ]
+        },
+        {
+          "file": "tests/lottetour-schedule-image-keyword-turkey.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "imageKeyword2"
+          ]
+        },
+        {
+          "file": "tests/verygoodtour-schedule-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "Agra Fort"
+          ]
+        },
+        {
+          "file": "tests/kyowontour-schedule-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "Leh Palace"
           ]
         },
         {
@@ -658,7 +722,12 @@
         "lib/hanatour-schedule-image-keyword-landmark.test.ts",
         "lib/register-schedule-image-keywords-preview.test.ts",
         "lib/ybtour-schedule-image-keyword.test.ts",
-        "lib/schedule-image-keyword-dual-slot-contract.test.ts"
+        "lib/schedule-image-keyword-dual-slot-contract.test.ts",
+        "tests/hanatour-schedule-image-keyword-prebuild.test.ts",
+        "tests/ybtour-schedule-image-keyword.test.ts",
+        "tests/lottetour-schedule-image-keyword-turkey.test.ts",
+        "tests/verygoodtour-schedule-image-keyword.test.ts",
+        "tests/kyowontour-schedule-image-keyword.test.ts"
       ]
     },
     {

@@ -1,3 +1,7 @@
+/**
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot] — ybtour prebuild
+ * REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]
+ */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
@@ -145,7 +149,44 @@ describe('applyYbtourScheduleImageKeywordsToRows', () => {
     assert.equal(out.find((r) => r.day === 6)!.imageKeyword2, 'Hurghada')
     assert.equal(out.find((r) => r.day === 7)!.imageKeyword, 'Hurghada')
   })
+
+  it('LLM 동일 랜드마크 반복 → dedupe 후 관광 일차 kw2 유지 (회귀)', () => {
+    const out = applyYbtourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 2,
+          title: '다낭',
+          description: '미케 비치',
+          routeText: 'Da Nang - My Khe Beach',
+          imageKeyword: 'Ba Na Hills',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '호이안',
+          description: '호이안 올드타운',
+          routeText: 'Da Nang - Hoi An Ancient Town',
+          imageKeyword: 'Ba Na Hills',
+          imageKeyword2: null,
+        },
+      ],
+      { productDestination: 'Vietnam' },
+    )
+    const d2 = out.find((r) => r.day === 2)!
+    const d3 = out.find((r) => r.day === 3)!
+    assert.ok(d2.imageKeyword2?.trim(), `day2 kw2 empty: ${d2.imageKeyword2}`)
+    assert.ok(d3.imageKeyword2?.trim(), `day3 kw2 empty: ${d3.imageKeyword2}`)
+    assert.notEqual(
+      norm(d2.imageKeyword!),
+      norm(d2.imageKeyword2!),
+      'day2 kw1 must differ from kw2',
+    )
+  })
 })
+
+function norm(s: string): string {
+  return s.replace(/\s+/g, ' ').trim().toLowerCase()
+}
 
 describe('resolveYbtourPrimaryKeyword / resolveYbtourSecondaryKeyword', () => {
   it('tourism — LLM 1·2순위', () => {

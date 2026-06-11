@@ -1,3 +1,6 @@
+/**
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot] — lottetour prebuild
+ */
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { applyLottetourScheduleImageKeywordsToRows } from '../lib/lottetour-schedule-image-keyword'

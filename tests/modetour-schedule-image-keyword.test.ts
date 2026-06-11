@@ -1,3 +1,7 @@
+/**
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot] — modetour prebuild
+ * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]
+ */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
