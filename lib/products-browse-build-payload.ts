@@ -543,15 +543,17 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     if (perf) perf.finalCount = slice.length // PERF-LOG: 측정 후 제거
 
     const sliceProductIds = slice.map(({ product }) => product.id)
-    const sliceProductIdsNeedingSchedule =
-      isHubFullCatalog
-        ? []
-        : slice
-            .filter(({ product }) => !String(product.bgImageUrl ?? '').trim())
-            .map(({ product }) => product.id)
+    const sliceProductIdsNeedingSchedule = slice
+      .filter(({ product }) => !String(product.bgImageUrl ?? '').trim())
+      .map(({ product }) => product.id)
 
     const [sliceDepartureByProductId, scheduleByProductId] = isHubFullCatalog
-      ? [new Map<string, ProductBrowseIncludedRow['departures']>(), new Map<string, string | null>()]
+      ? [
+          new Map<string, ProductBrowseIncludedRow['departures']>(),
+          sliceProductIdsNeedingSchedule.length > 0
+            ? await fetchProductBrowseScheduleByIds(sliceProductIdsNeedingSchedule)
+            : new Map<string, string | null>(),
+        ]
       : await Promise.all([
           fetchBrowseDeparturesByProductIds(sliceProductIds),
           fetchProductBrowseScheduleByIds(sliceProductIdsNeedingSchedule),
