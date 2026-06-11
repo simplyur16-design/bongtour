@@ -96,4 +96,29 @@ describe('lottetour schedule imageKeyword — Turkey complete tour', () => {
     assert.match(out[8]!.imageKeyword!, /Istanbul|Incheon/i, `day9: ${out[8]!.imageKeyword}`)
     assert.doesNotMatch(out[8]!.imageKeyword!, /\bSeoul\b/i)
   })
+
+  it('fills imageKeyword2 from routeText on tourism days; movement/return days stay null', () => {
+    const out = applyLottetourScheduleImageKeywordsToRows(TURKEY_ROWS, {
+      productTitle: PRODUCT_TITLE,
+      productDestination: '튀르키예',
+    })
+
+    assert.equal(out[0]!.imageKeyword2, null, `day1 kw2: ${out[0]!.imageKeyword2}`)
+    assert.equal(out[8]!.imageKeyword2, null, `day9 kw2: ${out[8]!.imageKeyword2}`)
+
+    assert.ok(out[1]!.imageKeyword2?.trim(), `day2 kw2 missing: ${out[1]!.imageKeyword2}`)
+    assert.notEqual(
+      norm(out[1]!.imageKeyword!),
+      norm(out[1]!.imageKeyword2!),
+      'day2 kw1 and kw2 must differ'
+    )
+    assert.match(out[1]!.imageKeyword2!, /Grand Bazaar|Sultan Ahmed|Ankara/i, `day2 kw2: ${out[1]!.imageKeyword2}`)
+
+    assert.ok(out[2]!.imageKeyword2?.trim(), `day3 kw2: ${out[2]!.imageKeyword2}`)
+    assert.ok(out[6]!.imageKeyword2?.trim(), `day7 kw2: ${out[6]!.imageKeyword2}`)
+  })
 })
+
+function norm(s: string): string {
+  return s.replace(/\s+/g, ' ').trim().toLowerCase()
+}

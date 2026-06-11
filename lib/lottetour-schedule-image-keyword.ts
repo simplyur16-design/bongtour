@@ -1,5 +1,5 @@
 /**
- * 롯데관광(lottetour) 전용: `Product.schedule[].imageKeyword`만 Pexels 검색용 영문 관광지 고유명으로 정리.
+ * 롯데관광(lottetour) 전용: `Product.schedule[].imageKeyword`·`imageKeyword2` Pexels 검색용 영문 관광지 고유명.
  * title/description/일정 분리 로직은 건드리지 않는다.
  */
 
@@ -556,6 +556,101 @@ export type LottetourScheduleImageKeywordOpts = {
   productTitle?: string
 }
 
+type LottetourScheduleDayKind = 'tourism' | 'movement' | 'return_home'
+
+function normLottetourKwKey(s: string): string {
+  return String(s ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+
+function tryAcceptLottetourSecondaryLlmKeyword(
+  raw: string | null | undefined,
+  ctx: LottetourImageKeywordContext
+): string | null {
+  const cleaned = stripDatesAndNoise(String(raw ?? '').trim())
+  if (!cleaned || !isAcceptableEnglishKeyword(cleaned)) return null
+  if (isLottetourCrossRegionKeywordMismatch(cleaned, ctx)) return null
+  const kw = finishLottetourImageKeyword(cleaned)
+  return kw || null
+}
+
+/** routeText·세그먼트에서 관광지 고유명 영문 — 이동 순서 유지, 중복 제거(도시 스카이라인 제외) */
+function collectLottetourLandmarkKeywordsFromRoute(routeText: string | null | undefined): string[] {
+  const landmarks: string[] = []
+  const pushSafe = (en: string) => {
+    let kw = ''
+    try {
+      kw = finishLottetourImageKeyword(en) || en
+    } catch {
+      return
+    }
+    if (!kw) return
+    if (landmarks.some((x) => normLottetourKwKey(x) === normLottetourKwKey(kw))) return
+    landmarks.push(kw)
+  }
+
+  const rt = String(routeText ?? '').trim()
+  if (!rt) return landmarks
+
+  const ordered: Array<{ idx: number; en: string }> = []
+  for (const { re, en } of SPOT_RULES) {
+    const m = rt.match(re)
+    if (m && m.index != null) ordered.push({ idx: m.index, en })
+  }
+  ordered.sort((a, b) => a.idx - b.idx)
+  for (const { en } of ordered) pushSafe(en)
+  return landmarks
+}
+
+function classifyLottetourScheduleDayKind(
+  day: number,
+  maxDay: number,
+  row: { title?: string; description?: string; routeText?: string | null }
+): LottetourScheduleDayKind {
+  const ctx: LottetourImageKeywordContext = {
+    day,
+    title: String(row.title ?? ''),
+    description: String(row.description ?? ''),
+    routeText: row.routeText ?? null,
+  }
+  const h = hay(ctx)
+  const foreignSegs = lottetourRouteTextSegments(row.routeText).filter((s) => !isLottetourDomesticHubToken(s))
+  const spotSegCount = foreignSegs.filter((s) => firstMatchingEn(SPOT_RULES, s)).length
+
+  if (day === maxDay && /(?:도착|해산|귀국|출국)/u.test(h)) return 'return_home'
+  if (day === maxDay && foreignSegs.length <= 1) return 'return_home'
+  if (day === 1 && /(?:출발|도착|공항|입국)/u.test(h) && spotSegCount <= 1) return 'movement'
+  if (day === 1 && foreignSegs.length <= 1) return 'movement'
+  return 'tourism'
+}
+
+function resolveLottetourSecondaryKeyword(
+  row: {
+    title?: string
+    description?: string
+    routeText?: string | null
+    imageKeyword2?: string | null
+  },
+  primary: string,
+  dayKind: LottetourScheduleDayKind,
+  ctx: LottetourImageKeywordContext
+): string | null {
+  if (!primary) return null
+  if (dayKind === 'movement' || dayKind === 'return_home') return null
+
+  const pk = normLottetourKwKey(primary)
+  const fromLlm = tryAcceptLottetourSecondaryLlmKeyword(row.imageKeyword2, ctx)
+  if (fromLlm && normLottetourKwKey(fromLlm) !== pk) return fromLlm
+
+  for (const kw of collectLottetourLandmarkKeywordsFromRoute(row.routeText)) {
+    if (normLottetourKwKey(kw) !== pk) return kw
+  }
+
+  return null
+}
+
 export function applyLottetourScheduleImageKeywordsToRows<
   T extends {
     day: number
@@ -566,8 +661,9 @@ export function applyLottetourScheduleImageKeywordsToRows<
     imageKeyword2?: string | null
   },
 >(rows: T[], opts?: LottetourScheduleImageKeywordOpts): T[] {
+  const maxDay = rows.length ? Math.max(...rows.map((r) => Number(r.day) || 0), 1) : 1
   return rows.map((row) => {
-    const kw = polishLottetourImageKeyword(String(row.imageKeyword ?? '').trim(), {
+    const ctx: LottetourImageKeywordContext = {
       day: row.day,
       title: String(row.title ?? ''),
       description: String(row.description ?? ''),
@@ -575,11 +671,14 @@ export function applyLottetourScheduleImageKeywordsToRows<
       productTitle: opts?.productTitle,
       productDestination: opts?.productDestination ?? null,
       productPrimaryDestination: opts?.productDestination ?? null,
-    })
+    }
+    const kw = polishLottetourImageKeyword(String(row.imageKeyword ?? '').trim(), ctx)
+    const dayKind = classifyLottetourScheduleDayKind(row.day, maxDay, row)
+    const kw2 = resolveLottetourSecondaryKeyword(row, kw, dayKind, ctx)
     return {
       ...row,
       imageKeyword: kw,
-      imageKeyword2: row.imageKeyword2 ?? null,
+      imageKeyword2: kw2,
     }
   })
 }
