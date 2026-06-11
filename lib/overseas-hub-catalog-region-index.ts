@@ -29,6 +29,8 @@ export function getOverseasHubCatalogForMegaRegionTab(regionTabId: string): Resu
 /** sessionStorage 구 캐시 — 필수 필드 없으면 폐기 */
 export function overseasHubCatalogItemsLookFresh(items: ResultItem[]): boolean {
   if (items.length === 0) return false
+  const withCover = items.filter((it) => (it.coverImageUrl ?? it.bgImageUrl ?? '').trim()).length
+  if (withCover < Math.floor(items.length * 0.95)) return false
   const withTab = items.filter((it) => (it.browseMegaRegionTabId ?? '').trim()).length
   if (withTab >= Math.floor(items.length * 0.85)) return true
   const withBucket = items.filter((it) => it.overseasBucket).length
