@@ -57,7 +57,7 @@ export default async function OverseasTravelPage({
         </Suspense>
 
         <Suspense fallback={<ProductsBrowseResultsLoading />}>
-          <OverseasBrowseSlot searchParams={sp} region={region} country={country} />
+          <OverseasBrowseSlot searchParams={sp} />
         </Suspense>
 
         <OverseasInteractiveShell

@@ -6,11 +6,7 @@ import 'server-only'
 
 import { unstable_cache } from 'next/cache'
 import { getPersonaCuratedDestinationsPayload } from '@/lib/persona-curated-destinations'
-import {
-  ensureSeasonDestinationCyclesForMonthOffsets,
-  getCurrentCycle,
-  rotateCycleIfDue,
-} from '@/lib/season-curation'
+import { getCurrentCycle } from '@/lib/season-curation'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import { buildPublicPageHeroEditorialLineMonthlyStub } from '@/lib/public-page-hero-editorial-line'
 import {
@@ -44,19 +40,8 @@ function koreanCityLabelFromSubtitle(koreanSubtitle: string): string {
   return ko || koreanSubtitle.trim()
 }
 
-async function ensureSeasonDestinationDataReady(now: Date): Promise<void> {
-  const cycle = await getCurrentCycle(now)
-  if (!cycle) {
-    await rotateCycleIfDue(now, { force: true })
-  }
-  void ensureSeasonDestinationCyclesForMonthOffsets([1, 2, 3], now).catch((e) => {
-    console.error('[overseas-hub-season-destination-hero] ahead cycle seed', e)
-  })
-}
-
 async function loadOverseasHubSeasonDestinationHeroSlidesUncached(): Promise<OverseasHubDestinationHeroSlide[]> {
   const now = new Date()
-  await ensureSeasonDestinationDataReady(now)
 
   const [payload, cycle] = await Promise.all([
     getPersonaCuratedDestinationsPayload(),
