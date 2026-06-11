@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type { MegaMenuCountryGroup } from '@/lib/travel-landing-mega-menu-data'
 import { resolveMegaMenuPanelLayout } from '@/lib/mega-menu-panel-layout'
+import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 import { buildMegaMenuGroupHeaderHref, buildMegaMenuLeafHref } from '@/lib/top-nav-resolve'
 import type { ProductBrowseType } from '@/lib/products-browse-filter'
 
@@ -33,23 +34,27 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
           className={`m-0 mx-auto grid w-full max-w-[1200px] list-none ${flatGridColsClass} gap-x-8 gap-y-2 p-0 text-left`}
         >
           {countryGroups.flatMap((g, gi) =>
-            g.cities.map((c, ci) => (
-              <li key={`${g.countryLabel}-${c.label}-${gi}-${ci}`} className="min-w-0">
-                <Link
-                  href={buildMegaMenuLeafHref({
-                    type: activeProductType,
-                    regionId,
-                    countryLabel: g.countryLabel,
-                    headerBrowseCountryLabel: g.headerBrowseCountryLabel,
-                    leaf: c,
-                  })}
-                  className="block text-left text-sm font-medium text-slate-700 transition hover:text-orange-500 leading-8"
-                  title={c.label}
-                >
-                  {c.label}
-                </Link>
-              </li>
-            )),
+            g.cities.map((c, ci) => {
+              const href = buildMegaMenuLeafHref({
+                type: activeProductType,
+                regionId,
+                countryLabel: g.countryLabel,
+                headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+                leaf: c,
+              })
+              return (
+                <li key={`${g.countryLabel}-${c.label}-${gi}-${ci}`} className="min-w-0">
+                  <Link
+                    href={href}
+                    prefetch={prefetchPropForHref(href)}
+                    className="block text-left text-sm font-medium text-slate-700 transition hover:text-orange-500 leading-8"
+                    title={c.label}
+                  >
+                    {c.label}
+                  </Link>
+                </li>
+              )
+            }),
           )}
         </ul>
       </div>
@@ -78,17 +83,23 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
               (g.nonLinkHeader ? (
                 <span className="mb-3 block text-left text-[15px] font-bold text-slate-800">{g.countryLabel}</span>
               ) : (
-                <Link
-                  href={buildMegaMenuGroupHeaderHref({
+                (() => {
+                  const href = buildMegaMenuGroupHeaderHref({
                     type: activeProductType,
                     regionId,
                     countryLabel: g.countryLabel,
                     headerBrowseCountryLabel: g.headerBrowseCountryLabel,
-                  })}
-                  className="mb-3 block text-left text-[15px] font-bold text-slate-800 transition hover:text-orange-500"
-                >
-                  {g.countryLabel}
-                </Link>
+                  })
+                  return (
+                    <Link
+                      href={href}
+                      prefetch={prefetchPropForHref(href)}
+                      className="mb-3 block text-left text-[15px] font-bold text-slate-800 transition hover:text-orange-500"
+                    >
+                      {g.countryLabel}
+                    </Link>
+                  )
+                })()
               ))}
             <ul
               className={
@@ -97,25 +108,29 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                   : 'm-0 list-none p-0 text-left'
               }
             >
-              {g.cities.map((c, ci) => (
-                <li key={`${g.countryLabel}-${c.label}-${ci}`} className="min-w-0">
-                  <Link
-                    href={buildMegaMenuLeafHref({
-                      type: activeProductType,
-                      regionId,
-                      countryLabel: g.countryLabel,
-                      headerBrowseCountryLabel: g.headerBrowseCountryLabel,
-                      leaf: c,
-                    })}
-                    className={`block text-left text-sm text-slate-600 transition hover:text-orange-500 ${
-                      layout.compact ? 'leading-7' : 'leading-8'
-                    }`}
-                    title={c.label}
-                  >
-                    {c.label}
-                  </Link>
-                </li>
-              ))}
+              {g.cities.map((c, ci) => {
+                const href = buildMegaMenuLeafHref({
+                  type: activeProductType,
+                  regionId,
+                  countryLabel: g.countryLabel,
+                  headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+                  leaf: c,
+                })
+                return (
+                  <li key={`${g.countryLabel}-${c.label}-${ci}`} className="min-w-0">
+                    <Link
+                      href={href}
+                      prefetch={prefetchPropForHref(href)}
+                      className={`block text-left text-sm text-slate-600 transition hover:text-orange-500 ${
+                        layout.compact ? 'leading-7' : 'leading-8'
+                      }`}
+                      title={c.label}
+                    >
+                      {c.label}
+                    </Link>
+                  </li>
+                )
+              })}
             </ul>
           </div>
         ))}
