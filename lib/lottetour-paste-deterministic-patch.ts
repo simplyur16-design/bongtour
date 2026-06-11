@@ -23,6 +23,10 @@ function pickSeatsMin(blob: string): { rem: number | null; min: number | null } 
   if (r2) min = parseInt(r2[1]!, 10)
   const r3 = blob.match(/최소출발\s*(\d+)\s*명/)
   if (min == null && r3) min = parseInt(r3[1]!, 10)
+  const r4 = blob.match(/최소출발\s+성인\s*(\d+)\s*명/i)
+  if (min == null && r4) min = parseInt(r4[1]!, 10)
+  const r5 = blob.match(/\(최소출발\s+성인\s*(\d+)\s*명\s*\)/i)
+  if (min == null && r5) min = parseInt(r5[1]!, 10)
   return { rem, min }
 }
 

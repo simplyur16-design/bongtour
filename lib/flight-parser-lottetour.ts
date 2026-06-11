@@ -5,6 +5,7 @@ import {
   parseLottetourTravelMainScheduleFlightFromTable,
   tryParseLottetourFlightBlocks,
   lottetourSynthesizePreferredRaw,
+  extractLottetourAirlineFromLines,
 } from '@/lib/flight-lottetour-blocks'
 
 type FlightLeg = FlightStructured['outbound']
@@ -76,6 +77,11 @@ export function parseFlightSectionLottetour(
     }
   }
 
+  const airlineFromBody =
+    blocks.airlineName?.trim() ||
+    extractLottetourAirlineFromLines(sectionClean.split('\n')) ||
+    (full.trim() ? extractLottetourAirlineFromLines(full.split('\n')) : null)
+
   const outbound = mergeLeg(empty, blocks.outbound)
   const inbound = mergeLeg(empty, blocks.inbound)
   const outCore = legCoreCount(outbound)
@@ -96,7 +102,7 @@ export function parseFlightSectionLottetour(
   const selectedInRaw = lottetourSynthesizePreferredRaw(blocks.inbound, '오는편')
 
   return {
-    airlineName: blocks.airlineName?.trim() ?? null,
+    airlineName: airlineFromBody,
     outbound,
     inbound,
     rawFlightLines: [selectedOutRaw, selectedInRaw],

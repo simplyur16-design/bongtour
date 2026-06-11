@@ -31,15 +31,155 @@ function ybDepartureOrArrivalDateField(datePart: string, weekdayRaw: string | un
   return iso
 }
 
+/** `KE95506/26 (금) 13:40` — 편명 뒤에 월일이 붙은 롯데관광 UI 형식 */
+const LT_FN_DATE_GLUE =
+  /^([A-Z]{2})(\d{3,4})(\d{2})\/(\d{2})(?:\s*\(([가-힣])\))?\s*((?:[01]?\d|2[0-3]):[0-5]\d)?/i
+
+/** `06/26(금) 19:40` — 연도 생략(상품 연도는 본문에서 추론) */
+const LT_SHORT_DT =
+  /(\d{2})\/(\d{2})\s*\(([가-힣])\s*\)\s*((?:[01]?\d|2[0-3]):[0-5]\d)/g
+
 function extractFlightNoFromLine(line: string): string | null {
   const t = line.replace(/\s+/g, ' ').trim()
   if (!t) return null
+  const glued = t.match(LT_FN_DATE_GLUE)
+  if (glued) return `${glued[1]!.toUpperCase()}${glued[2]!}`
   const standalone = t.match(/^([A-Z]{1,3}\d{2,5})$/i)
   if (standalone) return standalone[1]!.toUpperCase()
   const emb = t.match(/\b([A-Z]{1,3}\d{2,5})\b/i)
   if (!emb) return null
   if (/\d{4}[.\-/]\d{1,2}/.test(t)) return null
+  if (/\d{2}\/\d{2}/.test(t) && /[A-Z]{2}\d{5,}/i.test(t)) return null
   return emb[1]!.toUpperCase()
+}
+
+function inferLottetourFlightYear(lines: string[]): string {
+  const blob = lines.join('\n')
+  const y = blob.match(/\b(20\d{2})\b/)?.[1]
+  return y ?? String(new Date().getFullYear())
+}
+
+function shortDtToIsoField(year: string, mm: string, dd: string, wd: string, time: string): {
+  date: string
+  time: string
+} {
+  const iso = `${year}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
+  const w = (wd ?? '').trim()
+  return {
+    date: w && /[가-힣]/.test(w) ? `${iso} (${w})` : iso,
+    time,
+  }
+}
+
+function collectShortDateTimesFromText(text: string): Array<{ mm: string; dd: string; wd: string; time: string }> {
+  const out: Array<{ mm: string; dd: string; wd: string; time: string }> = []
+  const re = new RegExp(LT_SHORT_DT.source, 'g')
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    out.push({ mm: m[1]!, dd: m[2]!, wd: m[3]!, time: m[4]! })
+  }
+  return out
+}
+
+function parseLottetourCompactLegChunk(chunk: string[]): Partial<FlightLeg> | null {
+  const lines = chunk.map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)
+  if (lines.length < 2) return null
+
+  let flightNo: string | null = null
+  for (const line of lines) {
+    const fn = extractFlightNoFromLine(line)
+    if (fn) {
+      flightNo = fn
+      break
+    }
+  }
+  if (!flightNo) return null
+
+  const year = inferLottetourFlightYear(lines)
+  const allDts = lines.flatMap((line) => collectShortDateTimesFromText(line))
+  if (allDts.length < 1) return null
+
+  let depAirport: string | null = null
+  let arrAirport: string | null = null
+  for (const line of lines) {
+    const depM = line.match(/^(.+?)\s*출발/u)
+    if (depM && !/^(한국|출발|도착)$/u.test(depM[1]!.trim())) {
+      depAirport = depM[1]!.trim()
+    }
+    const arrM = line.match(/^(.+?)\s*도착/u)
+    if (arrM && !/^(한국|출발|도착)$/u.test(arrM[1]!.trim())) {
+      arrAirport = arrM[1]!.trim()
+    }
+  }
+
+  const depDt = allDts[0]!
+  const arrDt = allDts.length >= 2 ? allDts[allDts.length - 1]! : allDts[0]!
+  const dep = shortDtToIsoField(year, depDt.mm, depDt.dd, depDt.wd, depDt.time)
+  const arr = shortDtToIsoField(year, arrDt.mm, arrDt.dd, arrDt.wd, arrDt.time)
+
+  if (!depAirport && /인천|ICN/i.test(lines.join(' '))) depAirport = '인천국제공항'
+  if (!arrAirport && /이스탄불|IST/i.test(lines.join(' '))) arrAirport = '이스탄불'
+  if (!depAirport && /이스탄불|IST/i.test(lines.join(' ')) && allDts.length >= 2) depAirport = '이스탄불'
+  if (!arrAirport && /인천|ICN/i.test(lines.join(' ')) && allDts.length >= 2) arrAirport = '인천국제공항'
+
+  if (!depAirport || !arrAirport) return null
+
+  return {
+    departureAirport: depAirport,
+    departureAirportCode: null,
+    departureDate: dep.date,
+    departureTime: dep.time,
+    arrivalAirport: arrAirport,
+    arrivalAirportCode: null,
+    arrivalDate: arr.date,
+    arrivalTime: arr.time,
+    flightNo,
+    durationText: null,
+  }
+}
+
+/** `한국` / `출발` / 편명·공항·도시 3~4줄 압축 블록 */
+function tryParseLottetourKoreaDepartArriveCompact(lines: string[]): LottetourFlightBlockParse | null {
+  const departIdxs: number[] = []
+  const arriveIdxs: number[] = []
+  for (let i = 0; i < lines.length; i++) {
+    if (isLottetourDepartAnchorLine(lines[i]!)) departIdxs.push(i)
+    if (isLottetourArriveAnchorLine(lines[i]!)) arriveIdxs.push(i)
+  }
+  if (!departIdxs.length || !arriveIdxs.length) return null
+
+  let outbound: Partial<FlightLeg> | null = null
+  let inbound: Partial<FlightLeg> | null = null
+
+  for (const idxOut of departIdxs) {
+    for (const idxIn of arriveIdxs) {
+      if (idxIn <= idxOut) continue
+      const outChunk = lines.slice(idxOut + 1, idxIn)
+      const idxOut2 = lines.findIndex((l, i) => i > idxIn && isLottetourDepartAnchorLine(l))
+      const inEnd = idxOut2 >= 0 ? idxOut2 : lines.length
+      const inChunk = lines.slice(idxIn + 1, inEnd)
+      if (outChunk.length < 2 || inChunk.length < 2) continue
+      const ob = parseLottetourCompactLegChunk(outChunk)
+      const ib = parseLottetourCompactLegChunk(inChunk)
+      if (ob?.flightNo && ib?.flightNo) {
+        outbound = ob
+        inbound = ib
+        break
+      }
+    }
+    if (outbound?.flightNo && inbound?.flightNo) break
+  }
+
+  if (!outbound?.flightNo || !inbound?.flightNo) return null
+  return { airlineName: extractLottetourAirlineFromLines(lines), outbound, inbound }
+}
+
+export function extractLottetourAirlineFromLines(lines: string[]): string | null {
+  const blob = lines.join('\n')
+  const m =
+    blob.match(/(대한항공|아시아나항공|아시아나|제주항공|진에어|티웨이항공|티웨이|에어부산|이스타항공|이스타)/) ??
+    blob.match(/([가-힣A-Za-z·\s]{2,20}항공)/)
+  return m?.[1]?.replace(/\s+/g, ' ').trim() ?? null
 }
 
 function findFlightNoLineIndex(lines: string[]): number {
@@ -321,6 +461,9 @@ export function tryParseLottetourFlightBlocks(section: string): LottetourFlightB
     .map((l) => l.replace(/\s+/g, ' ').trim())
     .filter(Boolean)
 
+  const compact = tryParseLottetourKoreaDepartArriveCompact(lines)
+  if (compact?.outbound?.flightNo && compact.inbound?.flightNo) return compact
+
   const departIdxs: number[] = []
   const arriveIdxs: number[] = []
   for (let i = 0; i < lines.length; i++) {
@@ -345,7 +488,25 @@ export function tryParseLottetourFlightBlocks(section: string): LottetourFlightB
     for (const idxIn of arriveIdxs) {
       if (idxIn <= idxOut) continue
       const outChunk = lines.slice(idxOut + 1, idxIn)
-      if (outChunk.length < 5) continue
+      if (outChunk.length < 2) continue
+      if (outChunk.length < 5) {
+        const compactOb = parseLottetourCompactLegChunk(outChunk)
+        if (compactOb?.flightNo) {
+          const idxOut2Early = lines.findIndex((l, i) => i > idxIn && isLottetourDepartAnchorLine(l))
+          const inEndEarly = idxOut2Early >= 0 ? idxOut2Early : lines.length
+          const inChunkEarly = lines.slice(idxIn + 1, inEndEarly)
+          const compactIb = inChunkEarly.length >= 2 ? parseLottetourCompactLegChunk(inChunkEarly) : null
+          if (compactIb?.flightNo) {
+            cands.push({
+              airlineName: extractLottetourAirlineFromLines(lines),
+              outbound: compactOb,
+              inbound: compactIb,
+              score: idxOut * 100000 + idxIn,
+            })
+          }
+        }
+        continue
+      }
       const idxOut2 = lines.findIndex((l, i) => i > idxIn && isLottetourDepartAnchorLine(l))
       const inEnd = idxOut2 >= 0 ? idxOut2 : lines.length
       const inChunk = lines.slice(idxIn + 1, inEnd)

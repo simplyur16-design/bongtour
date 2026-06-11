@@ -24,7 +24,7 @@ export function parseLottetourShoppingPasteTab(raw: string): ShoppingStructured 
   if (lines.length < 2) return null
   const head = splitShoppingPasteCols(lines[0]!)
   const headHay = head.join(' ')
-  if (!/회차/.test(headHay) || !/쇼핑\s*품목|품목/.test(headHay)) return null
+  if (!/(?:회차|구분)/.test(headHay) || !/쇼핑\s*품목|품목/.test(headHay)) return null
 
   const rows: ShoppingStructured['rows'] = []
   for (let i = 1; i < lines.length; i++) {

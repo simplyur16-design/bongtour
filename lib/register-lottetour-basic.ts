@@ -67,7 +67,8 @@ function normLine(s: string): string {
 
 function isLottetourIncExcBulletLine(s: string): boolean {
   return (
-    /^[\s·•‧∙‣⁃*\-･・\u00B7\u2022\u2023\u30FB\uFF65]+\s*\S/.test(s) ||
+    /^[\s·•‧∙‣⁃*\-･・\u00B7\u2022\u2023\u30FB\uFF65▣▶★]+\s*\S/.test(s) ||
+    /^▣\s*\S/.test(s) ||
     /^\s*ㄴ\s/.test(s) ||
     /^ㄴ\s/.test(s)
   )

@@ -101,7 +101,9 @@ export function extractMinimumDepartureMeta(fullText: string): MinimumDepartureE
 
   const minPatterns: RegExp[] = [
     /최소출발\s*[:：]\s*성인\s*(\d+)\s*명/i,
-    /\(최소출발\s*[:：]\s*성인\s*(\d+)\s*명\s*\)/i,
+    /최소출발\s+성인\s*(\d+)\s*명/i,
+    /\(최소출발\s*[:：]?\s*성인\s*(\d+)\s*명\s*\)/i,
+    /\(최소출발\s+성인\s*(\d+)\s*명\s*\)/i,
     /(?:최소\s*출발\s*인원|최소출발인원|행사\s*최소\s*인원|행사최소인원|최소\s*출발|최소출발)\s*[:\s/·|]*\s*(\d+)\s*명/i,
     /최소\s*(\d+)\s*명(?:\s*부터)?\s*출발/i,
     /(\d+)\s*명\s*이상(?:\s*시)?\s*출발/i,
