@@ -3,11 +3,14 @@
  * 모두투어와 동일 우선순위: LLM → routeText 라틴 세그먼트 → 본문 추론;
  * 2순위: LLM2 → routeText 2번째 라틴; movement/return_home 일차는 imageKeyword2 null.
  * REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]: 동일 랜드마크 전일차 반복 금지 — manifest
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: dedupe 후 imageKeyword2 reconcile — manifest
  */
 import {
   acceptLlmScheduleImageKeyword,
   inferEnglishPlaceKeywordFromDayContent,
+  pickDistinctSecondScheduleImageKeyword,
   resolveTourismKeywordPreferDistinctPerDay,
+  shouldReconcileScheduleImageKeyword2,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { findAllMappedKoreanPoisInText, mapDestination, mapKoreanPoiSegment } from '@/lib/pexels-keyword'
@@ -443,10 +446,10 @@ function resolveYbtourSecondaryKeywordCore(
   if (fromRoute && normKey(fromRoute) !== normKey(primary)) return fromRoute
 
   const landmarks = collectRouteLandmarkKeywordsFromRouteText(row.routeText)
-  for (const kw of landmarks) {
-    const accepted = tryAcceptYbtourLlmImageKeyword(kw, productDestination)
-    if (accepted && normKey(accepted) !== normKey(primary)) return accepted
-  }
+    .map((kw) => tryAcceptYbtourLlmImageKeyword(kw, productDestination))
+    .filter(Boolean)
+  const fromRouteOrdered = pickDistinctSecondScheduleImageKeyword(primary, landmarks)
+  if (fromRouteOrdered) return fromRouteOrdered
 
   return null
 }
@@ -480,7 +483,18 @@ export function applyYbtourScheduleImageKeywordsToRows<
     }
   })
 
-  return dedupeYbtourTourismPrimaryKeywordsAcrossDays(mapped, maxDay, productDestination)
+  const deduped = dedupeYbtourTourismPrimaryKeywordsAcrossDays(mapped, maxDay, productDestination)
+
+  return deduped.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+    const primary = String(row.imageKeyword ?? '').trim()
+    if (!shouldReconcileScheduleImageKeyword2(primary, row.imageKeyword2)) return row
+    const haystack = buildYbtourDayHaystack(row)
+    const dayKind = classifyYbtourScheduleCardDayKind(day, maxDay, haystack)
+    const secondary = resolveYbtourSecondaryKeywordCore(row, primary, dayKind, productDestination)
+    return { ...row, imageKeyword2: secondary }
+  })
 }
 
 /* ——— 레거시·에어텔 routeText KO→EN 헬퍼 (apply SSOT와 분리) ——— */

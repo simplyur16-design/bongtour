@@ -1,6 +1,9 @@
 /**
  * 일정 imageKeyword — Gemini 출력 우선, 검증·최소 추론만.
  * 공급사별 `*-schedule-image-keyword.ts` 에서 공통 사용.
+ *
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 관광 일차 imageKeyword + imageKeyword2(1≠2).
+ * 공급사별 모듈은 이 파일의 2순위·dedupe 후 reconcile 헬퍼를 공유한다 — 한 공급사만 고치지 말 것.
  */
 import { extractPlaceNameKeyword } from '@/lib/pexels-place-name-keyword'
 import { mapDestination, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
@@ -8,6 +11,38 @@ import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels
 
 function normKeywordKey(s: string): string {
   return normalizeSemanticPoiKey(s)
+}
+
+/** 공급사 SSOT 비교용 — imageKeyword / imageKeyword2 동일 여부 */
+export function normScheduleImageKeywordKey(s: string): string {
+  return normKeywordKey(s)
+}
+
+/** 이동 순서 후보 목록에서 1순위와 다른 첫 번째 2순위 */
+export function pickDistinctSecondScheduleImageKeyword(
+  primary: string,
+  candidates: readonly string[],
+): string | null {
+  const pk = normKeywordKey(String(primary ?? '').trim())
+  if (!pk) return null
+  for (const raw of candidates) {
+    const kw = String(raw ?? '').trim()
+    if (!kw) continue
+    if (normKeywordKey(kw) !== pk) return kw
+  }
+  return null
+}
+
+/** 1순위 dedupe·교체 후 2순위를 다시 채워야 하는지 */
+export function shouldReconcileScheduleImageKeyword2(
+  primary: string,
+  imageKeyword2: string | null | undefined,
+): boolean {
+  const p = String(primary ?? '').trim()
+  if (!p) return false
+  const k2 = String(imageKeyword2 ?? '').trim()
+  if (!k2) return true
+  return normKeywordKey(k2) === normKeywordKey(p)
 }
 
 export type ScheduleRowTextForKeyword = {

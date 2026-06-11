@@ -1,5 +1,6 @@
 /**
  * 롯데관광(lottetour) 전용: `Product.schedule[].imageKeyword`·`imageKeyword2` Pexels 검색용 영문 관광지 고유명.
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 관광 일차 routeText 2순위 — manifest
  * title/description/일정 분리 로직은 건드리지 않는다.
  */
 

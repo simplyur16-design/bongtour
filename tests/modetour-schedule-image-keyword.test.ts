@@ -158,6 +158,12 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
     assert.match(out[0]!.imageKeyword!, /My Khe/i)
     assert.equal(out[1]!.imageKeyword, 'Ba Na Hills')
     assert.match(out[2]!.imageKeyword!, /Hoi/i)
+    assert.ok(out[0]!.imageKeyword2?.trim(), `day2 kw2: ${out[0]!.imageKeyword2}`)
+    assert.ok(out[2]!.imageKeyword2?.trim(), `day4 kw2: ${out[2]!.imageKeyword2}`)
+    assert.notEqual(
+      normLoose(out[0]!.imageKeyword!),
+      normLoose(out[0]!.imageKeyword2!),
+    )
   })
 })
 

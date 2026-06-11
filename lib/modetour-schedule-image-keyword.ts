@@ -2,11 +2,14 @@
  * 모두투어 전용: `Product.schedule[].imageKeyword` / `imageKeyword2` — Pexels 검색용 영문.
  * LLM 영문 우선 + 한글·라틴 routeText 명소 보완(하나투어·노랑풍선 SSOT 패턴).
  * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]: 한글 routeText·도시명 반복 분산 — manifest
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: dedupe 후 imageKeyword2 reconcile — manifest
  */
 import {
   acceptLlmScheduleImageKeyword,
   inferEnglishPlaceKeywordFromDayContent,
+  pickDistinctSecondScheduleImageKeyword,
   resolveTourismKeywordPreferDistinctPerDay,
+  shouldReconcileScheduleImageKeyword2,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import {
@@ -526,32 +529,32 @@ function resolveModetourSecondaryKeyword(
   if (!primary) return null
   if (dayKind === 'movement' || dayKind === 'return_home') return null
 
+  const pk = normKey(primary)
+
   const fromLlm = tryAcceptModetourLlmImageKeyword(row.imageKeyword2, productDestination)
-  if (fromLlm && normKey(fromLlm) !== normKey(primary)) return fromLlm
+  if (fromLlm && normKey(fromLlm) !== pk) return fromLlm
+
+  const fromRouteOrdered = pickDistinctSecondScheduleImageKeyword(
+    primary,
+    collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination),
+  )
+  if (fromRouteOrdered) return fromRouteOrdered
 
   const fromRouteRaw = resolveRouteTextSecondPlace(row.routeText)
   const fromRoute = fromRouteRaw
     ? tryAcceptModetourLlmImageKeyword(fromRouteRaw, productDestination)
     : ''
-  if (
-    fromRoute &&
-    normKey(fromRoute) !== normKey(primary) &&
-    !isKnownDestinationCityEnglishKeyword(fromRoute)
-  ) {
-    return fromRoute
-  }
+  if (fromRoute && normKey(fromRoute) !== pk) return fromRoute
 
   const landmarkCandidates = collectModetourLandmarkKeywords(row, productDestination)
   for (const kw of landmarkCandidates) {
-    if (normKey(kw) === normKey(primary)) continue
+    if (normKey(kw) === pk) continue
     if (!isKnownDestinationCityEnglishKeyword(kw)) return kw
   }
   if (!isKnownDestinationCityEnglishKeyword(primary)) return null
   for (const kw of landmarkCandidates) {
-    if (normKey(kw) !== normKey(primary)) return kw
+    if (normKey(kw) !== pk) return kw
   }
-
-  if (fromRoute && normKey(fromRoute) !== normKey(primary)) return fromRoute
 
   return null
 }
@@ -674,5 +677,17 @@ export function applyModetourScheduleImageKeywordsToRows<
     }
   })
 
-  return dedupeModetourTourismPrimaryKeywordsAcrossDays(mapped, maxDay, productDestination)
+  const deduped = dedupeModetourTourismPrimaryKeywordsAcrossDays(mapped, maxDay, productDestination)
+
+  // dedupe가 1순위만 바꾸므로 2순위 null·중복이면 최종 primary 기준으로 재산출
+  return deduped.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+    const primary = String(row.imageKeyword ?? '').trim()
+    if (!shouldReconcileScheduleImageKeyword2(primary, row.imageKeyword2)) return row
+    const haystack = buildModetourDayHaystack(row)
+    const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, haystack)
+    const secondary = resolveModetourSecondaryKeyword(row, primary, dayKind, productDestination)
+    return { ...row, imageKeyword2: secondary }
+  })
 }

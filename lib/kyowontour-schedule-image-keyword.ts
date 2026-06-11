@@ -1,9 +1,14 @@
 /**
- * 교원이지(kyowontour) 전용: `Product.schedule[].imageKeyword`만 Pexels 검색용 영문 관광지 고유명으로 정리.
- * title/description/일정 분리 로직은 건드리지 않는다.
+ * 교원이지(kyowontour) 전용: `Product.schedule[].imageKeyword`·`imageKeyword2` Pexels 검색용 영문.
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 관광 일차 2순위 — manifest
  */
 
+import { findAllMappedKoreanPoisInText } from '@/lib/pexels-keyword'
 import { finalizeScheduleImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
+import {
+  normScheduleImageKeywordKey,
+  pickDistinctSecondScheduleImageKeyword,
+} from '@/lib/register-schedule-llm-image-keyword-fallback'
 
 export type KyowontourImageKeywordContext = {
   day: number
@@ -462,22 +467,78 @@ export type KyowontourScheduleImageKeywordOpts = {
   productTitle?: string
 }
 
+function isKyowontourMovementOrReturnDay(
+  day: number,
+  maxDay: number,
+  row: { title?: string; description?: string; routeText?: string | null },
+): boolean {
+  const hay = [row.title, row.description, row.routeText].filter(Boolean).join('\n')
+  if (day === 1 && /(?:출발|공항|입국)/u.test(hay)) return true
+  if (day === maxDay && /(?:귀국|도착|출국|해산)/u.test(hay)) return true
+  return false
+}
+
+function resolveKyowontourSecondaryKeyword(
+  row: {
+    day: number
+    title?: string
+    description?: string
+    routeText?: string | null
+    imageKeyword2?: string | null
+  },
+  primary: string,
+  maxDay: number,
+  ctx: KyowontourImageKeywordContext,
+): string | null {
+  if (!primary) return null
+  if (isKyowontourMovementOrReturnDay(row.day, maxDay, row)) return null
+
+  const raw2 = String(row.imageKeyword2 ?? '').trim()
+  if (raw2) {
+    const fromLlm = polishKyowontourImageKeyword(raw2, ctx)
+    if (fromLlm && fromLlm.toLowerCase() !== primary.toLowerCase()) return fromLlm
+  }
+
+  const haystack = [row.routeText, row.title, row.description].filter(Boolean).join('\n')
+  const secondEn = pickDistinctSecondScheduleImageKeyword(primary, findAllMappedKoreanPoisInText(haystack))
+  if (!secondEn) return null
+  try {
+    const kw = finalizeScheduleImageKeyword(secondEn)
+    if (normScheduleImageKeywordKey(kw) !== normScheduleImageKeywordKey(primary)) return kw
+  } catch {
+    /* fall through */
+  }
+  const kw = polishKyowontourImageKeyword(secondEn, ctx)
+  if (kw && normScheduleImageKeywordKey(kw) !== normScheduleImageKeywordKey(primary)) return kw
+  return null
+}
+
 export function applyKyowontourScheduleImageKeywordsToRows<
-  T extends { day: number; title?: string; description?: string; imageKeyword?: string | null; imageKeyword2?: string | null },
+  T extends {
+    day: number
+    title?: string
+    description?: string
+    routeText?: string | null
+    imageKeyword?: string | null
+    imageKeyword2?: string | null
+  },
 >(rows: T[], opts?: KyowontourScheduleImageKeywordOpts): T[] {
+  const maxDay = rows.length ? Math.max(...rows.map((r) => Number(r.day) || 0), 1) : 1
   return rows.map((row) => {
-    const kw = polishKyowontourImageKeyword(String(row.imageKeyword ?? '').trim(), {
+    const ctx: KyowontourImageKeywordContext = {
       day: row.day,
       title: String(row.title ?? ''),
       description: String(row.description ?? ''),
       productTitle: opts?.productTitle,
       productDestination: opts?.productDestination ?? null,
       productPrimaryDestination: opts?.productDestination ?? null,
-    })
+    }
+    const kw = polishKyowontourImageKeyword(String(row.imageKeyword ?? '').trim(), ctx)
+    const kw2 = resolveKyowontourSecondaryKeyword(row, kw, maxDay, ctx)
     return {
       ...row,
       imageKeyword: kw,
-      imageKeyword2: row.imageKeyword2 ?? null,
+      imageKeyword2: kw2,
     }
   })
 }

@@ -16,6 +16,12 @@
       "doc": "docs/ops/modetour-register-title-contract.md"
     },
     {
+      "id": "schedule-image-keyword-dual-slot",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:schedule-image-keyword-dual-slot",
+      "summary": "6공급사 일정 imageKeyword+imageKeyword2 — 관광 일차 2슬롯·dedupe 후 reconcile"
+    },
+    {
       "id": "modetour-lib-ssot",
       "tier": ["prebuild", "ci"],
       "script": "verify:modetour-lib",
@@ -362,9 +368,11 @@
           "file": "lib/modetour-schedule-image-keyword.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]",
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
             "pickForeignPlaceFromRouteText",
             "englishFromKoreanRouteSegment",
             "dedupeModetourTourismPrimaryKeywordsAcrossDays",
+            "shouldReconcileScheduleImageKeyword2",
             "isDomesticOnlyRouteText"
           ],
           "mustNotInclude": [
@@ -374,6 +382,79 @@
         {
           "file": "lib/register-schedule-image-keywords-preview.ts",
           "mustInclude": ["applyModetourScheduleImageKeywordsToRows"]
+        }
+      ]
+    },
+    {
+      "id": "schedule-image-keyword-dual-slot",
+      "tier": ["prebuild", "ci"],
+      "summary": "6공급사 일정 imageKeyword+imageKeyword2 — 관광 일차 2슬롯·dedupe 후 reconcile·일괄 계약 테스트",
+      "checks": [
+        {
+          "file": "lib/register-schedule-llm-image-keyword-fallback.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "pickDistinctSecondScheduleImageKeyword",
+            "shouldReconcileScheduleImageKeyword2"
+          ]
+        },
+        {
+          "file": "lib/schedule-image-keyword-dual-slot-contract.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "runScheduleImageKeywordDualSlotContract",
+            "hanatour",
+            "modetour",
+            "ybtour",
+            "lottetour",
+            "verygoodtour",
+            "kyowontour"
+          ]
+        },
+        {
+          "file": "scripts/verify-schedule-image-keyword-dual-slot.ts",
+          "mustInclude": [
+            "runScheduleImageKeywordDualSlotContract"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]"
+          ]
+        },
+        {
+          "file": "lib/ybtour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "shouldReconcileScheduleImageKeyword2",
+            "dedupeYbtourTourismPrimaryKeywordsAcrossDays"
+          ]
+        },
+        {
+          "file": "lib/lottetour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "resolveLottetourSecondaryKeyword",
+            "collectLottetourLandmarkKeywordsFromRoute"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-preview.ts",
+          "mustInclude": [
+            "applyHanatourScheduleImageKeywordsToRows",
+            "applyModetourScheduleImageKeywordsToRows",
+            "applyYbtourScheduleImageKeywordsToRows",
+            "applyLottetourScheduleImageKeywordsToRows",
+            "applyVerygoodScheduleImageKeywordsToRows",
+            "applyKyowontourScheduleImageKeywordsToRows"
+          ]
         }
       ]
     },
@@ -540,7 +621,8 @@
         "lib/product-public-seo-title.test.ts",
         "lib/hanatour-schedule-image-keyword-landmark.test.ts",
         "lib/register-schedule-image-keywords-preview.test.ts",
-        "lib/ybtour-schedule-image-keyword.test.ts"
+        "lib/ybtour-schedule-image-keyword.test.ts",
+        "lib/schedule-image-keyword-dual-slot-contract.test.ts"
       ]
     },
     {

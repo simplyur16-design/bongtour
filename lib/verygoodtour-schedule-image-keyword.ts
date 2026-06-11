@@ -1,10 +1,11 @@
 /**
  * 참좋은여행(verygoodtour): 일차 imageKeyword(1순위)·imageKeyword2(2순위) — Pexels용 영문.
- * Plan A: 키워드 텍스트 소스 = LLM 영문 only. detRows 생짜 영문 추출 없음.
- * routeText(한국어)는 영문 키워드 소스로 사용하지 않는다.
+ * LLM 영문 우선; touring 일차 2순위는 본문 한글 명소 매핑 폴백.
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 관광 일차 2순위 — manifest
  */
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
-import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
+import { findAllMappedKoreanPoisInText, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
+import { pickDistinctSecondScheduleImageKeyword } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 export type VerygoodScheduleImageKeywordRow = {
@@ -303,9 +304,13 @@ export function resolveVerygoodSecondaryKeyword(
   if (dayKind !== 'touring') return null
 
   const fromLlm = tryAcceptVerygoodLlmImageKeyword(row.imageKeyword2, productDestination)
-  if (!fromLlm) return null
-  if (primary && keysEqual(fromLlm, primary)) return null
-  return fromLlm
+  if (fromLlm && primary && !keysEqual(fromLlm, primary)) return fromLlm
+
+  const bodyHaystack = [row.title, row.description].filter(Boolean).join('\n')
+  const pois = findAllMappedKoreanPoisInText(bodyHaystack)
+    .map((en) => tryAcceptVerygoodLlmImageKeyword(en, productDestination))
+    .filter(Boolean) as string[]
+  return pickDistinctSecondScheduleImageKeyword(primary, pois)
 }
 
 export function polishVerygoodRegisterScheduleImageKeywords(
