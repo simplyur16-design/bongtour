@@ -29,3 +29,34 @@ describe('filterOverseasHubCatalogByUrl country slug', () => {
     expect(out.map((it) => it.id)).toEqual(['1'])
   })
 })
+
+describe('filterOverseasHubCatalogByUrl menuGroup', () => {
+  it('narrows japan tab to hokkaido subgroup for mega menu header URL', () => {
+    const items = [
+      {
+        id: 'hk',
+        title: '삿포로',
+        browseMegaRegionTabId: 'japan',
+        countryRowLabel: '삿포로',
+      },
+      {
+        id: 'ks',
+        title: '오사카',
+        browseMegaRegionTabId: 'japan',
+        countryRowLabel: '오사카',
+      },
+      {
+        id: 'golf',
+        title: '니세코 골프',
+        browseMegaRegionTabId: 'sports_theme',
+        countryRowLabel: '홋카이도',
+        sportsThemeTags: ['golf'],
+      },
+    ] as ResultItem[]
+    const out = filterOverseasHubCatalogByUrl(
+      items,
+      new URLSearchParams('scope=overseas&region=japan&country=japan&menuGroup=hokkaido'),
+    )
+    expect(out.map((it) => it.id)).toEqual(['hk'])
+  })
+})

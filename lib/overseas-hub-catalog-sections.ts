@@ -3,8 +3,11 @@ import { computeHubFocusedResults } from '@/lib/hub-focused-results'
 import { interleaveProductsBySupplier } from '@/lib/interleave-products-by-supplier'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
+import { findMegaMenuGroup } from '@/lib/mega-menu-browse-group'
 import {
   computeMegaMenuRegionCityGroupId,
+  isMegaMenuRegionCityGroupTabId,
+  megaMenuGroupToDisplayLabel,
   megaMenuSubgroupLabelsInOrder,
   resolveOverseasHubMegaSubgroupDisplayLabel,
 } from '@/lib/overseas-mega-region-city-group'
@@ -116,6 +119,27 @@ export function buildOverseasHubMegaSubgroupSections(
   })
 }
 
+/** 메가메뉴 열(`menuGroup`) — 단일 하위분류 헤더 */
+export function buildOverseasHubMenuGroupFlatSections(
+  items: ResultItem[],
+  regionId: string,
+  menuGroupSlug: string,
+): OverseasHubCatalogSection[] {
+  const group = findMegaMenuGroup(regionId, menuGroupSlug)
+  if (!group || items.length === 0) return []
+  const label = megaMenuGroupToDisplayLabel(regionId, group.countryLabel)
+  const seoulMonth = Number(getSeoulYearMonthNow().split('-')[1]) || 1
+  const { items: sorted, seasonalPickIds } = sortProductsBySeason(items, seoulMonth)
+  return [
+    {
+      key: `menuGroup:${regionId}:${menuGroupSlug}`,
+      label,
+      items: interleaveProductsBySupplier(sorted),
+      seasonalPickIds: [...seasonalPickIds],
+    },
+  ]
+}
+
 /** `country`만 선택 — 단일 국가 헤더 */
 export function buildOverseasHubCountryFlatSections(
   items: ResultItem[],
@@ -198,6 +222,12 @@ export function buildOverseasHubCatalogSectionsForUrl(
   const sportsThemeFilter = (q.sportsTheme ?? '').trim()
   if (region === 'sports_theme' && !sportsThemeFilter) {
     return buildOverseasHubSportsThemeSections(items)
+  }
+
+  const menuGroup = (searchParams.get('menuGroup') ?? '').trim().toLowerCase()
+  if (menuGroup && region && isMegaMenuRegionCityGroupTabId(region)) {
+    const sections = buildOverseasHubMenuGroupFlatSections(items, region, menuGroup)
+    if (sections.length > 0) return sections
   }
 
   const megaRegionId = computeMegaMenuRegionCityGroupId({
