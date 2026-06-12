@@ -249,6 +249,7 @@ const SEA: MegaMenuCountryGroupDef[] = [
 const JP: MegaMenuCountryGroupDef[] = [
   GJp('홋카이도', [
     city('삿포로', ['삿포로', 'sapporo', '일본', '홋카이도']),
+    city('도야', ['도야', 'toya', '일본', '홋카이도']),
     city('오타루', ['오타루', 'otaru', '일본', '홋카이도']),
     city('후라노', ['후라노', 'furano', '일본', '홋카이도']),
     city('하코다테', ['하코다테', 'hakodate', '일본', '홋카이도']),

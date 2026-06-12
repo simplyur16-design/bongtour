@@ -1003,12 +1003,15 @@ const JP_KYUSHU = uniqueStrings([
 ])
 const JP_HOKKAIDO = uniqueStrings([
   '삿포로',
+  '도야',
   '니세코',
   '오타루',
   '후라노',
   '비에이',
   '하코다테',
   '아사히카와',
+  '노보리베츠',
+  '북해도',
 ])
 const JP_OKINAWA = uniqueStrings(['오키나와', '나하'])
 const JP_SHIKOKU_CHUGOKU = uniqueStrings([
