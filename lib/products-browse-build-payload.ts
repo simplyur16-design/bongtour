@@ -60,6 +60,7 @@ import {
 import {
   isMegaMenuRegionCityGroupTabId,
   resolveOverseasMegaMenuSubgroupLabelForBrowse,
+  resolveOverseasMegaMenuSubgroupLabelFromCountryRow,
 } from '@/lib/overseas-mega-region-city-group'
 import { resolveBrowseMegaRegionTabIdForBrowse } from '@/lib/browse-mega-region-tab-id'
 import { buildBrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
@@ -737,10 +738,21 @@ export async function productsBrowseBuildPayload(queryKey: string) {
             const canReuseGeoCache = Boolean(p.cityKey?.trim() || p.countryKey?.trim())
             const cachedGeo = canReuseGeoCache ? overseasGeoFieldCache.get(geoCacheKey) : undefined
             if (cachedGeo) {
+              const hubSubgroupRegionId =
+                isHubFullCatalog &&
+                cachedGeo.browseMegaRegionTabId &&
+                isMegaMenuRegionCityGroupTabId(cachedGeo.browseMegaRegionTabId)
+                  ? cachedGeo.browseMegaRegionTabId
+                  : null
               return {
                 overseasBucket: cachedGeo.overseasBucket,
                 countryRowLabel: cachedGeo.countryRowLabel,
-                browseMegaSubgroupLabel: null,
+                browseMegaSubgroupLabel: hubSubgroupRegionId
+                  ? resolveOverseasMegaMenuSubgroupLabelFromCountryRow(
+                      hubSubgroupRegionId,
+                      cachedGeo.countryRowLabel,
+                    )
+                  : null,
                 browseCountry: (p.country ?? '').trim() || null,
                 browseMegaRegionTabId: cachedGeo.browseMegaRegionTabId,
               }
@@ -760,12 +772,10 @@ export async function productsBrowseBuildPayload(queryKey: string) {
               browseMegaRegionTabId,
             })
             const regionForSubgroup =
-              isHubFullCatalog
-                ? ''
-                : (region ?? '').trim() ||
-                  (browseMegaRegionTabId && isMegaMenuRegionCityGroupTabId(browseMegaRegionTabId)
-                    ? browseMegaRegionTabId
-                    : '')
+              (region ?? '').trim() ||
+              (browseMegaRegionTabId && isMegaMenuRegionCityGroupTabId(browseMegaRegionTabId)
+                ? browseMegaRegionTabId
+                : '')
             const browseMegaSubgroupLabel = regionForSubgroup
               ? resolveOverseasMegaMenuSubgroupLabelForBrowse(
                   matchInput,
