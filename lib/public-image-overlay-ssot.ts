@@ -33,62 +33,17 @@ export function publicImageOverlayHasAny(left: string | null | undefined, right:
   return Boolean((left ?? '').trim() || (right ?? '').trim())
 }
 
-/** 공개 이미지 우측 출처 — Pexels 스톡·작가 크레딧(모바일 숨김 대상). AI·iStock 등은 제외. */
-export function isGenericPexelsStockPublicOverlayLabel(label: string | null | undefined): boolean {
+/** 공개 이미지 우측 출처 — AI 생성 문구만 노출 대상 */
+export function isAiGeneratedPublicOverlayRightLabel(label: string | null | undefined): boolean {
   const t = (label ?? '').trim().replace(/\s+/g, ' ')
   if (!t) return false
-  if (/^pexels\s*스톡\s*이미지$/i.test(t)) return true
-  if (/^pexels\s*스톡이미지$/i.test(t)) return true
-  if (/^photo by .+ on pexels$/i.test(t)) return true
-  return false
+  return /^AI(\s*생성|\s*로\s*(만들|생성))/i.test(t)
 }
 
-/** 모바일에서 우측 출처만 숨길 때 Tailwind 클래스 */
-export function publicImageOverlayRightLabelMobileClass(label: string | null | undefined): string {
-  return isGenericPexelsStockPublicOverlayLabel(label) ? 'hidden md:inline' : ''
-}
-
-/**
- * 모바일에서 오버레이 전체를 숨길지 — 좌 SEO 없고 우측이 Pexels 출처만일 때.
- */
-export function publicImageOverlayHideOnMobile(
-  left: string | null | undefined,
-  right: string | null | undefined,
-): boolean {
-  const l = (left ?? '').trim()
-  const r = (right ?? '').trim()
-  return !l && Boolean(r) && isGenericPexelsStockPublicOverlayLabel(r)
-}
-
-/** 일정 day 이미지 우측 출처 — ProductHeroCarousel day 슬라이드와 동일 규칙 */
-export function resolveScheduleDayImageRightLabel(params: {
-  imageUrl?: string | null
-  imagePhotographer?: string | null
-  imageSource?: string | null
-  imageSourcePageUrl?: string | null
-}): string | null {
-  const photographer = (params.imagePhotographer ?? '').trim()
-  const canonical = resolveCanonicalImageSourceForDisplay({
-    poolSource: params.imageSource,
-    dbSource: params.imageSource,
-    imageUrl: params.imageUrl,
-    originalLink: params.imageSourcePageUrl,
-  })
-  const dSrc = canonical ?? (params.imageSource ?? '').trim().toLowerCase()
-  if (photographer && dSrc) {
-    const sourceLabel =
-      dSrc === 'pexels' ? 'Pexels' : dSrc === 'unsplash' ? 'Unsplash' : dSrc === 'istock' ? 'iStock' : dSrc
-    if (!/^pexels$/i.test(photographer)) {
-      return `Photo by ${photographer} on ${sourceLabel}`
-    }
-  }
-  if (dSrc === 'pexels') return 'Pexels 스톡이미지'
-  if (dSrc === 'unsplash') return 'Unsplash 스톡이미지'
-  return resolvePublicImageSourceUserLabel({
-    dbSource: dSrc || null,
-    imageUrl: params.imageUrl,
-    originalLink: params.imageSourcePageUrl,
-  })
+/** 공개 화면에 실제로 그릴 우측 출처 — AI 생성만, 나머지 숨김 */
+export function publicImageOverlayRightLabelForDisplay(label: string | null | undefined): string | null {
+  const t = (label ?? '').trim()
+  return isAiGeneratedPublicOverlayRightLabel(t) ? t : null
 }
 
 /** 메인 허브 등 자체 스톡 사진 — DB 출처 없을 때 우측 고정 문구 */

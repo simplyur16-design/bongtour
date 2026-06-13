@@ -35,7 +35,6 @@ import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 import { computeKRWQuotation } from '@/lib/price-utils'
 import { buildPriceDisplaySsot } from '@/lib/price-display-ssot'
-import { resolveScheduleDayImageRightLabel } from '@/lib/public-image-overlay-ssot'
 import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
 import type { ProductMetaChip } from '@/lib/product-meta-chips'
 
@@ -685,13 +684,6 @@ export function ItineraryView({
                     imageDisplayNameManual: daySlide.imageDisplayName,
                   })
                 : null
-              const dayImageRightLabel = daySlide
-                ? resolveScheduleDayImageRightLabel({
-                    imageUrl: dayImageUrl,
-                    imagePhotographer: daySlide.imagePhotographer,
-                    imageSource: daySlide.imageSource,
-                  })
-                : null
 
               return (
                 <section
@@ -723,10 +715,7 @@ export function ItineraryView({
                             className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent"
                             aria-hidden
                           />
-                          <PublicImageBottomOverlay
-                            leftLabel={dayImageLeftLabel}
-                            rightLabel={dayImageRightLabel}
-                          />
+                          <PublicImageBottomOverlay leftLabel={dayImageLeftLabel} />
                         </div>
                       ) : null}
                     </div>

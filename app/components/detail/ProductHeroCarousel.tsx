@@ -112,17 +112,7 @@ export default function ProductHeroCarousel({
         src: s,
         alt: titleBase ? `${titleBase} 일정 이미지 ${slideIdx}` : `여행 상품 일정 이미지 ${slideIdx}`,
         leftLabel: dayLeft,
-        rightLabel: (() => {
-          const photographer = d.imagePhotographer?.trim()
-          const dSrc = (d.imageSource ?? '').trim().toLowerCase()
-          if (photographer && dSrc) {
-            const sourceLabel = dSrc === 'pexels' ? 'Pexels' : dSrc === 'unsplash' ? 'Unsplash' : dSrc
-            return `Photo by ${photographer} on ${sourceLabel}`
-          }
-          if (dSrc === 'pexels') return 'Pexels 스톡이미지'
-          if (dSrc === 'unsplash') return 'Unsplash 스톡이미지'
-          return resolvePublicImageSourceUserLabel({ imageUrl: s })
-        })(),
+        rightLabel: null,
       })
     }
     return out

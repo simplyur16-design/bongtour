@@ -2,8 +2,7 @@
 
 import {
   publicImageOverlayHasAny,
-  publicImageOverlayHideOnMobile,
-  publicImageOverlayRightLabelMobileClass,
+  publicImageOverlayRightLabelForDisplay,
 } from '@/lib/public-image-overlay-ssot'
 
 type Props = {
@@ -16,19 +15,16 @@ const LABEL_CLS = 'text-xs leading-tight text-white drop-shadow-sm'
 
 /**
  * 이미지 내부 하단: 좌 SEO 키워드 / 우 출처. 둘 다 없으면 null.
- * 배경 칩 없음 — 하단 그라데이션 fade + 흰색 텍스트 drop-shadow.
+ * 우측 출처는 AI 생성 문구만 노출한다.
  */
 export default function PublicImageBottomOverlay({ leftLabel, rightLabel, className = '' }: Props) {
   const left = (leftLabel ?? '').trim()
-  const right = (rightLabel ?? '').trim()
+  const right = publicImageOverlayRightLabelForDisplay(rightLabel)
   if (!publicImageOverlayHasAny(left, right)) return null
-
-  const hideOverlayOnMobile = publicImageOverlayHideOnMobile(left, right)
-  const rightMobileClass = publicImageOverlayRightLabelMobileClass(right)
 
   return (
     <div
-      className={`pointer-events-none absolute inset-x-0 bottom-0 z-[15] ${hideOverlayOnMobile ? 'max-md:hidden' : ''} ${className ?? ''}`.trim()}
+      className={`pointer-events-none absolute inset-x-0 bottom-0 z-[15] ${className ?? ''}`.trim()}
     >
       <div
         className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/40 to-transparent"
@@ -40,9 +36,7 @@ export default function PublicImageBottomOverlay({ leftLabel, rightLabel, classN
         ) : (
           <span className="min-w-0 flex-1" />
         )}
-        {right ? (
-          <span className={`shrink-0 ${LABEL_CLS} ${rightMobileClass}`.trim()}>{right}</span>
-        ) : null}
+        {right ? <span className={`shrink-0 ${LABEL_CLS}`}>{right}</span> : null}
       </div>
     </div>
   )
