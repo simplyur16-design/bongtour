@@ -1,6 +1,10 @@
 'use client'
 
-import { publicImageOverlayHasAny } from '@/lib/public-image-overlay-ssot'
+import {
+  publicImageOverlayHasAny,
+  publicImageOverlayHideOnMobile,
+  publicImageOverlayRightLabelMobileClass,
+} from '@/lib/public-image-overlay-ssot'
 
 type Props = {
   leftLabel?: string | null
@@ -19,9 +23,12 @@ export default function PublicImageBottomOverlay({ leftLabel, rightLabel, classN
   const right = (rightLabel ?? '').trim()
   if (!publicImageOverlayHasAny(left, right)) return null
 
+  const hideOverlayOnMobile = publicImageOverlayHideOnMobile(left, right)
+  const rightMobileClass = publicImageOverlayRightLabelMobileClass(right)
+
   return (
     <div
-      className={`pointer-events-none absolute inset-x-0 bottom-0 z-[15] ${className ?? ''}`.trim()}
+      className={`pointer-events-none absolute inset-x-0 bottom-0 z-[15] ${hideOverlayOnMobile ? 'max-md:hidden' : ''} ${className ?? ''}`.trim()}
     >
       <div
         className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/40 to-transparent"
@@ -33,7 +40,9 @@ export default function PublicImageBottomOverlay({ leftLabel, rightLabel, classN
         ) : (
           <span className="min-w-0 flex-1" />
         )}
-        {right ? <span className={`shrink-0 ${LABEL_CLS}`}>{right}</span> : null}
+        {right ? (
+          <span className={`shrink-0 ${LABEL_CLS} ${rightMobileClass}`.trim()}>{right}</span>
+        ) : null}
       </div>
     </div>
   )
