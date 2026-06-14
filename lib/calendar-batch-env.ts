@@ -5,6 +5,20 @@ import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 import { getSchedulerEnvOverrides } from '@/lib/scheduler-config'
 
+/** env 값에서 따옴표·인라인 주석·앞뒤 공백 제거 */
+export function sanitizeEnvUrlValue(raw: string): string {
+  let v = raw.trim()
+  const hash = v.indexOf('#')
+  if (hash >= 0) v = v.slice(0, hash).trim()
+  if ((v.startsWith('"') && v.includes('"', 1)) || (v.startsWith("'") && v.includes("'", 1))) {
+    const q = v[0]!
+    const end = v.indexOf(q, 1)
+    if (end > 1) v = v.slice(1, end)
+  }
+  v = v.replace(/^['"]+|['"]+$/g, '').trim()
+  return v.replace(/\/$/, '')
+}
+
 /** Python·내부 배치가 호출할 Next 앱 URL (끝 슬래시 없음) */
 export function resolveBongtourApiBase(): string {
   const raw =
@@ -14,11 +28,16 @@ export function resolveBongtourApiBase(): string {
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
     process.env.NEXTAUTH_URL?.trim() ||
     ''
-  return raw.replace(/\/$/, '')
+  return sanitizeEnvUrlValue(raw)
 }
 
 export function isCalendarCronDisabled(): boolean {
   return process.env.DISABLE_INSTRUMENTATION_CALENDAR_CRON === '1'
+}
+
+/** web 단독 배포 시 worker 없이 calendar 3h cron — worker 추가 후 web에 설정해 중복 방지 */
+export function isWebCalendarCronDisabled(): boolean {
+  return process.env.DISABLE_WEB_CALENDAR_CRON === '1'
 }
 
 export function hasCalendarBatchCredentials(): boolean {

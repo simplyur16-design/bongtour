@@ -1,4 +1,6 @@
-import type { ChildProcess } from 'child_process'
+import { spawn, type ChildProcess } from 'child_process'
+import { getCalendarBatchSpawnEnv } from '@/lib/calendar-batch-env'
+import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 import { runCalendarPriceBatchOnce, type CalendarPriceBatchResult } from '@/lib/calendar-price-batch-runner'
 import {
   finalizeCheckpointAfterBatch,
@@ -101,6 +103,34 @@ export function attachCalendarBatchFinalizeOnExit(child: ChildProcess, strategy:
   }
   child.once('close', runFinalize)
   child.once('error', runFinalize)
+}
+
+/**
+ * web(HTTP) 프로세스용 — Python 배치를 detached spawn. HTTP·node-cron tick이 10h wall budget 동안 막히지 않게 함.
+ * lock·finalize는 child exit 시 attachCalendarBatchFinalizeOnExit 가 처리.
+ */
+export async function spawnCalendarPriceBatchDetached(
+  strategy: ScrapeScheduleStrategy
+): Promise<'started' | 'skipped'> {
+  if (!tryAcquireCalendarPriceBatchLock()) {
+    return 'skipped'
+  }
+  const py = resolvePythonExecutable()
+  const cwd = process.cwd()
+  const env = getCalendarBatchSpawnEnv({
+    SCRAPER_CALENDAR_HORIZON_END: strategy.horizonYmd,
+    SCRAPER_CALENDAR_SEQ_START_INDEX: String(strategy.nextProductIndex ?? 0),
+    SCRAPER_BATCH_MODE: strategy.mode,
+  })
+  const child = spawn(py, ['-m', 'scripts.calendar_price_scheduler', '--once'], {
+    cwd,
+    env,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: true,
+  })
+  attachCalendarBatchFinalizeOnExit(child, strategy)
+  child.unref()
+  return 'started'
 }
 
 export async function runCalendarPriceBatchInline(

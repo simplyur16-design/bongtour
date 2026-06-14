@@ -53,6 +53,15 @@ export async function register() {
         const { startInstrumentationCalendarCron } = await import('@/lib/instrumentation-calendar-cron')
         startInstrumentationCalendarCron()
       }
+    } else if (hasDb && shouldRunWebCriticalCrons()) {
+      const { canRegisterCalendarCron, isWebCalendarCronDisabled } = await import('@/lib/calendar-batch-env')
+      if (!isWebCalendarCronDisabled() && canRegisterCalendarCron()) {
+        const { startInstrumentationCalendarCron } = await import('@/lib/instrumentation-calendar-cron')
+        startInstrumentationCalendarCron({ webFallback: true })
+        console.log(
+          '[calendar-cron] web-fallback: worker 없음 — 3h 달력 배치를 web 프로세스에 등록 (worker 추가 시 web에 DISABLE_WEB_CALENDAR_CRON=1)',
+        )
+      }
     }
 
     if (process.env.NODE_ENV === 'production' && hasDb && shouldRunBackgroundCrons()) {

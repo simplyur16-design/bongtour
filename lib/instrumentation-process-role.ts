@@ -6,6 +6,7 @@
  * - `all`: 레거시 — web+worker 동시 (`BONGTOUR_INSTRUMENTATION_ROLE=all` 로만).
  *
  * Railway: 공개 트래픽 서비스 = web, 동일 repo 복제 서비스(도메인 없음) = worker.
+ * web 단독이면 `instrumentation.ts` 가 calendar 3h cron 을 web-fallback 으로 등록 (`DISABLE_WEB_CALENDAR_CRON=1` 로 끔).
  */
 export type InstrumentationProcessRole = 'web' | 'worker' | 'all'
 

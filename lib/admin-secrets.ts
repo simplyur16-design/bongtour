@@ -31,9 +31,13 @@ export function getDevAdminBypassSecret(): string {
   return legacy
 }
 
+function isAsciiBearerSecret(value: string): boolean {
+  return value.length > 0 && /^[\x20-\x7E]+$/.test(value)
+}
+
 export function getAdminServiceBearerSecret(): string {
   const next = trimEnv("ADMIN_SERVICE_BEARER_SECRET")
-  if (next) return next
+  if (next && isAsciiBearerSecret(next)) return next
   const legacy = trimEnv("ADMIN_BYPASS_SECRET")
   if (legacy && !ag.__bongtourWarnedLegacyBearer) {
     ag.__bongtourWarnedLegacyBearer = true
