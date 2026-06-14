@@ -3,6 +3,7 @@
  */
 import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
+import { truncatePrismaSafeString } from '@/lib/prisma-safe-string'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -187,7 +188,7 @@ function buildRegisterSignalsHaystack(
   pastedBlocks: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null | undefined
 ): string {
   const primary = normalizeRegisterPasteNewlines(
-    (pastedBodyForInference?.trim() || rawText.trim()).slice(0, REGISTER_PASTE_MAX_CHARS)
+    truncatePrismaSafeString(pastedBodyForInference?.trim() || rawText.trim(), REGISTER_PASTE_MAX_CHARS)
   )
   const parts: string[] = []
   if (primary) parts.push(primary)
@@ -199,7 +200,7 @@ function buildRegisterSignalsHaystack(
   }
   appendIfExtra(pastedBlocks?.optionalTour ?? null)
   appendIfExtra(pastedBlocks?.shopping ?? null)
-  return parts.join('\n\n\n').slice(0, REGISTER_PASTE_MAX_CHARS)
+  return truncatePrismaSafeString(parts.join('\n\n\n'), REGISTER_PASTE_MAX_CHARS)
 }
 
 /** 전용 입력란 비어 있을 때 본문·regex·LLM 해당 축 미사용 — 모두투어 이 파일 전용 */
@@ -271,7 +272,7 @@ function clipRegisterLlmAuditText(s: string): string {
   const n = raw ? Number(raw) : NaN
   const max = Number.isFinite(n) && n > 0 ? n : 400_000
   if (s.length <= max) return s
-  return `${s.slice(0, max)}\n…[truncated ${s.length - max} chars]`
+  return `${truncatePrismaSafeString(s, max)}\n…[truncated ${s.length - max} chars]`
 }
 
 function clipRegisterAdminLlmParsedJsonString(s: string): string {
@@ -281,7 +282,7 @@ function clipRegisterAdminLlmParsedJsonString(s: string): string {
   const n = raw ? Number(raw) : NaN
   const max = Number.isFinite(n) && n > 0 ? n : 800_000
   if (s.length <= max) return s
-  return `${s.slice(0, max)}\n…[truncated ${s.length - max} chars]`
+  return `${truncatePrismaSafeString(s, max)}\n…[truncated ${s.length - max} chars]`
 }
 
 function stripHtmlForPriceBlob(html: string | null | undefined): string {
@@ -771,25 +772,25 @@ function extractMealHotelFromDayText(text: string): Partial<RegisterScheduleDay>
     const a = triplet[1]?.trim()
     const b = triplet[2]?.trim()
     const c = triplet[3]?.trim()
-    if (a) out.breakfastText = a.slice(0, 200)
-    if (b) out.lunchText = b.slice(0, 200)
-    if (c) out.dinnerText = c.slice(0, 200)
+    if (a) out.breakfastText = truncatePrismaSafeString(a, 200)
+    if (b) out.lunchText = truncatePrismaSafeString(b, 200)
+    if (c) out.dinnerText = truncatePrismaSafeString(c, 200)
     return out
   }
   const bp = t.match(/(?:조식|아침)\s*[-:：]\s*([^\n]+)/i)
   const lp = t.match(/(?:중식|점심)\s*[-:：]\s*([^\n]+)/i)
   const dp = t.match(/(?:석식|저녁)\s*[-:：]\s*([^\n]+)/i)
-  if (bp?.[1]) out.breakfastText = bp[1].trim().slice(0, 200)
-  if (lp?.[1]) out.lunchText = lp[1].trim().slice(0, 200)
-  if (dp?.[1]) out.dinnerText = dp[1].trim().slice(0, 200)
+  if (bp?.[1]) out.breakfastText = truncatePrismaSafeString(bp[1].trim(), 200)
+  if (lp?.[1]) out.lunchText = truncatePrismaSafeString(lp[1].trim(), 200)
+  if (dp?.[1]) out.dinnerText = truncatePrismaSafeString(dp[1].trim(), 200)
   const hp = t.match(
     /(?:예정\s*호텔|예정숙소|숙소|숙박|투숙|호텔|리조트|콘도)\s*[:：]\s*([^\n]+)/i
   )
-  if (hp?.[1]) out.hotelText = hp[1].trim().slice(0, 500)
+  if (hp?.[1]) out.hotelText = truncatePrismaSafeString(hp[1].trim(), 500)
   if (Object.keys(out).length) return out
   const mealOnly = t.match(/식사\s*[:：]\s*([^\n]+)/i)
   if (mealOnly?.[1]?.trim()) {
-    out.mealSummaryText = mealOnly[1].trim().slice(0, 500)
+    out.mealSummaryText = truncatePrismaSafeString(mealOnly[1].trim(), 500)
   }
   return out
 }
@@ -1107,10 +1108,10 @@ function finalizePreviewRegisterRaw(raw: RegisterGeminiLlmJson): RegisterGeminiL
       })
   }
   if (typeof rec.hotelSummaryText === 'string' && rec.hotelSummaryText.length > 120) {
-    rec.hotelSummaryText = `${String(rec.hotelSummaryText).slice(0, 117)}…`
+    rec.hotelSummaryText = `${truncatePrismaSafeString(String(rec.hotelSummaryText), 117)}…`
   }
   if (typeof rec.shoppingSummaryText === 'string' && rec.shoppingSummaryText.length > 120) {
-    rec.shoppingSummaryText = `${String(rec.shoppingSummaryText).slice(0, 117)}…`
+    rec.shoppingSummaryText = `${truncatePrismaSafeString(String(rec.shoppingSummaryText), 117)}…`
   }
   return raw
 }
@@ -1300,7 +1301,7 @@ export async function parseForRegisterLlmModetour(
   }
   options?.onTiming?.('after-section-repairs')
   const blockB = rawText.trim()
-    ? normalizeDetailRawText(rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
+    ? truncatePrismaSafeString(normalizeDetailRawText(rawText), REGISTER_PASTE_MAX_CHARS)
     : EMPTY_PASTE_PLACEHOLDER
   const pb = options?.pastedBlocks ?? {}
   const manualPasteAxes = readManualPasteAxesFromBlocks(pb)
@@ -1532,7 +1533,7 @@ ${text.slice(0, 16000)}`
   } catch {
     registerAdminPersistedLlmParsedJson = null
   }
-  const pastedBlobForKw = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
+  const pastedBlobForKw = truncatePrismaSafeString(options?.pastedBodyForInference ?? rawText, REGISTER_PASTE_MAX_CHARS)
   const kwTitleEarly =
     resolveModetourRegisterProductTitle({
       pasteBlob: pastedBlobForKw,
@@ -1581,7 +1582,7 @@ ${text.slice(0, 16000)}`
       expectedDaysForSchedule >= 1
   )
 
-  const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
+  const pastedBlobForTitle = truncatePrismaSafeString(options?.pastedBodyForInference ?? rawText, REGISTER_PASTE_MAX_CHARS)
   const titleResolved = resolveModetourRegisterProductTitle({
     pasteBlob: pastedBlobForTitle,
     llmTitleRaw: String(raw.title ?? '').trim(),
@@ -1644,7 +1645,7 @@ ${text.slice(0, 16000)}`
       destination: finalDestination,
       title: titleTrimmed,
       supplierItemsJson: JSON.stringify(mustKnowItems),
-      pastedBodySnippet: (options?.pastedBodyForInference ?? rawText).slice(0, 4000),
+      pastedBodySnippet: truncatePrismaSafeString(options?.pastedBodyForInference ?? rawText, 4000),
     })
     if (sup.items.length > 0) {
       const seen = new Set(mustKnowItems.map((x) => `${x.title}\n${x.body}`.toLowerCase()))
@@ -1716,7 +1717,9 @@ ${text.slice(0, 16000)}`
   }).filter((p) => p.date.length >= 10)
   prices = applyProductLevelFlightMeeting(raw, prices)
   prices = mergeProductLevelFlightSegments(raw, prices)
-  const segAirline = segmentSupplierPasteForLlm(rawText.slice(0, REGISTER_PASTE_MAX_CHARS)).airlineMeeting
+  const segAirline = segmentSupplierPasteForLlm(
+    truncatePrismaSafeString(rawText, REGISTER_PASTE_MAX_CHARS),
+  ).airlineMeeting
   const flightSources = [
     rawText.trim(),
     (options?.pastedBlocks?.airlineTransport ?? '').trim(),

@@ -141,6 +141,7 @@ import {
 } from '@/lib/register-admin-input-persist-modetour'
 import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confirm-reuse-modetour'
 import { buildRegisterProductScheduleJson } from '@/lib/build-register-product-schedule-json'
+import { sanitizePrismaWriteData, truncatePrismaSafeString } from '@/lib/prisma-safe-string'
 import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
 import {
   resolveRegisterProductType,
@@ -1652,10 +1653,12 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       [nullIfEmptyTrim(parsed.hotelInfoRaw), hotelMiddle, nullIfEmptyTrim(parsed.hotelNoticeRaw), nullIfEmptyTrim(parsed.hotelStatusText)]
         .filter((x): x is string => typeof x === 'string' && x.length > 0)
         .join('\n')
-        .slice(0, 4000) || null
-    const normalizedHotelRaw = normalizeModetourHotelSummaryComposeBlock(hotelSummaryRawJoined)
+    const hotelSummaryRawJoinedTruncated = hotelSummaryRawJoined
+      ? truncatePrismaSafeString(hotelSummaryRawJoined, 4000)
+      : null
+    const normalizedHotelRaw = normalizeModetourHotelSummaryComposeBlock(hotelSummaryRawJoinedTruncated)
     const hotelSummaryRaw =
-      (normalizedHotelRaw ?? hotelSummaryRawJoined?.trim() ?? null)?.slice(0, 4000) || null
+      (normalizedHotelRaw ?? hotelSummaryRawJoinedTruncated?.trim() ?? null) || null
 
     /** 모두투어: 유의사항은 `mustKnowItems`만 — DB `reservationNoticeRaw`는 이 축에서 채우지 않음. */
     const reservationNoticeRaw = null
@@ -1827,20 +1830,21 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
 
     stage = 'prismaConfirmWrite'
     ctx.stage = stage
+    const safeProductData = sanitizePrismaWriteData(productData)
     if (existing) {
       await prisma.$transaction(async (tx) => {
         await tx.productPrice.deleteMany({ where: { productId: existing.id } })
         await tx.itinerary.deleteMany({ where: { productId: existing.id } })
         await tx.product.update({
           where: { id: existing.id },
-          data: productData,
+          data: safeProductData,
         })
       })
       productId = existing.id
     } else {
       const created = await prisma.product.create({
         data: {
-          ...productData,
+          ...safeProductData,
           originCode: parsed.originCode,
         },
       })
