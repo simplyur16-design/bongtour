@@ -253,6 +253,70 @@ describe('applyModetourScheduleImageKeywordsToRows — 라다크·인도 한글 
     assert.equal(d9.imageKeyword2, null)
   })
 
+  it('푸꾸옥 한글 routeText — 도시명 대신 일차별 명소 1·2순위', () => {
+    const phuQuocOpts = { productDestination: '푸꾸옥' }
+    const out = applyModetourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '인천 출발',
+          description: '인천 ICN 출발 푸꾸옥 도착',
+          routeText: '인천 - 푸꾸옥',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '선셋타운',
+          description: '선셋타운 키스브릿지',
+          routeText: '푸꾸옥 - 선셋타운 - 키스 브릿지 - 부이페스트 야시장',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '사나토',
+          description: '선셋 사나토 비치 그랜드월드',
+          routeText: '푸꾸옥 - 선셋 사나토 비치 - 바구니배 체험 - 그랜드월드',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '남부',
+          description: '호국사 코코넛 수용소 사오 비치',
+          routeText: '푸꾸옥 - 호국사 - 코코넛 수용소 - 사오 비치 - 소나시 야시장',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 5,
+          title: '인천 도착',
+          description: '인천 국제공항 도착',
+          routeText: '인천',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      phuQuocOpts,
+    )
+    const d1 = out.find((r) => r.day === 1)!
+    const d2 = out.find((r) => r.day === 2)!
+    const d3 = out.find((r) => r.day === 3)!
+    const d4 = out.find((r) => r.day === 4)!
+    const d5 = out.find((r) => r.day === 5)!
+    assert.equal(d1.imageKeyword, 'Phu Quoc')
+    assert.equal(d1.imageKeyword2, null)
+    assert.match(d2.imageKeyword!, /Sunset Town/i)
+    assert.match(d2.imageKeyword2!, /Kiss Bridge/i)
+    assert.match(d3.imageKeyword!, /Sunset Sanato/i)
+    assert.match(d3.imageKeyword2!, /Grand World/i)
+    assert.match(d4.imageKeyword!, /Ho Quoc|Coconut Tree/i)
+    assert.match(d4.imageKeyword2!, /Sao Beach/i)
+    assert.equal(d5.imageKeyword, '')
+    assert.equal(d5.imageKeyword2, null)
+  })
+
   it('한글 routeText만 — 알치·판공초 1·2순위', () => {
     const out = applyModetourScheduleImageKeywordsToRows(
       [

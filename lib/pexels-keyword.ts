@@ -329,6 +329,20 @@ const POI_KO_TO_EN: Record<string, string> = {
   사오비치: 'Sao Beach',
   '사오 비치': 'Sao Beach',
   호국사: 'Ho Quoc Pagoda',
+  선셋사나토비치: 'Sunset Sanato Beach',
+  '선셋 사나토 비치': 'Sunset Sanato Beach',
+  선셋타운: 'Sunset Town',
+  '선셋 타운': 'Sunset Town',
+  키스브릿지: 'Kiss Bridge',
+  '키스 브릿지': 'Kiss Bridge',
+  부이페스트야시장: 'Vui Pnest Night Market',
+  '부이페스트 야시장': 'Vui Pnest Night Market',
+  그랜드월드: 'Grand World',
+  '그랜드 월드': 'Grand World',
+  코코넛수용소: 'Coconut Tree Prison',
+  '코코넛 수용소': 'Coconut Tree Prison',
+  소나시야시장: 'Sonasea Night Market',
+  '소나시 야시장': 'Sonasea Night Market',
 }
 
 /** 테마 태그(themeTags) 한국어/혼용 → Pexels 검색용 영어 (후순위 fallback) */
@@ -445,6 +459,17 @@ export function isKnownDestinationCityEnglishKeyword(kw: string): boolean {
     if (normalizeSemanticPoiKey(en) === k) return true
   }
   return false
+}
+
+/** 상품 목적지와 동일한 허브 도시·지역(Phu Quoc 등 복합 지명 포함) */
+export function isDestinationHubEnglishKeyword(
+  kw: string,
+  productDestination: string | null | undefined,
+): boolean {
+  if (isKnownDestinationCityEnglishKeyword(kw)) return true
+  const destEn = mapDestination(String(productDestination ?? '').trim())
+  if (!destEn) return false
+  return normalizeSemanticPoiKey(kw) === normalizeSemanticPoiKey(destEn)
 }
 
 export function mapDestination(destination: string | null): string {

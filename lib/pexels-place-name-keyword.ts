@@ -419,6 +419,13 @@ const COMPOUND_LANDMARK_PHRASES: Record<string, string> = {
   'bondi beach': 'Bondi Beach',
   'starfish beach': 'Starfish Beach',
   'sao beach': 'Sao Beach',
+  'sunset town': 'Sunset Town',
+  'kiss bridge': 'Kiss Bridge',
+  'sunset sanato beach': 'Sunset Sanato Beach',
+  'grand world': 'Grand World',
+  'ho quoc pagoda': 'Ho Quoc Pagoda',
+  'coconut tree prison': 'Coconut Tree Prison',
+  'sonasea night market': 'Sonasea Night Market',
   'new york': 'New York',
   'hong kong': 'Hong Kong',
   'los angeles': 'Los Angeles',
@@ -578,6 +585,18 @@ export function isNonLandmarkSpaShoppingLoungeImageKeyword(keyword: string): boo
   return NON_LANDMARK_SPA_SHOPPING_LOUNGE_RE.test(n)
 }
 
+/** 역사 수용·억압 시설 — Pexels 관광 이미지 검색에 부적합 */
+const NON_LANDMARK_HISTORICAL_PRISON_RE = /\b(prison|concentration\s+camp|detention\s+camp)\b/i
+
+export function isNonLandmarkHistoricalPrisonImageKeyword(keyword: string): boolean {
+  const raw = String(keyword ?? '').trim()
+  if (!raw) return false
+  if (/수용소|억류소|구치소/u.test(raw)) return true
+  const n = normalizeToPlaceName(raw).toLowerCase()
+  if (!n) return false
+  return NON_LANDMARK_HISTORICAL_PRISON_RE.test(n)
+}
+
 /** 호텔·숙박 시설명 — Pexels 관광지 키워드로 부적합 */
 export function isHotelLodgingImageKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
@@ -608,6 +627,7 @@ export function isLikelyTourismLandmarkKeyword(keyword: string): boolean {
   if (!n || isBareCityOrCountryKeyword(n) || isHotelLodgingImageKeyword(n)) return false
   if (isNonLandmarkFoodOrDiningImageKeyword(n)) return false
   if (isNonLandmarkSpaShoppingLoungeImageKeyword(n)) return false
+  if (isNonLandmarkHistoricalPrisonImageKeyword(n)) return false
   if (n.split(/\s+/).length >= 2) return true
   return LANDMARK_HINT_RE.test(n)
 }
@@ -640,6 +660,7 @@ export function isNonLandmarkRouteTextSegment(seg: string): boolean {
   return (
     isNonLandmarkFoodOrDiningImageKeyword(en) ||
     isNonLandmarkSpaShoppingLoungeImageKeyword(en) ||
+    isNonLandmarkHistoricalPrisonImageKeyword(en) ||
     isHotelLodgingImageKeyword(en) ||
     /\b(airport|international\s*airport|pickup|transfer)\b/i.test(en)
   )
@@ -651,6 +672,7 @@ export function isScheduleImageKeywordLandmarkEligible(keyword: string): boolean
   if (!n || n.length < 3) return false
   if (isNonLandmarkFoodOrDiningImageKeyword(n)) return false
   if (isNonLandmarkSpaShoppingLoungeImageKeyword(n)) return false
+  if (isNonLandmarkHistoricalPrisonImageKeyword(n)) return false
   if (isHotelLodgingImageKeyword(n)) return false
   if (isWeakOpaqueImageKeyword(n)) return false
   return isLikelyTourismLandmarkKeyword(n)

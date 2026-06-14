@@ -15,6 +15,7 @@ import {
 import {
   findAllMappedKoreanPoisInText,
   findMappedKoreanPoisInTextByMentionOrder,
+  isDestinationHubEnglishKeyword,
   isKnownDestinationCityEnglishKeyword,
   mapDestination,
   mapKoreanPoiSegment,
@@ -23,6 +24,7 @@ import {
 import {
   finalizeScheduleImageKeyword,
   isNonLandmarkRouteTextSegment,
+  isScheduleImageKeywordLandmarkEligible,
   normalizeToPlaceName,
 } from '@/lib/pexels-place-name-keyword'
 
@@ -279,15 +281,61 @@ function pickForeignPlaceFromRouteText(
   routeText: string | null | undefined,
   pickLast: boolean,
   productDestination: string | null | undefined,
+  opts?: { skipDestinationCity?: boolean },
 ): string {
   const segs = routeTextSegments(routeText).filter((s) => !isModetourDomesticHubToken(s))
   if (!segs.length) return ''
   const ordered = pickLast ? [...segs].reverse() : segs
+  let cityFallback = ''
   for (const seg of ordered) {
     const kw = segmentToAcceptedModetourKeyword(seg, productDestination)
-    if (kw) return kw
+    if (!kw) continue
+    if (opts?.skipDestinationCity && isDestinationHubEnglishKeyword(kw, productDestination)) {
+      if (!cityFallback) cityFallback = kw
+      continue
+    }
+    return kw
   }
-  return ''
+  return cityFallback
+}
+
+function pickFirstTourismPoiFromRouteText(
+  routeText: string | null | undefined,
+  productDestination: string | null | undefined,
+): string {
+  const hay = String(routeText ?? '').trim()
+  for (const { en } of findMappedKoreanPoisInTextByMentionOrder(hay)) {
+    const accepted = tryAcceptModetourLlmImageKeyword(en, productDestination)
+    if (
+      accepted &&
+      !isDestinationHubEnglishKeyword(accepted, productDestination) &&
+      isScheduleImageKeywordLandmarkEligible(accepted)
+    ) {
+      return accepted
+    }
+  }
+
+  const landmarks = collectRouteLandmarkKeywordsFromRouteText(routeText, productDestination)
+  const poi = landmarks.find(
+    (kw) =>
+      !isDestinationHubEnglishKeyword(kw, productDestination) &&
+      isScheduleImageKeywordLandmarkEligible(kw),
+  )
+  if (poi) return poi
+
+  return pickForeignPlaceFromRouteText(routeText, false, productDestination, { skipDestinationCity: true })
+}
+
+function filterTourismRouteLandmarkCandidates(
+  landmarks: readonly string[],
+  productDestination: string | null | undefined,
+): string[] {
+  return landmarks.filter(
+    (kw) =>
+      kw &&
+      !isDestinationHubEnglishKeyword(kw, productDestination) &&
+      isScheduleImageKeywordLandmarkEligible(kw),
+  )
 }
 
 function collectModetourLandmarkKeywords(
@@ -479,13 +527,18 @@ function resolveModetourPrimaryKeyword(
 
     const landmarks = collectModetourLandmarkKeywords(row, productDestination)
     const fromRouteLast = pickForeignPlaceFromRouteText(row.routeText, true, productDestination)
-    const fromRouteFirst = pickForeignPlaceFromRouteText(row.routeText, false, productDestination)
+    const fromRouteFirst = pickFirstTourismPoiFromRouteText(row.routeText, productDestination)
     const poiLandmarks = landmarks.filter(
       (kw) =>
-        !isKnownDestinationCityEnglishKeyword(kw) &&
+        !isDestinationHubEnglishKeyword(kw, productDestination) &&
+        isScheduleImageKeywordLandmarkEligible(kw) &&
         (!fromRouteFirst || normKey(kw) !== normKey(fromRouteFirst)),
     )
-    const dayCands = [...poiLandmarks, fromRouteLast, fromRouteFirst].filter(Boolean)
+    const dayCands = [
+      ...poiLandmarks,
+      ...(isScheduleImageKeywordLandmarkEligible(fromRouteLast) ? [fromRouteLast] : []),
+      ...(isScheduleImageKeywordLandmarkEligible(fromRouteFirst) ? [fromRouteFirst] : []),
+    ].filter(Boolean)
     const llmKey = normKey(accepted)
     let dup = 0
     for (const r of allRows) {
@@ -506,12 +559,13 @@ function resolveModetourPrimaryKeyword(
     return accepted
   }
 
-  const fromRouteFirst = pickForeignPlaceFromRouteText(row.routeText, false, productDestination)
+  const fromRouteFirst = pickFirstTourismPoiFromRouteText(row.routeText, productDestination)
   if (fromRouteFirst) return fromRouteFirst
 
   const landmarks = collectModetourLandmarkKeywords(row, productDestination)
   const fromLandmark =
-    landmarks.find((kw) => !isKnownDestinationCityEnglishKeyword(kw)) ?? landmarks[0]
+    landmarks.find((kw) => !isDestinationHubEnglishKeyword(kw, productDestination)) ??
+    landmarks[0]
   if (fromLandmark) return fromLandmark
 
   const fromRouteLast = pickForeignPlaceFromRouteText(row.routeText, true, productDestination)
@@ -536,9 +590,20 @@ function resolveModetourSecondaryKeyword(
 
   const fromRouteOrdered = pickDistinctSecondScheduleImageKeyword(
     primary,
-    collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination),
+    filterTourismRouteLandmarkCandidates(
+      collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination),
+      productDestination,
+    ),
   )
   if (fromRouteOrdered) return fromRouteOrdered
+
+  const fromRouteOrderedAny = pickDistinctSecondScheduleImageKeyword(
+    primary,
+    collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination).filter(
+      (kw) => !isDestinationHubEnglishKeyword(kw, productDestination),
+    ),
+  )
+  if (fromRouteOrderedAny) return fromRouteOrderedAny
 
   const fromRouteRaw = resolveRouteTextSecondPlace(row.routeText)
   const fromRoute = fromRouteRaw
@@ -549,7 +614,12 @@ function resolveModetourSecondaryKeyword(
   const landmarkCandidates = collectModetourLandmarkKeywords(row, productDestination)
   for (const kw of landmarkCandidates) {
     if (normKey(kw) === pk) continue
-    if (!isKnownDestinationCityEnglishKeyword(kw)) return kw
+    if (
+      !isDestinationHubEnglishKeyword(kw, productDestination) &&
+      isScheduleImageKeywordLandmarkEligible(kw)
+    ) {
+      return kw
+    }
   }
   if (!isKnownDestinationCityEnglishKeyword(primary)) return null
   for (const kw of landmarkCandidates) {
@@ -583,7 +653,7 @@ function collectModetourDayPrimaryCandidates(
   for (const kw of collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination)) push(kw)
   for (const en of findAllMappedKoreanPoisInText(buildModetourDayHaystack(row))) push(en)
   push(pickForeignPlaceFromRouteText(row.routeText, true, productDestination))
-  push(pickForeignPlaceFromRouteText(row.routeText, false, productDestination))
+  push(pickFirstTourismPoiFromRouteText(row.routeText, productDestination))
   push(inferModetourKeywordFromDayContent(row, productDestination))
   push(row.imageKeyword)
   return out
