@@ -1514,6 +1514,13 @@ class CalendarPriceScraper:
                             "day-cycle-end",
                             f"day={d_int} total_ms={int((time.monotonic() - cycle_start) * 1000)} rows_collected={len(part)}",
                         )
+                    await asyncio.sleep(
+                        max(
+                            0.0,
+                            int(getattr(config, "DAY_CLICK_INTERVAL_MS", 1000) or 1000)
+                            / 1000.0,
+                        )
+                    )
                 batch = merged_month
             else:
                 batch = await self._ybtour_collect_popup_rows_filtered(baseline)

@@ -158,6 +158,9 @@ MONTH_WAIT_MS = 1000
 VERYGOOD_POPUP_OPEN_SELECTORS = [
     "a.btn.small.jq_cl_dayChange",
     "a.jq_cl_dayChange",
+    "button.btn.middle.changeBtn.jq_cl_dayChange",
+    "button.changeBtn.jq_cl_dayChange",
+    "button.jq_cl_dayChange",
     "button:has-text('출발일변경')",
     "a:has-text('출발일변경')",
     "button:has-text('출발일 변경')",
@@ -205,6 +208,28 @@ def _verygood_phase_always(phase: str, detail: str = "") -> None:
         _verygood_log(f"[verygoodtour] phase={phase} {d}")
     else:
         _verygood_log(f"[verygoodtour] phase={phase}")
+
+
+def _normalize_verygood_detail_url(detail_url: str) -> str:
+    """
+    일반 PackageDetail URL로 통일.
+    MenuCode=leaveLayer 등 레이어 전용 쿼리는 본문이 비는 경우가 있어 제거한다.
+    """
+    s = (detail_url or "").strip()
+    if not s or "verygoodtour.com" not in s.lower():
+        return s
+    try:
+        u = urllib.parse.urlparse(s)
+        q = urllib.parse.parse_qs(u.query, keep_blank_values=False)
+        pro = (q.get("ProCode") or q.get("procode") or [None])[0]
+        if not pro:
+            return s
+        price_seq = (q.get("PriceSeq") or q.get("priceseq") or ["1"])[0]
+        new_q = urllib.parse.urlencode([("ProCode", pro), ("PriceSeq", price_seq)])
+        path = u.path or "/Product/PackageDetail"
+        return urllib.parse.urlunparse((u.scheme or "https", u.netloc, path, "", new_q, ""))
+    except Exception:
+        return s
 
 
 def _verygood_detail_url_summary(detail_url: str) -> str:
@@ -308,7 +333,6 @@ VERYGOOD_MODAL_DOM_BUNDLE_JS = r"""
       if (jm) seatsRaw = '잔여' + jm[1];
     }
     if (/대기예약/.test(t)) status = '대기예약';
-    else if (/예약마감|마감/.test(t)) status = '예약마감';
     else if (/예약가능/.test(t)) status = '예약가능';
     else if (seatsRaw) status = seatsRaw;
     const rangeM = t.match(
@@ -464,6 +488,16 @@ def _verygood_calendar_rest_seat_int(v: Dict[str, Any]) -> Optional[int]:
     return None
 
 
+def _verygood_sanitize_status_raw(raw: str) -> str:
+    """참좋은여행 달력 E2E — 예약마감 라벨은 사이트 운영상 쓰지 않음(잔여·가격만 신뢰)."""
+    s = (raw or "").strip()
+    if not s:
+        return ""
+    if re.search(r"예약\s*마감|예약마감", s):
+        return ""
+    return s
+
+
 def _verygood_modal_remain_seats_int(item: Dict[str, Any], status_raw: str) -> Optional[int]:
     """모달 DOM row에서 잔여석 정수 — 숫자 없으면 None (8필드 완전성 위해 행 제외)."""
     ss = item.get("seatsStatusRaw")
@@ -474,8 +508,6 @@ def _verygood_modal_remain_seats_int(item: Dict[str, Any], status_raw: str) -> O
         m2 = re.search(r"(\d+)\s*석", ss)
         if m2:
             return int(m2.group(1))
-    if re.search(r"마감|예약\s*마감|예약마감|불가", status_raw or ""):
-        return 0
     return None
 
 
@@ -706,6 +738,10 @@ class CalendarPriceScraper:
         _verygood_phase_always("script-entry", summ)
         priced_popup: List[Dict[str, Any]] = []
         try:
+            detail_url = _normalize_verygood_detail_url(detail_url)
+            norm_summ = _verygood_detail_url_summary(detail_url)
+            if norm_summ != summ:
+                _verygood_phase_always("url-normalized", norm_summ)
             await human_delay(DELAY_MIN, DELAY_MAX)
             await self._page.goto(
                 detail_url,
@@ -773,6 +809,85 @@ class CalendarPriceScraper:
         except Exception:
             await self._page.wait_for_timeout(min(fb_ms, timeout_ms))
 
+    async def _verygood_wait_detail_page_ready(self) -> bool:
+        """상세 본문·출발일 CTA가 붙을 때까지 대기."""
+        if not self._page:
+            return False
+        ready_ms = int(getattr(config, "VERYGOOD_E2E_DETAIL_READY_MS", 12000) or 12000)
+        js = r"""
+() => {
+  const title = String(document.title || '');
+  const bodyLen = (document.body && document.body.innerText || '').replace(/\s+/g, '').length;
+  const cta = document.querySelector(
+    'a.jq_cl_dayChange, button.jq_cl_dayChange, a.btn.small.jq_cl_dayChange, button.changeBtn.jq_cl_dayChange'
+  );
+  return bodyLen > 120 && (cta || title.includes('상품'));
+}
+"""
+        try:
+            await self._page.wait_for_function(js, timeout=ready_ms)
+            return True
+        except Exception:
+            body_len = 0
+            try:
+                body_len = int(
+                    await self._page.evaluate(
+                        "() => (document.body && document.body.innerText || '').replace(/\\s+/g,'').length"
+                    )
+                    or 0
+                )
+            except Exception:
+                pass
+            _verygood_phase_always("page-not-ready", f"bodyTextLen={body_len}")
+            return False
+
+    async def _verygood_open_departure_modal(self) -> tuple[bool, Optional[str]]:
+        if not self._page:
+            return False, None
+        for sel in VERYGOOD_POPUP_OPEN_SELECTORS:
+            try:
+                btn = await self._page.query_selector(sel)
+                if not btn:
+                    continue
+                try:
+                    await btn.scroll_into_view_if_needed(timeout=3000)
+                except Exception:
+                    pass
+                await human_delay(DELAY_MIN, DELAY_MAX)
+                await btn.click(timeout=4000)
+                await self._page.wait_for_timeout(800)
+                _verygood_phase_always("modal-open-click", sel[:96])
+                return True, sel
+            except Exception:
+                continue
+        _verygood_phase_always("modal-open-failed", "no_selector_matched")
+        return False, None
+
+    async def _verygood_right_list_diag(self) -> None:
+        if not self._page:
+            return
+        try:
+            diag = await self._page.evaluate(
+                r"""() => {
+  const right = document.querySelector('.dep_right_wrap');
+  if (!right) return { hasRight: false, liJq: 0, liAll: 0, head: '' };
+  const t = (right.innerText || '').replace(/\s+/g, ' ').trim();
+  return {
+    hasRight: true,
+    liJq: document.querySelectorAll('li.jq_cl_detailViewBtn').length,
+    liAll: right.querySelectorAll('li').length,
+    head: t.slice(0, 160),
+  };
+}"""
+            )
+            if isinstance(diag, dict) and int(diag.get("liJq") or 0) == 0:
+                _verygood_phase_always(
+                    "right-list-empty",
+                    f"liJq=0 liAll={diag.get('liAll')} head={str(diag.get('head') or '')[:120]}",
+                )
+        except Exception:
+            pass
+
     async def _run_verygoodtour_departures(self) -> List[Dict[str, Any]]:
         """
         참좋은여행 전용:
@@ -781,17 +896,9 @@ class CalendarPriceScraper:
         3) 다음달 a.date_next.jq_cl_moveMonth → span.date_txt 변경 대기 + 보조 sleep
         """
         opened = False
-        for sel in VERYGOOD_POPUP_OPEN_SELECTORS:
-            try:
-                btn = await self._page.query_selector(sel)
-                if btn:
-                    await human_delay(DELAY_MIN, DELAY_MAX)
-                    await btn.click()
-                    await self._page.wait_for_timeout(800)
-                    opened = True
-                    break
-            except Exception:
-                continue
+        opening_sel: Optional[str] = None
+        if await self._verygood_wait_detail_page_ready():
+            opened, opening_sel = await self._verygood_open_departure_modal()
         if opened:
             modal_ms = int(getattr(config, "VERYGOOD_E2E_MODAL_VISIBLE_MS", 15000) or 15000)
             for msel in VERYGOOD_MODAL_WAIT_SELECTORS:
@@ -826,6 +933,8 @@ class CalendarPriceScraper:
             rlist = spec.get("rightRows") if isinstance(spec.get("rightRows"), list) else []
             if not rlist:
                 rlist = await self._collect_verygood_popup_rows()
+            if not rlist and opened:
+                await self._verygood_right_list_diag()
             for item in rlist:
                 if not isinstance(item, dict):
                     continue
@@ -893,7 +1002,7 @@ class CalendarPriceScraper:
             if len(d) != 10 or d < _kst_verygood_departure_floor_ymd():
                 continue
             _st = (item.get("status") or "").strip()
-            status_raw = fix_mojibake_korean_str(_st) or _st
+            status_raw = _verygood_sanitize_status_raw(fix_mojibake_korean_str(_st) or _st)
             _rc = (item.get("carrierName") or "").strip()
             row_carrier = fix_airline_name_str(str(_rc)) if _rc else None
             range_txt = (item.get("departureRangeText") or "").strip() or None
@@ -1065,7 +1174,6 @@ class CalendarPriceScraper:
       if (jm) seatsRaw = '잔여' + jm[1];
     }
     if (/대기예약/.test(t)) status = '대기예약';
-    else if (/예약마감|마감/.test(t)) status = '예약마감';
     else if (/예약가능/.test(t)) status = '예약가능';
     else if (seatsRaw) status = seatsRaw;
     const rangeM = t.match(/20\\d{2}\\s*[.\\-\\/]\\s*\\d{1,2}\\s*[.\\-\\/]\\s*\\d{1,2}\\s*\\([^)]+\\)\\s*\\d{1,2}:\\d{2}\\s*[~∼～-]\\s*[\\s\\S]{0,120}/);

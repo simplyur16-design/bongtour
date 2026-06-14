@@ -23,7 +23,7 @@ export async function GET() {
     const lastYmd = row?.lastCollectedDate ? row.lastCollectedDate.toISOString().slice(0, 10) : null
     const seq = readCalendarBatchSeqState()
 
-    const nextRunHint = '3시간 1회 (KST) — 5공급사 sequential (상품별 22일 창)'
+    const nextRunHint = '3시간 1회 (KST) — 5공급사 sequential (상품별 30일 창)'
     const modeLabel =
       strategy.mode === 'manual'
         ? '수동 범위'

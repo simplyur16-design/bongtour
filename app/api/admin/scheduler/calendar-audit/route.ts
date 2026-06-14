@@ -82,7 +82,7 @@ export async function GET() {
     },
     setupSteps,
     scheduleNote:
-      '매일 21:00 KST → sequential: 등록 상품 순번대로 상품별 14일 창(cursor+1~+14), 창 안 전부 수집, wall-budget 내 resume. modetour는 레거시(today~horizon). 수동: POST /api/admin/scheduler/run-once.',
+      '3시간 1회 (KST) — sequential: 등록 상품 순번대로 상품별 30일 창(cursor+1~+30), 창 안 전부 수집. non-modetour는 실패 시에도 상품별 cursor 전진(공급사 일괄 차단 없음). modetour는 레거시(today~horizon). 수동: POST /api/admin/scheduler/run-once.',
     issues,
   })
 }

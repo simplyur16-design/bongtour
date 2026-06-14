@@ -681,7 +681,13 @@ class CalendarPriceScraper:
                             continue
                     except Exception:
                         continue
-                    await human_delay(0.35, 0.65)
+                    await asyncio.sleep(
+                        max(
+                            0.0,
+                            int(getattr(config, "DAY_CLICK_INTERVAL_MS", 1000) or 1000)
+                            / 1000.0,
+                        )
+                    )
                     panel_txt = ""
                     d_dot = d.replace("-", ".")
                     for _ in range(28):

@@ -3594,11 +3594,15 @@ class HanatourCalendarE2EScraper:
                         await asyncio.sleep(
                             max(0.02, config.POST_CLICK_BEFORE_LIST_MS / 1000.0)
                         )
-                    elif _e2e_light_ops() or _e2e_fast():
-                        await human_delay(0.28, 0.55)
                     else:
-                        # 날짜(일자) 클릭 직후 — 사람이 다음 UI를 읽는 시간
-                        await human_delay(2.0, 3.0)
+                        # 날짜(일자) 클릭 직후 — 공급사 SSOT 간격(기본 1초)
+                        await asyncio.sleep(
+                            max(
+                                0.0,
+                                int(getattr(config, "DAY_CLICK_INTERVAL_MS", 1000) or 1000)
+                                / 1000.0,
+                            )
+                        )
                     pre_list_ms = (_time.perf_counter() - t_pre0) * 1000
                     refresh_proof = ""
                     list_refresh_forced_aggressive = False

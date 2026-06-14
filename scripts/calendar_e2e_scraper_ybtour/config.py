@@ -17,6 +17,8 @@ def _int_env(name: str, default: int) -> int:
 
 
 # calendar_price_scraper 전용 — env로 덮어쓰기 (YBTOUR_E2E_*)
+# 날짜(일자) 클릭 간격 — 스케줄러·E2E 공통 (env YBTOUR_E2E_DAY_CLICK_INTERVAL_MS)
+DAY_CLICK_INTERVAL_MS = _int_env("YBTOUR_E2E_DAY_CLICK_INTERVAL_MS", 1000)
 YBTOUR_E2E_MODAL_VISIBLE_MS = _int_env("YBTOUR_E2E_MODAL_VISIBLE_MS", 10000)
 YBTOUR_E2E_LIST_DIGEST_TIMEOUT_MS = _int_env("YBTOUR_E2E_LIST_DIGEST_TIMEOUT_MS", 2500)
 YBTOUR_E2E_LIST_DIGEST_POLL_MS = _int_env("YBTOUR_E2E_LIST_DIGEST_POLL_MS", 80)

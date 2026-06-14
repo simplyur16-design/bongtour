@@ -29,6 +29,8 @@ VERYGOOD_E2E_MONTH_HEADER_TIMEOUT_MS = _int_env("VERYGOOD_E2E_MONTH_HEADER_TIMEO
 VERYGOOD_E2E_RIGHT_SCROLL_PASSES = _int_env("VERYGOOD_E2E_RIGHT_SCROLL_PASSES", 2)
 # 모달 E2E에서 다음 달 이동·우측 리스트 스크롤 루프의 월 순회 상한
 VERYGOOD_E2E_MONTH_LIMIT = _int_env("VERYGOOD_E2E_MONTH_LIMIT", 12)
+# 상세 본문·출발일 CTA 대기 상한(ms)
+VERYGOOD_E2E_DETAIL_READY_MS = _int_env("VERYGOOD_E2E_DETAIL_READY_MS", 12000)
 
 SELECTOR_GNB_OVERSEAS = "a:has-text('해외여행'), nav a:has-text('해외여행'), .gnb a:has-text('해외여행')"
 SELECTOR_COUNTRY = ".gnb_sub a, .sub_menu a, .depth2 a"

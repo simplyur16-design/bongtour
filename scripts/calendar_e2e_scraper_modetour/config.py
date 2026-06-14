@@ -23,6 +23,9 @@ def _int_env(name: str, default: int) -> int:
         return default
 
 
+# 날짜(일자) 셀 클릭 간격 — 스케줄러·E2E 공통 (env MODETOUR_E2E_DAY_CLICK_INTERVAL_MS)
+DAY_CLICK_INTERVAL_MS = _int_env("MODETOUR_E2E_DAY_CLICK_INTERVAL_MS", 1000)
+
 # 모달 E2E: 가격 셀 클릭·패널 병합 최대 건수 (운영 subprocess 120s 등과 트레이드오프)
 MODETOUR_E2E_MAX_CLICKS = _int_env("MODETOUR_E2E_MAX_CLICKS", 32)
 

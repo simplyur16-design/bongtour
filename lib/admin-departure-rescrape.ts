@@ -126,8 +126,8 @@ export function buildDetailUrl(originSource: string, originCode: string): string
   if (src.includes('紐⑤몢') || src === 'modetour') {
     return `${MODETOUR_BASE.replace(/\/$/, '')}/package/detail?pkgCd=${code}`
   }
-  if (src.includes('李몄쥕?') || src.includes('verygoodtour')) {
-    return `${VERYGOODTOUR_BASE.replace(/\/$/, '')}/Product/PackageDetail?ProCode=${code}&PriceSeq=1&MenuCode=leaveLayer`
+  if (normalizeSupplierOrigin(originSource) === 'verygoodtour') {
+    return `${VERYGOODTOUR_BASE.replace(/\/$/, '')}/Product/PackageDetail?ProCode=${code}&PriceSeq=1`
   }
   if (normalizeSupplierOrigin(originSource) === 'lottetour') {
     const base = LOTTETOUR_BASE.replace(/\/$/, '')

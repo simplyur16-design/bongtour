@@ -43,7 +43,7 @@ function ymdToUtcNoon(ymd: string): Date {
 }
 
 /**
- * sequential: 매일 실행, 상품별 14일 창은 products API·Python이 결정.
+ * sequential: 매일 실행, 상품별 30일 창은 products API·Python이 결정.
  * dateRange* 는 지평선(today~today+180) — 로그·env용.
  */
 export async function determineScrapeStrategy(): Promise<ScrapeScheduleStrategy> {

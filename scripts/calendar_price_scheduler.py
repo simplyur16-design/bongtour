@@ -44,6 +44,10 @@ SEQ_START_INDEX = int(os.getenv("SCRAPER_CALENDAR_SEQ_START_INDEX", "0") or "0")
 WALL_BUDGET_SEC = float(os.getenv("CALENDAR_BATCH_WALL_BUDGET_SEC", "36000"))
 MAX_RETRIES_PER_PRODUCT = 3
 BATCH_MODE = (os.getenv("SCRAPER_BATCH_MODE") or "").strip() or "daemon"
+# modetour만 공급사 단위 연속 실패 차단(기본 30회). 그 외는 상품별 cursor 전진만 — 3회 차단 금지.
+MODETOUR_SUPPLIER_BLOCK_CONSECUTIVE_FAILS = int(
+    os.getenv("MODETOUR_SUPPLIER_BLOCK_CONSECUTIVE_FAILS", "30") or "30"
+)
 
 _CALENDAR_MODULE_BY_SITE: Dict[str, str] = {
     "hanatour": "scripts.calendar_e2e_scraper_hanatour.calendar_price_scraper",
@@ -452,6 +456,38 @@ def process_one_with_retries(
     return "fail"
 
 
+def _is_modetour_site(site: str) -> bool:
+    return (site or "").strip().lower() == "modetour"
+
+
+def _supplier_block_applies(site: str) -> bool:
+    """non-modetour: 상품 단위 cursor 전진만. modetour legacy만 연속 실패 시 공급사 일괄 skip."""
+    return _is_modetour_site(site) and MODETOUR_SUPPLIER_BLOCK_CONSECUTIVE_FAILS > 0
+
+
+def _reset_site_fail_counter(site: str, consecutive_site_fail: Dict[str, int]) -> None:
+    if _supplier_block_applies(site):
+        consecutive_site_fail[site] = 0
+
+
+def _bump_site_fail_counter(
+    site: str,
+    consecutive_site_fail: Dict[str, int],
+    skipped_sites: set[str],
+) -> None:
+    if not _supplier_block_applies(site):
+        return
+    consecutive_site_fail[site] = consecutive_site_fail.get(site, 0) + 1
+    threshold = MODETOUR_SUPPLIER_BLOCK_CONSECUTIVE_FAILS
+    if consecutive_site_fail[site] >= threshold:
+        logger.error(
+            "Skip supplier after %d consecutive failures: %s",
+            threshold,
+            site,
+        )
+        skipped_sites.add(site)
+
+
 def _apply_site_gaps(prev_site: Optional[str], site: str) -> None:
     if prev_site is None:
         return
@@ -513,7 +549,7 @@ def run_batch() -> Dict[str, Any]:
         abs_index = start_idx + i - 1
         site = str(product.get("site") or "hanatour").strip().lower()
 
-        if site in skipped_sites:
+        if _supplier_block_applies(site) and site in skipped_sites:
             skip_c += 1
             logger.info("Skip (supplier blocked): %s id=%s", site, product.get("id"))
             last_completed_index = abs_index
@@ -536,18 +572,16 @@ def run_batch() -> Dict[str, Any]:
                 st = process_one_with_retries(product, legacy_rng, max_saved_ymd)
                 if st == "ok":
                     ok_c += 1
-                    consecutive_site_fail[site] = 0
+                    _reset_site_fail_counter(site, consecutive_site_fail)
                 elif st == "skip":
                     skip_c += 1
                 else:
                     fail_c += 1
-                    consecutive_site_fail[site] = consecutive_site_fail.get(site, 0) + 1
-                    if consecutive_site_fail[site] >= 3:
-                        logger.error("Skip supplier after 3 consecutive failures: %s", site)
-                        skipped_sites.add(site)
+                    _bump_site_fail_counter(site, consecutive_site_fail, skipped_sites)
             except Exception as e:
                 logger.exception("modetour legacy item failed: %s", e)
                 fail_c += 1
+                _bump_site_fail_counter(site, consecutive_site_fail, skipped_sites)
             last_completed_index = abs_index
             processed_count += 1
             continue
@@ -576,22 +610,18 @@ def run_batch() -> Dict[str, Any]:
                 _advance_product_after_window(product, hi)
             if st == "ok":
                 ok_c += 1
-                consecutive_site_fail[site] = 0
+                _reset_site_fail_counter(site, consecutive_site_fail)
             elif st == "skip":
                 skip_c += 1
             else:
                 fail_c += 1
-                consecutive_site_fail[site] = consecutive_site_fail.get(site, 0) + 1
-                if consecutive_site_fail[site] >= 3:
-                    logger.error("Skip supplier after 3 consecutive failures: %s", site)
-                    skipped_sites.add(site)
+                # 실패해도 _advance_product_after_window 로 해당 상품 cursor 전진 → 다음 상품으로
+                _bump_site_fail_counter(site, consecutive_site_fail, skipped_sites)
         except Exception as e:
             logger.exception("Item %d failed: %s", i, e)
             fail_c += 1
             _advance_product_after_window(product, hi)
-            consecutive_site_fail[site] = consecutive_site_fail.get(site, 0) + 1
-            if consecutive_site_fail[site] >= 3:
-                skipped_sites.add(site)
+            _bump_site_fail_counter(site, consecutive_site_fail, skipped_sites)
         finally:
             _clear_site_date_env()
 
