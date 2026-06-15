@@ -42,6 +42,9 @@ SCHEDULER_MINUTE = int(os.getenv("SCHEDULER_MINUTE", "30"))
 HORIZON_END = (os.getenv("SCRAPER_CALENDAR_HORIZON_END") or "").strip()[:10]
 SEQ_START_INDEX = int(os.getenv("SCRAPER_CALENDAR_SEQ_START_INDEX", "0") or "0")
 WALL_BUDGET_SEC = float(os.getenv("CALENDAR_BATCH_WALL_BUDGET_SEC", "36000"))
+DB_COOLDOWN_SEC = float(os.getenv("CALENDAR_BATCH_DB_COOLDOWN_SEC", "8") or "8")
+DB_COOLDOWN_PER_50_ROWS = float(os.getenv("CALENDAR_BATCH_DB_COOLDOWN_PER_50_ROWS", "2") or "2")
+HTTP_RETRY_MAX = max(1, int(os.getenv("CALENDAR_BATCH_HTTP_RETRY_MAX", "4") or "4"))
 MAX_RETRIES_PER_PRODUCT = 3
 BATCH_MODE = (os.getenv("SCRAPER_BATCH_MODE") or "").strip() or "daemon"
 # modetour만 공급사 단위 연속 실패 차단(기본 30회). 그 외는 상품별 cursor 전진만 — 3회 차단 금지.
@@ -332,7 +335,7 @@ def _patch_product_cursor(product_id: str, payload: Dict[str, Any]) -> bool:
     headers = {**_headers(), "Content-Type": "application/json"}
     req = urllib.request.Request(url, data=body, headers=headers, method="PATCH")
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with _urlopen_with_retry(req, timeout=90, label=f"patch_cursor:{product_id}") as resp:
             resp.read()
             return True
     except Exception as e:
@@ -346,12 +349,15 @@ def _advance_product_after_window(product: Dict[str, Any], range_end_ymd: str) -
         return
     if product.get("atHorizon") or product.get("windowEmpty"):
         if product.get("hasFutureDepartures") is True:
-            _patch_product_cursor(pid, {"horizonRolling": True})
+            if _patch_product_cursor(pid, {"horizonRolling": True}):
+                time.sleep(min(3.0, max(1.0, DB_COOLDOWN_SEC * 0.25)))
         else:
-            _patch_product_cursor(pid, {"retired": True})
+            if _patch_product_cursor(pid, {"retired": True}):
+                time.sleep(min(3.0, max(1.0, DB_COOLDOWN_SEC * 0.25)))
         return
     if range_end_ymd:
-        _patch_product_cursor(pid, {"advanceToYmd": range_end_ymd})
+        if _patch_product_cursor(pid, {"advanceToYmd": range_end_ymd}):
+            time.sleep(min(3.0, max(1.0, DB_COOLDOWN_SEC * 0.25)))
 
 
 def _emit_batch_result(payload: Dict[str, Any]) -> None:
@@ -366,11 +372,64 @@ def _headers() -> Dict[str, str]:
     return h
 
 
+def _db_cooldown_after_write(row_count: int = 0) -> None:
+    """Supabase pooler·web 단일 프로세스 — calendar-prices 직후 연결 회복 대기."""
+    extra = (max(0, int(row_count)) // 50) * DB_COOLDOWN_PER_50_ROWS
+    total = DB_COOLDOWN_SEC + extra
+    if total <= 0:
+        return
+    logger.info("DB cooldown %.1fs after write (rows=%d)", total, row_count)
+    time.sleep(total)
+
+
+def _urlopen_with_retry(req: urllib.request.Request, timeout: float, label: str):
+    last_err: Optional[Exception] = None
+    for attempt in range(1, HTTP_RETRY_MAX + 1):
+        try:
+            return urllib.request.urlopen(req, timeout=timeout)
+        except urllib.error.HTTPError as e:
+            last_err = e
+            if e.code in (429, 502, 503, 504) and attempt < HTTP_RETRY_MAX:
+                wait = min(30.0, 3.0 * attempt)
+                logger.warning(
+                    "%s HTTP %s retry %d/%d after %.1fs",
+                    label,
+                    e.code,
+                    attempt,
+                    HTTP_RETRY_MAX,
+                    wait,
+                )
+                time.sleep(wait)
+                continue
+            raise
+        except Exception as e:
+            last_err = e
+            msg = str(e).lower()
+            if attempt < HTTP_RETRY_MAX and (
+                "timed out" in msg or "connection" in msg or "10061" in msg or "10054" in msg
+            ):
+                wait = min(30.0, 3.0 * attempt)
+                logger.warning(
+                    "%s connection retry %d/%d after %.1fs: %s",
+                    label,
+                    attempt,
+                    HTTP_RETRY_MAX,
+                    wait,
+                    e,
+                )
+                time.sleep(wait)
+                continue
+            raise
+    if last_err:
+        raise last_err
+    raise RuntimeError(f"{label}: urlopen failed")
+
+
 def fetch_products() -> List[Dict[str, Any]]:
     url = f"{API_BASE}/api/admin/scheduler/products"
     req = urllib.request.Request(url, headers=_headers(), method="GET")
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with _urlopen_with_retry(req, timeout=90, label="fetch_products") as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data if isinstance(data, list) else []
     except urllib.error.HTTPError as e:
@@ -386,7 +445,7 @@ def save_calendar_prices(product_id: str, items: List[Dict[str, Any]]) -> bool:
     body = json.dumps({"items": items}).encode("utf-8")
     req = urllib.request.Request(url, data=body, headers=_headers(), method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with _urlopen_with_retry(req, timeout=180, label=f"save_calendar_prices:{product_id}") as resp:
             resp.read()
             return True
     except urllib.error.HTTPError as e:
@@ -422,6 +481,7 @@ def _process_one_attempt(
             return "fail"
         if save_calendar_prices(product_id, items):
             logger.info("Saved id=%s", product_id)
+            _db_cooldown_after_write(len(items))
             for it in items:
                 y = _item_date_ymd(it)
                 if y and (not max_saved_ymd_holder[0] or y > max_saved_ymd_holder[0]):

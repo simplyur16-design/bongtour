@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
+import { withAdminBatchDbSlot } from '@/lib/admin-batch-db-semaphore'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 import {
   mergeCalendarBatchCursorIntoRawMeta,
   mergeCalendarBatchHorizonRollingIntoRawMeta,
@@ -34,40 +36,47 @@ export async function PATCH(
   try {
     const { id: productId } = await params
     const body = (await request.json()) as PatchBody
-    const row = await prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true, rawMeta: true },
-    })
-    if (!row) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    return await withAdminBatchDbSlot(`calendar-batch-cursor:${productId}`, () =>
+      withPrismaRetry(`calendar-batch-cursor:${productId}`, async () => {
+        const row = await prisma.product.findUnique({
+          where: { id: productId },
+          select: { id: true, rawMeta: true },
+        })
+        if (!row) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
 
-    let rawMeta = row.rawMeta
+        let rawMeta = row.rawMeta
 
-    if (body.horizonRolling === true) {
-      const rollingYmd = rollingCursorYmdForHorizonReset(seoulCalendarYmd())
-      rawMeta = mergeCalendarBatchHorizonRollingIntoRawMeta(rawMeta, rollingYmd)
-      await prisma.product.update({ where: { id: productId }, data: { rawMeta } })
-      return NextResponse.json({
-        ok: true,
-        productId,
-        cursorYmd: rollingYmd,
-        horizonRolling: true,
-        retired: false,
+        if (body.horizonRolling === true) {
+          const rollingYmd = rollingCursorYmdForHorizonReset(seoulCalendarYmd())
+          rawMeta = mergeCalendarBatchHorizonRollingIntoRawMeta(rawMeta, rollingYmd)
+          await prisma.product.update({ where: { id: productId }, data: { rawMeta } })
+          return NextResponse.json({
+            ok: true,
+            productId,
+            cursorYmd: rollingYmd,
+            horizonRolling: true,
+            retired: false,
+          })
+        }
+
+        if (body.retired === true) {
+          rawMeta = mergeCalendarBatchRetiredIntoRawMeta(rawMeta, true)
+          await prisma.product.update({ where: { id: productId }, data: { rawMeta } })
+          return NextResponse.json({ ok: true, productId, retired: true })
+        }
+
+        const advance = ymdOk(body.advanceToYmd) ?? ymdOk(body.cursorYmd)
+        if (!advance) {
+          return NextResponse.json(
+            { error: 'cursorYmd or advanceToYmd (YYYY-MM-DD) required' },
+            { status: 400 }
+          )
+        }
+        rawMeta = mergeCalendarBatchCursorIntoRawMeta(rawMeta, advance)
+        await prisma.product.update({ where: { id: productId }, data: { rawMeta } })
+        return NextResponse.json({ ok: true, productId, cursorYmd: advance, retired: false })
       })
-    }
-
-    if (body.retired === true) {
-      rawMeta = mergeCalendarBatchRetiredIntoRawMeta(rawMeta, true)
-      await prisma.product.update({ where: { id: productId }, data: { rawMeta } })
-      return NextResponse.json({ ok: true, productId, retired: true })
-    }
-
-    const advance = ymdOk(body.advanceToYmd) ?? ymdOk(body.cursorYmd)
-    if (!advance) {
-      return NextResponse.json({ error: 'cursorYmd or advanceToYmd (YYYY-MM-DD) required' }, { status: 400 })
-    }
-    rawMeta = mergeCalendarBatchCursorIntoRawMeta(rawMeta, advance)
-    await prisma.product.update({ where: { id: productId }, data: { rawMeta } })
-    return NextResponse.json({ ok: true, productId, cursorYmd: advance, retired: false })
+    )
   } catch (e) {
     console.error('[calendar-batch-cursor]', e)
     return NextResponse.json({ error: '처리 중 오류' }, { status: 500 })

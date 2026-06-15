@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { requireAdmin } from '@/lib/require-admin'
+import { withAdminBatchDbSlot } from '@/lib/admin-batch-db-semaphore'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour'
 import * as updDeparturesModetour from '@/lib/upsert-product-departures-modetour'
 import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-verygoodtour'
@@ -72,6 +74,15 @@ type BodyItem = {
   meetingGuideNoticeRaw?: string | null
 }
 
+const DEPARTURE_UPSERT_CHUNK = Math.max(
+  10,
+  Math.min(50, parseInt(process.env.CALENDAR_PRICES_UPSERT_CHUNK ?? '25', 10) || 25)
+)
+
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
 /**
  * POST /api/admin/products/[id]/calendar-prices. 인증: 관리자.
  */
@@ -89,19 +100,21 @@ export async function POST(
       return NextResponse.json({ updated: 0, created: 0 })
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true, originSource: true, brand: { select: { brandKey: true } } },
-    })
-    if (!product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
-    }
+    return await withAdminBatchDbSlot(`calendar-prices:${productId}`, async () =>
+      withPrismaRetry(`calendar-prices:${productId}`, async () => {
+        const product = await prisma.product.findUnique({
+          where: { id: productId },
+          select: { id: true, originSource: true, brand: { select: { brandKey: true } } },
+        })
+        if (!product) {
+          return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+        }
 
-    let rejectedInvalidPrice = 0
-    let rejectedBelowMinPrice = 0
-    let rejectedMissingDate = 0
+        let rejectedInvalidPrice = 0
+        let rejectedBelowMinPrice = 0
+        let rejectedMissingDate = 0
 
-    const normalized = items
+        const normalized = items
       .map((i) => {
         const adultKrw = resolveCalendarPricesAdultKrw(i)
         const reject = calendarPricesRejectReason(i, adultKrw)
@@ -249,39 +262,47 @@ export async function POST(
     })
     if (created.count > 0) await updateLastPriceObservedAt(prisma, productId)
 
-    await upsertDeparturesModuleForProduct(product).upsertProductDepartures(
-      prisma,
-      productId,
-      normalized.map((n) => {
-        const prev = existingChildByUtc.get(n.date.getTime())
-        return {
-          departureDate: n.date,
-          adultPrice: n.adultPrice,
-          childBedPrice: pickPreservedChildInfantPriceForCalendar(n.childBedPrice, prev?.childBedPrice),
-          childNoBedPrice: pickPreservedChildInfantPriceForCalendar(n.childNoBedPrice, prev?.childNoBedPrice),
-          infantPrice: pickPreservedChildInfantPriceForCalendar(n.infantPrice, prev?.infantPrice),
-          localPriceText: n.localPriceText,
-          statusRaw: n.statusRaw,
-          seatsStatusRaw: n.seatsStatusRaw,
-          minPax: n.minPax,
-          carrierName: n.carrierName,
-          outboundFlightNo: n.outboundFlightNo,
-          outboundDepartureAirport: n.outboundDepartureAirport,
-          outboundDepartureAt: n.outboundDepartureAt,
-          outboundArrivalAirport: n.outboundArrivalAirport,
-          outboundArrivalAt: n.outboundArrivalAt,
-          inboundFlightNo: n.inboundFlightNo,
-          inboundDepartureAirport: n.inboundDepartureAirport,
-          inboundDepartureAt: n.inboundDepartureAt,
-          inboundArrivalAirport: n.inboundArrivalAirport,
-          inboundArrivalAt: n.inboundArrivalAt,
-          meetingInfoRaw: n.meetingInfoRaw,
-          meetingPointRaw: n.meetingPointRaw,
-          meetingTerminalRaw: n.meetingTerminalRaw,
-          meetingGuideNoticeRaw: n.meetingGuideNoticeRaw,
-        }
-      })
-    )
+    const upsertMod = upsertDeparturesModuleForProduct(product)
+    const toDepartureInput = (n: (typeof normalized)[number]) => {
+      const prev = existingChildByUtc.get(n.date.getTime())
+      return {
+        departureDate: n.date,
+        adultPrice: n.adultPrice,
+        childBedPrice: pickPreservedChildInfantPriceForCalendar(n.childBedPrice, prev?.childBedPrice),
+        childNoBedPrice: pickPreservedChildInfantPriceForCalendar(n.childNoBedPrice, prev?.childNoBedPrice),
+        infantPrice: pickPreservedChildInfantPriceForCalendar(n.infantPrice, prev?.infantPrice),
+        localPriceText: n.localPriceText,
+        statusRaw: n.statusRaw,
+        seatsStatusRaw: n.seatsStatusRaw,
+        minPax: n.minPax,
+        carrierName: n.carrierName,
+        outboundFlightNo: n.outboundFlightNo,
+        outboundDepartureAirport: n.outboundDepartureAirport,
+        outboundDepartureAt: n.outboundDepartureAt,
+        outboundArrivalAirport: n.outboundArrivalAirport,
+        outboundArrivalAt: n.outboundArrivalAt,
+        inboundFlightNo: n.inboundFlightNo,
+        inboundDepartureAirport: n.inboundDepartureAirport,
+        inboundDepartureAt: n.inboundDepartureAt,
+        inboundArrivalAirport: n.inboundArrivalAirport,
+        inboundArrivalAt: n.inboundArrivalAt,
+        meetingInfoRaw: n.meetingInfoRaw,
+        meetingPointRaw: n.meetingPointRaw,
+        meetingTerminalRaw: n.meetingTerminalRaw,
+        meetingGuideNoticeRaw: n.meetingGuideNoticeRaw,
+      }
+    }
+    for (let off = 0; off < normalized.length; off += DEPARTURE_UPSERT_CHUNK) {
+      const chunk = normalized.slice(off, off + DEPARTURE_UPSERT_CHUNK)
+      await upsertMod.upsertProductDepartures(
+        prisma,
+        productId,
+        chunk.map(toDepartureInput)
+      )
+      if (off + DEPARTURE_UPSERT_CHUNK < normalized.length) {
+        await sleepMs(250)
+      }
+    }
 
     await prisma.scraperQueue.deleteMany({ where: { productId } }).catch(() => {})
 
@@ -295,6 +316,8 @@ export async function POST(
       rejectedMissingDate,
       rejectedTotal,
     })
+      })
+    )
   } catch (e) {
     console.error(e)
     return NextResponse.json(

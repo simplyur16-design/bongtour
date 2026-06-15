@@ -98,5 +98,8 @@ export function getCalendarBatchSpawnEnv(overrides?: Record<string, string>): No
   if (bearer && !(env.ADMIN_BYPASS_SECRET ?? '').trim()) {
     env.ADMIN_BYPASS_SECRET = bearer
   }
+  if (!(env.CALENDAR_BATCH_DB_COOLDOWN_SEC ?? '').trim()) {
+    env.CALENDAR_BATCH_DB_COOLDOWN_SEC = process.env.CALENDAR_BATCH_DB_COOLDOWN_SEC ?? '8'
+  }
   return env
 }
