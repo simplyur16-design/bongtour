@@ -67,19 +67,21 @@ export async function GET() {
           p."originUrl",
           CASE
             WHEN p."rawMeta" IS NULL OR btrim(p."rawMeta") = '' THEN NULL
-            WHEN NOT (btrim(p."rawMeta") ~ '^\\{') THEN NULL
-            WHEN (p."rawMeta"::jsonb->>'calendarBatchCursorYmd') ~ '^\\d{4}-\\d{2}-\\d{2}$'
-              THEN p."rawMeta"::jsonb->>'calendarBatchCursorYmd'
-            ELSE NULL
+            ELSE NULLIF(
+              substring(
+                p."rawMeta"
+                from '"calendarBatchCursorYmd"\\s*:\\s*"(\\d{4}-\\d{2}-\\d{2})"'
+              ),
+              ''
+            )
           END AS "calendarBatchCursorYmd",
           CASE
             WHEN p."rawMeta" IS NULL OR btrim(p."rawMeta") = '' THEN false
-            WHEN NOT (btrim(p."rawMeta") ~ '^\\{') THEN false
-            ELSE COALESCE(
-              (p."rawMeta"::jsonb->>'calendarBatchRetired') IN ('true', '1')
-              OR (p."rawMeta"::jsonb->'calendarBatchRetired') = 'true'::jsonb,
-              false
-            )
+            WHEN p."rawMeta" ~ '"calendarBatchRetired"\\s*:\\s*true(\\s*[,}]|$)' THEN true
+            WHEN p."rawMeta" ~ '"calendarBatchRetired"\\s*:\\s*"true"' THEN true
+            WHEN p."rawMeta" ~ '"calendarBatchRetired"\\s*:\\s*1(\\s*[,}]|$)' THEN true
+            WHEN p."rawMeta" ~ '"calendarBatchRetired"\\s*:\\s*"1"' THEN true
+            ELSE false
           END AS "calendarBatchRetired"
         FROM "Product" p
         WHERE p."registrationStatus" = 'registered'
