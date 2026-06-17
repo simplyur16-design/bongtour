@@ -71,6 +71,21 @@ export default async function MarketingDashboardPage() {
           counts={STATUSES.map((s) => ({ status: s, label: STATUS_LABEL[s], n: cell('airtel', s) }))}
         />
       </div>
+
+      <div className="rounded-xl border border-bt-border-strong bg-white p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-bt-title">카드뉴스</h2>
+            <p className="mt-1 text-sm text-bt-body/70">인스타그램 카드뉴스 시리즈·편·슬라이드</p>
+          </div>
+          <Link
+            href="/admin/marketing/card-news"
+            className="shrink-0 rounded-lg bg-bt-brand-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+          >
+            관리 →
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }

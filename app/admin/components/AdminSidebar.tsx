@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   ADMIN_NAV_ACTIVE_CLASS,
@@ -34,6 +34,8 @@ import {
   Plane,
   MapPin,
   Trash2,
+  Sparkles,
+  Quote,
 } from 'lucide-react'
 
 type NavLink = { href: string; label: string; icon: LucideIcon }
@@ -54,6 +56,8 @@ const navEntries: NavEntry[] = [
       { href: '/admin/marketing', label: '개요', icon: Megaphone },
       { href: '/admin/marketing/packages', label: '패키지', icon: Package },
       { href: '/admin/marketing/airtel', label: '자유여행', icon: Plane },
+      { href: '/admin/marketing/trip-recommendations', label: '콘텐츠 자동화', icon: Sparkles },
+      { href: '/admin/marketing/hooks', label: '후킹 라이브러리', icon: Quote },
     ],
   },
   { type: 'link', href: '/admin/image-assets-upload', label: '이미지 업로드 · 출처(iStock)', icon: Images },
@@ -133,6 +137,23 @@ function NavItemLink({
 export default function AdminSidebar() {
   const pathname = usePathname() ?? ''
   const [collapsed, setCollapsed] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <aside className={`${ADMIN_SIDEBAR_CLASS} w-56`} aria-hidden="true">
+        <div className={ADMIN_SIDEBAR_HEADER_CLASS}>
+          <span className="truncate text-sm font-semibold text-white">Bong투어 관리</span>
+          <span className="h-8 w-8 shrink-0" />
+        </div>
+        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2" />
+      </aside>
+    )
+  }
 
   return (
     <aside className={`${ADMIN_SIDEBAR_CLASS} ${collapsed ? 'w-[56px]' : 'w-56'}`}>

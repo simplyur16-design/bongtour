@@ -24,6 +24,7 @@ type PostDetail = {
   url: string | null
   naverPostKey: string | null
   publishReminderSentAt: string | null
+  hashtags: string[]
   createdAt: string
   inquiryAbsoluteUrl: string | null
   productTitle: string | null
@@ -106,6 +107,16 @@ export default function MarketingBlogDetailClient(props: {
     try {
       await navigator.clipboard.writeText(post.inquiryAbsoluteUrl)
       setMsg('상담 URL을 복사했습니다.')
+    } catch {
+      setErr('복사에 실패했습니다.')
+    }
+  }
+
+  const copyHashtags = async () => {
+    if (!post?.hashtags?.length) return
+    try {
+      await navigator.clipboard.writeText(post.hashtags.join(' '))
+      setMsg('해시태그를 복사했습니다.')
     } catch {
       setErr('복사에 실패했습니다.')
     }
@@ -270,6 +281,25 @@ export default function MarketingBlogDetailClient(props: {
         >
           본문 저장
         </button>
+        {post.hashtags && post.hashtags.length > 0 && (
+          <div className="mt-4 border-t border-bt-border-strong pt-4">
+            <h5 className="text-sm font-medium text-bt-title">해시태그 ({post.hashtags.length}개)</h5>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {post.hashtags.map((tag, i) => (
+                <span key={i} className="rounded bg-bt-surface-soft px-2 py-1 text-xs text-bt-body">
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => void copyHashtags()}
+              className="mt-2 text-xs text-bt-brand-blue hover:underline"
+            >
+              해시태그 복사
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="rounded-lg border border-bt-border-strong bg-white p-4 shadow-sm">
