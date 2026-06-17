@@ -23,6 +23,33 @@ function ymdOk(s: string | undefined): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null
 }
 
+function dualWriteCalendarMetaToRawMeta(): boolean {
+  return process.env.DUAL_WRITE_CALENDAR_META === '1'
+}
+
+/**
+ * rawMeta JSON merge 호출을 try-catch로 감싼 안전 래퍼.
+ * broken rawMeta (예: unpaired surrogate)인 row에서도 PATCH가 500나지 않도록.
+ * 컬럼 쓰기는 항상 성공해야 하고 rawMeta mirror 실패는 silent skip.
+ */
+function safeRawMetaMerge<T extends (rawMeta: string | null, ...args: any[]) => string>(
+  mergeFn: T,
+  rawMeta: string | null,
+  productId: string,
+  ...args: any[]
+): string | null {
+  if (!dualWriteCalendarMetaToRawMeta()) return rawMeta
+  try {
+    return mergeFn(rawMeta, ...args)
+  } catch (err) {
+    console.warn('[calendar-batch-cursor] rawMeta mirror skipped (broken row)', {
+      error: err instanceof Error ? err.message : String(err),
+      productId,
+    })
+    return rawMeta
+  }
+}
+
 /**
  * PATCH /api/admin/products/[id]/calendar-batch-cursor
  * Python 배치: 상품별 cursor 전진·지평선 롤링·은퇴.
@@ -40,16 +67,31 @@ export async function PATCH(
       withPrismaRetry(`calendar-batch-cursor:${productId}`, async () => {
         const row = await prisma.product.findUnique({
           where: { id: productId },
-          select: { id: true, rawMeta: true },
+          select: {
+            id: true,
+            rawMeta: true,
+            calendarBatchCursorYmd: true,
+            calendarBatchRetired: true,
+          },
         })
         if (!row) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
 
-        let rawMeta = row.rawMeta
-
         if (body.horizonRolling === true) {
           const rollingYmd = rollingCursorYmdForHorizonReset(seoulCalendarYmd())
-          rawMeta = mergeCalendarBatchHorizonRollingIntoRawMeta(rawMeta, rollingYmd)
-          await prisma.product.update({ where: { id: productId }, data: { rawMeta } })
+          const nextRawMeta = safeRawMetaMerge(
+            mergeCalendarBatchHorizonRollingIntoRawMeta,
+            row.rawMeta,
+            productId,
+            rollingYmd
+          )
+          await prisma.product.update({
+            where: { id: productId },
+            data: {
+              calendarBatchCursorYmd: rollingYmd,
+              calendarBatchRetired: false,
+              ...(dualWriteCalendarMetaToRawMeta() ? { rawMeta: nextRawMeta } : {}),
+            },
+          })
           return NextResponse.json({
             ok: true,
             productId,
@@ -60,8 +102,19 @@ export async function PATCH(
         }
 
         if (body.retired === true) {
-          rawMeta = mergeCalendarBatchRetiredIntoRawMeta(rawMeta, true)
-          await prisma.product.update({ where: { id: productId }, data: { rawMeta } })
+          const nextRawMeta = safeRawMetaMerge(
+            mergeCalendarBatchRetiredIntoRawMeta,
+            row.rawMeta,
+            productId,
+            true
+          )
+          await prisma.product.update({
+            where: { id: productId },
+            data: {
+              calendarBatchRetired: true,
+              ...(dualWriteCalendarMetaToRawMeta() ? { rawMeta: nextRawMeta } : {}),
+            },
+          })
           return NextResponse.json({ ok: true, productId, retired: true })
         }
 
@@ -72,8 +125,20 @@ export async function PATCH(
             { status: 400 }
           )
         }
-        rawMeta = mergeCalendarBatchCursorIntoRawMeta(rawMeta, advance)
-        await prisma.product.update({ where: { id: productId }, data: { rawMeta } })
+        const nextRawMeta = safeRawMetaMerge(
+          mergeCalendarBatchCursorIntoRawMeta,
+          row.rawMeta,
+          productId,
+          advance
+        )
+        await prisma.product.update({
+          where: { id: productId },
+          data: {
+            calendarBatchCursorYmd: advance,
+            calendarBatchRetired: false,
+            ...(dualWriteCalendarMetaToRawMeta() ? { rawMeta: nextRawMeta } : {}),
+          },
+        })
         return NextResponse.json({ ok: true, productId, cursorYmd: advance, retired: false })
       })
     )
