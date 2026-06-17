@@ -14,6 +14,7 @@ import {
   seasonHeroTargetMonthForSlotIndex,
 } from '@/lib/season-hero-target-months'
 import { resolveSeasonCurationSubline } from '@/lib/season-curation-subline'
+import { startOverseasColdTiming, withOverseasColdTiming } from '@/lib/overseas-cold-timing'
 import type { OverseasHubDestinationHeroSlide } from '@/lib/overseas-hub-season-destination-hero-shared'
 
 export type { OverseasHubDestinationHeroSlide } from '@/lib/overseas-hub-season-destination-hero-shared'
@@ -43,7 +44,11 @@ function koreanCityLabelFromSubtitle(koreanSubtitle: string): string {
 async function loadOverseasHubSeasonDestinationHeroSlidesUncached(
   cycle: Awaited<ReturnType<typeof getCurrentCycle>>,
 ): Promise<OverseasHubDestinationHeroSlide[]> {
-  const payload = await getPersonaCuratedDestinationsPayload()
+  const endUncached = startOverseasColdTiming('hero.loadUncached')
+  try {
+  const payload = await withOverseasColdTiming('hero.getPersonaCuratedDestinationsPayload', () =>
+    getPersonaCuratedDestinationsPayload(),
+  )
   const reasoning = parseCycleReasoning(cycle?.geminiResponse)
   const baseMonth = seasonHeroBaseMonthFromCycleStart(
     cycle?.cycleStartDate ?? payload.cycle?.cycleStartDate ?? null,
@@ -51,7 +56,8 @@ async function loadOverseasHubSeasonDestinationHeroSlidesUncached(
   )
   const cycleId = cycle?.id ?? payload.cycle?.id ?? 'no-cycle'
 
-  return payload.cards.map((card, idx) => {
+  const endMap = startOverseasColdTiming('hero.mapSlides')
+  const slides = payload.cards.map((card, idx) => {
     const destKo = koreanCityLabelFromSubtitle(card.koreanSubtitle)
     const targetMonth1To12 = seasonHeroTargetMonthForSlotIndex(baseMonth, idx)
     const headline = buildPublicPageHeroEditorialLineMonthlyStub({
@@ -80,18 +86,23 @@ async function loadOverseasHubSeasonDestinationHeroSlidesUncached(
       targetMonth1To12,
     }
   })
+  endMap()
+  return slides
+  } finally {
+    endUncached()
+  }
 }
 
 export async function getCachedOverseasHubSeasonDestinationHeroSlides(): Promise<OverseasHubDestinationHeroSlide[]> {
   try {
-    const cycle = await getCurrentCycle(new Date())
+    const cycle = await withOverseasColdTiming('hero.getCurrentCycle', () => getCurrentCycle(new Date()))
     const cacheKey = ['overseas-hub-season-destination-hero', cycle?.id ?? 'no-active-cycle', 'v8-one-sentence-subline']
     const run = unstable_cache(
       () => loadOverseasHubSeasonDestinationHeroSlidesUncached(cycle),
       cacheKey,
       { revalidate: 21_600 },
     )
-    return await run()
+    return await withOverseasColdTiming('hero.unstable_cache.run', () => run())
   } catch (e) {
     console.error('[overseas-hub-season-destination-hero] cached load failed', e)
     return []
