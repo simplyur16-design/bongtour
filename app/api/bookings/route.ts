@@ -94,7 +94,16 @@ export async function POST(request: Request) {
 
     const product = await prisma.product.findFirst({
       where: { id: rawProductId, registrationStatus: 'registered' },
-      include: { departures: { orderBy: { departureDate: 'asc' } } },
+      select: {
+        id: true,
+        title: true,
+        originSource: true,
+        originCode: true,
+        originUrl: true,
+        mandatoryCurrency: true,
+        mandatoryLocalFee: true,
+        departures: { orderBy: { departureDate: 'asc' } },
+      },
     })
     if (!product) {
       return jsonWithLeakGuard({ error: '상품을 찾을 수 없습니다.' }, 'api.bookings.not-found', { status: 404 })
