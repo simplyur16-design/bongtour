@@ -3,7 +3,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "preDeployCommand": ["npm run postdeploy:detail-payload"],
+    "releaseCommand": "npx prisma migrate deploy && npm run postdeploy:detail-payload",
     "startCommand": "npm start",
     "healthcheckPath": "/api/health",
     "restartPolicyType": "ON_FAILURE"
