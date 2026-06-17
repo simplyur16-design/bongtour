@@ -19,6 +19,9 @@ import { resolveSeasonCurationSubline } from '@/lib/season-curation-subline'
 
 const SEASON_MODEL = process.env.GEMINI_SEASON_CURATION_MODEL?.trim() || getModelName()
 
+/** 활성 시즌 큐레이션 사이클 — `getCurrentCycle` 반환 타입 SSOT */
+export type SeasonCurationCycle = SeasonalDestinationCuration | null
+
 export type CityDistributionRow = {
   count: number
   koreanLabel: string
@@ -176,7 +179,7 @@ export async function ensureSeasonDestinationCyclesForMonthOffsets(
   }
 }
 
-export async function getCurrentCycle(now = new Date()): Promise<SeasonalDestinationCuration | null> {
+export async function getCurrentCycle(now = new Date()): Promise<SeasonCurationCycle> {
   return prisma.seasonalDestinationCuration.findFirst({
     where: {
       cycleStartDate: { lte: now },
