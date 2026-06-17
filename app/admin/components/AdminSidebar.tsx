@@ -36,6 +36,8 @@ import {
   Trash2,
   Sparkles,
   Quote,
+  Link2,
+  LineChart,
 } from 'lucide-react'
 
 type NavLink = { href: string; label: string; icon: LucideIcon }
@@ -58,6 +60,8 @@ const navEntries: NavEntry[] = [
       { href: '/admin/marketing/airtel', label: '자유여행', icon: Plane },
       { href: '/admin/marketing/trip-recommendations', label: '콘텐츠 자동화', icon: Sparkles },
       { href: '/admin/marketing/hooks', label: '후킹 라이브러리', icon: Quote },
+      { href: '/admin/marketing/integrations', label: '외부 연동 (Meta)', icon: Link2 },
+      { href: '/admin/marketing/insights', label: '인사이트', icon: LineChart },
     ],
   },
   { type: 'link', href: '/admin/image-assets-upload', label: '이미지 업로드 · 출처(iStock)', icon: Images },

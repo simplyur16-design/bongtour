@@ -1472,6 +1472,35 @@ model BongFacebookPost {
   @@index([status])
 }
 
+/// PR 7: Meta Graph API OAuth 연결 (단일 provider=meta)
+model BongMetaConnection {
+  id                  String    @id @default(cuid())
+  provider            String    @unique @default("meta")
+  userAccessToken     String
+  userTokenExpiresAt  DateTime
+  pageId              String?
+  pageName            String?
+  pageAccessToken     String?
+  instagramBusinessId String?
+  connectedAt         DateTime  @default(now())
+  lastRefreshedAt     DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+/// PR 7: 인사이트 기반 후킹 자동 학습 임계값
+model BongHookLearnConfig {
+  id               String   @id @default(cuid())
+  configKey        String   @unique @default("default")
+  topPercentile    Int      @default(20)
+  bottomPercentile Int      @default(20)
+  minSampleSize    Int      @default(20)
+  lookbackDays     Int      @default(90)
+  enabled          Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
 /// 봉심 사용자 보유 쿠폰 (실제 쿼리는 raw SQL — Prisma는 스키마 문서화용)
 model BongsimUserCoupon {
   user_coupon_id       String    @id @db.Uuid
