@@ -77,10 +77,17 @@ async function main() {
   console.log(`[postdeploy-detail-payload] done ok=${ok} fail=${fail} remaining=${remaining}`)
   await prisma.$disconnect()
 
-  if (fail > 0) process.exit(1)
+  // preDeploy 컨테이너에서 실행되므로 non-zero exit가 deploy 차단함.
+  // backfill은 opportunistic — 실패는 로그로만 표시하고 deploy는 계속 진행.
+  if (fail > 0) {
+    console.warn(
+      `[postdeploy-detail-payload] WARN: ${fail} products failed payload rebuild (deploy continues)`,
+    )
+  }
+  process.exit(0)
 }
 
-main().catch((e) => {
-  console.error(e)
-  process.exit(1)
+main().catch((err) => {
+  console.error('[postdeploy-detail-payload] top-level error:', err)
+  process.exit(0) // preDeploy 차단 방지
 })
