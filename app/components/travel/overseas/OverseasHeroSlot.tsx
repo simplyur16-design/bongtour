@@ -1,6 +1,5 @@
 import OverseasHero from '@/app/components/travel/overseas/OverseasHero'
 import { getCachedOverseasHubSeasonDestinationHeroSlides } from '@/lib/overseas-hub-season-destination-hero'
-import { withOverseasColdTimingV2 } from '@/lib/overseas-cold-timing-v2'
 
 const LOCAL_DEPARTURE_REGIONS = ['busan_dep', 'cheongju_dep', 'daegu_dep'] as const
 
@@ -16,13 +15,9 @@ export default async function OverseasHeroSlot({
   selectedRegionSlug,
   initialSearchParamsString = '',
 }: Props) {
-  return withOverseasColdTimingV2('heroSlot.OverseasHeroSlot', async () => {
   let seasonDestinationHeroSlides: Awaited<ReturnType<typeof getCachedOverseasHubSeasonDestinationHeroSlides>> = []
   try {
-    seasonDestinationHeroSlides = await withOverseasColdTimingV2(
-      'heroSlot.getCachedOverseasHubSeasonDestinationHeroSlides',
-      () => getCachedOverseasHubSeasonDestinationHeroSlides(),
-    )
+    seasonDestinationHeroSlides = await getCachedOverseasHubSeasonDestinationHeroSlides()
   } catch (e) {
     console.error('[OverseasHeroSlot] season hero slides failed', e)
   }
@@ -35,7 +30,6 @@ export default async function OverseasHeroSlot({
       initialSearchParamsString={initialSearchParamsString}
     />
   )
-  })
 }
 
 export function overseasSelectedRegionSlug(region: string | null): string | null {

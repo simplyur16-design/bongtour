@@ -7,7 +7,6 @@ import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { productMatchesBrowseUrlGeo, type OverseasProductMatchInput } from '@/lib/match-overseas-product'
 import { loadMegaMenuBrowseUrlGeoByCityKeys } from '@/lib/mega-menu-city-browse-href'
 import type { BrowseUrlGeo } from '@/lib/match-overseas-product'
-import { startOverseasColdTimingV2 } from '@/lib/overseas-cold-timing-v2'
 
 export type HeroCityKeyReplacement = { from: string; to: string }
 
@@ -34,16 +33,11 @@ export async function loadHeroEligibleCityKeySet(
   poolKeys: string[],
   now = new Date(),
 ): Promise<HeroEligibleCityKeyResult> {
-  const endLoad = startOverseasColdTimingV2('heroEligible.loadHeroEligibleCityKeySet')
-  try {
   const pool = uniqPreserveOrder(poolKeys)
   if (pool.length === 0) return { eligible: new Set(), browseGeoByCity: new Map() }
 
-  const endMegaMenu = startOverseasColdTimingV2('heroEligible.loadMegaMenuBrowseUrlGeoByCityKeys')
   const browseGeoByCity = await loadMegaMenuBrowseUrlGeoByCityKeys(pool)
-  endMegaMenu()
 
-  const endProductFindMany = startOverseasColdTimingV2('heroEligible.prisma.product.findMany')
   const rows = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
@@ -63,9 +57,7 @@ export async function loadHeroEligibleCityKeySet(
       countryTags: { select: { countryKey: true, nodeKey: true } },
     },
   })
-  endProductFindMany()
 
-  const endMatch = startOverseasColdTimingV2('heroEligible.matchProductsToPool')
   const products: OverseasProductMatchInput[] = rows
     .filter((p) => p.bgImageUrl?.trim())
     .map((p) => ({
@@ -82,11 +74,7 @@ export async function loadHeroEligibleCityKeySet(
     if (!geo) continue
     if (products.some((p) => productMatchesBrowseUrlGeo(p, geo))) eligible.add(cityKey)
   }
-  endMatch()
   return { eligible, browseGeoByCity }
-  } finally {
-    endLoad()
-  }
 }
 
 /**
