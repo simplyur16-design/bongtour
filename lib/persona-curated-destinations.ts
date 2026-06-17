@@ -6,7 +6,7 @@
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
-import { getCurrentCycle } from '@/lib/season-curation'
+import { type SeasonCurationCycle } from '@/lib/season-curation'
 import {
   loadHeroEligibleCityKeySet,
   logHeroCityKeyReplacements,
@@ -104,7 +104,7 @@ function tabCountsForCards(cards: PersonaCityCard[]): Record<PersonaTabKey, numb
 }
 
 async function loadPersonaCuratedDestinationsUncached(
-  cycle: Awaited<ReturnType<typeof getCurrentCycle>>,
+  cycle: SeasonCurationCycle,
 ): Promise<PersonaCuratedDestinationsPayload> {
   const now = new Date()
 
@@ -247,8 +247,9 @@ async function loadPersonaCuratedDestinationsUncached(
   return { cycle: cycleMeta, cards, tabCityCounts: tabCountsForCards(cards) }
 }
 
-export async function getPersonaCuratedDestinationsPayload(): Promise<PersonaCuratedDestinationsPayload> {
-  const cycle = await getCurrentCycle(new Date())
+export async function getPersonaCuratedDestinationsPayload(
+  cycle: SeasonCurationCycle,
+): Promise<PersonaCuratedDestinationsPayload> {
   const cacheKey = ['persona-curated-destinations', cycle?.id ?? 'no-active-cycle', 'v9-country-level-title']
   const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(cycle), cacheKey, { revalidate: 21_600 })
   return run()

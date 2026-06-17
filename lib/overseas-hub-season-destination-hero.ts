@@ -6,7 +6,7 @@ import 'server-only'
 
 import { unstable_cache } from 'next/cache'
 import { getPersonaCuratedDestinationsPayload } from '@/lib/persona-curated-destinations'
-import { getCurrentCycle } from '@/lib/season-curation'
+import { type SeasonCurationCycle } from '@/lib/season-curation'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import { buildPublicPageHeroEditorialLineMonthlyStub } from '@/lib/public-page-hero-editorial-line'
 import {
@@ -41,9 +41,9 @@ function koreanCityLabelFromSubtitle(koreanSubtitle: string): string {
 }
 
 async function loadOverseasHubSeasonDestinationHeroSlidesUncached(
-  cycle: Awaited<ReturnType<typeof getCurrentCycle>>,
+  cycle: SeasonCurationCycle,
 ): Promise<OverseasHubDestinationHeroSlide[]> {
-  const payload = await getPersonaCuratedDestinationsPayload()
+  const payload = await getPersonaCuratedDestinationsPayload(cycle)
   const reasoning = parseCycleReasoning(cycle?.geminiResponse)
   const baseMonth = seasonHeroBaseMonthFromCycleStart(
     cycle?.cycleStartDate ?? payload.cycle?.cycleStartDate ?? null,
@@ -82,9 +82,10 @@ async function loadOverseasHubSeasonDestinationHeroSlidesUncached(
   })
 }
 
-export async function getCachedOverseasHubSeasonDestinationHeroSlides(): Promise<OverseasHubDestinationHeroSlide[]> {
+export async function getCachedOverseasHubSeasonDestinationHeroSlides(
+  cycle: SeasonCurationCycle,
+): Promise<OverseasHubDestinationHeroSlide[]> {
   try {
-    const cycle = await getCurrentCycle(new Date())
     const cacheKey = ['overseas-hub-season-destination-hero', cycle?.id ?? 'no-active-cycle', 'v8-one-sentence-subline']
     const run = unstable_cache(
       () => loadOverseasHubSeasonDestinationHeroSlidesUncached(cycle),

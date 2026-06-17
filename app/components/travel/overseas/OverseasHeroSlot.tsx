@@ -1,5 +1,6 @@
 import OverseasHero from '@/app/components/travel/overseas/OverseasHero'
 import { getCachedOverseasHubSeasonDestinationHeroSlides } from '@/lib/overseas-hub-season-destination-hero'
+import { getCurrentCycle } from '@/lib/season-curation'
 
 const LOCAL_DEPARTURE_REGIONS = ['busan_dep', 'cheongju_dep', 'daegu_dep'] as const
 
@@ -17,7 +18,8 @@ export default async function OverseasHeroSlot({
 }: Props) {
   let seasonDestinationHeroSlides: Awaited<ReturnType<typeof getCachedOverseasHubSeasonDestinationHeroSlides>> = []
   try {
-    seasonDestinationHeroSlides = await getCachedOverseasHubSeasonDestinationHeroSlides()
+    const cycle = await getCurrentCycle(new Date())
+    seasonDestinationHeroSlides = await getCachedOverseasHubSeasonDestinationHeroSlides(cycle)
   } catch (e) {
     console.error('[OverseasHeroSlot] season hero slides failed', e)
   }
