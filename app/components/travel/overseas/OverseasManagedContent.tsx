@@ -22,17 +22,23 @@ export default async function OverseasManagedContent({
   /** 목록 중간 월간 큐레이션 블록을 쓰는 경우 하단 월간 그리드 생략 */
   omitMonthlyCuration?: boolean
 }) {
-  const monthKey = getSeoulYearMonthNow()
+  if (omitEditorialSection && omitMonthlyCuration) {
+    return <></>
+  }
+
   let editorialAll: Awaited<ReturnType<typeof prisma.editorialContent.findMany>> = []
   let monthlyAll: Awaited<ReturnType<typeof prisma.monthlyCurationContent.findMany>> = []
   try {
+    const monthKey = getSeoulYearMonthNow()
     ;[editorialAll, monthlyAll] = await Promise.all([
-      fetchPublishedOverseasEditorials(),
-      prisma.monthlyCurationContent.findMany({
-        where: { pageScope: 'overseas', isPublished: true, monthKey },
-        orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
-        take: 12,
-      }),
+      omitEditorialSection ? Promise.resolve([]) : fetchPublishedOverseasEditorials(),
+      omitMonthlyCuration
+        ? Promise.resolve([])
+        : prisma.monthlyCurationContent.findMany({
+            where: { pageScope: 'overseas', isPublished: true, monthKey },
+            orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
+            take: 12,
+          }),
     ])
   } catch (e) {
     console.error('[OverseasManagedContent] editorial / monthly curation load failed (page still renders)', e)

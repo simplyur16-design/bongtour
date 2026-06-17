@@ -40,13 +40,10 @@ function koreanCityLabelFromSubtitle(koreanSubtitle: string): string {
   return ko || koreanSubtitle.trim()
 }
 
-async function loadOverseasHubSeasonDestinationHeroSlidesUncached(): Promise<OverseasHubDestinationHeroSlide[]> {
-  const now = new Date()
-
-  const [payload, cycle] = await Promise.all([
-    getPersonaCuratedDestinationsPayload(),
-    getCurrentCycle(now),
-  ])
+async function loadOverseasHubSeasonDestinationHeroSlidesUncached(
+  cycle: Awaited<ReturnType<typeof getCurrentCycle>>,
+): Promise<OverseasHubDestinationHeroSlide[]> {
+  const payload = await getPersonaCuratedDestinationsPayload()
   const reasoning = parseCycleReasoning(cycle?.geminiResponse)
   const baseMonth = seasonHeroBaseMonthFromCycleStart(
     cycle?.cycleStartDate ?? payload.cycle?.cycleStartDate ?? null,
@@ -90,7 +87,7 @@ export async function getCachedOverseasHubSeasonDestinationHeroSlides(): Promise
     const cycle = await getCurrentCycle(new Date())
     const cacheKey = ['overseas-hub-season-destination-hero', cycle?.id ?? 'no-active-cycle', 'v8-one-sentence-subline']
     const run = unstable_cache(
-      () => loadOverseasHubSeasonDestinationHeroSlidesUncached(),
+      () => loadOverseasHubSeasonDestinationHeroSlidesUncached(cycle),
       cacheKey,
       { revalidate: 21_600 },
     )
