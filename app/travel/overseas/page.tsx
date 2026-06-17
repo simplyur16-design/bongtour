@@ -10,12 +10,10 @@ import OverseasRegionMegaNav from '@/app/components/travel/overseas/OverseasRegi
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { searchParamsRecordToUrlSearchParams } from '@/lib/products-browse-hub-query'
 import { SITE_NAME } from '@/lib/site-metadata'
-import { startOverseasColdTiming, withOverseasColdTiming } from '@/lib/overseas-cold-timing'
 
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
-  return withOverseasColdTiming('page.generateMetadata', async () => {
   let images: Awaited<ReturnType<typeof ogImagesForMetadata>> = []
   try {
     images = await ogImagesForMetadata('overseas', `해외여행 상품 | ${SITE_NAME}`)
@@ -37,7 +35,6 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: { card: 'summary_large_image' },
   }
-  })
 }
 
 export default async function OverseasTravelPage({
@@ -45,13 +42,11 @@ export default async function OverseasTravelPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const endPage = startOverseasColdTiming('page.OverseasTravelPage')
   const sp = (await searchParams) ?? {}
   const region = typeof sp.region === 'string' ? sp.region : null
   const country = typeof sp.country === 'string' ? sp.country : null
   const selectedRegionSlug = overseasSelectedRegionSlug(region)
   const hubSearchParamsString = searchParamsRecordToUrlSearchParams(sp).toString()
-  endPage()
 
   return (
     <div className="min-h-screen bg-bt-page">
