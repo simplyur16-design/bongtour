@@ -178,11 +178,45 @@ export let browsePerfLastPhases: {
   cacheKey: string
 } | null = null
 
+type HubCatalogSlimBrowseItem = Record<string, unknown> & {
+  browseFilterMeta?: unknown
+  coverImageDisplayName?: unknown
+  earliestDeparture?: unknown
+  priceFrom?: unknown
+  bgImageUrl?: string | null
+  coverImageUrl?: string | null
+}
+
+/** `hubCatalog` 명시 쿼리(해외 허브 카탈로그) — 응답 JSON만 축소. map 로직·DB는 동일. */
+function slimHubCatalogBrowseItem(item: HubCatalogSlimBrowseItem): Record<string, unknown> {
+  const {
+    browseFilterMeta: _browseFilterMeta,
+    coverImageDisplayName: _coverImageDisplayName,
+    earliestDeparture: _earliestDeparture,
+    priceFrom: _priceFrom,
+    bgImageUrl,
+    coverImageUrl,
+    ...rest
+  } = item
+  const slimmed: Record<string, unknown> = { ...rest, coverImageUrl }
+  const bg = (bgImageUrl ?? '').trim()
+  const cover = (coverImageUrl ?? '').trim()
+  if (bg && bg !== cover) slimmed.bgImageUrl = bgImageUrl
+  return slimmed
+}
+
 /** 성공 JSON 본문만 반환 — 실패는 throw (unstable_cache가 500 Response를 캐시하지 않도록). */
 export async function productsBrowseBuildPayload(queryKey: string) {
   const perf = process.env.BONGTOUR_PERF_LOG === '1' ? { t0: performance.now(), parse: 0, db: 0, filter: 0, score: 0, map: 0, rowCount: 0, finalCount: 0 } : null // PERF-LOG: 측정 후 제거
-  const isHubFullCatalog = isOverseasHubFullCatalogQueryKey(queryKey)
   const searchParams = new URLSearchParams(queryKey)
+  const isHubFullCatalog = isOverseasHubFullCatalogQueryKey(queryKey)
+  // slim 적용 조건:
+  // - hubCatalog 명시 파라미터 존재 (현재는 hubCatalog=6만)
+  // - isHubFullCatalog만으로 적용하지 않음 — 향후 ProductsBrowseClient가
+  //   geo 없는 full catalog 쿼리로 sidebar(facets/browseFilterMeta) 쓸 가능성 보호
+  const hubCatalogParam = searchParams.get('hubCatalog')
+  const applyHubCatalogSlim =
+    isHubFullCatalog && hubCatalogParam !== null && hubCatalogParam.trim() !== ''
     const q = parseBrowseQuery(searchParams)
 
     const typeParam = searchParams.get('type')
@@ -598,7 +632,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       }
     >()
 
-    const items = metaRows.map(({ p: pRaw, effectivePricePerPerson, coverUrl, firstScheduleName }) => {
+    const mappedItems = metaRows.map(({ p: pRaw, effectivePricePerPerson, coverUrl, firstScheduleName }) => {
       const departures = sliceDepartureByProductId.get(pRaw.id) ?? []
       const p: ProductBrowseIncludedRow = {
         ...(pRaw as ProductBrowseIncludedRow),
@@ -797,6 +831,10 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     }
     })
 
+    const items = applyHubCatalogSlim
+      ? mappedItems.map((item) => slimHubCatalogBrowseItem(item as HubCatalogSlimBrowseItem))
+      : mappedItems
+
     let suggestedBudgetMax: number | null = null
     if (budgetPerPersonMax != null && total === 0 && filteredRows.length > 0) {
       const priced = filteredRows
@@ -820,10 +858,21 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         mapMs: Math.round(map - score),
         rowCount,
         finalCount,
-        cacheKey: `products-browse-v18|${queryKey}`,
+        cacheKey: `products-browse-v19|${queryKey}`,
       }
       browsePerfLastPhases = phases // PERF-LOG: 측정 후 제거
       console.log('[browse-perf]', JSON.stringify({ cacheHit: false, ...phases })) // PERF-LOG: 측정 후 제거
+    }
+
+    if (applyHubCatalogSlim) {
+      return {
+        ok: true as const,
+        total,
+        page,
+        limit,
+        items,
+        suggestedBudgetMax,
+      }
     }
 
     return {
