@@ -15,7 +15,7 @@ import {
 import { getHomeHubCoverImageUrl } from '@/lib/final-image-selection'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import type { PersonaTabKey } from '@/lib/main-hub-copy'
-import { loadMegaMenuBrowseUrlGeoByCityKeys, resolveMegaMenuBrowseHrefForCityKey } from '@/lib/mega-menu-city-browse-href'
+import { pickMegaMenuBrowseUrlGeoSubset, resolveMegaMenuBrowseHrefForCityKey } from '@/lib/mega-menu-city-browse-href'
 import { productMatchesBrowseUrlGeo } from '@/lib/match-overseas-product'
 import { COUNTRY_LEVEL_CITY_KEYS } from '@/lib/product-citykey-country-slug-fix'
 
@@ -111,7 +111,7 @@ async function loadPersonaCuratedDestinationsUncached(
   const rawPrimary = uniqPreserveOrder(cycle?.cityKeys ?? []).slice(0, 5)
   const rawFallback = uniqPreserveOrder(cycle?.fallbackKeys ?? [])
   const heroPool = uniqPreserveOrder([...rawPrimary, ...rawFallback])
-  const eligible = await loadHeroEligibleCityKeySet(heroPool, now)
+  const { eligible, browseGeoByCity: poolBrowseGeoByCity } = await loadHeroEligibleCityKeySet(heroPool, now)
   const { resolved: cityKeys, replacements } = resolveHeroCityKeysWithProductFallback(
     rawPrimary,
     rawFallback,
@@ -144,7 +144,7 @@ async function loadPersonaCuratedDestinationsUncached(
   const cityMeta = new Map(cities.map((c) => [c.cityKey, c]))
 
   const [browseGeoByCity, browseHrefs] = await Promise.all([
-    loadMegaMenuBrowseUrlGeoByCityKeys(cityKeys),
+    Promise.resolve(pickMegaMenuBrowseUrlGeoSubset(cityKeys, poolBrowseGeoByCity)),
     Promise.all(cityKeys.map(async (ck) => [ck, await resolveMegaMenuBrowseHrefForCityKey(ck)] as const)),
   ])
   const browseHrefByCity = new Map(

@@ -375,7 +375,7 @@ export async function generateNewCycle(input: GenerateNewCycleInput): Promise<Se
   const { primary: rawPrimary, fallback, reasoning } = normalizePicks(parsed, allowedCatalog, masterKeys, sortedCatalogKeys)
 
   const heroPool = uniqPreserveOrder([...rawPrimary, ...fallback])
-  const eligible = await loadHeroEligibleCityKeySet(heroPool, now)
+  const { eligible } = await loadHeroEligibleCityKeySet(heroPool, now)
   const { resolved: primary, replacements: heroReplacements } = resolveHeroCityKeysWithProductFallback(
     rawPrimary,
     fallback,

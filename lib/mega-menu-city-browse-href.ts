@@ -116,15 +116,38 @@ export async function buildBrowseUrlGeoForMegaMenuCityKey(
   }
 }
 
-/** pool 도시별 browse geo — 추천 여행지·히어로 상품 매칭용 */
+/** pool 도시별 browse geo — 추천 여행지·히어로 상품 매칭용 (도시별 병렬 resolve) */
 export async function loadMegaMenuBrowseUrlGeoByCityKeys(
   cityKeys: string[],
   db: Db = prisma,
 ): Promise<Map<string, BrowseUrlGeo>> {
-  const out = new Map<string, BrowseUrlGeo>()
   const uniq = [...new Set(cityKeys.map((k) => k.trim()).filter(Boolean))]
-  for (const ck of uniq) {
-    const geo = await buildBrowseUrlGeoForMegaMenuCityKey(ck, db)
+  const settled = await Promise.allSettled(
+    uniq.map(async (ck) => {
+      const geo = await buildBrowseUrlGeoForMegaMenuCityKey(ck, db)
+      return [ck, geo] as const
+    }),
+  )
+  const out = new Map<string, BrowseUrlGeo>()
+  for (const result of settled) {
+    if (result.status === 'fulfilled') {
+      const [ck, geo] = result.value
+      if (geo) out.set(ck, geo)
+      continue
+    }
+    console.error('[mega-menu-city-browse-href] buildBrowseUrlGeo failed', result.reason)
+  }
+  return out
+}
+
+/** 이미 로드된 geo map에서 cityKeys만 추출 — pool→resolved dedupe용 */
+export function pickMegaMenuBrowseUrlGeoSubset(
+  cityKeys: string[],
+  source: Map<string, BrowseUrlGeo>,
+): Map<string, BrowseUrlGeo> {
+  const out = new Map<string, BrowseUrlGeo>()
+  for (const ck of cityKeys) {
+    const geo = source.get(ck)
     if (geo) out.set(ck, geo)
   }
   return out
