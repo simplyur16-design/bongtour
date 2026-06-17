@@ -126,6 +126,8 @@ model Product {
   bongSpots                ProductBongSpot[]     @relation("ProductBongSpots")
   /// B-4-2 네이버 블로그 초안 등 `BongBlogPost.linkedProductId` 역참조
   bongBlogPosts            BongBlogPost[]        @relation("ProductBongBlogPosts")
+  /// PR 1 카드뉴스 편 `linkedProductId` 역참조
+  bongCardNewsEpisodes     BongCardNewsEpisode[]
   /// G-2: 다국가·트리 browse 보조 태그 (대표 geo는 Product 단일 필드 유지, 옵션 C)
   countryTags              ProductCountryTag[]
   /// I-1: 다도시 태그 (cityKey → I-3에서 City FK)
@@ -1267,6 +1269,137 @@ model BongTipDraft {
   @@index([status])
 }
 
+/// PR 1: 카드뉴스 시리즈 (주간 테마·도시·박일)
+model BongCardNewsSeries {
+  id             String   @id @default(cuid())
+  weekKey        String
+  themeTitle     String
+  selectedCities String[]
+  status         String   @default("draft")
+  operatorNote   String?
+  tripNights     Int      @default(0)
+  tripDays       Int      @default(0)
+  season         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  episodes  BongCardNewsEpisode[]
+  blogPosts BongBlogPost[]
+
+  @@index([weekKey])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// PR 1: 카드뉴스 편 (package/tip/caution × deep/list)
+model BongCardNewsEpisode {
+  id              String   @id @default(cuid())
+  seriesId        String
+  episodeNumber   Int
+  episodeType     String
+  formatType      String
+  title           String
+  linkedProductId String?
+  targetCity      String?
+  targetPlace     String?
+  operatorNote    String?
+  status          String   @default("draft")
+  caption         String?
+  hashtags        String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  series        BongCardNewsSeries  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  slides        BongCardNewsSlide[]
+  linkedProduct Product?            @relation(fields: [linkedProductId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([seriesId, episodeNumber])
+  @@index([seriesId])
+  @@index([linkedProductId])
+}
+
+/// PR 1: 카드뉴스 슬라이드
+model BongCardNewsSlide {
+  id             String   @id @default(cuid())
+  episodeId      String
+  slideNumber    Int
+  slideRole      String
+  headline       String
+  subtitle       String?
+  body           String?
+  pexelsKeyword  String?
+  pexelsImageUrl String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  episode BongCardNewsEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([episodeId, slideNumber])
+  @@index([episodeId])
+}
+
+/// PR 1: 주간 운영자 마케팅 컨텍스트 (weekKey SSOT)
+model BongMarketingContext {
+  id             String   @id @default(cuid())
+  weekKey        String   @unique
+  themeIntent    String?
+  targetAudience String?
+  hotInfo        String?
+  avoidTone      String?
+  customKeywords String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([weekKey])
+}
+
+/// PR 1: 후킹 문구 라이브러리 (네이버 트렌드·수동 등)
+model BongHookLibrary {
+  id        String   @id @default(cuid())
+  hookType  String
+  hookText  String
+  context   String?
+  category  String?
+  source    String?
+  tags      String[]
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hookType])
+  @@index([category])
+  @@index([isActive])
+}
+
+/// PR 1: Instagram 게시 인사이트 (Graph API 동기화 예정)
+model BongPostInsight {
+  id                      String    @id @default(cuid())
+  instaMediaId            String?   @unique
+  sourceType              String?
+  sourceCardNewsSeriesId  String?
+  sourceCardNewsEpisodeId String?
+  sourceBlogPostId        String?
+  caption                 String?
+  permalink               String?
+  publishedAt             DateTime?
+  reach                   Int?
+  impressions             Int?
+  likes                   Int?
+  saved                   Int?
+  shares                  Int?
+  comments                Int?
+  profileViews            Int?
+  websiteClicks           Int?
+  syncedAt                DateTime?
+  syncSource              String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([sourceType])
+  @@index([publishedAt])
+}
+
 /// 네이버 블로그 게시물 메타
 model BongBlogPost {
   id                      String            @id @default(cuid())
@@ -1291,6 +1424,16 @@ model BongBlogPost {
   countrySlug             String?
   generationModel         String?
   generationPromptVersion String?
+  /// PR 5.5 SEO 해시태그
+  hashtags                String[]          @default([])
+  /// PR 5.5 from-recommendation 시즌·박일 메타
+  season                  String?
+  tripNights              Int?
+  tripDays                Int?
+  recommendationMeta      Json?
+  /// PR 5.5-D v3 카드뉴스 시리즈 연결
+  linkedCardNewsSeriesId  String?
+  linkedCardNewsSeries    BongCardNewsSeries? @relation(fields: [linkedCardNewsSeriesId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   reviewedAt              DateTime?
   reviewedBy              String?
   rejectedReason          String?           @db.Text
@@ -1299,6 +1442,7 @@ model BongBlogPost {
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt
 
+  @@index([linkedCardNewsSeriesId])
   @@index([publishedAt])
   @@index([scheduledAt])
   @@index([status])
