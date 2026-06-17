@@ -11,6 +11,15 @@ import {
 } from '@/lib/calendar-batch-product-window'
 import { addCalendarDaysYmd, seoulCalendarYmd, HORIZON_DAYS } from '@/lib/scraper-schedule-strategy'
 
+type SchedulerProductRow = {
+  id: string
+  originCode: string
+  originSource: string
+  originUrl: string | null
+  calendarBatchCursorYmd: string | null
+  calendarBatchRetired: boolean
+}
+
 type SchedulerScraperSite = CanonicalOverseasSupplierKey
 
 function toSite(originSource: string | null): SchedulerScraperSite | null {
@@ -50,21 +59,40 @@ export async function GET() {
         orderBy: { createdAt: 'asc' },
         select: { productId: true },
       }),
-      prisma.product.findMany({
-        where: {
-          registrationStatus: 'registered',
-          originCode: { not: '' },
-          NOT: { originSource: { equals: 'windsor', mode: 'insensitive' } },
-          departures: {
-            some: {
-              departureDate: { gte: now },
-              adultPrice: { gte: CALENDAR_PRICES_MIN_ADULT_PRICE_KRW },
-            },
-          },
-        },
-        orderBy: { updatedAt: 'asc' },
-        select: { id: true, originCode: true, originSource: true, originUrl: true, rawMeta: true },
-      }),
+      prisma.$queryRaw<SchedulerProductRow[]>`
+        SELECT
+          p."id",
+          p."originCode",
+          p."originSource",
+          p."originUrl",
+          CASE
+            WHEN p."rawMeta" IS NULL OR btrim(p."rawMeta") = '' THEN NULL
+            WHEN NOT (btrim(p."rawMeta") ~ '^\\{') THEN NULL
+            WHEN (p."rawMeta"::jsonb->>'calendarBatchCursorYmd') ~ '^\\d{4}-\\d{2}-\\d{2}$'
+              THEN p."rawMeta"::jsonb->>'calendarBatchCursorYmd'
+            ELSE NULL
+          END AS "calendarBatchCursorYmd",
+          CASE
+            WHEN p."rawMeta" IS NULL OR btrim(p."rawMeta") = '' THEN false
+            WHEN NOT (btrim(p."rawMeta") ~ '^\\{') THEN false
+            ELSE COALESCE(
+              (p."rawMeta"::jsonb->>'calendarBatchRetired') IN ('true', '1')
+              OR (p."rawMeta"::jsonb->'calendarBatchRetired') = 'true'::jsonb,
+              false
+            )
+          END AS "calendarBatchRetired"
+        FROM "Product" p
+        WHERE p."registrationStatus" = 'registered'
+          AND p."originCode" <> ''
+          AND LOWER(p."originSource") <> 'windsor'
+          AND EXISTS (
+            SELECT 1 FROM "ProductDeparture" d
+            WHERE d."productId" = p."id"
+              AND d."departureDate" >= ${now}
+              AND d."adultPrice" >= ${CALENDAR_PRICES_MIN_ADULT_PRICE_KRW}
+          )
+        ORDER BY p."updatedAt" ASC
+      `,
     ])
 
     const productIds = allProducts.map((p) => p.id)
@@ -110,7 +138,8 @@ export async function GET() {
         }
 
         const win = computeProductBatchWindow({
-          rawMeta: p.rawMeta,
+          cursorYmd: p.calendarBatchCursorYmd,
+          retired: p.calendarBatchRetired,
           maxDepartureYmd,
           todaySeoulYmd,
           horizonYmd,

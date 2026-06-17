@@ -1,8 +1,4 @@
-import {
-  parseCalendarBatchCursorYmd,
-  parseCalendarBatchRetired,
-  formatDepartureDateYmd,
-} from '@/lib/calendar-batch-cursor'
+import { formatDepartureDateYmd } from '@/lib/calendar-batch-cursor'
 import { CALENDAR_BATCH_CHUNK_DAYS } from '@/lib/calendar-batch-seq-state'
 
 export type ProductBatchWindow = {
@@ -22,27 +18,27 @@ export function addCalendarDaysYmd(ymd: string, delta: number): string {
 }
 
 export function bootstrapCalendarBatchCursorYmd(params: {
-  rawMeta: string | null | undefined
+  cursorYmd: string | null | undefined
   maxDepartureYmd: string | null
   todaySeoulYmd: string
 }): string | null {
-  const stored = parseCalendarBatchCursorYmd(params.rawMeta)
+  const stored = params.cursorYmd?.trim() || null
   if (stored) return stored
   if (params.maxDepartureYmd) return params.maxDepartureYmd
   return addCalendarDaysYmd(params.todaySeoulYmd, -1)
 }
 
 export function computeProductBatchWindow(params: {
-  rawMeta: string | null | undefined
+  cursorYmd: string | null | undefined
+  retired: boolean
   maxDepartureYmd: string | null
   todaySeoulYmd: string
   horizonYmd: string
   hasFutureDepartures: boolean
 }): ProductBatchWindow {
-  const retired = parseCalendarBatchRetired(params.rawMeta)
-  if (retired) {
+  if (params.retired) {
     return {
-      cursorYmd: parseCalendarBatchCursorYmd(params.rawMeta),
+      cursorYmd: params.cursorYmd?.trim() || null,
       rangeStartYmd: params.todaySeoulYmd,
       rangeEndYmd: params.todaySeoulYmd,
       atHorizon: true,
@@ -52,7 +48,7 @@ export function computeProductBatchWindow(params: {
   }
 
   const cursorYmd = bootstrapCalendarBatchCursorYmd({
-    rawMeta: params.rawMeta,
+    cursorYmd: params.cursorYmd,
     maxDepartureYmd: params.maxDepartureYmd,
     todaySeoulYmd: params.todaySeoulYmd,
   })
