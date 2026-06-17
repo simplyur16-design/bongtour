@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { productMatchesBrowseUrlGeo, type OverseasProductMatchInput } from '@/lib/match-overseas-product'
 import { loadMegaMenuBrowseUrlGeoByCityKeys } from '@/lib/mega-menu-city-browse-href'
+import type { BrowseUrlGeo } from '@/lib/match-overseas-product'
 
 export type HeroCityKeyReplacement = { from: string; to: string }
 
@@ -21,12 +22,21 @@ function uniqPreserveOrder(keys: string[]): string[] {
   return out
 }
 
-/** 풀 내 도시 중 hero-eligible(등록·해외·메가메뉴 browse·bgImageUrl) cityKey 집합 */
-export async function loadHeroEligibleCityKeySet(poolKeys: string[], now = new Date()): Promise<Set<string>> {
-  const pool = uniqPreserveOrder(poolKeys)
-  if (pool.length === 0) return new Set()
+export type HeroEligibleCityKeyResult = {
+  eligible: Set<string>
+  /** pool 전체에 대한 megaMenu browse geo — resolved subset 재사용용 */
+  browseGeoByCity: Map<string, BrowseUrlGeo>
+}
 
-  const geoByCity = await loadMegaMenuBrowseUrlGeoByCityKeys(pool)
+/** 풀 내 도시 중 hero-eligible(등록·해외·메가메뉴 browse·bgImageUrl) cityKey 집합 */
+export async function loadHeroEligibleCityKeySet(
+  poolKeys: string[],
+  now = new Date(),
+): Promise<HeroEligibleCityKeyResult> {
+  const pool = uniqPreserveOrder(poolKeys)
+  if (pool.length === 0) return { eligible: new Set(), browseGeoByCity: new Map() }
+
+  const browseGeoByCity = await loadMegaMenuBrowseUrlGeoByCityKeys(pool)
 
   const rows = await prisma.product.findMany({
     where: {
@@ -60,11 +70,11 @@ export async function loadHeroEligibleCityKeySet(poolKeys: string[], now = new D
 
   const eligible = new Set<string>()
   for (const cityKey of pool) {
-    const geo = geoByCity.get(cityKey)
+    const geo = browseGeoByCity.get(cityKey)
     if (!geo) continue
     if (products.some((p) => productMatchesBrowseUrlGeo(p, geo))) eligible.add(cityKey)
   }
-  return eligible
+  return { eligible, browseGeoByCity }
 }
 
 /**
