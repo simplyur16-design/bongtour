@@ -176,6 +176,10 @@ model Product {
   tourLeaderTypeRaw        String?
   detailStatusLabelsRaw    String? // 상세 상단 상태 뱃지 JSON 배열 문자열
   rawMeta                  String? // JSON 문자열: 공급사별 확장 메타 (SQLite)
+  /// 달력 sequential 배치 커서 (YYYY-MM-DD). SSOT — rawMeta 키 미러는 dual-write 기간만.
+  calendarBatchCursorYmd   String?
+  /// 6개월 지평선 E2E 스캔 완료. SSOT — rawMeta.calendarBatchRetired 미러는 dual-write 기간만.
+  calendarBatchRetired     Boolean               @default(false)
   /// 공급사 본문 추출 — 최소 출발 인원
   minimumDepartureCount    Int?
   minimumDepartureText     String?
@@ -259,6 +263,7 @@ model Product {
 
   @@unique([originSource, originCode])
   @@index([registrationStatus, updatedAt])
+  @@index([calendarBatchRetired, updatedAt])
   @@index([registrationStatus, travelScope, updatedAt(sort: Desc)])
   @@index([registrationStatus, lastPriceObservedAt])
   @@index([continentKey])
