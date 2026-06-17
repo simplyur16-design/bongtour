@@ -103,9 +103,10 @@ function tabCountsForCards(cards: PersonaCityCard[]): Record<PersonaTabKey, numb
   }
 }
 
-async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedDestinationsPayload> {
+async function loadPersonaCuratedDestinationsUncached(
+  cycle: Awaited<ReturnType<typeof getCurrentCycle>>,
+): Promise<PersonaCuratedDestinationsPayload> {
   const now = new Date()
-  const [cycle] = await Promise.all([getCurrentCycle(now)])
 
   const rawPrimary = uniqPreserveOrder(cycle?.cityKeys ?? []).slice(0, 5)
   const rawFallback = uniqPreserveOrder(cycle?.fallbackKeys ?? [])
@@ -249,6 +250,6 @@ async function loadPersonaCuratedDestinationsUncached(): Promise<PersonaCuratedD
 export async function getPersonaCuratedDestinationsPayload(): Promise<PersonaCuratedDestinationsPayload> {
   const cycle = await getCurrentCycle(new Date())
   const cacheKey = ['persona-curated-destinations', cycle?.id ?? 'no-active-cycle', 'v9-country-level-title']
-  const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(), cacheKey, { revalidate: 21_600 })
+  const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(cycle), cacheKey, { revalidate: 21_600 })
   return run()
 }
