@@ -23,7 +23,12 @@ export async function GET() {
         AND: [publicProductWhereClause()],
       },
       orderBy: { updatedAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        schedule: true,
+        bgImageUrl: true,
+        counselingNotes: true,
         prices: { orderBy: { date: 'asc' }, take: 1 },
       },
     })
