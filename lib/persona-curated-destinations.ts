@@ -18,6 +18,7 @@ import type { PersonaTabKey } from '@/lib/main-hub-copy'
 import { pickMegaMenuBrowseUrlGeoSubset, resolveMegaMenuBrowseHrefForCityKey } from '@/lib/mega-menu-city-browse-href'
 import { productMatchesBrowseUrlGeo } from '@/lib/match-overseas-product'
 import { COUNTRY_LEVEL_CITY_KEYS } from '@/lib/product-citykey-country-slug-fix'
+import { startOverseasColdTimingV2, withOverseasColdTimingV2 } from '@/lib/overseas-cold-timing-v2'
 
 export type PersonaCityCard = {
   cityKey: string
@@ -106,12 +107,17 @@ function tabCountsForCards(cards: PersonaCityCard[]): Record<PersonaTabKey, numb
 async function loadPersonaCuratedDestinationsUncached(
   cycle: Awaited<ReturnType<typeof getCurrentCycle>>,
 ): Promise<PersonaCuratedDestinationsPayload> {
+  const endUncached = startOverseasColdTimingV2('persona.loadUncached')
+  try {
   const now = new Date()
 
   const rawPrimary = uniqPreserveOrder(cycle?.cityKeys ?? []).slice(0, 5)
   const rawFallback = uniqPreserveOrder(cycle?.fallbackKeys ?? [])
   const heroPool = uniqPreserveOrder([...rawPrimary, ...rawFallback])
-  const { eligible, browseGeoByCity: poolBrowseGeoByCity } = await loadHeroEligibleCityKeySet(heroPool, now)
+  const { eligible, browseGeoByCity: poolBrowseGeoByCity } = await withOverseasColdTimingV2(
+    'persona.loadHeroEligibleCityKeySet',
+    () => loadHeroEligibleCityKeySet(heroPool, now),
+  )
   const { resolved: cityKeys, replacements } = resolveHeroCityKeysWithProductFallback(
     rawPrimary,
     rawFallback,
@@ -137,20 +143,27 @@ async function loadPersonaCuratedDestinationsUncached(
     return { cycle: cycleMeta, cards: empty, tabCityCounts: tabCountsForCards(empty) }
   }
 
+  const endCityFindMany = startOverseasColdTimingV2('persona.prisma.city.findMany')
   const cities = await prisma.city.findMany({
     where: { cityKey: { in: cityKeys } },
     include: { country: true },
   })
+  endCityFindMany()
   const cityMeta = new Map(cities.map((c) => [c.cityKey, c]))
 
+  const endBrowseGeoAndHrefs = startOverseasColdTimingV2('persona.browseGeoAndHrefs')
   const [browseGeoByCity, browseHrefs] = await Promise.all([
     Promise.resolve(pickMegaMenuBrowseUrlGeoSubset(cityKeys, poolBrowseGeoByCity)),
-    Promise.all(cityKeys.map(async (ck) => [ck, await resolveMegaMenuBrowseHrefForCityKey(ck)] as const)),
+    withOverseasColdTimingV2('persona.resolveMegaMenuBrowseHrefForCityKeys', () =>
+      Promise.all(cityKeys.map(async (ck) => [ck, await resolveMegaMenuBrowseHrefForCityKey(ck)] as const)),
+    ),
   ])
+  endBrowseGeoAndHrefs()
   const browseHrefByCity = new Map(
     browseHrefs.filter(([, href]) => Boolean(href)).map(([ck, href]) => [ck, href!]),
   )
 
+  const endProductFindMany = startOverseasColdTimingV2('persona.prisma.product.findMany')
   const products = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
@@ -173,7 +186,9 @@ async function loadPersonaCuratedDestinationsUncached(
       countryTags: { select: { countryKey: true, nodeKey: true } },
     },
   })
+  endProductFindMany()
 
+  const endMatchProducts = startOverseasColdTimingV2('persona.matchProductsByCity')
   const byCity = new Map<string, typeof products>()
   for (const cityKey of cityKeys) {
     const geo = browseGeoByCity.get(cityKey)
@@ -191,8 +206,10 @@ async function loadPersonaCuratedDestinationsUncached(
       byCity.get(cityKey)!.push(p)
     }
   }
+  endMatchProducts()
 
   const seedBase = cycle?.id ?? 'no-cycle'
+  const endBuildCards = startOverseasColdTimingV2('persona.buildCards')
   const cards: PersonaCityCard[] = []
 
   for (const cityKey of cityKeys) {
@@ -243,13 +260,17 @@ async function loadPersonaCuratedDestinationsUncached(
       couple,
     })
   }
+  endBuildCards()
 
   return { cycle: cycleMeta, cards, tabCityCounts: tabCountsForCards(cards) }
+  } finally {
+    endUncached()
+  }
 }
 
 export async function getPersonaCuratedDestinationsPayload(): Promise<PersonaCuratedDestinationsPayload> {
-  const cycle = await getCurrentCycle(new Date())
+  const cycle = await withOverseasColdTimingV2('persona.getCurrentCycle', () => getCurrentCycle(new Date()))
   const cacheKey = ['persona-curated-destinations', cycle?.id ?? 'no-active-cycle', 'v9-country-level-title']
   const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(cycle), cacheKey, { revalidate: 21_600 })
-  return run()
+  return withOverseasColdTimingV2('persona.unstable_cache.run', () => run())
 }

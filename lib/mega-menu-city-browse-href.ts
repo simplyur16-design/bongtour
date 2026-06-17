@@ -10,6 +10,7 @@ import { MEGA_MENU_TAB_DEFINITIONS } from '@/lib/mega-menu-regions.data'
 import { buildMegaMenuLeafHref } from '@/lib/top-nav-resolve'
 import type { BrowseUrlGeo } from '@/lib/match-overseas-product'
 import { buildOverseasBrowseGeoResolution } from '@/lib/browse-master-geo'
+import { startOverseasColdTimingV2 } from '@/lib/overseas-cold-timing-v2'
 
 type Db = Prisma.TransactionClient | typeof prisma
 
@@ -121,10 +122,13 @@ export async function loadMegaMenuBrowseUrlGeoByCityKeys(
   cityKeys: string[],
   db: Db = prisma,
 ): Promise<Map<string, BrowseUrlGeo>> {
+  const endLoad = startOverseasColdTimingV2('megaMenu.loadBrowseUrlGeoByCityKeys')
   const uniq = [...new Set(cityKeys.map((k) => k.trim()).filter(Boolean))]
   const settled = await Promise.allSettled(
     uniq.map(async (ck) => {
+      const endCity = startOverseasColdTimingV2(`megaMenu.buildBrowseUrlGeo.${ck}`)
       const geo = await buildBrowseUrlGeoForMegaMenuCityKey(ck, db)
+      endCity()
       return [ck, geo] as const
     }),
   )
@@ -137,6 +141,7 @@ export async function loadMegaMenuBrowseUrlGeoByCityKeys(
     }
     console.error('[mega-menu-city-browse-href] buildBrowseUrlGeo failed', result.reason)
   }
+  endLoad()
   return out
 }
 
