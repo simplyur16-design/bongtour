@@ -3,7 +3,7 @@ import { productsBrowseBuildPayload } from '@/lib/products-browse-build-payload'
 
 export type ProductsBrowseOkPayload = Awaited<ReturnType<typeof productsBrowseBuildPayload>>
 
-const BROWSE_CACHE_TAG = 'products-browse-v18'
+const BROWSE_CACHE_TAG = 'products-browse-v19'
 
 /** 동시 콜드 요청(허브 진입·cron·워밍)이 browse 빌드를 중복 실행하지 않도록 프로세스 내 합류 */
 const inflightBrowseByKey = new Map<string, Promise<ProductsBrowseOkPayload>>()
