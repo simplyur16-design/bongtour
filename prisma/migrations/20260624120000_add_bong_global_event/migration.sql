@@ -1,4 +1,5 @@
-CREATE TABLE "BongGlobalEvent" (
+-- PR 8: BongGlobalEvent (멱등 — Supabase MCP 선적용·재배포 대비)
+CREATE TABLE IF NOT EXISTS "BongGlobalEvent" (
   "id"             TEXT NOT NULL,
   "name"           TEXT NOT NULL,
   "country"        TEXT NOT NULL,
@@ -18,9 +19,9 @@ CREATE TABLE "BongGlobalEvent" (
   CONSTRAINT "BongGlobalEvent_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX "BongGlobalEvent_country_idx" ON "BongGlobalEvent"("country");
-CREATE INDEX "BongGlobalEvent_startMonth_idx" ON "BongGlobalEvent"("startMonth");
-CREATE INDEX "BongGlobalEvent_year_idx" ON "BongGlobalEvent"("year");
+CREATE INDEX IF NOT EXISTS "BongGlobalEvent_country_idx" ON "BongGlobalEvent"("country");
+CREATE INDEX IF NOT EXISTS "BongGlobalEvent_startMonth_idx" ON "BongGlobalEvent"("startMonth");
+CREATE INDEX IF NOT EXISTS "BongGlobalEvent_year_idx" ON "BongGlobalEvent"("year");
 
-CREATE UNIQUE INDEX "BongGlobalEvent_name_country_year_key"
+CREATE UNIQUE INDEX IF NOT EXISTS "BongGlobalEvent_name_country_year_key"
   ON "BongGlobalEvent"("name", "country", "year");
