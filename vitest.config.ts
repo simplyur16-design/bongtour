@@ -3,7 +3,7 @@ import path from 'node:path'
 
 export default defineConfig({
   test: {
-    include: ['lib/**/*.test.ts'],
+    include: ['lib/**/*.test.ts', 'app/**/*.test.ts'],
     exclude: ['node_modules', 'tests/**', '.next', 'dist', '_bundle3i_tmp', '_files_zip_tmp'],
   },
   resolve: {

@@ -253,8 +253,28 @@ export default function TripRecommendationsClient() {
                   수집 0건 — GEMINI_API_KEY·모델 한도·배치 오류를 확인하세요. [추천 받기] 전에 재시도하세요.
                 </p>
               )}
+              {(eventRefreshResult.saved ?? 0) > 0 && (
+                <p className="text-xs">
+                  신규 {eventRefreshResult.saved}개 이벤트가 수집되었습니다 (검토 대기 상태).{' '}
+                  <a
+                    href="/admin/marketing/curation-events?status=draft"
+                    className="font-medium text-amber-950 underline hover:no-underline"
+                  >
+                    /admin/marketing/curation-events
+                  </a>
+                  에서 검토 후 approve 하면 🌐 태그에 반영됩니다.
+                </p>
+              )}
+              {(eventRefreshResult.collected ?? 0) > 0 && (eventRefreshResult.saved ?? 0) === 0 && (
+                <p className="text-xs">
+                  기존 이벤트 {eventRefreshResult.collected}건이 갱신되었습니다. 신규 건은 검토 페이지에서
+                  확인하세요.
+                </p>
+              )}
               {(eventRefreshResult.collected ?? 0) > 0 && (
-                <p className="text-xs">다음 [추천 받기]부터 글로벌 이벤트 태그에 반영됩니다.</p>
+                <p className="text-xs text-bt-body/80">
+                  approve 완료 후 [추천 받기]를 다시 실행하면 승인된 이벤트가 🌐 태그로 표시됩니다.
+                </p>
               )}
             </div>
           )}

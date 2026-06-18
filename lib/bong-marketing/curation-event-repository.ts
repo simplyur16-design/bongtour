@@ -4,6 +4,9 @@ import type { GlobalEventDescriptor } from '@/lib/bong-marketing/global-event-co
 
 export type CurationEventSource = 'curation_event' | 'bong_global_event'
 
+/** PR (가)-7-α — 수집·검토 워크플로 */
+export type CurationEventStatus = 'draft' | 'approved' | 'rejected'
+
 export interface CurationEventDto {
   name: string
   countryCode: string
@@ -93,7 +96,7 @@ function toDtoFromLegacyEvent(row: {
 
 async function loadCurationEventsForYear(year: number) {
   return prisma.curationEvent.findMany({
-    where: { year },
+    where: { year, status: 'approved' },
     orderBy: [{ startMonth: 'asc' }, { startDay: 'asc' }],
   })
 }
