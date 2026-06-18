@@ -18,6 +18,7 @@ import { isProductDetailPerfLogEnabled, patchProductDetailPerf } from '@/lib/pro
 import { after } from 'next/server'
 import { isNextRouterPrefetchRequest } from '@/lib/next-router-prefetch'
 import { prisma } from '@/lib/prisma'
+import { logQ5Trigger } from '@/lib/q5-trigger-log'
 
 export type ProductDetailBuildSource = 'payload' | 'computed'
 
@@ -28,6 +29,7 @@ export type ProductDetailModelResult = {
 
 /** slim select 행 — title·schedule·rawMeta 없음. live build·persist SSOT는 full row만. */
 async function loadFullProductDetailRowForBuild(productId: string): Promise<ProductDetailViewRow | null> {
+  logQ5Trigger('get-or-build', productId, 'slim-parse-miss')
   return prisma.product.findFirst({
     where: {
       id: productId,

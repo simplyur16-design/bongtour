@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { buildProductDetailPageSelect } from '@/lib/product-detail-page-include'
 import { isMobileUserAgent } from '@/lib/product-detail-viewport-from-ua'
+import { logQ5Trigger } from '@/lib/q5-trigger-log'
 import { ProductDetailView } from '@/app/products/[idOrSlug]/product-detail-view'
 
 export const dynamic = 'force-dynamic'
@@ -26,6 +27,7 @@ export default async function AdminProductCustomerViewPage({ params }: Props) {
     notFound()
   }
 
+  logQ5Trigger('admin-customer-view', id, 'admin-preview')
   const travelProduct = await prisma.product.findFirst({
     where: { id },
     select: buildProductDetailPageSelect(new Date()),
