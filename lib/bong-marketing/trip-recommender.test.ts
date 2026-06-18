@@ -7,8 +7,12 @@ import {
   monthLabelFromNumber,
   monthToSeason,
   parseMonthNumber,
+  parseTripRecommendationsFromGeminiRaw,
   resolveTripDuration,
   rollingMonthsFrom,
+  salvageRecommendationsFromTruncatedJson,
+  TRIP_RECOMMEND_MAX_OUTPUT_TOKENS,
+  TRIP_RECOMMEND_MONTH_BATCH_SIZE,
   type ProductSummary,
 } from '@/lib/bong-marketing/trip-recommender'
 
@@ -92,5 +96,65 @@ describe('month helpers', () => {
 
   it('monthLabelFromNumber', () => {
     expect(monthLabelFromNumber(7)).toBe('7월')
+  })
+})
+
+describe('TRIP_RECOMMEND token/batch constants', () => {
+  it('uses 16384 output tokens', () => {
+    expect(TRIP_RECOMMEND_MAX_OUTPUT_TOKENS).toBe(16384)
+  })
+
+  it('uses 4-month batches for 12-month window', () => {
+    expect(TRIP_RECOMMEND_MONTH_BATCH_SIZE).toBe(4)
+    const months = rollingMonthsFrom(7, 12)
+    expect(Math.ceil(months.length / TRIP_RECOMMEND_MONTH_BATCH_SIZE)).toBe(3)
+  })
+})
+
+describe('salvageRecommendationsFromTruncatedJson', () => {
+  it('extracts complete recommendation objects from truncated JSON', () => {
+    const truncated = `{
+  "recommendations": [
+    {
+      "city": "도쿄",
+      "country": "일본",
+      "month": 7,
+      "monthLabel": "7월",
+      "urgency": "휴가",
+      "reason": "여름 축제",
+      "recommendedTripNights": 4,
+      "recommendedTripDays": 5
+    },
+    {
+      "city": "오사카",
+      "country": "일본",
+      "month": 7,
+      "monthLabel": "7월",
+      "reason": "잘린 문자열`
+
+    const items = salvageRecommendationsFromTruncatedJson(truncated)
+    expect(items).toHaveLength(1)
+    expect((items[0] as { city: string }).city).toBe('도쿄')
+  })
+})
+
+describe('parseTripRecommendationsFromGeminiRaw', () => {
+  it('parses valid JSON', () => {
+    const raw = JSON.stringify({
+      recommendations: [{ city: '방콕', country: '태국', month: 8 }],
+    })
+    const result = parseTripRecommendationsFromGeminiRaw(raw)
+    expect(result.partial).toBe(false)
+    expect(result.recommendations).toHaveLength(1)
+  })
+
+  it('salvages partial JSON when one complete object exists', () => {
+    const truncated = `{
+  "recommendations": [
+    {"city":"다낭","country":"베트남","month":6,"reason":"불꽃축제"},
+    {"city":"잘림","country":"베트남","month":7,"reason":"unterminated`
+    const result = parseTripRecommendationsFromGeminiRaw(truncated)
+    expect(result.partial).toBe(true)
+    expect(result.recommendations).toHaveLength(1)
   })
 })

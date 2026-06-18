@@ -1,12 +1,21 @@
 import { prisma } from '@/lib/prisma'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
-import { parseGeminiJsonOutput } from '@/lib/bong-marketing/gemini-json-parse'
-import { debugLog } from '@/lib/bong-marketing/debug-log'
+import {
+  extractFirstBalancedJsonObject,
+  parseGeminiJsonOutput,
+} from '@/lib/bong-marketing/gemini-json-parse'
+import { debugLog, debugError } from '@/lib/bong-marketing/debug-log'
 import {
   getGlobalEventsForRecommendationMonth,
 } from '@/lib/bong-marketing/curation-event-repository'
 
 const TRIP_RECOMMEND_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
+/** 12개월×다수 카드 JSON — 출력 토큰 한계 회피 */
+export const TRIP_RECOMMEND_MAX_OUTPUT_TOKENS = 16_384
+/** 4개월씩 3배치 (12개월 롤링) */
+export const TRIP_RECOMMEND_MONTH_BATCH_SIZE = 4
+const MAX_REASON_CHARS = 100
+const MAX_CITIES_PER_MONTH = 3
 
 /** 카드뉴스·블로그 API 호환용 — 추천 분류 기준은 month */
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
@@ -46,6 +55,14 @@ export interface TripRecommendation {
   startMonth: number
   recommendations: TripRecommendationItem[]
   totalProductsAnalyzed: number
+  /** 배치·파싱 경고 (부분 salvage 등) */
+  errorDetails?: TripRecommendBatchError[]
+}
+
+export interface TripRecommendBatchError {
+  stage: 'gemini_api' | 'json_parse' | 'json_parse_partial' | 'empty_batch'
+  message: string
+  months?: string
 }
 
 export interface ProductSummary {
@@ -58,6 +75,83 @@ export interface ProductSummary {
   themes: string[]
   tripNights: number | null
   tripDays: number | null
+}
+
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size))
+  }
+  return chunks
+}
+
+/**
+ * Gemini 응답이 토큰 한계로 잘렸을 때 recommendations 배열 안 **완전한 객체**만 추출.
+ */
+export function salvageRecommendationsFromTruncatedJson(rawText: string): unknown[] {
+  const pj = parseGeminiJsonOutput(rawText)
+  if (pj.ok) {
+    const recs = (pj.value as { recommendations?: unknown }).recommendations
+    return Array.isArray(recs) ? recs : []
+  }
+
+  const recKey = rawText.match(/"recommendations"\s*:\s*\[/)
+  if (!recKey || recKey.index === undefined) return []
+
+  let cursor = rawText.indexOf('[', recKey.index) + 1
+  const objects: Record<string, unknown>[] = []
+
+  while (cursor < rawText.length) {
+    while (cursor < rawText.length && /[\s,]/.test(rawText[cursor])) cursor++
+    if (cursor >= rawText.length || rawText[cursor] === ']') break
+    if (rawText[cursor] !== '{') break
+
+    const balanced = extractFirstBalancedJsonObject(rawText.slice(cursor))
+    if (!balanced) break
+
+    try {
+      const obj = JSON.parse(balanced) as Record<string, unknown>
+      if (obj && typeof obj === 'object') objects.push(obj)
+    } catch {
+      break
+    }
+    cursor += balanced.length
+  }
+
+  return objects
+}
+
+export function parseTripRecommendationsFromGeminiRaw(rawText: string): {
+  recommendations: unknown[]
+  partial: boolean
+  parseError?: string
+} {
+  const salvaged = salvageRecommendationsFromTruncatedJson(rawText)
+  if (salvaged.length) {
+    const pj = parseGeminiJsonOutput(rawText)
+    return {
+      recommendations: salvaged,
+      partial: !pj.ok,
+      parseError: pj.ok ? undefined : pj.error,
+    }
+  }
+
+  const pj = parseGeminiJsonOutput(rawText)
+  if (pj.ok) {
+    const recs = (pj.value as { recommendations?: unknown }).recommendations
+    return {
+      recommendations: Array.isArray(recs) ? recs : [],
+      partial: false,
+    }
+  }
+
+  return { recommendations: [], partial: false, parseError: pj.error }
+}
+
+function truncateReason(text: string): string {
+  const t = text.trim()
+  if (t.length <= MAX_REASON_CHARS) return t
+  return `${t.slice(0, MAX_REASON_CHARS - 1)}…`
 }
 
 const VALID_SEASONS = new Set<Season>(['spring', 'summer', 'autumn', 'winter'])
@@ -235,13 +329,16 @@ function buildRecommenderSystemPrompt(): string {
 "한국인이 월별로 가기 좋은 해외 여행지"를 **월(1~12월) 단위**로 추천하세요.
 
 규칙:
-- 현재달 + 1개월 이후 미래만 추천 (예: 6월이면 7월~12월 + 내년 1~6월)
-- **월별로 그룹화** — 각 대상 월마다 도시 2~5개
+- **이번 요청에 지정된 월만** 추천 (다른 월 금지)
+- 각 지정 월마다 도시 **2~${MAX_CITIES_PER_MONTH}개** (그 이상 금지)
 - 봄/여름/가을/겨울 4분류 사용 금지 — 반드시 month 숫자(1-12)로 지정
-- 각 도시: month (1-12), monthLabel ("7월"), urgency, reason (1-2문장)
+- 각 도시: month, monthLabel ("7월"), urgency(10자 이내), reason(**${MAX_REASON_CHARS}자 이내**, 1문장)
 - recommendedTripNights(박), recommendedTripDays(일)
+- themes는 최대 2개 (짧은 단어)
 - 봉투어 운영 도시·국가만 (입력 목록 안에서만)
-- 해당 월의 해외 축제·이벤트 시즌이면 reason에 자연스럽게 언급
+- country 필드는 입력 목록의 **한국어 국가명**과 일치
+- **반드시 유효한 JSON 전체를 출력** — 마지막 객체까지 닫고 \`}\` 완성
+- 토큰 한계 임박 시 도시 수를 줄여 **완전한 JSON**으로 마무리
 - JSON 형식만 반환
 
 응답 형식:
@@ -253,8 +350,8 @@ function buildRecommenderSystemPrompt(): string {
       "month": 7,
       "monthLabel": "7월",
       "urgency": "단기 출발",
-      "reason": "일본 여름 축제 시즌, 한국인 휴가와 맞물림.",
-      "themes": ["휴양", "가족"],
+      "reason": "일본 여름 축제 시즌.",
+      "themes": ["휴양"],
       "recommendedTripNights": 4,
       "recommendedTripDays": 5
     }
@@ -267,6 +364,7 @@ function buildRecommenderSystemPrompt(): string {
 - 봉투어 미운영 도시 X
 - 현재달 이내 X
 - 단정형 표현 X
+- reason ${MAX_REASON_CHARS}자 초과
 `.trim()
 }
 
@@ -276,6 +374,7 @@ function buildRecommenderUserPrompt(
   cityLabels: Record<string, string>,
   currentMonth: number,
   currentYear: number,
+  targetMonths: number[],
 ): string {
   const cityList = Object.entries(citiesByCountry)
     .map(([countrySlug, cities]) => {
@@ -285,35 +384,37 @@ function buildRecommenderUserPrompt(
     })
     .join('\n')
 
-  const monthOrder = rollingMonthsFrom(currentMonth + 1 > 12 ? 1 : currentMonth + 1, 12)
-  const monthList = monthOrder.map((m) => `${m}월`).join(', ')
+  const monthList = targetMonths.map((m) => `${m}월`).join(', ')
 
   return `
 현재 시점: ${currentYear}년 ${currentMonth}월
-추천 대상 월 (각 월별로 도시 추천): ${monthList}
+**이번 요청 대상 월 (이 월들만 추천, 각 월 2~${MAX_CITIES_PER_MONTH}개 도시):** ${monthList}
 
 봉투어 운영 도시 (이 목록 안에서만 추천):
 ${cityList}
 
-각 월마다 한국인에게 가기 좋은 해외 도시를 추천해주세요. 월 단위로만 분류하세요.
+지정 월마다 한국인에게 가기 좋은 해외 도시를 추천하세요. reason ${MAX_REASON_CHARS}자 이내. 완전한 JSON 필수.
 `.trim()
 }
 
 async function callGeminiTripRecommender(params: {
   systemPrompt: string
   userPrompt: string
-}): Promise<{ recommendations?: unknown }> {
+  batchLabel?: string
+}): Promise<{ recommendations: unknown[]; partial: boolean; parseError?: string }> {
   const apiKey = (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY(또는 GOOGLE_API_KEY) 미설정')
   }
 
   const modelId = TRIP_RECOMMEND_MODEL || getModelName()
-  const maxOutputTokens = 8192
+  const maxOutputTokens = TRIP_RECOMMEND_MAX_OUTPUT_TOKENS
   const timeoutMs = 240_000
 
   debugLog('trip-recommend', 'gemini call prep', {
     model: modelId,
+    batch: params.batchLabel,
+    maxOutputTokens,
     systemPromptChars: params.systemPrompt.length,
     userPromptChars: params.userPrompt.length,
   })
@@ -327,7 +428,7 @@ async function callGeminiTripRecommender(params: {
   let lastRawResponseText = ''
 
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const temperature = attempt === 1 ? 0.7 : 0.6
+    const temperature = attempt === 1 ? 0.7 : 0.5
     try {
       const result = await model.generateContent(
         {
@@ -342,21 +443,46 @@ async function callGeminiTripRecommender(params: {
       )
 
       lastRawResponseText = result.response.text()
-      debugLog('trip-recommend', 'gemini raw (1000):', lastRawResponseText.slice(0, 1000))
+      debugLog(
+        'trip-recommend',
+        `gemini raw${params.batchLabel ? ` [${params.batchLabel}]` : ''} (500):`,
+        lastRawResponseText.slice(0, 500),
+      )
 
-      const pj = parseGeminiJsonOutput(lastRawResponseText)
-      if (pj.ok) {
-        return pj.value as { recommendations?: unknown }
+      const parsed = parseTripRecommendationsFromGeminiRaw(lastRawResponseText)
+      if (parsed.recommendations.length) {
+        if (parsed.partial) {
+          debugLog(
+            'trip-recommend',
+            `partial salvage ${parsed.recommendations.length} cards${params.batchLabel ? ` (${params.batchLabel})` : ''}`,
+            parsed.parseError ?? '',
+          )
+        }
+        return parsed
       }
 
-      debugLog('trip-recommend', 'gemini raw (full, json parse fail):', lastRawResponseText)
-      lastError = pj.error
+      if (!parsed.parseError) {
+        return { recommendations: [], partial: false }
+      }
+
+      debugLog('trip-recommend', 'gemini parse fail:', parsed.parseError)
+      lastError = parsed.parseError
       if (attempt === 2) {
-        throw new Error(`gemini_parse_failed_after_retry: ${pj.error}`)
+        throw new Error(`gemini_parse_failed_after_retry: ${parsed.parseError}`)
       }
     } catch (e) {
       lastError = e instanceof Error ? e.message : String(e)
       if (attempt === 2) {
+        if (lastRawResponseText) {
+          const salvaged = parseTripRecommendationsFromGeminiRaw(lastRawResponseText)
+          if (salvaged.recommendations.length) {
+            debugLog(
+              'trip-recommend',
+              `error-after-retry salvage ${salvaged.recommendations.length}${params.batchLabel ? ` (${params.batchLabel})` : ''}`,
+            )
+            return salvaged
+          }
+        }
         throw new Error(`gemini_generate_failed: ${lastError}`)
       }
     }
@@ -463,6 +589,7 @@ export function resolveTripDuration(
 
 /**
  * 운영자 [추천 받기] 시 실시간 Gemini 호출. 캐시 없음.
+ * 12개월 → 4개월×3배치, 부분 JSON salvage 지원.
  */
 export async function generateTripRecommendations(): Promise<TripRecommendation> {
   const now = new Date()
@@ -474,24 +601,81 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
   const { countries: countryLabels, cities: cityLabels } = await loadGeoLabels(products)
 
   const systemPrompt = buildRecommenderSystemPrompt()
-  const userPrompt = buildRecommenderUserPrompt(
-    citiesByCountry,
-    countryLabels,
-    cityLabels,
-    currentMonth,
-    currentYear,
+  const targetMonths = rollingMonthsFrom(currentMonth + 1 > 12 ? 1 : currentMonth + 1, 12)
+  const monthBatches = chunkArray(targetMonths, TRIP_RECOMMEND_MONTH_BATCH_SIZE)
+  const errorDetails: TripRecommendBatchError[] = []
+  const allRawRecommendations: unknown[] = []
+
+  debugLog(
+    'trip-recommend',
+    `${targetMonths.length}개월, ${monthBatches.length}배치 수집 시작`,
+    targetMonths,
   )
 
-  const response = await callGeminiTripRecommender({ systemPrompt, userPrompt })
+  for (const monthBatch of monthBatches) {
+    const batchLabel = monthBatch.map((m) => `${m}월`).join(', ')
+    const userPrompt = buildRecommenderUserPrompt(
+      citiesByCountry,
+      countryLabels,
+      cityLabels,
+      currentMonth,
+      currentYear,
+      monthBatch,
+    )
 
-  if (!response.recommendations || !Array.isArray(response.recommendations)) {
-    throw new Error('Invalid Gemini response: recommendations array missing')
+    try {
+      const batchResult = await callGeminiTripRecommender({
+        systemPrompt,
+        userPrompt,
+        batchLabel,
+      })
+
+      if (!batchResult.recommendations.length) {
+        errorDetails.push({
+          stage: 'empty_batch',
+          message: 'Gemini 응답에서 유효한 추천 0개',
+          months: batchLabel,
+        })
+        debugError('trip-recommend', `배치 0건: ${batchLabel}`)
+        continue
+      }
+
+      allRawRecommendations.push(...batchResult.recommendations)
+
+      if (batchResult.partial) {
+        errorDetails.push({
+          stage: 'json_parse_partial',
+          message: batchResult.parseError ?? '토큰 한계로 부분 salvage',
+          months: batchLabel,
+        })
+      }
+
+      debugLog(
+        'trip-recommend',
+        `배치 ${batchResult.recommendations.length}건${batchResult.partial ? ' (partial)' : ''}: ${batchLabel}`,
+      )
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      errorDetails.push({
+        stage: 'gemini_api',
+        message,
+        months: batchLabel,
+      })
+      debugError('trip-recommend', `배치 Gemini 실패 (${batchLabel}):`, err)
+    }
+  }
+
+  if (!allRawRecommendations.length) {
+    const detail = JSON.stringify({ errorDetails })
+    throw new Error(`trip_recommend_empty: ${detail}`)
   }
 
   let eventLookupFailed = false
 
   const enriched: TripRecommendationItem[] = []
-  for (const raw of response.recommendations) {
+  const seenCardKeys = new Set<string>()
+
+  for (const raw of allRawRecommendations) {
     if (!raw || typeof raw !== 'object') continue
     const r = raw as Record<string, unknown>
     const month = resolveRecommendationMonth(r, currentMonth)
@@ -500,6 +684,10 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
     const city = String(r.city ?? '').trim()
     const country = String(r.country ?? '').trim()
     if (!city || !country) continue
+
+    const cardKey = `${month}::${city}::${country}`
+    if (seenCardKeys.has(cardKey)) continue
+    seenCardKeys.add(cardKey)
 
     const matchingProductIds = matchProductIds({ city, country }, products, cityLabels, countryLabels)
     const { nights, days } = resolveTripDuration(r, matchingProductIds, products)
@@ -534,10 +722,12 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
       city,
       country,
       urgency: String(r.urgency ?? ''),
-      reason: String(r.reason ?? ''),
+      reason: truncateReason(String(r.reason ?? '')),
       recommendedTripNights: nights,
       recommendedTripDays: days,
-      themes: Array.isArray(r.themes) ? r.themes.map(String).filter(Boolean) : undefined,
+      themes: Array.isArray(r.themes)
+        ? r.themes.map(String).filter(Boolean).slice(0, 2)
+        : undefined,
       matchingProductIds,
       events: events.length ? events : undefined,
       season: monthToSeason(month),
@@ -549,6 +739,14 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
     debugLog('trip-recommend', 'some recommendation event lookups failed')
   }
 
+  if (!enriched.length) {
+    errorDetails.push({
+      stage: 'empty_batch',
+      message: '파싱된 raw 추천은 있으나 유효 카드 0개 — month/country 필터',
+    })
+    throw new Error(`trip_recommend_empty: ${JSON.stringify({ errorDetails })}`)
+  }
+
   const startMonth = currentMonth
 
   return {
@@ -557,5 +755,6 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
     startMonth,
     recommendations: enriched,
     totalProductsAnalyzed: products.length,
+    errorDetails: errorDetails.length ? errorDetails : undefined,
   }
 }
