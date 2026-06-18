@@ -1,6 +1,7 @@
 import { generateGeminiJsonResponse } from '@/lib/bong-marketing/gemini-generate'
 import { debugLog } from '@/lib/bong-marketing/debug-log'
 import { searchNaverBlog } from '@/lib/bong-marketing/naver-search-client'
+import { getEventsForMonth } from '@/lib/bong-marketing/global-event-collector'
 
 const EVENT_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 
@@ -12,6 +13,15 @@ export interface SeasonalEvent {
   endDay?: number
   type: 'season' | 'vacation' | 'school' | 'holiday' | 'special'
   description?: string
+}
+
+export interface EventDescriptor {
+  name: string
+  country?: string
+  city?: string
+  description?: string
+  appealReason?: string
+  source: 'korean' | 'global'
 }
 
 const EVENT_SEARCH_KEYWORDS = [
@@ -110,6 +120,67 @@ export function matchEventsForMonthRange(monthRange: string, events: SeasonalEve
     })
     .map((e) => e.name)
     .slice(0, 5)
+}
+
+function monthOverlapsEvent(month: number, startMonth: number, endMonth: number): boolean {
+  if (startMonth <= endMonth) return month >= startMonth && month <= endMonth
+  return month >= startMonth || month <= endMonth
+}
+
+async function getKoreanEventsForMonth(month: number): Promise<EventDescriptor[]> {
+  const events = await getSeasonalEventsCached()
+  return events
+    .filter((event) => monthOverlapsEvent(month, event.startMonth, event.endMonth))
+    .map((e) => ({
+      name: e.name,
+      description: e.description,
+      source: 'korean' as const,
+    }))
+}
+
+/** 한국 시즌 이벤트 + 글로벌 DB 이벤트 통합 */
+export async function getMonthlyEventsForRecommendation(
+  month: number,
+  country?: string,
+): Promise<EventDescriptor[]> {
+  const koreanEvents = await getKoreanEventsForMonth(month)
+  const globalEvents = await getEventsForMonth(month, country)
+
+  return [
+    ...koreanEvents,
+    ...globalEvents.map((e) => ({
+      name: e.name,
+      country: e.country,
+      city: e.city ?? undefined,
+      description: e.description ?? undefined,
+      appealReason: e.appealReason ?? undefined,
+      source: 'global' as const,
+    })),
+  ]
+}
+
+/** monthRange에 걸치는 이벤트 (추천 카드용, 중복 제거) */
+export async function getEventsForRecommendationMonthRange(
+  monthRange: string,
+  country?: string,
+): Promise<EventDescriptor[]> {
+  const months = parseMonthsFromMonthRange(monthRange)
+  if (!months.length) return []
+
+  const seen = new Set<string>()
+  const merged: EventDescriptor[] = []
+
+  for (const month of months) {
+    const events = await getMonthlyEventsForRecommendation(month, country)
+    for (const event of events) {
+      const key = `${event.source}:${event.name}:${event.country ?? ''}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(event)
+    }
+  }
+
+  return merged.slice(0, 5)
 }
 
 let cachedEvents: { year: number; data: SeasonalEvent[]; fetchedAt: number } | null = null
