@@ -31,8 +31,6 @@ export interface InstagramMedia {
 
 export interface InstagramMediaInsight {
   reach?: number
-  /** @deprecated Meta 2024-11 — API는 views 반환; parse 시 views 값이 복사됨 */
-  impressions?: number
   views?: number
   likes?: number
   saved?: number
@@ -69,10 +67,7 @@ export function parseInstagramInsightsFromApi(data: InsightApiRow[]): InstagramM
   for (const item of data) {
     const value = item.values?.[0]?.value
     if (item.name === 'reach') result.reach = value
-    if (item.name === 'views') {
-      result.views = value
-      result.impressions = value
-    }
+    if (item.name === 'views') result.views = value
     if (item.name === 'likes') result.likes = value
     if (item.name === 'saved') result.saved = value
     if (item.name === 'shares') result.shares = value
