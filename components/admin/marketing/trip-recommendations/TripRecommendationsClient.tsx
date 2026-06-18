@@ -4,6 +4,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import RecentSeriesSection from '@/components/admin/marketing/trip-recommendations/RecentSeriesSection'
 
+interface TripRecommendationEvent {
+  name: string
+  type: 'global-festival' | 'korean-season'
+  city?: string
+  appealReason?: string
+}
+
 interface TripRecommendationItem {
   city: string
   country: string
@@ -15,7 +22,7 @@ interface TripRecommendationItem {
   recommendedTripDays: number
   themes?: string[]
   matchingProductIds: string[]
-  events?: string[]
+  events?: TripRecommendationEvent[]
 }
 
 interface TripRecommendation {
@@ -43,7 +50,13 @@ export default function TripRecommendationsClient() {
   const [refreshingEvents, setRefreshingEvents] = useState(false)
   const [data, setData] = useState<TripRecommendation | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [eventsMsg, setEventsMsg] = useState<string | null>(null)
+  const [eventRefreshResult, setEventRefreshResult] = useState<{
+    countries?: string[]
+    collected?: number
+    saved?: number
+    skippedDuplicates?: number
+    error?: string
+  } | null>(null)
 
   useEffect(() => {
     try {
@@ -101,14 +114,22 @@ export default function TripRecommendationsClient() {
 
   async function handleRefreshEvents() {
     setRefreshingEvents(true)
-    setEventsMsg(null)
+    setEventRefreshResult(null)
     try {
-      const res = await fetch('/api/admin/marketing/seasonal-events/refresh', { method: 'POST' })
-      const json = (await res.json()) as { count?: number; error?: string }
+      const res = await fetch('/api/admin/marketing/global-events/refresh', { method: 'POST' })
+      const json = (await res.json()) as {
+        countries?: string[]
+        collected?: number
+        saved?: number
+        skippedDuplicates?: number
+        error?: string
+      }
       if (!res.ok) throw new Error(json.error ?? '이벤트 갱신 실패')
-      setEventsMsg(`이벤트 ${json.count ?? 0}개 갱신됨. 다음 [추천 받기]부터 반영됩니다.`)
+      setEventRefreshResult(json)
     } catch (err) {
-      setEventsMsg(err instanceof Error ? err.message : '이벤트 갱신 실패')
+      setEventRefreshResult({
+        error: err instanceof Error ? err.message : '이벤트 갱신 실패',
+      })
     } finally {
       setRefreshingEvents(false)
     }
@@ -129,9 +150,9 @@ export default function TripRecommendationsClient() {
           type="button"
           onClick={() => void handleRefreshEvents()}
           disabled={refreshingEvents || loading}
-          className="rounded-lg border border-bt-border-strong px-3 py-2 text-xs text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
+          className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
         >
-          {refreshingEvents ? '이벤트 갱신 중…' : '이벤트 갱신'}
+          {refreshingEvents ? '갱신 중…' : '전체 이벤트 갱신'}
         </button>
         {data && (
           <p className="text-sm text-bt-body/60">
@@ -146,8 +167,22 @@ export default function TripRecommendationsClient() {
         )}
       </div>
 
-      {eventsMsg && (
-        <p className="text-sm text-bt-body/70">{eventsMsg}</p>
+      {eventRefreshResult && (
+        <div
+          className={`mt-2 rounded p-3 text-sm ${
+            eventRefreshResult.error ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-900'
+          }`}
+        >
+          {eventRefreshResult.error ? (
+            eventRefreshResult.error
+          ) : (
+            <>
+              {eventRefreshResult.countries?.length ?? 0}개 국가에서 {eventRefreshResult.collected ?? 0}개 수집,{' '}
+              {eventRefreshResult.saved ?? 0}개 신규 저장, {eventRefreshResult.skippedDuplicates ?? 0}개 업데이트.
+              다음 [추천 받기]부터 반영됩니다.
+            </>
+          )}
+        </div>
       )}
 
       {error && (
@@ -270,9 +305,18 @@ function TripCard({
         </div>
         {item.events && item.events.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
-            {item.events.map((event) => (
-              <span key={event} className="rounded bg-amber-100 px-2 py-1 text-xs text-amber-800">
-                {event}
+            {item.events.map((event, eventIdx) => (
+              <span
+                key={`${event.name}-${eventIdx}`}
+                className={`rounded px-2 py-1 text-xs ${
+                  event.type === 'global-festival'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-emerald-100 text-emerald-800'
+                }`}
+                title={event.appealReason}
+              >
+                {event.type === 'global-festival' ? '🌐' : '🇰🇷'} {event.name}
+                {event.city ? ` (${event.city})` : ''}
               </span>
             ))}
           </div>

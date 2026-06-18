@@ -3,13 +3,19 @@ import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseGeminiJsonOutput } from '@/lib/bong-marketing/gemini-json-parse'
 import { debugLog } from '@/lib/bong-marketing/debug-log'
 import {
-  getSeasonalEventsCached,
-  matchEventsForMonthRange,
+  getEventsForRecommendationMonthRange,
 } from '@/lib/bong-marketing/seasonal-event-collector'
 
 const TRIP_RECOMMEND_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
+
+export interface TripRecommendationEvent {
+  name: string
+  type: 'global-festival' | 'korean-season'
+  city?: string
+  appealReason?: string
+}
 
 export interface TripRecommendationItem {
   city: string
@@ -22,7 +28,7 @@ export interface TripRecommendationItem {
   recommendedTripDays: number
   matchingProductIds: string[]
   themes?: string[]
-  events?: string[]
+  events?: TripRecommendationEvent[]
 }
 
 export interface TripRecommendation {
@@ -391,13 +397,7 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
     throw new Error('Invalid Gemini response: recommendations array missing')
   }
 
-  let seasonalEvents: Awaited<ReturnType<typeof getSeasonalEventsCached>> = []
-  try {
-    seasonalEvents = await getSeasonalEventsCached()
-    debugLog('trip-recommend', `seasonal events loaded: ${seasonalEvents.length}`)
-  } catch (e) {
-    debugLog('trip-recommend', 'seasonal events load failed', e instanceof Error ? e.message : e)
-  }
+  let seasonalEventsFailed = false
 
   const enriched: TripRecommendationItem[] = []
   for (const raw of response.recommendations) {
@@ -413,6 +413,20 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
     const { nights, days } = resolveTripDuration(r, matchingProductIds, products)
     const monthRange = String(r.monthRange ?? '')
 
+    let events: TripRecommendationEvent[] = []
+    try {
+      const matched = await getEventsForRecommendationMonthRange(monthRange, country)
+      events = matched.map((e) => ({
+        name: e.name,
+        type: e.source === 'global' ? 'global-festival' : 'korean-season',
+        city: e.city,
+        appealReason: e.appealReason,
+      }))
+    } catch (e) {
+      seasonalEventsFailed = true
+      debugLog('trip-recommend', 'event match failed', e instanceof Error ? e.message : e)
+    }
+
     enriched.push({
       city,
       country,
@@ -424,8 +438,12 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
       recommendedTripDays: days,
       themes: Array.isArray(r.themes) ? r.themes.map(String).filter(Boolean) : undefined,
       matchingProductIds,
-      events: matchEventsForMonthRange(monthRange, seasonalEvents),
+      events: events.length ? events : undefined,
     })
+  }
+
+  if (seasonalEventsFailed) {
+    debugLog('trip-recommend', 'some recommendation event lookups failed')
   }
 
   return {
