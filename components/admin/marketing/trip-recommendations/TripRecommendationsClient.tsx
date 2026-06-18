@@ -88,6 +88,7 @@ export default function TripRecommendationsClient() {
   const [refreshingEvents, setRefreshingEvents] = useState(false)
   const [data, setData] = useState<TripRecommendation | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [resetNotice, setResetNotice] = useState<string | null>(null)
   const [eventRefreshResult, setEventRefreshResult] = useState<{
     countries?: string[]
     collected?: number
@@ -142,15 +143,24 @@ export default function TripRecommendationsClient() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   }
 
-  function handleClear() {
+  function clearRecommendationsCache() {
     localStorage.removeItem(STORAGE_KEY)
     setData(null)
     setError(null)
   }
 
+  function handleReset() {
+    clearRecommendationsCache()
+    setEventRefreshResult(null)
+    setResetNotice('캐시 초기화됨')
+    window.setTimeout(() => setResetNotice(null), 3000)
+  }
+
   async function handleGenerate() {
     setLoading(true)
     setError(null)
+    setResetNotice(null)
+    clearRecommendationsCache()
     try {
       const res = await fetch('/api/admin/marketing/trip-recommendations', { method: 'POST' })
       const json = (await res.json()) as TripRecommendation & { error?: string }
@@ -209,18 +219,29 @@ export default function TripRecommendationsClient() {
         >
           {refreshingEvents ? '갱신 중…' : '전체 이벤트 갱신'}
         </button>
+        <button
+          type="button"
+          onClick={handleReset}
+          disabled={loading || refreshingEvents}
+          className="rounded-lg border border-bt-border-strong px-4 py-2 text-sm font-medium text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
+        >
+          초기화
+        </button>
         {data && (
           <p className="text-sm text-bt-body/60">
             {new Date(data.generatedAt).toLocaleString('ko-KR')}에 받은 추천입니다.
-            <button type="button" onClick={handleClear} className="ml-2 text-bt-link hover:underline">
-              초기화
-            </button>
           </p>
         )}
         {data && !grouped && (
           <span className="text-sm text-bt-body/70">분석 상품: {data.totalProductsAnalyzed}개</span>
         )}
       </div>
+
+      {resetNotice && (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">
+          {resetNotice}
+        </div>
+      )}
 
       {eventRefreshResult && (
         <div
