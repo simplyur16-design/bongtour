@@ -8,12 +8,9 @@ export const dynamic = 'force-dynamic'
 const META_SCOPES = [
   'pages_show_list',
   'pages_read_engagement',
-  'pages_read_user_content',
-  'pages_manage_metadata',
   'instagram_basic',
   'instagram_manage_insights',
   'business_management',
-  'read_insights',
 ].join(',')
 
 /** GET /api/auth/meta — Meta OAuth authorize (관리자 전용) */
