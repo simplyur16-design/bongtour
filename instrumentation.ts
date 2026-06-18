@@ -62,6 +62,16 @@ export async function register() {
           '[calendar-cron] web-fallback: worker 없음 — 3h 달력 배치를 web 프로세스에 등록 (worker 추가 시 web에 DISABLE_WEB_CALENDAR_CRON=1)',
         )
       }
+
+      if (process.env.NODE_ENV === 'production' && process.env.DISABLE_INSTRUMENTATION_PRODUCT_DETAIL_PAYLOAD_CRON !== '1') {
+        const { startInstrumentationProductDetailPayloadCron } = await import(
+          '@/lib/instrumentation-product-detail-payload-cron'
+        )
+        startInstrumentationProductDetailPayloadCron({ webFallback: true })
+        console.log(
+          '[product-detail-payload-cron] web-fallback: worker 없음 — KST 00:05 stale payload rebuild를 web 프로세스에 등록 (DISABLE_INSTRUMENTATION_PRODUCT_DETAIL_PAYLOAD_CRON=1 로 비활성)',
+        )
+      }
     }
 
     if (process.env.NODE_ENV === 'production' && hasDb && shouldRunBackgroundCrons()) {
