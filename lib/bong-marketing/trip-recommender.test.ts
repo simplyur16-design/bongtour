@@ -2,8 +2,13 @@ import { describe, it, expect } from 'vitest'
 import {
   extractThemes,
   groupCitiesByCountry,
+  isFutureRecommendationMonth,
   matchProductIds,
+  monthLabelFromNumber,
+  monthToSeason,
+  parseMonthNumber,
   resolveTripDuration,
+  rollingMonthsFrom,
   type ProductSummary,
 } from '@/lib/bong-marketing/trip-recommender'
 
@@ -58,5 +63,34 @@ describe('resolveTripDuration', () => {
 
   it('falls back to matching product trip length', () => {
     expect(resolveTripDuration({}, ['p1'], products)).toEqual({ nights: 4, days: 5 })
+  })
+})
+
+describe('month helpers', () => {
+  it('rollingMonthsFrom starts at given month', () => {
+    expect(rollingMonthsFrom(6, 12)).toEqual([6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5])
+  })
+
+  it('parseMonthNumber handles labels and ranges', () => {
+    expect(parseMonthNumber(7)).toBe(7)
+    expect(parseMonthNumber('7월')).toBe(7)
+    expect(parseMonthNumber('10-11월')).toBe(10)
+  })
+
+  it('monthToSeason maps calendar months', () => {
+    expect(monthToSeason(7)).toBe('summer')
+    expect(monthToSeason(12)).toBe('winter')
+  })
+
+  it('isFutureRecommendationMonth allows 12-month window from next month', () => {
+    // 6월 현재 → 허용: 7~12월 + 내년 1~6월 (내년 6월 포함)
+    expect(isFutureRecommendationMonth(6, 6)).toBe(true)
+    expect(isFutureRecommendationMonth(7, 6)).toBe(true)
+    expect(isFutureRecommendationMonth(5, 6)).toBe(true)
+    // 6월 현재 시 이번 달(출국 불가)은 Gemini 프롬프트에서 제외 — 파서는 창 안이면 허용
+  })
+
+  it('monthLabelFromNumber', () => {
+    expect(monthLabelFromNumber(7)).toBe('7월')
   })
 })

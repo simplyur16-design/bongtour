@@ -389,6 +389,22 @@ export interface GlobalEventDescriptor {
   source: 'global'
 }
 
+export async function getGlobalEventsForRecommendationMonth(
+  month: number,
+  country?: string,
+): Promise<GlobalEventDescriptor[]> {
+  if (month < 1 || month > 12) return []
+  const events = await getEventsForMonth(month, country)
+  return events.map((e) => ({
+    name: e.name,
+    country: e.country,
+    city: e.city ?? undefined,
+    description: e.description ?? undefined,
+    appealReason: e.appealReason ?? undefined,
+    source: 'global' as const,
+  }))
+}
+
 /** 추천 카드용 — 글로벌 DB 이벤트만 (한국 시즌 제외) */
 export async function getGlobalEventsForRecommendationMonthRange(
   monthRange: string,

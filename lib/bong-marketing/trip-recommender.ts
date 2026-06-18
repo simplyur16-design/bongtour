@@ -3,11 +3,12 @@ import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseGeminiJsonOutput } from '@/lib/bong-marketing/gemini-json-parse'
 import { debugLog } from '@/lib/bong-marketing/debug-log'
 import {
-  getGlobalEventsForRecommendationMonthRange,
+  getGlobalEventsForRecommendationMonth,
 } from '@/lib/bong-marketing/global-event-collector'
 
 const TRIP_RECOMMEND_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 
+/** 카드뉴스·블로그 API 호환용 — 추천 분류 기준은 month */
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
 
 export interface TripRecommendationEvent {
@@ -18,10 +19,12 @@ export interface TripRecommendationEvent {
 }
 
 export interface TripRecommendationItem {
+  /** 추천 대상 월 (1–12) */
+  month: number
+  /** 표시용 "7월" */
+  monthLabel: string
   city: string
   country: string
-  season: Season
-  monthRange: string
   urgency: string
   reason: string
   recommendedTripNights: number
@@ -29,11 +32,18 @@ export interface TripRecommendationItem {
   matchingProductIds: string[]
   themes?: string[]
   events?: TripRecommendationEvent[]
+  /** @deprecated 카드뉴스·블로그 API 호환 — monthToSeason(month) */
+  season?: Season
+  /** @deprecated monthLabel 과 동일 — 하위 API 호환 */
+  monthRange?: string
 }
 
 export interface TripRecommendation {
   generatedAt: string
+  /** 롤링 12개월 창 (항상 12) */
   windowMonths: number
+  /** UI 섹션 시작 월 (현재 월) */
+  startMonth: number
   recommendations: TripRecommendationItem[]
   totalProductsAnalyzed: number
 }
@@ -51,6 +61,53 @@ export interface ProductSummary {
 }
 
 const VALID_SEASONS = new Set<Season>(['spring', 'summer', 'autumn', 'winter'])
+
+export function monthLabelFromNumber(month: number): string {
+  return `${month}월`
+}
+
+/** 현재 월부터 12개월 롤링 순서 (예: 6월 시작 → 6,7,...,12,1,...,5) */
+export function rollingMonthsFrom(startMonth: number, count = 12): number[] {
+  const start = Math.min(12, Math.max(1, Math.floor(startMonth)))
+  const out: number[] = []
+  for (let i = 0; i < count; i++) {
+    out.push(((start - 1 + i) % 12) + 1)
+  }
+  return out
+}
+
+/** 월 → 계절 (카드뉴스·블로그 레거시 API용, 추천 UI 분류에는 사용 안 함) */
+export function monthToSeason(month: number): Season {
+  if (month >= 3 && month <= 5) return 'spring'
+  if (month >= 6 && month <= 8) return 'summer'
+  if (month >= 9 && month <= 11) return 'autumn'
+  return 'winter'
+}
+
+export function parseMonthNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const n = Math.floor(value)
+    if (n >= 1 && n <= 12) return n
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const single = value.trim().match(/^(\d{1,2})\s*월$/)
+    if (single) {
+      const n = parseInt(single[1], 10)
+      if (n >= 1 && n <= 12) return n
+    }
+    const range = value.match(/(\d{1,2})\s*[-~]\s*(\d{1,2})\s*월/)
+    if (range) {
+      const n = parseInt(range[1], 10)
+      if (n >= 1 && n <= 12) return n
+    }
+    const anyMonth = value.match(/(\d{1,2})\s*월/)
+    if (anyMonth) {
+      const n = parseInt(anyMonth[1], 10)
+      if (n >= 1 && n <= 12) return n
+    }
+  }
+  return null
+}
 
 export function extractThemes(themeTagsRaw: string | null, themeLabelsRaw: string | null): string[] {
   const themes: string[] = []
@@ -173,19 +230,18 @@ async function loadActiveProductsSummary(): Promise<ProductSummary[]> {
 
 function buildRecommenderSystemPrompt(): string {
   return `
-당신은 봉투어의 시즌 큐레이터입니다.
-봉투어가 운영하는 해외여행 상품 목록을 분석해서, 
-"현재 시점에서 한국인이 갈만한 미래 시점의 여행지"를 시즌별로 추천하세요.
+당신은 봉투어의 월별 해외여행 큐레이터입니다.
+봉투어가 운영하는 해외여행 상품 목록을 분석해서,
+"한국인이 월별로 가기 좋은 해외 여행지"를 **월(1~12월) 단위**로 추천하세요.
 
 규칙:
-- 현재달 + 1개월 이후 미래만 추천 (예: 6월이면 7월 이후만)
-- 시즌별로 그룹화 (봄/여름/가을/겨울)
-- 시즌마다 도시 3-7개
-- 각 도시에 대해: monthRange (예: "7월", "10-11월", "12월"), urgency (단기 출발/중기 예약/조기 예약 필요), reason (1-2문장)
-- 각 도시에 대해 해당 시즌·도시에 적합한 여행 일정도 추천: recommendedTripNights(박), recommendedTripDays(일)
-  - 예: 다낭 4박 5일, 도쿄 3박 4일, 유럽 일주 7박 8일
-- 봉투어가 실제 운영하는 도시·국가만 추천 (입력으로 받은 목록 안에서만)
-- 인기 도시 + 시즌 적합성 둘 다 고려
+- 현재달 + 1개월 이후 미래만 추천 (예: 6월이면 7월~12월 + 내년 1~6월)
+- **월별로 그룹화** — 각 대상 월마다 도시 2~5개
+- 봄/여름/가을/겨울 4분류 사용 금지 — 반드시 month 숫자(1-12)로 지정
+- 각 도시: month (1-12), monthLabel ("7월"), urgency, reason (1-2문장)
+- recommendedTripNights(박), recommendedTripDays(일)
+- 봉투어 운영 도시·국가만 (입력 목록 안에서만)
+- 해당 월의 해외 축제·이벤트 시즌이면 reason에 자연스럽게 언급
 - JSON 형식만 반환
 
 응답 형식:
@@ -194,10 +250,10 @@ function buildRecommenderSystemPrompt(): string {
     {
       "city": "도시명",
       "country": "국가명",
-      "season": "spring" | "summer" | "autumn" | "winter",
-      "monthRange": "7월",
+      "month": 7,
+      "monthLabel": "7월",
       "urgency": "단기 출발",
-      "reason": "한여름 휴양에 적합. 해변·휴양·가족여행 인기.",
+      "reason": "일본 여름 축제 시즌, 한국인 휴가와 맞물림.",
       "themes": ["휴양", "가족"],
       "recommendedTripNights": 4,
       "recommendedTripDays": 5
@@ -206,10 +262,11 @@ function buildRecommenderSystemPrompt(): string {
 }
 
 금지:
-- 봉투어 운영 도시 아닌 곳 추천 X
-- 현재달 이내 시점 X (현재달+1 이후만)
-- 가격·출발일 언급 X
-- 단정형 표현 ("최고", "유일", "100%") X
+- season 필드 사용 금지
+- monthRange 범위("3-4월") 금지 — 단일 month만
+- 봉투어 미운영 도시 X
+- 현재달 이내 X
+- 단정형 표현 X
 `.trim()
 }
 
@@ -228,14 +285,17 @@ function buildRecommenderUserPrompt(
     })
     .join('\n')
 
+  const monthOrder = rollingMonthsFrom(currentMonth + 1 > 12 ? 1 : currentMonth + 1, 12)
+  const monthList = monthOrder.map((m) => `${m}월`).join(', ')
+
   return `
 현재 시점: ${currentYear}년 ${currentMonth}월
-추천 대상 기간: ${currentMonth + 1 > 12 ? 1 : currentMonth + 1}월부터 이후 모든 시점 (다음해 포함)
+추천 대상 월 (각 월별로 도시 추천): ${monthList}
 
 봉투어 운영 도시 (이 목록 안에서만 추천):
 ${cityList}
 
-이 도시들 중 미래 시점에 가기 좋은 곳을 시즌별로 추천해줘.
+각 월마다 한국인에게 가기 좋은 해외 도시를 추천해주세요. 월 단위로만 분류하세요.
 `.trim()
 }
 
@@ -343,6 +403,37 @@ function parseSeason(value: unknown): Season | null {
   return VALID_SEASONS.has(s) ? s : null
 }
 
+function resolveRecommendationMonth(
+  raw: Record<string, unknown>,
+  currentMonth: number,
+): number | null {
+  const fromMonth =
+    parseMonthNumber(raw.month) ??
+    parseMonthNumber(raw.monthLabel) ??
+    parseMonthNumber(raw.monthRange)
+  if (fromMonth) return fromMonth
+
+  const season = parseSeason(raw.season)
+  if (season) {
+    const fallback: Record<Season, number> = {
+      spring: 4,
+      summer: 7,
+      autumn: 10,
+      winter: 1,
+    }
+    return fallback[season]
+  }
+
+  return null
+}
+
+/** 미래 월만 허용 (현재달+1부터 12개월 롤링 창) */
+export function isFutureRecommendationMonth(month: number, currentMonth: number): boolean {
+  if (month < 1 || month > 12) return false
+  const nextMonth = currentMonth >= 12 ? 1 : currentMonth + 1
+  return rollingMonthsFrom(nextMonth, 12).includes(month)
+}
+
 function parsePositiveInt(value: unknown): number | null {
   if (typeof value === 'number' && Number.isInteger(value) && value > 0) return value
   if (typeof value === 'string' && value.trim()) {
@@ -397,25 +488,29 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
     throw new Error('Invalid Gemini response: recommendations array missing')
   }
 
-  let seasonalEventsFailed = false
+  let eventLookupFailed = false
 
   const enriched: TripRecommendationItem[] = []
   for (const raw of response.recommendations) {
     if (!raw || typeof raw !== 'object') continue
     const r = raw as Record<string, unknown>
-    const season = parseSeason(r.season)
-    if (!season) continue
+    const month = resolveRecommendationMonth(r, currentMonth)
+    if (!month || !isFutureRecommendationMonth(month, currentMonth)) continue
+
     const city = String(r.city ?? '').trim()
     const country = String(r.country ?? '').trim()
     if (!city || !country) continue
 
     const matchingProductIds = matchProductIds({ city, country }, products, cityLabels, countryLabels)
     const { nights, days } = resolveTripDuration(r, matchingProductIds, products)
-    const monthRange = String(r.monthRange ?? '')
+    const monthLabel =
+      typeof r.monthLabel === 'string' && r.monthLabel.trim()
+        ? r.monthLabel.trim()
+        : monthLabelFromNumber(month)
 
     let events: TripRecommendationEvent[] = []
     try {
-      const matched = await getGlobalEventsForRecommendationMonthRange(monthRange, country)
+      const matched = await getGlobalEventsForRecommendationMonth(month, country)
       events = matched.map((e) => ({
         name: e.name,
         type: 'global-festival' as const,
@@ -423,15 +518,15 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
         appealReason: e.appealReason,
       }))
     } catch (e) {
-      seasonalEventsFailed = true
+      eventLookupFailed = true
       debugLog('trip-recommend', 'event match failed', e instanceof Error ? e.message : e)
     }
 
     enriched.push({
+      month,
+      monthLabel,
       city,
       country,
-      season,
-      monthRange,
       urgency: String(r.urgency ?? ''),
       reason: String(r.reason ?? ''),
       recommendedTripNights: nights,
@@ -439,16 +534,21 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
       themes: Array.isArray(r.themes) ? r.themes.map(String).filter(Boolean) : undefined,
       matchingProductIds,
       events: events.length ? events : undefined,
+      season: monthToSeason(month),
+      monthRange: monthLabel,
     })
   }
 
-  if (seasonalEventsFailed) {
+  if (eventLookupFailed) {
     debugLog('trip-recommend', 'some recommendation event lookups failed')
   }
 
+  const startMonth = currentMonth
+
   return {
     generatedAt: now.toISOString(),
-    windowMonths: 6,
+    windowMonths: 12,
+    startMonth,
     recommendations: enriched,
     totalProductsAnalyzed: products.length,
   }

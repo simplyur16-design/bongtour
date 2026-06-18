@@ -44,6 +44,15 @@ export async function POST(req: Request) {
   const urgency = typeof body.urgency === 'string' ? body.urgency.trim() : ''
   const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
 
+  const monthLabel =
+    typeof body.monthLabel === 'string' && body.monthLabel.trim()
+      ? body.monthLabel.trim()
+      : monthRange
+  const month =
+    typeof body.month === 'number' && body.month >= 1 && body.month <= 12
+      ? Math.floor(body.month)
+      : null
+
   if (!city) return NextResponse.json({ error: 'city 필수' }, { status: 400 })
   if (!season) return NextResponse.json({ error: 'season 필수' }, { status: 400 })
 
@@ -66,10 +75,11 @@ export async function POST(req: Request) {
     if (!product) firstProductId = null
   }
 
-  const themeTitle = `${SEASON_KOR[season] ?? season} ${city}`
+  const themeTitle = monthLabel ? `${monthLabel} ${city}` : `${SEASON_KOR[season] ?? season} ${city}`
   const operatorNote = [
     '[자동 생성]',
-    [monthRange, urgency].filter(Boolean).join(' · '),
+    month ? `대상 월: ${month}월` : '',
+    [monthLabel, urgency].filter(Boolean).join(' · '),
     reason,
     country ? `국가: ${country}` : '',
   ]

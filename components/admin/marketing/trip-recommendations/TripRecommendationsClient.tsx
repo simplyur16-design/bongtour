@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import RecentSeriesSection from '@/components/admin/marketing/trip-recommendations/RecentSeriesSection'
+import {
+  monthToSeason,
+  parseMonthNumber,
+  rollingMonthsFrom,
+} from '@/lib/bong-marketing/trip-recommender'
 
 interface TripRecommendationEvent {
   name: string
@@ -12,10 +17,10 @@ interface TripRecommendationEvent {
 }
 
 interface TripRecommendationItem {
+  month: number
+  monthLabel: string
   city: string
   country: string
-  season: 'spring' | 'summer' | 'autumn' | 'winter'
-  monthRange: string
   urgency: string
   reason: string
   recommendedTripNights: number
@@ -23,11 +28,15 @@ interface TripRecommendationItem {
   themes?: string[]
   matchingProductIds: string[]
   events?: TripRecommendationEvent[]
+  /** 레거시 캐시 호환 */
+  season?: 'spring' | 'summer' | 'autumn' | 'winter'
+  monthRange?: string
 }
 
 interface TripRecommendation {
   generatedAt: string
   windowMonths: number
+  startMonth?: number
   recommendations: TripRecommendationItem[]
   totalProductsAnalyzed: number
 }
@@ -35,14 +44,43 @@ interface TripRecommendation {
 const STORAGE_KEY = 'bong-trip-recommendations'
 const STORAGE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
-const SEASON_LABELS: Record<string, string> = {
-  spring: '봄',
-  summer: '여름',
-  autumn: '가을',
-  winter: '겨울',
+function legacyMonthFromSeason(season?: string): number | null {
+  const map: Record<string, number> = { spring: 4, summer: 7, autumn: 10, winter: 1 }
+  return season && map[season] ? map[season] : null
 }
 
-const SEASON_ORDER = ['spring', 'summer', 'autumn', 'winter'] as const
+function normalizeStoredItem(item: TripRecommendationItem): TripRecommendationItem | null {
+  const month =
+    item.month ??
+    parseMonthNumber(item.monthLabel) ??
+    parseMonthNumber(item.monthRange) ??
+    legacyMonthFromSeason(item.season) ??
+    null
+  if (!month) return null
+  const monthLabel = item.monthLabel?.trim() || `${month}월`
+  return {
+    ...item,
+    month,
+    monthLabel,
+    season: item.season ?? monthToSeason(month),
+    monthRange: monthLabel,
+  }
+}
+
+function normalizeStoredRecommendation(stored: TripRecommendation): TripRecommendation | null {
+  const recommendations = (stored.recommendations ?? [])
+    .map(normalizeStoredItem)
+    .filter((r): r is TripRecommendationItem => r !== null)
+  if (!recommendations.length) return null
+  const now = new Date()
+  const startMonth = stored.startMonth ?? now.getMonth() + 1
+  return {
+    ...stored,
+    startMonth,
+    windowMonths: stored.windowMonths ?? 12,
+    recommendations,
+  }
+}
 
 export default function TripRecommendationsClient() {
   const router = useRouter()
@@ -72,20 +110,29 @@ export default function TripRecommendationsClient() {
         localStorage.removeItem(STORAGE_KEY)
         return
       }
-      if (stored.recommendations?.length) {
-        setData(stored)
+      const normalized = normalizeStoredRecommendation(stored)
+      if (normalized) {
+        setData(normalized)
+      } else {
+        localStorage.removeItem(STORAGE_KEY)
       }
     } catch {
       localStorage.removeItem(STORAGE_KEY)
     }
   }, [])
 
+  const monthOrder = useMemo(() => {
+    if (!data) return []
+    const start = data.startMonth ?? new Date().getMonth() + 1
+    return rollingMonthsFrom(start, 12)
+  }, [data])
+
   const grouped = useMemo(() => {
     if (!data?.recommendations.length) return null
-    const acc: Record<string, TripRecommendationItem[]> = {}
+    const acc: Record<number, TripRecommendationItem[]> = {}
     for (const r of data.recommendations) {
-      if (!acc[r.season]) acc[r.season] = []
-      acc[r.season].push(r)
+      if (!acc[r.month]) acc[r.month] = []
+      acc[r.month].push(r)
     }
     return acc
   }, [data])
@@ -220,16 +267,16 @@ export default function TripRecommendationsClient() {
 
       {grouped && (
         <div className="space-y-8">
-          {SEASON_ORDER.map((season) => {
-            const items = grouped[season]
+          {monthOrder.map((month) => {
+            const items = grouped[month]
             if (!items?.length) return null
             return (
-              <section key={season}>
-                <h2 className="mb-4 text-lg font-semibold text-bt-title">{SEASON_LABELS[season]}</h2>
+              <section key={month}>
+                <h2 className="mb-4 text-lg font-semibold text-bt-title">{month}월</h2>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {items.map((item, idx) => (
                     <TripCard
-                      key={`${season}-${idx}`}
+                      key={`${month}-${idx}`}
                       item={item}
                       onCreated={(redirectTo) => router.push(redirectTo)}
                     />
@@ -263,8 +310,10 @@ function TripCard({
   const recommendationPayload = {
     city: item.city,
     country: item.country,
-    season: item.season,
-    monthRange: item.monthRange,
+    month: item.month,
+    monthLabel: item.monthLabel,
+    season: item.season ?? monthToSeason(item.month),
+    monthRange: item.monthLabel,
     urgency: item.urgency,
     reason: item.reason,
     recommendedTripNights: item.recommendedTripNights,
@@ -325,9 +374,7 @@ function TripCard({
           <span className="rounded-full bg-bt-surface-soft px-2 py-0.5 text-xs text-bt-body">
             {item.recommendedTripNights}박 {item.recommendedTripDays}일
           </span>
-          {item.monthRange && (
-            <span className="rounded-full bg-bt-surface-soft px-2 py-0.5 text-xs text-bt-body">{item.monthRange}</span>
-          )}
+          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-900">{item.monthLabel}</span>
           {item.urgency && (
             <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-900">{item.urgency}</span>
           )}
