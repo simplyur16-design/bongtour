@@ -4,7 +4,7 @@ import { parseGeminiJsonOutput } from '@/lib/bong-marketing/gemini-json-parse'
 import { debugLog } from '@/lib/bong-marketing/debug-log'
 import {
   getGlobalEventsForRecommendationMonth,
-} from '@/lib/bong-marketing/global-event-collector'
+} from '@/lib/bong-marketing/curation-event-repository'
 
 const TRIP_RECOMMEND_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 
