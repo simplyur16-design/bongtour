@@ -510,13 +510,19 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
 
     let events: TripRecommendationEvent[] = []
     try {
-      const matched = await getGlobalEventsForRecommendationMonth(month, country)
+      const matched = await getGlobalEventsForRecommendationMonth(month, country, {
+        countryLabels,
+        referenceDate: now,
+      })
       events = matched.map((e) => ({
         name: e.name,
         type: 'global-festival' as const,
         city: e.city,
         appealReason: e.appealReason,
       }))
+      if (!events.length) {
+        debugLog('trip-recommend', 'event match empty', { month, country, city })
+      }
     } catch (e) {
       eventLookupFailed = true
       debugLog('trip-recommend', 'event match failed', e instanceof Error ? e.message : e)

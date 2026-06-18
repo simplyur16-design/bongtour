@@ -103,6 +103,10 @@ describe('countryLabelsMatch', () => {
     expect(countryLabelsMatch('일본', '일본')).toBe(true)
     expect(countryLabelsMatch('일본 도쿄', '일본')).toBe(true)
   })
+
+  it('does not match slug to korean without variant resolution', () => {
+    expect(countryLabelsMatch('japan', '일본')).toBe(false)
+  })
 })
 
 describe('getBongtourProductCountries', () => {
