@@ -1501,6 +1501,31 @@ model BongHookLearnConfig {
   updatedAt        DateTime @updatedAt
 }
 
+/// PR 8: Gemini 수집 글로벌 여행 이벤트·축제 (봉투어 Product 국가 기준)
+model BongGlobalEvent {
+  id           String   @id @default(cuid())
+  name         String
+  country      String
+  city         String?
+  startMonth   Int
+  startDay     Int?
+  endMonth     Int
+  endDay       Int?
+  type         String
+  description  String?
+  appealReason String?
+  year         Int
+  source       String   @default("gemini")
+  collectedAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([name, country, year])
+  @@index([country])
+  @@index([startMonth])
+  @@index([year])
+}
+
 /// 봉심 사용자 보유 쿠폰 (실제 쿼리는 raw SQL — Prisma는 스키마 문서화용)
 model BongsimUserCoupon {
   user_coupon_id       String    @id @db.Uuid
