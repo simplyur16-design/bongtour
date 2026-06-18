@@ -3,8 +3,8 @@ import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseGeminiJsonOutput } from '@/lib/bong-marketing/gemini-json-parse'
 import { debugLog } from '@/lib/bong-marketing/debug-log'
 import {
-  getEventsForRecommendationMonthRange,
-} from '@/lib/bong-marketing/seasonal-event-collector'
+  getGlobalEventsForRecommendationMonthRange,
+} from '@/lib/bong-marketing/global-event-collector'
 
 const TRIP_RECOMMEND_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 
@@ -12,7 +12,7 @@ export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
 
 export interface TripRecommendationEvent {
   name: string
-  type: 'global-festival' | 'korean-season'
+  type: 'global-festival'
   city?: string
   appealReason?: string
 }
@@ -415,10 +415,10 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
 
     let events: TripRecommendationEvent[] = []
     try {
-      const matched = await getEventsForRecommendationMonthRange(monthRange, country)
+      const matched = await getGlobalEventsForRecommendationMonthRange(monthRange, country)
       events = matched.map((e) => ({
         name: e.name,
-        type: e.source === 'global' ? 'global-festival' : 'korean-season',
+        type: 'global-festival' as const,
         city: e.city,
         appealReason: e.appealReason,
       }))

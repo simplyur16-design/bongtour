@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  isAllowedKoreanOutboundSeasonEvent,
+  isKoreanDomesticFestivalName,
   matchEventsForMonthRange,
   parseMonthsFromMonthRange,
   parseSeasonalEventsResponse,
@@ -29,6 +31,44 @@ describe('parseSeasonalEventsResponse', () => {
       ],
     })
     expect(events).toHaveLength(1)
+  })
+
+  it('drops korean domestic festivals', () => {
+    const events = parseSeasonalEventsResponse({
+      events: [
+        { name: '논산 딸기축제', startMonth: 4, endMonth: 4, type: 'holiday' },
+        { name: '여름 휴가 성수기', startMonth: 7, endMonth: 8, type: 'vacation' },
+      ],
+    })
+    expect(events).toHaveLength(1)
+    expect(events[0]?.name).toBe('여름 휴가 성수기')
+  })
+
+  it('drops special type events', () => {
+    const events = parseSeasonalEventsResponse({
+      events: [{ name: '지역 문화제', startMonth: 5, endMonth: 5, type: 'special' }],
+    })
+    expect(events).toHaveLength(0)
+  })
+})
+
+describe('isKoreanDomesticFestivalName', () => {
+  it('flags domestic festival names', () => {
+    expect(isKoreanDomesticFestivalName('논산 딸기축제')).toBe(true)
+    expect(isKoreanDomesticFestivalName('여름 휴가 성수기')).toBe(false)
+  })
+})
+
+describe('isAllowedKoreanOutboundSeasonEvent', () => {
+  it('allows vacation season only', () => {
+    expect(
+      isAllowedKoreanOutboundSeasonEvent({
+        name: '황금연휴',
+        startMonth: 5,
+        endMonth: 5,
+        type: 'holiday',
+      }),
+    ).toBe(true)
   })
 })
 

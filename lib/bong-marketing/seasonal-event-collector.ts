@@ -1,7 +1,6 @@
 import { generateGeminiJsonResponse } from '@/lib/bong-marketing/gemini-generate'
 import { debugLog } from '@/lib/bong-marketing/debug-log'
 import { searchNaverBlog } from '@/lib/bong-marketing/naver-search-client'
-import { getEventsForMonth } from '@/lib/bong-marketing/global-event-collector'
 
 const EVENT_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 
@@ -25,24 +24,44 @@ export interface EventDescriptor {
 }
 
 const EVENT_SEARCH_KEYWORDS = [
-  '여름 휴가 성수기',
-  '겨울 휴가 시즌',
-  '가족여행 시즌',
-  '여름방학 기간',
-  '겨울방학 기간',
-  '황금연휴',
-  '추석 연휴 여행',
-  '설날 연휴 여행',
-  '봄 단풍 시즌',
+  '여름 휴가 성수기 해외여행',
+  '겨울 휴가 시즌 해외여행',
+  '가족여행 성수기 해외',
+  '여름방학 해외여행',
+  '겨울방학 해외여행',
+  '황금연휴 해외여행',
+  '추석 연휴 해외여행',
+  '설날 연휴 해외여행',
+  '봄 해외여행 시즌',
+  '가을 해외여행 시즌',
 ]
 
-const VALID_TYPES = new Set<SeasonalEvent['type']>([
+/** 출국 타이밍 분석용 — 추천 카드 태그에는 사용하지 않음 */
+const ALLOWED_KOREAN_OUTBOUND_TYPES = new Set<SeasonalEvent['type']>([
   'season',
   'vacation',
   'school',
   'holiday',
-  'special',
 ])
+
+/** 한국 국내 지역 축제·행사 (봉투어 마케팅 무관) */
+const KOREAN_DOMESTIC_FESTIVAL_PATTERN =
+  /축제|문화제|페스티벌|군항제|딸기|벚꽃|맥주|해변|지역|한옥|온천|마을|농촌|체험|박람회|카니발|퍼레이드|불꽃(?!축제)|유람|캠핑대회/i
+
+const VALID_TYPES = ALLOWED_KOREAN_OUTBOUND_TYPES
+
+export function isKoreanDomesticFestivalName(name: string): boolean {
+  const n = name.trim()
+  if (!n) return false
+  return KOREAN_DOMESTIC_FESTIVAL_PATTERN.test(n)
+}
+
+/** 출국 타이밍 분석용 한국 시즌만 허용 (국내 축제 제외) */
+export function isAllowedKoreanOutboundSeasonEvent(event: SeasonalEvent): boolean {
+  if (!ALLOWED_KOREAN_OUTBOUND_TYPES.has(event.type)) return false
+  if (isKoreanDomesticFestivalName(event.name)) return false
+  return true
+}
 
 export function parseSeasonalEventsResponse(response: unknown): SeasonalEvent[] {
   if (!response || typeof response !== 'object') return []
@@ -60,8 +79,8 @@ export function parseSeasonalEventsResponse(response: unknown): SeasonalEvent[] 
     const typeRaw = typeof row.type === 'string' ? row.type.trim() : 'special'
     const type = VALID_TYPES.has(typeRaw as SeasonalEvent['type'])
       ? (typeRaw as SeasonalEvent['type'])
-      : 'special'
-    parsed.push({
+      : ('special' as SeasonalEvent['type'])
+    const candidate: SeasonalEvent = {
       name,
       startMonth: Math.min(12, Math.max(1, startMonth)),
       endMonth: Math.min(12, Math.max(1, endMonth)),
@@ -69,7 +88,9 @@ export function parseSeasonalEventsResponse(response: unknown): SeasonalEvent[] 
       endDay: typeof row.endDay === 'number' ? row.endDay : undefined,
       type,
       description: typeof row.description === 'string' ? row.description.trim() : undefined,
-    })
+    }
+    if (!isAllowedKoreanOutboundSeasonEvent(candidate)) continue
+    parsed.push(candidate)
   }
 
   const seen = new Set<string>()
@@ -77,7 +98,7 @@ export function parseSeasonalEventsResponse(response: unknown): SeasonalEvent[] 
     if (seen.has(e.name)) return false
     seen.add(e.name)
     return true
-  }).slice(0, 15)
+  }).slice(0, 12)
 }
 
 /** monthRange 문자열에서 월 숫자 추출 (예: "7월", "10-11월", "7월~8월") */
@@ -127,10 +148,14 @@ function monthOverlapsEvent(month: number, startMonth: number, endMonth: number)
   return month >= startMonth || month <= endMonth
 }
 
-async function getKoreanEventsForMonth(month: number): Promise<EventDescriptor[]> {
+async function getKoreanOutboundSeasonEventsForMonth(month: number): Promise<EventDescriptor[]> {
   const events = await getSeasonalEventsCached()
   return events
-    .filter((event) => monthOverlapsEvent(month, event.startMonth, event.endMonth))
+    .filter(
+      (event) =>
+        isAllowedKoreanOutboundSeasonEvent(event) &&
+        monthOverlapsEvent(month, event.startMonth, event.endMonth),
+    )
     .map((e) => ({
       name: e.name,
       description: e.description,
@@ -138,12 +163,16 @@ async function getKoreanEventsForMonth(month: number): Promise<EventDescriptor[]
     }))
 }
 
-/** 한국 시즌 이벤트 + 글로벌 DB 이벤트 통합 */
+/**
+ * @deprecated 추천 카드 태그용 — `getGlobalEventsForRecommendationMonthRange` 사용.
+ * 한국 출국 시즌 + 글로벌 통합 (내부 분석용).
+ */
 export async function getMonthlyEventsForRecommendation(
   month: number,
   country?: string,
 ): Promise<EventDescriptor[]> {
-  const koreanEvents = await getKoreanEventsForMonth(month)
+  const { getEventsForMonth } = await import('@/lib/bong-marketing/global-event-collector')
+  const koreanEvents = await getKoreanOutboundSeasonEventsForMonth(month)
   const globalEvents = await getEventsForMonth(month, country)
 
   return [
@@ -159,7 +188,7 @@ export async function getMonthlyEventsForRecommendation(
   ]
 }
 
-/** monthRange에 걸치는 이벤트 (추천 카드용, 중복 제거) */
+/** @deprecated 추천 카드 — global-event-collector 의 getGlobalEventsForRecommendationMonthRange 사용 */
 export async function getEventsForRecommendationMonthRange(
   monthRange: string,
   country?: string,
@@ -218,7 +247,7 @@ export async function collectSeasonalEvents(year: number = new Date().getFullYea
   debugLog('seasonal-event', `collected blog snippets: ${allBlogTexts.length}`)
 
   const systemPrompt = `
-한국 여행 시즌·이벤트 정보를 블로그 글에서 추출해주세요.
+한국인 **해외여행 출국 타이밍** 시즌 정보만 블로그 글에서 추출해주세요.
 
 응답 형식 (JSON):
 {
@@ -230,21 +259,22 @@ export async function collectSeasonalEvents(year: number = new Date().getFullYea
       "endMonth": 8,
       "endDay": 15,
       "type": "vacation",
-      "description": "한국 직장인 여름 휴가 절정기"
+      "description": "한국 직장인 여름 휴가 절정기 — 해외여행 수요 피크"
     }
   ]
 }
 
 규칙:
-- 한국 사람들의 여행 시즌·이벤트만 추출
-- 봄/여름/가을/겨울 시즌은 type="season"
-- 휴가는 "vacation", 방학은 "school", 명절·연휴는 "holiday", 특별 이벤트는 "special"
+- **한국인이 해외로 나가기 좋은 시기**만 (봄/여름/가을/겨울 시즌, 연휴, 방학, 휴가 성수기)
+- type: "season" | "vacation" | "school" | "holiday" 만 사용
+- **한국 국내 축제·지역 행사 절대 금지** (논산 딸기축제, 진해 군항제, 지역 벚꽃축제, 맥주축제 등)
+- "special" 타입 사용 금지
 - 날짜 모호하면 startDay/endDay 생략 (월만 사용)
 - 중복 제거
-- 최대 15개
+- 최대 12개
 `.trim()
 
-  const userPrompt = `${year}년 한국 여행 시즌·이벤트 정보가 담긴 블로그 글 모음입니다. 시즌·이벤트를 추출해주세요.\n\n${allBlogTexts.slice(0, 50).join('\n---\n')}`
+  const userPrompt = `${year}년 한국인 해외여행 출국 시즌·연휴·방학 정보만 추출하세요. 국내 축제는 제외.\n\n${allBlogTexts.slice(0, 50).join('\n---\n')}`
 
   const response = await generateGeminiJsonResponse({
     model: EVENT_MODEL,

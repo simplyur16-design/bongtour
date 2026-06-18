@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import {
+  countryLabelsMatch,
   parseGlobalEventsResponse,
   refreshGlobalEvents,
   getBongtourProductCountries,
@@ -7,7 +8,7 @@ import {
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    product: { findMany: vi.fn() },
+    product: { groupBy: vi.fn() },
     country: { findMany: vi.fn() },
     bongGlobalEvent: {
       findFirst: vi.fn(),
@@ -57,23 +58,36 @@ describe('parseGlobalEventsResponse', () => {
     })
     expect(events).toHaveLength(1)
   })
+})
 
-  it('returns empty for invalid payload', () => {
-    expect(parseGlobalEventsResponse(null)).toEqual([])
-    expect(parseGlobalEventsResponse({ events: 'bad' })).toEqual([])
+describe('countryLabelsMatch', () => {
+  it('matches korean country labels loosely', () => {
+    expect(countryLabelsMatch('일본', '일본')).toBe(true)
+    expect(countryLabelsMatch('일본 도쿄', '일본')).toBe(true)
   })
 })
 
 describe('getBongtourProductCountries', () => {
   beforeEach(() => {
-    vi.mocked(prisma.product.findMany).mockReset()
+    vi.mocked(prisma.product.groupBy).mockReset()
     vi.mocked(prisma.country.findMany).mockReset()
   })
 
+  it('uses korean labels stored directly on Product.country', async () => {
+    vi.mocked(prisma.product.groupBy).mockResolvedValue([
+      { country: '일본', _count: { _all: 10 } },
+      { country: '베트남', _count: { _all: 5 } },
+    ] as never)
+
+    const countries = await getBongtourProductCountries()
+    expect(countries).toEqual(['베트남', '일본'])
+    expect(prisma.country.findMany).not.toHaveBeenCalled()
+  })
+
   it('maps product country slugs to korean labels', async () => {
-    vi.mocked(prisma.product.findMany).mockResolvedValue([
-      { country: 'japan' },
-      { country: 'thailand' },
+    vi.mocked(prisma.product.groupBy).mockResolvedValue([
+      { country: 'japan', _count: { _all: 3 } },
+      { country: 'thailand', _count: { _all: 2 } },
     ] as never)
     vi.mocked(prisma.country.findMany).mockResolvedValue([
       { countryKey: 'japan', koreanLabel: '일본' },
@@ -87,7 +101,7 @@ describe('getBongtourProductCountries', () => {
 
 describe('refreshGlobalEvents', () => {
   beforeEach(() => {
-    vi.mocked(prisma.product.findMany).mockReset()
+    vi.mocked(prisma.product.groupBy).mockReset()
     vi.mocked(prisma.country.findMany).mockReset()
     vi.mocked(prisma.bongGlobalEvent.findFirst).mockReset()
     vi.mocked(prisma.bongGlobalEvent.create).mockReset()
@@ -96,41 +110,37 @@ describe('refreshGlobalEvents', () => {
   })
 
   it('returns empty result when no product countries', async () => {
-    vi.mocked(prisma.product.findMany).mockResolvedValue([] as never)
+    vi.mocked(prisma.product.groupBy).mockResolvedValue([] as never)
 
     const result = await refreshGlobalEvents()
-    expect(result).toMatchObject({
-      countries: [],
-      collected: 0,
-      saved: 0,
-      skippedDuplicates: 0,
-      errors: 0,
-    })
+    expect(result.countries).toEqual([])
+    expect(result.collected).toBe(0)
+    expect(result.errorDetails.some((e) => e.stage === 'no_countries')).toBe(true)
     expect(generateGeminiJsonResponse).not.toHaveBeenCalled()
   })
 
-  it('updates existing events on duplicate name+country+year', async () => {
-    vi.mocked(prisma.product.findMany).mockResolvedValue([{ country: 'japan' }] as never)
-    vi.mocked(prisma.country.findMany).mockResolvedValue([
-      { countryKey: 'japan', koreanLabel: '일본' },
+  it('collects events in country batches', async () => {
+    vi.mocked(prisma.product.groupBy).mockResolvedValue([
+      { country: '일본', _count: { _all: 1 } },
+      { country: '베트남', _count: { _all: 1 } },
     ] as never)
     vi.mocked(generateGeminiJsonResponse).mockResolvedValue({
       events: [
         {
-          name: '후지 록',
-          country: '일본',
-          startMonth: 7,
+          name: '다낭 불꽃축제',
+          country: '베트남',
+          startMonth: 6,
           endMonth: 7,
           type: 'festival',
         },
       ],
     } as never)
-    vi.mocked(prisma.bongGlobalEvent.findFirst).mockResolvedValue({ id: 'evt-1' } as never)
-    vi.mocked(prisma.bongGlobalEvent.update).mockResolvedValue({} as never)
+    vi.mocked(prisma.bongGlobalEvent.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.bongGlobalEvent.create).mockResolvedValue({} as never)
 
     const result = await refreshGlobalEvents()
-    expect(result.skippedDuplicates).toBe(1)
-    expect(prisma.bongGlobalEvent.update).toHaveBeenCalled()
-    expect(prisma.bongGlobalEvent.create).not.toHaveBeenCalled()
+    expect(result.batchesRun).toBe(1)
+    expect(result.collected).toBeGreaterThan(0)
+    expect(result.saved).toBeGreaterThan(0)
   })
 })

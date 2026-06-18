@@ -6,7 +6,7 @@ import RecentSeriesSection from '@/components/admin/marketing/trip-recommendatio
 
 interface TripRecommendationEvent {
   name: string
-  type: 'global-festival' | 'korean-season'
+  type: 'global-festival'
   city?: string
   appealReason?: string
 }
@@ -55,6 +55,10 @@ export default function TripRecommendationsClient() {
     collected?: number
     saved?: number
     skippedDuplicates?: number
+    batchesRun?: number
+    errors?: number
+    errorDetails?: Array<{ stage: string; message: string; country?: string }>
+    rawResponseSamples?: string[]
     error?: string
   } | null>(null)
 
@@ -122,6 +126,10 @@ export default function TripRecommendationsClient() {
         collected?: number
         saved?: number
         skippedDuplicates?: number
+        batchesRun?: number
+        errors?: number
+        errorDetails?: Array<{ stage: string; message: string; country?: string }>
+        rawResponseSamples?: string[]
         error?: string
       }
       if (!res.ok) throw new Error(json.error ?? '이벤트 갱신 실패')
@@ -176,11 +184,32 @@ export default function TripRecommendationsClient() {
           {eventRefreshResult.error ? (
             eventRefreshResult.error
           ) : (
-            <>
-              {eventRefreshResult.countries?.length ?? 0}개 국가에서 {eventRefreshResult.collected ?? 0}개 수집,{' '}
-              {eventRefreshResult.saved ?? 0}개 신규 저장, {eventRefreshResult.skippedDuplicates ?? 0}개 업데이트.
-              다음 [추천 받기]부터 반영됩니다.
-            </>
+            <div className="space-y-2">
+              <p>
+                {eventRefreshResult.countries?.length ?? 0}개 국가 · {eventRefreshResult.batchesRun ?? 0}배치 ·{' '}
+                {eventRefreshResult.collected ?? 0}개 수집 · {eventRefreshResult.saved ?? 0}개 신규 ·{' '}
+                {eventRefreshResult.skippedDuplicates ?? 0}개 업데이트
+                {(eventRefreshResult.errors ?? 0) > 0 ? ` · 오류 ${eventRefreshResult.errors}건` : ''}
+              </p>
+              {eventRefreshResult.errorDetails && eventRefreshResult.errorDetails.length > 0 && (
+                <ul className="list-disc space-y-1 pl-4 text-xs">
+                  {eventRefreshResult.errorDetails.slice(0, 5).map((err, idx) => (
+                    <li key={`${err.stage}-${idx}`}>
+                      [{err.stage}] {err.country ? `${err.country}: ` : ''}
+                      {err.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {eventRefreshResult.collected === 0 && (
+                <p className="text-xs">
+                  수집 0건 — GEMINI_API_KEY·모델 한도·배치 오류를 확인하세요. [추천 받기] 전에 재시도하세요.
+                </p>
+              )}
+              {(eventRefreshResult.collected ?? 0) > 0 && (
+                <p className="text-xs">다음 [추천 받기]부터 글로벌 이벤트 태그에 반영됩니다.</p>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -308,14 +337,10 @@ function TripCard({
             {item.events.map((event, eventIdx) => (
               <span
                 key={`${event.name}-${eventIdx}`}
-                className={`rounded px-2 py-1 text-xs ${
-                  event.type === 'global-festival'
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-emerald-100 text-emerald-800'
-                }`}
+                className="rounded bg-amber-100 px-2 py-1 text-xs text-amber-800"
                 title={event.appealReason}
               >
-                {event.type === 'global-festival' ? '🌐' : '🇰🇷'} {event.name}
+                🌐 {event.name}
                 {event.city ? ` (${event.city})` : ''}
               </span>
             ))}
