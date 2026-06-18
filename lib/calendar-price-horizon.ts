@@ -5,17 +5,13 @@
  *
  * 계약: `docs/ops/calendar-price-horizon-contract.md`
  */
-import { CALENDAR_BATCH_HORIZON_DAYS } from '@/lib/calendar-batch-seq-state'
+import {
+  CALENDAR_PRICE_HORIZON_DAYS,
+  CALENDAR_PRICE_HORIZON_MONTHS_FORWARD,
+} from '@/lib/calendar-price-horizon-constants'
 import { addCalendarDaysToYmd, scrapeCalendarTodayYmd } from '@/lib/scrape-date-bounds'
 
-/** KST 오늘 기준 inclusive 상한 일수 (배치 sequential·6개월 검증과 동일). */
-export const CALENDAR_PRICE_HORIZON_DAYS = CALENDAR_BATCH_HORIZON_DAYS
-
-/**
- * E2E 달력 월 루프 상한 — 180일(≈6개월) 커버.
- * 공급사별 env로 덮어쓸 수 있으나 기본·하한은 이 값.
- */
-export const CALENDAR_PRICE_HORIZON_MONTHS_FORWARD = 6
+export { CALENDAR_PRICE_HORIZON_DAYS, CALENDAR_PRICE_HORIZON_MONTHS_FORWARD }
 
 export function calendarPriceHorizonEndYmd(todaySeoulYmd?: string): string {
   const today = (todaySeoulYmd ?? scrapeCalendarTodayYmd()).trim().slice(0, 10)

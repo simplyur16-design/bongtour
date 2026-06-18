@@ -19,15 +19,35 @@ function assert(cond: boolean, msg: string) {
 }
 
 const horizonTs = read('lib/calendar-price-horizon.ts')
+const horizonConstants = read('lib/calendar-price-horizon-constants.ts')
+const batchSeq = read('lib/calendar-batch-seq-state.ts')
+
 assert(horizonTs.includes('REGRESSION-FREEZE[calendar-price-horizon-180d]'), 'horizon TS marker missing')
-assert(/CALENDAR_PRICE_HORIZON_DAYS\s*=\s*CALENDAR_BATCH_HORIZON_DAYS/.test(horizonTs), 'horizon days must alias batch SSOT')
-assert(/CALENDAR_PRICE_HORIZON_MONTHS_FORWARD\s*=\s*6/.test(horizonTs), 'horizon months must be 6')
+assert(!horizonTs.includes('calendar-batch-seq-state'), 'horizon must not import fs-backed batch-seq-state')
+assert(
+  horizonConstants.includes('REGRESSION-FREEZE[calendar-price-horizon-180d]'),
+  'horizon constants marker missing',
+)
+assert(/CALENDAR_PRICE_HORIZON_DAYS\s*=\s*180/.test(horizonConstants), 'horizon days must be 180 in constants leaf')
+assert(/CALENDAR_PRICE_HORIZON_MONTHS_FORWARD\s*=\s*6/.test(horizonConstants), 'horizon months must be 6')
+assert(
+  horizonTs.includes('calendar-price-horizon-constants'),
+  'horizon must import constants leaf',
+)
+assert(
+  /CALENDAR_BATCH_HORIZON_DAYS\s*=\s*CALENDAR_PRICE_HORIZON_DAYS/.test(horizonConstants),
+  'batch horizon days must alias constants leaf',
+)
+assert(batchSeq.includes('calendar-price-horizon-constants'), 'batch-seq-state must import days from constants leaf')
 
 const bounds = read('lib/scrape-date-bounds.ts')
 assert(
   /SCRAPE_DEFAULT_MONTHS_FORWARD\s*=\s*CALENDAR_PRICE_HORIZON_MONTHS_FORWARD/.test(bounds),
   'SCRAPE_DEFAULT_MONTHS_FORWARD must use horizon months SSOT',
 )
+assert(bounds.includes('calendar-price-horizon-constants'), 'bounds must import months from constants leaf')
+assert(!/\bfrom ['"]@\/lib\/calendar-price-horizon['"]/.test(bounds), 'bounds must not import calendar-price-horizon (client bundle)')
+assert(!bounds.includes('calendar-batch-seq-state'), 'bounds must not import fs-backed batch-seq-state')
 
 const scheduler = read('scripts/calendar_price_scheduler.py')
 assert(scheduler.includes('_run_modetour_calendar_api'), 'scheduler must use modetour API path')

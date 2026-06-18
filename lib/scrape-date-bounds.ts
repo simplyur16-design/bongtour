@@ -79,7 +79,7 @@ export function maxYearMonth(a: YearMonth, b: YearMonth): YearMonth {
   return yearMonthBefore(a, b) ? b : a
 }
 
-import { CALENDAR_PRICE_HORIZON_MONTHS_FORWARD } from '@/lib/calendar-price-horizon'
+import { CALENDAR_PRICE_HORIZON_MONTHS_FORWARD } from '@/lib/calendar-price-horizon-constants'
 
 /** parse-and-register·재수집·API 수집 기본: 앞으로 6개월(180일 지평과 정합) */
 export const SCRAPE_DEFAULT_MONTHS_FORWARD = CALENDAR_PRICE_HORIZON_MONTHS_FORWARD

@@ -756,6 +756,9 @@ class CalendarPriceScraper:
                 await random_mouse_move(self._page)
             await human_delay(DELAY_MIN, DELAY_MAX)
             _verygood_phase_always("page-navigated", summ)
+            if await self._verygood_page_is_product_expired():
+                _verygood_phase_always("product-expired", summ)
+                return []
             priced_popup = await self._run_verygoodtour_departures()
         except Exception as ex:
             _verygood_log(f"[verygoodtour] modal scrape failed: {ex}")
@@ -808,6 +811,41 @@ class CalendarPriceScraper:
             await self._page.wait_for_function(js, arg=prev, timeout=timeout_ms)
         except Exception:
             await self._page.wait_for_timeout(min(fb_ms, timeout_ms))
+
+    async def _verygood_page_is_product_expired(self) -> bool:
+        """
+        판매종료·404 상품 — ErrorPage redirect 또는 alert+history.back 스크립트만 있는 빈 상세.
+        REGRESSION-FREEZE[verygoodtour-e2e-expired-url-guard]: phase=product-expired — manifest
+        """
+        if not self._page:
+            return False
+        try:
+            cur = (self._page.url or "").lower()
+            if "404.html" in cur or "errorpage" in cur:
+                return True
+            probe = await self._page.evaluate(
+                r"""() => {
+  const t = (document.body?.innerText || '').replace(/\s+/g, '');
+  const html = document.documentElement?.innerHTML || '';
+  return {
+    bodyLen: t.length,
+    expiredScript: /history\.back\s*\(\s*\)/.test(html)
+      && /판매가\s*종료|등록되지\s*않은/.test(html),
+  };
+}"""
+            )
+            if isinstance(probe, dict):
+                if probe.get("expiredScript"):
+                    return True
+                if int(probe.get("bodyLen") or 0) < 80:
+                    html = await self._page.content()
+                    if "404.html" in html or (
+                        "history.back()" in html and "종료" in html
+                    ):
+                        return True
+            return False
+        except Exception:
+            return False
 
     async def _verygood_wait_detail_page_ready(self) -> bool:
         """상세 본문·출발일 CTA가 붙을 때까지 대기."""

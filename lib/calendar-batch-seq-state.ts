@@ -1,8 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import path from 'path'
+import { CALENDAR_BATCH_HORIZON_DAYS } from '@/lib/calendar-price-horizon-constants'
 
 export const CALENDAR_BATCH_CHUNK_DAYS = 30
-export const CALENDAR_BATCH_HORIZON_DAYS = 180
+
+export { CALENDAR_BATCH_HORIZON_DAYS }
 
 export type CalendarBatchSeqState = {
   nextProductIndex: number

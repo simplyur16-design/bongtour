@@ -135,6 +135,12 @@
       "tier": ["prebuild", "ci"],
       "script": "verify:hanatour-e2e-airtel-same-product",
       "summary": "하나투어 E2E 자유여행 — 동일상품 anchor(방콕 자유여행 N일) 매칭"
+    },
+    {
+      "id": "verygoodtour-e2e-expired-url-guard",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:verygoodtour-e2e-expired-url",
+      "summary": "참좋은여행 E2E — 판매종료 URL 선검사·product-expired phase"
     }
   ],
   "staticGuards": [
@@ -712,12 +718,26 @@
       "summary": "180일 지평·modetour 배치 API·실패 시 cursor 미전진",
       "checks": [
         {
+          "file": "lib/calendar-price-horizon-constants.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[calendar-price-horizon-180d]",
+            "CALENDAR_PRICE_HORIZON_DAYS = 180",
+            "CALENDAR_PRICE_HORIZON_MONTHS_FORWARD = 6"
+          ]
+        },
+        {
           "file": "lib/calendar-price-horizon.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[calendar-price-horizon-180d]",
             "CALENDAR_PRICE_HORIZON_DAYS",
-            "CALENDAR_PRICE_HORIZON_MONTHS_FORWARD = 6"
-          ]
+            "calendar-price-horizon-constants"
+          ],
+          "mustNotInclude": ["calendar-batch-seq-state"]
+        },
+        {
+          "file": "lib/scrape-date-bounds.ts",
+          "mustInclude": ["calendar-price-horizon-constants"],
+          "mustNotInclude": ["from '@/lib/calendar-price-horizon'", "calendar-batch-seq-state"]
         },
         {
           "file": "scripts/calendar_price_scheduler.py",
@@ -739,6 +759,34 @@
         {
           "file": "scripts/calendar_e2e_common/horizon.py",
           "mustInclude": ["CALENDAR_PRICE_HORIZON_MONTHS_FORWARD = 6"]
+        }
+      ]
+    },
+    {
+      "id": "verygoodtour-e2e-expired-url-guard",
+      "tier": ["prebuild", "ci"],
+      "summary": "참좋은여행 E2E — stale URL HEAD skip·Playwright product-expired phase",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-detail-url-health.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-e2e-expired-url-guard]",
+            "isVerygoodtourDetailUrlExpired"
+          ]
+        },
+        {
+          "file": "scripts/calendar_e2e_scraper_verygoodtour/calendar_price_scraper.py",
+          "mustInclude": [
+            "_verygood_page_is_product_expired",
+            "phase=product-expired"
+          ]
+        },
+        {
+          "file": "scripts/smoke-calendar-scrapers-inspect.ts",
+          "mustInclude": [
+            "isVerygoodtourDetailUrlExpired",
+            "verygood-detail-url-stale"
+          ]
         }
       ]
     }
