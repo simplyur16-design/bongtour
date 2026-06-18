@@ -26,6 +26,64 @@ export type ProductDetailPayloadDailyRebuildResult = {
 
 export const PRODUCT_DETAIL_PAYLOAD_DAILY_REBUILD_BATCH_SLEEP_MS_DEFAULT = 500
 
+const FAILURE_MESSAGE_LOG_CAP = 20
+
+export type ProductDetailPayloadRebuildFailureLog = {
+  productId: string
+  message: string
+}
+
+function toKstIso(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+    fractionalSecondDigits: 3,
+  }).formatToParts(date)
+  const pick = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? '00'
+  return `${pick('year')}-${pick('month')}-${pick('day')}T${pick('hour')}:${pick('minute')}:${pick('second')}.${pick('fractionalSecond')}+09:00`
+}
+
+function rebuildFailureMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  return String(error)
+}
+
+/** Railway grep: `product-detail-payload-daily-rebuild] summary` */
+function logProductDetailPayloadDailyRebuildSummary(input: {
+  startedAt: Date
+  endedAt: Date
+  registeredTotal: number
+  staleBefore: number
+  ok: number
+  failed: number
+  skipped: number
+  failedProductIds: string[]
+  failures: ProductDetailPayloadRebuildFailureLog[]
+}): void {
+  const staleAfter = input.staleBefore - input.ok
+  const summary = {
+    startedAt: toKstIso(input.startedAt),
+    endedAt: toKstIso(input.endedAt),
+    registeredTotal: input.registeredTotal,
+    staleTotal: input.staleBefore,
+    staleBefore: input.staleBefore,
+    staleAfter,
+    ok: input.ok,
+    failed: input.failed,
+    skipped: input.skipped,
+    durationMs: input.endedAt.getTime() - input.startedAt.getTime(),
+    failedIds: input.failedProductIds,
+    failures: input.failures,
+  }
+  console.log(`[product-detail-payload-daily-rebuild] summary ${JSON.stringify(summary)}`)
+}
+
 export function productDetailPayloadDailyRebuildBatchSize(): number {
   const raw = process.env.PRODUCT_DETAIL_PAYLOAD_DAILY_REBUILD_BATCH?.trim()
   if (!raw) return PRODUCT_DETAIL_PAYLOAD_DAILY_REBUILD_BATCH_DEFAULT
@@ -72,7 +130,8 @@ export async function runProductDetailPayloadDailyRebuild(options?: {
   baseDate?: Date
   dryRun?: boolean
 }): Promise<ProductDetailPayloadDailyRebuildResult> {
-  const started = Date.now()
+  const startedAt = new Date()
+  const started = startedAt.getTime()
   const batchSize = options?.batchSize ?? productDetailPayloadDailyRebuildBatchSize()
   const batchSleepMs = options?.batchSleepMs ?? productDetailPayloadDailyRebuildBatchSleepMs()
   const baseDate = options?.baseDate ?? new Date()
@@ -97,37 +156,62 @@ export async function runProductDetailPayloadDailyRebuild(options?: {
   })
 
   const failedProductIds: string[] = []
+  const failures: ProductDetailPayloadRebuildFailureLog[] = []
   let ok = 0
   let failed = 0
   let skipped = 0
 
   if (dryRun) {
+    const endedAt = new Date()
     const result = {
       registeredTotal,
       staleTotal,
       ok: 0,
       failed: 0,
       skipped: staleTotal,
-      durationMs: Date.now() - started,
+      durationMs: endedAt.getTime() - started,
       failedProductIds: [],
       total: registeredTotal,
     }
     console.log('[product-detail-payload-daily-rebuild] done (dry-run)', result)
+    logProductDetailPayloadDailyRebuildSummary({
+      startedAt,
+      endedAt,
+      registeredTotal,
+      staleBefore: staleTotal,
+      ok: 0,
+      failed: 0,
+      skipped: staleTotal,
+      failedProductIds: [],
+      failures: [],
+    })
     return result
   }
 
   if (staleTotal === 0) {
+    const endedAt = new Date()
     const result = {
       registeredTotal,
       staleTotal: 0,
       ok: 0,
       failed: 0,
       skipped: 0,
-      durationMs: Date.now() - started,
+      durationMs: endedAt.getTime() - started,
       failedProductIds: [],
       total: registeredTotal,
     }
     console.log('[product-detail-payload-daily-rebuild] nothing to do (no stale payloads)')
+    logProductDetailPayloadDailyRebuildSummary({
+      startedAt,
+      endedAt,
+      registeredTotal,
+      staleBefore: 0,
+      ok: 0,
+      failed: 0,
+      skipped: 0,
+      failedProductIds: [],
+      failures: [],
+    })
     return result
   }
 
@@ -147,6 +231,9 @@ export async function runProductDetailPayloadDailyRebuild(options?: {
       } catch (e) {
         failed += 1
         failedProductIds.push(productId)
+        if (failures.length < FAILURE_MESSAGE_LOG_CAP) {
+          failures.push({ productId, message: rebuildFailureMessage(e) })
+        }
         console.error('[product-detail-payload-daily-rebuild] failed', productId, e)
       }
     }
@@ -159,16 +246,28 @@ export async function runProductDetailPayloadDailyRebuild(options?: {
     revalidateTag('product-detail')
   }
 
+  const endedAt = new Date()
   const result = {
     registeredTotal,
     staleTotal,
     ok,
     failed,
     skipped,
-    durationMs: Date.now() - started,
+    durationMs: endedAt.getTime() - started,
     failedProductIds,
     total: registeredTotal,
   }
   console.log('[product-detail-payload-daily-rebuild] done', result)
+  logProductDetailPayloadDailyRebuildSummary({
+    startedAt,
+    endedAt,
+    registeredTotal,
+    staleBefore: staleTotal,
+    ok,
+    failed,
+    skipped,
+    failedProductIds,
+    failures,
+  })
   return result
 }
