@@ -14,9 +14,10 @@ describe('meta-graph-client', () => {
   it('parses instagram insight rows', () => {
     const parsed = parseInstagramInsightsFromApi([
       { name: 'reach', values: [{ value: 1200 }] },
+      { name: 'views', values: [{ value: 3400 }] },
       { name: 'likes', values: [{ value: 88 }] },
     ])
-    expect(parsed).toEqual({ reach: 1200, likes: 88 })
+    expect(parsed).toEqual({ reach: 1200, views: 3400, impressions: 3400, likes: 88 })
   })
 
   it('parses facebook insight rows', () => {
