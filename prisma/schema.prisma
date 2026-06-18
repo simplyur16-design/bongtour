@@ -773,15 +773,54 @@ model MonthlyCurationContent {
   seoTitle        String?
   seoDescription  String?
   slug            String?
-  isPublished     Boolean  @default(false)
-  sortOrder       Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  isPublished             Boolean  @default(false)
+  sortOrder               Int      @default(0)
+  /// true면 공개 시즌 카드에 이벤트 태그 노출 (PR 가-2, default OFF)
+  showEventTagsOnPublic   Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  curationEvents CurationEvent[]
 
   @@index([pageScope, monthKey, isPublished, sortOrder])
   @@index([regionKey])
   @@index([countryCode])
   @@index([linkedProductId])
+}
+
+/// PR (가)-2: 해외 큐레이션 이벤트 pool — trip-rec·본체 CMS 공통 lookup (BongGlobalEvent 후속 SSOT)
+model CurationEvent {
+  id          String @id @default(cuid())
+  monthKey    String // YYYY-MM (당해·내년)
+  countryCode String // 한글 라벨 또는 슬러그
+  countryKey  String?
+
+  name         String
+  city         String?
+  startMonth   Int
+  startDay     Int?
+  endMonth     Int
+  endDay       Int?
+  type         String // festival | holiday | season | sale | special
+  description  String?
+  appealReason String?
+
+  monthlyCurationContentId String?
+  monthlyCurationContent   MonthlyCurationContent? @relation(fields: [monthlyCurationContentId], references: [id], onDelete: SetNull)
+
+  year          Int
+  source        String   @default("gemini")
+  status        String   @default("draft") // draft | approved
+  marketingOnly Boolean  @default(true)
+  collectedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([name, countryCode, year])
+  @@index([monthKey, countryCode])
+  @@index([countryCode, startMonth])
+  @@index([monthlyCurationContentId])
+  @@index([status, marketingOnly])
 }
 
 // ---- MVP: 고객 문의 단일 저장소 (4종 폼 + 큐레이션/상품 스냅샷) ----
