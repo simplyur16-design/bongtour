@@ -1,8 +1,13 @@
 /**
  * B-4 마케팅: Product → 도시·시기·키워드 추출 + 월별 후보 매칭 (읽기 전용).
- * 상담 CTA는 `/inquiry?type=travel&productId=…` 패턴 + UTM (`lib/inquiry-page` 와 정합).
+ * 상품 CTA는 `/products/{slug}` + UTM (`lib/bong-marketing/cta-url-builder.ts` SSOT).
  */
 import { DOMESTIC_LOCATION_TREE_CLEAN } from '@/lib/domestic-location-tree'
+import {
+  buildProductMarketingCtaRelativePath,
+  type MarketingCtaChannel,
+  type MarketingCtaPosition,
+} from '@/lib/bong-marketing/cta-url-builder'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import { isValidYearMonth } from '@/lib/monthly-curation'
 import { findLeafInTree } from '@/lib/overseas-location-tree'
@@ -13,12 +18,13 @@ import { prisma } from '@/lib/prisma'
 // Types
 // ---------------------------------------------------------------------------
 
-export type MarketingUtmSource = 'naver_blog' | 'facebook' | 'instagram'
+export type MarketingUtmSource = MarketingCtaChannel
 
-export type MarketingUtmContentPosition = 'final_cta' | 'inline_cta'
+export type MarketingUtmContentPosition = MarketingCtaPosition
 
 export type ProductGeoMeta = {
   productId: string
+  productSlug: string | null
   /** 한글 국가/권역 라벨 (browse 슬러그 역매핑 우선) */
   country: string
   /** 한글 도시·목적지 (해외 트리·국내 트리·primaryDestination 보조) */
@@ -29,8 +35,11 @@ export type ProductGeoMeta = {
   durationDays: number | null
   departureMonths: string[]
   keywords: string[]
+  /** `/products/{slug}?utm_…` 상대 경로 (slug 없으면 `/`) */
+  ctaUrl: string
+  /** @deprecated `ctaUrl` 사용 */
   inquiryUrl: string
-  /** CTA 링크 텍스트용 짧은 상품명 (상담 폼 snapshot) */
+  /** CTA 링크 텍스트용 짧은 상품명 */
   ctaProductTitle: string
 }
 
@@ -54,40 +63,6 @@ export type ListProductsForMarketingMonthOptions = {
   excludeMonthlyCurationLinked?: boolean
   /** 후보 상한 (기본 30) */
   limit?: number
-}
-
-// ---------------------------------------------------------------------------
-// Inquiry + UTA (B-4-2 재사용용 순수 빌더)
-// ---------------------------------------------------------------------------
-
-export type BuildProductMarketingInquiryHrefArgs = {
-  productId: string
-  snapshotProductTitle: string
-  /** 상담 폼 사전 채움용 희망 월 (YYYY-MM) */
-  targetYearMonth: string | null
-  utmSource: MarketingUtmSource
-  utmContent?: MarketingUtmContentPosition
-  campaignMonthKey: string
-  citySlugForCampaign: string
-}
-
-/**
- * 봉투어 여행 상담 딥링크 + 마케팅 UTM.
- * SSOT: `lib/inquiry-page` 의 travel 분기와 동일 키(`productId`, `snapshotProductTitle`, `targetYearMonth`).
- */
-export function buildProductMarketingInquiryHref(args: BuildProductMarketingInquiryHrefArgs): string {
-  const p = new URLSearchParams()
-  p.set('type', 'travel')
-  p.set('productId', args.productId)
-  if (args.snapshotProductTitle.trim()) p.set('snapshotProductTitle', args.snapshotProductTitle.trim())
-  if (args.targetYearMonth && isValidYearMonth(args.targetYearMonth)) {
-    p.set('targetYearMonth', args.targetYearMonth)
-  }
-  p.set('utm_source', args.utmSource)
-  p.set('utm_medium', 'cta')
-  p.set('utm_campaign', `${args.campaignMonthKey}-${args.citySlugForCampaign}`)
-  p.set('utm_content', args.utmContent ?? 'final_cta')
-  return `/inquiry?${p.toString()}`
 }
 
 // ---------------------------------------------------------------------------
@@ -277,22 +252,6 @@ function resolveCityKo(input: {
   return null
 }
 
-function slugifyCampaignCity(cityKo: string | null, citySlug: string | null, nodeKey: string | null): string {
-  const ascii = (citySlug ?? '').trim().toLowerCase()
-  if (ascii && /^[a-z0-9-]+$/.test(ascii)) return ascii.slice(0, 48)
-  const nk = (nodeKey ?? '').trim().toLowerCase()
-  if (nk && /^[a-z0-9-]+$/.test(nk)) return nk.slice(0, 48)
-  const ko = (cityKo ?? '').trim()
-  if (ko) {
-    return ko
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-      .slice(0, 48) || 'city'
-  }
-  return 'city'
-}
-
 function shortenCtaTitle(title: string): string {
   const t = title.replace(/\s+/g, ' ').trim()
   if (t.length <= CTA_TITLE_MAX) return t
@@ -336,7 +295,7 @@ function buildKeywords(input: {
 // ---------------------------------------------------------------------------
 
 /**
- * 등록된 상품 1건의 마케팅 메타 + 상담 CTA URL (UTM 포함).
+ * 등록된 상품 1건의 마케팅 메타 + 상품 CTA URL (UTM 포함).
  * `cta` 가 없으면 URL에 utm을 넣을 수 없으므로 **필수**로 받는다.
  */
 export async function extractProductGeoMeta(
@@ -347,6 +306,7 @@ export async function extractProductGeoMeta(
     where: { id: productId },
     select: {
       id: true,
+      slug: true,
       title: true,
       country: true,
       city: true,
@@ -387,18 +347,14 @@ export async function extractProductGeoMeta(
     departureMonths[0] ??
     seoulYearMonthNow()
 
-  const citySlug = slugifyCampaignCity(city, row.city, row.nodeKey)
   const ctaProductTitle = shortenCtaTitle(row.title)
-  const targetYm = departureMonths.find((x) => x === campaignMonthKey) ?? departureMonths[0] ?? null
+  const productSlug = row.slug?.trim() || null
 
-  const inquiryUrl = buildProductMarketingInquiryHref({
-    productId: row.id,
-    snapshotProductTitle: ctaProductTitle,
-    targetYearMonth: targetYm,
-    utmSource: cta.utmSource,
-    utmContent: cta.utmContent,
+  const ctaUrl = buildProductMarketingCtaRelativePath({
+    slug: productSlug,
     campaignMonthKey,
-    citySlugForCampaign: citySlug,
+    channel: cta.utmSource,
+    position: cta.utmContent,
   })
 
   const keywords = buildKeywords({
@@ -411,6 +367,7 @@ export async function extractProductGeoMeta(
 
   return {
     productId: row.id,
+    productSlug,
     country,
     city,
     region,
@@ -418,7 +375,8 @@ export async function extractProductGeoMeta(
     durationDays,
     departureMonths,
     keywords,
-    inquiryUrl,
+    ctaUrl,
+    inquiryUrl: ctaUrl,
     ctaProductTitle,
   }
 }

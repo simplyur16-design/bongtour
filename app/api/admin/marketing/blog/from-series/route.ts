@@ -4,6 +4,8 @@ import {
   generateBlogPostFromSeries,
   type BlogContentTrack,
 } from '@/lib/bong-marketing/blog-generator'
+import { appendBlogProductCtaMarkdown } from '@/lib/bong-marketing/cta-url-builder'
+import { extractProductGeoMeta } from '@/lib/bong-marketing/product-extractor'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 
@@ -80,15 +82,32 @@ export async function POST(req: Request) {
     const linkedProductId = packageEpisode?.linkedProductId ?? series.episodes[0]?.linkedProductId ?? null
     const country = packageEpisode?.linkedProduct?.country ?? series.episodes[0]?.linkedProduct?.country ?? ''
 
+    const monthKey = getCurrentMonthKey()
+    let body = generated.body
+    if (linkedProductId) {
+      try {
+        const geo = await extractProductGeoMeta(linkedProductId, {
+          utmSource: 'naver_blog',
+          utmContent: 'final_cta',
+          campaignMonthKey: monthKey,
+        })
+        if (geo.productSlug) {
+          body = appendBlogProductCtaMarkdown(body, geo.ctaUrl)
+        }
+      } catch {
+        /* CTA 없이 본문만 저장 */
+      }
+    }
+
     const blogPost = await prisma.bongBlogPost.create({
       data: {
         title: generated.title,
         excerpt: generated.excerpt || null,
-        body: generated.body,
+        body,
         hashtags: generated.hashtags,
         contentTrack,
         status: 'draft',
-        monthKey: getCurrentMonthKey(),
+        monthKey,
         citySlug: slugify(firstCity) || null,
         countrySlug: slugify(country) || null,
         linkedProductId,

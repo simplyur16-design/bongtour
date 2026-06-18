@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 import type { BongContentStatus, Prisma } from '@prisma/client'
 import { generateNaverBlogDraftForPackage } from '@/lib/bong-marketing/blog-draft-generator'
 import { PACKAGE_BLOG_PROMPT_VERSION } from '@/lib/bong-marketing/blog-draft-prompt'
+import { buildProductMarketingCtaAbsoluteUrl } from '@/lib/bong-marketing/cta-url-builder'
 import { extractProductGeoMeta } from '@/lib/bong-marketing/product-extractor'
 import { isValidYearMonth } from '@/lib/monthly-curation'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import { absoluteUrl } from '@/lib/site-metadata'
 
 function truncate(s: string, max: number): string {
   if (s.length <= max) return s
@@ -46,7 +46,7 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  let inquiryAbsoluteUrl: string | null = null
+  let productCtaAbsoluteUrl: string | null = null
   if (post.linkedProductId && post.monthKey && isValidYearMonth(post.monthKey)) {
     try {
       const geo = await extractProductGeoMeta(post.linkedProductId, {
@@ -54,16 +54,21 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
         utmContent: 'final_cta',
         campaignMonthKey: post.monthKey,
       })
-      const path = geo.inquiryUrl.startsWith('/') ? geo.inquiryUrl : `/${geo.inquiryUrl}`
-      inquiryAbsoluteUrl = absoluteUrl(path)
+      productCtaAbsoluteUrl = buildProductMarketingCtaAbsoluteUrl({
+        slug: geo.productSlug,
+        campaignMonthKey: post.monthKey,
+        channel: 'naver_blog',
+        position: 'final_cta',
+      })
     } catch {
-      inquiryAbsoluteUrl = null
+      productCtaAbsoluteUrl = null
     }
   }
 
   return NextResponse.json({
     ...post,
-    inquiryAbsoluteUrl,
+    productCtaAbsoluteUrl,
+    inquiryAbsoluteUrl: productCtaAbsoluteUrl,
     productTitle: post.linkedProduct?.title ?? null,
   })
 }

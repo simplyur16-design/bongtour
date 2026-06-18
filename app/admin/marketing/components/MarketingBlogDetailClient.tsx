@@ -106,7 +106,7 @@ export default function MarketingBlogDetailClient(props: {
     if (!post?.inquiryAbsoluteUrl) return
     try {
       await navigator.clipboard.writeText(post.inquiryAbsoluteUrl)
-      setMsg('상담 URL을 복사했습니다.')
+      setMsg('상품 CTA URL을 복사했습니다.')
     } catch {
       setErr('복사에 실패했습니다.')
     }
@@ -217,7 +217,7 @@ export default function MarketingBlogDetailClient(props: {
       )}
 
       <section className="rounded-lg border border-bt-border-strong bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-bt-title">상담 UTM URL</h2>
+        <h2 className="text-sm font-semibold text-bt-title">상품 CTA URL (UTM)</h2>
         {post.inquiryAbsoluteUrl ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <code className="max-w-full flex-1 break-all rounded bg-bt-surface-soft px-2 py-1 text-xs">

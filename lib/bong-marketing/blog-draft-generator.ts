@@ -1,8 +1,9 @@
 /**
  * B-4-2: 패키지 상품 → 네이버 블로그 초안 (Gemini + BongBlogPost draft).
- * SSOT: 상담 CTA·UTM은 `extractProductGeoMeta` / `buildProductMarketingInquiryHref` (B-4-1).
+ * SSOT: 상품 CTA·UTM은 `extractProductGeoMeta` / `cta-url-builder` (B-4-1).
  */
 import type { Prisma, PrismaClient } from '@prisma/client'
+import { appendBlogProductCtaMarkdown } from '@/lib/bong-marketing/cta-url-builder'
 import {
   extractProductGeoMeta,
   listProductsForMarketingMonth,
@@ -23,7 +24,6 @@ import {
 import { getAirtelBlogContext } from '@/lib/bong-marketing/airtel-blog-context'
 import { parseGeminiJsonOutput } from '@/lib/bong-marketing/gemini-json-parse'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
-import { absoluteUrl } from '@/lib/site-metadata'
 import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { isValidYearMonth } from '@/lib/monthly-curation'
 
@@ -64,7 +64,7 @@ export type GenerateNaverBlogDraftOk = {
   excerpt: string | null
   bodyWithCta: string
   photoSpots: string[]
-  inquiryPath: string
+  ctaPath: string
   persisted: boolean
   generationModel: string
   /** 성공 시 적용된 Gemini JSON 추출 전략 (검증·모니터링용) */
@@ -121,7 +121,7 @@ export type GenerateNaverBlogDraftForAirtelOk = {
   bodyWithCta: string
   recommendedSpots: string[]
   recommendedFoods: string[]
-  inquiryPath: string
+  ctaPath: string
   persisted: boolean
   generationModel: string
   geminiJsonParseStrategy?: 'raw' | 'fenced' | 'braces' | 'comma_clean'
@@ -224,10 +224,8 @@ function scheduleExcerptFromRaw(schedule: string | null | undefined): string | n
   return truncate(raw, SCHEDULE_EXCERPT_MAX)
 }
 
-function appendPackageInquiryCta(md: string, inquiryRelativePath: string): string {
-  const url = absoluteUrl(inquiryRelativePath.startsWith('/') ? inquiryRelativePath : `/${inquiryRelativePath}`)
-  const block = `\n\n---\n\n## 여행 상담\n봉투어에서 이 상품 일정과 조건을 확인하고 **무료 상담**을 신청해 보세요.\n\n[**상담하기**](${url})\n`
-  return `${md.trimEnd()}${block}`
+function appendPackageInquiryCta(md: string, ctaRelativePath: string): string {
+  return appendBlogProductCtaMarkdown(md, ctaRelativePath)
 }
 
 async function loadProductBlogContext(
@@ -451,8 +449,8 @@ export async function generateNaverBlogDraftForPackage(
     }
   }
 
-  const inquiryPath = geo.inquiryUrl.startsWith('/') ? geo.inquiryUrl : `/${geo.inquiryUrl}`
-  const bodyWithCta = appendPackageInquiryCta(parsed.body, inquiryPath)
+  const ctaPath = geo.ctaUrl.startsWith('/') ? geo.ctaUrl : `/${geo.ctaUrl}`
+  const bodyWithCta = appendPackageInquiryCta(parsed.body, ctaPath)
   const excerptDb = truncate(parsed.excerpt.replace(/\s+/g, ' ').trim(), EXCERPT_DB_MAX)
 
   if (!persist) {
@@ -462,7 +460,7 @@ export async function generateNaverBlogDraftForPackage(
       excerpt: excerptDb,
       bodyWithCta,
       photoSpots: parsed.photoSpots,
-      inquiryPath,
+      ctaPath,
       persisted: false,
       generationModel: modelId,
       geminiJsonParseStrategy,
@@ -492,7 +490,7 @@ export async function generateNaverBlogDraftForPackage(
     excerpt: created.excerpt,
     bodyWithCta,
     photoSpots: parsed.photoSpots,
-    inquiryPath,
+    ctaPath,
     persisted: true,
     generationModel: modelId,
     geminiJsonParseStrategy,
@@ -711,8 +709,8 @@ export async function generateNaverBlogDraftForAirtel(
     }
   }
 
-  const inquiryPath = geo.inquiryUrl.startsWith('/') ? geo.inquiryUrl : `/${geo.inquiryUrl}`
-  const bodyWithCta = appendPackageInquiryCta(parsed.body, inquiryPath)
+  const ctaPath = geo.ctaUrl.startsWith('/') ? geo.ctaUrl : `/${geo.ctaUrl}`
+  const bodyWithCta = appendPackageInquiryCta(parsed.body, ctaPath)
   const excerptDb = truncate(parsed.excerpt.replace(/\s+/g, ' ').trim(), EXCERPT_DB_MAX)
 
   if (!persist) {
@@ -723,7 +721,7 @@ export async function generateNaverBlogDraftForAirtel(
       bodyWithCta,
       recommendedSpots: parsed.recommendedSpots,
       recommendedFoods: parsed.recommendedFoods,
-      inquiryPath,
+      ctaPath,
       persisted: false,
       generationModel: modelId,
       geminiJsonParseStrategy,
@@ -754,7 +752,7 @@ export async function generateNaverBlogDraftForAirtel(
     bodyWithCta,
     recommendedSpots: parsed.recommendedSpots,
     recommendedFoods: parsed.recommendedFoods,
-    inquiryPath,
+    ctaPath,
     persisted: true,
     generationModel: modelId,
     geminiJsonParseStrategy,
