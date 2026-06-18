@@ -1,5 +1,5 @@
 /**
- * 매일 KST 00:05 — 등록 상품 `publicDetailPayloadJson` 전량 재빌드.
+ * 매일 KST 00:05 — 등록 상품 중 stale `publicDetailPayloadJson`만 재빌드.
  * `bookableMinDateYmd` 일일 변경으로 인한 payload miss·live build(1.5~2s) 방지.
  *
  * production + DATABASE_URL (`instrumentation.ts` 가드).
@@ -32,6 +32,8 @@ async function tickProductDetailPayloadDailyRebuildCron(): Promise<void> {
     const result = await runProductDetailPayloadDailyRebuild({ dryRun })
     console.log('[product-detail-payload-cron] tick done', {
       dryRun,
+      registeredTotal: result.registeredTotal,
+      staleTotal: result.staleTotal,
       total: result.total,
       ok: result.ok,
       failed: result.failed,
@@ -44,7 +46,8 @@ async function tickProductDetailPayloadDailyRebuildCron(): Promise<void> {
   }
 }
 
-export function startInstrumentationProductDetailPayloadCron(): void {
+export function startInstrumentationProductDetailPayloadCron(options?: { webFallback?: boolean }): void {
+  const webFallback = options?.webFallback === true
   if (process.env.DISABLE_INSTRUMENTATION_PRODUCT_DETAIL_PAYLOAD_CRON === '1') {
     return
   }
@@ -61,6 +64,7 @@ export function startInstrumentationProductDetailPayloadCron(): void {
       )
       console.log(
         `[product-detail-payload-cron] registered: ${PRODUCT_DETAIL_PAYLOAD_DAILY_CRON_EXPR} (${PRODUCT_DETAIL_PAYLOAD_DAILY_CRON_TZ})`,
+        { webFallback },
       )
     })
     .catch((e) => {
