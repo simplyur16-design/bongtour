@@ -10,7 +10,6 @@ import {
 } from '@/lib/product-detail-page-include'
 import type { ProductDetailSelectKind } from '@/lib/product-detail-perf'
 import { loadProductDetailRowSmartPublic } from '@/lib/product-detail-smart-load'
-import { logQ5Trigger } from '@/lib/q5-trigger-log'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { resolveProductByPathSegment } from '@/lib/resolve-product-by-path-segment'
 
@@ -72,7 +71,6 @@ async function loadProductDetailRowFull(
   productId: string,
   allowAdminDraftFallback: boolean,
 ): Promise<ProductDetailPageRow | null> {
-  logQ5Trigger('page-cache', productId, 'registered-public')
   let row = await prisma.product.findFirst({
     where: {
       id: productId,
@@ -82,7 +80,6 @@ async function loadProductDetailRowFull(
     select: buildProductDetailPageSelect(new Date()),
   })
   if (!row && allowAdminDraftFallback) {
-    logQ5Trigger('page-cache', productId, 'draft-allowed')
     row = await prisma.product.findFirst({
       where: { id: productId },
       select: buildProductDetailPageSelect(new Date()),
