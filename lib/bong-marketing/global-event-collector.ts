@@ -1,10 +1,8 @@
 import { prisma } from '@/lib/prisma'
-import { generateGeminiTextResponse } from '@/lib/bong-marketing/gemini-generate'
 import {
   extractFirstBalancedJsonObject,
   parseGeminiJsonOutput,
 } from '@/lib/bong-marketing/gemini-json-parse'
-import { debugLog, debugError } from '@/lib/bong-marketing/debug-log'
 
 const GLOBAL_EVENT_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 /** Gemini 출력 토큰 한계 회피 — 3개국씩 배치 (30개국 ≈ 10배치) */
@@ -149,7 +147,7 @@ export function salvageEventsFromTruncatedJson(rawText: string): CollectedEvent[
   return parseGlobalEventsResponse({ events: objects })
 }
 
-function parseGlobalEventsFromGeminiRaw(rawText: string): {
+export function parseGlobalEventsFromGeminiRaw(rawText: string): {
   events: CollectedEvent[]
   partial: boolean
   parseError?: string
@@ -173,10 +171,9 @@ function parseGlobalEventsFromGeminiRaw(rawText: string): {
 }
 
 /**
- * 봉투어 Product에 등록된 국가 목록 (한국어 라벨).
- * Product.country는 browse 슬러그(japan) 또는 한글(일본) 모두 허용.
+ * 봉투어 Product에 등록된 국가 라벨 전체 (정렬·상한 없음).
  */
-export async function getBongtourProductCountries(): Promise<string[]> {
+export async function listBongtourProductCountryLabels(): Promise<string[]> {
   const grouped = await prisma.product.groupBy({
     by: ['country'],
     where: {
@@ -216,219 +213,25 @@ export async function getBongtourProductCountries(): Promise<string[]> {
   }
 
   const merged = [...new Set([...koreanDirect, ...mappedFromSlugs].filter(Boolean))]
+  return merged
+}
+
+/**
+ * 봉투어 Product에 등록된 국가 목록 (한국어 라벨, 가나다순 상위 N).
+ * Product.country는 browse 슬러그(japan) 또는 한글(일본) 모두 허용.
+ */
+export async function getBongtourProductCountries(): Promise<string[]> {
+  const merged = await listBongtourProductCountryLabels()
   merged.sort((a, b) => a.localeCompare(b, 'ko'))
   return merged.slice(0, MAX_COUNTRIES_FOR_COLLECTION)
 }
 
-function chunkArray<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = []
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size))
-  }
-  return chunks
-}
-
-async function collectEventsForCountryBatch(
-  countries: string[],
-  year: number,
-): Promise<{ events: CollectedEvent[]; rawPreview: string; partial: boolean }> {
-  const countryList = countries.join(', ')
-
-  const systemPrompt = `당신은 한국인 대상 해외여행 큐레이션 전문가입니다.
-
-다음 국가들의 ${year}년 향후 3-12개월 내 열리는 **해외** 이벤트·축제만 수집하세요:
-${countryList}
-
-규칙:
-- 한국인 여행객에게 어필할 수 있는 해외 이벤트만
-- 한국 국내 축제·지역 행사는 절대 포함하지 마세요
-- country 필드는 위 국가 목록의 한국어 국가명과 정확히 일치
-- type: "festival" | "holiday" | "season" | "sale" | "special"
-- **각 국가별 5~8개 이벤트** (최대 ${MAX_EVENTS_PER_COUNTRY}개, 그 이상 금지)
-- description·appealReason은 각 1문장 이내로 간결하게
-- 응답 길이 제한: 국가당 이벤트 최대 ${MAX_EVENTS_PER_COUNTRY}개 — 초과 시 중요도 높은 것만
-- **반드시 유효한 JSON 전체를 출력** — 마지막 이벤트 객체까지 닫고 최상위 \`}\` 까지 완성
-- 토큰 한계가 임박해도 마지막 국가를 중간에 끊지 말고, 차라니 앞 국가 이벤트 수를 줄여 완전한 JSON으로 마무리
-
-응답은 반드시 JSON만:
-{
-  "events": [
-    {
-      "name": "다낭 국제 불꽃축제",
-      "country": "베트남",
-      "city": "다낭",
-      "startMonth": 6,
-      "endMonth": 7,
-      "type": "festival",
-      "description": "해안 불꽃쇼",
-      "appealReason": "여름 휴가 시즌 인기"
-    }
-  ]
-}`.trim()
-
-  const rawText = await generateGeminiTextResponse({
-    model: GLOBAL_EVENT_MODEL,
-    systemPrompt,
-    userPrompt: `${year}년 ${countryList} 해외 이벤트 JSON (국가당 5~${MAX_EVENTS_PER_COUNTRY}개, 완전한 JSON 필수).`,
-    temperature: 0.3,
-    maxOutputTokens: GLOBAL_EVENT_MAX_OUTPUT_TOKENS,
-    timeoutMs: 180_000,
-  })
-
-  const rawPreview = rawText.slice(0, 500)
-  const { events, partial, parseError } = parseGlobalEventsFromGeminiRaw(rawText)
-
-  if (partial && events.length) {
-    debugLog(
-      'global-event',
-      `배치 부분 파싱 salvage ${events.length}건 (${countryList})`,
-      parseError ?? '',
-    )
-  } else if (!events.length && parseError) {
-    throw new Error(`gemini_parse_failed: ${parseError}`)
-  }
-
-  return { events, rawPreview, partial }
-}
-
-/** 메인 함수: 봉투어 Product 국가 → Gemini(배치) → BongGlobalEvent 저장. */
+/**
+ * @deprecated PR (가)-4 — write 경로는 CurationEvent. `refreshCurationEvents` 호환 alias.
+ */
 export async function refreshGlobalEvents(): Promise<GlobalEventCollectResult> {
-  const year = new Date().getFullYear()
-  const result: GlobalEventCollectResult = {
-    countries: [],
-    collected: 0,
-    saved: 0,
-    skippedDuplicates: 0,
-    errors: 0,
-    errorDetails: [],
-    rawResponseSamples: [],
-    batchesRun: 0,
-  }
-
-  const countries = await getBongtourProductCountries()
-  result.countries = countries
-
-  if (!countries.length) {
-    result.errorDetails.push({
-      stage: 'no_countries',
-      message: '등록 상품에서 국가를 찾지 못했습니다.',
-    })
-    result.errors = result.errorDetails.length
-    debugLog('global-event', '봉투어 Product 국가 없음')
-    return result
-  }
-
-  debugLog(
-    'global-event',
-    `${countries.length}개 국가, ${chunkArray(countries, COUNTRY_BATCH_SIZE).length}배치 수집 시작`,
-  )
-
-  const allEvents: CollectedEvent[] = []
-  const batches = chunkArray(countries, COUNTRY_BATCH_SIZE)
-
-  for (const batch of batches) {
-    result.batchesRun++
-    const batchLabel = batch.join(', ')
-    try {
-      const { events, rawPreview, partial } = await collectEventsForCountryBatch(batch, year)
-      if (result.rawResponseSamples && result.rawResponseSamples.length < 3) {
-        result.rawResponseSamples.push(`[${batchLabel}]${partial ? ' (partial)' : ''} ${rawPreview}`)
-      }
-
-      if (!events.length) {
-        result.errorDetails.push({
-          stage: 'json_parse',
-          message: 'Gemini 응답에서 유효한 이벤트 0개 (파싱 결과 빈 배열)',
-          country: batchLabel,
-        })
-        debugError('global-event', `배치 파싱 0건: ${batchLabel}`, rawPreview)
-        continue
-      }
-
-      allEvents.push(...events)
-      debugLog(
-        'global-event',
-        `배치 수집 ${events.length}건${partial ? ' (부분 salvage)' : ''}: ${batchLabel}`,
-      )
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      result.errorDetails.push({
-        stage: 'gemini_api',
-        message,
-        country: batchLabel,
-      })
-      debugError('global-event', `배치 Gemini 실패 (${batchLabel}):`, err)
-    }
-  }
-
-  result.collected = allEvents.length
-
-  if (!allEvents.length) {
-    if (!result.errorDetails.some((e) => e.stage === 'empty_response')) {
-      result.errorDetails.push({
-        stage: 'empty_response',
-        message:
-          '전체 배치에서 이벤트 0개 — Gemini API 실패·JSON 파싱 실패·응답 토큰 초과 가능성. errorDetails 참고.',
-      })
-    }
-    result.errors = result.errorDetails.length
-    return result
-  }
-
-  for (const event of allEvents) {
-    try {
-      const existing = await prisma.bongGlobalEvent.findFirst({
-        where: { name: event.name, country: event.country, year },
-      })
-
-      if (existing) {
-        await prisma.bongGlobalEvent.update({
-          where: { id: existing.id },
-          data: {
-            city: event.city ?? null,
-            startMonth: event.startMonth,
-            startDay: event.startDay ?? null,
-            endMonth: event.endMonth,
-            endDay: event.endDay ?? null,
-            type: event.type,
-            description: event.description ?? null,
-            appealReason: event.appealReason ?? null,
-            collectedAt: new Date(),
-          },
-        })
-        result.skippedDuplicates++
-      } else {
-        await prisma.bongGlobalEvent.create({
-          data: {
-            name: event.name,
-            country: event.country,
-            city: event.city ?? null,
-            startMonth: event.startMonth,
-            startDay: event.startDay ?? null,
-            endMonth: event.endMonth,
-            endDay: event.endDay ?? null,
-            type: event.type,
-            description: event.description ?? null,
-            appealReason: event.appealReason ?? null,
-            year,
-          },
-        })
-        result.saved++
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      result.errorDetails.push({
-        stage: 'db_upsert',
-        message: `${event.name}: ${message}`,
-        country: event.country,
-      })
-      debugError('global-event', `이벤트 저장 실패 (${event.name}):`, err)
-    }
-  }
-
-  result.errors = result.errorDetails.length
-  debugLog('global-event', '완료:', result)
-  return result
+  const { refreshCurationEvents } = await import('@/lib/bong-marketing/curation-event-collector')
+  return refreshCurationEvents()
 }
 
 function monthOverlapsEvent(month: number, startMonth: number, endMonth: number): boolean {

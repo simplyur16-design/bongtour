@@ -18,6 +18,11 @@ vi.mock('@/lib/prisma', () => ({
       update: vi.fn(),
       findMany: vi.fn(),
     },
+    curationEvent: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
   },
 }))
 
@@ -136,9 +141,9 @@ describe('refreshGlobalEvents', () => {
   beforeEach(() => {
     vi.mocked(prisma.product.groupBy).mockReset()
     vi.mocked(prisma.country.findMany).mockReset()
-    vi.mocked(prisma.bongGlobalEvent.findFirst).mockReset()
-    vi.mocked(prisma.bongGlobalEvent.create).mockReset()
-    vi.mocked(prisma.bongGlobalEvent.update).mockReset()
+    vi.mocked(prisma.curationEvent.findUnique).mockReset()
+    vi.mocked(prisma.curationEvent.create).mockReset()
+    vi.mocked(prisma.curationEvent.update).mockReset()
     vi.mocked(generateGeminiTextResponse).mockReset()
   })
 
@@ -152,7 +157,7 @@ describe('refreshGlobalEvents', () => {
     expect(generateGeminiTextResponse).not.toHaveBeenCalled()
   })
 
-  it('collects events in country batches', async () => {
+  it('delegates to CurationEvent write path', async () => {
     vi.mocked(prisma.product.groupBy).mockResolvedValue([
       { country: '일본', _count: { _all: 1 } },
       { country: '베트남', _count: { _all: 1 } },
@@ -170,12 +175,13 @@ describe('refreshGlobalEvents', () => {
         ],
       }),
     )
-    vi.mocked(prisma.bongGlobalEvent.findFirst).mockResolvedValue(null)
-    vi.mocked(prisma.bongGlobalEvent.create).mockResolvedValue({} as never)
+    vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.curationEvent.create).mockResolvedValue({} as never)
 
     const result = await refreshGlobalEvents()
     expect(result.batchesRun).toBe(1)
     expect(result.collected).toBeGreaterThan(0)
     expect(result.saved).toBeGreaterThan(0)
+    expect(prisma.curationEvent.create).toHaveBeenCalled()
   })
 })

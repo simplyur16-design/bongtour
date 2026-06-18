@@ -135,10 +135,10 @@ export async function register() {
         '@/lib/instrumentation-insight-sync-cron'
       )
       startInstrumentationInsightSyncCron()
-      const { startInstrumentationGlobalEventCron } = await import(
-        '@/lib/instrumentation-global-event-cron'
+      const { startInstrumentationCurationEventCron } = await import(
+        '@/lib/instrumentation-curation-event-cron'
       )
-      startInstrumentationGlobalEventCron()
+      startInstrumentationCurationEventCron()
     }
   }
   assertProductionServerEnv()

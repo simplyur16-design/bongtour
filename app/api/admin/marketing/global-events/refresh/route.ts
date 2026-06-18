@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
-import { refreshGlobalEvents } from '@/lib/bong-marketing/global-event-collector'
+import { refreshCurationEvents } from '@/lib/bong-marketing/curation-event-collector'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-/** POST /api/admin/marketing/global-events/refresh — 글로벌 이벤트 수동 갱신 */
+/** POST /api/admin/marketing/global-events/refresh — CurationEvent 수동 갱신 (URL 호환) */
 export async function POST() {
   const session = await requireAdmin()
   if (!session?.user) {
@@ -13,7 +13,7 @@ export async function POST() {
   }
 
   try {
-    const result = await refreshGlobalEvents()
+    const result = await refreshCurationEvents()
     return NextResponse.json(result)
   } catch (error) {
     return NextResponse.json(
