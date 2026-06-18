@@ -7,6 +7,7 @@ import {
 } from '@/lib/product-detail-page-include'
 import { productDetailPayloadDtoHit } from '@/lib/product-detail-payload-hit'
 import type { ProductDetailSelectKind } from '@/lib/product-detail-perf'
+import { logQ5Trigger } from '@/lib/q5-trigger-log'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 
 export type ProductDetailSmartLoad = {
@@ -14,7 +15,8 @@ export type ProductDetailSmartLoad = {
   selectKind: ProductDetailSelectKind
 }
 
-async function loadProductDetailRowFull(productId: string): Promise<ProductDetailPageRow | null> {
+async function loadProductDetailRowFull(productId: string, context: string): Promise<ProductDetailPageRow | null> {
+  logQ5Trigger('smart-load', productId, context)
   return prisma.product.findFirst({
     where: {
       id: productId,
@@ -40,6 +42,7 @@ export async function loadProductDetailRowSmartPublic(productId: string): Promis
     return { row: slim as ProductDetailSlimRow, selectKind: 'slim' }
   }
 
-  const full = await loadProductDetailRowFull(productId)
+  const context = slim ? 'dto-miss' : 'slim-row-missing'
+  const full = await loadProductDetailRowFull(productId, context)
   return { row: full, selectKind: 'full' }
 }
