@@ -2,6 +2,7 @@
 """
 달력 가격 스크래퍼 자동 실행: 상품을 하나씩 순차 처리 후 DB 저장.
 공급사별 calendar E2E 모듈로만 위임한다 (스크래프 로직은 각 패키지 내부).
+REGRESSION-FREEZE[calendar-price-horizon-180d]: modetour API·cursor ok-only — manifest
 
 환경변수(선택):
   SCRAPER_CALENDAR_HORIZON_END — YYYY-MM-DD 지평선 상한 (로그용)
@@ -109,8 +110,37 @@ def _calendar_module_for_site(site: str) -> str:
     return _CALENDAR_MODULE_BY_SITE.get(raw) or _CALENDAR_MODULE_BY_SITE["hanatour"]
 
 
-def _run_calendar_price_from_url(detail_url: str, site: str, headless: bool) -> Any:
+def _run_modetour_calendar_api(product: Dict[str, Any], lo: str, hi: str) -> List[Dict[str, Any]]:
+    """modetour 배치 SSOT — Node B2C API (Python E2E 금지). REGRESSION-FREEZE[calendar-price-horizon-180d]"""
+    product_id = str(product.get("id") or "").strip()
+    if not product_id:
+        raise ValueError("modetour: product id required for API scrape")
+    url = f"{API_BASE}/api/admin/products/{product_id}/calendar-scrape-modetour-api"
+    body = json.dumps({"fromYmd": lo, "toYmd": hi}, ensure_ascii=False).encode("utf-8")
+    headers = {**_headers(), "Content-Type": "application/json"}
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    with _urlopen_with_retry(req, timeout=180, label=f"modetour_api:{product_id}") as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    items = data.get("items") if isinstance(data, dict) else None
+    if not isinstance(items, list):
+        return []
+    return [x for x in items if isinstance(x, dict)]
+
+
+def _run_calendar_price_from_url(
+    detail_url: str,
+    site: str,
+    headless: bool,
+    *,
+    product: Optional[Dict[str, Any]] = None,
+    date_rng: Optional[Tuple[str, str]] = None,
+) -> Any:
     s = (site or "").strip().lower()
+    if s == "modetour":
+        if not product or not date_rng:
+            raise ValueError("modetour batch requires product and date range (B2C API path)")
+        lo, hi = date_rng
+        return _run_modetour_calendar_api(product, lo, hi)
     if s == "lottetour":
         god, menus, evt = _lottetour_ids_from_url(detail_url)
         from scripts.calendar_e2e_scraper_lottetour import config as lcfg
@@ -471,7 +501,14 @@ def _process_one_attempt(
     headless = os.getenv("HEADLESS", "1") != "0"
     logger.info("Start id=%s site=%s range=%s", product_id, site, rng or "full")
     try:
-        raw = _run_calendar_price_from_url(detail_url, site, headless=headless)
+        date_rng = (rng[0], rng[1]) if rng else None
+        raw = _run_calendar_price_from_url(
+            detail_url,
+            site,
+            headless=headless,
+            product=product if site == "modetour" else None,
+            date_rng=date_rng if site == "modetour" else None,
+        )
         items = _normalize_scraper_payload_to_api_items(raw, site)
         if rng:
             lo, hi = rng
@@ -629,6 +666,8 @@ def run_batch() -> Dict[str, Any]:
         if _is_modetour_legacy(product, site):
             legacy_rng = _legacy_rng(product)
             try:
+                if legacy_rng:
+                    _set_site_date_env(site, legacy_rng[0], legacy_rng[1])
                 st = process_one_with_retries(product, legacy_rng, max_saved_ymd)
                 if st == "ok":
                     ok_c += 1
@@ -642,6 +681,8 @@ def run_batch() -> Dict[str, Any]:
                 logger.exception("modetour legacy item failed: %s", e)
                 fail_c += 1
                 _bump_site_fail_counter(site, consecutive_site_fail, skipped_sites)
+            finally:
+                _clear_site_date_env()
             last_completed_index = abs_index
             processed_count += 1
             continue
@@ -666,7 +707,7 @@ def run_batch() -> Dict[str, Any]:
         try:
             _set_site_date_env(site, lo, hi)
             st = process_one_with_retries(product, rng, max_saved_ymd)
-            if st in ("ok", "fail"):
+            if st == "ok":
                 _advance_product_after_window(product, hi)
             if st == "ok":
                 ok_c += 1
@@ -675,12 +716,10 @@ def run_batch() -> Dict[str, Any]:
                 skip_c += 1
             else:
                 fail_c += 1
-                # 실패해도 _advance_product_after_window 로 해당 상품 cursor 전진 → 다음 상품으로
                 _bump_site_fail_counter(site, consecutive_site_fail, skipped_sites)
         except Exception as e:
             logger.exception("Item %d failed: %s", i, e)
             fail_c += 1
-            _advance_product_after_window(product, hi)
             _bump_site_fail_counter(site, consecutive_site_fail, skipped_sites)
         finally:
             _clear_site_date_env()

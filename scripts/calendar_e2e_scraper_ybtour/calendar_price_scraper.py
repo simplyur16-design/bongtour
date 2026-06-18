@@ -25,9 +25,11 @@ from .utils import (
     random_mouse_move,
 )
 
+from scripts.calendar_e2e_common.horizon import CALENDAR_PRICE_HORIZON_MONTHS_FORWARD
+
 _KST = dt.timezone(dt.timedelta(hours=9))
-# lib/scrape-date-bounds.ts SCRAPE_DEFAULT_MONTHS_FORWARD 와 맞춤
-DEFAULT_CALENDAR_MONTH_LIMIT = 3
+# lib/calendar-price-horizon.ts CALENDAR_PRICE_HORIZON_MONTHS_FORWARD 와 맞춤
+DEFAULT_CALENDAR_MONTH_LIMIT = CALENDAR_PRICE_HORIZON_MONTHS_FORWARD
 
 
 def _kst_today_ymd() -> str:
@@ -939,10 +941,20 @@ class CalendarPriceScraper:
         return moved
 
     async def _ybtour_align_popup_to_kst_month_floor(self) -> None:
-        """모달 첫 화면 월이 과거/미래여도, 수집 루프는 KST 현재 월(1일)부터 시작하도록 맞춘다."""
-        target = _kst_month_start()
+        """모달 첫 화면 월 정렬 — YBTOUR_DATE_FROM(배치 창) 우선, 없으면 KST 당월 1일."""
+        lo = (os.environ.get("YBTOUR_DATE_FROM") or "").strip()[:10]
+        if len(lo) == 10:
+            try:
+                target = dt.date(int(lo[:4]), int(lo[5:7]), 1)
+                policy = f"align-date-from={lo[:7]}"
+            except ValueError:
+                target = _kst_month_start()
+                policy = "align-kst-floor"
+        else:
+            target = _kst_month_start()
+            policy = "align-kst-floor"
         _ybtour_modal_log(
-            f"phase=month-policy align_kst_floor target={target.isoformat()} "
+            f"phase=month-policy {policy} target={target.isoformat()} "
             f"(ignore URL/detail default month; then scan forward if empty)"
         )
         prev_label: Optional[str] = None

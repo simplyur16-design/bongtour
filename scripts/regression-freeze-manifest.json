@@ -124,6 +124,13 @@
       "summary": "스티키 카드 공급사별 합계·만원 절삭 금지"
     },
     {
+      "id": "calendar-price-horizon-180d",
+      "tier": ["prebuild", "ci"],
+      "script": "verify:calendar-price-horizon",
+      "summary": "6개월(180일) 달력·출발일 지평선 — modetour API 배치·E2E 6개월·cursor 정책",
+      "doc": "docs/ops/calendar-price-horizon-contract.md"
+    },
+    {
       "id": "hanatour-e2e-airtel-same-product",
       "tier": ["prebuild", "ci"],
       "script": "verify:hanatour-e2e-airtel-same-product",
@@ -698,6 +705,42 @@
           "mustNotInclude": ["pCharset: \"EUC-KR\""]
         }
       ]
+    },
+    {
+      "id": "calendar-price-horizon-180d",
+      "tier": ["prebuild", "ci"],
+      "summary": "180일 지평·modetour 배치 API·실패 시 cursor 미전진",
+      "checks": [
+        {
+          "file": "lib/calendar-price-horizon.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[calendar-price-horizon-180d]",
+            "CALENDAR_PRICE_HORIZON_DAYS",
+            "CALENDAR_PRICE_HORIZON_MONTHS_FORWARD = 6"
+          ]
+        },
+        {
+          "file": "scripts/calendar_price_scheduler.py",
+          "mustInclude": [
+            "_run_modetour_calendar_api",
+            "calendar-scrape-modetour-api"
+          ],
+          "mustNotInclude": [
+            "if st in (\"ok\", \"fail\"):\n                _advance_product_after_window"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/calendar-scrape-modetour-api/route.ts",
+          "mustInclude": [
+            "collectModetourDepartureInputsForDateRange",
+            "modetour-b2c-api"
+          ]
+        },
+        {
+          "file": "scripts/calendar_e2e_common/horizon.py",
+          "mustInclude": ["CALENDAR_PRICE_HORIZON_MONTHS_FORWARD = 6"]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -714,6 +757,7 @@
         "lib/fit-itinerary-sync-schedule-image-keywords.test.ts",
         "lib/geo-haystack-match.test.ts",
         "lib/hanatour-origin-code-from-paste.test.ts",
+        "lib/calendar-price-horizon.test.ts",
         "lib/product-image-source-attribution.test.ts",
         "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
         "lib/supplier-product-title-display.test.ts",

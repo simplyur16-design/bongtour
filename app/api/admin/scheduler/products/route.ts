@@ -101,6 +101,7 @@ export async function GET() {
         const hasFutureDepartures = hasFutureDeparturesFromMax(maxDepartureYmd, todaySeoulYmd)
 
         if (site === 'modetour') {
+          // REGRESSION-FREEZE[calendar-price-horizon-180d]: 배치는 B2C API 180일 1회 — calendar-scrape-modetour-api
           return {
             id: p.id,
             originCode: p.originCode,

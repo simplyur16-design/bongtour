@@ -79,12 +79,14 @@ export function maxYearMonth(a: YearMonth, b: YearMonth): YearMonth {
   return yearMonthBefore(a, b) ? b : a
 }
 
-/** parse-and-register·재수집 등 공통: 앞으로 스캔할 월 수 (당일 출발 제외 전제) */
-export const SCRAPE_DEFAULT_MONTHS_FORWARD = 3
+import { CALENDAR_PRICE_HORIZON_MONTHS_FORWARD } from '@/lib/calendar-price-horizon'
+
+/** parse-and-register·재수집·API 수집 기본: 앞으로 6개월(180일 지평과 정합) */
+export const SCRAPE_DEFAULT_MONTHS_FORWARD = CALENDAR_PRICE_HORIZON_MONTHS_FORWARD
 
 /**
  * 모두투어 **등록 확정(confirm)** 시 `GetOtherDepartureDates` 검색 상한만큼의 월 수.
- * 재수집·어댑터 기본(6개월)과 구분해 ProductDeparture 적재량을 줄인다(동일 API, searchTo만 짧게).
+ * 재수집·배치(6개월)와 구분해 ProductDeparture 적재량을 줄인다(동일 API, searchTo만 짧게).
  */
 export const MODETOUR_REGISTER_CONFIRM_MONTHS_FORWARD = 4
 

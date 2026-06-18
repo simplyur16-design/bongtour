@@ -39,11 +39,11 @@ def apply_hanatour_scheduler_e2e_env() -> None:
 
 
 def _scheduler_max_months() -> int:
-    raw = (os.environ.get("HANATOUR_E2E_SCHEDULER_MAX_MONTHS") or "2").strip()
+    raw = (os.environ.get("HANATOUR_E2E_SCHEDULER_MAX_MONTHS") or "6").strip()
     try:
         return max(1, min(6, int(raw)))
     except ValueError:
-        return 2
+        return 6
 
 
 def normalize_hanatour_detail_url_to_trp(detail_url: str) -> str:

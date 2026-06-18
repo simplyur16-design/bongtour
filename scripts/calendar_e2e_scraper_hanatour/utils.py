@@ -23,9 +23,11 @@ from calendar_e2e_common.kst_collect_start import kst_collect_start_ymd
 
 from . import config as _e2e_config
 
-# --- KST (TS SCRAPE_DEFAULT_MONTHS_FORWARD 와 맞춤) ---
+from calendar_e2e_common.horizon import CALENDAR_PRICE_HORIZON_MONTHS_FORWARD
+
+# --- KST (lib/calendar-price-horizon.ts 와 맞춤) ---
 KST = timezone(timedelta(hours=9))
-DEFAULT_MAX_MONTHS = 3
+DEFAULT_MAX_MONTHS = CALENDAR_PRICE_HORIZON_MONTHS_FORWARD
 
 
 def kst_today_ymd() -> str:

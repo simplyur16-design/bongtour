@@ -3350,6 +3350,27 @@ class HanatourCalendarE2EScraper:
                     current_calendar_label=boot_label,
                 )
 
+            _date_from_nav = (
+                os.getenv("HANATOUR_E2E_DATE_FROM")
+                or getattr(config, "DATE_FROM", None)
+                or ""
+            ).strip()[:10]
+            if (
+                not target_month_ym
+                and not skip_target_month_body
+                and len(_date_from_nav) == 10
+            ):
+                try:
+                    ty_df = int(_date_from_nav[:4])
+                    tm_df = int(_date_from_nav[5:7])
+                    if await _navigate_calendar_to_year_month(
+                        page, ty_df, tm_df, notes=notes
+                    ):
+                        notes.append(f"e2e_date_from_month_nav:{ty_df:04d}-{tm_df:02d}")
+                        phase_month = f"{ty_df:04d}-{tm_df:02d}"
+                except ValueError:
+                    notes.append("e2e_date_from_month_nav_parse_failed")
+
             t_e2e_month_loop0 = _time.perf_counter()
             _e2e_timing_phase("month_loop_start")
             for mi in range(max_months_eff):

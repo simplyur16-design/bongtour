@@ -25,9 +25,11 @@ from .utils import (
     random_mouse_move,
 )
 
+from scripts.calendar_e2e_common.horizon import CALENDAR_PRICE_HORIZON_MONTHS_FORWARD
+
 _KST = dt.timezone(dt.timedelta(hours=9))
-# lib/scrape-date-bounds.ts SCRAPE_DEFAULT_MONTHS_FORWARD 와 맞춤
-DEFAULT_CALENDAR_MONTH_LIMIT = 3
+# lib/calendar-price-horizon.ts CALENDAR_PRICE_HORIZON_MONTHS_FORWARD 와 맞춤
+DEFAULT_CALENDAR_MONTH_LIMIT = CALENDAR_PRICE_HORIZON_MONTHS_FORWARD
 
 # page.evaluate() 안에 그대로 삽입 — 4곳에서 재사용 (modetourLayerRoot 단일 정의)
 _MODETOUR_LAYER_ROOT_JS = r"""

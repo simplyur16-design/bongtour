@@ -82,7 +82,7 @@ export async function GET() {
     },
     setupSteps,
     scheduleNote:
-      '3시간 1회 (KST) — sequential: 등록 상품 순번대로 상품별 30일 창(cursor+1~+30), 창 안 전부 수집. non-modetour는 실패 시에도 상품별 cursor 전진(공급사 일괄 차단 없음). modetour는 레거시(today~horizon). 수동: POST /api/admin/scheduler/run-once.',
+      '3시간 1회 (KST) — sequential: 등록 상품 순번대로 상품별 30일 창(cursor+1~+30), 창 안 전부 수집. modetour는 B2C API 180일(legacy 1회). 실패 시 cursor 미전진. 수동: POST /api/admin/scheduler/run-once.',
     issues,
   })
 }

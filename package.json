@@ -83,6 +83,7 @@
     "check:schedule-image-keyword-routing-parity": "node scripts/check-schedule-image-keyword-routing-parity.mjs",
     "verify:bongtour-product-title-r5": "npx tsx scripts/verify-bongtour-product-title-r5.ts",
     "verify:supplier-product-title-plan-b": "npx tsx scripts/verify-supplier-product-title-plan-b.ts",
+    "verify:calendar-price-horizon": "npx tsx scripts/verify-calendar-price-horizon.ts",
     "verify:regression-freeze": "npx tsx scripts/verify-regression-freeze.ts --tier all",
     "verify:regression-freeze:prebuild": "npx tsx scripts/verify-regression-freeze.ts --tier prebuild",
     "verify:regression-freeze:ci": "npx tsx scripts/verify-regression-freeze.ts --tier ci",
