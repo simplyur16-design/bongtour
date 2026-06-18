@@ -1,10 +1,20 @@
 import { prisma } from '@/lib/prisma'
-import { generateGeminiJsonResponse } from '@/lib/bong-marketing/gemini-generate'
+import { generateGeminiTextResponse } from '@/lib/bong-marketing/gemini-generate'
+import {
+  extractFirstBalancedJsonObject,
+  parseGeminiJsonOutput,
+} from '@/lib/bong-marketing/gemini-json-parse'
 import { debugLog, debugError } from '@/lib/bong-marketing/debug-log'
 
 const GLOBAL_EVENT_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
-const COUNTRY_BATCH_SIZE = 5
-/** Gemini 토큰·품질 한계 — 상품 수 기준 상위 N개국만 수집 (배치는 5개국씩) */
+/** Gemini 출력 토큰 한계 회피 — 3개국씩 배치 (30개국 ≈ 10배치) */
+export const GLOBAL_EVENT_COUNTRY_BATCH_SIZE = 3
+const COUNTRY_BATCH_SIZE = GLOBAL_EVENT_COUNTRY_BATCH_SIZE
+/** Gemini 2.5 Pro 출력 한도 내 — 대량 이벤트 JSON용 */
+const GLOBAL_EVENT_MAX_OUTPUT_TOKENS = 16_384
+/** 국가당 이벤트 상한 (프롬프트·파싱 안정성) */
+const MAX_EVENTS_PER_COUNTRY = 8
+/** Gemini 토큰·품질 한계 — 상품 수 기준 상위 N개국만 수집 */
 const MAX_COUNTRIES_FOR_COLLECTION = 30
 
 export interface CollectedEvent {
@@ -106,6 +116,63 @@ export function parseGlobalEventsResponse(response: unknown): CollectedEvent[] {
 }
 
 /**
+ * Gemini 응답이 토큰 한계로 잘렸을 때 events 배열 안의 **완전한 객체**만 추출.
+ * 0개보다 일부라도 저장하기 위한 salvage 경로.
+ */
+export function salvageEventsFromTruncatedJson(rawText: string): CollectedEvent[] {
+  const pj = parseGeminiJsonOutput(rawText)
+  if (pj.ok) return parseGlobalEventsResponse(pj.value)
+
+  const eventsKey = rawText.match(/"events"\s*:\s*\[/)
+  if (!eventsKey || eventsKey.index === undefined) return []
+
+  let cursor = rawText.indexOf('[', eventsKey.index) + 1
+  const objects: Record<string, unknown>[] = []
+
+  while (cursor < rawText.length) {
+    while (cursor < rawText.length && /[\s,]/.test(rawText[cursor])) cursor++
+    if (cursor >= rawText.length || rawText[cursor] === ']') break
+    if (rawText[cursor] !== '{') break
+
+    const balanced = extractFirstBalancedJsonObject(rawText.slice(cursor))
+    if (!balanced) break
+
+    try {
+      const obj = JSON.parse(balanced) as Record<string, unknown>
+      if (obj && typeof obj === 'object') objects.push(obj)
+    } catch {
+      break
+    }
+    cursor += balanced.length
+  }
+
+  return parseGlobalEventsResponse({ events: objects })
+}
+
+function parseGlobalEventsFromGeminiRaw(rawText: string): {
+  events: CollectedEvent[]
+  partial: boolean
+  parseError?: string
+} {
+  const salvaged = salvageEventsFromTruncatedJson(rawText)
+  if (salvaged.length) {
+    const pj = parseGeminiJsonOutput(rawText)
+    return {
+      events: salvaged,
+      partial: !pj.ok,
+      parseError: pj.ok ? undefined : pj.error,
+    }
+  }
+
+  const pj = parseGeminiJsonOutput(rawText)
+  if (pj.ok) {
+    return { events: parseGlobalEventsResponse(pj.value), partial: false }
+  }
+
+  return { events: [], partial: false, parseError: pj.error }
+}
+
+/**
  * 봉투어 Product에 등록된 국가 목록 (한국어 라벨).
  * Product.country는 browse 슬러그(japan) 또는 한글(일본) 모두 허용.
  */
@@ -164,7 +231,7 @@ function chunkArray<T>(items: T[], size: number): T[][] {
 async function collectEventsForCountryBatch(
   countries: string[],
   year: number,
-): Promise<{ events: CollectedEvent[]; rawPreview: string }> {
+): Promise<{ events: CollectedEvent[]; rawPreview: string; partial: boolean }> {
   const countryList = countries.join(', ')
 
   const systemPrompt = `당신은 한국인 대상 해외여행 큐레이션 전문가입니다.
@@ -177,7 +244,11 @@ ${countryList}
 - 한국 국내 축제·지역 행사는 절대 포함하지 마세요
 - country 필드는 위 국가 목록의 한국어 국가명과 정확히 일치
 - type: "festival" | "holiday" | "season" | "sale" | "special"
-- **각 국가별 최소 2개** 이벤트
+- **각 국가별 5~8개 이벤트** (최대 ${MAX_EVENTS_PER_COUNTRY}개, 그 이상 금지)
+- description·appealReason은 각 1문장 이내로 간결하게
+- 응답 길이 제한: 국가당 이벤트 최대 ${MAX_EVENTS_PER_COUNTRY}개 — 초과 시 중요도 높은 것만
+- **반드시 유효한 JSON 전체를 출력** — 마지막 이벤트 객체까지 닫고 최상위 \`}\` 까지 완성
+- 토큰 한계가 임박해도 마지막 국가를 중간에 끊지 말고, 차라니 앞 국가 이벤트 수를 줄여 완전한 JSON으로 마무리
 
 응답은 반드시 JSON만:
 {
@@ -195,18 +266,29 @@ ${countryList}
   ]
 }`.trim()
 
-  const response = await generateGeminiJsonResponse<{ events?: unknown }>({
+  const rawText = await generateGeminiTextResponse({
     model: GLOBAL_EVENT_MODEL,
     systemPrompt,
-    userPrompt: `${year}년 ${countryList} 해외 이벤트 JSON (국가당 2개 이상).`,
+    userPrompt: `${year}년 ${countryList} 해외 이벤트 JSON (국가당 5~${MAX_EVENTS_PER_COUNTRY}개, 완전한 JSON 필수).`,
     temperature: 0.3,
-    maxOutputTokens: 4096,
-    timeoutMs: 120_000,
+    maxOutputTokens: GLOBAL_EVENT_MAX_OUTPUT_TOKENS,
+    timeoutMs: 180_000,
   })
 
-  const rawPreview = JSON.stringify(response).slice(0, 500)
-  const events = parseGlobalEventsResponse(response)
-  return { events, rawPreview }
+  const rawPreview = rawText.slice(0, 500)
+  const { events, partial, parseError } = parseGlobalEventsFromGeminiRaw(rawText)
+
+  if (partial && events.length) {
+    debugLog(
+      'global-event',
+      `배치 부분 파싱 salvage ${events.length}건 (${countryList})`,
+      parseError ?? '',
+    )
+  } else if (!events.length && parseError) {
+    throw new Error(`gemini_parse_failed: ${parseError}`)
+  }
+
+  return { events, rawPreview, partial }
 }
 
 /** 메인 함수: 봉투어 Product 국가 → Gemini(배치) → BongGlobalEvent 저장. */
@@ -248,9 +330,9 @@ export async function refreshGlobalEvents(): Promise<GlobalEventCollectResult> {
     result.batchesRun++
     const batchLabel = batch.join(', ')
     try {
-      const { events, rawPreview } = await collectEventsForCountryBatch(batch, year)
+      const { events, rawPreview, partial } = await collectEventsForCountryBatch(batch, year)
       if (result.rawResponseSamples && result.rawResponseSamples.length < 3) {
-        result.rawResponseSamples.push(`[${batchLabel}] ${rawPreview}`)
+        result.rawResponseSamples.push(`[${batchLabel}]${partial ? ' (partial)' : ''} ${rawPreview}`)
       }
 
       if (!events.length) {
@@ -264,7 +346,10 @@ export async function refreshGlobalEvents(): Promise<GlobalEventCollectResult> {
       }
 
       allEvents.push(...events)
-      debugLog('global-event', `배치 수집 ${events.length}건: ${batchLabel}`)
+      debugLog(
+        'global-event',
+        `배치 수집 ${events.length}건${partial ? ' (부분 salvage)' : ''}: ${batchLabel}`,
+      )
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       result.errorDetails.push({

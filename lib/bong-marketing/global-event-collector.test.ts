@@ -1,9 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import {
   countryLabelsMatch,
+  GLOBAL_EVENT_COUNTRY_BATCH_SIZE,
   parseGlobalEventsResponse,
   refreshGlobalEvents,
   getBongtourProductCountries,
+  salvageEventsFromTruncatedJson,
 } from '@/lib/bong-marketing/global-event-collector'
 
 vi.mock('@/lib/prisma', () => ({
@@ -20,11 +22,11 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 vi.mock('@/lib/bong-marketing/gemini-generate', () => ({
-  generateGeminiJsonResponse: vi.fn(),
+  generateGeminiTextResponse: vi.fn(),
 }))
 
 import { prisma } from '@/lib/prisma'
-import { generateGeminiJsonResponse } from '@/lib/bong-marketing/gemini-generate'
+import { generateGeminiTextResponse } from '@/lib/bong-marketing/gemini-generate'
 
 describe('parseGlobalEventsResponse', () => {
   it('parses valid global events', () => {
@@ -57,6 +59,37 @@ describe('parseGlobalEventsResponse', () => {
       ],
     })
     expect(events).toHaveLength(1)
+  })
+})
+
+describe('salvageEventsFromTruncatedJson', () => {
+  it('extracts complete event objects from truncated JSON', () => {
+    const truncated = `{
+  "events": [
+    {
+      "name": "후지 록 페스티벌",
+      "country": "일본",
+      "startMonth": 7,
+      "endMonth": 7,
+      "type": "festival"
+    },
+    {
+      "name": "다낭 불꽃축제",
+      "country": "베트남",
+      "startMonth": 6,
+      "endMonth": 7,
+      "type": "festival",
+      "description": "잘린 문자열`
+
+    const events = salvageEventsFromTruncatedJson(truncated)
+    expect(events).toHaveLength(1)
+    expect(events[0].name).toBe('후지 록 페스티벌')
+  })
+})
+
+describe('GLOBAL_EVENT_COUNTRY_BATCH_SIZE', () => {
+  it('uses 3 countries per batch', () => {
+    expect(GLOBAL_EVENT_COUNTRY_BATCH_SIZE).toBe(3)
   })
 })
 
@@ -106,7 +139,7 @@ describe('refreshGlobalEvents', () => {
     vi.mocked(prisma.bongGlobalEvent.findFirst).mockReset()
     vi.mocked(prisma.bongGlobalEvent.create).mockReset()
     vi.mocked(prisma.bongGlobalEvent.update).mockReset()
-    vi.mocked(generateGeminiJsonResponse).mockReset()
+    vi.mocked(generateGeminiTextResponse).mockReset()
   })
 
   it('returns empty result when no product countries', async () => {
@@ -116,7 +149,7 @@ describe('refreshGlobalEvents', () => {
     expect(result.countries).toEqual([])
     expect(result.collected).toBe(0)
     expect(result.errorDetails.some((e) => e.stage === 'no_countries')).toBe(true)
-    expect(generateGeminiJsonResponse).not.toHaveBeenCalled()
+    expect(generateGeminiTextResponse).not.toHaveBeenCalled()
   })
 
   it('collects events in country batches', async () => {
@@ -124,17 +157,19 @@ describe('refreshGlobalEvents', () => {
       { country: '일본', _count: { _all: 1 } },
       { country: '베트남', _count: { _all: 1 } },
     ] as never)
-    vi.mocked(generateGeminiJsonResponse).mockResolvedValue({
-      events: [
-        {
-          name: '다낭 불꽃축제',
-          country: '베트남',
-          startMonth: 6,
-          endMonth: 7,
-          type: 'festival',
-        },
-      ],
-    } as never)
+    vi.mocked(generateGeminiTextResponse).mockResolvedValue(
+      JSON.stringify({
+        events: [
+          {
+            name: '다낭 불꽃축제',
+            country: '베트남',
+            startMonth: 6,
+            endMonth: 7,
+            type: 'festival',
+          },
+        ],
+      }),
+    )
     vi.mocked(prisma.bongGlobalEvent.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.bongGlobalEvent.create).mockResolvedValue({} as never)
 

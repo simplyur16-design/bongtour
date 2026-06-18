@@ -18,12 +18,46 @@ export interface GenerateGeminiJsonParams {
   model?: string
   systemPrompt: string
   userPrompt: string
-  /** 기본 4096 */
+  /** 기본 4096. Gemini 2.5 Pro는 최대 65536 출력 토큰 지원 */
   maxOutputTokens?: number
   /** 기본 0.7 */
   temperature?: number
   /** generateContent 타임아웃(ms). 기본 120초 */
   timeoutMs?: number
+}
+
+/**
+ * Gemini 를 호출해 원문 텍스트를 반환한다 (JSON 파싱 없음).
+ */
+export async function generateGeminiTextResponse(params: GenerateGeminiJsonParams): Promise<string> {
+  const apiKey = (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY(또는 GOOGLE_API_KEY) 미설정')
+  }
+
+  const modelId = (params.model?.trim() || getModelName()).trim()
+  const maxOutputTokens = params.maxOutputTokens ?? 4096
+  const temperature = params.temperature ?? 0.7
+  const timeoutMs = params.timeoutMs ?? 120_000
+
+  const model = getGenAI().getGenerativeModel({
+    model: modelId,
+    systemInstruction: params.systemPrompt,
+  })
+
+  const result = await model.generateContent(
+    {
+      contents: [{ role: 'user', parts: [{ text: params.userPrompt }] }],
+      generationConfig: {
+        temperature,
+        maxOutputTokens,
+        ...({ responseMimeType: 'application/json' } as { responseMimeType?: string }),
+      },
+    },
+    geminiTimeoutOpts(timeoutMs),
+  )
+
+  return result.response.text()
 }
 
 /**
