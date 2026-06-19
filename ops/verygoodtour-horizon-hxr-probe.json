@@ -1,0 +1,16 @@
+{
+  "probes": [
+    {
+      "label": "EPP0113-live",
+      "url": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=EPP0113-260424SK&PriceSeq=1&MenuCode=leaveLayer"
+    },
+    {
+      "label": "APP1100-leaveLayer",
+      "url": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP1100-260621KE1&PriceSeq=3&MenuCode=leaveLayer"
+    },
+    {
+      "label": "CPP332-leaveLayer",
+      "url": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=CPP332-260621KE1&PriceSeq=1&MenuCode=leaveLayer"
+    }
+  ]
+}

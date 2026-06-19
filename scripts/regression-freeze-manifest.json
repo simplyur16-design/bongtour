@@ -1275,6 +1275,13 @@
             "normalizeVerygoodtourDetailUrlForCollect",
             "probeVerygoodDetailWithGet"
           ]
+        },
+        {
+          "file": "lib/admin-departure-rescrape.ts",
+          "mustInclude": [
+            "collectVerygoodtourDepartureInputsForDateRange",
+            "verygoodtour: HXR·E2E"
+          ]
         }
       ],
       "vitestSuites": [
@@ -1372,6 +1379,29 @@
         }
       ],
       "vitestSuites": ["lib/verygoodtour-sweep.test.ts"]
+    },
+    {
+      "id": "modetour-sd1-inventory",
+      "tier": ["prebuild", "ci"],
+      "summary": "modetour SD1/SD2 inventory — 등록 상품 API 분류·ops JSON",
+      "checks": [
+        {
+          "file": "scripts/run-modetour-sd1-inventory.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-sd1-inventory]",
+            "collectModetourApiDepartureInputs",
+            "modetour-sd1-inventory.json",
+            "sd1WithDbDepartures"
+          ]
+        },
+        {
+          "file": "docs/ops/modetour-sd1-airtel-policy.md",
+          "mustInclude": [
+            "isModetourSd1AutoUnpublishEligible",
+            "air_hotel_free"
+          ]
+        }
+      ]
     },
     {
       "id": "trip-rec-curation-event-city-match",

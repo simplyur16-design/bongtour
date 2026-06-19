@@ -1,6 +1,8 @@
 /**
  * modetour 등록 상품 SD1/SD2 API inventory — parity error 56건 분류.
  *
+ * REGRESSION-FREEZE[modetour-sd1-inventory]: SD1/SD2 분류·ops JSON — manifest
+ *
  *   npm run verify:modetour-sd1-inventory
  *   npm run verify:modetour-sd1-inventory -- --limit 20
  *
