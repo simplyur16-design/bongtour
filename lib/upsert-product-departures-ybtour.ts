@@ -5,6 +5,7 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { computeBaselineAdultPriceOnUpsert } from '@/lib/supplier-urgent-deal'
 import { seatFieldsFromParsedCalendarPrice } from '@/lib/departure-seat-availability'
 import { normalizeCalendarDate } from './date-normalize'
 import { deriveHanatourConfirmationFlags, parseStatusLabelsJson } from './hanatour-normalize'
@@ -306,20 +307,30 @@ export async function upsertProductDepartures(
     where: { productId, departureDate: { in: pairs.map((p) => p.departureDate) } },
     select: {
       departureDate: true,
+      adultPrice: true,
       childBedPrice: true,
       childNoBedPrice: true,
       infantPrice: true,
+      baselineAdultPrice: true,
     },
   })
   const existingChildByUtc = new Map<
     number,
-    { childBedPrice: number | null; childNoBedPrice: number | null; infantPrice: number | null }
+    {
+      adultPrice: number | null
+      childBedPrice: number | null
+      childNoBedPrice: number | null
+      infantPrice: number | null
+      baselineAdultPrice: number | null
+    }
   >()
   for (const row of existingRows) {
     existingChildByUtc.set(row.departureDate.getTime(), {
+      adultPrice: row.adultPrice,
       childBedPrice: row.childBedPrice,
       childNoBedPrice: row.childNoBedPrice,
       infantPrice: row.infantPrice,
+      baselineAdultPrice: row.baselineAdultPrice,
     })
   }
 
@@ -328,6 +339,8 @@ export async function upsertProductDepartures(
 
     const previous = existingChildByUtc.get(departureDate.getTime())
     const adultPrice = d.adultPrice != null && !Number.isNaN(d.adultPrice) ? d.adultPrice : null
+    // REGRESSION-FREEZE[supplier-urgent-deal-baseline]: baselineAdultPrice 최초 고정 — manifest
+    const baselineAdultPrice = computeBaselineAdultPriceOnUpsert(previous, adultPrice)
     const childBedPrice = resolveYbtourChildSlotPrice(d.childBedPrice, adultPrice, previous?.childBedPrice)
     const childNoBedPrice = resolveYbtourChildSlotPrice(d.childNoBedPrice, adultPrice, previous?.childNoBedPrice)
     let infantPrice = pickPreservedInfantPriceYbtour(d.infantPrice, previous?.infantPrice)
@@ -390,6 +403,7 @@ export async function upsertProductDepartures(
     const where = { productId_departureDate: { productId, departureDate } }
     const corePayload = {
       adultPrice,
+      baselineAdultPrice,
       childBedPrice,
       childNoBedPrice,
       infantPrice,

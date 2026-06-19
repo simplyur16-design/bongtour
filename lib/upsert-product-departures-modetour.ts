@@ -4,7 +4,7 @@
  */
 import type { PrismaClient } from '@prisma/client'
 
-import { isValidModetourUrgentDealPrice } from '@/lib/modetour-urgent-deal'
+import { computeBaselineAdultPriceOnUpsert } from '@/lib/supplier-urgent-deal'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { seatFieldsFromParsedCalendarPrice } from '@/lib/departure-seat-availability'
 import { deriveDepartureFlags } from '@/lib/derive-departure-flags'
@@ -264,14 +264,8 @@ export async function upsertProductDepartures(
 
     const previous = existingChildByUtc.get(departureDate.getTime())
     const adultPrice = d.adultPrice != null && !Number.isNaN(d.adultPrice) ? d.adultPrice : null
-    const baselineAdultPrice =
-      previous?.baselineAdultPrice != null
-        ? previous.baselineAdultPrice
-        : previous && isValidModetourUrgentDealPrice(previous.adultPrice)
-          ? previous.adultPrice
-          : isValidModetourUrgentDealPrice(adultPrice)
-            ? adultPrice
-            : null
+    // REGRESSION-FREEZE[supplier-urgent-deal-baseline]: baselineAdultPrice 최초 고정 — manifest
+    const baselineAdultPrice = computeBaselineAdultPriceOnUpsert(previous, adultPrice)
     const childBedRaw = pickPreservedChildPriceModetour(d.childBedPrice, previous?.childBedPrice)
     const childBedPrice = childBedRaw ?? adultPrice
     const childNoBedRaw = pickPreservedChildPriceModetour(d.childNoBedPrice, previous?.childNoBedPrice)

@@ -1036,6 +1036,46 @@
       "vitestSuites": ["lib/ybtour-api-departures.test.ts", "lib/ybtour-price-collect.test.ts"]
     },
     {
+      "id": "supplier-urgent-deal-baseline",
+      "tier": ["prebuild", "ci"],
+      "summary": "공급사 긴급모객 — baselineAdultPrice 최초 고정·hasUrgentDeal 캐시 SSOT",
+      "checks": [
+        {
+          "file": "lib/supplier-urgent-deal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
+            "computeBaselineAdultPriceOnUpsert",
+            "syncSupplierUrgentDealForProduct"
+          ]
+        },
+        {
+          "file": "lib/upsert-product-departures-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
+            "computeBaselineAdultPriceOnUpsert",
+            "baselineAdultPrice"
+          ]
+        },
+        {
+          "file": "lib/upsert-product-departures-ybtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
+            "computeBaselineAdultPriceOnUpsert",
+            "baselineAdultPrice"
+          ]
+        },
+        {
+          "file": "lib/upsert-product-departures-modetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
+            "computeBaselineAdultPriceOnUpsert",
+            "baselineAdultPrice"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/supplier-urgent-deal.test.ts"]
+    },
+    {
       "id": "verygoodtour-e2e-expired-url-guard",
       "tier": ["prebuild", "ci"],
       "summary": "참좋은여행 E2E — stale URL HEAD skip·Playwright product-expired phase",

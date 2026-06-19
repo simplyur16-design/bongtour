@@ -32,9 +32,36 @@ function filterInputsInWindow(inputs: DepartureInput[], fromYmd: string, toYmd: 
   })
 }
 
-/**
- * API 우선. 지평 내 성인가 출발 0건이면 기존 Python E2E로 폴백.
- */
+export type HanatourApiOnlyCollectResult = {
+  inputs: DepartureInput[]
+  pkgCd: string | null
+  apiError: string | null
+}
+
+/** API만 — E2E 없음. 커버리지·sweep 사전 검증용. */
+export async function collectHanatourApiOnlyForDateRange(
+  detailUrl: string,
+  fromYmd: string,
+  toYmd: string,
+  monthYms: string[],
+): Promise<HanatourApiOnlyCollectResult> {
+  const pkgCd = parseHanatourPkgCdFromUrl(detailUrl)
+  if (!pkgCd || monthYms.length === 0) {
+    return { inputs: [], pkgCd, apiError: pkgCd ? null : 'no_pkg_cd' }
+  }
+  try {
+    const api = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms)
+    const priced = filterInputsInWindow(api.inputs, fromYmd, toYmd)
+    return { inputs: priced, pkgCd, apiError: null }
+  } catch (err) {
+    return {
+      inputs: [],
+      pkgCd,
+      apiError: (err instanceof Error ? err.message : String(err)).slice(0, 400),
+    }
+  }
+}
+
 export async function collectHanatourPriceInputsWithE2eFallback(
   detailUrl: string,
   fromYmd: string,
