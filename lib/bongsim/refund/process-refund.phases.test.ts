@@ -3,6 +3,12 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
+vi.mock("@/lib/bongsim/refund/usimsa-refund-usage", () => ({
+  checkUsimsaOrderDataUsageForRefund: vi.fn().mockResolvedValue({ ok: true, totalUsedMb: 0 }),
+}));
+
 const mockQuery = vi.fn();
 const mockConnect = vi.fn();
 const mockRelease = vi.fn();
@@ -40,7 +46,23 @@ vi.mock("@/lib/bongsim/refund/notify-refund-completed", () => ({
 
 import { processRefund } from "@/lib/bongsim/refund/process-refund";
 
-type QueryResult = { rows: Record<string, unknown>[] };
+type OrderRow = {
+  order_id: string;
+  status: string;
+  grand_total_krw: string;
+  payment_provider: string;
+  payment_reference: string;
+};
+
+function orderRow(orderId: string, status: string, total = "10000"): OrderRow {
+  return {
+    order_id: orderId,
+    status,
+    grand_total_krw: total,
+    payment_provider: "welcomepay",
+    payment_reference: "TID-MOCK-001",
+  };
+}
 
 function makeClient() {
   const client = {
@@ -51,17 +73,17 @@ function makeClient() {
   return client;
 }
 
-function queueQueries(handlers: Array<(sql: string, params?: unknown[]) => QueryResult | Promise<QueryResult>>) {
+function queueQueries(handlers: Array<(sql: string) => { rows: Record<string, unknown>[] }>) {
   let i = 0;
-  mockQuery.mockImplementation(async (sql: string, params?: unknown[]) => {
+  mockQuery.mockImplementation(async (sql: string) => {
     const s = String(sql).trim();
     if (s === "BEGIN" || s === "COMMIT" || s === "ROLLBACK") {
       return { rows: [] };
     }
     const fn = handlers[i];
-    if (!fn) throw new Error(`unexpected query[${i}]: ${s.slice(0, 120)}`);
+    if (!fn) throw new Error(`unexpected query[${i}]: ${s.slice(0, 160)}`);
     i += 1;
-    return fn(sql, params);
+    return fn(sql);
   });
 }
 
@@ -104,60 +126,22 @@ describe("processRefund 3-phase order", () => {
     });
 
     queueQueries([
-      () => ({
-        rows: [
-          {
-            order_id: orderId,
-            status: "paid",
-            grand_total_krw: "10000",
-            payment_provider: "welcomepay",
-            payment_reference: "TID-MOCK-001",
-          },
-        ],
-      }),
-      () => ({ rows: [{ ok: false }] }),
+      // phase 1
+      () => ({ rows: [orderRow(orderId, "paid")] }),
       () => ({ rows: [{ payment_attempt_id: "pa-1" }] }),
       () => ({ rows: [] }),
       () => ({ rows: [] }),
+      // phase 2
       () => ({ rows: [{ ok: false }] }),
       () => ({ rows: [{ topup_id: "topup-a" }] }),
-      () => ({
-        rows: [
-          {
-            order_id: orderId,
-            status: "refund_requested",
-            grand_total_krw: "10000",
-            payment_provider: "welcomepay",
-            payment_reference: "TID-MOCK-001",
-          },
-        ],
-      }),
+      () => ({ rows: [orderRow(orderId, "refund_requested")] }),
       () => ({ rows: [{ ok: false }] }),
       () => ({ rows: [] }),
       () => ({ rows: [{ payment_attempt_id: "pa-1" }] }),
       () => ({ rows: [] }),
-      () => ({
-        rows: [
-          {
-            order_id: orderId,
-            status: "refund_requested",
-            grand_total_krw: "10000",
-            payment_provider: "welcomepay",
-            payment_reference: "TID-MOCK-001",
-          },
-        ],
-      }),
-      () => ({
-        rows: [
-          {
-            order_id: orderId,
-            status: "refund_requested",
-            grand_total_krw: "10000",
-            payment_provider: "welcomepay",
-            payment_reference: "TID-MOCK-001",
-          },
-        ],
-      }),
+      // phase 3
+      () => ({ rows: [orderRow(orderId, "refund_requested")] }),
+      () => ({ rows: [orderRow(orderId, "refund_requested")] }),
       () => ({ rows: [{ payment_attempt_id: "pa-1" }] }),
       () => ({ rows: [] }),
       () => ({ rows: [] }),
@@ -184,59 +168,21 @@ describe("processRefund 3-phase order", () => {
     });
 
     queueQueries([
-      () => ({
-        rows: [
-          {
-            order_id: orderId,
-            status: "delivered",
-            grand_total_krw: "5000",
-            payment_provider: "welcomepay",
-            payment_reference: "TID-MOCK-001",
-          },
-        ],
-      }),
-      () => ({ rows: [{ ok: false }] }),
+      // phase 1
+      () => ({ rows: [orderRow(orderId, "delivered", "5000")] }),
       () => ({ rows: [{ payment_attempt_id: null }] }),
       () => ({ rows: [] }),
       () => ({ rows: [] }),
+      // phase 2 (no topups)
       () => ({ rows: [{ ok: false }] }),
       () => ({ rows: [] }),
-      () => ({
-        rows: [
-          {
-            order_id: orderId,
-            status: "refund_requested",
-            grand_total_krw: "5000",
-            payment_provider: "welcomepay",
-            payment_reference: "TID-MOCK-001",
-          },
-        ],
-      }),
+      () => ({ rows: [orderRow(orderId, "refund_requested", "5000")] }),
       () => ({ rows: [{ ok: false }] }),
       () => ({ rows: [{ payment_attempt_id: null }] }),
       () => ({ rows: [] }),
-      () => ({
-        rows: [
-          {
-            order_id: orderId,
-            status: "refund_requested",
-            grand_total_krw: "5000",
-            payment_provider: "welcomepay",
-            payment_reference: "TID-MOCK-001",
-          },
-        ],
-      }),
-      () => ({
-        rows: [
-          {
-            order_id: orderId,
-            status: "refund_requested",
-            grand_total_krw: "5000",
-            payment_provider: "welcomepay",
-            payment_reference: "TID-MOCK-001",
-          },
-        ],
-      }),
+      // phase 3
+      () => ({ rows: [orderRow(orderId, "refund_requested", "5000")] }),
+      () => ({ rows: [orderRow(orderId, "refund_requested", "5000")] }),
       () => ({ rows: [{ payment_attempt_id: null }] }),
       () => ({ rows: [] }),
     ]);

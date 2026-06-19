@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { detectMultiCountryAutoPlan } from '@/lib/normalize-product-geo-master'
+import { resetMegaMenuSsotCityKeysCache } from '@/lib/mega-menu-ssot-city-keys'
 
 function mockDb(countries: Array<{ countryKey: string; koreanLabel: string }>) {
   return {
@@ -11,10 +12,17 @@ function mockDb(countries: Array<{ countryKey: string; koreanLabel: string }>) {
     city: {
       findMany: vi.fn().mockResolvedValue([]),
     },
+    megaMenuGroupCardCity: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   }
 }
 
 describe('detectMultiCountryAutoPlan', () => {
+  beforeEach(() => {
+    resetMegaMenuSsotCityKeysCache()
+  })
+
   it('returns medium multi without N국 when tree tokens find 2+ countries', async () => {
     const db = mockDb([
       { countryKey: 'czech', koreanLabel: '체코' },
