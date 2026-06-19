@@ -75,6 +75,7 @@ type SweepProductRow = {
   originCode: string | null
   listingKind: string | null
   productType: string | null
+  singleDepartureOnly: boolean
   rawMeta: string | null
 }
 

@@ -127,7 +127,7 @@ export async function collectHanatourRegisterFacts(originUrl: string): Promise<S
           {
             direction: 'outbound' as const,
             carrier: depInput.carrierName,
-            flightNo: depInput.outboundFlightNo,
+            flightNo: depInput.outboundFlightNo ?? null,
             departureCity: null,
             departureAt: depInput.departureDate ? String(depInput.departureDate) : null,
             arrivalCity: null,
@@ -142,7 +142,7 @@ export async function collectHanatourRegisterFacts(originUrl: string): Promise<S
             adultPrice: depInput.adultPrice ?? null,
             childPrice: depInput.childBedPrice ?? null,
             infantPrice: depInput.infantPrice ?? null,
-            supplierDepartureCode: depInput.supplierDepartureCodeCandidate,
+            supplierDepartureCode: depInput.supplierDepartureCodeCandidate ?? null,
           },
         ]
       : [],

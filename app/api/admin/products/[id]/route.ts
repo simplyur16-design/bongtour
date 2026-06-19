@@ -208,7 +208,6 @@ export async function GET(_request: Request, { params }: RouteParams) {
         localDepartureTag: true,
         sportsThemeTag: true,
         singleDepartureOnly: true,
-        productType: true,
         departures: { orderBy: { departureDate: 'asc' }, take: 1, select: { carrierName: true } },
       },
     })
