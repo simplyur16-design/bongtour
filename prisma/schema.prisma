@@ -1414,7 +1414,11 @@ model BongHookLibrary {
 /// PR 1: Instagram 게시 인사이트 (Graph API 동기화 예정)
 model BongPostInsight {
   id                      String    @id @default(cuid())
+  /// instagram | facebook
+  platform                String    @default("instagram")
   instaMediaId            String?   @unique
+  fbPostId                String?   @unique
+  pageId                  String?
   sourceType              String?
   sourceCardNewsSeriesId  String?
   sourceCardNewsEpisodeId String?
@@ -1430,12 +1434,15 @@ model BongPostInsight {
   comments                Int?
   profileViews            Int?
   websiteClicks           Int?
+  /// Sum of Facebook reaction types (like+love+wow+haha+sorry+anger)
+  fbReactionsTotal        Int?
   syncedAt                DateTime?
   syncSource              String?
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 
   @@index([sourceType])
+  @@index([platform])
   @@index([publishedAt])
 }
 

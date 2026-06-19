@@ -5,7 +5,8 @@ import { requireAdmin } from '@/lib/require-admin'
 
 export const dynamic = 'force-dynamic'
 
-const SORT_FIELDS = ['reach', 'likes', 'saved', 'publishedAt'] as const
+const SORT_FIELDS = ['reach', 'likes', 'saved', 'publishedAt', 'fbReactionsTotal'] as const
+const PLATFORMS = ['instagram', 'facebook'] as const
 
 /** GET /api/admin/marketing/insights/list */
 export async function GET(req: Request) {
@@ -19,14 +20,21 @@ export async function GET(req: Request) {
   const sortByRaw = url.searchParams.get('sortBy') || 'reach'
   const sortBy = (SORT_FIELDS as readonly string[]).includes(sortByRaw) ? sortByRaw : 'reach'
   const sortDir = url.searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc'
+  const platformRaw = url.searchParams.get('platform') || 'all'
+  const platform = (PLATFORMS as readonly string[]).includes(platformRaw) ? platformRaw : 'all'
 
   const orderBy = { [sortBy]: sortDir } as Prisma.BongPostInsightOrderByWithRelationInput
+
+  const where: Prisma.BongPostInsightWhereInput = {
+    reach: { not: null },
+    ...(platform !== 'all' ? { platform } : {}),
+  }
 
   const insights = await prisma.bongPostInsight.findMany({
     take: limit,
     orderBy,
-    where: { reach: { not: null } },
+    where,
   })
 
-  return NextResponse.json({ insights })
+  return NextResponse.json({ insights, platform })
 }

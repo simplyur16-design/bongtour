@@ -4,7 +4,9 @@ import {
   parseFacebookInsightsFromApi,
   parseInstagramInsightsFromApi,
   tokenExpiresAtFromResponse,
+  FACEBOOK_POST_INSIGHT_METRICS,
 } from '@/lib/meta-graph-client'
+import { FACEBOOK_DEPRECATED_POST_INSIGHT_METRICS } from '@/lib/bong-marketing/facebook-insight-utils'
 
 describe('meta-graph-client', () => {
   it('builds graph api base with default version', () => {
@@ -20,12 +22,24 @@ describe('meta-graph-client', () => {
     expect(parsed).toEqual({ reach: 1200, views: 3400, likes: 88 })
   })
 
-  it('parses facebook insight rows', () => {
+  it('parses facebook Media Views / Viewers / reactions rows', () => {
     const parsed = parseFacebookInsightsFromApi([
-      { name: 'post_impressions', values: [{ value: 500 }] },
-      { name: 'post_impressions_unique', values: [{ value: 300 }] },
+      { name: 'post_media_view', values: [{ value: 500 }] },
+      { name: 'post_total_media_view_unique', values: [{ value: 300 }] },
+      { name: 'post_clicks', values: [{ value: 12 }] },
+      { name: 'post_reactions_like_total', values: [{ value: 40 }] },
+      { name: 'post_reactions_love_total', values: [{ value: 5 }] },
     ])
-    expect(parsed).toEqual({ post_impressions: 500, post_impressions_unique: 300 })
+    expect(parsed.post_media_view).toBe(500)
+    expect(parsed.post_total_media_view_unique).toBe(300)
+    expect(parsed.post_clicks).toBe(12)
+    expect(parsed.fbReactionsTotal).toBe(45)
+  })
+
+  it('does not request deprecated facebook metrics', () => {
+    for (const deprecated of FACEBOOK_DEPRECATED_POST_INSIGHT_METRICS) {
+      expect(FACEBOOK_POST_INSIGHT_METRICS).not.toContain(deprecated)
+    }
   })
 
   it('computes token expiry from expires_in', () => {

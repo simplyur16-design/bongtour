@@ -24,6 +24,8 @@ type SyncTickResult = {
   }
 }
 
+type PlatformFilter = 'all' | 'instagram' | 'facebook'
+
 type Props = {
   initialInsights: BongPostInsight[]
   initialConfig: BongHookLearnConfig | null
@@ -38,8 +40,16 @@ const DEFAULT_CONFIG: HookLearnConfigForm = {
   enabled: true,
 }
 
+function platformLabel(insight: BongPostInsight): string {
+  if (insight.platform === 'facebook' || insight.sourceType === 'facebook-page-post') {
+    return '페북'
+  }
+  return '인스타'
+}
+
 export default function InsightsClient({ initialInsights, initialConfig, totalCount }: Props) {
   const [insights, setInsights] = useState(initialInsights)
+  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all')
   const [config, setConfig] = useState<HookLearnConfigForm>(
     initialConfig
       ? {
@@ -55,6 +65,18 @@ export default function InsightsClient({ initialInsights, initialConfig, totalCo
   const [saving, setSaving] = useState(false)
   const [syncResult, setSyncResult] = useState<SyncTickResult | null>(null)
 
+  async function reloadInsights(filter: PlatformFilter) {
+    const qs = filter === 'all' ? 'limit=20' : `limit=20&platform=${filter}`
+    const listRes = await fetch(`/api/admin/marketing/insights/list?${qs}`)
+    const listJson = (await listRes.json()) as { insights: BongPostInsight[] }
+    setInsights(listJson.insights)
+  }
+
+  async function handlePlatformChange(filter: PlatformFilter) {
+    setPlatformFilter(filter)
+    await reloadInsights(filter)
+  }
+
   async function handleSync() {
     setSyncing(true)
     setSyncResult(null)
@@ -63,9 +85,7 @@ export default function InsightsClient({ initialInsights, initialConfig, totalCo
       const result = (await res.json()) as SyncTickResult & { error?: string }
       if (!res.ok) throw new Error(result.error || '동기화 실패')
       setSyncResult(result)
-      const listRes = await fetch('/api/admin/marketing/insights/list?limit=20')
-      const listJson = (await listRes.json()) as { insights: BongPostInsight[] }
-      setInsights(listJson.insights)
+      await reloadInsights(platformFilter)
     } catch (err) {
       alert(`동기화 실패: ${err instanceof Error ? err.message : '알 수 없음'}`)
     } finally {
@@ -112,6 +132,29 @@ export default function InsightsClient({ initialInsights, initialConfig, totalCo
         <p className="text-sm text-bt-body/70">
           총 {totalCount}개 인사이트 · cron 매일 03:00 KST 자동
         </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            ['all', '전체'],
+            ['instagram', '인스타'],
+            ['facebook', '페북'],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => handlePlatformChange(value)}
+            className={`rounded-full px-3 py-1 text-sm ${
+              platformFilter === value
+                ? 'bg-bt-brand-blue text-white'
+                : 'border border-bt-border bg-white text-bt-body'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {syncResult && (
@@ -240,16 +283,23 @@ export default function InsightsClient({ initialInsights, initialConfig, totalCo
                       ? new Date(insight.publishedAt).toLocaleDateString('ko-KR')
                       : '—'}
                     {' · '}
-                    {insight.sourceType === 'instagram-organic' ? '인스타' : '페북'}
+                    {platformLabel(insight)}
                   </p>
                 </div>
                 <div className="shrink-0 text-right text-sm">
                   <p>
                     도달 <strong>{insight.reach?.toLocaleString() ?? '-'}</strong>
                   </p>
-                  <p className="text-bt-body/70">
-                    좋아요 {insight.likes ?? '-'} · 저장 {insight.saved ?? '-'}
-                  </p>
+                  {insight.platform === 'facebook' || insight.sourceType === 'facebook-page-post' ? (
+                    <p className="text-bt-body/70">
+                      반응 합계 {insight.fbReactionsTotal ?? '-'} · 댓글 {insight.comments ?? '-'}
+                    </p>
+                  ) : (
+                    <p className="text-bt-body/70">
+                      좋아요 {insight.likes ?? '-'} · 저장 {insight.saved ?? '-'} · 댓글{' '}
+                      {insight.comments ?? '-'}
+                    </p>
+                  )}
                 </div>
               </div>
               {insight.permalink && (

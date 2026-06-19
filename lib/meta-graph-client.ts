@@ -2,6 +2,12 @@
  * Meta Graph API 클라이언트 — 직접 fetch, SDK 미사용.
  */
 
+import {
+  FACEBOOK_POST_INSIGHT_METRICS,
+  sumFacebookReactions,
+  type FacebookReactionInsight,
+} from '@/lib/bong-marketing/facebook-insight-utils'
+
 const META_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0'
 
 export function getMetaGraphApiBase(): string {
@@ -43,12 +49,17 @@ export interface FacebookPagePost {
   message?: string
   permalink_url: string
   created_time: string
+  comments?: { summary?: { total_count?: number } }
 }
 
 export interface FacebookPostInsight {
-  post_impressions?: number
-  post_impressions_unique?: number
+  /** Media Views — replaces deprecated post_impressions */
+  post_media_view?: number
+  /** Media Viewers (unique) — mapped to reach; replaces post_impressions_unique / post_reach */
+  post_total_media_view_unique?: number
   post_clicks?: number
+  reactions?: FacebookReactionInsight
+  fbReactionsTotal?: number
 }
 
 export interface TokenDebugInfo {
@@ -77,15 +88,24 @@ export function parseInstagramInsightsFromApi(data: InsightApiRow[]): InstagramM
 }
 
 export function parseFacebookInsightsFromApi(data: InsightApiRow[]): FacebookPostInsight {
-  const result: FacebookPostInsight = {}
+  const result: FacebookPostInsight = { reactions: {} }
   for (const item of data) {
     const value = item.values?.[0]?.value
-    if (item.name === 'post_impressions') result.post_impressions = value
-    if (item.name === 'post_impressions_unique') result.post_impressions_unique = value
+    if (item.name === 'post_media_view') result.post_media_view = value
+    if (item.name === 'post_total_media_view_unique') result.post_total_media_view_unique = value
     if (item.name === 'post_clicks') result.post_clicks = value
+    if (item.name === 'post_reactions_like_total') result.reactions!.like = value
+    if (item.name === 'post_reactions_love_total') result.reactions!.love = value
+    if (item.name === 'post_reactions_wow_total') result.reactions!.wow = value
+    if (item.name === 'post_reactions_haha_total') result.reactions!.haha = value
+    if (item.name === 'post_reactions_sorry_total') result.reactions!.sorry = value
+    if (item.name === 'post_reactions_anger_total') result.reactions!.anger = value
   }
+  result.fbReactionsTotal = sumFacebookReactions(result.reactions ?? {})
   return result
 }
+
+export { FACEBOOK_POST_INSIGHT_METRICS }
 
 function requireMetaAppCredentials(): { appId: string; appSecret: string } {
   const appId = process.env.META_APP_ID?.trim()
@@ -205,7 +225,10 @@ export async function getFacebookPagePosts(
   limit = 25,
 ): Promise<FacebookPagePost[]> {
   const url = new URL(`${getMetaGraphApiBase()}/${pageId}/posts`)
-  url.searchParams.set('fields', 'id,message,permalink_url,created_time')
+  url.searchParams.set(
+    'fields',
+    'id,message,permalink_url,created_time,comments.limit(0).summary(true)',
+  )
   url.searchParams.set('limit', String(limit))
   url.searchParams.set('access_token', pageToken)
 
@@ -215,14 +238,15 @@ export async function getFacebookPagePosts(
   return json.data || []
 }
 
-/** 페북 게시물 인사이트 */
+/** 페북 게시물 인사이트 — Media Views/Viewers + reactions (폐기 post_impressions* 미사용) */
 export async function getFacebookPostInsight(
   postId: string,
   pageToken: string,
 ): Promise<FacebookPostInsight> {
-  const metrics = ['post_impressions', 'post_impressions_unique', 'post_clicks'].join(',')
+  const metrics = FACEBOOK_POST_INSIGHT_METRICS.join(',')
   const url = new URL(`${getMetaGraphApiBase()}/${postId}/insights`)
   url.searchParams.set('metric', metrics)
+  url.searchParams.set('period', 'lifetime')
   url.searchParams.set('access_token', pageToken)
 
   const res = await fetch(url, { cache: 'no-store' })
