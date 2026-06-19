@@ -5,6 +5,7 @@ import {
   parseYbtourEvCdFromUrl,
   parseYbtourGoodsCdFromUrl,
   parseYbtourBaseSeriesFromEvCdShape,
+  pickYbtourSeedEvCdForByGoods,
   resolveYbtourByGoodsDspSid,
   resolveYbtourGoodsCdForApi,
   ybtourByGoodsRowToAdultPrice,
@@ -67,6 +68,38 @@ describe('resolveYbtourGoodsCdForApi', () => {
         null,
       ),
     ).toBe('AVP4484')
+  })
+})
+
+describe('pickYbtourSeedEvCdForByGoods', () => {
+  it('prefers URL evCd when first-display dspSid resolves', () => {
+    expect(
+      pickYbtourSeedEvCdForByGoods({
+        urlEvCd: 'AVP4484-260711RS00',
+        dayEvCd: 'AVP4484-260621VJ02',
+        urlEvCdDspSid: 'AABF011',
+      }),
+    ).toBe('AVP4484-260711RS00')
+  })
+
+  it('falls back to day evCd when URL evCd has no dspSid', () => {
+    expect(
+      pickYbtourSeedEvCdForByGoods({
+        urlEvCd: 'ASP1072-260712TW00',
+        dayEvCd: 'ASP1072-260701KE00',
+        urlEvCdDspSid: null,
+      }),
+    ).toBe('ASP1072-260701KE00')
+  })
+
+  it('uses URL evCd when day is missing', () => {
+    expect(
+      pickYbtourSeedEvCdForByGoods({
+        urlEvCd: 'EEP1284-260703LO01',
+        dayEvCd: null,
+        urlEvCdDspSid: null,
+      }),
+    ).toBe('EEP1284-260703LO01')
   })
 })
 

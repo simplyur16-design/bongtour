@@ -276,12 +276,35 @@ function dedupeYbtourInputsByEvCd(inputs: DepartureInput[]): DepartureInput[] {
   return out
 }
 
+/** URL evCd first-display 실패(9991 등) 시 available-date/day evCd로 by-goods dspSid seed. */
+export function pickYbtourSeedEvCdForByGoods(params: {
+  urlEvCd: string | null
+  dayEvCd: string | null
+  urlEvCdDspSid: string | null
+}): string | null {
+  const urlEvCd = String(params.urlEvCd ?? '').trim() || null
+  const dayEvCd = String(params.dayEvCd ?? '').trim() || null
+  const urlEvCdDspSid = String(params.urlEvCdDspSid ?? '').trim() || null
+  if (urlEvCd && urlEvCdDspSid) return urlEvCd
+  return dayEvCd || urlEvCd
+}
+
 async function resolveYbtourSeedEvCd(detailUrl: string, goodsCd: string, referer: string): Promise<string | null> {
   const fromUrl = parseYbtourEvCdFromUrl(detailUrl)
-  if (fromUrl) return fromUrl
   const day = await fetchYbtourGoodsAvailableDateDay(goodsCd, referer)
-  const fromDay = String(day?.evCd ?? '').trim()
-  return fromDay || null
+  const fromDay = String(day?.evCd ?? '').trim() || null
+
+  let urlEvCdDspSid: string | null = null
+  if (fromUrl) {
+    const display = await fetchYbtourEventFirstDisplay(fromUrl, referer)
+    urlEvCdDspSid = resolveYbtourByGoodsDspSid(display)
+  }
+
+  return pickYbtourSeedEvCdForByGoods({
+    urlEvCd: fromUrl,
+    dayEvCd: fromDay,
+    urlEvCdDspSid,
+  })
 }
 
 function ybtourEvCdFromDepartureInput(input: DepartureInput): string | null {

@@ -16,6 +16,8 @@ export type YbtourPriceCollectResult = {
   inputs: DepartureInput[]
   source: YbtourPriceCollectSource | null
   e2eAttempted: boolean
+  /** API·E2E 모두 180일 창 priced 0건 — 판매종료 후보 */
+  horizonSoldOut: boolean
 }
 
 export type YbtourApiOnlyCollectResult = {
@@ -98,7 +100,12 @@ export async function collectYbtourPriceInputsWithE2eFallback(
       enrichEvCdPrice: process.env.YBTOUR_SKIP_EVCD_PRICE_ENRICH !== '1',
     })
     if (byGoods.inputs.length > 0) {
-      return { inputs: byGoods.inputs, source: 'api', e2eAttempted: false }
+      return {
+        inputs: byGoods.inputs,
+        source: 'api',
+        e2eAttempted: false,
+        horizonSoldOut: false,
+      }
     }
   } catch (err) {
     console.warn(
@@ -113,5 +120,6 @@ export async function collectYbtourPriceInputsWithE2eFallback(
     inputs: e2e,
     source: e2e.length > 0 ? 'e2e' : null,
     e2eAttempted: true,
+    horizonSoldOut: e2e.length === 0,
   }
 }

@@ -53,6 +53,7 @@ export type YbtourSweepResult = {
   pruned: number
   e2eCollected: number
   e2eAttempted: number
+  horizonSoldOut: number
   urgentDealOn: number
   urgentDealOff: number
 }
@@ -162,6 +163,24 @@ async function findSweepProducts(
   return rows.filter((p) => isYbtourPriceRecheckDue(p.rawMeta, today)).slice(0, limit)
 }
 
+async function pruneAllDeparturesInHorizonWindow(
+  prisma: PrismaClient,
+  productId: string,
+  fromYmd: string,
+  toYmd: string,
+): Promise<number> {
+  const deleted = await prisma.productDeparture.deleteMany({
+    where: {
+      productId,
+      departureDate: {
+        gte: ymdToUtcMidnight(fromYmd),
+        lte: ymdToUtcMidnight(toYmd),
+      },
+    },
+  })
+  return deleted.count
+}
+
 async function pruneDeparturesOutsideSourceDates(
   prisma: PrismaClient,
   productId: string,
@@ -202,6 +221,7 @@ export async function sweepDueYbtourProducts(
     pruned: 0,
     e2eCollected: 0,
     e2eAttempted: 0,
+    horizonSoldOut: 0,
     urgentDealOn: 0,
     urgentDealOff: 0,
   }
@@ -243,6 +263,39 @@ export async function sweepDueYbtourProducts(
       }
 
       if (collected.inputs.length === 0) {
+        if (collected.horizonSoldOut) {
+          const liveMarkers = computeRuleAMarkersFromDepartureInputs([], todayYmd)
+          const markers = await reconcileRuleAMarkersWithDbFutureDepartures(
+            prisma,
+            product.id,
+            todayYmd,
+            liveMarkers,
+          )
+          const prunedCount = await pruneAllDeparturesInHorizonWindow(
+            prisma,
+            product.id,
+            fromYmd,
+            toYmd,
+          )
+          result.pruned += prunedCount
+          console.warn('[ybtour-sweep] horizon-sold-out', {
+            productId: product.id,
+            prunedCount,
+          })
+          await prisma.product.update({
+            where: { id: product.id },
+            data: {
+              noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt ?? now,
+              lastFutureDepartureDate: markers.lastFutureDepartureDate,
+              priceFrom: null,
+              lastSalesPolicyCheckedAt: now,
+              rawMeta: clearYbtourPriceRecheckFromRawMeta(product.rawMeta),
+            },
+          })
+          result.horizonSoldOut += 1
+          continue
+        }
+
         console.warn('[ybtour-sweep] collect-empty', {
           productId: product.id,
           e2eAttempted: collected.e2eAttempted,

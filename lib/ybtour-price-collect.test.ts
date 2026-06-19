@@ -44,6 +44,7 @@ describe('collectYbtourPriceInputsWithE2eFallback', () => {
 
     expect(out.source).toBe('api')
     expect(out.e2eAttempted).toBe(false)
+    expect(out.horizonSoldOut).toBe(false)
     expect(out.inputs).toHaveLength(2)
     expect(collectYbtourByGoodsApiDepartureInputsForUrl).toHaveBeenCalledWith(
       'https://prdt.ybtour.co.kr/product/detailPackage?goodsCd=EEP1284&evCd=EEP1284-260703LO01',
@@ -105,6 +106,34 @@ describe('collectYbtourPriceInputsWithE2eFallback', () => {
 
     expect(out.source).toBe('e2e')
     expect(out.e2eAttempted).toBe(true)
+    expect(out.horizonSoldOut).toBe(false)
     expect(out.inputs).toHaveLength(1)
+  })
+
+  it('marks horizonSoldOut when API and E2E both return no priced rows', async () => {
+    collectYbtourByGoodsApiDepartureInputsForUrl.mockResolvedValueOnce({
+      inputs: [],
+      goodsCd: 'EEP1284',
+      goodsCdFromUrl: 'EEP1284',
+      dspSid: 'AABF011',
+      seedEvCd: 'EEP1284-260703LO01',
+      monthKeys: ['202608'],
+      rawRowCount: 0,
+      evCdPriceEnriched: false,
+    })
+    collectYbtourE2eDepartureInputsForDateRange.mockResolvedValueOnce([])
+
+    const out = await collectYbtourPriceInputsWithE2eFallback(
+      'https://prdt.ybtour.co.kr/product/detailPackage?goodsCd=EEP1284',
+      'EEP1284',
+      '2026-08-01',
+      '2026-08-31',
+    )
+
+    expect(out.source).toBe(null)
+    expect(out.e2eAttempted).toBe(true)
+    expect(out.horizonSoldOut).toBe(true)
+    expect(out.inputs).toHaveLength(0)
+    expect(collectYbtourE2eDepartureInputsForDateRange).toHaveBeenCalledTimes(1)
   })
 })

@@ -203,7 +203,7 @@ async function main() {
     saveState(state)
 
     console.error(
-      `[oneshot] done ${i + 1}/${targets.length} processed=${result.processed} updated=${result.updated} skipped=${result.skipped} e2eOk=${result.e2eCollected} e2eTried=${result.e2eAttempted} pruned=${result.pruned} urgentOn=${result.urgentDealOn}`,
+      `[oneshot] done ${i + 1}/${targets.length} processed=${result.processed} updated=${result.updated} skipped=${result.skipped} soldOut=${result.horizonSoldOut} e2eOk=${result.e2eCollected} e2eTried=${result.e2eAttempted} pruned=${result.pruned} urgentOn=${result.urgentDealOn}`,
     )
 
     if (i + 1 < targets.length && interProductPauseMs() > 0) {

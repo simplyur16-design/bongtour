@@ -1021,6 +1021,7 @@
             "REGRESSION-FREEZE[ybtour-api-departure-collect]",
             "collectYbtourByGoodsApiDepartureInputsForUrl",
             "resolveYbtourGoodsCdForApi",
+            "pickYbtourSeedEvCdForByGoods",
             "enrichYbtourDepartureInputsWithEvCdPrice",
             "papi.ybtour.co.kr"
           ]
@@ -1160,7 +1161,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-sweep-e2e-recheck]",
             "collectYbtourPriceInputsWithE2eFallback",
-            "collectYbtourApiOnlyForDateRange"
+            "horizonSoldOut",
+            "collectYbtourByGoodsApiDepartureInputsForUrl"
           ]
         },
         {
@@ -1176,6 +1178,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-sweep-e2e-recheck]",
             "collectYbtourPriceInputsWithE2eFallback",
+            "horizonSoldOut",
+            "noFutureDepartureConfirmedAt",
             "isYbtourPriceRecheckDue",
             "syncSupplierUrgentDealForProduct",
             "upsertProductDepartures"
