@@ -230,15 +230,8 @@ export async function backfillFacebookInsightsFromDb(
 
   for (const row of rows) {
     const publishedAt = row.publishedAt ? new Date(row.publishedAt) : null
-    if (publishedAt && !isFacebookPostWithin28DayInsightWindow(publishedAt)) {
-      result.skippedOutside28Days++
-      result.details.push({
-        id: row.id,
-        fbPostId: row.fbPostId,
-        status: 'outside_28_day_window',
-      })
-      continue
-    }
+    const outside28 =
+      publishedAt != null && !isFacebookPostWithin28DayInsightWindow(publishedAt)
 
     const fbPostId =
       row.fbPostId ??
@@ -273,8 +266,23 @@ export async function backfillFacebookInsightsFromDb(
         data: { ...data, fbPostId, pageId: conn.pageId },
       })
 
-      result.success++
-      result.details.push({ id: row.id, fbPostId, status: 'synced' })
+      const hasMetrics =
+        data.reach != null ||
+        data.impressions != null ||
+        data.fbReactionsTotal != null ||
+        data.websiteClicks != null
+
+      if (outside28 && !hasMetrics) {
+        result.skippedOutside28Days++
+        result.details.push({ id: row.id, fbPostId, status: 'outside_28_day_window_no_metrics' })
+      } else {
+        result.success++
+        result.details.push({
+          id: row.id,
+          fbPostId,
+          status: outside28 ? 'synced_partial_outside_28_days' : 'synced',
+        })
+      }
     } catch (err) {
       result.errors++
       result.details.push({

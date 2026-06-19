@@ -133,7 +133,7 @@ describe('insight-sync', () => {
     }
   })
 
-  it('backfillFacebookInsightsFromDb skips posts outside 28-day window', async () => {
+  it('backfillFacebookInsightsFromDb attempts API even outside 28-day window', async () => {
     vi.mocked(getValidMetaConnection).mockResolvedValue({
       pageId: '354829461058288',
       pageAccessToken: 'token',
@@ -147,11 +147,12 @@ describe('insight-sync', () => {
         publishedAt: new Date('2024-09-01'),
       },
     ] as never)
+    vi.mocked(getFacebookPostInsight).mockResolvedValue({})
+    vi.mocked(prisma.bongPostInsight.update).mockResolvedValue({} as never)
 
     const result = await backfillFacebookInsightsFromDb('manual')
     expect(result.skippedOutside28Days).toBe(1)
-    expect(result.success).toBe(0)
-    expect(getFacebookPostInsight).not.toHaveBeenCalled()
+    expect(getFacebookPostInsight).toHaveBeenCalledWith('354829461058288_999', 'token')
   })
 
   it('backfillFacebookInsightsFromDb syncs recent facebook rows', async () => {
