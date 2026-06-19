@@ -19,7 +19,7 @@
 | **lottetour** | Python — 월 순회 시작=`DATE_FROM` | 동일 | |
 | **kyowontour** | Python — `_month_iter(date_from, …)` | 동일 | |
 
-**modetour 일 1회 sweep** (`lib/modetour-sweep.ts`, KST 04:00)도 동일 180일 API — 배치와 중복 허용, API SSOT 유지.
+**modetour 일 1회 sweep** (`lib/modetour-sweep.ts`, KST 04:00): B2C API `GetOtherDepartureDates` 우선. **SD1 또는 지평 내 성인가 0건**이면 Python E2E(6개월)로 재확인 — stale DB 미래출발 방치 금지. 수집 성공 시 `rawMeta.modetourNextPriceRecheckYmd` = KST 오늘 + 7일 후 재검증.
 
 ## 상수
 
@@ -32,4 +32,5 @@
 ## 회귀 얼림
 
 - manifest id: `calendar-price-horizon-180d`
+- manifest id: `modetour-sweep-e2e-recheck` — sweep API→E2E·7일 재확인
 - `npm run verify:calendar-price-horizon`

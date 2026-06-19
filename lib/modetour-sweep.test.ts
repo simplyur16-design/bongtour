@@ -18,12 +18,12 @@ describe('shouldModetourSweepRetireOnSd1', () => {
     )
   })
 
-  it('skips auto-retire when future priced departures remain', () => {
+  it('retires travel packages on collect failure even when stale future departures remain', () => {
     expect(
       shouldModetourSweepRetireOnSd1(
         { listingKind: 'travel', productType: 'travel' },
         { hasFuturePricedDeparture: true },
       ),
-    ).toBe(false)
+    ).toBe(true)
   })
 })

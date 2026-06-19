@@ -763,6 +763,44 @@
       ]
     },
     {
+      "id": "modetour-sweep-e2e-recheck",
+      "tier": ["prebuild", "ci"],
+      "summary": "modetour sweep — API SD1·0건 시 E2E 6개월 검증·7일 재확인·stale 미래출발 정리",
+      "checks": [
+        {
+          "file": "lib/modetour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-sweep-e2e-recheck]",
+            "collectModetourPriceInputsWithE2eFallback",
+            "scrapeLiveCalendar"
+          ]
+        },
+        {
+          "file": "lib/modetour-price-recheck-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-sweep-e2e-recheck]",
+            "MODETOUR_HORIZON_RECHECK_DAYS = 7",
+            "modetourNextPriceRecheckYmd"
+          ]
+        },
+        {
+          "file": "lib/modetour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-sweep-e2e-recheck]",
+            "collectModetourPriceInputsWithE2eFallback",
+            "isModetourPriceRecheckDue",
+            "computeModetourNextPriceRecheckYmd"
+          ],
+          "mustNotInclude": ["modetourProductHasFuturePricedDeparture"]
+        },
+        {
+          "file": "lib/modetour-sd1-policy.ts",
+          "mustInclude": ["isModetourSd1AutoUnpublishEligible"],
+          "mustNotInclude": ["if (options?.hasFuturePricedDeparture) return false"]
+        }
+      ]
+    },
+    {
       "id": "verygoodtour-e2e-expired-url-guard",
       "tier": ["prebuild", "ci"],
       "summary": "참좋은여행 E2E — stale URL HEAD skip·Playwright product-expired phase",
@@ -835,6 +873,10 @@
         "lib/geo-haystack-match.test.ts",
         "lib/hanatour-origin-code-from-paste.test.ts",
         "lib/calendar-price-horizon.test.ts",
+        "lib/modetour-price-collect.test.ts",
+        "lib/modetour-price-recheck-meta.test.ts",
+        "lib/modetour-sd1-policy.test.ts",
+        "lib/modetour-sweep.test.ts",
         "lib/product-image-source-attribution.test.ts",
         "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
         "lib/supplier-product-title-display.test.ts",

@@ -1,0 +1,120 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ModetourB2cApiError } from '@/lib/modetour-sd1-policy'
+import {
+  collectModetourPriceInputsWithE2eFallback,
+} from '@/lib/modetour-price-collect'
+
+const scrapeLiveCalendar = vi.fn()
+vi.mock('@/lib/admin-departure-rescrape', () => ({
+  scrapeLiveCalendar: (...args: unknown[]) => scrapeLiveCalendar(...args),
+  mapScrapedRowsToInputs: (
+    rows: Array<{
+      date?: string
+      adultPrice?: number
+      price?: number
+    }>,
+    _statusByDate: Map<string, unknown>,
+  ) =>
+    rows.map((r) => ({
+      departureDate: r.date,
+      adultPrice: r.adultPrice ?? r.price,
+    })),
+}))
+
+describe('collectModetourPriceInputsWithE2eFallback', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    scrapeLiveCalendar.mockReset()
+    global.fetch = vi.fn() as typeof fetch
+  })
+
+  it('returns API rows when priced departures exist', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        result: [{ departureDate: '2026-07-01', minPrice: 1200000, pId: 99 }],
+      }),
+    } as Response)
+
+    const out = await collectModetourPriceInputsWithE2eFallback(
+      'https://www.modetour.com/package/12345',
+      '2026-06-16',
+      '2026-12-13',
+    )
+
+    expect(out.source).toBe('api')
+    expect(out.inputs).toHaveLength(1)
+    expect(out.e2eAttempted).toBe(false)
+    expect(scrapeLiveCalendar).not.toHaveBeenCalled()
+  })
+
+  it('falls back to E2E on SD1 and returns scraped prices', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      text: async () =>
+        JSON.stringify({
+          errorMessages: [{ errorCode: '상품이 존재하지 않습니다. [SD1]' }],
+          isOK: false,
+        }),
+    } as Response)
+
+    scrapeLiveCalendar.mockResolvedValueOnce({
+      rows: [{ date: '2026-08-01', adultPrice: 990000 }],
+      stderr: '',
+    })
+
+    const out = await collectModetourPriceInputsWithE2eFallback(
+      'https://www.modetour.com/package/12345',
+      '2026-06-16',
+      '2026-12-13',
+    )
+
+    expect(out.apiFailedSd1).toBe(true)
+    expect(out.source).toBe('e2e')
+    expect(out.inputs).toHaveLength(1)
+    expect(out.inputs[0]?.adultPrice).toBe(990000)
+    expect(scrapeLiveCalendar).toHaveBeenCalledTimes(1)
+  })
+
+  it('falls back to E2E when API returns zero priced rows', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        result: [{ departureDate: '2026-07-01', minPrice: 0 }],
+      }),
+    } as Response)
+
+    scrapeLiveCalendar.mockResolvedValueOnce({
+      rows: [{ date: '2026-07-15', adultPrice: 1100000 }],
+      stderr: '',
+    })
+
+    const out = await collectModetourPriceInputsWithE2eFallback(
+      'https://www.modetour.com/package/12345',
+      '2026-06-16',
+      '2026-12-13',
+    )
+
+    expect(out.source).toBe('e2e')
+    expect(out.inputs).toHaveLength(1)
+  })
+
+  it('rethrows non-SD1 API errors without E2E', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      text: async () => 'unavailable',
+    } as Response)
+
+    await expect(
+      collectModetourPriceInputsWithE2eFallback(
+        'https://www.modetour.com/package/12345',
+        '2026-06-16',
+        '2026-12-13',
+      ),
+    ).rejects.toBeInstanceOf(ModetourB2cApiError)
+
+    expect(scrapeLiveCalendar).not.toHaveBeenCalled()
+  })
+})

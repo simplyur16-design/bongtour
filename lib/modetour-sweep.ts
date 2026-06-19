@@ -1,19 +1,26 @@
 /**
- * modetour 일1회 sweep — GetOtherDepartureDates(minPrice) 경량 수집 + ProductDeparture upsert.
+ * modetour 일1회 sweep — API 수집 + SD1·0건 시 E2E(6개월) 검증 + ProductDeparture upsert.
  * instrumentation: `lib/instrumentation-modetour-sweep-cron.ts` (KST 04:00).
  *
- * SD1(상품 없음): 미래 성인가 출발 0건·자유여행 제외 시에만 auto_unpublished.
+ * REGRESSION-FREEZE[modetour-sweep-e2e-recheck]: API→E2E·7일 재확인·stale 미래출발 정리 — manifest
+ *
+ * SD1/API 0건: E2E로 6개월 지평 재확인. 둘 다 실패 시 지평 내 출발 삭제 후 auto_unpublished(자유여행 제외).
+ * 수집 성공 시 `rawMeta.modetourNextPriceRecheckYmd` = KST 오늘 + 7일.
  */
 import type { PrismaClient } from '@prisma/client'
 
 import { reconcileRuleAMarkersWithDbFutureDepartures } from '@/lib/future-priced-departure-guard'
 import {
-  isModetourSd1NotFoundError,
   isModetourSd1AutoUnpublishEligible,
-  modetourProductHasFuturePricedDeparture,
-  ModetourB2cApiError,
   MODETOUR_SD1_AUTO_UNPUBLISH_REASON,
 } from '@/lib/modetour-sd1-policy'
+import { collectModetourPriceInputsWithE2eFallback } from '@/lib/modetour-price-collect'
+import {
+  computeModetourNextPriceRecheckYmd,
+  isModetourPriceRecheckDue,
+  mergeModetourPriceRecheckIntoRawMeta,
+  clearModetourPriceRecheckFromRawMeta,
+} from '@/lib/modetour-price-recheck-meta'
 import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import {
   addDaysUtcYmd,
@@ -32,25 +39,8 @@ import {
 } from '@/lib/upsert-product-departures-modetour'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 
-const MODETOUR_API_BASE = process.env.MODETOUR_API_BASE_URL ?? 'https://b2c-api.modetour.com'
-const MODETOUR_WEB_API_REQ_HEADER =
-  process.env.MODETOUR_WEB_API_REQ_HEADER ??
-  '{"WebSiteNo":2,"CompanyNo":81202,"DeviceType":"DVTPC","ApiKey":"jm9i5RUzKPMPdklHzDKqNzwZYy0IGV5hTyKkCcpxO0IGIgVS+8Z7NnbzbARv5w7Bn90KT13Gq79XZMow6TYvwQ=="}'
-
 const SWEEP_DUE_DAYS = 1
 const SWEEP_DEFAULT_LIMIT = 200
-
-type ModetourDepartureRow = {
-  pId?: number
-  minPrice?: number
-  departureDate?: string
-}
-
-type ModetourDepartureResponse = {
-  result?: ModetourDepartureRow[]
-  errorMessages?: Array<{ errorCode?: string; errorMessage?: string } | string> | null
-  isOK?: boolean
-}
 
 export type ModetourSweepResult = {
   processed: number
@@ -58,6 +48,7 @@ export type ModetourSweepResult = {
   retired: number
   skipped: number
   pruned: number
+  e2eCollected: number
   urgentDealOn: number
   urgentDealOff: number
 }
@@ -67,6 +58,7 @@ type SweepProductRow = {
   originUrl: string | null
   listingKind: string | null
   productType: string | null
+  rawMeta: string | null
 }
 
 /** @deprecated `isModetourSd1AutoUnpublishEligible` — 회귀 테스트 호환 alias */
@@ -80,80 +72,6 @@ export function shouldModetourSweepRetireOnSd1(
   return isModetourSd1AutoUnpublishEligible(product, options)
 }
 
-function modetourSweepHeaders(referer: string, productNo: string): HeadersInit {
-  return {
-    accept: 'application/json, text/plain, */*',
-    'accept-language': 'ko-KR',
-    'user-agent':
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
-    referer,
-    'x-platform': 'ModeEcommerce',
-    'x-salespartner': '2',
-    'x-userdepartment': 'ModeEcommerce',
-    'x-incomming-pathname': `/package/${productNo}`,
-    modewebapireqheader: MODETOUR_WEB_API_REQ_HEADER,
-  }
-}
-
-async function fetchModetourJson<T>(url: string, headers: HeadersInit): Promise<T> {
-  const res = await fetch(url, { method: 'GET', headers })
-  if (!res.ok) {
-    const bodyText = await res.text()
-    let bodyJson: unknown = null
-    try {
-      bodyJson = JSON.parse(bodyText) as unknown
-    } catch {
-      bodyJson = null
-    }
-    throw new ModetourB2cApiError(res.status, url, bodyText, bodyJson)
-  }
-  return (await res.json()) as T
-}
-
-/**
- * sweep 전용 경량 수집 — GetOtherDepartureDates 1회, minPrice → adultPrice.
- * per-pId GetProductDetailInfo·HTML fetch 없음.
- */
-async function collectModetourSweepDepartureInputs(
-  originUrl: string | null | undefined,
-  fromYmd: string,
-  toYmd: string
-): Promise<{ inputs: DepartureInput[]; apiDates: string[] }> {
-  const productNo = parseModetourPackageProductNoFromUrl(originUrl)
-  if (!productNo) return { inputs: [], apiDates: [] }
-
-  const lo = fromYmd <= toYmd ? fromYmd : toYmd
-  const hi = fromYmd <= toYmd ? toYmd : fromYmd
-  const referer = originUrl?.trim() || `https://www.modetour.com/package/${productNo}`
-  const headers = modetourSweepHeaders(referer, productNo)
-  const apiUrl = `${MODETOUR_API_BASE.replace(/\/$/, '')}/Package/GetOtherDepartureDates?productNo=${encodeURIComponent(productNo)}&searchFrom=${lo}&searchTo=${hi}`
-
-  const json = await fetchModetourJson<ModetourDepartureResponse>(apiUrl, headers)
-  const rows = Array.isArray(json?.result) ? json.result : []
-
-  const apiDates: string[] = []
-  const inputs: DepartureInput[] = []
-  for (const r of rows) {
-    const departureDate = String(r.departureDate ?? '').trim()
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(departureDate)) continue
-    if (departureDate >= lo && departureDate <= hi) {
-      apiDates.push(departureDate)
-    }
-
-    const price = Number(r.minPrice ?? 0)
-    if (!Number.isFinite(price) || price <= 0) continue
-
-    const pid = String(r.pId ?? '').trim()
-    inputs.push({
-      departureDate,
-      adultPrice: price,
-      supplierDepartureCodeCandidate: pid ? `modetour:${pid}` : null,
-      localPriceText: pid ? `modetour:pId=${pid}`.slice(0, 200) : null,
-    })
-  }
-  return { inputs, apiDates }
-}
-
 function ymdToUtcMidnight(ymd: string): Date {
   return new Date(`${ymd}T00:00:00.000Z`)
 }
@@ -161,9 +79,17 @@ function ymdToUtcMidnight(ymd: string): Date {
 async function findSweepProducts(
   prisma: PrismaClient,
   limit: number,
-  productNo?: string | null
+  productNo?: string | null,
+  todayYmd?: string,
 ): Promise<SweepProductRow[]> {
-  const select = { id: true, originUrl: true, listingKind: true, productType: true } as const
+  const select = {
+    id: true,
+    originUrl: true,
+    listingKind: true,
+    productType: true,
+    rawMeta: true,
+  } as const
+  const today = todayYmd ?? kstTodayYmd()
 
   if (productNo?.trim()) {
     const forcedNo = productNo.trim()
@@ -180,27 +106,72 @@ async function findSweepProducts(
   }
 
   const cutoff = new Date(Date.now() - SWEEP_DUE_DAYS * 24 * 60 * 60 * 1000)
-  return prisma.product.findMany({
+  const rows = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
       originSource: 'modetour',
       OR: [{ lastSalesPolicyCheckedAt: null }, { lastSalesPolicyCheckedAt: { lt: cutoff } }],
     },
     orderBy: [{ lastSalesPolicyCheckedAt: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }],
-    take: limit,
+    take: limit * 3,
     select,
   })
+
+  return rows
+    .filter((p) => isModetourPriceRecheckDue(p.rawMeta, today))
+    .slice(0, limit)
+}
+
+async function pruneDeparturesOutsideSourceDates(
+  prisma: PrismaClient,
+  productId: string,
+  fromYmd: string,
+  toYmd: string,
+  sourceDates: string[],
+): Promise<number> {
+  if (sourceDates.length === 0) return 0
+  const notIn = [...new Set(sourceDates)].map(ymdToUtcMidnight)
+  const deleted = await prisma.productDeparture.deleteMany({
+    where: {
+      productId,
+      departureDate: {
+        gte: ymdToUtcMidnight(fromYmd),
+        lte: ymdToUtcMidnight(toYmd),
+        notIn,
+      },
+    },
+  })
+  return deleted.count
+}
+
+async function clearHorizonDepartures(
+  prisma: PrismaClient,
+  productId: string,
+  fromYmd: string,
+  toYmd: string,
+): Promise<number> {
+  const deleted = await prisma.productDeparture.deleteMany({
+    where: {
+      productId,
+      departureDate: {
+        gte: ymdToUtcMidnight(fromYmd),
+        lte: ymdToUtcMidnight(toYmd),
+      },
+    },
+  })
+  return deleted.count
 }
 
 /**
- * modetour 등록 상품 월간 sweep — 경량 출발일 upsert + Rule A 마커·priceFrom 갱신.
+ * modetour 등록 상품 일1회 sweep — API→E2E 가격 검증 + Rule A 마커·priceFrom 갱신.
  */
 export async function sweepDueModetourProducts(
   prisma: PrismaClient,
   options?: { limit?: number; productNo?: string | null }
 ): Promise<ModetourSweepResult> {
   const limit = Math.max(1, Math.min(500, options?.limit ?? SWEEP_DEFAULT_LIMIT))
-  const products = await findSweepProducts(prisma, limit, options?.productNo ?? null)
+  const todayYmd = kstTodayYmd()
+  const products = await findSweepProducts(prisma, limit, options?.productNo ?? null, todayYmd)
 
   const result: ModetourSweepResult = {
     processed: 0,
@@ -208,11 +179,11 @@ export async function sweepDueModetourProducts(
     retired: 0,
     skipped: 0,
     pruned: 0,
+    e2eCollected: 0,
     urgentDealOn: 0,
     urgentDealOff: 0,
   }
 
-  const todayYmd = kstTodayYmd()
   const fromYmd = todayYmd
   const toYmd = addDaysUtcYmd(todayYmd, RULE_A_WINDOW_DAYS)
 
@@ -221,36 +192,78 @@ export async function sweepDueModetourProducts(
     const now = new Date()
 
     try {
-      const { inputs, apiDates } = await collectModetourSweepDepartureInputs(
+      const collected = await collectModetourPriceInputsWithE2eFallback(
         product.originUrl,
         fromYmd,
-        toYmd
+        toYmd,
       )
-      const inWindow = inputs.filter((x) => {
+
+      if (collected.source === 'e2e') {
+        result.e2eCollected += 1
+      }
+
+      if (collected.inputs.length === 0) {
+        const prunedOnFail = await clearHorizonDepartures(prisma, product.id, fromYmd, toYmd)
+        result.pruned += prunedOnFail
+
+        if (!isModetourSd1AutoUnpublishEligible(product)) {
+          console.warn('[modetour-sweep] collect-fail-skip-unpublish', {
+            productId: product.id,
+            apiFailedSd1: collected.apiFailedSd1,
+            e2eError: collected.e2eError,
+            listingKind: product.listingKind,
+            productType: product.productType,
+          })
+          await prisma.product.update({
+            where: { id: product.id },
+            data: {
+              lastSalesPolicyCheckedAt: now,
+              rawMeta: clearModetourPriceRecheckFromRawMeta(product.rawMeta),
+            },
+          })
+          result.skipped += 1
+          continue
+        }
+
+        const liveMarkers = computeRuleAMarkersFromDepartureInputs([], todayYmd)
+        const markers = await reconcileRuleAMarkersWithDbFutureDepartures(
+          prisma,
+          product.id,
+          todayYmd,
+          liveMarkers,
+        )
+
+        await prisma.product.update({
+          where: { id: product.id },
+          data: {
+            registrationStatus: 'auto_unpublished',
+            autoUnpublishedReason: MODETOUR_SD1_AUTO_UNPUBLISH_REASON,
+            autoUnpublishedAt: now,
+            noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt ?? now,
+            lastFutureDepartureDate: markers.lastFutureDepartureDate,
+            lastSalesPolicyCheckedAt: now,
+            rawMeta: clearModetourPriceRecheckFromRawMeta(product.rawMeta),
+          },
+        })
+        result.retired += 1
+        continue
+      }
+
+      const inWindow = collected.inputs.filter((x) => {
         const dk = departureInputToYmd(x.departureDate)
         return dk != null && dk >= fromYmd && dk <= toYmd
       })
 
-      if (inWindow.length > 0) {
-        await upsertProductDepartures(prisma, product.id, inWindow)
-      }
+      await upsertProductDepartures(prisma, product.id, inWindow)
 
-      let prunedCount = 0
-      if (apiDates.length > 0) {
-        const notIn = [...new Set(apiDates)].map(ymdToUtcMidnight)
-        const deleted = await prisma.productDeparture.deleteMany({
-          where: {
-            productId: product.id,
-            departureDate: {
-              gte: ymdToUtcMidnight(fromYmd),
-              lte: ymdToUtcMidnight(toYmd),
-              notIn,
-            },
-          },
-        })
-        prunedCount = deleted.count
-        result.pruned += prunedCount
-      }
+      const prunedCount = await pruneDeparturesOutsideSourceDates(
+        prisma,
+        product.id,
+        fromYmd,
+        toYmd,
+        collected.sourceDates,
+      )
+      result.pruned += prunedCount
 
       const liveMarkers = computeRuleAMarkersFromDepartureInputs(inWindow, todayYmd)
       const markers = await reconcileRuleAMarkersWithDbFutureDepartures(
@@ -267,6 +280,13 @@ export async function sweepDueModetourProducts(
       if (urgentDeal.turnedOn) result.urgentDealOn += 1
       if (urgentDeal.turnedOff) result.urgentDealOff += 1
 
+      const nextRecheckYmd = computeModetourNextPriceRecheckYmd(todayYmd)
+      const rawMeta = mergeModetourPriceRecheckIntoRawMeta(product.rawMeta, {
+        nextRecheckYmd,
+        collectSource: collected.source!,
+        horizonVerifiedAtIso: now.toISOString(),
+      })
+
       await prisma.product.update({
         where: { id: product.id },
         data: {
@@ -274,46 +294,11 @@ export async function sweepDueModetourProducts(
           lastFutureDepartureDate: markers.lastFutureDepartureDate,
           ...(priceFrom != null ? { priceFrom } : {}),
           lastSalesPolicyCheckedAt: now,
+          rawMeta,
         },
       })
       result.updated += 1
     } catch (err) {
-      if (isModetourSd1NotFoundError(err)) {
-        const hasFuturePricedDeparture = await modetourProductHasFuturePricedDeparture(
-          prisma,
-          product.id,
-          todayYmd,
-        )
-        if (
-          !isModetourSd1AutoUnpublishEligible(product, { hasFuturePricedDeparture })
-        ) {
-          console.warn('[modetour-sweep] sd1-skip', {
-            productId: product.id,
-            hasFuturePricedDeparture,
-            listingKind: product.listingKind,
-            productType: product.productType,
-          })
-          await prisma.product.update({
-            where: { id: product.id },
-            data: { lastSalesPolicyCheckedAt: now },
-          })
-          result.skipped += 1
-          continue
-        }
-
-        await prisma.product.update({
-          where: { id: product.id },
-          data: {
-            registrationStatus: 'auto_unpublished',
-            autoUnpublishedReason: MODETOUR_SD1_AUTO_UNPUBLISH_REASON,
-            autoUnpublishedAt: now,
-            lastSalesPolicyCheckedAt: now,
-          },
-        })
-        result.retired += 1
-        continue
-      }
-
       const msg = err instanceof Error ? err.message : String(err)
       console.warn('[modetour-sweep] skip', {
         productId: product.id,

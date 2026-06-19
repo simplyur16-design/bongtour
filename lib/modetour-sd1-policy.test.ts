@@ -26,13 +26,13 @@ describe('isModetourSd1AutoUnpublishEligible', () => {
     )
   })
 
-  it('blocks SD1 auto-unpublish when future priced departures remain in DB', () => {
+  it('allows auto-unpublish for travel packages after API+E2E collect failure even with stale DB', () => {
     expect(
       isModetourSd1AutoUnpublishEligible(
         { listingKind: 'travel', productType: 'travel' },
         { hasFuturePricedDeparture: true },
       ),
-    ).toBe(false)
+    ).toBe(true)
   })
 
   it('allows SD1 auto-unpublish for travel packages with no future priced departures', () => {

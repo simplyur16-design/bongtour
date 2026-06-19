@@ -13,29 +13,28 @@ export const MODETOUR_SD1_RETIRE_STREAK = 3
 
 export const MODETOUR_SD1_AUTO_UNPUBLISH_REASON = 'modetour_sd1'
 
+/** @deprecated API SD1 직후 stale DB 방어용 — API+E2E 검증 후에는 사용하지 않음. */
 export type ModetourSd1AutoUnpublishOptions = {
-  /** KST 오늘(포함) 이후 DB `ProductDeparture`에 성인가 > 0 출발이 1건이라도 있으면 true. */
   hasFuturePricedDeparture?: boolean
 }
 
 /**
- * SD1 sweep 자동 비공개 대상 여부.
+ * API+E2E 수집 모두 실패한 뒤 auto_unpublished 대상 여부.
  *
  * 운영 정책:
- * - 자유여행(항공+호텔·에어텔)은 SD1로 auto_unpublished 하지 않는다.
- * - **오늘 이후 미래 출발일에 성인가 > 0 이 DB에 남아 있으면** SD1여도 auto_unpublished 하지 않는다.
+ * - 자유여행(항공+호텔·에어텔)은 auto_unpublished 하지 않는다.
+ * - DB에 stale 미래 출발이 남아 있어도 API·E2E로 검증 실패 시 비공개한다.
  *
- * @see lib/modetour-sweep.ts
+ * @see lib/modetour-sweep.ts · lib/modetour-price-collect.ts
  */
 export function isModetourSd1AutoUnpublishEligible(
   product: {
     listingKind?: string | null
     productType?: string | null
   },
-  options?: ModetourSd1AutoUnpublishOptions,
+  _options?: ModetourSd1AutoUnpublishOptions,
 ): boolean {
   if (isAirHotelProduct(product)) return false
-  if (options?.hasFuturePricedDeparture) return false
   return true
 }
 
