@@ -162,12 +162,11 @@ export function listWelcomepayCheckoutMethods(): readonly WelcomepayMethodDefini
 export const WELCOMEPAY_CHECKOUT_METHODS: readonly WelcomepayMethodDefinition[] = listWelcomepayCheckoutMethods();
 
 export function formatWelcomepayVbankDeadlineYmd(now = new Date(), depositDays = WELCOMEPAY_VBANK_DEPOSIT_DAYS): string {
-  const deadline = new Date(now);
-  deadline.setDate(deadline.getDate() + depositDays);
-  const y = deadline.getFullYear();
-  const m = String(deadline.getMonth() + 1).padStart(2, "0");
-  const d = String(deadline.getDate()).padStart(2, "0");
-  return `${y}${m}${d}`;
+  const kstYmd = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(now);
+  const [y, m, d] = kstYmd.split("-").map(Number);
+  const deadline = new Date(Date.UTC(y, m - 1, d));
+  deadline.setUTCDate(deadline.getUTCDate() + depositDays);
+  return deadline.toISOString().slice(0, 10).replace(/-/g, "");
 }
 
 /** PC 표준결제 `acceptmethod` — `centerCd(Y)` 필수 + 수단별 옵션(간편결제는 카드창 기본 노출) */
