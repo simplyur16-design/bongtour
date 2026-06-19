@@ -90,8 +90,33 @@ import {
   CANONICAL_OVERSEAS_SUPPLIER_KEYS,
   type CanonicalOverseasSupplierKey,
 } from '@/lib/overseas-supplier-canonical-keys'
+import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
 import type { KyowontourFinalParsed } from '@/lib/kyowontour-admin-preview-card-types'
+
+const REGISTER_FACT_FETCH_SUPPLIERS = new Set<CanonicalOverseasSupplierKey>([
+  'modetour',
+  'hanatour',
+  'ybtour',
+  'verygoodtour',
+])
+
+function formatRegisterFactBundleSummary(bundle: SupplierRegisterFactBundle): string {
+  const parts: string[] = []
+  if (bundle.title) parts.push(`제목: ${bundle.title}`)
+  if (bundle.originCode) parts.push(`코드: ${bundle.originCode}`)
+  if (bundle.scheduleDays.length > 0) parts.push(`일정 ${bundle.scheduleDays.length}일차`)
+  if (bundle.flights.length > 0) parts.push(`항공 ${bundle.flights.length}편`)
+  if (bundle.priceRows.length > 0) {
+    const row = bundle.priceRows[0]
+    const priceBits = [
+      row?.departureDate ? `출발 ${row.departureDate}` : null,
+      row?.adultPrice != null ? `성인 ${row.adultPrice.toLocaleString('ko-KR')}원` : null,
+    ].filter(Boolean)
+    parts.push(`가격 ${priceBits.join(' · ') || `${bundle.priceRows.length}행`}`)
+  }
+  return parts.join(' · ') || '구조화 사실 수집 완료'
+}
 
 const LOADING_STATUS = '분석 중…' as const
 
@@ -675,6 +700,14 @@ export default function AdminRegisterPage() {
   const [registerPexelsLastQuery, setRegisterPexelsLastQuery] = useState<string | null>(null)
   /** schedule/itinerary가 없을 때 단일 검색창용 */
   const [registerPexelsFallbackKeyword, setRegisterPexelsFallbackKeyword] = useState('')
+  const [registerFactBundle, setRegisterFactBundle] = useState<SupplierRegisterFactBundle | null>(null)
+  const [registerFactFetchLoading, setRegisterFactFetchLoading] = useState(false)
+  const [registerFactFetchError, setRegisterFactFetchError] = useState<string | null>(null)
+
+  const registerFactFetchEnabled = useMemo(
+    () => REGISTER_FACT_FETCH_SUPPLIERS.has(selectedBrandKey) && originUrl.trim().length > 0,
+    [selectedBrandKey, originUrl],
+  )
 
   const registerPexelsUiRows = useMemo(
     () =>
@@ -684,7 +717,7 @@ export default function AdminRegisterPage() {
         selectedBrandKey,
         travelScope,
       ),
-    [parsedForConfirm, preview, selectedBrandKey, travelScope]
+    [parsedForConfirm, preview, selectedBrandKey, travelScope],
   )
 
   const resetRegisterPreviewSession = useCallback(
@@ -871,6 +904,39 @@ export default function AdminRegisterPage() {
       setLastCheckedOriginUrl('')
     } finally {
       setDuplicateCheckLoading(false)
+    }
+  }
+
+  async function fetchRegisterFacts() {
+    const normalized = normalizeUrl(originUrl)
+    if (!normalized || !REGISTER_FACT_FETCH_SUPPLIERS.has(selectedBrandKey)) return
+    setRegisterFactFetchLoading(true)
+    setRegisterFactFetchError(null)
+    setRegisterFactBundle(null)
+    try {
+      const res = await fetch('/api/admin/register/fetch-facts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originUrl: normalized,
+          brandKey: selectedBrandKey,
+        }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        error?: string
+        bundle?: SupplierRegisterFactBundle
+      }
+      if (!res.ok || !data.ok || !data.bundle) {
+        setRegisterFactFetchError(data.error ?? '사실 가져오기에 실패했습니다.')
+        return
+      }
+      setRegisterFactBundle(data.bundle)
+      setStatusText(formatRegisterFactBundleSummary(data.bundle))
+    } catch {
+      setRegisterFactFetchError('사실 가져오기 요청 중 오류가 발생했습니다.')
+    } finally {
+      setRegisterFactFetchLoading(false)
     }
   }
 
@@ -1261,13 +1327,14 @@ export default function AdminRegisterPage() {
           </div>
         </div>
 
-        {/* B. 상품 URL (출처·reference만, HTML 자동수집 없음) */}
+        {/* B. 상품 URL (출처·reference + API 사실 수집) */}
         <div className="mt-6 border-l-4 border-[#0f172a] pl-6">
           <label htmlFor="admin-register-origin-url" className="block text-sm font-semibold text-slate-800">
             상품 URL
           </label>
           <p className="mt-1 text-xs text-slate-500">
-            출처·reference 메타용입니다. URL만으로 상세 HTML을 가져오지 않습니다.
+            출처·reference 메타와 API 사실 수집에 사용합니다. 본문 붙여넣기는 그대로 필요하며, LLM은 사실 번들·붙여넣기를
+            바탕으로 미리보기를 만듭니다.
           </p>
           <input
             id="admin-register-origin-url"
@@ -1278,6 +1345,8 @@ export default function AdminRegisterPage() {
               setOriginUrl(e.target.value)
               setDuplicateResult(null)
               setLastCheckedOriginUrl('')
+              setRegisterFactBundle(null)
+              setRegisterFactFetchError(null)
             }}
             onBlur={() => void checkOriginUrlDuplicate()}
             placeholder="상품 URL을 입력하세요 (출처/reference용)"
@@ -1285,6 +1354,33 @@ export default function AdminRegisterPage() {
             disabled={loading}
             autoComplete="off"
           />
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void fetchRegisterFacts()}
+              disabled={loading || registerFactFetchLoading || !registerFactFetchEnabled}
+              className="border border-[#0f172a] bg-[#0f172a] px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {registerFactFetchLoading ? '사실 가져오는 중…' : '사실 가져오기 (API)'}
+            </button>
+            {!REGISTER_FACT_FETCH_SUPPLIERS.has(selectedBrandKey) && (
+              <span className="text-xs text-slate-500">
+                {registerSupplierDisplayName(selectedBrandKey)}는 아직 API 사실 수집을 지원하지 않습니다.
+              </span>
+            )}
+          </div>
+          {registerFactFetchError && (
+            <p className="mt-2 text-sm text-red-700">{registerFactFetchError}</p>
+          )}
+          {registerFactBundle && (
+            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950">
+              <p className="font-medium">구조화 사실 수집 완료</p>
+              <p className="mt-1">{formatRegisterFactBundleSummary(registerFactBundle)}</p>
+              <p className="mt-2 text-xs text-emerald-800">
+                {registerFactBundle.notes.join(' · ')} · 수집 시각 {registerFactBundle.fetchedAt}
+              </p>
+            </div>
+          )}
           {duplicateCheckLoading && (
             <p className="mt-2 text-xs text-slate-500">중복 확인 중…</p>
           )}

@@ -947,11 +947,19 @@
     {
       "id": "register-facts-foundation",
       "tier": ["prebuild", "ci"],
-      "summary": "등록 사실 번들 — modetour/hanatour/verygoodtour API·HTML 구조화 수집 기반",
+      "summary": "등록 사실 번들 — modetour/hanatour/ybtour/verygoodtour API·HTML 구조화 수집 기반",
       "checks": [
         {
           "file": "lib/register-facts/types.ts",
           "mustInclude": ["SupplierRegisterFactBundle", "RegisterFactScheduleDay"]
+        },
+        {
+          "file": "lib/register-facts/collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-foundation]",
+            "collectSupplierRegisterFacts",
+            "registerFactsSupportedSuppliers"
+          ]
         },
         {
           "file": "lib/register-facts/modetour.ts",
@@ -976,9 +984,56 @@
             "collectVerygoodtourRegisterFacts",
             "PackageDetail"
           ]
+        },
+        {
+          "file": "lib/register-facts/ybtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-foundation]",
+            "collectYbtourRegisterFacts",
+            "papi"
+          ]
+        },
+        {
+          "file": "app/api/admin/register/fetch-facts/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-foundation]",
+            "collectSupplierRegisterFacts",
+            "fetch-facts"
+          ]
         }
       ],
       "vitestSuites": ["lib/register-facts/modetour.test.ts"]
+    },
+    {
+      "id": "ybtour-api-departure-collect",
+      "tier": ["prebuild", "ci"],
+      "summary": "ybtour papi evCd API 우선 수집·0건 시 E2E 폴백",
+      "checks": [
+        {
+          "file": "lib/ybtour-api-departures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-api-departure-collect]",
+            "collectYbtourApiDepartureInputsForUrl",
+            "papi.ybtour.co.kr"
+          ]
+        },
+        {
+          "file": "lib/ybtour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-api-departure-collect]",
+            "collectYbtourPriceInputsWithE2eFallback",
+            "collectYbtourApiDepartureInputsForUrl"
+          ]
+        },
+        {
+          "file": "lib/admin-departure-rescrape.ts",
+          "mustInclude": [
+            "collectYbtourE2eDepartureInputsForDateRange",
+            "collectYbtourPriceInputsWithE2eFallback"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/ybtour-api-departures.test.ts", "lib/ybtour-price-collect.test.ts"]
     },
     {
       "id": "verygoodtour-e2e-expired-url-guard",

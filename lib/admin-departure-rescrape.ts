@@ -468,12 +468,12 @@ export async function collectYbtourDepartureInputForSingleDate(
   return null
 }
 
-/** ybtour on-demand: 달력 E2E 1회 후 inclusive `[fromYmd,toYmd]` 구간 행만 반환. */
-export async function collectYbtourDepartureInputsForDateRange(
+/** ybtour 달력 E2E only — API 폴백은 ybtour-price-collect에서 orchestration. */
+export async function collectYbtourE2eDepartureInputsForDateRange(
   detailUrl: string,
   originCode: string | null,
   fromYmd: string,
-  toYmd: string
+  toYmd: string,
 ): Promise<DepartureInput[]> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
   const lo = fromYmd <= toYmd ? fromYmd : toYmd
@@ -499,6 +499,19 @@ export async function collectYbtourDepartureInputsForDateRange(
   } catch {
     return []
   }
+}
+
+/** ybtour on-demand: papi evCd API 우선, 0건 시 달력 E2E. */
+export async function collectYbtourDepartureInputsForDateRange(
+  detailUrl: string,
+  originCode: string | null,
+  fromYmd: string,
+  toYmd: string,
+): Promise<DepartureInput[]> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
+  const { collectYbtourPriceInputsWithE2eFallback } = await import('@/lib/ybtour-price-collect')
+  const collected = await collectYbtourPriceInputsWithE2eFallback(detailUrl, originCode, fromYmd, toYmd)
+  return collected.inputs
 }
 
 export async function collectDepartureInputsForAdminRescrape(

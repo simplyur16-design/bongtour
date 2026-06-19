@@ -22,3 +22,10 @@ export {
   extractVerygoodRegisterFactsFromHtml,
   parseVerygoodProCodeFromUrl,
 } from '@/lib/register-facts/verygoodtour'
+
+export { collectYbtourRegisterFacts } from '@/lib/register-facts/ybtour'
+
+export {
+  collectSupplierRegisterFacts,
+  registerFactsSupportedSuppliers,
+} from '@/lib/register-facts/collect'
