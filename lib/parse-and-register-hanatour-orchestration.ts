@@ -133,6 +133,7 @@ import { buildRegisterProductScheduleJson } from '@/lib/build-register-product-s
 import { buildRegisterVerificationBundle } from '@/lib/admin-register-verification-meta-hanatour'
 import type { RegisterPreviewProductDraft } from '@/lib/register-preview-payload-hanatour'
 import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import { parseSingleDepartureOnlyFromAdminBody } from '@/lib/single-departure-product-ssot'
 import {
   resolveRegisterProductType,
   travelScopeAndListingKindFromAdminRegister,
@@ -1546,6 +1547,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       ...geo,
       localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
       sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
+      singleDepartureOnly: parseSingleDepartureOnlyFromAdminBody(body),
     }
 
     let productId: string

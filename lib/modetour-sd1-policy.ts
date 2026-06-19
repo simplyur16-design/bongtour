@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
+import { isSingleDepartureProduct } from '@/lib/single-departure-product-ssot'
 import {
   futurePricedDepartureWhere,
   productHasFuturePricedDeparture,
@@ -31,10 +32,13 @@ export function isModetourSd1AutoUnpublishEligible(
   product: {
     listingKind?: string | null
     productType?: string | null
+    singleDepartureOnly?: boolean | null
   },
   _options?: ModetourSd1AutoUnpublishOptions,
 ): boolean {
   if (isAirHotelProduct(product)) return false
+  if (isSingleDepartureProduct(product)) return false
+  // REGRESSION-FREEZE[single-departure-modetour-collect]: SD1 auto-unpublish 면제 — manifest
   return true
 }
 

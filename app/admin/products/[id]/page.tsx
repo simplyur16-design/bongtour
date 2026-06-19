@@ -30,6 +30,7 @@ import {
   TRAVEL_SCOPE_LABELS,
   TRAVEL_SCOPE_VALUES,
 } from '@/lib/product-listing-kind'
+import { isSingleDepartureAdminCheckboxDisabled } from '@/lib/single-departure-product-ssot'
 import SportsThemeTagMultiSelect from '@/app/admin/components/SportsThemeTagMultiSelect'
 import { adminProductBgImageAttributionLine } from '@/lib/product-bg-image-attribution'
 import {
@@ -373,6 +374,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
   })
   const [localDepartureTagDraft, setLocalDepartureTagDraft] = useState<LocalDepartureTag[]>([])
   const [sportsThemeTagDraft, setSportsThemeTagDraft] = useState<SportsThemeTag[]>([])
+  const [singleDepartureOnlyDraft, setSingleDepartureOnlyDraft] = useState(false)
   const [benefitDraft, setBenefitDraft] = useState('')
   const [counselingDraft, setCounselingDraft] = useState('')
   const [flightAdminDraft, setFlightAdminDraft] = useState('')
@@ -431,6 +433,21 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
     )
   }, [product, supplierInternal])
 
+  const singleDepartureCheckboxDisabled = useMemo(
+    () =>
+      isSingleDepartureAdminCheckboxDisabled({
+        listingKind: basicDraft.listingKind || product?.listingKind,
+        productType: product?.productType,
+      }),
+    [basicDraft.listingKind, product?.listingKind, product?.productType],
+  )
+
+  useEffect(() => {
+    if (singleDepartureCheckboxDisabled) {
+      setSingleDepartureOnlyDraft(false)
+    }
+  }, [singleDepartureCheckboxDisabled])
+
   useEffect(() => {
     Promise.resolve(params).then((p) => setId(p.id))
   }, [params])
@@ -463,6 +480,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
         (k) => Array.isArray(product.sportsThemeTag) && product.sportsThemeTag!.includes(k)
       )
     )
+    setSingleDepartureOnlyDraft(product.singleDepartureOnly === true)
     setBenefitDraft(product.benefitSummary ?? '')
     setHighlightRawDraft(product.highlightPointsRaw ?? '')
     setHighlightCuratedDraft(product.highlightPoints ?? '')
@@ -477,6 +495,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
     product?.listingKind,
     product?.localDepartureTag,
     product?.sportsThemeTag,
+    product?.singleDepartureOnly,
     product?.benefitSummary,
     product?.highlightPointsRaw,
     product?.highlightPoints,
@@ -1499,6 +1518,25 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                 tone="dark"
               />
             </div>
+            <div className="mt-3 rounded border border-bt-border-strong bg-bt-title/30 px-3 py-2">
+              <p className="text-[11px] font-semibold text-bt-inverse">단일 출발 상품 (수동 지정)</p>
+              <p className="mt-1 text-[10px] text-bt-subtle">
+                F1·이벤트·전세기 등 달력 출발이 하나뿐인 패키지. 체크 시 가격 동기화는 단건 수집 경로를 사용합니다.
+              </p>
+              <label className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-bt-inverse">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 rounded border-bt-border-strong"
+                  checked={singleDepartureOnlyDraft}
+                  onChange={(e) => setSingleDepartureOnlyDraft(e.target.checked)}
+                  disabled={singleDepartureCheckboxDisabled}
+                />
+                <span>단일 출발 상품</span>
+              </label>
+              {singleDepartureCheckboxDisabled && (
+                <p className="mt-2 text-[10px] text-bt-subtle">항공+호텔(자유여행)은 별도 수집 경로를 사용합니다.</p>
+              )}
+            </div>
           </div>
           <button
             type="button"
@@ -1518,6 +1556,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                     listingKind: basicDraft.listingKind || null,
                     localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTagDraft.includes(k)),
                     sportsThemeTag: SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTagDraft.includes(k)),
+                    singleDepartureOnly: singleDepartureCheckboxDisabled ? false : singleDepartureOnlyDraft,
                   }),
                 })
                 const text = await res.text()

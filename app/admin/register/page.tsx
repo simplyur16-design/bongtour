@@ -85,6 +85,7 @@ import {
   type LocalDepartureTag,
   type SportsThemeTag,
 } from '@/lib/product-listing-kind'
+import { isSingleDepartureAdminCheckboxDisabled } from '@/lib/single-departure-product-ssot'
 import {
   CANONICAL_OVERSEAS_SUPPLIER_KEYS,
   type CanonicalOverseasSupplierKey,
@@ -630,6 +631,8 @@ export default function AdminRegisterPage() {
   const [localDepartureTag, setLocalDepartureTag] = useState<LocalDepartureTag[]>([])
   /** 스포츠 테마 메가 메뉴·browse용 — LLM 비사용, 확정 시 DB `Product.sportsThemeTag`만 반영 */
   const [sportsThemeTag, setSportsThemeTag] = useState<SportsThemeTag[]>([])
+  /** 단일 출발(F1·이벤트 등) — LLM 비사용, 확정 시 DB `Product.singleDepartureOnly`만 반영 */
+  const [singleDepartureOnly, setSingleDepartureOnly] = useState(false)
   /** 기본(Plan B): 원문 기반 노출명. 체크 시에만 R-5 마케팅 제안명을 Product.title로 저장 */
   const [useBongtourMarketingTitle, setUseBongtourMarketingTitle] = useState(false)
   const [rawText, setRawText] = useState('')
@@ -658,6 +661,10 @@ export default function AdminRegisterPage() {
   const pastePh = useMemo(
     () => getRegisterPastePlaceholders(selectedBrandKey, travelScope),
     [selectedBrandKey, travelScope]
+  )
+  const singleDepartureCheckboxDisabled = useMemo(
+    () => isSingleDepartureAdminCheckboxDisabled({ travelScope }),
+    [travelScope],
   )
   /** 일차별 Pexels 키워드 — confirm 시 `schedule[].imageKeyword` / `imageKeyword2` */
   const [manualPexelsKeywordsByDay, setManualPexelsKeywordsByDay] = useState<Record<number, string>>({})
@@ -910,6 +917,7 @@ export default function AdminRegisterPage() {
                   travelScope,
                   localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
                   sportsThemeTag: SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTag.includes(k)),
+                  singleDepartureOnly,
                   ...(selectedBrandKey && { brandKey: selectedBrandKey }),
                   ...(urlToCheck && { originUrl: urlToCheck }),
                   ...(blocksPayload && { pastedBlocks: blocksPayload }),
@@ -924,6 +932,7 @@ export default function AdminRegisterPage() {
                   travelScope,
                   localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
                   sportsThemeTag: SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTag.includes(k)),
+                  singleDepartureOnly,
                 }
           ),
           signal: controller.signal,
@@ -1098,6 +1107,7 @@ export default function AdminRegisterPage() {
             previewContentDigest: preview.previewContentDigest,
             localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
             sportsThemeTag: SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTag.includes(k)),
+            singleDepartureOnly,
             ...(typeof snap.registerSnapshotId === 'string' &&
               snap.registerSnapshotId.trim() && { registerSnapshotId: snap.registerSnapshotId.trim() }),
             ...(typeof snap.registerAnalysisId === 'string' &&
@@ -1341,6 +1351,27 @@ export default function AdminRegisterPage() {
             disabled={loading || confirming}
             tone="light"
           />
+        </div>
+
+        <div className="mt-6 border-l-4 border-[#0f172a] pl-6">
+          <p className="text-sm font-semibold text-slate-800">단일 출발 상품 (수동 지정)</p>
+          <p className="mt-1 text-xs text-slate-500">
+            공급사 달력에 출발일이 하나뿐인 패키지(F1·이벤트·전세기 등)입니다. 체크 시 가격 동기화는 다출발 달력 API 대신
+            단건 수집을 사용합니다. 확정 시 DB <code className="text-[11px]">singleDepartureOnly</code>만 반영됩니다.
+          </p>
+          <label className="mt-3 inline-flex cursor-pointer items-center gap-2 text-sm text-slate-800">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-400 text-[#0f172a] focus:ring-[#0f172a]"
+              checked={singleDepartureOnly}
+              onChange={(e) => setSingleDepartureOnly(e.target.checked)}
+              disabled={loading || confirming || singleDepartureCheckboxDisabled}
+            />
+            <span>단일 출발 상품</span>
+          </label>
+          {singleDepartureCheckboxDisabled && (
+            <p className="mt-2 text-xs text-slate-500">항공+호텔(자유여행)은 별도 수집 경로를 사용합니다.</p>
+          )}
         </div>
 
         {/* A-3. 본문 전체 원문 */}
@@ -1623,6 +1654,11 @@ export default function AdminRegisterPage() {
                         .map((k) => SPORTS_THEME_TAG_LABELS[k])
                         .join(', ')}
                 </p>
+              </div>
+
+              <div className="rounded border border-violet-200 bg-violet-50/80 p-3 text-xs text-violet-950">
+                <p className="font-semibold text-violet-900">단일 출발 (수동)</p>
+                <p className="mt-1 text-violet-900/90">{singleDepartureOnly ? '예 — 단건 수집 경로' : '아니오'}</p>
               </div>
 
               {(() => {

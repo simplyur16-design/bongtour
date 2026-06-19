@@ -28,6 +28,9 @@ import {
   TRAVEL_SCOPE_VALUES,
 } from '@/lib/product-listing-kind'
 import {
+  resolveSingleDepartureOnlyForAdminWrite,
+} from '@/lib/single-departure-product-ssot'
+import {
   getImageStorageBucket,
   isObjectStorageConfigured,
   tryParseObjectKeyFromPublicUrl,
@@ -204,6 +207,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
         listingKind: true,
         localDepartureTag: true,
         sportsThemeTag: true,
+        singleDepartureOnly: true,
+        productType: true,
         departures: { orderBy: { departureDate: 'asc' }, take: 1, select: { carrierName: true } },
       },
     })
@@ -240,6 +245,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
 /**
  * PATCH /api/admin/products/[id]. 인증: 관리자.
+ * REGRESSION-FREEZE[single-departure-product-ssot]: singleDepartureOnly PATCH — manifest
  */
 export async function PATCH(request: Request, { params }: RouteParams) {
   const admin = await requireAdmin()
@@ -311,6 +317,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       rawMeta?: string | null
       localDepartureTag?: string[]
       sportsThemeTag?: string[]
+      singleDepartureOnly?: boolean
       highlightPointsRaw?: string | null
       highlightPoints?: string | null
     } = {}
@@ -526,6 +533,36 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
     if (body.sportsThemeTag !== undefined) {
       data.sportsThemeTag = parseSportsThemeTagArrayFromAdminBody(body)
+    }
+    if (
+      body.singleDepartureOnly !== undefined ||
+      body.listingKind !== undefined ||
+      body.travelScope !== undefined ||
+      body.productType !== undefined
+    ) {
+      const currentForSingleDep =
+        data.listingKind !== undefined ||
+        data.productType !== undefined ||
+        data.travelScope !== undefined ||
+        body.singleDepartureOnly !== undefined
+          ? await prisma.product.findUnique({
+              where: { id },
+              select: {
+                singleDepartureOnly: true,
+                listingKind: true,
+                productType: true,
+                travelScope: true,
+              },
+            })
+          : null
+      if (currentForSingleDep) {
+        data.singleDepartureOnly = resolveSingleDepartureOnlyForAdminWrite(body, {
+          singleDepartureOnly: currentForSingleDep.singleDepartureOnly,
+          listingKind: currentForSingleDep.listingKind,
+          productType: currentForSingleDep.productType,
+          travelScope: currentForSingleDep.travelScope,
+        })
+      }
     }
     // 대표 이미지 (Pexels 선택 등): primaryImage* → bgImage* (URL 비우면 메타도 null)
     if (body.primaryImageUrl !== undefined) {
@@ -888,6 +925,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         listingKind: true,
         localDepartureTag: true,
         sportsThemeTag: true,
+        singleDepartureOnly: true,
         departures: { orderBy: { departureDate: 'asc' }, take: 1, select: { carrierName: true } },
       },
     })

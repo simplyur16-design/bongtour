@@ -135,6 +135,7 @@ import type {
   LottetourShoppingItemFromBody,
 } from '@/lib/lottetour-admin-preview-card-types'
 import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import { parseSingleDepartureOnlyFromAdminBody } from '@/lib/single-departure-product-ssot'
 import {
   resolveRegisterProductType,
   travelScopeAndListingKindFromAdminRegister,
@@ -1740,6 +1741,7 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       ...geo,
       localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
       sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
+      singleDepartureOnly: parseSingleDepartureOnlyFromAdminBody(body),
     }
 
     let productId: string

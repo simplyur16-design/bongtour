@@ -45,6 +45,16 @@ describe('isModetourSd1AutoUnpublishEligible', () => {
     )
   })
 
+  it('blocks SD1 auto-unpublish for singleDepartureOnly packages', () => {
+    expect(
+      isModetourSd1AutoUnpublishEligible({
+        listingKind: 'travel',
+        productType: 'travel',
+        singleDepartureOnly: true,
+      }),
+    ).toBe(false)
+  })
+
   it('blocks SD1 auto-unpublish for air-hotel productType without listingKind', () => {
     expect(isModetourSd1AutoUnpublishEligible({ listingKind: null, productType: 'air-hotel' })).toBe(
       false,

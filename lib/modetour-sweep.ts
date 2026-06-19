@@ -133,6 +133,7 @@ async function findSweepProducts(
     originCode: true,
     listingKind: true,
     productType: true,
+    singleDepartureOnly: true,
     rawMeta: true,
   } as const
   const today = todayYmd ?? kstTodayYmd()
@@ -269,7 +270,7 @@ export async function sweepDueModetourProducts(
         product.originUrl,
         fromYmd,
         toYmd,
-        { airHotel: isAirHotelProduct(product), originCode: product.originCode },
+        { airHotel: isAirHotelProduct(product), singleDeparture: product.singleDepartureOnly === true, originCode: product.originCode },
       )
 
       const refreshOriginUrl = modetourOriginUrlNeedsRefresh(

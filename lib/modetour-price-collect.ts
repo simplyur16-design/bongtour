@@ -2,6 +2,7 @@
  * modetour 가격 수집 — B2C API 우선, SD1·0건 시 E2E(6개월) 폴백.
  *
  * REGRESSION-FREEZE[modetour-sweep-e2e-recheck]: API→E2E 폴백·stale 미래출발 검증 — manifest
+ * REGRESSION-FREEZE[single-departure-modetour-collect]: 단일출발 GetProductDetailInfo 우선 — manifest
  */
 import {
   mapScrapedRowsToInputs,
@@ -44,6 +45,8 @@ export type ModetourPriceCollectSource = 'api' | 'e2e'
 export type ModetourPriceCollectOptions = {
   /** 자유여행(air_hotel_free) — 풀 API(baseline 생략)·URL 정규화·E2E 다중 URL */
   airHotel?: boolean
+  /** 관리자 등록 단일 출발 — 달력 API 생략, GetProductDetailInfo 단건 우선 */
+  singleDeparture?: boolean
   /** modetour 상품코드 — 단체번호 URL보다 우선 resolve */
   originCode?: string | null
 }
@@ -137,7 +140,7 @@ export async function collectModetourApiDepartureInputs(
   toYmd: string,
 ): Promise<{ inputs: DepartureInput[]; sourceDates: string[] }> {
   const productNo = parseModetourPackageProductNoFromUrl(originUrl)
-  if (!productNo) return { inputs: [], sourceDates: [] }
+  if (!productNo || productNo === '0') return { inputs: [], sourceDates: [] }
 
   const lo = fromYmd <= toYmd ? fromYmd : toYmd
   const hi = fromYmd <= toYmd ? toYmd : fromYmd
@@ -252,30 +255,8 @@ export async function collectModetourPriceInputsWithE2eFallback(
     detailResolveSource: resolved.source,
   }
 
-  try {
-    const api = await collectModetourApiDepartureInputs(apiOriginUrl, fromYmd, toYmd)
-    const priced = pricedInputsInWindow(api.inputs, fromYmd, toYmd)
-    if (priced.length > 0) {
-      return {
-        inputs: priced,
-        sourceDates: [...new Set(api.sourceDates)],
-        source: 'api',
-        apiFailedSd1: false,
-        e2eAttempted: false,
-        e2eModalOpenFailed: false,
-        e2eError: null,
-        ...resolveMeta,
-      }
-    }
-  } catch (err) {
-    if (isModetourSd1NotFoundError(err)) {
-      apiFailedSd1 = true
-    } else {
-      throw err
-    }
-  }
-
-  if (options?.airHotel && collectOriginUrl) {
+  const tryGroupDetailSingle = async (): Promise<ModetourPriceCollectResult | null> => {
+    if (!collectOriginUrl) return null
     try {
       const groupDetail = await fetchModetourGroupDetailInfo(collectOriginUrl)
       const single = modetourGroupDetailToDepartureInput(groupDetail)
@@ -298,6 +279,42 @@ export async function collectModetourPriceInputsWithE2eFallback(
       }
       apiFailedSd1 = true
     }
+    return null
+  }
+
+  if (options?.singleDeparture) {
+    const singleHit = await tryGroupDetailSingle()
+    if (singleHit) return singleHit
+  }
+
+  if (!options?.singleDeparture) {
+    try {
+      const api = await collectModetourApiDepartureInputs(apiOriginUrl, fromYmd, toYmd)
+      const priced = pricedInputsInWindow(api.inputs, fromYmd, toYmd)
+      if (priced.length > 0) {
+        return {
+          inputs: priced,
+          sourceDates: [...new Set(api.sourceDates)],
+          source: 'api',
+          apiFailedSd1: false,
+          e2eAttempted: false,
+          e2eModalOpenFailed: false,
+          e2eError: null,
+          ...resolveMeta,
+        }
+      }
+    } catch (err) {
+      if (isModetourSd1NotFoundError(err)) {
+        apiFailedSd1 = true
+      } else {
+        throw err
+      }
+    }
+  }
+
+  if (options?.airHotel && collectOriginUrl) {
+    const singleHit = await tryGroupDetailSingle()
+    if (singleHit) return singleHit
   }
 
   if (options?.airHotel && canonicalUrl) {

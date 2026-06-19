@@ -221,6 +221,9 @@ model Product {
   /// 관리자 수동: 스포츠 테마 허브·browse 필터용 (running, trekking, diving, spectator, golf). 해당 없으면 빈 배열.
   sportsThemeTag String[] @default([])
 
+  /// 관리자 수동: 단일 출발 상품(F1·이벤트·고정 1출발). 다출발 달력 API 대신 단건 수집·SD1 auto_unpublished 완화.
+  singleDepartureOnly Boolean @default(false)
+
   /// 대표 이미지 좌측 SEO 한 줄 — 등록 확정 시 붙여넣기 본문·파싱 필드로 생성해 저장. 없으면 공개 휴리스틱.
   publicImageHeroSeoLine         String?
   /// 대표 이미지 좌측 SEO 키워드 2~3개(JSON 문자열 배열). 있으면 공개 시 이 값을 1순위로 합쳐 표시.

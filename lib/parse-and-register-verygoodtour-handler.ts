@@ -99,6 +99,7 @@ import {
   verygoodConfirmHasScheduleExpressionLayer,
 } from '@/lib/parse-and-register-verygoodtour-schedule'
 import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import { parseSingleDepartureOnlyFromAdminBody } from '@/lib/single-departure-product-ssot'
 import {
   resolveRegisterProductType,
   travelScopeAndListingKindFromAdminRegister,
@@ -1440,6 +1441,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       ...geo,
       localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
       sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
+      singleDepartureOnly: parseSingleDepartureOnlyFromAdminBody(body),
     }
 
     let productId: string

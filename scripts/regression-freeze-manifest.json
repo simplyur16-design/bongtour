@@ -598,6 +598,42 @@
       ]
     },
     {
+      "id": "hanatour-api-departure-collect",
+      "tier": ["prebuild", "ci"],
+      "summary": "하나투어 gw API 우선 수집·0건 시 E2E 폴백",
+      "checks": [
+        {
+          "file": "lib/hanatour-api-departures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-api-departure-collect]",
+            "fetchHanatourPkgProdInfo",
+            "fetchHanatourPkgProdLstPage",
+            "collectHanatourApiDepartureInputsForMonths",
+            "gw.hanatour.com"
+          ]
+        },
+        {
+          "file": "lib/hanatour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-api-departure-collect]",
+            "collectHanatourPriceInputsWithE2eFallback",
+            "collectHanatourApiDepartureInputsForMonths"
+          ]
+        },
+        {
+          "file": "lib/hanatour-departures.ts",
+          "mustInclude": [
+            "collectHanatourApiDepartureInputsForMonths",
+            "collectHanatourPriceInputsWithE2eFallback"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanatour-api-departures.test.ts",
+        "lib/hanatour-price-collect.test.ts"
+      ]
+    },
+    {
       "id": "hanatour-origin-code-from-paste",
       "tier": ["prebuild", "ci"],
       "summary": "하나투어 originCode — LLM 미지정 시 본문 상품코드 SSOT 덮어쓰기",
@@ -787,6 +823,7 @@
             "modetourGroupDetailToDepartureInput",
             "scrapeLiveCalendar",
             "airHotel",
+            "singleDeparture",
             "e2eModalOpenFailed",
             "MODETOUR_E2E_MODAL_OPEN_FAILED_MARKER",
             "resolvedDetailUrl"
@@ -818,6 +855,7 @@
             "isModetourPriceRecheckDue",
             "computeModetourNextPriceRecheckYmd",
             "isAirHotelProduct",
+            "singleDepartureOnly",
             "e2eModalOpenFailed",
             "e2e-modal-failed-defer",
             "origin-url-refresh",
@@ -837,10 +875,110 @@
         },
         {
           "file": "lib/modetour-sd1-policy.ts",
-          "mustInclude": ["isModetourSd1AutoUnpublishEligible", "[SD2]"],
+          "mustInclude": ["isModetourSd1AutoUnpublishEligible", "isSingleDepartureProduct", "[SD2]"],
           "mustNotInclude": ["if (options?.hasFuturePricedDeparture) return false"]
         }
       ]
+    },
+    {
+      "id": "single-departure-product-ssot",
+      "tier": ["prebuild", "ci"],
+      "summary": "단일 출발 상품 — 관리자 체크 SSOT·등록 confirm 반영",
+      "checks": [
+        {
+          "file": "lib/single-departure-product-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[single-departure-product-ssot]",
+            "parseSingleDepartureOnlyFromAdminBody",
+            "isSingleDepartureProduct",
+            "isSingleDepartureAdminCheckboxDisabled",
+            "resolveSingleDepartureOnlyForAdminWrite",
+            "singleDepartureOnly"
+          ]
+        },
+        {
+          "file": "prisma/schema.prisma",
+          "mustInclude": ["singleDepartureOnly Boolean @default(false)"]
+        },
+        {
+          "file": "app/admin/register/page.tsx",
+          "mustInclude": ["singleDepartureOnly", "단일 출발 상품", "isSingleDepartureAdminCheckboxDisabled"]
+        },
+        {
+          "file": "app/admin/products/[id]/page.tsx",
+          "mustInclude": ["singleDepartureOnlyDraft", "단일 출발 상품", "isSingleDepartureAdminCheckboxDisabled"]
+        },
+        {
+          "file": "app/api/admin/products/[id]/route.ts",
+          "mustInclude": ["resolveSingleDepartureOnlyForAdminWrite", "singleDepartureOnly"]
+        },
+        {
+          "file": "lib/parse-and-register-modetour-handler.ts",
+          "mustInclude": ["parseSingleDepartureOnlyFromAdminBody", "singleDepartureOnly"]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-orchestration.ts",
+          "mustInclude": ["parseSingleDepartureOnlyFromAdminBody", "singleDepartureOnly"]
+        }
+      ],
+      "vitestSuites": ["lib/single-departure-product-ssot.test.ts"]
+    },
+    {
+      "id": "single-departure-modetour-collect",
+      "tier": ["prebuild", "ci"],
+      "summary": "modetour 단일출발 — 달력 API 생략·GetProductDetailInfo 우선·SD1 auto-unpublish 면제",
+      "checks": [
+        {
+          "file": "lib/modetour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[single-departure-modetour-collect]",
+            "singleDeparture",
+            "productNo === '0'",
+            "tryGroupDetailSingle"
+          ]
+        },
+        {
+          "file": "lib/modetour-sd1-policy.ts",
+          "mustInclude": ["isSingleDepartureProduct"]
+        }
+      ],
+      "vitestSuites": ["lib/modetour-price-collect.test.ts", "lib/modetour-sd1-policy.test.ts"]
+    },
+    {
+      "id": "register-facts-foundation",
+      "tier": ["prebuild", "ci"],
+      "summary": "등록 사실 번들 — modetour/hanatour/verygoodtour API·HTML 구조화 수집 기반",
+      "checks": [
+        {
+          "file": "lib/register-facts/types.ts",
+          "mustInclude": ["SupplierRegisterFactBundle", "RegisterFactScheduleDay"]
+        },
+        {
+          "file": "lib/register-facts/modetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-foundation]",
+            "collectModetourRegisterFacts",
+            "GetScheduleList"
+          ]
+        },
+        {
+          "file": "lib/register-facts/hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-foundation]",
+            "collectHanatourRegisterFacts",
+            "getPkgProdItnrInfo"
+          ]
+        },
+        {
+          "file": "lib/register-facts/verygoodtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-foundation]",
+            "collectVerygoodtourRegisterFacts",
+            "PackageDetail"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/register-facts/modetour.test.ts"]
     },
     {
       "id": "verygoodtour-e2e-expired-url-guard",
@@ -974,6 +1112,8 @@
         "lib/modetour-air-hotel-api-collect.test.ts",
         "lib/modetour-price-recheck-meta.test.ts",
         "lib/modetour-sd1-policy.test.ts",
+        "lib/single-departure-product-ssot.test.ts",
+        "lib/register-facts/modetour.test.ts",
         "lib/modetour-sweep.test.ts",
         "lib/product-image-source-attribution.test.ts",
         "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",

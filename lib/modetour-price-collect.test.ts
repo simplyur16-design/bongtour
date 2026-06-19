@@ -243,6 +243,27 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
     expect(scrapeLiveCalendar).not.toHaveBeenCalled()
   })
 
+  it('singleDeparture skips calendar API and uses GetProductDetailInfo group row', async () => {
+    fetchModetourGroupDetailInfo.mockResolvedValueOnce({
+      groupNumber: 107583036,
+      departureDate: '2026-11-20',
+      sellingPriceAdultTotalAmount: 4990000,
+    })
+
+    const out = await collectModetourPriceInputsWithE2eFallback(
+      'https://www.modetour.com/package/0',
+      '2026-06-16',
+      '2026-12-13',
+      { singleDeparture: true, originCode: 'NWQ210KEF1' },
+    )
+
+    expect(out.source).toBe('api')
+    expect(out.inputs).toHaveLength(1)
+    expect(out.inputs[0]?.adultPrice).toBe(4990000)
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(scrapeLiveCalendar).not.toHaveBeenCalled()
+  })
+
   it('rethrows non-SD1 API errors without E2E', async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: false,

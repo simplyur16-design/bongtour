@@ -143,6 +143,7 @@ import { tryLoadRegisterParsedForConfirmReuse } from '@/lib/register-admin-confi
 import { buildRegisterProductScheduleJson } from '@/lib/build-register-product-schedule-json'
 import { sanitizePrismaWriteData, truncatePrismaSafeString } from '@/lib/prisma-safe-string'
 import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import { parseSingleDepartureOnlyFromAdminBody } from '@/lib/single-departure-product-ssot'
 import {
   resolveRegisterProductType,
   travelScopeAndListingKindFromAdminRegister,
@@ -1824,6 +1825,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       ...geo,
       localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
       sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
+      singleDepartureOnly: parseSingleDepartureOnlyFromAdminBody(body),
     }
 
     let productId: string
