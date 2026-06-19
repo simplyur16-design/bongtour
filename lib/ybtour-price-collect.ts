@@ -1,12 +1,12 @@
 /**
- * ybtour 가격 수집 — papi evCd API 우선, 0건·구간 밖 시 E2E 폴백.
+ * ybtour 가격 수집 — papi by-goods 월 API 우선, 0건·구간 밖 시 E2E 폴백.
  *
  * REGRESSION-FREEZE[ybtour-api-departure-collect]: API→E2E 폴백 — manifest
+ * REGRESSION-FREEZE[ybtour-by-goods-departure-list]: by-goods 다출발 API — manifest
  * REGRESSION-FREEZE[ybtour-sweep-e2e-recheck]: sweep·7일 재확인 — manifest
  */
 import {
-  collectYbtourApiDepartureInputsForUrl,
-  filterYbtourInputsInYmdWindow,
+  collectYbtourByGoodsApiDepartureInputsForUrl,
 } from '@/lib/ybtour-api-departures'
 import type { DepartureInput } from '@/lib/upsert-product-departures-ybtour'
 
@@ -24,23 +24,66 @@ export type YbtourApiOnlyCollectResult = {
   apiError: string | null
 }
 
-/** API만 — E2E 없음. 커버리지·sweep 사전 검증용 (URL evCd 1행). */
+export type YbtourByGoodsApiOnlyCollectResult = {
+  inputs: DepartureInput[]
+  goodsCd: string | null
+  goodsCdFromUrl: string | null
+  dspSid: string | null
+  seedEvCd: string | null
+  monthKeys: string[]
+  rawRowCount: number
+  evCdPriceEnriched: boolean
+  apiError: string | null
+}
+
+export type YbtourByGoodsApiOnlyOptions = {
+  originCode?: string | null
+  enrichEvCdPrice?: boolean
+}
+
+/** by-goods 월 API만 — 다출발 (+ 선택 evCd /price). */
+export async function collectYbtourByGoodsApiOnlyForDateRange(
+  detailUrl: string,
+  fromYmd: string,
+  toYmd: string,
+  options?: YbtourByGoodsApiOnlyOptions,
+): Promise<YbtourByGoodsApiOnlyCollectResult> {
+  try {
+    const hit = await collectYbtourByGoodsApiDepartureInputsForUrl(detailUrl, fromYmd, toYmd, {
+      originCode: options?.originCode,
+      enrichEvCdPrice: options?.enrichEvCdPrice,
+    })
+    return { ...hit, apiError: null }
+  } catch (err) {
+    return {
+      inputs: [],
+      goodsCd: null,
+      goodsCdFromUrl: null,
+      dspSid: null,
+      seedEvCd: null,
+      monthKeys: [],
+      rawRowCount: 0,
+      evCdPriceEnriched: false,
+      apiError: (err instanceof Error ? err.message : String(err)).slice(0, 400),
+    }
+  }
+}
+
+/** API만 — E2E 없음. 커버리지·sweep 사전 검증용 (by-goods 다출발). */
 export async function collectYbtourApiOnlyForDateRange(
   detailUrl: string,
   fromYmd: string,
   toYmd: string,
+  options?: YbtourByGoodsApiOnlyOptions,
 ): Promise<YbtourApiOnlyCollectResult> {
-  try {
-    const api = await collectYbtourApiDepartureInputsForUrl(detailUrl)
-    const priced = filterYbtourInputsInYmdWindow(api.inputs, fromYmd, toYmd)
-    return { inputs: priced, evCd: api.evCd, apiError: null }
-  } catch (err) {
-    return {
-      inputs: [],
-      evCd: null,
-      apiError: (err instanceof Error ? err.message : String(err)).slice(0, 400),
-    }
+  const hit = await collectYbtourByGoodsApiOnlyForDateRange(detailUrl, fromYmd, toYmd, options)
+  if (hit.apiError) {
+    return { inputs: [], evCd: hit.seedEvCd, apiError: hit.apiError }
   }
+  if (!hit.goodsCd) {
+    return { inputs: [], evCd: null, apiError: 'no_goods_cd' }
+  }
+  return { inputs: hit.inputs, evCd: hit.seedEvCd, apiError: null }
 }
 
 export async function collectYbtourPriceInputsWithE2eFallback(
@@ -50,13 +93,18 @@ export async function collectYbtourPriceInputsWithE2eFallback(
   toYmd: string,
 ): Promise<YbtourPriceCollectResult> {
   try {
-    const api = await collectYbtourApiDepartureInputsForUrl(detailUrl)
-    const priced = filterYbtourInputsInYmdWindow(api.inputs, fromYmd, toYmd)
-    if (priced.length > 0) {
-      return { inputs: priced, source: 'api', e2eAttempted: false }
+    const byGoods = await collectYbtourByGoodsApiDepartureInputsForUrl(detailUrl, fromYmd, toYmd, {
+      originCode,
+      enrichEvCdPrice: process.env.YBTOUR_SKIP_EVCD_PRICE_ENRICH !== '1',
+    })
+    if (byGoods.inputs.length > 0) {
+      return { inputs: byGoods.inputs, source: 'api', e2eAttempted: false }
     }
   } catch (err) {
-    console.warn('[ybtour] api-collect-failed', err instanceof Error ? err.message : String(err))
+    console.warn(
+      '[ybtour] by-goods-api-collect-failed',
+      err instanceof Error ? err.message : String(err),
+    )
   }
 
   const { collectYbtourE2eDepartureInputsForDateRange } = await import('@/lib/admin-departure-rescrape')

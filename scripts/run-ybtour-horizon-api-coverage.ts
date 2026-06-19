@@ -1,12 +1,10 @@
 /**
- * ybtour registered 전체 — 180일 papi evCd API 커버리지 (E2E·DB upsert 없음).
+ * ybtour registered 전체 — 180일 papi by-goods API 커버리지 (E2E·DB upsert 없음).
  *
  *   npm run db:ybtour-api-coverage
  *   npm run db:ybtour-api-coverage -- --limit 20
  *
  * 결과: ops/ybtour-horizon-api-coverage.json
- *
- * 참고: papi는 URL evCd 1행만 반환 — api_ok는 지평 내 priced 1건 이상.
  */
 import './load-env-for-scripts'
 
@@ -16,7 +14,7 @@ import path from 'path'
 import { PrismaClient } from '@prisma/client'
 
 import { buildDetailUrl } from '@/lib/admin-departure-rescrape'
-import { parseYbtourEvCdFromUrl } from '@/lib/ybtour-api-departures'
+import { resolveYbtourGoodsCdForApi } from '@/lib/ybtour-api-departures'
 import { collectYbtourApiOnlyForDateRange } from '@/lib/ybtour-price-collect'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 
@@ -27,8 +25,9 @@ type ItemResult = {
   id: string
   title: string
   originUrl: string | null
-  evCd: string | null
-  status: 'api_ok' | 'api_empty' | 'api_error' | 'no_ev_cd' | 'no_url'
+  goodsCd: string | null
+  seedEvCd: string | null
+  status: 'api_ok' | 'api_empty' | 'api_error' | 'no_goods_cd' | 'no_url'
   rowCount: number
   apiError: string | null
   elapsedMs: number
@@ -54,6 +53,19 @@ function resolveDetailUrl(originUrl: string | null, originCode: string | null): 
   if (!code) return null
   const built = buildDetailUrl('ybtour', code)
   return built.startsWith('http') ? built : null
+}
+
+function withGoodsCdParam(detailUrl: string, originCode: string | null): string {
+  const code = (originCode ?? '').trim()
+  if (!code || resolveYbtourGoodsCdForApi(detailUrl, originCode)) return detailUrl
+  try {
+    const u = new URL(detailUrl)
+    u.searchParams.set('goodsCd', code)
+    if (!u.searchParams.get('menu')?.trim()) u.searchParams.set('menu', 'PKG')
+    return u.toString()
+  } catch {
+    return detailUrl
+  }
 }
 
 function sleep(ms: number): Promise<void> {
@@ -99,7 +111,7 @@ async function main() {
   for (let i = 0; i < products.length; i += 1) {
     const p = products[i]!
     const t0 = Date.now()
-    const detailUrl = resolveDetailUrl(p.originUrl, p.originCode)
+    let detailUrl = resolveDetailUrl(p.originUrl, p.originCode)
 
     if (!detailUrl) {
       items.push({
@@ -107,7 +119,8 @@ async function main() {
         id: p.id,
         title: p.title?.slice(0, 80) ?? '',
         originUrl: p.originUrl,
-        evCd: null,
+        goodsCd: null,
+        seedEvCd: null,
         status: 'no_url',
         rowCount: 0,
         apiError: null,
@@ -116,15 +129,18 @@ async function main() {
       continue
     }
 
-    const evCdFromUrl = parseYbtourEvCdFromUrl(detailUrl)
-    if (!evCdFromUrl) {
+    detailUrl = withGoodsCdParam(detailUrl, p.originCode)
+    const goodsCdForApi = resolveYbtourGoodsCdForApi(detailUrl, p.originCode)
+
+    if (!goodsCdForApi) {
       items.push({
         slug: p.slug,
         id: p.id,
         title: p.title?.slice(0, 80) ?? '',
         originUrl: detailUrl,
-        evCd: null,
-        status: 'no_ev_cd',
+        goodsCd: null,
+        seedEvCd: null,
+        status: 'no_goods_cd',
         rowCount: 0,
         apiError: null,
         elapsedMs: Date.now() - t0,
@@ -133,9 +149,13 @@ async function main() {
       continue
     }
 
-    const hit = await collectYbtourApiOnlyForDateRange(detailUrl, fromYmd, toYmd)
+    const hit = await collectYbtourApiOnlyForDateRange(detailUrl, fromYmd, toYmd, {
+      originCode: p.originCode,
+      enrichEvCdPrice: false,
+    })
     let status: ItemResult['status']
-    if (hit.apiError) status = 'api_error'
+    if (hit.apiError === 'no_goods_cd') status = 'no_goods_cd'
+    else if (hit.apiError) status = 'api_error'
     else if (hit.inputs.length > 0) status = 'api_ok'
     else status = 'api_empty'
 
@@ -144,7 +164,8 @@ async function main() {
       id: p.id,
       title: p.title?.slice(0, 80) ?? '',
       originUrl: detailUrl,
-      evCd: hit.evCd ?? evCdFromUrl,
+      goodsCd: goodsCdForApi,
+      seedEvCd: hit.evCd,
       status,
       rowCount: hit.inputs.length,
       apiError: hit.apiError,
@@ -153,7 +174,8 @@ async function main() {
 
     if ((i + 1) % 10 === 0 || i === products.length - 1) {
       const ok = items.filter((x) => x.status === 'api_ok').length
-      console.log(`[ybtour-api-coverage] ${i + 1}/${products.length} api_ok=${ok}`)
+      const rows = items.reduce((s, x) => s + x.rowCount, 0)
+      console.log(`[ybtour-api-coverage] ${i + 1}/${products.length} api_ok=${ok} rows=${rows}`)
     }
 
     if (i + 1 < products.length && pauseMs > 0) await sleep(pauseMs)
@@ -164,7 +186,7 @@ async function main() {
     api_ok: items.filter((x) => x.status === 'api_ok').length,
     api_empty: items.filter((x) => x.status === 'api_empty').length,
     api_error: items.filter((x) => x.status === 'api_error').length,
-    no_ev_cd: items.filter((x) => x.status === 'no_ev_cd').length,
+    no_goods_cd: items.filter((x) => x.status === 'no_goods_cd').length,
     no_url: items.filter((x) => x.status === 'no_url').length,
     api_ok_rate_pct:
       items.length > 0
@@ -179,7 +201,7 @@ async function main() {
     horizonDays: RULE_A_WINDOW_DAYS,
     fromYmd,
     toYmd,
-    note: 'papi evCd API returns at most one priced row per URL; full calendar requires E2E sweep',
+    note: 'papi by-goods month API — full 180-day horizon per goodsCd',
     summary,
     failures: items.filter((x) => x.status !== 'api_ok').slice(0, 50),
     items,

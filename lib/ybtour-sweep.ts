@@ -1,5 +1,5 @@
 /**
- * ybtour 일1회 sweep — papi evCd API 수집 + 0건 시 E2E(6개월) 검증 + ProductDeparture upsert.
+ * ybtour 일1회 sweep — papi by-goods 월 API 수집 + 0건 시 E2E(6개월) 검증 + ProductDeparture upsert.
  * instrumentation: `lib/instrumentation-ybtour-sweep-cron.ts` (KST 06:00).
  *
  * REGRESSION-FREEZE[ybtour-sweep-e2e-recheck]: API→E2E·7일 재확인·stale 미래출발 정리 — manifest

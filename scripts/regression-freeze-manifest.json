@@ -40,6 +40,12 @@
       "summary": "노랑풍선 lib 허브 SSOT"
     },
     {
+      "id": "ybtour-by-goods-departure-list",
+      "tier": ["ci"],
+      "script": "verify:ybtour-by-goods-price",
+      "summary": "ybtour by-goods 월 API 다출발·/price 교차 검증"
+    },
+    {
       "id": "verygoodtour-lib-ssot",
       "tier": ["prebuild", "ci"],
       "script": "verify:verygoodtour-lib",
@@ -1007,13 +1013,15 @@
     {
       "id": "ybtour-api-departure-collect",
       "tier": ["prebuild", "ci"],
-      "summary": "ybtour papi evCd API 우선 수집·0건 시 E2E 폴백",
+      "summary": "ybtour papi by-goods 월 API 우선 수집·0건 시 E2E 폴백",
       "checks": [
         {
           "file": "lib/ybtour-api-departures.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-api-departure-collect]",
-            "collectYbtourApiDepartureInputsForUrl",
+            "collectYbtourByGoodsApiDepartureInputsForUrl",
+            "resolveYbtourGoodsCdForApi",
+            "enrichYbtourDepartureInputsWithEvCdPrice",
             "papi.ybtour.co.kr"
           ]
         },
@@ -1022,7 +1030,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-api-departure-collect]",
             "collectYbtourPriceInputsWithE2eFallback",
-            "collectYbtourApiDepartureInputsForUrl"
+            "collectYbtourByGoodsApiDepartureInputsForUrl"
           ]
         },
         {
@@ -1034,6 +1042,35 @@
         }
       ],
       "vitestSuites": ["lib/ybtour-api-departures.test.ts", "lib/ybtour-price-collect.test.ts"]
+    },
+    {
+      "id": "ybtour-by-goods-departure-list",
+      "tier": ["prebuild", "ci"],
+      "summary": "ybtour by-goods 월 API 다출발·/price 교차 검증",
+      "checks": [
+        {
+          "file": "lib/ybtour-api-departures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-by-goods-departure-list]",
+            "collectYbtourByGoodsApiDepartureInputsForUrl",
+            "normalizeYbtourGoodsCdForApi",
+            "enrichYbtourDepartureInputsWithEvCdPrice",
+            "/pkg/event/by-goods/"
+          ]
+        },
+        {
+          "file": "lib/ybtour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-by-goods-departure-list]",
+            "collectYbtourByGoodsApiOnlyForDateRange"
+          ]
+        },
+        {
+          "file": "scripts/run-ybtour-by-goods-price-verify.ts",
+          "mustInclude": ["collectYbtourByGoodsApiOnlyForDateRange", "priceApiAdultPrice"]
+        }
+      ],
+      "vitestSuites": ["lib/ybtour-api-departures.test.ts"]
     },
     {
       "id": "supplier-urgent-deal-baseline",
@@ -1116,7 +1153,7 @@
     {
       "id": "ybtour-sweep-e2e-recheck",
       "tier": ["prebuild", "ci"],
-      "summary": "ybtour sweep — papi evCd API·0건 시 E2E 6개월·7일 재확인·stale 출발 정리",
+      "summary": "ybtour sweep — papi by-goods 월 API·0건 시 E2E 6개월·7일 재확인·stale 출발 정리",
       "checks": [
         {
           "file": "lib/ybtour-price-collect.ts",

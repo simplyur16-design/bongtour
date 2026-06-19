@@ -98,6 +98,7 @@
     "verify:regression-freeze:list": "npx tsx scripts/verify-regression-freeze.ts --list",
     "verify:hanatour-lib": "npx tsx scripts/verify-hanatour-lib-ssot.ts",
     "verify:ybtour-lib": "npx tsx scripts/verify-ybtour-lib-ssot.ts",
+    "verify:ybtour-by-goods-price": "tsx scripts/run-ybtour-by-goods-price-verify.ts",
     "verify:verygoodtour-lib": "npx tsx scripts/verify-verygoodtour-lib-ssot.ts",
     "verify:verygoodtour-title": "npx tsx scripts/verify-verygoodtour-listing-title-from-paste.ts",
     "verify:hanatour-atp207": "npx tsx scripts/verify-hanatour-fixture-atp207.ts",

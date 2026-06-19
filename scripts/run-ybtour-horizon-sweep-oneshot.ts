@@ -1,7 +1,7 @@
 /**
  * ybtour registered 전체 — 미래 6개월(180일) 출발·가격 1회성 순차 sweep.
  *
- * SSOT: `lib/ybtour-sweep` `sweepDueYbtourProducts` (papi evCd API → E2E 폴백).
+ * SSOT: `lib/ybtour-sweep` `sweepDueYbtourProducts` (papi by-goods 월 API → E2E 폴백).
  *
  *   npm run db:ybtour-sweep-oneshot
  *   npm run db:ybtour-sweep-oneshot -- --dry-run
