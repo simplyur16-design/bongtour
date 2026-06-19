@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import {
   buildCountryMatchVariants,
+  getApprovedCurationEventsForMonth,
   getEventsForRecommendationMonth,
   monthOverlapsEvent,
   resolveRecommendationEventYear,
@@ -49,6 +50,88 @@ describe('monthOverlapsEvent', () => {
   it('handles year-wrap spans', () => {
     expect(monthOverlapsEvent(12, 11, 2)).toBe(true)
     expect(monthOverlapsEvent(1, 11, 2)).toBe(true)
+  })
+})
+
+describe('getApprovedCurationEventsForMonth', () => {
+  beforeEach(() => {
+    vi.mocked(prisma.curationEvent.findMany).mockReset()
+    vi.mocked(prisma.country.findMany).mockReset()
+    vi.mocked(prisma.country.findMany).mockResolvedValue([
+      { countryKey: 'vietnam', koreanLabel: '베트남' },
+    ] as never)
+  })
+
+  it('returns approved events overlapping monthKey without legacy fallback', async () => {
+    vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([
+      {
+        id: 'ev-1',
+        name: '다낭 불꽃축제',
+        countryCode: '베트남',
+        city: '다낭',
+        startMonth: 6,
+        startDay: null,
+        endMonth: 7,
+        endDay: null,
+        type: 'festival',
+        description: '여름 불꽃',
+        appealReason: null,
+        monthlyCurationContentId: null,
+      },
+    ] as never)
+
+    const events = await getApprovedCurationEventsForMonth('2026-07')
+    expect(events).toHaveLength(1)
+    expect(events[0].id).toBe('ev-1')
+    expect(events[0].source).toBe('curation_event')
+    expect(prisma.curationEvent.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { year: 2026, status: 'approved' },
+      }),
+    )
+  })
+
+  it('filters by countryCode when provided', async () => {
+    vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([
+      {
+        id: 'ev-jp',
+        name: '기온 마츠리',
+        countryCode: '일본',
+        city: '교토',
+        startMonth: 7,
+        startDay: null,
+        endMonth: 7,
+        endDay: null,
+        type: 'festival',
+        description: null,
+        appealReason: null,
+        monthlyCurationContentId: null,
+      },
+      {
+        id: 'ev-vn',
+        name: '다낭 불꽃축제',
+        countryCode: '베트남',
+        city: '다낭',
+        startMonth: 7,
+        startDay: null,
+        endMonth: 7,
+        endDay: null,
+        type: 'festival',
+        description: null,
+        appealReason: null,
+        monthlyCurationContentId: null,
+      },
+    ] as never)
+
+    const events = await getApprovedCurationEventsForMonth('2026-07', '베트남')
+    expect(events).toHaveLength(1)
+    expect(events[0].name).toBe('다낭 불꽃축제')
+  })
+
+  it('returns empty array for invalid monthKey', async () => {
+    const events = await getApprovedCurationEventsForMonth('invalid')
+    expect(events).toEqual([])
+    expect(prisma.curationEvent.findMany).not.toHaveBeenCalled()
   })
 })
 

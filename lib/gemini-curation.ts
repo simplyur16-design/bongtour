@@ -1,6 +1,7 @@
 /**
  * 월별 시즌 큐레이션(MonthlyCurationContent) — Gemini 생성.
  * 키: GEMINI_API_KEY, 모델: gemini-client 기본(GEMINI_MODEL, 기본 gemini-2.5-flash).
+ * PR (가)-5: approved CurationEvent pool 참조 — 프롬프트 주입 + FK 매핑 (옵션).
  */
 import { prisma } from '@/lib/prisma'
 import { extractFirstBalancedJsonArray, stripLlmMarkdownJsonFence } from '@/lib/llm-json-extract'
@@ -10,6 +11,11 @@ import {
   firstSentenceFromText,
   isValidSeasonCurationSubtitle,
 } from '@/lib/season-curation-subline'
+import {
+  getApprovedCurationEventsForMonth,
+  type ApprovedCurationEventRecord,
+} from '@/lib/bong-marketing/curation-event-repository'
+import { countryLabelsMatch } from '@/lib/bong-marketing/global-event-collector'
 
 const CURATION_MODEL = process.env.GEMINI_CURATION_MODEL?.trim() || getModelName()
 const PAGE_SCOPE_OVERSEAS = 'overseas' as const
@@ -127,7 +133,11 @@ async function fetchOverseasProductsDepartingInMonth(monthKey: string): Promise<
   return rows
 }
 
-function buildUserPrompt(targetMonth: string, products: ProductForCuration[]): string {
+function buildUserPrompt(
+  targetMonth: string,
+  products: ProductForCuration[],
+  eventContext?: string,
+): string {
   const lines = products.map((p) => ({
     productId: p.id,
     title: p.title,
@@ -136,6 +146,7 @@ function buildUserPrompt(targetMonth: string, products: ProductForCuration[]): s
     continent: p.continent,
     city: p.city,
   }))
+  const eventSection = eventContext?.trim() ? `\n\n${eventContext.trim()}` : ''
   return `당신은 한국 여행사의 시즌 마케팅 담당자입니다.
 
 대상 월: ${targetMonth} (이 달에 출발 가능한 상품만 후보입니다.)
@@ -153,7 +164,7 @@ ${JSON.stringify(lines, null, 0)}
    - 예시 본문: 지중해의 푸른 바다와 토스카나의 연두빛 구릉이 가장 아름답게 조화를 이루는 시기 같은 뉘앙스
 3) bodyKr은 공백 포함 약 150자 전후(130~170자 권장)로, 왜 이 시즌에 그 여행지가 좋은지 설명하세요.
 4) subtitle은 **필수** — **한 문장**(12~45자). 제목을 반복·요약하지 말 것. "7월 다낭 베트남", "8월 도쿄 일본"처럼 월+도시+국가 나열만 금지. 예: "가장 눈부신 보랏빛 계절을 만나다", "시원한 바람이 머무는 여름의 섬"
-5) ctaLabel은 클릭을 유도하는 짧은 한 줄(예: "이탈리아 상품 보기", "발리 일정 살펴보기").
+5) ctaLabel은 클릭을 유도하는 짧은 한 줄(예: "이탈리아 상품 보기", "발리 일정 살펴보기").${eventSection}
 
 응답 형식: JSON 배열만 출력하세요. 설명 문장·마크다운 코드펜스 없이 배열만.
 각 원소는 다음 키를 가집니다:
@@ -163,6 +174,122 @@ ${JSON.stringify(lines, null, 0)}
 - bodyKr (문자열)
 - ctaLabel (문자열)
 - countryCode (문자열, 한글 국가명이나 짧은 지역 라벨, 예: "이탈리아", "발리", "일본")`
+}
+
+/** PR (가)-5 — Gemini 프롬프트에 주입할 이벤트 컨텍스트 블록 */
+export function buildEventContextBlock(
+  targetMonth: string,
+  events: ApprovedCurationEventRecord[],
+): string {
+  if (!events.length) return ''
+
+  const byCountry = new Map<string, ApprovedCurationEventRecord[]>()
+  for (const event of events) {
+    const list = byCountry.get(event.countryCode) ?? []
+    list.push(event)
+    byCountry.set(event.countryCode, list)
+  }
+
+  const lines: string[] = []
+  for (const [country, list] of byCountry) {
+    lines.push(`${country}:`)
+    for (const event of list.slice(0, 5)) {
+      const desc = event.description?.trim() || event.appealReason?.trim() || ''
+      lines.push(`- ${event.name}${desc ? `: ${desc}` : ''}`)
+    }
+  }
+
+  return `참고 — 이 달(${targetMonth})에 열리는 주요 승인 이벤트:
+${lines.join('\n')}
+위 이벤트 정보를 subtitle 또는 bodyKr에 자연스럽게 녹여 카드 매력도를 높이세요.
+이벤트명을 그대로 나열하지 말고, 여행의 이유·분위기에 스며들게 작성하세요.`
+}
+
+function normalizeLoose(value: string | null | undefined): string {
+  return (value ?? '').trim().toLowerCase()
+}
+
+function textContainsLoose(haystack: string, needle: string): boolean {
+  const h = normalizeLoose(haystack)
+  const n = normalizeLoose(needle)
+  if (!h || !n) return false
+  return h.includes(n)
+}
+
+/** PR (가)-5 — 카드·상품과 가장 잘 맞는 이벤트 1건 선택 (옵션 FK 매핑) */
+export function pickBestEventForCurationCard(
+  events: ApprovedCurationEventRecord[],
+  product: ProductForCuration | undefined,
+  row: CurationLlmRow,
+): ApprovedCurationEventRecord | null {
+  if (!events.length) return null
+
+  let best: ApprovedCurationEventRecord | null = null
+  let bestScore = 0
+
+  for (const event of events) {
+    if (event.monthlyCurationContentId) continue
+
+    let score = 0
+    const productCountry = product?.country?.trim() || ''
+    const rowCountry = row.countryCode?.trim() || ''
+
+    if (productCountry && countryLabelsMatch(productCountry, event.countryCode)) score += 10
+    if (rowCountry && countryLabelsMatch(rowCountry, event.countryCode)) score += 8
+
+    const productCity = product?.city?.trim() || ''
+    const eventCity = event.city?.trim() || ''
+    if (productCity && eventCity && textContainsLoose(productCity, eventCity)) score += 20
+    if (
+      product?.primaryDestination &&
+      eventCity &&
+      textContainsLoose(product.primaryDestination, eventCity)
+    ) {
+      score += 15
+    }
+
+    if (textContainsLoose(row.bodyKr, event.name)) score += 25
+    if (textContainsLoose(row.title, event.name)) score += 12
+    if (event.description && textContainsLoose(row.bodyKr, event.description)) score += 10
+    if (event.appealReason && textContainsLoose(row.bodyKr, event.appealReason)) score += 8
+
+    if (score > bestScore) {
+      bestScore = score
+      best = event
+    }
+  }
+
+  return bestScore >= 8 ? best : null
+}
+
+async function mapEventsToCurationCards(
+  cards: Array<{ contentId: string; productId: string; row: CurationLlmRow }>,
+  events: ApprovedCurationEventRecord[],
+  productById: Map<string, ProductForCuration>,
+): Promise<void> {
+  if (!events.length || !cards.length) return
+
+  const usedEventIds = new Set<string>()
+
+  for (const card of cards) {
+    const product = productById.get(card.productId)
+    const best = pickBestEventForCurationCard(events, product, card.row)
+    if (!best || usedEventIds.has(best.id)) continue
+
+    usedEventIds.add(best.id)
+    await prisma.curationEvent.update({
+      where: { id: best.id },
+      data: { monthlyCurationContentId: card.contentId },
+    })
+  }
+}
+
+async function loadApprovedEventPool(monthKey: string): Promise<ApprovedCurationEventRecord[]> {
+  try {
+    return await getApprovedCurationEventsForMonth(monthKey)
+  } catch {
+    return []
+  }
 }
 
 function normalizeCurationSubtitle(
@@ -227,8 +354,11 @@ export async function generateMonthlyCuration(
     }
   }
 
+  const eventPool = await loadApprovedEventPool(monthKey)
+  const eventContext = buildEventContextBlock(monthKey, eventPool)
+
   const model = getGenAI().getGenerativeModel({ model: CURATION_MODEL })
-  const prompt = buildUserPrompt(monthKey, products)
+  const prompt = buildUserPrompt(monthKey, products, eventContext)
   let text: string
   try {
     const result = await model.generateContent(
@@ -275,6 +405,7 @@ export async function generateMonthlyCuration(
   }
 
   const productById = new Map(products.map((p) => [p.id, p]))
+  const createdCards: Array<{ contentId: string; productId: string; row: CurationLlmRow }> = []
 
   await prisma.$transaction(async (tx) => {
     if (options?.overwrite) {
@@ -288,7 +419,7 @@ export async function generateMonthlyCuration(
       const linkedHref = `/products/${r.productId}`
       const imageUrl = p?.bgImageUrl?.trim() || null
       const imageAlt = r.title.length > 120 ? `${r.title.slice(0, 117)}…` : r.title
-      await tx.monthlyCurationContent.create({
+      const created = await tx.monthlyCurationContent.create({
         data: {
           monthKey,
           pageScope: PAGE_SCOPE_OVERSEAS,
@@ -305,9 +436,17 @@ export async function generateMonthlyCuration(
           isPublished: false,
           sortOrder: i,
         },
+        select: { id: true },
       })
+      createdCards.push({ contentId: created.id, productId: r.productId, row: r })
     }
   })
+
+  try {
+    await mapEventsToCurationCards(createdCards, eventPool, productById)
+  } catch {
+    /* pool FK 매핑 실패해도 카드 생성 결과는 유지 */
+  }
 
   const createdRows = await prisma.monthlyCurationContent.findMany({
     where: { monthKey, pageScope: PAGE_SCOPE_OVERSEAS },

@@ -91,6 +91,12 @@ export interface CurationEventDto {
   source: CurationEventSource
 }
 
+/** PR (가)-5 — 본체 월별 큐레이션 FK 매핑용 */
+export interface ApprovedCurationEventRecord extends CurationEventDto {
+  id: string
+  monthlyCurationContentId: string | null
+}
+
 /** PR (가)-3 dual-read — calendar month vs event span (연말 걸침 포함) */
 export function monthOverlapsEvent(month: number, startMonth: number, endMonth: number): boolean {
   if (month < 1 || month > 12) return false
@@ -177,6 +183,81 @@ async function loadLegacyGlobalEventsForYear(year: number) {
     where: { year },
     orderBy: [{ startMonth: 'asc' }, { startDay: 'asc' }],
   })
+}
+
+function parseMonthKey(monthKey: string): { year: number; month: number } | null {
+  const trimmed = monthKey.trim()
+  if (!/^\d{4}-\d{2}$/.test(trimmed)) return null
+  const [yearStr, monthStr] = trimmed.split('-')
+  const year = parseInt(yearStr, 10)
+  const month = parseInt(monthStr, 10)
+  if (!Number.isFinite(year) || month < 1 || month > 12) return null
+  return { year, month }
+}
+
+/**
+ * PR (가)-5 — 본체 generateMonthlyCuration용 approved pool (legacy fallback 없음).
+ * monthKey(YYYY-MM) + 선택적 countryCode(한글/slug) 기준.
+ */
+export async function getApprovedCurationEventsForMonth(
+  monthKey: string,
+  countryCode?: string,
+): Promise<ApprovedCurationEventRecord[]> {
+  const parsed = parseMonthKey(monthKey)
+  if (!parsed) return []
+
+  const { year, month } = parsed
+
+  try {
+    const labelBySlug = await mergeCountryLabelBySlug()
+    const rows = await prisma.curationEvent.findMany({
+      where: { year, status: 'approved' },
+      orderBy: [{ startMonth: 'asc' }, { startDay: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        countryCode: true,
+        city: true,
+        startMonth: true,
+        startDay: true,
+        endMonth: true,
+        endDay: true,
+        type: true,
+        description: true,
+        appealReason: true,
+        monthlyCurationContentId: true,
+      },
+    })
+
+    const matched = filterByMonthAndCountry(
+      rows.map((r) => ({ ...r, countryLabel: r.countryCode })),
+      month,
+      countryCode,
+      labelBySlug,
+    )
+
+    debugLog('curation-event-repo', 'monthly-curation pool', {
+      monthKey,
+      countryCode,
+      year,
+      month,
+      pool: rows.length,
+      matched: matched.length,
+    })
+
+    return matched.map((row) => ({
+      ...toDtoFromCurationEvent(row),
+      id: row.id,
+      monthlyCurationContentId: row.monthlyCurationContentId,
+    }))
+  } catch (err) {
+    debugLog('curation-event-repo', 'monthly-curation pool error', {
+      monthKey,
+      countryCode,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return []
+  }
 }
 
 /**
