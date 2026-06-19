@@ -941,6 +941,8 @@ async function hanatourPythonCliSingleInvocation(params: {
 
 /**
  * Python `scripts.calendar_e2e_scraper_hanatour.main` — 운영 다월은 **월별 subprocess**로 분할 후 merge.
+ * API 우선: `collectHanatourApiDepartureInputsForMonths` 성공 시 E2E 생략.
+ * REGRESSION-FREEZE[hanatour-api-departure-collect]: gw API→E2E 폴백 — manifest
  */
 export async function collectHanatourDepartureInputs(
   detailUrl: string,
@@ -1021,6 +1023,40 @@ export async function collectHanatourDepartureInputs(
     options?.monthYmsOverride?.length && options.monthYmsOverride.length > 0
       ? options.monthYmsOverride
       : buildHanatourKstTargetMonths(maxMonths)
+
+  if (!stopAfterFirst && monthYms.length > 0) {
+    try {
+      const { parseHanatourPkgCdFromUrl, collectHanatourApiDepartureInputsForMonths } = await import(
+        '@/lib/hanatour-api-departures'
+      )
+      const pkgCdForApi = parseHanatourPkgCdFromUrl(resolvedDetailUrl)
+      if (pkgCdForApi) {
+        const api = await collectHanatourApiDepartureInputsForMonths(pkgCdForApi, monthYms)
+        if (api.inputs.length > 0) {
+          const fill = deriveFillMeta(api.inputs)
+          return {
+            inputs: api.inputs,
+            meta: {
+              filledFields: fill.filledFields,
+              missingFields: fill.missingFields,
+              mappingStatus: 'per-date-confirmed' as const,
+              notes: [
+                `hanatour_api_collect: ${api.inputs.length} rows`,
+                `hanatour_api_airtel_like: ${api.airtelLike}`,
+              ],
+              collectorStatus: 'api_ok',
+            },
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(
+        '[hanatour] api-collect-skip-e2e',
+        err instanceof Error ? err.message : String(err),
+      )
+    }
+  }
+
   const monthParallelism = resolveHanatourE2eMonthParallelism()
   const mergedNotes: string[] = [
     `hanatour_e2e_month_split: ${monthYms.join(',')}`,
@@ -1193,11 +1229,12 @@ function eachYmdInclusiveHanatour(lo: string, hi: string): string[] {
   return out
 }
 
-/** on-demand: `[fromYmd,toYmd]`에 걸친 허용 월만 subprocess 수집 후 구간 일자만 반환. */
+/** on-demand: `[fromYmd,toYmd]`에 걸친 허용 월만 수집 후 구간 일자만 반환. API 우선 → E2E 폴백. */
 export async function collectHanatourDepartureInputsForDateRange(
   detailUrl: string,
   fromYmd: string,
-  toYmd: string
+  toYmd: string,
+  options?: { registeredRawTitle?: string | null },
 ): Promise<DepartureInput[]> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
   const lo = fromYmd <= toYmd ? fromYmd : toYmd
@@ -1211,9 +1248,11 @@ export async function collectHanatourDepartureInputsForDateRange(
     if (validatedYm && allowedYm.has(validatedYm)) ymSet.add(validatedYm)
   }
   if (ymSet.size === 0) return []
-  const res = await collectHanatourDepartureInputs(detailUrl, { monthYmsOverride: [...ymSet].sort() })
-  return res.inputs.filter((x) => {
-    const d = departureInputToYmd(x.departureDate)
-    return d != null && d >= lo && d <= hi
+
+  const { collectHanatourPriceInputsWithE2eFallback } = await import('@/lib/hanatour-price-collect')
+  const collected = await collectHanatourPriceInputsWithE2eFallback(detailUrl, lo, hi, {
+    monthYms: [...ymSet].sort(),
+    registeredRawTitle: options?.registeredRawTitle,
   })
+  return collected.inputs
 }
