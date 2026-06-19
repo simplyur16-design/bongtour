@@ -1,0 +1,36 @@
+name: meta-token-refresh-cron
+
+on:
+  schedule:
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+
+jobs:
+  meta-token-refresh:
+    name: Trigger Meta token refresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping meta-token-refresh endpoint
+        run: |
+          response=$(curl -sf \
+            -X POST \
+            -H "x-bongtour-cron-secret: ${{ secrets.BONGTOUR_CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}" \
+            --max-time 60 \
+            https://bongtour.com/api/cron/meta-token-refresh)
+
+          status=$(echo "$response" | tail -n 1)
+          body=$(echo "$response" | head -n -1)
+
+          echo "HTTP Status: $status"
+          echo "Response Body: $body"
+
+          if [ "$status" -ne 200 ]; then
+            echo "::error::meta-token-refresh failed with status $status"
+            exit 1
+          fi
+
+          echo "::notice::meta-token-refresh succeeded: $body"
