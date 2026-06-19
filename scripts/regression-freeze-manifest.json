@@ -116,7 +116,8 @@
       "id": "mega-menu-ssot-browse",
       "tier": ["ci"],
       "script": "verify:mega-menu-browse",
-      "summary": "메가메뉴 browse SSOT"
+      "requiresDatabase": true,
+      "summary": "메가메뉴 browse SSOT — CI는 DATABASE_URL 없으면 skip (정적 URL은 browse-master-geo→prisma 의존)"
     },
     {
       "id": "sticky-quotation-total",
