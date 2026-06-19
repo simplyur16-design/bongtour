@@ -100,6 +100,13 @@ async function listTargets(prisma: PrismaClient): Promise<SweepTarget[]> {
 }
 
 async function main() {
+  if (!(process.env.HANATOUR_PYTHON_TIMEOUT_MS_PER_MONTH ?? '').trim()) {
+    process.env.HANATOUR_PYTHON_TIMEOUT_MS_PER_MONTH = '180000'
+    console.error(
+      '[oneshot] E2E per-month timeout=180000ms (override: HANATOUR_PYTHON_TIMEOUT_MS_PER_MONTH)',
+    )
+  }
+
   const dryRun = process.argv.includes('--dry-run')
   const resume = process.argv.includes('--resume')
   const fromSlug = readArg('--from-slug')
