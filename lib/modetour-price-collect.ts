@@ -9,6 +9,8 @@ import {
 } from '@/lib/admin-departure-rescrape'
 import {
   collectModetourDepartureInputsForDateRange,
+  fetchModetourGroupDetailInfo,
+  modetourGroupDetailToDepartureInput,
   normalizeModetourPackageDetailUrl,
   parseModetourPackageProductNoFromUrl,
 } from '@/lib/modetour-departures'
@@ -270,6 +272,31 @@ export async function collectModetourPriceInputsWithE2eFallback(
       apiFailedSd1 = true
     } else {
       throw err
+    }
+  }
+
+  if (options?.airHotel && collectOriginUrl) {
+    try {
+      const groupDetail = await fetchModetourGroupDetailInfo(collectOriginUrl)
+      const single = modetourGroupDetailToDepartureInput(groupDetail)
+      const priced = single ? pricedInputsInWindow([single], fromYmd, toYmd) : []
+      if (priced.length > 0) {
+        return {
+          inputs: priced,
+          sourceDates: priced.map((x) => departureInputToYmd(x.departureDate)).filter((d): d is string => d != null),
+          source: 'api',
+          apiFailedSd1,
+          e2eAttempted: false,
+          e2eModalOpenFailed: false,
+          e2eError: null,
+          ...resolveMeta,
+        }
+      }
+    } catch (err) {
+      if (!isModetourSd1NotFoundError(err)) {
+        throw err
+      }
+      apiFailedSd1 = true
     }
   }
 

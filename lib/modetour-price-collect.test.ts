@@ -6,6 +6,7 @@ import {
 
 const scrapeLiveCalendar = vi.fn()
 const collectModetourDepartureInputsForDateRange = vi.fn()
+const fetchModetourGroupDetailInfo = vi.fn()
 const resolveModetourDetailByOriginCode = vi.fn()
 vi.mock('@/lib/admin-departure-rescrape', () => ({
   scrapeLiveCalendar: (...args: unknown[]) => scrapeLiveCalendar(...args),
@@ -32,6 +33,7 @@ vi.mock('@/lib/modetour-departures', async (importOriginal) => {
     ...actual,
     collectModetourDepartureInputsForDateRange: (...args: unknown[]) =>
       collectModetourDepartureInputsForDateRange(...args),
+    fetchModetourGroupDetailInfo: (...args: unknown[]) => fetchModetourGroupDetailInfo(...args),
   }
 })
 
@@ -40,6 +42,7 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
     vi.restoreAllMocks()
     scrapeLiveCalendar.mockReset()
     collectModetourDepartureInputsForDateRange.mockReset()
+    fetchModetourGroupDetailInfo.mockReset()
     resolveModetourDetailByOriginCode.mockReset()
     resolveModetourDetailByOriginCode.mockImplementation(async (_code, opts) => {
       const storedNo = (opts?.storedOriginUrl ?? '').match(/\/package\/(\d+)/)?.[1] ?? null
@@ -178,6 +181,38 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
 
     expect(out.source).toBe('e2e')
     expect(out.inputs).toHaveLength(1)
+  })
+
+  it('airHotel uses GetProductDetailInfo group row when calendar API is SD1', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      text: async () =>
+        JSON.stringify({
+          errorMessages: [{ errorCode: '상품이 존재하지 않습니다. [SD1]' }],
+          isOK: false,
+        }),
+    } as Response)
+
+    fetchModetourGroupDetailInfo.mockResolvedValueOnce({
+      groupNumber: 102323588,
+      departureDate: '2026-08-01',
+      sellingPriceAdultTotalAmount: 579900,
+    })
+
+    const out = await collectModetourPriceInputsWithE2eFallback(
+      'https://www.modetour.com/package/102323588',
+      '2026-06-16',
+      '2026-12-13',
+      { airHotel: true, originCode: 'ADA920TWB4' },
+    )
+
+    expect(out.source).toBe('api')
+    expect(out.inputs).toHaveLength(1)
+    expect(out.inputs[0]?.adultPrice).toBe(579900)
+    expect(out.e2eAttempted).toBe(false)
+    expect(scrapeLiveCalendar).not.toHaveBeenCalled()
+    expect(collectModetourDepartureInputsForDateRange).not.toHaveBeenCalled()
   })
 
   it('airHotel uses full API collector when lightweight returns zero rows', async () => {

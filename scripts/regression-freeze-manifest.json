@@ -770,11 +770,21 @@
       "summary": "modetour sweep — API SD1·0건 시 E2E 6개월 검증·7일 재확인·stale 미래출발 정리",
       "checks": [
         {
+          "file": "lib/modetour-departures.ts",
+          "mustInclude": [
+            "fetchModetourGroupDetailInfo",
+            "modetourGroupDetailToDepartureInput",
+            "REGRESSION-FREEZE[modetour-sweep-e2e-recheck]"
+          ]
+        },
+        {
           "file": "lib/modetour-price-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-sweep-e2e-recheck]",
             "collectModetourPriceInputsWithE2eFallback",
             "resolveModetourDetailByOriginCode",
+            "fetchModetourGroupDetailInfo",
+            "modetourGroupDetailToDepartureInput",
             "scrapeLiveCalendar",
             "airHotel",
             "e2eModalOpenFailed",
@@ -961,6 +971,7 @@
         "lib/calendar-price-horizon.test.ts",
         "lib/modetour-price-collect.test.ts",
         "lib/modetour-origin-code-resolve.test.ts",
+        "lib/modetour-air-hotel-api-collect.test.ts",
         "lib/modetour-price-recheck-meta.test.ts",
         "lib/modetour-sd1-policy.test.ts",
         "lib/modetour-sweep.test.ts",

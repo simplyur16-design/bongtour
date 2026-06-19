@@ -419,6 +419,41 @@ export async function fetchModetourPidDetailInfo(
   return r.result ?? null
 }
 
+/**
+ * 단체번호(productNo) 그룹 상세 — 에어텔/자유여행은 GetOtherDepartureDates SD1이어도 이 API가 살아 있는 경우가 많다.
+ * REGRESSION-FREEZE[modetour-sweep-e2e-recheck]: 에어텔 API 폴백 — manifest
+ */
+export async function fetchModetourGroupDetailInfo(
+  originUrl: string | null | undefined,
+): Promise<Record<string, unknown> | null> {
+  const productNo = parseProductNo(originUrl)
+  if (!productNo) return null
+  const referer = originUrl?.trim() || `https://www.modetour.com/package/${productNo}`
+  const headers = toHeader(referer, productNo)
+  const u = `${MODETOUR_API_BASE.replace(/\/$/, '')}/Package/GetProductDetailInfo?productNo=${encodeURIComponent(productNo)}&companyNo=undefined&companyStaffNo=undefined`
+  const r = await fetchJson<ModetourDetailInfoResponse>(u, headers)
+  return r.result ?? null
+}
+
+/** GetProductDetailInfo 그룹 응답 → 단일 출발 DepartureInput (에어텔 SD1 폴백). */
+export function modetourGroupDetailToDepartureInput(
+  detail: Record<string, unknown> | null | undefined,
+): DepartureInput | null {
+  if (!detail) return null
+  const rawDate = String(detail.departureDate ?? '').trim()
+  const departureDate = rawDate.length >= 10 ? rawDate.slice(0, 10) : rawDate
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(departureDate)) return null
+  const adultPrice = extractModetourPidAdultPriceKrw(detail)
+  if (adultPrice == null) return null
+  const gid = String(detail.groupNumber ?? '').trim()
+  return {
+    departureDate,
+    adultPrice,
+    supplierDepartureCodeCandidate: gid ? `modetour:${gid}` : null,
+    localPriceText: gid ? `modetour:pId=${gid}`.slice(0, 200) : null,
+  }
+}
+
 /** 동시에 너무 많은 요청을 보내지 않도록 청크 단위 병렬 프리패치 */
 const MODETOUR_PID_PREFETCH_CHUNK = 12
 
