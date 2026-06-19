@@ -27,7 +27,9 @@ export function extractModetourProductNoFromPackageUrl(url: string | null | unde
   const direct = parseModetourPackageProductNoFromUrl(url)
   if (direct) return direct
   const m = url.trim().match(PACKAGE_PRODUCT_NO_RE)
-  return m?.[1] ?? null
+  const no = m?.[1] ?? null
+  if (!no || no === '0') return null
+  return no
 }
 
 async function fetchProductNoViaRedirect(
@@ -101,7 +103,7 @@ export async function resolveModetourDetailByOriginCode(
   try {
     const seedUrl = buildModetourPackageUrlFromOriginCode(code)
     const resolved = await fetchProductNoViaRedirect(seedUrl, timeoutMs)
-    if (resolved.productNo) {
+    if (resolved.productNo && resolved.productNo !== '0') {
       const detailUrl =
         resolved.finalUrl?.trim() ||
         `${MODETOUR_WEB_BASE.replace(/\/$/, '')}/package/${resolved.productNo}`

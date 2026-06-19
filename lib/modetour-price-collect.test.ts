@@ -251,7 +251,7 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
     })
 
     const out = await collectModetourPriceInputsWithE2eFallback(
-      'https://www.modetour.com/package/0',
+      'https://www.modetour.com/package/109317452',
       '2026-06-16',
       '2026-12-13',
       { singleDeparture: true, originCode: 'NWQ210KEF1' },

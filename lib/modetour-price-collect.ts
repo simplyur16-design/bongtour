@@ -242,17 +242,25 @@ export async function collectModetourPriceInputsWithE2eFallback(
   const resolved = await resolveModetourDetailByOriginCode(options?.originCode, {
     storedOriginUrl: originUrl,
   })
+  const storedProductNo = parseModetourPackageProductNoFromUrl(originUrl)
+  const resolvedProductNo =
+    resolved.productNo && resolved.productNo !== '0' ? resolved.productNo : null
   const collectOriginUrl =
-    resolved.detailUrl?.trim() ||
+    (resolvedProductNo ? `https://www.modetour.com/package/${resolvedProductNo}` : null) ||
     normalizeModetourPackageDetailUrl(originUrl) ||
     originUrl?.trim() ||
     null
   const canonicalUrl = normalizeModetourPackageDetailUrl(collectOriginUrl)
   const apiOriginUrl = options?.airHotel && canonicalUrl ? canonicalUrl : collectOriginUrl
   const resolveMeta = {
-    resolvedDetailUrl: canonicalUrl ?? resolved.detailUrl,
-    resolvedProductNo: resolved.productNo,
-    detailResolveSource: resolved.source,
+    resolvedDetailUrl: canonicalUrl ?? collectOriginUrl,
+    resolvedProductNo: resolvedProductNo ?? storedProductNo,
+    detailResolveSource:
+      resolvedProductNo && resolved.source === 'origin-code-redirect'
+        ? resolved.source
+        : storedProductNo
+          ? 'stored-origin-url'
+          : resolved.source,
   }
 
   const tryGroupDetailSingle = async (): Promise<ModetourPriceCollectResult | null> => {

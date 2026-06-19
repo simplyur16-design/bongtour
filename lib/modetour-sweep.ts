@@ -87,6 +87,7 @@ function modetourOriginUrlNeedsRefresh(
   if (!resolved) return false
   const storedNo = parseModetourPackageProductNoFromUrl(storedOriginUrl)
   const resolvedNo = resolvedProductNo?.trim() || parseModetourPackageProductNoFromUrl(resolved)
+  if (!resolvedNo || resolvedNo === '0') return false
   if (storedNo && resolvedNo && storedNo !== resolvedNo) return true
   return (storedOriginUrl?.trim() || '') !== resolved
 }
@@ -108,8 +109,13 @@ function modetourResolvedOriginPatch(
     return {}
   }
   const patch: { originUrl?: string; supplierGroupId?: string } = {}
-  if (collected.resolvedDetailUrl?.trim()) patch.originUrl = collected.resolvedDetailUrl.trim()
-  if (collected.resolvedProductNo?.trim()) patch.supplierGroupId = collected.resolvedProductNo.trim()
+  const resolvedNo =
+    collected.resolvedProductNo?.trim() ||
+    parseModetourPackageProductNoFromUrl(collected.resolvedDetailUrl)
+  if (collected.resolvedDetailUrl?.trim() && resolvedNo && resolvedNo !== '0') {
+    patch.originUrl = collected.resolvedDetailUrl.trim()
+  }
+  if (resolvedNo && resolvedNo !== '0') patch.supplierGroupId = resolvedNo
   return patch
 }
 

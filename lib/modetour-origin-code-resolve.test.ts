@@ -19,6 +19,7 @@ describe('extractModetourProductNoFromPackageUrl', () => {
     expect(extractModetourProductNoFromPackageUrl('https://www.modetour.com/package/107583036')).toBe(
       '107583036',
     )
+    expect(extractModetourProductNoFromPackageUrl('https://www.modetour.com/package/0')).toBeNull()
   })
 })
 

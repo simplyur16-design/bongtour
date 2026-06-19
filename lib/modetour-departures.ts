@@ -248,13 +248,16 @@ function parseProductNo(originUrl: string | null | undefined): string | null {
   try {
     const u = new URL(originUrl)
     const pnum = u.searchParams.get('pnum')?.trim()
-    if (pnum && /^\d+$/.test(pnum)) return pnum
+    if (pnum && /^\d+$/.test(pnum) && pnum !== '0') return pnum
     const m = u.pathname.match(/\/package\/(\d+)/i)
-    if (m?.[1]) return m[1]
-    return null
+    const no = m?.[1] ?? null
+    if (!no || no === '0') return null
+    return no
   } catch {
     const m = String(originUrl).match(/\/package\/(\d+)/i)
-    return m?.[1] ?? null
+    const no = m?.[1] ?? null
+    if (!no || no === '0') return null
+    return no
   }
 }
 
