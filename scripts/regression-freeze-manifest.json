@@ -1076,6 +1076,44 @@
       "vitestSuites": ["lib/supplier-urgent-deal.test.ts"]
     },
     {
+      "id": "hanatour-sweep-e2e-recheck",
+      "tier": ["prebuild", "ci"],
+      "summary": "hanatour sweep — API 0건 시 E2E 6개월 검증·7일 재확인·stale 미래출발 정리",
+      "checks": [
+        {
+          "file": "lib/hanatour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-sweep-e2e-recheck]",
+            "collectHanatourPriceInputsWithE2eFallback",
+            "collectHanatourApiOnlyForDateRange"
+          ]
+        },
+        {
+          "file": "lib/hanatour-price-recheck-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-sweep-e2e-recheck]",
+            "HANATOUR_HORIZON_RECHECK_DAYS = 7",
+            "hanatourNextPriceRecheckYmd"
+          ]
+        },
+        {
+          "file": "lib/hanatour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-sweep-e2e-recheck]",
+            "collectHanatourPriceInputsWithE2eFallback",
+            "isHanatourPriceRecheckDue",
+            "syncSupplierUrgentDealForProduct",
+            "upsertProductDepartures"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-hanatour-sweep-cron.ts",
+          "mustInclude": ["sweepDueHanatourProducts", "DISABLE_INSTRUMENTATION_HANATOUR_SWEEP_CRON"]
+        }
+      ],
+      "vitestSuites": ["lib/hanatour-sweep.test.ts"]
+    },
+    {
       "id": "verygoodtour-e2e-expired-url-guard",
       "tier": ["prebuild", "ci"],
       "summary": "참좋은여행 E2E — stale URL HEAD skip·Playwright product-expired phase",
@@ -1210,6 +1248,7 @@
         "lib/single-departure-product-ssot.test.ts",
         "lib/register-facts/modetour.test.ts",
         "lib/modetour-sweep.test.ts",
+        "lib/hanatour-sweep.test.ts",
         "lib/product-image-source-attribution.test.ts",
         "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
         "lib/supplier-product-title-display.test.ts",

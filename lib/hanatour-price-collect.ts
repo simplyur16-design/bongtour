@@ -2,6 +2,7 @@
  * 하나투어 가격 수집 — gw.hanatour.com API 우선, 0건 시 E2E 폴백.
  *
  * REGRESSION-FREEZE[hanatour-api-departure-collect]: API→E2E 폴백 — manifest
+ * REGRESSION-FREEZE[hanatour-sweep-e2e-recheck]: sweep·7일 재확인 — manifest
  */
 import {
   collectHanatourApiDepartureInputsForMonths,
