@@ -20,6 +20,8 @@ export type CurationEventStatus = 'draft' | 'approved' | 'rejected'
 export interface EventLookupOptions {
   /** trip-recommender Product.country slug → 한글 라벨 */
   countryLabels?: Record<string, string>
+  /** PR (가)-6.1 — 추천 카드 도시 (prefer 모드: 전국 + 해당 도시만) */
+  city?: string
   /** 롤링 추천 월 → 이벤트 year 해석 (기본: now) */
   referenceDate?: Date
 }
@@ -73,6 +75,77 @@ function rowMatchesCountry(
   return variants.some((v) => countryLabelsMatch(v, eventCountryLabel))
 }
 
+/** 전국·광역 이벤트 city 표기 — 카드 도시 무관 매칭 */
+const NATIONWIDE_CITY_LABELS = new Set([
+  '전국',
+  '전역',
+  '전체',
+  '국가전체',
+  'nationwide',
+  'national',
+  'countrywide',
+])
+
+function normalizeCityToken(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[·・]/g, '')
+}
+
+function splitEventCityParts(eventCity: string): string[] {
+  return eventCity
+    .split(/[,，、/·・]+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+}
+
+function cityTokenPairMatch(recommendationCity: string, eventCityPart: string): boolean {
+  const rec = normalizeCityToken(recommendationCity)
+  const evt = normalizeCityToken(eventCityPart)
+  if (!rec || !evt) return false
+  if (rec === evt) return true
+  return evt.includes(rec) || rec.includes(evt)
+}
+
+/** event.city가 전국·광역·비어 있음 → 모든 카드에 매칭 */
+export function isNationwideCurationEventCity(city: string | null | undefined): boolean {
+  if (city == null || !city.trim()) return true
+  return NATIONWIDE_CITY_LABELS.has(normalizeCityToken(city))
+}
+
+/**
+ * PR (가)-6.1 — 추천 카드 city ↔ CurationEvent.city (prefer 모드, default).
+ * REGRESSION-FREEZE[trip-rec-curation-event-city-match]: 전국/null 허용 + 도시 일치/부분일치만 — manifest
+ *
+ * 우선순위:
+ * 1. event.city 전국·전역·null → 매칭
+ * 2. 카드·이벤트 도시 정확 일치
+ * 3. 부분 일치 (예: '도쿄' ↔ '도쿄, 시부야')
+ * 4. 그 외 제외
+ */
+export function cityLabelsMatch(
+  recommendationCity: string | undefined,
+  eventCity: string | null | undefined,
+): boolean {
+  if (isNationwideCurationEventCity(eventCity)) return true
+  const rec = recommendationCity?.trim()
+  if (!rec) return true
+
+  const evt = eventCity!.trim()
+  const parts = splitEventCityParts(evt)
+  if (parts.some((part) => cityTokenPairMatch(rec, part))) return true
+  return cityTokenPairMatch(rec, evt)
+}
+
+function rowMatchesCity(
+  recommendationCity: string | undefined,
+  eventCity: string | null | undefined,
+): boolean {
+  return cityLabelsMatch(recommendationCity, eventCity)
+}
+
 async function mergeCountryLabelBySlug(
   countryLabelsFromProducts?: Record<string, string>,
 ): Promise<Record<string, string>> {
@@ -111,6 +184,23 @@ export function monthOverlapsEvent(month: number, startMonth: number, endMonth: 
   if (month < 1 || month > 12) return false
   if (startMonth <= endMonth) return month >= startMonth && month <= endMonth
   return month >= startMonth || month <= endMonth
+}
+
+function filterByMonthCountryAndCity<
+  T extends { startMonth: number; endMonth: number; countryLabel: string; city: string | null },
+>(
+  rows: T[],
+  month: number,
+  country: string | undefined,
+  recommendationCity: string | undefined,
+  labelBySlug: Record<string, string>,
+): T[] {
+  return rows.filter((row) => {
+    if (!monthOverlapsEvent(month, row.startMonth, row.endMonth)) return false
+    if (!rowMatchesCountry(country, row.countryLabel, labelBySlug)) return false
+    if (!rowMatchesCity(recommendationCity, row.city)) return false
+    return true
+  })
 }
 
 function filterByMonthAndCountry<T extends { startMonth: number; endMonth: number; countryLabel: string }>(
@@ -246,18 +336,21 @@ export async function getEventsForRecommendationMonth(
   const referenceDate = options?.referenceDate ?? new Date()
   const year = resolveRecommendationEventYear(month, referenceDate)
   const labelBySlug = await mergeCountryLabelBySlug(options?.countryLabels)
+  const recommendationCity = options?.city
 
   const curationRows = await loadCurationEventsForYear(year)
-  const matchedNew = filterByMonthAndCountry(
+  const matchedNew = filterByMonthCountryAndCity(
     curationRows.map((r) => ({ ...r, countryLabel: r.countryCode })),
     month,
     country,
+    recommendationCity,
     labelBySlug,
   )
 
   debugLog('curation-event-repo', 'lookup', {
     month,
     country,
+    city: recommendationCity,
     year,
     curationPool: curationRows.length,
     matchedNew: matchedNew.length,

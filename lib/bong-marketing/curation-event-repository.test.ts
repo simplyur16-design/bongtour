@@ -1,8 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import {
   buildCountryMatchVariants,
+  cityLabelsMatch,
   getApprovedCurationEventsForMonth,
   getEventsForRecommendationMonth,
+  isNationwideCurationEventCity,
   monthOverlapsEvent,
   resolveRecommendationEventYear,
 } from '@/lib/bong-marketing/curation-event-repository'
@@ -49,6 +51,33 @@ describe('monthOverlapsEvent', () => {
   it('handles year-wrap spans', () => {
     expect(monthOverlapsEvent(12, 11, 2)).toBe(true)
     expect(monthOverlapsEvent(1, 11, 2)).toBe(true)
+  })
+})
+
+describe('cityLabelsMatch (PR 가-6.1)', () => {
+  it('matches nationwide / null event cities to any card city', () => {
+    expect(isNationwideCurationEventCity(null)).toBe(true)
+    expect(isNationwideCurationEventCity('')).toBe(true)
+    expect(isNationwideCurationEventCity('전국')).toBe(true)
+    expect(isNationwideCurationEventCity('전역')).toBe(true)
+    expect(cityLabelsMatch('삿포로', null)).toBe(true)
+    expect(cityLabelsMatch('삿포로', '전국')).toBe(true)
+  })
+
+  it('matches exact city names', () => {
+    expect(cityLabelsMatch('삿포로', '삿포로')).toBe(true)
+    expect(cityLabelsMatch('도쿄', '도쿄')).toBe(true)
+  })
+
+  it('matches partial city in comma-separated event city', () => {
+    expect(cityLabelsMatch('도쿄', '도쿄, 시부야')).toBe(true)
+    expect(cityLabelsMatch('시부야', '도쿄, 시부야')).toBe(true)
+  })
+
+  it('excludes mismatched cities', () => {
+    expect(cityLabelsMatch('삿포로', '도쿄')).toBe(false)
+    expect(cityLabelsMatch('삿포로', '교토')).toBe(false)
+    expect(cityLabelsMatch('삿포로', '니이가타')).toBe(false)
   })
 })
 
@@ -226,5 +255,112 @@ describe('getEventsForRecommendationMonth', () => {
       referenceDate: new Date('2026-06-15'),
     })
     expect(events).toEqual([])
+  })
+
+  it('filters by card city — Sapporo gets only Sapporo + nationwide events', async () => {
+    vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([
+      {
+        name: '삿포로 눈축제',
+        countryCode: '일본',
+        city: '삿포로',
+        startMonth: 2,
+        startDay: null,
+        endMonth: 2,
+        endDay: null,
+        type: 'festival',
+        description: null,
+        appealReason: null,
+      },
+      {
+        name: '스미다가와 불꽃축제',
+        countryCode: '일본',
+        city: '도쿄',
+        startMonth: 7,
+        startDay: null,
+        endMonth: 7,
+        endDay: null,
+        type: 'festival',
+        description: null,
+        appealReason: null,
+      },
+      {
+        name: '기온 마츠리',
+        countryCode: '일본',
+        city: '교토',
+        startMonth: 7,
+        startDay: null,
+        endMonth: 7,
+        endDay: null,
+        type: 'festival',
+        description: null,
+        appealReason: null,
+      },
+      {
+        name: '후지 록 페스티벌',
+        countryCode: '일본',
+        city: '니이가타',
+        startMonth: 7,
+        startDay: null,
+        endMonth: 7,
+        endDay: null,
+        type: 'festival',
+        description: null,
+        appealReason: null,
+      },
+      {
+        name: '오봉제',
+        countryCode: '일본',
+        city: '전국',
+        startMonth: 7,
+        startDay: null,
+        endMonth: 7,
+        endDay: null,
+        type: 'holiday',
+        description: null,
+        appealReason: null,
+      },
+    ] as never)
+
+    const events = await getEventsForRecommendationMonth(7, '일본', {
+      city: '삿포로',
+      referenceDate: new Date('2026-06-15'),
+    })
+    expect(events.map((e) => e.name)).toEqual(['오봉제'])
+  })
+
+  it('includes Tokyo partial-match events for Tokyo card', async () => {
+    vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([
+      {
+        name: '스미다가와 불꽃축제',
+        countryCode: '일본',
+        city: '도쿄, 시부야',
+        startMonth: 7,
+        startDay: null,
+        endMonth: 7,
+        endDay: null,
+        type: 'festival',
+        description: null,
+        appealReason: null,
+      },
+      {
+        name: '기온 마츠리',
+        countryCode: '일본',
+        city: '교토',
+        startMonth: 7,
+        startDay: null,
+        endMonth: 7,
+        endDay: null,
+        type: 'festival',
+        description: null,
+        appealReason: null,
+      },
+    ] as never)
+
+    const events = await getEventsForRecommendationMonth(7, '일본', {
+      city: '도쿄',
+      referenceDate: new Date('2026-06-15'),
+    })
+    expect(events).toHaveLength(1)
+    expect(events[0].name).toBe('스미다가와 불꽃축제')
   })
 })

@@ -698,9 +698,11 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
 
     let events: TripRecommendationEvent[] = []
     try {
+      // REGRESSION-FREEZE[trip-rec-curation-event-city-match]: 카드 city 전달 — manifest
       const matched = await getGlobalEventsForRecommendationMonth(month, country, {
         countryLabels,
         referenceDate: now,
+        city,
       })
       events = matched.map((e) => ({
         name: e.name,

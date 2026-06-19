@@ -789,6 +789,35 @@
           ]
         }
       ]
+    },
+    {
+      "id": "trip-rec-curation-event-city-match",
+      "tier": ["prebuild", "ci"],
+      "summary": "추천 카드 🌐 — CurationEvent city prefer 매칭 (전국+해당 도시만)",
+      "checks": [
+        {
+          "file": "lib/bong-marketing/curation-event-repository.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[trip-rec-curation-event-city-match]",
+            "export function cityLabelsMatch",
+            "filterByMonthCountryAndCity"
+          ]
+        },
+        {
+          "file": "lib/bong-marketing/trip-recommender.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[trip-rec-curation-event-city-match]",
+            "city,"
+          ]
+        },
+        {
+          "file": "lib/bong-marketing/curation-event-repository.test.ts",
+          "mustInclude": [
+            "filters by card city",
+            "삿포로"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
