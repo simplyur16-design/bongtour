@@ -2,6 +2,9 @@
  * 등록→저장 체인 회귀: 항공 병합 / 옵션 detail+final / 쇼핑 경고 / 공개 가격 4슬롯.
  * 실행: npx tsx scripts/verify-register-detail-final-chain.ts
  *
+ * `upsert-product-departures-hanatour`는 `notification-service`→`prisma`를 끌어온다.
+ * CI(DATABASE_URL 없음)에서는 해당 구간만 동적 import 스킵 — 나머지 assert는 정적(DB 무관).
+ *
  * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  */
 import assert from 'node:assert/strict'
@@ -16,7 +19,6 @@ import {
 import { shouldEmitShoppingBothEmptyExtractionIssue } from '../lib/review-policy-hanatour'
 import { computeKRWQuotationPublic, getPublicPerPaxUnitKrw } from '../lib/price-utils'
 import { mergeProductPriceRowsWithBodyPriceTable } from '../lib/product-departure-to-price-rows-hanatour'
-import { parsedPricesToDepartureInputs } from '../lib/upsert-product-departures-hanatour'
 import { resolveFlightDisplayPolicy } from '../lib/admin-flight-profile'
 import { tryParseModetourFlightLines } from '../lib/flight-modetour-parser'
 import { extractProductPriceTableByLabels } from '../lib/product-price-table-extract'
@@ -297,18 +299,6 @@ function baseDetailRow(over: Partial<Parameters<typeof buildOptionalToursStructu
   assert.equal(out[1]!.childBed, 55)
 }
 
-// —— 가격: 등록 prices[] → DepartureInput — child*Base 없으면 필드 생략(upsert에서 adult 폴백) ——
-{
-  const ins = parsedPricesToDepartureInputs([
-    { date: '2026-03-01', adultBase: 1_000_000, adultFuel: 0, childFuel: 0 },
-    { date: '2026-03-10', adultBase: 1_100_000, adultFuel: 0, childFuel: 0 },
-    { date: '2026-03-20', adultBase: 1_000_000, adultFuel: 0, childBedBase: 800_000, childFuel: 0 },
-  ])
-  assert.equal(ins[0]!.childBedPrice, undefined)
-  assert.equal(ins[1]!.childBedPrice, undefined)
-  assert.equal(ins[2]!.childBedPrice, 800_000)
-}
-
 // —— 가격: 성인가 전 출발 동일이면 본문 표로 아동·유아 채움 유지 ——
 {
   const rows: ProductPriceRow[] = [
@@ -420,4 +410,32 @@ function baseDetailRow(over: Partial<Parameters<typeof buildOptionalToursStructu
   )
 }
 
-console.log('verify-register-detail-final-chain: OK')
+function databaseUrlConfigured(): boolean {
+  return Boolean((process.env.DATABASE_URL ?? '').trim())
+}
+
+async function runUpsertDepartureInputAssertions(): Promise<void> {
+  const { parsedPricesToDepartureInputs } = await import('../lib/upsert-product-departures-hanatour')
+  const ins = parsedPricesToDepartureInputs([
+    { date: '2026-03-01', adultBase: 1_000_000, adultFuel: 0, childFuel: 0 },
+    { date: '2026-03-10', adultBase: 1_100_000, adultFuel: 0, childFuel: 0 },
+    { date: '2026-03-20', adultBase: 1_000_000, adultFuel: 0, childBedBase: 800_000, childFuel: 0 },
+  ])
+  assert.equal(ins[0]!.childBedPrice, undefined)
+  assert.equal(ins[1]!.childBedPrice, undefined)
+  assert.equal(ins[2]!.childBedPrice, 800_000)
+}
+
+void (async () => {
+  if (databaseUrlConfigured()) {
+    await runUpsertDepartureInputAssertions()
+  } else {
+    console.warn(
+      '[verify-register-detail-final-chain] skip upsert-product-departures-hanatour assertions (DATABASE_URL unset — CI static tier)',
+    )
+  }
+  console.log('verify-register-detail-final-chain: OK')
+})().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})
