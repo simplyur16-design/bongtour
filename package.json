@@ -28,6 +28,8 @@
     "db:modetour-sweep-oneshot": "tsx scripts/run-modetour-horizon-sweep-oneshot.ts",
     "db:hanatour-api-coverage": "tsx scripts/run-hanatour-horizon-api-coverage.ts",
     "db:hanatour-sweep-oneshot": "tsx scripts/run-hanatour-horizon-sweep-oneshot.ts",
+    "db:ybtour-api-coverage": "tsx scripts/run-ybtour-horizon-api-coverage.ts",
+    "db:ybtour-sweep-oneshot": "tsx scripts/run-ybtour-horizon-sweep-oneshot.ts",
     "db:backfill-detail-payload": "tsx scripts/backfill-product-public-detail-payload.ts --after-backup",
     "db:backfill-detail-payload:missing": "tsx scripts/backfill-product-public-detail-payload.ts --missing-only --after-backup",
     "db:refresh-product-titles": "tsx scripts/refresh-product-titles-from-db.ts",

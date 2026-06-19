@@ -1114,6 +1114,44 @@
       "vitestSuites": ["lib/hanatour-sweep.test.ts"]
     },
     {
+      "id": "ybtour-sweep-e2e-recheck",
+      "tier": ["prebuild", "ci"],
+      "summary": "ybtour sweep — papi evCd API·0건 시 E2E 6개월·7일 재확인·stale 출발 정리",
+      "checks": [
+        {
+          "file": "lib/ybtour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-sweep-e2e-recheck]",
+            "collectYbtourPriceInputsWithE2eFallback",
+            "collectYbtourApiOnlyForDateRange"
+          ]
+        },
+        {
+          "file": "lib/ybtour-price-recheck-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-sweep-e2e-recheck]",
+            "YBTOUR_HORIZON_RECHECK_DAYS = 7",
+            "ybtourNextPriceRecheckYmd"
+          ]
+        },
+        {
+          "file": "lib/ybtour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-sweep-e2e-recheck]",
+            "collectYbtourPriceInputsWithE2eFallback",
+            "isYbtourPriceRecheckDue",
+            "syncSupplierUrgentDealForProduct",
+            "upsertProductDepartures"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-ybtour-sweep-cron.ts",
+          "mustInclude": ["sweepDueYbtourProducts", "DISABLE_INSTRUMENTATION_YBTOUR_SWEEP_CRON"]
+        }
+      ],
+      "vitestSuites": ["lib/ybtour-sweep.test.ts"]
+    },
+    {
       "id": "verygoodtour-e2e-expired-url-guard",
       "tier": ["prebuild", "ci"],
       "summary": "참좋은여행 E2E — stale URL HEAD skip·Playwright product-expired phase",
@@ -1249,6 +1287,7 @@
         "lib/register-facts/modetour.test.ts",
         "lib/modetour-sweep.test.ts",
         "lib/hanatour-sweep.test.ts",
+        "lib/ybtour-sweep.test.ts",
         "lib/product-image-source-attribution.test.ts",
         "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
         "lib/supplier-product-title-display.test.ts",

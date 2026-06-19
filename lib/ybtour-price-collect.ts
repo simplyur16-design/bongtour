@@ -2,6 +2,7 @@
  * ybtour 가격 수집 — papi evCd API 우선, 0건·구간 밖 시 E2E 폴백.
  *
  * REGRESSION-FREEZE[ybtour-api-departure-collect]: API→E2E 폴백 — manifest
+ * REGRESSION-FREEZE[ybtour-sweep-e2e-recheck]: sweep·7일 재확인 — manifest
  */
 import {
   collectYbtourApiDepartureInputsForUrl,
@@ -15,6 +16,31 @@ export type YbtourPriceCollectResult = {
   inputs: DepartureInput[]
   source: YbtourPriceCollectSource | null
   e2eAttempted: boolean
+}
+
+export type YbtourApiOnlyCollectResult = {
+  inputs: DepartureInput[]
+  evCd: string | null
+  apiError: string | null
+}
+
+/** API만 — E2E 없음. 커버리지·sweep 사전 검증용 (URL evCd 1행). */
+export async function collectYbtourApiOnlyForDateRange(
+  detailUrl: string,
+  fromYmd: string,
+  toYmd: string,
+): Promise<YbtourApiOnlyCollectResult> {
+  try {
+    const api = await collectYbtourApiDepartureInputsForUrl(detailUrl)
+    const priced = filterYbtourInputsInYmdWindow(api.inputs, fromYmd, toYmd)
+    return { inputs: priced, evCd: api.evCd, apiError: null }
+  } catch (err) {
+    return {
+      inputs: [],
+      evCd: null,
+      apiError: (err instanceof Error ? err.message : String(err)).slice(0, 400),
+    }
+  }
 }
 
 export async function collectYbtourPriceInputsWithE2eFallback(
