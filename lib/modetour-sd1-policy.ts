@@ -38,6 +38,17 @@ export function isModetourSd1AutoUnpublishEligible(
   return true
 }
 
+/** @deprecated `isModetourSd1AutoUnpublishEligible` — modetour-sweep 회귀 테스트·호환 alias */
+export function shouldModetourSweepRetireOnSd1(
+  product: {
+    listingKind?: string | null
+    productType?: string | null
+  },
+  options?: ModetourSd1AutoUnpublishOptions,
+): boolean {
+  return isModetourSd1AutoUnpublishEligible(product, options)
+}
+
 /** @deprecated `productHasFuturePricedDeparture` — modetour sweep 호환 alias */
 export async function modetourProductHasFuturePricedDeparture(
   prisma: PrismaClient,

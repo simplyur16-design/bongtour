@@ -1,4 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: {},
+}))
+
 import {
   finalizeProductPublicDetailPayloadJson,
   PRODUCT_PUBLIC_DETAIL_PAYLOAD_MAX_BYTES,

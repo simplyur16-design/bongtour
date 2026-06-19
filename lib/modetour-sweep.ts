@@ -61,17 +61,6 @@ type SweepProductRow = {
   rawMeta: string | null
 }
 
-/** @deprecated `isModetourSd1AutoUnpublishEligible` — 회귀 테스트 호환 alias */
-export function shouldModetourSweepRetireOnSd1(
-  product: {
-    listingKind?: string | null
-    productType?: string | null
-  },
-  options?: { hasFuturePricedDeparture?: boolean },
-): boolean {
-  return isModetourSd1AutoUnpublishEligible(product, options)
-}
-
 function ymdToUtcMidnight(ymd: string): Date {
   return new Date(`${ymd}T00:00:00.000Z`)
 }

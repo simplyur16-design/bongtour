@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { shouldModetourSweepRetireOnSd1 } from '@/lib/modetour-sweep'
+import { shouldModetourSweepRetireOnSd1 } from '@/lib/modetour-sd1-policy'
 
 describe('shouldModetourSweepRetireOnSd1', () => {
   it('retires travel packages on SD1', () => {

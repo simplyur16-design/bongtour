@@ -3,7 +3,14 @@
  *
  * REGRESSION-FREEZE[modetour-sweep-e2e-recheck]: API→E2E 폴백·7일 재확인 — manifest
  */
-import { addDaysUtcYmd } from '@/lib/product-sales-policy'
+
+/** YMD(`YYYY-MM-DD`) ± delta 일. UTC 기준 — `product-sales-policy.addDaysUtcYmd`와 동일(무거운 import 회피). */
+function addDaysUtcYmd(ymd: string, deltaDays: number): string {
+  const [y, m, d] = ymd.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d))
+  dt.setUTCDate(dt.getUTCDate() + deltaDays)
+  return dt.toISOString().slice(0, 10)
+}
 
 export const MODETOUR_HORIZON_RECHECK_DAYS = 7
 
