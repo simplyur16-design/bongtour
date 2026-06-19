@@ -194,6 +194,69 @@ export function parseEventsWithFallback(
   return { ...parsed, coverageGaps }
 }
 
+/** PR (가)-4.6 — 이벤트명 fuzzy match용 정규화 */
+export function normalizeEventName(name: string): string {
+  return name
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/페스티벌$/i, '축제')
+    .replace(/마쯔리/g, '마츠리')
+    .trim()
+}
+
+function eventMonthRangesOverlap(
+  aStart: number,
+  aEnd: number,
+  bStart: number,
+  bEnd: number,
+): boolean {
+  for (let month = 1; month <= 12; month++) {
+    if (
+      monthOverlapsEvent(month, aStart, aEnd) &&
+      monthOverlapsEvent(month, bStart, bEnd)
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
+/** 정규화 후 동일·포함·토큰 겹침으로 같은 이벤트 판별 */
+export function normalizedEventNamesMatch(a: string, b: string): boolean {
+  const na = normalizeEventName(a).toLowerCase()
+  const nb = normalizeEventName(b).toLowerCase()
+  if (!na || !nb) return false
+  if (na === nb) return true
+  if (na.includes(nb) || nb.includes(na)) return true
+
+  const tokensA = na.split(' ').filter((t) => t.length > 1)
+  const tokensB = nb.split(' ').filter((t) => t.length > 1)
+  const shorter = tokensA.length <= tokensB.length ? tokensA : tokensB
+  const longer = tokensA.length > tokensB.length ? tokensA : tokensB
+  if (shorter.length < 2) return false
+  const overlap = shorter.filter((t) =>
+    longer.some((l) => l.includes(t) || t.includes(l)),
+  ).length
+  return overlap / shorter.length >= 0.6
+}
+
+function buildEventNameFormatRules(): string {
+  return `
+이벤트 이름(name) 표기 규칙 (중복 방지 — **한 이벤트당 표기 1가지만**):
+- 한국에서 가장 일반적으로 쓰는 **공식 한국어 표기 1가지**만 사용
+- 도시명을 이름 앞에 붙이지 마세요 (X "뮌헨 옥토버페스트" → O "옥토버페스트")
+- 괄호 안 영문 원어 병기 금지 (X "옥토버페스트 (Oktoberfest)" → O "옥토버페스트")
+- 축제/페스티벌 표기 통일 — 한국어 **축제** 우선 (고유명사 "재즈 페스티벌" 등은 예외)
+- 마쯔리/마츠리 → **마츠리**로 통일 (한국 표준 외래어 표기법)
+- 이름 끝에 불필요한 " 축제" 중복 금지 (X "단오절 용선 축제" → O "단오절")
+- 같은 이벤트를 여러 변형으로 쓰지 마세요
+
+부정 예시 (같은 이벤트 변형 — 금지):
+- X "퀸스타운 윈터 페스티벌" + "퀸스타운 겨울 축제"
+- X "타이베이 101 신년 불꽃놀이" + "신년 불꽃축제" + "신년 맞이 불꽃놀이"
+- O 위 예시는 **한 가지 표기**로만 출력`.trim()
+}
+
 function buildPrioritySingleCountryPrompt(country: string, year: number): string {
   return `당신은 한국인 대상 해외여행 큐레이션 전문가입니다.
 
@@ -207,10 +270,12 @@ function buildPrioritySingleCountryPrompt(country: string, year: number): string
 - description·appealReason 각 1문장 이내
 - **반드시 유효한 JSON 전체 출력** — 마지막 객체까지 닫고 \`}\` 완성
 
+${buildEventNameFormatRules()}
+
 월별 예시 (일본이면 참고):
 - 1월: 신년·삿포로 눈축제
 - 2월: 홋카이도 눈축제·요코하마 딸기
-- 8월: 오봉·여름 마쯔리·불꽃대회
+- 8월: 오봉·여름 마츠리·불꽃대회
 
 응답 JSON만:
 {
@@ -245,6 +310,8 @@ ${countryList}
 - description·appealReason 각 1문장 이내
 - **반드시 유효한 JSON 전체 출력**
 - 토큰 한계 임박 시 국가 수를 줄이지 말고 이벤트 수를 줄여 완전한 JSON으로 마무리
+
+${buildEventNameFormatRules()}
 
 응답 JSON만:
 {
@@ -320,13 +387,11 @@ function appendCoverageGapErrors(
   }
 }
 
-async function upsertCollectedEvent(
+export async function findSimilarEvent(
   event: CollectedEvent,
   year: number,
-): Promise<'created' | 'updated' | 'skipped_approved'> {
-  const monthKey = `${year}-${String(event.startMonth).padStart(2, '0')}`
-
-  const existing = await prisma.curationEvent.findUnique({
+): Promise<{ id: string; status: string } | null> {
+  const exact = await prisma.curationEvent.findUnique({
     where: {
       name_countryCode_year: {
         name: event.name,
@@ -336,6 +401,62 @@ async function upsertCollectedEvent(
     },
     select: { id: true, status: true },
   })
+  if (exact) return exact
+
+  if (event.city?.trim()) {
+    const bySlot = await prisma.curationEvent.findFirst({
+      where: {
+        countryCode: event.country,
+        year,
+        city: event.city.trim(),
+        startMonth: event.startMonth,
+        endMonth: event.endMonth,
+        type: event.type,
+      },
+      select: { id: true, status: true },
+    })
+    if (bySlot) return bySlot
+  }
+
+  const candidates = await prisma.curationEvent.findMany({
+    where: { countryCode: event.country, year },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      startMonth: true,
+      endMonth: true,
+      type: true,
+    },
+  })
+
+  for (const row of candidates) {
+    if (row.type !== event.type) continue
+    if (
+      !eventMonthRangesOverlap(
+        event.startMonth,
+        event.endMonth,
+        row.startMonth,
+        row.endMonth,
+      )
+    ) {
+      continue
+    }
+    if (normalizedEventNamesMatch(event.name, row.name)) {
+      return row
+    }
+  }
+
+  return null
+}
+
+async function upsertCollectedEvent(
+  event: CollectedEvent,
+  year: number,
+): Promise<'created' | 'updated' | 'skipped_approved'> {
+  const monthKey = `${year}-${String(event.startMonth).padStart(2, '0')}`
+
+  const existing = await findSimilarEvent(event, year)
 
   if (existing?.status === 'approved') {
     return 'skipped_approved'

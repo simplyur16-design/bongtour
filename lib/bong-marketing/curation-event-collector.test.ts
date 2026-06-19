@@ -3,6 +3,9 @@ import {
   analyzeMonthCoverageGaps,
   buildCurationEventBatchPlan,
   CURATION_EVENT_COUNTRY_BATCH_SIZE,
+  findSimilarEvent,
+  normalizedEventNamesMatch,
+  normalizeEventName,
   PRIORITY_COUNTRIES,
   getCurationEventTargetCountries,
   parseEventsWithFallback,
@@ -16,6 +19,8 @@ vi.mock('@/lib/prisma', () => ({
     country: { findMany: vi.fn() },
     curationEvent: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
     },
@@ -28,6 +33,112 @@ vi.mock('@/lib/bong-marketing/gemini-generate', () => ({
 
 import { prisma } from '@/lib/prisma'
 import { generateGeminiTextResponse } from '@/lib/bong-marketing/gemini-generate'
+
+function resetCurationEventMocks() {
+  vi.mocked(prisma.curationEvent.findUnique).mockReset()
+  vi.mocked(prisma.curationEvent.findFirst).mockReset()
+  vi.mocked(prisma.curationEvent.findMany).mockReset()
+  vi.mocked(prisma.curationEvent.create).mockReset()
+  vi.mocked(prisma.curationEvent.update).mockReset()
+  vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue(null)
+  vi.mocked(prisma.curationEvent.findFirst).mockResolvedValue(null)
+  vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([])
+}
+
+describe('normalizeEventName', () => {
+  it('strips parentheses and normalizes festival spelling', () => {
+    expect(normalizeEventName('옥토버페스트 (Oktoberfest)')).toBe('옥토버페스트')
+    expect(normalizeEventName('후지 록 페스티벌')).toBe('후지 록 축제')
+    expect(normalizeEventName('기온 마쯔리')).toBe('기온 마츠리')
+  })
+})
+
+describe('normalizedEventNamesMatch', () => {
+  it('matches city-prefixed and parenthetical variants', () => {
+    expect(normalizedEventNamesMatch('뮌헨 옥토버페스트', '옥토버페스트 (Oktoberfest)')).toBe(
+      true,
+    )
+    expect(
+      normalizedEventNamesMatch('타이베이 101 신년 불꽃놀이', '타이베이 101 신년 맞이 불꽃놀이'),
+    ).toBe(true)
+  })
+
+  it('does not match unrelated events', () => {
+    expect(normalizedEventNamesMatch('옥토버페스트', '크리스마스 마켓')).toBe(false)
+  })
+})
+
+describe('findSimilarEvent', () => {
+  beforeEach(() => {
+    resetCurationEventMocks()
+  })
+
+  it('returns exact match first', async () => {
+    vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue({
+      id: 'exact-id',
+      status: 'draft',
+    } as never)
+
+    const found = await findSimilarEvent(
+      {
+        name: '옥토버페스트',
+        country: '독일',
+        city: '뮌헨',
+        startMonth: 9,
+        endMonth: 10,
+        type: 'festival',
+      },
+      2026,
+    )
+    expect(found?.id).toBe('exact-id')
+    expect(prisma.curationEvent.findFirst).not.toHaveBeenCalled()
+  })
+
+  it('matches same city month type slot with different name', async () => {
+    vi.mocked(prisma.curationEvent.findFirst).mockResolvedValue({
+      id: 'slot-id',
+      status: 'draft',
+    } as never)
+
+    const found = await findSimilarEvent(
+      {
+        name: '뮌헨 옥토버페스트',
+        country: '독일',
+        city: '뮌헨',
+        startMonth: 9,
+        endMonth: 10,
+        type: 'festival',
+      },
+      2026,
+    )
+    expect(found?.id).toBe('slot-id')
+  })
+
+  it('matches normalized name among country candidates', async () => {
+    vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([
+      {
+        id: 'name-id',
+        name: '옥토버페스트',
+        status: 'draft',
+        startMonth: 9,
+        endMonth: 10,
+        type: 'festival',
+      },
+    ] as never)
+
+    const found = await findSimilarEvent(
+      {
+        name: '뮌헨 옥토버페스트 (Oktoberfest)',
+        country: '독일',
+        startMonth: 9,
+        endMonth: 10,
+        type: 'festival',
+      },
+      2026,
+    )
+    expect(found?.id).toBe('name-id')
+  })
+})
 
 describe('sortCountriesByPriority', () => {
   it('places priority countries first in defined order', () => {
@@ -113,9 +224,7 @@ describe('refreshCurationEvents', () => {
   beforeEach(() => {
     vi.mocked(prisma.product.groupBy).mockReset()
     vi.mocked(prisma.country.findMany).mockReset()
-    vi.mocked(prisma.curationEvent.findUnique).mockReset()
-    vi.mocked(prisma.curationEvent.create).mockReset()
-    vi.mocked(prisma.curationEvent.update).mockReset()
+    resetCurationEventMocks()
     vi.mocked(generateGeminiTextResponse).mockReset()
   })
 
@@ -160,7 +269,6 @@ describe('refreshCurationEvents', () => {
         ],
       })
     })
-    vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.curationEvent.create).mockResolvedValue({} as never)
 
     const result = await refreshCurationEvents()
@@ -201,7 +309,6 @@ describe('refreshCurationEvents', () => {
       "endMonth": 8,
       "type": "festival",
       "description": "unterminated`)
-    vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.curationEvent.create).mockResolvedValue({} as never)
 
     const result = await refreshCurationEvents()
@@ -222,7 +329,7 @@ describe('refreshCurationEvents', () => {
     ).toBe(true)
   })
 
-  it('updates existing events via upsert path', async () => {
+  it('updates existing events via exact upsert path', async () => {
     vi.mocked(prisma.product.groupBy).mockResolvedValue([
       { country: '베트남', _count: { _all: 1 } },
     ] as never)
@@ -239,7 +346,10 @@ describe('refreshCurationEvents', () => {
         ],
       }),
     )
-    vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue({ id: 'existing-id' } as never)
+    vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue({
+      id: 'existing-id',
+      status: 'draft',
+    } as never)
     vi.mocked(prisma.curationEvent.update).mockResolvedValue({} as never)
 
     const result = await refreshCurationEvents()
@@ -248,6 +358,97 @@ describe('refreshCurationEvents', () => {
     expect(result.skippedDuplicates).toBe(1)
     expect(prisma.curationEvent.update).toHaveBeenCalledTimes(1)
     expect(prisma.curationEvent.create).not.toHaveBeenCalled()
+  })
+
+  it('updates fuzzy city+month+type match instead of creating duplicate', async () => {
+    vi.mocked(prisma.product.groupBy).mockResolvedValue([
+      { country: '독일', _count: { _all: 1 } },
+    ] as never)
+    vi.mocked(generateGeminiTextResponse).mockResolvedValue(
+      JSON.stringify({
+        events: [
+          {
+            name: '뮌헨 옥토버페스트',
+            country: '독일',
+            city: '뮌헨',
+            startMonth: 9,
+            endMonth: 10,
+            type: 'festival',
+          },
+        ],
+      }),
+    )
+    vi.mocked(prisma.curationEvent.findFirst).mockResolvedValue({
+      id: 'slot-id',
+      status: 'draft',
+    } as never)
+    vi.mocked(prisma.curationEvent.update).mockResolvedValue({} as never)
+
+    const result = await refreshCurationEvents()
+    expect(result.saved).toBe(0)
+    expect(result.skippedDuplicates).toBe(1)
+    expect(prisma.curationEvent.create).not.toHaveBeenCalled()
+    expect(prisma.curationEvent.update).toHaveBeenCalledTimes(1)
+  })
+
+  it('updates fuzzy normalized name match instead of creating duplicate', async () => {
+    vi.mocked(prisma.product.groupBy).mockResolvedValue([
+      { country: '독일', _count: { _all: 1 } },
+    ] as never)
+    vi.mocked(generateGeminiTextResponse).mockResolvedValue(
+      JSON.stringify({
+        events: [
+          {
+            name: '뮌헨 옥토버페스트 (Oktoberfest)',
+            country: '독일',
+            startMonth: 9,
+            endMonth: 10,
+            type: 'festival',
+          },
+        ],
+      }),
+    )
+    vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([
+      {
+        id: 'name-id',
+        name: '옥토버페스트',
+        status: 'draft',
+        startMonth: 9,
+        endMonth: 10,
+        type: 'festival',
+      },
+    ] as never)
+    vi.mocked(prisma.curationEvent.update).mockResolvedValue({} as never)
+
+    const result = await refreshCurationEvents()
+    expect(result.saved).toBe(0)
+    expect(result.skippedDuplicates).toBe(1)
+    expect(prisma.curationEvent.create).not.toHaveBeenCalled()
+  })
+
+  it('creates when no similar event exists', async () => {
+    vi.mocked(prisma.product.groupBy).mockResolvedValue([
+      { country: '독일', _count: { _all: 1 } },
+    ] as never)
+    vi.mocked(generateGeminiTextResponse).mockResolvedValue(
+      JSON.stringify({
+        events: [
+          {
+            name: '크리스마스 마켓',
+            country: '독일',
+            city: '뉘른베르크',
+            startMonth: 12,
+            endMonth: 12,
+            type: 'festival',
+          },
+        ],
+      }),
+    )
+    vi.mocked(prisma.curationEvent.create).mockResolvedValue({} as never)
+
+    const result = await refreshCurationEvents()
+    expect(result.saved).toBe(1)
+    expect(prisma.curationEvent.create).toHaveBeenCalledTimes(1)
   })
 
   it('skips approved rows without overwriting', async () => {

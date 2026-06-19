@@ -20,6 +20,8 @@ vi.mock('@/lib/prisma', () => ({
     },
     curationEvent: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
     },
@@ -146,6 +148,8 @@ describe('refreshGlobalEvents', () => {
     vi.mocked(prisma.product.groupBy).mockReset()
     vi.mocked(prisma.country.findMany).mockReset()
     vi.mocked(prisma.curationEvent.findUnique).mockReset()
+    vi.mocked(prisma.curationEvent.findFirst).mockReset()
+    vi.mocked(prisma.curationEvent.findMany).mockReset()
     vi.mocked(prisma.curationEvent.create).mockReset()
     vi.mocked(prisma.curationEvent.update).mockReset()
     vi.mocked(generateGeminiTextResponse).mockReset()
@@ -181,6 +185,8 @@ describe('refreshGlobalEvents', () => {
       })
     })
     vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.curationEvent.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([])
     vi.mocked(prisma.curationEvent.create).mockResolvedValue({} as never)
 
     const result = await refreshGlobalEvents()
