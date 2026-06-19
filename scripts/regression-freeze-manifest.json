@@ -67,7 +67,7 @@
       "id": "supplier-pipeline-alignment",
       "tier": ["ci"],
       "script": "verify:supplier-pipeline",
-      "summary": "4공급사 등록 파이프라인 정렬 (DB 필요 — CI만)"
+      "summary": "4공급사 등록 파이프라인 정렬 — CI는 DATABASE_URL 없으면 정적 구간만, DB 있으면 실측"
     },
     {
       "id": "bongtour-product-title-r5",

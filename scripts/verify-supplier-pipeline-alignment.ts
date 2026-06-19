@@ -8,9 +8,11 @@
  * 붙여넣기 본문 vs HTTP canonical 키: `docs/register-supplier-extraction-spec.md` 「표기·키 SSOT (요약)」.
  *
  *   npx tsx scripts/verify-supplier-pipeline-alignment.ts
+ *
+ * DATABASE_URL 없음(CI): DB 실측 구간 스킵 — `sectionSyntheticFmcAndKeys` 등 정적 검증만 수행.
  */
 import assert from 'node:assert/strict'
-import { prisma } from '../lib/prisma'
+import type { PrismaClient } from '@prisma/client'
 import {
   parseProductRawMetaPublic,
   parseShoppingStopsJson,
@@ -50,7 +52,11 @@ function stableJson(v: unknown): string {
 
 type BrandRow = { brandKey: string }
 
-async function oneProduct(brandKey: string) {
+function databaseUrlConfigured(): boolean {
+  return Boolean((process.env.DATABASE_URL ?? '').trim())
+}
+
+async function oneProduct(prisma: PrismaClient, brandKey: string) {
   const brand = await prisma.brand.findFirst({ where: { brandKey } as { brandKey: string } })
   if (!brand) return null
   return prisma.product.findFirst({
@@ -64,7 +70,7 @@ async function oneProduct(brandKey: string) {
   })
 }
 
-async function anyYellowballoonProduct() {
+async function anyYellowballoonProduct(prisma: PrismaClient) {
   const brand = await prisma.brand.findFirst({ where: { brandKey: 'yellowballoon' } })
   if (!brand) return null
   return prisma.product.findFirst({
@@ -119,6 +125,17 @@ function resolveOptionalLikePage(
 }
 
 async function main() {
+  if (!databaseUrlConfigured()) {
+    sectionSyntheticFmcAndKeys()
+    console.warn(
+      '[verify-supplier-pipeline-alignment] skip DB probes (DATABASE_URL unset — CI static tier)',
+    )
+    console.log('\nverify-supplier-pipeline-alignment: OK')
+    return
+  }
+
+  const { prisma } = await import('../lib/prisma')
+
   const brands = await prisma.brand.findMany({ select: { brandKey: true } })
   console.log('DB brands:', brands.map((b: BrandRow) => b.brandKey).sort().join(', '))
 
@@ -126,7 +143,7 @@ async function main() {
   const out: Record<string, unknown> = {}
 
   for (const bk of targets) {
-    const p = await oneProduct(bk)
+    const p = await oneProduct(prisma, bk)
     if (!p) {
       out[bk] = { note: 'no registered product for brand' }
       console.log(`\n=== ${bk} ===\n`, out[bk])
@@ -206,7 +223,7 @@ async function main() {
     console.log(`\n=== ${bk} ===\n`, JSON.stringify(out[bk], null, 2))
   }
 
-  const ybLegacy = await anyYellowballoonProduct()
+  const ybLegacy = await anyYellowballoonProduct(prisma)
   out._yellowballoonLegacy = ybLegacy
     ? {
         productId: ybLegacy.id,
@@ -288,10 +305,13 @@ function sectionSyntheticFmcAndKeys() {
 
 main().catch(async (e) => {
   console.error(e)
-  try {
-    await prisma.$disconnect()
-  } catch {
-    /* ignore */
+  if (databaseUrlConfigured()) {
+    try {
+      const { prisma } = await import('../lib/prisma')
+      await prisma.$disconnect()
+    } catch {
+      /* ignore */
+    }
   }
   process.exit(1)
 })
