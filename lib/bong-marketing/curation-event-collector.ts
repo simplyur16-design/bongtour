@@ -12,6 +12,7 @@ import {
 import {
   type CurationEventRefreshOptions,
   resolveCurationEventTargetCountries,
+  resolveCountryLabelsToKorean,
 } from '@/lib/bong-marketing/curation-event-target-countries'
 
 export type { CurationEventRefreshOptions, CurationEventTargetMode } from '@/lib/bong-marketing/curation-event-target-countries'
@@ -20,6 +21,8 @@ export { getCurationCountries, resolveCurationEventTargetCountries } from '@/lib
 const CURATION_EVENT_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 /** Gemini 출력 토큰 한계 회피 — 일반 국가 3개국씩 배치 */
 export const CURATION_EVENT_COUNTRY_BATCH_SIZE = 3
+/** PR (가)-6.3 — 핵심 국가 2개국씩 배치 (12 단독 → 6회) */
+export const PRIORITY_COUNTRY_BATCH_SIZE = 2
 const COUNTRY_BATCH_SIZE = CURATION_EVENT_COUNTRY_BATCH_SIZE
 const CURATION_EVENT_MAX_OUTPUT_TOKENS = 16_384
 const MAX_EVENTS_PER_COUNTRY = 8
@@ -63,8 +66,10 @@ export interface CurationEventCollectResult extends CurationEventCollectResultBa
   reviewNotice?: string
   /** approved 기존 row 스킵 (덮어쓰기 방지) */
   skippedApproved?: number
-  /** 핵심 국가 단독 호출 수 */
+  /** 핵심 국가 2개국 배치 호출 수 (구 priorityCallsRun) */
   priorityCallsRun?: number
+  /** PR (가)-6.3 — skipRecent로 제외된 국가 수 */
+  skippedRecentCountries?: number
   /** PR (가)-6 — 갱신 대상 모드 */
   targetMode?: import('@/lib/bong-marketing/curation-event-target-countries').CurationEventTargetMode
   /** curation 모드에서 Product 국가로 대체된 경우 */
@@ -121,17 +126,17 @@ function isPriorityCountry(country: string): boolean {
   return PRIORITY_COUNTRIES.some((c) => normalizeCountryLabel(c) === key)
 }
 
-/** 핵심 국가 단독 + 일반 국가 3개국 배치 실행 계획 */
+/** 핵심 국가 2개국 배치 + 일반 국가 3개국 배치 실행 계획 */
 export function buildCurationEventBatchPlan(countries: string[]): Array<{
   countries: string[]
-  mode: 'priority_single' | 'batch'
+  mode: 'priority_pair' | 'batch'
 }> {
   const priorityInTarget = countries.filter(isPriorityCountry)
   const nonPriority = countries.filter((c) => !isPriorityCountry(c))
 
-  const plan: Array<{ countries: string[]; mode: 'priority_single' | 'batch' }> = []
-  for (const country of priorityInTarget) {
-    plan.push({ countries: [country], mode: 'priority_single' })
+  const plan: Array<{ countries: string[]; mode: 'priority_pair' | 'batch' }> = []
+  for (const batch of chunkArray(priorityInTarget, PRIORITY_COUNTRY_BATCH_SIZE)) {
+    plan.push({ countries: batch, mode: 'priority_pair' })
   }
   for (const batch of chunkArray(nonPriority, COUNTRY_BATCH_SIZE)) {
     plan.push({ countries: batch, mode: 'batch' })
@@ -268,32 +273,28 @@ function buildEventNameFormatRules(): string {
 - O 위 예시는 **한 가지 표기**로만 출력`.trim()
 }
 
-function buildPrioritySingleCountryPrompt(country: string, year: number): string {
+function buildPriorityPairCountriesPrompt(countries: string[], year: number): string {
+  const countryList = countries.join(' + ')
   return `당신은 한국인 대상 해외여행 큐레이션 전문가입니다.
 
-**${country}** 단일 국가의 ${year}년 해외 이벤트·축제를 **12개월 골고루** 수집하세요.
+**핵심 목적지 ${countryList}** (${year}년) — **각 국가별** 12개월 골고루 이벤트·축제 수집.
 
 필수 규칙:
-- **1~12월 모든 월에 골고루 분포** — 여름·겨울 비수기(1·2·8월 등)에도 한국인이 가볼 만한 이벤트 **반드시** 포함
-- **최소 ${MIN_EVENTS_PER_COUNTRY}개 이벤트**, **12개월 중 ${MIN_MONTHS_COVERED_PER_COUNTRY}개월 이상** 커버
-- country 필드는 "${country}" 와 정확히 일치 (한국어)
+- **국가당 1~12월 골고루 분포** — 1·2·8월 등 비수기 포함
+- **국가당 최소 ${MIN_EVENTS_PER_COUNTRY}개**, **8개월 이상** 커버
+- country 필드는 "${countries[0]}" / "${countries[1] ?? countries[0]}" 한국어명과 정확히 일치
 - type: "festival" | "holiday" | "season" | "sale" | "special"
 - description·appealReason 각 1문장 이내
-- **반드시 유효한 JSON 전체 출력** — 마지막 객체까지 닫고 \`}\` 완성
+- **반드시 유효한 JSON 전체 출력**
 
 ${buildEventNameFormatRules()}
-
-월별 예시 (일본이면 참고):
-- 1월: 신년·삿포로 눈축제
-- 2월: 홋카이도 눈축제·요코하마 딸기
-- 8월: 오봉·여름 마츠리·불꽃대회
 
 응답 JSON만:
 {
   "events": [
     {
       "name": "이벤트명",
-      "country": "${country}",
+      "country": "국가명",
       "city": "도시",
       "startMonth": 1,
       "endMonth": 2,
@@ -344,17 +345,17 @@ ${buildEventNameFormatRules()}
 async function collectEventsForCountryBatch(
   countries: string[],
   year: number,
-  mode: 'priority_single' | 'batch',
+  mode: 'priority_pair' | 'batch',
 ): Promise<{ events: CollectedEvent[]; rawPreview: string; partial: boolean; rawText: string; coverageGaps: MonthCoverageGap[] }> {
   const countryList = countries.join(', ')
   const systemPrompt =
-    mode === 'priority_single'
-      ? buildPrioritySingleCountryPrompt(countries[0], year)
+    mode === 'priority_pair'
+      ? buildPriorityPairCountriesPrompt(countries, year)
       : buildBatchCountriesPrompt(countries, year)
 
   const userPrompt =
-    mode === 'priority_single'
-      ? `${year}년 ${countries[0]} 12개월 분포 이벤트 JSON (최소 ${MIN_EVENTS_PER_COUNTRY}개, 1·2·8월 포함, 완전한 JSON 필수).`
+    mode === 'priority_pair'
+      ? `${year}년 ${countryList} 핵심 2개국 배치 — 국가당 ${MIN_EVENTS_PER_COUNTRY}개·8개월 이상·1·2·8월 포함 JSON.`
       : `${year}년 ${countryList} 해외 이벤트 JSON (국가당 ${MIN_EVENTS_PER_COUNTRY}개·8개월 이상 커버, 완전한 JSON 필수).`
 
   const rawText = await generateGeminiTextResponse({
@@ -508,6 +509,57 @@ async function upsertCollectedEvent(
   return 'created'
 }
 
+/** 국가별 최근 collectedAt (CurationEvent row 기준) */
+export async function getLastCollectedAtByCountry(): Promise<Map<string, Date>> {
+  const rows = await prisma.curationEvent.groupBy({
+    by: ['countryCode'],
+    _max: { collectedAt: true },
+  })
+  const map = new Map<string, Date>()
+  for (const row of rows) {
+    const at = row._max.collectedAt
+    if (at) map.set(normalizeCountryLabel(row.countryCode), at)
+  }
+  return map
+}
+
+/** PR (가)-6.3 — recentDays 이내 수집된 국가 제외 */
+export function filterCountriesByRecentCollection(
+  countries: string[],
+  lastCollectedByCountry: Map<string, Date>,
+  recentDays: number,
+  now = new Date(),
+): { included: string[]; skipped: string[] } {
+  const cutoffMs = now.getTime() - recentDays * 24 * 60 * 60 * 1000
+  const included: string[] = []
+  const skipped: string[] = []
+  for (const country of countries) {
+    const last = lastCollectedByCountry.get(normalizeCountryLabel(country))
+    if (last && last.getTime() >= cutoffMs) {
+      skipped.push(country)
+    } else {
+      included.push(country)
+    }
+  }
+  return { included, skipped }
+}
+
+/** 추천 국가를 갱신 목록 앞쪽으로 */
+export function prioritizeCountriesForRefresh(
+  countries: string[],
+  priorityCountries: string[],
+): string[] {
+  if (!priorityCountries.length) return countries
+  const priorityKeys = new Set(priorityCountries.map(normalizeCountryLabel))
+  const front: string[] = []
+  const rest: string[] = []
+  for (const c of countries) {
+    if (priorityKeys.has(normalizeCountryLabel(c))) front.push(c)
+    else rest.push(c)
+  }
+  return [...front, ...rest]
+}
+
 async function saveBatchEvents(
   events: CollectedEvent[],
   year: number,
@@ -538,6 +590,7 @@ async function saveBatchEvents(
 export async function refreshCurationEvents(
   options?: CurationEventRefreshOptions,
 ): Promise<CurationEventCollectResult> {
+  // REGRESSION-FREEZE[curation-event-collect-efficiency]: 2개국 배치·skipRecent — manifest
   const year = new Date().getFullYear()
   const result: CurationEventCollectResult = {
     countries: [],
@@ -567,13 +620,42 @@ export async function refreshCurationEvents(
     return result
   }
 
-  const countries = resolved.countries
+  let countries = resolved.countries
+
+  if (options?.prioritizeRecommendationCities && options.targetCountries?.length) {
+    countries = prioritizeCountriesForRefresh(
+      countries,
+      await resolveCountryLabelsToKorean(options.targetCountries),
+    )
+  }
+
+  if (options?.skipRecent) {
+    const recentDays = options.recentDays ?? 30
+    const lastByCountry = await getLastCollectedAtByCountry()
+    const { included, skipped } = filterCountriesByRecentCollection(
+      countries,
+      lastByCountry,
+      recentDays,
+    )
+    result.skippedRecentCountries = skipped.length
+    countries = included
+    if (skipped.length) {
+      debugLog(
+        'curation-event',
+        `skipRecent ${recentDays}일 — ${skipped.length}개국 스킵`,
+        skipped.slice(0, 10),
+      )
+    }
+  }
+
   result.countries = countries
 
   if (!countries.length) {
     result.errorDetails.push({
       stage: 'no_countries',
-      message: '등록 상품에서 국가를 찾지 못했습니다.',
+      message: options?.skipRecent
+        ? '갱신 대상 국가가 없습니다 (최근 수집 스킵 후 0개).'
+        : '등록 상품에서 국가를 찾지 못했습니다.',
     })
     result.errors = result.errorDetails.length
     debugLog('curation-event', '봉투어 Product 국가 없음')
@@ -583,12 +665,12 @@ export async function refreshCurationEvents(
   const batchPlan = buildCurationEventBatchPlan(countries)
   debugLog(
     'curation-event',
-    `${countries.length}개 국가, 핵심 단독 ${batchPlan.filter((b) => b.mode === 'priority_single').length}회 + 일반 배치 ${batchPlan.filter((b) => b.mode === 'batch').length}회`,
+    `${countries.length}개 국가, 핵심 2개국 배치 ${batchPlan.filter((b) => b.mode === 'priority_pair').length}회 + 일반 배치 ${batchPlan.filter((b) => b.mode === 'batch').length}회`,
   )
 
   for (const { countries: batch, mode } of batchPlan) {
     result.batchesRun++
-    if (mode === 'priority_single') result.priorityCallsRun = (result.priorityCallsRun ?? 0) + 1
+    if (mode === 'priority_pair') result.priorityCallsRun = (result.priorityCallsRun ?? 0) + 1
 
     const batchLabel = batch.join(', ')
     let rawText = ''
@@ -600,7 +682,7 @@ export async function refreshCurationEvents(
 
       if (result.rawResponseSamples && result.rawResponseSamples.length < 3) {
         result.rawResponseSamples.push(
-          `[${mode === 'priority_single' ? '핵심' : '배치'}:${batchLabel}]${partial ? ' (partial)' : ''} ${rawPreview}`,
+          `[${mode === 'priority_pair' ? '핵심2' : '배치'}:${batchLabel}]${partial ? ' (partial)' : ''} ${rawPreview}`,
         )
       }
 
@@ -620,7 +702,7 @@ export async function refreshCurationEvents(
 
       debugLog(
         'curation-event',
-        `${mode === 'priority_single' ? '핵심' : '배치'} 저장 ${events.length}건${partial ? ' (부분 salvage)' : ''}: ${batchLabel}`,
+        `${mode === 'priority_pair' ? '핵심2' : '배치'} 저장 ${events.length}건${partial ? ' (부분 salvage)' : ''}: ${batchLabel}`,
       )
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)

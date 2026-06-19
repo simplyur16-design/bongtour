@@ -3,6 +3,7 @@ import {
   analyzeMonthCoverageGaps,
   buildCurationEventBatchPlan,
   CURATION_EVENT_COUNTRY_BATCH_SIZE,
+  PRIORITY_COUNTRY_BATCH_SIZE,
   findSimilarEvent,
   normalizedEventNamesMatch,
   normalizeEventName,
@@ -161,11 +162,16 @@ describe('sortCountriesByPriority', () => {
 })
 
 describe('buildCurationEventBatchPlan', () => {
-  it('runs priority countries as single-country calls', () => {
+  it('runs priority countries as 2-country pair batches', () => {
     const plan = buildCurationEventBatchPlan(['일본', '베트남', '체코', '폴란드', '헝가리'])
-    expect(plan.filter((p) => p.mode === 'priority_single')).toHaveLength(2)
-    expect(plan.find((p) => p.countries[0] === '일본')?.mode).toBe('priority_single')
+    expect(plan.filter((p) => p.mode === 'priority_pair')).toHaveLength(1)
+    expect(plan.find((p) => p.countries.includes('일본'))?.mode).toBe('priority_pair')
+    expect(plan.find((p) => p.countries.includes('일본'))?.countries).toEqual(['일본', '베트남'])
     expect(plan.filter((p) => p.mode === 'batch')).toHaveLength(1)
+  })
+
+  it('PRIORITY_COUNTRY_BATCH_SIZE is 2', () => {
+    expect(PRIORITY_COUNTRY_BATCH_SIZE).toBe(2)
   })
 })
 
@@ -284,27 +290,21 @@ describe('refreshCurationEvents', () => {
     expect(generateGeminiTextResponse).toHaveBeenCalledTimes(1)
   })
 
-  it('saves all events from valid JSON response', async () => {
+  it('uses priority pair batch for two priority countries', async () => {
     vi.mocked(prisma.product.groupBy).mockResolvedValue([
       { country: '일본', _count: { _all: 1 } },
       { country: '베트남', _count: { _all: 1 } },
     ] as never)
-    vi.mocked(generateGeminiTextResponse).mockImplementation(async ({ userPrompt }) => {
-      if (userPrompt.includes('일본')) {
-        return JSON.stringify({
-          events: [
-            {
-              name: '후지 록 페스티벌',
-              country: '일본',
-              startMonth: 7,
-              endMonth: 7,
-              type: 'festival',
-            },
-          ],
-        })
-      }
-      return JSON.stringify({
+    vi.mocked(generateGeminiTextResponse).mockResolvedValue(
+      JSON.stringify({
         events: [
+          {
+            name: '후지 록 페스티벌',
+            country: '일본',
+            startMonth: 7,
+            endMonth: 7,
+            type: 'festival',
+          },
           {
             name: '다낭 불꽃축제',
             country: '베트남',
@@ -313,16 +313,16 @@ describe('refreshCurationEvents', () => {
             type: 'festival',
           },
         ],
-      })
-    })
+      }),
+    )
     vi.mocked(prisma.curationEvent.create).mockResolvedValue({} as never)
 
     const result = await refreshCurationEvents()
-    expect(result.batchesRun).toBe(2)
-    expect(result.priorityCallsRun).toBe(2)
+    expect(result.batchesRun).toBe(1)
+    expect(result.priorityCallsRun).toBe(1)
     expect(result.collected).toBe(2)
     expect(result.saved).toBe(2)
-    expect(generateGeminiTextResponse).toHaveBeenCalledTimes(2)
+    expect(generateGeminiTextResponse).toHaveBeenCalledTimes(1)
     expect(prisma.curationEvent.create).toHaveBeenCalledTimes(2)
     expect(prisma.curationEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -527,7 +527,7 @@ describe('refreshCurationEvents', () => {
     expect(prisma.curationEvent.create).not.toHaveBeenCalled()
   })
 
-  it('runs priority singles plus batches for mixed 30 countries', async () => {
+  it('runs priority pair batches plus regular batches for mixed 30 countries', async () => {
     const thirty = [
       ...PRIORITY_COUNTRIES.slice(0, 5).map((country) => ({ country, _count: { _all: 1 } })),
       ...Array.from({ length: 25 }, (_, i) => ({
@@ -540,8 +540,8 @@ describe('refreshCurationEvents', () => {
 
     const result = await refreshCurationEvents()
     expect(result.countries).toHaveLength(30)
-    expect(result.priorityCallsRun).toBe(5)
-    expect(result.batchesRun).toBe(5 + 9)
-    expect(generateGeminiTextResponse).toHaveBeenCalledTimes(14)
+    expect(result.priorityCallsRun).toBe(3)
+    expect(result.batchesRun).toBe(3 + 9)
+    expect(generateGeminiTextResponse).toHaveBeenCalledTimes(12)
   })
 })

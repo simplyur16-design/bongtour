@@ -13,6 +13,7 @@ import {
   salvageRecommendationsFromTruncatedJson,
   TRIP_RECOMMEND_MAX_OUTPUT_TOKENS,
   TRIP_RECOMMEND_MONTH_BATCH_SIZE,
+  CLIMATE_RECOMMENDATION_COUNT,
   type ProductSummary,
 } from '@/lib/bong-marketing/trip-recommender'
 
@@ -156,5 +157,11 @@ describe('parseTripRecommendationsFromGeminiRaw', () => {
     const result = parseTripRecommendationsFromGeminiRaw(truncated)
     expect(result.partial).toBe(true)
     expect(result.recommendations).toHaveLength(1)
+  })
+})
+
+describe('PR (가)-6.2 climate limit', () => {
+  it('CLIMATE_RECOMMENDATION_COUNT is 5', () => {
+    expect(CLIMATE_RECOMMENDATION_COUNT).toBe(5)
   })
 })

@@ -8,14 +8,19 @@ import { debugLog, debugError } from '@/lib/bong-marketing/debug-log'
 import {
   getGlobalEventsForRecommendationMonth,
 } from '@/lib/bong-marketing/curation-event-repository'
+import { findEventSlotCards, EVENT_SLOT_LIMIT } from '@/lib/bong-marketing/event-slot-finder'
 
 const TRIP_RECOMMEND_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 /** 12개월×다수 카드 JSON — 출력 토큰 한계 회피 */
 export const TRIP_RECOMMEND_MAX_OUTPUT_TOKENS = 16_384
 /** 4개월씩 3배치 (12개월 롤링) */
 export const TRIP_RECOMMEND_MONTH_BATCH_SIZE = 4
+/** PR (가)-6.2 — Gemini 기후 추천 상한 (이벤트 슬롯 2장은 별도 경로) */
+export const CLIMATE_RECOMMENDATION_COUNT = 5
 const MAX_REASON_CHARS = 100
 const MAX_CITIES_PER_MONTH = 3
+
+export type TripRecommendationSource = 'climate' | 'event'
 
 /** 카드뉴스·블로그 API 호환용 — 추천 분류 기준은 month */
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
@@ -45,6 +50,8 @@ export interface TripRecommendationItem {
   season?: Season
   /** @deprecated monthLabel 과 동일 — 하위 API 호환 */
   monthRange?: string
+  /** PR (가)-6.2 — climate(Gemini) | event(CurationEvent 슬롯) */
+  source?: TripRecommendationSource
 }
 
 export interface TripRecommendation {
@@ -328,9 +335,14 @@ function buildRecommenderSystemPrompt(): string {
 봉투어가 운영하는 해외여행 상품 목록을 분석해서,
 "한국인이 월별로 가기 좋은 해외 여행지"를 **월(1~12월) 단위**로 추천하세요.
 
+**이번 추천은 기후·시기 적합성만** 평가하세요. 축제·이벤트 추천은 별도 시스템이 처리합니다.
+- 존재하지 않는 축제·행사·이벤트를 만들거나 언급하지 마세요
+- reason에 이벤트명을 넣지 마세요 (날씨·시기·여행 적합성만)
+
 규칙:
 - **이번 요청에 지정된 월만** 추천 (다른 월 금지)
-- 각 지정 월마다 도시 **2~${MAX_CITIES_PER_MONTH}개** (그 이상 금지)
+- **전체 캠페인(모든 배치 합산) 기후 추천은 총 ${CLIMATE_RECOMMENDATION_COUNT}개 도시** — 이번 배치에서는 지정 월당 1~2개만 (과다 추천 금지)
+- 각 지정 월마다 도시 **1~${MAX_CITIES_PER_MONTH}개** (그 이상 금지)
 - 봄/여름/가을/겨울 4분류 사용 금지 — 반드시 month 숫자(1-12)로 지정
 - 각 도시: month, monthLabel ("7월"), urgency(10자 이내), reason(**${MAX_REASON_CHARS}자 이내**, 1문장)
 - recommendedTripNights(박), recommendedTripDays(일)
@@ -365,6 +377,7 @@ function buildRecommenderSystemPrompt(): string {
 - 현재달 이내 X
 - 단정형 표현 X
 - reason ${MAX_REASON_CHARS}자 초과
+- **없는 축제·이벤트·행사 환각 금지** (이벤트 추천은 별도 경로)
 `.trim()
 }
 
@@ -388,12 +401,13 @@ function buildRecommenderUserPrompt(
 
   return `
 현재 시점: ${currentYear}년 ${currentMonth}월
-**이번 요청 대상 월 (이 월들만 추천, 각 월 2~${MAX_CITIES_PER_MONTH}개 도시):** ${monthList}
+**이번 요청 대상 월 (이 월들만 추천, 각 월 1~${MAX_CITIES_PER_MONTH}개 도시):** ${monthList}
+**전체 기후 추천 한도: ${CLIMATE_RECOMMENDATION_COUNT}개 도시** (축제·이벤트는 별도 — 기후·시기만)
 
 봉투어 운영 도시 (이 목록 안에서만 추천):
 ${cityList}
 
-지정 월마다 한국인에게 가기 좋은 해외 도시를 추천하세요. reason ${MAX_REASON_CHARS}자 이내. 완전한 JSON 필수.
+지정 월마다 한국인에게 가기 좋은 해외 도시를 추천하세요. reason ${MAX_REASON_CHARS}자 이내. 완전한 JSON 필수. 이벤트·축제 언급 금지.
 `.trim()
 }
 
@@ -732,6 +746,7 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
         : undefined,
       matchingProductIds,
       events: events.length ? events : undefined,
+      source: 'climate',
       season: monthToSeason(month),
       monthRange: monthLabel,
     })
@@ -749,13 +764,36 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
     throw new Error(`trip_recommend_empty: ${JSON.stringify({ errorDetails })}`)
   }
 
+  const climateCards = enriched.slice(0, CLIMATE_RECOMMENDATION_COUNT)
+
+  let eventSlotCards: TripRecommendationItem[] = []
+  try {
+    // REGRESSION-FREEZE[trip-recommend-event-slots]: Product∩CurationEvent 슬롯 — manifest
+    eventSlotCards = await findEventSlotCards({
+      existingClimateCards: climateCards.map((c) => ({
+        month: c.month,
+        city: c.city,
+        country: c.country,
+      })),
+      limit: EVENT_SLOT_LIMIT,
+      referenceDate: now,
+      products,
+      countryLabels,
+      cityLabels,
+    })
+  } catch (e) {
+    debugLog('trip-recommend', 'event slot finder failed', e instanceof Error ? e.message : e)
+  }
+
+  const recommendations = [...climateCards, ...eventSlotCards]
+
   const startMonth = currentMonth
 
   return {
     generatedAt: now.toISOString(),
     windowMonths: 12,
     startMonth,
-    recommendations: enriched,
+    recommendations,
     totalProductsAnalyzed: products.length,
     errorDetails: errorDetails.length ? errorDetails : undefined,
   }

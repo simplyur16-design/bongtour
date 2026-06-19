@@ -12,6 +12,12 @@ export interface CurationEventRefreshOptions {
   targetMode?: CurationEventTargetMode
   /** recommendation 모드 — 클라이언트 추천 카드 country 배열 */
   targetCountries?: string[]
+  /** PR (가)-6.3 — 최근 N일 이내 수집된 국가 스킵 (default false) */
+  skipRecent?: boolean
+  /** skipRecent 시 기준 일수 (default 30) */
+  recentDays?: number
+  /** PR (가)-6.3 — targetCountries(추천 국가)를 갱신 목록 앞쪽에 배치 */
+  prioritizeRecommendationCities?: boolean
 }
 
 export interface ResolvedCurationEventTargets {

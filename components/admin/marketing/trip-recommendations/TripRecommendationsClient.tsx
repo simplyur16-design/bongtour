@@ -28,6 +28,7 @@ interface TripRecommendationItem {
   themes?: string[]
   matchingProductIds: string[]
   events?: TripRecommendationEvent[]
+  source?: 'climate' | 'event'
   /** 레거시 캐시 호환 */
   season?: 'spring' | 'summer' | 'autumn' | 'winter'
   monthRange?: string
@@ -128,6 +129,8 @@ export default function TripRecommendationsClient() {
   } | null>(null)
   const [eventRefreshTargetMode, setEventRefreshTargetMode] =
     useState<EventRefreshTargetMode>('union')
+  const [skipRecentCollection, setSkipRecentCollection] = useState(false)
+  const [prioritizeRecommendationCities, setPrioritizeRecommendationCities] = useState(false)
   const [targetPreview, setTargetPreview] = useState<{
     count: number
     countries: string[]
@@ -268,7 +271,13 @@ export default function TripRecommendationsClient() {
     }
 
     try {
-      const payload: { targetMode: EventRefreshTargetMode; targetCountries?: string[] } = {
+      const payload: {
+        targetMode: EventRefreshTargetMode
+        targetCountries?: string[]
+        skipRecent?: boolean
+        recentDays?: number
+        prioritizeRecommendationCities?: boolean
+      } = {
         targetMode: eventRefreshTargetMode,
       }
       if (
@@ -276,6 +285,13 @@ export default function TripRecommendationsClient() {
         recommendationCountries.length
       ) {
         payload.targetCountries = recommendationCountries
+      }
+      if (skipRecentCollection) {
+        payload.skipRecent = true
+        payload.recentDays = 30
+      }
+      if (prioritizeRecommendationCities) {
+        payload.prioritizeRecommendationCities = true
       }
 
       const res = await fetch('/api/admin/marketing/global-events/refresh', {
@@ -350,6 +366,26 @@ export default function TripRecommendationsClient() {
               </option>
             ))}
           </select>
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-bt-body/80">
+          <input
+            type="checkbox"
+            checked={skipRecentCollection}
+            onChange={(e) => setSkipRecentCollection(e.target.checked)}
+            disabled={refreshingEvents || loading}
+            className="rounded border-bt-border-strong"
+          />
+          최근 30일 갱신 스킵
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-bt-body/80">
+          <input
+            type="checkbox"
+            checked={prioritizeRecommendationCities}
+            onChange={(e) => setPrioritizeRecommendationCities(e.target.checked)}
+            disabled={refreshingEvents || loading}
+            className="rounded border-bt-border-strong"
+          />
+          추천 도시(국가) 우선
         </label>
         <button
           type="button"
@@ -564,6 +600,15 @@ function TripCard({
         <div className="text-base font-semibold text-bt-title">
           {item.city}
           <span className="font-normal text-bt-body/70"> · {item.country}</span>
+          {item.source === 'event' ? (
+            <span className="ml-2 rounded bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800">
+              이벤트 슬롯
+            </span>
+          ) : item.source === 'climate' ? (
+            <span className="ml-2 rounded bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
+              기후
+            </span>
+          ) : null}
         </div>
         <div className="mt-2 flex flex-wrap gap-2">
           <span className="rounded-full bg-bt-surface-soft px-2 py-0.5 text-xs text-bt-body">

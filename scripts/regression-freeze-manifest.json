@@ -858,6 +858,60 @@
           ]
         }
       ]
+    },
+    {
+      "id": "trip-recommend-event-slots",
+      "tier": ["prebuild", "ci"],
+      "summary": "PR (가)-6.2 — 기후 5 + 이벤트 슬롯 2 (Product∩CurationEvent, festival/holiday)",
+      "checks": [
+        {
+          "file": "lib/bong-marketing/event-slot-finder.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[trip-recommend-event-slots]",
+            "EVENT_SLOT_INTERNATIONAL_TYPES",
+            "getBongtourProductCities",
+            "findEventSlotCards"
+          ]
+        },
+        {
+          "file": "lib/bong-marketing/trip-recommender.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[trip-recommend-event-slots]",
+            "CLIMATE_RECOMMENDATION_COUNT",
+            "findEventSlotCards"
+          ]
+        },
+        {
+          "file": "lib/bong-marketing/event-slot-finder.test.ts",
+          "mustInclude": [
+            "matchProductCitiesWithEvents",
+            "festival"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "curation-event-collect-efficiency",
+      "tier": ["prebuild", "ci"],
+      "summary": "PR (가)-6.3 — 핵심 2개국 배치 + skipRecent 30일",
+      "checks": [
+        {
+          "file": "lib/bong-marketing/curation-event-collector.ts",
+          "mustInclude": [
+            "PRIORITY_COUNTRY_BATCH_SIZE",
+            "priority_pair",
+            "filterCountriesByRecentCollection",
+            "skipRecent"
+          ]
+        },
+        {
+          "file": "lib/bong-marketing/curation-event-collector.test.ts",
+          "mustInclude": [
+            "priority_pair",
+            "PRIORITY_COUNTRY_BATCH_SIZE"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [

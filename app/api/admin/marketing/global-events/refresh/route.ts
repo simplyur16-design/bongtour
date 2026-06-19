@@ -27,11 +27,19 @@ export async function POST(request: Request) {
   const record = (body ?? {}) as Record<string, unknown>
   const targetMode = parseCurationEventTargetMode(record.targetMode)
   const targetCountries = parseTargetCountriesInput(record.targetCountries)
+  const skipRecent = record.skipRecent === true
+  const prioritizeRecommendationCities = record.prioritizeRecommendationCities === true
+  const recentDays =
+    typeof record.recentDays === 'number' && Number.isFinite(record.recentDays)
+      ? Math.max(1, Math.floor(record.recentDays))
+      : undefined
 
   try {
     const result = await refreshCurationEvents({
       ...(targetMode ? { targetMode } : {}),
       ...(targetCountries ? { targetCountries } : {}),
+      ...(skipRecent ? { skipRecent: true, ...(recentDays ? { recentDays } : {}) } : {}),
+      ...(prioritizeRecommendationCities ? { prioritizeRecommendationCities: true } : {}),
     })
     return NextResponse.json(result)
   } catch (error) {
