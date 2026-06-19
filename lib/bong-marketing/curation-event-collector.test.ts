@@ -1,8 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import {
+  analyzeMonthCoverageGaps,
+  buildCurationEventBatchPlan,
   CURATION_EVENT_COUNTRY_BATCH_SIZE,
   PRIORITY_COUNTRIES,
   getCurationEventTargetCountries,
+  parseEventsWithFallback,
   refreshCurationEvents,
   sortCountriesByPriority,
 } from '@/lib/bong-marketing/curation-event-collector'
@@ -40,6 +43,42 @@ describe('sortCountriesByPriority', () => {
   it('sorts non-priority countries in korean locale order', () => {
     const sorted = sortCountriesByPriority(['체코', '가나'], PRIORITY_COUNTRIES)
     expect(sorted).toEqual(['가나', '체코'])
+  })
+})
+
+describe('buildCurationEventBatchPlan', () => {
+  it('runs priority countries as single-country calls', () => {
+    const plan = buildCurationEventBatchPlan(['일본', '베트남', '체코', '폴란드', '헝가리'])
+    expect(plan.filter((p) => p.mode === 'priority_single')).toHaveLength(2)
+    expect(plan.find((p) => p.countries[0] === '일본')?.mode).toBe('priority_single')
+    expect(plan.filter((p) => p.mode === 'batch')).toHaveLength(1)
+  })
+})
+
+describe('analyzeMonthCoverageGaps', () => {
+  it('flags missing critical months 1, 2, 8', () => {
+    const gaps = analyzeMonthCoverageGaps(
+      [
+        { name: '7월만', country: '일본', startMonth: 7, endMonth: 7, type: 'festival' },
+      ],
+      ['일본'],
+    )
+    expect(gaps[0].missingCriticalMonths).toEqual([1, 2, 8])
+    expect(gaps[0].missingMonths).toContain(1)
+    expect(gaps[0].missingMonths).toContain(8)
+  })
+})
+
+describe('parseEventsWithFallback', () => {
+  it('returns coverage gaps on partial parse', () => {
+    const truncated = `{
+  "events": [
+    {"name":"7월축제","country":"일본","startMonth":7,"endMonth":7,"type":"festival"},
+    {"name":"잘림","country":"일본","startMonth":8,"endMonth":8,"type":"festival","description":"x`
+    const parsed = parseEventsWithFallback(truncated, ['일본'])
+    expect(parsed.partial).toBe(true)
+    expect(parsed.events).toHaveLength(1)
+    expect(parsed.coverageGaps[0].missingCriticalMonths).toContain(8)
   })
 })
 
@@ -95,16 +134,22 @@ describe('refreshCurationEvents', () => {
       { country: '일본', _count: { _all: 1 } },
       { country: '베트남', _count: { _all: 1 } },
     ] as never)
-    vi.mocked(generateGeminiTextResponse).mockResolvedValue(
-      JSON.stringify({
+    vi.mocked(generateGeminiTextResponse).mockImplementation(async ({ userPrompt }) => {
+      if (userPrompt.includes('일본')) {
+        return JSON.stringify({
+          events: [
+            {
+              name: '후지 록 페스티벌',
+              country: '일본',
+              startMonth: 7,
+              endMonth: 7,
+              type: 'festival',
+            },
+          ],
+        })
+      }
+      return JSON.stringify({
         events: [
-          {
-            name: '후지 록 페스티벌',
-            country: '일본',
-            startMonth: 7,
-            endMonth: 7,
-            type: 'festival',
-          },
           {
             name: '다낭 불꽃축제',
             country: '베트남',
@@ -113,15 +158,17 @@ describe('refreshCurationEvents', () => {
             type: 'festival',
           },
         ],
-      }),
-    )
+      })
+    })
     vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.curationEvent.create).mockResolvedValue({} as never)
 
     const result = await refreshCurationEvents()
-    expect(result.batchesRun).toBe(1)
+    expect(result.batchesRun).toBe(2)
+    expect(result.priorityCallsRun).toBe(2)
     expect(result.collected).toBe(2)
     expect(result.saved).toBe(2)
+    expect(generateGeminiTextResponse).toHaveBeenCalledTimes(2)
     expect(prisma.curationEvent.create).toHaveBeenCalledTimes(2)
     expect(prisma.curationEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -203,17 +250,51 @@ describe('refreshCurationEvents', () => {
     expect(prisma.curationEvent.create).not.toHaveBeenCalled()
   })
 
-  it('runs 10 batches for 30 countries', async () => {
-    const thirty = Array.from({ length: 30 }, (_, i) => ({
-      country: `국가${i + 1}`,
-      _count: { _all: 1 },
-    }))
+  it('skips approved rows without overwriting', async () => {
+    vi.mocked(prisma.product.groupBy).mockResolvedValue([
+      { country: '일본', _count: { _all: 1 } },
+    ] as never)
+    vi.mocked(generateGeminiTextResponse).mockResolvedValue(
+      JSON.stringify({
+        events: [
+          {
+            name: '기존 축제',
+            country: '일본',
+            startMonth: 1,
+            endMonth: 1,
+            type: 'festival',
+          },
+        ],
+      }),
+    )
+    vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue({
+      id: 'approved-id',
+      status: 'approved',
+    } as never)
+
+    const result = await refreshCurationEvents()
+    expect(result.collected).toBe(1)
+    expect(result.saved).toBe(0)
+    expect(result.skippedApproved).toBe(1)
+    expect(prisma.curationEvent.update).not.toHaveBeenCalled()
+    expect(prisma.curationEvent.create).not.toHaveBeenCalled()
+  })
+
+  it('runs priority singles plus batches for mixed 30 countries', async () => {
+    const thirty = [
+      ...PRIORITY_COUNTRIES.slice(0, 5).map((country) => ({ country, _count: { _all: 1 } })),
+      ...Array.from({ length: 25 }, (_, i) => ({
+        country: `국가${i + 1}`,
+        _count: { _all: 1 },
+      })),
+    ]
     vi.mocked(prisma.product.groupBy).mockResolvedValue(thirty as never)
     vi.mocked(generateGeminiTextResponse).mockResolvedValue(JSON.stringify({ events: [] }))
 
     const result = await refreshCurationEvents()
     expect(result.countries).toHaveLength(30)
-    expect(result.batchesRun).toBe(10)
-    expect(generateGeminiTextResponse).toHaveBeenCalledTimes(10)
+    expect(result.priorityCallsRun).toBe(5)
+    expect(result.batchesRun).toBe(5 + 9)
+    expect(generateGeminiTextResponse).toHaveBeenCalledTimes(14)
   })
 })

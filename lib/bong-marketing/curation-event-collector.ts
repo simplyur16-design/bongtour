@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { generateGeminiTextResponse } from '@/lib/bong-marketing/gemini-generate'
 import { debugLog, debugError } from '@/lib/bong-marketing/debug-log'
+import { monthOverlapsEvent } from '@/lib/bong-marketing/curation-event-repository'
 import {
   listBongtourProductCountryLabels,
   parseGlobalEventsFromGeminiRaw,
@@ -10,14 +11,18 @@ import {
 } from '@/lib/bong-marketing/global-event-collector'
 
 const CURATION_EVENT_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
-/** Gemini 출력 토큰 한계 회피 — 3개국씩 배치 (30개국 ≈ 10배치) */
+/** Gemini 출력 토큰 한계 회피 — 일반 국가 3개국씩 배치 */
 export const CURATION_EVENT_COUNTRY_BATCH_SIZE = 3
 const COUNTRY_BATCH_SIZE = CURATION_EVENT_COUNTRY_BATCH_SIZE
 const CURATION_EVENT_MAX_OUTPUT_TOKENS = 16_384
 const MAX_EVENTS_PER_COUNTRY = 8
+const MIN_EVENTS_PER_COUNTRY = 8
+const MIN_MONTHS_COVERED_PER_COUNTRY = 8
+/** 비수기·누락 다발 월 — 커버리지 검사 강조 */
+const CRITICAL_COVERAGE_MONTHS = [1, 2, 8] as const
 const MAX_COUNTRIES_FOR_COLLECTION = 30
 
-/** 한국인 인기 해외 목적지 — 배치 순서 우선 */
+/** 한국인 인기 해외 목적지 — 단독 정밀 호출 + 배치 순서 우선 */
 export const PRIORITY_COUNTRIES = [
   '일본',
   '중국',
@@ -45,6 +50,22 @@ export const PRIORITY_COUNTRIES = [
   '두바이',
   '이집트',
 ] as const
+
+export interface CurationEventCollectResult extends GlobalEventCollectResult {
+  /** 운영자 검토 안내 */
+  reviewNotice?: string
+  /** approved 기존 row 스킵 (덮어쓰기 방지) */
+  skippedApproved?: number
+  /** 핵심 국가 단독 호출 수 */
+  priorityCallsRun?: number
+}
+
+export interface MonthCoverageGap {
+  country: string
+  coveredMonths: number[]
+  missingMonths: number[]
+  missingCriticalMonths: number[]
+}
 
 function normalizeCountryLabel(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, '')
@@ -84,28 +105,148 @@ function chunkArray<T>(items: T[], size: number): T[][] {
   return chunks
 }
 
-async function collectEventsForCountryBatch(
-  countries: string[],
-  year: number,
-): Promise<{ events: CollectedEvent[]; rawPreview: string; partial: boolean; rawText: string }> {
+function isPriorityCountry(country: string): boolean {
+  const key = normalizeCountryLabel(country)
+  return PRIORITY_COUNTRIES.some((c) => normalizeCountryLabel(c) === key)
+}
+
+/** 핵심 국가 단독 + 일반 국가 3개국 배치 실행 계획 */
+export function buildCurationEventBatchPlan(countries: string[]): Array<{
+  countries: string[]
+  mode: 'priority_single' | 'batch'
+}> {
+  const priorityInTarget = countries.filter(isPriorityCountry)
+  const nonPriority = countries.filter((c) => !isPriorityCountry(c))
+
+  const plan: Array<{ countries: string[]; mode: 'priority_single' | 'batch' }> = []
+  for (const country of priorityInTarget) {
+    plan.push({ countries: [country], mode: 'priority_single' })
+  }
+  for (const batch of chunkArray(nonPriority, COUNTRY_BATCH_SIZE)) {
+    plan.push({ countries: batch, mode: 'batch' })
+  }
+  return plan
+}
+
+function eventCoversMonth(event: CollectedEvent, month: number): boolean {
+  return monthOverlapsEvent(month, event.startMonth, event.endMonth)
+}
+
+function findCountryEvents(events: CollectedEvent[], country: string): CollectedEvent[] {
+  return events.filter((e) => normalizeCountryLabel(e.country) === normalizeCountryLabel(country))
+}
+
+/** 국가별 1-12월 커버리지 갭 분석 */
+export function analyzeMonthCoverageGaps(
+  events: CollectedEvent[],
+  expectedCountries: string[],
+): MonthCoverageGap[] {
+  const gaps: MonthCoverageGap[] = []
+
+  for (const country of expectedCountries) {
+    const countryEvents = findCountryEvents(events, country)
+    const coveredMonths = Array.from({ length: 12 }, (_, i) => i + 1).filter((month) =>
+      countryEvents.some((e) => eventCoversMonth(e, month)),
+    )
+    const missingMonths = Array.from({ length: 12 }, (_, i) => i + 1).filter(
+      (month) => !coveredMonths.includes(month),
+    )
+    const missingCriticalMonths = CRITICAL_COVERAGE_MONTHS.filter((m) =>
+      missingMonths.includes(m),
+    )
+
+    gaps.push({
+      country,
+      coveredMonths,
+      missingMonths,
+      missingCriticalMonths,
+    })
+  }
+
+  return gaps
+}
+
+export function formatMonthCoverageGapMessage(gap: MonthCoverageGap): string {
+  const parts: string[] = []
+  if (gap.missingCriticalMonths.length) {
+    parts.push(`핵심 누락 월 ${gap.missingCriticalMonths.join(',')}월`)
+  }
+  if (gap.coveredMonths.length < MIN_MONTHS_COVERED_PER_COUNTRY) {
+    parts.push(
+      `월 커버 ${gap.coveredMonths.length}/${MIN_MONTHS_COVERED_PER_COUNTRY} (누락: ${gap.missingMonths.join(',')}월)`,
+    )
+  }
+  return parts.join(' · ')
+}
+
+/** parseGlobalEventsFromGeminiRaw + 월·국가 누락 분석 */
+export function parseEventsWithFallback(
+  rawText: string,
+  expectedCountries: string[],
+): {
+  events: CollectedEvent[]
+  partial: boolean
+  parseError?: string
+  coverageGaps: MonthCoverageGap[]
+} {
+  const parsed = parseGlobalEventsFromGeminiRaw(rawText)
+  const coverageGaps = analyzeMonthCoverageGaps(parsed.events, expectedCountries)
+  return { ...parsed, coverageGaps }
+}
+
+function buildPrioritySingleCountryPrompt(country: string, year: number): string {
+  return `당신은 한국인 대상 해외여행 큐레이션 전문가입니다.
+
+**${country}** 단일 국가의 ${year}년 해외 이벤트·축제를 **12개월 골고루** 수집하세요.
+
+필수 규칙:
+- **1~12월 모든 월에 골고루 분포** — 여름·겨울 비수기(1·2·8월 등)에도 한국인이 가볼 만한 이벤트 **반드시** 포함
+- **최소 ${MIN_EVENTS_PER_COUNTRY}개 이벤트**, **12개월 중 ${MIN_MONTHS_COVERED_PER_COUNTRY}개월 이상** 커버
+- country 필드는 "${country}" 와 정확히 일치 (한국어)
+- type: "festival" | "holiday" | "season" | "sale" | "special"
+- description·appealReason 각 1문장 이내
+- **반드시 유효한 JSON 전체 출력** — 마지막 객체까지 닫고 \`}\` 완성
+
+월별 예시 (일본이면 참고):
+- 1월: 신년·삿포로 눈축제
+- 2월: 홋카이도 눈축제·요코하마 딸기
+- 8월: 오봉·여름 마쯔리·불꽃대회
+
+응답 JSON만:
+{
+  "events": [
+    {
+      "name": "이벤트명",
+      "country": "${country}",
+      "city": "도시",
+      "startMonth": 1,
+      "endMonth": 2,
+      "type": "festival",
+      "description": "한 줄",
+      "appealReason": "한 줄"
+    }
+  ]
+}`.trim()
+}
+
+function buildBatchCountriesPrompt(countries: string[], year: number): string {
   const countryList = countries.join(', ')
 
-  const systemPrompt = `당신은 한국인 대상 해외여행 큐레이션 전문가입니다.
+  return `당신은 한국인 대상 해외여행 큐레이션 전문가입니다.
 
-다음 국가들의 ${year}년 향후 3-12개월 내 열리는 **해외** 이벤트·축제만 수집하세요:
+다음 국가들의 ${year}년 **해외** 이벤트·축제를 수집하세요:
 ${countryList}
 
 규칙:
-- 한국인 여행객에게 어필할 수 있는 해외 이벤트만
-- 한국 국내 축제·지역 행사는 절대 포함하지 마세요
-- country 필드는 위 국가 목록의 한국어 국가명과 정확히 일치
+- **각 국가마다 1~12월 골고루 분포** — 비수기(1·2·8월)에도 한국인 인기 이벤트 포함
+- 국가당 **${MIN_EVENTS_PER_COUNTRY}개** (최대 ${MAX_EVENTS_PER_COUNTRY}개), **8개월 이상** 커버
+- country 필드는 위 한국어 국가명과 정확히 일치
 - type: "festival" | "holiday" | "season" | "sale" | "special"
-- **각 국가별 5~8개 이벤트** (최대 ${MAX_EVENTS_PER_COUNTRY}개, 그 이상 금지)
-- description·appealReason은 각 1문장 이내로 간결하게
-- **반드시 유효한 JSON 전체를 출력** — 마지막 이벤트 객체까지 닫고 최상위 \`}\` 까지 완성
-- 토큰 한계가 임박해도 중간에 끊지 말고, 앞 국가 이벤트 수를 줄여 완전한 JSON으로 마무리
+- description·appealReason 각 1문장 이내
+- **반드시 유효한 JSON 전체 출력**
+- 토큰 한계 임박 시 국가 수를 줄이지 말고 이벤트 수를 줄여 완전한 JSON으로 마무리
 
-응답은 반드시 JSON만:
+응답 JSON만:
 {
   "events": [
     {
@@ -120,18 +261,35 @@ ${countryList}
     }
   ]
 }`.trim()
+}
+
+async function collectEventsForCountryBatch(
+  countries: string[],
+  year: number,
+  mode: 'priority_single' | 'batch',
+): Promise<{ events: CollectedEvent[]; rawPreview: string; partial: boolean; rawText: string; coverageGaps: MonthCoverageGap[] }> {
+  const countryList = countries.join(', ')
+  const systemPrompt =
+    mode === 'priority_single'
+      ? buildPrioritySingleCountryPrompt(countries[0], year)
+      : buildBatchCountriesPrompt(countries, year)
+
+  const userPrompt =
+    mode === 'priority_single'
+      ? `${year}년 ${countries[0]} 12개월 분포 이벤트 JSON (최소 ${MIN_EVENTS_PER_COUNTRY}개, 1·2·8월 포함, 완전한 JSON 필수).`
+      : `${year}년 ${countryList} 해외 이벤트 JSON (국가당 ${MIN_EVENTS_PER_COUNTRY}개·8개월 이상 커버, 완전한 JSON 필수).`
 
   const rawText = await generateGeminiTextResponse({
     model: CURATION_EVENT_MODEL,
     systemPrompt,
-    userPrompt: `${year}년 ${countryList} 해외 이벤트 JSON (국가당 5~${MAX_EVENTS_PER_COUNTRY}개, 완전한 JSON 필수).`,
+    userPrompt,
     temperature: 0.3,
     maxOutputTokens: CURATION_EVENT_MAX_OUTPUT_TOKENS,
     timeoutMs: 180_000,
   })
 
   const rawPreview = rawText.slice(0, 500)
-  const { events, partial, parseError } = parseGlobalEventsFromGeminiRaw(rawText)
+  const { events, partial, parseError, coverageGaps } = parseEventsWithFallback(rawText, countries)
 
   if (partial && events.length) {
     debugLog(
@@ -143,13 +301,29 @@ ${countryList}
     throw new Error(`gemini_parse_failed: ${parseError}`)
   }
 
-  return { events, rawPreview, partial, rawText }
+  return { events, rawPreview, partial, rawText, coverageGaps }
+}
+
+function appendCoverageGapErrors(
+  errorDetails: GlobalEventCollectError[],
+  gaps: MonthCoverageGap[],
+  partial: boolean,
+): void {
+  for (const gap of gaps) {
+    const msg = formatMonthCoverageGapMessage(gap)
+    if (!msg) continue
+    errorDetails.push({
+      stage: 'json_parse',
+      message: partial ? `부분 파싱 후 ${msg}` : `월 분포 부족: ${msg}`,
+      country: gap.country,
+    })
+  }
 }
 
 async function upsertCollectedEvent(
   event: CollectedEvent,
   year: number,
-): Promise<'created' | 'updated'> {
+): Promise<'created' | 'updated' | 'skipped_approved'> {
   const monthKey = `${year}-${String(event.startMonth).padStart(2, '0')}`
 
   const existing = await prisma.curationEvent.findUnique({
@@ -160,7 +334,12 @@ async function upsertCollectedEvent(
         year,
       },
     },
+    select: { id: true, status: true },
   })
+
+  if (existing?.status === 'approved') {
+    return 'skipped_approved'
+  }
 
   const shared = {
     monthKey,
@@ -197,18 +376,46 @@ async function upsertCollectedEvent(
   return 'created'
 }
 
+async function saveBatchEvents(
+  events: CollectedEvent[],
+  year: number,
+  result: CurationEventCollectResult,
+): Promise<void> {
+  for (const event of events) {
+    try {
+      const outcome = await upsertCollectedEvent(event, year)
+      result.collected++
+      if (outcome === 'created') result.saved++
+      else if (outcome === 'updated') result.skippedDuplicates++
+      else if (outcome === 'skipped_approved') {
+        result.skippedApproved = (result.skippedApproved ?? 0) + 1
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      result.errorDetails.push({
+        stage: 'db_upsert',
+        message: `${event.name}: ${message}`,
+        country: event.country,
+      })
+      debugError('curation-event', `이벤트 저장 실패 (${event.name}):`, err)
+    }
+  }
+}
+
 /** PR (가)-4: Product 국가 → Gemini(배치) → CurationEvent 저장 */
-export async function refreshCurationEvents(): Promise<GlobalEventCollectResult> {
+export async function refreshCurationEvents(): Promise<CurationEventCollectResult> {
   const year = new Date().getFullYear()
-  const result: GlobalEventCollectResult = {
+  const result: CurationEventCollectResult = {
     countries: [],
     collected: 0,
     saved: 0,
     skippedDuplicates: 0,
+    skippedApproved: 0,
     errors: 0,
     errorDetails: [],
     rawResponseSamples: [],
     batchesRun: 0,
+    priorityCallsRun: 0,
   }
 
   const countries = await getCurationEventTargetCountries()
@@ -224,25 +431,31 @@ export async function refreshCurationEvents(): Promise<GlobalEventCollectResult>
     return result
   }
 
-  const batches = chunkArray(countries, COUNTRY_BATCH_SIZE)
+  const batchPlan = buildCurationEventBatchPlan(countries)
   debugLog(
     'curation-event',
-    `${countries.length}개 국가(핵심 우선), ${batches.length}배치 수집 시작`,
+    `${countries.length}개 국가, 핵심 단독 ${batchPlan.filter((b) => b.mode === 'priority_single').length}회 + 일반 배치 ${batchPlan.filter((b) => b.mode === 'batch').length}회`,
   )
 
-  for (const batch of batches) {
+  for (const { countries: batch, mode } of batchPlan) {
     result.batchesRun++
+    if (mode === 'priority_single') result.priorityCallsRun = (result.priorityCallsRun ?? 0) + 1
+
     const batchLabel = batch.join(', ')
     let rawText = ''
 
     try {
-      const batchResult = await collectEventsForCountryBatch(batch, year)
+      const batchResult = await collectEventsForCountryBatch(batch, year, mode)
       rawText = batchResult.rawText
-      const { events, rawPreview, partial } = batchResult
+      const { events, rawPreview, partial, coverageGaps } = batchResult
 
       if (result.rawResponseSamples && result.rawResponseSamples.length < 3) {
-        result.rawResponseSamples.push(`[${batchLabel}]${partial ? ' (partial)' : ''} ${rawPreview}`)
+        result.rawResponseSamples.push(
+          `[${mode === 'priority_single' ? '핵심' : '배치'}:${batchLabel}]${partial ? ' (partial)' : ''} ${rawPreview}`,
+        )
       }
+
+      appendCoverageGapErrors(result.errorDetails, coverageGaps, partial)
 
       if (!events.length) {
         result.errorDetails.push({
@@ -254,53 +467,25 @@ export async function refreshCurationEvents(): Promise<GlobalEventCollectResult>
         continue
       }
 
-      for (const event of events) {
-        try {
-          const outcome = await upsertCollectedEvent(event, year)
-          result.collected++
-          if (outcome === 'created') result.saved++
-          else result.skippedDuplicates++
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err)
-          result.errorDetails.push({
-            stage: 'db_upsert',
-            message: `${event.name}: ${message}`,
-            country: event.country,
-          })
-          debugError('curation-event', `이벤트 저장 실패 (${event.name}):`, err)
-        }
-      }
+      await saveBatchEvents(events, year, result)
 
       debugLog(
         'curation-event',
-        `배치 저장 ${events.length}건${partial ? ' (부분 salvage)' : ''}: ${batchLabel}`,
+        `${mode === 'priority_single' ? '핵심' : '배치'} 저장 ${events.length}건${partial ? ' (부분 salvage)' : ''}: ${batchLabel}`,
       )
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
 
       if (rawText) {
-        const salvaged = parseGlobalEventsFromGeminiRaw(rawText)
+        const salvaged = parseEventsWithFallback(rawText, batch)
         if (salvaged.events.length) {
           if (result.rawResponseSamples && result.rawResponseSamples.length < 3) {
             result.rawResponseSamples.push(
               `[${batchLabel}] (partial-after-error) ${rawText.slice(0, 500)}`,
             )
           }
-          for (const event of salvaged.events) {
-            try {
-              const outcome = await upsertCollectedEvent(event, year)
-              result.collected++
-              if (outcome === 'created') result.saved++
-              else result.skippedDuplicates++
-            } catch (saveErr) {
-              const saveMsg = saveErr instanceof Error ? saveErr.message : String(saveErr)
-              result.errorDetails.push({
-                stage: 'db_upsert',
-                message: `${event.name}: ${saveMsg}`,
-                country: event.country,
-              })
-            }
-          }
+          appendCoverageGapErrors(result.errorDetails, salvaged.coverageGaps, true)
+          await saveBatchEvents(salvaged.events, year, result)
           debugLog(
             'curation-event',
             `에러 후 salvage ${salvaged.events.length}건 저장: ${batchLabel}`,
@@ -324,6 +509,14 @@ export async function refreshCurationEvents(): Promise<GlobalEventCollectResult>
       message:
         '전체 배치에서 이벤트 0개 — Gemini API 실패·JSON 파싱 실패·응답 토큰 초과 가능성. errorDetails 참고.',
     } as GlobalEventCollectError)
+  }
+
+  if (result.saved > 0) {
+    result.reviewNotice =
+      `신규 ${result.saved}개 이벤트가 draft로 수집되었습니다. 1·2·8월 일본·베트남·태국 등 누락 보강분 포함 — /admin/marketing/curation-events 에서 검토 후 approve하세요.`
+  } else if (result.collected > 0 && (result.skippedApproved ?? 0) > 0) {
+    result.reviewNotice =
+      `기존 approved ${result.skippedApproved}건은 유지했습니다. 신규 draft 없음 — 월별 누락은 errorDetails를 확인하세요.`
   }
 
   result.errors = result.errorDetails.length

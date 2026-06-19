@@ -166,24 +166,25 @@ describe('refreshGlobalEvents', () => {
       { country: '일본', _count: { _all: 1 } },
       { country: '베트남', _count: { _all: 1 } },
     ] as never)
-    vi.mocked(generateGeminiTextResponse).mockResolvedValue(
-      JSON.stringify({
+    vi.mocked(generateGeminiTextResponse).mockImplementation(async ({ userPrompt }) => {
+      const country = userPrompt.includes('일본') ? '일본' : '베트남'
+      return JSON.stringify({
         events: [
           {
             name: '다낭 불꽃축제',
-            country: '베트남',
+            country,
             startMonth: 6,
             endMonth: 7,
             type: 'festival',
           },
         ],
-      }),
-    )
+      })
+    })
     vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.curationEvent.create).mockResolvedValue({} as never)
 
     const result = await refreshGlobalEvents()
-    expect(result.batchesRun).toBe(1)
+    expect(result.batchesRun).toBe(2)
     expect(result.collected).toBeGreaterThan(0)
     expect(result.saved).toBeGreaterThan(0)
     expect(prisma.curationEvent.create).toHaveBeenCalled()
