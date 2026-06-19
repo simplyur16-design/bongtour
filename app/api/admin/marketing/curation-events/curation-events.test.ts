@@ -47,6 +47,8 @@ describe('GET /api/admin/marketing/curation-events/list', () => {
         name: '마쯔리',
         countryCode: '일본',
         status: 'draft',
+        monthlyCurationContentId: null,
+        monthlyCurationContent: null,
       },
     ] as never)
     vi.mocked(prisma.curationEvent.count).mockResolvedValue(1)
@@ -60,11 +62,52 @@ describe('GET /api/admin/marketing/curation-events/list', () => {
     expect(res.status).toBe(200)
     expect(json.total).toBe(1)
     expect(json.events).toHaveLength(1)
+    expect(json.events[0].linkedSeasonCard).toBeNull()
     expect(prisma.curationEvent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ status: 'draft', countryCode: '일본' }),
         orderBy: { collectedAt: 'desc' },
         take: 10,
+        include: {
+          monthlyCurationContent: {
+            select: { id: true, title: true, monthKey: true },
+          },
+        },
+      }),
+    )
+  })
+
+  it('filters linked season cards and returns linkedSeasonCard payload', async () => {
+    vi.mocked(requireAdmin).mockResolvedValue(adminSession as never)
+    vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([
+      {
+        id: 'e2',
+        name: '다낭 불꽃축제',
+        countryCode: '베트남',
+        status: 'approved',
+        monthlyCurationContentId: 'card-1',
+        monthlyCurationContent: {
+          id: 'card-1',
+          title: '7월의 다낭',
+          monthKey: '2026-07',
+        },
+      },
+    ] as never)
+    vi.mocked(prisma.curationEvent.count).mockResolvedValue(1)
+
+    const res = await GET(
+      new Request('http://localhost/api/admin/marketing/curation-events/list?linked=linked'),
+    )
+    const json = await res.json()
+    expect(res.status).toBe(200)
+    expect(json.events[0].linkedSeasonCard).toEqual({
+      id: 'card-1',
+      title: '7월의 다낭',
+      monthKey: '2026-07',
+    })
+    expect(prisma.curationEvent.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ monthlyCurationContentId: { not: null } }),
       }),
     )
   })

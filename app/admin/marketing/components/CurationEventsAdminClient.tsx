@@ -4,6 +4,12 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
+type LinkedSeasonCard = {
+  id: string
+  title: string
+  monthKey: string
+}
+
 type CurationEventRow = {
   id: string
   name: string
@@ -18,6 +24,8 @@ type CurationEventRow = {
   appealReason: string | null
   collectedAt: string
   year: number
+  monthlyCurationContentId: string | null
+  linkedSeasonCard: LinkedSeasonCard | null
 }
 
 type EditForm = {
@@ -38,6 +46,12 @@ const STATUS_TABS = [
 ] as const
 
 const TYPE_OPTIONS = ['festival', 'holiday', 'season', 'sale', 'special']
+
+const LINKED_FILTER_OPTIONS = [
+  { value: '', label: '연결 전체' },
+  { value: 'linked', label: '연결됨' },
+  { value: 'unlinked', label: '연결 안 됨' },
+] as const
 
 function formatDate(iso: string) {
   try {
@@ -69,6 +83,7 @@ export default function CurationEventsAdminClient() {
   )
   const [countryFilter, setCountryFilter] = useState('')
   const [monthKeyFilter, setMonthKeyFilter] = useState('')
+  const [linkedFilter, setLinkedFilter] = useState('')
   const [searchDraft, setSearchDraft] = useState('')
   const [appliedSearch, setAppliedSearch] = useState('')
   const [events, setEvents] = useState<CurationEventRow[]>([])
@@ -105,6 +120,7 @@ export default function CurationEventsAdminClient() {
       if (statusFilter) q.set('status', statusFilter)
       if (countryFilter) q.set('country', countryFilter)
       if (monthKeyFilter) q.set('monthKey', monthKeyFilter)
+      if (linkedFilter) q.set('linked', linkedFilter)
       if (appliedSearch) q.set('search', appliedSearch)
       q.set('limit', '100')
       const res = await fetch(`/api/admin/marketing/curation-events/list?${q}`)
@@ -120,7 +136,7 @@ export default function CurationEventsAdminClient() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, countryFilter, monthKeyFilter, appliedSearch])
+  }, [statusFilter, countryFilter, monthKeyFilter, linkedFilter, appliedSearch])
 
   useEffect(() => {
     void load()
@@ -296,6 +312,20 @@ export default function CurationEventsAdminClient() {
             ))}
           </select>
         </label>
+        <label className="flex flex-col gap-1 text-xs text-bt-body/70">
+          시즌 카드 연결
+          <select
+            value={linkedFilter}
+            onChange={(e) => setLinkedFilter(e.target.value)}
+            className="rounded border border-bt-border-strong px-2 py-1.5 text-sm"
+          >
+            {LINKED_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs text-bt-body/70">
           검색 (이름·도시·설명)
           <input
@@ -363,6 +393,7 @@ export default function CurationEventsAdminClient() {
                 <th className="px-3 py-2">국가</th>
                 <th className="px-3 py-2">월</th>
                 <th className="px-3 py-2">유형</th>
+                <th className="px-3 py-2">연결된 시즌 카드</th>
                 <th className="px-3 py-2">상태</th>
                 <th className="px-3 py-2">수집일</th>
                 <th className="px-3 py-2">작업</th>
@@ -397,6 +428,22 @@ export default function CurationEventsAdminClient() {
                     </span>
                   </td>
                   <td className="px-3 py-2">{row.type}</td>
+                  <td className="px-3 py-2">
+                    {row.linkedSeasonCard ? (
+                      <Link
+                        href={`/admin/bongsim/monthly-curation?monthKey=${encodeURIComponent(row.linkedSeasonCard.monthKey)}`}
+                        className="text-bt-link hover:underline"
+                        title={`${row.linkedSeasonCard.monthKey} 시즌 카드`}
+                      >
+                        <span className="font-medium text-bt-title">{row.linkedSeasonCard.title}</span>
+                        <span className="mt-0.5 block text-xs text-bt-body/60">
+                          {row.linkedSeasonCard.monthKey}
+                        </span>
+                      </Link>
+                    ) : (
+                      <span className="text-bt-body/50">-</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2">
                     <span className={`rounded-full px-2 py-0.5 text-xs ${statusBadgeClass(row.status)}`}>
                       {statusLabel(row.status)}

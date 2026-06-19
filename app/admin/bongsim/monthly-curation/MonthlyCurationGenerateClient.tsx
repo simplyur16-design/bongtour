@@ -2,6 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+
+type LinkedCurationEvent = {
+  id: string
+  name: string
+  countryCode: string
+  startMonth: number
+  endMonth: number
+  type: string
+  city: string | null
+}
 
 type MonthlyRow = {
   id: string
@@ -17,6 +28,15 @@ type MonthlyRow = {
   isPublished: boolean
   sortOrder: number
   updatedAt: string
+  curationEvents?: LinkedCurationEvent[]
+}
+
+function formatLinkedEventBadge(event: LinkedCurationEvent): string {
+  const monthPart =
+    event.startMonth === event.endMonth
+      ? `${event.startMonth}월`
+      : `${event.startMonth}-${event.endMonth}월`
+  return `🌐 ${event.name} (${event.countryCode}, ${monthPart})`
 }
 
 function defaultNextMonthKey(): string {
@@ -30,7 +50,11 @@ function isMonthKey(v: string): boolean {
 }
 
 export default function MonthlyCurationGenerateClient() {
-  const [targetMonth, setTargetMonth] = useState(defaultNextMonthKey)
+  const searchParams = useSearchParams()
+  const monthFromUrl = searchParams?.get('monthKey')?.trim() ?? ''
+  const [targetMonth, setTargetMonth] = useState(() =>
+    isMonthKey(monthFromUrl) ? monthFromUrl : defaultNextMonthKey(),
+  )
   const [overwrite, setOverwrite] = useState(false)
   const [loading, setLoading] = useState(false)
   const [listLoading, setListLoading] = useState(true)
@@ -203,6 +227,22 @@ export default function MonthlyCurationGenerateClient() {
               <li key={row.id} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-bt-title">{row.title}</p>
+                  {row.subtitle?.trim() ? (
+                    <p className="mt-1 text-sm text-bt-body/80">{row.subtitle}</p>
+                  ) : null}
+                  {row.curationEvents && row.curationEvents.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {row.curationEvents.map((event) => (
+                        <span
+                          key={event.id}
+                          className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-amber-200/80"
+                          title={`연결 이벤트 · ${event.type}${event.city ? ` · ${event.city}` : ''}`}
+                        >
+                          {formatLinkedEventBadge(event)}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                   <p className="mt-1 line-clamp-2 text-sm text-bt-body">{row.bodyKr}</p>
                   {row.linkedProductId && (
                     <Link

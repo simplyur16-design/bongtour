@@ -18,6 +18,7 @@ export async function GET(req: Request) {
   const country = searchParams.get('country')?.trim()
   const monthKey = searchParams.get('monthKey')?.trim()
   const search = searchParams.get('search')?.trim()
+  const linkedRaw = searchParams.get('linked')?.trim()
   const limitRaw = searchParams.get('limit')
   const offsetRaw = searchParams.get('offset')
 
@@ -37,16 +38,34 @@ export async function GET(req: Request) {
       { description: { contains: search, mode: 'insensitive' } },
     ]
   }
+  if (linkedRaw === 'linked') {
+    where.monthlyCurationContentId = { not: null }
+  } else if (linkedRaw === 'unlinked') {
+    where.monthlyCurationContentId = null
+  }
 
-  const [events, total] = await Promise.all([
+  const [rows, total] = await Promise.all([
     prisma.curationEvent.findMany({
       where,
       orderBy: { collectedAt: 'desc' },
       take: limit,
       skip: offset,
+      include: {
+        monthlyCurationContent: {
+          select: { id: true, title: true, monthKey: true },
+        },
+      },
     }),
     prisma.curationEvent.count({ where }),
   ])
+
+  const events = rows.map((row) => {
+    const { monthlyCurationContent, ...rest } = row
+    return {
+      ...rest,
+      linkedSeasonCard: monthlyCurationContent,
+    }
+  })
 
   return NextResponse.json({ events, total, limit, offset })
 }

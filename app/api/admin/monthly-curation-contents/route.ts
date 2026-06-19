@@ -17,6 +17,20 @@ export async function GET(request: Request) {
       ...(monthKey && /^\d{4}-\d{2}$/.test(monthKey) ? { monthKey } : {}),
     },
     orderBy: [{ monthKey: 'desc' }, { sortOrder: 'asc' }, { updatedAt: 'desc' }],
+    include: {
+      curationEvents: {
+        select: {
+          id: true,
+          name: true,
+          countryCode: true,
+          startMonth: true,
+          endMonth: true,
+          type: true,
+          city: true,
+        },
+        orderBy: { name: 'asc' },
+      },
+    },
   })
   return NextResponse.json({ items })
 }
