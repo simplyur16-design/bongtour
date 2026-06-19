@@ -4,16 +4,8 @@ import {
   parseGeminiJsonOutput,
 } from '@/lib/bong-marketing/gemini-json-parse'
 
-const GLOBAL_EVENT_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 /** Gemini 출력 토큰 한계 회피 — 3개국씩 배치 (30개국 ≈ 10배치) */
-export const GLOBAL_EVENT_COUNTRY_BATCH_SIZE = 3
-const COUNTRY_BATCH_SIZE = GLOBAL_EVENT_COUNTRY_BATCH_SIZE
-/** Gemini 2.5 Pro 출력 한도 내 — 대량 이벤트 JSON용 */
-const GLOBAL_EVENT_MAX_OUTPUT_TOKENS = 16_384
-/** 국가당 이벤트 상한 (프롬프트·파싱 안정성) */
-const MAX_EVENTS_PER_COUNTRY = 8
-/** Gemini 토큰·품질 한계 — 상품 수 기준 상위 N개국만 수집 */
-const MAX_COUNTRIES_FOR_COLLECTION = 30
+export const CURATION_EVENT_GEMINI_COUNTRY_BATCH_SIZE = 3
 
 export interface CollectedEvent {
   name: string
@@ -28,20 +20,20 @@ export interface CollectedEvent {
   appealReason?: string
 }
 
-export interface GlobalEventCollectError {
+export interface CurationEventCollectError {
   stage: 'gemini_api' | 'json_parse' | 'db_upsert' | 'no_countries' | 'empty_response'
   message: string
   country?: string
 }
 
-export interface GlobalEventCollectResult {
+export interface CurationEventCollectResultBase {
   countries: string[]
   collected: number
   saved: number
   skippedDuplicates: number
   /** @deprecated errors 배열 길이 사용 */
   errors: number
-  errorDetails: GlobalEventCollectError[]
+  errorDetails: CurationEventCollectError[]
   rawResponseSamples?: string[]
   batchesRun: number
 }
@@ -115,7 +107,6 @@ export function parseGlobalEventsResponse(response: unknown): CollectedEvent[] {
 
 /**
  * Gemini 응답이 토큰 한계로 잘렸을 때 events 배열 안의 **완전한 객체**만 추출.
- * 0개보다 일부라도 저장하기 위한 salvage 경로.
  */
 export function salvageEventsFromTruncatedJson(rawText: string): CollectedEvent[] {
   const pj = parseGeminiJsonOutput(rawText)
@@ -170,6 +161,19 @@ export function parseGlobalEventsFromGeminiRaw(rawText: string): {
   return { events: [], partial: false, parseError: pj.error }
 }
 
+function normalizeCountryLabel(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, '')
+}
+
+/** 추천 카드 국가명과 이벤트 country 느슨 매칭 */
+export function countryLabelsMatch(recommendationCountry: string, eventCountry: string): boolean {
+  const a = normalizeCountryLabel(recommendationCountry)
+  const b = normalizeCountryLabel(eventCountry)
+  if (!a || !b) return false
+  if (a === b) return true
+  return a.includes(b) || b.includes(a)
+}
+
 /**
  * 봉투어 Product에 등록된 국가 라벨 전체 (정렬·상한 없음).
  */
@@ -212,115 +216,12 @@ export async function listBongtourProductCountryLabels(): Promise<string[]> {
     }
   }
 
-  const merged = [...new Set([...koreanDirect, ...mappedFromSlugs].filter(Boolean))]
-  return merged
+  return [...new Set([...koreanDirect, ...mappedFromSlugs].filter(Boolean))]
 }
 
-/**
- * 봉투어 Product에 등록된 국가 목록 (한국어 라벨, 가나다순 상위 N).
- * Product.country는 browse 슬러그(japan) 또는 한글(일본) 모두 허용.
- */
+/** 봉투어 Product에 등록된 국가 목록 (한국어 라벨, 가나다순 상위 30). */
 export async function getBongtourProductCountries(): Promise<string[]> {
   const merged = await listBongtourProductCountryLabels()
   merged.sort((a, b) => a.localeCompare(b, 'ko'))
-  return merged.slice(0, MAX_COUNTRIES_FOR_COLLECTION)
-}
-
-/**
- * @deprecated PR (가)-4 — write 경로는 CurationEvent. `refreshCurationEvents` 호환 alias.
- */
-export async function refreshGlobalEvents(): Promise<GlobalEventCollectResult> {
-  const { refreshCurationEvents } = await import('@/lib/bong-marketing/curation-event-collector')
-  return refreshCurationEvents()
-}
-
-function monthOverlapsEvent(month: number, startMonth: number, endMonth: number): boolean {
-  if (startMonth <= endMonth) return month >= startMonth && month <= endMonth
-  return month >= startMonth || month <= endMonth
-}
-
-function normalizeCountryLabel(value: string): string {
-  return value.trim().toLowerCase().replace(/\s+/g, '')
-}
-
-/** 추천 카드 국가명과 이벤트 country 느슨 매칭 */
-export function countryLabelsMatch(recommendationCountry: string, eventCountry: string): boolean {
-  const a = normalizeCountryLabel(recommendationCountry)
-  const b = normalizeCountryLabel(eventCountry)
-  if (!a || !b) return false
-  if (a === b) return true
-  return a.includes(b) || b.includes(a)
-}
-
-/** 특정 월의 글로벌 이벤트 조회 */
-export async function getEventsForMonth(month: number, country?: string) {
-  const year = new Date().getFullYear()
-
-  const rows = await prisma.bongGlobalEvent.findMany({
-    where: { year },
-    orderBy: [{ startMonth: 'asc' }, { startDay: 'asc' }],
-  })
-
-  return rows.filter((e) => {
-    if (!monthOverlapsEvent(month, e.startMonth, e.endMonth)) return false
-    if (country && !countryLabelsMatch(country, e.country)) return false
-    return true
-  })
-}
-
-export interface GlobalEventDescriptor {
-  name: string
-  country: string
-  city?: string
-  description?: string
-  appealReason?: string
-  source: 'global'
-}
-
-export async function getGlobalEventsForRecommendationMonth(
-  month: number,
-  country?: string,
-): Promise<GlobalEventDescriptor[]> {
-  if (month < 1 || month > 12) return []
-  const events = await getEventsForMonth(month, country)
-  return events.map((e) => ({
-    name: e.name,
-    country: e.country,
-    city: e.city ?? undefined,
-    description: e.description ?? undefined,
-    appealReason: e.appealReason ?? undefined,
-    source: 'global' as const,
-  }))
-}
-
-/** 추천 카드용 — 글로벌 DB 이벤트만 (한국 시즌 제외) */
-export async function getGlobalEventsForRecommendationMonthRange(
-  monthRange: string,
-  country?: string,
-): Promise<GlobalEventDescriptor[]> {
-  const { parseMonthsFromMonthRange } = await import('@/lib/bong-marketing/seasonal-event-collector')
-  const months = parseMonthsFromMonthRange(monthRange)
-  if (!months.length) return []
-
-  const seen = new Set<string>()
-  const merged: GlobalEventDescriptor[] = []
-
-  for (const month of months) {
-    const events = await getEventsForMonth(month, country)
-    for (const event of events) {
-      const key = `${event.name}::${event.country}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      merged.push({
-        name: event.name,
-        country: event.country,
-        city: event.city ?? undefined,
-        description: event.description ?? undefined,
-        appealReason: event.appealReason ?? undefined,
-        source: 'global',
-      })
-    }
-  }
-
-  return merged.slice(0, 5)
+  return merged.slice(0, 30)
 }

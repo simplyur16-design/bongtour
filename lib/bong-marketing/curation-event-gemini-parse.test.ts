@@ -1,39 +1,20 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import {
   countryLabelsMatch,
-  GLOBAL_EVENT_COUNTRY_BATCH_SIZE,
+  CURATION_EVENT_GEMINI_COUNTRY_BATCH_SIZE,
   parseGlobalEventsResponse,
-  refreshGlobalEvents,
   getBongtourProductCountries,
   salvageEventsFromTruncatedJson,
-} from '@/lib/bong-marketing/global-event-collector'
+} from '@/lib/bong-marketing/curation-event-gemini-parse'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     product: { groupBy: vi.fn() },
     country: { findMany: vi.fn() },
-    bongGlobalEvent: {
-      findFirst: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      findMany: vi.fn(),
-    },
-    curationEvent: {
-      findUnique: vi.fn(),
-      findFirst: vi.fn(),
-      findMany: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-    },
   },
 }))
 
-vi.mock('@/lib/bong-marketing/gemini-generate', () => ({
-  generateGeminiTextResponse: vi.fn(),
-}))
-
 import { prisma } from '@/lib/prisma'
-import { generateGeminiTextResponse } from '@/lib/bong-marketing/gemini-generate'
 
 describe('parseGlobalEventsResponse', () => {
   it('parses valid global events', () => {
@@ -94,9 +75,9 @@ describe('salvageEventsFromTruncatedJson', () => {
   })
 })
 
-describe('GLOBAL_EVENT_COUNTRY_BATCH_SIZE', () => {
+describe('CURATION_EVENT_GEMINI_COUNTRY_BATCH_SIZE', () => {
   it('uses 3 countries per batch', () => {
-    expect(GLOBAL_EVENT_COUNTRY_BATCH_SIZE).toBe(3)
+    expect(CURATION_EVENT_GEMINI_COUNTRY_BATCH_SIZE).toBe(3)
   })
 })
 
@@ -140,59 +121,5 @@ describe('getBongtourProductCountries', () => {
 
     const countries = await getBongtourProductCountries()
     expect(countries).toEqual(['일본', '태국'])
-  })
-})
-
-describe('refreshGlobalEvents', () => {
-  beforeEach(() => {
-    vi.mocked(prisma.product.groupBy).mockReset()
-    vi.mocked(prisma.country.findMany).mockReset()
-    vi.mocked(prisma.curationEvent.findUnique).mockReset()
-    vi.mocked(prisma.curationEvent.findFirst).mockReset()
-    vi.mocked(prisma.curationEvent.findMany).mockReset()
-    vi.mocked(prisma.curationEvent.create).mockReset()
-    vi.mocked(prisma.curationEvent.update).mockReset()
-    vi.mocked(generateGeminiTextResponse).mockReset()
-  })
-
-  it('returns empty result when no product countries', async () => {
-    vi.mocked(prisma.product.groupBy).mockResolvedValue([] as never)
-
-    const result = await refreshGlobalEvents()
-    expect(result.countries).toEqual([])
-    expect(result.collected).toBe(0)
-    expect(result.errorDetails.some((e) => e.stage === 'no_countries')).toBe(true)
-    expect(generateGeminiTextResponse).not.toHaveBeenCalled()
-  })
-
-  it('delegates to CurationEvent write path', async () => {
-    vi.mocked(prisma.product.groupBy).mockResolvedValue([
-      { country: '일본', _count: { _all: 1 } },
-      { country: '베트남', _count: { _all: 1 } },
-    ] as never)
-    vi.mocked(generateGeminiTextResponse).mockImplementation(async ({ userPrompt }) => {
-      const country = userPrompt.includes('일본') ? '일본' : '베트남'
-      return JSON.stringify({
-        events: [
-          {
-            name: '다낭 불꽃축제',
-            country,
-            startMonth: 6,
-            endMonth: 7,
-            type: 'festival',
-          },
-        ],
-      })
-    })
-    vi.mocked(prisma.curationEvent.findUnique).mockResolvedValue(null)
-    vi.mocked(prisma.curationEvent.findFirst).mockResolvedValue(null)
-    vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([])
-    vi.mocked(prisma.curationEvent.create).mockResolvedValue({} as never)
-
-    const result = await refreshGlobalEvents()
-    expect(result.batchesRun).toBe(2)
-    expect(result.collected).toBeGreaterThan(0)
-    expect(result.saved).toBeGreaterThan(0)
-    expect(prisma.curationEvent.create).toHaveBeenCalled()
   })
 })

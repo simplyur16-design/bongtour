@@ -3,7 +3,7 @@ import {
   buildCountryMatchVariants,
   monthOverlapsEvent,
 } from '@/lib/bong-marketing/curation-event-repository'
-import { countryLabelsMatch } from '@/lib/bong-marketing/global-event-collector'
+import { countryLabelsMatch } from '@/lib/bong-marketing/curation-event-gemini-parse'
 
 export const CURATION_EVENT_SUMMARY_SELECT = {
   id: true,

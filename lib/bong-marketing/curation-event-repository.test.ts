@@ -10,7 +10,6 @@ import {
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     curationEvent: { findMany: vi.fn() },
-    bongGlobalEvent: { findMany: vi.fn() },
     country: { findMany: vi.fn() },
   },
 }))
@@ -62,7 +61,7 @@ describe('getApprovedCurationEventsForMonth', () => {
     ] as never)
   })
 
-  it('returns approved events overlapping monthKey without legacy fallback', async () => {
+  it('returns approved events overlapping monthKey', async () => {
     vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([
       {
         id: 'ev-1',
@@ -135,10 +134,9 @@ describe('getApprovedCurationEventsForMonth', () => {
   })
 })
 
-describe('getEventsForRecommendationMonth dual-read', () => {
+describe('getEventsForRecommendationMonth', () => {
   beforeEach(() => {
     vi.mocked(prisma.curationEvent.findMany).mockReset()
-    vi.mocked(prisma.bongGlobalEvent.findMany).mockReset()
     vi.mocked(prisma.country.findMany).mockReset()
     vi.mocked(prisma.country.findMany).mockResolvedValue([
       { countryKey: 'japan', koreanLabel: '일본' },
@@ -146,7 +144,7 @@ describe('getEventsForRecommendationMonth dual-read', () => {
     ] as never)
   })
 
-  it('returns CurationEvent rows when present', async () => {
+  it('returns approved CurationEvent rows when present', async () => {
     vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([
       {
         name: '후지 록',
@@ -168,7 +166,6 @@ describe('getEventsForRecommendationMonth dual-read', () => {
     expect(events).toHaveLength(1)
     expect(events[0].source).toBe('curation_event')
     expect(events[0].name).toBe('후지 록')
-    expect(prisma.bongGlobalEvent.findMany).not.toHaveBeenCalled()
     expect(prisma.curationEvent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ status: 'approved', year: 2026 }),
@@ -198,99 +195,18 @@ describe('getEventsForRecommendationMonth dual-read', () => {
     })
     expect(events).toHaveLength(1)
     expect(events[0].name).toBe('기온 마츠리')
-    expect(prisma.bongGlobalEvent.findMany).not.toHaveBeenCalled()
   })
 
-  it('falls back to legacy when only draft CurationEvent exists for month', async () => {
+  it('returns empty when no approved events match month/country', async () => {
     vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([])
-    vi.mocked(prisma.bongGlobalEvent.findMany).mockResolvedValue([
-      {
-        name: '7월 레거시',
-        country: '일본',
-        city: null,
-        startMonth: 7,
-        startDay: null,
-        endMonth: 7,
-        endDay: null,
-        type: 'festival',
-        description: null,
-        appealReason: null,
-      },
-    ] as never)
 
     const events = await getEventsForRecommendationMonth(7, '일본', {
       referenceDate: new Date('2026-06-15'),
     })
-    expect(events).toHaveLength(1)
-    expect(events[0].source).toBe('bong_global_event')
-    expect(prisma.bongGlobalEvent.findMany).toHaveBeenCalled()
+    expect(events).toEqual([])
   })
 
-  it('falls back to BongGlobalEvent when CurationEvent empty for month/country', async () => {
-    vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([])
-    vi.mocked(prisma.bongGlobalEvent.findMany).mockResolvedValue([
-      {
-        name: '다낭 불꽃',
-        country: '베트남',
-        city: '다낭',
-        startMonth: 6,
-        startDay: null,
-        endMonth: 7,
-        endDay: null,
-        type: 'festival',
-        description: null,
-        appealReason: '휴가',
-      },
-    ] as never)
-
-    const events = await getEventsForRecommendationMonth(7, '베트남', {
-      referenceDate: new Date('2026-06-15'),
-    })
-    expect(events).toHaveLength(1)
-    expect(events[0].source).toBe('bong_global_event')
-    expect(prisma.bongGlobalEvent.findMany).toHaveBeenCalled()
-  })
-
-  it('prefers CurationEvent when both tables have data', async () => {
-    vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([
-      {
-        name: '신규 이벤트',
-        countryCode: '일본',
-        city: null,
-        startMonth: 7,
-        startDay: null,
-        endMonth: 7,
-        endDay: null,
-        type: 'festival',
-        description: null,
-        appealReason: null,
-      },
-    ] as never)
-    vi.mocked(prisma.bongGlobalEvent.findMany).mockResolvedValue([
-      {
-        name: '레거시 이벤트',
-        country: '일본',
-        city: null,
-        startMonth: 7,
-        startDay: null,
-        endMonth: 7,
-        endDay: null,
-        type: 'festival',
-        description: null,
-        appealReason: null,
-      },
-    ] as never)
-
-    const events = await getEventsForRecommendationMonth(7, '일본', {
-      referenceDate: new Date('2026-06-15'),
-    })
-    expect(events).toHaveLength(1)
-    expect(events[0].source).toBe('curation_event')
-    expect(events[0].name).toBe('신규 이벤트')
-    expect(prisma.bongGlobalEvent.findMany).not.toHaveBeenCalled()
-  })
-
-  it('uses legacy when CurationEvent exists but not for target month', async () => {
+  it('returns empty when CurationEvent exists but not for target month', async () => {
     vi.mocked(prisma.curationEvent.findMany).mockResolvedValue([
       {
         name: '8월만',
@@ -305,26 +221,10 @@ describe('getEventsForRecommendationMonth dual-read', () => {
         appealReason: null,
       },
     ] as never)
-    vi.mocked(prisma.bongGlobalEvent.findMany).mockResolvedValue([
-      {
-        name: '7월 레거시',
-        country: '일본',
-        city: null,
-        startMonth: 7,
-        startDay: null,
-        endMonth: 7,
-        endDay: null,
-        type: 'festival',
-        description: null,
-        appealReason: null,
-      },
-    ] as never)
 
     const events = await getEventsForRecommendationMonth(7, '일본', {
       referenceDate: new Date('2026-06-15'),
     })
-    expect(events).toHaveLength(1)
-    expect(events[0].source).toBe('bong_global_event')
-    expect(events[0].name).toBe('7월 레거시')
+    expect(events).toEqual([])
   })
 })

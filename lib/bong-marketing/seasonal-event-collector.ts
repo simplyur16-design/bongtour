@@ -171,15 +171,17 @@ export async function getMonthlyEventsForRecommendation(
   month: number,
   country?: string,
 ): Promise<EventDescriptor[]> {
-  const { getEventsForMonth } = await import('@/lib/bong-marketing/global-event-collector')
+  const { getEventsForRecommendationMonth } = await import(
+    '@/lib/bong-marketing/curation-event-repository'
+  )
   const koreanEvents = await getKoreanOutboundSeasonEventsForMonth(month)
-  const globalEvents = await getEventsForMonth(month, country)
+  const globalEvents = await getEventsForRecommendationMonth(month, country)
 
   return [
     ...koreanEvents,
     ...globalEvents.map((e) => ({
       name: e.name,
-      country: e.country,
+      country: e.countryCode,
       city: e.city ?? undefined,
       description: e.description ?? undefined,
       appealReason: e.appealReason ?? undefined,
@@ -188,7 +190,7 @@ export async function getMonthlyEventsForRecommendation(
   ]
 }
 
-/** @deprecated 추천 카드 — global-event-collector 의 getGlobalEventsForRecommendationMonthRange 사용 */
+/** @deprecated 추천 카드 — curation-event-repository 의 getEventsForRecommendationMonthRange 사용 */
 export async function getEventsForRecommendationMonthRange(
   monthRange: string,
   country?: string,

@@ -98,7 +98,7 @@ async function sortWithPriority(countries: string[]): Promise<string[]> {
 /** Product 등록 국가 — 핵심 우선 정렬 후 상위 30 (기존 refresh 동작) */
 async function getProductTargetCountriesForEventCollection(): Promise<string[]> {
   const { listBongtourProductCountryLabels } = await import(
-    '@/lib/bong-marketing/global-event-collector'
+    '@/lib/bong-marketing/curation-event-gemini-parse'
   )
   const labels = await listBongtourProductCountryLabels()
   return (await sortWithPriority(labels)).slice(0, MAX_COUNTRIES_FOR_COLLECTION)

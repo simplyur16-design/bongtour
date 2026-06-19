@@ -6,9 +6,9 @@ import {
   listBongtourProductCountryLabels,
   parseGlobalEventsFromGeminiRaw,
   type CollectedEvent,
-  type GlobalEventCollectError,
-  type GlobalEventCollectResult,
-} from '@/lib/bong-marketing/global-event-collector'
+  type CurationEventCollectError,
+  type CurationEventCollectResultBase,
+} from '@/lib/bong-marketing/curation-event-gemini-parse'
 import {
   type CurationEventRefreshOptions,
   resolveCurationEventTargetCountries,
@@ -58,7 +58,7 @@ export const PRIORITY_COUNTRIES = [
   '이집트',
 ] as const
 
-export interface CurationEventCollectResult extends GlobalEventCollectResult {
+export interface CurationEventCollectResult extends CurationEventCollectResultBase {
   /** 운영자 검토 안내 */
   reviewNotice?: string
   /** approved 기존 row 스킵 (덮어쓰기 방지) */
@@ -383,7 +383,7 @@ async function collectEventsForCountryBatch(
 }
 
 function appendCoverageGapErrors(
-  errorDetails: GlobalEventCollectError[],
+  errorDetails: CurationEventCollectError[],
   gaps: MonthCoverageGap[],
   partial: boolean,
 ): void {
@@ -657,7 +657,7 @@ export async function refreshCurationEvents(
       stage: 'empty_response',
       message:
         '전체 배치에서 이벤트 0개 — Gemini API 실패·JSON 파싱 실패·응답 토큰 초과 가능성. errorDetails 참고.',
-    } as GlobalEventCollectError)
+    } as CurationEventCollectError)
   }
 
   if (result.saved > 0) {

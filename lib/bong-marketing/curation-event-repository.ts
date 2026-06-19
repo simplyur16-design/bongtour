@@ -1,9 +1,18 @@
 import { prisma } from '@/lib/prisma'
-import { countryLabelsMatch } from '@/lib/bong-marketing/global-event-collector'
-import type { GlobalEventDescriptor } from '@/lib/bong-marketing/global-event-collector'
+import { countryLabelsMatch } from '@/lib/bong-marketing/curation-event-gemini-parse'
 import { debugLog } from '@/lib/bong-marketing/debug-log'
 
-export type CurationEventSource = 'curation_event' | 'bong_global_event'
+export type CurationEventSource = 'curation_event'
+
+/** trip-recommender 호환 이벤트 요약 */
+export interface GlobalEventDescriptor {
+  name: string
+  country: string
+  city?: string
+  description?: string
+  appealReason?: string
+  source: 'global'
+}
 
 /** PR (가)-7-α — 수집·검토 워크플로 */
 export type CurationEventStatus = 'draft' | 'approved' | 'rejected'
@@ -144,43 +153,9 @@ function toDtoFromCurationEvent(row: {
   }
 }
 
-function toDtoFromLegacyEvent(row: {
-  name: string
-  country: string
-  city: string | null
-  startMonth: number
-  startDay: number | null
-  endMonth: number
-  endDay: number | null
-  type: string
-  description: string | null
-  appealReason: string | null
-}): CurationEventDto {
-  return {
-    name: row.name,
-    countryCode: row.country,
-    city: row.city,
-    startMonth: row.startMonth,
-    startDay: row.startDay,
-    endMonth: row.endMonth,
-    endDay: row.endDay,
-    type: row.type,
-    description: row.description,
-    appealReason: row.appealReason,
-    source: 'bong_global_event',
-  }
-}
-
 async function loadCurationEventsForYear(year: number) {
   return prisma.curationEvent.findMany({
     where: { year, status: 'approved' },
-    orderBy: [{ startMonth: 'asc' }, { startDay: 'asc' }],
-  })
-}
-
-async function loadLegacyGlobalEventsForYear(year: number) {
-  return prisma.bongGlobalEvent.findMany({
-    where: { year },
     orderBy: [{ startMonth: 'asc' }, { startDay: 'asc' }],
   })
 }
@@ -260,9 +235,7 @@ export async function getApprovedCurationEventsForMonth(
   }
 }
 
-/**
- * 신규 CurationEvent 우선 — 해당 월·국가에 1건이라도 있으면 legacy는 조회하지 않음.
- */
+/** approved CurationEvent pool — month·country 필터 */
 export async function getEventsForRecommendationMonth(
   month: number,
   country?: string,
@@ -291,26 +264,7 @@ export async function getEventsForRecommendationMonth(
     variants: country ? buildCountryMatchVariants(country, labelBySlug) : undefined,
   })
 
-  if (matchedNew.length > 0) {
-    return matchedNew.map(toDtoFromCurationEvent)
-  }
-
-  const legacyRows = await loadLegacyGlobalEventsForYear(year)
-  const matchedLegacy = filterByMonthAndCountry(
-    legacyRows.map((r) => ({ ...r, countryLabel: r.country })),
-    month,
-    country,
-    labelBySlug,
-  )
-
-  debugLog('curation-event-repo', 'legacy fallback', {
-    month,
-    country,
-    legacyPool: legacyRows.length,
-    matchedLegacy: matchedLegacy.length,
-  })
-
-  return matchedLegacy.map(toDtoFromLegacyEvent)
+  return matchedNew.map(toDtoFromCurationEvent)
 }
 
 /** trip-recommender 호환 — GlobalEventDescriptor 형태 */
@@ -330,7 +284,7 @@ export async function getGlobalEventsForRecommendationMonth(
   }))
 }
 
-/** 월 범위 문자열 — CurationEvent pool 우선, 없으면 legacy fallback (월별) */
+/** 월 범위 문자열 — approved CurationEvent pool (월별 merge) */
 export async function getEventsForRecommendationMonthRange(
   monthRange: string,
   country?: string,

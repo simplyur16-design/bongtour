@@ -15,7 +15,7 @@ import {
   getApprovedCurationEventsForMonth,
   type ApprovedCurationEventRecord,
 } from '@/lib/bong-marketing/curation-event-repository'
-import { countryLabelsMatch } from '@/lib/bong-marketing/global-event-collector'
+import { countryLabelsMatch } from '@/lib/bong-marketing/curation-event-gemini-parse'
 
 const CURATION_MODEL = process.env.GEMINI_CURATION_MODEL?.trim() || getModelName()
 const PAGE_SCOPE_OVERSEAS = 'overseas' as const

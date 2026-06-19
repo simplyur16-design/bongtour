@@ -38,8 +38,3 @@ async function tickCurationEventCron() {
     console.error('[curation-event-cron] error', e)
   }
 }
-
-/** @deprecated PR (가)-4 — `startInstrumentationCurationEventCron` 사용 */
-export function startInstrumentationGlobalEventCron(): void {
-  startInstrumentationCurationEventCron()
-}
