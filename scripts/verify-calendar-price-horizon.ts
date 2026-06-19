@@ -78,6 +78,14 @@ const modetourApiRoute = read('app/api/admin/products/[id]/calendar-scrape-modet
 assert(modetourApiRoute.includes('collectModetourDepartureInputsForDateRange'), 'modetour API route must use B2C adapter')
 assert(modetourApiRoute.includes('modetour-b2c-api'), 'modetour API route source tag')
 
+const modetourScraper = read('scripts/calendar_e2e_scraper_modetour/calendar_price_scraper.py')
+assert(modetourScraper.includes('REGRESSION-FREEZE[modetour-sweep-e2e-recheck]'), 'modetour E2E scraper marker missing')
+assert(modetourScraper.includes('다른 출발일 보기'), 'modetour E2E must target 다른 출발일 보기 CTA')
+assert(modetourScraper.includes('_wait_for_modetour_detail_ready'), 'modetour E2E must wait for detail shell')
+assert(modetourScraper.includes('_modetour_modal_is_open'), 'modetour E2E must verify modal open')
+assert(modetourScraper.includes('modetour-prices-ready'), 'modetour E2E must wait for calendar prices')
+assert(modetourScraper.includes('cellRawText'), 'modetour E2E must parse td textContent')
+
 const pyHorizon = read('scripts/calendar_e2e_common/horizon.py')
 assert(pyHorizon.includes('CALENDAR_PRICE_HORIZON_MONTHS_FORWARD = 6'), 'python horizon months')
 

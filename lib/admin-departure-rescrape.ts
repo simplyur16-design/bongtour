@@ -124,7 +124,7 @@ export function buildDetailUrl(originSource: string, originCode: string): string
     return `${base}/goods/goodsDetail.do?tourCd=${code}`
   }
   if (src.includes('紐⑤몢') || src === 'modetour') {
-    return `${MODETOUR_BASE.replace(/\/$/, '')}/package/detail?pkgCd=${code}`
+    return `${MODETOUR_BASE.replace(/\/$/, '')}/package/${code}`
   }
   if (normalizeSupplierOrigin(originSource) === 'verygoodtour') {
     return `${VERYGOODTOUR_BASE.replace(/\/$/, '')}/Product/PackageDetail?ProCode=${code}&PriceSeq=1`

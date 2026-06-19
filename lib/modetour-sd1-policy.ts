@@ -80,16 +80,28 @@ export class ModetourB2cApiError extends Error {
   }
 }
 
-function modetourErrorEntryIsSd1(entry: unknown): boolean {
+function modetourErrorEntryIsSoftNotFound(entry: unknown): boolean {
   if (typeof entry === 'string') {
-    return entry === 'SD1' || entry.includes('[SD1]')
+    return (
+      entry === 'SD1' ||
+      entry === 'SD2' ||
+      entry.includes('[SD1]') ||
+      entry.includes('[SD2]')
+    )
   }
   if (!entry || typeof entry !== 'object') return false
   const o = entry as ModetourB2cErrorMessage
   const code = String(o.errorCode ?? '')
   const msg = String(o.errorMessage ?? '')
-  if (code === 'SD1' || msg === 'SD1') return true
-  if (code.includes('[SD1]') || msg.includes('[SD1]')) return true
+  if (code === 'SD1' || msg === 'SD1' || code === 'SD2' || msg === 'SD2') return true
+  if (
+    code.includes('[SD1]') ||
+    msg.includes('[SD1]') ||
+    code.includes('[SD2]') ||
+    msg.includes('[SD2]')
+  ) {
+    return true
+  }
   return false
 }
 
@@ -97,9 +109,9 @@ function modetourErrorEntryIsSd1(entry: unknown): boolean {
 export function modetourB2cBodyIndicatesSd1(bodyJson: unknown, bodyText: string): boolean {
   if (bodyJson && typeof bodyJson === 'object') {
     const msgs = (bodyJson as { errorMessages?: unknown }).errorMessages
-    if (Array.isArray(msgs) && msgs.some(modetourErrorEntryIsSd1)) return true
+    if (Array.isArray(msgs) && msgs.some(modetourErrorEntryIsSoftNotFound)) return true
   }
-  return bodyText.includes('[SD1]')
+  return bodyText.includes('[SD1]') || bodyText.includes('[SD2]')
 }
 
 export function isModetourSd1NotFoundError(err: unknown): err is ModetourB2cApiError {

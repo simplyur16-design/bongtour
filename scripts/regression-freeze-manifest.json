@@ -774,8 +774,23 @@
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-sweep-e2e-recheck]",
             "collectModetourPriceInputsWithE2eFallback",
-            "scrapeLiveCalendar"
+            "resolveModetourDetailByOriginCode",
+            "scrapeLiveCalendar",
+            "airHotel",
+            "e2eModalOpenFailed",
+            "MODETOUR_E2E_MODAL_OPEN_FAILED_MARKER",
+            "resolvedDetailUrl"
           ]
+        },
+        {
+          "file": "lib/modetour-origin-code-resolve.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-sweep-e2e-recheck]",
+            "buildModetourPackageUrlFromOriginCode",
+            "resolveModetourDetailByOriginCode",
+            "/package/"
+          ],
+          "mustNotInclude": ["pkgCd="]
         },
         {
           "file": "lib/modetour-price-recheck-meta.ts",
@@ -791,13 +806,28 @@
             "REGRESSION-FREEZE[modetour-sweep-e2e-recheck]",
             "collectModetourPriceInputsWithE2eFallback",
             "isModetourPriceRecheckDue",
-            "computeModetourNextPriceRecheckYmd"
+            "computeModetourNextPriceRecheckYmd",
+            "isAirHotelProduct",
+            "e2eModalOpenFailed",
+            "e2e-modal-failed-defer",
+            "origin-url-refresh",
+            "originCode"
           ],
           "mustNotInclude": ["modetourProductHasFuturePricedDeparture"]
         },
         {
+          "file": "scripts/calendar_e2e_scraper_modetour/calendar_price_scraper.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-sweep-e2e-recheck]",
+            "다른 출발일 보기",
+            "_wait_for_modetour_detail_ready",
+            "_modetour_modal_is_open",
+            "modetour-prices-ready"
+          ]
+        },
+        {
           "file": "lib/modetour-sd1-policy.ts",
-          "mustInclude": ["isModetourSd1AutoUnpublishEligible"],
+          "mustInclude": ["isModetourSd1AutoUnpublishEligible", "[SD2]"],
           "mustNotInclude": ["if (options?.hasFuturePricedDeparture) return false"]
         }
       ]
@@ -930,6 +960,7 @@
         "lib/hanatour-origin-code-from-paste.test.ts",
         "lib/calendar-price-horizon.test.ts",
         "lib/modetour-price-collect.test.ts",
+        "lib/modetour-origin-code-resolve.test.ts",
         "lib/modetour-price-recheck-meta.test.ts",
         "lib/modetour-sd1-policy.test.ts",
         "lib/modetour-sweep.test.ts",

@@ -9,6 +9,7 @@
  */
 import type { PrismaClient } from '@prisma/client'
 
+import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import { reconcileRuleAMarkersWithDbFutureDepartures } from '@/lib/future-priced-departure-guard'
 import {
   isModetourSd1AutoUnpublishEligible,
@@ -39,6 +40,19 @@ import {
 } from '@/lib/upsert-product-departures-modetour'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 
+function safeRevalidateProductListingCaches(): void {
+  try {
+    revalidateProductListingCaches()
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (msg.includes('static generation store missing')) {
+      console.warn('[modetour-sweep] skip revalidate (not in Next.js runtime)')
+      return
+    }
+    throw err
+  }
+}
+
 const SWEEP_DUE_DAYS = 1
 const SWEEP_DEFAULT_LIMIT = 200
 
@@ -49,6 +63,8 @@ export type ModetourSweepResult = {
   skipped: number
   pruned: number
   e2eCollected: number
+  e2eAttempted: number
+  e2eModalOpenFailed: number
   urgentDealOn: number
   urgentDealOff: number
 }
@@ -56,9 +72,45 @@ export type ModetourSweepResult = {
 type SweepProductRow = {
   id: string
   originUrl: string | null
+  originCode: string | null
   listingKind: string | null
   productType: string | null
   rawMeta: string | null
+}
+
+function modetourOriginUrlNeedsRefresh(
+  storedOriginUrl: string | null | undefined,
+  resolvedDetailUrl: string | null | undefined,
+  resolvedProductNo: string | null | undefined,
+): boolean {
+  const resolved = resolvedDetailUrl?.trim()
+  if (!resolved) return false
+  const storedNo = parseModetourPackageProductNoFromUrl(storedOriginUrl)
+  const resolvedNo = resolvedProductNo?.trim() || parseModetourPackageProductNoFromUrl(resolved)
+  if (storedNo && resolvedNo && storedNo !== resolvedNo) return true
+  return (storedOriginUrl?.trim() || '') !== resolved
+}
+
+function modetourResolvedOriginPatch(
+  product: SweepProductRow,
+  collected: {
+    resolvedDetailUrl: string | null
+    resolvedProductNo: string | null
+  },
+): { originUrl?: string; supplierGroupId?: string } {
+  if (
+    !modetourOriginUrlNeedsRefresh(
+      product.originUrl,
+      collected.resolvedDetailUrl,
+      collected.resolvedProductNo,
+    )
+  ) {
+    return {}
+  }
+  const patch: { originUrl?: string; supplierGroupId?: string } = {}
+  if (collected.resolvedDetailUrl?.trim()) patch.originUrl = collected.resolvedDetailUrl.trim()
+  if (collected.resolvedProductNo?.trim()) patch.supplierGroupId = collected.resolvedProductNo.trim()
+  return patch
 }
 
 function ymdToUtcMidnight(ymd: string): Date {
@@ -68,20 +120,50 @@ function ymdToUtcMidnight(ymd: string): Date {
 async function findSweepProducts(
   prisma: PrismaClient,
   limit: number,
-  productNo?: string | null,
+  options?: {
+    productId?: string | null
+    productNo?: string | null
+    originCode?: string | null
+  },
   todayYmd?: string,
 ): Promise<SweepProductRow[]> {
   const select = {
     id: true,
     originUrl: true,
+    originCode: true,
     listingKind: true,
     productType: true,
     rawMeta: true,
   } as const
   const today = todayYmd ?? kstTodayYmd()
 
-  if (productNo?.trim()) {
-    const forcedNo = productNo.trim()
+  if (options?.productId?.trim()) {
+    const row = await prisma.product.findFirst({
+      where: {
+        id: options.productId.trim(),
+        registrationStatus: 'registered',
+        originSource: 'modetour',
+      },
+      select,
+    })
+    return row ? [row] : []
+  }
+
+  if (options?.originCode?.trim()) {
+    const code = options.originCode.trim()
+    const row = await prisma.product.findFirst({
+      where: {
+        registrationStatus: 'registered',
+        originSource: 'modetour',
+        originCode: { equals: code, mode: 'insensitive' },
+      },
+      select,
+    })
+    return row ? [row] : []
+  }
+
+  if (options?.productNo?.trim()) {
+    const forcedNo = options.productNo.trim()
     const rows = await prisma.product.findMany({
       where: {
         registrationStatus: 'registered',
@@ -156,11 +238,11 @@ async function clearHorizonDepartures(
  */
 export async function sweepDueModetourProducts(
   prisma: PrismaClient,
-  options?: { limit?: number; productNo?: string | null }
+  options?: { limit?: number; productId?: string | null; productNo?: string | null; originCode?: string | null }
 ): Promise<ModetourSweepResult> {
   const limit = Math.max(1, Math.min(500, options?.limit ?? SWEEP_DEFAULT_LIMIT))
   const todayYmd = kstTodayYmd()
-  const products = await findSweepProducts(prisma, limit, options?.productNo ?? null, todayYmd)
+  const products = await findSweepProducts(prisma, limit, options, todayYmd)
 
   const result: ModetourSweepResult = {
     processed: 0,
@@ -169,6 +251,8 @@ export async function sweepDueModetourProducts(
     skipped: 0,
     pruned: 0,
     e2eCollected: 0,
+    e2eAttempted: 0,
+    e2eModalOpenFailed: 0,
     urgentDealOn: 0,
     urgentDealOff: 0,
   }
@@ -185,20 +269,63 @@ export async function sweepDueModetourProducts(
         product.originUrl,
         fromYmd,
         toYmd,
+        { airHotel: isAirHotelProduct(product), originCode: product.originCode },
       )
+
+      const refreshOriginUrl = modetourOriginUrlNeedsRefresh(
+        product.originUrl,
+        collected.resolvedDetailUrl,
+        collected.resolvedProductNo,
+      )
+      if (refreshOriginUrl && collected.resolvedDetailUrl) {
+        console.warn('[modetour-sweep] origin-url-refresh', {
+          productId: product.id,
+          originCode: product.originCode,
+          from: product.originUrl,
+          to: collected.resolvedDetailUrl,
+          resolveSource: collected.detailResolveSource,
+        })
+      }
+      const originPatch = modetourResolvedOriginPatch(product, collected)
 
       if (collected.source === 'e2e') {
         result.e2eCollected += 1
       }
+      if (collected.e2eAttempted) {
+        result.e2eAttempted += 1
+      }
 
       if (collected.inputs.length === 0) {
-        const prunedOnFail = await clearHorizonDepartures(prisma, product.id, fromYmd, toYmd)
-        result.pruned += prunedOnFail
+        if (collected.e2eModalOpenFailed) {
+          result.e2eModalOpenFailed += 1
+          console.warn('[modetour-sweep] e2e-modal-failed-defer', {
+            productId: product.id,
+            apiFailedSd1: collected.apiFailedSd1,
+            listingKind: product.listingKind,
+            productType: product.productType,
+          })
+          await prisma.product.update({
+            where: { id: product.id },
+            data: {
+              lastSalesPolicyCheckedAt: now,
+              rawMeta: clearModetourPriceRecheckFromRawMeta(product.rawMeta),
+              ...originPatch,
+            },
+          })
+          result.skipped += 1
+          continue
+        }
+
+        if (isModetourSd1AutoUnpublishEligible(product)) {
+          const prunedOnFail = await clearHorizonDepartures(prisma, product.id, fromYmd, toYmd)
+          result.pruned += prunedOnFail
+        }
 
         if (!isModetourSd1AutoUnpublishEligible(product)) {
           console.warn('[modetour-sweep] collect-fail-skip-unpublish', {
             productId: product.id,
             apiFailedSd1: collected.apiFailedSd1,
+            e2eAttempted: collected.e2eAttempted,
             e2eError: collected.e2eError,
             listingKind: product.listingKind,
             productType: product.productType,
@@ -208,6 +335,7 @@ export async function sweepDueModetourProducts(
             data: {
               lastSalesPolicyCheckedAt: now,
               rawMeta: clearModetourPriceRecheckFromRawMeta(product.rawMeta),
+              ...originPatch,
             },
           })
           result.skipped += 1
@@ -232,6 +360,7 @@ export async function sweepDueModetourProducts(
             lastFutureDepartureDate: markers.lastFutureDepartureDate,
             lastSalesPolicyCheckedAt: now,
             rawMeta: clearModetourPriceRecheckFromRawMeta(product.rawMeta),
+            ...originPatch,
           },
         })
         result.retired += 1
@@ -284,6 +413,7 @@ export async function sweepDueModetourProducts(
           ...(priceFrom != null ? { priceFrom } : {}),
           lastSalesPolicyCheckedAt: now,
           rawMeta,
+          ...originPatch,
         },
       })
       result.updated += 1
@@ -302,7 +432,7 @@ export async function sweepDueModetourProducts(
   }
 
   if (result.retired > 0) {
-    revalidateProductListingCaches()
+    safeRevalidateProductListingCaches()
   }
 
   return result

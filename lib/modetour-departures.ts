@@ -262,6 +262,13 @@ export function parseModetourPackageProductNoFromUrl(originUrl: string | null | 
   return parseProductNo(originUrl)
 }
 
+/** API referer·E2E — `go.modetour` 등 호스트와 무관하게 www 패키지 URL로 통일. */
+export function normalizeModetourPackageDetailUrl(originUrl: string | null | undefined): string | null {
+  const productNo = parseModetourPackageProductNoFromUrl(originUrl)
+  if (!productNo) return null
+  return `https://www.modetour.com/package/${productNo}`
+}
+
 /** `supplierDepartureCodeCandidate` → pId (`modetour:<digits>`). */
 export function parseModetourSupplierDeparturePid(
   candidate: string | null | undefined
@@ -977,6 +984,8 @@ export async function collectModetourDepartureInputs(
     singleDateYmd?: string
     /** on-demand 범위: API `searchFrom`/`searchTo`를 이 구간으로 고정(YYYY-MM-DD, inclusive). */
     dateRangeYmd?: { from: string; to: string }
+    /** 자유여행 — 패키지 baseline title match 생략, 가격 있는 API 행 전부 수집. */
+    skipBaselineMatch?: boolean
   }
 ): Promise<{
   inputs: DepartureInput[]
@@ -1115,23 +1124,25 @@ export async function collectModetourDepartureInputs(
     const carrierFromRow = rowCarrierName(r)
     const { tripNights, tripDays } = rowTripNightsDays(r, baselineNd.tripNights, baselineNd.tripDays)
 
-    const match = rowMatchesBaseline(
-      candidateLayers,
-      carrierFromRow,
-      tripNights,
-      tripDays,
-      baselineLayers,
-      baselineCarrier,
-      baselineNd.tripNights,
-      baselineNd.tripDays
-    )
+    const match = options?.skipBaselineMatch
+      ? { pass: true as const }
+      : rowMatchesBaseline(
+          candidateLayers,
+          carrierFromRow,
+          tripNights,
+          tripDays,
+          baselineLayers,
+          baselineCarrier,
+          baselineNd.tripNights,
+          baselineNd.tripDays,
+        )
 
     const rowCcy = modetourRowCurrencyCode(r)
     notes.push(
-      `[MODETOUR_DEPARTURE_MATCH] departure_date=${departureDate} result=${match.pass ? 'matched' : 'unmatched'} reason=${match.failReason ?? 'none'}`
+      `[MODETOUR_DEPARTURE_MATCH] departure_date=${departureDate} result=${match.pass ? 'matched' : 'unmatched'} reason=${'failReason' in match ? (match.failReason ?? 'none') : 'air_hotel_skip_baseline'}`
     )
     notes.push(
-      `[SCRAPER_CANDIDATE] candidate_raw_title=${candidateLayers.rawTitle} candidate_comparison_title=${candidateLayers.comparisonTitle} candidate_comparison_title_no_space=${candidateLayers.comparisonTitleNoSpace} candidate_carrier=${carrierFromRow ?? ''} candidate_departure_date=${departureDate} candidate_outbound_departure_at= candidate_price=${price} candidate_currency=${rowCcy ?? ''} match_result=${match.pass ? 'pass' : 'fail'} fail_reason=${match.failReason ?? ''}`
+      `[SCRAPER_CANDIDATE] candidate_raw_title=${candidateLayers.rawTitle} candidate_comparison_title=${candidateLayers.comparisonTitle} candidate_comparison_title_no_space=${candidateLayers.comparisonTitleNoSpace} candidate_carrier=${carrierFromRow ?? ''} candidate_departure_date=${departureDate} candidate_outbound_departure_at= candidate_price=${price} candidate_currency=${rowCcy ?? ''} match_result=${match.pass ? 'pass' : 'fail'} fail_reason=${'failReason' in match ? (match.failReason ?? '') : 'air_hotel_skip_baseline'}`
     )
 
     if (!match.pass) continue
@@ -1353,12 +1364,16 @@ export async function collectModetourDepartureInputForSingleDate(
 export async function collectModetourDepartureInputsForDateRange(
   originUrl: string | null | undefined,
   fromYmd: string,
-  toYmd: string
+  toYmd: string,
+  options?: { skipBaselineMatch?: boolean },
 ): Promise<DepartureInput[]> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
   const lo = fromYmd <= toYmd ? fromYmd : toYmd
   const hi = fromYmd <= toYmd ? toYmd : fromYmd
-  const r = await collectModetourDepartureInputs(originUrl, { dateRangeYmd: { from: lo, to: hi } })
+  const r = await collectModetourDepartureInputs(originUrl, {
+    dateRangeYmd: { from: lo, to: hi },
+    skipBaselineMatch: options?.skipBaselineMatch,
+  })
   return r.inputs.filter((x) => {
     const d = departureInputToYmd(x.departureDate)
     return d != null && d >= lo && d <= hi

@@ -1,5 +1,30 @@
 import { describe, expect, it } from 'vitest'
-import { isModetourSd1AutoUnpublishEligible } from '@/lib/modetour-sd1-policy'
+import {
+  isModetourSd1AutoUnpublishEligible,
+  isModetourSd1NotFoundError,
+  ModetourB2cApiError,
+  modetourB2cBodyIndicatesSd1,
+} from '@/lib/modetour-sd1-policy'
+
+describe('modetourB2cBodyIndicatesSd1', () => {
+  it('detects SD2 soft-not-found bodies', () => {
+    const body = {
+      errorMessages: [{ errorCode: '상품이 존재하지 않습니다. [SD2]' }],
+      isOK: false,
+    }
+    expect(modetourB2cBodyIndicatesSd1(body, JSON.stringify(body))).toBe(true)
+  })
+
+  it('treats SD2 HTTP 400 as soft-not-found for E2E fallback', () => {
+    const err = new ModetourB2cApiError(
+      400,
+      'https://b2c-api.modetour.com/Package/GetOtherDepartureDates?productNo=1',
+      '{"errorMessages":[{"errorCode":"상품이 존재하지 않습니다. [SD2]"}]}',
+      { errorMessages: [{ errorCode: '상품이 존재하지 않습니다. [SD2]' }] },
+    )
+    expect(isModetourSd1NotFoundError(err)).toBe(true)
+  })
+})
 
 describe('isModetourSd1AutoUnpublishEligible', () => {
   it('allows auto-unpublish for travel packages', () => {

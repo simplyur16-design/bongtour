@@ -2,6 +2,8 @@
 """
 modetour 전용: 패키지 상세 출발일 모달·달력·우측 패널 기반 E2E.
 KST 기준 과거 출발 제외, playwright-stealth 및 인간 모사 딜레이 적용.
+
+REGRESSION-FREEZE[modetour-sweep-e2e-recheck]: 상세 ready·모달 검증·달력 가격 대기 — manifest
 """
 import asyncio
 import datetime as dt
@@ -92,6 +94,9 @@ MODETOUR_GENERIC_MONTH_NEXT_SELECTORS = [
 ]
 
 MODETOUR_ALT_POPUP_OPEN_SELECTORS = [
+    "button:has-text('다른 출발일 보기')",
+    "a:has-text('다른 출발일 보기')",
+    "[role='button']:has-text('다른 출발일 보기')",
     "button:has-text('출발일 보기')",
     "a:has-text('출발일 보기')",
     "button:has-text('출발일보기')",
@@ -105,8 +110,8 @@ MODETOUR_ALT_POPUP_OPEN_SELECTORS = [
     "[role='button']:has-text('출발일 보기')",
 ]
 
-# package 상세: '출발일 보기' 없이 '출발일 변경'만 있는 경우가 많음 → 변경/선택 CTA 우선, 보기 라벨 보조
-MODETOUR_POPUP_OPEN_SELECTORS = [
+# package 상세: 현행 UI는 '다른 출발일 보기' CTA가 기본 — 변경/선택 라벨 보조
+MODETOUR_POPUP_OPEN_SELECTORS = list(MODETOUR_ALT_POPUP_OPEN_SELECTORS) + [
     "button:has-text('출발일 변경')",
     "a:has-text('출발일 변경')",
     "[role='button']:has-text('출발일 변경')",
@@ -114,7 +119,21 @@ MODETOUR_POPUP_OPEN_SELECTORS = [
     "a:has-text('출발일선택')",
     "button:has-text('출발일 선택')",
     "a:has-text('출발일 선택')",
-] + list(MODETOUR_ALT_POPUP_OPEN_SELECTORS)
+]
+
+MODETOUR_DETAIL_READY_SELECTORS = [
+    "text=단체번호",
+    "text=다른 출발일",
+    "text=여행핵심정보",
+    "text=상품코드",
+]
+
+MODETOUR_DEPARTURE_CTA_LABELS = [
+    "다른 출발일 보기",
+    "출발일 변경",
+    "출발일 보기",
+    "출발일 선택",
+]
 
 # SPA 달력: 아이콘/클래스 기반 다음달 컨트롤 보조
 MODETOUR_MONTH_NEXT_SELECTORS = list(MODETOUR_GENERIC_MONTH_NEXT_SELECTORS) + [
@@ -314,6 +333,112 @@ class CalendarPriceScraper:
         except Exception:
             pass
 
+    async def _wait_for_modetour_detail_ready(self, timeout_ms: int = 28000) -> bool:
+        """SPA 상세 본문(단체번호·출발일 CTA) 안정화 대기."""
+        per = max(2000, timeout_ms // len(MODETOUR_DETAIL_READY_SELECTORS))
+        for sel in MODETOUR_DETAIL_READY_SELECTORS:
+            try:
+                await self._page.wait_for_selector(sel, timeout=per)
+                _modetour_modal_log(f"phase=modetour-detail-ready marker={sel}")
+                return True
+            except Exception:
+                continue
+        _modetour_modal_log("phase=modetour-detail-not-ready")
+        return False
+
+    async def _modetour_modal_is_open(self) -> bool:
+        script = (
+            "() => {\n"
+            + _MODETOUR_LAYER_ROOT_JS
+            + r"""
+  const m = modetourLayerRoot();
+  if (!m) return false;
+  const n = m.querySelectorAll('table.CalendarMonth_table, table td').length;
+  return n > 20;
+}
+"""
+        )
+        try:
+            return bool(await self._page.evaluate(script))
+        except Exception:
+            return False
+
+    async def _wait_for_modetour_calendar_prices(self, timeout_ms: int = 30000) -> None:
+        """모달 오픈 뒤 달력 셀 가격(만) 비동기 로드 대기."""
+        script = (
+            "() => {\n"
+            + _MODETOUR_LAYER_ROOT_JS
+            + r"""
+  const m = modetourLayerRoot();
+  if (!m) return 0;
+  return Array.from(m.querySelectorAll('table td')).filter((td) => {
+    const t = (td.textContent || '').replace(/\s+/g, '');
+    return /만/.test(t) && !/Not available/i.test(td.getAttribute('aria-label') || '');
+  }).length;
+}
+"""
+        )
+        steps = max(1, timeout_ms // 500)
+        for _ in range(steps):
+            try:
+                n = int(await self._page.evaluate(script) or 0)
+                if n > 0:
+                    _modetour_modal_log(f"phase=modetour-prices-ready count={n}")
+                    return
+            except Exception:
+                pass
+            await self._page.wait_for_timeout(500)
+        _modetour_modal_log("phase=modetour-prices-ready timeout count=0")
+
+    async def _open_modetour_departure_modal(self) -> bool:
+        """출발일 CTA 클릭 — 실제 달력 모달 오픈까지 검증."""
+        _modetour_modal_log(
+            f"phase=modetour-open trying_labels count={len(MODETOUR_DEPARTURE_CTA_LABELS)}"
+        )
+        for label in MODETOUR_DEPARTURE_CTA_LABELS:
+            try:
+                loc = self._page.get_by_text(label, exact=False)
+                n = await loc.count()
+                if n <= 0:
+                    continue
+                for i in range(min(n, 6)):
+                    el = loc.nth(i)
+                    try:
+                        if not await el.is_visible():
+                            continue
+                        await el.scroll_into_view_if_needed(timeout=4000)
+                        await human_delay(DELAY_MIN, DELAY_MAX)
+                        await el.click(timeout=6000)
+                        await self._page.wait_for_timeout(1200)
+                        if await self._modetour_modal_is_open():
+                            _modetour_modal_log(f"phase=modetour-open ok label={label!r}")
+                            return True
+                    except Exception:
+                        continue
+            except Exception:
+                continue
+
+        popup_open_selectors = MODETOUR_POPUP_OPEN_SELECTORS
+        _modetour_modal_log(
+            f"phase=modetour-open trying_selectors count={len(popup_open_selectors)}"
+        )
+        for sel in popup_open_selectors:
+            try:
+                btn = await self._page.query_selector(sel)
+                if not btn:
+                    continue
+                await human_delay(DELAY_MIN, DELAY_MAX)
+                await btn.scroll_into_view_if_needed(timeout=4000)
+                await btn.click(timeout=6000)
+                await self._page.wait_for_timeout(1200)
+                if await self._modetour_modal_is_open():
+                    _modetour_modal_log(f"phase=modetour-open ok selector={sel!r}")
+                    return True
+            except Exception:
+                continue
+        _modetour_modal_log("phase=modetour-open failed")
+        return False
+
     async def _eval_modetour_calendar_cells(self) -> List[Dict[str, Any]]:
         """
         modetour 달력: table.CalendarMonth_table 별 월 헤더 매핑(우선) 또는 기존 단일 td 스캔(fallback).
@@ -323,6 +448,9 @@ class CalendarPriceScraper:
             "() => {\n"
             + _MODETOUR_LAYER_ROOT_JS
             + r"""
+  function cellRawText(td) {
+    return (td.textContent || '').replace(/\s+/g, ' ').trim();
+  }
   function parseDayPriceMan(raw) {
     let m0 = raw.match(/^(\d{1,2})(\d+)만$/);
     if (m0) {
@@ -393,7 +521,7 @@ class CalendarPriceScraper:
     let mo = fallbackMo;
     let lastDay = -1;
     for (let i = 0; i < all.length; i++) {
-      const raw = (all[i].innerText || '').replace(/\s+/g, ' ').trim();
+      const raw = cellRawText(all[i]);
       if (!raw) continue;
       const dayOnly = raw.match(/^(\d{1,2})$/);
       if (dayOnly) {
@@ -437,7 +565,7 @@ class CalendarPriceScraper:
       const hasDefault = cls.indexOf('CalendarDay__default') >= 0
         && cls.indexOf('CalendarDay__defaultCursor') < 0;
       if (!hasDefault) continue;
-      const raw = (td.innerText || '').replace(/\s+/g, ' ').trim();
+      const raw = cellRawText(td);
       const pr = parseDayPriceMan(raw);
       if (!pr) continue;
       const d = pr.d;
@@ -603,32 +731,11 @@ class CalendarPriceScraper:
 
     async def _run_modetour_departures(self) -> List[Dict[str, Any]]:
         """package 상세: 출발일 변경 모달 → 달력 td(NN만) + 일자 클릭 후 우측 패널에서 항공·좌석·정확가."""
-        popup_open_selectors = MODETOUR_POPUP_OPEN_SELECTORS
-        opened = False
-        _modetour_modal_log(
-            f"phase=modetour-open trying_selectors count={len(popup_open_selectors)}"
-        )
-        for sel in popup_open_selectors:
-            try:
-                btn = await self._page.query_selector(sel)
-                if btn:
-                    await human_delay(DELAY_MIN, DELAY_MAX)
-                    await btn.click()
-                    await self._page.wait_for_timeout(950)
-                    opened = True
-                    break
-            except Exception:
-                continue
-        if not opened:
-            _modetour_modal_log("phase=modetour-open failed")
+        if not await self._open_modetour_departure_modal():
             return []
         await human_delay(DELAY_MIN, DELAY_MAX)
         await self._page.wait_for_timeout(700)
-        await self._page.wait_for_timeout(2000)
-        try:
-            await self._page.wait_for_selector("table td", timeout=20000)
-        except Exception:
-            pass
+        await self._wait_for_modetour_calendar_prices()
         await self._page.wait_for_timeout(800)
         await self._scroll_modetour_modal_list()
         _modetour_phase_always("modetour-modal-opened", "table_td_visible")
@@ -891,6 +998,8 @@ class CalendarPriceScraper:
                 await random_mouse_move(self._page)
             await human_delay(DELAY_MIN, DELAY_MAX)
             _modetour_phase_always("modetour-page-navigated", summ)
+            await self._wait_for_modetour_detail_ready()
+            await human_delay(DELAY_MIN, DELAY_MAX)
             modal_rows = await self._run_modetour_departures()
             if len(modal_rows) > 0:
                 return modal_rows

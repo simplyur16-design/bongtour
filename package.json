@@ -25,6 +25,7 @@
     "db:apply-detail-payload-columns": "node scripts/_apply-public-detail-payload-columns.mjs",
     "db:backup-detail-payload": "tsx scripts/backup-public-detail-payload.ts",
     "db:sync-modetour-price": "tsx scripts/sync-modetour-price-single.ts",
+    "db:modetour-sweep-oneshot": "tsx scripts/run-modetour-horizon-sweep-oneshot.ts",
     "db:backfill-detail-payload": "tsx scripts/backfill-product-public-detail-payload.ts --after-backup",
     "db:backfill-detail-payload:missing": "tsx scripts/backfill-product-public-detail-payload.ts --missing-only --after-backup",
     "db:refresh-product-titles": "tsx scripts/refresh-product-titles-from-db.ts",

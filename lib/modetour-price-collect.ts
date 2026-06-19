@@ -7,7 +7,12 @@ import {
   mapScrapedRowsToInputs,
   scrapeLiveCalendar,
 } from '@/lib/admin-departure-rescrape'
-import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
+import {
+  collectModetourDepartureInputsForDateRange,
+  normalizeModetourPackageDetailUrl,
+  parseModetourPackageProductNoFromUrl,
+} from '@/lib/modetour-departures'
+import { resolveModetourDetailByOriginCode } from '@/lib/modetour-origin-code-resolve'
 import {
   isModetourSd1NotFoundError,
   ModetourB2cApiError,
@@ -34,13 +39,39 @@ type ModetourDepartureResponse = {
 
 export type ModetourPriceCollectSource = 'api' | 'e2e'
 
+export type ModetourPriceCollectOptions = {
+  /** 자유여행(air_hotel_free) — 풀 API(baseline 생략)·URL 정규화·E2E 다중 URL */
+  airHotel?: boolean
+  /** modetour 상품코드 — 단체번호 URL보다 우선 resolve */
+  originCode?: string | null
+}
+
+function sourceDatesFromInputs(inputs: DepartureInput[], fromYmd: string, toYmd: string): string[] {
+  const lo = fromYmd <= toYmd ? fromYmd : toYmd
+  const hi = fromYmd <= toYmd ? toYmd : fromYmd
+  const dates: string[] = []
+  for (const x of inputs) {
+    const dk = departureInputToYmd(x.departureDate)
+    if (dk != null && dk >= lo && dk <= hi) dates.push(dk)
+  }
+  return [...new Set(dates)]
+}
+
+/** Python stderr: 출발일 모달 오픈 실패 — 0건이어도 단종으로 보지 않음. */
+export const MODETOUR_E2E_MODAL_OPEN_FAILED_MARKER = 'phase=modetour-open failed'
+
 export type ModetourPriceCollectResult = {
   inputs: DepartureInput[]
   sourceDates: string[]
   source: ModetourPriceCollectSource | null
   apiFailedSd1: boolean
   e2eAttempted: boolean
+  e2eModalOpenFailed: boolean
   e2eError: string | null
+  /** 상품코드 resolve 결과 — DB originUrl 갱신용 */
+  resolvedDetailUrl: string | null
+  resolvedProductNo: string | null
+  detailResolveSource: 'origin-code-redirect' | 'stored-origin-url' | 'unresolved' | null
 }
 
 function modetourApiHeaders(referer: string, productNo: string): HeadersInit {
@@ -138,14 +169,23 @@ export async function collectModetourApiDepartureInputs(
   return { inputs, sourceDates }
 }
 
+function modetourE2eStderrIndicatesModalOpenFailed(stderr: string): boolean {
+  return stderr.includes(MODETOUR_E2E_MODAL_OPEN_FAILED_MARKER)
+}
+
 async function collectModetourE2eDepartureInputs(
   originUrl: string | null | undefined,
   fromYmd: string,
   toYmd: string,
-): Promise<{ inputs: DepartureInput[]; sourceDates: string[]; error: string | null }> {
+): Promise<{
+  inputs: DepartureInput[]
+  sourceDates: string[]
+  error: string | null
+  modalOpenFailed: boolean
+}> {
   const detailUrl = originUrl?.trim()
   if (!detailUrl) {
-    return { inputs: [], sourceDates: [], error: 'missing originUrl' }
+    return { inputs: [], sourceDates: [], error: 'missing originUrl', modalOpenFailed: false }
   }
 
   const lo = fromYmd <= toYmd ? fromYmd : toYmd
@@ -153,6 +193,7 @@ async function collectModetourE2eDepartureInputs(
 
   try {
     const cal = await scrapeLiveCalendar(detailUrl, 'modetour')
+    const modalOpenFailed = modetourE2eStderrIndicatesModalOpenFailed(cal.stderr)
     const statusByDate = new Map<
       string,
       { statusRaw: string | null; seatsStatusRaw: string | null }
@@ -169,26 +210,48 @@ async function collectModetourE2eDepartureInputs(
       if (date >= lo && date <= hi) sourceDates.push(date)
     }
 
-    return { inputs, sourceDates: [...new Set(sourceDates)], error: null }
+    return {
+      inputs,
+      sourceDates: [...new Set(sourceDates)],
+      error: null,
+      modalOpenFailed,
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    return { inputs: [], sourceDates: [], error: msg.slice(0, 400) }
+    return { inputs: [], sourceDates: [], error: msg.slice(0, 400), modalOpenFailed: false }
   }
 }
 
 /**
  * API 우선 수집. SD1 또는 지평 내 성인가 출발 0건이면 E2E(6개월 스크래퍼)로 검증.
+ * 자유여행(`airHotel`): 풀 API(baseline 생략)·www URL 정규화 후 E2E.
  * API 비-SD1 오류는 그대로 throw — sweep이 skip 처리.
  */
 export async function collectModetourPriceInputsWithE2eFallback(
   originUrl: string | null | undefined,
   fromYmd: string,
   toYmd: string,
+  options?: ModetourPriceCollectOptions,
 ): Promise<ModetourPriceCollectResult> {
   let apiFailedSd1 = false
+  const resolved = await resolveModetourDetailByOriginCode(options?.originCode, {
+    storedOriginUrl: originUrl,
+  })
+  const collectOriginUrl =
+    resolved.detailUrl?.trim() ||
+    normalizeModetourPackageDetailUrl(originUrl) ||
+    originUrl?.trim() ||
+    null
+  const canonicalUrl = normalizeModetourPackageDetailUrl(collectOriginUrl)
+  const apiOriginUrl = options?.airHotel && canonicalUrl ? canonicalUrl : collectOriginUrl
+  const resolveMeta = {
+    resolvedDetailUrl: canonicalUrl ?? resolved.detailUrl,
+    resolvedProductNo: resolved.productNo,
+    detailResolveSource: resolved.source,
+  }
 
   try {
-    const api = await collectModetourApiDepartureInputs(originUrl, fromYmd, toYmd)
+    const api = await collectModetourApiDepartureInputs(apiOriginUrl, fromYmd, toYmd)
     const priced = pricedInputsInWindow(api.inputs, fromYmd, toYmd)
     if (priced.length > 0) {
       return {
@@ -197,7 +260,9 @@ export async function collectModetourPriceInputsWithE2eFallback(
         source: 'api',
         apiFailedSd1: false,
         e2eAttempted: false,
+        e2eModalOpenFailed: false,
         e2eError: null,
+        ...resolveMeta,
       }
     }
   } catch (err) {
@@ -208,15 +273,56 @@ export async function collectModetourPriceInputsWithE2eFallback(
     }
   }
 
-  const e2e = await collectModetourE2eDepartureInputs(originUrl, fromYmd, toYmd)
-  if (e2e.inputs.length > 0) {
-    return {
-      inputs: e2e.inputs,
-      sourceDates: e2e.sourceDates,
-      source: 'e2e',
-      apiFailedSd1,
-      e2eAttempted: true,
-      e2eError: null,
+  if (options?.airHotel && canonicalUrl) {
+    try {
+      const full = await collectModetourDepartureInputsForDateRange(canonicalUrl, fromYmd, toYmd, {
+        skipBaselineMatch: true,
+      })
+      const priced = pricedInputsInWindow(full, fromYmd, toYmd)
+      if (priced.length > 0) {
+        return {
+          inputs: priced,
+          sourceDates: sourceDatesFromInputs(priced, fromYmd, toYmd),
+          source: 'api',
+          apiFailedSd1,
+          e2eAttempted: false,
+          e2eModalOpenFailed: false,
+          e2eError: null,
+          ...resolveMeta,
+        }
+      }
+    } catch (err) {
+      if (isModetourSd1NotFoundError(err)) {
+        apiFailedSd1 = true
+      } else {
+        throw err
+      }
+    }
+  }
+
+  const e2eUrls = [
+    ...new Set(
+      [canonicalUrl, collectOriginUrl, originUrl?.trim()].filter((u): u is string => Boolean(u)),
+    ),
+  ]
+
+  let lastE2eError: string | null = null
+  let e2eModalOpenFailed = false
+  for (const url of e2eUrls) {
+    const e2e = await collectModetourE2eDepartureInputs(url, fromYmd, toYmd)
+    lastE2eError = e2e.error
+    if (e2e.modalOpenFailed) e2eModalOpenFailed = true
+    if (e2e.inputs.length > 0) {
+      return {
+        inputs: e2e.inputs,
+        sourceDates: e2e.sourceDates,
+        source: 'e2e',
+        apiFailedSd1,
+        e2eAttempted: true,
+        e2eModalOpenFailed: false,
+        e2eError: null,
+        ...resolveMeta,
+      }
     }
   }
 
@@ -226,6 +332,8 @@ export async function collectModetourPriceInputsWithE2eFallback(
     source: null,
     apiFailedSd1,
     e2eAttempted: true,
-    e2eError: e2e.error,
+    e2eModalOpenFailed,
+    e2eError: lastE2eError,
+    ...resolveMeta,
   }
 }
