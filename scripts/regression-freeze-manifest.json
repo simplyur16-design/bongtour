@@ -85,7 +85,8 @@
       "id": "image-keywords-by-supplier",
       "tier": ["ci"],
       "script": "verify:image-keywords-by-supplier:ci",
-      "summary": "일정 imageKeyword 공급사별 규칙 (DB 필요 — CI만, prebuild/Docker 제외)"
+      "requiresDatabase": true,
+      "summary": "일정 imageKeyword 공급사별 규칙 (DB 필요 — CI는 DATABASE_URL 없으면 skip)"
     },
     {
       "id": "public-api-leaks",

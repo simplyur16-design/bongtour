@@ -23,6 +23,8 @@ type Manifest = {
     script: string
     summary: string
     doc?: string
+    /** true면 DATABASE_URL 없을 때 CI 러너가 스크립트 실행을 생략한다. */
+    requiresDatabase?: boolean
   }>
   staticGuards: Array<{
     id: string
@@ -93,6 +95,10 @@ function readManifest(): Manifest {
 function runNpmScript(script: string, label: string): void {
   console.log(`\n[regression-freeze] ▶ ${label} (npm run ${script})`)
   execSync(`npm run ${script}`, { cwd: ROOT, stdio: 'inherit', env: process.env })
+}
+
+function databaseUrlConfigured(): boolean {
+  return Boolean((process.env.DATABASE_URL ?? '').trim())
 }
 
 function runStaticGuards(manifest: Manifest, runTier: Tier, failures: string[]): void {
@@ -221,6 +227,12 @@ function main() {
 
   const scripts = manifest.npmScripts.filter((s) => tierMatch(s.tier, runTier))
   for (const entry of scripts) {
+    if (entry.requiresDatabase && !databaseUrlConfigured()) {
+      console.warn(
+        `[regression-freeze] ⊘ skip ${entry.id} (requiresDatabase — DATABASE_URL unset; run locally/Railway for DB tier)`,
+      )
+      continue
+    }
     try {
       runNpmScript(entry.script, `${entry.id}: ${entry.summary}`)
     } catch {

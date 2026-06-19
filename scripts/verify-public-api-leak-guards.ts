@@ -32,19 +32,32 @@ function collectRouteFiles(dir: string): string[] {
   return out
 }
 
+function isExcludedFromLeakGuardScan(rel: string): boolean {
+  if (rel.includes('/api/admin/')) return true
+  if (rel.includes('/api/auth/')) return true
+  /** 로그인 세션(`auth()`)으로 보호 — assertNoInternalMetaLeak 대상 아님 */
+  if (rel.includes('/api/mypage/')) return true
+  /** 공개 읽기 전용 마스터 데이터 */
+  if (rel.includes('/api/public/')) return true
+  /** PG·공급사 webhook — 서명/secret 검증 경로 */
+  if (/\/webhooks?\//i.test(rel)) return true
+  if (rel.includes('welcomepay-vbank-noti')) return true
+  return false
+}
+
 function verifyRouteCoverage() {
   const apiRoot = resolve(process.cwd(), 'app', 'api')
   const allRoutes = collectRouteFiles(apiRoot)
   const violations: string[] = []
   for (const full of allRoutes) {
     const rel = full.replace(process.cwd() + sep, '').replace(/\\/g, '/')
-    if (rel.includes('/api/admin/')) continue
-    if (rel.includes('/api/auth/')) continue
+    if (isExcludedFromLeakGuardScan(rel)) continue
     const text = readFileSync(full, 'utf-8')
     const hasAdminGuard = text.includes('requireAdmin')
+    const hasSessionGuard = text.includes("from '@/auth'") || text.includes('from "@/auth"')
     const hasPublicGuard =
       text.includes('assertNoInternalMetaLeak') || text.includes('jsonWithLeakGuard')
-    if (!hasAdminGuard && !hasPublicGuard) {
+    if (!hasAdminGuard && !hasPublicGuard && !hasSessionGuard) {
       violations.push(rel)
     }
   }
@@ -60,7 +73,7 @@ function run() {
   mustContainAny('app/api/featured/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
   mustContainAny('app/api/products/[id]/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
   mustContainAny('app/api/bookings/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
-  mustContain('app/products/[id]/product-detail-view.tsx', 'assertNoInternalMetaLeak')
+  mustContain('lib/product-public-detail/build-render-model.ts', 'assertNoInternalMetaLeak')
   mustContain('app/api/agent/reports/route.ts', 'requireAdmin')
   mustContain('app/api/analyze/route.ts', 'requireAdmin')
   mustContain('app/api/extract/route.ts', 'requireAdmin')

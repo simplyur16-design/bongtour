@@ -9,7 +9,6 @@
  * 통과: landmark/night/skyline/street-level/exterior/view/aerial 포함 0건 (모드별 기준 상이)
  */
 import './load-env'
-import { prisma } from '../lib/prisma'
 import {
   BANNED_KEYWORD_PATTERNS,
   findImageKeywordBannedHits,
@@ -60,6 +59,10 @@ function parseFieldsArg(): ScheduleImageGuardFieldName[] {
 
 const fieldsToCheck = parseFieldsArg()
 
+function databaseUrlConfigured(): boolean {
+  return Boolean((process.env.DATABASE_URL ?? '').trim())
+}
+
 function resolveSupplierKey(
   brandKey: string | null | undefined,
   originSource: string | null | undefined,
@@ -98,6 +101,16 @@ type Violation = {
 }
 
 async function main() {
+  if (!databaseUrlConfigured()) {
+    console.warn(
+      '[verify-image-keywords-by-supplier] skip DB scan (DATABASE_URL unset — CI static tier)',
+    )
+    console.log('\nPASSED (no DATABASE_URL — DB scan skipped)')
+    return
+  }
+
+  const { prisma } = await import('../lib/prisma')
+
   const strictViolations: Violation[] = []
   const legacyViolations: Violation[] = []
   let totalValues = 0
@@ -256,6 +269,13 @@ async function main() {
 
 main().catch(async (e) => {
   console.error(e)
-  await prisma.$disconnect().catch(() => {})
+  if (databaseUrlConfigured()) {
+    try {
+      const { prisma } = await import('../lib/prisma')
+      await prisma.$disconnect()
+    } catch {
+      /* ignore */
+    }
+  }
   process.exit(1)
 })

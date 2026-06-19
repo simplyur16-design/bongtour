@@ -135,6 +135,8 @@ async function verifyMegaMenuBrowseUrls(
   }
 
   for (const region of TOP_NAV_MEGA_REGIONS) {
+    /** 스포츠테마 — `sportsTheme` 쿼리 SSOT, country/city leaf 규칙과 별도 (`tests/mega-menu-sports-theme.test.ts`) */
+    if (region.id === 'sports_theme') continue
     for (const g of region.countryGroups ?? []) {
       if (!g.nonLinkHeader) {
         const headerHref = buildProductsHrefCountryOnly({
@@ -328,15 +330,28 @@ async function verifyTagGeoConsistency(prisma: import('@prisma/client').PrismaCl
 }
 
 async function main() {
+  const geoMod = await import('@/lib/browse-master-geo')
+  const intersectBrowseCountryKeys = geoMod.intersectBrowseCountryKeys
+  const resolveBrowseRegionToCountryKeys = geoMod.resolveBrowseRegionToCountryKeys
+
+  await verifyMegaMenuBrowseUrls(intersectBrowseCountryKeys, resolveBrowseRegionToCountryKeys)
+
+  const databaseUrl = (process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? '').trim()
+  if (!databaseUrl) {
+    console.warn(
+      '[verify-mega-menu-ssot-browse] skip DB probes (DATABASE_URL unset — CI static tier)',
+    )
+    console.log('\nverify-mega-menu-ssot-browse: static passed (DB tier skipped)')
+    return
+  }
+
   const { PrismaClient } = await import('@prisma/client')
   const { MEGA_MENU_TAB_DEFINITIONS, BROWSE_TAB_ID_TO_CARD_KEYS } = await import(
     '@/lib/mega-menu-regions.data'
   )
   const { browseTabIdToMegaMenuCardKeys } = await import('@/lib/browse-master-geo-continents')
-  const geoMod = await import('@/lib/browse-master-geo')
-  const buildOverseasBrowseGeoResolution = geoMod.buildOverseasBrowseGeoResolution
-  const intersectBrowseCountryKeys = geoMod.intersectBrowseCountryKeys
-  const resolveBrowseRegionToCountryKeys = geoMod.resolveBrowseRegionToCountryKeys
+  const geoMod2 = geoMod
+  const buildOverseasBrowseGeoResolution = geoMod2.buildOverseasBrowseGeoResolution
   const { buildMegaMenuLeafHref, buildProductsHrefCountryOnly } = await import('@/lib/top-nav-resolve')
   const { OVERSEAS_MEGA_MENU_REGIONS } = await import('@/lib/travel-landing-mega-menu-data')
   const { scoreAndFilterProducts } = await import('@/lib/products-browse-filter')
@@ -344,7 +359,7 @@ async function main() {
   const { filterProductsForOverseasDestinationTree } = await import('@/lib/active-overseas-location-tree')
 
   const prisma = new PrismaClient({
-    datasourceUrl: process.env.DIRECT_URL || process.env.DATABASE_URL,
+    datasourceUrl: databaseUrl,
   })
 
   const deps: BrowseDeps = {
@@ -357,7 +372,6 @@ async function main() {
 
   let failed = false
   try {
-    await verifyMegaMenuBrowseUrls(intersectBrowseCountryKeys, resolveBrowseRegionToCountryKeys)
     await verifyTagGeoConsistency(prisma)
 
     console.log('[SSOT tabs]', MEGA_MENU_TAB_DEFINITIONS.map((t) => `${t.id} (${t.label})`).join(' | '))
