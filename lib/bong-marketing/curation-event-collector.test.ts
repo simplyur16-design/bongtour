@@ -17,6 +17,9 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     product: { groupBy: vi.fn() },
     country: { findMany: vi.fn() },
+    monthlyCurationContent: { findMany: vi.fn() },
+    seasonalDestinationCuration: { findFirst: vi.fn() },
+    city: { findMany: vi.fn() },
     curationEvent: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
@@ -224,8 +227,15 @@ describe('refreshCurationEvents', () => {
   beforeEach(() => {
     vi.mocked(prisma.product.groupBy).mockReset()
     vi.mocked(prisma.country.findMany).mockReset()
+    vi.mocked(prisma.monthlyCurationContent.findMany).mockReset()
+    vi.mocked(prisma.seasonalDestinationCuration.findFirst).mockReset()
+    vi.mocked(prisma.city.findMany).mockReset()
     resetCurationEventMocks()
     vi.mocked(generateGeminiTextResponse).mockReset()
+    vi.mocked(prisma.country.findMany).mockResolvedValue([
+      { countryKey: 'japan', koreanLabel: '일본' },
+      { countryKey: 'vietnam', koreanLabel: '베트남' },
+    ] as never)
   })
 
   it('returns empty result when no product countries', async () => {
@@ -236,6 +246,42 @@ describe('refreshCurationEvents', () => {
     expect(result.collected).toBe(0)
     expect(result.errorDetails.some((e) => e.stage === 'no_countries')).toBe(true)
     expect(generateGeminiTextResponse).not.toHaveBeenCalled()
+  })
+
+  it('skips refresh when recommendation mode has no countries', async () => {
+    const result = await refreshCurationEvents({
+      targetMode: 'recommendation',
+      targetCountries: [],
+    })
+    expect(result.targetMode).toBe('recommendation')
+    expect(result.countries).toEqual([])
+    expect(result.errorDetails.some((e) => e.stage === 'no_countries')).toBe(true)
+    expect(generateGeminiTextResponse).not.toHaveBeenCalled()
+  })
+
+  it('uses recommendation countries when targetMode is recommendation', async () => {
+    vi.mocked(generateGeminiTextResponse).mockResolvedValue(
+      JSON.stringify({
+        events: [
+          {
+            name: '축제',
+            country: '일본',
+            startMonth: 7,
+            endMonth: 7,
+            type: 'festival',
+          },
+        ],
+      }),
+    )
+    vi.mocked(prisma.curationEvent.create).mockResolvedValue({} as never)
+
+    const result = await refreshCurationEvents({
+      targetMode: 'recommendation',
+      targetCountries: ['일본'],
+    })
+    expect(result.countries).toEqual(['일본'])
+    expect(result.priorityCallsRun).toBe(1)
+    expect(generateGeminiTextResponse).toHaveBeenCalledTimes(1)
   })
 
   it('saves all events from valid JSON response', async () => {

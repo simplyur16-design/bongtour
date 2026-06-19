@@ -44,6 +44,30 @@ interface TripRecommendation {
 const STORAGE_KEY = 'bong-trip-recommendations'
 const STORAGE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
+type EventRefreshTargetMode = 'union' | 'recommendation' | 'curation' | 'all_products'
+
+const EVENT_REFRESH_MODE_OPTIONS: { value: EventRefreshTargetMode; label: string }[] = [
+  { value: 'union', label: '전체 합집합 (권장)' },
+  { value: 'recommendation', label: '추천 국가만' },
+  { value: 'curation', label: '본체 큐레이션 국가' },
+  { value: 'all_products', label: '전체 상품 국가' },
+]
+
+function extractRecommendationCountries(stored: TripRecommendation | null): string[] {
+  if (!stored?.recommendations.length) return []
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const item of stored.recommendations) {
+    const country = item.country?.trim()
+    if (!country) continue
+    const key = country.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(country)
+  }
+  return out
+}
+
 function legacyMonthFromSeason(season?: string): number | null {
   const map: Record<string, number> = { spring: 4, summer: 7, autumn: 10, winter: 1 }
   return season && map[season] ? map[season] : null
@@ -96,10 +120,68 @@ export default function TripRecommendationsClient() {
     skippedDuplicates?: number
     batchesRun?: number
     errors?: number
+    targetMode?: string
+    usedProductFallback?: boolean
     errorDetails?: Array<{ stage: string; message: string; country?: string }>
     rawResponseSamples?: string[]
     error?: string
   } | null>(null)
+  const [eventRefreshTargetMode, setEventRefreshTargetMode] =
+    useState<EventRefreshTargetMode>('union')
+  const [targetPreview, setTargetPreview] = useState<{
+    count: number
+    countries: string[]
+    usedProductFallback?: boolean
+  } | null>(null)
+  const [targetPreviewLoading, setTargetPreviewLoading] = useState(false)
+
+  const recommendationCountries = useMemo(() => extractRecommendationCountries(data), [data])
+
+  useEffect(() => {
+    if (eventRefreshTargetMode === 'all_products') {
+      setTargetPreview(null)
+      return
+    }
+
+    let cancelled = false
+    const run = async () => {
+      setTargetPreviewLoading(true)
+      try {
+        const q = new URLSearchParams({ targetMode: eventRefreshTargetMode })
+        if (
+          (eventRefreshTargetMode === 'union' || eventRefreshTargetMode === 'recommendation') &&
+          recommendationCountries.length
+        ) {
+          q.set('targetCountries', recommendationCountries.join(','))
+        }
+        const res = await fetch(`/api/admin/marketing/global-events/target-countries?${q}`)
+        const json = (await res.json()) as {
+          count?: number
+          countries?: string[]
+          usedProductFallback?: boolean
+          error?: string
+        }
+        if (cancelled) return
+        if (!res.ok) {
+          setTargetPreview(null)
+          return
+        }
+        setTargetPreview({
+          count: json.count ?? json.countries?.length ?? 0,
+          countries: json.countries ?? [],
+          usedProductFallback: json.usedProductFallback,
+        })
+      } catch {
+        if (!cancelled) setTargetPreview(null)
+      } finally {
+        if (!cancelled) setTargetPreviewLoading(false)
+      }
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [eventRefreshTargetMode, recommendationCountries])
 
   useEffect(() => {
     try {
@@ -176,8 +258,31 @@ export default function TripRecommendationsClient() {
   async function handleRefreshEvents() {
     setRefreshingEvents(true)
     setEventRefreshResult(null)
+
+    if (eventRefreshTargetMode === 'recommendation' && !recommendationCountries.length) {
+      setEventRefreshResult({
+        error: '추천 국가가 없습니다. 먼저 [추천 받기]를 실행해 주세요.',
+      })
+      setRefreshingEvents(false)
+      return
+    }
+
     try {
-      const res = await fetch('/api/admin/marketing/global-events/refresh', { method: 'POST' })
+      const payload: { targetMode: EventRefreshTargetMode; targetCountries?: string[] } = {
+        targetMode: eventRefreshTargetMode,
+      }
+      if (
+        (eventRefreshTargetMode === 'recommendation' || eventRefreshTargetMode === 'union') &&
+        recommendationCountries.length
+      ) {
+        payload.targetCountries = recommendationCountries
+      }
+
+      const res = await fetch('/api/admin/marketing/global-events/refresh', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
       const json = (await res.json()) as {
         countries?: string[]
         collected?: number
@@ -185,11 +290,23 @@ export default function TripRecommendationsClient() {
         skippedDuplicates?: number
         batchesRun?: number
         errors?: number
+        targetMode?: string
+        usedProductFallback?: boolean
         errorDetails?: Array<{ stage: string; message: string; country?: string }>
         rawResponseSamples?: string[]
         error?: string
       }
       if (!res.ok) throw new Error(json.error ?? '이벤트 갱신 실패')
+      if (
+        json.errorDetails?.some((e) => e.stage === 'no_countries') &&
+        !json.countries?.length &&
+        (json.collected ?? 0) === 0
+      ) {
+        setEventRefreshResult({
+          error: json.errorDetails?.[0]?.message ?? '갱신 대상 국가가 없습니다.',
+        })
+        return
+      }
       setEventRefreshResult(json)
     } catch (err) {
       setEventRefreshResult({
@@ -219,6 +336,21 @@ export default function TripRecommendationsClient() {
         >
           {refreshingEvents ? '갱신 중…' : '전체 이벤트 갱신'}
         </button>
+        <label className="flex flex-col gap-1 text-xs text-bt-body/70">
+          갱신 대상
+          <select
+            value={eventRefreshTargetMode}
+            onChange={(e) => setEventRefreshTargetMode(e.target.value as EventRefreshTargetMode)}
+            disabled={refreshingEvents || loading}
+            className="min-w-[11rem] rounded-lg border border-bt-border-strong bg-white px-3 py-2 text-sm text-bt-body"
+          >
+            {EVENT_REFRESH_MODE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <button
           type="button"
           onClick={handleReset}
@@ -237,6 +369,26 @@ export default function TripRecommendationsClient() {
         )}
       </div>
 
+      {eventRefreshTargetMode === 'recommendation' && !recommendationCountries.length && (
+        <p className="text-sm text-amber-800">
+          「추천 국가만」은 [추천 받기] 결과가 필요합니다. 먼저 추천을 생성해 주세요.
+        </p>
+      )}
+      {targetPreviewLoading && eventRefreshTargetMode !== 'all_products' ? (
+        <p className="text-sm text-bt-body/60">갱신 대상 국가 미리보기 불러오는 중…</p>
+      ) : null}
+      {targetPreview && eventRefreshTargetMode !== 'all_products' ? (
+        <p className="text-sm text-bt-body/70">
+          갱신 대상 <strong className="font-medium">{targetPreview.count}개국</strong>
+          {targetPreview.countries.length > 0
+            ? `: ${targetPreview.countries.slice(0, 8).join(', ')}${targetPreview.countries.length > 8 ? '…' : ''}`
+            : ''}
+          {targetPreview.usedProductFallback
+            ? ' (큐레이션 국가 없음 → 상품 국가로 대체)'
+            : ''}
+        </p>
+      ) : null}
+
       {resetNotice && (
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">
           {resetNotice}
@@ -254,10 +406,12 @@ export default function TripRecommendationsClient() {
           ) : (
             <div className="space-y-2">
               <p>
+                {eventRefreshResult.targetMode ? `[${eventRefreshResult.targetMode}] ` : ''}
                 {eventRefreshResult.countries?.length ?? 0}개 국가 · {eventRefreshResult.batchesRun ?? 0}배치 ·{' '}
                 {eventRefreshResult.collected ?? 0}개 수집 · {eventRefreshResult.saved ?? 0}개 신규 ·{' '}
                 {eventRefreshResult.skippedDuplicates ?? 0}개 업데이트
                 {(eventRefreshResult.errors ?? 0) > 0 ? ` · 오류 ${eventRefreshResult.errors}건` : ''}
+                {eventRefreshResult.usedProductFallback ? ' · 상품 국가 fallback' : ''}
               </p>
               {eventRefreshResult.errorDetails && eventRefreshResult.errorDetails.length > 0 && (
                 <ul className="list-disc space-y-1 pl-4 text-xs">

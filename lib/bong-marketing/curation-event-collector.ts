@@ -9,6 +9,13 @@ import {
   type GlobalEventCollectError,
   type GlobalEventCollectResult,
 } from '@/lib/bong-marketing/global-event-collector'
+import {
+  type CurationEventRefreshOptions,
+  resolveCurationEventTargetCountries,
+} from '@/lib/bong-marketing/curation-event-target-countries'
+
+export type { CurationEventRefreshOptions, CurationEventTargetMode } from '@/lib/bong-marketing/curation-event-target-countries'
+export { getCurationCountries, resolveCurationEventTargetCountries } from '@/lib/bong-marketing/curation-event-target-countries'
 
 const CURATION_EVENT_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 /** Gemini 출력 토큰 한계 회피 — 일반 국가 3개국씩 배치 */
@@ -58,6 +65,10 @@ export interface CurationEventCollectResult extends GlobalEventCollectResult {
   skippedApproved?: number
   /** 핵심 국가 단독 호출 수 */
   priorityCallsRun?: number
+  /** PR (가)-6 — 갱신 대상 모드 */
+  targetMode?: import('@/lib/bong-marketing/curation-event-target-countries').CurationEventTargetMode
+  /** curation 모드에서 Product 국가로 대체된 경우 */
+  usedProductFallback?: boolean
 }
 
 export interface MonthCoverageGap {
@@ -93,8 +104,8 @@ export function sortCountriesByPriority(countries: string[], priority: readonly 
 }
 
 export async function getCurationEventTargetCountries(): Promise<string[]> {
-  const labels = await listBongtourProductCountryLabels()
-  return sortCountriesByPriority(labels, PRIORITY_COUNTRIES).slice(0, MAX_COUNTRIES_FOR_COLLECTION)
+  const { countries } = await resolveCurationEventTargetCountries({ targetMode: 'all_products' })
+  return countries
 }
 
 function chunkArray<T>(items: T[], size: number): T[][] {
@@ -524,7 +535,9 @@ async function saveBatchEvents(
 }
 
 /** PR (가)-4: Product 국가 → Gemini(배치) → CurationEvent 저장 */
-export async function refreshCurationEvents(): Promise<CurationEventCollectResult> {
+export async function refreshCurationEvents(
+  options?: CurationEventRefreshOptions,
+): Promise<CurationEventCollectResult> {
   const year = new Date().getFullYear()
   const result: CurationEventCollectResult = {
     countries: [],
@@ -539,7 +552,22 @@ export async function refreshCurationEvents(): Promise<CurationEventCollectResul
     priorityCallsRun: 0,
   }
 
-  const countries = await getCurationEventTargetCountries()
+  const resolved = await resolveCurationEventTargetCountries(options)
+  result.targetMode = resolved.targetMode
+  result.usedProductFallback = resolved.usedProductFallback
+
+  if (resolved.targetMode === 'recommendation' && !resolved.countries.length) {
+    result.errorDetails.push({
+      stage: 'no_countries',
+      message:
+        '추천 국가가 없습니다. 먼저 [추천 받기]를 실행하거나 targetCountries를 전달해 주세요.',
+    })
+    result.errors = result.errorDetails.length
+    debugLog('curation-event', '추천 국가 없음 — 갱신 스킵')
+    return result
+  }
+
+  const countries = resolved.countries
   result.countries = countries
 
   if (!countries.length) {
