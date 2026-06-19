@@ -623,7 +623,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-api-departure-collect]",
             "collectHanatourPriceInputsWithE2eFallback",
-            "collectHanatourApiDepartureInputsForMonths"
+            "collectHanatourApiDepartureInputsForMonths",
+            "horizonSoldOut"
           ]
         },
         {
@@ -1123,7 +1124,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-sweep-e2e-recheck]",
             "collectHanatourPriceInputsWithE2eFallback",
-            "collectHanatourApiOnlyForDateRange"
+            "horizonSoldOut"
           ]
         },
         {
@@ -1139,6 +1140,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-sweep-e2e-recheck]",
             "collectHanatourPriceInputsWithE2eFallback",
+            "horizonSoldOut",
+            "pruneAllDeparturesInHorizonWindow",
             "isHanatourPriceRecheckDue",
             "syncSupplierUrgentDealForProduct",
             "upsertProductDepartures"
@@ -1193,6 +1196,111 @@
       "vitestSuites": ["lib/ybtour-sweep.test.ts"]
     },
     {
+      "id": "lottetour-hxr-departure-collect",
+      "tier": ["prebuild", "ci"],
+      "summary": "lottetour evtListAjax HXR·0건 시 Python E2E·horizonSoldOut",
+      "checks": [
+        {
+          "file": "lib/lottetour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-hxr-departure-collect]",
+            "collectLottetourPriceInputsWithE2eFallback",
+            "collectLottetourHxrOnlyForDateRange",
+            "horizonSoldOut",
+            "collectLottetourCalendarRange"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/lottetour-sweep.test.ts"]
+    },
+    {
+      "id": "lottetour-sweep-e2e-recheck",
+      "tier": ["prebuild", "ci"],
+      "summary": "lottetour sweep — evtListAjax HXR·0건 시 E2E 180일·7일 재확인·stale 출발 정리",
+      "checks": [
+        {
+          "file": "lib/lottetour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-sweep-e2e-recheck]",
+            "collectLottetourPriceInputsWithE2eFallback",
+            "horizonSoldOut"
+          ]
+        },
+        {
+          "file": "lib/lottetour-price-recheck-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-sweep-e2e-recheck]",
+            "LOTTETOUR_HORIZON_RECHECK_DAYS = 7",
+            "lottetourNextPriceRecheckYmd"
+          ]
+        },
+        {
+          "file": "lib/lottetour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-sweep-e2e-recheck]",
+            "collectLottetourPriceInputsWithE2eFallback",
+            "horizonSoldOut",
+            "noFutureDepartureConfirmedAt",
+            "isLottetourPriceRecheckDue",
+            "syncSupplierUrgentDealForProduct",
+            "upsertProductDepartures"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-lottetour-sweep-cron.ts",
+          "mustInclude": ["sweepDueLottetourProducts", "DISABLE_INSTRUMENTATION_LOTTETOUR_SWEEP_CRON"]
+        }
+      ],
+      "vitestSuites": ["lib/lottetour-sweep.test.ts"]
+    },
+    {
+      "id": "verygoodtour-hxr-departure-collect",
+      "tier": ["prebuild", "ci"],
+      "summary": "verygoodtour ProductCalendarSearch HXR→E2E·horizonSoldOut·URL GET 폴백",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-hxr-departure-collect]",
+            "collectVerygoodtourPriceInputsWithE2eFallback",
+            "collectVerygoodHxrOnlyForDateRange",
+            "horizonSoldOut",
+            "normalizeVerygoodtourDetailUrlForCollect"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-detail-url-health.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-e2e-expired-url-guard]",
+            "normalizeVerygoodtourDetailUrlForCollect",
+            "probeVerygoodDetailWithGet"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/verygoodtour-price-collect.test.ts",
+        "lib/verygoodtour-detail-url-health.test.ts"
+      ]
+    },
+    {
+      "id": "verygoodtour-hxr-calendar-parse",
+      "tier": ["prebuild", "ci"],
+      "summary": "verygoodtour ProductCalendarSearch·모달 dep_left/dep_right HXR 파서",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-calendar-hxr.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-hxr-calendar-parse]",
+            "parseVerygoodModalDomHtml",
+            "parseVerygoodCalendarRightRows",
+            "dep_right_wrap",
+            "jq_cl_detailViewBtn"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/verygoodtour-calendar-hxr.test.ts"]
+    },
+    {
       "id": "verygoodtour-e2e-expired-url-guard",
       "tier": ["prebuild", "ci"],
       "summary": "참좋은여행 E2E — stale URL HEAD skip·Playwright product-expired phase",
@@ -1201,7 +1309,9 @@
           "file": "lib/verygoodtour-detail-url-health.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[verygoodtour-e2e-expired-url-guard]",
-            "isVerygoodtourDetailUrlExpired"
+            "isVerygoodtourDetailUrlExpired",
+            "normalizeVerygoodtourDetailUrlForCollect",
+            "verygoodtourDetailHtmlLooksExpired"
           ]
         },
         {
@@ -1219,6 +1329,49 @@
           ]
         }
       ]
+    },
+    {
+      "id": "verygoodtour-sweep-e2e-recheck",
+      "tier": ["prebuild", "ci"],
+      "summary": "verygoodtour sweep — ProductCalendarSearch HXR·0건 시 E2E 180일·7일 재확인·stale 출발 정리",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-sweep-e2e-recheck]",
+            "collectVerygoodtourPriceInputsWithE2eFallback",
+            "horizonSoldOut"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-price-recheck-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-sweep-e2e-recheck]",
+            "VERYGOODTOUR_HORIZON_RECHECK_DAYS = 7",
+            "verygoodtourNextPriceRecheckYmd"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-sweep-e2e-recheck]",
+            "collectVerygoodtourPriceInputsWithE2eFallback",
+            "horizonSoldOut",
+            "noFutureDepartureConfirmedAt",
+            "isVerygoodtourPriceRecheckDue",
+            "syncSupplierUrgentDealForProduct",
+            "upsertProductDepartures"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-verygoodtour-sweep-cron.ts",
+          "mustInclude": [
+            "sweepDueVerygoodtourProducts",
+            "DISABLE_INSTRUMENTATION_VERYGOODTOUR_SWEEP_CRON"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/verygoodtour-sweep.test.ts"]
     },
     {
       "id": "trip-rec-curation-event-city-match",
@@ -1329,6 +1482,7 @@
         "lib/modetour-sweep.test.ts",
         "lib/hanatour-sweep.test.ts",
         "lib/ybtour-sweep.test.ts",
+        "lib/lottetour-sweep.test.ts",
         "lib/product-image-source-attribution.test.ts",
         "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
         "lib/supplier-product-title-display.test.ts",

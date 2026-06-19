@@ -22,6 +22,8 @@ export type HanatourPriceCollectResult = {
   source: HanatourPriceCollectSource | null
   e2eAttempted: boolean
   e2eMeta: HanatourDepartureCollectResult['meta'] | null
+  /** API+E2E 모두 180일 창 priced 0건 — 판매종료·stale DB 후보 */
+  horizonSoldOut: boolean
 }
 
 function filterInputsInWindow(inputs: DepartureInput[], fromYmd: string, toYmd: string): DepartureInput[] {
@@ -85,6 +87,7 @@ export async function collectHanatourPriceInputsWithE2eFallback(
           source: 'api',
           e2eAttempted: false,
           e2eMeta: null,
+          horizonSoldOut: false,
         }
       }
     } catch (err) {
@@ -102,5 +105,6 @@ export async function collectHanatourPriceInputsWithE2eFallback(
     source: pricedE2e.length > 0 ? 'e2e' : null,
     e2eAttempted: true,
     e2eMeta: e2e.meta,
+    horizonSoldOut: pricedE2e.length === 0,
   }
 }

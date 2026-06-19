@@ -1,24 +1,22 @@
 /**
- * hanatour 일1회 sweep — gw API 수집 + 0건 시 E2E(6개월) 검증 + ProductDeparture upsert.
- * instrumentation: `lib/instrumentation-hanatour-sweep-cron.ts` (KST 05:00).
+ * lottetour 일1회 sweep — evtListAjax HXR 수집 + 0건 시 E2E(180일) 검증 + ProductDeparture upsert.
+ * instrumentation: `lib/instrumentation-lottetour-sweep-cron.ts` (KST 07:00).
  *
- * REGRESSION-FREEZE[hanatour-sweep-e2e-recheck]: API→E2E·7일 재확인·stale 미래출발 정리 — manifest
+ * REGRESSION-FREEZE[lottetour-sweep-e2e-recheck]: HXR→E2E·7일 재확인·stale 미래출발 정리 — manifest
  */
 import type { PrismaClient } from '@prisma/client'
 
-import { buildDetailUrl } from '@/lib/admin-departure-rescrape'
 import { reconcileRuleAMarkersWithDbFutureDepartures } from '@/lib/future-priced-departure-guard'
 import {
-  buildHanatourKstTargetMonths,
-  validateHanatourAdminMonthYm,
-} from '@/lib/hanatour-departures'
-import { collectHanatourPriceInputsWithE2eFallback } from '@/lib/hanatour-price-collect'
+  clearLottetourPriceRecheckFromRawMeta,
+  computeLottetourNextPriceRecheckYmd,
+  isLottetourPriceRecheckDue,
+  mergeLottetourPriceRecheckIntoRawMeta,
+} from '@/lib/lottetour-price-recheck-meta'
 import {
-  clearHanatourPriceRecheckFromRawMeta,
-  computeHanatourNextPriceRecheckYmd,
-  isHanatourPriceRecheckDue,
-  mergeHanatourPriceRecheckIntoRawMeta,
-} from '@/lib/hanatour-price-recheck-meta'
+  collectLottetourPriceInputsWithE2eFallback,
+  resolveLottetourCollectContext,
+} from '@/lib/lottetour-price-collect'
 import {
   addDaysUtcYmd,
   computePriceFromFromDepartureInputs,
@@ -27,12 +25,12 @@ import {
   RULE_A_WINDOW_DAYS,
 } from '@/lib/product-sales-policy'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
-import { resolveHanatourAdminE2eMonthsForward, departureInputToYmd } from '@/lib/scrape-date-bounds'
+import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import { syncSupplierUrgentDealForProduct } from '@/lib/supplier-urgent-deal'
 import {
   upsertProductDepartures,
   type DepartureInput,
-} from '@/lib/upsert-product-departures-hanatour'
+} from '@/lib/upsert-product-departures-lottetour'
 
 function safeRevalidateProductListingCaches(): void {
   try {
@@ -40,7 +38,7 @@ function safeRevalidateProductListingCaches(): void {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     if (msg.includes('static generation store missing')) {
-      console.warn('[hanatour-sweep] skip revalidate (not in Next.js runtime)')
+      console.warn('[lottetour-sweep] skip revalidate (not in Next.js runtime)')
       return
     }
     throw err
@@ -50,7 +48,7 @@ function safeRevalidateProductListingCaches(): void {
 const SWEEP_DUE_DAYS = 1
 const SWEEP_DEFAULT_LIMIT = 200
 
-export type HanatourSweepResult = {
+export type LottetourSweepResult = {
   processed: number
   updated: number
   skipped: number
@@ -66,41 +64,11 @@ type SweepProductRow = {
   id: string
   originUrl: string | null
   originCode: string | null
-  title: string | null
-  originalTitle: string | null
   rawMeta: string | null
 }
 
 function ymdToUtcMidnight(ymd: string): Date {
   return new Date(`${ymd}T00:00:00.000Z`)
-}
-
-function monthYmsForHorizon(fromYmd: string, toYmd: string): string[] {
-  const lo = fromYmd <= toYmd ? fromYmd : toYmd
-  const hi = fromYmd <= toYmd ? toYmd : fromYmd
-  const horizon = resolveHanatourAdminE2eMonthsForward()
-  const allowedYm = new Set(buildHanatourKstTargetMonths(horizon))
-  const ymSet = new Set<string>()
-  let cur = lo
-  for (let guard = 0; guard < 400 && cur <= hi; guard += 1) {
-    const ym = cur.slice(0, 7)
-    const validated = validateHanatourAdminMonthYm(ym)
-    if (validated && allowedYm.has(validated)) ymSet.add(validated)
-    const [y, m, d] = cur.split('-').map(Number)
-    const dt = new Date(Date.UTC(y, m - 1, d))
-    dt.setUTCDate(dt.getUTCDate() + 1)
-    cur = dt.toISOString().slice(0, 10)
-  }
-  return [...ymSet].sort()
-}
-
-function resolveDetailUrl(product: SweepProductRow): string | null {
-  const stored = (product.originUrl ?? '').trim()
-  if (stored.startsWith('http')) return stored
-  const code = (product.originCode ?? '').trim()
-  if (!code) return null
-  const built = buildDetailUrl('hanatour', code)
-  return built.startsWith('http') ? built : null
 }
 
 function sourceDatesFromInputs(inputs: DepartureInput[], fromYmd: string, toYmd: string): string[] {
@@ -122,8 +90,6 @@ async function findSweepProducts(
     id: true,
     originUrl: true,
     originCode: true,
-    title: true,
-    originalTitle: true,
     rawMeta: true,
   } as const
   const today = todayYmd ?? kstTodayYmd()
@@ -133,7 +99,7 @@ async function findSweepProducts(
       where: {
         id: options.productId.trim(),
         registrationStatus: 'registered',
-        originSource: 'hanatour',
+        originSource: 'lottetour',
       },
       select,
     })
@@ -145,7 +111,7 @@ async function findSweepProducts(
     const row = await prisma.product.findFirst({
       where: {
         registrationStatus: 'registered',
-        originSource: 'hanatour',
+        originSource: 'lottetour',
         originCode: { equals: code, mode: 'insensitive' },
       },
       select,
@@ -157,7 +123,7 @@ async function findSweepProducts(
   const rows = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
-      originSource: 'hanatour',
+      originSource: 'lottetour',
       OR: [{ lastSalesPolicyCheckedAt: null }, { lastSalesPolicyCheckedAt: { lt: cutoff } }],
     },
     orderBy: [{ lastSalesPolicyCheckedAt: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }],
@@ -165,7 +131,7 @@ async function findSweepProducts(
     select,
   })
 
-  return rows.filter((p) => isHanatourPriceRecheckDue(p.rawMeta, today)).slice(0, limit)
+  return rows.filter((p) => isLottetourPriceRecheckDue(p.rawMeta, today)).slice(0, limit)
 }
 
 async function pruneAllDeparturesInHorizonWindow(
@@ -209,17 +175,17 @@ async function pruneDeparturesOutsideSourceDates(
 }
 
 /**
- * hanatour 등록 상품 일1회 sweep — API→E2E 가격 검증 + Rule A 마커·priceFrom 갱신.
+ * lottetour 등록 상품 일1회 sweep — HXR→E2E 가격 검증 + Rule A 마커·priceFrom 갱신.
  */
-export async function sweepDueHanatourProducts(
+export async function sweepDueLottetourProducts(
   prisma: PrismaClient,
   options?: { limit?: number; productId?: string | null; originCode?: string | null },
-): Promise<HanatourSweepResult> {
+): Promise<LottetourSweepResult> {
   const limit = Math.max(1, Math.min(500, options?.limit ?? SWEEP_DEFAULT_LIMIT))
   const todayYmd = kstTodayYmd()
   const products = await findSweepProducts(prisma, limit, options, todayYmd)
 
-  const result: HanatourSweepResult = {
+  const result: LottetourSweepResult = {
     processed: 0,
     updated: 0,
     skipped: 0,
@@ -233,35 +199,40 @@ export async function sweepDueHanatourProducts(
 
   const fromYmd = todayYmd
   const toYmd = addDaysUtcYmd(todayYmd, RULE_A_WINDOW_DAYS)
-  const monthYms = monthYmsForHorizon(fromYmd, toYmd)
 
   for (const product of products) {
     result.processed += 1
     const now = new Date()
 
     try {
-      const detailUrl = resolveDetailUrl(product)
-      if (!detailUrl) {
-        console.warn('[hanatour-sweep] skip-no-url', { productId: product.id })
+      const resolved = await resolveLottetourCollectContext({
+        originUrl: product.originUrl,
+        originCode: product.originCode,
+        rawMeta: product.rawMeta,
+      })
+
+      if (!resolved.ctx) {
+        console.warn('[lottetour-sweep] skip-no-hints', {
+          productId: product.id,
+          warnings: resolved.warnings.slice(0, 3),
+        })
         await prisma.product.update({
           where: { id: product.id },
           data: {
             lastSalesPolicyCheckedAt: now,
-            rawMeta: clearHanatourPriceRecheckFromRawMeta(product.rawMeta),
+            rawMeta: clearLottetourPriceRecheckFromRawMeta(product.rawMeta),
           },
         })
         result.skipped += 1
         continue
       }
 
-      const registeredRawTitle =
-        (product.originalTitle ?? '').trim() || (product.title ?? '').trim() || null
-
-      const collected = await collectHanatourPriceInputsWithE2eFallback(
-        detailUrl,
+      const collected = await collectLottetourPriceInputsWithE2eFallback(
+        resolved.ctx,
+        product.id,
         fromYmd,
         toYmd,
-        { monthYms, registeredRawTitle },
+        { logLabel: `sweep:${product.id}` },
       )
 
       if (collected.source === 'e2e') {
@@ -287,7 +258,7 @@ export async function sweepDueHanatourProducts(
             toYmd,
           )
           result.pruned += prunedCount
-          console.warn('[hanatour-sweep] horizon-sold-out', {
+          console.warn('[lottetour-sweep] horizon-sold-out', {
             productId: product.id,
             prunedCount,
           })
@@ -298,14 +269,14 @@ export async function sweepDueHanatourProducts(
               lastFutureDepartureDate: markers.lastFutureDepartureDate,
               priceFrom: null,
               lastSalesPolicyCheckedAt: now,
-              rawMeta: clearHanatourPriceRecheckFromRawMeta(product.rawMeta),
+              rawMeta: clearLottetourPriceRecheckFromRawMeta(product.rawMeta),
             },
           })
           result.horizonSoldOut += 1
           continue
         }
 
-        console.warn('[hanatour-sweep] collect-empty', {
+        console.warn('[lottetour-sweep] collect-empty', {
           productId: product.id,
           e2eAttempted: collected.e2eAttempted,
         })
@@ -313,7 +284,7 @@ export async function sweepDueHanatourProducts(
           where: { id: product.id },
           data: {
             lastSalesPolicyCheckedAt: now,
-            rawMeta: clearHanatourPriceRecheckFromRawMeta(product.rawMeta),
+            rawMeta: clearLottetourPriceRecheckFromRawMeta(product.rawMeta),
           },
         })
         result.skipped += 1
@@ -352,8 +323,8 @@ export async function sweepDueHanatourProducts(
       if (urgentDeal.turnedOn) result.urgentDealOn += 1
       if (urgentDeal.turnedOff) result.urgentDealOff += 1
 
-      const nextRecheckYmd = computeHanatourNextPriceRecheckYmd(todayYmd)
-      const rawMeta = mergeHanatourPriceRecheckIntoRawMeta(product.rawMeta, {
+      const nextRecheckYmd = computeLottetourNextPriceRecheckYmd(todayYmd)
+      const rawMeta = mergeLottetourPriceRecheckIntoRawMeta(product.rawMeta, {
         nextRecheckYmd,
         collectSource: collected.source!,
         horizonVerifiedAtIso: now.toISOString(),
@@ -372,7 +343,7 @@ export async function sweepDueHanatourProducts(
       result.updated += 1
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.warn('[hanatour-sweep] skip', {
+      console.warn('[lottetour-sweep] skip', {
         productId: product.id,
         message: msg.slice(0, 400),
       })

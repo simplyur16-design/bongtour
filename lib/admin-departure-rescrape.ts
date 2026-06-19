@@ -514,6 +514,35 @@ export async function collectYbtourDepartureInputsForDateRange(
   return collected.inputs
 }
 
+/** verygoodtour 달력 E2E only — HXR 우측 0건 시 Playwright 모달 수집. */
+export async function collectVerygoodE2eDepartureInputsForDateRange(
+  detailUrl: string,
+  fromYmd: string,
+  toYmd: string,
+): Promise<DepartureInput[]> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
+  const lo = fromYmd <= toYmd ? fromYmd : toYmd
+  const hi = fromYmd <= toYmd ? toYmd : fromYmd
+  const { normalizeVerygoodtourDetailUrlForCollect } = await import('@/lib/verygoodtour-detail-url-health')
+  const u = normalizeVerygoodtourDetailUrlForCollect(detailUrl)
+  const statusByDate = new Map<string, { statusRaw: string | null; seatsStatusRaw: string | null }>()
+  try {
+    const cal = await scrapeLiveCalendar(u, 'verygoodtour')
+    const inputs = filterDepartureInputsOnOrAfterCalendarToday(
+      mapScrapedRowsToInputs(cal.rows, statusByDate),
+    )
+    return inputs.filter((x) => {
+      const dk =
+        x.departureDate instanceof Date
+          ? x.departureDate.toISOString().slice(0, 10)
+          : String(x.departureDate ?? '').trim().slice(0, 10)
+      return dk >= lo && dk <= hi && (x.adultPrice ?? 0) > 0
+    })
+  } catch {
+    return []
+  }
+}
+
 export async function collectDepartureInputsForAdminRescrape(
   prisma: PrismaClient,
   product: { id: string; originSource: string; originCode: string; originUrl: string | null },

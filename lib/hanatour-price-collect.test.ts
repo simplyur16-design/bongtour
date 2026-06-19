@@ -58,6 +58,29 @@ describe('collectHanatourPriceInputsWithE2eFallback', () => {
 
     expect(out.source).toBe('e2e')
     expect(out.e2eAttempted).toBe(true)
+    expect(out.horizonSoldOut).toBe(false)
     expect(out.inputs[0]?.adultPrice).toBe(799000)
+  })
+
+  it('sets horizonSoldOut when API and E2E both return zero priced rows', async () => {
+    collectHanatourApiDepartureInputsForMonths.mockResolvedValueOnce({
+      inputs: [],
+      airtelLike: true,
+    })
+    collectHanatourDepartureInputs.mockResolvedValueOnce({
+      inputs: [],
+      meta: { notes: [] },
+    })
+
+    const out = await collectHanatourPriceInputsWithE2eFallback(
+      'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=STALE000',
+      '2026-07-01',
+      '2026-12-31',
+      { monthYms: ['2026-07'] },
+    )
+
+    expect(out.horizonSoldOut).toBe(true)
+    expect(out.source).toBeNull()
+    expect(out.e2eAttempted).toBe(true)
   })
 })
