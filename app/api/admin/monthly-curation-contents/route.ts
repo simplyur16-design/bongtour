@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { parseMonthlyContentInput } from '@/lib/overseas-content-cms'
+import { CURATION_EVENT_SUMMARY_SELECT } from '@/lib/bong-marketing/curation-event-card-link'
 
 export async function GET(request: Request) {
   const admin = await requireAdmin()
@@ -19,15 +20,7 @@ export async function GET(request: Request) {
     orderBy: [{ monthKey: 'desc' }, { sortOrder: 'asc' }, { updatedAt: 'desc' }],
     include: {
       curationEvents: {
-        select: {
-          id: true,
-          name: true,
-          countryCode: true,
-          startMonth: true,
-          endMonth: true,
-          type: true,
-          city: true,
-        },
+        select: CURATION_EVENT_SUMMARY_SELECT,
         orderBy: { name: 'asc' },
       },
     },

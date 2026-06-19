@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
+import {
+  formatLinkedEventBadgeLabel,
+} from '@/lib/bong-marketing/curation-event-card-link'
+
 type LinkedCurationEvent = {
   id: string
   name: string
@@ -32,11 +36,7 @@ type MonthlyRow = {
 }
 
 function formatLinkedEventBadge(event: LinkedCurationEvent): string {
-  const monthPart =
-    event.startMonth === event.endMonth
-      ? `${event.startMonth}월`
-      : `${event.startMonth}-${event.endMonth}월`
-  return `🌐 ${event.name} (${event.countryCode}, ${monthPart})`
+  return formatLinkedEventBadgeLabel(event)
 }
 
 function defaultNextMonthKey(): string {

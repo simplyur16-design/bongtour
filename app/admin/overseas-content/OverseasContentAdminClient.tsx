@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
+import {
+  formatCurationEventMonthRange,
+  formatLinkedEventBadgeLabel,
+} from '@/lib/bong-marketing/curation-event-card-link'
 
 type EditorialItem = {
   id: string
@@ -32,6 +36,21 @@ type EditorialItem = {
   cardTags?: string | null
 }
 
+type LinkedCurationEvent = {
+  id: string
+  name: string
+  countryCode: string
+  startMonth: number
+  endMonth: number
+  type: string
+  city: string | null
+  monthKey?: string
+}
+
+type CurationEventCandidate = LinkedCurationEvent & {
+  linkedSeasonCard: { id: string; title: string; monthKey: string } | null
+}
+
 type MonthlyItem = {
   id: string
   monthKey: string
@@ -58,6 +77,7 @@ type MonthlyItem = {
   isPublished: boolean
   sortOrder: number
   updatedAt: string
+  curationEvents?: LinkedCurationEvent[]
 }
 
 const SOURCE_TYPE_OPTIONS = [
@@ -158,6 +178,11 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
   const [uploadingEditorialImage, setUploadingEditorialImage] = useState(false)
   /** 시즌 추천: 스토리지 업로드만 하고 아직「저장」으로 DB 반영 전 */
   const [monthlySeasonAwaitingDbSave, setMonthlySeasonAwaitingDbSave] = useState(false)
+  const [linkedEvents, setLinkedEvents] = useState<LinkedCurationEvent[]>([])
+  const [eventCandidates, setEventCandidates] = useState<CurationEventCandidate[]>([])
+  const [selectedCandidateId, setSelectedCandidateId] = useState('')
+  const [eventLinkLoading, setEventLinkLoading] = useState(false)
+  const [eventLinkNotice, setEventLinkNotice] = useState<string | null>(null)
 
   async function reload() {
     setLoading(true)
@@ -183,6 +208,117 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
   useEffect(() => {
     void reload()
   }, [])
+
+  async function refreshLinkedEventsForCard(cardId: string) {
+    const res = await fetch(`/api/admin/monthly-curation-contents/${cardId}`, { cache: 'no-store' })
+    const json = (await res.json()) as { item?: MonthlyItem; error?: string }
+    if (!res.ok) throw new Error(json.error ?? '연결 이벤트를 불러오지 못했습니다.')
+    setLinkedEvents(json.item?.curationEvents ?? [])
+    return json.item?.curationEvents ?? []
+  }
+
+  async function loadEventCandidates(monthKey: string, countryCode: string) {
+    if (!isMonthKey(monthKey.trim())) {
+      setEventCandidates([])
+      return
+    }
+    const q = new URLSearchParams({ monthKey: monthKey.trim() })
+    if (countryCode.trim()) q.set('countryCode', countryCode.trim())
+    const res = await fetch(`/api/admin/marketing/curation-events/candidates?${q}`)
+    const json = (await res.json()) as { events?: CurationEventCandidate[]; error?: string }
+    if (!res.ok) throw new Error(json.error ?? '후보 이벤트를 불러오지 못했습니다.')
+    setEventCandidates(json.events ?? [])
+  }
+
+  useEffect(() => {
+    if (!editingMonthlyId) {
+      setLinkedEvents([])
+      setEventCandidates([])
+      setSelectedCandidateId('')
+      setEventLinkNotice(null)
+      return
+    }
+
+    let cancelled = false
+    const run = async () => {
+      setEventLinkLoading(true)
+      setEventLinkNotice(null)
+      try {
+        await refreshLinkedEventsForCard(editingMonthlyId)
+        if (cancelled) return
+        await loadEventCandidates(monthlyForm.monthKey, monthlyForm.countryCode)
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : '연결 이벤트 로드 실패')
+        }
+      } finally {
+        if (!cancelled) setEventLinkLoading(false)
+      }
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [editingMonthlyId, monthlyForm.monthKey, monthlyForm.countryCode])
+
+  async function linkSelectedEventToCard() {
+    if (!editingMonthlyId || !selectedCandidateId) return
+    setEventLinkLoading(true)
+    setEventLinkNotice(null)
+    setError(null)
+    try {
+      const res = await fetch(`/api/admin/monthly-curation-contents/${editingMonthlyId}/link-event`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ eventId: selectedCandidateId }),
+      })
+      const json = (await res.json()) as {
+        ok?: boolean
+        movedFromOtherCard?: boolean
+        previousCardId?: string | null
+        error?: string
+      }
+      if (!res.ok) throw new Error(json.error ?? '이벤트 연결 실패')
+
+      if (json.movedFromOtherCard) {
+        setEventLinkNotice('다른 시즌 카드에 연결되어 있던 이벤트를 이 카드로 옮겼습니다.')
+      } else {
+        setEventLinkNotice('이벤트 연결이 저장되었습니다.')
+      }
+
+      setSelectedCandidateId('')
+      await refreshLinkedEventsForCard(editingMonthlyId)
+      await loadEventCandidates(monthlyForm.monthKey, monthlyForm.countryCode)
+      await reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '이벤트 연결 실패')
+    } finally {
+      setEventLinkLoading(false)
+    }
+  }
+
+  async function unlinkEventFromCard(eventId: string) {
+    if (!editingMonthlyId) return
+    setEventLinkLoading(true)
+    setEventLinkNotice(null)
+    setError(null)
+    try {
+      const res = await fetch(
+        `/api/admin/monthly-curation-contents/${editingMonthlyId}/link-event/${eventId}`,
+        { method: 'DELETE' },
+      )
+      const json = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok) throw new Error(json.error ?? '연결 해제 실패')
+      setEventLinkNotice('이벤트 연결을 해제했습니다.')
+      await refreshLinkedEventsForCard(editingMonthlyId)
+      await loadEventCandidates(monthlyForm.monthKey, monthlyForm.countryCode)
+      await reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '연결 해제 실패')
+    } finally {
+      setEventLinkLoading(false)
+    }
+  }
 
   async function saveEditorial() {
     setError(null)
@@ -1133,6 +1269,100 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
               </div>
             </fieldset>
 
+            {editingMonthlyId ? (
+              <fieldset className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/40 p-4">
+                <legend className="px-1 text-sm font-semibold text-amber-950">연결 이벤트</legend>
+                <p className="text-xs text-amber-900/80">
+                  승인(approved)된 CurationEvent pool에서 이 카드의 대상 월·국가에 맞는 후보만 표시됩니다.
+                  공개 사이트 이벤트 태그 노출은 별도 정책(showEventTagsOnPublic)입니다.
+                </p>
+                {eventLinkNotice ? (
+                  <p className="rounded border border-amber-300 bg-amber-100/80 px-2 py-1 text-xs text-amber-950">
+                    {eventLinkNotice}
+                  </p>
+                ) : null}
+                {eventLinkLoading && linkedEvents.length === 0 ? (
+                  <p className="text-sm text-slate-600">연결 이벤트 불러오는 중…</p>
+                ) : linkedEvents.length === 0 ? (
+                  <p className="text-sm text-slate-600">연결된 이벤트가 없습니다.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {linkedEvents.map((event) => (
+                      <li
+                        key={event.id}
+                        className="flex flex-wrap items-start justify-between gap-2 rounded-md border border-amber-200/80 bg-white px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-900">{event.name}</p>
+                          <p className="text-xs text-slate-600">
+                            {event.countryCode}
+                            {event.city ? ` · ${event.city}` : ''} ·{' '}
+                            {formatCurationEventMonthRange(event.startMonth, event.endMonth)} · {event.type}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={eventLinkLoading}
+                          onClick={() => void unlinkEventFromCard(event.id)}
+                          className="shrink-0 rounded border border-slate-300 bg-white px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          연결 해제
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex flex-wrap items-end gap-2 pt-1">
+                  <label className="flex min-w-[240px] flex-1 flex-col gap-1 text-xs text-slate-700">
+                    이벤트 변경 / 추가
+                    <select
+                      value={selectedCandidateId}
+                      onChange={(e) => setSelectedCandidateId(e.target.value)}
+                      disabled={eventLinkLoading || !isMonthKey(monthlyForm.monthKey.trim())}
+                      className="rounded border border-slate-300 bg-white px-2 py-2 text-sm"
+                    >
+                      <option value="">후보 선택…</option>
+                      {eventCandidates.map((candidate) => {
+                        const linkedElsewhere =
+                          candidate.linkedSeasonCard &&
+                          candidate.linkedSeasonCard.id !== editingMonthlyId
+                        const alreadyHere = linkedEvents.some((e) => e.id === candidate.id)
+                        return (
+                          <option key={candidate.id} value={candidate.id} disabled={alreadyHere}>
+                            {candidate.name} ({candidate.countryCode},{' '}
+                            {formatCurationEventMonthRange(candidate.startMonth, candidate.endMonth)})
+                            {linkedElsewhere
+                              ? ` · 다른 카드: ${candidate.linkedSeasonCard!.title}`
+                              : ''}
+                            {alreadyHere ? ' · 이미 연결됨' : ''}
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    disabled={eventLinkLoading || !selectedCandidateId}
+                    onClick={() => void linkSelectedEventToCard()}
+                    className="rounded bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {eventLinkLoading ? '저장 중…' : '연결 저장'}
+                  </button>
+                </div>
+                {!isMonthKey(monthlyForm.monthKey.trim()) ? (
+                  <p className="text-xs text-slate-500">대상 월(YYYY-MM)을 입력하면 후보를 불러옵니다.</p>
+                ) : eventCandidates.length === 0 && !eventLinkLoading ? (
+                  <p className="text-xs text-slate-500">
+                    승인된 후보 이벤트가 없습니다.{' '}
+                    <Link href="/admin/marketing/curation-events" className="underline">
+                      이벤트 검토
+                    </Link>
+                    에서 approve 후 다시 확인하세요.
+                  </p>
+                ) : null}
+              </fieldset>
+            ) : null}
+
             <fieldset className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50/30 p-4">
               <legend className="px-1 text-sm font-semibold text-slate-800">발행</legend>
               <label htmlFor="oc-monthly-isPublished" className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-800">
@@ -1360,6 +1590,19 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
                   <p className="font-medium">{row.monthKey} · {row.title}</p>
                   <p className="text-xs text-slate-500">scope:{row.pageScope} · country:{row.countryCode ?? '-'} · region:{row.regionKey ?? '-'} · #{row.sortOrder} · {row.isPublished ? '발행' : '비발행'}</p>
                 </div>
+                {row.curationEvents && row.curationEvents.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {row.curationEvents.map((event) => (
+                      <span
+                        key={event.id}
+                        className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-amber-200/80"
+                        title={`연결 이벤트 · ${event.type}${event.city ? ` · ${event.city}` : ''}`}
+                      >
+                        {formatLinkedEventBadgeLabel(event)}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
                 <p className="mt-1 line-clamp-2 whitespace-pre-line text-sm text-slate-600">{row.bodyKr}</p>
                 <p className="mt-1 text-xs text-slate-500">{row.imageUrl ? '이미지 있음' : '이미지 없음'}</p>
                 {row.imageUrl ? (
@@ -1382,7 +1625,10 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
                     onClick={() => {
                       setEditingMonthlyId(row.id)
                       setMonthlyForm(monthlyFormFromRow(row))
+                      setLinkedEvents(row.curationEvents ?? [])
                       setMonthlySeasonAwaitingDbSave(false)
+                      setEventLinkNotice(null)
+                      setSelectedCandidateId('')
                     }}
                   >
                     수정

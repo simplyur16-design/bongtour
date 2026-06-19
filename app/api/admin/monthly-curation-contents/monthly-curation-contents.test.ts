@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { GET } from '@/app/api/admin/monthly-curation-contents/route'
+import { CURATION_EVENT_SUMMARY_SELECT } from '@/lib/bong-marketing/curation-event-card-link'
 
 vi.mock('@/lib/require-admin', () => ({
   requireAdmin: vi.fn(),
@@ -64,15 +65,7 @@ describe('GET /api/admin/monthly-curation-contents', () => {
         where: { pageScope: 'overseas', monthKey: '2026-07' },
         include: {
           curationEvents: {
-            select: {
-              id: true,
-              name: true,
-              countryCode: true,
-              startMonth: true,
-              endMonth: true,
-              type: true,
-              city: true,
-            },
+            select: CURATION_EVENT_SUMMARY_SELECT,
             orderBy: { name: 'asc' },
           },
         },
