@@ -63,7 +63,8 @@
         "ci"
       ],
       "script": "verify:ybtour-by-goods-price",
-      "summary": "ybtour by-goods 월 API 다출발·/price 교차 검증"
+      "summary": "ybtour by-goods 월 API 다출발·/price 교차 검증",
+      "requiresDatabase": true
     },
     {
       "id": "verygoodtour-lib-ssot",
