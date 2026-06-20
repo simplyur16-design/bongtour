@@ -16,21 +16,21 @@ const KYOWONTOUR_BASE = process.env.KYOWONTOUR_BASE_URL ?? 'https://www.kyowonto
 function calendarRowsToDepartureInputs(
   rows: Awaited<ReturnType<typeof collectKyowontourCalendarRange>>['rows'],
 ): DepartureInput[] {
-  return rows
-    .map((r) => {
-      const fact = kyowontourCalendarRowToFactPriceRow(r)
-      if (!fact?.departureDate || (fact.adultPrice ?? 0) <= 0) return null
-      return {
-        departureDate: fact.departureDate,
-        adultPrice: fact.adultPrice,
-        statusRaw: fact.statusRaw ?? undefined,
-        seatsStatusRaw: fact.seatsStatusRaw ?? undefined,
-        seatCount: fact.seatCount ?? undefined,
-        minPax: fact.minPax ?? undefined,
-        carrierName: fact.carrierName ?? null,
-      } satisfies DepartureInput
+  const out: DepartureInput[] = []
+  for (const r of rows) {
+    const fact = kyowontourCalendarRowToFactPriceRow(r)
+    if (!fact?.departureDate || (fact.adultPrice ?? 0) <= 0) continue
+    out.push({
+      departureDate: fact.departureDate,
+      adultPrice: fact.adultPrice,
+      statusRaw: fact.statusRaw,
+      seatsStatusRaw: fact.seatsStatusRaw,
+      seatCount: fact.seatCount,
+      minPax: fact.minPax,
+      carrierName: fact.carrierName,
     })
-    .filter((x): x is DepartureInput => x != null)
+  }
+  return out
 }
 
 async function resolveKyowontourMasterCode(originUrl: string): Promise<{ masterCode: string; tourCode: string } | null> {
