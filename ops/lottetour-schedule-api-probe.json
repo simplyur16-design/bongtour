@@ -1,0 +1,164 @@
+[
+  {
+    "label": "phuquoc-detail",
+    "url": "https://www.lottetour.com/evtDetail/826/857/1063/1671?evtCd=B41A260630KE014",
+    "status": 200,
+    "html_len": 140991,
+    "schedule_hints": {
+      "has_여행일정": true,
+      "has_schd_class": false,
+      "has_tab_schedule": true,
+      "evtCd_in_html": 26
+    },
+    "ajax_paths": [
+      "/commonimgbannerAjax",
+      "/evtContractAjax",
+      "/evtDetail",
+      "/evtDetail/847/901/903/5459",
+      "/evtDetail/dptPeriod",
+      "/evtDetail/paramInfo",
+      "/evtDetail/priceMoreInfoAjax",
+      "/evtDetail/tcnInfo",
+      "/evtDetail/totalPriceArea",
+      "/evtDetailBasicAjax",
+      "/evtDetailCalAjax",
+      "/evtDetailCoreInfo",
+      "/evtDetailDptListAjax",
+      "/evtDetailHeadInfoAjax",
+      "/evtDetailInquiryAjax",
+      "/evtDetailPriceDtlAjax",
+      "/evtDetailPriceScAjax",
+      "/evtDetailPrint",
+      "/evtDetailScheBasDetlLisAjax",
+      "/evtDetailScheduleAjax",
+      "/evtDetailScrollInfoAjax",
+      "/evtDetailScrollPriceDtlAjax",
+      "/evtDetailTourDestAjax",
+      "/evtList/favorite/god/viewAjax",
+      "/evtScheEtcList",
+      "/evtSpotListAjax",
+      "/extEvtDetlBanList",
+      "/getCommentListAjax",
+      "/googleMapAjax",
+      "/inqueryOneAjax",
+      "/scheLocalInfoAjax",
+      "/statics/js/ltevtlist_layer_for_pc_v0.5.js"
+    ],
+    "probe_results": [
+      {
+        "url": "https://www.lottetour.com/evtlist/evtListAjax?evtCd=B41A260630KE014&depDt=202607&godId=65249",
+        "status": 500,
+        "len": 2219,
+        "is_json": false,
+        "has_table": true,
+        "has_day": false,
+        "snippet": "\r\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\r\n<head>\r\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\r\n<title>롯데관광::명품여행</title>\r\n<style type=\"text/css\">\r\n@charset 'utf-8';\r\n\r\n@import url(http://fonts.googleapis.com/earlyaccess/nanumgothic.css);\r\n\r\n@impo"
+      },
+      {
+        "url": "https://www.lottetour.com/evtDetail/evtDetailAjax?evtCd=B41A260630KE014",
+        "status": 404,
+        "len": 1097,
+        "is_json": false,
+        "has_table": false,
+        "has_day": false,
+        "snippet": "<!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title><style type=\"text/css\">h1 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:22px;} h2 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:16px;} h3 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:14px;} body {font-famil"
+      },
+      {
+        "url": "https://www.lottetour.com/evtDetail/evtSchdAjax?evtCd=B41A260630KE014",
+        "status": 404,
+        "len": 1095,
+        "is_json": false,
+        "has_table": false,
+        "has_day": false,
+        "snippet": "<!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title><style type=\"text/css\">h1 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:22px;} h2 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:16px;} h3 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:14px;} body {font-famil"
+      },
+      {
+        "url": "https://www.lottetour.com/evtDetail/evtPlanAjax?evtCd=B41A260630KE014",
+        "status": 404,
+        "len": 1095,
+        "is_json": false,
+        "has_table": false,
+        "has_day": false,
+        "snippet": "<!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title><style type=\"text/css\">h1 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:22px;} h2 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:16px;} h3 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:14px;} body {font-famil"
+      },
+      {
+        "url": "https://www.lottetour.com/evtlist/evtSchdAjax?evtCd=B41A260630KE014",
+        "status": 404,
+        "len": 1093,
+        "is_json": false,
+        "has_table": false,
+        "has_day": false,
+        "snippet": "<!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title><style type=\"text/css\">h1 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:22px;} h2 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:16px;} h3 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:14px;} body {font-famil"
+      }
+    ]
+  },
+  {
+    "label": "uk-list-god",
+    "url": "https://www.lottetour.com/evtList/826/854/1493/3996?godId=66053",
+    "status": 200,
+    "html_len": 54168,
+    "schedule_hints": {
+      "has_여행일정": false,
+      "has_schd_class": false,
+      "has_tab_schedule": false,
+      "evtCd_in_html": 0
+    },
+    "ajax_paths": [
+      "/commonimgbannerAjax",
+      "/evtAjaxList",
+      "/evtAjaxList/compare",
+      "/evtCal",
+      "/evtDetail/847/901/903/5459",
+      "/evtList/favorite/god/viewAjax",
+      "/evtlist/evtListAjax",
+      "/evtlist/evtMonth"
+    ],
+    "probe_results": [
+      {
+        "url": "https://www.lottetour.com/evtlist/evtListAjax?evtCd=E01A260702VS000&depDt=202607&godId=65249",
+        "status": 500,
+        "len": 2219,
+        "is_json": false,
+        "has_table": true,
+        "has_day": false,
+        "snippet": "\r\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\r\n<head>\r\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\r\n<title>롯데관광::명품여행</title>\r\n<style type=\"text/css\">\r\n@charset 'utf-8';\r\n\r\n@import url(http://fonts.googleapis.com/earlyaccess/nanumgothic.css);\r\n\r\n@impo"
+      },
+      {
+        "url": "https://www.lottetour.com/evtDetail/evtDetailAjax?evtCd=E01A260702VS000",
+        "status": 404,
+        "len": 1097,
+        "is_json": false,
+        "has_table": false,
+        "has_day": false,
+        "snippet": "<!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title><style type=\"text/css\">h1 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:22px;} h2 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:16px;} h3 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:14px;} body {font-famil"
+      },
+      {
+        "url": "https://www.lottetour.com/evtDetail/evtSchdAjax?evtCd=E01A260702VS000",
+        "status": 404,
+        "len": 1095,
+        "is_json": false,
+        "has_table": false,
+        "has_day": false,
+        "snippet": "<!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title><style type=\"text/css\">h1 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:22px;} h2 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:16px;} h3 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:14px;} body {font-famil"
+      },
+      {
+        "url": "https://www.lottetour.com/evtDetail/evtPlanAjax?evtCd=E01A260702VS000",
+        "status": 404,
+        "len": 1095,
+        "is_json": false,
+        "has_table": false,
+        "has_day": false,
+        "snippet": "<!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title><style type=\"text/css\">h1 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:22px;} h2 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:16px;} h3 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:14px;} body {font-famil"
+      },
+      {
+        "url": "https://www.lottetour.com/evtlist/evtSchdAjax?evtCd=E01A260702VS000",
+        "status": 404,
+        "len": 1093,
+        "is_json": false,
+        "has_table": false,
+        "has_day": false,
+        "snippet": "<!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title><style type=\"text/css\">h1 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:22px;} h2 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:16px;} h3 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:14px;} body {font-famil"
+      }
+    ]
+  }
+]

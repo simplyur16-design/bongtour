@@ -1,0 +1,97 @@
+{
+  "detailUrl": "https://www.lottetour.com/evtDetail/826/857/1063/1671?evtCd=B41A260630KE014",
+  "godId": "65249",
+  "evtCd": "D99H260907A4000",
+  "results": [
+    {
+      "path": "/evtDetailScheduleAjax",
+      "method": "get",
+      "status": 500,
+      "len": 2219,
+      "has_day": false,
+      "has_schd": false,
+      "snippet": "\r\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\r\n<head>\r\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\r\n<title>롯데관광::명품여행</title>\r\n<style type=\"text/css\">\r\n@charset 'utf-8';\r\n\r\n@import url(http://fonts.googleapis.com/earlyaccess/nanumgothic.css);\r\n\r\n@import\r\n\turl(http://cdn.rawgit.com/hiun/NanumSquare/master/nanumsquare.css);\r\n\r\nbody, p, div, h1, h2, h3, h4, h5, h6, ul, ol, dl, dt, dd, table, caption,\r\n\tform, fieldset, legend, input, li {\r\n\tmargin: 0;"
+    },
+    {
+      "path": "/evtDetailScheduleAjax",
+      "method": "post",
+      "status": 405,
+      "len": 149,
+      "has_day": false,
+      "has_schd": false,
+      "snippet": "{\"timestamp\":1781891246720,\"status\":405,\"error\":\"Method Not Allowed\",\"message\":\"Request method 'POST' not supported\",\"path\":\"/evtDetailScheduleAjax\"}"
+    },
+    {
+      "path": "/evtDetailScheBasDetlLisAjax",
+      "method": "get",
+      "status": 400,
+      "len": 162,
+      "has_day": false,
+      "has_schd": false,
+      "snippet": "{\"timestamp\":1781891247191,\"status\":400,\"error\":\"Bad Request\",\"message\":\"Required int parameter 'godScheId' is not present\",\"path\":\"/evtDetailScheBasDetlLisAjax\"}"
+    },
+    {
+      "path": "/evtDetailScheBasDetlLisAjax",
+      "method": "post",
+      "status": 400,
+      "len": 162,
+      "has_day": false,
+      "has_schd": false,
+      "snippet": "{\"timestamp\":1781891247671,\"status\":400,\"error\":\"Bad Request\",\"message\":\"Required int parameter 'godScheId' is not present\",\"path\":\"/evtDetailScheBasDetlLisAjax\"}"
+    },
+    {
+      "path": "/evtScheEtcList",
+      "method": "get",
+      "status": 200,
+      "len": 54304,
+      "has_day": false,
+      "has_schd": true,
+      "snippet": "{\"scheList\":[{\"tcnCnt\":0,\"saleCnt\":0,\"dptDayDiff\":-79,\"evtOrderBy\":\"\",\"searchEvtStatus\":\"\",\"searchConfrmYn\":\"\",\"remainCnt\":0,\"salCnt\":0,\"godId\":0,\"areaMcCd\":\"D\",\"carrySectId\":0,\"evtPersonCnt\":0,\"minPersonCnt\":0,\"focPersonCnt\":0,\"fackPersonCnt\":0,\"godScheId\":0,\"evtDtCnt\":0,\"evtNightCnt\":0,\"comssnCash\":0,\"comssnCard\":0,\"insGodId\":0,\"cancelComssnYn\":\"N\",\"shopCnt\":0,\"localCostAdt\":0,\"localCostChd\":0,\"corpFileId\":0,\"evtChaUserId\":0,\"cancelUserId\":0,\"tcPersonCnt\":0,\"adtFuelsc\":0,\"adtTax\":0,\"chdFuelsc\":0,\"chdTax\":0,\"infFuelsc\":0,\"infTax\":0,\"carryPriceAdt\":0,\"carryPriceChd\":0,\"carryPriceInf\":0,\"vhcHoc"
+    },
+    {
+      "path": "/evtScheEtcList",
+      "method": "post",
+      "status": 200,
+      "len": 54304,
+      "has_day": false,
+      "has_schd": true,
+      "snippet": "{\"scheList\":[{\"tcnCnt\":0,\"saleCnt\":0,\"dptDayDiff\":-79,\"evtOrderBy\":\"\",\"searchEvtStatus\":\"\",\"searchConfrmYn\":\"\",\"remainCnt\":0,\"salCnt\":0,\"godId\":0,\"areaMcCd\":\"D\",\"carrySectId\":0,\"evtPersonCnt\":0,\"minPersonCnt\":0,\"focPersonCnt\":0,\"fackPersonCnt\":0,\"godScheId\":0,\"evtDtCnt\":0,\"evtNightCnt\":0,\"comssnCash\":0,\"comssnCard\":0,\"insGodId\":0,\"cancelComssnYn\":\"N\",\"shopCnt\":0,\"localCostAdt\":0,\"localCostChd\":0,\"corpFileId\":0,\"evtChaUserId\":0,\"cancelUserId\":0,\"tcPersonCnt\":0,\"adtFuelsc\":0,\"adtTax\":0,\"chdFuelsc\":0,\"chdTax\":0,\"infFuelsc\":0,\"infTax\":0,\"carryPriceAdt\":0,\"carryPriceChd\":0,\"carryPriceInf\":0,\"vhcHoc"
+    },
+    {
+      "path": "/scheLocalInfoAjax",
+      "method": "get",
+      "status": 200,
+      "len": 5706,
+      "has_day": false,
+      "has_schd": false,
+      "snippet": "\r\n\r\n\r\n\r\n<script type=\"text/javascript\">\r\n\tvar cityCount = '0';\r\n\tif(cityCount == 0){\r\n\t\t$(\".dataFold\").hide();\r\n\t}\r\nvar weatherSt = new Object();\r\nweatherSt[\"01d\"] = \"맑음\";\r\nweatherSt[\"02d\"] = \"구름 조금\";\r\nweatherSt[\"03d\"] = \"구름 많음\";\r\nweatherSt[\"04d\"] = \"흐림\";\r\nweatherSt[\"09d\"] = \"소나기\";\r\nweatherSt[\"10d\"] = \"비\";\r\nweatherSt[\"11d\"] = \"번개\";\r\nweatherSt[\"13d\"] = \"눈\";\r\nweatherSt[\"50d\"] = \"안개\";\r\nweatherSt[\"01n\"] = \"맑음\";\r\nweatherSt[\"02n\"] = \"구름 조금\";\r\nweatherSt[\"03n\"] = \"구름 많음\";\r\nweatherSt[\"04n\"] = \"흐림\";\r\nweatherSt[\"09n\"] = \"소나기\";\r\nweatherSt[\"10n\"] = \"비\";\r\nweatherSt[\"11n\"] = \"번개\";\r\nweatherSt[\"13n\"] = \"눈\";\r\nw"
+    },
+    {
+      "path": "/scheLocalInfoAjax",
+      "method": "post",
+      "status": 405,
+      "len": 145,
+      "has_day": false,
+      "has_schd": false,
+      "snippet": "{\"timestamp\":1781891249745,\"status\":405,\"error\":\"Method Not Allowed\",\"message\":\"Request method 'POST' not supported\",\"path\":\"/scheLocalInfoAjax\"}"
+    },
+    {
+      "path": "/evtDetailBasicAjax",
+      "method": "get",
+      "status": 200,
+      "len": 87897,
+      "has_day": false,
+      "has_schd": true,
+      "snippet": "<!-- ----------------- -->\r\n<!-- ----------------- -->\r\n<!-- 행사정보 출발정보 호출 -->\r\n<script type=\"text/javascript\">\r\nvar m_viewMode = '';  // view mode( 2018-08-18 신문섭)\r\nvar m_evtCd_basicInfo = 'D99H260907A4000'; // 행사코드 ( 2018-08-17신문섭 )\r\nvar m_GodId = '65284';  // 인기상품저장에 사용함(2018-06-10 신문섭);\r\nvar m_AreaCd = 'D'; //A일때 국내\r\nvar dataDepDt = '20260907'; //년월일\r\nvar depDtYY = dataDepDt.substring(0,4);\r\nvar depDtMM = dataDepDt.substring(4,6);\r\nvar depDtDD = dataDepDt.substring(6,8);\r\nvar dptYymm = depDtYY + \"\" + depDtMM; //년월\r\nvar evtStatusCd = '01';//행사상태코드\r\n\r\n//1. 출발일 및 교통편 선택 AJAX\r\nvar dptFilterPara"
+    },
+    {
+      "path": "/evtDetailBasicAjax",
+      "method": "post",
+      "status": 200,
+      "len": 87897,
+      "has_day": false,
+      "has_schd": true,
+      "snippet": "<!-- ----------------- -->\r\n<!-- ----------------- -->\r\n<!-- 행사정보 출발정보 호출 -->\r\n<script type=\"text/javascript\">\r\nvar m_viewMode = '';  // view mode( 2018-08-18 신문섭)\r\nvar m_evtCd_basicInfo = 'D99H260907A4000'; // 행사코드 ( 2018-08-17신문섭 )\r\nvar m_GodId = '65284';  // 인기상품저장에 사용함(2018-06-10 신문섭);\r\nvar m_AreaCd = 'D'; //A일때 국내\r\nvar dataDepDt = '20260907'; //년월일\r\nvar depDtYY = dataDepDt.substring(0,4);\r\nvar depDtMM = dataDepDt.substring(4,6);\r\nvar depDtDD = dataDepDt.substring(6,8);\r\nvar dptYymm = depDtYY + \"\" + depDtMM; //년월\r\nvar evtStatusCd = '01';//행사상태코드\r\n\r\n//1. 출발일 및 교통편 선택 AJAX\r\nvar dptFilterPara"
+    }
+  ]
+}

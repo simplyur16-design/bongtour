@@ -1,0 +1,232 @@
+[
+  {
+    "label": "evtList-sapporo",
+    "url": "https://www.lottetour.com/evtList/826/856/1034/1926?godId=53707",
+    "productCodeHint": "D03A-0253707",
+    "menuNos": [
+      "826",
+      "856",
+      "1034",
+      "1926"
+    ],
+    "godId": "53707",
+    "months": [
+      {
+        "depDt": "202606",
+        "status": 200,
+        "html_len": 748,
+        "evtCd_count": 0,
+        "sample_evts": [],
+        "has_table": true
+      },
+      {
+        "depDt": "202607",
+        "status": 200,
+        "html_len": 2014,
+        "evtCd_count": 1,
+        "sample_evts": [
+          "D03A260730OZ005"
+        ],
+        "has_table": true
+      },
+      {
+        "depDt": "202608",
+        "status": 200,
+        "html_len": 2007,
+        "evtCd_count": 1,
+        "sample_evts": [
+          "D03A260806OZ005"
+        ],
+        "has_table": true
+      }
+    ]
+  },
+  {
+    "label": "evtDetail-phuquoc",
+    "url": "https://www.lottetour.com/evtDetail/826/857/1063/1671?evtCd=B41A260630KE014",
+    "productCodeHint": "B41A260630KE014",
+    "menuNos": [
+      "826",
+      "857",
+      "1063",
+      "1671"
+    ],
+    "godIdFromDetail": "65249",
+    "godId": "65249",
+    "months": [
+      {
+        "depDt": "202606",
+        "status": 200,
+        "html_len": 3282,
+        "evtCd_count": 2,
+        "sample_evts": [
+          "B41A260630KE014",
+          "B41A260630LJ008"
+        ],
+        "has_table": true
+      },
+      {
+        "depDt": "202607",
+        "status": 200,
+        "html_len": 25826,
+        "evtCd_count": 19,
+        "sample_evts": [
+          "B41A260701KE014",
+          "B41A260701LJ009",
+          "B41A260702KE014",
+          "B41A260703LJ022",
+          "B41A260704KE014"
+        ],
+        "has_table": true
+      },
+      {
+        "depDt": "202608",
+        "status": 200,
+        "html_len": 25829,
+        "evtCd_count": 19,
+        "sample_evts": [
+          "B41A260801KE014",
+          "B41A260801LJ009",
+          "B41A260802KE014",
+          "B41A260802LJ021",
+          "B41A260803KE014"
+        ],
+        "has_table": true
+      }
+    ]
+  },
+  {
+    "label": "evtList-uk",
+    "url": "https://www.lottetour.com/evtList/826/854/1493/3996?godId=66053",
+    "productCodeHint": "E01A-0266053",
+    "menuNos": [
+      "826",
+      "854",
+      "1493",
+      "3996"
+    ],
+    "godId": "66053",
+    "months": [
+      {
+        "depDt": "202606",
+        "status": 200,
+        "html_len": 748,
+        "evtCd_count": 0,
+        "sample_evts": [],
+        "has_table": true
+      },
+      {
+        "depDt": "202607",
+        "status": 200,
+        "html_len": 5707,
+        "evtCd_count": 4,
+        "sample_evts": [
+          "E01A260702VS000",
+          "E01A260706VS000",
+          "E01A260716VS000",
+          "E01A260728VS000"
+        ],
+        "has_table": true
+      },
+      {
+        "depDt": "202608",
+        "status": 200,
+        "html_len": 3183,
+        "evtCd_count": 2,
+        "sample_evts": [
+          "E01A260813VS000",
+          "E01A260819VS000"
+        ],
+        "has_table": true
+      }
+    ]
+  },
+  {
+    "label": "evtList-aus-nz",
+    "url": "https://www.lottetour.com/evtList/826/860/1142/1143?godId=59537",
+    "productCodeHint": "G03A-0259537",
+    "menuNos": [
+      "826",
+      "860",
+      "1142",
+      "1143"
+    ],
+    "godId": "59537",
+    "months": [
+      {
+        "depDt": "202606",
+        "status": 200,
+        "html_len": 748,
+        "evtCd_count": 0,
+        "sample_evts": [],
+        "has_table": true
+      },
+      {
+        "depDt": "202607",
+        "status": 200,
+        "html_len": 3367,
+        "evtCd_count": 2,
+        "sample_evts": [
+          "G03A260704KE000",
+          "G03A260718KE000"
+        ],
+        "has_table": true
+      },
+      {
+        "depDt": "202608",
+        "status": 200,
+        "html_len": 12832,
+        "evtCd_count": 9,
+        "sample_evts": [
+          "G03A260803KE001",
+          "G03A260808KE000",
+          "G03A260810KE001",
+          "G03A260815KE000",
+          "G03A260817KE001"
+        ],
+        "has_table": true
+      }
+    ]
+  },
+  {
+    "label": "evtList-us-ca",
+    "url": "https://www.lottetour.com/evtList/826/859/4699/4701?godId=63971",
+    "productCodeHint": "F07A-0763971",
+    "menuNos": [
+      "826",
+      "859",
+      "4699",
+      "4701"
+    ],
+    "godId": "63971",
+    "months": [
+      {
+        "depDt": "202606",
+        "status": 200,
+        "html_len": 748,
+        "evtCd_count": 0,
+        "sample_evts": [],
+        "has_table": true
+      },
+      {
+        "depDt": "202607",
+        "status": 200,
+        "html_len": 3232,
+        "evtCd_count": 2,
+        "sample_evts": [
+          "F07A260728KE000",
+          "F07A260728KE001"
+        ],
+        "has_table": true
+      },
+      {
+        "depDt": "202608",
+        "status": 200,
+        "html_len": 748,
+        "evtCd_count": 0,
+        "sample_evts": [],
+        "has_table": true
+      }
+    ]
+  }
+]
