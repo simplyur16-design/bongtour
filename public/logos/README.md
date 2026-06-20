@@ -9,7 +9,7 @@
 | **modetour.png** | 모두투어 |
 | **yellowballoon.png** | 노랑풍선 |
 | **verygoodtour.png** | 참좋은여행 |
-| **gyowontour.png** | 교원투어 |
+| **gyowontour.png** | 교원이지 (레거시 파일명 — canonical 키 `kyowontour`) |
 
 - **기타**는 로고 없이 '공식 파트너 상품' 텍스트만 표시됩니다.
 - 권장: 가로 120px 내외, 투명 배경 PNG.

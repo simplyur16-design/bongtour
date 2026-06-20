@@ -9,7 +9,7 @@
 | **modetour.png** | 모두투어 |
 | **yellowballoon.png** | 노랑풍선 |
 | **verygoodtour.png** | 참좋은여행 |
-| **gyowontour.png** | 교원투어 |
+| **gyowontour.png** | 교원이지 (canonical 키 `kyowontour`) |
 | **other.png** | 기타 |
 
 권장: 세로 24px 내외, 가로 120px 이하 PNG.

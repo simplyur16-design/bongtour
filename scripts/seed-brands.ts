@@ -8,7 +8,7 @@ const BRANDS = [
   { brandKey: 'modetour', displayName: '모두투어', sortOrder: 2 },
   { brandKey: 'ybtour', displayName: '노랑풍선', sortOrder: 3 },
   { brandKey: 'verygoodtour', displayName: '참좋은여행', sortOrder: 4 },
-  { brandKey: 'gyowontour', displayName: '교원투어', sortOrder: 5 },
+  { brandKey: 'kyowontour', displayName: '교원이지', sortOrder: 5 },
   { brandKey: 'other', displayName: '기타', sortOrder: 99 },
 ]
 
@@ -21,7 +21,7 @@ async function main() {
       create: {
         brandKey: b.brandKey,
         displayName: b.displayName,
-        logoPath: b.brandKey === 'other' ? null : `/logos/${b.brandKey}.png`,
+        logoPath: b.brandKey === 'other' ? null : b.brandKey === 'kyowontour' ? '/logos/gyowontour.png' : `/logos/${b.brandKey}.png`,
         sortOrder: b.sortOrder,
       },
       update: { displayName: b.displayName, sortOrder: b.sortOrder },

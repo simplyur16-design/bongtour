@@ -50,7 +50,7 @@ const PATTERN_RULES: { key: CanonicalOverseasSupplierKey; patterns: RegExp[] }[]
     patterns: [
       /\bkyowontour\b/i,
       /교원이지/i,
-      /교원이지/i,
+      /여행이지/i,
       /교원투어/i,
       /교원\s*투어/i,
       /교보\s*이지/i,

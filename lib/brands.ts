@@ -35,7 +35,7 @@ export const HQ_BRANDS = [
   { value: 'modetour', label: '모두투어' },
   { value: 'ybtour', label: '노랑풍선' },
   { value: 'verygoodtour', label: '참좋은여행' },
-  { value: 'gyowontour', label: '교원투어' },
+  { value: 'kyowontour', label: '교원이지' },
   { value: 'other', label: '기타' },
 ] as const
 
@@ -46,6 +46,7 @@ export function getBrandLabel(key: string | null | undefined): string {
   const k = key.trim().toLowerCase()
   if (k === 'verygoodtour') return '참좋은여행'
   if (k === 'yellowballoon' || k === 'ybtour') return '노랑풍선'
+  if (k === 'kyowontour' || k === 'gyowontour') return '교원이지'
   const found = HQ_BRANDS.find((b) => b.value === key || (k === 'yellowballoon' && b.value === 'ybtour'))
   return found ? found.label : key
 }
@@ -54,7 +55,12 @@ export function getBrandLabel(key: string | null | undefined): string {
 export function getBrandLogoPath(key: string | null | undefined): string | null {
   if (!key || key === 'other') return null
   const k = key.trim().toLowerCase()
-  const file = k === 'ybtour' || k === 'yellowballoon' ? 'yellowballoon' : key
+  const file =
+    k === 'ybtour' || k === 'yellowballoon'
+      ? 'yellowballoon'
+      : k === 'kyowontour' || k === 'gyowontour'
+        ? 'gyowontour'
+        : key
   return `/logos/${file}.png`
 }
 
@@ -70,6 +76,7 @@ const ORGANIZER_NAME_TO_LOGO_FALLBACK: Record<string, string> = {
   모두투어: '/logos/modetour.png',
   노랑풍선: '/logos/yellowballoon.png',
   참좋은여행: '/logos/verygoodtour.png',
+  교원이지: '/logos/gyowontour.png',
   교원투어: '/logos/gyowontour.png',
 }
 
@@ -99,8 +106,10 @@ export function getBrandPromptHint(brandKey: string | null | undefined): string 
     yellowballoon: ybtourBrandHint,
     verygoodtour: `[브랜드: 참좋은여행]
 - 참좋은여행 상품 상세 양식(가이드경비, 쇼핑, 현지옵션 표기)에 맞춰 필드를 채우세요.`,
-    gyowontour: `[브랜드: 교원투어]
-- 교원투어의 상품 페이지 말투와 일정표·가격표 양식을 참고하여 가이드경비, 쇼핑, 현지옵션, 일정을 추출하세요.`,
+    kyowontour: `[브랜드: 교원이지]
+- 교원이지(여행이지) 상품 페이지 말투와 일정표·가격표 양식을 참고하여 가이드경비, 쇼핑, 현지옵션, 일정을 추출하세요.`,
+    gyowontour: `[브랜드: 교원이지]
+- 교원이지(여행이지) 상품 페이지 말투와 일정표·가격표 양식을 참고하여 가이드경비, 쇼핑, 현지옵션, 일정을 추출하세요.`,
     other: `[브랜드: 기타]
 - 원문에 나온 표현(가이드경비·쇼핑·현지옵션·일정)을 그대로 추출하세요.`,
   }

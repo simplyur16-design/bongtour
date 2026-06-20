@@ -18,7 +18,8 @@ const BRAND_LABEL: Record<string, string> = {
   verygoodtour: OVERSEAS_SUPPLIER_LABEL.verygoodtour,
   ybtour: OVERSEAS_SUPPLIER_LABEL.ybtour,
   yellowballoon: OVERSEAS_SUPPLIER_LABEL.ybtour,
-  gyowontour: '교원투어',
+  kyowontour: OVERSEAS_SUPPLIER_LABEL.kyowontour,
+  gyowontour: OVERSEAS_SUPPLIER_LABEL.kyowontour,
   other: '기타',
 }
 
