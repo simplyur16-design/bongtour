@@ -11,6 +11,8 @@ import {
   lottetourConfirmHasScheduleExpressionLayer,
 } from '@/lib/parse-and-register-lottetour-schedule'
 
+import { augmentLottetourParsedWithDetailCollect } from '@/lib/lottetour-register-detail-collect'
+
 export async function handleParseAndRegisterLottetourRequest(request: Request) {
   return runParseAndRegisterFlow(request, {
     forcedBrandKey: 'lottetour',
@@ -21,6 +23,11 @@ export async function handleParseAndRegisterLottetourRequest(request: Request) {
       sanitizeLottetourRegisterParsedStrings(
         augmentLottetourScheduleExpressionParsed(p, ctx?.pastedBodyText, { travelScope: ctx?.travelScope }),
       ),
+    patchParsedAfterAugment: async (parsed, _text, ctx) =>
+      augmentLottetourParsedWithDetailCollect(parsed, {
+        originUrl: ctx?.originUrl,
+        pastedBlocks: ctx?.pastedBlocks,
+      }),
     finalizeItineraryDayDraftsFromSchedule: finalizeLottetourItineraryDayDraftsFromSchedule,
     getHeroTripDatesSupplement: (p) => ({
       lottetourFlightStructured: p.detailBodyStructured?.flightStructured ?? null,

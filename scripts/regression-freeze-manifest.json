@@ -1981,6 +1981,43 @@
       ]
     },
     {
+      "id": "lottetour-register-detail-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 등록 — evtDetailBasicAjax·coreInfo 상세카드(포함/불포함·쇼핑·유의사항) augment",
+      "checks": [
+        {
+          "file": "lib/lottetour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-detail-collect]",
+            "augmentLottetourParsedWithDetailCollect",
+            "evtDetailBasicAjax",
+            "singleRoomSurchargeRaw",
+            "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-detail-collect]",
+            "extractLottetourIncludedExcludedFromBasicAjax",
+            "extractLottetourShoppingVisitCountFromCoreInfo"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-lottetour-handler.ts",
+          "mustInclude": [
+            "augmentLottetourParsedWithDetailCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-register-detail-collect.test.ts"
+      ]
+    },
+    {
       "id": "kyowontour-tour-event-tab-opt-shop",
       "tier": [
         "prebuild",
