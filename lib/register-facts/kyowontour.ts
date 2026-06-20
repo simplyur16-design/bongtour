@@ -1,9 +1,10 @@
 /**
  * kyowontour 등록 사실 수집 — goodsEventDetail + tourEventTabData + differentDepartDate AJAX.
  *
- * REGRESSION-FREEZE[register-facts-foundation]: tourEventTabData·calendar AJAX — manifest
+ * REGRESSION-FREEZE[register-facts-foundation]: tourEventTabData·calendar AJAX·tourCode detail enrich — manifest
  */
 import { collectKyowontourCalendarRange } from '@/lib/kyowontour-departures'
+import { enrichKyowontourCalendarRowsWithTourCodeDetail } from '@/lib/kyowontour-tourcode-detail-meta'
 import { scheduleTabParsedToRegisterDays } from '@/lib/kyowontour-register-schedule-collect'
 import {
   KYOWONTOUR_TAB_CORE_ID,
@@ -95,10 +96,14 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
     tourCodeForE2EFallback: hidden.tourCode,
     refererUrl: url,
   })
+  const enrichedRows = await enrichKyowontourCalendarRowsWithTourCodeDetail(cal.rows, {
+    menuCode: hidden.menuCode,
+    refererUrl: url,
+  })
 
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-  const priceRows = cal.rows
+  const priceRows = enrichedRows
     .filter((r) => r.adultPriceFromCalendar > 0 && r.departDate && r.departDate >= fromYmd && r.departDate <= toYmd)
     .map((r) => kyowontourCalendarRowToFactPriceRow(r))
     .filter((row): row is NonNullable<typeof row> => row != null)
@@ -124,7 +129,8 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
       'source=kyowontour_tab_data_and_calendar_ajax',
       `tourCode=${hidden.tourCode}`,
       `masterCode=${hidden.masterCode}`,
-      `calendar_rows=${cal.rows.length}`,
+      `calendar_rows=${enrichedRows.length}`,
+      'tourcode_detail_enrich=goodsEventDetail_ssr',
     ],
   }
 }
