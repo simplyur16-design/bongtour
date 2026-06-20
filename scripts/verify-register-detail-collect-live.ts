@@ -137,19 +137,19 @@ async function fetchDetailHtml(url: string): Promise<string | null> {
 async function probeVerygood(url: string): Promise<AxisResult[]> {
   const html = await fetchDetailHtml(url)
   if (!html) return [{ axis: 'bundle', ok: false, detail: 'html null' }]
-  const core = buildVerygoodProductCoreFromDetailHtml(html)
+  const { product: core } = buildVerygoodProductCoreFromDetailHtml(url, html)
   const schedule = parseVerygoodItineraryFromDetailHtml(html)
   return [
     {
       axis: 'included/excluded',
-      ok: Boolean(core.includedText?.trim() || core.excludedText?.trim()),
-      detail: `in=${Boolean(core.includedText)} ex=${Boolean(core.excludedText)}`,
+      ok: Boolean(core?.includedText?.trim() || core?.excludedText?.trim()),
+      detail: `in=${Boolean(core?.includedText)} ex=${Boolean(core?.excludedText)}`,
     },
-    { axis: 'schedule', ok: schedule.length > 0, detail: `days=${schedule.length}` },
+    { axis: 'schedule', ok: schedule.days.length > 0, detail: `days=${schedule.days.length} (${schedule.notes.join('; ')})` },
     {
       axis: 'shopping',
-      ok: core.shoppingVisitCount != null,
-      detail: `count=${String(core.shoppingVisitCount)}`,
+      ok: core?.shoppingVisitCountTotal != null,
+      detail: `count=${String(core?.shoppingVisitCountTotal)}`,
     },
   ]
 }
