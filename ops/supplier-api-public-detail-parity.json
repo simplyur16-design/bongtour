@@ -1,0 +1,1136 @@
+{
+  "finishedAt": "2026-06-19T17:45:24.317Z",
+  "fromYmd": "2026-06-20",
+  "toYmd": "2026-12-17",
+  "skipLiveApi": false,
+  "total": 45,
+  "ok": 39,
+  "mismatch": 6,
+  "skipped": 0,
+  "error": 0,
+  "l1_mismatches": 62,
+  "l2_mismatches": 0,
+  "l3_mismatches": 7,
+  "items": [
+    {
+      "slug": "fit-hn-0010",
+      "id": "cmnxxjqkn00421boprkn93mke",
+      "supplier": "hanatour",
+      "dbDepartureCount": 64,
+      "detailLoadedDepartureCount": 64,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 64,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0011",
+      "id": "cmny0in320006dkrmgkcjxf00",
+      "supplier": "hanatour",
+      "dbDepartureCount": 6,
+      "detailLoadedDepartureCount": 6,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 0,
+      "l1_api_db": [
+        {
+          "date": "2026-06-23",
+          "field": "adultPrice",
+          "api": null,
+          "db": 599000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-24",
+          "field": "adultPrice",
+          "api": null,
+          "db": 599000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-25",
+          "field": "adultPrice",
+          "api": null,
+          "db": 599000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-28",
+          "field": "adultPrice",
+          "api": null,
+          "db": 599000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-29",
+          "field": "adultPrice",
+          "api": null,
+          "db": 599000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-30",
+          "field": "adultPrice",
+          "api": null,
+          "db": 599000,
+          "note": "missing_in_api"
+        }
+      ],
+      "l2_db_row": [],
+      "l3_db_public": [
+        {
+          "date": "2026-06-23",
+          "field": "adultPrice",
+          "db": 599000,
+          "public": 779000,
+          "note": "price_diff"
+        },
+        {
+          "date": "2026-06-24",
+          "field": "adultPrice",
+          "db": 599000,
+          "public": 779000,
+          "note": "price_diff"
+        },
+        {
+          "date": "2026-06-25",
+          "field": "adultPrice",
+          "db": 599000,
+          "public": 779000,
+          "note": "price_diff"
+        },
+        {
+          "date": "2026-06-28",
+          "field": "adultPrice",
+          "db": 599000,
+          "public": 779000,
+          "note": "price_diff"
+        },
+        {
+          "date": "2026-06-29",
+          "field": "adultPrice",
+          "db": 599000,
+          "public": 779000,
+          "note": "price_diff"
+        },
+        {
+          "date": "2026-06-30",
+          "field": "adultPrice",
+          "db": 599000,
+          "public": 779000,
+          "note": "price_diff"
+        }
+      ],
+      "status": "mismatch",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0012",
+      "id": "cmpzcwzq900soxa1yacqczu3q",
+      "supplier": "hanatour",
+      "dbDepartureCount": 27,
+      "detailLoadedDepartureCount": 27,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 27,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0013",
+      "id": "cmq0p83ge002xm3mgv8madbum",
+      "supplier": "hanatour",
+      "dbDepartureCount": 13,
+      "detailLoadedDepartureCount": 13,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 13,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0020",
+      "id": "cmq0ut7fi00062f3ko6rhb0bc",
+      "supplier": "hanatour",
+      "dbDepartureCount": 20,
+      "detailLoadedDepartureCount": 20,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 20,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0022",
+      "id": "cmq2a31lw007rzzp5tdrdjrvl",
+      "supplier": "hanatour",
+      "dbDepartureCount": 39,
+      "detailLoadedDepartureCount": 39,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 39,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0023",
+      "id": "cmq3kbtkc0064jvavjz8l4hwh",
+      "supplier": "hanatour",
+      "dbDepartureCount": 16,
+      "detailLoadedDepartureCount": 16,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 16,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0024",
+      "id": "cmq3ki7mo0078jvav3oqn2f4r",
+      "supplier": "hanatour",
+      "dbDepartureCount": 13,
+      "detailLoadedDepartureCount": 13,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 13,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0025",
+      "id": "cmq3ktlc6000j117tcg6317va",
+      "supplier": "hanatour",
+      "dbDepartureCount": 13,
+      "detailLoadedDepartureCount": 13,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 13,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0026",
+      "id": "cmq3ln7bn001i117t5ohnlqbl",
+      "supplier": "hanatour",
+      "dbDepartureCount": 12,
+      "detailLoadedDepartureCount": 12,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 12,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0027",
+      "id": "cmq3lxxzt002d117tl690x3jo",
+      "supplier": "hanatour",
+      "dbDepartureCount": 30,
+      "detailLoadedDepartureCount": 30,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 30,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0028",
+      "id": "cmq3n8uuv00d8117t3qh4jwxu",
+      "supplier": "hanatour",
+      "dbDepartureCount": 69,
+      "detailLoadedDepartureCount": 69,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 69,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0029",
+      "id": "cmq6i47sl006f10zwn76hg298",
+      "supplier": "hanatour",
+      "dbDepartureCount": 5,
+      "detailLoadedDepartureCount": 5,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 0,
+      "l1_api_db": [
+        {
+          "date": "2026-06-21",
+          "field": "adultPrice",
+          "api": null,
+          "db": 4369000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-28",
+          "field": "adultPrice",
+          "api": null,
+          "db": 4369000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-05",
+          "field": "adultPrice",
+          "api": null,
+          "db": 4369000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-12",
+          "field": "adultPrice",
+          "api": null,
+          "db": 4369000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-19",
+          "field": "adultPrice",
+          "api": null,
+          "db": 4369000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-26",
+          "field": "adultPrice",
+          "api": null,
+          "db": 4369000,
+          "note": "missing_in_api"
+        }
+      ],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "mismatch",
+      "error": null
+    },
+    {
+      "slug": "fit-hn-0030",
+      "id": "cmq6kay4h00266r21iz1dkbcj",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 1,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [
+        {
+          "date": "2026-09-30",
+          "field": "adultPrice",
+          "db": 6368000,
+          "public": 5749000,
+          "note": "price_diff"
+        }
+      ],
+      "status": "mismatch",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0001",
+      "id": "cmnwmxdr002vxkvo61oja34fg",
+      "supplier": "hanatour",
+      "dbDepartureCount": 5,
+      "detailLoadedDepartureCount": 5,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 5,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0002",
+      "id": "cmnwn0c4c02wbkvo6ax4ilfeh",
+      "supplier": "hanatour",
+      "dbDepartureCount": 5,
+      "detailLoadedDepartureCount": 5,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 5,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0003",
+      "id": "cmnwn77yq02x8kvo65cp6ktuf",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 0,
+      "l1_api_db": [
+        {
+          "date": "2026-06-24",
+          "field": "adultPrice",
+          "api": null,
+          "db": 5049000,
+          "note": "missing_in_api"
+        }
+      ],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "mismatch",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0004",
+      "id": "cmnwnc0yg02ybkvo6xeq02y7g",
+      "supplier": "hanatour",
+      "dbDepartureCount": 6,
+      "detailLoadedDepartureCount": 6,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 6,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0005",
+      "id": "cmnwnfh1n02yokvo66e8ievlz",
+      "supplier": "hanatour",
+      "dbDepartureCount": 6,
+      "detailLoadedDepartureCount": 6,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 6,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0006",
+      "id": "cmnwnmneq02zjkvo6c56iyh9k",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 1,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0007",
+      "id": "cmopofaq70006m0v4v8kv0zkg",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 1,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0008",
+      "id": "cmp8r86q104953t9y7892u9rk",
+      "supplier": "hanatour",
+      "dbDepartureCount": 2,
+      "detailLoadedDepartureCount": 2,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 2,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0009",
+      "id": "cmpcx5grh00168e5ky7emmma4",
+      "supplier": "hanatour",
+      "dbDepartureCount": 5,
+      "detailLoadedDepartureCount": 5,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 5,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0010",
+      "id": "cmpo35vja0006ywa50gj0ofoq",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 0,
+      "l1_api_db": [
+        {
+          "date": "2026-07-16",
+          "field": "adultPrice",
+          "api": null,
+          "db": 2510600,
+          "note": "missing_in_api"
+        }
+      ],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "mismatch",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0012",
+      "id": "cmpw1wutd0012p36f2k5jydmw",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 1,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0013",
+      "id": "cmpw2316d002bp36fqhs9n603",
+      "supplier": "hanatour",
+      "dbDepartureCount": 3,
+      "detailLoadedDepartureCount": 3,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 3,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0014",
+      "id": "cmpw2is0c00038u9f2p7g36qa",
+      "supplier": "hanatour",
+      "dbDepartureCount": 3,
+      "detailLoadedDepartureCount": 3,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 3,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0015",
+      "id": "cmpw2rw5y0006aojcerxfkie4",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 1,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0016",
+      "id": "cmpw6bd7l002yaojc7rabvfhy",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 1,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0017",
+      "id": "cmpw6etov0040aojcsssi3aqq",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 1,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0018",
+      "id": "cmpw6kx0d0061aojcl1zg78jo",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 1,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0019",
+      "id": "cmpw6ss80009maojc0t1ifjvy",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 1,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0020",
+      "id": "cmpzbzica00gzxa1yjnusamyh",
+      "supplier": "hanatour",
+      "dbDepartureCount": 6,
+      "detailLoadedDepartureCount": 6,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 6,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0021",
+      "id": "cmpzchmng00lixa1yn3qu1330",
+      "supplier": "hanatour",
+      "dbDepartureCount": 6,
+      "detailLoadedDepartureCount": 6,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 6,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0022",
+      "id": "cmpzcoji700pmxa1yb5gvuuyt",
+      "supplier": "hanatour",
+      "dbDepartureCount": 5,
+      "detailLoadedDepartureCount": 5,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 5,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0023",
+      "id": "cmpzd9pfg00u0xa1y935wxc39",
+      "supplier": "hanatour",
+      "dbDepartureCount": 5,
+      "detailLoadedDepartureCount": 5,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 5,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0024",
+      "id": "cmpzdg55100w8xa1y3vp38rhb",
+      "supplier": "hanatour",
+      "dbDepartureCount": 31,
+      "detailLoadedDepartureCount": 31,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 31,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0025",
+      "id": "cmpzdw1ul00zdxa1yjcc0ohlh",
+      "supplier": "hanatour",
+      "dbDepartureCount": 47,
+      "detailLoadedDepartureCount": 47,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 0,
+      "l1_api_db": [
+        {
+          "date": "2026-06-21",
+          "field": "adultPrice",
+          "api": null,
+          "db": 999000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-22",
+          "field": "adultPrice",
+          "api": null,
+          "db": 999000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-24",
+          "field": "adultPrice",
+          "api": null,
+          "db": 999000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-25",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1299000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-26",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1249000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-27",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1249000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-28",
+          "field": "adultPrice",
+          "api": null,
+          "db": 999000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-29",
+          "field": "adultPrice",
+          "api": null,
+          "db": 999000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-06-30",
+          "field": "adultPrice",
+          "api": null,
+          "db": 999000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-01",
+          "field": "adultPrice",
+          "api": null,
+          "db": 949000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-02",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1249000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-03",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1049000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-04",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1199000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-05",
+          "field": "adultPrice",
+          "api": null,
+          "db": 949000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-06",
+          "field": "adultPrice",
+          "api": null,
+          "db": 949000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-07",
+          "field": "adultPrice",
+          "api": null,
+          "db": 949000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-08",
+          "field": "adultPrice",
+          "api": null,
+          "db": 949000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-09",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1249000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-10",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1199000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-11",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1199000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-12",
+          "field": "adultPrice",
+          "api": null,
+          "db": 949000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-13",
+          "field": "adultPrice",
+          "api": null,
+          "db": 999000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-14",
+          "field": "adultPrice",
+          "api": null,
+          "db": 999000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-15",
+          "field": "adultPrice",
+          "api": null,
+          "db": 999000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-18",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1449000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-19",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1299000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-20",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1099000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-21",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1249000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-22",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1249000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-23",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1399000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-24",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1349000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-25",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1349000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-26",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1249000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-27",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1249000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-28",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1249000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-29",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1349000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-30",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1399000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-07-31",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1349000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-08-01",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1549000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-08-02",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1449000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-08-03",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1449000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-08-04",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1449000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-08-05",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1449000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-08-23",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1399000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-08-24",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1399000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-08-25",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1399000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-08-26",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1399000,
+          "note": "missing_in_api"
+        },
+        {
+          "date": "2026-08-27",
+          "field": "adultPrice",
+          "api": null,
+          "db": 1549000,
+          "note": "missing_in_api"
+        }
+      ],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "mismatch",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0026",
+      "id": "cmpzegotf012nxa1yaiki7nkh",
+      "supplier": "hanatour",
+      "dbDepartureCount": 6,
+      "detailLoadedDepartureCount": 6,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 6,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0027",
+      "id": "cmpzij23s0006yxk74vjr4r73",
+      "supplier": "hanatour",
+      "dbDepartureCount": 1,
+      "detailLoadedDepartureCount": 1,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 1,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0028",
+      "id": "cmq3fyscf0021jvavh6kc9n31",
+      "supplier": "hanatour",
+      "dbDepartureCount": 6,
+      "detailLoadedDepartureCount": 6,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 6,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0029",
+      "id": "cmq6eyage0067hrni1eocyz8c",
+      "supplier": "hanatour",
+      "dbDepartureCount": 5,
+      "detailLoadedDepartureCount": 5,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 5,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0030",
+      "id": "cmq6hkfxj001t10zwqytc9whr",
+      "supplier": "hanatour",
+      "dbDepartureCount": 3,
+      "detailLoadedDepartureCount": 3,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 3,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0031",
+      "id": "cmq6hrx8r004610zwr25pxrsl",
+      "supplier": "hanatour",
+      "dbDepartureCount": 4,
+      "detailLoadedDepartureCount": 4,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 4,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    },
+    {
+      "slug": "pkg-hn-0032",
+      "id": "cmq6k0d0f00066r218r260qps",
+      "supplier": "hanatour",
+      "dbDepartureCount": 4,
+      "detailLoadedDepartureCount": 4,
+      "truncatedByDetailTake": false,
+      "liveApiRowCount": 4,
+      "l1_api_db": [],
+      "l2_db_row": [],
+      "l3_db_public": [],
+      "status": "ok",
+      "error": null
+    }
+  ]
+}

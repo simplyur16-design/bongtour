@@ -1,0 +1,176 @@
+{
+  "verifiedAt": "2026-06-20T12:31:40.177Z",
+  "cases": [
+    {
+      "supplier": "modetour",
+      "originUrl": "https://www.modetour.com/package/109317452",
+      "axes": [
+        {
+          "axis": "schedule",
+          "ok": true,
+          "detail": "GetScheduleList days=7"
+        },
+        {
+          "axis": "included/excluded",
+          "ok": true,
+          "detail": "in=6 ex=7"
+        },
+        {
+          "axis": "shopping",
+          "ok": true,
+          "detail": "shoppingTimes/shoppingCount=0"
+        },
+        {
+          "axis": "corePoints",
+          "ok": true,
+          "detail": "specialBenefits+insurance=7"
+        }
+      ]
+    },
+    {
+      "supplier": "hanatour",
+      "originUrl": "https://www.hanatour.com/package/major-products?pkgCd=ATP207260601TWJ",
+      "axes": [
+        {
+          "axis": "schedule",
+          "ok": true,
+          "detail": "schdInfoList=4"
+        },
+        {
+          "axis": "included/excluded",
+          "ok": true,
+          "detail": "in=10 ex=1"
+        },
+        {
+          "axis": "optional",
+          "ok": true,
+          "detail": "itnr 선택관광 cat"
+        },
+        {
+          "axis": "shopping",
+          "ok": true,
+          "detail": "shpnCntrVistCnt=0"
+        }
+      ]
+    },
+    {
+      "supplier": "verygoodtour",
+      "originUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP1100-260621KE1&PriceSeq=3&MenuCode=leaveLayer",
+      "axes": [
+        {
+          "axis": "included/excluded",
+          "ok": true,
+          "detail": "in=true ex=true"
+        },
+        {
+          "axis": "schedule",
+          "ok": true,
+          "detail": "days=4 (itinerary parsed days=4)"
+        },
+        {
+          "axis": "shopping",
+          "ok": true,
+          "detail": "count=3"
+        }
+      ]
+    },
+    {
+      "supplier": "kyowontour",
+      "originUrl": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=CSP302260621KE01&menuCode=M5204&brandId=3",
+      "axes": [
+        {
+          "axis": "schedule",
+          "ok": true,
+          "detail": "goodsEvtTab_2 days=5"
+        },
+        {
+          "axis": "included/excluded",
+          "ok": true,
+          "detail": "goodsEvtTab_1 in=8 ex=3"
+        },
+        {
+          "axis": "optional/shopping",
+          "ok": true,
+          "detail": "goodsEvtTab_7 opt=6 shop=2"
+        }
+      ]
+    },
+    {
+      "supplier": "ybtour",
+      "originUrl": "https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAAB001&evCd=AVP4484-260711RS00&goodsCd=AVP4484",
+      "axes": [
+        {
+          "axis": "schedule",
+          "ok": true,
+          "detail": "days=5"
+        },
+        {
+          "axis": "included/excluded",
+          "ok": true,
+          "detail": "in=5 ex=4"
+        },
+        {
+          "axis": "meeting",
+          "ok": true,
+          "detail": "인천 국제공항 제2터미널 3층A카운터 · 미팅 18:00 · 인천 국제공항 제2터미널 3층 A카운터 1번 출"
+        },
+        {
+          "axis": "flight",
+          "ok": true,
+          "detail": "RS511"
+        },
+        {
+          "axis": "optional",
+          "ok": true,
+          "detail": "rows=1"
+        },
+        {
+          "axis": "shopping",
+          "ok": true,
+          "detail": "shopCnt=0"
+        }
+      ]
+    },
+    {
+      "supplier": "lottetour",
+      "originUrl": "https://www.lottetour.com/evtDetail/826/857/1063/1671?evtCd=B41A260630KE014",
+      "axes": [
+        {
+          "axis": "schedule",
+          "ok": true,
+          "detail": "scheduleAjax viewType=basic days=5 godScheId=56694"
+        },
+        {
+          "axis": "included/excluded",
+          "ok": true,
+          "detail": "in=5 ex=5"
+        },
+        {
+          "axis": "mustKnow",
+          "ok": true,
+          "detail": "items=2"
+        },
+        {
+          "axis": "shopping",
+          "ok": true,
+          "detail": "count=2"
+        },
+        {
+          "axis": "flight",
+          "ok": true,
+          "detail": "대한항공"
+        },
+        {
+          "axis": "optional",
+          "ok": true,
+          "detail": "spotList rows=0 (NO옵션 상품은 0건 정상)"
+        },
+        {
+          "axis": "meeting",
+          "ok": true,
+          "detail": "인천공항 T2 A존 미팅장소 안내"
+        }
+      ]
+    }
+  ]
+}
