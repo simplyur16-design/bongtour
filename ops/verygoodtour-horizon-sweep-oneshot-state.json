@@ -1,0 +1,332 @@
+{
+  "startedAt": "2026-06-19T18:35:52.353Z",
+  "updatedAt": "2026-06-19T18:42:07.216Z",
+  "horizonDays": 180,
+  "total": 17,
+  "cursor": 17,
+  "completed": 17,
+  "skippedNoUrl": 0,
+  "log": [
+    {
+      "at": "2026-06-19T18:36:21.954Z",
+      "index": 0,
+      "slug": "fim-vg-0001",
+      "originCode": "EPP013-260420SK",
+      "title": "북유럽 4개국 11일 #중간항공1회 #2대 피오르드 #핵심 4대도시 관광",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 0,
+        "pruned": 14,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:36:39.312Z",
+      "index": 1,
+      "slug": "fim-vg-0002",
+      "originCode": "EPP0113-260424SK",
+      "title": "●직항● 북유럽 3국 9일 #노팁/노옵션 #3대피오르드 #뭉크박물관 #플롬열차",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 0,
+        "pruned": 22,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:36:41.473Z",
+      "index": 2,
+      "slug": "fim-vg-0003",
+      "originCode": "APP0671-260524KE",
+      "title": "5일 #전일관광/말라카/겐팅_딤섬세트제공",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:36:43.614Z",
+      "index": 3,
+      "slug": "fit-vg-0001",
+      "originCode": "UPF133-260610YP5",
+      "title": "(4성급) 힐튼 하와이안 빌리지 자유여행 7일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:37:04.472Z",
+      "index": 4,
+      "slug": "pkg-vg-0001",
+      "originCode": "EPP4557-260429BUD",
+      "title": "헝가리, 오스트리아, 체코 8박9일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 0,
+        "pruned": 103,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:37:22.849Z",
+      "index": 5,
+      "slug": "pkg-vg-0002",
+      "originCode": "MPP900-260416KE",
+      "title": "북인도일주 9일 #타지마할,바라나시,갠지스강,국내선 이동 #준특급호텔 #전통의상체험",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 0,
+        "pruned": 40,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:37:39.868Z",
+      "index": 6,
+      "slug": "pkg-vg-0003",
+      "originCode": "MPP301-260426AI8",
+      "title": "레,라다크/인도 일주 8일 #국내선2회 #단독진행, NO쇼핑",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 0,
+        "pruned": 21,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:37:56.680Z",
+      "index": 7,
+      "slug": "pkg-vg-0004",
+      "originCode": "MPP115-260429",
+      "title": "눈부시게 아름다운 스리랑카 일주 8일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 0,
+        "pruned": 21,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:38:20.109Z",
+      "index": 8,
+      "slug": "pkg-vg-0005",
+      "originCode": "CPP218-260610MU",
+      "title": "연길/백두산 4일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 11,
+        "e2eCollected": 1,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:38:59.971Z",
+      "index": 9,
+      "slug": "pkg-vg-0006",
+      "originCode": "CPP1008-260526H",
+      "title": "북경/만리장성(케이블카)+자금성+천안문 4일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 3,
+        "e2eCollected": 1,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:39:02.241Z",
+      "index": 10,
+      "slug": "pkg-vg-0007",
+      "originCode": "APP7450-260615AK35",
+      "title": "코타키나발루 5일 #호핑투어/코콜힐_헤븐/선셋나이트투어",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:39:48.071Z",
+      "index": 11,
+      "slug": "pkg-vg-0008",
+      "originCode": "APP7483-260519BI5",
+      "title": "[ 청정국가 브루나이 5일 _5대 특전 포함",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 1,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:40:30.505Z",
+      "index": 12,
+      "slug": "pkg-vg-0010",
+      "originCode": "APP0005-260521ZE35",
+      "title": "치앙마이, 치앙라이 3박5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 7,
+        "e2eCollected": 1,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:41:03.957Z",
+      "index": 13,
+      "slug": "pkg-vg-0011",
+      "originCode": "APP0075-260521OZ",
+      "title": "자카르타/족자카르타 6일 #따만미니케이블카 #세계문화유산투어 #국내선 이동포함",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 3,
+        "e2eCollected": 1,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:41:21.120Z",
+      "index": 14,
+      "slug": "pkg-vg-0012",
+      "originCode": "FPP155-260604EY",
+      "title": "튀니지 일주 10일 #소금호수 #인솔자동행 #노쇼핑,노옵션_연합",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 0,
+        "pruned": 19,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:41:23.326Z",
+      "index": 15,
+      "slug": "pkg-vg-0013",
+      "originCode": "UPP245-260612WYP",
+      "title": "5대캐년 9일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T18:42:07.216Z",
+      "index": 16,
+      "slug": "pkg-vg-0014",
+      "originCode": "PPP809-260612BA",
+      "title": "호주/뉴질랜드 남북섬 11박 12일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 9,
+        "e2eCollected": 1,
+        "e2eAttempted": 1,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    }
+  ],
+  "last": {
+    "slug": "pkg-vg-0014",
+    "originCode": "PPP809-260612BA",
+    "result": {
+      "processed": 1,
+      "updated": 1,
+      "skipped": 0,
+      "pruned": 9,
+      "e2eCollected": 1,
+      "e2eAttempted": 1,
+      "horizonSoldOut": 0,
+      "urgentDealOn": 0,
+      "urgentDealOff": 0
+    }
+  }
+}

@@ -1,0 +1,309 @@
+{
+  "probedAt": "2026-06-19T17:56:17.726Z",
+  "samples": [
+    {
+      "label": "APP1100-leaveLayer",
+      "url": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP1100-260621KE1&PriceSeq=3&MenuCode=leaveLayer",
+      "proCode": "APP1100-260621KE1",
+      "masterCode": "APP1100",
+      "menuCodeFromHtml": "101",
+      "headExpired": true,
+      "detail": {
+        "withMenuCode": {
+          "status": 200,
+          "finalUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP1100-260621KE1&PriceSeq=3&MenuCode=leaveLayer",
+          "htmlLen": 338455,
+          "expiredScript": false,
+          "title": "■대한항공 탑승■ [홍콩 2박4일_오후출발] 핵심관광 + 자유시간"
+        },
+        "withoutMenuCode": {
+          "status": 200,
+          "finalUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP1100-260621KE1&PriceSeq=3",
+          "htmlLen": 338395,
+          "expiredScript": false
+        }
+      },
+      "registerFacts": {
+        "title": "■대한항공 탑승■ [홍콩 2박4일_오후출발] 핵심관광 + 자유시간",
+        "nights": 2,
+        "days": 4,
+        "notes": [
+          "source=verygoodtour_package_detail_html",
+          "proCode=APP1100-260621KE1",
+          "airline_excerpt=missing",
+          "hotel_excerpt=missing"
+        ]
+      },
+      "calendarMonths": [
+        {
+          "ym": "2026-06",
+          "status": 200,
+          "htmlLen": 150686,
+          "leftCells": 30,
+          "rightRows": 0,
+          "leftWithPrice": 10,
+          "warnings": [
+            "right_rows_empty"
+          ],
+          "sampleLeft": [
+            {
+              "date": "2026-06-21",
+              "approxPrice": 790000,
+              "raw": "21 79 만원~"
+            },
+            {
+              "date": "2026-06-22",
+              "approxPrice": 790000,
+              "raw": "22 79 만원~"
+            },
+            {
+              "date": "2026-06-23",
+              "approxPrice": 790000,
+              "raw": "23 79 만원~"
+            }
+          ],
+          "sampleRight": []
+        },
+        {
+          "ym": "2026-07",
+          "status": 200,
+          "htmlLen": 396048,
+          "leftCells": 31,
+          "rightRows": 0,
+          "leftWithPrice": 31,
+          "warnings": [
+            "right_rows_empty"
+          ],
+          "sampleLeft": [
+            {
+              "date": "2026-07-01",
+              "approxPrice": 490000,
+              "raw": "1 49 만원~"
+            },
+            {
+              "date": "2026-07-02",
+              "approxPrice": 540000,
+              "raw": "2 54 만원~"
+            },
+            {
+              "date": "2026-07-03",
+              "approxPrice": 490000,
+              "raw": "3 49 만원~"
+            }
+          ],
+          "sampleRight": []
+        },
+        {
+          "ym": "2026-06",
+          "status": 200,
+          "htmlLen": 150686,
+          "leftCells": 30,
+          "rightRows": 0,
+          "leftWithPrice": 10,
+          "warnings": [
+            "right_rows_empty"
+          ],
+          "sampleLeft": [
+            {
+              "date": "2026-06-21",
+              "approxPrice": 790000,
+              "raw": "21 79 만원~"
+            },
+            {
+              "date": "2026-06-22",
+              "approxPrice": 790000,
+              "raw": "22 79 만원~"
+            },
+            {
+              "date": "2026-06-23",
+              "approxPrice": 790000,
+              "raw": "23 79 만원~"
+            }
+          ],
+          "sampleRight": []
+        },
+        {
+          "ym": "2026-07",
+          "status": 200,
+          "htmlLen": 396048,
+          "leftCells": 31,
+          "rightRows": 0,
+          "leftWithPrice": 31,
+          "warnings": [
+            "right_rows_empty"
+          ],
+          "sampleLeft": [
+            {
+              "date": "2026-07-01",
+              "approxPrice": 490000,
+              "raw": "1 49 만원~"
+            },
+            {
+              "date": "2026-07-02",
+              "approxPrice": 540000,
+              "raw": "2 54 만원~"
+            },
+            {
+              "date": "2026-07-03",
+              "approxPrice": 490000,
+              "raw": "3 49 만원~"
+            }
+          ],
+          "sampleRight": []
+        }
+      ]
+    },
+    {
+      "label": "CPP332",
+      "url": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=CPP332-260706&PriceSeq=2",
+      "proCode": "CPP332-260706",
+      "masterCode": "CPP332",
+      "menuCodeFromHtml": "101",
+      "headExpired": true,
+      "detail": {
+        "withMenuCode": {
+          "status": 200,
+          "finalUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=CPP332-260706&PriceSeq=2",
+          "htmlLen": 347597,
+          "expiredScript": false,
+          "title": "[노옵션+호도협 트래킹] 곤명/대리/여강/샹그릴라+여강고성 야경투어 6일"
+        },
+        "withoutMenuCode": {
+          "status": 200,
+          "finalUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=CPP332-260706&PriceSeq=2",
+          "htmlLen": 347597,
+          "expiredScript": false
+        }
+      },
+      "registerFacts": {
+        "title": "[노옵션+호도협 트래킹] 곤명/대리/여강/샹그릴라+여강고성 야경투어 6일",
+        "nights": 4,
+        "days": 6,
+        "notes": [
+          "source=verygoodtour_package_detail_html",
+          "proCode=CPP332-260706",
+          "airline_excerpt=missing",
+          "hotel_excerpt=missing"
+        ]
+      },
+      "calendarMonths": [
+        {
+          "ym": "2026-06",
+          "status": 200,
+          "htmlLen": 43173,
+          "leftCells": 30,
+          "rightRows": 0,
+          "leftWithPrice": 6,
+          "warnings": [
+            "right_rows_empty"
+          ],
+          "sampleLeft": [
+            {
+              "date": "2026-06-21",
+              "approxPrice": 1290000,
+              "raw": "21 129 만원~"
+            },
+            {
+              "date": "2026-06-22",
+              "approxPrice": 1590000,
+              "raw": "22 159 만원~"
+            },
+            {
+              "date": "2026-06-24",
+              "approxPrice": 1590000,
+              "raw": "24 159 만원~"
+            }
+          ],
+          "sampleRight": []
+        },
+        {
+          "ym": "2026-07",
+          "status": 200,
+          "htmlLen": 64328,
+          "leftCells": 31,
+          "rightRows": 0,
+          "leftWithPrice": 18,
+          "warnings": [
+            "right_rows_empty"
+          ],
+          "sampleLeft": [
+            {
+              "date": "2026-07-01",
+              "approxPrice": 1490000,
+              "raw": "1 149 만원~"
+            },
+            {
+              "date": "2026-07-03",
+              "approxPrice": 1290000,
+              "raw": "3 129 만원~"
+            },
+            {
+              "date": "2026-07-05",
+              "approxPrice": 1340000,
+              "raw": "5 134 만원~"
+            }
+          ],
+          "sampleRight": []
+        },
+        {
+          "ym": "2026-06",
+          "status": 200,
+          "htmlLen": 43173,
+          "leftCells": 30,
+          "rightRows": 0,
+          "leftWithPrice": 6,
+          "warnings": [
+            "right_rows_empty"
+          ],
+          "sampleLeft": [
+            {
+              "date": "2026-06-21",
+              "approxPrice": 1290000,
+              "raw": "21 129 만원~"
+            },
+            {
+              "date": "2026-06-22",
+              "approxPrice": 1590000,
+              "raw": "22 159 만원~"
+            },
+            {
+              "date": "2026-06-24",
+              "approxPrice": 1590000,
+              "raw": "24 159 만원~"
+            }
+          ],
+          "sampleRight": []
+        },
+        {
+          "ym": "2026-07",
+          "status": 200,
+          "htmlLen": 64328,
+          "leftCells": 31,
+          "rightRows": 0,
+          "leftWithPrice": 18,
+          "warnings": [
+            "right_rows_empty"
+          ],
+          "sampleLeft": [
+            {
+              "date": "2026-07-01",
+              "approxPrice": 1490000,
+              "raw": "1 149 만원~"
+            },
+            {
+              "date": "2026-07-03",
+              "approxPrice": 1290000,
+              "raw": "3 129 만원~"
+            },
+            {
+              "date": "2026-07-05",
+              "approxPrice": 1340000,
+              "raw": "5 134 만원~"
+            }
+          ],
+          "sampleRight": []
+        }
+      ]
+    }
+  ]
+}
