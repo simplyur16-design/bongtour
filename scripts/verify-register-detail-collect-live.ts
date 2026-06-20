@@ -20,8 +20,13 @@ import {
   extractYbtourOptionalFromTourDetail,
   ybtourScheduleBundleToRegisterSchedule,
 } from '@/lib/ybtour-register-api-detail'
-import { collectModetourProductCore } from '@/lib/modetour-departures'
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
+import {
+  extractModetourIncludedExcludedFromDetailInfo,
+  extractModetourMustKnowFromKeyPointInfo,
+  extractModetourShoppingFromDetailBundle,
+  fetchModetourRegisterDetailBundle,
+} from '@/lib/modetour-register-api-detail'
 import { buildVerygoodProductCoreFromDetailHtml } from '@/lib/verygoodtour-departures'
 import { parseVerygoodItineraryFromDetailHtml } from '@/lib/verygoodtour-itinerary-collector'
 import {
@@ -71,11 +76,13 @@ const CASES = [
 ] as const
 
 async function probeModetour(url: string): Promise<AxisResult[]> {
-  const [facts, core] = await Promise.all([
+  const [facts, bundle] = await Promise.all([
     collectModetourRegisterFacts(url),
-    collectModetourProductCore(url),
+    fetchModetourRegisterDetailBundle(url),
   ])
-  const product = core?.product
+  const inclExcl = extractModetourIncludedExcludedFromDetailInfo(bundle?.detailInfo)
+  const shopping = extractModetourShoppingFromDetailBundle(bundle?.detailInfo, bundle?.packageInfo)
+  const mustKnow = extractModetourMustKnowFromKeyPointInfo(bundle?.keyPointInfo)
   return [
     {
       axis: 'schedule',
@@ -84,18 +91,18 @@ async function probeModetour(url: string): Promise<AxisResult[]> {
     },
     {
       axis: 'included/excluded',
-      ok: Boolean(product?.includedText?.trim() || product?.excludedText?.trim()),
-      detail: `in=${Boolean(product?.includedText)} ex=${Boolean(product?.excludedText)}`,
+      ok: inclExcl.includedItems.length + inclExcl.excludedItems.length > 0,
+      detail: `in=${inclExcl.includedItems.length} ex=${inclExcl.excludedItems.length}`,
     },
     {
       axis: 'shopping',
-      ok: product?.shoppingVisitCountTotal != null,
-      detail: `count=${String(product?.shoppingVisitCountTotal ?? 'null')}`,
+      ok: shopping.shoppingVisitCount != null,
+      detail: `shoppingTimes/shoppingCount=${String(shopping.shoppingVisitCount ?? 'null')}`,
     },
     {
       axis: 'corePoints',
-      ok: Boolean(product?.corePoints?.length),
-      detail: `points=${product?.corePoints?.length ?? 0}`,
+      ok: mustKnow.length > 0,
+      detail: `specialBenefits+insurance=${mustKnow.length}`,
     },
   ]
 }

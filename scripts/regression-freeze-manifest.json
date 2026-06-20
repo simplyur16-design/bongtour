@@ -1861,9 +1861,20 @@
             "REGRESSION-FREEZE[modetour-register-detail-collect]",
             "augmentModetourParsedWithDetailCollect",
             "GetScheduleList",
+            "GetProductDetailInfo",
             "GetProductKeyPointInfo",
             "singleRoomSurchargeRaw",
             "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-detail-collect]",
+            "includedNote",
+            "unincludedNote",
+            "specialBenefits",
+            "fetchModetourRegisterDetailBundle"
           ]
         },
         {
@@ -1930,6 +1941,13 @@
             "PackageDetail",
             "singleRoomSurchargeRaw",
             "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-departures.ts",
+          "mustInclude": [
+            "extractVerygoodIncludedExcludedFromDetailHtml",
+            "include_state"
           ]
         },
         {

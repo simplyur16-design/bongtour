@@ -7,6 +7,7 @@ import {
   needsVerygoodtourScheduleCollect,
   verygoodItineraryToRegisterSchedule,
 } from './verygoodtour-register-detail-collect'
+import { extractVerygoodIncludedExcludedFromDetailHtml } from './verygoodtour-departures'
 import type { RegisterParsed } from './register-llm-schema-verygoodtour'
 
 describe('verygoodtour register detail collect', () => {
@@ -47,5 +48,17 @@ describe('verygoodtour register detail collect', () => {
     expect(days[0]?.title).toBe('오사카')
     expect(days[0]?.hotelText).toContain('오사카')
     expect(days[0]?.mealSummaryText).toContain('석식')
+  })
+
+  it('parses include_state table for included and excluded columns', () => {
+    const html = `<table class="include_state"><tbody><tr>
+      <td>1. 왕복항공요금<br />2. 호텔 숙박료(2인1실)</td>
+      <td>1. 가이드/기사 경비<br />2. 선택관광 및 개인비용</td>
+    </tr></tbody></table>`
+    const parsed = extractVerygoodIncludedExcludedFromDetailHtml(html)
+    expect(parsed.includedText).toContain('왕복항공요금')
+    expect(parsed.includedText).toContain('호텔 숙박료')
+    expect(parsed.excludedText).toContain('가이드/기사 경비')
+    expect(parsed.excludedText).toContain('선택관광')
   })
 })

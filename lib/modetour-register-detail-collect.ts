@@ -7,42 +7,19 @@
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-modetour'
 import { collectModetourProductCore, parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
+import {
+  extractModetourIncludedExcludedFromDetailInfo,
+  extractModetourMustKnowFromKeyPointInfo,
+  extractModetourShoppingFromDetailBundle,
+  fetchModetourRegisterDetailBundle,
+} from '@/lib/modetour-register-api-detail'
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import { finalizeModetourRegisterParsedShopping } from '@/lib/register-modetour-shopping'
 
-const MODETOUR_API_BASE = process.env.MODETOUR_API_BASE_URL ?? 'https://b2c-api.modetour.com'
-const MODETOUR_WEB_API_REQ_HEADER =
-  process.env.MODETOUR_WEB_API_REQ_HEADER ??
-  '{"WebSiteNo":2,"CompanyNo":81202,"DeviceType":"DVTPC","ApiKey":"jm9i5RUzKPMPdklHzDKqNzwZYy0IGV5hTyKkCcpxO0IGIgVS+8Z7NnbzbARv5w7Bn90KT13Gq79XZMow6TYvwQ=="}'
-
 export type ModetourRegisterDetailAugmentCtx = {
   originUrl?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
-}
-
-function modetourB2cHeaders(referer: string, productNo: string): HeadersInit {
-  return {
-    accept: 'application/json, text/plain, */*',
-    'accept-language': 'ko-KR',
-    referer,
-    'x-platform': 'ModeEcommerce',
-    'x-salespartner': '2',
-    'x-userdepartment': 'ModeEcommerce',
-    'x-incomming-pathname': `/package/${productNo}`,
-    modewebapireqheader: MODETOUR_WEB_API_REQ_HEADER,
-  }
-}
-
-async function fetchModetourKeyPointInfo(productNo: string, referer: string): Promise<Record<string, unknown> | null> {
-  const base = MODETOUR_API_BASE.replace(/\/$/, '')
-  const res = await fetch(`${base}/Package/GetProductKeyPointInfo?productNo=${encodeURIComponent(productNo)}`, {
-    headers: modetourB2cHeaders(referer, productNo),
-    signal: AbortSignal.timeout(20_000),
-  })
-  if (!res.ok) return null
-  const j = (await res.json()) as { result?: Record<string, unknown> }
-  return j.result ?? null
 }
 
 function stripScheduleLabel(name: string): string {
@@ -114,28 +91,6 @@ function parseSingleRoomAmount(raw: string | null): number | null {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
-function buildKeyPointMustKnow(keyPoint: Record<string, unknown> | null): RegisterParsed['mustKnowItems'] {
-  if (!keyPoint) return undefined
-  const items: NonNullable<RegisterParsed['mustKnowItems']> = []
-  const push = (category: '안전/유의' | '현지준비' | '입국/비자', title: string, body: string) => {
-    const b = body.trim()
-    if (!b) return
-    items.push({ category, title, body: b, raw: b })
-  }
-  const score = String(keyPoint.productScore ?? '').trim()
-  if (score && score !== '상품 핵심 포인트') push('안전/유의', '상품 핵심 포인트', score)
-  const leader = String(keyPoint.leaderGuild ?? '').trim()
-  const leaderStatus = String(keyPoint.leaderStatus ?? '').trim()
-  if (leader) push('현지준비', '인솔자/가이드', [leader, leaderStatus].filter(Boolean).join(' · '))
-  const insurance = String(keyPoint.travelerInsuranceInfo ?? '').trim()
-  if (insurance) push('안전/유의', '여행자 보험', insurance)
-  const guarantee = String(keyPoint.businessGuarantee ?? '').trim()
-  if (guarantee) push('안전/유의', '공제/보증', guarantee)
-  const mile = String(keyPoint.tourMile ?? '').trim()
-  if (mile) push('현지준비', '투어 마일리지', mile)
-  return items.length > 0 ? items : undefined
-}
-
 function hasOptionalPaste(ctx?: ModetourRegisterDetailAugmentCtx): boolean {
   return Boolean(ctx?.pastedBlocks?.optionalTour?.trim())
 }
@@ -201,14 +156,14 @@ export async function augmentModetourParsedWithDetailCollect(
 
   if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop) return parsed
 
-  const referer = originUrl
   const summaryParts: string[] = []
   let next: RegisterParsed = { ...parsed }
 
-  const [facts, core, keyPoint] = await Promise.all([
+  const needDetailBundle = needInclExcl || needShop || needMustKnow
+  const [facts, detailBundle, core] = await Promise.all([
     needSchedule ? collectModetourRegisterFacts(originUrl) : Promise.resolve(null),
-    needInclExcl || needOpt || needShop ? collectModetourProductCore(originUrl) : Promise.resolve(null),
-    needMustKnow ? fetchModetourKeyPointInfo(productNo, referer) : Promise.resolve(null),
+    needDetailBundle ? fetchModetourRegisterDetailBundle(originUrl) : Promise.resolve(null),
+    needOpt ? collectModetourProductCore(originUrl) : Promise.resolve(null),
   ])
 
   if (needSchedule && facts?.scheduleDays.length) {
@@ -219,30 +174,27 @@ export async function augmentModetourParsedWithDetailCollect(
     }
   }
 
-  const product = core?.product
-  if (needInclExcl && product) {
-    const inclItems = bulletLinesFromText(product.includedText)
-    const exclItems = bulletLinesFromText(product.excludedText)
-    const fees = extractFeeLinesFromExcluded(product.excludedText ?? '')
-    if (inclItems.length > 0 || product.includedText) {
+  const inclExcl = extractModetourIncludedExcludedFromDetailInfo(detailBundle?.detailInfo)
+  if (needInclExcl && (inclExcl.includedItems.length > 0 || inclExcl.excludedItems.length > 0)) {
+    const fees = extractFeeLinesFromExcluded(inclExcl.excludedText ?? '')
+    if (inclExcl.includedItems.length > 0 || inclExcl.includedText) {
       next = {
         ...next,
-        includedItems: inclItems.length > 0 ? inclItems : next.includedItems,
-        includedText: product.includedText ?? next.includedText,
-        includedRaw: product.includedText ?? next.includedRaw,
+        includedItems: inclExcl.includedItems.length > 0 ? inclExcl.includedItems : next.includedItems,
+        includedText: inclExcl.includedText ?? next.includedText,
+        includedRaw: inclExcl.includedText ?? next.includedRaw,
       }
     }
-    if (exclItems.length > 0 || product.excludedText) {
-      const mergedExcl = [...exclItems]
+    if (inclExcl.excludedItems.length > 0 || inclExcl.excludedText) {
+      const mergedExcl = [...inclExcl.excludedItems]
       for (const extra of [fees.singleRoomSurchargeRaw, fees.guideTipRaw, fees.visaRaw]) {
         if (extra && !mergedExcl.some((x) => x.includes(extra.slice(0, 20)))) mergedExcl.push(extra)
       }
       next = {
         ...next,
         excludedItems: mergedExcl.length > 0 ? mergedExcl : next.excludedItems,
-        excludedText: product.excludedText ?? next.excludedText,
-        excludedRaw: product.excludedText ?? next.excludedText,
-        criticalExclusions: product.criticalExclusions ?? next.criticalExclusions,
+        excludedText: inclExcl.excludedText ?? next.excludedText,
+        excludedRaw: inclExcl.excludedText ?? next.excludedText,
       }
     }
     if (fees.singleRoomSurchargeRaw) {
@@ -257,29 +209,24 @@ export async function augmentModetourParsedWithDetailCollect(
           : {}),
       }
     }
-    if (product.mandatoryLocalFee != null) {
-      next = {
-        ...next,
-        mandatoryLocalFee: product.mandatoryLocalFee,
-        mandatoryCurrency: product.mandatoryCurrency ?? next.mandatoryCurrency,
-      }
-    }
-    if (inclItems.length > 0 || exclItems.length > 0) {
-      summaryParts.push(`상세HTML: 포함 ${inclItems.length}·불포함 ${exclItems.length}항`)
-    }
+    summaryParts.push(
+      `GetProductDetailInfo: 포함 ${inclExcl.includedItems.length}·불포함 ${inclExcl.excludedItems.length}항`,
+    )
   }
 
-  if (needShop && product?.shoppingVisitCountTotal != null) {
+  const shopping = extractModetourShoppingFromDetailBundle(detailBundle?.detailInfo, detailBundle?.packageInfo)
+  if (needShop && shopping.shoppingVisitCount != null) {
     next = {
       ...next,
-      shoppingVisitCount: product.shoppingVisitCountTotal,
-      hasShopping: product.shoppingVisitCountTotal > 0,
-      ...(product.noShoppingFlag === true ? { hasShopping: false, shoppingVisitCount: 0 } : {}),
+      shoppingVisitCount: shopping.shoppingVisitCount,
+      hasShopping: shopping.noShoppingFlag === true ? false : shopping.shoppingVisitCount > 0,
+      ...(shopping.noShoppingFlag === true ? { shoppingVisitCount: 0 } : {}),
     }
     next = finalizeModetourRegisterParsedShopping(next)
-    summaryParts.push(`상세HTML: 쇼핑 ${product.shoppingVisitCountTotal}회`)
+    summaryParts.push(`GetPackageInfo: 쇼핑 ${shopping.shoppingVisitCount}회`)
   }
 
+  const product = core?.product
   if (needOpt && product) {
     if (product.hasOptionalTours === true && product.optionalTourSummaryRaw) {
       next = {
@@ -294,8 +241,8 @@ export async function augmentModetourParsedWithDetailCollect(
   }
 
   if (needMustKnow) {
-    const mustKnowItems = buildKeyPointMustKnow(keyPoint)
-    if (mustKnowItems?.length) {
+    const mustKnowItems = extractModetourMustKnowFromKeyPointInfo(detailBundle?.keyPointInfo)
+    if (mustKnowItems.length > 0) {
       next = {
         ...next,
         mustKnowItems,

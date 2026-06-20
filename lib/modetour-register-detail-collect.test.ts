@@ -3,6 +3,11 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
+  extractModetourIncludedExcludedFromDetailInfo,
+  extractModetourMustKnowFromKeyPointInfo,
+  modetourHtmlNoteToPlainText,
+} from './modetour-register-api-detail'
+import {
   modetourFactDaysToRegisterSchedule,
   needsModetourIncludedExcludedCollect,
   needsModetourScheduleCollect,
@@ -44,5 +49,29 @@ describe('modetour register detail collect', () => {
     expect(days[0]?.routeText).toBe('인천 - 구마모토')
     expect(days[0]?.hotelText).toContain('구마모토')
     expect(days[0]?.dinnerText).toContain('석식')
+  })
+
+  it('parses GetProductDetailInfo includedNote/unincludedNote HTML', () => {
+    const detail = {
+      includedNote:
+        '<p><span>- 왕복항공권</span><br /><span>- 숙박비(2인1실)</span><br /><span>- 여행자보험</span></p>',
+      unincludedNote: '<p><span>- 개인경비</span><br /><span>- 가이드/기사 경비 USD 40</span></p>',
+    }
+    const parsed = extractModetourIncludedExcludedFromDetailInfo(detail)
+    expect(parsed.includedItems).toContain('왕복항공권')
+    expect(parsed.includedItems).toContain('숙박비(2인1실)')
+    expect(parsed.excludedItems.some((x) => /가이드/.test(x))).toBe(true)
+    expect(modetourHtmlNoteToPlainText(detail.includedNote)).toContain('왕복항공권')
+  })
+
+  it('parses GetProductKeyPointInfo specialBenefits into must-know rows', () => {
+    const rows = extractModetourMustKnowFromKeyPointInfo({
+      specialBenefits: ['F1 연습주행 3회', '고카트 체험'],
+      travelerInsuranceInfo: '가입(최대 3억원 보장)',
+      productScore: '상품 핵심 포인트',
+    })
+    expect(rows.some((r) => r.body.includes('F1'))).toBe(true)
+    expect(rows.some((r) => r.title.includes('보험'))).toBe(true)
+    expect(rows.some((r) => r.body === '상품 핵심 포인트')).toBe(false)
   })
 })
