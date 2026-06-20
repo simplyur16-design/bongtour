@@ -1,0 +1,172 @@
+[
+  {
+    "slug": "fit-hn-0011",
+    "db": 6,
+    "api": 0,
+    "l1": 6,
+    "l2": 0,
+    "l3": 6,
+    "l1Note": [
+      "missing_in_api"
+    ],
+    "l3Note": [
+      "price_diff"
+    ],
+    "sampleL1": [
+      {
+        "date": "2026-06-23",
+        "field": "adultPrice",
+        "api": null,
+        "db": 599000,
+        "note": "missing_in_api"
+      },
+      {
+        "date": "2026-06-24",
+        "field": "adultPrice",
+        "api": null,
+        "db": 599000,
+        "note": "missing_in_api"
+      }
+    ],
+    "sampleL3": [
+      {
+        "date": "2026-06-23",
+        "field": "adultPrice",
+        "db": 599000,
+        "public": 779000,
+        "note": "price_diff"
+      },
+      {
+        "date": "2026-06-24",
+        "field": "adultPrice",
+        "db": 599000,
+        "public": 779000,
+        "note": "price_diff"
+      }
+    ]
+  },
+  {
+    "slug": "fit-hn-0029",
+    "db": 5,
+    "api": 0,
+    "l1": 6,
+    "l2": 0,
+    "l3": 0,
+    "l1Note": [
+      "missing_in_api"
+    ],
+    "l3Note": [],
+    "sampleL1": [
+      {
+        "date": "2026-06-21",
+        "field": "adultPrice",
+        "api": null,
+        "db": 4369000,
+        "note": "missing_in_api"
+      },
+      {
+        "date": "2026-06-28",
+        "field": "adultPrice",
+        "api": null,
+        "db": 4369000,
+        "note": "missing_in_api"
+      }
+    ],
+    "sampleL3": []
+  },
+  {
+    "slug": "fit-hn-0030",
+    "db": 1,
+    "api": 1,
+    "l1": 0,
+    "l2": 0,
+    "l3": 1,
+    "l1Note": [],
+    "l3Note": [
+      "price_diff"
+    ],
+    "sampleL1": [],
+    "sampleL3": [
+      {
+        "date": "2026-09-30",
+        "field": "adultPrice",
+        "db": 6368000,
+        "public": 5749000,
+        "note": "price_diff"
+      }
+    ]
+  },
+  {
+    "slug": "pkg-hn-0003",
+    "db": 1,
+    "api": 0,
+    "l1": 1,
+    "l2": 0,
+    "l3": 0,
+    "l1Note": [
+      "missing_in_api"
+    ],
+    "l3Note": [],
+    "sampleL1": [
+      {
+        "date": "2026-06-24",
+        "field": "adultPrice",
+        "api": null,
+        "db": 5049000,
+        "note": "missing_in_api"
+      }
+    ],
+    "sampleL3": []
+  },
+  {
+    "slug": "pkg-hn-0010",
+    "db": 1,
+    "api": 0,
+    "l1": 1,
+    "l2": 0,
+    "l3": 0,
+    "l1Note": [
+      "missing_in_api"
+    ],
+    "l3Note": [],
+    "sampleL1": [
+      {
+        "date": "2026-07-16",
+        "field": "adultPrice",
+        "api": null,
+        "db": 2510600,
+        "note": "missing_in_api"
+      }
+    ],
+    "sampleL3": []
+  },
+  {
+    "slug": "pkg-hn-0025",
+    "db": 47,
+    "api": 0,
+    "l1": 48,
+    "l2": 0,
+    "l3": 0,
+    "l1Note": [
+      "missing_in_api"
+    ],
+    "l3Note": [],
+    "sampleL1": [
+      {
+        "date": "2026-06-21",
+        "field": "adultPrice",
+        "api": null,
+        "db": 999000,
+        "note": "missing_in_api"
+      },
+      {
+        "date": "2026-06-22",
+        "field": "adultPrice",
+        "api": null,
+        "db": 999000,
+        "note": "missing_in_api"
+      }
+    ],
+    "sampleL3": []
+  }
+]

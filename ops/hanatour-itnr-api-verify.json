@@ -1,0 +1,23 @@
+{
+  "finishedAt": "2026-06-19T17:51:52.022Z",
+  "api": "POST /package/pkg/api/common/pkgcomprod/getPkgProdItnrInfo/v1.00",
+  "total": 1,
+  "ok": 1,
+  "items": [
+    {
+      "pkgCd": "CAB121260502ZET",
+      "slug": null,
+      "ok": true,
+      "scheduleDayCount": 3,
+      "placeCount": 0,
+      "samplePlaces": [],
+      "meetingInfo": "인천공항 제1여객터미널 3층 1번 출입문(A카운터옆) 하나투어 21~24 테이블",
+      "title": "[출발확정] [100%출발확정]옌타이(연태) 3일 #월드체인 풀만호텔 #시내중심 #소성리 인근 #자유여행 최적화 #공항미팅샌딩 포함",
+      "elapsedMs": 182,
+      "notes": [
+        "source=hanatour_gw_api",
+        "pkgCd=CAB121260502ZET"
+      ]
+    }
+  ]
+}

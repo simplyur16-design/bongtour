@@ -1,0 +1,790 @@
+{
+  "startedAt": "2026-06-19T16:11:37.141Z",
+  "updatedAt": "2026-06-19T16:26:54.531Z",
+  "horizonDays": 180,
+  "total": 45,
+  "cursor": 45,
+  "completed": 45,
+  "skippedNoUrl": 0,
+  "log": [
+    {
+      "at": "2026-06-19T16:11:38.744Z",
+      "index": 0,
+      "slug": "fit-hn-0010",
+      "pkgCd": "EWB111260418KEA",
+      "title": "런던 자유여행 9일#대한항공왕복항공권#런던시내4성급호텔_3박ONLY#여행자보험",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:11:41.210Z",
+      "index": 1,
+      "slug": "fit-hn-0011",
+      "pkgCd": "CAB121260502ZET",
+      "title": "옌타이(연태) 3일 #월드체인 풀만호텔 #시내중심 #소성리 인근 #자유여행 최적화 #공항미팅샌딩 포함",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:11:43.631Z",
+      "index": 2,
+      "slug": "fit-hn-0012",
+      "pkgCd": "JMB132260702ZEW",
+      "title": "도쿠시마 자유여행 워싱턴 호텔 2박 3일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 4,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:11:48.809Z",
+      "index": 3,
+      "slug": "fit-hn-0013",
+      "pkgCd": "AVB234260611KEA",
+      "title": "다낭 자유여행 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 11,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:11:51.310Z",
+      "index": 4,
+      "slug": "fit-hn-0020",
+      "pkgCd": "AAB261260706FDB",
+      "title": "방콕 자유여행 방콕 수쿰윗 편도 픽업 포함 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 31,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:11:53.898Z",
+      "index": 5,
+      "slug": "fit-hn-0022",
+      "pkgCd": "PAB101260627JQ1",
+      "title": "시드니 · 호텔 4박 6일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 2,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:11:57.163Z",
+      "index": 6,
+      "slug": "fit-hn-0023",
+      "pkgCd": "ADB2222606117CB",
+      "title": "발리 자유여행 발리 함께 룸 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 4,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:12:01.827Z",
+      "index": 7,
+      "slug": "fit-hn-0024",
+      "pkgCd": "PGB229260611RSC",
+      "title": "괌 (괌(4)) 4박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:12:06.113Z",
+      "index": 8,
+      "slug": "fit-hn-0025",
+      "pkgCd": "JKB130260611TWN",
+      "title": "규슈/후쿠오카 시내 3성급 호텔 2박 3일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:12:11.247Z",
+      "index": 9,
+      "slug": "fit-hn-0026",
+      "pkgCd": "JTB149260621WEU",
+      "title": "우에노/도쿄 호텔 우에노코엔 제공 3박 4일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:12:13.867Z",
+      "index": 10,
+      "slug": "fit-hn-0027",
+      "pkgCd": "JSB1472606117CT",
+      "title": "홋카이도 자유 3박 4일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 18,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:12:16.841Z",
+      "index": 11,
+      "slug": "fit-hn-0028",
+      "pkgCd": "EWB124260612TWP",
+      "title": "파리 자유여행 5박 7일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 4,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:16:46.920Z",
+      "index": 12,
+      "slug": "fit-hn-0029",
+      "pkgCd": "EEW152260705KE7",
+      "title": "오스트리아 체코 5박 7일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:16:49.094Z",
+      "index": 13,
+      "slug": "fit-hn-0030",
+      "pkgCd": null,
+      "title": "프라하 · 체스키 부데요비치 외 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:16:51.182Z",
+      "index": 14,
+      "slug": "pkg-hn-0001",
+      "pkgCd": "CCP132260503CZE",
+      "title": "[출발확정] 상해/소주/주가각 4일 (노쇼핑/상해 3박)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:16:53.279Z",
+      "index": 15,
+      "slug": "pkg-hn-0002",
+      "pkgCd": "ATP277260419TWA",
+      "title": "[출발확정] 대만 가오슝/컨딩/타이난 4일 (노쇼핑/아이허/월세계)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:16:56.176Z",
+      "index": 16,
+      "slug": "pkg-hn-0003",
+      "pkgCd": "ESP133260603EKA",
+      "title": "[출발확정] 스페인/포르투갈/모로코 12일 #전일정4성/시내호텔1박 #중간항공탑승",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:16:58.287Z",
+      "index": 17,
+      "slug": "pkg-hn-0004",
+      "pkgCd": "CRP101260501CZA",
+      "title": "[밤출발] 대련 3일 (시내 4성급 호텔 및 동방수성 관광)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:17:00.559Z",
+      "index": 18,
+      "slug": "pkg-hn-0005",
+      "pkgCd": "AVP2512604179GA",
+      "title": "푸꾸옥 5일 #5성급 호텔 #씨쉘 #중부위치 #야시장 #자유일정포함",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:17:02.656Z",
+      "index": 19,
+      "slug": "pkg-hn-0006",
+      "pkgCd": "ENP134260502AYA",
+      "title": "북유럽 4국 9일 (덴마크/노르웨이/스웨덴/핀란드) 크루즈 2박 및 시내 호텔 숙박",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:17:04.779Z",
+      "index": 20,
+      "slug": "pkg-hn-0007",
+      "pkgCd": "AVP241260605VNB",
+      "title": "앙코르왓 & 하롱베이 6일 #전일정5성호텔UP #하롱베이크루즈&뷔페 #압살라민속쇼 #전신마사지 #스트릿카 #루프탑바푸드트럭",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:17:06.847Z",
+      "index": 21,
+      "slug": "pkg-hn-0008",
+      "pkgCd": "AWP203260601KEB",
+      "title": "북인도 6일#바라나시 #갠지스강 #아그라 #타지마할 #5성2박UP #국내선1회 #열차1회",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:17:08.972Z",
+      "index": 22,
+      "slug": "pkg-hn-0009",
+      "pkgCd": "JKP140260628RSH",
+      "title": "규슈 4일 #온천의 진수 #완벽한 동선 #천연 온천 루프탑 아마네크 유라리 2박 #후쿠오카 시내 숙박 #일본품격여행 #일본 폭포 100선 #일본 100대 야경 슈몬지바루",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:21:42.254Z",
+      "index": 23,
+      "slug": "pkg-hn-0010",
+      "pkgCd": null,
+      "title": "일본 북알프스 트레킹 5일 #야리가다케(3,180m) #산장2박 #야리사와&야리가다케산장 #히라유온천마을",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:21:44.491Z",
+      "index": 24,
+      "slug": "pkg-hn-0012",
+      "pkgCd": "APK2562608067CA",
+      "title": "강상민 강사와 함께 하는 보홀 5일 #고래상어 #발리카삭 #나팔링 #고고다이브 #전문가동반",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:21:46.558Z",
+      "index": 25,
+      "slug": "pkg-hn-0013",
+      "pkgCd": "APK2502606067CA",
+      "title": "보홀 6일#펀다이빙 #발리카삭 #레이트체크아웃 #라메디리조트",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:21:48.837Z",
+      "index": 26,
+      "slug": "pkg-hn-0014",
+      "pkgCd": "ADK261260702ZEB",
+      "title": "인도네시아 마나도 5일 #그랜드룰리 #디럭스룸 #부나켄국립공원 #렌탈장비포함",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:21:50.916Z",
+      "index": 27,
+      "slug": "pkg-hn-0015",
+      "pkgCd": "APK261260701LJA",
+      "title": "세부 5일 #가와산캐녀닝 #모알보알거북이 #정어리스노쿨링 #고래상어왓칭 #모알보알1박",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:21:52.969Z",
+      "index": 28,
+      "slug": "pkg-hn-0016",
+      "pkgCd": "JTK1012607117CB",
+      "title": "일본 후지산 정상 트레킹 3일 #일본최고봉 #후지산정상 #3,776m #일출트레킹 #온천포함 #입산료포함 #시내자유일정 #후지노미야코스 #7합목 #고라이코산장",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:21:55.051Z",
+      "index": 29,
+      "slug": "pkg-hn-0017",
+      "pkgCd": "CQK201260701TWA",
+      "title": "몽골 트레킹 5일#테를지트레킹#몽골올레#체체궁산#전신마사지",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:21:57.114Z",
+      "index": 30,
+      "slug": "pkg-hn-0018",
+      "pkgCd": "CVK203260701OZA",
+      "title": "동티벳 히말라야 트레킹 6일#3대만년설산#쓰구냥산#/당령설산#야라설산#빙하호수#성도",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:21:59.153Z",
+      "index": 31,
+      "slug": "pkg-hn-0019",
+      "pkgCd": "JWK151261205TWM",
+      "title": "일본 오키나와 나하 마라톤 [자유일정] 4일 #풀코스 #기록보단축제 #러닝용품쇼핑 #나하시내호텔연박 #공항이동포함",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:22:01.379Z",
+      "index": 32,
+      "slug": "pkg-hn-0020",
+      "pkgCd": "ADP223260417KE4",
+      "title": "발리 · 남부투어 비치 2시간 4박 6일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:22:03.585Z",
+      "index": 33,
+      "slug": "pkg-hn-0021",
+      "pkgCd": "AAP2022607017CA",
+      "title": "방콕/파타야 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:22:05.831Z",
+      "index": 34,
+      "slug": "pkg-hn-0022",
+      "pkgCd": "JKP140260701RSH",
+      "title": "일본 (후쿠오카 · 유후) 3박 4일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:22:07.937Z",
+      "index": 35,
+      "slug": "pkg-hn-0023",
+      "pkgCd": "JMP331260701BXV",
+      "title": "마츠야마/오즈/우치코 역사 도고 온천가♨ 가류산장 마츠야마성 번화가 2박 3일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:22:10.566Z",
+      "index": 36,
+      "slug": "pkg-hn-0024",
+      "pkgCd": "JMP1372607017CS",
+      "title": "마츠야마/이마바리/오즈 2박 3일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:26:39.058Z",
+      "index": 37,
+      "slug": "pkg-hn-0025",
+      "pkgCd": "JTP140260701ZE3",
+      "title": "도쿄/하코네/이즈/후지산 # 이즈파노라마파크 3박 4일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:26:41.247Z",
+      "index": 38,
+      "slug": "pkg-hn-0026",
+      "pkgCd": "AMP202260701MHA",
+      "title": "쿠알라룸푸르/말라카/겐팅 출발확정 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:26:43.399Z",
+      "index": 39,
+      "slug": "pkg-hn-0027",
+      "pkgCd": "ETP169260706TKS",
+      "title": "아테네 · 메테오라 외 7박 10일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:26:45.616Z",
+      "index": 40,
+      "slug": "pkg-hn-0028",
+      "pkgCd": "ADP2222607017CB",
+      "title": "발리 발리 함께 교감, 워터파크 중 선택 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:26:47.802Z",
+      "index": 41,
+      "slug": "pkg-hn-0029",
+      "pkgCd": "EEP133260701KEY",
+      "title": "동유럽 3국 유람선,케이블카 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:26:50.186Z",
+      "index": 42,
+      "slug": "pkg-hn-0030",
+      "pkgCd": "EEP135260702OZE",
+      "title": "동유럽 발칸 완전 일주 유럽 (프라하 · 브르노) 10박 12일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:26:52.367Z",
+      "index": 43,
+      "slug": "pkg-hn-0031",
+      "pkgCd": "EEP163260703OZA",
+      "title": "동유럽 3국 유럽 (부다페스트 · 잘츠부르크) 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T16:26:54.530Z",
+      "index": 44,
+      "slug": "pkg-hn-0032",
+      "pkgCd": "EEP139260703KEA",
+      "title": "프랑크푸르트 · 뉘른베르크 외 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    }
+  ],
+  "last": {
+    "slug": "pkg-hn-0032",
+    "pkgCd": "EEP139260703KEA",
+    "result": {
+      "processed": 1,
+      "updated": 1,
+      "skipped": 0,
+      "pruned": 0,
+      "e2eCollected": 0,
+      "e2eAttempted": 0,
+      "urgentDealOn": 0,
+      "urgentDealOff": 0
+    }
+  }
+}
