@@ -114,13 +114,13 @@ function extractSharedMeta(detailHtml: string): {
 }
 
 /** 상세 HTML만 fetch·파싱 (달력/모달 경로 없음). */
-export async function collectVerygoodProductCore(detailUrl: string): Promise<{ product: VerygoodProductCore | null; notes: string[] }> {
+export function buildVerygoodProductCoreFromDetailHtml(
+  detailUrl: string,
+  detailHtml: string,
+): { product: VerygoodProductCore | null; notes: string[] } {
   const notes: string[] = []
   const parsed = parseVerygoodParams(detailUrl)
   if (!parsed) return { product: null, notes: ['invalid verygood url'] }
-  const detailRes = await fetch(detailUrl, { method: 'GET' })
-  if (!detailRes.ok) return { product: null, notes: [`detail fetch failed: ${detailRes.status}`] }
-  const detailHtml = await detailRes.text()
   const text = stripTags(detailHtml)
   const shared = extractSharedMeta(detailHtml)
   const nightsDays = text.match(/(\d+)\s*박\s*(\d+)\s*일/)
@@ -181,4 +181,15 @@ export async function collectVerygoodProductCore(detailUrl: string): Promise<{ p
     `[VG_DETAIL_HTML_BASELINE] raw_title=${product.rawTitle} pre_hash_title=${product.preHashTitle} comparison_title=${product.comparisonTitle} comparison_title_no_space=${product.comparisonTitleNoSpace} carrier_name=${product.airline ?? ''} trip_nights=${product.tripNights ?? ''} trip_days=${product.tripDays ?? ''}`
   )
   return { product, notes }
+}
+
+export async function collectVerygoodProductCore(
+  detailUrl: string,
+): Promise<{ product: VerygoodProductCore | null; notes: string[] }> {
+  const parsed = parseVerygoodParams(detailUrl)
+  if (!parsed) return { product: null, notes: ['invalid verygood url'] }
+  const detailRes = await fetch(detailUrl, { method: 'GET' })
+  if (!detailRes.ok) return { product: null, notes: [`detail fetch failed: ${detailRes.status}`] }
+  const detailHtml = await detailRes.text()
+  return buildVerygoodProductCoreFromDetailHtml(detailUrl, detailHtml)
 }

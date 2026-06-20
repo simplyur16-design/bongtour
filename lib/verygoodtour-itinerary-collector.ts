@@ -52,13 +52,8 @@ function blockToDayInput(block: { day: number; rawBlock: string }): ItineraryDay
   }
 }
 
-export async function collectVerygoodItineraryInputs(
-  params: VerygoodItineraryCollectParams
-): Promise<VerygoodItineraryCollectResult> {
+export function parseVerygoodItineraryFromDetailHtml(html: string): VerygoodItineraryCollectResult {
   const notes: string[] = []
-  const res = await fetch(params.detailUrl, { method: 'GET' })
-  if (!res.ok) return { days: [], notes: [`detail fetch failed: ${res.status}`] }
-  const html = await res.text()
   const blocks = parseDayBlocks(html)
   if (!blocks.length) return { days: [], notes: ['itinerary day blocks not found'] }
   const byDay = new Map<number, ItineraryDayInput>()
@@ -70,5 +65,16 @@ export async function collectVerygoodItineraryInputs(
   const days = [...byDay.values()].sort((a, b) => a.day - b.day)
   notes.push(`itinerary parsed days=${days.length}`)
   return { days, notes }
+}
+
+export async function collectVerygoodItineraryInputs(
+  params: VerygoodItineraryCollectParams
+): Promise<VerygoodItineraryCollectResult> {
+  const notes: string[] = []
+  const res = await fetch(params.detailUrl, { method: 'GET' })
+  if (!res.ok) return { days: [], notes: [`detail fetch failed: ${res.status}`] }
+  const html = await res.text()
+  const parsed = parseVerygoodItineraryFromDetailHtml(html)
+  return { days: parsed.days, notes: [...notes, ...parsed.notes] }
 }
 

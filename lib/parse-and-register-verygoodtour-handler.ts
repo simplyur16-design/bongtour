@@ -27,7 +27,7 @@ import {
   type RegisterParsed,
   type RegisterScheduleDay,
 } from '@/lib/register-llm-schema-verygoodtour'
-import { parseForRegisterVerygoodtour, VERYGOOD_PRICE_SLOT_SSOT_NOTE } from '@/lib/register-parse-verygoodtour'
+import { augmentVerygoodtourParsedWithDetailCollect } from '@/lib/verygoodtour-register-detail-collect'
 import { finalizeVerygoodRegisterParsedPricing } from '@/lib/register-verygoodtour-price'
 import { testGeminiConnection } from '@/lib/gemini-client'
 import {
@@ -729,6 +729,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
         })
       }
     }
+    parsed = await augmentVerygoodtourParsedWithDetailCollect(parsed, { originUrl, pastedBlocks })
     parsed = augmentVerygoodtourScheduleExpressionParsed(parsed)
     traceVerygoodScheduleDesc('handler-3-post-augment-expression', parsed.schedule)
     parsed = stripBodyDerivedMeetingFromRegisterParsed(parsed)
@@ -1132,10 +1133,14 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     const autoExtracted = {
       supplierLabel: earlySource,
       originUrl,
-      adapterPrefetchRan: false,
+      adapterPrefetchRan: Boolean(parsed.verygoodtourDetailCollectRan),
       departureRowCount: departureInputs.length,
       urlSeed: null as { originCode: string; titleHint: string | null } | null,
-      adapterSummaryPreview: '공통 등록 본류는 URL·어댑터 자동수집을 사용하지 않습니다.',
+      adapterSummaryPreview:
+        parsed.verygoodtourDetailCollectSummary ??
+        (parsed.verygoodtourDetailCollectRan === false
+          ? '상세카드 자동수집 미실행(붙여넣기 우선 또는 URL/응답 없음).'
+          : '공통 등록 본류는 URL·어댑터 자동수집을 사용하지 않습니다.'),
       pricePromotionFromAdapterDom: null,
     }
 

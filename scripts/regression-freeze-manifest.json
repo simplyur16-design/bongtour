@@ -1904,6 +1904,35 @@
       "vitestSuites": [
         "lib/hanatour-register-detail-collect.test.ts"
       ]
+    },
+    {
+      "id": "verygoodtour-register-detail-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "참좋은여행 등록 — PackageDetail HTML 상세카드(일정·포함/불포함·쇼핑·선택관광) augment",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-detail-collect]",
+            "augmentVerygoodtourParsedWithDetailCollect",
+            "PackageDetail",
+            "singleRoomSurchargeRaw",
+            "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-verygoodtour-handler.ts",
+          "mustInclude": [
+            "augmentVerygoodtourParsedWithDetailCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/verygoodtour-register-detail-collect.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
