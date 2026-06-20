@@ -1,0 +1,33 @@
+{
+  "note": "교원이지(kyowontour) horizon probe — goodsEventDetail 단일 출발 + differentDepartDate AJAX",
+  "finishedAt": null,
+  "probes": [
+    {
+      "label": "busan-macau-hk-4d",
+      "tourCode": "CHP970260621BX01",
+      "menuCode": "M550110",
+      "url": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=CHP970260621BX01&menuCode=M550110&brandId=3",
+      "departYmd": "2026-06-21",
+      "adultPrice": 919000,
+      "airline": "에어부산"
+    },
+    {
+      "label": "taiwan-tway-4d",
+      "tourCode": "CTP518260621TW02",
+      "menuCode": "M5205",
+      "url": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=CTP518260621TW02&menuCode=M5205&brandId=3",
+      "departYmd": "2026-06-21",
+      "adultPrice": 1149000,
+      "airline": "티웨이항공"
+    },
+    {
+      "label": "south-france-spain-portugal-12d",
+      "tourCode": "ESP702260702EK01",
+      "menuCode": "M51010404",
+      "url": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=ESP702260702EK01&menuCode=M51010404&brandId=3",
+      "departYmd": "2026-07-02",
+      "adultPrice": 3299000,
+      "airline": "에미레이트"
+    }
+  ]
+}

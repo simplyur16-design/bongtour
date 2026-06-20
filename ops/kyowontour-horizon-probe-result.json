@@ -1,0 +1,79 @@
+{
+  "finishedAt": "2026-06-19T18:36:57.977Z",
+  "probeFile": "C:\\Users\\USER\\Desktop\\BONGTOUR\\ops\\kyowontour-horizon-probe.json",
+  "summary": {
+    "total": 3,
+    "withRows": 0,
+    "anchorMatched": 0
+  },
+  "items": [
+    {
+      "label": "busan-macau-hk-4d",
+      "tourCode": "CHP970260621BX01",
+      "masterCode": "CHP970",
+      "url": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=CHP970260621BX01&menuCode=M550110&brandId=3",
+      "rowCount": 0,
+      "anchorDepart": "2026-06-21",
+      "anchorFound": false,
+      "anchorPrice": null,
+      "expectedPrice": 919000,
+      "priceMatch": null,
+      "warnings": [
+        "202606: dayAirList 비어 있음(masterCode·응답 구조 확인)",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "202611: dayAirList 비어 있음(masterCode·응답 구조 확인)",
+        "E2E 폴백 실패 또는 0건 · Command failed: C:\\Users\\USER\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -m scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper --tour-code CHP970260621BX01 --months 6\n"
+      ],
+      "sampleDates": []
+    },
+    {
+      "label": "taiwan-tway-4d",
+      "tourCode": "CTP518260621TW02",
+      "masterCode": "CTP518",
+      "url": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=CTP518260621TW02&menuCode=M5205&brandId=3",
+      "rowCount": 0,
+      "anchorDepart": "2026-06-21",
+      "anchorFound": false,
+      "anchorPrice": null,
+      "expectedPrice": 1149000,
+      "priceMatch": null,
+      "warnings": [
+        "202606: dayAirList 비어 있음(masterCode·응답 구조 확인)",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath"
+      ],
+      "sampleDates": []
+    },
+    {
+      "label": "south-france-spain-portugal-12d",
+      "tourCode": "ESP702260702EK01",
+      "masterCode": "ESP702",
+      "url": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=ESP702260702EK01&menuCode=M51010404&brandId=3",
+      "rowCount": 0,
+      "anchorDepart": "2026-07-02",
+      "anchorFound": false,
+      "anchorPrice": null,
+      "expectedPrice": 3299000,
+      "priceMatch": null,
+      "warnings": [
+        "202606: dayAirList 비어 있음(masterCode·응답 구조 확인)",
+        "202607: dayAirList 비어 있음(masterCode·응답 구조 확인)",
+        "202608: dayAirList 비어 있음(masterCode·응답 구조 확인)",
+        "202609: dayAirList 비어 있음(masterCode·응답 구조 확인)",
+        "202610: dayAirList 비어 있음(masterCode·응답 구조 확인)",
+        "행 스킵: 출발일 없음 keys=masterCode,tourCode,dN,departDateYmd,departDateType4,preferredAirline,preferredAirlineNm,preferredAirlinePath",
+        "E2E 폴백 실패 또는 0건 · Command failed: C:\\Users\\USER\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -m scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper --tour-code ESP702260702EK01 --months 6\n"
+      ],
+      "sampleDates": []
+    }
+  ]
+}
