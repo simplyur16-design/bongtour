@@ -4,7 +4,7 @@
  *
  *   npx tsx scripts/resync-all-mega-menu-geo.ts              # dry-run + 리포트
  *   npx tsx scripts/resync-all-mega-menu-geo.ts --apply        # DB 반영
- *   npx tsx scripts/resync-all-mega-menu-geo.ts --apply --limit=100
+ *   npx tsx scripts/resync-all-mega-menu-geo.ts --apply --include-pending
  */
 import './load-env-for-scripts'
 
@@ -112,11 +112,16 @@ async function auditMegaMenuCityCoverage(): Promise<
 
 async function main(): Promise<void> {
   const apply = process.argv.includes('--apply')
+  const includePending = process.argv.includes('--include-pending')
   const limit = parseLimitArg()
   resetMegaMenuSsotCityKeysCache()
 
+  const registrationWhere = includePending
+    ? { registrationStatus: { in: ['registered', 'pending'] as ('registered' | 'pending')[] } }
+    : { registrationStatus: 'registered' as const }
+
   const rows = await prisma.product.findMany({
-    where: { registrationStatus: 'registered' },
+    where: registrationWhere,
     select: {
       id: true,
       slug: true,
@@ -325,6 +330,7 @@ async function main(): Promise<void> {
   const report = {
     at: new Date().toISOString(),
     apply,
+    includePending,
     scanned: rows.length,
     domesticSkipped,
     changed: resynced.length,

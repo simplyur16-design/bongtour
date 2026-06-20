@@ -1,0 +1,32 @@
+{
+  "note": "mega-menu geo resync apply — registered + pending (--include-pending). Full detail in scripts/data/resync-mega-menu-geo-*.json (gitignored).",
+  "runs": [
+    {
+      "at": "2026-06-20T15:58:51.727Z",
+      "apply": true,
+      "includePending": false,
+      "scanned": 240,
+      "changed": 47,
+      "applied": 240,
+      "tagOnly": 45,
+      "noCityTag": 4
+    },
+    {
+      "at": "2026-06-20T16:03:29.191Z",
+      "apply": true,
+      "includePending": true,
+      "scanned": 252,
+      "changed": 2,
+      "applied": 252,
+      "tagOnly": 2,
+      "noCityTag": 5
+    }
+  ],
+  "pendingBatchMcp160": {
+    "productId": "cmqmhrl07007ffgu36agqk4nx",
+    "beforeCityKeys": ["calgary", "banff", "ireland-mix"],
+    "afterCityKeys": [],
+    "afterCountryTags": "mongolia/null",
+    "note": "ireland-mix removed; canada city tags cleared. Full canada geo + title need re-register with fixed kyowontour pipeline."
+  }
+}
