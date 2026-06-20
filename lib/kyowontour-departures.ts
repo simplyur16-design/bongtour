@@ -1,6 +1,7 @@
 /**
  * 교원이지(kyowontour) 출발일 캘린더 — 사이트 내부 AJAX `POST /goods/differentDepartDate` (공개 HTTP, 인증 없음).
- * REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]: departDateYmd·E2E 폴백 메타 — manifest
+ * monthEvtList 날짜별 2차 호출로 dayAirList·가격 확정(API-only, E2E 보조).
+ * REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]: departDateYmd·monthEvtList·E2E 폴백 메타 — manifest
  */
 import { execFile } from 'child_process'
 import fs from 'fs'
@@ -41,6 +42,8 @@ export type KyowontourCalendarRangeOptions = {
   maxRetries?: number
   signal?: AbortSignal
   headers?: Record<string, string>
+  /** goodsEventDetail URL — differentDepartDate Referer·세션 정합 */
+  refererUrl?: string | null
   log?: boolean
   logLabel?: string
   monthCount?: number
@@ -67,6 +70,8 @@ export type KyowontourUpsertOptions = {
 const DEFAULT_BASE = 'https://www.kyowontour.com'
 const DEFAULT_MONTHS = 12
 const DEFAULT_TIMEOUT_MS = 25_000
+/** monthEvtList 날짜별 dayAirList 조회 간격 — kyowontour 전용 */
+const KYOWONTOUR_DEPART_DATE_PACE_MS = 140
 
 function apiBase(): string {
   return (process.env.KYOWONTOUR_API_BASE_URL ?? DEFAULT_BASE).replace(/\/$/, '')
@@ -330,19 +335,60 @@ function ymList(start: Date, count: number): string[] {
   return out
 }
 
+function toKyowontourDepartDateApiParam(raw: string, departMonthYm: string): string {
+  const digits = String(raw ?? '').replace(/\D/g, '')
+  if (digits.length >= 8) return digits.slice(0, 8)
+  if (digits.length === 6) return `${digits}01`
+  return `${departMonthYm}01`
+}
+
+/** monthEvtList → 출발일 YYYYMMDD (API departDate 파라미터용) */
+export function extractKyowontourMonthEvtDepartYmds(root: Record<string, unknown>): string[] {
+  const lst = root.monthEvtList ?? root.monthevtList
+  if (!Array.isArray(lst)) return []
+  const out: string[] = []
+  for (const item of lst) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue
+    const ymd = toKyowontourDepartDateApiParam(
+      String((item as Record<string, unknown>).departDateYmd ?? ''),
+      '',
+    )
+    if (ymd.length === 8) out.push(ymd)
+  }
+  return [...new Set(out)]
+}
+
+function buildKyowontourDepartDateHeaders(
+  options?: KyowontourCalendarRangeOptions,
+): Record<string, string> {
+  const referer = (options?.refererUrl ?? '').trim()
+  return {
+    Accept: 'application/json, text/javascript, */*; q=0.01',
+    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+    'X-Requested-With': 'XMLHttpRequest',
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept-Language': 'ko-KR,ko;q=0.9',
+    ...(referer ? { Referer: referer } : {}),
+    ...(options?.headers ?? {}),
+  }
+}
+
 async function postDifferentDepartDateMonth(args: {
   masterCode: string
   departMonth: string
+  departDate: string
   timeoutMs: number
   signal?: AbortSignal
-  extraHeaders?: Record<string, string>
+  headers?: Record<string, string>
   maxRetries: number
-}): Promise<{ list: Record<string, unknown>[]; httpStatus: number }> {
+}): Promise<{ dayAirList: Record<string, unknown>[]; monthEvtYmds: string[]; httpStatus: number }> {
   const url = `${apiBase()}/goods/differentDepartDate`
+  const departDateParam = toKyowontourDepartDateApiParam(args.departDate, args.departMonth)
   const body = new URLSearchParams({
     masterCode: args.masterCode,
     departMonth: args.departMonth,
-    departDate: `${args.departMonth}01`,
+    departDate: departDateParam,
   })
   let lastStatus = 0
   for (let attempt = 1; attempt <= args.maxRetries; attempt++) {
@@ -350,12 +396,7 @@ async function postDifferentDepartDateMonth(args: {
     try {
       const res = await fetch(url, {
         method: 'POST',
-        headers: {
-          Accept: 'application/json, text/javascript, */*; q=0.01',
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-          'X-Requested-With': 'XMLHttpRequest',
-          ...(args.extraHeaders ?? {}),
-        },
+        headers: args.headers ?? buildKyowontourDepartDateHeaders(),
         body: body.toString(),
         signal,
       })
@@ -371,14 +412,19 @@ async function postDifferentDepartDateMonth(args: {
       const payload = (await res.json()) as Record<string, unknown>
       const root = extractDataRoot(payload) ?? {}
       const lst = root.dayAirList ?? root.dayairList
-      const list = Array.isArray(lst) ? (lst as Record<string, unknown>[]) : []
-      return { list, httpStatus: res.status }
+      const dayAirList = Array.isArray(lst) ? (lst as Record<string, unknown>[]) : []
+      const monthEvtYmds = extractKyowontourMonthEvtDepartYmds(root)
+      return { dayAirList, monthEvtYmds, httpStatus: res.status }
     } catch (e) {
       if (attempt >= args.maxRetries) throw e
       await new Promise((r) => setTimeout(r, 450 * attempt))
     }
   }
-  return { list: [], httpStatus: lastStatus }
+  return { dayAirList: [], monthEvtYmds: [], httpStatus: lastStatus }
+}
+
+function paceKyowontourDepartDateFetch(): Promise<void> {
+  return new Promise((r) => setTimeout(r, KYOWONTOUR_DEPART_DATE_PACE_MS))
 }
 
 /**
@@ -405,29 +451,62 @@ export async function collectKyowontourCalendarRange(
   const start = options?.startMonth ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   const months = ymList(start, monthCount)
   const tourHint = (options?.tourCodeForE2EFallback ?? options?.e2eMasterCodeHint ?? code).trim()
+  const reqHeaders = buildKyowontourDepartDateHeaders(options)
+
+  const mergeDayAirList = (list: Record<string, unknown>[], ym: string, httpStatus: number) => {
+    if (options?.log) {
+      console.log(
+        `[kyowontour-departures] ${options.logLabel ?? 'collect'} month=${ym} http=${httpStatus} dayAir=${list.length}`,
+      )
+    }
+    if (!list.length) return
+    for (const it of list) {
+      const row = dayAirToRow(it, tourHint, warnings)
+      if (row) byDate.set(row.departDate, row)
+    }
+  }
 
   const byDate = new Map<string, KyowontourCalendarRow>()
   for (const ym of months) {
     try {
-      const { list, httpStatus } = await postDifferentDepartDateMonth({
+      const seedDepartDate = `${ym}01`
+      const seed = await postDifferentDepartDateMonth({
         masterCode: code,
         departMonth: ym,
+        departDate: seedDepartDate,
         timeoutMs,
         signal: options?.signal,
-        extraHeaders: options?.headers,
+        headers: reqHeaders,
         maxRetries,
       })
-      if (options?.log) {
-        console.log(
-          `[kyowontour-departures] ${options.logLabel ?? 'collect'} month=${ym} http=${httpStatus} rows=${list.length}`
-        )
+      mergeDayAirList(seed.dayAirList, ym, seed.httpStatus)
+
+      const datesToFetch =
+        seed.monthEvtYmds.length > 0
+          ? seed.monthEvtYmds
+          : seed.dayAirList.length === 0
+            ? []
+            : []
+
+      if (seed.dayAirList.length === 0 && datesToFetch.length === 0) {
+        warnings.push(`${ym}: dayAirList·monthEvtList 모두 비어 있음(masterCode·응답 구조 확인)`)
+      } else if (seed.dayAirList.length === 0 && datesToFetch.length > 0) {
+        warnings.push(`${ym}: monthEvtList ${datesToFetch.length}건 → 날짜별 dayAirList 조회`)
       }
-      if (!list.length) {
-        warnings.push(`${ym}: dayAirList 비어 있음(masterCode·응답 구조 확인)`)
-      }
-      for (const it of list) {
-        const row = dayAirToRow(it, tourHint, warnings)
-        if (row) byDate.set(row.departDate, row)
+
+      for (const depYmd of datesToFetch) {
+        if (depYmd === seedDepartDate && seed.dayAirList.length > 0) continue
+        await paceKyowontourDepartDateFetch()
+        const detail = await postDifferentDepartDateMonth({
+          masterCode: code,
+          departMonth: ym,
+          departDate: depYmd,
+          timeoutMs,
+          signal: options?.signal,
+          headers: reqHeaders,
+          maxRetries,
+        })
+        mergeDayAirList(detail.dayAirList, ym, detail.httpStatus)
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)

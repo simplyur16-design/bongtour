@@ -8,6 +8,7 @@ import type {
 } from '@/lib/detail-body-parser-types'
 import type { RegisterParsed } from '@/lib/register-llm-schema-kyowontour'
 import { sanitizeIncludedExcludedItemsLines } from '@/lib/included-excluded-postprocess'
+import { KYOWONTOUR_TOUR_CODE_TITLE_RE } from '@/lib/supplier-listing-title-unacceptable'
 
 const PREFIX = '[kyowontour-basic]'
 
@@ -42,6 +43,19 @@ export function extractKyowontourProductCodeFromBlob(blob: string): string | nul
  */
 export function extractKyowontourVerbatimListingTitle(blob: string): string | null {
   const text = blob.replace(/\r\n/g, '\n')
+  const headLines = text
+    .slice(0, 4000)
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  for (const line of headLines.slice(0, 8)) {
+    if (line.length < 12 || line.length > 220) continue
+    if (/^https?:\/\//i.test(line)) continue
+    if (KYOWONTOUR_TOUR_CODE_TITLE_RE.test(line)) continue
+    if (/^상품코드\s*[:：]/i.test(line)) continue
+    const hashCount = (line.match(/#/g) || []).length
+    if (hashCount >= 1 && /[가-힣]/.test(line) && /(?:일|박)/.test(line)) return line
+  }
   const productIdx = text.search(/상품번호\s*[A-Za-z]*\d[A-Za-z0-9-]+/i)
   const windowStart = productIdx >= 0 ? productIdx : 0
   const window = text.slice(windowStart, windowStart + 9000)

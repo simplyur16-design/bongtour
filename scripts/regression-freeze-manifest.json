@@ -1304,12 +1304,88 @@
       ]
     },
     {
+      "id": "ybtour-register-api-price-inject",
+      "tier": ["prebuild", "ci"],
+      "summary": "ybtour confirm — papi 출발·기본가 parsed 주입",
+      "checks": [
+        {
+          "file": "lib/ybtour-register-api-price-inject.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-api-price-inject]",
+            "injectYbtourApiDeparturePricesIfMissing",
+            "collectYbtourApiDepartureInputsForUrl"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-ybtour-handler.ts",
+          "mustInclude": ["injectYbtourApiDeparturePricesIfMissing"]
+        }
+      ]
+    },
+    {
+      "id": "verygoodtour-register-api-price-inject",
+      "tier": ["prebuild", "ci"],
+      "summary": "verygoodtour confirm — HXR 출발가 parsed 주입(E2E 없음)",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-register-api-price-inject.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-api-price-inject]",
+            "injectVerygoodtourApiDeparturePricesIfMissing",
+            "collectVerygoodHxrOnlyForDateRange"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-verygoodtour-handler.ts",
+          "mustInclude": ["injectVerygoodtourApiDeparturePricesIfMissing"]
+        }
+      ]
+    },
+    {
+      "id": "kyowontour-register-api-price-inject",
+      "tier": ["prebuild", "ci"],
+      "summary": "kyowontour confirm — calendar AJAX 출발가 parsed 주입(E2E 없음)",
+      "checks": [
+        {
+          "file": "lib/kyowontour-register-api-price-inject.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-api-price-inject]",
+            "injectKyowontourApiDeparturePricesIfMissing",
+            "collectKyowontourCalendarRange"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-kyowontour-handler.ts",
+          "mustInclude": ["injectKyowontourApiDeparturePricesIfMissing"]
+        }
+      ]
+    },
+    {
+      "id": "lottetour-register-api-price-inject",
+      "tier": ["prebuild", "ci"],
+      "summary": "lottetour confirm — evtListAjax 출발·기본가 parsed 주입",
+      "checks": [
+        {
+          "file": "lib/lottetour-register-api-price-inject.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-api-price-inject]",
+            "injectLottetourApiDeparturePricesIfMissing",
+            "fetchLottetourRegisterDetailBundle"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-lottetour-handler.ts",
+          "mustInclude": ["injectLottetourApiDeparturePricesIfMissing"]
+        }
+      ]
+    },
+    {
       "id": "register-facts-foundation",
       "tier": [
         "prebuild",
         "ci"
       ],
-      "summary": "등록 사실 번들 — modetour/hanatour/ybtour/verygoodtour API·HTML 구조화 수집 기반",
+      "summary": "등록 사실 번들 — 6공급사 API·HTML 구조화 수집 기반",
       "checks": [
         {
           "file": "lib/register-facts/types.ts",
@@ -1356,6 +1432,22 @@
             "REGRESSION-FREEZE[register-facts-foundation]",
             "collectYbtourRegisterFacts",
             "papi"
+          ]
+        },
+        {
+          "file": "lib/register-facts/lottetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-foundation]",
+            "collectLottetourRegisterFacts",
+            "fetchLottetourRegisterDetailBundle"
+          ]
+        },
+        {
+          "file": "lib/register-facts/kyowontour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-foundation]",
+            "collectKyowontourRegisterFacts",
+            "tourEventTabData"
           ]
         },
         {

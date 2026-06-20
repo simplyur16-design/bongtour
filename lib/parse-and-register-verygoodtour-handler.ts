@@ -28,6 +28,7 @@ import {
   type RegisterScheduleDay,
 } from '@/lib/register-llm-schema-verygoodtour'
 import { augmentVerygoodtourParsedWithDetailCollect } from '@/lib/verygoodtour-register-detail-collect'
+import { injectVerygoodtourApiDeparturePricesIfMissing } from '@/lib/verygoodtour-register-api-price-inject'
 import {
   parseForRegisterVerygoodtour,
   VERYGOOD_PRICE_SLOT_SSOT_NOTE,
@@ -733,6 +734,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
         })
       }
     }
+    parsed = await injectVerygoodtourApiDeparturePricesIfMissing(parsed, originUrl)
     parsed = await augmentVerygoodtourParsedWithDetailCollect(parsed, { originUrl, pastedBlocks })
     parsed = augmentVerygoodtourScheduleExpressionParsed(parsed)
     traceVerygoodScheduleDesc('handler-3-post-augment-expression', parsed.schedule)

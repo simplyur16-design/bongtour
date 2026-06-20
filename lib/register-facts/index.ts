@@ -25,6 +25,10 @@ export {
 
 export { collectYbtourRegisterFacts } from '@/lib/register-facts/ybtour'
 
+export { collectLottetourRegisterFacts } from '@/lib/register-facts/lottetour'
+
+export { collectKyowontourRegisterFacts } from '@/lib/register-facts/kyowontour'
+
 export {
   collectSupplierRegisterFacts,
   registerFactsSupportedSuppliers,

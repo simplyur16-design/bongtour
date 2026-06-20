@@ -788,9 +788,18 @@ export async function collectDepartureInputsForAdminRescrape(
       }
     }
     try {
+      const detailUrlForCollect =
+        detailUrlForTrace.startsWith('http') && /goodsEventDetail/i.test(detailUrlForTrace)
+          ? detailUrlForTrace
+          : product.originUrl?.trim().startsWith('http') &&
+              /goodsEventDetail/i.test(product.originUrl.trim())
+            ? product.originUrl.trim()
+            : detailUrlForTrace
       const { rows, warnings } = await collectKyowontourCalendarRange(masterCode, {
         tourCodeForE2EFallback: kyowontourTourCodeHintForE2e(product),
         e2eMasterCodeHint: masterCode,
+        refererUrl: detailUrlForCollect,
+        disableE2EFallback: true,
         monthCount: Math.max(
           1,
           Math.min(36, Number(process.env.KYOWONTOUR_CALENDAR_MONTH_COUNT ?? '12') || 12)

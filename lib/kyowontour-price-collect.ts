@@ -96,13 +96,12 @@ export async function collectKyowontourPriceInputsWithE2eFallback(
     }
   }
 
-  const referer = keys.detailUrl ?? undefined
   const { rows, warnings, meta } = await collectKyowontourCalendarRange(keys.masterCode, {
     tourCodeForE2EFallback: keys.tourCodeHint,
     e2eMasterCodeHint: keys.masterCode,
     monthCount: horizonMonthCount(fromYmd, toYmd),
     logLabel: `kyowontour-price-collect:${product.id}`,
-    headers: referer ? { Referer: referer } : undefined,
+    refererUrl: keys.detailUrl,
   })
 
   const mapped = filterDepartureInputsOnOrAfterCalendarToday(

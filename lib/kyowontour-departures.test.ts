@@ -2,7 +2,19 @@
  * REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]: departDateYmd 파싱
  */
 import { describe, expect, it } from 'vitest'
-import { parseKyowontourCalendarDayAirRow } from './kyowontour-departures'
+import {
+  extractKyowontourMonthEvtDepartYmds,
+  parseKyowontourCalendarDayAirRow,
+} from './kyowontour-departures'
+
+describe('extractKyowontourMonthEvtDepartYmds', () => {
+  it('monthEvtList departDateYmd → YYYYMMDD', () => {
+    const ymds = extractKyowontourMonthEvtDepartYmds({
+      monthEvtList: [{ masterCode: 'MCP160', departDateYmd: '20260706' }, { departDateYmd: '20260713' }],
+    })
+    expect(ymds).toEqual(['20260706', '20260713'])
+  })
+})
 
 describe('parseKyowontourCalendarDayAirRow', () => {
   it('departDateYmd(YYYYMMDD) → YYYY-MM-DD', () => {

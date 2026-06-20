@@ -3,6 +3,7 @@
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-kyowontour'
 import { extractKyowontourThreeSlotPricesFromBlob } from '@/lib/register-kyowontour-price'
+import { KYOWONTOUR_TOUR_CODE_TITLE_RE } from '@/lib/supplier-listing-title-unacceptable'
 
 function pickDuration(blob: string): string | null {
   const m = blob.match(/(\d+)\s*박\s*(\d+)\s*일/)
@@ -38,9 +39,38 @@ function pickShoppingCount(blob: string): number | null {
   return null
 }
 
+function looksLikeKyowontourTourCode(s: string): boolean {
+  return KYOWONTOUR_TOUR_CODE_TITLE_RE.test(s.trim())
+}
+
+/** facts paste 1행·한글 마케팅 제목 — LLM이 tourCode만 반환할 때 보정 */
+function pickHumanTitleFromPaste(blob: string): string | null {
+  for (const line of blob.split(/\n/)) {
+    const t = line.trim()
+    if (!t || t.length < 6) continue
+    if (/^https?:\/\//i.test(t)) continue
+    if (/^source=/i.test(t)) continue
+    if (/^tourCode=/i.test(t)) continue
+    if (looksLikeKyowontourTourCode(t)) continue
+    if (/[가-힣]/.test(t) || /[#\[]/.test(t)) return t
+  }
+  return null
+}
+
 export function mergeKyowontourDeterministicFieldsFromPaste(parsed: RegisterParsed, rawText: string): RegisterParsed {
   const blob = rawText.replace(/\r/g, '\n')
   let next = { ...parsed }
+  const curTitle = (parsed.title ?? '').trim()
+  if (!curTitle || looksLikeKyowontourTourCode(curTitle)) {
+    const fromPaste = pickHumanTitleFromPaste(blob)
+    if (fromPaste) {
+      next = {
+        ...next,
+        title: fromPaste,
+        supplierListingTitleRaw: fromPaste,
+      }
+    }
+  }
   const dur = pickDuration(blob)
   if (dur && !(parsed.duration ?? '').trim()) {
     next = { ...next, duration: dur }

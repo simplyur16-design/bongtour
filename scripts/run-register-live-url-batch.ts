@@ -99,7 +99,7 @@ const CASES: Case[] = [
   {
     label: 'lottetour-package-58808',
     originSource: 'lottetour',
-    factsSupplier: null,
+    factsSupplier: 'lottetour',
     originUrl: 'https://www.lottetour.com/evtList/826/857/1063/2333?godId=58808',
     travelScope: 'overseas',
     route: '/api/travel/parse-and-register-lottetour',
@@ -107,7 +107,7 @@ const CASES: Case[] = [
   {
     label: 'lottetour-package-65222',
     originSource: 'lottetour',
-    factsSupplier: null,
+    factsSupplier: 'lottetour',
     originUrl: 'https://www.lottetour.com/evtList/826/854/1000/4900?godId=65222',
     travelScope: 'overseas',
     route: '/api/travel/parse-and-register-lottetour',
@@ -115,7 +115,7 @@ const CASES: Case[] = [
   {
     label: 'kyowontour-package-MCP160260622WS01',
     originSource: 'kyowontour',
-    factsSupplier: null,
+    factsSupplier: 'kyowontour',
     originUrl:
       'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=MCP160260622WS01&menuCode=M510602&brandId=0',
     travelScope: 'overseas',
@@ -124,7 +124,7 @@ const CASES: Case[] = [
   {
     label: 'kyowontour-fit-AWW317260621SQ02',
     originSource: 'kyowontour',
-    factsSupplier: null,
+    factsSupplier: 'kyowontour',
     originUrl:
       'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=AWW317260621SQ02&menuCode=M5306&brandId=3',
     travelScope: 'air_hotel_free',
@@ -174,12 +174,14 @@ async function buildPasteText(c: Case): Promise<{ text: string; factsOk: boolean
 }
 
 async function registerOne(c: Case, dryRun: boolean): Promise<void> {
+  const t0 = Date.now()
   console.log(`\n=== ${c.label} ===`)
   const { text, factsOk } = await buildPasteText(c)
+  const factsMs = Date.now() - t0
   if (!factsOk) {
     console.warn('WARN: register-facts collector missing — URL-only paste (detail-collect on confirm)')
   }
-  console.log('paste chars:', text.length)
+  console.log('paste chars:', text.length, `factsMs=${factsMs}`)
 
   if (dryRun) {
     console.log('dry-run: skip preview/confirm')
@@ -196,6 +198,7 @@ async function registerOne(c: Case, dryRun: boolean): Promise<void> {
     travelScope: c.travelScope,
     text,
   }
+  const previewT0 = Date.now()
   const preview = await postJson<{
     success?: boolean
     previewToken?: string
@@ -203,12 +206,15 @@ async function registerOne(c: Case, dryRun: boolean): Promise<void> {
     parsed?: unknown
     error?: string
   }>(c.route, previewBody)
-  console.log('preview http', preview.status, preview.json.success ? 'ok' : preview.json.error ?? 'fail')
+  const previewMs = Date.now() - previewT0
+  console.log('preview http', preview.status, preview.json.success ? 'ok' : preview.json.error ?? 'fail', `previewMs=${previewMs}`)
   if (!preview.json.success || !preview.json.previewToken) {
     console.log(JSON.stringify(preview.json, null, 2))
+    console.log(`totalMs=${Date.now() - t0}`)
     return
   }
 
+  const confirmT0 = Date.now()
   const confirm = await postJson<{ success?: boolean; productId?: string; slug?: string; error?: string }>(
     c.route,
     {
@@ -219,12 +225,14 @@ async function registerOne(c: Case, dryRun: boolean): Promise<void> {
       parsed: preview.json.parsed,
     },
   )
-  console.log('confirm http', confirm.status, confirm.json.success ? 'ok' : confirm.json.error ?? 'fail')
+  const confirmMs = Date.now() - confirmT0
+  console.log('confirm http', confirm.status, confirm.json.success ? 'ok' : confirm.json.error ?? 'fail', `confirmMs=${confirmMs}`)
   if (confirm.json.success) {
     console.log('productId', confirm.json.productId, 'slug', confirm.json.slug, '→ registrationStatus pending')
   } else {
     console.log(JSON.stringify(confirm.json, null, 2))
   }
+  console.log(`totalMs=${Date.now() - t0} (facts=${factsMs} preview=${previewMs} confirm=${confirmMs})`)
 }
 
 async function main() {

@@ -12,6 +12,7 @@ import {
 } from '@/lib/parse-and-register-lottetour-schedule'
 
 import { augmentLottetourParsedWithDetailCollect } from '@/lib/lottetour-register-detail-collect'
+import { injectLottetourApiDeparturePricesIfMissing } from '@/lib/lottetour-register-api-price-inject'
 
 export async function handleParseAndRegisterLottetourRequest(request: Request) {
   return runParseAndRegisterFlow(request, {
@@ -23,11 +24,13 @@ export async function handleParseAndRegisterLottetourRequest(request: Request) {
       sanitizeLottetourRegisterParsedStrings(
         augmentLottetourScheduleExpressionParsed(p, ctx?.pastedBodyText, { travelScope: ctx?.travelScope }),
       ),
-    patchParsedAfterAugment: async (parsed, _text, ctx) =>
-      augmentLottetourParsedWithDetailCollect(parsed, {
+    patchParsedAfterAugment: async (parsed, _text, ctx) => {
+      let next = await injectLottetourApiDeparturePricesIfMissing(parsed, ctx?.originUrl)
+      return augmentLottetourParsedWithDetailCollect(next, {
         originUrl: ctx?.originUrl,
         pastedBlocks: ctx?.pastedBlocks,
-      }),
+      })
+    },
     finalizeItineraryDayDraftsFromSchedule: finalizeLottetourItineraryDayDraftsFromSchedule,
     getHeroTripDatesSupplement: (p) => ({
       lottetourFlightStructured: p.detailBodyStructured?.flightStructured ?? null,

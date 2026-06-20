@@ -5,6 +5,8 @@
  */
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { collectHanatourRegisterFacts } from '@/lib/register-facts/hanatour'
+import { collectKyowontourRegisterFacts } from '@/lib/register-facts/kyowontour'
+import { collectLottetourRegisterFacts } from '@/lib/register-facts/lottetour'
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
 import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { collectVerygoodtourRegisterFacts } from '@/lib/register-facts/verygoodtour'
@@ -27,11 +29,15 @@ export async function collectSupplierRegisterFacts(
       return collectYbtourRegisterFacts(url)
     case 'verygoodtour':
       return collectVerygoodtourRegisterFacts(url)
+    case 'lottetour':
+      return collectLottetourRegisterFacts(url)
+    case 'kyowontour':
+      return collectKyowontourRegisterFacts(url)
     default:
       return null
   }
 }
 
 export function registerFactsSupportedSuppliers(): CanonicalOverseasSupplierKey[] {
-  return ['modetour', 'hanatour', 'ybtour', 'verygoodtour']
+  return ['modetour', 'hanatour', 'ybtour', 'verygoodtour', 'lottetour', 'kyowontour']
 }

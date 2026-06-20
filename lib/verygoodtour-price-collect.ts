@@ -85,6 +85,20 @@ function extractMenuCodeFromDetailHtml(html: string): string | null {
   return m?.[1]?.trim() ?? null
 }
 
+function mapVerygoodLeftCellsToInputs(
+  cells: Array<{ date: string; approxPrice: number }>,
+): DepartureInput[] {
+  return cells
+    .filter((c) => c.approxPrice > 0 && /^\d{4}-\d{2}-\d{2}$/.test(c.date))
+    .map((c) => ({
+      departureDate: c.date,
+      adultPrice: c.approxPrice,
+      statusRaw: '예약가능',
+      seatsStatusRaw: null,
+      carrierName: null,
+    }))
+}
+
 function mapVerygoodRightRowsToInputs(rows: ReturnType<typeof parseVerygoodCalendarRightRows>): DepartureInput[] {
   return rows
     .filter((r) => r.adultPrice > 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.date))
@@ -172,7 +186,10 @@ export async function collectVerygoodHxrOnlyForDateRange(
       rightRowCount += parsed.rightRows.length
       leftWithPriceCount += parsed.leftCells.filter((c) => c.approxPrice > 0).length
       if (parsed.warnings.length > 0) warnings.push(...parsed.warnings.map((w) => `${ym.year}-${ym.month}:${w}`))
-      for (const row of mapVerygoodRightRowsToInputs(parsed.rightRows)) {
+      const rightInputs = mapVerygoodRightRowsToInputs(parsed.rightRows)
+      const rowInputs =
+        rightInputs.length > 0 ? rightInputs : mapVerygoodLeftCellsToInputs(parsed.leftCells)
+      for (const row of rowInputs) {
         const dk = departureInputToYmd(row.departureDate)
         if (dk) merged.set(dk, row)
       }

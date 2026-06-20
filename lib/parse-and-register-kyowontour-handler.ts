@@ -11,6 +11,7 @@ import {
   kyowontourConfirmHasScheduleExpressionLayer,
 } from '@/lib/parse-and-register-kyowontour-schedule'
 import { augmentKyowontourParsedWithTabDataCollect } from '@/lib/kyowontour-register-tab-data-collect'
+import { injectKyowontourApiDeparturePricesIfMissing } from '@/lib/kyowontour-register-api-price-inject'
 
 export async function handleParseAndRegisterKyowontourRequest(request: Request) {
   return runParseAndRegisterFlow(request, {
@@ -22,11 +23,13 @@ export async function handleParseAndRegisterKyowontourRequest(request: Request) 
       sanitizeKyowontourRegisterParsedStrings(
         augmentKyowontourScheduleExpressionParsed(p, ctx?.pastedBodyText, { travelScope: ctx?.travelScope }),
       ),
-    patchParsedAfterAugment: (parsed, _text, ctx) =>
-      augmentKyowontourParsedWithTabDataCollect(parsed, {
+    patchParsedAfterAugment: async (parsed, _text, ctx) => {
+      let next = await injectKyowontourApiDeparturePricesIfMissing(parsed, ctx?.originUrl)
+      return augmentKyowontourParsedWithTabDataCollect(next, {
         originUrl: ctx?.originUrl,
         pastedBlocks: ctx?.pastedBlocks,
-      }),
+      })
+    },
     finalizeItineraryDayDraftsFromSchedule: finalizeKyowontourItineraryDayDraftsFromSchedule,
     getHeroTripDatesSupplement: (p) => ({
       kyowontourFlightStructured: p.detailBodyStructured?.flightStructured ?? null,

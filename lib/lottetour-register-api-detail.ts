@@ -482,6 +482,33 @@ async function fetchMatchingEvtListRow(
   return parsed.rows.find((r) => r.evtCd === evtCd) ?? null
 }
 
+/** evtList URL(godId·menu만) — evtListAjax에서 첫 가격 행으로 evtCd 시드. */
+async function resolveLottetourEvtListSeedRow(
+  godId: string,
+  menuNos: [string, string, string, string],
+  referer: string,
+): Promise<LottetourCalendarRow | null> {
+  const start = new Date()
+  for (let i = 0; i < 4; i += 1) {
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1)
+    const depDt = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`
+    const url = buildEvtListAjaxUrl({ depDt, godId, menuNos })
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: lottetourRegisterHeaders(referer),
+      signal: AbortSignal.timeout(25_000),
+    })
+    if (!res.ok) continue
+    const html = await res.text()
+    if (!html || html.length < 3000) continue
+    const parsed = parseLottetourEvtListAjaxHtml(html, { depYm: depDt, godId })
+    const priced = parsed.rows.find((r) => r.adultPrice > 0 && r.evtCd)
+    if (priced) return priced
+    if (parsed.rows[0]?.evtCd) return parsed.rows[0]!
+  }
+  return null
+}
+
 export async function fetchLottetourRegisterDetailBundle(
   originUrl: string,
 ): Promise<LottetourRegisterDetailBundle | null> {
@@ -493,8 +520,13 @@ export async function fetchLottetourRegisterDetailBundle(
   if (!hints.godId || !hints.menuNos) {
     hints = await enrichLottetourEvtListCollectionHintsFromDetailPage(hints, url)
   }
-  const evtCd = ids.evtCd ?? hints.detailEvtCd
   const godId = hints.godId
+  let evtCd = ids.evtCd ?? hints.detailEvtCd
+  let evtListRow: LottetourCalendarRow | null = null
+  if (!evtCd && godId && hints.menuNos) {
+    evtListRow = await resolveLottetourEvtListSeedRow(godId, hints.menuNos, url)
+    evtCd = evtListRow?.evtCd ?? null
+  }
   if (!evtCd || !godId) return null
 
   const referer = url
@@ -510,8 +542,7 @@ export async function fetchLottetourRegisterDetailBundle(
   const coreInfoHtml = await fetchLottetourRegisterHtml(`/evtDetailCoreInfo?${ajaxParams}`, referer)
   await paceBetweenLottetourRegisterFetches()
 
-  let evtListRow: LottetourCalendarRow | null = null
-  if (hints.menuNos) {
+  if (!evtListRow && hints.menuNos) {
     evtListRow = await fetchMatchingEvtListRow(evtCd, godId, hints.menuNos, referer)
   }
 

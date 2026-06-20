@@ -3,7 +3,13 @@
  * 저작권: 서술 문장은 LLM이 재작성하고, 여기는 도시·일차·가격·항공 등 사실만 담는다.
  */
 
-export type SupplierRegisterFactSource = 'modetour' | 'hanatour' | 'ybtour' | 'verygoodtour'
+export type SupplierRegisterFactSource =
+  | 'modetour'
+  | 'hanatour'
+  | 'ybtour'
+  | 'verygoodtour'
+  | 'lottetour'
+  | 'kyowontour'
 
 export type RegisterFactScheduleDay = {
   day: number
