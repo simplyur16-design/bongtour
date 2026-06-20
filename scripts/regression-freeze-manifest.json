@@ -1292,7 +1292,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-api-price-inject]",
             "injectHanatourApiDeparturePricesIfMissing",
-            "hanatourProdInfoToDepartureInput"
+            "collectHanatourApiDepartureInputsForMonths",
+            "registerDepartureInputsToParsedPrices"
           ]
         },
         {
@@ -1313,7 +1314,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-register-api-price-inject]",
             "injectYbtourApiDeparturePricesIfMissing",
-            "collectYbtourApiDepartureInputsForUrl"
+            "collectYbtourByGoodsApiDepartureInputsForUrl",
+            "registerDepartureInputsToParsedPrices"
           ]
         },
         {
@@ -1391,7 +1393,24 @@
           "file": "lib/register-facts/types.ts",
           "mustInclude": [
             "SupplierRegisterFactBundle",
-            "RegisterFactScheduleDay"
+            "RegisterFactScheduleDay",
+            "statusRaw",
+            "seatCount"
+          ]
+        },
+        {
+          "file": "lib/register-fact-price-row.ts",
+          "mustInclude": [
+            "registerDepartureLikeToFactPriceRow",
+            "kyowontourCalendarRowToFactPriceRow",
+            "lottetourCalendarRowToFactPriceRow"
+          ]
+        },
+        {
+          "file": "lib/register-departure-input-to-parsed-price.ts",
+          "mustInclude": [
+            "registerDepartureInputToParsedPrice",
+            "registerDepartureInputsToParsedPrices"
           ]
         },
         {
@@ -1415,7 +1434,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-foundation]",
             "collectHanatourRegisterFacts",
-            "getPkgProdItnrInfo"
+            "collectHanatourApiDepartureInputsForMonths"
           ]
         },
         {
@@ -1431,7 +1450,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-foundation]",
             "collectYbtourRegisterFacts",
-            "papi"
+            "collectYbtourByGoodsApiDepartureInputsForUrl"
           ]
         },
         {
@@ -1461,6 +1480,12 @@
       ],
       "vitestSuites": [
         "lib/register-facts/modetour.test.ts"
+      ],
+      "npmScripts": [
+        {
+          "script": "verify:register-facts-live",
+          "tier": ["ci"]
+        }
       ]
     },
     {

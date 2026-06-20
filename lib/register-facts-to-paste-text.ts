@@ -84,6 +84,10 @@ export function registerFactBundleToPasteText(bundle: SupplierRegisterFactBundle
               r.adultPrice != null ? `성인 ${r.adultPrice.toLocaleString('ko-KR')}원` : null,
               r.childPrice != null ? `아동 ${r.childPrice.toLocaleString('ko-KR')}원` : null,
               r.infantPrice != null ? `유아 ${r.infantPrice.toLocaleString('ko-KR')}원` : null,
+              r.statusRaw ? `상태 ${r.statusRaw}` : null,
+              r.seatCount != null ? `잔여 ${r.seatCount}석` : r.seatsStatusRaw ? r.seatsStatusRaw : null,
+              r.minPax != null ? `최소 ${r.minPax}명` : null,
+              r.carrierName ? `항공 ${r.carrierName}` : null,
             ]
               .filter(Boolean)
               .join(' '),

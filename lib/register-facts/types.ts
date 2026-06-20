@@ -35,6 +35,13 @@ export type RegisterFactPriceRow = {
   childPrice: number | null
   infantPrice: number | null
   supplierDepartureCode: string | null
+  /** 예약가능·출발확정·마감 등 공급사 원문 */
+  statusRaw?: string | null
+  /** 잔여N석 등 좌석 관련 원문 */
+  seatsStatusRaw?: string | null
+  seatCount?: number | null
+  minPax?: number | null
+  carrierName?: string | null
 }
 
 export type SupplierRegisterFactBundle = {
