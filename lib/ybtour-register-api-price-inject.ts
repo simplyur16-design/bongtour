@@ -1,31 +1,12 @@
 /**
- * ybtour 등록 confirm — papi 출발·기본가 parsed 주입.
+ * ybtour 등록 confirm — papi by-goods 다출발·상태·항공사 parsed 주입.
  *
  * REGRESSION-FREEZE[ybtour-register-api-price-inject]: injectYbtourApiDeparturePricesIfMissing — manifest
  */
-import type { ParsedProductPrice } from '@/lib/parsed-product-types'
+import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
-import { departureInputToYmd } from '@/lib/scrape-date-bounds'
-import { collectYbtourApiDepartureInputsForUrl } from '@/lib/ybtour-api-departures'
-import type { DepartureInput } from '@/lib/upsert-product-departures-ybtour'
-
-function departureInputToPriceRow(dep: DepartureInput): ParsedProductPrice | null {
-  const date = departureInputToYmd(dep.departureDate)
-  if (!date) return null
-  return {
-    date,
-    adultBase: dep.adultPrice ?? 0,
-    adultFuel: 0,
-    childBedBase: dep.childBedPrice ?? undefined,
-    childFuel: 0,
-    infantBase: dep.infantPrice ?? undefined,
-    infantFuel: 0,
-    status: '예약가능',
-    availableSeats: 0,
-    carrierName: dep.carrierName ?? null,
-    outboundFlightNo: dep.outboundFlightNo ?? null,
-  }
-}
+import { registerDepartureInputsToParsedPrices } from '@/lib/register-departure-input-to-parsed-price'
+import { collectYbtourByGoodsApiDepartureInputsForUrl } from '@/lib/ybtour-api-departures'
 
 export async function injectYbtourApiDeparturePricesIfMissing(
   parsed: RegisterParsed,
@@ -35,7 +16,11 @@ export async function injectYbtourApiDeparturePricesIfMissing(
   const url = (originUrl ?? '').trim()
   if (!url) return parsed
 
-  const hit = await collectYbtourApiDepartureInputsForUrl(url)
+  const fromYmd = kstTodayYmd()
+  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+  const hit = await collectYbtourByGoodsApiDepartureInputsForUrl(url, fromYmd, toYmd, {
+    originCode: parsed.originCode ?? null,
+  })
   if (hit.inputs.length === 0) return parsed
 
   const first = hit.inputs[0]!
@@ -46,13 +31,16 @@ export async function injectYbtourApiDeparturePricesIfMissing(
   }
 
   const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]
-  const note = `ybtour papi 출발·기본가 주입: ${hit.inputs.length}행`
+  const note = `ybtour papi by-goods 출발·가격 주입: ${hit.inputs.length}행`
   if (!notes.includes(note)) notes.push(note)
+
+  const prices = registerDepartureInputsToParsedPrices(hit.inputs)
+  if (prices.length === 0) return parsed
 
   return {
     ...parsed,
     productPriceTable,
-    prices: hit.inputs.map(departureInputToPriceRow).filter((row): row is ParsedProductPrice => row != null),
+    prices,
     registerPreviewPolicyNotes: notes,
   }
 }

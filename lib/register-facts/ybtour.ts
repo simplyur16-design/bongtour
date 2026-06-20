@@ -4,12 +4,14 @@
  * REGRESSION-FREEZE[register-facts-foundation]: papi event/schedule — manifest
  */
 import {
-  collectYbtourApiDepartureInputsForUrl,
+  collectYbtourByGoodsApiDepartureInputsForUrl,
   fetchYbtourEventFirstDisplay,
   parseYbtourEvCdFromUrl,
-  ybtourYmdFromEvStartDt,
 } from '@/lib/ybtour-api-departures'
+import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
 import type { RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
+import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 
 const YBTOUR_PAPI_BASE = process.env.YBTOUR_PAPI_BASE_URL ?? 'https://papi.ybtour.co.kr'
 
@@ -56,21 +58,31 @@ export async function collectYbtourRegisterFacts(originUrl: string): Promise<Sup
   if (!evCd) return null
 
   const referer = originUrl.trim() || `https://prdt.ybtour.co.kr/product/detailPackage?evCd=${evCd}`
+  const fromYmd = kstTodayYmd()
+  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
   const [apiHit, display, scheduleDays] = await Promise.all([
-    collectYbtourApiDepartureInputsForUrl(originUrl),
+    collectYbtourByGoodsApiDepartureInputsForUrl(originUrl, fromYmd, toYmd),
     fetchYbtourEventFirstDisplay(evCd, referer),
     fetchYbtourScheduleDays(evCd, referer),
   ])
 
-  const departureYmd = ybtourYmdFromEvStartDt(display?.evStartDt)
-  const priceRow = apiHit.inputs[0]
+  const priceRows = apiHit.inputs
+    .map((dep) =>
+      registerDepartureLikeToFactPriceRow({
+        ...dep,
+        supplierDepartureCode: dep.supplierDepartureCodeCandidate ?? null,
+      }),
+    )
+    .filter((row): row is NonNullable<typeof row> => row != null)
+
+  const firstInput = apiHit.inputs[0]
 
   return {
     supplier: 'ybtour',
     fetchedAt: new Date().toISOString(),
     originUrl,
     originCode: evCd.split('-')[0] ?? evCd,
-    title: display?.evNm?.trim() || apiHit.title,
+    title: display?.evNm?.trim() || null,
     nights: null,
     days: null,
     meetingInfo: null,
@@ -78,18 +90,20 @@ export async function collectYbtourRegisterFacts(originUrl: string): Promise<Sup
     excludedBullets: [],
     shoppingPlaces: [],
     scheduleDays,
-    flights: [],
-    priceRows: priceRow
+    flights: firstInput?.carrierName
       ? [
           {
-            departureDate: departureYmd,
-            adultPrice: priceRow.adultPrice ?? null,
-            childPrice: priceRow.childBedPrice ?? null,
-            infantPrice: priceRow.infantPrice ?? null,
-            supplierDepartureCode: priceRow.supplierDepartureCodeCandidate ?? null,
+            direction: 'outbound' as const,
+            carrier: firstInput.carrierName,
+            flightNo: firstInput.outboundFlightNo ?? null,
+            departureCity: null,
+            departureAt: departureInputToYmd(firstInput.departureDate),
+            arrivalCity: null,
+            arrivalAt: null,
           },
         ]
       : [],
-    notes: ['source=ybtour_papi', `evCd=${evCd}`],
+    priceRows,
+    notes: ['source=ybtour_papi_by_goods', `evCd=${evCd}`, `calendar_rows=${priceRows.length}`],
   }
 }
